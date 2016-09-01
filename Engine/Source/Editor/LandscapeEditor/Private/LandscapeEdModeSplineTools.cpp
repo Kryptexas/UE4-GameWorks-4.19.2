@@ -19,6 +19,7 @@
 #include "ControlPointMeshComponent.h"
 #include "EditorUndoClient.h"
 #include "EngineUtils.h"
+#include "Algo/Copy.h"
 
 
 #define LOCTEXT_NAMESPACE "Landscape"
@@ -85,16 +86,8 @@ public:
 		{
 			TArray<UObject*> Objects;
 			Objects.Reset(SelectedSplineControlPoints.Num() + SelectedSplineSegments.Num());
-
-			for (ULandscapeSplineControlPoint* ControlPoint : SelectedSplineControlPoints)
-			{
-				Objects.Add(ControlPoint);
-			}
-			for (ULandscapeSplineSegment* Segment : SelectedSplineSegments)
-			{
-				Objects.Add(Segment);
-			}
-
+			Algo::Copy(SelectedSplineControlPoints, Objects);
+			Algo::Copy(SelectedSplineSegments, Objects);
 
 			FPropertyEditorModule& PropertyModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
 			PropertyModule.UpdatePropertyViews(Objects);
@@ -345,14 +338,14 @@ public:
 		}
 	}
 
-	void AddControlPoint(ALandscapeProxy* Landscape, const FVector& LocalLocation)
+	void AddControlPoint(ULandscapeSplinesComponent* SplinesComponent, const FVector& LocalLocation)
 	{
 		FScopedTransaction Transaction(LOCTEXT("LandscapeSpline_AddControlPoint", "Add Landscape Spline Control Point"));
 
-		Landscape->SplineComponent->Modify();
+		SplinesComponent->Modify();
 
-		ULandscapeSplineControlPoint* NewControlPoint = NewObject<ULandscapeSplineControlPoint>(Landscape->SplineComponent, NAME_None, RF_Transactional);
-		Landscape->SplineComponent->ControlPoints.Add(NewControlPoint);
+		ULandscapeSplineControlPoint* NewControlPoint = NewObject<ULandscapeSplineControlPoint>(SplinesComponent, NAME_None, RF_Transactional);
+		SplinesComponent->ControlPoints.Add(NewControlPoint);
 
 		NewControlPoint->Location = LocalLocation;
 
@@ -388,13 +381,13 @@ public:
 		SelectControlPoint(NewControlPoint);
 		UpdatePropertiesWindows();
 
-		if (!Landscape->SplineComponent->IsRegistered())
+		if (!SplinesComponent->IsRegistered())
 		{
-			Landscape->SplineComponent->RegisterComponent();
+			SplinesComponent->RegisterComponent();
 		}
 		else
 		{
-			Landscape->SplineComponent->MarkRenderStateDirty();
+			SplinesComponent->MarkRenderStateDirty();
 		}
 	}
 
@@ -632,7 +625,7 @@ public:
 			{
 				if (!ToLandscape)
 				{
-					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo(false);
+					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo();
 					check(ProxyLandscapeInfo);
 					ToLandscape = ProxyLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 					if (!ToLandscape)
@@ -648,6 +641,7 @@ public:
 					if (ToLandscape->SplineComponent == nullptr)
 					{
 						CreateSplineComponent(ToLandscape, FromProxy->SplineComponent->RelativeScale3D);
+						check(ToLandscape->SplineComponent);
 					}
 					ToLandscape->SplineComponent->Modify();
 
@@ -721,7 +715,7 @@ public:
 			{
 				if (!ToLandscape)
 				{
-					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo(false);
+					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo();
 					check(ProxyLandscapeInfo);
 					ToLandscape = ProxyLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 					if (!ToLandscape)
@@ -737,6 +731,7 @@ public:
 					if (ToLandscape->SplineComponent == nullptr)
 					{
 						CreateSplineComponent(ToLandscape, FromProxy->SplineComponent->RelativeScale3D);
+						check(ToLandscape->SplineComponent);
 					}
 					ToLandscape->SplineComponent->Modify();
 
@@ -814,15 +809,8 @@ public:
 	{
 		TArray<UObject*> Objects;
 		Objects.Reset(SelectedSplineControlPoints.Num() + SelectedSplineSegments.Num());
-
-		for (ULandscapeSplineControlPoint* ControlPoint : SelectedSplineControlPoints)
-		{
-			Objects.Add(ControlPoint);
-		}
-		for (ULandscapeSplineSegment* Segment : SelectedSplineSegments)
-		{
-			Objects.Add(Segment);
-		}
+		Algo::Copy(SelectedSplineControlPoints, Objects);
+		Algo::Copy(SelectedSplineSegments, Objects);
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
 		if (!PropertyModule.HasUnlockedDetailViews())
@@ -840,21 +828,32 @@ public:
 		if (ViewportClient->IsCtrlPressed())
 		{
 			LandscapeInfo = InTarget.LandscapeInfo.Get();
-
 			ALandscapeProxy* Landscape = LandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 			if (!Landscape)
 			{
 				return false;
 			}
 
-			if (!Landscape->SplineComponent)
+			ULandscapeSplinesComponent* SplinesComponent = nullptr;
+			if (SelectedSplineControlPoints.Num() > 0)
 			{
-				CreateSplineComponent(Landscape, FVector(1.0f) / Landscape->GetRootComponent()->RelativeScale3D);
+				ULandscapeSplineControlPoint* FirstPoint = *SelectedSplineControlPoints.CreateConstIterator();
+				SplinesComponent = FirstPoint->GetOuterULandscapeSplinesComponent();
 			}
 
-			const FTransform LandscapeToSpline = Landscape->LandscapeActorToWorld().GetRelativeTransform(Landscape->SplineComponent->ComponentToWorld);
+			if (!SplinesComponent)
+			{
+				if (!Landscape->SplineComponent)
+				{
+					CreateSplineComponent(Landscape, FVector(1.0f) / Landscape->GetRootComponent()->RelativeScale3D);
+					check(Landscape->SplineComponent);
+				}
+				SplinesComponent = Landscape->SplineComponent;
+			}
 
-			AddControlPoint(Landscape, LandscapeToSpline.TransformPosition(InHitLocation));
+			const FTransform LandscapeToSpline = Landscape->LandscapeActorToWorld().GetRelativeTransform(SplinesComponent->ComponentToWorld);
+
+			AddControlPoint(SplinesComponent, LandscapeToSpline.TransformPosition(InHitLocation));
 
 			GUnrealEd->RedrawLevelEditingViewports();
 
@@ -1161,7 +1160,7 @@ public:
 						HLandscapeSplineProxy_Segment* SplineProxy = (HLandscapeSplineProxy_Segment*)HitProxy;
 						ClickedSplineSegment = SplineProxy->SplineSegment;
 
-						LandscapeToSpline = ClickedSplineSegment->GetTypedOuter<AActor>()->ActorToWorld().GetRelativeTransform(ClickedSplineSegment->GetTypedOuter<ULandscapeSplinesComponent>()->ComponentToWorld);
+						LandscapeToSpline = ClickedSplineSegment->GetTypedOuter<AActor>()->ActorToWorld().GetRelativeTransform(ClickedSplineSegment->GetOuterULandscapeSplinesComponent()->ComponentToWorld);
 					}
 					else if (HitProxy->IsA(HActor::StaticGetType()))
 					{
@@ -1810,6 +1809,7 @@ public:
 		if (!Landscape->SplineComponent)
 		{
 			CreateSplineComponent(Landscape, FVector(1.0f) / Landscape->GetRootComponent()->RelativeScale3D);
+			check(Landscape->SplineComponent);
 		}
 		Landscape->SplineComponent->Modify();
 

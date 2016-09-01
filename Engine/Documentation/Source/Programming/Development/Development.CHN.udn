@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2744667
 Availability:Public
-Title:Development Setup
+Title: 开发的相关设置
 Crumbs: %ROOT%, Programming
-Description:Setting up your code environment, creating code projects, and working with Unreal Engine source.
+Description: 设置编程环境，创建代码项目，并在虚幻引擎的源码上开始工作。
+version: 4.9
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 	[/PARAM]
 	[PARAM:title]
-		General Developer Information
+		开发人员所需的基本信息
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -23,7 +24,7 @@ Description:Setting up your code environment, creating code projects, and workin
 	[PARAM:icon]
 	[/PARAM]
 	[PARAM:title]
-		Working With Code Projects
+		在代码的项目上工作
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -38,7 +39,7 @@ Description:Setting up your code environment, creating code projects, and workin
 	[PARAM:icon]
 	[/PARAM]
 	[PARAM:title]
-		Working With Engine Source
+		在引擎的代码上工作
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

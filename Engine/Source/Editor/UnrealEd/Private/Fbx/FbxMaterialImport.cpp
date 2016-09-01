@@ -400,7 +400,7 @@ FString UnFbx::FFbxImporter::GetMaterialFullName(FbxSurfaceMaterial& FbxMaterial
 void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
 {
 	// Make sure we have a parent
-	if ( !ensure(Parent) )
+	if ( !ensure(Parent.IsValid()) )
 	{
 		return;
 	}

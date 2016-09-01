@@ -1,27 +1,28 @@
-﻿INTSourceChangelist:2324198
+﻿INTSourceChangelist:2693435
 Availability:Public
-Title: Play In Editor の設定
+Title:Play In Editor の設定
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
-Description: Play-In 機能のウィンドウ サイズとその他オプションの設定
+Description:Play-In 機能のウィンドウ サイズとその他オプションの設定
+Version:4.9
 
 [TOC(start:2)]
-**[プレイ]** 設定パネルは次の 2 種類の方法で開くことができます。
+**[Play (プレイ)]** 設定パネルは次の 2 種類の方法で開くことができます。
 
-* 以下の順序でクリックします。**Edit** > **Editor Preferences**...
+* **Edit** > **Editor Preferences**... の順序でクリックします。
 
 	![](PIE_settings.png) 
 
-	次に、[Editor Preferences] ウィンドウの**[プレイ]** セクションを選択します。
+	次に、[Editor Preferences] ウィンドウの**[Play]** セクションを選択します。
 
 	![](PIE_Settings_Preferences.png)
 
-* または、**[プレイ]** ドロップダウンメニューの一番下の **[Advanced Settings...]** をクリックしても開くことができます。
+* または、**[Play]** ドロップダウンメニューの一番下の **[Advanced Settings...]** をクリックしても開くことができます。
 
 	![](PIE_settings_buttonmenu.png)
 
 ## Play In Editor
 
-**Play In Editor** 設定により、**Play In Editor** セッションでマウス制御動作を変更することができます。これらの設定は、**Level Viewport** に表示される _Play In Editor_ に適用されます。
+**Play In Editor** 設定により、**Play In Editor** セッションでマウス制御動作を変更することができます。これらの設定は、**レベル ビューポート** に表示される _Play In Editor_ セッションだけに適用されます。
 結果として、デフォルトのウィンドウサイズは設定しません。
 
 | 設定 | 説明 |
@@ -64,7 +65,7 @@ Description: Play-In 機能のウィンドウ サイズとその他オプショ�
 [/EXCERPT]
 
 [EXCERPT:NewWindowPosition]
-フローティング Play in Editor ウィンドウの左上の画面座標を設定します (ピクセル単位)。
+フローティング [Play in Editor] ウィンドウの左上の画面座標を設定します (ピクセル単位)。
 *%doxygen:ULevelEditorPlaySettings::NewWindowPosition% 
 *%doxygen:ULevelEditorPlaySettings::CenterNewWindow% 
 [/EXCERPT]
@@ -72,9 +73,9 @@ Description: Play-In 機能のウィンドウ サイズとその他オプショ�
 -->
 
 
-## スタンドアロンゲームでプレイ
+## スタンドアローン ゲームでプレイ
 
-スタンドアロンのゲーム ウィンドウに表示される _Play In Editor_ セッションの開始時に、これらの設定がスタンドアロンのゲーム ウィンドウのサイズや開始位置を決定します。追加のコマンドライン設定を
+スタンドアローンのゲーム ウィンドウに表示される _Play In Editor_ セッションの開始時に、これらの設定が新たに表示されるウィンドウのサイズや開始位置を決定します。追加のコマンドライン設定を
 ゲーム クライアントに渡すことができるオプションもあります。
 
 | 設定 | 説明 |
@@ -84,22 +85,22 @@ Description: Play-In 機能のウィンドウ サイズとその他オプショ�
 
 <!--
 [EXCERPT:StandaloneWindowSize]
- スタンドアロン ゲーム ウィンドウの幅と高さを設定します (ピクセル単位)。
+スタンドアローン ゲーム ウィンドウの幅と高さを設定します (ピクセル単位)。
 *%doxygen:ULevelEditorPlaySettings::StandaloneWindowWidth% 
 *%doxygen:ULevelEditorPlaySettings::StandaloneWindowHeight% 
 * 電話やタブレットなどのデバイス設定を含め、一般的なウィンドウ サイズのリストから選びます。 
 [/EXCERPT]
 
 [EXCERPT:ClientCommandLineOptions]
-ゲームクライアントに渡す追加設定のコマンド ラインを生成します。
+ゲーム クライアントに渡す追加設定のコマンド ラインを生成します。
 *%doxygen:ULevelEditorPlaySettings::AdditionalLaunchParameters% 
 [/EXCERPT]
 
 -->
 
-## マルチプレーヤーオプション
+## マルチプレイヤー オプション
 
-[networked _Play In Editor_ testing](Engine/UI/LevelEditor\InEditorTesting\NetworkedPlayInEditor) には基本的なオプションと高度なオプションが用意されています。**[Play In]** ドロップダウン メニューにはプレーヤーと専用サーバーオプションが多数ありますが、その他にも URL パラメータ、ゲームパッド ルーティング、マルチプロセス テストメソッドへのリバートの設定があります。
+[networked _Play In Editor_ testing](Engine/UI/LevelEditor\InEditorTesting\NetworkedPlayInEditor) には基本的なオプションと詳細オプションが用意されています。**[Play In]** ドロップダウン メニューにはプレイヤー数と専用サーバー オプションの他にも URL パラメータ、ゲームパッド ルーティング、マルチプロセス テスト メソッドへのリバートの設定があります。
 　
 
 [EXCERPT:NetworkPIESettings]

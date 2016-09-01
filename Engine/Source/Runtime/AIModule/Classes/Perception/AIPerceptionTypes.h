@@ -49,6 +49,11 @@ struct FPerceptionChannelWhitelist
 		AcceptedChannelsMask = 0;
 	}
 
+	bool IsEmpty() const
+	{
+		return (AcceptedChannelsMask == 0);
+	}
+
 	FORCEINLINE FPerceptionChannelWhitelist& FilterOutChannel(FAISenseID Channel)
 	{
 		AcceptedChannelsMask &= ~(1 << Channel);
@@ -102,7 +107,7 @@ struct FPerceptionChannelWhitelist
 			}
 		}
 
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{
 			return (RemainingChannelsToTest & Whitelist.GetAcceptedChannelsMask()) != 0;
 		}

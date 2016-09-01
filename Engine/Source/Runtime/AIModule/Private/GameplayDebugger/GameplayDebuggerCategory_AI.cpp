@@ -42,7 +42,10 @@ void FGameplayDebuggerCategory_AI::FRepData::Serialize(FArchive& Ar)
 	Ar << CurrentAIAssets;
 	Ar << NavDataInfo;
 	Ar << MontageInfo;
-	Ar << GameplayTaskInfo;
+	Ar << TaskQueueInfo;
+	Ar << TickingTaskInfo;
+	Ar << NumTasksInQueue;
+	Ar << NumTickingTasks;
 
 	uint32 BitFlags =
 		((bIsUsingPathFollowing ? 1 : 0) << 0) |
@@ -80,6 +83,18 @@ void FGameplayDebuggerCategory_AI::FRepDataPath::Serialize(FArchive& Ar)
 	Ar << PathPoints;
 }
 
+static FString DescribeTaskHelper(const UGameplayTask& TaskOb)
+{
+	const UObject* OwnerOb = Cast<const UObject>(TaskOb.GetTaskOwner());
+	return FString::Printf(TEXT("\n  {white}%s%s {%s}%s:%d {white}Owner:{yellow}%s {white}Res:{yellow}%s"),
+		*TaskOb.GetName(),
+		TaskOb.GetInstanceName() != NAME_None ? *FString::Printf(TEXT(" {yellow}[%s]"), *TaskOb.GetInstanceName().ToString()) : TEXT(""),
+		TaskOb.IsActive() ? TEXT("green") : TEXT("orange"),
+		*TaskOb.GetTaskStateName(), TaskOb.GetPriority(),
+		*GetNameSafe(OwnerOb),
+		TaskOb.GetRequiredResources().IsEmpty() ? TEXT("None") : *TaskOb.GetRequiredResources().GetDebugDescription());
+}
+
 void FGameplayDebuggerCategory_AI::CollectData(APlayerController* OwnerPC, AActor* DebugActor)
 {
 	APawn* MyPawn = Cast<APawn>(DebugActor);
@@ -105,7 +120,7 @@ void FGameplayDebuggerCategory_AI::CollectData(APlayerController* OwnerPC, AActo
 		DataPack.ControllerName = TEXT("No Controller");
 	}
 
-	if (IsValid(MyPawn))
+	if (MyPawn && !MyPawn->IsPendingKill())
 	{
 		UCharacterMovementComponent* CharMovementComp = MyChar ? MyChar->GetCharacterMovement() : nullptr;
 		if (CharMovementComp)
@@ -129,24 +144,24 @@ void FGameplayDebuggerCategory_AI::CollectData(APlayerController* OwnerPC, AActo
 		DataPack.bIsUsingGameplayTasks = (TasksComponent != nullptr);
 		if (TasksComponent)
 		{
-			const FString TickQueueDesc = TasksComponent->GetTickingTasksDescription();
-			const FString PriorityQueueDesc = TasksComponent->GetTasksPriorityQueueDescription();
-
-			if (TickQueueDesc.Len())
+			for (FConstGameplayTaskIterator It = TasksComponent->GetTickingTaskIterator(); It; ++It)
 			{
-				DataPack.GameplayTaskInfo = TEXT("Ticking tasks: {yellow}");
-				DataPack.GameplayTaskInfo += TickQueueDesc;
+				const UGameplayTask* TaskOb = *It;
+				if (TaskOb)
+				{
+					DataPack.TickingTaskInfo += DescribeTaskHelper(*TaskOb);
+					DataPack.NumTickingTasks++;
+				}
 			}
 
-			if (PriorityQueueDesc.Len())
+			for (FConstGameplayTaskIterator It = TasksComponent->GetPriorityQueueIterator(); It; ++It)
 			{
-				if (DataPack.GameplayTaskInfo.Len())
+				const UGameplayTask* TaskOb = *It;
+				if (TaskOb)
 				{
-					DataPack.GameplayTaskInfo += TEXT("{white}\n");
+					DataPack.TaskQueueInfo += DescribeTaskHelper(*TaskOb);
+					DataPack.NumTasksInQueue++;
 				}
-
-				DataPack.GameplayTaskInfo = TEXT("Task queue: {yellow}");
-				DataPack.GameplayTaskInfo += PriorityQueueDesc;
 			}
 		}
 
@@ -157,6 +172,11 @@ void FGameplayDebuggerCategory_AI::CollectData(APlayerController* OwnerPC, AActo
 		DataPack.NavDataInfo = NavData ? NavData->GetConfig().Name.ToString() : FString();
 
 		CollectPathData(MyController);
+	}
+	else
+	{
+		PathDataPack.PathCorridor.Reset();
+		PathDataPack.PathPoints.Reset();
 	}
 }
 
@@ -257,6 +277,8 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 
 	UWorld* MyWorld = OwnerPC->GetWorld();
 	AActor* SelectedActor = FindLocalDebugActor();
+
+	DrawPawnIcons(MyWorld, SelectedActor, OwnerPC ? OwnerPC->GetPawn() : nullptr, CanvasContext);
 	if (bReducedMode)
 	{
 		if (DataPack.bHasController)
@@ -266,7 +288,6 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 	}
 	else
 	{
-		DrawPawnIcons(MyWorld, SelectedActor, OwnerPC ? OwnerPC->GetPawn() : nullptr, CanvasContext);
 		if (SelectedActor)
 		{
 			DrawOverheadInfo(*SelectedActor, CanvasContext);
@@ -294,9 +315,14 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 		CanvasContext.Printf(TEXT("Active task: {yellow}%s"), *DataPack.CurrentAITask);
 	}
 
-	if (DataPack.bIsUsingGameplayTasks && DataPack.GameplayTaskInfo.Len())
+	if (DataPack.bIsUsingGameplayTasks)
 	{
-		CanvasContext.Print(DataPack.GameplayTaskInfo);
+		if (DataPack.NumTickingTasks > 0)
+		{
+			CanvasContext.Printf(TEXT("Ticking tasks: {yellow}%d%s"), DataPack.NumTickingTasks, *DataPack.TickingTaskInfo);
+		}
+
+		CanvasContext.Printf(TEXT("Gameplay tasks: {yellow}%d%s"), DataPack.NumTasksInQueue, *DataPack.TaskQueueInfo);
 	}
 
 	if (DataPack.bIsUsingCharacter)

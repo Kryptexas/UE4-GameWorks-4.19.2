@@ -29,7 +29,7 @@ namespace OculusRift {
 class FTexture2DSetProxy : public FTextureSetProxy
 {
 public:
-	FTexture2DSetProxy(FOvrSessionSharedParamRef InOvrSession, FTextureRHIParamRef InTexture, uint32 InSrcSizeX, uint32 InSrcSizeY, EPixelFormat InSrcFormat, uint32 InSrcNumMips) 
+	FTexture2DSetProxy(const FOvrSessionSharedPtr& InOvrSession, FTextureRHIParamRef InTexture, uint32 InSrcSizeX, uint32 InSrcSizeY, EPixelFormat InSrcFormat, uint32 InSrcNumMips) 
 		: FTextureSetProxy(InSrcSizeX, InSrcSizeY, InSrcFormat, InSrcNumMips)
 		, Session(InOvrSession), RHITexture(InTexture) 
 	{
@@ -46,7 +46,7 @@ public:
 
 	virtual void SwitchToNextElement() = 0;
 
-	virtual bool Commit(FRHICommandListImmediate& RHICmdList)
+	virtual bool Commit(FRHICommandListImmediate& RHICmdList) override
 	{
 		if (RHITexture.IsValid() && RHITexture->GetNumMips() > 1)
 		{
@@ -66,6 +66,23 @@ public:
 		}
 		return false;
 	}
+	virtual bool IsStaticImage() const override
+	{
+		ovrTextureSwapChain TextureSwapSet = GetSwapTextureSet();
+		if (TextureSwapSet)
+		{
+			FOvrSessionShared::AutoSession OvrSession(Session);
+			int len;
+			ovrResult res = ovr_GetTextureSwapChainLength(OvrSession, TextureSwapSet, &len);
+			if (!OVR_SUCCESS(res))
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Error at ovr_GetTextureSwapChainLength, err = %d"), int(res));
+				return false;
+			}
+			return len <= 1;
+		}
+		return false;
+	}
 protected:
 	void OnSessionDestroy(ovrSession InSession)
 	{
@@ -73,12 +90,11 @@ protected:
 	}
 
 protected:
-	FOvrSessionSharedRef Session;
+	FOvrSessionSharedPtr Session;
 	FTextureRHIRef		 RHITexture;
 	FDelegateHandle		 DestroyDelegateHandle;
 };
-typedef TSharedPtr<FTexture2DSetProxy, ESPMode::ThreadSafe>	FTexture2DSetProxyParamRef;
-typedef TSharedPtr<FTexture2DSetProxy, ESPMode::ThreadSafe>	FTexture2DSetProxyRef;
+typedef TSharedPtr<FTexture2DSetProxy, ESPMode::ThreadSafe>	FTexture2DSetProxyPtr;
 
 // Implementation of FHMDRenderLayer for OculusRift.
 class FRenderLayer : public FHMDRenderLayer
@@ -117,6 +133,8 @@ public:
 
 	FRenderLayer& GetEyeLayer_RenderThread() const;
 
+	const FHMDLayerDesc* GetEyeLayerDesc() const { return GetLayerDesc(EyeLayerId); }
+
 	// Releases all textureSets used by all layers
 	virtual void ReleaseTextureSets_RenderThread_NoLock() override;
 
@@ -129,7 +147,6 @@ public:
 	// Submits all the layers
 	ovrResult SubmitFrame_RenderThread(ovrSession OvrSession, const class FGameFrame* RenderFrame, bool AdvanceToNextElem);
 
-	bool GetLastVisibilityState() const { return LastVisibilityState; }
 	ovrResult GetLastSubmitFrameResult() const { return (ovrResult)LastSubmitFrameResult.GetValue(); }
 
 	// Should be called when any TextureSet is released; will be reset in PreSubmitUpdate.
@@ -138,13 +155,15 @@ public:
 protected:
 	virtual TSharedPtr<FHMDRenderLayer> CreateRenderLayer_RenderThread(FHMDLayerDesc& InDesc) override;
 
+	virtual uint32 GetTotalNumberOfLayersSupported() const override { return ovrMaxLayerCount; }
+
 protected:
 	class FCustomPresent*	pPresentBridge;
 	// Complete layer list. Some entries may be null.
 	ovrLayerHeader**		LayersList;
 	uint32					LayersListLen;
+	uint32					EyeLayerId;
 	FThreadSafeCounter		LastSubmitFrameResult;
-	FThreadSafeBool			LastVisibilityState;
 	FThreadSafeBool			bTextureSetsAreInvalid;
 	bool					bInitialized : 1;
 };

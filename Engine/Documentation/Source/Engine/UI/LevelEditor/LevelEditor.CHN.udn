@@ -1,7 +1,11 @@
-﻿Availability:Public
-Title:关卡编辑器
+﻿INTSourceChangelist:2735872
+Availability:Public
+Title: 关卡编辑器
 Crumbs:%ROOT%, Engine, Engine/UI
-Description:本指南概述了如何设计及构建游戏关卡及场景。
+Description: 本指南概述了如何设计及构建游戏关卡及场景。
+Version: 4.9
+parent:Engine/Editor
+order:3
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]

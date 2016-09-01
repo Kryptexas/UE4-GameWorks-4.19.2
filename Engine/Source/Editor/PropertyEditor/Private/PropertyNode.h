@@ -705,6 +705,12 @@ public:
 	 */
 	const FString* GetInstanceMetaData(const FName& Key) const;
 
+	bool ParentOrSelfHasMetaData(const FName& MetaDataKey) const;
+
+	/**
+	 * Invalidates the cached state of this node in all children;
+	 */
+	void InvalidateCachedState();
 protected:
 
 	TSharedRef<FEditPropertyChain> BuildPropertyChain( UProperty* PropertyAboutToChange );
@@ -772,6 +778,12 @@ protected:
 	 * @param ObjIndex	The index of the object in the parent property node's object array (for caching)
 	 */
 	TSharedPtr< FPropertyItemValueDataTrackerSlate > GetValueTracker( UObject* Object, uint32 ObjIndex );
+
+	/**
+	 * Updates and caches the current edit const state of this property
+	 */
+	void UpdateEditConstState();
+
 protected:
 	/**
 	 * The node that is the parent of this node or NULL for the root
@@ -838,6 +850,15 @@ protected:
 	* The property path for this property
 	*/
 	FString PropertyPath;
+
+	/**
+	* Cached state of flags that are expensive to update
+	* These update when values are changed in the details panel
+	*/
+	mutable bool bIsEditConst;
+	mutable bool bUpdateEditConstState;
+	mutable bool bDiffersFromDefault;
+	mutable bool bUpdateDiffersFromDefault;
 };
 
 class FComplexPropertyNode : public FPropertyNode

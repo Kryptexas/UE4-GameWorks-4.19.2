@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Variables, Timers, and Events
+﻿INTSourceChangelist:2620473
+Availability:Public
+Title:变量、定时器和事件
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
-Description:Expose variables and functions to the editor, use timers, and override C++ functions with Blueprints.
+Description:对编辑器公开变量和函数、使用定时器，并使用蓝图覆写 C++ 函数。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,7 +39,7 @@ Description:Expose variables and functions to the editor, use timers, and overri
 [/OBJECT]
 [/VAR]
 
-This tutorial will show you how to expose variables and functions to the editor, use timers to delay or repeat code execution, and use events to communicate between Actors.
+此教程为您展示如何对编辑器公开变量和函数，使用定时器延迟或重复代码执行，并使用事件在 Actor 之间进行交流。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -57,7 +58,7 @@ This tutorial will show you how to expose variables and functions to the editor,
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

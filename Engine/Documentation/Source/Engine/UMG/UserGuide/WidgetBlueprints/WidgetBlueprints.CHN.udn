@@ -1,65 +1,66 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2709547
 Availability:Public
-Title: Widget Blueprints
+Title:控件蓝图
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:How to create a Widget Blueprint and Overview of the Widget Blueprint Interface.
+Description:如何创建控件蓝图以及控件蓝图界面的概述。
+Version:4.9
 
-In order to start working with Unreal Motion Graphics, you will first need to create a **Widget Blueprint** as seen below. 
+为了使用虚幻动态图形，您首先需要创建 **控件蓝图**，具体过程如下文所述。 
 
-1.	Click the **Add New** button inside the **Content Browser**, then under **User Interface**, select the **Widget Blueprint** option. 
+1.	点击 **内容浏览器** 中的 **添加新内容** 按钮，然后在 **用户界面** 下选择 **控件蓝图** 选项。 
 
 	[REGION:raw]
 	![](NewWidgetBlueprint.png)
 	[/REGION]
 
 	[REGION:note]
-	You can also **Right-Click** in the **Content Browser** instead of clicking the **Create** Button. 
+	您还可以在 **内容浏览器** 中 **单击右键**，这与点击 **创建** 按钮的效果相同。 
 	[/REGION]
 
-1.	A **Widget Blueprint** asset will be created in the **Content Browser** which you can rename or use the default name for the asset. 
+1.	将在 **内容浏览器** 中创建 **控件蓝图** 资产，您可以对该资产重命名，也可以使用资产的默认名称。 
 
 	![](RenameWidgetBlueprint.png)
 
-1.	**Double-Click** on the **Widget Blueprint** asset to open it up in the **Widget Blueprint Editor**. 
+1.	**双击** **控件蓝图** 资产，在 **控件蓝图编辑器** 中将其打开。 
 
 	[REGION:lightbox]
 	[![](WidgetBPWindow.png)(w:520)](WidgetBPWindow.png)
 	[/REGION]
 
-	_Click for full view._
+	_点击查看全图。_
 
-## Widget Blueprint Editor
+## 控件蓝图编辑器
 
-By default, the **Widget Blueprint Editor** opens up on the **Designer** tab when a **Widget Blueprint** is opened. The **Designer** tab is the visual representation of the layout and will give you an idea of how the screen will appear in-game.  
+默认情况下，打开 **控件蓝图** 时，**控件蓝图编辑器** 会打开并显示 **设计器** 选项卡。设计器选项卡是布局的视觉呈现，并让您对屏幕在游戏中的外观有一个概念。  
 
 [REGION:lightbox]
 	[![](WidgetBlueprintNumbers.png)(w:840 h:480)](WidgetBlueprintNumbers.png)
 [/REGION]
 
-_Click for full view._
+_点击查看全图。_
 
-| Window | Description |
-| -------- | ----------- |
-| **(1) Menu Bar** | The common Menu bar. |
-| **(2) Tool Bar** | This contains a number of commonly used functions for the Blueprint Editor, such as Compile, Save, and Play. |
-| **(3) Editor Mode** | Switches the UMG Widget Blueprint Editor between Designer and Graph modes. |
-| **(4) Palette** | The list of Widgets that you can drag-and-drop into the Visual Designer. Displays any class inheriting from UWidget. |
-| **(5) Hierarchy** | Displays the parenting structure of the User Widget. You can also drag Widgets into this window. |
-| **(6) Visual Designer** | This is the visual representation of the layout. Widgets dragged into the Visual Designer can be manipulated in the window. |
-| **(7) Details** | Displays the properties of the currently selected Widget. |
-| **(8) Animations** | This is the animation track for UMG which allows you to keyframe animations for your Widgets. |
+|   编号    | 窗口 | 描述 |
+| :-----:| -------- | ----------- |
+| **1** | **菜单栏** | 普通的菜单栏。|
+| **2** | **工具栏** | 其中包含蓝图编辑器的一系列常用功能，比如编译、保存和播放。|
+| **3** | **编辑器模式** | 将 UMG 控件蓝图编辑器在“设计器”和“图形”模式之间切换。|
+| **4** | **调色板** | 一个控件列表，您可以将其中的控件拖放到视觉设计器中。显示继承自 UWidget 的所有类。|
+| **5** | **层级** | 显示用户控件的父级结构。您还可以将控件拖动到此窗口。|
+| **6** | **视觉设计器** | 这是布局的视觉呈现。在此窗口中可以操纵已拖动到视觉设计器中的控件。|
+| **7** | **详情** | 显示当前所选控件的属性。|
+| **8** | **动画** | 这是 UMG 的动画轨，可以用于设置控件的关键帧动画。|
 
 [REGION:note]
-The **Visual Designer** window by default is 1:1 scale however you can hold **Control** and **Mouse-Wheel** up to zoom in further.
+**视觉设计器** 窗口默认按 1:1 比例显示，但您可以按住 **Control** 键并向上滚动 **鼠标滚轮** 来进一步放大。
 [/REGION]
 
-The **Graph** tab of the **Widget Blueprint Editor** is pictured below. 
+下图所示为 **控件蓝图编辑器** 的 **图形** 选项卡。 
 
 [REGION:lightbox]
 	[![](WidgetBlueprintGraph.png)(w:840)](WidgetBlueprintGraph.png)
 [/REGION]
 
-_Click for full view._
+_点击查看全图。_
 
-The Graph tab functions just like the default Blueprint Editor. For more information on the basic functionality of the Graph tab, refer to the [](Engine/Blueprints/Editor/UIComponents/GraphEditor) documentation. 
+图形选项卡的功能与默认的蓝图编辑器类似。有关图形选项卡基本功能的详细信息，请参阅 [](Engine/Blueprints/Editor/UIComponents/GraphEditor) 文档。 
 

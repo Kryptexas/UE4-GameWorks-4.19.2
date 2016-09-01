@@ -47,6 +47,7 @@ FEditorModeTools::FEditorModeTools()
 	, OverrideWidgetMode(FWidget::WM_None)
 	, bShowWidget(true)
 	, bHideViewportUI(false)
+	, bSelectionHasSceneComponent(false)
 	, CoordSystem(COORD_World)
 	, bIsTracking(false)
 {
@@ -143,35 +144,59 @@ UWorld* FEditorModeTools::GetWorld() const
 	}
 }
 
+bool FEditorModeTools::SelectionHasSceneComponent() const
+{
+	return bSelectionHasSceneComponent;
+}
+
 void FEditorModeTools::OnEditorSelectionChanged(UObject* NewSelection)
 {
-	// If selecting an actor, move the pivot location.
-	AActor* Actor = Cast<AActor>(NewSelection);
-	if (Actor != nullptr)
+	if(NewSelection == GetSelectedActors())
 	{
-		//@fixme - why isn't this using UObject::IsSelected()?
-		if ( GEditor->GetSelectedActors()->IsSelected( Actor ) )
+		// when actors are selected check if there is at least one component selected and cache that off
+		// Editor modes use this primarily to determine of transform gizmos should be drawn.  
+		// Performing this check each frame with lots of actors is expensive so only do this when selection changes
+		bSelectionHasSceneComponent = false;
+		for(FSelectionIterator It(*GetSelectedActors()); It; ++It)
 		{
-			SetPivotLocation( Actor->GetActorLocation(), false );
-
-			// If this actor wasn't part of the original selection set during pie/sie, clear it now
-			if ( GEditor->ActorsThatWereSelected.Num() > 0 )
+			AActor* Actor = Cast<AActor>(*It);
+			if(Actor != nullptr && Actor->FindComponentByClass<USceneComponent>() != nullptr)
 			{
-				AActor* EditorActor = EditorUtilities::GetEditorWorldCounterpartActor( Actor );
-				if ( !EditorActor || !GEditor->ActorsThatWereSelected.Contains(EditorActor) )
-				{
-					GEditor->ActorsThatWereSelected.Empty();
-				}
+				bSelectionHasSceneComponent = true;
+				break;
 			}
 		}
-		else if ( GEditor->ActorsThatWereSelected.Num() > 0 )
+
+	}
+	else
+	{
+		// If selecting an actor, move the pivot location.
+		AActor* Actor = Cast<AActor>(NewSelection);
+		if(Actor != nullptr)
 		{
-			// Clear the selection set
-			GEditor->ActorsThatWereSelected.Empty();
+			if(Actor->IsSelected())
+			{
+				SetPivotLocation(Actor->GetActorLocation(), false);
+
+				// If this actor wasn't part of the original selection set during pie/sie, clear it now
+				if(GEditor->ActorsThatWereSelected.Num() > 0)
+				{
+					AActor* EditorActor = EditorUtilities::GetEditorWorldCounterpartActor(Actor);
+					if(!EditorActor || !GEditor->ActorsThatWereSelected.Contains(EditorActor))
+					{
+						GEditor->ActorsThatWereSelected.Empty();
+					}
+				}
+			}
+			else if(GEditor->ActorsThatWereSelected.Num() > 0)
+			{
+				// Clear the selection set
+				GEditor->ActorsThatWereSelected.Empty();
+			}
 		}
 	}
 
-	for (const auto& Pair : FEditorModeRegistry::Get().GetFactoryMap())
+	for(const auto& Pair : FEditorModeRegistry::Get().GetFactoryMap())
 	{
 		Pair.Value->OnSelectionChanged(*this, NewSelection);
 	}

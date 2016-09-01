@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <initializer_list>
+
 #include "Containers/ContainerAllocationPolicies.h"
 #include "HAL/Platform.h"
 #include "Serialization/ArchiveBase.h"
@@ -102,7 +104,7 @@ public:
 	//@}
 
 	/** conversion to "bool" returning true if the iterator has not reached the last element. */
-	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+	FORCEINLINE explicit operator bool() const
 	{
 		return Container.IsValidIndex(Index);
 	}
@@ -184,7 +186,7 @@ FORCEINLINE TIndexedContainerIterator<ContainerType, ElementType, IndexType> ope
 		const int32& CurrentNum;
 		int32        InitialNum;
 
-		friend bool operator!=(const TCheckedPointerIterator& Lhs, const TCheckedPointerIterator& Rhs)
+		FORCEINLINE friend bool operator!=(const TCheckedPointerIterator& Lhs, const TCheckedPointerIterator& Rhs)
 		{
 			// We only need to do the check in this operator, because no other operator will be
 			// called until after this one returns.
@@ -528,6 +530,17 @@ public:
 	{}
 
 	/**
+	 * Initializer list constructor
+	 */
+	TArray(std::initializer_list<InElementType> InitList)
+	{
+		// This is not strictly legal, as std::initializer_list's iterators are not guaranteed to be pointers, but
+		// this appears to be the case on all of our implementations.  Also, if it's not true on a new implementation,
+		// it will fail to compile rather than behave badly.
+		CopyToEmpty(InitList.begin(), (int32)InitList.size(), 0, 0);
+	}
+
+	/**
 	 * Copy constructor with changed allocator. Use the common routine to perform the copy.
 	 *
 	 * @param Other The source array to copy.
@@ -535,7 +548,7 @@ public:
 	template <typename OtherElementType, typename OtherAllocator>
 	FORCEINLINE explicit TArray(const TArray<OtherElementType, OtherAllocator>& Other)
 	{
-		CopyToEmpty(Other, 0, 0);
+		CopyToEmpty(Other.GetData(), Other.Num(), 0, 0);
 	}
 
 	/**
@@ -545,7 +558,7 @@ public:
 	 */
 	FORCEINLINE TArray(const TArray& Other)
 	{
-		CopyToEmpty(Other, 0, 0);
+		CopyToEmpty(Other.GetData(), Other.Num(), 0, 0);
 	}
 
 	/**
@@ -557,7 +570,23 @@ public:
 	 */
 	FORCEINLINE TArray(const TArray& Other, int32 ExtraSlack)
 	{
-		CopyToEmpty(Other, 0, ExtraSlack);
+		CopyToEmpty(Other.GetData(), Other.Num(), 0, ExtraSlack);
+	}
+
+	/**
+	 * Initializer list assignment operator. First deletes all currently contained elements
+	 * and then copies from initializer list.
+	 *
+	 * @param InitList The initializer_list to copy from.
+	 */
+	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator=(std::initializer_list<InElementType> InitList)
+	{
+		DestructItems(GetData(), ArrayNum);
+		// This is not strictly legal, as std::initializer_list's iterators are not guaranteed to be pointers, but
+		// this appears to be the case on all of our implementations.  Also, if it's not true on a new implementation,
+		// it will fail to compile rather than behave badly.
+		CopyToEmpty(InitList.begin(), (int32)InitList.size(), ArrayMax, 0);
+		return *this;
 	}
 
 	/**
@@ -572,7 +601,7 @@ public:
 	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator=(const TArray<ElementType, OtherAllocator>& Other)
 	{
 		DestructItems(GetData(), ArrayNum);
-		CopyToEmpty(Other, ArrayMax, 0);
+		CopyToEmpty(Other.GetData(), Other.Num(), ArrayMax, 0);
 		return *this;
 	}
 
@@ -587,7 +616,7 @@ public:
 		if (this != &Other)
 		{
 			DestructItems(GetData(), ArrayNum);
-			CopyToEmpty(Other, ArrayMax, 0);
+			CopyToEmpty(Other.GetData(), Other.Num(), ArrayMax, 0);
 		}
 		return *this;
 	}
@@ -626,7 +655,7 @@ private:
 	template <typename FromArrayType, typename ToArrayType>
 	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax)
 	{
-		ToArray.CopyToEmpty(FromArray, PrevMax, 0);
+		ToArray.CopyToEmpty(FromArray.GetData(), FromArray.Num(), PrevMax, 0);
 	}
 
 	/**
@@ -660,7 +689,7 @@ private:
 	template <typename FromArrayType, typename ToArrayType>
 	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopyWithSlack(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax, int32 ExtraSlack)
 	{
-		ToArray.CopyToEmpty(FromArray, PrevMax, ExtraSlack);
+		ToArray.CopyToEmpty(FromArray.GetData(), FromArray.Num(), PrevMax, ExtraSlack);
 	}
 
 public:
@@ -1342,7 +1371,7 @@ public:
 			if (Ar.IsLoading())
 			{
 				// Basic sanity checking to ensure that sizes match.
-				checkf(SerializedElementSize == 0 || SerializedElementSize == ElementSize, TEXT("Expected %i, Got: %i"), ElementSize, SerializedElementSize);
+				checkf(SerializedElementSize == 0 || SerializedElementSize == ElementSize, TEXT("Unexpected array element size. Expected %i, Got: %i. Package can be corrupt or the array template type changed."), ElementSize, SerializedElementSize);
 				// Serialize the number of elements, block allocate the right amount of memory and deserialize
 				// the data as a giant memory blob in a single call to Serialize. Please see the function header
 				// for detailed documentation on limitations and implications.
@@ -1434,7 +1463,28 @@ public:
 	void InsertZeroed(int32 Index, int32 Count = 1)
 	{
 		InsertUninitialized(Index, Count);
-		FMemory::Memzero((uint8*)AllocatorInstance.GetAllocation() + Index*sizeof(ElementType), Count*sizeof(ElementType));
+		FMemory::Memzero((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count * sizeof(ElementType));
+	}
+
+	/**
+	 * Inserts given elements into the array at given location.
+	 *
+	 * @param Items Array of elements to insert.
+	 * @param InIndex Tells where to insert the new elements.
+	 * @returns Location at which the item was inserted.
+	 */
+	int32 Insert(std::initializer_list<ElementType> InitList, const int32 InIndex)
+	{
+		InsertUninitialized(InIndex, (int32)InitList.size());
+
+		ElementType* Data = (ElementType*)AllocatorInstance.GetAllocation();
+
+		int32 Index = InIndex;
+		for (const ElementType& Element : InitList)
+		{
+			new (Data + Index++) ElementType(Element);
+		}
+		return InIndex;
 	}
 
 	/**
@@ -1447,12 +1497,15 @@ public:
 	int32 Insert(const TArray<ElementType>& Items, const int32 InIndex)
 	{
 		check(this != &Items);
+
 		InsertUninitialized(InIndex, Items.Num());
+
+		ElementType* Data = (ElementType*)AllocatorInstance.GetAllocation();
+
 		int32 Index = InIndex;
 		for (auto It = Items.CreateConstIterator(); It; ++It)
 		{
-			RangeCheck(Index);
-			new(GetData() + Index++) ElementType(MoveTemp(*It));
+			new (Data + Index++) ElementType(MoveTemp(*It));
 		}
 		return InIndex;
 	}
@@ -1780,6 +1833,20 @@ public:
 	}
 
 	/**
+	 * Adds an initializer list of elements to the end of the TArray.
+	 *
+	 * @param InitList The initializer list of elements to add.
+	 * @see Add, Insert
+	 */
+	FORCEINLINE void Append(std::initializer_list<ElementType> InitList)
+	{
+		int32 Count = (int32)InitList.size();
+
+		int32 Pos = AddUninitialized(Count);
+		ConstructItems<ElementType>(GetData() + Pos, InitList.begin(), Count);
+	}
+
+	/**
 	 * Appends the specified array to this array.
 	 * Cannot append to self.
 	 *
@@ -1806,79 +1873,42 @@ public:
 	}
 
 	/**
-	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
+	 * Appends the specified initializer list to this array.
 	 *
-	 * @param Item	The item to add
+	 * @param InitList The initializer list to append.
+	 */
+	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator+=(std::initializer_list<ElementType> InitList)
+	{
+		Append(InitList);
+		return *this;
+	}
+
+	/**
+	 * Constructs a new item at the end of the array, possibly reallocating the whole array to fit.
+	 *
+	 * @param Args	The arguments to forward to the constructor of the new item.
 	 * @return		Index to the new item
 	 */
-	#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+	template <typename... ArgsType>
+	FORCEINLINE int32 Emplace(ArgsType&&... Args)
+	{
+		const int32 Index = AddUninitialized(1);
+		new(GetData() + Index) ElementType(Forward<ArgsType>(Args)...);
+		return Index;
+	}
 
-		template <typename... ArgsType>
-		FORCEINLINE int32 Emplace(ArgsType&&... Args)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<ArgsType>(Args)...);
-			return Index;
-		}
-
-	#else
-
-		FORCEINLINE int32 Emplace()
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType();
-			return Index;
-		}
-
-		template <typename Arg0Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type, typename Arg2Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type, typename Arg4Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3, Arg4Type&& Arg4)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3), Forward<Arg4Type>(Arg4));
-			return Index;
-		}
-
-		template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type, typename Arg4Type, typename Arg5Type>
-		FORCEINLINE int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3, Arg4Type&& Arg4, Arg5Type&& Arg5)
-		{
-			const int32 Index = AddUninitialized(1);
-			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3), Forward<Arg4Type>(Arg4), Forward<Arg5Type>(Arg5));
-			return Index;
-		}
-
-#endif
+	/**
+	 * Constructs a new item at a specified index, possibly reallocating the whole array to fit.
+	 *
+	 * @param Index	The index to add the item at.
+	 * @param Args	The arguments to forward to the constructor of the new item.
+	 */
+	template <typename... ArgsType>
+	FORCEINLINE void EmplaceAt(int32 Index, ArgsType&&... Args)
+	{
+		InsertUninitialized(Index, 1);
+		new(GetData() + Index) ElementType(Forward<ArgsType>(Args)...);
+	}
 
 	/**
 	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
@@ -2401,15 +2431,15 @@ private:
 	 *                   the end of the buffer. Counted in elements. Zero by
 	 *                   default.
 	 */
-	template <typename OtherElementType, typename OtherAllocator>
-	AGRESSIVE_ARRAY_FORCEINLINE void CopyToEmpty(const TArray<OtherElementType, OtherAllocator>& Source, int32 PrevMax, int32 ExtraSlack)
+	template <typename OtherElementType>
+	AGRESSIVE_ARRAY_FORCEINLINE void CopyToEmpty(const OtherElementType* OtherData, int32 OtherNum, int32 PrevMax, int32 ExtraSlack)
 	{
 		checkSlow(ExtraSlack >= 0);
-		ArrayNum = Source.Num();
-		if (ArrayNum || ExtraSlack || PrevMax)
+		ArrayNum = OtherNum;
+		if (OtherNum || ExtraSlack || PrevMax)
 		{
-			ResizeForCopy(ArrayNum + ExtraSlack, PrevMax);
-			ConstructItems<ElementType>(GetData(), Source.GetData(), ArrayNum);
+			ResizeForCopy(OtherNum + ExtraSlack, PrevMax);
+			ConstructItems<ElementType>(GetData(), OtherData, OtherNum);
 		}
 		else
 		{
@@ -2471,6 +2501,28 @@ public:
 	 * @return The index of the new element.
 	 */
 	template <class PREDICATE_CLASS>
+	int32 HeapPush(ElementType&& InItem, const PREDICATE_CLASS& Predicate)
+	{
+		// Add at the end, then sift up
+		Add(MoveTemp(InItem));
+		TDereferenceWrapper<ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
+		int32 Result = SiftUp(0, Num() - 1, PredicateWrapper);
+
+#if DEBUG_HEAP
+		VerifyHeap(PredicateWrapper);
+#endif
+
+		return Result;
+	}
+
+	/** 
+	 * Adds a new element to the heap.
+	 *
+	 * @param InItem Item to be added.
+	 * @param Predicate Predicate class instance.
+	 * @return The index of the new element.
+	 */
+	template <class PREDICATE_CLASS>
 	int32 HeapPush(const ElementType& InItem, const PREDICATE_CLASS& Predicate)
 	{
 		// Add at the end, then sift up
@@ -2483,6 +2535,18 @@ public:
 #endif
 
 		return Result;
+	}
+
+	/** 
+	 * Adds a new element to the heap. Assumes < operator is defined for the
+	 * template type.
+	 *
+	 * @param InItem Item to be added.
+	 * @return The index of the new element.
+	 */
+	int32 HeapPush(ElementType&& InItem)
+	{
+		return HeapPush(MoveTemp(InItem), TLess<ElementType>());
 	}
 
 	/** 

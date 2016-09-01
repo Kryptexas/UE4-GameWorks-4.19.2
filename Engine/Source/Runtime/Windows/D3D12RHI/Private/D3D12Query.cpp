@@ -92,6 +92,7 @@ bool FD3D12Device::GetQueryData(FD3D12OcclusionQuery& Query, bool bWait)
 {
 	// Wait for the query result to be ready (if requested).
 	const FD3D12CLSyncPoint& SyncPoint = Query.CLSyncPoint;
+
 	if (!SyncPoint.IsComplete())
 	{
 		if (!bWait)
@@ -99,8 +100,25 @@ bool FD3D12Device::GetQueryData(FD3D12OcclusionQuery& Query, bool bWait)
 			return false;
 		}
 
-		check(!SyncPoint.IsOpen());
+		SCOPE_CYCLE_COUNTER(STAT_RenderQueryResultTime);
+		uint32 IdleStart = FPlatformTime::Cycles();
+		double StartTime = FPlatformTime::Seconds();
+
+		if (SyncPoint.IsOpen())
+		{
+			// The query is on a command list that hasn't been submitted yet.
+			// We need to flush, but the RHI thread may be using the default command list...so stall it first.
+			check(IsInRenderingThread());
+			check(Query.OwningContext->IsDefaultContext());
+
+			FScopedRHIThreadStaller StallRHIThread(FRHICommandListExecutor::GetImmediateCommandList());
+			Query.OwningContext->FlushCommands(); // Don't wait yet, since we're stalling the RHI thread.
+		}
+
 		SyncPoint.WaitForCompletion();
+
+		GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUQuery] += FPlatformTime::Cycles() - IdleStart;
+		GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUQuery]++;
 	}
 
 	// Read the data from the query's buffer.

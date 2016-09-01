@@ -20,6 +20,9 @@ public class VulkanShaderFormat : ModuleRules
 			}
 			);
 
+        // GlsLang has a shadowed variable:
+        bEnableShadowVariableWarnings = false;
+
         AddEngineThirdPartyPrivateStaticDependencies(Target, "HLSLCC");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "GlsLang");
 

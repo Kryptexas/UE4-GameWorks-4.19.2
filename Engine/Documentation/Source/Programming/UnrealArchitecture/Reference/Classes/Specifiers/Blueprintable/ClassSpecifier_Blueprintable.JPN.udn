@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2707789
 Title:Blueprintable
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description:
 Availability:Public
-バージョン：4.5
+Version:4.9
 
-ブループリントの作成にこのクラスを許容されるベースクラスとして公開します。それ以外を継承していない限り、初期設定は NotBlueprintable です。これはサブクラスで継承されます。
+ブループリントの作成に使用可能な基本クラスとして公開されるクラスです。これを継承していない場合、初期設定は NotBlueprintable となります。これはサブクラスで継承されます。

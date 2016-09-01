@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:0
-Title:3. Install the Oculus Runtime
+﻿INTSourceChangelist:2975682
+Title:3.创建/登陆 Oculus 账户
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:Install the needed software for running games on the Oculus Rift
+Description:安装在 Oculus Rift 上运行游戏的必备软件。
 Availability:Public
+Version:4.9
+SkillLevel:Intermediate
 
+此章节说明 Oculus Rift 安装完成后需要执行的操作。
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,90 +27,18 @@ Availability:Public
 %Steps%
 
 
-%Globals:OSSelect%
+1. Oculus Rift 软件安装完成后，按下 **Next** 按钮开始进入下一步。
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
-[/OBJECT]
-<!--
-[EXCERPT:windows]
-1. Open the downloaded runtime installer.
-1. Click **Next**.
-	
-	![](oculus_setup_1.png)
-1. Accept the license agreement, then click **Next**.
+	![](Rift_Finshed_Install_00.png)
 
-	![](oculus_setup_2.png)
-1. Specify an install location, then click **Next**.
+1. 将弹出提示选择 **登陆** 或 **创建账户**。如您已拥有账户，点击 Sign in。如您尚未拥有 Oculus 账户，点击 Create Account 并按说明进行操作。
 
-	![](oculus_setup_3.png)
-1. Click **Next**.
-	
-	![](oculus_setup_4.png)
-1. During the installation process, you will be prompted to install the imaging devices software. Click **Install**.
+	![](Rift_Create_Account_LogIn_00.png)
 
-	![](oculus_setup_6.png)
-1. You will also be prompted to install the display adapters software. Click **Install**.
 
-	![](oculus_setup_7.png)
-1. When setup is complete, click **Finish**.
-	
-	![](oculus_setup_8.png)
-1. The README file mentions updating the firmware for your DK2. This will be covered in the next step of the Quick Start.
 
-	 ![](oculus_setup_9.png)
-1. Reboot your computer when prompted.
 
-	![](oculus_setup_10.png)
-[/EXCERPT:windows]
-[EXCERPT:macos]
-[INCLUDE:Platforms/Oculus#warning]
 
-1. Open the downloaded runtime installer.
-1. Click **Next**.
-	
-	![](mac_oculus_1.png)(w:516)
-1. Accept the license agreement, then click **Next**.
 
-	![](mac_oculus_2.png)(w:516)
-1. Specify an install location, then click **Next**.
-
-	![](mac_oculus_3.png)(w:516)
-1. Click **Next**.
-	
-	![](mac_oculus_4.png)(w:516)
-1. When setup is complete, click **Finish**.
-	
-	![](mac_oculus_5.png)(w:516)
-1. The README file mentions updating the firmware for your DK2. This will be covered in the next step of the Quick Start.
-
-	 ![](mac_oculus_6.png)(w:516)
-
-[/EXCERPT:macos]
--->
 
 %Steps%

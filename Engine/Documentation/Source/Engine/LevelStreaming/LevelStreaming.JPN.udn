@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2735870
+﻿INTSourceChangelist:3025593
 Availability:Public
-Title: レベルストリーミング
+Title: レベル ストリーミング
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
-Description:メモリ使用量の削減とシームレスなワールド作成のためにレベルを非同期的にロードまたはアンロードする方法
+Description:レベルを非同期的にロード / アンロードして、メモリを削減し、シームレスなワールドを作成する方法
 parent:Engine
 order:10
+tags:Level Streaming
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,24 +47,15 @@ order:10
 [/VAR]
 
 [EXCERPT:Intro]
-レベルストリーミング機能は、マップファイルをメモリへロードまたはアンロードすることに加え、その可視性をプレイ中にトグルします。この機能により、ワールドの関連性のある部分のみがリソースを利用したり、どの時点でもレンダリング出来るように、ワールドを小さく分割することができます。適切な処理がされると、とても大きくシームレスなレベルが作成されて、ワールド内でプレイするプレイヤーのサイズがとても小さく感じてしまうほどです。
+レベル ストリーミング機能は、マップファイルをメモリへロードまたはアンロードすることに加え、その可視性をプレイ中にトグルします。この機能により、ワールドの関連性のある部分のみがリソースを利用したり、 
+どの時点でもレンダリング出来るように、ワールドを小さく分割することができます。適切な処理がされると、とても大きくシームレスなレベルが作成されて、 
+ワールド内でプレイするプレイヤーのサイズがとても小さく感じてしまうほどです。
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-	![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	レベルストリーミング トピック
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/LevelStreaming/WorldBrowser "%Engine/LevelStreaming/WorldBrowser:description%")
-	[/PARAM]
-[/OBJECT]
- 
+[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"Level Streaming" org:"hierarchy" end:0)]
 
+## ワールド合成
 
+ワールド合成機能は、大きなワールドを作成する時に使うレベル ストリーミングの特別な機能です。レベルは平面グリッドに配置され、プレイヤーが近づくとストリームされます。
 
-
+[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"World Composition")]

@@ -3,7 +3,7 @@ Availability:Public
 Title:ペルソナの Anim Asset Details
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:ペルソナ (Persona) アニメーション エディタの Anim Asset Details に関するユーザーガイド
-バージョン：4.9
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -28,7 +28,7 @@ Description:ペルソナ (Persona) アニメーション エディタの Anim As
 [EXCERPT:Overview]
 ![](AnimAssetDetails.png)(w:520)
 
-[Anim Asset Details]** パネルは状況に合わせたプロパティ エディタで、Anim Sequence (アニムシーケンス)、Blend Space (ブレンドスペース)、Anim Montage (アニムモンタージュ) などさまざまなアニメーション アセットの設定変更ができます。デフォルト設定では、 **[Anim Asset Details]** パネルはペルソナが **Animation** モードの時のみ表示されます。
+**[Anim Asset Details]** パネルは状況に合わせたプロパティ エディタで、Anim Sequence (アニムシーケンス)、Blend Space (ブレンドスペース)、Anim Montage (アニムモンタージュ) などさまざまなアニメーション アセットの設定変更ができます。デフォルト設定では、 **[Anim Asset Details]** パネルはペルソナが **Animation** モードの時のみ表示されます。
 
 **[Anim Asset Details] パネルでアニメーション アセットを開く**
 * ペルソナの [Asset Brower] を **ダブルクリック** します。

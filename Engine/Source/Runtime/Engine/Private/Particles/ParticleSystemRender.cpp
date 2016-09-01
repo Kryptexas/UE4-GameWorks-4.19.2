@@ -500,7 +500,6 @@ void FDynamicSpriteEmitterDataBase::BuildViewFillData(
 
 	int32 NumIndices, IndexStride;
 	GetIndexAllocInfo(NumIndices, IndexStride);
-	check((uint32)NumIndices <= 65535);
 	check(IndexStride > 0);
 
 	DynamicIndexAllocation = FGlobalDynamicIndexBuffer::Get().Allocate( NumIndices, IndexStride );
@@ -1060,7 +1059,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					const FMaterial* Material = MaterialResource[bSelected]->GetMaterial(FeatureLevel);
 
 					if (Material && 
-						(Material->GetBlendMode() == BLEND_Translucent ||
+						(Material->GetBlendMode() == BLEND_Translucent || Material->GetBlendMode() == BLEND_AlphaComposite ||
 						((SourceData->SortMode == PSORTMODE_Age_OldestFirst) || (SourceData->SortMode == PSORTMODE_Age_NewestFirst)))
 						)
 					{
@@ -1369,6 +1368,15 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 	// Find the offset to the mesh type data 
 	if (InEmitterInstance->MeshTypeData != NULL)
 	{
+#if WITH_EDITOR
+		// there are some cases in the editor that invalidate the vertex factories, so
+		// in-editor, we simply go back to the old way of allocating them freshly every frame
+		if (GIsEditor && InEmitterInstance->Component->SceneProxy)
+		{
+			static_cast<FParticleSystemSceneProxy*>(InEmitterInstance->Component->SceneProxy)->MarkVertexFactoriesDirty();
+		}
+#endif
+
 		UParticleModuleTypeDataMesh* MeshTD = InEmitterInstance->MeshTypeData;
 		// offset to the mesh emitter type data
 		MeshTypeDataOffset = InEmitterInstance->TypeDataOffset;
@@ -1553,6 +1561,45 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 				}
 				
 				// todo: mobile Note hat if the allocation fails, PrevTransformBuffer SRV buffer wont be filled. Assuming this is ok since there is nothing to draw at that point.
+
+				if (PrevTransformBuffer && !Source.MeshMotionBlurOffset)
+				{
+					SCOPE_CYCLE_COUNTER(STAT_ParticlePackingTime);
+					int32 ActiveParticleCount = Source.ActiveParticleCount;
+					if ((Source.MaxDrawCount >= 0) && (ActiveParticleCount > Source.MaxDrawCount))
+					{
+						ActiveParticleCount = Source.MaxDrawCount;
+					}
+					
+					int32 PrevTransformVertexStride = sizeof(FVector4) * 3;
+					
+					uint8* TempPrevTranformVert = (uint8*)PrevTransformBuffer;
+					
+					for (int32 i = ActiveParticleCount - 1; i >= 0; i--)
+					{
+						FVector4* PrevTransformVertex = (FVector4*)TempPrevTranformVert;
+						
+						const int32	CurrentIndex	= Source.DataContainer.ParticleIndices[i];
+						const uint8* ParticleBase	= Source.DataContainer.ParticleData + CurrentIndex * Source.ParticleStride;
+						const FBaseParticle& Particle		= *((const FBaseParticle*) ParticleBase);
+						
+						// Instance to world transformation. Translation (Instance world position) is packed into W
+						FMatrix TransMat(FMatrix::Identity);
+						GetParticleTransform(Particle, Proxy, View, TransMat);
+						
+						// Transpose on CPU to allow for simpler shader code to perform the transform.
+						const FMatrix Transpose = TransMat.GetTransposed();
+						
+						PrevTransformVertex[0] = FVector4(Transpose.M[0][0], Transpose.M[0][1], Transpose.M[0][2], Transpose.M[0][3]);
+						PrevTransformVertex[1] = FVector4(Transpose.M[1][0], Transpose.M[1][1], Transpose.M[1][2], Transpose.M[1][3]);
+						PrevTransformVertex[2] = FVector4(Transpose.M[2][0], Transpose.M[2][1], Transpose.M[2][2], Transpose.M[2][3]);
+						
+						TempPrevTranformVert += PrevTransformVertexStride;
+					}
+					
+					PrevTransformBuffer = nullptr;
+				}
+
 				if(Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()))
 				{
 					// Fill instance buffer.
@@ -3127,15 +3174,19 @@ void FDynamicBeam2EmitterData::GetIndexAllocInfo(int32& OutNumIndices, int32& Ou
 		}
 		else
 		{
-			if (TempIndexCount == 0)
+			if (Triangles > 0)
 			{
-				TempIndexCount = 2;
-			}
-			TempIndexCount += Triangles * Source.Sheets;
-			TempIndexCount += 4 * (Source.Sheets - 1);	// Degenerate indices between sheets
-			if ((ii + 1) < Source.TrianglesPerSheet.Num())
-			{
-				TempIndexCount += 4;	// Degenerate indices between beams
+				if (TempIndexCount == 0)
+				{
+					TempIndexCount = 2;     // First Beam
+				}
+				else
+				{
+					TempIndexCount += 4;	// Degenerate indices between beams
+				}
+
+				TempIndexCount += Triangles * Source.Sheets;
+				TempIndexCount += 4 * (Source.Sheets - 1);	// Degenerate indices between sheets
 			}
 		}
 	}
@@ -3151,6 +3202,11 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 	TIndexType	VertexIndex = 0;
 	TIndexType	StartVertexIndex = 0;
 
+	TIndexType *BaseIndex = OutIndex;
+
+	// Signed as we are comparing against pointer arithmetic
+	const int32 MaxIndexCount = 65535;
+
 	for (int32 Beam = 0; Beam < Source.ActiveParticleCount; Beam++)
 	{
 		DECLARE_PARTICLE_PTR(Particle, Source.DataContainer.ParticleData + Source.ParticleStride * Beam);
@@ -3164,10 +3220,24 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 			continue;
 		}
 
-		if (Beam == 0)
+		if (VertexIndex == 0)//First Beam
 		{
-			*(OutIndex++) = VertexIndex++;	// SheetIndex + 0
-			*(OutIndex++) = VertexIndex++;	// SheetIndex + 1
+			if ((OutIndex - BaseIndex <= MaxIndexCount - 2))
+			{
+				*(OutIndex++) = VertexIndex++;	// SheetIndex + 0
+				*(OutIndex++) = VertexIndex++;	// SheetIndex + 1
+			}
+		}
+		else//Degenerate tris between beams
+		{
+			if ((OutIndex - BaseIndex <= MaxIndexCount - 4))
+			{
+				*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
+				*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
+				*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
+				*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
+				TrianglesToRender += 4;
+			}
 		}
 
 		for (int32 SheetIndex = 0; SheetIndex < Source.Sheets; SheetIndex++)
@@ -3179,10 +3249,16 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 			for (int32 i = 0; i < BeamPayloadData->TriangleCount; i++)
 			{
 				*(OutIndex++) = VertexIndex++;
+
+				if (OutIndex - BaseIndex > MaxIndexCount)
+				{
+					break;
+				}
 			}
 
 			// Degenerate tris
-			if ((SheetIndex + 1) < Source.Sheets)
+			if ((SheetIndex + 1) < Source.Sheets
+				&& (OutIndex - BaseIndex <= MaxIndexCount-4))
 			{
 				*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
 				*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
@@ -3191,15 +3267,12 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 
 				TrianglesToRender += 4;
 			}
-		}
-		if ((Beam + 1) < Source.ActiveParticleCount)
-		{
-			*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
-			*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
-			*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
-			*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
 
-			TrianglesToRender += 4;
+			if (OutIndex - BaseIndex > MaxIndexCount)
+			{
+				break;
+			}
+
 		}
 	}
 
@@ -5714,6 +5787,8 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 	int32 MaxTessellationBetweenParticles = FMath::Max<int32>(Source.MaxTessellationBetweenParticles, 1);
 	int32 Sheets = 1;
 
+	bool bUseDynamic = bUsesDynamicParameter && TempDynamicParamData != nullptr;
+
 	// The distance tracking for tiling the 2nd UV set
 	float CurrDistance = 0.0f;
 
@@ -5745,7 +5820,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 		int32 VertexStride = sizeof(FParticleBeamTrailVertex);
 		int32 DynamicParameterStride = 0;
 		bool bFillDynamic = false;
-		if (bUsesDynamicParameter == true && Data.DynamicParameterData != NULL)
+		if (bUseDynamic)
 		{
 			DynamicParameterStride = sizeof(FParticleBeamTrailVertexDynamicParameter);
 			if (Source.DynamicParameterDataOffset > 0)
@@ -5847,7 +5922,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 					Vertex->Tex_V2 = 0.0f;
 					Vertex->Rotation = PackingParticle->Rotation;
 					Vertex->Color = InterpColor;
-					if (bUsesDynamicParameter == true)
+					if (bUseDynamic)
 					{
 						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -5872,7 +5947,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 					Vertex->Tex_V2 = 1.0f;
 					Vertex->Rotation = PackingParticle->Rotation;
 					Vertex->Color = InterpColor;
-					if (bUsesDynamicParameter == true)
+					if (bUseDynamic)
 					{
 						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -5915,7 +5990,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 				Vertex->Tex_V2 = 0.0f;
 				Vertex->Rotation = PackingParticle->Rotation;
 				Vertex->Color = PackingParticle->Color;
-				if (bUsesDynamicParameter == true)
+				if (bUseDynamic)
 				{
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					if (CurrDynPayload != NULL)
@@ -5949,7 +6024,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 				Vertex->Tex_V2 = 1.0f;
 				Vertex->Rotation = PackingParticle->Rotation;
 				Vertex->Color = PackingParticle->Color;
-				if (bUsesDynamicParameter == true)
+				if (bUseDynamic)
 				{
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					if (CurrDynPayload != NULL)
@@ -6416,6 +6491,8 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 
 	int32 Sheets = 1;
 
+	bool bUseDynamic = bUsesDynamicParameter && TempDynamicParamData != nullptr;
+
 	// The increment for going [0..1] along the complete trail
 	float TextureIncrement = 1.0f / (Data.VertexCount / 2.0f);
 	// The distance tracking for tiling the 2nd UV set
@@ -6444,7 +6521,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 		int32 VertexStride = sizeof(FParticleBeamTrailVertex);
 		int32 DynamicParamStride = 0;
 		bool bFillDynamic = false;
-		if (bUsesDynamicParameter == true && Data.DynamicParameterData != NULL)
+		if (bUseDynamic)
 		{
 			DynamicParamStride = sizeof(FParticleBeamTrailVertexDynamicParameter);
 			if (Source.DynamicParameterDataOffset > 0)
@@ -6497,7 +6574,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 					Vertex->Tex_V2 = 0.0f;
 					Vertex->Rotation = RenderData.Particle->Rotation;
 					Vertex->Color = InterpColor;
-					if (bUsesDynamicParameter == true)
+					if (bUseDynamic)
 					{
 						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -6520,7 +6597,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 					Vertex->Tex_V2 = 1.0f;
 					Vertex->Rotation = RenderData.Particle->Rotation;
 					Vertex->Color = InterpColor;
-					if (bUsesDynamicParameter == true)
+					if (bUseDynamic)
 					{
 						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -6560,7 +6637,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 				Vertex->Tex_V2 = 0.0f;
 				Vertex->Rotation = RenderData.Particle->Rotation;
 				Vertex->Color = InterpColor;
-				if (bUsesDynamicParameter == true)
+				if (bUseDynamic)
 				{
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -6584,7 +6661,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 				Vertex->Tex_V2 = 1.0f;
 				Vertex->Rotation = RenderData.Particle->Rotation;
 				Vertex->Color = InterpColor;
-				if (bUsesDynamicParameter == true)
+				if (bUseDynamic)
 				{
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -6633,14 +6710,14 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 	, FirstFreeMeshBatch(0)
 	, bVertexFactoriesDirty(false)
 {
-	WireframeColor = FLinearColor(1.0f, 0.0f, 0.0f);
+	WireframeColor = FLinearColor(3.0f, 0.0f, 0.0f);
 	LevelColor = FLinearColor(1.0f, 1.0f, 0.0f);
 	PropertyColor = FLinearColor(1.0f, 1.0f, 1.0f);
 
 	LODMethod = Component->LODMethod;
 
 	// Particle systems intrinsically always have motion, but is this motion relevant to systems external to particle systems?
-	bAlwaysHasVelocity = Component->Template->DoesAnyEmitterHaveMotionBlur(Component->GetCurrentLODIndex());
+	bAlwaysHasVelocity = Component->Template && Component->Template->DoesAnyEmitterHaveMotionBlur(Component->GetCurrentLODIndex());
 }
 
 FParticleSystemSceneProxy::~FParticleSystemSceneProxy()
@@ -6684,7 +6761,7 @@ void FParticleSystemSceneProxy::GetDynamicMeshElements(const TArray<const FScene
 			{
 				const FSceneView* View = Views[ViewIndex];
 				//@todo parallelrendering - get rid of this legacy feedback to the game thread!  
-				const_cast<FParticleSystemSceneProxy*>(this)->DetermineLODDistance(View, GFrameNumberRenderThread);
+				const_cast<FParticleSystemSceneProxy*>(this)->DetermineLODDistance(View, ViewFamily.FrameNumber);
 			}
 		}
 	}
@@ -6884,8 +6961,8 @@ void FParticleSystemSceneProxy::GetObjectPositionAndScale(const FSceneView& View
 	{
 		// Need to determine the scales required to transform positions into UV's for the ParticleMacroUVs material node
 		// Determine screenspace extents by transforming the object position + appropriate camera vector * radius
-		const FVector4 RightPostProjectionPosition = View.ViewProjectionMatrix.TransformPosition(MacroUVPosition + MacroUVRadius * View.ViewMatrices.ViewMatrix.GetColumn(0));
-		const FVector4 UpPostProjectionPosition = View.ViewProjectionMatrix.TransformPosition(MacroUVPosition + MacroUVRadius * View.ViewMatrices.ViewMatrix.GetColumn(1));
+		const FVector4 RightPostProjectionPosition = View.ViewProjectionMatrix.TransformPosition(MacroUVPosition + MacroUVRadius * View.ViewMatrices.TranslatedViewMatrix.GetColumn(0));
+		const FVector4 UpPostProjectionPosition = View.ViewProjectionMatrix.TransformPosition(MacroUVPosition + MacroUVRadius * View.ViewMatrices.TranslatedViewMatrix.GetColumn(1));
 		//checkSlow(RightPostProjectionPosition.X - ObjectPostProjectionPositionWithW.X >= 0.0f && UpPostProjectionPosition.Y - ObjectPostProjectionPositionWithW.Y >= 0.0f);
 
 		// Scales to transform the view space positions corresponding to SystemPositionForMacroUVs +- SystemRadiusForMacroUVs into [0, 1] in xy
@@ -6969,11 +7046,6 @@ FPrimitiveViewRelevance FParticleSystemSceneProxy::GetViewRelevance(const FScene
 	return Result;
 }
 
-void FParticleSystemSceneProxy::OnActorPositionChanged()
-{
-	WorldSpacePrimitiveUniformBuffer.ReleaseResource();
-}
-
 void FParticleSystemSceneProxy::OnTransformChanged()
 {
 	WorldSpacePrimitiveUniformBuffer.ReleaseResource();
@@ -6992,7 +7064,7 @@ void FParticleSystemSceneProxy::UpdateWorldSpacePrimitiveUniformBuffer() const
 			ReceivesDecals(),
 			false,
 			false,
-			false,
+			UseSingleSampleShadowFromStationaryLights(),
 			UseEditorDepthTest(),
 			1.0f			// LPV bias
 			);
@@ -7010,9 +7082,9 @@ void FParticleSystemSceneProxy::GatherSimpleLights(const FSceneViewFamily& ViewF
 		for (int32 EmitterIndex = 0; EmitterIndex < DynamicData->DynamicEmitterDataArray.Num(); EmitterIndex++)
 		{
 			const FDynamicEmitterDataBase* DynamicEmitterData = DynamicData->DynamicEmitterDataArray[EmitterIndex];
-			FScopeCycleCounter AdditionalScope(DynamicEmitterData->StatID);
 			if (DynamicEmitterData)
 			{
+				FScopeCycleCounter AdditionalScope(DynamicEmitterData->StatID);
 				DynamicEmitterData->GatherSimpleLights(this, ViewFamily, OutParticleLights);
 			}
 		}

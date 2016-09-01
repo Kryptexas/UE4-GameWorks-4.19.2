@@ -115,7 +115,7 @@ public:
 	*/
 	static void BuildComponentSpaceTransform(FTransform& OutTransform,
 												int32 BoneIndex,
-												const TArray<FTransform>& LocalAtoms,
+												const TArray<FTransform>& BoneSpaceTransforms,
 												const TArray<FBoneData>& BoneData);
 
 	static void BuildSkeletonMetaData(USkeleton* Skeleton, TArray<FBoneData>& OutBoneData);
@@ -267,6 +267,6 @@ public:
 	/**
 	 * @return		The default animation compression algorithm singleton, instantiating it if necessary.
 	 */
-	static UAnimCompress* GetDefaultAnimationCompressionAlgorithm();
+	ENGINE_API static UAnimCompress* GetDefaultAnimationCompressionAlgorithm();
 
 };

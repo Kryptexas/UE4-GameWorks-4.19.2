@@ -3,7 +3,7 @@ Availability:Public
 Title:ペルソナ アニメーション通知
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:ペルソナ アニメーション エディタのアニメーション通知ウィンドウのユーザーガイド
-バージョン：4.9
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

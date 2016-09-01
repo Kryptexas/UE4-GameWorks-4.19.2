@@ -4,6 +4,10 @@ Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description: Previewing games on mobile platforms will look in the UE4 editor.
 Platform:Mobile
 version: 4.9
+parent:Platforms/Mobile
+order:7
+type:overview
+tags:mobile
 
 ![](T_Rendering_Level_Examples.png)
 

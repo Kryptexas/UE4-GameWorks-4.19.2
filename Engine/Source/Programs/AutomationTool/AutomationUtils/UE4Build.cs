@@ -137,11 +137,16 @@ namespace AutomationTool
 			// Also, if we're running from VS then since UAT references UBT, we already have the most up-to-date version of UBT.exe
 			if (!bIsUBTReady && GlobalCommandLine.Compile && !System.Diagnostics.Debugger.IsAttached)
 			{
-				DeleteFile(UBTExecutable);
+                string RebuildString = "";
+                if (!GlobalCommandLine.IncrementalBuildUBT)
+                {
+                    DeleteFile(UBTExecutable);
+                    RebuildString = " /target:Rebuild";
+                }
 
 				MsBuild(CmdEnv,
 						CmdEnv.LocalRoot + @"/Engine/Source/Programs/UnrealBuildTool/" + HostPlatform.Current.UBTProjectName + @".csproj",
-						"/verbosity:minimal /target:Rebuild /property:Configuration=Development /property:Platform=AnyCPU",
+						"/verbosity:minimal /nologo" + RebuildString + " /property:Configuration=Development /property:Platform=AnyCPU",
 						"BuildUBT");
 
 				bIsUBTReady = true;
@@ -245,7 +250,7 @@ namespace AutomationTool
 		void XGEFinishBuildWithUBT(XGEItem Item)
 		{
 			// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-			Platform.Platforms[Item.Platform].PostBuildTarget(this, Item.UProjectPath, Item.TargetName, Item.Config);
+			Platform.GetPlatform(Item.Platform).PostBuildTarget(this, Item.UProjectPath, Item.TargetName, Item.Config);
 
 			foreach (string ManifestItem in Item.Manifest.BuildProducts)
 			{
@@ -337,7 +342,7 @@ namespace AutomationTool
 			PrepareUBT();
 
 			// let the platform determine when to use the manifest
-            bool UseManifest = Platform.Platforms[TargetPlatform].ShouldUseManifestForUBTBuilds(AddArgs);
+            bool UseManifest = Platform.GetPlatform(TargetPlatform).ShouldUseManifestForUBTBuilds(AddArgs);
 
 			BuildManifest Manifest = null;
 			if (UseManifest)
@@ -357,7 +362,7 @@ namespace AutomationTool
 				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs, EnvVars: EnvVars);
 			}
             // allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-			Platform.Platforms[TargetPlatform].PostBuildTarget(this, UprojectPath, TargetName, Config);
+            Platform.GetPlatform(TargetPlatform).PostBuildTarget(this, UprojectPath, TargetName, Config);
 
 			if (UseManifest)
 			{
@@ -454,7 +459,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Updates the engine version files
 		/// </summary>
-		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null)
+		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, string Build = null)
 		{
 			bool bIsLicenseeVersion = ParseParam("Licensee");
 			bool bDoUpdateVersionFiles = CommandUtils.P4Enabled && ActuallyUpdateVersionFiles;		
@@ -465,10 +470,10 @@ namespace AutomationTool
 			}
 
 			string Branch = P4Enabled ? P4Env.BuildRootEscaped : "";
-			return StaticUpdateVersionFiles(ChangelistNumber, Branch, bIsLicenseeVersion, bDoUpdateVersionFiles);
+			return StaticUpdateVersionFiles(ChangelistNumber, Branch, Build, bIsLicenseeVersion, bDoUpdateVersionFiles);
 		}
 
-		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, string Branch, bool bIsLicenseeVersion, bool bDoUpdateVersionFiles)
+		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, string Branch, string Build, bool bIsLicenseeVersion, bool bDoUpdateVersionFiles)
 		{
 			string ChangelistString = (ChangelistNumber != 0 && bDoUpdateVersionFiles)? ChangelistNumber.ToString() : String.Empty;
 
@@ -509,11 +514,19 @@ namespace AutomationTool
 					LogLog("Updating {0} with:", VerFile);
 					LogLog(" #define	BRANCH_NAME  {0}", Branch);
 					LogLog(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
+					if (Build != null)
+					{
+						LogLog(" #define	BUILD_VERSION  {0}", Build);
+					}
 					LogLog(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
 
 					VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
 					VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + Branch + "\"");
 					VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", ChangelistString);
+					if (Build != null)
+					{
+						VersionH.ReplaceLine("#define BUILD_VERSION ", "L\"" + Build + "\"");
+					}
 					VersionH.ReplaceOrAddLine("#define ENGINE_IS_LICENSEE_VERSION ", bIsLicenseeVersion ? "1" : "0");
 
                     VersionH.Commit();
@@ -671,7 +684,7 @@ namespace AutomationTool
 			public void AddTarget(string TargetName, UnrealBuildTool.UnrealTargetPlatform InPlatform, UnrealBuildTool.UnrealTargetConfiguration InConfiguration, FileReference InUprojectPath = null, string InAddArgs = "")
 			{
 				// Is this platform a compilable target?
-				if (!Platform.Platforms[InPlatform].CanBeCompiled())
+				if (!Platform.GetPlatform(InPlatform).CanBeCompiled())
 				{
 					return;
 				}
@@ -697,7 +710,7 @@ namespace AutomationTool
 			public void AddTargets(string[] TargetNames, UnrealBuildTool.UnrealTargetPlatform InPlatform, UnrealBuildTool.UnrealTargetConfiguration InConfiguration, FileReference InUprojectPath = null, string InAddArgs = "")
 			{
 				// Is this platform a compilable target?
-				if (!Platform.Platforms[InPlatform].CanBeCompiled())
+				if (!Platform.GetPlatform(InPlatform).CanBeCompiled())
 				{
 					return;
 				}
@@ -1266,7 +1279,7 @@ namespace AutomationTool
 			// allow all involved platforms to hook into the agenda
 			foreach (var TargetPlatform in UniquePlatforms)
 			{
-				Platform.Platforms[TargetPlatform].PreBuildAgenda(this, Agenda);
+				Platform.GetPlatform(TargetPlatform).PreBuildAgenda(this, Agenda);
 			}
 
 
@@ -1280,7 +1293,7 @@ namespace AutomationTool
 				string SwarmSolution = Path.Combine(CmdEnv.LocalRoot, Agenda.SwarmProject);
 				PrepareBuildProductsForCSharpProj(SwarmSolution);
 
-				BuildSolution(CmdEnv, SwarmSolution);
+				BuildSolution(CmdEnv, SwarmSolution, "Development", "Mixed Platforms");
 				AddSwarmBuildProducts();
 			}
 
@@ -1290,7 +1303,7 @@ namespace AutomationTool
 
 				PrepareBuildProductsForCSharpProj(Solution);
 
-				BuildSolution(CmdEnv, Solution);
+				BuildSolution(CmdEnv, Solution, "Development", "Any CPU");
 
 				AddBuildProductsForCSharpProj(Solution);
 			}
@@ -1404,6 +1417,10 @@ namespace AutomationTool
 					{
 						XGETool = XGEConsoleExePath;
 						Args = "\"" + TaskFilePath + "\" /Rebuild /MaxCPUS=200";
+						if (ParseParam("StopOnErrors"))
+						{
+							Args += " /StopOnErrors";
+						}
 					}
 
 					if (!bCanUseParallelExecutor && String.IsNullOrEmpty(XGETool))
@@ -1549,9 +1566,7 @@ namespace AutomationTool
 			var UBTFiles = new List<string>(new string[] 
 					{
 						"UnrealBuildTool.exe",
-						"UnrealBuildTool.exe.config",
-						"EnvVarsToXML.exe",
-						"EnvVarsToXML.exe.config"
+						"UnrealBuildTool.exe.config"
 					});
 
 			foreach (var UBTFile in UBTFiles)

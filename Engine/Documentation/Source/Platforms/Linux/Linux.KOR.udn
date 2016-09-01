@@ -1,47 +1,22 @@
-﻿INTSourceChangelist:2559390
+﻿INTSourceChangelist:2940199
 Availability: Public
 Title: 리눅스 게임 개발
 Crumbs:%ROOT%, Platforms
 Description:리눅스 플랫폼용 게임 개발 관련 문서입니다.
 Platform:Linux
 Navigation:platform
+Version: 4.9
+type:landing
+parent:Platforms
+tags:Linux
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		리눅스 요점
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/Linux/GettingStarted "%Platforms/Linux/GettingStarted:description%")
-	[/PARAM]
-[/OBJECT]
+## 시작하기
 
-	
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/Linux")]
 
-		
+<!--
+## Linux 토픽
 
-	      
-
-	       
-
-	   
-
-	   
-
-	  
-
-		
-
-		
-
-		
-
-		
-
-		
-
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/Linux")]
+-->

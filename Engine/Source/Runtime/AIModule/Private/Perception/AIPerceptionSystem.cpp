@@ -347,10 +347,8 @@ void UAIPerceptionSystem::UnregisterListener(UAIPerceptionComponent& Listener)
 	}
 }
 
-void UAIPerceptionSystem::UnregisterSource(AActor& SourceActor, TSubclassOf<UAISense> Sense)
-{
-	SourceActor.OnEndPlay.Remove(StimuliSourceEndPlayDelegate);
-	
+void UAIPerceptionSystem::UnregisterSource(AActor& SourceActor, const TSubclassOf<UAISense> Sense)
+{	
 	FPerceptionStimuliSource* StimuliSource = RegisteredStimuliSources.Find(&SourceActor);
 	if (StimuliSource)
 	{
@@ -373,6 +371,13 @@ void UAIPerceptionSystem::UnregisterSource(AActor& SourceActor, TSubclassOf<UAIS
 					Senses[SenseID]->UnregisterSource(SourceActor);
 				}
 			}
+			StimuliSource->RelevantSenses.Clear();
+		}
+
+		if (StimuliSource->RelevantSenses.IsEmpty())
+		{
+			SourceActor.OnEndPlay.Remove(StimuliSourceEndPlayDelegate);
+			RegisteredStimuliSources.Remove(&SourceActor);
 		}
 	}
 	else

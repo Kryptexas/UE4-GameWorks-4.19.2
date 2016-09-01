@@ -3,6 +3,7 @@
 #include "ComponentVisualizersPrivatePCH.h"
 
 #include "ConstraintComponentVisualizer.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 
 static const FColor	JointFrame1Color(255,0,0);
 static const FColor JointFrame2Color(0,0,255);

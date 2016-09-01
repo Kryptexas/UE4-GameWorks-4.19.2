@@ -64,7 +64,7 @@ public:
 			.OnMouseDoubleClick(this, &STextureMaskThumbnail::OnAssetThumbnailDoubleClick)
 			//.OnClicked_Static(&FLandscapeEditorDetailCustomization_AlphaBrush::OnTextureButtonClicked)
 			[
-				SNew( SBox )
+				SNew(SBox)
 				.ToolTipText(this, &STextureMaskThumbnail::OnGetToolTip)
 				.WidthOverride(64)
 				.HeightOverride(64)
@@ -77,7 +77,7 @@ public:
 					//.ColorAndOpacity(this, &SAssetThumbnail::GetViewportColorAndOpacity)
 					//.Visibility(this, &SAssetThumbnail::GetViewportVisibility)
 					[
-						SAssignNew( ViewportWidget, SViewport )
+						SAssignNew(ViewportWidget, SViewport)
 						.EnableGammaCorrection(false)
 					]
 				]
@@ -272,7 +272,7 @@ bool FLandscapeEditorDetailCustomization_AlphaBrush::OnAssetDraggedOver(const UO
 
 void FLandscapeEditorDetailCustomization_AlphaBrush::OnAssetDropped(UObject* InObject, TSharedRef<IPropertyHandle> PropertyHandle_AlphaTexture)
 {
-	ensure(PropertyHandle_AlphaTexture->SetValue((const UObject*&)InObject) == FPropertyAccess::Success);
+	ensure(PropertyHandle_AlphaTexture->SetValue(InObject) == FPropertyAccess::Success);
 }
 
 #undef LOCTEXT_NAMESPACE

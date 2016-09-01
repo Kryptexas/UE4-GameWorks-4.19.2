@@ -196,7 +196,7 @@ struct FModuleLocationBoneSocketInstancePayload
 	TPreallocatedArrayProxy<int32> PreSelectedBoneSocketIndices;
 
 	/** Initialize array proxies and map to memory that has been allocated in the emitter's instance data buffer */
-	void InitArrayProxies(int32 FixedArraySize, bool bNeedsPreSelectedIndices)
+	void InitArrayProxies(int32 FixedArraySize)
 	{
 		// Calculate offsets into instance data buffer for the arrays and initialize the buffer proxies. The allocation 
 		// size for these arrays is calculated in RequiredBytesPerInstance.
@@ -207,10 +207,7 @@ struct FModuleLocationBoneSocketInstancePayload
 		BoneSocketVelocities = TPreallocatedArrayProxy<FVector>((uint8*)this + StructOffset, FixedArraySize);
 		StructOffset += (FixedArraySize*sizeof(FVector));
 
-		if (bNeedsPreSelectedIndices)
-		{
-			PreSelectedBoneSocketIndices = TPreallocatedArrayProxy<int32>((uint8*)this + StructOffset, FixedArraySize);
-			StructOffset += (FixedArraySize*sizeof(int32));
-		}
+		PreSelectedBoneSocketIndices = TPreallocatedArrayProxy<int32>((uint8*)this + StructOffset, FixedArraySize);
+		StructOffset += (FixedArraySize*sizeof(int32));
 	}
 };

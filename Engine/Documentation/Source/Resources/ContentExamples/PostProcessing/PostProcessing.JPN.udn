@@ -76,11 +76,10 @@ Version:4.9
 | **[1.12 モーション ブラー](Resources\ContentExamples\PostProcessing\1_12)** | 被写体の移動に追随してブラーする Motion Blur を作成します。|
 | **[1.13 スクリーン比率](Resources\ContentExamples\PostProcessing\1_13)** | Screen Percentage によって、低解像度でシーンをレンダリングして拡大します。スクリーン比率の値は、シーンの全体的な解像度の比率を表します。|
 | **[1.14 AA メソッド](Resources\ContentExamples\PostProcessing\1_14)** | 画面上でギザギザに見える角を滑らかにして画像の質を向上させる Anti-Aliasing (または AA) を紹介します。 |
-| **[1.15 Blur GBuffer intensity](Resources\ContentExamples\PostProcessing\1_15)** | 大変見づらいエフェクトですが、エイリアス処理に役立ちます。サーフェス上のハードエッジ上の マテリアル ラフネス を高めます。結果として、こうしたハードエッジ上のリフレクションを滑らかなものにします。 |
-| **[1.16 Blendables](Resources\ContentExamples\PostProcessing\1_16)** | Blendables は、スクリーン上に適用できるオーバーレイです (スクリーンのワープまたは色づけです)。 |
-| **[1.17 プライオリティ](Resources\ContentExamples\PostProcessing\1_17)** | オーバーラップしている場合、どの Post Process Volumes が他のものをオーバーライドするかを制御できます。 |
-| **[1.18 ブレンド半径とウェイト](Resources\ContentExamples\PostProcessing\1_18)** | ある Post Process Volume から別の Post Process Volume へのある距離にわたるトランジションを変更するために使用されます (オブジェクトからの距離に応じて、シーンの色調や色をブレンドします)。|
-| **[1.19 Unbound](Resources\ContentExamples\PostProcessing\1_19)** | 実際のボリュームの境界を無視して、 グローバル Post Process エフェクトを作成することができるプロパティです (ワールドのどこにいてもエフェクトを適用します)。 |
+| **[1.15 Blendables](Resources\ContentExamples\PostProcessing\1_15)** | Blendables は、スクリーン上に適用できるオーバーレイです (スクリーンのワープまたは色づけです)。 |
+| **[1.16 プライオリティ](Resources\ContentExamples\PostProcessing\1_16)** | オーバーラップしている場合、どの Post Process Volumes が他のものをオーバーライドするかを制御できます。 |
+| **[1.17 ブレンド半径とウェイト](Resources\ContentExamples\PostProcessing\1_17)** | ある Post Process Volume から別の Post Process Volume へのある距離にわたるトランジションを変更するために使用されます (オブジェクトからの距離に応じて、シーンの色調や色をブレンドします)。|
+| **[1.18 Unbound](Resources\ContentExamples\PostProcessing\1_18)** | 実際のボリュームの境界を無視して、 グローバル Post Process エフェクトを作成することができるプロパティです (ワールドのどこにいてもエフェクトを適用します)。 |
 
 
 

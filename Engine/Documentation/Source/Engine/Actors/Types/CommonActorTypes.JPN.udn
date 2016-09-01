@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2652695
-Availability:Public
+﻿Availability:Public
 Title:一般的なアクタの種類
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:レベルで使用する一般的なアクタの種類のリストおよび説明
@@ -10,10 +9,10 @@ Description:レベルで使用する一般的なアクタの種類のリスト�
 		LevelDesign_Beginner
 	[/PARAMLITERAL]
 	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Grouping "%Engine/Actors/Grouping:title%")
+		[前のトピック](Engine/Actors/Grouping "%Engine/Actors/Grouping:title%")
 	[/PARAM]
 	[PARAM:next]
-		[Next Topic](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:title%")
+		[次のトピック](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:title%")
 	[/PARAM]
 	[PARAM:home]
 		[](Tracks/LevelDesign/Beginner)
@@ -25,20 +24,20 @@ Description:レベルで使用する一般的なアクタの種類のリスト�
 %playlistnav%
 
 
-以下は、一般的に使用するアクタやアンリアル エンジンを用いてゲーム開発をする場合に扱うことがあるアクタを簡単に分類したものです。 
+以下は、アンリアル エンジンを用いてゲーム開発をする場合に一般的に使用するアクタを簡単に分類したものです。 
 この分類は、どのようなアクタか、なぜ使用するかについて慣れ親しんでいただくためのものです。
 
 [REGION:class_icons]
 | 種類 | アイコン | 説明 |
 | ---- | ---- | ----------- |
 | [REGION:tablesection]メッシュ & ジオメトリのアクタの種類[/REGION] |||
-| **StaticMesh アクタ** | ![](Shared/Icons/Source/ActorIcons/StaticMesh_40x.png)(convert:false) | **Static Mesh アクタ** は単純なアクタの種類で、シーンでメッシュを表示します。アクタがスタティックであることを名前が暗示していますが (すなわち移動不可)、名前のスタティック部分はメッシュのタイプ、この例では使用中のスタティックメッシュについて言及しています。こうしたメッシュはスタティックであるため、ジオメトリは変更しません。ただし、実際のアクタは、プレイ中に別の方法で移動または修正することができます。これらのアクタはほとんどの場合ワールド ジオメトリや、レベルの背景を制作する装飾メッシュとして使用します。詳細な利用法は、 [](Engine/Actors/StaticMeshActor) をご覧ください。 |
-| **Brush** | ![](Shared/Icons/Source/ActorIcons/Brush_40x.png)(convert:false) | **Brush アクタ** はアクタの基本的なタイプで、シーンにシンプルな 3D ジオメトリを表示します。こうしたアクタは、レベルエディタの [Geometry Editing (ジオメトリ編集)] モードで修正することができます。Brush アクタ (または単に Brushes ) は一般的に背景のプロトタイプを素早く作成したり、ゲームプレイをテストするためにレベルをブロックするために使用します。 |
-| **SkeletalMesh アクタ** | ![](Shared/Icons/Source/ActorIcons/SkeletalMesh_40x.png)(convert:false) | **Skeletal Mesh アクタ** はアニメートしたメッシュやスケルタルメッシュを表示するアクタのタイプです。これらのジオメトリは、外部の 3D アニメーションアプリケーションで作成して、エクスポートされたアニメーション シーケンス経由で変形することができます。こうしたアクタは、通常はキャラクター、その他の生き物、複雑な機械など、他の複雑な動きを変形または表示する必要があるものに使用します。シネマティック シーケンスの作成にマチネと併用されることも多くあります。 |
+| **StaticMesh アクタ** | ![](Shared/Icons/Source/ActorIcons/StaticMesh_40x.png)(convert:false) | **Static Mesh アクタ** は単純なアクタであり、シーンでメッシュを表示します。アクタがスタティックであることを名前が暗示していますが (すなわち移動不可)、名前のスタティック部分はメッシュのタイプ、この例では使用中のスタティックメッシュについて言及しています。こうしたメッシュはスタティックであるため、ジオメトリは変更しません。ただし、実際のアクタは、プレイ中に別の方法で移動または修正することができます。これらのアクタはほとんどの場合ワールド ジオメトリや、レベルの背景を制作する装飾メッシュとして使用します。詳細な利用法は、 [](Engine/Actors/StaticMeshActor) をご覧ください。 |
+| **Brush** | ![](Shared/Icons/Source/ActorIcons/Brush_40x.png)(convert:false) | **Brush アクタ** はアクタの基本タイプで、シーンにシンプルな 3D ジオメトリを表示します。こうしたアクタは、レベルエディタの [Geometry Editing (ジオメトリ編集)] モードで修正することができます。Brush アクタ (または単に Brushes ) は一般的に背景のプロトタイプを素早く作成したり、ゲームプレイをテストするためにレベルをブロックするために使用します。 |
+| **SkeletalMesh アクタ** | ![](Shared/Icons/Source/ActorIcons/SkeletalMesh_40x.png)(convert:false) | **Skeletal Mesh アクタ** はアニメートしたメッシュやスケルタルメッシュを表示するアクタの一種です。これらのジオメトリは、外部の 3D アニメーション アプリケーションで作成して、エクスポートされたアニメーション シーケンス経由で変形することができます。こうしたアクタは、通常はキャラクター、その他の生き物、複雑な機械など、他の複雑な動きを変形または表示する必要があるものに使用します。シネマティック シーケンスを作成するためにマチネと併用されることも多くあります。 |
 | [REGION:tablesection]Gameplay アクタの種類[/REGION] |||
 | **PlayerStart** | ![](PlayerStart.png)(w:43) | **Player Start** は、ゲームの開始時にプレイヤーがスタートする地点を指定するためにレベルへ配置するアクタです。 |
 | **Triggers** | ![](BoxTrigger.png)(w:43) ![](CapsuleTrigger.png)(w:43) ![](SphereTrigger.png)(w:43) | [INCLUDE:Engine/Actors/Triggers#intro] [INCLUDE:#trigger] 詳細な利用方法は [](Engine/Actors/Triggers) をご覧ください。 |
-| **MatineeActor** | ![](MatineeIcon.png)(w:43) | **Matinee アクタ** では マチネ アニメーション ツールを介して、時間経過に伴いアクタのプロパティをアニメートし、動的ゲームプレイやゲーム内のシネマティック シーケンスを作成することができます。このシステムは特別なアニメーション トラックの使用に基づいています。アニメーション トラックには、アクタの特定プロパティ値をレベルに設定するためにキーフレームを配置することができます。マチネ アニメーション ツールは、ビデオ編集に使用する非線形エディタと似ているため、ビデオの専門家には馴染みのあるツールです。詳細な利用法は、 [](Engine/Matinee) をご覧ください。 |
+| **MatineeActor** | ![](MatineeIcon.png)(w:43) | **Matinee アクタ** では マチネ アニメーション ツールを介して、時間経過に伴いアクタのプロパティをアニメートし、動的ゲームプレイやゲーム内のシネマティック シーケンスを作成することができます。このシステムは特別なアニメーション トラックの使用に基づいています。アニメーション トラックには、アクタの特定プロパティ値をレベルに設定するためにキーフレームを配置することができます。マチネ アニメーション ツールは、ビデオ編集に使用する非線形エディタと似ているため、映像の専門家には馴染みのあるツールです。詳しい利用法は、 [](Engine/Matinee) をご覧ください。 |
 | [REGION:tablesection]Light アクタの種類[/REGION] |||
 | **PointLight** | ![](Shared/Icons/Source/icon_class_PointLight_40px.png)(convert:false) | [INCLUDE:Engine/Rendering/LightingAndShadows/LightTypes/Point#intro] |
 | **SpotLight** | ![](SpotLight.png)(w:43) | [INCLUDE:Engine/Rendering/LightingAndShadows/LightTypes/Spot#intro] |

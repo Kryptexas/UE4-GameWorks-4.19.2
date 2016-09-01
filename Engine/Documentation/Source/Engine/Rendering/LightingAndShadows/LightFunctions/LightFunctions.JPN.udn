@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2602324
-Availability:Public
-Title:Light Functions
+﻿Availability:Public
+Title:Light 関数
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:マテリアルをソースにしてライティングを投影する
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,15 +47,19 @@ Description:マテリアルをソースにしてライティングを投影す�
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
-## 概要
+
 
 [EXCERPT:LightFunctions]
-**Light Functions** は、本質的に、ライトの強度をフィルタするために適用する **マテリアル** です。  
+**Light 関数** は、本質的に、ライトの強度をフィルタするために適用するマテリアルです。  
 
-しかし、 **Light Functions** では、ライトの色の変更はできないことに留意してください。ライトの色を変更は **Light Color** 設定でのみ行えます。 
+[Region:note]
+しかし、Light 関数では、ライトの色の変更はできないことに留意してください。ライトの色を変更は Light Color 設定でのみ行えます。さらに、この機能は、Stationary (固定) および Movable light (可動ライト) などのライトマップされていないライトでのみ使用できるので、Static Light (静的ライト) は Light 関数を使用できません。
+[/Region]
+
+しかし、Light 関数では、ライトの色の変更はできないことに留意してください。ライトの色を変更は Light Color 設定でのみ行えます。 
 [/EXCERPT:LightFunctions]
 
-次の画像 (_クリックしてフルサイズに拡大_) では、 **マテリアル** は点滅エフェクトを生成しながら **Panner** ノードと **ScalarParameter** ノードを使ってテクスチャを移動します。 
+次の画像 (_クリックしてフルサイズに拡大_) では、 マテリアル は点滅エフェクトを生成しながら Panner ノードと ScalarParameter ノードを使ってテクスチャを移動します。 
 [REGION:lightbox]
 [![](LI_LightFunction.png)(w:900)](LI_LightFunction.png)
 [/REGION]
@@ -63,13 +67,13 @@ Description:マテリアルをソースにしてライティングを投影す�
 
 ## Light Function の作成 
 
-**Light Function** は **マテリアル** の **マテリアル ドメイン** が **Light Function** の属性を使用するように設定して作成します。
+Light 関数はマテリアルのマテリアル ドメインが Light 関数の属性を使用するように設定して作成します。
 
 ![](MAT_LightFunction.png)(w:520)
 
 
-## Light Function の適用 
+## Light 関数の適用 
 
-**[Details (詳細)]** パネルの **[Light Function Material (ライトの機能マテリアル)]** 設定で **Light Function** を適用することができます。 
+[Details (詳細)] パネルの **[Light Function Material]** 設定で **Light Function** を適用することができます。 
 
 ![](AddLightFunction.png)(w:640)

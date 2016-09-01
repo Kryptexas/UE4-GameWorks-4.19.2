@@ -196,7 +196,7 @@ FString FIOSPlatformMisc::GetDefaultLocale()
 
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
-#if PLATFORM_TVOS
+#if UE_BUILD_SHIPPING || PLATFORM_TVOS
 	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
 #else
 	NSString* CocoaText = (NSString*)FPlatformString::TCHARToCFString(Text);
@@ -316,6 +316,27 @@ EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType,
 
 	return Result;
 #endif
+}
+
+uint32 FIOSPlatformMisc::GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
+{
+	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, true, true);
+}
+
+uint32 FIOSPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
+{
+#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
+	
+	uint32 NumMappings = 0;
+	
+	// we only handle a few "fake" keys from the IOS keyboard delegate stuff in IOSView.cpp
+	if (KeyCodes && KeyNames && (MaxMappings > 0))
+	{
+		ADDKEYMAP(KEYCODE_ENTER, TEXT("Enter"));
+		ADDKEYMAP(KEYCODE_BACKSPACE, TEXT("BackSpace"));
+		ADDKEYMAP(KEYCODE_ESCAPE, TEXT("Escape"));
+	}
+	return NumMappings;
 }
 
 bool FIOSPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
@@ -846,10 +867,7 @@ void FIOSPlatformMisc::RegisterForRemoteNotifications()
 	else
 	{
         
-#ifdef __IPHONE_8_0
-        UIUserNotificationSettings * settings = [UIUserNotificationSettings settingsForTypes : (UIUserNotificationTypeBadge | UIUserNotificationTypeAlert) categories:nil];
-        [application registerUserNotificationSettings : settings];
-#else
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
 		UIRemoteNotificationType myTypes = UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeAlert | UIRemoteNotificationTypeSound;
 		[application registerForRemoteNotificationTypes : myTypes];
 #endif

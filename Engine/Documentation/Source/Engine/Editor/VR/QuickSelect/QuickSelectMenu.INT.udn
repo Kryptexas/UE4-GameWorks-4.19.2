@@ -1,0 +1,73 @@
+Title: Quick Select Menu
+Description: The Quick Select menu provides easy access to editor panels and windows in VR mode.
+Crumbs:
+Availability: public
+parent: Engine/Editor/VR
+type: reference
+order: 2
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickSelect:title%](Engine/Editor/VR/QuickSelect/quickselect_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickSelect:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickSelect]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickSelect:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickSelect:title%](Engine/Editor/VR/QuickSelect/quickselect_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickSelect:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickSelect]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickSelect:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+The **Quick Select** menu nables you to quickly adjust grid, rotation and snap settings as well as summon the Content Browser, Details panel, and more.
+
+![](quickselectmenu.png)(w:480)
+
+## Using the Quick Select Menu
+
+1. Aim on of the controllers at the other controller to display the Quick Select menu.
+1. Aim the free controller at the options on the menu to highlight them.
+1. Squeeze the Trigger to select the highlighted option.
+
+## Quick Select Menu Options
+
+| Option | Description |
+| ------ | ----------- |
+| [REGION:tablesection]Grid Snap[/REGION] ||
+| Move | Toggles grid snapping on or off when moving Actors. The snapping value is modified by aiming at the numerical box below, squeezing the trigger, and moving the controller. |
+| Rotate | Toggles grid snapping on or off when rotating Actors. The snapping value is modified by aiming at the numerical box below, squeezing the trigger, and moving the controller. |
+| Scale | Toggles grid snapping on or off when scaling Actors. The snapping value is modified by aiming at the numerical box below, squeezing the trigger, and moving the controller. |
+| [REGION:tablesection]Gizmo[/REGION] ||
+| Coordinate System | Sets the coordinate system [World Space/Local Space] to use when transforming Actors. |
+| Transform Selector | Cycles the Universal Gizmo through the available transform modes: Translate, Rotate, Scale. Only the manipulators for the selected mode are displayed. |
+| [REGION:tablesection]Interface[/REGION] ||
+| Content | Opens the Content Browser |
+| Details | Opens the Details panel for viewing and modifying properties of the selected Actor(s). |
+| Modes | Opens the Modes panel providing access to Actor placement tools and more. |
+| Outliner | Opens theWorld Outliner which displays a hierarchical list of all Actors in the world enabling quick selection, visibility toggling, organization, and Actor-specific actions to be performed. |
+| Asset | Opens the Asset window which acts as a container for any asset editors - Blueprint Editor, Material Editor, etc. - that may be open. |
+| Tutorial | Opens the VR Mode Tutorial which provides access to a collection of instructional walkthroughs for common features of the VR Editor. |

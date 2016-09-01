@@ -9,6 +9,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 UChildActorComponent::UChildActorComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bWantsBeginPlay = true;
+	bAllowReregistration = false;
 }
 
 void UChildActorComponent::OnRegister()
@@ -179,6 +181,28 @@ void FChildActorComponentInstanceData::ApplyToComponent(UActorComponent* Compone
 	CastChecked<UChildActorComponent>(Component)->ApplyComponentInstanceData(this, CacheApplyPhase);
 }
 
+void FChildActorComponentInstanceData::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	FSceneComponentInstanceData::AddReferencedObjects(Collector);
+
+	if (ComponentInstanceData)
+	{
+		ComponentInstanceData->AddReferencedObjects(Collector);
+	}
+}
+
+void UChildActorComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UChildActorComponent* This = CastChecked<UChildActorComponent>(InThis);
+
+	if (This->CachedInstanceData)
+	{
+		This->CachedInstanceData->AddReferencedObjects(Collector);
+	}
+
+	Super::AddReferencedObjects(InThis, Collector);
+}
+
 void UChildActorComponent::BeginDestroy()
 {
 	Super::BeginDestroy();
@@ -318,14 +342,7 @@ void UChildActorComponent::CreateChildActor()
 					bSpawn = false;
 					UE_LOG(LogChildActorComponent, Error, TEXT("Found cycle in child actor component '%s'.  Not spawning Actor of class '%s' to break."), *GetPathName(), *ChildActorClass->GetName());
 				}
-				if (UChildActorComponent* ParentComponent = Actor->GetParentComponent())
-				{
-					Actor = ParentComponent->GetOwner();
-				}
-				else
-				{
-					Actor = nullptr;
-				}
+				Actor = Actor->GetParentActor();
 			}
 
 			if (bSpawn)
@@ -342,6 +359,7 @@ void UChildActorComponent::CreateChildActor()
 				}
 
 				// Spawn actor of desired class
+				ConditionalUpdateComponentToWorld();
 				FVector Location = GetComponentLocation();
 				FRotator Rotation = GetComponentRotation();
 				ChildActor = World->SpawnActor(ChildActorClass, &Location, &Rotation, Params);
@@ -377,7 +395,9 @@ void UChildActorComponent::CreateChildActor()
 void UChildActorComponent::DestroyChildActor()
 {
 	// If we own an Actor, kill it now unless we don't have authority on it, for that we rely on the server
-	if (ChildActor && ChildActor->HasAuthority())
+	// If the level that the child actor is being removed then don't destory the child actor so re-adding it doesn't
+	// need to create a new actor
+	if (ChildActor && ChildActor->HasAuthority() && !GetOwner()->GetLevel()->bIsBeingRemoved)
 	{
 		if (!GExitPurge)
 		{
@@ -431,5 +451,15 @@ void UChildActorComponent::DestroyChildActor()
 		}
 
 		ChildActor = nullptr;
+	}
+}
+
+void UChildActorComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (ChildActor && !ChildActor->HasActorBegunPlay())
+	{
+		ChildActor->BeginPlay();
 	}
 }

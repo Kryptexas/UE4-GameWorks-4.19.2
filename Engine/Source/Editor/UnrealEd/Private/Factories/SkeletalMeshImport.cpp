@@ -943,22 +943,22 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 					LODModel.RequiredBones.Sort();
 					LODModel.ActiveBoneIndices.Sort();
 
-					// Fix the chunks' BoneMaps.
-					for (int32 ChunkIndex = 0; ChunkIndex < LODModel.Chunks.Num(); ChunkIndex++)
+					// Fix the sections' BoneMaps.
+					for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 					{
-						FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIndex];
-						for (int32 BoneIndex = 0; BoneIndex < Chunk.BoneMap.Num(); BoneIndex++)
+						FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+						for (int32 BoneIndex = 0; BoneIndex < Section.BoneMap.Num(); BoneIndex++)
 						{
-							int32 NewBoneIndex = OldToNewMap[Chunk.BoneMap[BoneIndex]];
+							int32 NewBoneIndex = OldToNewMap[Section.BoneMap[BoneIndex]];
 							if (NewBoneIndex == INDEX_NONE)
 							{
 								bMissingBone = true;
-								MissingBoneName = MeshData->ExistingRefSkeleton.GetBoneName(Chunk.BoneMap[BoneIndex]);
+								MissingBoneName = MeshData->ExistingRefSkeleton.GetBoneName(Section.BoneMap[BoneIndex]);
 								break;
 							}
 							else
 							{
-								Chunk.BoneMap[BoneIndex] = NewBoneIndex;
+								Section.BoneMap[BoneIndex] = NewBoneIndex;
 							}
 						}
 						if (bMissingBone)

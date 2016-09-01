@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2123320
-Availability:Public
+﻿Availability:Public
 Title:FABRIK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:Forward And Backward Reaching Inverse Kinematics, 앞뒤로 늘어나는 IK 를 사용하는 애니메이션 노드입니다.
+version: 4.9
 
 [REGION:banner]
 ![FABRIK](FABRIK.png)(convert:false)
@@ -14,7 +14,7 @@ Description:Forward And Backward Reaching Inverse Kinematics, 앞뒤로 늘어�
 
 우선 (위 그림과 같이) **애니메이션 블루프린트** 의 **애님 그래프** 에 **FABRIK** 노드를 추가하는 것으로 **FABRIK** 을 사용할 수 있습니다.
 
-추가하고나면, **컴포넌트 포즈** 에 추가로 노드는 **이펙터 트랜스폼** 을 받는데, 절대 **트랜스폼** 이 될 수도, (같은 스켈레톤의 다른 본을 기준으로 하는) 절대 트랜스폼이 될 수도 있습니다. **엔드 이펙터** 세팅은 **TwoBone_IK** 노드와도 매우 유사합니다.
+추가하고 나면, **컴포넌트 포즈** 에 추가로 노드는 **이펙터 트랜스폼** 을 받는데, 절대 **트랜스폼** 이 될 수도, (같은 스켈레톤의 다른 본을 기준으로 하는) 절대 트랜스폼이 될 수도 있습니다. **엔드 이펙터** 세팅은 **TwoBone_IK** 노드와도 매우 유사합니다.
 
 적용된 스켈레탈 콘트롤의 현재 세기를 결정하기 위하여 **FABRIK** 노드는 플로트 **Alpha** 를 받는데, 노드 자체에서 설정하거나 플로트 변수를 통해 설정 가능합니다.
 

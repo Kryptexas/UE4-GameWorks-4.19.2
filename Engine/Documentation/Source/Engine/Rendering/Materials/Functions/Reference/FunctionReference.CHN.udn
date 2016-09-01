@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2735575
 Availability: Public
-title:材质函数引用
+title:材质函数参考
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description:每个材质函数的引用页面，按分类来划分。
+Description:每个材质函数的参考页面，按分类来划分。
 
 
-以下是默认情况下虚幻编辑器中的不同的材质函数的细分内容，按照分类来划分。
+以下是默认情况下虚幻编辑器中的不同的 **材质函数** 的细分内容，按照分类来划分。
 
 [EXCERPT:Categories]
 [REGION:topics fourth]

@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:2983084
+Availability:Public
+Title:구글 VR 과 데이드림 디바이스
+Crumbs:%ROOT%, Platforms/GoogleVR
+Description:데이드림 디바이스 전용 구글 VR 기능입니다.
+Navigation:platform
+Skilllevel: Intermediate
+Version: 4.12
+parent:Platforms/GoogleVR
+type:overview
+tags:VR
+tags:Google VR
+tags:Daydream
+
+
+## 개요
+Google VR (구글 VR)이 대부분의 안드로이드 기반 디바이스와 호환되기는 하지만, Daydream (데이드림) 디바이스에서만 작동하는 기능도 있습니다. 여기서는 그러한 기능에는 어떤 것이 있는지, 프로젝트에서 사용하려면 어떻게 해야 하는지를 살펴보겠습니다.
+
+### 안드로이드 NDK 11c
+데이드림이 제공하는 기능 전체를 사용하기 위해서는, 안드로이드 NDK 11c 버전을 다운로드하여 설치해야 합니다. 알맞은 버전은 다음 링크에서 찾을 수 있습니다:
+
+* [https://developer.android.com/ndk/downloads/index.html](https://developer.android.com/ndk/downloads/index.html)
+
+다운로드와 설치가 끝나면 UE4 가 새로운 NDK 파일을 사용하도록 해 줘야 하는데, **Android SDK** > **SDKConfig** 섹션에서 NDK 경로를 새로 설치한 NDK 11c 경로로 바꿔주면 됩니다.
+
+![](GDaydream_New_NDK_00.png)
+
+### 스캔라인 레이싱
+Scanline Racing (스캔라인 레이싱)은 VR 프로젝트의 지연시간을 감소시켜 주는 데이드림 전용 기능입니다. 데이드림 디바이스용 구글 VR 프로젝트에서 스캔라인 레이싱 기능을 켜는 방법은 다음과 같습니다:
+
+1. **프로젝트 세팅** 을 열고 **플랫폼** > **안드로이드** 로 갑니다.
+
+	![](GDaydream_Arm64_Support_00.png)
+
+1. **Build** (빌드) 섹션 아래 **Support arm64[aka arm64-v8a]** 이름 옆의 체크박스를 클릭하여 활성화시킵니다.
+
+	![](Platforms\GoogleVR\QuickStart\2\GVRQS_Build_arm64_Support_00.png)
+
+	[region:note]
+    이 옵션을 활성화시키면 첫 쿠킹시 arm64 라이브러리가 컴파일되므로 시간이 크게 증가합니다.
+    [/region]
+
+1. 그런 다음 **Advanced APKPackaging** (고급 APK 패키징) 섹션에서 **Configure GoogleVR for low-latency rendering mode (scanline racing)** 옆의 체크박스를 클릭하여 활성화시켜 줍니다.
+
+	![](GDaydream_Scanline_Racing_Support_00.png)
+
+다음 번 UE4 프로젝트를 쿠킹하고 데이드림 디바이스에 설치하면 지연시간이 낮은 렌더링이 가능해질 것입니다.
+
+### 모션 콘트롤러
+데이드림 디바이스용 모션 콘트롤러 작업은 HTC Vive 나 Oculus Rift 용 모션 콘트롤러 작업 방식과 매우 비슷합니다. UE4 데이드림 프로젝트에 모션 콘트롤러 함수성을 추가하는 방법은 다음과 같습니다.
+
+[region:note]
+UE4 에서의 모션 콘트롤러 사용법 관련 심화 내용은, [](Platforms/VR/MotionController) 문서를 참고하시기 바랍니다.
+[/region]
+
+1. 플레이어 폰을 열고 **컴포넌트 추가** 목록에서 Motion Controller Component 를 검색하고 다음 항목을 추가합니다.
+
+	* Motion Controller Component
+	* Static Mesh Component 에 스태틱 메시 포함
+	
+	[region:lightbox] 
+	[![](GVRQS_Daydream_MC_Setup_00.png)(w:700)](GVRQS_Daydream_MC_Setup_00.png)
+	[/region]
+
+1. 다음으로 이벤트 그래프에서 모션 콘트롤러 블루프린트 함수를 사용해 모션 콘트롤러의 버튼과 상호작용합니다.
+	
+	![](Platforms\VR\MotionController\Working_With_MC.png)
+
+## 교육 자료
+
+[REGION:topics third]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	모션 콘트롤러 구성
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	6ALnsdQnkVQ
+	[/PARAMLITERAL]
+[/OBJECT]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	모션 콘트롤러를 활용한 VR 상호작용 제작 - 1 부
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	eRNtgFo6iU0
+	[/PARAMLITERAL]
+[/OBJECT]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+		모션 콘트롤러를 활용한 VR 상호작용 제작 - 2 부
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	utOahIZgKgc
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
+
+

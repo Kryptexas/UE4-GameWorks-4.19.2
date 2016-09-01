@@ -1711,7 +1711,7 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 #endif
 
 /** bStatCommand indicates whether we are coming from a stat command or a budget command */
-static void StatCmd(FString InCmd, bool bStatCommand)
+static void StatCmd(FString InCmd, bool bStatCommand, FOutputDevice* Ar /*= nullptr*/)
 {
 	const TCHAR* Cmd = *InCmd;
 	if(bStatCommand)
@@ -1804,6 +1804,16 @@ static void StatCmd(FString InCmd, bool bStatCommand)
 		{
 			static bool bToggle = false;
 			static FDelegateHandle DumpHitchDelegateHandle;
+			
+			bool bIsStart = FString(Cmd).Find(TEXT("-start")) != INDEX_NONE;
+			bool bIsStop = FString(Cmd).Find(TEXT("-stop")) != INDEX_NONE;
+
+			if (bIsStart && bToggle)
+				return;
+
+			if (bIsStop && !bToggle)
+				return;
+
 			bToggle = !bToggle;
 			if (bToggle)
 			{
@@ -1817,6 +1827,10 @@ static void StatCmd(FString InCmd, bool bStatCommand)
 				StatsMasterEnableSubtract();
 				Stats.NewFrameDelegate.Remove(DumpHitchDelegateHandle);
 				UE_LOG(LogStats, Log, TEXT("**************************** %d hitches	%8.0fms total hitch time"), HitchIndex, TotalHitchTime);
+			}
+			if (Ar)
+			{
+				Ar->Logf(TEXT("dumphitches set to %d"), bToggle);
 			}
 		}
 		else if (FParse::Command(&Cmd, TEXT("DumpEvents")))
@@ -2015,8 +2029,16 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 			}
 			else if (FParse::Command(&TempCmd, TEXT("STARTFILE")))
 			{
+				FString Filename;
 				AddArgs += TEXT(" ");
-				AddArgs += CreateProfileFilename(FStatConstants::StatsFileExtension, true);
+				if (FParse::Line(&TempCmd, Filename, true))
+				{
+					AddArgs += Filename;
+				}
+				else
+				{
+					AddArgs += CreateProfileFilename(FStatConstants::StatsFileExtension, true);
+				}
 			}
 			else if (FParse::Command(&TempCmd, TEXT("StartFileRaw")))
 			{
@@ -2161,7 +2183,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 				STATGROUP_TaskGraphTasks);
 
 			FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FullCmd, bStatCommand),
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FullCmd, bStatCommand, Ar),
 				GET_STATID(STAT_FSimpleDelegateGraphTask_StatCmd), NULL, ThreadType
 			);
 			if (bBlockForCompletion)
@@ -2171,7 +2193,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 			}
 #else
 			// If stats aren't enabled, broadcast so engine stats can still be triggered
-			StatCmd(FullCmd, bStatCommand);
+			StatCmd(FullCmd, bStatCommand, Ar);
 #endif
 		}
 	}

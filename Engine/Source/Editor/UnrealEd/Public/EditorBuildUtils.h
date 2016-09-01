@@ -123,11 +123,13 @@ public:
 	/**
 	 * Perform an editor build for texture streaming
 	 *
-	 * @param	InWorld				WorldContext
+	 * @param	InWorld					WorldContext
+	 * @param	bWithTexCoordScales		true if the build should compute material texcoord scales.
+	 * @param	bDebugDataOnly			true if the build should only update data useful for accuracy viewmodes.
 	 *
 	 * @return	true if the build completed successfully; false if it did not (or was manually canceled)
 	 */
-	static UNREALED_API bool EditorBuildTextureStreaming( UWorld* InWorld );
+	static UNREALED_API bool EditorBuildTextureStreaming( UWorld* InWorld, bool bWithTexCoordScales = true, bool bDebugDataOnly = false);
 
 
 	/** 

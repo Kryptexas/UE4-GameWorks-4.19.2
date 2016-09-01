@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2677539
+﻿INTSourceChangelist:2841213
 Availability: Public
 Title: Perforce 소스 콘트롤 사용
 Crumbs: %ROOT%, Engine, Engine\Basics\SourceControl
@@ -116,7 +116,7 @@ p4 환경 변수를 설정해 줘야 합니다.
 끝날 것입니다. Perforce 클라우드 제공사 접속 관련 참고사항은, 아래 **언리얼 에디터에서 접속하기** 부분을 참고하세요.
 
 ### 로컬 워크스페이스 구성하기
-Perforce 콘트롤 하의 파일 작업을 위해서는, 로컬 퍼민에 있는 파일 관리가 가능하도록 Workspace (워크스페이스) 구성을 해 줘야 합니다. 이 작업은 P4V **View** 드롭다운의 Workspace 탭을 통해 가능합니다:
+Perforce 콘트롤 하의 파일 작업을 위해서는, 로컬에서 파일 관리가 가능하도록 Workspace (워크스페이스) 구성을 해 줘야 합니다. 이 작업은 P4V **View** 드롭다운의 Workspace 탭을 통해 가능합니다:
 
 ![](SC_View_Workspace.png)
 

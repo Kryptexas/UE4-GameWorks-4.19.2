@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672915
+﻿INTSourceChangelist:2953540
 Availability:Docs
 Title:4.3 - アニメーション ステート マシーンを追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
-Description:First Person キャラクターにアニメーション ステートマシンを追加する方法を学びます。
-SkillLevel:初心者向け
-Version:4.9
+Description:FPS キャラクターにアニメーション ステートマシンを追加する方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,11 +26,11 @@ Version:4.9
 
 このステップでは、新規作成した変数を活用するステートマシンをまとめます。
 
-1.	**[My Blueprint]** タブで、 **[AnimGraph]** をダブルクリックして開きます。
+1.	[My Blueprint] タブで、 **[AnimGraph]** をダブルクリックして開きます。
 
 	![](AnimGraph.png)
 
-1.	グラフを **右クリック** して、**コンテキスト メニュー** で **[State Machines >Add New State Machine...]** を選択します。
+1.	グラフを右クリックして、**コンテキスト メニュー** で **[State Machines >Add New State Machine...]** を選択します。
 
 	![](AddNewSM.png)
 
@@ -42,6 +42,6 @@ Version:4.9
 
 	![](ConnectedArmsStateMachine.png)
 
-1.	Arms State Machine ノードを **ダブルクリック** して、編集するためにそのグラフを開きます。
+1.	Arms State Machine ノードをダブルクリックして、編集するためにそのグラフを開きます。
 
 %Steps%

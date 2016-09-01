@@ -1,8 +1,8 @@
-Title:1. Register as an Oculus Developer
+Title:1. Download Oculus Runtime
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:Register as an Oculus developer to gain access to necessary programs and documentation
+Description:Where to download  the Oculus Rift runtime
 Availability:Public
-Version: 4.9
+Version: 4.11
 SkillLevel: Intermediate
 
 [VAR:Steps]
@@ -20,28 +20,11 @@ SkillLevel: Intermediate
 [/OBJECT]
 [/VAR]
 
-In this section we will go over how to register as an Oculus developer if you are not already one. 
-While it is not mandatory to register as an Oculus developer, registering will allow you to access to the Oculus forums as well as submit games to the Oculus store.
+In this section we will go over where to download the latest Oculus runtimes that are compatible with Unreal Engine 4.0 as well as anything you should be aware of before you install the Oculus runtimes.
 
 %Steps%
 
-Visit the [Oculus Developer Center](https://developer.oculus.com/) and click on the person icon in the upper right hand corner of the page to log in if you already have an Oculus account. 
-Please note that if you already have an account you can skip ahead to the next step.
-	
-![](Oculus_Downloads.png)
+1. Visit the [Oculus Setup page](https://www.oculus.com/en-us/setup/) and download the Oculus runtimes by clicking on the **Start  Download** button in the center of the page.
 
-[region:note]
-While you do not need an Oculus account do to download the required Oculus runtime software, creating an account enables you to post in the forums, submit your game to Oculus Share, and more.
-[/region]
-
-If you do not have an Oculus account you can make one by clicking on the person icon in the upper right hand corner of the page to get to the [login page](https://id.oculus.com/US/en-US/login/). Once on the page you can do the following to setup an account.
-	
- ![](2-2-click-the-log-in-link.png)
-	
-1. Click on the **Create a free account** option.
-1. Fill out the registration form following the instructions on the page.
-1. Oculus will e-mail you a link to verify your e-mail address and confirm your registration.
-1. Return to the [Oculus Developer Center](https://developer.oculus.com/) and click the **Log In** link.
-
-
+	![](OR_Download_Runtimes_00.png)
 %Steps%

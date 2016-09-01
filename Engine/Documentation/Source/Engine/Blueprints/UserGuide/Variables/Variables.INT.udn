@@ -1,9 +1,11 @@
 Availability:Public
-Title:Blueprints User Guide: Variables
-Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Title:Blueprint Variables
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
 Description: Properties that hold a value or reference an Object or Actor in the world.
 version: 4.9
 skilllevel:Intermediate
+Parent:Engine/Blueprints/Scripting
+tags:Data Types
 
 [VAR:Topic]
 [OBJECT:Topic]

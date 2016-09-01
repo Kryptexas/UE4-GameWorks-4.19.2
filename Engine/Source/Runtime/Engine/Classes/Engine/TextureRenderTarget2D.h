@@ -45,6 +45,10 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
 	uint32 bHDR:1;
 
+	/** Whether to support GPU sharing of the underlying native texture resource. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = TextureRenderTarget2D, meta=(DisplayName = "Shared"), AssetRegistrySearchable, AdvancedDisplay)
+	uint32 bGPUSharedFlag : 1;
+
 	/** Whether to support Mip maps for this render target texture */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
 	uint32 bAutoGenerateMips:1;

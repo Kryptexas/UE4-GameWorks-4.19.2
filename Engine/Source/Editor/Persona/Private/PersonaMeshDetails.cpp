@@ -1140,7 +1140,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 				SNew(STextBlock)
 				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
 				.Text(LOCTEXT("RecomputeTangent_Title", "Recompute Tangent"))
-				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCaching) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
+				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCache.Mode) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
 			]
 		]
 
@@ -2004,15 +2004,12 @@ FReply FPersonaMeshDetails::OnOpenClothingFileClicked(IDetailLayoutBuilder* Deta
 					// shows warning 
 					if(NumSubmeshesOverMaxSimulVerts > 0)
 					{
-						// Notify failure
-						const FText Text = FText::Format(LOCTEXT("Warning_OverMaxClothSimulVerts", "One or more submeshes have over {0} cloth simulation vertices. Reduce simulation mesh complexity to import clothing asset."), FText::AsNumber(MaxClothVertices));
-						FMessageDialog::Open(EAppMsgType::Ok, Text);
-
-						// Remove the clothing from the skeletal mesh
-						ApexClothingUtils::RemoveAssetFromSkeletalMesh(SkelMesh, AssetIndex, true);
-
-						// Early out
-						return FReply::Handled();
+						const FText Text = FText::Format(LOCTEXT("Warning_OverMaxClothSimulVerts", "{0} submeshes have over {1} cloth simulation vertices. Please reduce simulation vertices under {1}. It has possibility not to work correctly.\n\n Proceed?"), FText::AsNumber(NumSubmeshesOverMaxSimulVerts), FText::AsNumber(MaxClothVertices));
+						if (EAppReturnType::Ok != FMessageDialog::Open(EAppMsgType::OkCancel, Text))
+						{
+							ApexClothingUtils::RemoveAssetFromSkeletalMesh(SkelMesh, AssetIndex, true);
+							return FReply::Handled();
+						}
 					}
 
 					// show import option dialog if this asset has multiple LODs 
@@ -2116,8 +2113,8 @@ void FPersonaMeshDetails::UpdateComboBoxStrings()
 			int32 ClothSection = LODModel.Sections[SecIdx].CorrespondClothSectionIndex;
 			if (ClothSection >= 0)
 			{
-				FSkelMeshChunk& Chunk = LODModel.Chunks[LODModel.Sections[ClothSection].ChunkIndex];
-				SectionAssetSubmeshIndices[SecIdx] = FClothAssetSubmeshIndex(Chunk.CorrespondClothAssetIndex, Chunk.ClothAssetSubmeshIndex);
+				FSkelMeshSection& Section = LODModel.Sections[ClothSection];
+				SectionAssetSubmeshIndices[SecIdx] = FClothAssetSubmeshIndex(Section.CorrespondClothAssetIndex, Section.ClothAssetSubmeshIndex);
 			}
 		}
 
@@ -2203,8 +2200,8 @@ void FPersonaMeshDetails::UpdateComboBoxStrings()
 				// Material index is Slot index
 				int32 SlotIdx = LODModel.Sections[SectionIdx].MaterialIndex;
 				check(SlotIdx < SectionAssetSubmeshIndices.Num());
-				FSkelMeshChunk& Chunk = LODModel.Chunks[LODModel.Sections[ClothSection].ChunkIndex];
-				SectionAssetSubmeshIndices[SlotIdx] = FClothAssetSubmeshIndex(Chunk.CorrespondClothAssetIndex, Chunk.ClothAssetSubmeshIndex);
+				FSkelMeshSection& Section = LODModel.Sections[ClothSection];
+				SectionAssetSubmeshIndices[SlotIdx] = FClothAssetSubmeshIndex(Section.CorrespondClothAssetIndex, Section.ClothAssetSubmeshIndex);
 			}
 		}
 

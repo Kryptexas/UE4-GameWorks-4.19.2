@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2436929
+﻿INTSourceChangelist:2695180
 Availability:Public
 Title:ワールド アウトライナー
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:選択やアタッチメントなどに利用する現行レベル内の全アクタの階層ツリービュー
+Version:4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -10,10 +11,10 @@ Description:選択やアタッチメントなどに利用する現行レベル�
 		LevelDesign_Beginner
 	[/PARAMLITERAL]
 	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:title%")
+		[前のトピック](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:title%")
 	[/PARAM]
 	[PARAM:next]
-		[Next Topic](Engine/UI/LevelEditor/Details "%Engine/UI/LevelEditor/Details:title%")
+		[次のトピック](Engine/UI/LevelEditor/Details "%Engine/UI/LevelEditor/Details:title%")
 	[/PARAM]
 	[PARAM:home]
 		[](Tracks/LevelDesign/Beginner)
@@ -26,15 +27,14 @@ Description:選択やアタッチメントなどに利用する現行レベル�
 
 [TOC(start:2)]
 
-## 概要
 
 [EXCERPT:SceneOutliner]
-**[ワールド アウトライナー]** パネルは、シーン内の全アクタを階層ツリービューで表示します。**ワールド アウトライナー** から直接アクタを選択および修正できます。レベル、レイヤー、または ID 名を表示する追加のコラムを表示するために **Info** ドロップダウンメニューを使用することもできます。
+**[ワールド アウトライナー]** パネルは、シーン内の全アクタを階層ツリービューで表示します。[ワールド アウトライナー] から直接アクタを選択および修正できます。レベル、レイヤー、ID 名を表示する追加のコラムを表示するために **Info (情報)** ドロップダウンメニューを使用することもできます。
 [/EXCERPT:SceneOutliner]
 
 ![Scene Outliner Panel](scene_outliner.png)
 
-**ワールド アウトライナー** UI に関する詳細は、[ワールド アウトライナー UI](Engine/UI/LevelEditor\SceneOutliner\Interface) を参照してください。
+[ワールド アウトライナー の UI](Engine/UI/LevelEditor\SceneOutliner) の詳細は、そのドキュメントを参照してください。
 
 ## ワールド アウトライナーの操作
 
@@ -46,7 +46,7 @@ Description:選択やアタッチメントなどに利用する現行レベル�
 
 ## ワールドの検索
 
-**ワールド アウトライナー** には、シーン内のアクタのリストを検索し、迅速にフィルタリングするために使用するテキストボックスがあります。検索ワードに対する部分一致も含めてすべてのアクタが表示されます。検索ボックスに複数の用語を入れてそのすべてに一致するアクタだけを表示することができます。
+ワールド アウトライナーには、シーン内のアクタのリストを検索し、迅速にフィルタリングするために使用するテキストボックスがあります。検索ワードに対する部分一致であってもすべてのアクタが表示されます。検索ボックスに複数の用語を入れてそのすべてに一致するアクタだけを表示することができます。
 
 ![Scene Outliner Search](outliner_search.png)
 
@@ -54,15 +54,15 @@ Description:選択やアタッチメントなどに利用する現行レベル�
 
 ![Scene Outliner Search - Exclude Term](outliner_search_exclude.png)
 
-部分一致とは対照的に、ある用語が検索結果に含まれるようにするには、用語の前に「+ 」記号を付けます。 
+部分一致とは反対に、ある用語と正確に一致する用語が検索結果に含まれるようにするには、、用語の前に「+ 」記号を付けます。 
 
 ![Scene Outliner Search - Force Term](outliner_search_force.png)
 
-アクタの長い名前の用語全体を強制的に完全一致させるために、検索ワードを二重引用符で囲むことができます。
+アクタの長い名前全体に強制的に完全一致させるために、検索ワードを二重引用符で囲むことができます。
 
 ![Scene Outliner Search - Verbatim Match](outliner_search_verbatim.png)
 
-**Info** 列が表示されたら、その中のデータも検索できます。これは一定レベルでアクタを表示したい場合、非常に有用です。Level 表示をオンにし、検索ボックスで「+[LevelName]」と入力するだけです。
+**Info** 列が表示されたら、その中のデータも検索できます。これはあるレベルでアクタを表示したい場合、非常に便利です。Level 表示をオンにし、検索ボックスで + [レベル名] を入力するだけです。
 
 
 %playlistnav%

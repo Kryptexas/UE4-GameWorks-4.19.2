@@ -186,6 +186,13 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	FEmitterLocalContext EmitterContext(Dependencies);
 
 	EmitFileBeginning(CleanCppClassName, EmitterContext);
+
+	// C4883 is a strange error (for big functions), introduced in VS2015 update 2
+	EmitterContext.Body.AddLine(TEXT("#ifdef _MSC_VER"));
+	EmitterContext.Body.AddLine(TEXT("#pragma warning (push)"));
+	EmitterContext.Body.AddLine(TEXT("#pragma warning (disable : 4883)"));
+	EmitterContext.Body.AddLine(TEXT("#endif"));
+
 	{
 		IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 
@@ -215,6 +222,8 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	UClass* OriginalSourceClass = Dependencies.FindOriginalClass(SourceClass);
 	ensure(OriginalSourceClass != SourceClass);
 
+	const bool bHasStaticSearchableValues = FBackendHelperStaticSearchableValues::HasSearchableValues(SourceClass);
+
 	// Class declaration
 	const bool bIsInterface = SourceClass->IsChildOf<UInterface>();
 	if (bIsInterface)
@@ -237,9 +246,15 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 			AdditionalMD.Add(ReplaceConvertedMD);
 		}
 
-		// AdditionalMD.Add(FString::Printf(TEXT("CustomDynamicClassInitialization=\"%s::__CustomDynamicClassInitialization\""), *CppClassName));
+		if (bHasStaticSearchableValues)
+		{
+			AdditionalMD.Add(FBackendHelperStaticSearchableValues::GenerateClassMetaData(SourceClass));
+		}
 
-		EmitterContext.Header.AddLine(FString::Printf(TEXT("UCLASS(%s%s)")
+		// AdditionalMD.Add(FString::Printf(TEXT("CustomDynamicClassInitialization=\"%s::__CustomDynamicClassInitialization\""), *CppClassName));
+		const FString DefinedConfigName = (OriginalSourceClass->ClassConfigName == NAME_None) ? FString() : FString::Printf(TEXT("config=%s, "), *OriginalSourceClass->ClassConfigName.ToString());
+		EmitterContext.Header.AddLine(FString::Printf(TEXT("UCLASS(%s%s%s)")
+			, *DefinedConfigName
 			, (!SourceClass->IsChildOf<UBlueprintFunctionLibrary>()) ? TEXT("Blueprintable, BlueprintType, ") : TEXT("")
 			, *FEmitHelper::HandleMetaData(nullptr, false, &AdditionalMD)));
 
@@ -266,15 +281,30 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 
 	EmitStructProperties(EmitterContext, SourceClass);
 
+	TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies;
 	// Emit function declarations and definitions (writes to header and body simultaneously)
 	if (!bIsInterface)
 	{
+		UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(EmitterContext.GetCurrentlyGeneratedClass());
+		UBlueprintGeneratedClass* ParentBPGC = Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass());
+		ParentDependencies = TSharedPtr<FGatherConvertedClassDependencies>(ParentBPGC ? new FGatherConvertedClassDependencies(ParentBPGC) : nullptr);
+
+		FEmitDefaultValueHelper::FillCommonUsedAssets(EmitterContext, ParentDependencies);
+
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("%s(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());"), *CppClassName));
 		EmitterContext.Header.AddLine(TEXT("virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;"));
-		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
 		EmitterContext.Header.AddLine(TEXT("static void __CustomDynamicClassInitialization(UDynamicClass* InDynamicClass);"));
 
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependencies_CommonAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+		if (bHasStaticSearchableValues)
+		{
+			FBackendHelperStaticSearchableValues::EmitFunctionDeclaration(EmitterContext);
+			FBackendHelperStaticSearchableValues::EmitFunctionDefinition(EmitterContext);
+		}
 		FEmitDefaultValueHelper::GenerateConstructor(EmitterContext);
+		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(EmitterContext, ParentDependencies);
 	}
 
 	// Create the state map
@@ -301,7 +331,19 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	EmitterContext.Header.DecreaseIndent();
 	EmitterContext.Header.AddLine(TEXT("};"));
 
+	if (!bIsInterface)
+	{
+		// must be called after GenerateConstructor
+		// now we knows which assets are directly used in source code
+		FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(EmitterContext, ParentDependencies);
+		FEmitDefaultValueHelper::AddRegisterHelper(EmitterContext);
+	}
+
 	FEmitHelper::EmitLifetimeReplicatedPropsImpl(EmitterContext);
+
+	EmitterContext.Body.AddLine(TEXT("#ifdef _MSC_VER"));
+	EmitterContext.Body.AddLine(TEXT("#pragma warning (pop)"));
+	EmitterContext.Body.AddLine(TEXT("#endif"));
 
 	CleanBackend();
 
@@ -316,7 +358,9 @@ void FBlueprintCompilerCppBackendBase::DeclareLocalVariables(FEmitterLocalContex
 		UProperty* LocalVariable = LocalVariables[i];
 
 		const FString CppDeclaration = EmitterContext.ExportCppDeclaration(LocalVariable, EExportedDeclaration::Local, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
-		EmitterContext.AddLine(CppDeclaration + TEXT("{};"));
+		UStructProperty* StructProperty = Cast<UStructProperty>(LocalVariable);
+		const TCHAR* EmptyDefaultConstructor = FEmitHelper::EmptyDefaultConstructor(StructProperty ? StructProperty->Struct : nullptr);
+		EmitterContext.AddLine(CppDeclaration + EmptyDefaultConstructor + TEXT(";"));
 	}
 }
 
@@ -673,15 +717,28 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 	Header.AddLine(FString::Printf(TEXT("enum class %s  : uint8"), *EnumCppName));
 	Header.AddLine(TEXT("{"));
 	Header.IncreaseIndent();
+
+	auto EnumItemName = [&](int32 InIndex)
+	{
+		const int32 ElemValue = SourceEnum->GetValueByIndex(InIndex);
+		if (ElemValue == SourceEnum->GetMaxEnumValue())
+		{
+			return FString::Printf(TEXT("%s_MAX"), *EnumCppName);
+		}
+		return SourceEnum->GetEnumName(InIndex);
+	};
+
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
 	{
-		const FString ElemName = SourceEnum->GetEnumName(Index);
-		const int32 ElemValue = Index;
+		const FString ElemCppName = EnumItemName(Index);
+		const int32 ElemValue = SourceEnum->GetValueByIndex(Index);
 
 		const FString& DisplayNameMD = SourceEnum->GetMetaData(TEXT("DisplayName"), ElemValue);// TODO: value or index?
-		const FString Meta = DisplayNameMD.IsEmpty() ? FString() : FString::Printf(TEXT("UMETA(DisplayName = \"%s\")"), *DisplayNameMD.ReplaceCharWithEscapedChar());
-		Header.AddLine(FString::Printf(TEXT("%s = %d %s,"), *ElemName, ElemValue, *Meta));
+		const FString MetaDisplayName = DisplayNameMD.IsEmpty() ? FString() : FString::Printf(TEXT("DisplayName = \"%s\","), *DisplayNameMD.ReplaceCharWithEscapedChar());
+		const FString MetaOverrideName = FString::Printf(TEXT("OverrideName = \"%s\""), *SourceEnum->GetNameByIndex(Index).ToString());
+		Header.AddLine(FString::Printf(TEXT("%s = %d UMETA(%s%s),"), *ElemCppName, ElemValue, *MetaDisplayName, *MetaOverrideName));
 	}
+
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
 
@@ -696,10 +753,15 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 	Header.IncreaseIndent();
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
 	{
+		const FString ElemName = EnumItemName(Index);
 		FString DisplayNameStr;
 		FTextStringHelper::WriteToString(DisplayNameStr, SourceEnum->GetEnumText(Index));
-		Header.AddLine(FString::Printf(TEXT("case %s::%s: FTextStringHelper::ReadFromString(TEXT(\"%s\"), Text); break;"), *EnumCppName, *SourceEnum->GetEnumName(Index), *DisplayNameStr.ReplaceCharWithEscapedChar()));
+		Header.AddLine(FString::Printf(TEXT("case %s::%s: FTextStringHelper::%s(TEXT(\"%s\"), Text); break;")
+			, *EnumCppName, *ElemName
+			, GET_FUNCTION_NAME_STRING_CHECKED(FTextStringHelper, ReadFromString)
+			, *DisplayNameStr.ReplaceCharWithEscapedChar()));
 	}
+
 	Header.AddLine(TEXT("default: ensure(false);"));
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
@@ -719,8 +781,9 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStr
 	// use GetBaseFilename() so that we can coordinate #includes and filenames
 	EmitFileBeginning(FEmitHelper::GetBaseFilename(SourceStruct), EmitterContext, true, true);
 
+	const FString CppStructName = FEmitHelper::GetCppName(SourceStruct);
 	EmitterContext.Header.AddLine(FString::Printf(TEXT("USTRUCT(BlueprintType, %s)"), *FEmitHelper::ReplaceConvertedMetaData(SourceStruct)));
-	EmitterContext.Header.AddLine(FString::Printf(TEXT("struct %s"), *FEmitHelper::GetCppName(SourceStruct)));
+	EmitterContext.Header.AddLine(FString::Printf(TEXT("struct %s"), *CppStructName));
 	EmitterContext.Header.AddLine(TEXT("{"));
 	EmitterContext.Header.AddLine(TEXT("public:"));
 	EmitterContext.Header.IncreaseIndent();
@@ -728,6 +791,14 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStr
 	EmitStructProperties(EmitterContext, SourceStruct);
 
 	FEmitDefaultValueHelper::GenerateGetDefaultValue(SourceStruct, EmitterContext);
+
+	EmitterContext.Header.AddLine(FString::Printf(TEXT("bool operator== (const %s& __Other) const"), *CppStructName));
+	EmitterContext.Header.AddLine(TEXT("{"));
+	EmitterContext.Header.IncreaseIndent();
+	EmitterContext.Header.AddLine(FString::Printf(TEXT("return %s::StaticStruct()->%s(this, &__Other, 0);"), *CppStructName, GET_FUNCTION_NAME_STRING_CHECKED(UScriptStruct, CompareScriptStruct)));
+	EmitterContext.Header.DecreaseIndent();
+	EmitterContext.Header.AddLine(TEXT("};"));
+
 	EmitterContext.Header.DecreaseIndent();
 	EmitterContext.Header.AddLine(TEXT("};"));
 
@@ -886,7 +957,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* Source
 			EmitterContext.Header.AddLine(TEXT("if (nullptr == __Property)"));
 			EmitterContext.Header.AddLine(TEXT("{"));
 			EmitterContext.Header.IncreaseIndent();
-			EmitterContext.Header.AddLine(FString::Printf(TEXT("__Property = GetClass()->FindPropertyByName(FName(TEXT(\"%s\")));"), *Property->GetName()));
+			EmitterContext.Header.AddLine(FString::Printf(TEXT("__Property = GetClass()->%s(FName(TEXT(\"%s\")));"), GET_FUNCTION_NAME_STRING_CHECKED(UClass, FindPropertyByName), *Property->GetName()));
 			EmitterContext.Header.AddLine(TEXT("check(__Property);"));
 			EmitterContext.Header.AddLine(TEXT("__PropertyPtr = __Property;"));
 			EmitterContext.Header.DecreaseIndent();
@@ -894,7 +965,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* Source
 		}
 		else
 		{
-			EmitterContext.Header.AddLine(FString::Printf(TEXT("const UProperty* __Property = GetClass()->FindPropertyByName(FName(TEXT(\"%s\")));"), *Property->GetName()));
+			EmitterContext.Header.AddLine(FString::Printf(TEXT("const UProperty* __Property = GetClass()->%s(FName(TEXT(\"%s\")));"), GET_FUNCTION_NAME_STRING_CHECKED(UClass, FindPropertyByName), *Property->GetName()));
 		}
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("return *(__Property->ContainerPtrToValuePtr<%s>(__Object));"), *TypeDeclaration));
 		EmitterContext.Header.DecreaseIndent();
@@ -966,7 +1037,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* Source
 			EmitterContext.Header.AddLine(FString::Printf(TEXT("static const FName __FunctionName(TEXT(\"%s\"));"), *Func->GetName()));
 		}
 		const FString FuncNameStr = bUseStaticVariables ? TEXT("__FunctionName") : FString::Printf(TEXT("FName(TEXT(\"%s\"))"), *Func->GetName());
-		EmitterContext.Header.AddLine(FString::Printf(TEXT("UFunction* __Function = __Object->FindFunctionChecked(%s);"), *FuncNameStr));
+		EmitterContext.Header.AddLine(FString::Printf(TEXT("UFunction* __Function = __Object->%s(%s);"), GET_FUNCTION_NAME_STRING_CHECKED(UObject, FindFunctionChecked), *FuncNameStr));
 
 		const FString FuncParametersStructName = FuncParameters.Num() ? (FuncCppName + TEXT("_Parameters")) : FString();
 		if (FuncParameters.Num())
@@ -983,7 +1054,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* Source
 
 			EmitterContext.Header.AddLine(FString::Printf(TEXT("%s __Parameters { %s };"), *FuncParametersStructName, *RawParameterList));
 		}
-		EmitterContext.Header.AddLine(FString::Printf(TEXT("__Object->ProcessEvent(__Function, %s);"), FuncParameters.Num() ? TEXT("&__Parameters") : TEXT("nullptr")));
+		EmitterContext.Header.AddLine(FString::Printf(TEXT("__Object->%s(__Function, %s);"), GET_FUNCTION_NAME_STRING_CHECKED(UObject, ProcessEvent), FuncParameters.Num() ? TEXT("&__Parameters") : TEXT("nullptr")));
 		EmitterContext.Header.DecreaseIndent();
 		EmitterContext.Header.AddLine(TEXT("}"));
 	}

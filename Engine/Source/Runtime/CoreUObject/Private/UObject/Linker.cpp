@@ -351,13 +351,13 @@ void DeleteLoader(FLinkerLoad* Loader)
 	FLinkerManager::Get().RemoveLinker(Loader);
 }
 
-static void LogGetPackageLinkerError(FArchiveUObject* LinkerArchive, const TCHAR* InFilename, const FText& InFullErrorMessage, const FText& InSummaryErrorMessage, UObject* InOuter, uint32 LoadFlags)
+static void LogGetPackageLinkerError(FArchive* LinkerArchive, const TCHAR* InFilename, const FText& InFullErrorMessage, const FText& InSummaryErrorMessage, UObject* InOuter, uint32 LoadFlags)
 {
 	static FName NAME_LoadErrors("LoadErrors");
 	struct Local
 	{
 		/** Helper function to output more detailed error info if available */
-		static void OutputErrorDetail(FArchiveUObject* InLinkerArchive, const FName& LogName)
+		static void OutputErrorDetail(FArchive* InLinkerArchive, const FName& LogName)
 		{
 			FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 			if (ThreadContext.SerializedObject && ThreadContext.SerializedImportLinker)
@@ -440,6 +440,11 @@ static void LogGetPackageLinkerError(FArchiveUObject* LinkerArchive, const TCHAR
 	}
 }
 
+static void LogGetPackageLinkerError(FLinkerLoad* Linker, const TCHAR* InFilename, const FText& InFullErrorMessage, const FText& InSummaryErrorMessage, UObject* InOuter, uint32 LoadFlags)
+{
+	LogGetPackageLinkerError(Linker ? Linker->Loader : nullptr, InFilename, InFullErrorMessage, InSummaryErrorMessage, InOuter, LoadFlags);
+}
+
 /** Customized version of FPackageName::DoesPackageExist that takes dynamic native class packages into account */
 static bool DoesPackageExistForGetPackageLinker(const FString& LongPackageName, const FGuid* Guid, FString& OutFilename)
 {
@@ -456,6 +461,32 @@ static bool DoesPackageExistForGetPackageLinker(const FString& LongPackageName, 
 	{
 		return FPackageName::DoesPackageExist(LongPackageName, Guid, &OutFilename);
 	}
+}
+
+FString GetPrestreamPackageLinkerName(const TCHAR* InLongPackageName, bool bExistSkip)
+{
+	FString NewFilename;
+	if (InLongPackageName)
+	{
+		FString PackageName(InLongPackageName);
+		if (!FPackageName::TryConvertFilenameToLongPackageName(InLongPackageName, PackageName))
+		{
+			return FString();
+		}
+		UPackage* ExistingPackage = bExistSkip ? FindObject<UPackage>(nullptr, *PackageName) : nullptr;
+		if (ExistingPackage)
+		{
+			return FString(); // we won't load this anyway, don't prestream
+		}
+		
+		const bool DoesNativePackageExist = DoesPackageExistForGetPackageLinker(PackageName, nullptr, NewFilename);
+
+		if ( !DoesNativePackageExist )
+		{
+			return FString();
+		}
+	}
+	return NewFilename;
 }
 
 //

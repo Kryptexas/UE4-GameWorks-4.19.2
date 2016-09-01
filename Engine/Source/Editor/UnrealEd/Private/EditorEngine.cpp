@@ -4,7 +4,6 @@
 #include "Matinee/MatineeActor.h"
 #include "InteractiveFoliageActor.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
 #include "Factories.h"
@@ -420,6 +419,62 @@ const UClass* UEditorEngine::GetFirstSelectedClass( const UClass* const Required
 	return nullptr;
 }
 
+void UEditorEngine::GetSelectionStateOfLevel(FSelectionStateOfLevel& OutSelectionStateOfLevel) const
+{
+	OutSelectionStateOfLevel.SelectedActors.Reset();
+	for (FSelectionIterator ActorIt(GetSelectedActorIterator()); ActorIt; ++ActorIt)
+	{
+		OutSelectionStateOfLevel.SelectedActors.Add(ActorIt->GetPathName());
+	}
+
+	OutSelectionStateOfLevel.SelectedComponents.Reset();
+	for (FSelectionIterator CompIt(GetSelectedComponentIterator()); CompIt; ++CompIt)
+	{
+		OutSelectionStateOfLevel.SelectedComponents.Add(CompIt->GetPathName());
+	}
+}
+
+void UEditorEngine::SetSelectionStateOfLevel(const FSelectionStateOfLevel& InSelectionStateOfLevel)
+{
+	SelectNone(/*bNotifySelectionChanged*/true, /*bDeselectBSP*/true, /*bWarnAboutTooManyActors*/false);
+
+	if (InSelectionStateOfLevel.SelectedActors.Num() > 0)
+	{
+		GetSelectedActors()->Modify();
+		GetSelectedActors()->BeginBatchSelectOperation();
+
+		for (const FString& ActorName : InSelectionStateOfLevel.SelectedActors)
+		{
+			AActor* Actor = FindObject<AActor>(nullptr, *ActorName);
+			if (Actor)
+			{
+				SelectActor(Actor, true, /*bNotifySelectionChanged*/true);
+			}
+		}
+
+		GetSelectedActors()->EndBatchSelectOperation();
+	}
+
+	if (InSelectionStateOfLevel.SelectedComponents.Num() > 0)
+	{
+		GetSelectedComponents()->Modify();
+		GetSelectedComponents()->BeginBatchSelectOperation();
+
+		for (const FString& ComponentName : InSelectionStateOfLevel.SelectedComponents)
+		{
+			UActorComponent* ActorComp = FindObject<UActorComponent>(nullptr, *ComponentName);
+			if (ActorComp)
+			{
+				SelectComponent(ActorComp, true, /*bNotifySelectionChanged*/true);
+			}
+		}
+
+		GetSelectedComponents()->EndBatchSelectOperation();
+	}
+
+	NoteSelectionChange();
+}
+
 static bool GetSmallToolBarIcons()
 {
 	return GetDefault<UEditorStyleSettings>()->bUseSmallToolBarIcons;
@@ -511,7 +566,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	UpdateAutoLoadProject();
 
 	// Load any modules that might be required by commandlets
-	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
+	//FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
 
 	if ( FSlateApplication::IsInitialized() )
 	{
@@ -586,6 +641,9 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	FWorldDelegates::LevelAddedToWorld.AddUObject(this, &UEditorEngine::OnLevelAddedToWorld);
 	FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UEditorEngine::OnLevelRemovedFromWorld);
 	FLevelStreamingGCHelper::OnGCStreamedOutLevels.AddUObject(this, &UEditorEngine::OnGCStreamedOutLevels);
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	AssetRegistryModule.Get().OnInMemoryAssetCreated().AddUObject(this, &UEditorEngine::OnAssetCreated);
 	
 	// Init editor.
 	SlowTask.EnterProgressFrame(40);
@@ -641,7 +699,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("EditorSettingsViewer"),
 			TEXT("ProjectSettingsViewer"),
 			TEXT("Blutility"),
-			TEXT("OnlineBlueprintSupport"),
+			//TEXT("OnlineBlueprintSupport"),
 			TEXT("XmlParser"),
 			TEXT("UserFeedback"),
 			TEXT("GameplayTagsEditor"),
@@ -654,7 +712,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("ReferenceViewer"),
 			TEXT("TreeMap"),
 			TEXT("SizeMap"),
-			TEXT("MergeActors")
+			TEXT("MergeActors"),
+			TEXT("NiagaraEditor")
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));
@@ -719,6 +778,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
 
 		// Load VR Editor support
+		FModuleManager::Get().LoadModuleChecked( TEXT( "ViewportInteraction" ) );
 		FModuleManager::Get().LoadModuleChecked( TEXT( "VREditor" ) );
 	}
 
@@ -810,11 +870,11 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	ActorFactories.Sort( FCompareUActorFactoryByMenuPriority() );
 
 	// Load game user settings and apply
-	auto GameUserSettings = GetGameUserSettings();
-	if (GameUserSettings)
+	UGameUserSettings* MyGameUserSettings = GetGameUserSettings();
+	if (MyGameUserSettings)
 	{
-		GameUserSettings->LoadSettings();
-		GameUserSettings->ApplySettings(true);
+		MyGameUserSettings->LoadSettings();
+		MyGameUserSettings->ApplySettings(true);
 	}
 
 	UEditorStyleSettings* Settings = GetMutableDefault<UEditorStyleSettings>();
@@ -877,6 +937,9 @@ void UEditorEngine::FinishDestroy()
 		FLevelStreamingGCHelper::OnGCStreamedOutLevels.RemoveAll(this);
 		GetMutableDefault<UEditorStyleSettings>()->OnSettingChanged().RemoveAll(this);
 
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		AssetRegistryModule.Get().OnInMemoryAssetCreated().RemoveAll(this);
+		
 		UWorld* World = GWorld;
 		if( World != NULL )
 		{
@@ -1130,23 +1193,20 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		DirectoryWatcherModule.Get()->Tick(DeltaSeconds);
 	}
 
+	bool bAWorldTicked = false;
+	ELevelTick TickType = IsRealtime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly;
+
 	if( bShouldTickEditorWorld )
 	{ 
-		// Tick level.
-		ELevelTick TickType = IsRealtime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly;
-
 		//EditorContext.World()->FXSystem->Resume();
 		// Note: Still allowing the FX system to tick so particle systems dont restart after entering/leaving responsive mode
 		if( FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
 		{
 			FKismetDebugUtilities::NotifyDebuggerOfStartOfGameFrame(EditorContext.World());
 			EditorContext.World()->Tick(TickType, DeltaSeconds);
+			bAWorldTicked = true;
 			FKismetDebugUtilities::NotifyDebuggerOfEndOfGameFrame(EditorContext.World());
 		}
-	}
-	else 
-	{
-		//EditorContext.World()->FXSystem->Suspend();
 	}
 
 
@@ -1266,7 +1326,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		for (auto ContextIt = WorldList.CreateIterator(); ContextIt; ++ContextIt)
 		{
 			FWorldContext &PieContext = *ContextIt;
-			if (PieContext.WorldType != EWorldType::PIE || PieContext.World() == NULL)
+			if (PieContext.WorldType != EWorldType::PIE || PieContext.World() == NULL || !PieContext.World()->ShouldTick())
 			{
 				continue;
 			}
@@ -1345,6 +1405,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 				// tick the level
 				PieContext.World()->Tick( LEVELTICK_All, DeltaSeconds );
+				bAWorldTicked = true;
+				TickType = LEVELTICK_All;
 
 				if( bIsRecordingActive )
 				{
@@ -1372,6 +1434,11 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			// Pop the world
 			RestoreEditorWorld( OldGWorld );
 		}
+	}
+
+	if (bAWorldTicked)
+	{
+		FTickableGameObject::TickObjects(nullptr, TickType, false, DeltaSeconds);
 	}
 
 	if (bFirstTick)
@@ -1538,7 +1605,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	IStreamingManager::Get().Tick(DeltaSeconds);
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 	if (AudioDeviceManager)
 	{
 		UWorld* OldGWorld = NULL;
@@ -3030,7 +3096,6 @@ struct FConvertStaticMeshActorInfo
 	// for skeletalmeshcomponent animation conversion
 	// this is temporary until we have SkeletalMeshComponent.Animations
 	UAnimationAsset*					AnimAsset;
-	UVertexAnimation*					VertexAnimation;
 	bool								bLooping;
 	bool								bPlaying;
 	float								Rate;
@@ -3252,7 +3317,6 @@ private:
 	void InternalGetAnimationData(USkeletalMeshComponent * SkeletalComp)
 	{
 		AnimAsset = SkeletalComp->AnimationData.AnimToPlay;
-		VertexAnimation = SkeletalComp->AnimationData.VertexAnimToPlay;
 		bLooping = SkeletalComp->AnimationData.bSavedLooping;
 		bPlaying = SkeletalComp->AnimationData.bSavedPlaying;
 		Rate = SkeletalComp->AnimationData.SavedPlayRate;
@@ -3261,17 +3325,15 @@ private:
 
 	void InternalSetAnimationData(USkeletalMeshComponent * SkeletalComp)
 	{
-		if (!AnimAsset && !VertexAnimation)
+		if (!AnimAsset)
 		{
 			return;
 		}
 
-		UE_LOG(LogAnimation, Log, TEXT("Converting animation data for (%s) : %s(%s), bLooping(%d), bPlaying(%d), Rate(%0.2f), CurrentPos(%0.2f)"), 
-			AnimAsset? TEXT("AnimAsset") : TEXT("VertexAnim"),
-			AnimAsset? *AnimAsset->GetName() : *VertexAnimation->GetName(), bLooping, bPlaying, Rate, CurrentPos);
+		UE_LOG(LogAnimation, Log, TEXT("Converting animation data for AnimAsset : (%s), bLooping(%d), bPlaying(%d), Rate(%0.2f), CurrentPos(%0.2f)"), 
+			*AnimAsset->GetName(), bLooping, bPlaying, Rate, CurrentPos);
 
 		SkeletalComp->AnimationData.AnimToPlay = AnimAsset;
-		SkeletalComp->AnimationData.VertexAnimToPlay = VertexAnimation;
 		SkeletalComp->AnimationData.bSavedLooping = bLooping;
 		SkeletalComp->AnimationData.bSavedPlaying = bPlaying;
 		SkeletalComp->AnimationData.SavedPlayRate = Rate;
@@ -3861,8 +3923,8 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 			}
 			else
 			{
-				// If we aren't already initialized, initialize now and create a physics scene
-				World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).CreateAISystem(false).AllowAudioPlayback(false).CreatePhysicsScene(true));
+				// If we aren't already initialized, initialize now and create a physics scene. Don't create an FX system because it uses too much video memory for bulk operations
+				World->InitWorld(GetEditorWorldInitializationValues().CreateFXSystem(false).CreatePhysicsScene(true));
 			}
 
 			// Update components now that a physics scene exists.
@@ -3932,6 +3994,9 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 			{
 				GPhysCommandHandler->Flush();
 			}
+			
+			// Update components again in case it was a world without a physics scene but did have rendered components.
+			World->UpdateWorldComponents(true, true);
 		}
 	}
 
@@ -4225,14 +4290,14 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* Owne
 	return FoundText.ToString();
 }
 
-AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags InObjectFlags )
 {
 	// ensure that all selected assets are loaded
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), InActorTransform, ObjectFlags );
+	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), InActorTransform, InObjectFlags );
 }
 
-AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* InActorTransform, EObjectFlags InObjectFlags )
 {
 	check( Factory );
 
@@ -4282,7 +4347,7 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 				const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActor", "Create Actor") );
 
 				// Create the actor.
-				Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, ObjectFlags );
+				Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, InObjectFlags );
 				if(Actor != NULL)
 				{
 					SelectNone( false, true );
@@ -5627,7 +5692,7 @@ bool UEditorEngine::AreAllWindowsHidden() const
 	return bAllHidden;
 }
 
-AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent, EObjectFlags ObjectFlags)
+AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent, EObjectFlags InObjectFlags)
 {
 	check( Class );
 
@@ -5675,7 +5740,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 	AActor* Actor = NULL;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );
-		if ( !(ObjectFlags & RF_Transactional) )
+		if ( !(InObjectFlags & RF_Transactional) )
 		{
 			// Don't attempt a transaction if the actor we are spawning isn't transactional
 			Transaction.Cancel();
@@ -5687,7 +5752,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.OverrideLevel = DesiredLevel;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnInfo.ObjectFlags = ObjectFlags;
+		SpawnInfo.ObjectFlags = InObjectFlags;
 		const auto Location = Transform.GetLocation();
 		const auto Rotation = Transform.GetRotation().Rotator();
 		Actor = World->SpawnActor( Class, &Location, &Rotation, SpawnInfo );
@@ -5719,7 +5784,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 	return Actor;
 }
 
-TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bool bSilent, EObjectFlags ObjectFlags)
+TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bool bSilent, EObjectFlags InObjectFlags)
 {
 	TArray<AActor*> NewActors;
 
@@ -5736,7 +5801,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 	FVector Location;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );
-		if ( !(ObjectFlags & RF_Transactional) )
+		if ( !(InObjectFlags & RF_Transactional) )
 		{
 			// Don't attempt a transaction if the actor we are spawning isn't transactional
 			Transaction.Cancel();
@@ -5744,7 +5809,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 		// Remove the selection to detect the actors that were created during FactoryCreateText. They will be selected when the operation in complete
 		GEditor->SelectNone( false, true );
 		const TCHAR* Text = *ExportText;
-		if ( Factory->FactoryCreateText( ULevel::StaticClass(), CurrentLevel, CurrentLevel->GetFName(), ObjectFlags, NULL, TEXT("paste"), Text, Text + FCString::Strlen(Text), GWarn ) != NULL )
+		if ( Factory->FactoryCreateText( ULevel::StaticClass(), CurrentLevel, CurrentLevel->GetFName(), InObjectFlags, nullptr, TEXT("paste"), Text, Text + FCString::Strlen(Text), GWarn ) != nullptr )
 		{
 			// Now get the selected actors and calculate a center point between all their locations.
 			USelection* ActorSelection = GEditor->GetSelectedActors();
@@ -6442,22 +6507,38 @@ bool UEditorEngine::IsUsingWorldAssets()
 
 void UEditorEngine::OnAssetLoaded(UObject* Asset)
 {
-	UWorld* WorldAsset = Cast<UWorld>(Asset);
-	if (WorldAsset != NULL)
+	UWorld* World = Cast<UWorld>(Asset);
+	if (World)
 	{
 		// Init inactive worlds here instead of UWorld::PostLoad because it is illegal to call UpdateWorldComponents while IsRoutingPostLoad
-		if (WorldAsset->WorldType == EWorldType::Inactive)
-		{
-			// Create the world without a physics scene because creating too many physics scenes causes deadlock issues in PhysX. The scene will be created when it is opened in the level editor.
-			// Also, don't create an FXSystem because it consumes too much video memory. This is also created when the level editor opens this world.
-			WorldAsset->InitWorld(GetEditorWorldInitializationValues()
-				.CreatePhysicsScene(false)
-				.CreateFXSystem(false)
-				);
+		InitializeNewlyCreatedInactiveWorld(World);
+	}
+}
 
-			// Update components so the scene is populated
-			WorldAsset->UpdateWorldComponents(true, true);
-		}
+void UEditorEngine::OnAssetCreated(UObject* Asset)
+{
+	UWorld* World = Cast<UWorld>(Asset);
+	if (World)
+	{
+		// Init inactive worlds here instead of UWorld::PostLoad because it is illegal to call UpdateWorldComponents while IsRoutingPostLoad
+		InitializeNewlyCreatedInactiveWorld(World);
+	}
+}
+
+void UEditorEngine::InitializeNewlyCreatedInactiveWorld(UWorld* World)
+{
+	check(World);
+	if (!World->bIsWorldInitialized && World->WorldType == EWorldType::Inactive)
+	{
+		// Create the world without a physics scene because creating too many physics scenes causes deadlock issues in PhysX. The scene will be created when it is opened in the level editor.
+		// Also, don't create an FXSystem because it consumes too much video memory. This is also created when the level editor opens this world.
+		World->InitWorld(GetEditorWorldInitializationValues()
+			.CreatePhysicsScene(false)
+			.CreateFXSystem(false)
+			);
+
+		// Update components so the scene is populated
+		World->UpdateWorldComponents(true, true);
 	}
 }
 

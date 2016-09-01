@@ -319,7 +319,7 @@ bool FAnimTrack::IsAdditive() const
 	for ( int32 I=0; I<AnimSegments.Num(); ++I )
 	{
 		const struct FAnimSegment & Segment = AnimSegments[I];
-		return ( Segment.AnimReference && Segment.AnimReference->IsValidAdditive() ); //-V612
+		return ( Segment.AnimReference && Segment.bValid && Segment.AnimReference->IsValidAdditive() ); //-V612
 	}
 
 	return false;
@@ -436,8 +436,7 @@ bool FAnimTrack::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& Anim
 		const struct FAnimSegment & Segment = AnimSegments[I];
 		if ( Segment.bValid && Segment.AnimReference  )
 		{
-			AnimationAssets.AddUnique(Segment.AnimReference);
-			Segment.AnimReference->GetAllAnimationSequencesReferred(AnimationAssets);
+			Segment.AnimReference->HandleAnimReferenceCollection(AnimationAssets);
 		}
 	}
 

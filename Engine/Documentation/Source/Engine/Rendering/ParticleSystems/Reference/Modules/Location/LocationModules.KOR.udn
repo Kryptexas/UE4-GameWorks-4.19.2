@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2617399
+﻿INTSourceChangelist:2750681
 Availability: Public
 Title:Location 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Location, 위치는 파티클 수명상의 여러 시점에서 파티클의 위치에 영향을 끼치는 모듈입니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 

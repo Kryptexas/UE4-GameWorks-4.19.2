@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2246990
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:UDialogueWave
 Crumbs:
@@ -6,7 +6,7 @@ Description:DialogueWave クラスの概要
 
 [EXCERPT:UDialogueWave]
 
-Dialogue Wave にはさらに多くのオプションがあり、オーディオとスピーカー / リスナーが接続される場所です。ダイアログのオーディオとサブタイトル テキストとの相関関係が作られる場所でもあります。
+Dialogue Wave にはさらに多くのオプションがあり、オーディオとスピーカー / リスナーがつながる場所です。ダイアログのオーディオとサブタイトル テキストとの相関関係が作られる場所でもあります。
 
 [VAR:ToolTipFullLink]
 Engine/Audio/Overview# Dialogue Voice & Dialogue Wave

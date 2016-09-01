@@ -1,95 +1,95 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2667949
 Availability:Public
-Title: Animation Retargeting (Different Skeletons)
-Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Retargeting animations for use between different skeletons. 
-Version: 4.5
+Title:动画重定位（不同骨架）
+Crumbs:%ROOT%, Engine, Engine/Animation
+Description:重定位动画以在不同骨架之间使用。 
+Version:4.9
 
 [REGION:fullwidth]
-![](Retarget1.png)
+![](Retarget1_1.jpg)
 [/REGION]
 
 [TOC(start:2 end:2)]
 
 [REGION:warning]
-Note: This feature is not available before Engine Version 4.5
+注：在引擎 4.5 版之前的版本中未提供此功能
 [/REGION]
 
-## Overview
-**Animation Retargeting (Different Skeletons)** is a feature that allows animations to be reused between characters that **do not** share the same Skeleton asset, unlike [](Engine\Animation\AnimationRetargeting) which involves retargeting animations between characters that share the same Skeleton asset. 
 
-The process of retargeting animations between characters that have different Skeletons uses an asset called a **Rig** to pass Bone information from one Skeleton to another. After selecting your Rig, you will share it between your Source Skeleton and a Target Skeleton (the Skeleton you wish to retarget animations to). Once you have done so, you will then match up the Target Skeleton's **Bones** to the **Nodes** stored in the Rig. 
+**动画重定位（不同骨架）**是一种允许在不共用相同骨架资产的角色之间复用动画的功能，它不同于在共用相同骨架资产的角色之间重定位动画的 [](Engine\Animation\AnimationRetargeting)。 
 
-Once all the Bones in the Target Skeleton have been setup in the Rig, you can then retarget animations that are used by your Source Skeleton to your Target Skeleton. You can even retarget entire **Animation Blueprints** along with all its associated data, which saves time if you want to quickly move all animation assets from one Skeleton to another. 
+在具有不同骨架的角色之间重定位动画的过程使用一种名为 **结构** 的资产在不同骨架之间传递骨骼信息。选择结构后，您要在源骨架和目标骨架（您希望将动画重定位到的骨架）之间共享它。完成这一步后，要使目标骨架的骨骼与结构中存储的节点配对。 
 
-## Getting Started
+一旦目标骨架中的所有骨骼都在结构中设置完毕，您就可以将源骨架使用的动画重定位到目标骨架。如果您希望快速将所有动画资产从一副骨架移动到另一副，甚至可以将整套动画蓝图连同其所有关联数据一起重定位，从而节省时间。 
+
+## 开始操作
 
 [EXCERPT:guide]
 
-In order to get started with animation retargeting between different skeletons, you will need to select a Rig asset for both Skeletons to share. This section will show you how to access the **Humanoid Rig** that comes as part of the Engine Content and assign it for use. 
+为了开始在不同骨架之间重定位动画，您需要为两副骨架选择用于共享的结构资产。本节将向您介绍如何访问引擎内容中附带的 **人形结构**，并指定它以供使用。 
 
-We are also going to use two asset packs that are available for free via the **Marketplace** that have multiple skeletons and animations in it that we can use to retarget. If you have two Skeleton Assets ready to use, you can skip the note below and use your assets. If you do not, you can follow along with the steps by adding the two packs outlined in the note below. 
+我们还要使用两个可通过 **市场** 免费获取的资产包，它们包含我们可用于重定位的多种骨架和动画。如果您已经准备好了两个骨架资产供使用，可以跳过下面的说明，使用您的资产。如果您没有准备骨架，可以按照下面说明中概述的步骤操作，添加两个包。 
 
 [REGION:note]
-In this example, we are using the following assets which are available for download via the **Marketplace**.
+在这个示例中，我们使用可通过 **市场** 下载的下列资产。
 
-* The Source Skeleton we are using is the **HeroTPP_Skeleton** that is included in the **Animation Starter Pack**. 
-* The Target Skeleton we are using is the **SWAT_Skeleton** that is included in the **Mixamo Character Pack**.
+* 我们使用的源骨架是 **UE4_Mannequin_Skeleton**，它包含在 **动画初学者包** 中。 
+* 我们使用的目标骨架是 **SWAT_Skeleton**，它包含在 **Mixamo 角色包** 中。
 
-Once you have installed the packs above, you can add them to a project via the **Add to project** button in the Unreal Launcher. 
+安装以上两个包之后，您可以在虚幻启动程序中通过 **添加到项目（Add to project）**按钮将它们添加到项目。 
 
-![](Retarget4.png)
+![](AnimationStarterpack2.jpg)
 
-The Animation Starter Pack includes several animations that we will retarget for a character from the Mixamo Character Pack.
+动画初学者包含有多种动画，我们将把它们重定位到 Mixamo 角色包中的角色。
 
-Also, your version of Unreal Engine 4 may vary from the one depicted above. 
+您的虚幻引擎 4 版本可能与上图中的版本不同。 
 [/REGION]
 
-The steps below will show you how to access the default Rig and retarget animations: 
+下面的步骤将说明如何访问默认结构并重定位动画： 
 
-1.	Inside the **Content Browser** under the **Game/AnimStarterPack/Character** folder, open the **HeroTPP_Skeleton** asset. 
+1. 	在 **内容浏览器** 中的 **Game/AnimStarterPack/UE4_Mannequin/Mesh** 文件夹下，打开 **UE4_Mannequin_Skeleton** 资产。 
 
-1.	Click the **Retarget Manager** button, then under **Set up Rig**, click the **Pick Asset** icon and select the **Humanoid** Rig. 
+1. 	单击 **重定位管理器（Retarget Manager）**按钮，然后在 **设置结构（Set up Rig）**下，单击 **选择结构（Select Rig）**下拉菜单，选择 **选择人形结构（Select Humanoid Rig）**。 
 
 	[REGION:lightbox]
-	[![](RetargetAdd2.png)(w:720)](RetargetAdd2.png)
+	[![](RT_Manager.jpg)(w:720)](RT_Manager.jpg)
 	[/REGION]
 
-	_Click image for full view._
+	_单击查看大图。_
 
-1.	Click **Save** then close the window. 
+1. 	单击 **保存（Save）**，然后关闭窗口。 
 
-1.	In the **Content Browser** under the **Game/MixamoAnimPack/Mixamo_SWAT/Anims** folder, open the **SWAT_Skeleton** asset.
+1. 	在 **内容浏览器** 中的 **Game/MixamoAnimPack/Mixamo_SWAT/Anims** 文件夹下，打开 **SWAT_Skeleton** 资产。
 
-1.	Click the **Retarget Manager** button, then under **Set up Rig**, click the **Pick Asset** icon and select the **Humanoid** Rig. 
+1. 	单击 **重定位管理器（Retarget Manager）**按钮，然后在 **设置结构（Set up Rig）**下，单击 **选择结构（Select Rig）**下拉菜单，选择 **选择人形结构（Select Humanoid Rig）**。
 
 	[REGION:lightbox]
 	[![](RetargetAdd3.png)(w:720)](RetargetAdd3.png)
 	[/REGION]
 
-	_Click image for full view._
+	_单击查看大图。_
 
-1.	With the Rig assigned, next you will need to match up the Bones from the Target to the Nodes on the Rig. 
+1. 	指定结构后，下一步需要使目标的骨骼与结构上的节点配对。 
 
 	![](Retarget7.png)
 
-1.	Use the drop-down menus to select the Bones on the Skeleton that are similar in location to the Bones (Nodes) on the Rig. 
+1. 	使用下拉菜单在骨架上选择与结构上的骨骼（节点）位置相似的骨骼。 
 
 	[REGION:lightbox]
-	[![](Retarget8.png)(w:800)](Retarget8.png)
+	[![](RT_Retargeting.jpg)](RT_Retargeting.jpg)
 	[/REGION]
 
-	_Click image for full view._
+	_单击查看大图。_
 
-	In the image above, on the left is our Source Skeleton (with **Show Bone Names** enabled) and on the right is the Target Skeleton (also with Show Bone Names enabled). In the center is the **Set up Rig** window and we are specifying which Bones from our Target Skeleton are the same (or similar to in location) as the Bones on our Source Skeleton. 
+	在上图中，左边是我们的源骨架（启用了 **显示骨骼名称（Show Bone Names）**），右边是目标骨架（也启用了“显示骨骼名称”（Show Bone Names））。中间是 **设置结构（Set up Rig）**窗口，我们在其中设置目标骨架的那些骨骼与源骨架上的骨骼相同（或位置相似）。 
 	
-	While the naming conventions for each Skeleton may differ, you can see where each bone is on each Skeleton and match them up accordingly. You do not need to specify all Bones and some tweaking may be needed based on your needs. 
+	虽然每副骨架的命名约定可能不同，但您可以看到每块骨骼在每副骨架上的位置，从而相应地将它们配对。您不需要指定所有骨骼，而且根据您的需求可能需要进行一些微调。 
 
-1.	Continue to specify each Bone from the Target Skeleton to a corresponding Node on the Rig. 
+1. 	继续将目标骨架中的每块骨骼指定到结构上的相应节点。 
 
-	The table below demonstrates the setup for the **HeroTPP_Skeleton** and **SWAT_Skeleton**
+	下表演示了 **UE4_Mannequin_Skeleton** 和 **SWAT_Skeleton** 的设置
 
-	| Node (Rig) | Bone (Skeleton) |
+	| 节点（结构）| 骨骼（骨架）|
 	| ------- | ------------ |
 	| **Root** | None |
 	| **Pelvis** | Hips |
@@ -113,17 +113,17 @@ The steps below will show you how to access the default Rig and retarget animati
 	| **calf_r** | RightLeg |
 	| **foot_r** | RightFoot |
 
-	There are two configurations that can be used when setting up the Rig, **Base** or **Advanced**. The Base Configuration (denoted in the chart above) uses the key elements that are needed to ensure the animation is successfully retargeted. The Advanced Configuration allows you to include and specify additional Bones that should be included as part of the retargeting process. 
+	在设置结构时可以使用两种配置：**基本** 或 **高级**。基本配置（上表所示）使用确保动画成功重定位所需的关键元素。高级配置允许您包括并指定更多应该在重定位过程中包括的骨骼。 
 
-	In the example above, the left and right hands were included as part of the retargeting process however individual fingers were not. Retargeting an animation with the Base Configuration will ensure that the base motion is copied to the new Skeleton, however if the Source Skeleton had animated fingers and the Target did not, the retargeted animation would not animate the fingers and you would have stiff looking hands. 
+	在上面的示例中，左手和右手都包括在了重定位过程中，但没有包括各个手指。使用基本配置重定位动画可确保将基本动作复制到新骨架，但如果源骨架有活动的手指而目标骨架没有，那么重定位后的动画就不会显示活动的手指，手部就会显得很僵硬。 
 	
-1.	Click the **Show Advanced** button to toggle **Advanced** configuration. 
+1. 	单击 **显示高级（Show Advanced）**按钮切换 **高级** 配置。 
 
 	![](RetargetAdd4.png)
 
-1.	Specify Bones from the Target Skeleton to a Node on the Rig for the Advanced Configuration. 
+1. 	将目标骨架中的骨骼指定到高级配置下结构上的节点。 
 
-	| Node (Rig) | Bone (Skeleton) |
+	| 节点（结构）| 骨骼（骨架）|
 	| ------- | ------------ |
 	| **index_01_l** | LeftHandIndex1 |
 	| **index_02_l** | LeftHandIndex2 |
@@ -166,94 +166,94 @@ The steps below will show you how to access the default Rig and retarget animati
 	| **ball_r** | RightToeBase |
 	| **thigh_twist_01_r** | RightUpLeg |
 	
-	You may encounter situations where there may be additional Bones in one Skeleton that are not included in the other; you can omit these as adjustments can be made to the Target Skeleton to account for this. 
+	有时一副骨架中可能有另一副骨架所不包含的附加骨骼；您可以忽略这些骨骼，因为可以对目标骨架进行调整来解决这个问题。 
 
 	[REGION:note]
-	For this example, you can also leave the IK bones to **None** on the Mixamo character as IK retargeting is still in development. 
+	在此示例中，您也可以将 IK 骨骼指定到 Mixamo 角色上的 **None**，因为 IK 重定位功能尚在开发中。 
 	[/REGION]
 
-1.	In the **Content Browser**, under **Game/AnimStarterPack**, select an animation that you want to retarget to the new Skeleton.
+1. 	在 **内容浏览器** 中的 **Game/AnimStarterPack** 下，选择一个要重定位到新骨架的动画。
 
-1.	**Right-click** on the animation and choose **Retarget Animation Assets -> Duplicate Anim Assets and Retarget**. 
+1. 	**右键单击** 该动画，然后选择 **重定位动画资产（Retarget Anim Assets） -> 复制动画资产并重定位（Duplicate Anim Assets and Retarget）**。 
 
-	![](Retarget9.png)
+	![](RT_DuplicateAnim.jpg)
 
-1.	In the **Select Skeleton** window, you should see your Skeleton in the upper portion of the window, select it and click **Select**. 
+1. 	在 **选择骨架（Select Skeleton）**窗口中，您应该会在窗口上部看到您的骨架，选择它并单击 **选择（Select）**。 
 
-	![](Retarget11.png)(w:820)
+	![](Retarget11_2.jpg)(w:820)
 
-1.	A copy of the animation you selected to retarget will be created in the same folder of your Target Skeleton. 
+1. 	系统将在目标骨架所在的文件夹中创建您选择重定位的动画的副本。 
 
 	![](Retarget12.png)
 
-	This new animation can now be used with your character. 
+	现在可以将此新动画用于您的角色。 
 
 [/EXCERPT:guide]
 
 
-## Retargeting Adjustments
+## 重定位调整
 
-When setting up a Rig to share between Skeletons, you may encounter situations when one Skeleton has additional Bones that the other does not have (in the Getting Started section, if you used Skeletons specified in the example, you may have noticed extra Bones in the Mixamo Skeleton's hands for example). This can sometimes cause issues but can be fixed by recursively setting translation retargeting to the Skeleton.
+设置要在骨架之间共享的结构时，您可能遇到一副骨架比另一副骨架多出一些骨骼的情况（在“开始操作”部分中，如果您使用了示例中指定的骨架，可能已经注意到 Mixamo 骨架在手部等处有更多骨骼）。有时这会引发问题，但可以通过递归地对骨架设置平移重定位来解决。
 
-For example, here is a shot before adjustments: 
+例如，这里有一张调整前的截图： 
 
 ![](Retarget13.png)
 
-Notice how the fingers appear contorted due to the extra Bone not specified during the Rig set up. 
+请注意，由于在结构设置过程中未指定多余的骨骼，手指显得很扭曲。 
 
-Here is an example after adjustments were made: 
+这里是经过调整后的示例： 
 
 ![](Retarget15.png)
 
-You can specify Bone Translation Retargeting through the Skeleton Tree view. Here we are **Right-clicking** on the last digit in each finger and setting Bone Translation to **Recursively Set Translation Retargeting Skeleton**.
+您可以通过骨架树形视图来指定骨骼平移重定位。在这里我们在每根手指的最后一节 **右键单击**，将骨骼平移设置为 **递归地设置平移重定位骨架（Recursively Set Translation Retargeting Skeleton）**。
 
 ![](Retarget14.png)
 
 
-## Retargeting an Animation Blueprint
+## 重定位动画蓝图
 
-Once you have gone through the process of setting up a Rig for two Skeleton assets to share, if there is an **Animation Blueprint** associated with the Source Skeleton, you can select to retarget it for use with your Target Skeleton. 
+在您完成设置两副骨架资产共享的结构的过程后，如果源骨架有关联的 **动画蓝图**，您就可以选择重定位它，以用于目标骨架。 
 
-**Right-click** on an Animation Blueprint and select the **Retarget Anim Blueprints -> Duplicate Anim Blueprints and Retarget** option.
+**右键单击** 动画蓝图，然后选择 **重定位动画蓝图（Retarget Anim Blueprints） -> 复制动画蓝图并重定位（Duplicate Anim Blueprints and Retarget）**选项。
 
-![](Retarget16.png)
+![](RT_AnimBP.jpg)(w:820)
 
-The **Select Skeleton** window will appear. Select your Target Skeleton and press **Select**. 
+将显示 **选择骨架（Select Skeleton）**窗口。选择您的目标骨架，然后按 **选择（Select）**。 
 
-![](Retarget11.png)(w:820)
+![](Retarget11_2.jpg)(w:820)
 
-All the assets associated with the Animation Blueprint (Animation assets, Blend Spaces, etc.), along with any logic defined in the Animation Blueprint itself will be copied and placed in the same location as your Target Skeleton. 
+系统将复制所有与动画蓝图关联的资产（动画资产、混合空间等）以及在动画蓝图本身中定义的所有逻辑，放置在与目标骨架相同的位置。 
 
 ![](Retarget17.png)
 
 
-## Retargeting a Base Pose
+## 重定位基本姿势
 
-There may be instances where you want to retarget animations to a Skeleton that is not quite using the same base pose as your Source Skeleton. 
+有时您可能希望将动画重定位到基本姿势与源骨架不太一致的骨架。 
 
-Take for example the Skeleton in the image below on the right. 
+以下图右边的骨架为例。 
 
-![](Retarget18.png)(w:820)
+![](Retarget2_2.jpg)(w:820)
 
-Our Source Skeleton on the left is in a T-Pose while our Target Skeleton is using an A-Pose. Even though a Rig has been set up for them to share, if we were to retarget animations as is now, we may encounter issues as seen below. 
+左边的源骨架摆出了 A 字姿势，而目标骨架摆出的是 T 字姿势。即使设置了两副骨架共用的结构，如果我们就这样重定位动画，可能遇到下图所示的问题。 
 
 ![](Retarget19.png)
 
-In the image above, an animation has been retargeted for our Target Skeleton; however his arms clip into his side because the base poses were not the same. Thankfully, you can also retarget the Base Pose of your Target Skeleton prior to retargeting animations to reduce or eliminate issues like this from occurring. 
+在上图中，已经为目标骨架重定位了动画；但是因为基本姿势不同，它的双臂都被截掉了。好在您还可以在重定位动画前先重定位目标骨架的基本姿势，以减少或消除这样的问题。 
 
-In your Target Skeleton, under **Retarget Manager**, there is an option called **Manage Retarget Base Pose**. 
+在目标骨架中的 **重定位管理器（Retarget Manager）**下，有一个叫做 **管理重定位基本姿势（Manage Retarget Base Pose）**的选项。 
 
 ![](Retarget20.png)
 
-If you click the **View Pose** button, you will see the current Base Pose. You can adjust it by clicking on a Bone and using the **Rotation** (E) widget. 
+如果您单击 **查看姿势（View Pose）**按钮，将看到当前的基本姿势。可以通过单击骨骼并使用 **旋转** (E) 小部件来调整它。 
 
 ![](Retarget21.png)
 
-In the image above, the right arm has been adjusted while the left arm is using the default base pose (which we can adjust by using the rotation widget). Once you have adjusted the pose, you can click the **Save Pose** option to save the retargeted Base Pose. With similar Base Poses between Skeletons, you can now retarget an animation and when the Skeleton Select window appears, you will notice that your Target Skeleton is now using a retargeted Base Pose. 
+在上图中，已经调整了右臂，但左臂还是使用默认的基本姿势（我们可以使用旋转小部件来调整）。调整完姿势后，可以单击 **保存姿势（Save Pose）**选项保存重定位后的基本姿势。由于两副骨架的基本姿势已经差不多，现在您可以重定位动画了。当“骨架选择”（Skeleton Select）窗口出现时，您将注意到目标骨架使用了重定位后的基本姿势。 
 
-![](Retarget22.png)(w:820)
+![](Retarget2_2.jpg)(w:820)
 
-Retargeting the animation with the retargeted Base Pose, results in a better looking animation. 
+用重定位后的基本姿势重定位动画，得到效果更好的动画。 
 
 ![](Retarget23.png)
 

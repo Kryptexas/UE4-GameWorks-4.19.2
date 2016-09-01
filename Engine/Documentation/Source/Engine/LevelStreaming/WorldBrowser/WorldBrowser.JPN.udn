@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:2675595
+﻿INTSourceChangelist:3025593
 Availability:Public
-Title:ワールド合成 ユーザーガイド
+Title:ワールド合成のユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/LevelStreaming
 Description:基点移動技術を含んだ大きなワールドの管理システム
 SkillLevel:Intermediate
 Version:4.9
+Parent:Engine/LevelStreaming
+Label:World Composition
 
 [TOC (start:2 end:3)]
 
@@ -123,7 +125,7 @@ Level Bounds アクタを機能させるためには、この時点でビュー�
  
 ## レベルの詳細
  
-[レベル] ウィンドウにあるレベルの詳細を表示するには、対象を選択してから、ツールバーの虫眼鏡アイコンをクリックします。これによって、 
+[Level] ウィンドウにあるレベルの詳細を表示するには、対象を選択してから、ツールバーの虫眼鏡アイコンをクリックします。これによって、 
 **[Level Details (レベル詳細)]** ウィンドウが呼び出され、ドロップダウン メニューの利用可能レベルの情報を切り替えることもできます。
 
 ![](level_details.png)
@@ -141,7 +143,7 @@ Level Bounds アクタを機能させるためには、この時点でビュー�
 ###LOD 設定
 
 ワールド構成のそれぞれのレベルは、最大 4 つまで LOD ストリーミング レベルを持つことができます。LOD ストリーミング レベルはメッシュ LOD と似ています。 
-ストリーミングの距離設定に合わせて、ストリーミングレベルは対応する LOD レベルと置き換えられます。LOD 
+ストリーミングの距離設定に合わせて、ストリーミングレベルは対応する LOD レベルと置き換えられます。LOD  
 レベルは、 <Package name>_LOD# パターンを利用してワールド合成によって認識されます。この時、数値は 1 から 4 でなくてはいけません。
 LOD レベルは手動あるいは Simplygon を必要とする自動 LOD マップ ジェネレーターで作成することができます。
 

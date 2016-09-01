@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2611017
 Availability:Public
-Title:Samsung Gear VR Global Menu HUD Creation
+Title:三星 Gear VR 全局菜单 HUD 创建
 Crumbs:%ROOT%, Platforms/GearVR
-Description:Instructions on how to create a new HUD to use with your Gear VR project.
+Description:Gear VR 项目新 HUD 的创建说明。
 Navigation:platform
 Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.8
+Skilllevel:Intermediate
+Version:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -27,18 +27,18 @@ Version: 4.8
 %Steps%
 
 
-Before we can start to build the Global Menu HUD we first need to create a new HUD Actor so that the Blueprint code that we create has a location to be stored. 
-In the following section of this Quick Start we will go over how to create a new HUD to your Gear VR project.
+开始构建全局菜单 HUD 之前，首先需要新建一个 HUD Actor，为创建的蓝图节点提供一个存储路径。 
+此快速入门的以下部分将说明如何为 Gear VR 项目新建 HUD。
 
-1. First need to create a new HUD by **Right - Clicking** in the **Content Browser** and then selecting the **Blueprint Class** option from the **Create Basic Asset** section.
+1. 首先在 **内容浏览器** 中 **单击右键**，从 **Create Basic Asset** 部分选择 **Blueprint Class** 选项新建一个 HUD。
 	
 	![](T_Create_New_BP.png)
 
-1. From the **Pick Parent Class** menu, input **HUD** into the **Search** and the select the **HUD** class.
+1. 在 **Pick Parent Class** 菜单的 **搜索** 中输入 **HUD**，然后选择 **HUD** 类。
 
 	![](T_Find&Select_HUD.png)
 
-1. Once created, give the HUD a name. For this example we will use **GearVR_GlobalMenu** as the name for this Blueprint HUD.
+1. 完成创建后，为 HUD 命名。在此例中我们使用 **GearVR_GlobalMenu** 作为该蓝图 HUD 的命名。
 
 	![](T_Named_HUD.png)
 

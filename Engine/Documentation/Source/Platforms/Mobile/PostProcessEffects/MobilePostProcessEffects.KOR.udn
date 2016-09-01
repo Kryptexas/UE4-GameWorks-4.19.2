@@ -1,20 +1,22 @@
-﻿INTSourceChangelist:2228546
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:모바일 플랫폼에서의 포스트 프로세스 이펙트
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:모바일 게임에서 포스트 프로세스 이펙트 사용하기 입니다.
 Platform:Mobile
+Version: 4.9
+parent:Platforms/Mobile
+order:5
+type:overview
+tags:mobile
 
 [TOC(start:2)]
 
-## 개요
+
 
 모바일 포스트 프로세싱은 PC/콘솔 포스트 프로세싱과는 별도의 코드 패쓰로 구현되어 있습니다. 속도가 느린 종속적 텍스처 읽기, 부족한 하드웨어 기능, 
 더 높은 렌더타겟 리졸브 비용, 전반적으로 느린 퍼포먼스를 반영하기 위해서입니다. 포스트 프로세스 볼륨 (또는 카메라 액터)에서 찾을 수 있는 카테고리는 다음과 같습니다.
 
-[REGION:tip]
-몇몇 옵션은 _고급_ 프로퍼티에 있으며, ![](Engine/UI/LevelEditor/Details/button_advanced.png) 버튼을 클릭해야 **디테일** 패널에 해당 카테고리가 펼쳐집니다.
-[/REGION]
 
 ## 포스트 프로세스 카테고리
 
@@ -104,7 +106,7 @@ Auto exposure 는 모바일에 지원되지 않지만, "Auto Exposure Bias" (자
 
 ## 일반적인 퍼포먼스 꼼수
 
-* 최적의 퍼포먼스와 퀄리티를 위해서는, 블룸와 템포럴 AA 를 고수해야 합니다.
+* 최적의 퍼포먼스와 퀄리티를 위해서는, 블룸과 템포럴 AA 를 고수해야 합니다.
 * 뎁스 오브 필드, 라이트 섀프트, 필름 그레인, 컬러 그레이딩 LUT, 앰비언트 큐브맵 등은 끄도록 하십시오.
 
 

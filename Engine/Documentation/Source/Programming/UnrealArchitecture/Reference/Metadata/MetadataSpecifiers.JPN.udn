@@ -1,15 +1,20 @@
-﻿Title:メタデータ指定子
+﻿INTSourceChangelist:2705089
+Title:メタデータ指定子
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
-Description:エンジンおよびエディタの各種特性でのクラスの動作を指定するためにクラス、関数、インターフェースを宣言する場合に使用するメタデータ キーワード
+Description:エンジンおよびエディタの各種側面でのクラスの動作を指定するためにクラス、関数、インターフェースを宣言する場合に使用するメタデータ キーワード
 Availability:Public
+Version:4.9
 
-クラス、関数、インターフェースを宣言する場合に、エンジンおよびエディタの各種アスペクトでのクラスの動作の仕方を 
-制御する宣言にメタデータ指定子を追加することができます。
+クラス、関数、インターフェースを宣言する場合に、メタデータ指定子を宣言に追加して、エンジンおよびエディタの各種側面でのクラスの動作の仕方を
+制御することができます。
 
 [EXCERPT:MetadataUsage]
-メタデータ指定子の使用方法は一般的なクラス、関数、インターフェース指定子とは異なります。  
+メタデータ指定子の使用方法は一般的なクラス、関数、インターフェース指定子とは異なります。
 [/EXCERPT:MetadataUsage]
 
+メタデータ指定子を使うには、以下のように `UCLASS`、`UINTERFACE`、または `UFUNCTION` のマクロで使用します。
+
+    UCLASS(meta=(BlueprintSpawnableComponent))
 
 ## クラス メタデータ指定子
 [EXCERPT:ClassMetadata]

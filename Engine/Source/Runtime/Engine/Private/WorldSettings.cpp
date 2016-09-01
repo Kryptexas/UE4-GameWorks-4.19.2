@@ -116,6 +116,17 @@ void AWorldSettings::PostInitializeComponents()
 	}
 }
 
+void AWorldSettings::PostRegisterAllComponents()
+{
+	Super::PostRegisterAllComponents();
+
+	UWorld* World = GetWorld();
+	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+	{
+		AudioDevice->SetDefaultAudioSettings(World, DefaultReverbSettings, DefaultAmbientZoneSettings);
+	}
+}
+
 float AWorldSettings::GetGravityZ() const
 {
 	if (!bWorldGravitySet)
@@ -243,11 +254,10 @@ void AWorldSettings::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	FHierarchicalSimplification DefaultObject;
-
-	for (FHierarchicalSimplification Entry : HierarchicalLODSetup)
+	for (FHierarchicalSimplification& Entry : HierarchicalLODSetup)
 	{
-		Entry.ProxySetting.PostLoadDeprecated();	
+		Entry.ProxySetting.PostLoadDeprecated();
+		Entry.MergeSetting.LODSelectionType = EMeshLODSelectionType::CalculateLOD;
 	}
 #endif// WITH_EDITOR
 }
@@ -307,17 +317,33 @@ bool AWorldSettings::CanEditChange(const UProperty* InProperty) const
 	return Super::CanEditChange(InProperty);
 }
 
+void AWorldSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+
+	const FName MemberPropertyName = PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue()->GetFName();
+
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(AWorldSettings, DefaultReverbSettings) || MemberPropertyName == GET_MEMBER_NAME_CHECKED(AWorldSettings, DefaultAmbientZoneSettings))
+	{
+		UWorld* World = GetWorld();
+		if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+		{
+			AudioDevice->SetDefaultAudioSettings(World, DefaultReverbSettings, DefaultAmbientZoneSettings);
+		}
+	}
+}
+
 void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	if (PropertyThatChanged)
 	{
-		if (PropertyThatChanged->GetName()==TEXT("bForceNoPrecomputedLighting") && bForceNoPrecomputedLighting)
+		if (PropertyThatChanged->GetFName()==GET_MEMBER_NAME_CHECKED(AWorldSettings,bForceNoPrecomputedLighting) && bForceNoPrecomputedLighting)
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("bForceNoPrecomputedLightingIsEnabled", "bForceNoPrecomputedLighting is now enabled, build lighting once to propagate the change (will remove existing precomputed lighting data)."));
 		}
 
-		if (PropertyThatChanged->GetName()==TEXT("bEnableWorldComposition"))
+		else if (PropertyThatChanged->GetFName()==GET_MEMBER_NAME_CHECKED(AWorldSettings,bEnableWorldComposition))
 		{
 			if (UWorldComposition::EnableWorldCompositionEvent.IsBound())
 			{
@@ -354,12 +380,12 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 			GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeSetup"));
 		}
 
-		if (PropertyThatChanged->GetName() == TEXT("TransitionScreenSize"))
+		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification,TransitionScreenSize))
 		{
 			GEditor->BroadcastHLODTransitionScreenSizeChanged();
 		}
 
-		if (PropertyThatChanged->GetName() == TEXT("HierarchicalLODSetup"))
+		else if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(AWorldSettings,HierarchicalLODSetup))
 		{
 			GEditor->BroadcastHLODLevelsArrayChanged();
 			NumHLODLevels = HierarchicalLODSetup.Num();			

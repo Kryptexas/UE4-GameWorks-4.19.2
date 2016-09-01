@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Add a Custom Object Type to Your Project
+﻿INTSourceChangelist:2714891
+Availability:Public
+Title:为项目添加自定义物体类型
 Crumbs: %ROOT%
-Description:How To add a custom physics object channel to Unreal Engine 4.
+Description:讲述如何在虚幻引擎 4 中添加自定义物理物品通道。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -26,7 +26,7 @@ Description:How To add a custom physics object channel to Unreal Engine 4.
 
 
 
-There will be times where 6 Object Response Channels and 2 Trace Response Channels simply are not granular enough for what you want to create. This is what the Collision Editor in your Project Settings is for. You can access them from the **Edit Menu** -> **Project Settings** -> **Collision**:
+事实上存在这样的情况：6 个物体响应通道和 2 个轨迹响应通道的粒度不足，无法创建所需的效果。这时 Project Settings 中的碰撞编辑器就可以大显身手了。从 **Edit Menu** -> **Project Settings** -> **Collision** 菜单中进行访问：
 
 ![](Engine/Physics/Collision/COL_projectSettings_1.png)
 
@@ -34,19 +34,19 @@ There will be times where 6 Object Response Channels and 2 Trace Response Channe
 [![](Engine/Physics/Collision/COL_projectSettings_2.png)(w:940)](Engine/Physics/Collision/COL_projectSettings_2.png)
 [/REGION]
 
-From here you can add new Object Response Channels and Trace Response Channels. Click the **New Object Channel...** or **New Trace Channel...** button, provide a name, select a **Default Response**, and click **Accept**.
+在此处可新添加物体响应通道和轨迹响应通道。点击 **New Object Channel...** 或 **New Trace Channel...** 按钮，完成命名，选择 **Default Response**，然后点击 **Accept**。
 
 ![](Engine/Physics/Collision/COL_customChannel.png)
 
-You can have up to 18 Custom Object Response Channels or Custom Trace Response Channels.
+最多可设 18 个自定义物体响应通道或轨迹响应通道。
 
-### Presets
+### 预设
 
-Custom Presets can also be set here by expanding the **Preset** Category and clicking the **New...** button.
+打开 **Preset** 类目点击 **New...** 按钮可进行自定义预设。
 
 ![](Engine/Physics/Collision/COL_customPresets.png)
 
-From here you can name your preset, enable or disable collision, select your preset's Object Type, and finally define the behavior of each Response Channel for the selected Object Type.
+在此可为预设命名、启用或禁用碰撞、选择预设的物体类型、最后为选中的物体类型定义每个响应通道的行为。
 
 
 

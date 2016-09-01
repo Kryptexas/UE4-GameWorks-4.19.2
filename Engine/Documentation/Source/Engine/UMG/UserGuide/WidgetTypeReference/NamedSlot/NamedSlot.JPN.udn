@@ -1,31 +1,32 @@
-﻿INTSourceChangelist:2426237
+﻿INTSourceChangelist:2828862
 Availability:Public
 Title:Named Slot
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
-Description:ユーザーが作成したウィジェットの外部スロットを名前を付けたスロット (Named Slot) でエクスポーズします。
+Description:ユーザーが作成したウィジェットのための外部スロットを名前を付けたスロット (Named Slot) でエクスポーズします。
 Related:Engine/UMG/UserGuide
 Related:Engine/UMG/UserGuide/Styling
 Related:Engine/UMG/UserGuide/Slots
+version:4.9
 
 [TOC(start:2 end:2)]
 
-## ウィジェットの説明
+## 説明
 
 [EXCERPT:desc]
-ユーザー ウィジェットの外部スロットをエクスポーズすることができます。ユーザー ウィジェットを実装する場合、名前付けしたスロット内に他のスロットを何でも入れることができます。
+このウェジェットでは、ユーザー ウィジェットのための外部スロットをエクスポーズすることができます。ユーザー ウィジェットには、他のウィジェットを入れることが可能であり、カスタム ウィジェット機能を作成するのに便利です。
 [/EXCERPT:desc]
 
 ## 使用例
 
-以下では _Button Template_ と呼ばれる **Widget ブループリント** を作成し、**キャンバス パネル** を **Horizontal Box** (水平ボックス) で置き換えました。この水平ボックス内に **ボタン** と **テキスト** のウィジェットを入れました。ここでは、ボタンの隣にあるスペースに、他の誰かが入れたいウィジェットを入れたり、または別の Widget ブループリント内から後で入れることができるようにします。 
+以下では Button Template と呼ばれる **Widget ブループリント** を作成し、**キャンバス パネル** を **Horizontal Box (横方向ボックス)** で置き換えました。この横方向ボックス内に **ボタン** と **テキスト** のウィジェットを入れました。ここでは、ボタンの隣にあるスペースに、他の誰かが入れたいウィジェットを入れたり、または別の Widget ブループリント内から後で自分で入れることができるようにします。 
 
 ![](NamedSlot1.png)
 
-これは **Named Slot** ウィジェットを水平ボックスに追加して行います。 
+これを行うには **Named Slot** ウィジェットを Horizontal Box に追加します。 
 
 ![](NamedSlot2.png)
 
-この例では、わかりやすくするために Named Slot の名前を更新し、それを **Fill** に設定し、プレビュー サイズを調整しました。 
+この例では、わかりやすくするために Named Slot の名前を更新し、それを **Fill** に設定し、プレビュー サイズを調整しました。また、同じサイズにするために、**Fill Size** ドロップダウンから **Custom** を選択し、**Width** を 400 に、**Height** を 50 に設定します。
 
 ![](NamedSlot3.png)
 
@@ -33,13 +34,13 @@ Related:Engine/UMG/UserGuide/Slots
 
 ![](NamedSlot4.png)
 
-**コンパイル** し、**保存** して、 _Button Template_ を閉じて新規 Widget ブループリントを作成しました。 
+**コンパイル** し、**保存** して、 Button Template を閉じて新規 Widget ブループリントを作成しました。 
 
-この新規 Widget ブループリントの **User Created** に下にある _Button Template_ のユーザー ウィジェットをキャンバス パネルにドラッグしました。 
+この新規 Widget ブループリントの **User Created** で、Button Template のユーザー ウィジェットをキャンバス パネルにドラッグしました。 
 
 ![](NamedSlot5.png)
 
-次にウィジェットを Named Slot に追加します。しかし、Named Slot 内のグラフにウィジェットをドラッグ & ドロップすることはできません。 
+次にウィジェットを Named Slot に追加します。ただし、Named Slot 内のグラフにウィジェットをドラッグ & ドロップすることはできません。 
 
 ![](NamedSlot6.png)
 
@@ -47,19 +48,23 @@ Related:Engine/UMG/UserGuide/Slots
 
 ![](NamedSlot7.png)
 
-これで Named Slot に追加したウィジェットをお好みに応じてスタイライズすることができます。 
+これで Named Slot に追加したウィジェットにお好みに応じてスタイルを適用することができます。 
 
 ![](NamedSlot8.png)
 
-ウィジェットをグラフにドラッグ＆ドロップするためには、ウィジェットを入れるコンテナが必要です (例、キャンバス パネル) 。 
+ウィジェットをグラフにドラッグ＆ドロップするには、ウィジェットを入れるコンテナが必要です (例、キャンバス パネル) 。 
 
 ![](NamedSlot9.png)(w:800)
 
-上の画面では、別の _Button Template_ ウィジェットを作成しました。これは、キャンバス パネルを使用しており、ウィジェットをドラッグできるようになっています。 
+上の画面では、別の Button Template ウィジェットを作成しました。これは、キャンバス パネルを使用しており、ウィジェットをドラッグできるようになっています。 
 
 複数のウィジェットを Named Slot に追加し、様々なウィジェットを入れることができる「テンプレート」をセットアップすることができます。 
 
 ![](NamedSlot10.png)(w:800)
+
+
+
+
 
 
 

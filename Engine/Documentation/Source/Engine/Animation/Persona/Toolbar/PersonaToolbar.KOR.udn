@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2600962
+﻿INTSourceChangelist:2796819
 Availability:Public
 Title:페르소나 툴바
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:페르소나 애니메이션 에디터의 툴바 사용 안내서입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -29,7 +30,7 @@ Description:페르소나 애니메이션 에디터의 툴바 사용 안내서입
 
 [TOC(start:2)]
 
-## 개요
+
 
 [EXCERPT:Overview]
 **툴바** 는 기본적으로 페르소나 인터페이스 창 상단에 걸쳐 표시됩니다. 애니메이션 애셋 편집시 자주 쓰이는 여러가지 기능이 들어있습니다.
@@ -50,7 +51,7 @@ Description:페르소나 애니메이션 에디터의 툴바 사용 안내서입
 
  그러나 **그래프** 모드에 있을 때 툴바는 추가 기능으로 확장되며, 이런 모습입니다:
 
-![](Toolbar_2.png)
+![](PersonaToolbar.png)
 
 추가되는 버튼이 블루프린트 에디터 창에서 보던 것과 같다는 것, 눈치채실 수 있을 것입니다.
 
@@ -62,26 +63,39 @@ Description:페르소나 애니메이션 에디터의 툴바 사용 안내서입
 
 | 버튼  																						| 설명        														|
 | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | 
-| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png)	| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilesuccessful]	|
-| ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compileneeded]		|
-| ![Compile Warning Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_warning.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilewarning]		|
-| ![Compile Failed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_failed.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilefailed]		|
-| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#save]					|
-| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findincb]				| 
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png)			| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#blueprintprops]		|
-| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#search]				|
-| ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png)						| [INCLUDE:Engine/UI/LevelEditor/Toolbar#simulate]			|
+| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilesuccessful]	|
+| ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compileneeded]		|
+| ![Compile Warning Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_warning.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilewarning]		|
+| ![Compile Failed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_failed.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilefailed]		|
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#save]					|
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#findincb]				| 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png)			| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#blueprintprops]		|
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/defaults.png)				| Shows the Class Defaults Panel in the Details Tab |
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#search]				|
+| ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png)							| [INCLUDE:Engine/UI/LevelEditor/Toolbar#simulate]			|
 | ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png)					| [INCLUDE:Engine/UI/LevelEditor/Toolbar#playin]				|
-| ![Pause Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_pause.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#pause]				|
-| ![Resume Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_resume.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#resume]				|
-| ![Frame Skip Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_frameskip.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#frameskip]			|
-| ![Stop Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_stop.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#stop]					|
-| ![Possess Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_possess.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#possess]				|
-| ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#eject]				|
-| ![Find Node Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_node.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findnode]				|
-| ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#step]					|
-| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)					| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#debugobject]			| 
-
+| ![Pause Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_pause.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#pause]				|
+| ![Resume Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_resume.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#resume]				|
+| ![Frame Skip Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_frameskip.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#frameskip]			|
+| ![Stop Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_stop.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#stop]					|
+| ![Possess Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_possess.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#possess]				|
+| ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#eject]				|
+| ![Find Node Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_node.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#findnode]				|
+| ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#step]					|
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)					| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#debugobject]			|
+| ![](button_Preview.png)																					| Displays a preview of the currently selected animation asset. |
+| ![](button_RefPose.png)																					| Displays the skeletal mesh in it's reference pose. |
+| ![](button_Import.png)																					| Brings up the Import dialogue. |
+| ![](button_ImportMesh.png)																				| Brings up the Import dialogue. |
+| ![](button_Reimport.png)																					| Brings up the Browse dialogue to select an asset to reimport. |
+| ![](button_ReimportMesh.png)																				| Brings up the Browse dialogue to select an asset to reimport. |
+| ![](button_Export.png)																					| Brings up the Export dialogue. |
+| ![](button_Record.png)																					| Allows for the recording of an animation to be saved at another location. |
+| ![](button_CreateAsset.png)																				| Brings a menu with multiple options for creating a new asset. |
+| ![](button_Compression.png)																				| Brings multiple options of compression for the currently selected animation. |
+| ![](button_AnimNotifies.png)																				| Brings up the Anim Notifies window, which displays all Anim Notifies. |
+| ![](button_Key.png)																						| Adds a key to the Additive Layer Track of the currently selected bone for the currently selected animation. |
+| ![](button_Apply.png)																						| Applys added keys to the currently selected animation. |
 
 ## 모드 전환 탭
 
@@ -119,7 +133,7 @@ Description:페르소나 애니메이션 에디터의 툴바 사용 안내서입
 [REGION:simpletable]
 | 요소 | 설명 |
 |---|---|
-|![](button_MeshField.png)| 현재 페스소나에서 편집중인 스켈레탈 메시 애셋의 이름을 표시합니다. |
+|![](button_MeshField.png)| 현재 페르소나에서 편집중인 스켈레탈 메시 애셋의 이름을 표시합니다. |
 %pickasset%
 %search%
 [/REGION]

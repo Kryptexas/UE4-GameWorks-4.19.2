@@ -7,13 +7,16 @@
 #include "Developer/CollectionManager/Public/CollectionManagerTypes.h"
 #include "IFilter.h"
 #include "FilterCollection.h"
+#include "ITypedTableView.h"
 #include "AssetThumbnail.h"
 #include "UnrealClient.h"
+
 
 typedef const FAssetData& FAssetFilterType;
 typedef TFilterCollection<FAssetFilterType> FAssetFilterCollectionType;
 
 class UFactory;
+
 
 /** The view modes used in SAssetView */
 namespace EAssetViewType
@@ -27,6 +30,7 @@ namespace EAssetViewType
 		MAX
 	};
 }
+
 
 /** A struct containing details about how the content browser should behave */
 struct FContentBrowserConfig
@@ -100,7 +104,7 @@ struct FContentBrowserConfig
 		, bCanShowRealTimeThumbnails(true)
 		, bCanShowDevelopersFolder(true)
 		, bCanShowLockButton(true)
-	{}
+	{ }
 };
 
 

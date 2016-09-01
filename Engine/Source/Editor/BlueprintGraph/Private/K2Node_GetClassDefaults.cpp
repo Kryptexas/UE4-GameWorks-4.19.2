@@ -383,6 +383,34 @@ UClass* UK2Node_GetClassDefaults::GetInputClass(const UEdGraphPin* FromPin) cons
 	return InputClass;
 }
 
+void UK2Node_GetClassDefaults::OnBlueprintClassModified(UBlueprint* TargetBlueprint)
+{
+	check(TargetBlueprint);
+	UBlueprint* OwnerBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(this); //GetBlueprint() will crash, when the node is transient, etc
+	if (OwnerBlueprint)
+	{
+		// The Blueprint that contains this node may have finished 
+		// regenerating (see bHasBeenRegenerated), but we still may be
+		// in the midst of unwinding a cyclic load (dependent Blueprints);
+		// this lambda could be triggered during the targeted 
+		// Blueprint's regeneration - meaning we really haven't completed 
+		// the load process. In this situation, we cannot "reset loaders" 
+		// because it is not likely that all of the package's objects
+		// have been post-loaded (meaning an assert will most likely  
+		// fire from ReconstructNode). To guard against this, we flip this
+		// Blueprint's bIsRegeneratingOnLoad (like in 
+		// UBlueprintGeneratedClass::ConditionalRecompileClass), which
+		// we use throughout Blueprints to keep us from reseting loaders 
+		// on object Rename()
+		const bool bOldIsRegeneratingVal = OwnerBlueprint->bIsRegeneratingOnLoad;
+		OwnerBlueprint->bIsRegeneratingOnLoad = bOldIsRegeneratingVal || TargetBlueprint->bIsRegeneratingOnLoad;
+
+		ReconstructNode();
+
+		OwnerBlueprint->bIsRegeneratingOnLoad = bOldIsRegeneratingVal;
+	}
+}
+
 void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 {
 	// Create the set of output pins through the optional pin manager
@@ -439,7 +467,7 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 		{
 			if (BlueprintSubscribedTo)
 			{
-				BlueprintSubscribedTo->OnChanged().Remove(OnBlueprintCompiledDelegate);
+				BlueprintSubscribedTo->OnCompiled().Remove(OnBlueprintCompiledDelegate);
 			}
 			OnBlueprintCompiledDelegate.Reset();
 		}
@@ -451,34 +479,9 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 	{
 		if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
 		{
-			UK2Node_GetClassDefaults* ThisNode = this;
-			auto OnBlueprintClassModified = [ThisNode](UBlueprint* TargetBlueprint)
-			{
-				UBlueprint* OwnerBlueprint = ThisNode->GetBlueprint();
-				// The Blueprint that contains this node may have finished 
-				// regenerating (see bHasBeenRegenerated), but we still may be
-				// in the midst of unwinding a cyclic load (dependent Blueprints);
-				// this lambda could be triggered during the targeted 
-				// Blueprint's regeneration - meaning we really haven't completed 
-				// the load process. In this situation, we cannot "reset loaders" 
-				// because it is not likely that all of the package's objects
-				// have been post-loaded (meaning an assert will most likely  
-				// fire from ReconstructNode). To guard against this, we flip this
-				// Blueprint's bIsRegeneratingOnLoad (like in 
-				// UBlueprintGeneratedClass::ConditionalRecompileClass), which
-				// we use throughout Blueprints to keep us from reseting loaders 
-				// on object Rename()
-				const bool bOldIsRegeneratingVal = OwnerBlueprint->bIsRegeneratingOnLoad;
-				OwnerBlueprint->bIsRegeneratingOnLoad = bOldIsRegeneratingVal || TargetBlueprint->bIsRegeneratingOnLoad;
-
-				ThisNode->ReconstructNode();
-
-				OwnerBlueprint->bIsRegeneratingOnLoad = bOldIsRegeneratingVal;
-			};
-
 			BlueprintSubscribedTo = Blueprint;
-			OnBlueprintChangedDelegate  = Blueprint->OnChanged().AddLambda(OnBlueprintClassModified);
-			OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda(OnBlueprintClassModified);
+			OnBlueprintChangedDelegate  = Blueprint->OnChanged().AddUObject(this, &ThisClass::OnBlueprintClassModified);
+			OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddUObject(this, &ThisClass::OnBlueprintClassModified);
 		}
 	}
 }

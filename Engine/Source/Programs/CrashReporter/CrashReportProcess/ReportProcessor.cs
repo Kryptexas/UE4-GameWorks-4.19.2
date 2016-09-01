@@ -172,16 +172,34 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <param name="DirInfo">The directory to delete</param>
 		public static void CleanReport(DirectoryInfo DirInfo)
 		{
+			const int MaxRetries = 3;
+
 			bool bWriteException = true;
-			for( int Retry = 0; Retry < 3; ++Retry )
+			for( int Retry = 0; Retry < MaxRetries; ++Retry )
 			{
 				try
 				{
-					foreach( FileInfo Info in DirInfo.GetFiles() )
+					if (!DirInfo.Exists)
+					{
+						break;
+					}
+
+					foreach ( FileInfo Info in DirInfo.GetFiles() )
 					{
 						Info.IsReadOnly = false;
+						Info.Attributes = FileAttributes.Normal;
 					}
 					DirInfo.Delete( true /* delete contents */);
+
+					// Random failures to delete with no exception seen regularly - retry
+					DirInfo.Refresh();
+					if (DirInfo.Exists)
+                    {
+						CrashReporterProcessServicer.WriteEvent("CleanReport: Failed to delete folder without an Exception " + DirInfo);
+						Thread.Sleep(500);
+                        continue;
+                    }
+
 					break;
 				}
 				catch( Exception Ex )
@@ -194,6 +212,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 				}
 				System.Threading.Thread.Sleep( 100 );
+			}
+
+			DirInfo.Refresh();
+			if (DirInfo.Exists)
+			{
+				CrashReporterProcessServicer.WriteEvent(string.Format("CleanReport: Failed to delete folder {0} after {1} retries", DirInfo, MaxRetries));
 			}
 		}
 
@@ -215,13 +239,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		{
 			try
 			{
-				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingConstants.ProcessingFailedEvent);
+				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ProcessingFailedEvent);
 
 				DirectoryInfo DirInfo = new DirectoryInfo( ReportName );
 				// Rename the report directory, so we should be able to quickly find the invalid reports.
 				Directory.CreateDirectory( Config.Default.InvalidReportsDirectory );
-				string CleanFilename = String.Concat( ReportNameAsFilename.Split( Path.GetInvalidFileNameChars() ) );
-				string DestinationDirectory = Path.Combine( Config.Default.InvalidReportsDirectory, CleanFilename );
+				string DestinationDirectory = Path.Combine( Config.Default.InvalidReportsDirectory, ReportQueueBase.GetSafeFilename(ReportNameAsFilename));
 
 				Directory.CreateDirectory( DestinationDirectory );
 
@@ -291,6 +314,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				// Create a new crash description for uploading
 				CrashDescription NewCrash = new CrashDescription();
 
+				NewCrash.CrashType = NewContext.PrimaryCrashProperties.GetCrashType();
 				NewCrash.BranchName = EngineVersion.GetCleanedBranch();
 				NewCrash.GameName = NewContext.PrimaryCrashProperties.GameName;
 				NewCrash.Platform = NewContext.PrimaryCrashProperties.PlatformFullName;
@@ -326,6 +350,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				NewCrash.ErrorMessage = NewContext.PrimaryCrashProperties.GetErrorMessage();
 				NewCrash.UserDescription = NewContext.PrimaryCrashProperties.GetUserDescription();
 				NewCrash.UserActivityHint = NewContext.PrimaryCrashProperties.UserActivityHint;
+				NewCrash.CrashGUID = NewContext.PrimaryCrashProperties.CrashGUID;
 
 				// Iterate through all files and find a file with the earliest date.
 				DateTime TimeOfCrash = DateTime.UtcNow;
@@ -351,7 +376,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 				{
 					CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "! BadStack: BuiltFromCL=" + string.Format( "{0,7}", NewContext.PrimaryCrashProperties.EngineVersion ) + " Path=" + NewContext.CrashDirectory );
 					NewContext.PrimaryCrashProperties.ProcessorFailedMessage = string.Format("Callstack was too small. {0} lines (minimum {1})", NewCrash.CallStack.Length, CrashReporterConstants.MinCallstackDepth);
-				}
+                    NewContext.ToFile();
+                }
 				
 				XmlPayload = XmlHandler.ToXmlString<CrashDescription>( NewCrash );
 			}
@@ -371,6 +397,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		private int UploadCrash( string Payload )
 		{
 			int NewID = -1;
+			var Cancel = CancelSource.Token;
 
 			try
 			{
@@ -391,9 +418,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 					string ErrorMessage = string.Empty;
 
-					for (int Retry = 0; Retry < 3; ++Retry)
+					const int MaxRetries = 1;
+					for (int AddCrashTry = 0; AddCrashTry < MaxRetries + 1; ++AddCrashTry)
 					{
-						string ResponseString = SimpleWebRequest.GetWebServiceResponse(RequestString, Payload);
+						string ResponseString = SimpleWebRequest.GetWebServiceResponse(RequestString, Payload, Config.Default.AddCrashRequestTimeoutMillisec);
 						if (ResponseString.Length > 0)
 						{
 							// Convert response into a string
@@ -403,16 +431,33 @@ namespace Tools.CrashReporter.CrashReportProcess
 								NewID = Result.ID;
 								break;
 							}
+							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response timeout (attempt {1} of {2}): {3}", ProcessorIndex, AddCrashTry + 1, MaxRetries + 1, ErrorMessage));
 							ErrorMessage = Result.Message;
 						}
-						Thread.Sleep(200);
+						if (Cancel.IsCancellationRequested)
+						{
+							break;
+						}
+						Thread.Sleep(Config.Default.AddCrashRetryDelayMillisec);
 					}
 
-					if (NewID == -1)
+					if (Cancel.IsCancellationRequested)
 					{
-						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash: " + ErrorMessage);
+						CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash cancelled");
+					}
+					else if (NewID == -1)
+					{
+						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash failed: " + ErrorMessage);
 					}
 				}
+#if DEBUG
+				else
+				{
+					// No website set - simulate successful upload
+					var Rnd = new Random();
+					NewID = Rnd.Next(1, 99999999);
+				}
+#endif
 			}
 			catch( Exception Ex )
 			{
@@ -533,7 +578,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 				UpdateProcessedReports();
 				WebAddCounter.AddEvent();
-				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingConstants.ProcessingSucceededEvent);
+				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ProcessingSucceededEvent);
 				double Ratio = (double)WebAddCounter.TotalEvents / (double)ProcessedReports * 100;
 
 				double AddedPerDay = (double)WebAddCounter.TotalEvents / Timer.Elapsed.TotalDays;
@@ -559,9 +604,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <remarks>As MinidumpDiagnostics is synced to #head, it requires the engine config files that match to run properly.</remarks>
 		private static bool SyncRequiredFiles()
 		{
-			// Use the latest MinidumpDiagnostics from the main branch.
-			string SyncBinariesString = Path.Combine(Config.Default.DepotRoot, Config.Default.SyncBinariesFromDepot);
-			using (var MDDSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, "sync", SyncBinariesString))
+            // Use the latest MinidumpDiagnostics from the main branch.
+            string UserString = "-u " + Config.Default.P4User;
+            string ClientString = "-c " + Config.Default.P4Client;
+            string SyncBinariesString = Path.Combine(Config.Default.DepotRoot, Config.Default.SyncBinariesFromDepot);
+            using (var MDDSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, UserString, ClientString, "sync", SyncBinariesString))
 			{
 				if( MDDSyncProc.WaitForExit( SyncTimeoutSeconds * 1000 ) == EWaitResult.TimedOut )
 				{
@@ -571,7 +618,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 
 			string SyncConfigString = Path.Combine(Config.Default.DepotRoot, Config.Default.SyncConfigFromDepot);
-			using (var ConfigSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, "sync", SyncConfigString))
+			using (var ConfigSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, UserString, ClientString, "sync", SyncConfigString))
 			{
 				if (ConfigSyncProc.WaitForExit(SyncTimeoutSeconds * 1000) == EWaitResult.TimedOut)
 				{
@@ -581,7 +628,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 
 			string SyncThirdPartyString = Path.Combine(Config.Default.DepotRoot, Config.Default.SyncThirdPartyFromDepot); // Required by Perforce
-			using (var MiscSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, "sync", SyncThirdPartyString))
+			using (var MiscSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, UserString, ClientString, "sync", SyncThirdPartyString))
 			{
 				if (MiscSyncProc.WaitForExit(SyncTimeoutSeconds * 1000) == EWaitResult.TimedOut)
 				{
@@ -811,7 +858,9 @@ namespace Tools.CrashReporter.CrashReportProcess
 					"-unattended",
 					"-Log=" + NewContext.GetAsFilename() + "-backup-.log",
 					"-DepotIndex=" + Config.Default.DepotIndex,
-					"-ini:Engine:[LogFiles]:PurgeLogsDays="+PurgeLogsDays,
+                    "-P4User=" + Config.Default.P4User,
+                    "-P4Client=" + Config.Default.P4Client,
+                    "-ini:Engine:[LogFiles]:PurgeLogsDays="+PurgeLogsDays,
 					"-LOGTIMESINCESTART"
 				}
 			);
@@ -849,9 +898,9 @@ namespace Tools.CrashReporter.CrashReportProcess
 				}
 
 				Double TotalMDDTime = WaitSW.Elapsed.TotalSeconds;
-
-				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + string.Format("ProcessDumpFile: Total MDD exec time {0:N1}s (blocked for {1:N1}s)", TotalMDDTime, WaitForLockTime));
-			}
+                
+                CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + string.Format("ProcessDumpFile: Thread blocked for {0:N1}s then MDD ran for {1:N1}s", WaitForLockTime, TotalMDDTime - WaitForLockTime));
+            }
 
 			ReadDiagnosticsFile( NewContext );
 		}

@@ -47,7 +47,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Tag to be applied to build products of this task
 		/// </summary>
-		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
 		public string Tag;
 	}
 
@@ -96,7 +96,8 @@ namespace BuildGraph.Tasks
 			using(TelemetryStopwatch CookStopwatch = new TelemetryStopwatch("Cook.{0}.{1}", (ProjectFile == null)? "UE4" : ProjectFile.GetFileNameWithoutExtension(), Parameters.Platform))
 			{
 				string[] Maps = (Parameters.Maps == null)? null : Parameters.Maps.Split(new char[]{ '+' });
-				CommandUtils.CookCommandlet(ProjectFile, "UE4Editor-Cmd.exe", Maps, null, null, null, Parameters.Platform, (Parameters.Versioned? "" : "-Unversioned ") + Parameters.Arguments);
+				string Arguments = (Parameters.Versioned ? "" : "-Unversioned ") + "-LogCmds=\"LogSavePackage Warning\" " + Parameters.Arguments;
+				CommandUtils.CookCommandlet(ProjectFile, "UE4Editor-Cmd.exe", Maps, null, null, null, Parameters.Platform, Arguments);
 			}
 
 			// Find all the cooked files
@@ -114,9 +115,9 @@ namespace BuildGraph.Tasks
 			}
 
 			// Apply the optional tag to the build products
-			if(!String.IsNullOrEmpty(Parameters.Tag))
+			foreach(string TagName in FindTagNamesFromList(Parameters.Tag))
 			{
-				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(CookedFiles);
+				FindOrAddTagSet(TagNameToFileSet, TagName).UnionWith(CookedFiles);
 			}
 
 			// Add them to the set of build products
@@ -130,6 +131,24 @@ namespace BuildGraph.Tasks
 		public override void Write(XmlWriter Writer)
 		{
 			Write(Writer, Parameters);
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			yield break;
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			return FindTagNamesFromList(Parameters.Tag);
 		}
 	}
 }

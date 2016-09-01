@@ -141,6 +141,9 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	/** Used to upgrade a Name property to a GameplayTag struct property */
 	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 
+	/** Handles importing tag strings without (TagName=) in it */
+	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
+
 private:
 
 	/** Intentionally private so only the tag manager can use */
@@ -162,6 +165,7 @@ struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase
 		WithNetSerializer = true,
 		WithPostSerialize = true,
 		WithSerializeFromMismatchedTag = true,
+		WithImportTextItem = true,
 	};
 };
 
@@ -267,6 +271,20 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	 */
 	bool MatchesQuery(const struct FGameplayTagQuery& Query) const;
 
+
+	/**
+	 * Determine if the container has the specified tag. This forces an explicit match. 
+	 * This function exists for convenience and brevity. We do not wish to use default values for ::HasTag match type parameters, to avoid confusion on what the default behavior is. (E.g., we want people to think and use the right match type).
+	 * 
+	 * @param TagToCheck			Tag to check if it is present in the container
+	 * 
+	 * @return True if the tag is in the container, false if it is not
+	 */
+	FORCEINLINE_DEBUGGABLE bool HasTagExplicit(FGameplayTag const& TagToCheck) const
+	{
+		return HasTag(TagToCheck, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit);
+	}
+
 	/**
 	 * Determine if the container has the specified tag
 	 * 
@@ -276,7 +294,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	 * 
 	 * @return True if the tag is in the container, false if it is not
 	 */
-	FORCEINLINE_DEBUGGABLE bool HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> TagToCheckMatchType) const
+	FORCEINLINE_DEBUGGABLE bool HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType=EGameplayTagMatchType::Explicit, TEnumAsByte<EGameplayTagMatchType::Type> TagToCheckMatchType=EGameplayTagMatchType::Explicit) const
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FGameplayTagContainer_HasTag);
 		bool bResult;
@@ -395,6 +413,20 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	{
 		return GameplayTags.CreateConstIterator();
 	}
+
+	bool IsValidIndex(int32 Index)
+	{
+		return GameplayTags.IsValidIndex(Index);
+	}
+
+	FGameplayTag GetByIndex(int32 Index)
+	{
+		if (IsValidIndex(Index))
+		{
+			return GameplayTags[Index];
+		}
+		return FGameplayTag();
+	}	
 
 	FGameplayTag First() const
 	{

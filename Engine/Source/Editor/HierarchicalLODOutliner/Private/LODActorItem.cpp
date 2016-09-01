@@ -63,7 +63,7 @@ FString HLODOutliner::FLODActorItem::GetDisplayString() const
 {
 	if (ALODActor* ActorPtr = LODActor.Get())
 	{
-		FString DisplayName = ActorPtr->GetName() + ((ActorPtr->SubActors.Num() < 2) ? FString(" (Insufficient Sub Actors)") : ((ActorPtr->IsDirty()) ? FString(" (Not built)") : FString()));
+		FString DisplayName = ActorPtr->GetName() + (!ActorPtr->HasValidSubActors() ? FString(" (Not enough mesh components)") : ((ActorPtr->IsDirty()) ? FString(" (Not built)") : FString()));
 
 		// Temporary indication of custom settings
 		if (ActorPtr->bOverrideMaterialMergeSettings || ActorPtr->bOverrideScreenSize || ActorPtr->bOverrideTransitionScreenSize)

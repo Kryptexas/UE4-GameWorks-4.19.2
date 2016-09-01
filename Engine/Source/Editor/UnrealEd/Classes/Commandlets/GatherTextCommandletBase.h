@@ -211,7 +211,7 @@ public:
 	bool AddManifestDependency( const FString& InManifestFile );
 
 	// Return the first entry in the dependencies that matches the passed in namespace and context.
-	TSharedPtr< FManifestEntry > FindDependencyEntryByContext(  const FString& Namespace, const FContext& Context, FString& OutFileName );
+	TSharedPtr< FManifestEntry > FindDependencyEntryByContext(  const FString& Namespace, const FManifestContext& Context, FString& OutFileName );
 
 	// Return the first entry in the dependencies that matches the passed in namespace and source.
 	TSharedPtr< FManifestEntry > FindDependencyEntryBySource( const FString& Namespace, const FLocItem& Source, FString& OutFileName );
@@ -223,7 +223,7 @@ public:
 	void ApplyManifestDependencies();
 
 	// Adds an entry to the manifest if it is not in one of the manifest dependencies
-	bool AddEntry( const FString& EntryDescription, const FString& Namespace, const FLocItem& Source, const FContext& Context );
+	bool AddEntry( const FString& EntryDescription, const FString& Namespace, const FLocItem& Source, const FManifestContext& Context );
 
 	TSharedPtr< class FInternationalizationManifest > GetManifest() { return Manifest; }
 
@@ -278,6 +278,44 @@ struct FLocalizedAssetUtil
 	static bool GetAssetsByPathAndClass(IAssetRegistry& InAssetRegistry, const TArray<FName>& InPackagePaths, const FName InClassName, const bool bIncludeLocalizedAssets, TArray<FAssetData>& OutAssets);
 };
 
+
+/** Performs fuzzy path matching against a set of include and exclude paths */
+class FFuzzyPathMatcher
+{
+public:
+	enum EPathMatch
+	{
+		Included,
+		Excluded,
+		NoMatch,
+	};
+
+public:
+	FFuzzyPathMatcher(const TArray<FString>& InIncludePathFilters, const TArray<FString>& InExcludePathFilters);
+
+	EPathMatch TestPath(const FString& InPathToTest) const;
+
+private:
+	enum EPathType : uint8
+	{
+		Include,
+		Exclude,
+	};
+
+	struct FFuzzyPath
+	{
+		FFuzzyPath(FString InPathFilter, const EPathType InPathType)
+			: PathFilter(MoveTemp(InPathFilter))
+			, PathType(InPathType)
+		{
+		}
+
+		FString PathFilter;
+		EPathType PathType;
+	};
+
+	TArray<FFuzzyPath> FuzzyPaths;
+};
 
 /**
  *	UGatherTextCommandletBase: Base class for localization commandlets. Just to force certain behaviors and provide helper functionality. 

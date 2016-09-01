@@ -1,16 +1,20 @@
-﻿INTSourceChangelist:2522577
+﻿INTSourceChangelist:2746215
+Availability:Public
 Title:アニメーション ステート マシーンの設定
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:2D キャラクターのそれぞれのステートに合わせて、様々なアニメーションを設定および再生する方法 
-Availability:Public
 Related:Engine\Paper2D\HowTo\TopDown
 Related:Engine\Paper2D\Sprites
 Related:Engine\Paper2D\Flipbooks
+Related:Engine/Animation/StateMachines/CreatingStateMachines
+Related:Engine/Animation/StateMachines
+Version:4.9
+SkillLevel:Intermediate
 
 このページでは、定義された基準に合わせて異なるフリップブック アニメーション間でキャラクターを切り替えることができるように、2D キャラクターにアニメーション ステート マシンを設定する方法を学習します。 
 
 [REGION:warning]
-このチュートリアルでは、移動できる 2D キャラクター、およびそのキャラクターの切り替え先となる複数のフリップブック アニメーションが用意されていることが前提となります。キャラクターもしくはフリップブック アニメーションをお持ちでない場合は、 [Paper 2D Top Down Tutorial](Engine\Paper2D\HowTo\TopDown) を参照してください。2D キャラクターの設定および移動の適用方法に関する情報や、このチュートリアルで使用するサンプル アセットのリンクを確認できます。 
+このチュートリアルでは、移動できる 2D キャラクター、およびそのキャラクターの切り替え先となる複数のフリップブック アニメーションが用意されていることが前提となります。キャラクターもしくはフリップブック アニメーションをお持ちでない場合は、[トップダウン 2D ゲームの設定](Engine\Paper2D\HowTo\TopDown) を参照してください。2D キャラクターの設定および移動の適用方法に関する情報や、このチュートリアルで使用するサンプル アセットのリンクを確認できます。 
 [/REGION]
 
 プロジェクトを開いて、Paper 2D キャラクターを準備できたら、以下の手順に従います。 
@@ -19,7 +23,7 @@ Related:Engine\Paper2D\Flipbooks
 
 1.	プロジェクトで Paper 2D Character ブループリント (このサンプルでは **TopDownCharacter**) を開きます。 
 
-1.	**[My Blueprint]** ウィンドウで、 **[Add Variable]** ボタンをクリックし、新しい Bool 変数を作成し、「 **IsMoving?** 」という名前を付けます。 
+1.	**[My Blueprint]** ウィンドウで、**[Add Variable (変数を追加)]** ボタンをクリックし、新しい Bool 変数を作成し、「**IsMoving?**」という名前を付けます。 
 
 	![](Animation1.png)
 
@@ -39,7 +43,7 @@ Related:Engine\Paper2D\Flipbooks
 
 	![](Animation4.png)
 
-	好きなカテゴリ名を入力し、分かりやすく整理できます。 
+	好きなカテゴリ名を入力することができ、整理整頓に役立ちます。 
 
 1.	キャラクターに再生したいアニメーションごとに手順 3 と 4 を繰り返します。 
 
@@ -114,8 +118,8 @@ Related:Engine\Paper2D\Flipbooks
 	True に接続された Enum のステートを **Run** に設定し、もう片方の Enum のステートは **Idle** に設定します。IsMoving? が true の場合、Enum ステートは Run で、移動していない場合は Idle に設定するということです。このサンプルでは、移動しているかどうかのみを確認していますが、ニーズに合わせて他の基準を確認するために別の Branch ノードを追加することができます。 
 
 	ひとつ注目すべきことは、確認を処理する順序が重要で、あるステートを他のステートに優先させるということです。例えば、キャラクターにデス フリップブック アニメーションを付ける場合、まず最初にキャラクターが死亡しているのかどうかを確認して、死亡していればデス アニメーションをプレイしてそのキャラクターをキルします。死亡していない場合、次のチェック項目へ進みまます (キャラクターは移動してるか、攻撃しているか、アイテムを使っているか、など) 
-	[REGION:note]
 
+	[REGION:note]
 	詳細は、2D 動画チュートリアル シリーズの [アニメーション ステート マシーン](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1gauJh60307mE_67jqK42twB&video=Af-jsQFlLFU) ページを参照してください。| 
 	[/REGION]
 
@@ -135,7 +139,7 @@ Related:Engine\Paper2D\Flipbooks
 
 関数が出来上がりましたので、Update Animation Event の一部として呼び出し、残りのスクリプトを完成させます。 
 
-1.	**[My Blueprint]** ウィンドウの **Event Graph** で、 **[Show Inherited Variables]** を選択し **Ctrl** を押したまま **Sprite** へドラッグします。 
+1.	**[My Blueprint]** ウィンドウの **Event Graph** で、 **[Show Inherited Variables (継承した変数を表示)]** を選択し **Ctrl** を押したまま **Sprite** へドラッグします。 
 
 	![](Animation18.png)
 
@@ -153,7 +157,17 @@ Related:Engine\Paper2D\Flipbooks
 
 1.	**コンパイル** し **保存** してから、エディタで再生します。 
 
-	![](AnimationExample.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	umA8BlEjgF8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	これでキャラクターは、動いているかどうかに応じて 2 つのステートで切り替えられるようになりました。 
 

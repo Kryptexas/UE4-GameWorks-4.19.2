@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2652988
 Availability:Public
-Title:Environment Query System Quick Start Guide
+Title:场景查询系统快速入门指南
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
-Description:This Quick Start Guide covers creating a Behavior Tree that uses multiple Run EQS Query nodes to find a place to hide from the player character.
+Description:此快速入门指南讲述行为树的创建，该行为树使用多个 Run EQS Query 节点找寻躲避玩家角色的地方。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -44,16 +44,16 @@ Description:This Quick Start Guide covers creating a Behavior Tree that uses mul
 [/VAR]
 
 
-This Quick Start will teach you the basics of using the **Environment Query System**. In it, you will use Environment Queries to find Actors and Locations, then, using a series of tests, you'll be given the "best" option. Then, using a Behavior tree, you'll have the AI flee from the Player Pawn (or Pawns) to a hiding spot.
+此快速入门讲授 **场景查询系统** 的使用基础。此系统中将使用场景查询找到 Actor 和 位置，然后通过一系列测试获得最佳选择。之后通过行为树即可获得一个逃脱玩家 Pawn（或 Pawns）追踪，前往藏身点的 AI。
 
-This is a more advanced Quick Start and assumes you are familiar with [Blueprints](Engine/Blueprints/BP_HowTo/BasicUsage) and [Behavior Trees](Engine/AI/BehaviorTrees/QuickStart).
+此快速入门中讲述的内容较为深入，读者需熟知 [蓝图](Engine/Blueprints/BP_HowTo/BasicUsage) 和 [行为树](Engine/AI/BehaviorTrees/QuickStart) 章节。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

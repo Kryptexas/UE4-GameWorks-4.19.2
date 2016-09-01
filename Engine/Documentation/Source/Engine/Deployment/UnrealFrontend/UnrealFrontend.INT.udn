@@ -73,9 +73,13 @@ Editor tab can be accessed from the **Window** menu:
 
 ![](workspace_menu.png)
 
-The standalone application is located in the /Engine/Binaries/Win64 directory:
+The standalone application is located in the /Engine/Binaries/Win64 and /Engine/Binaries/Mac directories:
 
 ![](explorer.png)
+
+[REGION:note]
+Please note that if you are using a source build of the engine, you will need to build UnrealFrontend from Visual Studio or XCode first. 
+[/REGION]
 
 ## Interface
 

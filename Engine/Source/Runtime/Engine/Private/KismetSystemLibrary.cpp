@@ -8,16 +8,14 @@
 #include "DelayAction.h"
 #include "InterpolateComponentToAction.h"
 #include "Advertising.h"
-#include "Online.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "SlateCore.h"
 #include "Engine/StreamableManager.h"
-#include "OnlineSubsystemTypes.h"
-#include "OnlineSubsystemUtils.h"
-#include "OnlineIdentityInterface.h"
+#include "Net/OnlineEngineInterface.h"
 #include "UserActivityTracking.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -83,6 +81,11 @@ FString UKismetSystemLibrary::GetEngineVersion()
 FString UKismetSystemLibrary::GetGameName()
 {
 	return FString(FApp::GetGameName());
+}
+
+FString UKismetSystemLibrary::GetGameBundleId()
+{
+	return FString(FPlatformProcess::GetGameBundleId());
 }
 
 FString UKismetSystemLibrary::GetPlatformUserName()
@@ -1360,6 +1363,7 @@ bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObjec
 
 	FCollisionQueryParams Params(LineTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1423,6 +1427,7 @@ bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject
 
 	FCollisionQueryParams Params(LineTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1529,6 +1534,7 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 
 	FCollisionQueryParams Params(BoxTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1586,6 +1592,7 @@ bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVec
 
 	FCollisionQueryParams Params(BoxTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1655,6 +1662,7 @@ bool UKismetSystemLibrary::SphereTraceSingle_DEPRECATED(UObject* WorldContextObj
 
 	FCollisionQueryParams Params(SphereTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1717,6 +1725,7 @@ bool UKismetSystemLibrary::SphereTraceMulti_DEPRECATED(UObject* WorldContextObje
 
 	FCollisionQueryParams Params(SphereTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1787,6 +1796,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingle_DEPRECATED(UObject* WorldContextOb
 	FCollisionQueryParams Params(CapsuleTraceSingleName, bTraceComplex);
 	Params.AddIgnoredActors(ActorsToIgnore);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	if (bIgnoreSelf)
 	{
@@ -1854,6 +1864,7 @@ bool UKismetSystemLibrary::CapsuleTraceMulti_DEPRECATED(UObject* WorldContextObj
 
 	FCollisionQueryParams Params(CapsuleTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -1939,6 +1950,7 @@ bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldCont
 
 	FCollisionQueryParams Params(LineTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2030,6 +2042,7 @@ bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldConte
 
 	FCollisionQueryParams Params(LineTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2126,11 +2139,9 @@ bool UKismetSystemLibrary::SphereTraceSingleByObject_DEPRECATED(UObject* WorldCo
 {
 	static const FName SphereTraceSingleName(TEXT("SphereTraceSingle"));
 
-
-
-
 	FCollisionQueryParams Params(SphereTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2222,6 +2233,7 @@ bool UKismetSystemLibrary::SphereTraceMultiByObject_DEPRECATED(UObject* WorldCon
 
 	FCollisionQueryParams Params(SphereTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2314,6 +2326,7 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 
 	FCollisionQueryParams Params(BoxTraceSingleName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2399,6 +2412,7 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 
 	FCollisionQueryParams Params(BoxTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2497,6 +2511,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingleByObject_DEPRECATED(UObject* WorldC
 	FCollisionQueryParams Params(CapsuleTraceSingleName, bTraceComplex);
 	Params.AddIgnoredActors(ActorsToIgnore);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	if (bIgnoreSelf)
 	{
@@ -2591,6 +2606,7 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 
 	FCollisionQueryParams Params(CapsuleTraceMultiName, bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
+	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
@@ -2949,7 +2965,7 @@ void UKismetSystemLibrary::RetriggerableDelay(UObject* WorldContextObject, float
 	}
 }
 
-void UKismetSystemLibrary::MoveComponentTo(USceneComponent* Component, FVector TargetRelativeLocation, FRotator TargetRelativeRotation, bool bEaseOut, bool bEaseIn, float OverTime, TEnumAsByte<EMoveComponentAction::Type> MoveAction, FLatentActionInfo LatentInfo)
+void UKismetSystemLibrary::MoveComponentTo(USceneComponent* Component, FVector TargetRelativeLocation, FRotator TargetRelativeRotation, bool bEaseOut, bool bEaseIn, float OverTime, bool bForceShortestRotationPath, TEnumAsByte<EMoveComponentAction::Type> MoveAction, FLatentActionInfo LatentInfo)
 {
 	if (UWorld* World = ((Component != NULL) ? Component->GetWorld() : NULL))
 	{
@@ -2965,7 +2981,7 @@ void UKismetSystemLibrary::MoveComponentTo(USceneComponent* Component, FVector T
 			if (MoveAction == EMoveComponentAction::Move)
 			{
 				// Only act on a 'move' input if not running
-				Action = new FInterpolateComponentToAction(OverTime, LatentInfo, Component, bEaseOut, bEaseIn);
+				Action = new FInterpolateComponentToAction(OverTime, LatentInfo, Component, bEaseOut, bEaseIn, bForceShortestRotationPath);
 
 				Action->TargetLocation = TargetRelativeLocation;
 				Action->TargetRotation = TargetRelativeRotation;
@@ -3161,40 +3177,32 @@ void UKismetSystemLibrary::ForceCloseAdBanner()
 
 void UKismetSystemLibrary::ShowPlatformSpecificLeaderboardScreen(const FString& CategoryName)
 {
-	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
-	if(ExternalUI.IsValid())
-	{
-		ExternalUI->ShowLeaderboardUI(CategoryName);
-	}
+	// not PIE safe, doesn't have world context
+	UOnlineEngineInterface::Get()->ShowLeaderboardUI(nullptr, CategoryName);
 }
 
-void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer)
+void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(APlayerController* SpecificPlayer)
 {
-	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
-	if(ExternalUI.IsValid())
+	UWorld* World = SpecificPlayer ? SpecificPlayer->GetWorld() : nullptr;
+
+	// Get the controller id from the player
+	int LocalUserNum = 0;
+	if (SpecificPlayer)
 	{
-		// Get the controller id from the player
-		int LocalUserNum = 0;
-		if(SpecificPlayer)
+		ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(SpecificPlayer->Player);
+		if (LocalPlayer)
 		{
-			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(SpecificPlayer->Player);
-			if(LocalPlayer)
-			{
-				LocalUserNum = LocalPlayer->GetControllerId();
-			}
+			LocalUserNum = LocalPlayer->GetControllerId();
 		}
-		ExternalUI->ShowAchievementsUI(LocalUserNum);
 	}
+
+	UOnlineEngineInterface::Get()->ShowAchievementsUI(World, LocalUserNum);
 }
+
 bool UKismetSystemLibrary::IsLoggedIn(APlayerController* SpecificPlayer)
 {
-	IOnlineIdentityPtr Identity = Online::GetIdentityInterface();
-	
-	if (!Identity.IsValid())
-	{
-		return false;
-	}
-	
+	UWorld* World = SpecificPlayer ? SpecificPlayer->GetWorld() : nullptr;
+
 	int LocalUserNum = 0;
 	if (SpecificPlayer != nullptr)
 	{
@@ -3204,7 +3212,8 @@ bool UKismetSystemLibrary::IsLoggedIn(APlayerController* SpecificPlayer)
 			LocalUserNum = LocalPlayer->GetControllerId();
 		}
 	}
-	return Identity->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn;
+
+	return UOnlineEngineInterface::Get()->IsLoggedIn(World, LocalUserNum);
 }
 
 void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value)

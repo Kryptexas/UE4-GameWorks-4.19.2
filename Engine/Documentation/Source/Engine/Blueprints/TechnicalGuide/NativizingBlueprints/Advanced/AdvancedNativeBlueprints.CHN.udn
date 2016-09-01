@@ -1,0 +1,60 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:Advanced Blueprint Nativization
+Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
+Description:Technical guide for gameplay programmers exposing gameplay elements to Blueprints.
+Related: Engine/Blueprints/TechnicalGuide/NativizingBlueprints
+Parent: Engine/Blueprints/TechnicalGuide
+Version:4.12
+
+[TOC(start:2)]
+
+
+## Building with Unreal Automation Tool
+To nativize Blueprints while building with Unreal Automation too, add the `-nativizeAssets` switch to your BuildCookRun command line.
+
+## C++ Cooperation
+
+Nativized blueprints are stored in a new, separate module, which means that the headers from gameplay module are now used outside their module. 
+You should check that all headers have declared all classes and all structs that are used, either as a included header, or as a forward declaration.
+
+There are some rules/restrictions that help make cooperation between manually written code and the nativized code more reliable and efficient. 
+
+The following implementations are not supported: 
+- private/protected variables with `BlueprintVisible` or `Editable` tags
+- private/protected functions that are marked as `BlueprintPure` or `BlueprintCallable`
+- `noexport` structures/classes
+- bitfield variables with `BlueprintVisible` or `Editable` tags
+- private bitfield variables
+- `UBlueprintGeneratedClass`, `UUserDefinedStruct`, `UUserDefinedEnum` variables, or any type based on them
+
+## Technical Details
+
+Nativizing Blueprints should work with Visual Studio 2013 and Visual Studio 2015, however 2015 is strongly recommended as it handles larger projects better.
+If there is a strange compiler/linker error like LNK1000, LNK1248, then try to reduce the amount of nativized Blueprints by excluding types or specific Blueprints.
+
+The `BlueprintCompilerCppBackend` module (found here: `Engine\Source\Developer\BlueprintCompilerCppBackend\`) converts the Blueprint syntax tree into C++. 
+The `BlueprintNativeCodeGen` module (found here: `Engine\Source\Developer\BlueprintNativeCodeGen\`) does a lot of magic while cooking and packaging. 
+
+
+[PUBLISH:Licensee]
+## Debugging Converted Code on Windows
+
+If you are working with a project that already includes some C++ code, you can debug using the existing project solution.
+However, if your project originally contained only Blueprints, you need to execute `GenerateProjectFiles.bat` so that your project will have a solution.  
+Do not use this solution (or the new project under the main UE4 solution) to compile your project or to build an Editor version of your project. 
+
+To build a debug .exe file:
+
+1. Run the following lines. They can be found in your output log when your nativized build is packaged, so it's easiest to copy them out to verify that the switches 
+are correct for your environment. Just change the `Development` switch to `Debug`. 
+
+		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <project name> Win64 Debug -Project=<project path>\<project name>.uproject  <project path>\<project name>.uproject  -PLUGIN "<project path>\Intermediate\<platform>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<project path>" -noxge -generatemanifest -NoHotReloadFromIDE -ignorejunk
+
+		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <project name> Win64 Debug -Project=<project path>\<project name>.uproject  <project path>\<project name>.uproject  -PLUGIN "<project path>\Intermediate\<platform>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<project path>" -noxge -NoHotReloadFromIDE -ignorejunk
+
+2. Set the working directory in your Visual Studio project (debug configuration) to `<Packaged Folder>\<platform>\<project name>\Binaries\Win64\`
+
+3. Run debug in Visual Studio, but do not recompile the project from Visual Studio.
+
+[/PUBLISH:Licensee]

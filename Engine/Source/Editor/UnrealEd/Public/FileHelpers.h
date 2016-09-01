@@ -117,10 +117,11 @@ public:
 	 *
 	 * @param	Level				The level to be saved.
 	 * @param	DefaultFilename		File name to use for this level if it doesn't have one yet (or empty string to prompt)
+	 * @param	OutSavedFilename	When returning true, this string will be set to the filename of the saved level.
 	 *
 	 * @return				true if the level was saved.
 	 */
-	static UNREALED_API bool SaveLevel(ULevel* Level, const FString& DefaultFilename = TEXT( "" ) );
+	static UNREALED_API bool SaveLevel(ULevel* Level, const FString& DefaultFilename = TEXT( "" ), FString* OutSavedFilename = nullptr );
 
 	/**
 	 * Does a SaveAs for the specified assets.
@@ -133,10 +134,11 @@ public:
 	/**
 	 * Does a saveAs for the specified level.
 	 *
-	 * @param	Level		The Level to be SaveAs'd.
-	 * @return				true if the world was saved.
+	 * @param	Level				The Level to be SaveAs'd.
+	 * @param	OutSavedFilename	When returning true, this string will be set to the filename of the saved level.
+	 * @return						true if the world was saved.
 	 */
-	UNREALED_API static bool SaveLevelAs(ULevel* Level);
+	UNREALED_API static bool SaveLevelAs(ULevel* Level, FString* OutSavedFilename = nullptr);
 
 	/**
 	 * Saves all levels to the specified directory.

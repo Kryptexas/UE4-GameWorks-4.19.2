@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2690818
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title: Timelines ノード
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:アンリアル エンジン 4 のブループリントの Timeline ノードの概要を説明します。
 version:4.9
+Parent:Engine/Blueprints
+Type:guide
 
 ![k2_timeline_demo.png](k2_timeline_demo.png)
 
@@ -96,7 +98,7 @@ Timelines には以下の入力ピンと出力ピンがあります。
 | **Direction** | Timeline が再生される方向を示す列挙型変数を出力します。 |
 
 [REGION:note]
-	Timelines には、その中で作成されるトラック タイプを反映する出力データピンを好きな数だけ追加できます。Float 、 Vector 、 Event トラックが含まれます。
+	Timelines には、その中で作成されるトラック タイプを反映する出力データピンを好きな数だけ追加できます。Float、Vector、Event トラックが含まれます。
 [/REGION]
 
 

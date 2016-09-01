@@ -280,6 +280,7 @@ namespace AutomationScripts.Automation
 
 			Message.CC.Add(new MailAddress("Daniel.Lamb@epicgames.com"));
             Message.CC.Add(new MailAddress("Andrew.Grant@epicgames.com"));
+            Message.CC.Add(new MailAddress("Peter.Sauerbrei@epicgames.com"));
 			Message.Subject = String.Format("Nightly lightmap rebuild {0} for {1}", bWasSuccessful ? "[SUCCESS]" : "[FAILED]", Branch);
 			Message.Body = MessageBody;
             /*Attachment Attach = new Attachment();

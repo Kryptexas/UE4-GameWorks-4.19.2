@@ -848,7 +848,7 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 	return true;
 }
 
-bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddManifestText( const FString& Token, const FString& InNamespace, const FString& SourceText, const FContext& Context )
+bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddManifestText( const FString& Token, const FString& InNamespace, const FString& SourceText, const FManifestContext& Context )
 {
 	const bool bIsEditorOnly = EvaluateMacroStack() == EMacroBlockState::EditorOnly;
 
@@ -1255,7 +1255,7 @@ void UGatherTextFromSourceCommandlet::FCommandMacroDescriptor::TryParse(const FS
 					if ( HasQuotes && !Identifier.IsEmpty() && !SourceText.IsEmpty() )
 					{
 						// First create the command entry
-						FContext CommandContext;
+						FManifestContext CommandContext;
 						CommandContext.Key = Identifier;
 						CommandContext.SourceLocation = SourceLocation;
 
@@ -1269,7 +1269,7 @@ void UGatherTextFromSourceCommandlet::FCommandMacroDescriptor::TryParse(const FS
 							if (HasQuotes && !TooltipSourceText.IsEmpty())
 							{
 								// Create the tooltip entry
-								FContext CommandTooltipContext;
+								FManifestContext CommandTooltipContext;
 								CommandTooltipContext.Key = Identifier + TEXT("_ToolTip");
 								CommandTooltipContext.SourceLocation = SourceLocation;
 
@@ -1349,7 +1349,7 @@ void UGatherTextFromSourceCommandlet::FStringMacroDescriptor::TryParse(const FSt
 
 				if (!ArgParseError && !Identifier.IsEmpty() && !SourceText.IsEmpty())
 				{
-					FContext MacroContext;
+					FManifestContext MacroContext;
 					MacroContext.Key = Identifier;
 					MacroContext.SourceLocation = SourceLocation;
 

@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:2537752
-Availability:Epic
+﻿Availability:Epic
 Title:クラッシュ レポータ
 Crumbs:%ROOT%
 Description:アンリアル エンジンで発生したクラッシュの情報を収集するアプリケーション
 
 [TOC (start:2 end:3)]
 
-クラッシュレポータのプログラム一式は、社内および社外エンドユーザー両者が、アプリケーションのクラッシュ時に情報を保存して分析できるように設計されています。
+クラッシュレポータのプログラム一式は、社内および社外のエンドユーザーによるアプリケーションのクラッシュ時における情報の保存および分析を可能にします。
 
 ##必要最低条件
 
@@ -38,17 +37,17 @@ Description:アンリアル エンジンで発生したクラッシュの情報�
 ## クラッシュレポートのアップロード
 
 * /Engine/Binaries/DotNET/CrashReportUploader.exe.config にはコンフィギュレーション プロパティが格納されています。
-    * CrashReportUploadURL - クラッシュを送信する CrashReportReceiver の URL です。
-	* UploadHistory - 過去のクラッシュをさかのぼって検索する日数です。
-	* LocalDomain - ローカル シンボル ルックアップ ヒューリスティックを支援するドメインです。
+    * 'CrashReportUploadURL' - クラッシュを送信する CrashReportReceiver の URL です。
+	* 'UploadHistory' - 過去のクラッシュをさかのぼって検索する日数です。
+	* 'LocalDomain' - ローカル シンボル ルックアップ ヒューリスティックを支援するドメインです。
 
 
-アプリケーションは、UploadHistory で設定した日数をさかのぼって関連する全てのクラッシュを検索して、 CrashReportUploadURL へアップロードします。アプリケーションは処理状態を把握しません。つまりエンジンからの直接入力を必要としません。スタンドアローン アプリケーションとして実行が可能で、
-エンジンからの直接入力同様に検索およびアップロードを行います。何らかの理由でアップロードが失敗すると (URL が存在しないなど)、アップローダーの次の起動で再試行となります。パラメータは必要ありませんが、コマンドライン オプションとして -unattended と -logfolder=<folder name> が推奨されています。 
+アプリケーションは、UploadHistory で設定した日数をさかのぼって関連する全てのクラッシュを検索して、'CrashReportUploadURL' へアップロードします。アプリケーションは処理状態を把握しません。つまりエンジンからの直接入力を必要としません。スタンドアローン アプリケーションとして実行が可能で、
+エンジンからの直接入力同様に検索およびアップロードを行います。何らかの理由でアップロードが失敗すると (URL が存在しないなど)、アップローダーの次の起動で再試行となります。パラメータは必要ありませんが、コマンドライン オプションとして '-unattended' と '-logfolder=<folder name>' が推奨されています。 
 
-クラッシュレポートは、 SpecialFolder.LocalApplicationData\Microsoft\Windows\WER\ReportQueue\AppCrash_UE4-* のパターンと一致するすべてのフォルダを検索して発見されます。これらのフォルダには、既にアップロードされたレポートの存在をチェックする Guid があります。
+クラッシュレポートは、 'SpecialFolder.LocalApplicationData\Microsoft\Windows\WER\ReportQueue\AppCrash_UE4-*' のパターンと一致するすべてのフォルダを検索して発見されます。これらのフォルダには、既にアップロードされたレポートの存在をチェックする Guid があります。
 
-アップローダーは、ローカルでコンパイルされたバイナリを考慮して pdb ファイルを検索し、ローカル ドメイン上での実行状況をチェックします。両方の条件が満たされると、レポートの生成に「MinidumpDiagnostics.exe」ファイルが実行されます (callstackを含む)。その後レポートの一部として
+アップローダーは、ローカルでコンパイルされたバイナリを考慮して pdb ファイルを検索し、ローカル ドメイン上での実行状況をチェックします。両方の条件が満たされると、レポートの生成に「MinidumpDiagnostics.exe」ファイルが実行されます (callstack を含む)。その後レポートの一部として
 アップロードされます。
 
 その後オプションでアップローダ プログラムが「CrashReportInput.exe」ファイルを起動し、クラッシュ発生時のユーザーの作業説明を入力することができます。 
@@ -56,28 +55,28 @@ Description:アンリアル エンジンで発生したクラッシュの情報�
 ## クラッシュ レポートの受け取り
 
 * /Engine/Binaries/DotNET/CrashReportReceiver.exe.config はコンフィギュレーション プロパティを格納しています。
-    * CrashReportRepository - 受信したクラッシュ レポートを保存する安全なフォルダです。
+    * 'CrashReportRepository' - 受信したクラッシュ レポートを保存する安全なフォルダです。
 
 
-これはサーバーの DMZ 領域に設置されたウェブ サービスです。 CrashReportUploadURL 経由でどこからでもアクセスが可能です。アクセスが可能な全ての社外サーバーは、最低限のアクセスが可能なセキュリティに制限されています。基本的な拒否チェックを行った後、
+これはサーバーの DMZ 領域に設置されたウェブ サービスです。'CrashReportUploadURL' 経由でどこからでもアクセスが可能です。アクセスが可能な全ての社外サーバーは、最低限のアクセスが可能なセキュリティに制限されています。基本的な拒否チェックを行った後、
 安全な場所で一時フォルダにファイルを受け取ります。全ファイルを受け取ると、プロセッサが検知できるようにフォルダ名を変更します。現時点での安全は場所は、イントラネットからもアクセスが可能な NFS ドライブです。
 
-レポート フォルダには組み込み Guid があります(例えば、 AppCrash_UE4-FortniteGame_a50cecbc1f087cac2543eb9f04823bbb548b119_cab_17bf8494 です)。これはレポート アップロードの 2 重送信を防ぎます。 
+レポート フォルダには組み込み Guid があります(例えば、'AppCrash_UE4-FortniteGame_a50cecbc1f087cac2543eb9f04823bbb548b119_cab_17bf8494' です)。これはレポート アップロードの 2 重送信を防ぎます。 
 
 より詳細なカリング処理のために Windows Error Reporting メタデータが解析されます。現時点では、デバッグビルドからのクラッシュと MinidumpDiagnostics (これ自体が同期できないため) からのクラッシュを拒否します。
 
 ## クラッシュ レポートの処理
 
 * /Engine/Binaries/DotNET/CrashReportProcess.exe.config
-    * ReportLandingZone - 新規のレポートが送信される安全なフォルダです。
-	* ProcessedReports - ウェブサイト上で処理されたクラッシュデータがアクセスのために保存される場所です。
-	* DaysToSunsetReport - 重複したレポートのアップロードを抑制するために空のフォルダが保存される日数です。
-	* DepotRoot - シンボル サーバーとして Perforce を利用しています。通常のデポに格納されたユーティリティを呼び出します (例えば MinidumpDiagnostics) 。関連したバイナリとシンボルを格納する clientspec はここがルートです。
-	* CrashReportWebSite - ウェブサービスを呼び出すクラッシュ レポート ウェブサイトの URL です。
-	* ProcessedVideos - 処理されたビデオの保存場所です。ファイルサイズが大きくなるため、処理されたレポートの通常のファイルとは別の場所に保存されます。
+    * 'ReportLandingZone' - 新規のレポートが送信される安全なフォルダです。
+	* 'ProcessedReports' - ウェブサイト上で処理されたクラッシュデータがアクセスのために保存される場所です。
+	* 'DaysToSunsetReport' - 重複したレポートのアップロードを抑制するために空のフォルダが保存される日数です。
+	* 'DepotRoot' - シンボル サーバーとして Perforce を利用しています。通常のデポに格納されたユーティリティを呼び出します (例えば MinidumpDiagnostics) 。関連したバイナリとシンボルを格納する clientspec はここがルートです。
+	* 'CrashReportWebSite' - ウェブサービスを呼び出すクラッシュ レポート ウェブサイトの URL です。
+	* 'ProcessedVideos' - 処理されたビデオの保存場所です。ファイルサイズが大きくなるため、処理されたレポートの通常のファイルとは別の場所に保存されます。
 
 
-Crash Report Processor は、新規レポート用に安全な場所 (ReportLandingZone) をモニターするサービスです。NFS はディレクトリの監視をサポートしないため、時間がかかります。サービスは興味のあるファイルを検索して、
+Crash Report Processor は、新規レポート用に安全な場所 ('ReportLandingZone') をモニターするサービスです。NFS はディレクトリの監視をサポートしないため、時間がかかります。サービスは興味のあるファイルを検索して、
 必要に応じてミニ ダンプファイルに MinidumpDiagnostics を呼びます。その後データベースにクラッシュ レポートを追加するためにウェブ サービスを呼び出します。ウェブサイトから容易にアクセスできるように、返された ID をデータファイルの命名に使用します。残りのファイルは削除され、
 フォルダ名のみが残ります。アーキテクチャの性質上、バイナリ画像は x64 コールスタックウォーキングに必要です。 Microsoft Symbol Server と同期するには、システムの dll ファイルでクラッシュが発生する x64 ミニ ダンプファイルのコールスタック ウォーキングのサポートが必要です。
 
@@ -94,22 +93,26 @@ clientspec はシンボルルックアップに全てのコンテンツを必要
 
 クラッシュやクラッシュの一群を表示して、ソート、検索、フィルタリングが出来るウェブサイトです。
 
-基本的な表示は、ユーザーグループごとにクラッシュのリストを経由します(例：'EngineQA'、 'GameQA'、 'Coder')クラッシュ ID が選択されて、クラッシュの詳細、ログ、ミニダンプ、そして利用可能な場合はビデオを表示します。
+基本的な表示は、ユーザーグループごとにクラッシュのリストを経由します。(例：'EngineQA'、 'GameQA'、 'Coder')クラッシュ ID が選択されて、クラッシュの詳細、ログ、ミニダンプ、そして利用可能な場合はビデオを表示します。
 CrashGroups をクリックすると、コールスタックのパターンでグループ分けされたクラッシュを表示します。CrashGroupID は、詳細や CrashGroup に関連する全てのクラッシュのリストを表示させるために選択します。CrashGroup は、 SQL サーバーに格納する
- UpdateCrashesByPattern プロシージャを 10 分ごとに実行して更新されます。
+ 'UpdateCrashesByPattern' プロシージャを 10 分ごとに実行して更新されます。
  
 ## データベースの設定
 
-スクリプトを作成する /Engine/Source/Programs/CrashReporter/DatabaseDefinition/CreateCrashReporterDatabase.sql  を実行して、保存するプロシージャ UpdateCrashesByPattern を 10 分ごとに実行するように SQL サーバーにジョブを設定します。設定は、 Run Update Script を実行する SQL サーバーエージェントのジョブ設定で行います。
+スクリプトを作成する /Engine/Source/Programs/CrashReporter/DatabaseDefinition/CreateCrashReporterDatabase.sql  を実行して、保存するプロシージャ 'UpdateCrashesByPattern' を 10 分ごとに実行するように SQL サーバーにジョブを設定します。設定は、'Run Update Script' を実行する SQL サーバーエージェントのジョブ設定で行います。
 これは前述の保存されたプロシージャを実行します。
 
 ## ウェブサイトの設定
 
-ウェブサイトは MVC3 と .NET40 を使用して IIS7.0 で動作します。処理されたファイルとビデオ用に 2 つの仮想ディレクトリを追加します。ファイルはそれぞれ CrashReporterFiles と CrashReporterVideos と名付けます。
-Report Processor 設定から、 ProcessedReports と ProcessedVideos の物理位置へマッピングをします。仮想ディレクトリからファイルを読み出す許可を与えて、ユーザーとしてアプリケーション プールを実行しなくてはいけません。
+ウェブサイトは MVC3 と .NET40 を使用して IIS7.0 で動作します。処理されたファイルとビデオ用に 2 つの仮想ディレクトリを追加します。ファイルはそれぞれ 'CrashReporterFiles' と 'CrashReporterVideos' と名付けます。
+[Report Processor (レポート プロセッサ)] 設定から、'ProcessedReports' と 'ProcessedVideos' の物理位置へマッピングをします。仮想ディレクトリからファイルを読み出す許可を与えて、ユーザーとしてアプリケーション プールを実行しなくてはいけません。
 
-## 「インハウス」ユーザーとマシーンのマッピング
+## 'In House' ユーザーとマシーンのマッピング
 
 RegisterPII アプリケーションが Windows Error Report から匿名マシーン Guid を周知のユーザーとマシーン名へマッピングします。エンドユーザーがこのようなデータを収集するのは違法であるため、クラッシュの追跡を容易に行うために開発者のみが行います。
 PII は Personally Identifiable Information の略で、http://en.wikipedia.org/wiki/Personally_identifiable_information に記載されています。
+
+
+
+
 

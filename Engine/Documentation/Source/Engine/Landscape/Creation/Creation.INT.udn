@@ -3,11 +3,32 @@ Title:Creating Landscapes
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:Guide to creating new Landscape terrains.
 version: 4.9
+parent:Engine/Landscape
+order:2
 
 [VAR:Topic]
-[OBJECT:Topiccompact]
+[OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Landscape/Creation:title%](Engine/Landscape/Creation/landscape_create_topic.png)
+		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Creation:title%](landscape_create_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/landscape_icon.png)(convert:false)

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2099361
+﻿INTSourceChangelist:2711048
 Availability:Public
 Title:データ駆動型のゲームプレイエレメント
 Crumbs:%ROOT%, Programming
 Description:外部格納データを使用するゲームプレイエレメントの操作
+Version:4.9
 
 [OBJECT:Redirect]
 [PARAM:link]

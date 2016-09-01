@@ -29,6 +29,7 @@
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
 #include "Components/SplineMeshComponent.h"
+#include "InstancedFoliageActor.h"
 
 #include "FbxExporter.h"
 #include "RawMesh.h"
@@ -36,12 +37,24 @@
 #include "Engine/Light.h"
 #include "Engine/Polys.h"
 #include "Engine/StaticMeshActor.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "Components/BrushComponent.h"
 #include "Components/SpotLightComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Camera/CameraActor.h"
+#include "CineCameraComponent.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/ChildActorComponent.h"
+#include "UnitConversion.h"
+
+#include "MovieScene.h"
+#include "MovieSceneBinding.h"
+#include "IMovieScenePlayer.h"
+#include "Tracks/MovieScene3DTransformTrack.h"
+#include "Tracks/MovieSceneFloatTrack.h"
+#include "Tracks/MovieSceneSkeletalAnimationTrack.h"
+#include "Sections/MovieScene3DTransformSection.h"
+#include "Sections/MovieSceneFloatSection.h"
 
 namespace UnFbx
 {
@@ -269,7 +282,7 @@ static void SortActorsHierarchy(TArray<AActor*>& Actors)
 /**
  * Exports the basic scene information to the FBX document.
  */
-void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeActor, bool bSelectedOnly )
+void FFbxExporter::ExportLevelMesh( ULevel* InLevel, bool bSelectedOnly, INodeNameAdapter& NodeNameAdapter )
 {
 	if (InLevel == NULL)
 	{
@@ -295,19 +308,6 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 			ExportModel(InLevel->Model, Node, "Level Mesh");
 		}
 	}
-
-	// Export all the recognized global actors.
-	// Right now, this only includes lights.
-	UWorld* World = NULL;
-	if( InMatineeActor )
-	{
-		World = InMatineeActor->GetWorld();
-	}
-	else
-	{
-		World = CastChecked<UWorld>( InLevel->GetOuter() );
-	}
-	check(World);
 
 	TArray<AActor*> ActorToExport;
 	int32 ActorCount = InLevel->Actors.Num();
@@ -339,33 +339,38 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 		}
 		if (Actor->IsA(ALight::StaticClass()))
 		{
-			ExportLight((ALight*) Actor, InMatineeActor );
+			ExportLight((ALight*) Actor, NodeNameAdapter );
 		}
 		else if (!bIsBlueprintClass && Actor->IsA(AStaticMeshActor::StaticClass()))
 		{
-			ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), InMatineeActor );
+			ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NodeNameAdapter );
 		}
 		else if (Actor->IsA(ALandscapeProxy::StaticClass()))
 		{
-			ExportLandscape(CastChecked<ALandscapeProxy>(Actor), false);
+			ExportLandscape(CastChecked<ALandscapeProxy>(Actor), false, NodeNameAdapter);
 		}
 		else if (Actor->IsA(ABrush::StaticClass()))
 		{
 			// All brushes should be included within the world geometry exported above.
-			ExportBrush((ABrush*) Actor, NULL, 0 );
+			ExportBrush((ABrush*) Actor, NULL, 0, NodeNameAdapter );
 		}
 		else if (Actor->IsA(AEmitter::StaticClass()))
 		{
-			ExportActor( Actor, InMatineeActor ); // Just export the placement of the particle emitter.
+			ExportActor( Actor, false, NodeNameAdapter ); // Just export the placement of the particle emitter.
 		}
 		else if(Actor->IsA(ACameraActor::StaticClass()))
 		{
-			ExportCamera(CastChecked<ACameraActor>(Actor), InMatineeActor, false); // Just export the placement of the particle emitter.
+			ExportCamera(CastChecked<ACameraActor>(Actor), false, NodeNameAdapter); // Just export the placement of the particle emitter.
 		}
-		else if(bIsBlueprintClass)
+		else if(Actor->IsA(ASkeletalMeshActor::StaticClass()) ||  bIsBlueprintClass)
 		{
-			// Export blueprint actors and all their components
-			ExportActor( Actor, InMatineeActor, true );
+			// Export blueprint and skeletal actors and all their components
+			ExportActor( Actor, true, NodeNameAdapter );
+		}
+		else if(Actor->IsA(AInstancedFoliageActor::StaticClass()))
+		{
+			// Export Foliage components
+			ExportActor( Actor, true, NodeNameAdapter );
 		}
 	}
 }
@@ -423,18 +428,18 @@ void FFbxExporter::FillFbxLightAttribute(FbxLight* Light, FbxNode* FbxParentNode
 /**
  * Exports the light-specific information for a light actor.
  */
-void FFbxExporter::ExportLight( ALight* Actor, AMatineeActor* InMatineeActor )
+void FFbxExporter::ExportLight( ALight* Actor, INodeNameAdapter& NodeNameAdapter )
 {
 	if (Scene == NULL || Actor == NULL || !Actor->GetLightComponent()) return;
 
 	// Export the basic actor information.
-	FbxNode* FbxActor = ExportActor( Actor, InMatineeActor ); // this is the pivot node
+	FbxNode* FbxActor = ExportActor( Actor, false, NodeNameAdapter ); // this is the pivot node
 	// The real fbx light node
 	FbxNode* FbxLightNode = FbxActor->GetParent();
 
 	ULightComponent* BaseLight = Actor->GetLightComponent();
 
-	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
 	// Export the basic light information
 	FbxLight* Light = FbxLight::Create(Scene, TCHAR_TO_UTF8(*FbxNodeName));
@@ -444,13 +449,29 @@ void FFbxExporter::ExportLight( ALight* Actor, AMatineeActor* InMatineeActor )
 
 void FFbxExporter::FillFbxCameraAttribute(FbxNode* ParentNode, FbxCamera* Camera, UCameraComponent *CameraComponent)
 {
+	float ApertureHeightInInches = 0.612f; // 0.612f is a magic number from Maya that represents the ApertureHeight
+	float ApertureWidthInInches = CameraComponent->AspectRatio * ApertureHeightInInches;
+	float FocalLength = Camera->ComputeFocalLength(CameraComponent->FieldOfView);
+
+	if (CameraComponent->IsA(UCineCameraComponent::StaticClass()))
+	{
+		UCineCameraComponent* CineCameraComponent = Cast<UCineCameraComponent>(CameraComponent);
+		if (CineCameraComponent)
+		{
+			ApertureWidthInInches = FUnitConversion::Convert(CineCameraComponent->FilmbackSettings.SensorWidth, EUnit::Millimeters, EUnit::Inches);
+			ApertureHeightInInches = FUnitConversion::Convert(CineCameraComponent->FilmbackSettings.SensorHeight, EUnit::Millimeters, EUnit::Inches);
+			FocalLength = CineCameraComponent->CurrentFocalLength;
+		}
+	}
+
 	// Export the view area information
 	Camera->ProjectionType.Set(CameraComponent->ProjectionMode == ECameraProjectionMode::Type::Perspective ? FbxCamera::ePerspective : FbxCamera::eOrthogonal);
 	Camera->SetAspect(FbxCamera::eFixedRatio, CameraComponent->AspectRatio, 1.0f);
 	Camera->FilmAspectRatio.Set(CameraComponent->AspectRatio);
-	Camera->SetApertureWidth(CameraComponent->AspectRatio * 0.612f); // 0.612f is a magic number from Maya that represents the ApertureHeight
+	Camera->SetApertureWidth(ApertureWidthInInches);
+	Camera->SetApertureHeight(ApertureHeightInInches);
 	Camera->SetApertureMode(FbxCamera::eFocalLength);
-	Camera->FocalLength.Set(Camera->ComputeFocalLength(CameraComponent->FieldOfView));
+	Camera->FocalLength.Set(FocalLength);
 
 	// Add one user property for recording the AspectRatio animation
 	CreateAnimatableUserProperty(ParentNode, CameraComponent->AspectRatio, "UE_AspectRatio", "UE_Matinee_Camera_AspectRatio");
@@ -460,17 +481,17 @@ void FFbxExporter::FillFbxCameraAttribute(FbxNode* ParentNode, FbxCamera* Camera
 	Camera->SetFarPlane(100000.0f);
 }
 
-void FFbxExporter::ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeActor, bool bExportComponents )
+void FFbxExporter::ExportCamera( ACameraActor* Actor, bool bExportComponents,INodeNameAdapter& NodeNameAdapter )
 {
 	if (Scene == NULL || Actor == NULL) return;
 
 	UCameraComponent *CameraComponent = Actor->GetCameraComponent();
 	// Export the basic actor information.
-	FbxNode* FbxActor = ExportActor( Actor, InMatineeActor, bExportComponents ); // this is the pivot node
+	FbxNode* FbxActor = ExportActor( Actor, bExportComponents, NodeNameAdapter ); // this is the pivot node
 	// The real fbx camera node
 	FbxNode* FbxCameraNode = FbxActor->GetParent();
 
-	FString FbxNodeName = GetActorNodeName(Actor, NULL);
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
 	// Create a properly-named FBX camera structure and instantiate it in the FBX scene graph
 	FbxCamera* Camera = FbxCamera::Create(Scene, TCHAR_TO_UTF8(*FbxNodeName));
@@ -484,7 +505,7 @@ void FFbxExporter::ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeAc
 /**
  * Exports the mesh and the actor information for a brush actor.
  */
-void FFbxExporter::ExportBrush(ABrush* Actor, UModel* InModel, bool bConvertToStaticMesh )
+void FFbxExporter::ExportBrush(ABrush* Actor, UModel* InModel, bool bConvertToStaticMesh, INodeNameAdapter& NodeNameAdapter )
 {
 	if (Scene == NULL || Actor == NULL || !Actor->GetBrushComponent()) return;
 
@@ -496,7 +517,7 @@ void FFbxExporter::ExportBrush(ABrush* Actor, UModel* InModel, bool bConvertToSt
 		if (Model == NULL || Model->VertexBuffer.Vertices.Num() < 3 || Model->MaterialIndexBuffers.Num() == 0) return;
  
 		// Create the FBX actor, the FBX geometry and instantiate it.
-		FbxNode* FbxActor = ExportActor( Actor, NULL );
+		FbxNode* FbxActor = ExportActor( Actor, false, NodeNameAdapter );
 		Scene->GetRootNode()->AddChild(FbxActor);
  
 		// Export the mesh information
@@ -615,7 +636,7 @@ void FFbxExporter::ExportModel(UModel* Model, FbxNode* Node, const char* Name)
 		FbxSurfaceMaterial* FbxMaterial;
 		if (MaterialInterface != NULL && MaterialInterface->GetMaterial() != NULL)
 		{
-			FbxMaterial = ExportMaterial(MaterialInterface->GetMaterial());
+			FbxMaterial = ExportMaterial(MaterialInterface);
 		}
 		else
 		{
@@ -668,7 +689,7 @@ void FFbxExporter::ExportModel(UModel* Model, FbxNode* Node, const char* Name)
 	Node->SetNodeAttribute(Mesh);
 }
 
-void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticMeshComponent, AMatineeActor* InMatineeActor)
+void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticMeshComponent, INodeNameAdapter& NodeNameAdapter)
 {
 	if (Scene == NULL || Actor == NULL || StaticMeshComponent == NULL)
 	{
@@ -683,7 +704,7 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	}
 	int32 LODIndex = StaticMeshComponent->ForcedLodModel-1;
 
-	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 	FString FbxMeshName = StaticMesh->GetName().Replace(TEXT("-"), TEXT("_"));
 	FColorVertexBuffer* ColorBuffer = NULL;
 	
@@ -692,7 +713,7 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 		ColorBuffer = StaticMeshComponent->LODData[LODIndex].OverrideVertexColors;
 	}
 
-	FbxNode* FbxActor = ExportActor(Actor, InMatineeActor);
+	FbxNode* FbxActor = ExportActor(Actor, false, NodeNameAdapter);
 	ExportStaticMeshToFbx(StaticMesh, LODIndex, *FbxMeshName, FbxActor, -1, ColorBuffer);
 }
 
@@ -891,16 +912,16 @@ void FFbxExporter::ExportSkeletalMesh( USkeletalMesh* SkeletalMesh )
 	ExportSkeletalMeshToFbx(SkeletalMesh, NULL, *MeshName, MeshNode);
 }
 
-void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* SkeletalMeshComponent )
+void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* SkeletalMeshComponent, INodeNameAdapter& NodeNameAdapter )
 {
 	if (Scene == NULL || Actor == NULL || SkeletalMeshComponent == NULL) return;
 
 	// Retrieve the skeletal mesh rendering information.
 	USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
 
-	FString FbxNodeName = GetActorNodeName(Actor, NULL);
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
-	ExportActor( Actor, NULL, true );
+	ExportActor( Actor, true, NodeNameAdapter );
 }
 
 FbxSurfaceMaterial* FFbxExporter::CreateDefaultMaterial()
@@ -918,18 +939,16 @@ FbxSurfaceMaterial* FFbxExporter::CreateDefaultMaterial()
 	return FbxMaterial;
 }
 
-void FFbxExporter::ExportLandscape(ALandscapeProxy* Actor, bool bSelectedOnly)
+void FFbxExporter::ExportLandscape(ALandscapeProxy* Actor, bool bSelectedOnly, INodeNameAdapter& NodeNameAdapter)
 {
 	if (Scene == NULL || Actor == NULL)
 	{ 
 		return;
 	}
 
-	AMatineeActor* InMatineeActor = NULL;
+	FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
-	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
-
-	FbxNode* FbxActor = ExportActor(Actor, InMatineeActor, true);
+	FbxNode* FbxActor = ExportActor(Actor, true, NodeNameAdapter);
 	ExportLandscapeToFbx(Actor, *FbxNodeName, FbxActor, bSelectedOnly);
 }
 
@@ -1037,31 +1056,32 @@ bool FFbxExporter::FillFbxTextureProperty(const char *PropertyName, const FExpre
 /**
 * Exports the profile_COMMON information for a material.
 */
-FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
+FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterialInterface* MaterialInterface)
 {
-	if (Scene == NULL || Material == NULL) return NULL;
+	if (Scene == nullptr || MaterialInterface == nullptr || MaterialInterface->GetMaterial() == nullptr) return nullptr;
 	
 	// Verify that this material has not already been exported:
-	if (FbxMaterials.Find(Material))
+	if (FbxMaterials.Find(MaterialInterface))
 	{
-		return *FbxMaterials.Find(Material);
+		return *FbxMaterials.Find(MaterialInterface);
 	}
 
 	// Create the Fbx material
-	FbxSurfaceMaterial* FbxMaterial = NULL;
+	FbxSurfaceMaterial* FbxMaterial = nullptr;
+
+	UMaterial *Material = MaterialInterface->GetMaterial();
 	
 	// Set the shading model
 	if (Material->GetShadingModel() == MSM_DefaultLit)
 	{
-		FbxMaterial = FbxSurfacePhong::Create(Scene, TCHAR_TO_UTF8(*Material->GetName()));
+		FbxMaterial = FbxSurfacePhong::Create(Scene, TCHAR_TO_UTF8(*MaterialInterface->GetName()));
 		//((FbxSurfacePhong*)FbxMaterial)->Specular.Set(Material->Specular));
 		//((FbxSurfacePhong*)FbxMaterial)->Shininess.Set(Material->SpecularPower.Constant);
 	}
 	else // if (Material->ShadingModel == MSM_Unlit)
 	{
-		FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_UTF8(*Material->GetName()));
+		FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_UTF8(*MaterialInterface->GetName()));
 	}
-	
 	
 	((FbxSurfaceLambert*)FbxMaterial)->TransparencyFactor.Set(Material->Opacity.Constant);
 
@@ -1075,7 +1095,7 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 	{
 		((FbxSurfaceLambert*)FbxMaterial)->Emissive.Set(SetMaterialComponent(Material->EmissiveColor, true));
 	}
-	
+
 	//Always set the ambient to zero since we dont have ambient in unreal we want to avoid default value in DCCs
 	((FbxSurfaceLambert*)FbxMaterial)->Ambient.Set(FbxDouble3(0.0, 0.0, 0.0));
 
@@ -1095,9 +1115,53 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 		}
 	}
 
-	FbxMaterials.Add(Material, FbxMaterial);
+	FbxMaterials.Add(MaterialInterface, FbxMaterial);
 	
 	return FbxMaterial;
+}
+
+
+FFbxExporter::FMatineeNodeNameAdapter::FMatineeNodeNameAdapter( AMatineeActor* InMatineeActor )
+{
+	MatineeActor = InMatineeActor;
+}
+
+FString FFbxExporter::FMatineeNodeNameAdapter::GetActorNodeName(const AActor* Actor)
+{
+	FString NodeName = Actor->GetName();
+	const UInterpGroupInst* FoundGroupInst = MatineeActor->FindGroupInst( Actor );
+	if( FoundGroupInst != NULL )
+	{
+		NodeName = FoundGroupInst->Group->GroupName.ToString();
+	}
+
+	// Maya does not support dashes.  Change all dashes to underscores
+	NodeName = NodeName.Replace(TEXT("-"), TEXT("_") );
+
+	return NodeName;
+}
+
+
+FFbxExporter::FMatineeAnimTrackAdapter::FMatineeAnimTrackAdapter( AMatineeActor* InMatineeActor )
+{
+	MatineeActor = InMatineeActor;
+}
+
+float FFbxExporter::FMatineeAnimTrackAdapter::GetAnimationStart() const
+{
+	return 0.f;
+}
+
+
+float FFbxExporter::FMatineeAnimTrackAdapter::GetAnimationLength() const
+{
+	return MatineeActor->MatineeData->InterpLength;
+}
+
+
+void FFbxExporter::FMatineeAnimTrackAdapter::UpdateAnimation( float Time )
+{
+	MatineeActor->UpdateInterp( Time, true );
 }
 
 
@@ -1152,7 +1216,8 @@ bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 					USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(Actor->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 					if(SkeletalMeshComp)
 					{
-						ExportAnimTrack(InMatineeActor, SkeletalMeshComp);
+						FMatineeAnimTrackAdapter AnimTrackAdapter(InMatineeActor);
+						ExportAnimTrack(AnimTrackAdapter, SkeletalMeshComp);
 					}
 				}
 			}
@@ -1169,18 +1234,147 @@ bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 }
 
 
+FFbxExporter::FLevelSequenceNodeNameAdapter::FLevelSequenceNodeNameAdapter( UMovieScene* InMovieScene, IMovieScenePlayer* InMovieScenePlayer )
+{
+	MovieScene = InMovieScene;
+	MovieScenePlayer = InMovieScenePlayer;
+}
+
+FString FFbxExporter::FLevelSequenceNodeNameAdapter::GetActorNodeName(const AActor* Actor)
+{
+	FString NodeName = Actor->GetName();
+
+	for ( const FMovieSceneBinding& MovieSceneBinding : MovieScene->GetBindings() )
+	{
+		TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
+		MovieScenePlayer->GetRuntimeObjects( MovieScenePlayer->GetRootMovieSceneSequenceInstance(), MovieSceneBinding.GetObjectGuid(), RuntimeObjects );
+
+		for ( TWeakObjectPtr<UObject> RuntimeObject : RuntimeObjects )
+		{
+			if (RuntimeObject.Get() == Actor)
+			{
+				NodeName = MovieSceneBinding.GetName();
+			}
+		}
+	}
+
+	// Maya does not support dashes.  Change all dashes to underscores		
+	NodeName = NodeName.Replace(TEXT("-"), TEXT("_") );
+
+	// Maya does not support spaces.  Change all spaces to underscores		
+	NodeName = NodeName.Replace(TEXT(" "), TEXT("_") );
+
+	return NodeName;
+}
+
+FFbxExporter::FLevelSequenceAnimTrackAdapter::FLevelSequenceAnimTrackAdapter( IMovieScenePlayer* InMovieScenePlayer, UMovieScene* InMovieScene )
+{
+	MovieScenePlayer = InMovieScenePlayer;
+	MovieScene = InMovieScene;
+}
+
+
+float FFbxExporter::FLevelSequenceAnimTrackAdapter::GetAnimationStart() const
+{
+	return MovieScene->GetPlaybackRange().GetLowerBoundValue();
+}
+
+float FFbxExporter::FLevelSequenceAnimTrackAdapter::GetAnimationLength() const
+{
+	return MovieScene->GetPlaybackRange().Size<float>();
+}
+
+
+void FFbxExporter::FLevelSequenceAnimTrackAdapter::UpdateAnimation( float Time )
+{
+	EMovieSceneUpdateData UpdateData( Time, Time );
+	return MovieScenePlayer->GetRootMovieSceneSequenceInstance()->Update( UpdateData, *MovieScenePlayer );
+}
+
+
+bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FGuid>& Bindings, IMovieScenePlayer* MovieScenePlayer )
+{
+	if ( MovieScene == nullptr || MovieScenePlayer == nullptr )
+	{
+		return false;
+	}
+
+	for ( const FMovieSceneBinding& MovieSceneBinding : MovieScene->GetBindings() )
+	{
+		// If there are specific bindings to export, export those only
+		if (Bindings.Num() != 0 && !Bindings.Contains(MovieSceneBinding.GetObjectGuid()))
+		{
+			continue;
+		}
+
+		TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
+		MovieScenePlayer->GetRuntimeObjects( MovieScenePlayer->GetRootMovieSceneSequenceInstance(), MovieSceneBinding.GetObjectGuid(), RuntimeObjects );
+
+		for ( TWeakObjectPtr<UObject> RuntimeObject : RuntimeObjects )
+		{
+			if ( RuntimeObject.IsValid() )
+			{
+				AActor* Actor = Cast<AActor>( RuntimeObject.Get() );
+				UActorComponent* Component = Cast<UActorComponent>( RuntimeObject.Get() );
+				if ( Actor == nullptr && Component != nullptr )
+				{
+					Actor = Component->GetOwner();
+				}
+
+				if ( Actor == nullptr )
+				{
+					continue;
+				}
+
+				FbxNode* FbxActor = FindActor( Actor );
+
+				// now it should export everybody
+				if ( FbxActor )
+				{
+					// Look for the tracks that we currently support
+					for ( UMovieSceneTrack* Track : MovieSceneBinding.GetTracks() )
+					{
+						if ( Track->IsA( UMovieScene3DTransformTrack::StaticClass() ) )
+						{
+							UMovieScene3DTransformTrack* TransformTrack = (UMovieScene3DTransformTrack*)Track;
+							ExportLevelSequence3DTransformTrack( *FbxActor, *TransformTrack, Actor, MovieScene->GetPlaybackRange() );
+						}
+						else if ( Track->IsA( UMovieSceneFloatTrack::StaticClass() ) )
+						{
+							UMovieSceneFloatTrack* FloatTrack = (UMovieSceneFloatTrack*)Track;
+							ExportLevelSequenceFloatTrack( *FbxActor, *FloatTrack );
+						}
+						else if ( Track->IsA( UMovieSceneSkeletalAnimationTrack::StaticClass() ) )
+						{
+							USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>( Actor->GetComponentByClass( USkeletalMeshComponent::StaticClass() ) );
+							if ( SkeletalMeshComp )
+							{
+								FLevelSequenceAnimTrackAdapter AnimTrackAdapter( MovieScenePlayer, MovieScene );
+								ExportAnimTrack( AnimTrackAdapter, SkeletalMeshComp );
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+
 /**
  * Exports a scene node with the placement indicated by a given actor.
  * This scene node will always have two transformations: one translation vector and one Euler rotation.
  */
-FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor, bool bExportComponents )
+FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeNameAdapter& NodeNameAdapter )
 {
 	// Verify that this actor isn't already exported, create a structure for it
 	// and buffer it.
 	FbxNode* ActorNode = FindActor(Actor);
 	if (ActorNode == NULL)
 	{
-		FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
+		FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
 
 		// See if a node with this name was already found
 		// if so add and increment the number on the end of it
@@ -1261,16 +1455,15 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 	
 		if( bExportComponents )
 		{
-			TInlineComponentArray<UActorComponent*> ActorComponents;
-			Actor->GetComponents(ActorComponents);
+			TInlineComponentArray<USceneComponent*> SceneComponents;
+			Actor->GetComponents(SceneComponents);
 
-			TInlineComponentArray<UActorComponent*> ComponentsToExport;
-			for( int32 ComponentIndex = 0; ComponentIndex < ActorComponents.Num(); ++ComponentIndex )
+			TInlineComponentArray<USceneComponent*> ComponentsToExport;
+			for( int32 ComponentIndex = 0; ComponentIndex < SceneComponents.Num(); ++ComponentIndex )
 			{
-				UActorComponent* Component = ActorComponents[ComponentIndex];
-				USceneComponent* SceneComp = Cast<USceneComponent>(Component);
-
-				if (SceneComp && SceneComp->bHiddenInGame)
+				USceneComponent* Component = SceneComponents[ComponentIndex];
+	
+				if (Component && Component->bHiddenInGame)
 				{
 					//Skip hidden component like camera mesh or other editor helper
 					continue;
@@ -1304,18 +1497,16 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 
 			for( int32 CompIndex = 0; CompIndex < ComponentsToExport.Num(); ++CompIndex )
 			{
-				UActorComponent* Component = ComponentsToExport[CompIndex];
+				USceneComponent* Component = ComponentsToExport[CompIndex];
 
 				FbxNode* ExportNode = ActorNode;
 				if( ComponentsToExport.Num() > 1 )
 				{
-					USceneComponent* SceneComp = CastChecked<USceneComponent>( Component );
-
 					// This actor has multiple components
 					// create a child node under the actor for each component
 					FbxNode* CompNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*Component->GetName()));
 					
-					if( SceneComp != Actor->GetRootComponent() )
+					if( Component != Actor->GetRootComponent() )
 					{
 						// Transform is relative to the root component
 						
@@ -1334,7 +1525,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 								RotationDirectionConvert = FTransform(Rotator);
 							}
 						}
-						const FTransform RelativeTransform = RotationDirectionConvert * SceneComp->GetComponentToWorld().GetRelativeTransform(Actor->GetTransform());
+						const FTransform RelativeTransform = RotationDirectionConvert * Component->GetComponentToWorld().GetRelativeTransform(Actor->GetTransform());
 						CompNode->LclTranslation.Set(Converter.ConvertToFbxPos(RelativeTransform.GetTranslation()));
 						CompNode->LclRotation.Set(Converter.ConvertToFbxRot(RelativeTransform.GetRotation().Euler()));
 						CompNode->LclScaling.Set(Converter.ConvertToFbxScale(RelativeTransform.GetScale3D()));
@@ -1382,7 +1573,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 				}
 				else if (ChildActorComp && ChildActorComp->GetChildActor())
 				{
-					FbxNode* ChildActorNode = ExportActor(ChildActorComp->GetChildActor(), InMatineeActor, true);
+					FbxNode* ChildActorNode = ExportActor(ChildActorComp->GetChildActor(), true, NodeNameAdapter);
 					FbxActors.Add(ChildActorComp->GetChildActor(), ChildActorNode);
 				}
 			}
@@ -1894,6 +2085,284 @@ void FFbxExporter::ExportAnimatedFloat(FbxProperty* FbxProperty, FInterpCurveFlo
 	AnimCurve->KeyModifyEnd();
 }
 
+FKeyHandle FindRichCurveKey(FRichCurve& InCurve, float InKeyTime)
+{
+	for ( auto It = InCurve.GetKeyHandleIterator(); It; ++It )
+	{
+		if (IsEquivalent(InCurve.GetKeyTime(It.Key()), InKeyTime))
+		{
+			return It.Key();
+		}
+	}
+	return FKeyHandle();
+}
+
+
+void RichCurveInterpolationToFbxInterpolation(ERichCurveInterpMode InInterpolation, ERichCurveTangentMode InTangentMode, FbxAnimCurveDef::EInterpolationType &OutInterpolation, FbxAnimCurveDef::ETangentMode &OutTangentMode)
+{
+	if (InInterpolation == ERichCurveInterpMode::RCIM_Cubic)
+	{
+		OutInterpolation = FbxAnimCurveDef::eInterpolationCubic;
+		OutTangentMode = FbxAnimCurveDef::eTangentUser;
+
+		// Always set tangent on the fbx key, so OutTangentMode should explicitly be eTangentUser unless Break.
+		if (InTangentMode == RCTM_Break)
+		{
+			OutTangentMode = FbxAnimCurveDef::eTangentBreak;
+		}
+	}
+	else if (InInterpolation == ERichCurveInterpMode::RCIM_Linear)
+	{
+		OutInterpolation = FbxAnimCurveDef::eInterpolationLinear;
+		OutTangentMode = FbxAnimCurveDef::eTangentUser;
+	}
+	else if (InInterpolation == ERichCurveInterpMode::RCIM_Constant)
+	{
+		OutInterpolation = FbxAnimCurveDef::eInterpolationConstant;
+		OutTangentMode = (FbxAnimCurveDef::ETangentMode)FbxAnimCurveDef::eConstantStandard;
+	}
+	else
+	{
+		OutInterpolation = FbxAnimCurveDef::eInterpolationCubic;
+		OutTangentMode = FbxAnimCurveDef::eTangentUser;
+	}
+}
+
+void FFbxExporter::ExportRichCurveToFbxCurve(FbxAnimCurve& InFbxCurve, FRichCurve& InRichCurve, ERichCurveValueMode ValueMode, bool bNegative)
+{
+	InFbxCurve.KeyModifyBegin();
+
+	for ( auto It = InRichCurve.GetKeyHandleIterator(); It; ++It )
+	{
+		FKeyHandle KeyHandle = It.Key();
+		float KeyTime = InRichCurve.GetKeyTime(KeyHandle);
+		float Value = ValueMode == ERichCurveValueMode::Fov
+			? DefaultCamera->ComputeFocalLength( InRichCurve.Eval( KeyTime ) )
+			: InRichCurve.Eval( KeyTime );
+
+		FbxTime FbxTime;
+		FbxAnimCurveKey FbxKey;
+		FbxTime.SetSecondDouble((float)KeyTime);
+
+		int FbxKeyIndex = InFbxCurve.KeyAdd(FbxTime);
+
+		FbxAnimCurveDef::EInterpolationType Interpolation = FbxAnimCurveDef::eInterpolationCubic;
+		FbxAnimCurveDef::ETangentMode Tangent = FbxAnimCurveDef::eTangentAuto;
+
+		RichCurveInterpolationToFbxInterpolation(InRichCurve.GetKeyInterpMode(KeyHandle), InRichCurve.GetKeyTangentMode(KeyHandle), Interpolation, Tangent);
+
+		if (bNegative)
+		{
+			Value = -Value;
+		}
+
+		if (Interpolation == FbxAnimCurveDef::eInterpolationCubic)
+		{
+			FRichCurveKey RichCurveKey = InRichCurve.GetKey( KeyHandle );
+
+			FKeyHandle NextKeyHandle = InRichCurve.GetNextKey(KeyHandle);
+			if (InRichCurve.IsKeyHandleValid(NextKeyHandle))
+			{
+				float LeaveTangent = RichCurveKey.LeaveTangent;
+				float NextArriveTangent = InRichCurve.GetKey(NextKeyHandle).ArriveTangent;
+
+				if (bNegative)
+				{
+					LeaveTangent = -LeaveTangent;
+					NextArriveTangent = -NextArriveTangent;
+				}
+
+				InFbxCurve.KeySet(FbxKeyIndex, FbxTime, Value, Interpolation, Tangent, LeaveTangent, NextArriveTangent );
+			}
+			else
+			{
+				InFbxCurve.KeySet(FbxKeyIndex, FbxTime, Value, Interpolation, Tangent);
+			}
+		}
+		else
+		{
+			InFbxCurve.KeySet(FbxKeyIndex, FbxTime, Value, Interpolation, Tangent);
+		}
+	}
+	InFbxCurve.KeyModifyEnd();
+}
+
+void FFbxExporter::ExportLevelSequence3DTransformTrack( FbxNode& FbxActor, UMovieScene3DTransformTrack& TransformTrack, AActor* Actor, const TRange<float>& InPlaybackRange )
+{
+	FbxAnimLayer* BaseLayer = AnimStack->GetMember<FbxAnimLayer>( 0 );
+
+	const bool bIsCameraActor = Actor->IsA(ACameraActor::StaticClass());
+	const bool bIsLightActor = Actor->IsA(ALight::StaticClass());
+	const bool bBakeRotations = bIsCameraActor || bIsLightActor;
+
+	// TODO: Support more than one section?
+	UMovieScene3DTransformSection* TransformSection = TransformTrack.GetAllSections().Num() > 0
+		? Cast<UMovieScene3DTransformSection>(TransformTrack.GetAllSections()[0])
+		: nullptr;
+
+	if (TransformSection == nullptr)
+	{
+		return;
+	}
+
+	FbxAnimCurveNode* TranslationNode = FbxActor.LclTranslation.GetCurveNode( BaseLayer, true );
+	FbxAnimCurveNode* RotationNode = FbxActor.LclRotation.GetCurveNode( BaseLayer, true );
+	FbxAnimCurveNode* ScaleNode = FbxActor.LclScaling.GetCurveNode( BaseLayer, true );
+
+	FbxAnimCurve* FbxCurveTransX = FbxActor.LclTranslation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true );
+	FbxAnimCurve* FbxCurveTransY = FbxActor.LclTranslation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true );
+	FbxAnimCurve* FbxCurveTransZ = FbxActor.LclTranslation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true );
+
+	FbxAnimCurve* FbxCurveRotX = FbxActor.LclRotation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true );
+	FbxAnimCurve* FbxCurveRotY = FbxActor.LclRotation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true );
+	FbxAnimCurve* FbxCurveRotZ = FbxActor.LclRotation.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true );
+
+	FbxAnimCurve* FbxCurveScaleX = FbxActor.LclScaling.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_X, true );
+	FbxAnimCurve* FbxCurveScaleY = FbxActor.LclScaling.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Y, true );
+	FbxAnimCurve* FbxCurveScaleZ = FbxActor.LclScaling.GetCurve( BaseLayer, FBXSDK_CURVENODE_COMPONENT_Z, true );
+		
+	// Translation
+	ExportRichCurveToFbxCurve(*FbxCurveTransX, TransformSection->GetTranslationCurve( EAxis::X ), ERichCurveValueMode::Default, false);
+	ExportRichCurveToFbxCurve(*FbxCurveTransY, TransformSection->GetTranslationCurve( EAxis::Y ), ERichCurveValueMode::Default, true);
+	ExportRichCurveToFbxCurve(*FbxCurveTransZ, TransformSection->GetTranslationCurve( EAxis::Z ), ERichCurveValueMode::Default, false);
+
+	// Scale - don't generate scale keys for cameras
+	if (!bIsCameraActor)
+	{
+		ExportRichCurveToFbxCurve(*FbxCurveScaleX, TransformSection->GetScaleCurve( EAxis::X ), ERichCurveValueMode::Default, false);
+		ExportRichCurveToFbxCurve(*FbxCurveScaleY, TransformSection->GetScaleCurve( EAxis::Y ), ERichCurveValueMode::Default, false);
+		ExportRichCurveToFbxCurve(*FbxCurveScaleZ, TransformSection->GetScaleCurve( EAxis::Z ), ERichCurveValueMode::Default, false);
+	}
+
+	// Rotation - bake rotation for cameras and lights
+	if (!bBakeRotations)
+	{
+		ExportRichCurveToFbxCurve(*FbxCurveRotX, TransformSection->GetRotationCurve( EAxis::X ), ERichCurveValueMode::Default, false);
+		ExportRichCurveToFbxCurve(*FbxCurveRotY, TransformSection->GetRotationCurve( EAxis::Y ), ERichCurveValueMode::Default, true);
+		ExportRichCurveToFbxCurve(*FbxCurveRotZ, TransformSection->GetRotationCurve( EAxis::Z ), ERichCurveValueMode::Default, true);
+	}
+	else
+	{
+		FTransform RotationDirectionConvert;
+		if (bIsCameraActor)
+		{
+			FRotator Rotator(0.0f, 0.0f, 90.0f);
+			RotationDirectionConvert = FTransform(Rotator);
+		}
+		else if (bIsLightActor)
+		{
+			FRotator Rotator(0.0f, -90.0f, 0.0f);
+			RotationDirectionConvert = FTransform(Rotator);
+		}
+
+		FbxCurveRotX->KeyModifyBegin();
+		FbxCurveRotY->KeyModifyBegin();
+		FbxCurveRotZ->KeyModifyBegin();
+
+		float InterpLength = InPlaybackRange.GetUpperBoundValue() - InPlaybackRange.GetLowerBoundValue();
+		int NumKeys = InterpLength * BakeTransformsFPS;
+		for ( int KeyIndex = 0; KeyIndex < NumKeys; KeyIndex++ )
+		{
+			float KeyTime = InPlaybackRange.GetLowerBoundValue() + ( KeyIndex * InterpLength / NumKeys );
+
+			FVector Trans;
+			TransformSection->EvalTranslation(KeyTime, Trans);
+			FRotator Rotator;
+			TransformSection->EvalRotation(KeyTime, Rotator);
+			FVector Scale;
+			TransformSection->EvalScale(KeyTime, Scale);
+
+			FTransform RelativeTransform;
+			RelativeTransform.SetTranslation(Trans);
+			RelativeTransform.SetRotation(Rotator.Quaternion());
+			RelativeTransform.SetScale3D(Scale);
+
+			RelativeTransform = RotationDirectionConvert * RelativeTransform;
+
+			FbxVector4 KeyTrans = Converter.ConvertToFbxPos(RelativeTransform.GetTranslation());
+			FbxVector4 KeyRot = Converter.ConvertToFbxRot(RelativeTransform.GetRotation().Euler());
+			FbxVector4 KeyScale = Converter.ConvertToFbxScale(RelativeTransform.GetScale3D());
+
+			FbxTime FbxTime;
+			FbxTime.SetSecondDouble((float)KeyTime);
+
+			FbxCurveRotX->KeySet(FbxCurveRotX->KeyAdd(FbxTime), FbxTime, KeyRot[0]);
+			FbxCurveRotY->KeySet(FbxCurveRotY->KeyAdd(FbxTime), FbxTime, KeyRot[1]);
+			FbxCurveRotZ->KeySet(FbxCurveRotZ->KeyAdd(FbxTime), FbxTime, KeyRot[2]);
+		}
+
+		FbxCurveRotX->KeyModifyEnd();
+		FbxCurveRotY->KeyModifyEnd();
+		FbxCurveRotZ->KeyModifyEnd();
+	}
+}
+
+void FFbxExporter::ExportLevelSequenceFloatTrack( FbxNode& FbxActor, UMovieSceneFloatTrack& FloatTrack )
+{
+	// TODO: Support more than one section?
+	UMovieSceneFloatSection* FloatSection = FloatTrack.GetAllSections().Num() > 0
+		? Cast<UMovieSceneFloatSection>( FloatTrack.GetAllSections()[0] )
+		: nullptr;
+
+	if ( FloatSection == nullptr || FloatSection->GetFloatCurve().GetNumKeys() == 0 )
+	{
+		return;
+	}
+
+	FbxCamera* FbxCamera = FbxActor.GetCamera();
+
+	FbxProperty Property;
+	FString PropertyName = FloatTrack.GetTrackName().ToString();
+	bool IsFoV = false;
+	// most properties are created as user property, only FOV of camera in FBX supports animation
+	if ( PropertyName == "Intensity" )
+	{
+		Property = FbxActor.FindProperty( "UE_Intensity", false );
+	}
+	else if ( PropertyName == "FalloffExponent" )
+	{
+		Property = FbxActor.FindProperty( "UE_FalloffExponent", false );
+	}
+	else if ( PropertyName == "AttenuationRadius" )
+	{
+		Property = FbxActor.FindProperty( "UE_Radius", false );
+	}
+	else if ( PropertyName == "FOVAngle" && FbxCamera )
+	{
+		Property = FbxCamera->FocalLength;
+		IsFoV = true;
+	}
+	else if ( PropertyName == "CurrentFocalLength" && FbxCamera )
+	{
+		Property = FbxCamera->FocalLength;
+	}
+	else if ( PropertyName == "AspectRatio" )
+	{
+		Property = FbxActor.FindProperty( "UE_AspectRatio", false );
+	}
+	else if ( PropertyName == "MotionBlur_Amount" )
+	{
+		Property = FbxActor.FindProperty( "UE_MotionBlur_Amount", false );
+	}
+
+	if ( Property != 0 )
+	{
+		FRichCurve& FloatCurve = FloatSection->GetFloatCurve();
+
+		FbxAnimCurve* AnimCurve = FbxAnimCurve::Create( Scene, "" );
+		FbxAnimCurveNode* CurveNode = Property.GetCurveNode( true );
+		if ( !CurveNode )
+		{
+			return;
+		}
+
+		CurveNode->SetChannelValue<double>( 0U, FloatCurve.GetDefaultValue() );
+		CurveNode->ConnectToChannel( AnimCurve, 0U );
+
+		ExportRichCurveToFbxCurve(*AnimCurve, FloatCurve, IsFoV ? ERichCurveValueMode::Fov : ERichCurveValueMode::Default);
+	}
+}
+		
 /**
  * Finds the given actor in the already-exported list of structures
  */
@@ -2187,7 +2656,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			FIndexArrayView RawIndices = RenderMesh.IndexBuffer.GetArrayView();
 			UMaterialInterface* Material = StaticMesh->GetMaterial(Polygons.MaterialIndex);
 
-			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material) : NULL;
 			if (!FbxMaterial)
 			{
 				FbxMaterial = CreateDefaultMaterial();
@@ -2300,7 +2769,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			FIndexArrayView RawIndices = RenderMesh.IndexBuffer.GetArrayView();
 			UMaterialInterface* Material = StaticMesh->GetMaterial(Polygons.MaterialIndex);
 
-			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material) : NULL;
 			if (!FbxMaterial)
 			{
 				FbxMaterial = CreateDefaultMaterial();
@@ -2500,7 +2969,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 		FIndexArrayView RawIndices = RenderMesh.IndexBuffer.GetArrayView();
 		UMaterialInterface* Material = StaticMesh->GetMaterial(Polygons.MaterialIndex);
 
-		FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+		FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material) : NULL;
 		if (!FbxMaterial)
 		{
 			FbxMaterial = CreateDefaultMaterial();
@@ -2605,7 +3074,7 @@ void FFbxExporter::ExportInstancedMeshToFbx(const UInstancedStaticMeshComponent*
  */
 void FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TCHAR* MeshName, FbxNode* FbxActor, bool bSelectedOnly)
 {
-	const ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo(false);
+	const ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
 	
 	TSet<ULandscapeComponent*> SelectedComponents;
 	if (bSelectedOnly && LandscapeInfo)
@@ -2771,7 +3240,7 @@ void FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TCHAR*
 	Layer0->SetMaterials(LayerElementMaterials);
 
 	UMaterialInterface* Material = Landscape->GetLandscapeMaterial();
-	FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+	FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material) : NULL;
 	if (!FbxMaterial)
 	{
 		FbxMaterial = CreateDefaultMaterial();

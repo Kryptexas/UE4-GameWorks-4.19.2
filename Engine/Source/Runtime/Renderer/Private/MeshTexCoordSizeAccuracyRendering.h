@@ -25,6 +25,7 @@ public:
 	{
 		AccuracyColorsParameter.Bind(Initializer.ParameterMap,TEXT("AccuracyColors"));
 		CPUTexelFactorParameter.Bind(Initializer.ParameterMap,TEXT("CPUTexelFactor"));
+		PrimitiveAlphaParameter.Bind(Initializer.ParameterMap, TEXT("PrimitiveAlpha"));
 	}
 
 	FMeshTexCoordSizeAccuracyPS() {}
@@ -34,6 +35,7 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << AccuracyColorsParameter;
 		Ar << CPUTexelFactorParameter;
+		Ar << PrimitiveAlphaParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -68,4 +70,5 @@ private:
 
 	FShaderParameter AccuracyColorsParameter;
 	FShaderParameter CPUTexelFactorParameter;
+	FShaderParameter PrimitiveAlphaParameter;
 };

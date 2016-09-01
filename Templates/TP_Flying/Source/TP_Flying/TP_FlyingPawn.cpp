@@ -72,14 +72,14 @@ void ATP_FlyingPawn::NotifyHit(class UPrimitiveComponent* MyComp, class AActor* 
 }
 
 
-void ATP_FlyingPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void ATP_FlyingPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
-	check(InputComponent);
+	check(PlayerInputComponent);
 
 	// Bind our control axis' to callback functions
-	InputComponent->BindAxis("Thrust", this, &ATP_FlyingPawn::ThrustInput);
-	InputComponent->BindAxis("MoveUp", this, &ATP_FlyingPawn::MoveUpInput);
-	InputComponent->BindAxis("MoveRight", this, &ATP_FlyingPawn::MoveRightInput);
+	PlayerInputComponent->BindAxis("Thrust", this, &ATP_FlyingPawn::ThrustInput);
+	PlayerInputComponent->BindAxis("MoveUp", this, &ATP_FlyingPawn::MoveUpInput);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ATP_FlyingPawn::MoveRightInput);
 }
 
 void ATP_FlyingPawn::ThrustInput(float Val)

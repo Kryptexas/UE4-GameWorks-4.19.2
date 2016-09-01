@@ -168,7 +168,7 @@ struct IStreamingManager
 	 * @param bOverrideLocation		Whether this is an override location, which forces the streaming system to ignore all other locations
 	 * @param Duration				How long the streaming system should keep checking this location, in seconds. 0 means just for the next Tick.
 	 */
-	void AddViewSlaveLocation( const FVector& SlaveLocation, float BoostFactor=1.0f, bool bOverrideLocation=false, float Duration=0.0f );
+	ENGINE_API void AddViewSlaveLocation( const FVector& SlaveLocation, float BoostFactor=1.0f, bool bOverrideLocation=false, float Duration=0.0f );
 
 	/** Don't stream world resources for the next NumFrames. */
 	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames ) = 0;
@@ -187,7 +187,7 @@ struct IStreamingManager
 	}
 
 	/** Adds a ULevel that has already prepared StreamingData to the streaming manager. */
-	virtual void AddPreparedLevel( class ULevel* Level ) = 0;
+	virtual void AddLevel( class ULevel* Level ) = 0;
 
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) = 0;
@@ -386,9 +386,6 @@ struct ITextureStreamingManager : public IStreamingManager
 	/** Removes a texture from the streaming manager. */
 	virtual void RemoveStreamingTexture(UTexture2D* Texture) = 0;
 
-	/** Returns true if this is a streaming texture that is managed by the streaming manager. */
-	virtual bool IsManagedStreamingTexture(const UTexture2D* Texture2D) = 0;
-
 	virtual int64 GetMemoryOverBudget() const = 0;
 
 	/** Max required textures ever seen in bytes. */
@@ -527,14 +524,14 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 *
 	 * @param StreamingManager	Streaming manager to add
 	 */
-	void AddStreamingManager( IStreamingManager* StreamingManager );
+	ENGINE_API void AddStreamingManager( IStreamingManager* StreamingManager );
 
 	/**
 	 * Removes a streaming manager from the array of managers to route function calls to.
 	 *
 	 * @param StreamingManager	Streaming manager to remove
 	 */
-	void RemoveStreamingManager( IStreamingManager* StreamingManager );
+	ENGINE_API void RemoveStreamingManager( IStreamingManager* StreamingManager );
 
 	/**
 	 * Sets the number of iterations to use for the next time UpdateResourceStreaming is being called. This 
@@ -569,13 +566,10 @@ struct FStreamingManagerCollection : public IStreamingManager
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
 	/** Adds a ULevel to the streaming manager. */
-	virtual void AddLevel( class ULevel* Level );
+	virtual void AddLevel( class ULevel* Level ) override;
 
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) override;
-
-	/** Adds a ULevel that has already prepared StreamingData to the streaming manager. */
-	virtual void AddPreparedLevel( class ULevel* Level ) override;
 
 	/** Called when an actor is spawned. */
 	virtual void NotifyActorSpawned( AActor* Actor ) override;

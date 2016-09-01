@@ -12,6 +12,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
 #include "PhysicsPublic.h"
+#include "Tickable.h"
 #include "IHeadMountedDisplay.h"
 
 #include "ParticleDefinitions.h"
@@ -105,6 +106,7 @@ extern bool GShouldLogOutAFrameOfSetBodyTransform;
 
 /** Static array of tickable objects */
 TArray<FTickableGameObject*> FTickableGameObject::TickableObjects;
+bool FTickableGameObject::bIsTickingObjects = false;
 
 /*-----------------------------------------------------------------------------
 	Detailed tick stats helper classes.
@@ -1046,6 +1048,80 @@ static FAutoConsoleVariableRef CVarTimeBetweenPurgingPendingKillObjects(
 
 #include "GameFramework/SpawnActorTimer.h"
 
+TDrawEvent<FRHICommandList>* BeginTickDrawEvent()
+{
+	TDrawEvent<FRHICommandList>* TickDrawEvent = new TDrawEvent<FRHICommandList>();
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		BeginDrawEventCommand,
+		TDrawEvent<FRHICommandList>*,TickDrawEvent,TickDrawEvent,
+	{
+		BEGIN_DRAW_EVENTF(
+			RHICmdList, 
+			WorldTick, 
+			(*TickDrawEvent),
+			TEXT("WorldTick"));
+	});
+
+	return TickDrawEvent;
+}
+
+void EndTickDrawEvent(TDrawEvent<FRHICommandList>* TickDrawEvent)
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		EndDrawEventCommand,
+		TDrawEvent<FRHICommandList>*,TickDrawEvent,TickDrawEvent,
+	{
+		STOP_DRAW_EVENT((*TickDrawEvent));
+		delete TickDrawEvent;
+	});
+}
+
+
+void FTickableGameObject::TickObjects(UWorld* World, int32 InTickType, bool bIsPaused, float DeltaSeconds)
+{
+	check(!bIsTickingObjects);
+	bIsTickingObjects = true;
+
+	bool bNeedsCleanup = false;
+	ELevelTick TickType = (ELevelTick)InTickType;
+
+	for( int32 i=0; i < TickableObjects.Num(); ++i )
+	{
+		if (FTickableGameObject* TickableObject = TickableObjects[i])
+		{
+			const bool bTickIt = TickableObject->IsTickable() && (TickableObject->GetTickableGameObjectWorld() == World) &&
+				(
+					(TickType != LEVELTICK_TimeOnly && !bIsPaused) ||
+					(bIsPaused && TickableObject->IsTickableWhenPaused()) ||
+					(GIsEditor && (World == nullptr || !World->IsPlayInEditor()) && TickableObject->IsTickableInEditor())
+					);
+
+			if (bTickIt)
+			{
+				STAT(FScopeCycleCounter Context(TickableObject->GetStatId());)
+				TickableObject->Tick(DeltaSeconds);
+
+				if (TickableObjects[i] == nullptr)
+				{
+					bNeedsCleanup = true;
+				}
+			}
+		}
+		else
+		{
+			bNeedsCleanup = true;
+		}
+	}
+
+	if (bNeedsCleanup)
+	{
+		TickableObjects.RemoveAll([](FTickableGameObject* Object) { return Object == nullptr; });
+	}
+
+	bIsTickingObjects = false;
+}
+
 /**
  * Update the level after a variable amount of time, DeltaSeconds, has passed.
  * All child actors are ticked after their owners have been ticked.
@@ -1056,6 +1132,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		return;
 	}
+
+	TDrawEvent<FRHICommandList>* TickDrawEvent = BeginTickDrawEvent();
 
 	FWorldDelegates::OnWorldTickStart.Broadcast(TickType, DeltaSeconds);
 
@@ -1246,21 +1324,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			GetTimerManager().Tick(DeltaSeconds);
 		}
 
-		for( int32 i=0; i<FTickableGameObject::TickableObjects.Num(); i++ )
-		{
-			FTickableGameObject* TickableObject = FTickableGameObject::TickableObjects[i];
-			bool bTickIt = TickableObject->IsTickable() && 
-				(
-					(TickType != LEVELTICK_TimeOnly && !bIsPaused) ||
-					(bIsPaused && TickableObject->IsTickableWhenPaused()) ||
-					(GIsEditor && !IsPlayInEditor() && TickableObject->IsTickableInEditor())
-				);
-			if (bTickIt)
-			{
-				STAT(FScopeCycleCounter Context(TickableObject->GetStatId());)
-				TickableObject->Tick(DeltaSeconds);
-			}
-		}
+		FTickableGameObject::TickObjects(this, TickType, bIsPaused, DeltaSeconds);
 	}
 	
 	// Update cameras and streaming volumes
@@ -1337,9 +1401,6 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		// Update SpeedTree wind objects.
 		Scene->UpdateSpeedTreeWind(TimeSeconds);
-
-		USceneCaptureComponent2D::UpdateDeferredCaptures( Scene );
-		USceneCaptureComponentCube::UpdateDeferredCaptures( Scene );
 	}
 
 	// Tick the FX system.
@@ -1481,6 +1542,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		}
 	}
 	);
+
+	EndTickDrawEvent(TickDrawEvent);
 }
 
 /**

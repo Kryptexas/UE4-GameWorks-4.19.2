@@ -5,7 +5,7 @@ Description:Guide to installing, setting up, and using the UnrealVS extension fo
 Version: 4.9
 
 [EXCERPT:Overview]
-The **UnrealVS** extension for Visual Studio provides easy access to common actions when developing with Unreal Engine 4.
+The UnrealVS extension for Visual Studio provides easy access to common actions when developing with Unreal Engine 4.
 
 ![](unrealvs_toolbar_cmd.png)
 

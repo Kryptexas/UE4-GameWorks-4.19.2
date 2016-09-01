@@ -1,7 +1,7 @@
 ﻿INTSourceChangelist:0
-Availability: Public
+Availability: Docs
 Title:Level Streaming Volumes
-Crumbs:%ROOT%, Editor, Editor/LevelEditing, Engine/LevelStreaming
+Crumbs:
 Description:Guide to using volumes to control the streaming of levels based on the player's location.
 
 [REGION:todo]

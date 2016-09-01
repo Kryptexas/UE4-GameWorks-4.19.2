@@ -78,7 +78,7 @@ Within the Material Functions list of the Material Editor is a list of various M
 |**MatLayerBlend_BreakBaseColor**|Outputs the Base Color from an incoming Material Layer.|
 |**MatLayerBlend_BreakNormal**|Outputs the Normal from an incoming Material Layer.|
 |**MatLayerBlend_Decal**|Blends a decal sheet over the Material using the 2nd UV channel.|
-|**MatLayerBlend_Decal_UV3**|Blends a decal sheet over the Material Layer using the 2nd UV channel.|
+|**MatLayerBlend_Decal_UV3**|Blends a decal sheet over the Material Layer using the 3rd UV channel.|
 |**MatLayerBlend_Emissive**|Blends an Emissive texture over the Material Layer.|
 |**MatLayerBlend_GlobalNormal**|Blends a Normal texture over the Material Layer.|
 |**MatLayerBlend_LightmassReplace**|Replaces the Base Color in Lightmass, allowing for changes to indirect lighting results.|

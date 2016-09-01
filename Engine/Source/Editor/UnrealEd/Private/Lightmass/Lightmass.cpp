@@ -1572,8 +1572,8 @@ void FLightmassExporter::WriteLandscapeInstances( int32 Channel )
 		const ULandscapeComponent* LandscapeComp = LandscapeLightingMesh->LandscapeComponent;
 		if (LandscapeComp && LandscapeComp->GetLandscapeProxy())
 		{
-			UMaterialInterface* Material = LandscapeComp->MaterialInstance;
-			if (Material == NULL)
+			UMaterialInterface* Material = LandscapeComp->MaterialInstances[0];
+			if (!Material)
 			{
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
 			}
@@ -1815,9 +1815,9 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		Scene.GeneralSettings.bUseMaxWeight = bConfigBool;
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MaxTriangleLightingSamples"), Scene.GeneralSettings.MaxTriangleLightingSamples, GLightmassIni));
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MaxTriangleIrradiancePhotonCacheSamples"), Scene.GeneralSettings.MaxTriangleIrradiancePhotonCacheSamples, GLightmassIni));
-		verifyf(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseEmbree"), bConfigBool, GLightmassIni), TEXT("The %s entry was missing from your BaseLightmass.ini."), TEXT("bUseEmbree"));
+		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseEmbree"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bUseEmbree = bConfigBool;
-		verifyf(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bVerifyEmbree"), bConfigBool, GLightmassIni), TEXT("The %s entry was missing from your BaseLightmass.ini."), TEXT("bVerifyEmbree"));
+		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bVerifyEmbree"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bVerifyEmbree = Scene.GeneralSettings.bUseEmbree && bConfigBool;
 
 		int32 CheckQualityLevel;
@@ -3179,6 +3179,33 @@ static int32 AccumulateVisibility(const TArray<uint8>& OtherCellData, TArray<uin
 	return NumAdded;
 }
 
+struct FPrecomputedVisibilitySortGridCell
+{
+	TArray<FUncompressedPrecomputedVisibilityCell, TInlineAllocator<2>> Cells;
+};
+
+void SpreadVisibilityCell(
+	float CellSize, 
+	float PlayAreaHeight,
+	const FUncompressedPrecomputedVisibilityCell& OtherCell,
+	FUncompressedPrecomputedVisibilityCell& VisibilityCell,
+	int32& QueriesVisibleFromSpreadingNeighbors)
+{
+	// Determine whether the cell is a world space neighbor
+	if (!(OtherCell.Bounds.Min == VisibilityCell.Bounds.Min && OtherCell.Bounds.Max == VisibilityCell.Bounds.Max)
+		&& FMath::Abs(VisibilityCell.Bounds.Min.X - OtherCell.Bounds.Min.X) < CellSize + KINDA_SMALL_NUMBER
+		&& FMath::Abs(VisibilityCell.Bounds.Min.Y - OtherCell.Bounds.Min.Y) < CellSize + KINDA_SMALL_NUMBER
+		// Don't spread from cells below, they're probably below the ground and see too much
+		&& OtherCell.Bounds.Min.Z - VisibilityCell.Bounds.Min.Z > -PlayAreaHeight * 0.5f
+		// Only spread from one cell above
+		&& OtherCell.Bounds.Min.Z - VisibilityCell.Bounds.Min.Z < PlayAreaHeight * 1.5f)
+	{
+		// Combine the neighbor's visibility with the current cell's visibility
+		// This reduces visibility errors at the cost of less effective culling
+		QueriesVisibleFromSpreadingNeighbors += AccumulateVisibility(OtherCell.VisibilityData, VisibilityCell.VisibilityData);
+	}
+}
+
 void FLightmassProcessor::ApplyPrecomputedVisibility()
 {
 	TArray<FUncompressedPrecomputedVisibilityCell> CombinedPrecomputedVisibilityCells;
@@ -3211,29 +3238,91 @@ void FLightmassProcessor::ApplyPrecomputedVisibility()
 
 		int32 TotalNumQueries = 0;
 		int32 QueriesVisibleFromSpreadingNeighbors = 0;
+
 		for (int32 IterationIndex = 0; IterationIndex < VisibilitySpreadingIterations; IterationIndex++)
 		{
-			// Copy the original data since we read from outside the current cell
-			TArray<FUncompressedPrecomputedVisibilityCell> OriginalPrecomputedVisibilityCells(CombinedPrecomputedVisibilityCells);
+			FBox AllCellsBounds(0);
+
 			for (int32 CellIndex = 0; CellIndex < CombinedPrecomputedVisibilityCells.Num(); CellIndex++)
 			{
-				FUncompressedPrecomputedVisibilityCell& CurrentCell = CombinedPrecomputedVisibilityCells[CellIndex];
-				TotalNumQueries += CurrentCell.VisibilityData.Num() * 8;
-				for (int32 OtherCellIndex = 0; OtherCellIndex < OriginalPrecomputedVisibilityCells.Num(); OtherCellIndex++)
+				AllCellsBounds += CombinedPrecomputedVisibilityCells[CellIndex].Bounds;
+			}
+
+			int32 GridSizeX = FMath::TruncToInt(AllCellsBounds.GetSize().X / CellSize + .5f);
+			int32 GridSizeY = FMath::TruncToInt(AllCellsBounds.GetSize().Y / CellSize + .5f);
+
+			const int32 GridSizeMax = 10000;
+
+			if (GridSizeX < GridSizeMax && GridSizeY < GridSizeMax)
+			{
+				TArray<FPrecomputedVisibilitySortGridCell> SortGrid;
+				SortGrid.Empty(GridSizeX * GridSizeY);
+				SortGrid.AddZeroed(GridSizeX * GridSizeY);
+
+				// Add visibility cells into a 2d grid
+				// Note that visibility data is duplicated so that the next pass can read from original neighbor visibility data
+				for (int32 CellIndex = 0; CellIndex < CombinedPrecomputedVisibilityCells.Num(); CellIndex++)
 				{
-					const FUncompressedPrecomputedVisibilityCell& OtherCell = OriginalPrecomputedVisibilityCells[OtherCellIndex];
-					// Determine whether the cell is a world space neighbor
-					if (CellIndex != OtherCellIndex
-						&& FMath::Abs(CurrentCell.Bounds.Min.X - OtherCell.Bounds.Min.X) < CellSize + KINDA_SMALL_NUMBER
-						&& FMath::Abs(CurrentCell.Bounds.Min.Y - OtherCell.Bounds.Min.Y) < CellSize + KINDA_SMALL_NUMBER
-						// Don't spread from cells below, they're probably below the ground and see too much
-						&& OtherCell.Bounds.Min.Z - CurrentCell.Bounds.Min.Z > -PlayAreaHeight * 0.5f
-						// Only spread from one cell above
-						&& OtherCell.Bounds.Min.Z - CurrentCell.Bounds.Min.Z < PlayAreaHeight * 1.5f)
+					float CellXFloat = (CombinedPrecomputedVisibilityCells[CellIndex].Bounds.GetCenter().X - AllCellsBounds.Min.X) / CellSize;
+					int32 CellX = FMath::Clamp(FMath::TruncToInt(CellXFloat), 0, GridSizeX - 1);
+
+					float CellYFloat = (CombinedPrecomputedVisibilityCells[CellIndex].Bounds.GetCenter().Y - AllCellsBounds.Min.Y) / CellSize;
+					int32 CellY = FMath::Clamp(FMath::TruncToInt(CellYFloat), 0, GridSizeY - 1);
+
+					FPrecomputedVisibilitySortGridCell& GridCell = SortGrid[CellY * GridSizeX + CellX];
+					GridCell.Cells.Add(CombinedPrecomputedVisibilityCells[CellIndex]);
+				}
+
+				// Gather visibility from neighbors, using the 2d grid to accelerate the neighbor search
+				for (int32 CellIndex = 0; CellIndex < CombinedPrecomputedVisibilityCells.Num(); CellIndex++)
+				{
+					FUncompressedPrecomputedVisibilityCell& CurrentCell = CombinedPrecomputedVisibilityCells[CellIndex];
+
+					float CellXFloat = (CombinedPrecomputedVisibilityCells[CellIndex].Bounds.GetCenter().X - AllCellsBounds.Min.X) / CellSize;
+					int32 CellX = FMath::Clamp(FMath::TruncToInt(CellXFloat), 0, GridSizeX - 1);
+
+					float CellYFloat = (CombinedPrecomputedVisibilityCells[CellIndex].Bounds.GetCenter().Y - AllCellsBounds.Min.Y) / CellSize;
+					int32 CellY = FMath::Clamp(FMath::TruncToInt(CellYFloat), 0, GridSizeY - 1);
+
+					TotalNumQueries += CurrentCell.VisibilityData.Num() * 8;
+
+					const FPrecomputedVisibilitySortGridCell& GridCell = SortGrid[CellY * GridSizeX + CellX];
+
+					for (int32 YOffset = -1; YOffset <= 1; YOffset++)
 					{
-						// Combine the neighbor's visibility with the current cell's visibility
-						// This reduces visibility errors at the cost of less effective culling
-						QueriesVisibleFromSpreadingNeighbors += AccumulateVisibility(OtherCell.VisibilityData, CurrentCell.VisibilityData);
+						for (int32 XOffset = -1; XOffset <= 1; XOffset++)
+						{
+							int32 FinalCellX = CellX + XOffset;
+							int32 FinalCellY = CellY + YOffset;
+
+							if (FinalCellX >= 0 && FinalCellX < GridSizeX && FinalCellY >= 0 && FinalCellY < GridSizeY)
+							{
+								const TArray<FUncompressedPrecomputedVisibilityCell, TInlineAllocator<2>>& CurrentSortCell = SortGrid[FinalCellY * GridSizeX + FinalCellX].Cells;
+
+								for (int32 VisibilityCellIndex = 0; VisibilityCellIndex < CurrentSortCell.Num(); VisibilityCellIndex++)
+								{
+									const FUncompressedPrecomputedVisibilityCell& OtherCell = CurrentSortCell[VisibilityCellIndex];
+									SpreadVisibilityCell(CellSize, PlayAreaHeight, OtherCell, CurrentCell, QueriesVisibleFromSpreadingNeighbors);
+								}
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				// Brute force O(N^2) neighbor spreading version
+				// Copy the original data since we read from outside the current cell
+				TArray<FUncompressedPrecomputedVisibilityCell> OriginalPrecomputedVisibilityCells(CombinedPrecomputedVisibilityCells);
+				for (int32 CellIndex = 0; CellIndex < CombinedPrecomputedVisibilityCells.Num(); CellIndex++)
+				{
+					FUncompressedPrecomputedVisibilityCell& CurrentCell = CombinedPrecomputedVisibilityCells[CellIndex];
+					TotalNumQueries += CurrentCell.VisibilityData.Num() * 8;
+					for (int32 OtherCellIndex = 0; OtherCellIndex < OriginalPrecomputedVisibilityCells.Num(); OtherCellIndex++)
+					{
+						const FUncompressedPrecomputedVisibilityCell& OtherCell = OriginalPrecomputedVisibilityCells[OtherCellIndex];
+
+						SpreadVisibilityCell(CellSize, PlayAreaHeight, OtherCell, CurrentCell, QueriesVisibleFromSpreadingNeighbors);
 					}
 				}
 			}
@@ -3341,13 +3430,13 @@ void FLightmassProcessor::ApplyPrecomputedVisibility()
 
 		System.GetWorld()->PersistentLevel->PrecomputedVisibilityHandler.UpdateVisibilityStats(true);
 
-		UE_LOG(LogLightmassSolver, Warning, TEXT("ApplyPrecomputedVisibility %.1fs, %.1f%% of all queries changed to visible from spreading neighbors, compressed %.3fMb to %.3fMb (%.1f ratio) with %u rendering buckets"),
+		UE_LOG(LogStaticLightingSystem, Log, TEXT("ApplyPrecomputedVisibility %.1fs with %u cells, %.1f%% of all queries changed to visible from spreading neighbors, compressed %.3fMb to %.3fMb (%.1f ratio)"),
 			FPlatformTime::Seconds() - StartTime,
+			CombinedPrecomputedVisibilityCells.Num(),
 			100.0f * QueriesVisibleFromSpreadingNeighbors / TotalNumQueries,
 			UncompressedSize / 1024.0f / 1024.0f,
 			TotalCompressedSize / 1024.0f / 1024.0f,
-			UncompressedSize / (float)TotalCompressedSize,
-			CellRenderingBuckets.Num());
+			UncompressedSize / (float)TotalCompressedSize);
 	}
 	else
 	{

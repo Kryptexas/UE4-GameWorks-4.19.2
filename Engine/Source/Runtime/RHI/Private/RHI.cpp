@@ -283,6 +283,7 @@ bool GRHISupportsRHIThread = false;
 bool GRHISupportsParallelRHIExecute = false;
 bool GSupportsHDR32bppEncodeModeIntrinsic = false;
 bool GSupportsParallelOcclusionQueries = false;
+bool GSupportsRenderTargetWriteMask = false;
 
 bool GRHISupportsMSAADepthSampleAccess = false;
 
@@ -376,6 +377,7 @@ static FName NAME_GLSL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
+static FName NAME_GLSL_ES3_1_ANDROID(TEXT("GLSL_ES3_1_ANDROID"));
 static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
 static FName NAME_VULKAN_ES3_1(TEXT("SF_VULKAN_ES31"));
@@ -435,6 +437,8 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_SF_METAL_MACES2;
 	case SP_OPENGL_ES31_EXT:
 		return NAME_GLSL_310_ES_EXT;
+	case SP_OPENGL_ES3_1_ANDROID:
+		return NAME_GLSL_ES3_1_ANDROID;
 	case SP_VULKAN_SM4:
 		return NAME_VULKAN_SM4;
 	case SP_VULKAN_SM5:
@@ -455,25 +459,25 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 
 EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 {
-	if (ShaderFormat == NAME_PCD3D_SM5)			return SP_PCD3D_SM5;	
-	if (ShaderFormat == NAME_PCD3D_SM4)			return SP_PCD3D_SM4;
-	if (ShaderFormat == NAME_PCD3D_ES3_1)		return SP_PCD3D_ES3_1;
-	if (ShaderFormat == NAME_PCD3D_ES2)			return SP_PCD3D_ES2;
-	if (ShaderFormat == NAME_GLSL_150)			return SP_OPENGL_SM4;
-	if (ShaderFormat == NAME_GLSL_150_MAC)		return SP_OPENGL_SM4_MAC;
+	if (ShaderFormat == NAME_PCD3D_SM5)				return SP_PCD3D_SM5;	
+	if (ShaderFormat == NAME_PCD3D_SM4)				return SP_PCD3D_SM4;
+	if (ShaderFormat == NAME_PCD3D_ES3_1)			return SP_PCD3D_ES3_1;
+	if (ShaderFormat == NAME_PCD3D_ES2)				return SP_PCD3D_ES2;
+	if (ShaderFormat == NAME_GLSL_150)				return SP_OPENGL_SM4;
+	if (ShaderFormat == NAME_GLSL_150_MAC)			return SP_OPENGL_SM4_MAC;
 	if (ShaderFormat == NAME_SF_PS4)				return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE)			return SP_XBOXONE;
-	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;
+	if (ShaderFormat == NAME_GLSL_430)				return SP_OPENGL_SM5;
 	if (ShaderFormat == NAME_GLSL_150_ES2)			return SP_OPENGL_PCES2;
 	if (ShaderFormat == NAME_GLSL_150_ES2_NOUB)		return SP_OPENGL_PCES2;
-	if (ShaderFormat == NAME_GLSL_150_ES31)		return SP_OPENGL_PCES3_1;
-	if (ShaderFormat == NAME_GLSL_ES2)			return SP_OPENGL_ES2_ANDROID;
-	if (ShaderFormat == NAME_GLSL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
-	if (ShaderFormat == NAME_GLSL_ES2_IOS)		return SP_OPENGL_ES2_IOS;
-	if (ShaderFormat == NAME_SF_METAL)			return SP_METAL;
-	if (ShaderFormat == NAME_SF_METAL_MRT)		return SP_METAL_MRT;
-	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
-	if (ShaderFormat == NAME_SF_METAL_SM5)		return SP_METAL_SM5;
+	if (ShaderFormat == NAME_GLSL_150_ES31)			return SP_OPENGL_PCES3_1;
+	if (ShaderFormat == NAME_GLSL_ES2)				return SP_OPENGL_ES2_ANDROID;
+	if (ShaderFormat == NAME_GLSL_ES2_WEBGL)		return SP_OPENGL_ES2_WEBGL;
+	if (ShaderFormat == NAME_GLSL_ES2_IOS)			return SP_OPENGL_ES2_IOS;
+	if (ShaderFormat == NAME_SF_METAL)				return SP_METAL;
+	if (ShaderFormat == NAME_SF_METAL_MRT)			return SP_METAL_MRT;
+	if (ShaderFormat == NAME_GLSL_310_ES_EXT)		return SP_OPENGL_ES31_EXT;
+	if (ShaderFormat == NAME_SF_METAL_SM5)			return SP_METAL_SM5;
 	if (ShaderFormat == NAME_VULKAN_SM4)			return SP_VULKAN_SM4;
 	if (ShaderFormat == NAME_VULKAN_SM5)			return SP_VULKAN_SM5;
 	if (ShaderFormat == NAME_VULKAN_ES3_1_ANDROID)	return SP_VULKAN_ES3_1_ANDROID;
@@ -482,6 +486,8 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL_SM4)		return SP_METAL_SM4;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)	return SP_METAL_MACES3_1;
 	if (ShaderFormat == NAME_SF_METAL_MACES2)	return SP_METAL_MACES2;
+	if (ShaderFormat == NAME_GLSL_ES3_1_ANDROID)	return SP_OPENGL_ES3_1_ANDROID;
+	
 	return SP_NumPlatforms;
 }
 

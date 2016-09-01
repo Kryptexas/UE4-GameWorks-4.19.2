@@ -44,7 +44,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 固定光源的所有间接光照和阴影都存储在光照贴图中。直接阴影被存储在阴影贴图中。这些光源使用距离场阴影，这意味着即使所照亮的物体的光照贴图分辨率很低，它们的阴影都可以保持清晰。
 [/EXCERPT:StationaryLights01]
 
-固定光源支持[示例 3.1](Resources\ContentExamples\Lighting\3_1)所描述的IES光源参数;以及[示例 3.2](Resources\ContentExamples\Lighting\3_2)所描述的光源函数。
+固定光源支持 [示例 3.1](Resources\ContentExamples\Lighting\3_1) 所描述的 IES 光源参数；以及 [示例 3.2](Resources\ContentExamples\Lighting\3_2) 所描述的光源函数。
 
 ### 重叠
 

@@ -342,7 +342,7 @@ Description:提供一组蓝图节点，以允许您用来分析服务通讯
  
 该操作将记录使用游戏货币购买的游戏道具。这不是指现金交易。但是，该操作可跟踪使用游戏货币购买的 
 道具。此游戏货币可通过游戏渐渐获取或用现金直接购买。要跟踪现金购买的游戏货币，请使用
-[Record Currency Purchase](#recordcurrencypurchase) 节点。
+[记录货币购买](#记录货币购买) 节点。
 
 [REGION:graph]
     [OBJECT:BlueprintNode]

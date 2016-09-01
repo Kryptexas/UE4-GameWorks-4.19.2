@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physical Materials User Guide
+﻿INTSourceChangelist:2713167
+Availability:Public
+Title:物理材质用户指南
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:Physical Materials User Guide: the creation and application of Physical Materials.
+Description:物理材质用户指南：物理材质的创建与应用
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,134 +49,134 @@ Description:Physical Materials User Guide: the creation and application of Physi
 [TOC(start:2)]
 
 
-This document will cover the creation and usage of **Physical Materials** as well as enabling or editing **SurfaceTypes** for your project.
+此文档包括 **物理材质（Physical Materials）** 的创建和使用，以及为项目启用或编辑 **表面类型（SurfaceTypes）**。
 
-## Creation
+## 创建
 
-1. From the Content Browser. **click** ![](Engine/Audio\SoundCues\Editor\button_CB_NewAsset.png) **New Asset** -> **Physics** -> **Physical Material** or **right-click** in the **Content Browser** -> **Physics** -> **Physical Material**.
+1. 打开 Content Browser。**点击** ![](Engine/Audio\SoundCues\Editor\button_CB_NewAsset.png) **New Asset** -> **Physics** -> **Physical Material** 或在 **Content Browser** 中 **单击右键** -> **Physics** -> **Physical Material**。
 
-	![](PhysMat_Creation_01.png)
+	![](PhysMatCreate.jpg)
 
-1. **Double click** the new Physical Material to edit its properties.
+1. **双击** 新建的物理材质对其属性进行编辑。
 
-	![](PhysMat_Creation_02.png)
+	![](PhysMatProperties.jpg)(w:250)
 
-1. **Adjust Properties**.
+1. **调整属性**。
 
-	![](PhysMat_Creation_03.png)
+	![](AdjustProperties.jpg)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. **点击保存** ![](Shared\Icons\icon_SaveAsset_40x.png)
 
-See the [Physical Material Reference](Engine/Physics\PhysicalMaterials\Reference) for information on the properties in the Physical Material.
+如需了解物理材质中属性的相关内容，请查阅 [**物理材质参考**](Engine/Physics\PhysicalMaterials\Reference)。
 
-### Surface Type
+### 表面类型
 
-By default, Unreal Engine 4 supports 62 Surface Types, which can be labeled anything you desire, stored in your project's `DefaultEngine.ini`, which can be found in `YourProjectRoot\Config\DefaultEngine.ini`. 
-
-
+虚幻引擎 4 默认支持 62 种表面类型，可根据需求任意对其进行标记。它们保存在项目的 `DefaultEngine.ini` 文件中，此文件的存放路径为 `YourProjectRoot\Config\DefaultEngine.ini`。 
 
 
-## Usage
 
-### Material
 
-1. **Open** or **create** a new Material.
+## 用法
+
+### 材质
+
+1. **打开** 或 **创建** 一个新材质。
 
 	![](PhysMat_Material_01.png)
 
-1. **Select** the main material node.
+1. **选择** 主材质节点。
 
-	![](PhysMat_Material_02.png)
+	![](PhysMatNone.jpg)
 
-1. **Change** the Physical Material.
+1. **变更** 物理材质。
 
-	![](PhysMat_Material_03.png)
+	![](PhysMatGlass2.jpg)
 
 
 
-### Material Instance
+### 材质实例
 
-1. **Open** or **create** a new Material Instance.
+1. **打开** 或 **创建** 一个新材质实例。
 
 	![](PhysMat_MaterialInst_01.png)
 
-1. **Change** the Physical Material.
+1. **变更** 物理材质。
 
-	![](PhysMat_MaterialInst_02.png)
+	![](StoneMat.jpg)
 
 
 
-### Physics Asset (SkeletalMeshes)
+### 物理资源（骨骼网格体）
 
-When adjusting the Physical Material for a Physics Asset, it is best to start by assigning the most commonly used Physical Material to all of the Physics Bodies in the Physics Asset.
+调整物理资源的物理材质时，最佳方法是将最常用的物理材质指定到物理资源中的所有物理形体上。
 
 [EXCERPT:PhysMatSkelMesh1]
-1. **Open** a Physics Asset in the Physics Asset Tool.
+1. 在 Physics Asset 工具中 **打开** 一个物理资源。
 
-	![](PhysMat_PhAT_02.png)
+	![](PhysicsAsset1.jpg)
 
-1. **Select** a Physical Material in the Content Browser.
+1. 在 Content Browser 中 **选择** 一个物理材质。
 
-	![](PhysMat_PhAT_03.png)
+	![](M_Glass.jpg)
 
-1. In the Physics Asset Tool, **click** the **Apply PhysMat button**: ![](Shared\Icons\icon_PhAT_PhysMat_40x.png).
+1. 在 Physics Asset 工具中，**点击** 工具栏里 **Asset** 下拉菜单中的 **Apply PhysMat** 按钮。 ![](AssetButton.jpg).
 	[REGION:raw]
-	![](PhysMat_PhAT_01.png)(w:860)
+	![](ApplyPhysMat.jpg)
 	[/REGION]
 [/EXCERPT:PhysMatSkelMesh1]
 
 
-If specific Physics Bodies need differing Physical Materials, you can then adjust them individually.
+如特定的物理形体需要不同的物理材质，可对它们进行单独调整。
 
-1. **Enable Body Edit Mode** in the Physics Asset Tool.
-1. **Select** a Physics Body.
-1. In the Details pane, in the Physics Category, change the **Simple Collision Physical Material**.
+1. 在 Physics Asset 工具中 **启用 Body Edit 模式**。
+1. **选择** 一个物理形体。
+1. 在 Physics 类目下的 Details 窗格中，变更 **Simple Collision Physical Material**。
 
 
 [REGION:raw]
-![](PhysMat_PhAT_04.png)(w:920)
+![](SimpleCollision.png)(w:700)
 [/REGION]
 
-The default behavior for Physics interactions with Skeletal Meshes is to only interact with its associated Physics Asset, so the Skeletal Mesh's material's Physical Material will 
-not be used.
+骨骼网格体的物理交互默认行为是只和与其相关的物理资源进行交互，因此将不使用 
+其材质的物理材质。
 
 [REGION:note]
-With Physics Assets, though you are setting the Simple Collision Physical Material, when you trace against a Physics Asset, you will need to do a complex trace and the complex trace 
-will return the Physical Material listed in the Simple Collision Physical Material property of the hit Physics Body.
+利用 Physics Assets 对 Simple Collision Physical Material 属性进行设置。追踪物理资源时需要执行复杂追踪， 
+此后复杂追踪将返回命中物理形体的 Simple Collision Physical Material 属性中所排列的物理材质。
 [/REGION]
 
-### StaticMeshes
+### 静态网格体
 
-StaticMeshes have both Simple collision (the Physics Bodies that you create in your 3D art package or in the StaticMesh Editor) and Complex collision (per poly collision) which can be composed of a number of different materials each with their own differing Physical Materials. 
+静态网格体拥有简单碰撞（在 3D 美术包或 StaticMesh Editor 中创建的物理形体）和复杂碰撞（每个多边形碰撞）。这些碰撞可由多种不同材质组成，每种材质均包含其自身独有的物理材质。 
 
-| Collision | Physical Material Order |
+| 碰撞 | 物理材质排序 |
 | ----- | ----- |
-| **Simple** | When any collision or trace uses Simple Collision, it will reference the Physical Material on the StaticMesh that is set in the StaticMesh Editor, or if the _Phys Material Override_ on the StaticMesh Actor is set to something other than `None`, it will use what is listed in that property. |
-| **Complex** | When any collision or trace uses Complex Collision, it will reference the Physical Material on the Material or Material Instances applied to the StaticMesh Actor, or if the Phys Material Override on the StaticMesh Actor is set to something other than `None`, it will use what is listed in that property. |
+| **Simple** | 碰撞或追踪使用简单碰撞时，它将引用 StaticMesh Editor 中设置的静态网格体物理材质。如静态网格体 Actor 的 _Phys Material Override_ 未被设为 `None`，它将使用列于该属性中的物理材质。|
+| **Complex** | 碰撞或追踪使用复杂碰撞时，它将引用材质上的物理材质或应用至静态网格体 Actor 的材质实例。如静态网格体 Actor 的 Phys Material Override 未被设为 `None`，它将使用列于该属性中的物理材质。|
 
-To set the Simple Collision Physical Material for a StaticMesh:
+为静态网格体设置简单碰撞物理材质的步骤：
 
-1. **Double Click** a Static Mesh in the Content Browser to bring up the Static Mesh Editor.
+1. 在 Content Browser 中 **双击** 一个静态网格体，呼出 Static Mesh Editor。
 
 	![](PhysMat_StaticMeshEd_01.png)
 
-1. Change the Simple Collision Physical Material property in the **Static Mesh Settings** category to the desired Physical Material.
+1. 将 **Static Mesh Settings** 类目中的 Simple Collision Physical Material 属性改为所需的物理材质。
 
 	![](PhysMat_StaticMeshEd_02.png)
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png).
+1. **点击保存** ![](Shared\Icons\icon_SaveAsset_40x.png).
 
 
-### Misc
+### 杂项
 
 ![](PhysMat_Override.png)
 
-The _Phys Material Override_ property exists on everything with a **Physics** category. This can be used to completely override Simple Collision Physical Materials on an Actor or Component with the selected Physical Material.
+_Phys Material Override_ 属性广泛存在于 **Physics** 类目下。它可利用选中的物理材质在 Actor 或组件上完全覆盖简单碰撞物理材质。
 
-* Overriding a StaticMesh's simple collision Physical Material.
-* Since Skeletal Meshes Physics Assets always return Simple Collision, you can use this to override all Physical Materials on a placed Skeletal Mesh Actor.
+* 覆盖一个静态网格体的简单碰撞物理材质。
+* 因为骨骼网格体物理资源固定返回简单碰撞，可利用它覆盖放置好的骨骼网格体 Actor 上的所有物理材质。
 
-This has no effect on Complex Collision traces.
+此操作在复杂碰撞追踪上无效。
 
 
 

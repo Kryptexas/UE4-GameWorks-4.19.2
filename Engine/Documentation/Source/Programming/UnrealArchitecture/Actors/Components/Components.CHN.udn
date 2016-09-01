@@ -1,139 +1,113 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2728676
 Availability:Public
-Title: Components
+Title:组件
 Crumbs:%ROOT%, Programming
-Description:Explanation of Components and descriptions of the various types available.
-Version: 4.5
+Description:组件的解释，以及诸多可用类型的描述。
+Version:4.9
 
 [TOC (start:2 end:3)]
 
-## Overview
 
 [EXCERPT:Overview]
-**Components** are a special type of **Object** designed to be used as sub-objects within **Actors**. These are generally used in situations where it is necessary to have easily swappable parts in 
-order to change the behavior or functionality of some particular aspect of the owning Actor. For instance, a car is controlled and moves very differently from an aircraft, which is controlled and 
-moves differently from a boat, etc.; yet all of these are vehicles that share other commonalities. By using a Component to handle the controls and movement, the same vehicle can easily be made to behave 
-like any one of these specific types.
+**组件** 是一种特殊类型的 **对象**，作为 **Actor** 中的子对象使用。它们常用于有必要使用易于切换部分的情况下，以变更拥有 Actor 特定方面的行为或功能。例如，汽车的控制和移动方式与飞机相差甚远，而飞机又与船相差很大，以此类推；然而所有载具却拥有其他共性。使用组件处理控制和移动，可轻松将载具的行为设定为与一种特定类型相同。
 [/EXCERPT:Overview]
 
-Contrary to the default behavior of sub-objects in general, Components created as sub-objects within an Actor are instanced, meaning each Actor instance of a particular class gets its own 
-unique instances of the Components. A simple way to visualize this is to imagine the vehicle described above. A **Car** class might use Components to represent the wheels of the car. Four **Wheel** 
-Components would be created as sub-objects in the default properties of the class and assigned to a `Wheels[]` array. When a new Car instance is created, new instances of the wheel Components 
-are created specifically for that Car. If this were not the case, when one Car in the world moved, the wheels of all Cars would turn; which is clearly not the desired behavior. Instancing 
-of Components by default simplifies the process of quickly adding unique sub-objects to Actors. 
+与整体子类型的默认行为相反，作为 Actor 中子对象创建的组件将被实例化，意味着一个特定类的每个 Actor 实例将获取其自身独有的组件实例。将此可视化的简单方法为想象上文描述的载具。一个 **汽车** 类可使用组件代表汽车的轮子。四个 **轮子** 组件将作为类默认属性中的子对象创建，然后被指定到一个 `Wheels[]` 阵列。当一个新的汽车实例被创建时，将新建此车特有的轮子组件实例。如情况与上述不同，一辆汽车在世界场景中移动时，所有汽车的轮子均会转动 - 这样的情况显然不对。组件实例化默认简化了快速添加独有子对象到 Actor 的过程。 
 
 [REGION:note]
-**Note:** Without Component instancing, all Component variables would need to be declared using the **[Instanced](Programming\UnrealArchitecture\Reference\Properties\Specifiers\Instanced) property specifier**.
+如没有组件实例化，所有组件变量都需要使用 [实例化](Programming\UnrealArchitecture\Reference\Properties\Specifiers\Instanced) 属性说明符进行声明。
 [/REGION]
 
-## Actor Components
+## Actor 组件
 
-**ActorComponent** is the base class for components that define reusable behavior that can be added to different types of Actors. These are generally used to associate geometry with an Actor, 
-in the form of collision geometry or rendered meshes, control how the Actor moves through the world, play sounds associated with the Actor, provide the ability for the Actor to cast light 
-and shadows onto the world, and more. In fact, everything the player sees or interacts with in the world when playing the game is actually the work of one type of ActorComponent or another. 
-ActorComponents that have a transform are known as **SceneComponents** and those that can be rendered are **PrimitiveComponents**.
+**ActorComponent** 是组件的基础类，定义可被添加到不同类型 Actor 的重复使用行为。它们主要用于将几何体与 Actor 关联起来，形式为碰撞几何体或渲染网格体，控制 Actor 在世界场景中的移动方式、播放与 Actor 相关的声效、使 Actor 能投射光影到世界场景，等等。事实上，玩家进行游戏时在世界场景中看到或交互的内容是某种 ActorComponent 的产物。拥有变形的 ActorComponent 被称为 **SceneComponents**，而可被渲染的则称为 **PrimitiveComponents**。
 
-### Registering Components
+### 注册组件
 
-In order for ActorComponents to be updated each frame and affect the scene, they must **register** with the scene. Registration is performed by calling `UActorComponent::RegisterComponent()`. 
+为使 ActorComponent 每帧更新并对场景产生影响，它们必须和场景进行 **注册**。调用 `UActorComponent::RegisterComponent()` 即可执行注册。 
 
 	void UActorComponent::RegisterComponent()
 
-This function calls `UActorComponent::RegisterComponentWithScene()` to make sure that the ActorComponent is contained in the owning Actor's `Components[]` array, associate it with the 
-scene, and create the **[render proxy](#SceneProxy)** and **[physics state](#PhysicsState)** for the ActorComponent. 
+此函数调用 `UActorComponent::RegisterComponentWithScene()`，以确保 ActorComponent 被包含在拥有 Actor 的 `Components[]` 阵列中，使其与场景相关联，然后为 ActorComponent 创建 [渲染代理](#SceneProxy) 和 [物理状态](#PhysicsState)。 
 
-ActorComponents are automatically registered when the owning Actor is spawned, if they are created as sub-objects and added to the `Components[]` array in the default properties of the 
-Actor. They can be registered at any time during play by calling `UActorComponent::RegisterComponent()`, but be aware that registering a Component is a somewhat heavy operation, so it should 
-only be performed when necessary.
+如 ActorComponents 作为子对象创建并被添加到 Actor 默认属性的 `Components[]` 阵列，则拥有 Actor 生成时 ActorComponents 将被自动注册。调用 `UActorComponent::RegisterComponent()` 即可在游戏中即时对其进行注册，但需要注意 - 组件注册操作较为繁重，只应在必要时执行。
 
-#### Register Events
+#### 注册事件
 
-When a Component is registered, the events below are fired off.
+当组件被注册时，以下事件将被触发。
 
-| Function | Description |
+| 函数 | 描述 |
 | -------- | ----------- |
-| UActorComponent::OnRegister() | Event to allow for additional initialization when registering a Component, if necessary. |
-| UActorComponent::CreateRenderState() | Initializes the render state for the Component. |
-| UActorComponent::CreatePhysicsState() | Initializes the physics state for the Component. |
+| UActorComponent::OnRegister() | 如有必要，注册组件时事件会为额外的初始化留出余地。|
+| UActorComponent::CreateRenderState() | 初始化组件的渲染状态。|
+| UActorComponent::CreatePhysicsState() | 初始化组件的物理状态。|
 
 
-### UnRegistering Components
+### 注销组件
 
-ActorComponents can be unregistered as well to avoid them being updated, simulated, or rendered. Unregistering a Component is performed by calling `UActorComponent::UnregisterComponent()`. 
+也可取消 ActorComponent 的注册，避免它们被更新、模拟，或渲染。调用 `UActorComponent::UnregisterComponent()` 即可取消组件注册。 
 
 	void UActorComponent::UnregisterComponent()
 
-#### UnRegister Events
+#### 注销事件
 
-The events below are fired off when a Component is unregistered.
+组件被取消注册时将触发下列事件。
 
-| Function | Description |
+| 函数 | 描述 |
 | -------- | ----------- |
-| UActorComponent::OnUnRegister() | Event to allow for additional actions when unregistering a Component, if necessary. |
-| UActorComponent::DestroyRenderState() | Uninitializes the render state for the Component. |
-| UActorComponent::DestroyPhysicsState() | Uninitializes the physics state for the Component. |
+| UActorComponent::OnRegister() | 如有必要，取消组件注册时事件会为额外的操作留出余地。|
+| UActorComponent::DestroyRenderState() | 取消组件渲染状态初始化。|
+| UActorComponent::DestroyPhysicsState() | 取消组件物理状态初始化。|
 
 
-### Updating
+### 更新
 
-ActorComponents have the ability to be updated each frame via their `TickComponent()` function. This allows Components to perform type-specific, per-frame calculations. For example, 
-**SkeletalMeshComponents** use `TickComponent()` to update animations and skeletal controllers, while **ParticleSystemComponents** use it to update the emitters of the system and check for particle 
-events to handle.
+ActorComponent 可通过其 `TickComponent()` 函数进行每帧更新。这允许组件执行类型特定的每帧计算。例如，**SkeletalMeshComponents** 使用 `TickComponent()` 更新动画和骨骼控制器，而 **ParticleSystemComponents** 使用它更新系统的发射器并检查需要处理的粒子事件。
 
-In order for a Component to be updated, it must be registered, set to tick (`bComponentNeverTicks=false`), and have its tick function setup. 
+为使组件得到更新，必须将其注册，设为 tick（`bComponentNeverTicks=false`），并设置好其 tick 函数。 
 
-### Render State
+### 渲染状态
 
-An ActorComponent must have a render state created in order to be rendered. The render state of an ActorComponent also lets the engine know whether something has changed about the Component 
-that requires its render data to be updated. When such a change occurs, the render state is marked dirty. Then, at the end of the current frame, all dirty Components have their render data updated.
+必须创建 ActorComponent 的渲染状态，以便进行渲染。ActorComponent 的渲染状态还将告知引擎是否需要根据组件发生的变化更新其渲染数据。当这类变化发生时，渲染状态将被标记为 dirty。然后在当前帧的最后，所有 dirty 组件的渲染数据均会更新。
 
-### Physics State
+(#PhysicsState)
+### 物理状态
 
-In order to be simulated using the physics engine, an ActorComponent must have a physics state created. Unlike the render state, the physics state is never marked dirty as physics updates happen 
-immediately when changes occur. This is important as it keeps issues like frame-behind artifacts from happening.
+必须为 ActorComponent 创建物理状态，以便使用物理引擎进行模拟。与渲染状态不同的是，物理状态将不会被标记为 dirty，因为变化出现时便会立即进行物理更新。这非常重要，因为它能防止“帧后穿帮”之类的问题出现。
 
-## Scene Components
+## 场景组件
 
-SceneComponents are an extension of ActorComponents that have a transform, i.e. location, rotation, and scale. The addition of a transform means SceneComponents can also be attached to one 
-another.
+SceneComponent 是 ActorComponent 的延伸，拥有一个变形，即位置、旋转和尺寸。附加的一个变形意味着 SceneComponent 可以相互附着。
 
-### Attachment
+### 附着
 
-In Unreal Engine 4, all attachment is handled on the Component level and only SceneComponents can be attached to one another. SceneComponents have an `AttachParent` property that points to 
-the Component it is attached to. This is mainly used when an Actor contains multiple Components to keep them all attached, if this is the desired behavior. However, it can also be used to specify 
-a Component belonging to another Actor to attach a Component in one Actor to a Component in another Actor.
+在虚幻引擎 4 中，所有附着均在组件层上处理，只有 SceneComponent 可相互附着。SceneComponent 拥有一个 `AttachParent` 属性，指向其附着的组件。它主要在一个 Actor 包含多个组件，使其全部附着时（此行为为所需）使用。然而，其也可用于指定属于另一个 Actor 的组件，以便将一个 Actor 中的组件附着到另一个 Actor 中的组件。
 
-This means that in order to attach one Actor to another, each of the Actors involved must contain at least one SceneComponent - as these are what will actually be attached - and the 
-SceneComponent of the Actor that is being attached must be the root Component. The reason for this should be apparent; each Component can only have one parent so if the attached Component 
-is not the root Component of the Actor being attached, that Component and any of its child Components are the only ones that will be attached. The root Component would remain unattached and 
-unaffected, as would the Actor as a whole since it relies on the root Component and its transform.
+这意味着如需将一个 Actor 附着到另一个 Actor，相关的每个 Actor 必须包含至少一个 SceneComponent - 因为它们是实际被附着的对象 - 且 Actor 被附着的 SceneComponent 必须为根组件。原因十分明显 - 每个组件只可拥有一个父项，因此如果附着的组件不为被附着 Actor 的根组件，则只有该组件以及其子组件被附着。如将 Actor 视为一个整体，根组件将保持未附着和不受影响状态，因其依赖于根组件和其变形。
 
-### Component Transforms
+### 组件变形
 
-The `FTransform` struct contains a `Translation` vector, a `Rotation` quaternion, and a `Scale3D` vector. Each SceneComponent has its own `FTransform`, generally for internal use, that 
-describes its world-relative location, rotation, and scale. They also have an additional `RelativeLocation` vector, `RelativeRotation` rotator, and `RelativeScale3D` vector used which can act 
-as either relative to their parent Component or relative to the world. These are generally what are used when getting or setting the transform for a Component.
+`FTransform` 结构体包含一个 `Translation` 矢量，一个 `Rotation` 四元数，和一个 `Scale3D` 矢量。每个 SceneComponent 拥有其自身的 `FTransform`，通常为内部使用，描述其世界场景相对位置、相对旋转和相对大小。它们还使用一个额外的 `RelativeLocation` 矢量、`RelativeRotation` 旋转体，和 `RelativeScale3D` 矢量，它们可与自身的父组件相对，或与世界场景相对。在获取或设置组件的变形时，通常会用到它们。
 
-By default, `RelativeLocation`, `RelativeRotation`, and `RelativeScale3D` are relative to their `AttachParent`. These values can be forced to be relative to the world using the `bAbsoluteLocation`, `bAbsoluteRotation`, and `bAbsoluteScale` properties. Setting any of these to `true` will cause the corresponding property to be world-relative.
+`RelativeLocation`、`RelativeRotation`，和 `RelativeScale3D` 默认与其 `AttachParent` 相对。使用 `bAbsoluteLocation`、`bAbsoluteRotation`，和 `bAbsoluteScale` 属性可强制这些数值与世界场景相对。将任意属性设为 `true` 后将使对应的属性变为世界场景相对。
 
-Even when using parent-relative transform values, it is still possible to set translation and rotation using absolute world values via the methods shown below:
+即使是在使用父项相对的变形数据时，仍可通过下列方法使用绝对世界数值对平移和旋转进行设置。
 
 
-| Function | Description |
+| 函数 | 描述 |
 | -------- | ----------- |
-| SceneComponent::SetWorldLocation() | Set the relative translation of this Component to put it at the supplied location in world space. |
-| SceneComponent::SetWorldRotation() | Set the relative rotation of this Component to put it at the supplied orientation in world space. |
+| SceneComponent::SetWorldLocation() | 设置此组件的相对平移，将其放置在世界空间中提供的位置。|
+| SceneComponent::SetWorldRotation() | 设置此组件的相对旋转，为其设置在世界空间中提供的朝向。|
 
-## Primitive Components
+## 元组件
 
-**PrimitiveComponents** are SceneComponents that contain or generate some sort of geometry, generally to be rendered or used as collision data. There are several subclasses for the various types 
-of geometry, but the most common by far are the **CapsuleComponent**, **StaticMeshComponent**, and **SkeletalMeshComponent**. **CapsuleComponents** generate geometry that is used for collision detection, 
-but not rendered; while StaticMeshComponents and SkeletalMeshComponents contain pre-built geometry that is rendered, but can also be used for collision detection.
+**PrimitiveComponents** 是包含或生成某种几何体的 SceneComponents，通常作为碰撞数据进行渲染或使用。多种类型的几何体有数种子类，但迄今为止最常见的是 **CapsuleComponent**、**StaticMeshComponent**，和 **SkeletalMeshComponent**。CapsuleComponents 生成用于碰撞检测的几何体，但不用于渲染；StaticMeshComponents 和 SkeletalMeshComponents 包含用于渲染（也可用于碰撞检测）的预建几何体。
 
-### Scene Proxy
+(#SceneProxy)
+### 场景代理
 
-The `SceneProxy` of a PrimitiveComponent is an `FPrimitiveSceneProxy` instance that encapsulates the scene data that is mirrored in order to render the primitive in parallel to the game thread. 
-A subclass of `FPrimitiveSceneProxy` is created for each primitive type to hold the specific render data necessary to render that type of primitive.
+PrimitiveComponent 的 `SceneProxy` 是一个 `FPrimitiveSceneProxy` 实例，可封装被镜像的场景数据，以便与游戏线程平行渲染元。 
+将为每个元类型创建一个 `FPrimitiveSceneProxy` 的子类，以保存渲染这类元所必需的特定渲染数据。
 
-See **[Rendering System Overview](Programming/Rendering)** for more details on primitives and rendering geometry.
+在 [渲染系统总览](Programming/Rendering) 中可查看元和渲染集合体的更多细节内容。
 

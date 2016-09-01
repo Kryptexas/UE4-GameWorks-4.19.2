@@ -532,6 +532,14 @@ bool FShaderResource::ArePlatformsCompatible(EShaderPlatform CurrentPlatform, ES
 	return bFeatureLevelCompatible;
 }
 
+static void SafeAssignHash(FRHIShader* InShader, const FSHAHash& Hash)
+{
+	if (InShader)
+	{
+		InShader->SetHash(Hash);
+	}
+}
+
 void FShaderResource::InitRHI()
 {
 	checkf(Code.Num() > 0, TEXT("FShaderResource::InitRHI was called with empty bytecode, which can happen if the resource is initialized multiple times on platforms with no editor data."));
@@ -554,19 +562,51 @@ void FShaderResource::InitRHI()
 
 	if(Target.Frequency == SF_Vertex)
 	{
-		VertexShader = ShaderCache ? ShaderCache->GetVertexShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateVertexShader(Code);
+		if (ShaderCache)
+		{
+			VertexShader = ShaderCache->GetVertexShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+		}
+		else
+		{
+			VertexShader = RHICreateVertexShader(Code);
+			SafeAssignHash(VertexShader, OutputHash);
+		}
 	}
 	else if(Target.Frequency == SF_Pixel)
 	{
-		PixelShader = ShaderCache ? ShaderCache->GetPixelShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreatePixelShader(Code);
+		if (ShaderCache)
+		{
+			PixelShader = ShaderCache->GetPixelShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+		}
+		else
+		{
+			PixelShader = RHICreatePixelShader(Code);
+			SafeAssignHash(PixelShader, OutputHash);
+		}
 	}
 	else if(Target.Frequency == SF_Hull)
 	{
-		HullShader = ShaderCache ? ShaderCache->GetHullShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateHullShader(Code);
+		if (ShaderCache)
+		{
+			HullShader = ShaderCache->GetHullShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+		}
+		else
+		{
+			HullShader = RHICreateHullShader(Code);
+			SafeAssignHash(HullShader, OutputHash);
+		}
 	}
 	else if(Target.Frequency == SF_Domain)
 	{
-		DomainShader = ShaderCache ? ShaderCache->GetDomainShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateDomainShader(Code);
+		if (ShaderCache)
+		{
+			DomainShader = ShaderCache->GetDomainShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+		}
+		else
+		{
+			DomainShader = RHICreateDomainShader(Code);
+			SafeAssignHash(DomainShader, OutputHash);
+		}
 	}
 	else if(Target.Frequency == SF_Geometry)
 	{
@@ -583,12 +623,28 @@ void FShaderResource::InitRHI()
 		}
 		else
 		{
-			GeometryShader = ShaderCache ? ShaderCache->GetGeometryShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateGeometryShader(Code);
+			if (ShaderCache)
+			{
+				GeometryShader = ShaderCache->GetGeometryShader((EShaderPlatform)Target.Platform, OutputHash, Code);
+			}
+			else
+			{
+				GeometryShader = RHICreateGeometryShader(Code);
+				SafeAssignHash(GeometryShader, OutputHash);
+			}
 		}
 	}
 	else if(Target.Frequency == SF_Compute)
 	{
-		ComputeShader = ShaderCache ? ShaderCache->GetComputeShader((EShaderPlatform)Target.Platform, Code) : RHICreateComputeShader(Code);
+		if (ShaderCache)
+		{
+			ComputeShader = ShaderCache->GetComputeShader((EShaderPlatform)Target.Platform, Code);
+		}
+		else
+		{
+			ComputeShader = RHICreateComputeShader(Code);
+		}
+		SafeAssignHash(ComputeShader, OutputHash);
 	}
 
 	if (Target.Frequency != SF_Geometry)
@@ -1602,10 +1658,20 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
-		if ((Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4) && (CVar && CVar->GetValueOnGameThread() != 0))
+		static const auto CVarInstancedStereo = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
+		static const auto CVarMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
+
+		const bool bIsInstancedStereo = ((Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4) && (CVarInstancedStereo && CVarInstancedStereo->GetValueOnGameThread() != 0));
+		const bool bIsMultiView = (Platform == EShaderPlatform::SP_PS4 && (CVarMultiView && CVarMultiView->GetValueOnGameThread() != 0));
+
+		if (bIsInstancedStereo)
 		{
 			KeyString += TEXT("_VRIS");
+			
+			if (bIsMultiView)
+			{
+				KeyString += TEXT("_MVIEW");
+			}
 		}
 	}
 
@@ -1614,14 +1680,6 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		if (CVar && CVar->GetValueOnGameThread() != 0)
 		{
 			KeyString += TEXT("_SO");
-		}
-	}
-
-	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
-		if (CVar ? CVar->GetValueOnAnyThread() == 0 : false)
-		{
-			KeyString += TEXT("_NoGB");
 		}
 	}
 
@@ -1646,13 +1704,28 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 	
 	{
+		// Always default to fast math unless specified
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.FastMath"));
-		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("") : TEXT("_NoFastMath");
+		KeyString += (CVar && CVar->GetInt() == 0) ? TEXT("_NoFastMath") : TEXT("");
 	}
 	
 	{
-		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.AvoidFlowControl"));
-		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_Unroll") : TEXT("_Flow");
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.ZeroInitialise"));
+		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_ZeroInit") : TEXT("");
+	}
+	
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.BoundsChecking"));
+		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_BoundsChecking") : TEXT("");
+	}
+
+	if (IsD3DPlatform(Platform, false))
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.D3D.RemoveUnusedInterpolators"));
+		if (CVar && CVar->GetInt() != 0)
+		{
+			KeyString += TEXT("_UnInt");
+		}
 	}
 
 	if (Platform == SP_PS4)
@@ -1683,10 +1756,18 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EarlyZPass"));
-		if (CVar)
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
+		if (CVar && CVar->GetValueOnAnyThread() > 0)
 		{
-			KeyString += FString::Printf(TEXT("_EARLYZ%d"), CVar->GetValueOnAnyThread());
+			KeyString += TEXT("_SD");
+		}
+	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
+		if (CVar && CVar->GetValueOnAnyThread() > 0)
+		{
+			KeyString += TEXT("_FS");
 		}
 	}
 }

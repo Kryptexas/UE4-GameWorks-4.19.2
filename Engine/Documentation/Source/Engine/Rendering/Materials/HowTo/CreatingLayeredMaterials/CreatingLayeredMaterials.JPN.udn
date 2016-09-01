@@ -2,6 +2,8 @@
 Title:レイヤー マテリアルの作成
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/LayeredMaterials
 Description:UE4 のレイヤー マテリアル技術に関する入門書
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -71,7 +73,7 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 
 最初のマテリアル レイヤーは、表面に多少の腐食や欠陥があるかなりシンプルなクロムを作成します。編集機能をお見せするために、全体的な外観を制御するいくつかの入力も作成します。
 
-1. **コンテンツブラウザ** で、 ![New Asset](CB_button_NewAsset.png) ボタンをクリックして、 **[Materials & Textures] > [Material Function]** の順序で選択します。
+1. コンテンツブラウザで、**[Add New (新規追加)]** ボタンをクリックして、 **[Materials & Textures] > [Material Function]** の順序で選択します。
 
 	![](NewFunction.png)
 
@@ -83,7 +85,7 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 
 	![](EditLayerChrome.png)
 
-1. マテリアル グラフ エリアで **右クリック** して、コンテキスト メニューを表示させます。**Make** を検索して **Make Material Attributes** を選択します。
+1. マテリアル グラフ エリアで **右クリック** して、コンテキスト メニューを表示させます。「**Make** 」を検索して **[Make Material Attributes]** を選択します。
 
 	![](MakeMaterialAttributesContext.png)
 
@@ -96,7 +98,7 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 
 このマテリアル レイヤーのネットワークはとても単純です。素早く構築するために分類されています。ベースカラーとラフネスには **T_ExampleLayers_Metal_1_BC.png** 、法線マップには **T_ExampleLayers_Metal01_N.png** の 2 つのテクスチャを使用しています。両テクスチャはこのページ上部からダウンロードすることができます。
 
-**フルサイズ表示はここをクリック、または右クリックして [Save As] を選択**
+**フルサイズ表示はここをクリック、または右クリックして [Save As (名前をつけて保存)] を選択**
 [REGION:lightbox]
 [![](ChromGraph.png)(w:700)](ChromGraph.png)
 [/REGION]
@@ -125,7 +127,7 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 
 ここからは雪のエフェクトに関するマテリアル レイヤーを作成していきます。
 
-1. **コンテンツブラウザ** で、 ![New Asset](CB_button_NewAsset.png) ボタンをクリックして、 **[Materials & Textures] > [Material Function]** の順序で選択します。
+1. コンテンツブラウザで、**[Add New (新規追加)]** ボタンをクリックして、 **[Materials & Textures] > [Material Function]** の順序で選択します。
 
 	![](NewFunction.png)
 
@@ -137,7 +139,7 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 
 	![](EditLayerChrome.png)(w:600)
 
-1. マテリアル グラフ エリアで **右クリック** して、コンテキスト メニューを表示させます。**Make** を検索して **Make Material Attributes** を選択します。
+1. マテリアル グラフ エリアで **右クリック** して、コンテキスト メニューを表示させます。「**Make** 」を検索して **[Make Material Attributes]** を選択します。
 
 	![](MakeMaterialAttributesContext.png)
 
@@ -150,7 +152,7 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 
 以下は雪のマテリアル レイヤーを単純化して分類したものです。このレイヤーは **T_Cave_Ice_Tiling_D.png** と **T_Cave_Ice_Noise_N.png** を使用します。両レイヤーはページ上部からダウンロードすることができます。 
 
-**フルサイズ表示はここをクリック、または右クリックして [Save As] を選択**
+**フルサイズ表示はここをクリック、または右クリックして [Save As (名前をつけて保存)] を選択**
 [REGION:lightbox]
 [![](SnowNetwork.png)(w:700)](SnowNetwork.png)
 [/REGION]
@@ -159,7 +161,7 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 
 	次にマテリアル エディタの [Function] タブから FuzzyShading Material 関数へ結果を接続して、 _Core Darkness_ を値 0 、 _Power_ を値 1 、そして _EdgeBrightness_ を値 0.5 に設定します。最後に、とても淡い青 (R=0.8 、 G=0.9 、 B=0.95) で全体を乗算して、冷たく凍えるような色あいにします。
 
-1. **Metallic** - 非金属性の表面なので、 Metalic を 0 に設定します。
+1. **Metallic** - サーフェスはメタルではないので、 Metalic を 0 に設定します。
 
 1. **Roughness** - ライトがちょうど良く当たった時に雪の表面がわずかに放つ光沢を設定します。 T_Cave_Ice_Tiling_D.png テクスチャの赤チャンネルを使用して、 0.6 から 0.3 の間で線形補間を操作します。 
 
@@ -173,11 +175,11 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 
 これまでに生成したレイヤーを使用して、独自のレイヤー マテリアルを作成します。インスタンスのカスタマイズのために少し余裕をもった設定とし、雪が常に表面上に表示されるようにします。
 
-1. **コンテンツ ブラウザ** で ![新規アセット](CB_button_NewAsset.png) ボタンをクリックしてコンテキスト メニューからマテリアルを選択します。 
+1. **コンテンツ ブラウザ** で **[Add New (新規追加)]** ボタンをクリックしてコンテキスト メニューからマテリアルを選択します。 
 
 	![](NewMaterialContextMenu.png)
 
-1. 新しい関数は **「Mat_SnowyChrome」** と名前を付けます。
+1. 新しい関数に **「Mat_SnowyChrome」** と名前を付けます。
 
 	![](Mat_SnowyChrome.png)
 
@@ -191,18 +193,18 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 		[![](cnd_Chrome_Snow.png)](cnd_Chrome_Snow.png)
 	[/REGION]
 
-1. **[詳細]** パネルで、 **Use Material Attributes** を有効にします。
+1. **[Details (詳細)]** パネルで、**[Use Material Attributes (マテリアル アトリビュートを使用)]** を有効にします。
 
 	![](enableMatAttrib.png)
 
-1. [Functions] パネルから MatLayerBlend_Simple 関数および World_Aligned_Blend 関数へドラッグします。クロムから雪への変換処理に MatLayerBlend_Simple 関数を使用し、 World_Aligned_Blend  関数は表面が指し示す方向に基づいてレイヤー ブレンドを出力します。 
+1. [Functions] パネルから MatLayerBlend_Simple 関数および World_Aligned_Blend 関数へドラッグします。クロムから雪への変形処理に MatLayerBlend_Simple 関数を使用し、World_Aligned_Blend 関数は表面が指し示す方向に基づいてレイヤー ブレンドを出力します。 
 
 
-### レイヤー マテリアル ネットワーク
+### レイヤ マテリアル ネットワーク
 
 以下は各コメント領域の説明を伴った Mat_SnowyChrome ネットワークの概要です。
 
-**フルサイズ表示はここをクリック、または右クリックして [Save As] を選択**
+**フルサイズ表示はここをクリック、または右クリックして [Save As (名前をつけて保存)] を選択**
 [REGION:lightbox]
 [![](SnowCoveredChromeNetwork.png)(w:700)](SnowCoveredChromeNetwork.png)
 [/REGION]
@@ -228,7 +230,7 @@ Description:UE4 のレイヤー マテリアル技術に関する入門書
 
 	![](DefaultLevel.png)(w:500)
 
-1. Mat_SnowyChrome マテリアルを **右クリック** して、 **[Create Material Instance]** を選択します。初期設定の名前をそのまま付けます。
+1. Mat_SnowyChrome マテリアルを **右クリック** して、**[Create Material Instance (マテリアル インスタンスを作成)]** を選択します。初期設定の名前をそのまま付けます。
 
 	![](CreateMaterialInstance_ContextMenu.png)
 

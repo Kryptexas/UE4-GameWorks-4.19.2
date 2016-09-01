@@ -61,7 +61,7 @@ version: 4.9
 		Getting Started
 	[/PARAM]
 	[PARAM:links]
-		[REGION:topics third]
+		[REGION:topics fourth]
 		[INCLUDE:#topics]
 		[/REGION]
 	[/PARAM]
@@ -120,8 +120,25 @@ version: 4.9
 		[RELATIVE:Engine/UMG/UserGuide/WidgetTypeReference]
 	[/PARAM]
 [/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\UMG\UserGuide\BestPractices:title%](Engine\UMG\UserGuide\BestPractices\BestPractices.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\UMG\UserGuide\BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\UMG\UserGuide\BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\UMG\UserGuide\BestPractices]
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Topics]
-		-->
+-->
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

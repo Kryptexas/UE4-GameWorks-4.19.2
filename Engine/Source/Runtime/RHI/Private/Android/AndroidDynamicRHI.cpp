@@ -2,6 +2,7 @@
 
 #include "RHI.h"
 #include "ModuleManager.h"
+#include "AndroidApplication.h"
 
 FDynamicRHI* PlatformCreateDynamicRHI()
 {
@@ -10,8 +11,11 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 	// Load the dynamic RHI module.
 	IDynamicRHIModule* DynamicRHIModule = NULL;
 
-	if (FPlatformMisc::HasPlatformFeature(TEXT("Vulkan")))
+	if (FAndroidMisc::ShouldUseVulkan())
 	{
+		// Vulkan is required, release the EGL created by FAndroidAppEntry::PlatformInit.
+		FAndroidAppEntry::ReleaseEGL();
+
 		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("VulkanRHI"));
 		if (!DynamicRHIModule->IsSupported())
 		{

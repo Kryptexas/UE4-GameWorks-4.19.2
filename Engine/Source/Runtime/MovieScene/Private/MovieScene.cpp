@@ -23,8 +23,61 @@ UMovieScene::UMovieScene(const FObjectInitializer& ObjectInitializer)
 #endif
 }
 
+void UMovieScene::Serialize( FArchive& Ar )
+{
+#if WITH_EDITOR
+
+	// Perform optimizations for cooking
+	if (Ar.IsCooking())
+	{
+		// @todo: Optimize master tracks?
+
+		// Optimize object bindings
+		OptimizeObjectArray(Spawnables);
+		OptimizeObjectArray(Possessables);
+	}
+
+#endif // WITH_EDITOR
+
+	Super::Serialize(Ar);
+}
 
 #if WITH_EDITOR
+
+template<typename T>
+void UMovieScene::OptimizeObjectArray(TArray<T>& ObjectArray)
+{
+	for (int32 ObjectIndex = ObjectArray.Num() - 1; ObjectIndex >= 0; --ObjectIndex)
+	{
+		FGuid ObjectGuid = ObjectArray[ObjectIndex].GetGuid();
+
+		// Find the binding relating to this object, and optimize its tracks
+		// @todo: ObjectBindings mapped by ID to avoid linear search
+		for (int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex)
+		{
+			FMovieSceneBinding& Binding =ObjectBindings[BindingIndex];
+			if (Binding.GetObjectGuid() != ObjectGuid)
+			{
+				continue;
+			}
+			
+			bool bShouldRemoveObject = false;
+
+			// Optimize any tracks
+			Binding.PerformCookOptimization(bShouldRemoveObject);
+
+			// Remove the object if it's completely redundant
+			if (bShouldRemoveObject)
+			{
+				ObjectBindings.RemoveAtSwap(BindingIndex, 1, false);
+				ObjectArray.RemoveAtSwap(ObjectIndex, 1, false);
+			}
+
+			// Process next object
+			break;
+		}
+	}
+}
 
 // @todo sequencer: Some of these methods should only be used by tools, and should probably move out of MovieScene!
 FGuid UMovieScene::AddSpawnable( const FString& Name, UObject& ObjectTemplate )
@@ -303,6 +356,14 @@ void UMovieScene::SetFixedFrameInterval( float InFixedFrameInterval )
 }
 
 
+const float UMovieScene::FixedFrameIntervalEpsilon = .0001f;
+
+float UMovieScene::CalculateFixedFrameTime( float Time, float FixedFrameInterval )
+{
+	return ( FMath::RoundToInt( Time / FixedFrameInterval ) ) * FixedFrameInterval + FixedFrameIntervalEpsilon;
+}
+
+
 TArray<UMovieSceneSection*> UMovieScene::GetAllSections() const
 {
 	TArray<UMovieSceneSection*> OutSections;
@@ -366,7 +427,7 @@ UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> TrackClas
 			Modify();
 
 			CreatedType = NewObject<UMovieSceneTrack>(this, TrackClass, NAME_None, RF_Transactional);
-			ensure(CreatedType);
+			check(CreatedType);
 			
 			Binding.AddTrack( *CreatedType );
 		}
@@ -569,13 +630,24 @@ void UMovieScene::UpgradeTimeRanges()
 void UMovieScene::PostLoad()
 {
 	UpgradeTimeRanges();
+
+	for (FMovieSceneSpawnable& Spawnable : Spawnables)
+	{
+		if (UObject* Template = Spawnable.GetObjectTemplate())
+		{
+			// Spawnables are no longer marked archetype
+			Template->ClearFlags(RF_ArchetypeObject);
+			
+			FMovieSceneSpawnable::MarkSpawnableTemplate(*Template);
+		}
+	}
 	Super::PostLoad();
 }
 
 
-void UMovieScene::PreSave()
+void UMovieScene::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 #if WITH_EDITORONLY_DATA
 	// compress meta data mappings prior to saving

@@ -19,7 +19,6 @@
 #include "MessageLog.h"
 
 #include "LevelUtils.h"
-#include "MessageLog.h"
 
 #include "Dialogs/DlgPickAssetPath.h"
 #include "Dialogs/DlgPickPath.h"
@@ -28,6 +27,8 @@
 #include "Runtime/AssetRegistry/Public/AssetData.h"
 
 #include "PackageTools.h"
+#include "ObjectTools.h"
+#include "TextPackageNamespaceUtil.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/LevelStreaming.h"
@@ -315,11 +316,11 @@ FString FEditorFileUtils::GetFilterString(EFileInteraction Interaction)
 		break;
 
 	case FI_ImportScene:
-		Result = TEXT("FBX (*.fbx)|*.fbx|Unreal Text (*.t3d)|*.t3d");
+		Result = TEXT("FBX (*.fbx) OBJ (*.obj)|*.fbx;*.obj|FBX (*.fbx)|*.fbx|OBJ (*.obj)|*.obj");
 		break;
 
 	case FI_ExportScene:
-		Result = TEXT("FBX (*.fbx)|*.fbx|Object (*.obj)|*.obj|Unreal Text (*.t3d)|*.t3d|Stereo Litho (*.stl)|*.stl|LOD Export (*.lod.obj)|*.lod.obj|All Files|*.*");
+		Result = TEXT("FBX (*.fbx)|*.fbx|Object (*.obj)|*.obj|Unreal Text (*.t3d)|*.t3d|Stereo Litho (*.stl)|*.stl|LOD Export (*.lod.obj)|*.lod.obj");
 		break;
 
 	default:
@@ -508,16 +509,36 @@ static bool SaveWorld(UWorld* World,
 		SlowTask.EnterProgressFrame(25);
 
 		// Rename the package and the object, as necessary
+		UWorld* DuplicatedWorld = nullptr;
 		if ( bRenamePackageToFile )
 		{
-			if ( bPackageNeedsRename )
+			if (bPackageNeedsRename)
 			{
-				Package->Rename(*NewPackageName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
-			}
+				// If we are doing a SaveAs on a world that already exists, we need to duplicate it.
+				if (bPackageExists)
+				{
+					ObjectTools::FPackageGroupName NewPGN;
+					NewPGN.PackageName = NewPackageName;
+					NewPGN.ObjectName = NewWorldAssetName;
 
-			if ( bWorldNeedsRename )
-			{
-				World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
+					TSet<UPackage*> PackagesUserRefusedToFullyLoad;
+					DuplicatedWorld = Cast<UWorld>(ObjectTools::DuplicateSingleObject(World, NewPGN, PackagesUserRefusedToFullyLoad));
+					if (DuplicatedWorld)
+					{
+						Package = DuplicatedWorld->GetOutermost();
+					}
+				}
+
+				if (!DuplicatedWorld)
+				{
+					// Duplicate failed or not needed. Just do a rename.
+					Package->Rename(*NewPackageName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
+					
+					if (bWorldNeedsRename)
+					{
+						World->Rename(*NewWorldAssetName, NULL, REN_NonTransactional | REN_DontCreateRedirectors);
+					}
+				}
 			}
 		}
 
@@ -535,17 +556,27 @@ static bool SaveWorld(UWorld* World,
 
 		SlowTask.EnterProgressFrame(25);
 
-		// If the package save was not successful. Rename anything we changed back to the original name.
+		// If the package save was not successful. Trash the duplicated world or rename back if the duplicate failed.
 		if( bRenamePackageToFile && !bSuccess )
 		{
-			if ( bPackageNeedsRename )
+			if (bPackageNeedsRename)
 			{
-				Package->Rename(*OriginalPackageName, NULL, REN_NonTransactional);
-			}
+				if (DuplicatedWorld)
+				{
+					DuplicatedWorld->Rename(nullptr, GetTransientPackage(), REN_NonTransactional | REN_DontCreateRedirectors);
+					DuplicatedWorld->MarkPendingKill();
+					DuplicatedWorld->SetFlags(RF_Transient);
+					DuplicatedWorld = nullptr;
+				}
+				else
+				{
+					Package->Rename(*OriginalPackageName, NULL, REN_NonTransactional);
 
-			if ( bWorldNeedsRename )
-			{
-				World->Rename(*OriginalWorldName, NULL, REN_NonTransactional);
+					if (bWorldNeedsRename)
+					{
+						World->Rename(*OriginalWorldName, NULL, REN_NonTransactional);
+					}
+				}
 			}
 		}
 	}
@@ -637,7 +668,7 @@ static bool OpenSaveAsDialog(UClass* SavedClass, const FString& InDefaultPath, c
 /**
  * Prompts the user with a dialog for selecting a filename.
  */
-static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilename, const bool bAllowStreamingLevelRename )
+static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilename, const bool bAllowStreamingLevelRename, FString* OutSavedFilename )
 {
 	UEditorLoadingSavingSettings* LoadingSavingSettings = GetMutableDefault<UEditorLoadingSavingSettings>();
 
@@ -670,9 +701,10 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	// Loop through until a valid filename is given or the user presses cancel
 	bool bFilenameIsValid = false;
 
+	FString SaveFilename;
 	while( !bFilenameIsValid )
 	{
-		FString SaveFilename;
+		SaveFilename = FString();
 		bool bSaveFileLocationSelected = false;
 		if (UEditorEngine::IsUsingWorldAssets())
 		{
@@ -816,7 +848,6 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 				}
 			}
 
-
 			if( bCanRenameStreamingLevels )
 			{
 				// Prompt to update streaming levels and such
@@ -877,8 +908,12 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	// Update SCC state
 	ISourceControlModule::Get().QueueStatusUpdate(InWorld->GetOutermost());
 
-	return bStatus;
+	if (bStatus && OutSavedFilename)
+	{
+		*OutSavedFilename = SaveFilename;
+	}
 
+	return bStatus;
 }
 
 /**
@@ -969,7 +1004,7 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
  * @param	InLevel		The level to be SaveAs'd.
  * @return				true if the world was saved.
  */
-bool FEditorFileUtils::SaveLevelAs(ULevel* InLevel)
+bool FEditorFileUtils::SaveLevelAs(ULevel* InLevel, FString* OutSavedFilename)
 {
 	FString DefaultFilename;
 
@@ -985,7 +1020,7 @@ bool FEditorFileUtils::SaveLevelAs(ULevel* InLevel)
 	// We'll allow the map to be renamed when saving a level as a new file name this way
 	const bool bAllowStreamingLevelRename = InLevel->IsPersistentLevel();
 
-	return SaveAsImplementation( CastChecked<UWorld>(InLevel->GetOuter()), DefaultFilename, bAllowStreamingLevelRename );
+	return SaveAsImplementation( CastChecked<UWorld>(InLevel->GetOuter()), DefaultFilename, bAllowStreamingLevelRename, OutSavedFilename);
 }
 
 /**
@@ -1062,7 +1097,7 @@ void FEditorFileUtils::Import(const FString& InFilename)
  *
  * @return				true if the level was saved.
  */
-bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename )
+bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename, FString* OutSavedFilename )
 {
 	bool bLevelWasSaved = false;
 
@@ -1087,7 +1122,7 @@ bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename )
 			{
 				// Present the user with a SaveAs dialog.
 				const bool bAllowStreamingLevelRename = false;
-				bLevelWasSaved = SaveAsImplementation( Level->OwningWorld, Filename, bAllowStreamingLevelRename );
+				bLevelWasSaved = SaveAsImplementation( Level->OwningWorld, Filename, bAllowStreamingLevelRename, OutSavedFilename );
 				return bLevelWasSaved;
 			}
 		}
@@ -1106,6 +1141,10 @@ bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename )
 										true, false,
 										FinalFilename,
 										false, false );
+			if (bLevelWasSaved && OutSavedFilename)
+			{
+				*OutSavedFilename = FinalFilename;
+			}
 		}
 	}
 
@@ -1428,7 +1467,10 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 	// If any files were just checked out, remove any pending flag to show a notification prompting for checkout.
 	if (PackagesToCheckOut.Num() > 0)
 	{
-		GUnrealEd->bNeedToPromptForCheckout = false;
+		for (UPackage* Package : PackagesToCheckOut)
+		{
+			GUnrealEd->PackageToNotifyState.Add(Package, NS_DialogPrompted);
+		}
 	}
 
 	if (OutPackagesNotNeedingCheckout)
@@ -2069,6 +2111,81 @@ void FEditorFileUtils::LoadMap()
 	}
 }
 
+static void NotifyBSPNeedsRebuild(const FString& PackageName)
+{
+	static TWeakPtr<SNotificationItem> NotificationPtr;
+
+	auto RemoveNotification = []
+	{
+		TSharedPtr<SNotificationItem> Notification = NotificationPtr.Pin();
+		if (Notification.IsValid())
+		{
+			Notification->SetEnabled(false);
+			Notification->SetExpireDuration(0.0f);
+			Notification->SetFadeOutDuration(0.5f);
+			Notification->ExpireAndFadeout();
+			NotificationPtr.Reset();
+		}
+	};
+
+	// If there's still a notification present from the last time a map was loaded, get rid of it now.
+	RemoveNotification();
+
+	FNotificationInfo Info(LOCTEXT("BSPIssues", "Some issues were detected with BSP/Volume geometry in the loaded level or one of its sub-levels.\nThis is due to a fault in previous versions of the editor which has now been fixed, not user error.\nYou can choose to correct these issues by rebuilding the geometry now if you wish."));
+	Info.bFireAndForget = true;
+	Info.bUseLargeFont = false;
+	Info.ExpireDuration = 25.0f;
+	Info.FadeOutDuration = 0.5f;
+
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		LOCTEXT("RebuildGeometry", "Rebuild Geometry"),
+		FText(),
+		FSimpleDelegate::CreateLambda([&RemoveNotification]{
+			TArray<TWeakObjectPtr<ULevel>> LevelsToRebuild;
+			ABrush::NeedsRebuild(&LevelsToRebuild);
+			for (const TWeakObjectPtr<ULevel>& Level : LevelsToRebuild)
+			{
+				if (Level.IsValid())
+				{
+					GUnrealEd->RebuildLevel(*Level.Get());
+				}
+			}
+			ABrush::OnRebuildDone();
+			RemoveNotification();
+		}),
+		SNotificationItem::CS_None)
+	);
+
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		LOCTEXT("DontRebuild", "Don't Rebuild"),
+		FText(),
+		FSimpleDelegate::CreateLambda([&RemoveNotification]{
+			RemoveNotification();
+		}),
+		SNotificationItem::CS_None)
+	);
+
+	Info.Hyperlink = FSimpleDelegate::CreateLambda([PackageName]{
+		FMessageLog MessageLog("LoadErrors");
+		MessageLog.NewPage(FText::Format(LOCTEXT("GeometryErrors", "Geometry errors from loading map '{0}'"), FText::FromString(PackageName)));
+
+		TArray<TWeakObjectPtr<ULevel>> LevelsToRebuild;
+		ABrush::NeedsRebuild(&LevelsToRebuild);
+		for (const auto& Level : LevelsToRebuild)
+		{
+			if (Level.IsValid())
+			{
+				MessageLog.Message(EMessageSeverity::Info, FText::Format(LOCTEXT("GeometryErrorMap", "Level '{0}' has geometry with invalid normals."), FText::FromString(Level->GetOuter()->GetName())));
+			}
+		}
+
+		MessageLog.Open();
+	});
+	Info.HyperlinkText = LOCTEXT("WhichLevels", "Which levels need a geometry rebuild?");
+
+	NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+}
+
 /**
  * Loads the specified map.  Does not prompt the user to save the current map.
  *
@@ -2143,6 +2260,8 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		return;
 	}
 
+	World->IssueEditorLoadWarnings();
+
 	ResetLevelFilenames();
 
 	//only register the file if the name wasn't changed as a result of loading
@@ -2186,6 +2305,12 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 
 	// If there are any old mirrored brushes in the map with inverted polys, fix them here
 	GUnrealEd->FixAnyInvertedBrushes(World);
+
+	// Request to rebuild BSP if the loading process flagged it as not up-to-date
+	if (ABrush::NeedsRebuild())
+	{
+		NotifyBSPNeedsRebuild(LongMapPackageName);
+	}
 
 	// Fire delegate when a new map is opened, with name of map
 	FEditorDelegates::OnMapOpened.Broadcast(InFilename, LoadAsTemplate);
@@ -2775,11 +2900,17 @@ static bool InternalSavePackages(TArray<UPackage*>& PackagesToSave, int32 NumPac
 						bool bPackageLocallyWritable;
 						const int32 SaveStatus = InternalSavePackage(CurPackage, bPackageLocallyWritable, SaveErrors);
 
+						if ( SaveStatus == EAppReturnType::Cancel)
+						{
+							// we don't want to pop up a message box about failing to save packages if they cancel
+							// instead warn here so there is some trace in the log and also unattended builds can find it
+							UE_LOG(LogFileHelpers, Warning, TEXT("Cancelled saving package %s"), *CurPackage->GetName());
+						}
+
 						if (SaveStatus == EAppReturnType::No)
 						{
 							// The package could not be saved so add it to the failed array 
 							FailedPackages.Add(CurPackage);
-
 						}
 					}
 				}
@@ -3407,7 +3538,7 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(FPaths::ConvertRelativePathToFull(Filename), EStateCacheUsage::Use);
 
 		// Only include non-map packages that are currently checked out or packages not under source control
-		if (SourceControlState.IsValid() && 
+		if (SourceControlState.IsValid() && SourceControlState->IsCurrent() && 
 			(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || (!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())) &&
 			(bIncludeMaps || !IsMapPackageAsset(*Filename)))
 		{

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2547516
+﻿INTSourceChangelist:2740691
 Availability:Public
 Title:2.入力とゲームモード
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:このステップでは、キャラクターの制御だけでなくプレイ可能なキャラクターとなるデフォルトのポンの設定を行うための入力を設定します。
+Description:このステップでは、キャラクターの制御だけでなくプレイ可能なキャラクターとなるデフォルトのポーンの設定を行うための入力を設定します。
+Version:4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -36,7 +38,7 @@ Description:このステップでは、キャラクターの制御だけでな�
 
 1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
 
-1.	メインのエディタ ウィンドウの **メニュー バー** の **[Edit]** をクリックし **[Project Settings]** を選びます。 
+1.	メインのエディタ ウィンドウの **メニュー バー** の **[Edit]** をクリックし **[Project Settings (プロジェクト設定)]** を選びます。 
 
 1.	プロジェクト設定で **[Engine]** セクションの **[Input]** をクリックします。 
 
@@ -46,7 +48,7 @@ Description:このステップでは、キャラクターの制御だけでな�
 
 	![](Input_1.png)(w:480)
 
-	空の Bindings はこのようになっているはずです。 
+	空の Bindings は上のようになっているはずです。 
 
 1.	**Bindings** を以下のように設定します (**Scale** を **A** 、 **S** そして **Mouse Y** を **-1.0** に設定するようにしてください)。 
 
@@ -65,10 +67,10 @@ Description:このステップでは、キャラクターの制御だけでな�
 	![](GameMode_2.png)
 
 	[REGION:note]
-	**ゲームモード** に関する詳細は、 [](Gameplay\HowTo\SettingUpAGameMode) を参照してください。 
+	ゲームモード に関する詳細は、 [](Gameplay\HowTo\SettingUpAGameMode) を参照してください。 
 	[/REGION]
 
-1.	入力とゲームモードの設定が完了したら、[Project Settings] ウィンドウを終了します。 
+1.	入力とゲームモードの設定が完了したら、[Project Settings] ウィンドウを閉じます。 
 
 
 %Steps%

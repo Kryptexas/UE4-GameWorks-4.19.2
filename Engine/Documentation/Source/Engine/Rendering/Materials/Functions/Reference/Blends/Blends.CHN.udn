@@ -1,314 +1,315 @@
-﻿INTSourceChangelist:0
-Availability: Public
-title:Blends
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
-Description:Functions designed to blend one color with another, similar to blend modes in popular image editing applications.
+﻿INTSourceChangelist:2705150
+Availability:Public
+title:混合
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
+Description:这些函数用于将一种颜色与另一颜色混合，这类似于流行图像编辑应用程序中的混合模式。
+Version:4.9
 
 [TOC (start:2 end:3)]
 
 
 
-A Blend is a type of function that performs mathematical calculations in the color information of a texture so that one texture can blend into another in a particular manner.
+**混合** 是一种函数类型，这类函数在纹理的颜色信息中执行数学运算，以使一个纹理可以特定方式混合到另一个纹理中。
 
-Blends will always have a Base and a Blend input, both of which are Vector3. These will each take in a texture and the two will be blended in some way. The manner in which the blend takes place depends on the type of blend function used.
+混合始终具有“底色”（Base）和“混合”（Blend）输入，这两个输入都是“矢量 3”（Vector3）。这两个输入都接收纹理，并以某种方式混合到一起。混合方式取决于您所使用的混合函数类型。
 
-## Blend Functions
+## 混合函数
 
-Below is a list of all of the blend material functions.
+以下是所有混合材质函数的列表。
 
-### Blend_ColorBurn
+### Blend_ColorBurn（混合_颜色加深）
 
-Blend_ColorBurn blends the textures in such a way that the darker the Blend color the more of that color will be used in the final result. If the Blend color is white, no change takes place.
+**Blend_ColorBurn（混合_颜色加深）**以“混合”（Blend）颜色越暗，在最终结果中使用该颜色越多的方式，对材质进行混合。如果“混合”（Blend）颜色为白色，则不进行任何更改。
 
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Color Burn](ColorBurn.png)
+![颜色加深](ColorBurn.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Color Burn Blend](ColorBurn2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![颜色加深混合](ColorBurn2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
 
 
-### Blend_ColorDodge
+### Blend_ColorDodge（混合_颜色减淡）
 
-Blend_ColorDodge lightens the result by inverting the Base color and dividing it by the Blend color.
+**Blend_ColorDodge（混合_颜色减淡）**通过将“底色”（Base）颜色反转并将其除以“混合”（Blend）颜色，使结果变亮。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Color Dodge](ColorDodge.png)
+![颜色减淡](ColorDodge.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Color Dodge Blend](ColorDodge2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![颜色减淡混合](ColorDodge2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_Darken
+### Blend_Darken（混合_变暗）
 
-Blend_Darken works by choosing the darker value for each pixel of the Base and Blend colors. A white Blend color does not produce a change.
+**Blend_Darken（混合_变暗）**针对“底色”（Base）和“混合”（Blend）颜色的每个像素，选择较暗的值。如果“混合”（Blend）颜色为白色，则不会产生变化。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Darken](Darken.png)
+![变暗](Darken.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Darken Blend](Darken2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![变暗混合](Darken2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_Difference
+### Blend_Difference（混合_差异）
 
-Blend_Difference creates a sort of inversion-style effect by subtracting the Base from the Blend and then taking the absolute value of the result.
+**Blend_Difference（混合_差异）**通过从“混合”（Blend）中减去“底色”（Base），然后取结果的绝对值，创建反转样式的效果。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Difference](Difference.png)
+![差异](Difference.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Difference Blend](Difference2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![差异混合](Difference2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_Exclusion
+### Blend_Exclusion（混合_排除）
 
-Blend_Exclusion halves both the Base and Blend textures, combines them, and then does a partial inversion on the result.
+**Blend_Exclusion（混合_排除）**将“底色”（Base）和“混合”（Blend）纹理二等分，对其进行组合，然后对结果执行部分反转。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Exclusion](Exclusion.png)
+![排除](Exclusion.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Exclusion Blend](Exclusion2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![排除混合](Exclusion2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_HardLight
+### Blend_HardLight（混合_强光）
 
-Like a harsher version of Blend_Overlay, Blend_HardLight will either screen or multiply the Base and Blend together. The function does a comparison on the Blend color such that wherever the Blend is brighter than 50% gray, the Base and Blend will be combined via a Screen operation. If the Blend is darker than 50% gray, the Base will be multiplied by the Blend as in the Multiply function. The contrast of the final result is then boosted for a harsh output.
+**Blend_HardLight（混合_强光）**与 Blend_Overlay（混合_覆盖）的粗糙版本相似，它会对“底色”（Base）和“混合”（Blend）进行筛滤或相乘。此函数对“混合”（Blend）颜色执行比较，从而每当“混合”（Blend）比 50% 灰度亮时，就通过“筛滤”（Screen）操作对“底色”（Base）和“混合”（Blend）进行组合。如果“混合”（Blend）比 50% 灰度暗，那么将像“乘”功能一样，将“底色”（Base）与“混合”（Blend）相乘。然后，提高最终结果的对比度，以产生粗糙输出。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Hard Light](HardLight.png)
+![强光](HardLight.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Hard Light Blend](HardLight2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![强光混合](HardLight2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_Lighten
+### Blend_Lighten（混合_变亮）
 
-Blend_Lighten compares each pixel of the Base and Blend colors and returns the brighter result.
+**Blend_Lighten（混合_变亮）**对“底色”（Base）和“混合”（Blend）颜色的每个像素进行比较，并返回较亮的结果。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Lighten](Lighten.png)
+![变亮](Lighten.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Lighten Blend](Lighten2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![变亮混合](Lighten2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_LinearBurn
+### Blend_LinearBurn（混合_线性加深）
 
-Blend_LinearBurn adds Base color to the Blend color and then subtracts 1 from the result.
+**Blend_LinearBurn（混合_线性加深）**将“底色”（Base）颜色与“混合”（Blend）颜色相加，然后从结果中减去 1。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Linear Burn](LinearBurn.png)
+![线性加深](LinearBurn.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Linear Burn Blend](LinearBurn2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![线性加深混合](LinearBurn2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_LinearDodge
+### Blend_LinearDodge（混合_线性减淡）
 
-Blend_LinearDodge adds the Base color to the Blend color.
+**Blend_LinearDodge（混合_线性减淡）**将“底色”（Base）颜色与“混合”（Blend）颜色相加。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Linear Dodge](LinearDodge.png)
+![线性减淡](LinearDodge.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Linear Dodge Blend](LinearDodge2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![线性减淡混合](LinearDodge2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_LinearLight
+### Blend_LinearLight（混合_线性光）
 
-Blend_LinearLight is a linear version of Blend_Overlay, providing harsher results. The function does a comparison on the Blend color such that wherever the Blend is brighter than 50% gray, the Base and Blend will be combined via a Screen operation. If the Blend is darker than 50% gray, the Base will be multiplied by the Blend as in the Multiply function.
+**Blend_LinearLight（混合_线性光）**是 Blend_Overlay（混合_覆盖）的线性版本，用于提供更粗糙的结果。此函数对“混合”（Blend）颜色执行比较，从而每当“混合”（Blend）比 50% 灰度亮时，就通过“筛滤”（Screen）操作对“底色”（Base）和“混合”（Blend）进行组合。如果“混合”（Blend）比 50% 灰度暗，那么将像“乘”功能一样，将“底色”（Base）与“混合”（Blend）相乘。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Linear Light](LinearLight.png)
+![线性光](LinearLight.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Linear Light Blend](LinearLight2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![线性光混合](LinearLight2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_Overlay
+### Blend_Overlay（混合_覆盖）
 
-Blend_Overlay will either screen or multiply the Base and Blend together. The function does a comparison on the Blend color such that wherever the Blend is brighter than 50% gray, the Base and Blend will be combined via a Screen operation. If the Blend is darker than 50% gray, the Base will be multiplied by the Blend as in the Multiply function.
+**Blend_Overlay（混合_覆盖）**对“底色”（Base）和“混合”（Blend）进行筛滤或相乘。此函数对“混合”（Blend）颜色执行比较，从而每当“混合”（Blend）比 50% 灰度亮时，就通过“筛滤”（Screen）操作对“底色”（Base）和“混合”（Blend）进行组合。如果“混合”（Blend）比 50% 灰度暗，那么将像“乘”功能一样，将“底色”（Base）与“混合”（Blend）相乘。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Overlay](Overlay.png)
+![覆盖](Overlay.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Overlay Blend](Overlay2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![覆盖混合](Overlay2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_PinLight
+### Blend_PinLight（混合_点光）
 
-Like Blend_Overlay, Blend_PinLight will either lighten or darken the Base and Blend together. The function does a comparison on the Blend color such that wherever the Blend is brighter than 50% gray, the Base and Blend will be combined via a Screen operation. If the Blend is darker than 50% gray, the Base will be multiplied by the Blend as in the Multiply function. The contrast is softened, making this a less harsh version of Overlay.
+**Blend_PinLight（混合_点光）**与 Blend_Overlay（混合_覆盖）相似，它使“底色”（Base）和“混合”（Blend）一起变亮或变暗。此函数对“混合”（Blend）颜色执行比较，从而每当“混合”（Blend）比 50% 灰度亮时，就通过“筛滤”（Screen）操作对“底色”（Base）和“混合”（Blend）进行组合。如果“混合”（Blend）比 50% 灰度暗，那么将像“乘”功能一样，将“底色”（Base）与“混合”（Blend）相乘。对比度会软化，这使此函数成为 Overlay（覆盖）的不太粗糙版本。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Pin Light](PinLight.png)
+![点光](PinLight.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Pin Light Blend](PinLight2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![点光混合](PinLight2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_Screen
+### Blend_Screen（混合_筛滤）
 
-Blend_Screen lightens the Base by the Blend color. It does this by doing a "one minus" on both colors, multiplying them together, and taking a one-minus of the result.
+**Blend_Screen（混合_筛滤）**按“混合”（Blend）颜色使“底色”（Base）变亮。其工作方式如下：对这两种颜色都执行“一减”，将它们相乘，然后对结果执行“一减”。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Screen](Screen.png)
+![筛滤](Screen.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Screen Blend](Screen2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![筛滤混合](Screen2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]
 
-### Blend_SoftLight
+### Blend_SoftLight（混合_柔光）
 
-Blend_SoftLight is a softer version of Overlay. The function does a comparison on the Blend color such that wherever the Blend is brighter than 50% gray, the Base and Blend will be combined via a Screen operation. If the Blend is darker than 50% gray, the Base will be multiplied by the Blend as in the Multiply function. The contrast is softened, making this a less harsh version of Overlay.
+**Blend_SoftLight（混合_柔光）**是 Overlay（覆盖）的柔和版本。此函数对“混合”（Blend）颜色执行比较，从而每当“混合”（Blend）比 50% 灰度亮时，就通过“筛滤”（Screen）操作对“底色”（Base）和“混合”（Blend）进行组合。如果“混合”（Blend）比 50% 灰度暗，那么将像“乘”功能一样，将“底色”（Base）与“混合”（Blend）相乘。对比度会软化，这使此函数成为 Overlay（覆盖）的不太粗糙版本。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | -------- |
-|[REGION:tablesection]Inputs[/REGION] ||
-| **Base (Vector3)** | The base, or original texture that will be blended with the Blend texture in some way. |
-| **Blend (Vector3)** | The blend texture, which is combined with the base in some way based on the type of blend operation taking place. |
+| [REGION:tablesection]输入[/REGION] ||
+| **底色（矢量 3）（Base (Vector3)）** | 要以某种方式与“混合”（Blend）纹理进行混合的底色（原始纹理）。|
+| **混合（矢量 3）（Blend (Vector3)）** | 这是混合纹理，它根据所执行的混合操作类型，以某种方式与底色混合。|
 
 
-![Soft Light](SoftLight.png)
+![柔光](SoftLight.png)
 
 [REGION:imagetable]
 
 | ------- | ------- | ------- | ------- |
-| | ![Base](Base.png) | ![Blend](Blend.png) | ![Soft Light Blend](SoftLight2.png) |
-| | Base | Blend | Result |
+| | ![底色（Base）](Base.png) | ![混合（Blend）](Blend.png) | ![柔光混合](SoftLight2.png) |
+| | 底色（Base） | 混合（Blend） | 结果（Result） |
 
 [/REGION]

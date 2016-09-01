@@ -1,132 +1,67 @@
-﻿Title: 6. 设置AI控制器蓝图
-Crumbs:%ROOT%, Engine, Engine/AI/BehaviorTrees/QuickStart
-Description:步骤6. 设置AI控制器蓝图
+﻿INTSourceChangelist:2757177
 Availability:Public
+Title:6.设置 AI 控制器蓝图
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
+Description:第六步。设置 AI 控制器蓝图
+version:4.9
 
 [VAR:Steps]
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/5 "%Engine/AI/BehaviorTrees/QuickStart/5:title%")
 	[/PARAM]
-	[PARAM:title]
-		步骤
+	[PARAM:current]
 	[/PARAM]
-	[PARAM:description]
+	[PARAM:home]
+		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
 	[/PARAM]
-	[PARAM:links]
-		* [前一步 - %Engine/AI/BehaviorTrees/QuickStart/5:Title%](Engine/AI/BehaviorTrees/QuickStart/5 "%Engine/AI/BehaviorTrees/QuickStart/5:description%")
-		* **%Engine/AI/BehaviorTrees/QuickStart/6:Title%**
-		* [下一步 - %Engine/AI/BehaviorTrees/QuickStart/7:Title%](Engine/AI/BehaviorTrees/QuickStart/7 "%Engine/AI/BehaviorTrees/QuickStart/7:description%")
+	[PARAM:next]
+		[Next Step](Engine/AI/BehaviorTrees/QuickStart/7 "%Engine/AI/BehaviorTrees/QuickStart/7:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
----
-
-应用Top Down(自上而下)模板，使我们可以使用鼠标控制来到处移动我们的角色，但是对于我们将要创建的其他角色，它们需要其各自的控制器。这个AI控制器将在黑板上设置几个值，并且将会启动我们的行为树。对于熟悉蓝图的人来说，这里是 **事件图表** 的最终样子:
-
 [REGION:lightbox]
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
 [/REGION]
 
-以下是创建该 **事件图表** 的步骤。
+使用自上而下模板用鼠标控制角色移动，但我们即将创建的角色需要其自带的控制器。该 AI 控制器将在其黑板上设置一些数值，并开始运行行为树。对于熟悉蓝图的用户而言，这就是最终 **事件图表（Event Graph）** 的外观：
 
-1. 在内容浏览器中双击AI控制器蓝图来开始编辑它。
+以下是 **事件图表** 第一部分的创建步骤。第七步。AI 控制器蓝图：初始黑板数值和第八步。AI 控制器蓝图：运行行为树将涉及对该图表进行编辑。
+
+## 步骤
+
+1. 在 **内容浏览器** 中 **双击** AI 控制器蓝图进行编辑。
 
 	![](followerAICONAsset.png)
 
-1. 修改为 **Graph（蓝图）** 模式。
-
-	![](graphMode.png)
-
-1. 在图表面板中使用右键关联菜单：
+1. 使用 **Graph** 面板中的 **右键单击** 快捷菜单：
 
 	1. 添加一个 **Event Begin Play** 节点。
 
 		![](EBPc.png)
 
-	1. 添加一个  **Use Blackboard** 节点。
+	1. 添加一个 **Use Blackboard** 节点。
 
 		![](useBBc.png)
 
 	![](EBPandUB.png)
 
-1. 在 **Use Blackboard** 节点上，将 **Blackboard Asset（黑板资源）** 改为您在第三步中创建的资源。
+1. 在 **Use Blackboard** 节点上，将 **黑板资源** 改为第三步中创建的资源。
 
 	![](useBBset.png)
 
-1. 将 **Event Begin Play** 节点上的输出连接引脚连接到 **Use Blackboard** 节点的输入执行引脚上。
+1. 将 **Event Begin Play** 节点上的输出执行引脚与 **Use Blackboard** 节点上的输入执行引脚相连。
 
 	![](connectedBPtoUB.png)
 
-现在，我们需要在 **黑板** 上设置  "HomeLocation" 关键帧。这个步骤中涉及的内容较多，但并不是非常难。
-
-1. 您需要一个 **Get Blackboard** 节点和一个 **Get Controlled Pawn** 节点。
-
-	![](getBBandCPnodes.png)
-
-1. 从右键关联菜单中获得一个 **Reference to Self** 节点，并将其连接到  **Get Blackboard** 节点上。
-
-	![](addSelf.png)
-
-1. 从 **Get Blackboard** 节点的 **Return Value** 引脚进行拖拽，搜索  "Vector" ，并创建一个 **Set Value as Vector**  节点。
-
-	[REGION:raw]
-	![](createSetKeyVectorNode.png)(w:920)
-	[/REGION]
-
-1. 从  **Get Controlled Pawn** 节点的 **Return Value** 引脚进行拖拽，并创建一个 **Get Actor Location**  节点。
-
-	![](actorLoc.png)
-
-1. 将 **Get Actor Location** 节点的 **Return Value** 引脚连接到 **Set Value as Vector** 节点的 **Vector Value** 引脚上。
-
-	![](connectedALtoSV.png)
-
-1. 在  **Set Value as Vector** 节点的 **Key Name** 引脚上拖拽鼠标，并使用关联菜单中的 **Promote to Variable** 项。
-
-	![](promoteText.png)
-	
-1. 该变量应该在 **My Blueprint** 面板中设置一个名称，将该变量命名为 **HomeLocation** 。
-	
-	* 如果您在命名该变量之前点击任何地方，那么您可以使用右键关联菜单在 **My Blueprint（我的蓝图）** 面板中重命名它。
-
-	![](hlconnected.png)
-
-1. 编辑该蓝图![](button_compile.png)
-1. 在 **My Blueprint Panel（我的蓝图面板）** 中选择 **HomeLocationKey** 变量。
-1. 在详细信息面板中，将其 **Default Value** 改为黑板上的 Vector Value(向量值)的名称，在这个示例中是 `HomeLocation` 。
-
-	![](homeLocationDetails.png)
-
-1. 连接 **Use Blackboard** 节点的输出执行引脚到 **Set Value as Vector** 节点的输入执行引脚。
-
-	![](execution2.png)
-
-最后，我们仅需要使用一个单独的节点来运行我们的 **行为树** ：
-
-1. 创建一个  **Run Behavior Tree** 节点。
-
-	![](rbtNode.png)
-
-1. 设置BTAsset值为您在第三步中创建的 **行为树** 资源。
-
-	![](runBTsetBT.png)
-
-1. 连接 **Use Blackboard** 节点的输出执行引脚到 **Set Value as Vector** 节点的输入执行引脚。
-
-	[REGION:lightbox]
-	[![](fullEG.png)(w:920 convert:false)](fullEG.png)
-	[/REGION]
-	
-1. 保存您的AI控制器蓝图。
-
-
-
-
-
----
+下一步中我们将继续对此图表进行编辑，为 AI 控制器设置初始黑板值。
 
 %Steps%
+
+
+
+
+

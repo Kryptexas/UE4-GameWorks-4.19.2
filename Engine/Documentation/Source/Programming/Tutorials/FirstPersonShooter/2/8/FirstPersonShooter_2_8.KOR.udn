@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672917
+﻿INTSourceChangelist:3032506
 Availability: Docs
 Title: 2.8 - 캐릭터에 일인칭 메시 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: 일인칭 슈팅 캐릭터에 일인칭 메시를 추가하는 법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,217 +24,41 @@ Version: 4.9
 
 %Steps%
 
-FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메시 하나, "무기와 손" 메시 하나, 별개의 캐릭터 메시를 두 개 사용하는 것입니다. 전신 메시는 삼인칭 시점에서 캐릭터를 볼 때 사용되지만, 플레이어가 일인칭 시점에서 게임을 볼 때는 숨깁니다. "무기와 손" 메시는 전형적으로 카메라에 붙여 플레이어가 일인칭 시점에서 맵을 볼 때 플레이어에게만 보이는 것입니다.
+FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메시 하나, "무기와 손" 메시 하나, 별개의 캐릭터 메시를 두 개 사용하는 것입니다. 
+전신 메시는 삼인칭 시점에서 캐릭터를 볼 때 사용되지만, 플레이어가 일인칭 시점에서 게임을 볼 때는 숨깁니다. 
+"무기와 손" 메시는 전형적으로 카메라에 붙여 플레이어가 일인칭 시점에서 맵을 볼 때 플레이어에게만 보이는 것입니다.
+이 글에서는 캐릭터에 일인칭 메시를 추가해 보도록 하겠습니다.
 
 ## 일인칭 캐릭터 메시 추가
 
-1.	Visual Studio 로 돌아와서 `FPSCharacter.h` 를 열고 다음 공용 프로퍼티를 추가합니다:
+1.	Visual Studio 로 돌아와서 `FPSCharacter.h` 를 열고 다음 코드를 추가합니다:
 
-		// 폰 메시: 일인칭 시점 (자신에게만 보이는 팔)
+		// 일인칭 메시 (팔), 소유 플레이어에게만 보입니다.
 		UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		USkeletalMeshComponent* FirstPersonMesh;
-
-1.	`FPSCharacter.h` 는 이제 다음과 같아 보일 것입니다:
-
-		// 프로젝트 세팅의 설명 페이지에 저작권 문구를 채우세요.
-		
-		#pragma once
-		
-		#include "GameFramework/Character.h"
-		#include "FPSCharacter.generated.h"
-		
-		UCLASS()
-		class FPSPROJECT_API AFPSCharacter : public ACharacter
-		{
-			GENERATED_BODY()
-		
-		public:
-			// 이 캐릭터 프로퍼티에 대한 기본값을 설정합니다.
-			AFPSCharacter();
-		
-			// AFPSCharacter 에 대한 생성자입니다.
-			AFPSCharacter(const FObjectInitializer& ObjectInitializer);
-		
-			// 게임 시작시 또는 스폰시 호출됩니다.
-			virtual void BeginPlay() override;
-			
-			// 매 프레임 호출됩니다.
-			virtual void Tick( float DeltaSeconds ) override;
-		
-			// 입력에 함수성을 바인딩하기 위해 호출됩니다.
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-		
-			// 전후 이동을 처리합니다.
-			UFUNCTION()
-			void MoveForward(float Value);
-		
-			// 좌우 이동을 처리합니다.
-			UFUNCTION()
-			void MoveRight(float Value);
-		
-			// 키를 누르면 점프 플래그를 설정합니다.
-			UFUNCTION()
-			void OnStartJump();
-			
-			// 키를 떼면 점프 플래그를 지웁니다.
-			UFUNCTION()
-			void OnStopJump();
-		
-			// FPS 카메라
-			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-			UCameraComponent* FirstPersonCameraComponent;
-		
-			// 폰 메시: 일인칭 시점 (자신에게만 보이는 팔)
-			UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-			USkeletalMeshComponent* FirstPersonMesh;
-		};
+		USkeletalMeshComponent* FPSMesh;
 
 1.	`FPSCharacter.cpp` 를 열고 다음 코드를 추가하여 일인칭 메시를 생성 및 환경설정합니다:
 
-		// 이 폰을 제어할 때 일인칭 뷰에서 봤을 때 사용할 메시 컴포넌트를 생성합니다.
-		FirstPersonMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("FirstPersonMesh"));
+		// 일인칭 메시 컴포넌트입니다.
+		FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+		// 소유 플레이어만 이 메시를 볼 수 있습니다.
+		FPSMesh->SetOnlyOwnerSee(true);
+		// FPS 메시를 FPS 카메라에 붙입니다.
+		FPSMesh->AttachTo(FPSCameraComponent);
+		// 일부 환경 섀도잉을 꺼 메시가 하나인 듯 보이는 느낌을 유지합니다.
+		FPSMesh->bCastDynamicShadow = false;
+		FPSMesh->CastShadow = false;
 
-		if (FirstPersonMesh != NULL)
-		{
-			FirstPersonMesh->SetOnlyOwnerSee(true);  // 소유 플레이어만 이 메시를 보게됩니다.
-			FirstPersonMesh->AttachParent = FirstPersonCameraComponent;
-			FirstPersonMesh->bCastDynamicShadow = false;
-			FirstPersonMesh->CastShadow = false;
-		}
-
-	[REGION:note]
-	`SetOnlyOwnerSee` 는 이 메시가 이 `Character` 를 빙의한 `PlayerController` 에게만 보임을 나타냅니다. 앞서 말한 코드는 메시를 카메라에도 붙이고 배경 그림자도 끕니다. 카메라에 붙은 팔이 그림자를 드리우도록 하면 일인칭 캐릭터용 메시가 하나라는 환상이 깨질 것입니다.
-	[/REGION]
+	`SetOnlyOwnerSee` 는 이 메시가 이 `Character` 를 빙의한 `PlayerController` 에게만 보임을 나타냅니다. 
+	이 코드는 메시를 카메라에도 붙이고 배경 그림자도 끕니다. 
+	카메라에 붙은 팔이 그림자를 드리우도록 하면 일인칭 캐릭터용 메시가 하나라는 환상이 깨질 것입니다.
 
 1.	`FPSCharacter.cpp` 에 다음 코드를 추가하여 소유 캐릭터에서 기존 삼인칭 메시를 숨깁니다:
 
-		// 오너 이외의 모두가 일반 몸통 메시를 볼 수 있습니다.
+		// 자신 이외 모두가 일반 몸통 메시를 볼 수 있습니다.
 		GetMesh()->SetOwnerNoSee(true);
 
-1.	`FPSCharacter.cpp` 는 이제 다음과 같은 모습일 것입니다:
-
-		// 프로젝트 세팅의 설명 페이지에 저작권 문구를 채우세요.
-		
-		#include "FPSProject.h"
-		#include "FPSCharacter.h"
-		
-		
-		// 기본값을 설정합니다.
-		AFPSCharacter::AFPSCharacter()
-		{
-		 	// 이 캐릭터가 TIck() 을 매 프레임 호출하도록 설정합니다. 필요치 않은 경우 끄면 퍼포먼스가 향상됩니다.
-			PrimaryActorTick.bCanEverTick = true;
-		
-		}
-		
-		// 카메라 컴포넌트를 생성하는 생성자입니다.
-		AFPSCharacter::AFPSCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-			// 카메라 컴포넌트를 생성합니다.
-			FirstPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
-		
-			if (FirstPersonCameraComponent != NULL)
-			{
-				FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
-				// 카메라를 눈 약간 위쪽으로 위치시킵니다.
-				FirstPersonCameraComponent->RelativeLocation = FVector(0.f, 0.f, 50.f + BaseEyeHeight);
-				// 폰이 회전 제어를 가능하도록 합니다.
-				FirstPersonCameraComponent->bUsePawnControlRotation = true;
-			}
-		
-			// 이 폰을 제어할 때 일인칭 뷰에서 봤을 때 사용할 메시 컴포넌트를 생성합니다.
-			FirstPersonMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("FirstPersonMesh"));
-		
-			if (FirstPersonMesh != NULL)
-			{
-				FirstPersonMesh->SetOnlyOwnerSee(true);  // 소유 플레이어만 이 메시를 보게됩니다.
-				FirstPersonMesh->AttachParent = FirstPersonCameraComponent;
-				FirstPersonMesh->bCastDynamicShadow = false;
-				FirstPersonMesh->CastShadow = false;
-			}
-		
-			// 오너를 제외한 모두가 일반 바디 메시를 볼 수 있습니다.
-			GetMesh()->SetOwnerNoSee(true);
-		}
-		
-		// 게임 시작시 또는 스폰시 호출됩니다.
-		void AFPSCharacter::BeginPlay()
-		{
-			Super::BeginPlay();
-			
-			if (GEngine != nullptr)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
-			}
-		}
-		
-		// 매 프레임 호출됩니다.
-		void AFPSCharacter::Tick( float DeltaTime )
-		{
-			Super::Tick( DeltaTime );
-		
-		}
-		
-		// 입력에 함수성을 바인딩하기 위해 호출됩니다.
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
-		{
-			Super::SetupPlayerInputComponent(InputComponent);
-			
-			// 게임플레이 키 바인딩을 구성합니다.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-			// 게임플레이 마우스 바인딩을 구성합니다.
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
-			// 점프 동작 바인딩을 구성합니다.
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::OnStartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::OnStopJump);
-		}
-		
-		// 전방 이동 함수 정의입니다.
-		void AFPSCharacter::MoveForward(float Value)
-		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//어디가 전방인지 알아냅니다.
-				FRotator Rotation = Controller->GetControlRotation();
-				//걸을 때 낙하를 대비해 핏치를 제한시킵니다.
-				if (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling())
-				{
-					Rotation.Pitch = 0.f;
-				}
-				//그 방향으로 동작을 더합니다.
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
-				AddMovementInput(Direction, Value);
-			}
-		}
-		
-		//우측 이동 함수 정의입니다.
-		void AFPSCharacter::MoveRight(float Value)
-		{
-			if (Controller != nullptr && Value != 0.f)
-			{
-				//어디가 우측인지 알아냅니다.
-				const FRotator Rotation = Controller->GetControlRotation();
-				const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-				//그 방향으로 동작을 더합니다.
-				AddMovementInput(Direction, Value);
-			}
-		}
-		
-		//점프 플래그를 설정하는 함수입니다.
-		void AFPSCharacter::OnStartJump()
-		{
-			bPressedJump = true;
-		}
-		
-		//점프 플래그를 지우는 함수입니다.
-		void AFPSCharacter::OnStopJump()
-		{
-			bPressedJump = false;
-		}
-
-1.	Visual Studio 에서 `FPSCharacter` 인터페이스 (\*.h) 및 구현 (\*.cpp) 파일을 저장합니다.
+1.	Visual Studio 에서 `FPSCharacter` 헤더 (\*.h) 및 CPP (\*.cpp) 파일을 저장합니다.
 
 1.	**Solution Explorer** 에서 **FPSProject** 를 찾습니다.
 
@@ -242,7 +66,11 @@ FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메�
 
 	![](BuildProject.png)
 
-1.	빌드 완료 후 언리얼 에디터에서 **FPSProject** 를 엽니다.
+1.	빌드 완료 후, PIE 모드에서 **FPSProject** 를 열고 실행합니다.
+
+	![](HiddenMeshInGame.png)
+
+	이 시점에서는, 에디터 안에서 캐릭터 메시가 보이지 않을 것입니다.
 
 ## 메시 블루프린트 빌드
 
@@ -275,21 +103,18 @@ FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메�
 
 1.	 **BP_FPSCharacter** 아이콘에 더블클릭하여 **블루프린트 에디터** 에서 엽니다.
 
-1.	**컴포넌트** 탭에서 새로운 **FirstPersonMesh** 컴포넌트를 찾습니다.
+1.	**컴포넌트** 탭에서 새로운 **FPSMesh** 컴포넌트를 찾습니다.
 
 	![](LocateFPSMeshComponent.png)
 
-	[REGION:note]
 	**FirstPersonMesh** 컴포넌트는 **FirstPersonCameraComponent** 의 자손이라, 카메라에 항상 붙어있다는 뜻입니다.
-	[/REGION]
 
 1.	**컴포넌트** 메뉴에서 **FirstPersonMesh** 를 클릭합니다.
 
 1.	**디테일** 탭에서 **Mesh** 섹션으로 스크롤해 내려가 "없음" 이라는 드롭다운 메뉴를 클릭합니다.
+	이제, **HeroFPP** 스켈레탈 메시를 선택하여 **뷰포트** 에 팔을 추가합니다.
 
 	![](SelectHeroFPPSkeletalMesh.png)
-
-1.	**HeroFPP** 스켈레탈 메시를 선택하여 **뷰포트** 에 팔을 추가합니다.
 
 1.	새로 추가된 **HeroFPP** 스켈레탈 메시는 **뷰포트** 안에서 다음과 같아 보일 것입니다.
 
@@ -308,16 +133,171 @@ FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메�
 
 1.	**레벨 에디터 툴바** 의 **플레이** 버튼을 클릭하여 게임내에서 새 메시를 확인합니다.
 
-	[REGION:note]
-	카메라를 자유로이 이동하여 캐릭터 메시를 확인하려면, F1 키를 눌러 마우스 커서 제어권을 다시 획득한 다음, 툴바의 **탈출** 버튼을 누르면 됩니다.
-	![](FreeMovingCamera.png)
-	[/REGION]
+	![](NewMeshInGame.png)
 
-1.	레벨 에디터의 **중지** 버튼을 클릭하여 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
+1.	Esc 키를 누르거나 레벨 에디터의 **중지** 버튼을 눌러 에디터에서 플레이 (PIE) 모드를 빠져나갑니다.
 
-축하합니다! 지금까지 배우신 내용은 다음과 같습니다:
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    code
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    완성된 섹션 코드
+    [/PARAM]
+    [PARAM:content]
+		**FPSCharacter.h**
+			// Fill out your copyright notice in the Description page of Project Settings.
+			
+			#pragma once
+			
+			#include "GameFramework/Character.h"
+			#include "FPSCharacter.generated.h"
+			
+			UCLASS()
+			class FPSPROJECT_API AFPSCharacter : public ACharacter
+			{
+				GENERATED_BODY()
+			
+			public:
+				// Sets default values for this character's properties
+				AFPSCharacter();
+			
+				// Called when the game starts or when spawned
+				virtual void BeginPlay() override;
+				
+				// Called every frame
+				virtual void Tick( float DeltaSeconds ) override;
+			
+				// Called to bind functionality to input
+				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			
+				// Handles input for moving forward and backward.
+				UFUNCTION()
+				void MoveForward(float Value);
+			
+				// Handles input for moving right and left.
+				UFUNCTION()
+				void MoveRight(float Value);
+			
+				// Sets jump flag when key is pressed.
+				UFUNCTION()
+				void StartJump();
+			
+				// Clears jump flag when key is released.
+				UFUNCTION()
+				void StopJump();
+			
+				// FPS camera.
+				UPROPERTY(VisibleAnywhere)
+				UCameraComponent* FPSCameraComponent;
+			
+				// First-person mesh (arms), visible only to the owning player.
+				UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+				USkeletalMeshComponent* FPSMesh;
+			};
 
-&#x2713; 새 캐릭터 제작
+		**FPSCharacter.cpp**
+			// Fill out your copyright notice in the Description page of Project Settings.
+			
+			#include "FPSProject.h"
+			#include "FPSCharacter.h"
+			
+			// Sets default values
+			AFPSCharacter::AFPSCharacter()
+			{
+			 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+				PrimaryActorTick.bCanEverTick = true;
+			
+				// Create a first person camera component.
+				FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+				// Attach the camera component to our capsule component.
+				FPSCameraComponent->AttachTo(GetCapsuleComponent());
+				// Position the camera slightly above the eyes.
+				FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+				// Allow the pawn to control camera rotation.
+				FPSCameraComponent->bUsePawnControlRotation = true;
+			
+				// Create a first person mesh component for the owning player.
+				FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+				// Only the owning player sees this mesh.
+				FPSMesh->SetOnlyOwnerSee(true);
+				// Attach the FPS mesh to the FPS camera.
+				FPSMesh->AttachTo(FPSCameraComponent);
+				// Disable some environmental shadowing to preserve the illusion of having a single mesh.
+				FPSMesh->bCastDynamicShadow = false;
+				FPSMesh->CastShadow = false;
+			
+				// The owning player doesn't see the regular (third-person) body mesh.
+				GetMesh()->SetOwnerNoSee(true);
+			}
+			
+			// Called when the game starts or when spawned
+			void AFPSCharacter::BeginPlay()
+			{
+				Super::BeginPlay();
+				
+				if (GEngine)
+				{
+					// Put up a debug message for five seconds. The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+				}
+			}
+			
+			// Called every frame
+			void AFPSCharacter::Tick( float DeltaTime )
+			{
+				Super::Tick( DeltaTime );
+			
+			}
+			
+			// Called to bind functionality to input
+			void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+			{
+				Super::SetupPlayerInputComponent(InputComponent);
+			
+				// Set up "movement" bindings.
+				InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+				InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			
+				// Set up "look" bindings.
+				InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+				InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			
+				// Set up "action" bindings.
+				InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+				InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			}
+			
+			void AFPSCharacter::MoveForward(float Value)
+			{
+				// Find out which way is "forward" and record that the player wants to move that way.
+				FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
+				AddMovementInput(Direction, Value);
+			}
+			
+			void AFPSCharacter::MoveRight(float Value)
+			{
+				// Find out which way is "right" and record that the player wants to move that way.
+				FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+				AddMovementInput(Direction, Value);
+			}
+			
+			void AFPSCharacter::StartJump()
+			{
+				bPressedJump = true;
+			}
+			
+			void AFPSCharacter::StopJump()
+			{
+				bPressedJump = false;
+			}
+
+    [/PARAM]
+[/OBJECT]
+
+%Steps%축하합니다! 지금까지 배우신 내용은 다음과 같습니다:
+
+&#x2713; 새 캐릭터 생성
 &#x2713; 축 매핑 구성
 &#x2713; 캐릭터 동작 함수 구현
 &#x2713; 마우스 카메라 콘트롤 구현

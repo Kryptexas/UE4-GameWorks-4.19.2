@@ -61,17 +61,16 @@ void FIntervalStructCustomization<NumericType>::CustomizeHeader(TSharedRef<IProp
 
 	// Get min/max metadata values if defined
 	auto Property = StructPropertyHandle->GetProperty();
-	if (Property != nullptr)
-	{
-		if (Property->HasMetaData(TEXT("UIMin")))
-		{
-			MinAllowedValue = TOptional<NumericType>(IntervalMetadata::FGetHelper<NumericType>::GetMetaData(Property, TEXT("UIMin")));
-		}
+	check(Property != nullptr);
 
-		if (Property->HasMetaData(TEXT("UIMax")))
-		{
-			MaxAllowedValue = TOptional<NumericType>(IntervalMetadata::FGetHelper<NumericType>::GetMetaData(Property, TEXT("UIMax")));
-		}
+	if (Property->HasMetaData(TEXT("UIMin")))
+	{
+		MinAllowedValue = TOptional<NumericType>(IntervalMetadata::FGetHelper<NumericType>::GetMetaData(Property, TEXT("UIMin")));
+	}
+
+	if (Property->HasMetaData(TEXT("UIMax")))
+	{
+		MaxAllowedValue = TOptional<NumericType>(IntervalMetadata::FGetHelper<NumericType>::GetMetaData(Property, TEXT("UIMax")));
 	}
 
 	bAllowInvertedInterval = Property->HasMetaData(TEXT("AllowInvertedInterval"));

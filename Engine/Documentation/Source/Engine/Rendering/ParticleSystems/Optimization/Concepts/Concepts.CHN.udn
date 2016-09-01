@@ -1,6 +1,10 @@
-Availability: Docs
-Title:核心概念
-Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
+Availability: Public
+Title: 优化的核心概念
+Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
+Description: 优化特效时鉴别问题。
+Version:4.9
+
+
 
 [TOC]
 
@@ -8,7 +12,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/ParticleSystems, Engi
 
 适当地提供了一些虚幻引擎 3 功能，它们可以使特效师故障排除性能问题。首先，从确定您的效果出现瓶颈现象的地方到优化正确的问题还有一段很长的路要走，因此保留视觉效果完整性/质量。
 
-其中一种检测在玩关卡时出现的问题的方法是调出 [STAT UNIT](ProfilingAndOptimization/Stats/Descriptions#StatUnit) 调试叠加。
+其中一种检测在玩关卡时出现的问题的方法是在界面上调出 STAT UNIT 调试信息。
 
 
 1. [[#LaunchGame]在您的控制台上启动游戏]]
@@ -26,6 +30,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/ParticleSystems, Engi
 
 **`STAT PARTICLES`** 会列出与游戏线程和渲染线程相关的多个统计数据。 注意描画调用函数（渲染线程）和更新时间（游戏线程）。
 
+<!--
 [PUBLISH:Licensee]
 
 
@@ -52,12 +57,13 @@ Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/ParticleSystems, Engi
 
 
 [/PUBLISH:Licensee]
+-->
 
 
 
 ## 定位与 Game Thread（游戏线程）相关的问题
 
-只要您确定出现了 Game Thread（游戏线程）问题后，那么请使用 [STAT PARTICLES](ProfilingAndOptimization/Stats/Descriptions#StatParticles) 命令验证您的发现。
+只要您确定出现了 Game Thread（游戏线程）问题后，那么请使用 STAT PARTICLES 命令验证您的发现。
 
 这个统计数据会提供很多信息，所以请在链接的页面上阅读相关描述，以便帮助您确定您在哪里消耗的性能最多。注意 Particle Tick Time（粒子更新时间）以及您的 Particle Count（粒子数量）。
 

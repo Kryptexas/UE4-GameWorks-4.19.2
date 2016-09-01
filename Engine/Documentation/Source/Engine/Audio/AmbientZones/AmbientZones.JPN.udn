@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2625860
-Availability:docs
+﻿Availability:docs
 Title:Ambient Zones
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:Audio Volumes の AmbientZones プロパティを使ってアンビエント オーディオ ゾーンを作成する
@@ -30,7 +29,7 @@ Ambient Zone は、関連する Audio Volume 内外に置かれている **Sound
 * プレイヤーが AmbientZone に入ると、その AmbientZone の内側にある Sound アクタは指定したフェード時間をかけてボリュームと LPF に対して 乗数が 1.0 に戻ります。同時に、AmbientZone の外側にあるすべての Sound アクタは指定したフェード時間をかけてそれらに適用するボリュームと LPF 乗数をもちます。  
 * プレイヤーが AmbientZone から出ると、 AmbientZone の外側にある Sound アクタは、以前のフェード時間を使用して以前のデフォルトのボリュームと LPF 値に戻ります。 AmbientZone の内側にある Sound アクタは、AmbientZone に対する AmbientZoneSettings 経由でボリューム乗数と LPF 値を変更します。
 
-**Audio Volume** の **[Details]** パネルから **Ambient Zone Settings** を利用できます。展開すると以下にようになります。 
+**Audio Volume** の **[Details]** パネルから**Ambient Zone Settings** を利用できます。展開すると以下にようになります。 
 
 ![](AmbientZone_Settings.png)
 
@@ -64,7 +63,7 @@ Ambient Zone は、関連する Audio Volume 内外に置かれている **Sound
 	* プレイヤーが Ambient Zone の外側にいる場合、これが Ambient Zone の内側の Ambient Sounds の最終的な LowPassFilter となります。
 1. 新規 **Sound Class** を作成し、そのプロパティの中で **Apply Ambient Volumes** をクリックします。 
 	![](AmbientZone_SoundClass.png)
-1. 各サウンドの **[詳細]** パネルから内側と外側の両方のサウンドに **Sound Class** を割り当てます。 
+1. 各サウンドの **[Details (詳細)]** パネルから内側と外側の両方のサウンドに **Sound Class** を割り当てます。 
 	![](SoundClass_Override.png)
 1. ジオメトリをリビルドし、設定したばかりの **AmbientZone** で **Audio Volume** を入力します。
 	* AmbientZone の外側の AmbientSoundSimple は .5 を乗じたボリュームと LowPassFilter となります。

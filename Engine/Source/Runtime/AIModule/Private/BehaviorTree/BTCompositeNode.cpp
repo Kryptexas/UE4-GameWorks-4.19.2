@@ -107,9 +107,6 @@ void UBTCompositeNode::OnChildDeactivation(FBehaviorTreeSearchData& SearchData, 
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIndex];
 
-	// pass to decorators
-	NotifyDecoratorsOnDeactivation(SearchData, ChildIndex, NodeResult);
-
 	// pass to task services
 	if (ChildInfo.ChildTask)
 	{
@@ -123,6 +120,10 @@ void UBTCompositeNode::OnChildDeactivation(FBehaviorTreeSearchData& SearchData, 
 	{
 		ChildInfo.ChildComposite->OnNodeDeactivation(SearchData, NodeResult);
 	}
+
+	// pass to decorators after composite is updated (so far only simple parallel uses it)
+	// to have them working on correct result + they must be able to modify it if requested (e.g. force success)
+	NotifyDecoratorsOnDeactivation(SearchData, ChildIndex, NodeResult);
 }
 
 void UBTCompositeNode::OnNodeActivation(FBehaviorTreeSearchData& SearchData) const

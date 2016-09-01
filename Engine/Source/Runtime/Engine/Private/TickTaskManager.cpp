@@ -111,7 +111,6 @@ public:
 	typedef InElementType ElementType;
 	typedef InAllocator   Allocator;
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	template <typename... ArgsType>
 	int32 EmplaceThreadsafe(ArgsType&&... Args)
 	{
@@ -119,16 +118,6 @@ public:
 		new(this->GetData() + Index) ElementType(Forward<ArgsType>(Args)...);
 		return Index;
 	}
-
-#else
-	template <typename Arg0Type>
-	int32 EmplaceThreadsafe(Arg0Type&& Arg0)
-	{
-		const int32 Index = AddUninitializedThreadsafe(1);
-		new(this->GetData() + Index) ElementType(Forward<Arg0Type>(Arg0));
-		return Index;
-	}
-#endif
 
 
 	/**
@@ -524,6 +513,7 @@ public:
 			SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup_Block);
 			for (ETickingGroup Block = WaitForTickGroup; Block <= WorldTickGroup; Block = ETickingGroup(Block + 1))
 			{
+				CA_SUPPRESS(6385);
 				if (TickCompletionEvents[Block].Num())
 				{
 					FTaskGraphInterface::Get().WaitUntilTasksComplete(TickCompletionEvents[Block], ENamedThreads::GameThread);
@@ -865,6 +855,7 @@ public:
 			for ( ; RescheduleIndex < TickFunctionsToReschedule.Num(); ++RescheduleIndex)
 			{
 				FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
+				checkSlow(TickFunction);
 				if (TickFunction->TickState != FTickFunction::ETickState::Disabled)
 				{
 					if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)
@@ -1347,10 +1338,13 @@ public:
 		
 		int32 NumWorkerThread = 0;
 		bool bConcurrentQueue = false;
+#if !PLATFORM_WINDOWS
+		// the windows scheduler will hang for seconds trying to do this algorithm, threads starve even though other threads are calling sleep(0)
 		if (!FTickTaskSequencer::SingleThreadedMode())
 		{
 			bConcurrentQueue = !!CVarAllowConcurrentQueue.GetValueOnGameThread();
 		}
+#endif
 
 		if (!bConcurrentQueue)
 		{

@@ -1,0 +1,29 @@
+﻿INTSourceChangelist:0
+title:How-To Enable the HLOD System
+description:This how-to covers how to enable the HLOD system in your Unreal Engine 4 project.
+crumbs:
+availability:docs
+version:4.12
+related:Engine/HLOD/Overview
+related:Engine/HLOD/Reference
+
+The **Hierarchical Level of Detail System** (HLOD) must be enabled on each Level that wants to make use of it. Follow the steps below to enable the Hierarchical LOD System.
+
+[REGION:warning]
+HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
+[/REGION]
+
+## Steps
+
+1. Enable by going to **World Settings -> LODSystem -> Enable Hierarchical LODSystem**
+
+	[REGION:raw]
+	![image alt text](Engine/HLOD/Overview/image_0.png)
+	[/REGION]
+
+1. Once this is enabled you can go to the **Main Menu -> Window -> Hierarchical LOD Outliner** to set up how HLODs are generated for your scene.
+
+	[REGION:raw]
+	![image alt text](Engine/HLOD/Overview/image_1.png)
+	[/REGION]
+

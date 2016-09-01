@@ -71,7 +71,7 @@ Finds all of the Actors of a class within the **Search Radius** around the **Sea
 
 ### On circle
 
-Radiates traces out from the **Circle Center**, returning the hits or the edge of the radius (of the generated Circle) as Items.
+Radiates traces out from the **Circle Center**, returning the hits on the edge of the radius (of the generated Circle) as Items.
 
 ![](gen_circle.png)(convert:false)
 

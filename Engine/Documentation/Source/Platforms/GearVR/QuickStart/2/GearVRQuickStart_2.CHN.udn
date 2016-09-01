@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2743354
 Availability:Public
-Title:2. Gear VR Project Setup
+Title:2.Gear VR 项目设置
 Crumbs:%ROOT%, Platforms/GearVR
-Description:How to setup your C++ based UE4 project to be used with the Gear VR Headset.
+Description:如何设置 Gear VR 头戴设备可用的 UE4 C++ 项目。
 Navigation:platform
-Skilllevel: Intermediate
-Version: 4.8
+Skilllevel:Intermediate
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,15 +26,15 @@ Version: 4.8
 %Steps%
 
 
-1. Once the project has finished being created and compiled, Visual Studio 2013 will automatically open (If already installed) along with the editor.
+1. 项目创建和编译完成后，Visual Studio 2013 （如已安装）将随编辑器自动打开。
 
 	![](GVR_Editor_Opened.png)
 
 	[region:note]
-	If you are using Unreal Engine 4.8 or later and a Blueprint based project Visual Studio 2013 will not open up as it is not needed. 
+	如使用的是虚幻引擎 4.8 或更新版本和蓝图项目，Visual Studio 2013 将不会打开。 
 	[/region]
 
-1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Windows** tab and select the **Plugins** menu item. 
+1. UE4 编辑器加载后，打开 **主工具栏** 中的 **Windows** 标签，并选择 **Plugins** 菜单项。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -48,11 +48,11 @@ Version: 4.8
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. From the Plug-In menu go to the **Head Mounted Displays** section and **disable** the **Oculus** option and **enable** the **Gear VR** option. Then click the **Restart Now** button to re-start the editor so the changes can take place. 
+1. 前往 Plug-In 菜单中的 **Head Mounted Displays** 部分，**禁用** **Oculus** 选项，**启用** **Gear VR** 选项。点击 **Restart Now** 按钮重启编辑器，使变更生效。 
 
 	![](GVR_Plugin_Options_Toggle.png)
 
-1. Once the Editor has re-started, select **Edit** from the **Main Toolbar** and then select **Project Settings**  and click the **Configure Now** button for Android support in the **APKPacking** section.
+1. 重启编辑器后，从 **主工具栏** 选择 **Edit**，然后选择 **Project Settings** 并点击 **Configure Now** 按钮，设置 **APKPacking** 部分的安卓支持。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -66,31 +66,31 @@ Version: 4.8
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Next change the **Minimum SDK Version** from **9** to **19**.
+1. 下一步，将 **Minimum SDK Version** 从 **9** 改为 **19**。
 
 	![](GVR_Android_SDK_Version.png)
 
-1. Next scroll down till you see the **Configure the Android Manifest for deployment to Gear VR** checkbox and enable it. 
+1. 然后向下滚动，找到并启用 **Configure the Android Manifest for deployment to Gear VR** 勾选框。 
 
 	[Region:note]
-	This step is of vital importance as without this on your project will not be able to run on the Gear VR Headset.
+	此步骤至关重要，否则项目将无法在 Gear VR 头戴设备上运行。
 	[/region]
 
 	![](GVR_Deployment_Checkbox.png)
 
-1. Next, under the **Android SDK** section fill, in the location of the required Android SDK files on your development PC. 
-	You can find the needed folders in the location where you installed the Tegra files. 
+1. 接下来在 **Android SDK** 部分填入所需 Android SDK 文件在开发电脑上的路径。 
+	可在安装 Tegra 文件的路径中找到所需的文件夹。 
 	
 	[Region:note]
-	If you have already installed TADP this information should be already filled in for you. The only reason that you should change something here is if the information is missing or point to the wrong location.
+	如已安装 TADP，此信息应已填入。只有在信息缺失或路径指向错误时才需要在此进行变更。
 	[/region]
 
 	![](GVR_Android_SDK_Setup.png)
 
-1. Finally under **File** > **Package Project** > **Packing Settings** un-check **Full Rebuild** to help speed up iteration times. 
+1. 最后，在 **File** > **Package Project** > **Packing Settings** 下取消勾选 **Full Rebuild**，增加迭代次数。 
 
 	[Region:note]
-	Remember to **Re-Enable** this option when your project is ready for its final publish to ensure that your project will work as intended on the Gear VR Headset. 
+	注意：项目最终发布前必须 **重新启用** 此选项，以确保项目在 Gear VR 头戴设备上工作正常。 
 	[/region]
 
 	[OBJECT:EmbeddedVideo]
@@ -106,12 +106,12 @@ Version: 4.8
 	[/OBJECT]
 
 	<!-- This was step six, removed based on Josh Adams advice.
-	1. Next in the **Android Package Name** section give your project a name. For this example we will be using the following name **com.Company.GearVR_QS**. 
+	1.接下来在 **Android Package Name** 部分为项目命名。此例使用 **com.Company.GearVR_QS** 命名。 
 
 	![](GVR_Android_Game_Name.png)
 
 	[REGION:note]
-	If using UE 4.7.0 or earlier the name that is used here must match the name that is used for the project or you app could have issues running on your Smartphone.
+	如使用的是 UE 4.7.0 或更旧版本，此处使用的命名必须与项目命名匹配，否则应用程序在智能手机上运行时将存在问题。
 	[/region]
 	-->
 

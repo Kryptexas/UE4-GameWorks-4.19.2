@@ -171,7 +171,7 @@ float3 ImageBasedLightingMIS( FGBufferData GBuffer, float3 V, float3 N, uint2 Ra
 				}
 				else
 				{
-					Shading = StandardShading( GBuffer, GBuffer.Roughness, 1, L, V, N, 1 );
+					Shading = StandardShading( GBuffer.DiffuseColor, GBuffer.SpecularColor, GBuffer.Roughness, 1, L, V, N, 1 );
 				}
 			
 				Lighting += SampleColor * Shading * ( NoL * Weight );
@@ -300,7 +300,7 @@ float3 ApproximateSpecularIBL( uint2 Random, float3 SpecularColor, float Roughne
 
 	// Function replaced with 2D texture sample
 	float NoV = saturate( dot( N, V ) );
-	float2 AB = IntegrateBRDF( Random, Roughness, NoV );
+	float2 AB = IntegrateBRDF( Random, Roughness, NoV ).xy;
 
 	return PrefilteredColor * ( SpecularColor * AB.x + AB.y );
 }
@@ -362,8 +362,8 @@ void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPositio
 	float3 R = lerp( N, R0, (1 - a) * ( sqrt(1 - a) + a ) );
 	
 	uint2 Random = ScrambleTEA( PixelPos );
-	Random.x ^= Frame.Random;
-	Random.y ^= Frame.Random;
+	Random.x ^= View.Random;
+	Random.y ^= View.Random;
 
 	float3 NonSpecularContribution = 0;
 	float3 SpecularContribution = 0;

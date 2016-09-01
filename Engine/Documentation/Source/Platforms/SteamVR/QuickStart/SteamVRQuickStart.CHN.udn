@@ -1,22 +1,26 @@
-﻿INTSourceChangelist:0
-Title: SteamVR Quick Start
+﻿INTSourceChangelist:2940199
+Title:SteamVR 快速入门
 Crumbs:%ROOT%, Platforms
-Description: A How To guide for setting up SteamVR to work with UE4
-Availability:Doc
+Description:SteamVR 的设置指南，以便结合 UE4 使用
+Availability:public
 Navigation:platform
 Platform:SteamVR
+type:quickstart
+parent:Platforms/SteamVR
+tags:VR
+tags:SteamVR
 
 ![](Platforms\SteamVR\T_Vive_HMD.png)
 
-This "Quick Start" series will walk you through how to setup SteamVR so that it will work with Unreal Engine 4.
-By the end of this "Quick Start" series you will have a new project that will work SteamVR.
+该“快速入门”系列阅读讲述如何对 SteamVR 进行设置，以便结合 UE4 使用。
+完成该系列阅读之后，您将创建出一个在 SteamVR 上使用的项目。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

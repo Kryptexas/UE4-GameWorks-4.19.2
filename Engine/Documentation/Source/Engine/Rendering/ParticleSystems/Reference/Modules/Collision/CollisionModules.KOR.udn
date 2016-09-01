@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2618972
+﻿INTSourceChangelist:2872149
 Availability: Public
 Title:Collision 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:파티클과 액터의 충돌 처리를 담당하는 모듈입니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -46,7 +47,7 @@ uD7MQf6sZZU
 | **Max Collision Distance** | 최대 충돌 거리 - 파티클 콜리전이 일어날 수 있는 최대 거리입니다. |
 
 
-파티클 페이로드 데이터에다 벡터 둘(UsedDampingFactor(사용된 감쇠 인수) 및 UsedDampingFactorRotation(사용된 감쇠 인수 회전))과 정수 하나(UsedMaxCollisions(사용된 최대 콜리전))를 추가시키는 모듈입니다. 이 값들은 파티클별 콜리전 정보를 추적하는 데 사용됩니다.
+Collision (콜리전) 모듈은 파티클 페이로드 데이터에다 벡터 둘(UsedDampingFactor(사용된 감쇠 인수) 및 UsedDampingFactorRotation(사용된 감쇠 인수 회전))과 정수 하나(UsedMaxCollisions(사용된 최대 콜리전))를 추가시키는 모듈입니다. 이 값들은 파티클별 콜리전 정보를 추적하는 데 사용됩니다.
 
 다음은 콜리전 파티클에 대한 업데이트 절차를 설명한 의사 코드입니다.
     
@@ -73,7 +74,24 @@ uD7MQf6sZZU
     }
 
 
+### iOS 모바일 디바이스에서의 파티클 콜리전
 
+Particle Collision (파티클 콜리전) 모듈을 **iOS** 모바일 디바이스용 VFX 와 함께 사용할 때는, **Min Desired Frame Rate** (최소 선호 프레임 속도)를 30 FPS 미만으로 낮추지 않으면 파티클 콜리전이 월드의 오브젝트와 충돌하지 않을 확률이 높습니다.
+왜냐하면 언리얼 엔진 4 (UE4) 프로젝트의 프레임 속도가 30FPS 미만으로 떨어지면, UE4 는 30FPS 이상으로 유지시키기 위해 파티클 콜리전을 끕니다.
+기본적으로 iOS 프로젝트는 30FPS 로 고정되어 있는데, 디자인상 파티클 콜리전이 처음부터 꺼진 상태라는 뜻입니다.
+이런 일이 발생하지 않도록 하기 위해 UE4 iOS 프로젝트는 먼저 **프로젝트 세팅** > **일반 세팅** > **Framerate** (프레임 속도)로 먼저 가야 합니다.
+
+[REGION:lightbox]
+[![](Min_Desired_Frame_Rate.png)](Min_Desired_Frame_Rate.png)
+[/REGION]
+
+프레임 속도 섹션이 열렸으면, **Min Desired Frame Rate** (최소 선호 프레임 속도) 를 **30** FPS 미만, 예를 들면 25 FPS 정도로 설정합니다.
+그런 다음 파티클 이펙트 Collision 모듈의 **Performance** (퍼포먼스) 섹션 아래 **Drop Detail** (디테일 드롭) 옵션 체크를 해제합니다.
+
+![](Drop_Detail_CM_Box.png)
+
+최소 선호 프레임 속도를 변경하고 디테일 드롭 박스 체크를 해제하고나면,
+다시 쿠킹하고 iOS 모바일 디바이스에 프로젝트를 다시 디플로이하여 파티클 콜리전이 정상 작동하는지 확인합니다.
 
 <!-----------
 

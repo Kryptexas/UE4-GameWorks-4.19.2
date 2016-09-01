@@ -244,6 +244,9 @@ protected:
 	/** if set, filter will not be cached by navigation data and can be configured per Querier */
 	uint32 bInstantiateForQuerier : 1;
 
+	/** if set to true GetSimpleFilterForAgent will be called when determining the actual filter class to be used */
+	uint32 bIsMetaFilter : 1;
+
 	/** helper functions for adding area overrides */
 	void AddTravelCostOverride(TSubclassOf<UNavArea> AreaClass, float TravelCost);
 	void AddEnteringCostOverride(TSubclassOf<UNavArea> AreaClass, float EnteringCost);
@@ -254,6 +257,8 @@ protected:
 	
 	/** setup filter for given navigation data, use to create custom filters */
 	virtual void InitializeFilter(const ANavigationData& NavData, const UObject* Querier, FNavigationQueryFilter& Filter) const;
+
+	virtual TSubclassOf<UNavigationQueryFilter> GetSimpleFilterForAgent(const UObject& Querier) const { return nullptr; }
 
 public:
 	DEPRECATED(4.12, "This function is now deprecated, use version with Querier argument instead.")

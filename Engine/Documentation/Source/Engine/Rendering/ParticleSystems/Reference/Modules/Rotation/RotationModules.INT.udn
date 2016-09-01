@@ -2,6 +2,7 @@ Availability: Public
 Title:Rotation Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Rotation modules control how particles will be rotated at various points in their lives.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -9,7 +10,7 @@ Rotation modules control how particles will be rotated at various points in thei
 
 ## Init Mesh Rotation
 
-The Init Mesh Rotation module applies an initial rotation to mesh particles created with a Mesh Data emitter.
+The **Init Mesh Rotation** module applies an initial rotation to mesh particles created with a Mesh Data emitter.
 
 | Properties | Description |
 | ---------- | ----------- |
@@ -21,7 +22,7 @@ The Init Mesh Rotation module applies an initial rotation to mesh particles crea
 
 ## Init Mesh Rot (Seed)
 
-The Init Mesh Rot (Seed) module applies an initial rotation to mesh particles created with a Mesh Data emitter, with the added benefit of randomization.
+The **Init Mesh Rot (Seed)** module applies an initial rotation to mesh particles created with a Mesh Data emitter, with the added benefit of randomization.
 
 | Properties | Description |
 | ---------- | ----------- |
@@ -46,7 +47,7 @@ TkMzhGUYjnI
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Initial Rotation module is used to set the initial rotation of a particle at spawn time. It contains the following member(s):
+The **Initial Rotation** module is used to set the initial rotation of a particle at spawn time. It contains the following member(s):
 
 | Properties | Description |
 | ---------- | ----------- |
@@ -57,7 +58,7 @@ The Initial Rotation module is used to set the initial rotation of a particle at
 
 ## Init Rotation (Seeded)
 
-The Init Rotation (Seeded) module is identical to the [Initial Rotation](#InitialRotation) module in that it sets the initial rotation or particles; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Init Rotation (Seeded)** module is identical to the [Initial Rotation](#InitialRotation) module in that it sets the initial rotation or particles; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Properties | Description |
 | ---------- | ----------- |
@@ -82,7 +83,7 @@ M-mHMXH2y7Q
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Rotation/Life module is used to set the rotation of particles over their lifetime. It contains the following member(s):
+The **Rotation/Life** module is used to set the rotation of particles over their lifetime. It contains the following member(s):
 
 | Properties | Description |
 | ---------- | ----------- |

@@ -58,7 +58,7 @@ public:
 	void SetMontageObj(UAnimMontage * NewMontage);
 	UAnimMontage * GetMontageObj() const { return MontageObj; }
 
-	virtual UAnimSequenceBase* GetEditorObject() const override { return GetMontageObj(); }
+	virtual UAnimationAsset* GetEditorObject() const override { return GetMontageObj(); }
 
 	void RestartPreview();
 	void RestartPreviewFromSection(int32 FromSectionIdx = INDEX_NONE);

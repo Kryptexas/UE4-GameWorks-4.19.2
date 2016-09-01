@@ -85,6 +85,44 @@ class ICMP_API FIcmp
 	}
 };
 
+// Simple ping interface that sends an ICMP packet over UDP to the given address and returns timing info for the reply if reachable
+class ICMP_API FUDPPing
+{
+public:
+
+	/** Send an ICMP echo packet and wait for a reply.
+	 *
+	 * The name resolution and ping send/receive will happen on a separate thread.
+	 * The third argument is a callback function that will be invoked on the game thread after the
+	 * a reply has been received from the target address, the timeout has expired, or if there
+	 * was an error resolving the address or delivering the ICMP message to it.
+	 *
+	 * Multiple pings can be issued concurrently and this function will ensure they're executed in
+	 * turn in order not to mix ping replies from different nodes.
+	 *
+	 * @param TargetAddress the target address to ping
+	 * @param Timeout max time to wait for a reply
+	 * @param HandleResult a callback function that will be called when the result is ready
+	 */
+	static void UDPEcho(const FString& TargetAddress, float Timeout, FIcmpEchoResultCallback HandleResult);
+
+	/** Send an ICMP echo packet and wait for a reply.
+	 *
+	 * This is a wrapper around the above function, taking a delegate instead of a function argument.
+	 *
+	 * @param TargetAddress the target address to ping
+	 * @param Timeout max time to wait for a reply
+	 * @param ResultDelegate a delegate that will be called when the result is ready
+	 */
+	static void UDPEcho(const FString& TargetAddress, float Timeout, FIcmpEchoResultDelegate ResultDelegate)
+	{
+		UDPEcho(TargetAddress, Timeout, [ResultDelegate](FIcmpEchoResult Result)
+		{
+			ResultDelegate.ExecuteIfBound(Result);
+		});
+	}
+};
+
 
 #define EnumCase(Name) case EIcmpResponseStatus::Name : return TEXT(#Name)
 static const TCHAR* ToString(EIcmpResponseStatus Status)

@@ -1,8 +1,10 @@
-﻿Availability:Public
-Title: 虚幻引擎4文档
+﻿INTSourceChangelist:2951778
+Availability:Public
+Title: 虚幻引擎 4 文档
 Crumbs:
-Description: 虚幻引擎4的顶层链接文档
+Description: 虚幻引擎 4 的顶层链接文档
 Navigation:home
+social-image:home_social.png
 
 [PUBLISH:Rocket]
 ## 搜索
@@ -13,7 +15,7 @@ Navigation:home
 		[RELATIVE:Search]
 		[/PARAM]
 		[PARAMLITERAL:placeholder]
-		您需要帮助吗？ 请通过搜索文档来查找主题。
+		需要帮助吗？可以通过搜索文档来查找主题。
 		[/PARAMLITERAL]
 		[PARAM:message]
 		[/PARAM]
@@ -24,7 +26,7 @@ Navigation:home
 			快速入门
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
-			操作入门
+			指引
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			C++
@@ -51,18 +53,21 @@ Navigation:home
 			光照
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
-			相机
+			摄像机
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
-			UMG用户界面
+			UMG
 		[/PARAMLITERAL]
 	[/OBJECT]
 [/REGION]
 
-## 按主题浏览文档
+## 按主题浏览
 
 [/PUBLISH:Rocket]
 
+[DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%")]
+
+<!--
 [REGION:frontpage]
 	[REGION:features third]
 	%GettingStarted:role%
@@ -76,3 +81,4 @@ Navigation:home
 	%Support/Builds:role%
 	[/REGION]
 [/REGION]
+-->

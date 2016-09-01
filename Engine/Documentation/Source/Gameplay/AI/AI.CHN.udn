@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2709798
 Availability:Public
-Title: AI & 行为树
+Title: AI 及行为树（Behavior Tree）
 Crumbs:%ROOT%, Engine, Gameplay
 Description:人工智能信息，包括了行为树和导航网格物体的使用。
+version: 4.9
 
 <!-- Q:\Daniel.Broder\BT Docs -->
 
@@ -36,7 +37,7 @@ Description:人工智能信息，包括了行为树和导航网格物体的使�
 	* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
 	* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
-	* [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")
+	<!--* [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")-->
 	[/PARAM]
 [/OBJECT]
 

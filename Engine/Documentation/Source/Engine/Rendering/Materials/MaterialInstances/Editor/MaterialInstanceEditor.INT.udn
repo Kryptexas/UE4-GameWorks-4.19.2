@@ -6,16 +6,16 @@ Version: 4.9
 Skilllevel: Intermediate
 [TOC(start:2)]
 
-The Material Instance editor is used for modifying parameters for Material Instances. 
+The Material Instance Editor is used for modifying parameters for Material Instances. 
 If you are unfamiliar with Material Instances, please see the [Instanced Materials](Engine/Rendering/Materials/MaterialInstances) page for more information.
 
 
 
 ## Opening the Material Instance Editor
 
-The Material Instance Editor can be opened by **Double-Clicking** any Material Instance asset or through the **Right-Click** context menu of a Material Instance asset in the 
+The Material Instance Editor can be opened by **double-clicking** any Material Instance asset or through the right-click context menu of a Material Instance asset in the 
 **Content Browser**. Either of these will open up that particular Material Instance in the Material Instance Editor for editing. Another way to open the Material Instance Editor is by 
-**Right-Clicking** on an Actor and selecting **Edit Material Instance** from the **Material Name** sub menu of the **Materials** menu.
+**Right-Clicking** on an Actor and selecting **Edit Material Instance** from the **Material Name** sub-menu of the **Materials** menu.
 
 
 
@@ -26,11 +26,11 @@ The Material Instance Editor is comprised of these regions:
 ![materialinstanceeditor.png](materialinstanceeditor.png)(w:900 h:662)
 
 
-1. [Toolbar](#ToolBar) - Allows you to Save, Locate, and Display rendering statics of you Material instance
+1. [Toolbar](#ToolBar) - Allows you to save your asset, locate it in the Content Browser, and display rendering statistics.
 1. [Viewport Display Options](#ViewportDisplayOptions) - Allows you to change the mesh that is used in the viewport.
-1. [Details Pane](#DetailsPane) - Properties of the Material instance.
-1. [Parent List](#ParentList) - A list of the chain of parents for the current Material instance.
-1. [Viewport](#Viewport) - Previews the current Material instance.
+1. [Details Pane](#DetailsPane) - Properties of the Material Instance.
+1. [Parent List](#ParentList) - A list of the chain of parents for the currentMaterial Instance.
+1. [Viewport](#Viewport) - Previews the current Material Instance.
 
 
 
@@ -40,7 +40,7 @@ The Material Instance Editor is comprised of these regions:
 | --- | --- |
 | ![](button_MIE_Save.png) | Saves the current asset. |
 | ![](button_MIE_Find.png) | Finds the Material Instance Constant in the **Content Browser**. |
-| ![](button_MIE_Params.png) | Makes all material parameters in the parent material visible in the **Properties** Pane. |
+| ![](button_MIE_Params.png) | Makes all Material parameters in the parent Material visible in the **Properties** Pane. |
 | ![](button_MIE_Mobile_Stats.png) | Toggles the Material stats and compilation errors for mobile. |
 
 
@@ -62,11 +62,11 @@ The Material Instance Editor is comprised of these regions:
 
 ![](MIE_Properties.png)
 
-The **Details** pane in the Material Instance editor is where all of the 'work' should take place. Anyone using the Material Instance will override or change parameters through the details
- window. Each parameter that exists in the Parent Material for this Material Instance is listed in the **Parameter Groups** array under the [group](Engine/Rendering/Materials/MaterialInstances#ParameterGroups) 
- assigned to the parameter in the Parent Material. By default, none of the parent's parameters values are overridden and have to be enabled in order to be used. 
- To enable a parameter, use the **Left Mouse Button** and click on the **Grayed Out Box** that is next to the name of the parameter you want to enable. When you do this, the box will
- no longer be grayed out and you will be able to adjust the parameter to your liking. 
+The **Details** pane in the Material Instance Editor is where all of the 'work' should take place. Anyone using the Material Instance will override or change parameters through the details Tab. 
+Each parameter that exists in the Parent Material for this Material Instance is listed in the **Parameter Groups** array under the [group](Engine/Rendering/Materials/MaterialInstances#ParameterGroups) 
+ assigned to the parameter in the Parent Material. By default, none of the parent's parameter's values are overridden and have to be enabled in order to be used. 
+ To enable a parameter, Left-click on the grayed out box that is next to the name of the parameter you want to enable. 
+ When you do this, the box will no longer be grayed out and you will be able to adjust the parameter to your liking. 
 
 * **Parameter Groups** - In this section you can adjust all of the values that have been exposed to the Material Instance from the Parent Material. 
 * **General** - The General section allows you to change the Parent Material, Phys Material, adjust how this Material Instance will influence the Lightmass build and override some of the properties inherited from the parent Material. 
@@ -96,7 +96,7 @@ The Material Viewport displays the Material being edited applied to a mesh. You 
 
 
 The preview mesh can be changed by using the associated button controls (the shape buttons, **Select Preview Mesh** combo, and **Use Selected StaticMesh** button).
-The preview mesh is saved with the material so that the next time the material is opened in a material editor, it will be previewed on the same mesh.
+The preview mesh is saved with the Material so that the next time the Material is opened in a Material Editor, it will be previewed on the same mesh.
 
 
 ![](MIE_Change_Shapes.png)
@@ -106,8 +106,8 @@ samples being used by the Material.
 
 ![](MIE_Ins_Count.png)
 
-If your Material has some kind of movement in it you and you want to preview it, you can enable Real - Time preview by first clicking on the small white triangle to enable Viewport Options and then click on the stop watch icon.
-You can also enable / disable real time preview by pressing **CTRL + R** at the same time on the keyboard.
+If your Material has some kind of movement in it you and you want to preview it, you can enable Real - Time preview by first clicking on the small white triangle to enable Viewport Options and then click on the stop watch icon. 
+You can also enable / disable real time preview by pressing CTRL + R at the same time on the keyboard.
 
 ![](MIE_Real_Time.png)
 
@@ -125,7 +125,7 @@ Only checked values are stored for memory conservation reasons, so unchecked val
 ![](MIE_Overriding.png)
 
 ### Overriding Material Instance Lightmass Settings
-You can also override parameters that deal with how the Material Instance interacts with Lightmass by expanding the **Lightmass Settings** section and then enabling the property you want to override by clicking on it.
+You can also override parameters that deal with how the Material Instance interacts with Lightmass by expanding the Lightmass Settings section and then enabling the property you want to override by clicking on it 
 Once a Lightmass property override is enabled, you can then input the new data you want to use in the **Parameter Value** section. 
 In the following image we have taken the Material Instance for the sky box and overridden it's **Emissive Boost** to be 2.0 instead of 1.0. When the level lighting is built this will make the Emissive parts of the Material cast more light into the Lightmass build making the levels lighting brighter overall.
 
@@ -142,37 +142,6 @@ Instead you can override certain Parent Material properties within a Material In
 In the image above we have set the Material Instance for the sky box  to be Two Sided instead of single sided by enabling the **Two Sided** option that is under the Material Property Overrides section. 
 This will make the Material Instance always render even if it is put onto geometry that has its faces turned so that you can not see them.
 
-## Workflow
-
-With these features, we are hoping to establish a consistent workflow for authoring new Material Instances.  
-
-
-### Artist Workflow
-
-The most common usage case for artist of this editor would be something like this:
-
-
-1. Artist creates new Material with parameters to alter the appearance.
-1. Artist creates a new Material Instance in a package by **Right-Clicking** in the **Content Browser**.
-1. Artist assigns previously created Material as the parent of the new Material Instance.
-1. Artist modifies Material Instance parameters to change the way the Material looks.
-1. Artist and Level Designers can now use the new Material Instance throughout the editor.
-
-
-
-### Level Designer Workflow
-
-The most common usage case for Level Designers of this editor would be something like this:
-
-
-1. Artist creates new material with parameters to alter the appearance.
-1. Level Designers place the material throughout the level.  
-1. Level Designer feels that the material needs to be tweaked and creates a new Material Instance by **right-clicking** on the Actor and using the menu option described above.
-1. Level Designer checks the box next to the Instance parameter they want to replace and modifies the look of the material.
-1. (Optional) Since Material Instances created this way are stored in the level package, the Level Designer can optionally apply the Material Instance that was created to other Actors. 
-  The Material Instance will appear in the level package in the generic browser.
-
- 
 
 
 

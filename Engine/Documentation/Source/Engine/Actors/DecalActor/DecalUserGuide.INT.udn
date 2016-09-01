@@ -2,6 +2,8 @@ Availability:Public
 Title:Decal Actor User Guide
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:A guide to using the Deferred Decal actor.
+Version: 4.9
+
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -153,4 +155,4 @@ And using it fixes the artifacts on the decal that benefits from it.
 
 ### Current limitations
 
-* DecalMipmapLevel doesn't support custom UV, but you can patch'up it's output.
+* DecalMipmapLevel doesn't support custom UV, but you can patch up its output.

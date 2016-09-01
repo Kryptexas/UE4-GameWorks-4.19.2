@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2611635
+﻿INTSourceChangelist:2752762
 Availability:Public
 Title:비히클 사용 안내서
 Crumbs:%ROOT%
 Description:언리얼 엔진 4 블루프린트 비히클 사용 안내서입니다.
 Navigation:topic
+Version: 4.9
+SkillLevel: Advanced
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -189,7 +191,7 @@ Navigation:topic
 
 **콘텐츠 브라우저** 에서 **비히클 블루프린트** 를 더블클릭하여 **블루프린트 에디터** 를 띄웁니다.
 
-1. **컴포넌트 모드** 에서 "Mesh" 라는 **스켈레탈 메시 컴포넌트** 상에 **스켈레탈 메시** 프로퍼티를 비히클에 쓸 스켈레탈 메시 애셋으로 설정합니다.
+1. "Mesh" 라는 **스켈레탈 메시 컴포넌트** 를 클릭하고 그 디테일 패널에서, **스켈레탈 메시** 프로퍼티를 비히클에 쓸 스켈레탈 메시 애셋으로 설정합니다.
 
 	![](componentsMode.png)
 
@@ -199,7 +201,7 @@ Navigation:topic
 	![](AnimBPandSkelMesh.png)
 	[/REGION]
 
-1. **컴포넌트 모드** 에 남아 **카메라 컴포넌트** 를 추가합니다.
+1. **컴포넌트** 패널로 돌아가 **카메라 컴포넌트** 를 추가합니다.
 
 	[REGION:raw]
 	![](addCamera.png)
@@ -213,7 +215,7 @@ Navigation:topic
 
 	![](cameraControllerOff.png)
 
-1. **디폴트 모드** 에서 **Vehicle Setup** (비히클 셋업) 카테고리의 "Wheel Setups" (휠 셋업)을 펼칩니다.
+1. **Vehicle Movement Component** (비히클 무브먼트 컴포넌트)를 선택하고 **Vehicle Setup** (비히클 셋업) 카테고리의 **Wheel Setups** (휠 셋업)을 펼칩니다.
 
 	![](defaultsMode.png)
 
@@ -274,9 +276,6 @@ Navigation:topic
 		[/REGION]
 
 	1. 새로 만든 게임 모드 블루프린트를 더블클릭하여 편집합니다.
-	1. **디폴트 모드** 로 전환합니다.
-
-		![](defaultsMode.png)
 
 	1. **Game Mode** 카테고리 -> **Default Pawn Class** -> "None" 을 만들어둔 비히클 블루프린트로 변경합니다.
 
@@ -291,11 +290,11 @@ Navigation:topic
 	[/REGION]
 
 1. 이제 비히클의 블루프린트에서, **Project Settings Input** 카테고리에 생성한 축 및 액션 이벤트상에서 호출할 수 있습니다.
-	1. 비히클 블루프린트를 편집하고 **그래프 모드** 로 전환합니다.
+	1. 비히클 블루프린트를 편집, **이벤트 그래프** 를 엽니다.
 
 		![](graphMode.png)
 
-	1. 쓰로틀
+	1. 스로틀
 	
 		![](throttleBP.png)
 
@@ -322,8 +321,8 @@ Navigation:topic
 	![](Play.png)
 	[/REGION]
 
-	위의 축 및 액션 바인딩 셋업 상태에서, "**W**" 는 쓰로틀 밸브를 열고, "**S**" 는 브레이크고, "**A**" 는 좌회전, "**D**" 는 우회전, 
-	"**Space Bar**" 는 핸드브레이크입니다.
+	위의 축 및 액션 바인딩 셋업 상태에서, **W** 는 액셀러레이터, **S** 는 브레이크, **A** 는 좌회전, **D** 는 우회전, 
+	**Space Bar** 는 핸드브레이크입니다.
 
 
 

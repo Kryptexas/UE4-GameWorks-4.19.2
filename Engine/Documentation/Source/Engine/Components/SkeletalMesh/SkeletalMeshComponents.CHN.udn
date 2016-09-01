@@ -1,23 +1,25 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2659205
 Availability:Public
-Title:Skeletal Mesh Components
+Title:骨架网格模型组件
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:Overview of the SkeletalMeshComponent and how it is used. 
+Description:关于 SkeletalMeshComponent 及其用法的概述。 
 Related: Engine/Content/Types/SkeletalMeshes
 Related: Engine/Actors/SkeletalMeshActors
 Related: Engine/Animation
 Related: Engine/Blueprints/UserGuide/Components
+SkillLevel: Beginner
+Version: 4.9
 
-Skeletal Mesh Components are used for anything that has complex animation data and uses a skeleton. 
+骨架网格模型组件可用于任何拥有复杂动画数据并使用骨架的情形。 
 
-## Skeletal Mesh Components
+## Skeletal Mesh Components （骨架网格模型组件）
 
-**SkeletalMeshComponents** are used to create an instance of a `USkeletalMesh`. The Skeletal Mesh (outward appearance) has a complex Skeleton (interconnected bones) inside which helps move the individual vertices of the Skeletal Mesh to match the current animation that is being played. 
-This makes SkeletalMeshComponents ideal for things like characters, creatures, complex machinery, or anything that needs to deform or display complex motion. See [](Engine/Content/Types/SkeletalMeshes) and [](Engine/Actors/SkeletalMeshActors) for more information on working with Skeletal Meshes. 
+**SkeletalMeshComponents** 用于创建 `USkeletalMesh` 的实例。骨架网格模型（外观）具有一个复杂的骨架（互连骨骼），在其内部可以移动骨架网格模型的单个顶点来匹配当前播放的动画。 
+这使得 SkeletalMeshComponents 成为诸多情形下的理想之选，包括人物、生物、复杂机械或任何需要变形或展现复杂运动的情况。请参见 **[](Engine/Content/Types/SkeletalMeshes)** 和 **[](Engine/Actors/SkeletalMeshActors)** 了解关于使用骨架网格模型的详细信息。 
 
 ![](mesh_component.png)
 
-Above, a SkeletalMeshComponent is used with a Character Blueprint to create a playable character. In addition to specifying the Skeletal Mesh asset to use, you can also define the Animation Mode for the mesh to use (either an [Animation Blueprint](Engine/Animation/AnimBlueprints) or an [Animation Asset](Engine/Animation/Sequences)). 
+在上述示例中，SkeletalMeshComponent 与人物蓝图一起创建出一个可玩的人物。除了指定要使用的骨架网格模型资源外，您还可以为需要使用的网格模型定义动画模式（**[Animation Blueprint](Engine/Animation/AnimBlueprints)** 或 **[Animation Asset](Engine/Animation/Sequences)**）。 
 
 
 

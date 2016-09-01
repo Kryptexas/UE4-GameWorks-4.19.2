@@ -134,8 +134,8 @@ public:
 
 	EVisibility GetBorderVisibility() const
 	{
-		EVisibility Visibility = SLevelViewport::OnGetViewportContentVisibility();
-		return Visibility == EVisibility::Visible ? EVisibility::HitTestInvisible : Visibility;
+		const EVisibility ViewportContentVisibility = SLevelViewport::OnGetViewportContentVisibility();
+		return ViewportContentVisibility == EVisibility::Visible ? EVisibility::HitTestInvisible : ViewportContentVisibility;
 	}
 
 private:

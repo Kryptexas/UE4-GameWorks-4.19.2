@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2617159
+﻿INTSourceChangelist:2828862
 Availability:Public
 Title: 랩 박스
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -9,13 +9,13 @@ Related: Engine/UMG/UserGuide/Slots
 
 [TOC(start:2 end:2)]
 
-## 위젯 설명
+## 설명
 
 [EXCERPT:desc]
-위젯이 왼쪽에서 오른쪽으로 정렬됩니다. 위젯이 폭 제한을 넘은 경우, 위젯을 다음 줄에 배치합니다.
+자손 위젯이 왼쪽에서 오른쪽으로 정렬됩니다. 위젯이 폭 제한을 넘은 경우, 위젯을 다음 줄에 배치합니다.
 [/EXCERPT:desc]
 
-## 위젯 디테일
+## 디테일
 
 **Wrap Box** 안에 배치된 위젯의 **디테일** 패널에 보면, 위젯의 작동 방식을 변경하는 데 사용할 수 있는 세팅이 몇 가지 있는데, 다음과 같습니다.
 

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2558633
+﻿INTSourceChangelist:2725396
 Availability:Public
-Title:3.C++ コードの記述とコンパイル
+Title:3 - C++ コードの記述とコンパイル
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:アンリアル エンジンで C++ クラスを記述しコンパイルする
+SkillLevel:Beginner
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,17 +24,17 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 
 %Steps%
 
-1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名は `FloatingActor.cpp` と `FloatingActor.h` 、保存場所は「QuickStart」プロジェクトです。
+1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名を「FloatingActor.cpp」と「FloatingActor.h」にして、「QuickStart」プロジェクトに保存します。
 
 	[![](SolutionExplorer_Files.png)](SolutionExplorer_Files.png)
 
 	[REGION:note] コードを記述していきます。このチュートリアルで使用するすべてのコードは、ページの説明を完了した時点の現在のステートで、ページの下に表示されます。[/REGION]
 
-2. `FloatingActor.h` に対して、ファイルの終わりの右中括弧とセミコロンの直前に、以下のコードを追加します。
+1. FloatingActor.h に対して、ファイルの終わりの右中括弧とセミコロンの直前に、以下のコードを追加します。
 
 		float RunningTime;
 
-3. `FloatingActor.cpp` へ切り替えて、以下のコードを **AFloatingActor::Tick** の右中括弧の直前に追加します。
+1. FloatingActor.cpp へ切り替えて、以下のコードを **AFloatingActor::Tick** の右中括弧の直前に追加します。
 
 		FVector NewLocation = GetActorLocation();
 		float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));
@@ -40,21 +42,70 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 		RunningTime += DeltaTime;
 		SetActorLocation(NewLocation);
 
-	[REGION:tip] 記述したこのコードにより、時間経過に伴う移動の追跡のために作成した _RunningTime_ 変数を使って、**FloatingActors** が現れたり消えたりします。 [/REGION] 
+	[REGION:note] 記述したこのコードにより、時間経過に伴う移動の追跡のために作成した _RunningTime_ 変数を使って、**FloatingActors** が現れたり消えたりします。 [/REGION] 
 
-4. コーディングが終わったので、**Solution Browser** のプロジェクトを右クリックして **Build** コマンドを選択するか、 **アンリアル エディタ** の**[Compile]** ボタンをクリックします。正常にコンパイルされたら、 **アンリアル エンジン** が自動的に変更をロードします。
+%Globals:OSSelect%
 
-	[![](CompileFromVS.png)](CompileFromVS.png)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		*	コーディングが終わったので、**Solution Browser** のプロジェクトを右クリックして **Build** コマンドを選択するか、 **アンリアル エディタ** の**[Compile]** ボタンをクリックします。正常にコンパイルされたら、 **アンリアル エディタ** が自動的に変更をロードします。
 
-	(**Visual Studio**)
+			[![](CompileFromVS.png)](CompileFromVS.png)
 
-	[![](CompileFromEditor.png)](CompileFromEditor.png)
+			_** Visual Studio** から実行する。_
 
-	(**Unreal Editor**)
+			[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-----
+			_**アンリアル エディタ** からコンパイルする。_
+	[/PARAM]
+[/OBJECT]
 
-コードに基づいて **アンリアル エンジン** でオブジェクトを作成する用意ができました！参考までに、このページで使用したコードはすべて以下に含まれています。
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:tip]
+		Xcode でビルド時は、コンパイル対象はゲームプロジェクトのみで、エディタはコンパイルしません。
+		[/REGION]
+		* コーディングが終わったので、XCode のデバッグ コンフィギュレーションを使ってプロジェクトをコンパイルすることができます。**[Product] > [Build]** オプションをクリックします。
+
+		![](ProjectBuild_mac.png)
+
+			_XCode のデバッグ コンフィギュレーションを使ってコンパイルする。_
+
+		* XCode のデバッグ コンフィギュレーションを使ってプロジェクトをコンパイルすることができます。**[Product] > [Build For] > [Profiling]** の順にオプションをクリックします。
+
+			![](ProjectBuildProfile_mac.png)
+
+			_XCode の開発コンフィギュレーションを使ってコンパイルする。_
+
+			[![](CompileFromEditor.png)](CompileFromEditor.png)
+
+			_**アンリアル エディタ** からコンパイルする。_
+
+		[REGION:note]
+		バイナリ エディタを実行する場合、**Uncooked** コンフィギュレーションでプロジェクトをリビルドした場合、-game フラグを付け加えることが重要です。**Debug** コンフィギュレーションでプロジェクトをリビルドした場合は、-debug フラグを付けることが重要です。
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+コードに基づいて **アンリアル エディタ** でオブジェクトを作成する用意ができました。参考までに、このページで使用したコードはすべて以下に含まれています。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
@@ -84,10 +135,11 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 
-	// Called every frame
+				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 
-	float RunningTime;
+				float RunningTime;
+
 			};
 
 		**FloatingActor.cpp**

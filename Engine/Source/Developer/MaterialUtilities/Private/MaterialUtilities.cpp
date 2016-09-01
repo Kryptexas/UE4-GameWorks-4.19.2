@@ -23,6 +23,13 @@
 #include "MeshUtilities.h"
 #include "MeshRendering.h"
 #include "MeshMergeData.h"
+#include "Runtime/Engine/Classes/Engine/StaticMesh.h"
+
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#include "ObjectTools.h"
+#include "Tests/AutomationEditorCommon.h"
+#endif // WITH_EDITOR
 
 IMPLEMENT_MODULE(FMaterialUtilities, MaterialUtilities);
 
@@ -62,6 +69,12 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 	{
 		// not used by Lightmass
 		return SF_Pixel;
+	}
+
+	virtual EMaterialShadingModel GetMaterialShadingModel() const override
+	{
+		// not used by Lightmass
+		return MSM_MAX;
 	}
 
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
@@ -458,10 +471,9 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsUsedWithDeferredDecal() const override
+	virtual bool IsDeferredDecal() const override
 	{
-		return	Material &&
-				Material->MaterialDomain == MD_DeferredDecal;
+		return Material && Material->MaterialDomain == MD_DeferredDecal;
 	}
 	virtual bool IsSpecialEngineMaterial() const override
 	{
@@ -1220,6 +1232,47 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	return Material;
 }
 
+UMaterialInstanceConstant* FMaterialUtilities::CreateInstancedMaterial(UMaterial* BaseMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags)
+{
+	// Base name for a new assets
+	// In case outer is null BaseName has to be long package name
+	if (InOuter == nullptr && FPackageName::IsShortPackageName(BaseName))
+	{
+		UE_LOG(LogMaterialUtilities, Warning, TEXT("Invalid long package name: '%s'."), *BaseName);
+		return nullptr;
+	}
+
+	const FString AssetBaseName = FPackageName::GetShortName(BaseName);
+	const FString AssetBasePath = InOuter ? TEXT("") : FPackageName::GetLongPackagePath(BaseName) + TEXT("/");
+
+	// Create material
+	const FString MaterialAssetName = TEXT("M_") + AssetBaseName;
+	UPackage* MaterialOuter = InOuter;
+	if (MaterialOuter == NULL)
+	{		
+		MaterialOuter = CreatePackage(NULL, *(AssetBasePath + MaterialAssetName));
+		MaterialOuter->FullyLoad();
+		MaterialOuter->Modify();
+	}
+
+	// We need to check for this due to the change in material object type, this causes a clash of path/type with old assets that were generated, so we delete the old (resident) UMaterial objects
+	UObject* ExistingPackage = FindObject<UMaterial>(MaterialOuter, *MaterialAssetName);
+	if (ExistingPackage && !ExistingPackage->IsA<UMaterialInstanceConstant>())
+	{
+#if WITH_EDITOR
+		AutomationEditorCommonUtils::NullReferencesToObject(ExistingPackage);		
+#endif // WITH_EDITOR
+		ExistingPackage->MarkPendingKill();
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+	}
+
+	UMaterialInstanceConstant* MaterialInstance = NewObject<UMaterialInstanceConstant>(MaterialOuter, FName(*MaterialAssetName), Flags);
+	checkf(MaterialInstance, TEXT("Failed to create instanced material"));
+	MaterialInstance->Parent = BaseMaterial;	
+	
+	return MaterialInstance;
+}
+
 UTexture2D* FMaterialUtilities::CreateTexture(UPackage* Outer, const FString& AssetLongName, FIntPoint Size, const TArray<FColor>& Samples, TextureCompressionSettings CompressionSettings, TextureGroup LODGroup, EObjectFlags Flags, bool bSRGB, const FGuid& SourceGuidHash)
 {
 	FCreateTexture2DParameters TexParams;
@@ -1398,7 +1451,7 @@ void FMaterialUtilities::AnalyzeMaterial(UMaterialInterface* InMaterial, const s
 	}
 }
 
-void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterface*>& InMaterials, const TArray<struct FRawMeshExt>& InMeshData, const TMap<FMeshIdAndLOD, TArray<int32> >& InMaterialMap, const FMaterialProxySettings& InMaterialProxySettings, const bool bBakeVertexData, const bool bMergeMaterials, TArray<bool>& OutMeshShouldBakeVertexData, TMap<FMeshIdAndLOD, TArray<int32> >& OutMaterialMap, TArray<UMaterialInterface*>& OutMaterials)
+void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterface*>& InMaterials, const TArray<FRawMeshExt>& InMeshData, const TMap<FMeshIdAndLOD, TArray<int32> >& InMaterialMap, const FMaterialProxySettings& InMaterialProxySettings, const bool bBakeVertexData, const bool bMergeMaterials, TArray<bool>& OutMeshShouldBakeVertexData, TMap<FMeshIdAndLOD, TArray<int32> >& OutMaterialMap, TArray<UMaterialInterface*>& OutMaterials)
 {
 	// Gather material properties
 	TMap<UMaterialInterface*, int32> MaterialNumTexCoords;
@@ -1436,21 +1489,26 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 
 	for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
 	{
-		const int32 LODIndex = InMeshData[MeshIndex].ExportLODIndex;
-		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
-		const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, InMeshData[MeshIndex].ExportLODIndex)];
-		int32 NumTexCoords = 0;
-		bool bUseVertexData = false;
-		// Accumulate data of all materials.
-		for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
+		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
 		{
-			UMaterialInterface* Material = InMaterials[MeshMaterialMap[LocalMaterialIndex]];
-			NumTexCoords = FMath::Max(NumTexCoords, MaterialNumTexCoords[Material]);
-			bUseVertexData |= MaterialUseVertexData[Material];
+			if (InMeshData[MeshIndex].bShouldExportLOD[LODIndex])
+			{
+				checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh->VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+				const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
+				int32 NumTexCoords = 0;
+				bool bUseVertexData = false;
+				// Accumulate data of all materials.
+				for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
+				{
+					UMaterialInterface* Material = InMaterials[MeshMaterialMap[LocalMaterialIndex]];
+					NumTexCoords = FMath::Max(NumTexCoords, MaterialNumTexCoords[Material]);
+					bUseVertexData |= MaterialUseVertexData[Material];
+				}
+				// Store data.
+				MeshUsesVertexData[MeshIndex] = bUseVertexData;
+				OutMeshShouldBakeVertexData[MeshIndex] = bUseVertexData || (NumTexCoords >= 2);
+			}
 		}
-		// Store data.
-		MeshUsesVertexData[MeshIndex] = bUseVertexData;
-		OutMeshShouldBakeVertexData[MeshIndex] = bUseVertexData || (NumTexCoords >= 2);		
 	}
 
 	// Build new material map.
@@ -1478,45 +1536,50 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 	OutMaterialMap.Empty();
 	for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
 	{
-		const int32 LODIndex = InMeshData[MeshIndex].ExportLODIndex;
-		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
-		
-		const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
-		TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));
-		UStaticMesh* StaticMesh = InMeshData[MeshIndex].SourceStaticMesh;
-
-		if (!MeshUsesVertexData[MeshIndex])
+		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
 		{
-			// No vertex data needed - could merge materials with other meshes.
-			if (!OutMeshShouldBakeVertexData[MeshIndex])
+			if (InMeshData[MeshIndex].bShouldExportLOD[LODIndex])
 			{
-				// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
-				// which don't require vertex data baking too.
-				StaticMesh = nullptr;
-			}
+				checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh->VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
 
-			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-			{
-				FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
-				int32 Index = MeshMaterialData.Find(Data);
-				if (Index == INDEX_NONE)
+				const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
+				TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));
+				UStaticMesh* StaticMesh = InMeshData[MeshIndex].SourceStaticMesh;
+
+				if (!MeshUsesVertexData[MeshIndex])
 				{
-					// Not found, add new entry.
-					Index = MeshMaterialData.Add(Data);
+					// No vertex data needed - could merge materials with other meshes.
+					if (!OutMeshShouldBakeVertexData[MeshIndex])
+					{
+						// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
+						// which don't require vertex data baking too.
+						StaticMesh = nullptr;
+					}
+
+					for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
+					{
+						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
+						int32 Index = MeshMaterialData.Find(Data);
+						if (Index == INDEX_NONE)
+						{
+							// Not found, add new entry.
+							Index = MeshMaterialData.Add(Data);
+						}
+						NewMeshMaterialMap.Add(Index);
+					}
 				}
-				NewMeshMaterialMap.Add(Index);
+				else
+				{
+					// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
+					for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
+					{
+						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, true);
+						int32 Index = MeshMaterialData.Add(Data);
+						NewMeshMaterialMap.Add(Index);
+					}
+				}
 			}
 		}
-		else
-		{
-			// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
-			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-			{
-				FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, true);
-				int32 Index = MeshMaterialData.Add(Data);
-				NewMeshMaterialMap.Add(Index);
-			}
-		}		
 	}
 
 	// Build new material list - simply extract MeshMaterialData[i].Material.
@@ -1751,7 +1814,98 @@ static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
 	return false;
 }
 
-bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales)
+uint32 GetTypeHash(const FMaterialUtilities::FExportErrorManager::FError& Error)
+{
+	return GetTypeHash(Error.Material);
+}
+
+bool FMaterialUtilities::FExportErrorManager::FError::operator==(const FError& Rhs) const
+{
+	return Material == Rhs.Material && RegisterIndex == Rhs.RegisterIndex && ErrorType == Rhs.ErrorType;
+}
+
+
+void FMaterialUtilities::FExportErrorManager::Register(const UMaterialInterface* Material, const UTexture* Texture, int32 RegisterIndex, EErrorType ErrorType)
+{
+	if (!Material || !Texture) return;
+
+	FError Error;
+	Error.Material = Material->GetMaterialResource(FeatureLevel);
+	if (!Error.Material) return;
+	Error.RegisterIndex = RegisterIndex;
+	Error.ErrorType = ErrorType;
+
+	FInstance Instance;
+	Instance.Material = Material;
+	Instance.Texture = Texture;
+
+	ErrorInstances.FindOrAdd(Error).Push(Instance);
+}
+
+void FMaterialUtilities::FExportErrorManager::OutputToLog()
+{
+	const UMaterialInterface* CurrentMaterial = nullptr;
+	int32 MaxInstanceCount = 0;
+	FString TextureErrors;
+
+	for (TMap<FError, TArray<FInstance> >::TIterator It(ErrorInstances);; ++It)
+	{
+		if (It && !It->Value.Num()) continue;
+
+		// Here we pack texture list per material.
+		if (!It || CurrentMaterial != It->Value[0].Material)
+		{
+			// Flush
+			if (CurrentMaterial)
+			{
+				FString SimilarCount(TEXT(""));
+				if (MaxInstanceCount > 1)
+				{
+					SimilarCount = FString::Printf(TEXT(", %d similar"), MaxInstanceCount - 1);
+				}
+
+				if (CurrentMaterial == CurrentMaterial->GetMaterial())
+				{
+					UE_LOG(TextureStreamingBuild, Verbose, TEXT("Incomplete texcoord scale analysis for %s%s: %s"), *CurrentMaterial->GetName(), *SimilarCount, *TextureErrors);
+				}
+				else
+				{
+					UE_LOG(TextureStreamingBuild, Verbose, TEXT("Incomplete texcoord scale analysis for %s, UMaterial=%s%s: %s"), *CurrentMaterial->GetName(), *CurrentMaterial->GetMaterial()->GetName(), *SimilarCount, *TextureErrors);
+				}
+			}
+
+			// Exit
+			if (!It)
+			{
+				break;
+			}
+
+			// Start new
+			CurrentMaterial = It->Value[0].Material;
+			MaxInstanceCount = It->Value.Num();
+			TextureErrors.Empty();
+		}
+		else
+		{
+			// Append
+			MaxInstanceCount = FMath::Max<int32>(MaxInstanceCount, It->Value.Num());
+		}
+
+		const TCHAR* ErrorMsg = TEXT("Unkown Error");
+		if (It->Key.ErrorType == EET_IncohorentValues)
+		{
+			ErrorMsg = TEXT("Incoherent");
+		}
+		else if (It->Key.ErrorType == EET_NoValues)
+		{
+			ErrorMsg = TEXT("NoValues");
+		}
+
+		TextureErrors.Append(FString::Printf(TEXT("(%s:%d,%s) "), ErrorMsg, It->Key.RegisterIndex, *It->Value[0].Texture->GetName()));
+	}
+}
+
+bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales, FExportErrorManager& OutErrors)
 {
 	TArray<FFloat16Color> RenderedVectors;
 
@@ -1905,17 +2059,7 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 				}
 			}
 
-			if (FailedTexture)
-			{
-				if (TextureIndexScales.Num())
-				{
-					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to find constant scale for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
-				}
-				else
-				{
-					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to generate scales for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
-				}
-			}
+			OutErrors.Register(InMaterial, FailedTexture, RegisterIndex, TextureIndexScales.Num() ? FExportErrorManager::EErrorType::EET_IncohorentValues : FExportErrorManager::EErrorType::EET_NoValues);
 		}
 	}
 
@@ -1955,14 +2099,14 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 	}
 
 	// Determine whether or not certain properties can be rendered
-	bool bRenderNormal = (Material->GetMaterial()->HasNormalConnected() || Material->GetMaterial()->bUseMaterialAttributes || Material->IsPropertyActive(MP_Normal)) && (OutFlattenMaterial.NormalSize.X > 0 && OutFlattenMaterial.NormalSize.Y > 0);
-	bool bRenderEmissive = (Material->GetMaterial()->EmissiveColor.IsConnected() || Material->GetMaterial()->bUseMaterialAttributes || Material->IsPropertyActive(MP_EmissiveColor)) && OutFlattenMaterial.EmissiveSize.X > 0 && OutFlattenMaterial.EmissiveSize.Y > 0;
-	bool bRenderOpacityMask = Material->IsPropertyActive(MP_OpacityMask) && Material->GetBlendMode() == BLEND_Masked && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
-	bool bRenderOpacity = Material->IsPropertyActive(MP_Opacity) && IsTranslucentBlendMode(Material->GetBlendMode()) && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
-	bool bRenderSubSurface = Material->IsPropertyActive(MP_SubsurfaceColor) && OutFlattenMaterial.SubSurfaceSize.X > 0 && OutFlattenMaterial.SubSurfaceSize.Y > 0;
-	bool bRenderMetallic = Material->IsPropertyActive(MP_Metallic) && OutFlattenMaterial.MetallicSize.X > 0 && OutFlattenMaterial.MetallicSize.Y > 0;
-	bool bRenderSpecular = Material->IsPropertyActive(MP_Specular) && OutFlattenMaterial.SpecularSize.X > 0 && OutFlattenMaterial.SpecularSize.Y > 0;
-	bool bRenderRoughness = Material->IsPropertyActive(MP_Roughness) && OutFlattenMaterial.RoughnessSize.X > 0 && OutFlattenMaterial.RoughnessSize.Y > 0;
+	const bool bRenderNormal = (Material->GetMaterial()->HasNormalConnected() || Material->GetMaterial()->bUseMaterialAttributes) && (OutFlattenMaterial.NormalSize.X > 0 && OutFlattenMaterial.NormalSize.Y > 0);
+	const bool bRenderEmissive = (Material->GetMaterial()->EmissiveColor.IsConnected() || Material->GetMaterial()->bUseMaterialAttributes) && OutFlattenMaterial.EmissiveSize.X > 0 && OutFlattenMaterial.EmissiveSize.Y > 0;
+	const bool bRenderOpacityMask = Material->IsPropertyActive(MP_OpacityMask) && Material->GetBlendMode() == BLEND_Masked && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
+	const bool bRenderOpacity = Material->IsPropertyActive(MP_Opacity) && IsTranslucentBlendMode(Material->GetBlendMode()) && OutFlattenMaterial.OpacitySize.X > 0 && OutFlattenMaterial.OpacitySize.Y > 0;
+	const bool bRenderSubSurface = Material->IsPropertyActive(MP_SubsurfaceColor) && OutFlattenMaterial.SubSurfaceSize.X > 0 && OutFlattenMaterial.SubSurfaceSize.Y > 0;
+	const bool bRenderMetallic = Material->IsPropertyActive(MP_Metallic) && OutFlattenMaterial.MetallicSize.X > 0 && OutFlattenMaterial.MetallicSize.Y > 0;
+	const bool bRenderSpecular = Material->IsPropertyActive(MP_Specular) && OutFlattenMaterial.SpecularSize.X > 0 && OutFlattenMaterial.SpecularSize.Y > 0;
+	const bool bRenderRoughness = Material->IsPropertyActive(MP_Roughness) && OutFlattenMaterial.RoughnessSize.X > 0 && OutFlattenMaterial.RoughnessSize.Y > 0;
 
 	check(!bRenderOpacity || !bRenderOpacityMask);
 
@@ -2200,7 +2344,7 @@ void FMaterialUtilities::OptimizeSampleArray(TArray<FColor>& InSamples, FIntPoin
 			InSamples.Add(ColourValue);
 			InSampleSize = FIntPoint(1, 1);
 		}
-	}	
+	}
 }
 
 FExportMaterialProxyCache::FExportMaterialProxyCache()

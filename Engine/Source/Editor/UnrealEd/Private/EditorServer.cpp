@@ -72,6 +72,8 @@
 #include "PhysicsPublic.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
 #include "KismetReinstanceUtilities.h"
+#include "AnalyticsEventAttribute.h"
+#include "Developer/SlateReflector/Public/ISlateReflectorModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -2100,7 +2102,7 @@ UWorld* UEditorEngine::NewMap()
 	Factory->FeatureLevel = GEditor->DefaultWorldFeatureLevel;
 	UPackage* Pkg = CreatePackage( NULL, NULL );
 	EObjectFlags Flags = RF_Public | RF_Standalone;
-	UWorld* NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("NewWorld"), Flags, NULL, GWarn));
+	UWorld* NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("Untitled"), Flags, NULL, GWarn));
 	Context.SetCurrentWorld(NewWorld);
 	GWorld = NewWorld;
 	NewWorld->AddToRoot();
@@ -5577,6 +5579,15 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 	{
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 		MainFrameModule.RequestCloseEditor();
+		return true;
+	}
+	else if( FParse::Command(&Str,TEXT("WIDGETREFLECTOR")) )
+	{
+		if(!IsRunningCommandlet())
+		{
+			static const FName SlateReflectorModuleName("SlateReflector");
+			FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayWidgetReflector();
+		}
 		return true;
 	}
 	//----------------------------------------------------------------------------------

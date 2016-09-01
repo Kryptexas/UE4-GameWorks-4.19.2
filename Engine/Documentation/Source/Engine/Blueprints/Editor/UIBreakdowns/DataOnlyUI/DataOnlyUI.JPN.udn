@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2682992
+﻿INTSourceChangelist:2953341
 Availability:Public
 Title:データ専用ブループリント UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:ブループリント クラス エディタ インターフェースの概要
+Description:クラス デフォルトが親からのみ変更された Blueprint クラスで作業する場合のブループリント エディタの UI エレメントの分類
 version:4.9
 
 [VAR:Topic]

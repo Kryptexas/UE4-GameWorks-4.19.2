@@ -709,8 +709,7 @@ void UPaperTileMapComponent::SetDefaultCollisionThickness(float Thickness, bool 
 
 		if (bRebuildCollision)
 		{
-			RecreatePhysicsState();
-			UpdateBounds();
+			RebuildCollision();
 		}
 	}
 }
@@ -729,8 +728,7 @@ void UPaperTileMapComponent::SetLayerCollision(int32 Layer, bool bHasCollision, 
 
 			if (bRebuildCollision)
 			{
-				RecreatePhysicsState();
-				UpdateBounds();
+				RebuildCollision();
 			}
 		}
 		else
@@ -742,6 +740,11 @@ void UPaperTileMapComponent::SetLayerCollision(int32 Layer, bool bHasCollision, 
 
 void UPaperTileMapComponent::RebuildCollision()
 {
+	if (OwnsTileMap())
+	{
+		TileMap->RebuildCollision();
+	}
+
 	RecreatePhysicsState();
 	UpdateBounds();
 }

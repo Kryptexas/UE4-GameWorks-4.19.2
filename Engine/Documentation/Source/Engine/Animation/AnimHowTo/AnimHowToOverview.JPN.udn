@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2692223
+﻿INTSourceChangelist:2988432
 Availability:Public
 Title:アニメーションの基本操作方法
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -19,22 +19,22 @@ UE4 でのアニメーションの操作が初めての場合、またはペル�
 ##中級者向け
 |操作ガイド | 説明 |
 | ------- | ------------ |
-| [](Engine\Animation\AnimHowTo\BlendSpace) | %Engine\Animation\AnimHowTo\BlendSpace:description% |
+| [](Engine\Animation\AnimHowTo\PropertyBasedBlending) | %Engine\Animation\AnimHowTo\PropertyBasedBlending:description% |
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |
 
 
-## 高度なオプション
+## 詳細オプション
 |操作ガイド | 説明 |
 | ------- | ------------ |
 | [](Engine\Animation\AnimHowTo\AdditiveAnimations) | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
+| [](Engine\Animation\AnimHowTo\AnimDynamics) | %Engine\Animation\AnimHowTo\AnimDynamics:description% |
 | [](Engine\Animation\AnimHowTo\LayerEditing) | %Engine\Animation\AnimHowTo\LayerEditing:description% |
 | [](Engine\Animation\AnimHowTo\AnimBPOverride) | %Engine\Animation\AnimHowTo\AnimBPOverride:description% |
 
 
 <!-- Convert these to Quick Starts
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |Beginner|
-| [](Engine\Animation\AnimHowTo\BlendSpace) | %Engine\Animation\AnimHowTo\BlendSpace:description% |Beginner|
 
 Split this into two How To's
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |Intermediate|

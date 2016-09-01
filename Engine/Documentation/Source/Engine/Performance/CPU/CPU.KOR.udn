@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2607504
+﻿INTSourceChangelist:2846061
 Availability:Public
 Title: CPU 프로파일링
 Crumbs: %ROOT%, Engine
 Description:게임의 CPU 비용 최적화 방법입니다.
 Navigation:topic
+version: 4.9
 
 
 렌더 스레드에서 CPU 에 묶여있는 경우, 드로 콜이 너무 많아서일 수 있습니다. 흔히 발생하는 문제로, 아티스트가 

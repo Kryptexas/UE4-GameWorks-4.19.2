@@ -34,6 +34,7 @@
 #include "Materials/MaterialParameterCollection.h"
 #include "MaterialShaderQualitySettings.h"
 #include "LoadTimeTracker.h"
+#include "RenderingObjectVersion.h"
 #if WITH_EDITOR
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -231,13 +232,13 @@ public:
 			static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
 			if (ParameterName == NameSubsurfaceProfile)
 			{
-				const USubsurfaceProfile* SubsurfaceProfileRT = GetSubsurfaceProfileRT();
+				const USubsurfaceProfile* MySubsurfaceProfileRT = GetSubsurfaceProfileRT();
 
 				int32 AllocationId = 0;
-				if(SubsurfaceProfileRT)
+				if(MySubsurfaceProfileRT)
 				{
 					// can be optimized (cached)
-					AllocationId = GSubsurfaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT);
+					AllocationId = GSubsurfaceProfileTextureObject.FindAllocationId(MySubsurfaceProfileRT);
 				}
 				else
 				{
@@ -463,9 +464,12 @@ void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*, TArray<FMateri
 	}
 }
 
-void ProcessSerializedInlineShaderMaps(TArray<FMaterialResource>& LoadedResources, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num])
+void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMaterialResource>& LoadedResources, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num])
 {
 	check(IsInGameThread());
+
+	UMaterial* OwnerMaterial = Cast<UMaterial>(Owner);
+	UMaterialInstance* OwnerMaterialInstance = Cast<UMaterialInstance>(Owner);
 
 	for (FMaterialResource& Resource : LoadedResources)
 	{
@@ -515,7 +519,8 @@ void ProcessSerializedInlineShaderMaps(TArray<FMaterialResource>& LoadedResource
 					{
 						if (!OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel])
 						{
-							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] = new FMaterialResource();
+							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] =
+								OwnerMaterialInstance ? OwnerMaterialInstance->AllocatePermutationResource() : OwnerMaterial->AllocateResource();
 						}
 						OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->ReleaseShaderMap();
 						OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->SetInlineShaderMap(LoadedShaderMap);
@@ -548,7 +553,8 @@ void ProcessSerializedInlineShaderMaps(TArray<FMaterialResource>& LoadedResource
 						{
 							if (!OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel])
 							{
-								OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] = new FMaterialResource();
+								OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] =
+									OwnerMaterialInstance ? OwnerMaterialInstance->AllocatePermutationResource() : OwnerMaterial->AllocateResource();
 							}
 
 							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->SetInlineShaderMap(LoadedShaderMap);
@@ -634,9 +640,9 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 #endif //WITH_EDITORONLY_DATA
 }
 
-void UMaterial::PreSave()
+void UMaterial::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 #if WITH_EDITOR
 	GMaterialsWithDirtyUsageFlags.RemoveAnnotation(this);
 #endif
@@ -943,7 +949,6 @@ bool UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 	switch(Usage)
 	{
 		case MATUSAGE_SkeletalMesh: UsageValue = bUsedWithSkeletalMesh; break;
-		case MATUSAGE_Landscape: UsageValue = bUsedWithLandscape; break;
 		case MATUSAGE_ParticleSprites: UsageValue = bUsedWithParticleSprites; break;
 		case MATUSAGE_BeamTrails: UsageValue = bUsedWithBeamTrails; break;
 		case MATUSAGE_MeshParticles: UsageValue = bUsedWithMeshParticles; break;
@@ -998,10 +1003,6 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, bool NewValue)
 		{
 			bUsedWithSkeletalMesh = NewValue; break;
 		}
-		case MATUSAGE_Landscape: 
-		{
-			bUsedWithLandscape = NewValue; break;
-		}
 		case MATUSAGE_ParticleSprites:
 		{
 			bUsedWithParticleSprites = NewValue; break;
@@ -1011,7 +1012,7 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, bool NewValue)
 			bUsedWithBeamTrails = NewValue; break;
 		}
 		case MATUSAGE_MeshParticles:
-		{	
+		{
 			bUsedWithMeshParticles = NewValue; break;
 		}
 		case MATUSAGE_StaticLighting:
@@ -1048,7 +1049,6 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 	switch(Usage)
 	{
 		case MATUSAGE_SkeletalMesh: UsageName = TEXT("bUsedWithSkeletalMesh"); break;
-		case MATUSAGE_Landscape: UsageName = TEXT("bUsedWithLandscape"); break;
 		case MATUSAGE_ParticleSprites: UsageName = TEXT("bUsedWithParticleSprites"); break;
 		case MATUSAGE_BeamTrails: UsageName = TEXT("bUsedWithBeamTrails"); break;
 		case MATUSAGE_MeshParticles: UsageName = TEXT("bUsedWithMeshParticles"); break;
@@ -1134,8 +1134,8 @@ static bool IsPrimitiveTypeUsageFlag(EMaterialUsage Usage)
 bool UMaterial::NeedsSetMaterialUsage_Concurrent(bool &bOutHasUsage, EMaterialUsage Usage) const
 {
 	bOutHasUsage = true;
-	// Material usage is only relevant for surface materials.
-	if (MaterialDomain != MD_Surface)
+	// Material usage is only relevant for materials that can be applied onto a mesh / use with different vertex factories.
+	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal)
 	{
 		bOutHasUsage = false;
 		return false;
@@ -1164,8 +1164,8 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 {
 	bNeedsRecompile = false;
 
-	// Material usage is only relevant for surface materials.
-	if (MaterialDomain != MD_Surface)
+	// Material usage is only relevant for materials that can be applied onto a mesh / use with different vertex factories.
+	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal)
 	{
 		return false;
 	}
@@ -2186,6 +2186,8 @@ void UMaterial::Serialize(FArchive& Ar)
 {
 	SCOPED_LOADTIMER(MaterialSerializeTime);
 
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 	Super::Serialize(Ar);
 
 	if (FPlatformProperties::RequiresCookedData() && Ar.IsLoading())
@@ -2242,6 +2244,14 @@ void UMaterial::Serialize(FArchive& Ar)
 		else
 		{
 			bCanMaskedBeAssumedOpaque = false;
+		}
+	}
+
+	if(Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::IntroducedMeshDecals)
+	{
+		if(MaterialDomain == MD_DeferredDecal)
+		{
+			BlendMode = BLEND_Translucent;
 		}
 	}
 }
@@ -2392,7 +2402,7 @@ void UMaterial::PostLoad()
 	Super::PostLoad();
 
 	// Resources can be processed / registered now that we're back on the main thread
-	ProcessSerializedInlineShaderMaps(LoadedMaterialResources, MaterialResources);
+	ProcessSerializedInlineShaderMaps(this, LoadedMaterialResources, MaterialResources);
 	// Empty the lsit of loaded resources, we don't need it anymore
 	LoadedMaterialResources.Empty();
 
@@ -2746,7 +2756,6 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bFullyRough) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TwoSided) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseLightmapDirectionality) ||
-			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, D3D11TessellationMode) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseHQForwardReflections) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUsePlanarForwardReflections)
 			)
@@ -2754,12 +2763,17 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			return MaterialDomain == MD_Surface;
 		}
 
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, D3D11TessellationMode))
+		{
+			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface;
+		}
+
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bEnableCrackFreeDisplacement) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, MaxDisplacement) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bEnableAdaptiveTessellation)
 			)
 		{
-			return MaterialDomain == MD_Surface && D3D11TessellationMode != MTM_NoTessellation;
+			return (MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface) && D3D11TessellationMode != MTM_NoTessellation;
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendableLocation) ||
@@ -2771,7 +2785,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendMode))
 		{
-			return MaterialDomain == MD_Surface || MaterialDomain == MD_UI;
+			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface || MaterialDomain == MD_UI;
 		}
 	
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, ShadingModel))
@@ -2788,7 +2802,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			FCString::Strcmp(*PropertyName, TEXT("bUsesDistortion")) == 0
 			)
 		{
-			return MaterialDomain == MD_Surface;
+			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface;
 		}
 		else if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, RefractionDepthBias))
 		{
@@ -2801,7 +2815,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bDisableDepthTest)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseTranslucencyVertexFog))
 		{
-			return IsTranslucentBlendMode(BlendMode);
+			return MaterialDomain != MD_DeferredDecal && IsTranslucentBlendMode(BlendMode);
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucencyLightingMode)
@@ -2814,7 +2828,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentMultipleScatteringExtinction)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentShadowStartOffset))
 		{
-			return IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
+			return MaterialDomain != MD_DeferredDecal && IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, SubsurfaceProfile))
@@ -3991,10 +4005,9 @@ int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProper
 }
 #endif // WITH_EDITOR
 
-void UMaterial::NotifyCompilationFinished(FMaterialResource* CompiledResource)
+void UMaterial::NotifyCompilationFinished(UMaterialInterface* Material)
 {
-	// we don't know if it was actually us or one of our MaterialInstances (with StaticPermutationResources)...
-	UMaterial::OnMaterialCompilationFinished().Broadcast(this);
+	UMaterial::OnMaterialCompilationFinished().Broadcast(Material);
 }
 
 void UMaterial::ForceRecompileForRendering()
@@ -4142,6 +4155,11 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		else if (InProperty == MP_MaterialAttributes)
 		{
 			// todo: MaterialAttruibutes would not return true, should it? Why we don't check for the checkbox in the material
+			return true;
+		}
+		else if( InProperty == MP_WorldPositionOffset )
+		{
+			// Note: DeferredDecals don't support this but MeshDecals do
 			return true;
 		}
 

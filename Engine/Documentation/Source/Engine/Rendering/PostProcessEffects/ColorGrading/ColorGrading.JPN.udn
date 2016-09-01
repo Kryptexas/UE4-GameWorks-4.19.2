@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2604054
+﻿INTSourceChangelist:2688263
 Availability:Public
-Title:カラー グレーディング
+Title:カラーグレーディング
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:シーンカラーを調整するためのトーンマッピングと色補正エフェクト
+Version:4.9
 
 アンリアル エンジンでは、 **カラー グレーディング** という用語は トーンマッピング 機能 (HDR から LDR への変換) とそれに続く カラー修正 (LDR カラーからスクリーン カラーへの変換) を意味します。
 
-## Tone Mapping
+## トーン マッピング
 
 [EXCERPT:ToneMapping_Desc]
 **Tone Mapping (トーン マッピング)** 機能の目的は、広範囲の HDR (ハイダイナミック レンジ) カラーを局所的な LDR (ローダイナミック レンジ) にマップすることによって、モニターでカラー表示を可能にすることです。これはポストプロセス処理中の通常のレンダリング後に実行されます。グローバル トーンマッパとは、 3 つの入力値 (RGB) と 3 つの出力値 (RGB) を伴う機能です。ローカル トーンマッパでは、ピクセルの周辺も考慮されますが、より集中的な計算が行われます (つまり速度が遅くなります)。優れたトーンマッパ機能は、カラーが高輝度な場合でも、ピクセルのカラー情報を保持しようとします。
@@ -31,19 +32,25 @@ Description:シーンカラーを調整するためのトーンマッピング�
 
 <!--
 [EXCERPT:SceneColorTint]
-[REGION:imagetable]
-| ![Scene Color Tint - (1.0, 1.0, 1.0)](scene_tint_full_small.png)(w:365) | ![Scene Color Tint - (0.25, 0.25, 0.25)](scene_tint_quarter_small.png)(w:365)
-| ------ | ------ |
-| (1.0, 1.0, 1.0) | (0.25, 0.25, 0.25) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene Color Tint - (1.0, 1.0, 1.0)](scene_tint_full_small.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Scene Color Tint - (0.25, 0.25, 0.25)](scene_tint_quarter_small.png)(w:600)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:SceneColorTint]
 
 [EXCERPT:TonemapperToeFactor]
-[REGION:imagetable]
-| ![Toe Factor - 0](toe_factor_0_small.png)(w:365) | ![Toe Factor - 1](toe_factor_1_small.png)(w:365)
-| ------ | ------ |
-| 0.0 | 1.0 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Toe Factor - 0](toe_factor_0_small.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Toe Factor - 1](toe_factor_1_small.png)(w:600)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:TonemapperToeFactor]
 -->
 
@@ -116,6 +123,6 @@ LUT を使用するには、使用するポストプロセスボリュームで 
 * 高品質コントラスト (中央部に急勾配な線形部分をともなった曲線など)
 * 画像の暗い部分、ミッドトーン部、明るい部分を選んで変更 (曲線など)
 * 特定の色を選んで変更 (輝度が別のチャンネルにある色空間で最もよく表現される色。LAB など)
-* 異なるカラー空間でも調整することができます (LAB は輝度と色の独立性を保つため非常に便利です) 
+* 異なるカラー空間でも調整可能（例、LAB は輝度と独立した色を保つため非常に便利です） 
 
 [/EXCERPT:LookupTexture]

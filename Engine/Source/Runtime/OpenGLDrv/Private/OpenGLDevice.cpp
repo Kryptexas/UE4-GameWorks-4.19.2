@@ -119,10 +119,18 @@ bool IsUniformBufferBound( GLuint Buffer )
 extern void BeginFrame_UniformBufferPoolCleanup();
 extern void BeginFrame_VertexBufferCleanup();
 
-FOpenGLContextState& FOpenGLDynamicRHI::GetContextStateForCurrentContext()
+FOpenGLContextState& FOpenGLDynamicRHI::GetContextStateForCurrentContext(bool bAssertIfInvalid)
 {
 	int32 ContextType = (int32)PlatformOpenGLCurrentContext(PlatformDevice);
-	check(ContextType >= 0);
+	if (bAssertIfInvalid)
+	{
+		check(ContextType >= 0);
+	}
+	else if (ContextType < 0)
+	{
+		return InvalidContextState;
+	}
+
 	if (ContextType == CONTEXT_Rendering)
 	{
 		return RenderingContextState;
@@ -271,7 +279,7 @@ static const TCHAR* GetOpenGLDebugSeverityStringARB(GLenum Severity)
 /**
  * OpenGL debug message callback. Conforms to GLDEBUGPROCARB.
  */
-#if (PLATFORM_ANDROID && !PLATFORM_ANDROIDGL4) || PLATFORM_HTML5
+#if PLATFORM_ANDROID || PLATFORM_HTML5
 	#ifndef GL_APIENTRY
 	#define GL_APIENTRY APIENTRY
 	#endif
@@ -451,13 +459,15 @@ void InitDebugContext()
 		}
 	#endif // GL_AMD_debug_output
 #endif // !ENABLE_VERIFY_GL
-	if (!bDebugOutputInitialized && !PLATFORM_MAC)
+#if !PLATFORM_MAC
+	if (!bDebugOutputInitialized)
 	{
 		UE_LOG(LogRHI,Warning,TEXT("OpenGL debug output extension not supported!"));
 	}
+#endif
 
 	// this is to suppress feeding back of the debug markers and groups to the log, since those originate in the app anyways...
-#if ENABLE_OPENGL_DEBUG_GROUPS && GL_ARB_debug_output && GL_KHR_debug && !OPENGL_ES31
+#if ENABLE_OPENGL_DEBUG_GROUPS && GL_ARB_debug_output && GL_KHR_debug && !OPENGL_ESDEFERRED
 	if(glDebugMessageControlARB && bDebugOutputInitialized)
 	{
 		glDebugMessageControlARB(GL_DEBUG_SOURCE_APPLICATION_ARB, GL_DEBUG_TYPE_MARKER, GL_DONT_CARE, 0, NULL, GL_FALSE);
@@ -725,10 +735,8 @@ static void InitRHICapabilitiesForGL()
 	FString ShaderPlatformName = LegacyShaderPlatformToShaderFormat(GMaxRHIShaderPlatform).ToString();
 
 	UE_LOG(LogRHI, Log, TEXT("OpenGL MajorVersion = %d, MinorVersion = %d, ShaderPlatform = %s, FeatureLevel = %s"), MajorVersion, MinorVersion, *ShaderPlatformName, *FeatureLevelName);
-#if PLATFORM_ANDROIDGL4
-	UE_LOG(LogRHI, Log, TEXT("PLATFORM_ANDROIDGL4"));
-#elif PLATFORM_ANDROIDES31
-	UE_LOG(LogRHI, Log, TEXT("PLATFORM_ANDROIDES31"));
+#if PLATFORM_ANDROIDESDEFERRED
+	UE_LOG(LogRHI, Log, TEXT("PLATFORM_ANDROIDESDEFERRED"));
 #elif PLATFORM_ANDROID
 	UE_LOG(LogRHI, Log, TEXT("PLATFORM_ANDROID"));
 #endif
@@ -767,7 +775,7 @@ static void InitRHICapabilitiesForGL()
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2) ? GMaxRHIShaderPlatform : SP_OPENGL_PCES2;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1) ? GMaxRHIShaderPlatform : SP_OPENGL_PCES3_1;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = PLATFORM_MAC ? SP_OPENGL_SM4_MAC : SP_OPENGL_SM4;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = OPENGL_ES31 ? SP_OPENGL_ES31_EXT : SP_OPENGL_SM5;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = OPENGL_ESDEFERRED ? SP_OPENGL_ES31_EXT : SP_OPENGL_SM5;
 
 	// Set to same values as in DX11, as for the time being clip space adjustment are done entirely
 	// in HLSLCC-generated shader code and OpenGLDrv.
@@ -808,8 +816,9 @@ static void InitRHICapabilitiesForGL()
 	SetupTextureFormat( PF_R16G16B16A16_UINT,	FOpenGLTextureFormat( GL_RGBA16UI,				GL_NONE,				GL_RGBA_INTEGER,	GL_UNSIGNED_SHORT,				false,			false));
 	SetupTextureFormat( PF_R16G16B16A16_SINT,	FOpenGLTextureFormat( GL_RGBA16I,				GL_NONE,				GL_RGBA_INTEGER,	GL_SHORT,						false,			false));
 	SetupTextureFormat( PF_R5G6B5_UNORM,		FOpenGLTextureFormat( ));
-#if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
-	if (PLATFORM_DESKTOP != 0 || PLATFORM_ANDROIDGL4 != 0 || FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+#if PLATFORM_DESKTOP || PLATFORM_ANDROIDESDEFERRED
+	CA_SUPPRESS(6286);
+	if (PLATFORM_DESKTOP || FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		// Not supported for rendering:
 		SetupTextureFormat( PF_G16,				FOpenGLTextureFormat( GL_R16,					GL_R16,					GL_RED,			GL_UNSIGNED_SHORT,					false,	false));
@@ -840,6 +849,7 @@ static void InitRHICapabilitiesForGL()
 		SetupTextureFormat( PF_R32_SINT,		FOpenGLTextureFormat( GL_R32I,					GL_NONE,				GL_RED_INTEGER,	GL_INT,								false,	false));
 		SetupTextureFormat( PF_R16_UINT,		FOpenGLTextureFormat( GL_R16UI,					GL_NONE,				GL_RED_INTEGER,	GL_UNSIGNED_SHORT,					false,	false));
 		SetupTextureFormat( PF_R16_SINT,		FOpenGLTextureFormat( GL_R16I,					GL_NONE,				GL_RED_INTEGER,	GL_SHORT,							false,	false));
+		SetupTextureFormat( PF_R8_UINT,			FOpenGLTextureFormat( GL_R8UI,					GL_NONE,				GL_RED_INTEGER, GL_UNSIGNED_BYTE,					false,  false));
 		SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat( GL_RGBA16F,				GL_RGBA16F,				GL_RGBA,		GL_HALF_FLOAT,						false,	false));
 		if (FOpenGL::GetShaderPlatform() == EShaderPlatform::SP_OPENGL_ES31_EXT)
 		{
@@ -870,9 +880,9 @@ static void InitRHICapabilitiesForGL()
 		}
 	}
 	else
-#endif // PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
+#endif // PLATFORM_DESKTOP || PLATFORM_ANDROIDESDEFERRED
 	{
-#if !PLATFORM_DESKTOP && !PLATFORM_ANDROIDGL4
+#if !PLATFORM_DESKTOP
 		// ES2-based cases
 		GLuint BGRA8888 = FOpenGL::SupportsBGRA8888() ? GL_BGRA_EXT : GL_RGBA;
 		GLuint RGBA8 = FOpenGL::SupportsRGBA8() ? GL_RGBA8_OES : GL_RGBA;
@@ -1317,7 +1327,8 @@ void FOpenGLDynamicRHI::Init()
 {
 	check(!GIsRHIInitialized);
 	VERIFY_GL_SCOPE();
-
+	
+	FOpenGLProgramBinaryCache::Initialize();
 #if PLATFORM_DESKTOP
 	FShaderCache::InitShaderCache(SCO_Default, FOpenGL::GetMaxTextureImageUnits());
 #endif
@@ -1405,6 +1416,7 @@ void FOpenGLDynamicRHI::Cleanup()
 #if PLATFORM_DESKTOP
 		FShaderCache::ShutdownShaderCache();
 #endif
+		FOpenGLProgramBinaryCache::Shutdown();
 
 		// Reset the RHI initialized flag.
 		GIsRHIInitialized = false;
@@ -1544,5 +1556,5 @@ void FOpenGLDynamicRHI::SetCustomPresent(FRHICustomPresent* InCustomPresent)
 
 bool FOpenGLDynamicRHIModule::IsSupported()
 {
-	return PlatformInitOpenGL();
+	return true;
 }

@@ -4,9 +4,6 @@ Crumbs:%ROOT%, Engine/Blueprints
 Description:Tips and tricks to help you make decisions about when to use Blueprints and how best to set them up.
 version: 4.9
 parent:Engine/Blueprints
-order:2
-type:howto
-
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -125,7 +122,7 @@ access it directly from another Blueprint, it's better to use a function!
 
 There are several different methods for communicating between two Blueprints. While the most common use case is direct Blueprint communication, sometimes the functionality you are going for
 means that you will use Event Dispatchers or Blueprint Interfaces instead. For an overview of each type of communication, some example use cases, and tutorials to help you get started, see
-[](Engine\Blueprints\UserGuide\BlueprintCommsUsage). To create a project that uses all three types together, try out the [](Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo) guide.
+[](Engine\Blueprints\UserGuide\BlueprintCommsUsage). To create a project that uses all three types together, try out the [](Engine/Blueprints/HowTo) guide.
 
 
 

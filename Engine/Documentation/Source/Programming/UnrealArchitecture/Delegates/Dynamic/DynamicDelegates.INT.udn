@@ -13,8 +13,8 @@ variations specific to dynamic delegates.
 
 | Declaration Macro | Description |
 | --- | --- |
-| `DECLARE_DYNAMIC_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | Creates a dynamic delegate. |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | Creates a dynamic multi-cast delegate. |
+| `DECLARE_DYNAMIC_DELEGATE[_RetVal, etc.]( DelegateName )` | Creates a dynamic delegate. |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | Creates a dynamic multi-cast delegate. |
 
 ## Dynamic Delegate Binding
 
@@ -34,5 +34,5 @@ Dynamic delegates can be declared with a wrapper proxy method for executing the 
 
 | Declaration Macro | Description |
 | --- | --- |
-| `DECLARE_DYNAMIC_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | Creates a wrapped dynamic delegate. |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | Creates a wrapped dynamic multi-cast delegate. |
+| `DECLARE_DYNAMIC_DELEGATE[_RetVal, etc.]( DelegateName )` | Creates a wrapped dynamic delegate. |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | Creates a wrapped dynamic multi-cast delegate. |

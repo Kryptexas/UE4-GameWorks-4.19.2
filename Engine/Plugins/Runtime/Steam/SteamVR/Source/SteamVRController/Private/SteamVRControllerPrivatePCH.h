@@ -6,6 +6,7 @@
 #include "Engine.h"
 #include "ISteamVRPlugin.h"
 #include "InputDevice.h"
+#include "IHapticDevice.h"
 
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 #include <openvr.h>

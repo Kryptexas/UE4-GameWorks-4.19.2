@@ -1,11 +1,14 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2968923
 Availability:Public
-Title:Casting
+Title:蓝图中的转换
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
-Description:Examples of different Casting Nodes and usage cases. 
-Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
-Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
-Related: Engine/Blueprints/HowTo
+Description:各种转换节点和使用情况的范例。 
+Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+Related:Engine/Blueprints/HowTo
+version:4.9
+Parent:Engine/Blueprints/Scripting
+tags:Data Types
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,33 +51,33 @@ Related: Engine/Blueprints/HowTo
 
 [TOC (start:2 end:2)]
 
-When using a **Cast To** node in **Blueprints**, put simply, you are attempting to check if the object you are casting from is the specific object you **Cast To**. In other words, say you have created a special Character Blueprint (called MyCharacter for example) that has variables in it or other custom functionality contained within it and assigned it as the Default Pawn Class (or the Character Blueprint all Player Characters use by default). 
+在 **蓝图** 中使用 **Cast To** 节点时，简单而言，就是在尝试检查发出转换的对象是否为被转换的特定对象。换言之，您创建了一个特殊的角色蓝图（如名为 MyCharacter），其中包含变量或其他自定义功能，并将其作为默认 Pawn 类（或所有玩家角色默认使用的角色蓝图）指定。 
 
-If you want to access properties of the Player Character from another Blueprint, you can use the **Get Player Character** node and affect the Player Character in very general ways (setting/getting its location, rotation, etc.) but you cannot access any of the custom functionality you have added to the MyCharacter Blueprint you have set up as you are getting the Player Character but not a specific type of Character. 
+如需从另一个蓝图访问玩家角色的属性，可使用 **Get Player Character** 节点以常规方式（设置/获取其位置、旋转灯）对玩家角色产生影响，但无法访问已添加到 MyCharacter 蓝图的自定义功能，因为您获取的是玩家角色而非特定类型的角色。 
 
-By using the **Get Player Character** node, then using a **Cast To MyCharacter** node (the special Character Blueprint), you can then say if the Player Character is MyCharacter, let me access the Variables, Functions, Events or any other special functionality contained within that Blueprint.
+使用 **Get Player Character** 节点，再使用 **Cast To MyCharacter** 节点（特殊的角色蓝图），即可确认玩家角色是否为 MyCharacter，以便访问该蓝图中所包含的变量、函数、事件或其他特殊功能。
 
-On this page, you will learn about some of the use cases for Casting, see an example for using a Cast To node, read about Target Blueprint Casting as well as other types of casting. 
+在此页面中您可了解到转换的部分使用情况、查看 **Cast To** 节点的使用范例、了解关于目标蓝图转换的内容以及其他类型的转换。 
 
 
 
-## Example Use Cases
+## 范例使用情况
 
-Below are a few examples of when **Blueprint Casting** could be used:
+以下是几个 **蓝图转换** 使用范例：
 
 [INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage#castusage]
 
-## Setting Up a Cast To Example
+## 设置一个 Cast To 范例
 
-The example below shows how you can access one Blueprint from inside another Blueprint by using a Cast To node. 
+下例说明如何使用 Cast To 节点从一个蓝图中访问另一个蓝图。 
 
 [INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#castexample]
 
-## Target Blueprint Casting
+## 目标蓝图转换
 
 [INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#targetcasting]
 
-## Other Types of Casting
+## 其他类型的转换
 
 [INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#othercasting]
 

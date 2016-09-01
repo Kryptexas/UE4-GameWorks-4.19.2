@@ -70,7 +70,20 @@ void FComponentTypeRegistryData::AddBasicShapeComponents(TArray<FComponentClassC
 		if (SMC)
 		{
 			const FString MaterialName = TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial");
-			SMC->SetMaterial(0, FindOrLoadObject<UMaterial>(MaterialName));
+			UMaterial* MaterialAsset = FindOrLoadObject<UMaterial>(MaterialName);
+			SMC->SetMaterial(0, MaterialAsset);
+
+			// If the component object is an archetype (template), propagate the material setting to any instances, as instances
+			// of the archetype will end up being created BEFORE we are able to set the override material on the template object.
+			if (SMC->HasAnyFlags(RF_ArchetypeObject))
+			{
+				TArray<UObject*> ArchetypeInstances;
+				SMC->GetArchetypeInstances(ArchetypeInstances);
+				for (UObject* ArchetypeInstance : ArchetypeInstances)
+				{
+					CastChecked<UStaticMeshComponent>(ArchetypeInstance)->SetMaterial(0, MaterialAsset);
+				}
+			}
 		}
 	};
 
@@ -366,18 +379,13 @@ void FComponentTypeRegistryData::Tick(float)
 		for (auto Asset : PendingAssetData)
 		{
 			const FName BPParentClassName(GET_MEMBER_NAME_CHECKED(UBlueprint, ParentClass));
-
-			bool FoundBPNotify = false;
-			for (auto TagIt = Asset.TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
+			const FString TagValue = Asset.GetTagValueRef<FString>(BPParentClassName);
+			const FString ObjectPath = FPackageName::ExportTextPathToObjectPath(TagValue);
+			FName ObjectName = FName(*FPackageName::ObjectPathToObjectName(ObjectPath));
+			if (DerivedClassNames.Contains(ObjectName))
 			{
-				FString TagValue = Asset.TagsAndValues.FindRef(BPParentClassName);
-				const FString ObjectPath = FPackageName::ExportTextPathToObjectPath(TagValue);
-				FName ObjectName = FName(*FPackageName::ObjectPathToObjectName(ObjectPath));
-				if (DerivedClassNames.Contains(ObjectName))
-				{
-					bRequiresRefresh = true;
-					break;
-				}
+				bRequiresRefresh = true;
+				break;
 			}
 		}
 		PendingAssetData.Empty();

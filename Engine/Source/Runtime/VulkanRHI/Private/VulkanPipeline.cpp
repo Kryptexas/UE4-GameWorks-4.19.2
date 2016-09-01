@@ -57,7 +57,8 @@ FVulkanPipeline::FVulkanPipeline(FVulkanDevice* InDevice)
 FVulkanPipeline::~FVulkanPipeline()
 {
 #if VULKAN_ENABLE_PIPELINE_CACHE
-	vkDestroyPipeline(Device->GetInstanceHandle(), Pipeline, nullptr);
+	Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::Pipeline, Pipeline);
+	Pipeline = VK_NULL_HANDLE;
 #endif
 }
 
@@ -121,7 +122,7 @@ void FVulkanPipeline::Create(const FVulkanPipelineState& State)
 	VkPipelineCacheCreateInfo PipelineCacheInfo;
 	FMemory::Memzero(PipelineCacheInfo);
 	PipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-	VERIFYVULKANRESULT(vkCreatePipelineCache(Device->GetInstanceHandle(), &PipelineCacheInfo, nullptr, &PipelineCache));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineCache(Device->GetInstanceHandle(), &PipelineCacheInfo, nullptr, &PipelineCache));
 
 	check(State.RenderPass);
 	PipelineInfo.pColorBlendState = &CBInfo;
@@ -133,7 +134,7 @@ void FVulkanPipeline::Create(const FVulkanPipelineState& State)
 	PipelineInfo.pDepthStencilState = &State.DepthStencilState->DepthStencilState;
 	PipelineInfo.pDynamicState = &State.DynamicState;
 
-	VERIFYVULKANRESULT(vkCreateGraphicsPipelines(Device->GetInstanceHandle(), PipelineCache, 1, &PipelineInfo, nullptr, &Pipeline));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateGraphicsPipelines(Device->GetInstanceHandle(), PipelineCache, 1, &PipelineInfo, nullptr, &Pipeline));
 }
 #endif
 
@@ -163,7 +164,7 @@ void FVulkanPipeline::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkan
 	{
 		check(State.Viewport.width > 0);
 		check(State.Viewport.height > 0);
-		vkCmdSetViewport(Cmd->GetHandle(), 0, 1, &State.Viewport);
+		VulkanRHI::vkCmdSetViewport(Cmd->GetHandle(), 0, 1, &State.Viewport);
 
 		State.bNeedsViewportUpdate = false;
 	}
@@ -178,7 +179,7 @@ void FVulkanPipeline::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkan
 			Scissor.extent.height = State.Viewport.height;
 		}
 
-		vkCmdSetScissor(Cmd->GetHandle(), 0, 1, &Scissor);
+		VulkanRHI::vkCmdSetScissor(Cmd->GetHandle(), 0, 1, &Scissor);
 
 		State.bNeedsScissorUpdate = false;
 	}
@@ -209,7 +210,7 @@ FVulkanPipelineStateCache::~FVulkanPipelineStateCache()
 {
 	DestroyCache();
 
-	vkDestroyPipelineCache(Device->GetInstanceHandle(), PipelineCache, nullptr);
+	VulkanRHI::vkDestroyPipelineCache(Device->GetInstanceHandle(), PipelineCache, nullptr);
 	PipelineCache = VK_NULL_HANDLE;
 }
 
@@ -240,7 +241,7 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 
 			for (int32 Index = 0; Index < DiskEntries.Num(); ++Index)
 			{
-				auto* Pipeline = new FVulkanPipeline(Device);
+				FVulkanPipeline* Pipeline = new FVulkanPipeline(Device);
 				FDiskEntry* DiskEntry = &DiskEntries[Index];
 				DiskEntry->bLoaded = true;
 				CreateDiskEntryRuntimeObjects(DiskEntry);
@@ -320,7 +321,7 @@ void FVulkanPipelineStateCache::InitAndLoad(const TArray<FString>& CacheFilename
 	PipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 	PipelineCacheInfo.initialDataSize = bLoaded ? DeviceCache.Num() : 0;
 	PipelineCacheInfo.pInitialData = bLoaded ? DeviceCache.GetData() : 0;
-	VERIFYVULKANRESULT(vkCreatePipelineCache(Device->GetInstanceHandle(), &PipelineCacheInfo, nullptr, &PipelineCache));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineCache(Device->GetInstanceHandle(), &PipelineCacheInfo, nullptr, &PipelineCache));
 }
 
 void FVulkanPipelineStateCache::Save(FString& CacheFilename)
@@ -355,7 +356,7 @@ void FVulkanPipelineStateCache::CreateAndAdd(const FVulkanPipelineStateKey& Crea
 	//if (EnablePipelineCacheCvar.GetValueOnRenderThread() == 1)
 	//SCOPE_CYCLE_COUNTER(STAT_VulkanCreatePipeline);
 
-	auto* DiskEntry = new FDiskEntry();
+	FDiskEntry* DiskEntry = new FDiskEntry();
 	DiskEntry->GraphicsKey = CreateInfo.PipelineKey;
 	DiskEntry->VertexInputKey = CreateInfo.VertexInputKey;
 	PopulateDiskEntry(State, State.RenderPass, DiskEntry);
@@ -660,7 +661,7 @@ void FVulkanPipelineStateCache::FDiskEntry::FRenderTargets::ReadFrom(const FVulk
 	{
 		for (uint32 Index = 0; Index < Count; ++Index)
 		{
-			auto* New = new(Dest) FDiskEntry::FRenderTargets::FAttachmentRef;
+			FDiskEntry::FRenderTargets::FAttachmentRef* New = new(Dest) FDiskEntry::FRenderTargets::FAttachmentRef;
 			New->ReadFrom(Source[Index]);
 		}
 	};
@@ -829,7 +830,7 @@ void FVulkanPipelineStateCache::CreatePipelineFromDiskEntry(const FDiskEntry* Di
 	TArray<VkVertexInputBindingDescription> VBBindings;
 	for (const FDiskEntry::FVertexBinding& SourceBinding : DiskEntry->VertexBindings)
 	{
-		auto* Binding = new(VBBindings) VkVertexInputBindingDescription;
+		VkVertexInputBindingDescription* Binding = new(VBBindings) VkVertexInputBindingDescription;
 		SourceBinding.WriteInto(*Binding);
 	}
 	VBInfo.vertexBindingDescriptionCount = VBBindings.Num();
@@ -837,7 +838,7 @@ void FVulkanPipelineStateCache::CreatePipelineFromDiskEntry(const FDiskEntry* Di
 	TArray<VkVertexInputAttributeDescription> VBAttributes;
 	for (const FDiskEntry::FVertexAttribute& SourceAttr : DiskEntry->VertexAttributes)
 	{
-		auto* Attr = new(VBAttributes) VkVertexInputAttributeDescription;
+		VkVertexInputAttributeDescription* Attr = new(VBAttributes) VkVertexInputAttributeDescription;
 		SourceAttr.WriteInto(*Attr);
 	}
 	VBInfo.vertexAttributeDescriptionCount = VBAttributes.Num();
@@ -858,8 +859,7 @@ void FVulkanPipelineStateCache::CreatePipelineFromDiskEntry(const FDiskEntry* Di
 	PipelineInfo.pInputAssemblyState = &InputAssembly;
 
 	VkPipelineRasterizationStateCreateInfo RasterizerState;
-	FMemory::Memzero(RasterizerState);
-	RasterizerState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	FVulkanRasterizerState::ResetCreateInfo(RasterizerState);
 	DiskEntry->Rasterizer.WriteInto(RasterizerState);
 
 	VkPipelineDepthStencilStateCreateInfo DepthStencilState;
@@ -882,7 +882,7 @@ void FVulkanPipelineStateCache::CreatePipelineFromDiskEntry(const FDiskEntry* Di
 	PipelineInfo.pDynamicState = &DynamicState;
 
 	//#todo-rco: Group the pipelines and create multiple (derived) pipelines at once
-	VERIFYVULKANRESULT(vkCreateGraphicsPipelines(Device->GetInstanceHandle(), PipelineCache, 1, &PipelineInfo, nullptr, &Pipeline->Pipeline));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateGraphicsPipelines(Device->GetInstanceHandle(), PipelineCache, 1, &PipelineInfo, nullptr, &Pipeline->Pipeline));
 }
 
 void FVulkanPipelineStateCache::PopulateDiskEntry(const FVulkanPipelineState& State, const FVulkanRenderPass* RenderPass, FVulkanPipelineStateCache::FDiskEntry* OutDiskEntry)
@@ -911,13 +911,13 @@ void FVulkanPipelineStateCache::PopulateDiskEntry(const FVulkanPipelineState& St
 		}
 	}
 
-	auto& Layouts = State.Shader->GetDescriptorSetsLayout().GetLayouts();
+	const TArray<FVulkanDescriptorSetsLayout::FSetLayout>& Layouts = State.Shader->GetDescriptorSetsLayout().GetLayouts();
 	OutDiskEntry->DescriptorSetLayoutBindings.AddDefaulted(Layouts.Num());
 	for (int32 Index = 0; Index < Layouts.Num(); ++Index)
 	{
 		for (int32 SubIndex = 0; SubIndex < Layouts[Index].LayoutBindings.Num(); ++SubIndex)
 		{
-			auto* Binding = new(OutDiskEntry->DescriptorSetLayoutBindings[Index]) FDiskEntry::FDescriptorSetLayoutBinding;
+			FDiskEntry::FDescriptorSetLayoutBinding* Binding = new(OutDiskEntry->DescriptorSetLayoutBindings[Index]) FDiskEntry::FDescriptorSetLayoutBinding;
 			Binding->ReadFrom(Layouts[Index].LayoutBindings[SubIndex]);
 		}
 	}
@@ -930,7 +930,7 @@ void FVulkanPipelineStateCache::PopulateDiskEntry(const FVulkanPipelineState& St
 	int32 NumShaders = 0;
 	for (int32 Index = 0; Index < SF_Compute; ++Index)
 	{
-		auto* Shader = State.Shader->GetShaderPtr((EShaderFrequency)Index);
+		FVulkanShader* Shader = State.Shader->GetShaderPtr((EShaderFrequency)Index);
 		if (Shader)
 		{
 			check(Shader->CodeSize != 0);
@@ -943,7 +943,7 @@ void FVulkanPipelineStateCache::PopulateDiskEntry(const FVulkanPipelineState& St
 	}
 	check(NumShaders > 0);
 
-	auto& RTLayout = RenderPass->GetLayout();
+	const FVulkanRenderTargetLayout& RTLayout = RenderPass->GetLayout();
 	OutDiskEntry->RenderTargets.ReadFrom(RTLayout);
 
 	OutDiskEntry->RenderPass = RenderPass;
@@ -970,7 +970,7 @@ void FVulkanPipelineStateCache::CreateDiskEntryRuntimeObjects(FDiskEntry* DiskEn
 			DescriptorLayoutInfo.bindingCount = DescriptorBindings.Num();
 			DescriptorLayoutInfo.pBindings = DescriptorBindings.GetData();
 
-			VERIFYVULKANRESULT(vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, &DiskEntry->DescriptorSetLayouts[SetIndex]));
+			VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorSetLayout(Device->GetInstanceHandle(), &DescriptorLayoutInfo, nullptr, &DiskEntry->DescriptorSetLayouts[SetIndex]));
 		}
 
 		// Pipeline layout
@@ -983,7 +983,7 @@ void FVulkanPipelineStateCache::CreateDiskEntryRuntimeObjects(FDiskEntry* DiskEn
 		//PipelineLayoutInfo.pushConstantRangeCount = 0;
 		//PipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-		VERIFYVULKANRESULT(vkCreatePipelineLayout(Device->GetInstanceHandle(), &PipelineLayoutInfo, nullptr, &DiskEntry->PipelineLayout));
+		VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineLayout(Device->GetInstanceHandle(), &PipelineLayoutInfo, nullptr, &DiskEntry->PipelineLayout));
 	}
 
 	{
@@ -997,7 +997,7 @@ void FVulkanPipelineStateCache::CreateDiskEntryRuntimeObjects(FDiskEntry* DiskEn
 				ModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 				ModuleCreateInfo.codeSize = DiskEntry->ShaderMicrocodes[Index].Num();
 				ModuleCreateInfo.pCode = (uint32*)DiskEntry->ShaderMicrocodes[Index].GetData();
-				VERIFYVULKANRESULT(vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &DiskEntry->ShaderModules[Index]));
+				VERIFYVULKANRESULT(VulkanRHI::vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &DiskEntry->ShaderModules[Index]));
 			}
 		}
 	}
@@ -1026,15 +1026,15 @@ void FVulkanPipelineStateCache::DestroyCache()
 		{
 			if (DiskEntry.ShaderModules[Index] != VK_NULL_HANDLE)
 			{
-				vkDestroyShaderModule(DeviceHandle, DiskEntry.ShaderModules[Index], nullptr);
+				VulkanRHI::vkDestroyShaderModule(DeviceHandle, DiskEntry.ShaderModules[Index], nullptr);
 			}
 		}
 
-		vkDestroyPipelineLayout(DeviceHandle, DiskEntry.PipelineLayout, nullptr);
+		VulkanRHI::vkDestroyPipelineLayout(DeviceHandle, DiskEntry.PipelineLayout, nullptr);
 
 		for (int32 Index = 0; Index < DiskEntry.DescriptorSetLayouts.Num(); ++Index)
 		{
-			vkDestroyDescriptorSetLayout(DeviceHandle, DiskEntry.DescriptorSetLayouts[Index], nullptr);
+			VulkanRHI::vkDestroyDescriptorSetLayout(DeviceHandle, DiskEntry.DescriptorSetLayouts[Index], nullptr);
 		}
 
 		delete DiskEntry.RenderPass;

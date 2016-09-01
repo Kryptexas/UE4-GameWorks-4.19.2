@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- From: file:/tmp/tmp-deduplicated8162628151885761277/vr/gvr/platform/common/android/res/values/colors.xml -->
+    <!-- From: file:/tmp/aar_gen_tmp9184061690264887159/tmp-deduplicated/vr/gvr/platform/common/android/res/values/colors.xml -->
     <eat-comment/>
     <color name="alignment_marker_color">#cccccc</color>
     <color name="white_transparent">#4cFFFFFF</color>
-    <!-- From: file:/tmp/tmp-deduplicated8162628151885761277/vr/gvr/platform/common/android/res/values/dimens.xml -->
+    <!-- From: file:/tmp/aar_gen_tmp9184061690264887159/tmp-deduplicated/vr/gvr/platform/common/android/res/values/dimens.xml -->
     <eat-comment/>
     <dimen name="alignment_marker_margin">15dip</dimen>
     <dimen name="alignment_marker_thickness">4dip</dimen>
     <dimen name="transition_bottom_bar_height">112dip</dimen>
-    <!-- From: file:/tmp/tmp-deduplicated8162628151885761277/vr/gvr/platform/common/android/res/values/strings.xml -->
+    <!-- From: file:/tmp/aar_gen_tmp9184061690264887159/tmp-deduplicated/vr/gvr/platform/common/android/res/values/strings.xml -->
     <eat-comment/>
     <string description=" Accessibility description for the back button displayed in the top corner of the VR application to go back to the previous screen. [CHAR LIMIT=50]" name="back_button_content_description">
     back
@@ -26,12 +26,24 @@
     <string description=" Short text for the title of the dialog box that shows up to help users configure their Cardboard experience. [CHAR LIMIT=30]" name="dialog_title">
       Configure
     </string>
-    <string description=" Short text shown in a button in the dialog box that shows up to help users configure their Cardboard experience. By clicking on this button, the user goes to the Cardboard app page on Playstore. [CHAR LIMIT=30]" name="go_to_playstore_button">
-      Go to Play Store
-    </string>
-    <string description="Button text used as an affirmative action. [CHAR LIMIT=20]" name="got_it">
-    GOT IT
+    <string description="Title of warning dialogs shown to user. [CHAR LIMIT=25]" name="dialog_title_warning">
+    Warning
   </string>
+    <string description="Dialog to show before redirecting user to VrListenerService Settings. [CHAR LIMIT=250]" name="dialog_vr_core_not_enabled">
+    This application may not work properly without enabling Google VR Services, please enable this
+    in phone Settings before continuing.
+  </string>
+    <string description="Dialog to show before redirecting user to download VrCore. [CHAR LIMIT=250]" name="dialog_vr_core_not_installed">
+    This application may not work properly without Google VR Services.  Please install
+    Google VR Services from the Play Store before continuing.
+  </string>
+    <string description=" Short text shown in a button in the dialog box that shows up to help users configure their Cardboard experience. By clicking on this button, the user goes to the Cardboard app page on Playstore. [CHAR LIMIT=30]" name="go_to_playstore_button">
+      Go to the Play Store
+    </string>
+    <string description="Short text shown in a button in the dialog box that allows users to open Settings         for Google VR Services. [CHAR LIMIT=30]" name="go_to_vr_listeners_settings_button">
+    Go to Settings
+  </string>
+    <string description="Google VR component name used for enabling VR mode" name="gvr_vr_mode_component" translatable="false">com.google.vr.vrcore/com.google.vr.vrcore.common.VrCoreListenerService</string>
     <string description=" Error message displayed as a Toast when Android could not find a browser to open a website. [CHAR LIMIT=50]" name="no_browser_text">
       No browser to open website
     </string>
@@ -53,13 +65,7 @@
     <string description=" Prompt asking if the user wants to switch their Cardboard compatible viewer. [CHAR LIMIT=20]" name="switch_viewer_prompt">
       Using a different viewer?
     </string>
-    <string description=" Title of dialog shown after the user pairs with their Cardboard viewer. [CHAR LIMIT=30]" name="viewer_configured_dialog_title">
-    Viewer configured!
-  </string>
-    <string description=" Message format shown after the user successfully pairs with a Cardboard viewer. viewer_name refers to the specific Cardboard viewer. [CHAR LIMIT=80]" name="viewer_configured_message_format">
-    The app is now configured for a <ns1:g example="Cardboard I/O 2015" id="viewer_name">%s</ns1:g> viewer.
-  </string>
-    <!-- From: file:/tmp/tmp-deduplicated8162628151885761277/vr/gvr/platform/common/android/res/values/style.xml -->
+    <!-- From: file:/tmp/aar_gen_tmp9184061690264887159/tmp-deduplicated/vr/gvr/platform/common/android/res/values/style.xml -->
     <eat-comment/>
     <style name="CardboardDialogTheme" parent="@android:style/Theme.Holo.Light.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>

@@ -6,18 +6,23 @@
 
 #include "CorePrivatePCH.h"
 #include "HAL/OutputDeviceMemory.h"
+#include "OutputDeviceHelper.h"
 
 #define DUMP_LOG_ON_EXIT (!NO_LOGGING && PLATFORM_DESKTOP && (!UE_BUILD_SHIPPING || USE_LOGGING_IN_SHIPPING))
 
-FOutputDeviceMemory::FOutputDeviceMemory(int32 InBufferSize /*= 1024 * 1024*/)
-: BufferStartPos(0)
+FOutputDeviceMemory::FOutputDeviceMemory(int32 InPreserveSize /*= 256 * 1024*/, int32 InBufferSize /*= 2048 * 1024*/)
+: ArchiveProxy(*this)
+, BufferStartPos(0)
 , BufferLength(0)
+, PreserveSize(InPreserveSize)
 {
 #if DUMP_LOG_ON_EXIT
 	const FString LogFileName = FPlatformOutputDevices::GetAbsoluteLogFilename();
 	FOutputDeviceFile::CreateBackupCopy(*LogFileName);
 	IFileManager::Get().Delete(*LogFileName);
 #endif // DUMP_LOG_ON_EXIT
+
+	checkf(InBufferSize >= InPreserveSize * 2, TEXT("FOutputDeviceMemory buffer size should be >= 2x PreserveSize"));
 
 	Buffer.AddUninitialized(InBufferSize);
 	Logf(TEXT("Log file open, %s"), FPlatformTime::StrTimestamp());
@@ -48,7 +53,7 @@ void FOutputDeviceMemory::Flush()
 void FOutputDeviceMemory::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time)
 {
 #if !NO_LOGGING
-	FormatAndSerialize(Data, Verbosity, Category, Time);
+	FOutputDeviceHelper::FormatCastAndSerializeLine(ArchiveProxy, Data, Verbosity, Category, Time, bSuppressEventTag, bAutoEmitLineTerminator);
 #endif
 }
 
@@ -60,64 +65,42 @@ void FOutputDeviceMemory::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbo
 void FOutputDeviceMemory::SerializeToBuffer(ANSICHAR* Data, int32 Length)
 {	
 	const int32 BufferCapacity = Buffer.Num(); // Never changes
+
 	// Given the size of the buffer (usually 1MB) this should never happen
-	check(Length <= BufferCapacity);
+	ensure(Length <= BufferCapacity);
 
-	int32 WritePos = 0;
+	while (Length)
 	{
-		// We only need to lock long enough to update all state variables. Copy doesn't need a lock, at least for large buffers.
-		FScopeLock WriteLock(&BufferPosCritical);
-		WritePos = (BufferStartPos + BufferLength) % BufferCapacity;
-		BufferStartPos = (BufferLength + Length) > BufferCapacity ? ((BufferStartPos + Length) % BufferCapacity) : BufferStartPos;
-		BufferLength = FMath::Min(BufferLength + Length, BufferCapacity);
-	}
+		int32 WritePos = 0;
+		int32 WriteLength = 0;
 
-	if ((WritePos + Length) <= BufferCapacity)
-	{
-		FMemory::Memcpy(Buffer.GetData() + WritePos, Data, Length * sizeof(ANSICHAR));
-	}
-	else
-	{
-		const int32 ChunkALength = BufferCapacity - WritePos;
-		FMemory::Memcpy(Buffer.GetData() + WritePos, Data, ChunkALength * sizeof(ANSICHAR));
-		const int32 ChunkBLength = Length - ChunkALength;
-		FMemory::Memcpy(Buffer.GetData(), Data + ChunkALength, ChunkBLength * sizeof(ANSICHAR));
-	}
-}
+		{
+			// We only need to lock long enough to update all state variables. Copy doesn't need a lock, at least for large buffers.
+			FScopeLock WriteLock(&BufferPosCritical);
 
-void FOutputDeviceMemory::FormatAndSerialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time)
-{
-	if (!bSuppressEventTag)
-	{
-		FString Prefix = FOutputDevice::FormatLogLine(Verbosity, Category, NULL, GPrintLogTimes, Time);
-		CastAndSerializeToBuffer(*Prefix);
-	}
+			WritePos = BufferStartPos;
 
-	CastAndSerializeToBuffer(Data);
+			// If this will take us past the buffer, wrap but preserve the specified amount of data at the head
+			if (BufferStartPos + Length > BufferCapacity)
+			{
+				WriteLength = BufferCapacity - BufferStartPos;
+				BufferStartPos = PreserveSize;
+			}
+			else
+			{
+				WriteLength = Length;
+				BufferStartPos += WriteLength;
+			}
 
-	if (bAutoEmitLineTerminator)
-	{
-#if PLATFORM_LINUX
-		// on Linux, we still want to have logs with Windows line endings so they can be opened with Windows tools like infamous notepad.exe
-		static ANSICHAR WindowsTerminator[] = { '\r', '\n' };
-		SerializeToBuffer((ANSICHAR*)WindowsTerminator, sizeof(WindowsTerminator));
-#else
-		CastAndSerializeToBuffer(LINE_TERMINATOR);
-#endif // PLATFORM_LINUX
-	}
-}
+			BufferLength = FMath::Min(BufferLength + WriteLength, BufferCapacity);
+		}
 
-void FOutputDeviceMemory::CastAndSerializeToBuffer(const TCHAR* Data)
-{
-	FTCHARToUTF8 ConvertedData(Data);
-	if (ConvertedData.Length())
-	{
-		SerializeToBuffer((ANSICHAR*)ConvertedData.Get(), ConvertedData.Length());
+		FMemory::Memcpy(Buffer.GetData() + WritePos, Data, WriteLength * sizeof(ANSICHAR));
+		Length -= WriteLength;
 	}
 }
 
 void FOutputDeviceMemory::Dump(FArchive& Ar)
 {
-	Ar.Serialize(Buffer.GetData() + BufferStartPos, (BufferLength - BufferStartPos) * sizeof(ANSICHAR));
-	Ar.Serialize(Buffer.GetData(), BufferStartPos * sizeof(ANSICHAR));
+	Ar.Serialize(Buffer.GetData(), BufferLength * sizeof(ANSICHAR));
 }

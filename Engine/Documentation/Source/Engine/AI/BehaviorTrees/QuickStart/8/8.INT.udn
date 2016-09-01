@@ -2,6 +2,7 @@ Availability:Public
 Title: 8. Controller Blueprint: Run the Behavior Tree
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 8. Controller Blueprint: Run the Behavior Tree
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

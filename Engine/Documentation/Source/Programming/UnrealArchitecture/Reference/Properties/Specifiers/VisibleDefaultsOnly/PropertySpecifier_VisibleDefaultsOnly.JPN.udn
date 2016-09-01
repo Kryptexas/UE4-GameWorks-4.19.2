@@ -1,8 +1,13 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2669538
 Title:VisibleDefaultsOnly
 Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
-Description: 
+Description:
 Availability:Public
-Version:4.5
+Version:4.9
 
-このプロパティはアーキタイプからプロパティウィンドウのみで可視化できることを示しますが、編集は一切できません。
+このプロパティはアーキタイプからプロパティウィンドウのみで可視化できることを示しますが、編集は一切できません。この演算子は Edit* 指定子とは互換性がありません。
+
+## 使用法
+
+    UPROPERTY(VisibleDefaultsOnly)
+    Type VariableName;

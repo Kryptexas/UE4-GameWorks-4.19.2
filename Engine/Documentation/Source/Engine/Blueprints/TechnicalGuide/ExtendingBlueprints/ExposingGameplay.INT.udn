@@ -72,6 +72,26 @@ The simplest form of declaration for a BlueprintCallable Function is similar to 
 	UFUNCTION(BlueprintCallable, Category="Weapon")
 	void Fire();
 
+When creating your function's signature, note that making a parameter pass by reference will make it an output pin on the Blueprint node. To make a parameter pass by reference and still display as an input,
+use the `UPARAM()` macro.
+
+![](UParam.png)
+	
+	UFUNCTION(BlueprintCallable, Category = "Example Nodes")
+	static void HandleTargets(UPARAM(ref) TArray<FVector>& InputLocations, TArray<FVector>& OutputLocations);
+
+You can also use `UPARAM()` to change the display name of a pin. For example, the MakeRotator function in KismetMathLibrary uses `UPARAM()` and the `DisplayName` keyword to change how the Roll, Pitch, and Yaw parameters appear in Blueprints.
+
+![](UParam2.png)
+
+	/** Makes a rotator {Roll, Pitch, Yaw} from rotation values supplied in degrees */
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate rotator makerotator", NativeMakeFunc))
+	static FRotator MakeRotator(
+	UPARAM(DisplayName="X (Roll)") float Roll,	
+	UPARAM(DisplayName="Y (Pitch)") float Pitch,
+	UPARAM(DisplayName="Z (Yaw)") float Yaw);
+
+
 
 | Keyword | Description |
 | -- | -- |

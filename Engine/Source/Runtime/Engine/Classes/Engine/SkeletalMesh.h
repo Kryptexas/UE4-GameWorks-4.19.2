@@ -310,38 +310,6 @@ struct FSkeletalMeshLODInfo
 
 };
 
-USTRUCT()
-struct FMorphTargetMap
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** The bone to mirror. */
-	UPROPERTY(EditAnywhere, Category=MorphTargetMap)
-	FName Name;
-
-	/** Axis the bone is mirrored across. */
-	UPROPERTY(EditAnywhere, Category=MorphTargetMap)
-	UMorphTarget* MorphTarget;
-
-
-	FMorphTargetMap()
-		: Name(NAME_None)
-		, MorphTarget(NULL)
-	{
-	}
-
-	FMorphTargetMap( FName InName, UMorphTarget * InMorphTarget )
-		: Name(InName)
-		, MorphTarget(InMorphTarget)
-	{
-	}
-
-	bool operator== (const FMorphTargetMap& Other) const
-	{
-		return (Name==Other.Name && MorphTarget == Other.MorphTarget);
-	}
-};
-
 /** 
  * constrain Coefficients - max distance, collisionSphere radius, collision sphere distance 
  */
@@ -617,11 +585,15 @@ protected:
 	// in code so we can keep the extended bounds up to date after changing the data.
 	// Property editors will trigger property events to correctly recalculate the extended bounds.
 
-	/** Bound extension values in the positive direction of XYZ, positive value increases bound size */
+	/** Bound extension values in addition to imported bound in the positive direction of XYZ, 
+	 *	positive value increases bound size and negative value decreases bound size. 
+	 *	The final bound would be from [Imported Bound - Negative Bound] to [Imported Bound + Positive Bound]. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mesh)
 	FVector PositiveBoundsExtension;
 
-	/** Bound extension values in the negative direction of XYZ, positive value increases bound size */
+	/** Bound extension values in addition to imported bound in the negative direction of XYZ, 
+	 *	positive value increases bound size and negative value decreases bound size. 
+	 *	The final bound would be from [Imported Bound - Negative Bound] to [Imported Bound + Positive Bound]. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mesh)
 	FVector NegativeBoundsExtension;
 
@@ -747,8 +719,8 @@ public:
 	/** New Reference skeleton type **/
 	FReferenceSkeleton RefSkeleton;
 
-	/** Map of morph target to name **/
-	TMap<FName, UMorphTarget*> MorphTargetIndexMap;
+	/** Map of morph target name to index into USkeletalMesh::MorphTargets**/
+	TMap<FName, int32> MorphTargetIndexMap;
 
 	/** Reference skeleton precomputed bases. */
 	TArray<FMatrix> RefBasesInvMatrix;    
@@ -842,7 +814,7 @@ public:
 #endif // WITH_EDITOR
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
@@ -951,7 +923,8 @@ public:
 	 *
 	 * @return Pointer to found MorphTarget. Returns NULL if could not find target with that name.
 	 */
-	ENGINE_API UMorphTarget* FindMorphTarget( FName MorphTargetName ) const;
+	ENGINE_API UMorphTarget* FindMorphTarget(FName MorphTargetName) const;
+	ENGINE_API UMorphTarget* FindMorphTargetAndIndex(FName MorphTargetName, int32& OutIndex) const;
 
 	/** if name conflicts, it will overwrite the reference */
 	ENGINE_API void RegisterMorphTarget(UMorphTarget* MorphTarget);
@@ -1037,6 +1010,10 @@ private:
 	*/
 	bool AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const;
 
+	/*
+	* Ask the reference skeleton to rebuild the NameToIndexMap array. This is use to load old package before this array was created.
+	*/
+	void RebuildRefSkeletonNameToIndexMap();
 };
 
 

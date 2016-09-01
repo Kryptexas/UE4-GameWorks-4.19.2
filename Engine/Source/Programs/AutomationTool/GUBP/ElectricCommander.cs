@@ -451,7 +451,7 @@ namespace AutomationTool
 				}
 				JsonWriter.WriteArrayEnd();
 
-				JsonWriter.WriteArrayStart("Triggers");
+				JsonWriter.WriteArrayStart("Reports");
 				foreach (TriggerNode NodeToDo in OrderedToDo.OfType<TriggerNode>())
 				{
 					if(NodeToDo.ControllingTrigger == ExplicitTrigger)
@@ -466,6 +466,7 @@ namespace AutomationTool
 						{
 							JsonWriter.WriteValue("Notify", String.Join(";", NodeToDo.RecipientsForFailureEmails));
 						}
+						JsonWriter.WriteValue("IsTrigger", true);
 						JsonWriter.WriteObjectEnd();
 					}
 				}

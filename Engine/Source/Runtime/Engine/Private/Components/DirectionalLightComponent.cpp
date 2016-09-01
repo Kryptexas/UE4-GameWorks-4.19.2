@@ -135,7 +135,7 @@ public:
 		{
 			const FSceneInterface* Scene = Component->GetScene();
 			// ensure bUseWholeSceneCSMForMovableObjects is only be used with the forward renderer.
-			const bool bUsingDeferredRenderer = Scene == nullptr ? true : Scene->ShouldUseDeferredRenderer();
+			const bool bUsingDeferredRenderer = Scene == nullptr ? true : Scene->GetShadingPath() == EShadingPath::Deferred;
 			bUseWholeSceneCSMForMovableObjects = Component->Mobility == EComponentMobility::Stationary && !Component->bUseInsetShadowsForMovableObjects && !bUsingDeferredRenderer;
 		}
 		bCastModulatedShadows = Component->bCastModulatedShadows;
@@ -171,7 +171,8 @@ public:
 		SpotAngles = FVector2D(0, 0);
 		LightSourceRadius = 0.0f;
 		LightSourceLength = 0.0f;
-		LightMinRoughness = MinRoughness;
+		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
+		LightMinRoughness = FMath::Max(MinRoughness, .04f);
 	}
 
 	virtual float GetLightSourceAngle() const override
@@ -209,7 +210,7 @@ public:
 			&& bUseInsetShadowsForMovableObjects;
 	}
 
-	/** Whether this light should create CSM for dynamic objects only (forward renderer) */
+	/** Whether this light should create CSM for dynamic objects only (mobile renderer) */
 	virtual bool UseCSMForDynamicObjects() const override
 	{
 		return	FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects()
@@ -253,7 +254,7 @@ public:
 		// Reduce casting distance on a directional light
 		// This is necessary to improve floating point precision in several places, especially when deriving frustum verts from InvReceiverMatrix
 		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 32.0f;
-		OutInitializer.CascadeSettings.bRayTracedDistanceField = bRayTracedCascade;
+		OutInitializer.bRayTracedDistanceField = bRayTracedCascade;
 		OutInitializer.CascadeSettings.bFarShadowCascade = !bRayTracedCascade && OutInitializer.CascadeSettings.ShadowSplitIndex >= (int32)NumNearCascades;
 		return true;
 	}
@@ -723,6 +724,7 @@ void UDirectionalLightComponent::PostEditChangeProperty(FPropertyChangedEvent& P
 	DynamicShadowDistanceStationaryLight = FMath::Max(DynamicShadowDistanceStationaryLight, 0.0f);
 
 	DynamicShadowCascades = FMath::Clamp(DynamicShadowCascades, 0, 10);
+	FarShadowCascadeCount = FMath::Clamp(FarShadowCascadeCount, 0, 10);
 	CascadeDistributionExponent = FMath::Clamp(CascadeDistributionExponent, .1f, 10.0f);
 	CascadeTransitionFraction = FMath::Clamp(CascadeTransitionFraction, 0.0f, 0.3f);
 	ShadowDistanceFadeoutFraction = FMath::Clamp(ShadowDistanceFadeoutFraction, 0.0f, 1.0f);

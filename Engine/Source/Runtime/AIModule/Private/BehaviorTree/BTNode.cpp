@@ -66,6 +66,12 @@ void UBTNode::OnInstanceDestroyed(UBehaviorTreeComponent& OwnerComp)
 
 void UBTNode::InitializeInSubtree(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex, EBTMemoryInit::Type InitType) const
 {
+	FBTInstancedNodeMemory* SpecialMemory = GetSpecialNodeMemory<FBTInstancedNodeMemory>(NodeMemory);
+	if (SpecialMemory)
+	{
+		SpecialMemory->NodeIdx = INDEX_NONE;
+	}
+
 	if (bCreateNodeInstance)
 	{
 		// composite nodes can't be instanced!
@@ -80,13 +86,16 @@ void UBTNode::InitializeInSubtree(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 			OwnerComp.NodeInstances.Add(NodeInstance);
 		}
+
 		check(NodeInstance);
+		check(SpecialMemory);
+
+		SpecialMemory->NodeIdx = NextInstancedIndex;
 
 		NodeInstance->SetOwner(OwnerComp.GetOwner());
-
-		FBTInstancedNodeMemory* MyMemory = GetSpecialNodeMemory<FBTInstancedNodeMemory>(NodeMemory);
-		MyMemory->NodeIdx = NextInstancedIndex;
-
+		NodeInstance->InitializeMemory(OwnerComp, NodeMemory, InitType);
+		check(TreeAsset);
+		NodeInstance->InitializeFromAsset(*TreeAsset);
 		NodeInstance->OnInstanceCreated(OwnerComp);
 		NextInstancedIndex++;
 	}
@@ -98,9 +107,10 @@ void UBTNode::InitializeInSubtree(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 void UBTNode::CleanupInSubtree(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
 {
-	if (!bCreateNodeInstance && !bIsInjected)
+	const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
+	if (NodeOb)
 	{
-		CleanupMemory(OwnerComp, NodeMemory, CleanupType);
+		NodeOb->CleanupMemory(OwnerComp, NodeMemory, CleanupType);
 	}
 }
 

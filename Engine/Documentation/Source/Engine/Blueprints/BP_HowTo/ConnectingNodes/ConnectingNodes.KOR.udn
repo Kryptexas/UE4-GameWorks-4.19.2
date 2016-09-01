@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:2679279
+﻿INTSourceChangelist:2974295
 Availability: Public
 Title:노드 연결하기
-Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
+Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\Scripting
 Description:블루프린트에서 노드끼리 연결하는 방법 예제입니다.
 Related: Engine/Blueprints/BP_HowTo/PlacingNodes
 Related: Engine/Blueprints/BP_HowTo/BasicUsage
@@ -9,9 +9,9 @@ Related: Engine/Blueprints/UserGuide
 Related: Engine/Blueprints/UserGuide/CheatSheet
 version:4.9
 skilllevel:Beginner
-parent:Engine/Blueprints/BP_HowTo
-order:2
-type:howto
+parent:Engine/Blueprints/Scripting
+tags:Execution Flow
+order:5
 
 여기서는 블루프린트의 그래프에 있는 노드들을 서로 연결하는 여러가지 방법에 대해 알아보겠습니다.
 

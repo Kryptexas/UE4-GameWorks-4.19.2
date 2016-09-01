@@ -352,7 +352,8 @@ void FMaterialThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, 
 	const float BoundsZOffset = GetBoundsZOffset(PreviewActor->GetStaticMeshComponent()->Bounds);
 	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
 
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewActor->GetStaticMeshComponent()->GetMaterial(0)->ThumbnailInfo);
+	// Since we're using USceneThumbnailInfoWithPrimitive in SetMaterialInterface, we should use it here instead of USceneThumbnailInfoWithPrimitive for consistency.
+	USceneThumbnailInfoWithPrimitive* ThumbnailInfo = Cast<USceneThumbnailInfoWithPrimitive>(PreviewActor->GetStaticMeshComponent()->GetMaterial(0)->ThumbnailInfo);
 	if ( ThumbnailInfo )
 	{
 		if ( TargetDistance + ThumbnailInfo->OrbitZoom < 0 )
@@ -362,7 +363,7 @@ void FMaterialThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, 
 	}
 	else
 	{
-		ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
+		ThumbnailInfo = USceneThumbnailInfoWithPrimitive::StaticClass()->GetDefaultObject<USceneThumbnailInfoWithPrimitive>();
 	}
 
 	OutOrigin = FVector(0, 0, -BoundsZOffset);
@@ -624,7 +625,7 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 
 	PreviewAnimation = InAnimation;
 
-	if (InAnimation && InAnimation->IsValidToPlay())
+	if (InAnimation)
 	{
 		if (USkeleton* Skeleton = InAnimation->GetSkeleton())
 		{
@@ -636,25 +637,26 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 			{
 				bSetSucessfully = true;
 
-				// Handle posing the mesh at the middle of the animation
-				const float AnimPosition = InAnimation->SequenceLength / 2.f;
-
-				UDebugSkelMeshComponent* MeshComponent = CastChecked<UDebugSkelMeshComponent>(PreviewActor->GetSkeletalMeshComponent());
-
-				MeshComponent->EnablePreview(true, InAnimation, nullptr);
-				MeshComponent->Play(false);
-				MeshComponent->Stop();
-				MeshComponent->SetPosition(AnimPosition, false);
-
-				UAnimSingleNodeInstance* SingleNodeInstance = PreviewActor->GetSkeletalMeshComponent()->GetSingleNodeInstance();
-				if (SingleNodeInstance)
+				if (InAnimation->IsValidToPlay())
 				{
-					SingleNodeInstance->UpdateMontageWeightForTimeSkip(AnimPosition);
+					// Handle posing the mesh at the middle of the animation
+					const float AnimPosition = InAnimation->SequenceLength / 2.f;
+
+					UDebugSkelMeshComponent* MeshComponent = CastChecked<UDebugSkelMeshComponent>(PreviewActor->GetSkeletalMeshComponent());
+
+					MeshComponent->EnablePreview(true, InAnimation);
+					MeshComponent->Play(false);
+					MeshComponent->Stop();
+					MeshComponent->SetPosition(AnimPosition, false);
+
+					UAnimSingleNodeInstance* SingleNodeInstance = PreviewActor->GetSkeletalMeshComponent()->GetSingleNodeInstance();
+					if (SingleNodeInstance)
+					{
+						SingleNodeInstance->UpdateMontageWeightForTimeSkip(AnimPosition);
+					}
+
+					PreviewActor->GetSkeletalMeshComponent()->RefreshBoneTransforms(nullptr);
 				}
-
-				PreviewActor->GetSkeletalMeshComponent()->RefreshBoneTransforms(nullptr);
-
-				FTransform MeshTransform = FTransform::Identity;
 
 				PreviewActor->SetActorLocation(FVector(0, 0, 0), false);
 				PreviewActor->GetSkeletalMeshComponent()->UpdateBounds();
@@ -737,7 +739,7 @@ FBlendSpaceThumbnailScene::FBlendSpaceThumbnailScene()
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 	SpawnInfo.ObjectFlags = RF_Transient;
-	PreviewActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(SpawnInfo);
+	PreviewActor = GetWorld()->SpawnActor<AAnimationThumbnailSkeletalMeshActor>(SpawnInfo);
 
 	PreviewActor->SetActorEnableCollision(false);
 }
@@ -762,11 +764,14 @@ bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpac
 			{
 				bSetSucessfully = true;
 
-				// Handle posing the mesh at the middle of the animation
-				PreviewActor->GetSkeletalMeshComponent()->PlayAnimation(InBlendSpace, false);
-				PreviewActor->GetSkeletalMeshComponent()->Stop();
+				UDebugSkelMeshComponent* MeshComponent = CastChecked<UDebugSkelMeshComponent>(PreviewActor->GetSkeletalMeshComponent());
 
-				UAnimSingleNodeInstance* AnimInstance = PreviewActor->GetSkeletalMeshComponent()->GetSingleNodeInstance();
+				// Handle posing the mesh at the middle of the animation
+				MeshComponent->EnablePreview(true, InBlendSpace);
+				MeshComponent->Play(false);
+				MeshComponent->Stop();
+
+				UAnimSingleNodeInstance* AnimInstance = MeshComponent->GetSingleNodeInstance();
 				if (AnimInstance)
 				{
 					FVector BlendInput(0.f);
@@ -777,7 +782,9 @@ bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpac
 					}
 					AnimInstance->UpdateBlendspaceSamples(BlendInput);
 				}
-				PreviewActor->GetSkeletalMeshComponent()->RefreshBoneTransforms(nullptr);
+
+				MeshComponent->TickAnimation(0.f, false);
+				MeshComponent->RefreshBoneTransforms(nullptr);
 
 				FTransform MeshTransform = FTransform::Identity;
 
@@ -887,7 +894,15 @@ bool FAnimBlueprintThumbnailScene::SetAnimBlueprint(class UAnimBlueprint* InBlue
 			{
 				bSetSucessfully = true;
 
+				UAnimInstance* PreviousInstance = PreviewActor->GetSkeletalMeshComponent()->GetAnimInstance();
+
 				PreviewActor->GetSkeletalMeshComponent()->SetAnimInstanceClass(InBlueprint->GeneratedClass);
+
+				if (PreviousInstance && PreviousInstance != PreviewActor->GetSkeletalMeshComponent()->GetAnimInstance())
+				{
+					//Mark this as gone!
+					PreviousInstance->MarkPendingKill();
+				}
 
 				FTransform MeshTransform = FTransform::Identity;
 
@@ -964,14 +979,20 @@ void FAnimBlueprintThumbnailScene::GetViewMatrixParameters(const float InFOVDegr
 
 FClassActorThumbnailScene::FClassActorThumbnailScene()
 	: FThumbnailPreviewScene()
+	, NumStartingActors(0)
+	, PreviewActor(nullptr)
 {
-	static_assert(sizeof(PreviewActorWeakObjPtrMadness) <= sizeof(TWeakObjectPtr<AActor>), "Expected TWeakObjectPtr to be the size of a pointer");
-	new(&PreviewActorWeakObjPtrMadness) TWeakObjectPtr<AActor>();
+	NumStartingActors = GetWorld()->GetCurrentLevel()->Actors.Num();
 }
 
 void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 {
-	TWeakObjectPtr<AActor>& PreviewActor = *((TWeakObjectPtr<AActor>*)&PreviewActorWeakObjPtrMadness);
+	if (PreviewActor.IsStale())
+	{
+		PreviewActor = nullptr;
+		ClearStaleActors();
+	}
+
 	if (PreviewActor.IsValid())
 	{
 		if (PreviewActor->GetClass() == InClass)
@@ -1002,7 +1023,20 @@ void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 	}
 }
 
-bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent* Component) const
+void FClassActorThumbnailScene::ClearStaleActors()
+{
+	ULevel* Level = GetWorld()->GetCurrentLevel();
+
+	for (int32 i = NumStartingActors; i < Level->Actors.Num(); ++i)
+	{
+		if (Level->Actors[i])
+		{
+			Level->Actors[i]->Destroy();
+		}
+	}
+}
+
+bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent* Component)
 {
 	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
 	if ( PrimComp && PrimComp->IsVisible() && !PrimComp->bHiddenInGame )
@@ -1026,7 +1060,6 @@ bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent
 FBoxSphereBounds FClassActorThumbnailScene::GetPreviewActorBounds() const
 {
 	FBoxSphereBounds Bounds(ForceInitToZero);
-	TWeakObjectPtr<AActor>& PreviewActor = *((TWeakObjectPtr<AActor>*)&PreviewActorWeakObjPtrMadness);
 	if (PreviewActor.IsValid() && PreviewActor->GetRootComponent())
 	{
 		TArray<USceneComponent*> PreviewComponents;
@@ -1079,21 +1112,25 @@ FBlueprintThumbnailScene::FBlueprintThumbnailScene()
 void FBlueprintThumbnailScene::SetBlueprint(UBlueprint* Blueprint)
 {
 	CurrentBlueprint = Blueprint;
-	UClass* BPClass = (CurrentBlueprint ? CurrentBlueprint->GeneratedClass : nullptr);
+	UClass* BPClass = (Blueprint ? Blueprint->GeneratedClass : nullptr);
 	SpawnPreviewActor(BPClass);
 }
 
-void FBlueprintThumbnailScene::BlueprintChanged(class UBlueprint* Blueprint)
+void FBlueprintThumbnailScene::BlueprintChanged(UBlueprint* Blueprint)
 {
-	UClass* BPClass = (CurrentBlueprint ? CurrentBlueprint->GeneratedClass : nullptr);
-	SpawnPreviewActor(BPClass);
+	if (CurrentBlueprint == Blueprint)
+	{
+		UClass* BPClass = (Blueprint ? Blueprint->GeneratedClass : nullptr);
+		SpawnPreviewActor(BPClass);
+	}
 }
 
 USceneThumbnailInfo* FBlueprintThumbnailScene::GetSceneThumbnailInfo(const float TargetDistance) const
 {
-	check(CurrentBlueprint);
+	UBlueprint* Blueprint = CurrentBlueprint.Get();
+	check(Blueprint);
 
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(CurrentBlueprint->ThumbnailInfo);
+	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(Blueprint->ThumbnailInfo);
 	if ( ThumbnailInfo )
 	{
 		if ( TargetDistance + ThumbnailInfo->OrbitZoom < 0 )

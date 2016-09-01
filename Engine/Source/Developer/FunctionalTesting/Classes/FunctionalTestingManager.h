@@ -30,6 +30,9 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnTestsComplete;
+
+	UPROPERTY(BlueprintAssignable)
+	FFunctionalTestEventSignature OnTestsBegin;
 	
 	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(WorldContext="WorldContext", CallableWithoutWorldContext ) )
 	/** Triggers in sequence all functional tests found on the level.
@@ -90,4 +93,7 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Automation")
 	void OnFunctionalTestingComplete();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Automation")
+	void OnFunctionalTestingBegin();
 };

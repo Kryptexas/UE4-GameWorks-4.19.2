@@ -7,7 +7,7 @@ Description:与场景查询系统相关的所有文件页面。
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/AI/BehaviorTrees:title%](AI_Topic.png)
+		![%Engine/AI/BehaviorTrees:title%](EQStopic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -26,7 +26,7 @@ Description:与场景查询系统相关的所有文件页面。
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/AI/BehaviorTrees:title%](AI_Topic.png)
+		![%Engine/AI/BehaviorTrees:title%](EQStopic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -43,7 +43,8 @@ Description:与场景查询系统相关的所有文件页面。
 [/OBJECT]
 [/VAR]
 
-**场景查询系统** 是虚幻引擎4中 **人工智能** 系统中用于收集环境数据的一项功能，通过**测试** 来对数据提问，并随后返回最符合所提问题的一个 **项目** 。
+**场景查询系统** 是虚幻引擎4中 **人工智能** 系统中用于收集环境数据的一项功能，通过 **测试** 来对数据提问，
+并随后返回最符合所提问题的一个 **项目** 。
 
 您可以使用它来搜寻最近的力量加成道具，找出哪个敌人具有最大的威胁，或者使用它来寻找掩体。
 

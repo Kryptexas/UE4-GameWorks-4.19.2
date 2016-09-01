@@ -18,6 +18,8 @@
 #include "SNumericEntryBox.h"
 #include "STextComboBox.h"
 
+#include "AssetViewerSettings.h"
+
 
 #define LOCTEXT_NAMESPACE "AnimViewportToolBar"
 
@@ -121,9 +123,13 @@ protected:
 	/** Callback function which determines whether this widget is enabled */
 	bool IsBrightnessSliderEnabled() const
 	{
-		// Only enable the brightness control when we can see the background (ie, no sky or floor)
-		TSharedPtr<SAnimationEditorViewportTabBody> AnimViewportPinnedPtr = AnimViewportPtr.Pin();
-		return !(AnimViewportPinnedPtr->IsShowingSky() || AnimViewportPinnedPtr->IsShowingFloor());
+		const UAssetViewerSettings* Settings = UAssetViewerSettings::Get();
+		const UEditorPerProjectUserSettings* PerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
+		const int32 ProfileIndex = Settings->Profiles.IsValidIndex(PerProjectUserSettings->AssetViewerProfileIndex) ? PerProjectUserSettings->AssetViewerProfileIndex : 0;
+
+		ensureMsgf(Settings && Settings->Profiles.IsValidIndex(PerProjectUserSettings->AssetViewerProfileIndex), TEXT("Invalid default settings pointer or current profile index"));
+		
+		return !Settings->Profiles[ProfileIndex].bShowEnvironment;
 	}
 
 protected:
@@ -555,12 +561,10 @@ void SAnimViewportToolBar::FillShowSceneMenu(FMenuBuilder& MenuBuilder) const
 
 	MenuBuilder.BeginSection("AnimViewportAccessory", LOCTEXT("Viewport_AccessoryLabel", "Accessory"));
 	{
-		MenuBuilder.AddMenuEntry(Actions.ToggleFloor);
-		MenuBuilder.AddMenuEntry(Actions.ToggleSky);
 		MenuBuilder.AddMenuEntry(Actions.AutoAlignFloorToMesh);
 	}
 	MenuBuilder.EndSection();
-
+	
 	MenuBuilder.BeginSection("AnimViewportFloorOffset", LOCTEXT("Viewport_FloorOffsetLabel", "Floor Height Offset"));
 	{
 		TSharedPtr<SWidget> FloorOffsetWidget = SNew(SNumericEntryBox<float>)
@@ -835,13 +839,18 @@ FText SAnimViewportToolBar::GetTurnTableMenuLabel() const
 	return Label;
 }
 
-
 FSlateColor SAnimViewportToolBar::GetFontColor() const
 {
+	const UAssetViewerSettings* Settings = UAssetViewerSettings::Get();
+	const UEditorPerProjectUserSettings* PerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
+	const int32 ProfileIndex = Settings->Profiles.IsValidIndex(PerProjectUserSettings->AssetViewerProfileIndex) ? PerProjectUserSettings->AssetViewerProfileIndex : 0;
+
+	ensureMsgf(Settings && Settings->Profiles.IsValidIndex(PerProjectUserSettings->AssetViewerProfileIndex), TEXT("Invalid default settings pointer or current profile index"));
+
 	FLinearColor FontColor;
-	if (Viewport.Pin()->IsShowingSky())
+	if (Settings->Profiles[ProfileIndex].bShowEnvironment)
 	{
-		FontColor = FLinearColor::Black;
+		FontColor = FLinearColor::White;
 	}
 	else
 	{

@@ -121,7 +121,13 @@ void FLevelSequenceObjectReferenceMap::RemoveBinding(const FGuid& ObjectId)
 UObject* FLevelSequenceObjectReferenceMap::ResolveBinding(const FGuid& ObjectId, UObject* InContext) const
 {
 	const FLevelSequenceObjectReference* Reference = Map.Find(ObjectId);
-	return Reference ? Reference->Resolve(InContext) : nullptr;
+	UObject* ResolvedObject = Reference ? Reference->Resolve(InContext) : nullptr;
+	if (ResolvedObject != nullptr)
+	{
+		// if the resolved object does not have a valid world (e.g. world is being torn down), dont resolve
+		return ResolvedObject->GetWorld() != nullptr ? ResolvedObject : nullptr;
+	}
+	return nullptr;
 }
 
 FGuid FLevelSequenceObjectReferenceMap::FindBindingId(UObject* InObject, UObject* InContext) const

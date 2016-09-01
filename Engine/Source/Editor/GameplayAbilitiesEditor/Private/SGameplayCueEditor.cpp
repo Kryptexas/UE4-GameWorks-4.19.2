@@ -8,7 +8,7 @@
 #include "GameplayCueNotify_Static.h"
 #include "GameplayCueNotify_Actor.h"
 #include "SExpandableArea.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "EditorClassUtils.h"
 #include "GameplayTagsSettings.h"
 #include "SNotificationList.h"
@@ -23,7 +23,7 @@
 #define LOCTEXT_NAMESPACE "SGameplayCueEditor"
 
 
-/** Widget for picking a new GameplayCue Notify class (similiar to actor class picker)  */
+/** Widget for picking a new GameplayCue Notify class (similar to actor class picker)  */
 class SGameplayCuePickerDialog : public SCompoundWidget
 {
 public:
@@ -255,7 +255,7 @@ void SGameplayCuePickerDialog::OnClassPicked(UClass* InChosenClass)
 /** Generates rows in the list of GameplayCueNotify classes to pick from */
 TSharedRef<ITableRow> SGameplayCuePickerDialog::GenerateListRow(UClass* ItemClass, const TSharedRef<STableViewBase>& OwnerTable)
 {	
-	const FSlateBrush* ItemBrush = FClassIconFinder::FindIconForClass(ItemClass);
+	const FSlateBrush* ItemBrush = FSlateIconFinder::FindIconBrushForClass(ItemClass);
 
 	return 
 	SNew(STableRow< UClass* >, OwnerTable)
@@ -267,7 +267,7 @@ TSharedRef<ITableRow> SGameplayCuePickerDialog::GenerateListRow(UClass* ItemClas
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
-			.FillWidth(0.45f)
+			.FillWidth(0.65f)
 			[
 				SNew(SButton)
 				.OnClicked(this, &SGameplayCuePickerDialog::OnDefaultClassPicked, ItemClass)
@@ -340,11 +340,16 @@ FReply SGameplayCuePickerDialog::OnClassPickerConfirmed()
 
 FString SGameplayCueEditor::GetPathNameForGameplayCueTag(FString GameplayCueTagName)
 {
-	FString NewDefaultPathName = FString::Printf(TEXT("/Game/GC_%s"), *GameplayCueTagName);
+	FString NewDefaultPathName;
 	auto PathDel = IGameplayAbilitiesEditorModule::Get().GetGameplayCueNotifyPathDelegate();
 	if (PathDel.IsBound())
 	{
 		NewDefaultPathName = PathDel.Execute(GameplayCueTagName);
+	}
+	else
+	{
+		GameplayCueTagName = GameplayCueTagName.Replace(TEXT("GameplayCue."), TEXT(""), ESearchCase::IgnoreCase);
+		NewDefaultPathName = FString::Printf(TEXT("/Game/GC_%s"), *GameplayCueTagName);
 	}
 	NewDefaultPathName.ReplaceInline(TEXT("."), TEXT("_"));
 	return NewDefaultPathName;

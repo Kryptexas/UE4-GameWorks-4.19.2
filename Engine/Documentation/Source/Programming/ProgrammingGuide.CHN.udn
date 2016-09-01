@@ -1,7 +1,11 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2589216
+Availability:Public
 Title:编程指南
 Crumbs: %ROOT%
 Description:程序员使用虚幻引擎进行开发的信息。
+version: 4.9
+parent:%ROOT%
+order:4
 
 [VAR:Params]
 [PARAM:image]

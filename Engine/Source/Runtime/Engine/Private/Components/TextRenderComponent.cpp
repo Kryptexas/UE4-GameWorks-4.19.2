@@ -985,14 +985,14 @@ void UTextRenderComponent::SetWorldSize(float Value)
 
 FVector UTextRenderComponent::GetTextLocalSize() const
 {
-	const FBoxSphereBounds Bounds = CalcBounds(FTransform::Identity);
-	return Bounds.GetBox().GetSize();
+	const FBoxSphereBounds TextBounds = CalcBounds(FTransform::Identity);
+	return TextBounds.GetBox().GetSize();
 }
 
 FVector UTextRenderComponent::GetTextWorldSize() const
 {
-	const FBoxSphereBounds Bounds = CalcBounds(ComponentToWorld);
-	return Bounds.GetBox().GetSize();
+	const FBoxSphereBounds TextBounds = CalcBounds(ComponentToWorld);
+	return TextBounds.GetBox().GetSize();
 }
 
 void UTextRenderComponent::PostLoad()

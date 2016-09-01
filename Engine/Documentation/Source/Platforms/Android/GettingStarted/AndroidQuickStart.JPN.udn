@@ -1,8 +1,15 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:Android クイックスタート
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Android プラットフォーム開発の設定
+Version:4.9
+SkillLevel:Intermediate
+tags:Android
+tags:Mobile
+parent:Platforms/Android
+order:2
+type:quickstart
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,8 +45,19 @@ Description:Android プラットフォーム開発の設定
 [/OBJECT]
 [/VAR]
 
-Android クイックスタートは、コンピュータと Android デバイスをデプロイ用に設定し、起動機能およびパッケージ機能の両方を使ってデバイス上にテンプレート ゲームを置く方法を取り扱います。
-このガイドでは、 TADP を Android SDK として使用します。他の SDK をアンリアル エンジンと使用する方法については [](Platforms\Android\Reference) ページをご覧ください。
+Android クイックスタートでは、コンピュータと Android デバイスをデプロイ用に設定し、起動機能およびパッケージ機能の両方を使ってデバイス上にテンプレート ゲームを配置する方法を説明します。
+
+## 目標
+
+Android クイックスタートでは、UE4 を使った Android 開発用に PC もしくは Mac の基本的な設定を一通り説明します。
+
+## 目的
+
+* Android SDK をインストールする
+* Android Device を開発用に設定する
+* Android モバイル開発をターゲットにしたプロジェクトを作成する
+* Android デバイスにレベルをデプロイする方法
+* ゲームをリリース用にパッケージする方法
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -59,3 +77,9 @@ Android クイックスタートは、コンピュータと Android デバイス
 	* [](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:description%")
 	[/PARAM]
 [/OBJECT]
+
+[region:note]
+アンリアル エンジン (UE4) は **Android Works** という Android SDK の特別バージョンを採用しています。Android works のこのバージョンは、Android ベースの UE4 プロジェクト用に特別に作成されました。他のバージョンの Android SDK をインストールしている場合は、そのバージョンはアンインストールして、UE4 とセットになっている Android Works インストーラーをインストールすることを **強く推奨します**。使用している Android SDK が 確実に UE4 と互換性もてるからです。
+[/region]
+
+

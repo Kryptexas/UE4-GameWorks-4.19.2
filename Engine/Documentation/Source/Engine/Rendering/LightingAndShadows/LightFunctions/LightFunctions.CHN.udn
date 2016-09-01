@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:1950694
+﻿INTSourceChangelist:2720191
 Availability: Public
-Title:Light Functions(光源函数)
-Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/LightingAndShadows
-Description:光源函数
+Title: 光照函数
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
+Description: 使用材质作为源的光照投影
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightFunctions:title%](IL_Topic.png)
+		![%Engine/Rendering/LightingAndShadows/LightFunctions:title%](VFXL_Topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
@@ -26,7 +27,7 @@ Description:光源函数
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Rendering/LightingAndShadows/LightFunctions:title%](IL_Topic.png)
+		![%Engine/Rendering/LightingAndShadows/LightFunctions:title%](VFXL_Topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)

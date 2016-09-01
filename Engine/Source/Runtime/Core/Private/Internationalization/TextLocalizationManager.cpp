@@ -49,21 +49,26 @@ void EndInitTextLocalization()
 		// Use culture override specified on commandline.
 		else if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), RequestedCultureName))
 		{
-			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ command-line option".), *CultureName);
+			UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ command-line option."), *RequestedCultureName);
 		}
 		else
 #if WITH_EDITOR
 			// See if we've been provided a culture override in the editor
 			if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEditorSettingsIni ))
 			{
-				//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *CultureName);
+				UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *RequestedCultureName);
 			}
 			else
 #endif // WITH_EDITOR
-				// Use culture specified in engine configuration.
-				if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEngineIni ))
+				// Use culture specified in game configuration.
+				if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GGameUserSettingsIni ))
 				{
-					//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ engine configuration."), *CultureName);
+					UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ game configuration."), *RequestedCultureName);
+				}
+				// Use culture specified in engine configuration.
+				else if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEngineIni ))
+				{
+					UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ engine configuration."), *RequestedCultureName);
 				}
 				else
 				{
@@ -324,6 +329,7 @@ FTextDisplayStringRef FTextLocalizationManager::GetDisplayString(const FString& 
 		{
 			LiveEntry->SourceStringHash = SourceStringHash;
 			LiveEntry->DisplayString.Get() = SourceString ? **SourceString : TEXT("");
+			DirtyLocalRevisionForDisplayString(LiveEntry->DisplayString);
 
 #if ENABLE_LOC_TESTING
 			if( (bShouldLEETIFYAll || bShouldLEETIFYUnlocalizedString) && SourceString )
@@ -435,6 +441,14 @@ bool FTextLocalizationManager::FindNamespaceAndKeyFromDisplayString(const FTextD
 	return NamespaceKeyEntry != nullptr;
 }
 
+uint16 FTextLocalizationManager::GetLocalRevisionForDisplayString(const FTextDisplayStringRef& InDisplayString)
+{
+	FScopeLock ScopeLock( &SynchronizationObject );
+
+	uint16* FoundLocalRevision = LocalTextRevisions.Find(InDisplayString);
+	return (FoundLocalRevision) ? *FoundLocalRevision : 0;
+}
+
 bool FTextLocalizationManager::AddDisplayString(const FTextDisplayStringRef& DisplayString, const FString& Namespace, const FString& Key)
 {
 	FScopeLock ScopeLock( &SynchronizationObject );
@@ -502,6 +516,7 @@ bool FTextLocalizationManager::UpdateDisplayString(const FTextDisplayStringRef& 
 
 	// Update display string value.
 	*DisplayString = Value;
+	DirtyLocalRevisionForDisplayString(DisplayString);
 
 	// Update entry from reverse live table.
 	ReverseLiveTableEntry.Namespace = Namespace;
@@ -930,4 +945,24 @@ void FTextLocalizationManager::UpdateFromLocalizations(const TArray<FLocalizatio
 	}
 
 	DirtyTextRevision();
+}
+
+void FTextLocalizationManager::DirtyLocalRevisionForDisplayString(const FTextDisplayStringRef& InDisplayString)
+{
+	uint16* FoundLocalRevision = LocalTextRevisions.Find(InDisplayString);
+	if (FoundLocalRevision)
+	{
+		while (++(*FoundLocalRevision) == 0) {} // Zero is special, don't allow an overflow to stay at zero
+	}
+	else
+	{
+		LocalTextRevisions.Add(InDisplayString, 1);
+	}
+}
+
+void FTextLocalizationManager::DirtyTextRevision()
+{
+	while (++TextRevisionCounter == 0) {} // Zero is special, don't allow an overflow to stay at zero
+	LocalTextRevisions.Empty();
+	OnTextRevisionChangedEvent.Broadcast();
 }

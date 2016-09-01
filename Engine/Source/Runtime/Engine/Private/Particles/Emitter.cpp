@@ -168,7 +168,7 @@ void AEmitter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	// Let them die quickly on a dedicated server
-	if (GetNetMode() == NM_DedicatedServer && (GetRemoteRole() == ROLE_None || bNetTemporary))
+	if (IsNetMode(NM_DedicatedServer) && (GetRemoteRole() == ROLE_None || bNetTemporary))
 	{
 		SetLifeSpan(0.2f);
 	}

@@ -15,6 +15,8 @@
 #include "SpeedTreeWind.h"
 #include "DistanceFieldAtlas.h"
 #include "UObject/DevObjectVersion.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"
@@ -22,10 +24,11 @@
 #include "DerivedDataCacheInterface.h"
 #include "UObjectAnnotation.h"
 #endif // #if WITH_EDITOR
+
 #include "Engine/StaticMeshSocket.h"
 #include "EditorFramework/AssetImportData.h"
 #include "AI/Navigation/NavCollision.h"
-
+#include "CookStats.h"
 #include "ReleaseObjectVersion.h"
 
 DEFINE_LOG_CATEGORY(LogStaticMesh);	
@@ -41,12 +44,24 @@ DECLARE_MEMORY_STAT( TEXT( "StaticMesh Total Memory" ), STAT_StaticMeshTotalMemo
 /** Package name, that if set will cause only static meshes in that package to be rebuilt based on SM version. */
 ENGINE_API FName GStaticMeshPackageNameToRebuild = NAME_None;
 
+#if ENABLE_COOK_STATS
+namespace StaticMeshCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("StaticMesh.Usage"), TEXT(""));
+	});
+}
+#endif
+
 /*-----------------------------------------------------------------------------
 	FStaticMeshVertexBuffer
 -----------------------------------------------------------------------------*/
 
 FStaticMeshVertexBuffer::FStaticMeshVertexBuffer():
 	VertexData(NULL),
+	NumTexCoords(0),
 	Data(NULL),
 	Stride(0),
 	NumVertices(0),
@@ -136,13 +151,14 @@ void FStaticMeshVertexBuffer::RemoveLegacyShadowVolumeVertices(uint32 InNumVerti
 template<typename SrcVertexTypeT, typename DstVertexTypeT>
 void FStaticMeshVertexBuffer::ConvertVertexFormat()
 {
+	CA_SUPPRESS(6326);
 	if (SrcVertexTypeT::TangentBasisType == DstVertexTypeT::TangentBasisType &&
 		SrcVertexTypeT::UVType == DstVertexTypeT::UVType)
 	{
 		return;
 	}
 
-	check(SrcVertexTypeT::NumTexCoords == DstVertexTypeT::NumTexCoords);
+	static_assert(SrcVertexTypeT::NumTexCoords == DstVertexTypeT::NumTexCoords, "NumTexCoords don't match");
 
 	auto& SrcVertexData = *static_cast<TStaticMeshVertexData<SrcVertexTypeT>*>(VertexData);
 
@@ -162,7 +178,9 @@ void FStaticMeshVertexBuffer::ConvertVertexFormat()
 		}
 	}
 
+	CA_SUPPRESS(6326);
 	bUseHighPrecisionTangentBasis = DstVertexTypeT::TangentBasisType == EStaticMeshVertexTangentBasisType::HighPrecision;
+	CA_SUPPRESS(6326);
 	bUseFullPrecisionUVs = DstVertexTypeT::UVType == EStaticMeshVertexUVType::HighPrecision;
 
 	AllocateData();
@@ -267,11 +285,15 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("FStaticMeshLODResources::Serialize"), STAT_StaticMeshLODResources_Serialize, STATGROUP_LoadTime );
 
+	// See if the mesh wants to keep resources CPU accessible
+	UStaticMesh* OwnerStaticMesh = Cast<UStaticMesh>(Owner);
+	bool bMeshCPUAcces = OwnerStaticMesh ? OwnerStaticMesh->bAllowCPUAccess : false;
+
 	// Note: this is all derived data, native versioning is not needed, but be sure to bump STATICMESH_DERIVEDDATA_VER when modifying!
 
 	// On cooked platforms we never need the resource data.
 	// TODO: Not needed in uncooked games either after PostLoad!
-	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData();
+	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData() || bMeshCPUAcces;
 
 	bHasAdjacencyInfo = false;
 	bHasDepthOnlyIndices = false;
@@ -819,6 +841,8 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 		}
 		else
 		{
+			check(LODIndex > 0);
+
 			// No valid source model and we're not auto-generating. Auto-generate in this case
 			// because we have nothing else to go on.
 			const float Tolerance = 0.01f;
@@ -1209,43 +1233,48 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 	}
 
 
-	int32 T0 = FPlatformTime::Cycles();
-	int32 NumLODs = Owner->SourceModels.Num();
-	const FStaticMeshLODGroup& LODGroup = LODSettings.GetLODGroup(Owner->LODGroup);
-	DerivedDataKey = BuildStaticMeshDerivedDataKey(Owner, LODGroup);
-
-	TArray<uint8> DerivedData;
-	if (GetDerivedDataCacheRef().GetSynchronous(*DerivedDataKey, DerivedData))
 	{
-		FMemoryReader Ar(DerivedData, /*bIsPersistent=*/ true);
-		Serialize(Ar, Owner, /*bCooked=*/ false);
+		COOK_STAT(auto Timer = StaticMeshCookStats::UsageStats.TimeSyncWork());
+		int32 T0 = FPlatformTime::Cycles();
+		int32 NumLODs = Owner->SourceModels.Num();
+		const FStaticMeshLODGroup& LODGroup = LODSettings.GetLODGroup(Owner->LODGroup);
+		DerivedDataKey = BuildStaticMeshDerivedDataKey(Owner, LODGroup);
 
-		int32 T1 = FPlatformTime::Cycles();
-		UE_LOG(LogStaticMesh,Verbose,TEXT("Static mesh found in DDC [%fms] %s"),
-			FPlatformTime::ToMilliseconds(T1-T0),
-			*Owner->GetPathName()
-			);
-		FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::GetCycles, T1-T0);
-	}
-	else
-	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("StaticMeshName"), FText::FromString( Owner->GetName() ) );
-		FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
+		TArray<uint8> DerivedData;
+		if (GetDerivedDataCacheRef().GetSynchronous(*DerivedDataKey, DerivedData))
+		{
+			COOK_STAT(Timer.AddHit(DerivedData.Num()));
+			FMemoryReader Ar(DerivedData, /*bIsPersistent=*/ true);
+			Serialize(Ar, Owner, /*bCooked=*/ false);
 
-		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-		MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup);
-		bLODsShareStaticLighting = Owner->CanLODsShareStaticLighting();
-		FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
-		Serialize(Ar, Owner, /*bCooked=*/ false);
-		GetDerivedDataCacheRef().Put(*DerivedDataKey, DerivedData);
+			int32 T1 = FPlatformTime::Cycles();
+			UE_LOG(LogStaticMesh,Verbose,TEXT("Static mesh found in DDC [%fms] %s"),
+				FPlatformTime::ToMilliseconds(T1-T0),
+				*Owner->GetPathName()
+				);
+			FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::GetCycles, T1 - T0);
+		}
+		else
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("StaticMeshName"), FText::FromString( Owner->GetName() ) );
+			FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
 
-		int32 T1 = FPlatformTime::Cycles();
-		UE_LOG(LogStaticMesh,Log,TEXT("Built static mesh [%.2fs] %s"),
-			FPlatformTime::ToMilliseconds(T1-T0) / 1000.0f,
-			*Owner->GetPathName()
-			);
-		FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::BuildCycles, T1-T0);
+			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
+			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup);
+			bLODsShareStaticLighting = Owner->CanLODsShareStaticLighting();
+			FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
+			Serialize(Ar, Owner, /*bCooked=*/ false);
+			GetDerivedDataCacheRef().Put(*DerivedDataKey, DerivedData);
+
+			int32 T1 = FPlatformTime::Cycles();
+			UE_LOG(LogStaticMesh,Log,TEXT("Built static mesh [%.2fs] %s"),
+				FPlatformTime::ToMilliseconds(T1-T0) / 1000.0f,
+				*Owner->GetPathName()
+				);
+			FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::BuildCycles, T1 - T0);
+			COOK_STAT(Timer.AddMiss(DerivedData.Num()));
+		}
 	}
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
@@ -1439,6 +1468,17 @@ FBox UStaticMesh::GetBoundingBox() const
 	return ExtendedBounds.GetBox();
 }
 
+int32 UStaticMesh::GetNumSections(int32 InLOD) const
+{
+	int32 NumSections = 0;
+	if (RenderData != NULL && RenderData->LODResources.IsValidIndex(InLOD))
+	{
+		const FStaticMeshLODResources& LOD = RenderData->LODResources[InLOD];
+		NumSections = LOD.Sections.Num();
+	}
+	return NumSections;
+}
+
 float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex) const
 {
 	check(RequestedUVIndex >= 0);
@@ -1566,7 +1606,8 @@ bool UStaticMesh::GetStreamingTextureFactor(float& OutTexelFactor, FBoxSphereBou
 	}
 
 	OutBounds = TransformedSectionBox;
-	OutTexelFactor = WeightedTexelFactorSum / AreaSum * FMath::Max(0.0f, StreamingDistanceMultiplier);
+	OutTexelFactor = WeightedTexelFactorSum / AreaSum; 
+	// Don't take into account StreamingDistanceMultiplier here (but rather in the components using it). That allows realtime feedback without requiring a TextureStreamingBuild.
 	return true;
 
 #else
@@ -1595,23 +1636,6 @@ void UStaticMesh::ReleaseResources()
 	ReleaseResourcesFence.BeginFence();
 }
 
-/**
- * Callback used to allow object register its direct object references that are not already covered by
- * the token stream.
- *
- * @param ObjectArray	array to add referenced objects to via AddReferencedObject
- */
-void UStaticMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UStaticMesh* This = CastChecked<UStaticMesh>(InThis);
-	Collector.AddReferencedObject( This->BodySetup, This );
-	if (This->NavCollision != NULL)
-	{
-		Collector.AddReferencedObject( This->NavCollision, This );
-	}
-	Super::AddReferencedObjects( This, Collector );
-}
-
 #if WITH_EDITOR
 void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
 {
@@ -1627,9 +1651,13 @@ void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
 
 void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-#if WITH_EDITORONLY_DATA
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, bHasNavigationData) && !bHasNavigationData)
+	{
+		NavCollision = nullptr;
+	}
 
+#if WITH_EDITORONLY_DATA
 	LightMapResolution = FMath::Max(LightMapResolution, 0);
 
 	if ( PropertyThatChanged && PropertyThatChanged->GetName() == TEXT("StreamingDistanceMultiplier") )
@@ -2301,9 +2329,13 @@ void UStaticMesh::PostLoad()
 		CreateBodySetup();
 	}
 
-	if(NavCollision == NULL && !!bHasNavigationData)
+	if (NavCollision == nullptr && bHasNavigationData)
 	{
 		CreateNavCollision();
+	}
+	else if (NavCollision && !bHasNavigationData)
+	{
+		NavCollision = nullptr;
 	}
 }
 
@@ -2333,6 +2365,32 @@ FString UStaticMesh::GetDesc()
 }
 
 
+static int32 GetCollisionVertIndexForMeshVertIndex(int32 MeshVertIndex, TMap<int32, int32>& MeshToCollisionVertMap, TArray<FVector>& OutPositions, TArray< TArray<FVector2D> >& OutUVs, FPositionVertexBuffer& InPosVertBuffer, FStaticMeshVertexBuffer& InVertBuffer)
+{
+	int32* CollisionIndexPtr = MeshToCollisionVertMap.Find(MeshVertIndex);
+	if (CollisionIndexPtr != nullptr)
+	{
+		return *CollisionIndexPtr;
+	}
+	else
+	{
+		// Copy UVs for vert if desired
+		for (int32 ChannelIdx = 0; ChannelIdx < OutUVs.Num(); ChannelIdx++)
+		{
+			check(OutPositions.Num() == OutUVs[ChannelIdx].Num());
+			OutUVs[ChannelIdx].Add(InVertBuffer.GetVertexUV(MeshVertIndex, ChannelIdx));
+		}
+
+		// Copy position
+		int32 CollisionVertIndex = OutPositions.Add(InPosVertBuffer.VertexPosition(MeshVertIndex));
+
+		// Add indices to map
+		MeshToCollisionVertMap.Add(MeshVertIndex, CollisionVertIndex);
+
+		return CollisionVertIndex;
+	}
+}
+
 bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool bInUseAllTriData)
 {
 #if WITH_EDITORONLY_DATA
@@ -2343,22 +2401,18 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 	const int32 UseLODIndex = bInUseAllTriData ? 0 : FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num()-1);
 
 	FStaticMeshLODResources& LOD = RenderData->LODResources[UseLODIndex];
+	FIndexArrayView Indices = LOD.IndexBuffer.GetArrayView();
 
-	// Scale all verts into temporary vertex buffer.
-	const uint32 NumVerts = LOD.PositionVertexBuffer.GetNumVertices();
-	CollisionData->Vertices.Empty();
-	CollisionData->Vertices.AddUninitialized(NumVerts);
-	for(uint32 i=0; i<NumVerts; i++)
+	TMap<int32, int32> MeshToCollisionVertMap; // map of static mesh verts to collision verts
+
+	bool bCopyUVs = UPhysicsSettings::Get()->bSupportUVFromHitResults; // See if we should copy UVs
+
+	// If copying UVs, allocate array for storing them
+	if (bCopyUVs)
 	{
-		CollisionData->Vertices[i] = LOD.PositionVertexBuffer.VertexPosition(i);
+		CollisionData->UVs.AddZeroed(LOD.GetNumTexCoords());
 	}
 
-	FIndexArrayView Indices = LOD.IndexBuffer.GetArrayView();
-	const uint32 NumTris = Indices.Num() / 3;
-	CollisionData->Indices.Empty();
-	CollisionData->Indices.Reserve(NumTris);
-
-	FTriIndices TriIndex;
 	for(int32 SectionIndex = 0; SectionIndex < LOD.Sections.Num(); ++SectionIndex)
 	{
 		const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
@@ -2367,11 +2421,12 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 		{
 			const uint32 OnePastLastIndex  = Section.FirstIndex + Section.NumTriangles*3;
 
-			for(uint32 i=Section.FirstIndex; i<OnePastLastIndex; i+=3)
+			for (uint32 TriIdx = Section.FirstIndex; TriIdx < OnePastLastIndex; TriIdx += 3)
 			{
-				TriIndex.v0 = Indices[i];
-				TriIndex.v1 = Indices[i+1];
-				TriIndex.v2 = Indices[i+2];
+				FTriIndices TriIndex;
+				TriIndex.v0 = GetCollisionVertIndexForMeshVertIndex(Indices[TriIdx +0], MeshToCollisionVertMap, CollisionData->Vertices, CollisionData->UVs, LOD.PositionVertexBuffer, LOD.VertexBuffer);
+				TriIndex.v1 = GetCollisionVertIndexForMeshVertIndex(Indices[TriIdx +1], MeshToCollisionVertMap, CollisionData->Vertices, CollisionData->UVs, LOD.PositionVertexBuffer, LOD.VertexBuffer);
+				TriIndex.v2 = GetCollisionVertIndexForMeshVertIndex(Indices[TriIdx +2], MeshToCollisionVertMap, CollisionData->Vertices, CollisionData->UVs, LOD.PositionVertexBuffer, LOD.VertexBuffer);
 
 				CollisionData->Indices.Add(TriIndex);
 				CollisionData->MaterialIndices.Add(Section.MaterialIndex);

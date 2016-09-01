@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2585620
-Availability:Public
+﻿Availability:Public
 Title:5. Procedural Foliage Blocking Volume を実装する
 Crumbs:
-Description:フォーリッジのスポーン範囲を制限するブロック ボリュームを設定しましょう。
+Description:フォリッジのスポーン範囲を制限するブロック ボリュームを設定しましょう。
 Navigation:topic
 SkillLevel:Intermediate
-バージョン：4.8
+Version:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -15,7 +14,7 @@ SkillLevel:Intermediate
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[How-To ホーム](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+		[クイックスタート ホーム](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[次のステップ](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6:title%") 
@@ -37,7 +36,7 @@ SkillLevel:Intermediate
 
 	![](T_Adding_PFV_To_Level.gif)(convert:false)
 
-1. フォーリッジ メッシュが Procedural Foliage Spawner の黒い部分にスポーンされないように、Procedural Foliage Blocking Volume を以下の値を使って移動およびスケールします。
+1. フォリッジ メッシュが Procedural Foliage Spawner の黒い部分にスポーンされないように、Procedural Foliage Blocking Volume を以下の値を使って移動およびスケールします。
 
 	* **Location X:** 5430.0 cm
 	* **Location Y:** -3900.0 cm
@@ -48,8 +47,8 @@ SkillLevel:Intermediate
 
 	![](T_PFBV_Postion.png)
 
-1. 次にレベルで **Procedural Foliage Spawner** を選択して、**[Details]** の **[Resimulate]** ボタンをクリックします。
-   再シミュレーションが完了すると、Procedural Foliage Blocking Volume と交わる部分全体の木が消えています。
+1. 次にレベルで **[Procedural Foliage Spawner]** を選択して、**[Details (詳細)]** の **[Resimulate (再シミュレーション)]** ボタンをクリックします。
+   再シミュレーションが完了すると、Procedural Foliage Blocking Volume と交わる部分の木がすべて消えています。
 
 	![](T_PFV_Before_After.png)
 	以下の画像で、設定前と後の違いが分かります。 

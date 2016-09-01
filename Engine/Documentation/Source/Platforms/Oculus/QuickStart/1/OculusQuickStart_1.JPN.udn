@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2385999
-Title:1.Oculus Developer として登録する
+﻿INTSourceChangelist:2744797
+Title:1. Oculus Developer を登録する
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:Register as an Oculus デベロッパーとして登録すると、必要なプログラムとドキュメントを利用できるようになります。
+Description:必要なプログラムとドキュメントを利用するために Oculus デベロッパーとして登録する
 Availability:Public
-
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,31 +13,36 @@ Availability:Public
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Platforms/Oculus/QuickStart)
+		[クイックスタート ホーム](Platforms/Oculus/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Platforms/Oculus/QuickStart/2 "%Platforms/Oculus/QuickStart/2:title%")
+		[次のステップ](Platforms/Oculus/QuickStart/2 "%Platforms/Oculus/QuickStart/2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
+このセクションでは、まだ未登録の方のために、Oculus デベロッパーとして登録する方法を説明します。 
+Oculus デベロッパーとしての登録は必須ではありませんが、登録すると Oculus フォーラムへの参加および Oculus ストアへのゲームのサブミットが可能になります。
+
 %Steps%
 
-1. [Oculus Developer Center](https://developer.oculus.com/) へアクセスし、 [ダウンロード](https://developer.oculus.com/downloads/) をクリックします。 
+Oculus アカウントを既にお持ちの方は、[Oculus Developer Center](https://developer.oculus.com/) ページの右上角の人の形をしたアイコンをクリックしてログインします。 
+アカウントをお持ちの方は、次のステップはスキップできます。
 
-	![](Oculus_Downloads.png)
+![](Oculus_Downloads.png)
 
-[Oculus Developer Center](https://developer.oculus.com/) の Log In リンクをクリックしても、アカウントを作成したり、既存のアカウントへアクセスすることができます。アカウントを作成すると
-フォーラムへの投稿、Oculus Share へのゲームの提出などが可能になります。
+[region:note]
+必要とされる Oculus ランタイム ソフトウェアをダウンロードするために Oculus アカウントは必要ありませんが、アカウントを作成すると、フォーラムへの投稿、Oculus Share へのゲームの提出などが可能になります。
+[/region]
 
-* Oculus アカウントをお持ちの方は、e-mail アドレスとパスワードを入力し **[Log In]** ボタンをクリックします。
+Oculus アカウントをお持ちでない方は、ページの右上角の人の形をしたアイコンをクリックしてアカウントを作成すると [Login ページ](https://id.oculus.com/US/en-US/login/) が表示されます。Login ページから以下の方法でアカウントを設定します。
 
-	![](2-2-click-the-log-in-link.jpg)
+![](2-2-click-the-log-in-link.png)
 
-* Oculus Developer アカウントをお持ちでない方は、**[Create a free account]** をクリックしてください。
-	1. ページに記載されているインストラクションに従って、登録フォームに記入します。
-	1. Oculus からメールアドレスと登録を確認するためのリンクを知らせるメールが届きます。
-	1. [Oculus Developer Center](https://developer.oculus.com/) に戻り、 **Design** リンクをクリックします。
+1. **[Create a free account (無料アカウントを作成)]** をクリックします。
+1. ページに記載されているインストラクションに従って、登録フォームに記入します。
+1. Oculus からメールアドレスと登録を確認するためのリンクを知らせるメールが届きます。
+1. [Oculus Developer Center](https://developer.oculus.com/) に戻り **Log In** リンクをクリックします。
 
 
 %Steps%

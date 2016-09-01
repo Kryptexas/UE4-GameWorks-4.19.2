@@ -1,58 +1,88 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2828862
 Availability:Public
-Title: Wrap Box
+Title:自动换行框
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
-Description:Using a Wrap Box to automatically wrap Widgets when width is exceeded. 
-Related: Engine/UMG/UserGuide
-Related: Engine/UMG/UserGuide/Styling
-Related: Engine/UMG/UserGuide/Slots
+Description:自动换行框用于在超出其宽度时将控件自动放到下一行。 
+Related:Engine/UMG/UserGuide
+Related:Engine/UMG/UserGuide/Styling
+Related:Engine/UMG/UserGuide/Slots
 
 [TOC(start:2 end:2)]
 
-## Widget Description
+## 描述
 
 [EXCERPT:desc]
-Arranges widgets left-to-right. When the widgets exceed the Width, it will place widgets on the next line. 
+该控件会将子控件从左到右排列，超出其宽度时会将其余子控件放到下一行。 
 [/EXCERPT:desc]
 
-## Widget Details
+## 详情
 
-In the **Details** panel of a Widget that is placed inside a **Wrap Box**, there are some settings that can be used to adjust how the Widget functions which are outlined below. 
+在放入 **自动换行框** 的控件的 **详情** 面板中，提供了一些设置，用于调整控件的运作方式，以下针对这些设置进行介绍。 
 
 ![](WrapBoxSlotDetails.png)
 
-| Option | Description |
+| 选项 | 描述 |
 | -------- | ----------- |
-| **Padding** | This is the padding area between the slot and the content it contains. |
-| **Fill Empty Space** | Determines if the slot should fill the remaining space on the line. |
-| **Fill Span when Less Than** | This states that if the total available space in the wrap box drops below the specified threshold, the slot will attempt to fill the entire line. A value of 0 denotes that no filling will occur.  |
-| **Horizontal Alignment** | The alignment of the object horizontally. |
-| **Vertical Alignment** | The alignment of the object vertically. |
+| **填充** | 这是槽与其中所含内容之间的填充区域。|
+| **填充空白空间** | 确定槽是否应当填充某行上的剩余空间。|
+| **当小于设定值时填充跨度** | 该设置表示如果自动换行框中的可用空间总值降至低于指定阈值，则槽将尝试填充整行。将阈值设为 0 表示不会进行填充。|
+| **水平对齐** | 水平对齐对象。|
+| **垂直对齐** | 垂直对齐对象。|
 
 
-## Usage Example
+## 使用示例
 
-The **Wrap Box** is useful when you want to arrange items within a container and have those items appear aligned and evenly spaced and automatically format the contents inside it based on the width of the container. 
+当您想要根据容器的宽度来排布容器中的项目，使这些项目对齐且等间隔放置并自动确定其中内容的格式时，使用自动换行框非常有用。 
 
-Take for example the image below where we have created a "shop" screen of sorts where several items are presented to the player. 
+我们以下图为例进行说明。在下图中，我们创建了某种“商店”屏幕类别，向玩家呈现了数种物品。 
 
 ![](WrapBox1.png)(w:520)
 
-The white images above could represent different items that the player could buy when clicking on an item, then clicking the purchase button. In our example say we wanted to remove the item from the shop when it has been purchased or add an item to the shop when the "sell" button is pressed (of course you would probably want a pop-up menu to select the item you want to sell but this should convey the idea). 
+上图中的白色图像代表不同的物品，玩家只需点击某样物品然后点击购买按钮，就可以购买物品。在我们的示例中，我们希望被购买后将物品从商店中删除，或按下“出售”按钮后在商店中添加物品（当然您可能需要弹出菜单来选择要出售的物品，但我们这里仅仅是传达这种概念）。 
 
-For example, "buying" and removing items would automatically update the window: 
+例如，“购买”并删除物品会使窗口自动更新： 
 
-![](Gif1.gif)(w:520 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+50iC91BMqr0
+[/PARAMLITERAL]
+[/OBJECT]
 
-As would "selling" and adding items (automatically wrapping when reaching the max width of the window): 
+而“出售”并添加物品亦是如此（达到窗口最大宽度时会自动换行）： 
 
-![](GIF2.gif)(w:520 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+IN6MhFKqyiI
+[/PARAMLITERAL]
+[/OBJECT]
 
-It could also be used to keep things inside it arranged when resizing the window: 
+它还可以用来在调整窗口大小时保持其中的内容排列整齐。 
 
-![](GIF3.gif)(w:520 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+8zKkdb4hees
+[/PARAMLITERAL]
+[/OBJECT]
 
-While the **Wrap Box** only checks width to determine when to arrange the Widgets within it, you could also use this in combination with a **Scroll Box** which will add a scroll bar when the amount of Widgets within the window becomes cut off allowing the user to scroll down to see the remaining Widgets. 
+虽然自动换行框只会通过检查宽度来判断何时排列其中的控件，但您还可以将该控件与滚动框结合使用，滚动框会在窗口中的控件数量超出范围时添加滚动条，从而使用户可向下滚动，查看其余的控件。 
 
 
 

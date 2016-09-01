@@ -1,6 +1,51 @@
-Availability: Public
+﻿Availability: Public
 Title:植被
 Crumbs:%ROOT%
+Description:System for rendering instanced meshes on the surfaces of other geometry for use as foliage or other ground cover effects.
+Version: 4.9
+SkillLevel:Intermediate
+parent:Engine
+order:9
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Foliage:title%](Engine/Foliage/foliage_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/foliage_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Foliage:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Foliage:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Foliage]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Foliage:title%](Engine/Foliage/foliage_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/foliage_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Foliage:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Foliage:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Foliage]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [REGION:header_img]
 ![Foliage_Scene.jpg](Foliage_Scene.jpg)
@@ -11,13 +56,15 @@ Crumbs:%ROOT%
 [TOC(start:2)]
 
 
+[EXCERPT:Intro]
+
 ## 概述
 
 以前，虚幻引擎3有一个遗留的植被系统，包括植被体积和地形装饰物，但是它们非常不灵活，执行起来不是非常好，并且不能很好地和Unreal Lightmass交互。
 
 新的植被系统允许您快速地描画 或/和 清除景观、静态网格物体、遗留地形系统制作的地形上的网格物体。这些网格物体可以自动地组合成一批，然后通过使用硬件实例化渲染这批网格物体，这意味着，仅需要一个描画函数就会渲染所有实例。
 
-
+[/EXCERPT:Intro]
 
 ## 植被编辑模式
 

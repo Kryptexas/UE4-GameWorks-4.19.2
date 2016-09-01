@@ -377,6 +377,7 @@ void UK2Node_VariableSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 				}
 			}
 			Pins.Remove(Pin);
+			Pin->MarkPendingKill();
 		}
 		
 	}

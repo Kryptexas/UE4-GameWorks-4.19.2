@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2688251
-Availability:Public
+﻿Availability:Public
 Title:イベント グラフ
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:ブループリント イベントに反応してアクションを実行するためにイベントと関数呼び出しを使用する
 version:4.9
-
+Parent:Engine/Blueprints/Anatomy
+Tags:Graphs
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -9,13 +9,13 @@ version: 4.9
 
 [TOC(start:2 end:2)]
 
-## Widget Description
+## Description
 
 [EXCERPT:desc]
-The menu anchor allows you to specify a location that a popup menu should be anchored to and should be summoned from.
+This widget allows you to specify a location that a popup menu should be anchored to and should be summoned from.
 [/EXCERPT:desc]
 
-## Widget Details
+## Details
 
 In the **Details** panel for a placed **Menu Anchor**, there are a couple of specific options that can be set that pertain to the Widget: 
 
@@ -26,13 +26,13 @@ In the **Details** panel for a placed **Menu Anchor**, there are a couple of spe
 | **Menu Class** | The Widget Blueprint (pop-up) to spawn when the menu is called. Creates the widget freshly each time. |
 | **Placement** | Several placement options use to determine the location of the created widget. |
 | **OnGetMenuContent** | Allows for the customization of the pop-up by binding a function or property to the **OnGetMenuContent** Event which is called when the pop-up is summoned (see below). |
-| **OnMenuOpenChanged** | Allows for the customization of the pop-up by binding a function or property to the **OnMenuOpenChanged** Event which is called opened state of the menu changes. |
+| **OnMenuOpenChanged** | Allows for the customization of the pop-up by binding a function or property to the **OnMenuOpenChanged** Event which is called when the opened state of the menu changes. |
 
 For the **OnGetMenuContent** Event, you can create and bind a function directly from the **Details** panel which will be called whenever the Menu Anchor is called. This allows you to provide extra functionality to the creation of your pop-up menu. For example, below we've run a check to determine if the player is "In Battle" and if not, we allow them to access the pop-up menu. If they are we do not allow them to access the pop-up menu. 
 
 ![](ExampleGetMenu.png)(w:840)
 
-### Menu Anchor Blueprint Functions
+### Blueprint Functions
 
 The Menu Anchor widget has some widget specific functions that can be called through script which are described below. 
 

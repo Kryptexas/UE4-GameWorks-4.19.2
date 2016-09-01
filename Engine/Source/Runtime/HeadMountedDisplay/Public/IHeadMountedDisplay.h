@@ -17,6 +17,12 @@ class HEADMOUNTEDDISPLAY_API IHeadMountedDisplay : public IModuleInterface, publ
 public:
 	IHeadMountedDisplay();
 
+	virtual FName GetDeviceName() const
+	{
+		static FName DefaultName(TEXT("Unknown"));
+		return DefaultName;
+	}
+
 	/**
 	 * Returns true if HMD is currently connected.
 	 */
@@ -26,6 +32,11 @@ public:
 	 * Whether or not switching to stereo is enabled; if it is false, then EnableStereo(true) will do nothing.
 	 */
 	virtual bool IsHMDEnabled() const = 0;
+
+	/**
+	* Returns EHMDWornState::Worn if we detect that the user is wearing the HMD, EHMDWornState::NotWorn if we detect the user is not wearing the HMD, and EHMDWornState::Unknown if we cannot detect the state.
+	*/
+	virtual EHMDWornState::Type GetHMDWornState() { return EHMDWornState::Unknown; };
 
 	/**
 	 * Enables or disables switching to stereo.
@@ -79,8 +90,24 @@ public:
 
 	/**
 	 * If the HMD supports positional tracking via a sensor, this returns the frustum properties (all in game-world space) of the sensor.
+	 * Returns false, if the sensor at the specified index is not available.
 	 */
-	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;
+	//DEPRECATED(4.13, "Please use GetNumOfTrackingSensors / GetTrackingSensorProperties functions")
+	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
+	{
+		GetTrackingSensorProperties(0, OutOrigin, OutOrientation, OutHFOV, OutVFOV, OutCameraDistance, OutNearPlane, OutFarPlane);
+	}
+
+	/**
+	 *  Returns total number of tracking sensors supported by the HMD. To be used along with GetP
+	 */
+	virtual uint32	GetNumOfTrackingSensors() const { return 0; }
+
+	/**
+	 * If the HMD supports positional tracking via a sensor, this returns the frustum properties (all in game-world space) of the sensor.
+	 * Returns false, if the sensor at the specified index is not available.
+	 */
+	virtual bool	GetTrackingSensorProperties(uint8 InSensorIndex, FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const { return false; }
 
 	/**
 	 * Accessors to modify the interpupillary distance (meters)
@@ -383,7 +410,10 @@ private:
 	void GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives);
 
 	/** Primitives that need late update before rendering */
-	TArray<LateUpdatePrimitiveInfo> LateUpdatePrimitives;
+	TArray<LateUpdatePrimitiveInfo> LateUpdatePrimitives[2];
+
+	int32 LateUpdateGameWriteIndex;
+	int32 LateUpdateRenderReadIndex;
 
 	/** Parent world transform used to reconstruct new world transforms for late update scene proxies */
 	FTransform LateUpdateParentToWorld;

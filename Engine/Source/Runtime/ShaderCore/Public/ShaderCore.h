@@ -113,8 +113,18 @@ enum ECompilerFlags
 	CFLAG_OnChip,
 	CFLAG_KeepDebugInfo,
 	CFLAG_NoFastMath,
+	/** Explicitly enforce zero initialisation on shader platforms that may omit it. */
+	CFLAG_ZeroInitialise,
+	/** Explicitly enforce bounds checking on shader platforms that may omit it. */
+	CFLAG_BoundsChecking,
 	// Compile ES2 with ES3.1 features
-	CFLAG_FeatureLevelES31
+	CFLAG_FeatureLevelES31,
+	// Force removing unused interpolators for platforms that can opt out
+	CFLAG_ForceRemoveUnusedInterpolators,
+	// Set default precision to highp in a pixel shader (default is mediump on ES2 platforms)
+	CFLAG_UseFullPrecisionInPS,
+	// Hint that its a vertex to geometry shader
+	CFLAG_VertexToGeometryShader
 };
 
 /**
@@ -415,6 +425,8 @@ struct FShaderCompilerInput
 	// Skips the preprocessor and instead loads the usf file directly
 	bool bSkipPreprocessedCache;
 
+	bool bGenerateDirectCompileFile;
+
 	// Shader pipeline information
 	bool bCompilingForShaderPipeline;
 	bool bIncludeUsedOutputs;
@@ -433,6 +445,7 @@ struct FShaderCompilerInput
 
 	FShaderCompilerInput() :
 		bSkipPreprocessedCache(false),
+		bGenerateDirectCompileFile(false),
 		bCompilingForShaderPipeline(false),
 		bIncludeUsedOutputs(false)
 	{
@@ -470,6 +483,7 @@ struct FShaderCompilerInput
 		Ar << Input.EntryPointName;
 		Ar << Input.bSkipPreprocessedCache;
 		Ar << Input.bCompilingForShaderPipeline;
+		Ar << Input.bGenerateDirectCompileFile;
 		Ar << Input.bIncludeUsedOutputs;
 		Ar << Input.UsedOutputs;
 		Ar << Input.DumpDebugInfoRootPath;

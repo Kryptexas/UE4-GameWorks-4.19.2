@@ -655,6 +655,7 @@ FTransform UPaperFlipbookComponent::GetSocketTransform(FName InSocketName, ERela
 				break;
 
 			case RTS_Component:
+			case RTS_ParentBoneSpace:
 				return SocketLocalTransform;
 
 			default:

@@ -57,6 +57,9 @@ private:
 
 	/** Check whether the specified objects are editable on the details panel. Called from the level editor */
 	bool AreObjectsEditable(const TArray<TWeakObjectPtr<UObject>>& InObjects) const;
+	
+	/** Called from the editor when a blueprint object replacement has occurred */
+	void OnObjectsReplaced(const TMap<UObject*, UObject*>& OldToNewInstanceMap);
 
 private:
 

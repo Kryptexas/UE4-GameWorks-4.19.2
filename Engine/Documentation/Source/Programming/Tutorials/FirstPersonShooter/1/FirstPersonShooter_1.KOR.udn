@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2672918
+﻿INTSourceChangelist:2923484
 Availability: Docs
 Title: 1 - 프로젝트 구성
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
 Description: 일인칭 슈팅 프로젝트 구성법입니다.
-prereq: Programming/Tutorials/FirstPersonShooter
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 ![](SectionResult.png)
 _이 섹션 끝에서 이와 같은 것을 보게 될 것입니다._
@@ -19,7 +18,7 @@ _이 섹션 끝에서 이와 같은 것을 보게 될 것입니다._
 이 튜토리얼 섹션을 마치면 다음과 같은 작업이 가능할 것입니다:
 
 * 새 프로젝트 구성
-* C++ 클래스 마법사 사용
+* Visual Studio 에서 프로젝트 열기
 * 프로젝트에 로그 메시징 추가
 * 첫 C++ 클래스 컴파일
 * 디폴트 게임 모드 설정

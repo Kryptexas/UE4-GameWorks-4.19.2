@@ -8,7 +8,9 @@
 #include "SlateCore.h"
 #include "Reply.h"
 #include "Player.h"
+#include "Engine/GameViewportClient.h"
 #include "LocalPlayer.generated.h"
+
 
 #define INVALID_CONTROLLERID 255
 
@@ -204,7 +206,6 @@ public:
 
 	bool HandleDNCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandlePauseCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleListMoveBodyCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleListAwakeBodiesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleListSimBodiesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -278,7 +279,7 @@ public:
 	 * @param	ViewDrawer - optional drawing in the view
 	 * @param	StereoPass - whether we are drawing the full viewport, or a stereo left / right pass
 	 */
-	FSceneView* CalcSceneView(class FSceneViewFamily* ViewFamily,
+	virtual FSceneView* CalcSceneView(class FSceneViewFamily* ViewFamily,
 		FVector& OutViewLocation, 
 		FRotator& OutViewRotation, 
 		FViewport* Viewport,
@@ -404,7 +405,7 @@ public:
 	 * @param	ProjectionData			The structure to be filled with projection data
 	 * @return  False if there is no viewport, or if the Actor is null
 	 */
-	bool GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData) const;
+	virtual bool GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData) const;
 
 	/**
 	 * Determines whether this player is the first and primary player on their machine.

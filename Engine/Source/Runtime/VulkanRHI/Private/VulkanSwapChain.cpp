@@ -15,39 +15,6 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 	, CurrentImageIndex(-1)
 	, SemaphoreIndex(0)
 {
-#define FETCH_KHR_FPN(FunctionPointerName)\
-	{\
-		FunctionPointerName = (PFN_vk##FunctionPointerName)vkGetDeviceProcAddr(Device.GetInstanceHandle(), "vk"#FunctionPointerName);\
-		check(FunctionPointerName);\
-	}
-
-#if PLATFORM_ANDROID || PLATFORM_WINDOWS
-	#define FETCH_KHR_INSTANCE_FPN(FunctionPointerName) \
-	{ \
-		FunctionPointerName = (PFN_vk##FunctionPointerName)vkGetInstanceProcAddr(Instance, "vk"#FunctionPointerName); \
-		check(FunctionPointerName); \
-	}
-#else
-	#define FETCH_KHR_INSTANCE_FPN(FunctionPointerName) FETCH_KHR_FPN(FunctionPointerName)
-#endif
-
-	#ifdef _MSC_VER
-		#pragma warning(push)
-		#pragma warning(disable:4191)
-	#endif
-
-	FETCH_KHR_FPN(CreateSwapchainKHR);
-	FETCH_KHR_FPN(DestroySwapchainKHR);
-	FETCH_KHR_FPN(GetSwapchainImagesKHR);
-	FETCH_KHR_FPN(QueuePresentKHR);
-	FETCH_KHR_FPN(AcquireNextImageKHR);
-
-	#ifdef _MSC_VER
-		#pragma warning(pop)
-	#endif
-
-	#undef FETCH_KHR_FPN
-
 #if PLATFORM_WINDOWS
 	VkWin32SurfaceCreateInfoKHR SurfaceCreateInfo;
 	FMemory::Memzero(SurfaceCreateInfo);
@@ -98,7 +65,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 		}
 		else
 		{
-			auto PlatformFormat = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
+			VkFormat PlatformFormat = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
 			bool bSupported = false;
 			for (int32 Index = 0; Index < Formats.Num(); ++Index)
 			{
@@ -114,7 +81,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 		}
 	}
 
-	auto PlatformFormat = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
+	VkFormat PlatformFormat = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
 
 	//#todo-rco: Check multiple Gfx Queues?
 	VkBool32 bSupportsPresent = VK_FALSE;
@@ -188,13 +155,13 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 
 	*InOutDesiredNumBackBuffers = DesiredNumBuffers;
 
-	VERIFYVULKANRESULT_EXPANDED(vkCreateSwapchainKHR(Device.GetInstanceHandle(), &SwapChainInfo, nullptr, &SwapChain));
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateSwapchainKHR(Device.GetInstanceHandle(), &SwapChainInfo, nullptr, &SwapChain));
 
 	uint32 NumSwapChainImages;
-	VERIFYVULKANRESULT_EXPANDED(GetSwapchainImagesKHR(Device.GetInstanceHandle(), SwapChain, &NumSwapChainImages, nullptr));
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkGetSwapchainImagesKHR(Device.GetInstanceHandle(), SwapChain, &NumSwapChainImages, nullptr));
 
 	OutImages.AddUninitialized(NumSwapChainImages);
-	VERIFYVULKANRESULT_EXPANDED(GetSwapchainImagesKHR(Device.GetInstanceHandle(), SwapChain, &NumSwapChainImages, OutImages.GetData()));
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkGetSwapchainImagesKHR(Device.GetInstanceHandle(), SwapChain, &NumSwapChainImages, OutImages.GetData()));
 
 	ImageAcquiredSemaphore.AddUninitialized(DesiredNumBuffers);
 	for (uint32 BufferIndex = 0; BufferIndex < DesiredNumBuffers; ++BufferIndex)
@@ -205,7 +172,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 
 void FVulkanSwapChain::Destroy()
 {
-	vkDestroySwapchainKHR(Device.GetInstanceHandle(), SwapChain, nullptr);
+	VulkanRHI::vkDestroySwapchainKHR(Device.GetInstanceHandle(), SwapChain, nullptr);
 	SwapChain = VK_NULL_HANDLE;
 
 	//#todo-rco: Enqueue for deletion as we first need to destroy the cmd buffers and queues otherwise validation fails
@@ -220,18 +187,15 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	// Get the index of the next swapchain image we should render to.
 	// We'll wait with an "infinite" timeout, the function will block until an image is ready.
 	// The ImageAcquiredSemaphore[ImageAcquiredSemaphoreIndex] will get signaled when the image is ready (upon function return).
-	// The Fences[CurrentFenceIndex] will also get signaled when the image is ready (upon function return).
-	// Note: Queues can still be filled in on the CPU side, but won't execute until the semaphore is signaled.
-	//CurrentImageIndex = -1;
 	uint32 ImageIndex = 0;
 	SemaphoreIndex = (SemaphoreIndex + 1) % ImageAcquiredSemaphore.Num();
 	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
-	VkResult Result = AcquireNextImageKHR(
+	VkResult Result = VulkanRHI::vkAcquireNextImageKHR(
 		Device.GetInstanceHandle(),
 		SwapChain,
 		UINT64_MAX,
 		ImageAcquiredSemaphore[SemaphoreIndex]->GetHandle(),
-		VK_NULL_HANDLE,
+		VK_NULL_HANDLE,	// Currently no fence needed
 		&ImageIndex);
 	checkf(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR, TEXT("AcquireNextImageKHR failed Result = %d"), int32(Result));
 	CurrentImageIndex = (int32)ImageIndex;
@@ -239,19 +203,28 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	return CurrentImageIndex;
 }
 
-void FVulkanSwapChain::Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore)
+bool FVulkanSwapChain::Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore)
 {
 	check(CurrentImageIndex != -1);
 
 	VkPresentInfoKHR Info;
 	FMemory::Memzero(Info);
 	Info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	Info.waitSemaphoreCount = 1;
-	VkSemaphore Semaphore = BackBufferRenderingDoneSemaphore->GetHandle();
-	Info.pWaitSemaphores = &Semaphore;
+	VkSemaphore Semaphore = VK_NULL_HANDLE;
+	if (BackBufferRenderingDoneSemaphore)
+	{
+		Info.waitSemaphoreCount = 1;
+		Semaphore = BackBufferRenderingDoneSemaphore->GetHandle();
+		Info.pWaitSemaphores = &Semaphore;
+	}
 	Info.swapchainCount = 1;
 	Info.pSwapchains = &SwapChain;
 	Info.pImageIndices = (uint32*)&CurrentImageIndex;
 
-	VERIFYVULKANRESULT(QueuePresentKHR(Queue->GetHandle(), &Info));
+	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanQueuePresent);
+		VERIFYVULKANRESULT(VulkanRHI::vkQueuePresentKHR(Queue->GetHandle(), &Info));
+	}
+
+	return true;
 }

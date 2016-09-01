@@ -1,4 +1,5 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2944240
+Availability:Docs
 Title: 虚幻引擎入门指南
 Crumbs:
 DoIndex:false
@@ -26,6 +27,12 @@ Template:PDF.html
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine#Main(offset:1)]
 
+
+## 从源码起构建虚幻引擎
+
+[INCLUDE:Programming/Development/BuildingUnrealEngine#windowscompile]
+
+如要在非 Windows 平台构建引擎并创建可运行程序，请参考 [](Programming/Development/BuildingUnrealEngine)。
 
 ## 启动编辑器
 

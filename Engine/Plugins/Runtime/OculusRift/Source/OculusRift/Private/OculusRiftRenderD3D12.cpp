@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 //
-#include "HMDPrivatePCH.h"
+#include "OculusRiftPrivatePCH.h"
 #include "OculusRiftHMD.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
@@ -63,7 +63,7 @@
 class FD3D12Texture2DSetProxy : public FTexture2DSetProxy
 {
 public:
-	FD3D12Texture2DSetProxy(FOvrSessionSharedParamRef InOvrSession, ovrTextureSwapChain InOvrTextureSwapChain, FTexture2DRHIParamRef InRHITexture, const TArray<FTexture2DRHIRef>& InRHITextureSwapChain, EPixelFormat SrcFormat) : 
+	FD3D12Texture2DSetProxy(const FOvrSessionSharedPtr& InOvrSession, ovrTextureSwapChain InOvrTextureSwapChain, FTexture2DRHIParamRef InRHITexture, const TArray<FTexture2DRHIRef>& InRHITextureSwapChain, EPixelFormat SrcFormat) : 
 		FTexture2DSetProxy(InOvrSession, InRHITexture, InRHITexture->GetSizeX(), InRHITexture->GetSizeY(), SrcFormat, InRHITexture->GetNumMips()),
 		OvrTextureSwapChain(InOvrTextureSwapChain), RHITextureSwapChain(InRHITextureSwapChain) {}
 
@@ -109,7 +109,7 @@ protected:
 // FOculusRiftHMD::D3D12Bridge
 //-------------------------------------------------------------------------------------------------
 
-FOculusRiftHMD::D3D12Bridge::D3D12Bridge(FOvrSessionSharedParamRef InOvrSession)
+FOculusRiftHMD::D3D12Bridge::D3D12Bridge(const FOvrSessionSharedPtr& InOvrSession)
 	: FCustomPresent(InOvrSession)
 {
 	check(IsInGameThread());
@@ -153,15 +153,15 @@ void FOculusRiftHMD::D3D12Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 
 	SetRenderContext(&InRenderContext);
 
-	FGameFrame* CurrentFrame = GetRenderFrame();
-	check(CurrentFrame);
-	FSettings* FrameSettings = CurrentFrame->GetSettings();
+	FGameFrame* CurrentRenderFrame = GetRenderFrame();
+	check(CurrentRenderFrame);
+	FSettings* FrameSettings = CurrentRenderFrame->GetSettings();
 	check(FrameSettings);
 
 	const uint32 RTSizeX = RT->GetSizeX();
 	const uint32 RTSizeY = RT->GetSizeY();
 
-	const FVector2D ActualMirrorWindowSize = CurrentFrame->WindowSize;
+	const FVector2D ActualMirrorWindowSize = CurrentRenderFrame->WindowSize;
 	// detect if mirror texture needs to be re-allocated or freed
 	FOvrSessionShared::AutoSession OvrSession(Session);
 	if (Session->IsActive() && MirrorTextureRHI && (bNeedReAllocateMirrorTexture || 
@@ -219,7 +219,7 @@ void FOculusRiftHMD::D3D12Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 	}
 }
 
-FTexture2DSetProxyRef FOculusRiftHMD::D3D12Bridge::CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips, uint32 InCreateTexFlags)
+FTexture2DSetProxyPtr FOculusRiftHMD::D3D12Bridge::CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips, uint32 InCreateTexFlags)
 {
 	const EPixelFormat Format = PF_B8G8R8A8;
 	const DXGI_FORMAT PlatformResourceFormat = (DXGI_FORMAT)GPixelFormats[Format].PlatformFormat;

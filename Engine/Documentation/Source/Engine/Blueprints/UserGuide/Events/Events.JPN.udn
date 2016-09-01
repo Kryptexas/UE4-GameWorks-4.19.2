@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2688371
+﻿INTSourceChangelist:2754086
 Availability:Public
 Title:イベント
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
-Description:EventGraph 内の個々のネットワークの実行を開始するためにゲームプレイ コードから呼び出されるノード
+Description:イベントグラフ内の個々のネットワークの実行を開始するためにゲームプレイ コードから呼び出されるノード
 version:4.9
 
 [VAR:Topic]
@@ -133,7 +133,7 @@ _このブループリント アクタが Player Actor 変数に格納されて�
 
 コリジョンの詳細については、[コリジョン反応](Engine\Physics\Collision) をご覧ください。
 
-![](EndOverlap.png)
+![](EndOverlapEX.png)
 
 _このブループリント アクタが Player Actor 変数に格納されているアクタ以外のアクタとのオーバーラップを停止すると、オーバーラップされていた側のアクタを破壊します。_
 
@@ -147,7 +147,11 @@ _このブループリント アクタが Player Actor 変数に格納されて�
 
 ![](EventHit.png)
 
-このイベントは、コリジョンに関わる両方のアクタのコリジョン設定の **Simulation Generates Hit Events** が true の場合にのみ実行されます。
+このイベントは、コリジョンに関わアクタの片方のコリジョン設定の **Simulation Generates Hit Events** が true である限り実行されます。 
+
+[REGION:note]
+Sweeps を使って移動する場合、フラグを選択していなくてもこのイベントを使います。Sweep がブロックしているオブジェクトを通り過ぎないようにしている限り、そのようになります。
+[/REGION]
 
 | アイテム | 説明 |
 | -------- | ----------- |
@@ -176,7 +180,7 @@ _このサンプルでは、ブループリントが **Hit** を実行すると�
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Damage** | Float - アクタへ渡されているダメージの量。 |
+| **Damage** | Float - アクタへ渡されているダメージの量です。 |
 | **Damage Type** | Object 'DamageType - 与えられているダメージ上に追加データを含むオブジェクトです。 |
 | **Instigated By** | Actor - ダメージを仕掛けるアクタです。ダメージを与えるために銃を発砲したり手榴弾を投げたりするアクタになります。 |
 | **Damage Causer** | Actor - ダメージを引き起こすアクタです。弾丸や爆発などがこれにあたります。|
@@ -198,13 +202,13 @@ _アクタに与えられているダメージが水から発生した場合、�
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Damage** | Float - アクタへ渡されているダメージの量。 |
+| **Damage** | Float - アクタへ渡されているダメージの量です。 |
 | **Damage Type** | Object 'DamageType - 与えられているダメージ上に追加データを含むオブジェクトです。 |
-| **Hit Location** | Vector - ダメージが適用されている位置。 |
-| **Hit Normal** | Vector - コリジョンの方向。 |
-| **Hit Component** | PrimitiveComponent - ヒットされた実行中のアクタ上のコンポーネント。 |
-| **Bone Name** | Name - 撃たれたボーンの名前。 |
-| **Shot from Direction** | Vector - ダメージが与えられた方向。 |
+| **Hit Location** | Vector - ダメージが適用されている位置です。 |
+| **Hit Normal** | Vector - コリジョンの方向です。 |
+| **Hit Component** | PrimitiveComponent - ヒットされた実行中のアクタ上のコンポーネントです。 |
+| **Bone Name** | Name - 撃たれたボーンの名前です。 |
+| **Shot from Direction** | Vector - ダメージが与えられた方向です。 |
 | **Instigated By** | Actor - ダメージを仕掛けるアクタです。ダメージを与えるために銃を発砲したり手榴弾を投げたりするアクタになります。 |
 | **Damage Causer** | Actor - ダメージを引き起こすアクタです。弾丸や爆発などがこれにあたります。|
 
@@ -225,7 +229,7 @@ _このサンプルでは、ダメージを受けた時、与えられたダメ�
 | アイテム | 説明 |
 | -------- | ----------- |
 | [REGION:tablesection]出力ピン[/REGION] ||
-| **Damage** | Float - イベントから受け取ったダメージの量。 |
+| **Damage** | Float - イベントから受け取ったダメージの量です。 |
 | **Damage Type** | Object 'DamageType - 与えられているダメージ上に追加データを含むオブジェクトです。 |
 | **Origin** | Vector - もともとダメージがあった 3D 空間における位置を与えます。 |
 | **Hit Info** | Struct HitResult - Hit 内に収集されたすべてのデータです。この結果を「細分化して」個々のデータへのアクセスすることができます。 |
@@ -343,4 +347,4 @@ _このイベントは、レンダリング ウィンドウの中央に、クリ
 
 ![Custom Event Node](Engine\Blueprints\UserGuide\Events\Custom\name_custom_event.png)
 
-Custom Event ノードは専用のワークフローを持つ特殊なノードです。詳しくは [**Custom Event ノード**](Engine\Blueprints\UserGuide\Events\Custom) をご覧ください。
+Custom Event ノードは専用のワークフローを持つ特殊なノードです。詳しくは [*Custom Event ノード](Engine\Blueprints\UserGuide\Events\Custom) をご覧ください。

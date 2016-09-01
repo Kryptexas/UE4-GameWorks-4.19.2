@@ -324,9 +324,12 @@ FD3D11BoundRenderTargets::FD3D11BoundRenderTargets(ID3D11DeviceContext* InDevice
 		&RenderTargetViews[0],
 		&DepthStencilView
 		);
-	for (NumActiveTargets = 0; NumActiveTargets < MaxSimultaneousRenderTargets; ++NumActiveTargets)
+
+	// Find the last non-null rendertarget to determine the max 
+	// We traverse the array backwards, since they can be sparse
+	for (NumActiveTargets = MaxSimultaneousRenderTargets; NumActiveTargets > 0; --NumActiveTargets)
 	{
-		if (RenderTargetViews[NumActiveTargets] == NULL)
+		if (RenderTargetViews[NumActiveTargets-1] != NULL)
 		{
 			break;
 		}
@@ -339,7 +342,10 @@ FD3D11BoundRenderTargets::~FD3D11BoundRenderTargets()
 	// to make a corresponding call to Release.
 	for (int32 TargetIndex = 0; TargetIndex < NumActiveTargets; ++TargetIndex)
 	{
-		RenderTargetViews[TargetIndex]->Release();
+		if (RenderTargetViews[TargetIndex] != nullptr)
+		{
+			RenderTargetViews[TargetIndex]->Release();
+		}
 	}
 	if (DepthStencilView)
 	{
@@ -379,7 +385,7 @@ void FD3D11DynamicBuffer::InitRHI()
 	{
 		TRefCountPtr<ID3D11Buffer> Buffer;
 		Desc.ByteWidth = BufferSizes[Buffers.Num()];
-		VERIFYD3D11RESULT(D3DRHI->GetDevice()->CreateBuffer(&Desc,NULL,Buffer.GetInitReference()));
+		VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->CreateBuffer(&Desc,NULL,Buffer.GetInitReference()), D3DRHI->GetDevice());
 		UpdateBufferStats(Buffer,true);
 		Buffers.Add(Buffer);
 	}
@@ -416,7 +422,7 @@ void* FD3D11DynamicBuffer::Lock(uint32 Size)
 		Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		Desc.MiscFlags = 0;
 		Desc.ByteWidth = Size;
-		VERIFYD3D11RESULT(D3DRHI->GetDevice()->CreateBuffer(&Desc,NULL,Buffer.GetInitReference()));
+		VERIFYD3D11RESULT_EX(D3DRHI->GetDevice()->CreateBuffer(&Desc,NULL,Buffer.GetInitReference()), D3DRHI->GetDevice());
 		UpdateBufferStats(Buffers[BufferIndex],false);
 		UpdateBufferStats(Buffer,true);
 		Buffers[BufferIndex] = Buffer;
@@ -425,7 +431,7 @@ void* FD3D11DynamicBuffer::Lock(uint32 Size)
 
 	LockedBufferIndex = BufferIndex;
 	D3D11_MAPPED_SUBRESOURCE MappedSubresource;
-	VERIFYD3D11RESULT( D3DRHI->GetDeviceContext()->Map( Buffers[BufferIndex],0,D3D11_MAP_WRITE_DISCARD,0,&MappedSubresource ) );
+	VERIFYD3D11RESULT_EX(D3DRHI->GetDeviceContext()->Map(Buffers[BufferIndex],0,D3D11_MAP_WRITE_DISCARD,0,&MappedSubresource), D3DRHI->GetDevice());
 	return MappedSubresource.pData;
 }
 

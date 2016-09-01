@@ -298,9 +298,13 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 	// Sections
 	MenuBuilder.BeginSection("AnimMontageSections", LOCTEXT("Sections", "Sections"));
 	{
+		// New Action as we have a CanExecuteAction defined
 		UIAction.ExecuteAction.BindRaw(this, &SAnimMontagePanel::OnNewSectionClicked, static_cast<float>(DataPosX));
+		UIAction.CanExecuteAction.BindRaw(this, &SAnimMontagePanel::CanAddNewSection);
 		MenuBuilder.AddMenuEntry(LOCTEXT("NewMontageSection", "New Montage Section"), LOCTEXT("NewMontageSectionToolTip", "Adds a new Montage Section"), FSlateIcon(), UIAction);
 	
+		UIAction.CanExecuteAction.Unbind();
+
 		if (SectionIndex != INDEX_NONE && Montage->CompositeSections.Num() > 1) // Can't delete the last section!
 		{
 			UIAction.ExecuteAction.BindRaw(MontageEditor.Pin().Get(), &SMontageEditor::RemoveSection, SectionIndex);
@@ -389,6 +393,12 @@ void SAnimMontagePanel::OnNewSectionClicked(float DataPosX)
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
 		);
+}
+
+bool SAnimMontagePanel::CanAddNewSection()
+{
+	// Can't add sections if there isn't a montage, or that montage is of zero length
+	return Montage && Montage->SequenceLength > 0.0f;
 }
 
 void SAnimMontagePanel::CreateNewSection(const FText& NewSectionName, ETextCommit::Type CommitInfo, float StartTime)

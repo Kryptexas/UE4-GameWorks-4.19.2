@@ -3,7 +3,10 @@ Availability: Public
 Title:如何设置人物动作
 Crumbs: %ROOT%, Gameplay
 Description:如何在虚幻引擎 4 中设置带人物动作的人物的操作指南。 
-版本: 4.9
+Version: 4.9
+Parent:Gameplay
+type:how-to
+order:10
 
 
 ## 概述

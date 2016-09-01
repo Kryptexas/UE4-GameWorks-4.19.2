@@ -35,7 +35,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Tag to be applied to build products of this task
 		/// </summary>
-		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
 		public string Tag;
 	}
 
@@ -68,21 +68,31 @@ namespace BuildGraph.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
+			// Get the source and target directories
 			DirectoryReference FromDir = ResolveDirectory(Parameters.FromDir);
 			DirectoryReference ToDir = ResolveDirectory(Parameters.ToDir);
-			if(FromDir != ToDir)
-			{
-				// Copy all the files
-				IEnumerable<FileReference> SourceFiles = ResolveFilespec(FromDir, Parameters.Files, TagNameToFileSet);
-				IEnumerable<FileReference> TargetFiles = SourceFiles.Select(x => FileReference.Combine(ToDir, x.MakeRelativeTo(FromDir)));
-				CommandUtils.ThreadedCopyFiles(SourceFiles.Select(x => x.FullName).ToList(), TargetFiles.Select(x => x.FullName).ToList());
-				BuildProducts.UnionWith(TargetFiles);
 
-				// Apply the optional output tag to them
-				if(!String.IsNullOrEmpty(Parameters.Tag))
-				{
-					FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(TargetFiles);
-				}
+			// Copy all the files
+			IEnumerable<FileReference> SourceFiles = ResolveFilespec(FromDir, Parameters.Files, TagNameToFileSet);
+			IEnumerable<FileReference> TargetFiles = SourceFiles.Select(x => FileReference.Combine(ToDir, x.MakeRelativeTo(FromDir)));
+			if(!FromDir.Exists() && !SourceFiles.Any())
+			{
+				CommandUtils.Log("Skipping copy of files from '{0}' - directory does not exist.", FromDir.FullName);
+			}
+			else if(FromDir == ToDir)
+			{
+				CommandUtils.Log("Skipping copy of files in '{0}' - source directory is same as target directory", FromDir.FullName);
+			}
+			else 
+			{
+				CommandUtils.ThreadedCopyFiles(SourceFiles.Select(x => x.FullName).ToList(), TargetFiles.Select(x => x.FullName).ToList());
+			}
+			BuildProducts.UnionWith(TargetFiles);
+
+			// Apply the optional output tag to them
+			foreach(string TagName in FindTagNamesFromList(Parameters.Tag))
+			{
+				FindOrAddTagSet(TagNameToFileSet, TagName).UnionWith(TargetFiles);
 			}
 			return true;
 		}
@@ -93,6 +103,24 @@ namespace BuildGraph.Tasks
 		public override void Write(XmlWriter Writer)
 		{
 			Write(Writer, Parameters);
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			return FindTagNamesFromFilespec(Parameters.Files);
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			return FindTagNamesFromList(Parameters.Tag);
 		}
 	}
 }

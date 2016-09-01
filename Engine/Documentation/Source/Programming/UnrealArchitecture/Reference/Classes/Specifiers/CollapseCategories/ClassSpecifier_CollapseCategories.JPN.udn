@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2622218
 Title:CollapseCategories
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description:
 Availability:Public
-バージョン：4.5
+Version:4.9
 
-このクラスのプロパティは、アンリアル エディタ プロパティ ウィンドウのカテゴリで 
+このクラスのプロパティは、アンリアル エディタのプロパティ ウィンドウのカテゴリで 
 グループ化すべきでないことを示します。このキーワードは子クラスに継承されますが、 
-子クラスは DontCollapseCategories キーワードを使ってこのフラグをオーバーライドできます。
+子クラスは `DontCollapseCategories` キーワードを使ってこのフラグをオーバーライドできます。
 

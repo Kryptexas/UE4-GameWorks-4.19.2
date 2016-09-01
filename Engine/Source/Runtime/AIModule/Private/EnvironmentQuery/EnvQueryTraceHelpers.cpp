@@ -198,7 +198,7 @@ void FEQSHelpers::RunNavRaycasts(const ANavigationData& NavData, const UObject& 
 
 	if (TraceMode == ETraceMode::Discard)
 	{
-		for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx++)
+		for (int32 Idx = Points.Num() - 1; Idx >= 0; --Idx)
 		{
 			if (!RaycastWorkload[Idx].bDidHit)
 			{

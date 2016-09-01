@@ -51,7 +51,7 @@ Description: 关于Matinee如何控制蓝图组件的概述。
 
 	![](Matinee_AddEmptyGroup.png)
 
-	关于在Matinee中创建组的更多信息，请参照[应用组和轨迹](Engine/Matinee/UserGuide#WorkingwithGroupsAndTracks)页面。
+	关于在Matinee中创建组的更多信息，请参照[应用组和轨迹](Engine/Matinee/UserGuide)页面。
 
 1. 右击该新组，并从关联菜单中选择您需要的轨迹类型：
 
@@ -69,7 +69,7 @@ Description: 关于Matinee如何控制蓝图组件的概述。
 
 	![](Matinee_ChooseVectorVariable.png)
 
-1. 在您想修改该变量的值的时间点处，将关键帧添加到新轨迹中。(关于添加关键帧的更多信息，请参照[工具条](Engine/Matinee/UI#Toolbar))。
+1. 在您想修改该变量的值的时间点处，将关键帧添加到新轨迹中。(关于添加关键帧的更多信息，请参照[工具条](Engine/Matinee/UI))。
 
 	![](Matinee_AddKeyframes.png)
 

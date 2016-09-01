@@ -473,12 +473,14 @@ void FActiveGameplayEffect::PrintAll() const
 void FGameplayEffectSpec::PrintAll() const
 {
 	ABILITY_LOG(Log, TEXT("Def: %s"), *Def->GetName());
-
 	ABILITY_LOG(Log, TEXT("Duration: %.2f"), GetDuration());
-
 	ABILITY_LOG(Log, TEXT("Period: %.2f"), GetPeriod());
-
 	ABILITY_LOG(Log, TEXT("Modifiers:"));
+}
+
+FString FGameplayEffectSpec::ToSimpleString() const
+{
+	return FString::Printf(TEXT("%s"), *GetNameSafe(Def));
 }
 
 const FGameplayTagContainer* FTagContainerAggregator::GetAggregatedTags() const
@@ -567,6 +569,7 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		REP_Instigator,
 		REP_EffectCauser,
 		REP_SourceObject,
+		REP_TargetAttachComponent,
 		REP_PhysMaterial,
 		REP_GELevel,
 		REP_AbilityLevel,
@@ -608,6 +611,10 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		if (SourceObject.IsValid())
 		{
 			RepBits |= (1 << REP_SourceObject);
+		}
+		if (TargetAttachComponent.IsValid())
+		{
+			RepBits |= (1 << REP_TargetAttachComponent);
 		}
 		if (PhysicalMaterial.IsValid())
 		{
@@ -661,7 +668,11 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 	{
 		Ar << SourceObject;
 	}
-	if (RepBits & (1 << REP_SourceObject))
+	if (RepBits & (1 << REP_TargetAttachComponent))
+	{
+		Ar << TargetAttachComponent;
+	}
+	if (RepBits & (1 << REP_PhysMaterial))
 	{
 		Ar << PhysicalMaterial;
 	}
@@ -709,18 +720,27 @@ bool FGameplayCueParameters::IsInstigatorLocallyControlled() const
 	return false;
 }
 
-bool FGameplayCueParameters::IsInstigatorLocallyControlledPlayer() const
+bool FGameplayCueParameters::IsInstigatorLocallyControlledPlayer(AActor* FallbackActor) const
 {
+	// If there is an effect context, just ask it
 	if (EffectContext.IsValid())
 	{
 		return EffectContext.IsLocallyControlledPlayer();
 	}
-
+	
+	// Look at instigator
 	APawn* Pawn = Cast<APawn>(Instigator.Get());
 	if (!Pawn)
 	{
+		// If no instigator, look at effect causer
 		Pawn = Cast<APawn>(EffectCauser.Get());
+		if (!Pawn)
+		{
+			// Fallback to passed in actor
+			Pawn = Cast<APawn>(FallbackActor);
+		}
 	}
+
 	if (Pawn && Pawn->Controller)
 	{
 		return Pawn->Controller->IsLocalPlayerController();
@@ -763,7 +783,7 @@ const UObject* FGameplayCueParameters::GetSourceObject() const
 
 bool FMinimapReplicationTagCountMap::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	const int32 CountBits = 4;
+	const int32 CountBits = UAbilitySystemGlobals::Get().MinimalReplicationTagCountBits;
 	const int32 MaxCount = ((1 << CountBits)-1);
 
 	if (Ar.IsSaving())
@@ -771,7 +791,7 @@ bool FMinimapReplicationTagCountMap::NetSerialize(FArchive& Ar, class UPackageMa
 		int32 Count = TagMap.Num();
 		if (Count > MaxCount)
 		{
-			ABILITY_LOG(Error, TEXT("FMinimapReplicationTagCountMap has too many tags (%d)"), TagMap.Num());
+			ABILITY_LOG(Error, TEXT("FMinimapReplicationTagCountMap has too many tags (%d). This will cause tags to not replicate. See FMinimapReplicationTagCountMap::NetSerialize"), TagMap.Num());
 			Count = MaxCount;
 		}
 

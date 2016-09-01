@@ -86,6 +86,11 @@ class MOVIESCENE_API UMovieScene
 
 public:
 
+	/**~ UObject implementation */
+	virtual void Serialize( FArchive& Ar ) override;
+
+public:
+
 #if WITH_EDITOR
 	/**
 	 * Add a spawnable to this movie scene's list of owned blueprints.
@@ -392,7 +397,7 @@ public:
 	 * Get the display name of the object with the specified identifier.
 	 *
 	 * @param ObjectId The object identifier.
-	 * @result The object's display name.
+	 * @return The object's display name.
 	 */
 	FText GetObjectDisplayName(const FGuid& ObjectId);
 
@@ -425,7 +430,7 @@ public:
 	 * Get the display name of the object with the specified identifier.
 	 *
 	 * @param ObjectId The object identifier.
-	 * @result The object's display name.
+	 * @return The object's display name.
 	 */
 	void SetObjectDisplayName(const FGuid& ObjectId, const FText& DisplayName);
 
@@ -469,6 +474,12 @@ public:
 	*/
 	void SetFixedFrameInterval( float InFixedFrameInterval );
 
+	/**
+	 * Calculates a fixed frame time based on a current time, a fixed frame interval, and an internal epsilon to account
+	 * for floating point consistency.
+	 */ 
+	static float CalculateFixedFrameTime( float Time, float FixedFrameInterval );
+
 public:
 	
 #if WITH_EDITORONLY_DATA
@@ -495,18 +506,28 @@ protected:
 	 */
 	void RemoveBinding(const FGuid& Guid);
 
+#if WITH_EDITOR
+	/** Templated helper for optimizing lists of possessables and spawnables for cook */
+	template<typename T>
+	void OptimizeObjectArray(TArray<T>& ObjectArray);
+#endif
+	
 protected:
 
 	/** Called after this object has been deserialized */
 	virtual void PostLoad() override;
 
 	/** Called before this object is being deserialized. */
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 
 	/** Perform legacy upgrade of time ranges */
 	void UpgradeTimeRanges();
 
 private:
+
+	// Small value added for fixed frame interval calculations to make up for consistency in
+	// floating point calculations.
+	static const float FixedFrameIntervalEpsilon;
 
 	/**
 	 * Data-only blueprints for all of the objects that we we're able to spawn.

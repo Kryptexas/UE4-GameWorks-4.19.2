@@ -160,8 +160,8 @@ bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 
 		//Create the path
 		ScreenshotParameters.CurrentWindow = AllWindows[0];
-		const FString TestName = TEXT("NewLandscapeTest");
-		FString PathName = FPaths::AutomationDir() + TestName / FPlatformProperties::PlatformName();
+		const FString LandscapeTestName = TEXT("NewLandscapeTest");
+		FString PathName = FPaths::AutomationDir() + LandscapeTestName / FPlatformProperties::PlatformName();
 		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());
 		ScreenshotParameters.ScreenshotName = FString::Printf(TEXT("%s/%d.png"), *PathName, FEngineVersion::Current().GetChangelist());
 

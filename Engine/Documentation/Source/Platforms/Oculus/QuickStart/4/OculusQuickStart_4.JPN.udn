@@ -1,8 +1,10 @@
-﻿Title:4.Oculus Rift DK2 ハードウェアの設定
+﻿INTSourceChangelist:2744797
+Title:4.Oculus Rift DK2 ハードウェアの設定
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Oculus Rift ヘッドセットを接続しアップデートする
 Availability:Public
-
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,98 +22,34 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
+このセクションでは、Oculus HMD を PC に接続し、0.7.0 Oculus BETA ドライバーの動作状態を確認するための設定方法を説明します。
+
 %Steps%
 
-
-%Globals:OSSelect%
-
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
-[/OBJECT]
-<!--
-[EXCERPT:windows]
 1. インクルードされているインストラクション マニュアル ([オンライン](http://static.oculus.com/sdk-downloads/documents/Oculus_Rift_DK2_Instruction_Manual.pdf) からも閲覧できます) に従って、DK2 ヘッドセットをコンピュータに接続します。
-1. 以下の方法で **Oculus Configuration Utility** を実行します。
-	* システムトレイの Oculus アイコンを **右クリック** して、 **Configuration Utility** を選択するか、または
-	* [スタート メニュー] から、 **Oculus Runtime > OculusConfigUtil** を開きます。
-	* `[InstallDirectory]/Tools/` の `OculusConfigUtil.exe` を実行します。
-1. **[ツール] > Rift Display Mode** をクリックします。
 
-	![](RiftDisplayMode_menu.png)
-1. ヘッドセットが **Direct HMD Access from Apps** モードになっていることを確認してから、 **[適用する]** をクリックして変更を保存します。ウィンドウを閉じます。
-	![](DirectHMD.png)
+1. システムトレイの Oculus アイコンを **右クリック** して、 **[Configuration Utility]** を選択して **Oculus Configuration Utility** を実行します。
 
+	![](Oculus_Config_Utility.png)
 
-[REGION:tip]
-ファームウェアのバージョンは、コンフィギュレーション ユーティリティに記載されています。バージョンが 2.12 ではない場合、次のステップを行ってヘッドセットのファームウェアをアップデートしてください。
-[/REGION]
+1. Oculus Configuration Utility が開くとこのようになっています。
 
-1. **[ツール] > Update Firmware** をクリックします。
+	![](Oculus_Config_Utility.png)
 
-	![](UpdateFirmware_menu.png)
+1. **[User (ユーザー)]** セクションの下にある **プラス記号** を押して、ユーザー プロファイルを追加します。 
 
-	[REGION:note]
-	ファームウェアのアップデートを開始する前に、アンリアル エディタ、アンリアル エンジン ランチャー、及び Oculus を使用する可能性のあるその他のプログラムを終了しているようにしてください。終了しないで開始すると、他のソフトウェアを終了するよう警告が出て、ファームウェアはインストールされません。
-	[/REGION]
+	![](Oculus_Config_Add_Profile.png)
 
-1. ファイル ダイアログが表示されたら `DK2Firmware_2_12.ovrf` を選択して、 **[開く]** をクリックします。
+1. **[New User (新規ユーザー)]** ポップアップ ボックスが表示されたら、プロファイル用に使う名前を入力して **[OK]** ボタンをクリックします。 
 
-	![](Firmware.png)
-1. **Oculus Configuration Utility** を終了します。以下の方法で再度開きます。
-	* [スタート メニュー] から、 **Oculus Runtime > OculusConfigUtil** を開きます。
-	* `[InstallDirectory]/Tools/` の `OculusConfigUtil.exe` を実行します。
-1. ファームウェアのバージョンが 2.12 になっていることを確認します。
-[/EXCERPT:windows]
-[EXCERPT:macos]
-[INCLUDE:Platforms/Oculus#warning]
+	![](Oculus_Config_Name_Profile.png)
 
-1. インクルードされているインストラクション マニュアル ([オンライン](http://static.oculus.com/sdk-downloads/documents/Oculus_Rift_DK2_Instruction_Manual.pdf) からも閲覧できます) に従って、DK2 ヘッドセットをコンピュータに接続します。
-1. 以下の方法で **Oculus Configuration Utility** を実行します。
-	* デスクトップの OculusConfigUtil のショートカットを使う、または
-	* `[InstallDirectory]/Tools/` の `OculusConfigUtil.app` を実行します。
+1. [User] セクションで、ヘッドマウント ディスプレイ (HMD) を使用する人の **[Gender (性別)]** と **[Player Height (プレイヤーの身長)]** を設定します。
 
-[REGION:tip]
-ファームウェアのバージョンは、コンフィギュレーション ユーティリティに記載されています。バージョンが 2.12 ではない場合、次のステップを行ってヘッドセットのファームウェアをアップデートしてください。
-[/REGION]
+	![](Oculus_Config_Setup_Profile.png)
 
-1. **[ツール] > Update Firmware** をクリックします。
+1. [Oculus Configuration Utility] ウィンドウの **[Show Demo Scene (デモ シーンを表示)]** をクリックすると、以下の画像が画面上と HMD に表示されます。
 
-	![](firmware_mac.png)(w:420)
-
-	[REGION:note]
-	ファームウェアのアップデートを開始する前に、アンリアル エディタ、アンリアル エンジン ランチャー、及び Oculus を使用する可能性のあるその他のプログラムを終了しているようにしてください。終了しないで開始すると、他のソフトウェアを終了するよう警告が出て、ファームウェアはインストールされません。
-	[/REGION]
-
-1. ファイル ダイアログが表示されたら `DK2Firmware_2_12.ovrf` を選択して、 **[開く]** をクリックします。
-1. **Oculus Configuration Utility** を終了します。以下の方法で再度開きます。
-	* デスクトップの OculusConfigUtil のショートカットを使う、または
-	* `[InstallDirectory]/Tools/` の `OculusConfigUtil.app` を実行します。
-1. ファームウェアのバージョンが 2.12 になっていることを確認します。
-[/EXCERPT:macos]
--->
+	![](Oculus_Config_Demo_Sceen.png)
 
 %Steps%

@@ -2,9 +2,8 @@ Availability: Docs
 Title: 1 - Setting up your Project
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
 Description: How to set up your First Person Shooter project.
-prereq: Programming/Tutorials/FirstPersonShooter
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 ![](SectionResult.png)
 _This is what you'll see at the end of this section._
@@ -18,7 +17,7 @@ The purpose of this section is to show you how to set up your First Person Shoot
 By the end of this section of the tutorial, you'll be able to:
 
 * Set up a New Project
-* Use the C++ Class Wizard
+* Open your Project in Visual Studio
 * Add Log Messaging to your Project
 * Compile your First C++ Class
 * Set the Default Game Mode

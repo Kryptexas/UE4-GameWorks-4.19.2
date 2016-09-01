@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2374181
-Title:HideCategories
+﻿INTSourceChangelist:2622257
+Title:EditInlineNew
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description:
 Availability:Public
-Version:4.5
+Version:4.9
 
-このクラスのオブジェクトに対し、アンリアル エディタのプロパティ ウィンドウで非表示にするカテゴリを 1 つ以上指定します。カテゴリがなく宣言された変数を非表示にするには、変数を宣言するクラス名を使います。このキーワードは子クラスに継承されます。
-
-HideCategories=(Category, Category, ...)
+このクラスのオブジェクトはアンリアル エディタのプロパティ ウィンドウから作成できることを示します (既存のオブジェクトのみを参照するデフォルトのビヘイビアは、プロパティ ウィンドウで割り当てられる場合があります)。このフラグはすべての子クラスに継承されますが、子クラスは NotEditInlineNew キーワードを使ってこのフラグをオーバーライドできます。

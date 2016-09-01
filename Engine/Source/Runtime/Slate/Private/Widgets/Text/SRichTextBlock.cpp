@@ -32,6 +32,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 	Margin = InArgs._Margin;
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
+	MinDesiredWidth = InArgs._MinDesiredWidth;
 
 	{
 		TSharedPtr<IRichTextMarkupParser> Parser = InArgs._Parser;
@@ -51,7 +52,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 			Marshaller->AppendInlineDecorator(Decorator);
 		}
 
-		TextLayoutCache = MakeUnique<FTextBlockLayout>(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, Marshaller.ToSharedRef(), nullptr);
+		TextLayoutCache = MakeUnique<FTextBlockLayout>(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, InArgs._CreateSlateTextLayout, Marshaller.ToSharedRef(), nullptr);
 		TextLayoutCache->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 	}
 }
@@ -72,7 +73,7 @@ FVector2D SRichTextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 		LayoutScaleMultiplier, TextStyle
 		);
 
-	return TextSize;
+	return FVector2D(FMath::Max(TextSize.X, MinDesiredWidth.Get()), TextSize.Y);
 }
 
 FChildren* SRichTextBlock::GetChildren()
@@ -151,9 +152,15 @@ void SRichTextBlock::SetTextStyle(const FTextBlockStyle& InTextStyle)
 	Invalidate(EInvalidateWidget::Layout);
 }
 
+void SRichTextBlock::SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth)
+{
+	MinDesiredWidth = InMinDesiredWidth;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
 void SRichTextBlock::Refresh()
 {
-	TextLayoutCache->DirtyLayout();
+	TextLayoutCache->DirtyContent();
 	Invalidate(EInvalidateWidget::Layout);
 }
 

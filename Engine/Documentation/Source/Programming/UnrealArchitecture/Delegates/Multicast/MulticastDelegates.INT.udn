@@ -16,8 +16,8 @@ Multi-cast delegates are declared in the same manner as you [declare standard de
 
 | Declaration Macro | Description |
 | --- | --- |
-| `DECLARE_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | Creates a multi-cast delegate. |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | Creates a dynamic multi-cast delegate. |
+| `DECLARE_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | Creates a multi-cast delegate. |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | Creates a dynamic multi-cast delegate. |
 
 ## Binding Multi-Cast Delegates
 

@@ -2249,7 +2249,7 @@ public:
 
 	/** Resource table containing RHI references. */
 	TArray<TRefCountPtr<FRHIResource> > ResourceTable;
-
+	
 	/** Index of the descriptor in the offline heap */
 	uint32 OfflineHeapIndex;
 

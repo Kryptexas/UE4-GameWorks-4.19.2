@@ -2,6 +2,7 @@ Availability:Public
 Title: 5. Setup the Blackboard Asset
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 5. Setup the Blackboard Asset
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -29,7 +30,7 @@ The **Blackboard** asset stores all of the data needed for a specific instance o
 ![](BBAsset.png)
 
 1. **Double-click** the Blackboard asset in the **Content Browser**.
-1. Using the **New Key** button ![](newKey_button.png),  add an **Object** value named **TargetToFollow**.
+1. Using the **New Key** button,  add an **Object** value named **TargetToFollow**.
 1. Add a **Vector** value named **HomeLocation**.
 1. Add a **Vector** value named **TargetLocation**.
 

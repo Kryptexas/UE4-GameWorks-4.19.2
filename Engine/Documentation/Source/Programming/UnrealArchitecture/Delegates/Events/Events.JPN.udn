@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2728743
 Availability:Public
 Title:イベント
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
-Description:複数の関数と結合して全関数を一度に実行するデリゲート
-バージョン：4.5
+Description:複数の関数と結合してすべての関数を一度に実行するデリゲート
+Version:4.9
 
 イベントは [マルチキャスト デリゲート](Programming/UnrealArchitecture/Delegates\Multicast) と非常によく似ています。ただし、どのクラスもイベントを結合できる一方で、 
-イベントをデリゲートするクラスのみがそのイベントの Broadcast 、 IsBound 、 Clear 関数を呼び出すことができます。つまり、イベント オブジェクトは、これらのセンシティブ関数のアクセスを外部関数に与えることを心配せずにパブリック インターフェースにエクスポーズすることができます。 
-イベントのユースケースは、純粋な抽象クラスにコールバックを含み、外部クラスが Broadcast 、 IsBound 、 Clear 関数を呼び出さないようにしています。
+イベントをデリゲートするクラスのみがそのイベントの `Broadcast`、`IsBound`、`Clear` 関数を呼び出すことができます。つまり、イベント オブジェクトは、これらのセンシティブ関数のアクセスを外部関数に与えることを心配せずにパブリック インターフェースにエクスポーズすることができます。 
+イベントのユースケースは、純粋な抽象クラスにコールバックを含み、外部クラスが `Broadcast`、`IsBound`、`Clear` 関数を呼び出さないようにしています。
 
 ## イベントをデリゲートする
 
@@ -21,7 +21,7 @@ Description:複数の関数と結合して全関数を一度に実行するデ�
 | `DECLARE_EVENT_<Num>Params( OwningType, EventName, Param1Type, Param2Type, ... )` | パラメータが N 個のイベントを作成します。 |
 
 [REGION:tip]	
-DECLARE_EVENT マクロの最初のパラメータは、このイベントを「所有する」クラスなので、Broadcast() 機能を呼び出すことが可能です。
+DECLARE_EVENT マクロの最初のパラメータは、このイベントを「所有する」クラスなので、`Broadcast()` 機能を呼び出すことが可能です。
 [/REGION]
 
 ## イベントを結合する
@@ -31,7 +31,7 @@ DECLARE_EVENT マクロの最初のパラメータは、このイベントを「
 ## イベントの実行
 
 イベントにより、複数の関数を登録したデリゲートをアタッチし、イベントの Broadcast() 関数を呼ぶことでこれらの関数を一度に実行することが可能になります。イベントのシグネチャは戻り値を使用することはできません。イベントに対して、 
- `Broadcast()` はそのイベントを定義しているクラスによってのみ呼び出されます。
+`Broadcast()` はそのイベントを定義しているクラスによってのみ呼び出されます。
 
 何も結合されていない場合も、イベントで `Broadcast()` を常に安全に呼ぶことができます。出力変数の初期化にイベントを使用する場合だけは気をつけてください。これは絶対にしてはいけません。
 
@@ -45,7 +45,7 @@ DECLARE_EVENT マクロの最初のパラメータは、このイベントを「
 
 ##実行例
 
-### 基本的なイベント
+### シンプルなイベント
 
 	public:
 	/** Broadcasts whenever the layer changes */
@@ -64,8 +64,8 @@ DECLARE_EVENT マクロの最初のパラメータは、このイベントを「
 ### 継承された abstract イベント
 
 **基本クラスの実装**
-	/** Register/Unregister a callback for when assets are added to the registry */
 
+	/** Register/Unregister a callback for when assets are renamed in the registry (アセットがレジストリで名前変更された時にコールバックを登録/未登録) */
 	DECLARE_EVENT_OneParam( IAssetRegistry, FAssetAddedEvent, const FAssetData&);
 	virtual FAseetAddedEvent& OnAssetAdded() = 0;
 
@@ -75,18 +75,18 @@ DECLARE_EVENT マクロの最初のパラメータは、このイベントを「
 	virtual FassetAddedEvent& OnAssetAdded() override { return AssetAddedEvent; }
 
 [REGION:tip]
-派生クラスの派生イベントを宣言する場合、 `DECLARE_DERIVED_EVENT` マクロで関数シグネチャを繰り返す必要はありません。さらに、 `DECLARE_DERIVED_EVENT` マクロの最後のパラメータは 
+派生クラスの派生イベントを宣言する場合、`DECLARE_DERIVED_EVENT` マクロで関数シグネチャを繰り返す必要はありません。さらに、 `DECLARE_DERIVED_EVENT` マクロの最後のパラメータは 
 そのイベントの新規名称で、一般的にはベースタイプと同じになります。
 [/REGION]
 
 ### 継承イベント
 
 派生クラスは基本クラスのセンシティブなイベント メンバーへのアクセスを継承しません。その代わりに、派生クラスがイベントを送信するための基本クラスが 
-保護された Broadcast 関数をそのイベントに対してエクスポーズする必要があります。
+保護された Broadcast 関数をそのイベントに対して公開する必要があります。
 
 **基本クラス**
-	public:
 
+	public:
 	/** Broadcasts whenever the layer changes */
 	DECLARE_EVENT( FLayerViewModel, FChangedEvent )
 	FChangedEvent& OnChanged() { return ChangedEvent; }

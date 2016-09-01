@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2584537
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:Samsung Gear VR のデバッグ方法
 Description:Gear VR ヘッドセット用アプリケーションのデバッグ方法
@@ -12,6 +12,12 @@ Related:Platforms/Mobile/Textures
 Related:Platforms/Mobile/Materials
 Related:Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related:Engine/Rendering/Materials/CustomizedUVs
+Skilllevel: Intermediate
+Version:4.9
+type:overview
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 [TOC(start:2 end:3)]
 
@@ -101,11 +107,11 @@ Android の公式文書に [Logcat](http://developer.android.com/tools/help/logc
 1. まず最初に、デバッグ情報を取得したいアプリケーションが入っているスマートフォンが USB で PC に接続されていることを確認してください。
 
 1. 次に、**Windows Key + R** を押して Windows Command Shell を開いてから、**Run** ダイアログ ボックスに **CMD** を入力します。
-	キーボードの **Enter** キーを押すか、マウスで **OK** ボタンをクリックします。 
+	キーボードの **Enter** キーを押すか、マウスで **[OK]** ボタンをクリックします。 
 	 
 	 ![](T_Open_CMD_Prompt.png)
 
-1. **OK** ボタンが切り替わると、以下のような [Windows Command Line] ウィンドウが表示されます。
+1. **[OK]** ボタンが切り替わると、以下のような [Windows Command Line] ウィンドウが表示されます。
 
 	![](T_Windows_CMD.png)
 
@@ -136,12 +142,12 @@ Android の公式文書に [Logcat](http://developer.android.com/tools/help/logc
 	![](T_ADB_Log_Location.png)
 
 	[region:note]
-	コマンドライン ウィンドウが開いて ADB logcat コマンドが実行されている間は、ログファイルにデータがずっと出力され続けます。**CTRL + C** を押せば、ログファイルへのデータの書き込みが停止します。
+	コマンドライン ウィンドウが開いて ADB logcat コマンドが実行されている間は、データはログファイルにが出力され続けます。**CTRL + C** を押せば、ログファイルへのデータの書き込みが停止します。
 	[/region] 
 
-1. **UE4** 、 **OVR** 、 **VrApi** 、 **VrLib** 、 **VRSVC** 、 **HmdInfo** を logcat コマンドへ追加することで、ログファイルに含まれる情報が作成されました。 
+1. **UE4**、**OVR**、**VrApi**、**VrLib**、**VRSVC**、**HmdInfo** を logcat コマンドへ追加すると、ログファイルに含まれる情報が作成されます。 
 	作成されたログファイルを見て、この単語のどれを検索しても場合、それぞれの単語に関連するデバッグ情報がすべて表示されます。 
-	次の画像サンプルを見てもらうと分かります。上記のうち **OVR** 、 **UE4** 、 **Vrapi** 、 **VrApi** が使われていますが、各単語に関連する情報と共にログに表示されています。
+	次の画像サンプルを見てもらうと分かります。上記のうち OVR、UE4、Vrapi、VrApi が使われていますが、各単語に関連する情報と共にログに表示されています。
 
 	![](T_ADB_Log_Info.png)
 
@@ -159,17 +165,16 @@ Wifi で接続すればプロジェクトのデプロイも可能ですが、USB
 [/region]
 
 1. 次に、**Windows Key + R** を押して Windows Command Shell を開いてから、**Run** ダイアログ ボックスに **CMD** を入力します。
-	キーボードの **Enter** キーを押すか、マウスで **OK** ボタンをクリックします。 
+	キーボードの **Enter** キーを押すか、マウスで **[OK]** ボタンをクリックします。 
 	 
 	 ![](T_Open_CMD_Prompt.png)
 
-1. **OK** ボタンが切り替わると、以下のような [Windows Command Line] ウィンドウが表示されます。
+1. **[OK]** ボタンが切り替わると、以下のような [Windows Command Line] ウィンドウが表示されます。
 
 	![](T_Windows_CMD.png)
 
-1. 以下のコマンドを入力して、スマートフォンの IP アドレスを確認し、必ず書き留めておいてください。使用する IP アドレスは、 **inet** の後の部分になります。
-
-		adb shell ip -f inet addr show wlan0
+1. 以下のコマンドを入力して、スマートフォンの IP アドレスを確認し、必ず書き留めておいてください。使用する IP アドレスは、**inet** の後の部分になります。
+	adb shell ip -f inet addr show wlan0
 
 	![](T_ADB_Phone_IP.png)
 
@@ -181,7 +186,7 @@ Wifi で接続すればプロジェクトのデプロイも可能ですが、USB
 
 1. ポートの設定が完了したら、次はスマートフォンを接続します。以下のコマンドを入力して [Enter] キーを押します。
 
-		adb connect 10.3.31.133 - デバイスの IP アドレスに変更してください。
+	adb connect 10.3.31.133 - デバイスの IP アドレスに変更してください。
 
 1. **connected to** というメッセージと自分のデバイスの IP アドレスが表示されているはずです。
 

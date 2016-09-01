@@ -304,8 +304,8 @@ void FParticleTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 
 void FParticleTrackEditor::AddParticleKey( const FGuid ObjectGuid )
 {
-	TSharedPtr<ISequencer> Sequencer = GetSequencer();
-	UObject* Object = Sequencer.IsValid() ? Sequencer->FindSpawnedObjectOrTemplate(ObjectGuid) : nullptr;
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+	UObject* Object = SequencerPtr.IsValid() ? SequencerPtr->FindSpawnedObjectOrTemplate(ObjectGuid) : nullptr;
 
 	if (Object)
 	{
@@ -345,7 +345,7 @@ void CopyInterpParticleTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackToggl
 {
 	if (FMatineeImportTools::CopyInterpParticleTrack(MatineeToggleTrack, ParticleTrack))
 	{
-		Sequencer.Get().NotifyMovieSceneDataChanged();
+		Sequencer.Get().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
 }
 

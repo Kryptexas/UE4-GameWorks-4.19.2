@@ -175,8 +175,8 @@ LightSwitchCodeOnly.cpp
 		Sphere1->InitSphereRadius(250.0f);
 		Sphere1->SetupAttachment(RootComponent);
 
-		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something
-		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something
+		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlapBegin);		// set up a notification for when this component overlaps something
+		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlapEnd);		// set up a notification for when this component overlaps something
 
 	}
 
@@ -200,6 +200,10 @@ LightSwitchCodeOnly.cpp
 	{
 		PointLight1->ToggleVisibility();
 	}
+
+[REGION:note]
+`BasicClasses.h` is referring to the name of the project that the class has been set up in. 
+[/Region]
 
 If this is the first code class you have added to a blank project, you will need to close Unreal Editor, compile the project in Visual Studio or Xcode, and then open Unreal Editor and re-open the project to ensure that the game
  module is created and loaded properly. Also, it is important to make sure that the **Build Configuration** matches the version of the Unreal Editor executable you are using to open the project.  Read more about build configurations and compiling projects in the 

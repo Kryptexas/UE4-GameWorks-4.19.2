@@ -186,11 +186,19 @@ void FWindowsPlatformStackWalk::ThreadStackWalkAndDump(ANSICHAR* HumanReadableSt
 {
 	InitStackWalking();
 	HANDLE ThreadHandle = OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_TERMINATE | THREAD_SUSPEND_RESUME, false, ThreadId);
-	CONTEXT ThreadContext;
-	ThreadContext.ContextFlags = CONTEXT_CONTROL;
-	if (GetThreadContext(ThreadHandle, &ThreadContext))
+	if (ThreadHandle)
 	{
-		FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, &ThreadContext);
+		// Suspend the thread before grabbing its context (possible fix for incomplete callstacks)
+		SuspendThread(ThreadHandle);
+		// Give task scheduler some time to actually suspend the thread
+		FPlatformProcess::Sleep(0.01f);
+		CONTEXT ThreadContext;
+		ThreadContext.ContextFlags = CONTEXT_CONTROL;
+		if (GetThreadContext(ThreadHandle, &ThreadContext))
+		{
+			FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, &ThreadContext);
+		}
+		ResumeThread(ThreadHandle);
 	}
 }
 

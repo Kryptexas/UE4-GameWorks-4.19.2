@@ -48,22 +48,25 @@ void RayCast(
 {
 	// TODO provide RayStartUVz
 	const float4 RayStartV = mul( float4( RayOriginTranslatedWorld, 1 ), View.TranslatedWorldToView );
-	const float4 RayDirV = mul(float4(RayDirection * SceneDepth, 0),  View.TranslatedWorldToView);
+	const float4 RayDirV = mul(float4(RayDirection * SceneDepth, 0), View.TranslatedWorldToView);
 	const float4 RayEndV = RayStartV + RayDirV;
 
 	const float RayEndRadiusV = length(RayDirV.xyz) * tan(ConeAngleWorld * 0.4);
 	const float2 RayEndBorderV = RayEndV.xy + RayEndRadiusV / sqrt(2.0);
 
 	const float4 RayStartClip	= mul( RayStartV, View.ViewToClip );
-	const float4 RayEndClip	= mul( RayEndV, View.ViewToClip );
+	const float4 RayEndClip		= mul( RayEndV, View.ViewToClip );
 	const float2 RayEndBorderClip = mul(float4(RayEndBorderV, RayEndV.zw), View.ViewToClip).xy;
 
 	const float3 RayStartScreen = RayStartClip.xyz / RayStartClip.w;
 	const float3 RayEndScreen = RayEndClip.xyz / RayEndClip.w;
 	const float2 RayEndBorderScreen = RayEndBorderClip.xy / RayEndClip.w;
-	
-	float3 RayStepScreen = (RayEndScreen - RayStartScreen);
-	float2 RayStepRadiusScreen = (RayEndBorderScreen - RayEndScreen.xy);
+
+	float4 RayDepthClip	= RayStartClip + mul( float4( 0, 0, SceneDepth, 0 ), View.ViewToClip );
+	float3 RayDepthScreen = RayDepthClip.xyz / RayDepthClip.w;
+
+	float3 RayStepScreen = RayEndScreen - RayStartScreen;
+	float2 RayStepRadiusScreen = RayEndBorderScreen - RayEndScreen.xy;
 
 	{
 		// Computes the scale down factor for RayStepScreen required to fit on the X and Y axis in order to clip it in the viewport
@@ -92,8 +95,7 @@ void RayCast(
 	
 	const float Step = 1.0 / NumSteps;
 
-	// *2 to get less morie pattern in extreme cases, larger values make object appear not grounded in reflections
-	const float CompareTolerance = abs( RayStepUVz.z ) * Step * 2;
+	const float CompareTolerance = abs( RayDepthScreen.z - RayStartScreen.z ) * Step * 4;
 
 	// avoid bugs with early returns inside of loops on certain platform compilers.
 	float4 Result = float4( 0, 0, 0, 1 );
@@ -201,7 +203,7 @@ void RayCast(
 	float3 RayUVz = RayStartUVz + RayStepUVz * StepOffset;
 
 	LOOP
-	for( uint i = 0; i < NumSteps; i += 4 )
+	for( int i = 0; i < NumSteps; i += 4 )
 	{
 		// Vectorized to group fetches
 		float4 SampleUV0 = RayUVz.xyxy + RayStepUVz.xyxy * float4( 1, 1, 2, 2 );

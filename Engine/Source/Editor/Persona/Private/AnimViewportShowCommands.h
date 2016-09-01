@@ -24,12 +24,6 @@ public:
 	/** Option to show grid */
 	TSharedPtr< FUICommandInfo > ToggleGrid;
 
-	/** Option to show floor */
-	TSharedPtr< FUICommandInfo > ToggleFloor;
-
-	/** Option to show floor */
-	TSharedPtr< FUICommandInfo > ToggleSky;
-
 	/** Option to align floor to Mesh */
 	TSharedPtr< FUICommandInfo > AutoAlignFloorToMesh;
 

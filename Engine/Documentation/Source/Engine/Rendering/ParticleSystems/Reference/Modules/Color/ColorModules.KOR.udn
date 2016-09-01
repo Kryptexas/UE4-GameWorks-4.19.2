@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2618960
+﻿INTSourceChangelist:2750629
 Availability: Public
 Title:Color 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Color 모듈은 방출된 파티클의 색에 영향을 끼칩니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -106,7 +107,7 @@ Scale Color/Life (수명에 따른 색 스케일)은 파티클의 수명에 걸�
 | 프로퍼티 | 설명 |
 | ---- | ---- |
 |[REGION:tablesection]Color[/REGION]||
-| **Color Scale Over Life** | 수명에 따른 컬러 스케일 - 파티클게 적용할 색을 나타내는 실수 분포입니다. 파티클의 업데이트 도중 상대 시간을 사용하여 값을 구합니다. |
+| **Color Scale Over Life** | 수명에 따른 컬러 스케일 - 파티클에 적용할 색을 나타내는 실수 분포입니다. 파티클의 업데이트 도중 상대 시간을 사용하여 값을 구합니다. |
 | **Alpha Scale Over Life** | 수명에 따른 알파 스케일 - 파티클에 적용할 알파 성분을 나타내는 실수 분포입니다. 파티클의 업데이트 도중 RelativeTime(상대 시간)을 사용하여 값을 구합니다. |
 | **Emitter Time** | 이미터 시간 - 효과가 이미터 시간을 기반으로 할 지, 파티클 시간을 기반으로 할 지를 나타내는 불리언입니다. |
 

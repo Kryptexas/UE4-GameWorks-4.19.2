@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:3. Coding our Pawn Movement Component's behavior
+﻿INTSourceChangelist:2620109
+Availability:Public
+Title:3.编写 Pawn 移动组件行为代码
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
-Description:Writing the code that will define how our Pawn Movement Component will determine where the Pawn it controls will go each frame.
-
+Description:编写定义 Pawn 移动组件的代码。该组件将决定其控制的 Pawn 每帧移动的位置。
+version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
@@ -12,7 +12,7 @@ Description:Writing the code that will define how our Pawn Movement Component wi
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Programming Tutorials Home](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[Next Step](Programming\Tutorials\Components\4 "%Programming\Tutorials\Components\4:title%")
@@ -22,31 +22,31 @@ Description:Writing the code that will define how our Pawn Movement Component wi
 
 %Steps%
 
-1. We can go back to **Visual Studio** now and program our customized **Pawn Movement Component**. All we really need to write is a TickComponent function (similar to an **Actor's** Tick function) to tell us how to move each frame. In `CollidingPawnMovementComponent.h`, we'll need to override TickComponent in the class definition:
+1. 现在我们可以返回 **Visual Studio** 并对自定义的 **Pawn 移动组件** 进行编程。我们需要编写的是一个 **TickComponent** 函数（与 **Actor** 的 **Tick** 函数相似），确定每帧中的移动。在 CollidingPawnMovementComponent.h 中，我们在类定义中对 TickComponent 进行覆写。
 
 		public:
 			virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;	
 
-	We'll define this function in `CollidingPawnMovementComponent.cpp`:
+	我们将在 CollidingPawnMovementComponent.cpp 中定义此函数：
 
 		void UCollidingPawnMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 		{
 			Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-			// Make sure that everything is still valid, and that we are allowed to move.
+			// 确保所有内容仍然有效，并允许移动。
 			if (!PawnOwner || !UpdatedComponent || ShouldSkipUpdate(DeltaTime))
 			{
 				return;
 			}
 
-			// Get (and then clear) the movement vector that we set in ACollidingPawn::Tick
+			// 获取（然后清除）在 ACollidingPawn::Tick 设置的移动矢量。
 			FVector DesiredMovementThisFrame = ConsumeInputVector().GetClampedToMaxSize(1.0f) * DeltaTime * 150.0f;
 			if (!DesiredMovementThisFrame.IsNearlyZero())
 			{
 				FHitResult Hit;
 				SafeMoveUpdatedComponent(DesiredMovementThisFrame, UpdatedComponent->GetComponentRotation(), true, Hit);
 
-				// If we bumped into something, try to slide along it
+				// 如碰到物体，尝试沿其滑动
 				if (Hit.IsValidBlockingHit())
 				{
 					SlideAlongSurface(DesiredMovementThisFrame, 1.f - Hit.Time, Hit.Normal, Hit);
@@ -54,28 +54,28 @@ Description:Writing the code that will define how our Pawn Movement Component wi
 			}
 		};
 
-	This code will move our **Pawn** smoothly around the world, sliding off of surfaces where appropriate. There is no gravity applied to our **Pawn**, and its maximum speed is hard-coded to 150 **Unreal Units** per second.
+	此代码将在世界场景中平稳地移动 **Pawn**，时机允许时将滑出表面。Pawn 上未应用重力，其最大速度被硬编码为每秒 150 **虚幻单位**。
 
-	[REGION:note]This TickComponent function makes use of a few of the powerful features offered by the **UPawnMovementComponent** class.
-	<br>ConsumeInputVector reports and clears the value of a built-in variable that we will use to store our movement inputs.
-	<br>SafeMoveUpdatedComponent uses **Unreal Engine** physics to move our **Pawn Movement Component** while respecting solid barriers.
-	<br>SlideAlongSurface handles the calculations and physics involved with sliding smoothly along collision surfaces like walls and ramps when a move results in a collision, rather than simply stopping in place and "sticking" to the wall or ramp.
-	<br>There are more features included in **Pawn Movement Components** that are worthy of examination, but they are not needed for the scope of this tutorial. Looking at other classes, such as **Floating Pawn Movement**, **Spectator Pawn Movement**, or **Character Movement Component**, could provide additional usage examples and ideas.[/REGION]
+	[REGION:note]该 TickComponent 函数使用 **UPawnMovementComponent** 类提供的数个强大功能。
+	<br>**ConsumeInputVector** 报告并清除内置变量的数值。此变量用于存储移动输入。
+	<br>**SafeMoveUpdatedComponent** 使用 **Unreal Engine** 移动 Pawn Movement 组件，同时遵守固体屏障。
+	<br>**SlideAlongSurface** 将处理移动引起碰撞的计算和物理，使物体沿碰撞表面（如墙壁和斜坡）平稳滑动，而不是停下之后贴在墙壁或斜坡上不动。
+	<br>Pawn 移动组件中包含的多个功能均值得了解，但此教程不涵盖这部分内容。其他类（如 **Floating Pawn Movement**、**Spectator Pawn Movement**，或 **Character Movement Component**）还可提供额外的使用范例和灵感。[/REGION]
 
 ----
 
-With our **Pawn Movement Component's** behavior defined, we can now write the code that will tie it all together in our customized **Pawn** class.
+定义 Pawn 移动组件的行为后，即可进行代码编写，将其在自定义 Pawn 类中绑定起来。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
     code
     [/PARAMLITERAL]
     [PARAM:heading]
-	    Work-In-Progress Code
+	    半成品代码
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
 
 			#pragma once
 
@@ -88,40 +88,40 @@ With our **Pawn Movement Component's** behavior defined, we can now write the co
 				GENERATED_BODY()
 
 			public:
-				// Sets default values for this pawn's properties
+				// 设置该 pawn 属性的默认值
 				ACollidingPawn();
 
-				// Called when the game starts or when spawned
+				// 游戏开始时或生成时调用
 				virtual void BeginPlay() override;
 	
-				// Called every frame
+				// 每帧调用
 				virtual void Tick( float DeltaSeconds ) override;
 
-				// Called to bind functionality to input
+				// 调用后将功能绑定到输入
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 				UParticleSystemComponent* OurParticleSystem;
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
 
-			// Sets default values
+			// 设置默认值
 			ACollidingPawn::ACollidingPawn()
 			{
- 				// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+ 				// 将此 pawn 设为每帧调用 Tick()。不需要时可将此关闭，以提高性能。
 				PrimaryActorTick.bCanEverTick = true;
 
-				// Our root component will be a sphere that reacts to physics
+				// 我们的根组件是对物理作出反应的球体
 				USphereComponent* SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RootComponent"));
 				RootComponent = SphereComponent;
 				SphereComponent->InitSphereRadius(40.0f);
 				SphereComponent->SetCollisionProfileName(TEXT("Pawn"));
 
-				// Create and position a mesh component so we can see where our sphere is
+				// 创建并放置一个网格体组件，以便了解球体的所在位置
 				UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
 				SphereVisual->AttachTo(RootComponent);
 				static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
@@ -132,7 +132,7 @@ With our **Pawn Movement Component's** behavior defined, we can now write the co
 					SphereVisual->SetWorldScale3D(FVector(0.8f));
 				}
 
-				// Create a particle system that we can activate or deactivate
+				// 创建一个可启用或停用的粒子系统
 				OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
 				OurParticleSystem->AttachTo(SphereVisual);
 				OurParticleSystem->bAutoActivate = false;
@@ -143,7 +143,7 @@ With our **Pawn Movement Component's** behavior defined, we can now write the co
 					OurParticleSystem->SetTemplate(ParticleAsset.Object);
 				}
 
-				// Use a spring arm to give the camera smooth, natural-feeling motion.
+				// 使用弹簧臂让摄像机运动平稳而自然。
 				USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
 				SpringArm->AttachTo(RootComponent);
 				SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
@@ -151,29 +151,29 @@ With our **Pawn Movement Component's** behavior defined, we can now write the co
 				SpringArm->bEnableCameraLag = true;
 				SpringArm->CameraLagSpeed = 3.0f;
 
-				// Create a camera and attach to our spring arm
+				// 创建一个摄像机，将其附着到弹簧臂
 				UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
 				Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
 
-				// Take control of the default player
+				// 掌控默认玩家
 				AutoPossessPlayer = EAutoReceiveInput::Player0;
 			}
 
-			// Called when the game starts or when spawned
+			// 游戏开始时或生成时调用
 			void ACollidingPawn::BeginPlay()
 			{
 				Super::BeginPlay();
 	
 			}
 
-			// Called every frame
+			// 每帧调用
 			void ACollidingPawn::Tick( float DeltaTime )
 			{
 				Super::Tick( DeltaTime );
 
 			}
 
-			// Called to bind functionality to input
+			// 调用后将功能绑定到输入
 			void ACollidingPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 			{
 				Super::SetupPlayerInputComponent(InputComponent);
@@ -181,7 +181,7 @@ With our **Pawn Movement Component's** behavior defined, we can now write the co
 			}
 
 		**CollidingPawnMovementComponent.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
 
 			#pragma once
 
@@ -201,7 +201,7 @@ With our **Pawn Movement Component's** behavior defined, we can now write the co
 			};
 
 		**CollidingPawnMovementComponent.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawnMovementComponent.h"
@@ -210,20 +210,20 @@ With our **Pawn Movement Component's** behavior defined, we can now write the co
 			{
 				Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-				// Make sure that everything is still valid, and that we are allowed to move.
+				// 确保所有内容仍然有效，并允许移动。
 				if (!PawnOwner || !UpdatedComponent || ShouldSkipUpdate(DeltaTime))
 				{
 					return;
 				}
 
-				// Get (and then clear) the movement vector that we set in ACollidingPawn::Tick
+				// 获取（然后清除）在 ACollidingPawn::Tick 设置的移动矢量。
 				FVector DesiredMovementThisFrame = ConsumeInputVector().GetClampedToMaxSize(1.0f) * DeltaTime * 150.0f;
 				if (!DesiredMovementThisFrame.IsNearlyZero())
 				{
 					FHitResult Hit;
 					SafeMoveUpdatedComponent(DesiredMovementThisFrame, UpdatedComponent->GetComponentRotation(), true, Hit);
 
-					// If we bumped into something, try to slide along it
+					// 如碰到物体，尝试沿其滑动
 					if (Hit.IsValidBlockingHit())
 					{
 						SlideAlongSurface(DesiredMovementThisFrame, 1.f - Hit.Time, Hit.Normal, Hit);

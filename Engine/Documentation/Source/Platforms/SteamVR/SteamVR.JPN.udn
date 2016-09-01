@@ -1,28 +1,25 @@
-﻿INTSourceChangelist:0
-Title: SteamVR Development
+﻿INTSourceChangelist:2940199
+Title:SteamVR の開発
 Crumbs:%ROOT%, Platforms
-Description:An introduction to getting started with SteamVR
+Description:SteamVR 入門
 Availability:Public
 Navigation:platform
 Platform:SteamVR
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:SteamVR
 
 ![](T_Vive_HMD.png)
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/SteamVR_Icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		SteamVR Development
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/SteamVR/BestPractices "%Platforms/SteamVR/BestPractices:description%")
-		* [](Platforms/SteamVR/QuickStart "%Platforms/SteamVR/QuickStart:description%")
-		* [](Platforms/SteamVR/Tips_And_Tricks "%Platforms/SteamVR/Tips_And_Tricks:description%")
-	[/PARAM]
-[/OBJECT]
+## はじめよう
+
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/SteamVR")]
+
+## SteamVR のトピックス
+
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/SteamVR")]
+
 
 
 

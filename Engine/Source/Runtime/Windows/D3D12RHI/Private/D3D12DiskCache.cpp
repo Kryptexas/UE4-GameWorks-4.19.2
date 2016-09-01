@@ -8,18 +8,14 @@
 #include "D3D12RHIPrivate.h"
 #include "D3D12DiskCache.h"
 
-static int32 GEnablePSOCache = 1;
-static FAutoConsoleVariableRef CVarEnablePSOCache(
+int32 FDiskCacheInterface::GEnablePSOCache = 1;
+FAutoConsoleVariableRef FDiskCacheInterface::CVarEnablePSOCache(
 	TEXT("D3D12.EnablePSOCache"),
-	GEnablePSOCache,
+	FDiskCacheInterface::GEnablePSOCache,
 	TEXT("Enables a disk cache for PipelineState Objects."),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly
 	);
 
-bool FDiskCacheInterface::IsInErrorState() const
-{
-	return !GEnablePSOCache || mInErrorState;
-}
 
 void FDiskCacheInterface::Init(FString &filename)
 {

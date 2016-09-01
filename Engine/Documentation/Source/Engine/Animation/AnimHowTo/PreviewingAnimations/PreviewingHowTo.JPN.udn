@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2661492
-Availability:Public
+﻿Availability:Public
 Title:アニメーションのプレビュー
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:アニメーションのプレビュー、その制御方法、アニメーション情報の切替えの方法について説明します。 
@@ -9,8 +8,8 @@ Related:Engine/Animation/Sequences
 Related:Engine/Animation/AnimMontage
 Related:Engine/Animation/Blendspaces
 Related:Engine/Animation/AimOffset
-バージョン：4.9
-スキルレベル:初心者向け
+version:4.9
+skilllevel:Beginner
 
 
 このページではアンリアル エンジン 4 のアニメーション編集ツールである [ペルソナ アニメーション エディタ](Engine/Animation/Persona) 内にアニメーション アセットを読み込んでプレビューする様々な方法について説明します。再生を操作するために使用する制御やプレビュー中のアニメーションに関して表示される情報についても説明し、詳細情報への追加リンクも掲載します。 
@@ -152,7 +151,7 @@ PC でシューターゲームのプレイに慣れている方は、WASD キー
 
 **Enable Tooltip Display** オプションのチェックを外してツールチップを非表示にします。 
 
-![](Preview2.png)
+![](Preview12.png)
 
 **ブレンドスペース** と **Aim Offsets (照準オフセット)** を上記と同じ方法でプレビューできます。 
 

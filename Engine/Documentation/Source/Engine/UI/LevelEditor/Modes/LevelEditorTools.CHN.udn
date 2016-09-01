@@ -1,7 +1,29 @@
-﻿Availability:Public
-Title:关卡编辑器模式
+﻿INTSourceChangelist:2714483
+Availability:Public
+Title: 关卡编辑器中的几个模式
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description: 一组用于控制关卡编辑器当前所处模式、调整画刷形状、创建画刷几何体及体积的工具集。
+Version: 4.9
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[Previous Topic](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:title%")
+	[/PARAM]
+	[PARAM:next]
+		[Next Topic](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
 
 [EXCERPT:main]
 [INCLUDE:Shared/Glossary/M#glossary_modes_panel]
@@ -10,13 +32,15 @@ Description: 一组用于控制关卡编辑器当前所处模式、调整画刷�
 
 [Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
 
-**模式** 代表关卡编辑器可以处于的各种不同编辑模式，使得可以启用特定的编辑界面及工作流程来编辑特定类型的Actor或几何体。
+**模式** 代表关卡编辑器可以处于的各种不同编辑模式，使得可以启用特定的编辑界面和工作流程来编辑特定类型的 Actor 或几何体。
 
-| 工具| 描述|
-| ---- | ----------- |
-| ![](LE_Tools_Placement.png) | 激活[**放置** 模式](Engine/UI/LevelEditor/Modes/PlaceMode)来在您的场景中放置Actor。|
-| ![](LE_Tools_MeshPaint.png) | 切换[**描画** 模式](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor)来在视口中直接在静态网格物体Actor上描画顶点颜色和贴图。|
-| ![](LE_Tools_Landscape.png) | 切换[**地貌** 模式](Engine/Landscape)来编辑地貌地形。|
-| ![](LE_Tools_Foliage.png) | 切换[**植被** 模式](Engine/Foliage)来描画实例化的植被。|
-| ![](LE_Tools_Brush.png) | 切换[**几何体编辑** 模式](Engine/Actors/Brushes)来将画刷修改为几何体。|
+| 工具| 描述 | 快捷键 |
+| ---- | ----------- | ---- |
+| ![](LE_Tools_Placement.png) | 激活 [**摆放** 模式](Engine/UI/LevelEditor/Modes/PlaceMode) 来在您的场景中放置或调整 Actor。| **Shift + 1**|
+| ![](LE_Tools_MeshPaint.png) | 切换 [**描画** 模式](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor) 来在视口中直接在静态网格物体Actor上描画顶点颜色和贴图。| **Shift + 2**|
+| ![](LE_Tools_Landscape.png) | 切换 [**地形** 模式](Engine/Landscape) 来编辑地貌地形。| **Shift + 3**|
+| ![](LE_Tools_Foliage.png) | 切换 [**植被** 模式](Engine/Foliage) 来描画实例化的植被。| **Shift + 4**|
+| ![](LE_Tools_Brush.png) | 切换 [**几何体编辑** 模式](Engine/Actors/Brushes) 来将画刷修改为几何体。| **Shift + 5**|
 [/EXCERPT:main]
+
+%playlistnav%

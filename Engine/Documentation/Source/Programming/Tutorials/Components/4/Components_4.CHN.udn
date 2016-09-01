@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:4. Using our Pawn and Components together
+﻿INTSourceChangelist:2710029
+Availability:Public
+Title:4.同时使用 Pawn 和组件
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
-Description:Tying the functionality of the Pawn, the input configuration, and the Components together.
+Description:将 Pawn 的功能、输入配置和组件捆绑在一起。
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:Tying the functionality of the Pawn, the input configuration, and th
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Programming Tutorials Home](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[Next Step](Programming\Tutorials\Components\5 "%Programming\Tutorials\Components\5:title%")
@@ -22,41 +23,44 @@ Description:Tying the functionality of the Pawn, the input configuration, and th
 
 %Steps%
 
-1. In order to use our custom **Pawn Movement Component**, we will first need to add a variable to our **Pawn** class to keep track of it. At the bottom of our class definition in `CollidingPawn.h`, near where we added the "OurParticleSystem" variable, we should add:
+1. 如需使用自定义 **Pawn 移动组件**，首先需要为 **Pawn** 类添加一个变量，保持对其的追踪。在 CollidingPawn.h 中类定义的底层，添加“OurParticleSystem”变量之处的旁边，我们需要添加：
 
 		class UCollidingPawnMovementComponent* OurMovementComponent;
 
-1. Once we have a place to keep track of it, we will need to create a **Colliding Pawn Movement Component** to store in our new variable, so let's open `CollidingPawn.cpp` and add the following to the top of the file, underneath the "#include" lines, so that our code will be able to reference our new class:
+1. 拥有进行追踪的地点后，我们需要创建一个 **碰撞 Pawn 移动组件（Colliding Pawn Movement Component）**，保存在新变量中。打开 CollidingPawn.cpp 并在文件顶部，#include "GameFramework/Pawn.h" 行下方添加以下代码，使代码引用新类：
 
 		#include "CollidingPawnMovementComponent.h"
+	[REGION:warning]
+	确保列表中最后的 #include 是 generated.h（此例中为 #include "CollidingPawn.generated.h"），否则会出现编译错误。
+	[/REGION]
 
-	Creating a **Pawn Movement Component** and associating it with our **Pawn** is simple. At the bottom of **ACollidingPawn::ACollidingPawn**, we can add this code:
+	创建 Pawn 移动组件并将其与 Pawn 联系起来十分简单。可在 **ACollidingPawn::ACollidingPawn** 底部添加此代码：
 
-		// Create an instance of our movement component, and tell it to update the root.
+		// 创建移动组件的一个实例，并告知其更新根。
 		OurMovementComponent = CreateDefaultSubobject<UCollidingPawnMovementComponent>(TEXT("CustomMovementComponent"));
 		OurMovementComponent->UpdatedComponent = RootComponent;
 
-	[REGION:note]Unlike the other **Components** we've seen so far, we don't need to attach this **Component** to our own **Component** hierarchy. This is because our other **Components** are all types of **Scene Components**, which inherently require physical locations. **Movement Controllers**, however, are not **Scene Components** and do not represent physical objects, so the concept of existing at a physical location or being physically attached to another **Component** does not apply to them.[/REGION]
+	[REGION:note]与其他 **组件** 不同的是，该组件不需要被附着到我们自己的组件层级。这是因为其他组件都是各种类型的 **场景组件**，固定要求物理位置。然而 **Movement Controllers** 并非场景组件，不代表物理对象。因此，存在于物理位置或被物理附着到另一个组件的概念在这类组件上并不成立。[/REGION]
 
-1. **Pawns** have a function called "GetMovementComponent" that is used to enable other classes in the engine to access the **Pawn Movement Component** that the **Pawn** is currently using. We will need to override that function so that it returns our custom **Pawn Movement Component**. In the class definition in `CollidingPawn.h`, we need to add:
+1. Pawn 拥有一个名为 **GetMovementComponent** 的函数，用于启用引擎中的其他类，访问 Pawn 当前使用的 Pawn 移动组件。我们需要对此函数进行覆写，使其返回我们自定义的 Pawn 移动组件。我们需要在 CollidingPawn.h 的类定义中添加：
 
 		virtual UPawnMovementComponent* GetMovementComponent() const override;
 
-	And in `CollidingPawn.cpp`, we need to add the definition of our overridden function, as follows:
+	此外在 CollidingPawn.cpp 中我们需要按以下方式添加被覆写函数的定义：
 
 		UPawnMovementComponent* ACollidingPawn::GetMovementComponent() const
 		{
 			return OurMovementComponent;
 		}
 
-1. With our new **Pawn Movement Component** set up, we can create code to handle the input that our **Pawn** will receive. We will start by declaring a few functions in our class definition in `CollidingPawn.h`:
+1. 设置好新的 Pawn 移动组件后，即可创建代码，处理 Pawn 将要接受的输入。首先在 CollidingPawn.h 里的类定义中对几个函数进行声明：
 
 		void MoveForward(float AxisValue);
 		void MoveRight(float AxisValue);
 		void Turn(float AxisValue);
 		void ParticleToggle();
 
-	In `CollidingPawn.cpp`, we will add the definitions of those functions as follows:
+	在 CollidingPawn.cpp 中以如下方式添加这些函数的定义：
 
 			void ACollidingPawn::MoveForward(float AxisValue)
 			{
@@ -89,7 +93,7 @@ Description:Tying the functionality of the Pawn, the input configuration, and th
 				}
 			}
 
-1. All that remains is to bind our functions to our input events. Let's add the following code to **ACollidingPawn::SetupPlayerInputComponent**:
+1. 现在需要做的就是将函数绑定到输入事件。在 **ACollidingPawn::SetupPlayerInputComponent** 中添加以下代码：
 
 		InputComponent->BindAction("ParticleToggle", IE_Pressed, this, &ACollidingPawn::ParticleToggle);
 
@@ -97,22 +101,22 @@ Description:Tying the functionality of the Pawn, the input configuration, and th
 		InputComponent->BindAxis("MoveRight", this, &ACollidingPawn::MoveRight);
 		InputComponent->BindAxis("Turn", this, &ACollidingPawn::Turn);
 
-1. We are done programming and can now return to the **Unreal Editor** and press the **Compile** button to load our changes.
+1. 编程即告完成，返回 **虚幻编辑器** 按下 **Compile** 按钮加载变更。
 
 ----
 
-Our programming work is done, and we can now place our custom **Pawn** in the world and move it around.
+编程宣告结束，现在即可将自定义 Pawn 放置到世界场景中并随意移动。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
     code
     [/PARAMLITERAL]
     [PARAM:heading]
-	    Finished Code
+	    完成代码
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
 
 			#pragma once
 
@@ -125,16 +129,16 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 				GENERATED_BODY()
 
 			public:
-				// Sets default values for this pawn's properties
+				// 设置该 pawn 属性的默认值
 				ACollidingPawn();
 
-				// Called when the game starts or when spawned
+				// 游戏开始时或生成时调用
 				virtual void BeginPlay() override;
 	
-				// Called every frame
+				// 每帧调用
 				virtual void Tick( float DeltaSeconds ) override;
 
-				// Called to bind functionality to input
+				// 调用后将功能绑定到输入
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 				UParticleSystemComponent* OurParticleSystem;
@@ -149,25 +153,25 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
 			#include "CollidingPawnMovementComponent.h"
 
-			// Sets default values
+			// 设置默认值
 			ACollidingPawn::ACollidingPawn()
 			{
- 				// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+ 				// 将此 pawn 设为每帧调用 Tick()。不需要时可将此关闭，以提高性能。
 				PrimaryActorTick.bCanEverTick = true;
 
-				// Our root component will be a sphere that reacts to physics
+				// 我们的根组件是对物理作出反应的球体
 				USphereComponent* SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RootComponent"));
 				RootComponent = SphereComponent;
 				SphereComponent->InitSphereRadius(40.0f);
 				SphereComponent->SetCollisionProfileName(TEXT("Pawn"));
 
-				// Create and position a mesh component so we can see where our sphere is
+				// 创建并放置一个网格体组件，以便了解球体的所在位置
 				UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
 				SphereVisual->AttachTo(RootComponent);
 				static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
@@ -178,7 +182,7 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 					SphereVisual->SetWorldScale3D(FVector(0.8f));
 				}
 
-				// Create a particle system that we can activate or deactivate
+				// 创建一个可启用或停用的粒子系统
 				OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
 				OurParticleSystem->AttachTo(SphereVisual);
 				OurParticleSystem->bAutoActivate = false;
@@ -189,7 +193,7 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 					OurParticleSystem->SetTemplate(ParticleAsset.Object);
 				}
 
-				// Use a spring arm to give the camera smooth, natural-feeling motion.
+				// 使用弹簧臂让摄像机运动平稳而自然。
 				USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
 				SpringArm->AttachTo(RootComponent);
 				SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
@@ -197,33 +201,33 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 				SpringArm->bEnableCameraLag = true;
 				SpringArm->CameraLagSpeed = 3.0f;
 
-				// Create a camera and attach to our spring arm
+				// 创建一个摄像机，将其附着到弹簧臂
 				UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
 				Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
 
-				// Take control of the default player
+				// 掌控默认玩家
 				AutoPossessPlayer = EAutoReceiveInput::Player0;
 
-				// Create an instance of our movement component, and tell it to update our root component.
+				// 创建移动组件的一个实例，并告知其更新根组件。
 				OurMovementComponent = CreateDefaultSubobject<UCollidingPawnMovementComponent>(TEXT("CustomMovementComponent"));
 				OurMovementComponent->UpdatedComponent = RootComponent;
 			}
 
-			// Called when the game starts or when spawned
+			// 游戏开始时或生成时调用
 			void ACollidingPawn::BeginPlay()
 			{
 				Super::BeginPlay();
 	
 			}
 
-			// Called every frame
+			// 每帧调用
 			void ACollidingPawn::Tick( float DeltaTime )
 			{
 				Super::Tick( DeltaTime );
 
 			}
 
-			// Called to bind functionality to input
+			// 调用后将功能绑定到输入
 			void ACollidingPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 			{
 				Super::SetupPlayerInputComponent(InputComponent);
@@ -272,7 +276,7 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 			}
 
 		**CollidingPawnMovementComponent.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
 
 			#pragma once
 
@@ -292,7 +296,7 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 			};
 
 		**CollidingPawnMovementComponent.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// 版权所有 1998-2015 Epic Games, Inc. 保留所有权利。
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawnMovementComponent.h"
@@ -301,20 +305,20 @@ Our programming work is done, and we can now place our custom **Pawn** in the wo
 			{
 				Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-				// Make sure that everything is still valid, and that we are allowed to move.
+				// 确保所有内容仍然有效，并允许移动。
 				if (!PawnOwner || !UpdatedComponent || ShouldSkipUpdate(DeltaTime))
 				{
 					return;
 				}
 
-				// Get (and then clear) the movement vector that we set in ACollidingPawn::Tick
+				// 获取（然后清除）在 ACollidingPawn::Tick 设置的移动矢量。
 				FVector DesiredMovementThisFrame = ConsumeInputVector().GetClampedToMaxSize(1.0f) * DeltaTime * 150.0f;
 				if (!DesiredMovementThisFrame.IsNearlyZero())
 				{
 					FHitResult Hit;
 					SafeMoveUpdatedComponent(DesiredMovementThisFrame, UpdatedComponent->GetComponentRotation(), true, Hit);
 
-					// If we bumped into something, try to slide along it
+					// 如碰到物体，尝试沿其滑动
 					if (Hit.IsValidBlockingHit())
 					{
 						SlideAlongSurface(DesiredMovementThisFrame, 1.f - Hit.Time, Hit.Normal, Hit);

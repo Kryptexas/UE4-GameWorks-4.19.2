@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Curves/NameCurve.h"
 #include "MovieSceneEventSection.generated.h"
 
 
@@ -11,7 +12,7 @@ class ALevelScriptActor;
 /**
  * Implements a section in movie scene event tracks.
  */
-UCLASS( MinimalAPI )
+UCLASS(MinimalAPI)
 class UMovieSceneEventSection
 	: public UMovieSceneSection
 {
@@ -32,7 +33,9 @@ public:
 	void AddKey(float Time, const FName& EventName, FKeyParams KeyParams);
 
 	/**
-	 * @return The float curve on this section
+	 * Get the section's event curve.
+	 *
+	 * @return Event curve.
 	 */
 	FNameCurve& GetEventCurve()
 	{
@@ -42,21 +45,21 @@ public:
 	/**
 	 * Trigger the events that fall into the given time range.
 	 *
-	 * @param EventContextObjects The objects to trigger the events on.
 	 * @param Position The current position in time.
 	 * @param LastPosition The time at the last update.
+	 * @param Player The movie scene player that has the event contexts where the events should be invoked from.
 	 */
-	void TriggerEvents(TArray<UObject*> EventContextObjects, float Position, float LastPosition);
+	void TriggerEvents(float Position, float LastPosition, IMovieScenePlayer& Player);
 
 public:
 
-	// UMovieSceneSection interface
+	//~ UMovieSceneSection interface
 
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles, TRange<float> TimeRange) const override;
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
-	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override;
-	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override;
+	virtual TOptional<float> GetKeyTime(FKeyHandle KeyHandle) const override;
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float Time) override;
 
 protected:
 
@@ -64,9 +67,10 @@ protected:
 	 * Trigger event for the specified name.
 	 *
 	 * @param Event The Name to trigger.
-	 * @param EventContextObjects The objects to trigger the events on.
+	 * @param Position The current position in time.
+	 * @param Player The movie scene player that has the event contexts where the events should be invoked from.
 	 */
-	void TriggerEvent(const FName& Event, TArray<UObject*> EventContextObjects);
+	void TriggerEvent(const FName& Event, float Position, IMovieScenePlayer& Player);
 
 private:
 

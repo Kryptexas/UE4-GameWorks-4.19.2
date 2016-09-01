@@ -10,6 +10,15 @@
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 
+// Changing this is currently unsupported after content has been chunked with the previous setting
+// Changing this causes a full shader recompile
+static int32 GCVarMaxGPUSkinBones = FGPUBaseSkinVertexFactory::GHardwareMaxGPUSkinBones;
+static FAutoConsoleVariableRef CVarMaxGPUSkinBones(
+	TEXT("Compat.MAX_GPUSKIN_BONES"),
+	GCVarMaxGPUSkinBones,
+	TEXT("Max number of bones that can be skinned on the GPU in a single draw call. Cannot be changed at runtime."),
+	ECVF_ReadOnly);
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FAPEXClothUniformShaderParameters,TEXT("APEXClothParam"));
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBoneMatricesUniformShaderParameters,TEXT("Bones"));
@@ -85,7 +94,7 @@ uint32 FSharedPoolPolicyData::GetPoolBucketSize(uint32 Bucket)
 uint32 FSharedPoolPolicyData::BucketSizes[NumPoolBucketSizes] = {
 	16, 48, 96, 192, 384, 768, 1536, 
 	3072, 4608, 6144, 7680, 9216, 12288, 
-	65536, 131072, 262144 // these 3 numbers are added for large cloth simulation vertices, supports up to 16,384 verts
+	65536, 131072, 262144, 1048576 // these 4 numbers are added for large cloth simulation vertices, supports up to 65,536 verts
 };
 
 /*-----------------------------------------------------------------------------
@@ -207,7 +216,7 @@ void FGPUBaseSkinVertexFactory::FShaderDataType::GoToNextFrame(uint32 FrameNumbe
 }
 
 bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListImmediate& RHICmdList, const TArray<FMatrix>& ReferenceToLocalMatrices,
-	const TArray<FBoneIndexType>& BoneMap, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel, bool bUseSkinCache)
+	const TArray<FBoneIndexType>& BoneMap, uint32 FrameNumber, ERHIFeatureLevel::Type InFeatureLevel, bool bUseSkinCache)
 {
 	const uint32 NumBones = BoneMap.Num();
 	check(NumBones <= MaxGPUSkinBones);
@@ -215,7 +224,7 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListI
 
 	FVertexBufferAndSRV* CurrentBoneBuffer = 0;
 
-	if (FeatureLevel >= ERHIFeatureLevel::ES3_1)
+	if (InFeatureLevel >= ERHIFeatureLevel::ES3_1)
 	{
 		check(IsInRenderingThread());
 		GoToNextFrame(FrameNumber);
@@ -274,7 +283,7 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListI
 			RefToLocal.To3x4MatrixTranspose( (float*)BoneMat.M );
 		}
 	}
-	if (FeatureLevel >= ERHIFeatureLevel::ES3_1)
+	if (InFeatureLevel >= ERHIFeatureLevel::ES3_1)
 	{
 		if (NumBones)
 		{
@@ -287,6 +296,11 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListI
 		UniformBuffer = RHICreateUniformBuffer(&GBoneUniformStruct, FBoneMatricesUniformShaderParameters::StaticStruct.GetLayout(), UniformBuffer_MultiFrame);
 	}
 	return false;
+}
+
+int32 FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones()
+{
+	return GCVarMaxGPUSkinBones;
 }
 
 /*-----------------------------------------------------------------------------

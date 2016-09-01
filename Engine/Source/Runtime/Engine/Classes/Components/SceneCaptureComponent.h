@@ -27,13 +27,25 @@ class USceneCaptureComponent : public USceneComponent
  	UPROPERTY()
  	TArray<TWeakObjectPtr<UPrimitiveComponent> > HiddenComponents;
 
-	/** The only components to be rendered by this scene capture, if non-empty.*/
+	/** The actors to hide in the scene capture. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
+	TArray<AActor*> HiddenActors;
+
+	/** The only components to be rendered by this scene capture, if present.*/
  	UPROPERTY()
  	TArray<TWeakObjectPtr<UPrimitiveComponent> > ShowOnlyComponents;
+
+	/** The only actors to be rendered by this scene capture, if present.*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
+	TArray<AActor*> ShowOnlyActors;
 
 	/** Whether to update the capture's contents every frame.  If disabled, the component will render once on load and then only when moved. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
 	bool bCaptureEveryFrame;
+
+	/** Whether to update the capture's contents on movement.  Disable if you are going to capture manually from blueprint. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
+	bool bCaptureOnMovement;
 
 	/** if > 0, sets a maximum render distance override.  Can be used to cull distant objects from a reflection if the reflecting plane is in an enclosed area like a hallway or room */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture, meta=(UIMin = "100", UIMax = "10000"))
@@ -87,7 +99,7 @@ public:
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
-private:
+protected:
 	/** Update the show flags from our show flags settings (ideally, you'd be able to set this more directly, but currently unable to make FEngineShowFlags a UStruct to use it as a UProperty...) */
 	void UpdateShowFlags();
 

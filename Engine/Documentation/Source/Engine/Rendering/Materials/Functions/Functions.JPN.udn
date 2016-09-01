@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2397872
+﻿INTSourceChangelist:2690284
 Availability:Public
 Title:マテリアル関数
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:マテリアル関数は、パッケージに保存可能であり、多数のマテリアルで再利用できるマテリアルグラフのスニペットです。
+Version:4.9
 
 [REGION:full_feature]
 [/REGION]
 
 [EXCERPT:FunctionsIntro]
-マテリアル関数は、パッケージに保存して複数のマテリアルで使い回すことのできる、 
+**マテリアル関数** は、パッケージに保存して複数のマテリアルで使い回すことのできる、 
 マテリアル グラフの小さなスニペットです。マテリアル関数は複雑なマテリアル グラフ ネットワークを保存し、別のマテリアル内ですぐに再利用できるようにし、 
 また、アーティストがマテリアルの作成をしやすいように、複雑なネットワークを 1 つのノードに抽象化します。
 

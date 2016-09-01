@@ -25,6 +25,14 @@
 
 DEFINE_LOG_CATEGORY(LogD3D12RHI);
 
+int32 GEnableMultiEngine = 1;
+static FAutoConsoleVariableRef CVarEnableMultiEngine(
+	TEXT("D3D12.EnableMultiEngine"),
+	GEnableMultiEngine,
+	TEXT("Enables multi engine (3D, Copy, Compute) use."),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
+	);
+
 int32 GCommandListBatchingMode = CLB_NormalBatching;
 static FAutoConsoleVariableRef CVarCommandListBatchingMode(
 	TEXT("D3D12.CommandListBatchingMode"),
@@ -446,54 +454,7 @@ void FD3D12CommandContext::RHIEndFrame()
 	check(IsDefaultContext());
 	OwningRHI.GPUProfilingData.EndFrame();
 
-	FD3D12Device* Device = GetParentDevice();
-
-	Device->FirstFrameSeen = true;
-
-	Device->GetDeferredDeletionQueue().ReleaseResources();
-
-	const uint32 NumContexts = Device->GetNumContexts();
-	for (uint32 i = 0; i < NumContexts; ++i)
-	{
-		Device->GetCommandContext(i).EndFrame();
-	}
-
-	Device->GetDefaultUploadHeapAllocator().CleanUpAllocations();
-	Device->GetTextureAllocator().CleanUpAllocations();
-	Device->GetDefaultBufferAllocator().CleanupFreeBlocks();
-
-	Device->GetDefaultFastAllocatorPool().CleanUpPages(10);
-	{
-		FScopeLock Lock(Device->GetBufferInitFastAllocator().GetCriticalSection());
-		Device->GetBufferInitFastAllocatorPool().CleanUpPages(10);
-	}
-
-	// The Texture streaming threads share a pool
-	{
-		FD3D12ThreadSafeFastAllocator* pCurrentHelperThreadDynamicHeapAllocator = nullptr;
-		for (uint32 i = 0; i < FD3D12DynamicRHI::GetD3DRHI()->NumThreadDynamicHeapAllocators; ++i)
-		{
-			pCurrentHelperThreadDynamicHeapAllocator = FD3D12DynamicRHI::GetD3DRHI()->ThreadDynamicHeapAllocatorArray[i];
-			if (pCurrentHelperThreadDynamicHeapAllocator)
-			{
-				FScopeLock Lock(pCurrentHelperThreadDynamicHeapAllocator->GetCriticalSection());
-				pCurrentHelperThreadDynamicHeapAllocator->GetPool()->CleanUpPages(10);
-				break;
-			}
-		}
-	}
-
-	DXGI_QUERY_VIDEO_MEMORY_INFO LocalVideoMemoryInfo;
-
-	FD3D12DynamicRHI::GetD3DRHI()->GetLocalVideoMemoryInfo(&LocalVideoMemoryInfo);
-
-	int64 budget = LocalVideoMemoryInfo.Budget;
-
-	int64 AvailableSpace = budget - int64(LocalVideoMemoryInfo.CurrentUsage);
-
-	SET_MEMORY_STAT(STAT_D3D12UsedVideoMemory, LocalVideoMemoryInfo.CurrentUsage);
-	SET_MEMORY_STAT(STAT_D3D12AvailableVideoMemory, AvailableSpace);
-	SET_MEMORY_STAT(STAT_D3D12TotalVideoMemory, budget);
+	GetParentDevice()->FirstFrameSeen = true;
 }
 
 void FD3DGPUProfiler::EndFrame()

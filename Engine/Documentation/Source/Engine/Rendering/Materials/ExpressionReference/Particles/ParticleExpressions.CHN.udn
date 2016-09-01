@@ -1,72 +1,77 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2690214
 Availability:Public
-Title:Particle Expressions
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
-Description:Expressions used for creating materials to be applied to emitters in Particle Systems.
+Title:粒子表达式
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:这些表达式用于创建要应用于粒子系统中的发射器的材质。
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
 [/EXCERPT:TOC]
 
-## DynamicParameter
+(#DynamicParameter)
+## DynamicParameter（动态参数）
 
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#DynamicParameter]
 
 
 [EXCERPT:ParticleColor]
-## ParticleColor
+(#ParticleColor)
+## ParticleColor（粒子颜色）
 
-The ParticleColor expression ties into the current color of a given particle based on any per-particle color data defined within Cascade. This must be plugged into the appropriate channel (Emissive Color).
+**ParticleColor（粒子颜色）**表达式根据 **Cascade** 内定义的任何粒子颜色数据与给定粒子的当前颜色相关联。此表达式必须连接到适当的通道，即“自发光颜色”（Emissive Color）。
 
-| Item | Description |
+| 项目 | 说明 |
 |----|----|
-| [REGION:tablesection]Outputs[/REGION] ||
-| **RGB** | Outputs the combined RGB vector data. |
-| **R** | Outputs the red channel data.|
-| **G** | Outputs the green channel data. |
-| **B** | Outputs the blue channel data. |
-| **A** | Outputs the alpha channel data. |
+| [REGION:tablesection]输出[/REGION] ||
+| **RGB** | 输出组合的 RGB 矢量数据。|
+| **R** | 输出红色通道数据。|
+| **G** | 输出绿色通道数据。|
+| **B** | 输出蓝色通道数据。|
+| **A** | 输出阿尔法通道数据。|
 
 ![ParticleColorExample.png](ParticleColorExample.png)(w:900)
 
-In this example, you can see where the ParticleColor expression is providing color to the particles as defined within the particle system.
+在此示例中，您可看到 ParticleColor（粒子颜色）表达式向粒子提供粒子系统内定义的颜色。
 
 [/EXCERPT:ParticleColor]
 
 
 
 [EXCERPT:ParticleDirection]
-## ParticleDirection
+(#ParticleDirection)
+## ParticleDirection（粒子方向）
 
-The ParticleDirection expression outputs Vector3 (RGB) data on a per-particle basis, representing the direction a given particle is currently traveling. 
+**ParticleDirection（粒子方向）**表达式逐个粒子地输出 Vector3 (RGB) 数据，此数据代表给定粒子的当前行进方向。 
 
 
 ![ParticleDirectionExample.png](ParticleDirectionExample.png)(w:900)
 
 
-You can see in this image how the color of the particles is changing based on the current direction each particle is traveling.
+在此图中，您可看到粒子颜色根据每个例子的当前进行方向而变化。
 
 [/EXCERPT:ParticleDirection]
 
+(#ParticleMacroUV)
+## ParticleMacroUV（粒子宏 UV）
 
-## ParticleMacroUV
+**ParticleMacroUV（粒子宏 UV）**表达式输出 UV 纹理坐标，这些坐标可用于将任何 2D 纹理连续地映射到整个粒子系统，这意味着粒子无缝地组成纹理。这些 UV 将以 MacroUVPosition（即“宏 UV 位置”，在粒子系统上的 Cascade 中的“宏 UV”（MacroUV）类别下指定）为中心居中，并且 MacroUVRadius（宏 UV 半径）确定 UV 应采用的全局空间平铺半径。ParticleMacroUV（粒子宏 UV）节点适用于将连续的噪声映射到粒子，以分解通过将纹理映射到每个具有正常纹理坐标的粒子而引入的模式。
 
-The ParticleMacroUV expression outputs UV texture coordinates that can be used to map any 2d texture onto the entire particle system in a continuous way, meaning the texture will be seamless across particles.  The UVs will be centered around MacroUVPosition (specified in Cascade on the ParticleSystem, under the MacroUV category) and MacroUVRadius determines the world space radius that the UVs should tile at.  The ParticleMacroUV node is useful for mapping continuous noise onto particles to break up the pattern introduced by mapping a texture onto each particle with normal texture coordinates.
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Use View Space** | If _true_, effectively offsets the coordinates based on the depth of each sprite and creates a parallax effect, which can be useful for giving explosions a radial blur look |
+| [REGION:tablesection]属性[/REGION] ||
+| **使用视图空间（Use View Space）** | 如果为 _true_，那么实际上将根据每个精灵的深度来使坐标发生偏移并产生视差效果，这对于使爆炸具有径向模糊外观非常有用 |
 
 [REGION:fullwidth]
 ![ParticleMacroUVExample.png](ParticleMacroUVExample.png)
 [/REGION]
 
 [EXCERPT:ParticleMotionBlurFade]
-## ParticleMotionBlurFade
+(#ParticleMotionBlurFade)
+## ParticleMotionBlurFade（粒子运动模糊消退）
 
-The ParticleMotionBlurFade expression outputs a value representing the amount of fade on a particle as a result of motion blur. A value of 1 represents no blur, black represents complete blur.
+**ParticleMotionBlurFade（粒子运动模糊消退）**表达式输出一个值，该值代表因为运动模糊而在粒子上产生的消退量。值 1 代表不模糊，而黑色代表完全模糊。
 
 ![ParticleMotionBlurFade.png](ParticleMotionBlurFade.png)(w:900)
 
@@ -75,53 +80,57 @@ The ParticleMotionBlurFade expression outputs a value representing the amount of
 
 
 [EXCERPT:ParticlePositionWS]
-## ParticlePositionWS
+(#ParticlePositionWS)
+## ParticlePositionWS（粒子全局空间位置）
 
-The ParticlePositionWS expression outputs Vector3 (RGB) data representing each individual particle's position in world space.
+**ParticlePositionWS（粒子全局空间位置）**表达式输出 Vector3 (RGB) 数据，该数据代表每个粒子在全局空间中的位置。
 
 
 ![ParticlePositionWS.png](ParticlePositionWSExample.png)(w:900)
 
 
 
-In this image, ParticlePositionWS is being fed into emissive color to visualize the data. The particle system has been scaled up to show how the color is changing based on position.
+在此图中，将 ParticlePositionWS（粒子全局空间位置）输送到自发光颜色，以将数据可视化。粒子系统已按比例放大，以显示颜色根据位置而变化的情况。
 
 [/EXCERPT:ParticlePositionWS]
 
 
 
 [EXCERPT:ParticleRadius]
-## ParticleRadius
+(#ParticleRadius)
+## ParticleRadius（粒子半径）
 
-The ParticleRadius expression outputs the radius in Unreal units of each particle individually. This allows, for example, for changes to be made to a material once the radius has reached a certain point.
+**ParticleRadius（粒子半径）**表达式输出每个粒子的半径（以 Unreal 单位计）。例如，这使您能够在半径达到特定程度后对材质进行更改。
 
 [REGION:fullwidth]
 ![ParticleRadiusExample.png](ParticleRadiusExample.png)(w:1000 h:448)
 [/REGION]
 
-In this image, the particles are shifting from green to red as their radius exceeds 7 units.
+在此图中，粒子在其半径超过 7 个单位时从绿色转变为红色。
 
 [/EXCERPT:ParticleRadius]
 
 
 
 [EXCERPT:ParticleRelativetime]
-## ParticleRelativeTime
+(#ParticleRelativeTime)
+## ParticleRelativeTime（粒子相对时间）
 
-The ParticleRelativeTime expression outputs a number between 0 and 1 representing a particle's age, with 0 being the moment of birth and 1 being the moment of death.
+**ParticleRelativeTime（粒子相对时间）**表达式输出介于 0 与 1 之间的数值，该数值代表粒子的年龄，其中 0 是生成时刻，而 1 是消亡时刻。
 
 [REGION:fullwidth]
 ![ParticleRelativeTimeExample.png](ParticleRelativeTimeExample.png)(w:900)
 [/REGION]
 
-In this example, you can see the particle relative time fed into the emissive color, resulting in particles that are fading from black at the moment of birth to white as they approach death.
+在此示例中，您可看到粒子相对时间输送到自发光颜色，这导致生成时显示为黑色的粒子逐渐消退，直至其接近消亡时显示为白色。
 
 [/EXCERPT:ParticleRelativetime]
 
 [EXCERPT:ParticleSize]
-## ParticleSize
+(#ParticleSize)
+## ParticleSize（粒子大小）
 
-The Particle Size expression outputs the X and Y size of a particle sprite. This can then be used to drive some aspect of a Material.
+**ParticleSize（粒子大小）**表达式输出粒子精灵的 X 和 Y 大小。此表达式可用来驱动材质的某些方面。
 
 ![](ParticleSize.png)(w:480) 
 
@@ -129,42 +138,49 @@ The Particle Size expression outputs the X and Y size of a particle sprite. This
 [![](ParticleSizeNetwork.png)(w:480)](ParticleSizeNetwork.png)
 [/REGION]
 
-_Click image for full view._
+_单击查看大图。_
 
-In the example above, Particle Size is being multiplied into Particle Color. Notice that we are masking the output so that we only use the Green channel, which corresponds to the Y-Axis, or the length of the particles. This means that as the particles stretch out, they become brighter in color. As they shrink, they will become dimmer.
+在以上示例中，将 ParticleSize（粒子大小）与 ParticleColor（粒子颜色）相乘。请注意，我们屏蔽了输出，以便仅使用绿色通道，该通道对应于 Y 轴，即粒子的高度。这表示当粒子伸展时，它们的颜色会变亮。当它们收缩时，颜色将变暗。
 
 [/EXCERPT:ParticleSize]
 
 [EXCERPT:ParticleSpeed]
+(#ParticleSpeed)
+## ParticleSpeed（粒子速度）
 
-## ParticleSpeed
-
-ParticleSpeed outputs the current speed each particle is traveling, measured in Unreal units per second.
+**ParticleSpeed（粒子速度）**输出每个粒子的当前行进速度（以每秒 Unreal 单位数计）。
 
 [REGION:fullwidth]
 ![ParticleSpeedExample.png](ParticleSpeedExample.png)(w:1000 h:448)
 [/REGION]
 
-In this example, particle speed is feeding the color of the particles, which is then divided by 10 provide more meaningful results. The particles become black as they slow down.
+在此示例中，将粒子速度输送到粒子颜色，然后除以 10，以提供更有意义的结果。当粒子速度变慢时，它们将变为黑色。
 
 
 [/EXCERPT:ParticleSpeed]
 
-## SphericalParticleOpacity
+(#SphericalParticleOpacity)
+## SphericalParticleOpacity（球形粒子不透明度）
 
-The SphericalParticleOpacity expression creates a procedural opacity map to cause sprite particles to appear spherical. This can be much simpler than having to create an import a texture map for a similar effect.
+**SphericalParticleOpacity（球形粒子不透明度）**表达式创建过程式不透明贴图，以使精灵粒子呈球形显示。与必须创建导入纹理贴图以实现类似的效果相比，使用此表达式要简单得多。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **Density** | This 0-1 value controls the density of the sphere map. Lower values result in more transparent spheres. Default is 1. |
+| [REGION:tablesection]输入[/REGION] ||
+| **密度（Density）** | 这个 0 到 1 的值控制球面贴图的密度。较小的值将产生更加透明的球体。默认值为 1。|
 
 
-[REGION:imagetable]
-| ![](SPO_Before.png)(w:290) | ![](SPO_After.png)(w:290) | [INCLUDE:#SPO] |
-| :---: | :---: | :---: |
-| Before | After | Network (click to enlarge) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![之前](SPO_Before.png)(w:350)
+	[/PARAM]
+	[PARAM:after]
+	![之后](SPO_After.png)(w:350)
+	[/PARAM]
+[/OBJECT]
+
+[INCLUDE:#SPO]
+
 
 <!--
 [EXCERPT:SPO]
@@ -176,25 +192,26 @@ The SphericalParticleOpacity expression creates a procedural opacity map to caus
 
 
 [EXCERPT:ParticleSubUV]
-## ParticleSubUV
+(#ParticleSubUV)
+## ParticleSubUV（粒子子 UV）
 
-The ParticleSubUV expression is used to render sub-images of a texture to a particle.  ParticleSubUV is similar to a flipbook, except that ParticleSubUV allows the texture animation to be manipulated in Cascade.
+**ParticleSubUV（粒子子 UV）**表达式用来将纹理的子图像渲染到粒子。ParticleSubUV（粒子子 UV）类似于图像序列视图，只不过 ParticleSubUV（粒子子 UV）允许在 Cascade 中操作纹理动画。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Blend** | Blends together each frame of the SubUV sprite layout, rather than instantly "popping" from one frame to the next. |
-| **Texture** | Specifies the texture to use. |
-| **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **UVs** | The UV input is ignored and does nothing. |
-| [REGION:tablesection]Outputs[/REGION] ||
-| **RGB** | Outputs the three-channel RGB vector value of the color. |
-| **R** | Outputs the red channel of the color. |
-| **G** | Outputs the green channel of the color. |
-| **B** | Outputs the blue channel of the color. |
-| **A** | Outputs the alpha channel of the color. If a texture does not contain an alpha channel, connecting the 'alpha' channel to something, while not technically illegal, will always result in zero (black). |
+| [REGION:tablesection]属性[/REGION] ||
+| **混合（Blend）** | 将 SubUV（子 UV）精灵布局的每个帧混合，而不是从一个帧立即“跳跃”到下一个帧。|
+| **纹理（Texture）** | 指定要使用的纹理。|
+| **取样类型（Sampler Type）** | 此节点所要取样并输出的数据类型。|
+| **Mip 值模式（MipValueMode）** | 对纹理应用一个将会影响外观及性能的噪声值。|
+| [REGION:tablesection]输入[/REGION] ||
+| **UVs** | UV 输入将被忽略，不起任何作用。|
+| [REGION:tablesection]输出[/REGION] ||
+| **RGB** | 输出颜色的三通道 RGB 矢量值。|
+| **R** | 输出颜色的红色通道。|
+| **G** | 输出颜色的绿色通道。|
+| **B** | 输出颜色的蓝色通道。|
+| **A** | 输出颜色的阿尔法通道。如果纹理未包含阿尔法通道，那么将“阿尔法”通道连接到任何内容（虽然在技术上不合法）的结果将始终为零（黑色）。|
 
 
 ![ParticleSubUVExample.png](ParticleSubUVExample.png)
@@ -204,27 +221,28 @@ The ParticleSubUV expression is used to render sub-images of a texture to a part
 
 
 [EXCERPT:TextureSampleParameterSubUV]
-## TextureSampleParameterSubUV
+(#TextureSampleParameterSubUV)
+## TextureSampleParameterSubUV（纹理取样参数子 UV）
 
-The TextureSampleParameterSubUV expression is identical to the [ParticleSubUV](Engine/Rendering/Materials/ExpressionReference/Particles#ParticleSubUV) except that it is a parameter that can be modified in instances of the material and through code.
+**TextureSampleParameterSubUV（纹理取样参数子 UV）**表达式与 [ParticleSubUV（粒子子 UV）](Engine/Rendering/Materials/ExpressionReference/Particles#ParticleSubUV) 完全相同，只不过它是可在材质实例中以及通过代码来修改的参数。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Blend** | Blends together each frame of the SubUV sprite layout, rather than instantly "popping" from one frame to the next. |
-| **Texture** | Specifies the texture sampled by the expression. |
-| **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **UVs** | The UV input is ignored and does nothing. |
-| [REGION:tablesection]Outputs[/REGION] ||
-| **RGB** | Outputs the three-channel RGB vector value of the color. |
-| **R** | Outputs the red channel of the color. |
-| **G** | Outputs the green channel of the color. |
-| **B** | Outputs the blue channel of the color. |
-| **A** | Outputs the alpha channel of the color. If a texture does not contain an alpha channel, connecting the 'alpha' channel to something, while not technically illegal, will always result in zero (black). |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **混合（Blend）** | 将 SubUV（子 UV）精灵布局的每个帧混合，而不是从一个帧立即“跳跃”到下一个帧。|
+| **纹理（Texture）** | 指定表达式所取样的纹理。|
+| **取样类型（Sampler Type）** | 此节点所要取样并输出的数据类型。|
+| **Mip 值模式（MipValueMode）** | 对纹理应用一个将会影响外观及性能的噪声值。|
+| [REGION:tablesection]输入[/REGION] ||
+| **UVs** | UV 输入将被忽略，不起任何作用。|
+| [REGION:tablesection]输出[/REGION] ||
+| **RGB** | 输出颜色的三通道 RGB 矢量值。|
+| **R** | 输出颜色的红色通道。|
+| **G** | 输出颜色的绿色通道。|
+| **B** | 输出颜色的蓝色通道。|
+| **A** | 输出颜色的阿尔法通道。如果纹理未包含阿尔法通道，那么将“阿尔法”通道连接到任何内容（虽然在技术上不合法）的结果将始终为零（黑色）。|
 [/EXCERPT:TextureSampleParameterSubUV]
 
 

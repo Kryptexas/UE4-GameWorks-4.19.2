@@ -528,6 +528,9 @@ public:
 
 	/** GL_OES_vertex_type_10_10_10_2 */
 	static bool bSupportsRGB10A2;
+	
+	/** GL_OES_get_program_binary */
+	static bool bSupportsProgramBinary;
 
     /* Indicates shader compiler should be limited */
     static bool bIsLimitingShaderCompileCount;
@@ -769,6 +772,9 @@ public:
 #endif
 #ifndef GL_UNSIGNED_INT_2_10_10_10_REV
 #define GL_UNSIGNED_INT_2_10_10_10_REV 0x8368
+#endif
+#ifndef GL_PROGRAM_BINARY_LENGTH
+#define GL_PROGRAM_BINARY_LENGTH 0x8741
 #endif
 
 // Normalize debug macros due to naming differences across GL versions

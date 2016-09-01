@@ -38,6 +38,7 @@
 #include "Engine/Selection.h"
 #include "Sound/SoundBase.h"
 #include "IMenu.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "MatineeTrackHelpers"
 

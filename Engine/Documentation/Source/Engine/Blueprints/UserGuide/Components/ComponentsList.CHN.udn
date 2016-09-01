@@ -1,7 +1,66 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2000000
+Availability:Public
 Title:组件
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: 组件的可编辑层次结构，这些组件一创建就可以添加到蓝图中。
+Related: Engine/Blueprints/UserGuide/Graphs
+Related: Engine/Blueprints/UserGuide/Variables
+Related: Engine/Blueprints/UserGuide/Events
+Related: Engine/Blueprints/UserGuide/Functions
+version: 4.9
+Parent:Engine/Blueprints/Anatomy
+Tags:Components
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/componentslist_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Components:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Components:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Components]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/componentslist_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Components:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Components:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Components]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:2)]
+
+[INCLUDE:Shared\Glossary\C#glossary_component]
+
+[REGION:note]
+For more information on Components, please see the [Components Overview](Engine\Components) documentation. 
+[/REGION]
+
+
+
+
+## 组件窗口
 
 [EXCERPT:Intro]
  **Components（组件）** 面板允许组件一创建就添加到 _蓝图_ 上。这提供了一种方法，使得可以通过 `CapsuleComponents` 、 `BoxComponents` 或 `SphereComponents` 来添加 
@@ -11,12 +70,11 @@ Description: 组件的可编辑层次结构，这些组件一创建就可以添�
 分配给这个蓝图或其他 _蓝图_ 中用于访问这些组件的实例变量。
 [/EXCERPT:Intro]
 
-[TOC(start:2)]
-
 
 [EXCERPT:Main]
 
 ![](components_pane.png)
+
 
 ## 添加组件
 

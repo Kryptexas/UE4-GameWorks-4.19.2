@@ -174,7 +174,9 @@ struct FParticleEmitterBuildInfo
 	uint32 bLocalVectorFieldTileY : 1;
 	/** Tile vector field in z axis? */
 	uint32 bLocalVectorFieldTileZ : 1;
-
+	/** Use fix delta time in the simulation? */
+	uint32 bLocalVectorFieldUseFixDT : 1;
+	
 	/** Default constructor. */
 	FParticleEmitterBuildInfo();
 };
@@ -274,6 +276,10 @@ public:
 	float EmitterTime;
 	/** The amount of time simulated in the previous time step. */
 	float LastDeltaTime;
+	/** how long did the last tick take? */
+#if WITH_EDITOR
+	float LastTickDurationMs;
+#endif
 	/** The previous location of the instance.							*/
 	FVector OldLocation;
 	/** The bounding box for the particles.								*/
@@ -647,6 +653,15 @@ public:
 	virtual void SetBeamTargetTangent(FVector NewTangentPoint,int32 TargetIndex) {};
 	virtual void SetBeamTargetStrength(float NewTargetStrength,int32 TargetIndex) {};
 
+	//Beam get interface
+	virtual bool GetBeamEndPoint(FVector& OutEndPoint) const { return false; }
+	virtual bool GetBeamSourcePoint(int32 SourceIndex, FVector& OutSourcePoint) const { return false; }
+	virtual bool GetBeamSourceTangent(int32 SourceIndex, FVector& OutTangentPoint) const { return false; }
+	virtual bool GetBeamSourceStrength(int32 SourceIndex, float& OutSourceStrength) const { return false; }
+	virtual bool GetBeamTargetPoint(int32 TargetIndex, FVector& OutTargetPoint) const { return false; }
+	virtual bool GetBeamTargetTangent(int32 TargetIndex, FVector& OutTangentPoint) const { return false; }
+	virtual bool GetBeamTargetStrength(int32 TargetIndex, float& OutTargetStrength) const { return false; }
+	
 	// Called on world origin changes
 	virtual void ApplyWorldOffset(FVector InOffset, bool bWorldShift);
 		
@@ -992,6 +1007,13 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	virtual void SetBeamTargetStrength(float NewTargetStrength,int32 TargetIndex) override;
 	virtual void ApplyWorldOffset(FVector InOffset, bool bWorldShift) override;
 	
+	virtual bool GetBeamEndPoint(FVector& OutEndPoint) const override;
+	virtual bool GetBeamSourcePoint(int32 SourceIndex, FVector& OutSourcePoint) const override;
+	virtual bool GetBeamSourceTangent(int32 SourceIndex, FVector& OutTangentPoint) const override;
+	virtual bool GetBeamSourceStrength(int32 SourceIndex, float& OutSourceStrength) const override;
+	virtual bool GetBeamTargetPoint(int32 TargetIndex, FVector& OutTargetPoint) const override;
+	virtual bool GetBeamTargetTangent(int32 TargetIndex, FVector& OutTangentPoint) const override;
+	virtual bool GetBeamTargetStrength(int32 TargetIndex, float& OutTargetStrength) const override;
 	//
 	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
 	virtual void Init() override;
@@ -1231,7 +1253,6 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		for (uint32 TrailIdx = 0; TrailIdx < 128; TrailIdx++)
-		{
 			if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
 			{
 				DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);

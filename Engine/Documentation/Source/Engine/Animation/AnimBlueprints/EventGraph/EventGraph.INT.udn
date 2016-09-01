@@ -2,39 +2,80 @@ Availability:Public
 Title:EventGraph
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
 Description:Event-based graph used to update the Animation Blueprint and calculate values for use in the AnimGraph.
-version: 4.9
+version: 4.12
+related:Engine\Animation\AnimBlueprints
+related:Engine\Animation\AnimBlueprints\AnimGraph
+related:Engine\Animation\AnimBlueprints\Interface
+related:Engine\Animation\AnimBlueprints\Creation
 
-[REGION:banner]
-![EventGraph](eventgraph_banner.png)(convert:false)
-[/REGION]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\EventGraph:title%](EventGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\EventGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\EventGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\EventGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Animation\AnimBlueprints\EventGraph:title%](EventGraphTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Animation\AnimBlueprints\EventGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Animation\AnimBlueprints\EventGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Animation\AnimBlueprints\EventGraph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
 
 [TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
-Every Animation Blueprint has a single **EventGraph**, which is a standard [graph](Engine/Blueprints/Editor/UIComponents/GraphEditor) 
+Every Animation Blueprint has a single **EventGraph**, which is a standard [**Graph**](Engine/Blueprints/Editor/UIComponents/GraphEditor) 
 that uses a collection of special animation-related events to initiate sequences of nodes. The most common use of the EventGraph 
-is to update values used by BlendSpaces and other blend nodes to drive animations within the AnimGraph.
+is to update values used by [**Blend Spaces**](Engine/Animation/Blendspaces) and other blend nodes to drive animations within the AnimGraph.
 [/EXCERPT:Intro]
 
 ![Event graph](eventgraph.png)(w:720)
 		
-For example, the EventGraph of an Animation Blueprint could use the velocity of the owning Pawn to determine direction and speed. These two values can then be used as inputs into a BlendSpace within the AnimGraph to blend between an idle animation and various directional movement animations. Similarly, the pitch and yaw of the owning Pawn can be used as inputs into another BlendSpace to blend between various aiming poses applied additively in order to cause the mesh to aim where it is looking while still maintaining the previously mentioned movement animations.
+For example, the EventGraph of an Animation Blueprint could use the velocity of the owning Pawn to determine direction and speed. These two values can then be used as inputs into a BlendSpace within the AnimGraph to blend between an idle animation and various directional movement animations. 
 
-## Working with the EventGraph
-
-For general information on working with node graphs, see the [Working with Nodes](Engine/Blueprints/Editor/UIComponents/GraphEditor) documentation.
+Similarly, the pitch and yaw of the owning Pawn can be used as inputs into another BlendSpace to blend between various aiming poses applied additively in order to cause the mesh to aim where it is looking while still maintaining the previously mentioned movement animations.
 
 ## Animation Events
 
 Various events are called by the animation system to initialize and update the Animation Blueprint. These can be placed in the Event Graph to implement or override functionality.
 
 
-### BlueprintInitializeAnimation
+### Blueprint Initialize Animation
 
 [INCLUDE:Engine/Animation/NodeReference/Events#Initialize]
 
 
-### BlueprintUpdateAnimation
+### Blueprint Update Animation
 
 [INCLUDE:Engine/Animation/NodeReference/Events#Update]
 
+[REGION:note]
+For general information on working with node graphs, see the [**Working with Nodes**](Engine/Blueprints/Editor/UIComponents/GraphEditor) documentation.
+[/REGION]

@@ -5,6 +5,7 @@
 #include "MovieSceneSubTrackInstance.h"
 #include "MovieSceneSequenceInstance.h"
 #include "MovieSceneSubSection.h"
+#include "MovieSceneCinematicShotTrack.h"
 #include "MovieSceneSequence.h"
 #include "IMovieScenePlayer.h"
 
@@ -241,8 +242,8 @@ void FMovieSceneSubTrackInstance::UpdateSection( EMovieSceneUpdateData& UpdateDa
 		if (SubMovieScene && SubMovieScene->GetForceFixedFrameIntervalPlayback() && SubMovieScene->GetFixedFrameInterval() > 0 )
 		{
 			float FixedFrameInterval = ( SubMovieScene->GetFixedFrameInterval() / SubSection->TimeScale );
-			InstancePosition = FMath::RoundToInt( InstancePosition / FixedFrameInterval ) * FixedFrameInterval;
-			InstanceLastPosition = FMath::RoundToInt( InstanceLastPosition / FixedFrameInterval ) * FixedFrameInterval;
+			InstancePosition = UMovieScene::CalculateFixedFrameTime( InstancePosition, FixedFrameInterval );
+			InstanceLastPosition = UMovieScene::CalculateFixedFrameTime( InstanceLastPosition, FixedFrameInterval );
 		}
 	}
 
@@ -251,6 +252,7 @@ void FMovieSceneSubTrackInstance::UpdateSection( EMovieSceneUpdateData& UpdateDa
 	SubUpdateData.UpdatePass = UpdateData.UpdatePass;
 	SubUpdateData.bPreroll = UpdateData.Position < SubSection->GetStartTime();
 	SubUpdateData.bSubSceneDeactivate = bSectionWasDeactivated;
+	SubUpdateData.bUpdateCameras = SubTrack->GetClass() == UMovieSceneCinematicShotTrack::StaticClass();
 
 	// update sub sections
 

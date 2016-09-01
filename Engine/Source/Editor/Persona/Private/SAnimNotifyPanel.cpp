@@ -16,6 +16,7 @@
 #include "BlueprintActionDatabase.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimSequence.h"
 #include "SAnimTimingPanel.h"
 
 // Track Panel drawing
@@ -2310,6 +2311,11 @@ void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder, bool bI
 	{
 		for(UClass* Class : NotifyStateClasses)
 		{
+			if (Class->HasAllClassFlags(CLASS_Abstract))
+			{
+				continue; // skip abstract classes
+			}
+
 			const FText Description = LOCTEXT("NewNotifyStateSubMenu_NativeToolTip", "Add an existing native notify state");
 			const FText LabelText = Class->GetDisplayNameText();
 			const FString Label = LabelText.ToString();
@@ -3502,6 +3508,7 @@ void SAnimNotifyTrack::PasteSingleNotify(FString& NotifyString, float PasteTime)
 			// Clamp duration into the sequence
 			NewNotify.SetDuration(FMath::Clamp(NewNotify.GetDuration(), 1 / 30.0f, Sequence->SequenceLength - NewNotify.GetTime()));
 			NewNotify.EndTriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.GetTime() + NewNotify.GetDuration()));
+			NewNotify.EndLink.Link(Sequence, NewNotify.EndLink.GetTime());
 		}
 	}
 	else
@@ -4736,11 +4743,11 @@ void SAnimNotifyPanel::OnGetNotifyBlueprintData(TArray<FAssetData>& OutNotifyDat
 		for(int32 AssetIndex = 0; AssetIndex < AssetDataList.Num(); ++AssetIndex)
 		{
 			FAssetData& AssetData = AssetDataList[AssetIndex];
-			FString TagValue = AssetData.TagsAndValues.FindRef(BPParentClassName);
+			FString TagValue = AssetData.GetTagValueRef<FString>(BPParentClassName);
 
 			if(InOutAllowedClassNames->Contains(TagValue))
 			{
-				FString GenClass = AssetData.TagsAndValues.FindRef(BPGenClassName);
+				FString GenClass = AssetData.GetTagValueRef<FString>(BPGenClassName);
 
 				if(!OutNotifyData.Contains(AssetData))
 				{

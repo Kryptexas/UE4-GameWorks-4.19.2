@@ -13,6 +13,11 @@ DECLARE_DWORD_COUNTER_STAT( TEXT( "ThreadPoolDummyCounter" ), STAT_ThreadPoolDum
 
 /** The global thread pool */
 FQueuedThreadPool* GThreadPool = nullptr;
+
+#if USE_NEW_ASYNC_IO
+FQueuedThreadPool* GIOThreadPool = nullptr;
+#endif // USE_NEW_ASYNC_IO
+
 #if WITH_EDITOR
 FQueuedThreadPool* GLargeThreadPool = nullptr;
 #endif
@@ -21,6 +26,14 @@ CORE_API bool IsInSlateThread()
 {
 	// If this explicitly is a slate thread, not just the main thread running slate
 	return GSlateLoadingThreadId != 0 && FPlatformTLS::GetCurrentThreadId() == GSlateLoadingThreadId;
+}
+
+CORE_API FRunnableThread* GAudioThread = nullptr;
+
+CORE_API bool IsInAudioThread()
+{
+	// True if this is the audio thread or if there is no audio thread, then if it is the game thread
+	return (GAudioThreadId != 0 && FPlatformTLS::GetCurrentThreadId() == GAudioThreadId) || (GAudioThreadId == 0 && FPlatformTLS::GetCurrentThreadId() == GGameThreadId);
 }
 
 CORE_API int32 GIsRenderingThreadSuspended = 0;

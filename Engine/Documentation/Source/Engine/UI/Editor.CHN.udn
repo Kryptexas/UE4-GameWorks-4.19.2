@@ -1,8 +1,12 @@
+﻿INTSourceChangelist: 2735872
 Availability:Public
-Title: 虚幻编辑器
+Title: 虚幻编辑器界面
 Crumbs:%ROOT%, Engine
-Description:虚幻编辑器用户接口的不同部分的分解，以及关于接口如何运作的关键原则。
+Description:虚幻编辑器用户界面的不同部分的分解，以及关于接口如何运作的关键原则。
 Navigation:topic
+Version: 4.9
+parent:Engine/Editor
+order:1
 
 [EXCERPT:LevelEditor]
 

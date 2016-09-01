@@ -7,6 +7,8 @@
 #include "Engine/World.h"
 #include "Engine/Level.h"
 #include "LandscapeVersion.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstance.h"
 
 // Register the custom version with core
 FCustomVersionRegistration GRegisterLandscapeCustomVersion(FLandscapeCustomVersion::GUID, FLandscapeCustomVersion::LatestVersion, TEXT("Landscape"));
@@ -28,7 +30,7 @@ void AddPerWorldLandscapeData(UWorld* World)
 {
 	if (!World->PerModuleDataObjects.FindItemByClass<ULandscapeInfoMap>())
 	{
-		World->PerModuleDataObjects.Add(NewObject<ULandscapeInfoMap>(GetTransientPackage()));
+		World->PerModuleDataObjects.Add(NewObject<ULandscapeInfoMap>(GetTransientPackage(), NAME_None, RF_Transactional));
 	}
 }
 
@@ -66,6 +68,7 @@ void WorldCreationEventFunction(UWorld* World)
  */
 void WorldDestroyEventFunction(UWorld* World);
 
+#if WITH_EDITOR
 /**
  * Gets array of Landscape-specific textures and materials connected with given
  * level.
@@ -115,6 +118,7 @@ void WorldRenameEventFunction(UWorld* World, const TCHAR* InName, UObject* NewOu
 		}
 	}
 }
+#endif
 
 /**
  * A function that fires everytime a world is duplicated.

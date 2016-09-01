@@ -1,66 +1,67 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2693427
 Availability:Public
-Title:Networked Play In Editor
-Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
-Description:Testing gameplay with clients and servers
+Title:在编辑器中进行联网游戏
+Crumbs:%ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
+Description:通过用户端和服务器测试游戏
+Version:4.9
 
 
-_Play In Editor_ supports multiple worlds, so that you can test networked play. The editor spawns multiple worlds within the already loaded instance of UE4, which results in fast iteration time and 
-allows you to debug _Blueprints_ for each world.
+_在编辑器中游戏_ 支持多个环境，因此，您可以测试联网游戏。编辑器会在已装入的 UE4 实例中生成多个环境，这可缩短迭代时间，并 
+允许您调试每个环境的 _蓝图_。
 
-## Setting up Networked Testing
+## 设置联网测试
 
-In the **Play In** dropdown menu in the **Level Editor Toolbar** or **Blueprint Editor Toolbar**, you can set how many client worlds to create when you begin a _Play In Editor_ session. In addition, you can specify whether or not to 
-run a dedicated server.
+在 **关卡编辑器工具栏** 或 **蓝图编辑器工具栏**中的 **游戏位置（Play In）**下拉菜单中，您可以设置在开始 _在编辑器中游戏_ 会话时要创建多少个用户端环境。另外，您可以指定是否 
+运行专用的服务器。
 
 ![](networking_settings.png)
 
-The **Number of Clients** field allows you to specify the total number of players you want to test. If this is set to 1, and the **Run Dedicated Server** checkbox is unchecked, your _Play In Editor_ session will allow you to test
-standalone, non-networked gameplay. 
+**用户端数目（Number of Clients）**字段允许您指定要测试的玩家总数。如果设置为 1，并且未选中 **运行专用服务器（Run Dedicated Server）**复选框，那么 _在编辑器中游戏_ 会话将允许您测试
+非联网的单机游戏。 
 
-The other basic networking option provided in the dropdown menu is the **Run Dedicated Server** checkbox.  When this is checked, a "dedicated server" world is launched, although there is no display or local player for the dedicated server.
-Using the dedicated server means that none of your clients will be running as a listen server.  The dedicated server allows you to check for dedicated server only bugs, such as code that relies on a local player. A simple test configuration for 
-_Blueprints_ that have functionality that relies on servers and clients is to have **Number of Players** set to 1, and **Run Dedicated Server** set to _true_.  There is only one window to test play in, but it has the full functionality of a client connected to a dedicated server.
+此下拉菜单中提供的另一个基本联网选项是 **运行专用服务器（Run Dedicated Server）**复选框。如果选中此项，那么将启动“专用服务器”环境，但是没有专用服务器的显示或本地玩家。
+使用专用服务器意味着没有用户端作为侦听服务器来运行。专用服务器使您能够查找局限于专用服务器的错误，例如依赖于本地玩家的代码。对于功能依赖于服务器和用户端的 _蓝图_， 
+简单的测试配置是将 **玩家数（Number of Players）**设置为 1，并将 **运行专用服务器（Run Dedicated Server）**设置为 _true_。只有一个窗口用于测试游戏，但其具备连接到专用服务器的用户端的完整功能。
 
-After setting these options, pick your preferred _Play In Editor_ mode to begin testing gameplay. If you have more than one client world and select the **Viewport** display
-type for your _Play In Editor_ session, one client world will be shown in the viewport, and all others will be shown in new windows. The example image below shows testing with 4 players and a dedicated server.
+设置这些选项后，请选择您偏爱的 _在编辑器中游戏_ 模式开始测试游戏。如果您有多个用户端环境，并且为
+_在编辑器中游戏_ 会话选择 **视口（Viewport）**显示类型，那么将在视口中显示一个用户端环境，而所有其他用户端环境都将显示在新窗口中。以下示例图像显示使用 4 个玩家和专用服务器进行测试。
 
-**Click to see full-size image:**
+**单击可查看标准大小的图片：**
 
 [REGION:lightbox]
 [![](4ClientPIE.png)(w:300)](4ClientPIE.png)
 [/REGION:lightbox]
 
 [REGION:tip]
-You can use **Shift+Tab** and **Control+Tab** to cycle the focus between your client windows. 
+您可以使用 **Shift+Tab** 和 **Control+Tab** 在用户端窗口之间循环切换焦点。 
 [/REGION]
 
-## Advanced Settings
+## 高级设置
 
-The number of client worlds, as well as whether or not to use a dedicated server, can also be set in the [Level Editor - Play In Settings window](Engine/UI/LevelEditor\InEditorTesting\Settings). Here,
-you can also specify any command line options to be sent to the preview session.  You can also revert to the previous networked _Play In Editor_ behavior by unchecking the **Use Single Process** checkbox.
+用户端环境数目以及是否使用专用服务器也可以在 [“关卡编辑器 - 游戏位置设置”（Level Editor - Play In Settings）窗口](Engine/UI/LevelEditor\InEditorTesting\Settings) 中设置。在此处，
+您还可以指定要发送给预览会话的任何命令行选项。您还可以通过取消选中 **使用单个进程（Use Single Process）**复选框来恢复先前的联网 _在编辑器中游戏_ 行为。
 
 [INCLUDE:Engine/UI/LevelEditor\InEditorTesting\Settings#NetworkPIESettings]
 
 
-## Debugging Blueprints
+## 调试蓝图
 
-When running under a multiple world scenario, there is now an additional dropdown menu in the **Blueprint Editor** to select the world to debug:
+现在，在多环境场景中运行时，**蓝图编辑器** 将提供一个额外的下拉菜单，用于选择要调试的环境：
 
  ![](bp_debugger_multiplayer_pie.png)
 
 
-The world list will filter Actors in the Actor list. For example, with "All Worlds" selected, you will see Actors from every world in the other drop down list. By selecting one of the other worlds, you will only see Actors in that world instance.
+环境列表将对 Actor 列表中的 Actor 进行过滤。例如，如果选择“全部环境”，那么您将在另一个下拉列表中看到每个环境中的 Actor。如果选择其他环境中的某个环境，那么您将只看到该环境实例中的 Actor。
 
-This also affects break points. For example, setting the debug world to Client 1 will make it so that only breakpoints will trigger on Actors in Client 1's world.
+这也会影响断点。例如，如果将调试环境设置为“用户端 1”，那么断点只会在“用户端 1”环境中的 Actor 上触发。
 
 
 [REGION:tip]
-You can see the client number for a preview window by looking at the window title. For example, in the networked play image above, one window is titled **ShooterGame Game Preview Client 1 (64bit/PCD3D_SM5))**.
+通过查看窗口标题，您可以看到预览窗口的用户端数目。例如，在以上联网游戏图像中，有一个标题为 **ShooterGame 游戏预览用户端 1（(64 位/PCD3D_SM5)）（ShooterGame Game Preview Client 1 (64bit/PCD3D_SM5)）**的窗口。
 [/REGION]
 
 
-When All Worlds is selected, any world can trigger break points. When those break points are triggered, the blueprint editor will display which world it is debugging: 
+如果选择“所有环境”（All Worlds），那么任何环境都可以触发断点。那些断点触发时，蓝图编辑器将显示所调试的环境： 
 
 ![](bp_graph_multiplayer_pie.png)
 

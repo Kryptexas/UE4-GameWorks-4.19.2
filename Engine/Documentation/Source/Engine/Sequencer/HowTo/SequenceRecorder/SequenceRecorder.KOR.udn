@@ -1,0 +1,106 @@
+﻿INTSourceChangelist:2901839
+Availability: Public
+Title:시퀀스로 게임플레이 녹화
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:시퀀스 레코더로 게임플레이를 녹화하고 그 데이터를 시퀀서 안에서 활용합니다.
+Version: 4.11
+SkillLevel: Advanced
+parent:Engine/Sequencer/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine\Sequencer\ReferenceEditor\
+
+[REGION:warning]
+이 기능은 현재 개발중으로 추후 버전에서 예상대로 작동치 않거나 변경될 수 있습니다.
+[/REGION]
+
+**Sequence Recorder** (시퀀서 레코더)는 게임플레이 도중 특정 액터를 캡처하여 새로운 **레벨 시퀀스** 로 저장한 뒤 **시퀀서** 안에서 편집할 수 있습니다.
+씬의 콘텐츠를 빠르게 캡처하는데 좋은데, 플레이가능 캐릭터를 잡아 게임플레이 도중 시퀀서 레코더로 녹화하면서 어떤 동작을 하게 한 뒤, 그 데이터를 시퀀서로 넘긴 뒤 그것을 중심으로 시네마틱 작업을 하는 것이 가능합니다.
+
+이 예제에서는 **시퀀스 레코더** 를 사용하여 플레이가능 캐릭터의 이동을 녹화한 뒤 편집해 보겠습니다.
+
+
+## 단계
+
+[REGION:note]
+여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 포함한 것을 사용합니다.
+[/REGION]
+
+1.	[**시퀀서 활성화**](Engine\Sequencer\HowTo\EnableSequencer) 상태에서, **메뉴 바** 의 **창** 아래 **시퀀스 레코더** 를 선택합니다.
+
+	![](RecorderStep1.png)
+	
+	시퀀스 레코더 창이 자동으로 열립니다. **시퀀스 레코딩** 아래 옵션들에 마우스를 올려보면 각각 무슨 역할을 하는지 알 수 있습니다 (예를 들어, 녹화된 시퀀스의 이름과 아울러 저장 위치, 기간 등 설정). 이 예제에서는 전부 기본으로 놔두겠습니다.
+
+1.	메인 에디터 툴바에서, **플레이** 버튼을 클릭하여 에디터에서 플레이 세션을 시작합니다.
+
+1.	**Shift+F1** 키를 눌러 게임 안에서 마우스 콘트롤을 획득합니다.
+
+1.	**시퀀스 레코더** 창에서 **추가** 버튼을 클릭합니다.
+	
+	![](SequenceRecorderAdd.png)
+
+1.	**None** (없음)이라 되어있는 새 항목을 클릭한 뒤, **액터 레코딩** 아래 드롭다운을 클릭하고 **ThirderPersonCharacter** 를 선택합니다. 
+
+	![](ActorToRecord.png)
+
+	여기서 녹화하고자 하는 액터를 정한 뒤 녹화 프로세스를 시작합니다. 몇 가지 살펴볼 수 있는 부가 세팅이 있으나, 이 예제에서는 기본값으로 놔두겠습니다.
+
+1.	**녹화** 버튼을 클릭합니다.
+
+	![](RecordStart.png)
+
+	4 초 후 (시퀀스 녹화 섹션 아래 **Record Delay** (녹화 지연시간) 옵션), 녹화 프로세스가 시작됩니다.
+
+1.	**WASD** 와 **스페이스바** 키를 사용하여 캐릭터를 움직이고 점프하면서, 다 됐으면 **ESC** 키를 누릅니다.
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	LDbr7BKe-9g
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	위는 녹화한 시퀀스이며, 공격이나 다른 동작이 가능한 캐릭터가 있는 경우 자유롭게 사용하셔도 됩니다.
+
+1.	**콘텐츠 브라우저** 안에 녹화된 시퀀스 관련 애셋이 들어있는 폴더가 새로 생깁니다.
+
+	![](RecordedAssets.png)
+
+	**레벨 시퀀스** 와, 했던 동작에 따른 **애니메이션 시퀀스** 가 들어있는 폴더입니다.
+
+
+## 최종 결과
+
+이제 **RecordedSequence** 애셋을 열어 보통 레벨 시퀀스처럼 편집 작업을 시작하면 됩니다 (카메라, 라이트, 이펙트, 기타 캐릭터 추가 등). 아래는 카메라들을 설치하고 **카메라 컷** 트랙을 사용하여 그 카메라를 전환하는 샘플 씬입니다.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+1wTWy9wWMtg
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+
+
+
+
+
+
+
+
+
+
+	

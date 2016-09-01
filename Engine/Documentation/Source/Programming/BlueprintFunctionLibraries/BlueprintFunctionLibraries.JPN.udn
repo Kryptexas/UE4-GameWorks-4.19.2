@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2465659
+﻿INTSourceChangelist:2721645
 Title:ブループリント関数ライブラリ
 Crumbs:
 Description:
 Availability:Public
-Version:4.7
+Version:4.9
 
-開発をしていると、プロジェクトをもっと開発しやすくする関数の必要性を頻繁に感じます。そのような関数は、たいていの場合、ステートレスで、様々なゲームプレイ コード間で利用されます。ブループリントでビルドをする際も、同じことが必要になります。前のセクションで、ゲーム オブジェクトの関数とプロパティをブループリントに公開する方法を説明しました。ただし、シェアード ユーティリティ関数を公開したい場合は、必ずしもそれらを特定のゲームプレイ オブジェクトに結びつける必要はありません。そのようなケースには、ブループリント 関数ライブラリを使います。
+開発中に、プロジェクトの開発がもっとしやすくなる関数の必要性を頻繁に感じます。そのような関数は、たいていの場合、ステートレスで、様々なゲームプレイ コード間で利用されます。ブループリントでビルドをする際も、同じことが必要になります。前のセクションで、ゲーム オブジェクトの関数とプロパティをブループリントに公開する方法を説明しました。ただし、シェアード ユーティリティ関数を公開したい場合は、必ずしもそれらを特定のゲームプレイ オブジェクトに結びつける必要はありません。そのようなケースには、**ブループリント関数ライブラリ**を使います。
 
 ブループリント関数ライブラリは、特定のゲームプレイ オブジェクトに結びついていないユーティリティ機能を提供する静的関数のコレクションです。これらのライブラリは、 AI ブループリント ライブラリなど、ロジックごとの関数セットにグループ化したり、あるいは システム ブループリント ライブラリなど、様々な関数領域へのアクセスを提供するユーティリティ関数を含むことができます。
 
@@ -20,8 +20,7 @@ Version:4.7
 		UFUNCTION(BlueprintCallable, Category="Analytics")
 		static bool StartSession();
 
-上の例で分かるように、ブループリント関数ライブラリは間接的に UObject から派生しているので、標準の UCLASS() マクロと GENERATED_UCLASS_BODY() マクロが必要です。UFUNCTION() マクロを使ってブループリントから呼び出すことができる関数を装飾します。NOTE: ブループリント関数ライブラリの関数は、呼び出しに副作用があるかどうかに応じて、 BlueprintCallable あるいは BlueprintPure と指定することができます。フル・ソース・コードについては、 /UE4/Engine/Plugins/Runtime/Analytics/AnalyticsBlueprintLibrary をご覧ください。以下は、StartSession() 関数のインプリメンテーションです。
-
+上の例で分かるように、ブループリント関数ライブラリは間接的に UObject から派生しているので、標準の UCLASS() マクロと GENERATED_UCLASS_BODY() マクロが必要です。UFUNCTION() マクロを使って、ブループリントから呼び出すことができる関数を装飾します。ブループリント関数ライブラリの関数は、呼び出しに副作用があるかどうかに応じて、 BlueprintCallable あるいは BlueprintPure と指定することができます。フル・ソース・コードについては、/UE4/Engine/Plugins/Runtime/Analytics/AnalyticsBlueprintLibrary をご覧ください。以下は、StartSession() 関数のインプリメンテーションです。
 	bool UAnalyticsBlueprintLibrary::StartSession()
 	{
 		TSharedPtr<IAnalyticsProvider> Provider = FAnalytics::Get().GetDefaultConfiguredProvider();

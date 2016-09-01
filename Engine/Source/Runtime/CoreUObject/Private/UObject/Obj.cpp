@@ -488,6 +488,68 @@ void UObject::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionA
 
 #endif // WITH_EDITOR
 
+class FCachedClassExclusionData
+{
+public:
+
+	FCachedClassExclusionData(const TCHAR* InSectionName)
+	{
+		check(GConfig != nullptr && GConfig->IsReadyForUse());
+
+		TArray<FString> ConfigData;
+		GConfig->GetArray(TEXT("Core.System"), InSectionName, ConfigData, GEngineIni);
+
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			UClass* Class = *ClassIt;
+			if (ConfigData.Contains(Class->GetName()))
+			{
+				ExcludedClasses.Add(Class);
+			}
+		}
+
+		// Now gather all the classes which are derived from the specified ones
+		TSet<UClass*> DerivedClasses;
+
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			UClass* Class = *ClassIt;
+
+			for (const UClass* SpecifiedClass : ExcludedClasses)
+			{
+				if (Class->IsChildOf(SpecifiedClass))
+				{
+					if (!ExcludedClasses.Contains(Class))
+					{
+						DerivedClasses.Add(Class);
+					}
+					
+					break;
+				}
+			}
+		}
+
+		// Add them together
+		ExcludedClasses.Append(DerivedClasses);
+	}
+
+	bool IsExcluded(UClass* InClass) const 
+	{
+		return ExcludedClasses.Contains(InClass);
+	}
+
+private:
+
+	TSet<UClass*> ExcludedClasses;
+
+};
+
+bool UObject::NeedsLoadForServer() const
+{
+	static const FCachedClassExclusionData CachedClassExclusionData(TEXT("ClassesExcludedForServer"));
+	return !CachedClassExclusionData.IsExcluded(GetClass());
+}
+
 bool UObject::CanCreateInCurrentContext(UObject* Template)
 {
 	check(Template);
@@ -546,7 +608,7 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 				UObject* Obj = It;
 				
 				// if this object is the correct type and its archetype is this object, add it to the list
-				if ( Obj != this && Obj && Obj->IsBasedOnArchetype(this) )
+				if ( Obj && Obj != this && Obj->IsBasedOnArchetype(this) )
 				{
 					Instances.Add(Obj);
 				}
@@ -842,7 +904,7 @@ void UObject::ConditionalPostLoadSubobjects( FObjectInstancingGraph* OuterInstan
 	CheckDefaultSubobjects();
 }
 
-void UObject::PreSave()
+void UObject::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 #if WITH_EDITOR
 	FCoreUObjectDelegates::OnObjectSaved.Broadcast(this);
@@ -1336,6 +1398,12 @@ bool UObject::IsAsset () const
 	return false;
 }
 
+bool UObject::IsLocalizedResource() const
+{
+	const UPackage* ObjPackage = GetOutermost();
+	return ObjPackage && FPackageName::IsLocalizedPackage(ObjPackage->GetPathName());
+}
+
 bool UObject::IsSafeForRootSet() const
 {
 	if (IsInBlueprint())
@@ -1638,16 +1706,16 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 					Key = FString::Printf(TEXT("%s[%i]"), *Property->GetName(), i);
 				}
 
-					FString Value;
+				FString Value;
 				const bool bFoundValue = GConfig->GetString( *ClassSection, *Key, Value, *PropFileName );
-					if (bFoundValue)
+				if (bFoundValue)
+				{
+					if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
 					{
-						if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
-						{
-							// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
-							UE_LOG(LogObj, Error, TEXT("LoadConfig (%s): import failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
-						}
+						// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
+						UE_LOG(LogObj, Error, TEXT("LoadConfig (%s): import failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
 					}
+				}
 
 #if !UE_BUILD_SHIPPING
 				if (!bFoundValue && !FPlatformProperties::RequiresCookedData())
@@ -1836,13 +1904,13 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 					FString CompleteKey = FString::Printf(TEXT("%s%s"), bIsADefaultIniWrite ? TEXT("+") : TEXT(""), *Key);
 
 					FScriptArrayHelper_InContainer ArrayHelper(Array, this);
-						for( int32 i=0; i<ArrayHelper.Num(); i++ )
-						{
-							FString	Buffer;
-							Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
-							Sec->Add(*CompleteKey, *Buffer);
-						}
+					for( int32 i=0; i<ArrayHelper.Num(); i++ )
+					{
+						FString	Buffer;
+						Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
+						Sec->Add(*CompleteKey, *Buffer);
 					}
+				}
 				else if( Property->Identical_InContainer(this, SuperClassDefaultObject) )
 				{
 					// If we are not writing it to config above, we should make sure that this property isn't stagnant in the cache.
@@ -1867,10 +1935,10 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 							Key = TempKey;
 						}
 
-							FString	Value;
-							Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
-							Config->SetString( *Section, *Key, *Value, *PropFileName );
-						}
+						FString	Value;
+						Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
+						Config->SetString( *Section, *Key, *Value, *PropFileName );
+					}
 					else if( Property->Identical_InContainer(this, SuperClassDefaultObject, Index) )
 					{
 						// If we are not writing it to config above, we should make sure that this property isn't stagnant in the cache.
@@ -2016,8 +2084,7 @@ void UObject::ReinitializeProperties( UObject* SourceObject/*=NULL*/, FObjectIns
 		SourceObject = GetArchetype();
 	}
 
-	check( SourceObject||GetClass()==UObject::StaticClass() );
-	checkSlow(GetClass()==UObject::StaticClass()||IsA(SourceObject->GetClass()));
+	check(GetClass() == UObject::StaticClass() || (SourceObject && IsA(SourceObject->GetClass())));
 
 	// Recreate this object based on the new archetype - using StaticConstructObject rather than manually tearing down and re-initializing
 	// the properties for this object ensures that any cleanup required when an object is reinitialized from defaults occurs properly

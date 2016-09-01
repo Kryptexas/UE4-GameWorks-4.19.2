@@ -10,13 +10,10 @@ class UDeviceProfileManager;
 class FViewport;
 class FCommonViewportClient;
 class FCanvas;
-
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 class FTypeContainer;
 class IMessageRpcClient;
 class IPortalRpcLocator;
 class IPortalServiceLocator;
-#endif
 
 /**
  * Enumerates types of fully loaded packages.
@@ -894,17 +891,20 @@ public:
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialX;
 
 	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialXAxis;
+
+	UPROPERTY()
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialY;
+	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialYAxis;
 
 	UPROPERTY()
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialZ;
+	UPROPERTY()
+	class UMaterialInstanceDynamic* ConstraintLimitMaterialZAxis;
 
 	UPROPERTY()
 	class UMaterialInstanceDynamic* ConstraintLimitMaterialPrismatic;
-
-	/** @todo document */
-	UPROPERTY(globalconfig)
-	FStringAssetReference ConstraintLimitMaterialName;
 
 	/** Material that renders a message about lightmap settings being invalid. */
 	UPROPERTY()
@@ -1164,10 +1164,10 @@ public:
 	int32 NumPawnsAllowedToBeSpawnedInAFrame;
 
 	/**
-	 * Whether or not the LQ lightmaps should be generated during lighting rebuilds.
+	 * Whether or not the LQ lightmaps should be generated during lighting rebuilds.  This has been moved to r.SupportLowQualityLightmaps.
 	 */
 	UPROPERTY(globalconfig)
-	uint32 bShouldGenerateLowQualityLightmaps:1;
+	uint32 bShouldGenerateLowQualityLightmaps_DEPRECATED :1;
 
 	/**
 	 * Bool that indicates that 'console' input is desired. This flag is mis named as it is used for a lot of gameplay related things
@@ -1630,6 +1630,9 @@ public:
 	/** Initialize the game engine. */
 	virtual void Init(IEngineLoop* InEngineLoop);
 
+	/** Start the game, separate from the initialize call to allow for post initialize configuration before the game starts. */
+	virtual void Start();
+
 	/** Called at shutdown, just before the exit purge.	 */
 	virtual void PreExit();
 	virtual void ShutdownAudioDeviceManager();
@@ -1973,11 +1976,17 @@ public:
 	void ClearOnScreenDebugMessages();
 
 #if !UE_BUILD_SHIPPING
-	/** Capture screenshots and performance metrics */
-	void PerformanceCapture(UWorld* World, const FString& CaptureName);
+	/** 
+	 * Capture screenshots and performance metrics
+	 * @param EventTime time of the Matinee event
+	 */
+	void PerformanceCapture(UWorld* World, const FString& MapName, const FString& MatineeName, float EventTime);
 
-	/** Logs performance capture for use in automation analytics */
-	void LogPerformanceCapture(UWorld* World, const FString& CaptureName);
+	/**
+	 * Logs performance capture for use in automation analytics
+	 * @param EventTime time of the Matinee event
+	 */
+	void LogPerformanceCapture(UWorld* World, const FString& MapName, const FString& MatineeName, float EventTime);
 #endif	// UE_BUILD_SHIPPING
 
 	/**
@@ -2013,7 +2022,7 @@ public:
 	*
 	* @param	InMapName	Name of the map (Or Global)
 	*/
-	virtual void DumpFPSChartAnalytics(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray);
+	virtual void DumpFPSChartAnalytics(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray, bool bIncludeClientHWInfo);
 
 	/** Delegate called when FPS charting detects a hitch (it is not triggered if a capture isn't in progress). */
 	FEngineHitchDetectedDelegate OnHitchDetectedDelegate;
@@ -2123,6 +2132,7 @@ public:
 	 *
 	 * @param Object		Object whose owning world we require.
 	 * @param bChecked      Allows calling function to specify not to do ensure check and that a nullptr return value is acceptable
+	 *						This flag is only used when called by main game thread. 
 	 * returns				The world to which the object belongs.
 	 */
 	UWorld* GetWorldFromContextObject(const UObject* Object, bool bChecked = true) const;
@@ -2172,7 +2182,6 @@ public:
 
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* InGameViewport, int32 &ControllerId) { }
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/**
 	 * Get a locator for Portal services.
 	 *
@@ -2196,7 +2205,6 @@ protected:
 
 	/** Holds registered service instances. */
 	TSharedPtr<IPortalServiceLocator> ServiceLocator;
-#endif
 
 
 public:
@@ -2254,6 +2262,7 @@ public:
 
 		/** Skips copying properties with BlueprintCompilerGeneratedDefaults metadata */
 		bool bSkipCompilerGeneratedDefaults;
+		bool bNotifyObjectReplacement;
 
 		FCopyPropertiesForUnrelatedObjectsParams()
 			: bAggressiveDefaultSubobjectReplacement(false)
@@ -2262,6 +2271,7 @@ public:
 			, bCopyDeprecatedProperties(false)
 			, bPreserveRootComponent(true)
 			, bSkipCompilerGeneratedDefaults(false)
+			, bNotifyObjectReplacement(true)
 		{}
 	};
 	static void CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject, FCopyPropertiesForUnrelatedObjectsParams Params = FCopyPropertiesForUnrelatedObjectsParams());//bool bAggressiveDefaultSubobjectReplacement = false, bool bDoDelta = true);
@@ -2295,10 +2305,8 @@ protected:
 	/** Loads all Engine object references from their corresponding config entries. */
 	virtual void InitializeObjectReferences();
 
-#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/** Initialize Portal services. */
 	virtual void InitializePortalServices();
-#endif
 
 	/** Initializes the running average delta to some good initial framerate. */
 	virtual void InitializeRunningAverageDeltaTime();
@@ -2883,6 +2891,23 @@ private:
 	/** A list of all the simple stats functions that have been registered */
 	TArray<FEngineStatFuncs> EngineStats;
 
+	// Helper struct that registers itself with the output redirector and copies off warnings
+	// and errors that we'll overlay on the client viewport
+	struct FErrorsAndWarningsCollector : public FBufferedOutputDevice
+	{
+		FErrorsAndWarningsCollector();
+		~FErrorsAndWarningsCollector();
+
+		void Initialize();
+		bool Tick(float Seconds);
+
+		TMap<uint32, uint32>	MessagesToCountMap;
+		FDelegateHandle			TickerHandle;
+		float					DisplayTime;
+	};
+
+	FErrorsAndWarningsCollector	ErrorsAndWarningsCollector;
+
 private:
 
 	/**
@@ -2902,8 +2927,11 @@ private:
 	bool ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 	bool ToggleStatUnitTime(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 	bool ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
-#endif
+	bool ToggleStatSoundWaves(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatSoundCues(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 	bool ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatSoundMixes(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+#endif
 
 	/**
 	 * Functions for rendering the various simple stats, should only be used when registering with EngineStats.
@@ -2932,8 +2960,8 @@ private:
 	int32 RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 	int32 RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 	int32 RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
-#endif // !UE_BUILD_SHIPPING
 	int32 RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+#endif // !UE_BUILD_SHIPPING
 	int32 RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 #if STATS
 	int32 RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);

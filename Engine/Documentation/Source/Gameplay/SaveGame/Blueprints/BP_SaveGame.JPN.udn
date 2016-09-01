@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:2562495
+﻿INTSourceChangelist:2716169
 Availability:Public
 Title:ゲームをブループリントで保存する
 Crumbs:%ROOT%,  Gameplay, Gameplay/SaveGame
-Description:ブループリントを使用したゲームの保存とロード方法
+Description:ブループリントを使用するゲームの保存およびロード方法
+version:4.9
 
 
 ### SaveGame オブジェクトの作成
 
-新しく SaveGame オブジェクトを作成するには、 [Blueprint クラスを作成する](Engine\Blueprints\UserGuide\Types\ClassBlueprint\Creation) を参照してください。[**Pick Parent Class**] ダイアログが開いたら、 [**Custom Classes**] ドロップダウンメニューを展開して、 
- [**SaveGame**] を選択します。検索ボックスを使って **SaveGame** へ直接ジャンプすることができます。
+SaveGame オブジェクトを作成するには、 [Blueprint クラスを作成する](Engine\Blueprints\UserGuide\Types\ClassBlueprint\Creation) を参照してください。**[Pick Parent Class (親クラスを選択)]** ダイアログが開いたら、 **[Custom Classes]** を展開し、 
+**[SaveGame]** を選択します。検索ボックスを使って SaveGame へ直接ジャンプすることができます。新規のブループリントに MySaveGame と名前を付けます。
 
 ![](savegame.png) 
 
 新規の SaveGame object ブループリントで、保存したい情報に対する変数を作成します。  
 
 [REGION:note]
-このサンプルでは、 **SaveSlotName** と **UserIndex** 用のデフォルト値の保存に使用する変数も宣言するので、
-この SaveGame オブジェクトに保存される各クラスには、これらの変数を個別に設定する必要はありません。ここの操作はオプションです。デフォルト値が変更されない場合は、保存スロットが1つ上書きされることになります。
+このサンプルでは、 SaveSlotName と UserIndex に対するデフォルト値の保存の宣言に使用する変数もあるので、
+この SaveGame オブジェクトに保存される各クラスには、これらの変数を個別に設定する必要はありません。ここの部分はオプションです。デフォルト値が変更されない場合、上書される保存スロットは 1 つになります。
 [/REGION]
 
 ![](SaveGameVariables.png)
@@ -26,21 +27,20 @@ Description:ブループリントを使用したゲームの保存とロード�
 
 ### 変数の保存
 
-**保存設定全体のスナップショットです。クリックすると拡大表示されます。**
-
 [REGION:lightbox]
 	[![](SaveGameBP.png)(w:880)](SaveGameBP.png)
 [/REGION]
+_保存設定全体のスナップショットです。クリックすると拡大表示されます。_
 
 [REGION:fullwidth]
-最初に **Create Save Game Object** ノードを使って、SaveGame オブジェクトのインスタンスを作成またはこれをコピーします。新規 SaveGame object ブループリントの名前に「 Save Game Class 」ドロップダウンが設定されていることを確認してください。 
-この例では、 **MySaveGame** が設定されています。**Create Save Game Object** ノードは一般的な SaveGame オブジェクトのコピーを作成するので、 **Return Value** ピンをドラッグして **Cast to MySaveGame** と接続しなければなりません。SaveGame オブジェクトを後で簡単に再利用できるように、
-変数へキャストした結果を保存します。
+まず最初に、**Create Save Game Object** ノードを使って、インスタンスを作成するか、 新規 SaveGame オブジェクト ブループリントの名前に 「Save Game Class」 が設定されているか確認してください。 
+このサンプルでは「 **MySaveGame** 」です。Create Save Game Object ノードは一般的な SaveGame オブジェクトのコピーを作成するので、 **Return Value** ピンをドラッグし **Cast to MySaveGame** と接続しなければなりません。SaveGame オブジェクトを後で簡単に再利用できるように、
+変数へキャストした結果を **Promote to Variable** を使って保存します。
 
 ![](SaveGameBP_1.png)
 
-**Save Game Instance** 変数に保存したカスタム仕様の SaveGame オブジェクトのコピーがあるので、そこに情報を送信することができます。ここでは、 **Player Name** が 
-"Player One" に設定されています。情報を保存したい他の変数に対しても、同じ手順を行います。
+**Save Game Instance** 変数に保存されたカスタムした SaveGame オブジェクトのコピーがあるので、そこに情報を送ることができます。その時に **Player Name** が "PlayerOne" に 
+設定されます。情報を保存したい他の変数に対しても、同じ手順を行います。
 
 ![](SaveGameBP_2.png)
 
@@ -52,25 +52,24 @@ Description:ブループリントを使用したゲームの保存とロード�
 
 ### 変数のロード
 
-**ロード設定全体のスナップショットです。クリックすると拡大表示されます。**
-
 [REGION:lightbox]
 	[![](LoadGameBP.png)(w:880)](LoadGameBP.png)
 [/REGION]
+_保存設定全体のスナップショットです。クリックすると拡大表示されます。_
 
 [REGION:fullwidth]
 
-この最初のステップは任意で、 SaveGame オブジェクト内部に保存しているデフォルトの保存スロットおよびユーザー ID にもとづきます。ここではまず、空の SaveGame オブジェクトを作成し、 
+この最初のステップは任意で、 SaveGame デフォルト内の保存スロットおよびユーザー ID にもとづきます。ここではまず、空の SaveGame オブジェクトを作成し、 
 デフォルトの SaveSlotName と UserIndex がそこから読み取れるようにします。繰り返しますが、これは全てのゲームの実装に適用するわけではありません。 
 
 ![](LoadGameBP_1.png)
 
-**Load Game From Slot** ノードを使って SaveGame object ブループリント のインスタンスを作成することができます。保存する情報に対して SaveGame オブジェクトを作成した時のように、後に簡単にアクセスするため変数に結果を保存できるように、 
-特定の SaveGame object Blueprintにキャストする必要があります。
+**Load Game From Slot** ノードを使って SaveGame object Blueprint のインスタンスを作成することができます。保存する情報に対して SaveGame オブジェクトを作成した時のように、 
+特定の SaveGame object ブループリントにキャストする必要があります。
 
 ![](LoadGameBP_2.png)
 
-新規の SaveGame オブジェクトがハードドライブからロードされれば、変数値をそこから読み取り、必要なアクタまたはクラスへ割り当てたり、以下のように直接使用することができます。
+新規の SaveGame オブジェクトがハードドライブからロードされれば、変数値をそこから読み取り、必要なアクタまたはクラスへ割り当てたり、以下のように直接しようすることができます。
 
 ![](LoadGameBP_3.png)
 [/REGION]

@@ -147,6 +147,7 @@ public:
 	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) override;
 	virtual void TrackingStopped() override;
 	virtual void AbortTracking() override;
+	virtual FWidget::EWidgetMode GetWidgetMode() const override;
 	virtual FVector GetWidgetLocation() const override;
 	virtual FMatrix GetWidgetCoordSystem() const override;
 	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
@@ -161,7 +162,12 @@ public:
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
-	void SetIsCameraCut( bool bInIsCameraCut ) { bEditorCameraCut = bInIsCameraCut; }
+	/** Sets a flag for this frame indicating that the camera has been cut, and temporal effects (such as motion blur) should be reset */
+	void SetIsCameraCut()
+	{
+		bEditorCameraCut = true;
+		bWasEditorCameraCut = false;
+	}
 
 	/** 
 	 * Initialize visibility flags
@@ -479,18 +485,12 @@ public:
 	/** 
 	 * Set the actor lock. This is the actor locked to the viewport via the viewport menus.
 	 */
-	void SetActorLock(AActor* Actor)
-	{
-		return ActorLockedToCamera = Actor;
-	}
+	void SetActorLock(AActor* Actor);
 
 	/** 
 	 * Set the actor locked to the viewport by Matinee.
 	 */
-	void SetMatineeActorLock(AActor* Actor)
-	{
-		return ActorLockedByMatinee = Actor;
-	}
+	void SetMatineeActorLock(AActor* Actor);
 
 	/** 
 	 * Check whether this viewport is locked to the specified actor
@@ -708,9 +708,6 @@ public:
 
 	bool					bEnableColorScaling;
 
-	/** If true, we switched between two different cameras. Set by matinee, used by the motion blur to invalidate this frames motion vectors */
-	bool					bEditorCameraCut;
-
 	/** Indicates whether, of not, the base attachment volume should be drawn for this viewport. */
 	bool bDrawBaseInfo;
 
@@ -775,4 +772,10 @@ private:
 
 	/** Those sound stat flags which are enabled on this viewport */
 	ESoundShowFlags::Type	SoundShowFlags;
+
+	/** If true, we switched between two different cameras. Set by matinee, used by the motion blur to invalidate this frames motion vectors */
+	bool					bEditorCameraCut;
+
+	/** Stores the previous frame's value of bEditorCameraCut in order to reset it back to false on the next frame */
+	bool					bWasEditorCameraCut;
 };

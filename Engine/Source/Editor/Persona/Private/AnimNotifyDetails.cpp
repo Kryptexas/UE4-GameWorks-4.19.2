@@ -30,6 +30,10 @@ void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 	check(EditorObject);
 	UpdateSlotNames(EditorObject->AnimObject);
 
+	TSharedRef<IPropertyHandle> EventHandle = DetailBuilder.GetProperty(TEXT("Event"));
+	IDetailCategoryBuilder& EventCategory = DetailBuilder.EditCategory(TEXT("Category"));
+	EventCategory.AddProperty(EventHandle).OverrideResetToDefault(FResetToDefaultOverride::Hide());
+
 	// Hide notify objects that aren't set
 	UObject* NotifyPtr = nullptr;
 	FString NotifyClassName;
@@ -73,15 +77,17 @@ void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 		DetailBuilder.HideProperty(TEXT("Event.NotifyStateClass"));
 	}
 
-	TSharedRef<IPropertyHandle> TopHandle = DetailBuilder.GetProperty(TEXT("Event"));
-	if(Cast<UAnimMontage>(EditorObject->AnimObject))
+	UAnimMontage* CurrentMontage = Cast<UAnimMontage>(EditorObject->AnimObject);
+
+	// If we have a montage, and it has slots (which it should have) generate custom link properties
+	if(CurrentMontage && CurrentMontage->SlotAnimTracks.Num() > 0)
 	{
-		CustomizeLinkProperties(DetailBuilder, TopHandle, EditorObject);
+		CustomizeLinkProperties(DetailBuilder, EventHandle, EditorObject);
 	}
 	else
 	{
 		// No montage, hide link properties
-		HideLinkProperties(DetailBuilder, TopHandle);
+		HideLinkProperties(DetailBuilder, EventHandle);
 	}
 
 	// Customizations do not run for instanced properties, so we have to resolve the properties and then

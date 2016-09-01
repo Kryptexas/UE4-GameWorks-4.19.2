@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2638780
 Availability:Docs
 Title:カスタム仕様のエクスポータ テクニカル ガイド
 Crumbs: %ROOT%, Engine, Engine/UI, Programming
@@ -9,10 +9,6 @@ Description:カスタム仕様のアセットタイプ用エクスポータの�
 [/REGION]
 
 [TOC(start:2)]
-
-
-
-## 概要
 
 UExporter クラスは資産をエクスポートするためにエディタで使用します。エディタのコピー/ペースト/複製機能を使用したり、資産をファイルへ出力したりします。エクスポータ クラスは、エクスポータがサポートするオブジェクトのタイプや、サポートしているエクスポート フォーマットの一覧を宣言します。エクスポータは、テキストまたはバイナリのいずれかをサポートします。
 

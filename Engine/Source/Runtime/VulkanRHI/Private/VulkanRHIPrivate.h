@@ -28,14 +28,20 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 
 #if PLATFORM_ANDROID
 #include "VulkanLoader.h"
+#define VULKAN_COMMANDWRAPPERS_ENABLE 0
 #else
 #include <vulkan/vulkan.h>
+#define VULKAN_COMMANDWRAPPERS_ENABLE 1
 #endif
 
 #include "VulkanRHI.h"
 #include "VulkanGlobalUniformBuffer.h"
 #include "RHI.h"
 
+#if VULKAN_COMMANDWRAPPERS_ENABLE
+#include "VulkanCommandWrappers.h"
+#endif
+using namespace VulkanRHI;
 
 // Default is 1 (which is aniso off), the number is adjusted after the limits are queried.
 static int32 GMaxVulkanTextureFilterAnisotropic = 1;
@@ -145,13 +151,14 @@ struct FVulkanSemaphore
 		PresentCompleteSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		PresentCompleteSemaphoreCreateInfo.pNext = nullptr;
 		PresentCompleteSemaphoreCreateInfo.flags = 0;
-		VERIFYVULKANRESULT(vkCreateSemaphore(Device.GetInstanceHandle(), &PresentCompleteSemaphoreCreateInfo, nullptr, &SemaphoreHandle));
+		VERIFYVULKANRESULT(VulkanRHI::vkCreateSemaphore(Device.GetInstanceHandle(), &PresentCompleteSemaphoreCreateInfo, nullptr, &SemaphoreHandle));
 	}
 
 	~FVulkanSemaphore()
 	{
 		check(SemaphoreHandle != VK_NULL_HANDLE);
-		vkDestroySemaphore(Device.GetInstanceHandle(), SemaphoreHandle, nullptr);
+		Device.GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::Semaphore, SemaphoreHandle);
+		SemaphoreHandle = VK_NULL_HANDLE;
 	}
 
 	VkSemaphore GetHandle() const
@@ -218,8 +225,19 @@ public:
 		return Texture == (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
 	}
 
+	inline uint32 GetWidth() const
+	{
+		return Extents.width;
+	}
+
+	inline uint32 GetHeight() const
+	{
+		return Extents.height;
+	}
+
 private:
 	VkFramebuffer Framebuffer;
+	VkExtent2D Extents;
 
 	// We do not adjust RTInfo, since it used for hashing and is what the UE provides,
 	// it's up to VulkanRHI to handle this correctly.
@@ -313,6 +331,11 @@ public:
 	void TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout);
 	void TrackRemoveUsage(const FVulkanDescriptorSetsLayout& Layout);
 
+	inline bool IsEmpty() const
+	{
+		return NumAllocatedDescriptorSets == 0;
+	}
+
 private:
 	FVulkanDevice* Device;
 
@@ -321,7 +344,6 @@ private:
 	uint32 PeakAllocatedDescriptorSets;
 
 	// Tracks number of allocated types, to ensure that we are not exceeding our allocated limit
-	int32 MaxAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	int32 NumAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	int32 PeakAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 
@@ -341,7 +363,7 @@ private:
 	friend class FVulkanDescriptorPool;
 	friend class FVulkanPendingState;
 
-	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanDescriptorPool* InPool);
+	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanCommandListContext* InContext);
 	~FVulkanDescriptorSets();
 
 	FVulkanDevice* Device;
@@ -393,6 +415,9 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawPrim UP Prep Time"), STAT_VulkanUPPrepTime, 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Uniform Buffer Creation Time"), STAT_VulkanUniformBufferCreateTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Apply DS Uniform Buffers"), STAT_VulkanApplyDSUniformBuffers, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("SRV Update Time"), STAT_VulkanSRVUpdateTime, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Deletion Queue"), STAT_VulkanDeletionQueue, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Submit"), STAT_VulkanQueueSubmit, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Present"), STAT_VulkanQueuePresent, STATGROUP_VulkanRHI, );
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Apply DS Shader Resources"), STAT_VulkanApplyDSResources, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update DescriptorSets"), STAT_VulkanUpdateDescriptorSets, STATGROUP_VulkanRHI, );
@@ -403,7 +428,6 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Set unif Buffer"), STAT_VulkanSetUniformBufferTi
 DECLARE_CYCLE_STAT_EXTERN(TEXT("VkUpdate DS"), STAT_VulkanVkUpdateDS, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Clear Dirty DS State"), STAT_VulkanClearDirtyDSState, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Bind Vertex Streams"), STAT_VulkanBindVertexStreamsTime, STATGROUP_VulkanRHI, );
-
 #endif
 
 namespace VulkanRHI
@@ -419,4 +443,45 @@ namespace VulkanRHI
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
 extern TAutoConsoleVariable<int32> GValidationCvar;
+#endif
+
+static inline VkAttachmentLoadOp RenderTargetLoadActionToVulkan(ERenderTargetLoadAction InLoadAction)
+{
+	VkAttachmentLoadOp OutLoadAction = VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
+
+	switch (InLoadAction)
+	{
+	case ERenderTargetLoadAction::ELoad:		OutLoadAction = VK_ATTACHMENT_LOAD_OP_LOAD;			break;
+	case ERenderTargetLoadAction::EClear:		OutLoadAction = VK_ATTACHMENT_LOAD_OP_CLEAR;		break;
+	case ERenderTargetLoadAction::ENoAction:	OutLoadAction = VK_ATTACHMENT_LOAD_OP_DONT_CARE;	break;
+	default:																						break;
+	}
+
+	// Check for missing translation
+	check(OutLoadAction != VK_ATTACHMENT_LOAD_OP_MAX_ENUM);
+	return OutLoadAction;
+}
+
+static inline VkAttachmentStoreOp RenderTargetStoreActionToVulkan(ERenderTargetStoreAction InStoreAction)
+{
+	VkAttachmentStoreOp OutStoreAction = VK_ATTACHMENT_STORE_OP_MAX_ENUM;
+
+	switch (InStoreAction)
+	{
+	case ERenderTargetStoreAction::EStore:		OutStoreAction = VK_ATTACHMENT_STORE_OP_STORE;		break;
+	case ERenderTargetStoreAction::ENoAction:	OutStoreAction = VK_ATTACHMENT_STORE_OP_DONT_CARE;	break;
+	default:																						break;
+	}
+
+	// Check for missing translation
+	check(OutStoreAction != VK_ATTACHMENT_STORE_OP_MAX_ENUM);
+	return OutStoreAction;
+}
+
+
+#if 0
+namespace FRCLog
+{
+	void Printf(const FString& S);
+}
 #endif

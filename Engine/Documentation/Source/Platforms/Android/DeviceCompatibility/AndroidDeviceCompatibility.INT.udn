@@ -3,6 +3,10 @@ Title:Android Device Compatibility
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Device compatibility for developing with Android.
 Version: 4.9
+Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:reference
 
 [VAR:Supported]
 ![](%ROOT%/icon_success_16x.png)

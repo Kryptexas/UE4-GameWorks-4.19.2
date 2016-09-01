@@ -1,18 +1,18 @@
-﻿INTSourceChangelist:2618188
+﻿INTSourceChangelist:2727277
 Availability:Public
 Title:4.応用編
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
-Description:詳細を追求するためのアイデア
-バージョン:4.9
+Description:応用的な考え方を検討します。
+version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前の手順](Programming\Tutorials\AutoCamera\3 "%Programming\Tutorials\AutoCamera\3:title%")
+		[前のステップ](Programming\Tutorials\AutoCamera\3 "%Programming\Tutorials\AutoCamera\3:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[ゲーム制御のカメラ](Programming\Tutorials\AutoCamera)
+		[](Programming\Tutorials\AutoCamera)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -23,14 +23,14 @@ Description:詳細を追求するためのアイデア
 
 ここまでで学んだ知識を活かして、以下の操作をしてみましょう。
 
-* クレーンまたはドリーショットを作成するためにカメラを移動中のアクタに親子付けします。
-* [配列](Programming/UnrealArchitecture/TArrays) 変数を 1 つだけ使って CameraOne と CameraTwo ではなくカメラを保存すれば、2 以外の数字をカメラの台数に使うことができます。
-* カメラの保存には、[アクタ](Programming/UnrealArchitecture/Actors) ポインタを使わずに、ビューの変更前の時間とポインタを含む [構造体](Programming/UnrealArchitecture/Reference/Structs) を作成し、新しいビューに対する時間をブレンドします。
+* クレーンまたはドリーショットを作成するためにカメラを移動するアクタにアタッチします。
+* [配列](Programming/UnrealArchitecture/TArrays) 変数を 1 つだけ使って CameraOne と CameraTwo ではなくご自分のカメラを保存すれば、2 以外の数字をカメラの台数に使うことができます。
+* カメラの保存には、[アクタ](Programming/UnrealArchitecture/Actors) ポインタを使わずに、ビューの変更前の時間とポインタを含む [構造体](Programming/UnrealArchitecture/Reference/Structs) を作成し、新しいビューに対して時間をブレンドします。
 
-以下はこのチュートリアルで取り扱った詳細です。
+以下はこのチュートリアルの内容の詳しい情報のリンク先です。
 
 * カメラとその操作に関する詳細は [カメラ](Gameplay/Framework/Camera) フレームワークページ、または [%Programming/Tutorials/PlayerCamera:title%](Programming/Tutorials/PlayerCamera) を参照してください。
-* さらに詳しいチュートリアルは [%Programming/Tutorials:title%](Programming/Tutorials) ページを参照してください。
+* 詳しいチュートリアルは [%Programming/Tutorials:title%](Programming/Tutorials) ページをご覧ください。
 
 
 %Steps%

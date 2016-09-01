@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2343745
+﻿INTSourceChangelist:2713299
 Availability:Public
 Title: 커맨드렛
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:프로젝트 현지화시 사용되는 커맨드렛과 그 인수에 대한 설명입니다.
+version: 4.9
 
 
 [TOC (start:2)]

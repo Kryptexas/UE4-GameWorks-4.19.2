@@ -1,21 +1,29 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2750697
 Availability:Public
 Title:Orbit モジュール
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Orbitモジュールは実際のパーティクル中心から離れた方向にオフセット回転するパーティクルスプライトをレンダリングします。 
-
-[TOC(start:2 end:3)]
-
-## Orbit モジュール
-
-Orbitモジュールは実際のパーティクル中心から離れた方向にオフセット回転するパーティクルスプライトをレンダリングします。 
+Description:Orbit モジュールは実際のパーティクル中心から離れた方向にオフセット回転するパーティクルスプライトをレンダリングします。
+Version:4.9
 
 
-### Orbit
+Orbit モジュールは実際のパーティクル中心から離れた方向にオフセット回転するパーティクルスプライトをレンダリングします。 
 
-![psys_orbit.gif](psys_orbit.gif)(convert:false)
 
-Orbitモジュールのみが実装されています。実際のパーティクル位置からスプライトのオフセット及び回転が可能となります。複数の orbit モジュールをさまざまな方法でつなげることが出来ます。
+## Orbit
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+sdpZ2_8GUp4
+[/PARAMLITERAL]
+[/OBJECT]
+
+Orbit モジュールのみが実装されています。実際のパーティクル位置からスプライトのオフセット及び回転が可能となります。複数の orbit モジュールをさまざまな方法でつなげることが出来ます。
 
 | プロパティ | 説明 |
 | ---- | ---- |
@@ -25,7 +33,7 @@ Orbitモジュールのみが実装されています。実際のパーティク
 |**Offset Amount** | パーティクルの「中心」からのスプライトのオフセット値を指定するベクトル分布。|
 |**Offset Options** | _Offset Amount_ に関連するオプション。オプションには以下が含まれます:[INCLUDE:#OffsetOptions]|
 |[REGION:tablesection]Rotation[/REGION]||
-|**Rotation Amount** | パーティクル位置の周囲のオフセット回転量を示すベクトル分布。「 turns（ターン）」形式、つまり、0＝回転なし、0.5＝180度、1.0＝360度のように指定します。
+|**Rotation Amount** | パーティクル位置の周囲のオフセット回転量を示すベクトル分布。「 turns (ターン)」形式、つまり、0＝回転なし、0.5＝180 度、1.0＝360 度のように指定します。
 |**Rotation Options** | _Rotation Amount_ に関連するオプション。オプションには以下が含まれます:[INCLUDE:#OffsetOptions]|
 |[REGION:tablesection]RotationRate[/REGION]||
 |**Rotation Rate Amount** | パーティクル位置の周囲のオフセット回転速度を示すベクトル分布。「turns」形式で指定します。|
@@ -46,7 +54,7 @@ Orbitモジュールのみが実装されています。実際のパーティク
 | --- | --- |
 |EOChainMode_Add|モジュールの値と前回の結果を加算します。|
 |EOChainMode_Scale|モジュールの値と前回の結果を乗算します。|
-|EOChainMode_Link|チェーンを「Break（ブレーク）」して前回の結果の値を適用します。|
+|EOChainMode_Link|チェーンを「Break (ブレーク)」して前回の結果の値を適用します。|
 [/REGION]
 [/EXCERPT:ChainMode]
 

@@ -237,6 +237,8 @@ public:
 	// @param MaxY excluding like Win32 RECT
 	virtual void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ) = 0;
 
+	virtual void RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ) = 0;
+
 	// @param MinX including like Win32 RECT
 	// @param MinY including like Win32 RECT
 	// @param MaxX excluding like Win32 RECT
@@ -687,6 +689,15 @@ public:
 	virtual FTexture2DRHIRef RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& CreateInfo) = 0;
 
 	/**
+	* Creates an FStructuredBuffer for the RT write mask of a render target 
+	* @param RenderTarget - the RT to create the buffer for
+	*/
+	virtual FStructuredBufferRHIRef RHICreateRTWriteMaskBuffer(FTexture2DRHIParamRef RenderTarget)
+	{
+		return nullptr;
+	}
+
+	/**
 	 * Thread-safe function that can be used to create a texture outside of the
 	 * rendering thread. This function can ONLY be called if GRHISupportsAsyncTextureCreation
 	 * is true.  Cannot create rendertargets with this method.
@@ -1022,7 +1033,7 @@ public:
 	// FlushType: Flush Immediate (seems wrong)
 	virtual void RHISetStreamOutTargets(uint32 NumTargets, const FVertexBufferRHIParamRef* VertexBuffers, const uint32* Offsets) = 0;
 
-	// FlushType: Flush Immediate (seems wrong)
+	// Each RHI should flush if it needs to when implementing this method.
 	virtual void RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask) = 0;
 
 	// Blocks the CPU until the GPU catches up and goes idle.
@@ -1040,8 +1051,8 @@ public:
 	virtual bool RHIIsRenderingSuspended() { return false; };
 
 	// FlushType: Flush Immediate
-	virtual void RHIEnqueueDecompress(uint8_t* SrcBuffer, uint8_t* DestBuffer, int CompressedSize, void* ErrorCodeBuffer) {}
-	virtual void RHIEnqueueCompress(uint8_t* SrcBuffer, uint8_t* DestBuffer, int UnCompressedSize, void* ErrorCodeBuffer) {}
+	virtual bool RHIEnqueueDecompress(uint8_t* SrcBuffer, uint8_t* DestBuffer, int CompressedSize, void* ErrorCodeBuffer) { return false; }
+	virtual bool RHIEnqueueCompress(uint8_t* SrcBuffer, uint8_t* DestBuffer, int UnCompressedSize, void* ErrorCodeBuffer) { return false; }
 
 	/**
 	 *	Retrieve available screen resolutions.

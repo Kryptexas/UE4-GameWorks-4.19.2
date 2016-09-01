@@ -153,7 +153,6 @@ The Show Flags are found under the Viewport **Show** menu. They are a means by w
 |**Test Image**|Shows a test image for configuration of monitor and graphics settings.|
 |**Vector Fields**|Shows/hides any vector fields in the scene.|
 
-|**Blur GBuffer**|Shows/hides the results of Blue GBuffer Intensity, a property found on Post Process Volumes. This feature blurs the GBuffer normals and adjusts the GBuffer roughness to reduce specular aliasing. It is, however, a high performance cost for the result and you should generally consider just using Temporal AA.  |
 
 ## Visualize
 

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2281653
+﻿INTSourceChangelist:2690154
 Availability:Public
-Title:Material Attributes式
+Title:Material Attributes 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
-Description:さまざまな Material 属性の分割や結合に使用する式ノードです。特にLayered Materialの作成に実用的です。
-
+Description:さまざまなマテリアル属性の分割や結合に使用する表現式ノードです。特に、レイヤー マテリアルの作成に役立ちます。
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -15,7 +15,7 @@ Description:さまざまな Material 属性の分割や結合に使用する式�
 
 ## Break Material Attributes
 
-Break Material Attributes 式は、マテリアル関数システムの一機能である [Layered Material](Engine/Rendering/Materials\LayeredMaterials) との併用に理想的な表現式です。Material 内で Material Layer 関数を使用時に、レイヤーの一側面のみを使用するとします。例えば、スチールのような一般的なマテリアルを定義するきれいなマテリアルレイヤーがあるとします。全ての属性を使用せずに、最終マテリアルのレイヤーから Roughness と Base Color 属性のみを使用するのがいいかもしれません。そのような場合、Material Layer が受け取る属性全てを個別に分ける Break Material Attributes ノードを使用して、必要な属性のみを接続します。さまざまな Material Attributes の複雑なブレンドも可能になります。
+**Break Material Attributes** 表現式は、マテリアル関数システムの特徴であるレイヤー マテリアルを使用する場合に理想的な式です。マテリアル内で Material Layer 関数をする時に、レイヤーの片面のみに使いたい場合があります。例えば、スチールのような一般的なマテリアルを定義するきれいなマテリアル レイヤーなどです。全ての属性を使用せずに、最終マテリアル レイヤーから Roughness と Base Color 属性のみを使用するのがいいかもしれません。そのような場合、マテリアル レイヤーが受け取る属性全てを個別に分ける Break Material Attributes ノードを使用して、必要な属性のみを接続します。さまざまなマテリアル属性を複雑にブレンドすることも可能になります。
 
 [REGION:fullwidth]
 ![](BreakMaterialAttributes.png)
@@ -25,12 +25,12 @@ Break Material Attributes 式は、マテリアル関数システムの一機能
 ## Make Material Attributes
 
 
-Make Material Attributes ノードは Break Material Attriutes ノードと正反対の機能を持ちます。属性を分割する代わりに、属性をひとつにまとめます。出力値の一般的な属性全てに対しアクセスが可能となるため、ユーザー独自の [Material Layer](Engine/Rendering/Materials\LayeredMaterials) 関数の作成に実用的です。1 つ以上の Material タイプの定義やこれらを一緒にブレンドするなど、複雑な Material 設定にも使用できます。
+**Make Material Attributes** ノードは Break Material Attriutes ノードと正反対の機能を持ちます。属性を分割するのではなく、属性をひとつにまとめます。出力値の一般的な属性全てに対しアクセスが可能となるため、ユーザー独自の [Material Layer](Engine/Rendering/Materials\LayeredMaterials) 関数の作成に実用的です。複数の Material タイプの定義やこれらをすべて 1 つのマテリアルにブレンドするなど、複雑なマテリアル設定にも使用できます。
 
 [REGION:fullwidth]
 ![](MakeMaterialAttributes.png)
 [/REGION]
 
 [REGION:note]
-Make Material Attributes ノードを Material に接続する場合、メインの Material ノードの **Use Material Attributes** プロパティが _True_ （チェック済み）に設定されていることを確認してください。メインのノードが単一入力へ折り畳まれて、Make Material Attirubtes ノードから受信する出力値を受け取ります。
+Make Material Attributes ノードをマテリアルに接続する場合、メインの Material ノードの **Use Material Attributes** プロパティが _True_ (チェックされている) に設定されていることを確認してください。メインのノードが 1 つの入力へ折り畳まれて、Make Material Attirubtes ノードから受信する出力値を受け取ります。
 [/REGION]

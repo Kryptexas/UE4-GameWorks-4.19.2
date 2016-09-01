@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2373757
+﻿INTSourceChangelist:2772068
 Availability:Public
 Title:UMG UI デザイナ ユーザーガイド
 Crumbs:%ROOT%, Engine, Engine/UMG
-Description:Unreal Motion Graphics を使用して UI エレメントを作成するためのガイド 
+Description:UMG を使用して UI エレメントを作成するためのガイド 
+version:4.9
 
 
 [VAR:Topic]
@@ -48,10 +49,9 @@ Description:Unreal Motion Graphics を使用して UI エレメントを作成�
 ![](UserGuideHeader.png)(w:940 h:160 convert:false)
 [/REGION]
 
-## 概要
 
 [EXCERPT:umgheader]
-**Unreal Motion Graphics UI デザイナ (UMG**) は、ビジュアル UI オーサリングツールです。ユーザー向けに表示するインゲームの HUD、メニューやその他のインターフェース関連のグラフィックスを作成するために使用できます。**UMG** の中核をなすのは、**ウィジェット** です。これは、一連の事前作成された関数でインターフェース (ボタン、チェックボックス、スライダー、進捗バーなど) を作成するために使用できます。こうした **ウィジェット** は、特殊な **Widget ブループリント** で編集され、以下の 2 つのタブを作成に使用します。**Designer** タブでは、インターフェースと基本的関数を視覚的にレイアウトできます。**Graph** タブでは、使用される **ウィジェット** の背後の機能を提供します。 
+**Unreal Motion Graphics UI デザイナ (UMG)** は、ビジュアル UI オーサリングツールです。ユーザー向けに表示するインゲームの HUD、メニューやその他のインターフェース関連のグラフィックスを作成するために使用できます。UMG の中核をなすのは、ウィジェットです。これは、一連の事前作成された関数でインターフェース (ボタン、チェックボックス、スライダー、進捗バーなど) を作成するために使用できます。こうしたウィジェットは、特殊な Widget ブループリントで編集され、以下の 2 つのタブを作成に使用します。Designer タブでは、インターフェースと基本的関数を視覚的にレイアウトできます。Graph タブでは、使用されるウィジェットの背後の機能を提供します。 
 [/EXCERPT:umgheader]
 
 [OBJECT:TopicButtonList]
@@ -62,7 +62,7 @@ Description:Unreal Motion Graphics を使用して UI エレメントを作成�
 		入門編
 	[/PARAM]
 	[PARAM:links]
-		[REGION:topics third]
+		[REGION:topics fourth]
 		[INCLUDE:#topics]
 		[/REGION]
 	[/PARAM]
@@ -121,8 +121,25 @@ Description:Unreal Motion Graphics を使用して UI エレメントを作成�
 		[RELATIVE:Engine/UMG/UserGuide/WidgetTypeReference]
 	[/PARAM]
 [/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\UMG\UserGuide\BestPractices:title%](Engine\UMG\UserGuide\BestPractices\BestPractices.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\UMG\UserGuide\BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\UMG\UserGuide\BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\UMG\UserGuide\BestPractices]
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Topics]
-		-->
+-->
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

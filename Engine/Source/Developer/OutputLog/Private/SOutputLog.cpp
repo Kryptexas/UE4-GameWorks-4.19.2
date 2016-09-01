@@ -185,6 +185,8 @@ void SConsoleInputBox::Construct( const FArguments& InArgs )
 			)
 	];
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 void SConsoleInputBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if (!GIntraFrameDebuggingGameThread && !IsEnabled())
@@ -233,18 +235,25 @@ TSharedRef<ITableRow> SConsoleInputBox::MakeSuggestionListItemWidget(TSharedPtr<
 {
 	check(Text.IsValid());
 
-	FString Left, Right, Combined;
+	FString Left, Mid, Right, TempRight, Combined;
 
-	if(Text->Split(TEXT("\t"), &Left, &Right))
+	if(Text->Split(TEXT("\t"), &Left, &TempRight))
 	{
-		Combined = Left + Right;
+		if (TempRight.Split(TEXT("\t"), &Mid, &Right))
+		{
+			Combined = Left + Mid + Right;
+		}
+		else
+		{
+			Combined = Left + Right;
+		}
 	}
 	else
 	{
 		Combined = *Text;
 	}
 
-	FText HighlightText = FText::FromString(Left);
+	FText HighlightText = FText::FromString(Mid);
 
 	return
 		SNew(STableRow< TSharedPtr<FString> >, OwnerTable)
@@ -296,7 +305,7 @@ void SConsoleInputBox::OnTextChanged(const FText& InText)
 
 		// console variables
 		{
-			IConsoleManager::Get().ForEachConsoleObject(
+			IConsoleManager::Get().ForEachConsoleObjectThatContains(
 				FConsoleObjectVisitor::CreateStatic< TArray<FString>& >(
 				&FConsoleVariableAutoCompleteVisitor::OnConsoleVariable,
 				AutoCompleteList ), *InputTextStr);
@@ -307,8 +316,12 @@ void SConsoleInputBox::OnTextChanged(const FText& InText)
 		for(uint32 i = 0; i < (uint32)AutoCompleteList.Num(); ++i)
 		{
 			FString &ref = AutoCompleteList[i];
+			int32 Start = ref.Find(InputTextStr);
 
-			ref = ref.Left(InputTextStr.Len()) + TEXT("\t") + ref.RightChop(InputTextStr.Len());
+			if (Start != INDEX_NONE)
+			{
+				ref = ref.Left(Start) + TEXT("\t") + ref.Mid(Start, InputTextStr.Len()) + TEXT("\t") + ref.RightChop(Start + InputTextStr.Len());
+			}
 		}
 
 		SetSuggestions(AutoCompleteList, false);
@@ -899,7 +912,7 @@ bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosit
 					int32 HardWrapLineLen = 0;
 					if (bIsFirstLineInMessage)
 					{
-						FString MessagePrefix = FOutputDevice::FormatLogLine(Verbosity, Category, nullptr, LogTimestampMode);
+						FString MessagePrefix = FOutputDeviceHelper::FormatLogLine(Verbosity, Category, nullptr, LogTimestampMode);
 						
 						HardWrapLineLen = FMath::Min(HardWrapLen - MessagePrefix.Len(), Line.Len() - CurrentStartIndex);
 						FString HardWrapLine = Line.Mid(CurrentStartIndex, HardWrapLineLen);
@@ -963,7 +976,7 @@ void SOutputLog::OnClearLog()
 
 void SOutputLog::OnUserScrolled(float ScrollOffset)
 {
-	bIsUserScrolled = !FMath::IsNearlyEqual(ScrollOffset, 1.0f);
+	bIsUserScrolled = ScrollOffset < 1.0 && !FMath::IsNearlyEqual(ScrollOffset, 1.0f);
 }
 
 bool SOutputLog::CanClearLog() const

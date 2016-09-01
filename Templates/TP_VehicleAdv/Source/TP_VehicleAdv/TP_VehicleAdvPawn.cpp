@@ -170,23 +170,23 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 	bInReverseGear = false;
 }
 
-void ATP_VehicleAdvPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void ATP_VehicleAdvPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
-	Super::SetupPlayerInputComponent(InputComponent);
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	// set up gameplay key bindings
-	check(InputComponent);
+	check(PlayerInputComponent);
 
-	InputComponent->BindAxis("MoveForward", this, &ATP_VehicleAdvPawn::MoveForward);
-	InputComponent->BindAxis("MoveRight", this, &ATP_VehicleAdvPawn::MoveRight);
-	InputComponent->BindAxis(LookUpBinding);
-	InputComponent->BindAxis(LookRightBinding);
+	PlayerInputComponent->BindAxis("MoveForward", this, &ATP_VehicleAdvPawn::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ATP_VehicleAdvPawn::MoveRight);
+	PlayerInputComponent->BindAxis(LookUpBinding);
+	PlayerInputComponent->BindAxis(LookRightBinding);
 
-	InputComponent->BindAction("Handbrake", IE_Pressed, this, &ATP_VehicleAdvPawn::OnHandbrakePressed);
-	InputComponent->BindAction("Handbrake", IE_Released, this, &ATP_VehicleAdvPawn::OnHandbrakeReleased);
-	InputComponent->BindAction("SwitchCamera", IE_Pressed, this, &ATP_VehicleAdvPawn::OnToggleCamera);
+	PlayerInputComponent->BindAction("Handbrake", IE_Pressed, this, &ATP_VehicleAdvPawn::OnHandbrakePressed);
+	PlayerInputComponent->BindAction("Handbrake", IE_Released, this, &ATP_VehicleAdvPawn::OnHandbrakeReleased);
+	PlayerInputComponent->BindAction("SwitchCamera", IE_Pressed, this, &ATP_VehicleAdvPawn::OnToggleCamera);
 
-	InputComponent->BindAction("ResetVR", IE_Pressed, this, &ATP_VehicleAdvPawn::OnResetVR); 
+	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ATP_VehicleAdvPawn::OnResetVR); 
 }
 
 void ATP_VehicleAdvPawn::MoveForward(float Val)

@@ -214,6 +214,8 @@ public:
 private:
 
 	TSharedPtr<FNiagaraSimulation> Emitter;
+
+	UPROPERTY()
 	TArray<UMovieSceneSection*> Sections;
 };
 

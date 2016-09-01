@@ -133,11 +133,11 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, const TSharedPtr<
 	}
 	
 	UClass* DocClass = nullptr;
-	TSharedPtr<IToolTip> ToolTip;
+	TSharedPtr<IToolTip> AssetEntryToolTip;
 	if(DefaultActor != nullptr)
 	{
 		DocClass = DefaultActor->GetClass();
-		ToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
+		AssetEntryToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
 	}
 
 	if (IsClass && !IsVolume && !ActorTypeDisplayName.IsEmpty())
@@ -145,9 +145,9 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, const TSharedPtr<
 		Item->DisplayName = ActorTypeDisplayName;
 	}
 
-	if (!ToolTip.IsValid())
+	if (!AssetEntryToolTip.IsValid())
 	{
-		ToolTip = FSlateApplicationBase::Get().MakeToolTip(Item->DisplayName);
+		AssetEntryToolTip = FSlateApplicationBase::Get().MakeToolTip(Item->DisplayName);
 	}
 	
 	const FButtonStyle& ButtonStyle = FEditorStyle::GetWidgetStyle<FButtonStyle>( "PlacementBrowser.Asset" );
@@ -169,7 +169,7 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, const TSharedPtr<
 		SNew( SBorder )
 		.BorderImage( this, &SPlacementAssetEntry::GetBorder )
 		.Cursor( EMouseCursor::GrabHand )
-		.ToolTip( ToolTip )
+		.ToolTip( AssetEntryToolTip )
 		[
 			SNew( SHorizontalBox )
 
@@ -286,6 +286,7 @@ SPlacementModeTools::~SPlacementModeTools()
 	if ( IPlacementModeModule::IsAvailable() )
 	{
 		IPlacementModeModule::Get().OnRecentlyPlacedChanged().RemoveAll( this );
+		IPlacementModeModule::Get().OnAllPlaceableAssetsChanged().RemoveAll( this );
 	}
 }
 
@@ -397,6 +398,7 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 	bNeedsUpdate = true;
 
 	PlacementModeModule.OnRecentlyPlacedChanged().AddSP( this, &SPlacementModeTools::UpdateRecentlyPlacedAssets );
+	PlacementModeModule.OnAllPlaceableAssetsChanged().AddSP( this, &SPlacementModeTools::UpdatePlaceableAssets );
 }
 
 TSharedRef< SWidget > SPlacementModeTools::CreatePlacementGroupTab( const FPlacementCategoryInfo& Info )
@@ -555,6 +557,14 @@ void SPlacementModeTools::UpdateRecentlyPlacedAssets( const TArray< FActorPlacem
 	if (GetActiveTab() == FBuiltInPlacementCategories::RecentlyPlaced())
 	{
 		bRecentlyPlacedRefreshRequested = true;
+	}
+}
+
+void SPlacementModeTools::UpdatePlaceableAssets()
+{
+	if (GetActiveTab() == FBuiltInPlacementCategories::AllClasses())
+	{
+		bPlaceablesFullRefreshRequested = true;
 	}
 }
 

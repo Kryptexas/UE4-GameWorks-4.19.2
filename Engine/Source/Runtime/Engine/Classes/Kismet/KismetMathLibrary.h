@@ -100,7 +100,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static bool RandomBoolWithWeightFromStream(float Weight, const FRandomStream& RandomStream);
 
 	/* Returns the logical complement of the Boolean value (NOT A) */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "NOT Boolean", CompactNodeTitle = "NOT", Keywords = "! not"), Category="Math|Boolean")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "NOT Boolean", CompactNodeTitle = "NOT", Keywords = "! not negate"), Category="Math|Boolean")
 	static bool Not_PreBool(bool A);
 
 	/* Returns true if the values are equal (A == B) */
@@ -359,7 +359,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "float < float", CompactNodeTitle = "<", Keywords = "< less"), Category="Math|Float")
 	static bool Less_FloatFloat(float A, float B);
 
-	/*Returns true if A is Greater than B (A > B) */
+	/*Returns true if A is greater than B (A > B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "float > float", CompactNodeTitle = ">", Keywords = "> greater"), Category="Math|Float")
 	static bool Greater_FloatFloat(float A, float B);
 
@@ -367,7 +367,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "float <= float", CompactNodeTitle = "<=", Keywords = "<= less"), Category="Math|Float")
 	static bool LessEqual_FloatFloat(float A, float B);
 
-	/* Returns true if A is Greater than or equal to B (A >= B) */
+	/* Returns true if A is greater than or equal to B (A >= B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "float >= float", CompactNodeTitle = ">=", Keywords = ">= greater"), Category="Math|Float")
 	static bool GreaterEqual_FloatFloat(float A, float B);
 
@@ -795,15 +795,62 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector ProjectVectorOnToVector(FVector V, FVector Target);
 
 	/**
-	* Projects a point onto a plane defined by a point on the plane and a plane normal.
-	*
-	* @param  A1 Start of first line segment
-	* @param  PlaneBase A point on the plane.
-	* @param  PlaneNormal Normal of the plane.
+	 * Find closest points between 2 segments.
+	 *
+	 * @param	Segment1Start	Start of the 1st segment.
+	 * @param	Segment1End		End of the 1st segment.
+	 * @param	Segment2Start	Start of the 2nd segment.
+	 * @param	Segment2End		End of the 2nd segment.
+	 * @param	Segment1Point	Closest point on segment 1 to segment 2.
+	 * @param	Segment2Point	Closest point on segment 2 to segment 1.
 	*/
 	UFUNCTION(BlueprintPure, Category = "Math|Vector")
 	static void FindNearestPointsOnLineSegments(FVector Segment1Start, FVector Segment1End, FVector Segment2Start, FVector Segment2End, FVector& Segment1Point, FVector& Segment2Point);
 	
+	/**
+	 * Find the closest point on a segment to a given point.
+	 *
+	 * @param Point			Point for which we find the closest point on the segment.
+	 * @param SegmentStart	Start of the segment.
+	 * @param SegmentEnd	End of the segment.
+	 * @return The closest point on the segment to the given point.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static FVector FindClosestPointOnSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd);
+
+	/**
+	 * Find the closest point on an infinite line to a given point.
+	 *
+	 * @param Point			Point for which we find the closest point on the line.
+	 * @param LineOrigin	Point of reference on the line.
+	 * @param LineDirection Direction of the line. Not required to be normalized.
+	 * @return The closest point on the line to the given point.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static FVector FindClosestPointOnLine(FVector Point, FVector LineOrigin, FVector LineDirection);
+
+	/**
+	* Find the distance from a point to the closest point on a segment.
+	*
+	* @param Point			Point for which we find the distance to the closest point on the segment.
+	* @param SegmentStart	Start of the segment.
+	* @param SegmentEnd		End of the segment.
+	* @return The distance from the given point to the closest point on the segment.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static float GetPointDistanceToSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd);
+
+	/**
+	* Find the distance from a point to the closest point on an infinite line.
+	*
+	* @param Point			Point for which we find the distance to the closest point on the line.
+	* @param LineOrigin		Point of reference on the line.
+	* @param LineDirection	Direction of the line. Not required to be normalized.
+	* @return The distance from the given point to the closest point on the line.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static float GetPointDistanceToLine(FVector Point, FVector LineOrigin, FVector LineDirection);
+
 	/**
 	 * Projects a point onto a plane defined by a point on the plane and a plane normal.
 	 *
@@ -995,19 +1042,19 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName="NotEqual (DateTime)", CompactNodeTitle="!=", Keywords="!= not equal"), Category="Math|DateTime")
 	static bool NotEqual_DateTimeDateTime( FDateTime A, FDateTime B );
 
-	/* Returns true if A is Greater than B (A > B) */
+	/* Returns true if A is greater than B (A > B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="DateTime > DateTime", CompactNodeTitle=">", Keywords="> greater"), Category="Math|DateTime")
 	static bool Greater_DateTimeDateTime( FDateTime A, FDateTime B );
 
-	/* Returns true if A is Greater than B (A >= B) */
+	/* Returns true if A is greater than or equal to B (A >= B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="DateTime >= DateTime", CompactNodeTitle=">=", Keywords=">= greater"), Category="Math|DateTime")
 	static bool GreaterEqual_DateTimeDateTime( FDateTime A, FDateTime B );
 
-	/* Returns true if A is Greater than B (A < B) */
+	/* Returns true if A is less than B (A < B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="DateTime < DateTime", CompactNodeTitle="<", Keywords="< less"), Category="Math|DateTime")
 	static bool Less_DateTimeDateTime( FDateTime A, FDateTime B );
 
-	/* Returns true if A is Greater than B (A <= B) */
+	/* Returns true if A is less than or equal to B (A <= B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="DateTime <= DateTime", CompactNodeTitle="<=", Keywords="<= less"), Category="Math|DateTime")
 	static bool LessEqual_DateTimeDateTime( FDateTime A, FDateTime B );
 
@@ -1135,19 +1182,19 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName="NotEqual (Timespan)", CompactNodeTitle="!=", Keywords="!= not equal"), Category="Math|Timespan")
 	static bool NotEqual_TimespanTimespan( FTimespan A, FTimespan B );
 
-	/* Returns true if A is Greater than B (A > B) */
+	/* Returns true if A is greater than B (A > B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="Timespan > Timespan", CompactNodeTitle=">", Keywords="> greater"), Category="Math|Timespan")
 	static bool Greater_TimespanTimespan( FTimespan A, FTimespan B );
 
-	/* Returns true if A is Greater than B (A >= B) */
+	/* Returns true if A is greater than or equal to B (A >= B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="Timespan >= Timespan", CompactNodeTitle=">=", Keywords=">= greater"), Category="Math|Timespan")
 	static bool GreaterEqual_TimespanTimespan( FTimespan A, FTimespan B );
 
-	/* Returns true if A is Greater than B (A < B) */
+	/* Returns true if A is less than B (A < B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="Timespan < Timespan", CompactNodeTitle="<", Keywords="< less"), Category="Math|Timespan")
 	static bool Less_TimespanTimespan( FTimespan A, FTimespan B );
 
-	/* Returns true if A is Greater than B (A <= B) */
+	/* Returns true if A is less than or equal to B (A <= B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="Timespan <= Timespan", CompactNodeTitle="<=", Keywords="<= less"), Category="Math|Timespan")
 	static bool LessEqual_TimespanTimespan( FTimespan A, FTimespan B );
 
@@ -1657,6 +1704,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector2d * float", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Vector2D")
 	static FVector2D Multiply_Vector2DFloat(FVector2D A, float B);
 
+	/* Element-wise Vector multiplication (Result = {A.x*B.x, A.y*B.y}) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "vector2d * vector2d", CompactNodeTitle = "*", Keywords = "* multiply", CommutativeAssociativeBinaryOperator = "true"), Category = "Math|Vector2D")
+	static FVector2D Multiply_Vector2DVector2D(FVector2D A, FVector2D B);
+
 	/** Returns Vector A divided by B */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "vector2d / float", CompactNodeTitle = "/", Keywords = "/ divide division"), Category="Math|Vector2D")
 	static FVector2D Divide_Vector2DFloat(FVector2D A, float B = 1.f);
@@ -1843,7 +1894,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 * @outparam	OutRectSideA - Vector oriented and sized to represent one edge of the enclosing rectangle, orthogonal to OutRectSideB
 	 * @outparam	OutRectSideB - Vector oriented and sized to represent one edge of the enclosing rectangle, orthogonal to OutRectSideA
 	*/
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Math|Geometry", meta=(WorldContext="WorldContextObject"))
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Math|Geometry", meta=(WorldContext="WorldContextObject", CallableWithoutWorldContext))
 	static void MinimumAreaRectangle(UObject* WorldContextObject, const TArray<FVector>& InVerts, const FVector& SampleSurfaceNormal, FVector& OutRectCenter, FRotator& OutRectRotation, float& OutSideLengthX, float& OutSideLengthY, bool bDebugDraw = false);
 
 	/**

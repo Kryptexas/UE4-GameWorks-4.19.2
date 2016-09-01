@@ -193,7 +193,18 @@ bool FSocketBSDIPv6::RecvFrom(uint8* Data, int32 BufferSize, int32& BytesRead, F
 
 //	NETWORK_PROFILER(FSocket::RecvFrom(Data,BufferSize,BytesRead,Source));
 
-	return BytesRead >= 0;
+	if (BytesRead < 0 && SocketSubsystem->TranslateErrorCode(BytesRead) == SE_EWOULDBLOCK)
+	{
+		// EWOULDBLOCK is not an error condition
+		BytesRead = 0;
+	}
+	else if (BytesRead <= 0) // 0 means gracefully closed
+	{
+		BytesRead = 0;
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -204,9 +215,19 @@ bool FSocketBSDIPv6::Recv(uint8* Data, int32 BufferSize, int32& BytesRead, ESock
 
 //	NETWORK_PROFILER(FSocket::Recv(Data,BufferSize,BytesRead));
 
-	return BytesRead >= 0;
-}
+	if (BytesRead < 0 && SocketSubsystem->TranslateErrorCode(BytesRead) == SE_EWOULDBLOCK)
+	{
+		// EWOULDBLOCK is not an error condition
+		BytesRead = 0;
+	}
+	else if (BytesRead <= 0) // 0 means gracefully closed
+	{
+		BytesRead = 0;
+		return false;
+	}
 
+	return true;
+}
 
 bool FSocketBSDIPv6::Wait(ESocketWaitConditions::Type Condition, FTimespan WaitTime)
 {

@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2607480
+﻿INTSourceChangelist:2956400
 Availability:Public
 Title: 퍼포먼스와 프로파일링
 Crumbs: %ROOT%, Engine
 Description:퍼포먼스 문제를 알아내어 고치는 방법입니다.
 Navigation:topic
+version: 4.9
+parent:Engine
+order:13
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,7 +51,6 @@ Navigation:topic
 ![Performance Profiling](ppe_landing_banner.png)
 [/REGION]
 
-[TOC (start:2 end:3)]
 
 [EXCERPT:Intro]
 **퍼포먼스** 실시간 게임 제작에 있어 언제나 화두입니다. 동영상 효과를 내기 위해서는 최소 15fps 의 프레임 속도가 필요하며, 
@@ -56,196 +58,7 @@ Navigation:topic
 
 언리얼 엔진에는 여러가지 기능이 제공되며, 다양한 퍼포먼스적 특징이 있습니다. 콘텐츠나 약간의 코드를 최적화시켜 필요한 수준의 퍼포먼스를 내기 위해서는 
 어디서 퍼포먼스가 새는지 확인할 필요가 있습니다. 그 방법으로 엔진 **프로파일링** 툴이 있습니다. 각각의 경우마다 다르며, 하드웨어나 소프트웨어 내부적인 지식도 약간 필요합니다. 
-여기서는 그 작업에 있어 도움이 될만한 세부사항을 몇 가지 모아봤습니다.
+아래 링크된 퍼포먼스와 프로파일링 페이지를 통해 프로젝트 프로파일링 방법을 안내받으실 수 있을 것입니다.
 [/EXCERPT:Intro]
 
-이 가이드에서는 주로 렌더링에 대해 다룰텐데, 퍼포먼스가 가장 많이 필요한 곳이기 때문입니다. 오브젝트를 추가하고, 해상도를 높이고, 라이트를 추가하고, 머티리얼을 추가하는 것 모두 
-퍼포먼스에 엄청난 영향을 끼칩니다. 다행히도 렌더링에는 약간의 퍼포먼스를 돌려받기 쉬운 경우가 많습니다. 다수의 렌더링 기능은 콘솔 변수를 통해 조절 가능합니다.
-
-에디터 출력 로그 또는 게임내 콘솔을 사용해서 할 수 있는 작업은 다음과 같습니다:
-* 콘솔 변수 설정 (**cvarname value**) 
-* 현재 상태 구하기 (**cvarname**) 
-* 변수 도움말 구하기 **cvarname ?**. 
-
-필요에 따라 `ConsoleVariables.ini` 에 **cvarname=value** 문법으로 세팅을 넣을 수 있습니다. 올바른 콘솔 변수를 찾으려면, **DumpConsoleVars** 또는 자동 완성 시스템을 사용하면 됩니다.
-대부분의 렌더링 변수는 **r.** 로 시작합니다.
-
-* 퍼포먼스 향상을 위한 콘솔 변수 및 기타 엔진 옵션에 대한 상세 정보는 [](Engine/Performance\Options) 문서를 참고해 주세요.
-
-## 일반 팁
-
-이상적으로는, 타겟으로 삼는 것에 가급적 근접하게 프로파일링을 해야 합니다. 예를 들어 라이트맵을 빌드한 상태로 타겟 하드웨어에서 독립형으로 게임을 테스트하는 것이 
-좋은 프로파일링의 예입니다.
-
-좋은 프로파일링을 위해서는 결과에 잡음이 섞일 수 있는 것들을 고립시켜서 재현가능한 케이스를 구성하는 것이 최선입니다 (예를 들어 **콘텐츠 브라우저** 를 열어두면 렌더링 비용이 추가됩니다).
-그러므로 게임에서 직접 프로파일링하는 것이 좋습니다. 어떤 경우에는 (난수 발생기를 끈다든가) 코드를 변경하는 것도 좋을 수 있습니다. **Pause** 명령이나 **Slomo 0.001** 도 안정성을 높이는 데 
-매우 좋습니다.
-
-프로파일링이 얼마나 정확한지 알기 위해 여러 번 측정을 합니다. **stat unit** 이나 **stat fps** 같은 통계 명령으로 기준 수치를 얻을 수 있습니다. 정확한 프로파일링을 위해서는 밀리세컨드 (ms) 가 필요하며,
-초당 프레임 (fps) 은 아닙니다. 수치 변환은 쉽게 할 수 있지만, fps 로 측정했을 경우 상대적 향상은 의미가 적습니다. 개별적인 기능에 대해 얘기할 때는 오로지 
-밀리세컨드만 취급하며, 프레임으로 측정하지는 않습니다.
-
-30 fps (~33.3ms) 또는 60 fps (~16.6ms) 에 제한되는 것이 보인다면, VSync 를 켜뒀기 때문일 수 있습니다. 정확한 시간을 재기 위해서는 끄고서 프로파일링하는 것이 좋습니다.
-
-매우 간단한 씬이라고 프레임 속도가 엄청 높을 것이라고는 기대하지 마세요. 복잡한 씬 처리를 위한 (디퍼드 렌더링같은) 여러가지 디자인상의 선택으로 인해 기본적인 비용이 높습니다. 프레임 속도 제한에 걸릴 수도 있는데,
-필요한 경우 (**t.MaxFPS**, **r.VSync** 등으로) 조정할 수 있습니다.
-
-* 퍼포먼스를 고려한 콘텐츠와 레벨 셋업 관련 안내는 [](Engine/Performance\Guidelines) 문서를 참고하세요.
-* stat 명령 관련 정보는 [](Engine/Performance\StatCommands) 문서를 참고하세요.
-
-## 어느 것에 구속되는지 알아내기
-
-요즘의 하드웨어에는 병렬 처리 유닛(예로 GPU 는 메모리, 트라이앵글/버텍스/픽셀 처리 등, CPU 는 다중 CPU, 메모리 등)이 많습니다. 종종 이 유닛은 서로를 기다려 줘야 합니다.
-먼저 어느것에 구속되는지 알아볼 필요가 있으며, 그 부분을 최적화시켜 주면 퍼포먼스가 향상될 확률이 높습니다. 잘못된 부분에 대한 최적화는 시간 낭비일 뿐만 아니라 새로운 버그가 생기거나 심지어 퍼포먼스가 
-떨어질 수도 있습니다. 해당 부분을 개선시킨 경우 프로파일링을 다시 한 번 해 주는 것이 좋은데, 전에는 감춰져있던 새로운 퍼포먼스 병목현상이 드러날 수도 있기 때문입니다.
-
-먼저 프레임 속도가 제한되는 부분이 GPU 때문인지 CPU 떄문인지 확인해야 합니다. 언제나처럼 (해상도를 바꾼다든지 해서) 가중되는 부하를 가변시키면서 무엇이 효과가 있는지 확인합니다. 여기서는 **stat unit** 기능의 엔진 빌드를 
-살펴보는 것이 쉽습니다.
-
-[REGION:imagetable]
-| ![](stat_unit.png)(w:160) |
-| :----: | 
-| CONSOLE: stat unit |
-[/REGION]
-
-실제 프레임 시간은 셋 중 하나로 제한받습니다: **Game** (GPU 게임 스레드), **Draw** (GPU 렌더 스레드), **GPU** (GPU).
-여기서는 (셋 중에 가장 큰) **GPU** 가 제한 요인임을 알 수 있습니다. **Frame** 시간을 줄이기 위해서는 GPU 부하를 줄여야 합니다.
-
-* [](Engine/Performance\CPU)
-* [](Engine/Performance\GPU)
-
-## 표시 플래그
-
-엔진 표시 플래그는 여러가지 렌더링 기능을 토글시키는 데 사용됩니다. 에디터에는 모든 표시 플래그가 편리한 2D UI 로 나열됩니다. 체크박스를 클릭하여 메뉴를 닫을 필요 없이 여러가지 체크박스를 토글시킬 수 있습니다.
-
-게임내에서는 **show** 명령을 사용하면 됩니다. **show** 명령을 내리면 모든 표시 플래그 목록과 그 상태가 나타납니다. **show showflagname** 을 내리면 그 기능이 토글됩니다. 참고로 게임 뷰포트에서만 작동하므로, 에디터 뷰포트에서는 
-에디터 UI 를 사용해야 합니다. (showflag.Bloom 식의) 콘솔 변수를 사용하여 게임내 또는 에디터의 표시 플래그 값을 덮어쓸 수 있지만, UI 를 비활성화시키기도 합니다.
-
-[REGION:note]
-일부 기능은 아무것도 렌더링하지 않아도 퍼포먼스를 잡아먹는 것이 있습니다. 예로 **show particles** 는 파티클을 감추지만 나중에 다시 켤 때를 대비해 시뮬레이션 시간은 
-여전히 필요합니다. **fx.freezeparticlesimulation** 콘솔 변수로 업데이트 부분을 끌 수 있기는 합니다 (에디터 UI 에도 존재합니다).
-또다른 예로 **show tesselation** 은 트라이앵글 증폭 기능을 끄지만 여전히 테셀레이션 셰이더를 사용합니다.
-[/REGION:note]
-
-프로파일링을 시작하기 좋은 지점은 **show StaticMeshes** 또는 **show tessellation** 같은 하이 레벨 기능입니다.
-
-모든 표시 플래그 역시 콘솔 변수로 노출되어 있습니다. 예로 콘솔은 **show Bloom**, **showflag.Bloom 0** 또는 환경설정 파일에서는 **showflag.Bloom = 0** 입니다.
-콘솔 변수는 좀 더 타이핑이 필요하지만 에디터 UI 표시 플래그도 덮어쓰므로 다른 콘솔 변수처럼 환경설정 파일에 넣을 수 있습니다.
-
-프로파일링에 가장 유용한 것들입니다:
-
-| 표시 플래그 | 설명 |
-| -------- | ----------- |
-| **ScreenSpaceReflections** | 스크린 스페이스 리플렉션을 토글합니다. 비용이 많이 들 수 있으며, 일정 러프니스까지의 픽셀에만 영향을 끼칩니다 (**r.SSR.MaxRoughness** 또는 포스트프로세스 세팅으로 조절합니다).
-| **AmbientOcclusion** | 스크린 스페이스 앰비언트 오클루전입니다 (라이트매스에 앰비언트 오클루전을 굽는 스태틱 오브젝트와 같이, 어떤 씬에서는 이득이 아주 작습니다).
-| **AntiAliasing** | 안티 앨리어싱 (TemporalAA and FXAA) 을 토글하며, **TemporalAA** 를 사용하면 (퀄리티는 낮지만 더욱 빠른) FXAA 로 전환합니다.
-| **Bloom** | 이미지 기반 렌즈 플레어와 블룸 기능에 영향을 끼칩니다. 
-| **DeferredLighting** | 모든 디퍼드 라이팅 패스를 토글합니다.
-| **DirectionalLights** **PointLights** **SpotLights** | 각각의 라이트 유형을 토글합니다 (각 라이트 유형의 효과와 퍼포먼스 영향을 확인하기에 좋습니다).
-| **DynamicShadows** | 모든 다이내믹 섀도우를 토글합니다 (섀도우맵 렌더링 <-> 섀도우 필터링/프로젝션).
-| **GlobalIllumination** | 구운 라이팅 <-> 다이내믹 간접광 (LPV) 토글입니다.
-| **LightFunctions** | 라이트 함수 렌더링을 토글합니다.
-| **PostProcessing** | 모든 포스트프로세싱 패스를 토글합니다.
-| **ReflectionEnvironment** | 리플렉션 인바이언먼트 패스를 토글합니다.
-| **Refraction** | 리프랙션, 굴절 패스를 토글합니다.
-| **Rendering** | 렌더링을 한꺼번에 토글합니다.
-| **Decals** | 데칼 렌더링을 토글합니다.
-| **Landscape** **Brushes** **StaticMeshes** **SkeletalMeshes** **Landscape** | 종류별 지오메트리 렌더링을 토글합니다.
-| **Translucency** | 반투명 렌더링을 토글합니다.
-| **Tessellation** | 테셀레이션을 토글합니다 (테셀레이션 셰이더가 실행은 되지만 트라이앵글이 추가로 스폰됩니다).
-| **IndirectLightingCache** | 무효화된 라이트맵을 가진 다이내믹 또는 스태틱 오브젝트가 간접광 캐시를 사용중인지 토글합니다.
-| **Bounds** | 에디터에서 선택된 오브젝트의 바운딩 볼륨을 표시합니다.
-| **Visualize SSR** | 스크린 스페이스 리플렉션에 영향받는 모든 픽셀을 밝은 주황색(느림)으로 렌더링합니다. 아래 참고.
-
-[REGION:imagetable]
-| ![](SSR.png)(w:794) |
-| :----: | 
-| CONSOLE: r.SSR.MaxRoughness 0.9 = 최고 퀄리티 (왼쪽), r.SSR.MaxRoughness 0.1 = 빠름 (오른쪽) |
-| Unlit (위), show VisualizeSSR (아래) |
-[/REGION]
-
-
-### 뷰 모드
-
-뷰 모드는 표시 플래그의 조합일 뿐입니다. 에디터 UI 는 표시 플래그와 별개라서, **ViewMode** 콘솔 명령으로 전환할 수 있습니다.
-퍼포먼스에 가장 유용한 것은 **Wireframe**, **LightComplexity**, **ShaderComplexity**, **Lit** 입니다.
-
-[REGION:imagetable]
-| ![](ViewModes.png)(w:794) |
-| :----: | 
-| 다양한 뷰 모드 (차례대로): Lit, LightCompexity (어두울 수록 좋음), Wireframe, Shader Complexity (초록이 좋음) |
-[/REGION]
-
-## 넓은 범위의 하드웨어 취급 방법
-
-언리얼 엔진에는 [scalability, 엔진 퀄리티](Engine/Performance/Scalability) 세팅으로 다수의 그래픽 기능을 설정할 수 있습니다. 어플리케이션에 따라 요구되는 바도 다르므로 그 시스템을 커스터마이징하는 것이 좋습니다.
-
-[REGION:note]
-내장 그래픽 칩에는 종종 메모리 서브시스템이 느리지만 ALU 및 텍스처 유닛 수도 적습니다. 다양한 범위의 하드웨어에서 테스트하여 실제 퍼포먼스 특징을 알아내는 것이 중요합니다.
-**SynthBenchmark** 툴이 테스트할 가치가 있는 그룹을 알아내는 데 도움이 될 수 있습니다. 100 정도의 수치면 요즘의 GPU 에 적당하지만, 일정 부분에 일정치 않은 변화가 보인다면
-이 GPU 특별 체질이라 각별한 주의를 요함을 알 수 있습니다.
-[/REGION]
-
-콘솔에 **SynthBenchmark** 라 입력하여 벤치마크 툴을 사용할 수 있습니다.
-
-
-    FSynthBenchmark (V0.92):
-    ===============
-    Main Processor:
-            ... 0.025383 s/Run 'RayIntersect'
-            ... 0.027685 s/Run 'Fractal'
- 
-    CompiledTarget_x_Bits: 64
-    UE_BUILD_SHIPPING: 0
-    UE_BUILD_TEST: 0
-    UE_BUILD_DEBUG: 0
-    TotalPhysicalGBRam: 32
-    NumberOfCores (physical): 16
-    NumberOfCores (logical): 32
-    CPU Perf Index 0: 100.9
-    CPU Perf Index 1: 103.3
-  
-    Graphics:
-    Adapter Name: 'NVIDIA GeForce GTX 670'
-    (On Optimus the name might be wrong, memory should be ok)
-    Vendor Id: 0x10de
-    GPU Memory: 1991/0/2049 MB
-          ... 4.450 GigaPix/s, Confidence=100% 'ALUHeavyNoise'
-          ... 7.549 GigaPix/s, Confidence=100% 'TexHeavy'
-          ... 3.702 GigaPix/s, Confidence=100% 'DepTexHeavy'
-          ... 23.595 GigaPix/s, Confidence=89% 'FillOnly'
-          ... 1.070 GigaPix/s, Confidence=100% 'Bandwidth'
- 
-    GPU Perf Index 0: 96.7
-    GPU Perf Index 1: 101.4
-    GPU Perf Index 2: 96.2
-    GPU Perf Index 3: 92.7
-    GPU Perf Index 4: 99.8
-    CPUIndex: 100.9
-    GPUIndex: 96.7
-
-
-## 일정 기간에 대한 차트 생성
-
-(여러가지 경우의 테스트를 위해 게임내 컷씬이나 카메라 경로를 설정하여) 긴 기간에 걸친 단위 시간 통계를 구할 수 있다면 매우 유용하게 쓰일 수 있습니다.
-
-다음 차트는 컷씬에서 안드로이드 디바이스 (**스트리밍**) 에 대해 생서오딘 것입니다. 컷씬 이전과 이후 **StartFPSChart**, **StopFPSChart** 콘솔 명령을 입력했습니다.
-그 결과 ( [ProjectFolder]\Saved\Cooked\Android_ES31\SubwayPatrol\Saved\Profiling\FPSChartStats 폴더의) .csv 파일을 엑셀에서 열었습니다.
-이 예제에서는 처음 제목 4 줄을 지우고, 모두 선택한 다음 **Scatter With Straight Lines**, 직선이 있는 분산형을 선택했습니다.
-
-[REGION:imagetable]
-| ![](fpschart.png)(w:837) |
-| :----: | 
-| CONSOLE: StartFPSChart, StopFPSChart |
-[/REGION]
-
-
-## 퍼포먼스 및 프로파일링 관련 상세
-* [](Engine/Performance/SystemSettings)
-* [](Engine/Performance/Profiler)
-* [](Engine/Performance/Scalability)
-* [](Engine/Rendering/ParticleSystems/Optimization/Concepts)
-
-
-
-
+[DIR(output:"listbutton" parent:"Engine/Performance" org:"hierarchy")]

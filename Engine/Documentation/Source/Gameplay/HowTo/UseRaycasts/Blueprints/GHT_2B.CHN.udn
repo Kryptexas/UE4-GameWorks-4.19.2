@@ -1,218 +1,220 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2711856
 Availability: Public
-Title:Using Raycasts (Tracing) in Blueprints
+Title:在蓝图中使用 Raycasts（Tracing）
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
-Description:A How To Guide for using Raycasts (Tracing) in Blueprints. 
+Description:关于如何在蓝图中使用 Raycasts（Tracing）的操作指南。
+version: 4.9 
 
 [TOC (start:2 end:2)]
 
-On this page, you will learn the difference between **Single** and **Multi** Raycasts as well as how to set up each which could be used to retrieve collision information. 
+在本页中，您将了解 **Single** 和 **Multi** **Raycasts** 的区别，以及如何设置它们来检索碰撞信息。 
 
-## Single Line Trace
+## 单线跟踪
 
-### Single Line Trace by Channel
+### LineTraceByChannel
 
-The **Single Line Trace by Channel** will perform a collision trace along a given line and return the first Object (that responds to the Trace Channel) the trace hits. 
+**LineTraceByChannel** 将沿着指定的线路执行一次碰撞跟踪，然后返回撞到的（对跟踪通道做出响应的）第一个对象。 
 
-Below you will find steps for setting up a Single Line Trace by Channel. 
+以下步骤用于设置基于通道的单线跟踪。 
 
-1.  Create a new project using the **Blueprint First Person** template with **Include Starter Content** and open the project. 
+1.用 **Blueprint First Person** 模板（选择 **Include Starter Content**）新建一个项目，然后打开此项目。 
 
-1.  In the **FirstPersonBP/Blueprints** folder, open the **FirstPersonCharacter** Blueprint. 
+1.在 **FirstPersonBP/Blueprints** 文件夹中，打开 **FirstPersonCharacter** 蓝图。 
 
-1.  **Right-click** in the graph and search for and add an **Event Tick** node. 
+1.  在图表中 **Right-click**，然后搜索并添加一个 **Event Tick** 节点。 
 
 	![](GHT2B_1.png)
 
-	This will cause the trace to run every frame.
+	这会在跟踪时执行每一帧。
 	
-1.  Drag off the execute pin, then search for **Single Line** and add the **Single Line Trace by Channel** node. 
+1.    拖开执行针，然后搜索 **LineTraceByChannel** 节点。 
 
 	![](GHT2B_2.png)
 
-1.  While holding down the **Control** key, drag in the **FirstPersonCamera** component. 
+1.   按住 **Ctrl** 键，将 **FirstPersonCamera** 组件拖入。 
 
 	![](GHT2B_3.png)
 
-	This is where we will start our trace from, the camera. 
+	我们将在这里开始（来自于摄像机的）跟踪。 
 
-1.  Drag off the **FirstPersonCamera** node, and add a **Get World Location** node, then connect it to the **Start** of the trace. 
+1.   拖开 **FirstPersonCamera** 节点，然后添加一个 **Get World Location** 节点，随后将其连接至跟踪的 **Start**。 
 
-1.	Drag off the **FirstPersonCamera** node again and add a **Get World Rotation** node. 
+1.	再次拖开 **FirstPersonCamera** 节点并添加一个 **Get World Rotation** 节点。 
 
 	![](GHT2B_4.png)(w:800)
 
-	Here we are starting the trace from the location of the FirstPersonCamera, then we are getting the rotation of the FirstPersonCamera. 
+	我们将从 FirstPersonCamera 的位置开始跟踪，然后获取 FirstPersonCamera 的旋转值。 
 
-1.	Drag off the **Get World Rotation** and add a **Get Forward Vector**, then drag off that and add a **Vector * Float** node set to **1500**. 
+1.	拖出 **Get World Rotation** 并添加一个 **Get Forward Vector**，然后将其拖开并添加一个 **Vector * Float** 节点（设置为 **1500**）。 
 
 	![](GHT2B_5.png)
 
-	We are getting the rotation and the forward vector then extending outward from it by 1500 (this value is the length of the trace). 
+	我们将获取旋转和前进向量，然后由此向外扩张 1500（跟踪长度值）。 
 
-1.	Drag off the **Get World Location** and add a **Vector + Vector** node and connect as shown below to the **End** of the trace node. 
+1.	拖开 **Get World Location** 并添加一个 **Vector + Vector** 节点，然后按照以下方式连接至跟踪节点的 **End**。 
 
 	![](GHT2B_6.png)(w:800)
 
-	Here we are taking the location of the FirstPersonCamera and extending out from it, 1500 units based on its rotation and forward vector.
+	我们将获取 FirstPersonCamera 的位置，并根据其旋转和前进向量由此向外扩张 1500单位。
 
-1.	On the Trace node, set the **Draw Debug Type** to **For One Frame**. 
+1.	在跟踪节点上，将 **Draw Debug Type** 设置为 **For One Frame**。 
 
 	![](GHT2B_7.png)
 
-	This will allow us to see a debug line while playing in-game to see our line trace. 
+	这样我们就能在查看调试行的同时运行游戏并查看线踪迹。 
 
-1.	Drag off the execution out pin of the trace and add a **Print String** node. 
+1.	拖开踪迹的执行外针并添加一个 **Print String** 节点。 
 
 	![](GHT2B_8.png)
 
-1.	Drag off the **Out Hit** pin and add search for **Break Hit** then add a **Break Hit Result** node. 
+1.	拖开 **Out Hit** 针并搜索 **Break Hit**，然后添加一个 **Break Hit Result** 节点。 
 
 	![](GHT2B_9.png)
 
-1.	Off the **Hit Actor** pin off the **Break Hit Result**, add a **To String (Object)** node and connect it to the **Print String** node. 
+1.	从 **Hit Actor** 针连出 **Break Hit Result**，添加一个 **To String (Object)** 节点，然后将其连接至 **Print String** 节点。 
 
 	[REGION:lightbox]
 	[![](GHT2B_10.png)(w:800)](GHT2B_10.png)
 	[/REGION]
 
-	_Click image for a full view._
+	_单击图像可查看全图。_
 
-	This will allow us to print to the screen the object we hit with our trace.
+	这样可以让我们将跟踪时击中的对象输出至屏幕。
 
-1.	Click the **Compile** button, then play in the editor and look at the cubes in the level. 
+1.	单击 **Compile** 按钮，然后在编辑器中运行并查看关卡中的立方体。 
 
 	![](GHT2B_11.png)(w:800)
 
-	_Here we have ejected from the First Person perspective so that you can see the view angle of the trace._
+	_我们在这里没有使用第一人称视角，为的是让您看到跟踪视角。_
 	
-	You should see that when the trace hits a cube, it prints the cube to the screen. 
+	您应当看到在跟踪线击中立方体时，它会将立方体输出至屏幕。 
 
-The example above returns all Objects that are set to respond to the provided Trace Channel, however there may be instances when you want to only return certain objects. In the example above, you can use the Actors to Ignore pin which takes in an Array of Actors which should be ignored by the trace, but this would mean you have to specify each individual Actor to ignore. 
+以上示例将返回所有被设置为对提供的跟踪通道做出响应的对象，但有时您可能只想返回特定的对象。在上面的示例中，您可以使用 Actors to Ignore） 针，它对应的是一个应当被跟踪所忽略的 Actor 阵列，
+但这意味着您需要指定每一个要忽略的 Actor。 
 
-You can also perform a Single Line Trace by Object where only the specified ObjectTypes are returned. This will allow you to target a specific set of Objects only to be included in the trace. 
+您也可以执行一个基于对象的单线跟踪，从而仅返回指定的 ObjectTypes。这样就可以在跟踪时只包含一组特定对象。 
 
-### Single Line Trace by Object
+### LineTraceForObjects
 
-The **Single Line Trace by Object** will perform a collision trace along a given line and return the first Object (that responds to the ObjectType) the trace hits. 
+**LineTraceForObjects** 将沿着指定的线路执行一次碰撞跟踪，然后返回撞到的（对ObjectType做出响应的）第一个对象。 
 
-To set up a Single Line Trace by Object trace, do the following: 
+要设置基于对象的单线跟踪，请执行以下步骤： 
 
-1.  Follow the steps used for the **Single Line Trace by Channel** example to set up a trace. 
+1.按照 **LineTraceByChannel** 示例所用的步骤设置一个跟踪。 
 
-1.  Replace the **Single Line Trace by Channel** node with the **Single Line Trace by Object** node. 
+1.  将 **LineTraceByChannel** 节点替换为 **LineTraceForObjects** 节点。 
 
-1.  Drag off the **Object Types** pin and add the **Make Array** node. 
+1.  拖开 **Object Types** 针并添加 **Make Array** 节点。 
 
 	![](GHT2B_12.png)
 
-1.  On the **Make Array** node, specify the **ObjectType** you want to trace for via the drop-down menu. 
+1.  在 **Make Array** 节点上，通过下拉菜单指定您要执行跟踪的 **ObjectType**。 
 
 	![](GHT2B_13.png)
 
-	Here we are tracing for **WorldDyanmic** Objects. You can add more by clicking the **Add Pin** button.  
+	在这里，我们要针对 **WorldDyanmic** 对象执行跟踪。您可以单击 **Add Pin** 按钮来添加更多。  
 
-1.  You can set the rest of the trace up the same way a **Single Line Trace by Channel** is setup. 
+1.  您可以按照 **LineTraceByChannel** 的设置方式来设置其余的跟踪。 
 
 	[REGION:lightbox]
 	[![](GHT2B_15.png)(w:800)](GHT2B_15.png)
 	[/REGION]
 
-	_Click image for a full view._
+	_单击图像可查看全图。_
 
-1. We have added a single **WorldDynamic** Object into our level. 
+1. 我们在关卡中添加了一个 **WorldDynamic** 对象。 
 
 	![](GHT2B_16.png)
 
-	Only the added Actor is now returning as a hit, the cubes since they are Physics Actors do not return a hit. 
+	现在，只有添加的 Actor 才返回为“命中”，而立方体作为物理 Actor（Physics Actor）将不会返回“命中”。 
 
 
-## Multi Line Trace
+## 多线跟踪
 
-### Multi Line Trace by Channel
+### MultiLineTraceByChannel
 
-The **Multi Line Trace by Channel** will perform a collision trace along a given line and return all hits encountered up to and including the first blocking hit, returning only objects that respond to the specified Trace Channel. 
+**MultiLineTraceByChannel** 将沿着指定的线路执行一次碰撞跟踪，然后返回所有遇到的撞击，包括第一个阻挡撞击，仅返回对指定跟踪通道做出响应的对象。 
 
-Below you will find steps for setting up a **Multi Line Trace by Channel**. 
+以下步骤用于设置 **MultiLineTraceByChannel**。 
 
-1.  Follow the steps used for the **Single Line Trace by Channel** example to set up a trace. 
+1.按照 **LineTraceByChannel** 示例所用的步骤设置一个跟踪。 
 
-1.  Replace the **Single Line Trace by Channel** node with the **Multi Line Trace by Channel** node. 
+1.将 **LineTraceByChannel** 节点替换为 **MultiLineTraceByChannel** 节点。 
 
-1.  Drag off the **Out Hits** pin and add a **ForEachLoop** node. 
+1.  拖开 **Out Hits** 针并添加一个 **ForEachLoop** 节点。 
 
 	![](GHT2B_18.png)
 
-	Since multiple Actors are hit, for each of them we want to do something (in this example, print the Actors to the screen). 
+	由于击中了多个 Actor，我们需要对其各个采取某种操作（在本示例中，我们将Actor输出至屏幕）。 
 
-1.  Drag off the **Array Element** and add a **Break Hit Result**, then off the **Hit Actor**, add a **To String (Object)** and connect to a **Print String**. 
+1.  拖开 **Array Element** 并添加一个 **Break Hit Result**，然后拖出 **Hit Actor**，添加一个 **To String (Object)**，随后再连接至一个 **Print String**。 
 	
 	[REGION:lightbox]
 	[![](GHT2B_19.png)(w:800)](GHT2B_19.png)
 	[/REGION]
 
-	_Click image for a full view._
+	_单击图像可查看全图。_
 
-	This will now print to the string each of the Actors hit by the array. 
+	这样可以将每个被阵列击中的 Actor 输出至字符串。 
 
-1.  Here we have a Glass Window in front of a Physics Actor. 
+1.  现在物理 Actor 前面有一个玻璃窗。 
 
 	![](GHT2B_17.png)
 
-	The Glass Window is a **Destructible Mesh** and its **Trace Response** to **Visibility** in its collision settings is set to **Overlap**, while the Physics Actor (Cube) has its **Visibility** setting to **Block**. 
+	这个玻璃窗是一个 **Destructible Mesh**，其碰撞设置中对于 **Visibility** 的 **Trace Response**被设为**Overlap**，而物理Actor（立方体）的 **Visibility** 被设置为 **Block**。 
 
-	You could use this for situations where you may want to shoot through an object (destroying it) and also hitting a player or enemy. 
+	这种设定可用于射穿（摧毁）某个对象，也可以击中玩家或敌人。 
 
-### Multi Line Trace by Object
+### MultiLineTraceForObjects
 
-The **Multi Line Trace by Object** will perform a collision trace along a given line and return all hits encountered, returning only objects that respond to the specified Object Type. 
+**MultiLineTraceForObjects** 将沿着指定的线路执行一次碰撞跟踪，然后返回所有遇到的撞击，同时仅返回对指定对象类型做出响应的对象。 
 
-Below you will find steps for setting up a **Multi Line Trace by Object**. 
+以下步骤用于设置 **MultiLineTraceForObjects**。 
 
-1.  Follow the steps used for the **Single Line Trace by Channel** example to set up a trace. 
+1.按照 **LineTraceByChannel** 示例所用的步骤设置一个跟踪。 
 
-1.  Replace the **Single Line Trace by Channel** node with the **Multi Line Trace by Object** node. 
+1.  将 **LineTraceByChannel** 节点替换为 **MultiLineTraceForObjects** 节点。 
 
-1.  Drag off the **Object Types** pin and add a **Make Array** node, then use the drop-down menus to add Objects to the Array. 
+1.  拖开 **Object Types** 针并添加一个 **Make Array** 节点，然后用下拉菜单将对象添加到阵列。 
 
 	![](GHT2B_21.png)
 
-	Here we assign **WorldDynamic** and **Physics Body** as our Object Types. You can use the **Add pin** button to add more Object Types to the Array. 
+	在这里，我们将 **WorldDynamic** 和 **Physics Body** 指定为我们的对象类型。您可以使用 **Add pin** 按钮将更多对象类型添加到阵列。 
 	
-1.  Off the **Out Hits** pin of the trace node, add a **ForEachLoop** node. 
+1.  从跟踪节点的 **Out Hits** 针连出来，然后添加一个 **ForEachLoop** 节点。 
 
 	![](GHT2B_22.png)
 
-	This will allow us to do something for each of the Actors hit by the trace. 
+	这样可以对跟踪时击中的每个 Actor 采取操作。 
 
-1.  Drag off the **Array Element** and add a **Break Hit Result**, then off the **Hit Actor**, add a **To String (Object)** and connect to a **Print String**. 
+1.  拖开 **Array Element** 并添加一个 **Break Hit Result**，然后拖出 **Hit Actor**，添加一个 **To String (Object)**，随后再连接至一个 **Print String**。 
 
 	[REGION:lightbox]
 	[![](GHT2B_23.png)(w:800)](GHT2B_23.png)
 	[/REGION]
 
-	_Click image for a full view._
+	_单击图像可查看全图。_
 
-	This will now print to the screen each of the Actors hit by the array. 
+	这样可以将每个被阵列击中的 Actor 输出至屏幕。 
 
-1.  Here we have a hanging ceiling light (World Dynamic Object Type) in front of a Physics Actor (Physics Body Object Type). 
+1.  这一次，我们在物理 Actor（物理实体对象类型）前面布置了一个悬挂吊灯（世界动态对象类型）。 
 
 	![](GHT2B_20.png)
 
-	The **Multi Line Trace by Object**, unlike the **Multi Line Trace by Channel**, does not stop at the first object it hits which is why the trace continues through the light to the cube. 
+	**Multi Line Trace by Object** 不同于 **Multi Line Trace by Channel**，它不会在击中第一个对象后停下，因此跟踪会经过光线直达立方体。 
 
 
-## Shape Traces
+## 形状跟踪
 
 [REGION:fullwidth]
 ![](GHT2B_24.png)
 [/REGION]
 
-When a Line Trace is not enough, you may get the results you are after by using a Shape Trace instead. For example, maybe you are creating a "vision cone" for an enemy and you want to detect players that enter it. A Line Trace may not be enough as players may be able to avoid detection by ducking under the Line Trace. 
+如果线性跟踪无法满足要求，您可以使用形状跟踪来获得所需的结果。例如，您可能要为敌人创建一个“视界圆锥”，并希望探测到进入圆锥范围内的玩家。而单靠线性跟踪可能已经不够，因为玩家可以躲在线性轨迹下方来避开探测。 
 
-In this situation, you could possibly use a Box Trace, Capsule Trace, or Sphere Trace instead. Each Shape Trace functions like a Line Trace where you are sweeping and checking for collision from a start point to an end point, however the Shape Traces have an added layer of checking as you are using a shape as a volume of sorts in your Raycast. 
+这时，您可以使用方形跟踪、胶囊跟踪或球形跟踪。每一种形状跟踪的工作原理都与线性跟踪类似：您需要从起点到终点进行扫描并寻找碰撞。但由于您将形状用作 Raycast 中的某种实体时，形状跟踪还多出了一个检查层级。 
 
-You can use a Shape Trace as a Single Trace or a Multi Trace and each are set up in the same manner as a Line Trace however you will need to provide additional details pertaining to the size or orientation of the shape you use. 
+您可以将形状跟踪用作单一或多重跟踪，并通过线性跟踪的设置方式来设置它们，但需要提供更多关于所用形状的大小或方向的详细信息。 
 
 
 

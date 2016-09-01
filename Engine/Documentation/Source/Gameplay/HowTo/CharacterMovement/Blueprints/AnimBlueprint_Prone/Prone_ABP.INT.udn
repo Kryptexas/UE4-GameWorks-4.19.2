@@ -84,6 +84,8 @@ In this final section, we finish our **State Machine** by adding a **Prone** sta
 
 	![](AnimBP_ProneToStand2.png)
 
+	Make sure that the **==** node is set to false (unchecked) which states that **Prone** is no longer true.
+
 1.	Your full State Machine graph should look similar to below (arrangement of nodes may differ from your setup). 
 
 	[REGION:lightbox]

@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2547514
-Availability:Public
+﻿Availability:Public
 Title:Material Parameter Collections
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:各種マテリアルの参照先となるスカラーおよびベクターパラメータの任意のセットを格納するアセット
@@ -8,6 +7,7 @@ Related:Engine/Rendering/Materials/MaterialInstances
 Related:Engine/Rendering/Materials/Editor
 Related:Engine/Rendering/Materials/HowTo/Instancing
 Related:Engine/Blueprints/UserGuide/Timelines
+Version:4.9
 
 [TOC(start:2)]
 
@@ -16,18 +16,18 @@ Related:Engine/Blueprints/UserGuide/Timelines
 [/REGION]
 
 
-**MaterialParameterCollection** は、各種アセットの参照先となる [スカラーおよびベクターパラメータ](Engine/Rendering/Materials\MaterialInstances#パラメータ化マテリアルの作成) の任意のセットを格納するアセットです。 
-[スカラーおよびベクター パラメータ](Engine/Rendering/Materials\MaterialInstances#パラメータ化マテリアルの作成) 
-は、さまざまなマテリアルから参照できます。アーティストがグローバルデータをたくさんのマテリアルへ一度に取り込むことができる、 
-パワフルなツールです。さまざまな MaterialInstance へそれぞれのパラメータ値の設定が必要となる作業も、 
+**MaterialParameterCollection** は、 
+各種アセットの参照先となる [スカラーおよびベクターパラメータ](Engine/Rendering/Materials\MaterialInstances#パラメータ化マテリアルの作成) の 
+任意のセットを格納するアセットです。アーティストがグローバルデータをたくさんのマテリアルへ一度に取り込むことができる、 
+パワフルなツールです。レベル内の各種 MaterialInstance に対してそれぞれのパラメータ値の設定が必要となる作業も、 
 このツールで雪の量、破壊量、濡れ具合など、レベルごとのエフェクトの操作も可能になります。
 
 ![](GlobalParams1.png)(w:465) ![](GlobalParams2.png)(w:465)
 
-上記の例は、以下のシーン側面の制御にグローバル パラメータを使用しています。
+上記の例は、シーンで使われる次にような項目の制御にグローバル パラメータを使用しています。
 
-* 花のモーフは風速に合わせて状態が保たれ、増強が制御されています。
-* プレイヤーの位置を追跡した情報はフォーリッジへ送り込まれます。プレイヤーの位置情報は、プレイヤーが近くを通り過ぎると花や草をプレイヤーから遠ざけるために使用しています。 
+* 花のモーフィングの状態は風速と一致し、強さが制御されます。
+* プレイヤーの位置の追跡情報はフォリッジへ送り込まれます。プレイヤーの位置情報を使って、プレイヤーが通る位置付近の花や草をプレイヤーから遠ざけます。 
 * 太陽の角度と色も追跡し、水位点の正確な色付けや、ライトが波高点から直接光っている時のみに効果を制限しています (プレイヤーが太陽に向かっている時)。 
 * 時間経過に伴った効果や水の全体的なディフューズ ライトカラーの彩色も制御されています。 
 
@@ -38,20 +38,20 @@ MaterialParameterCollection は [コンテンツ ブラウザ](Engine/Content/Br
 
 
 1. マテリアル パラメータ コレクションを作成するには、まず **コンテンツ ブラウザ** を **右クリック** して作成メニューを表示します。そのメニューの中から、 **[Materials & Textures]** セクション、
-   そして、 **[Material Parameter Collection]** を選択します。選択すると、 **コンテンツ ブラウザ** に新規の Material Parameter Collection が作成されます。 
+   そして、**[Material Parameter Collection]** を選択します。選択すると、 **コンテンツ ブラウザ** に新規の Material Parameter Collection が作成されます。 
 
-	![](MPC_Create_New_Collection.png)
+	![](MatPC.jpg)
 
-1. Material Parameter Collection は他のアクタと同様に **コンテンツ ブラウザ** へ追加および保存ができます。 
+1. Material Parameter Collection は他のアセットと同様に **コンテンツ ブラウザ** へ追加および保存ができます。 
 
-![](MPC_Saved_In_CB.png)
+	![](MatPraCollectionMP.jpg)
 
 1. Material Parameter Collection を編集するには、まず **マウスの左ボタン** で **ダブル クリック** して、プロパティ ウィンドウを開きます。  
 
 	![](properties.png)
 
 1. Scalar Parameters または Vector Parameters の横に位置する ![Plus Button](button_add_param.png) ボタンをクリックして、マテリアル内にアクセスしたい新規のパラメータを作成します。  
-	これらのパラメータの入力値とデフォルト値は、忘れないようにしたください。 
+	これらのパラメータの入力値とデフォルト値を覚えておいてください。 
 
 	![](properties_add.png)
 
@@ -61,17 +61,17 @@ MaterialParameterCollection は [コンテンツ ブラウザ](Engine/Content/Br
 ## マテリアルで Material Parameter Collection を使う
 
 マテリアルへの Material Collection Parameter ノードの追加は、幾つかのステップで行います。 
-以下のセクションでは、ゲームの再生中に左マウスボタンを押すとマテリアルの彩度を落とす非常にシンプルなマテリアルへ、Material Collection ノードを追加する方法を見てみます。 
+以下のセクションでは、ゲームの再生中にマウスの左ボタンを押すとマテリアルの彩度を落とす非常にシンプルなマテリアルへ Material Collection ノードを追加する方法を見てみます。 
 
 1. まず最初に、Material Collection Parameter ノードを作成してデータを入力していきます。 
 	これを行うには、**コンテンツ ブラウザ** でマテリアルを **右クリック** し、 **[Materials & Textures]** セクションを選択、次に **[Material Parameter Collection]** を選択します。 
-	選択すると、 **コンテンツ ブラウザ** に新規の Material Parameter Collection が作成されます。作成された Material Parameter Collection には名前を付けなければなりません。ここの例では、**MPC_Global_Material_Prams** という名前を使用します。 
+	選択すると、 **コンテンツ ブラウザ** に新規の Material Parameter Collection が作成されます。作成された Material Parameter Collection には名前を付けなければなりません。この例では、**「MPC_Global_Material_Prams」** という名前にします。 
 	完了すると、 **コンテンツ ブラウザ** は以下のようになります。
 
 	![](MPC_Create_New_MPC.png)
 
 1. Material Collection Parameter が作成されたら、その上で **マウスの左ボタン** を **ダブルクリック** して開きます。 
-	Material Collection Parameter が開いたら、Scalar Parameter を 1 つ追加して **Global_Desaturation** と名付けます。 
+	Material Collection Parameter が開いたら、Scalar Parameter を 1 つ追加して名前を **「Global_Desaturation」** と付けます。 
 	Global_Desaturation のデフォルト値は 0.0 のままにしておきます。完了すると、Material Collection Parameter は以下のようになるはずです。 
 	![](MPC_Setup_MPC.png)
 
@@ -81,11 +81,11 @@ MaterialParameterCollection は [コンテンツ ブラウザ](Engine/Content/Br
 	![](MPC_Simple_Material.png)
 
 	このマテリアルには、 **Scalar Parameter** Material Expression ノードが 2 つ、そして **Vector Parameter** Material Expression ノードも 1 つ必要になります。 
-	ノードの名前はそれぞれ **Base_Color** 、 **Metallic** 、 **Roughness** とし、対応する入力に接続されます。 
+	ノードの名前はそれぞれ **Base_Color**、**Metallic**、**Roughness** とし、対応する入力に接続されます。 
 
 1. Main Material ノードにノードを接続したら、次は Desaturation Material Expression ノードと Material Expression Parameter ノードの両方をマテリアルへ追加します。 
-	Desaturation Material ノード ノードを追加するためには、 **Palette** で検索し、マテリアル グループにドラッグ＆ドロップします。 
-	追加したら、次は **コンテンツ ブラウザ** で Material Parameter Collection を探し、 **コンテンツ ブラウザ** からマテリアル グラフへドラッグします。 
+	Desaturation Material ノードを追加するためには、**Palette** で検索し、マテリアル グループにドラッグ＆ドロップします。 
+	追加したら、次は **コンテンツ ブラウザ** で Material Parameter Collection を探し、**コンテンツ ブラウザ** からマテリアル グラフへドラッグします。 
 	上記を完了すると、マテリアルは以下のようになるはずです。 
 
 	![](MPC_Added_New_Nodes.png)
@@ -94,7 +94,7 @@ MaterialParameterCollection は [コンテンツ ブラウザ](Engine/Content/Br
 	まず最初に、 Base Color 出力を Desaturation ノードの最初の入力へ入力します。 
 	次に、 Material Collection Parameter の出力を Desaturation ノードの **Fraction** 入力へ接続する必要があります。
 	接続したら、 Desaturation ノードの出力を メインのマテリアル ノード の Base Color 入力に接続します。 
-	最後に、 **[Apply]** ボタンを押してマテリアルをコンパイルします。 
+	最後に、 **[Apply (適用)]** ボタンを押してマテリアルをコンパイルします。 
 	上記を完了すると、マテリアル グラフは以下のようになるはずです。 
 
 	![](MPC_Completed_Material.png)
@@ -133,7 +133,7 @@ Material Collection Parameter パラメータの操作方法の 1 つは、ブ�
 	マテリアル インスタンスを使用したいオブジェクトにマウスを当てたら、**マウスの左ボタン** をリリースして、そのオブジェクトにマテリアル インスタンスを適用します。
 	以下のようになります。
 
-	![](MPC_Applied_Materials.png)
+	![](ColorsMP.jpg)
 
 1. マテリアル インスタンスをレベルのオブジェクトに適用したら、次は Level ブループリントを開いてみましょう。 
 	Level ブループリントを開くには、メイン ツールバーの **[Blueprints]** をクリックし、ドロップダウン メニューから **[Level Blueprint]** を選びます。
@@ -147,7 +147,7 @@ Material Collection Parameter パラメータの操作方法の 1 つは、ブ�
 	* ** Float Variable Named:Des**
 
 	完了したら、ブループリント グラフは以下のようになるはずです。 
-	![](MPC_Added_Nodes_To_BP.png)
+	![](SetUpBlueprintMP.jpg)
 
 1. ブループリント グラフにノードを正しく追加したら、次はそれらの設定を行います。 
 	まず最初に、 ** Set Scalar Parameter Value** の設定を行います。 
@@ -157,16 +157,16 @@ Material Collection Parameter パラメータの操作方法の 1 つは、ブ�
 
 	![](MPC_SSPV_Node.png)
 
-1. 次に、 **マウスの左ボタン** が押されるとカラーが徐々に変わり、左マウスボタンを放すと元に戻るように [タイムライン](Engine/Blueprints/UserGuide/Timelines/Editor) を設定する必要があります。
+1. 次に、**マウスの左ボタン** が押されるとカラーが徐々に変わり、ボタンを放すと元に戻るように [タイムライン](Engine/Blueprints/UserGuide/Timelines/Editor) を設定する必要があります。
 	タイムラインを設定するには、まずタイムライン上で **マウスの左ボタン** で **ダブルクリック** して開きます。 
 	その結果、以下のような画面が表示されるはずです。 
 	![](MPC_Timeline_Editor.png)
 
 1. タイムラインを開いたら、アクティベート時に実行するためのデータを与える必要があります。 
-	まず、 **[Add Float Track]** アイコンをクリックして、タイムラインに **浮動トラック** を追加します。 
-	次に **マウスの右ボタン** を使って薄いグレーの部分をどこかクリックし、メニューから **[Add Key]** を選んで、キー トラックを 2 つ追加します。 
+	まず、**[Add Float Track (Float トラックを追加)]** アイコンをクリックして、タイムラインに **Float トラック** を追加します。 
+	次に **マウスの右ボタン** を使って薄いグレーの部分をどこかクリックし、メニューから **[Add Key (キーを追加)]** を選んで、キー トラックを 2 つ追加します。 
 	追加する 2 つのキーは、 1 つが 0 タイムで値が 0 、もう 1 つはタイム 1 で値が 1 です。 
-	キー ポイントを追加したら、その役目が分かるように名前を付けておきましょう。ここでは、 **Des_Amount** という名前を使用します。 
+	キー ポイントを追加したら、その役目が分かるように名前を付けておきましょう。ここでは、**「Des_Amount」** という名前を使用します。 
 	完了すると、以下のようになります。 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -180,17 +180,18 @@ Material Collection Parameter パラメータの操作方法の 1 つは、ブ�
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-1. **タイムライン** を正しく設定したら、 Timeline メニューを閉じて **Level ブループリント** の **Event Graph** に戻ります。 
+1. **タイムライン** を正しく設定したら Timeline メニューを閉じて **Level ブループリント** の **イベント グラフ** に戻ります。 
 	Level ブループリントが利用できるようになったので、次は全てのノードを接続していきます。 
 	完了すると、ブループリントは以下のようになるはずです。 
 	![](MPC_Connecting_Nodes.png)
 
 1. 接続がすべて完了したら、 **[Compile]** ボタンを押し、必ず Level ブループリントを **コンパイル** してからブループリント エディタを終了してください。
-	ブループリント エディタを終了したら、変更がゲームでどのような感じになっているかテストしてみます。手順は、メイン ツールバー上の **[Play]** アイコンを押すだけです。
-	[Play] を押すと、レベルが実行中の新規ウィンドウが表示されます。
-	動作中の Material Collection parameter を確認するには、 **マウスの左ボタン** ボタンを長押しします。
+	ブループリント エディタを終了したら、変更がゲームでどのような感じになっているかテストしてみます。手順は、メイン ツールバー上の **[Play (プレイ)]** アイコンを押すだけです。
+	[Play (プレイ)] を押すと、レベルが実行中の新規ウィンドウが表示されます。
+	動作中の Material Collection parameter を確認するには、**マウスの左ボタン** ボタンを長押しします。
 	長押しすると、シーンのマテリアルの色が元の色からグレーに変わるのが分かります。
-	**マウスの左ボタン** を放すと、マテリアルが元の色に戻ります。 
+	**マウスの左ボタン** を放すと、マテリアルが元の色に戻ります。
+	 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
 		640
@@ -199,7 +200,7 @@ Material Collection Parameter パラメータの操作方法の 1 つは、ブ�
 		360
 		[/PARAMLITERAL]
 		[PARAMLITERAL:videoid]
-		9hIp_3qNPis
+		saVjrY41jWk
 		[/PARAMLITERAL]
 	[/OBJECT]
 
@@ -208,7 +209,7 @@ Material Collection Parameter パラメータの操作方法の 1 つは、ブ�
 [EXCERPT:MaterialWarning]
 マテリアルは最大で 2 つの異なる MaterialParameterCollection を参照することができます。通常はコレクションの 1 つをゲーム全体の値として使用し、 
 その他は、レベル固有のパラメータとして使用されます。コレクションは最大で 1024 のスカラーパラメータと、 1024 の 
-ベクターパラメータを持つことができます。
+ベクター パラメータを持つことができます。
 [/EXCERPT:MaterialWarning]
 
 コレクションのパラメータ数の修正は、コレクションを参照している全マテリアルの再コンパイルの要因となります。 
@@ -220,4 +221,8 @@ Material Collection Parameter パラメータの操作方法の 1 つは、ブ�
 
 いろいろなマテリアル インスタンスのパラメータを設定するよりも、 
 MaterialParameterCollection の値を更新しておく方が効率が良いです。
+
+
+
+
 

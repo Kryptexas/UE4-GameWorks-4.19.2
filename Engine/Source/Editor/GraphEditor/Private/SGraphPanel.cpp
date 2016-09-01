@@ -34,8 +34,8 @@ FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
 	{
 		if (UEdGraphNode* Node = InPin->GetOwningNodeUnchecked())
 		{
-			PinName = InPin->PinName;
 			NodeGuid = Node->NodeGuid;
+			PinId = InPin->PinId;
 		}
 	}
 }
@@ -50,7 +50,7 @@ TSharedPtr<SGraphPin> FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPan
 		{
 			UEdGraphNode* Node = GraphNode->GetNodeObj();
 
-			if (UEdGraphPin* Pin = Node->FindPin(PinName))
+			if (UEdGraphPin* Pin = Node->FindPinById(PinId))
 			{
 				return GraphNode->FindWidgetForPin(Pin);
 			}
@@ -1039,13 +1039,18 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 
 		TSharedRef<SWidget> MenuContent = FocusedContent.Content;
 		
-		FSlateApplication::Get().PushMenu(
+		TSharedPtr<IMenu> Menu = FSlateApplication::Get().PushMenu(
 			AsShared(),
 			FWidgetPath(),
 			MenuContent,
 			WhereToSummon,
 			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
 			);
+
+		if (Menu.IsValid() && Menu->GetOwnedWindow().IsValid())
+		{
+			Menu->GetOwnedWindow()->SetWidgetToFocusOnActivate(FocusedContent.WidgetToFocus);
+		}
 
 		return FocusedContent.WidgetToFocus;
 	}

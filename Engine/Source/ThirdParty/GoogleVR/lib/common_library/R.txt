@@ -31,8 +31,12 @@ int string cancel_button 0x1
 int string dialog_message_no_cardboard 0x1
 int string dialog_message_setup 0x1
 int string dialog_title 0x1
+int string dialog_title_warning 0x1
+int string dialog_vr_core_not_enabled 0x1
+int string dialog_vr_core_not_installed 0x1
 int string go_to_playstore_button 0x1
-int string got_it 0x1
+int string go_to_vr_listeners_settings_button 0x1
+int string gvr_vr_mode_component 0x1
 int string no_browser_text 0x1
 int string place_your_phone_into_cardboard 0x1
 int string place_your_viewer_into_viewer_format 0x1
@@ -40,7 +44,5 @@ int string settings_button_content_description 0x1
 int string setup_button 0x1
 int string switch_viewer_action 0x1
 int string switch_viewer_prompt 0x1
-int string viewer_configured_dialog_title 0x1
-int string viewer_configured_message_format 0x1
 int style CardboardDialogTheme 0x1
 int style UiButton 0x1

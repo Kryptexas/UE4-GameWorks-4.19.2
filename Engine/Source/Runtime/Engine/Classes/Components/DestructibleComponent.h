@@ -115,8 +115,10 @@ public:
 	//~ End USceneComponent Interface.
 
 	//~ Begin UActorComponent Interface.
-	virtual void CreatePhysicsState() override;
-	virtual void DestroyPhysicsState() override;
+protected:
+	virtual void OnCreatePhysicsState() override;
+	virtual void OnDestroyPhysicsState() override;
+public:
 	virtual class UBodySetup* GetBodySetup() override;
 	//~ End UActorComponent Interface.
 

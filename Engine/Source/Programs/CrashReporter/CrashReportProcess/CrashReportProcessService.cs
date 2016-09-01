@@ -89,7 +89,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			if( Message != null && Message.Length > 2 )
 			{
 				Log.Print( "[EXCEPT] " + Message );
-				StatusReporter.IncrementCount(StatusReportingConstants.ExceptionEvent);
+				StatusReporter.IncrementCount(StatusReportingEventNames.ExceptionEvent);
 			}
 		}
 
@@ -155,6 +155,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		protected override void OnStop()
 		{
+			StatusReporter.OnPreStopping();
+
 			// Clean up the directory watcher and crash processor threads
 			foreach (var Processor in Processors)
 			{

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2472961
+﻿INTSourceChangelist:2713332
 Availability:Public
 Title:ネットワーキング＆マルチプレイヤー
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:マルチプレイヤーに対応するネットワークゲームの設定
+version:4.9
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

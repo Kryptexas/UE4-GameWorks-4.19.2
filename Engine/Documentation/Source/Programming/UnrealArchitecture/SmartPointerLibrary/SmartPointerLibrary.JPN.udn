@@ -1,22 +1,22 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2621990
 Availability:Public
 Title:アンリアル スマート ポインタ ライブラリ
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
 Description:弱い参照と null 非許容型な共有参照を含んだシェアード ポインタのカスタム実装
-Version:4.5
+Version:4.9
 
 [TOC(start:2)]
 
 ## スマート ポインタ
 
 [EXCERPT:Overview]
-アンリアル スマート ポインタ ライブラリは、共有の参照 (TSharedRef)、シェアード ポインタ(TSharedPtr)、弱い参照 (TWeakPtr) はもちろん、関連するヘルパー関数とクラスを特別に実装したものです。この実装は C++0x 標準ライブラリの shared_ptr と Boost スマート ポインタを手本に実装しました。
+**アンリアル スマート ポインタ ライブラリ** は、共有の参照 (**TSharedRef**)、シェアード ポインタ (**TSharedPtr**)、弱い参照 (**TWeakPtr**) はもちろん、関連するヘルパー関数とクラスを特別に実装したものです。この実装は C++0x 標準ライブラリの shared_ptr と Boost スマート ポインタを手本に実装しました。
 
 | タイプ | 説明 |
 | --- | --- |
-| [](Programming/UnrealArchitecture/SmartPointerLibrary/SharedPointer) (`TSharedPtr`) | 参照カウント式、非侵入型の信頼できるスマート ポインタ。 |
-| [](Programming/UnrealArchitecture/SmartPointerLibrary/SharedReference) (`TSharedRef`) | null 非許容型、参照カウント式な非侵入型の信頼できるスマート ポインタ。 |
-| [](Programming/UnrealArchitecture/SmartPointerLibrary/WeakPointer) (`TWeakPtr`) | 参照カウント式、非侵入型の弱参照。 |
+| [](Programming/UnrealArchitecture/SmartPointerLibrary/SharedPointer) (TSharedPtr) | 参照カウント式、非侵入型の信頼できるスマート ポインタ。 |
+| [](Programming/UnrealArchitecture/SmartPointerLibrary/SharedReference) (TSharedRef) | null 非許容型、参照カウント式な非侵入型の信頼できるスマート ポインタ。 |
+| [](Programming/UnrealArchitecture/SmartPointerLibrary/WeakPointer) (TWeakPtr) | 参照カウント式、非侵入型の弱参照。 |
 [/EXCERPT:Overview]
 
 ### 参照権の共有とシェアード ポインタの利点
@@ -27,10 +27,10 @@ Version:4.5
 | Prevents memory leaks (メモリーリークの防止) | これ以上共有の参照が無い場合、リソースは自動的に破壊されます。|
 | Weak referencing (弱い参照) | オブジェクトが破壊された時、ウィーク ポインタで安全なチェックが可能になります。 |
 | Thread safety (スレッド セーフティ) | 複数のスレッドから安全なアクセスを可能にする「スレッドセーフ」なバージョンを実装しています。|
-| Ubiquitous (ユビキタス) | 事実上 **どんな** タイプのオブジェクトに対してもシェアード ポインタを作成できます。 |
+| Ubiquitous (ユビキタス) | 事実上 どのような タイプのオブジェクトに対してもシェアード ポインタを作成できます。 |
 | Runtime safety (ランタイムの安全性) | 共有の参照は決して null にはならず、常にポインタから参照先の値を取得します。 |
 | No reference cycles (参照サイクルの破棄) | 参照サイクルの中断に弱い参照を使用します。 |
-| Confers intent | **オブザーバー** から簡単にオブジェクト **オーナー** を理解できます。 |
+| Confers intent | オブザーバー から簡単にオブジェクト オーナー を理解できます。 |
 | Performance (パフォーマンス) | シェアード ポインタはオーバーヘッドを最小限に抑えます。全ての操作は定数時間で行われます。 |
 | Robust features (堅牢な機能) | 不完全な型、タイプキャストに対して const や前方宣言をサポートします。 |
 | Memory | 64 ビット環境の C++ ポインタサイズの 2 倍程度です (加えて共有の 16 倍と参照コントローラー)。 |
@@ -43,11 +43,11 @@ Version:4.5
 * 他のアンリアル コンテナやタイプとシームレスに機能します。
 * スレッドや最適化を含めてプラットフォームの特性を上手にコントロールします。
 * スレッドセーフをオプション機能にします (パフォーマンスのため)。
-* 独自の改善を追加しました (MakeShareable、NULL 値の割り当てなど)。
+* 独自の改善を追加しました (**MakeShareable**、NULL 値の割り当てなど)。
 * この実装に例外は必要ありません。
 * パフォーマンスのさらなるコントロールを強化しました (インライン化、メモリ、バーチャルメモリの使用など)。
 * 潜在的により簡単なデバッグ作業 (進歩したコードコメントなど)。
-* 必要がない限り新規に第三者が提供するソフトウェアの導入は控えるのが望ましいと考えています。
+* 新規に第三者が提供するソフトウェアの導入は、必要な場合以外は控えるのが望ましいと考えています。
 
 
 ### ヘルパークラスと関数
@@ -57,7 +57,7 @@ Version:4.5
 | ヘルパー | 説明 |
 | --- | --- |
 |[REGION:tablesection]クラス[/REGION]||
-| TSharedFromThis |「this」からTSharedRefを取得するために、独自のクラスを「this」から派生させることができます。  |
+| TSharedFromThis |「this」から TSharedRef を取得するために、独自のクラスを「this」から派生させることができます。  |
 |[REGION:tablesection]関数[/REGION]||
 | MakeShareable() | C++ ポインタのシェアード ポインタを初期化するために使用します (暗黙的な変換を有効にします)。 |
 | StaticCastSharedRef() | 静的に型変換 (キャスト)するユーティリティ関数です。一般的に派生したタイプのダウンキャストに使用します。 |
@@ -96,7 +96,7 @@ Version:4.5
 
 ### メモリ使用量
 
-全てのシェアードポインタ (TSharedPtr、 TSharedRef、 TWeakPtr) は 8 バイト (32 ビットでコンパイル時) で構成は以下の通りです。
+全てのシェアードポインタ (TSharedPtr、TSharedRef、TWeakPtr) は 8 バイト (32 ビットでコンパイル時) で構成は以下の通りです。
 
 * C++ ポインタ (uint32)
 * 参照コントローラ ポインタ (uint32)
@@ -121,7 +121,7 @@ Version:4.5
 
 シェアード ポインタは非侵入型です。つまり、クラス自体はシェアード ポインタ (または参照) によって所有されているか否かが分かりません。しかし時には共有参照として現インスタンスにアクセスしたい場合があります。これを解決するには、TSharedFromThis<> からクラスを派生します。
 
-TSharedFromThis<> からクラスを派生させることにより、 AsSharedRef() メソッドを使用して this を共有参照へ変換することができます。常に共有参照を返すクラス ファクトリと一緒に使用すると便利です。
+TSharedFromThis<> からクラスを派生させることにより、`AsSharedRef()` メソッドを使用して this を共有参照へ変換することができます。常に共有参照を返すクラス ファクトリと一緒に使用すると便利です。
 
 	class FAnimation : public TSharedFromThis<FMyClass>
 	{
@@ -173,7 +173,7 @@ const を外すキャストをします (不正ですが時には必要です)�
 
 ## 使用詳細
 
-「`SharedPointerTesting.h`」ファイル (`[UE4RootLocation]/Engine/Source/Runtime/Core/Public/Templates/` に格納) にシェアード ポインタとシェアード参照を使用した各種例が含まれています。
+「SharedPointerTesting.h」ファイル (格納場所は [UE4RootLocation]/Engine/Source/Runtime/Core/Public/Templates/) にシェアード ポインタとシェアード参照を使用した各種例が含まれています。
 
 ### ヒント
 
@@ -182,12 +182,12 @@ const を外すキャストをします (不正ですが時には必要です)�
 * 「スレッド セーフ」なスマート ポインタは多少動きが遅くなります。必要な時のみ使用してください。
 * シェアード ポインタを前方宣言して期待通りの不完全な型にすることができます。
 * 互換タイプのシェアード ポインタは暗黙的に変換されます (例えばアップキャスト)。
-* プログラムをわかりやすく簡潔にするために `TSharedRef< MyClass >` へ typedef を作成することができます。
-* 最高のパフォーマンスのために  `TWeakPtr::Pin` の呼出しを最小限に抑えます (もしくは `TSharedRef`/`TSharedPtr` へ変換)。
-* `TSharedFromThis` から派生させると、クラスは共有参照としてクラス自体を返すことができます。
-* 派生したオブジェクト クラスにポインタをダウンキャストするには `StaticCastSharedPtr()` 関数を使用します。
-* const オブジェクトはシェアード ポインタを完全にサポートします！ 
-* `ConstCastSharedPtr()` 関数を使用して `const` シェアード ポインタを可変にすることができます。
+* プログラムをわかりやすく簡潔にするために TSharedRef< MyClass > へ typedef を作成することができます。
+* 最高のパフォーマンスのために TWeakPtr::Pin の呼出しを最小限に抑えます (もしくは TSharedRef / TSharedPtr へ変換)。
+* TSharedFromThis から派生させると、クラスは共有参照としてクラス自体を返すことができます。
+* 派生したオブジェクト クラスにポインタをダウンキャストするには **StaticCastSharedPtr()** 関数を使用します。
+* const オブジェクトはシェアード ポインタを完全にサポートします！
+* **ConstCastSharedPtr()** 関数を使用して const シェアード ポインタを可変にすることができます。
 * 常に深いスタック フレームで C++ 参照へ変換します。シェアード ポインタはメンバ参照に最適ですが、一時的なスタック領域には向いていません。
 * C++ ポインタとは異なり、シェアード ポインタは memcpy ができません。シェアード ポインタの配列の使用時はこの点を考慮してください。
 
@@ -197,17 +197,17 @@ const を外すキャストをします (不正ですが時には必要です)�
 * シェアード ポインタはアンリアル オブジェクト (UObject クラス) と互換性がありません！
 * 現時点では通常のデストラクタ― (カスタムデリータではありません) を持つたった 1 つのタイプです。
 * 動的に割り当てられた配列はまだサポートされていません (例 `MakeSharable( new int32[20] )`)。
-* `TSharedPtr`/`TSharedRef` の暗黙的な bool への変換はまだサポートされていません。
+* TSharedPtr/TSharedRef の暗黙的な bool への変換はまだサポートされていません。
 
 
 ### 他の実装との相違点
 
 * タイプ名とメソッド名は、以前よりもアンリアルのコードベースと一致しています。
 * 「スレッド セーフティ」な機能は強制ではなくオプション機能です。
-* `TSharedFromThis` は共有の **ポインタ** ではなく共有の **参照** を返します。
-* 省略されている機能もあります (例えば`use_count()`、 `unique()、など)。
+* TSharedFromThis は共有のポインタではなく、共有の参照を返します。
+* 省略されている機能もあります (例えば use_count()、unique()、など)。
 * 例外は認めません (関連する全ての機能は省略されました)。
 * カスタム アロケータとカスタムな delete 関数はまだサポートされていません。
-* この実装は null 可能ではないスマート ポインタをサポートしています (`TSharedRef`)。
-* `MakeShareable` や `NULL` assignment など、いくつかの新機能が追加されました。
+* この実装は null 可能ではないスマート ポインタをサポートしています (TSharedRef)。
+* MakeShareable や NULL の代入など、いくつかの新機能が追加されました。
 

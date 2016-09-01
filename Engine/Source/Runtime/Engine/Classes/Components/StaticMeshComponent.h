@@ -3,7 +3,6 @@
 #pragma once
 
 #include "SceneTypes.h"
-#include "Engine/TextureStreamingTypes.h"
 #include "Components/MeshComponent.h"
 #include "Runtime/RenderCore/Public/PackedNormal.h"
 #include "RawIndexBuffer.h"
@@ -190,7 +189,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Rendering)
 	uint32 bDisallowMeshPaintPerInstance : 1;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING)
 	/** Option to draw mesh collision in wireframe */
 	uint32 bDrawMeshCollisionWireframe : 1;
 #endif
@@ -290,7 +289,7 @@ public:
 	virtual void PreEditUndo() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 	virtual bool AreNativePropertiesIdenticalTo( UObject* Other ) const override;
 	virtual FString GetDetailedInfoInternal() const override;
@@ -339,6 +338,22 @@ public:
 	virtual ELightMapInteractionType GetStaticLightingType() const override;
 
 	/**
+	* Return whether this primitive should have section data for texture streaming but it is missing. Used for incremental updates.
+	*
+	* @param	bCheckTexCoordScales		If true, section data must contains texcoord scales to be valid.
+	*
+	* @return	true if some sections have missing data. If this component is not expected to have data, this should return false.
+	*/
+	virtual bool HasMissingStreamingSectionData(bool bCheckTexCoordScales) const override;
+
+	/**
+	*	Update the precomputed streaming debug data of this component.
+	*
+	*	@param	TexCoordScales				The texcoord scales for each texture register of each relevant materials.
+	*/
+	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales) override;
+
+	/**
 	 *	Update the precomputed streaming data of this component.
 	 *
 	 *	@param	LevelTextures	[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
@@ -347,13 +362,6 @@ public:
 	 *	@param	FeatureLevel	[in]		The feature level being used in the texture streaming build.
 	 */
 	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel);
-
-	/**
-	*	Update the precomputed streaming debug data of this component.
-	*
-	*	@param	TexCoordScales				The texcoord scales for each texture register of each relevant materials.
-	*/
-	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales);
 
 	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const;
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
@@ -441,11 +449,9 @@ public:
 	/**
 	 * Determines whether any of the component's LODs require override vertex color fixups
 	 *
-	 * @param	OutLODIndices	Indices of the LODs requiring fixup, if any
-	 *
 	 * @return	true if any LODs require override vertex color fixups
 	 */
-	bool RequiresOverrideVertexColorsFixup( TArray<int32>& OutLODIndices );
+	bool RequiresOverrideVertexColorsFixup();
 
 	/**
 	 * Update the vertex override colors if necessary (i.e. vertices from source mesh have changed from override colors)
@@ -493,7 +499,7 @@ private:
 	void InitResources();
 
 	/** Update the vertex override colors */
-	void PrivateFixupOverrideColors( const TArray<int32>& LODsToUpdate );
+	void PrivateFixupOverrideColors();
 
 protected:
 
@@ -545,6 +551,14 @@ public:
 
 	/** Unregister this component's render data with the scene for SpeedTree wind */
 	void RemoveSpeedTreeWind();
+
+#if WITH_EDITOR
+	/** Called when the static mesh changes  */
+	DECLARE_EVENT_OneParam(UStaticMeshComponent, FOnStaticMeshChanged, UStaticMeshComponent*);
+	virtual FOnStaticMeshChanged& OnStaticMeshChanged() { return OnStaticMeshChangedEvent; }
+private:
+	FOnStaticMeshChanged OnStaticMeshChangedEvent;
+#endif
 };
 
 

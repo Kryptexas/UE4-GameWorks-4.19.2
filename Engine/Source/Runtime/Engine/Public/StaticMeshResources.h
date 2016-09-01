@@ -13,6 +13,7 @@
 #include "PrimitiveSceneProxy.h"
 #include "SceneManagement.h"
 #include "PhysicsEngine/BodySetupEnums.h"
+#include "Materials/MaterialInterface.h"
 
 /**
  * The LOD settings to use for a group of static meshes.
@@ -973,10 +974,6 @@ public:
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
 	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const;
 
-#if WITH_EDITORONLY_DATA
-	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const override;
-#endif
-
 protected:
 	/**
 	 * Sets IndexBuffer, FirstIndex and NumPrimitives of OutMeshElement.
@@ -1006,6 +1003,14 @@ public:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 
 	virtual void GetLCIs(FLCIArray& LCIs) override;
+
+#if WITH_EDITORONLY_DATA
+	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutComponentExtraScale, float& OutMeshExtraScale, int32 LODIndex, int32 ElementIndex) const override;
+#endif
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	virtual int32 GetLightMapResolution() const override { return LightMapResolution; }
+#endif
 
 protected:
 
@@ -1111,6 +1116,11 @@ protected:
 #endif
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** LightMap resolution used for VMI_LightmapDensity */
+	int32 LightMapResolution;
+#endif
+
+#if !(UE_BUILD_SHIPPING)
 	/** LOD used for collision */
 	int32 LODForCollision;
 	/** If we want to draw the mesh collision for debugging */

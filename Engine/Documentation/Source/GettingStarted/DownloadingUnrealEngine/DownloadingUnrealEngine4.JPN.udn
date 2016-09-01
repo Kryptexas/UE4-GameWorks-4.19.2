@@ -1,26 +1,26 @@
-﻿INTSourceChangelist:2648561
+﻿INTSourceChangelist:2786924
 Availability:Public
 Title:アンリアル エンジン ソースコードのダウンロード
-Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
+Crumbs: %ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:ソースコード レポジトリへ接続し、アンリアル エンジンの最新ビルドをダウンロードしてみましょう。
 Prereq:GettingStarted/RecommendedSpecifications
 Related:GettingStarted/DownloadingUnrealEngine/GitHub
 Related:GettingStarted/DownloadingUnrealEngine/DownloadZip
-バージョン: 4.8
-スキルレベル:上級
+Version:4.9
+SkillLevel:Advanced
 
 [TOC (start:2 end:3)]
 
 [EXCERPT:Main]
 [PUBLISH:Licensee]
-ライセンシーの方は Epic の Perforce (P4V) サーバーから直接アンリアル エンジン 4 のダウンロードが可能です。サーバーへ接続する前に、安全な VPN 接続が確立されていなければなりません。VPN 及び Perforce サーバーへのログイン認証情報は Epic が発行する UDN のウェルカムメールでチームのテクニカルリード宛に送信されます。ログイン認証情報は各チームに 1 セットのみの発行となっています。
+ライセンシーの方は Epic の Perforce (P4V) プロキシ サーバーからアンリアル エンジン 4 のダウンロードが可能です。Perforce サーバーへのログイン認証情報は Epic が発行する UDN のウェルカムメールでチームのテクニカル リード宛に送信されます。ログイン認証情報は各チームに 1 セットのみの発行となっています。
 [/PUBLISH:Licensee]
 [PUBLISH:Rocket]
 
-会員になると、アンリアル エンジン 4 (UE4) のソースコードを Unreal Engine GitHub レポジトリからダウンロードできます。[レポジトリ](https://github.com/EpicGames/UnrealEngine) へアクセスする前に、アンリアル エンジンに会員登録し、 GitHub アカウントを取得する必要があります。GitHub アカウントを Unreal Engine アカウントに連携させる方法は [UE4 on GitHub](https://www.unrealengine.com/ue4-on-github) ページをご覧ください。
+ユーザー登録すると、アンリアル エンジン 4 (UE4) のソースコードを Unreal Engine GitHub レポジトリからダウンロードできます。[レポジトリ](https://github.com/EpicGames/UnrealEngine) へアクセスする前に、アンリアル エンジンにユーザー登録し、 GitHub アカウントを取得する必要があります。GitHub アカウントを Unreal Engine アカウントに連携させる方法は [UE4 on GitHub](https://www.unrealengine.com/ue4-on-github) ページをご覧ください。
 
-<!-- 以下は 23.07.15 のピア レビューで LaurenR のリクエストによるコメントが削除されました。
-ソースコードにアクセスして、エンジンとツールをカスタマイズして、自分のニーズを満たすことができます。Windows、Mac、Linux 用にエディタをビルドし、Android および iOS の両方に対してゲームをコンパイルすることができます。Unreal Lightmass や Unreal Frontend など、すべてのツールのソースコードも格納されています。
+<!-- The following is commented out per LaurenR's request during Peer Review on 23.07.15
+ソースコードにアクセスして、ニーズに合わせてエンジンとツールをカスタマイズすることができます。Windows、Mac、Linux 用にエディタをビルドし、Android および iOS の両方に対してゲームをコンパイルすることができます。Unreal Lightmass や Unreal Frontend など、すべてのツールのソースコードも格納されています。
 -->
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/SourceBranches]
@@ -28,14 +28,14 @@ Related:GettingStarted/DownloadingUnrealEngine/DownloadZip
 [/PUBLISH:Rocket]
 
 [PUBLISH:Licensee]
-[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics#main]
 [/PUBLISH:Licensee]
 
 [PUBLISH:Rocket]
 
 ## 次のステップ
 
-会員は、以下のいずれかの方法でアンリアル エンジンのソースコードを以下の方法でダウンロードできます：
+ユーザー登録すると、以下のいずれかの方法でアンリアル エンジンのソースコードをダウンロードできます：
 
 *	[%GettingStarted/DownloadingUnrealEngine/GitHub:title%](GettingStarted/DownloadingUnrealEngine/GitHub)
 *	[%GettingStarted/DownloadingUnrealEngine/DownloadZip:title%](GettingStarted/DownloadingUnrealEngine/DownloadZip)

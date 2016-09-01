@@ -22,10 +22,8 @@
 #include "Linux/OpenGLLinux.h"
 #elif PLATFORM_IOS
 #include "IOS/IOSOpenGL.h"
-#elif PLATFORM_ANDROIDES31
-#include "Android/AndroidES31OpenGL.h"
-#elif PLATFORM_ANDROIDGL4
-#include "Android/AndroidGL4OpenGL.h"
+#elif PLATFORM_ANDROIDESDEFERRED
+#include "Android/AndroidESDeferredOpenGL.h"
 #elif PLATFORM_ANDROID
 #include "Android/AndroidOpenGL.h"
 #elif PLATFORM_HTML5
@@ -290,7 +288,7 @@ class OPENGLDRV_API FOpenGLDynamicRHI : public FDynamicRHI, public IRHICommandCo
 public:
 
 	friend class FOpenGLViewport;
-#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // Flithy hack to workaround radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // Flithy hack to workaround radr://16011763
 	friend class FOpenGLTextureBase;
 #endif
 
@@ -426,6 +424,7 @@ public:
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) final override;
 	virtual void RHISetRasterizerState(FRasterizerStateRHIParamRef NewState) final override;
 	virtual void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ) final override;
+	virtual void RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ) final override;
 	virtual void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY) final override;
 	virtual void RHISetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState) final override;
 	virtual void RHISetShaderTexture(FVertexShaderRHIParamRef VertexShader, uint32 TextureIndex, FTextureRHIParamRef NewTexture) final override;
@@ -493,7 +492,7 @@ public:
 	void CachedSetupTextureStage(FOpenGLContextState& ContextState, GLint TextureIndex, GLenum Target, GLuint Resource, GLint BaseMip, GLint NumMips);
 	void CachedSetupUAVStage(FOpenGLContextState& ContextState, GLint UAVIndex, GLenum Format, GLuint Resource);
 	void UpdateSRV(FOpenGLShaderResourceView* SRV);
-	FOpenGLContextState& GetContextStateForCurrentContext();
+	FOpenGLContextState& GetContextStateForCurrentContext(bool bAssertIfInvalid = true);
 
 	void CachedBindArrayBuffer( FOpenGLContextState& ContextState, GLuint Buffer )
 	{
@@ -581,6 +580,7 @@ private:
 	TGlobalResource< TBoundShaderStateHistory<10000> > BoundShaderStateHistory;
 
 	/** Per-context state caching */
+	FOpenGLContextState InvalidContextState;
 	FOpenGLContextState	SharedContextState;
 	FOpenGLContextState	RenderingContextState;
 	

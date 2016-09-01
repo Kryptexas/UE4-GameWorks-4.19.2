@@ -413,7 +413,7 @@ private:
 
 	const FSlateBrush* GetClassIconBrush() const
 	{
-		return FClassIconFinder::FindIconForClass(ThumbnailClass.Get());
+		return FSlateIconFinder::FindIconBrushForClass(ThumbnailClass.Get());
 	}
 
 	FMargin GetClassIconPadding() const

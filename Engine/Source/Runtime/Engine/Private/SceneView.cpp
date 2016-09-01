@@ -18,6 +18,7 @@
 #include "IHeadMountedDisplay.h"
 #include "Classes/Engine/RendererSettings.h"
 #include "LightPropagationVolumeBlendable.h"
+#include "SceneViewExtension.h"
 
 #if WITH_EDITOR
 	#include "UnrealEd.h"
@@ -31,11 +32,8 @@ DECLARE_CYCLE_STAT(TEXT("OverridePostProcessSettings"), STAT_OverridePostProcess
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,TEXT("Primitive"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,TEXT("View"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters, TEXT("InstancedView"));
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FFrameUniformShaderParameters, TEXT("Frame"));
-IMPLEMENT_UNIFORM_BUFFER_STRUCT(FForwardLightData,TEXT("ForwardLightData"));
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBuiltinSamplersParameters, TEXT("BuiltinSamplers"));
-
-static_assert(sizeof(FViewUniformShaderParameters) == sizeof(FInstancedViewUniformShaderParameters), "Instanced view and view must match.");
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FMobileDirectionalLightShaderParameters, TEXT("MobileDirectionalLight"));
 
 FBuiltinSamplersUniformBuffer::FBuiltinSamplersUniformBuffer()
 {
@@ -102,7 +100,7 @@ static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
 	TEXT("(Useful for testing, no scalability or project setting)\n")
 	TEXT(" 0..1: use specified max roughness (overrride PostprocessVolume setting)\n")
 	TEXT(" -1: no override (default)"),
-	ECVF_RenderThreadSafe);
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarShadowFreezeCamera(
 	TEXT("r.Shadow.FreezeCamera"),
@@ -336,9 +334,9 @@ TLinkedList<FSceneViewStateReference*>*& FSceneViewStateReference::GetSceneViewS
  * @param InvertZ - projection calc is affected by inverted device Z
  * @return vector containing the ratios needed to convert from device Z to world Z
  */
-FVector4 CreateInvDeviceZToWorldZTransform(FMatrix const & ProjMatrix)
+FVector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 {
-	// The depth projection comes from the the following projection matrix:
+	// The perspective depth projection comes from the the following projection matrix:
 	//
 	// | 1  0  0  0 |
 	// | 0  1  0  0 |
@@ -366,18 +364,53 @@ FVector4 CreateInvDeviceZToWorldZTransform(FMatrix const & ProjMatrix)
 		DepthAdd = 0.00000001f;
 	}
 
-	float SubtractValue = DepthMul / DepthAdd;
+	// perspective
+	// SceneDepth = 1.0f / (DeviceZ / ProjMatrix.M[3][2] - ProjMatrix.M[2][2] / ProjMatrix.M[3][2])
 
-	// Subtract a tiny number to avoid divide by 0 errors in the shader when a very far distance is decided from the depth buffer.
-	// This fixes fog not being applied to the black background in the editor.
-	SubtractValue -= 0.00000001f;
+	// ortho
+	// SceneDepth = DeviceZ / ProjMatrix.M[2][2] - ProjMatrix.M[3][2] / ProjMatrix.M[2][2];
 
-	return FVector4(
-		0.0f,			// Unused
-		0.0f,			// Unused
-		1.f / DepthAdd,	
-		SubtractValue
-		);
+	// combined equation in shader to handle either
+	// SceneDepth = DeviceZ * View.InvDeviceZToWorldZTransform[0] + View.InvDeviceZToWorldZTransform[1] + 1.0f / (DeviceZ * View.InvDeviceZToWorldZTransform[2] - View.InvDeviceZToWorldZTransform[3]);
+
+	// therefore perspective needs
+	// View.InvDeviceZToWorldZTransform[0] = 0.0f
+	// View.InvDeviceZToWorldZTransform[1] = 0.0f
+	// View.InvDeviceZToWorldZTransform[2] = 1.0f / ProjMatrix.M[3][2]
+	// View.InvDeviceZToWorldZTransform[3] = ProjMatrix.M[2][2] / ProjMatrix.M[3][2]
+
+	// and ortho needs
+	// View.InvDeviceZToWorldZTransform[0] = 1.0f / ProjMatrix.M[2][2]
+	// View.InvDeviceZToWorldZTransform[1] = -ProjMatrix.M[3][2] / ProjMatrix.M[2][2] + 1.0f
+	// View.InvDeviceZToWorldZTransform[2] = 0.0f
+	// View.InvDeviceZToWorldZTransform[3] = 1.0f
+
+	bool bIsPerspectiveProjection = ProjMatrix.M[3][3] < 1.0f;
+
+	if (bIsPerspectiveProjection)
+	{
+		float SubtractValue = DepthMul / DepthAdd;
+
+		// Subtract a tiny number to avoid divide by 0 errors in the shader when a very far distance is decided from the depth buffer.
+		// This fixes fog not being applied to the black background in the editor.
+		SubtractValue -= 0.00000001f;
+
+		return FVector4(
+			0.0f,			
+			0.0f,			
+			1.0f / DepthAdd,	
+			SubtractValue
+			);
+	}
+	else
+	{
+		return FVector4(
+			1.0f / ProjMatrix.M[2][2],
+			-ProjMatrix.M[3][2] / ProjMatrix.M[2][2] + 1.0f,
+			0.0f,
+			1.0f
+			);
+	}
 }
 
 FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
@@ -411,9 +444,11 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsSceneCapture(false)
 	, bIsReflectionCapture(false)
 	, bIsPlanarReflection(false)
+	, bRenderSceneTwoSided(false)
 	, bIsLocked(false)
 	, bStaticSceneOnly(false)
 	, bIsInstancedStereoEnabled(false)
+	, bIsMultiViewEnabled(false)
 	, GlobalClippingPlane(FPlane(0, 0, 0, 0))
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
@@ -426,6 +461,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	check(UnscaledViewRect.Min.Y >= 0);
 	check(UnscaledViewRect.Width() > 0);
 	check(UnscaledViewRect.Height() > 0);
+	//check(InitOptions.ViewRotationMatrix.GetOrigin().IsNearlyZero());
 
 	FVector ViewOrigin = InitOptions.ViewOrigin;
 	FMatrix ViewRotationMatrix = InitOptions.ViewRotationMatrix;
@@ -585,8 +621,8 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	// OpenGL Gamma space output in GLSL flips Y when rendering directly to the back buffer (so not needed on PC, as we never render directly into the back buffer)
 	auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
-	bool bUsingForwardRenderer = FSceneInterface::ShouldUseDeferredRenderer(FeatureLevel) == false;
-	bool bPlatformRequiresReverseCulling = (IsOpenGLPlatform(ShaderPlatform) && bUsingForwardRenderer && !IsPCPlatform(ShaderPlatform) && !IsVulkanMobilePlatform(ShaderPlatform));
+	bool bUsingMobileRenderer = FSceneInterface::GetShadingPath(FeatureLevel) == EShadingPath::Mobile;
+	bool bPlatformRequiresReverseCulling = (IsOpenGLPlatform(ShaderPlatform) && bUsingMobileRenderer && !IsPCPlatform(ShaderPlatform) && !IsVulkanMobilePlatform(ShaderPlatform));
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	check(MobileHDRCvar);
 	bReverseCulling = (bPlatformRequiresReverseCulling && MobileHDRCvar->GetValueOnAnyThread() == 0) ? !bReverseCulling : bReverseCulling;
@@ -610,6 +646,8 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	bUseFieldOfViewForLOD = InitOptions.bUseFieldOfViewForLOD;
 	DrawDynamicFlags = EDrawDynamicFlags::None;
 	bAllowTemporalJitter = true;
+	TemporalJitterPixelsX = 0.0f;
+	TemporalJitterPixelsY = 0.0f;
 
 #if WITH_EDITOR
 	bUsePixelInspector = false;
@@ -619,9 +657,12 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	SelectionOutlineColor = GEngine->GetSelectionOutlineColor();
 #endif
 
-	// Query instanced stereo state
+	// Query instanced stereo and multi-view state
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
 	bIsInstancedStereoEnabled = (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnAnyThread() != false) : false) : false;
+
+	static const auto MultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
+	bIsMultiViewEnabled = ShaderPlatform == EShaderPlatform::SP_PS4 && (MultiViewCVar && MultiViewCVar->GetValueOnAnyThread() != 0);
 }
 
 static TAutoConsoleVariable<int32> CVarCompensateForFOV(
@@ -728,6 +769,9 @@ void FSceneView::UpdateViewMatrix()
 
 	// Derive the view frustum from the view projection matrix.
 	GetViewFrustumBounds(ViewFrustum, ViewProjectionMatrix, false);
+
+	// We need to keep ShadowViewMatrices in sync.
+	ShadowViewMatrices = ViewMatrices;
 }
 
 void FSceneView::SetScaledViewRect(FIntRect InScaledViewRect)
@@ -946,8 +990,8 @@ bool FSceneView::ProjectWorldToScreen(const FVector& WorldPosition, const FIntRe
 		const float NormalizedY = 1.f - ( PosInScreenSpace.Y / 2.f ) - 0.5f;
 
 		FVector2D RayStartViewRectSpace(
-			(float)ViewRect.Min.X + ( NormalizedX * (float)ViewRect.Width() ),
-			(float)ViewRect.Min.Y + ( NormalizedY * (float)ViewRect.Height() )
+			( NormalizedX * (float)ViewRect.Width() ),
+			( NormalizedY * (float)ViewRect.Height() )
 			);
 
 		out_ScreenPos = RayStartViewRectSpace;
@@ -1395,9 +1439,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality"));
+		static const auto SceneColorFringeQualityCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality"));
 
-		int32 FringeQuality = CVar->GetValueOnGameThread();
+		int32 FringeQuality = SceneColorFringeQualityCVar->GetValueOnGameThread();
 		if (FringeQuality <= 0)
 		{
 			FinalPostProcessSettings.SceneFringeIntensity = 0;
@@ -1405,9 +1449,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BloomQuality"));
+		static const auto BloomQualityCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BloomQuality"));
 
-		int Value = CVar->GetValueOnGameThread();
+		int Value = BloomQualityCVar->GetValueOnGameThread();
 
 		if(Value <= 0)
 		{
@@ -1451,9 +1495,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DepthOfFieldQuality"));
+		static const auto DepthOfFieldQualityCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DepthOfFieldQuality"));
 
-		int Value = CVar->GetValueOnGameThread();
+		int Value = DepthOfFieldQualityCVar->GetValueOnGameThread();
 
 		if(Value <= 0)
 		{
@@ -1531,9 +1575,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
 
-		float Value = CVar->GetValueOnGameThread();
+		float Value = ScreenPercentageCVar->GetValueOnGameThread();
 
 		if(Value >= 0.0)
 		{
@@ -1562,9 +1606,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 #endif
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionStaticFraction"));
+		static const auto AmbientOcclusionStaticFractionCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionStaticFraction"));
 
-		float Value = CVar->GetValueOnGameThread();
+		float Value = AmbientOcclusionStaticFractionCVar->GetValueOnGameThread();
 
 		if(Value >= 0.0)
 		{
@@ -1586,9 +1630,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionRadiusScale"));
+		static const auto AmbientOcclusionRadiusScaleCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionRadiusScale"));
 
-		float Scale = FMath::Clamp(CVar->GetValueOnGameThread(), 0.1f, 15.0f);
+		float Scale = FMath::Clamp(AmbientOcclusionRadiusScaleCVar->GetValueOnGameThread(), 0.1f, 15.0f);
 		
 		FinalPostProcessSettings.AmbientOcclusionRadius *= Scale;
 	}
@@ -1649,12 +1693,12 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 
 	// Anti-Aliasing
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessAAQuality")); 
+		static const auto PostProcessAAQualityCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessAAQuality")); 
 		static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 		static auto* MobileMSAACvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 		static uint32 MSAAValue = GShaderPlatformForFeatureLevel[SceneViewFeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnGameThread();
 
-		int32 Quality = FMath::Clamp(CVar->GetValueOnGameThread(), 0, 6);
+		int32 Quality = FMath::Clamp(PostProcessAAQualityCVar->GetValueOnGameThread(), 0, 6);
 		const bool bWillApplyTemporalAA = Family->EngineShowFlags.PostProcessing || bIsPlanarReflection;
 
 		if( !bWillApplyTemporalAA || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
@@ -1847,6 +1891,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	:
 	FamilySizeX(0),
 	FamilySizeY(0),
+	InstancedStereoWidth(0),
 	RenderTarget(CVS.RenderTarget),
 	bUseSeparateRenderTarget(false),
 	Scene(CVS.Scene),
@@ -1858,6 +1903,8 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	bRealtimeUpdate(CVS.bRealtimeUpdate),
 	bDeferClear(CVS.bDeferClear),
 	bResolveScene(CVS.bResolveScene),
+	SceneCaptureSource(SCS_FinalColorLDR),
+	SceneCaptureCompositeMode(SCCM_Overwrite),
 	bWorldIsPaused(false),
 	GammaCorrection(CVS.GammaCorrection)
 {
@@ -1899,12 +1946,8 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 
 			if (World->IsPaused())
 			{
-				bool bCameraCanMove = false;
-
-#if WITH_EDITOR
 				// to fix UE-17047 Motion Blur exaggeration when Paused in Simulate
-				bCameraCanMove = GEditor && GEditor->bIsSimulatingInEditor;
-#endif
+				bool bCameraCanMove = GEditor && GEditor->bIsSimulatingInEditor;
 				if(!bCameraCanMove)
 				{
 					bWorldIsPaused = true;
@@ -1914,8 +1957,8 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	}
 
 	LandscapeLODOverride = -1;
-	HierarchicalLODOverride = -1;
 	bDrawBaseInfo = true;
+	bNullifyWorldSpacePosition = false;
 #endif
 }
 
@@ -1930,32 +1973,43 @@ void FSceneViewFamily::ComputeFamilySize()
 	{
 		const FSceneView* View = Views[ViewIndex];
 
-		float FinalViewMaxX = (float)View->ViewRect.Max.X;
-		float FinalViewMaxY = (float)View->ViewRect.Max.Y;
-
-		// Derive the amount of scaling needed for screenpercentage from the scaled / unscaled rect
-		const float XScale = FinalViewMaxX / (float)View->UnscaledViewRect.Max.X;
-		const float YScale = FinalViewMaxY / (float)View->UnscaledViewRect.Max.Y;
-
-		if(!bInitializedExtents)
+		if (View->ResolutionOverrideRect.Area() > 0)
 		{
-			// Note: using the unconstrained view rect to compute family size
-			// In the case of constrained views (black bars) this means the scene render targets will fill the whole screen
-			// Which is needed for ES2 paths where we render directly to the backbuffer, and the scene depth buffer has to match in size
-			MaxFamilyX = View->UnconstrainedViewRect.Max.X * XScale;
-			MaxFamilyY = View->UnconstrainedViewRect.Max.Y * YScale;
+			MaxFamilyX = FMath::Max(MaxFamilyX, static_cast<float>(View->ResolutionOverrideRect.Max.X));
+			MaxFamilyY = FMath::Max(MaxFamilyY, static_cast<float>(View->ResolutionOverrideRect.Max.Y));
 			bInitializedExtents = true;
 		}
 		else
 		{
-			MaxFamilyX = FMath::Max(MaxFamilyX, View->UnconstrainedViewRect.Max.X * XScale);
-			MaxFamilyY = FMath::Max(MaxFamilyY, View->UnconstrainedViewRect.Max.Y * YScale);
+			float FinalViewMaxX = (float)View->ViewRect.Max.X;
+			float FinalViewMaxY = (float)View->ViewRect.Max.Y;
+
+			// Derive the amount of scaling needed for screenpercentage from the scaled / unscaled rect
+			const float XScale = FinalViewMaxX / (float)View->UnscaledViewRect.Max.X;
+			const float YScale = FinalViewMaxY / (float)View->UnscaledViewRect.Max.Y;
+
+			if (!bInitializedExtents)
+			{
+				// Note: using the unconstrained view rect to compute family size
+				// In the case of constrained views (black bars) this means the scene render targets will fill the whole screen
+				// Which is needed for ES2 paths where we render directly to the backbuffer, and the scene depth buffer has to match in size
+				MaxFamilyX = View->UnconstrainedViewRect.Max.X * XScale;
+				MaxFamilyY = View->UnconstrainedViewRect.Max.Y * YScale;
+				bInitializedExtents = true;
+			}
+			else
+			{
+				MaxFamilyX = FMath::Max(MaxFamilyX, View->UnconstrainedViewRect.Max.X * XScale);
+				MaxFamilyY = FMath::Max(MaxFamilyY, View->UnconstrainedViewRect.Max.Y * YScale);
+			}
+
+			// floating point imprecision could cause MaxFamilyX to be less than View->ViewRect.Max.X after integer truncation.
+			// since this value controls rendertarget sizes, we don't want to create rendertargets smaller than the view size.
+			MaxFamilyX = FMath::Max(MaxFamilyX, FinalViewMaxX);
+			MaxFamilyY = FMath::Max(MaxFamilyY, FinalViewMaxY);
 		}
 
-		// floating point imprecision could cause MaxFamilyX to be less than View->ViewRect.Max.X after integer truncation.
-		// since this value controls rendertarget sizes, we don't want to create rendertargets smaller than the view size.
-		MaxFamilyX = FMath::Max(MaxFamilyX, FinalViewMaxX);
-		MaxFamilyY = FMath::Max(MaxFamilyY, FinalViewMaxY);
+		InstancedStereoWidth = FPlatformMath::Max(InstancedStereoWidth, static_cast<uint32>(Views[ViewIndex]->ViewRect.Max.X));
 	}
 
 	// We render to the actual position of the viewports so with black borders we need the max.
@@ -2043,6 +2097,12 @@ EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
 	return DVSM_None;
 }
 
+static bool PlatformSupportsDebugViewShaders(EShaderPlatform Platform)
+{
+	// List of platforms that have been tested and proven functional. 
+	return Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5 || Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_METAL_SM4;
+}
+
 bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
 {
 #if WITH_EDITOR
@@ -2060,13 +2120,13 @@ bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
 	case DVSM_ShaderComplexityContainedQuadOverhead:
 	case DVSM_ShaderComplexityBleedingQuadOverhead:
 	case DVSM_QuadComplexity:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceQuadOverdraw || Platform == SP_PCD3D_SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceQuadOverdraw || PlatformSupportsDebugViewShaders(Platform));
 	case DVSM_PrimitiveDistanceAccuracy:
 	case DVSM_MeshTexCoordSizeAccuracy:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceStreamingAccuracy || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceStreamingAccuracy || PlatformSupportsDebugViewShaders(Platform));
 	case DVSM_MaterialTexCoordScalesAccuracy:
 	case DVSM_MaterialTexCoordScalesAnalysis:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceTextureStreamingBuild || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceTextureStreamingBuild || PlatformSupportsDebugViewShaders(Platform));
 	default:
 		return false;
 	}
@@ -2084,7 +2144,7 @@ bool AllowDebugViewVSDSHS(EShaderPlatform Platform)
 		FParse::Param(FCommandLine::Get(), TEXT("streamingaccuracy")) || 
 		FParse::Param(FCommandLine::Get(), TEXT("streamingbuild"));
 
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForce || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForce || PlatformSupportsDebugViewShaders(Platform));
 #else
 	return false;
 #endif
@@ -2095,6 +2155,4 @@ bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode)
 	return AllowDebugViewPS(ShaderMode, GMaxRHIShaderPlatform);
 }
 
-#endif
-
-
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

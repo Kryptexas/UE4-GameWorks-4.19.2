@@ -1103,7 +1103,7 @@ FReply SMultiBoxWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacter
 	return Reply;
 }
 
-void SMultiBoxWidget::TypeChar(const int32 InChar)
+void SMultiBoxWidget::TypeChar(const TCHAR InChar)
 {
 	// Certain characters are not allowed
 	bool bIsCharAllowed = true;
@@ -1120,7 +1120,7 @@ void SMultiBoxWidget::TypeChar(const int32 InChar)
 	}
 }
 
-void SMultiBoxWidget::UpdateSearch( const int32 CharToAdd )
+void SMultiBoxWidget::UpdateSearch( const TCHAR CharToAdd )
 {
 	const FString& OldSearchText = SearchText.ToString();
 	SearchText = FText::FromString( OldSearchText + CharToAdd );
@@ -1228,4 +1228,10 @@ void SMultiBoxWidget::SetSearchBlockWidget(TSharedPtr<SWidget> InWidget)
 void SMultiBoxWidget::AddSearchElement( TSharedPtr<SWidget> BlockWidget, FText BlockDisplayText )
 {
 	SearchElements.Add( BlockWidget, BlockDisplayText );
+}
+
+bool SMultiBoxWidget::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent)
+{
+	// tooltips on multibox widgets are not supported outside of the editor
+	return !GIsEditor;
 }

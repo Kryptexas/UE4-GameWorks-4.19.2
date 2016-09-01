@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2536219
+﻿INTSourceChangelist:2738908
 Availability:Public
 Title:マテリアル エディタ - 透過処理の操作ガイド
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -6,30 +6,32 @@ Description:マテリアルで透過処理を使用するための操作ガイ�
 Related:Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related:Engine/Rendering/Materials/Functions/Reference/Opacity
 Related:Engine/Rendering/LightingAndShadows/LitTranslucency
+Version:4.9
+SkillLevel:Intermediate
 
 [TOC(start:2 end:3)]
 
-## 概要
 
-水や草などの所定のサーフェスタイプを作成する場合、サーフェスを透視可能にするだけでなく、深度や色の感覚をサーフェスに与えなければなりません。 
-これらのプロパティは現実世界では頻繁に **Transparency (透過性)** または **Opacity (オパシティ)** と呼ばれ、多くの場合、同じものに対して交互に使用して描写します。 
-ただし、アンリアル エンジン 4 (UE4) 内では、オパシティでサーフェスの透過度合を定義した場合にサーフェスが透過しているどうかを説明するために透過処理を使います。以下の操作ガイドでは、アンリアル エンジン 4 のマテリアルに透過処理を導入する方法に関して知っておくべき内容を説明します。
+
+水や草などの所定のサーフェスタイプを作成する場合、サーフェスを透過させるだけでなく、深度や色の感覚をサーフェスに与えなければなりません。 
+これらのプロパティは現実世界では **Transparency (透過性)** または **Opacity (オパシティ)** と呼ばれ、同じものに対して交互に使用して描写する場合が多いです。 
+ただし、アンリアル エンジン 4 (UE4) 内では、オパシティでサーフェスの透過度合を定義した時のサーフェスの透過状態を説明するために透過処理を使います。以下の操作ガイドでは、アンリアル エンジン 4 のマテリアルに透過処理を導入する方法に関して知っておくべき内容を説明します。
 
 ## 透過処理
 
-透過処理とは、光の通り抜けをブロックしたり、光が通り抜けられるようにするサーフェスの能力を表すために使われる用語です。 
+**透過処理** とは、光の通り抜けをブロックしたり、光が通り抜けられるようにするサーフェスの能力を表すために使われる用語です。 
 例えば、煉瓦は透過性のないオブジェクトですが、ステンドグラスは透過性があるオブジェクトです。
-UE4 の透過処理機能は、ピクセルにある程度の透明度を持たせて、 完全に不透明な状態にならないようにします。 
+UE4 の透過処理機能は、ピクセルにある程度の透明度を持たせて、完全に不透明な状態にならないようにします。 
  
 ![](Trans_Ramp_Example.png)
 
-上の画像は、透過処理を使いたい領域、そしてその領域の透過処理方法の定義をしやすくするために、UE4 で透過処理方法をテクスチャを使って表しました。 
+上の画像は、透過処理を使いたい領域およびその領域の透過処理方法が定義しやすいように、UE4 で透過処理方法をテクスチャを使って表しました。 
 テクスチャは、上が黒または全部透過処理で下が白または透過処理なしのグラディエントです。 
 真ん中の領域は、テクスチャのピクセルがどのくらい黒または白に近いかによって、透明性が変わります。 
 
 ## 透過処理＆オパシティ
 
-UE4 で透過処理を行う場合、 **オパシティ** と言う用語を耳にすることになります。 
+UE4 で透過処理を行う場合、**オパシティ** と言う用語を耳にすることになります。 
 透過処理はサーフェスに透明性を与えられることを指し、オパシティはサーフェスの透明度を表します。
 これを実際に処理してみたのが、下の画像です。 
 
@@ -49,18 +51,18 @@ UE4 で透過処理を行う場合、 **オパシティ** と言う用語を耳�
 以下のステップに従って、マテリアルに透過処理を使用する設定を行います。
 
 [region:note]
-このチュートリアルは、プロジェクトに **Starter Content** を含むと利用できるコンテンツに使用します。プロジェクトに Starter Content を含まなかった場合は、 
-プロジェクト間のコンテンツの移動に関する情報を [Migrating](Engine/Content/Browser/UserGuide/Migrate) コンテンツ ページでご覧ください。こうすることで、新しく Starter Content を作成さずに追加することができます。  
+このチュートリアルは、プロジェクトに **スターター コンテンツ** を含むと利用できるコンテンツに使用します。プロジェクトにスターター コンテンツを含まない場合、 
+プロジェクト間のコンテンツの移動に関する情報は [Migrating](Engine/Content/Browser/UserGuide/Migrate) コンテンツ ページでご覧ください。こうすることで、スターター コンテンツを新規作成せずに追加することができます。  
 [/region]
 
 
-1. これを行うには、 **コンテンツ ブラウザ** で **右クリック** し、ポップアップ メニューの **[Create Basic Asset]** セクションから **マテリアル** を選択します。 
+1. まず **コンテンツ ブラウザ** で **右クリック** し、ポップアップ メニューの **[Create Basic Asset (基本アセットを作成)]** セクションから **[Material]** を選択します。 
 
 	![](Trans_Create_New_Material.png)
 
 1. マテリアルに **「Transparency_Material」** という名前を付けて、 **マウスの左ボタン** を使うか、またはコンテンツ ブラウザのマテリアルを **ダブル クリック** して開きます。 
 
-1. マテリアルを開いた状態で、 **[Material]** セクションの **[Details]** パネルで、 **Blend Mode** を **[Opaque]** から **[Translucent]** に設定します。
+1. マテリアルを開いた状態で、 **[Material]** セクションの **[Details (詳細)]** パネルで、**[Blend Mode]** を **[Opaque]** から **[Translucent]** に設定します。
 
 	![](Trans_Change_Blend_Mode.png)
 
@@ -81,24 +83,44 @@ UE4 で透過処理を行う場合、 **オパシティ** と言う用語を耳�
 
 	![](Trans_Completed_Shader.png)
 
-1. **[Apply]** ボタンと **[Save]** ボタンの両方を押して、マテリアル エディタを閉じます。  
+1. **[Apply (適用)]** ボタンと **[Save (保存)]** ボタンの両方を押して、マテリアル エディタを閉じます。  
 	![](Engine\Rendering\Materials\HowTo\Refraction\R_Apply_&_Save.png)
 
-1. **コンテンツ ブラウザ ** で **Transparency_Material** を探します。次にその上で **右クリック** し、表示されたメニューから [Create Material Instance] オプションを選択します。  
+1. **コンテンツ ブラウザ ** で **Transparency_Material** を探します。次にその上で **右クリック** し、表示されたメニューから [Create Material Instance (マテリアル インスタンスを作成)] オプションを選択します。  
 
-	![](Tras_Creat_New_MI.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	PhhorP5ae28
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. マテリアルの動作状況を確認するために、マテリアル インスタンスを置くオブジェクトを探す必要があります。「Starter Content」フォルダのコンテンツ ブラウザ内に、 **「Shapes」** フォルダがあります。
-**Shape_Sphere** を見つけたら、 **マウスの左ボタン** で選択し、 **マウスの左ボタン** を長押ししたまま現在のレベルへドラッグします。ドラッグ先で **マウスの左ボタン** をリリースし、レベル内にメッシュを置きます。
+1. マテリアルの動作状況を確認するために、マテリアル インスタンスを置くオブジェクトを探す必要があります。「Starter Content」フォルダのコンテンツ ブラウザ内に、**「Shapes」** フォルダがあります。
+**Shape_Sphere** を見つけたら、**マウスの左ボタン** で選択し、**マウスの左ボタン** を長押ししたまま現在のレベルへドラッグします。ドラッグ先で **マウスの左ボタン** をリリースし、レベル内にメッシュを置きます。
 
 	![](Trans_Add_Test_Mesh.png)
 
-1. レベル内にある何かをテストするために、コンテンツ ブラウザにあらかじめ作成しておいた **Transparency_Material_Inst** を探します。**マウスの左ボタン** でそれを選択し、コンテンツ ブラウザから **Shape_Sphere** へドラッグします。
+1. レベル内で何かテストするために、コンテンツ ブラウザにあらかじめ作成しておいた **Transparency_Material_Inst** を探します。**マウスの左ボタン** でそれを選択し、コンテンツ ブラウザから **Shape_Sphere** へドラッグします。
 **Shape_Sphere** 上で **マウスの左ボタン** をリリースして、マテリアル インスタンスをメッシュへ適用します。
 
-	![](Tras_Apply_Trans_Material.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	zJP1NO1DdB8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. マテリアル インスタンス がメッシュに適用されたら、コンテンツ ブラウザでそれを **マウスの左ボタン** で **ダブルクリック** してマテリアル インスタンスを開きます。開いたら、 **マウスの左ボタン** でグレイアウトされているチェックマーク上をクリックして **Transparency_Amount** を有効にします。有効になると、 **Transparency_Amount** の値を調節してオブジェクトの透過度を変更することができます。 
+1. マテリアル インスタンス がメッシュに適用されたら、コンテンツ ブラウザでそれを **マウスの左ボタン** で **ダブルクリック** してマテリアル インスタンスを開きます。開いたら、**マウスの左ボタン** でグレーアウトされているチェックマーク上をクリックして **[Transparency_Amount]** を有効にします。これで、**[Transparency_Amount]** の値を調節してオブジェクトの透過度を変更することができます。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -117,7 +139,7 @@ UE4 で透過処理を行う場合、 **オパシティ** と言う用語を耳�
 透過処理を使用しているオブジェクトは、以下のオプションを設定するとシーン リフレクションを表示できます。 
 ただし、リフレクションを有効にした透過マテリアルが沢山あると、パフォーマンスに問題が生じることがあることを覚えておいてください。 
 
-1. 上記で作成した **Transparency_Material** を開くには、コンテンツブラウザでそのマテリアルを **マウスの左ボタン** で **ダブルクリック** します。**[Translucency]** セクションの **[Details]** セクションで開いて、 **Translucent Light Mode** を **TLM_Volumetric Non Directional** から **TLM Surface** へ変更します。
+1. 上記で作成した **Transparency_Material** を開くには、コンテンツブラウザでそのマテリアルを **マウスの左ボタン** で **ダブルクリック** します。**[Translucency (透過処理)]** セクションの **[Details (詳細)]** セクションで開いて、**[Translucent Light Mode]** を **[TLM_Volumetric Non Directional]** から **[TLM Surface]** へ変更します。
 
 	![](Trans_Change_LM.png)
 
@@ -129,7 +151,7 @@ UE4 で透過処理を行う場合、 **オパシティ** と言う用語を耳�
 
 	![](Trans_Reflection_Final_Material.png)
 
-1. **[Apply]** ボタンと **[Save]** ボタンの両方を押して、マテリアル グラフを閉じます。
+1. **[Apply (適用)]** ボタンと **[Save (保存)]** ボタンの両方を押して、マテリアル グラフを閉じます。
 
 	![](Engine\Rendering\Materials\HowTo\Refraction\R_Apply_&_Save.png)
 
@@ -144,7 +166,7 @@ UE4 で透過処理を行う場合、 **オパシティ** と言う用語を耳�
 ## 透過処理の用途
 
 透過処理は、現実世界の様々なサーフェス タイプのシミュレーションにも使用することができます。 
-UE4 では、以下のものに対して透過処理が最もよく使用されます。
+UE4 で透過処理が最もよく使用されるのは、以下のアイテムです。
 
 * 髪の毛
 * ガラス 
@@ -152,7 +174,7 @@ UE4 では、以下のものに対して透過処理が最もよく使用され�
 * 煙または火の視覚効果
 * 雲
 * デカールの影響
-* フォーリッジ 
+* フォリッジ 
 
 
 ## 透過処理＆リフレクション
@@ -168,15 +190,15 @@ Shader Complexity モードは、複雑度を色で表すことで、所定の�
 緑表示が多いほどレンダリング負荷は低く、赤が多いほどレンダリング負荷が高いことになります。 
 このビューモードを有効にするには、以下の手順に従います。
 
-1. エディタ ビューポートの上部の **[View Mode]** オプションを **マウスの左ボタン** でクリックすると、 **Shader Complexity** が有効になります。現在、 **View Mode** のデフォルト設定は **Lit** です。 
+1. エディタ ビューポートの上部の **[View Mode]** オプションをマウスの左ボタンでクリックすると、 **[Shader Complexity (シェーダーの複雑度)]** が有効になります。現在、**View Mode** のデフォルト設定は **Lit** です。 
 
 	![](Trans_SC_View_Mode.png)
 
-1. **マウスの左ボタン** で **[View Mode]** をクリックすると、メニューが表示されます。メニューから **[Shader Complexity]** オプションを選択します。
+1. **マウスの左ボタン** で [View Mode] をクリックすると、メニューが表示されます。メニューから **[Shader Complexity (シェーダーの複雑度)]** オプションを選択します。
 
 	![](Trans_Set_To_SC.png)
 
-1. **[Shader Complexity]** オプションをクリックすると、レベル ビューポートはこのようになっているはずです。 
+1. **[Shader Complexity (シェーダーの複雑度)]** オプションをクリックすると、レベル ビューポートはこのようになっているはずです。 
 
 	![](Trans_Shader_Complexity_On.png)
 
@@ -192,45 +214,89 @@ Shader Complexity モードは、複雑度を色で表すことで、所定の�
 シーン内に複数のオブジェクトが近寄って存在していると、透明性があるオブジェクトは、透明性がある別のオブジェクトの前や後ろに来た場合、 
 どちらを先にレンダリングするのか分からなくなる問題が発生することがあります。以下の例で、上記で作成したマテリアルとスターター コンテンツから lit smoke VFX を使ってこの問題を発生させてみます。
 
-![](Tras_Sort_Issue_Example.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+BipY-HUpClk
+[/PARAMLITERAL]
+[/OBJECT]
 
 煙がメッシュの前に来ると、突然メッシュの後ろにポップすることに注目してください。 
 これを防ぐためには、煙の VFX がシーン内の他の透明性のあるオブジェクトより常に上位でレンダリングされる **Translucency Sort Priority** を設定する必要があります。
-以下の手順に従って、VFX で **Translucency Sort Priority** を変更します。 
+以下の手順に従って、VFX で **[Translucency Sort Priority (透過処理のソート プライオリティ)]** を変更します。 
 
-1. まず、レベル内の全ての他の透過性のあるオブジェクトより優勢してレンダリングしたいオブジェクト (複数可) を **マウスの左ボタン** でクリックして選択します。ここの例では、煙の VFX を選択します。 
+1. まず、レベル内の全ての他の透過性のあるオブジェクトに優勢してレンダリングしたいオブジェクト (複数可) をマウスの左ボタンでクリックして選択します。ここの例では、煙の VFX を選択します。 
 
 	![](Trans_Select_VFX.png)
 
-1. **[Rendering]** セクションの **[Details]** パネルで、 **White Triangle** をクリックして追加プロパティをエクスポーズします。
+1. **[Rendering]** セクションの **[Details (詳細)]** パネルの **白い三角** をクリックして追加プロパティをエクスポーズします。
 
-	![](Tras_Rendering_Advanced.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	78ZOswFZbj8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. オプション リストの **Translucency Sort Priority** に、値を 100 と入力します。 
+1. オプション リストの **[Translucency Sort Priority (透過処理のソート プライオリティ)]** に、値を 100 と入力します。 
 
 	![](Trans_Set_Sort_Order.png)
 
 	[region:note]
-	デフォルトでは、レベルに追加されたものはすべて **Translucency Sort Priority** は 0 となっています。透過性があるオブジェクトを、他の透明性があるオブジェクトの上位に描画したい場合は、正の値を使います。透過性があるオブジェクトを、他の透明性があるオブジェクトの下位に描画したい場合は、負の値を使います。 
+	デフォルトでは、レベルに追加されたものはすべて **[Translucency Sort Priority]** は 0 となっています。透過性があるオブジェクトを、他の透明性をもつオブジェクトの上位に描画したい場合は、正の値を使います。透過性があるオブジェクトを、他の透明性をもつオブジェクトの下位に描画したい場合は、負の値を使います。 
 	[/region]
 
-1. ではシーンの煙の VFX を見てみましょう。**Translucency Sort Priority** を 100 に設定すると、煙は常に透過性のある他のオブジェクトの上に描画されます。
+1. ではシーンの煙の VFX を見てみましょう。**[Translucency Sort Priority]** を 100 に設定すると、煙は常に透過性のある他のオブジェクトの上に描画されます。
 
-	![](Tras_New_Trans_Order_Front.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	A4OcPB_wSoc
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. **Translucency Sort Priority** を 100 に設定すると、煙は常に透過性のある他のオブジェクトの後ろに描画されます。
+1. **[Translucency Sort Priority]** を 100 に設定すると、煙は常に透過性のある他のオブジェクトの後ろに描画されます。
 
-	![](Tras_New_Trans_Order_Behind.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	MBjshrSST4Q
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-**Translucency Sort Priority** の調整により、レベル内でのソート順位の問題を修正すると、ゲームプレイ中にエフェクトあるいはオブジェクトのスポーン時に別のソート問題が発生します。 
-このため、どの **Translucency Sort Priority** 番号をどこに使ったのか定義しておくと良いです。
-例えば、スポーンされた全てのエフェクトの **Translucency Sort Priority** 値を 100 に設定したとします。
-従って、レベル内でソート関係の問題が生じた場合、レベル内のオブジェクトの **Translucency Sort Priority** を最高で 99 まで調整することができます。
-こうしておくと、スポーンされたゲーム エフェクトは、対象のレベル内にある **Translucency Sort Priority** オブジェクトの種類に関係なく、常に最上位でレンダリングされます。
+**[Translucency Sort Priority]** の調整により、レベル内でのソート順位の問題を修正すると、ゲームプレイ中にエフェクトあるいはオブジェクトのスポーン時に別のソート問題が発生します。 
+従って、どの **Translucency Sort Priority** 番号をどれに使ったのか定義しておくと良いです。
+例えば、スポーンされた全てのエフェクトの **[Translucency Sort Priority]** 値を 100 に設定したとします。
+従って、レベル内でソート関係の問題が生じた場合、レベル内のオブジェクトの **[Translucency Sort Priority]** を最高で 99 まで調整することができます。
+こうしておくと、スポーンされたゲーム エフェクトは、対象のレベル内にある **[Translucency Sort Priority]** オブジェクトの種類に関係なく、常に最上位でレンダリングされます。
 
 ## まとめ
 
-透過処理は非常にパワフルなので、 3D プロジェクトで大活躍します。 
+透過処理は非常にパワフルなので、3D プロジェクトで大活躍します。 
 ただし、パワフルなツールはたいがいそうですが、パワーを確実に抑制するように注意する必要があります。 
 リフレクションを使っている透明性があるオブジェクトの数は、できるだけ少なく留めておくようにすることを覚えておいてください。 
 また、エディタとゲームプレイの間は Shader Complexity モードを常にチェックし、透過処理によるオーバードローが最小になるようにします。 
+
+
+
+

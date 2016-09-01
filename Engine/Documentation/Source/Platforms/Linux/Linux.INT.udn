@@ -4,43 +4,24 @@ Crumbs:%ROOT%, Platforms
 Description:Developing games for the Linux platform.
 Platform:Linux
 Navigation:platform
+Version: 4.11
+type:landing
+parent:Platforms
+tags:Linux
+related: Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers
+related: Platforms/Linux/GettingStarted
 
+Fueling the future of Linux game development is at your fingertips! Now, more than ever, you can harness the power of
+Unreal Engine 4 (UE4) to create and share games with Linux users worldwide. If you're new to Linux game development,
+you'll want to work your way through our [](Platforms/Linux/BeginnerLinuxDeveloper) learning path before moving 
+onto more advanced topics.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Linux Essentials
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/Linux/GettingStarted "%Platforms/Linux/GettingStarted:description%")
-	[/PARAM]
-[/OBJECT]
+## Learning Paths
 
-	
-
-		
-
-	      
-
-	       
-
-	   
-
-	   
-
-	  
-
-		
-
-		
-
-		
-
-		
-
-		
-
+[REGION:topics third]
+%Platforms/Linux/BeginnerLinuxDeveloper:topic%
+<!--
+%Platforms/Linux/IntermediateLinuxDeveloper:topic%
+%Platforms/Linux/AdvancedLinuxDeveloper:topic%
+-->
+[/REGION]

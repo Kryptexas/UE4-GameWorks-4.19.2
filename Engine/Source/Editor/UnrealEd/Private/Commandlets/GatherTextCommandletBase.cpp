@@ -294,7 +294,7 @@ bool FManifestInfo::AddManifestDependencies( const TArray< FString >& InManifest
 }
 
 
-TSharedPtr< FManifestEntry > FManifestInfo::FindDependencyEntryByContext( const FString& Namespace, const FContext& Context, FString& OutFileName )
+TSharedPtr< FManifestEntry > FManifestInfo::FindDependencyEntryByContext( const FString& Namespace, const FManifestContext& Context, FString& OutFileName )
 {
 	TSharedPtr<FManifestEntry> DependencyEntry = NULL;
 	OutFileName = TEXT("");
@@ -362,7 +362,7 @@ void FManifestInfo::ApplyManifestDependencies()
 
 						FConflictReportInfo::GetInstance().AddConflict( ManifestEntry->Namespace, ContextIt->Key, ContextIt->KeyMetadataObj, ManifestEntry->Source, *ContextIt->SourceLocation );
 
-						FContext* ConflictingContext = DependencyEntry->FindContext( ContextIt->Key, ContextIt->KeyMetadataObj );
+						FManifestContext* ConflictingContext = DependencyEntry->FindContext( ContextIt->Key, ContextIt->KeyMetadataObj );
 						FString DependencyEntryFullSrcLoc = ( !DependencyFileName.IsEmpty() ) ? DependencyFileName : ConflictingContext->SourceLocation;
 						
 						FConflictReportInfo::GetInstance().AddConflict( ManifestEntry->Namespace, ContextIt->Key, ContextIt->KeyMetadataObj, DependencyEntry->Source, DependencyEntryFullSrcLoc );
@@ -389,7 +389,7 @@ void FManifestInfo::ApplyManifestDependencies()
 	}
 }
 
-bool FManifestInfo::AddEntry( const FString& EntryDescription, const FString& Namespace, const FLocItem& Source, const FContext& Context )
+bool FManifestInfo::AddEntry( const FString& EntryDescription, const FString& Namespace, const FLocItem& Source, const FManifestContext& Context )
 {
 	bool bAddSuccessful = false;
 	// Check if the entry already exists in the manifest or one of the manifest dependencies
@@ -409,7 +409,7 @@ bool FManifestInfo::AddEntry( const FString& EntryDescription, const FString& Na
 		else
 		{
 			// Grab the source location of the conflicting context
-			FContext* ConflictingContext = ExistingEntry->FindContext( Context.Key, Context.KeyMetadataObj );
+			FManifestContext* ConflictingContext = ExistingEntry->FindContext( Context.Key, Context.KeyMetadataObj );
 			FString ExistingEntrySourceLocation = ( !ExistingEntryFileName.IsEmpty() ) ?  ExistingEntryFileName : ConflictingContext->SourceLocation;
 
 			FString Message = UGatherTextCommandletBase::MungeLogOutput( FString::Printf(TEXT("Previously entered localized string: %s [%s] %s %s=\"%s\" %s. It was previously \"%s\" %s in %s." ),
@@ -1136,4 +1136,60 @@ bool FLocalizedAssetUtil::GetAssetsByPathAndClass(IAssetRegistry& InAssetRegistr
 	}
 
 	return true;
+}
+
+
+FFuzzyPathMatcher::FFuzzyPathMatcher(const TArray<FString>& InIncludePathFilters, const TArray<FString>& InExcludePathFilters)
+{
+	FuzzyPaths.Reserve(InIncludePathFilters.Num() + InExcludePathFilters.Num());
+
+	for (const FString& IncludePath : InIncludePathFilters)
+	{
+		FuzzyPaths.Add(FFuzzyPath(IncludePath, EPathType::Include));
+	}
+
+	for (const FString& ExcludePath : InExcludePathFilters)
+	{
+		FuzzyPaths.Add(FFuzzyPath(ExcludePath, EPathType::Exclude));
+	}
+
+	// Sort the paths so that deeper paths with fewer wildcards appear first in the list
+	FuzzyPaths.Sort([](const FFuzzyPath& PathOne, const FFuzzyPath& PathTwo) -> bool
+	{
+		auto GetFuzzRating = [](const FFuzzyPath& InFuzzyPath) -> int32
+		{
+			int32 PathDepth = 0;
+			int32 PathFuzz = 0;
+			for (const TCHAR Char : InFuzzyPath.PathFilter)
+			{
+				if (Char == TEXT('/') || Char == TEXT('\\'))
+				{
+					++PathDepth;
+				}
+				else if (Char == TEXT('*') || Char == TEXT('?'))
+				{
+					++PathFuzz;
+				}
+			}
+
+			return (100 - PathDepth) + (PathFuzz * 1000);
+		};
+
+		const int32 PathOneFuzzRating = GetFuzzRating(PathOne);
+		const int32 PathTwoFuzzRating = GetFuzzRating(PathTwo);
+		return PathOneFuzzRating < PathTwoFuzzRating;
+	});
+}
+
+FFuzzyPathMatcher::EPathMatch FFuzzyPathMatcher::TestPath(const FString& InPathToTest) const
+{
+	for (const FFuzzyPath& FuzzyPath : FuzzyPaths)
+	{
+		if (InPathToTest.MatchesWildcard(FuzzyPath.PathFilter))
+		{
+			return (FuzzyPath.PathType == EPathType::Include) ? EPathMatch::Included : EPathMatch::Excluded;
+		}
+	}
+
+	return EPathMatch::NoMatch;
 }

@@ -1,21 +1,22 @@
-﻿INTSourceChangelist:2549207
+﻿INTSourceChangelist:2701189
 Availability:Public
-Title:ブループリントでアクタを検索する方法
+Title:ブループリントでアクタを検索する
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\FindingActors
 Description:ブループリントでアクタを検索するための操作ガイド 
+Version:4.9
+SkillLevel:Intermediate
 
 [TOC (start:2 end:2)]
 
-## 概要
-
-このページでは、 **Get All Actors of Class** ノードを使ってレベル内でアクタを検索する方法を説明します。このノードは呼び出されると、特定のクラスのレベル内のすべてのアクタを取得して、それらを **配列** (変数のコレクション) に配置します。その配列から、好みのフィルタ基準に合わせて全てのアクタまたは個別にアクタを取り出すことができます。アクタの種類および目的に合わせた方法で、アクタのプロパティにアクセスしたり修正することが可能になります。 
+このページでは、 Get All Actors of Class ノードを使ってレベル内でアクタを検索する方法を説明します。このノードは呼び出されると、特定のクラスのレベル内のすべてのアクタを取得して、それらを配列 (変数のコレクション) に配置します。その配列から、好みのフィルタ基準に合わせて全てのアクタまたは個別にアクタを取り出すことができます。アクタの種類および目的に合わせた方法で、アクタのプロパティにアクセスしたり修正することが可能になります。 
  
 
 ## クラスのアクタを全て取得する
+<!---
+以下のステップで、**Get All Actors of Class** ノードを使って、ある特定のクラスのシーンにある全てのアクタを検索します。 
+--->
 
-**Get All Actors of Class** ノードを使って、ある特定のクラスのシーンにある全てのアクタを検索は、以下のステップになります。 
-
- _この例では、 **Starter Content が含まれる Blueprint Third Person Template** を使用します。_
+ _この例では、**Blueprint Third Person テンプレート (with Starter Content)** を使用します。_
 
 1.	**コンテンツ ブラウザ** の「 **Game/Blueprints** 」フォルダから 3 つの **Blueprint_Effect_Fire** アセットをドラッグします。 
 
@@ -23,9 +24,9 @@ Description:ブループリントでアクタを検索するための操作ガ�
 
 	これらを好きな場所に置きます。検索を試すために置いてみます。 
 
-1.	**コンテンツ ブラウザ** の「 **Game/Blueprints** 」フォルダので **MyCharacter** アセットを開きます。 
+1.	**コンテンツ ブラウザ** の「 **Game/Blueprints** 」フォルダで **MyCharacter** アセットを開きます。 
 
-1.	**Blueprint Editor ウィンドウ** のグラフで、**F** Key Event を **右クリック** して追加します。 
+1.	**Blueprint Editor ウィンドウ** のグラフで、**右クリック** して **F** Key Event を 追加します。 
 
 	![](Actors2.png)
 
@@ -41,15 +42,15 @@ Description:ブループリントでアクタを検索するための操作ガ�
 
 	![](Actors4.png)
 
-1.	**Out Actors** ピンを引き出して **ForEachLoop** ノードを追加します。 
+1.	**Out Actors** を引き出して **ForEachLoop** ノードを追加します。 
 
 	![](Actors5.png)(w:800)
 
-	**Out Actors** は (指定されたクラスの) すべてのアクタの **配列** で、それらの「それぞれに対して」何かをすることができます。
+	**Out Actors** は (指定されたクラスの) すべてのアクタの **配列** で、その「それぞれに対して」何かをすることができます。
 
-1.	**ForEachLoop** ノードの **Array Element** ピンを引き出して **P_Fire** と **Fire Audio** を追加します。 
+1.	**ForEachLoop** ノードの **Array Element** を引き出して **P_Fire** と **Fire Audio** を追加します。 
 
-1.	グラフを **右クリック** して **Deactivate** ノードを追加したら、 Fire と Audio のピンを **Target** に接続します。 
+1.	グラフ内で **右クリック** して **Deactivate** ノードを追加したら、 Fire と Audio のピンを **Target** に接続します。 
 
 	[REGION:lightbox]
 	[![](Actors7.png)(w:800)](Actors7.png)
@@ -68,9 +69,9 @@ Description:ブループリントでアクタを検索するための操作ガ�
 
 ## 特定のアクタを取得する
 
-前のセクションで、 **Get All Actors of Class** ノードを使うと指定したクラスのアクタの **配列** が作成されることを理解できたと思います。このセクションでは、様々な基準に合わせて得た配列結果にフィルタを適用して、その配列から配列群を指定する、あるいはアクタを 1 つだけ取得する方法を紹介します。 
+前のセクションで、 **Get All Actors of Class** ノードを使うと指定したクラスのアクタの配列が作成されることを理解できたと思います。このセクションでは、様々な基準に合わせて得た配列結果にフィルタを適用して、その配列から特定の複数のアクタを取得、あるいはアクタを 1 つだけ取得する方法を紹介します。 
 
-まず 1 つ目は、アクタで **タグ** を使う方法です。 
+まずひとつめは、アクタで **タグ** を使う方法です。 
 
 1.	前のセクションのサンプルをそのまま使用して、レベル内の炎のエフェクトを 1 つ選択します。 
 
@@ -90,7 +91,7 @@ Description:ブループリントでアクタを検索するための操作ガ�
 
 	![](Actors11.png)
 
-	ここで、 (上のプロセスで **Target** に設定した) Index 0 にタグを「Get」します。 
+	ここで、 (上のプロセスで **Target** に設定した) Index 0 でタグを「Get」します。 
 
 1.	グラフ内を **右クリック** して、 **Branch** ノードを追加します。 
 
@@ -98,11 +99,11 @@ Description:ブループリントでアクタを検索するための操作ガ�
 
 1.	**Get** ノードの出力ピンを **Actor Has Tag** ノードの **Tag** ピンに接続します。 
 
-1.	**ForEachLoop** の **Array Element** ピンを **Actor Has Tag** ノードの **Target** ピンに接続します。 
+1.	**ForEachLoop** ピンの **Array Element** ピンを **Actor Has Tag** ノードの **Target** ピンに接続します。 
 
 	![](Actors12.png)(w:800)
 
-1.	**Array Element** ピンを引き出して **P_Fire** と **Fire Audio** を追加して、**Deactivate** ノードへ接続します。 
+1.	**ForEachLoop** ピンの **Array Element** ピンを引き出して **P_Fire** と **Fire Audio** を get して、**Deactivate** ノードへ接続します。 
 
 	[REGION:lightbox]
 	[![](Actors13.png)(w:800)](Actors13.png)

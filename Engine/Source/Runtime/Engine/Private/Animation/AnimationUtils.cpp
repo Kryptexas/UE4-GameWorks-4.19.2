@@ -177,11 +177,11 @@ void FAnimationUtils::BuildSkeletonMetaData(USkeleton* Skeleton, TArray<FBoneDat
 */
 void FAnimationUtils::BuildComponentSpaceTransform(FTransform& OutTransform,
 											   int32 BoneIndex,
-											   const TArray<FTransform>& LocalAtoms,
+											   const TArray<FTransform>& BoneSpaceTransforms,
 											   const TArray<FBoneData>& BoneData)
 {
 	// Put root-to-component in OutTransform.
-	OutTransform = LocalAtoms[0];
+	OutTransform = BoneSpaceTransforms[0];
 
 	if ( BoneIndex > 0 )
 	{
@@ -193,11 +193,11 @@ void FAnimationUtils::BuildComponentSpaceTransform(FTransform& OutTransform,
 		for ( int32 i = Bone.BonesToRoot.Num()-2 ; i >=0 ; --i )
 		{
 			const int32 AncestorIndex = Bone.BonesToRoot[i];
-			OutTransform = LocalAtoms[AncestorIndex]*OutTransform;
+			OutTransform = BoneSpaceTransforms[AncestorIndex]*OutTransform;
 		}
 
 		// Finally, include the bone's local-to-parent.
-		OutTransform = LocalAtoms[BoneIndex]*OutTransform;
+		OutTransform = BoneSpaceTransforms[BoneIndex]*OutTransform;
 	}
 }
 

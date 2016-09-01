@@ -180,5 +180,7 @@
 
 // Declare all Vulkan functions
 #define DECLARE_VK_ENTRYPOINTS(Type,Func) extern Type Func;
-ENUM_VK_ENTRYPOINTS_ALL(DECLARE_VK_ENTRYPOINTS);
-
+namespace VulkanRHI
+{
+	ENUM_VK_ENTRYPOINTS_ALL(DECLARE_VK_ENTRYPOINTS);
+}

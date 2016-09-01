@@ -22,7 +22,7 @@ Version: 4.9
 
 %Steps%
 
-**Services** attach to [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) nodes, and will execute at their defined frequency as long as their branch is being executed. These are often used to make checks and to update the Blackboard. These take the place of traditional Parallel nodes in other Behavior Tree systems
+**Services** attach to [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) nodes, and will execute at their defined frequency as long as their branch is being executed. These are often used to make checks and to update the Blackboard. These take the place of traditional Parallel nodes in other Behavior Tree systems
 
 In this case, the service is going to look for any **Pawn** that is not an AI Character, then set the TargetToFollow and TargetLocation Blackboard keys.
 
@@ -30,7 +30,7 @@ In this case, the service is going to look for any **Pawn** that is not an AI Ch
 ## Steps
 
 1. Open the FollowerBT Behavior Tree by **Double-clicking** it in the **Content Browser**.
-1. Click New Service ![](newService_button.png) button.
+1. Click **New Service** button.
 
 	It will create in the same folder as the Behavior Tree.
 1. Rename it in the **Content Browser** to "AgroCheck".
@@ -78,7 +78,7 @@ If the Default Values category doesn't show anything, Compile the Blueprint.
 Here is what is going on in this graph:
 
 1. **Event Tick** works just like the same even in Actors, except it is ticked at a rate defined in the Behavior Tree.
-1. The **Other Actor** passed in is always the Controller calling the Behavior Tree, so let us store that. But, only do that if we don't already have it stored, just to reduce some overhead from the cast node.
+1. The **Owner Actor** passed in is always the Controller calling the Behavior Tree, so let us store that. But, only do that if we don't already have it stored, just to reduce some overhead from the cast node.
 1. Do a Multi Sphere Trace for Objects based on the location of the controlled pawn, and get all the pawns, minus the controlled pawn.
 1. The **For Each** loop then figures out if the player was hit.
 1. If it is, do a visibility trace to see if our AI pawn can see the player pawn.

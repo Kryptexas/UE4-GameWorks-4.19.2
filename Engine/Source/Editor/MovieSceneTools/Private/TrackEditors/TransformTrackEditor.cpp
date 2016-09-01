@@ -15,9 +15,10 @@
 #include "TransformTrackEditor.h"
 #include "MatineeImportTools.h"
 #include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
 #include "FloatCurveKeyArea.h"
 #include "ContentBrowserModule.h"
-
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "MovieScene_TransformTrack"
 
@@ -243,9 +244,39 @@ void CopyInterpMoveTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackMove* Mov
 {
 	if (FMatineeImportTools::CopyInterpMoveTrack(MoveTrack, TransformTrack))
 	{
-		Sequencer.Get().NotifyMovieSceneDataChanged();
+		Sequencer.Get().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
 }
+
+
+bool CanCopyInterpMoveTrack(UInterpTrackMove* MoveTrack, UMovieScene3DTransformTrack* TransformTrack)
+{
+	if (!MoveTrack || !TransformTrack)
+	{
+		return false;
+	}
+
+	bool bHasKeyframes = MoveTrack->GetNumKeyframes() != 0;
+
+	for (auto SubTrack : MoveTrack->SubTracks)
+	{
+		if (SubTrack->IsA(UInterpTrackMoveAxis::StaticClass()))
+		{
+			UInterpTrackMoveAxis* MoveSubTrack = Cast<UInterpTrackMoveAxis>(SubTrack);
+			if (MoveSubTrack)
+			{
+				if (MoveSubTrack->FloatTrack.Points.Num() > 0)
+				{
+					bHasKeyframes = true;
+					break;
+				}
+			}
+		}
+	}
+		
+	return bHasKeyframes;
+}
+
 
 void F3DTransformTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
 {
@@ -265,7 +296,9 @@ void F3DTransformTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, 
 		FSlateIcon(),
 		FUIAction(
 			FExecuteAction::CreateStatic( &CopyInterpMoveTrack, GetSequencer().ToSharedRef(), MoveTrack, TransformTrack ),
-			FCanExecuteAction::CreateLambda( [=]()->bool { return MoveTrack != nullptr && MoveTrack->GetNumKeys() > 0 && TransformTrack != nullptr; } ) ) );
+			FCanExecuteAction::CreateStatic( &CanCopyInterpMoveTrack, MoveTrack, TransformTrack ) ) );
+
+	//		FCanExecuteAction::CreateLambda( [=]()->bool { return MoveTrack != nullptr && MoveTrack->GetNumKeys() > 0 && TransformTrack != nullptr; } ) ) );
 
 	auto AnimSubMenuDelegate = [](FMenuBuilder& InMenuBuilder, TSharedRef<ISequencer> InSequencer, UMovieScene3DTransformTrack* InTransformTrack)
 	{
@@ -961,7 +994,7 @@ void F3DTransformTrackEditor::ImportAnimSequenceTransforms(const FAssetData& Ass
 				Section->AddKey(TempKey.Time, FTransformKey(EKey3DTransformChannel::Scale, EAxis::Z, Scale.Z, bUnwindRotation), EMovieSceneKeyInterpolation::Linear);
 			}
 
-			Sequencer->NotifyMovieSceneDataChanged();
+			Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 		}
 	}
 }

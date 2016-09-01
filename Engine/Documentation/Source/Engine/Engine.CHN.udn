@@ -1,8 +1,11 @@
-﻿Availability:Public
-Title: 引擎功能
+﻿INTSourceChangelist:2743682
+Availability:Public
+Title:引擎的各个功能
 Crumbs: %ROOT%
 Description:使用虚幻引擎的工具和系统的完全指南。
 Navigation:topic
+parent:%ROOT%
+order:3
 
 [VAR:Params]
 [PARAM:image]
@@ -66,12 +69,21 @@ Navigation:topic
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
-引擎
+engine
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
 
-## 浏览主题
+## 按主题浏览
+
+[DIR(end:"1" output:"topiccompact" parent:"Engine" org:"hierarchy")]
+
+<!--
+## Table of Contents
+[DIR(end:"3" type:"list")]
+-->
+<!--
+## 按主题浏览
 
 [REGION:topics third]
 %Engine/Rendering:topiccompact%
@@ -90,6 +102,7 @@ Navigation:topic
 %Engine/Performance:topiccompact%
 %Engine/Deployment:topiccompact%
 [/REGION]
+-->
 
 ## 内容目录
 
@@ -126,14 +139,14 @@ Navigation:topic
 			* [](Engine/UI/LevelEditor/Viewports/ViewportToolbar "%Engine/UI/LevelEditor/Viewports/ViewportToolbar:description%")
 			* [](Engine/UI/LevelEditor/Viewports/ViewModes "%Engine/UI/LevelEditor/Viewports/ViewModes:description%")
 			* [](Engine/UI/LevelEditor/Viewports/ShowFlags "%Engine/UI/LevelEditor/Viewports/ShowFlags:description%")
-			* [REGION:titlesection]高级视口功能[/REGION]
+			* [REGION:titlesection]Advanced Viewports Features[/REGION]
 				* [](Engine/UI/LevelEditor/Viewports/ActorLocking "%Engine/UI/LevelEditor/Viewports/ActorLocking:description%")
 				* [](Engine/UI/LevelEditor/Viewports/PIP "%Engine/UI/LevelEditor/Viewports/PIP:description%")
 	* [REGION:titlesection]Preferences & Settings[/REGION]
 		* [](Engine/UI/EditorSettings "%Engine/UI/EditorSettings:description%")
 		* [](Engine/UI/KeyBindings "%Engine/UI/KeyBindings:description%")
 		* [](Engine/UI/ProjectSettings "%Engine/UI/ProjectSettings:description%")
-	* [REGION:titlesection]参数编辑[/REGION]
+	* [REGION:titlesection]Property Editing[/REGION]
 		* [](Engine/UI/CurveEditor "%Engine/UI/CurveEditor:description%")
 		* [](Engine/UI/ColorPicker "%Engine/UI/ColorPicker:description%")
 		* [](Engine/UI/PropertyMatrix "%Engine/UI/PropertyMatrix:description%")
@@ -230,17 +243,17 @@ Navigation:topic
 	* [](Engine/Rendering/LightingAndShadows/LightTypes "%Engine/Rendering/LightingAndShadows/LightTypes:description%")
 	* [](Engine/Rendering/LightingAndShadows/LightMobility "%Engine/Rendering/LightingAndShadows/LightMobility:description%")
 	* [](Engine/Rendering/LightingAndShadows/Shadows "%Engine/Rendering/LightingAndShadows/Shadows:description%")
-	* [REGION:titlesection]预计算光照功能[/REGION]
+	* [REGION:titlesection]Precomputed Lighting Features[/REGION]
 		* [](Engine/Rendering/LightingAndShadows/Lightmass "%Engine/Rendering/LightingAndShadows/Lightmass:description%")
 		* [](Engine/Rendering/LightingAndShadows/ReflectionEnvironment "%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:description%")
 		* [](Engine/Rendering/LightingAndShadows/IndirectLightingCache "%Engine/Rendering/LightingAndShadows/IndirectLightingCache:description%")
 		* [](Engine/Rendering/LightingAndShadows/LightMobility/StaticLights "%Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:description%")
 		* [](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights "%Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:description%")
-	* [REGION:titlesection]动态光照功能[/REGION]
+	* [REGION:titlesection]Dynamic Lighting Features[/REGION]
 		* [](Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights "%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:description%")
 		* [](Engine/Rendering/LightingAndShadows/LightFunctions "%Engine/Rendering/LightingAndShadows/LightFunctions:description%")
 		* [](Engine/Rendering/LightingAndShadows/LightPropagationVolumes "%Engine/Rendering/LightingAndShadows/LightPropagationVolumes:description%")
-	* [REGION:titlesection]通用功能[/REGION]
+	* [REGION:titlesection]General Features[/REGION]
 		* [](Engine/Rendering/LightingAndShadows/AmbientOcclusion "%Engine/Rendering/LightingAndShadows/AmbientOcclusion:description%")
 		* [](Engine/Rendering/LightingAndShadows/LightShafts "%Engine/Rendering/LightingAndShadows/LightShafts:description%")
 		* [](Engine/Rendering/LightingAndShadows/AmbientCubemap "%Engine/Rendering/LightingAndShadows/AmbientCubemap:description%")
@@ -262,7 +275,7 @@ Navigation:topic
 	* [](Engine/Blueprints/Overview "%Engine/Blueprints/Overview:description%")
 	* [](Engine/Blueprints/Editor "%Engine/Blueprints/Editor:description%")
 	* [](Engine/Blueprints/UserGuide "%Engine/Blueprints/UserGuide:description%")
-	* [蓝图节点引用](https://docs.unrealengine.com/latest/INT/BlueprintAPI/index.html "包含所有函数调用、事件及其它蓝图节点的全面引用")
+	* [Blueprint Node Reference](https://docs.unrealengine.com/latest/INT/BlueprintAPI/index.html "Comprehensive reference covering all function calls, events, and other Blueprint nodes")
 	* [](Gameplay "%Gameplay:description%")
 	[/PARAM]
 [/OBJECT]
@@ -328,7 +341,7 @@ Navigation:topic
 		* [](Engine/Animation/AnimationComposite "%Engine/Animation/AnimationComposite:description%")
 		* [](Engine/Animation/AnimMontage "%Engine/Animation/AnimMontage:description%")
 		* [](Engine/Animation/AimOffset "%Engine/Animation/AimOffset:description%")
-	* [REGION:titlesection]动画系统功能[/REGION]
+	* [REGION:titlesection]Animation System Features[/REGION]
 		* [](Engine/Animation/Persona/BoneManipulation "%Engine/Animation/Persona/BoneManipulation:description%")
 		* [](Engine/Animation/AnimationBlending "%Engine/Animation/AnimationBlending:description%")
 		* [](Engine/Animation/AnimationRetargeting "%Engine/Animation/AnimationRetargeting:description%")
@@ -506,9 +519,3 @@ Navigation:topic
 	* [](Engine/Deployment/UnrealFrontend "%Engine/Deployment/UnrealFrontend:description%")
 	[/PARAM]
 [/OBJECT]
-
-
-
-
-
-

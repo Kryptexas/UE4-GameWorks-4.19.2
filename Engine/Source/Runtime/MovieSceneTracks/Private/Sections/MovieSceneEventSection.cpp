@@ -25,7 +25,7 @@ void UMovieSceneEventSection::AddKey(float Time, const FName& EventName, FKeyPar
 }
 
 
-void UMovieSceneEventSection::TriggerEvents(TArray<UObject*> EventContextObjects, float Position, float LastPosition)
+void UMovieSceneEventSection::TriggerEvents(float Position, float LastPosition,  IMovieScenePlayer& Player)
 {
 	const TArray<FNameCurveKey>& Keys = Events.GetKeys();
 
@@ -35,7 +35,7 @@ void UMovieSceneEventSection::TriggerEvents(TArray<UObject*> EventContextObjects
 		{
 			if ((Key.Time >= LastPosition) && (Key.Time <= Position))
 			{
-				TriggerEvent(Key.Value, EventContextObjects);
+				TriggerEvent(Key.Value, Position, Player);
 			}
 		}
 	}
@@ -47,7 +47,7 @@ void UMovieSceneEventSection::TriggerEvents(TArray<UObject*> EventContextObjects
 
 			if ((Key.Time >= Position) && (Key.Time <= LastPosition))
 			{
-				TriggerEvent(Key.Value, EventContextObjects);
+				TriggerEvent(Key.Value, Position, Player);
 			}		
 		}
 	}
@@ -108,9 +108,9 @@ void UMovieSceneEventSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
 /* UMovieSceneSection overrides
  *****************************************************************************/
 
-void UMovieSceneEventSection::TriggerEvent(const FName& Event, TArray<UObject*> EventContextObjects)
+void UMovieSceneEventSection::TriggerEvent(const FName& Event, float Position, IMovieScenePlayer& Player)
 {
-	for (UObject* EventContextObject : EventContextObjects)
+	for (UObject* EventContextObject : Player.GetEventContexts())
 	{
 		UFunction* EventFunction = EventContextObject->FindFunction(Event);
 
@@ -129,4 +129,21 @@ void UMovieSceneEventSection::TriggerEvent(const FName& Event, TArray<UObject*> 
 			EventContextObject->ProcessEvent(EventFunction, nullptr);
 		}
 	}
+
+#if !UE_BUILD_SHIPPING
+	if (Event == NAME_PerformanceCapture)
+	{
+		FString PackageName = GetOutermost()->GetName();
+		
+		FString LevelSequenceName;
+		FString FolderName;
+		PackageName.Split(TEXT("/"), &FolderName, &LevelSequenceName, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+
+		UWorld* PlaybackContext = Cast<UWorld>(Player.GetPlaybackContext());
+
+		FString MapName = PlaybackContext->GetName();
+
+		GEngine->PerformanceCapture(PlaybackContext, MapName, LevelSequenceName, Position);
+	}
+#endif	// UE_BUILD_SHIPPING
 }

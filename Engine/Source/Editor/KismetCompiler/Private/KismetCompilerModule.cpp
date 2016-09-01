@@ -101,6 +101,20 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 			}
 		}
 
+		// we need to add instrumentation to any inherited blueprints.
+		if (Reinstancer.IsValid() && CompileOptions.IsInstrumentationActive())
+		{
+			TArray<UBlueprint*> InheritedBlueprints;
+			Blueprint->GetBlueprintHierarchyFromClass(Cast<UClass>(Blueprint->GeneratedClass), InheritedBlueprints);
+			for (auto CurrentBP : InheritedBlueprints)
+			{
+				if (CurrentBP != Blueprint)
+				{
+					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, true);
+				}
+			}
+		}
+
 		if (bRecompileDependencies)
 		{
 			Reinstancer->BlueprintWasRecompiled(Blueprint, CompileOptions.CompileType == EKismetCompileType::BytecodeOnly);
@@ -157,7 +171,6 @@ extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
 // Compiles a blueprint.
 void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> ParentReinstancer, TArray<UObject*>* ObjLoaded)
 {
-	SCOPE_SECONDS_COUNTER(GBlueprintCompileTime);
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileTime);
 

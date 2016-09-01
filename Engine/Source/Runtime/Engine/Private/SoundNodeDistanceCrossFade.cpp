@@ -97,8 +97,16 @@ void USoundNodeDistanceCrossFade::ParseNodes( FAudioDevice* AudioDevice, const U
 
 			UpdatedParams.Volume = ParseParams.Volume * VolumeToSet;
 
+			const bool bWasFinished = ActiveSound.bFinished;
+
 			// "play" the rest of the tree
 			ChildNodes[ ChildNodeIndex ]->ParseNodes( AudioDevice, GetNodeWaveInstanceHash(NodeWaveInstanceHash, ChildNodes[ChildNodeIndex], ChildNodeIndex), ActiveSound, UpdatedParams, WaveInstances );
+
+			// Don't let an out of range cross-fade branch keep an active sound alive
+			if (bWasFinished && VolumeToSet <= 0.f)
+			{
+				ActiveSound.bFinished = true;
+			}
 		}
 	}
 
@@ -166,7 +174,7 @@ void USoundNodeDistanceCrossFade::SetChildNodes(TArray<USoundNode*>& InChildNode
 
 float USoundNodeDistanceCrossFade::GetCurrentDistance(FAudioDevice* AudioDevice, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams) const
 {
-	return ActiveSound.bLocationDefined ? FVector::Dist( ParseParams.Transform.GetTranslation(), AudioDevice->Listeners[0].Transform.GetTranslation() ) : 0.f;
+	return ActiveSound.bLocationDefined ? FVector::Dist( ParseParams.Transform.GetTranslation(), AudioDevice->GetListeners()[0].Transform.GetTranslation() ) : 0.f;
 }
 
 bool USoundNodeDistanceCrossFade::AllowCrossfading(FActiveSound& ActiveSound) const

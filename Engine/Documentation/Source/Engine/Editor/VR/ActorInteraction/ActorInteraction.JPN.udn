@@ -1,0 +1,119 @@
+﻿INTSourceChangelist:2911160
+Title:VR モードでのアクタの作業
+Description:VR モードでの作業時にアクタを配置、トランスフォーム、修正する方法
+Crumbs:
+Availability: public
+parent:Engine/Editor/VR
+type: howto
+order:4
+tags:VR
+tags:Level Editing
+version:4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/ActorInteraction:title%](Engine/Editor/VR/ActorInteraction/actorinteraction.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/ActorInteraction:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/ActorInteraction]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/ActorInteraction:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/ActorInteraction:title%](Engine/Editor/VR/ActorInteraction/actorinteraction.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/ActorInteraction:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/ActorInteraction]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/ActorInteraction:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:main]
+
+## ワールド内へのアクタの配置
+
+VR モードでは、コンテンツ ブラウザまたは Place モードを使ってアクタをワールドに配置することができます。
+
+** コンテンツ ブラウザを使ってアクタを配置する方法**
+
+1. 片方のコントローラをもう片方に向けて **[Quick Select (クイック選択)]** メニューを開きます。
+
+1. フリーなコントローラを **コンテンツ** に向けて **トリガー** を引いて **コンテンツ ブラウザ** を開きます。
+
+1. インスタンスを配置したいアセットの方にコントローラを向けます。**トリガー** を引いて選択します。この例では、銃身のスタティックメッシュを選択しています。
+
+	![](place_cb_select.png)(w:480)
+
+1. コントローラをコンテンツ ブラウザからワールドへドラッグして移動させ、ワールド内でトリガーを放した場所にアクタが配置されます。
+
+	![](place_cb.png)(w:480)
+
+
+** Place モードを使ってアクタを配置する方法**
+
+1. 片方のコントローラをもう片方に向けて **[Quick Select (クイック選択)]** メニューを開きます。
+
+1. フリーな方のコントローラを **Modes** の方に向けて **トリガー** を引いて **[Modes]** パネルを開きます。Place モードはデフォルトで有効になっています。
+
+1. **[Place Mode]** タブで追加したいアクタ タイプにコントローラを向けて、**トリガー** を引いて選択します。この例では、シンプルなキューブを選択しています。
+
+	![](place_mode_select.png)(w:480)
+
+1. コントローラを **[Modes]** パネルからワールドへドラッグして移動させ、ワールド内でトリガーを放した場所にアクタが配置されます。
+
+	![](place_mode.png)(w:480)
+
+## ワールド内のアクタの選択
+
+**アクタの選択方法**
+
+1. 選択したいアクタにコントローラを向けます。
+
+	![](select_actor_aim.png)(w:480)
+
+1. **トリガー** を引いてそのアクタを選択します。
+
+	![](select_actor.png)(w:480)
+
+**To select multiple Actors:**
+
+1. 選択したいアクタの一つにコントローラを向けて、**トリガー** を半分まで引きます。
+
+1. 追加または選択を解除したいアクタに一つずつコントローラを向けて、一回ずつ **トリガー** を引いて追加または選択解除をします。
+
+	![](select_actors_multiple.png)(w:480)
+
+## ワールド内のアクタを自由にトランスフォームする
+
+1. 両方のコントローラをアクタに向けて、両方の **トリガー** を引いてつかみます。Freeform モードになると、レーザーポインタが緑に変わります。
+
+	![](free_transform.png)(w:480)
+
+1. コントローラを互いに離すと、アクタが大きくなります。
+
+	![](scaling_actor.png)(w:480)
+
+1. コントローラを一つにまとめると、アクタがもとの大きさになります。
+
+1. コントローラを互い違いに動かすと、アクタが回転します。
+
+	![](rotating_actor.png)(w:480)
+
+[/EXCERPT:main]

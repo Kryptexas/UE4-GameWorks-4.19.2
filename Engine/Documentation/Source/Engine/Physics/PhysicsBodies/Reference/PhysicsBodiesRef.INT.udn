@@ -147,7 +147,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 | **Check Async Scene On Move** || %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
 | **Trace Complex On Move** || %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
 | **Return Material On Move** || %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
-| **Can Ever Affect Navigation** || %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |
+| **Can Ever Affect Navigation** || Whether this component can potentially influence navigation |
 
 [/REGION]
 

@@ -65,7 +65,6 @@ class SEQUENCER_API USequencerSettings
 public:
 	GENERATED_UCLASS_BODY()
 
-	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
 	DECLARE_MULTICAST_DELEGATE( FOnTimeSnapIntervalChanged );
 
 	/** Gets the current auto-key mode. */
@@ -168,6 +167,11 @@ public:
 	/** Sets whether or not the label browser is visible. */
 	void SetLabelBrowserVisible(bool Visible);
 
+	/** Gets whether to jump to the start of the sequence when we start a recording or not. */
+	bool ShouldRewindOnRecord() const;
+	/** Sets whether to jump to the start of the sequence when we start a recording. */
+	void SetRewindOnRecord(bool bInRewindOnRecord);
+
 	/** Get zoom in/out position (mouse position or current time). */
 	ESequencerZoomPosition GetZoomPosition() const;
 	/** Set zoom in/out position (mouse position or current time). */
@@ -177,11 +181,6 @@ public:
 	bool GetAutoScrollEnabled() const;
 	/** Sets whether or not auto-scroll is enabled. */
 	void SetAutoScrollEnabled(bool bInAutoScrollEnabled);
-
-	/** Gets whether or not the curve editor should be shown. */
-	bool GetShowCurveEditor() const;
-	/** Sets whether or not the curve editor should be shown. */
-	void SetShowCurveEditor(bool InbShowCurveEditor);
 
 	/** Gets whether or not to show curve tool tips in the curve editor. */
 	bool GetShowCurveEditorCurveToolTips() const;
@@ -233,117 +232,153 @@ public:
 	/** Toggle whether to show transport controls in level editor viewports */
 	void SetShowViewportTransportControls(bool bVisible);
 
+	/** @return Whether to allow possession of PIE viewports */
+	bool ShouldAllowPossessionOfPIEViewports() const;
+	/** Toggle whether to allow possession of PIE viewports */
+	void SetAllowPossessionOfPIEViewports(bool bInAllowPossessionOfPIEViewports);
+
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
-
-	/** Gets the multicast delegate which is run whenever the curve editor is shown/hidden. */
-	FOnShowCurveEditorChanged& GetOnShowCurveEditorChanged();
 
 	/** Gets the multicast delegate which is run whenever the time snap interval is changed. */
 	FOnTimeSnapIntervalChanged& GetOnTimeSnapIntervalChanged();
 
 protected:
 
+	/** Enable or disable autokeying. */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
 	TEnumAsByte<EAutoKeyMode> AutoKeyMode;
 
+	/** Enable or disable keying all channels when any are keyed. */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
 	bool bKeyAllEnabled;
 
+	/** Enable or disable only keyframing properties marked with the 'Interp' keyword. */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
 	bool bKeyInterpPropertiesOnly;
 
+	/** The interpolation type for newly created keyframes */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
 	TEnumAsByte<EMovieSceneKeyInterpolation> KeyInterpolation;
 
+	/** The default location of a spawnable when it is first dragged into the viewport from the content browser. */
 	UPROPERTY( config, EditAnywhere, Category=General )
 	TEnumAsByte<ESequencerSpawnPosition> SpawnPosition;
 
+	/** Enable or disable creating of spawnable cameras whenever cameras are created. */
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bCreateSpawnableCameras;
 
+	/** Show frame numbers or time in the timeline. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bShowFrameNumbers;
 
+	/** Show the in/out range in the timeline with respect to the start/end range. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bShowRangeSlider;
 
+	/** Enable or disable snapping in the timeline. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bIsSnapEnabled;
 
+	/** The time snapping interval in the timeline. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	float TimeSnapInterval;
 
+	/** Enable or disable snapping keys to the time snapping interval. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapKeyTimesToInterval;
 
+	/** Enable or disable snapping keys to other keys. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapKeyTimesToKeys;
-
+	
+	/** Enable or disable snapping sections to the time snapping interval. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapSectionTimesToInterval;
 
+	/** Enable or disable snapping sections to other sections. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapSectionTimesToSections;
 
+	/** Enable or disable snapping the current time to keys of the selected track while scrubbing. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapPlayTimeToKeys;
 
+	/** Enable or disable snapping the current time to the time snapping interval while scrubbing. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapPlayTimeToInterval;
 
+	/** Enable or disable snapping the current time to the dragged or pressed key. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapPlayTimeToDraggedKey;
 
-	UPROPERTY( config, EditAnywhere, Category=Snapping )
+	/** The curve value interval to snap to. */
 	float CurveValueSnapInterval;
 
+	/** Enable or disable snapping the curve value to the curve value interval. */
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapCurveValueToInterval;
 
+	/** Enable or disable the label browser. */
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bLabelBrowserVisible;
 
+	/** Defines whether to jump back to the start of the sequence when a recording is started */
+	UPROPERTY(config, EditAnywhere, Category=General)
+	bool bRewindOnRecord;
+
+	/** Whether to zoom in on the current position or the current time in the timeline. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	TEnumAsByte<ESequencerZoomPosition> ZoomPosition;
 
+	/** Enable or disable auto scroll in the timeline. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bAutoScrollEnabled;
 
-	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
-	bool bShowCurveEditor;
-
+	/** Enable or disable curve editor tooltips. */
 	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
 	bool bShowCurveEditorCurveToolTips;
 
+	/** Enable or disable linking the curve editor time range to the sequencer timeline's time range. */
 	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
 	bool bLinkCurveEditorTimeRange;
 
+	/** Enable or disable looping playback in the timeline. */
 	UPROPERTY( config )
 	bool bLooping;
 
+	/** Enable or disable keeping the cursor in the current playback range during playback. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bKeepCursorInPlayRange;
 
+	/** Enable or disable keeping the playback range constrained to the section bounds. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bKeepPlayRangeInSectionBounds;
 
+	/** The number of zeros to pad the frame numbers by. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	uint8 ZeroPadFrames;
 
+	/** Enable or disable the combined keyframes at the top node level. Disabling can improve editor performance. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bShowCombinedKeyframes;
 
+	/** Enable or disable setting key area sections as infinite by default. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bInfiniteKeyAreas;
 
+	/** Enable or disable displaying channel bar colors for vector properties. */
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bShowChannelColors;
 
+	/** Enable or disable transport controls in the viewport. */
 	UPROPERTY( config )
 	bool bShowViewportTransportControls;
 
-	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
+	/** When enabled, sequencer is able to possess viewports that represent PIE worlds */
+	UPROPERTY(config, EditAnywhere, Category=General)
+	bool bAllowPossessionOfPIEViewports;
 
 	FOnTimeSnapIntervalChanged OnTimeSnapIntervalChanged;
 };

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604027
+﻿INTSourceChangelist:2750648
 Availability: Public
 Title:Kill 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Kill 은 구현에 정의된 규칙을 만족하는 경우 주어진 파티클을 죽이는 모듈입니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 

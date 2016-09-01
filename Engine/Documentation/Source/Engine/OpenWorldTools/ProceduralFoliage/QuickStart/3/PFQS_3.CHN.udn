@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2591123
 Availability:Public
-Title: 3. Tweaking Foliage Type Properties
+Title:3.调整植物类属性
 Crumbs:
-Description:In this step we tweak the settings of the Procedural Foliage Actors.
+Description:在此步骤中对程序化植物 Actors 的设置进行调整。
 Navigation:topic
 SkillLevel:Intermediate
-Version: 4.8
+Version:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,67 +24,67 @@ Version: 4.8
 [/VAR]
 
 %Steps%
-**Foliage Types** come with a number of different properties that you can adjust to control anything from how the Foliage types are placed on other objects in the level to how the Foliage types will grow and spread throughout the Foliage Spawner. 
-In the following section we will take a look at what properties available in **Foliage types** and how you can manipulate these properties to get the results you desire. 
-We will continue to work with the **PFT_00** level that was used in the last step.
+**植物类** 包含数个不同属性，调整属性可进行整体控制（如植物类在关卡中其他物体上的放置方式，或植物类通过植物生成器生长和散布的方式）。 
+在以下章节中，我们将了解 **植物类** 中可用的属性，以及如何通过这些属性获得所需结果。 
+我们将继续使用上一步使用的 **PFT_00** 关卡。
 
-1. Open up the **Tree_00** Foliage Type.
+1. 打开 **Tree_00** 植物类。
 
-1. Expand the **Placement** section and make sure that both **Align to Normal** and **Random Yaw** are enabled.
+1. 展开 **Placement** 部分，确认 **Align to Normal** 和 **Random Yaw** 已勾选。
 
 	![](T_Placement_Options.png)
 
 	[region:note]
-	The Placement section is where you can adjust how the Static Meshes used in the Foliage Type are placed on objects in the level. 
+	在 Placement 中，可对静态网格体（在 Foliage Type 中使用）在关卡中物体上的放置方式进行调整。| 
 	[/region]
 
-1. Under the **Procedural** section of the Foliage type expand the **Collision** section and set the **Shade Radius** to **50**. 
+1. 在植物类的 **Procedural** 部分展开 **Collision**，将 **Shade Radius** 设为 **50**。 
 	![](T_Shade_Radius.png)
 
 	[region:note]
-	The Collision section determines which Foliage types should be removed when two Foliage Types are competing for the same spawn location or relative space. When a Virtual Seed's collision radius overlaps an existing collision or shade radius from another Foliage Type's Virtual Seed, the Virtual Seed will be replaced or killed based which Foliage Type has the higher propriety.
+	两个植物类竞争相同的生成位置或相对空间时，Collision 部分将决定哪个植物类将被移除。当虚拟种子的碰撞半径与另一植物类虚拟种子的现有碰撞或着色半径重叠时，将基于植物类适当性高低替代或销毁虚拟种子。
 	[/region]
 
-1. Select the **Procedural Foliage Spawner** that was placed in the level and under **Procedural Foliage** section click on the **Resimulate** button.
+1. 选择已放置在关卡中的 **程序化植物生成器**，然后点击 **Procedural Foliage** 部分的 **Resimulate** 按钮。
 	
 	![](T_Press_ReSimulate.png)
 
-1. Back in the Tree_00 Foliage type collapse the **Collision** section and expand the **Clustering** section, then set **Num Steps** to **0**, so that we get trees that are all the same size and age and then press the **Resimulate** button. When completed you should have something that looks similar to the image below. 
+1. 返回 Tree_00 植物类，关闭 **Collision** 部分，展开 **Clustering** 部分，然后将 **Num Steps** 设为 **0**，确保所有树木的尺寸和年龄均相同，最后按下 **Resimulate** 按钮。完成后，您创建出的效果应与下图相似。 
 
 	![](T_Num_Steps_0.png)
 
 	[region:note]
-	Clustering uses a number of properties such as density, age, and proximity to help determine how the specified Static Meshes should be placed, grouped and spread around inside of the Procedural Foliage Spawner.
+	Clustering 拥有多种属性（如密度、年龄、邻近度），可确定特定静态网格体在程序化植物生成器中放置、聚集和散布的方式。
 	[/region]
 
-1. While we now have some space in between our trees, the overall density is still a little too high. 
-	To fix this, set the **Initial Seed Density** to **0.25** and then click on the **Resimulate** button.
+1. 现在树木间虽然有一些空间，但整体密度仍稍嫌过高。 
+	将 **Initial Seed Density** 设为 **0.25**，然后点击 **Resimulate** 按钮即可修复此问题。
 
 	![](T_Num_ISD_0.125.png)
 
-1. As you can see, setting the **Initial Seed Density** to **0.25** greatly reduced the density of our forest because we are only growing and spreading trees for a single year. 
-	To fix this set the **Num Steps** back to **3**, which will grow and spread the trees for 3 years, and then click on the **Resimulate** button.
+1. 如图所见，将 **Initial Seed Density** 设为 **0.25** 将极大地降低森林密度，因为树木的生长和散布时间只有 1 年。 
+	将 **Num Steps** 重新设为 **3**（树木将生长并散布 3 年），然后点击 **Resimulate** 按钮修复此问题。
 
 	![](T_Num_Steps_3.png)
 
-1. Expand the **Growth** section then set the following parameters to the following settings.
+1. 展开 **Growth** 部分，为以下设置赋予参数。
 
-	* **Max Age**: **20.0**
-	* **Procedural Scale Max**: **10.0**
+	* **Max Age**：**20.0**
+	* **Procedural Scale Max**：**10.0**
 
 	![](T_Set_Growth.png)
 
 	[region:note]
-	The Growth section allows you to adjust how the Static Mesh used for the Foliage type will grow and get bigger over time. 
+	在 Growth 部分可对用于植物类的静态网格体随时间生长和长大的方式进行调整。 
 	[/region]
 
-1. Finally in the **Instance Settings** under the **Cull Distance** option, set the **Max** value to **20,000** and then click on the **Resimulate** button. 
-	When completed you should have something that looks similar to the image below.
+1. 最后在 **Cull Distance** 选项的 **Instance Settings** 中将 **Max** 数值设为 **20,000**，然后点击 **Resimulate** 按钮。 
+	完成后，您创建出的效果应与下图相似。
 	
 	![](T_Cull_Distance.png)
 
 	[region:note]
-	The Instance Settings allows you to adjust how the Static Mesh used for the Foliage type will be displayed in the level. Inside the Instance Settings you can set or adjust many different properties like Cull Distance, Shadowing, and Collision.
+	Instance Settings 用于调整用作植物的静态网格体在关卡中的显示方式。在 Instance Settings 中，可对多种不同属性（如消隐距离、阴影、碰撞）进行设置或调整。
 	[/region]
 
 

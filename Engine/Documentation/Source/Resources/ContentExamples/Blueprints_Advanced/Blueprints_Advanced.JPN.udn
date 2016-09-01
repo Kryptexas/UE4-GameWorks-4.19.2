@@ -1,7 +1,9 @@
-﻿Availability:Docs
-Title:高度なブループリントの事例
+﻿INTSourceChangelist:2752508
+Availability:Docs
+Title:高度なブループリントのサンプル
 Crumbs:%ROOT%, Resources
-Description: 高度なブループリント事例レベルの概要
+Description: 高度なブループリントのサンプル レベルの概要
+Version:4.9
 
 [REGION:banner]
 ![](advanced_bp_header.png)(convert:false)
@@ -42,7 +44,7 @@ Description: 高度なブループリント事例レベルの概要
 
 <!-- insert to PARAM:path when complete! [RELATIVE:Resources/ContentExamples/Blueprints_Advanced]-->
 
-**高度なブループリント** 事例レベルへようこそ!
+**高度なブループリント** のサンプル レベルへようこそ!
 
 
 [INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
@@ -51,7 +53,7 @@ Description: 高度なブループリント事例レベルの概要
 
 ## 例
 
-### コンストラクションスクリプト
+### コンストラクション スクリプト
 
 [REGION:topics fourth]
 %Resources/ContentExamples/Blueprints_Advanced/1_1:TopicCompact%
@@ -60,7 +62,7 @@ Description: 高度なブループリント事例レベルの概要
 %Resources/ContentExamples/Blueprints_Advanced/1_4:TopicCompact%
 [/REGION]
 
-### イベント グラフ
+### イベントグラフ
 [REGION:topics fourth]
 %Resources/ContentExamples/Blueprints_Advanced/2_1:TopicCompact%
 %Resources/ContentExamples/Blueprints_Advanced/2_2:TopicCompact%
@@ -72,8 +74,8 @@ Description: 高度なブループリント事例レベルの概要
 
 ## 関連トピックと参考文献
 
-*  [ブループリント](Engine/Blueprints)
-*  [変数](Engine/Blueprints/UserGuide/Variables)
+* [ブループリント](Engine/Blueprints)
+* [変数](Engine/Blueprints/UserGuide/Variables)
 * [フロー制御](Engine/Blueprints/UserGuide/FlowControl)
 
 

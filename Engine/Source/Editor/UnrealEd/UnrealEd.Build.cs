@@ -86,8 +86,6 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
                 "Http",
 				"UnrealAudio",
-                "Niagara",
-                "VectorVM",
                 "FunctionalTesting"
             }
 		);
@@ -99,10 +97,8 @@ public class UnrealEd : ModuleRules
 				"AnimGraph",
                 "AppFramework",
 				"BlueprintGraph",
-				"OnlineSubsystem",
-				"OnlineSubsystemUtils",
-				"OnlineBlueprintSupport",
-				"DesktopPlatform",
+                "CinematicCamera",
+                "DesktopPlatform",
 				"EditorStyle",
 				"EngineSettings",
 				"InputCore",
@@ -143,9 +139,12 @@ public class UnrealEd : ModuleRules
 				"AddContentDialog",
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",
+				"Analytics",
                 "AnalyticsET",
                 "PluginWarden",
-                "PixelInspectorModule"
+                "PixelInspectorModule",
+				"MovieScene",
+				"MovieSceneTracks",
             }
 		);
 

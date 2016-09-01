@@ -1,33 +1,43 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Orbit Modules
+﻿INTSourceChangelist:2750697
+Availability:Public
+Title:Orbit 模块
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Orbit modules allow for rendering particle sprites offset/rotated away from the actual particle center.
+Description:Orbit 模块可实现粒子 sprites 从实际粒子中心偏移/向外旋转的渲染。
+Version:4.9
 
-[TOC(start:2 end:3)]
 
-Orbit modules allow for rendering particle sprites offset/rotated away from the actual particle center.
+Orbit 模块可实现粒子 sprites 从实际粒子中心偏移/向外旋转的渲染。
 
 
 ## Orbit
 
-![psys_orbit.gif](psys_orbit.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+sdpZ2_8GUp4
+[/PARAMLITERAL]
+[/OBJECT]
 
-This is the only orbit module implemented. It allows for offsetting and rotating the sprite from the actual particle position. Multiple orbit modules can be chained together in a variety of ways.
+这是添加的唯一 Orbit 模块。它可实现从实际粒子位置发生的 sprite 偏移和旋转。数个轨道组件可以多种方式链接起来。
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
-|[REGION:tablesection]Chaining[/REGION]||
-|**Chain Mode** | An enumeration that describes how this module is chained together with other modules in the emitter. The combination of the module with the one prior to it is defined by setting this value. It can be one of the following:[INCLUDE:#ChainMode]|
+|[REGION:tablesection]链接[/REGION]||
+|**Chain Mode** | 此列举描述该模块与发射器中的其他模块之间的链接方式。设置该数值可定义模式与之前模式的组合。其可为下列之一：[INCLUDE:#ChainMode]|
 |[REGION:tablesection]Offset[/REGION]||
-|**Offset Amount** | A vector distribution giving the offset of the sprite from the particle 'center'.|
-|**Offset Options** | The options associated with the _Offset Amount_. Options include:[INCLUDE:#OffsetOptions]|
+|**Offset Amount** | 确定 sprite 与粒子“中心”之间偏移程度的矢量 distribution。|
+|**Offset Options** | 与 _Offset Amount_ 相关的选项。选项包括：[INCLUDE:#OffsetOptions]|
 |[REGION:tablesection]Rotation[/REGION]||
-|**Rotation Amount** | A vector distribution giving the amount to rotate the offset about the particle position. It is in 'turns', meaning 0 = no rotation, 0.5 = 180 degrees, 1.0 = 360 degrees.|
-|**Rotation Options** | The options associated with the _Rotation Amount_. Options include:[INCLUDE:#OffsetOptions]|
+|**Rotation Amount** | 确定粒子位置旋转偏移程度的矢量 distribution。它为“轮流型”，0 等于无旋转、0.5 等于 180 度旋转、1.0 等于 360 度旋转。|
+|**Rotation Options** | 与 _Rotation Amount_ 相关的选项。选项包括：[INCLUDE:#OffsetOptions]|
 |[REGION:tablesection]RotationRate[/REGION]||
-|**Rotation Rate Amount** | A vector distribution giving the rate at which to rotate the offset about the particle position. In 'turns'.|
-|**Rotation Rate Options** | The options associated with the _Rotation Rate Amount_. Options include:[INCLUDE:#OffsetOptions]|
+|**Rotation Rate Amount** | 确定粒子位置旋转偏移率的矢量 distribution。为“轮流型”。|
+|**Rotation Rate Options** | 与 _Rotation Rate Amount_ 相关的选项。选项包括：[INCLUDE:#OffsetOptions]|
 
 
 
@@ -40,21 +50,21 @@ This is the only orbit module implemented. It allows for offsetting and rotating
 
 [EXCERPT:ChainMode]
 [REGION:simpletable]
-|**Mode**|**Description**|
+|**模式**|**描述**|
 | --- | --- |
-|EOChainMode_Add|Add the module values with the previous results.|
-|EOChainMode_Scale|Mutliply the module values with the previous results.|
-|EOChainMode_Link|'Break' the chain and apply the values from the previous results.|
+|EOChainMode_Add|将之前结果和模块值相加。|
+|EOChainMode_Scale|将之前结果和模块值相乘。|
+|EOChainMode_Link|“断开”链接并应用之前结果的数值。|
 [/REGION]
 [/EXCERPT:ChainMode]
 
 [EXCERPT:OffsetOptions]
 [REGION:simpletable]
-|**Option**|**Description**|
+|**选项**|**描述**|
 | --- | --- |
-|_Process During Spawn_|If _true_, the associated piece of data will be processed during the spawning of a particle.|
-|_Process During Update_|If _true_, the associated piece of data will be processed during the update of a particle.|
-|_Use Emitter Time_|If _true_, the EmitterTime will be used when retrieving the associated piece of data. If _false_, then the particle RelativeTime will be used.|
+|_Process During Spawn_|如为 _true_，将在粒子生成过程中对数据相关部分进行处理。|
+|_Process During Update_|如为 _true_，将在粒子更新过程中对数据相关部分进行处理。|
+|_Use Emitter Time_|如为 _true_，获取数据相关部分时将使用 EmitterTime。如为 _false_，将使用粒子 RelativeTime。|
 [/REGION]
 [/EXCERPT:OffsetOptions]
 

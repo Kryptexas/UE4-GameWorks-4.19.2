@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2618124
+﻿INTSourceChangelist:2713167
 Availability:Public
 Title:디스트럭터블 프로퍼티 매트릭스
 Crumbs: %ROOT%, Engine
 Description:디스트럭터블 메시 에디터에서 디스트럭터블 액터의 모든 프로퍼티에 대한 설명입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -76,7 +77,7 @@ Description:디스트럭터블 메시 에디터에서 디스트럭터블 액터�
 
 
 프로퍼티의 Physics 및 Collision 섹션에 대해서는 [콜리전](Engine/Physics/Collision) 문서를 참고하시기 바랍니다.
-
+	
 ### 스켈레탈 메시 서브 카테고리
 
 | **프로퍼티** | **설명** |

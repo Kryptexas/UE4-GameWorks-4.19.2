@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2617391
+﻿INTSourceChangelist:2750660
 Availability: Public
 Title:Lifetime 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Lifetime 은 파티클 스폰시의 초기 수명을 설정하는 데 사용되는 모듈입니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 

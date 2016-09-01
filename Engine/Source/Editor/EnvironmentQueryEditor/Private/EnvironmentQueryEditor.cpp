@@ -222,7 +222,7 @@ void FEnvironmentQueryEditor::OnSelectedNodesChanged(const TSet<class UObject*>&
 	{
 		for(TSet<class UObject*>::TConstIterator SetIt(NewSelection);SetIt;++SetIt)
 		{
-			UEnvironmentQueryGraphNode* GraphNode = CastChecked<UEnvironmentQueryGraphNode>(*SetIt);
+			UEnvironmentQueryGraphNode* GraphNode = Cast<UEnvironmentQueryGraphNode>(*SetIt);
 			if (GraphNode)
 			{
 				if (GraphNode->IsA(UEnvironmentQueryGraphNode_Root::StaticClass()))

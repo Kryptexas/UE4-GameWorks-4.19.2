@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2574205
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:
 Crumbs:
@@ -12,14 +12,14 @@ Engine/Landscape/Editing/ManageMode
 [/EXCERPT:ManageMode]
 
 [EXCERPT:NewLandscape_QuadsPerSection]
-Section Size は、ランドスケープ LOD とカリングのために使用します。小さなセクションでは、ランドスケープはアグレッシブに LOD (Level of Detail) セクションにしますが、CPU 負荷は高くなります。サイズが大きくなればコンポーネントの数が少なくなり、CPU の負荷は低くなります。大きなランドスケープにしたい場合、大きなセクション サイズを使用する必要があります。小さなセクション サイズを使用して、ランドスケープをスケールアップすると CPU の負荷が高くなりすぎるからです。
+Section Size は、ランドスケープの LOD とカリングのために使用します。小さなセクションでは、ランドスケープは積極的に LOD (Level of Detail) セクションにしますが、CPU 負荷は高くなります。サイズが大きくなればコンポーネントの数が少なくなり、CPU の負荷は低くなります。大きなランドスケープにしたい場合、大きめのセクション サイズを使用する必要があります。小さなセクション サイズを使用して、ランドスケープをスケールアップすると CPU の負荷が高くなりすぎるからです。
 [VAR:ToolTipFullLink]
 Engine/Landscape/Creation
 [/VAR]
 [/EXCERPT:NewLandscape_QuadsPerSection]
 
 [EXCERPT:NewLandscape_SectionsPerComponent]
-Sections Per Component は、ランドスケープの LOD を支えます。各セクションは、ランドスケープ LOD の基本単位です。1 つのコンポーネントは、2 x 2 のセクションを持つことができます。つまり、1 つのコンポーネントで 4 種類の LOD を一度にレンダリングします。セクション サイズが大きくなれば、CPU の計算時間が短縮するという追加のメリットが得られます。しかし、ランドスケープが多くの頂点を一度にレンダリングするという問題が生じるかもしれません。これは、非常に広い領域のランドスケープを使用する場合におこりやすくなります。こうした問題はモバイル デバイスの場合にさらに悪化します。ハードウェアの制約上、ドローコールの量に制限があるからです。
+Sections Per Component は、ランドスケープの LOD に役立ちます。各セクションは、ランドスケープの LOD の基本単位です。1 つのコンポーネントは、2 x 2 のセクションを持つことができます。つまり、1 つのコンポーネントで 4 種類の LOD を一度にレンダリングします。セクション サイズが大きくなれば、CPU の計算時間が短縮するという追加のメリットが得られます。しかし、ランドスケープが多くの頂点を一度にレンダリングするという問題が生じるかもしれません。これは、非常に広い領域のランドスケープを使用する場合におこりやすくなります。こうした問題はモバイル デバイスの場合にさらに悪化します。ハードウェアの制約上、ドローコールの量に制限があるからです。
 NewLandscape_SectionsPerComponent    
 [VAR:ToolTipFullLink]
 Engine/Landscape/Creation

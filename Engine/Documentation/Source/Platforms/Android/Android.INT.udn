@@ -5,20 +5,51 @@ Description:Developing games for the Android platform.
 Platform:Android
 Navigation:platform
 version: 4.9
-
+tags:Android
+tags:Mobile
+parent:Platforms/Mobile
+type:landing
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Android Essentials
+		Starting Out
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
-		* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
-		* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+		[DIR(output:"topiccompact" parent:"Platforms/Android" type:"quickstart")]
 	[/PARAM]
 [/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Android How-Tos
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		[DIR(end:"1" output:"listbutton" type:"howto" parent:"Platforms/Android")]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		General Android Development
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		[DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/Android")]
+		[DIR(end:"1" output:"listbutton" type:"reference" parent:"Platforms/Android")]
+	[/PARAM]
+[/OBJECT]
+

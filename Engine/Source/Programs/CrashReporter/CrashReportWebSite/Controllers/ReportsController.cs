@@ -1,23 +1,21 @@
 ﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Mail;
-using System.Text;
 using System.Web;
-using System.Web.Helpers;
 using System.Web.Mvc;
 using System.Web.Routing;
-using System.Web.UI;
-using System.Xml;
+using Tools.CrashReporter.CrashReportWebSite.DataModels;
+using Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories;
 using Tools.CrashReporter.CrashReportWebSite.Models;
-using Tools.DotNETCommon;
+using Tools.CrashReporter.CrashReportWebSite.ViewModels;
 using Hangfire;
+using FormCollection = System.Web.Mvc.FormCollection;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 {
@@ -35,12 +33,24 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	/// The controller to handle graphing of crashes per user group over time.
 	/// </summary>
 	public class ReportsController : Controller
-	{
-		/// <summary>Fake id for all user groups</summary>
+    {
+        #region Public Methods
+
+        private IUnitOfWork _unitOfWork;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public ReportsController(IUnitOfWork unitOfWork)
+        {
+            _unitOfWork = unitOfWork;
+        }
+
+        /// <summary>Fake id for all user groups</summary>
 		public static readonly int AllUserGroupId = -1;
         
 		/// <summary>
-		/// 
+		/// Get a report with the default form data and return the reports index view
 		/// </summary>
 		/// <param name="ReportsForm"></param>
 		/// <returns></returns>
@@ -54,21 +64,21 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				int BuggIDToBeAddedToJira = 0;
 				foreach( var Entry in ReportsForm )
 				{
-					if( Entry.ToString().Contains( Bugg.JiraSubmitName ) )
+                    if (Entry.ToString().Contains("CopyToJira-"))
 					{
-						int.TryParse( Entry.ToString().Substring( Bugg.JiraSubmitName.Length ), out BuggIDToBeAddedToJira );
+                        int.TryParse(Entry.ToString().Substring("CopyToJira-".Length), out BuggIDToBeAddedToJira);
 						break;
 					}
 				}
                 
-				ReportsViewModel Results = GetResults( FormData, BuggIDToBeAddedToJira );
-				Results.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
-				return View( "Index", Results );
+				var results = GetResults( FormData, BuggIDToBeAddedToJira );
+				results.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
+				return View( "Index", results );
 			}
 		}
 
 	    /// <summary>
-	    /// 
+	    /// Return to the index view with a report for a specific branch
 	    /// </summary>
 	    /// <param name="ReportsForm"></param>
 	    /// <returns></returns>
@@ -82,10 +92,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 // Handle 'CopyToJira' button
                 foreach (var Entry in ReportsForm)
                 {
-                    if (Entry.ToString().Contains(Bugg.JiraSubmitName))
+                    if (Entry.ToString().Contains("CopyToJira-"))
                     {
                         
-                        int.TryParse(Entry.ToString().Substring(Bugg.JiraSubmitName.Length), out buggIdToBeAddedToJira);
+                        int.TryParse(Entry.ToString().Substring("CopyToJira-".Length), out buggIdToBeAddedToJira);
                         break;
                     }
                 }
@@ -97,21 +107,22 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Subscribe to a weekly email with a report for a specific branch over the last week.
         /// </summary>
-        /// <param name="FormData"></param>
-        /// <returns></returns>
+        /// <returns>
+        /// A partial view with a confirmation massge to be displayed in the source page.
+        /// </returns>
         public PartialViewResult SubscribeToEmail(string branchName, string emailAddress)
         {
             var jobId = string.Format("{0}:{1}", branchName, emailAddress);
 
             RecurringJob.AddOrUpdate<ReportsController>(jobId, x => x.SendReportsEmail(emailAddress, branchName), Cron.Weekly);
 
-            return PartialView("SignUpResponse", new EmailSubscriptionResponseModel (){ Email = emailAddress, Branch = branchName });
+            return PartialView("SignUpResponse", new EmailSubscriptionResponseModel () { Email = emailAddress, Branch = branchName } );
         }
         
         /// <summary>
-        /// 
+        /// Unsubscribe from a weekly e-mail report for a branch
         /// </summary>
         /// <param name="jobId"></param>
         /// <returns></returns>
@@ -124,12 +135,78 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
             return View("Unsubscribe");
         }
+        
+        /// <summary>
+        /// Private method called by hangfire to send individual report e-mails.
+        /// </summary>
+        /// <param name="emailAddress"></param>
+        /// <param name="branchName"></param>
+        public void SendReportsEmail(string emailAddress, string branchName)
+        {
+            var emailBody = string.Format("{0}" + Environment.NewLine + "{1}{2}%3A{3}",
+                GetReportsEmailContents(branchName),
+                "http://crashreporter.epicgames.net/Reports/UnsubscribeFromEmail?jobId=",
+                branchName,
+                emailAddress);
+            var sMail = new SmtpClient();
+
+            var message = new MailMessage("crashreporter@epicgames.com", emailAddress, "Weekly Crash Report : " + branchName, emailBody ) { IsBodyHtml = true };
+            sMail.Send(message);
+        }
+
+        /// <summary>
+        /// Test method - DELETE ME!
+        /// </summary>
+        public void GetJiraIssueSpec()
+        {
+            var jiraConnection = JiraConnection.Get();
+
+            if (!jiraConnection.CanBeUsed())
+                return;
+
+            var jiraResponse = jiraConnection.JiraRequest(
+                "/issue/createmeta?projectKeys=UE&issuetypeName=Bug&expand=projects.issuetypes.fields",
+                JiraConnection.JiraMethod.GET, null, HttpStatusCode.OK);
+
+            var projectSpec = JiraConnection.ParseJiraResponse(jiraResponse);
+
+            var projects = ((ArrayList)projectSpec["projects"]);
+
+            ArrayList issueTypes = null;
+
+            foreach (var project in projects)
+            {
+                var kvp = (KeyValuePair<string, object>)project;
+                if ( project == "issuetypes")
+                {
+                    issueTypes = kvp.Value as ArrayList;
+                }
+
+            }
+
+            if (issueTypes != null)
+            {
+                var bug = issueTypes[0];
+
+
+            }
+
+            //var issuetypes = projdic["issuetypes"];
+
+            //var issues = (Dictionary<string, object>) issuetypes;
+
+            //var bug = (Dictionary<string, object>)issues.First().Value;
+
+            //var fields = (Dictionary<string, object>)bug["fields"];
+        }
+
+        #endregion
 
         #region Private Methods
-
+        
         private void AddBuggJiraMapping(Bugg NewBugg, ref HashSet<string> FoundJiras, ref Dictionary<string, List<Bugg>> JiraIDtoBugg)
         {
-            string JiraID = NewBugg.Jira;
+            string JiraID = NewBugg.TTPID;
             FoundJiras.Add("key = " + JiraID);
 
             bool bAdd = !JiraIDtoBugg.ContainsKey(JiraID);
@@ -162,9 +239,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    /// <returns></returns>
         private ReportsViewModel GetResults(string branchName, DateTime startDate, DateTime endDate, int BuggIDToBeAddedToJira)
 	    {
-            BuggRepository BuggsRepo = new BuggRepository();
-            CrashRepository CrashRepo = new CrashRepository();
-
 	        // It would be great to have a CSV export of this as well with buggs ID being the key I can then use to join them :)
 	        // 
 	        // Enumerate JIRA projects if needed.
@@ -177,12 +251,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	        {
 	            string AnonumousGroup = "Anonymous";
 	            //List<String> Users = FRepository.Get().GetUserNamesFromGroupName( AnonumousGroup );
-	            int AnonymousGroupID = FRepository.Get(BuggsRepo).FindOrAddGroup(AnonumousGroup);
-	            List<int> AnonumousIDs = FRepository.Get(BuggsRepo).GetUserIdsFromUserGroup(AnonumousGroup).ToList();
+	            int AnonymousGroupID = _unitOfWork.UserGroupRepository.First(data => data.Name == "Anonymous").Id;
+	            List<int> AnonumousIDs =
+                    _unitOfWork.UserGroupRepository.First(data => data.Name == "Anonymous").Users.Select(data => data.Id).ToList();
 	            int AnonymousID = AnonumousIDs.First();
 
-	            var CrashesQuery = CrashRepo
-	                .QueryByDate(CrashRepo.ListAll(), startDate, endDate)
+	            var CrashesQuery = _unitOfWork.CrashRepository.ListAll().Where(data => data.TimeOfCrash > startDate && data.TimeOfCrash <= endDate)
 	                // Only crashes and asserts
 	                .Where(Crash => Crash.CrashType == 1 || Crash.CrashType == 2)
 	                // Only anonymous user
@@ -199,24 +273,23 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                        );
 	            }
 
-	            var Crashes = CrashesQuery.Select(Crash => new
+	            var crashes = CrashesQuery.Select(data => new
 	            {
-	                ID = Crash.Id,
-	                TimeOfCrash = Crash.TimeOfCrash.Value,
+                    ID = data.Id,
+                    TimeOfCrash = data.TimeOfCrash.Value,
 	                //UserID = Crash.UserNameId.Value, 
-	                BuildVersion = Crash.BuildVersion,
-	                JIRA = Crash.Jira,
-	                Platform = Crash.PlatformName,
-	                FixCL = Crash.FixedChangeList,
-	                BuiltFromCL = Crash.BuiltFromCL,
-	                Pattern = Crash.Pattern,
-	                MachineID = Crash.MachineId,
-	                Branch = Crash.Branch,
-	                Description = Crash.Description,
-	                RawCallStack = Crash.RawCallStack,
-	            })
-	                .ToList();
-	            int NumCrashes = Crashes.Count;
+                    BuildVersion = data.BuildVersion,
+                    JIRA = data.Jira,
+                    Platform = data.PlatformName,
+                    FixCL = data.FixedChangeList,
+                    BuiltFromCL = data.ChangeListVersion,
+                    Pattern = data.Pattern,
+                    MachineID = data.ComputerName,
+                    Branch = data.Branch,
+                    Description = data.Description,
+                    RawCallStack = data.RawCallStack,
+	            }).ToList();
+                var numCrashes = CrashesQuery.Count();
 
 	            /*
                 // Build patterns for crashes where patters is null.
@@ -234,7 +307,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 */
 
 	            // Total # of ALL (Anonymous) crashes in timeframe
-	            int TotalAnonymousCrashes = NumCrashes;
+	            int TotalAnonymousCrashes = numCrashes;
 
 	            // Total # of UNIQUE (Anonymous) crashes in timeframe
 	            HashSet<string> UniquePatterns = new HashSet<string>();
@@ -244,7 +317,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	            //List<int> CrashesWithoutPattern = new List<int>();
 	            //List<DateTime> CrashesWithoutPatternDT = new List<DateTime>();
 
-	            foreach (var Crash in Crashes)
+	            foreach (var Crash in crashes)
 	            {
 	                if (string.IsNullOrEmpty(Crash.Pattern))
 	                {
@@ -275,7 +348,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	            // Total # of AFFECTED USERS (Anonymous) in timeframe
 	            int TotalAffectedUsers = UniqueMachines.Count;
 
-	            var RealBuggs = BuggsRepo.Context.Buggs.Where(Bugg => PatternAndCount.Keys.Contains(Bugg.Pattern)).ToList();
+	            var RealBuggs = _unitOfWork.BuggRepository.ListAll().Where(Bugg => PatternAndCount.Keys.Contains(Bugg.Pattern));
 
 	            // Build search string.
 	            HashSet<string> FoundJiras = new HashSet<string>();
@@ -284,14 +357,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	            List<Bugg> Buggs = new List<Bugg>(NumTopRecords);
 	            foreach (var Top in PatternAndCount)
 	            {
-	                Bugg NewBugg = RealBuggs.Where(X => X.Pattern == Top.Key).FirstOrDefault();
+	                Bugg NewBugg = RealBuggs.FirstOrDefault(X => X.Pattern == Top.Key);
 	                if (NewBugg != null)
 	                {
 	                    using (
 	                        FAutoScopedLogTimer TopTimer =
 	                            new FAutoScopedLogTimer(string.Format("{0}:{1}", Buggs.Count + 1, NewBugg.Id)))
 	                    {
-	                        var CrashesForBugg = Crashes.Where(Crash => Crash.Pattern == Top.Key).ToList();
+	                        var CrashesForBugg = crashes.Where(Crash => Crash.Pattern == Top.Key).ToList();
 
 	                        // Convert anonymous to full type;
 	                        var FullCrashesForBugg = new List<Crash>(CrashesForBugg.Count);
@@ -299,15 +372,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                        {
 	                            FullCrashesForBugg.Add(new Crash()
 	                            {
-	                                ID = Anon.ID,
+	                                Id = Anon.ID,
 	                                TimeOfCrash = Anon.TimeOfCrash,
 	                                BuildVersion = Anon.BuildVersion,
 	                                Jira = Anon.JIRA,
-	                                Platform = Anon.Platform,
-	                                FixCL = Anon.FixCL,
-	                                BuiltFromCL = Anon.BuiltFromCL,
+	                                PlatformName = Anon.Platform,
+	                                FixedChangeList = Anon.FixCL,
+	                                ChangeListVersion = Anon.BuiltFromCL,
 	                                Pattern = Anon.Pattern,
-	                                MachineId = Anon.MachineID,
+	                                ComputerName = Anon.MachineID,
 	                                Branch = Anon.Branch,
 	                                Description = Anon.Description,
 	                                RawCallStack = Anon.RawCallStack,
@@ -317,10 +390,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                        NewBugg.PrepareBuggForJira(FullCrashesForBugg);
 
 	                        // Verify valid JiraID, this may be still a TTP 
-	                        if (!string.IsNullOrEmpty(NewBugg.Jira))
+	                        if (!string.IsNullOrEmpty(NewBugg.TTPID))
 	                        {
 	                            int TTPID = 0;
-	                            int.TryParse(NewBugg.Jira, out TTPID);
+	                            int.TryParse(NewBugg.TTPID, out TTPID);
 
 	                            if (TTPID == 0)
 	                            {
@@ -339,12 +412,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 	            if (BuggIDToBeAddedToJira > 0)
 	            {
-	                var Bugg = Buggs.Where(X => X.Id == BuggIDToBeAddedToJira).FirstOrDefault();
-	                if (Bugg != null)
-	                {
-	                    Bugg.CopyToJira();
-	                    AddBuggJiraMapping(Bugg, ref FoundJiras, ref JiraIDtoBugg);
-	                }
+                    var Bugg = Buggs.Where(X => X.Id == BuggIDToBeAddedToJira).FirstOrDefault();
+                    if (Bugg != null)
+                    {
+                        Bugg.CopyToJira();
+                        AddBuggJiraMapping(Bugg, ref FoundJiras, ref JiraIDtoBugg);
+                    }
 	            }
 
 	            if (JC.CanBeUsed())
@@ -488,7 +561,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 	                // If there are buggs, we need to update the summary to indicate an error.
 	                // Usually caused when bugg's project has changed.
-	                foreach (var Bugg in BuggsCopy.Where(b => !string.IsNullOrEmpty(b.Jira)))
+	                foreach (var Bugg in BuggsCopy.Where(b => !string.IsNullOrEmpty(b.TTPID)))
 	                {
 	                    Bugg.JiraSummary = "JIRA MISMATCH";
 	                    Bugg.JiraComponentsText = "JIRA MISMATCH";
@@ -503,7 +576,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	            return new ReportsViewModel
 	            {
 	                Buggs = Buggs,
-	                /*Crashes = Crashes,*/
+                    BranchName = branchName,
+	                BranchNames = _unitOfWork.CrashRepository.GetBranchesAsListItems(),
 	                DateFrom = (long) (startDate - CrashesViewModel.Epoch).TotalMilliseconds,
 	                DateTo = (long) (endDate - CrashesViewModel.Epoch).TotalMilliseconds,
 	                TotalAffectedUsers = TotalAffectedUsers,
@@ -514,27 +588,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    }
 
         /// <summary>
-        /// 
+        /// Private method to get reports page for a branch and render to an HTML string
         /// </summary>
-        /// <param name="emailAddress"></param>
-        /// <param name="branchName"></param>
-	    public void SendReportsEmail(string emailAddress, string branchName)
-	    {
-            var emailBody = string.Format("{0}" + Environment.NewLine + "{1}{2}%3A{3}",
-                GetReportsEmailContents(branchName),
-                "http://crashreporter.epicgames.net/Reports/UnsubscribeFromEmail?jobId=",
-                branchName,
-                emailAddress);
-            var sMail = new SmtpClient();
-
-            var message = new MailMessage("crashreporter@epicgames.com", emailAddress, "Weekly Crash Report : " + branchName, emailBody) { IsBodyHtml = true };
-            sMail.Send(message);
-	    }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
+        /// <returns>HTML formatted string</returns>
 	    private string GetReportsEmailContents(string branchName)
 	    {
             var reportViewModel = GetResults(branchName, DateTime.Now.AddDays(-7), DateTime.Now, 0);
@@ -542,37 +598,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	    }
 
         /// <summary>
-        /// This function uses a temporary controller object to return a view as a string object rather than passing it to the browser.
-        /// </summary>
-        /// <param name="controllerName">the name of the controller containing the view</param>
-        /// <param name="viewName">the name of the view</param>
-        /// <param name="viewData">Any datamodels associated with this view</param>
-        /// <returns></returns>
-        private static string RenderPartialToString(string viewName, object model, ControllerContext ControllerContext)
-        {
-            if (string.IsNullOrEmpty(viewName))
-                viewName = ControllerContext.RouteData.GetRequiredString("action");
-            var viewData = new ViewDataDictionary();
-            var tempData = new TempDataDictionary();
-            viewData.Model = model;
-
-            using (var sw = new StringWriter())
-            {
-                var viewResult = ViewEngines.Engines.FindPartialView(ControllerContext, viewName);
-                var viewContext = new ViewContext(ControllerContext, viewResult.View, viewData, tempData, sw);
-                viewResult.View.Render(viewContext, sw);
-
-                return sw.GetStringBuilder().ToString();
-            }
-        }
-        
-        /// <summary>
+        /// Uses a "fake" HTTPContext to generate html output from a view or partial view.
         /// 
+        /// Essentially this function returns view data at any time from any part of the program 
+        /// without having to call into a view from a normal controller context.
+        /// This is important to allow us to return view data asynchronously.
         /// </summary>
-        /// <param name="controllerName"></param>
-        /// <param name="viewName"></param>
-        /// <param name="viewData"></param>
-        /// <returns></returns>
+        /// <param name="controllerName">A string indicating the name of the controller that normally calls into a view</param>
+        /// <param name="viewName">the path to the view in quiestion</param>
+        /// <param name="viewData">the model to be passed to the view</param>
+        /// <returns>HTML formatted string</returns>
         private static string RenderViewToString(string controllerName, string viewName, object viewData)
         {
             using (var writer = new StringWriter())
@@ -591,10 +626,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
         #endregion
     }
 
+    /// <summary>
+    /// Empty Controller class used as proxy 
+    /// </summary>
     class FakeController : ControllerBase
     {
         protected override void ExecuteCore()
         {
         }
-    };
+    }
 }

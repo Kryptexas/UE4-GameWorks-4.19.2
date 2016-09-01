@@ -161,14 +161,14 @@ for engine modules. This is a philosophical choice that allows the engine to fun
 Here are the steps required to distribute a plugin.
 
 1. **Edit your plugin's descriptor file** (.uplugin file) and make sure the plugin name, modules, version and other settings are configured as desired.
-2. **Delete** your plugin's **Binaries** and **Intermediate** folders. This is just to make sure you are starting with a clean slate.
-3. If your plugin contains a **Source** directory, compile plugin binaries for **Win64 Development** configuration. This configuration will always be needed by an editor on PC platform to load your plugin. 
-4. For plugins with **Source**, if you intend to support additional configurations such as Mac, you should build those too.
-5. Make a copy of your plugin to a new "staging" folder outside of your project directory. It does not matter where, but you are going to be making changes to the plugin here.
-6. In the staging directory for your plugin, delete the **Intermediate** directory. These are temporary files that should never be distributed.
-7. If your plugin includes source code and you do not want to distribute it, delete any **Source** directories in the staging folder for your plugin.
-8. In the staging directory for your plugin, delete all files that you do not want to distribute.
-9. Your plugin is now ready to distribute!
+1. **Delete** your plugin's **Binaries** and **Intermediate** folders. This is just to make sure you are starting with a clean slate.
+1. If your plugin contains a **Source** directory, compile plugin binaries for **Win64 Development** configuration. This configuration will always be needed by an editor on PC platform to load your plugin. 
+1. For plugins with **Source**, if you intend to support additional configurations such as Mac, you should build those too.
+1. Make a copy of your plugin to a new "staging" folder outside of your project directory. It does not matter where, but you are going to be making changes to the plugin here.
+1. In the staging directory for your plugin, delete the **Intermediate** directory. These are temporary files that should never be distributed.
+1. If your plugin includes source code and you do not want to distribute it, delete any **Source** directories in the staging folder for your plugin.
+1. In the staging directory for your plugin, delete all files that you do not want to distribute.
+1. Your plugin is now ready to distribute!
 
 
 [REGION:warning]
@@ -202,7 +202,6 @@ This example plugin descriptor is from the **UObjectPlugin** [downloadable examp
 		"FriendlyName" : "UObject Example Plugin",
 		"Version" : 1,
 		"FriendlyVersion" : "1.0",
-		"EngineVersion" : 1579795,
 		"Description" : "An example of a plugin which declares its own UObject type. This can be used as a starting point when creating your own plugin.",
 		"Category" : "Programming Examples.Plugins",
 	
@@ -223,7 +222,6 @@ This example plugin descriptor is from the **UObjectPlugin** [downloadable examp
 | **FileVersion**					| _Required_	| Version of this plugin descriptor file itself. It is used for backwards compatibility as new features are added to the plugin system. You should usually set this to the latest version that is allowed by the version of the engine you are using. The latest version is currently **3**, and is the version of format that is documented here. We do not expect this version to change very frequently. In source code, you can look at **EProjectDescriptorVersion** to see the actual value. If you require maximum compatibility with older versions of the engine, then you can use an older version of the format, but it is not recommended.
 | **Version**						| _Optional_    | Current version number of this build of your plugin. This value should always increase with future versions. This version number is not usually displayed to end-users. |
 | **VersionName**					| _Optional_    | Version of the plugin displayed in the editor UI. This is never used for any versioning checks and can be in whatever format you would like, however we suggest a simple Major.Minor format. You should always update the VersionName whenever the Version number has increased. |
-| **EngineVersion**					| _Optional_    | Minimum engine version necessary to be able to load this plugin. The plugin will fail to load when installed to projects using an engine version less than the value specified here. |
 | **PackageFileUE4Version**			| _Optional_    | Minimum package file version necessary to load content in this plugin. The plugin will fail to load when installed to projects using a package file version less than the value specified here. |
 | **PackageFileLicenseeUE4Version**	| _Optional_    | A secondary minimum package file version necessary to load content in this plugin. The plugin will fail to load when installed to projects using a licensee package file version less than the value specified here. |
 | **FriendlyName**					| _Optional_	| Name of the plugin displayed in the editor UI. If not specified, the name will default to the .uplugin file name. |
@@ -285,14 +283,14 @@ We have created a few example plugins that do not really do anything, but serve 
 
 To use these examples as a starting point for your plugin:
 1. Copy an example plugin to a new folder and rename directories, files and code contents to match your new plugin name.  You do not want to leave the existing names because they will collide with the built-in plugins included with the engine.
-2. **Make a "Plugins" folder** under your game project directory, then copy your plugin to any subdirectory under "Plugins".
+1. **Make a "Plugins" folder** under your game project directory, then copy your plugin to any subdirectory under "Plugins".
 	
 	![ExamplePlugins.png](ExamplePlugins.png)
-3. **Rebuild your C++ project files**. The plugin modules and source code will appear in directories under your project's directory in the project file. 
-4. **Compile your game project** normally. Unreal Build Tool will detect the plugins and compile them as dependencies to your game!
-5. **Launch the editor** (or the game.)  Your plugin will be initially disabled, but you can turn it on in the editor UI.
-6. **Open the Plugins Editor** (Window -> Plugins), search for your plugin and enable it by clicking the check box.
-7. **Restart the Editor**.  Your plugin will be automatically loaded at startup.
+1. **Rebuild your C++ project files**. The plugin modules and source code will appear in directories under your project's directory in the project file. 
+1. **Compile your game project** normally. Unreal Build Tool will detect the plugins and compile them as dependencies to your game!
+1. **Launch the editor** (or the game.)  Your plugin will be initially disabled, but you can turn it on in the editor UI.
+1. **Open the Plugins Editor** (Window -> Plugins), search for your plugin and enable it by clicking the check box.
+1. **Restart the Editor**.  Your plugin will be automatically loaded at startup.
 
 You can see that the plugins have loaded by opening the **Modules** viewer under the **Window -> Developer Tools** menu. 
 Another way is to use the code debugger to place a breakpoint in the plugin's startup code, such as in *FBlankPlugin::StartupModule()*.

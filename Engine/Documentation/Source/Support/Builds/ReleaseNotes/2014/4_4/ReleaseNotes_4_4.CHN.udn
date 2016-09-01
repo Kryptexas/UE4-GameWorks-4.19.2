@@ -3,6 +3,8 @@ Title: 虚幻引擎 4.4 版本信息
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
+version: 4.4
+order:4
 
 [TOC(start:2 end:2)]
 

@@ -42,7 +42,7 @@ void ConeTraceAgainstTileCulledObjects(uint2 OutputCoordinate, uint SharedVisibi
 
 	float3 CameraToPixel = normalize(WorldShadingPosition - View.WorldCameraOrigin);
 	float3 ReflectionVector = reflect(CameraToPixel, WorldNormal);
-	float TanConeHalfAngle = tan(Frame.GeneralPurposeTweak);
+	float TanConeHalfAngle = tan(View.GeneralPurposeTweak);
 
 	LOOP 
 	for (uint ListObjectIndex = ThreadIndex; ListObjectIndex < NumCulledObjects; ListObjectIndex += NUM_THREADS_PER_RECORD)
@@ -210,7 +210,7 @@ void ConeTraceSpecularOcclusionCS(
 		for (uint ConeIndex = ThreadIndex; ConeIndex < 1; ConeIndex += NUM_THREADS_PER_RECORD)
 		{
 			float ConeVisibility = asfloat(SharedConeVisibility[SharedVisibilityBaseIndex + ConeIndex]);
-			RWSpecularOcclusion[OutputBaseIndex + ConeIndex] = Frame.GeneralPurposeTweak;
+			RWSpecularOcclusion[OutputBaseIndex + ConeIndex] = View.GeneralPurposeTweak;
 		}
 	}*/
 }

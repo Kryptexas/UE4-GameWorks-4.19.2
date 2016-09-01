@@ -1,38 +1,40 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2713325
 Availability:Public
-Title: Setup
+Title: 设置
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
-Description:How to set up a project for localization. 
+Description:如何以本地化为目的来设置项目。 
+version: 4.9
 
 [TOC (start:2)]
 
-Setting a project up for localization involves:
-* writing localization configuration scripts for the commandlet pipeline.
-* configuring where to load localization data from.
-* specifying which localization data should be packaged for distribution. 
+设置一个要本地化的项目涉及以下方面：
+* 为 commandlet 管道编写本地化配置脚本。
+* 配置本地化数据的加载来源。
+* 指定将哪些本地化数据打包后进行分发。 
 
-Conventionally, localization configuration scripts reside under `Config/Localization` while localization data resides under `Content/Localization`.
+按照惯例，本地化配置脚本位于 “Config/Localization”，本地化数据则存放在 “Content/Localization”。
 
 [REGION:raw]
 ![](SetupFlowchart.png)
 [/REGION:raw]
 
-[REGION:tip]
-Note: Setting up and iterating on localization is a manual process currently, but a dashboard UI for managing localization is in progress that will greatly simplify the workflow.
-[/REGION:tip]
+[REGION:note]
+对于本地化的构建和迭代过程目前需要靠手动完成，但用于管理本地化的仪表板 UI 目前正在开发中，它将大大简化涉及的工作流程。
+[/REGION:note]
 
 
 
 
-## Localization Configuration Scripts
-The localization pipeline consists of [various commandlets](Gameplay/Localization/Commandlets) that handle gathering text, storing it, managing translations, and compiling them into binary forms 
-for use by the engine. A master commandlet runs these other commandlets via a configuration file that specifies the steps to execute.
+## 本地化配置脚本
+本地化工作流程包含[各种命令行工具](Gameplay/Localization/Commandlets)，
+用于收集文本，存储文本，管理翻译内容，并将它们编译成二进制形式供引擎使用。
+一个主要的命令行工具通过一个配置文件（指定了要执行的步骤）运行其他的命令行指令。
 
-Typically, projects only require a single target that covers all of the text to be translated. A single configuration script then specifies all the steps and settings to run an iteration of 
-localization automation - gathering text, generating manifests and archives, importing any new translations, exporting any new source, and generating a compiled binary format localization 
-resource for use by the application.
+通常来讲，项目只需要一个目标文件来涵盖所有要翻译的文本。之后会有一个配置脚本来指定所有步骤和设置，从而迭代
+本地化的自动执行过程——包括收集文本（TEXT）、生成清单（MANIFEST）和存档（ARCHIVE）、导入任何新翻译、导出任何新原文，
+并生成一个编译过的二进制格式本地化资源供应用程序使用。
 
-Below is an example localization configuration script that implements the conventional localization process.
+下面是一个本地化配置脚本示例，这里实施了一个常见的本地化流程。
 
 [REGION:codetitlebar]
 Config/Localization/Game.ini
@@ -99,17 +101,17 @@ Config/Localization/Game.ini
 	CommandletClass=GenerateTextLocalizationResource
 
 
-### Example Directory Structure
-An example directory structure using a project called "MyProject", with two targets ("Game" and "DLC").
+### 目录结构示例
+“MyProject” 的项目目录结构示例，并带有两个目标（“Game” 和 “DLC”）。
 * MyProject
 	* Config
 		* Localization
 			* Game.ini
 			* DLC.ini
 
-## Localization Data
-Projects must be configured to use their localization data. Paths to search for localization data are specified in `Config/DefaultGame.ini` under the `Internationalization` section using array 
-notation for the key `LocalizationPaths`. By default, localization data will be searched for in `Content/Localization/Game`, but this entry can be explicitly removed or replaced.
+## 本地化数据
+项目必须被配置为使用其本地化数据。搜索本地化数据所用的路径是在 `Config/DefaultGame.ini` 的 `Internationalization` 部分中指定，对于
+`LocalizationPaths` 键使用了数组表示法。默认情况下，本地化数据将在 `Content/Localization/Game` 中搜索，但这个条目可以被显式移除或替换。
 
 [REGION:codetitlebar]
 Config/DefaultGame.ini Excerpt
@@ -121,8 +123,8 @@ Config/DefaultGame.ini Excerpt
 	+LocalizationPaths=%GAMEDIR%Content/Localization/DLC
 
 
-### Example Directory Structure
-An example directory structure using a project called "MyProject", with two targets ("Game" and "DLC"), localized for English ("en") and Brazilian Portuguese ("pt-BR").
+### 目录结构示例
+“MyProject” 的项目目录结构示例，并带有两个目标（“Game” 和 “DLC”），同时提供了英语（“en”）和巴西地区葡萄牙语（“pt-BR”）本地化的示例目录结构。
 
 * MyProject
 	* Content
@@ -144,16 +146,17 @@ An example directory structure using a project called "MyProject", with two targ
 					* DLC.archive
 					* DLC.locres
 
-## Packaging Settings
-In order to package the project properly, the supported cultures' localization data need to be specified for packaging. Within the editor, under the **File** menu, open the **Package Project** submenu, and 
-select **Packaging Settings...**. From the **Project Settings** window, under the **Packaging** category, expand the advanced section in order to access the **Cultures to Package** setting. You may check or uncheck 
-which cultures should have their localization data packaged. English is checked by default.
+## 打包设置
+为了对项目进行正确打包，需要为打包指定基于所支持语言（Culture）的本地化数据。在编辑器的 **文件** 菜单中，
+打开 **Package Project** 子菜单，然后选择 **Packaging Settings...** 。在 **Project Settings** 窗口的 **Packaging** 类别中，
+展开高级部分以访问 **Localization to Package** 设置。您可以勾选相应的选框或对其取消勾选来决定哪些 Cultures 应当对其本地化数据进行打包。
+英语已经被默认选中。
 
 
 ![](SetupEditor.png)
 
-Alternatively, these settings can be modified directly in the `Config/DefaultGame.ini` file without using the editor UI, underneath the section `/Script/UnrealEd.ProjectPackagingSettings`, using the array 
-notation for the key `CulturesToStage`.
+另外，这些设置可以在 `Config/DefaultGame.ini` 文件中直接修改，而不必使用编辑器界面，
+它们位于 `/Script/UnrealEd.ProjectPackagingSettings` 部分，对于 `CulturesToStage` 键使用了数组表示法。
 
 [REGION:codetitlebar]
 Config/DefaultGame.ini Excerpt
@@ -166,7 +169,8 @@ Config/DefaultGame.ini Excerpt
 	+CulturesToStage=es
 
 
-## Iteration
-Iterating on localization data involves running the GatherText commandlet and providing a localization configuration script. The commandline should be of the form: 
+## 迭代
+本地化数据的迭代过程时需要运行 GatherText 命令行指令，并提供一个本地化配置脚本。命令行应当采用以下格式： 
 
 	<ProjectFilePath> -Run=GatherText -Config=<PathToConfigFileRelativeToProjectRoot>
+	解释：<项目文件路径> -Run=GatherText -Config=<配置文件相对项目根目录的相对路径>

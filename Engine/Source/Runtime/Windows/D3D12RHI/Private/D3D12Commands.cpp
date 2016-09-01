@@ -5,19 +5,7 @@ D3D12Commands.cpp: D3D RHI commands implementation.
 =============================================================================*/
 
 #include "D3D12RHIPrivate.h"
-#if WITH_D3DX_LIBS
-#include "AllowWindowsPlatformTypes.h"
-	#if _MSC_VER == 1900
-		#pragma warning(push)
-		#pragma warning(disable:4838)
-	#endif // _MSC_VER == 1900
-	#include <xnamath.h>
-	#if _MSC_VER == 1900
-		#pragma warning(pop)
-	#endif // _MSC_VER == 1900
-#include "HideWindowsPlatformTypes.h"
-#endif
-#include "D3D12RHIPrivateUtil.h"
+#include "Windows/D3D12RHIPrivateUtil.h"
 #include "StaticBoundShaderState.h"
 #include "GlobalShader.h"
 #include "OneColorShader.h"
@@ -300,12 +288,12 @@ void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess Tran
 }
 
 
-void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFenceRHI)
+void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 InNumUAVs, FComputeFenceRHIParamRef WriteComputeFenceRHI)
 {
 	static IConsoleVariable* CVarShowTransitions = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ProfileGPU.ShowTransitions"));
 	const bool bShowTransitionEvents = CVarShowTransitions->GetInt() != 0;
 
-	SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResources, bShowTransitionEvents, TEXT("TransitionTo: %s: %i UAVs"), *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)TransitionType], NumUAVs);
+	SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResources, bShowTransitionEvents, TEXT("TransitionTo: %s: %i UAVs"), *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)TransitionType], InNumUAVs);
 	const bool bUAVTransition = (TransitionType == EResourceTransitionAccess::EReadable) || (TransitionType == EResourceTransitionAccess::EWritable || TransitionType == EResourceTransitionAccess::ERWBarrier);
 	const bool bUAVBarrier = (TransitionType == EResourceTransitionAccess::ERWBarrier && TransitionPipeline == EResourceTransitionPipeline::EComputeToCompute);
 
@@ -351,7 +339,7 @@ void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess Tran
 		}
 
 		// Create the resource barrier descs for each texture to transition.
-		for (int32 i = 0; i < NumUAVs; ++i)
+		for (int32 i = 0; i < InNumUAVs; ++i)
 		{
 			if (InUAVs[i])
 			{
@@ -408,6 +396,11 @@ void FD3D12CommandContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, 
 		StateCache.SetViewport(Viewport);
 		SetScissorRectIfRequiredWhenSettingViewport(MinX, MinY, MaxX, MaxY);
 	}
+}
+
+void FD3D12CommandContext::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
+{
+	UE_LOG(LogD3D12RHI, Fatal, TEXT("D3D12 RHI does not support set stereo viewport!"));
 }
 
 void FD3D12CommandContext::RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
@@ -1229,6 +1222,7 @@ void FD3D12CommandContext::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 	{
 		Query->bResultIsCached = false;
 		Query->HeapIndex = GetParentDevice()->GetQueryHeap()->BeginQuery(*this, D3D12_QUERY_TYPE_OCCLUSION);
+		Query->OwningContext = this;
 	}
 	else
 	{
@@ -1259,6 +1253,7 @@ void FD3D12CommandContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 		Query->CLSyncPoint = CommandListHandle;
 
 		CommandListHandle.UpdateResidency(pQueryHeap->GetResultBuffer());
+		check(Query->OwningContext == this);
 		break;
 	}
 
@@ -1266,6 +1261,7 @@ void FD3D12CommandContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 	{
 		Query->bResultIsCached = false;
 		Query->CLSyncPoint = CommandListHandle;
+		Query->OwningContext = this;
 		this->otherWorkCounter += 2;	// +2 For the EndQuery and the ResolveQueryData
 		CommandListHandle->EndQuery(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex);
 		CommandListHandle->ResolveQueryData(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex, 1, Query->ResultBuffer, sizeof(uint64) * Query->HeapIndex);
@@ -1359,17 +1355,13 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D12CommitGraphicsConstants);
 
-	// MSFT: Seb: Do we need to support this none parallel case?
-	//if (GRHISupportsParallelRHIExecute)
-	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderState = this->CurrentBoundShaderState.GetReference();
-	//else
-	//	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderState = (FD3D12BoundShaderState*)OwningRHI.BoundShaderStateHistory.GetLast();
+	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = CurrentBoundShaderState.GetReference();
 
-	check(CurrentBoundShaderState);
+	check(CurrentBoundShaderStatePtr);
 
 	// Only set the constant buffer if this shader needs the global constant buffer bound
 	// Otherwise we will overwrite a different constant buffer
-	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Vertex])
+	if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Vertex])
 	{
 		// Commit and bind vertex shader constants
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1385,7 +1377,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 	// is always reset whenever bUsingTessellation changes in SetBoundShaderState()
 	if (bUsingTessellation)
 	{
-		if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Hull])
+		if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Hull])
 		{
 			// Commit and bind hull shader constants
 			for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1395,7 +1387,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 			}
 		}
 
-		if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Domain])
+		if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Domain])
 		{
 			// Commit and bind domain shader constants
 			for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1406,7 +1398,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		}
 	}
 
-	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Geometry])
+	if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Geometry])
 	{
 		// Commit and bind geometry shader constants
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1416,7 +1408,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		}
 	}
 
-	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Pixel])
+	if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Pixel])
 	{
 		// Commit and bind pixel shader constants
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1533,7 +1525,6 @@ inline int32 SetShaderResourcesFromBuffer_Sampler(FD3D12CommandContext& CmdConte
 			const uint16 ResourceIndex = FRHIResourceTableEntry::GetResourceIndex(ResourceInfo);
 			const uint8 BindIndex = FRHIResourceTableEntry::GetBindIndex(ResourceInfo);
 
-			// todo: could coalesce adjacent bound resources.
 			FD3D12SamplerState* D3D12Resource = (FD3D12SamplerState*)Resources[ResourceIndex].GetReference();
 
 			SetResource<ShaderFrequency>(CmdContext, BindIndex, D3D12Resource);
@@ -1577,31 +1568,27 @@ void FD3D12CommandContext::CommitGraphicsResourceTables()
 {
 	uint32 Start = FPlatformTime::Cycles();
 
-	// MSFT: Seb: Do we need this non parallel case now that context objects are always used?
-//#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
-	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderState = this->CurrentBoundShaderState.GetReference();
-//#else
-//	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderState = (FD3D12BoundShaderState*)OwningRHI.BoundShaderStateHistory.GetLast();
-//#endif
-	check(CurrentBoundShaderState);
+	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = CurrentBoundShaderState.GetReference();
 
-	if (auto* Shader = CurrentBoundShaderState->GetVertexShader())
+	check(CurrentBoundShaderStatePtr);
+
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetVertexShader())
 	{
 		SetResourcesFromTables(Shader);
 	}
-	if (auto* Shader = CurrentBoundShaderState->GetPixelShader())
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetPixelShader())
 	{
 		SetResourcesFromTables(Shader);
 	}
-	if (auto* Shader = CurrentBoundShaderState->GetHullShader())
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetHullShader())
 	{
 		SetResourcesFromTables(Shader);
 	}
-	if (auto* Shader = CurrentBoundShaderState->GetDomainShader())
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetDomainShader())
 	{
 		SetResourcesFromTables(Shader);
 	}
-	if (auto* Shader = CurrentBoundShaderState->GetGeometryShader())
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetGeometryShader())
 	{
 		SetResourcesFromTables(Shader);
 	}
@@ -2008,7 +1995,7 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	D3D12_RECT ClearRects[4];
 
 	// Only pass a rect down to the driver if we specifically want to clear a sub-rect
-	if (bSupportsFastClear == false || bClearCoversEntireSurface == false)
+	if (!bSupportsFastClear || !bClearCoversEntireSurface)
 	{
 // TODO: Exclude rects are an optional optimzation, need to make them work with the scissor rect as well
 #if 0
@@ -2068,15 +2055,22 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	uint32 ClearFlags = 0;
 	if (ClearDSV)
 	{
-		if (bClearDepth)
+		if (bClearDepth && DepthStencilView->HasDepth())
 		{
 			ClearFlags |= D3D12_CLEAR_FLAG_DEPTH;
-			check(DepthStencilView->HasDepth());
 		}
-		if (bClearStencil)
+		else if (bClearDepth)
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("RHIClearMRTImpl: Asking to clear a DSV that does not store depth."));
+		}
+
+		if (bClearStencil && DepthStencilView->HasStencil())
 		{
 			ClearFlags |= D3D12_CLEAR_FLAG_STENCIL;
-			check(DepthStencilView->HasStencil());
+		}
+		else if (bClearStencil)
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("RHIClearMRTImpl: Asking to clear a DSV that does not store stencil."));
 		}
 
 		if (bClearDepth && (!DepthStencilView->HasStencil() || bClearStencil))

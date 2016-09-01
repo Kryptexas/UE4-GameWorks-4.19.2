@@ -1,76 +1,87 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Location Modules
+﻿INTSourceChangelist:2750681
+Availability:Public
+Title:Location 模块
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Location modules affect the position of particles at various times throughout their lives.
+Description:Location 模块影响粒子在其生命周期中多个时间的所在位置。
+Version:4.9
 
 [TOC(start:2 end:3)]
 
-Location modules affect the position of particles at various times throughout their lives.
+Location 模块影响粒子在其生命周期中多个时间的所在位置。
 
 ## Initial Location
 
-![psys_initial_location.gif](psys_initial_location.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+LAd89U2b-YY
+[/PARAMLITERAL]
+[/OBJECT]
 
-The Initial Location module is used to set the initial location of a particle at spawn time. It contains the following member(s):
+**Initial Lotation** 模块用于设置粒子生成时的初始旋转。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**Start Location** | A vector distribution indicating the location the particle should be emitted, relative to the emitter. Value is retrieved based on the EmitterTime at the spawn of the particle.|
-|**Distribute over NPoints**|When this is set to a non-zero number, it provides a number of evenly-spaced points along a uniform distribution from which to emit. For instance, if the min and max values of a distribution defined a line 100 units long, setting this value to 2 would cause particles to only be emitted from the actual min and max locations, nowhere in between.|
-|**Distribute Threshold**|When _Distribute over NPoints_ is set to any non-zero number, this provides a percentage for how many of the particles will emit from those evenly-spaced points. For example, a value of 1 will cause all particles to emit from those points. A value of 0.5 would cause half of the particles to emit from those points, while the other half would still spawn randomly.|
+|**Start Location** | 确定粒子发射位置（与发射器相关）的浮点 distribution。基于粒子生成的 EmitterTime 获取数值。|
+|**Distribute over NPoints**| 当此属性被设为非零的数值时，它沿发射粒子的等分 distribution 生成多个均衡分布的点。例如，如一个 distribution 的最小和最大值将一条线的长度定义为 100 个单位，将该值设为 2 则会造成只在实际的最大和最小位置发射粒子，两者之间不存在发射的位置。
+|**Distribute Threshold**|当 _Distribute over NPoints_ 被设为任何非零数字时，将获得这些平均分布的点上粒子发射量的百分点。例如，数值 1 将使所有粒子从这些点发射。数值 0.5 将使一半的粒子从这些点发射，另外一半从随机位置发射。|
 
-In Spawn, the module retrieves the appropriate values from the distribution using the current emitter time. If the particle emitter does not have the _Use Local Space_ flag, this value is transformed into world-space. The Particle.Location field then has this value added to it.
+生成粒子时，模块从使用当前发射器时间的 distribution 获取适当的值。如粒子发射器没有 _Use Local Space_ 标记，该值将被转换进全局空间中。Particle.Location 场则拥有添加的值。
 
 
 ## Initial Loc (Seed)
 
-The Initial Loc (Seeded) module is identical to the [Initial Location](#InitialLocation) module in that it sets the initial location of a particle at spawn time; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+**Initial Loc (Seeded)** 模块与生成时设置粒子初始位置的 [Initial Location](#InitialLocation) 模块相同；然而此模块可对种子信息进行指定。该种子信息用于选择 distribution 值，从发射器每次使用的模块获得更稳定的效果。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]RandomSeed[/REGION]||
-|**Random Seed Info** | The random seed(s) to use for selecting "random" values for this module's properties.[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
+|**Random Seed Info** | 为该模块属性选择“随机”值而使用的随机种子。[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
 |[REGION:tablesection]Location[/REGION]||
-|**Start Location** | A vector distribution indicating the location the particle should be emitted, relative to the emitter. Value is retrieved based on the EmitterTime at the spawn of the particle.|
-|**Distribute over NPoints**|When this is set to a non-zero number, it provides a number of evenly-spaced points along a uniform distribution from which to emit. For instance, if the min and max values of a distribution defined a line 100 units long, setting this value to 2 would cause particles to only be emitted from the actual min and max locations, nowhere in between.|
-|**Distribute Threshold**|When _Distribute over NPoints_ is set to any non-zero number, this provides a percentage for how many of the particles will emit from those evenly-spaced points. For example, a value of 1 will cause all particles to emit from those points. A value of 0.5 would cause half of the particles to emit from those points, while the other half would still spawn randomly.|
+|**Start Location** | 确定粒子发射位置（与发射器相关）的浮点 distribution。基于粒子生成的 EmitterTime 获取数值。|
+|**Distribute over NPoints**| 当此属性被设为非零的数值时，它沿发射粒子的等分 distribution 生成多个均衡分布的点。例如，如一个 distribution 的最小和最大值将一条线的长度定义为 100 个单位，将该值设为 2 则会造成只在实际的最大和最小位置发射粒子，两者之间不存在发射的位置。
+|**Distribute Threshold**|当 _Distribute over NPoints_ 被设为任何非零数字时，将获得这些平均分布的点上粒子发射量的百分点。例如，数值 1 将使所有粒子从这些点发射。数值 0.5 将使一半的粒子从这些点发射，另外一半从随机位置发射。|
 
 
 
 
-In Spawn, the module retrieves the appropriate values from the distribution using the current emitter time. If the particle emitter does not have the _Use Local Space_ flag, this value is transformed into world-space. The Particle.Location field then has this value added to it.
+生成粒子时，模块从使用当前发射器时间的 distribution 获取适当的值。如粒子发射器没有 _Use Local Space_ 标记，该值将被转换进全局空间中。Particle.Location 场则拥有添加的值。
 
 
 ## World Offset
 
-The World Offset module is used to offset the initial location of a particle. The offset is in world space but respects the _Use Local Space_ flag through the life of the particle. This means the particle will always spawn offset in world space regardless of the orientation of the emitter, but will keep that offset relative to the emitter throughout its life. It contains the following member(s):
+**World Offset** 模块用于偏移粒子生成时的初始位置。偏移位于全局空间中，但在粒子的生命周期中将遵守 _Use Local Space_ 标记。这意味着粒子将无视发射器方向在全局空间中生成偏移，但在其生命周期中将相对于发射器保持该偏移。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**Start Location** | A vector distribution indicating the world-space offset the particle should use. Value is retrieved based on the EmitterTime at the spawn of the particle.|
-|**Distribute over NPoints**|When this is set to a non-zero number, it provides a number of evenly-spaced points along a uniform distribution from which to emit. For instance, if the min and max values of a distribution defined a line 100 units long, setting this value to 2 would cause particles to only be emitted from the actual min and max locations, nowhere in between.|
-|**Distribute Threshold**|When _Distribute over NPoints_ is set to any non-zero number, this provides a percentage for how many of the particles will emit from those evenly-spaced points. For example, a value of 1 will cause all particles to emit from those points. A value of 0.5 would cause half of the particles to emit from those points, while the other half would still spawn randomly.|
+|**Start Location** | 一个矢量 distribution，用于确定粒子所使用的全局空间偏移。基于粒子生成的 EmitterTime 获取数值。|
+|**Distribute over NPoints**| 当此属性被设为非零的数值时，它沿发射粒子的等分 distribution 生成多个均衡分布的点。例如，如一个 distribution 的最小和最大值将一条线的长度定义为 100 个单位，将该值设为 2 则会造成只在实际的最大和最小位置发射粒子，两者之间不存在发射的位置。
+|**Distribute Threshold**|当 _Distribute over NPoints_ 被设为任何非零数字时，将获得这些平均分布的点上粒子发射量的百分点。例如，数值 1 将使所有粒子从这些点发射。数值 0.5 将使一半的粒子从这些点发射，另外一半从随机位置发射。|
 
 
 
 ## Bone/Socket Location
 
-The Bone/Socket Location module allows particle to be spawned directly at the locations of bones or sockets of a SkeletalMesh. It provides the following properties:
+**Bone/Socket Location** 模块允许粒子从骨骼网格体的骨骼或套接字的所在位置直接发射。它拥有下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]BoneSocket[/REGION]||
-|**Source Type** | Specifies whether the source locations are bones or sockets.[INCLUDE:#BoneSourceType]|
-|**Universal Offset** | The offset to apply to each bone or socket source.|
-|**Source Locations** | An array of source bones or sockets on the Skeletal Mesh from which to spawn particles.[INCLUDE:#BoneSourceLoc]|
-|**Selection Method** | The method by which a bone or socket is chosen from the _Source Locations_ array.[INCLUDE:#BoneSelMethod]|
-|**Update Position Each Frame** | If _true_, the locations of the particles will be updated to those of the bones or sockets each frame.|
-|**Orient Mesh Emitters** | If _true_, mesh particles emitted by mesh emitters will be oriented to the bone or socket source.|
-|**Skel Mesh Actor Param Name** | The name of the instance parameter specifying the SkeletalMeshActor that supplies the SkeletalMeshComponent to use in-game.|
-|**Editor Skel Mesh** | Specifies a SkeletalMesh to use in the editor for preview purposes.|
+|**Source Type** | 指定源点位置是骨骼或套接字。[INCLUDE:#BoneSourceType]|
+|**Universal Offset** | 应用至每个骨骼或套接字源点的偏移。|
+|**Source Locations** | 骨骼网格图上的源骨骼或套接字阵列，从此处生成粒子。[INCLUDE:#BoneSourceLoc]|
+|**Selection Method** | 从 _Source Locations_ 阵列选择骨骼或套接字的方法。[INCLUDE:#BoneSelMethod]|
+|**Update Position Each Frame** | 如为 _true_，粒子位置将被更新至每帧中骨骼或套接字的位置。|
+|**Orient Mesh Emitters** | 如为 _true_，网格体发射器发射的网格体粒子方向将定为骨骼或套接字源点。|
+|**Skel Mesh Actor Param Name** | 范例参数的名称，指定为游戏提供 SkeletalMeshComponent 的 SkeletalMeshActor。|
+|**Editor Skel Mesh** | 指定在编辑器中用于预览的骨骼网格体。|
 
 
 
@@ -79,11 +90,11 @@ The Bone/Socket Location module allows particle to be spawned directly at the lo
 
 [EXCERPT:BoneSelMethod]
 [REGION:simpletable]
-|**Method**|**Description**|
+|**方法**|**描述**|
 | --- | --- |
-|_BONESOCKETSEL_Sequential_|Items in the _Source Locations_ array are chosen in sequential order.|
-|_BONESOCKETSEL_Random_|Items in the _Source Locations_ array are chosen at random.|
-|_BONESOCKETSEL_RandomExhaustive_|Items in the _Source Locations_ are chosen at random, but never the same item twice until all sources have been used.|
+|_BONESOCKETSEL_Sequential_| 按顺序次序选择 _Source Locations_ 阵列中的项目。|
+|_BONESOCKETSEL_Sequential_| 随机选择 _Source Locations_ 阵列中的项目。|
+|_BONESOCKETSEL_RandomExhaustive_| 随机选择 _Source Locations_ 中的项目，但在所有源点均被使用前不会出现选择两个相同项目的情况。|
 [/REGION]
 [/EXCERPT:BoneSelMethod]
 
@@ -91,10 +102,10 @@ The Bone/Socket Location module allows particle to be spawned directly at the lo
 
 [EXCERPT:BoneSourceType]
 [REGION:simpletable]
-|**Type**|**Description**|
+|**类型**|**描述**|
 | --- | --- |
-|_BONESOCKETSOURCE_Sockets_|_Source Locations_ for spawning particles are socket names.|
-|_BONESOCKETSOURCE_Bones_|_Source Locations_ for spawning particles are bones.|
+|_BONESOCKETSOURCE_Sockets_| 生成粒子的 _Source Locations_ 是套接字名。|
+|_BONESOCKETSOURCE_Bones_| 生成粒子的 _Source Locations_ 是骨骼。|
 [/REGION]
 [/EXCERPT:BoneSourceType]
 
@@ -102,10 +113,10 @@ The Bone/Socket Location module allows particle to be spawned directly at the lo
 
 [EXCERPT:BoneSourceLoc]
 [REGION:simpletable]
-|**Property**|**Description**|
+|**属性**|**描述**|
 | --- | --- |
-| _Bone Socket Name_ |Specifies the name of the bone or socket on the SkeletalMesh to use as the source for the particles.|
-| _Offset_ |The offset from this individual bone or socket to use in addition to the _Universal Offset_.|
+| _Bone Socket Name_ |指定作为粒子源点使用的骨骼网格体上的骨骼或套接字名。|
+| _Offset_ |除 _Universal Offset_ 之外使用的个体骨骼或套接字偏移。|
 [/REGION]
 [/EXCERPT:BoneSourceLoc]
 
@@ -115,31 +126,31 @@ The Bone/Socket Location module allows particle to be spawned directly at the lo
 
 ## Direct Location
 
-The Direct Location module is used to directly set the location of a particle. It contains the following member(s):
+**Direct Location** 模块用于直接设置粒子的位置。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**Location** | A vector distribution giving the location of the particle at a given time. The value is retrieved based on the Particle RelativeTime. NOTE that the particle location is set to this value, thereby over-writing any previous module impacts.|
-|**Location Offset** | A vector distribution giving the offset to apply from the position retrieved from the Location calculation. The offset is retrieved using the EmitterTime. This is useful for using a Location field set by script code to an Actor or something, and a random LocationOffset to offset it around the object. The offset will remain constant over the life of the particle.|
-|**Scale Factor** | A vector distribution which allows for scaling the velocity of the object at a given point in the timeline. This allows for warping the particles to fit the path they are following.|
-|**Direction** | Currently unused.|
+|**Location** | 确定特定时间粒子位置的矢量 distribution。基于粒子的 RelativeTime 获取该数值。请注意，粒子位置设为此数值，因此复写任意之前的模块均会产生影响。|
+|**Location Offset** | 一个矢量 distribution，确定从 Location 计算所获取的位置而进行应用的偏移。利用 EmitterTime 获取偏移。它在以下情况十分实用：通过对 Actor 或其他资源进行脚本代码编写使用 Location 场集时，或使用随机 LocationOffset 在对象周围产生偏移时。偏移将在粒子生命周期中将保持恒定。|
+|**Scale Factor** | 一个矢量 distribution，用于在时间线特定的点上对对象的速度进行调整。它将使粒子变形，与跟随的路径相吻合。|
+|**Direction** | 当前未使用。|
 
 
 
 ## Emitter Init Loc
 
-The Emitter InitLoc module is used to set the initial location of a particle to the position of a particle from another emitter (in the same particle system). It contains the following member(s):
+**Emitter InitLoc** 模块将粒子的初始位置设为来自另一个发射器的粒子位置（在同一个粒子系统中）。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**Emitter Name** | The name of the emitter to use as a source for the location particles.|
-|**Selection Method** | An enumeration indicating how to select the particles from the source emitter. If can be one of the following values:[INCLUDE:#InitLocSelMethod]|
-|**Inherit Source Velocity** | A Boolean that indicates the spawned particle should inherit the velocity of the source particle.|
-|**Inherit Source Velocity Scale** | Amount to scale the source velocity by when inheriting it.|
-|**Inherit Source Rotation** | A Boolean that indicates the spawned particle should inherit the rotation of the source particle.|
-|**Inherit Source Rotation Scale** | Amount to scale the source rotation by when inheriting it.|
+|**Emitter Name** | 发射器的名称，用作位置粒子的源点。|
+|**Selection Method** | 此列举说明从源发射器选择粒子的方法。可为下列数值之一：[INCLUDE:#InitLocSelMethod]|
+|**Inherit Source Velocity** | 用于确定生成的粒子继承源粒子速度的布尔值。|
+|**Inherit Source Velocity Scale** | 继承时源速度的调整量。|
+|**Inherit Source Rotation** | 用于确定生成的粒子继承源粒子旋转的布尔值。|
+|**Inherit Source Rotation Scale** | 继承时源旋转的调整量。|
 
 
 
@@ -148,10 +159,10 @@ The Emitter InitLoc module is used to set the initial location of a particle to 
 
 [EXCERPT:InitLocSelMethod]
 [REGION:simpletable]
-|**Method**|**Description**|
+|**方法**|**描述**|
 | --- | --- |
-|_ELESM_Random_|Randomly select a particle from the source emitter.|
-|_ELESM_Sequential_|Step through each of the particles from the source emitter in order.|
+|_ELESM_Random_|从源发射器随机选择一个粒子。|
+|_ELESM_Sequential_|从源发射器按顺序依次逐句通过每个粒子。|
 [/REGION]
 [/EXCERPT:InitLocSelMethod]
 
@@ -160,35 +171,45 @@ The Emitter InitLoc module is used to set the initial location of a particle to 
 
 ## Emitter Direct Loc
 
-The Emitter DirectLoc module is used to set the location of a particle to the position of a particle from another emitter (in the same particle system) for the particle's entire life. It contains the following member(s):
+**Emitter DirectLoc** 模块将粒子在整个生命周期中的位置设为来自另一个发射器的粒子位置（在同一个粒子系统中）。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**EmitterName** | The name of the emitter to use as a source for the location particles.|
+|**EmitterName** | 发射器的名称，用作位置粒子的源点。|
 
 
-The particle used will be the one at the same index as the particle having its location set.
+使用的粒子为同一索引中的粒子，因为粒子的位置已经设置好。
 
 
 ## Cylinder
 
-![psys_cylinder.gif](psys_cylinder.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+sefKMZtdGR0
+[/PARAMLITERAL]
+[/OBJECT]
 
-The Cylinder module is used to set the initial location of particles within a cylinder shape. It contains the following member(s):
+**Cylinder** 模块用于在圆柱体中设置粒子的初始位置。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**Radial Velocity** | A Boolean indicating that the particle velocity should only be applied in the `circular' plane of the cylinder.|
-|**Start Radius** | A float distribution giving the radius of the cylinder.|
-|**Start Height** | A float distribution giving the height of the cylinder - centered about the location.|
-|**Height Axis** | An enumeration indicating which particle system axis should represent the height axis of the cylinder. Can be one of the following:[INCLUDE:#CylinderHeightAxis]|
-|**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** | Boolean values indicating the valid axes for particle spawning.|
-|**Surface Only** | A Boolean value indicating that the particles should only be spawned on the surface of the primitive.|
-|**Velocity** | A Boolean value indicating that the particle should get its velocity from the position within the primitive.|
-|**Velocity Scale** | A float distribution indicating the scale that should be applied to the velocity. Only used if the Velocity value is checked (_true_).|
-|**Start Location** | A vector distribution indicating the location of the bounding primitive, relative to the position of the emitter.|
+|**Radial Velocity** | 一个布尔值，表明粒子速度仅应用于圆柱体的 `圆形` 表面。|
+|**Start Radius** | 确定圆柱体半径的浮点 distribution。|
+|**Start Height** | 确定圆柱体高度的浮点 distribution - 位置居中。|
+|**Height Axis** | 此列举说明粒子系统的哪条轴将代表圆柱体高度轴。可为下列之一：[INCLUDE:#CylinderHeightAxis]|
+|**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** | 一个布尔值，用于确定有效的粒子生成轴。|
+|**Surface Only** | 一个布尔值，确定粒子仅在基元表面生成。|
+|**Velocity** | 一个布尔值，确定粒子从基元中的位置获取速度。|
+|**Velocity Scale** | 一个浮点 distribution，用于确定应用于速度的调整量。仅在 Velocity 值为勾选状态（为 _true_）时使用。|
+|**Start Location** | 一个矢量 distribution，用于确定边界基元相对发射器所在点的位置。|
 
 
 
@@ -197,11 +218,11 @@ The Cylinder module is used to set the initial location of particles within a cy
 
 [EXCERPT:CylinderHeightAxis]
 [REGION:simpletable]
-|**Axis**|**Description**|
+|**轴**|**描述**|
 | --- | --- |
-|_PMLPC_HEIGHTAXIS_X_|Orient the cylinder with height along the particle system X-axis.|
-|_PMLPC_HEIGHTAXIS_Y_|Orient the cylinder with height along the particle system Y-axis.|
-|_PMLPC_HEIGHTAXIS_Z_|Orient the cylinder with height along the particle system Z-axis.|
+|_PMLPC_HEIGHTAXIS_X_|将粒子系统 X 轴设为圆柱体的高度方向。|
+|_PMLPC_HEIGHTAXIS_Y_|将粒子系统 Y 轴设为圆柱体的高度方向。|
+|_PMLPC_HEIGHTAXIS_Z_|将粒子系统 Z 轴设为圆柱体的高度方向。|
 [/REGION]
 [/EXCERPT:CylinderHeightAxis]
 
@@ -209,22 +230,22 @@ The Cylinder module is used to set the initial location of particles within a cy
 
 ## Cylinder (Seeded)
 
-The Cylinder (Seeded) module is identical to the [Cylinder](#Cylinder) module in that it sets the initial location of particles within a cylinder shape; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+**Cylinder (Seeded)** 模块与在圆柱体中设置粒子初始位置的 [Cylinder](#Cylinder) 模块相同；然而此模块可对种子信息进行指定。该种子信息用于选择 distribution 值，从发射器每次使用的模块获得更稳定的效果。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]RandomSeed[/REGION]||
-|**Random Seed Info** | The random seed(s) to use for selecting "random" values for this module's properties.[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
+|**Random Seed Info** | 为该模块属性选择“随机”值而使用的随机种子。[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
 |[REGION:tablesection]Location[/REGION]||
-|**Radial Velocity** | A Boolean indicating that the particle velocity should only be applied in the `circular' plane of the cylinder.|
-|**Start Radius** | A float distribution giving the radius of the cylinder.|
-|**Start Height** | A float distribution giving the height of the cylinder - centered about the location.|
-|**Height Axis** | An enumeration indicating which particle system axis should represent the height axis of the cylinder. Can be one of the following:[INCLUDE:#CylinderHeightAxis]|
-|**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** | Boolean values indicating the valid axes for particle spawning.|
-|**Surface Only** | A Boolean value indicating that the particles should only be spawned on the surface of the primitive.|
-|**Velocity** | A Boolean value indicating that the particle should get its velocity from the position within the primitive.|
-|**Velocity Scale** | A float distribution indicating the scale that should be applied to the velocity. Only used if the Velocity value is checked (_true_).|
-|**Start Location** | A vector distribution indicating the location of the bounding primitive, relative to the position of the emitter.|
+|**Radial Velocity** | 一个布尔值，表明粒子速度仅应用于圆柱体的 `圆形` 表面。|
+|**Start Radius** | 确定圆柱体半径的浮点 distribution。|
+|**Start Height** | 确定圆柱体高度的浮点 distribution - 位置居中。|
+|**Height Axis** | 此列举说明粒子系统的哪条轴将代表圆柱体高度轴。可为下列之一：[INCLUDE:#CylinderHeightAxis]|
+|**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** | 布尔值，用于确定有效的粒子生成轴。|
+|**Surface Only** | 一个布尔值，确定粒子仅在基元表面生成。|
+|**Velocity** | 一个布尔值，确定粒子从基元中的位置获取速度。|
+|**Velocity Scale** | 一个浮点 distribution，用于确定应用于速度的调整量。仅在 Velocity 值为勾选状态（为 _true_）时使用。|
+|**Start Location** | 一个矢量 distribution，用于确定边界基元相对发射器所在点的位置。|
 
 
 
@@ -232,19 +253,29 @@ The Cylinder (Seeded) module is identical to the [Cylinder](#Cylinder) module in
 
 ## Sphere
 
-![psys_sphere.gif](psys_sphere.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+ZM6GkFxO-b0
+[/PARAMLITERAL]
+[/OBJECT]
 
-The Sphere module is used to set the initial location of particles within a sphere shape. The class contains the following member(s):
+**Sphere** 模块用于在球体中设置粒子的初始位置。本类包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**Start Radius** | A float distribution giving the radius of the sphere.|
-|**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** | Boolean values indicating the valid axes for particle spawning.|
-|**Surface Only** | A Boolean value indicating that the particles should only be spawned on the surface of the primitive.|
-|**Velocity** | A Boolean value indicating that the particle should get its velocity from the position within the primitive.|
-|**Velocity Scale** | A float distribution indicating the scale that should be applied to the velocity. Only used if the Velocity value is checked (_true_).|
-|**Start Location** | A vector distribution indicating the location of the bounding primitive, relative to the position of the emitter.|
+|**Start Radius** | 确定球体半径的浮点 distribution。|
+|**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** | 布尔值，用于确定有效的粒子生成轴。|
+|**Surface Only** | 一个布尔值，确定粒子仅在基元表面生成。|
+|**Velocity** | 一个布尔值，确定粒子从基元中的位置获取速度。|
+|**Velocity Scale** | 一个浮点 distribution，用于确定应用于速度的调整量。仅在 Velocity 值为勾选状态（为 _true_）时使用。|
+|**Start Location** | 一个矢量 distribution，用于确定边界基元相对发射器所在点的位置。|
 
 
 
@@ -254,19 +285,19 @@ The Sphere module is used to set the initial location of particles within a sphe
 
 ## Sphere (Seeded)
 
-The Sphere (Seeded) module is identical to the [Sphere](#Sphere) module in that it sets the initial location of particles within a sphere shape; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+**Sphere (Seeded)** 模块与在球体中设置粒子初始位置的 [Sphere](#Sphere) 模块相同；然而此模块可对种子信息进行指定。该种子信息用于选择 distribution 值，从发射器每次使用的模块获得更稳定的效果。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 ||[REGION:tablesection]RandomSeed[/REGION]||
-|**Random Seed Info** | The random seed(s) to use for selecting "random" values for this module's properties.[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
+|**Random Seed Info** | 为该模块属性选择“随机”值而使用的随机种子。[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
 |[REGION:tablesection]Location[/REGION]||
-|**Start Radius** | A float distribution giving the radius of the sphere.|
-|**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** | Boolean values indicating the valid axes for particle spawning.|
-|**Surface Only** | A Boolean value indicating that the particles should only be spawned on the surface of the primitive.|
-|**Velocity** | A Boolean value indicating that the particle should get its velocity from the position within the primitive.|
-|**Velocity Scale** | A float distribution indicating the scale that should be applied to the velocity. Only used if the Velocity value is checked (_true_).|
-|**Start Location** | A vector distribution indicating the location of the bounding primitive, relative to the position of the emitter.|
+|**Start Radius** | 确定球体半径的浮点 distribution。|
+|**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** | 布尔值，用于确定有效的粒子生成轴。|
+|**Surface Only** | 一个布尔值，确定粒子仅在基元表面生成。|
+|**Velocity** | 一个布尔值，确定粒子从基元中的位置获取速度。|
+|**Velocity Scale** | 一个浮点 distribution，用于确定应用于速度的调整量。仅在 Velocity 值为勾选状态（为 _true_）时使用。|
+|**Start Location** | 一个矢量 distribution，用于确定边界基元相对发射器所在点的位置。|
 
 
 
@@ -275,36 +306,36 @@ The Sphere (Seeded) module is identical to the [Sphere](#Sphere) module in that 
 
 ![](Triangle.png)
 
-The Triangle module allows the user to specify the shape and location of a triangle, with particles being emitted from that triangle's 2D or 3D area, depending on whether there is a thickness applied.
+**Triangle** 模块允许用户定义三角形的形状和位置，粒子将从该三角形的 2D 和 3D 区域发射（取决于是否应用了厚度）。
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**Start Offset**|A vector distribution that defines an offset to the location of the triangle.|
-|**Height**|A float distribution that defines the length of the legs of the triangle.|
-|**Angle**|A float distribution that provides the angle between the primary leg and the hypotenuse. |
-|**Thickness**|A float distribution that provides the thickness of the triangle, turning it into a 3D wedge. Particles will be emitted from within the 3-dimensional area.|
+|**Start Offset**|定义三角形位置偏移的矢量 distribution。|
+|**Height**|定义三角形边长的浮点 distribution。|
+|**Angle**|确定斜边和对边之间角度的浮点 distribution。|
+|**Thickness**|一个浮点 distribution，确定三角形的厚度，将其转为 3D 楔形物。粒子将从三维区域中进行发射。|
 
 
 ## Skeletal Mesh Vertex/Surface Location (Skel Vert/Surf Loc)
 
-The Skel Vert/Surf Loc module allows for particles to be emitted from a skeletal mesh's vertices or polygonal surfaces. It provides the following properties:
+**Skel Vert/Surf Loc** 模块允许粒子从骨骼网格体的顶点或多边形表面发射。它拥有下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Vert Surface[/REGION]||
-|**Source Type** | Specifies whether the source locations are vertices or surfaces.[INCLUDE:#VertSourceType]|
-|**Universal Offset** | The offset to apply to each bone or socket source.|
-|**Update Position Each Frame** | If _true_, the locations of the particles will be updated to those of the vertices or surfaces each frame.|
-|**Orient Mesh Emitters** | If _true_, mesh particles emitted by mesh emitters will be oriented to the vertex or surface source.|
-|**Inherit Bone Velocity** | If _true_, particles inherit the associated bone velocities when spawned.|
-|**Skel Mesh Actor Param Name** | The name of the instance parameter specifying the SkeletalMeshActor that supplies the SkeletalMeshComponent to use in-game.|
-|**Editor Skel Mesh** | Specifies a SkeletalMesh to use in the editor for preview purposes.|
-|**Valid Associated Bones** | An array of source bones on the Skeletal Mesh with which the vertices/surfaces must be associated (via skin weighting) to spawn particles.[INCLUDE:#VertSourceLoc]|
-|**Enforce Normal Check** | When _true_, the _Normal to Compare_ and _Normal Check Tolerance Degree_ fields will be used to verify whether the surface has the appropriate normals for particle emission. This is useful in situations where, for example, you want to emit smoke or fire from the upward facing surfaces of a mesh, but not the downward facing ones. |
-|**Normal to Compare** | When _Enforce Normal Check_ is _true_, this will provide a normal direction to test against. |
-|**Normal Check Tolerance Degree** |When _Enforce Normal Check_ is _true_, this gives a tolerance value against the _Normal to Compare_ value. A value of 0 means that the normals must match exactly, while a value of 180 would result in any normal direction being valid. |
-|**Valid Material Indices** | Provides a list of materials applied to the skeletal mesh from which particles will be allowed to emit. Useful if only certain materials should be emitting particles. Leave empty to allow any material to emit. |
+|**Source Type** | 指定源点位置是顶点或表面。[INCLUDE:#VertSourceType]|
+|**Universal Offset** | 应用至每个骨骼或套接字源点的偏移。|
+|**Update Position Each Frame** | 如为 _true_，粒子位置将被更新至每帧中顶点或表面的位置。|
+|**Orient Mesh Emitters** | 如为 _true_，网格体发射器发射的网格体粒子方向将定为顶点或表面源点。|
+|**Inherit Bone Velocity** | 如为 _true_，粒子生成时将继承相关的骨骼速度。|
+|**Skel Mesh Actor Param Name** | 范例参数的名称，指定为游戏提供 SkeletalMeshComponent 的 SkeletalMeshActor。|
+|**Editor Skel Mesh** | 指定在编辑器中用于预览的骨骼网格体。|
+|**Valid Associated Bones** | 骨骼网格体上的源骨骼阵列，顶点/表面在生成粒子时必须与其关联（通过皮肤权重）。[INCLUDE:#VertSourceLoc]|
+|**Enforce Normal Check** | 如为 _true_，_Normal to Compare_ 和 _Normal Check Tolerance Degree_ 场将用于确定表面是否拥有粒子释放的适当法线。它在需要面对网格体表面向上发射烟雾和火焰（而非向下发射）时十分实用。|
+|**Normal to Compare** | 如 _Enforce Normal Check_ 为 _true_，它将提供一个法线方向进行测试。|
+|**Normal Check Tolerance Degree** |_Enforce Normal Check_ 为 _true_ 时，将确定和 _Normal to Compare_ 数值之间的公差值。值 0 意味着法线必须精确匹配，值 180 使任意法线方向均有效。|
+|**Valid Material Indices** | 提供应用至发射粒子的骨骼网格体的材质列表。仅在特定材质需要发射粒子时方有作用。设为空可使材质进行发射。|
 
 
 <!-------------Vert/Surf Location Includes----------------
@@ -313,19 +344,19 @@ The Skel Vert/Surf Loc module allows for particles to be emitted from a skeletal
 
 [EXCERPT:VertSourceLoc]
 [REGION:simpletable]
-|**Property**|**Description**|
+|**属性**|**描述**|
 | --- | --- |
-|_(Numbered Entry)_|Specifies the name of the bone on the SkeletalMesh to which a vertex or surface must be weighted in order to serve as the source for the particles.|
+|_(Numbered Entry)_|指定骨骼网格体上骨骼的名称。顶点或表面必须受其权重，以便成为粒子的源点。|
 [/REGION]
 [/EXCERPT:VertSourceLoc]
 
 
 [EXCERPT:VertSourceType]
 [REGION:simpletable]
-|**Type**|**Description**|
+|**类型**|**描述**|
 | --- | --- |
-|_VERTSURFACESOURCE_Vert_|_Source Locations_ for spawning particles are mesh vertices.|
-|_VERTSURFACESOURCE_Surface_|_Source Locations_ for spawning particles mesh surfaces.|
+|_VERTSURFACESOURCE_Vert_|生成粒子的 _Source Locations_ 为网格体顶点。|
+|_VERTSURFACESOURCE_Surface_|生成粒子的 _Source Locations_ 为网格体表面。|
 [/REGION]
 [/EXCERPT:VertSourceType]
 
@@ -335,11 +366,11 @@ The Skel Vert/Surf Loc module allows for particles to be emitted from a skeletal
 
 ## Source Movement
 
-The Source Movement module is used to offset the location of particles based on the movement of the source (i.e. the emitter). It contains the following properties:
+**Source Movement** 模块基于源点（即发射器）的移动设置粒子位置的偏移。它拥有下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]SourceMovement[/REGION]||
-|**Source Movement** | A vector distribution specifying the scaling factor to apply to the source movement before adding to the particle location. The value is retrieved using particle-relative time.|
+|**Source Movement** |一个矢量 distribution，指定添加到粒子位置前应用至源点移动的缩放因子。使用粒子相对时间获取该数值。|
 
 

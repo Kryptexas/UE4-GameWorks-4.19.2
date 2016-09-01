@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "AITypes.h"
 #include "AI/NavDataGenerator.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
 #include "AI/Navigation/NavigationData.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "VisualLogger.h"
 
 //----------------------------------------------------------------------//
 // FPathFindingQuery
@@ -42,14 +45,22 @@ FPathFindingQuery::FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const 
 	FPathFindingQueryData(PathToRecalculate->GetQueryData()),
 	NavData(NavDataOverride ? NavDataOverride : PathToRecalculate->GetNavigationDataUsed()), PathInstanceToFill(PathToRecalculate), NavAgentProperties(FNavAgentProperties::DefaultProperties)
 {
-	if (PathToRecalculate->ShouldUpdateStartPointOnRepath())
+	if (PathToRecalculate->ShouldUpdateStartPointOnRepath() && (PathToRecalculate->GetSourceActor() != nullptr))
 	{
-		StartLocation = PathToRecalculate->GetPathFindingStartLocation();
+		const FVector NewStartLocation = PathToRecalculate->GetPathFindingStartLocation();
+		if (FAISystem::IsValidLocation(NewStartLocation))
+		{
+			StartLocation = NewStartLocation;
+		}
 	}
 
-	if (PathToRecalculate->ShouldUpdateEndPointOnRepath())
+	if (PathToRecalculate->ShouldUpdateEndPointOnRepath() && (PathToRecalculate->GetGoalActor() != nullptr))
 	{
-		EndLocation = PathToRecalculate->GetGoalLocation();
+		const FVector NewEndLocation = PathToRecalculate->GetGoalLocation();
+		if (FAISystem::IsValidLocation(NewEndLocation))
+		{
+			EndLocation = NewEndLocation;
+		}
 	}
 
 	if (!QueryFilter.IsValid() && NavData.IsValid())
@@ -172,11 +183,14 @@ void ANavigationData::PostInitializeComponents()
 	Super::PostInitializeComponents();
 	
 	UWorld* MyWorld = GetWorld();
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyWorld);
 
 	if (MyWorld == nullptr ||
 		(MyWorld->GetNetMode() != NM_Client && MyWorld->GetNavigationSystem() == nullptr) ||
 		(MyWorld->GetNetMode() == NM_Client && !bNetLoadOnClient))
 	{
+		UE_LOG(LogNavigation, Log, TEXT("Marking %s as PendingKill due to %s"), *GetName()
+			, !MyWorld ? TEXT("No World") : (MyWorld->GetNetMode() == NM_Client ? TEXT("not creating navigation on clients") : TEXT("missing navigation system")));
 		CleanUpAndMarkPendingKill();
 	}
 }
@@ -253,12 +267,32 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 	if (RepathRequests.Num() > 0)
 	{
 		float TimeStamp = GetWorldTimeStamp();
-		TArray<FNavPathRecalculationRequest> PostponedRequests;
 		const UWorld* World = GetWorld();
 
 		// @todo batch-process it!
-		for (auto RecalcRequest : RepathRequests)
+
+		const int32 MaxProcessedRequests = 1000;
+
+		// make a copy of path requests and reset (remove up to MaxProcessedRequests) from navdata's array
+		// this allows storing new requests in the middle of loop (e.g. used by meta path corrections)
+
+		TArray<FNavPathRecalculationRequest> WorkQueue(RepathRequests);
+		if (WorkQueue.Num() > MaxProcessedRequests)
 		{
+			UE_VLOG(this, LogNavigation, Error, TEXT("Too many repath requests! (%d/%d)"), WorkQueue.Num(), MaxProcessedRequests);
+
+			WorkQueue.RemoveAt(MaxProcessedRequests, WorkQueue.Num() - MaxProcessedRequests);
+			RepathRequests.RemoveAt(0, MaxProcessedRequests);
+		}
+		else
+		{
+			RepathRequests.Reset();
+		}
+
+		for (int32 Idx = 0; Idx < WorkQueue.Num(); Idx++)
+		{
+			FNavPathRecalculationRequest& RecalcRequest = WorkQueue[Idx];
+
 			// check if it can be updated right now
 			FNavPathSharedPtr PinnedPath = RecalcRequest.Path.Pin();
 			if (PinnedPath.IsValid() == false)
@@ -270,7 +304,7 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 			const INavAgentInterface* PathNavAgent = Cast<const INavAgentInterface>(PathQuerier);
 			if (PathNavAgent && PathNavAgent->ShouldPostponePathUpdates())
 			{
-				PostponedRequests.Add(RecalcRequest);
+				RepathRequests.Add(RecalcRequest);
 				continue;
 			}
 
@@ -296,9 +330,6 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 				PinnedPath->RePathFailed();
 			}
 		}
-
-		RepathRequests.Reset();
-		RepathRequests.Append(PostponedRequests);
 	}
 }
 
@@ -566,7 +597,7 @@ void ANavigationData::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentInde
 			*GetName(), *GetNameSafe(NavAreaClass),
 			DefArea ? TEXT("yes") : TEXT("NO"),
 			bIsMetaArea ? TEXT("YES") : TEXT("no"),
-			AgentIndex, DefArea->IsSupportingAgent(AgentIndex) ? TEXT("yes") : TEXT("NO"));
+			AgentIndex, (DefArea && DefArea->IsSupportingAgent(AgentIndex)) ? TEXT("yes") : TEXT("NO"));
 		return;
 	}
 

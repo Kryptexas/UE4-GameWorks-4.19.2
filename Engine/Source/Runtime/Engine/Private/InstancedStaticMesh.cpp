@@ -7,10 +7,12 @@
 #include "EnginePrivate.h"
 #include "NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
+#include "AI/NavigationOctree.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "InstancedStaticMesh.h"
 #include "../../Renderer/Private/ScenePrivate.h"
 #include "PhysicsSerializer.h"
+#include "PhysicsEngine/BodySetup.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -747,6 +749,36 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 	bDisallowMeshPaintPerInstance = true;
 }
 
+
+int32 GetNumShapes(UBodySetup* BodySetup)
+{
+	int32 NumShapes = 1;
+	if (BodySetup)
+	{
+		NumShapes = FMath::Max(BodySetup->AggGeom.GetElementCount(), NumShapes);	//if there's no simple shapes we still have a trimesh so 1 is the min
+	}
+
+	return NumShapes;
+}
+
+int32 GetAggregateIndex(int32 BodyIndex, int32 NumShapes)
+{
+	const int32 BodiesPerBucket = AggregateMaxSize / NumShapes;
+	return BodyIndex / BodiesPerBucket;
+}
+
+int32 GetNumAggregates(int32 NumBodies, int32 NumShapes)
+{
+	if(NumShapes > AggregateMaxSize)
+	{
+		UE_LOG(LogPhysics, Warning, TEXT("Bodies inside foliage can only support up to 128 shapes (per body)"));
+	}
+	
+	const int32 BodiesPerBucket = AggregateMaxSize / NumShapes;
+	return FMath::DivideAndRoundUp<int32>(NumBodies, BodiesPerBucket);
+}
+
+
 #if WITH_EDITOR
 /** Helper class used to preserve lighting/selection state across blueprint reinstancing */
 class FInstancedStaticMeshComponentInstanceData : public FSceneComponentInstanceData
@@ -979,7 +1011,7 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 #if WITH_PHYSX
 	// Create physics body instance.
 	// Aggregates aren't used for static objects
-	auto* Aggregate = (Mobility == EComponentMobility::Movable) ? Aggregates[FMath::DivideAndRoundDown<int32>(InstanceIdx, AggregateMaxSize)] : nullptr;
+	auto* Aggregate = (Mobility == EComponentMobility::Movable) ? Aggregates[GetAggregateIndex(InstanceIdx, GetNumShapes(BodySetup))] : nullptr;
 	InstanceBodyInstance->bAutoWeld = false;	//We don't support this for instanced meshes.
 	InstanceBodyInstance->InitBody(BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), Aggregate);
 #endif //WITH_PHYSX
@@ -1003,6 +1035,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 		TArray<FTransform> Transforms;
 	    Transforms.Reserve(NumBodies);
+		const int32 NumShapes = GetNumShapes(BodySetup);
     
 	    for (int32 i = 0; i < NumBodies; ++i)
 	    {
@@ -1026,7 +1059,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 				if (Mobility == EComponentMobility::Movable)
 				{
-					Instance->InitBody(BodySetup, InstanceTM, this, PhysScene);
+					Instance->InitBody(BodySetup, InstanceTM, this, PhysScene, Aggregates[GetAggregateIndex(i, NumShapes)] );
 				}
 				else
 				{
@@ -1078,7 +1111,7 @@ void UInstancedStaticMeshComponent::ClearAllInstanceBodies()
 }
 
 
-void UInstancedStaticMeshComponent::CreatePhysicsState()
+void UInstancedStaticMeshComponent::OnCreatePhysicsState()
 {
 	check(InstanceBodies.Num() == 0);
 
@@ -1093,9 +1126,9 @@ void UInstancedStaticMeshComponent::CreatePhysicsState()
 	check(Aggregates.Num() == 0);
 
 	const int32 NumBodies = PerInstanceSMData.Num();
-
+	const int32 NumShapes = GetNumShapes(GetBodySetup());
 	// Aggregates aren't used for static objects
-	const int32 NumAggregates = (Mobility == EComponentMobility::Movable) ? FMath::DivideAndRoundUp<int32>(NumBodies, AggregateMaxSize) : 0;
+	const int32 NumAggregates = (Mobility == EComponentMobility::Movable) ? GetNumAggregates(NumBodies, NumShapes) : 0;
 
 	// Get the scene type from the main BodyInstance
 	const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
@@ -1113,10 +1146,10 @@ void UInstancedStaticMeshComponent::CreatePhysicsState()
 	// Create all the bodies.
 	CreateAllInstanceBodies();
 
-	USceneComponent::CreatePhysicsState();
+	USceneComponent::OnCreatePhysicsState();
 }
 
-void UInstancedStaticMeshComponent::DestroyPhysicsState()
+void UInstancedStaticMeshComponent::OnDestroyPhysicsState()
 {
 	int32 PSceneIndex = INDEX_NONE;
 	for(const FBodyInstance* BI : InstanceBodies)
@@ -1136,7 +1169,7 @@ void UInstancedStaticMeshComponent::DestroyPhysicsState()
 		}
 	}
 
-	USceneComponent::DestroyPhysicsState();
+	USceneComponent::OnDestroyPhysicsState();
 
 	// Release all physics representations
 	ClearAllInstanceBodies();
@@ -1500,7 +1533,25 @@ bool UInstancedStaticMeshComponent::GetInstanceTransform(int32 InstanceIndex, FT
 	return true;
 }
 
-bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty)
+void UInstancedStaticMeshComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
+{
+	// We are handling the physics move below, so don't handle it at higher levels
+	Super::OnUpdateTransform(UpdateTransformFlags | EUpdateTransformFlags::SkipPhysicsUpdate, Teleport);
+
+	const bool bTeleport = TeleportEnumToFlag(Teleport);
+
+	// Always send new transform to physics
+	if (bPhysicsStateCreated && !(EUpdateTransformFlags::SkipPhysicsUpdate & UpdateTransformFlags))
+	{
+		for (int32 i = 0; i < PerInstanceSMData.Num(); i++)
+		{
+			const FTransform InstanceTransform(PerInstanceSMData[i].Transform);
+			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, /* bWorldSpace= */true, /* bMarkRenderStateDirty= */false, bTeleport);
+		}
+	}
+}
+
+bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty, bool bTeleport)
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
 	{
@@ -1512,6 +1563,9 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 
 	FInstancedStaticMeshInstanceData& InstanceData = PerInstanceSMData[InstanceIndex];
 
+    // TODO: Computing LocalTransform is useless when we're updating the world location for the entire mesh.
+	// Should find some way around this for performance.
+    
 	// Render data uses local transform of the instance
 	FTransform LocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(ComponentToWorld) : NewInstanceTransform;
 	InstanceData.Transform = LocalTransform.ToMatrixWithScale();
@@ -1537,7 +1591,7 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 			if (InstanceBodyInstance)
 			{
 				// Update existing BodyInstance
-				InstanceBodyInstance->SetBodyTransform(WorldTransform, ETeleportType::None);
+				InstanceBodyInstance->SetBodyTransform(WorldTransform, TeleportFlagToEnum(bTeleport));
 				InstanceBodyInstance->UpdateBodyScale(WorldTransform.GetScale3D());
 			}
 			else
@@ -1664,7 +1718,8 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 		// Aggregates aren't used for static objects
 		if (Mobility == EComponentMobility::Movable)
 		{
-			const int32 AggregateIndex = FMath::DivideAndRoundDown<int32>(InInstanceIndex, AggregateMaxSize);
+			const int32 NumShapes = GetNumShapes(GetBodySetup());
+			const int32 AggregateIndex = GetAggregateIndex(InInstanceIndex, NumShapes);
 			if (AggregateIndex >= Aggregates.Num())
 			{
 				// Get the scene type from the main BodyInstance
@@ -2037,7 +2092,8 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 		{
 			const float ShortScale = 1.0f / 32767.0f;
 			auto* InstancingData = (const FInstancingUserData*)BatchElement.UserData;
-						
+			check(InstancingData);
+
 			FVector4 InstanceTransform[3];
 			FVector4 InstanceLightmapAndShadowMapUVBias;
 			FVector4 InstanceOrigin;

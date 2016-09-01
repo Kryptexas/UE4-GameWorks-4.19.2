@@ -1,217 +1,221 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2701304
 Availability: Public
-Title:Replicating Functions in Blueprints
+Title:在蓝图中使用远程调用函数
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateFunction
-Description:Guide to Replicating Functions in multiplayer games with Blueprints. 
+Description:在多人游戏中使用蓝图复制函数的指南。 
 Related: Engine/Blueprints
 Related: Resources/ContentExamples/Networking
-
+Version: 4.9
+SkillLevel: Advanced
 
 [TOC (start:2 end:2)]
 
-This page will show you how to set up and use different forms of **Replicated Functions**. 
+本页将向您展示如何设置和使用不同形式的 **Replicated Functions**。 
 
-There are 3 primary types of replicated functions: **Multicast**, **Run on Server**, and **Run on owning Client**. Multicast functions should be called on the server, where they are executed, and then forwarded automatically to clients. Server functions are called by a client and then only executed on the server. Client functions are called by the server and then only execute on the owning client.
+远程调用函数主要包括 3 种类型： **Multicast 广播**、 **Run on Server 在服务端执行** 和 **Run on owning Client 在客户端执行**。
+广播函数在服务器上调用和执行，然后自动转发给客户端。 在服务端执行的函数由客户端调用，然后仅在服务器上执行。 在客户端执行的函数由服务器调用，然后仅在自有客户端上执行。
 
-## Multicast
+## Multicast 广播
 
- _For this example, we are using the **Blueprint Third Person Template with Starter Content**._
+ _在此示例中，我们使用的是 **包含起始资源的第三人称设计模板创建的项目**。_
 
- The steps below illustrate how to set a **Multicast** Replicated Function. 
+ 以下步骤说明了如何设置 **Multicast** 广播函数。 
  
-1.	Increase the number of players by clicking the down arrow next to **Play** and changing **Number of Players** to **4**. 
+1.	单击 **Play** 旁边的向下箭头并将 **Number of Players** 更改为 **4** 以增加玩家数量。 
 
 	[REGION:raw]
 	![](HowTo2.png)
 	[/REGION]
 	
 	[REGION:tip]
-	You can change the size of the windows that are generated for multiplayer inside the **Advanced Settings** option. 
+	还可以在 **Advanced Settings** 选项中更改为多玩家生成的窗口的大小。 
 	[/REGION]
 
-1.	In the **Content Browser** under **Content/ThirdPersonBP/Blueprints**, open the **ThirdPersonCharacter** Blueprint. 
+1.	在**Content Browser** 中， **Content/ThirdPersonBP/Blueprints** 下的打开 **ThirdPersonCharacter** 蓝图。 
 
-1.	**Right-click** in the graph and add a **Space Bar** Key Event and a **Spawn Actor from Class** node. 
+1.	在图表中 **右键**，并添加一个 **Space Bar** 按键事件和一个 **Spawn Actor from Class** 节点。 
 
-1.	**Right-click** and add a **Get Actor Transform** node and connect as shown below with **Class** set to **Blueprint_Effect_Fire**. 
+1.	**右键** 并添加一个 **Get Actor Transform** 节点，然后与设置为 **Blueprint_Effect_Fire** 的 **Class** 连接，如下所示。 
 
 	![](HowTo3.png)
 
-	When pressed, this will spawn a fire effect at the player character's position. 
+	按下时，将在玩家角色位置生成喷火效果。 
 
-1.	**Compile** and **Save**, then close the Blueprint and then click the **Play** button to play in the editor. 
+1.	**编译** 并 **保存**，关闭蓝图，然后单击 **运行** 按钮在编辑器中开始游戏。 
 
-1.	In game, locate the window that is the Server and press **Space Bar** to jump. 
+1.	在游戏中，定位服务器所在的窗口，然后按 **Space Bar** 跳转。 
 		
 	![](HowTo4.png)
 	
-	You will see that only the server window spawns the fire effect and the other players do not see the effect spawned. 
-	When attempting to jump with the other players, they too only spawn the fire effect locally and each of the other players are not aware that an effect has been spawned. 
-	Additionally, we have not attached the fire effect to the character so it only spawns at the characters location at the time **Space Bar** is pressed. 
+	您将会发现，只有服务器窗口才会生成喷火效果，其他玩家看不到生成的效果。 
+	试图与其他玩家一起跳转时，他们都只能在本地生成喷火效果，彼此并不知道已经生成喷火效果。 
+	此外，我们未将喷火效果附加给人物，所以只有在按 **Space Bar** 时，人物所在的位置才会喷火。 
 
 	[REGION:tip]
-	You can press **Shift + F1** to gain Mouse Control and jump between game windows during Multiplayer testing. 
+	您可以按 **Shift + F1** 获取鼠标控制权，并在多人测试时在多个游戏窗口中跳转。 
 	[/REGION]
 
-1.	In the **ThirdPersonCharacter** Blueprint, **Right-click** on **Pressed** for the **Space Bar** node and break the connection. 
+1.	在 **ThirdPersonCharacter** 蓝图中，对于 **Space Bar** 节点 **点击右键**，然后断开连接。 
 
-1.	**Right-click** and search for then add a **Custom Event** and call the event **MulticastSpawn**. 
+1.	**右键** 并搜索，然后添加 **Custom Event** 并调用 **MulticastSpawn** 事件。 
 
-1.	Click on the custom event, then in the **Details** panel set the **Replicates** drop-down menu to **Multicast** and connect as shown. 
+1.	单击自定义事件，然后在 **Details** 面板中将 **Replicates** 下拉菜单设置为 **Multicast**，并按如下所示连接。 
 
 	![](HowTo5.png)
 
-	The last few steps should result in the above where we have set our custom event to use **Multicast** Replication. 
+	最后几步之后就会出现上述设置自定义事件来使用 **Multicast** 复制函数的情况。 
 
-1.	Off the **Space Bar** Key Event, search for and add the call function **MulticastSpawn**. 
+1.	从 **Space Bar** 按键事件连出来，搜索并添加调用函数**MulticastSpawn**。 
 
 	![](HowTo6.png)
 
 	[REGION:note]
-	If you do not see the custom event you created, click the **Compile** button and search for it again. 
+	如果未找到创建的自定义事件，则单击 **编译** 按钮并再次搜索。 
 	[/REGION]
 
-1.	**Compile** and **Save**, then close the Blueprint and then click the **Play** button to play in the editor. 
+1.	**编译** 并 **保存**，关闭蓝图，然后单击 **运行** 按钮在编辑器中开始游戏。 
 
-1.	In game, locate the window that is the Server and press **Space Bar** to jump. 
+1.	在游戏中，定位服务器所在的窗口，然后按 **Space Bar** 跳转。 
 
 	![](HowTo7.png)
 
-	You should now see that when you press jump with the player that is the server, that the fire effect is spawned not only on the server but on all clients as well. Attempting to jump with other players still only spawns the effect locally, as we have not told the server that the client has spawned the effect. The next section, Run on Server will show you how to set that up. 
+	您现在应该可以看到，当您与服务器上的玩家一起按跳转时，服务器和所有客户端上都将生成喷火效果。试图与其他玩家一起跳转仍只能在本地喷火，
+	因为我们并未告知服务器客户端已生成该效果。接下来的 Run on Server 部分将向您展示如何将其设置。 
 
 
-## Run On Server
+## Run On Server 在服务器上运行
 
- _For this example, we are continuing from the **Multicast Replication** example above._
+ _在此示例中，我们继续以上 **Multicast Replication** 示例。_
 
- The steps below show how to set up a **Run on Server** replicated function. 
+ 以下步骤展示了如何设置 **Run on Server** 复制函数。 
  
-1.	In the **Content Browser** under **Content/ThirdPersonBP/Blueprints**, open the **ThirdPersonCharacter** Blueprint. 
+1.	在 **Content/ThirdPersonBP/Blueprints** 下的 **Content Browser** 中，打开 **ThirdPersonCharacter** 蓝图。 
 
-1.	Select the **MulticastSpawn** Custom Event and change the **Replicates** drop down option to **Run on Server**. 
+1.	选择 **MulticastSpawn** 自定义事件，然后将 **Replicates** 下拉选项更改为 **Run on Server**。 
 
 	![](HowTo8.png)
 	
-	We also updated the name of the **Graph Node** to **Run On Server** for consistency. 
+	为了保持一致，我们还将 **Graph Node** 的名称更新为了 **Run On Server**。 
 
-1.	**Compile** and **Save**, then close the Blueprint and then click the **Play** button to play in the editor. 
+1.	**编译** 并 **保存**，关闭蓝图，然后单击 **运行** 按钮在编辑器中开始游戏。 
 
-1.	In game, locate any game window other than Server and press **Space Bar** to jump. 
+1.	在游戏中，定位非服务器的任何游戏窗口，然后按 **Space Bar** 跳转。 
 
 	![](HowTo9.png)
 
-	Notice that the fire effect is only spawned only on the server, regardless of which player jumped, and no other players can see it but the server. While we have told this script that it should execute on the server, which it did, we need to make sure that the effect itself is set to replicate so that it gets passed to all clients as well as the server. 
+	注意，喷火效果只在服务器上生成，无论哪个玩家跳转，其他玩家都看不到，只有服务器端才能看到。尽管我们说过该脚本应在服务器上执行，而事实也是如此，
+	但我们需确保该效果已设置为复制，以便其传递给所有客户端和服务器。 
 
-1.	Inside the **Content/StarterContent/Blueprints** folder, open the **Blueprint_Effect_Fire** Blueprint. 
+1.	在 **Content/StarterContent/Blueprints** 文件夹中，打开 **Blueprint_Effect_Fire** 蓝图。 
 
-1.	With **Class Defaults** selected from the Main Toolbar, in the **Details** panel, check the **Replicates** checkbox. 
+1.	从主工具栏中选择 **Class Defaults** 后，在 **Details** 面板中，选中 **Replicates** 复选框。 
 
 	![](HowTo10.png)
 
-1.	**Compile** and **Save**, then close the Blueprint and then click the **Play** button to play in the editor. 
+1.	**编译** 并 **保存**，关闭蓝图，然后单击 **运行** 按钮在编辑器中开始游戏。 
 
-1.	In game, locate any game window other than Server and press **Space Bar** to jump. 
+1.	在游戏中，定位非服务器的任何游戏窗口，然后按 **Space Bar** 跳转。 
 
 	![](HowTo11.png)
 
-	We have effectively sent a message to the server to run a portion of script on the server to spawn an Actor, since that Actor is set to replicate, we can see it on all clients as well.
+	我们已经向服务器发送消息，以在服务器运行部分脚本来生成 Actor，由于此 Actor 已设置为复制，因此我们可以在所有客户端上看到它。
 	
 
-## Run On Owning Client
+## Run On Owning Client 在所有权的客户端上运行
 
-_For this example, we are continuing from the **Multicast Replication** example above._
+_在此示例中，我们继续以上 **Multicast Replication** 示例。_
 
-What we will do in this example is create a variable that only gets updated on a specific client when a server event occurs. 
+在此示例中，我们要做到是创建一个发生服务器事件时仅在特定客户端上更新的变量。 
 
- The steps below show how to set up a **Run on owning Client** replicated function. 
+ 以下步骤展示了如何设置 **Run on owning Client** 复制函数。 
  
-1.	Inside the **Content/ThirdPersonBP/Blueprints** folder, open the **ThirdPersonCharacter** Blueprint. 
+1.	在 **Content/ThirdPersonBP/Blueprints** 文件夹中，打开 **ThirdPersonCharacter** 蓝图。 
 
-1.	In the **MyBlueprint** window, create a new variable and name it **Inventory** then click **Compile**. 
+1.	在 **MyBlueprint** 窗口中，创建新变量并将其命名为 **Inventory**，然后单击 **Compile**。 
 
 	![](Inventory.png)
 
-1.	In the **Details** panel for the variable, set it to a **String**, **Editable**, **Replicated**, and enter **Empty** for the **Default Value**. 
+1.	在此变量的 **Details** 面板中，将其设置为 **String**、**Editable** 和 **Replicated**，然后为 **Default Value** 输入 **Empty**。 
 
 	![](HowTo12.png)
 
-	Setting this variable to **Replicated** ensures that it will be replicated over the network to connected machines. We are going to use this to simulate a character picking up an item in a multiplayer game when they enter a trigger volume and removing the item when they leave the trigger volume. 
+	将此变量设置为 **Replicated** 可确保其通过网络复制到所连接的机器上。我们将使用此变量模拟人物在多人游戏中进入触发卷时收集道具，退出触发卷时删除道具。 
 	
-1.	Add a **P** Key Event connected to a **Print String**, then hold **Control** and drag in the **Inventory** variable and connect as shown. 
+1.	添加一个与 **Print String** 连接的 **P** 按键事件，然后按住 **Control** 并拖入 **Inventory** 变量，并按所示方式连接。 
 
 	![](HowTo13.png)
 
-1.	**Compile** and **Save** then close the **ThirdPersonCharacter** Blueprint. 
+1.	**Compile** 并 **Save**，然后关闭 **ThirdPersonCharacter** 蓝图。 
 
-1.	From the **Modes** window under **Basic**, drag a **Box Trigger** into your level. 
+1.	从 **Basic** 下的 **Modes** 窗口中，将 **Box Trigger** 拖入您的关卡。 
 
 	![](HowTo14.png)
 
-	When a player character enters the trigger, we will update the variable we created, but only in the client that enters the trigger box. 
+	当玩家人物进入触发器时，我们将更新创建的变量，但仅在进入触发器盒的客户端上更新。 
 
-1.	In the **Details** panel for the **Box Trigger** under **Rendering**, un-check  **Actor Hidden In Game**. 
+1.	在 **Rendering** 下 **Box Trigger** 的 **Details** 面板中，取消选中 **Actor Hidden In Game**。 
 
 	![](UnHideBox.png)
 
-	This will allow us to see the box in the level when we play in the editor making it easier to test. 
+	在编辑器中玩游戏时，这可让我们在关卡中看到此盒，使得测试更加轻松。 
 
-1.	Click the **Box Trigger** so that it is selected, then open the **Level Blueprint** from the Main Toolbar. 
+1.	单击 **Box Trigger** 将其选中，然后从主工具栏打开**Level Blueprint**。 
 
 	![](HowTo15.png)
 
-1.	**Right-click** in the graph, then search for **Begin Overlap** and select the **Add On Actor Begin Overlap** event. 
+1.	在图表中 **右键** ，然后搜索 **Begin Overlap** 并选择 **Add On Actor Begin Overlap** 事件。 
 
 	![](HowTo16.png)
 
-1.	Repeat the previous step, but search for and add the **Add On Actor End Overlap** event. 
+1.	重复上一步，但搜索并添加 **Add On Actor End Overlap** 事件。 
 
-1.	Connect each node to the **Switch Has Authority** node. 
+1.	将每个节点连接到 **Switch Has Authority** 节点。 
 
 	![](HowTo17.png)
 
-	The Switch Has Authority node checks where the script that is currently running is executing from, then can branch into two different directions based on whether the script is running on the network Authority (usually the Server) or a Remote machine (a client). 
+	Switch Has Authority 节点用于检查当前正在运行的脚本正在从何处执行，然后基于脚本是在网络授权者（通常为服务器）还是远程机器（客户端）上运行将其分成两个不同的方向。 
 	
-	More often than not, you will want to use Authority for things you only want to occur on the server (these are usually gameplay critical, such as adjusting health values for players or giving out awards or loot items as you do not want to allow clients to determine when those types of changes are to occur to prevent cheating). 
+	通常，您会对只希望在服务器上发生的事情使用授权者（这些通常为游戏关键性事件，例如调整玩家的生命值或赠送奖励或掠夺物品，因为您不想让客户端确定这些更改何时发生，以防作弊）。 
 
-	In this example, we are going to update a text variable, that could just as easily be a variable that contains the player's health or a variable for an item collected. 
+	在此示例中，我们将更新文本变量，此变量也完全可以是包含玩家生命值的变量，或所收集道具的变量。 
 
-1.	**Right-click** in the graph and add a **Custom Event** called **Add Item**. 
+1.	在图表中 **右键** 并添加一个称作 **Add Item** 的 **Custom Event** 节点。 
 
-1.	Set the Replicates option to **Run on owning Client** and add an input called **Character** set to **Actor**. 
+1.	将 Replicates 选项设置为 **Run on owning Client**，并添加称作 **Character** 的输入，将其设置为 **Actor**。 
 
 	![](HowTo18.png)
 
 	[REGION:note]
-	If you see an error warning on the node after creating it, click the **Compile** button to remove the error. 
+	创建节点后，如果您看到错误警告，请单击 **Compile** 按钮删除错误。 
 	[/REGION]
 
-1.	Create another **Custom Event** called **Remove Item** with the same settings as the **Add Item** event. 
+1.	创建另一个称作 **Remove Item** 的 **Custom Event**，其设置与 **Add Item** 事件的设置相同。 
 
-1.	Connect the **Add Item** and Remove Item nodes as shown below off the two overlap events. 
+1.	如下所示，从两个重叠事件连出来，接 **Add Item** 和 Remove Item 节点。 
 
 	![](HowTo19.png)
 
-	Here we are stating that when overlapping the trigger, if the overlap occurs on the server, run the **Add Item** event on the server and replicate it to the owning client (which is the character that overlaps the trigger). The "it" is the script that is called when **Add Item** is fired off and is only executed on the server but replicated to the client. When the character leaves the trigger box, again determined by the server, run the **Remove Item** event on the server and replicate it to the owning client. 
+	这里我们指的是，当重叠触发器时，如果重叠发生在服务器上，在服务器上运行 **Add Item** 事件，并将它复制到自有客户端（即重叠触发器的人物所在的客户端）。“它”是指 **Add Item** 启动并仅在服务器上执行但复制到客户端时所调用的脚本。当人物退出触发器盒时 — 这也由服务器决定，在服务器上运行 **Remove Item** 事件，并将其复制到自有客户端。 
 
-1.	Off the **Add Item** event, add a **Print String** (text set to **Item Added**) then drag off **Character** and **Cast To ThirdPersonCharacter**. 
+1.	从 **Add Item** 事件连出来，添加 **Print String** （文本设置为 **Item Added** ），然后拖开 **Character** 和 **Cast To ThirdPersonCharacter**。 
 
 	![](HowTo20.png)
 
-1.	Off the **As Third Person Character** pin, search for and add the **Set Inventory** node with the text set to **Has the Item**. 
+1.	从 **As Third Person Character** 针连出来，搜索并添加 **Set Inventory** 节点，将文本设置为 **Has the Item**。 
 
 	![](HowTo21.png)
 
-	Here we are taking the event that is executed on the server and is replicated to the client which prints to the screen "item added" then sets the **Inventory** text variable for the owning client to "Has the item". 
+	此处，我们选取的是在服务器上执行并复制到客户端的事件，此事件将在屏幕上显示“item added”，然后将自有客户端的 **Inventory** 文本变量设置为“Has the item”。 
 
-1.	Copy the three nodes following the **Add Item** event and connect them to the **Remove Item** event. 
+1.	在 **Add Item** 事件之后复制三个节点，并将其连接到 **Remove Item** 事件。 
 
-1.	Change the **Print String** to **Item Removed** and the **Inventory** text variable to **Empty**. 
+1.	将 **Print String** 更改为 **Item Removed**，将 **Inventory** 文本变量更改为 **Empty**。 
 
 	![](HowTo22.png)
 
-	Now when the character leaves the trigger, the text variable is updated on the server and replicated to the owning client. 
+	现在，当人物退出触发器时，文本变量将在服务器上更新并复制到自有客户端。 
 
-1.	**Compile** and **Save**, close the **Level Blueprint** then play in the editor. 
+1.	**编译** 并 **保存**，然后关闭 **Level Blueprint** 并在编辑器中开始游戏。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -225,9 +229,10 @@ What we will do in this example is create a variable that only gets updated on a
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	In the video above when the game is launched, pressing P to print the text variable to the screen displays it as "empty" for each of the characters. However when one of the characters enters the trigger box, the text "item added" is displayed. When that character presses P, the text changes to say "has the item" while each of the other characters still displays "empty". When the character leaves the box, the text "item removed" is displayed and when they press P again, the text now changes back to "empty". 
+	在以上视频中，当游戏启动时，按 P 可将文本变量打印到屏幕上，可对每个角色显示 “empty”。但是，当其中一个角色退出触发器盒时，将显示文本 “item added”。当人物按 P 时，
+	文本将更改为 “has the item”，但其他人物仍显示 “empty”。当人物退出触发器盒时，将显示文本 “item removed”，再次按 P 时，文本将更改回 “empty”。 
 
-	This example illustrates how you can run events on the server and replicate those events to individual clients. 
+	此示例说明了如何在服务器上运行事件并将这些事件复制到单个客户端。 
 
 
 

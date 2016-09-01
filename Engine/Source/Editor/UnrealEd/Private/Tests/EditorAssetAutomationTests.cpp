@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Tests/AutomationTestSettings.h"
@@ -24,6 +24,7 @@
 #include "AutomationCommon.h"
 #include "AutomationEditorCommon.h"
 #include "Engine/Selection.h"
+#include "Animation/AnimInstance.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
 #include "Animation/AnimBlueprint.h"
@@ -1069,7 +1070,25 @@ bool FLogImportExportTestResultsCommand::Update()
 /**
 * Automation test to import, open, screenshot, and export assets
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAssetImportEditorTest, "Project.Editor.Content.Asset Import and Export", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FAssetImportEditorTest, "Project.Editor.Content.Asset Import and Export", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
+void FAssetImportEditorTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+{
+	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
+	check(AutomationTestSettings);
+	
+	for ( int32 TestIdx = 0; TestIdx < AutomationTestSettings->ImportExportTestDefinitions.Num(); ++TestIdx )
+	{
+		// Lets just use the filename with no path, and change .'s to _'s so the parser
+		// doesn't get confused and insert a bunch of children tests from all the .'s in the path.
+		// TODO Introduce a way to escape .'s
+		FString CleanFileName = FPaths::GetCleanFilename(AutomationTestSettings->ImportExportTestDefinitions[TestIdx].ImportFilePath.FilePath);
+		CleanFileName = CleanFileName.Replace(TEXT("."), TEXT("_"));
+
+		OutBeautifiedNames.Add(CleanFileName);
+		OutTestCommands.Add(FString::FromInt(TestIdx));
+	}
+}
+
 bool FAssetImportEditorTest::RunTest(const FString& Parameters)
 {
 	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
@@ -1077,11 +1096,10 @@ bool FAssetImportEditorTest::RunTest(const FString& Parameters)
 
 	TSharedPtr<ImportExportAssetHelper::FAssetImportStats> BuildStats = MakeShareable(new ImportExportAssetHelper::FAssetImportStats());
 
-	for (int32 TestIdx = 0; TestIdx < AutomationTestSettings->ImportExportTestDefinitions.Num(); ++TestIdx)
-	{
-		TSharedPtr<ImportExportAssetHelper::FAssetInfo> AssetInfo = MakeShareable(new ImportExportAssetHelper::FAssetInfo(AutomationTestSettings->ImportExportTestDefinitions[TestIdx], &ExecutionInfo, BuildStats));
-		ADD_LATENT_AUTOMATION_COMMAND(FImportExportAssetCommand(AssetInfo));
-	}
+	int32 TestIdx = FCString::Atoi(*Parameters);
+	
+	TSharedPtr<ImportExportAssetHelper::FAssetInfo> AssetInfo = MakeShareable(new ImportExportAssetHelper::FAssetInfo(AutomationTestSettings->ImportExportTestDefinitions[TestIdx], &ExecutionInfo, BuildStats));
+	ADD_LATENT_AUTOMATION_COMMAND(FImportExportAssetCommand(AssetInfo));
 
 	ADD_LATENT_AUTOMATION_COMMAND(FLogImportExportTestResultsCommand(BuildStats));
 

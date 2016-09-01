@@ -210,6 +210,7 @@ enum EBlendMode
 	BLEND_Translucent UMETA(DisplayName="Translucent"),
 	BLEND_Additive UMETA(DisplayName="Additive"),
 	BLEND_Modulate UMETA(DisplayName="Modulate"),
+	BLEND_AlphaComposite UMETA(DisplayName ="AlphaComposite (Premultiplied Alpha)"),
 	BLEND_MAX,
 };
 
@@ -231,7 +232,7 @@ enum ETranslucencyLightingMode
 {
 	/** 
 	 * Lighting will be calculated for a volume, without directionality.  Use this on particle effects like smoke and dust.
-	 * This is the cheapest lighting method, however the material normal is not taken into account.
+	 * This is the cheapest per-pixel lighting method, however the material normal is not taken into account.
 	 */
 	TLM_VolumetricNonDirectional UMETA(DisplayName="Volumetric NonDirectional"),
 
@@ -254,21 +255,41 @@ enum ETranslucencyLightingMode
 	TLM_VolumetricPerVertexDirectional UMETA(DisplayName="Volumetric PerVertex Directional"),
 
 	/** 
-	 * Lighting will be calculated for a surface. The light in accumulated in a volume so the result is blurry
-	 * (fixed resolution), limited distance but the per pixel cost is very low. Use this on translucent surfaces like glass and water.
+	 * Lighting will be calculated for a surface. The light in accumulated in a volume so the result is blurry, 
+	 * limited distance but the per pixel cost is very low. Use this on translucent surfaces like glass and water.
+	 * Only diffuse lighting is supported.
 	 */
 	TLM_Surface UMETA(DisplayName="Surface TranslucencyVolume"),
 
 	/** 
 	 * Lighting will be calculated for a surface. Use this on translucent surfaces like glass and water.
-	 * Higher quality than Surface but more expensive (loops through point lights with some basic culling, only inverse square, expensive, no shadow support yet)
-	 * Requires 'r.ForwardLighting' to be 1
+	 * This is implemented with forward shading so specular highlights from local lights are supported, however many deferred-only features are not.
+	 * This is the most expensive translucency lighting method as each light's contribution is computed per-pixel.
 	 */
-	TLM_SurfacePerPixelLighting UMETA(DisplayName="Surface PerPixel (experimental, limited features)"),
+	TLM_SurfacePerPixelLighting UMETA(DisplayName="Surface ForwardShading"),
 
 	TLM_MAX,
 };
 
+/** Determines how the refraction offset should be computed for the material. */
+UENUM()
+enum ERefractionMode
+{
+	/** 
+	 * Refraction is computed based on the camera vector entering a medium whose index of refraction is defined by the Refraction material input.  
+	 * The new medium's surface is defined by the material's normal.  With this mode, a flat plane seen from the side will have a constant refraction offset.
+	 * This is a physical model of refraction but causes reading outside the scene color texture so is a poor fit for large refractive surfaces like water.
+	 */
+	RM_IndexOfRefraction UMETA(DisplayName="Index Of Refraction"),
+
+	/** 
+	 * The refraction offset into Scene Color is computed based on the difference between the per-pixel normal and the per-vertex normal.  
+	 * With this mode, a material whose normal is the default (0, 0, 1) will never cause any refraction.  This mode is only valid with tangent space normals.
+	 * The refraction material input scales the offset, although a value of 1.0 maps to no refraction, and a value of 2 maps to a scale of 1.0 on the offset.
+	 * This is a non-physical model of refraction but is useful on large refractive surfaces like water, since offsets have to stay small to avoid reading outside scene color.
+	 */
+	RM_PixelNormalOffset UMETA(DisplayName="Pixel Normal Offset")
+};
 
 /**
  * Enumerates available options for the translucency sort policy.
@@ -288,6 +309,27 @@ namespace ETranslucentSortPolicy
 		SortAlongAxis = 2,
 	};
 }
+
+UENUM()
+enum ESceneCaptureSource 
+{ 
+	SCS_SceneColorHDR UMETA(DisplayName="SceneColor (HDR) in RGB, Inv Opacity in A"),
+	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
+	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
+	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
+	SCS_Normal UMETA(DisplayName="Normal in RGB"),
+	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB")
+};
+
+UENUM()
+enum ESceneCaptureCompositeMode
+{ 
+	SCCM_Overwrite UMETA(DisplayName="Overwrite"),
+	SCCM_Additive UMETA(DisplayName="Additive"),
+	SCCM_Composite UMETA(DisplayName="Composite")
+};
+
+#define NUM_LIGHTING_CHANNELS 3
 
 USTRUCT()
 struct FLightingChannels
@@ -320,6 +362,12 @@ inline uint8 GetLightingChannelMaskForStruct(FLightingChannels Value)
 inline uint8 GetDefaultLightingChannelMask()
 {
 	return 1;
+}
+
+// Returns the index of the first lighting channel set, or -1 if no channels are set.
+inline int32 GetFirstLightingChannelFromMask(uint8 Mask)
+{
+	return Mask ? FPlatformMath::CountTrailingZeros(Mask) : -1;
 }
 
 /*
@@ -1390,7 +1438,7 @@ struct FLocalizedSubtitle
 	 * as the contents of the subtitle is commonly identical to what is spoken.
 	 */
 	UPROPERTY()
-	TArray<struct FSubtitleCue> Subtitles;
+	TArray<FSubtitleCue> Subtitles;
 
 	/** true if this sound is considered to contain mature content. */
 	UPROPERTY()
@@ -1754,7 +1802,7 @@ struct ENGINE_API FHitResult
 	 * Whether the trace started in penetration, i.e. with an initial blocking overlap.
 	 * In the case of penetration, if PenetrationDepth > 0.f, then it will represent the distance along the Normal vector that will result in
 	 * minimal contact between the swept shape and the object that was hit. In this case, ImpactNormal will be the normal opposed to movement at that location
-	 * (ie, Normal may not equal ImpactNormal).
+	 * (ie, Normal may not equal ImpactNormal). ImpactPoint will be the same as Location, since there is no single impact point to report.
 	 */
 	UPROPERTY()
 	uint32 bStartPenetrating:1;
@@ -1781,6 +1829,7 @@ struct ENGINE_API FHitResult
 	/**
 	 * Location in world space of the actual contact of the trace shape (box, sphere, ray, etc) with the impacted object.
 	 * Example: for a sphere trace test, this is the point where the surface of the sphere touches the other object.
+	 * @note: In the case of initial overlap (bStartPenetrating=true), ImpactPoint will be the same as Location because there is no meaningful single impact point to report.
 	 */
 	UPROPERTY()
 	FVector_NetQuantize ImpactPoint;
@@ -1972,6 +2021,8 @@ struct ENGINE_API FHitResult
 	FString ToString() const;
 };
 
+// All members of FHitResult are PODs.
+template<> struct TIsPODType<FHitResult> { enum { Value = true }; };
 
 template<>
 struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
@@ -1981,6 +2032,19 @@ struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
 		WithNetSerializer = true,
 	};
 };
+
+
+/** Whether to teleport physics body or not */
+enum class ETeleportType
+{
+	/** Do not teleport physics body. This means velocity will reflect the movement between initial and final position, and collisions along the way will occur */
+	None,
+	/** Teleport physics body so that velocity remains the same and no collision occurs */
+	TeleportPhysics
+};
+
+FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
+FORCEINLINE bool TeleportEnumToFlag(ETeleportType Teleport) { return ETeleportType::TeleportPhysics == Teleport; }
 
 
 /** Structure containing information about one hit of an overlap test */
@@ -2018,6 +2082,8 @@ struct ENGINE_API FOverlapResult
 	}
 };
 
+// All members of FOverlapResult are PODs.
+template<> struct TIsPODType<FOverlapResult> { enum { Value = true }; };
 
 /** Structure containing information about minimum translation direction (MTD) */
 USTRUCT()
@@ -2723,7 +2789,7 @@ enum class ERotatorQuantization : uint8
   * and velocity.Z is commonly zero (most position replications are for walking pawns). 
   */
 USTRUCT()
-struct FRepMovement
+struct ENGINE_API FRepMovement
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -3263,6 +3329,8 @@ struct FComponentSocketDescription
 	}
 };
 
+/** Dynamic delegate to use by components that want to route the broken-event into blueprints */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FConstraintBrokenSignature, int32, ConstraintIndex);
 
 // ANGULAR DOF
 UENUM()
@@ -3277,6 +3345,17 @@ enum EAngularConstraintMotion
 
 	ACM_MAX,
 };
+
+/** Enum to indicate which frame we want. */
+UENUM()
+namespace EConstraintFrame
+{
+	enum Type
+	{
+		Frame1,
+		Frame2
+	};
+}
 
 
 /**
@@ -3600,44 +3679,6 @@ enum class ESpawnActorCollisionHandlingMethod : uint8
 	/** Actor will fail to spawn. */
 	DontSpawnIfColliding					UMETA(DisplayName = "Do Not Spawn"),
 };
-/** Intermediate material merging data */
-struct FMaterialMergeData
-{
-	/** Input data */
-	/** Material that is being baked out */
-	class UMaterialInterface* Material;
-	/** Material proxy cache, eliminates shader compilations when a material is baked out multiple times for different meshes */
-	struct FExportMaterialProxyCache* ProxyCache;
-	/** Raw mesh data used to bake out the material with, optional */
-	const struct FRawMesh* Mesh;
-	/** LODModel data used to bake out the material with, optional */
-	const class FStaticLODModel* LODModel;
-	/** Material index to use when the material is baked out using mesh data (face material indices) */
-	int32 MaterialIndex;
-	/** Optional tex coordinate bounds of original texture coordinates set */
-	const FBox2D& TexcoordBounds;
-	/** Optional new set of non-overlapping texture coordinates */
-	const TArray<FVector2D>& TexCoords;
-
-	/** Output emissive scale, maximum baked out emissive value (used to scale other samples, 1/EmissiveScale * Sample) */
-	float EmissiveScale;
-
-	FMaterialMergeData(
-		UMaterialInterface* InMaterial,
-		const FRawMesh* InMesh,
-		const FStaticLODModel* InLODModel,
-		int32 InMaterialIndex,
-		const FBox2D& InTexcoordBounds,
-		const TArray<FVector2D>& InTexCoords)
-		: Material(InMaterial)
-		, Mesh(InMesh)
-		, LODModel(InLODModel)
-		, MaterialIndex(InMaterialIndex)
-		, TexcoordBounds(InTexcoordBounds)
-		, TexCoords(InTexCoords)
-		, EmissiveScale(0.0f)
-	{}
-};
 
 /**
  * The description of a user activity
@@ -3658,4 +3699,15 @@ struct FUserActivity
 	FUserActivity(const FString& InActionName)
 		: ActionName(InActionName)
 	{ }
+};
+
+/** Which processors will have access to Mesh Vertex Buffers. */
+UENUM()
+enum class EMeshBufferAccess: uint8
+{
+    /** Access will be determined based on the assets used in the mesh and hardware / software capability. */
+    Default,
+
+    /** Force access on both CPU and GPU. */
+    ForceCPUAndGPU
 };

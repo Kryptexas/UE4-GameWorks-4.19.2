@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Sculpt Mode
+﻿INTSourceChangelist:2697650
+Availability:Public
+Title:造型模式
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
-Description:Guide to the Landscape tool's Sculpt mode.
+Description:地形工具的造型模式指南。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -27,59 +28,59 @@ Description:Guide to the Landscape tool's Sculpt mode.
 
 [TOC(start:2 end:3)]
 
-The process of sculpting a Landscape involves using one or more tools that modify the underlying heightmap. These tools range from the simple Sculpt tool to other tools that use complex algorithms to apply interesting effects to the heightmap, such as erosion. Each tool has a set of properties that determine how the tool affects the Landscape.
+地形的造型过程涉及到一个或多个工具的使用，对底层高度图进行修改。这些工具包括简单的造型工具，以及使用复杂算法将有趣效果（如侵蚀）应用到高度图的其他工具。每个工具均有一套属性，以决定其对地形产生的影响。
 
-The currently selected tool determines the operation that will be performed on the Landscape. The tools use [brushes](Engine\Landscape\Editing\Brushes) to apply their effects using strokes.
+当前选择的工具决定将地形上执行的操作。工具使用 [笔刷](Engine\Landscape\Editing\Brushes) 的笔划进行效果应用。
 
-| **Common Controls** | **Operation** |
+| **常用功能键** | **操作** |
 | --- | --- |
-| **Left Mouse Button** | Performs a stroke that applies the selected tool's effects to the heightmap. |
-| **Ctrl + Z** | Undoes last stroke. |
-| **Ctrl + Y** | Redoes last undone stroke. |
+| **鼠标左键** | 通过笔划将所选工具的效果应用至高度图。|
+| **Ctrl+Z** | 撤销上一笔划。|
+| **Ctrl+Y** | 重新执行上步未完成的笔划。|
 
-For a quick reference guide to the Landscape tool's various modes, tools, and brushes, see [](Engine/Landscape/UI).
+可在 [](Engine/Landscape/UI) 中查阅地形工具诸多模式、工具和笔刷的快速参考指南。
 
-## Sculpting Tools
+## 造型工具
 
-You can use the Sculpting Tools to modify the shape of your Landscape in various ways.
+可使用造型工具以多种方式修改地形形状。
 
-### Sculpt
+### 造型
 
 ![Sculpt Tool](Landscape_Sculpt.png)
 
-The Sculpt tool increases or decreases the heightmap height in the shape of the currently selected brush and falloff.
+**Sculpt** 工具以当前选中笔刷和衰减的形状增加或减少高度图的高度。
 
-| **Alternate Controls** | **Operation** |
+| **替代功能键** | **操作** |
 | --- | --- |
-| **Left Mouse Button** | Heightens or increases the heightmap or selected layer's weight. |
-| **Shift + Left Mouse Button** | Lowers or decreases the heightmap or selected layer's weight. |
+| **鼠标左键** | 增加高度图或所选图层的权重。|
+| **Shift + 鼠标左键** | 减小高度图或所选图层的权重。|
 
-**Options:**
+**选项：**
 
-| **Option** | **Description** |
+| **选项** | **描述** |
 | --- | --- |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
+| **Tool Strength** | 设定每次笔刷笔划效果的量。|
 
-The brush strength determines the amount of raising or lowering.
+强度决定上升或下降量。
 
 
-### Smooth
+### 平滑
 
 ![Smooth Tool](Landscape_Smooth.png)
 
-The Smooth tool smooths the heightmap. The strength determines the amount of smoothing.
+利用 **Smooth** 工具可将高度图平滑。强度决定平滑量。
 
-**Heightmap Smoothing**
+**高度图平滑**
 
 ![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:900 h:325)
 
 ![Landscape_Smooth_After_HighDetail.jpg](Landscape_Smooth_After_HighDetail.jpg)(w:900 h:325)
 
-| **Option** | **Description** |
+| **选项** | **描述** |
 | --- | --- |
-| **Tool Strength** | Controls how much smoothing occurs with each brush stroke has. |
-| **Filter Kernel Scale** | Sets the scale multiplier for the smoothing filter kernel. |
-| **Detail Smooth** | If checked, performs a detail-preserving smoothing using the specified detail-smoothing value. Larger-detail smoothing values remove more details, while smaller values preserve more details. [INCLUDE:#DetailSmooth] |
+| **Tool Strength** | 设定每次笔刷笔划的平滑量。|
+| **Filter Kernel Scale** | 设定平滑滤波核的标度乘数。|
+| **Detail Smooth** | 勾选后，使用指定的细节平滑值进行保留细节的平滑。较大的细节平滑值将移除更多细节，而较小的数值将保留更多细节。[INCLUDE:#DetailSmooth] |
 
 <!--
 [EXCERPT:DetailSmooth]
@@ -90,42 +91,42 @@ The Smooth tool smooths the heightmap. The strength determines the amount of smo
 -->
 
 
-### Flatten
+### 扁平
 
 ![Flatten Tool](Landscape_FlattenTool.png)
 
-The Flatten tool flattens the Landscape to the level of the Landscape under the mouse cursor when you first activate the tool.
+启动工具后，**Flatten** 工具使地形的扁平度和鼠标指针下方的地形扁平度一致。
 
 ![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
 
 ![Landscape_Flatten.jpg](Landscape_Flatten.jpg)(w:900 h:325)
 
-| **Option** | **Description** |
+| **选项** | **描述** |
 | --- | --- |
-| **Tool Strength** | Controls how much smoothing occurs with each brush stroke has. |
-| **Flatten Mode** | Determines whether the tool will raise or lower the heightmap section under the brush. |
-| **Use Slope Flatten** | If checked, flattens along the Landscape's existing slope instead of flattening toward a horizontal plane. |
-| **Pick Value Per Apply** | If checked, constantly selects new values to flatten toward, instead of only using the first clicked point. |
-| **Flatten Target** | Sets the target height toward which to flatten. |
+| **Tool Strength** | 设定每次笔刷笔划的平滑量。|
+| **Flatten Mode** | 确定工具在笔刷下是否提升或降低高度图分段。|
+| **Use Slope Flatten** | 勾选后，将沿地形的当前斜坡进行扁平，而非沿水平平面进行扁平。|
+| **Pick Value Per Apply** | 勾选后，将固定选择新数值进行扁平，而非只使用首个点击点。|
+| **Flatten Target** | 设置进行扁平的目标高度。|
 
 
-### Ramp
+### 斜坡
 
 ![Ramp Tool](Landscape_Ramp.png)
 
-The Ramp tool enables you to select two locations on your Landscape and create a flat ramp between them, with a falloff you specify on the sides.
+使用 **Ramp** 工具可在地形上选择两个位置并在其间创建一个平板斜坡，并在侧边指定衰减。
 
-**To add a ramp to your Landscape:**
+**为地形添加斜坡的步骤：**
 
-1. **Ctrl + click** in two locations to mark the beginning and end points of the ramp.
+1. 在两个位置按下 **Ctrl + 左键单击**，标记斜坡的开始和结束点。
 
 	![Ramp Setup](Landscape_RampSetup.png)(w:700)
 
-1. If necessary, adjust the options you want for the ramp's width and falloff.
+1. 可按需要调整选项，设置斜坡的宽度和衰减。
 
 	![Ramp Settings](Landscape_RampSettings.png)
 
-1. Click **Add Ramp** to create the ramp.
+1. 点击 **Add Ramp** 创建斜坡。
 
 	![Add Ramp](Landscape_RampAdd.png)
 
@@ -137,58 +138,58 @@ The Ramp tool enables you to select two locations on your Landscape and create a
 
 
 [REGION:tip]
-If you change your mind about adding a ramp after starting to set the beginning and end points, you can click **Reset** to clear them.
+设置开始和结束点之后，如需放弃创建斜坡，点击 **Reset** 即可将其清除。
 [/REGION]
 
-| **Option** | **Description** |
+| **选项** | **描述** |
 | --- | --- |
-| **Ramp Width** | Sets the width of the ramp. |
-| **Side Falloff** | Sets the falloff on the sides of the ramp, where it merges into the rest of the Landscape. A setting of **0** means no falloff; a setting of **1** means all falloff and no flat ramp. |
+| **Ramp Width** | 设置斜坡的宽度。|
+| **Side Falloff** | 在斜坡的侧边设置衰减，使其融入整体地形。数值 **0** 意味着不存在衰减，数值 **1** 意味着不存在平板斜坡，全为衰减。|
 
-
-### Erosion
+(#Erosion)
+### 侵蚀
 
 ![Erosion Tool](Landscape_Erosion.png)
 
-The Erosion tool uses a thermal erosion simulation to adjust the height of the heightmap. This simulates the transfer of soil from higher elevations to lower elevations. The larger the difference in elevation, the more erosion will occur. This tool also applies a noise effect on top of the erosion, if desired, to provide a more natural random appearance.
+**Erosion** 工具利用热力侵蚀模拟调整高度图的高度。它模拟土壤从高处向低处移动的效果。高低落差越大，产生的侵蚀效果越强。该工具还可在侵蚀上应用 noise 效果，呈现出自然真实的随机外貌。
 
 
 ![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
 
 ![Landscape_Thermal_Erosion.jpg](Landscape_Thermal_Erosion.jpg)(w:900 h:325)
 
-| **Option** | **Description** |
+| **选项** | **描述** |
 | --- | --- |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
-| **Threshold** | The minimum height difference necessary for the erosion effects to be applied. Smaller values will result in more erosion being applied. |
-| **Surface Thickness** | The thickness of the surface for the layer weight erosion effect. |
-| **Iterations** | The number of iterations performed. Larger values result in more levels of erosion. |
-| **Noise Mode** | Whether to apply noise to raise or lower the heightmap, or do both. |
-| **Noise Scale** | The size of the noise filter used. The noise filter is related to position and scale, which means if you do not change **Noise Scale**, the same filter is applied to the same position many times. | 
-| ![Landscape_Thermal_Erosion_Filter.jpg](Landscape_Thermal_Erosion_Filter.jpg)(w:900 h:325) ||
+| **Tool Strength** | 设定每次笔刷笔划效果的量。|
+| **Threshold** | 产生侵蚀效果的最低高度差。数值越小，侵蚀效果越强。|
+| **Surface Thickness** | 设置图层权重侵蚀效果的地表厚度。|
+| **Iterations** | 执行的迭代次数。数值越大，生成的侵蚀层数越多。|
+| **Noise Mode** | 确定是否应用 noise 提升或降低（或执行两项操作）高度图。|
+| **Noise Scale** | 使用的 noise 过滤器尺寸。Noise 过滤器与位置和比例有关，如不改变 **Noise Scale**，同一 noise 过滤器将多次应用到相同位置。| 
+| ![](Erosion_New.jpg)(w:900 h:325) ||
 
 
 
-### Hydro Erosion
+### 水力侵蚀
 
 ![Hydro Erosion Tool](Landscape_HydroErosion.png)
 
-The Hydro Erosion tool uses a hydraulic erosion simulation, i.e. erosion from water, to adjust the height of the heightmap. A noise filter is used to determine where the initial rain is distributed. Then the simulation is calculated to determine water flow from that initial rain as well as dissolving, water transfer, and evaporation. The result of that calculation provides the actual value used to lower the heightmap.
+**Hydro Erosion** 工具利用水力侵蚀模拟调整高度图的高度。Noise 过滤器用于决定初始降雨的出现位置。计算出的模拟将确定初始降雨的水流，以及消融、水流迁移和蒸发。计算结果产生实际用于降低高度图的数值。
 
 ![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
 
 ![Landscape_Hydraulic_Erosion.jpg](Landscape_Hydraulic_Erosion.jpg)(w:900 h:325)
 
-| **Option** | **Description** |
+| **选项** | **描述** |
 | --- | --- |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
-| **Rain Amount** | The amount of rain to apply to the surface. Larger values will result in more erosion. |
-| **Sediment Cap.** | The amount of sediment that the water can carry. Larger values will result in more erosion. |
-| **Iterations** | The number of iterations performed. Larger values result in more levels of erosion. |
-| **Initial Rain Distribution** | Whether rain is applied only where the noise filter is positive, or to the entire area. |
-| ![Landscape_Hydraulic_Erosion_Filter.jpg](Landscape_Hydraulic_Erosion_Filter.jpg)(w:900 h:325) ||
-| **Rain Dist Scale** | The size of the noise filter for applying initial rain to the surface. The noise filter is related to position and scale, which means if you do not change **Rain Dist. Scale**, the same filter is applied to the same position many times. | 
-| **Detail Smooth** | If checked, performs a detail-preserving smoothing to the erosion effect using the specified detail-smoothing value. Larger detail-smoothing values remove more details, while smaller values preserve more details. |
+| **Tool Strength** | 设定每次笔刷笔划效果的量。|
+| **Rain Amount** | 应用至地表的降雨量。数值越大，侵蚀效果越强。|
+| **Sediment Cap.**| 水流可带动的沉积物量。数值越大，侵蚀效果越强。|
+| **Iterations** | 执行的迭代次数。数值越大，生成的侵蚀层数越多。|
+| **Initial Rain Distribution** | 决定降雨应用至 noise 过滤器为正的区域或整个区域。|
+| ![](Hydro_Erosion.jpg)(w:900 h:325) ||
+| **Rain Dist Scale** | 应用初始降雨到地表的 noise 过滤器尺寸。Noise 过滤器与位置和比例相关，如不修改 **Rain Dist.Scale**，同一 noise 过滤器将多次应用到相同位置。| 
+| **Detail Smooth** | 勾选后，使用指定的细节平滑值为侵蚀效果执行保留细节的平滑操作。细节平滑值越大，更多细节将被移除；而数值越小，更多细节将被保留。|
 
 
 
@@ -196,115 +197,116 @@ The Hydro Erosion tool uses a hydraulic erosion simulation, i.e. erosion from wa
 
 ![Noise Tool](Landscape_Noise.png)
 
-The Noise tool applies a noise filter to the heightmap or layer weight. The strength determines the amount of noise.
+**Noise** 工具将 noise 过滤器应用至高度图或图层权重。强度决定 noise 的量。
 
-| **Option** | **Description** |
+| **选项** | **描述** |
 | --- | --- |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
-| **Use Target Value** | If checked, blends the values of the noise being applied toward a target value. |
-| **Noise Mode** | Determines whether to apply all noise effects, only the noise effects that result in raising the heightmap, or only the noise effects that result in lowering the heightmap. |
-| ![Landscape_Noise_Filter.jpg](Landscape_Noise_Filter.jpg)(w:900 h:325) ||
-| **Noise Scale** | The size of the perlin noise filter used. The noise filter is related to position and scale, which means if you do not change **Noise Scale**, the same filter is applied to the same position many times. |
+| **Tool Strength** | 设定每次笔刷笔划效果的量。|
+| **Use Target Value** | 勾选后，将对应用至目标值的 noise 值进行混合。|
+| **Noise Mode** | 确定是否应用所有 noise 效果、确定 noise 效果只使高度图上升，或只使高度图下降。|
+| ![](Noise.jpg)(w:900 h:325) ||
+| **Noise Scale** | 使用的 perlin noise 过滤器尺寸。Noise 过滤器与位置和比例有关，如不改变 **Noise Scale**，同一 noise 过滤器将多次应用到相同位置。|
 
 
-### Retopologize
+### 拓扑
 
 ![Retopologize Tool](Landscape_Retopologize.png)
 
-The Retopologize tool automatically adjusts Landscape vertices with an X/Y offset map to improve vertex density on cliffs, reducing texture stretching.
+**Retopologize** 工具通过 X/Y 偏移贴图自动调整地形顶点，增强悬崖上的顶点密度，减轻纹理拉伸。
 
 [REGION:note]
-An X/Y offset map makes the Landscape slower to render and paint on with other tools, so only use the Retopologize tool if needed.
+使用 X/Y 偏移贴图后，用其他工具渲染或绘制地形的速度将变慢，因此只推荐使用 Retopologize 工具。
 [/REGION]
 
 
-### Visibility
+### 可见性
 
 ![Visibility Tool](Landscape_Visibility.png)
 
-The Visibility tool enables you to create holes in your Landscape, such as for caves. 
+**Visibility** 工具用于在地形中创建洞穴地貌（如洞窟）。 
 
-| **Alternate Controls** | **Operation** |
+| **替代功能键** | **操作** |
 | --- | --- |
-| **Shift + Left Mouse Button** | Removes the visibility mask, making the Landscape components visible again. |
+| **Shift + 左键单击** | 移除可见性遮罩，使地形组件重新可见。|
 
-#### Using Opacity Masking to Create a Hole
+(#UsingOpacityMaskingtoCreateaHole)
+#### 使用不透明遮罩创建洞穴
 
 [EXCERPT:LandscapeHole]
-Although you can use the sculpting tools to create vertical holes in your Landscape, you may find that you also want to create horizontal ones, such as for caves. You can do so by using opacity masking to "paint" away the visibility of a section of your Landscape with the Visibility tool.
+虽然可以使用造型工具在地形中创建垂直洞穴地貌，但有时需要创建水平洞穴地貌（如洞窟）。利用 Visibility 工具和不透明遮罩进行“涂抹”，使地形的一部分变为不可见。
 [/EXCERPT:LandscapeHole]
 
-In order to paint away the visibility of a section of your Landscape, you must set up the Landscape Material correctly. For information about setting up a Landscape Hole Material, see [Landscape Hole Materials](Engine\Landscape\Materials\#LandscapeHoleMaterials).
+如需将地形的一部分变为不可见，必须正确设置地形材质。如需了解地形洞穴材质的设置方法，请查阅 [地形洞穴材质](Engine\Landscape\Materials\#LandscapeHoleMaterials)。
 
 [REGION:note]
-If you use the Visibility tool without having a Landscape Hole Material assigned, the Visibility tool will remove the Material layers applied to the selected sections, but will not create a hole in the Landscape itself.
+如使用 Visibility 工具时未指定地形洞穴材质，Visibility 工具将移除应用至所选地形部分的材质图层，而不会在地形上创建洞穴。
 [/REGION]
 
-After you have set up your Landscape Hole Material, you can use the painting tools to create a hole in your Landscape.
+设置好地形洞穴材质后，即可使用绘制工具在地形上创建洞穴。
 
-**To create a Landscape hole:**
+**创建地形洞穴的步骤：**
 
-1. Make sure you have a Landscape Hole Material assigned to your Landscape.
+1. 确认已为地形指定 **地形洞穴材质**。
 
 	![](Engine/Landscape/Materials/Landscape_HoleSettings.png)
 
-1. In the Landscape tool, in **Sculpt** mode, select the Visibility tool.
+1. 在 Landscape 工具的 **Sculpt** 模式中选择 **Visibility** 工具。
 
 	![Visibility Tool](Landscape_Visibility.png)
 
-1. Find the location on your Landscape where you want to create a hole.
+1. 确定在地形上创建洞穴的位置。
 
 	![](Landscape_MountainNoCave.png)(w:640)
 
-1. Adjust the brush size and falloff appropriately.
+1. 调整笔刷尺寸和衰减。
 
 	![](Landscape_MountainCaveMask.png)(w:640)
 
-1. Press **Left Mouse Button** to create the hole and **Shift + Left Mouse Button** to erase a hole that was created. 
+1. **单击左键** 创建洞穴，**Shift + 左键单击** 移除创建的洞穴。 
 
 	![](Landscape_MountainHole.png)(w:640)
 
-	You can now fit Static Mesh Actors in the hole in the Landscape to create a cave.
+	可在地形洞穴中匹配静态网格体 Actors，完成洞穴创建。
 
-	[REGION:tip]
-	To test out the collision of the new hole using Play In Editor (PIE), you may have to switch from Landscape mode to Place mode.
+	[REGION:note]
+	使用 Play In Editor（PIE）对新建洞穴的碰撞进行测试，可能需要从 Landscape 模式切换至 Place 模式。
 	[/REGION]
 
 (#RegionTools)
 
-## Region Tools
+## 区域工具
 
-You can use the Region tools to perform actions on specific regions of the Landscape.
+使用区域工具可对地形的特定区域执行操作。
 
 
-### Region Selection
+### 区域选择
 
 ![Region Selection Tool](Landscape_RegionSelect.png)
 
-The Region Selection tool selects regions of the Landscape using the current brush settings and tool strength to be used to fit a Landscape [gizmo](Engine\Landscape\Editing\Gizmos) to a specific area or to act as a mask for copying data to, or pasting data from, a gizmo.
+**Region Selection** 工具使用当前的笔刷设置选择地形区域，工具强度将地形 [小工具](Engine\Landscape\Editing\Gizmos) 匹配到一个特定区域，或作为遮罩复制数据到小工具（或从小工具粘贴数据）。
 
 ![region_selection.jpg](region_selection.jpg)(w:640 h:322)
 
-| **Controls** | **Operation** |
+| **功能键** | **操作** |
 | --- | --- |
-| **Left Mouse Button** | Adds to the selected region. |
-| **Shift + Left Mouse Button** | Removes from the selected region. |
+| **鼠标左键** | 添加到所选区域。|
+| **Shift + 鼠标左键** | 从所选区域移除。|
 
-| **Option** | **Description** |
+| **选项** | **描述** |
 | --- | --- |
-| **Clear Region Selection** | Clears the current selected region(s). |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
-| **Use Region as Mask** | When checked, the region selection acts as a mask with the active area being comprised of the selected region.  |
+| **Clear Region Selection** | 清楚当前选中的区域。|
+| **Tool Strength** | 设定每次笔刷笔划效果的量。|
+| **Use Region as Mask** | 勾选后，区域选择将成为活动区域（由所选区域构成）的遮罩。|
 |    ![region_mask.jpg](region_mask.jpg)(w:640 h:322) ||
-| **Negative Mask** | When checked, and when **Use Region as Mask** is also checked, the region selection acts as a mask, but the active area is comprised of the unselected region.   |
+| **Negative Mask** | 此项与 **Use Region as Mask** 同时勾选后，区域选择将成为一个遮罩，但活动区域由未选中的区域构成。   |
 |    ![region_mask_negative.jpg](region_mask_negative.jpg)(w:640 h:322) ||
 
 
 (#RegionCopy)
-### Copy/Paste
+### 复制/粘贴
 
 ![Copy/Paste Tool](Landscape_CopyPaste.png)
 
-You can use this tool to copy height data from one area of a Landscape to another through the use of [](Engine/Landscape\Editing\Gizmos). You can also import and export Gizmo data.
+该工具结合 [](Engine/Landscape\Editing\Gizmos) 使用可将高度数据从地形的一个区域复制到另一个区域。也可导入和导出小工具数据。
 
 [INCLUDE:Engine/Landscape#landscape002]

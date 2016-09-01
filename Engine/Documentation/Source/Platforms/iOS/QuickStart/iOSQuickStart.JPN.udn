@@ -1,8 +1,14 @@
-﻿INTSourceChangelist:2324403
+﻿INTSourceChangelist:2940199
 Title:iOS クイックスタート
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:iOS デバイス上でのゲーム設定と起動に関するインストラクション
 Availability:Public
+Version:4.9
+tags:iOS
+tags:mobile
+parent:Platforms/iOS
+order:1
+type:quickstart
 
 [VAR:Topic]
 [OBJECT:Topic]

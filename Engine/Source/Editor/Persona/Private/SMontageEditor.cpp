@@ -654,7 +654,7 @@ void SMontageEditor::RestartPreview()
 	UAnimPreviewInstance * Preview = Cast<UAnimPreviewInstance>(PersonaPtr.Pin()->GetPreviewMeshComponent() ? PersonaPtr.Pin()->GetPreviewMeshComponent()->PreviewInstance:NULL);
 	if (Preview)
 	{
-		Preview->MontagePreview_PreviewNormal();
+		Preview->MontagePreview_PreviewNormal(INDEX_NONE, Preview->IsPlaying());
 	}
 }
 
@@ -663,7 +663,7 @@ void SMontageEditor::RestartPreviewFromSection(int32 FromSectionIdx)
 	UAnimPreviewInstance * Preview = Cast<UAnimPreviewInstance>(PersonaPtr.Pin()->GetPreviewMeshComponent() ? PersonaPtr.Pin()->GetPreviewMeshComponent()->PreviewInstance:NULL);
 	if(Preview)
 	{
-		Preview->MontagePreview_PreviewNormal(FromSectionIdx);
+		Preview->MontagePreview_PreviewNormal(FromSectionIdx, Preview->IsPlaying());
 	}
 }
 
@@ -672,7 +672,7 @@ void SMontageEditor::RestartPreviewPlayAllSections()
 	UAnimPreviewInstance * Preview = Cast<UAnimPreviewInstance>(PersonaPtr.Pin()->GetPreviewMeshComponent() ? PersonaPtr.Pin()->GetPreviewMeshComponent()->PreviewInstance:NULL);
 	if(Preview)
 	{
-		Preview->MontagePreview_PreviewAllSections();
+		Preview->MontagePreview_PreviewAllSections(Preview->IsPlaying());
 	}
 }
 

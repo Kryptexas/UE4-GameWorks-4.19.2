@@ -459,11 +459,19 @@ public:
 						+ SGridPanel::Slot(1, 16)
 							.Padding(0.0f, 5.0f)
 							[
-								SNew(SBox)
-									.WidthOverride(150.0f)
+								SNew(SVerticalBox)
+
+								+ SVerticalBox::Slot()
+									.AutoHeight()
 									[
 										SNew(SProgressBar)
 											.Percent(this, &SWidgetGallery::HandleProgressBarPercent)
+									]
+
+								+ SVerticalBox::Slot()
+									.AutoHeight()
+									[
+										SNew(SProgressBar)
 									]
 							]
 	/*

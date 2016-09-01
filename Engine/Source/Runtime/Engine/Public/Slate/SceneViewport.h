@@ -156,7 +156,13 @@ public:
 	 * @param NewSizeY		The new height of the viewport
 	 * @param NewWindowMode	 What window mode should the viewport be resized to
 	 */
-	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX, int32 InPosY ) override;
+	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode) override;
+
+	DEPRECATED(4.13, "The version of FSceneViewport::ResizeFrame that takes a position is deprecated (the position was never used). Please use the version that doesn't take a position instead.")
+	void ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32, int32)
+	{
+		ResizeFrame(NewSizeX, NewSizeY, NewWindowMode);
+	}
 
 	/**
 	 *	Sets the Viewport resize delegate.
@@ -172,7 +178,7 @@ public:
 	*/
 	void SetPlayInEditorGetsMouseControl(const bool bGetsMouseControl)
 	{
-		bPlayInEditorGetsMouseControl = bGetsMouseControl;
+		bShouldCaptureMouseOnActivate = bGetsMouseControl;
 	}
 
 	void SetPlayInEditorIsSimulate(const bool bIsSimulate)
@@ -254,7 +260,13 @@ private:
 	 * @param NewSizeY		 The new height of the viewport
 	 * @param NewWindowMode	 What window mode should the viewport be resized to
 	 */
-	virtual void ResizeViewport( uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX, int32 InPosY );
+	virtual void ResizeViewport( uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode );
+
+	DEPRECATED(4.13, "The version of FSceneViewport::ResizeViewport that takes a position is deprecated (the position was never used). Please use the version that doesn't take a position instead.")
+	void ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32, int32)
+	{
+		ResizeViewport(NewSizeX, NewSizeY, NewWindowMode);
+	}
 
 	/**
 	 * Called from slate when input is finished for this frame, and we should process any accumulated mouse data.
@@ -293,6 +305,9 @@ private:
 	 */
 	void ApplyModifierKeys( const FModifierKeysState& InKeysState );
 
+	/** Utility function to create an FReply that properly gets Focus and capture based on the settings*/
+	FReply AcquireFocusAndCapture(FIntPoint MousePosition);
+
 	/** Utility function to figure out if we are currently a game viewport */
 	bool IsCurrentlyGameViewport();
 
@@ -304,9 +319,6 @@ private:
 	{
 		return bUseSeparateRenderTarget || bForceSeparateRenderTarget;
 	}
-
-	/** Utility function to create an FReply that properly gets Focus and capture based on the settings */
-	FReply AcquireFocusAndCapture(FIntPoint MousePosition);
 
 private:
 	/** An intermediate reply state that is reset whenever an input event is generated */
@@ -347,8 +359,6 @@ private:
 	bool bIsResizing;
 	/** Delegate that is fired off in ResizeFrame after ResizeViewport */
 	FOnSceneViewportResize OnSceneViewportResizeDel;
-	/** Whether a PIE viewport should take mouse control on startup */
-	bool bPlayInEditorGetsMouseControl;
 	/** Whether the PIE viewport is currently in simulate in editor mode */
 	bool bPlayInEditorIsSimulate;
 	/** Whether or not the cursor is hidden when the viewport captures the mouse */

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Review Collision in Your Game
-Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:Content guide to creating and setting up collision geometry.
+﻿INTSourceChangelist:2715330
+Availability:Public
+Title:检查游戏中的碰撞
+Crumbs:%ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
+Description:用于创建和设置碰撞几何体的内容指南。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -26,17 +26,17 @@ Description:Content guide to creating and setting up collision geometry.
 
 
 
-Here are a couple of console commands you can use while in game to give you information on the collision in your game.
+这里有几个控制台命令，您可以在游戏中用它们获得关于游戏中碰撞的信息。
 
-1. Run your game.
-1. Hit the **`** (back tick/tilda key) to bring up the console input box.
-1. Enter one of the following commands:
+1. 运行游戏。
+1. 按 **`**（反勾号/重音符键）调出控制台输入框。
+1. 输入下列命令之一：
 
-	* **show COLLISION** - This will draw all collision models and blocking volumes in use in the level. 
+	* **show COLLISION** - 此命令将画出关卡中使用的所有碰撞模型和阻挡体积。 
 
 		![](Engine/Physics/Collision/HowTo/COLREF_showCollision.png)(w:900)
 
-	* **stat game** - This shows you various useful stats on how long different types of collision are taking.
+	* **stat game** - 此命令会向你显示关于各种不同碰撞所用时间的有用统计信息。
 
 		![](Engine/Physics/Collision/HowTo/Collision_StatGame.png)(w:900)
 

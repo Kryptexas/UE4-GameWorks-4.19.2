@@ -208,6 +208,10 @@ void FAndroidMisc::PlatformInit()
 			}
 		}
 	}
+
+	// Setup user specified thread affinity if any
+	extern void AndroidSetupDefaultThreadAffinity();
+	AndroidSetupDefaultThreadAffinity();
 }
 
 extern void AndroidThunkCpp_DismissSplashScreen();
@@ -374,6 +378,14 @@ bool FAndroidMisc::HasPlatformFeature(const TCHAR* FeatureName)
 
 bool FAndroidMisc::AllowRenderThread()
 {
+	// Check for DisableThreadedRendering CVar from DeviceProfiles config
+	// Any devices in the future that need to disable threaded rendering should be given a device profile and use this CVar
+	const IConsoleVariable *const CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AndroidDisableThreadedRendering"));
+	if (CVar && CVar->GetInt() != 0)
+	{
+		return false;
+	}
+
 	if (FAndroidMisc::ShouldUseVulkan())
 	{
 		// @todo vulkan: stop forcing no RT!
@@ -668,7 +680,22 @@ void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashCont
 
 bool FAndroidMisc::GetUseVirtualJoysticks()
 {
-	return !FParse::Param(FCommandLine::Get(),TEXT("joystick"));
+	// joystick on commandline means don't require virtual joysticks
+	if (FParse::Param(FCommandLine::Get(), TEXT("joystick")))
+	{
+		return false;
+	}
+
+	// Amazon Fire TV doesn't require virtual joysticks
+	if (FAndroidMisc::GetDeviceMake() == FString("Amazon"))
+	{
+		if (FAndroidMisc::GetDeviceModel().StartsWith(TEXT("AFT")))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 TArray<uint8> FAndroidMisc::GetSystemFontBytes()
@@ -1214,6 +1241,8 @@ bool FAndroidMisc::ShouldUseVulkan()
 
 			// does commandline override (using GL or ES2 for legacy commandlines)
 			bool bForceOpenGL = FParse::Param(FCommandLine::Get(), TEXT("GL")) || FParse::Param(FCommandLine::Get(), TEXT("OpenGL")) || FParse::Param(FCommandLine::Get(), TEXT("ES2"));
+			static const auto CVarDisableVulkan = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableVulkanSupport"));
+			bForceOpenGL = bForceOpenGL || CVarDisableVulkan->GetValueOnAnyThread() == 1;
 			if (!bForceOpenGL)
 			{
 				// check for libvulkan.so

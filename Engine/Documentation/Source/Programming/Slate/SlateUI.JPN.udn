@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2433802
+﻿INTSourceChangelist:2727063
 Availability:Public
 Title:スレート UI フレームワーク
 Crumbs:%ROOT%, Programming
 Description:ツールとインゲーム UI の作成用のクロス プラットフォーム ユーザー インターフェース
 Navigation:topic
-Version:4.4
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -42,7 +42,9 @@ Version:4.4
 	[PARAM:links]
 		* [](Programming/Slate/Architecture "%Programming/Slate/Architecture:Description%")
 		* [](Programming/Slate/DetailsCustomization "%Programming/Slate/DetailsCustomization:Description%")
+		* [](Programming/Slate/InGameUI "%Programming/Slate/InGameUI:Description%")
 		* [](Programming/Slate/Overview "%Programming/Slate/Overview:Description%")
+		* [](Programming/Slate/Setup "%Programming/Slate/Setup:Description%")
 		* [](Programming/Slate/Widgets "%Programming/Slate/Widgets:Description%")
 	[/PARAM]
 [/OBJECT]

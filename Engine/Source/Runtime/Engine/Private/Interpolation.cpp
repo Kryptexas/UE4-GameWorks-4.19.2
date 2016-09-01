@@ -427,15 +427,13 @@ void AMatineeActor::NotifyEventTriggered(FName EventName, float EventTime, bool 
 #if !UE_BUILD_SHIPPING
 	if (EventName == NAME_PerformanceCapture)
 	{
-		//get the map name
 		FString PackageName = GetOutermost()->GetName();
 		
 		FString MapName;
 		FString FolderName;
 		PackageName.Split(TEXT("/"), &FolderName, &MapName, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 
-		FString CaptureName = FString::Printf(TEXT("PerformanceCapture/%s/%s_%4.2f"), *MapName, *GetName(), EventTime);
-		GEngine->PerformanceCapture(GetWorld(), CaptureName);
+		GEngine->PerformanceCapture(GetWorld(), MapName, GetName(), EventTime);
 	}
 #endif	// UE_BUILD_SHIPPING
 }
@@ -1691,17 +1689,17 @@ void AMatineeActor::RecaptureActorState()
 	for(int32 i=0; i<GroupInst.Num(); i++)
 	{
 		UInterpGroupInst* GrInst = GroupInst[i];
-		AActor* GroupActor = GrInst->GetGroupActor();
-		if( GroupActor )
+		AActor* InstGroupActor = GrInst->GetGroupActor();
+		if( InstGroupActor )
 		{
-			ConditionallySaveActorState( GrInst, GroupActor );
+			ConditionallySaveActorState( GrInst, InstGroupActor );
 		}
 	}
 	UpdateInterp( SavedScrubPosition, true );
 #endif // WITH_EDITORONLY_DATA
 }
 
-void AMatineeActor::InitGroupActorForGroup(class UInterpGroup* InGroup, class AActor* GroupActor)
+void AMatineeActor::InitGroupActorForGroup(class UInterpGroup* InGroup, class AActor* InGroupActor)
 {
 	bool bFoundGroup = false;
 	for( int32 GroupIndex = 0; GroupIndex < GroupActorInfos.Num(); ++GroupIndex )
@@ -1710,11 +1708,11 @@ void AMatineeActor::InitGroupActorForGroup(class UInterpGroup* InGroup, class AA
 		if( Info.ObjectName == InGroup->GetFName() )
 		{
 			bFoundGroup = true;
-			Info.Actors.AddUnique( GroupActor );
+			Info.Actors.AddUnique( InGroupActor );
 
-			if (GroupActor)
+			if (InGroupActor)
 			{
-				GroupActor->AddControllingMatineeActor(*this);
+				InGroupActor->AddControllingMatineeActor(*this);
 			}
 		}
 	}
@@ -1723,13 +1721,13 @@ void AMatineeActor::InitGroupActorForGroup(class UInterpGroup* InGroup, class AA
 	{
 		FInterpGroupActorInfo NewInfo;
 		NewInfo.ObjectName = InGroup->GetFName();
-		NewInfo.Actors.Add( GroupActor );
+		NewInfo.Actors.Add( InGroupActor );
 
 		GroupActorInfos.Add( NewInfo );
 
-		if (GroupActor)
+		if (InGroupActor)
 		{
-			GroupActor->AddControllingMatineeActor(*this);
+			InGroupActor->AddControllingMatineeActor(*this);
 		}
 	}
 
@@ -6647,12 +6645,12 @@ void UInterpTrackDirector::PreviewUpdateTrack(float NewPosition, UInterpTrackIns
 }
 
 #if WITH_EDITOR
-bool UInterpTrackDirector::UpdatePreviewCamera(AMatineeActor* MatineeActor, bool bIsSelected)
+bool UInterpTrackDirector::UpdatePreviewCamera(AMatineeActor* MatineeActor, bool bInIsSelected)
 {
 	check( MatineeActor );
 #if WITH_EDITORONLY_DATA
 	// If selected, get the viewed actor in the matinee
-	AActor* Actor = bIsSelected ? MatineeActor->FindViewedActor() : NULL;
+	AActor* Actor = bInIsSelected ? MatineeActor->FindViewedActor() : NULL;
 	if ( PreviewCamera != Actor )
 	{
 		// Try casting it to a camera actor
@@ -7437,8 +7435,8 @@ void UInterpTrackAnimControl::UpdateTrack(float NewPosition, UInterpTrackInst* T
 	if(AnimSeqs.Num() == 0 || NewPosition <= AnimInst->LastUpdatePosition || bJump)
 	{
 		UAnimSequence* NewAnimSequence = NULL;
-		float NewAnimPosition;
-		bool bNewLooping;
+		float NewAnimPosition = 0.0f;
+		bool bNewLooping = false;
 		GetAnimForTime(NewPosition, &NewAnimSequence, NewAnimPosition, bNewLooping);
 
 		if( NewAnimSequence != NULL )
@@ -7692,6 +7690,7 @@ int32 UInterpTrackAnimControl::CalcChannelIndex()
 		}
 
 		// If not this track, but has same slot name, increment ChannelIndex
+		CA_SUPPRESS(6011);
 		if(AnimTrack && !AnimTrack->IsDisabled() && AnimTrack->SlotName == SlotName)
 		{
 			ChannelIndex++;
@@ -8052,25 +8051,8 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 	// play the sound, then stop any already playing sounds
 	else if( SoundInst->PlayAudioComp && SoundInst->PlayAudioComp->IsPlaying() )
 	{
-		FSoundTrackKey& SoundTrackKey = GetSoundTrackKeyAtPosition(NewPosition);
-		if (SoundTrackKey.Sound != SoundInst->PlayAudioComp->Sound)
-		{
-			SoundInst->PlayAudioComp->Stop();
-			bPlaying = false;
-		}
-		else
-		{
-			FAudioDevice* AudioDevice = SoundInst->PlayAudioComp->GetAudioDevice();
-			if (AudioDevice)
-			{
-				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(SoundInst->PlayAudioComp);
-				if (ActiveSound && FMath::Abs(NewPosition - (ActiveSound->RequestedStartTime + ActiveSound->PlaybackTime)) > 0.f)
-				{
-					SoundInst->PlayAudioComp->Stop();
-					bPlaying = false;
-				}
-			}
-		}
+		SoundInst->PlayAudioComp->Stop();
+		bPlaying = false;
 	}
 
 

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Collision How To's
+﻿INTSourceChangelist:2744832
+Availability:Public
+Title:碰撞指导
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
-Description:Content guide to creating and setting up collision geometry.
+Description:碰撞几何体创建和设置的内容指南。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -30,14 +30,16 @@ Description:Content guide to creating and setting up collision geometry.
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		How To...
+		指导...
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Physics/Collision/HowTo/AddConvexHulls "%Engine/Physics/Collision/HowTo/AddConvexHulls:description%")
 		* [](Engine/Physics/Collision/HowTo/AddSimpleCollision "%Engine/Physics/Collision/HowTo/AddSimpleCollision:description%")
 		* [](Engine/Physics/Collision/HowTo/AddDOP "%Engine/Physics/Collision/HowTo/AddDOP:description%")
 		* [](Engine/Physics/Collision/HowTo/AddCustomCollisionType "%Engine/Physics/Collision/HowTo/AddCustomCollisionType:description%")
+		[PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/AddCustomTraceType "%Engine/Physics/Collision/HowTo/AddCustomTraceType:description%")
+		[/PUBLISH:Docs]
 		* [](Engine/Physics/Collision/HowTo/PreviewCollision "%Engine/Physics/Collision/HowTo/PreviewCollision:description%")
 	[/PARAM]
 [/OBJECT]

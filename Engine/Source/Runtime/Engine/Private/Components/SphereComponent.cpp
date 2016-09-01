@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "Components/SphereComponent.h"
+#include "PhysicsEngine/BodySetup.h"
 
 USphereComponent::USphereComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

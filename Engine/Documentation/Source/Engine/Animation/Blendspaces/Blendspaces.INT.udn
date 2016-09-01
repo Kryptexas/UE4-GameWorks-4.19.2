@@ -187,7 +187,7 @@ When setting up your Blend Space asset, there are additional options that can be
 
 |---|---|
 |**Axis to Scale Animation**| Not available for 	1D Blend Space assets, this allows you (if you have input interpolation) to determine which axis to drive animation speed (scale). For example, for locomotion animation, speed axis will drive animation speed (thus scale).|
-|**Interpolation Params**| Input interpolation parameter for all 3 axis, for each axis input, decide how you’d like to interpolate input to by setting Interpolation Time and Interpolation Type. |
+|**Interpolation Params**| Input interpolation parameter for all 3 axis, for each axis input, decide how you'd like to interpolate input to by setting Interpolation Time and Interpolation Type. |
 
 ### Sample Interpolation
 

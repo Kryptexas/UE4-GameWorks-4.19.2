@@ -2,6 +2,7 @@ Availability:Public
 Title: 9. Place the Character
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 9. Place the Character
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -30,7 +31,7 @@ We need to place our AI_Character into the level so it can interact with the pla
 * From the **Content Browser**, click and drag the AI_Character, that you created earlier, into the level.
 
 [REGION:lightbox]
-[![](placeCharacter.png)(w:940 convert:false)](placeCharacter.png)
+[![](AIDragIntoLevel.jpg)(w:920)
 [/REGION]
 [/EXCERPT:s9]
 

@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2686598
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:配列ノード
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Arrays
 Description:ブループリント配列と連動するノード
 Version:4.9
+parent:Engine/Blueprints/Scripting
+tags:Arrays and Structures
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -60,7 +63,7 @@ Version:4.9
 
 ## Contains Item
 
-**Contains Item** ノードによって、特定のアイテムに対して配列の検索が可能になります。アイテムを検出するととノードはTrue を出力し、そうでない場合は False を出力します。アイテムを検出した時のインデックスは返しません。
+**Contains Item** ノードによって、特定のアイテムに対して配列の検索が可能になります。アイテムを検出するとノードは True を出力し、検出しないと False を出力します。どのインデックスでアイテムを検出したかは返しません。
 
 ![](Array_Contains.png)
 
@@ -78,13 +81,13 @@ Version:4.9
 
 ## Get
 
-**Get** ノードは配列と整数値を受け取り、インデックス番号として使用します。そして戻り値として、インデックス番号で見つけた配列の値を返します。
+**Get** ノードは配列と整数値を受け取り、インデックス番号として使用します。そして戻り値として、そのインデックス番号で見つかった配列の値を返します。
 
 ![](Array_Get.png)
 
 ## Insert Item
 
-Insert Item ノードは、配列、変数値、そして整数を受け取ります (インデックス番号)。そして、インデックス値の位置にある配列へ変数値を挿入します。
+**Insert Item** ノードは、配列、変数値、そして整数を受け取ります (インデックス番号)。そして、インデックス値の位置にある配列へ変数値を挿入します。
 
 ![](Array_Insert.png)
 
@@ -96,7 +99,7 @@ Insert Item ノードは、配列、変数値、そして整数を受け取り�
 
 ## Length
 
-**Length** は、配列にあるアイテムのサイズまたは番号を返します。配列に **N** オブジェクトが存在すると、 **Length** は **N** を返し、配列は **0** から **N-1** までの有効なインデックスを返します。
+**Length** は、配列にあるアイテムのサイズまたは番号を返します。配列に **N** オブジェクトが存在すると、**Length** は **N** を返し、配列は **0** から **N-1** までの有効なインデックスを返します。
 
 ![](Array_Length.png)
 
@@ -108,7 +111,7 @@ Insert Item ノードは、配列、変数値、そして整数を受け取り�
 
 ## Remove Item
 
-**Remove Item** ノードは、変数値を受け取ることによって配列からアイテムを削除します。配列に値が見つかると、その値は削除されます。その他の全インデックス番号はギャップを埋めるため更新されます。このノードはアイテムの検出時および削除時に True を返す Boolean を出力します。
+**Remove Item** ノードは、変数値を受け取ることによって配列からアイテムを削除します。配列内でその値が検出されると、その値は削除されます。その他のインデックス番号をすべて更新して、隙間を埋めます。このノードはアイテムの検出時および削除時に True を返す Boolean を出力します。
 
 ![](Array_RemoveItem.png)
 

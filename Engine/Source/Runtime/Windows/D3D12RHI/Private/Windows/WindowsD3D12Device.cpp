@@ -65,11 +65,6 @@ static bool IsDelayLoadException(PEXCEPTION_POINTERS ExceptionPointers)
 #endif
 }
 
-// We suppress warning C6322: Empty _except block. Appropriate checks are made upon returning. 
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(push))
-	MSVC_PRAGMA(warning(disable:6322))
-#endif	// USING_CODE_ANALYSIS
 /**
  * Since CreateDXGIFactory is a delay loaded import from the DXGI DLL, if the user
  * doesn't have Vista/DX10, calling CreateDXGIFactory will throw an exception.
@@ -84,6 +79,8 @@ static void SafeCreateDXGIFactory(IDXGIFactory4** DXGIFactory)
 	}
 	__except (IsDelayLoadException(GetExceptionInformation()))
 	{
+		// We suppress warning C6322: Empty _except block. Appropriate checks are made upon returning. 
+		CA_SUPPRESS(6322);
 	}
 #endif	//!D3D12_CUSTOM_VIEWPORT_CONSTRUCTOR
 }
@@ -166,15 +163,12 @@ static bool SafeTestD3D12CreateDevice(IDXGIAdapter* Adapter, D3D_FEATURE_LEVEL M
 	}
 	__except (IsDelayLoadException(GetExceptionInformation()))
 	{
+		// We suppress warning C6322: Empty _except block. Appropriate checks are made upon returning. 
+		CA_SUPPRESS(6322);
 	}
 
 	return false;
 }
-
-// Re-enable C6322
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(pop))
-#endif // USING_CODE_ANALYSIS
 
 bool FD3D12DynamicRHIModule::IsSupported()
 {
@@ -253,9 +247,9 @@ void FD3D12DynamicRHIModule::FindAdapter()
 	// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
 	int32 HmdGraphicsAdapter = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapter() : -1;
 	bool bUseHmdGraphicsAdapter = HmdGraphicsAdapter >= 0;
-	int32 CVarValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
+	int32 CVarExplicitAdapterValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
 
-	const bool bFavorNonIntegrated = CVarValue == -1;
+	const bool bFavorNonIntegrated = CVarExplicitAdapterValue == -1;
 
 	TRefCountPtr<IDXGIAdapter> TempAdapter;
 	D3D_FEATURE_LEVEL MaxAllowedFeatureLevel = GetAllowedD3DFeatureLevel();
@@ -312,41 +306,33 @@ void FD3D12DynamicRHIModule::FindAdapter()
 
 				FD3D12Adapter CurrentAdapter(AdapterIndex, ActualFeatureLevel);
 
-				if (bRequestedWARP && !bIsWARP)
-				{
-					// Requested WARP, reject all other adapters.
-					continue;
-				}
+				// Requested WARP, reject all other adapters.
+				const bool bSkipRequestedWARP = bRequestedWARP && !bIsWARP;
+				
+				// Add special check to support WARP and HMDs, which do not have associated outputs.
+				// This device has no outputs. Reject it, 
+				// http://msdn.microsoft.com/en-us/library/windows/desktop/bb205075%28v=vs.85%29.aspx#WARP_new_for_Win8
+				const bool bSkipHmdGraphicsAdapter = !OutputCount && !bIsWARP && !bUseHmdGraphicsAdapter;
+				
+				// we don't allow the PerfHUD adapter
+				const bool bSkipPerfHUDAdapter = bIsPerfHUD && !bAllowPerfHUD;
+				
+				// the user wants a specific adapter, not this one
+				const bool bSkipExplicitAdapter = CVarExplicitAdapterValue >= 0 && AdapterIndex != CVarExplicitAdapterValue;
+				
+				const bool bSkipAdapter = bSkipRequestedWARP || bSkipHmdGraphicsAdapter || bSkipPerfHUDAdapter || bSkipExplicitAdapter;
 
-				if (!OutputCount && !bIsWARP && !bUseHmdGraphicsAdapter)
+				if (!bSkipAdapter)
 				{
-					// Add special check to support WARP and HMDs, which do not have associated outputs.
+					if (!bIsIntegrated && !FirstWithoutIntegratedAdapter.IsValid())
+					{
+						FirstWithoutIntegratedAdapter = CurrentAdapter;
+					}
 
-					// This device has no outputs. Reject it, 
-					// http://msdn.microsoft.com/en-us/library/windows/desktop/bb205075%28v=vs.85%29.aspx#WARP_new_for_Win8
-					continue;
-				}
-
-				if (bIsPerfHUD && !bAllowPerfHUD)
-				{
-					// we don't allow the PerfHUD adapter
-					continue;
-				}
-
-				if (CVarValue >= 0 && AdapterIndex != CVarValue)
-				{
-					// the user wants a specific adapter, not this one
-					continue;
-				}
-
-				if (!bIsIntegrated && !FirstWithoutIntegratedAdapter.IsValid())
-				{
-					FirstWithoutIntegratedAdapter = CurrentAdapter;
-				}
-
-				if (!FirstAdapter.IsValid())
-				{
-					FirstAdapter = CurrentAdapter;
+					if (!FirstAdapter.IsValid())
+					{
+						FirstAdapter = CurrentAdapter;
+					}
 				}
 			}
 		}
@@ -403,11 +389,11 @@ void FD3D12DynamicRHI::PostInit()
 	}
 }
 
-void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
+void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* InMainDevice)
 {
 	check(!GIsRHIInitialized);
 
-	DXGI_ADAPTER_DESC* AdapterDesc = MainDevice->GetD3DAdapterDesc();
+	DXGI_ADAPTER_DESC* AdapterDesc = InMainDevice->GetD3DAdapterDesc();
 
 	GTexturePoolSize = 0;
 
@@ -442,7 +428,7 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	// Consider 50% of the shared memory but max 25% of total system memory.
 	int64 ConsideredSharedSystemMemory = FMath::Min(FD3D12GlobalStats::GSharedSystemMemory / 2ll, TotalPhysicalMemory / 4ll);
 
-	IDXGIAdapter3* DxgiAdapter3 = MainDevice->GetAdapter3();
+	IDXGIAdapter3* DxgiAdapter3 = InMainDevice->GetAdapter3();
 	DXGI_QUERY_VIDEO_MEMORY_INFO LocalVideoMemoryInfo;
 	VERIFYD3D12RESULT(DxgiAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &LocalVideoMemoryInfo));
 	const int64 TargetBudget = LocalVideoMemoryInfo.Budget * 0.90f;	// Target using 90% of our budget to account for some fragmentation.
@@ -865,6 +851,7 @@ bool FD3D12DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 
 		for (uint32 m = 0; m < NumModes; m++)
 		{
+			CA_SUPPRESS(6385);
 			if (((int32)ModeList[m].Width >= MinAllowableResolutionX) &&
 				((int32)ModeList[m].Width <= MaxAllowableResolutionX) &&
 				((int32)ModeList[m].Height >= MinAllowableResolutionY) &&

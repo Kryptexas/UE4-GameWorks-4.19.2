@@ -364,7 +364,7 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	int32 Index = 0;
 
 	ArrayHelper.ExpandForIndex(0);
-	while ((Buffer != NULL) && (*Buffer != TCHAR(')')))
+	while (*Buffer != TCHAR(')'))
 	{
 		SkipWhitespace(Buffer);
 
@@ -395,7 +395,6 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	}
 
 	// Make sure we ended on a )
-	CA_SUPPRESS(6011)
 	if (*Buffer++ != TCHAR(')'))
 	{
 		return NULL;
@@ -489,6 +488,54 @@ void UArrayProperty::InstanceSubobjects( void* Data, void const* DefaultData, UO
 bool UArrayProperty::SameType(const UProperty* Other) const
 {
 	return Super::SameType(Other) && Inner && Inner->SameType(((UArrayProperty*)Other)->Inner);
+}
+
+bool UArrayProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
+{
+	// TODO: The ArrayProperty Tag really doesn't have adequate information for
+	// many types. This should probably all be moved in to ::SerializeItem
+	bOutAdvanceProperty = false;
+
+	if (Tag.Type == NAME_ArrayProperty && Tag.InnerType != NAME_None && Tag.InnerType != Inner->GetID())
+	{
+		void* ArrayPropertyData = ContainerPtrToValuePtr<void>(Data);
+
+		int32 ElementCount = 0;
+		Ar << ElementCount;
+
+		FScriptArrayHelper ScriptArrayHelper(this, ArrayPropertyData);
+		ScriptArrayHelper.EmptyAndAddValues(ElementCount);
+
+		// Convert properties from old type to new type automatically if types are compatible (array case)
+		if (ElementCount > 0)
+		{
+			FPropertyTag InnerPropertyTag;
+			InnerPropertyTag.Type = Tag.InnerType;
+			InnerPropertyTag.ArrayIndex = 0;
+
+			bool bDummyAdvance;
+			if (Inner->ConvertFromType(InnerPropertyTag, Ar, ScriptArrayHelper.GetRawPtr(0), DefaultsStruct, bDummyAdvance))
+			{
+				for (int32 i = 1; i < ElementCount; ++i)
+				{
+					verify(Inner->ConvertFromType(InnerPropertyTag, Ar, ScriptArrayHelper.GetRawPtr(i), DefaultsStruct, bDummyAdvance));
+				}
+				bOutAdvanceProperty = true;
+			}
+			// TODO: Implement SerializeFromMismatchedTag handling for arrays of structs
+			else
+			{
+				UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *Inner->GetID().ToString(), *Ar.GetArchiveName() );
+			}
+		}
+		else
+		{
+			bOutAdvanceProperty = true;
+		}
+		return true;
+	}
+
+	return false;
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UArrayProperty, UProperty,

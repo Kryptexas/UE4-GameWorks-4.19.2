@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2690185
 Availability:Public
-Title:ビネット効果
+Title:Vignette（ビネット効果）
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:ビューポート中心からの距離に応じて画像輝度を低下させるエフェクト
+Version:4.9
 
 [REGION:fullwidth]
 ![Vignette Effect](vignette.png)
@@ -12,16 +13,21 @@ Description:ビューポート中心からの距離に応じて画像輝度を�
 **Vignette** は、実際のカメラレンズがだんだん暗くなっていく様子をシミュレートする効果です。高品質レンズの場合、この効果は補正対象となります。エフェクトは、主に画像の輪郭に顕著に現れます。
 [/EXCERPT:Vignette_Desc]
 
+**Vignette (ビネット効果)** 設定は、**[Post Process Settings (ポストプロセス設定)]** の **[Scene Color (シーンカラー)]** にあります。
+
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Vignette Intensity** | スクリーンの端を暗くします。ブルームには影響しません (パフォーマンスによりますが変更も可能です)。活用例：輪郭のぼかし (カメラ機能の不完全性) をシミュレートします。 [INCLUDE:#Intensity] |
 
 <!--
 [EXCERPT:Intensity]
-[REGION:imagetable]
-| ![Vignette Intensity - 0](vignette_off.png)(w:375) | ![Vignette Intensity - 1](vignette_on.png)(w:375) |
-| ------ | ------ |
-| 0.0 | 1.0 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Vignetter Intensity - 0](vignette_off.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Vignette Intensity - 1](vignette_on.png)(w:600)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Intensity]
 -->

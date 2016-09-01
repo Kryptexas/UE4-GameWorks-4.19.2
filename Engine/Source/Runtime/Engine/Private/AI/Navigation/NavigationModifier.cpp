@@ -13,6 +13,7 @@
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/BrushComponent.h"
+#include "PhysicsEngine/BodySetup.h"
 
 // if square distance between two points is less than this the those points
 // will be considered identical when calculating convex hull
@@ -346,7 +347,7 @@ void FAreaNavModifier::SetBox(const FBox& Box, const FTransform& LocalToWorld)
 	TArray<FVector> Corners;
 	for (int32 i = 0; i < 8; i++)
 	{
-		const FVector Dir((i / 4) % 2 ? 1 : -1, (i / 2) % 2 ? 1 : -1, i % 2 ? 1 : -1);
+		const FVector Dir(((i / 4) % 2) ? 1 : -1, ((i / 2) % 2) ? 1 : -1, (i % 2) ? 1 : -1);
 		Corners.Add(LocalToWorld.TransformPosition(BoxOrigin + BoxExtent * Dir));
 	}
 

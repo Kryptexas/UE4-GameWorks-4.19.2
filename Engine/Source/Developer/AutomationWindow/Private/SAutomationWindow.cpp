@@ -71,9 +71,10 @@ SAutomationWindow::~SAutomationWindow()
 	{
 		AutomationController->RemoveCallbacks();
 
-		AutomationController->OnControllerReset().Unbind();
-		AutomationController->OnTestsRefreshed().Unbind();
-		AutomationController->OnTestsAvailable().Unbind();
+		AutomationController->OnControllerReset().RemoveAll(this);
+		AutomationController->OnTestsRefreshed().RemoveAll(this);
+		AutomationController->OnTestsAvailable().RemoveAll(this);
+		AutomationController->OnTestsComplete().RemoveAll(this);
 	}
 }
 
@@ -92,9 +93,10 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 	SessionManager = InSessionManager;
 	AutomationController = InAutomationController;
 
-	AutomationController->OnControllerReset().BindRaw(this, &SAutomationWindow::OnRefreshTestCallback);
-	AutomationController->OnTestsRefreshed().BindRaw(this, &SAutomationWindow::OnRefreshTestCallback);
-	AutomationController->OnTestsAvailable().BindRaw(this, &SAutomationWindow::OnTestAvailableCallback);
+	AutomationController->OnControllerReset().AddRaw(this, &SAutomationWindow::OnRefreshTestCallback);
+	AutomationController->OnTestsRefreshed().AddRaw(this, &SAutomationWindow::OnRefreshTestCallback);
+	AutomationController->OnTestsAvailable().AddRaw(this, &SAutomationWindow::OnTestAvailableCallback);
+	AutomationController->OnTestsComplete().AddRaw(this, &SAutomationWindow::OnTestsCompleteCallback);
 
 	AutomationControllerState = AutomationController->GetTestState();
 	
@@ -124,6 +126,8 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 		.OnGenerateRow( this, &SAutomationWindow::OnGenerateWidgetForTest )
 		// Gets children
 		.OnGetChildren(this, &SAutomationWindow::OnGetChildren)
+		// on recursive expansion (shift + click)
+		.OnSetExpansionRecursive(this, &SAutomationWindow::OnTestExpansionRecursive)
 		//on selection
 		.OnSelectionChanged(this, &SAutomationWindow::OnTestSelectionChanged)
 		// Allow for some spacing between items with a larger item height.
@@ -136,7 +140,7 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 		(
 		SAssignNew(TestTableHeaderRow,SHeaderRow)
 		+ SHeaderRow::Column( AutomationTestWindowConstants::Title )
-		.FillWidth(300.0f)
+		.FillWidth(0.80f)
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -156,12 +160,13 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 				.Text( LOCTEXT("TestName_Header", "Test Name") )
 			]
 		]
+
 		+ SHeaderRow::Column( AutomationTestWindowConstants::SmokeTest )
+		.FixedWidth( 50.0f )
 		.HAlignHeader(HAlign_Center)
 		.VAlignHeader(VAlign_Center)
 		.HAlignCell(HAlign_Center)
 		.VAlignCell(VAlign_Center)
-		.FixedWidth( 50.0f )
 		[
 			//icon for the smoke test column
 			SNew(SImage)
@@ -169,26 +174,29 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 			.ToolTipText( LOCTEXT( "Smoke Test", "Smoke Test" ) )
 			.Image(FEditorStyle::GetBrush("Automation.SmokeTest"))
 		]
+
 		+ SHeaderRow::Column( AutomationTestWindowConstants::RequiredDeviceCount )
-			.HAlignHeader(HAlign_Center)
-			.VAlignHeader(VAlign_Center)
-			.HAlignCell(HAlign_Center)
-			.VAlignCell(VAlign_Center)
-			.FixedWidth( 50.0f )
-			[
-				SNew( SImage )
-				.Image( FEditorStyle::GetBrush("Automation.ParticipantsWarning") )
-				.ToolTipText( LOCTEXT( "RequiredDeviceCountWarningToolTip", "Number of devices required." ) )
-			]
+		.FixedWidth(50.0f)
+		.HAlignHeader(HAlign_Center)
+		.VAlignHeader(VAlign_Center)
+		.HAlignCell(HAlign_Center)
+		.VAlignCell(VAlign_Center)
+		[
+			SNew( SImage )
+			.Image( FEditorStyle::GetBrush("Automation.ParticipantsWarning") )
+			.ToolTipText( LOCTEXT( "RequiredDeviceCountWarningToolTip", "Number of devices required." ) )
+		]
+
+		+ SHeaderRow::Column(AutomationTestWindowConstants::Timing)
+		.FixedWidth(100.0f)
+		.DefaultLabel(LOCTEXT("TestDurationRange", "Duration"))
+
 		+ SHeaderRow::Column( AutomationTestWindowConstants::Status )
-		.FillWidth(650.0f)
+		.FillWidth(0.20f)
 		[
 			//platform header placeholder
 			PlatformsHBox.ToSharedRef()
 		]
-		+ SHeaderRow::Column( AutomationTestWindowConstants::Timing )
-		.FillWidth(150.0f)
-		.DefaultLabel( LOCTEXT("TestDurationRange", "Duration") )
 
 		);
 
@@ -215,55 +223,102 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 		+ SOverlay::Slot()
 			[
 				SNew( SSplitter )
-					.IsEnabled(this, &SAutomationWindow::HandleMainContentIsEnabled)
-					.Orientation(Orient_Vertical)
+				.IsEnabled(this, &SAutomationWindow::HandleMainContentIsEnabled)
+				.Orientation(Orient_Vertical)
 
 				+ SSplitter::Slot()
-					.Value(0.66f)
+				.Value(0.66f)
+				[
+					//automation test panel
+					SAssignNew( MenuBar, SVerticalBox )
+
+					//ACTIONS
+					+ SVerticalBox::Slot()
+					.AutoHeight()
 					[
-						//automation test panel
-						SAssignNew( MenuBar, SVerticalBox )
+						SNew( SHorizontalBox )
 
-						//ACTIONS
-						+ SVerticalBox::Slot()
-							.AutoHeight()
-							[
-								SNew( SHorizontalBox )
-
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.HAlign(HAlign_Left)
-									.VAlign(VAlign_Center)
-									[
-										SAutomationWindow::MakeAutomationWindowToolBar( AutomationWindowActions.ToSharedRef(), SharedThis(this) )
-									]
-							]
-
-						+ SVerticalBox::Slot()
-							.FillHeight(1.0f)
-							.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-							[
-								SNew(SOverlay)
-									+ SOverlay::Slot()
-									[
-										SNew(SBorder)
-											.BorderImage(this, &SAutomationWindow::GetTestBackgroundBorderImage)
-											.Padding(3.0f)
-											[
-												//the actual table full of tests
-												TestTable.ToSharedRef()
-											]
-									]
-
-								+ SOverlay::Slot()
-									.HAlign(HAlign_Center)
-									.VAlign(VAlign_Center)
-									[
-										SNew(SThrobber)	
-											.Visibility(this, &SAutomationWindow::GetTestsUpdatingThrobberVisibility)
-									]
-							]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						[
+							SAutomationWindow::MakeAutomationWindowToolBar( AutomationWindowActions.ToSharedRef(), SharedThis(this) )
+						]
 					]
+
+					+ SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+					[
+						SNew(SOverlay)
+						+ SOverlay::Slot()
+						[
+							SNew(SBorder)
+							.BorderImage(this, &SAutomationWindow::GetTestBackgroundBorderImage)
+							.Padding(3)
+							[
+								SNew(SBox)
+								.Padding(4)
+								[
+									SNew(SVerticalBox)
+
+									+ SVerticalBox::Slot()
+									.AutoHeight()
+									.Padding(0.0f, 0.0f, 0.0f, 4.0f)
+									[
+										SNew(SHorizontalBox)
+
+										+ SHorizontalBox::Slot()
+										.AutoWidth()
+										.VAlign(VAlign_Center)
+										[
+											SNew(SBox)
+											.MinDesiredWidth(130.0f)
+											[
+												SAssignNew(RequestedFilterComboBox, SComboBox< TSharedPtr<FString> >)
+												.OptionsSource(&RequestedFilterComboList)
+												.OnGenerateWidget(this, &SAutomationWindow::GenerateRequestedFilterComboItem)
+												.OnSelectionChanged(this, &SAutomationWindow::HandleRequesteFilterChanged)
+												.ContentPadding(FMargin(4.0, 1.0f))
+												[
+													SNew(STextBlock)
+													.Text(this, &SAutomationWindow::GetRequestedFilterComboText)
+												]
+											]
+										]
+
+										+ SHorizontalBox::Slot()
+										.FillWidth(1.0f)
+										.VAlign(VAlign_Center)
+										.Padding(2.0f, 0, 0, 0)
+										[
+											SAssignNew(AutomationSearchBox, SSearchBox)
+											.ToolTipText(LOCTEXT("Search Tests", "Search Tests"))
+											.OnTextChanged(this, &SAutomationWindow::OnFilterTextChanged)
+											.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+										]
+									]
+
+									+ SVerticalBox::Slot()
+									.FillHeight(1.0f)
+									[
+										//the actual table full of tests
+										TestTable.ToSharedRef()
+									]
+								]
+							]
+						]
+
+						+ SOverlay::Slot()
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						[
+							SNew(SThrobber)	
+							.Visibility(this, &SAutomationWindow::GetTestsUpdatingThrobberVisibility)
+						]
+					]
+				]
 
 				+ SSplitter::Slot()
 					.Value(0.33f)
@@ -502,7 +557,7 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> Searchbox, TSharedRef<SWidget> PresetBox, TSharedRef<SWidget> HistoryBox, TSharedRef<SWidget> RequestedFilterBox, TWeakPtr<class SAutomationWindow> InAutomationWindow)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> PresetBox, TSharedRef<SWidget> HistoryBox, TWeakPtr<class SAutomationWindow> InAutomationWindow)
 		{
 			ToolbarBuilder.BeginSection("Automation");
 			{
@@ -524,7 +579,6 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().ErrorFilter );
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().WarningFilter );
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().DeveloperDirectoryContent );
-				ToolbarBuilder.AddWidget(RequestedFilterBox);
 			}
 			ToolbarBuilder.EndSection();
 			ToolbarBuilder.BeginSection("GroupFlags");
@@ -535,11 +589,6 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 					LOCTEXT( "GroupOptions_Label", "Device Groups" ),
 					LOCTEXT( "GroupOptionsToolTip", "Device Group Options" ),
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationWindow.GroupSettings"));
-			}
-			ToolbarBuilder.EndSection();
-			ToolbarBuilder.BeginSection("Search");
-			{
-				ToolbarBuilder.AddWidget( Searchbox );
 			}
 			ToolbarBuilder.EndSection();
 			ToolbarBuilder.BeginSection("Presets");
@@ -611,21 +660,6 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 					.ShadowOffset( FVector2D::UnitVector )
 				]
 			]
-		];
-
-	const float SearchWidth = 200.f;
-	TSharedRef<SWidget> Searchbox = 
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.MaxWidth(SearchWidth)
-		.FillWidth(1.f)
-		.VAlign(VAlign_Bottom)
-		[
-			SAssignNew( AutomationSearchBox, SSearchBox )
-			.ToolTipText( LOCTEXT( "Search Tests", "Search Tests" ) )
-			.OnTextChanged( this, &SAutomationWindow::OnFilterTextChanged )
-			.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
-			.MinDesiredWidth(SearchWidth)
 		];
 
 	const float HistoryWidth = 200.0f;
@@ -777,26 +811,17 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 		];
 
 	RequestedFilterComboList.Empty();
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("All Tests"))));
 	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Smoke Tests"))));
 	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Engine Tests"))));
 	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Product Tests"))));
-	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Perf Tests"))));
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Performance Tests"))));
 	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Stress Tests"))));
 	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Standard Tests"))));
-	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("All Tests"))));
-
-	SAssignNew(RequestedFilterComboBox, SComboBox< TSharedPtr<FString> >)
-		.OptionsSource(&RequestedFilterComboList)
-		.OnGenerateWidget(this, &SAutomationWindow::GenerateRequestedFilterComboItem)
-		.OnSelectionChanged(this, &SAutomationWindow::HandleRequesteFilterChanged)
-		[
-			SNew(STextBlock)
-			.Text(this, &SAutomationWindow::GetRequestedFilterComboText)
-		];
 
 	FToolBarBuilder ToolbarBuilder( InCommandList, FMultiBoxCustomization::None );
 	TWeakPtr<SAutomationWindow> AutomationWindow = SharedThis(this);
-	Local::FillToolbar(ToolbarBuilder, RunTests, Searchbox, TestPresets, History, RequestedFilterComboBox.ToSharedRef(), AutomationWindow);
+	Local::FillToolbar(ToolbarBuilder, RunTests, TestPresets, History, AutomationWindow);
 
 	// Create the tool bar!
 	return
@@ -895,26 +920,26 @@ void SAutomationWindow::HandleRequesteFilterChanged(TSharedPtr<FString> Item, ES
 
 	switch (EntryIndex)
 	{
-		case 0:	//	"Smoke Tests"
+		case 0:	//	"All Tests"
+			NewRequestedFlags = EAutomationTestFlags::FilterMask;
+			break;
+		case 1:	//	"Smoke Tests"
 			NewRequestedFlags = EAutomationTestFlags::SmokeFilter;
 			break;
-		case 1:	//	"Engine Tests"
+		case 2:	//	"Engine Tests"
 			NewRequestedFlags = EAutomationTestFlags::EngineFilter;
 			break;
-		case 2:	//	"Product Tests"
+		case 3:	//	"Product Tests"
 			NewRequestedFlags = EAutomationTestFlags::ProductFilter;
 			break;
-		case 3:	//	"Perf Tests"
+		case 4:	//	"Performance Tests"
 			NewRequestedFlags = EAutomationTestFlags::PerfFilter;
 			break;
-		case 4:	//	"Stress Tests"
+		case 5:	//	"Stress Tests"
 			NewRequestedFlags = EAutomationTestFlags::StressFilter;
 			break;
-		case 5:	//	"Standard Tests"
+		case 6:	//	"Standard Tests"
 			NewRequestedFlags = EAutomationTestFlags::SmokeFilter | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::PerfFilter;
-			break;
-		case 6:	//	"All Tests"
-			NewRequestedFlags = EAutomationTestFlags::FilterMask;
 			break;
 	}
 	AutomationController->SetRequestedTestFlags(NewRequestedFlags);
@@ -984,7 +1009,7 @@ FText SAutomationWindow::GetRequestedFilterComboText() const
 	}
 	else
 	{
-		return LOCTEXT("AutomationRequestedFilterComboLabel", "<Select A Filter>");
+		return LOCTEXT("AutomationRequestedFilterComboLabel", "All Tests");
 	}
 }
 
@@ -1270,7 +1295,7 @@ bool SAutomationWindow::IsFullSizeScreenshotsOptionEnabled() const
 #if WITH_EDITOR
 TSharedPtr<SWidget> SAutomationWindow::HandleAutomationListContextMenuOpening()
 {
- 	TArray< TSharedPtr<IAutomationReport> >SelectedReport = TestTable->GetSelectedItems();
+	TArray< TSharedPtr<IAutomationReport> >SelectedReport = TestTable->GetSelectedItems();
 
 	TArray<FString> AssetNames;
 	for (int32 ReportIndex = 0; ReportIndex < SelectedReport.Num(); ++ReportIndex)
@@ -1306,6 +1331,20 @@ void SAutomationWindow::OnGetChildren(TSharedPtr<IAutomationReport> InItem, TArr
 	OutItems = InItem->GetFilteredChildren();
 }
 
+void SAutomationWindow::OnTestExpansionRecursive(TSharedPtr<IAutomationReport> InAutomationReport, bool bInIsItemExpanded)
+{
+	if ( InAutomationReport.IsValid() )
+	{
+		TArray<TSharedPtr<IAutomationReport> >& FilteredChildren = InAutomationReport->GetFilteredChildren();
+
+		TestTable->SetItemExpansion(InAutomationReport, bInIsItemExpanded);
+
+		for ( TSharedPtr<IAutomationReport>& Child : FilteredChildren )
+		{
+			OnTestExpansionRecursive(Child, bInIsItemExpanded);
+		}
+	}
+}
 
 void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Selection, ESelectInfo::Type /*SelectInfo*/)
 {
@@ -1566,6 +1605,15 @@ void SAutomationWindow::OnRefreshTestCallback()
 void SAutomationWindow::OnTestAvailableCallback( EAutomationControllerModuleState::Type InAutomationControllerState )
 {
 	AutomationControllerState = InAutomationControllerState;
+}
+
+void SAutomationWindow::OnTestsCompleteCallback()
+{
+	// Simulate selection again after testing finishes.
+	if ( TestTable->GetNumItemsSelected() > 0 )
+	{
+		OnTestSelectionChanged(TestTable->GetSelectedItems()[0], ESelectInfo::Direct);
+	}
 }
 
 

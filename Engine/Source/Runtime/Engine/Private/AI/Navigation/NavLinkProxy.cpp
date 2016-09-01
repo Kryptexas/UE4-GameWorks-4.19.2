@@ -11,6 +11,7 @@
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 #include "NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
+#include "AI/NavigationOctree.h"
 
 ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -55,10 +56,13 @@ ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Supe
 	}
 #endif
 
-	SmartLinkComp = CreateDefaultSubobject<UNavLinkCustomComponent>(TEXT("SmartLinkComp"));
-	SmartLinkComp->SetNavigationRelevancy(false);
-	SmartLinkComp->SetMoveReachedLink(this, &ANavLinkProxy::NotifySmartLinkReached);
-	bSmartLinkIsRelevant = false;
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		SmartLinkComp = CreateDefaultSubobject<UNavLinkCustomComponent>(TEXT("SmartLinkComp"));
+		SmartLinkComp->SetNavigationRelevancy(false);
+		SmartLinkComp->SetMoveReachedLink(this, &ANavLinkProxy::NotifySmartLinkReached);
+		bSmartLinkIsRelevant = false;
+	}
 
 	PointLinks.Add(FNavigationLink());
 	SetActorEnableCollision(false);

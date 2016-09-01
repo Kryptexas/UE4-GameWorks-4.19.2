@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2075566
+﻿INTSourceChangelist:2683526
 Availability:Public
-Title:静的ライト
+Title:Static Lights (静的ライト)
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
 Description:ゲーム実行時のオーバーヘッドがほぼ 0 となる完全な静的ライト
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,7 +50,6 @@ Description:ゲーム実行時のオーバーヘッドがほぼ 0 となる完�
 
 [TOC(start:2)]
 
-## 概要
 
 [INCLUDE:Resources/ContentExamples\Lighting\2_1#StaticLighting01]
 
@@ -57,7 +57,7 @@ Description:ゲーム実行時のオーバーヘッドがほぼ 0 となる完�
 
 ## Light Source Radius（光源の半径）
 
-上記で触れたように、 **静的ライト** の **Light Source Radius** はキャストするシャドウをソフトにする付加的作用があります。多くの 3D レンダリング パッケージソフトのエリアライトとほぼ同じような機能です。以下の画像の _左_ にあるライトは小さな **Light Source Radius** を持ち、シャープなシャドウをキャストします。_右_ にあるライトは大きな **Light Source Radius** であるため、ソフトなシャドウをキャストします。
+上記で触れたように、Static Light (静的ライト) の **Light Source Radius** はキャストするシャドウをソフトにする付加的作用があります。多くの 3D レンダリング パッケージソフトのエリアライトとほぼ同じような機能です。以下の画像の _左_ にあるライトは小さな Light Source Radius を持ち、シャープなシャドウをキャストします。_右_ にあるライトは大きな Light Source Radius であるため、ソフトなシャドウをキャストします。
 
 ![](Engine\Rendering\LightingAndShadows\Basics\LI_lightRadiusShadows.png)
 
@@ -65,10 +65,24 @@ Description:ゲーム実行時のオーバーヘッドがほぼ 0 となる完�
 
 **Lightmap Resolution** は、静的ライトが生成する焼き付けられたライティングの詳細の制御を可能にします。
 
-[INCLUDE:Resources/ContentExamples\Lighting\2_1#StaticLighting02]
+スタティックメッシュ コンポーネント ライトマップの解像度は、Static Mesh アセット、または [Override Lightmap Res] チェックボックスにチェックを入れて値を設定することにより設定できます。より大きな値は、より高い解像度を意味しますが、より長いビルド時間とメモリ容量も必要となります。 
 
+ブラシ サーフェスのライトマップ解像度は、Lightmap Resolution プロパティ経由で設定しています。これは実際に密度を設定しているため、値が低ければ低いほど高い解像度となります。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lightmap Resolution 4.0](LightmapRes_4.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Lightmap Resolution 16.0](LightmapRes_16.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+<!-- 
+[INCLUDE:Resources/ContentExamples\Lighting\2_1#StaticLighting02]
+-->
 <!-- Long Description Excerpt
 [EXCERPT:Static001]
-静的ライトは静的ライトとシャドウを完全にキャストします。これはつまり、これらによるエフェクトがマップを明るくするために ** と間接ライティングキャッシュへ焼き付けられることを意味します。 **静的ライトは可動/動的アクタに直接の影響はなく、オブジェクトに対してスペキュラハイライトを作成することはありません。** しかし間接ライティングキャッシュへベイクされるため、可動/動的オブジェクトに対して _小規模_ な間接効果をもたらします。
+Static light (静的ライト) は静的ライトとシャドウを完全にキャストします。これはつまり、これらによるエフェクトがマップを明るくするために **ライトマス** と間接ライティングキャッシュへ焼き付けられることを意味します。**Static light (静的ライト) は可動/動的アクタに直接の影響はなく、オブジェクトに対してスペキュラハイライトを作成することはありません。** しかし間接ライティングキャッシュへベイクされるため、可動/動的オブジェクトに対して _マイナー_ な間接効果をもたらします。
 [/EXCERPT:Static001]
 -->

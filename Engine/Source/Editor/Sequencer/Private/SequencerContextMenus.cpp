@@ -20,6 +20,7 @@
 #include "IntegralKeyDetailsCustomization.h"
 #include "MovieSceneSubSection.h"
 #include "MovieSceneCinematicShotSection.h"
+#include "Curves/IntegralCurve.h"
 
 #define LOCTEXT_NAMESPACE "SequencerContextMenus"
 
@@ -231,12 +232,12 @@ void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 			StructureDetailsView->SetStructureData(Key.Key);
 			StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddLambda(
 				[=](const FPropertyChangedEvent& ChangeEvent) {
+					
 					if (Key.Key->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
 					{
 						((FMovieSceneKeyStruct*)Key.Key->GetStructMemory())->PropagateChanges(ChangeEvent);
 					}
-					Sequencer->GetFocusedMovieSceneSequence()->Modify();
-					Sequencer->UpdateRuntimeInstances();
+					Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 				}
 			);
 		}
@@ -674,7 +675,7 @@ void FSectionContextMenu::TrimSection(bool bTrimLeft)
 	FScopedTransaction TrimSectionTransaction(LOCTEXT("TrimSection_Transaction", "Trim Section"));
 
 	MovieSceneToolHelpers::TrimSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetGlobalTime(), bTrimLeft);
-	Sequencer->NotifyMovieSceneDataChanged();
+	Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 }
 
 
@@ -683,7 +684,7 @@ void FSectionContextMenu::SplitSection()
 	FScopedTransaction SplitSectionTransaction(LOCTEXT("SplitSection_Transaction", "Split Section"));
 
 	MovieSceneToolHelpers::SplitSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetGlobalTime());
-	Sequencer->NotifyMovieSceneDataChanged();
+	Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
 
@@ -732,7 +733,7 @@ void FSectionContextMenu::SetExtrapolationMode(ERichCurveExtrapolation ExtrapMod
 
 	if (bAnythingChanged)
 	{
-		Sequencer->UpdateRuntimeInstances();
+		Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 	}
 	else
 	{
@@ -787,7 +788,7 @@ void FSectionContextMenu::ToggleSectionActive()
 
 	if (bAnythingChanged)
 	{
-		Sequencer->UpdateRuntimeInstances();
+		Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 	}
 	else
 	{
@@ -829,7 +830,7 @@ void FSectionContextMenu::ToggleSectionLocked()
 
 	if (bAnythingChanged)
 	{
-		Sequencer->UpdateRuntimeInstances();
+		Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 	}
 	else
 	{

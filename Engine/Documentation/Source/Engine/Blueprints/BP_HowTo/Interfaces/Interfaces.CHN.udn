@@ -1,127 +1,129 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Using Interfaces
+﻿INTSourceChangelist:2679100
+Availability:Public
+Title:使用接口
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:Sample of using Blueprint Interfaces to communicate with multiple Blueprints at once. 
-Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
-Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
-Related: Engine/Blueprints/UserGuide
+Description:使用蓝图接口与多个蓝图同时通信的范例。 
+Related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
+Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+Related:Engine/Blueprints/UserGuide
+version:4.8
+skilllevel:Advanced
 
-In this How To, we will set up a [Blueprint Interface](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces) which will execute different scripts in multiple Blueprints when called. 
+在此指南中，我们将设置一个 [蓝图接口](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces)，将其调用后可在多个蓝图中执行不同脚本。 
 
 [REGION:note]
-For this guide we are using the **Blueprint First Person** template with **Starter Content** enabled. 
+此指南使用启用 **新手内容** 的 **Blueprint First Person** 模板。 
 [/REGION]
 
-1.  In the **Content/StarterContent/Props** folder, **Right-click** on the **SM_GlassWindow** and choose **Create Destructible Mesh**. 
+1. 在 **Content/StarterContent/Props** 文件夹中，**右键单击** **SM_GlassWindow** 并选择  **Create Destructible Mesh**。 
 
 	![](Interface1.png)
 
-	We are going to turn this Static Mesh into a Destructible Mesh which we will break when shot. 
+	我们需要将静态网格体转换为可摧毁网格体（Destructible Mesh），在被击中后破碎。 
 
-1. Open the Destructible Mesh, then click **Fracture Mesh** and **Save** then close the Destructible Mesh Editor window. 
+1. 打开可摧毁网格体，点击 **Fracture Mesh** 和 **Save**，然后关闭可摧毁网格体编辑器窗口。 
 
 	![](Interface2.png)
 
-1. **Right-click** on the **SM_GlassWindow_DM** asset, and under **Asset Actions**, select **Create Blueprint Using This...**. 
+1. **右键单击** **SM_GlassWindow_DM** 资源，然后在 **Asset Actions** 下选择 **Create Blueprint Using This...**。 
 
 	![](Interface3.png)
 
-	This will prompt you to enter a name and save location for the Blueprint (we used **SM_GlassWindow_DM**). 
+	将弹出提示输入蓝图的命名和保存路径（此处使用 **SM_GlassWindow_DM**）。 
 
-1. **Right-click** inside the **Content Browser**, then under **Blueprints** select **Blueprint Interface**. 
+1. 在 **内容浏览器** 中 **右键单击**，然后在 **Blueprints** 下选择 **Blueprint Interface**。 
 
 	![](Interface4.png)
 
-	This will again ask you to enter a name and save location for the Blueprint Interface (we used **DM_Interface**). 
+	将再次弹出提示输入蓝图接口的命名和保存路径（此处使用 **DM_Interface**）。 
 
-1. Inside the Blueprint Interface, name the existing Function **IsDestructible?** and add the **Inputs** shown below by clicking **New**. 
+1. 在蓝图接口中，将现有函数命名为 **IsDestructible?**，然后点击 **New** 添加下图中显示的 **输入（Inputs）**。 
 
 	![](Interface5.png)
 
-	Above we have created three **Inputs** which we can use to pass variables between Blueprints that implement this Blueprint Interface. We have create two **Float** variables, one called **Damage** which will be used to pass an amount of damage to cause to the object we hit and the other **Strength** the amount of Impulse Strength to apply. Lastly, we added a **Vector** called **HitLoc** to hold the location in which the object was hit so that we may pass that information through as well. 
+	上图中我们创建了三个 **Inputs**，用于在应用此蓝图接口的蓝图之间传递变量。我们创建了两个 **浮点** 变量：一个名为 **Damage**，用于传递命中时对物体形成的破坏量；另一个名为 **Strength**，用于传递应用的冲击力量。最后添加一个名为 **HitLoc** 的 **矢量**，用于保存物体被命中的位置，以便传递信息。 
 
-1. **Compile** and **Save** then close the Blueprint Interface.
+1. **编译** 并 **保存**，然后关闭蓝图接口。
 
-1.	In the **Content Browser** open the **SM_GlassWindow_DM** Blueprint, then click the **Class Settings** option from the tool bar. 
+1.	在 **内容浏览器** 中打开 **SM_GlassWindow_DM** 蓝图，然后点击工具栏中的 **Class Settings** 选项。 
 
 	![](Interface6.png)
 
-1.	In the **Details** panel, click the **Add** button under **Interfaces** and add the **DM_Interface**. 
+1.	在 **Details** 面板中，点击 **Interfaces** 下的 **Add** 按钮并添加 **DM_Interface**。 
 
 	![](Interface7.png)
 
-	This will implement the Blueprint Interface in this Blueprint, allowing us to access the functions within it. 
+	此操作将在此蓝图中应用蓝图接口，以便访问其中的函数。 
 
-1.	**Right-click** in the graph and search for a **?** and select the **Event Is Destructible?** Event. 
+1.	在图表中 **单击右键**，搜索 **?** 并选择 **Event Is Destructible?** 事件。 
 
 	![](Interface8.png)
 
-1.	Hold **Control** and drag in the **Destructible** component from the **MyBlueprint** window and create the script below. 
+1.	长按 **Control** 从 **MyBlueprint** 窗口拖入 **Destructible** 组件并创建以下脚本。 
 
 	![](Interface9.png)
 
-	Here, off the **Destructible** component we used **Apply Damage** and connected the damage, strength, location and direction requirements needed to apply damage to our glass window. The actual damage, strength and hit location information will be passed through the Blueprint Interface to this Blueprint from another Blueprint which we will do in a moment.
+	在 **Destructible** 组件引出的连线后，我们使用 **Apply Damage** 并连接所需的损坏、力量、位置和方向要求，对玻璃窗应用破坏。实际的损坏、力量和命中位置信息将通过蓝图接口从另一个蓝图（稍后进行设置）传递到此蓝图。
 
-1.	**Compile** and **Save** then close the Blueprint. 
+1.	**编译** 并 **保存**，然后关闭蓝图。 
 
-1.	In the **Content Browser** under **Content/StarterContent/Blueprints**, open the **Blueprint_CeilingLight** Blueprint. 
+1.	打开 **内容浏览器** 中 **Content/StarterContent/Blueprints** 下的 **Blueprint_CeilingLight** 蓝图。 
 
 	![](Interface10.png)
 
-	Using the Blueprint Interface, we will do something different when we shoot this light. 
+	对此灯进行射击时，我们将使用蓝图接口执行不同的操作。 
 
-1.	Add the **DM_Interface** through **Class Settings** then drag in the **PointLight1** component and create the script below. 
+1.	通过 **Class Settings** 添加 **DM_Interface**，然后拖入 **PointLight1** 组件并创建以下脚本。 
 
 	![](Interface11.png)
 
-	Here, when **Event Is Destructible?** is called, we will first set the light to a green color. The second time it is called, we will set the intensity to 0 (turning off the light). Notice that we did not use the Damage, Strength or HitLoc information contained in the interface as it was not relevant to this Blueprint. By using a Blueprint Interface we can make a general function that is called in all Blueprints that implement that interface and function, and then determine what script is executed on each individual Blueprint. 
+	**Event Is Destructible?** 被调用时，我们首先将灯光设为绿色。第二次调用时，我们将把强度设为 0（关闭灯光）。注意：我们并未使用接口中包含的损坏、力量或命中位置信息，因其与此蓝图无关。使用蓝图接口可形成一个整体函数，在应用接口和函数的所有蓝图中进行调用，然后确定每个蓝图上执行的脚本。 
 
-1.	**Compile** and **Save** then close the Blueprint. 
+1.	**编译** 并 **保存**，然后关闭蓝图。 
 
-1.	Inside the **Content Browser** under **Content/FirstPersonBP/Blueprints**, open the **FirstPersonProjectile** Blueprint. 
+1.	打开 **内容浏览器** 中 **Content/FirstPersonBP/Blueprints** 下的 **FirstPersonProjectile** 蓝图。 
 
 	![](Interface12.png)
 
-	This Blueprint includes the script for the projectile that is spawned in-game when the player fires their weapon. 
+	此蓝图包含玩家武器开火时游戏中生成的投射物的脚本。 
 
-1.	Add the **DM_Interface** through **Class Settings** then **Right-click** in the graph and add the **IsDestructible?(Message)** node. 
+1.	通过 **Class Settings** 添加 **DM_Interface**，然后在图表中 **右键单击** 并添加 **IsDestructible?(Message)** 节点。 
 
 	![](Interface13.png)
 
-	This will execute the function IsDestructible? and all Blueprints that implement the interface and function will also execute. 
+	此操作将执行函数 IsDestructible?，应用接口和函数的所有蓝图也将执行。 
 
 	[REGION:note]
-	If you do not see the node, un-check the **Context Sensitive** option in the upper-right corner of the context menu. 
+	如未找到此节点，取消勾选快捷菜单右上角的 **Context Sensitive** 选项。 
 	[/REGION]
 
-1.	Off the **False** pin of the **Branch** connect the **IsDestructible?** node and connect the **Other** and **HitLocation** pins. 
+1.	在 **Branch** **False** 引脚的引出连线后连接 **IsDestructible?** 节点，并连接 **Other** 和 **HitLocation** 引脚。 
 
 	[REGION:lightbox]
 	[![](Interface14.png)(w:820)](Interface14.png)
 	[/REGION]
 
-	_Click for full image._
+	_点击查看全图。_
 
-	Above, we have added to the existing script that checks if the object that was hit is simulating physics. If it is not simulating physics, we call our **IsDestructible?** function in our Blueprint Interface and apply 1000 damage and 100 strength to the target (which is gathered from the **Event Hit** node's **Other** pin where we also get the **Hit Location** and assign it to our **HitLoc** variable to pass through). 
+	在上图中，我们添加了现有的脚本，检查命中的物体是否进行物理模拟。如未进行物理模拟，则在蓝图接口中调用 **IsDestructible?** 函数，并为目标应用 1000 损坏和 100 力量（从 **Event Hit** 节点的 **Other** 引脚收集，在此引脚处还可获得 **命中位置** 并指定到 **HitLoc** 变量进行传递）。 
 
-1.	**Compile** and **Save**, then close the Blueprint. 
+1.	**编译** 并 **保存**，然后关闭蓝图。 
 
-1.	Drag the **SM_GlassWindow_DM** and **Blueprint_CeilingLight** Blueprints into the level then click **Play** to play in the editor. 
+1.	将 **SM_GlassWindow_DM** 和 **Blueprint_CeilingLight** 蓝图拖入关卡，然后点击 **Play** 按钮在编辑器中开始游戏。 
 
-	Shooting the glass will cause it to fracture and break apart. 
+	射击玻璃将使其破碎并碎裂。 
 
 	![](Example1.png)(w:720)
 
-	Shooting the light once, will cause it to change to the color you specified in step 13. 
+	对灯射击一次，将使灯光变为步骤 13 中指定的颜色。 
 
 	![](Example2.png)(w:720)
 
-	Shooting the light a second time will cause it to turn off (also specified in step 13). 
+	再次对灯进行射击，将使灯光关闭（已在步骤 13 中设置）。 
 	
 	![](Example3.png)(w:720)
 
-This is one example of using a _Blueprint Interface_ to pass variables between Blueprints and call functions which execute different scripts in the Blueprints that implement the interface. For more information on working with Blueprint Interfaces and other forms of Blueprint communication, refer to the **Related Topics** section below. 
+此例使用 _蓝图接口_ 在蓝图之间传递变量，并调用在应用接口的蓝图中执行不同脚本的函数。如需了解蓝图接口使用和其他形式蓝图通信的更多内容，请查阅下方的 **相关页面** 部分。 
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2664320
+﻿INTSourceChangelist:2975314
 Availability:Public
 Title:ブループリントの基本ユーザーガイド
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -8,14 +8,17 @@ Related:Engine/Blueprints/GettingStarted
 Related:Engine/Blueprints/UserGuide
 Related:Engine/Blueprints/UserGuide/CheatSheet
 Related:Gameplay
-Version: 4.9
+Version:4.9
+Parent:Engine/Blueprints/Anatomy
+Tags:Class Blueprints
+
 
 [TOC(start:2 end:2)]
 
 
 このページでは **ブループリント** の使用を迅速に開始できるように、最も基本的な使用例と一般的に使用されるアクションについて説明します。 
 
-ブループリントの詳細については、 [](Engine/Blueprints) ドキュメントを参照してください。 
+ブループリントの詳細については、[](Engine/Blueprints) ドキュメントを参照してください。 
 
 ## ブループリントを作成する
 
@@ -39,7 +42,7 @@ Version: 4.9
 
 	![](Basic6.png)
 
-1.	**[Save Content (コンテンツを保存)]** ウィンドウが表示されるとブループリントがウィンドウ内に表示されます。保存するには、 **[Save Selected (選択内容を保存)]** ボタンをクリックします。 
+1.	**[Save Content (コンテンツを保存)]** ウィンドウが表示されるとブループリントがウィンドウ内に表示されます。保存するには、**[Save Selected (選択内容を保存)]** ボタンをクリックします。 
 
 	![](Basic7.png)
 -->
@@ -54,7 +57,7 @@ Version: 4.9
 このオプションは、それをサポートするアセットでのみ利用できます。すなわち、スタティックメッシュ、スケルタルメッシュ、パーティクルエフェクト、サウンドキュー、サウンドウェーブなどです。選択したアセットに対してこのオプションが利用できない場合は、グレイアウト表示されます。 
 [/REGION]
 
-**[Create Blueprint Using This... (これを使用してブループリントを作成)]** を選択した後、ブループリントの保存先を尋ねられます。保存場所を確認後、ブループリントは コンポーネント タブで自動的に開きます。
+**[Create Blueprint Using This... (これを使用してブループリントを作成)]** を選択した後、ブループリントの保存先を尋ねられます。保存場所を確認後、ブループリントはコンポーネント タブで自動的に開きます。
 
 <!--
 ### 合成したブループリントでアセットを置き換える
@@ -145,7 +148,6 @@ Version: 4.9
 
 ![](ConversionNode.png)
 
-* ブループリントのグラフ内での作業に関する詳細は、 [](Engine\Blueprints\BP_HowTo\NavigatingGraphs) をご覧ください。 
 * 追加のノードベースのアクションとショートカットに関する情報は、 [](Engine/Blueprints/UserGuide/CheatSheet) をご覧ください。 
 
 

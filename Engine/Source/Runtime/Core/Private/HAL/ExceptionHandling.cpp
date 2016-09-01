@@ -23,7 +23,7 @@ CORE_API bool GIgnoreDebugger = false;
 CORE_API TCHAR MiniDumpFilenameW[1024] = TEXT("");
 
 
-volatile int32 GImageIntegrityCompromised = 0;
+volatile int32 GCrashType = 0;
 
 void ReportImageIntegrityStatus(const TCHAR* InMessage)
 {
@@ -45,31 +45,31 @@ void ReportImageIntegrityStatus(const TCHAR* InMessage)
 void CheckImageIntegrity()
 {
 	FPlatformMisc::MemoryBarrier();
-	if (GImageIntegrityCompromised > 0)
+	if (GCrashType > 0)
 	{		
-		const FString ErrorMessage = FString::Printf(TEXT("Image integrity compromised (%d)"), GImageIntegrityCompromised);
+		const FString ErrorMessage = FString::Printf(TEXT("Unexpected crash type detected (%d)"), GCrashType);
 		ReportImageIntegrityStatus(*ErrorMessage);
-		GImageIntegrityCompromised = 0;
+		GCrashType = 0;
 	}
 }
 
 void CheckImageIntegrityAtRuntime()
 {
 	FPlatformMisc::MemoryBarrier();
-	if (GImageIntegrityCompromised > 0)
+	if (GCrashType > 0)
 	{		
-		const FString ErrorMessage = FString::Printf(TEXT("Image integrity compromised at runtime (%d)"), GImageIntegrityCompromised);
+		const FString ErrorMessage = FString::Printf(TEXT("Unexpected crash type detected at runtime (%d)"), GCrashType);
 		ReportImageIntegrityStatus(*ErrorMessage);
-		GImageIntegrityCompromised = 0;
+		GCrashType = 0;
 	}
 }
 
-void SetImageIntegrtiryStatus(int32 Status)
+void SetCrashType(ECrashType InCrashType)
 {
-	GImageIntegrityCompromised = Status;
+	GCrashType = (int32)InCrashType;
 }
 
-int32 GetImageIntegrityStatus()
+int32 GetCrashType()
 {
-	return GImageIntegrityCompromised;
+	return GCrashType;
 }

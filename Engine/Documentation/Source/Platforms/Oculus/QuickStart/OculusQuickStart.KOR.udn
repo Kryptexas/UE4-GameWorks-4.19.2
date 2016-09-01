@@ -1,8 +1,14 @@
-﻿INTSourceChangelist:2300073
+﻿INTSourceChangelist:2975673
 Title:오큘러스 리프트 퀵스타트
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
 Description:오큘러스 리프트용 게임 셋업 및 실행 관련 안내입니다.
 Availability:Public
+Version: 4.11
+SkillLevel: Intermediate
+parent:Platforms/Oculus
+type:quickstart
+tags:VR
+tags:Oculus Rift
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,7 +45,7 @@ Availability:Public
 [/VAR]
 
 
-오큘러스 퀵스타트는 컴퓨터와 오큘러스 리프트를 언리얼 엔진에 맞게 셋업하는 법과 아울러, 가상현실용으로 제공된 샘플 콘텐츠 약간을 플레이하는 법에 대해서도 안내해 드립니다.
+오큘러스 퀵스타트는 컴퓨터와 오큘러스 리프트를 언리얼 엔진 4 에 맞게 셋업하는 법을 안내해 드립니다.
 
 
 

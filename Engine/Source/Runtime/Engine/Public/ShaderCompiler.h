@@ -379,6 +379,11 @@ private:
 	 */
 	double WorkersBusyTime;
 
+	/** 
+	 * Tracks which opt-in shader platforms have their warnings suppressed.
+	 */
+	uint64 SuppressedShaderPlatforms;
+
 	/** Launches the worker, returns the launched process handle. */
 	FProcHandle LaunchWorker(const FString& WorkingDirectory, uint32 ProcessId, uint32 ThreadId, const FString& WorkerInputFile, const FString& WorkerOutputFile);
 
@@ -436,6 +441,15 @@ public:
 		return AbsoluteShaderDebugInfoDirectory;
 	}
 
+	bool AreWarningsSuppressed(const EShaderPlatform Platform) const
+	{
+		return (SuppressedShaderPlatforms & (static_cast<uint64>(1) << Platform)) != 0;
+	}
+
+	void SuppressWarnings(const EShaderPlatform Platform)
+	{
+		SuppressedShaderPlatforms |= static_cast<uint64>(1) << Platform;
+	}
 
 	/** 
 	 * Adds shader jobs to be asynchronously compiled. 

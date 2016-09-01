@@ -1,56 +1,58 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Material Editor - How To Preview and Apply your Materials
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for Previewing and Applying your Materials
-Related: Engine/Rendering/Materials/Editor/Interface
-Related: Engine/Rendering/Materials/MaterialInputs
-Related: Engine/Rendering/Materials/Editor
-Related: Engine/Rendering/Materials/IntroductionToMaterials
-Related: Engine/Rendering/Materials/MaterialProperties
+﻿INTSourceChangelist:2731779
+Availability:Public
+Title:材质编辑器 - 如何预览和应用材质
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
+Description:有关预览和应用材质的操作指南
+Related:Engine/Rendering/Materials/Editor/Interface
+Related:Engine/Rendering/Materials/MaterialInputs
+Related:Engine/Rendering/Materials/Editor
+Related:Engine/Rendering/Materials/IntroductionToMaterials
+Related:Engine/Rendering/Materials/MaterialProperties
+Version:4.9
+SkillLevel:Beginner
 
 [TOC(start:2 end:3)]
 
 
 
-Previewing and applying your Materials is something that you will have to do quite often to make sure that you are getting the exact results you want. 
-Unreal Engine 4 (UE4) makes both previewing and applying materials a very straight forward process.
-In the following How - To, we will cover all you need to know about how to preview and apply your Materials in UE4.
+预览和应用材质是您经常要执行的操作，这可确保您获得所需的准确结果。 
+在虚幻引擎 4 (UE4) 中，预览和应用材质是一个直截了当的过程。
+在以下操作指南中，我们将阐述在 UE4 中预览和应用材质所需了解的所有内容。
 
-## Previewing and Applying Materials
+## 预览和应用材质
 
-Previewing and Applying your Materials is of critical importance to the Material creation process because this is how you will be able to see and apply the results of what was created in the Material Graph.
-When you are Previewing a Material, you are seeing what the changes would look like.
-If you want what the changes you are previewing to be applied to the Material, you need to compile the Material by pressing the **Apply** or **Save** button.
-This will then update the Material to include the changes you were just previewing.
+预览和应用材质是材质创建过程中的关键步骤，因为只有通过这些步骤，您才能查看并应用材质图中的工作成果。
+预览材质时，您将看到更改后的效果。
+如果要将预览的更改应用于材质，您需要按 **应用（Apply）**或 **保存（Save）**按钮来编译材质。
+这样就会更新材质，使其包含您刚刚预览的更改。
 
 ![](Engine\Rendering\Materials\HowTo\Refraction\R_Apply_&_Save.png)
 
-## How to Preview your Materials
+## 如何预览材质
 
-You can preview your Materials a number of different ways inside of UE4, but the easiest way to preview your Materials is via the Material editor **Viewport** window. 
-The **Viewport*** window has a number of different options that make previewing your material very easy and straight forward. 
-The image below shows a breakdown of the window and what its various options do.
+在 UE4 中，您可以通过多种不同方法来预览材质，但最简单的方法是使用材质编辑器的 **视口（Viewport）**窗口。 
+视口（Viewport）窗口提供了许多不同的选项，使您能够轻松快捷地预览材质。 
+下图显示此窗口的明细及各种选项的功能。
 
 ![](Previewing_Applying_Viewport_Breakdown.png)
 
-|Number | Property| Description|
+|编号 | 属性 | 描述|
 |-------|---------|------------|
-|1 | Preview Object | This is a preview mesh that you can use for previewing how your material will look on different objects. |
-|2 | Cylinder Preview Mesh | This will change your preview mesh into a cylindrical mesh. |
-|3 | Sphere Preview Mesh   | This will change your preview mesh into a sphere mesh which is the default preview mesh. |
-|4 | Plane Preview Mesh    | This will change your preview mesh into a plane mesh. |
-|5 | Cube Preview Mesh     | This will change your preview mesh into a cube mesh. |
-|6 | Teapot Preview Mesh   | This will change your preview mesh into whatever mesh you currently have selected inside the **Content Browser**. |
-|7 | Grid Icon		       | This will turn on or off the preview grid. |
-|8 | Watch Icon			   | This will enable real time rendering of the material allowing you to see how this material would work during a running game. |
+|1 | 预览对象（Preview Object） | 这是预览网格，可用于预览材质在不同对象上的显示效果。|
+|2 | 圆柱体预览网格（Cylinder Preview Mesh） | 将预览网格更改为圆柱体网格。|
+|3 | 球体预览网格（Sphere Preview Mesh） | 将预览网格更改为球体网格（默认预览网格）。|
+|4 | 平面预览网格（Plane Preview Mesh） | 将预览网格更改为平面网格。|
+|5 | 立方体预览网格（Cube Preview Mesh） | 将预览网格更改为立方体网格。|
+|6 | 茶壶预览网格（Teapot Preview Mesh）| 将预览网格更改为您在内容浏览器中当前选择的任何网格。|
+|7 | 栅格图标（Grid Icon）| 开启或关闭预览栅格。|
+|8 | 手表图标（Watch Icon）| 启用材质的实时渲染，这可让您查看此材质在游戏运行期间的效果。|
 
 [Region:tip]
-While inside of the Material Editor, if you use your mouse cursor to hover over the icons, you will get a little description about what each of the properties does if you forget. 
+在材质编辑器中，如果您忘记了属性的功能，可以将鼠标光标悬停在图标上，这样就能看到有关各属性的简短功能说明。 
 [/region]
 
-While you are creating your materials in the Material Editor, the **Viewport** window will update with your changes in real time if you have real time enabled (Real time is enabled by default). 
-To see the changes happen, all you have to do is adjust any parameter that is currently hooked up to any of the Main Material Nodes like in the following example.
+在材质编辑器中创建材质时，如果启用了实时功能（默认情况下启用），那么视口（Viewport）窗口将实时更新，以显示您的更改。 
+要查看发生的更改，您只需调整当前与任何主材质节点挂钩的任何参数，如以下示例所示。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -65,36 +67,36 @@ TDn_9Dg1s-Q
 [/OBJECT]
 
 [region:note]
- When making any changes to your Material Network, it could take some time for the changes to be rendered correctly. The more complex your material becomes, the longer it could take for the preview window to update. If you find that you really need a quicker update, you should look into making your Material into a [Material Instance](Engine/Rendering/Materials/MaterialInstances). 
+ 对材质网络进行任何更改后，可能要经过一小段时间才能正确渲染这些更改。材质越复杂，更新预览窗口就需要越多的时间。如果您觉得确实需要加快更新速度，那么应考虑将材质转换为 [材质实例] (Engine/Rendering/Materials/MaterialInstances)。 
 [/region]
 
-### Previewing in the Level
+### 在关卡中预览
 
 [region:warning]
-The following feature will only work in Unreal Engine version **4.6** or later. 
+以下功能仅在虚幻引擎 **4.6** 版或更高版本中有效。 
 [/region]
 
-In Unreal Engine version 4.6 and later, you can adjust Scalar or Vector parameters inside Materials and see the results instantly in all 3D Viewports. 
-This is especially useful for Material Functions that implement layers, as you can see the results of a tweak to the layer on all the Materials in the scene that use that function instantly instead of having to wait for the Material to re-compile.
-To enable this functionality, you need to make sure that the Material meets the following requirements. 
+在虚幻引擎 4.6 版和更高版本中，您可以调整材质中的标量或矢量参数，然后立即可在所有 3D 视口中看到结果。 
+这对于实现图层的材质函数特别有用，因为您可以即时查看针对场景中所有使用该函数的材质调整图层的结果，而不必等待材质重新编译。
+要启用此功能，必须确保材质满足以下需求。 
 
-1. First make sure that the Material that you want to preview is applied to something in the level. 
+1.  首先，确保要预览的材质应用于关卡中的某个对象。 
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-SvCjqU1XDzY
-[/PARAMLITERAL]
-[/OBJECT]
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	SvCjqU1XDzY
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. Inside of the Material, make sure that you are using **Scalar** or **Vector Parameters** as inputs for the properties you want to change. 
-	Previewing like this will not work with **Constant** Material Expression nodes, you have to use or convert the Material Expression nodes you want to tweak into **Parameter** nodes.
-	It is very important that the Material Expression inputs that you convert to preview have unique names or this will not work.
+1.  在材质内部，请确保正在使用 **标量** 或 **矢量参数** 作为要更改的属性的输入。 
+	此类预览不适用于 **常量** 材质表达式节点，您必须使用 **参数** 节点，或将您要调整的材质表达式节点转换为 **参数** 节点。
+	重要的是，要转换以进行预览的材质表达式输入必须具有唯一的名称，否则无法转换。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -108,56 +110,56 @@ SvCjqU1XDzY
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1.   To see the changes happen in real time in the level viewport, adjust the value of the Scalar or Vector parameters inside the Material. 
-	The adjustments that you make should then be displayed, in real time, in the level viewport.
+1.  要在关卡视口中实时查看发生的更改，请调整材质中标量或矢量参数的值。 
+	然后，您所作的调整将在关卡视口中实时显示。
  
 	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:width]
-		640
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		360
-		[/PARAMLITERAL]
-		[PARAMLITERAL:videoid]
-		gKSnoGXuaKQ
-		[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	gKSnoGXuaKQ
+	[/PARAMLITERAL]
 	[/OBJECT]
 
-## How to Apply your Materials 
+## 如何应用材质 
 
-There are two main ways that you can apply Materials to objects inside of UE4.
-* **Drag and Drop** - You can drag any Material from the **Content Browser** and then drop it on any object in the level to change its material like in the following example:
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-57tC0KaB2BU
-[/PARAMLITERAL]
-[/OBJECT]
+在 UE4 中，可通过两种主要的方法将材质应用于对象。
+* **拖放** - 您可以从 **内容浏览器** 将任何材质拖放到关卡中的任何对象上，这样即可更改该对象的材质，如以下示例所示：
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	57tC0KaB2BU
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-* **Apply via Object's Details Panel** - You can also apply materials via the object's **Details** panel by using the **Use selected asset from Content Browser** button like in the following example.
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-fSLRV947n7A
-[/PARAMLITERAL]
-[/OBJECT]
+* **通过对象的细节面板应用** - 您也可以使用对象 **细节（Details）**面板中的 **使用内容浏览器中选择的资产（Use selected asset from Content Browser）**按钮来应用材质，如以下示例所示。
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	fSLRV947n7A
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
-## Conclusion
+## 总结
 
-As you can see, there are a number of different ways you can Preview and Apply your Materials in UE4. 
-The method that you choose to Preview and Apply your Materials is whatever method works best with your work flow. 
-Remember that if you are previewing something, make sure to press the **Apply** and **Save** buttons when completed or you run the risk of losing / not seeing your work. 
+如您所见，在 UE4 中，可通过许多不同方法来预览和应用材质。 
+您可以根据工作流程，选择最合适的方法来预览和应用材质。 
+请记住，完成预览时，务必按 **应用（Apply）**和 **保存（Save）**按钮，否则有丢失/看不到您的工作成果的风险。 
 
 ![](Engine\Rendering\Materials\HowTo\Refraction\R_Apply_&_Save.png)
 

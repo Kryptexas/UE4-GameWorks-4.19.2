@@ -2,9 +2,10 @@ Availability:Public
 Title: Behavior Trees Nodes Reference
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Reference for the Behavior Tree nodes.
+version: 4.9
 
 
-This is a reference for the default nodes available in the Behavior Tree Editor. You may see more depending on the project you are working with (such as Shooter Game). There are five types of Behavior Tree Nodes:
+This is a reference for the default nodes available in the **Behavior Tree Editor**. You may see more depending on the project you are working with (such as Shooter Game). There are five types of Behavior Tree Nodes:
 
 | Node Type | Description |
 | --- | --- |

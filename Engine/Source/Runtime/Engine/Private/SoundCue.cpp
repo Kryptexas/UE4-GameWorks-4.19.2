@@ -6,6 +6,7 @@
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "Sound/SoundNodeQualityLevel.h"
+#include "Sound/SoundNodeSoundClass.h"
 #include "Sound/SoundWave.h"
 #include "GameFramework/GameUserSettings.h"
 #if WITH_EDITOR
@@ -257,10 +258,10 @@ FString USoundCue::GetDesc()
 	FString Description = TEXT( "" );
 
 	// Display duration
-	const float Duration = GetDuration();
-	if( Duration < INDEFINITELY_LOOPING_DURATION )
+	const float CueDuration = GetDuration();
+	if( CueDuration < INDEFINITELY_LOOPING_DURATION )
 	{
-		Description = FString::Printf( TEXT( "%3.2fs" ), Duration );
+		Description = FString::Printf( TEXT( "%3.2fs" ), CueDuration );
 	}
 	else
 	{
@@ -363,9 +364,34 @@ float USoundCue::GetDuration()
 	return Duration;
 }
 
+bool USoundCue::ShouldApplyInteriorVolumes() const
+{
+	if (Super::ShouldApplyInteriorVolumes())
+	{
+		return true;
+	}
+
+	// TODO: Consider caching this so we only reevaluate in editor
+	TArray<UObject*> Children;
+	GetObjectsWithOuter(this, Children);
+
+	for (UObject* Child : Children)
+	{
+		if (USoundNodeSoundClass* SoundClassNode = Cast<USoundNodeSoundClass>(Child))
+		{
+			if (SoundClassNode->SoundClassOverride && SoundClassNode->SoundClassOverride->Properties.bApplyAmbientVolumes)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 bool USoundCue::IsPlayable() const
 {
-	return FirstNode != NULL;
+	return FirstNode != nullptr;
 }
 
 void USoundCue::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )

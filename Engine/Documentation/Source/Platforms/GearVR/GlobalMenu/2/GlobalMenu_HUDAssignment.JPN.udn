@@ -1,43 +1,43 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2611017
 Availability:Public
-Title:Samsung Gear VR Global Menu HUD Assignment
+Title:Samsung Gear VR の Global Menu で HUD を割り当てる
 Crumbs:%ROOT%, Platforms/GearVR
-Description: How to assign the new HUD to your project
+Description:作成した HUD をプロジェクトへ割り当てる方法
 Navigation:platform
 Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.8
+Skilllevel:Intermediate
+Version:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-	[Previous Step](Platforms/GearVR/GlobalMenu/1 "%Platforms/GearVR/GlobalMenu/1:title%")
+	[前のステップ](Platforms/GearVR/GlobalMenu/1 "%Platforms/GearVR/GlobalMenu/1:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Platforms/GearVR/GlobalMenu)
+		[クイックスタート ホーム](Platforms/GearVR/GlobalMenu)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Platforms/GearVR/GlobalMenu/3 "%Platforms/GearVR/GlobalMenu/3:title%")
+		[次のステップ](Platforms/GearVR/GlobalMenu/3 "%Platforms/GearVR/GlobalMenu/3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-With the HUD now created, it is now time to assign it so the project you are working with will use this HUD instead of the default one. 
-To accomplish this please do the following:
+HUD を作成したので、次は実際に作業するプロジェクト上でこの HUD を使用できるように (デフォルトの HUD ではなく) 割り当てを行います。 
+割り当ては以下のように行います。
 
-1. On the Main Toolbar, click on the  **Blueprints** icon to expose the Blueprint options for this level.
+1. メイン ツールバーの **[Blueprints]** アイコンをクリックして、このレベルに対するブループリント オプションを表示します。
 
 	![](T_BP_Options.png)
 
-1. From the Blueprints menu, move the mouse over the **Game Mode** settings in the **Project Settings** section to expose the **Game Mode Classes** section.
+1. [Blueprints] メニューの **[Project Settings (プロジェクト設定)]** の **[Game Mode (ゲームモード)]** 設定にカーソルを当てて、**[Game Mode Classes]** セクションを開きます。
 
 	![](T_GameMode_Settings.png)
 
-1. In the **Game Mode Classes** move the mouse to the section that says **HUD:New** and then from the menu that is displayed, select the **Select HUD Class** option, then select the **GearVR_GlobalMenu** HUD.
+1. **[Game Mode Classes]** の中の **[HUD:New]** にカーソルを当てると表示されるメニューから **[Select HUD Class]** オプション、続いて **[GearVR_GlobalMenu]** HUD を選びます。
 
 	![](T_Assign_HUD.png)
 

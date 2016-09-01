@@ -1167,8 +1167,13 @@ class FStructOnScope
 protected:
 	TWeakObjectPtr<const UStruct> ScriptStruct;
 	uint8* SampleStructMemory;
+	TWeakObjectPtr<UPackage> Package;
 
-	FStructOnScope() : SampleStructMemory(NULL) {}
+	FStructOnScope()
+		: SampleStructMemory(nullptr)
+		, OwnsMemory(false)
+	{
+	}
 
 	void Initialize()
 	{
@@ -1184,7 +1189,8 @@ public:
 
 	FStructOnScope(const UStruct* InScriptStruct)
 		: ScriptStruct(InScriptStruct)
-		, SampleStructMemory(NULL)
+		, SampleStructMemory(nullptr)
+		, OwnsMemory(false)
 	{
 		Initialize();
 	}
@@ -1193,7 +1199,8 @@ public:
 		: ScriptStruct(InScriptStruct)
 		, SampleStructMemory(InData)
 		, OwnsMemory(false)
-	{ }
+	{
+	}
 
 	virtual uint8* GetStructMemory()
 	{
@@ -1208,6 +1215,16 @@ public:
 	virtual const UStruct* GetStruct() const
 	{
 		return ScriptStruct.Get();
+	}
+
+	virtual UPackage* GetPackage() const
+	{
+		return Package.Get();
+	}
+
+	virtual void SetPackage(UPackage* InPackage)
+	{
+		Package = InPackage;
 	}
 
 	virtual bool IsValid() const
@@ -1588,9 +1605,10 @@ public:
 	 *
 	 * @param InNames List of enum names.
 	 * @param InCppForm The form of enum.
+	 * @param bAddMaxKeyIfMissing Should a default Max item be added.
 	 * @return	true unless the MAX enum already exists and isn't the last enum.
 	 */
-	virtual bool SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm InCppForm);
+	virtual bool SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing = true);
 
 	/**
 	 * @return	The enum name at the specified Index.
@@ -1678,7 +1696,9 @@ public:
 	 * @return The tooltip for this object.
 	 */
 	FText GetToolTipText(int32 NameIndex=INDEX_NONE) const;
+#endif
 
+#if WITH_EDITOR || HACK_HEADER_GENERATOR
 	/**
 	 * Wrapper method for easily determining whether this enum has metadata associated with it.
 	 * 
@@ -1997,6 +2017,11 @@ public:
 
 	// The class default object; used for delta serialization and object initialization
 	UObject* ClassDefaultObject;
+
+	/**
+	* Assemble reference token streams for all classes if they haven't had it assembled already
+	*/
+	static void AssembleReferenceTokenStreams();
 
 private:
 	/** Map of all functions by name contained in this class */
@@ -2368,8 +2393,9 @@ public:
 	 * Assembles the token stream for realtime garbage collection by combining the per class only
 	 * token stream for each class in the class hierarchy. This is only done once and duplicate
 	 * work is avoided by using an object flag.
+	 * @param bForce Assemble the stream even if it has been already assembled (deletes the old one)
 	 */
-	void AssembleReferenceTokenStream();
+	void AssembleReferenceTokenStream(bool bForce = false);
 
 	/** 
 	 * This will return whether or not this class implements the passed in class / interface 
@@ -2515,6 +2541,7 @@ public:
 
 	// UClass interface
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
+	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
 
 	/** Misc objects owned by the class. */
 	TArray<UObject*> MiscConvertedSubobjects;
@@ -2866,7 +2893,7 @@ T* ConstructObject(UClass* Class, UObject* Outer, FName Name, EObjectFlags SetFl
 template< class T > 
 inline const T* GetDefault(UClass *Class)
 {
-	checkSlow(Class->GetDefaultObject()->IsA(T::StaticClass()));
+	check(Class->GetDefaultObject()->IsA(T::StaticClass()));
 	return (const T*)Class->GetDefaultObject();
 }
 
@@ -2882,7 +2909,7 @@ inline const T* GetDefault(UClass *Class)
 template< class T > 
 inline T* GetMutableDefault(UClass *Class)
 {
-	checkSlow(Class->GetDefaultObject()->IsA(T::StaticClass()));
+	check(Class->GetDefaultObject()->IsA(T::StaticClass()));
 	return (T*)Class->GetDefaultObject();
 }
 

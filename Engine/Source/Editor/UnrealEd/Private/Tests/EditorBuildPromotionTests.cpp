@@ -53,6 +53,10 @@
 #include "LightingBuildOptions.h"
 #include "../Private/StaticLightingSystem/StaticLightingPrivate.h"
 
+//Animation
+#include "Animation/AnimSequence.h"
+
+
 #include "ScopedTransaction.h"
 #include "LevelEditor.h"
 #include "ObjectTools.h"

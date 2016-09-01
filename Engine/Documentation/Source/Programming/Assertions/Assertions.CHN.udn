@@ -1,65 +1,65 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2638793
 Availability:Public
-Title: Assertions
+Title:断言
 Crumbs:
 Description:
-Version:4.7
+Version:4.9
 
-Assertions are tool to verify assumptions that a given piece of code relies on. This can be as simple as verifying that a pointer is not NULL or as complicated as verifying a particular function is not reentered. UE4 provides a series of macros to perform these types of validations. They are macros so that they can compile out in certain build configurations, either for performance reasons or because they aren't needed in a final build. If you want to see the macros for yourself, you can find them in:
+断言是一种工具，用于确认一段给定代码所依赖的假设。简单而言，它可确认指针不为 NULL；复杂而言，它可确认特定函数无法被重新进入。UE4 提供一系列宏，以执行这些类型的确认。它们为宏，以便在特定编译配置中进行译出（出于性能因素或因为最终版本中不需要它们）。在以下路径中可查看宏：
 
 `/UE4/Engine/Source/Runtime/Core/Public/Misc/AssertionMacros.h.`
 
-The runtime assertion macros fall into three categories: halt execution, halt execution in debug builds, and report errors without halting execution. The first and third types are compiled depending on the DO_CHECK define. The second type are compiled using the DO_GUARD_SLOW define. If either of those defines are set to 0, the macros are disabled and won't affect execution.
+运行时断言宏有三种类型：停止执行、在调试版本中停止执行和不停止执行报告错误。第一种和第三种类型的编译取决于 DO_CHECK 定义。第二种类型的编译使用 DO_GUARD_SLOW 定义。如任意定义设为 0，宏将被禁用且不影响执行。
 
-Let's take a look at the first class of assertion macros. The macros below all halt execution when the assertion fails to be true. If you are running within a debugger, the assertion will cause a breakpoint to occur so that you can inspect how you got to that point.
+我们一起来看看断言宏的第一类。如断言不为 true，以下宏将全部停止执行。如在调试器中运行，断言将导致断点的出现，以便查看如何到达此点。
 
 **check(expression);**
 
-This macro executes the expression and, if it results in a false assertion, halts execution. The expression is only executed if the macro is compiled into the build (DO_CHECK=1). This is the simplest form of the check() macros.
+此宏执行表达式；如出现 false 的断言，将停止执行。在宏被编译到版本中后（DO_CHECK=1），才会执行表达式。这是 check() 宏的最简单形态。
 
-Examples:
+范例：
 
 	check(Mesh != nullptr);
 	check(bWasInitialized && "Did you forget to call Init()?");
 
 **verify(expression);**
 
-When DO_CHECK is enabled, this macro behaves exactly the same as check(). However, when DO_CHECK is disabled, the expression is still executed. You can use this to verify the assignment of a variable meets your assumptions.
+启用 DO_CHECK 后，此宏的行为与 check() 完全相同。然而 DO_CHECK 被禁用后表达式仍然在执行。可使用它确认变量的指定符合假设。
 
-Examples:
+范例：
 
 	verify((Mesh = GetRenderMesh()) != nullptr);
 
 **checkf(expression, ...);**
 
-The checkf() macro allows you to assert an expression is true and print extra information to aid during debugging. It behaves the same as check() in terms of compilation behavior.
+checkf() 宏允许您将一个表达式断言为 true，并在调试时打印有帮助的额外信息。在编译行为方面，它和 check() 行为相同。
 
-Examples:
+范例：
 
 	checkf(WasDestroyed, TEXT( "Failed to destroy Actor %s (%s)"), *Actor->GetClass()->GetName(), *Actor->GetActorLabel());
 	checkf( TCString<ANSICHAR>::Strlen( Key ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES_KEY needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
 
 **verifyf(expression, ...);**
 
-Just like the verify() macro always executes the expression, so does verifyf(). Similarly, it halts execution with an additional debug message, just like checkf();
+verify() 宏固定执行表达式，verifyf() 也是如此。和 checkf(); 一样，它通过额外的调试信息停止执行
 
-Example:
+范例：
 
 	verifyf(Module_libeay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
 
 **checkCode(expression);**
 
-This macro is a little bit more complicated than the usual check(). This macro executes expression inside a do/while loop that executes once. The expression is placed inside the do/while brackets scoping it. This not often used in the engine, but is available if you need it. Just like a standard check() macro, this macro compiles out when DO_CHECK is disabled. Because of this do not use an expression that has needed side effects, since the code is removed when DO_CHECK is disabled.
+与通常的 check() 相比，该宏稍显复杂。该宏在执行一次的 do/while 循环中执行表达式。表达式被放置在标出其范围的 do/while 括号中。这在引擎中不常用，但如有需要也可使用。和一个标准 check() 宏相同，DO_CHECK 被禁用时此宏将编译出结果。不使用存在必需副作用的表达式，因为 DO_CHECK 被禁用时代码已移除。
 
-Example:
+范例：
 
-	checkCode( if( Object->HasAnyFlags( RF_PendingKill ) ) { UE_LOG(LogUObjectGlobals, Fatal, TEXT("Object %s is part of root set though has been marked RF_PendingKill!"), *Object->GetFullName() ); } );
+	checkCode( if( Object->HasAnyFlags( RF_PendingKill ) ) { UE_LOG(LogUObjectGlobals, Fatal, TEXT(“对象 %s 是被标记为 RF_PendingKill! 的根集的一部分”), *Object->GetFullName() ); } );
 
 **checkNoEntry();**
 
-This macro doesn't take an expression and is used to mark code paths that should never execute.
+此宏不接受表达式，用于标记从不执行的代码路径。
 
-Example:
+范例：
 
 	switch (MyEnum)
 	{
@@ -72,9 +72,9 @@ Example:
 
 **checkNoReentry();**
 
-The checkNoReentry() macro is used to prevent calls from being reentrant to a given function. Use it for functions that should only be called once and must be completed before being called again.
+checkNoReentry() 宏可防止调用重新进入一个给定函数。在只应被调用一次的函数上使用它，必须完成后方可再次被调用。
 
-Example:
+范例：
 
 	void NoReentry()
 	{
@@ -83,9 +83,9 @@ Example:
 
 **checkNoRecursion();**
 
-Performs the same check as checkNoReentry(), but uses a name that is more clear to its intent.
+执行和 checkNoReentry() 相同的检查，但使用能更清楚表达含义的命名。
 
-Example:
+范例：
 
 	int32 Recurse(int32 A, int32 B)
 	{
@@ -95,34 +95,34 @@ Example:
 
 **unimplemented();**
 
-The last macro in the first class of DO_CHECK macros is used to mark a function that should be overridden or not to be called on a specific class because the function is contains no implementation.
+DO_CHECK 宏第一类中的最后一个宏用于标记在特定类上应被覆写或不应被调用的函数，因为此函数不包含实现。
 
-Example:
+范例：
 
 	class FNoImpl
 	{
 		virtual void DoStuff()
 		{
-			// You must override this
+			// 必须对此进行覆写
 			unimplemented();
 		}
 	};
 
-The second class of assertion macros are only executed when DO_GUARD_SLOW is enabled. DO_GUARD_SLOW is typically enabled only for debug builds, though you can change that for your project. These are expected to be slower, more pedantic checks that aren't needed in development or shipping builds. These macros all perform the same as their non-Slow counterparts. The macros are checkSlow(), checkfSlow(), and verifySlow(). 
+启用 DO_GUARD_SLOW 后，断言宏的第二类才会执行。DO_GUARD_SLOW 通常只在调试版本中启用，但也可针对项目进行修改。它们的运行较为缓慢，在开发或发布版本中不需要进行许多无谓的检查。这些宏的执行与较快的宏并无差异。这些宏是 checkSlow()、checkfSlow() 和 verifySlow()。 
 
-Examples:
+范例：
 
 	checkSlow(List->HasCycle());
 	checkfSlow(Class->IsA(AActor::StaticClass()), TEXT("Class (%s) is wrong type"), Class->GetName());
 	verifySlow(LastValue == Current);
 
-The final class of runtime assertions do not halt execution, but, instead, are used to create a callstack report to aid in tracking down issues. The expression in these macros is always executed and can be placed inside conditionals. These macros are enabled with the DO_CHECK define.
+运行时断言的最终类不会停止执行，它用于创建一个调用堆栈报告，帮助追踪问题。这些宏中的表达式固定被执行，并可被放置在条件语句中。这些宏可通过 DO_CHECK 定义启用。
 
 **ensure(expression);**
 
-Verifies the expression and if it fails generates a callstack leading to that point.
+确认表达式，以及引导到此点调用堆栈的生成是否失败。
 
-Example:
+范例：
 
 	if (ensure( InObject != NULL ))
 	{
@@ -131,17 +131,17 @@ Example:
 
 **ensureMsg(expression, message);**
 
-Verifies the expression and generates a callstack with the additional message as part of the report.
+确认表达式并生成一个带额外信息的调用堆栈（作为报告的部分）。
 
-Example:
+范例：
 
 	ensureMsg(Node != nullptr, TEXT("Node is invalid"));
 
 **ensureMsgf(expression, message, ...);**
 
-Verifies the expression and includes even more information coupled with the callstack for the generated report. Just like checkf() or verifyf(), you can include contextual information to aid in tracking down the issue.
+确认表达式并包含带生成报告调用堆栈的更多信息。和 checkf() 或 verifyf() 相同，包括上下文信息有助于追踪问题。
 
-Example:
+范例：
 
 	if (ensureMsgf(!bModal, TEXT("Could not create dialog because modal is set to (%d)"), int32(bModal)))
 	{

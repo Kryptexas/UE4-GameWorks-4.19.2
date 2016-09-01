@@ -145,6 +145,8 @@ void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& 
 	}
 }
 
+extern float GetSceneColorClearAlpha();
+
 static void UpdatePlanarReflectionContents_RenderThread(
 	FRHICommandListImmediate& RHICmdList, 
 	FSceneRenderer* MainSceneRenderer, 
@@ -209,7 +211,8 @@ static void UpdatePlanarReflectionContents_RenderThread(
 				const FRenderTarget* Target = SceneRenderer->ViewFamily.RenderTarget;
 				SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL, true);
 
-				// Clear color alpha to 1 so we know which parts got written to (base pass writes 0)
+				// Note: relying on GBuffer SceneColor alpha being cleared to 1 in the main scene rendering
+				check(GetSceneColorClearAlpha() == 1.0f);
 				RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 
 				// Render the scene normally
@@ -217,7 +220,8 @@ static void UpdatePlanarReflectionContents_RenderThread(
 					SCOPED_DRAW_EVENT(RHICmdList, RenderScene);
 					SceneRenderer->Render(RHICmdList);
 				}
-				if(MainSceneRenderer->Scene->ShouldUseDeferredRenderer())
+
+				if (MainSceneRenderer->Scene->GetShadingPath() == EShadingPath::Deferred)
 				{
 					PrefilterPlanarReflection<true>(RHICmdList, View, SceneProxy, Target);
 					RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);
@@ -233,7 +237,7 @@ static void UpdatePlanarReflectionContents_RenderThread(
 	}
 }
 
-extern void BuildProjectionMatrix(FIntPoint RenderTargetSize, float FOV, FMatrix& ProjectionMatrix);
+extern void BuildProjectionMatrix(FIntPoint RenderTargetSize, ECameraProjectionMode::Type ProjectionType, float FOV, float OrthoWidth, FMatrix& ProjectionMatrix);
 
 extern FSceneRenderer* CreateSceneRendererForSceneCapture(
 	FScene* Scene,
@@ -290,7 +294,13 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 
 		FPostProcessSettings PostProcessSettings;
 		PostProcessSettings.bOverride_AntiAliasingMethod = true;
-		PostProcessSettings.AntiAliasingMethod = AAM_TemporalAA;
+
+		static IConsoleVariable* CVarDefaultAntiAliasing = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DefaultFeature.AntiAliasing"));
+		int32 Value = CVarDefaultAntiAliasing->GetInt();
+		if (Value >= 0 && Value < AAM_MAX)
+		{
+			PostProcessSettings.AntiAliasingMethod = (EAntiAliasingMethod)Value;
+		}
 
 		FMatrix ComponentTransform = CaptureComponent->ComponentToWorld.ToMatrixWithScale();
 		FPlane MirrorPlane = FPlane(ComponentTransform.TransformPosition(FVector::ZeroVector), ComponentTransform.TransformVector(FVector(0, 0, 1)));
@@ -303,7 +313,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 		float FOV = FMath::Atan(1.0f / ParentView.ViewMatrices.ProjMatrix.M[0][0]);
 
 		FMatrix ProjectionMatrix;
-		BuildProjectionMatrix(DesiredPlanarReflectionTextureSize, FOV + CaptureComponent->ExtraFOV * (float)PI / 180.0f, ProjectionMatrix);
+		BuildProjectionMatrix(DesiredPlanarReflectionTextureSize, ECameraProjectionMode::Perspective, FOV + CaptureComponent->ExtraFOV * (float)PI / 180.0f, 1.0f, ProjectionMatrix);
 
 		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, DesiredPlanarReflectionTextureSize, ViewRotationMatrix, ViewLocation, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, true, &PostProcessSettings, 1.0f);
 
@@ -321,6 +331,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 		// Jitter can't be removed completely due to the clipping plane
 		// Also, this prevents the prefilter pass, which reads from jittered depth, from having to do special handling of it's depth-dependent input
 		SceneRenderer->Views[0].bAllowTemporalJitter = false;
+		SceneRenderer->Views[0].bRenderSceneTwoSided = CaptureComponent->bRenderSceneTwoSided;
 
 		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
 

@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Mesh Simplifier</Name>
-  <Location>/Engine/Source/Developer/MeshSimplifier</Location>
-  <Date>2016-04-04T16:22:36.8581634-04:00</Date>
+  <Location>/Engine/Source/Developer/MeshSimplifier/</Location>
+  <Date>2016-06-10T17:29:01.9478221-04:00</Date>
   <Function />
   <Justification />
   <Platforms>
@@ -24,5 +24,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

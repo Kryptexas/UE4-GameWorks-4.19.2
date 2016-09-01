@@ -1,197 +1,160 @@
+﻿INTSourceChangelist:2697291
 Availability:Public
-Title:创建新景观
-Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/Tools, Engine/Landscape
+Title:创建地形
+Crumbs: %ROOT%, Engine, Engine/Landscape
+Description:新建地形地貌指南
+version:4.9
+
+[VAR:Topic]
+[OBJECT:Topiccompact]
+	[PARAM:image]
+		![%Engine/Landscape/Creation:title%](Engine/Landscape/Creation/landscape_create_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2)]
 
+得益于虚幻引擎 4（UE4）内置的地形编辑工具，可在项目中创建以巨大地形为基础的世界场景。 
+利用 **地形** 工具可创建以巨大地形为基础的世界场景，在多种设备上维持正常游戏的帧率。 
+地形系统具有高度的灵活性，可通过以下方法创建地形。 
 
+* 使用引擎中的地形工具可从零开始新建地形高度图。
+* 可导入虚幻编辑器中创建的地形高度图或通过外部工具进行创建。如需了解操作的详细步骤，请查阅
+	[创建自定义高度图和图层](Engine/Landscape/Custom) 文档。
 
-## 概述
+[REGION:note]
+如需了解地形工具操作范例，请查阅 [](Resources\ContentExamples\Landscapes) 内容范例。
+[/REGION]
 
-可以使用一些不同的方法创建景观。编辑工具可以创建一个全新的景观，导入之前在虚幻编辑器中或通过外部工具创建的高度贴图，或者转换使用虚幻引擎中以前的地形系统创建的现有地形。使用外部工具创建一个可以在其中工作的基类可能是加快景观创建过程的一种好方法。然后可以导入该基类并清除或者使用虚幻编辑器中的编辑工具进行修改，定制景观并使它可以与世界和预期的游戏性相符。很明显，可以将遗留的地形转换为景观，使它可以回收利用其中包含地形的现有地图并允许它们使用这个新系统和工具。这个转换过程是非常简单，因为它的大部分操作都是自动的。
+<!--
+如需了解关卡编辑器面板自定义的更多信息，请查阅 [关卡编辑器界面总览](Engine/UI/InterfaceOverview)。
+-->
 
+## 打开地形工具
 
+创建地形之前，须先在 **Modes** 面板中打开地形工具。 
+点击 **Modes** 面板顶部的山峰图标即可打开地形工具。
 
-## 景观大小
+![](Landscape_ModesPanel.png)
 
-Landscape（景观）高度贴图的有效大小在启动的时候通常不会立即就很明显。可以确定哪些尺寸对于高度贴图来说是有效的以及超出这个范围的哪些是最佳的，需要完全了解这个 Landscape（景观）的底层结构。为了创建一个在可以容纳巨大的地形同时从内存和性能的角度上看仍然是高效的系统，结构隐含性会将限制应用在这个高度贴图的尺寸规格上，也就是说有一些特定尺寸规格是有效，而其他不是有效的。在虚幻引擎之前的地形系统中，没有限制（例如，任何尺寸都是有效的都可以正常工作）或者限制非常简单（例如，只允许是两个高度贴图的平方幂数）。Landscape（风景）高度贴图上的限制更加复杂和僵硬。
+[REGION:tip]
+按下 **Shift + 3** 组合键可即时切换至地形工具。 
+[/REGION]
 
+打开地形工具后，如当前关卡中不存在其他地形 Actors，将自动前往 [管理模式](Engine/Landscape/Editing/ManageMode) 标签。 
+在地形管理模式中可创建新地形并修改现有地形及其组件。 
 
-### 风景组件
+![](Landscape_New_Manage_Tab.png)
 
-将景观划分为多个 Components（组成部分），它们都是虚幻中渲染、可见性计算和碰撞的基本单位。景观中的组成部分大小都一样，通常都是正方形。景观组成部分的大小由创建时间决定，如何选择取决于您希望创建的景观的大小和详细情况。
+[REGION:note]
+如关卡已包含一个或多个地形，**Manage** 标签的外观将有所不同。**Landscape Editor** 部分显示下拉菜单，**Selection** 工具也为可见状态。 
+可从此下拉菜单中选择需要使用的地形。 
 
-每个组件的高度数据都存储在单独的贴图中。由于这个原因，它的大小必须是顶点数的 2 的幂数。沿着两个相邻的组件的边的共享顶点行复制并存储在每个组件中。因此，考虑每个组件中的四边形的数量是有道理的。
+![](Landscape_Multiple_Landscapes_Actors.png)
+[/REGION]
 
-下面是一个包含四个组件的非常简单的 Landscape（景观）（用绿色描出的部分）。每个组件都有一个单独的四边形组成。已经分离了一个组件来说明如何在组件相交的时候复制顶点。
 
-![Landscape_Components.jpg](Landscape_Components.jpg)(w:256 h:256)
+## 使用地形工具新建地形
 
 
-### 组件部分
+在地形工具 **Manage** 标签的 **New Landscape** 部分中，可从零开始新建地形。 
 
-可以选择将组件分为 1 或 4 (2x2) 个子部分。这些部分都是景观 LOD 计算的基本单位。
+![Landscape_Create_Section.png](Landscape_Create_Section.png)(convert:false)
 
-从顶点的角度上看，每个部分的大小也必须是 2 的幂数（最大值高达 256）。因此，不同的 LOD 关卡可以被存储在这个贴图的 mipmap 中。这将会使组件中的四边形数量为 2 的幂数减 1（在每个组件有 1 个部分的情况下）或 2 的幂数减 2（在每个组件有 4 个部分的情况下）。
+| 属性名称：| 功能|
+|---|---|
+|**Create New:**| 在工具中新建一个地形高度图。|
+| **Import from File:**| 导入在外部程序中创建的地形高度图。 
+|**Material:**| 为地形指定材质。|
+|**Location:**| 设置世界场景中地形所在的位置。
+|**Rotation:**| 设置世界场景中地形的旋转。
+|**Scale:**| 设置世界场景中地形的比例。  
+|**Section Size:**| 用于设置地形 LOD 和消隐的分段尺寸。较小的尺寸使地形更积极地对分段设置 LOD，但 CPU 的消耗将增大。较大的尺寸即意味着组件较少，CPU 的消耗较小。创建大型地形时须使用较大的分段尺寸，因为在较小的分段尺寸下放大地形比例对 CPU 的消耗过大。
+|**Section Per Component**| 此属性对地形 LOD 有辅助作用。每个分段都是地形 LOD 的基础单元。一个组件可能拥有 2 x 2 的分段，意味着一个组件一次可渲染四个不同的 LOD。使用较大的分段尺寸可减少 CPU 计算时间，从而获得额外的益处。然而，地形同时渲染数量过多的顶点时可能出现问题。使用超大的地形区域时问题将普遍存在。这些问题在移动设备上可能尤为严重，因为绘制调用的数量将受到硬件限制。|
+|**Number of Components**| 和 section size 一同用于地形尺寸的设置。此数值的上限为 32 x 32，因为每个组件均会产生 CPU 消耗；超过此上限可能引起地形的性能问题。|
+|**Overall Resolution:**| 地形使用的顶点数量。|
+|**Total Components**:| 为地形所创建的组件总数。|
+|**Fill World**:| 使地形尽量变大。|
+|**Create:**| 使用特定设置在世界场景中创建地形。|
 
-下图是一个包含四个部分的单独组件（用绿色描出的部分）。每个部分由 9 (3x3) 个四边形组成。其次，您可以看到复制了部分相交的位置的顶点。
 
-![Landscape_Component_Sections.jpg](Landscape_Component_Sections.jpg)(w:256 h:256)
+在此例中，我们将在地形设置中使用下列默认值。 
 
+| 属性名称：| 数值|
+|---|---|
+| **Section Size:**| 63 x 63 Quads|
+| **Section Per Component:**| 1 x 1 Section|
+| **Number of Components:**| 8 x 8|
+| **Overall Resolution:**| 505 x 505|
 
-### 计算高度贴图大小
+[REGION:note]
+选择 **Section Size** 须注意：随着组件数量的增加，构建时间和性能均会受到较大影响。每个分段 63x63 quads 为推荐数值，在性能和尺寸之间达到了良好的平衡。
+[/REGION]
 
-正如您看到的一样，Landscape（景观）的大小由每个部分中的四边形数，每个组件中的部分数以及 Landscape（景观）中出现的组件数量决定。只要您确定了组件数量和每个这些组件的分辨率后，那么整体计算 Landscape（景观）的大小会变得毫无意义。
 
-下面是一些示例情况：
+设置完成后，**New Landscape** 属性框与下图类似。
 
-**示例 1**
+![Landscape_New_Heightmap_Size.png](Landscape_New_Heightmap_Size.png)(convert:false)
 
-<blockquote>
-如果我们开始使用的是一个由其中包含 64x64 个顶点的单独部分组成的组件，那么组件大小是 63x63 个四边形。假设我们有一个其中包含 10x10 个这些组件的景观，那么我们在我们的景观中有 630x630 个四边形。现在如果我们想要为这样的景观导入高度，那么我们必须有一个其中包含 631x631 个顶点的高度贴图，因为通常顶点行比四边形多一个（想一想一个 1x1 的四边形 - 它需要 4 个顶点）。 所以 631x631 是一个有效的景观大小。
-</blockquote>
+主视口中设置完成的新地形预览与下图相似。 
 
-**示例 2**
+![](Landscape_In-Editor_Preview.png)
 
-<blockquote>
-如果我们将一个组件划分为 4 个子部分，那么每个字部分都由 64x64 个顶点组成。这样每个部分就有 63x63 个四边形，每个组件有 126x126 个四边形。如果我们有 32x32 个这样的组件，我们在每个方向上总共有 126 * 32 = 4032 个四边形。所以整个景观将会是 4033x4033 个顶点。
-</blockquote>
+[REGION:tip]
+与普通 Actor 一样，地形 Actor 可进行移动、旋转和缩放。可拖动预览边缘对地形尺寸进行调整，以适配空间。
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+og7fnKaqYdI
+[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]
 
-这些示例集中研究的是方形景观。但是，您可以创建不是方形的 Landscape（景观）。例如，在第一个示例中，10x10 不是特殊的。假设每个组件有 63 个四边形，您可以使任何 AxB 组件的景观的总大小为 (A*63+1 , B*63+1) 个顶点。
 
+如有必要，可在创建前为地形指定材质。执行此操作的方法为：在 **Content Browser** 中选择材质，在 **Material** 旁边的 **New Landscape** 中点击箭头图标即可进行指定。
 
-### 性能注意事项
+![](Landscape_Assign_Material.png)
 
-组件大小 vs 组件的总数的选择会影响性能平衡。组件大小较小，那么 LOD 变换会更快，同时允许更多的地形遮挡，但是大小较小需要更多的组件。
+[REGION:note]
+如需了解地形材质的更多内容，请查阅 [](Engine/Landscape\Materials)。
+[/REGION]
 
-每个组件都有一个渲染线程 CPU 处理消耗，而每个部分都是一个绘制调用，所以尝试使这些数量保持最小值。对于最大的景观，Epic 推荐使用最大值 1024 个组件。
+准备好新建地形后，按下地形工具窗口右下角的 **Create** 按钮。出现在视口中的地形为一个平面。如已指定一个材质，它将显示应用的材质。如未指定材质，它将显示关卡编辑器应用的默认材质。
 
+![](Landscape_Creat_New_Button.png)
 
-#### 推荐的景观规格
+[REGION:note]
+如地形较大或较为复杂，显示可能将耗时数秒。
+[/REGION]
 
-为了使操作更加简单，这里有一些尺寸规格，在最小化 Landscape（景观）组件的数量时最大化这个区域。
 
-| **整体大小** （顶点） | **每个部分的四边形数** | **每个组件的部分数** | **组件大小** （四边形） | **组件总数** |
-| --- | --- | --- | --- | --- |
-| 4033x4033 | 63 | 4 (2x2) | 126x126 | 1024（32x32 个组件）|
-| 2017x2017 | 63 | 4 (2x2) | 126x126 | 256（16x16 个组件）|
-| 1009x1009 | 63 | 4 (2x2) | 126x126 | 64（8x8 组件）|
-| 1009x1009 | 63 | 1 | 63x63 | 256（16x16 组件）|
-| 509x509   | 127 | 4 (2x2) | 254x254 | 4（2x2 个组件）|
-| 505x505   | 63 | 4 (2x2) | 126x126 | 16（4x4 个组件）|
-| 255x255   | 127 | 4 (2x2) | 254x254 | 1 |
-| 253x253   | 63 | 4 (2x2) | 126x126 | 4（2x2 个组件）|
-| 127x127   | 63 | 4 (2x2) | 126x126 | 1 |
-| 127x127   | 63 | 1 | 63x63 | 4（2x2 个组件）|
+按下 **Create** 按钮后，显示的内容应与下图相似。 
 
+![Landscape_NewTerrain.png](Landscape_NewTerrain.png)(w:600)
 
+完成地形创建后，即可按您的喜好对地形进行 [造型](Engine/Landscape/Editing/SculptMode) 或 [绘制](Engine/Landscape/Editing/PaintMode)。 
 
-## 创建一个新的景观
 
-通过  Landscape Edit（景观编辑）窗口的 **Create New（新建）** 项从头开始创建一个新的景观。展开这一项会显示可用选项：
 
-![Landscape_Create_Section.png](Landscape_Create_Section.png)(w:284 h:368)
 
-可以使用 **Heightmap Size（高度贴图大小）** 项创建新景观。
-
-![Landscape_Heightmap_Size.png](Landscape_Heightmap_Size.png)(w:267 h:97)
-
-将 **大小（顶点）** 值设置为景观的预期尺寸规格。将会根据输入的尺寸规格自动选择 **Component Size（组件大小）** 属性。
-
-**注意：** 尺寸规格必须可以按照之前讨论的规定创建组件和部分，这样才能创建这个新景观。组件总数将会是一个非 0 的值，在这些值符合条件的情况下将会启动 **Create Landscape（创建景观）** 按钮。
-
-![Landscape_New_Heightmap_Size.png](Landscape_New_Heightmap_Size.png)(w:267 h:96)
-
-这些可能是一些可以从中进行选择的选项，比如 _每个部分的四边形_ 和 _每个组件的部分_ ，但是要小心选择，因为组件的数量可以大幅增加，这对编译时间有影响，同时可能对性能也有影响。
-
-按下 ![Landscape_Create_Button.png](Landscape_Create_Button.png)创建这个新景观。完成这项操作后，当平面应用这个默认材质的时候在视窗中将会看到这个景观。
-
-![Landscape_NewTerrain.jpg](Landscape_NewTerrain.jpg)(w:900 h:510)
-
-
-
-## 导入高度贴图和图层
-
-如果需要，可以将高度贴图和图层导入到虚幻编辑器中，在其中创建景观。这个过程也可以从 Landscape Edit（景观编辑）窗口的 **Create New（新建）** 项开始创建。
-
-**高度贴图格式**
-
-对于高度贴图，.raw/.r16 是每个样本 16 位，小尾，没有符号值，每个顶点一个，没有头文件或其他数据。也就是说按照 PC 字节顺序是每个顶点两个字节。所以对于 127x127 这样的情况，您将需要 32258 个字节。要通过 Photoshop 保存一个高度贴图，请将该图片模式更改为 16 位灰度。然后选择 RAW 文件格式并选择 1 通道，每个像素 16 位以及 PC 字节顺序。
-
-**图层格式**
-
-对于图层 alpha 贴图，您需要一个每个像素 8 位的单通道 RAW 文件。
-
-**高度贴图导入**
-
-**Heightmap Import（高度贴图导入）** 项可以用来指定要为高度贴图导入的文件。
-
-![Landscape_Heightmap_Import.png](Landscape_Heightmap_Import.png)(w:267 h:84)
-
-这个文件可以是一个 16 位 .raw 或 .r16 文件，而且有可以指定数据格式的选项。
-
-
-* **Unsigned/Singed** - 设置导入的高度贴图数据是带符号的还是不带符号的。
-* **PC/Mac** - 设置导入的高度贴图数据的字节顺序。
-
-
-![Landscape_Import_Heightmap.png](Landscape_Import_Heightmap.png)(w:267 h:83)
-
-只要指定了一个高度贴图之后，将会使用与这个高度贴图相匹配的值填充 **Heightmap Size（高度贴图大小）** 项，然后会启动 **Create Landscape（创建景观）** 按钮。
-
-![Landscape_New_Heightmap_Size.png](Landscape_New_Heightmap_Size.png)(w:267 h:96)
-
-如果您只要导入一个高度贴图，请在此时按下 ![Landscape_Create_Button.png](Landscape_Create_Button.png)开始进行导入。否则，如果有要导入的图层，那么继续下面的部分。
-
-**Layer Import（图层导入）**
-
-**Layer（图层）** 部分可以用来为要导入的图层指定文件。
-
-![Landscape_Layers_Import.png](Landscape_Layers_Import.png)(w:267 h:98)
-
-这些文件应该是 8 位 .raw 或 .r8 文件。可以指定导入多个图层文件。
-
-![Landscape_Import_Layers.png](Landscape_Import_Layers.png)(w:267 h:255)
-
-只要一经选中了这个图层文件之后，按下  ![Landscape_Create_Button.png](Landscape_Create_Button.png)开始进行导入。
-
-**Imported Results（导入的结果）**
-
-在导入完成后，应该会在视窗中看到这个景观。
-
-![Landscape_Import_Terrain.jpg](Landscape_Import_Terrain.jpg)(w:900 h:300)
-
-如果图层连同这个高度贴图一起导入，那么可以赋予一个包含与导入的图层匹配的正确设置的[景观材质](Landscape/Materials)，显示已经完全进行贴图处理的景观。
-
-![Landscape_Import_Terrain_Material.jpg](Landscape_Import_Terrain_Material.jpg)(w:900 h:300)
-
-
-
-## 将遗留地形转换为景观
-
-对于包含使用现有地形系统创建的地形的贴图，Landscape（景观）可以在 Landscape Edit（景观编辑）窗口的 **更多** 项中提供一个转换路径。转换过程非常简单，就是按下 ![Landscape_Convert_Button.png](Landscape_Convert_Button.png)按钮，然后转换贴图中的所有地形。
-
-在将现有地形转换为 Landscape（景观）地形时有一些特定的限制：
-
-
-* `Max Component Size` 必须是 1 的 1x, 2x, 或 3x 倍数并小于 2 的幂数（例如，1, 2, 3, 6, 7, 9, 14, 15, 21, 30, 45）
-* `Num Patches [X/Y]` 必须是 `Max Component Size` 的倍数
-* 必须将 `Max Tessellation Level` 设置为 1。
-
-
-限制条件可以应用在上面指出的顺序中。如果没有满足所有这些条件，那么将会显示一个消息框，它指出了没有满足其中哪个条件。
-
-![Landscape_Convert_Dialog_1.jpg](Landscape_Convert_Dialog_1.jpg)(w:555 h:162)
-
-![Landscape_Convert_Dialog_2.jpg](Landscape_Convert_Dialog_2.jpg)(w:519 h:149)
-
-![Landscape_Convert_Dialog_3.jpg](Landscape_Convert_Dialog_3.jpg)(w:433 h:149)
-
-如果已经满足了所有条件，那么地形将开始进行这个转换过程。将会显示一个进度对话框。
-
-![Landscape_Convert_Progress.jpg](Landscape_Convert_Progress.jpg)(w:509 h:150)
-
- 
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620109
+﻿INTSourceChangelist:2710029
 Availability: Public
 Title:4. 폰과 컴포넌트 함께 사용하기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -30,9 +30,9 @@ version:4.9
 1. 기록을 유지할 곳이 생겼으면, 새로운 변수를 저장할 **Colliding Pawn Movement Component** 를 만들어 줘야 하니, `CollidingPawn.cpp` 를 열고 파일 상단 "GameFramework/Pawn.h" 줄 아래에 다음과 같이 추가하여 코드가 새 클래스를 레퍼런싱할 수 있도록 합니다:
 
 		#include "CollidingPawnMovementComponent.h"
-[REGION:warning]
-목록의 마지막 #include 가 generated.h (#include "CollidingPawn.generated.h" in this case) as it will cause a compile error otherwise.
-[/REGION]
+	[REGION:warning]
+	목록의 마지막 #include 가 generated.h (#include "CollidingPawn.generated.h" in this case) as it will cause a compile error otherwise.
+	[/REGION]
 
 	**Pawn Movement Component** 를 만들어 우리 **Pawn** 에 연관시켜 주는 것은 간단합니다. **ACollidingPawn::ACollidingPawn** 하단에 이렇게 추가해 주면 됩니다:
 

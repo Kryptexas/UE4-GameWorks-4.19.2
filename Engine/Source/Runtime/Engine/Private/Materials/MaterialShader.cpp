@@ -8,6 +8,7 @@
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 #include "../ShaderDerivedDataVersion.h"
+#include "CookStats.h"
 
 int32 GCreateShadersOnLoad = 0;
 static FAutoConsoleVariableRef CVarCreateShadersOnLoad(
@@ -15,6 +16,23 @@ static FAutoConsoleVariableRef CVarCreateShadersOnLoad(
 	GCreateShadersOnLoad,
 	TEXT("Whether to create shaders on load, which can reduce hitching, but use more memory.  Otherwise they will be created as needed.")
 	);
+
+
+#if ENABLE_COOK_STATS
+namespace MaterialShaderCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static int32 ShadersCompiled = 0;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("MaterialShader.Usage"), TEXT(""));
+		AddStat(TEXT("MaterialShader.Misc"), FCookStatsManager::CreateKeyValueArray(
+			TEXT("ShadersCompiled"), ShadersCompiled
+			));
+	});
+}
+#endif
+
 
 //
 // Globals
@@ -68,6 +86,7 @@ FString GetBlendModeString(EBlendMode BlendMode)
 		case BLEND_Translucent: BlendModeName = TEXT("BLEND_Translucent"); break;
 		case BLEND_Additive: BlendModeName = TEXT("BLEND_Additive"); break;
 		case BLEND_Modulate: BlendModeName = TEXT("BLEND_Modulate"); break;
+		case BLEND_AlphaComposite: BlendModeName = TEXT("BLEND_AlphaComposite"); break;
 		default: BlendModeName = TEXT("Unknown"); break;
 	}
 	return BlendModeName;
@@ -676,6 +695,7 @@ FShaderCompileJob* FMaterialShaderType::BeginCompileShader(
 	FShaderCompilerEnvironment& ShaderEnvironment = NewJob->Input.Environment;
 
 	UE_LOG(LogShaders, Verbose, TEXT("			%s"), GetName());
+	COOK_STAT(MaterialShaderCookStats::ShadersCompiled++);
 
 	//update material shader stats
 	UpdateMaterialShaderCompilingStats(Material);
@@ -850,13 +870,14 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 		STAT(double MaterialDDCTime = 0);
 		{
 			SCOPE_SECONDS_COUNTER(MaterialDDCTime);
+			COOK_STAT(auto Timer = MaterialShaderCookStats::UsageStats.TimeSyncWork());
 
 			TArray<uint8> CachedData;
 			const FString DataKey = GetMaterialShaderMapKeyString(ShaderMapId, Platform);
 
-			// Find the shader map in the derived data cache
 			if (GetDerivedDataCacheRef().GetSynchronous(*DataKey, CachedData))
 			{
+				COOK_STAT(Timer.AddHit(CachedData.Num()));
 				InOutShaderMap = new FMaterialShaderMap();
 				FMemoryReader Ar(CachedData, true);
 
@@ -871,6 +892,8 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 			}
 			else
 			{
+				// We should be build the data later, and we can track that the resource was built there when we push it to the DDC.
+				COOK_STAT(Timer.TrackCyclesOnly());
 				InOutShaderMap = nullptr;
 			}
 		}
@@ -880,11 +903,13 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 
 void FMaterialShaderMap::SaveToDerivedDataCache()
 {
+	COOK_STAT(auto Timer = MaterialShaderCookStats::UsageStats.TimeSyncWork());
 	TArray<uint8> SaveData;
 	FMemoryWriter Ar(SaveData, true);
 	Serialize(Ar);
 
 	GetDerivedDataCacheRef().Put(*GetMaterialShaderMapKeyString(ShaderMapId, Platform), SaveData);
+	COOK_STAT(Timer.AddMiss(SaveData.Num()));
 }
 
 TArray<uint8>* FMaterialShaderMap::BackupShadersToMemory()

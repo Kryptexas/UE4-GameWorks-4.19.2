@@ -8,7 +8,7 @@
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "SourceCodeNavigation.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "TranslationEditorMenu.h"
+#include "MainFrameTranslationEditorMenu.h"
 #include "Editor/DeviceProfileEditor/Public/DeviceProfileEditorModule.h"
 #include "UndoHistoryModule.h"
 #include "GenericCommands.h"

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2246990
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:ADecalActor
 Crumbs:
@@ -6,7 +6,7 @@ Description:DecalActor クラスの概要
 
 [EXCERPT:ADecalActor]
 
-ライティングの再計算を行うのではなく Gbuffer に書き出すことにより、ディファード デカールはより優れたパフォーマンスとより簡単な維持管理を提供します。
+ライティングの再計算を行うのではなく Gbuffer に書き出すことにより、ディファード デカールは優れたパフォーマンスと簡単な維持管理を実現します。
 
 [VAR:ToolTipFullLink]
 Engine/Actors/DecalActor

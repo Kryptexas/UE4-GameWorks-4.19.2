@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BaseToolkit.h"
+#include "LayoutService.h"
 #include "TabManager.h"
 #include "Toolkits/AssetEditorManager.h"		// For IAssetEditorInstance derive
 

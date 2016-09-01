@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2474759
+﻿INTSourceChangelist:2735872
 Title:Unreal Engine 4.7 リリースノート
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
+version: 4.7
+order:7
 
 [TOC(start:2 end:2)]
 
@@ -119,7 +121,17 @@ Artem V. Navrotskiy (bozaro), ArneBezuijen, Black Phoenix (PheonixBlack), codeta
 #### アセットの自動インポート
 メッシュやサウンド、テクスチャのインポートは、今までは容易ではありませんでした。アートのソース ファイルを、プロジェクトのContent フォルダの下に保存するだけで、エディタが自動的に新しいファイルをインポートしてくれる機能が、UE4で使えるようになりました！
 
-![](AutoAssetImport.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+8iXezqbc2kE
+[/PARAMLITERAL]
+[/OBJECT]
 
 外部のアプリケーションでファイルを編集すると、それをエディタが検知して、自動的にコンテンツを再インポートしてくれます！ これでゲームコンテンツのイテレーションが、より速くなることでしょう。
 
@@ -190,7 +202,17 @@ OS X 用 Java と Android SDK (Engine/Extras/Android 内の TADP installer を�
 #### Leap Motionプラグイン *ベータ版*
 UE4 は、プラグインによる **Leap Motion デバイス** のサポートを始めました。これにより、Leap のハンド トラッキング テクノロジーを直接プロジェクトで使うことができます。API はブループリントとコードの両方に現れ、任意のプロジェクトで、その技術を利用することができます。  
 
-![](LeapMotion.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+pifYPUX4ccU
+[/PARAMLITERAL]
+[/OBJECT]
 
 プラグインの使用例としては、 Leap Motion のウェブサイト[](https://www.leapmotion.com) をぜひご覧ください。現在、このプラグインは GitHub にあるエンジンをビルド、および Leap のウェブサイトから直接プラグインをダウンロードした場合のみご利用いただけまます。
 
@@ -249,7 +271,17 @@ Starter Content (スターター コンテンツ) でさえも、いつでもプ
 #### 即時的なボーンコントローラのプレビュー
 ボーンコントローラのノードは、毎回再コンパイルするのではなく、ビューポートのギズモを使ってインタラクティブに調整できるようになりました！
 
-![](InstantBonePreview.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+VthaM3yZbVM
+[/PARAMLITERAL]
+[/OBJECT]
 
 この機能は現在は、 TwoBoneIK と ModifyBone & Fabrik ノードだけで使えますが、将来的には他のものでも使えるようになる予定です。
 
@@ -778,7 +810,7 @@ UMG の DPI スケーリング設定は、それぞれの値を表示する軸�
 
 	![](GhostNodes.png)
 
-* New:* New: イベント グラフで使用される全ローカル変数は、永続的なフレームに保存されるようになりました。 (ブループリント コンパイラーの最適化)
+* New: イベント グラフで使用される全ローカル変数は、永続的なフレームに保存されるようになりました。 (ブループリント コンパイラーの最適化)
 * New:ブループリントのローカル変数にデフォルト値を設定しました。ブループリント関数のローカル変数にデフォルト値を容易に設定できるようになりました。関数に入るたびに、その変数はデフォルト値に設定されます。
 
 	![](DefaultValues.png)

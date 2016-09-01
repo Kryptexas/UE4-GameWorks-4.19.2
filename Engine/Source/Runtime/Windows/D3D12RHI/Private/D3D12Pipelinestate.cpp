@@ -115,23 +115,23 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 		if (PSODesc->InputLayout.NumElements)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs, PSODesc->InputLayout.NumElements * sizeof(D3D12_INPUT_ELEMENT_DESC), true);
-			for (uint32 i = 0; i < PSODesc->InputLayout.NumElements; i++)
+			for (uint32 LayoutIndex = 0; LayoutIndex < PSODesc->InputLayout.NumElements; LayoutIndex++)
 			{
 				// Get the Sematic name string
 				uint32* stringLength = nullptr;
 				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&stringLength, sizeof(uint32));
-				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs[i].SemanticName, *stringLength, true);
+				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs[LayoutIndex].SemanticName, *stringLength, true);
 			}
 		}
 		if (PSODesc->StreamOutput.NumEntries)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->StreamOutput.pSODeclaration, PSODesc->StreamOutput.NumEntries * sizeof(D3D12_SO_DECLARATION_ENTRY), true);
-			for (uint32 i = 0; i < PSODesc->StreamOutput.NumEntries; i++)
+			for (uint32 OutputIndex = 0; OutputIndex < PSODesc->StreamOutput.NumEntries; OutputIndex++)
 			{
 				//Get the Sematic name string
 				uint32* stringLength = nullptr;
 				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&stringLength, sizeof(uint32));
-				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->StreamOutput.pSODeclaration[i].SemanticName, *stringLength, true);
+				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->StreamOutput.pSODeclaration[OutputIndex].SemanticName, *stringLength, true);
 			}
 		}
 		if (PSODesc->StreamOutput.NumStrides)
@@ -430,6 +430,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDes
 		if (RSBlobLength > 0)
 		{
 			// Save the root signature
+			CA_SUPPRESS(6011);
 			check(computePSODesc.pRootSignature->GetRootSignature() == psoDesc.pRootSignature);
 			DiskCaches[PSO_CACHE_COMPUTE].AppendData(pRSBlob->GetBufferPointer(), RSBlobLength);
 		}

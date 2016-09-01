@@ -52,6 +52,7 @@ const FText FFindInBlueprintSearchTags::FiB_ObjectClass = LOCTEXT("ObjectClass",
 const FText FFindInBlueprintSearchTags::FiB_IsArray = LOCTEXT("IsArray", "IsArray");
 const FText FFindInBlueprintSearchTags::FiB_IsReference = LOCTEXT("IsReference", "IsReference");
 const FText FFindInBlueprintSearchTags::FiB_Glyph = LOCTEXT("Glyph", "Glyph");
+const FText FFindInBlueprintSearchTags::FiB_GlyphStyleSet = LOCTEXT("GlyphStyleSet", "GlyphStyleSet");
 const FText FFindInBlueprintSearchTags::FiB_GlyphColor = LOCTEXT("GlyphColor", "GlyphColor");
 
 const FText FFindInBlueprintSearchTags::FiBMetaDataTag = LOCTEXT("FiBMetaDataTag", "!!FiBMD");
@@ -1490,19 +1491,15 @@ void FFindInBlueprintSearchManager::ExtractUnloadedFiBData(const FAssetData& InA
 	FSearchData NewSearchData;
 
 	NewSearchData.BlueprintPath = InAssetData.ObjectPath;
+	InAssetData.GetTagValue("ParentClass", NewSearchData.ParentClass);
 
-	if (const FString* ParentClass = InAssetData.TagsAndValues.Find(TEXT("ParentClass")))
-	{
-		NewSearchData.ParentClass = *ParentClass;
-	}
-
-	const FString* ImplementedInterfaces = InAssetData.TagsAndValues.Find("ImplementedInterfaces");
-	if(ImplementedInterfaces)
+	const FString ImplementedInterfaces = InAssetData.GetTagValueRef<FString>("ImplementedInterfaces");
+	if(!ImplementedInterfaces.IsEmpty())
 	{
 		FString FullInterface;
 		FString RemainingString;
 		FString InterfaceName;
-		FString CurrentString = *ImplementedInterfaces;
+		FString CurrentString = ImplementedInterfaces;
 		while(CurrentString.Split(TEXT(","), &FullInterface, &RemainingString))
 		{
 			if(FullInterface.Split(TEXT("."), &CurrentString, &InterfaceName, ESearchCase::CaseSensitive, ESearchDir::FromEnd))

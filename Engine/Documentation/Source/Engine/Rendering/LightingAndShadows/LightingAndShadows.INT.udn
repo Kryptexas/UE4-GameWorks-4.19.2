@@ -1,7 +1,7 @@
 Availability:Public
 Title: Lighting the Environment
 Crumbs: %ROOT%, Engine
-Description:Using Lighting and shadowing geometry, using Glogal Illumination, and setting up reflections.
+Description:Using Lighting and shadowing geometry, using Global Illumination, and setting up reflections.
 Navigation:topic
 Related:Engine/Rendering/ParticleSystems/ParticleLights
 Version: 4.9

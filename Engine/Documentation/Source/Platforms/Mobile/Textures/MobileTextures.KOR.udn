@@ -1,13 +1,17 @@
-﻿INTSourceChangelist:2591944
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:모바일 플랫폼용 텍스처 지침서
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:모바일 게임용 텍스처 제작 및 프로퍼티 안내입니다.
 Platform:Mobile
+Version: 4.9
+parent:Platforms/Mobile
+order:2
+type:overview
+tags:mobile
 
 [TOC(start:2)]
 
-## 개요
 
 모바일 플랫폼에서는 OpenGL ES2 를 사용하기에, 텍스처상의 제약이 있습니다. 일부 제약은 텍스처 제작시 
 드러납니다:
@@ -42,7 +46,7 @@ Platform:Mobile
 언리얼 엔진 4.8 릴리즈 이후 플랫폼 단위가 아니라 디바이스 단위로 텍스처 LOD 세팅을 지정할 수 있게 되었습니다.
 디바이스별 텍스처 LOD 세팅을 설정하는 방법은 다음과 같습니다.
 
-1. 메인 툴바에서 **창** > **개발자 툴** > **다비아스 프로파일** 을 클릭하여 **디바이스 프로파일** 매니저를 엽니다.
+1. 메인 툴바에서 **창** > **개발자 툴** > **디바이스 프로파일** 을 클릭하여 **디바이스 프로파일** 매니저를 엽니다.
 
 	![](T_Device_Profiles_Manager.png)
 
@@ -50,11 +54,21 @@ Platform:Mobile
 
 	![](T_DPM.png)
 
-1. 이 메뉴에서 편집하고자 하는 디바이스를 선택한 다음 디바이스 왼쪽에 있는 점 세개를 클릭하여 그 디바이스 프로파일을 엽니다.
+1. 이 메뉴에서 편집하고자 하는 디바이스를 선택한 다음 디바이스 왼쪽에 있는 점 세 개를 클릭하여 그 디바이스 프로파일을 엽니다.
 
 1. 변경하려면 조절하고자 하는 프로퍼티를 클릭한 다음 설정하고자 하는 값을 입력합니다.
 
-	![](T_Selecting_Editing_Profile.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	5FgGi68G8ZY
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 

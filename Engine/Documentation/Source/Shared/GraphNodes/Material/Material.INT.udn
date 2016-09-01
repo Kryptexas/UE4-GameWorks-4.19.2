@@ -181,7 +181,7 @@ Engine/Rendering/Materials/ExpressionReference/Coordinates#camerapositionws
 [/EXCERPT:UMaterialExpressionCameraPositionWS]
 
 [EXCERPT:UMaterialExpressionLightmapUVs]
-The LightmapUVs expression outputs the lightmap UV texture coordinates in the forum of a two-channel vector value. If lightmap UVs are unavailable, it will output a two-channel vector value of (0,0). 
+The LightmapUVs expression outputs the lightmap UV texture coordinates in the form of a two-channel vector value. If lightmap UVs are unavailable, it will output a two-channel vector value of (0,0).
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Coordinates#lightmapuvs
@@ -590,7 +590,7 @@ Engine/Rendering/Materials/ExpressionReference/Math#if
 [EXCERPT:UMaterialExpressionLinearInterpolate]
 The LinearInterpolate expression blends between two input value(s) based on a third input value used as a mask. This can be thought of as a mask to define transitions between two textures, like a layer mask in Photoshop. The intensity of the mask Alpha determines the ratio of color to take from the two input values. 
 
-If Alpha is 1.0/black, the first input is used. If Alpha is 0.0/white, the second input is used. If Alpha is grey (somewhere between 0.0 and 1.0), the output is a blend between the two inputs. Keep in mind that the blend happens per channel. So, if Alpha is an RGB color, Alpha's red channel value defines the blend between A and B's red channels independently of Alpha's green channel, which defines the blend between A and B's green channels.
+If Alpha is 0.0/white, the first input is used. If Alpha is 1.0/black, the second input is used. If Alpha is grey (somewhere between 0.0 and 1.0), the output is a blend between the two inputs. Keep in mind that the blend happens per channel. So, if Alpha is an RGB color, Alpha's red channel value defines the blend between A and B's red channels independently of Alpha's green channel, which defines the blend between A and B's green channels.
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Math#linearinterpolate
@@ -910,7 +910,7 @@ Engine/Rendering/Materials/ExpressionReference/Utility#rotateaboutaxis
 [EXCERPT:UMaterialExpressionAntialiasedTextureMask]
 The AntialiasedTextureMask expression allows you to create a material using a soft (anti-aliased) transition mask. The mask can be used to blend between two complex material properties or to fade out an alpha blended material (works well with SoftMasked). 
 
-Simple specify a texture with the mask specified in one channel (red, green, blue, or alpha), set the used channel in the expression and specify the comparison value.
+Simply specify a texture with the mask specified in one channel (red, green, blue, or alpha), set the used channel in the expression and specify the comparison value.
 
 Assuming the channel stores a grayscale value in the range 0=black to 1=white the comparison function defines if the resulting mask should be 0 or 1. This expression is a parameter, allowing the Texture property to be overridden by child MaterialInstances. 
 

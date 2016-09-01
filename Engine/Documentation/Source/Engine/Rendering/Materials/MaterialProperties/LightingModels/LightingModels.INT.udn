@@ -5,7 +5,7 @@ Description:This document breaks down the Material Shading Models property optio
 Version: 4.9
 
 
-[TOC(start:2 end:2)]
+[TOC(start:2 end:3)]
 
 Shading Models control how your Material will reflect incoming light. Or, put another way, it controls how the input data that makes up the Material will be used to create the final look. 
 
@@ -103,10 +103,10 @@ Some examples include acrylic or lacquer clear coats, and colored films over met
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Monte Carlo Reference](ClearCoat_0.png)(w:400)
+	![Monte Carlo Reference](ClearCoat_0.png)(w:600)
 	[/PARAM]
 	[PARAM:after]
-	![UE4](ClearCoat_1.png)(w:400)
+	![UE4](ClearCoat_1.png)(w:600)
 	[/PARAM]
 [/OBJECT]
 
@@ -115,7 +115,18 @@ Some examples include acrylic or lacquer clear coats, and colored films over met
 (Note that the flecks were done in the material editor and are not part of the shading model)
 [/region]
 
-When using the Clear Coat Shading Model, you are given access to the following inputs:
+
+### Dual-Normal Clear Coat
+The Clear Coat Shading Model also has the option to add a 2nd Normal Map for the surface that is below the clear coat layer. This allows us to more accurately model complex materials such as carbon fiber which have a different geometric surface than the clear coat layer. 
+	
+[REGION:imagetable]
+| ![Dual_Clear_Coat_Old](Dual_Clear_Coat_Old.png)(w:290) | ![Dual_Clear_Coat_New](Dual_Clear_Coat_New.png)(w:290) | ![(Dual_Clear_Coat_Photo](Dual_Clear_Coat_Photo.png)(w:290)|
+| ------ | ------ | ------ |
+| Old UE4 Clear Coat | New UE4 Clear Coat with Bottom Normal |Actual Photograph|
+[/REGION] 
+
+
+When using the Clear Coat Shading Model or the Clear Coat with Dual Normals Shading Model, you are given access to the following inputs:
 
 * Base Color
 * Metallic
@@ -135,7 +146,14 @@ When using the Clear Coat Shading Model, you are given access to the following i
 The [Subsurface Profile Shading Model](Engine/Rendering/Materials/LightingModels/SubSurfaceProfile) is very similar in nature to both the Subsurface model and the Preintegrated Skin Shading Model, 
 but geared towards higher end skin rendering. If you are trying to simulate skin, epically human skin, this is the best Shading Model to use in order to do so. 
 
-![](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results.png)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Standard Shading](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_1.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Subsurface Profile Shading](Engine\Rendering\Materials\LightingModels\SubSurfaceProfile\Results_2.png)(w:700)
+	[/PARAM]
+[/OBJECT]
 
 When using the Subsurface Profile Shading Model, you are given access to the following inputs:
 
@@ -158,10 +176,10 @@ This also helps to eliminate the dark parts of the foliage and give the foliage 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Two Sided Foliage Enabled](2_Sided_Enabled.png)
+	![Two Sided Foliage Enabled](2_Sided_Enabled.png)(h:700)
 	[/PARAM]
 	[PARAM:after]
-	![Two Sided Foliage Disabled](2_Sided_Disabled.png)
+	![Two Sided Foliage Disabled](2_Sided_Disabled.png)(h:700)
 	[/PARAM]
 [/OBJECT]
 

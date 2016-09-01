@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:2651255
-Availability:Public
+﻿Availability:Public
 Title:Player Start
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Player Start 使用のガイド
-バージョン：4.9
+version:4.9
 
 ![](Player_Start_Actor.png)
 
 
-プレイヤーをワールドの任意の場所にスポーンする機能は、あらゆるゲームで非常に役立つ機能です。アンリアル エンジン 4 には、これを行う **Player Start** という特殊なアクタがあります。Player Start は、ゲーム ワールド内のプレイヤーの開始位置です。  
+プレイヤーをワールドの任意の場所にスポーンする機能は、あらゆるゲームで非常に役立つ機能です。UE4 には、これを行う **Player Start** という特殊なアクタがあります。Player Start は、ゲーム ワールド内のプレイヤーの開始位置です。  
 
 ## Player Start アクタを配置する
 

@@ -10,7 +10,7 @@ Description:在网络特性内容实例地图中提供的样本概述。
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Resources/ContentExamples/Networking:title%](PivotPainter_Topic.png)
+		![%Resources/ContentExamples/Networking:title%](Blueprint_Networking_Compact.png)
 	[/PARAM]
 	[PARAM:title]
 		%Resources/ContentExamples/Networking:title%
@@ -19,6 +19,7 @@ Description:在网络特性内容实例地图中提供的样本概述。
 		%Resources/ContentExamples/Networking:description%
 	[/PARAM]
 	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Networking]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -26,12 +27,13 @@ Description:在网络特性内容实例地图中提供的样本概述。
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Resources/ContentExamples/Networking:title%](PivotPainter_Topic.png)
+		![%Resources/ContentExamples/Networking:title%](Blueprint_Networking_Compact.png)
 	[/PARAM]
 	[PARAM:title]
 		%Resources/ContentExamples/Networking:title%
 	[/PARAM]
 	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Networking]
 	[/PARAM]
 [/OBJECT]
 [/VAR]

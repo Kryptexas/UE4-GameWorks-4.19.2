@@ -582,8 +582,16 @@ class COREUOBJECT_API UMetaData : public UObject
 	DECLARE_CLASS_INTRINSIC(UMetaData, UObject, 0, TEXT("/Script/CoreUObject"))
 
 public:
-	// Variables.
+	/**
+	 * Mapping between an object, and its key->value meta-data pairs. 
+	 */
 	TMap< FWeakObjectPtr, TMap<FName, FString> > ObjectMetaDataMap;
+
+	/**
+	 * Root-level (not associated with a particular object) key->value meta-data pairs.
+	 * Meta-data associated with the package itself should be stored here.
+	 */
+	TMap< FName, FString > RootMetaDataMap;
 
 public:
 	// MetaData utility functions
@@ -679,7 +687,6 @@ public:
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual bool NeedsLoadForClient() const override;
-	virtual bool NeedsLoadForServer() const override;
 	virtual bool NeedsLoadForEditorGame() const override;
 	virtual bool IsAsset() const override { return false; }
 	// End of UObject interface

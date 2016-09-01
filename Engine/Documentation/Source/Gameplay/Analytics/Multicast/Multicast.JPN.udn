@@ -1,21 +1,21 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2601374
 Availability:Public
-Title:Multicast Analytics Provider
+Title:マルチキャスト アナリティクス プロバイダー
 Crumbs: %ROOT%, Gameplay, Gameplay/Analytics
-Description:A set of Blueprint nodes provided to allow you to communicate with analytics services
+Description:アナリティクス サービスとの通信を可能にするための Blueprint ノード群
 
 ![](image00.png)
 
-The multicast provider sends analytics events to multiple providers. This allows you to use multiple analytics providers easily, since it will take the calls and hand them to each 
-registered analytics providers in turn without you having to manually do this dispatching work. Having multiple analytics providers is desirable since each provider has different 
-strengths and weaknesses. By using multiple providers, you can get all of the features that you need to run your app business.
+マルチキャスト アナリティクス プロバイダーは、アナリティクス イベントを複数のプロバイダーに送信します。これにより、複数のアナリティクス プロバイダーを簡単に使用することができます。 
+手動でディスパッチ作業を行う必要なく、コールを取り、登録されている各アナリティクス プロバイダーに次々に渡すからです。プロバイダーごとに、長所と短所があるため、複数のアナリティクス プロバイダーを 
+持つのは望ましいことです。複数のプロバイダーを使用することで、各自のアプリケーション ビジネスを実行するうえで必要なあらゆる機能を使用することができます。
 
 
-## Configuration
+## コンフィギュレーション
 
-Configuring the provider is straightforward. It just needs to know the list of providers that you want data sent to. This list is provided as a comma-delimited list of the module 
-names for the providers. In the example below, the AnalyticsMulticast provider is specified as the default provider for the application. Then, the list of providers that it sends
- the data to is specified using a comma-delimited list as mentioned before. As with all analytics providers, the configuration data goes in your `DefaultEngine.ini` file.
+プロバイダーの設定は簡単です。データの送り先のプロバイダーのリストがわかればできます。このリストは、プロバイダーのモジュール名のコンマで区切られたリストとして 
+提供されます。以下の例では、AnalyticsMulticast プロバイダーは、アプリケーションのデフォルト プロバイダーとして指定されています。データの送り先のプロバイダーのリストは、
+ 上記のようにコンマで区切られたリストを使って指定されます。全てのアナリティクス プロバイダーと同様にコンフィギュレーション データは、`DefaultEngine.ini` ファイルに入ります。
 
 	[Analytics]
 	ProviderModuleName=AnalyticsMulticast

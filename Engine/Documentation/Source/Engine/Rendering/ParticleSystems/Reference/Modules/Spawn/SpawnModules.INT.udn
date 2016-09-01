@@ -2,9 +2,10 @@ Availability: Public
 Title:Spawn Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Spawn modules will impact the number/rate of emitter particles.
+Version: 4.9
 
-[TOC(start:2 end:3)]
-Spawn modules will impact the number/rate of emitter particles.
+
+**Spawn** modules will impact the number/rate of emitter particles.
 
 
 ## Spawn Per Unit

@@ -1,75 +1,75 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2828862
 Availability:Public
-Title: Invalidiation Box
+Title:失效框
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
-Description:Overview of using the Invalidation Box for optimizing UI Widgets. 
-version: 4.9
+Description:概述如何使用失效框来优化 UI 控件。 
+version:4.9
 
 
 [REGION:warning]
-This feature is still in development and is considered **Experimental**. As such, some features may or may not work as expected. 
+该功能仍处于开发中，其被视为 **实验性** 的功能。因此某些功能可能会无法按照预期工作。 
 [/REGION]
 
 [TOC(start:2 end:2)]
 
 
-## Widget Description
+## 描述
 
 [EXCERPT:desc]
-Allows widget geometry to be cached to speed up Slate rendering. Widgets that are cached by an Invalidation Box are not Prepassed, Ticked or Painted. 
+封装在失效框中的控件可以令子控件几何图形进行缓存，以加快平板的渲染速度。任何由无效框缓存的控件都不会进行预处理、绘图或上色。 
 [/EXCERPT:desc]
 
-In general if you are looking to optimize your project, wrapping certain widgets with Invalidation Boxes may boost your performance (particularly for mobile projects or complicated UI displays). For widgets that do not change constantly, they can be placed inside an Invalidation Box and cached instead of considered during paint, tick or prepass. 
+总的来说，如果想要优化项目，那么将特定的控件封装在无效框中可能会提升性能（特别是对于移动项目或复杂的 UI 显示）。对于并非不断变化的控件，可以将其放置在无效框中缓存，而不需要在上色、绘图或预处理过程中考虑这样的控件。 
 
-If the widget changes however, it will become invalid and you will need to manually invalidate the cache which will throw it away essentially and force it to redraw on the next paint pass. Anything that changes the visual appearance of the widget requires it to be invalidated. The only exception to this is changes to appearance that are not stored in the vertex buffer for those widget (for example Materials, as changing a Material Parameter does not require invalidating the widget). 
+但是如果控件发生改变，它将变为无效，而您需要手动将缓存无效化处理（本质上是将其丢弃），强制其在下一个上色过程中重新绘制。控件有任何视觉外观上的改变都需要进行无效化处理。唯一的例外情况是这些控件的外观变化没有存储在控件的顶点缓冲区中（例如材质，更改材质参数不需要将控件做无效化处理）。 
 
 
-## Widget Details
+##细节
 
-In the **Details** panel for a placed **Invalidation Box**, there are a couple of specific options that can be set that pertain to the Widget: 
+在所放置的 **无效框** 的 **细节** 面板中，可以对一些属于该控件的特定选项进行设置： 
 
 ![](InvalidationBox.png)
 
-| Option | Description |
+| 选项 | 描述 |
 | -------- | ----------- |
-| **Cache Relative Transforms** | Caches the locations for child draw elements relative to the invalidation box which adds extra overhead to drawing them every frame. However, in cases where the position of the invalidation boxes changes every frame, this can be a big savings. |
-| **Is Volatile** | If true, prevents the widget or its child's geometry or layout information from being cached. If this widget changes every frame, but you want it to still be in an invalidation panel you should make it as volatile instead of invalidating it every frame, which would prevent the invalidation panel from actually ever caching anything.  |
+| **缓存相对转换** | 缓存子绘制元素相对于无效框的位置，会在逐帧绘制它们时增加额外开销。但是，在无效框的位置会逐帧发生变化的情况下，这会节省很多资源。|
+| **易变** | 如果为真，则会防止控件或其子控件的图形以及布局信息进行缓存。如果控件会逐帧发生改变，但您仍希望该控件处于无效面板中，则应该将其设置为易变，而不是逐帧对其进行无效化处理（后者会导致无效面板无法缓存任何内容）。|
 
-Regarding the **IsVolatile** check box, any widget can be set to be Volatile. Volatile widgets act like normal Slate widgets pre-invalidation. They're redrawn every frame, including all their children. When combined with the invalidation panel, it allows you to only need to care about redrawing only the most dynamic bits of the UI, as invalidating a whole panel could be far more costly.
+对于 **易变** 复选框，任何控件都可以设置为易变。易变控件类似于未经无效化处理的正常 Slate 控件。这些控件（包括其子控件）都会逐帧重新绘制。与无效面板相结合时，您只需考虑重新绘制 UI 中最为动态的部分，因为对整个面板进行无效化处理将是一项巨大的开销。
 
-## Widget Functions
+## 函数
 
-When using an **Invalidation Box**, it's up to the user to call [`Invalidate`](https://docs.unrealengine.com/latest/INT/API/Runtime/SlateCore/Widgets/SWidget/Invalidate/index.html) through C++ or the **Invalidate Layout And Volatility** node (pictured below) on a child widget to force invalidation. 
+使用 **无效框** 时，用户可以通过 C++ 或 **Invalidate Layout And Volatility** 节点（下图所示）在子控件上调用 [`Invalidate`](https://docs.unrealengine.com/latest/INT/API/Runtime/SlateCore/Widgets/SWidget/Invalidate/index.html) 以强制进行无效化。 
 
 ![](BPInvalidateNode.png)
 
 [REGION:note]
-Currently some core widgets do this automatically when certain properties are changed, however more will do it over time.
+目前，某些核心控件会在特定的属性发生更改时自动这样做，今后将会有更多控件支持这项功能。
 [/REGION]
 
 
-## Debugging Invalidation Boxes
+## 调试
 
-You can debug your Invalidation Boxes using the Widget Reflector (**CTRL+Shift+W**) and clicking the **Invalidation Debugging** toggle. 
+可以使用控件反映器 (**CTRL+Shift+W**) 并单击 **无效调试** 选项来调试无效框。 
 
 [REGION:lightbox]
 [![](WidgetReflector.png)(w:640)](WidgetReflector.png)
 [/REGION]
 
 [REGION:caption]
-_Click image for full view._
+_点击查看全图。_
 [/REGION]
 
-With the Widget Reflector up and Invalidation Debugging on, you will see the following: 
+打开控件反映器并开启无效调试后，会看到以下内容： 
 
-* White/Red Flash - This is the widget response for invalidation. 
-* Green Boarder - This is for Invalidation Panels (Cached This Frame). 
-* Red Boarder - This is for Invalidation Panels (Cache Invalidated This Frame). 
-* Dashed Yellow Border - These identify volatile widgets. 
+* 白色/红色闪动 - 这是控件针对无效化做出的回应。 
+* 绿色边界 - 针对无效面板（已缓存该帧）。 
+* 红色边界 - 针对无效面板（该帧的缓存已无效化处理）。 
+* 黄色虚线边界 - 这些标识了易变控件。 
 
 ![](ExampleDebugging.png)
 
-Above we have an image that is marked as Volatile inside of a Border which is wrapped with an Invalidation Box. Since the image is marked as Volatile, it can be updated dynamically during gameplay while the Border (or any other art assets that we wanted to appear around the image that do not change) is cached. 
+上图中，一个标记为易变的图像位于边界内，同时封装在一个无效框中。由于图像已标记为易变，游戏过程中在边界（或任何其他想要显示在图像周围且保持不变的图形资产）进行缓存时，该图像可以动态更新。 
 
 
 

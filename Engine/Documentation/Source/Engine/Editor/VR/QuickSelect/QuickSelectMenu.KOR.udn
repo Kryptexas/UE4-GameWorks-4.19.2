@@ -1,0 +1,73 @@
+﻿INTSourceChangelist:2911160
+Title: 빠른 선택 메뉴
+Description: 빠른 선택 메뉴로 VR 모드에서 에디터 패널과 창을 쉽게 접근할 수 있습니다.
+Crumbs:
+Availability: public
+parent: Engine/Editor/VR
+type: reference
+order: 2
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickSelect:title%](Engine/Editor/VR/QuickSelect/quickselect_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickSelect:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickSelect]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickSelect:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/QuickSelect:title%](Engine/Editor/VR/QuickSelect/quickselect_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/QuickSelect:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/QuickSelect]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/QuickSelect:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+**Quick Select** (빠른 선택) 메뉴는 빠르게 그리드, 회전, 스냅 세팅 조정은 물론 콘텐츠 브라우저, 디테일 패널 등을 띄울 수 있습니다.
+
+![](quickselectmenu.png)(w:480)
+
+## 빠른 선택 메뉴 사용법
+
+1. 한 쪽 콘트롤러를 다른 쪽 콘트롤러에 조준하면 빠른 선택 메뉴가 뜹니다.
+1. 다른 쪽 콘트롤러로 메뉴의 옵션을 선택하여 강조시킵니다.
+1. 트리거를 쥐면 강조된 옵션이 선택됩니다.
+
+## 빠른 선택 메뉴 옵션
+
+| 옵션 | 설명 |
+| ------ | ----------- |
+| [REGION:tablesection]그리드 스냅[/REGION] ||
+| 이동 | 액터 이동시 그리드 스냅을 켜고 끄는 토글입니다. 스냅 값은 아래 숫자 칸을 조준하고, 트리거를 조작한 뒤, 콘트롤러를 움직여 변경할 수 있습니다. |
+| 회전| 액터 회전시의 그리드 스냅을 켜고 끄는 토글입니다. 스냅 값은 아래 숫자 칸을 조준하고, 트리거를 조작한 뒤, 콘트롤러를 움직여 변경할 수 있습니다. |
+| 스케일 | 액터 스케일 조절시의 그리드 스냅을 켜고 끄는 토글입니다. 스냅 값은 아래 숫자 칸을 조준하고, 트리거를 조작한 뒤, 콘트롤러를 움직여 변경할 수 있습니다. |
+| [REGION:tablesection]기즈모[/REGION] ||
+| 좌표계 | 액터 트랜스폼 작업시의 좌표계를 [월드 스페이스/로컬 스페이스] 에서 선택합니다. |
+| 트랜스폼 선택기 | 유니버설 기즈모에 사용가능한 트랜스폼 모드 중 이동, 회전, 스케일 모드를 순환시킵니다. 선택된 모드의 조작기만이 표시됩니다. |
+| [REGION:tablesection]인터페이스[/REGION] ||
+| 콘텐츠 | 콘텐츠 브라우저를 엽니다. |
+| 디테일 | 선택된 액터의 프로퍼티를 확인하고 변경할 수 있는 디테일 패널을 엽니다. |
+| 모드 | 액터 배치 툴 등에 접근할 수 있는 모드 패널을 엽니다. |
+| 아웃라이너 | 월드 아웃라이너를 엽니다. 여기에는 월드의 모든 액터가 계층형 목록으로 표시되어, 빠른 선택, 표시여부 토글, 체계 정리, 액터 전용 동작을 수행할 수 있습니다. |
+| 애셋 | 애셋 창을 엽니다. 이는 애셋 에디터의 컨테이너 역할을 하는데, 열 수 있는 것은 블루프린트 에디터, 머티리얼 에디터 등입니다. |
+| 튜토리얼 | VR 에디터에 흔히 쓰이는 기능 안내 모음집인 VR 모드 튜토리얼을 엽니다. |

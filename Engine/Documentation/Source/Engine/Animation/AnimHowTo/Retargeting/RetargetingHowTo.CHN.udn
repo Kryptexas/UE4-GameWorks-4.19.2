@@ -1,78 +1,80 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2661624
 Availability: Public
-Title:Using Retargeted Animations
+Title:使用重定向动画
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Examples of how to setup and use Retargeted Animations for multiple characters. 
+Description:如何为多个 Character 设置和使用重定向动画的示例。 
 Related: Engine\Animation\AnimationRetargeting
 Related: Engine\Animation\RetargetingDifferentSkeletons
 Related: Engine\Animation\Skeleton
 Related: Engine\Animation\Overview
+version: 4.9
+skilllevel: Intermediate
 
-**Animation Retargeting** is the process of repurposing existing animations for use between multiple characters, eliminating the need to create entirely new animations as you can instead share your animation assets between characters. 
+**动画重定向** 是重新利用现有动画以供多个 Character 使用的过程，从而使您无需创建全新动画，因为您可以改为在不同 Character 之间共享动画资源。 
 
-There are two forms of Animation Retargeting, one in which the Skeleton of the character you wish to share animations with is using the **Same Skeleton** as the character that the animations were originally created for. The other involves an intermediary object called a **Rig** which allows you to retarget animations from one character's Skeleton and pass that skeleton's Bone information to a **Different Skeleton** using the Rig which both Skeleton's share. 
+动画重定向有两种形式，一种是要与其共享动画的 Character 将和最初创建该动画的 Character 使用 **相同骨架**。另一种形式包含称为 **Rig** 的中介对象，该对象可让您从一个 Character 的骨架重定向动画，然后将该骨架的骨骼信息传递给使用两个骨架共用的 Rig 的 **不同骨架**。 
 
-Refer to the two links below for the type of Animation Retargeting you are looking to achieve: 
+有关您要实现的动画重定向的类型，请参阅以下两个链接： 
 
 [TOC(start:2)]
 
-## Retargeting Using the Same Skeleton
+## 使用相同骨架重定向
 
-This section will show you how to set up a **Skeleton** to use retargeted animations for all biped characters that use the Skeleton.
+本部分将介绍如何设置 **骨架**，以将重定向动画用于所有使用该骨架的两足 Character。
 
-1.  Inside the **Content Browser**, open the **Skeleton** asset that is being used for each of your characters. 
+1.在 **内容浏览器** 内，打开用于每个 Character 的 **骨架** 资源。 
 
-1.	In the **Skeleton Tree** of **Persona**, check the **Show Retargeting Options** checkbox. 
+1.	在 **Persona** 的 **骨架树** 中，选中 **Show Retargeting Options** 复选框。 
 
 	![](HowTo1.png)
 
-1.	**Right-click** on your **Root** bone in the **Skeleton Tree** and select **Recursively Set Translation Retargeting Skeleton**. 
+1.	在 **骨架树** 中 **右键单击** 您的 **根** 骨骼，然后选择 **Recursively Set Translation Retargeting Skeleton**。 
 
 	![](HowTo2.png)
 
-	This will ensure that all bones use the skeleton's static translation (we will modify certain bones for retargeting in a moment). 
+	此操作将确保所有骨骼均使用骨架的静态转换（我们将修改某些骨骼，以便立即重定向）。 
 
-1.	Locate the **Pelvis** bone (or its equivalent bone) and click the drop-down box and select **AnimationScaled**. 
+1.	找到 **Pelvis** 骨骼（或其对应的骨骼），然后单击下拉框并选择 **AnimationScaled**。 
 
 	![](HowTo3.png)
 
-	This will make sure that the Pelvis bone sits at the right height and is still animated. Any other bone you want translation to be animated and retargeted should also use this setting. 
+	此操作将确保 Pelvis 骨骼位于合适的高度，并仍处于动画状态。要转换成动画和重定向的任何其他骨骼也应使用此设置。 
 
-1.	Find the **Root** bone, any **IK** bones, any **Weapon** bones you may be using or other marker-style bones and set them to **Animation**. 
+1.	找到您正在使用的 **根** 骨骼、任何 **IK** 骨骼、任何 **武器** 骨骼或其他标记型骨骼，然后将其设置为 **动画**。 
 
 	![](HowTo4.png)
 
-	By using **Animation** as the Bone Translation Retargeting Mode, the bone's translation comes from the animation data itself and is unchanged. 
+	通过将 **动画** 用作“骨骼转换重定向模式”，骨骼的转换将源于动画数据本身，并且没有任何更改。 
 
-	Above is an example portion of the **Skeleton Tree** set to use the different **Translation Retargeting** methods. The methods used may vary and you may have to experiment with the different methods for different bones to produce your desired results.	
+	上图是设置为使用不同 **转换重定向** 方法的 **骨架树** 的示例。使用的方法各有不同，您可能必须针对不同骨骼试验不同方法，以产生所需的结果。	
 
-1.	Click the **Grid** icon next to the current Mesh to bring up the Mesh selection box and select a different Mesh (a different character). 
+1.	单击当前网格体旁的 **网格** 按钮，以调出网格体选择框，然后选择一个不同的网格体（不同的 Character）。 
 
 	![](HowTo5.png)
 
-	Try out different animations on different **Skeletal Meshes** to ensure that your Skeleton is set up properly for each of your animations. 
+	在不同的 **骨骼网格体** 上试验不同的动画，以确保您的骨架已针对各个动画设置正确。 
 
-1.	Inside the viewport, click **Show** and check **NonRetarget Animation** and **Bones** to show the normal and retargeted Skeletons. 
+1.	在视窗内单击 **Show**，然后选中 **NonRetarget Animation** 和 **Bones**，以显示普通骨架和重定向骨架。 
 
 	![](HowTo6.png)
 	
-	You should now see something similar to below on your Skeleton. 
+	现在，您应可以在骨架上看到如下所示的画面。 
 
 [INCLUDE:Engine\Animation\AnimationRetargeting#aftertable]
 
-Shown in beige above is the original Skeleton along with the current, retargeted Skeleton in white. When retargeting is applied to the characters, the differences in their proportions are taken out of the equation and animations applied play properly on each of the different characters and the original Skeleton (beige Skeleton) is depicted in the same position in both the Short and Tall Characters. 
+上图中显示为米黄色的部分是原始骨架，同时当前重定向的骨架显示为白色。当重定向应用于 Character 后，将在对等处理过程中剔除不同 Character 的比例差异，所应用的动画即可在各个 Character 上正常播放，并会在矮胖和高瘦的 Character 的相同位置描画出原始骨骼（米黄色骨骼）。 
 
 [REGION:note]
-The steps above are intended to quickly get you up and running on how to retarget animations for characters that share the same Skeleton asset. Please see the [](Engine\Animation\AnimationRetargeting) documentation for additional, more detailed information. 
+上述步骤旨在让您快速入门，学习如何为共享相同骨架资源的 Character 重定向动画。有关其他更详细的信息，请参阅[](Engine\Animation\AnimationRetargeting)文档。 
 [/REGION]
 
 
-## Retargeting Using Different Skeletons
+## 使用不同骨架重定向
 
 [INCLUDE:Engine\Animation\RetargetingDifferentSkeletons#guide]
 
 [REGION:note]
-The steps above showcase how to retarget an animation between two different Skeletons however there are additional measures you can take to improve the quality of the retargeted animation. Please see the [](Engine\Animation\RetargetingDifferentSkeletons) documentation for more information. 
+上述步骤说明了如何在两个不同骨架之间重定向动画，但是，您还可采取其他措施来改善重定向动画的质量。有关详细信息，请参阅 [](Engine\Animation\RetargetingDifferentSkeletons) 文档。 
 [/REGION]
 
 

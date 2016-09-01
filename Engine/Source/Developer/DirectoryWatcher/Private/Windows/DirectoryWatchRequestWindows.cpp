@@ -95,6 +95,7 @@ bool FDirectoryWatchRequestWindows::Init(const FString& InDirectory)
 	if ( !bSuccess  )
 	{
 		::CloseHandle(DirectoryHandle);
+		DirectoryHandle = INVALID_HANDLE_VALUE;
 		return false;
 	}
 
@@ -173,7 +174,8 @@ void FDirectoryWatchRequestWindows::ProcessChange(uint32 Error, uint32 NumBytes)
 	{
 		// The operation was aborted, likely due to EndWatchRequest canceling it.
 		// Mark the request for delete so it can be cleaned up next tick.
-		bPendingDelete = true; 
+		bPendingDelete = true;
+		UE_LOG(LogDirectoryWatcher, Log, TEXT("A directory notification for '%s' was aborted."), *Directory);
 		return; 
 	}
 
@@ -184,6 +186,11 @@ void FDirectoryWatchRequestWindows::ProcessChange(uint32 Error, uint32 NumBytes)
 	{		
 		check(BackBuffer);
 		FMemory::Memcpy(BackBuffer, Buffer, NumBytes);
+	}
+
+	if ( !bValidNotification )
+	{
+		UE_LOG(LogDirectoryWatcher, Log, TEXT("A directory notification failed for '%s' because it was empty or there was a buffer overflow. Attemping another request..."), *Directory);
 	}
 
 	// Start up another read
@@ -197,14 +204,19 @@ void FDirectoryWatchRequestWindows::ProcessChange(uint32 Error, uint32 NumBytes)
 		&Overlapped,
 		&FDirectoryWatchRequestWindows::ChangeNotification);
 
-	if ( !bValidNotification )
+	if ( !bSuccess  )
 	{
-		UE_LOG(LogDirectoryWatcher, Log, TEXT("A directory notification failed for '%s' because it was aborted or there was a buffer overflow."), *Directory);
+		// Failed to re-create the read request.
+		// Mark the request for delete so it can be cleaned up next tick.
+		::CloseHandle(DirectoryHandle);
+		DirectoryHandle = INVALID_HANDLE_VALUE;
+		bPendingDelete = true;
+		UE_LOG(LogDirectoryWatcher, Log, TEXT("A directory notification failed for '%s', and we were unable to create a new request."), *Directory);
 		return;
 	}
 
 	// No need to process the change if we can not execute any delegates
-	if ( !HasDelegates() )
+	if ( !HasDelegates() || !bValidNotification )
 	{
 		return;
 	}

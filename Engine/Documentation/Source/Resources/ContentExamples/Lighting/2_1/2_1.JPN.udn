@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2716683
-Availability:Public
+﻿Availability:Public
 Title:2.1 - Static Light（静的ライト）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
 Description:ライティングのコンテンツ サンプルの概要、サンプル 2.1：Static Light (静的ライト)
@@ -62,14 +61,13 @@ Version:4.9
 
 [INCLUDE:Shared/Glossary/S/#Glossary_Static_Lights]
 
-Static lights (静的ライト) はライトマップのみを使用するため、このライトのシャドウはゲームプレイ開始前にベイク処理されます。つまり例にあるような移動 (動的) オブジェクトにシャドウを表現することはできません。しかしライティング オブジェクトも静的な場合は、エリア (コンタクト) シャドウを生成することができます。これは **Source Radius** プロパティを調整して実行します。この時、ソフトシャドウを受け取る表面に自然なシャドウを生成するにはライトマップの解像度を正しく設定する必要があることに留意してください。 
+Static lights (静的ライト) はライトマップのみを使用するため、このライトのシャドウはゲームプレイ開始前にベイクされます。つまり例にあるような移動 (動的) オブジェクトにシャドウを表現することはできません。ただし、静的なオブジェクトをライティングする場合には、エリア (コンタクト) シャドウを生成することができます。これは **Source Radius** プロパティを調整して実行します。この時、ソフトシャドウを受け取る表面に自然なシャドウを生成するには、ライトマップの解像度を正しく設定する必要があることに留意してください。 
 [/EXCERPT:StaticLighting01]
 
 [EXCERPT:StaticLighting02]
-スタティックメッシュ コンポーネント ライトマップの解像度は、 Static Mesh アセット、または _[Override Lightmap Res]_ チェックボックスにチェックを入れて値を設定することにより設定できます。より大きな値は、より高い解像度を意味しますが、より長いビルド時間とメモリ容量も必要となります。
-[/EXCERPT:StaticLighting02]
+スタティックメッシュ コンポーネント ライトマップの解像度の設定は、 Static Mesh アセット、または _[Override Lightmap Res]_ チェックボックスにチェックを入れて値を設定します。値が大きくなるほど解像度が高くなりますが、ビルド時間とメモリ容量もそれだけ多く必要となります。
 
-ブラシ サーフェスのライトマップ解像度は、_Lightmap Resolution_ プロパティ経由で設定しています。これは実際に密度を設定しているため、値が低ければ低いほど高い解像度となります。
+ブラシ サーフェスのライトマップ解像度は、_Lightmap Resolution_ プロパティを使って設定します。これで実際の密度を設定するので、値が低いほど解像度は高くなります。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -82,16 +80,16 @@ Static lights (静的ライト) はライトマップのみを使用するため
 
 
 [EXCERPT:ILC]
-Static lights (静的ライト) は _Indirect Lighting Cache のサンプル グリッド_ が原因で動的オブジェクトにも影響を及ぼします。これはシーンへ焼き付けられるライティング サンプルの 3D グリッドで、静的ライティングが動的オブジェクトに与える効果を決定するためにレンダリング エンジンで使用します。エディタの右上部隅にあるコンソールバーへ以下のコマンドを入力すると、グリッドがビューポートへ表示されます:
+Static lights (静的ライト) は _Indirect Lighting Cache のサンプル グリッド_ が原因で動的オブジェクトにも影響を及ぼします。これは、シーンへベイクされ、静的ライティングが動的オブジェクトに与える効果を決定するためにレンダリング エンジンで使用されるライティング サンプルの 3D グリッドでエディタの右上隅にあるコンソールバーへ以下のコマンドを入力すると、グリッドがビューポートに表示されま。
 
 `r.Cache.DrawLightingSamples 1`
 
-シーンの至るところにサンプルが散在しています。
+サンプルがシーン全体に散らばっています。
 
 ![](IndirectLightingCache.png)
 
 [REGION:note]
-Indirect lighting Cache のサンプルを存在させるには、シーン周りに **Lightmass Importance Volume** を設定し、ライティングはライトマスで構築しなくてはいけません。
+Indirect lighting Cache のサンプルを存在させるには、シーン周りに **Lightmass Importance Volume** を設定し、ライティングは Lightmass で構築しなくてはいけません。
 [/REGION]
 
 

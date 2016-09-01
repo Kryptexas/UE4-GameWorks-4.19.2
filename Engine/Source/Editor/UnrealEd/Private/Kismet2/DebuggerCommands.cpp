@@ -21,6 +21,7 @@
 #include "PlatformInfo.h"
 
 #include "IHeadMountedDisplay.h"
+#include "IVREditorModule.h"
 
 //@TODO: Remove this dependency
 #include "Editor/LevelEditor/Public/LevelEditor.h"
@@ -38,6 +39,38 @@
 
 #define LOCTEXT_NAMESPACE "DebuggerCommands"
 
+void SGlobalPlayWorldActions::Construct(const FArguments& InArgs)
+{
+	// Always keep track of the current active play world actions widget so we later set user focus on it
+	FPlayWorldCommands::SetActiveGlobalPlayWorldActionsWidget(SharedThis(this));
+
+	ChildSlot
+		[
+			InArgs._Content.Widget
+		];
+}
+
+FReply SGlobalPlayWorldActions::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	// Always keep track of the current active play world actions widget so we later set user focus on it
+	FPlayWorldCommands::SetActiveGlobalPlayWorldActionsWidget(SharedThis(this));
+
+	if (FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings(InKeyEvent))
+	{
+		return FReply::Handled();
+	}
+	else
+	{
+		FPlayWorldCommands::SetActiveGlobalPlayWorldActionsWidget(TSharedPtr<SGlobalPlayWorldActions>());
+		return FReply::Unhandled();
+	}
+
+}
+
+bool SGlobalPlayWorldActions::SupportsKeyboardFocus() const
+{
+	return true;
+}
 
 // Put internal callbacks that we don't need to expose here in order to avoid unnecessary build dependencies outside of this module
 class FInternalPlayWorldCommandCallbacks : public FPlayWorldCommandCallbacks
@@ -102,6 +135,9 @@ public:
 	static void StepOut_Clicked();
 
 	static void TogglePlayPause_Clicked();
+
+	// Mouse control
+	static void GetMouseControlExecute();
 
 	static void PossessEjectPlayer_Clicked();
 	static bool CanPossessEjectPlayer();
@@ -188,6 +224,18 @@ static void LeaveDebuggingMode()
 
 TSharedPtr<FUICommandList> FPlayWorldCommands::GlobalPlayWorldActions;
 
+TWeakPtr<SGlobalPlayWorldActions> FPlayWorldCommands::ActiveGlobalPlayWorldActionsWidget;
+
+TWeakPtr<SGlobalPlayWorldActions> FPlayWorldCommands::GetActiveGlobalPlayWorldActionsWidget()
+{
+	return FPlayWorldCommands::ActiveGlobalPlayWorldActionsWidget;
+}
+
+void FPlayWorldCommands::SetActiveGlobalPlayWorldActionsWidget(TWeakPtr<SGlobalPlayWorldActions> ActiveWidget)
+{
+	FPlayWorldCommands::ActiveGlobalPlayWorldActionsWidget = ActiveWidget;
+}
+
 FPlayWorldCommands::FPlayWorldCommands()
 	: TCommands<FPlayWorldCommands>("PlayWorld", LOCTEXT("PlayWorld", "Play World (PIE/SIE)"), "MainFrame", FEditorStyle::GetStyleSetName())
 {
@@ -248,9 +296,10 @@ void FPlayWorldCommands::RegisterCommands()
 	UI_COMMAND( PlayInSettings, "Advanced Settings...", "Open the settings for the 'Play In' feature", EUserInterfaceActionType::Button, FInputChord() );
 
 	// SIE & PIE controls
-	UI_COMMAND( StopPlaySession, "Stop", "Stop simulation", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( StopPlaySession, "Stop", "Stop simulation", EUserInterfaceActionType::Button, FInputChord(EKeys::Escape) );
 	UI_COMMAND( ResumePlaySession, "Resume", "Resume simulation", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( PausePlaySession, "Pause", "Pause simulation", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( GetMouseControl, "Mouse Control", "Get mouse cursor while in PIE", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Shift, EKeys::F1));
 	UI_COMMAND( LateJoinSession, "Add Client", "Add another client", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( SingleFrameAdvance, "Frame Skip", "Advances a single frame", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( TogglePlayPauseOfPlaySession, "Toggle Play/Pause", "Resume playing if paused, or pause if playing", EUserInterfaceActionType::Button, FInputChord( EKeys::Pause ) );
@@ -412,6 +461,14 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorld ),
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorld )
+		);
+
+	// Get mouse control from PIE
+	ActionList.MapAction(Commands.GetMouseControl,
+		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::GetMouseControlExecute ),
+		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorld ),
+		FIsActionChecked(),
+		FIsActionChecked::CreateStatic(&FInternalPlayWorldCommandCallbacks::HasPlayWorld )
 		);
 
 	// Toggle PIE/SIE, Eject (PIE->SIE), and Possess (SIE->PIE)
@@ -1702,6 +1759,21 @@ void FInternalPlayWorldCommandCallbacks::HandleShowSDKTutorial( FString Platform
 	MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformName, NotInstalledDocLink);
 }
 
+void FInternalPlayWorldCommandCallbacks::GetMouseControlExecute()
+{
+	if (IsInPIE()) {
+		FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
+		FSlateApplication::Get().ResetToDefaultInputSettings();
+
+		TWeakPtr<SGlobalPlayWorldActions> ActiveGlobalPlayWorldWidget = FPlayWorldCommands::GetActiveGlobalPlayWorldActionsWidget();
+		if (ActiveGlobalPlayWorldWidget.IsValid())
+		{
+			uint32 UserIndex = 0;
+			FSlateApplication::Get().SetUserFocus(UserIndex, ActiveGlobalPlayWorldWidget.Pin());
+		}
+	}
+}
+
 FSlateIcon FInternalPlayWorldCommandCallbacks::GetResumePlaySessionImage()
 {
 	if ( IsInPIE() )
@@ -1742,6 +1814,8 @@ void FInternalPlayWorldCommandCallbacks::ResumePlaySession_Clicked()
 	{
 		LeaveDebuggingMode();
 		GUnrealEd->PlaySessionResumed();
+		uint32 UserIndex = 0;
+		FSlateApplication::Get().SetUserFocusToGameViewport(UserIndex);
 	}
 }
 
@@ -1752,6 +1826,17 @@ void FInternalPlayWorldCommandCallbacks::PausePlaySession_Clicked()
 	{
 		GUnrealEd->PlayWorld->bDebugPauseExecution = true;
 		GUnrealEd->PlaySessionPaused();
+		if (IsInPIE()) {
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
+			FSlateApplication::Get().ResetToDefaultInputSettings();
+
+			TWeakPtr<SGlobalPlayWorldActions> ActiveGlobalPlayWorldWidget = FPlayWorldCommands::GetActiveGlobalPlayWorldActionsWidget();
+			if (ActiveGlobalPlayWorldWidget.IsValid())
+			{
+				uint32 UserIndex = 0;
+				FSlateApplication::Get().SetUserFocus(UserIndex, ActiveGlobalPlayWorldWidget.Pin());
+			}
+		}
 	}
 }
 
@@ -1786,7 +1871,6 @@ void FInternalPlayWorldCommandCallbacks::LateJoinSession_Clicked()
 		GEditor->RequestLateJoin();
 	}
 }
-
 
 void FInternalPlayWorldCommandCallbacks::ShowCurrentStatement_Clicked()
 {
@@ -1834,23 +1918,41 @@ void FInternalPlayWorldCommandCallbacks::TogglePlayPause_Clicked()
 {
 	if (HasPlayWorld())
 	{
-		if (GUnrealEd->PlayWorld->bDebugPauseExecution)
+		if (GUnrealEd->PlayWorld->IsPaused())
 		{
 			LeaveDebuggingMode();
 			GUnrealEd->PlaySessionResumed();
+			uint32 UserIndex = 0;
+			FSlateApplication::Get().SetUserFocusToGameViewport(UserIndex);
 		}
 		else
 		{
 			GUnrealEd->PlayWorld->bDebugPauseExecution = true;
 			GUnrealEd->PlaySessionPaused();
+			if (IsInPIE()) {
+				FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
+				FSlateApplication::Get().ResetToDefaultInputSettings();
+
+				TWeakPtr<SGlobalPlayWorldActions> ActiveGlobalPlayWorldWidget = FPlayWorldCommands::GetActiveGlobalPlayWorldActionsWidget();
+				if (ActiveGlobalPlayWorldWidget.IsValid())
+				{
+					uint32 UserIndex = 0;
+					FSlateApplication::Get().SetUserFocus(UserIndex, ActiveGlobalPlayWorldWidget.Pin());
+				}
+			}
 		}
 	}
 }
 
-
 bool FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions()
 {
-	return !HasPlayWorld();
+	// @todo vreditor: Don't display Simulate if we're currently in VR mode to prevent crash in blueprint (see UE-27984)
+	bool bIsInVREditor = false;
+	if (IVREditorModule::IsAvailable())
+	{
+		bIsInVREditor = IVREditorModule::Get().IsVREditorEnabled();
+	}
+	return (!HasPlayWorld() && !bIsInVREditor);
 }
 
 bool FInternalPlayWorldCommandCallbacks::CanShowVulkanNonPlayWorldOnlyActions()

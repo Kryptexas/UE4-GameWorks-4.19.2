@@ -1,22 +1,19 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2677398
 Availability: Public
-Title: Collaboration in Unreal Engine 4
+Title: 在虚幻引擎 4 中的协作
 Crumbs: %ROOT%, Engine
-Description: How to setup Perforce or SVN so that you can share assets with other on your team. 
+Description: 关于如何设置 Perforce 或 SVN，以便于能够在团队内共享文件资源。
+version: 4.9
 
-
-## Overview 
-Unreal Engine 4 comes with two fully-integrated methods that allow people to work together on their projects using version control software like Perforce and SVN. 
-Version control allows users on your team to share assets and code with one another, as well as providing a backup and history of changes so any files can 
-be rolled back to an earlier version if something went wrong with the file.
-
+虚幻引擎 4 中整合了两种版本控制软件的完整功能，让大家在项目上能够协同工作，这两个软件是 Perforce 和 SVN。
+版本控制软件能在团队的成员之间共享资源文件或代码文件，并能够提供存储备份以及文件的历史记录，能在某些文件发生问题时回滚到早先的可用版本上。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Source Control Software
+		版本管理软件
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

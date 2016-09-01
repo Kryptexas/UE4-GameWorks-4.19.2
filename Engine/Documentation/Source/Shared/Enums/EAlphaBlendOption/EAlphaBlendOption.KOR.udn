@@ -1,0 +1,95 @@
+﻿INTSourceChangelist:3058682
+Availability:NoPublish
+Title:EAlphaBlendOption
+Crumbs:
+Description: FAlphaBlend 에 사용할 커브 블렌딩 유형을 설명하는 열거형입니다.
+
+[EXCERPT:Linear]
+
+선형 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:Linear]
+
+[EXCERPT:Cubic]
+
+큐브형 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:Cubic]
+
+[EXCERPT:HermiteCubic]
+
+에르미트(Hermite) 큐브형 커브를 사용한 블렌딩입니다 (FMath::SmoothStep 참고).
+
+[/EXCERPT:HermiteCubic]
+
+[EXCERPT:Sinusoidal]
+
+사인 곡선을 사용한 블렌딩입니다.
+
+[/EXCERPT:Sinusoidal]
+
+[EXCERPT:QuadraticInOut]
+
+2차 입/출 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:QuadraticInOut]
+
+[EXCERPT:CubicInOut]
+
+큐브형 입/출 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:CubicInOut]
+
+[EXCERPT:QuarticInOut]
+
+4차 입/출 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:QuarticInOut]
+
+[EXCERPT:QuinticInOut]
+
+5차 입/출 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:QuinticInOut]
+
+[EXCERPT:CircularIn]
+
+원형 입력 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:CircularIn]
+
+[EXCERPT:CircularOut]
+
+원형 출력 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:CircularOut]
+
+[EXCERPT:CircularInOut]
+
+원형 입/출 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:CircularInOut]
+
+[EXCERPT:ExpIn]
+
+지수형 입력 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:ExpIn]
+
+[EXCERPT:ExpOut]
+
+지수형 출력 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:ExpOut]
+
+[EXCERPT:ExpInOut]
+
+지수형 입/출 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:ExpInOut]
+
+[EXCERPT:Custom]
+
+커스텀 커브를 사용한 블렌딩입니다.
+
+[/EXCERPT:Custom]

@@ -80,7 +80,7 @@ struct FMovieSceneBinding
 	const FString& GetName() const
 	{
 		return BindingName;
-	} 
+	}
 
 	/**
 	 * Adds a new track to this binding
@@ -104,6 +104,15 @@ struct FMovieSceneBinding
 	{
 		return Tracks;
 	}
+
+#if WITH_EDITOR
+	/**
+	 * Perform cook-time optimization on this object binding
+	 * @param bShouldRemoveObject 		(Out) Boolean that will set to true if this whole binding should be considered redundant.
+	 */
+	void PerformCookOptimization(bool& bShouldRemoveObject);
+
+#endif
 
 private:
 

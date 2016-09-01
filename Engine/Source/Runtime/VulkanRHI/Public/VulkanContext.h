@@ -17,7 +17,7 @@ public:
 	FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, bool bInIsImmediate);
 	virtual ~FVulkanCommandListContext();
 
-	bool IsImmediate() const
+	inline bool IsImmediate() const
 	{
 		return bIsImmediate;
 	}
@@ -25,6 +25,7 @@ public:
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) final override;
 	virtual void RHISetRasterizerState(FRasterizerStateRHIParamRef NewState) final override;
 	virtual void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ) final override;
+	virtual void RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ) final override;
 	virtual void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY) final override;
 	virtual void RHISetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState) final override;
 	virtual void RHISetShaderTexture(FVertexShaderRHIParamRef VertexShader, uint32 TextureIndex, FTextureRHIParamRef NewTexture) final override;
@@ -112,10 +113,19 @@ public:
 		return CommandBufferManager;
 	}
 
-	VulkanRHI::FTempFrameAllocationBuffer& GetTempFrameAllocationBuffer()
+	inline VulkanRHI::FTempFrameAllocationBuffer& GetTempFrameAllocationBuffer()
 	{
 		return TempFrameAllocationBuffer;
 	}
+
+	inline FVulkanPendingState& GetPendingState()
+	{
+		check(PendingState);
+		return *PendingState;
+	}
+
+	// OutSets must have been previously pre-allocated
+	FVulkanDescriptorPool* AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& DescriptorSetAllocateInfo, VkDescriptorSet* OutSets);
 
 protected:
 	FVulkanDynamicRHI* RHI;
@@ -142,5 +152,12 @@ protected:
 
 	FVulkanCommandBufferManager* CommandBufferManager;
 
+	TArray<FVulkanDescriptorPool*> DescriptorPools;
+
+	//#todo-rco: Temp!
+	FVulkanPendingState* PendingState;
+
 	void SubmitCurrentCommands();
+
+	void InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 };

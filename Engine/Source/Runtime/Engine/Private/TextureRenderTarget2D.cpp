@@ -145,7 +145,7 @@ FString UTextureRenderTarget2D::GetDesc()
 	return FString::Printf( TEXT("Render to Texture %dx%d[%s]"), SizeX, SizeY, GPixelFormats[GetFormat()].Name );
 }
 
-UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FString& NewTexName, EObjectFlags ObjectFlags, uint32 Flags, TArray<uint8>* AlphaOverride)
+UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FString& NewTexName, EObjectFlags InObjectFlags, uint32 Flags, TArray<uint8>* AlphaOverride)
 {
 	UTexture2D* Result = NULL;
 #if WITH_EDITOR
@@ -157,7 +157,7 @@ UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FSt
 
 	const EPixelFormat PixelFormat = GetFormat();
 	ETextureSourceFormat TextureFormat = TSF_Invalid;
-	TextureCompressionSettings CompressionSettings = TC_Default;
+	TextureCompressionSettings CompressionSettingsForTexture = TC_Default;
 	switch (PixelFormat)
 	{
 		case PF_B8G8R8A8:
@@ -165,7 +165,7 @@ UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FSt
 		break;
 		case PF_FloatRGBA:
 			TextureFormat = TSF_RGBA16F;
-			CompressionSettings = TC_HDR;
+			CompressionSettingsForTexture = TC_HDR;
 		break;
 	}
 
@@ -176,7 +176,7 @@ UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FSt
 	}
 
 	// create the 2d texture
-	Result = NewObject<UTexture2D>(Outer, FName(*NewTexName), ObjectFlags);
+	Result = NewObject<UTexture2D>(Outer, FName(*NewTexName), InObjectFlags);
 	// init to the same size as the 2d texture
 	Result->Source.Init(SizeX, SizeY, 1, 1, TextureFormat);
 
@@ -265,7 +265,7 @@ UTexture2D* UTextureRenderTarget2D::ConstructTexture2D(UObject* Outer, const FSt
 		Result->MipGenSettings = TMGS_NoMipmaps;
 	}
 
-	Result->CompressionSettings = CompressionSettings;
+	Result->CompressionSettings = CompressionSettingsForTexture;
 	if (Flags & CTF_Compress)
 	{
 		// Set compression options.
@@ -324,15 +324,16 @@ void FTextureRenderTarget2DResource::InitDynamicRHI()
 {
 	if( TargetSizeX > 0 && TargetSizeY > 0 )
 	{
-		bool bSRGB=true;
+		bool bUseSRGB=true;
 		// if render target gamma used was 1.0 then disable SRGB for the static texture
 		if( FMath::Abs(GetDisplayGamma() - 1.0f) < KINDA_SMALL_NUMBER )
 		{
-			bSRGB = false;
+			bUseSRGB = false;
 		}
 
 		// Create the RHI texture. Only one mip is used and the texture is targetable for resolve.
-		uint32 TexCreateFlags = bSRGB ? TexCreate_SRGB : 0;
+		uint32 TexCreateFlags = bUseSRGB ? TexCreate_SRGB : 0;
+		TexCreateFlags |= Owner->bGPUSharedFlag ? TexCreate_Shared : 0;
 		FRHIResourceCreateInfo CreateInfo = FRHIResourceCreateInfo(FClearValueBinding(ClearColor));
 
 		if (Owner->bAutoGenerateMips)

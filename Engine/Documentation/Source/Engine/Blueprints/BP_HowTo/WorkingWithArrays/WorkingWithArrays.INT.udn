@@ -6,6 +6,9 @@ Related: Engine/Blueprints/UserGuide/Arrays
 Related: Engine/Blueprints/UserGuide/Arrays/ArrayNodes
 version:4.9
 skilllevel:Intermediate
+parent:Engine/Blueprints/Scripting
+tags:Arrays and Structures
+order:3
 
 [TOC(start:2)]
 

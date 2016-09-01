@@ -1,43 +1,44 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2940199
 Availability:Public
-Title:Motion Controller Component Setup
+Title:Motion Controller Component の設定
 Crumbs:%ROOT%, Platforms
-Description:Information over how to setup Motion Controllers for VR interaction.
+Description:VR インタラクション用モーション コントローラーの設定方法
 Navigation:platform
 Version:4.9
-Skilllevel:Intermediate
-
+SkillLevel:Intermediate
+parent:Platforms/VR
+type:overview
 
 [TOC(start:2)]
 
-The release of Unreal Engine 4.9 introduces some major changes in how Unreal Engine interfaces with Motion Controllers.
-You can now add a Motion Controller as a component to your Pawn / Character, set which "Hand" it is supposed to represent and the Motion Controller is now ready to be used.
-In the following document we will cover how you can set up your Virtual Reality project to make use of Motion Controllers.
+アンリアル エンジン 4.9 のリリースで、アンリアル エンジンのモーション コントローラーとのインターフェースが大幅に変更されました。
+モーション コントローラーをコンポーネントとしてポーン / キャラクターに追加し、どちらの「手」にするかが設定可能になって、モーション コントローラーが使用できるようになりました。
+このガイドでは、モーション コントローラーを使うための VR プロジェクトの設定方法について説明します。
 
 [region:tip]
-Before going any further make sure that your VR Headset and Motion Controllers have been plugged into your PC and their required drivers installed. 
-If you have not done so already make sure to check out our other [VR Documents](Platforms/VR) as they contain valuable information on how to get various VR headsets to work with UE4.
+VR ヘッドセットとモーション コントローラーがパソコンに接続されていますか。必要なドライバーはインストール済みでしょうか。今一度ご確認ください。 
+お済でない場合は [VR に関する情報](Platforms/VR) をご覧ください。UE4 で作業するために各種 VR ヘッドセットの取得方法が記載されています。
 [/region]
 
-## Motion Controller Setup
+## モーション コントローラーの設定
 
-Setting up a VR project to make use of Motion Controllers can be accomplished in a few short steps. 
-In the following section we will cover how you can quickly get Motion Controllers working with your project.
+モーション コントローラーを数ステップで簡単に完了できるように VR プロジェクトを設定します。 
+次のセクションでは、モーション コントローラーでプロジェクトで簡単に使う方法を説明します。
 
-1. From the Content Browser open up the Player Pawn Blueprint.
+1. コンテンツ ブラウザから Player Pawn ブループリントを開きます。
 
 	![](Open_VR_Pawn.png)
 
 	[region:note]
-	Please note the following can be applied to any Pawn in any project and does not specifically have to be a VR project.
+	次のステップは、VR プロジェクトに特化されておらず、すべてのプロジェクトのポーンに適用できます。
 	[/region]
 
-1. Once the Blueprint is opened, navigate to the **Viewport** tab and in the **Components** section click on the **Add Component** button to expose the components that can be added to this Blueprint. 
+1. ブループリントを開いたら、**[Viewport]** タブの **[Components]** セクションの **[Add Component (コンポーネントを追加)]** ボタンをクリックして、このブループリントに追加できるコンポーネントを表示します。 
 
 	![](Find_Components.png)
 
-1. From the list that is shown search for the Motion Controller using the word **Motion** as the search term. 
-	When the Motion Controller component has been located, click on it to add it to the components list.
+1. **「Motion」** というワードを使って、表示された一覧の中でモーション コントローラーを検索します。 
+	Motion Controller コンポーネントが見つかったら、クリックしてコンポーネント リストに追加します。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -51,12 +52,12 @@ In the following section we will cover how you can quickly get Motion Controller
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Once the Motion Controller has been added, select it by clicking on it and then in the **Details** panel under the **Motion Controller** section make sure the **Hand** is set to **Left**.
+1. モーション コントローラーが追加されたらクリックして、**[Motion Controller]** セクションの **[Details (詳細)]** パネルの **[Hand]** が **[Left (左)]** に設定されていることを確認してください。
 
 	![](Setting_Up_Components.png)
 
-1. If you ran the game now the motion controller would work but you would not see anything as by default no visuals are rendered. 
-	To fix this add a **Static Mesh Component** to the Components sections and then in the Details section of the Static Mesh Component under the Static Mesh section pick a Static Mesh to use from the dropdown menu.
+1. ゲームを起動すればモーション コントローラーが動作するようになっていますが、ビジュアルは一切レンダリングされていないのでデフォルトでは何も見えません。 
+	これを修正するには、**Static Mesh Component** を [Components] セクションに追加して [Static Mesh] セクションのStatic Mesh コンポーネントの [Details (詳細)] セクションでドロップダウン メニューから使用するスタティックメッシュを選択します。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -71,44 +72,44 @@ In the following section we will cover how you can quickly get Motion Controller
 	[/OBJECT]
 
 	[region:tip]
-	If you do not see any Static Mesh in the Content Browser you will need to either import one or enable **Engine Content** and then select one from there. 
-	Also if the Static Mesh you selected is to big or to small you can scale to your likening using the Scale section of the Transform menu.
+	コンテンツ ブラウザにスタティック メッシュが表示されない場合、スタティック メッシュをインポートするか、または **[Engine Content]** を有効にして、そこから選択する必要があります。 
+	選択したスタティック メッシュが大きすぎたり小さすぎたりする場合、[Transform (トランスフォーム)] メニューの [Scale] セクションで自由に調整ができます。
 	[/region]
 
-1. Repeat this process again this time adding a Right Hand and when completed your Pawn Blueprint should look something like the image below.
+1. 次は [Right Hand] を追加してこの手順を繰り返します。完了すると、Pawn ブループリントは次の画像のようになっています。
 
 	![](Finshed_MC_Setup.png)
 
 	[region:note]
-	In the image above the the two cone shaped meshes have been moved apart to show that they are two of them. 
-	When setting this up for your project leave both mesh at 0,0,0 so that they are located right on top of one another.
+	上の画像では、コーン形状の 2 つのメッシュが 2 つであることを示すために分かれて移動しました。 
+	プロジェクトを設定する際、お互いの右上に来るように両方のメッシュは 0,0,0 のままにしておきます。
 	[/region]
 
-## Working with Motion Controllers
+## モーション コントローラーの作業
 
-Working with Motion Controllers inside UE4 is similar to working with other input devices such as a game-pad or a keyboard. 
-If you search inside of the Blueprint Editor **Palette** using **MotionController** as the search term you will see all the available buttons and controls the Motion Controllers have available.
+UE4 内でのモーション コントローラーの作業は、ゲームパッドやキーボードなどの入力デバイスの場合と似ています。 
+**MotionController** を検索ワードにしてブループリント エディタの **Palette** を検索すると、Motion Controller で利用可能なすべてのボタンと制御が表示されます。
 
 ![](Working_With_MC.png)
 
-When looking at the available Motion Controller input options there is a capital **L** or **R** next to the name of what that value is supposed to control. 
-This L or R means that this is for the **Left** or **Right** Motion Controller.
+利用可能な Motion Controller 入力オプションを見てみると、大文字の **L** または **R** の隣に、その値が制御する対象の名前があります。 
+L と R は、モーション コントローラーの **Left** または **Right** であることを意味しています。
 
 ![](MC_Left_Right.png)
 
 
-## Using Motion Controllers
+## モーション コントローラーの使用方法
 
-In the following section we will set the Motion Controllers up so that when you press the trigger button on the **Right-Handed** Motion Controller a Blueprint containing a Static Mesh is spawned into the world. 
-Then when you press the trigger button on the **Left-Handed** Motion Controller the Blueprint that contains the Static Mesh that was spawned into the world will be removed from the world.
+次のセクションでは、**Right-Handed** モーション コントローラーでトリガー ボタンが押された時にスタティック メッシュを含むブループリントがワールドにスポーンされるように、モーション コントローラーを設定していきます。 
+次に **Left-Handed** Motion Controller のトリガー ボタンを押すと、ワールドにスポーンされたスタティック メッシュを含むブループリントがワールドから削除されます。
 
-1. Inside of the Content Browser create a new Blueprint and name it **BP_Sphere** and then open it up by double clicking on it.  
+1. コンテンツ ブラウザ内にブループリントを新規作成し、**BP_Sphere** という名前を付けて、ダブルクリックして開きます。  
 
-1. Once the BP_Sphere Blueprint is open, navigate to the **Viewport** tab and add a new **Static Mesh Component**.
+1. BP_Sphere Blueprint が開いたら、**[Viewport]** タブを開いて **Static Mesh コンポーネント** を追加します。
 
 	![](Add_SM_Component.png)
 
-1. Move the Static Mesh Component on top of the **Default Screen Root** and then set the Static Mesh used to the **ArcadeEditorSphere** then compile and save your Blueprint.
+1. Static Mesh コンポーネントを **Default Screen Root** の上に移動させ、**ArcadeEditorSphere** に使用する設定にして、ブループリントをコンパイルし保存します。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -123,39 +124,39 @@ Then when you press the trigger button on the **Left-Handed** Motion Controller 
 	[/OBJECT]
 
 	[region:note]
-	If you can not find the **ArcadeEditorSphere** make sure that you have the **Engine Content** folder enabled by going to **View Options** and then clicking on the **Engine Content** folder to enable it showing up in the Content Browser.
+	**ArcadeEditorSphere** が表示されない場合は、**[View Options (表示オプション)]** で **「Engine Content」** フォルダを有効にし、**「Engine Content」** フォルダをクリックしてコンテンツ ブラウザで表示されるようにします。
 	[/region]
 
-1. Close down the BP_Sphere Blueprint and open up your **Pawn** Blueprint then navigate to the **Event Graph** tab.
+1. BP_Sphere ブループリントを終了して **Pawn** ブループリントを開き、**[Event Graph]** タブをクリックします。
 
-1. Create a new **Actor** variable with the name **Objects** and set it's **Variable Type** to array.
-	
+1. **「Objects」** という名前で **Actor** 変数を新規作成し、**Variable Type** を配列に設定します。
+
 	![](Create_New_Var.png)
 
-1. To create the ability to add objects to the world, inside of the Event Graph add and connect the following Blueprint nodes together. When completed you should have something that looks like the following image.
+1. ワールドにオブジェクトを追加する機能を作成するには、イベント グラフに次のブループリント ノードを追加して接続します。完了すると以下の画像のようになります。
 
 	![](Add_Objects_Setup.png)
 
 	[region:note]
-	The **Spawn Offset** was added to ensure that the objects could be seen while being placed in this example. This is not required for this to work and can be omitted by taking the **Return Value** from the **GetActorTransform** node and inputting that into the **Spawn Transform** input on the **SpawnActor** Blueprint node.
+	この例に配置されてたオブジェクトは必ず表示されるように、**Spawn Offset** が追加されました。この部分はなくても機能しますので、**GetActorTransform** ノードから **Return Value** を受け取り、**SpawnActor** ブループリント ノードの **Spawn Transform** 入力へつなぐことで省略可能です。
 	![](Add_Objects_Setup_Alt.png)
 	[/region]
 
-1. Once the Add Objects has been setup select the **Spawn Actor** Blueprint node and in the **Class** section, select the ** BP_Sphere** Blueprint that was created in step one.
+1. Add オブジェクトの設定が完了したら、**Spawn Actor** ブループリント ノードを選んで、1 つ前のステップで作成した ** BP_Sphere** ブループリントを **[Class]** セクションから選択します。
 
 	![](Setting_SpawnActor_Up.png)
 
-1. To create the ability to remove the objects that were placed in the world, add and connect the following Blueprint nodes together. When completed you should have something that looks like the following image.
+1. ワールドにおかれたオブジェクトを削除する機能を作成するには、次のブループリント ノードを追加して接続します。完了すると以下の画像のようになります。
 
 	![](Remove_Objects_Setup.png)
 
 	[region:note]
-	The keyboard input keys were placed in the graph for quick testing. You do not have to include those inputs for this to work with Motion Controllers.
+	簡単にテストするためにキーボード入力キーをグラフ内に置きました。モーション コントローラーの作業には、この入力を加える必要はありません。
 	[/region]
 
-1. **Compile** then **Save** the changes to your Pawn Blueprint then press the **Play** button to preview the level. 
-	Once the level has started try adding objects to the world by pressing the **K** key on the keyboard or by pressing the Right trigger on the Right Handed Motion Controller. 
-	To remove objects from the world press the **T** key on the keyboard or press the **Left** trigger on the Left Handed Motion Controller which you can see demonstrated in the video below.
+1. Pawn ブループリントに変更を **コンパイル** して **保存** し、**[Play (再生)]** ボタンを押してレベルをプレビューします。 
+	レベルが始まったら、キーボードの **K** キーを押すか、Right Handed Motion Controller の Right trigger を押してオブジェクトをワールドに追加してみてください。 
+	ワールドからオブジェクトを取り除くには、キーボードの **T** キーを押すか、Left Handed Motion Controller の **Left** trigger を押します。以下のビデオで実演しています。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -169,5 +170,31 @@ Then when you press the trigger button on the **Left-Handed** Motion Controller 
 		[/PARAMLITERAL]
 	[/OBJECT]
 
+## トレーニング ストリーム
 
-
+[REGION:topics third]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	モーション コントローラーの設定
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	6ALnsdQnkVQ
+	[/PARAMLITERAL]
+[/OBJECT]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	モーション コントローラーと VR のインタラクションの作成 (パート 1)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	eRNtgFo6iU0
+	[/PARAMLITERAL]
+[/OBJECT]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+		モーション コントローラーと VR のインタラクションの作成 (パート 2)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	utOahIZgKgc
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]

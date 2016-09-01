@@ -7,6 +7,7 @@
 #include "AI/Navigation/NavigationTestingActor.h"
 #include "AI/Navigation/NavTestRenderingComponent.h"
 #include "AI/Navigation/NavigationInvokerComponent.h"
+#include "AI/Navigation/RecastNavMesh.h"
 #include "Components/CapsuleComponent.h"
 
 void FNavTestTickHelper::Tick(float DeltaTime)

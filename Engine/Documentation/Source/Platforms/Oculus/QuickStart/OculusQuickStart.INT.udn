@@ -2,8 +2,12 @@ Title:Oculus Rift Quick Start
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
 Description:Instructions on setting up and launching games on the Oculus Rift.
 Availability:Public
-Version: 4.9
+Version: 4.11
 SkillLevel: Intermediate
+parent:Platforms/Oculus
+type:quickstart
+tags:VR
+tags:Oculus Rift
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -40,9 +44,7 @@ SkillLevel: Intermediate
 [/VAR]
 
 
-The Oculus Quick Start will walk you through setting up your computer and your Oculus Rift for Unreal Engine, as well as playing some of the sample content provided for virtual reality.
-
-
+The Oculus Quick Start will walk you through setting up your computer and your Oculus Rift to be used with Unreal Engine 4.0. 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

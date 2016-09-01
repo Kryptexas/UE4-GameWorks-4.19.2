@@ -7,6 +7,17 @@
 
 class FHeadMountedDisplay;
 
+#if UE_BUILD_SHIPPING
+	#define OCULUS_STRESS_TESTS_ENABLED	0
+#else
+	#if PLATFORM_ANDROID
+		#define OCULUS_STRESS_TESTS_ENABLED	0
+	#else
+		#define OCULUS_STRESS_TESTS_ENABLED	1
+	#endif
+#endif	// #if UE_BUILD_SHIPPING
+
+
 /** Converts vector from meters to UU (Unreal Units) */
 FORCEINLINE FVector MetersToUU(const FVector& InVec, float WorldToMetersScale)
 {
@@ -194,6 +205,9 @@ public:
 	/** Viewports for each eye, in render target texture coordinates */
 	FIntRect				EyeRenderViewport[2];
 
+	/** Maximum adaptive resolution viewports for each eye, in render target texture coordinates */
+	FIntRect				EyeMaxRenderViewport[2];
+
 	/** Deprecated position offset */
 	FVector					PositionOffset;
 
@@ -275,7 +289,7 @@ private:
 
 };
 
-typedef TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> FHMDGameFrameRef;
+typedef TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> FHMDGameFramePtr;
 
 class FHMDViewExtension : public ISceneViewExtension, public TSharedFromThis<FHMDViewExtension, ESPMode::ThreadSafe>
 {
@@ -326,6 +340,7 @@ public:
 	virtual void SwitchToNextElement() = 0;
 
 	virtual bool Commit(FRHICommandListImmediate& RHICmdList) = 0;
+	virtual bool IsStaticImage() const { return false; }
 
 	uint32 GetSourceSizeX() const { return SourceSizeX; }
 	uint32 GetSourceSizeY() const { return SourceSizeY; }
@@ -335,8 +350,7 @@ protected:
 	uint32			SourceSizeX, SourceSizeY, SourceNumMips;
 	EPixelFormat	SourceFormat;
 };
-typedef TSharedPtr<FTextureSetProxy, ESPMode::ThreadSafe>	FTextureSetProxyParamRef;
-typedef TSharedPtr<FTextureSetProxy, ESPMode::ThreadSafe>	FTextureSetProxyRef;
+typedef TSharedPtr<FTextureSetProxy, ESPMode::ThreadSafe>	FTextureSetProxyPtr;
 
 /**
  * Base implementation for a layer descriptor.
@@ -347,10 +361,10 @@ class FHMDLayerDesc : public TSharedFromThis<FHMDLayerDesc>
 public:
 	enum ELayerTypeMask : uint32
 	{
-		Unknown,
-		Eye   = 0x00000000,
-		Quad  = 0x40000000,
-		Debug = 0x80000000,
+		Unknown = 0,
+		Eye   = 0x40000000,
+		Quad  = 0x80000000,
+		Debug = 0xC0000000,
 
 		TypeMask = (Eye | Quad | Debug),
 		IdMask =  ~TypeMask,
@@ -374,8 +388,8 @@ public:
 	FTextureRHIRef GetTexture() const { return (HasTexture()) ? Texture : nullptr; }
 	bool HasTexture() const { return Texture.IsValid(); }
 
-	void SetTextureSet(FTextureSetProxyParamRef InTextureSet);
-	FTextureSetProxyRef GetTextureSet() const { return TextureSet; }
+	void SetTextureSet(const FTextureSetProxyPtr& InTextureSet);
+	const FTextureSetProxyPtr& GetTextureSet() const { return TextureSet; }
 	bool HasTextureSet() const { return TextureSet.IsValid(); }
 
 	void SetTextureViewport(const FBox2D&);
@@ -411,7 +425,7 @@ protected:
 	class FHMDLayerManager& LayerManager;
 	uint32			Id;		// ELayerTypeMask | Id
 	mutable FTextureRHIRef Texture;// Source texture (for quads) (mutable for GC)
-	FTextureSetProxyRef TextureSet;	// TextureSet (for eye buffers)
+	FTextureSetProxyPtr TextureSet;	// TextureSet (for eye buffers)
 	uint32			Flags;
 	FBox2D			TextureUV;
 	FTransform		Transform; // layer world or HMD transform (Rotation, Translation, Scale), see bHeadLocked.
@@ -465,7 +479,7 @@ public:
 
 protected:
 	FHMDLayerDesc		LayerInfo;
-	FTextureSetProxyRef	TextureSet;
+	FTextureSetProxyPtr	TextureSet;
 	bool				bOwnsTextureSet; // indicate that the TextureSet is owned by this instance; otherwise, should be false
 };
 
@@ -474,6 +488,7 @@ protected:
  */
 class FHMDLayerManager : public TSharedFromThis<FHMDLayerManager>
 {
+	friend class FHeadMountedDisplay;
 public:
 	FHMDLayerManager();
 	virtual ~FHMDLayerManager();
@@ -519,6 +534,8 @@ public:
 		return const_cast<FHMDLayerManager*>(this)->GetRenderLayer_RenderThread_NoLock(LayerId);
 	}
 
+	uint32 GetTotalNumberOfLayers() const;
+
 protected:
 	// Creates a layer. Could be overridden by inherited class to create custom layers. Called on a RenderThread
 	virtual TSharedPtr<FHMDRenderLayer> CreateRenderLayer_RenderThread(FHMDLayerDesc&);
@@ -528,6 +545,8 @@ protected:
 	// Should be called before SubmitFrame is called.
 	// Updates sizes, distances, orientations, textures of each layer, as needed.
 	virtual void PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICmdList, const FHMDGameFrame* CurrentFrame, bool ShowFlagsRendering);
+
+	virtual uint32 GetTotalNumberOfLayersSupported() const = 0;
 
 	static uint32 FindLayerIndex(const TArray<TSharedPtr<FHMDLayerDesc> >& Layers, uint32 LayerId);
 	const TArray<TSharedPtr<FHMDLayerDesc> >& GetLayersArrayById(uint32 LayerId) const;
@@ -555,6 +574,7 @@ class FHeadMountedDisplay : public IHeadMountedDisplay, public IStereoLayers
 {
 public:
 	FHeadMountedDisplay();
+	~FHeadMountedDisplay();
 
 	/** @return	True if the HMD was initialized OK */
 	virtual bool IsInitialized() const;
@@ -594,7 +614,6 @@ public:
 
 	virtual bool DoesSupportPositionalTracking() const override;
 	virtual bool HasValidTrackingPosition() override;
-	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
 	virtual void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const override;
 
 	virtual bool IsInLowPersistenceMode() const override;
@@ -720,6 +739,8 @@ public:
 
 	virtual class FAsyncLoadingSplash* GetAsyncLoadingSplash() const { return nullptr; }
 
+	virtual void SetPixelDensity(float NewPD) {}
+
 	uint32 GetCurrentFrameNumber() const { return CurrentFrameNumber.GetValue(); }
 
 protected:
@@ -785,6 +806,10 @@ protected:
 		uint64 Raw;
 	} Flags;
 
+#if OCULUS_STRESS_TESTS_ENABLED
+	// Stress testing
+	class FOculusStressTester* StressTester;
+#endif // #if OCULUS_STRESS_TESTS_ENABLED
 
 	FHMDGameFrame* GetGameFrame()
 	{

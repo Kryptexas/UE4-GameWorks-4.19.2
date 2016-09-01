@@ -36,7 +36,6 @@ void FAnimationSegmentViewportClient::UpdateLighting()
 	const UDestructableMeshEditorSettings* Options = GetDefault<UDestructableMeshEditorSettings>();
 
 	PreviewScene->SetLightDirection(Options->AnimPreviewLightingDirection);
-	PreviewScene->GetScene()->UpdateDynamicSkyLight(Options->AnimPreviewSkyBrightness * FLinearColor(Options->AnimPreviewSkyColor), Options->AnimPreviewSkyBrightness * FLinearColor(Options->AnimPreviewFloorColor));
 	PreviewScene->SetLightColor(Options->AnimPreviewDirectionalColor);
 	PreviewScene->SetLightBrightness(Options->AnimPreviewLightBrightness);
 }
@@ -266,7 +265,7 @@ void SAnimationSegmentViewport::InitSkeleton()
 				(PreviewComponent->SkeletalMesh != PreviewMesh))
 			{
 				PreviewComponent->SetSkeletalMesh(PreviewMesh);
-				PreviewComponent->EnablePreview(true, AnimSequence, NULL);
+				PreviewComponent->EnablePreview(true, AnimSequence);
 				PreviewComponent->PreviewInstance->SetLooping(true);
 
 				//Place the camera at a good viewer position

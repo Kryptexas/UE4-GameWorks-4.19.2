@@ -6,7 +6,7 @@
 
 #include "MouseDeltaTracker.h"
 #include "SStaticMeshEditorViewport.h"
-#include "PreviewScene.h"
+#include "AdvancedPreviewScene.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "StaticMeshResources.h"
 
@@ -92,6 +92,10 @@ public:
 
 void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 {
+	//PreviewScene = new FAdvancedPreviewScene(FPreviewScene::ConstructionValues(), 
+
+	PreviewScene.SetFloorOffset(-InArgs._ObjectToEdit->ExtendedBounds.Origin.Z + InArgs._ObjectToEdit->ExtendedBounds.BoxExtent.Z);
+
 	StaticMeshEditorPtr = InArgs._StaticMeshEditor;
 
 	StaticMesh = InArgs._ObjectToEdit;
@@ -113,6 +117,11 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 		];
 
 	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged);
+}
+
+SStaticMeshEditorViewport::SStaticMeshEditorViewport()
+	: PreviewScene(FPreviewScene::ConstructionValues())
+{
 
 }
 
@@ -159,6 +168,7 @@ void SStaticMeshEditorViewport::AddReferencedObjects( FReferenceCollector& Colle
 {
 	Collector.AddReferencedObject( PreviewMeshComponent );
 	Collector.AddReferencedObject( StaticMesh );
+	Collector.AddReferencedObjects( SocketPreviewMeshComponents );
 }
 
 void SStaticMeshEditorViewport::RefreshViewport()
@@ -352,15 +362,19 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 	{
 		EditorViewportClient->EngineShowFlags.SetVertexColors(true);
 		EditorViewportClient->EngineShowFlags.SetLighting(false);
+		EditorViewportClient->EngineShowFlags.SetIndirectLightingCache(false);
+		EditorViewportClient->SetFloorAndEnvironmentVisibility(false);
 	}
 	else
 	{
 		EditorViewportClient->EngineShowFlags.SetVertexColors(false);
 		EditorViewportClient->EngineShowFlags.SetLighting(true);
+		EditorViewportClient->EngineShowFlags.SetIndirectLightingCache(true);
+		EditorViewportClient->SetFloorAndEnvironmentVisibility(true);
 	}
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), FAnalyticsEventAttribute(TEXT("VertexColors"), EditorViewportClient->EngineShowFlags.VertexColors));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), FAnalyticsEventAttribute(TEXT("VertexColors"), AnalyticsConversion::ToString(EditorViewportClient->EngineShowFlags.VertexColors)));
 	}
 	SceneViewport->Invalidate();
 }
@@ -394,7 +408,7 @@ TSharedRef<FEditorViewportClient> SStaticMeshEditorViewport::MakeEditorViewportC
 
 	EditorViewportClient->bSetListenerPosition = false;
 
-	EditorViewportClient->SetRealtime( false );
+	EditorViewportClient->SetRealtime( true );
 	EditorViewportClient->VisibilityDelegate.BindSP( this, &SStaticMeshEditorViewport::IsVisible );
 
 	return EditorViewportClient.ToSharedRef();

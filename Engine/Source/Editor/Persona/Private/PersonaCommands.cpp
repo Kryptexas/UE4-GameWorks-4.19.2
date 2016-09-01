@@ -38,7 +38,9 @@ void FPersonaCommands::RegisterCommands()
 	UI_COMMAND( UpdateSkeletonRefPose, "Update Skeleton RefPose", "Update Skeleton ref pose based on current preview mesh", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( ToggleReferencePose, "Toggle Reference Pose", "Toggle Reference Pose", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( TogglePreviewAsset, "Toggle Preview ASset", "Toggle Preview Asset", EUserInterfaceActionType::ToggleButton, FInputChord() );
+	UI_COMMAND( TogglePreviewAsset, "Toggle Preview Asset", "Toggle Preview Asset", EUserInterfaceActionType::ToggleButton, FInputChord() );
+
+	UI_COMMAND(TogglePlay, "Play/Pause", "Play or pause the current animation", EUserInterfaceActionType::ToggleButton, FInputChord(EKeys::SpaceBar));
 }
 
 #undef LOCTEXT_NAMESPACE

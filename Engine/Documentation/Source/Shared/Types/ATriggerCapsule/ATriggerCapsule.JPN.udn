@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2573090
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:ATriggerCapsule
 Crumbs:
-Description:ATriggerCapsule クラスの概要
+Description:TriggerCapsule クラスの概要
 
 [EXCERPT:ATriggerCapsule]
 
-トリガー は、レベル内の他のオブジェクトとインタラクトする時に、イベントを発生させるために使われるアクタです。
+トリガーは、レベル内の他のオブジェクトとインタラクションする時に、イベントを発生させるアクタです。
 
 [VAR:ToolTipFullLink]
 Engine/Actors/Triggers

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2464839
+﻿INTSourceChangelist:2708278
 Availability:Public
 Title:1.Android SDK をインストールする
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Android SDK をインストールする
-
-
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,65 +22,208 @@ Description:Android SDK をインストールする
 [/VAR]
 
 
-
-
 %Steps%
 
-[REGION:tip]
-Android SDK はインストール済みで環境変数が設定されていない場合は、以下の手順をすべて飛ばして、エディタで **Edit Menu** -> **Project Settings** -> **Android SDK** プロパティを使って、エディタをインストール場所に指定してください。
+
+Android 用の開発でまず最初にすることは、Android Works のインストールです。 
+これは、Android デバイスにデプロイするために必要なプログラムとコードが確実にすべてそろいます。
+以下のセクションでは、開発用の PC に Android Works をインストールする方法を説明します。
+
+
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#WindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:WindowsSetup]
+
+[REGION:note]
+Android Works はインストール済みで環境変数が設定されていない場合は、以下の手順をすべて飛ばして、エディタで **[Edit Menu]** -> **[Project Settings (プロジェクト設定)]** -> **Android SDK** プロパティを使って、エディタをインストール場所に指定してください。
 [/REGION]
 
-1.	 TADP インストール フォルダへいきます。
-| インストールの種類 | 保存場所 |
-| ------------ | ---------|
-| Binary | [EngineInstallLocation]\Unreal Engine\[EngineVersion]\Engine\Extras\Android |
-| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
-1.	`tadp-2.0r8-windows.exe` を **ダブルクリック** します。
-1.	 **[Next]** をクリックします。
+[region:warning]
+Android Works のインストール中は、インストールに問題が発生しないように、エディタとランチャーを閉じることをお勧めします。
+[/region]
+
+1. インストールをするには、**[Engine]** > **[Extras]** > **[Android]** フォルダを開きます。 
+
+	| インストールの種類 | 保存場所 |
+	| ------------ | ---------|
+	| Binary | [EngineInstallLocation]\Unreal Engine\[EngineVersion]\Engine\Extras\Android |
+	| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
+
+	[region:note]
+	**Github** から UE4 をダウンロードする場合は、まず次のステップを完了しないと Android Works インストーラーを実行できません。 
+	以下は、UE4 ソースコードを Githum からダウンロードした Windows と Mac の入った PC 向けの手順になりますのでご注意ください。
+	ランチャーからダウンロードしたバイナリ ビルドを使用する場合は、このステップを飛ばして Android Works をすぐにインストールできます。 
+
+	1. UE4 を Github からダウンロードして展開したら、**Setup.bat** ファイルを実行して、必要なファイルおよび **Android Works** インストーラーをダウンロードします。
+
+	1. **Setup.bat** が完了したら、以下の手順で Android Works を実行します。
+
+	[/region]
+
+1. **AndroidWorks-1R1-windows.exe** ファイルを **ダブルクリック** してインストール処理を開始します。
+
+	![](AndroidWorks_11.png)
+
+1. 最初のウィンドウの **[Next (次へ)]** ボタンをクリックすると、インストール処理が始まります。
     
-	![](tadpinstaller_1.png)(w:450)
-1.	 **I accept the agreement** を選択し、 **[Next]** をクリックします。
+	![](AndroidWorks_00.png)
 
-	![](tadpinstaller_2.png)(w:450)
-1.	 **[Next]** をクリックします。
+1.	**[Next]** ボタンを押して続行してください。
 
-	![](tadpinstaller_3.png)(w:450)
-1.	 **Express** インストールを選択し、 **[Next]** をクリックします。
+	![](AndroidWorks_01.png)
 
-	![](tadpinstaller_4.png)(w:450)
-1.	インストール先が `C:\NVPACK` であることを確認してください。
+1.	Android Works のダウンロードおよびインストール先を設定したら、**[Next]** ボタンをクリックします。
 
-	![](tadpinstaller_5.png)(w:450) 
-1.	インストールするコンポーネント リストが以下のリストと一致することを検証します。
+	![](AndroidWorks_02.png)
 
-	![](tadpinstaller_6.png)(w:450)
-1.	必要に応じてプロキシを入力します。
+	[region:note]
+	この設定をデフォルト位置にしたままでも全く問題ありません。
+	[/region]
 
-	![](tadpinstaller_7.png)(w:450)
-1.	 **[Next]** をクリックします。インターネットへ接続する必要があります。ここで数分かかる場合があります。
+1.	**AndroidWorks1R1** がインストールされていることを確認したら、**[Next]** ボタンをクリックします。
+	![](AndroidWorks_03.png)
 
-	![](tadpinstaller_8.png)(w:450)
-1.	 **[Next]** をクリックします。
+1.	ライセンス条件に同意する場合は **[Accept All (すべてに同意)]** のボックスにチェックを入れて、**[Accept]** ボタンを押します。
+	![](AndroidWorks_04.png)
 
-	![](tadpinstaller_9.png)(w:450)
-1.	インストーラが起動します。ここで若干時間がかかります。
+1.	新規ウィンドウが開いて、必要な Android Works ツールのダウンロードおよびインストールの進捗が表示されます。 
+	[region:note]
+	インターネットへ接続する必要があります。インターネットの接続速度によって数分、もしくは数時間かかる場合があります。
+	[/region]
 
-	![](tadpinstaller_10.png)(w:450)
-1.	ソフトウェア パブリッシャーに関する警告が表示された場合は、 **Install this driver software anyway** を選択します。
+	![](AndroidWorks_06.png)
 
-	![](tadpinstaller_11.png)
-1.	インストール後にファイルの保存を聞かれた場合は、 **[Yes]** または **[No]** のいずれかを選択します。
+1.	必要なすべてのツールのダウンロードおよびインストールが完了すると、以下のウィンドウが表示されます。**[OK]** ボタンを押して、インストール処理を続けます。
 
-	![](tadpinstaller_12.png)
-1.	 **[Next]** をクリックします。
+	![](AndroidWorks_08.png)
 
-	![](tadpinstaller_13.png)(w:450)
-1.	すべてのコンポーネントが正しくインストールされたことを確認してください。
+1.	**[Finish (終了)]** ボタンを押して、Android Works のインストールを完了します。
 
-	![](tadpinstaller_14.png)(w:450)
-1.	 [View Readme File] のチェックを外して、 [終了] をクリックします。
+	![](AndroidWorks_09.png)
 
-	![](tadpinstaller_15.png)(w:450)
+1.	最後に **[Yes]** ボタンを押して、端末を再起動します。
+
+	![](AndroidWorks_10.png)
+	[region:note]
+	UE4 を Github からダウンロードした場合は、Android Works のインストールが終了した際に、PC あるいは Mac を再起動して環境変数が設定されてから **Setup.bat** ファイルをもう一度実行して、必要な Android 開発ファイルをダウンロードしてください。
+	[/region]
+[/EXCERPT:WindowsSetup]
+
+[EXCERPT:MacOSSetup]
+
+[REGION:note]
+Android Works はインストール済みで環境変数が設定されていない場合は、以下の手順をすべて飛ばして、エディタで **[Edit Menu]** -> **[Project Settings (プロジェクト設定)]** -> **Android SDK** プロパティを使って、エディタをインストール場所に指定してください。
+[/REGION]
+
+[region:warning]
+Android Works のインストール中は、インストールに問題が発生しないように、エディタとランチャーを閉じることをお勧めします。
+[/region]
+Android Works を Mac にインストールするには、Java 6 と Java 7 が両方インストールされている必要があります。ご確認ください。 
+以下のリンクから、適切なバージョンの Java をダウンロードおよびインストールしてください。
+
+* **Java 6** のダウンロードは [こちら](http://support.apple.com/kb/DL1572)
+* **Java 7** のダウンロードは [こちら](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html
+
+1. インストールをするには、**[Engine]** > **[Extras]** > **[Android]** フォルダを開きます。 
+	| インストールの種類 | 保存場所 |
+	| --- | --- |
+	| Binary | [EngineInstallLocation]\Unreal Engine[EngineVersion]\Engine\Extras\Android |
+	| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
+
+	[region:note]
+	**Github** から UE4 をダウンロードする場合は、まず次のステップを完了しないと Android Works インストーラーを実行できません。 
+	以下は、UE4 ソースコードを Githum からダウンロードした Windows と Mac の入った PC 向けの手順になりますのでご注意ください。
+	ランチャーからダウンロードしたバイナリ ビルドを使用する場合は、このステップを飛ばして Android Works をすぐにインストールできます。 
+
+	1. UE4 を Github からダウンロードして展開したら、**Setup.bat** ファイルを実行して、必要なファイルおよび Android Works インストーラーをダウンロードします。
+
+	1. **Setup.bat** が完了したら、以下の手順で Android Works を実行します。
+
+	[/region]
+
+1. **AndroidWorks-1R1-osx.dmg** を **ダブルクリック** して Android Works インストーラーを取り込みます。
+
+	![](AndroidWorks_Mac_00.png)
+
+1. the Android Works インストーラー アイコンを **ダブルクリック** してインストール処理を開始します。
+
+	![](AndroidWorks_Mac_01.png)
+
+1. **[Next]** をクリックします。
+
+	![](AndroidWorks_Mac_02.png)
+
+1. **[Next]** をクリックします。
+
+	![](AndroidWorks_Mac_03.png)
+
+1. Android Works のインストール先を指定して **Next** ボタンを押します。
+
+	[region:note]
+	この設定をデフォルト位置にしたままでも全く問題ありません。
+	[/region]
+
+	![](AndroidWorks_Mac_04.png)
+
+1. Android Works Component Manager が表示されたら、**[Next]** ボタンを押してダウンロードとインストール処理を開始します。
+
+	![](AndroidWorks_Mac_05.png)
+
+1. ライセンス条件に同意する場合は **[Accept All (すべてに同意)]** のボックスにチェックを入れて、**[Accept]** ボタンを押します。
+
+	![](AndroidWorks_Mac_06.png)
+
+1. Android Works Component Manager が必要なツールのダウンロードとインストールを開始します。 
+	[region:note]
+	この部分はインターネット接続が必要となり、完了までに数分かかります。
+	[/region]
+	![](AndroidWorks_Mac_07.png)
+
+1. 必要なすべてのツールのダウンロードおよびインストールが完了すると、以下のウィンドウが表示されます。**[Ok]** ボタンを押して続けます。
+
+	![](AndroidWorks_Mac_08.png)
+
+1. **[Finish (終了)]** ボタンを押して、Android Works のインストールを完了します。
+
+	![](AndroidWorks_Mac_09.png)
+
+	[region:note]
+	UE4 を Github からダウンロードした場合は、Android Works のインストールが終了した際に、PC あるいは Mac を再起動して環境変数が設定されてから **Setup.bat** ファイルをもう一度実行して、必要な Android 開発ファイルをダウンロードしてください。
+	[/region]
+
+[/EXCERPT:MacOSSetup]
+-->
 
 %Steps%
 

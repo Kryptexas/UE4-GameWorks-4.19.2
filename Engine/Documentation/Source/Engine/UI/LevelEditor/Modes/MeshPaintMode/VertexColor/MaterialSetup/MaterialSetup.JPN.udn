@@ -1,7 +1,8 @@
-Availability: Public
+﻿INTSourceChangelist:2693458
+Availability:Public
 Title:マテリアルの設定
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
-Description:Mesh Paint Mode（メッシュペイントモード）のブレンドウェイトシステムを利用して様々なマテリアルを設定する例　
-
+Description:メッシュのペイント モードのブレンド ウェイト システムを利用するための様々なマテリアルの設定例を示します。
+Version:4.9
 
 [INCLUDE:Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor#MaterialSetup]

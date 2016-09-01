@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672918
+﻿INTSourceChangelist:3002602
 Availability:Docs
 Title:1.3 - ログ メッセージを追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description:ゲームにログ メッセージを追加する方法を学びます。
-スキルレベル:初心者向け
-バージョン：4.9
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,15 +24,15 @@ Description:ゲームにログ メッセージを追加する方法を学びま�
 
 %Steps%
 
-このステップでは、新規作成した FPSGameMode にログ メッセージを追加します。ログ メッセージは、コードの検証やデバッグで役立ちます。この場合、ログ メッセージを使用して実際に新しいゲーム モードを使用していることを検証します。
+プロジェクトへのコード追加を開始するには、ログ メッセージを `FPSGameMode` に追加するとよいでしょう。ログ メッセージは、開発中にコードの検証やデバッグで非常に役立ちます。このステップでは、ログ メッセージを使ってアンリアル エンジンのデフォルトの `Game Mode` ではなく、実際に `FPSGameMode` の使用を検証します。
 
-## FPSGameMode インターフェース ファイル
+## FPSProjectGameMode ヘッダー ファイル
 
 1.	**Solution Explorer** で、**FPSProject > Source > FPSProject** の順に展開します。
 
 	![](InterfaceFile.png)
 
-1.	`FPSGameMode.h` を**ダブルクリック** して、新規作成した **FPSGameMode** クラスのためのインターフェースを開きます。
+1.	`FPSProjectGameMode.h` をダブルクリックして、**FPSGameMode** クラスのヘッダー ファイルを開きます。
 
 1.	クラスの宣言は以下のようになります。
 
@@ -42,19 +42,13 @@ Description:ゲームにログ メッセージを追加する方法を学びま�
 			GENERATED_BODY()
 		};
 
-1.	`GENERATED_BODY()` マクロで以下のコンストラクタの宣言を追加します。
-
-		AFPSGameMode(const FObjectInitializer& ObjectInitializer);
-
-1.	`AFPSGameMode` コンストラクタの宣言で以下の関数の宣言を追加します。
+1.	`AFPSProjectGameMode` コンストラクタの宣言で以下の関数の宣言を追加します。
 
 		virtual void StartPlay() override;
 
-	[REGION:note]
-	この関数の宣言は (`AActor` クラスから継承した) StartPlay() 関数をオーバーライドして、ゲームプレイ開始時にログ メッセージをスクリーン上へ出力できるようにします。
-	[/REGION]
+	この関数の宣言は (`AActor` クラスから継承した) `StartPlay()` 関数をオーバーライドして、ゲームプレイ開始時にログ メッセージをスクリーン上に出力できるようにします。
 
-1.	クラスのインターフェースは以下のようになります。
+1.	`FPSProjectGameMode.h` は以下のようになります。
 
 		// Project Settings の Description ページに著作権情報を入力してください。
 		#pragma once
@@ -67,76 +61,58 @@ Description:ゲームにログ メッセージを追加する方法を学びま�
 		 * 
 		 */
 		UCLASS()
-		class FPSPROJECT_API AFPSGameMode : public AGameMode
+		class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
 		{
 			GENERATED_BODY()
-		AFPSGameMode(const FObjectInitializer& ObjectInitializer);
 
-		virtual void StartPlay() override;
-
+			virtual void StartPlay() override;
 		};
 
-1.	Visual Studio にインターフェースを保存します。
+1.	Visual Studio にヘッダー ファイルを保存します。
 
-## FPSGameMode 実装ファイル
+## FPSProjectGameMode CPP ファイル
 
-1.	**Solution Explorer** で、`FPSGameMode.cpp` を探します (**FPSProject > Source > FPSProject** でも見つかります)。
+1.	**Solution Explorer** で、`FPSProjectGameMode.cpp` を探します (**FPSProject > Source > FPSProject** でも見つかります)。
 
 	![](ImplementationFile.png)
 
-1.	`FPSGameMode.cpp` を **ダブルクリック** して、**FPSGameMode** クラスのための実装ファイルを開きます。
+1.	`FPSProjectGameMode.cpp` をダブルクリックして、**FPSGameMode** クラスのための実装ファイルを開きます。
 
-1.	以下のコンストラクタ定義を `FPSGameMode.cpp` に追加します。
+1.	`AFPSProjectGameMode` コンストラクタの下に、`StartPlay()` 関数の以下の行を追加します。
 
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
-		{
-		}
-
-	[REGION:note]
-	FPSGameMode は、AFPSGameMode です。最終的には基底 Actor クラスから派生するクラスから派生するからです。
-	[/REGION]
-
-1.	`AFPSGameMode` コンストラクタの下に、`StartPlay()` 関数の以下の行を追加します。
-
-		void AFPSGameMode::StartPlay()
+		void AFPSProjectGameMode::StartPlay()
 		{
 			Super::StartPlay();
-		StartMatch();
-
-		if (GEngine != nullptr)
+		if (GEngine)
 
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				// Display a debug message for five seconds. (デバッグ メッセージを 5 秒間表示)  
+				// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
 			}
-		}//StartPlay()
+		}
 
-	[REGION:note]
-	`StartPlay()` は、ゲームプレイ開始時に、画面上に黄色のテキストで "Hello World, this is FPSGameMode!" と出力させます。
-	[/REGION]
+	これで `StartPlay()` は新しいデバッグ メッセージ ("Hello World, this is FPSGameMode!") を画面上に黄色のテキストでゲーム開始時に 5 秒間プリントするようになります。
 
-1.	クラスの実装は以下のようになります。
+1.	`FPSProjectGameMode.cpp` は以下のようになります。
 
 		// Project Settings の Description ページに著作権情報を入力してください。
 		#include "FPSProject.h"
 
-		#include "FPSGameMode.h"
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
-
-		{
-		}//AFPSGameMode Constructor
-		void AFPSGameMode::StartPlay()
+		#include "FPSProjectGameMode.h"
+		void AFPSProjectGameMode::StartPlay()
 
 		{
 			Super::StartPlay();
-		StartMatch();
-
-		if (GEngine != nullptr)
+		if (GEngine)
 
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				// Display a debug message for five seconds. (デバッグ メッセージを 5 秒間表示)  
+				// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
 			}
-		}//StartPlay()
+		}
 
-1.	Visual Studio に実装ファイルを保存します。
+1.	CPP ファイルを Visual Studio を保存します。
 
 %Steps%

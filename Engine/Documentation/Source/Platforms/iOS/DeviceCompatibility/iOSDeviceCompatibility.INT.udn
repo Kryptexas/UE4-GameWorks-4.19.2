@@ -3,6 +3,9 @@ Title:iOS Device Compatibility
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:Device compatibility for developing with iOS.
 Version: 4.9
+parent:Platforms/iOS
+order:1
+type:overview
 
 [VAR:Retina]
 ![](%ROOT%/icon_success_16x.png)
@@ -15,6 +18,8 @@ Version: 4.9
 [VAR:Unsupported]
 ![](%ROOT%/icon_error_16x.png)
 [/VAR]
+
+Unreal Engine supports iOS 7.0 and above, and the following charts give information about device-specific compatibility for engine features. 
 
 We have not yet tested all iOS devices but this table will give you an idea what features we expect to work well on each device. We plan to expand and refine this section as new devices are released and we broaden the devices we are testing in house.
 

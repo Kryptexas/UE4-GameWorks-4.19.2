@@ -1,27 +1,26 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2755887
 Availability:Public
-Title: Behavior Tree Node Reference: Services
+Title:行为树节点参考：Services
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
-Description:Reference for the Behavior Tree Service nodes.
+Description:行为树 Service 节点的参考。
+version:4.9
 
-[TOC(start:2 end:2)]
-
-**Services** attach to [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) nodes, and will execute at their defined frequency as long as their branch is being executed. These are often used to make checks and to update the Blackboard. These take the place of traditional Parallel nodes in other Behavior Tree systems
+**Services** 附着在 [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) 节点上，只要其分支节点被执行，它们便将按所定义的频率执行。它们常用于检查和更新黑板。它们以行为树系统的形态取代了传统平行节点。
 
 
 ## Default Focus
 
 ![](SetDefaultFocus.png)
 
-The Default Focus creates a short cut to accessing an Actor in your Blueprints and Code by setting the focus of the AI Controller. By setting the focus of the AI Controller to an Actor, you can directly access it from the AI Controller instead of accessing a Blackboard key.
+Default Focus 设置 AI 控制器的集中点，从而创建出访问蓝图和代码中 Actor 的快捷方式。将 AI 控制器的集中点设为 Actor 后，即可直接从 AI 控制器直接对其进行访问，而无需访问黑板键。
 
-| Property | Description |
+| 属性 | 描述 |
 | -------- | ----------- |
-| **Blackboard Key**| This takes in an Actor Key (and Object Key with its base class set to Actor) to be quickly referenced by the AI Controller using `GetFocusActor`. |
-| **Node Name** | The name the node should display in the Behavior Tree graph. |
+| **Blackboard Key**| 此属性接受 Actor Key（和基础类设为 Actor 的物体键），使其可被使用 `GetFocusActor` 的 AI 控制器快速参考。|
+| **Node Name** | 行为树图表中显示的节点名称。|
 
 [REGION:note]
-As of 4.4 the Blackboard Key will appear to accept Vector Blackboard Keys, these will do nothing as the Set/Clear/Get Focus Actor functions operate on an Actor.
+自从 4.4 版本开始，黑板键将接受矢量黑板键（它们不执行任何操作，因为 Set/Clear/Get Focus Actor 函数在 Actor 上起作用）。
 [/REGION]
 
 

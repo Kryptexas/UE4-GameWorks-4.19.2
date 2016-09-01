@@ -9,10 +9,11 @@ LandscapeLight.cpp: Static lighting for LandscapeComponents
 #include "LandscapeInfo.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
-
-#include "ComponentReregisterContext.h"
+#include "LandscapeGrassType.h"
 
 #include "UnrealEngine.h"
+#include "ComponentReregisterContext.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #if WITH_EDITOR
 
@@ -125,7 +126,7 @@ FLandscapeStaticLightingMesh::FLandscapeStaticLightingMesh(ULandscapeComponent* 
 		FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) + 2 * InExpandQuadsX),
 		FMath::Square(((InComponent->ComponentSizeQuads + 1) >> InLOD) + 2 * InExpandQuadsX),
 		0,
-		(InComponent->GetOwner() && InComponent->GetOwner()->bHidden) ? !!(InComponent->bCastHiddenShadow) : !!(InComponent->CastShadow),
+		!!(InComponent->CastShadow | InComponent->bCastHiddenShadow),
 		false,
 		InRelevantLights,
 		InComponent,
@@ -408,7 +409,7 @@ void FLandscapeStaticLightingMesh::GetHeightmapData(int32 InLOD, int32 GeometryL
 	check(Info);
 
 	bool bUseRenderedWPO = LandscapeComponent->GetLandscapeProxy()->bUseMaterialPositionOffsetInStaticLighting &&
-	                       LandscapeComponent->MaterialInstance->GetMaterial()->WorldPositionOffset.IsConnected();
+	                       LandscapeComponent->GetLandscapeMaterial()->GetMaterial()->WorldPositionOffset.IsConnected();
 
 	HeightData.Empty(FMath::Square(NumVertices));
 	HeightData.AddUninitialized(FMath::Square(NumVertices));
@@ -698,6 +699,13 @@ bool ULandscapeComponent::GetLightMapResolution( int32& Width, int32& Height ) c
 	return false;
 }
 
+int32 ULandscapeComponent::GetStaticLightMapResolution() const
+{
+	int32 Width, Height;
+	GetLightMapResolution(Width, Height);
+	return FMath::Max<int32>(Width, Height);
+}
+
 void ULandscapeComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const
 {
 	int32 Width, Height;
@@ -717,7 +725,6 @@ void ULandscapeComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemory
 	ShadowMapMemoryUsage = (Width * Height * 4 / 3); // assuming G8
 	return;
 }
-#endif
 
 void ULandscapeComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly)
 {
@@ -732,7 +739,6 @@ void ULandscapeComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 
 		Super::InvalidateLightingCacheDetailed(bInvalidateBuildEnqueuedLighting, bTranslationOnly);
 
-#if WITH_EDITOR
 		// invalidate grass that has bUseLandscapeLightmap so the new lightmap is applied to the grass
 		for (auto Iter = GetLandscapeProxy()->FoliageCache.CachedGrassComps.CreateIterator(); Iter; ++Iter)
 		{
@@ -749,7 +755,6 @@ void ULandscapeComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 				Iter.RemoveCurrent();
 			}
 		}
-#endif
 
 		// Discard all cached lighting.
 		IrrelevantLights.Empty();
@@ -761,3 +766,4 @@ void ULandscapeComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 		Super::InvalidateLightingCacheDetailed(bInvalidateBuildEnqueuedLighting, bTranslationOnly);
 	}
 }
+#endif

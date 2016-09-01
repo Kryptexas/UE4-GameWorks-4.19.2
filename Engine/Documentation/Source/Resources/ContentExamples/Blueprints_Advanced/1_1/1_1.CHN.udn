@@ -1,6 +1,7 @@
-﻿Availability: Docs
+﻿INTSourceChangelist:2712780
+Availability: Public
 Title:1.1 - 随机网格物体
-Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints_Advanced
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
 Description:高级蓝图示例关卡概述，示例1.1： 随机散射网格物体
 Related: Engine/Blueprints/Overview 
 Related: Engine/Blueprints/UserGuide/Components
@@ -10,6 +11,24 @@ Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Blueprint Content Examples Home](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/Blueprints_Advanced/1_2 "%Resources/ContentExamples/Blueprints_Advanced/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:CSImage]
 AdvBP_1_1_ConstructionScript.png

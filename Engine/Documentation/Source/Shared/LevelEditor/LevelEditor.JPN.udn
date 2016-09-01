@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2566630
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:レベルエディタのアクション
 Crumbs:
 Description:
 
 [EXCERPT:OpenLevelBlueprint]
-レベルブループリントは、レベル全体のグローバルイベントグラフとして機能する特別なタイプのブループリントです。レベル全般に関連したイベント、またはレベル内のアクタの特定のインスタンスを使って、関数呼び出しやフロー制御オペレーションという形式でアクションのシーケンスを実行します。
+Level ブループリントは、レベル全体のグローバルイベント グラフとしての役割を果たす、特別なタイプのブループリントです。レベル全般に関連したイベント、またはレベル内のアクタの特定のインスタンスを使って、関数呼び出しまたはフロー制御オペレーションという形式でのアクションのシーケンスを実行します。
 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/UserGuide/Types/LevelBlueprint
@@ -21,14 +21,14 @@ Gameplay/Framework/GameMode
 [/EXCERPT:OpenGameModeBlueprint]
 
 [EXCERPT:OpenGameStateBlueprint]
-接続されたプレイヤーのリスト、スコア、チェス ゲームの駒の位置、オープンなワールドゲームで完了したミッションのリストなど、プレイ中に変化するゲーム ステートを処理します。GameState はサーバーとすべてのクライアント上に存在し、自由にレプリケートして全てのマシンを最新の状態に保つことができます。
+ゲームのステートを処理します。例えば、スコア、接続されたプレイヤーのリスト、陣取りゲームの取ったアイテム数、チェス ゲームの駒の位置、オープンなワールドゲームで完了したミッションのリストなどがあります。プレイ中に変化するものが対象になります。GameState はサーバーとすべてのクライアント上に存在し、自由にレプリケートして全てのマシンを最新の状態に保つことができます。
 [VAR:ToolTipFullLink]
 Gameplay/Framework/GameState
 [/VAR]
 [/EXCERPT:OpenGameStateBlueprint]
 
 [EXCERPT:OpenDefaultPawnBlueprint]
-Pawn クラスはプレイヤーまたは AI によって制御可能な、すべてのアクタのベースクラスです。ポーンは、ワールド内のプレイヤーまたは AI エンティティの物理的表現です。プレイヤーまたは AI エンティティの視覚的な表現のみならず、コリジョンや物理的インタラクションにおいて、これらのワールド内における相互作用方法を Pawn が決定するのです。ゲームの種類によっては、ゲーム内に表示されるメッシュまたはアバターが存在しないため、特定の状況下では混乱を招く場合もあります。これに関わらず、Pawn クラスはゲーム内のプレイヤーまたはエンティティの物理的な位置、回転を表します。
+Pawn クラスはプレイヤーまたは AI によって制御可能な、すべてのアクタの基本クラスです。ポーンは、ワールド内のプレイヤーまたは AI エンティティの物理的な実体です。プレイヤーまたは AI エンティティの視覚的な表現のみならず、コリジョンや物理的インタラクションにおいて、これらのワールド内における相互作用方法を Pawn が決定するのです。これは、特定の状況下では混乱を招く場合もあります。ゲームの種類によっては、ゲーム内に表示されるプレイヤーのメッシュやアバターが存在しないためです。とにかく、Pawn クラスはゲーム内のプレイヤーまたはエンティティの物理的な位置、回転などを表します。
 [VAR:ToolTipFullLink]
 Gameplay/Framework/Pawn
 [/VAR]
@@ -42,14 +42,14 @@ Gameplay/Framework/UIAndHUD
 [/EXCERPT:OpenHUDBlueprint]
 
 [EXCERPT:OpenPlayerControllerBlueprint]
-コントローラー は非物理的なアクタで、ポーン (またはキャラクターなどポーンから派生したクラス) を所有して動作を制御することができます。人間のプレイヤーがポーンを制御するために、PlayerControllers を使用します。
+コントローラーは非物理的なアクタで、ポーン (またはキャラクターなどポーンから派生したクラス) を所有して動作を制御することができます。人プレイヤーがポーンを制御するために、PlayerControllers を使用します。
 [VAR:ToolTipFullLink]
 Gameplay/Framework/Controller/PlayerController
 [/VAR]
 [/EXCERPT:OpenPlayerControllerBlueprint]
 
 [EXCERPT:CreateClassBlueprint]
-Blueprint クラスは、しばしばブループリントの省略形で呼ばれ、コンテンツ クリエーターが既存のゲームプレイ クラスに機能性を簡単に追加できるようにするアセットです。ブループリントはコード入力によってではなく、アンリアルエディタで視覚的に作成され、コンテンツ パッケージにアセットとして保存されます。実質的に新規のクラスまたはアクタの種類を定義し、その後他種のアクタと同じ動作をするインスタンスとしてマップへ配置することができます。
+省略してブループリントと呼ばれることが多い Blueprint クラスは、コンテンツ クリエーターが既存のゲームプレイ クラスに機能を簡単に追加できるようにするアセットです。ブループリントはコード入力によってではなく、アンリアルエディタで視覚的に作成され、コンテンツ パッケージにアセットとして保存されます。実質的に新規のクラスまたはアクタの種類を定義し、その後他種のアクタと同じ動作をするインスタンスとしてマップへ配置することができます。
 [VAR:ToolTipFullLink]
 Engine/Blueprints/UserGuide/Types/ClassBlueprint
 [/VAR]
@@ -57,7 +57,7 @@ Engine/Blueprints/UserGuide/Types/ClassBlueprint
 
 [EXCERPT:DetailsTab]
 ###詳細
-[Details] パネルは、現在のビューポート内の選択内容に関連する情報、ユーティリティ、そして関数を表示します。パネルにはアクタを移動、回転、スケーリングするための変換用の編集ボックスがあり、選択したアクタの編集可能なプロパティを全て表示します。また、ビューポートで選択されたアクタの種類次第では、付加的な編集機能へすぐにアクセスすることができます。
+[Details (詳細)] パネルには、現在のビューポート内の選択内容に関連する情報、ユーティリティ、そして関数を表示します。パネルにはアクタを移動、回転、スケーリングするための Transform 編集ボックスがあり、選択したアクタに対して編集可能なプロパティを全て表示します。また、ビューポートで選択されたアクタの種類に応じて、他の編集機能へすぐにアクセスすることができます。
 
 [VAR:ToolTipFullLink]
 Engine/UI/LevelEditor/Details
@@ -66,7 +66,7 @@ Engine/UI/LevelEditor/Details
 
 [EXCERPT:SceneOutlinerTab]
 ### ワールド アウトライナー
-[World Outliner] パネルは、シーン内の全アクタを階層ツリービューで表示します。ワールド アウトライナー から直接アクタを選択および修正できます。レベル、レイヤー、または ID 名を表示する追加のコラムを表示するために Info ドロップダウンメニューを使用することもできます。
+[ワールド アウトライナー] パネルは、シーン内の全アクタを階層ツリービューで表示します。[ワールド アウトライナー] からアクタを直接、選択して修正できます。Info ドロップダウンメニューを使用して、レベル、レイヤー、または ID 名を表示する追加の列を表示することもできます。
 
 [VAR:ToolTipFullLink]
 Engine/UI/LevelEditor/SceneOutliner
@@ -98,7 +98,7 @@ Engine/UI/LevelEditor/InEditorTesting/KeepSimulationChanges
 [/EXCERPT:ResetToBlueprintDefaults]
 
 [EXCERPT:ActorUsesExperimentalClass]
-###ここにドキュメントを挿入
+### 注意事項！
 
 ![](HereBeDragons.png)
 
@@ -116,9 +116,9 @@ Engine/UI/LevelEditor/InEditorTesting/KeepSimulationChanges
 [EXCERPT:ActorUsesEarlyAccessClass]
 ###Early Access
 
-このアクタは、「早期アクセス」クラスを 1 つ以上使用します。
+このアクタは、「'early access' (早期アクセス)」クラスを 1 つ以上使用します。
 
-制作作業が進んでいるわけではありませんが、「実験」の先を行くステップとして今後追加される機能をプレビューすることができます。
+まだ実務で利用可能なレベルではありませんが、「実験」を超えた段階に進んでおり、今後追加される機能のプレビューとして提供されます。
 * 作成するコンテンツに対して前方互換性を提供しようとしています。
 * 将来的にクラスは大幅に変わる可能性があります。
 * コードは初期段階であり、必要な完成度 / 品質の制約を満たしていない場合があります。
@@ -127,11 +127,11 @@ Engine/UI/LevelEditor/InEditorTesting/KeepSimulationChanges
 [/EXCERPT:ActorUsesEarlyAccessClass]
 
 [EXCERPT:ComponentUsesExperimentalClass]
-###ここにドキュメントを挿入
+### 注意事項！
 
 ![](HereBeDragons.png)
 
-このコンポーネントは「実験的」クラスを1つ以上使用します。
+このコンポーネントは「実験的」クラスを 1 つ以上使用します。
 
 これらのプロパティは、完全にサポートおよび文書化の対象外です。
 * これらは今後のビルドで大幅に変更、または破棄される可能性があります。
@@ -147,7 +147,7 @@ Engine/UI/LevelEditor/InEditorTesting/KeepSimulationChanges
 
 このコンポーネントは、「早期アクセス」クラスを 1 つ以上使用します。
 
-制作作業が進んでいるわけではありませんが、「実験」の先を行くステップとして今後追加される機能をプレビューすることができます。
+まだ実務で利用可能なレベルではありませんが、「実験」を超えた段階に進んでおり、今後追加される機能のプレビューとして提供されます。
 * 作成するコンテンツに対して前方互換性を提供しようとしています。
 * 将来的にクラスは大幅に変わる可能性があります。
 * コードは初期段階であり、必要な完成度 / 品質の制約を満たしていない場合があります。

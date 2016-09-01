@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2757188
 Availability:Public
 Title:7.AI Controller ブループリント:ブラックボードの初期値
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 7AI Controller ブループリント:ブラックボードの初期値
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -28,17 +29,17 @@ Description:ステップ 7AI Controller ブループリント:ブラックボー
 
 ここで **Blackboard** 上の "HomeLocation" キーを設定する必要があります。少々入り組んだステップとなります。
 
-## 手順
+## ステップ
 
 1. **Get Blackboard** ノードと **Get Controlled Pawn** ノードが必要です。
 
 	![](getBBandCPnodes.png)
 
-1. コンテキスト メニューを **右クリック** して **Reference to Self** ノードを取得し、 **Get Blackboard** ノードへ接続します。
+1. **右クリック** してコンテキスト メニューで **Reference to Self** ノードを取得し、 **Get Blackboard** ノードへ接続します。
 
 	![](addSelf.png)
 
-1. **Get Blackboard** ノードの **Return Value** をドラッグして、「Vector」を検索し、 **Set Value as Vector** ノードを作成します。
+1. **Get Blackboard** ノードの **Return Value** をドラッグして、 "Vector" を検索し、 **Set Value as Vector** ノードを作成します。
 
 	[REGION:raw]
 	![](createSetKeyVectorNode.png)(w:920)
@@ -55,15 +56,16 @@ Description:ステップ 7AI Controller ブループリント:ブラックボー
 1. **Set Value as Vector** ノードにある **Key Name** を引き出してコンテキスト メニューから **Promote to Variable** を使用します。
 
 	![](promoteText.png)
-	1. **[My Blueprint (マイブループリント)]** パネルで変数に名前をつけます。「 **HomeLocation** ] という名前を付けます。
 
-	* 変数に名前をつける前にどこかをクリックしてしまった場合は、コンテキスト メニューを **右クリック** して **[My Blueprint (マイブループリント)]** パネルで名前を変更することができます。
+1. **[My Blueprint (マイブループリント)]** パネルで変数に名前をつけます。**[HomeLocation]** という名前を付けます。
+
+	* 変数に名前をつける前にどこかをクリックしてしまった場合は、**右クリック** してコンテキスト メニューを使用して **[My Blueprint (マイブループリント)]** パネルで名前を変更することができます。
 
 	![](hlconnected.png)
 
-1. ブループリント ![](button_compile.png) をコンパイルします。
+1. ブループリントをコンパイルします。
 1. **[My Blueprint (マイブループリント)] パネル** で **HomeLocationKey** 変数を選択します。
-1. **[Details (詳細)]** パネルで **Default Value** をブラックボードの Vector Value の名前と全く同じものに変更します。この場合は、 `HomeLocation` になります。
+1. **[Details (詳細)]** パネルで **Default Value** をブラックボードの Vector Value の名前と全く同じものに変更します。この場合は、 "HomeLocation" になります。
 
 	![](homeLocationDetails.png)
 
@@ -71,7 +73,7 @@ Description:ステップ 7AI Controller ブループリント:ブラックボー
 
 	![](execution2.png)
 
-次のステップでは、引き続きグラフを編集し、そのグラフを追加して AI Controller に希望するビヘイビア ツリーを実行させます。
+次のステップでは、引き続きグラフを編集し、そのグラフに追加して AI Controller に望ましいビヘイビア ツリーを実行させます。
 
 %Steps%
 

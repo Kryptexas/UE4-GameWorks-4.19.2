@@ -25,6 +25,8 @@ TArray< TWeakObjectPtr< ULevel > > ABrush::LevelsToRebuild;
 bool ABrush::bSuppressBSPRegeneration = false;
 #endif
 
+DEFINE_LOG_CATEGORY_STATIC(LogBrush, Log, All);
+
 ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -189,6 +191,25 @@ void ABrush::PostLoad()
 				}
 			}
 		}
+
+#if WITH_EDITOR
+		// Fix up any broken poly normals.
+		// They have not been getting fixed up after vertex editing since at least UE2!
+		for(FPoly& Poly : Brush->Polys->Element)
+		{
+			FVector Normal = Poly.Normal;
+			if(!Poly.CalcNormal())
+			{
+				if(!Poly.Normal.Equals(Normal))
+				{
+					UE_LOG(LogBrush, Log, TEXT("%s had invalid poly normals which have been fixed. Resave the level '%s' to remove this warning."), *Brush->GetName(), *GetLevel()->GetOuter()->GetName());
+
+					// Flag BSP as needing rebuild
+					SetNeedRebuild(GetLevel());
+				}
+			}
+		}
+#endif
 
 		// if the polys of the brush have the wrong outer, fix it up to be the UModel (my Brush member)
 		// UModelFactory::FactoryCreateText was passing in the ABrush as the Outer instead of the UModel

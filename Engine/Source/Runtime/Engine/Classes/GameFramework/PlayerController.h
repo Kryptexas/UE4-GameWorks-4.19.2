@@ -77,16 +77,20 @@ struct ENGINE_API FInputModeUIOnly : public FInputModeDataBase
 	FInputModeUIOnly& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
 
 	/** Whether to lock the mouse to the viewport */
-	FInputModeUIOnly& SetLockMouseToViewport(bool InLockMouseToViewport) { bLockMouseToViewport = InLockMouseToViewport; return *this; }
+	DEPRECATED(4.13, "Mouse locking behavior is now controlled by an enum. Please use SetLockMouseToViewportBehavior(...) instead.")
+	FInputModeUIOnly& SetLockMouseToViewport(bool InLockMouseToViewport) { return SetLockMouseToViewportBehavior( InLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock ); }
+
+	/** Sets the mouse locking behavior of the viewport */
+	FInputModeUIOnly& SetLockMouseToViewportBehavior(EMouseLockMode InMouseLockMode) { MouseLockMode = InMouseLockMode; return *this; }
 
 	FInputModeUIOnly()
 		: WidgetToFocus()
-		, bLockMouseToViewport(false)
+		, MouseLockMode(EMouseLockMode::DoNotLock)
 	{}
 
 protected:
 	TSharedPtr<SWidget> WidgetToFocus;
-	bool bLockMouseToViewport;
+	EMouseLockMode MouseLockMode;
 
 	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
 };
@@ -98,21 +102,25 @@ struct ENGINE_API FInputModeGameAndUI : public FInputModeDataBase
 	FInputModeGameAndUI& SetWidgetToFocus(TSharedPtr<SWidget> InWidgetToFocus) { WidgetToFocus = InWidgetToFocus; return *this; }
 
 	/** Whether to lock the mouse to the viewport */
-	FInputModeGameAndUI& SetLockMouseToViewport(bool InLockMouseToViewport) { bLockMouseToViewport = InLockMouseToViewport; return *this; }
+	DEPRECATED(4.13, "Mouse locking behavior is now controlled by an enum. Please use SetLockMouseToViewportBehavior(...) instead.")
+	FInputModeGameAndUI& SetLockMouseToViewport(bool InLockMouseToViewport) { return SetLockMouseToViewportBehavior( InLockMouseToViewport ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock ); }
+
+	/** Sets the mouse locking behavior of the viewport */
+	FInputModeGameAndUI& SetLockMouseToViewportBehavior(EMouseLockMode InMouseLockMode) { MouseLockMode = InMouseLockMode; return *this; }
 
 	/** Whether to hide the cursor during temporary mouse capture caused by a mouse down */
 	FInputModeGameAndUI& SetHideCursorDuringCapture(bool InHideCursorDuringCapture) { bHideCursorDuringCapture = InHideCursorDuringCapture; return *this; }
 
 	FInputModeGameAndUI()
 		: WidgetToFocus()
-		, bLockMouseToViewport(false)
+		, MouseLockMode(EMouseLockMode::DoNotLock)
 		, bHideCursorDuringCapture(true)
 	{}
 
 protected:
 
 	TSharedPtr<SWidget> WidgetToFocus;
-	bool bLockMouseToViewport;
+	EMouseLockMode MouseLockMode;
 	bool bHideCursorDuringCapture;
 
 	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
@@ -230,11 +238,11 @@ class ENGINE_API APlayerController : public AController
 	int32 ClientCap;
 	
 	/** Object that manages "cheat" commands.  Not instantiated in shipping builds. */
-	UPROPERTY(transient)
+	UPROPERTY(transient, BlueprintReadOnly, Category=PlayerController)
 	class UCheatManager* CheatManager;
 	
 	/** class of my CheatManager. */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=PlayerController)
 	TSubclassOf<class UCheatManager> CheatClass;
 
 	/** Object that manages player input. */
@@ -864,7 +872,7 @@ public:
 	* @param	Scale					Scale between 0.0 and 1.0 on the intensity of playback
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
-	void PlayHapticEffect(class UHapticFeedbackEffect* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale = 1.f);
+	void PlayHapticEffect(class UHapticFeedbackEffect_Base* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale = 1.f,  bool bLoop = false);
 
 	/**
 	* Stops a playing haptic feedback curve
@@ -1250,6 +1258,7 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual void EnableInput(class APlayerController* PlayerController) override;
 	virtual void DisableInput(class APlayerController* PlayerController) override;
+	virtual void BeginPlay() override;
 	//~ End AActor Interface
 
 	//~ Begin AController Interface
@@ -1341,6 +1350,7 @@ protected:
 	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused);
 	virtual void BuildInputStack(TArray<UInputComponent*>& InputStack);
 	void ProcessForceFeedbackAndHaptics(const float DeltaTime, const bool bGamePaused);
+	virtual bool IsInViewportClient(UGameViewportClient* ViewportClient) const;
 
 	/** Allows the PlayerController to set up custom input bindings. */
 	virtual void SetupInputComponent();

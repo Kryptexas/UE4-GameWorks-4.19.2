@@ -1,48 +1,58 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2661596
 Availability:Public
-Title: Procedural Foliage Tool Quick Start
+Title:程序化植物工具快速入门
 Crumbs:
-Description:How to set up and use the Procedural Foliage tool.
+Description:设置并使用程序化植物工具的方法。
 Navigation:topic
 SkillLevel:Intermediate
-Version: 4.8
+Version:4.8
 
 
-In this Quick Start tutorial we will take a look at how the **Procedural Foliage Tool** that is now available with the 4.8 release of Unreal Engine 4 (UE4) works. 
-Over the course of this Quick Start tutorial you will learn how to create, setup, and spawn an entire forests worth of trees inside of UE4 using only the Procedural Foliage tool. 
-You will also be introduced to key properties and settings that will help you shape your virtual forest to fit your project's needs. 
+在此快速入门教程中可以学习如何使用虚幻引擎 4（UE4）4.8 版本中的 **程序化植物工具（Procedural Foliage Tool）**。 
+在此快速入门教程的过程中，您可学习到如何在 UE4 中单独使用程序化植物工具创建、设置、并生成整个森林。 
+您还可以了解关键的属性和设置，以便形成符合项目需求的虚拟森林。 
 
 ![](T_PF_QS_Final_Product.png)
 
-You will also be exposed to all of the required Actors and properties the Procedural Foliage tool requires to function correctly and deliver the results you want.
-When you have completed this Quick Start you will have a new level that should look similar to the image above. 
+此外您还将了解到程序化植物工具所有必备 Actors 和属性，以便正常使用、达成所需效果。
+完成快速入门中的教学后，您创建的关卡效果和上图相似。 
 
 
-## Prerequisites
-Before you can use the Procedural Foliage tools in your project, you must first enable them by doing the following.
+## 先决条件
+在项目中使用程序化植物工具前，必须先执行下列操作将其启用。
 
-1. From the **Main Toolbar** click on the **Edit** option then click on **Editor Preferences**.
-1. Inside of  the Editor Preferences **right - click** on the **Experimental** section.
-1. Enable the Procedural Foliage option by clicking on the checkmark box next to the word **Procedural Foliage**.
+1. 点击 **主工具栏** 上的 **Edit** 选项，之后点击 **Editor Preferences**。
+1. 在 Editor Preferences 中，**右键单击** **Experimental** 部分。
+1. 点击 **Procedural Foliage** 旁的勾选框，将 Procedural Foliage 选项启用。
 
-	![](Engine\OpenWorldTools\Overview\T_Enable_PFT.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	DzR6UNAIYbs
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-You will also need to download the **Open World Demo Collection** content pack from the **Unreal Engine Marketplace** as some of the content from the collection will be used in the following Quick Start.
-Once the Open World Demo Collection is downloaded add it to the project that you are using to follow along with this Quick Start by doing the following.
+须从 **虚幻引擎 4 市场** 下载 **Open World Demo Collection** 内容包，因为此合集中的部分内容将用于以下的快速入门。
+继续以下步骤，下载 Open World Demo Collection并添加到正在使用的项目。
 
-1. From the Epic Games Launcher in the Marketplace locate and then download the **Open World Demo Collection**.
+1. 在 Epic Games 启动程序的 Marketplace 中找到并下载 **Open World Demo Collection**。
 	
 	![](Engine\OpenWorldTools\T_OWT_OWDC.png)
 
-1. Go the **Library** section of the launcher and then under **Vault** section locate the Open World Demo Collection . 
+1. 前往启动程序的 **Library** 部分，然后在 **Vault** 部分下找到 Open World Demo Collection。 
 	
 	![](Engine\OpenWorldTools\T_OWT_Add_Content_00.png)
 
-1. Click on the button that says **Add to Project**.
+1. 点击 **Add to Project** 按钮。
 	
 	![](Engine\OpenWorldTools\T_OWT_Add_To_Project.png)
 
-1. You will then be shown a list of projects that you can add this to, select the project that you are using to follow along with this Quick Start and then press the **Add to Project** button
+1. 可添加此合集的项目列表将显示。在列表中选择您正在使用的项目，然后按下 **Add to Project** 按钮。
 
 	![](Engine\OpenWorldTools\T_OWT_ATP.png)
 
@@ -51,7 +61,7 @@ Once the Open World Demo Collection is downloaded add it to the project that you
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

@@ -1,9 +1,9 @@
-﻿IINTSourceChangelist:2465660
-Title: Referencing Assets
+﻿INTSourceChangelist:2721243
+Title:アセットの参照
 Crumbs:
 Description:
-Availability: Public
-Version: 4.7
+Availability:Public
+Version:4.9
 
 アンリアル エンジン 4 は、アセットの参照およびメモリへのロードの方法を制御するメカニズムを豊富に備えています。2 種類の参照方法があると考えてください。ハード参照は、オブジェクト A がオブジェクト B を参照し、オブジェクト A がロードされるとオブジェクト B もロードさせます。ソフト参照は、オブジェクト A がオブジェクト B を、パスからオブジェクトへのストリングなどの間接的なメカニズム経由で参照します。まず最初の 2 つのセクションではハード参照について説明し、残りのセクションでソフト参照について説明します。 
 

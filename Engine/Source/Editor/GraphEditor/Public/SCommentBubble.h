@@ -89,11 +89,17 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 	/** Called to display/hide the comment bubble */
 	void OnCommentBubbleToggle( ECheckBoxState State );
 
+	/** Directly sets the bubble's visibility, without assuming it was from a user action (no undo transaction, or OnToggled callback)*/
+	void SetCommentBubbleVisibility(bool bVisible);
+
 	/** Called when a node's comment bubble pinned state is changed */
 	void OnPinStateToggle( ECheckBoxState State ) const;
 
 	/** Called to update the bubble widget layout */
 	void UpdateBubble();
+
+	/** Returns if the text block currently has keyboard focus*/
+	bool TextBlockHasKeyboardFocus() const;
 
 protected:
 

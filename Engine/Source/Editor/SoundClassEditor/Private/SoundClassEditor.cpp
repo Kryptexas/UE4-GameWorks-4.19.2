@@ -139,6 +139,11 @@ void FSoundClassEditor::InitSoundClassEditor( const EToolkitMode::Type Mode, con
 	}
 }
 
+FSoundClassEditor::FSoundClassEditor()
+	: SoundClass(nullptr)
+{
+}
+
 FSoundClassEditor::~FSoundClassEditor()
 {
 	GEditor->UnregisterForUndo( this );
@@ -147,7 +152,7 @@ FSoundClassEditor::~FSoundClassEditor()
 
 void FSoundClassEditor::AddReferencedObjects( FReferenceCollector& Collector )
 {
-
+	Collector.AddReferencedObject(SoundClass);
 }
 
 TSharedRef<SDockTab> FSoundClassEditor::SpawnTab_GraphCanvas(const FSpawnTabArgs& Args)

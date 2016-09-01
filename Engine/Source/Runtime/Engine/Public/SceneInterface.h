@@ -18,6 +18,14 @@ enum EBasePassDrawListType
 	EBasePass_Masked,
 	EBasePass_MAX
 };
+
+enum class EShadingPath
+{
+	Mobile,
+	Deferred,
+	Num,
+};
+
 /**
  * An interface to the private scene manager implementation of a scene.  Use GetRendererModule().AllocateScene to create.
  * The scene
@@ -146,9 +154,6 @@ public:
 	 * @param Light - light component to update
 	 */
 	virtual void UpdateLightColorAndBrightness(ULightComponent* Light) = 0;
-
-	/** Updates the scene's dynamic skylight. */
-	virtual void UpdateDynamicSkyLight(const FLinearColor& UpperColor, const FLinearColor& LowerColor) {}
 
 	/** Sets the precomputed visibility handler for the scene, or NULL to clear the current one. */
 	virtual void SetPrecomputedVisibility(const class FPrecomputedVisibilityHandler* PrecomputedVisibilityHandler) {}
@@ -338,14 +343,21 @@ public:
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GMaxRHIFeatureLevel; }
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[GetFeatureLevel()]; }
 
-	static bool ShouldUseDeferredRenderer(ERHIFeatureLevel::Type InFeatureLevel)
+	static EShadingPath GetShadingPath(ERHIFeatureLevel::Type InFeatureLevel)
 	{
-		return InFeatureLevel >= ERHIFeatureLevel::SM4;
+		if (InFeatureLevel >= ERHIFeatureLevel::SM4)
+		{
+			return EShadingPath::Deferred;
+		}
+		else
+		{
+			return EShadingPath::Mobile;
+		}
 	}
 
-	bool ShouldUseDeferredRenderer() const
+	EShadingPath GetShadingPath() const
 	{
-		return ShouldUseDeferredRenderer(GetFeatureLevel());
+		return GetShadingPath(GetFeatureLevel());
 	}
 
 #if WITH_EDITOR

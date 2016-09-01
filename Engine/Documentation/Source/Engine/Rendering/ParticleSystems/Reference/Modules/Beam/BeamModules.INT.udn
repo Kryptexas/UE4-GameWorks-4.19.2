@@ -2,6 +2,7 @@ Availability: Public
 Title:Beam Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:These modules are used to configure the behavior of emitters using the Beam TypeData module.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -10,7 +11,7 @@ These modules are used to configure or modify the behavior of emitters using the
 
 ## Beam Modifier
 
-The Beam Modifier module allows either the Source or Target of the beam to be modified. It provides the following properties:
+The **Beam Modifier** module allows either the Source or Target of the beam to be modified. It provides the following properties:
 
 | Property | Description |
 | ---- | ---- |
@@ -93,7 +94,7 @@ TfgyUi-QAAg
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Beam Noise module allows for injecting noise along the beam. It provides the following properties:
+The **Beam Noise** module allows for injecting noise along the beam. It provides the following properties:
 
 | Property | Description |
 | ---- | ---- |
@@ -132,7 +133,7 @@ Currently, low-frequency noise is the only noise supported.
 
 ## Source
 
-The Beam Source module implements a single source for a beam emitter. (If a source module is not present in a beam emitter, the emitter location itself is used as the source.) It provides the following properties:
+The **Beam Source** module implements a single source for a beam emitter. (If a source module is not present in a beam emitter, the emitter location itself is used as the source.) It provides the following properties:
 
 | Property | Description |
 | ---- | ---- |
@@ -182,7 +183,7 @@ The Beam Source module implements a single source for a beam emitter. (If a sour
 
 ## Target
 
-The Beam Target module implements a single target for a beam emitter. (If a target module is not present in a beam emitter, the emitter assumes that the beam is to be used directionally.) It provides the following properties:
+The **Beam Target** module implements a single target for a beam emitter. (If a target module is not present in a beam emitter, the emitter assumes that the beam is to be used directionally.) It provides the following properties:
 
 | Property | Description |
 | ---- | ---- |

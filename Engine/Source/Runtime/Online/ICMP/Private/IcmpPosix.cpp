@@ -6,7 +6,7 @@
 #if PLATFORM_USES_POSIX_IMCP
 
 #include "SocketSubsystem.h"
-#include "IpAddress.h"
+#include "IPAddress.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -36,7 +36,27 @@ namespace IcmpPosix
 	}
 }
 
-FIcmpEchoResult IcmpEchoImpl(const FString& TargetAddress, float Timeout)
+uint16 NtoHS(uint16 val)
+{
+	return ntohs(val);
+}
+
+uint16 HtoNS(uint16 val)
+{
+	return htons(val);
+}
+
+uint32 NtoHL(uint32 val)
+{
+	return ntohl(val);
+}
+
+uint32 HtoNL(uint32 val)
+{
+	return htonl(val);
+}
+
+FIcmpEchoResult IcmpEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetAddress, float Timeout)
 {
 	static const SIZE_T IpHeaderSize = sizeof(struct ip);
 	static const SIZE_T IcmpHeaderSize = sizeof(struct icmp);
@@ -63,7 +83,7 @@ FIcmpEchoResult IcmpEchoImpl(const FString& TargetAddress, float Timeout)
 	FMemory::Memset(Packet, 0, PacketSize);
 
 	FString ResolvedAddress;
-	if (!ResolveIp(TargetAddress, ResolvedAddress))
+	if (!ResolveIp(SocketSub, TargetAddress, ResolvedAddress))
 	{
 		Result.Status = EIcmpResponseStatus::Unresolvable;
 		return Result;

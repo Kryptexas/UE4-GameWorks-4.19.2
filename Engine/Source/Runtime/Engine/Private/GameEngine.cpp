@@ -42,6 +42,8 @@
 #include "Engine/CoreSettings.h"
 #include "EngineAnalytics.h"
 
+#include "Tickable.h"
+
 ENGINE_API bool GDisallowNetworkTravel = false;
 
 // How slow must a frame be (in seconds) to be logged out (<= 0 to disable)
@@ -303,6 +305,15 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 		IConsoleManager::Get().CallAllConsoleVariableSinks();
 	}
 
+	const FText WindowTitleOverride = GetDefault<UGeneralProjectSettings>()->ProjectDisplayedTitle;
+	const FText WindowTitleComponent = WindowTitleOverride.IsEmpty() ? NSLOCTEXT("UnrealEd", "GameWindowTitle", "{GameName}") : WindowTitleOverride;
+
+	FText WindowDebugInfoComponent;
+#if !UE_BUILD_SHIPPING
+	const FText WindowDebugInfoOverride = GetDefault<UGeneralProjectSettings>()->ProjectDebugTitleInfo;
+	WindowDebugInfoComponent = WindowDebugInfoOverride.IsEmpty() ? NSLOCTEXT("UnrealEd", "GameWindowTitleDebugInfo", "({PlatformArchitecture}-bit, {RHIName})") : WindowDebugInfoOverride;
+#endif
+
 #if PLATFORM_64BITS
 	//These are invariant strings so they don't need to be localized
 	const FText PlatformBits = FText::FromString( TEXT( "64" ) );
@@ -310,15 +321,15 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	const FText PlatformBits = FText::FromString( TEXT( "32" ) );
 #endif	//PLATFORM_64BITS
 
-	// Note: If these parameters are updated or renamed, please update the tooltip on the ProjectDisplayedTitle property
+	// Note: If these parameters are updated or renamed, please update the tooltip on the ProjectDisplayedTitle and ProjectDebugTitleInfo properties
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("GameName"), FText::FromString( FApp::GetGameName() ) );
 	Args.Add( TEXT("PlatformArchitecture"), PlatformBits );
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GMaxRHIShaderPlatform ) ) );
 
-	const FText DefaultWindowTitle = NSLOCTEXT("UnrealEd", "GameWindowTitle", "{GameName} ({PlatformArchitecture}-bit, {RHIName})");
-	const FText WindowTitleOverride = GetDefault<UGeneralProjectSettings>()->ProjectDisplayedTitle;
-	const FText WindowTitle = FText::Format(WindowTitleOverride.IsEmpty() ? DefaultWindowTitle : WindowTitleOverride, Args);
+	const FText WindowTitleVar = FText::Format(FText::FromString(TEXT("{0} {1}")), WindowTitleComponent, WindowDebugInfoComponent);
+	const FText WindowTitle = FText::Format(WindowTitleVar, Args);
+	const bool bShouldPreserveAspectRatio = GetDefault<UGeneralProjectSettings>()->bShouldWindowPreserveAspectRatio;
 
 	// Allow optional winX/winY parameters to set initial window position
 	EAutoCenter::Type AutoCenterType = EAutoCenter::PrimaryWorkArea;
@@ -360,7 +371,8 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	.MaxHeight(MaxWindowHeight)
 	.FocusWhenFirstShown(true)
 	.SaneWindowPlacement(AutoCenterType == EAutoCenter::None)
-	.UseOSWindowBorder(true);
+	.UseOSWindowBorder(true)
+	.ShouldPreserveAspectRatio(bShouldPreserveAspectRatio);
 
 	const bool bShowImmediately = false;
 
@@ -403,7 +415,7 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		
 		if ( SceneViewport.IsValid() )
 		{
-			SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode, 0, 0);
+			SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode);
 		}
 
 		// Registration of the game viewport to that messages are correctly received.
@@ -571,14 +583,18 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		UGameViewportClient::OnViewportCreated().Broadcast();
 	}
 
-	GameInstance->StartGameInstance();
-
 	UE_LOG(LogInit, Display, TEXT("Game Engine Initialized.") );
 
 	// for IsInitialized()
 	bIsInitialized = true;
 }
 
+void UGameEngine::Start()
+{
+	UE_LOG(LogInit, Display, TEXT("Starting Game."));
+
+	GameInstance->StartGameInstance();
+}
 
 void UGameEngine::PreExit()
 {
@@ -1006,7 +1022,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	for (int32 WorldIdx = 0; WorldIdx < WorldList.Num(); ++WorldIdx)
 	{
 		FWorldContext &Context = WorldList[WorldIdx];
-		if (Context.World() == NULL)
+		if (Context.World() == NULL || !Context.World()->ShouldTick())
 		{
 			continue;
 		}
@@ -1090,6 +1106,8 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	//	End per-world ticking
 	// ----------------------------
 
+	FTickableGameObject::TickObjects(nullptr, LEVELTICK_All, false, DeltaSeconds);
+
 	// Restore original GWorld*. This will go away one day.
 	if (OriginalGWorldContext != NAME_None)
 	{
@@ -1134,10 +1152,10 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
-	if (AudioDeviceManager)
+	FAudioDeviceManager* GameAudioDeviceManager = GEngine->GetAudioDeviceManager();
+	if (GameAudioDeviceManager)
 	{
-		AudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
+		GameAudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
 	}
 
 	// rendering thread commands

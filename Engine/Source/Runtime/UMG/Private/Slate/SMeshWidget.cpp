@@ -240,8 +240,7 @@ void SMeshWidget::AddReferencedObjects(FReferenceCollector& Collector)
 	{
 		if (SomeRenderData.Brush.IsValid())
 		{
-			UObject* ResourceObject = SomeRenderData.Brush->GetResourceObject();
-			Collector.AddReferencedObject(ResourceObject);
+			SomeRenderData.Brush->AddReferencedObjects(Collector);
 		}
 	}
 }

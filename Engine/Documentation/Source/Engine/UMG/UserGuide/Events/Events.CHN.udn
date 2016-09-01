@@ -1,24 +1,25 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2708410
 Availability:Public
-Title: Events
+Title:事件
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:A guide to using Events in UMG. 
+Description:在 UMG 中使用事件的指南。 
+version:4.9
 
-There are a couple methods in which you can call **Events** in **UMG** which are outlined below. 
+下面列出了几种可以在 **UMG** 中调用 **事件** 的方法。 
 
-### Bindable Events
-**Bindable Events** are a way for **UMG** to mimic the behavior currently used by Slate which needs a single handler to tell it if the Event was handled. You can bind a function in your **Widget Blueprint** to the event from the **Details** panel under the **Events** section (shown below indicated by the green arrows). 
+## 可绑定事件
+**可绑定事件** 是 UMG 用于模仿目前平板正在使用的行为的方式，平板需要一个处理程序来判断事件是否已处理。可以在 **事件** 部分下的 **细节** 面板中，将 **控件蓝图** 中的功能绑定到事件（由下图中的黄色箭头表示）。 
 
-![](EventBinding.png)(w:880)
-
-
-Indicated above by the yellow box, some Widgets supplement **Events** through the handling of **Interaction**. For the example above, in addition to the **OnClicked** Event for a Button Widget, you are able to specify the handling of click events through setting the **Click Method** or **Touch Method**. You can also specify through the **IsFocusable** option if a button should only be mouse-clickable and never keyboard focusable. 
+![](EventBinding.png)
 
 
-### Multicast Events
-**Multicast Events** are the standard way Events are handled in **Blueprints**. 
+一些控件通过处理 **交互** 来协助 **事件**（由上图中的黄框表示）。对于上面的示例，除了按钮控件的 **OnClicked** 事件，也可以通过设置 **单击方式** 或 **触控方式** 来指定单击事件的处理方式。也可以通过 **可聚焦** 选项指定按钮是否仅可以使用鼠标点击，不可用键盘选择。 
 
-To use a **Multicast Event**, click on the **Widget** in the **My Blueprint** tab (1), then **Right-click** in **Event Graph** (2) and the available Events will be displayed under the **Widget Event** section where you can choose which Event you wish to assign (3). 
+
+### 多播事件
+**多播事件** 是事件在 **蓝图** 中的标准处理方式。 
+
+要使用 **多播事件**，请单击 **我的蓝图** 选项卡中的 **控件** (1)，然后 **右键单击** **事件图表** (2)，这会在 **控件事件** 部分下面显示出可用事件，可以在其中选择想要分配的事件 (3)。 
 
 [REGION:lightbox]
 [![](SliderEvent.png)(w:880)](SliderEvent.png)

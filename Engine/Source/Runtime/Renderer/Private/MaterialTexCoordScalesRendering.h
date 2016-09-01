@@ -32,7 +32,8 @@ public:
 		AccuracyColorsParameter.Bind(Initializer.ParameterMap,TEXT("AccuracyColors"));
 		TextureAnalysisIndexParameter.Bind(Initializer.ParameterMap,TEXT("TextureAnalysisIndex"));
 		OneOverCPUTexCoordScalesParameter.Bind(Initializer.ParameterMap,TEXT("OneOverCPUTexCoordScales"));
-		TexCoordIndicesParameter.Bind(Initializer.ParameterMap,TEXT("TexCoordIndices"));
+		TexCoordIndicesParameter.Bind(Initializer.ParameterMap, TEXT("TexCoordIndices"));
+		PrimitiveAlphaParameter.Bind(Initializer.ParameterMap, TEXT("PrimitiveAlpha"));
 	}
 
 	FMaterialTexCoordScalePS() {}
@@ -44,6 +45,7 @@ public:
 		Ar << TextureAnalysisIndexParameter;
 		Ar << OneOverCPUTexCoordScalesParameter;
 		Ar << TexCoordIndicesParameter;
+		Ar << PrimitiveAlphaParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -85,4 +87,5 @@ private:
 	FShaderParameter TextureAnalysisIndexParameter;
 	FShaderParameter OneOverCPUTexCoordScalesParameter;
 	FShaderParameter TexCoordIndicesParameter;
+	FShaderParameter PrimitiveAlphaParameter;
 };

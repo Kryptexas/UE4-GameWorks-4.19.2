@@ -3,6 +3,8 @@ Title:Construction Script
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Executed when instances of a Blueprint are created to perform initialization actions.
 version: 4.9
+Parent:Engine/Blueprints/Anatomy
+Tags:Graphs
 
 [VAR:Topic]
 [OBJECT:Topic]

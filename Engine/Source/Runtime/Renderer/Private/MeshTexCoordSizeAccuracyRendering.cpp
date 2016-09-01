@@ -46,17 +46,19 @@ void FMeshTexCoordSizeAccuracyPS::SetMesh(
 {
 	float CPUTexelFactor = -1.f;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	float DistanceMultiplier = 1.f;
-	const FStreamingSectionBuildInfo* SectionData = Proxy ? Proxy->GetStreamingSectionData(DistanceMultiplier, VisualizeLODIndex, BatchElement.VisualizeElementIndex) : nullptr;
+	float ComponentExtraScale = 1.f, MeshExtraScale = 1.f;
+	const FStreamingSectionBuildInfo* SectionData = Proxy ? Proxy->GetStreamingSectionData(ComponentExtraScale, MeshExtraScale, VisualizeLODIndex, BatchElement.VisualizeElementIndex) : nullptr;
 	if (SectionData)
 	{
-		CPUTexelFactor = SectionData->TexelFactors[0];
+		CPUTexelFactor = MeshExtraScale * SectionData->TexelFactors[0];
 	}
 #endif
 	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), CPUTexelFactorParameter, CPUTexelFactor);
+	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), PrimitiveAlphaParameter, (!Proxy || Proxy->IsSelected()) ? 1.f : .2f);
 }
 
 void FMeshTexCoordSizeAccuracyPS::SetMesh(FRHICommandList& RHICmdList, const FSceneView& View)
 {
 	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), CPUTexelFactorParameter, -1.f);
+	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), PrimitiveAlphaParameter, 1.f);
 }

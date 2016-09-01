@@ -61,6 +61,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/Light.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Animation/AnimSequence.h"
 #include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 #include "EditorProjectSettings.h"
 #include "HierarchicalLODUtilities.h"
@@ -71,6 +72,7 @@
 #include "IPortalServiceLocator.h"
 #include "MaterialShaderQualitySettings.h"
 #include "IVREditorModule.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -141,6 +143,11 @@ void FLevelEditorActionCallbacks::BrowseDocumentation()
 void FLevelEditorActionCallbacks::BrowseAPIReference()
 {
 	IDocumentation::Get()->OpenAPIHome();
+}
+
+void FLevelEditorActionCallbacks::BrowseCVars()
+{
+	GEditor->Exec(GetWorld(), TEXT("help"));
 }
 
 void FLevelEditorActionCallbacks::BrowseViewportControls()
@@ -367,7 +374,12 @@ void FLevelEditorActionCallbacks::Save()
 
 void FLevelEditorActionCallbacks::SaveAs()
 {
-	FEditorFileUtils::SaveLevelAs( GetWorld()->PersistentLevel );
+	FString SavedFilename;
+	bool bSaved = FEditorFileUtils::SaveLevelAs( GetWorld()->PersistentLevel, &SavedFilename );
+	if (bSaved)
+	{
+		FEditorFileUtils::LoadMap(SavedFilename);
+	}
 }
 
 void FLevelEditorActionCallbacks::SaveAllLevels()
@@ -495,9 +507,24 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetPreviewPlatform(FName MaterialQualityPlatform)
 {
-	UMaterialShaderQualitySettings::Get()->SetPreviewPlatform(MaterialQualityPlatform);
+	UMaterialShaderQualitySettings* MaterialShaderQualitySettings = UMaterialShaderQualitySettings::Get();
+	const FName InitialPreviewPlatform = MaterialShaderQualitySettings->GetPreviewPlatform();
 
+	const ERHIFeatureLevel::Type InitialFeatureLevel = GetWorld()->FeatureLevel;
+	MaterialShaderQualitySettings->SetPreviewPlatform(MaterialQualityPlatform);
 	SetFeatureLevelPreview(ERHIFeatureLevel::ES2);
+
+	if (
+		// Rebuild materials if the preview platform has changed. 
+		InitialPreviewPlatform != MaterialQualityPlatform
+		// If the feature level changed then materials have been rebuilt already.
+		&& InitialFeatureLevel == ERHIFeatureLevel::ES2 )
+	{
+		FGlobalComponentRecreateRenderStateContext Recreate;
+		FlushRenderingCommands();
+		UMaterial::AllMaterialsCacheResourceShadersForRendering();
+		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
+	}
 }
 
 bool FLevelEditorActionCallbacks::IsPreviewPlatformChecked(FName MaterialQualityPlatform)
@@ -885,6 +912,21 @@ void FLevelEditorActionCallbacks::MapCheck_Execute()
 
 bool FLevelEditorActionCallbacks::CanShowSourceCodeActions()
 {
+	if (GEditor)
+	{
+		// Don't allow hot reloading if we're running networked PIE instances
+		// The reason, is it's fairly complicated to handle the re-wiring that needs to happen when we re-instance objects like player controllers, possessed pawns, etc...
+		const TIndirectArray<FWorldContext>& WorldContextList = GEditor->GetWorldContexts();
+
+		for (const FWorldContext& WorldContext : WorldContextList)
+		{
+			if (WorldContext.World() && WorldContext.World()->WorldType == EWorldType::PIE && WorldContext.World()->NetDriver)
+			{
+				return false;
+			}
+		}
+	}
+
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	// If there is at least one loaded game module, source code actions should be available.
 	return HotReloadSupport.IsAnyGameModuleLoaded();
@@ -2869,6 +2911,7 @@ void FLevelEditorCommands::RegisterCommands()
 {
 	UI_COMMAND( BrowseDocumentation, "Documentation...", "Opens the main documentation page, and allows you to search across all UE4 support sites.", EUserInterfaceActionType::Button, FInputChord( EKeys::F1 ) );
 	UI_COMMAND( BrowseAPIReference, "API Reference...", "Opens the API reference documentation", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( BrowseCVars, "Console Variables", "Creates an HTML file to browse the console variables and commands (console command 'help')", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BrowseViewportControls, "Viewport Controls...", "Opens the viewport controls cheat sheet", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( NewLevel, "New Level...", "Create a new level, or choose a level template to start from.", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::N ) );
 	UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::O ) );

@@ -37,6 +37,16 @@ static inline uint32 ParseNumber(const TCHAR* Str)
 	return Num;
 }
 
+static inline uint32 ParseNumber(const ANSICHAR* Str)
+{
+	uint32 Num = 0;
+	while (*Str && *Str >= '0' && *Str <= '9')
+	{
+		Num = Num * 10 + *Str++ - '0';
+	}
+	return Num;
+}
+
 /**
  * Construct the final microcode from the compiled and verified shader source.
  * @param ShaderOutput - Where to store the microcode and parameter map.
@@ -59,8 +69,38 @@ static void BuildMetalShaderOutput(
 		UE_LOG(LogMetalShaderCompiler, Fatal, TEXT("Bad hlslcc header found"));
 	}
 	
+	const ANSICHAR* SideTableString = FCStringAnsi::Strstr(USFSource, "@SideTable: ");
+
 	FMetalCodeHeader Header = {0};
 	Header.bFastMath = !ShaderInput.Environment.CompilerFlags.Contains(CFLAG_NoFastMath);
+	Header.SideTable = -1;
+	if (SideTableString)
+	{
+		int32 SideTableLoc = -1;
+		while (*SideTableString && *SideTableString != '\n')
+		{
+			if (*SideTableString == '(')
+			{
+				SideTableString++;
+				if (*SideTableString && *SideTableString != '\n')
+				{
+					SideTableLoc = (int32)ParseNumber(SideTableString);
+				}
+			}
+			else
+			{
+				SideTableString++;
+			}
+		}
+		if (SideTableLoc >= 0)
+		{
+			Header.SideTable = SideTableLoc;
+		}
+		else
+		{
+			UE_LOG(LogMetalShaderCompiler, Fatal, TEXT("Couldn't parse the SideTable buffer index for bounds checking"));
+		}
+	}
 	
 	FShaderParameterMap& ParameterMap = ShaderOutput.ParameterMap;
 	EShaderFrequency Frequency = (EShaderFrequency)ShaderOutput.Target.Frequency;
@@ -301,8 +341,14 @@ static void BuildMetalShaderOutput(
 	}
 
 	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::ES3_1);
-	Header.ShaderName = CCHeader.Name;
 
+	FString MetalCode = FString(USFSource);
+	if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) || ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Debug))
+	{
+		MetalCode.InsertAt(0, FString::Printf(TEXT("// %s\n"), *CCHeader.Name));
+		Header.ShaderName = CCHeader.Name;
+	}
+	
 	if (Header.Bindings.NumSamplers > MaxSamplers)
 	{
 		ShaderOutput.bSucceeded = false;
@@ -330,14 +376,27 @@ static void BuildMetalShaderOutput(
 	else
 	{
 		// at this point, the shader source is ready to be compiled
-		FString InputFilename = FPaths::CreateTempFilename(*FPaths::EngineIntermediateDir(), TEXT("ShaderIn"), TEXT(""));
+		// We need to use a temp directory path that will be consistent across devices so that debug info
+		// can be loaded (as it must be at a consistent location).
+#if PLATFORM_MAC
+		TCHAR const* TempDir = TEXT("/tmp");
+#else
+		TCHAR const* TempDir = FPlatformProcess::UserTempDir();
+#endif
+		FString InputFilename = FPaths::CreateTempFilename(TempDir, TEXT("ShaderIn"), TEXT(""));
 		FString ObjFilename = InputFilename + TEXT(".o");
 		FString ArFilename = InputFilename + TEXT(".ar");
 		FString OutputFilename = InputFilename + TEXT(".lib");
 		InputFilename = InputFilename + TEXT(".metal");
 		
+		if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
+		{
+			Header.ShaderCode = MetalCode;
+			Header.ShaderPath = InputFilename;
+		}
+		
 		// write out shader source
-		FFileHelper::SaveStringToFile(FString(USFSource), *InputFilename);
+		FFileHelper::SaveStringToFile(MetalCode, *InputFilename);
 		
 		int32 ReturnCode = 0;
 		FString Results;
@@ -369,8 +428,11 @@ static void BuildMetalShaderOutput(
 			if (IFileManager::Get().FileSize(*MetalPath) > 0)
 			{
 				// metal commandlines
+				FString DebugInfo = ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) ? TEXT("-gline-tables-only") : TEXT("");
 				FString MathMode = Header.bFastMath ? TEXT("-ffast-math") : TEXT("-fno-fast-math");
-				FString Params = FString::Printf(TEXT("%s -Wno-null-character %s %s -o %s"), *MathMode, Standard, *InputFilename, *ObjFilename);
+				
+				FString Params = FString::Printf(TEXT("%s %s -Wno-null-character %s %s -o %s"), *DebugInfo, *MathMode, Standard, *InputFilename, *ObjFilename);
+				
 				FPlatformProcess::ExecProcess( *MetalPath, *Params, &ReturnCode, &Results, &Errors );
 
 				// handle compile error
@@ -472,7 +534,9 @@ static void BuildMetalShaderOutput(
 			Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
 			
 			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
-			ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
+			// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared. 
+			//			uncommenting this will cause the project to have non deterministic materials and will hurt patch sizes
+			//ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
 			
 			ShaderOutput.NumInstructions = 0;
 			ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
@@ -562,7 +626,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_ES2_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
-		Standard = TEXT("-std=osx-metal1.1");
+		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
 		MetalCompilerTarget = HCT_FeatureLevelES2;
 		bIsDesktop = true;
 	}
@@ -570,7 +634,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
-		Standard = TEXT("-std=osx-metal1.1");
+		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
 		MetalCompilerTarget = HCT_FeatureLevelES3_1;
 		bIsDesktop = true;
 	}
@@ -578,7 +642,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_SM4_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
-		Standard = TEXT("-std=osx-metal1.1");
+		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
 		MetalCompilerTarget = HCT_FeatureLevelSM4;
 		bIsDesktop = true;
 	}
@@ -586,7 +650,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_SM5_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
-		Standard = TEXT("-std=osx-metal1.1");
+		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
 		MetalCompilerTarget = HCT_FeatureLevelSM5;
 		bIsDesktop = true;
 	}
@@ -656,6 +720,11 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 				FileWriter->Close();
 				delete FileWriter;
 			}
+
+			if (Input.bGenerateDirectCompileFile)
+			{
+				FFileHelper::SaveStringToFile(CreateShaderCompilerWorkerDirectCommandLine(Input), *(Input.DumpDebugInfoPath / TEXT("DirectCompile.txt")));
+			}
 		}
 
 		uint32 CCFlags = HLSLCC_NoPreprocess | HLSLCC_PackUniforms;
@@ -679,7 +748,10 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 		CCFlags &= ~HLSLCC_NoPreprocess;
 
-		FMetalCodeBackend MetalBackEnd(CCFlags, MetalCompilerTarget, bIsDesktop);
+		bool const bZeroInitialise = Input.Environment.CompilerFlags.Contains(CFLAG_ZeroInitialise);
+		bool const bBoundsChecks = Input.Environment.CompilerFlags.Contains(CFLAG_BoundsChecking);
+		
+		FMetalCodeBackend MetalBackEnd(CCFlags, MetalCompilerTarget, bIsDesktop, bZeroInitialise, bBoundsChecks);
 		FMetalLanguageSpec MetalLanguageSpec;
 
 		int32 Result = 0;
@@ -698,9 +770,9 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		int32 SourceLen = MetalShaderSource ? FCStringAnsi::Strlen(MetalShaderSource) : 0;
 		if(MetalShaderSource)
 		{
-			uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.SourceFilename)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(MetalShaderSource) + 20;
+			uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.SourceFilename)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.DebugGroupName)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(MetalShaderSource) + 21;
 			char* Dest = (char*)malloc(Len);
-			FCStringAnsi::Snprintf(Dest, Len, "// ! %s.usf:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.SourceFilename), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)MetalShaderSource);
+			FCStringAnsi::Snprintf(Dest, Len, "// ! %s/%s.usf:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.DebugGroupName), (const char*)TCHAR_TO_ANSI(*Input.SourceFilename), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)MetalShaderSource);
 			free(MetalShaderSource);
 			MetalShaderSource = Dest;
 			SourceLen = FCStringAnsi::Strlen(MetalShaderSource);

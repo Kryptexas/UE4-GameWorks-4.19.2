@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Vulkan headers</Name>
-  <Location>/Engine/Source/Runtime/Core/Private/Android</Location>
-  <Date>2016-04-29T16:00:42.1238938-04:00</Date>
+  <Location>/Engine/Source/Runtime/Core/Private/Android/</Location>
+  <Date>2016-06-16T14:06:40.8388741-04:00</Date>
   <Function>Code snippets from vk_platform.h and vulkan.h to validate Vulkan driver availability.</Function>
   <Justification>Android Vulkan driver detection</Justification>
   <Platforms>

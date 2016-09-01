@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:3005906
 Availability:Public
 Title:2.Grass ツールアクタの作成と設定
 Crumbs:
@@ -31,21 +31,25 @@ Version:4.8
 
 1. **コンテンツブラウザ** で **右クリック** をして Landscape Grass Type を作成して、表示されるメニューから **[Create Advanced Asset (詳細なアセットを作成)]** > **[Miscellaneous (その他)]** > **[Landscape Grass Type]** の順に選択して、名前を「**Grass_00**」と入力します。
 
-	![](T_Create_LS_Grass.png) 
+	[REGION:lightbox]
+	[![](T_Create_LS_Grass.png)(w:196 h:342)](T_Create_LS_Grass.png)
+	[/REGION]
 
 1. **ダブルクリック** して Landscape Grass Type を開いてから、**Grass Varieties** 配列の右側にある **+** アイコンを押して、**Grass Varieties** に新規アイテムを追加します。
 
-	![](T_Add_New_GV.png)
+	[REGION:lightbox]
+	[![](T_Add_New_GV.png)(w:298 h:288)](T_Add_New_GV.png)
+	[/REGION]
 
-1. **Landscape Grass Type** アクタ内で **Grass Mesh** セクションを探して、入力ボックスに **None** をクリックして検索用語に「**SM_FieldGrass_01**」と入力します。 
+1. **Landscape Grass Type** アクタ内で **Grass Mesh** セクションを探して、入力ボックスに **None** をクリックして検索用語に **SM_FieldGrass_01** と入力します。そして **SM_FieldGrass_01** をクリックして **Grass Mesh** としてロードします。指定枠 
 
 	![](T_Set_Grass_Type.gif)(convert:false)
 
-1. **Grass Mesh** としてロードするために SM_FieldGrass_01 をクリックします。
-
 1. スタティックメッシュを追加したら、十分な量の草メッシュをスポーンして、これらのメッシュがランダムに回転およびランドスケープテレインとアラインさせるために以下のプロパティを設定しなくてはいけません。
 
-	![](T_Grass_Props.png)
+	[REGION:lightbox]
+	[![](T_Grass_Props.png)(w:330 h:387)](T_Grass_Props.png)
+	[/REGION]
 
 	|プロパティ名 | 値 | 理由 |
 	|--------------|-------|---------|

@@ -8,63 +8,47 @@ TextureStreamingHelpers.cpp: Definitions of classes used for texture streaming.
 #include "TextureStreamingHelpers.h"
 #include "Engine/Texture2D.h"
 #include "GenericPlatformMemoryPoolStats.h"
+#include "Engine/LightMapTexture2D.h"
+#include "Engine/ShadowMapTexture2D.h"
 
 /** Streaming stats */
 
+// Streaming
+DECLARE_MEMORY_STAT_POOL(TEXT("Safety Pool"), STAT_Streaming01_SafetyPool, STATGROUP_Streaming, FPlatformMemory::MCR_TexturePool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Temporary Pool"), STAT_Streaming02_TemporaryPool, STATGROUP_Streaming, FPlatformMemory::MCR_TexturePool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Streaming Pool"), STAT_Streaming03_StreamingPool, STATGROUP_Streaming, FPlatformMemory::MCR_TexturePool);
+DECLARE_MEMORY_STAT_POOL(TEXT("NonStreaming Mips"), STAT_Streaming04_NonStreamingMips, STATGROUP_Streaming, FPlatformMemory::MCR_TexturePool);
+
+DECLARE_MEMORY_STAT_POOL(TEXT("Required Pool"), STAT_Streaming05_RequiredPool, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Visible Mips"), STAT_Streaming06_VisibleMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Hidden Mips"), STAT_Streaming07_HiddenMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Forced Mips"), STAT_Streaming08_ForcedMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Cached Mips"), STAT_Streaming09_CachedMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
+
+DECLARE_MEMORY_STAT_POOL(TEXT("Wanted Mips"), STAT_Streaming10_WantedMips, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Inflight Requests"), STAT_Streaming11_InflightRequests, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("IO Bandwidth"), STAT_Streaming12_MipIOBandwidth, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
+
+DECLARE_CYCLE_STAT(TEXT("Setup Async Task"), STAT_Streaming01_SetupAsyncTask, STATGROUP_Streaming);
+DECLARE_CYCLE_STAT(TEXT("Update Streaming Data"), STAT_Streaming02_UpdateStreamingData, STATGROUP_Streaming);
+DECLARE_CYCLE_STAT(TEXT("Streaming Texture"), STAT_Streaming03_StreamTextures, STATGROUP_Streaming);
+
 DEFINE_STAT(STAT_GameThreadUpdateTime);
-DEFINE_STAT(STAT_TexturePoolSize);
-DEFINE_STAT(STAT_TexturePoolAllocatedSize);
-DEFINE_STAT(STAT_OptimalTextureSize);
-DEFINE_STAT(STAT_EffectiveStreamingPoolSize);
-DEFINE_STAT(STAT_StreamingTexturesSize);
-DEFINE_STAT(STAT_NonStreamingTexturesSize);
-DEFINE_STAT(STAT_StreamingTexturesMaxSize);
-DEFINE_STAT(STAT_StreamingOverBudget);
-DEFINE_STAT(STAT_StreamingUnderBudget);
-DEFINE_STAT(STAT_NumWantingTextures);
 
-DEFINE_STAT(STAT_StreamingTextures);
-
-DEFINE_STAT(STAT_TotalStaticTextureHeuristicSize);
-DEFINE_STAT(STAT_TotalDynamicHeuristicSize);
-DEFINE_STAT(STAT_TotalLastRenderHeuristicSize);
-DEFINE_STAT(STAT_TotalForcedHeuristicSize);
-
-DEFINE_STAT(STAT_LightmapMemorySize);
-DEFINE_STAT(STAT_LightmapDiskSize);
-DEFINE_STAT(STAT_HLODTextureMemorySize);
-DEFINE_STAT(STAT_HLODTextureDiskSize);
-DEFINE_STAT(STAT_IntermediateTexturesSize);
-DEFINE_STAT(STAT_RequestSizeCurrentFrame);
-DEFINE_STAT(STAT_RequestSizeTotal);
-DEFINE_STAT(STAT_LightmapRequestSizeTotal);
-
-DEFINE_STAT(STAT_IntermediateTextures);
-DEFINE_STAT(STAT_RequestsInCancelationPhase);
-DEFINE_STAT(STAT_RequestsInUpdatePhase);
-DEFINE_STAT(STAT_RequestsInFinalizePhase);
-DEFINE_STAT(STAT_StreamingLatency);
-DEFINE_STAT(STAT_StreamingBandwidth);
+// StreamingDetails
 DEFINE_STAT(STAT_GrowingReallocations);
 DEFINE_STAT(STAT_ShrinkingReallocations);
 DEFINE_STAT(STAT_FullReallocations);
 DEFINE_STAT(STAT_FailedReallocations);
 DEFINE_STAT(STAT_PanicDefragmentations);
-DEFINE_STAT(STAT_DynamicStreamingTotal);
-DEFINE_STAT(STAT_NumVisibleTexturesWithLowResolutions);
-DEFINE_STAT(STAT_LevelsWithPostLoadRotations);
 
 DEFINE_LOG_CATEGORY(LogContentStreaming);
 
 ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics(
 	TEXT("r.Streaming.UseNewMetrics"),
-	0,
+	1,
 	TEXT("If non-zero, will use tight AABB bounds and improved texture factors."),
 	ECVF_Default);
-
-
-/** Whether the texture pool size has been artificially lowered for testing. */
-bool GIsOperatingWithReducedTexturePool = false;
 
 TAutoConsoleVariable<float> CVarStreamingBoost(
 	TEXT("r.Streaming.Boost"),
@@ -72,7 +56,7 @@ TAutoConsoleVariable<float> CVarStreamingBoost(
 	TEXT("=1.0: normal\n")
 	TEXT("<1.0: decrease wanted mip levels\n")
 	TEXT(">1.0: increase wanted mip levels"),
-	ECVF_Default
+	ECVF_Scalability
 	);
 
 TAutoConsoleVariable<float> CVarStreamingScreenSizeEffectiveMax(
@@ -113,10 +97,12 @@ TAutoConsoleVariable<int32> CVarStreamingMaxTempMemoryAllowed(
 	TEXT("The value must be high enough to not be a limiting streaming speed factor.\n"),
 	ECVF_Default);
 
-TAutoConsoleVariable<int32> CVarStreamingShowWantedMips(
-	TEXT("r.Streaming.ShowWantedMips"),
+TAutoConsoleVariable<int32> CVarStreamingDropMips(
+	TEXT("r.Streaming.DropMips"),
 	0,
-	TEXT("If non-zero, will limit resolution to wanted mip."),
+	TEXT("0: Drop No Mips \n")
+	TEXT("1: Drop Cached Mips\n")
+	TEXT("2: Drop Cached and Hidden Mips"),
 	ECVF_Cheat);
 
 TAutoConsoleVariable<int32> CVarStreamingHLODStrategy(
@@ -137,13 +123,6 @@ TAutoConsoleVariable<float> CVarStreamingHiddenPrimitiveScale(
 	ECVF_Default
 	);
 
-TAutoConsoleVariable<int32> CVarStreamingSplitRequestSizeThreshold(
-	TEXT("r.Streaming.SplitRequestSizeThreshold"),
-	0, // Good value : 2 * 1024 * 1024,
-	TEXT("Define how many IO pending request the streamer can generate.\n"),
-	ECVF_Default
-	);
-
 // Used for scalability (GPU memory, streaming stalls)
 TAutoConsoleVariable<float> CVarStreamingMipBias(
 	TEXT("r.Streaming.MipBias"),
@@ -155,8 +134,47 @@ TAutoConsoleVariable<float> CVarStreamingMipBias(
 	ECVF_Scalability
 	);
 
-/** For debugging purposes: Whether to consider the time factor when streaming. Turning it off is easier for debugging. */
-bool GStreamWithTimeFactor		= true;
+TAutoConsoleVariable<int32> CVarStreamingUsePerTextureBias(
+	TEXT("r.Streaming.UsePerTextureBias"),
+	0,
+	TEXT("If non-zero, each texture will be assigned a mip bias between 0 and MipBias as required to fit in budget."),
+	ECVF_Default);
+
+
+TAutoConsoleVariable<int32> CVarStreamingFullyLoadUsedTextures(
+	TEXT("r.Streaming.FullyLoadUsedTextures"),
+	0,
+	TEXT("If non-zero, all used texture will be fully streamed in as fast as possible"),
+	ECVF_Default);
+
+TAutoConsoleVariable<int32> CVarStreamingUseAllMips(
+	TEXT("r.Streaming.UseAllMips"),
+	0,
+	TEXT("If non-zero, all available mips will be used"),
+	ECVF_Default);
+
+
+void FTextureStreamingSettings::Update()
+{
+	MaxEffectiveScreenSize = CVarStreamingScreenSizeEffectiveMax.GetValueOnAnyThread();
+	MaxTempMemoryAllowed = CVarStreamingMaxTempMemoryAllowed.GetValueOnAnyThread();
+	DropMips = CVarStreamingDropMips.GetValueOnAnyThread();
+	HLODStrategy = CVarStreamingHLODStrategy.GetValueOnAnyThread();
+	HiddenPrimitiveScale = CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread();
+	MipBias = FMath::Max<float>(0.f, CVarStreamingMipBias.GetValueOnAnyThread());
+	PoolSize = CVarStreamingPoolSize.GetValueOnAnyThread();
+	bUsePerTextureBias = CVarStreamingUsePerTextureBias.GetValueOnAnyThread() != 0;
+	bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0;
+	bFullyLoadUsedTextures = CVarStreamingFullyLoadUsedTextures.GetValueOnAnyThread() != 0;
+	bUseAllMips = CVarStreamingUseAllMips.GetValueOnAnyThread() != 0;
+
+	if (bUseAllMips)
+	{
+		bUsePerTextureBias = false;
+		MipBias = 0;
+	}
+}
+
 
 extern ENGINE_API UPrimitiveComponent* GDebugSelectedComponent;
 
@@ -175,10 +193,6 @@ float GShadowmapStreamingFactor = 0.09f;
 */
 bool GNeverStreamOutTextures = false;
 
-/** Accumulated total time spent on dynamic primitives, in seconds. */
-double GStreamingDynamicPrimitivesTime = 0.0;
-
-
 /**
  * Checks whether a UTexture2D is supposed to be streaming.
  * @param Texture	Texture to check
@@ -186,90 +200,32 @@ double GStreamingDynamicPrimitivesTime = 0.0;
  */
 bool IsStreamingTexture( const UTexture2D* Texture2D )
 {
-	return Texture2D && Texture2D->bIsStreamable && Texture2D->NeverStream == false && Texture2D->GetNumMips() > UTexture2D::GetMinTextureResidentMipCount();
+	return Texture2D && Texture2D->bIsStreamable && !Texture2D->NeverStream && Texture2D->GetNumMips() > Texture2D->GetNumNonStreamingMips();
 }
 
-void FStreamingContext::Reset( bool bProcessEverything, UTexture2D* IndividualStreamingTexture, bool bInCollectTextureStats )
+
+void FTextureStreamingStats::Apply()
 {
-	bCollectTextureStats							= bInCollectTextureStats;
-	ThisFrameTotalRequestSize						= 0;
-	ThisFrameTotalLightmapRequestSize				= 0;
-	ThisFrameNumStreamingTextures					= 0;
-	ThisFrameNumRequestsInCancelationPhase			= 0;
-	ThisFrameNumRequestsInUpdatePhase				= 0;
-	ThisFrameNumRequestsInFinalizePhase				= 0;
-	ThisFrameTotalIntermediateTexturesSize			= 0;
-	ThisFrameNumIntermediateTextures				= 0;
-	ThisFrameTotalStreamingTexturesSize				= 0;
-	ThisFrameTotalStreamingTexturesMaxSize			= 0;
-	ThisFrameTotalLightmapMemorySize				= 0;
-	ThisFrameTotalLightmapDiskSize					= 0;
-	ThisFrameTotalHLODMemorySize					= 0;
-	ThisFrameTotalHLODDiskSize						= 0;
-	ThisFrameTotalMipCountIncreaseRequestsInFlight	= 0;
-	ThisFrameOptimalWantedSize						= 0;
-	ThisFrameTotalStaticTextureHeuristicSize		= 0;
-	ThisFrameTotalDynamicTextureHeuristicSize		= 0;
-	ThisFrameTotalLastRenderHeuristicSize			= 0;
-	ThisFrameTotalForcedHeuristicSize				= 0;
+	SET_MEMORY_STAT(MCR_TexturePool, TexturePool); 
+	SET_MEMORY_STAT(MCR_StreamingPool, StreamingPool);
+	SET_MEMORY_STAT(MCR_UsedStreamingPool, UsedStreamingPool);
 
-	AvailableNow = 0;
-	AvailableLater = 0;
-	AvailableTempMemory = 0;
-
-	STAT( TextureStats.Empty() );
-
-	AllocatedMemorySize	= INDEX_NONE;
-	PendingMemoryAdjustment = INDEX_NONE;
+	SET_MEMORY_STAT(STAT_Streaming01_SafetyPool, SafetyPool);
+	SET_MEMORY_STAT(STAT_Streaming02_TemporaryPool, TemporaryPool);
+	SET_MEMORY_STAT(STAT_Streaming03_StreamingPool, StreamingPool);
+	SET_MEMORY_STAT(STAT_Streaming04_NonStreamingMips, NonStreamingMips);
 		
-	// Available texture memory, if supported by RHI. This stat is async as the renderer allocates the memory in its own thread so we
-	// only query once and roughly adjust the values as needed.
-	FTextureMemoryStats Stats;
-	RHIGetTextureMemoryStats(Stats);
+	SET_MEMORY_STAT(STAT_Streaming05_RequiredPool, RequiredPool);
+	SET_MEMORY_STAT(STAT_Streaming06_VisibleMips, VisibleMips);
+	SET_MEMORY_STAT(STAT_Streaming07_HiddenMips, HiddenMips);
+	SET_MEMORY_STAT(STAT_Streaming08_ForcedMips, ForcedMips);
+	SET_MEMORY_STAT(STAT_Streaming09_CachedMips, CachedMips);
 		
-	bRHISupportsMemoryStats = Stats.IsUsingLimitedPoolSize();
+	SET_MEMORY_STAT(STAT_Streaming10_WantedMips, WantedMips);
+	SET_MEMORY_STAT(STAT_Streaming11_InflightRequests, PendingRequests);	
+	SET_MEMORY_STAT(STAT_Streaming12_MipIOBandwidth, MipIOBandwidth);
 
-	// Update stats if supported.
-	if( bRHISupportsMemoryStats )
-	{
-		AllocatedMemorySize	= Stats.AllocatedMemorySize;
-		PendingMemoryAdjustment = Stats.PendingMemoryAdjustment;
-	
-		// set total size for the pool (used to available)
-		SET_MEMORY_STAT(STAT_TexturePoolAllocatedSize, AllocatedMemorySize);
-		SET_MEMORY_STAT(STAT_TexturePoolSize, Stats.TexturePoolSize);
-		SET_MEMORY_STAT(MCR_TexturePool, Stats.TexturePoolSize);
-	}
-	else
-	{
-		SET_MEMORY_STAT(STAT_TexturePoolAllocatedSize,0);
-		SET_MEMORY_STAT(STAT_TexturePoolSize, 0);
-		SET_MEMORY_STAT(MCR_TexturePool, 0);
-	}
-}
-
-void FStreamingContext::AddStats( const FStreamingContext& Other )
-{
-	ThisFrameTotalRequestSize						+= Other.ThisFrameTotalRequestSize;						
-	ThisFrameTotalLightmapRequestSize				+= Other.ThisFrameTotalLightmapRequestSize;
-	ThisFrameNumStreamingTextures					+= Other.ThisFrameNumStreamingTextures;
-	ThisFrameNumRequestsInCancelationPhase			+= Other.ThisFrameNumRequestsInCancelationPhase;
-	ThisFrameNumRequestsInUpdatePhase				+= Other.ThisFrameNumRequestsInUpdatePhase;
-	ThisFrameNumRequestsInFinalizePhase				+= Other.ThisFrameNumRequestsInFinalizePhase;
-	ThisFrameTotalIntermediateTexturesSize			+= Other.ThisFrameTotalIntermediateTexturesSize;
-	ThisFrameNumIntermediateTextures				+= Other.ThisFrameNumIntermediateTextures;
-	ThisFrameTotalStreamingTexturesSize				+= Other.ThisFrameTotalStreamingTexturesSize;
-	ThisFrameTotalStreamingTexturesMaxSize			+= Other.ThisFrameTotalStreamingTexturesMaxSize;
-	ThisFrameTotalLightmapMemorySize				+= Other.ThisFrameTotalLightmapMemorySize;
-	ThisFrameTotalLightmapDiskSize					+= Other.ThisFrameTotalLightmapDiskSize;
-	ThisFrameTotalHLODMemorySize					+= Other.ThisFrameTotalHLODMemorySize;
-	ThisFrameTotalHLODDiskSize						+= Other.ThisFrameTotalHLODDiskSize;
-	ThisFrameTotalMipCountIncreaseRequestsInFlight	+= Other.ThisFrameTotalMipCountIncreaseRequestsInFlight;
-	ThisFrameOptimalWantedSize						+= Other.ThisFrameOptimalWantedSize;
-	ThisFrameTotalStaticTextureHeuristicSize		+= Other.ThisFrameTotalStaticTextureHeuristicSize;
-	ThisFrameTotalDynamicTextureHeuristicSize		+= Other.ThisFrameTotalDynamicTextureHeuristicSize;
-	ThisFrameTotalLastRenderHeuristicSize			+= Other.ThisFrameTotalLastRenderHeuristicSize;
-	ThisFrameTotalForcedHeuristicSize				+= Other.ThisFrameTotalForcedHeuristicSize;
-	bCollectTextureStats							= bCollectTextureStats || Other.bCollectTextureStats;
-	STAT( TextureStats.Append( Other.TextureStats ) );
+	SET_CYCLE_COUNTER(STAT_Streaming01_SetupAsyncTask, SetupAsyncTaskCycles);
+	SET_CYCLE_COUNTER(STAT_Streaming02_UpdateStreamingData, UpdateStreamingDataCycles);
+	SET_CYCLE_COUNTER(STAT_Streaming03_StreamTextures, StreamTexturesCycles);
 }

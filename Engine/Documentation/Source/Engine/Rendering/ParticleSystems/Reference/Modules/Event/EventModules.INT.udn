@@ -2,6 +2,7 @@ Availability: Public
 Title:Event Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Event modules allow you to generate events based on particles themselves or other actors in the level.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -10,7 +11,7 @@ Event modules allow you to generate events based on particles interacting with t
 
 ## Event Generator
 
-The Event Generator module will generate an event (or multiple events) based on conditions you specify. This module has a single **Events** array that contains a list of all events you want the emitter to be able to generate. Each item in the _Events_ array has the following properties:
+The **Event Generator** module will generate an event (or multiple events) based on conditions you specify. This module has a single **Events** array that contains a list of all events you want the emitter to be able to generate. Each item in the _Events_ array has the following properties:
 
 | Property | Description |
 | ---- | ---- |
@@ -47,7 +48,7 @@ The Event Generator module will generate an event (or multiple events) based on 
 
 ## Event Receiver Kill All (EventRcvr KillAll)
 
-Listens for a named event and then kills all the particles of the emitter.
+**EventReceiver Kill All** listens for a named event and then kills all the particles of the emitter.
 
 | Property | Description |
 | ---- | ---- |
@@ -80,7 +81,7 @@ Listens for a named event and then kills all the particles of the emitter.
 
 ## Event Receiver Spawn (EventRcvr Spawn)
 
-Listens for a named event and then spawns particles based on what events fire.
+**EventReceiver Spawn** listens for a named event and then spawns particles based on what events fire.
 
 | Property | Description |
 | ---- | ---- |

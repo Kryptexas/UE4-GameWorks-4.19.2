@@ -7,6 +7,7 @@
 #include "Engine/CollisionProfile.h"
 #include "SNumericEntryBox.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 #include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "BodyInstanceCustomization"
@@ -1308,7 +1309,11 @@ void FBodyInstanceCustomizationHelper::CustomizeDetails( IDetailLayoutBuilder& D
 		AddMaxAngularVelocity(PhysicsCategory, BodyInstanceHandler);
 
 		TSharedRef<IPropertyHandle> AsyncEnabled = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, bUseAsyncScene)).ToSharedRef();
-		PhysicsCategory.AddProperty(AsyncEnabled).EditCondition(TAttribute<bool>(this, &FBodyInstanceCustomizationHelper::IsUseAsyncEditable), NULL);
+		if(AsyncEnabled->IsCustomized() == false)	//outer customization already handles it so don't bother adding
+		{
+			PhysicsCategory.AddProperty(AsyncEnabled).EditCondition(TAttribute<bool>(this, &FBodyInstanceCustomizationHelper::IsUseAsyncEditable), NULL);
+		}
+		
 
 		//Add the rest
 		uint32 NumChildren = 0;
@@ -1430,29 +1435,28 @@ TOptional<float> FBodyInstanceCustomizationHelper::OnGetBodyMaxAngularVelocity()
 	UPrimitiveComponent* Comp = nullptr;
 
 	const float DefaultMaxAngularVelocity = UPhysicsSettings::Get()->MaxAngularVelocity;
-    float MaxAngularVelocity = DefaultMaxAngularVelocity;
-    float CompMaxAngularVelocity = DefaultMaxAngularVelocity;
-    bool bFoundComponent = false;
+	float MaxAngularVelocity = DefaultMaxAngularVelocity;
+	bool bFoundComponent = false;
 
 	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
 	{
 		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
 		{
-            Comp = Cast<UPrimitiveComponent>(ObjectIt->Get());
+			Comp = Cast<UPrimitiveComponent>(ObjectIt->Get());
 
-            CompMaxAngularVelocity = Comp->BodyInstance.bOverrideMaxAngularVelocity ?
-                                        Comp->BodyInstance.MaxAngularVelocity :
-                                        DefaultMaxAngularVelocity;
+			const float CompMaxAngularVelocity = Comp->BodyInstance.bOverrideMaxAngularVelocity ?
+													Comp->BodyInstance.MaxAngularVelocity :
+													DefaultMaxAngularVelocity;
 
-            if (!bFoundComponent)
-            {
-                bFoundComponent = true;
-                MaxAngularVelocity = CompMaxAngularVelocity;
-            }
-            else if (MaxAngularVelocity != CompMaxAngularVelocity)
-            {
-                return TOptional<float>();
-            }
+			if (!bFoundComponent)
+			{
+				bFoundComponent = true;
+				MaxAngularVelocity = CompMaxAngularVelocity;
+			}
+			else if (MaxAngularVelocity != CompMaxAngularVelocity)
+			{
+				return TOptional<float>();
+			}
 		}
 	}
 
@@ -1524,7 +1528,10 @@ void FBodyInstanceCustomizationHelper::OnSetBodyMass(float BodyMass, ETextCommit
 {
 	UPrimitiveComponent* Comp = nullptr;
 	UBodySetup* BS = nullptr;
+	
+	FScopedTransaction SetBodyMassTransaction(FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), MassInKgOverrideHandle->GetPropertyDisplayName()));
 
+	MassInKgOverrideHandle->NotifyPreChange();
 	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
 	{
 		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
@@ -1538,6 +1545,7 @@ void FBodyInstanceCustomizationHelper::OnSetBodyMass(float BodyMass, ETextCommit
 			BS->DefaultInstance.SetMassOverride(BodyMass);
 		}
 	}
+	MassInKgOverrideHandle->NotifyPostChange();
 }
 
 
@@ -1604,7 +1612,7 @@ void FBodyInstanceCustomizationHelper::AddMassInKg(IDetailCategoryBuilder& Physi
 {
 	if (bDisplayMass)
 	{
-		TSharedRef<IPropertyHandle> MassInKgOverrideHandle = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKgOverride)).ToSharedRef();
+		MassInKgOverrideHandle = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKgOverride)).ToSharedRef();
 		
 		PhysicsCategory.AddProperty(MassInKgOverrideHandle).CustomWidget()
 		.NameContent()

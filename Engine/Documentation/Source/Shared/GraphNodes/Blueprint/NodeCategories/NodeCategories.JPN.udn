@@ -1,4 +1,5 @@
-﻿Availability:NoPublish
+﻿INTSourceChangelist:2591123
+Availability:NoPublish
 Title:ノードのカテゴリ
 Crumbs:
 Description:ブループリント ノードの様々なカテゴリに関する情報
@@ -35,7 +36,7 @@ Description:ブループリント ノードの様々なカテゴリに関する�
 
 [EXCERPT:Variables__Tooltip]
 [VAR:ToolTip]
-ブループリント内のget 変数および set 変数へのアクセスです。
+ブループリント内の get 変数および set 変数へのアクセスです。
 [/VAR]
 [/EXCERPT:Variables__Tooltip]
 

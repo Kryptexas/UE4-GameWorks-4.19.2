@@ -867,10 +867,7 @@ TStatId FAutoReimportManager::GetStatId() const
 
 void FAutoReimportManager::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	for (auto* Package : PackagesToSave)
-	{
-		Collector.AddReferencedObject(Package);
-	}
+	Collector.AddReferencedObjects(PackagesToSave);
 }
 
 void FAutoReimportManager::HandleLoadingSavingSettingChanged(FName PropertyName)

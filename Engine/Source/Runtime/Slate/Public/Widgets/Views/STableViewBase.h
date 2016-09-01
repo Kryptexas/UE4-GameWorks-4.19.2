@@ -295,6 +295,9 @@ protected:
 	/**	Whether the software cursor should be drawn in the viewport */
 	bool bShowSoftwareCursor;
 
+	/** How much to scroll when using mouse wheel */
+	float WheelScrollMultiplier;
+
 protected:
 
 	/** Check whether the current state of the table warrants inertial scroll by the specified amount */

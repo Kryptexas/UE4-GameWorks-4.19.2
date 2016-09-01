@@ -1,25 +1,22 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2728610
 Availability:Public
-Title: Gameplay Programming
+Title:游戏性编程
 Crumbs:%ROOT%, Programming
-Description:Explanations of the basic gameplay elements, Actors and Objects.
+Description:基本游戏性元素、Actor 和对象的解释。
+version:4.9
 
 
-The goal of this document is to provide a brief tour of the engine's core features and introduce some of the core architectural concepts to help you get started with the codebase.
+此文档将大概讲述引擎的核心功能，介绍一些核心架构概念，助您了解基本代码。
 
-## UObjects and Actors
+## UObjects 和 Actors
 
-**[](Programming\UnrealArchitecture\Actors)** are instances of classes that derive from the `AActor` class; the base class of all gameplay objects that can be placed into the world. 
-**[](Programming\UnrealArchitecture\Objects)** are instances of classes that inherit from the `UObject` class; the base class of all objects in Unreal Engine, including Actors. So, in reality, all 
-instances in Unreal Engine are **Objects**; however, the term **Actors** is commonly used to refer to instances of classes that derive from `AActor` in their hierarchy, while the term Objects 
-is used to refer to instances of classes that do not inherit from the `AActor` class. The majority of the classes you create will inherit from `AActor` at some point in their hierarchy.
+[](Programming\UnrealArchitecture\Actors) 是由 `AActor` 类派生而来的类实例；能被放入游戏世界场景的所有游戏性对象的基础类。 
+[](Programming\UnrealArchitecture\Objects) 是继承自 `UObject` 类的类实例；虚幻引擎中所有对象的基础类，包括 Actor。因此，实际上虚幻引擎中所有的实例均为对象；然而，术语 **Actors** 通常用于指代在层级中继承自 `AActor` 的类实例，而术语“对象”用于指代非继承自 `AActor` 类的类实例。您创建的类多数均在其层级中的某个点继承自 `AActor`。
 
-In general, Actors can be thought of as whole items or entities, while Objects are more specialized parts. Actors often make use of **[](Programming\UnrealArchitecture\Actors\Components)**, which are specialized Objects, 
-to define certain aspects of their functionality or hold values for a collection of properties. Take a car as an example. The car as a whole is an Actor, whereas the parts of the car, 
-like the wheels and doors, would all be Components of that Actor. 
+总体而言，Actor 可被看做整体物体或实体，而对象则为更细节化的部件。Actor 经常使用作为细节化对象的 [](Programming\UnrealArchitecture\Actors\Components)，对其功能的特定方面进行定义，或为属性合集保存数值。用汽车作为例子。汽车作为整体是一个 Actor，而汽车的部件（如轮子和车门）则都是该 Actor 的组件。 
 
 
-### Gameplay Framework Classes
+### 游戏性框架类
 
 [INCLUDE:Gameplay/Framework/QuickReference]
 

@@ -1,8 +1,14 @@
-﻿INTSourceChangelist:2637571
+﻿INTSourceChangelist:2945303
 Availability:Public
 Title: 안드로이드 개발 참고서
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:다양한 안드로이드 SDK 설치, 환경 변수 설정, 텍스처 포맷 작업 방법 설명입니다.
+Version: 4.9
+SkillLevel: Intermediate
+Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:reference
 
 [TOC(start:2 end:3)]
 

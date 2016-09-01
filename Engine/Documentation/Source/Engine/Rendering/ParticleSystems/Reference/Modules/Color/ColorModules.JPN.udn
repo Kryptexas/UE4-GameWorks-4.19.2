@@ -1,28 +1,37 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2750629
 Availability:Public
-Title:Colorモジュール
+Title:Color モジュール
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Colorモジュールはエミット（放射）したパーティクルの色に影響を与えます。
+Description:Color モジュールはエミット (放射) したパーティクルの色に影響を与えます。
+Version:4.9
 
 [TOC(start:2 end:3)]
 
-## Colorモジュール
-
-Colorモジュールはエミット（放射）したパーティクルの色に影響を与えます。
+Color モジュールはエミット (放射) したパーティクルの色に影響を与えます。
 
 [REGION:note]
-	Color モジュールは、エミッタに使用されたマテリアルが、モジュールからマテリアルへ色を渡すためにParticle Colorマテリアル式を使用しなければいけません。
+	Color モジュールは、エミッタに使用されたマテリアルが、モジュールからマテリアルへ色を渡すためにParticle Color マテリアル式を使用しなければいけません。
 [/REGION]
 
 [REGION:note]
 	色は浮動小数点の全領域で計算されます。1 を超えた値は、しばし発光エフェクトをもたらします。
 [/REGION]
 
-### Initial Color
+## Initial Color
 
-![psys_initial_color.gif](psys_initial_color.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+WCG-PdJ41rw
+[/PARAMLITERAL]
+[/OBJECT]
 
-Initial Color モジュールは、スポーン時にパーティクルの色を設定します。別のカラーモジュールが優先されない限り、パーティクルは生涯期間中この色を保持します。以下のメンバーが含まれます。
+**Initial Color** モジュールは、スポーン時にパーティクルの色を設定します。別のカラーモジュールが優先されない限り、パーティクルはライフタイムの間この色を保持します。以下のメンバーが含まれます。
 
 | プロパティ | 説明 |
 | ---- | ---- |
@@ -35,9 +44,9 @@ Initial Color モジュールは、スポーン時にパーティクルの色を
 モジュールはエミッタ時間を使用して、スポーン時に分布から適切な値を読み出します。Particle.Color と Particle.BaseColor 値を直接設定します。
 
 
-### Init Color （Seed）
+## Init Color （Seed）
 
-Init Color (Seed) モジュールは、スポーン時にパーティクルの初期カラーを設定するという点で [Initial Color](#InitialColor) モジュールと同一です。しかしこのモジュールは、エミッタの使用時はモジュールからより一貫性のあるエフェクトを常に提供するために、分布値の選択に使用するシード情報を指定することが出来ます。以下のメンバーが含まれます。
+**Init Color (Seed)** モジュールは、スポーン時にパーティクルの初期カラーを設定するという点で [Initial Color](#InitialColor) モジュールと同一です。しかしこのモジュールは、エミッタの使用時はモジュールからより一貫性のあるエフェクトを常に提供するために、分布値の選択に使用するシード情報を指定することが出来ます。以下のメンバーが含まれます。
 
 | プロパティ | 説明 |
 | ---- | ---- |
@@ -58,11 +67,21 @@ Init Color (Seed) モジュールは、スポーン時にパーティクルの�
 
 
 
-### Color Over Life
+## Color Over Life
 
-![psys_color_life.gif](psys_color_life.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+zlZ1dvYsjrk
+[/PARAMLITERAL]
+[/OBJECT]
 
-Color Over Life モジュールは、パーティクルの存続期間中の色の設定に使用します。以下のメンバーが含まれます。
+**Color Over Life** モジュールは、パーティクルの存続期間中の色の設定に使用します。以下のメンバーが含まれます。
 
 | プロパティ | 説明 |
 | ---- | ---- |
@@ -81,9 +100,9 @@ Color Over Life モジュールは、パーティクルの存続期間中の色�
 モジュールはパーティクル時間を使用して、更新時に分布から適切な値を読み出し、Particle.Color に値を設定します。
 
 
-### Scale Color/Life
+## Scale Color/Life
 
-Scale Color/Life モジュールは、パーティクルの存続期間中の色のスケーリングに使用されます。以下のメンバーが含まれます。
+**Scale Color/Life** モジュールは、パーティクルの存続期間中の色のスケーリングに使用されます。以下のメンバーが含まれます。
 
 | プロパティ | 説明 |
 | ---- | ---- |

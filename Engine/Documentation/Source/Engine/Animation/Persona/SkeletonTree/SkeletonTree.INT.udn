@@ -2,7 +2,9 @@ Availability:Public
 Title:Persona Skeleton Tree
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:User guide for the Skeleton Tree in the Persona animation editor.
-version: 4.9
+version: 4.11
+related: Engine/Content\Types\SkeletalMeshes\Sockets
+related: Engine/Animation/AnimationRetargeting
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -26,24 +28,22 @@ version: 4.9
 
 ![](SkeletonTree.png)  
 
-
-
 [EXCERPT:Overview]
 The **Skeleton Tree** panel shows the skeletal hierarchy of the current skeletal mesh. Within it, you can perform the following functions:
 
 * Select and view specific bones in the skeletal hierarchy.
 * Create and edit [Sockets](Engine/Content\Types\SkeletalMeshes\Sockets), which are bone-offset attachment points for props and other items.
 * Create preview assets, which are temporarily attached assets; these are good for previewing how a weapon will look on a character, for example.
-* Control settings for animation retargeting. 
+* Control settings for animation retargeting (when **Show Advanced Options** is checked).
 [/EXCERPT:Overview]
 
 ## Interface Breakdown
 
 ![](SkeletonTree_UIBreakdown.png)
 
-1. Search Line and Bone and Socket Buttons
+1. Search Line, Blend Profile, Bone and Socket Buttons, Advanced Options
 1. Bone Hierarchy List
-1. Translation Retargeting Controls
+1. Translation Retargeting Controls (Enable **Show Advanced Options** at the top of the Skeleton Tree panel to show)
 
 
 ## Search Line and Bone and Socket Buttons
@@ -85,6 +85,15 @@ The **Bone** and **Socket** buttons are used to control visibility over various 
 |**Show Skeleton Sockets**	| Shows only those Sockets which are non-customized, meaning those which are part of the Skeleton asset and are not exclusive to this Skeletal Mesh. |
 |**Show All Sockets**		|Shows all Sockets available on the Skeletal Mesh. |
 |**Hide Sockets**			| Hides all Sockets. |
+
+### Blend Profile
+
+A Blend Profile is a set of per-bone scales that can be used in transtions and blend lists to tweak the weights of specific bones. The scales are applied to a normal weight for that bone. 
+
+You can create/name your Blend Profile from the drop-down menu then specific the per-bone scales next to each bone. 
+
+![](BlendProfile.png)
+
 
 ## Context Menus
 

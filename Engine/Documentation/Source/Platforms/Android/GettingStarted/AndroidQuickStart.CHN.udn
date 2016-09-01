@@ -1,8 +1,15 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2940199
 Availability: Public
-Title: Android Quick Start
+Title:安卓快速入门
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Setting up for development for the Android platform.
+Version:4.9
+Skilllevel:Intermediate
+tags:Android
+tags:Mobile
+parent:Platforms/Android
+order:2
+type:quickstart
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,16 +45,27 @@ Description:Setting up for development for the Android platform.
 [/OBJECT]
 [/VAR]
 
-The Android Quick Start will walk you through setting up your computer and your Android device for deployment, and putting a template game on your device using both the launching and packaging features.
-This guide uses TADP as the Android SDK, but if you would like to know how to set up another SDK for use with Unreal Engine, see the [](Platforms\Android\Reference) page.
+“安卓快速入门”将指导您设置计算机和安卓设备以便进行部署，以及使用启动和打包功能将模板游戏放入您的设备。
 
+
+## 目的
+
+这篇安卓快速入门旨在帮助用户完成最基础的 PC 或者 Mac 的设置，以便使用虚幻引擎 4 来进行安卓的开发。
+
+## 目标
+
+* 安装并设置 Android SDK。
+* 将安卓设备为开发做好准备。
+* 为安卓平台开发创建项目。
+* 如何将一个关卡场景部署到安卓设备上。
+* 如何面向发行版本打包游戏。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -60,3 +78,9 @@ This guide uses TADP as the Android SDK, but if you would like to know how to se
 	* [](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:description%")
 	[/PARAM]
 [/OBJECT]
+
+[region:note]
+虚幻引擎 4（UE4）现在使用一个特别的 Android SDK 版本，叫做 **Android Works**。
+这一版本为 UE4 的安卓项目开发做好了准备，如果安装有其他 Android SDK 的话，我们 **强烈建议** 先将它们卸载，然后使用 UE4 中自带的 Android Works 重新安装 Android SDK。
+如此来确保当前使用的 Android SDK 能够和 UE4 很好的兼容。
+[/region]

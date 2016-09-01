@@ -36,6 +36,7 @@ class SWebBrowserView;
 -(void)updateframe:(CGRect)InFrame;
 -(void)loadstring:(NSString*)InString dummyurl:(NSURL*)InURL;
 -(void)loadurl:(NSURL*)InURL;
+-(void)executejavascript:(NSString*)InJavaScript;
 @end
 
 /**

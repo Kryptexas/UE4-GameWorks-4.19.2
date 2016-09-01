@@ -97,7 +97,10 @@ namespace UnrealBuildTool
 		{
 			base.SetUpGlobalEnvironment();
 
-			SetupXcodePaths(true);
+			if (!UEBuildConfiguration.bListBuildFolders)
+			{
+				SetupXcodePaths(true);
+			}
 		}
 
 		static string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
@@ -504,7 +507,7 @@ namespace UnrealBuildTool
 
 		private string LoadLauncherDisplayVersion()
 		{
-			string[] VersionHeader = Utils.ReadAllText("../../Portal/Source/Layers/DataAccess/Public/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
+			string[] VersionHeader = Utils.ReadAllText("../../Portal/Source/Layers/DataAccess/Public/PortalVersion.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
 			string LauncherVersionMajor = "1";
 			string LauncherVersionMinor = "0";
 			string LauncherVersionPatch = "0";
@@ -915,7 +918,11 @@ namespace UnrealBuildTool
 				}
 			}
 
-			LinkAction.CommandArguments = "-c '" + LinkCommand + "'";
+			string ReadyFilePath = LinkEnvironment.Config.IntermediateDirectory + "/" + LinkEnvironment.Config.OutputFilePath.GetFileName() + ".ready";
+			FileItem DylibReadyOutputFile = FileItem.GetItemByPath(ReadyFilePath);
+			FileItem RemoteDylibReadyOutputFile = LocalToRemoteFileItem(DylibReadyOutputFile, false);
+
+			LinkAction.CommandArguments = "-c '" + LinkCommand + "; echo \"-\" >> \"" + RemoteDylibReadyOutputFile.AbsolutePath + "\"'";
 
 			// Only execute linking on the local Mac.
 			LinkAction.bCanExecuteRemotely = false;
@@ -924,6 +931,7 @@ namespace UnrealBuildTool
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
 
 			LinkAction.ProducedItems.Add(RemoteOutputFile);
+			LinkAction.ProducedItems.Add(RemoteDylibReadyOutputFile);
 
 			if (!LinkEnvironment.Config.IntermediateDirectory.Exists())
 			{
@@ -1011,9 +1019,9 @@ namespace UnrealBuildTool
 					{
 						GameName = "EpicGamesLauncher";
 					}
-					else if (GameName == "UE4" && LinkEnvironment.Config.ProjectFile != null)
+					else if (GameName == "UE4" && ProjectFile != null)
 					{
-						UProjectFilePath = LinkEnvironment.Config.ProjectFile;
+						UProjectFilePath = ProjectFile;
 						GameName = UProjectFilePath.GetFileNameWithoutAnyExtensions();
 					}
 
@@ -1183,7 +1191,7 @@ namespace UnrealBuildTool
 		/// Generates debug info for a given executable
 		/// </summary>
 		/// <param name="MachOBinary">FileItem describing the executable or dylib to generate debug info for</param>
-		public FileItem GenerateDebugInfo(FileItem MachOBinary)
+		public FileItem GenerateDebugInfo(FileItem MachOBinary, LinkEnvironment LinkEnvironment)
 		{
 			string BinaryPath = MachOBinary.AbsolutePath;
 			if (BinaryPath.Contains(".app"))
@@ -1198,6 +1206,9 @@ namespace UnrealBuildTool
 			{
 				BinaryPath = Path.ChangeExtension(BinaryPath, ".dSYM");
 			}
+
+			string ReadyFilePath = LinkEnvironment.Config.IntermediateDirectory + "/" + Path.GetFileName(MachOBinary.AbsolutePath) + ".ready";
+			FileItem ReadyFile = FileItem.GetItemByPath(ReadyFilePath);
 
 			FileItem OutputFile = FileItem.GetItemByPath(BinaryPath);
 			FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
@@ -1225,7 +1236,7 @@ namespace UnrealBuildTool
 				ToolchainDir,
 				InputFile.AbsolutePath,
 				DestFile.AbsolutePath);
-			GenDebugAction.PrerequisiteItems.Add(InputFile);
+			GenDebugAction.PrerequisiteItems.Add(LocalToRemoteFileItem(ReadyFile, false));
 			GenDebugAction.ProducedItems.Add(DestFile);
 			GenDebugAction.CommandDescription = "";
 			GenDebugAction.StatusDescription = "Generating " + Path.GetFileName(BinaryPath);
@@ -1359,7 +1370,7 @@ namespace UnrealBuildTool
 
 		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
-			if (BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true)
+			if (BuildConfiguration.bUsePDBFiles == true)
 			{
 				KeyValuePair<FileReference, BuildProductType>[] BuildProductsArray = BuildProducts.ToArray();
 
@@ -1519,6 +1530,7 @@ namespace UnrealBuildTool
 				foreach (UEBuildBinary Binary in InTarget.AppBinaries)
 				{
 					BuiltBinaries.Add(Path.GetFullPath(Binary.ToString()));
+					BuiltBinaries.Add(Path.GetFullPath(Binary.ToString() + ".ready"));
 
 					string DebugExtension = UEBuildPlatform.GetBuildPlatform(Binary.Target.Platform).GetDebugInfoExtension(Binary.Config.Type);
 					if (DebugExtension == ".dSYM")
@@ -1697,9 +1709,17 @@ namespace UnrealBuildTool
 			}
 
 			// For Mac, generate the dSYM file if the config file is set to do so
-			if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true) && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
+			if (BuildConfiguration.bUsePDBFiles == true && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
 			{
-				OutputFiles.Add(GenerateDebugInfo(Executable));
+				// We want dsyms to be created after all dylib dependencies are fixed. If FixDylibDependencies action was not created yet, save the info for later.
+				if (FixDylibOutputFile != null)
+				{
+					OutputFiles.Add(GenerateDebugInfo(Executable, BinaryLinkEnvironment));
+				}
+				else
+				{
+					ExecutablesThatNeedDsyms.Add(Executable);
+				}
 			}
 
 			// If building for Mac on a Mac, use actions to finalize the builds (otherwise, we use Deploy)
@@ -1713,15 +1733,25 @@ namespace UnrealBuildTool
 				return OutputFiles;
 			}
 
-			FileItem FixDylibOutputFile = FixDylibDependencies(BinaryLinkEnvironment, Executable);
+			FixDylibOutputFile = FixDylibDependencies(BinaryLinkEnvironment, Executable);
 			OutputFiles.Add(FixDylibOutputFile);
 			if (!BinaryLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{
 				OutputFiles.Add(FinalizeAppBundle(BinaryLinkEnvironment, Executable, FixDylibOutputFile));
 			}
 
+			// Add dsyms that we couldn't add before FixDylibDependencies action was created
+			foreach (FileItem Exe in ExecutablesThatNeedDsyms)
+			{
+				OutputFiles.Add(GenerateDebugInfo(Exe, BinaryLinkEnvironment));
+			}
+			ExecutablesThatNeedDsyms.Clear();
+
 			return OutputFiles;
 		}
+
+		private FileItem FixDylibOutputFile = null;
+		private List<FileItem> ExecutablesThatNeedDsyms = new List<FileItem>();
 
 		public override void StripSymbols(string SourceFileName, string TargetFileName)
 		{

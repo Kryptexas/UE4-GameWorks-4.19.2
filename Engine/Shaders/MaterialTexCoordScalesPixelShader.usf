@@ -12,7 +12,8 @@
 
  // If -1, output everything to the RW texture.
 float4 AccuracyColors[5];
-uint TextureAnalysisIndex;
+int TextureAnalysisIndex;
+float PrimitiveAlpha;
 
 float4 OneOverCPUTexCoordScales[MAX_NUM_TEXTURE_REGISTER / 4];
 int4 TexCoordIndices[MAX_NUM_TEXTURE_REGISTER / 4];
@@ -31,7 +32,7 @@ float GetComponent(float4 V, int Index)
 struct FTexCoordScalesParams
 {
 	// Global var used to reduce the number of param passed to the shaders.
-	uint2 PixelPosition;
+	int2 PixelPosition;
 
 	// ddU, ddV for each coord index (up to 4 currently)
 	float4 OneOverDDU;
@@ -47,7 +48,7 @@ struct FTexCoordScalesParams
 	float4 ScalesPerIndex;
 };
 
-MaterialFloat StoreTexCoordScale(in out FTexCoordScalesParams Params, float2 UV, uniform uint TextureReferenceIndex)
+MaterialFloat StoreTexCoordScale(in out FTexCoordScalesParams Params, float2 UV, int TextureReferenceIndex)
 {
 	// Take the minimum scale since high scale requires less resolution.
 	float GPUScaleX = length(ddx(UV));
@@ -73,7 +74,7 @@ MaterialFloat StoreTexCoordScale(in out FTexCoordScalesParams Params, float2 UV,
 	return 1.f;
 }
 
-MaterialFloat StoreTexSample(in out FTexCoordScalesParams Params, float4 C, uniform uint TextureReferenceIndex)
+MaterialFloat StoreTexSample(in out FTexCoordScalesParams Params, float4 C, int TextureReferenceIndex)
 {
 	// Alpha?
 	Params.TexSample = TextureAnalysisIndex == TextureReferenceIndex ? lerp(.4f, 1.f, saturate(Luminance(C.rgb))) : Params.TexSample;
@@ -91,7 +92,7 @@ void Main(
 	)
 {
 #if INSTANCED_STEREO
-	ResolvedView = ResolveView(DebugInputs.EyeIndex);
+	ResolvedView = ResolveView(GetEyeIndex(DebugInputs.PackedEyeIndex));
 #else
 	ResolvedView = ResolveView();
 #endif
@@ -102,7 +103,7 @@ void Main(
 	FTexCoordScalesParams Params;
 
 	// Set global var used for outputting data
-	Params.PixelPosition = DebugInputs.SvPosition;
+	Params.PixelPosition = DebugInputs.SvPosition.xy;
 	Params.OneOverDDU = 1 / float4(length(ddx(DebugInputs.TexCoord01.xy)), length(ddx(DebugInputs.TexCoord01.zw)), length(ddx(DebugInputs.TexCoord23.xy)), length(ddx(DebugInputs.TexCoord23.zw)));
 	Params.OneOverDDV = 1 / float4(length(ddy(DebugInputs.TexCoord01.xy)), length(ddy(DebugInputs.TexCoord01.zw)), length(ddy(DebugInputs.TexCoord23.xy)), length(ddy(DebugInputs.TexCoord23.zw)));
 
@@ -117,21 +118,6 @@ void Main(
 	FLATTEN
 	if (TextureAnalysisIndex == -1)
 	{
-		// @TODO : The quad vertex data has invalid tangent space for some reason, even though the code in FMeshMaterialRenderItem::FillQuadData looks like setting it right.
-		MaterialParameters.TangentToWorld = float3x3(1,0,0,0,1,0,0,0,1);
-
-		// The next line ensures a constant view vector of (0,0,1) for all pixels. Required because here SVPositionToTranslatedWorld is identity, making excessive view angle increase per pixel.
-		// That creates bad side effects for anything that depends on the view vector, like parallax or bump offset mappings. For those, we want the tangent
-		// space view vector to be perpendicular to the surface in order to generate the same results as if the feature was turned off. Which gives the good results
-		// since any sub height sampling would in pratice requires less and less texture resolution, where as we are only concerned about the highest resolution the material needs.
-		// This can be seen in the debug view mode, by a checkboard of white and cyan (up to green) values. The white value meaning the highest resolution taken is the good one
-		// (blue meaning the texture has more resolution than required). Checkboard are only possible when a texture is sampled several times, like in parallax.
-		//
-		// Additionnal to affecting the view vector, it also forces a constant world position value, zeroing any textcoord scales that depends on the world position (as the UV don't change).
-		// This is alright thought since the uniform quad can obviously not compute a valid mapping for world space texture mapping (only rendering the mesh at its world position could fix that).
-		// The zero scale will be caught as an error, and the computed scale will fallback to 1.f
-		ResolvedView.SVPositionToTranslatedWorld = float4x4(0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1);
-
 #if NUM_MATERIAL_TEXCOORDS > 0
 		// Set all texcoord but one to 0. This allows the analysis to figure out which texcoord is driving the lookup.
 		int CurrentCoordIndex = (Params.PixelPosition.y / TILE_RESOLUTION) % MAX_NUM_TEX_COORD;
@@ -142,6 +128,11 @@ void Main(
 			// The quad material used only has a valid TexCoord for UV 0
 			MaterialParameters.TexCoords[CoordinateIndex] = CoordinateIndex != CurrentCoordIndex ? 0 : DebugInputs.TexCoord01.xy;
 		}
+
+		// The scale must also be computed to match the actual coord inspected. That would be required when rendering the mesh in world space
+		// Although not required here as using the material quad only use texcoord0.
+		// Params.OneOverDDU = GetComponent(Params.OneOverDDU, CurrentCoordIndex).xxxx;
+		// Params.OneOverDDV = GetComponent(Params.OneOverDDV, CurrentCoordIndex).xxxx;
 #endif
 	}	
 
@@ -152,18 +143,22 @@ void Main(
 		CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, DebugInputs.SvPosition, bIsFrontFace);
 
 		// Sample material properties. The results are not used, but the calls to StoreTexCoordScale are still be made.
-		BaseColor = GetMaterialBaseColor(PixelMaterialInputs);
-		half  Metallic = GetMaterialMetallic(PixelMaterialInputs);
-		half  Specular = GetMaterialSpecular(PixelMaterialInputs);
-		float Roughness = GetMaterialRoughness(PixelMaterialInputs);
-		half3 Emissive = GetMaterialEmissive(PixelMaterialInputs);
-		half Opacity = GetMaterialOpacity(PixelMaterialInputs);
+		BaseColor = GetMaterialBaseColorRaw(PixelMaterialInputs);
+		half  Metallic = GetMaterialMetallicRaw(PixelMaterialInputs);
+		half  Specular = GetMaterialSpecularRaw(PixelMaterialInputs);
+		float Roughness = GetMaterialRoughnessRaw(PixelMaterialInputs);
+		half3 Normal = GetMaterialNormalRaw(PixelMaterialInputs);
+		half3 Emissive = GetMaterialEmissiveRaw(PixelMaterialInputs);
+		half Opacity = GetMaterialOpacityRaw(PixelMaterialInputs);
 		half Mask = GetMaterialMask(PixelMaterialInputs);
-		half4 SSData = GetMaterialSubsurfaceData(MaterialParameters);
+		half4 SSData = GetMaterialSubsurfaceDataRaw(MaterialParameters);
 		float Custom0 = GetMaterialCustomData0(MaterialParameters);
 		float Custom1 = GetMaterialCustomData1(MaterialParameters);
-		float MaterialAO = GetMaterialAmbientOcclusion(PixelMaterialInputs);
+		float MaterialAO = GetMaterialAmbientOcclusionRaw(PixelMaterialInputs);
 		float PixelDepthOffset = GetMaterialPixelDepthOffset(PixelMaterialInputs);
+#if CLEAR_COAT_BOTTOM_NORMAL && NUM_MATERIAL_OUTPUTS_CLEARCOATBOTTOMNORMAL > 0
+		float3 BottomNormal =  ClearCoatBottomNormal0(MaterialParameters);
+#endif
 	}
 	Params = MaterialParameters.TexCoordScalesParams;
 
@@ -186,7 +181,7 @@ void Main(
 			Result = Params.TexSample * lerp(AccuracyColors[ColorIndex].rgb, AccuracyColors[ColorIndex + 1].rgb, frac(Accuracy));
 		}
 
-		OutColor = RETURN_COLOR(float4(Result, .25f));
+		OutColor = RETURN_COLOR(float4(Result, PrimitiveAlpha));
 	}
 }
 

@@ -85,23 +85,11 @@ public:
 				GetMutableDefault<UWidgetDesignerSettings>()
 				);
 		}
-
-		const ISlateStyle* UMGStyle = FSlateStyleRegistry::FindSlateStyle("UMGStyle");
-		if (UMGStyle)
-		{
-			FClassIconFinder::RegisterIconSource(UMGStyle);
-		}
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
 	virtual void ShutdownModule() override
 	{
-		const ISlateStyle* UMGStyle = FSlateStyleRegistry::FindSlateStyle("UMGStyle");
-		if (UMGStyle)
-		{
-			FClassIconFinder::UnregisterIconSource(UMGStyle);
-		}
-
 		MenuExtensibilityManager.Reset();
 		ToolBarExtensibilityManager.Reset();
 

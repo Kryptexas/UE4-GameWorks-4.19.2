@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2527310
+﻿INTSourceChangelist:2683792
 Availability:Public
-Title:1.設定要件
+Title:1. 必要な設定
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:小さな部屋を作って、光を照らしてみましょう。 
+SkillLevel:Beginner
+Version:4.9
 
 
 [VAR:Steps]
@@ -23,22 +25,22 @@ Description:小さな部屋を作って、光を照らしてみましょう。
 %Steps%
 
 [REGION:note]
-このチュートリアル シリーズでは **Starter Content** を有効にした新規の **Blank** プロジェクトを使用しています。新規プロジェクトの作成、プロジェクト テンプレートの使用およびプロジェクト設置の定義 (**Starter Content** を含む) については、 [](Engine/Basics/Projects/Browser) ページを参照してください。 
+このチュートリアル シリーズでは **Starter Content** を有効にした新規の **ブランク** プロジェクトを使用しています。新規プロジェクトの作成、プロジェクト テンプレートの使用およびプロジェクト設置の定義 (**Starter Content** を含む) については、 [](Engine/Basics/Projects/Browser) ページを参照してください。 
 [/REGION]
 
-以下のステップに従って、(**Starter Content** が含まれている) **ブランクの** プロジェクト内に簡単なアパートを作成して、光を照らしてみます。 
+以下のステップに従って、(**Starter Content** が含まれている) **ブランク** プロジェクト内に簡単なアパートを作成して、光を照らしてみます。 
 
-1.	プロジェクトを開いたら、 **Ctrl+N** を押して新規レベルを作成し、 **Empty Level** を選択します。 
+1.	プロジェクトを開いたら、 **Ctrl+N** を押して新規レベルを作成し、**Empty Level** を選択します。 
 
-1.	「**StarterContent/Architecture** 」フォルダの **コンテンツブラウザ** で、 **Floor_400x400** をレベル内にドラッグします。 
+1.	**コンテンツブラウザ** の **StarterContent > Architecture** フォルダで **Floor_400x400** をレベル内にドラッグします。 
 
 	![](setup1.png)
 
-1.	**Outliner** 内で、フロアを選択して **Ctrl+W** を 6 回押して、以下のようなフロアを作成します。 
+1.	**ワールド アウトライナー** 内で、フロアを選択して **Ctrl+W** を 6 回押して、以下のようなフロアを作成します。 
 
 	![](floors.png)
 
-1.	**Floor_400x400** を選択し、 **[Details]** パネルで **Transform** を以下のように設定します。 
+1.	**Floor_400x400** を選択し、**[Details (詳細)]** パネルで **Transform** を以下のように設定します。 
 
 	![](SetTransform1.png)
 
@@ -61,18 +63,18 @@ Description:小さな部屋を作って、光を照らしてみましょう。
 
 	![](setup3.png)
 
-1.	**コンテンツ ブラウザ** から **Wall_400x400** をビューポートにドラッグします。 
+1.	**コンテンツ ブラウザ** から **[Wall_400x400]** をビューポートにドラッグします。 
 
 	![](setup11.png)
 
-1.	**Outliner** 内で、ウォールを選択して **Ctrl+W** を 11 回押して、以下のようなウォールを作成します。 
+1.	**ワールド アウトライナー** 内で、ウォールを選択して **Ctrl+W** を 11 回押して、以下のようなウォールを作成します。 
 
 	![](wallsOutliner.png)
 
-1.	**Wall_400x400** を選択し、 **[Details]** パネルで **Transform** を以下のように設定します。 
+1.	**Wall_400x400** を選択し、 **[Details (詳細)]** パネルで **Transform** を以下のように設定します。 
 
 	![](wall1Details.png)
-	
+
 1.	残りのウォールの構成要素に対して **Transform** を以下のように設定します。 
 
 	| ウォールの構成要素 | Transform |
@@ -93,15 +95,15 @@ Description:小さな部屋を作って、光を照らしてみましょう。
 
 	![](wallsAdded.png)
 
-1.	**コンテンツ ブラウザ** から **Pillar_50x500** をビューポートにドラッグします。 
+1.	**コンテンツ ブラウザ** から **[Pillar_50x500]** をビューポートにドラッグします。 
 
 	![](setup25.png)
 
-1.	**Outliner** 内で、フロアを選択して **Ctrl+W** を 5 回押して、以下のような柱を作成します。 
+1.	**ワールド アウトライナー** 内で、フロアを選択して **Ctrl+W** を 5 回押して、以下のような柱を作成します。 
 
 	![](pillarsAdded.png)
 
-1.	**Pillar_50x500** を選択し、 **[Details]** パネルで **Transform** を以下のように設定します。 
+1.	**[Pillar_50x500]** を選択し、**[Details (詳細)]** パネルで **Transform** を以下のように設定します。 
 
 	![](pillar1Details.png)
 
@@ -119,11 +121,11 @@ Description:小さな部屋を作って、光を照らしてみましょう。
 
 	![](setup32.png)
 
-1.	**Outliner** で、ウォールの構成要素 **Wall_400x407** を選択します。 
+1.	**ワールド アウトライナー** で、ウォールの構成要素 **[Wall_400x407]** を選択します。 
 
 	![](setup33.png)
 
-1.	**コンテンツ ブラウザ** から **Wall_Door_400x400** を選択し、[407 wall piece] の **[Details]** で **[Assign]** ボタンをクリックします。 
+1.	**コンテンツ ブラウザ** から **Wall_Door_400x400** を選択し、[407 wall piece] の **[Details (詳細)]** で **[Assign (割り当て)]** ボタンをクリックします。 
 
 	![](setup34.png)
 
@@ -131,7 +133,7 @@ Description:小さな部屋を作って、光を照らしてみましょう。
 
 	![](setup36.png)
 
-1.	**Wall_400x405** を選択し、 **コンテンツ ブラウザ** で **Wall_Window_400x400** を選択し、それをレベル内のウォールに割り当てます。 
+1.	**Wall_400x405** を選択し、**コンテンツ ブラウザ** で **[Wall_Window_400x400]** を選択し、それをレベル内のウォールに割り当てます。 
 
 	![](setup39.png)
 

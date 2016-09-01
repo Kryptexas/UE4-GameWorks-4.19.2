@@ -1,14 +1,12 @@
 Availability: Public
-Title:Blueprint Debugging
-Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
+Title:Blueprint Debugging Example
+Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\Workflow
 Description:Illustrates the methods on how to Debug your Blueprints. 
 Related: Engine/Blueprints/UserGuide/Debugging
 Related: Engine/Blueprints
 version:4.9
-skilllevel:Beginner
-parent:Engine/Blueprints/BP_HowTo
-order:5
-type:howto
+parent:Engine/Blueprints/Workflow
+order:6
 
 
 [TOC(start:2)]

@@ -68,8 +68,177 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMesh(UObject* InParent, FbxNode* N
 	return ImportStaticMeshAsSingle(InParent, MeshNodeArray, Name, Flags, ImportData, InStaticMesh, LODIndex);
 }
 
-bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh* StaticMesh, TArray<FFbxMaterial>& MeshMaterials, int LODIndex, FRawMesh& RawMesh,
-													  EVertexColorImportOption::Type VertexColorImportOption, const TMap<FVector, FColor>& ExistingVertexColorData, const FColor& VertexOverrideColor)
+// Wraps some common code useful for multiple fbx import code path
+struct FFBXUVs
+{
+	// constructor
+	FFBXUVs(FbxMesh* Mesh)
+		: UniqueUVCount(0)
+	{
+		check(Mesh);
+
+		//
+		//	store the UVs in arrays for fast access in the later looping of triangles 
+		//
+		// mapping from UVSets to Fbx LayerElementUV
+		// Fbx UVSets may be duplicated, remove the duplicated UVSets in the mapping 
+		int32 LayerCount = Mesh->GetLayerCount();
+		if (LayerCount > 0)
+		{
+			int32 UVLayerIndex;
+			for (UVLayerIndex = 0; UVLayerIndex<LayerCount; UVLayerIndex++)
+			{
+				FbxLayer* lLayer = Mesh->GetLayer(UVLayerIndex);
+				int UVSetCount = lLayer->GetUVSetCount();
+				if(UVSetCount)
+				{
+					FbxArray<FbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
+					for (int UVIndex = 0; UVIndex<UVSetCount; UVIndex++)
+					{
+						FbxLayerElementUV const* ElementUV = EleUVs[UVIndex];
+						if (ElementUV)
+						{
+							const char* UVSetName = ElementUV->GetName();
+							FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
+							if (LocalUVSetName.IsEmpty())
+							{
+								LocalUVSetName = TEXT("UVmap_") + FString::FromInt(UVLayerIndex);
+							}
+
+							UVSets.AddUnique(LocalUVSetName);
+						}
+					}
+				}
+			}
+		}
+
+
+		// If the the UV sets are named using the following format (UVChannel_X; where X ranges from 1 to 4)
+		// we will re-order them based on these names.  Any UV sets that do not follow this naming convention
+		// will be slotted into available spaces.
+		if(UVSets.Num())
+		{
+			for(int32 ChannelNumIdx = 0; ChannelNumIdx < 4; ChannelNumIdx++)
+			{
+				FString ChannelName = FString::Printf( TEXT("UVChannel_%d"), ChannelNumIdx+1 );
+				int32 SetIdx = UVSets.Find( ChannelName );
+
+				// If the specially formatted UVSet name appears in the list and it is in the wrong spot,
+				// we will swap it into the correct spot.
+				if( SetIdx != INDEX_NONE && SetIdx != ChannelNumIdx )
+				{
+					// If we are going to swap to a position that is outside the bounds of the
+					// array, then we pad out to that spot with empty data.
+					for(int32 ArrSize = UVSets.Num(); ArrSize < ChannelNumIdx+1; ArrSize++)
+					{
+						UVSets.Add ( FString(TEXT("")) );
+					}
+					//Swap the entry into the appropriate spot.
+					UVSets.Swap( SetIdx, ChannelNumIdx );
+				}
+			}
+		}
+	}
+
+	void Phase2(FbxMesh* Mesh)
+	{
+		//
+		//	store the UVs in arrays for fast access in the later looping of triangles 
+		//
+		UniqueUVCount = UVSets.Num();
+		if (UniqueUVCount > 0)
+		{
+			LayerElementUV.AddZeroed(UniqueUVCount);
+			UVReferenceMode.AddZeroed(UniqueUVCount);
+			UVMappingMode.AddZeroed(UniqueUVCount);
+		}
+		for (int32 UVIndex = 0; UVIndex < UniqueUVCount; UVIndex++)
+		{
+			LayerElementUV[UVIndex] = NULL;
+			for (int32 UVLayerIndex = 0, LayerCount = Mesh->GetLayerCount(); UVLayerIndex < LayerCount; UVLayerIndex++)
+			{
+				FbxLayer* lLayer = Mesh->GetLayer(UVLayerIndex);
+				int UVSetCount = lLayer->GetUVSetCount();
+				if(UVSetCount)
+				{
+					FbxArray<FbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
+					for (int32 FbxUVIndex = 0; FbxUVIndex<UVSetCount; FbxUVIndex++)
+					{
+						FbxLayerElementUV const* ElementUV = EleUVs[FbxUVIndex];
+						if (ElementUV)
+						{
+							const char* UVSetName = ElementUV->GetName();
+							FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
+							if (LocalUVSetName == UVSets[UVIndex])
+							{
+								LayerElementUV[UVIndex] = ElementUV;
+								UVReferenceMode[UVIndex] = ElementUV->GetReferenceMode();
+								UVMappingMode[UVIndex] = ElementUV->GetMappingMode();
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		UniqueUVCount = FMath::Min<int32>(UniqueUVCount, MAX_MESH_TEXTURE_COORDS);
+	}
+
+	int32 FindLightUVIndex() const
+	{
+		// See if any of our UV set entry names match LightMapUV.
+		for(int32 UVSetIdx = 0; UVSetIdx < UVSets.Num(); UVSetIdx++)
+		{
+			if( UVSets[UVSetIdx] == TEXT("LightMapUV"))
+			{
+				return UVSetIdx;
+			}
+		}
+
+		// not found
+		return 0;
+	}
+	
+	// @param FaceCornerIndex usually TriangleIndex * 3 + CornerIndex but more complicated for mixed n-gons
+	int32 ComputeUVIndex(int32 UVLayerIndex, int32 lControlPointIndex, int32 FaceCornerIndex) const
+	{
+		int32 UVMapIndex = (UVMappingMode[UVLayerIndex] == FbxLayerElement::eByControlPoint) ? lControlPointIndex : FaceCornerIndex;
+						
+		int32 Ret;
+
+		if(UVReferenceMode[UVLayerIndex] == FbxLayerElement::eDirect)
+		{
+			Ret = UVMapIndex;
+		}
+		else
+		{
+			FbxLayerElementArrayTemplate<int>& Array = LayerElementUV[UVLayerIndex]->GetIndexArray();
+			Ret = Array.GetAt(UVMapIndex);
+		}
+
+		return Ret;
+	}
+
+	// todo: is that needed? could the dtor do it?
+	void Cleanup()
+	{
+		//
+		// clean up.  This needs to happen before the mesh is destroyed
+		//
+		LayerElementUV.Empty();
+		UVReferenceMode.Empty();
+		UVMappingMode.Empty();
+	}
+
+	TArray<FString> UVSets;
+	TArray<FbxLayerElementUV const*> LayerElementUV;
+	TArray<FbxLayerElement::EReferenceMode> UVReferenceMode;
+	TArray<FbxLayerElement::EMappingMode> UVMappingMode;
+	int32 UniqueUVCount;
+};
+
+bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh* StaticMesh, TArray<FFbxMaterial>& MeshMaterials, int32 LODIndex,FRawMesh& RawMesh,
+	EVertexColorImportOption::Type VertexColorImportOption, const TMap<FVector, FColor>& ExistingVertexColorData, const FColor& VertexOverrideColor)
 {
 	check(StaticMesh->SourceModels.IsValidIndex(LODIndex));
 	FbxMesh* Mesh = Node->GetMesh();
@@ -86,80 +255,10 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 		return false;
 	}
 
-	//
-	//	store the UVs in arrays for fast access in the later looping of triangles 
-	//
-	// mapping from UVSets to Fbx LayerElementUV
-	// Fbx UVSets may be duplicated, remove the duplicated UVSets in the mapping 
-	int32 LayerCount = Mesh->GetLayerCount();
-	TArray<FString> UVSets;
-	UVSets.Empty();
-	if (LayerCount > 0)
-	{
-		int32 UVLayerIndex;
-		for (UVLayerIndex = 0; UVLayerIndex<LayerCount; UVLayerIndex++)
-		{
-			FbxLayer* lLayer = Mesh->GetLayer(UVLayerIndex);
-			int UVSetCount = lLayer->GetUVSetCount();
-			if(UVSetCount)
-			{
-				FbxArray<FbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
-				for (int UVIndex = 0; UVIndex<UVSetCount; UVIndex++)
-				{
-					FbxLayerElementUV const* ElementUV = EleUVs[UVIndex];
-					if (ElementUV)
-					{
-						const char* UVSetName = ElementUV->GetName();
-						FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
-						if (LocalUVSetName.IsEmpty())
-						{
-							LocalUVSetName = TEXT("UVmap_") + FString::FromInt(UVLayerIndex);
-						}
+	FFBXUVs FBXUVs(Mesh);
 
-						UVSets.AddUnique(LocalUVSetName);
-					}
-				}
-			}
-		}
-	}
-
-
-	// If the the UV sets are named using the following format (UVChannel_X; where X ranges from 1 to 4)
-	// we will re-order them based on these names.  Any UV sets that do not follow this naming convention
-	// will be slotted into available spaces.
-	if( UVSets.Num() > 0 )
-	{
-		for(int32 ChannelNumIdx = 0; ChannelNumIdx < 4; ChannelNumIdx++)
-		{
-			FString ChannelName = FString::Printf( TEXT("UVChannel_%d"), ChannelNumIdx+1 );
-			int32 SetIdx = UVSets.Find( ChannelName );
-
-			// If the specially formatted UVSet name appears in the list and it is in the wrong spot,
-			// we will swap it into the correct spot.
-			if( SetIdx != INDEX_NONE && SetIdx != ChannelNumIdx )
-			{
-				// If we are going to swap to a position that is outside the bounds of the
-				// array, then we pad out to that spot with empty data.
-				for(int32 ArrSize = UVSets.Num(); ArrSize < ChannelNumIdx+1; ArrSize++)
-				{
-					UVSets.Add ( FString(TEXT("")) );
-				}
-				//Swap the entry into the appropriate spot.
-				UVSets.Swap( SetIdx, ChannelNumIdx );
-			}
-		}
-	}
-
-
-	// See if any of our UV set entry names match LightMapUV.
-	for(int UVSetIdx = 0; UVSetIdx < UVSets.Num(); UVSetIdx++)
-	{
-		if( UVSets[UVSetIdx] == TEXT("LightMapUV"))
-		{
-			StaticMesh->LightMapCoordinateIndex = UVSetIdx;
-		}
-	}
-
+	StaticMesh->LightMapCoordinateIndex = FBXUVs.FindLightUVIndex();
+	
 	//
 	// create materials
 	//
@@ -167,7 +266,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	TArray<UMaterialInterface*> Materials;
 	if (ImportOptions->bImportMaterials)
 	{
-		CreateNodeMaterials(Node, Materials, UVSets);
+		CreateNodeMaterials(Node, Materials, FBXUVs.UVSets);
 	}
 	else if (ImportOptions->bImportTextures)
 	{
@@ -255,55 +354,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	FbxLayerElement::EMappingMode MaterialMappingMode = LayerElementMaterial ? 
 		LayerElementMaterial->GetMappingMode() : FbxLayerElement::eByPolygon;
 
-	//
-	//	store the UVs in arrays for fast access in the later looping of triangles 
-	//
-	int32 UniqueUVCount = UVSets.Num();
-	TArray<FbxLayerElementUV const*> LayerElementUV;
-	TArray<FbxLayerElement::EReferenceMode> UVReferenceMode;
-	TArray<FbxLayerElement::EMappingMode> UVMappingMode;
-	if (UniqueUVCount > 0)
-	{
-		LayerElementUV.AddZeroed(UniqueUVCount);
-		UVReferenceMode.AddZeroed(UniqueUVCount);
-		UVMappingMode.AddZeroed(UniqueUVCount);
-	}
-	LayerCount = Mesh->GetLayerCount();
-	for (int32 UVIndex = 0; UVIndex < UniqueUVCount; UVIndex++)
-	{
-		LayerElementUV[UVIndex] = NULL;
-		for (int32 UVLayerIndex = 0; UVLayerIndex<LayerCount; UVLayerIndex++)
-		{
-			FbxLayer* lLayer = Mesh->GetLayer(UVLayerIndex);
-			int UVSetCount = lLayer->GetUVSetCount();
-			if(UVSetCount)
-			{
-				FbxArray<FbxLayerElementUV const*> EleUVs = lLayer->GetUVSets();
-				for (int32 FbxUVIndex = 0; FbxUVIndex<UVSetCount; FbxUVIndex++)
-				{
-					FbxLayerElementUV const* ElementUV = EleUVs[FbxUVIndex];
-					if (ElementUV)
-					{
-						const char* UVSetName = ElementUV->GetName();
-						FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
-						if (LocalUVSetName.IsEmpty())
-						{
-							LocalUVSetName = TEXT("UVmap_") + FString::FromInt(UVLayerIndex);
-						}
-						if (LocalUVSetName == UVSets[UVIndex])
-						{
-							LayerElementUV[UVIndex] = ElementUV;
-							UVReferenceMode[UVIndex] = ElementUV->GetReferenceMode();
-							UVMappingMode[UVIndex] = ElementUV->GetMappingMode();
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-	UniqueUVCount = FMath::Min<int32>(UniqueUVCount, MAX_MESH_TEXTURE_COORDS);
-
+	//	todo second phase UV, ok to put in first phase?
+	FBXUVs.Phase2(Mesh);
 
 	//
 	// get the smoothing group layer
@@ -377,18 +429,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	//
 	bool bImportedCollision = ImportCollisionModels(StaticMesh, GetNodeNameWithoutNamespace(Node));
 
-	if (false && !bImportedCollision && StaticMesh)	//if didn't import collision automatically generate one
-	{
-		StaticMesh->CreateBodySetup();
-
-		const int32 NumDirs = 18;
-		TArray<FVector> Dirs;
-		Dirs.AddUninitialized(NumDirs);
-		for (int32 DirIdx = 0; DirIdx < NumDirs; ++DirIdx) { Dirs[DirIdx] = KDopDir18[DirIdx]; }
-		GenerateKDopAsSimpleCollision(StaticMesh, Dirs);
-	}
-
-	bool bEnableCollision = bImportedCollision || (GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bRemoveDegenerates);
+	//If we import a collision or we "generate one and remove the degenerates triangles" we will automatically set the section collision boolean.
+	bool bEnableCollision = bImportedCollision || (GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bAutoGenerateCollision);
 	for(int32 SectionIndex=MaterialIndexOffset; SectionIndex<MaterialIndexOffset+MaterialCount; SectionIndex++)
 	{
 		FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);
@@ -466,8 +508,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 			break;
 		}
 	}
-
-	int32 UVCount = FMath::Max( UniqueUVCount, ExistingUVCount );
+	
+	int32 UVCount = FMath::Max( FBXUVs.UniqueUVCount, ExistingUVCount );
 
 	// At least one UV set must exist.  
 	UVCount = FMath::Max( 1, UVCount );
@@ -479,9 +521,12 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 
 	int32 TriangleIndex;
 	TMap<int32,int32> IndexMap;
+	bool bHasNonDegenerateTriangles = false;
+
 	for( TriangleIndex = 0 ; TriangleIndex < TriangleCount ; TriangleIndex++ )
 	{
 		int32 DestTriangleIndex = TriangleOffset + TriangleIndex;
+		FVector CornerPositions[3];
 
 		for ( int32 CornerIndex=0; CornerIndex<3; CornerIndex++)
 		{
@@ -494,6 +539,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 			if (ExistingIndex)
 			{
 				RawMesh.WedgeIndices[WedgeIndex] = *ExistingIndex;
+				CornerPositions[CornerIndex] = RawMesh.VertexPositions[*ExistingIndex];
 			}
 			else
 			{
@@ -501,7 +547,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 				FbxVector4 FinalPosition = TotalMatrix.MultT(FbxPosition);
 				int32 VertexIndex = RawMesh.VertexPositions.Add(Converter.ConvertPos(FinalPosition));
 				RawMesh.WedgeIndices[WedgeIndex] = VertexIndex;
-				IndexMap.Add(ControlPointIndex,VertexIndex);
+				IndexMap.Add(ControlPointIndex, VertexIndex);
+				CornerPositions[CornerIndex] = RawMesh.VertexPositions[VertexIndex];
 			}
 
 			//
@@ -589,6 +636,19 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 			}
 		}
 
+		// Check if the triangle just discovered is non-degenerate if we haven't found one yet
+		if (!bHasNonDegenerateTriangles)
+		{
+			float ComparisonThreshold = ImportOptions->bRemoveDegenerates ? THRESH_POINTS_ARE_SAME : 0.0f;
+
+			if (!(CornerPositions[0].Equals(CornerPositions[1], ComparisonThreshold)
+				  || CornerPositions[0].Equals(CornerPositions[2], ComparisonThreshold)
+				  || CornerPositions[1].Equals(CornerPositions[2], ComparisonThreshold)))
+			{
+				bHasNonDegenerateTriangles = true;
+			}
+		}
+
 		//
 		// smoothing mask
 		//
@@ -611,20 +671,22 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 		// In FBX file, the same UV may be saved multiple times, i.e., there may be same UV in LayerElementUV
 		// So we don't import the duplicate UVs
 		int32 UVLayerIndex;
-		for (UVLayerIndex = 0; UVLayerIndex<UniqueUVCount; UVLayerIndex++)
+		for (UVLayerIndex = 0; UVLayerIndex<FBXUVs.UniqueUVCount; UVLayerIndex++)
 		{
-			if (LayerElementUV[UVLayerIndex] != NULL) 
+			if (FBXUVs.LayerElementUV[UVLayerIndex] != NULL) 
 			{
 				for (int32 CornerIndex=0;CornerIndex<3;CornerIndex++)
 				{
 					// If there are odd number negative scale, invert the vertex order for triangles
 					int32 WedgeIndex = WedgeOffset + TriangleIndex * 3 + (OddNegativeScale ? 2 - CornerIndex : CornerIndex);
 
+
 					int lControlPointIndex = Mesh->GetPolygonVertex(TriangleIndex, CornerIndex);
-					int UVMapIndex = (UVMappingMode[UVLayerIndex] == FbxLayerElement::eByControlPoint) ? lControlPointIndex : TriangleIndex*3+CornerIndex;
-					int32 UVIndex = (UVReferenceMode[UVLayerIndex] == FbxLayerElement::eDirect) ? 
-						UVMapIndex : LayerElementUV[UVLayerIndex]->GetIndexArray().GetAt(UVMapIndex);
-					FbxVector2	UVVector = LayerElementUV[UVLayerIndex]->GetDirectArray().GetAt(UVIndex);
+					int UVMapIndex = (FBXUVs.UVMappingMode[UVLayerIndex] == FbxLayerElement::eByControlPoint) ? lControlPointIndex : TriangleIndex*3+CornerIndex;
+					int32 UVIndex = (FBXUVs.UVReferenceMode[UVLayerIndex] == FbxLayerElement::eDirect) ? 
+						UVMapIndex : FBXUVs.LayerElementUV[UVLayerIndex]->GetIndexArray().GetAt(UVMapIndex);
+
+					FbxVector2	UVVector = FBXUVs.LayerElementUV[UVLayerIndex]->GetDirectArray().GetAt(UVIndex);
 
 					RawMesh.WedgeTexCoords[UVLayerIndex][WedgeIndex].X = static_cast<float>(UVVector[0]);
 					RawMesh.WedgeTexCoords[UVLayerIndex][WedgeIndex].Y = 1.f-static_cast<float>(UVVector[1]);   //flip the Y of UVs for DirectX
@@ -666,15 +728,21 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	
 		RawMesh.FaceMaterialIndices[DestTriangleIndex] = MaterialIndex;
 	}
+	
+	// needed?
+	FBXUVs.Cleanup();
 
-	//
-	// clean up.  This needs to happen before the mesh is destroyed
-	//
-	LayerElementUV.Empty();
-	UVReferenceMode.Empty();
-	UVMappingMode.Empty();
+	if (!bHasNonDegenerateTriangles)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add( TEXT("MeshName"), FText::FromString(StaticMesh->GetName()));
+		FText ErrorMsg = LOCTEXT("MeshHasNoRenderableTriangles", "{MeshName} could not be created because all of its triangles are degenerate.");
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(ErrorMsg, Arguments)), FFbxErrors::StaticMesh_AllTrianglesDegenerate);
+	}
 
-	return true;
+	bool bIsValidMesh = bHasNonDegenerateTriangles;
+
+	return bIsValidMesh;
 }
 
 UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId, uint64 FbxUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData)
@@ -1060,9 +1128,35 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			LODIndex = StaticMesh->SourceModels.Num() - 1;
 		}
 	}
+	TArray<int32> OldMaterialIndex;
 	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[LODIndex];
 	if( InStaticMesh != NULL && LODIndex > 0 && !SrcModel.RawMeshBulkData->IsEmpty() )
 	{
+		for (const FStaticMeshSection& Section : StaticMesh->RenderData->LODResources[LODIndex].Sections)
+		{
+			//We import a LOD over an existing one or simply do a reimport. Use the old lod material slot in the materials array
+			//But make sure this material index is not use by any other LODs sections
+			bool CanReuseSlotIndex = true;
+			for (int32 LodRessourceIndex = 0; LodRessourceIndex < StaticMesh->RenderData->LODResources.Num(); ++LodRessourceIndex)
+			{
+				if (LodRessourceIndex == LODIndex)
+					continue;
+				for (const FStaticMeshSection& LodSection : StaticMesh->RenderData->LODResources[LodRessourceIndex].Sections)
+				{
+					if (LodSection.MaterialIndex == Section.MaterialIndex)
+					{
+						CanReuseSlotIndex = false;
+						break;
+					}
+				}
+				if (!CanReuseSlotIndex)
+					break;
+			}
+			if (CanReuseSlotIndex)
+			{
+				OldMaterialIndex.Add(Section.MaterialIndex);
+			}
+		}
 		// clear out the old mesh data
 		FRawMesh EmptyRawMesh;
 		SrcModel.RawMeshBulkData->SaveRawMesh( EmptyRawMesh );
@@ -1143,7 +1237,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			AddTokenizedErrorMessage(
 				FTokenizedMessage::Create(
 				EMessageSeverity::Warning,
-				FText::Format(LOCTEXT("Error_TooManyMaterials", "StaticMesh has a large number({1}) of materials and may render inefficently.  Consider breaking up the mesh into multiple Static Mesh Assets"),
+				FText::Format(LOCTEXT("Error_TooManyMaterials", "StaticMesh has a large number({0}) of materials and may render inefficently.  Consider breaking up the mesh into multiple Static Mesh Assets"),
 				FText::AsNumber(UniqueMaterials.Num())
 				)), 
 				FFbxErrors::StaticMesh_TooManyMaterials);
@@ -1266,7 +1360,17 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		{
 			FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, MaterialIndex);
 
-			int32 Index = StaticMesh->Materials.Add(SortedMaterials[MaterialIndex].Material);
+			int32 Index = 0;
+			if (OldMaterialIndex.Num() > 0)
+			{
+				Index = OldMaterialIndex[0];
+				StaticMesh->Materials[Index] = SortedMaterials[MaterialIndex].Material;
+				OldMaterialIndex.RemoveAt(0);
+			}
+			else
+			{
+				Index = StaticMesh->Materials.Add(SortedMaterials[MaterialIndex].Material);
+			}
 
 			Info.MaterialIndex = Index;
 			StaticMesh->SectionInfoMap.Remove(LODIndex, MaterialIndex);
@@ -1362,6 +1466,13 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	}
 	else
 	{
+		// If we couldn't build the static mesh, its package is invalid. We should reject it entirely to prevent issues from arising from trying to use it in the editor.
+		if (!NewPackageName.IsEmpty())
+		{
+			Package->RemoveFromRoot();
+			Package->ConditionalBeginDestroy();
+		}
+
 		StaticMesh = NULL;
 	}
 
@@ -1388,6 +1499,166 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 	return StaticMesh;
 }
 
+bool UnFbx::FFbxImporter::ImportSubDSurface(USubDSurface* Out, UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData)
+{
+	if(!MeshNodeArray.Num())
+	{
+		return false;
+	}
+
+	// Make sure rendering is done - so we are not changing data being used
+	FlushRenderingCommands();
+
+	double StartTime = FPlatformTime::Seconds();
+
+	Parent = InParent;
+
+	// warning for missing smoothing group info
+	CheckSmoothingInfo(MeshNodeArray[0]->GetMesh());
+
+	uint32 ModelCount = (uint32)MeshNodeArray.Num();
+
+	// RemoveBadPolygons(), count Vertex and Indices
+	uint32 TotalIndexCount = 0, TotalVertexCount = 0, TotalPolyCount = 0;
+	{
+		for(uint32 ModelIndex = 0; ModelIndex < ModelCount; ++ModelIndex)
+		{
+			FbxNode* Node = MeshNodeArray[ModelIndex];
+			FbxMesh* FbxMesh = Node->GetMesh();
+
+			int32 Removed = FbxMesh->RemoveBadPolygons();
+
+			TotalVertexCount += FbxMesh->GetControlPointsCount();
+
+			int32 PolyCount = FbxMesh->GetPolygonCount();
+
+			TotalPolyCount += PolyCount;
+
+			for(int32 PolyIndex = 0; PolyIndex < PolyCount; ++PolyIndex)
+			{
+				int32 PolySize = FbxMesh->GetPolygonSize(PolyIndex);
+				
+				TotalIndexCount += PolySize;
+			}
+		}
+	}
+
+	Out->IndicesPerFace.AddUninitialized(TotalIndexCount);
+	Out->VertexCountPerFace.AddUninitialized(TotalPolyCount);
+
+	uint32* IndicesPerFace = Out->IndicesPerFace.GetData();
+	uint32* VertexCountPerFace = Out->VertexCountPerFace.GetData();
+
+	// add position vertex attribute
+	FVector* Positions = 0;
+	{
+		auto Stream = Out->CreateVertexAttributeStream(FName(TEXT("Position")));
+		Positions = Stream->CreateFVectorUninitialized(TotalVertexCount);
+	}
+
+	// todo: support multiple UV
+
+	// add UV vertex attribute
+	FVector2D* UV0 = 0;
+	{
+		auto Stream = Out->CreateVertexAttributeStream(FName(TEXT("UV0")));
+		UV0 = Stream->CreateFVector2DUninitialized(TotalIndexCount);
+	}
+
+	uint32 CurrentIndexStart = 0;
+	for(uint32 ModelIndex = 0; ModelIndex < ModelCount; ++ModelIndex)
+	{
+		FbxNode* Node = MeshNodeArray[ModelIndex];
+		FbxMesh* FbxMesh = Node->GetMesh();
+		uint32 PolyCount = (uint32)FbxMesh->GetPolygonCount();
+
+		FFBXUVs FBXUVs(FbxMesh);
+
+		FBXUVs.Phase2(FbxMesh);
+
+		for(uint32 PolyIndex = 0; PolyIndex < PolyCount; ++PolyIndex)
+		{
+			uint32 CornerCount = FbxMesh->GetPolygonSize(PolyIndex);
+
+			// store VertexCountPerFace
+			*VertexCountPerFace++ = CornerCount;
+
+			for(uint32 Corner = 0; Corner < CornerCount; ++Corner)
+			{
+				uint32 VertexIndex = (uint32)FbxMesh->GetPolygonVertex(PolyIndex, Corner);
+
+				check(VertexIndex < TotalVertexCount);
+
+				// store IndicesPerFace
+				*IndicesPerFace++ = CurrentIndexStart + VertexIndex;
+			}
+		}
+
+		int32 ControlPointsCount = FbxMesh->GetControlPointsCount();
+
+		CurrentIndexStart += ControlPointsCount;
+
+		FbxAMatrix Matrix = ComputeTotalMatrix(Node);
+
+		{
+			
+			FbxVector4* ControlPoints = FbxMesh->GetControlPoints();
+
+			for(int32 ControlPointsIndex = 0; ControlPointsIndex < ControlPointsCount; ControlPointsIndex++ )
+			{
+				FVector Pos = Converter.ConvertPos(Matrix.MultT(ControlPoints[ControlPointsIndex]));
+
+				*Positions++ = Pos;
+			}
+		}
+
+
+
+		//
+		// uvs
+		//
+		// In FBX file, the same UV may be saved multiple times, i.e., there may be same UV in LayerElementUV
+		// So we don't import the duplicate UVs
+		{
+			// We don't support multiple UV yet
+			ensure(FBXUVs.UniqueUVCount == 1);
+
+			int32 UVLayerIndex;
+			for (UVLayerIndex = 0; UVLayerIndex < FBXUVs.UniqueUVCount; UVLayerIndex++)
+			{
+				if (FBXUVs.LayerElementUV[UVLayerIndex] != NULL) 
+				{
+					uint32 UniqueCornerIndex = 0;
+
+					for(uint32 PolyIndex = 0; PolyIndex < PolyCount; ++PolyIndex)
+					{
+						int32 PolySize = FbxMesh->GetPolygonSize(PolyIndex);
+
+						for (int32 CornerIndex = 0; CornerIndex < PolySize; CornerIndex++)
+						{
+							// If there are odd number negative scale, invert the vertex order for triangles
+	//todo						int32 WedgeIndex = WedgeOffset + TriangleIndex * 3 + (OddNegativeScale ? 2 - CornerIndex : CornerIndex);
+		
+							int lControlPointIndex = FbxMesh->GetPolygonVertex(PolyIndex, CornerIndex);
+
+							int UVIndex = FBXUVs.ComputeUVIndex(UVLayerIndex, lControlPointIndex, UniqueCornerIndex);
+	
+							FbxVector2 UVVector = FBXUVs.LayerElementUV[UVLayerIndex]->GetDirectArray().GetAt(UVIndex);
+
+							*UV0++ = FVector2D(static_cast<float>(UVVector[0]), 1.0f - static_cast<float>(UVVector[1]));   //flip the Y of UVs for DirectX
+
+							++UniqueCornerIndex;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	UE_LOG(LogFbx, Log, TEXT("SubDSurface import: %5.2f seconds"), FPlatformTime::Seconds() - StartTime);
+
+	return true;
+}
 struct FbxSocketNode
 {
 	FName SocketName;
@@ -1452,13 +1723,15 @@ void UnFbx::FFbxImporter::ImportStaticMeshSockets( UStaticMesh* StaticMesh )
 
 		if( Socket )
 		{
-			FVector Translation = Converter.ConvertPos( SocketNode.Node->LclTranslation.Get() );
-			FRotator Rotation = Converter.ConvertEuler( SocketNode.Node->LclRotation.Get() );
-			FVector Scale = Converter.ConvertScale( SocketNode.Node->LclScaling.Get() );
+			FbxAMatrix& SocketMatrix = Scene->GetAnimationEvaluator()->GetNodeLocalTransform(SocketNode.Node);
+			FTransform SocketTransform;
+			SocketTransform.SetTranslation(Converter.ConvertPos(SocketMatrix.GetT()));
+			SocketTransform.SetRotation(Converter.ConvertRotToQuat(SocketMatrix.GetQ()));
+			SocketTransform.SetScale3D(Converter.ConvertScale(SocketMatrix.GetS()));
 
-			Socket->RelativeLocation = Translation;
-			Socket->RelativeRotation = Rotation;
-			Socket->RelativeScale = Scale;
+			Socket->RelativeLocation = SocketTransform.GetLocation();
+			Socket->RelativeRotation = SocketTransform.GetRotation().Rotator();
+			Socket->RelativeScale = SocketTransform.GetScale3D();
 		}
 	}
 }

@@ -76,11 +76,13 @@ struct FWindowTransparency
 class FOverlayPopupLayer : public FPopupLayer
 {
 public:
-	FOverlayPopupLayer(const TSharedRef<SWidget>& InitHostWidget, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay);
+	FOverlayPopupLayer(const TSharedRef<SWindow>& InitHostWindow, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay);
 
 	virtual void Remove() override;
+	virtual FSlateRect GetAbsoluteClientRect() override;
 
 private:
+	TSharedPtr<SWindow> HostWindow;
 	TSharedPtr<SOverlay> Overlay;
 };
 
@@ -113,6 +115,7 @@ public:
 		, _HasCloseButton( true )
 		, _SupportsMaximize( true )
 		, _SupportsMinimize( true )
+		, _ShouldPreserveAspectRatio( false )
 		, _CreateTitleBar( true )
 		, _SaneWindowPlacement( true )
 		, _LayoutBorder(FMargin(5, 5, 5, 5))
@@ -179,6 +182,9 @@ public:
 		
 		/** Can this window be minimized? */
 		SLATE_ARGUMENT( bool, SupportsMinimize )
+
+		/** Should this window preserve its aspect ratio when resized by user? */
+		SLATE_ARGUMENT( bool, ShouldPreserveAspectRatio )
 
 		/** The smallest width this window can be in Desktop Pixel Units. */
 		SLATE_ARGUMENT( TOptional<float>, MinWidth )
@@ -601,6 +607,11 @@ public:
 		return bSizeWillChangeOften;
 	}
 
+	bool ShouldPreserveAspectRatio() const
+	{
+		return bShouldPreserveAspectRatio;
+	}
+
 	/** @return Returns the configured expected maximum width of the window, or INDEX_NONE if not specified.  Can be used to optimize performance for window size animation */
 	int32 GetExpectedMaxWidth() const
 	{
@@ -649,6 +660,8 @@ public:
 	{
 		bIsMirrorWindow = bSetMirrorWindow;
 	}
+	
+	bool IsVirtualWindow() const { return bVirtualWindow; }
 
 	bool IsMirrorWindow()
 	{
@@ -695,10 +708,12 @@ private:
 	/** The window's desired size takes into account the ratio between the slate units and the pixel size */
 	virtual FVector2D ComputeDesiredSize(float) const override;
 
+public:
+// @HSL_CHANGE_BEGIN - ngreen@hardsuitlabs.com - 5/31/2016 - need access to this to fix windowed mode
 	// For a given client size, calculate the window size required to accomodate any potential non-OS borders and tilebars
 	FVector2D GetWindowSizeFromClientSize(FVector2D InClientSize);
+// @HSL_CHANGE_END - ngreen@hardsuitlabs.com - 5/31/2016 - need access to this to fix windowed mode
 
-public:
 	/** @return true if this window will be focused when it is first shown */
 	inline bool IsFocusedInitially() const
 	{
@@ -898,6 +913,9 @@ protected:
 
 	/** True if the window is a mirror window for HMD content */
 	bool bIsMirrorWindow : 1;
+
+	/** True if the window should preserve its aspect ratio when resized by user */
+	bool bShouldPreserveAspectRatio : 1;
 
 	/** Initial desired position of the window's content in screen space */
 	FVector2D InitialDesiredScreenPosition;

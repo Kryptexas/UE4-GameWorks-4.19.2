@@ -27,6 +27,38 @@ static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("  1: Adpater #1, ..."),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarForceAMDToSM4(
+	TEXT("r.ForceAMDToSM4"),
+	0,
+	TEXT("Forces AMD devices to use SM4.0/D3D10.0 feature level."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarForceIntelToSM4(
+	TEXT("r.ForceIntelToSM4"),
+	0,
+	TEXT("Forces Intel devices to use SM4.0/D3D10.0 feature level."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarForceNvidiaToSM4(
+	TEXT("r.ForceNvidiaToSM4"),
+	0,
+	TEXT("Forces Nvidia devices to use SM4.0/D3D10.0 feature level."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarAMDUseMultiThreadedDevice(
+	TEXT("r.AMDD3D11MultiThreadedDevice"),
+	0,
+	TEXT("If true, creates a multithreaded D3D11 device on AMD hardware (workaround for driver bug)\n")
+	TEXT("Changes will only take effect in new game/editor instances - can't be changed at runtime.\n"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarAMDDisableAsyncTextureCreation(
+	TEXT("r.AMDDisableAsyncTextureCreation"),
+	0,
+	TEXT("If true, uses synchronous texture creation on AMD hardware (workaround for driver bug)\n")
+	TEXT("Changes will only take effect in new game/editor instances - can't be changed at runtime.\n"),
+	ECVF_Default);
+
 /**
  * Console variables used by the D3D11 RHI device.
  */
@@ -57,11 +89,6 @@ static bool IsDelayLoadException(PEXCEPTION_POINTERS ExceptionPointers)
 #endif
 }
 
-// We suppress warning C6322: Empty _except block. Appropriate checks are made upon returning. 
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(push))
-	MSVC_PRAGMA(warning(disable:6322))
-#endif	// USING_CODE_ANALYSIS
 /**
  * Since CreateDXGIFactory1 is a delay loaded import from the D3D11 DLL, if the user
  * doesn't have VistaSP2/DX10, calling CreateDXGIFactory1 will throw an exception.
@@ -76,6 +103,8 @@ static void SafeCreateDXGIFactory(IDXGIFactory1** DXGIFactory1)
 	}
 	__except(IsDelayLoadException(GetExceptionInformation()))
 	{
+		// We suppress warning C6322: Empty _except block. Appropriate checks are made upon returning. 
+		CA_SUPPRESS(6322);
 	}
 #endif	//!D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR
 }
@@ -165,15 +194,12 @@ static bool SafeTestD3D11CreateDevice(IDXGIAdapter* Adapter,D3D_FEATURE_LEVEL Ma
 	}
 	__except(IsDelayLoadException(GetExceptionInformation()))
 	{
+		// We suppress warning C6322: Empty _except block. Appropriate checks are made upon returning. 
+		CA_SUPPRESS(6322);
 	}
 
 	return false;
 }
-
-// Re-enable C6322
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(pop)) 
-#endif // USING_CODE_ANALYSIS
 
 bool FD3D11DynamicRHIModule::IsSupported()
 {
@@ -244,9 +270,9 @@ void FD3D11DynamicRHIModule::FindAdapter()
 	// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
 	int32 HmdGraphicsAdapter  = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapter() : -1;
 	bool bUseHmdGraphicsAdapter = HmdGraphicsAdapter >= 0;
-	int32 CVarValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
+	int32 CVarExplicitAdapterValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
 
-	const bool bFavorNonIntegrated = CVarValue == -1;
+	const bool bFavorNonIntegrated = CVarExplicitAdapterValue == -1;
 
 	TRefCountPtr<IDXGIAdapter> TempAdapter;
 	D3D_FEATURE_LEVEL MaxAllowedFeatureLevel = GetAllowedD3DFeatureLevel();
@@ -310,36 +336,31 @@ void FD3D11DynamicRHIModule::FindAdapter()
 
 				FD3D11Adapter CurrentAdapter(AdapterIndex, ActualFeatureLevel);
 
-				if(bIsMicrosoft && CVarValue < 0 && !bUseHmdGraphicsAdapter)
-				{
-					// Add special check to support HMDs, which do not have associated outputs.
+				// Add special check to support HMDs, which do not have associated outputs.
+				// To reject the software emulation, unless the cvar wants it.
+				// https://msdn.microsoft.com/en-us/library/windows/desktop/bb205075(v=vs.85).aspx#WARP_new_for_Win8
+				// Before we tested for no output devices but that failed where a laptop had a Intel (with output) and NVidia (with no output)
+				const bool bSkipHmdGraphicsAdapter = bIsMicrosoft && CVarExplicitAdapterValue < 0 && !bUseHmdGraphicsAdapter;
+				
+				// we don't allow the PerfHUD adapter
+				const bool bSkipPerfHUDAdapter = bIsPerfHUD && !bAllowPerfHUD;
+				
+				// the user wants a specific adapter, not this one
+				const bool bSkipExplicitAdapter = CVarExplicitAdapterValue >= 0 && AdapterIndex != CVarExplicitAdapterValue;
+				
+				const bool bSkipAdapter = bSkipHmdGraphicsAdapter || bSkipPerfHUDAdapter || bSkipExplicitAdapter;
 
-					// To reject the software emulation, unless the cvar wants it.
-					// https://msdn.microsoft.com/en-us/library/windows/desktop/bb205075(v=vs.85).aspx#WARP_new_for_Win8
-					// Before we tested for no output devices but that failed where a laptop had a Intel (with output) and NVidia (with no output)
-					continue;
-				}
-
-				if(bIsPerfHUD && !bAllowPerfHUD)
+				if (!bSkipAdapter)
 				{
-					// we don't allow the PerfHUD adapter
-					continue;
-				}
+					if (!bIsIntegrated && !FirstWithoutIntegratedAdapter.IsValid())
+					{
+						FirstWithoutIntegratedAdapter = CurrentAdapter;
+					}
 
-				if(CVarValue >= 0 && AdapterIndex != CVarValue)
-				{
-					// the user wants a specific adapter, not this one
-					continue;
-				}
-
-				if(!bIsIntegrated && !FirstWithoutIntegratedAdapter.IsValid())
-				{
-					FirstWithoutIntegratedAdapter = CurrentAdapter;
-				}
-
-				if(!FirstAdapter.IsValid())
-				{
-					FirstAdapter = CurrentAdapter;
+					if (!FirstAdapter.IsValid())
+					{
+						FirstAdapter = CurrentAdapter;
+					}
 				}
 			}
 		}
@@ -371,6 +392,27 @@ void FD3D11DynamicRHIModule::FindAdapter()
 	{
 		UE_LOG(LogD3D11RHI, Error, TEXT("Failed to choose a D3D11 Adapter."));
 	}
+
+	// Workaround to force specific IHVs to SM4.0
+	if (ChosenAdapter.IsValid() && ChosenAdapter.MaxSupportedFeatureLevel != D3D_FEATURE_LEVEL_10_0)
+	{
+		DXGI_ADAPTER_DESC AdapterDesc;
+		ZeroMemory(&AdapterDesc, sizeof(DXGI_ADAPTER_DESC));
+
+		DXGIFactory1->EnumAdapters(ChosenAdapter.AdapterIndex, TempAdapter.GetInitReference());
+		VERIFYD3D11RESULT(TempAdapter->GetDesc(&AdapterDesc));	
+
+		const bool bIsAMD = AdapterDesc.VendorId == 0x1002;
+		const bool bIsIntel = AdapterDesc.VendorId == 0x8086;
+		const bool bIsNVIDIA = AdapterDesc.VendorId == 0x10DE;
+
+		if ((bIsAMD && CVarForceAMDToSM4.GetValueOnGameThread() > 0) ||
+			(bIsIntel && CVarForceIntelToSM4.GetValueOnGameThread() > 0) ||
+			(bIsNVIDIA && CVarForceNvidiaToSM4.GetValueOnGameThread() > 0))
+		{
+			ChosenAdapter.MaxSupportedFeatureLevel = D3D_FEATURE_LEVEL_10_0;
+		}
+	}
 }
 
 FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI()
@@ -392,7 +434,7 @@ void FD3D11DynamicRHI::FlushPendingLogs()
 	if (D3D11RHI_ShouldCreateWithD3DDebug())
 	{
 		TRefCountPtr<ID3D11InfoQueue> InfoQueue = nullptr;
-		VERIFYD3D11RESULT(Direct3DDevice->QueryInterface(IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()));
+		VERIFYD3D11RESULT_EX(Direct3DDevice->QueryInterface(IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()), Direct3DDevice);
 		if (InfoQueue)
 		{
 			FString FullMessage;
@@ -430,17 +472,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 	// Wait for the rendering thread to go idle.
 	SCOPED_SUSPEND_RENDERING_THREAD(false);
 
-	// If the device we were using has been removed, release it and the resources we created for it.
-	if(bDeviceRemoved)
-	{
-		UE_LOG(LogD3D11RHI, Log, TEXT("Init due to bDeviceRemoved"));
-		check(Direct3DDevice);
-
-		VERIFYD3D11RESULT_EX(DXGI_ERROR_DEVICE_REMOVED, Direct3DDevice);
-
-		// UE4 no longer supports clean-up and recovery.
-		//CleanupD3DDevice();
-	}
+	// UE4 no longer supports clean-up and recovery on DEVICE_LOST.
 
 	// If we don't have a device yet, either because this is the first viewport, or the old device was removed, create a device.
 	if(!Direct3DDevice)
@@ -582,7 +614,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 
 		D3D_FEATURE_LEVEL ActualFeatureLevel = (D3D_FEATURE_LEVEL)0;
 
-		if(IsRHIDeviceAMD())
+		if (IsRHIDeviceAMD() && CVarAMDUseMultiThreadedDevice.GetValueOnAnyThread())
 		{
 			DeviceFlags &= ~D3D11_CREATE_DEVICE_SINGLETHREADED;
 		}
@@ -613,7 +645,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 
 		// Check for async texture creation support.
 		D3D11_FEATURE_DATA_THREADING ThreadingSupport = {0};
-		VERIFYD3D11RESULT(Direct3DDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING,&ThreadingSupport,sizeof(ThreadingSupport)));
+		VERIFYD3D11RESULT_EX(Direct3DDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &ThreadingSupport, sizeof(ThreadingSupport)), Direct3DDevice);
 		GRHISupportsAsyncTextureCreation = !!ThreadingSupport.DriverConcurrentCreates
 			&& (DeviceFlags & D3D11_CREATE_DEVICE_SINGLETHREADED) == 0;
 
@@ -622,7 +654,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_PCD3D_SM4;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_PCD3D_SM5;
 
-		if(IsRHIDeviceAMD())
+		if (IsRHIDeviceAMD() && CVarAMDDisableAsyncTextureCreation.GetValueOnAnyThread())
 		{
 			GRHISupportsAsyncTextureCreation = false;
 		}
@@ -652,7 +684,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		if(DeviceFlags & D3D11_CREATE_DEVICE_DEBUG)
 		{
 			TRefCountPtr<ID3D11InfoQueue> InfoQueue;
-			VERIFYD3D11RESULT(Direct3DDevice->QueryInterface( IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()));
+			VERIFYD3D11RESULT_EX(Direct3DDevice->QueryInterface( IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()), Direct3DDevice);
 			if (InfoQueue)
 			{
 				D3D11_INFO_QUEUE_FILTER NewFilter;
@@ -823,6 +855,7 @@ bool FD3D11DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 
 		for(uint32 m = 0;m < NumModes;m++)
 		{
+			CA_SUPPRESS(6385);
 			if (((int32)ModeList[m].Width >= MinAllowableResolutionX) &&
 				((int32)ModeList[m].Width <= MaxAllowableResolutionX) &&
 				((int32)ModeList[m].Height >= MinAllowableResolutionY) &&

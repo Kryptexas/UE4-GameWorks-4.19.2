@@ -348,6 +348,7 @@ TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner(co
 {
 	auto NewWidget = SNew(SAnimationOutlinerTreeNode, SharedThis(this), InRow)
 	.IconBrush(this, &FSequencerDisplayNode::GetIconBrush)
+	.IconColor(this, &FSequencerDisplayNode::GetIconColor)
 	.IconOverlayBrush(this, &FSequencerDisplayNode::GetIconOverlayBrush)
 	.IconToolTipText(this, &FSequencerDisplayNode::GetIconToolTipText)
 	.CustomContent()
@@ -371,6 +372,11 @@ const FSlateBrush* FSequencerDisplayNode::GetIconBrush() const
 const FSlateBrush* FSequencerDisplayNode::GetIconOverlayBrush() const
 {
 	return nullptr;
+}
+
+FSlateColor FSequencerDisplayNode::GetIconColor() const
+{
+	return FSlateColor( FLinearColor::White );
 }
 
 FText FSequencerDisplayNode::GetIconToolTipText() const

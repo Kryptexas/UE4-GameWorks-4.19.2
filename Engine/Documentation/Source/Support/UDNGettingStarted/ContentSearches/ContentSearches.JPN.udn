@@ -1,11 +1,13 @@
-﻿Availability:Licensee
+﻿INTSourceChangelist:2728088
+Availability:Licensee
 Title:コンテンツの検索
 Crumbs:%ROOT%, GettingStarted, Support/UDNGettingStarted
 Description:UDN 内でコンテンツを適切に検索する方法に関するドキュメント
+Version:4.9
 
 
 
-サポートポータルやドキュメント内におけるコンテンツの検索は、全てのページの右上隅のヘッダに位置する検索バーから行います。
+サポートポータルやドキュメント内におけるコンテンツの検索は、全てのページの右上のヘッダに位置する検索バーから行います。
 
 ![](SearchBar.png)
 
@@ -15,7 +17,7 @@ Description:UDN 内でコンテンツを適切に検索する方法に関する�
 
 追加したい検索用語には**+** 記号を使用し、検索から除外したい場合は**-** 記号を使用します。 
 
-下記の例では、_materials_と_textures_を検索していますが、_functions_は検索結果から除外されます。
+この例では、_materials_と_textures_を検索していますが、_functions_は検索結果から除外されます。
 
 ![](SearchAddRemove.png)
 

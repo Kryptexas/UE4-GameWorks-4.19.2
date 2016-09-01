@@ -183,7 +183,7 @@ void SMeshMergingDialog::SetReplaceSourceActors(ECheckBoxState NewValue)
 
 bool SMeshMergingDialog::GetContentEnabledState() const
 {
-	return (GetNumSelectedMeshComponents() > 1);
+	return (GetNumSelectedMeshComponents() >= 1);
 }
 
 void SMeshMergingDialog::UpdateSelectedStaticMeshComponents()
@@ -296,7 +296,7 @@ void SMeshMergingDialog::CreateSettingsView()
 		/** Delegate to show all properties */
 		static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent, bool bInShouldShowNonEditable)
 		{
-			return ((PropertyAndParent.Property.GetFName() != GET_MEMBER_NAME_CHECKED(FMeshMergingSettings, bCalculateCorrectLODModel)) && (PropertyAndParent.Property.GetFName() != GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, GutterSpace)));
+			return (PropertyAndParent.Property.GetFName() != GET_MEMBER_NAME_CHECKED(FMaterialProxySettings, GutterSpace));
 		}
 	};
 

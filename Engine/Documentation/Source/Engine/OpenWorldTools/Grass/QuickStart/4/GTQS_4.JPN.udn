@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2585616
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:4.Grass ツールの使用
 Crumbs:
@@ -10,15 +10,15 @@ Version:4.8
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-	[前の手順](Engine\OpenWorldTools\Grass\QuickStart\3 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3:title%") 
+	[前のステップ](Engine\OpenWorldTools\Grass\QuickStart\3 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+		[クイックスタートのホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
-	[次の手順](Engine\OpenWorldTools\Grass\QuickStart\5 "%Engine\OpenWorldTools\Grass\QuickStart\5:title%") 
+	[次のステップ](Engine\OpenWorldTools\Grass\QuickStart\5 "%Engine\OpenWorldTools\Grass\QuickStart\5:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -35,15 +35,15 @@ Grass システムを使用するには、前の手順で作成したマテリ�
 
 1. 次に **コンテンツブラウザ** で **MAT_GT_Grass** マテリアルを見つけて、このマテリアルをクリックして選択します。
 
-1. **Landscape Material** セクション内の **詳細** パネルにあるランドスケープテレインで **矢印** アイコンを押して、ランドスケープテレインに **MAT_GT_Grass** マテリアルを適用します。
+1. **[Landscape Material]** セクション内の **[Details (詳細)]** パネルにあるランドスケープテレインで **矢印** アイコンを押して、ランドスケープテレインに **MAT_GT_Grass** マテリアルを適用します。
 
 	![](T_Apply_Material.png)
 
-1. **Modes** パネルで **Landscape** アイコンをクリックして **Landscape** セクションへ移動してから、 **Paint** アイコンをクリックして **Paint** モードにします。
+1. **[Modes]** パネルで **[Landscape]** アイコンをクリックして **[Landscape]** セクションへ移動してから、**[Paint]** アイコンをクリックして **Paint** モードにします。
 
 	![](T_Landscape_Paint_Mode.png)
 
-1. **Target Layers** セクションで、レイヤー名の右端にある **+** サインのアイコンを押して、新たに **Layer Info** を追加します。 
+1. **[Target Layers]** セクションで、レイヤー名の右端にある **+** 印のアイコンを押して、新たに **Layer Info** を追加します。 
 
 	![](T_Add_Target_Layers.png)
 
@@ -52,13 +52,13 @@ Grass システムを使用するには、前の手順で作成したマテリ�
 
 	![](T_Add_LWB.gif)(convert:false)
 
-1. コンテンツブラウザで **Rock_Layerinfo** をクリックして選択してから、 **Target Layers** から現在選択中のオブジェクトをロードするために **Arrow** アイコンを押してロックセクションへ **Rock_Layerinfo** を入力します。
+1. コンテンツブラウザで **[Rock_Layerinfo]** をクリックして選択してから、**[Target Layers]** から現在選択中のオブジェクトをロードするために **矢印** アイコンを押してロックセクションへ **Rock_Layerinfo** を入力します。
 
 	![](T_Load_Layer_Info.png)
 
-1. **Grass** ターゲットレイヤーを選択してからビューポート内で **左マウスボタン** を押して、ランドスケープテレインに Grass Material のペイントを開始します。
-	この作業を行う時にランドスケープを完全にカバーすると以下のような結果となります。
-	
+1. **Grass** ターゲットレイヤーを選択してからビューポート内で **マウスの左ボタン** を押して、ランドスケープテレインに Grass Material のペイントを開始します。
+	この作業を行う時にランドスケープを完全にカバーすると、以下のような結果となります。
+
 	![](T_Painting_Grass.png)
 
 	[region:note]
@@ -67,11 +67,11 @@ Grass システムを使用するには、前の手順で作成したマテリ�
 	作業中は **Landscape Grass Type** の **Grass Density** をオフにして、作業が終了した後に設定レベルへ戻すのがこの問題を可能な限り軽減出来る最善策です。
 	[/region]
 
-1. ランドスケープテレインから草を取り除くには、 Rock Target Layer を選んでから、ビューポート内で **左マウスボタン** を押しながら Grass テクスチャを Rock テクスチャと置換を開始します。
+1. ランドスケープテレインから草を取り除くには、 Rock Target Layer を選んでから、ビューポート内で **マウスの左ボタン** を押しながら Grass テクスチャを Rock テクスチャと置換を開始します。
 
 	![](T_Painting_Removing_Grass.gif)(convert:false)
 
-	**Brush Size（ブラシサイズ）** と **Tool Strength（ツールの強度）** を調整すると、ランドスケープにペイント中に草の位置や削除する草をよりきれいに設定することができます。
+	**[Brush Size (ブラシサイズ)]** と **[Tool Strength (ツールの強度)]** を調整すると、ランドスケープにペイント中に草の位置や削除する草をよりきれいに設定することができます。
 
 
 %Steps%

@@ -161,8 +161,8 @@ bool FMeshMergingTool::RunMerge(const FString& PackageName)
 }
 
 bool FMeshMergingTool::CanMerge() const
-{
-	return (MergingDialog->GetNumSelectedMeshComponents() > 1);
+{	
+	return MergingDialog->GetNumSelectedMeshComponents() >= 1;
 }
 
 #undef LOCTEXT_NAMESPACE

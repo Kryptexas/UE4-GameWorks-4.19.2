@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2610045
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:3 - 新規レベルの作成
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description: このステップでは、サンプル領域をビルドするために使うレベルを新規作成します。 
 SkillLevel:Beginner
-Version:4.8
+Version:4.9
 Related:Engine/Levels
 Related:Engine/Content/Browser
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,17 +27,17 @@ Related:Engine/Content/Browser
 
 %Steps%
 
-次にゲームの背景を作成していく [**レベル**](Engine/Levels) を作成します。 
-レベルを新規作成する方法は何通りかありますが、ここでは最もよく使われる [**コンテンツ ブラウザ**](Engine/Content/Browser) による方法でアンリアル エディタ内に異なるアセットの種類を作成していきます。 
+次にゲームの背景を作成するために必要な [レベル](Engine/Levels) を作成します。 
+レベルを新規作成する方法は何通りかありますが、ここでは最もよく使われる [コンテンツ ブラウザ](Engine/Content/Browser) による方法でアンリアル エディタ内に異なるアセットの種類を作成していきます。 
 
 
 ## ステップ
 
-1. アンリアル エディタで、**コンテンツ ブラウザ** ウィンドウを探して **[Add New]** (新規追加) ボタンをクリックして **Level** アセットを選択します。 
+1. アンリアル エディタで、**[コンテンツ ブラウザ]** ウィンドウを探して **[Add New (新規追加)]** ボタンをクリックして **Level** アセットを選択します。 
 
 	![](ContentBrowserLevel.png)
 
-	**[New Level]** (新規レベル) ダイアログ ウィンドウが開きます。
+	**[New Level (新規レベル)]** ダイアログ ウィンドウが開きます。
 
 	![](level_new.png)(w:550)
 
@@ -44,13 +45,14 @@ Related:Engine/Content/Browser
 
 1. **[Empty Level]** をクリックして選択します。
 
-	## 結果
+
+## 結果
 
 レベルが作成され、プレイ可能な背景を構築するためにビジュアルそしてゲームプレイに関連するアセットを追加する準備ができました。 
 
 ![](level_empty.png)(w:640)
 
-次のステップ では、アセットを追加し、背景をビルドしていきます。 
+次のステップでは、アセットを追加し、背景をビルドしていきます。 
 
 %Steps%	
 

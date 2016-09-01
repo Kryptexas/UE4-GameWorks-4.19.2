@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2666745
+﻿INTSourceChangelist:2713167
 Availability:Public
 Title:APEX タイプ
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Apex
 Description:Nvidia APEX Physics Lab APX と APB ファイル
-バージョン：4.9
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -53,8 +53,8 @@ Description:Nvidia APEX Physics Lab APX と APB ファイル
 		![](APEXtopicIcon.png)(w:150 convert:false)
 	[/PARAM]
 	[PARAM:description]
-	Nvidia PhysX APEX には アンリアル エディタ 4 がインポートできる 2 種類のファイル タイプ、 .APX と .APB. があります。 
-	クロスと被破壊メッシュは両方ともこれらのファイル タイプでエクスポート可能ですが、被破壊メッシュだけが **コンテンツ ブラウザ** 経由でアンリアル エンジン 4 にインポートすることができます。クロス アセットは **ペルソナ** 経由でインポートする必要があります。
+	Nvidia PhysX APEX には UE4 にインポートできる 2 種類のファイル タイプ、 .APX と .APB. があります。 
+	クロスと被破壊メッシュは両方ともこれらのファイル タイプでエクスポート可能ですが、被破壊メッシュだけが **コンテンツ ブラウザ** 経由でインポートすることができます。Cloth アセットは **ペルソナ** 経由でインポートする必要があります。
 	[/PARAM]
 [/OBJECT]
 
@@ -76,12 +76,12 @@ APEX アセットの作成とエクスポートについては [**APEX Physics L
 1. [Windows File Explorer] ウィンドウから **.APX** ファイルまたは **.APB ** ファイルを選択します。
 1. ファイルをクリックして、UE4 の **コンテンツ ブラウザ** へドラッグします。
 
-###クロス アセット
+###Cloth アセット
 
 1. ![New Asset](CB_button_NewAsset.png) ボタンをクリックします。
-1. クロス　アセットを使用するスケルタルメッシュを選択します。
+1. Cloth アセットを使用するスケルタルメッシュを選択します。
 1. **コンテンツ ブラウザ** で **スケルタルメッシュ** を **ダブルクリック** して開きます。
-1. **[Mesh Details (メッシュ詳細)] ** パネルの **Clothing** タブで ![New Asset](CB_Button_AddAPEX.png) ボタンをクリックします。
+1. **[Mesh Details (メッシュの詳細)] ** パネルの **Clothing** タブで ![New Asset](CB_Button_AddAPEX.png) ボタンをクリックします。
 1. インポートする **.APX** ファイルまたは **.APB** ファイルを選択します。 
 1. 各 **マテリアル要素** の ![New Asset](CB_Button_clothingElement.png) ドロップダウンを使用してマテリアルに割り当てるクロス アセットを選択します。
 

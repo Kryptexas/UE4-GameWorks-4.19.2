@@ -132,5 +132,10 @@ public:
 	// Array of overrides to asset containing nodes in the parent that have been overridden
 	UPROPERTY()
 	TArray<FAnimParentNodeAssetOverride> ParentAssetOverrides;
+
+	// Array of active pose watches (pose watch allows us to see the bone pose at a 
+	// particular point of the anim graph) 
+	UPROPERTY(transient)
+	TArray<class UPoseWatch*> PoseWatches;
 #endif
 };

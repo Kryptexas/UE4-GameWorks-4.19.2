@@ -52,6 +52,9 @@ public:
 
 	CORE_API bool IsInitialized() const {return bIsInitialized;}
 
+	// Load and cache the data needed for every culture we know about (this is usually done per-culture as required)
+	CORE_API void LoadAllCultureData();
+
 #if ENABLE_LOC_TESTING
 	static CORE_API FString& Leetify(FString& SourceString);
 #endif

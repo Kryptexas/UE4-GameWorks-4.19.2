@@ -1,6 +1,23 @@
+﻿INTSourceChangelist:0
 Availability: Public
 Title:源代码控制集成
 Crumbs:%ROOT%, Engine, Engine/UI
+Description:本文档概述了版本控制特性
+Version: 4.9
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](SourceControlTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/SourceControl:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/SourceControl]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2)]
 
@@ -8,146 +25,101 @@ Crumbs:%ROOT%, Engine, Engine/UI
 
 ## 概述
 
-对于每个开发人员来说，在您开发游戏时对包和文件的控制是非常重要的，然而如果美术人员想学习如何使用程序员设计的源代码控制包文件（也就是最小的界面以及隐藏的信息）将会变得特别地困难。
+Unreal Editor supports source control, allowing teams to coordinate their game development and design efforts, as well as handling version control.
 
-本文档将描述 UnrealEd 是如何使美术人员通过 UnrealEd 本身来管理他们的包，从而在某种程度上缓解美术人员的痛苦。
+[REGION:note]
+	Perforce and SVN are supported by default.
+[/REGION]
 
-注意：UnrealEd 不知道（或 _关心_ ）您使用的是哪个 SCC，只要它能产生正确的程序界面。
+## Activating Source Control
 
-[PUBLISH:Licensee]
+You can activate source control in one of two ways:
+* In the Level Editor's **Preferences** window.
+* In the **Content Browser**.
 
-授权用户可以查看有关[设置 Perforce](Programming/Basics/Perforce/Setup) 的信息。
+### Activating Source Control via Editor Preferences
 
-[/PUBLISH:Licensee]
+You can activate source control via the editor's main Preferences window (**Edit > Editor Preferences > Loading & Saving**).
 
+![SourceControlPreferences.png](SourceControlPreferences.png)
 
-
-## 登录
-
-首先，请确保启用了源代码控制功能。
-
-* 在文本编辑器中打开 <Game>EditorUserSettings.ini 文件。
-* 定位到[SourceControl]部分
-* 设置：Disabled=False
-* 保存文件！
-
-
-当您第一次启动编辑器时，将会提示您登录到您的源码控制系统。这可以通过您的源代码控制系统的本地界面完成。只要您登陆了源代码控制系统，那个信息将会被保存，以后您将不必在登录到源代码控制系统，除非您删除了您的编辑器 INI 文件。
-
-
-
-## 源代码控制包图标
-
-![SCC_PackageTree.PNG](SCC_PackageTree.PNG)
-
-启用 SCC 后，图标将会显示在[内容浏览器](Engine/Content/Browser)的软件包树形视图中软件包旁边。这些图表如下所示：
-
-| **图标** | **意思** |
+| Item | Description |
 | --- | --- |
-| ![SCC_CheckedOut.PNG](SCC_CheckedOut.PNG) | 文件可以编辑，因为您已经将其迁出。|
-| ![SCC_ReadOnly.png](SCC_ReadOnly.png) | 文件是只读的 - 您没有将其迁出。|
-| ![SCC_CheckedOutOther.png](SCC_CheckedOutOther.png) | 文件被另一个用户迁出。|
-| ![SCC_NotCurrent.png](SCC_NotCurrent.png) | 您没有最新版本的文件。|
-| ![SCC_NotInDepot.png](SCC_NotInDepot.png) | 文件不是 SCC depot 的一部分（ _它需要被添加到 SCC depot 中_ ）。|
+| **Automatically Checkout on Asset Modification** | When checked, this will automatically check out any asset that has been modified.  |
+| **Prompt for Checkout on Package Modification** | When checked, a prompt will appear when you make changes to a source controlled-package, asking if you would like to check out (lock) that package. |
+| **Add New Files when Modified** | This will add new files into source control when they are modified. |
+| **Use Global Settings** | Use global source control login settings, rather than per-project.  Changing this will require you to login again. |
+| **Tool for diff'ing text** | Specifies the file path to the tool to be used for diff'ing text files. |
 
-![SCC_CheckedOut.PNG](SCC_CheckedOut.PNG) 文件被您迁出并且可以进行编辑。您为编辑器打开的包也显示为**粗体**。
+### Activating Source Control via the Content Browser
 
-![SCC_ReadOnly.png](SCC_ReadOnly.png) 您没有迁出文件，并且您可以迁出它。这意味着当前的文件在您的硬盘上并且没有其他人迁出它。如果您需要那个文件，可以直接获取它！
+You can also activate Source Control in the **Content Browser**. To do so, **right-click** any asset or folder. At the bottom of the context menu, in the **Source Control** section, click **Connect to Source Control**. 
 
-![SCC_CheckedOutOther.png](SCC_CheckedOutOther.png) 其他人迁出了那个文件。因为多个人不能同时迁出同一个二进制文件，这意味着直到它被迁入为止您都不能迁出它。
+![Connect to Source Control](CB_SourceControl.png)
 
-![SCC_NotCurrent.png](SCC_NotCurrent.png) 没有人迁出该文件，但是您没有该文件的最新版本。您不能迁出这个文件，除非您关闭 UnrealEd、重新启动您的 SCC、同步文件到当前版本，然后在从新启动您的 UnrealEd。
+This will open a log-in screen where you can select your source-control system and enter any appropriate settings and other information.
 
-![SCC_NotInDepot.png](SCC_NotInDepot.png) 该文件是新的，并且它不是 SCC depot 的一部分。您可以使用菜单中的"Add（添加）"按钮把这个新文件添加到源代码控制中。
+![Source Control Login](CB_SourceControlLogin.png)
 
-
-
-## 源代码控制菜单
-
-![SourceControlMenu.png](SourceControlMenu.png)(w:369 h:118)
-
-通过右击[内容浏览器](Engine/Content/Browser)中的一个包或资源您将会看到一个关联菜单。您可以从这里访问源代码控制的子菜单。
+Enter the appropriate information, and click **Accept Settings**.  After source control is activated, the display of the assets in the **Content Browser** will change to reflect their source-control status, and some source-control options will be included on the **right-click** context menu.
 
 
-* **Refresh（刷新）** [内容浏览器](Engine/Content/Browser)中的包的状态仅是自上一次内容浏览器刷新后的状态。如果您想立即更新这些状态，您可以使用这个选项。
+## Status Icons
 
-* **Check Out（迁出）** 首先它将会刷新文件的状态，并确定它是否仍然可以被迁出。如果可以，它将会从 SCC depot 中迁出那个文件。
-
-* **Submit（提交）...**  将会把文件再提交到 SCC depot 中。根据您的 SCC 提供者的不同，这将会弹出一个对话框要求您填写迁入注释并提供给您几个选项。这个选项仅当文件被迁出到您本地时才可用。
-
-* **Revert（回滚）**  将会把文件回滚到 depot 中的该文件的最近修订版本。您对该文件自它最近一次提交后所保存的任何改变都将会被丢弃。这个选项仅当文件被迁出到您本地时才可用。
-
-* **Revision History（修订历史）...** 如果 SCC 提供者支持这个功能，这将会弹出一个对话框显示选中文件的修订历史。
+The **Content Browser** will display special icons on the **upper-right corner** of assets to give the source control status. Below are the available icons and their meanings:
 
 
 
+[REGION:imagetable]
+| ![CheckedOutByYou.png](CheckedOutByYou.png)(w:178) | ![CheckedOut.png](CheckedOut.png)(w:178) | ![MarkedForAdd.png](MarkedForAdd.png)(w:178) | ![notInDepot.png](notInDepot.png)(w:178) | ![NotHadRevision.png](NotHadRevision.png)(w:178) 
+| --- | --- | --- | --- | --- |
+| Checked out by you | Checked out by another user | Marked for add | Not in depot | Newer version of file exists in source control
 
-## 其它的工作流程功能
+[/REGION]
 
-在正常的操作期间，有几种方法可以在不使用内容浏览器的情况下连接源代码控制。
+## Source Control Actions
 
+While source control is active, the following context menu will be available when you **right-click** on an asset:
 
-### 根据修改提示迁出文件
+![SourceControlMenu.png](SourceControlMenu.png)
 
-![CheckoutPrompt.PNG](CheckoutPrompt.PNG)(w:409 h:410)
+| Item | Description |
+| --- | --- |
+| **Check Out** | Checks out (locks) the asset for editing. This prevents other users from editing the asset at the same time. |
+| **Refresh** | Refreshes the source control status of the asset. |
+| **History** | Gives a revision history list of the selected asset, allowing you to see previous edits. |
+| **Diff Against Depot** | This allows you to check the asset against the version currently stored in the source control depot. |
 
-无论何时，当一个包被标记为'脏'包时（那些需要保存的包），您将会注意到会有一个对话框出现来询问您是否想把包从源代码控制中迁出。这允许您快速您迁出您正在处理的包，您不需要跳转到[内容浏览器](Engine/Content/Browser)查找它们。这个对话框仅在包第一次被修改时显示，直到包被保存并迁入到源代码控制之前它将不会重新出现。编辑器也会在较慢的操作期间使所有被修改的包排队。比如构建光照可能会修改许多包。将会提示您一次迁出所有的包。
+## Checking Out and In
 
+To check out an asset for editing, simply **right-click** it and choose **Check Out**. However, when checking back in, there is a certain protocol which must be followed.
 
-* **Check Out Selected（迁出选中的包）：** 从源代码控制中迁出选中的包。注意：Ghosted 包不能被迁出，因为它们已经被其他人迁出或者当前它不是最新版本。
-* **Make Writable（使包可读）：** 使选中的包变为可读状态。甚至可以使得 ghosted（幽灵）包是可写的。简单地简单它名称旁的复选框即可。这是将会在ghosted(幽灵)包上出现一个"正方形"图标。这是通知您如果您点击"Check Out Selected（迁出选中的包）"按钮，这些包将会被忽略。注意，通常如果您的源码控制提供者设置您要迁出的文件是只读的，那么最好不要使用这个选项，因为这会使得源码控制提供者不知道您对文件所做的修改。
-* **Ask Me Later（稍后询问）：** 不迁出任何包并且在编辑器会话期间将不会询问您是否迁出列表中的包。注意：当使用某些保存的功能后将仍然会提示您迁出包。
-
-
-其它注意事项：当修改在磁盘上可写的包或者不在源代码控制中的包时将不会弹出这个对话框。
-
-*如果您不想使用这个功能，您可以通过跳转到主编辑器窗口的 View（视图）菜单，然后跳转到 Preferences（参数选择）并取消选定"Prompt for Checkout on Package Modification（提示迁出已经修改的包）"选项。
-
-
-### 在保存期间迁出包
-
-在编辑器中的许多保存选项也会提示您从源代码控制中迁出包。某些源代码控制提供者将会设置没有迁出的包为只读状态。编辑器不能保存只读文件，所以您必须迁出它们或者使它们处于可写状态时才能保存它们。关于保存操作的更多信息，请参照[编辑器包的保存步骤](Engine/Basics/AssetsAndPackages/Saving)和[UnrealEd 用户指南](Engine/UI/UserGuide)页面。
-
-
-
-## Perforce Specifics（Perforce 规格书）
-
-
-### Perforce 连接对话框
-
-![P4Connect.PNG](P4Connect.PNG)(w:502 h:160)
-
-当您第一次启用源代码控制，在打开编辑器时，您将会看到这个对话框。
-
-* **Server（服务器）：** 您的 Perforce 服务器地址及端口。
-* **User（用户名）：** 您的 Perforce 用户名。
-* **Client Spec（客户端规格说明）：** 当迁出或提交文件时要使用的客户端规格说明。在新版本的 Perforce 中也称为 workspace。当您输入用户名后，您可以可选地浏览查看和您的用户名相关的客户端规格说明。
-
-
-您也可以在<Game>EditorUserSettings.ini 文件中编辑器这些值。找到[SourceControl]部分然后查找这些设置即可。
-
-PortName=（和上面的服务器一样）
-
-UserName=（和上面的用户名一样）
-
-ClientSpecName=（和上面的用户规格说明一样）
+* **Right-click** on the asset and choose **Check In**. A dialog will appear with a required changelist description for the check-in. 
+* Enter a description, which will be added to the asset's revision history.
+* Click **OK** when finished.
 
 
 
-## 小结
+![ChangelistDescription.png](ChangelistDescription.png)
 
-SCC 集成还有几个新的功能需要添加，当功能添加后我们将会更新这个文档。
-
-
-
-## 高级集成
-
-本文档描述了如何为 NXN Alienbrain 7.5 及更新的版本添加更高级的功能，然而作为一个用户指南，这个集成解决方案对于使用其它资源管理解决方案的用户也是有用的。
+[REGION:note]
+	A changelist description is required, so the *OK* button will not be enabled until a description is entered.
+[/REGION]
 
 
-* [Advanced_NXN_Alienbrain_7.5_integration_to_UnrealEd3.zip](Advanced_NXN_Alienbrain_7.5_integration_to_UnrealEd3.zip): 
+## Deactivating Source Control
 
- 
+You may find that you want to deactivate source control after activating it.
+
+[REGION:warning]
+Only use this option if you are absolutely certain that you do not want to use source control. Deactivating source control will put your content out of sync with your source-control system, and will make it impossible to check in changes.
+[/REGION]
+
+**To deactivate source control**:
+
+1. In the upper-right corner of the Level Editor window, click the green, double-arrow icon (![](icon_SourceControl.png)). This brings up the **Source Control Login** screen.
+1. Click the **Run Without Source Control** button. The green icon in the Level Editor window changes to a red circle with a slash (![](icon_CB_SourceControlOff.png)), to indicate that source control is not being used.
+
 
 
 

@@ -810,6 +810,12 @@ UObject* UK2Node_Event::GetJumpTargetForDoubleClick() const
 	return NULL;
 }
 
+FSlateIcon UK2Node_Event::GetIconAndTint(FLinearColor& OutColor) const
+{
+	static FSlateIcon Icon("EditorStyle", "GraphEditor.Event_16x");
+	return Icon;
+}
+
 FString UK2Node_Event::GetFindReferenceSearchString() const
 {
 	FString FunctionName = EventReference.GetMemberName().ToString(); // If we fail to find the function, still want to search for its expected name.

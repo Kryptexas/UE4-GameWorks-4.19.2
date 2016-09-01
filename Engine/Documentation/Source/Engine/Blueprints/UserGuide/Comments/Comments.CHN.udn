@@ -1,10 +1,50 @@
-﻿INTSourceChangelist:1837389
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:注释
-Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Workflow
 Description:可用于组相关节点并提供其功能描述的容器。
+version: 4.9
+Parent:Engine/Blueprints/Workflow
 
-## 概述
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Comments:title%](Engine\Blueprints\UserGuide\Comments.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Comments:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Comments:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Comments]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Comments:title%](Engine\Blueprints\UserGuide\Comments.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Comments:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Comments:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Comments]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
 
 [EXCERPT:Intro]
 **注释** 可被直接添加到单个 _蓝图_ 节点上，也可以注释框的形式添加到组相关节点上并提供其功能的描述信息。 它们可以单独以其管理用途来让 **图表** 更易读懂，但它们也可以用来提供信息，正如添加注释到节点一样，使用注释或注释框可以把文本描述内容添加到节点上。
@@ -22,11 +62,11 @@ Description:可用于组相关节点并提供其功能描述的容器。
 
 1. 在出现的菜单中，在 **Node Comment** （节点注释）文本框位置处输入注释，然后按下 **回车** 。
 
-![](type_node_comment.png)
+	![](type_node_comment.png)
 
 您的注释会出现于节点上方的小注释气泡中。  如对图表进行缩放，节点注释将不会相应缩放。 
 
-![](commented_node.png)
+	![](commented_node.png)
 
 ### 编辑并移除节点注释
 
@@ -40,15 +80,18 @@ Description:可用于组相关节点并提供其功能描述的容器。
 
 1. 选择一个您想要进行注释的节点组。 您也可以先创建一个空白的注释框，并在稍后对节点附近的注释框进行排列，或者将其作为悬浮注释放置于指定区域。
 
-2. 右键点击并选择 **Create Comment from Selection** （从选择项中创建注释) (如果未选中任何节点则选择 **Add Comment...** （添加注释...) )。 此时将出现新的注释框。
+1. 右键点击并选择 **Create Comment from Selection** （从选择项中创建注释) (如果未选中任何节点则选择 **Add Comment...** （添加注释...) )。 此时将出现新的注释框。
 
-![](create_comment_from_selection.png)
+	![](create_comment_from_selection.png)
+	[REGION:tip]
+	也可以点击 **C** 来创建注释。
+	[/REGION]
 
-3. 将您的注释输入于出现的注释框的页眉位置。  
+1. 将您的注释输入于出现的注释框的页眉位置。  
 
-![](type_box_comment.png)
+	![](type_box_comment.png)
 
-4. 您可以通过拖曳注释框的右下角来重新定义注释框尺寸。 请注意如果您尝试移动注释框，则任何位于框体内的节点将会一起移动。 这对于重新排列调整过的节点组来说非常有用。 可通过 **细节** 选项卡来逐个为注释框进行此项操作的变更。
+1. 您可以通过拖曳注释框的右下角来重新定义注释框尺寸。 请注意如果您尝试移动注释框，则任何位于框体内的节点将会一起移动。 这对于重新排列调整过的节点组来说非常有用。 可通过 **细节** 选项卡来逐个为注释框进行此项操作的变更。
 
 
 ![](finished_comment_box.png)

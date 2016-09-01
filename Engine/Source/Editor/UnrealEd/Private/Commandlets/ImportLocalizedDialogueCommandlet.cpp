@@ -440,7 +440,7 @@ bool UImportLocalizedDialogueCommandlet::ImportDialogueForCulture(UDialogueWave*
 			}
 
 			// Find the correct entry for our context
-			const FContext* ContextManifestEntryContext = ContextManifestEntry->FindContextByKey(ContextLocalizationKey);
+			const FManifestContext* ContextManifestEntryContext = ContextManifestEntry->FindContextByKey(ContextLocalizationKey);
 			check(ContextManifestEntryContext); // This should never fail as we pass in the key to FindEntryByKey
 
 			// We might have a native translation for this text, in which case we need to use the translation for that text, rather than for the source text

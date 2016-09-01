@@ -151,6 +151,9 @@ bool FOpenGLES2::bIsCheckingShaderCompilerHacks = false;
 /** GL_OES_vertex_type_10_10_10_2 */
 bool FOpenGLES2::bSupportsRGB10A2 = false;
 
+/** GL_OES_program_binary extension */
+bool FOpenGLES2::bSupportsProgramBinary = false;
+
 /* Indicates shader compiler hack checks are being tested */
 bool FOpenGLES2::bIsLimitingShaderCompileCount = false;
 
@@ -235,6 +238,7 @@ void FOpenGLES2::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsTextureNPOT = ExtensionsString.Contains(TEXT("GL_OES_texture_npot")) || ExtensionsString.Contains(TEXT("GL_ARB_texture_non_power_of_two"));
 	bSupportsStandardDerivativesExtension = ExtensionsString.Contains(TEXT("GL_OES_standard_derivatives"));
 	bSupportsRGB10A2 = ExtensionsString.Contains(TEXT("GL_OES_vertex_type_10_10_10_2"));
+	bSupportsProgramBinary = ExtensionsString.Contains(TEXT("GL_OES_get_program_binary"));
 	if (!bSupportsStandardDerivativesExtension)
 	{
 		UE_LOG(LogRHI, Warning, TEXT("GL_OES_standard_derivatives not supported. There may be rendering errors if materials depend on dFdx, dFdy, or fwidth."));

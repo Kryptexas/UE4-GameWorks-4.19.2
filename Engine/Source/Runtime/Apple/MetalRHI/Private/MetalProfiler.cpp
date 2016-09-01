@@ -32,6 +32,20 @@ DEFINE_STAT(STAT_MetalFunctionCount);
 DEFINE_STAT(STAT_MetalFreePooledBufferCount);
 DEFINE_STAT(STAT_MetalPooledBufferCount);
 
+DEFINE_STAT(STAT_MetalPooledBufferMem);
+DEFINE_STAT(STAT_MetalUsedPooledBufferMem);
+DEFINE_STAT(STAT_MetalFreePooledBufferMem);
+DEFINE_STAT(STAT_MetalWastedPooledBufferMem);
+DEFINE_STAT(STAT_MetalBufferAlloctations);
+DEFINE_STAT(STAT_MetalBufferFreed);
+DEFINE_STAT(STAT_MetalBufferMemAlloc);
+DEFINE_STAT(STAT_MetalBufferMemFreed);
+DEFINE_STAT(STAT_MetalBufferNativeAlloctations);
+DEFINE_STAT(STAT_MetalBufferNativeFreed);
+DEFINE_STAT(STAT_MetalBufferNativeMemAlloc);
+DEFINE_STAT(STAT_MetalBufferNativeMemFreed);
+
+
 #if METAL_STATISTICS
 void FMetalEventNode::GetStats(FMetalPipelineStats& OutStats)
 {

@@ -174,6 +174,12 @@ public:
 	 */
 	virtual uint32 GetTestFlags() const = 0;
 
+	/** Gets the source file the test was defined on. */
+	virtual FString GetSourceFile() const = 0;
+
+	/** Gets the source file line number the test was defined on. */
+	virtual int32 GetSourceFileLine() const = 0;
+
 	/** Recursively gets the number of child nodes */
 	virtual int32 GetTotalNumChildren() const = 0;
 

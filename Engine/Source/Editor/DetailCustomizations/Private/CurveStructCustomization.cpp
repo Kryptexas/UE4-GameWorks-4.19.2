@@ -318,8 +318,7 @@ FReply FCurveStructCustomization::OnCreateButtonClicked()
 				OutermostPkg->MarkPackageDirty();
 
 				// Make sure expected type of pointer passed to SetValue, so that it's not interpreted as a bool
-				const UObject* NewObject = NewCurve;
-				ExternalCurveHandle->SetValue(NewObject);
+				ExternalCurveHandle->SetValue(NewCurve);
 			}
 		}
 	}

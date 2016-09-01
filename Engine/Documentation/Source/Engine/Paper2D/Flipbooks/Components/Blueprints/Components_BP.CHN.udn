@@ -1,12 +1,14 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2514961
 Availability:Public
-Title:Flipbook Components in Blueprints
+Title:蓝图中的 Flipbook 组件
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Flipbooks, Engine\Paper2D\Flipbooks\Components
-Description:Guide on accessing and working with Flipbook Components in Blueprints. 
-Related: Engine/Paper2D/Flipbooks
-Related: Engine/Paper2D/Sprites
-Related: Engine/Paper2D
-Related: Engine/Blueprints
+Description:蓝图中访问并使用 Flipbook 组件指南 
+Related:Engine/Paper2D/Flipbooks
+Related:Engine/Paper2D/Sprites
+Related:Engine/Paper2D
+Related:Engine/Blueprints
+Version:4.9
+SkillLevel:Beginner
 
 [REGION:banner]
 ![](Components_Banner.png)
@@ -14,135 +16,155 @@ Related: Engine/Blueprints
 
 [TOC (start:2 end:2)]
 
-Working with **Flipbook Components** in Blueprints is very similar to working with other types of [Components](Engine/Blueprints/UserGuide/Components) in Blueprints. After adding a Flipbook Component to a Blueprint, you can specify the Source Flipbook asset to use, define the Flipbook's Play Rate or adjust the Sprite Color used in addition to standard options that are available to all components such as Transforming. 
+在蓝图中使用 **Flipbook 组件** 和使用其他类型 [组件](Engine/Blueprints/UserGuide/Components) 的方法十分相似。将一个 Flipbook 组件添加至蓝图后，即可指定使用的源 Flipbook 组件、定义 Flipbook 的播放速度或调整标准选项（可用于所有组件，如“变形”）之外使用的 Sprite 颜色 
 
-Inside the [Graph](Engine/Blueprints/UserGuide/Graphs) tab, you can directly access and modify the properties of the Flipbook Component through your script. This includes things like adjusting the Play Rate, Playing, Stopping or Reversing the Flipbook, or even changing the Source Flipbook to a different Flipbook asset (useful for when you want to switch between Flipbook animations for a character for example). 
+在 [图像](Engine/Blueprints/UserGuide/Graphs) 标签内，可通过脚本直接访问并修改 Flipbook 组件的属性。包括调整 Flipbook 播放速度、播放、停止或倒退，甚至将源 Flipbook 变为一个不同的 Flipbook 资源（此操作在需要为一个角色切换不同的 Flipbook 动画时十分有效）。 
 
-This page will show you how to add, access and modify Flipbook Components in a Blueprints. For more information on Flipbooks themselves, see the [](Engine\Paper2D\Flipbooks) documentation. 
+本页中将讲述如何在蓝图中添加、获取并修改 Flipbook 组件。如需 Flipbooks 的更多信息，请查阅 [](Engine\Paper2D\Flipbooks) 文档。 
 
-## Adding a Flipbook Component
+## 添加一个 Flipbook 组件
 
-You can add a Flipbook Component to a Blueprint from the **Components** window of a Blueprint. 
+可从蓝图的 **组件** 窗口中将 Flipbook 组件添加至蓝图。 
 
-1. Inside a Blueprint, **Left-Click** the **Add Component** button inside the **Components** window and search for and add a **Paper Flipbook**. 
+1. 在蓝图中，在 **组件** 窗口中 **左键单击** **添加组件** 按钮，然后搜索并添加一个 **纸质 Flipbook**。 
 
 	![](Components1.png)	
 
-1. After adding the Flipbook Component, you will be prompted to enter a name for the component. 
+1. 添加 Flipbook 组件后，将弹出输入组件名称的提示。 
 
 	![](Components2.png)
 
-	You can then begin adjusting the Properties of the Flipbook Component inside the **Details** panel. 
+	之后即可在 **细节** 面板中开始调整 Flipbook 组件的属性。 
 
-You can also add Flipbook Components to Blueprints by using **Blueprint/Add Script** option. 
+	也可使用 **蓝图/添加脚本** 选项将 Flipbook 组件添加到蓝图。 
 
-1.	With a **Flipbook** placed inside your level and selected, head to the **Details** panel. 
+1.	将 **Flipbook** 放置于关卡中并选定后，前往 **细节** 面板。 
 
-1.	Click the **Blueprint/Add Script** button. 
+1.	点击 **蓝图/添加脚本** 按钮。 
 
 	![](Components3.png)
 
-	This will create a new Blueprint (prompting you to enter a name) and assign the Flipbook selected as a component of it automatically. 
+	此操作将创建一个新蓝图（将出现输入名称的提示）并将自动指定选中的 Flipbook 作为其组件之一。 
 
-## Flipbook Component Properties
+## Flipbook 组件属性
 
-There are several properties that can be adjusted inside the **Details** panel for a Flipbook Component, however the most critical are found under the **Sprite** section. It is here you define the **Source Flipbook** that should be used, define the initial **Play Rate** and **Sprite Color** for the Flipbook to use. 
+在 **细节** 面板中可对 Flipbook 组件的数个属性进行调整，然而最关键的属性位于 **Sprite** 部分中。在此可定义所使用的 **源 Flipbook**，定义初始 **播放速度** 以及 Flipbook 所使用的 **Sprite 颜色**。 
 
 ![](Details1.png)
 
-Click the **None** drop-down box to assign a Flipbook. 
+点击 **None** 下拉框指派一个 Flipbook。 
 
 ![](Details2.png)
 
-Any Flipbook assets will be available for selection in the pop-up window or you can create a new Flipbook asset from the option at the top. 
+在弹出窗口中可选择所有 Flipbook 资源，或从上方选项创建一个新的 Flipbook 资源。 
 
 ![](Details3.png)
 
-You can enter a numerical value for the initial Play Rate inside the **Play Rate** box. 
+在 **播放速度** 框中可输入初始播放速度的数值。 
 
 ![](Details4.png)
 
-And finally, set the color for the Sprite to use with the **Sprite Color** option. 
+最后在 **Sprite 颜色** 选项中设置 Sprite 使用的颜色。 
 
 ![](Details5.png)
 
-### Collision Properties
+### 碰撞属性
 
-Although it is possible to apply collision directly to a Flipbook (see [](Engine\Paper2D\Flipbooks\Editor) for more information), it is recommended that a collision shape be used instead for performance reasons. For example, you can use a **Box**, **Capsule** or **Sphere** Component in conjunction with a Flipbook to provide the associated collision results you need. 
+可以直接对 Flipbook 应用碰撞（查看 [](Engine\Paper2D\Flipbooks\Editor) 中的详细内容），但从运行性能角度考虑，推荐使用碰撞形态。举例而言，Flipbook 可结合 **方块**、**胶囊体** 或 **球体** 使用，以获得相关的碰撞效果。 
 
-For example, clicking the **Add Component** button inside your Blueprint and search for **Collision**: 
+举例而言，在蓝图中点击 **添加组件** 按钮并搜索 **碰撞**： 
 
 ![](Collision1.png)
 
-You can now apply different shapes to use as the collision for your Flipbook rather than specifying it on the Flipbook itself. 
+即可应用不同形态作为 Flipbook 的碰撞使用，无需在 Flipbook 上进行指定。 
 
-An example of such is indicated below. 
+如下所示。 
 
 ![](Collision2.png)(w:820)
 
-Above we've created a simple blinking box Blueprint and added a Box Collision component to provide the collision for the box by changing the **Box Extent** values to encapsulate our box and changing the **Collision Presets** to **Block All** to provide the actual collision. 
+以上已创建一个简单的闪烁方块蓝图，并添加 **方块碰撞** 组件为方块提供碰撞；改变 **方块范围** 数值，将方块形成胶囊体，并改变 **碰撞预设** 以 **全部限制**，从而实现实际的碰撞。 
 
-## Working with Flipbook Components
+## 使用 Flipbook 组件
 
-When you are ready to start working with your Flipbook Component, you can head to the **Graph** tab and see it listed under the **Components** section of the **MyBlueprint** window, along with any other Components that were added to the Blueprint. 
+准备好开始使用 Flipbook 组件后，可前往 **图表** 标签，在 **我的蓝图** 窗口下的 **组件** 部分找到它，以及已添加至蓝图的其他组件。 
 
 ![](MyBlueprint1.png)
 
-To access or affect the Flipbook Component in anyway, you will need to hold **Ctrl** and **Drag-Drop** the Flipbook Component into a graph. 
+如需以任何形式访问或对 Flipbook 组件产生影响，长按 **Ctrl 键** 并 **单击拖放** Flipbook 组件到图表中。 
 
 ![](Graph1.png)
 
-This will Get the Flipbook Component at which point you can drag off it and call any number of Events or Functions on it. 
+此操作将使 Flipbook 组件可移动并对其调用任意数量的事件或功能。 
 
 ![](Graph2.png)(w:600)
 
-You will see that there are some actions that can only be taken with Flipbooks if you search in the Context Menu for **Flipbook**.
+在快捷菜单中搜索 **Flipbook** 时可以发现部分操作只能与 Flipbooks 一同进行。
 
  ![](Graph3.png)(w:600)
  
-This is where you can perform actions such as determining if the Flipbook is currently Playing, getting its current Play Rate, setting a new Play Rate, Starting, Stopping or Reversing etc. You can also get the current Source Flipbook asset as well as set a new Source Flipbook asset to use, which will switch the animation. 
+在此处可执行一系列操作，如确定 Flipbook 当前是否正在播放、获得其当前播放速度、设置新的播放速度、开始、停止、倒退等。还可获得当前源 Flipbook 资源和设置新的源 Flipbook 资源以供使用（此操作将切换动画）。 
  
 [REGION:note]
-You can also access this by searching for **Sprite** which provides options for changing the Sprite Color as well. 
+也可通过通过搜索 **Sprite** 进行访问，更改 sprite 颜色的选项也将出现。 
 [/REGION]
 
 ![](Graph4.png)(w:600)
 
-### Switching Flipbooks 
+### 切换 Flipbooks 
 
-An example of using the **SetFlipbook** node is provided below which is used to update the Flipbook motion being played. 
+下方有使用 **SetFlipbook** 节点的范例，用于更新正在播放的 Flipbook 运动。 
 
 [REGION:note]
-Only works if the **Mobility** property on the Flipbook Component is set to **Moveable** or is called during construction of the Actor.
+只有 Flipbook 组件上的 **移动性** 属性设为 **可移动** 或在 Actor 构建中被调用时方为有效。
 [/REGION]
 
-In this example, when the player character performs any movement, a Custom Event called **Update Animation** is called. 
+在该范例中，玩家角色执行动作时将调用一个名为 **更新动画** 的自定义事件。 
 
 ![](Animation1.png)
 
-This Custom Event uses **SetFlipbook** for the Flipbook Component called **Sprite** (which is our player character) to **Select** either an Idle Animation or Running Animation based on whether or not the character's **Velocity** is above 0, meaning they are moving. If they are moving, the Running Flipbook is set as the Source Flipbook and if they are not, the Idle Flipbook is set as the Source Flipbook. 
+该自定义事件为 Flipbook 组件调用的 **Sprite**（即为玩家角色）使用 **SetFlipbook** 节点，基于角色 **速率** 是否高于 0 （即其是否移动）**选择** 静止动画或动态动画。如其为移动状态，动态 Flipbook 将被设为源 Flipbook；如其为静止状态，静态 Flipbook 将被设为源 Flipbook。 
 
 ![](Animation2.png)
 
-The result is the switching between Flipbooks animations as seen below. 
+如下所示，结果将在不同 Flipbooks 动画之间切换。 
 
-![](Example1GIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+o_8NIonUIEk
+[/PARAMLITERAL]
+[/OBJECT]
 
 [REGION:note]
-You can also see this exhibited inside the **2D Side Scroller** project template from the [Project Browser](Engine/Basics/Projects/Browser) under **New Project**. 
+在 **新项目** 下 [项目浏览器](Engine/Basics/Projects/Browser) 的 **2D 侧卷轴** 项目模板中也有展示。 
 [/REGION]
 
-### Setting Play Rate
+### 设置播放速度
 
-An example of using the **Set Play Rate** node to increase/decrease the playback speed of a Flipbook Component is illustrated below. 
+下例中展示的是使用 **Set Play Rate** 节点增加/减少 Flipbook 组件播放速度。 
 
 ![](Sprint.png)
 
-Above, inside our Character Blueprint we use a **Left Shift** Key Event to update the **Max Walk Speed** value (the speed of **Character Movement**) based on whether or not shift is held or not. We then update the **Play Rate** of our **Sprite** Flipbook Component (which is our playable character), doubling it when shift is held and setting it back to normal when shift is released. 
+上图中，基于移位是否保留，在角色蓝图中使用 **左移位** 关键事件来更新 **最高步行速度** 数值（**角色移动** 的速度）。然后更新 **Sprite** Flipbook 组件（即为可操作角色）的 **播放速度**。移位保留时将加倍，移位释放后将恢复正常。 
 
-The result is a character that moves faster when shift is held (along with the speed of the Flipbook). 
+结果是，移位保留时角色将拥有更快的移动速度（伴随 Flipbook 的速度）。 
 
-![](Example2GIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+I9Cg9agS12o
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 

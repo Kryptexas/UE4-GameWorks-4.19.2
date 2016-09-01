@@ -21,10 +21,8 @@ protected:
 	};
 
 public:
-	USTRUCT()
 	struct FSplashDesc
 	{
-		UPROPERTY()
 		UTexture2D*			LoadingTexture;					// a UTexture pointer, either loaded manually or passed externally.
 		FString				TexturePath;					// a path to a texture for auto loading, can be empty if LoadingTexture is specified explicitly
 		FTransform			TransformInMeters;				// transform of center of quad (meters)
@@ -73,6 +71,9 @@ public:
 	virtual void SetAutoShow(bool bInAuto) { bAutoShow = bInAuto; }
 	virtual bool IsAutoShow() const { return bAutoShow; }
 
+	virtual void SetLoadingIconMode(bool bInLoadingIconMode) { LoadingIconMode = bInLoadingIconMode; }
+	virtual bool IsLoadingIconMode() const { return LoadingIconMode; }
+
 	enum EShowType
 	{
 		None,
@@ -84,7 +85,7 @@ public:
 	virtual void Hide(enum EShowType) = 0;
 
 	// delegate method, called when loading begins
-	void OnPreLoadMap() { OnLoadingBegins(); }
+	void OnPreLoadMap(const FString&) { OnLoadingBegins(); }
 
 	// delegate method, called when loading ends
 	void OnPostLoadMap() { OnLoadingEnds(); }
@@ -103,6 +104,7 @@ protected:
 
 	FThreadSafeBool		LoadingCompleted;
 	FThreadSafeBool		LoadingStarted;
-	bool				bAutoShow;			// whether or not show splash screen automatically (when LoadMap is called)
-	bool				bInitialized;
+	FThreadSafeBool		LoadingIconMode;		// this splash screen is a simple loading icon (if supported)
+	bool				bAutoShow : 1;			// whether or not show splash screen automatically (when LoadMap is called)
+	bool				bInitialized : 1;
 };

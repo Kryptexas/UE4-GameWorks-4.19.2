@@ -1,8 +1,13 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2945303
 Availability:Public
 Title:안드로이드 디바이스 호환성
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:안드로이드 개발에 있어서의 디바이스 호환성입니다.
+Version: 4.9
+Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:reference
 
 [VAR:Supported]
 ![](%ROOT%/icon_success_16x.png)

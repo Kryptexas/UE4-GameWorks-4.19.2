@@ -18,12 +18,20 @@ static bool SupportsES2()
 	return bBuildForES2;
 }
 
-static bool SupportsAEP()
+static bool SupportsES31()
 {
-	// default to not supporting ES31
+	// default to support ES3
 	bool bBuildForES31 = false;
 	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES31"), bBuildForES31, GEngineIni);
 	return bBuildForES31;
+}
+
+static bool SupportsAEP()
+{
+	// default to not supporting ES31
+	bool bBuildForESDeferred = false;
+	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForESDeferred"), bBuildForESDeferred, GEngineIni);
+	return bBuildForESDeferred;
 }
 
 static bool SupportsVulkan()
@@ -140,11 +148,12 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::SupportsFeature( ETarge
 			return true;
 			
 		case ETargetPlatformFeatures::LowQualityLightmaps:
-			return SupportsES2() || SupportsVulkan();
+		case ETargetPlatformFeatures::MobileRendering:
+			return SupportsES31() || SupportsES2() || SupportsVulkan();
 			
 		case ETargetPlatformFeatures::HighQualityLightmaps:
-		case ETargetPlatformFeatures::VertexShaderTextureSampling:
 		case ETargetPlatformFeatures::Tessellation:
+		case ETargetPlatformFeatures::DeferredRendering:
 			return SupportsAEP();
 			
 		default:
@@ -162,17 +171,24 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetAllPossibleShaderFor
 {
 	static FName NAME_OPENGL_ES2(TEXT("GLSL_ES2"));
 	static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
-	static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
+	static FName NAME_SF_VULKAN_ES31_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
+	static FName NAME_GLSL_ES3_1_ANDROID(TEXT("GLSL_ES3_1_ANDROID"));
 
 	if (SupportsVulkan())
 	{
-		OutFormats.AddUnique(NAME_VULKAN_ES3_1_ANDROID);
+		OutFormats.AddUnique(NAME_SF_VULKAN_ES31_ANDROID);
 	}
 
 	if (SupportsES2())
 	{
 		OutFormats.AddUnique(NAME_OPENGL_ES2);
 	}
+
+	if (SupportsES31())
+	{
+		OutFormats.AddUnique(NAME_GLSL_ES3_1_ANDROID);
+	}
+
 	if (SupportsAEP())
 	{
 		OutFormats.AddUnique(NAME_GLSL_310_ES_EXT);
@@ -413,13 +429,15 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float Del
 		{
 			ConnectedDeviceIds.Add(DeviceIt.Key());
 
+			const FAndroidDeviceInfo& DeviceInfo = DeviceIt.Value();
+
 			// see if this device is already known
 			if (Devices.Contains(DeviceIt.Key()))
 			{
+				//still update its authorized status, which could change while connected
+				Devices[DeviceIt.Key()]->SetAuthorized(DeviceInfo.bAuthorizedDevice);
 				continue;
 			}
-
-			const FAndroidDeviceInfo& DeviceInfo = DeviceIt.Value();
 
 			// check if this platform is supported by the extensions and version
 			if (!SupportedByExtensionsString(DeviceInfo.GLESExtensions, DeviceInfo.GLESVersion))
@@ -435,7 +453,7 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float Del
 			Device->SetConnected(true);
 			Device->SetModel(DeviceInfo.Model);
 			Device->SetDeviceName(DeviceInfo.DeviceName);
-			Device->SetAuthorized(!DeviceInfo.bUnauthorizedDevice);
+			Device->SetAuthorized(DeviceInfo.bAuthorizedDevice);
 			Device->SetVersions(DeviceInfo.SDKVersion, DeviceInfo.HumanAndroidVersion);
 
 			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());

@@ -44,9 +44,8 @@ PhAT物理编辑器可以通过双击任何物理资源或者通过在内容浏�
 		物理材质主题
 	[/PARAM]
 	[PARAM:links]
-		* [](Engine/Physics/PhAT/UserGuide "%Engine/Physics/PhAT/UserGuide:description%")
-		* [](Engine/Physics/PhAT/Reference "%Engine/Physics/PhAT/Reference:description%")
-		* [](Engine/Physics/PhAT/Properties "%Engine/Physics/PhAT/Properties:description%")
+		* [](Engine/Physics/PhAT/HowTo "%Engine/Physics/PhAT/HowTo:Description%")
+		* [](Engine/Physics/PhAT/Reference "%Engine/Physics/PhAT/Reference:Description%")
 	[/PARAM]
 [/OBJECT]
 

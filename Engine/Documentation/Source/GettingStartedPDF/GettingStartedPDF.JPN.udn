@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2033300
-Availability:Docs
+﻿Availability:Docs
 Title:アンリアル エンジン入門
 Crumbs:
 DoIndex:false
-Description:アンリアル エンジン入門、 PDF ジェネレータ
+Description:アンリアル エンジン PDF ジェネレータ入門
 Template:PDF.html
 
 [REGION:banner]
@@ -27,6 +26,11 @@ Template:PDF.html
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine#Main(offset:1)]
 
+## ソースからアンリアル エンジンをビルドする
+
+[INCLUDE:Programming/Development/BuildingUnrealEngine#windowscompile]
+
+Windows 以外のプラットフォームのエンジンのビルドおよび実行ファイルの作成方法については、[](Programming/Development/BuildingUnrealEngine) をご覧ください。
 
 ## エディタの起動
 
@@ -35,16 +39,16 @@ Template:PDF.html
 
 ## 初回プロジェクトの作成
 
-アンリアル エディタを開くと、プロジェクト ブラウザが表示されます。プロジェクト ブラウザは、プロジェクトの作成、現行プロジェクト、またはサンプルゲームやショーケースなどのサンプルコンテンツを開くための出発点です。 
-
+アンリアル エディタを開くと、プロジェクト ブラウザが表示されます。プロジェクト ブラウザは、プロジェクトの作成、現行プロジェクト、 
+またはサンプルゲームやショーケースなどのサンプルコンテンツを開くための出発点です。
 
 [INCLUDE:Engine/Basics/Projects/Browser#CreatingProjects(offset:1)]
 
 
 ## コード プロジェクトのコンパイル
 
-Blank (空白) のテンプレート、またはいずれかのブループリント専用テンプレートでプロジェクトを作成すると、プロジェクトの作業をアンリアル エディタで直ちに開始することができます。ゲームまたは
-エンジン C++ コードの作業時は、ゲームに反映させた変更を見るためにはコードをコンパイルする必要があります。  
+Blank (空白) のテンプレート、またはいずれかのブループリント専用テンプレートでプロジェクトを作成すると、プロジェクトの作業をアンリアル エディタで直ちに開始することができます。ゲームまたはエンジン C++ コードの作業中にゲームに反映させた変更を確認するには、
+コードをコンパイルする必要があります。  
 
 [INCLUDE:Programming\Development\CompilingProjects#Main(offset:1)]
 

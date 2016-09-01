@@ -8,11 +8,6 @@
 #include "DeferredShadingCommon.usf"
 #include "DeferredLightingCommon.usf"
 
-float4 GetPerPixelLightAttenuation(float2 UV)
-{
-	return Square(Texture2DSampleLevel(LightAttenuationTexture, LightAttenuationTextureSampler, UV, 0));
-}
-
 FDeferredLightData SetupLightDataForStandardDeferred()
 {
 	// Build the light data struct using the DeferredLightUniforms and light defines
@@ -23,15 +18,15 @@ FDeferredLightData SetupLightDataForStandardDeferred()
 	LightData.LightDirection = DeferredLightUniforms.NormalizedLightDirection;
 	LightData.SpotAnglesAndSourceRadius = float4(DeferredLightUniforms.SpotAngles, DeferredLightUniforms.SourceRadius, DeferredLightUniforms.SourceLength);
 	LightData.MinRoughness = DeferredLightUniforms.MinRoughness;
+	LightData.ContactShadowLength = DeferredLightUniforms.ContactShadowLength;
 	LightData.DistanceFadeMAD = DeferredLightUniforms.DistanceFadeMAD;
 	LightData.ShadowMapChannelMask = DeferredLightUniforms.ShadowMapChannelMask;
+	LightData.ShadowedBits = DeferredLightUniforms.ShadowedBits;
 
 	LightData.bInverseSquared = INVERSE_SQUARED_FALLOFF;
 	LightData.bRadialLight = RADIAL_ATTENUATION;
 	//@todo - permutation opportunity
 	LightData.bSpotLight = RADIAL_ATTENUATION;
-	//@todo - permutation opportunity
-	LightData.bShadowed = DeferredLightUniforms.bShadowed;
 
 	return LightData;
 }
@@ -40,7 +35,7 @@ Texture2D<uint> LightingChannelsTexture;
 
 uint GetLightingChannelMask(float2 UV)
 {
-	uint2 IntegerUV = UV * Frame.BufferSizeAndInvSize.xy;
+	uint2 IntegerUV = UV * View.BufferSizeAndInvSize.xy;
 	return LightingChannelsTexture.Load(uint3(IntegerUV, 0)).x;
 }
 
@@ -72,10 +67,10 @@ void DirectionalPixelMain(
 		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
 		
 		uint2 Random = ScrambleTEA( uint2( SVPos.xy ) );
-		Random.x ^= Frame.Random;
-		Random.y ^= Frame.Random;
+		Random.x ^= View.Random;
+		Random.y ^= View.Random;
 
-		OutColor = GetDynamicLighting(WorldPosition, CameraVector, InUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), Random);
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), Random);
 	}
 }
 
@@ -101,17 +96,20 @@ void RadialPixelMain(
 		)
 	{
 		float SceneDepth = CalcSceneDepth(ScreenUV);
-		float4 HomogeneousWorldPosition = mul(float4(InScreenPosition.xy / InScreenPosition.w * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
+		// With a perspective projection, the clip space position is NDC * Clip.w
+		// With an orthographic projection, clip space is the same as NDC
+		float2 ClipPosition = InScreenPosition.xy / InScreenPosition.w * (View.ViewToClip[3][3] < 1.0f ? SceneDepth : 1.0f);
+		float4 HomogeneousWorldPosition = mul(float4(ClipPosition, SceneDepth, 1), View.ScreenToWorld);
 		float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 		float3 CameraVector = normalize(WorldPosition - View.WorldCameraOrigin);
 
 		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
 
 		uint2 Random = ScrambleTEA( uint2( SVPos.xy ) );
-		Random.x ^= Frame.Random;
-		Random.y ^= Frame.Random;
+		Random.x ^= View.Random;
+		Random.y ^= View.Random;
 
-		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(ScreenUV), Random);
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(ScreenUV), Random);
 		OutColor *= ComputeLightProfileMultiplier(WorldPosition, DeferredLightUniforms.LightPosition, DeferredLightUniforms.NormalizedLightDirection);
 	}
 }

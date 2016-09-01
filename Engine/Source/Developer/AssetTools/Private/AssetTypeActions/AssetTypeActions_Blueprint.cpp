@@ -284,13 +284,11 @@ UThumbnailInfo* FAssetTypeActions_Blueprint::GetThumbnailInfo(UObject* Asset) co
 
 FText FAssetTypeActions_Blueprint::GetAssetDescription(const FAssetData& AssetData) const
 {
-	if (const FString* pDescription = AssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint, BlueprintDescription)))
+	FString Description = AssetData.GetTagValueRef<FString>(GET_MEMBER_NAME_CHECKED(UBlueprint, BlueprintDescription));
+	if (!Description.IsEmpty())
 	{
-		if (!pDescription->IsEmpty())
-		{
-			const FString DescriptionStr(*pDescription);
-			return FText::FromString(DescriptionStr.Replace(TEXT("\\n"), TEXT("\n")));
-		}
+		Description.ReplaceInline(TEXT("\\n"), TEXT("\n"));
+		return FText::FromString(MoveTemp(Description));
 	}
 
 	return FText::GetEmpty();
@@ -303,15 +301,14 @@ TWeakPtr<IClassTypeActions> FAssetTypeActions_Blueprint::GetClassTypeActions(con
 
 	// Blueprints get the class type actions for their parent native class - this avoids us having to load the blueprint
 	UClass* ParentClass = nullptr;
-	const FString* ParentClassNamePtr = AssetData.TagsAndValues.Find(NativeParentClassTag);
-	if(!ParentClassNamePtr)
+	FString ParentClassName;
+	if(!AssetData.GetTagValue(NativeParentClassTag, ParentClassName))
 	{
-		ParentClassNamePtr = AssetData.TagsAndValues.Find(ParentClassTag);
+		AssetData.GetTagValue(ParentClassTag, ParentClassName);
 	}
-	if(ParentClassNamePtr && !ParentClassNamePtr->IsEmpty())
+	if(!ParentClassName.IsEmpty())
 	{
 		UObject* Outer = nullptr;
-		FString ParentClassName = *ParentClassNamePtr;
 		ResolveName(Outer, ParentClassName, false, false);
 		ParentClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
 	}

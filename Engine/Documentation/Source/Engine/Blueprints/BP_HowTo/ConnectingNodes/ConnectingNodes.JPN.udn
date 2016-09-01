@@ -1,25 +1,25 @@
-﻿INTSourceChangelist:2679279
+﻿INTSourceChangelist:2974295
 Availability:Public
 Title:ノードを接続する
-Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
+Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\Scripting
 Description:ブループリントでノードを接続する方法のサンプル 
 Related:Engine/Blueprints/BP_HowTo/PlacingNodes
 Related:Engine/Blueprints/BP_HowTo/BasicUsage
 Related:Engine/Blueprints/UserGuide
 Related:Engine/Blueprints/UserGuide/CheatSheet
 version:4.9
-SkillLevel:初心者
-parent:Engine/Blueprints/BP_HowTo
-order:2
-type:howto
+skilllevel:Beginner
+parent:Engine/Blueprints/Scripting
+tags:Execution Flow
+order:5
 
 このページでは、ブループリントのグラフでノードを接続する様々な方法について説明します。 
 
 [TOC(start:2 end:2)]
 
-## ピンとピンを接続する
+## ピンからピンへの接続
 
-最も一般的なノードの接続方法は「、**ピンとピン** の接続です。 
+最も一般的なノードの接続方法は **ピンからピンへ** の接続です。 
 
 **マウスの左ボタン** を使用して、ピンを互換性のある別のピンにドラッグします。 
 
@@ -81,7 +81,7 @@ type:howto
 
 ![](NodeToNode1.png)
 
-上記では、**Event Begin Play** があり、これは **Boolean Variable 2** を false に設定しており、代わりに作成した Float 値を設定するように取り換えるとします。Float 変数を Set 変数にドラッグすることができます。すると、行おうとしているアクションが、ノードを変更して'Float Variable' を書き込むか、それを "Set"するかであることを示すツールチップが表示されます。 
+上記では、**Event Begin Play** があり、これは **Boolean Variable 2** を false に設定しており、代わりに作成した Float 値を設定するように取り換えるとします。Float 変数を Set 変数にドラッグすることができます。すると、行おうとしているアクションが、ノードを変更して'Float Variable' を書き込むか、それを "Set" するかであることを示すツールチップが表示されます。 
 
 ![](NodeToNode2.png)
 

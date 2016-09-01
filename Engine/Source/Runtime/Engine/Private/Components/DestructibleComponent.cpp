@@ -14,6 +14,7 @@
 #include "ObjectEditorUtils.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicsEngine/DestructibleActor.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "Engine/DestructibleMesh.h"
 #include "Components/DestructibleComponent.h"
 #include "AI/Navigation/NavigationSystem.h"
@@ -44,7 +45,7 @@ UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectI
 
 	LargeChunkThreshold = 25.f;
 
-	SetSpaceBaseDoubleBuffering(false);
+	SetComponentSpaceTransformsDoubleBuffering(false);
 }
 
 #if WITH_EDITORONLY_DATA
@@ -176,11 +177,11 @@ void UDestructibleComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTrans
 #endif // #if WITH_APEX
 }
 
-void UDestructibleComponent::CreatePhysicsState()
+void UDestructibleComponent::OnCreatePhysicsState()
 {
-	// to avoid calling PrimitiveComponent, I'm just calling ActorComponent::CreatePhysicsState
+	// to avoid calling PrimitiveComponent, I'm just calling ActorComponent::OnCreatePhysicsState
 	// @todo lh - fix me based on the discussion with Bryan G
-	UActorComponent::CreatePhysicsState();
+	UActorComponent::OnCreatePhysicsState();
 	bPhysicsStateCreated = true;
 
 	// What we want to do with BodySetup is simply use it to store a PhysicalMaterial, and possibly some other relevant fields.  Set up pointers from the BodyInstance to the BodySetup and this component
@@ -201,20 +202,20 @@ void UDestructibleComponent::CreatePhysicsState()
 
 	if( GApexModuleDestructible == NULL )
 	{
-		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::CreatePhysicsState(): APEX must be enabled to init UDestructibleComponent physics.") );
+		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::OnCreatePhysicsState(): APEX must be enabled to init UDestructibleComponent physics.") );
 		return;
 	}
 
 	if( ApexDestructibleActor != NULL )
 	{
-		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::CreatePhysicsState(): NxDestructibleActor already created.") );
+		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::OnCreatePhysicsState(): NxDestructibleActor already created.") );
 		return;
 	}
 
 	UDestructibleMesh* TheDestructibleMesh = GetDestructibleMesh();
 	if( TheDestructibleMesh == NULL || TheDestructibleMesh->ApexDestructibleAsset == NULL)
 	{
-		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::CreatePhysicsState(): No DestructibleMesh or missing ApexDestructibleAsset.") );
+		UE_LOG(LogPhysics, Log, TEXT("UDestructibleComponent::OnCreatePhysicsState(): No DestructibleMesh or missing ApexDestructibleAsset.") );
 		return;
 	}
 
@@ -262,9 +263,6 @@ void UDestructibleComponent::CreatePhysicsState()
 	// Set the (initially) dynamic flag in the actor descriptor
 	// See if we are 'static'
 	verify( NxParameterized::setParamBool(*ActorParams,"dynamic", BodyInstance.bSimulatePhysics != false) );
-
-	// Set the sleep velocity frame decay constant (was sleepVelocitySmoothingFactor) - a new feature that should help sleeping in large piles
-	verify( NxParameterized::setParamF32(*ActorParams,"sleepVelocityFrameDecayConstant", 20.0f) );
 
 	// Set up the shape desc template
 
@@ -417,7 +415,7 @@ void UDestructibleComponent::CreatePhysicsState()
 #endif	// #if WITH_APEX
 }
 
-void UDestructibleComponent::DestroyPhysicsState()
+void UDestructibleComponent::OnDestroyPhysicsState()
 {
 #if WITH_APEX
 	if(ApexDestructibleActor != NULL)
@@ -440,7 +438,7 @@ void UDestructibleComponent::DestroyPhysicsState()
 		BodyInstance.RigidActorAsync = NULL;
 	}
 #endif	// #if WITH_APEX
-	Super::DestroyPhysicsState();
+	Super::OnDestroyPhysicsState();
 }
 
 UBodySetup* UDestructibleComponent::GetBodySetup()
@@ -481,8 +479,9 @@ void UDestructibleComponent::AddImpulseAtLocation( FVector Impulse, FVector Posi
 	ExecuteOnPhysicsReadWrite([&]
 	{
 		const int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
-		PxVec3 Location = U2PVector(Position);
-		ApexDestructibleActor->addForce(ChunkIdx, U2PVector(Impulse),  PxForceMode::eIMPULSE);
+		PxVec3 PxPosition = U2PVector(Position);
+
+		ApexDestructibleActor->addForce(ChunkIdx, U2PVector(Impulse),  PxForceMode::eIMPULSE, &PxPosition);
 	});
 #endif
 }
@@ -1000,7 +999,7 @@ void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& U
 		const FQuat BoneRotation = InvRotation*WorldRotation;
 		const FVector BoneTranslation = InvRotation.RotateVector(WorldTranslation - ComponentToWorld.GetTranslation()) / ComponentToWorld.GetScale3D();
 
-		GetEditableSpaceBases()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
+		GetEditableComponentSpaceTransforms()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 	}
 
 	// Mark the transform as dirty, so the bounds are updated and sent to the render thread
@@ -1033,7 +1032,7 @@ void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& Wor
 	// More optimal form of the above
 	const FQuat BoneRotation = ComponentToWorld.GetRotation().Inverse()*WorldRotation;
 	const FVector BoneTranslation = ComponentToWorld.GetRotation().Inverse().RotateVector(WorldTranslation - ComponentToWorld.GetTranslation())/ComponentToWorld.GetScale3D();
-	GetEditableSpaceBases()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
+	GetEditableComponentSpaceTransforms()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 #endif
 }
 

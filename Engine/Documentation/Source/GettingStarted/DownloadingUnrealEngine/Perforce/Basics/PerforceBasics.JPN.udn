@@ -1,16 +1,20 @@
-﻿INTSourceChangelist:2591123
-Availability:NoPublish
+﻿Availability:NoPublish
 Title:Perforce でアンリアル エンジンをダウンロードする
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:Perforce でアンリアル エンジンのソース コードをダウンロードするためのマニュアル
 
+<!--
 ## Epic の VPN に接続する
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/VPNSetup#Browser]
+-->
+
+[EXCERPT:main]
+Epic の Perforce に接続するには、SSL 機能を利用する必要があります。Perforce クライアント (P4V、 p4、 または API) の 2012.1 以上のバージョンを実行しなければなりません。グローバル DNS 名を使用し、レイテンシー ベースのルーティングを利用して、最も近い Perforce の地域のプロキシに自動的に接続することができます。または、地域のプロキシに直接接続して、確実に常に最も近いプロキシに接続することができます。 
 
 ## Epic の Perforce サーバーに接続する
 
-1.	Windows 版 P4V Perforce クライアントをインストールします。このクライアントは [Perforce Downloads](http://www.perforce.com/downloads/complete_list) ページからダウンロードできます。
+1.	Windows 版 P4V Perforce クライアントをインストールします。クライアントは [Perforce をダウンロード](http://www.perforce.com/downloads/complete_list) ページからダウンロードすることができます。
 
 	[REGION:fullwidth]
 	![Perforce Client](p4v.png)
@@ -18,28 +22,59 @@ Description:Perforce でアンリアル エンジンのソース コードをダ
 
 1.	Open Connection ダイアログで、以下の接続情報を入力します。
 
-	* **Server**: _p4-licensee-proxy.epicgames.net:1667_
+	* **Server**: _ssl:p4-licensee.epicgames.com:1667_
 
-	[REGION:note]
-		東アジアと欧州では、ライセンシーは追加のプロキシを利用できます。該当地域では、こうしたプロキシを使用することでパフォーマンスが向上するはずです。
-		* **東アジアのプロキシ**: _p4-licensee-proxy-asia.epicgames.net:1667_
-		* **欧州のプロキシ**: _p4-licensee-proxy-euro.epicgames.net:1667_
-	[/REGION]
+		[REGION:tip]
+			上記のアドレスは地理的位置に応じて最適なレイテンシーで地域のプロキシに自動的に接続します。何らかの理由で、特定地域のプロキシに接続する必要があれば、以下のアドレスを使用して接続することができます。
+			* **米国東部 (バージニア)**: _ssl:p4-licensee-east.us.epicgames.com:1667_
+			* **米国西部 (オレゴン)**: _ssl:p4-licensee-west.us.epicgames.com:1667_
+			* **アジア太平洋北東地域 (東京)**: _ssl:p4-licensee-northeast.ap.epicgames.com:1667_
+			* **欧州中央部 (フランクフルト)**: _ssl:p4-licensee-central.eu.epicgames.com:1667_
+		[/REGION]
 
-	* **User**: Epic Games が付与するPerforce のユーザー名です。
-	* **Password**: Epic Games が付与するPerforce のパスワードです。
-	* **Workspace**: _UE4_Sample_TeamName_ (これは推奨例です。チーム名で終わっている限り、何でもお好みのワークスペース名を選ぶことができます)。 
+	* **User**:Epic Games が付与する Perforce のユーザー名です。
+	* **Password**:Epic Games が付与する Perforce のパスワードです。
+	* **Workspace**: _UE4_Sample_TeamName_ (これは推奨例です。チーム名で終わっている限り、何でもお好みのワークスペース名を選ぶことができます)。
 
 1.	 [OK] をクリックして Perforce サーバーに接続します。
 
+[REGION:note]
+Epic では、すべてのブローカーとプロキシの SSL エンド ポイントに対して一貫した認証の指紋 (fingerprint) を維持しています。しかし、Perforce ではIP アドレス + 指紋 のペアに対して信用 (trust) が必要です。初めてエンドポイントに接続する場合は、そのエンドポイントを明示的に信用しなければなりません。Epic の指紋は、45:0D:78:E2:0E:9E:E4:82:45:80:16:36:29:5E:54:4D:66:31:6C:43 です。
+
+P4V はその新しいエンドポイントを信用するように促します。
+
+![](fingerprint.png)(w:640 convert:false)
+
+コマンドライン p4 は、p4 trust コマンドを使用します。 
+
+	$ p4 trust -y
+	The fingerprint of the server of your P4PORT setting
+	'ssl:p4-licensee-east.us.epicgames.com:1666' (52.23.106.194:1666) is not known.
+	That fingerprint is 45:0D:78:E2:0E:9E:E4:82:45:80:16:36:29:5E:54:4D:66:31:6C:43
+	Added trust for P4PORT 'ssl:p4-licensee-east.us.epicgames.com:1666' (52.23.106.194:1666)
+[/REGION]
+
+### ローカルのプロキシ サーバーを使用する
+
+ローカル プロキシを実行している場合は、地域のプロキシ サーバーを使用する代わりに、ブローカーを通して接続しなければなりません。以下のアドレスを使用してグローバル ブローカーに接続することができます。
+
+* ssl:p4-licensee.epicgames.com:1666
+
+[REGION:tip]
+	上記のアドレスは地理的位置に応じて最適なレイテンシーで地域のブローカーに自動的に接続します。何らかの理由で、特定の地域のブローカーに接続する必要があれば、以下のアドレスを使用して接続することができます。
+
+	* **米国東部 (バージニア)**: _ssl:p4-licensee-east.us.epicgames.com:1666_
+	* **アジア太平洋北東地域 (東京)**: _ssl:p4-licensee-northeast.ap.epicgames.com:1666_
+	* **欧州中央部 (フランクフルト)**: _ssl:p4-licensee-central.eu.epicgames.com:1666_
+[/REGION]
 
 ##アンリアル エンジン 4 のダウンロード
 
-Perforce のデポで _UE4-QA_ ブランチ経由でライセンシー向けにアンリアル エンジン 4 を配布しています。以下が含まれます。 
-エンジン全体と合わせてゲーム例、サンプル、デモという形式でいくつかの追加プロジェクトを配布します。必要に応じて、 
+Perforce デポで _UE4-QA_ ブランチ経由でライセンシーにアンリアル エンジン 4 を配布しています。以下が含まれます。 
+エンジン全体と合わせてゲーム例、サンプル、デモという形式でいくつかの追加プロジェクトを配布します。お好みによって、全てをダウンロード、または必要な部分のみを選んでダウンロードすることができます。 
 すべてをダウンロードするか、必要なものだけを選んでダウンロードするかのオプションがあります。設定時間をなるべく短くするために、 
-まず最初に最低限必要なものをダウンロードし、後から随時追加していく方法をお勧めします。 
-　このようにすると、ダウンロード終了までの待ち時間が劇的に短縮します。
+まず最初に最低限必要なものをダウンロードし、 
+後から随時追加していく方法をお勧めします。この方法ですと、ダウンロード完了までの待ち時間を劇的に短縮することができます。
 
 [REGION:warning]
 	[UE4-QA] ブランチには多くのファイルが格納されておりダウンロードのトータル サイズが数ギガバイトになります。 
@@ -50,10 +85,25 @@ Perforce のデポで _UE4-QA_ ブランチ経由でライセンシー向けに�
 
 	![Perforce - Get Revision Option](get_revision_menu.png)
 
-1. 	**[Specify revision using] ** ラジオボタンを選択してコンボボックスから [ Label] を選択します。
+1. 	**[Specify revision using] ** ラジオボタンを選択してコンボボックスから [ラベル] を選択します。
 
 	![Perforce - Specify Label](specify_label.png)
 
-1.	 **Browse** ボタンを押します。表示されるダイアログで以下のいずれかを選択します。 *QA_APPROVED_UE4_BUILD_MINIMUM* (minimum files needed to run the engine) または *QA_APPROVED_UE4_BUILD_CURRENT* (includes sample projects and is much larger)** [OK] **を押します。
+1.	 **Browse** ボタンを押します。表示されるダイアログで以下のいずれかを選択します。 *QA_APPROVED_UE4_BUILD_MINIMUM* (エンジンの実行に必要な最小限のファイル) または *QA_APPROVED_UE4_BUILD_CURRENT* (サンプル プロジェクトが含まれるかなり大きめのファイル)** [OK] ** を押します。
 
-1.	アンリアル エンジン 4 のダウンロードを開始するには、**Get Revision** を押します。. 
+1.	アンリアル エンジン 4 のダウンロードを開始するには、 **Get Revision** を押します。. 
+
+[/EXCERPT:main]
+
+## 既存のワークスペースを移行する
+
+グローバル レプリカ上に新規ワークスペースを作成する場合に、ワークスペース全体を同期する必要性をなくすために、p4 flush を使用してローカル ワークスペースのファイルに基づき ”have” 情報を入力することができます。この手順は強制同期よりもはるかに速く、基本的に中断したところから再び始めることができます。
+
+1. 元のワークスペースからビューとルート設定をコピーして、グローバル レプリカ上で新しいワークスペースを作成します。
+1. 新しいワークスペースに切り替えます。
+1. p4 flush コマンドまたは p4 sync -k を発行して、サーバー上に持っている情報を追加します。 
+1. 旧ワークスペースは 6 か月間使用しないと Epic によって自動的に無効になります。 
+
+[REGION:warning]
+書き込み可能なユーザーは P4 depot/VPN アカウントを信頼してエピックのデポに接続します。これらの VPN アカウントはアクティブのままになります。クラウドに移らないでください。サービスに支障が発生します。
+[/REGION]

@@ -112,7 +112,7 @@ class UMaterialParameterCollection : public UObject
 	}
 
 private:
-
+	
 	/** Default resource used when no instance is available. */
 	class FMaterialParameterCollectionInstanceResource* DefaultResource;
 

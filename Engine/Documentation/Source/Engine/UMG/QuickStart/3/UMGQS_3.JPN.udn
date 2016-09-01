@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:2536124
+﻿INTSourceChangelist:2728602
 Availability:Public
 Title:3.メインメニューを作成する
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
-Description:このステップではメインメニューの視覚的レイアウトを行います。 
+Description:このステップではメインメニューの視覚的レイアウトを行います。
+version:4.9
 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
+		[前のステップ](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/UMG\QuickStart) 
+		[クイックスタート ホーム](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+		[次のステップ](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -29,15 +30,15 @@ Description:このステップではメインメニューの視覚的レイア�
 
 1.	**MainMenu** Widget ブループリントを開きます。 
 
-1.	**Designer** タブで、**Palette** からウィジェットをドラッグして **Hierarchy** にドロップして以下のようにセットアップします。 
+1.	**Designer** タブで、**Palette** からウィジェットを **Hierarchy** にドラッグ＆ドロップして以下のようにセットアップします。 
 
 	![](Hierarchy1.png)
 
-	参考までに、**Canvas Panel** には、**Image** が 1 つ、**Text** 付き **Vertical Box** が 1 つ、および **Text** を持つ 3つの **Button** があります。 
+	参考までに、**キャンバス パネル** には、**Image** が 1 つ、**Text** 付き **Vertical Box** が 1 つ、および **Text** 付きの 3つの **Button** があります。 
 
 1.	**Hierarchy** で、**Vertical Box** を選択し、**右クリック** して、それを **コピー** します。 
 
-1.	**Canvas Panel** で右クリックして、**Paste** を選択して **Vertical Box** のもうひとつのコピーを貼り付けます。 
+1.	**キャンバス パネル** で右クリックして、**Paste** を選択して **Vertical Box** のもうひとつのコピーを貼り付けます。 
 
 	![](Hierarchy2.png)
 	 
@@ -51,13 +52,15 @@ Description:このステップではメインメニューの視覚的レイア�
 
 	わかりやすくするためにウィジェットに名前を付けてそれを変数に設定して、アクセスできるようにするとともに、**ZOrder** を設定してこれから設定する画像の上に表示されるようにします。 
 
+1.	もうひとつの **Vertical Box** を選択し、**[詳細]** パネルでそれを **Options** に名前変更し、**isVariable** オプションにチェックを入れて **ZOrder** を **1** に設定します。 
+
 1.	以下の画像のように各 **ボタン** の名前を変更します。 
 
 	![](Hierarchy5.png)
 
 	ボタン名を更新し、各ボタンが何を行うかがわかるようにします。これにより、各ボタンの機能のスクリプティングが簡単になります。 
 
-1.	**[詳細]** パネルの _Content_ の **Text** セクションで、各 **Text** ウィジェットを以下のように更新します。 
+1.	 **[詳細]** パネルの **Content** の **Text** セクションで、各 **Text** ウィジェットを以下のように更新します。 
 
 	![](Hierarchy6.png)
 
@@ -69,7 +72,7 @@ Description:このステップではメインメニューの視覚的レイア�
 
 	ここでは、すべてのボタンのサイズを調整し、マウスをかざしたときのボタンの色を定義します。 
 
-1.	**Hierarchy** で **Image** を選択します。次に **[詳細]** パネルの_Appearance_ と _Brush_ で、使用する **Texture** または **Material** を選択します。 
+1.	**Hierarchy** で **Image** を選択します。次に **[詳細]** パネルの **Appearance** と **Brush** で、使用する **Texture** または **Material** を選択します。 
 
 	![](Hierarchy8.png)
 
@@ -91,13 +94,13 @@ Description:このステップではメインメニューの視覚的レイア�
 
 	![](Hierarchy11.png)
 
-1.	**Options** Vertical Box を選択し、**Visibility** (可視性) 設定を **Hidden** (非表示) に設定します。 
+1.	**Options** Vertical Box を選択し、**Visibility(可視性)** 設定を **Hidden(非表示)** に設定します。 
 
 	![](Hierarchy12.png)
 
 	デフォルトではオプションを表示しないようにし、スクリプトを通して可視にします。 
 
-1.	**MainMenu** Vertical Box を選択し、サイズ調整し、**Designer** ウィンドウでお好きな位置に配置します。 
+1.	**MainMenu** の Vertical Box を選択し、サイズ調整し、**Designer** ウィンドウでお好きな位置に配置します。 
 
 	![](Hierarchy13.png)
 
@@ -107,7 +110,7 @@ Description:このステップではメインメニューの視覚的レイア�
 
 	こうした設定を色々試して必要な効果を得ることができます。 
 
-1.	**Options** Vertical Box をお好きなようにセットアップして、 **Main Menu** Vertical Box の後ろに直接移動します。 
+1.	**Options** Vertical Box をお好きなようにセットアップして、 **Main Menu** Vertical Box のすぐ後ろに移動します。 
 
 	![](Hierarchy15.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:2743766
 Availability:Public
 Title:アンリアル エディタのマニュアル
 Crumbs:%ROOT%, Engine
@@ -61,7 +61,7 @@ order:2
 [/OBJECT]
 [/VAR]
 
-[DIR(end:"1" output:"topic" parent:"Engine/Editor")]
+[DIR(end:"1" output:"topic" org:"hierarchy" parent:"Engine/Editor")]
 
 <!--
 [REGION:topics third]

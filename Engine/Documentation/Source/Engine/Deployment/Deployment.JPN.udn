@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:2793676
 Availability:Public
 Title:ゲームのパッケージングとクック
 Crumbs:%ROOT%, Engine
-Description:ゲームで使用するアセット向けにプラットフォーム固有のコンテンツを作成する
+Description:ゲームで使用するアセット用にプラットフォーム固有のコンテンツを作成する
 Version:4.9
 parent:Engine
 order:14
@@ -59,8 +59,6 @@ order:14
 	* [](Engine/Deployment/Cooking "%Engine/Deployment/Cooking:description%")
 	* [](Engine/Deployment/Releasing "/Engine/Deployment/Releasing:description%")
 	* [](Engine/Deployment/Patching "Engine/Deployment/Patching:description%")
-	* [](Engine/Deployment/Releasing "%Engine/Deployment/Releasing:description%")
-	* [](Engine/Deployment/Patching "%Engine/Deployment/Patching:description%")
 	* [](Engine/Deployment/UnrealFrontend "%Engine/Deployment/UnrealFrontend:description%")
 	[/PARAM]
 [/OBJECT]

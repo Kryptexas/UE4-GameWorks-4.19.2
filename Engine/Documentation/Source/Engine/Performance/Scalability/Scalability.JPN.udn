@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2539477
+﻿INTSourceChangelist:2704427
 Availability:Public
 Title:拡張性
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:クオリティとパフォーマンスを調整するためのオプション
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,7 +48,6 @@ Description:クオリティとパフォーマンスを調整するためのオ�
 ![](SC_Banner.png)
 [/REGION]
 
-## 概要
 
 最近のゲームは幅広いハードウェア上で実行する必要があり、分割画面や特殊なゲームプレイ モードなどの様々なニーズに応じてゲームのパフォーマンスを適用させる必要があります。一般的にゲームのグラフィックスをチューニングすることは、ゲームプレイにあまり影響を与えずにスケーリングする一番簡単な方法です。
 

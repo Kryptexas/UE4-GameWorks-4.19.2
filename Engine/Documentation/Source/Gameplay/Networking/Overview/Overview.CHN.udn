@@ -1,18 +1,19 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2713567
 Availability:Public
-Title: Networking Overview
+Title: 网络概述
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
-Description:Setting up networked games for multiplayer.
+Description:针对多人模式设置连网游戏。
 Related: Gameplay/Networking/Blueprints
 Related: Gameplay/Networking/Example
 Related: Gameplay/Networking/Actors
+version: 4.9
 
-The UE4 framework is built with multiplayer gaming in mind. As long as you follow the basic framework conventions, you generally don't have to do much to extend a single player experience to multiplayer.
+UE4 架构在构建时就充分考虑了多人游戏因素。只要您遵守基本的架构原则，通常就无需太费事即可将单人游戏体验扩展为多人游戏。
 
-UE4 networking is built around the server/client model. This means that there will be one server that is authoritative (makes all the important decisions), and this server will then make sure all connected clients are continually updated so that they maintain the most up to date approximation of the server's world.
+UE4 网络连接是基于服务器/客户端模式构建。也就是说，这个模式中有一个担当主控（authoritative）的服务器端（做出所有重要决定），用于确保所有连接的客户端可以持续更新，以便其持续获得服务器环境的最新近似复本。
 
-## Actors
+## Actor
 
-In a single player experience, actors are used to represent the game world. In multiplayer, this isn't any different, except for the fact that clients will have an approximation of each actor, while the server will maintain the authoritative version.
+在单人游戏体验中，actor 被用于呈现游戏世界。而在多人游戏中，这一点丝毫没有变化，只不过客户端将获得每个 actor 的近似复本，而服务器将保持主控（authoritative）版本。
 
-Actors are the main workhorse that the server uses to keep clients up to date. When it is time for the server to update a particular client, the server will gather all relevant actors that it determines have changed since the last update, and then sends enough information to the client to catch those actors up to to the latest state.
+Actor 是服务器让客户端保持最新的主要途径。当服务器需要更新特定的客户端时，服务器将收集所有的相关 actor（也就是其认定在上次更新后发生变化的 actor），然后向客户端发送足够的信息，以便让这些 actor 保持最新状态。

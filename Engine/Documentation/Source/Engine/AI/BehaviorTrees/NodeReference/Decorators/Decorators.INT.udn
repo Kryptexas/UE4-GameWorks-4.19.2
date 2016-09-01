@@ -2,11 +2,12 @@ Availability:Public
 Title: Behavior Tree Node Reference: Decorators
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Reference for the Behavior Tree Decorator nodes.
+version: 4.9
 
 [TOC(start:2 end:2)]
 
 
-**Decorator**, also known as conditionals in other Behavior Tree systems, are attached to either a [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) or a [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) node and define whether or not a branch in the tree, or even a single node, can be executed.
+**Decorator**, also known as conditionals in other Behavior Tree systems, are attached to either a [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) or a [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) node and define whether or not a branch in the tree, or even a single node, can be executed.
 
 ## Blackboard
 
@@ -48,7 +49,7 @@ The Blackboard node will check to see if a value is set on the given Blackboard 
 
 ![](CompareBBEntries.png)
 
-The Compare Blackboard Entries nodes will compare the values of two Blackboard keys and will block or allow the execution of a node based on that result (either `equal to` or `not equal to`).
+The Compare Blackboard Entries nodes will compare the values of two Blackboard keys and will block or allow the execution of a node based on that result (either equal to or not equal to).
 
 | Property | Description |
 | -------- | ----------- |
@@ -70,7 +71,7 @@ The Compare Blackboard Entries nodes will compare the values of two Blackboard k
 
 ![](Composite.png)
 
-The Composite Decorator node enables you to setup more advanced logic than the built in nodes but not as complex as a full Blueprint. Once you have added a Composite Decorator to a node, **double-click** the Composite Decorator to bring up the Composite's Graph. By **right-clicking** in the graph area you can add Decorator Nodes as stand alone nodes, then wire them together through `AND` nodes, `OR` nodes, and `NOT` nodes, to create more advanced logic:
+The **Composite Decorator** node enables you to setup more advanced logic than the built in nodes but not as complex as a full Blueprint. Once you have added a Composite Decorator to a node, **Double-click** the Composite Decorator to bring up the Composite's Graph. By **Right-clicking** in the graph area you can add Decorator Nodes as stand alone nodes, then wire them together through **AND** nodes, **OR** nodes, and **NOT** nodes, to create more advanced logic:
 
 ![](CompositeGraph.png)(w:940)
 
@@ -96,7 +97,7 @@ As long as the **Key Query** condition is met, this Decorator will have the node
 
 ![](ConeCheck.png)
 
-The Cone Check decorator takes in 3 vector keys: the first for the location to start the cone, the second to define the direction the cone points, and the third for the location to check if it is inside the cone. You define the angle of the cone by using the **Cone Half Angle** property.
+The **Cone Check** decorator takes in 3 vector keys: the first for the location to start the cone, the second to define the direction the cone points, and the third for the location to check if it is inside the cone. You define the angle of the cone by using the **Cone Half Angle** property.
 
 | Property | Description |
 | -------- | ----------- |
@@ -112,7 +113,7 @@ The Cone Check decorator takes in 3 vector keys: the first for the location to s
 
 ![](Cooldown.png)
 
-The Cooldown node will lock the execution of a node or branch until the cooldown time expires.
+The **Cooldown** node will lock the execution of a node or branch until the cooldown time expires.
 
 | Property | Description |
 | -------- | ----------- |
@@ -124,7 +125,7 @@ The Cooldown node will lock the execution of a node or branch until the cooldown
 
 ![](DoesPathExist.png)
 
-The Does Path Exist node checks to see if a path can be made from the two vectors: Blackboard Key A and Blackboard Key B.
+The **Does Path Exist** node checks to see if a path can be made from the two vectors: Blackboard Key A and Blackboard Key B.
 
 | Property | Description |
 | -------- | ----------- |
@@ -149,7 +150,7 @@ The Does Path Exist node checks to see if a path can be made from the two vector
 
 ![](ForceSuccess.png)
 
-The Force Success decorator changes the node result to a success.
+The **Force Success** decorator changes the node result to a success.
 
 | Property | Description |
 | -------- | ----------- |
@@ -206,7 +207,7 @@ Loops the node or branch a number of times, or infinitely.
 
 ![](ReachedMoveGoal.png)
 
-The Reached Move Goal will check the path of the Pawn (with a Character Movement component) and return a success if the Pawn has reached its movement goal.
+The **Reached Move Goal** node will check the path of the Pawn (with a Character Movement component) and return a success if the Pawn has reached its movement goal.
 
 | Property | Description |
 | -------- | ----------- |
@@ -241,7 +242,7 @@ The Reached Move Goal will check the path of the Pawn (with a Character Movement
 
 ![](TimeLimit.png)
 
-The Time Limit decorator will give a branch or node a set amount of time to finish before stopping it and failing out. The timer is reset every time the node gains focus.
+The **Time Limit** decorator will give a branch or node a set amount of time to finish before stopping it and failing out. The timer is reset every time the node gains focus.
 
 | Property | Description |
 | -------- | ----------- |

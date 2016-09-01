@@ -82,7 +82,7 @@ ITargetDevicePtr FHTML5TargetPlatform::GetDevice( const FTargetDeviceId& DeviceI
 
 bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
 {
-	FString SDKPath = FPaths::EngineDir() / TEXT("Source/ThirdParty/HTML5/emsdk") /
+	FString SDKPath = FPaths::EngineDir() / TEXT("Extras/ThirdPartyNotUE/emsdk") /
 #if PLATFORM_WINDOWS
 		TEXT("Win64");
 #elif PLATFORM_MAC

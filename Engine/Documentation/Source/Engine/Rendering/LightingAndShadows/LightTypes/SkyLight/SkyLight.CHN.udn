@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2683548
 Availability: Public
-Title:Sky Lights
+Title: 天空光照
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
-Description:The basics of Sky Lights.
+Description: 天空光照基础。
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,23 +52,26 @@ Description:The basics of Sky Lights.
 
 
 [EXCERPT:SL001]
-The **Sky Light** captures the distant parts of your level (everything further than `SkyDistanceThreshold`) and applies that to the scene as a light.  That means the sky's appearance and its lighting / reflections will match, even if your sky is coming from atmosphere, or layered clouds on top of a skybox, or distant mountains.  You can also manually specify a cubemap to use.
+**天空光照** 会获取场景中一定距离以外的部分（`SkyDistanceThreshold` 距离以外的一切东西）并将他们作为光照应用于场景之上。
+这意味着天空的视觉效果和它产生的光照/反射将会匹配，无论是干净的大气层，或者在天空盒顶层有着一层层的云层，又或者是遥远的群山。
+同时也可以指定一个 cubemap 来使用。
 
-The **Sky Light will** only recapture the scene when you rebuild lighting or manually tell it to using **Build** -> **Update Reflection Captures** or the **Recapture Scene** button on the _Sky Light Actor_.  **If you change the texture that the skybox is using, it will not automatically know to update.**
+天光只会在重新构建光照时被重新捕获，或者在手动使用 **构建** -> **更新反射捕获体**，或者使用 _Sky Light Actor_ 上的 **重新捕获场景** 的按钮。
+**如果更改了天空球使用的贴图，这并不会被自动的更新到光照信息中**。
 
-A **Sky Light** should be used instead of the **Ambient Cubemap** to represent the sky's light, because **Sky Lights** support local shadowing, which prevents indoor areas from getting lit by the sky.
+要表达真实的天空光照效果，应该采用 Sky Light 而不是 **环境光照 Ambient Cubemap**，其原因在于 Sky Light 会造成局部的阴影，这样能避免诸如室内场景被天空光照照亮。
 [/EXCERPT:SL001]
 
-The **Sky Light** can be set to either **Static** or **Stationary** for its **Mobility**:
+天光的 **移动性** 设置可以被设置为 **静态** 或者 **固定** 的属性。
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](skylight_icon.png)(convert:false) 
 	[/PARAM]
 	[PARAM:description]
-	**Static** - (pictured left) which means that the light cannot be changed in game. This is the fastest method for rendering and allows for baked lighting.
+	**静态** - （左侧的图片）意味着游戏时光照无法被修改。这是渲染效率最快的一种形式，并能采用烘培光照。
 	
-	**Stationary** - (also pictured left) which means the light will only have its shadowing and bounced lighting from static geometry baked by **Lightmass**, all other lighting will be dynamic. This setting also allows for the light to change color and intensity in game, but, it does not move and allows partial baked lighting. 
+	**固定** - （同样是左侧图片）意味着光照产生的阴影以及由 **Lightmass** 计算的静态物体反弹的光线能够生成，其他的光照则是动态的。这个设置能让光照在游戏过程中修改光照的颜色或强度，但它无法移动位置，并允许使用一部分预烘培光照。
 	[/PARAM]
 [/OBJECT]
 
@@ -75,8 +79,18 @@ The **Sky Light** can be set to either **Static** or **Stationary** for its **Mo
 ![](spacer.png)
 [/REGION]
 
-Pictured below are example images from a scene which utilizes a **Sky Light**.
+下面是来自一个场景中采用 **天空光照** 的示例图片。
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![有天空光照](Skylight.png)(w:800)
+	[/PARAM]
+	[PARAM:after]
+	![无天空光照](NoSkylight.png)(w:800)
+	[/PARAM]
+[/OBJECT]
+
+<!--
 [REGION:lightbox]
 
 [![](skyLightEx_01.png)(w:884)](skyLightEx_01.png) [![](skyLightEx_02.png)(w:884)](skyLightEx_02.png)
@@ -84,31 +98,54 @@ Pictured below are example images from a scene which utilizes a **Sky Light**.
 [/REGION]
 
 _This scene was lit with only a Stationary Sky light, by specifying different HDR skybox cubemaps._
+-->
 
-## Static Sky Light
+## 静态天空光照
 
-A **Sky Light** with **Static Mobility** will be baked completely into the lightmap for static objects and therefore costs nothing.  This is the only kind of sky light that is supported on mobile.  Edits to the light's properties will not be visible until lighting is built again.
+具有 **静态设置** 的天空光照会完全烘培到静态物体的光照贴图中，因此在运行时光照没有任何开销。
+这是移动平台上支持的唯一一种天光类型。对光照属性修改只有在重新构建光照后才能看到效果。
 
-Note: Only components and lights with **Static** or **Stationary Mobility** will be captured and used for lighting with a **Static Sky Light**.  Furthermore, only the emissive contribution of materials can be captured with a **Static Sky Light**, in order to avoid a feedback loop.  Make sure your skybox has an unlit material.
+注意：只有那些光照设置为 **静态** 或者 **固定** 的组件，才会被捕获，并结合静态天空光照产生效果。
+另外，只有材质中自发光的属性才会被捕获并结合静态天空光照产生效果，这么做是为了避免循环反馈计算。要保证天空盒使用的是无光照材质。
 
-## Stationary Skylight
+## 固定天空光照
 
-A **Sky Light** with **Stationary Mobility** gets baked shadowing from **Lightmass**.  Once you place a **Stationary Sky Light** in your level, you have to rebuild lighting once to get the baked shadowing.  You can then change the sky light as much as you want without rebuilding.  
+具有 **固定设置** 的天空光照采用由 **Lightmass** 生成的烘培阴影。一旦在管卡中摆放一个固定天空关照，必须先构建一次光照才能看到烘培阴影的效果。之后就可以修改天空光照属性而不需要重新构建了。
 
-The **Sky Light** shadowing that **Lightmass** bakes stores directional occlusion information in what is called a **Bent Normal**.  This is the direction from the texel to the most un-occluded direction.  Areas that are mostly occluded use this direction for sky lighting instead of the surface normal, which improves quality quite a bit in cracks. 
+由 **Lightmass** 预计算的天空光照的阴影记录保存了方向遮挡信息，这被称为 **弯曲法线**。这个方向是一个纹素（单位纹理）面向最不被遮挡的朝向。那些被遮挡的区域，使用这个方向来计算天空光照效果，而不是使用原先的表面法线，这么做能改进一些裂缝处的效果。
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![仅使用 AO 的天空关照](skyLightEx_03.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![使用弯曲法线遮罩的天空光照](skyLightEx_04.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+<!--
 [REGION:lightbox]
 
 [![](skyLightEx_03.png)(w:462)](skyLightEx_03.png) [![](skyLightEx_04.png)(w:462)](skyLightEx_04.png)
 
 [/REGION]
+-->
+_第一张图片显示了仅有 AO 的天空光照效果。第二张图显示来使用弯曲法线遮罩的天空光照。请注意看在褶皱密集处表面光线对照射进来的光线趋于“一致”的效果。_
 
-_The first image shows Sky Light with AO only. The second image shows Sky Light with bent normal occlusion.  Notice how surfaces in cracks 'agree' on where the lighting is coming from._
+注意：只有那些光照设置为 **静态** 或者 **固定** 的组件，才会被捕获，并结合固定天空光照产生效果。
 
-Note: Only components and lights with **Static** or **Stationary Mobility** will be captured and used for lighting with a **Stationary Sky Light**.
+和其他的 **固定灯光** 类型一样，灯光的颜色可以在运行时被 **蓝图** 或者 **Matinee** 实时修改。然后间接光照已经被预烘培到光照贴图中就不能实时修改了。间接光照的程度可以由 `IndirectLightingIntensity` 数值控制。
 
-Like all types of **Stationary Lights**, the color of the direct lighting can be changed at runtime through **Blueprint** or **Matinee**.  However the indirect lighting is baked into the lightmap and cannot be modified at runtime.  The amount of indirect lighting can be controlled by `IndirectLightingIntensity`.
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![仅直接光照](0Original.jpg)(w:800)
+	[/PARAM]
+	[PARAM:after]
+	![直接光照以及由固定天空光照预计算的全局光照效果](0SkyLightGI.jpg)(w:800)
+	[/PARAM]
+[/OBJECT]
 
+<!--
 [REGION:lightbox]
 
 [![](0Original.jpg)(w:884)](0Original.jpg) [![](0SkyLightGI.jpg)(w:884)](0SkyLightGI.jpg)
@@ -116,39 +153,41 @@ Like all types of **Stationary Lights**, the color of the direct lighting can be
 [/REGION]
 
 _Top: Direct lighting only, Bottom: Direct lighting and Diffuse GI computed by Lightmass for a Stationary Skylight._
+-->
 
-## Movable Skylight
+## 可移动的天空光照
 
-The **Movable Sky Light** does not use any form of precomputation.  It captures components and lights of any mobility when setup to capture the scene as the sky lighting source.
+**可移动的天空光照** 并不适用任何形式的预计算。它会捕获任何光照设定的组件，并作为场景的天空光照来源。
 
-### Distance Field Ambient Occlusion
+### 距离场环境遮挡
 
-Shadowing for Movable Sky Lights is provided by a new feature called [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) which generates Ambient Occlusion from Signed Distance Field Volumes precomputed around each rigid object.  It supports dynamic scene changes - the rigid meshes can be moved or hidden and it will affect the occlusion.  This feature is not on by default and there are a few setup steps.
+（以下这段需要 review）可移动的天空光照产生的阴影由一个叫做 [距离场环境遮挡](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion) 的新功能来表现，它通过在物体周围预计算的 Signed Distance Field Volume 并生成环境遮挡。
+rigid 网格物体可以被移动或者隐藏，这将会影响遮挡效果。这个特性默认并没有开启，开启的话需要一些设置步骤。
 
-## Limitations
+## 局限性
 
-These features would be useful with **SkyLights** but are not yet implemented:
-* Soft shadowing from movable objects (characters) onto the environment.
-* Dynamic recapturing of the scene for **Stationary** and **Movable** versions.  There is a blueprint function on the SkyLightComponent called RecaptureSky() which can be used, however that will cause a hitch.
+以下特性配合 **天空光照** 将会有用，但目前尚未实现：
+* 可移动物体（比如角色）在环境上的软阴影效果。
+* 为固定的天空光照和可移动天空光照做场景动态捕获。在蓝图中，SkyLightComponent 有一个函数叫 RecaptureSky() 可以使用，但目前它还有点小问题。
 
-## Sky Light Properties
+## 天空光照属性
 
-The properties of a **Sky Light** are broken up into 2 categories: **Light** and **Sky Light**. 
+天空光照的属性分为两类：光照 和 天空光照。
 
-### Light
-| Property | Description |
+### 光照
+| 属性 | 描述 |
 | -------- | ----------- |
-| **Intensity** | Total energy that the light emits. |
-| **Light Color** | Specify the color the light emits. |
-| **Affects World** | Whether the light can affect the world, or whether it is disabled. |
-| **Casts Shadows** | Whether the light should cast any shadows. |
+| **Intensity** | 发射光子的总能量 |
+| **Light Color** | 定义光照发射的颜色 |
+| **Affects World** | 光照是否对当前世界起效，或是禁用。 |
+| **Casts Shadows** | 这个光照是否要产生阴影。 |
 
-### Sky Light
-| Property | Description |
+### 天空光照
+| 属性 | 描述 |
 | -------- | ----------- |
-| **Source Type** | Whether to capture the distant scene and use it as the light source, or to use the specified cubemap.  When capturing the scene, anything further than `SkyDistanceThreshold` from the **Sky Light** position will be included. |
-| **Cubemap** | Specify the **Cubemap** to use for sky lighting if **Source Type** is set to `SLS_SpecifiedCubemap`.  |
-| **Sky Distance Threshold** | Distance from the **Sky Light** at which any geometry should be treated as part of the sky (also used by **Reflection Captures**). |
-| **Lower Hemisphere is Black** | Whether all lighting from the lower hemisphere should be set to zero.  This is useful to prevent leaking from the lower hemisphere. |
-| **Recapture Scene** | When the **Sky Light Actor** is set to `SLS_CapturedScene`, this will recapture the image the Sky Light is using to light the scene. |
+| **Source Type** | 是否获取远距离的场景并用作于光照来源，或是使用特定的 cubemap。当获取场景时，任何距离当前 **天空光照** 位置超过 `SkyDistanceThreshold` 的东西都将被包含。 |
+| **Cubemap** | 如果 **Source Type** 设置为 `SLS_SpecifiedCubemap` 时，定义要为天空光照使用的 **Cubemap**。 |
+| **Sky Distance Threshold** | 从 **天空光照** 位置算的距离，该数值下的任何东西都会被认为是天空的一部分（也会参与反射捕获）。 |
+| **Lower Hemisphere is Black** | 是否将来自下半球的光线设置为 0。这对防止下半球的光线溢出是有有用的。 |
+| **Recapture Scene** | 当 **天空光照 Actor** 设置为 `SLS_CapturedScene` 时，这将重新获取天空光照照亮场景用的图片 |
 

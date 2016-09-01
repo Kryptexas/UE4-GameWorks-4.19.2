@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:ブループリントエディタの虎の巻
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:ブループリント ショートカットおよび便利なアクションのリファレンス
 version:4.9
-parent:Engine/Blueprints
+parent:Engine/Blueprints/Workflow
 order:1
-type:howto
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -18,7 +18,6 @@ ActorFactory.cpp:
 #include "Matinee/InterpData.h"
 #include "InteractiveFoliageActor.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 
 #include "AssetRegistryModule.h"
 
@@ -35,6 +34,8 @@ ActorFactory.cpp:
 #include "Engine/TriggerSphere.h"
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TextRenderActor.h"
+#include "Engine/SubDSurfaceActor.h"
+#include "Components/SubDSurfaceComponent.h"
 
 #include "Engine/DestructibleMesh.h"
 #include "Engine/BlueprintGeneratedClass.h"
@@ -196,13 +197,13 @@ FQuat UActorFactory::AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, 
 	}
 }
 
-AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, FTransform SpawnTransform, EObjectFlags ObjectFlags, const FName Name )
+AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, FTransform SpawnTransform, EObjectFlags InObjectFlags, const FName Name )
 {
 	AActor* NewActor = NULL;
 
 	if ( PreSpawnActor(Asset, SpawnTransform) )
 	{
-		NewActor = SpawnActor(Asset, InLevel, SpawnTransform, ObjectFlags, Name);
+		NewActor = SpawnActor(Asset, InLevel, SpawnTransform, InObjectFlags, Name);
 
 		if ( NewActor )
 		{
@@ -230,14 +231,14 @@ bool UActorFactory::PreSpawnActor( UObject* Asset, FTransform& InOutLocation)
 	return true;
 }
 
-AActor* UActorFactory::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name )
+AActor* UActorFactory::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags InObjectFlags, const FName Name )
 {
 	AActor* DefaultActor = GetDefaultActor( FAssetData( Asset ) );
 	if ( DefaultActor )
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.OverrideLevel = InLevel;
-		SpawnInfo.ObjectFlags = ObjectFlags;
+		SpawnInfo.ObjectFlags = InObjectFlags;
 		SpawnInfo.Name = Name;
 		return InLevel->OwningWorld->SpawnActor( DefaultActor->GetClass(), &Transform, SpawnInfo );
 	}
@@ -415,14 +416,14 @@ bool UActorFactoryDeferredDecal::CanCreateActorFrom( const FAssetData& AssetData
 	FAssetData CurrentAssetData = AssetData;
 	while( SanityCheck < 1000 && !CurrentAssetData.GetClass()->IsChildOf( UMaterial::StaticClass() ) )
 	{
-		const FString* ObjectPath = CurrentAssetData.TagsAndValues.Find( TEXT("Parent") );
-		if ( ObjectPath == NULL )
+		const FString ObjectPath = CurrentAssetData.GetTagValueRef<FString>( "Parent" );
+		if ( ObjectPath.IsEmpty() )
 		{
 			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoMaterial", "A valid material must be specified.");
 			return false;
 		}
 
-		CurrentAssetData = AssetRegistry.GetAssetByObjectPath( **ObjectPath );
+		CurrentAssetData = AssetRegistry.GetAssetByObjectPath( *ObjectPath );
 		if ( !CurrentAssetData.IsValid() )
 		{
 			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoMaterial", "A valid material must be specified.");
@@ -443,8 +444,8 @@ bool UActorFactoryDeferredDecal::CanCreateActorFrom( const FAssetData& AssetData
 		return false;
 	}
 
-	const FString* MaterialDomain = CurrentAssetData.TagsAndValues.Find( TEXT("MaterialDomain") );
-	if ( MaterialDomain == NULL || *MaterialDomain != TEXT("MD_DeferredDecal") )
+	const FString MaterialDomain = CurrentAssetData.GetTagValueRef<FString>( "MaterialDomain" );
+	if ( MaterialDomain != TEXT("MD_DeferredDecal") )
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NotDecalMaterial", "Only materials with a material domain of DeferredDecal can be specified.");
 		return false;
@@ -528,6 +529,47 @@ UActorFactoryTextRender::UActorFactoryTextRender(const FObjectInitializer& Objec
 	bUseSurfaceOrientation = true;
 }
 
+/*-----------------------------------------------------------------------------
+UActorFactorySubDSurface
+-----------------------------------------------------------------------------*/
+UActorFactorySubDSurface::UActorFactorySubDSurface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Property initialization
+	DisplayName = LOCTEXT("SubDSurfaceDisplayName", "Subdivision Surface");
+	NewActorClass = ASubDSurfaceActor::GetPrivateStaticClass(L"...");
+	bUseSurfaceOrientation = true;
+}
+
+bool UActorFactorySubDSurface::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
+{
+	// We allow creating ASubDSurfaceActor without an existing asset
+	if ( UActorFactory::CanCreateActorFrom( AssetData, OutErrorMsg ) )
+	{
+		return true;
+	}
+
+	if ( !AssetData.IsValid() || !AssetData.GetClass()->IsChildOf( USubDSurface::StaticClass() ) )
+	{
+		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSubDSurface", "A valid SubDSurface must be specified.");
+		return false;
+	}
+
+	return true;
+}
+
+void UActorFactorySubDSurface::PostSpawnActor( UObject* Asset, AActor* NewActor )
+{
+	Super::PostSpawnActor(Asset, NewActor);
+
+	USubDSurface* SubDSurface = Cast<USubDSurface>(Asset);
+	ASubDSurfaceActor* SubDSurfaceActor = CastChecked<ASubDSurfaceActor>(NewActor);
+
+	if(SubDSurface && SubDSurfaceActor)
+	{
+		SubDSurfaceActor->SubDSurface->SetMesh(SubDSurface);
+	}
+}
 
 /*-----------------------------------------------------------------------------
 UActorFactoryEmitter
@@ -600,82 +642,6 @@ void UActorFactoryEmitter::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 		Emitter->SetTemplate(ParticleSystem);
 	}
 }
-
-
-
-
-
-/*-----------------------------------------------------------------------------
-UActorFactoryNiagara
------------------------------------------------------------------------------*/
-UActorFactoryNiagara::UActorFactoryNiagara(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
-{
-	DisplayName = LOCTEXT("NiagaraEffectDisplayName", "NiagaraEffect");
-	NewActorClass = ANiagaraActor::StaticClass();
-}
-
-bool UActorFactoryNiagara::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
-{
-	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UNiagaraEffect::StaticClass()))
-	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoEffect", "A valid Niagara effect must be specified.");
-		return false;
-	}
-
-	return true;
-}
-
-void UActorFactoryNiagara::PostSpawnActor(UObject* Asset, AActor* NewActor)
-{
-	Super::PostSpawnActor(Asset, NewActor);
-
-	UNiagaraEffect* Effect = CastChecked<UNiagaraEffect>(Asset);
-	ANiagaraActor* NiagaraActor = CastChecked<ANiagaraActor>(NewActor);
-
-	// Term Component
-	NiagaraActor->GetNiagaraComponent()->UnregisterComponent();
-
-	// Change properties
-	NiagaraActor->GetNiagaraComponent()->SetAsset(Effect);
-
-	// if we're created by Kismet on the server during gameplay, we need to replicate the emitter
-	if (NiagaraActor->GetWorld()->HasBegunPlay() && NiagaraActor->GetWorld()->GetNetMode() != NM_Client)
-	{
-		NiagaraActor->SetReplicates(true);
-		NiagaraActor->bAlwaysRelevant = true;
-		NiagaraActor->NetUpdateFrequency = 0.1f; // could also set bNetTemporary but LD might further trigger it or something
-	}
-
-	// Init Component
-	NiagaraActor->GetNiagaraComponent()->RegisterComponent();
-}
-
-UObject* UActorFactoryNiagara::GetAssetFromActorInstance(AActor* Instance)
-{
-	check(Instance->IsA(NewActorClass));
-	ANiagaraActor* NewActor = CastChecked<ANiagaraActor>(Instance);
-	if (NewActor->GetNiagaraComponent())
-	{
-		return NewActor->GetNiagaraComponent()->GetAsset();
-	}
-	else
-	{
-		return NULL;
-	}
-}
-
-void UActorFactoryNiagara::PostCreateBlueprint(UObject* Asset, AActor* CDO)
-{
-	if (Asset != NULL && CDO != NULL)
-	{
-		UNiagaraEffect* Effect = CastChecked<UNiagaraEffect>(Asset);
-		ANiagaraActor* Actor = CastChecked<ANiagaraActor>(CDO);
-		Actor->GetNiagaraComponent()->SetAsset(Effect);
-	}
-}
-
-
 
 
 /*-----------------------------------------------------------------------------
@@ -817,8 +783,7 @@ UActorFactoryAnimationAsset::UActorFactoryAnimationAsset(const FObjectInitialize
 bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
 { 
 	if ( !AssetData.IsValid() || 
-		( !AssetData.GetClass()->IsChildOf( UAnimSequenceBase::StaticClass() ) && 
-		  !AssetData.GetClass()->IsChildOf( UVertexAnimation::StaticClass() )) )
+		( !AssetData.GetClass()->IsChildOf( UAnimSequenceBase::StaticClass() ) )) 
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimData", "A valid anim data must be specified.");
 		return false;
@@ -829,14 +794,14 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 
 	if ( AssetData.GetClass()->IsChildOf( UAnimSequenceBase::StaticClass() ) )
 	{
-		const FString* SkeletonPath = AssetData.TagsAndValues.Find("Skeleton");
-		if ( SkeletonPath == NULL || SkeletonPath->IsEmpty() ) 
+		const FString SkeletonPath = AssetData.GetTagValueRef<FString>("Skeleton");
+		if ( SkeletonPath.IsEmpty() ) 
 		{
 			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSkeleton", "UAnimationAssets must have a valid Skeleton.");
 			return false;
 		}
 
-		FAssetData SkeletonData = AssetRegistry.GetAssetByObjectPath( **SkeletonPath );
+		FAssetData SkeletonData = AssetRegistry.GetAssetByObjectPath( *SkeletonPath );
 
 		if ( !SkeletonData.IsValid() )
 		{
@@ -869,18 +834,6 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 
 	FAssetData SkeletalMeshData;
 
-	if ( AssetData.GetClass()->IsChildOf( UVertexAnimation::StaticClass() ) )
-	{
-		const FString* BaseSkeletalMeshPath = AssetData.TagsAndValues.Find( TEXT("BaseSkelMesh") );
-		if ( BaseSkeletalMeshPath == NULL || BaseSkeletalMeshPath->IsEmpty() ) 
-		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "UVertexAnimationNoSkeleton", "UVertexAnimations must have a valid base skeletal mesh.");
-			return false;
-		}
-
-		SkeletalMeshData = AssetRegistry.GetAssetByObjectPath( **BaseSkeletalMeshPath );
-	}
-
 	if ( !SkeletalMeshData.IsValid() )
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSkeletalMeshAss", "No valid skeletal mesh was found associated with the animation sequence.");
@@ -901,17 +854,11 @@ USkeletalMesh* UActorFactoryAnimationAsset::GetSkeletalMeshFromAsset( UObject* A
 {
 	USkeletalMesh* SkeletalMesh = NULL;
 	UAnimSequenceBase* AnimationAsset = Cast<UAnimSequenceBase>( Asset );
-	UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>( Asset );
 
 	if( AnimationAsset != NULL )
 	{
 		// base it on preview skeletal mesh, just to have something
 		SkeletalMesh = AnimationAsset->GetSkeleton()? AnimationAsset->GetSkeleton()->GetAssetPreviewMesh(AnimationAsset) : NULL;
-	}
-	else if( VertexAnimation != NULL )
-	{
-		// base it on preview skeletal mesh, just to have something
-		SkeletalMesh = VertexAnimation->BaseSkelMesh;
 	}
 
 	// Check to see if it's actually a DestructibleMesh, in which case we won't use this factory
@@ -928,7 +875,6 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 {
 	Super::PostSpawnActor( Asset, NewActor );
 	UAnimationAsset* AnimationAsset = Cast<UAnimationAsset>(Asset);
-	UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>(Asset);
 
 	ASkeletalMeshActor* NewSMActor = CastChecked<ASkeletalMeshActor>(NewActor);
 	USkeletalMeshComponent* NewSASComponent = (NewSMActor->GetSkeletalMeshComponent());
@@ -954,14 +900,6 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 			}
 			
 		}
-		else if( VertexAnimation )
-		{
-			NewSASComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-			NewSASComponent->AnimationData.VertexAnimToPlay = VertexAnimation;
-
-			// set runtime data
-			NewSASComponent->SetVertexAnimation(VertexAnimation);
-		}
 	}
 }
 
@@ -972,7 +910,6 @@ void UActorFactoryAnimationAsset::PostCreateBlueprint( UObject* Asset,  AActor* 
 	if (Asset != NULL && CDO != NULL)
 	{
 		UAnimationAsset* AnimationAsset = Cast<UAnimationAsset>(Asset);
-		UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>(Asset);
 
 		ASkeletalMeshActor* SkeletalMeshActor = CastChecked<ASkeletalMeshActor>(CDO);
 		USkeletalMeshComponent* SkeletalComponent = (SkeletalMeshActor->GetSkeletalMeshComponent());
@@ -980,11 +917,6 @@ void UActorFactoryAnimationAsset::PostCreateBlueprint( UObject* Asset,  AActor* 
 		{
 			SkeletalComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
 			SkeletalComponent->SetAnimation(AnimationAsset);
-		}
-		else if (VertexAnimation)
-		{
-			SkeletalComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-			SkeletalComponent->SetVertexAnimation(VertexAnimation);
 		}
 	}
 }
@@ -1023,14 +955,14 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 
 	if ( !SkeletalMeshData.IsValid() && AssetData.GetClass()->IsChildOf( UAnimBlueprint::StaticClass() ) )
 	{
-		const FString* TargetSkeletonPath = AssetData.TagsAndValues.Find( TEXT("TargetSkeleton") );
-		if ( TargetSkeletonPath == NULL || TargetSkeletonPath->IsEmpty() )
+		const FString TargetSkeletonPath = AssetData.GetTagValueRef<FString>( "TargetSkeleton" );
+		if ( TargetSkeletonPath.IsEmpty() )
 		{
 			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimBPTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
 			return false;
 		}
 
-		FAssetData TargetSkeleton = AssetRegistry.GetAssetByObjectPath( **TargetSkeletonPath );
+		FAssetData TargetSkeleton = AssetRegistry.GetAssetByObjectPath( *TargetSkeletonPath );
 		if ( !TargetSkeleton.IsValid() )
 		{
 			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimBPTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
@@ -1078,7 +1010,7 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 		}
 		else
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "SkeletalMesh must have a valid Target Skeleton.");
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSkelMeshTargetSkeleton", "SkeletalMesh must have a valid Target Skeleton.");
 		}
 	}
 
@@ -1205,12 +1137,12 @@ bool UActorFactoryEmptyActor::CanCreateActorFrom( const FAssetData& AssetData, F
 	return AssetData.ObjectPath == FName(*AActor::StaticClass()->GetPathName());
 }
 
-AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name )
+AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags InObjectFlags, const FName Name )
 {
 	AActor* NewActor = nullptr;
 	{
 		// Spawn a temporary actor for dragging around
-		NewActor = Super::SpawnActor(Asset, InLevel, Transform, ObjectFlags, Name);
+		NewActor = Super::SpawnActor(Asset, InLevel, Transform, InObjectFlags, Name);
 
 		USceneComponent* RootComponent = NewObject<USceneComponent>(NewActor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 		RootComponent->Mobility = EComponentMobility::Movable;
@@ -1373,7 +1305,7 @@ bool UActorFactoryClass::PreSpawnActor( UObject* Asset, FTransform& InOutLocatio
 	return false;
 }
 
-AActor* UActorFactoryClass::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name )
+AActor* UActorFactoryClass::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags InObjectFlags, const FName Name )
 {
 	UClass* ActualClass = Cast<UClass>(Asset);
 
@@ -1381,7 +1313,7 @@ AActor* UActorFactoryClass::SpawnActor( UObject* Asset, ULevel* InLevel, const F
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.OverrideLevel = InLevel;
-		SpawnInfo.ObjectFlags = ObjectFlags;
+		SpawnInfo.ObjectFlags = InObjectFlags;
 		SpawnInfo.Name = Name;
 		return InLevel->OwningWorld->SpawnActor( ActualClass, &Transform, SpawnInfo );
 	}
@@ -1407,14 +1339,14 @@ bool UActorFactoryBlueprint::CanCreateActorFrom( const FAssetData& AssetData, FT
 		return false;
 	}
 
-	const FString* ParentClassPath = AssetData.TagsAndValues.Find( TEXT("ParentClass") );
-	if ( ParentClassPath == NULL || ParentClassPath->IsEmpty() )
+	const FString ParentClassPath = AssetData.GetTagValueRef<FString>( "ParentClass" );
+	if ( ParentClassPath.IsEmpty() )
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoBlueprint", "No Blueprint was specified, or the specified Blueprint needs to be compiled.");
 		return false;
 	}
 
-	UClass* ParentClass = FindObject<UClass>(NULL, **ParentClassPath);
+	UClass* ParentClass = FindObject<UClass>(NULL, *ParentClassPath);
 
 	bool bIsActorBased = false;
 	if ( ParentClass != NULL )
@@ -1453,13 +1385,13 @@ AActor* UActorFactoryBlueprint::GetDefaultActor( const FAssetData& AssetData )
 		return NULL;
 	}
 
-	const FString* GeneratedClassPath = AssetData.TagsAndValues.Find("GeneratedClass");
-	if ( GeneratedClassPath == NULL || GeneratedClassPath->IsEmpty() )
+	const FString GeneratedClassPath = AssetData.GetTagValueRef<FString>("GeneratedClass");
+	if ( GeneratedClassPath.IsEmpty() )
 	{
 		return NULL;
 	}
 
-	UClass* GeneratedClass = Cast<UClass>(StaticLoadObject(UClass::StaticClass(), NULL, **GeneratedClassPath, NULL, LOAD_NoWarn, NULL));
+	UClass* GeneratedClass = Cast<UClass>(StaticLoadObject(UClass::StaticClass(), NULL, *GeneratedClassPath, NULL, LOAD_NoWarn, NULL));
 
 	if ( GeneratedClass == NULL )
 	{
@@ -1979,9 +1911,9 @@ bool UActorFactoryMovieScene::CanCreateActorFrom( const FAssetData& AssetData, F
 	return true;
 }
 
-AActor* UActorFactoryMovieScene::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags ObjectFlags, const FName Name )
+AActor* UActorFactoryMovieScene::SpawnActor( UObject* Asset, ULevel* InLevel, const FTransform& Transform, EObjectFlags InObjectFlags, const FName Name )
 {
-	ALevelSequenceActor* NewActor = Cast<ALevelSequenceActor>(Super::SpawnActor(Asset, InLevel, Transform, ObjectFlags, Name));
+	ALevelSequenceActor* NewActor = Cast<ALevelSequenceActor>(Super::SpawnActor(Asset, InLevel, Transform, InObjectFlags, Name));
 
 	if (NewActor)
 	{

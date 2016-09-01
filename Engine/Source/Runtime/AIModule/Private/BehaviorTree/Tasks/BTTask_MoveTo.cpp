@@ -76,11 +76,11 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 	if (MyController && MyBlackboard)
 	{
 		FAIMoveRequest MoveReq;
-		MoveReq.SetNavigationFilter(FilterClass);
+		MoveReq.SetNavigationFilter(*FilterClass ? FilterClass : MyController->GetDefaultNavigationFilterClass());
 		MoveReq.SetAllowPartialPath(bAllowPartialPath);
 		MoveReq.SetAcceptanceRadius(AcceptableRadius);
 		MoveReq.SetCanStrafe(bAllowStrafe);
-		MoveReq.SetStopOnOverlap(bStopOnOverlap);
+		MoveReq.SetReachTestIncludesAgentRadius(bStopOnOverlap);
 		MoveReq.SetProjectGoalLocation(bProjectGoalLocation);
 		MoveReq.SetUsePathfinding(bUsePathfinding);
 
@@ -126,9 +126,15 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 
 					if (bReuseExistingTask)
 					{
-						ensure(MoveTask->IsActive());
-						UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' reusing AITask %s"), *GetNodeName(), *MoveTask->GetName());
-						MoveTask->ConditionalPerformMove();
+						if (MoveTask->IsActive())
+						{
+							UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' reusing AITask %s"), *GetNodeName(), *MoveTask->GetName());
+							MoveTask->ConditionalPerformMove();
+						}
+						else
+						{
+							UE_VLOG(MyController, LogBehaviorTree, Verbose, TEXT("\'%s\' reusing AITask %s, but task is not active - handing over move performing to task mechanics"), *GetNodeName(), *MoveTask->GetName());
+						}
 					}
 					else
 					{
@@ -145,18 +151,16 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 			}
 			else
 			{
-				EPathFollowingRequestResult::Type RequestResult = MyController->MoveTo(MoveReq);
-				if (RequestResult == EPathFollowingRequestResult::RequestSuccessful)
+				FPathFollowingRequestResult RequestResult = MyController->MoveTo(MoveReq);
+				if (RequestResult.Code == EPathFollowingRequestResult::RequestSuccessful)
 				{
-					const FAIRequestID RequestID = MyController->GetCurrentMoveRequestID();
-
-					MyMemory->MoveRequestID = RequestID;
-					WaitForMessage(OwnerComp, UBrainComponent::AIMessage_MoveFinished, RequestID);
+					MyMemory->MoveRequestID = RequestResult.MoveId;
+					WaitForMessage(OwnerComp, UBrainComponent::AIMessage_MoveFinished, RequestResult.MoveId);
 					WaitForMessage(OwnerComp, UBrainComponent::AIMessage_RepathFailed);
 
 					NodeResult = EBTNodeResult::InProgress;
 				}
-				else if (RequestResult == EPathFollowingRequestResult::AlreadyAtGoal)
+				else if (RequestResult.Code == EPathFollowingRequestResult::AlreadyAtGoal)
 				{
 					NodeResult = EBTNodeResult::Succeeded;
 				}
@@ -167,7 +171,7 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 	return NodeResult;
 }
 
-UAITask_MoveTo* UBTTask_MoveTo::PrepareMoveTask(UBehaviorTreeComponent& OwnerComp, UAITask_MoveTo* ExistingTask, const FAIMoveRequest& MoveRequest)
+UAITask_MoveTo* UBTTask_MoveTo::PrepareMoveTask(UBehaviorTreeComponent& OwnerComp, UAITask_MoveTo* ExistingTask, FAIMoveRequest& MoveRequest)
 {
 	UAITask_MoveTo* MoveTask = ExistingTask ? ExistingTask : NewBTAITask<UAITask_MoveTo>(OwnerComp);
 	if (MoveTask)
@@ -221,8 +225,9 @@ EBlackboardNotificationResult UBTTask_MoveTo::OnBlackboardValueChange(const UBla
 			// don't abort move if using AI tasks - it will mess things up
 			if (MyMemory->MoveRequestID.IsValid())
 			{
+				UE_VLOG(BehaviorComp, LogBehaviorTree, Log, TEXT("Blackboard value for goal has changed, aborting current move request"));
 				StopWaitingForMessages(*BehaviorComp);
-				BehaviorComp->GetAIOwner()->GetPathFollowingComponent()->AbortMove(TEXT("Updating move due to BB value change"), MyMemory->MoveRequestID, /*bResetVelocity=*/false, /*bSilent=*/true);
+				BehaviorComp->GetAIOwner()->GetPathFollowingComponent()->AbortMove(*this, FPathFollowingResultFlags::NewRequest, MyMemory->MoveRequestID, EPathFollowingVelocityMode::Keep);
 			}
 
 			if (!bUseGameplayTasks && BehaviorComp->GetAIOwner()->ShouldPostponePathUpdates())
@@ -254,7 +259,7 @@ EBTNodeResult::Type UBTTask_MoveTo::AbortTask(UBehaviorTreeComponent& OwnerComp,
 			AAIController* MyController = OwnerComp.GetAIOwner();
 			if (MyController && MyController->GetPathFollowingComponent())
 			{
-				MyController->GetPathFollowingComponent()->AbortMove(TEXT("BehaviorTree abort"), MyMemory->MoveRequestID);
+				MyController->GetPathFollowingComponent()->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished, MyMemory->MoveRequestID);
 			}
 		}
 		else

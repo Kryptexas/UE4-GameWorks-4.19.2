@@ -4,6 +4,7 @@ Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
 Description:The various aspects of replicating Actor objects.
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Server
+Version: 4.9
 
 [TOC (start:2 end:3)]
 

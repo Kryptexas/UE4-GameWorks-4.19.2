@@ -324,10 +324,8 @@ void FWebJSScripting::UnbindCefBrowser()
 void FWebJSScripting::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	// Ensure bound UObjects are not garbage collected as long as this object is valid.
-	for (auto& Binding : BoundObjects)
-	{
-		Collector.AddReferencedObject(Binding.Key);
-	}
+	Collector.AddReferencedObjects(BoundObjects);
+	Collector.AddReferencedObjects(PermanentUObjectsByName);
 }
 
 void FWebJSScripting::InvokeJSErrorResult(FGuid FunctionId, const FString& Error)

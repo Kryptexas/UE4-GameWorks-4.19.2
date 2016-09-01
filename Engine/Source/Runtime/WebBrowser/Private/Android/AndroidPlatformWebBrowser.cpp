@@ -26,6 +26,8 @@ class SAndroidWebBrowserWidget : public SLeafWidget
 
 	void LoadString(const FString& Contents, const FString& DummyURL);
 
+	void ExecuteJavascript(const FString& Script);
+
 	void Close();
 
 protected:
@@ -34,6 +36,7 @@ protected:
 	TOptional<FJavaClassMethod> JWebView_Update;
 	TOptional<FJavaClassMethod> JWebView_LoadURL;
 	TOptional<FJavaClassMethod> JWebView_LoadString;
+	TOptional<FJavaClassMethod> JWebView_ExecuteJavascript;
 	TOptional<FJavaClassMethod> JWebView_Close;
 };
 
@@ -44,6 +47,7 @@ void SAndroidWebBrowserWidget::Construct(const FArguments& Args)
 	JWebView_Update = JWebView->GetClassMethod("Update", "(IIII)V");
 	JWebView_LoadURL = JWebView->GetClassMethod("LoadURL", "(Ljava/lang/String;)V");
 	JWebView_LoadString = JWebView->GetClassMethod("LoadString", "(Ljava/lang/String;Ljava/lang/String;)V");
+	JWebView_ExecuteJavascript = JWebView->GetClassMethod("ExecuteJavascript", "(Ljava/lang/String;)V");
 	JWebView_Close = JWebView->GetClassMethod("Close", "()V");
 
 	JWebView->CallMethod<void>(JWebView_LoadURL.GetValue(), FJavaClassObject::GetJString(Args._InitialURL));
@@ -92,6 +96,11 @@ void SAndroidWebBrowserWidget::LoadURL(const FString& NewURL)
 void SAndroidWebBrowserWidget::LoadString(const FString& Contents, const FString& DummyURL)
 {
 	JWebView->CallMethod<void>(JWebView_LoadString.GetValue(), FJavaClassObject::GetJString(Contents), FJavaClassObject::GetJString(DummyURL));
+}
+
+void SAndroidWebBrowserWidget::ExecuteJavascript(const FString& JavaScript)
+{
+	JWebView->CallMethod<void>(JWebView_ExecuteJavascript.GetValue(), FJavaClassObject::GetJString(JavaScript));
 }
 
 void SAndroidWebBrowserWidget::Close()
@@ -265,6 +274,7 @@ void FWebBrowserWindow::SetIsDisabled(bool bValue)
 
 void FWebBrowserWindow::ExecuteJavascript(const FString& Script)
 {
+	BrowserWidget->ExecuteJavascript(Script);
 }
 
 void FWebBrowserWindow::CloseBrowser(bool bForce)

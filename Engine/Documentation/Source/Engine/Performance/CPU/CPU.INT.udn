@@ -55,7 +55,7 @@ The build in CPU profiler can help you to find the functions causing the issue:
 [/REGION]
 
 Here we used a threshold of 0.1 milliseconds to customize the output. After running the command, you can find the result in the log and in the console.
-The hierarchy shows the the time in milliseconds and the call count. If needed, you can add QUICK_SCOPE_CYCLE_COUNTER to the code to refine the hierarchy further like the following example:
+The hierarchy shows the time in milliseconds and the call count. If needed, you can add QUICK_SCOPE_CYCLE_COUNTER to the code to refine the hierarchy further like the following example:
 
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 	{

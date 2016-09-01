@@ -73,13 +73,22 @@ FAndroidInputInterface::FAndroidInputInterface( const TSharedRef< FGenericApplic
 
 	VibeIsOn = false;
 
-	ResetGamepadAssignments();
+	for (int32 DeviceIndex = 0; DeviceIndex < MAX_NUM_CONTROLLERS; DeviceIndex++)
+	{
+		DeviceMapping[DeviceIndex].DeviceInfo.DeviceId = 0;
+		DeviceMapping[DeviceIndex].DeviceState = MappingState::Unassigned;
+	}
 }
 
 void FAndroidInputInterface::ResetGamepadAssignments()
 {
 	for (int32 DeviceIndex = 0; DeviceIndex < MAX_NUM_CONTROLLERS; DeviceIndex++)
 	{
+		if (DeviceMapping[DeviceIndex].DeviceState == MappingState::Valid)
+		{
+			FCoreDelegates::OnControllerConnectionChange.Broadcast(false, -1, DeviceIndex);
+		}
+
 		DeviceMapping[DeviceIndex].DeviceInfo.DeviceId = 0;
 		DeviceMapping[DeviceIndex].DeviceState = MappingState::Unassigned;
 	}
@@ -89,6 +98,11 @@ void FAndroidInputInterface::ResetGamepadAssignmentToController(int32 Controller
 {
 	if (ControllerId < 0 || ControllerId >= MAX_NUM_CONTROLLERS)
 		return;
+
+	if (DeviceMapping[ControllerId].DeviceState == MappingState::Valid)
+	{
+		FCoreDelegates::OnControllerConnectionChange.Broadcast(false, -1, ControllerId);
+	}
 
 	DeviceMapping[ControllerId].DeviceInfo.DeviceId = 0;
 	DeviceMapping[ControllerId].DeviceState = MappingState::Unassigned;
@@ -731,6 +745,8 @@ void FAndroidInputInterface::SendControllerEvents()
 						CurrentDevice.bRightStickRXRY = true;
 					}
 
+					FCoreDelegates::OnControllerConnectionChange.Broadcast(true, -1, DeviceIndex);
+
 					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Assigned new gamepad controller %d: DeviceId=%d, ControllerId=%d, DeviceName=%s, Descriptor=%s"),
 						DeviceIndex, CurrentDevice.DeviceInfo.DeviceId, CurrentDevice.DeviceInfo.ControllerId, *CurrentDevice.DeviceInfo.Name, *CurrentDevice.DeviceInfo.Descriptor);
 					continue;
@@ -746,6 +762,9 @@ void FAndroidInputInterface::SendControllerEvents()
 					NewControllerData[FoundMatch] = NewControllerData[DeviceIndex];
 					NewControllerData[FoundMatch].DeviceId = FoundMatch;
 					OldControllerData[FoundMatch].DeviceId = FoundMatch;
+
+					//@TODO: uncomment this line in the future when disconnects are detected
+					//FCoreDelegates::OnControllerConnectionChange.Broadcast(true, -1, FoundMatch);
 
 					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Reconnected gamepad controller %d: DeviceId=%d, ControllerId=%d, DeviceName=%s, Descriptor=%s"),
 						FoundMatch, DeviceMapping[FoundMatch].DeviceInfo.DeviceId, CurrentDevice.DeviceInfo.ControllerId, *CurrentDevice.DeviceInfo.Name, *CurrentDevice.DeviceInfo.Descriptor);

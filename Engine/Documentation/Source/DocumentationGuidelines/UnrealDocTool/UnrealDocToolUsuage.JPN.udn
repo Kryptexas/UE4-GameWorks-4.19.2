@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2083140
+﻿INTSourceChangelist:2683772
 Availability:Docs
 Keywords:アンリアル ドキュメント ツール使用ガイド
 Title:アンリアル ドキュメント ツールの使用ガイド
@@ -99,24 +99,28 @@ HTML ファイルの生成に、 ディレクトリ モードで使用する言�
 ### 単一ファイル
 
 	UnrealDocTool EpicMarkdownDocGuides\UnrealDocumentToolUsuage\UnrealDocToolUsuage.INT.udn -s=C:\UDN\Markdown -o=C:\UDN\Docs
-	エラーが発生しなければファイルは変換され、「`C:\UDN\Docs\<Language>\EpicMarkdownDocGuides\UnrealDocumentToolUsuage\index.html`」の出力ディレクトリに格納されます。この例の Language は「INT」バージョンです。
+
+エラーが発生しなければファイルは変換され、「`C:\UDN\Docs\<Language>\EpicMarkdownDocGuides\UnrealDocumentToolUsuage\index.html`」の出力ディレクトリに格納されます。この例の Language は「INT」バージョンです。
 
 
-
-### Recursively Processディレクトリ
+### Recursively Process ディレクトリ
 
 1.	「config」ファイルが正確な値で SourceDirectory と OutputDirectory に設定された時、全サブディレクトリの韓国語と英語のファイルを変換します。
 
 		UnrealDocTool . -r -lang=INT,KR
-	2. 「config」ファイルに格納されている正しいディレクトリにある全ての言語ファイル
 
+2. 「config」ファイルに格納されている正しいディレクトリにある全ての言語ファイル
 
 		UnrealDocTool . -r
 
-	###全ドキュメントの検証
 
+###全ドキュメントの検証
 	UnrealDocTool . -r -log -s=C:\UDN\Markdown -o=C:\UDN\Docs
-	### 全言語の特定フォルダにツールを実行する
 
+### 全言語の特定フォルダにツールを実行する
 	UnrealDocTool Animation -s=C:\UDN\Markdown -o=C:\UDN\Docs
+
+
+
+
 

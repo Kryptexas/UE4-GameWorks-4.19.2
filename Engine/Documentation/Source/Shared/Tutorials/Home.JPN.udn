@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2251491
-Availability:NoPublish
+﻿Availability:NoPublish
 Title:チュートリアルのホームページ
 Crumbs:
 Description:アンリアル・エンジン 4 入門チュートリアルのコンテンツ
@@ -65,13 +64,13 @@ Description:アンリアル・エンジン 4 入門チュートリアルのコ�
 
 ユーザーがエンジン機能をすぐに使いこなせるようにクイックスタートガイドを用意しました。アンリアルエンジンのオンラインドキュメントで、さまざまなガイドを参照してください。
 
-[クイックスタートガイド](DOCLINK:GettingStarted/QuickStartDirectory)
+[クイックスタート ガイド](GettingStarted/QuickStartDirectory)
 
 ---
 
 ## その他のチュートリアル
 
-エピックとコミュニティによるその他のチュートリアルは、アンリアルエンジンのWikiページからドキュメントおよびビデオ両方にアクセスできます。
+エピックとコミュニティによるその他のチュートリアルは、アンリアルエンジンの Wik iページからドキュメントおよびビデオ両方にアクセスできます。
 
 [エピックが作成したドキュメントチュートリアル](https://wiki.unrealengine.com/Category:Epic_Created_Content)
 [エピックが作成したビデオチュートリアル](https://wiki.unrealengine.com/Category:Epic_Video_Playlists)

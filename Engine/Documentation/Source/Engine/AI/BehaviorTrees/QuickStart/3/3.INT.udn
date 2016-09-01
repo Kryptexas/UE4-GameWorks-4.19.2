@@ -2,6 +2,7 @@ Availability:Public
 Title: 3. Create the Basic Assets
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 3. Create the Basic Assets
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,10 +23,10 @@ Description:Step 3. Create the Basic Assets
 %Steps%
 
 
-To start, you will need create 4 assets in the **Content Browser**: An AI Controller Blueprint, A Character Blueprint, and Behavior Tree Asset, and a Black Board Asset.
+To start, you will need create 4 assets in the **Content Browser**: an AI Controller Blueprint, a Character Blueprint, a Behavior Tree Asset, and a Black Board Asset.
 
 [REGION:raw]
-![](Assets.png)
+![](ContentBrowser.jpg)
 [/REGION]
 
 ## Steps
@@ -36,13 +37,13 @@ To start, you will need create 4 assets in the **Content Browser**: An AI Contro
 
 	![](AIC.png)
 
-	Name this **Blueprint** `Follower_AI_CON`.
+	Name this **Blueprint** "Follower_AI_CON".
 
 1. **New** -> **Blueprint** -> **Character**
 
 	![](charBP.png)
 
-	Name this **Blueprint** `AI_Character`.
+	Name this **Blueprint** "AI_Character".
 
 1. **New** -> **Artificial Intelligence** -> **Behavior Tree**
 
@@ -50,7 +51,7 @@ To start, you will need create 4 assets in the **Content Browser**: An AI Contro
 	![](newBT.png)
 	[/REGION]
 
-	Name the **Behavior Tree** `FollowerBT`.
+	Name the **Behavior Tree** "FollowerBT".
 
 1. **New** -> **Artificial Intelligence** ->  **Blackboard**.
 	
@@ -58,7 +59,7 @@ To start, you will need create 4 assets in the **Content Browser**: An AI Contro
 	![](newBB.png)
 	[/REGION]	
 
-	Name the **Blackboard** `FollowerBlackboard`.
+	Name the **Blackboard** "FollowerBlackboard".
 
 
 %Steps%

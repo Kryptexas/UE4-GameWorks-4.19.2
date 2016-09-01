@@ -113,12 +113,15 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	float SkyDistanceThreshold;
 
 	/** 
-	 * Whether all distant lighting from the lower hemisphere should be set to zero.  
-	 * Enabling this is accurate when lighting a scene on a planet, 
+	 * Whether all distant lighting from the lower hemisphere should be set to LowerHemisphereColor.  
+	 * Enabling this is accurate when lighting a scene on a planet where the ground blocks the sky, 
 	 * However disabling it can be useful to approximate skylight bounce lighting (eg Movable light).
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(DisplayName = "Lower Hemisphere Is Solid Color"))
 	bool bLowerHemisphereIsBlack;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
+	FLinearColor LowerHemisphereColor;
 
 	/** 
 	 * Max distance that the occlusion of one point will affect another.

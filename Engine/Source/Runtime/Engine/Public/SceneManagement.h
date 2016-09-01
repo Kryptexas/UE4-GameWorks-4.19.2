@@ -155,6 +155,8 @@ public:
 	/** If frozen view matrices were set, restore the previous view matrices */
 	virtual void RestoreUnfrozenViewMatrices(FSceneView& SceneView) = 0;
 #endif
+	// rest some state (e.g. FrameIndexMod8, TemporalAASampleIndex) to make the rendering [more] deterministic
+	virtual void ResetViewState() = 0;
 
 	/** Returns the temporal LOD struct from the viewstate */
 	virtual FTemporalLODState& GetTemporalLODState() = 0;
@@ -176,6 +178,9 @@ public:
 	virtual void SetSequencerState(const bool bIsPaused) = 0;
 
 	virtual bool GetSequencerState() = 0;
+
+	//
+	virtual uint32 GetFrameIndexMod8() const = 0;
 
 	/** 
 	 * returns the occlusion frame counter 
@@ -701,12 +706,6 @@ public:
 	/** When enabled, the cascade only renders objects marked with bCastFarShadows enabled (e.g. Landscape). */
 	bool bFarShadowCascade;
 
-	/** Whether the shadow will be computed by ray tracing the distance field. */
-	bool bRayTracedDistanceField;
-
-	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
-	bool bOnePassPointLightShadow;
-
 	/** 
 	 * Index of the split if this is a whole scene shadow from a directional light, 
 	 * Or index of the direction if this is a whole scene shadow from a point light, otherwise INDEX_NONE. 
@@ -721,8 +720,6 @@ public:
 		, FadePlaneOffset(SplitFar)
 		, FadePlaneLength(SplitFar - FadePlaneOffset)
 		, bFarShadowCascade(false)
-		, bRayTracedDistanceField(false)
-		, bOnePassPointLightShadow(false)
 		, ShadowSplitIndex(INDEX_NONE)
 	{
 	}
@@ -749,6 +746,20 @@ public:
 	/** Default constructor. */
 	FProjectedShadowInitializer()
 	{}
+
+	bool IsCachedShadowValid(const FProjectedShadowInitializer& CachedShadow) const
+	{
+		return PreShadowTranslation == CachedShadow.PreShadowTranslation
+			&& WorldToLight == CachedShadow.WorldToLight
+			&& Scales == CachedShadow.Scales
+			&& FaceDirection == CachedShadow.FaceDirection
+			&& SubjectBounds.Origin == CachedShadow.SubjectBounds.Origin
+			&& SubjectBounds.BoxExtent == CachedShadow.SubjectBounds.BoxExtent
+			&& SubjectBounds.SphereRadius == CachedShadow.SubjectBounds.SphereRadius
+			&& WAxis == CachedShadow.WAxis
+			&& MinLightW == CachedShadow.MinLightW
+			&& MaxDistanceToCastInLightW == CachedShadow.MaxDistanceToCastInLightW;
+	}
 };
 
 /** Information needed to create a per-object projected shadow. */
@@ -763,6 +774,20 @@ class ENGINE_API FWholeSceneProjectedShadowInitializer : public FProjectedShadow
 {
 public:
 	FShadowCascadeSettings CascadeSettings;
+	bool bOnePassPointLightShadow;
+	bool bRayTracedDistanceField;
+
+	FWholeSceneProjectedShadowInitializer() :
+		bOnePassPointLightShadow(false),
+		bRayTracedDistanceField(false)
+	{}
+
+	bool IsCachedShadowValid(const FWholeSceneProjectedShadowInitializer& CachedShadow) const
+	{
+		return FProjectedShadowInitializer::IsCachedShadowValid((const FProjectedShadowInitializer&)CachedShadow)
+			&& bOnePassPointLightShadow == CachedShadow.bOnePassPointLightShadow
+			&& bRayTracedDistanceField == CachedShadow.bRayTracedDistanceField;
+	}
 };
 
 inline bool DoesPlatformSupportDistanceFieldShadowing(EShaderPlatform Platform)
@@ -956,6 +981,7 @@ public:
 	inline float GetIndirectLightingScale() const { return IndirectLightingScale; }
 	inline FGuid GetLightGuid() const { return LightGuid; }
 	inline float GetShadowSharpen() const { return ShadowSharpen; }
+	inline float GetContactShadowLength() const { return ContactShadowLength; }
 	inline FVector GetLightFunctionScale() const { return LightFunctionScale; }
 	inline float GetLightFunctionFadeDistance() const { return LightFunctionFadeDistance; }
 	inline float GetLightFunctionDisabledBrightness() const { return LightFunctionDisabledBrightness; }
@@ -997,6 +1023,9 @@ public:
 	 */
 	virtual void ApplyWorldOffset(FVector InOffset);
 
+	virtual float GetMaxDrawDistance() const { return 0.0f; }
+	virtual float GetFadeRange() const { return 0.0f; }
+
 protected:
 
 	friend class FScene;
@@ -1027,6 +1056,9 @@ protected:
 
 	/** Sharpen shadow filtering */
 	float ShadowSharpen;
+
+	/** Length of screen space ray trace for sharp contact shadows. */
+	float ContactShadowLength;
 
 	/** Min roughness */
 	float MinRoughness;
@@ -1155,6 +1187,9 @@ public:
 
 	void InitializeFadingParameters(float AbsSpawnTime, float FadeDuration, float FadeStartDelay);
 
+	/** @return True if the decal is visible in the given view. */
+	bool IsShown( const FSceneView* View ) const;
+
 	/** Pointer back to the game thread decal component. */
 	const UDecalComponent* Component;
 
@@ -1163,11 +1198,14 @@ public:
 	/** Used to compute the projection matrix on the render thread side, includes the DecalSize  */
 	FTransform ComponentTrans;
 
-	/** 
-	 * Whether the decal should be drawn or not
-	 * This has to be passed to the rendering thread to handle G mode in the editor, where there is no game world, but we don't want to show components with HiddenGame set. 
-	 */
+private:
+	/** Whether or not the decal should be drawn in the game, or when the editor is in 'game mode'. */
 	bool DrawInGame;
+
+	/** Whether or not the decal should be drawn in the editor. */
+	bool DrawInEditor;
+
+public:
 
 	bool bOwnerSelected;
 
@@ -1511,6 +1549,7 @@ struct FMeshBatchAndRelevance
 	/** The render info for the primitive which created this mesh, required. */
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
 
+private:
 	/** 
 	 * Cached usage information to speed up traversal in the most costly passes (depth-only, base pass, shadow depth), 
 	 * This is done so the Mesh does not have to be dereferenced to determine pass relevance. 
@@ -1518,7 +1557,11 @@ struct FMeshBatchAndRelevance
 	uint32 bHasOpaqueOrMaskedMaterial : 1;
 	uint32 bRenderInMainPass : 1;
 
+public:
 	FMeshBatchAndRelevance(const FMeshBatch& InMesh, const FPrimitiveSceneProxy* InPrimitiveSceneProxy, ERHIFeatureLevel::Type FeatureLevel);
+
+	bool GetHasOpaqueOrMaskedMaterial() const { return bHasOpaqueOrMaskedMaterial; }
+	bool GetRenderInMainPass() const { return bRenderInMainPass; }
 };
 
 /** 
@@ -1542,6 +1585,12 @@ public:
 	{
 		const int32 Index = MeshBatchStorage.Add(1);
 		return MeshBatchStorage[Index];
+	}
+
+	// @return number of MeshBatches collected (so far) for a given view
+	uint32 GetMeshBatchCount(uint32 ViewIndex) const
+	{
+		return MeshBatches[ViewIndex]->Num();
 	}
 
 	/** 
@@ -1826,6 +1875,9 @@ extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI,const FVe
 
 extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI, const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
 	float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority);
+//Draws a cylinder along the axis from Start to End
+extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI, const FVector& Start, const FVector& End, float Radius, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority);
+
 
 extern ENGINE_API void GetBoxMesh(const FMatrix& BoxToWorld,const FVector& Radii,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,int32 ViewIndex,FMeshElementCollector& Collector);
 extern ENGINE_API void GetHalfSphereMesh(const FVector& Center, const FVector& Radii, int32 NumSides, int32 NumRings, float StartAngle, float EndAngle, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, bool bDisableBackfaceCulling, 
@@ -1838,6 +1890,9 @@ extern ENGINE_API void GetCylinderMesh(const FVector& Base, const FVector& XAxis
 									float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
 extern ENGINE_API void GetCylinderMesh(const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
 									float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
+//Draws a cylinder along the axis from Start to End
+extern ENGINE_API void GetCylinderMesh(const FVector& Start, const FVector& End, float Radius, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
+
 extern ENGINE_API void GetConeMesh(const FMatrix& LocalToWorld, float AngleWidth, float AngleHeight, int32 NumSides,
 									const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
 extern ENGINE_API void GetCapsuleMesh(const FVector& Origin, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, const FLinearColor& Color, float Radius, float HalfHeight, int32 NumSides,

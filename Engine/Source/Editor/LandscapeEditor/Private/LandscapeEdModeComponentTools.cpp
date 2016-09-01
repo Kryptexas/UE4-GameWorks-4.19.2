@@ -18,13 +18,17 @@
 #include "ComponentReregisterContext.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+#include "Algo/Copy.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
+//
+// FLandscapeToolSelect
+//
 class FLandscapeToolStrokeSelect : public FLandscapeToolStrokeBase
 {
 	bool bInitializedComponentInvert;
-	bool bComponentInvert;
+	bool bInvert;
 	bool bNeedsSelectionUpdate;
 
 public:
@@ -41,16 +45,11 @@ public:
 		if (bNeedsSelectionUpdate)
 		{
 			TArray<UObject*> Objects;
-			ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
 			if (LandscapeInfo)
 			{
 				TSet<ULandscapeComponent*> SelectedComponents = LandscapeInfo->GetSelectedComponents();
-
 				Objects.Reset(SelectedComponents.Num());
-				for (ULandscapeComponent* Component : SelectedComponents)
-				{
-					Objects.Add(Component);
-				}
+				Algo::Copy(SelectedComponents, Objects);
 			}
 			FPropertyEditorModule& PropertyModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
 			PropertyModule.UpdatePropertyViews(Objects);
@@ -63,126 +62,56 @@ public:
 		{
 			LandscapeInfo->Modify();
 
-			// Invert when holding Shift
-			bool bInvert = MousePositions[MousePositions.Num() - 1].bShiftDown;
-
-			if (Brush->GetBrushType() == ELandscapeBrushType::Component)
+			// TODO - only retrieve bounds as we don't need the data
+			const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			if (!BrushInfo)
 			{
-				// TODO - only retrieve bounds as we don't need the data
-				const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
-				if (!BrushInfo)
+				return;
+			}
+
+			int32 X1, Y1, X2, Y2;
+			BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
+			// Shrink bounds by 1,1 to avoid GetComponentsInRegion picking up extra components on all sides due to the overlap between components
+			TSet<ULandscapeComponent*> NewComponents;
+			LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, NewComponents);
+
+			if (!bInitializedComponentInvert)
+			{
+				// Get the component under the mouse location. Copied from FLandscapeBrushComponent::ApplyBrush()
+				const float MouseX = MousePositions[0].Position.X;
+				const float MouseY = MousePositions[0].Position.Y;
+				const int32 MouseComponentIndexX = (MouseX >= 0.0f) ? FMath::FloorToInt(MouseX / LandscapeInfo->ComponentSizeQuads) : FMath::CeilToInt(MouseX / LandscapeInfo->ComponentSizeQuads);
+				const int32 MouseComponentIndexY = (MouseY >= 0.0f) ? FMath::FloorToInt(MouseY / LandscapeInfo->ComponentSizeQuads) : FMath::CeilToInt(MouseY / LandscapeInfo->ComponentSizeQuads);
+				ULandscapeComponent* MouseComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(MouseComponentIndexX, MouseComponentIndexY));
+
+				if (MouseComponent != nullptr)
 				{
-					return;
-				}
-
-				int32 X1, Y1, X2, Y2;
-				BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
-
-				// Shrink bounds by 1,1 to avoid GetComponentsInRegion picking up extra components on all sides due to the overlap between components
-				TSet<ULandscapeComponent*> NewComponents;
-				LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, NewComponents);
-
-				if (!bInitializedComponentInvert)
-				{
-					// Get the component under the mouse location. Copied from FLandscapeBrushComponent::ApplyBrush()
-					const float MouseX = MousePositions[0].Position.X;
-					const float MouseY = MousePositions[0].Position.Y;
-					const int32 MouseComponentIndexX = (MouseX >= 0.0f) ? FMath::FloorToInt(MouseX / LandscapeInfo->ComponentSizeQuads) : FMath::CeilToInt(MouseX / LandscapeInfo->ComponentSizeQuads);
-					const int32 MouseComponentIndexY = (MouseY >= 0.0f) ? FMath::FloorToInt(MouseY / LandscapeInfo->ComponentSizeQuads) : FMath::CeilToInt(MouseY / LandscapeInfo->ComponentSizeQuads);
-					ULandscapeComponent* MouseComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(MouseComponentIndexX, MouseComponentIndexY));
-
-					if (MouseComponent != nullptr)
-					{
-						bComponentInvert = LandscapeInfo->GetSelectedComponents().Contains(MouseComponent);
-					}
-					else
-					{
-						bComponentInvert = false;
-					}
-
-					bInitializedComponentInvert = true;
-				}
-
-				bInvert = bComponentInvert;
-
-				TSet<ULandscapeComponent*> NewSelection;
-				if (bInvert)
-				{
-					NewSelection = LandscapeInfo->GetSelectedComponents().Difference(NewComponents);
+					bInvert = LandscapeInfo->GetSelectedComponents().Contains(MouseComponent);
 				}
 				else
 				{
-					NewSelection = LandscapeInfo->GetSelectedComponents().Union(NewComponents);
+					bInvert = false;
 				}
 
-				LandscapeInfo->Modify();
-				LandscapeInfo->UpdateSelectedComponents(NewSelection);
-
-				// Update Details tab with selection
-				bNeedsSelectionUpdate = true;
+				bInitializedComponentInvert = true;
 			}
-			else // Select various shape regions
+
+			TSet<ULandscapeComponent*> NewSelection;
+			if (bInvert)
 			{
-				const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
-				if (!BrushInfo)
-				{
-					return;
-				}
-
-				int32 X1, Y1, X2, Y2;
-				BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
-
-				// Tablet pressure
-				float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
-
-				Cache.CacheData(X1, Y1, X2, Y2);
-				TArray<uint8> Data;
-				Cache.GetCachedData(X1, Y1, X2, Y2, Data);
-
-				TSet<ULandscapeComponent*> NewComponents;
-				LandscapeInfo->GetComponentsInRegion(X1, Y1, X2, Y2, NewComponents);
-				LandscapeInfo->UpdateSelectedComponents(NewComponents, false);
-
-				for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
-				{
-					const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
-					uint8* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
-
-					for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
-					{
-						const FIntPoint Key = ALandscape::MakeKey(X, Y);
-						const float BrushValue = BrushScanline[X];
-
-						if (BrushValue > 0.0f && LandscapeInfo->IsValidPosition(X, Y))
-						{
-							float PaintValue = BrushValue * UISettings->ToolStrength * Pressure;
-							float Value = DataScanline[X] / 255.0f;
-							checkSlow(FMath::IsNearlyEqual(Value, LandscapeInfo->SelectedRegion.FindRef(Key), 1 / 255.0f));
-							if (bInvert)
-							{
-								Value = FMath::Max(Value - PaintValue, 0.0f);
-							}
-							else
-							{
-								Value = FMath::Min(Value + PaintValue, 1.0f);
-							}
-							if (Value > 0.0f)
-							{
-								LandscapeInfo->SelectedRegion.Add(Key, Value);
-							}
-							else
-							{
-								LandscapeInfo->SelectedRegion.Remove(Key);
-							}
-
-							DataScanline[X] = FMath::Clamp<int32>(FMath::RoundToInt(Value * 255), 0, 255);
-						}
-					}
-				}
-
-				Cache.SetCachedData(X1, Y1, X2, Y2, Data);
-				Cache.Flush();
+				NewSelection = LandscapeInfo->GetSelectedComponents().Difference(NewComponents);
 			}
+			else
+			{
+				NewSelection = LandscapeInfo->GetSelectedComponents().Union(NewComponents);
+			}
+
+			LandscapeInfo->Modify();
+			LandscapeInfo->UpdateSelectedComponents(NewSelection);
+
+			// Update Details tab with selection
+			bNeedsSelectionUpdate = true;
 		}
 	}
 
@@ -190,15 +119,11 @@ protected:
 	FLandscapeDataCache Cache;
 };
 
-// 
-// FLandscapeToolSelect
-//
-template<class TStrokeClass>
-class FLandscapeToolSelect : public FLandscapeToolBase<TStrokeClass>
+class FLandscapeToolSelect : public FLandscapeToolBase<FLandscapeToolStrokeSelect>
 {
 public:
 	FLandscapeToolSelect(FEdModeLandscape* InEdMode)
-		: FLandscapeToolBase<TStrokeClass>(InEdMode)
+		: FLandscapeToolBase<FLandscapeToolStrokeSelect>(InEdMode)
 	{
 	}
 
@@ -206,16 +131,100 @@ public:
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Selection", "Component Selection"); };
 	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectComponent | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
 	virtual bool SupportsMask() override { return false; }
-
-	virtual ELandscapeToolType GetToolType() override { return ELandscapeToolType::Mask; }
 };
 
-template<class TStrokeClass>
-class FLandscapeToolMask : public FLandscapeToolSelect<TStrokeClass>
+//
+// FLandscapeToolMask
+//
+class FLandscapeToolStrokeMask : public FLandscapeToolStrokeBase
+{
+public:
+	FLandscapeToolStrokeMask(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+		, Cache(InTarget)
+	{
+	}
+
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
+	{
+		if (LandscapeInfo)
+		{
+			LandscapeInfo->Modify();
+
+			// Invert when holding Shift
+			bool bInvert = MousePositions[MousePositions.Num() - 1].bShiftDown;
+
+			const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			if (!BrushInfo)
+			{
+				return;
+			}
+
+			int32 X1, Y1, X2, Y2;
+			BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
+			// Tablet pressure
+			float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
+
+			Cache.CacheData(X1, Y1, X2, Y2);
+			TArray<uint8> Data;
+			Cache.GetCachedData(X1, Y1, X2, Y2, Data);
+
+			TSet<ULandscapeComponent*> NewComponents;
+			LandscapeInfo->GetComponentsInRegion(X1, Y1, X2, Y2, NewComponents);
+			LandscapeInfo->UpdateSelectedComponents(NewComponents, false);
+
+			for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
+			{
+				const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+				uint8* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+
+				for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
+				{
+					const FIntPoint Key = ALandscape::MakeKey(X, Y);
+					const float BrushValue = BrushScanline[X];
+
+					if (BrushValue > 0.0f && LandscapeInfo->IsValidPosition(X, Y))
+					{
+						float PaintValue = BrushValue * UISettings->ToolStrength * Pressure;
+						float Value = DataScanline[X] / 255.0f;
+						checkSlow(FMath::IsNearlyEqual(Value, LandscapeInfo->SelectedRegion.FindRef(Key), 1 / 255.0f));
+						if (bInvert)
+						{
+							Value = FMath::Max(Value - PaintValue, 0.0f);
+						}
+						else
+						{
+							Value = FMath::Min(Value + PaintValue, 1.0f);
+						}
+						if (Value > 0.0f)
+						{
+							LandscapeInfo->SelectedRegion.Add(Key, Value);
+						}
+						else
+						{
+							LandscapeInfo->SelectedRegion.Remove(Key);
+						}
+
+						DataScanline[X] = FMath::Clamp<int32>(FMath::RoundToInt(Value * 255), 0, 255);
+					}
+				}
+			}
+
+			Cache.SetCachedData(X1, Y1, X2, Y2, Data);
+			Cache.Flush();
+		}
+	}
+
+protected:
+	FLandscapeDataCache Cache;
+};
+
+class FLandscapeToolMask : public FLandscapeToolBase<FLandscapeToolStrokeMask>
 {
 public:
 	FLandscapeToolMask(FEdModeLandscape* InEdMode)
-		: FLandscapeToolSelect<TStrokeClass>(InEdMode)
+		: FLandscapeToolBase<FLandscapeToolStrokeMask>(InEdMode)
 	{
 	}
 
@@ -223,8 +232,13 @@ public:
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Mask", "Region Selection"); };
 	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectRegion | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
 	virtual bool SupportsMask() override { return true; }
+
+	virtual ELandscapeToolType GetToolType() override { return ELandscapeToolType::Mask; }
 };
 
+//
+// FLandscapeToolVisibility
+//
 class FLandscapeToolStrokeVisibility : public FLandscapeToolStrokeBase
 {
 public:
@@ -285,9 +299,6 @@ protected:
 	FLandscapeVisCache Cache;
 };
 
-// 
-// FLandscapeToolVisibility
-//
 class FLandscapeToolVisibility : public FLandscapeToolBase<FLandscapeToolStrokeVisibility>
 {
 public:
@@ -326,6 +337,9 @@ public:
 	}
 };
 
+//
+// FLandscapeToolMoveToLevel
+//
 class FLandscapeToolStrokeMoveToLevel : public FLandscapeToolStrokeBase
 {
 public:
@@ -522,7 +536,7 @@ public:
 				ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetCurrentLevelLandscapeProxy(false);
 				if (!LandscapeProxy)
 				{
-					LandscapeProxy = World->SpawnActor<ALandscapeProxy>();
+					LandscapeProxy = World->SpawnActor<ALandscapeStreamingProxy>();
 					// copy shared properties to this new proxy
 					LandscapeProxy->GetSharedProperties(Landscape);
 
@@ -699,6 +713,12 @@ public:
 					Component->Rename(nullptr, LandscapeProxy);
 					LandscapeProxy->LandscapeComponents.Add(Component);
 					Component->AttachToComponent(LandscapeProxy->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+					
+					// clear transient mobile data
+					Component->MobileDataSourceHash.Invalidate();
+					Component->MobileMaterialInterface = nullptr;
+					Component->MobileWeightNormalmapTexture = nullptr;
+					
 					Component->UpdateMaterialInstances();
 
 					FFormatNamedArguments Args;
@@ -753,9 +773,6 @@ public:
 	}
 };
 
-// 
-// FLandscapeToolMoveToLevel
-//
 class FLandscapeToolMoveToLevel : public FLandscapeToolBase<FLandscapeToolStrokeMoveToLevel>
 {
 public:
@@ -771,7 +788,9 @@ public:
 	virtual bool SupportsMask() override { return false; }
 };
 
-
+//
+// FLandscapeToolAddComponent
+//
 class FLandscapeToolStrokeAddComponent : public FLandscapeToolStrokeBase
 {
 public:
@@ -949,9 +968,6 @@ protected:
 	FLandscapeXYOffsetCache<true> XYOffsetCache;
 };
 
-// 
-// FLandscapeToolAddComponent
-//
 class FLandscapeToolAddComponent : public FLandscapeToolBase<FLandscapeToolStrokeAddComponent>
 {
 public:
@@ -981,6 +997,9 @@ public:
 	}
 };
 
+//
+// FLandscapeToolDeleteComponent
+//
 class FLandscapeToolStrokeDeleteComponent : public FLandscapeToolStrokeBase
 {
 public:
@@ -993,8 +1012,6 @@ public:
 	{
 		if (LandscapeInfo)
 		{
-			LandscapeInfo->Modify();
-
 			auto SelectedComponents = LandscapeInfo->GetSelectedComponents();
 			if (SelectedComponents.Num() == 0)
 			{
@@ -1013,150 +1030,12 @@ public:
 				LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, SelectedComponents);
 			}
 
-			for (ULandscapeComponent* Component : SelectedComponents)
-			{
-				Component->Modify();
-				ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
-				if (CollisionComp)
-				{
-					CollisionComp->Modify();
-				}
-			}
-
-			int32 ComponentSizeVerts = LandscapeInfo->ComponentNumSubsections * (LandscapeInfo->SubsectionSizeQuads + 1);
-			int32 NeedHeightmapSize = 1 << FMath::CeilLogTwo(ComponentSizeVerts);
-
-			TSet<ULandscapeComponent*> HeightmapUpdateComponents;
-			// Need to split all the component which share Heightmap with selected components
-			// Search neighbor only
-			for (ULandscapeComponent* Component : SelectedComponents)
-			{
-				int32 SearchX = Component->HeightmapTexture->Source.GetSizeX() / NeedHeightmapSize;
-				int32 SearchY = Component->HeightmapTexture->Source.GetSizeY() / NeedHeightmapSize;
-				FIntPoint ComponentBase = Component->GetSectionBase() / Component->ComponentSizeQuads;
-
-				for (int32 Y = 0; Y < SearchY; ++Y)
-				{
-					for (int32 X = 0; X < SearchX; ++X)
-					{
-						// Search for four directions...
-						for (int32 Dir = 0; Dir < 4; ++Dir)
-						{
-							int32 XDir = (Dir >> 1) ? 1 : -1;
-							int32 YDir = (Dir % 2) ? 1 : -1;
-							ULandscapeComponent* Neighbor = LandscapeInfo->XYtoComponentMap.FindRef(ComponentBase + FIntPoint(XDir*X, YDir*Y));
-							if (Neighbor && Neighbor->HeightmapTexture == Component->HeightmapTexture && !HeightmapUpdateComponents.Contains(Neighbor))
-							{
-								Neighbor->Modify();
-								HeightmapUpdateComponents.Add(Neighbor);
-							}
-						}
-					}
-				}
-			}
-
-			// Changing Heightmap format for selected components
-			for (ULandscapeComponent* Component : HeightmapUpdateComponents)
-			{
-				ALandscape::SplitHeightmap(Component, false);
-			}
-
-			// Remove attached foliage
-			for (ULandscapeComponent* Component : SelectedComponents)
-			{
-				ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
-				if (CollisionComp)
-				{
-					AInstancedFoliageActor::DeleteInstancesForComponent(ViewportClient->GetWorld(), CollisionComp);
-				}
-			}
-
-			// Check which ones are need for height map change
-			for (ULandscapeComponent* Component : SelectedComponents)
-			{
-				ALandscapeProxy* Proxy = Component->GetLandscapeProxy();
-				Proxy->Modify();
-				//Component->Modify();
-
-				// Reset neighbors LOD information
-				FIntPoint ComponentBase = Component->GetSectionBase() / Component->ComponentSizeQuads;
-				FIntPoint NeighborKeys[8] =
-				{
-					ComponentBase + FIntPoint(-1, -1),
-					ComponentBase + FIntPoint(+0, -1),
-					ComponentBase + FIntPoint(+1, -1),
-					ComponentBase + FIntPoint(-1, +0),
-					ComponentBase + FIntPoint(+1, +0),
-					ComponentBase + FIntPoint(-1, +1),
-					ComponentBase + FIntPoint(+0, +1),
-					ComponentBase + FIntPoint(+1, +1)
-				};
-
-				for (const FIntPoint& NeighborKey : NeighborKeys)
-				{
-					ULandscapeComponent* NeighborComp = LandscapeInfo->XYtoComponentMap.FindRef(NeighborKey);
-					if (NeighborComp && !SelectedComponents.Contains(NeighborComp))
-					{
-						NeighborComp->Modify();
-						NeighborComp->InvalidateLightingCache();
-
-						// is this really needed? It can happen multiple times per component!
-						FComponentReregisterContext ReregisterContext(NeighborComp);
-					}
-				}
-
-				// Remove Selected Region in deleted Component
-				for (int32 Y = 0; Y < Component->ComponentSizeQuads; ++Y)
-				{
-					for (int32 X = 0; X < Component->ComponentSizeQuads; ++X)
-					{
-						LandscapeInfo->SelectedRegion.Remove(FIntPoint(X, Y) + Component->GetSectionBase());
-					}
-				}
-
-				if (Component->HeightmapTexture)
-				{
-					Component->HeightmapTexture->SetFlags(RF_Transactional);
-					Component->HeightmapTexture->Modify();
-					Component->HeightmapTexture->MarkPackageDirty();
-					Component->HeightmapTexture->ClearFlags(RF_Standalone); // Remove when there is no reference for this Heightmap...
-				}
-
-				for (int32 i = 0; i < Component->WeightmapTextures.Num(); ++i)
-				{
-					Component->WeightmapTextures[i]->SetFlags(RF_Transactional);
-					Component->WeightmapTextures[i]->Modify();
-					Component->WeightmapTextures[i]->MarkPackageDirty();
-					Component->WeightmapTextures[i]->ClearFlags(RF_Standalone);
-				}
-
-				if (Component->XYOffsetmapTexture)
-				{
-					Component->XYOffsetmapTexture->SetFlags(RF_Transactional);
-					Component->XYOffsetmapTexture->Modify();
-					Component->XYOffsetmapTexture->MarkPackageDirty();
-					Component->XYOffsetmapTexture->ClearFlags(RF_Standalone);
-				}
-
-				ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
-				if (CollisionComp)
-				{
-					CollisionComp->DestroyComponent();
-				}
-				Component->DestroyComponent();
-			}
-
-			// Remove Selection
-			LandscapeInfo->ClearSelectedRegion(true);
-			//EdMode->SetMaskEnable(Landscape->SelectedRegion.Num());
-			GEngine->BroadcastLevelActorListChanged();
+			// Delete the components
+			EdMode->DeleteLandscapeComponents(LandscapeInfo, SelectedComponents);
 		}
 	}
 };
 
-// 
-// FLandscapeToolDeleteComponent
-//
 class FLandscapeToolDeleteComponent : public FLandscapeToolBase<FLandscapeToolStrokeDeleteComponent>
 {
 public:
@@ -1172,6 +1051,9 @@ public:
 	virtual bool SupportsMask() override { return false; }
 };
 
+//
+// FLandscapeToolCopy
+//
 template<class ToolTarget>
 class FLandscapeToolStrokeCopy : public FLandscapeToolStrokeBase
 {
@@ -1477,9 +1359,6 @@ protected:
 	FLandscapeFullWeightCache WeightCache;
 };
 
-// 
-// FLandscapeToolCopy
-//
 template<class ToolTarget>
 class FLandscapeToolCopy : public FLandscapeToolBase<FLandscapeToolStrokeCopy<ToolTarget>>
 {
@@ -1527,6 +1406,9 @@ protected:
 	FLandscapeBrush* BackupCurrentBrush;
 };
 
+//
+// FLandscapeToolPaste
+//
 template<class ToolTarget>
 class FLandscapeToolStrokePaste : public FLandscapeToolStrokeBase
 {
@@ -1792,9 +1674,6 @@ protected:
 	FLandscapeFullWeightCache WeightCache;
 };
 
-// 
-// FLandscapeToolPaste
-//
 template<class ToolTarget>
 class FLandscapeToolPaste : public FLandscapeToolBase<FLandscapeToolStrokePaste<ToolTarget>>
 {
@@ -1866,6 +1745,9 @@ protected:
 	FLandscapeBrush* BackupCurrentBrush;
 };
 
+//
+// FLandscapeToolCopyPaste
+//
 template<class ToolTarget>
 class FLandscapeToolCopyPaste : public FLandscapeToolPaste<ToolTarget>
 {
@@ -1938,7 +1820,7 @@ void FEdModeLandscape::PasteDataFromGizmo()
 	}
 }
 
-// 
+//
 // FLandscapeToolNewLandscape
 //
 class FLandscapeToolNewLandscape : public FLandscapeTool
@@ -1990,7 +1872,7 @@ public:
 };
 
 
-// 
+//
 // FLandscapeToolResizeLandscape
 //
 class FLandscapeToolResizeLandscape : public FLandscapeTool
@@ -2071,7 +1953,7 @@ void FEdModeLandscape::InitializeTool_ResizeLandscape()
 
 void FEdModeLandscape::InitializeTool_Select()
 {
-	auto Tool_Select = MakeUnique<FLandscapeToolSelect<FLandscapeToolStrokeSelect>>(this);
+	auto Tool_Select = MakeUnique<FLandscapeToolSelect>(this);
 	Tool_Select->ValidBrushes.Add("BrushSet_Component");
 	LandscapeTools.Add(MoveTemp(Tool_Select));
 }
@@ -2099,7 +1981,7 @@ void FEdModeLandscape::InitializeTool_MoveToLevel()
 
 void FEdModeLandscape::InitializeTool_Mask()
 {
-	auto Tool_Mask = MakeUnique<FLandscapeToolMask<FLandscapeToolStrokeSelect>>(this);
+	auto Tool_Mask = MakeUnique<FLandscapeToolMask>(this);
 	Tool_Mask->ValidBrushes.Add("BrushSet_Circle");
 	Tool_Mask->ValidBrushes.Add("BrushSet_Alpha");
 	Tool_Mask->ValidBrushes.Add("BrushSet_Pattern");

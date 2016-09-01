@@ -88,7 +88,9 @@ bool UK2Node_ActorBoundEvent::CanPasteHere(const UEdGraph* TargetGraph) const
 	bool bDisallowPaste = !Super::CanPasteHere(TargetGraph);
 	if (!bDisallowPaste)
 	{
-		void* LevelBP = GetReferencedLevelActor()->GetLevel()->GetLevelScriptBlueprint(true);
+		const AActor* ReferencedLevelActor = GetReferencedLevelActor();
+		ULevel* Level = ReferencedLevelActor ? ReferencedLevelActor->GetLevel() : nullptr;
+		const UBlueprint* LevelBP = Level ? Level->GetLevelScriptBlueprint(true) : nullptr;
 		if (FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph) == LevelBP)
 		{
 			if (const UK2Node_Event* PreExistingNode = FKismetEditorUtilities::FindBoundEventForActor(GetReferencedLevelActor(), DelegatePropertyName))

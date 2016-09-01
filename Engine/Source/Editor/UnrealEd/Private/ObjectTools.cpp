@@ -1919,7 +1919,7 @@ namespace ObjectTools
 		TArray<FSCSNodeToDelete> SCSNodesToDelete;
 		TArray<UActorComponent*> ComponentsToDelete;
 		TArray<AActor*> ActorsToDelete;
-		TArray<UObject*> ObjectsToDelete;
+		TArray<TWeakObjectPtr<UObject>> ObjectsToDelete;
 		bool bNeedsGarbageCollection = false;
 		bool bMakeWritable = false;
 		bool bSilent = false;
@@ -2075,74 +2075,61 @@ namespace ObjectTools
 		}
 
 		{
-			// Note reloading the world via ReloadEditorWorldForReferenceReplacementIfNecessary will cause a gabage collect and potentially cause entries in the ObjectsToDelete list to become invalid
-			// We refresh the list here
-			TArray< TWeakObjectPtr<UObject> > ObjectsToDeleteWeakList;
-			for(UObject* Object : ObjectsToDelete)
-			{
-				ObjectsToDeleteWeakList.Add(Object);
-			}
-
-			ObjectsToDelete.Empty();
-
 			// If the current editor world is in this list, transition to a new map and reload the world to finish the delete
-			ReloadEditorWorldForReferenceReplacementIfNecessary(ObjectsToDeleteWeakList);
-
-			for(TWeakObjectPtr<UObject> WeakObject : ObjectsToDeleteWeakList)
-			{
-				if( WeakObject.IsValid() )
-				{
-					ObjectsToDelete.Add(WeakObject.Get());
-				}
-			}
+			ReloadEditorWorldForReferenceReplacementIfNecessary(ObjectsToDelete);
 		}
 
 		{
 			int32 ReplaceableObjectsNum = 0;
 			{
-				TArray<UObject*> ObjectsToReplace = ObjectsToDelete;
-				for (TArray<UObject*>::TIterator ObjectItr(ObjectsToReplace); ObjectItr; ++ObjectItr)
+				TArray<UObject*> ObjectsToReplace;
+				ObjectsToReplace.Reserve(ObjectsToDelete.Num());
+
+				for(TWeakObjectPtr<UObject>& Object : ObjectsToDelete)
 				{
-					UObject* CurObject = *ObjectItr;
-					
-					UBlueprint* BlueprintObject = Cast<UBlueprint>(CurObject);
-					if (BlueprintObject)
+					if(Object.IsValid())
 					{
-						// If we're a blueprint add our generated class as well
-						if (BlueprintObject->GeneratedClass)
-						{
-							ObjectsToReplace.AddUnique(BlueprintObject->GeneratedClass);
-						}
+						ObjectsToReplace.Add(Object.Get());
 
-						// Reparent any direct children to the parent class of the blueprint that's about to be deleted
-						if(BlueprintObject->ParentClass != nullptr)
+						UBlueprint* BlueprintObject = Cast<UBlueprint>(Object.Get());
+						if (BlueprintObject)
 						{
-							for(TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+							// If we're a blueprint add our generated class as well
+							if (BlueprintObject->GeneratedClass)
 							{
-								UClass* ChildClass = *ClassIt;
-								if(ChildClass->GetSuperStruct() == BlueprintObject->GeneratedClass)
+								ObjectsToReplace.AddUnique(BlueprintObject->GeneratedClass);
+							}
+
+							// Reparent any direct children to the parent class of the blueprint that's about to be deleted
+							if (BlueprintObject->ParentClass != nullptr)
+							{
+								for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 								{
-									UBlueprint* ChildBlueprint = Cast<UBlueprint>(ChildClass->ClassGeneratedBy);
-									if(ChildBlueprint != nullptr)
+									UClass* ChildClass = *ClassIt;
+									if (ChildClass->GetSuperStruct() == BlueprintObject->GeneratedClass)
 									{
-										// Do not reparent and recompile a Blueprint that is going to be deleted.
-										if (ObjectsToDelete.Find(ChildBlueprint) == INDEX_NONE)
+										UBlueprint* ChildBlueprint = Cast<UBlueprint>(ChildClass->ClassGeneratedBy);
+										if (ChildBlueprint != nullptr)
 										{
-											ChildBlueprint->Modify();
-											ChildBlueprint->ParentClass = BlueprintObject->ParentClass;
+											// Do not reparent and recompile a Blueprint that is going to be deleted.
+											if (ObjectsToDelete.Find(ChildBlueprint) == INDEX_NONE)
+											{
+												ChildBlueprint->Modify();
+												ChildBlueprint->ParentClass = BlueprintObject->ParentClass;
 
-											// Recompile the child blueprint to fix up the generated class
-											FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, false, true);
+												// Recompile the child blueprint to fix up the generated class
+												FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, false, true);
 
-											// Defer garbage collection until after we're done processing the list of objects
-											bNeedsGarbageCollection = true;
+												// Defer garbage collection until after we're done processing the list of objects
+												bNeedsGarbageCollection = true;
+											}
 										}
 									}
 								}
 							}
-						}
 
-						BlueprintObject->RemoveGeneratedClasses();
+							BlueprintObject->RemoveGeneratedClasses();
+						}
 					}
 				}
 
@@ -2190,9 +2177,10 @@ namespace ObjectTools
 			// Load the asset tools module to get access to the browser type maps
 			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
 
-			for( TArray<UObject*>::TIterator ObjectItr(ObjectsToDelete); ObjectItr; ++ObjectItr )
+			int32 Count = 0;
+			for(TWeakObjectPtr<UObject>& Object : ObjectsToDelete)
 			{
-				UObject* CurObject = *ObjectItr; 
+				UObject* CurObject = Object.Get();
 
 				if ( !ensure(CurObject != NULL) )
 				{
@@ -2205,15 +2193,19 @@ namespace ObjectTools
 					++NumDeletedObjects;
 				}
 
-				GWarn->StatusUpdate(ObjectItr.GetIndex(), ReplaceableObjectsNum, NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_DeletingObjects", "Deleting Assets..."));
+				GWarn->StatusUpdate(Count, ReplaceableObjectsNum, NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_DeletingObjects", "Deleting Assets..."));
+				++Count;
 
 			}
 		}
 
 		TArray<UPackage*> PotentialPackagesToDelete;
-		for ( int32 ObjIdx = 0; ObjIdx < ObjectsToDelete.Num(); ++ObjIdx )
+		for(TWeakObjectPtr<UObject>& Object : ObjectsToDelete)
 		{
-			PotentialPackagesToDelete.AddUnique(ObjectsToDelete[ObjIdx]->GetOutermost());
+			if(Object.IsValid())
+			{
+				PotentialPackagesToDelete.AddUnique(Object->GetOutermost());
+			}
 		}
 
 		if (PotentialPackagesToDelete.Num() > 0)

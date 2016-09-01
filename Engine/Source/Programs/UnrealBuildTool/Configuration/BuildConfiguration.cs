@@ -273,6 +273,12 @@ namespace UnrealBuildTool
 		public static string BaseIntermediateFolder;
 
 		/// <summary>
+		/// The directory to put precompiled header files in. Experimental setting to allow using a path on a faster drive. Defaults to the standard output directory if not set.
+		/// </summary>
+		[XmlConfig]
+		public static string PCHOutputDirectory;
+
+		/// <summary>
 		/// Relative root engine path.
 		/// </summary>
 		private static string _RelativeEnginePath = "../../Engine/";
@@ -332,6 +338,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bGeneratedSYMFile;
+
+		/// <summary>
+		/// Whether to generate a dSYM bundle or not.
+		/// </summary>
+		[XmlConfig]
+		public static bool bGeneratedSYMBundle;
 
 		/// <summary>
 		/// Whether to strip iOS symbols or not (implied by bGeneratedSYMFile).
@@ -533,6 +545,12 @@ namespace UnrealBuildTool
 		public static bool bUseFastPDBLinking;
 
 		/// <summary>
+		/// Whether to specify the PCH File to be used for each source file to improve Intellisense performance
+		/// </summary>
+		[XmlConfig]
+		public static bool bUsePerFileIntellisense;
+
+		/// <summary>
 		/// Whether to request the linker create a map file as part of the build
 		/// </summary>
 		[XmlConfig]
@@ -559,8 +577,9 @@ namespace UnrealBuildTool
 			bDisableDebugInfo = false;
 			bEnableCodeAnalysis = false;
 			bFlushBuildDirOnRemoteMac = false;
-			bGeneratedSYMFile = false;
-			bStripSymbolsOnIOS = bGeneratedSYMFile;
+			bGeneratedSYMFile = true;
+			bGeneratedSYMBundle = false;
+			bStripSymbolsOnIOS = false;
 
 			// By default we don't bother relinking targets if only a dependent .lib has changed, as chances are that
 			// the import library wasn't actually different unless a dependent header file of this target was also changed,
@@ -641,7 +660,7 @@ namespace UnrealBuildTool
 
 			// Switch for fast semantics D3D contexts
 			// Try disabling this if you see rendering issues or crashes in the Xbox One RHI
-			bUseFastSemanticsRenderContexts = false;
+			bUseFastSemanticsRenderContexts = true;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
@@ -661,9 +680,12 @@ namespace UnrealBuildTool
 			// set up some paths
 			BaseIntermediateFolder = "Intermediate/Build/";
 
+			// Use the standard PCH output directory
+			PCHOutputDirectory = null;
+
 			// By default check for EULA violation and warn
 			bCheckLicenseViolations = true;
-			bBreakBuildOnLicenseViolation = false;
+			bBreakBuildOnLicenseViolation = true;
 
 			// Enables support for fast include dependency scanning, as well as gathering data for 'UBT Makefiles', then quickly
 			// assembling builds in subsequent runs using data in those cached makefiles
@@ -700,6 +722,9 @@ namespace UnrealBuildTool
 			// Use Fast PDB linking by default in projects but not all builds
 			bAddFastPDBToProjects = false;
 			bUseFastPDBLinking = false;
+
+			// Don't use per file Intellisense by default
+			bUsePerFileIntellisense = false;
 
 			// Don't create a map file by default
 			bCreateMapFile = false;

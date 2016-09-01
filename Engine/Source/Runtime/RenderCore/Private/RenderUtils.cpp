@@ -124,6 +124,7 @@ FPixelFormatInfo	GPixelFormats[PF_MAX] =
 
 	{ TEXT("BC6H"),				4,			4,			1,			16,			3,				0,				1,				PF_BC6H				},
 	{ TEXT("BC7"),				4,			4,			1,			16,			4,				0,				1,				PF_BC7				},
+	{ TEXT("R8_UINT"),			1,			1,			1,			1,			1,				0,				1,				PF_R8_UINT },
 };
 
 static struct FValidatePixelFormats
@@ -807,10 +808,25 @@ RENDERCORE_API FVertexDeclarationRHIRef& GetVertexDeclarationFVector3()
 	return GVector3VertexDeclaration.VertexDeclarationRHI;
 }
 
-RENDERCORE_API bool IsSimpleDynamicLightingEnabled()
+RENDERCORE_API bool PlatformSupportsSimpleForwardShading(EShaderPlatform Platform)
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SimpleDynamicLighting"));
-	return (CVar->GetValueOnAnyThread() != 0);
+	static const auto SupportSimpleForwardShadingCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportSimpleForwardShading"));
+	// Scalability feature only needed / used on PC
+	return IsPCPlatform(Platform) && SupportSimpleForwardShadingCVar->GetValueOnAnyThread() != 0;
+}
+
+RENDERCORE_API bool IsSimpleForwardShadingEnabled(EShaderPlatform Platform)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SimpleForwardShading"));
+	return CVar->GetValueOnAnyThread() != 0 && PlatformSupportsSimpleForwardShading(Platform);
+}
+
+RENDERCORE_API bool IsForwardShadingEnabled(ERHIFeatureLevel::Type FeatureLevel)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
+	return CVar->GetValueOnAnyThread() != 0 
+		// Culling uses compute shader
+		&& FeatureLevel >= ERHIFeatureLevel::SM5;
 }
 
 class FUnitCubeVertexBuffer : public FVertexBuffer

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2725251
 Availability:Public
 Title:Online Subsystem Steam
 Crumbs:%ROOT%, Programming
-Description:Steam Online Subsystem に特有の情報 
-バージョン：4.5
+Description:Steam Online Subsystem 固有の情報 
+Version:4.9
 
 [TOC(start:2)]
 
@@ -12,31 +12,31 @@ Description:Steam Online Subsystem に特有の情報
 ここで紹介する情報は特に Steam の実装に関連するものです。   追加の設定手順、ヒントやコツ、ワークアラウンドもこちらでご覧ください。
 [/EXCERPT:Intro]
 
-## 概要
 
-Steam モジュールは、オンライン サブシステムを通じてエクスポーズされるほとんどのインターフェースを実装し、Steamworks SDK を介して Valve 社が提供するほとんどの機能をサポートします。 
+
+**Steam** モジュールは、オンライン サブシステムを通じてエクスポーズされるほとんどのインターフェースを実装し、Steamworks SDK を介して Valve 社が提供するほとんどの機能をサポートします。 
 
 Steam インターフェース
 * マッチメイキング (ロビー / GameServer API)
 * Leaderboards (プレイヤーの順位表)
 * Achievements (プレイヤーの統計)
-* Voice
+* Voice (ボイス)
 * UserCloud (ユーザークラウド)
 * SharedCloud (共有クラウド)
-* 内部 UI
+* External UI (内部 UI)
 
 
 
-ゲームは全て有効な Steam App ID を持つ必要があります。開発中は、「steam_appid.txt」と呼ばれるファイルを通じてこの App ID が SDK へエクスポーズされます。「steam_appid.txt」は実行ファイルと同じディレクトリに保存しなくてはいけません。ファイルは、起動時にアンリアル エンジンで生成されて、エンジンの正常なシャットダウン時に削除されます。   これにより Steam クライアントを通じてゲームを起動する必要が無くなります (それでも実行は必要になります) 。Steam 画像にはファイルが含まれてはいけません。
+全てのゲームは有効なSteam App IDを持たなくてはいけません。開発中は、steam_appid.txtと呼ばれるファイルを通じてこのApp IDがSDKへエキスポーズされます。steam_appid.txtは実行ファイルと同じディレクトリに保存しなくてはいけません。ファイルは、起動時にアンリアル エンジンで生成されて、エンジンの正常なシャットダウン時に削除されます。   これにより Steam クライアントを通じてゲームを起動する必要が無くなります (それでも実行は必要になります) 。Steam 画像にはファイルが含まれてはいけません。
 
 出荷時ビルドでは、ログインユーザーが正当にゲームの会員登録をしていることをエンジンが確認し、そうでない場合はエンジンをシャットダウンします。ゲームに対する不正行為を防ぐ 1 つの手段です。Steam DRM (Steamworks SDK 参照) を使用することで、ゲームに対する不正行為を防ぎやすくなります。
 
 ## 基本設定
 
-Steam サブシステムは Valve 社を介した追加設定が必要となります。   アンリアル エンジンで Steam を使用する前に、Valve 社に問い合わせてドキュメントを使用して、ユーザー登録がされていることを確認してください。
+Steam サブシステムは Valve 社による追加設定が必要となります。   アンリアル エンジンで Steam を使用する前に、Valve 社に問い合わせてドキュメントを使用して、ユーザー登録がされていることを確認してください。
 
 ### Steamworks SDK のインストール
-法的な事情により、 Steam を使用するには Valve から最新の SDK をダウンロードしなければなりません。   今これは *v1.29a* となっていますが、今後のアップデートでパス名に簡単に変更できます。ThirdParty/Steamworks ディレクトリの *Steamworks.build.cs* をご覧ください。
+法的な事情により、Steam を使用するには Valve から最新の SDK をダウンロードしなければなりません。   今これは *v1.29a* となっていますが、今後のアップデートでパス名に簡単に変更できます。ThirdParty/Steamworks ディレクトリの *Steamworks.build.cs* をご覧ください。
 
 コンパイル済みのエンジンに Steam を使う場合は、Valve 社の SDK から DLL を幾つか適切な場所にコピーする必要があります。ソースに対してエンジンを再コンパイルする予定がある場合も、 SDK を正しい場所に入れる必要があります。
 
@@ -55,16 +55,21 @@ Steam サブシステムは Valve 社を介した追加設定が必要となり�
 		* vstdlib_s.dll
 	* /YourUnrealEnginePath/EngineOrGameFolder/Binaries/Mac/YourGame.app/Contents/MacOS
 		* libsteam_api.dylib (from /redistributable_bin/osx32 - single dylib has both 32 and 64 bit support)
-		*注記:* エンジン全体をコンパイルする場合、 OnlineSubsystemSteam\Private\OnlineSubsystemSteamPrivatePCH.h の以下の行を修正すると良いかもしれません。 
 
+[REGION:note]
+エンジン全体をコンパイルする場合、OnlineSubsystemSteam\Private\OnlineSubsystemSteamPrivatePCH.h の以下の行を修正すると良いかもしれません。 
 
-define STEAM_SDK_VER TEXT("Steamv130")
+STEAM_SDK_VER TEXT("Steamv130") を定義して
 
-新しい SDK の場所 / バージョンを参照していることを確認できます。
+新しい SDK の場所 / バージョンを参照していることを確認します。
+[/REGION]
 
 ### INI コンフィギュレーション
 
-ゲームの `DefaultEngine.ini` の設定を幾つかオンにします。 *注記:* SteamDevAppId の 480 というのは、 Valve 社のテスト app id で、誰でも利用できます。   最終的には自分の app id が必要になりますが、それまでの間 Steam のほとんどの機能は問題なく機能します。
+ゲームの「DefaultEngine.ini」ファイルでいくつかの設定をオンにします。  
+[REGION:note]
+SteamDevAppId の 480 というのは、Valve 社のテスト app id で、誰でも利用できます。   最終的には自分の app id が必要になりますが、それまでの間 Steam のほとんどの機能は問題なく機能します。
+[/REGION]
 
     [/Script/Engine.GameEngine]
     +NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="OnlineSubsystemSteam.SteamNetDriver",DriverClassNameFallback="OnlineSubsystemUtils.IpNetDriver")
@@ -81,15 +86,15 @@ define STEAM_SDK_VER TEXT("Steamv130")
 
 ### モジュール設定
 
-ユーザーのプロジェクトの一部として、Unreal Engine Steamモジュールを必ず含んでください（さらなるヘルプが必要な場合は [](Programming/UnrealBuildSystem/TargetFiles) を参照してください）。
+ユーザーのプロジェクトの一部として、Unreal Engine Steam モジュールを必ず含んでください （ヘルプが必要な場合は [](Programming/UnrealBuildSystem/TargetFiles) を参照してください）。
 
-以下を追加すると、Steam モジュールを確実にユーザーのゲームと一緒にビルドできます。「mygame.build.cs」ファイルのコンストラクタ内に追加します。 
+Steamモジュールがユーザーのゲームと一緒にビルドされたことを確実にするために、以下を追加します。「mygame.build.cs」ファイルのコンストラクタ内に追加します。 
 
     DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
 
 ### Steam Overlay on Mac
 
-Windows とは対照的に、Steam Overlay on Mac では Steam client を使ってゲームを起動する必要があります。そのため、まずは Steam のゲームメニューの [Add a Non-Steam Game to My Library] を使ってライブラリにゲームを追加する必要があります。
+Windows とは対照的に、Steam Overlay on Mac では Steam client を使ってゲームを起動する必要があります。そのため、まずは Steam のゲームメニューの [Add a Non-Steam Game to My Library (Non-Stream ゲームを My Library に追加)] を使ってライブラリにゲームを追加する必要があります。
 
 <!--
 ### Steam Sockets

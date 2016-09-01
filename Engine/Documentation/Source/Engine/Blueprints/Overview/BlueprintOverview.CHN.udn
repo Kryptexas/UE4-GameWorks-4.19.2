@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2085955
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title: Blueprint Overview
+Title:蓝图总览
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:An overview of Blueprints including what they are and how they work.
+Description:蓝图总览页面包含蓝图剖析和可用的不同蓝图类型。 
+version:4.9
+parent:Engine/Blueprints
+order:2
+type:reference
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,203 +50,109 @@ Description:An overview of Blueprints including what they are and how they work.
 
 [TOC (start:2)]
 
-## Overview
-
 [INCLUDE:Engine/Blueprints/GettingStarted/#BlueprintIntro]
 
-**Does that mean _Blueprints_ are a replacement for UnrealScript?** Yes and no. Gameplay programming and everything that UnrealScript 
-was used for in the past can still be handled through code using C++. At the same time, while _Blueprints_ are not meant as a replacement 
-for UnrealScript, they do serve many of the same purposes that UnrealScript handled, such as:
+这是否意味着蓝图就是虚幻脚本的替代品？答案既肯定又否定。之前利用虚幻脚本进行的游戏性编程和其他操作 
+仍然可以通过 C++ 代码进行处理。同时，蓝图并非刻意为替代 
+虚幻脚本而生，但它们的许多用途确实和虚幻脚本相同，例如：
 
-* Extending classes
-* Storing and modifying default properties
-* Managing subobject (e.g. Components) instancing for classes
+* 延展类
+* 保存并编辑默认属性
+* 为类管理子对象（如组件）实例化
 
-The expectation is that gameplay programmers will set up base classes which expose a useful set of functions and properties 
-that _Blueprints_ made from those base classes can use and extend upon. 
+期望达到的结果是：游戏性程序员构建基础类，基础类公开一套有用的函数和属性； 
+这些基础类形成的蓝图可使用这些函数和属性并进行延展。 
 
 [EXCERPT:GameplayEquivalents]
-The table below provides a comparison of how various aspects would be handled in UnrealScript (from Unreal Engine 3), 
-C++, and Blueprints to help those transitioning from previous versions of the engine as well as show how native code 
-and _Blueprints_ compare.
+下表对虚幻脚本（出自虚幻引擎 3）、C++、蓝图中诸多要素处理方法进行比较， 
+帮助旧版虚幻引擎用户过渡到新版，并对本地代码 
+和蓝图进行比较。
 
-| UnrealScript (UE3)  | Blueprints (UE4)         | C++ (UE4)          |
+| 虚幻脚本（UE3）  | 蓝图（UE4）         | C++（UE4）          |
 | ------------------- | ------------------------ | ------------------ |
-| .uc file            | Blueprint Asset          | .h/.cpp files      |
+| .uc file            | 蓝图资源          | .h/.cpp files      |
 | UClass              | UBlueprintGeneratedClass | UClass             |
-| extends [ClassName] | ParentClass              | : [ClassName]      |
-| Variable            | Variable                 | UProperty()        |
-| Function            | Graphs/Events            | UFunction()        |
-| defaultproperties{} | Blueprint Defaults       | native constructor |
-| Default Components  | Components List          | native constructor |
+| 延展 [ClassName] | ParentClass              | :[ClassName]      |
+| 变量            | 变量                 | UProperty()        |
+| 函数            | 图表/事件            | UFunction()        |
+| defaultproperties{} | 默认类           | native constructor |
+| 默认组件  | 组件列表          | native constructor |
 [/EXCERPT:GameplayEquivalents]
 
 
-For more high-level introductory information about Blueprints, see [](Engine/Blueprints\GettingStarted).
+如需了解蓝图高阶指导内容，请查阅 [](Engine/Blueprints\GettingStarted)。
 
-## Types of Blueprints
+## 蓝图类型
 
-_Blueprints_ can be one of several types that each have their own specific use from creating new types to scripting level 
-events to defining interfaces or macros to be used by other _Blueprints_.
+蓝图有数种类型，每种均有其独特用法，如创建新类型编写关卡事件脚本， 
+或定义其他蓝图使用的接口和宏。
 
-[EXCERPT:Types]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Data-Only Blueprint
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/levelscript_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/interface_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/Interface)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/library_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/MacroLibrary)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Blueprint Utilities
-	[/PARAM]
-	[PARAM:description]
-		A **Blueprint Utility**, a.k.a. a **Blutility**, is an editor-only _Blueprint_ that can be used to perform editor actions or extend 
-		editor functionality. These can expose [](Engine/Blueprints/UserGuide/Events) with no parameters as buttons in the UI 
-		and have the ability to execute any functions exposed to _Blueprints_ and act on the current set of selected Actors in the viewport.
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:Types]
 
-## Blueprint Anatomy
+###蓝图类
 
-The functionality of _Blueprints_ is defined using various elements; some of which are present by default, 
-while others can be added on an as-needed basis. These provide the ability to define _Components_, perform 
-initialization and setup operations, respond to events, organize and modularize operations, define properties, 
-and more.
+[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
 
+
+###纯数据蓝图
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
+
+###关卡蓝图
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
+
+###蓝图接口
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
+
+###蓝图宏库
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
+
+###蓝图工具
+
+**蓝图工具** 又名 **Blutility**，是用于执行编辑器行为或延展编辑器功能的 
+纯编辑蓝图。它们可将不带参数的 [](Engine/Blueprints/UserGuide/Events) 作为 UI 按键公开， 
+并能执行对 _蓝图_ 公开的任意函数、对视口中当前选定的 Actor 集产生作用。
+
+## 蓝图剖析
+
+蓝图功能由诸多元素定义。部分元素默认存在， 
+其余可按需添加。这些元素可用于定义组件、执行 
+初始化和设置操作、对事件作出响应、组织并模块化操作、定义属性 
+等。
 
 [EXCERPT:Sections]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/components_list.png)(w:256)](Engine/Blueprints/UserGuide/Components)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Components)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Components]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Components#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/UserConstructionScript:title%](Engine/Blueprints/UserGuide/UserConstructionScript/ucs_thumb.png)(w:256)](Engine/Blueprints/UserGuide/UserConstructionScript)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/UserConstructionScript)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/UserConstructionScript]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/UserConstructionScript#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/EventGraph:title%](Engine/Blueprints/UserGuide/EventGraph/eventgraph_thumb.png)(w:256)](Engine/Blueprints/UserGuide/EventGraph)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/EventGraph)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/EventGraph]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/EventGraph#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/Functions:title%](Engine/Blueprints/UserGuide/Functions/functions_thumb.png)(w:256)](Engine/Blueprints/UserGuide/Functions)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Functions)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Functions]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Functions#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/Variables:title%](Engine/Blueprints/UserGuide/Variables/Variables.png)(w:256)](Engine/Blueprints/UserGuide/Variables)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Variables)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Variables]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Variables#Intro]
-	[/PARAM]
-[/OBJECT]
+###组件窗口
+
+[INCLUDE:Engine/Blueprints/UserGuide/Components#Intro]
+
+###构建脚本
+
+[INCLUDE:Engine/Blueprints/UserGuide/UserConstructionScript#Intro]
+
+###事件图表
+
+[INCLUDE:Engine/Blueprints/UserGuide/EventGraph#Intro]
+
+###函数
+
+[INCLUDE:Engine/Blueprints/UserGuide/Functions#Intro]
+
+###变量
+
+[INCLUDE:Engine/Blueprints/UserGuide/Variables#Intro]
+
 [/EXCERPT:Sections]
 
-### Blueprint Modes
+<!--
+### 蓝图模式
 
-A Blueprint's _mode_ determines what is visible in its window. Although Level Blueprints contain only one mode, the Graph mode, Class Blueprints contain three different modes:
+蓝图的 _模式_ 决定其窗口中的内容。关卡蓝图只包含一个模式（图表模式），而蓝图类包含三种不同模式：
 
-* **[Graph Mode](Engine/Blueprints\Editor\Modes\GraphPanel)** - Where you add and connect scripting nodes to create gameplay functionality for your level.
-* **[Default Mode](Engine/Blueprints\Editor\Modes\Defaults)** - Where you set the defaults for the Blueprint.
-* **[Components Mode](Engine/Blueprints\Editor\Modes\Components)** - Where you add, remove, and modify the components that make up your Blueprint.
+* **[图表模式](Engine/Blueprints\Editor\Modes\GraphPanel)** - 可在此添加并连接脚本节点，为关卡创建游戏性功能。
+* **[默认模式](Engine/Blueprints\Editor\Modes\Defaults)** - 可在此设置蓝图默认项。
+* **[组件模式](Engine/Blueprints\Editor\Modes\Components)** - 可在此对组成蓝图的组件进行添加、移除和编辑。
 
-For more information about Class Blueprint modes, see [](Engine/Blueprints\Editor\Modes).
+如需了解蓝图类模式的更多内容，请查阅 [](Engine/Blueprints\Editor\Modes)。
+-->

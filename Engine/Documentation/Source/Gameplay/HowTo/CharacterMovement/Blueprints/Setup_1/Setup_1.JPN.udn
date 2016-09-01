@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2548397
+﻿INTSourceChangelist:2740691
 Availability:Public
 Title:1.キャラクター設定
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:キャラクターに設定を行い、このガイドで後に必要となるアセットを幾つか作成します。 
+Description:キャラクターを設定し、このガイドで後に必要となるアセットを幾つか作成します。 
+Version:4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,21 +23,21 @@ Description:キャラクターに設定を行い、このガイドで後に必�
 
 %Steps%
 
-手始めに、キャラクターで使うアセットを幾つか作成します。まず最初にキャラクターのアニメーションを操作するための **Animation ブループリント** (このシリーズで後ほど実装していきます) を作成し、次にキャラクターのアクションや入力への反応方法をロジックを司る **Character ブループリント** を作成します。 
+手始めに、キャラクターで使うアセットを幾つか作成します。まず最初にキャラクターのアニメーションを操作するための **Animation ブループリント** (このシリーズで後ほど実装していきます) を作成し、次にキャラクターのアクションや入力への反応方法のロジックを扱う **Character ブループリント** を作成します。 
 
 [REGION:note]
-このプロジェクトでは **Animation Starter Pack** を使用します。 **マーケットプレイス** から無料でご利用いただけます。Animation Pack をダウンロードしたら、ランチャーの **[Add to project]** ボタンで既存プロジェクト (できれば新規のブランク プロジェクト) に追加します。これで、アセットを追加するプロジェクトを指定することができます。 
+このプロジェクトでは **Animation Starter Pack** を使用します。 **マーケットプレイス** から無料でご利用いただけます。Animation Starter Pack をダウンロードしたら、ランチャーの **[Add to project]** ボタンで既存プロジェクト (できれば新規のブランク プロジェクト) に追加します。これで、アセットを追加するプロジェクトを指定することができます。 
 
-ゼロからプロジェクトを開始するために、 **ブランクの** プロジェクト テンプレートを使用します。
+ブランクのプロジェクトから開始するために、 **Blank** Project テンプレートを使用します。
 
 [/REGION]
 
 
-1.	プロジェクトを開いたら、 **コンテンツブラウザ** を **右クリック** して、 **[Animation]** そして **[Animation Blueprint]** を選択します。 
+1.	プロジェクトを開いたら、 **コンテンツブラウザ** を **右クリック** して、**[New Asset (新規アセット)]** を選択し、**[Animation]** そして **[Animation Blueprint]** を選択します。 
 
 	![](Characters_1b.png)
 
-1.	**[Target Skeleton]** ウィンドウで **HeroTPP_Skeleton** アセットを選択します。 
+1.	**[Target Skeleton]** ウィンドウで **UE4_Mannequin_Skeleton** アセットを選択します。 
 
 	![](Characters_1c.png)
 
@@ -43,13 +45,13 @@ Description:キャラクターに設定を行い、このガイドで後に必�
 
 1.	**コンテンツブラウザ** を **右クリック** して、 **[Blueprint Class]** から **[Character]** をクラスとして選択します。 
 
-1.	「 **MyCharacter** 」などの名前を付けて開き、 [Component] タブをクリックします。 
+1.	「 **MyCharacter** 」などの名前を付けて開きます。 
 
-1.	[Component] ウィンドウの **[Component]** タブ上で、 **Mesh** コンポーネントをクリックします。 
+1.	[Component] ウィンドウで、 **Mesh** コンポーネントをクリックします。 
 
 	![](ClickMesh.png)
 
-1.	**[Details]** パネルで **[Skeletal Mesh]** の隣にある **[None]** ボックスをクリックして、 **HeroTPP** スケルタルメッシュを割り当てます。 
+1.	**[Details]** パネルで **[Skeletal Mesh]** の隣にある **[None]** ボックスをクリックして、 **SK_Mannequin_Skeleton** スケルタルメッシュを割り当てます。 
 
 	![](Characters_2.png)
 
@@ -57,7 +59,7 @@ Description:キャラクターに設定を行い、このガイドで後に必�
 
 	![](Characters_3.png)
 
-1.	**[Add Component]** ボタンをクリックして、 **Spring Arm** を追加します。 
+1.	**[Add Component]** ボタンをクリックして、 **Spring Arm** コンポーネントを追加します。 
 
 1.	**[Details]** パネルで **Z** に対する **Location** を **50** に、 **Z** に対する **Socket Offset** を **30** に設定して、 **[Use Pawn Control Rotation]** にチェックを入れます。 
 
@@ -65,7 +67,7 @@ Description:キャラクターに設定を行い、このガイドで後に必�
 
 	**Spring Arm** コンポーネントは、 **Camera** と一緒に使ってサードパーソン視点を作成します。
 
-1.	**[Add Component]** ボタンをクリックして、 **Camera** を追加します。 
+1.	**[Add Component]** ボタンをクリックして、 **Camera** コンポーネントを追加します。 
 
 1.	**[Components] ウィンドウ** の **Camera** をクリックして **Spring Arm** 上にドラッグし、 Spring Arm Component の子を作成します。 
 
@@ -93,7 +95,7 @@ Description:キャラクターに設定を行い、このガイドで後に必�
 
 	![](Characters_8.png)
 
-1.	**コンパイル** し **保存** してから、ブループリントを終了します。 
+1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
 
 %Steps%
 

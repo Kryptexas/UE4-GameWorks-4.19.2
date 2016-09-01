@@ -9,6 +9,7 @@
 
 #include "GenericPlatformChunkInstall.h"
 #include "GenericPlatformDriver.h"			// FGPUDriverInfo
+#include "HAL/ThreadHeartBeat.h"
 
 // Resource includes.
 #include "Runtime/Launch/Resources/Windows/Resource.h"
@@ -484,6 +485,7 @@ static void InitSHAHashes()
 static void SetProcessMemoryLimit( SIZE_T ProcessMemoryLimitMB )
 {
 	HANDLE JobObject = ::CreateJobObject(nullptr, TEXT("UE4-JobObject"));
+	check(JobObject);
 	JOBOBJECT_EXTENDED_LIMIT_INFORMATION JobLimitInfo;
 	FMemory::Memzero( JobLimitInfo );
 	JobLimitInfo.ProcessMemoryLimit = 1024*1024*ProcessMemoryLimitMB;
@@ -1414,6 +1416,8 @@ int MessageBoxExtInternal( EAppMsgType::Type MsgType, HWND HandleWnd, const TCHA
 
 EAppReturnType::Type FWindowsPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
+	FSlowHeartBeatScope SuspendHeartBeat;
+
 	HWND ParentWindow = (HWND)NULL;
 	switch( MsgType )
 	{
@@ -2145,6 +2149,7 @@ void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 			TEXT("hit YES to allow him to debug the crash.\n")
 			TEXT("[Changelist = %d]"),
 			FEngineVersion::Current().GetChangelist());
+		FSlowHeartBeatScope SuspendHeartBeat;
 		if (MessageBox(0, GErrorRemoteDebugPromptMessage, TEXT("CRASHED"), MB_YESNO|MB_SYSTEMMODAL) == IDYES)
 		{
 			::DebugBreak();
@@ -2559,10 +2564,10 @@ FGPUDriverInfo FWindowsPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescr
 			}
 			if(DriverLocation.Left(20) == TEXT("\\HKEY_LOCAL_MACHINE\\"))		// not case sensitive
 			{
-				FString Key = DriverLocation.RightChop(20);
+				FString DriverKey = DriverLocation.RightChop(20);
 				
 				FGPUDriverInfo Local;
-				GetVideoDriverDetails(Key, Local);
+				GetVideoDriverDetails(DriverKey, Local);
 
 				if(!Local.IsValid())
 				{
@@ -2609,10 +2614,10 @@ FGPUDriverInfo FWindowsPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescr
 		for(uint32 i = 0; i < 256; ++i)
 		{
 			// Iterate all installed display adapters
-			const FString Key = FString::Printf(TEXT("SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}\\%04d"), i);
+			const FString DriverNKey = FString::Printf(TEXT("SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}\\%04d"), i);
 		
 			FGPUDriverInfo Local;
-			GetVideoDriverDetails(Key, Local);
+			GetVideoDriverDetails(DriverNKey, Local);
 
 			if(!Local.IsValid())
 			{
@@ -2648,12 +2653,9 @@ FGPUDriverInfo FWindowsPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescr
 			DebugString += FString::Printf(TEXT("FoundDriverCount:%d FallbackToPrimary "), FoundDriverCount);
 		}
 	
-		// Iterate all installed display adapters
-		const FString Key = TEXT("HARDWARE\\DEVICEMAP\\VIDEO");
-
 		FString DriverLocation; // e.g. HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\<videodriver>\Device0
 		// Video0 is the first logical one, not neccesarily the primary, would have to iterate multiple to get the right one (see https://support.microsoft.com/en-us/kb/102992)
-		bool bOk = FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("\\Device\\Video0"), /*out*/ DriverLocation);
+		bool bOk = FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("HARDWARE\\DEVICEMAP\\VIDEO"), TEXT("\\Device\\Video0"), /*out*/ DriverLocation);
 
 		if(bOk)
 		{

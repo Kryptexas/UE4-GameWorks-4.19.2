@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2697129
 Availability:Public
-Title:Tools & Systems
+Title: 工具和系统
 Crumbs:%ROOT%, Engine, Engine/UI
-Description:Individual tools and systems built into Unreal Editor.
+Description: 虚幻编辑器中独立的工具和系统。
 Navigation:topic
-
+Version: 4.9
 
 [REGION:features half]
 [OBJECT:Role]
@@ -12,10 +12,10 @@ Navigation:topic
 	![Editor Systems](%ROOT%/profile_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	Editor Systems
+	编辑器内的各系统
 	[/PARAM]
 	[PARAM:path]
-	[RELATIVE:#Systems]
+	[RELATIVE:#BookmarkSystems]
 	[/PARAM]
 [/OBJECT]
 
@@ -24,7 +24,7 @@ Navigation:topic
 	![Level Editing Tools](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	Level Editing Tools
+	场景关卡编辑工具
 	[/PARAM]
 	[PARAM:path]
 	[RELATIVE:#LevelEditing]
@@ -36,7 +36,7 @@ Navigation:topic
 	![Content Creation Tools](%ROOT%/content_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	Content Creation Tools
+	内容制作工具
 	[/PARAM]
 	[PARAM:path]
 	[RELATIVE:#ContentCreation]
@@ -48,7 +48,7 @@ Navigation:topic
 	![Tool Programming](%ROOT%/prog_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	Tool Programming
+	工具代码编写
 	[/PARAM]
 	[PARAM:path]
 	[RELATIVE:#ToolProgramming]
@@ -56,8 +56,8 @@ Navigation:topic
 [/OBJECT]
 [/REGION]
 
-(#Systems)
-## Systems
+(#BookmarkSystems)
+## 系统
 
 [EXCERPT:Systems]
 [REGION:topics half]
@@ -66,7 +66,7 @@ Navigation:topic
 [/REGION]
 [/EXCERPT:Systems]
 
-## Tools
+## 工具
 
 [EXCERPT:Tools]
 [REGION:topics half]
@@ -83,7 +83,7 @@ Navigation:topic
 	![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	Level Editing Tools
+	场景关卡编辑工具
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -99,7 +99,7 @@ Navigation:topic
 	![](%ROOT%/content_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	Content Creation Tools
+	内容制作工具
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -121,7 +121,7 @@ Navigation:topic
 		![](%ROOT%/prog_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Tool Creation
+		工具制作
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

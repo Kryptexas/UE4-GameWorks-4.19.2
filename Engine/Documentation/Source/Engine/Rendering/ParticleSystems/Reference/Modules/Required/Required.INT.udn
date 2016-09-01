@@ -2,6 +2,8 @@ Availability: Public
 Title:Default Required and Spawn Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Modules that are included along with an emitter and required for its function.
+Version: 4.9
+
 
 [TOC(start:2 end:3)]
 

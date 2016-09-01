@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// 
+// .
+
 #include "VulkanShaderFormat.h"
 #include "Core.h"
 #include "ModuleInterface.h"
@@ -18,11 +19,11 @@ class FShaderFormatVulkan : public IShaderFormat
 {
 	enum 
 	{
-		UE_SHADER_VULKAN_ES3_1_VER = 3,
-		UE_SHADER_VULKAN_ES3_1_ANDROID_VER = 3,
-		UE_SHADER_VULKAN_ES3_1_UB_VER = 3,
-		UE_SHADER_VULKAN_SM4_VER = 3,
-		UE_SHADER_VULKAN_SM5_VER = 3,
+		UE_SHADER_VULKAN_ES3_1_VER = 4,
+		UE_SHADER_VULKAN_ES3_1_ANDROID_VER = 4,
+		UE_SHADER_VULKAN_ES3_1_UB_VER = 4,
+		UE_SHADER_VULKAN_SM4_VER = 4,
+		UE_SHADER_VULKAN_SM5_VER = 4,
 	}; 
 
 	int32 InternalGetVersion(FName Format) const

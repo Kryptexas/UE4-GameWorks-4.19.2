@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:2539393
+﻿INTSourceChangelist:2707659
 Availability:Public
 Title:2.ヘルス、エネルギー、弾薬を表示する
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:このステップでは、プレイヤーのヘルス、エネルギー、弾薬を HUD に接続し、表示します。 
+version:4.9
 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/UMG\QuickStart\1 "%Engine/UMG\QuickStart\1:title%") 
+		[前のステップ](Engine/UMG\QuickStart\1 "%Engine/UMG\QuickStart\1:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/UMG\QuickStart) 
+		[クイックスタート ホーム](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/UMG\QuickStart\3 "%Engine/UMG\QuickStart\3:title%") 
+		[次のステップ](Engine/UMG\QuickStart\3 "%Engine/UMG\QuickStart\3:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -31,13 +32,13 @@ Description:このステップでは、プレイヤーのヘルス、エネル�
 
 	![](Step2_6.png)(w:640)
 
-	**ウィジェット ブループリント エディタ** 内に HUD の視覚的レイアウトとスクリプト化された機能を入力できます。 
+	**ウィジェット ブループリント エディタ** 内で HUD の視覚的レイアウトとスクリプト化された機能を与えることができます。 
 	 
 	[REGION:note]
 	ウィジェット ブループリン トエディタに関する様々な側面の詳細は、[](Engine/UMG/UserGuide/WidgetBlueprints) をご覧ください。 
 	[/REGION]
 
-1.	**[パレット]** ウィンドウの**[パネル]** で **Horizontal Box** を **[Hierarchy]** (階層) ウィンドウの **[キャンバスパネル]** にドラッグします。 
+1.	**[パレット]** ウィンドウの**[パネル]** で **Horizontal Box** を **[Hierarchy(階層)]** ウィンドウの **[キャンバスパネル]** にドラッグします。 
 
 	![](Step2_7.png)
 
@@ -51,7 +52,7 @@ Description:このステップでは、プレイヤーのヘルス、エネル�
 
 	![](Step2_9.png)
 
-1.	**Horizontal Box** を選択、グラフ内でボックスをサイズ調整して配置し、ウィンドウの左上隅に配置します。 
+1.	**Horizontal Box** を選択し、グラフ内でボックスをサイズ調整して配置し、ウィンドウの左上隅に配置します。 
 
 	![](Step2_10.png)
 
@@ -79,7 +80,7 @@ Description:このステップでは、プレイヤーのヘルス、エネル�
 
 1.	ヘルスの隣の **Progress Bar** を選択し、**[詳細]** パネルで、**Fill Color and Opacity** を緑色に設定します。 
 
-	![](Step2_24.png)(w:800)
+	![](UMGColorPicker1.jpg)(w:800)
 
 	色を割り当てたときに進捗バーの色が変わらないことがあるかもしれません。これは、バーを満たすパーセント値が 0.0 に設定されているからです (別の色でテストするためにこれを変更することができます。後でこれをキャラクターのヘルス値にリンクします)。 
 
@@ -115,41 +116,47 @@ Description:このステップでは、プレイヤーのヘルス、エネル�
 
 	![](Step2_20.png)
 
-1.	**グラフ** 内で、**Event Construct** で **右クリック** し、**Get Player Character** ノードを追加し、次に **Cast To FirstPersonCharacter** を追加します。 
+1.	**グラフ** 内の **Event Construct** で **右クリック** し、**Get Player Character** ノードを追加します。 
+
+1. **Return Value** ピンを引き出して、**Cast to FirstPersonCharacter** を選択します。
 
 	![](Step2_21.png)
 
-	プレイヤー キャラクターが使用しているキャラクター ブループリントが実際に **First Person Character** ブループリントであるかをチェックしています。 
+	プレイヤー キャラクターが使用している Character ブループリントが実際に **First Person Character** ブループリントであるかをチェックしています。 
 
-1.	**As First Person Character** ピンからドラッグして、 **Promote to Variable** (**My Character** と名前を付けます) を選択し、以下のように接続します。 
+1.	**As First Person Character** ピンからドラッグして、 **Promote to Variable (変数に昇格)** (**My Character** と名前を付けます) を選択し、以下のように接続します。 
 
 	![](Step2_22.png)
 
 	これにより **FirstPersonCharacter** ブループリント内の変数にアクセスすることができます。 
 
+1. ツールバーの **[Compile (コンパイル)]** をクリックし、スクリプトをコンパイルします。
+
 1.	**Designer** タブに戻り、**Health** の隣の **Progress Bar** を選択します。 
 
-1.	**[詳細]** パネルの **Appearance** で、**Percent** の隣にある **Bind** オプションをクリックします。次に **MyCharacter** から **Health** を使用するように設定します。 
+1.	**[詳細]** パネルの **Progress** で、**Percent** の隣にある **Bind** オプションをクリックします。次に **MyCharacter** から **Health** を使用するように設定します。 
 
-	![](Step2_23.png)
+	![](HealthProgress.jpg)
 
-	これは、進捗バーの値を **First Person Character** ブループリント内の **Health** 変数にバインドします。これでキャラクター ブループリントでヘルス値が変更するたびに HUD でも自動的に更新されるようになります。バインド後に進捗バーが変化しないことがあるかもしれません。これは、 **Event Construct** で起こるようにしたからです (または HUD が構築される場合。これはゲーム開始時に起こります)。 
+	これは、進捗バーの値を **First Person Character** ブループリント内の **Health** 変数にバインドします。これで Character ブループリントでヘルス値が変更するたびに HUD でも自動的に更新されるようになります。バインド後に進捗バーが変化しないことがあるかもしれません。これは、 **Event Construct** で起こるようにしたからです (または HUD が構築される場合、これはゲーム開始時に起こります)。 
 
 1.	エネルギーの隣にある **Progress Bar** を選択し、上記のプロセスを繰り返し、 **MyCharacter** から **Percent** を **Energy** にバインドします。 
 
-	![](Step2_25.png)
+	![](EnergyProgress.jpg)
 
 1.	Ammo テキストの後に 25 を選択します。次に、 **Text** の **[詳細]** パネルで **Bind** と **Create Binding** をクリックします。 
 
-	![](Step2_26.png)
+	![](CreateBinding.jpg)
 
-	以前に **Sub-Object Properties** を使用して同じタイプのプロパティをバインドしたように、独自のカスタム バインディングを作成することもできます。ここでは、**First Person Character** から **Text** プロパティを **Integer** プロパティにバインドし、現在の Ammmo の表示をします。  
+	以前に **Sub-Object Properties** を使用して同じタイプのプロパティをバインドしたように、独自のカスタム バインディングを作成することもできます。ここでは、**First Person Character** ブループリントから **Text** プロパティを **Integer** プロパティにバインドし、現在の Ammmo を表示します。  
 
 1.	作成され、自動的に開いた関数内で、 **Ctrl** を押したまま、**MyCharacter** 変数をグラフにドラッグします。 
 
 	![](Step2_27.png)(w:820)
 
-1.	**MyCharacter** から、 **Ammo** を get し、それを **Return Node** の **Return Value** に接続します。 
+1.	**MyCharacter** のピンを引き出してget **Ammo** を選択します。 
+
+1. Ammo ピンを、**Return Node** の **Return Value** に接続します。 
 
 	![](Step2_28.png)
 
@@ -161,12 +168,23 @@ Description:このステップでは、プレイヤーのヘルス、エネル�
 
 	Max Ammo が同じ状態を保つならこれを行う必要はおそらくないでしょうが、変更することが可能です。 
 
-1.	**Compile** をクリックし、**Save** をクリックします。次に、エディタで再生するために **Play** ボタンをクリックします。 
+1.	**Compile** をクリックし、**Save** をクリックします。次に、**Play** ボタンをクリックしてエディタで再生します。 
 
-	![](Example_GIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	-v8nzlvknlE
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-	ヘルス、エネルギー、弾薬の値が HUD に表示されるようになり、キャラクター ブループリントからの現在の値を反映します。**スペース** を押すと、キャラクターがジャンプし、エネルギーが消耗します。**左マウスボタン** を押すと、武器が発砲し、弾薬が減ります。**F** を押すとヘルスを失う原因になります (これは後でダメージ システムに接続可能です)。 
-	次のセクションでは、セットアップしたゲームに読み込むために使用できるメインメニューを作成します。 
+	ヘルス、エネルギー、弾薬の値が HUD に表示されるようになり、Character ブループリントからの現在の値を反映します。**スペース** を押すと、キャラクターがジャンプし、エネルギーが消耗します。**左マウスボタン** を押すと、武器が発砲し、弾薬が減ります。**F** を押すとヘルスを失う原因になります (これは後でダメージ システムに接続可能です)。 
+
+次のセクションでは、セットアップしたゲームに読み込むために使用できるメインメニューを作成します。 
 
 
 %Steps%

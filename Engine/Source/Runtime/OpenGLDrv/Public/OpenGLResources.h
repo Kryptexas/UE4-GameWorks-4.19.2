@@ -31,7 +31,7 @@ namespace OpenGLConsoleVariables
 	extern int32 bBindlessTexture;
 };
 
-#if PLATFORM_WINDOWS || PLATFORM_ANDROIDES31
+#if PLATFORM_WINDOWS || PLATFORM_ANDROIDESDEFERRED
 #define RESTRICT_SUBDATA_SIZE 1
 #else 
 #define RESTRICT_SUBDATA_SIZE 0
@@ -65,13 +65,13 @@ class TOpenGLBuffer : public BaseType
 		{
 			while ( InSize > 0)
 			{
-				const uint32 Size = FMath::Min<uint32>( BlockSize, InSize);
+				const uint32 BufferSize = FMath::Min<uint32>( BlockSize, InSize);
 			
-				FOpenGL::BufferSubData( Type, InOffset, Size, Data);
+				FOpenGL::BufferSubData( Type, InOffset, BufferSize, Data);
 
-				InOffset += Size;
-				InSize -= Size;
-				Data += Size;
+				InOffset += BufferSize;
+				InSize -= BufferSize;
+				Data += BufferSize;
 			}
 		}
 		else
@@ -820,7 +820,7 @@ public:
 		return bIsPowerOfTwo != 0;
 	}
 
-#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // Flithy hack to workaround radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // Flithy hack to workaround radr://16011763
 	GLuint GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 MipmapLevels);
 #endif
 
@@ -1271,13 +1271,15 @@ class FOpenGLUnorderedAccessView : public FRHIUnorderedAccessView
 
 public:
 	FOpenGLUnorderedAccessView():
-	  Resource(0),
+		Resource(0),
+		BufferResource(0),
 		Format(0)
 	{
 
 	}
 	  
 	GLuint	Resource;
+	GLuint	BufferResource;
 	GLenum	Format;
 };
 

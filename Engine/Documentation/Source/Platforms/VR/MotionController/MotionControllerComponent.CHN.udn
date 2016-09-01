@@ -1,43 +1,43 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2972740
 Availability:Public
-Title:Motion Controller Component Setup
+Title:运动控制器组件设置
 Crumbs:%ROOT%, Platforms
-Description:Information over how to setup Motion Controllers for VR interaction.
+Description:如何设置 VR 互动的运动控制器。
 Navigation:platform
 Version:4.9
 Skilllevel:Intermediate
-
+parent:Platforms/VR
+type:overview
 
 [TOC(start:2)]
 
-The release of Unreal Engine 4.9 introduces some major changes in how Unreal Engine interfaces with Motion Controllers.
-You can now add a Motion Controller as a component to your Pawn / Character, set which "Hand" it is supposed to represent and the Motion Controller is now ready to be used.
-In the following document we will cover how you can set up your Virtual Reality project to make use of Motion Controllers.
+可将运动控制器作为组件添加到 Pawn 或角色，并设置其所代表的“手臂”。
+该文档讲述如何设置使用运动控制器的虚拟现实项目。
 
 [region:tip]
-Before going any further make sure that your VR Headset and Motion Controllers have been plugged into your PC and their required drivers installed. 
-If you have not done so already make sure to check out our other [VR Documents](Platforms/VR) as they contain valuable information on how to get various VR headsets to work with UE4.
+首先确保 VR 头戴设备和运动控制器已在电脑上插好，必备驱动已安装。 
+[VR 文档](Platforms/VR) 讲述如何结合 UE4 使用各种 VR 头戴设备。
 [/region]
 
-## Motion Controller Setup
+## 运动控制器设置
 
-Setting up a VR project to make use of Motion Controllers can be accomplished in a few short steps. 
-In the following section we will cover how you can quickly get Motion Controllers working with your project.
+使 VR 项目使用运动控制器需要在 Pawn 上添加一个运动控制器组件并进行配置。 
+此部分将讲述如何进行快速设置，以便在项目中使用运动控制器。
 
-1. From the Content Browser open up the Player Pawn Blueprint.
+[region:note]
+请注意：此设置可应用至任何 UE4 项目的任意 Pawn。
+[/region]
+
+1. 在 **Content Browser** 中打开 **Player Pawn** 蓝图。
 
 	![](Open_VR_Pawn.png)
 
-	[region:note]
-	Please note the following can be applied to any Pawn in any project and does not specifically have to be a VR project.
-	[/region]
-
-1. Once the Blueprint is opened, navigate to the **Viewport** tab and in the **Components** section click on the **Add Component** button to expose the components that can be added to this Blueprint. 
+1. 蓝图打开后，前往 **Viewport** 标签，在 **Components** 部分点击 **Add Component** 按钮显示可添加到此蓝图的组件。 
 
 	![](Find_Components.png)
 
-1. From the list that is shown search for the Motion Controller using the word **Motion** as the search term. 
-	When the Motion Controller component has been located, click on it to add it to the components list.
+1. 使用单词 **Motion** 作为搜索条目在显示的列表中搜索运动控制器。 
+	找到运动控制器组件后，点击将其添加至组件列表。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -51,12 +51,13 @@ In the following section we will cover how you can quickly get Motion Controller
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. Once the Motion Controller has been added, select it by clicking on it and then in the **Details** panel under the **Motion Controller** section make sure the **Hand** is set to **Left**.
+1. 添加运动控制器后，点击将其选中，然后在 **Details** 面板的 **Motion Controller** 部分下将 **Hand** 设为 **Left**。
 
 	![](Setting_Up_Components.png)
 
-1. If you ran the game now the motion controller would work but you would not see anything as by default no visuals are rendered. 
-	To fix this add a **Static Mesh Component** to the Components sections and then in the Details section of the Static Mesh Component under the Static Mesh section pick a Static Mesh to use from the dropdown menu.
+1. 在世界场景中添加运动控制器可视展示的方法：在 **Components 面板** 中选中 **运动控制器**，然后点击 **Add Component** 按钮添加一个 **静态网格体组件**。
+	将静态网格体组件拖至运动控制器上（成为其父项）， 
+	然后在 Details 面板中为新组件的静态网格体属性添加一个静态网格体资源。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -71,44 +72,46 @@ In the following section we will cover how you can quickly get Motion Controller
 	[/OBJECT]
 
 	[region:tip]
-	If you do not see any Static Mesh in the Content Browser you will need to either import one or enable **Engine Content** and then select one from there. 
-	Also if the Static Mesh you selected is to big or to small you can scale to your likening using the Scale section of the Transform menu.
+	如项目当前未包含任何静态网格体资源，则需自行导入网格体，或点击工具栏中的 Marketplace 按钮访问市场，从中下载一些资源以供项目使用。
+	如静态网格体的尺寸不合适，可通过 Details 面板中 Transform 部分的 Scale 功能将其缩放到适宜的尺寸。
 	[/region]
 
-1. Repeat this process again this time adding a Right Hand and when completed your Pawn Blueprint should look something like the image below.
+1. 再添加一个以根为父项的运动控制器组件，并将其设为 **Right Hand**。添加一个以新运动控制器组件为父项的静态网格体组件，并将右手的网格体应用到其上。
 
 	![](Finshed_MC_Setup.png)
 
 	[region:note]
-	In the image above the the two cone shaped meshes have been moved apart to show that they are two of them. 
-	When setting this up for your project leave both mesh at 0,0,0 so that they are located right on top of one another.
+	在上图中，锥形网格体已被分解开，以显示有两个网格体存在。 
+	设置项目时，将两个静态网格体组件的坐标位置设为 0,0,0，使其重叠放置。
 	[/region]
 
-## Working with Motion Controllers
+## 使用运动控制器
 
-Working with Motion Controllers inside UE4 is similar to working with other input devices such as a game-pad or a keyboard. 
-If you search inside of the Blueprint Editor **Palette** using **MotionController** as the search term you will see all the available buttons and controls the Motion Controllers have available.
+蓝图编辑器的 Palette 面板中包含运动控制器专有的输入功能键。
+
+[region:tip]
+在蓝图编辑器的 **Palette** 面板中使用 **MotionController** 作为条目进行搜索，将显示运动控制器可用的全部按钮和功能键。
+[/region]
 
 ![](Working_With_MC.png)
 
-When looking at the available Motion Controller input options there is a capital **L** or **R** next to the name of what that value is supposed to control. 
-This L or R means that this is for the **Left** or **Right** Motion Controller.
+对可用运动控制器输入选项进行查看后可发现它们的所对应的功能名称旁有一个大写的 **L** 或 **R**。 
+L/R 代表 **左** 或 **右** 运动控制器使用。
 
 ![](MC_Left_Right.png)
 
 
-## Using Motion Controllers
+## 设置运动控制器
 
-In the following section we will set the Motion Controllers up so that when you press the trigger button on the **Right-Handed** Motion Controller a Blueprint containing a Static Mesh is spawned into the world. 
-Then when you press the trigger button on the **Left-Handed** Motion Controller the Blueprint that contains the Static Mesh that was spawned into the world will be removed from the world.
+在以下部分中我们将对运动控制器进行设置，以便达到这样的效果：按下 **右手** 运动控制器扳机键后世界场景中将生成一个包含静态网格体的蓝图，按下 **左手** 运动控制器扳机键后将从世界场景中移除网格体。 
 
-1. Inside of the Content Browser create a new Blueprint and name it **BP_Sphere** and then open it up by double clicking on it.  
+1. 在 Content Browser 中新建一个名为 **BP_Sphere** 的蓝图，然后双击打开。  
 
-1. Once the BP_Sphere Blueprint is open, navigate to the **Viewport** tab and add a new **Static Mesh Component**.
+1. 前往 **Viewport** 标签，新添加一个 **静态网格体组件**。
 
 	![](Add_SM_Component.png)
 
-1. Move the Static Mesh Component on top of the **Default Screen Root** and then set the Static Mesh used to the **ArcadeEditorSphere** then compile and save your Blueprint.
+1. 将静态网格体组件移到 **Default Screen Root** 上，将静态网格体设为使用 **ArcadeEditorSphere**，然后编译并保存蓝图。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -123,39 +126,39 @@ Then when you press the trigger button on the **Left-Handed** Motion Controller 
 	[/OBJECT]
 
 	[region:note]
-	If you can not find the **ArcadeEditorSphere** make sure that you have the **Engine Content** folder enabled by going to **View Options** and then clicking on the **Engine Content** folder to enable it showing up in the Content Browser.
+	如未找到 **ArcadeEditorSphere**，须确定 **Engine Content** 已启用：前往 **View Options**，点击 **Engine Content** 文件夹使其显示在 Content Browser 中。
 	[/region]
 
-1. Close down the BP_Sphere Blueprint and open up your **Pawn** Blueprint then navigate to the **Event Graph** tab.
+1. 关闭 BP_Sphere 蓝图，打开 **Pawn** 蓝图。
 
-1. Create a new **Actor** variable with the name **Objects** and set it's **Variable Type** to array.
+1. 前往 my Blueprint 面板中的 **Event Graph** 标签，新建一个名为 **Objects**、**变量类型（Variable Type）** 为阵列的 **Actor** 变量。
 	
 	![](Create_New_Var.png)
 
-1. To create the ability to add objects to the world, inside of the Event Graph add and connect the following Blueprint nodes together. When completed you should have something that looks like the following image.
+1. 按下运动控制器的扳机键后，即可通过蓝图从世界场景中添加或移除特定物体。在事件图表中添加并连接以下蓝图节点完成此操作。完成后的效果与下图相似。
 
 	![](Add_Objects_Setup.png)
 
 	[region:note]
-	The **Spawn Offset** was added to ensure that the objects could be seen while being placed in this example. This is not required for this to work and can be omitted by taking the **Return Value** from the **GetActorTransform** node and inputting that into the **Spawn Transform** input on the **SpawnActor** Blueprint node.
+	添加 **Spawn Offset** 的目的是确保放置在此例中的物体为可见。此偏移不为必需，可略过 - 将 **GetActorTransform** 节点的 **Return Value** 与 **SpawnActor** 节点上的 **Spawn Transform** 输入相连。
 	![](Add_Objects_Setup_Alt.png)
 	[/region]
 
-1. Once the Add Objects has been setup select the **Spawn Actor** Blueprint node and in the **Class** section, select the ** BP_Sphere** Blueprint that was created in step one.
+1. 选择 **Spawn Actor** 节点，并将步骤 1 中创建的 ** BP_Sphere** 蓝图指定到 Class 输入。
 
 	![](Setting_SpawnActor_Up.png)
 
-1. To create the ability to remove the objects that were placed in the world, add and connect the following Blueprint nodes together. When completed you should have something that looks like the following image.
+1. 蓝图的此部分可用于移除放置在世界场景中的物体。添加并连接以下蓝图节点即可添加此功能。完成后的效果与下图相似。
 
 	![](Remove_Objects_Setup.png)
 
 	[region:note]
-	The keyboard input keys were placed in the graph for quick testing. You do not have to include those inputs for this to work with Motion Controllers.
+	键盘输入键放置在图表中，便于快速测试。使用运动控制器时无需包括这些输入。
 	[/region]
 
-1. **Compile** then **Save** the changes to your Pawn Blueprint then press the **Play** button to preview the level. 
-	Once the level has started try adding objects to the world by pressing the **K** key on the keyboard or by pressing the Right trigger on the Right Handed Motion Controller. 
-	To remove objects from the world press the **T** key on the keyboard or press the **Left** trigger on the Left Handed Motion Controller which you can see demonstrated in the video below.
+1. **编译** 并 **保存** 变更至 Pawn 蓝图，然后按下 **Play** 按钮。 
+	关卡载入后，按下键盘 **K** 键或右手运动控制器的右扳机键即可在世界场景中添加物体。 
+	如以下视频所示，按下键盘 **T** 键或左手运动控制器的 **左** 扳机键即可移除世界场景中的物体。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -169,5 +172,31 @@ Then when you press the trigger button on the **Left-Handed** Motion Controller 
 		[/PARAMLITERAL]
 	[/OBJECT]
 
+## 培训视频
 
-
+[REGION:topics third]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	设置运动控制器
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	6ALnsdQnkVQ
+	[/PARAMLITERAL]
+[/OBJECT]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	创建使用运动控制器的 VR 互动：第一部分
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	eRNtgFo6iU0
+	[/PARAMLITERAL]
+[/OBJECT]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+		创建使用运动控制器的 VR 互动：第二部分
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	utOahIZgKgc
+	[/PARAMLITERAL]
+[/OBJECT]
+[/REGION]

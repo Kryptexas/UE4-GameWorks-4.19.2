@@ -197,6 +197,7 @@ public:
 		BlueprintEditor = InBlueprintEditor;
 
 		InBlueprintEditor->GetOnWidgetBlueprintTransaction().AddSP( this, &SUMGAnimationList::OnWidgetBlueprintTransaction );
+		InBlueprintEditor->OnEnterWidgetDesigner.AddSP(this, &SUMGAnimationList::OnEnteringDesignerMode);
 
 		SAssignNew(AnimationListView, SWidgetAnimationListView)
 			.ItemHeight(20.0f)
@@ -301,6 +302,28 @@ private:
 		}
 		
 		AnimationListView->RequestListRefresh();
+	}
+
+	void OnEnteringDesignerMode()
+	{
+		UpdateAnimationList();
+
+
+		TSharedPtr<FWidgetBlueprintEditor> WidgetBlueprintEditorPin = BlueprintEditor.Pin();
+		const UWidgetAnimation* ViewedAnim = WidgetBlueprintEditorPin->RefreshCurrentAnimation();
+
+		if (ViewedAnim)
+		{
+			const TSharedPtr<FWidgetAnimationListItem>* FoundListItemPtr = Animations.FindByPredicate([&](const TSharedPtr<FWidgetAnimationListItem>& ListItem) { return ListItem->Animation == ViewedAnim; });
+
+			if (FoundListItemPtr != nullptr)
+			{
+				AnimationListView->SetSelection(*FoundListItemPtr);
+			}
+		}
+
+		UWidgetAnimation* CurrentAnim = WidgetBlueprintEditorPin->GetCurrentAnimation();
+		WidgetBlueprintEditorPin->ChangeViewedAnimation(*CurrentAnim);
 	}
 
 	void OnWidgetBlueprintTransaction()
@@ -557,7 +580,7 @@ TSharedRef<SWidget> FAnimationTabSummoner::CreateTabBody(const FWorkflowTabSpawn
 	TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPinned = BlueprintEditor.Pin();
 
 	return SNew( SUMGAnimationList, BlueprintEditorPinned );
-		
+	
 }
 
 #undef LOCTEXT_NAMESPACE 

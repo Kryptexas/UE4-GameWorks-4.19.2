@@ -1,120 +1,132 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2754321
 Availability: Public
-Title:Creating an Aim Offset
+Title:创建瞄准偏移
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Using an Aim Offset, a character aims a weapon in the direction of your mouse or controller. 
+Description:利用瞄准偏移，Character 可以向鼠标或控制器的方向瞄准武器。 
 Related: Engine\Animation\AimOffset
 Related: Engine/Animation/AnimBlueprints
 Related: Engine\Content\Types\SkeletalMeshes\Sockets
 Related: Engine\Animation\AnimHowTo\AdditiveAnimations
+Version: 4.9
+SkillLevel: Advanced
 
-In this guide, we will create an [Aim Offset](Engine/Animation/AimOffset), which is an asset that stores a blendable series of poses to help a character aim a weapon. We will take an animation sequence and chop it up into usable poses for an Aim Offset, get the player's pitch/yaw location of the mouse and use that to determine which blended pose to use so that the character moves and aims in the location of the mouse (with some restrictions) as seen in the example below. 
+在本指南中，我们将创建[**瞄准偏移**](Engine/Animation/AimOffset)，瞄准偏移是一种资源，可以存储一系列混合姿势，帮助 Character 瞄准武器。我们将选用一个动画序列并将其切分成可用于瞄准偏移的姿势，获取玩家鼠标的俯仰/偏航位置，以确定使用哪个混合姿势才能让 Character 移动并瞄准鼠标的位置（存在一些限制），如以下示例所示。 
 
-![](AimGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+uyeMVzNn3_s
+[/PARAMLITERAL]
+[/OBJECT]
 
 [TOC(start:2 end:2)]
 
 [INCLUDE:Engine\Animation\AnimHowTo\AdditiveAnimations#intro]
 
-## Creating Aim Poses
+## 创建瞄准姿势
 
-In this section, we will create the aiming poses needed for the Aim Offset by chopping up an animation sequence. 
+在本部分，我们将通过切分动画序列来创建瞄准偏移所需的瞄准姿势。 
 
-1.  With your project open, inside the **Content Browser** under the **Game/Blueprints** folder, open the **MyGame** Blueprint. 
+1.	打开项目，在 **内容浏览器** 的 **Game/Blueprints** 文件夹下，打开 **MyGame** 蓝图。 
 
-1.	Under **Default Pawn Class**, click the dropdown menu and select the **ASP_Character**. 
+1.	在 **Default Pawn Class** 下单击下拉菜单，并选择 **ASP_Character**。 
 
 	![](Engine\Animation\AnimHowTo\AdditiveAnimations\Animations1.png)
 
-1.	**Compile** and **Save** then close the Blueprint. 
+1.	**编译** 并 **保存**，然后关闭蓝图。 
 
-1.	In the **Content Browser** open the **Game/AnimStarterPack** folder. 
+1.	在 **内容浏览器** 中打开 **Game/AnimStarterPack** 文件夹。 
 
-1.	Click the **Create** button and create a folder called **AimPoses**. 
+1.	单击 **Create** 按钮，创建一个名为 **AimPoses** 的文件夹。 
 
 	![](AimOffset1.png)
 
-1.	Drag the **Aim_Space_Ironsights** asset onto the **AimPoses** folder and select **Copy**. 
+1.	将 **Aim_Space_Ironsights** 资源拖到 **AimPoses** 文件夹上，然后选择 **Copy**。 
 
 	![](AimOffset2.png)
 
-	This is the animation sequence that contains a range of motions for aiming a weapon that we will chop up into poses. 
+	这是包含一系列瞄准武器动作的动画序列，我们需将其切分成各个姿势。 
 
-1.	Inside the **AimPoses** folder, with **Aim_Space_Ironsights** selected, press **Ctrl+W** to duplicate it and name it **Aim_Center**. 
+1.	在 **AimPoses** 文件夹内，选择 **Aim_Space_Ironsights**，然后按下 **Ctrl+W** 进行复制，并将其命名为 **Aim_Center**。 
 
 	![](AimOffset3.png)
 
-1.	Open the **Aim_Center** asset, click the **Pause** button from the playback controls, then click the **ToFront** button. 
+1.	打开 **Aim_Center** 资源，单击播放控件中的 **暂停** 按钮，然后单击 **ToFront** 按钮。 
 
 	![](AimOffset4.png)
 
-	This will make sure that the animation is currently sitting at frame 0 of 102. 
+	这样就可以确保动画当前位于 102 个帧的第 0 帧处。 
 
-1.	**Right-click** on the scrub bar in the timeline, then choose the **Remove from frame 1 to frame 102** option. 
+1.	**右键单击** 时间轴中的擦除栏，然后选择 **Remove from frame 1 to frame 102** 选项。 
 
 	![](AimOffset5.png)
 
-1.	**Right-click** on the scrub bar in the timeline again, then choose the **Remove from frame 1 to frame 2** option. 
+1.	再次 **右键单击** 时间轴中的擦除栏，然后选择 **Remove from frame 1 to frame 2** 选项。 
 
 	![](AimOffset6.png)
 
-	You should have a timeline that looks like below. 
+	此时，您的时间轴应该如下图所示。 
 
 	![](AimOffset7.png)
 
-	With this, we now have a single frame containing a pose we can use in our Aim Offset. 
+	这样，我们就得到了一个单帧，其中包含一个可用于瞄准偏移的姿势。 
 
-1.	Click **Save** then close the **Aim_Center** animation. 
+1.	单击 **Save**，然后关闭 **Aim_Center** 动画。 
 
-1.	In the **AimPoses**, with **Aim_Space_Ironsights** selected, press **Ctrl+W** to duplicate it and name it **Aim_CenterDown**.  
+1.	在 **AimPoses** 中，选择 **Aim_Space_Ironsights**，然后按下 **Ctrl+W** 进行复制，并将其命名为 **Aim_CenterDown**。  
 
 	![](AimOffset8.png)
 
-1.	Open **Aim_CenterDown**, make sure it is on frame **0**, then click the **ToNext** button and go to frame **20**. 
+1.	打开 **Aim_CenterDown**，确保它位于第 **0** 帧，然后单击 **下一个** 按钮，转到第 **20** 帧。 
 
 	![](AimOffset9.png)
 
-	The character will now be aiming downward in the viewport, which is the pose we want to use for aiming down. 
+	此时，视窗中将显示 Character 向下瞄准，这正是我们想用于瞄准下方的姿势。 
 
-1.	**Right-click** on the scrub bar in the timeline, then choose the **Remove frame 0 to frame 19** option. 
+1.	**右键单击** 时间轴中的擦除栏，然后选择 **Remove frame 0 to frame 19** 选项。 
 
 	![](AimOffset10.png)
 
-	Depending on where you **right-click** on the scrub bar, the frame range may be different, just make sure the character is aiming down. 
+	根据您在擦除栏上 **右键单击** 的位置，帧范围可能会不同，但只需确保 Character 瞄准下方即可。 
 	
-1.	**Right-click** on the scrub bar in the timeline again, then choose the **Remove from frame 1 to frame 83** option. 
+1.	再次 **右键单击** 时间轴中的擦除栏，然后选择 **Remove from frame 1 to frame 83** 选项。 
 
 	![](AimOffset11.png)
 
-	Your **Aim_CenterDown** animation should now look like below in the timeline with the character aiming down in the viewport. 
+	您的 **Aim_CenterDown** 动画此时在时间轴中应该如下图所示，而且视窗中显示 Character 瞄准下方。 
 
 	![](AimOffset12.png)
 
-1.	In the **AimPoses**, with **Aim_Space_Ironsights** selected, press **Ctrl+W** to duplicate it and name it **Aim_CenterUp**.  
+1.	在 **AimPoses** 中，选择 **Aim_Space_Ironsights**，然后按下 **Ctrl+W** 进行复制，并将其命名为 **Aim_CenterUp**。  
 
 	![](AimOffset13.png)
 
-1.	Open **Aim_CenterUp**, make sure it is on frame **0**, then click the **ToNext** button and go to frame **10**. 
+1.	打开 **Aim_CenterUp**，确保它位于第 **0** 帧，然后单击 **下一个** 按钮，转到第 **10** 帧。 
 
-1.	**Right-click** on the scrub bar in the timeline, then choose the **Remove frame 0 to frame 10** option. 
+1.	**右键单击** 时间轴中的擦除栏，然后选择 **Remove frame 0 to frame 10** 选项。 
 
 	![](AimOffset14.png)
 
-	Again, the frame range may be slightly different depending upon where you **right-click**, just make sure the character is aiming upwards.
+	同样，根据您在擦除栏上 **右键单击** 的位置，帧范围可能会略有不同，但只需确保 Character 向上瞄准即可。
 
-1.	**Right-click** on the scrub bar in the timeline again, then choose the **Remove from frame 1 to frame 92** option. 
+1.	再次 **右键单击** 时间轴中的擦除栏，然后选择 **Remove from frame 1 to frame 92** 选项。 
 
 	![](AimOffset15.png)
 
-	Your **Aim_CenterUp** animation should now look like below in the timeline with the character aiming up in the viewport. 
+	您的 **Aim_CenterUp** 动画此时在时间轴中应如下图所示，而且视窗中显示 Character 瞄准上方。 
 
 	![](AimOffset16.png)
 
-	Now that you have created an Aim Center, Aim Down and Aim Up pose; repeat the process cited above to create an Aim Left (Center, Up, and Down) and Aim Right (Center, Up, and Down). You can use the table below to identify suggested keyframes to start from and the keyframes to remove to generate your poses. 
+	现在，您已经创建了瞄准中心、瞄准下方和瞄准上方姿势；重复上述步骤，创建瞄准左侧（中心、上、下）和瞄准右侧（中心、上、下）。您可以利用下表来确定推荐的起始关键帧和要移除的关键帧，以生成您想要的姿势。 
 
-1.	**Duplicate** the **Aim_Space_Ironsights** asset each time and create each of the remaining poses based off the table below.
+1.	每次都要 **复制** **Aim_Space_Ironsights** 资源，然后根据下表信息创建剩余的姿势。
 	
-	| Anim Name | Start At Keyframe | Remove Frames 1 | Remove Frames 2 |
+	| 动画名称 | 从关键帧开始 | 移除帧 1 | 移除帧 2 |
 	| ------- | ------ | ------ | ------ |
 	| **Aim_LeftCenter** | 35 | 0 - 34 | 1 - 68 |
 	| **Aim_LeftUp** | 40 | 0 - 39 | 1 - 63 |
@@ -123,266 +135,276 @@ In this section, we will create the aiming poses needed for the Aim Offset by ch
 	| **Aim_RightUp** | 71 | 0 - 70 | 1 - 32 |
 	| **Aim_RightDown** | 81 | 0 - 80 | 1 - 32 |
 
-	For each animation, be sure to start at the suggested **Start At Keyframe** frame, then **Right-click** on the scrub bar and **Remove Frames 1**, **Right-click** on the scrub bar again and **Remove Frames 2**. Each of your animations should be a single frame with the character aiming in the direction of its corresponding name. 
+	对于每个动画，请确保从推荐的 **从关键帧开始** 帧开始，然后 **右键单击** 擦除栏并 **移除帧 1**，接着再次 **右键单击** 擦除栏并 **移除帧 2**。每个动画都应该是单帧，而且 Character 按照其相应名称描述的方向瞄准。 
 
-	When you have created each, your **AimPoses** folder should have several poses in it for each aiming direction. 
+	创建好所有动画后，您的 **AimPoses** 文件夹应该包含一些对应每个瞄准方向的姿势。 
 
 	![](AimOffset17.png)
 
-1.	Open the **Aim_Center** animation from the **AimPoses** folder. 
+1.	从 **AimPoses** 文件夹中打开 **Aim_Center** 动画。 
 
-1.	In the **Anim Asset Details** window under **Additive Settings**, click the **No additive** option and change it to **Mesh Space**. 
+1.	在 **动画资源详细信息** 窗口内的 **Additive Settings** 下，单击 **No additive** 选项，将其更改为 **Mesh Space**。 
 
 	![](AimOffset18.png)
 
 	[REGION:note]
-	For an animation to be compatible with an Aim Offset, it must be set to use an Additive Anim Type of **Mesh Space**. 
+	对于要与瞄准偏移兼容的动画，必须设置为使用 **Mesh Space** 附加动画类型。 
 	[/REGION:note]
 
-1.	Click the **Reference Pose** option and change it to **Selected animation frame**. 
+1.	单击 **Reference Pose** 选项，将其更改为 **Selected animation frame**。 
 
 	![](AimOffset19.png)
 
-1.	Click the **None** dropdown option, then search for and select the **Idle_Rifle_Ironsights** animation to use as the Base Pose. 
+1.	单击 **None** 下拉菜单，然后搜索并选择 **Idle_Rifle_Ironsights** 动画作为基础姿势。 
 
 	![](AimOffset20.png)
 
-1.	In the **Asset Browser**, one-by-one, open each aim pose and repeat steps 22 - 24. 
+1.	在 **资源浏览器** 中，逐一打开每个瞄准姿势，然后重复第 22 至 24 步。 
 
 	![](AimOffset21.png)
 
-	Make sure that each is set to use an **Additive Anim Type** of **Mesh Space** and the **Idle_Rifle_Ironsights** Base Pose is assigned. 
+	确保将每个姿势的 **Additive Anim Type** 都设置为 **Mesh Space**，并指定 **Idle_Rifle_Ironsights** 基础姿势。 
 
-1.	Once you have done so, return to the **Content Browser** and click the **Save All** button. 
+1.	完成后，返回 **内容浏览器**，单击 **Save All** 按钮。 
 
 	![](AimOffset22.png)
 
-## Creating the Aim Offset
+## 创建瞄准偏移
 
-With the poses created, next we will create the Aim Offset asset and set up the poses for blending. 
+创建好姿势后，我们接下来将创建瞄准偏移资源，并设置姿势进行混合。 
 
-1.	In the **Content Browser**, click the **Create** button, then under **Animation** select the **Aim Offset**. 
+1.	在 **内容浏览器** 中单击 **Create** 按钮，然后在 **Animation** 下选择 **Aim Offset**。 
 
 	![](AimOffset23.png)
 
-1.	In the **Pick Skeleton** window, make sure to select the **HeroTPP_Skeleton** that is in the **Game/AnimStarterPack/Character** folder. 
+1.	在 **选取骨架** 窗口中，确保选择 **Game/AnimStarterPack/Character** 文件夹中的 **HeroTPP_Skeleton**。 
 
 	![](AimOffset24.png)
 
-	Name the Aim Offset, **Hero_AimOffset** then open it up. 
+	将瞄准姿势命名为 **Hero_AimOffset**，然后打开。 
 
-1.	Inside the **Hero_AimOffset**, in the **Anim Asset Details** panel, click the **Preview Base Pose** under **Additive Settings**. 
+1.	在 **动画资源详细信息** 面板中的 **Hero_AimOffset** 内，从 **Additive Settings** 下单击 **Preview Base Pose**。 
 
-1.	In the pop-up window, search for and add the **Idle_Rifle_Ironsights** animation sequence. 
+1.	在弹出窗口中，搜索并添加 **Idle_Rifle_Ironsights** 动画序列。 
 
 	![](AimOffset25.png)
 
-	This will be used as the Preview Base Pose to blend from once we start adding our aim poses to the Aim Offset. 
+	我们开始向瞄准偏移添加瞄准姿势后，此动画序列将被用作要混合的预览基础姿势。 
 
-1.	In the **Hero_AimOffset** window (center window), under **Parameters**, enter the parameters shown below. 
+1.	在 **Hero_AimOffset** 窗口（中心窗口）中的 **Parameters** 下，按下图所示输入参数。 
 
 	![](AimOffset26.png)
 
-	Set the **X Axis Label** to **Yaw** and **Y Axis Label** to **Pitch**, then set both Axis Ranges to **-90 to 90** and click **Apply Parameter Changes**. 
+	将 **X Axis Label** 设置为 **Yaw**，**Y Axis Label** 设置为 **Pitch**，两个轴范围均设置为 **-90 至 90**，然后单击 **Apply Parameter Changes**。 
 
 	[REGION:note]
-	For information on how **Blend Spaces** work (which are what Aim Offsets are based upon), see [](Engine/Animation/Blendspaces). 
+	有关 **混合空间** 运行方式的信息（瞄准偏移的依据），请参见[**混合空间**](Engine/Animation/Blendspaces)。 
 	[/REGION]
 
-1.	In the **Asset Browser**, search for **Aim**, then drag the **Aim_Center** animation onto the graph in the center position as shown below. 
+1.	在 **资源浏览器** 中，搜索 **Aim**，然后将 **Aim_Center** 动画拖到图表中心位置，如下所示。 
 	
 	![](AimOffset27.png)
 
-1.	Drag the **Aim_CenterUp** to position **1** and **Aim_CenterDown** to position **2** cited below. 
+1.	将 **Aim_CenterUp** 拖到位置 **1**，将 **Aim_CenterDown** 拖到位置 **2**，如下例所示。 
 	
 	![](AimOffset28.png)
 
-1.	Drag the **Aim_LeftCenter** to position **1** and **Aim_RightCenter** to position **2** cited below. 
+1.	将 **Aim_LeftCenter** 拖到位置 **1**，将 **Aim_RightCenter** 拖到位置 **2**，如下例所示。 
 
 	![](AimOffset29.png)
 
-	If you move your mouse within the grid now, the character will start to aim and blend between the poses. 
+	如果您此时在网格内移动鼠标，Character 将开始瞄准，并混合使用这些姿势。 
 
-1.	Add the **Aim_LeftUp** (1), **Aim_RightUp** (2), **Aim_LeftDown** (3) and **Aim_RightDown** (4) poses to finish the Aim Offset. 
+1.	添加 **Aim_LeftUp** (1)、**Aim_RightUp** (2)、**Aim_LeftDown** (3) 和 **Aim_RightDown** (4) 姿势，完成瞄准偏移。 
 
 	![](AimOffset30.png)
 
-	The Aim Offset is now set up, now we need to hook it up for use within our **Animation Blueprint**. 
+	此时，瞄准偏移已完成设置，需要将它连接起来，以便在我们的 **动画蓝图** 内使用。 
 
 
-## Implementing the Aim Offset
+## 实施瞄准偏移
 
-In this section, we will implement the Aim Offset inside the character's **Animation Blueprint**, so it is a part of their animation set. 
+在本部分，我们将在 Character 的 **动画蓝图** 内实施瞄准偏移，所以，这也是动画集的一部分。 
 
-1.	Inside the **Content Browser** under **Game/AnimStarterPack/Character**, open the **ASP_HeroTPP_AnimBlueprint**. 
+1.	在 **内容浏览器** 内的 **Game/AnimStarterPack/Character** 下，打开 **ASP_HeroTPP_AnimBlueprint**。 
 
 	![](AimOffset31.png)
 
-	This is the Animation Blueprint that is assigned to the playable character and governs the logic for the character's animations. 
+	这是一个分配给可玩 Character 的动画蓝图，它控制着 Character 的动画逻辑。 
 
 	[REGION:note]
-	For information on how **Animation Blueprints** work, see the [](Engine/Animation/AnimBlueprints) documentation. 
+	有关 **动画蓝图** 运行方式的信息，请参见[**动画蓝图**](Engine/Animation/AnimBlueprints) 文档。 
 	[/REGION]
 
-1.	Inside the Animation Blueprint, in the lower center window, click the **MyBlueprint** tab, then **Double-click** the **AnimGraph**. 
+1.	在动画蓝图窗口中心偏下的位置，单击 **MyBlueprint** 选项卡，然后 **双击** **AnimGraph**。 
 
 	![](AimOffset32.png)
 
-	This will open the [](Engine/Animation/AnimBlueprints/AnimGraph) tab which is where we will implement our Aim Offset. 
+	此时将打开 [**Anim Graph**](Engine/Animation/AnimBlueprints/AnimGraph) 选项卡，我们将在此选项卡中实施瞄准偏移。 
 
-1.	In the **MyBlueprint** window, click the **Add Variable** button to create a new variable. 
+1.	在 **MyBlueprint** 窗口中，单击 **添加变量** 按钮，创建新变量。 
 
 	![](AimOffset33.png)
 
-1.	In **Details** panel to the right, change the **Variable Name** to **PlayerAimYaw** and the **Variable Type** to a **Float**. 
+1.	在右侧的 **详细信息** 面板中，将 **Variable Name** 更改为 **PlayerAimYaw**，**Variable Type** 更改为 **Float**。 
 
 	![](AimOffset34.png)
 
-1.	In the **MyBlueprint** window, click the **Add Variable** button again and name the new variable **PlayerAimPitch** (also a **Float**). 
+1.	在 **MyBlueprint** 窗口中，再次单击 **添加变量** 按钮，并将新变量命名为 **PlayerAimPitch**（也是 **Float**）。 
 
-1.	Click the **Asset Browser** tab, then search for **Hero** and drag the **Hero_AimOffset** into the graph. 
+1.	单击 **Asset Browser** 选项卡，然后搜索 **Hero**，并将 **Hero_AimOffset** 拖到图表中。 
 
 	![](AimOffset35.png)
 
-1.	Click the **My Blueprint** tab, then drag the **PlayerAimYaw** variable onto the **Yaw** of the **Hero_AimOffset** node. 
+1.	单击 **My Blueprint** 选项卡，然后将 **PlayerAimYaw** 变量拖到 **Hero_AimOffset** 节点的 **Yaw** 上。 
 
 	![](AimOffset36.png)
 
-	Also drag the **PlayerAimPitch** variable onto the **Pitch** of the **Hero_AimOffset** node.
+	再将 **PlayerAimPitch** 变量拖到 **Hero_AimOffset** 节点的 **Pitch** 上。
 	 
-1.	Connect the **Locomotion** pose to the **Base Pose** of the **Hero_AimOffset**, then the out pose to the **Result**.
+1.	将 **Locomotion** 姿势连接至 **Hero_AimOffset** 的 **Base Pose**，然后将生成的姿势连接至 **Result**。
 
 	![](AimOffset37.png)
 
-	This will take whatever the pose is from the **Locomotion** State Machine, then apply the **Aim Offset** on top of it as the final pose. 
+	此操作将选取 **Locomotion** 状态机中的任意姿势，然后在其上将 **瞄准偏移** 应用为最终姿势。 
 
-1.	Click the **MyBlueprint** tab in the lower center window, then **Double-click** the **EventGraph** to open it. 
+1.	在窗口中心偏下的位置单击 **MyBlueprint** 选项卡，然后 **双击** **EventGraph**，将其打开。 
 
 	![](AimOffset38.png)
 
-	This will open the [](Engine/Animation/AnimBlueprints/EventGraph) tab which is used to keep the character animations updated with what is occurring in-game.
+	此时将打开 [**Event Graph**](Engine/Animation/AnimBlueprints/EventGraph) 选项卡，此选项卡用于根据游戏内发生的事件随时更新 Character 动画。
 
-1.	In the **EventGraph**, locate the **Sequence** node in the graph. 
+1.	在 **EventGraph** 选项卡内，找到图表中的 **Sequence** 节点。 
 
 	![](AimOffset39.png)
 
-	Click the **Add pin** button on the **Sequence** node. 
+	单击 **Sequence** 节点上的 **Add pin** 按钮。 
 
 	![](AimOffset40.png)
 
-1.	From the **MyBlueprint** window, hold **Alt** and drag the **PlayerAimYaw** variable into the graph. 
+1.	从 **MyBlueprint** 窗口，按住 **Alt** 并将 **PlayerAimYaw** 变量拖入图表。 
 
 	![](AimOffset41.png)
 
-	This will create a **Set** node which we will use to get the player's current Yaw and determine the blend points on the Aim Offset. 
+	这样就可以创建 **Set** 节点，该节点用于获取玩家当前的偏航值，并确定瞄准偏移上的混合点。 
 
-1.	Hold **Alt** and drag in the **PlayerAimPitch**, then connect both to the **Then 2** pin of the **Sequence** node. 
+1.	按住 **Alt** 并拖入 **PlayerAimPitch**，然后将二者都连接至 **Sequence** 节点的 **Then 2** 针。 
 
 	![](AimOffset42.png)
 
-1.	Drag off the **As ASP Character** pin of the **Cast to ASP_Character** node and search for and add the **Get Control Rotation** node. 
+1.	从 **Cast to ASP_Character** 节点的 **As ASP Character** 针连出线来，然后搜索并添加 **Get Control Rotation** 节点。 
 
 	![](AimOffset43.png)
 
-1.	Repeat the previous step, but search for and add the **Get Actor Rotation** node. 
+1.	重复上一步，但搜索并添加 **Get Actor Rotation** 节点。 
 
 	![](AimOffset44.png)
 
-1.	**Right-click** in the graph and search for and add the **Delta (Rotator)** node. 
+1.	在图表中 **右键单击**，搜索并添加 **Delta (Rotator)** 节点。 
 
 	![](AimOffset45.png)
 
-1.	Connect the **Get Control Rotation** to the **A** and the **Get Actor Rotation** to the **B** of the **Delta(Rotator)** node. 
+1.	将 **Get Control Rotation** 连接至 **Delta(Rotator)** 节点的 **A**，将 **Get Actor Rotation** 连接至 **B**。 
 
-1.	**Right-click** in the graph, search for and add the **RInterp To** node. 
+1.	在图表中 **右键单击**，搜索并添加 **RInterp To** 节点。 
 
 	![](AimOffset46.png)
 
-1.	**Right-click** in the graph, search for and add the **MakeRot** (Make Rotation) node. 
+1.	在图表中**右键单击**，搜索并添加 **MakeRot**（实现旋转）节点。 
 
 	![](AimOffset47.png)
 
-1.	**Drag-and-drop** the **PlayerAimPitch** and **PlayerAimYaw** variables onto the **Pitch/Yaw** of the **MakeRot** node. 
+1.	将 **PlayerAimPitch** 和 **PlayerAimYaw** 变量 **拖放** 到 **MakeRot** 节点的 **Pitch/Yaw** 上。 
 
 	![](AimOffset48.png)
 
-	Connect the nodes as shown above. 
+	按上图所示连接节点。 
 	
-	This will get the current value of **PlayerAimPitch** and **PlayerAimYaw** and smoothly transition to the player's actual Pitch/Yaw. 
+	这样就可以获得 **PlayerAimPitch** 和 **PlayerAimYaw** 当前的值，然后流畅地过渡到玩家的实际俯仰/偏航动作。 
 
-1.	At the beginning of the **Movement** section, drag off **Delta Time X** of **Event Blueprint Update Animation** and **Promote to variable**. 
+1.	在 **移动** 部分开始处，从 **Event Blueprint Update Animation** 的 **Delta Time X** 连出线来，并连接至 **Promote to variable**。 
 
 	![](AimOffset49.png)
 
-	We will use this to store a variable to Delta Time for use with our **RInterp** node. 
+	我们利用此操作将变量存储至增量时间，以便用于 **RInterp** 节点。 
 
-1.	Name the variable **Time** and connect as shown below. 
+1.	将变量命名为 **Time**，并按下图所示进行连接。 
 
 	![](AimOffset50.png)
 
-1.	Drag-and-drop the **Time** variable onto the **DeltaTime** pin of the **RInterp To** node and set **Interp Speed** to **15**. 
+1.	将 **Time** 变量拖放到 **RInterp To** 节点的 **DeltaTime** 针上，并将 **Interp Speed** 设置为 **15**。 
 
 	![](AimOffset51.png)
 
-	We have assigned a reference to time and set the speed at which to move from the player's old pitch/yaw location to their new location.
+	我们已经指定了参考时间值，而且设置了从玩家的旧俯仰/偏航位置移动到新位置的速度。
 
-1.	Drag off the **Return Value** of the **RInterp To** node and add the **Break Rot** (Break Rotation) node. 
+1.	从 **RInterp To** 节点的 **Return Value** 连出线来，并添加 **Break Rot**（打断旋转）节点。 
 
 	![](AimOffset52.png)
 
-1.	Off the **Pitch**, add the **Clamp Angle** node. 
+1.	从 **Pitch** 连出线来，添加 **Clamp Angle** 节点。 
 
 	![](AimOffset53.png)
 
-	Set the **Min Angle** to **-90** and the **Max Angle** to **90**. 
+	将 **最小角度** 设置为 **-90**，**最大角度** 设置为 **90**。 
 
-1.	**Copy/Paste** the **Clamp Angle** node and connect it to the **Yaw**, then connect both to the **PlayerAimYaw** and **PlayerAimPitch** nodes. 
+1.	**复制并粘贴** **Clamp Angle** 节点，将其连接至 **Yaw**，然后将二者连接至 **PlayerAimYaw** 和**PlayerAimPitch** 节点。 
 
 	![](AimOffset54.png)
 
-	The logic is setup for getting/using the player's pitch/yaw with our Aim Offset, just a few more things to finish up. 
+	通过瞄准偏移获取/使用玩家俯仰/偏航的逻辑已设置完毕，只差几步就可以完成了。 
 
-## Finishing Up
+## 完成
 
-In this final section, we will change the default idle pose and update Character Blueprint in order to use the Aim Offset correctly.  
+在最后这部分，我们将更改默认闲置姿势，并更新 Character 蓝图，以便正确使用瞄准偏移。  
 
-1.	Continuing from the previous section, click the **MyBlueprint** tab then **Double-click Locomotion** to open the graph. 
+1.	继续上一部分的操作，单击 **MyBlueprint** 选项卡，然后**双击 Locomotion**，打开图表。 
 
 	![](AimOffset55.png)
 
-1.	**Double-click** the **Idle** state inside the **Locomotion** graph. 
+1.	**双击** **运动** 图表内的 **Idle** 状态。 
 
 	![](AimOffset56.png)
 
-1.	From the **Asset Browser**, drag in the **Idle_Rifle_Ironsights** and connect it to the **Result** pin. 
+1.	将 **Idle_Rifle_Ironsights** 从 **资源浏览器** 拖入图表，并将其连接至 **Result** 针。 
 
 	![](AimOffset57.png)
 
-	You can leave the **Play Idle_Rifle_Hip** node if you want to return to this later. 
+	您如果想稍后返回此处，可以先将 **Play Idle_Rifle_Hip** 保持原样。 
 
-1.	**Compile** and **Save** then close the Animation Blueprint. 
+1.	**编译** 并 **保存**，然后关闭动画蓝图。 
 
-1.	Inside the **Content Browser** under **Game/AnimStarterPack/Character**, open the **ASP_Character** Blueprint. 
+1.	在 **内容浏览器** 内的 **Game/AnimStarterPack/Character** 文件夹下，打开 **ASP_Character** 蓝图。 
 
 	![](AimOffset58.png)
 
-1.	On the **Defaults** tab, search for **Rotation**, then uncheck the **Use Controller Rotation Yaw** option. 
+1.	在 **Defaults** 选项卡上，搜索 **Rotation**，然后取消选中 **Use Controller Rotation Yaw** 选项。 
 
 	![](AimOffset59.png)
 
-	This will prevent the character from automatically turning to the location of the Controller's yaw. 
+	这样可以防止 Character 自动转向控制器的偏航位置。 
 
-1.	Click the **Graph** tab, then find the **Crouching** section and replace the **InputAction Crouch** node with a **C** Key Event. 
+1.	单击 **Graph** 选项卡，然后找到 **Crouching** 部分，用 **C** 键按键事件替换 **InputAction Crouch** 节点。 
 
 	![](AimOffset60.png)
 
-	This will remove the yellow warning sign on the compile button in the upper left corner of the window since the project does not have an Action Mapping for Crouch by default, we are going to use the **C** button to crouch (you can use any Key Event you wish for this). 
+	这样可以移除窗口左上角编译按钮上的黄色警告标志，因为默认情况下，本项目没有蹲伏的动作映射，所以我们将用 **C** 按钮实现蹲伏（您可以随意使用任何按键事件实现此操作）。 
 
-1.	**Compile** and **Save** then close the Blueprint and click **Play** from the Main Editor Toolbar to play the game. 
+1.	**编译** 并 **保存**，然后关闭蓝图 
 
-When you play in the editor, the character will now aim while stationary and will react to mouse movement, pointing in the direction of your mouse. There are some restrictions in place that prevent the character from turning and facing backwards while the mouse is behind them as well and while the character is jogging, moving the mouse also turns the character's torso in the direction you are pointing. 
+	[REGION:note]
+	在虚幻引擎 4.8 和更高版本中，您需要从场景中移除 **ThirdPersonCharacter**。在 **编辑器视窗** 的 **场景大纲视图** 内找到 **ThirdPersonCharacter**，单击 **ThirdPersonCharacter**，然后按删除，即可完成。 
 
-You can take this a few steps further by allowing the character to aim in a direction and play a shooting animation in that direction and (or) allow the character to play a shoot animation while moving in a direction or crouching by taking a look at the [](Engine\Animation\AnimHowTo\AdditiveAnimations) How To page to learn about blending multiple animations together. Or, you can take a look at [Skeletal Mesh Sockets](Engine\Content\Types\SkeletalMeshes\Sockets) for examples on how to attach an weapon to the character's hands now that they can aim. 
+	由于 **ThirdPersonCharacter** 会在场景内自动被占用，因此要完成此操作。 
+
+	从场景中移除 **ThirdPersonCharacter** 后，请务必 **保存** 项目。
+	[/REGION:note]
+
+1.	在主编辑器工具栏中单击 **开始**，开始玩游戏。 
+
+在编辑器中玩游戏时，Character 将在静止时瞄准，然后随着鼠标移动作出反应，瞄向鼠标的方向。其中存在一些限制，当鼠标位于 Character 身后时，Character 不能转身面向后方，同样，当 Character 处于慢跑状态时，其身体会随鼠标移动的方向转动。 
+
+您可以查看[**使用附加动画**](Engine\Animation\AnimHowTo\AdditiveAnimations)操作指南页面，了解如何将多个动画混合在一起，让 Character 朝一个方向瞄准并在该方向做射击动画，以及(or)让 Character 在沿一个方向移动或蹲伏的同时做射击动画，只需几个步骤即可解决这个问题。或者，您也可以查看[**骨骼网格体 Socket**](Engine\Content\Types\SkeletalMeshes\Sockets)，了解将武器放到 Character 手中让他们进行瞄准的示例。 
 
 
 

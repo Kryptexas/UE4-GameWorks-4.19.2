@@ -1,6 +1,6 @@
 Availability: Public
 Title:Connecting Nodes
-Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
+Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\Scripting
 Description:Examples of the ways to connect nodes together in Blueprints. 
 Related: Engine/Blueprints/BP_HowTo/PlacingNodes
 Related: Engine/Blueprints/BP_HowTo/BasicUsage
@@ -8,9 +8,9 @@ Related: Engine/Blueprints/UserGuide
 Related: Engine/Blueprints/UserGuide/CheatSheet
 version:4.9
 skilllevel:Beginner
-parent:Engine/Blueprints/BP_HowTo
-order:2
-type:howto
+parent:Engine/Blueprints/Scripting
+tags:Execution Flow
+order:5
 
 This page covers the various methods in which you can connect nodes together on your graphs in Blueprints. 
 

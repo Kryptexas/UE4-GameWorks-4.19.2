@@ -31,14 +31,14 @@ See [](Engine/Rendering/LightingAndShadows/LightTypes/Point) for more informatio
 
 **SkyLightComponents** capture the distant parts of your level (everything further than the SkyDistanceThreshold) and applies that to the scene as a light. That means the sky's appearance and its lighting / reflections will match. 
 
-See [](Engine/Rendering/LightingAndShadows/LightTypes/Spot) for more information. 
+See [](Engine/Rendering/LightingAndShadows/LightTypes/SkyLight) for more information.
 
 
 ## Spot Light Component
 
 A **SpotLightComponent** emits a directional light from a single point in a cone shape. There are settings for adjusting the Inner Cone Angle and Outer Cone Angle as well as the other types of light settings such as Intensity, Light Color and shadow settings. This type of light is excellent for a flash light due to its ability to define the inner/outer cone radius.
 
-See [](Engine/Rendering/LightingAndShadows/LightTypes/Skylight) for more information. 
+See [](Engine/Rendering/LightingAndShadows/LightTypes/Spot) for more information.
 
 
 

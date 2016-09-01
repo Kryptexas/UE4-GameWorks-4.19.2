@@ -83,6 +83,7 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	Proxy(InComponent->SceneProxy),
 	PrimitiveComponentId(InComponent->ComponentId),
 	ComponentLastRenderTime(&InComponent->LastRenderTime),
+	ComponentLastRenderTimeOnScreen(&InComponent->LastRenderTimeOnScreen),
 	IndirectLightingCacheAllocation(NULL),
 	CachedPlanarReflectionProxy(NULL),
 	CachedReflectionCaptureProxy(NULL),

@@ -163,7 +163,8 @@ The **Kill Z Volume** or "Kill-Brush" essentially destroys any Actor that enters
 
 ### Level Streaming Volumes
 
-**Level Streaming Volumes** are used to aid in the Level Streaming process. They provide for a simple way to encapsulate a level, as well as control when it streams in and out of memory, based on when a Player enters and exits the volume. 
+[EXCERPT:LSV]
+**Level Streaming Volumes** are used to aid in the [level streaming](Engine/LevelStreaming) process. They provide for a simple way to encapsulate a level, as well as control when it streams in and out of memory, based on when a Player enters and exits the volume. 
 
 You can adjust how a Level Streaming Volume handles level streaming by adjusting the properties from the **Details** panel, pictured below. 
 
@@ -176,6 +177,9 @@ You can adjust how a Level Streaming Volume handles level streaming by adjusting
 | **Disabled** | If true, the streaming volume is ignored by the streaming volume code. <br> Also used to either disable a Level Streaming Volume without disassociating it from the level, or to toggle the control of a level's streaming between Blueprints and Volume Streaming. |
 | **Streaming Usage** | Determines what the volume is used for, e.g. whether to control loading, loading and visibility, or just visibility (blocking on load). |
 
+[/EXCERPT]
+
+For more on Level Streaming Volumes, see [](Engine/LevelStreaming/StreamingVolumes).
 
 ### Cull Distance Volume
 

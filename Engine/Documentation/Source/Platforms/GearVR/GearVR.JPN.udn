@@ -1,84 +1,37 @@
-﻿Title:Samsung Gear VR ヘッドセットの必要条件
-Crumbs:%ROOT%, Platforms
+﻿INTSourceChangelist:2940199
+Title:Sumsung Gear VR の開発
 Description:Samsung Gear VR ヘッドセットを UE4 と使用する方法。
 Availability:Public
 Navigation:platform
 Platform:Gear VR
+SkillLevel:Intermediate
+Version:4.9
+prereq:Engine\Blueprints\GettingStarted
+Crumbs:%ROOT%, Platforms
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:GearVR
 
-![](Platforms\GearVR\QuickStart\GVR_Headset_00.png)
+## はじめよう
 
-[REGION:warning]
-Gear VR Headset の開発には **Unreal Engine 4.7.4** 以降が必要です。
-[/REGION]
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/GearVR")]
 
-## 概要 
+## GearVR のトピックス
 
-アンリアル エンジン (UE4) 4.7 のリリースにより、Samsung Gear VR ヘッドセット用仮想現実 (VR) プロジェクトのビルドが可能になりました。Samsung Galaxy Note 4 スマートフォンをイマーシブな (没入型) VR デバイスに変えてしまうことができます。 
-次のセクションでは、Samsung Galaxy Note 4 スマートフォンが Samsung Gear VR ヘッドセットと問題なく動作するための正しい設定方法について説明します。
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/GearVR")]
 
-## Samsung Gear VR ヘッドセット の必要条件 
+## トレーニング ストリーム
 
-UE4 での Gear VR 開発を開始する前に、以下の必要条件を満たしていることを確認する必要があります。満たしていない場合、Gear VR プロジェクトが Gear VR ヘッドセットで動作しないリスクが発生します。 
-
-* Samsung Galaxy Note 4 スマートフォンの充電用 USB ケーブルが開発用 PC の USB ポートに差し込まれていることを確認してください。 
-USB コードは、開発用 PC とスマートフォン間のデータ転送の手段であり、非常に重要です。
-
-* Gear VR ヘッドセットで使える Samsung Galaxy Note 4 スマートフォンの種類は限られています。 
-	[Oculus のウェブサイト](https://support.oculus.com/hc/en-us/articles/204113096-Samsung-Gear-VR-Innovator-Edition-Samsung-Galaxy-Note-4-Compatibility) で、Gear VR ヘッドセットで使用できるスマートフォン モデルの一覧を確認することができます。
-	Samsung Galaxy Note 4 スマートフォンを購入する際は、Gear VR ヘッドセットで使用できるモデルであることを十分確認してください。
-
-* [サムスンのウェブサイト] (http://www.samsung.com/us/support/downloads) からお持ちの Galaxy Note 4 用の USB ドライバをダウンロードし、インストールしてください。 
-
-* まだ準備できていない場合は、 [Microsoft Visual Studio 2013](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) をダウンロードしインストールしてください。
-
-* アンリアル エンジン バージョン **4.7.4** 以降を、[UE4 ランチャー](https://www.unrealengine.com/) あるいは [Github](https://www.unrealengine.com/ue4-on-github) からダウンロードしてください。 
-
-* **Engine\Extras\Android** から **Tegra Android Development Pack** をインストールします。  
-
-* Samsung Galaxy Note 4 スマートフォンで [Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html ) が有効になっているか確認してください。なっていない場合は、有効にしてください。 
-
-* PC からスマートフォンにデータをロードできるように、[USB Debugging] が有効になっていることを確認してください。
-
-	![](GVR_Dev_Options_Enabled.png)
-
-* スマートフォンを USB で開発用 PC に差し込んで、PC から RSA フィンガープリント キーを承諾してください。
-こうすることで、開発用 PC とスマートフォン間でデータの受け渡しができるようになります。
-このスマートフォンが挿し込まれている時は開発用 PC と常にインタラクションしていることを確認するために、 **[Always allow this computer]** を有効にしてください。 
-
-	![](GVR_USB_Debuging.png)
-
-* スマートフォンのデバイス ID と [Oculus](https://developer.oculus.com/tools/osig/) のウェブサイトを使って、Samsung Galaxy Note 4 スマートフォン用に **OSIG File** を生成 / ダウンロードします。
-スマートフォンの **デバイス ID** の取得方法が分からない場合は、[Oculus のウェブサイト](https://developer.oculus.com/tools/osig/) に詳しい方法が記載されています。
-
-	![](GVR_OSIG_Website.png)
-
-
-* OSIG ファイルをダウンロードしたら、「 **assets** 」というフォルダを作成し、その中に「 **OSIG** 」というファイルを置きます。 
-そしてそのフォルダを **Engine/Build/Android/Java** に置きます。 
-
-	[region:warning]
-	**この操作を行わないと、プロジェクトが Galaxy Note 4 スマートフォン上で動作できなくなります。**
-	[/region]
-
-	![](GVR_OSIG_File_Location.png)
-
-次のセクションに進む前に、[Gear VR の必要条件] セクションでリストされているすべての項目が完了しているか、しっかり確認してください。とても重要なことです。 
-手順を抜かしていると、プロジェクトが Gear VR ヘッドセットで動作しなくなります。 
-上記すべてが完了したら、Gear VR ヘッドセット開発のクイックスタートへ進んでください。
-
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Gear VR の開発
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
-		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
-		* [](Platforms/GearVR/Debugging "%Platforms/GearVR/BestPractices:description%")
-	[/PARAM]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+rNjDsNYvgfk
+[/PARAMLITERAL]
 [/OBJECT]
+

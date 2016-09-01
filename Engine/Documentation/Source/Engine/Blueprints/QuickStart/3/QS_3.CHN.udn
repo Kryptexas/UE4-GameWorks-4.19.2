@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:3. Convert Your Actor to a Blueprint Class
+﻿INTSourceChangelist:2735872
+Availability:Public
+Title:3.将 Actor 转换为蓝图类
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:Make your launchpad reusable and scriptable by converting it to a Blueprint Class
-
+Description:将 launchpad 转换为蓝图类，以便对其重复利用并编写脚本。
+version:4.9
+parent:Engine/Blueprints/QuickStart
+order:3
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,21 +27,21 @@ Description:Make your launchpad reusable and scriptable by converting it to a Bl
 %Steps%
 
 ---
-Making changes inside the Blueprint means that each time you make a new launchpad, it will have the look and feel you have created in the Blueprint Editor. While you could duplicate your LaunchPad
-Actor around the level, any changes you make on a particular launchpad would only affect that one copy. 
+在蓝图中进行修改意味着每次创建新 launchpad 时它都将拥有已经在 **蓝图编辑器** 中创建的外观和风格。还可以在关卡中复制 LaunchPad Actor，
+特定 launchpad 上进行的变更均会在副本上反映出来。 
 
-1. In the **Details** panel, click on the **Blueprint/Add Script** button.
+1. 在 **细节** 面板中点击 **蓝图/添加脚本** 按钮。
 
 	![](BPButton.png)
 
-1. Expand the **SideScrollerBP** folder, then select the **Blueprints** folder.
-1. At this point, you could rename your Blueprint, or leave it as the default **LaunchPad_Blueprint**.
-1. Click on **Create Blueprint**. 
+1. 打开 **横卷轴蓝图** 文件夹，然后选择 **蓝图** 文件夹。
+1. 此时便可以重命名蓝图，或保留默认名称 **LaunchPad_Blueprint**。
+1. 点击 **创建蓝图**。 
 
 	![](CreateBlueprint.png)
 
-Your Blueprint is now visible in the **Content Browser**. Right now, you could drag and drop from the **Content Browser** into the level to create lots of copies of your platform mesh and trigger, but
-there will not be any behavior on it yet. In the next step, you will start setting up the graph nodes inside of your Blueprint to launch your Character when it crosses the launchpad.
+蓝图便会出现在 **内容浏览器** 中。现在可从 **内容浏览器** 中将蓝图拖放进关卡内，创建许多平台网格物体和触发器的副本，
+但它们尚未添加任何行为。下一步将开始在蓝图中设置图表节点，在角色经过 launchpad 时将其发射。
 
 ![](LaunchPadBP_CB.png)
 

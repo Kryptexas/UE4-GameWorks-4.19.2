@@ -18,7 +18,7 @@ void FAutomationControllerManager::RequestAvailableWorkers( const FGuid& Session
 	++ExecutionCount;
 	DeviceClusterManager.Reset();
 
-	ControllerResetDelegate.ExecuteIfBound();
+	ControllerResetDelegate.Broadcast();
 
 	// Don't allow reports to be exported
 	bTestResultsAvailable = false;
@@ -190,7 +190,7 @@ void FAutomationControllerManager::ProcessAvailableTasks()
 				{
 					ProcessResults();
 					//Notify the graphical layout we are done processing results.
-					TestsCompleteDelegate.ExecuteIfBound();
+					TestsCompleteDelegate.Broadcast();
 				}
 			}
 		}
@@ -333,17 +333,17 @@ void FAutomationControllerManager::Startup()
 void FAutomationControllerManager::Shutdown()
 {
 	MessageEndpoint.Reset();
-	ShutdownDelegate.ExecuteIfBound();
+	ShutdownDelegate.Broadcast();
 	RemoveCallbacks();
 }
 
 
 void FAutomationControllerManager::RemoveCallbacks()
 {
-	ShutdownDelegate.Unbind();
-	TestsAvailableDelegate.Unbind();
-	TestsRefreshedDelegate.Unbind();
-	TestsCompleteDelegate.Unbind();
+	ShutdownDelegate.Clear();
+	TestsAvailableDelegate.Clear();
+	TestsRefreshedDelegate.Clear();
+	TestsCompleteDelegate.Clear();
 }
 
 
@@ -387,7 +387,7 @@ void FAutomationControllerManager::SetTestNames( const FMessageAddress& Automati
 	// If we have received all the responses we expect to
 	if (RefreshTestResponses == DeviceClusterManager.GetNumClusters())
 	{
-		TestsRefreshedDelegate.ExecuteIfBound();
+		TestsRefreshedDelegate.Broadcast();
 
 		// Update the tests with tracking details
 		ReportManager.TrackHistory(bTrackHistory, NumberOfHistoryItemsTracked);
@@ -457,7 +457,7 @@ void FAutomationControllerManager::SetControllerStatus( EAutomationControllerMod
 	{
 		// Inform the UI if the test state has changed
 		AutomationTestState = InAutomationTestState;
-		TestsAvailableDelegate.ExecuteIfBound(AutomationTestState);
+		TestsAvailableDelegate.Broadcast(AutomationTestState);
 	}
 }
 
@@ -614,6 +614,11 @@ void FAutomationControllerManager::HandleReceivedScreenShot( const FAutomationWo
 	// Forward the screen shot on to listeners
 	FAutomationWorkerScreenImage* ImageMessage = new FAutomationWorkerScreenImage( Message );
 	MessageEndpoint->Publish(ImageMessage, EMessageScope::Network);
+
+	// Save the screen shot locally (assuming that the controller manager is running on PC/Mac)
+	const bool bTree = true;
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(Message.ScreenShotName), bTree);
+	FFileHelper::SaveArrayToFile(Message.ScreenImage, *Message.ScreenShotName);
 }
 
 void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage( const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context )

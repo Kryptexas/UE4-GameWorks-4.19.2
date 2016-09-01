@@ -1,20 +1,20 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Documentation Process & Guidelines
-Crumbs:
-Description:Style and syntax guidelines for writing documentation.
+﻿INTSourceChangelist:2330523
+Availability: Docs
+Title: 文档处理及引导
+Crumbs: 
+Description: 文档的风格和语法说明
 
-For Unreal Engine 4 (UE4) documentation, custom extended markdown syntax is used and the files are stored in P4 with the engine. Hopefully, this means it will be easier to jump in and add/update documentation.
+虚幻引擎 4 的文档采用了自定义扩展的 markdown 语法，并将文件和引擎一起保存在 P4 中，这样做希望能够比较方便的为文档进行添加/更新的操作。
 
-The basic workflow when creating or editing documentation is:
+创建和编辑文档的基本工作流程是：
 
-* Edit/Add a markdown file (`.udn`)
-* Preview the page as HTML
-* Repeat until you are happy with it and there are no errors
-* Check-in the markdown file (use the `#doc` P4 tag for major changes/additions so we get alerted for tracking purposes)
+* 编辑/添加一个 markdown 的文件(`.udn`)
+* 以 HTML 的格式预览页面
+* 重复以上步骤，直到没有错误
+* 上传 markdown 文件（重大更新改动请使用 #doc 的 P4 标记以便相关人员得到通知并能适当的跟进后续流程）
 
 
-## Markdown Files
+## Markdown 文件
 
 The source markdown files are stored in P4 (at `//depot/UE4/Engine/Documentation/Source/`) and available directly in the UE4 solution in Visual Studio under the Documentation project. These files all use the .udn file extension so they are easily identified. They also contain the language code in the name, so all English markdown files are named `*.INT.udn`, Korean files are named `*.KOR.udn`, etc. You will only ever add or edit `*.INT.udn` files. The other languages are handled by the localization teams.
 

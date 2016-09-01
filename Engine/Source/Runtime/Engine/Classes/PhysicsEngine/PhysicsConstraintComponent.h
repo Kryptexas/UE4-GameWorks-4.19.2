@@ -3,9 +3,6 @@
 #include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsConstraintComponent.generated.h"
 
-/** Dynamic delegate to use by components that want to route the broken-event into blueprints */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FConstraintBrokenSignature, int32, ConstraintIndex);
-
 /**
  *	This is effectively a joint that allows you to connect 2 rigid bodies together. You can create different types of joints using the various parameters of this component.
  */
@@ -281,5 +278,9 @@ protected:
 
 	/** Returns the scale of the constraint as it will be passed into the ConstraintInstance*/
 	float GetConstraintScale() const;
+
+private:
+	/** Wrapper that calls our constraint broken delegate */
+	void OnConstraintBrokenWrapper(int32 ConstraintIndex);
 };
 

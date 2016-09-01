@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2643533
+﻿INTSourceChangelist:2731691
 Availability: Public
 title:WorldPositionOffset
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:WorldPositionOffset 카테고리 아래 나열된 머티리얼 함수에 대한 설명과 예제입니다.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -23,8 +24,8 @@ WorldPositionOffset 카테고리 아래 모든 함수 목록은 다음과 같습
 |[REGION:tablesection]입력[/REGION] ||
 | **WindIntensity (Scalar)** | 바람 세기 (스칼라) - 메시에 대한 바람의 영향력을 조절합니다. |
 | **WindWeight (Scalar)** | 바람 가중치 (스칼라) - 메시의 버텍스가 바람에 얼마만큼 반응할지를 조절하는 회색조 맵입니다. |
+| **WindSpeed (Scalar)** | 풍속 (스칼라) - 바람의 속도를 조절합니다. |
 | **AdditionalWPO (Vector3)** | 부가 WPO (벡터3) - 부가적인 월드 포지션 오프셋 망이나 함수를 받습니다. |
-
 
 ![SimpleGrassWind](SimpleGrassWind.png)
 
@@ -40,14 +41,24 @@ WorldPositionOffset 카테고리 아래 모든 함수 목록은 다음과 같습
 | -------- | -------- |
 |[REGION:tablesection]입력[/REGION] ||
 | **WidthBase (Scalar)** | 베이스 폭 (스칼라) - 단일 폴리곤 오브젝트의 베이스(바닥) 폭을 설정합니다. |
-| **WorldPosition (Vector3)** | 월드 포지션 (벡터3) - 기존 월드 포지션 오프셋 함수 아무거나 받아 이 함수를 거기에 더합니다. |
 | **WidthTip (Scalar)** | 팁 폭 (스칼라) - 폴리곤 오브젝트의 팁(끝부분) 폭을 설정합니다. |
-| **TexCoord (Vector2)** | 텍스처 좌표 (벡터2) - 스플라인 확장시 사용할 텍스처 좌표를 추가합니다. 기본값은 텍스처 좌표 0 입니다. |
+| **WorldPosition (Vector3)** | 월드 포지션 (벡터3) - 기존 월드 포지션 오프셋 함수 아무거나 받아 이 함수를 거기에 더합니다. |
+| **UVs for Projection (Vector2)** | 투사용 UV (벡터2) - 스플라인 확장시 사용할 텍스처 좌표를 추가합니다. |
+| **UVs for Thickness (Vector2)** | 두께용 UV (벡터2) - U 에서 투사하는 경우 두께 매퍼로 사용할 텍스처 좌표입니다. 두께 블렌딩에 지정된 UV 인덱스의 Y 컴포넌트를 사용합니다. |
+| **UVs for texturing (Vector2)** | 텍스처용 UV (벡터2) - 텍스처용 UV 채널입니다. 3D 시차 보정을 하고자 하는 UV 채널과 같아야 합니다. |
 | **Expand U or V UV Channel (StaticBool)** | U 또는 V UV 채널 확장 (스태틱 불) - 메시를 U 또는 V 어느 방향으로 확장할지 설정합니다. 기본값은 True, 즉 U 방향입니다. |
+| **DriveNormalZ (Boolean)** | 노멀 Z 구동 (불리언) - DeriveNormalZ 를 사용하여 완벽히 둥근 노멀 맵을 만듭니다. |
+| **AngleCorrectedNormal (Boolean)** | 각도 보정 노멀 (불리언) - DerivedNormalZ 를 사용하여 완벽히 둥근 노멀 맵을 만듭니다. 중앙 테셀레이션 버텍스를 요하는데, 없으면 전체 면의 Z 값이 0 이 되어 라이팅이 거칠어집니다. |
+| **AdditionalNormal (Vector3)** | 부가 노멀 (벡터3) - 노멀맵 트랜스폼에 텍스처 노멀을 추가합니다. |
+| **FlattenPixelNormal (Boolean)** |  |
+| **UVs For NormalShading (Vector2)** |  |
 |[REGION:tablesection]출력[/REGION] ||
-| **WorldPositionOffset** | 월드 포지션 오프셋 - 다른 월드 포지션 오프셋 계산에 추가할 수 있는 출력입니다. |
 | **Normal** | 노멀 - 조정된 지오메트리의 외향 노멀입니다. |
+| **WorldPositionOffset** | 월드 포지션 오프셋 - 다른 월드 포지션 오프셋 계산에 추가할 수 있는 출력입니다. |
+| **UVs with Parallax** |  |
 
+
+![](SplineThicken.png)
 
 ### CameraOffset
 
@@ -57,8 +68,13 @@ WorldPositionOffset 카테고리 아래 모든 함수 목록은 다음과 같습
 | -------- | -------- |
 |[REGION:tablesection]입력[/REGION] ||
 | **OffsetAmount (Scalar)** | 오프셋 양 (스칼라) - 카메라 방향으로 모델을 오프셋시킬 음수 또는 양수를 입력합니다. 참고로 양수값은 모델을 카메라 가까이로 이동시키므로 메시가 모델의 바운딩 박스를 크게 넘어서는 경우 렌더링 오류가 생깁니다. |
-| **ObjectCenter (Vector3)** | 오브젝트 중심 (벡터3) - 오프셋 벡터 생성시 사용할 모델의 중심점을 입력합니다. 기본값 = 오브젝트 월드 포지션. |
+| **Clampe Padding (Scalar)** | 클램프 적용 패딩 - 클램프 적용 버전 오프셋 값이 카메라에 잘려들어가지 않도록 하기 위한 패딩 양입니다. |
+| **WorldPosition (Vector3)** | 월드 포지션 (벡터3) - 모델의 버텍스 월드 포지션을 입력합니다. 기본값 = 월드 포지션입니다. |
+|[REGION:tablesection]출력[/REGION] ||
+| **Clamped Camera Offset** | 클램프 적용된 카메라 오프셋 - 카메라의 너무 이른 상호교차 방지를 위해 카메라 오프셋에 제한을 가합니다. 패딩 양을 조정하여 카메라 상호교차 방지를 위해 필요한 공간을 변경할 수 있습니다. |
+| **Camera Offset** | 카메라 오프셋 - 다른 월드 포지션 오프셋 코드에 이 값을 추가하거나, 월드 포지션 오프셋 마스터 머티리얼에 직접 값을 입력하여 메시에 오프셋을 적용합니다. |
 
+![](CameraOffset.png)
 
 ### ObjectPivotPoint
 

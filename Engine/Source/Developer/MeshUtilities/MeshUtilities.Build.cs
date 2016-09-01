@@ -35,6 +35,7 @@ public class MeshUtilities : ModuleRules
         AddEngineThirdPartyPrivateStaticDependencies(Target, "ForsythTriOptimizer");
         AddEngineThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");
         AddEngineThirdPartyPrivateStaticDependencies(Target, "MikkTSpace");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "nvTessLib");
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 		{

@@ -14,8 +14,6 @@ public class Engine : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"Developer/DerivedDataCache/Public",
-				"Runtime/Online/OnlineSubsystem/Public",
-				"Runtime/Online/OnlineSubsystemUtils/Public",
                 "Runtime/SynthBenchmark/Public",
                 "Runtime/Engine/Private",
 			}
@@ -23,7 +21,6 @@ public class Engine : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {				
-				"OnlineSubsystem",
 				"TargetPlatform",
 				"ImageWrapper",
 				"HeadMountedDisplay",
@@ -31,11 +28,9 @@ public class Engine : ModuleRules
 				"NetworkReplayStreaming",
 				"MovieSceneCapture",
 				"AutomationWorker",
-                "Analytics",
 				"MovieSceneCapture",
 				"DesktopPlatform",
-				"Analytics"
-			}
+            }
 		);
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
@@ -76,7 +71,7 @@ public class Engine : ModuleRules
 				"SynthBenchmark",
                 "AIModule",
 				"DatabaseSupport",
-                		"PacketHandler",
+                "PacketHandler",
 				"HardwareSurvey",
             }
         );
@@ -100,14 +95,22 @@ public class Engine : ModuleRules
 				"Landscape",
                 "UMG",
 				"Projects",
-				"Niagara",
                 "Internationalization",
                 "MaterialShaderQualitySettings",
                 "CinematicCamera",
+				"Analytics",
+				"AnalyticsET",
             }
-        );
+		);
 
-		bool bVariadicTemplatesSupported = true;
+        // to prevent "causes WARNING: Non-editor build cannot depend on non-redistributable modules."
+        if (Target.Type == TargetRules.TargetType.Editor)
+        {
+            // for now we depend on this 
+            PrivateDependencyModuleNames.Add("RawMesh");
+        }
+
+        bool bVariadicTemplatesSupported = true;
 		if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
 			// Use reflection to allow type not to exist if console code is not present
@@ -148,7 +151,6 @@ public class Engine : ModuleRules
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
         CircularlyReferencedDependentModules.Add("UMG");
-        CircularlyReferencedDependentModules.Add("Niagara");
         CircularlyReferencedDependentModules.Add("MaterialShaderQualitySettings");
         CircularlyReferencedDependentModules.Add("CinematicCamera");
 
@@ -249,6 +251,7 @@ public class Engine : ModuleRules
 						"LinuxTargetPlatform",
 						"LinuxNoEditorTargetPlatform",
 						"LinuxServerTargetPlatform",
+						"LinuxClientTargetPlatform",
 						"AllDesktopTargetPlatform",
 					}
 				);
@@ -257,13 +260,9 @@ public class Engine : ModuleRules
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
-				"Analytics",
-				"AnalyticsET",
 				"NetworkReplayStreaming",
 				"NullNetworkReplayStreaming",
 				"HttpNetworkReplayStreaming",
-				"OnlineSubsystem", 
-				"OnlineSubsystemUtils",
 				"Advertising"
 			}
 		);
@@ -330,7 +329,8 @@ public class Engine : ModuleRules
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile",
-				"libOpus"
+				"libOpus",
+			    "OpenSubdiv"
 				);
 
 			if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
@@ -403,5 +403,7 @@ public class Engine : ModuleRules
 		{
 			RuntimeDependencies.Add("$(EngineDir)/Content/Stats/...", StagedFileType.UFS);
 		}
-	}
+
+        DynamicallyLoadedModuleNames.Add("Niagara");
+    }
 }

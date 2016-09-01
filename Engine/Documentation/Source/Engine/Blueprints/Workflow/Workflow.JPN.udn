@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:3042570
+Availability:Public
+Title:Blueprint Workflow ツール
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description:コメント付けおよびブレークポイントなどのツールによって、コードの流れを追って、同じシステムで作業をするチームメンバーや自分用にメモを残すことができます。
+version:4.9
+parent:Engine/Blueprints
+order:3
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/Workflow:title%](bp_workflow_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Workflow:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Workflow:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Workflow]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/Workflow:title%](bp_workflow_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Workflow:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Workflow:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Workflow]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+ブループリントで作業する際に、グラフへのコメント付け、プロジェクト内のすべてのブループリント対象の検索、ブレークポイントによるシステムのデバッグという主要ツールを使用することができます。
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Workflow")]
+
+

@@ -1,18 +1,22 @@
-﻿INTSourceChangelist:2617239
+﻿INTSourceChangelist:2816279
 Availability: Public
 Title:3D 위젯 생성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:2D 스크린 스페이스가 아닌 게임 월드에 나타나는 대화식 3D 메뉴를 만듭니다.
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide
-Related: Engine/Blueprints
+Version: 4.10
+SkillLevel: Intermediate
+parent:Engine/Editor
+order:1
+checkpoint: editorqs
 
 [REGION:warning]
 이 기능은 현재 개발중인 실험단계 기능입니다. 일부 기능은 예상대로 작동하지 않거나 앞으로의 버전에서 바뀔 수 있습니다.
 [/REGION]
 
----
-여기서는 게임 월드에 나타나 애라와 같이 상호작용 가능한 메뉴를 만들어 보겠습니다.
+대부분의 UI 요소는 2D 스크린 스페이스에 렌더링 가능하나, 무언가를 화면 위에 겹쳐놓는 방식으로 표시하기 보다는 게임 월드 안에 표시하고픈 경우가 있을 수 있습니다.
+플레이어가 조작해야 하는 컴퓨터 단말기나 키패드가 될 수도 있고, 적이나 플레이어 생명력 바 표시일 수도 있으며, 심지어 3D 스페이스의 게임 월드에 표시할 메뉴가 될 수도 있습니다.
+
+여기서는 3D 위젯을 만드는 프로세스를 안내해 드리도록 하겠습니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -22,221 +26,27 @@ Related: Engine/Blueprints
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-lCJkWsMsK84
+zrYjngjYrEI
 [/PARAMLITERAL]
 [/OBJECT]
 
-[EXCERPT:ProjectStart]
-[OBJECT:TopicList]
+_이 안내가 끝날 즈음이면 화면에 겹쳐놓이는 것이 아닌, 3D 게임 월드 안에 나타나는 메뉴가 생길 것입니다._
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
 	[PARAM:title]
-		프로젝트 생성하기
+		단계
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
-[/OBJECT]
-
-여기서는 프로젝트를 셋업하겠습니다.
-
-1. **언리얼 프로젝트 브라우저** 창에서 **새 프로젝트** 를 만든 다음 **블루프린트 일인칭** 템플릿을 사용합니다.
-
-1. **시작용 콘텐츠 포함** 되어 있는지 확인합니다.
-
-1. 프로젝트 이름을 짓습니다.
-
-1. 위 내용을 입력하고 **프로젝트 생성** 을 클릭하여 새 프로젝트를 만듭니다.
-[/EXCERPT:ProjectStart]
-
-[OBJECT:TopicList]
-	[PARAM:title]
-		표시할 메뉴 생성
-	[/PARAM]
-	[PARAM:description]
+	[PARAM:links]
+	* [](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup)
+	* [](Engine\UMG\HowTo\Create3DWidgets\ActorSetup)
 	[/PARAM]
 [/OBJECT]
 
-여기서는 게임 월드에 표시하고자 하는 메인 메뉴를 만들어 보겠습니다.
-
-1.  **콘텐츠 브라우저** 안에서 **Game** 아래 **우클릭** 한 다음 새 폴더를 만들고 **UMG** 라고 지어줍니다.
-
-1.	**UMG** 폴더 안에서 **우클릭** 한 다음 **유저 인터페이스** - **위젯 블루프린트** 를 선택합니다.
-
-	![](UMG_3D_1.png)
-
-1.	**위젯 블루프린트** 이름을 **MainMenu** 라 지어준 다음 **모두 저장** 버튼을 클릭합니다.
-
-	![](UMG_3D_2.png)
-
-	뜨는 팝업 메뉴에서 **선택 저장** 을 선택하여 저장 프로세스를 마무리합니다.
-
-1.	**위젯 블루프린트** 에 **더블클릭** 하여 UMG 에디터에서 엽니다.
-	
-	![](UMG_3D_3.png)(w:720)
-	
-1.	**계층구조** 창에서 **CanvasPanel** 을 지운 다음 **팔레트** 창에서 (**패널** 섹션 아래 있는) **Vertical Box** 를 추가합니다.
-
-	![](UMG_3D_4.png)
-
-	위와 같이 **Vertical Box** 를 끌어 **Root** 에 놓으면 됩니다.
-
-1.	**팔레트** 창 **일반** 아래, **Text** 위젯을 끌어 **Vertical Box** 위에 놓습니다.
-
-	![](UMG_3D_5.png)
-
-1.	**계층구조** 창에서 **Text** 위젯을 클릭한 다음 **디테일** 패널에서 **채우기** 로 설정하고 가로 세로 **중앙** 정렬 시킵니다.
-
-	![](UMG_3D_6.png)
-
-1.	**팔레트** 창에서 **일반** 아래 **Button** 위젯을 끌어 **Vertical Box** 에 놓습니다.
-
-	![](UMG_3D_7.png)
-
-1.	**계층구조** 창에서 **Button** 위젯을 클릭한 다음 **디테일** 패널에서 **채우기** 로 설정합니다.
-
-	![](UMG_3D_8.png)
-
-1.	**Button** 에 대한 **디테일** 패널에서 **Style** - **Normal** - **Tint** 를 원하는 색으로 설정합니다 (저희는 검정으로 설정했습니다).
-
-1.	또 **Hovered** 를 펼친 다음 **Tint** 색을 위 **Normal** 에 사용한 것 이외의 색으로 설정합니다.
-
-	![](UMG_3D_8b.png)
-
-	그러면 버튼은 보통 상태일 때 **Normal** 에 설정한 색으로, 마우스 커서를 올렸을 때 **Hovered** 에 설정한 색으로 나타납니다.
-	
-1.	**계층구조** 창에서 **Text Block** 을 클릭한 다음 **Ctrl + C** 를 눌러 복사하고서 **Vertical Box** 를 클릭하고 **Ctrl + V** 를 눌러 붙여넣습니다.
-
-1.	네 개의 **텍스트 블록** 이 생기도록 위 단계를 두 번 더 반복합니다.
-
-	![](UMG_3D_9.png)
-
-1.	**계층구조** 창에서 **Button** 을 클릭한 다음 **Ctrl + C** 를 눌러 복사하고, **Vertical Box** 를 클릭한 다음 **Ctrl + V** 를 눌러 붙여넣습니다.
-
-1.	버튼이 3 개가 되도록 위 단계를 반복합니다.
-
-	![](UMG_3D_10.png)
-
-1.	**Text Block** 을 끌어 **계층구조** 내 각 **Button** 에 놓습니다.
-
-	![](UMG_3D_11.png)
-
-1.	**계층구조** 내 각 **Button** 위젯에 대해, 각각에 대한 **디테일** 패널에서 **Size** 를 **채우기** 로 설정합니다.
-
-	![](UMG_3D_12.png)
-
-1.	**계층구조** 내 각 **Text Block** 위젯에 대해, 각각에 대한 **디테일** 패널에서 가로 세로 **중앙** 정렬로 설정합니다.
-
-	![](UMG_3D_13.png)
-
-1.	레이아웃이 아래와 같은 모습일 것입니다.
-
-	![](UMG_3D_14.png)
-
-1.	**계층구조** 창에서 맨 위 **Text Block** 을 선택한 다음 **디테일** 패널에서 **Content** 아래 **Text** 를 원하는 대로 설정합니다.
-
-1.	또 **Text Block** 의 **디테일** 패널에서 **Appearance** 아래 **Font** 옵션을 통해 폰트 크기를 변경할 수 있습니다.
-
-	![](UMG_3D_15.png)
-
-	여기서 메뉴에 제목을 **MY GAME TITLE**, 크기를 **102** 로 설정했습니다.
-
-1.	버튼에 나타나는 각 텍스트에 대해, Text 를 원하는 메뉴 옵션으로 변경합니다 (크기도 설정해 줍니다).
-
-	![](UMG_3D_16.png)
-
-	**LOAD GAME**, **NEW GAME**, **QUIT GAME** 에 폰트 크기는 **56** 으로 하여 완성된 메뉴 모습입니다. 
-
-1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
-
-이 튜토리얼에서는 버튼에 함수성을 연결해 주지는 않겠으나, 이렇게만 해도 3D 월드 스페이스에서 조작 가능한 메뉴가 나옵니다.
-
-[OBJECT:TopicList]
-	[PARAM:title]
-		3D 액터 만들어 게임 월드에 추가하기
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-[/OBJECT]
-
-이번에는 방금 만든 UI 메뉴가 포함되어 게임에 표시해 주는 액터를 만들겠습니다.
-
-1.  **콘텐츠 브라우저** 에서 **우클릭** 한 다음 뜨는 맥락 메뉴에서 **블루프린트** 를 선택하여 새로 만듭니다.
-
-	![](UMG_3D_17.png)
-
-1.  뜨는 팝업 창에서 **액터** 를 선택하고, 이름을 지은 다음 블루프린트를 저장합니다.
-
-	![](UMG_3D_18.png)
-
-1.  새 블루프린트에 **더블클릭** 하여 에디터에서 엽니다. **컴포넌트** 탭에서 열릴 것입니다.
-
-	![](UMG_3D_19.png)(w:720)
-
-	**컴포넌트** 탭에서 열리지 않는 경우, **컴포넌트** 탭을 클릭하여 이동합니다.
-
-1.	**컴포넌트 추가** 버튼을 클릭한 다음, **Widget** 옵션을 찾아 선택합니다.
-
-	![](UMG_3D_20.png)
-
-1.	컴포넌트에 (MainMenu 같은) 이름을 짓고 **컴파일**, **저장** 버튼을 클릭합니다.
-
-1.	새로운 위젯 컴포넌트의 **디테일** 패널에서 UI 섹션으로 내려가 **Widget Class** 아래 **MainMenu** 위젯 블루프린트를 선택합니다.
-
-	![](UMG_3D_21.png)
-
-1.	**Draw Size** 세팅을 조절하여 위젯 크기를 키울 수 있습니다.
-
-	![](UMG_3D_22.png)(w:740)
-
-1.	**Max Interaction** 옵션을 통해 플레이어가 위젯을 만질 수 있는 거리를 결정할 수 있습니다.
-
-	![](UMG_3D_23.png)
-
-1.	**Rendering** 섹션 아래 추가 렌더링 옵션이 있습니다 (아래에서는 컴포넌트에 Is Two Sided 옵션을 체크하여 뒷쪽에서도 보이도록 했습니다).
-
-	![](UMG_3D_24.png)
-
-1.	**그래프** 탭을 클릭하여 **그래프 에디터** 로 이동합니다.
-
-	![](UMG_3D_25.png)
-
-1.	그래프에 **우클릭** 한 다음 **Event Begin Play** 노드를 검색하여 추가합니다.
-
-	![](UMG_3D_26.png)
-
-1.	그래프에 **우클릭** 한 다음 **Get Player Controller** 노드를 검색하여 추가합니다.
-
-	![](UMG_3D_27.png)
-
-1.	그래프에 **우클릭** 한 다음 **Set Input Mode Game and UI** 노드를 검색하여 추가합니다.
-
-	![](UMG_3D_28.png)
-
-1.	각 노드를 아래와 같이 연결한 다음 **컴파일**, **저장** 후 블루프린트를 닫습니다.
-
-	![](UMG_3D_29.png)
-
-	**Set Input Mode Game and UI** 노드의 옵션은 그대로 놔둬도 됩니다.
-
-1.	**콘텐츠 브라우저** 에서 블루프린트 액터를 끌어 레벨에 놓습니다.
-
-	![](UMG_3D_30.png)
-
-	**이동 (W)**, **회전 (E)**, **스케일 (R)** 키를 사용하여 월드에 UI 위치를 잡습니다.
-
-1.	**플레이** 버튼을 눌러 에디터에서 플레이해 보면, 일정 범위 안에서 메뉴 조작이 가능할 것입니다.
-
-이 예제에서는 월드에 표시되어 플레이어가 조작 가능한 3D 메뉴를 만들어 봤습니다. 이 예제에서는 플레이어 캐릭터가 월드를 뛰어다니지만, "Main Menu" 레벨을 만들고 다른 캐릭터 블루프린트를 사용하여 플레이어의 이동 능력을 제거하거나, 그냥 이동을 비활성화시킬 수도 있습니다. 거기서 메인 메뉴 화면에 나타나도록 했으면 하는 요소를 (플레이어 캐릭터의 커스텀 플레이어 모델이든, 기타 액터든, 파티클 이펙트든, 라이트든) 추가시키면 됩니다. 3D 공간을 어떻게 장식할 것인지는 전적으로 여러분께 달려 있습니다.
-
----
-
-
-
-
-
-
-
-
-
-
-
-
-
+[REGION:call_to_action]
+	[클릭하면 시작합니다!](Engine\UMG\HowTo\Create3DWidgets\WidgetSetup "%Engine\UMG\HowTo\Create3DWidgets\WidgetSetup:title%")
+[/REGION]

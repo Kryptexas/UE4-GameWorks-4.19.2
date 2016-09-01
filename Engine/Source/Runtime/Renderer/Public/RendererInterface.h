@@ -47,6 +47,7 @@ public:
 		, bForceSeparateTargetAndShaderResource(false)
 		, DebugName(TEXT("UnknownTexture"))
 		, AutoWritable(true)
+		, bCreateRenderTargetWriteMask(false)
 	{
 		check(!IsValid());
 	}
@@ -63,7 +64,8 @@ public:
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
 		uint16 InNumMips = 1,
-		bool InAutowritable = true)
+		bool InAutowritable = true,
+		bool InCreateRTWriteMask = false)
 	{
 		check(InExtent.X);
 		check(InExtent.Y);
@@ -82,6 +84,7 @@ public:
 		NewDesc.bForceSeparateTargetAndShaderResource = bInForceSeparateTargetAndShaderResource;
 		NewDesc.DebugName = TEXT("UnknownTexture2D");
 		NewDesc.AutoWritable = InAutowritable;
+		NewDesc.bCreateRenderTargetWriteMask = InCreateRTWriteMask;
 		check(NewDesc.Is2DTexture());
 		return NewDesc;
 	}
@@ -328,6 +331,8 @@ public:
 	const TCHAR *DebugName;
 	/** automatically set to writable via barrier during */
 	bool AutoWritable;
+	/** create render target write mask (supported only on specific platforms) */
+	bool bCreateRenderTargetWriteMask;
 };
 
 
@@ -373,6 +378,9 @@ struct FSceneRenderTargetItem
 	FUnorderedAccessViewRHIRef UAV;
 	/** only created if requested through the flag  */
 	TArray< FShaderResourceViewRHIRef > MipSRVs;
+
+	FShaderResourceViewRHIRef RTWriteMaskBufferRHI_SRV;
+	FStructuredBufferRHIRef RTWriteMaskDataBufferRHI;
 };
 
 /**

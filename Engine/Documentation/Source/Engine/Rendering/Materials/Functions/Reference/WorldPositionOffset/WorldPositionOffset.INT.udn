@@ -47,7 +47,7 @@ The **SplineThicken** function serves as a way to make very thin polygons look t
 | **UVs for texturing (Vector2)** | This is the UV channel for texturing. This must be the same UV channel you want to have the 3D-parallax correction. |
 | **Expand U or V UV Channel (StaticBool)** | Sets whether to expand the mesh in U or V. Defaults to *true*, which is U.|
 | **DriveNormalZ (Boolean)** | This will use DeriveNormalZ to make a perfectly round normal map. |
-| **AngleCorrectedNormal (Boolean)** | Uses DerivedNormalZ to make perfectly round normal map. Requires a center tesselation vertex otherwise the vale of Z will be 0 for the entire face, causing harsh lighting. |
+| **AngleCorrectedNormal (Boolean)** | Uses DerivedNormalZ to make perfectly round normal map. Requires a center tesselation vertex otherwise the value of Z will be 0 for the entire face, causing harsh lighting. |
 | **AdditionalNormal (Vector3)** | This will add a texture normal to the normalmap transform. |
 | **FlattenPixelNormal (Boolean)** |  |
 | **UVs For NormalShading (Vector2)** |  |
@@ -67,7 +67,7 @@ The **CameraOffset** function is great to assist with depth sorting, as it allow
 | -------- | -------- |
 |[REGION:tablesection]Inputs[/REGION] ||
 | **OffsetAmount (Scalar)** | Enter a negative or positive number to offset your model in the direction of the camera. Note that positive values will bring the model closer to the camera and cause rendering errors if the mesh greatly exceeds the models bounding box. |
-| **Clampe Padding (Scalar)** | The amount of padding to prevent the clamped version of the offset value from clipping into the camera.  |
+| **Clamp Padding (Scalar)** | The amount of padding to prevent the clamped version of the offset value from clipping into the camera.  |
 | **WorldPosition (Vector3)** | Enter the model's vertex world position. The Default Value = World Position. |
 |[REGION:tablesection]Outputs[/REGION] ||
 | **Clamped Camera Offset** | The Camera offset is clamped to avoid early camera intersections. Adjust the padding to change the amount of space reserved to avoid camera intersection. |
@@ -126,8 +126,8 @@ The **RotateAboutWorldAxis_cheap** function cheaply rotates objects around world
 | -------- | -------- |
 |[REGION:tablesection]Inputs[/REGION] ||
 | **Rotation Amount (Scalar)** | A value of one is equal to one full rotation.|
-| **PivotPoint (Vector3)** | World space location of individual vertices. The WorldPosition node is typically used.|
-| **WorldPosition (Vector3)** | World space location of pivot point to rotate around. The default value is the model's pivot point.|
+| **PivotPoint (Vector3)** | World space location of pivot point to rotate around. The default value is the model's pivot point.|
+| **WorldPosition (Vector3)** | World space location of individual vertices. The WorldPosition node is typically used.|
 |[REGION:tablesection]Outputs[/REGION] ||
 | **X-Axis** | Cheaply rotates the object around the world X-axis. |
 | **Y-Axis** | Cheaply rotates the object around the world Y-axis. |

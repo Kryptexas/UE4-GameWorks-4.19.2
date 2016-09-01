@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2683142
+﻿INTSourceChangelist:2953341
 Availability:Public
 Title:매크로 라이브러리 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:블루프린트 클래스 에디터 인터페이스 개요입니다.
+Description:블루프린트 매크로 라이브러리 작업시 블루프린트 에디터의 UI 요소에 대한 분석입니다.
 version: 4.9
 
 [VAR:Topic]
@@ -48,7 +48,7 @@ version: 4.9
 <!----------
 [EXCERPT:Visible]
 1. [메뉴](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [툴바](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [툴바](Engine/Blueprints/Editor\UIComponents\Toolbar)
 1. [내 블루프린트](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
 1. [디테일](Engine/Blueprints/Editor\UIComponents\Details)
 1. [그래프 에디터](Engine/Blueprints/Editor\UIComponents\GraphEditor)

@@ -1042,16 +1042,13 @@ void FIndirectLightingCache::InterpolateBlock(
 							&& CellIndex.Z + NumQueryStepCells.Z <= Block.TexelSize);
 
 						// Interpolate from the SH volume lighting samples that Lightmass computed
-						if (PrecomputedLightVolume)
-						{
-							PrecomputedLightVolume->InterpolateIncidentRadianceBlock(
-								BoundingBox,
-								NumQueryStepCells,
-								FIntVector(Block.TexelSize),
-								CellIndex,
-								AccumulatedWeight,
-								AccumulatedIncidentRadiance);
-						}
+						PrecomputedLightVolume->InterpolateIncidentRadianceBlock(
+							BoundingBox,
+							NumQueryStepCells,
+							FIntVector(Block.TexelSize),
+							CellIndex,
+							AccumulatedWeight,
+							AccumulatedIncidentRadiance);
 					}
 				}
 			}

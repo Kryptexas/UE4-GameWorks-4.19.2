@@ -16,6 +16,12 @@ void FVulkanShaderResourceView::UpdateView(FVulkanDevice* Device)
 	// update the buffer view for dynamic VB backed buffers (or if it was never set)
 	if (SourceVertexBuffer != nullptr)
 	{
+		if (SourceVertexBuffer->IsVolatile() && VolatileLockCounter != SourceVertexBuffer->GetVolatileLockCounter())
+		{
+			BufferView = nullptr;
+			VolatileLockCounter = SourceVertexBuffer->GetVolatileLockCounter();
+		}
+
 		if (BufferView == nullptr || SourceVertexBuffer->IsDynamic())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_VulkanSRVUpdateTime);
@@ -94,14 +100,12 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FVertex
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
 {
-#if 0
 	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView;
-	SRV->SourceTexture = (FRHITexture*)Texture2DRHI;
+	//#todo-rco
+	check(MipLevel == 0);
+	// delay the shader view create until we use it, so we just track the source info here
+	SRV->SourceTexture = ResourceCast(Texture2DRHI);
 	return SRV;
-#else
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-	return nullptr;
-#endif
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel, uint8 NumMipLevels, uint8 Format)

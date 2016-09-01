@@ -4,6 +4,10 @@ Description:An introduction to getting started with SteamVR
 Availability:Public
 Navigation:platform
 Platform:SteamVR
+type:overview
+parent:Platforms/SteamVR
+tags:VR
+tags:SteamVR
 
 ![](Platforms\SteamVR\T_Vive_HMD.png)
 

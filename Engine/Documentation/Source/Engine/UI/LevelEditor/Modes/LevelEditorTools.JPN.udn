@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2409351
+﻿INTSourceChangelist:2693444
 Availability:Public
 Title:レベル エディタ モード
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:レベル エディタには、現在のモードを制御し、ビルダ ブラシの再形成、新規 ブラシ ジオメトリやボリュームを作成するためのツールセットがあります。
+Version:4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -31,15 +32,15 @@ Description:レベル エディタには、現在のモードを制御し、ビ�
 
 [Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
 
-**モード** は、レベルエディタで利用できる別の編集モードで、特殊なアクタやジオメトリの編集に特化した編集用インターフェースとワークフローを有効化します。
+**モード** は、レベルエディタで利用できる様々な編集モードで、特殊なアクタやジオメトリの編集に特化した編集用インターフェースとワークフローを有効にします。
 
 | ツール | 説明 | ショートカット |
 | ---- | ----------- | ---- |
-| ![](LE_Tools_Placement.png) | シーンにアクタを配置する [**Place** mode](Engine/UI/LevelEditor/Modes/PlaceMode) をアクティブにします。 | **Shift + 1**|
-| ![](LE_Tools_MeshPaint.png) | スタティック メッシュ アクタ上に頂点カラーとテクスチャを直接ビューポートにペイントする [**Paint** mode](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor) をトグルします。| **Shift + 2**|
-| ![](LE_Tools_Landscape.png) | ランドスケープ テレインを編集する [**Landscape** mode](Engine/Landscape) をトグルします。| **Shift + 3**|
-| ![](LE_Tools_Foliage.png) | インスタンス化されたフォーリッジをペイントする [**Foliage** mode](Engine/Foliage) をトグルします。| **Shift + 4**|
-| ![](LE_Tools_Brush.png) | ジオメトリに対してブラシを修正する [**Geometry Editing** mode](Engine/Actors/Brushes) をトグルします。 | **Shift + 5**|
+| ![](LE_Tools_Placement.png) | シーンにアクタを配置するための [**Place (配置) モード**](Engine/UI/LevelEditor/Modes/PlaceMode) をアクティブにします。 | **Shift + 1**|
+| ![](LE_Tools_MeshPaint.png) | ビューポートで Static Mesh アクタ上に頂点カラーとテクスチャを直接ペイントする [**Paint (ペイント) モード**](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor) を切り替えます。| **Shift + 2**|
+| ![](LE_Tools_Landscape.png) | ランドスケープ テレインを編集する [**Landscape (ランドスケープ) モード**](Engine/Landscape) を切り替えます。| **Shift + 3**|
+| ![](LE_Tools_Foliage.png) | インスタンス化されたフォリッジをペイントする [**Foliage (フォリッジ) モード**](Engine/Foliage) を切り替えます。| **Shift + 4**|
+| ![](LE_Tools_Brush.png) | ジオメトリに対してブラシを修正する [**Geometry Editing (ジオメトリ編集) モード**](Engine/Actors/Brushes) を切り替えます。 | **Shift + 5**|
 [/EXCERPT:main]
 
 %playlistnav%

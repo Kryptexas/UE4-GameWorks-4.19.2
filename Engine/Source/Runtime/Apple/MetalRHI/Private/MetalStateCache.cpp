@@ -4,6 +4,24 @@
 #include "MetalStateCache.h"
 #include "MetalProfiler.h"
 
+static TAutoConsoleVariable<int32> CVarMetalVertexParameterSize(
+	TEXT("r.MetalVertexParameterSize"),
+	1024,
+	TEXT("Amount of entries to use for VertexParameter space (multiples of 1024), defaults to 1024"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarMetalPixelParameterSize(
+	TEXT("r.MetalPixelParameterSize"),
+	1024,
+	TEXT("Amount of entries to use for PixelParameter space (multiples of 1024), defaults to 1024"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarMetalComputeParameterSize(
+	TEXT("r.MetalComputeParameterSize"),
+	1024,
+	TEXT("Amount of entries to use for ComputeParameter space (multiples of 1024), defaults to 1024"),
+	ECVF_Default);
+
 static MTLTriangleFillMode TranslateFillMode(ERasterizerFillMode FillMode)
 {
 	switch (FillMode)
@@ -43,17 +61,24 @@ FMetalStateCache::FMetalStateCache(FMetalCommandEncoder& InCommandEncoder)
 	Scissor.x = Scissor.y = Scissor.width = Scissor.height;
 	
 	FMemory::Memzero(VertexBuffers, sizeof(VertexBuffers));
-	FMemory::Memzero(VertexStrides, sizeof(VertexStrides));
-	
-	FMemory::Memzero(RenderTargetsInfo);
-	
+	FMemory::Memzero(VertexStrides, sizeof(VertexStrides));	
+	FMemory::Memzero(RenderTargetsInfo);	
 	FMemory::Memzero(DirtyUniformBuffers);
 	
 	//@todo-rco: What Size???
 	// make a buffer for each shader type
-	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(1024*1024);
-	ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(1024*1024);
-	ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].InitializeResources(1024*1024);
+	IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MetalVertexParameterSize"));
+	int SizeMult = CVar->GetInt();
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(SizeMult * 1024);
+	CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MetalPixelParameterSize"));
+	SizeMult = CVar->GetInt();
+	ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(SizeMult * 1024);
+	if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4 )
+	{
+		CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MetalComputeParameterSize"));
+		SizeMult = CVar->GetInt();
+		ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].InitializeResources(SizeMult * 1024);
+	}
 }
 
 FMetalStateCache::~FMetalStateCache()
@@ -309,6 +334,14 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				ConditionalUpdateBackBuffer(Surface);
 	
 				BoundTargets |= 1 << RenderTargetIndex;
+            
+#if !PLATFORM_MAC
+                if (Surface.Texture == nil)
+                {
+                    PipelineDesc.SampleCount = OldCount;
+                    return;
+                }
+#endif
 				
 				// The surface cannot be nil - we have to have a valid render-target array after this call.
 				check (Surface.Texture != nil);
@@ -372,7 +405,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 					ColorAttachment.slice = ArraySliceIndex;
 				}
 				
-				ColorAttachment.loadAction = GetMetalRTLoadAction(RenderTargetView.LoadAction);
+				ColorAttachment.loadAction = (Surface.bWritten || !CommandEncoder.IsImmediate()) ? GetMetalRTLoadAction(RenderTargetView.LoadAction) : MTLLoadActionClear;
+				Surface.bWritten = true;
 				
 				bNeedsClear |= (ColorAttachment.loadAction == MTLLoadActionClear);
 				
@@ -404,21 +438,30 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		
 		RenderTargetArraySize = 1;
 		
-#if METAL_API_1_1 && PLATFORM_MAC
-		
 		if(ArrayTargets)
 		{
-			if (ArrayTargets == BoundTargets)
+			if (!GetMetalDeviceContext().SupportsFeature(EMetalFeaturesLayeredRendering))
 			{
-				RenderTargetArraySize = ArrayRenderLayers;
-				RenderPass.renderTargetArrayLength = ArrayRenderLayers;
+				if (ArrayRenderLayers != 1)
+				{
+					UE_LOG(LogMetal, Fatal, TEXT("Layered rendering is unsupported on this device."));
+				}
 			}
+#if PLATFORM_MAC
 			else
 			{
-				UE_LOG(LogMetal, Fatal, TEXT("All color render targets must be layered when performing multi-layered rendering under Metal."));
+				if (ArrayTargets == BoundTargets)
+				{
+					RenderTargetArraySize = ArrayRenderLayers;
+					RenderPass.renderTargetArrayLength = ArrayRenderLayers;
+				}
+				else
+				{
+					UE_LOG(LogMetal, Fatal, TEXT("All color render targets must be layered when performing multi-layered rendering under Metal."));
+				}
 			}
-		}
 #endif
+		}
 	
 		// default to invalid
 		PipelineDesc.PipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
@@ -432,7 +475,6 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		{
 			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
 			
-#if METAL_API_1_1 && PLATFORM_MAC
 			switch(Surface.Type)
 			{
 				case RRT_Texture2DArray:
@@ -446,10 +488,18 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			}
 			if(!ArrayTargets && ArrayRenderLayers > 1)
 			{
-				RenderTargetArraySize = ArrayRenderLayers;
-				RenderPass.renderTargetArrayLength = ArrayRenderLayers;
-			}
+				if (!GetMetalDeviceContext().SupportsFeature(EMetalFeaturesLayeredRendering))
+				{
+					UE_LOG(LogMetal, Fatal, TEXT("Layered rendering is unsupported on this device."));
+				}
+#if PLATFORM_MAC
+				else
+				{
+					RenderTargetArraySize = ArrayRenderLayers;
+					RenderPass.renderTargetArrayLength = ArrayRenderLayers;
+				}
 #endif
+			}
 			
 			if(!bFramebufferSizeSet)
 			{
@@ -560,7 +610,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				}
 				
 				bHasValidRenderTarget = true;
-	
+				
 				// and assign it
 				RenderPass.depthAttachment = DepthAttachment;
 				
@@ -602,7 +652,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				}
 				
 				bHasValidRenderTarget = true;
-	
+				
 				// and assign it
 				RenderPass.stencilAttachment = StencilAttachment;
 				
@@ -646,8 +696,10 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		}
 	}
 	
+#if PLATFORM_MAC
 	// Ensure that the RenderPassDesc is valid in the CommandEncoder.
 	check(CommandEncoder.IsRenderPassDescriptorValid());
+#endif
 }
 
 void FMetalStateCache::SetHasValidRenderTarget(bool InHasValidRenderTarget)
@@ -768,7 +820,9 @@ void FMetalStateCache::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
 			// set the texture into the backbuffer
 			Surface.GetDrawableTexture();
 		}
+#if PLATFORM_MAC
 		check (Surface.Texture);
+#endif
 	}
 }
 
@@ -803,33 +857,34 @@ bool FMetalStateCache::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& In
 			//    If we switch to Load, no need to switch as we can re-use what we already have
 			//    If we switch to Clear, we have to always switch to a new RT to force the clear
 			//    If we switch to DontCare, there's definitely no need to switch
-			if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
-			{
-				bAllChecksPassed = false;
-				break;
-			}
-			// StoreAction - this matters what the previous one was **In Spirit**
-			//    If we come from Store, we need to switch to a new RT to force the store
-			//    If we come from DontCare, then there's no need to switch
-			//    @todo metal: However, we basically only use Store now, and don't
-			//        care about intermediate results, only final, so we don't currently check the value
-//			if (PreviousRenderTargetView.StoreAction == ERenderTTargetStoreAction::EStore)
-//			{
-//				bAllChecksPassed = false;
-//				break;
-//			}
-		}
-		
-		if (InRenderTargetsInfo.DepthStencilRenderTarget.Texture && (InRenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear || InRenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear))
-		{
-			bAllChecksPassed = false;
-		}
-		
+			//    If we switch *from* Clear then we must change target as we *don't* want to clear again.
+            if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
+            {
+                bAllChecksPassed = false;
+                break;
+            }
+            // StoreAction - this matters what the previous one was **In Spirit**
+            //    If we come from Store, we need to switch to a new RT to force the store
+            //    If we come from DontCare, then there's no need to switch
+            //    @todo metal: However, we basically only use Store now, and don't
+            //        care about intermediate results, only final, so we don't currently check the value
+            //			if (PreviousRenderTargetView.StoreAction == ERenderTTargetStoreAction::EStore)
+            //			{
+            //				bAllChecksPassed = false;
+            //				break;
+            //			}
+        }
+        
+        if (InRenderTargetsInfo.DepthStencilRenderTarget.Texture && (InRenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear || InRenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear))
+        {
+            bAllChecksPassed = false;
+        }
+        
 #if PLATFORM_MAC
-		if (!(InRenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess() == RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess()))
-		{
-			bAllChecksPassed = false;
-		}
+        if (!(InRenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess() == RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess()))
+        {
+            bAllChecksPassed = false;
+        }
 #endif
 	}
 

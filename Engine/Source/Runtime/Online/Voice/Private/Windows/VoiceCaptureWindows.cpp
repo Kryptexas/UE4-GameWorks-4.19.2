@@ -338,6 +338,7 @@ void FVoiceCaptureWindows::ProcessData()
 				FMemory::Memcpy(AudioBuffer + CaptureLength, CaptureData2, CaptureLength2);
 			}
 
+			CA_SUPPRESS(6385);
 			CV->VoiceCaptureBuffer8->Unlock(CaptureData, CaptureLength, CaptureData2, CaptureLength2);
 
 			// Move the capture offset forward.

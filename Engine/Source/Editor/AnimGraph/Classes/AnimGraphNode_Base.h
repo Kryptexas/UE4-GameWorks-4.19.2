@@ -4,6 +4,7 @@
 
 #include "K2Node.h"
 #include "Animation/AnimNodeBase.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 #include "AnimGraphNode_Base.generated.h"
 
 // Forward declarations
@@ -200,6 +201,22 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 	// can customize details tab 
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder){ }
+
+	template<typename NodeType>
+	NodeType* GetActiveInstanceNode(UObject* AnimInstanceObject) const
+	{
+		if(!AnimInstanceObject)
+		{
+			return nullptr;
+		}
+
+		if(UAnimBlueprintGeneratedClass* AnimClass = Cast<UAnimBlueprintGeneratedClass>(AnimInstanceObject->GetClass()))
+		{
+			return AnimClass->GetPropertyInstance<NodeType>(AnimInstanceObject, NodeGuid);
+		}
+
+		return nullptr;
+	}
 
 protected:
 	friend FAnimBlueprintCompiler;

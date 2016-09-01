@@ -71,9 +71,9 @@ void FNiagaraEffectEditorViewportClient::Tick(float DeltaSeconds)
 }
 
 
-void FNiagaraEffectEditorViewportClient::Draw(FViewport* Viewport,FCanvas* Canvas)
+void FNiagaraEffectEditorViewportClient::Draw(FViewport* InViewport,FCanvas* Canvas)
 {
-	FEditorViewportClient::Draw(Viewport, Canvas);
+	FEditorViewportClient::Draw(InViewport, Canvas);
 }
 
 bool FNiagaraEffectEditorViewportClient::ShouldOrbitCamera() const

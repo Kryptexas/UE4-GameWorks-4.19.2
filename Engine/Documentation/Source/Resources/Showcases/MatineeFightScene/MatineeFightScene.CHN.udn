@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:0
-Availability: Public
+﻿INTSourceChangelist:2726407
+Availability:Public
 Title:Matinee
 Crumbs:%ROOT%, Resources, Resources/Showcases
-Description:An overview of the Matinee example and how it was constructed. 
-Related: Engine/Matinee
-Related: Engine/Matinee/TrackReference
-Related: Engine/Rendering\PostProcessEffects
-Related: Engine\Rendering\PostProcessEffects\DepthOfField
-Related: Engine\UI\CurveEditor
-Related: Engine/Rendering/ParticleSystems
-Related: Engine/Blueprints
-Related: Engine/Basics/Projects/CreatingTemplates
+Description:Matinee 范例总览和其构建方式。 
+Related:Engine/Matinee
+Related:Engine/Matinee/TrackReference
+Related:Engine/Rendering\PostProcessEffects
+Related:Engine\Rendering\PostProcessEffects\DepthOfField
+Related:Engine\UI\CurveEditor
+Related:Engine/Rendering/ParticleSystems
+Related:Engine/Blueprints
+Related:Engine/Basics/Projects/CreatingTemplates
+Version:4.9
 
 
 [VAR:Topic]
@@ -61,624 +62,674 @@ Related: Engine/Basics/Projects/CreatingTemplates
 
 [TOC(start:2 end:2)]
 
-The **Matinee** example shows how to create highly stylized cinematic sequences using Unreal Engine 4's **Matinee Editor**. If you do not know what Matinee is, the Matinee Editor (or simply Matinee) is a system which is based on the use of specialized **Tracks** in which you can place **Keyframes** and set the values of certain properties for the **Actors** in your level where you can adjust those values over time. 
+**Matinee** 范例展示如何通过虚幻引擎 4 的 **Matinee 编辑器** 创建极具风格化的过场动画。Matinee 编辑器（简称 Matinee）是一个基于特殊 **轨迹** 的系统。用户可在轨迹中放置 **关键帧** 并对关卡中 **Actors** 特定属性的数值进行设置（在关卡中数值可随时间调整）。 
 
-On this page, we will jump into and discuss each of the different sections inside the **Matinee Actor** used to create the fight sequence scene and how each of the elements come together to produce the final result shown in the **Scene Breakdown** section below. With an understanding of how it was constructed, you will be able to modify it and put a different spin on it or take the knowledge, tips-and-tricks learned here and apply them to your own scenes. 
+在此页中，我们将讨论 Matinee Actor 中用于创建打斗场景的每个部分，了解这些元素如何生成最终效果（下方的 **场景详解** 部分有所展示）。理解它的构成方式后，即可对其进行修改、演变，或将此处学到的知识和技巧应用至自建场景中。 
 
-You can also head to the [](Engine\Matinee) documentation for more details on how to work with and use Matinee. 
-
-
-## Scene Breakdown
-
-Before breaking down the scene, you can view the end result below: 
-
-[![](OriginalMovieThumbnail.png)(w:640)](FightSceneOriginal.wmv)
+如需了解 Matinee 使用的更多细节，可查阅 [](Engine\Matinee) 文档中的详细内容。 
 
 
-* The scene consists of five characters that interact with one another during the course of the 68 second sequence. 
-* Each character uses their own motion captured **Animation Sequence**. 
-* There are six cameras used in the scene (three main cameras for movement and three child cameras for the hand-held "shaky" style movement). 
-* The music is comprised of nine different **Sound Waves** that are each called during specific times of the sequence. 
-* Each of the impact sounds, sound effects, grunts, and VO are all added individually via keyframe at the appropriate times in the sequence. 
-* Particle Effects are applied to the characters and environments as they interact with one another via keyframing. 
-* Lighting is adjusted through primary and secondary lights during the scene (there is not just one set of lights used, but multiple that are adjusted). 
-* A **Slomo** track is used to slow the sequence down at given points and a **Fade** track is used to fade the scene out at the end. 
-* An **Event Track** is used to set(re-set) multiple **Static Meshes** (used to simulate tiles breaking off the walls) to simulate physics when called upon. 
+## 场景详解
+
+对场景进行解析前，可在此查看最终效果： 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+E0L7pBBhwUo
+[/PARAMLITERAL]
+[/OBJECT]
 
 
-## Opening the Matinee Actor
+* 在 68 秒的过场动画中，场景中有五名相互交互的角色。 
+* 每个角色使用其自身的动态捕捉 **动画序列**。 
+* 场景中使用了 6 个摄像机（3 个主要摄像机负责运动，3 个子摄像机负责手持“摇晃”运动）。 
+* 音乐由 9 个不同的 **声波** 构成，在序列的特定时间调用。 
+* 每个撞击声、声效、咕噜声，以及旁白都通过关键帧在序列的适当时间播放。 
+* 角色和环境通过关键帧形成互动时将应用粒子效果。 
+* 整体灯光由场景中的主要和次要灯光进行调整（使用的灯光不止一套，此外还进行了多套灯光调整）。 
+* 通过 **Slomo** 轨迹使序列在特定点慢速播放，并使用 **Fade** 轨迹在最后将场景淡出。 
+* 通过 **Event 轨迹** 对多个 **静态网格体**（用于模拟墙上掉落的瓷砖）进行设置/重设，模拟它们被调用时的物理效果。 
 
-When going through this page, it will help if you have the project up and the Matinee open so you can follow along and can adjust values in real time. 
 
-You can open the **Matinee** by searching the **World Outliner** for Matinee: 
+## 打开 Matinee Actor
+
+阅读此页时，建议将项目设好并打开 Matinee，以便同步进行操作和即时调整数值。 
+
+在 **World Outliner** 中搜素 Matinee 即可将 **Matinee** 打开。 
 
 ![](SceneOutlinerMatinee.png)
 
-You can then click on **Matinee** in the **World Outliner** and the **Details** panel will become populated. From here, you can select **Open Matinee**: 
+之后在 **World Outliner** 中点击 **Matinee**，**Details** 面板将被填充。可从此处选择 **Open Matinee**： 
 
 ![](OpenMatinee.png)
 
-The **Matinee** window will then open: 
+**Matinee ** 窗口将打开： 
 
 [REGION:lightbox]
 [![](MatineeOpen.png)(w:720)](MatineeOpen.png)
 [/REGION]
 
-_Click the image for full view._ 
+_点击图片查看全图。_ 
 
 
-## Adjusting the Viewport 
+## 调整视口 
 
-While the **Matinee** window is open, you may notice that the viewport becomes cluttered with lots of colored dotted lines and the screen appears black. 
+**Matinee** 窗口打开后，视口中可能出现显各种颜色的点线，显得十分杂乱，屏幕背景为黑色。 
 
 ![](MatineeNonGameView.png)(w:720)
 
-You can easily hide these and other editor related icons by entering **Game View** by clicking the down arrow in the upper left corner of the viewport: 
+点击视口左上角的向下箭头进入 **Game View** 即可将点线和其他编辑器相关的图标隐藏： 
 
 ![](ToggleGameViewOff.png)(w:720)
 
-From the menu, you can then select the **Game View** checkbox. 
+可从菜单中选择 **Game View** 复选框。 
 
 [REGION:tip]
-You can also press the **G** key while in the viewport to toggle this option on/off quickly.
+在视口中按下 **G** 键可快速切换此选项的开关。
 [/REGION]
 
-With **Game View** enabled, you will be able to playback the **Matinee** sequence from the **Matinee Editor** window and get an idea of what the final result will look like without the editor icons being displayed. 
+启用 **Game View** 后，即可从 **Matinee Editor** 窗口播放 **Matinee** 序列并查看最终效果，无需显示编辑器图标。 
 
-[REGION:imagetable]
-| ![](GameViewOff.png)(w:450) | ![](GameViewOn.png)(w:450) |
-| :---: | :---: |
-| Game View Off | Game View On |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Game View Off](GameViewOff.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Game View Om](GameViewOn.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
 
 [REGION:tip]
-Inside the **Matinee Editor** under the menu toolbar **View** option, you can select **Hide All 3D Trajectories** which will hide the movement paths but keep all the other editor icons. 
+在菜单工具栏 **View** 选项下的 **Matinee Editor**中，可选择 **Hide All 3D Trajectories**，隐藏移动路径，但保留所有其他编辑器图标。 
 [/REGION]
 
-As for the screen appearing black, a **Fade Track** was used to fade in the scene from a black screen. 
+使用 **Fade 轨迹** 从黑屏中淡入场景。 
 
 ![](MatineeFadeTrack.png)
 
-If you scrub the **Time Bar** to any position on or after the second keyframe on the **Fade Track**, you should see the scene appear in your viewport. 
+如将 **时间条** 移动至 **Fade 轨迹** 第二个关键帧之上或之后的任意位置，场景便将出现在视口中。 
 
 
-## Deconstructing the Matinee Actor
+## 解构 Matinee Actor
 
-In the sections below, we will deconstruct the **Matinee** used to generate the Fight Sequence and discuss how it was put together by looking at each of the **Tracks** and how they were used. We will also look at the **Director Group** and its related **Tracks** as well as discuss some of the techniques used by our team here to produce the final result. 
+以下部分中我们将解构生成打斗场景的 **Matinee**，并了解每个 **轨迹** 及其用法，讨论 Matinee 的构成方式。我们还将了解 **导演群组（Director Group）**及其相关 **轨迹**，并讨论 Epic 团队使用的部分技术。 
 
-We will first start by looking at the meat of the **Matinee** sequence, the **Tracks**, starting with the **Camera Tracks** and working our way down through the list. 
+首先我们将了解 Matinee 序列的核心 - 轨迹。从摄像机轨迹开始，逐个了解列表中的轨迹。 
 
-### Camera Tracks
+### 摄像机轨迹
 
-As noted in the Scene Breakdown section, the camera setup for this scene uses three main cameras and three child cameras. If you search inside the **World Outliner** for **Camera** you will see something similar to below. 
+如“场景详解”部分所述，此场景的摄像机设置包含 3 个主摄像机和 3 个子摄像机。在 **World Outliner** 中搜索 **Camera**将得到下图中的结果。 
 
 ![](MatineeCameras.png)
 
-For **Camera1**, **Camera2**, and **Camera3**, a second camera (appended as **_Shake**) was created and placed in the level. Each of these **Shake** cameras were then made child cameras by dragging-and-dropping them onto their corresponding parent cameras. Wherever the parent camera goes, the child will follow. This allows us to add subtle movement to a camera that is already in motion and moving along a path. 
+**Camera1**、**Camera2** 和 **Camera3** 都附带了次要摄像机（后缀为 **_Shake**），它们被创建并放置在关卡中。将 **Shake** 摄像机拖到其相应的父摄像机上，它们便成为子摄像机。子摄像机将和父摄像机一同行动。可利用此特性为已沿路径运动的摄像机添加微妙的运动。 
 
-If you open up the **Matinee**, you will notice that there is a folder called **Cameras_Main** and **Cameras_Shake**. While none of the cameras in the **Cameras_Main** folder are used for shots, they do provide the movement for each of the cameras in the **Cameras_Shake** folder. 
+打开 **Matinee** 后可找到一个名为 **Cameras_Main** 的文件夹和一个名为 **Cameras_Shake** 的文件夹。虽然 **Cameras_Main** 文件夹中的摄像机不用于镜头，但它们却决定着 **Cameras_Shake** 文件夹中每个摄像机的运动。 
 
 [REGION:lightbox]
 [![](CameraTrackExplained.png)(w:720)](CameraTrackExplained.png)
 [/REGION]
 
-_Click the image for full view._ 
+_点击图片查看全图。_ 
 
 [REGION:tip]
-Folders allow you to organize as well as collapse or expand groups that have been assigned to the folder. To create a folder, you can **Right-Click** in the **Tracks** window and select **Add New Folder**. Once a folder has been added, you can **Right-Click** on the folder and select **Move Group Into Folder** and choose the group you wish to move into the folder. 
+文件夹用于组织，可收起或展开指定到文件夹的群组。如需创建文件夹，可在 **Tracks** 窗口中 **单击右键** 并选择 **Add New Folder**。添加文件夹后，即可在其上 **单击右键** 并选择 **Move Group Into Folder**，然后选择文件夹移入的群组。 
 [/REGION]
 
-In section 1 above, if you scrub through the timeline, you will notice that each of the shots on the **Director** track are using the child cameras (with the exception of the final shot which does not have the **shaky** effect applied to the camera). In section 2, **Camera1** has several keyframes (red triangles) added to the **Movement** track that determine the main path of the camera. In section 3 for **Camera_Shake1**, you will notice there are significantly more keyframes added to its **Movement** track which allows for the slight movement of the camera creating the hand-held look. 
+在上图标记为 1 的部分中移动时间轴，将发现 **Director** 轨迹上的每个镜头均使用子摄像机（最后的镜头除外，因为并无 **摇晃** 效果应用到摄像机）。在标记为 2 的部分中，**Camera1** 有数个关键帧（红色三角形）被添加到 **Movement** 轨迹（此轨迹决定摄像机的主路径）。在标记为 3 的部分中，更多的关键帧被添加到 **Camera_Shake1** 的 **Movement** 轨迹中，使摄像机出现轻微移动，形成手持摄像机效果。 
 
-#### Camera Properties
+#### 摄像机属性
 
-When a **New Camera Group** is added to **Matinee**, you are presented with only the **Movement** and **FOV Angle** tracks that can be edited: 
+一个 **新摄像机群组** 被添加到 **Matinee** 后，可编辑的只有 **Movement** 和 **FOV Angle** 轨迹。 
 
 ![](NewCameraAdded.png)
 
-If you **Right-Click** on the **Camera** track and choose **Add New Float Property Track** from the context menu that appears, you will however be given a list of tracks that can be added and adjusted via float values. 
+如在 **Camera** 轨迹上 **单击右键** 并从出现的快捷菜单中选择 **Add New Float Property Track**，即可从轨迹列表中选择可添加的轨迹，并通过浮点值对其进行调整。 
 
 ![](AddFloatPropertyTrack.png) ![](CameraFloatProperties.png)
 
-While there are several property tracks that can be added and adjusted, the six tracks below for **Post Process Settings** were added to each of the cameras used in this **Matinee**: 
+虽然有多个属性轨迹供添加和调整，但 **Matinee** 中使用的每个摄像机都将默认添加这 6 个 **后期处理设置** 轨迹。 
 
-| Property Name | Description |
+| 属性名称 | 描述 |
 | ------- | ------------ |
-| **DepthOfFieldFocalDistance** | This is the distance in which the Depth of Field effect should be sharp, in unreal units (cm). |
-| **DepthOfFieldFocalRegion** | The artificial region where all content is in focus, starting after **DepthOfFieldFocalDistance**, in unreal units (cm). |
-| **DepthOfFieldScale** | BokehDOF only: used to amplify the Depth of Field effect (like aperture). Setting the value to 0 will turn it off. |
-| **DepthOfFieldNearBlurSize** | Gaussian only: this is the maximum size of the Depth of Field blur for near objects (in percent of the view width). Note: performance cost scales with size. |
-| **DepthOfFieldFarBlurSize** | Gaussian only: this is the maximum size of the Depth of Field blur for far objects (in percent of the view width). Note: performance cost scales with size.  |
-| **DepthOfFieldMaxBokehSize** | BokehDOF only: the maximum size of the Depth of Field blur (in percent of the view width). Note: performance cost scales with size*size.  |
+| **DepthOfFieldFocalDistance** | 在此距离中景深效果较强，以虚幻单位计（cm）。|
+| **DepthOfFieldFocalRegion** | 所有内容均在焦距中的虚拟区域，在 DepthOfFieldFocalDistance 之后开始，以虚幻单位计（cm）。|
+| **DepthOfFieldScale** | 只用于散景景深：用于放大景深效果（与光圈类似）。将数值设为 0 则关闭此属性。|
+| **DepthOfFieldNearBlurSize** | 只用于高斯景深：这是近景物体景深模糊的最大尺寸（以视图宽度的百分比计）。注意： 性能消耗按尺寸计算。|
+| **DepthOfFieldFarBlurSize** | 只用于高斯景深：这是远景物体景深模糊的最大尺寸（以视图宽度的百分比计）。注意： 性能消耗按尺寸计算。|
+| **DepthOfFieldMaxBokehSize** | 只用于散景景深：景深模糊的最大尺寸（以视图宽度的百分比计）。注意： 性能消耗按尺寸乘尺寸计算。|
 
 [REGION:note]
-Please see the [](Engine\Rendering\PostProcessEffects\DepthOfField) documentation for more information on using **Depth Of Field**. 
+可在 [](Engine\Rendering\PostProcessEffects\DepthOfField) 文档中查阅景深使用的更多内容。 
 [/REGION]
 
-The properties above are the same settings that can be adjusted via the **Details** panel of a **Camera Actor** under the **Depth Of Field** section: 
+也可在 **Depth Of Field** 部分中 **Camera Actor** 的 **Details** 面板下对以上属性的设置进行调整。 
 
 ![](DetailsDOF.png)
 
-The value of each property can be viewed/changed at each keyframe by **Right-Clicking** on the keyframe and selecting the **Set Value** option: 
+在关键帧上 **单击右键** 并选择 **Set Value** 选项即可查看/变更每个关键帧上每个属性的数值： 
 
 ![](KeyFrameSetValue.png)
 
-An input box will appear where you can set the new value to use for the property at the designated keyframe: 
+将出现一个输入框，在此可设置特定关键帧上的属性所使用的新数值。 
 
 ![](KeyFrameNewValue.png)
 
-You will also notice that each time the **Director** track cuts to the camera in use, keyframes for these properties were added and made available for edit: 
+此外您还会注意到，每次 **Director** 轨迹切换至使用中的摄像机时，这些属性的关键帧将被添加并开放编辑： 
 
 [REGION:lightbox]
 [![](CameraCutsDOF.png)(w:780)](CameraCutsDOF.png)
 [/REGION]
 
-_Click the image for full view._ 
+_点击图片查看全图。_ 
 
-This was done to make it easier for you to modify the Depth of Field settings (as well as the **Movement** and **FOV Angle**) for each camera, on each cut, to create different looks by adjusting the values. 
+利用它可轻松修改每个摄像机在切换时的景深设置（以及 **运动** 和 **视野角度**），通过数值调整创建不同效果。 
 
 
-### Character Tracks
+### 角色轨迹
 
-The **Character** tracks for this **Matinee** are fairly straightforward:
+**Matinee** 的 **Character** 轨迹非常简明：
 
-* There is a **Trooper_Main** track which represents the main character who uses the **Trooper_Lead Skeletal Mesh**. 
-* The **Trooper_1**, **Trooper_2**, **Trooper_3**, and **Trooper_4** tracks represent the enemies that fight the main character and use the **Trooper Skeletal Mesh**. 
+* **Trooper_Main** 轨迹代表使用 **Trooper_Lead 骨骼网格体** 的主角。 
+* **Trooper_1**、**Trooper_2**、**Trooper_3** 和 **Trooper_4** 代表和主角打斗的敌人，使用 **Trooper 骨骼网格体**。 
 
 [REGION:note]
-The **Skeletal Meshes** can be found in the **Game/Character/Trooper/Mesh** folder. 
+可在 **Game/Character/Trooper/Mesh** 文件夹中找到 **骨骼网格体**。 
 [/REGION]
 
-Each of the characters use an **Anim** and **Movement** track and Troopers 1, 2, and 3 also use a **Visibility** track which hides them in the scene until they are ready to be displayed and combat the main character. 
+每个角色均使用 **Anim** 和 **Movement** 轨迹，Troopers 1、2、3 还将使用 **Visibility** 轨迹，使其在关卡中隐藏，直到开始和主角打斗时才进行显示。 
 
 ![](ActiveCharacter.png)(w:800)
 
 
-While in the **Matinee** window, you can click on the **Character** track or any of the tracks assigned to the character and it will highlight that character in the editor's viewport. This makes it easier to see which character you are working with at any given time in the sequence. 
+在 **Matinee** 窗口中，可点击 **Character** 轨迹或任意认定到角色的轨迹，使角色在编辑器视口中高亮。此操作便于在序列中的任意时间确定正在使用的角色。 
 
-#### Character Anim Tracks
+#### 角色动画轨迹
 
-Each of the characters has their own motion captured **Animation Sequence** which has been added to each of their respective **Anim** tracks in the **Matinee**. 
+每个角色均有其自身的动态捕捉 **动画序列**，此序列已被添加至 **Matinee** 中每个角色相应的 **Anim** 轨迹。 
 
 ![](TrooperAnimations.png)
 
-Because these sequences are raw, meaning that they have not been trimmed down into shorter sequences and are instead a long cut, it is necessary that the animation start and end times use an offset instead of starting at frame 0.0. 
+这些序列为相对较长的原始材料，并未被裁减为简短序列，因此有必要对动画的开始和结束时间使用偏移，而不是从 0.0 帧开始。 
 
-For example, if you take a look at **Trooper_1** and click on the keyframe at the **6.30** mark, you will see that the sequence starts at **6.50** and ends at **16.24**. 
+例如，点击 **Trooper_1** 在 **6.30** 标记处的关键帧，可看到序列从 **6.50** 开始，在 **16.24** 结束。 
 
 ![](Trooper1Example.png)
 
 [REGION:tip]
-You can add offsets for the start or end times of an **Animation Sequence** by **Right-Clicking** on the keyframe of the sequence you wish to edit and choosing the **Set Start Offset** or **Set End Offset** options respectively. An input box will appear in which you can specify the time in the animation you want to start or end at. 
+为 **动画序列** 添加开始或结束时间偏移的方法：在需要编辑的序列关键帧上 **单击右键**，分别选择 **Set Start Offset** 或 **Set End Offset** 选项。将出现一个输入框，可在此处指定动画的开始或结束时间。 
 [/REGION]
 
-If you were to open the **Trooper_1 Animation Sequence** located in the **Game/Character/Trooper/Animation** folder, you would see that the character does not start the animation until around the 5.9 second mark of the sequence. 
+打开保存在 **Game/Character/Trooper/Animation** 文件夹的 **Trooper_1 Animation Sequence** 后，会发现角色动画将在序列 5.9 秒标记左右开始。 
 
-You will also notice that **Animation Sequences** for each character have been placed throughout the scene regardless of whether or not they are visible during the **Matinee** sequence. 
+此外您还将发现，无论每个角色是否在 Matinee 序列中可见，其动画序列均会被放置在整个场景中。 
 
 ![](ExtraAnimSequences.png)
 
-_**Trooper_1 Animation Sequence** is added even though the character is not visible yet (character visibility is toggled **On** by the green bar)._
+_**Trooper_1 Animation Sequence** 在角色尚不可见时便已被添加（角色可见性将被图中的绿色条 **开启**）。_
 
-These extra **Animation Sequences** are in place so that you may edit them and rearrange the shot sequence if you would like. Since the characters are not visible and the timing of each animation is not set, they do not hinder the overall scene but give you an opportunity to have additional options when cutting the final sequence together. 
+这些附加动画序列放置好后，即可根据需求对其进行编辑并重新整理较短的序列。因角色为不可见，且未设置每个动画的时机并，它们不会对整体场景形成阻碍，但可在最终序列合成混剪时拥有额外选项。 
 
-#### Character Movement Tracks
+#### 角色运动轨迹
 
 ![](CharacterMovementTrack.png)
 
-The **Movement** tracks for each character are primarily used to specify a start position or orientation for each character when they enter the scene or to adjust the positioning of each character during the scene. Because the **Animation Sequences** contain translation in them, movement around the scene is handled by the animation itself. If the animations did not have translation in them, the **Movement** track would be used to drive the character's movement around in the scene. 
+每个角色的 **Movement** 轨迹主要用途有二：指定每个角色进入场景时的初始位置或朝向；或在场景中调整每个角色的放置。因动画序列其中包含平移，场景中的运动由动画自身处理。如动画其中不包含平移，Movement 轨迹用于在场景中驱动角色的运动。 
 
-Due to the character-to-character interaction in this scene, it is important that if you change one of the character's **Movement** tracks, you will need to adjust the other characters as well so that they still synch up and play their animations together. 
+该场景中角色与角色之间存在互动，因此必须注意：变更其中一个角色的 Movement 轨迹后需要对其他角色的轨迹进行调整，使角色之间的动画同步播放。 
 
 [REGION:tip]
-When a keyframe is added to the **Movement** track, you can specify the desired location of the character at that keyframe by selecting the keyframe in the **Matinee** window, then moving the character in the viewport to the desired location. 
+关键帧添加至 Movement 轨迹后，可指定该角色在此关键帧的位置 - 在 Matinee 窗口选择关键帧，然后将视口中的角色移至所需位置。 
 [/REGION]
 
-#### Character Visibility Tracks
+#### 角色可见性轨迹
 
 ![](CharacterVisibilityTrack.png)
 
-The **Visibility** tracks assigned to Troopers 1, 2, and 3 are simply there to toggle when the character should be visible in the scene. The time the character is visible is denoted by the green bar shown in the image above. You can also look at the keyframes themselves as keyframes pointed downward indicate the character is hidden while keyframes pointed upward indicate the character is set to be shown. 
+切换指定到 Troopers 1、2、3 的 **Visibility** 轨迹，即可使角色在场景中显示。角色可见的时间由上图中的绿色条表示。也可通过关键帧进行判断 - 关键帧指向朝下时，角色为隐藏状态；关键帧指向朝上时，角色为可见状态。 
 
 [REGION:tip]
-You can **Right-Click** on a keyframe and "flip" the toggle to the opposite of its current setting by selecting the **Flip Toggle** option from the context menu. 
+在一个关键帧上 **单击右键**，从快捷菜单中选择 **Flip Toggle** 选项，即可“翻转”切换到与当前设置相反的设置。 
 [/REGION]
 
-### Character Lighting Tracks
+### 角色灯光轨迹
 
 ![](CharacterLightTracks.png)
 
-Two **SpotLights** were added to the scene to provide additional lighting of the characters for each shot. Each of these **Spotlights** were set to **Movable** and are positioned using the **Movement** track. Additionally, the **Intensity**, **LightColor**, and **Radius** for each light is adjusted during the scene depending upon the shot. To better describe what is occurring, take a look at the image below. 
+场景中添加了两个 **聚光源**，为每个镜头的角色提供额外的灯光。每个聚光源均被设为 **Movable**，并通过 Movement 轨迹确定位置。此外，每个光源的 **Intensity**、**LightColor**、**Radius** 将在场景中基于镜头进行调整。下图对效果进行了清楚的阐述。 
 
-![](ShowingLightsGif.gif)(w:480 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kfJeFFGuEPQ
+[/PARAMLITERAL]
+[/OBJECT]
 
-When looking at the scene from the editor view and not the **Matinee Preview**, you can see that lights are being toggled on/off and positioned based on the needs of the shot. 
+从编辑器画面（而非 **Matinee Preview**）中观察场景，可以发现灯光是基于镜头需要切换开关和放置位置。 
 
 [REGION:tip]
-You can disable the **Matinee Preview** by unchecking the **Allow Matinee Preview** option from the **Viewport Options** menu. 
+从视口选项中取消勾选 **Allow Matinee Preview** 即可禁用 Matinee Preview。 
 [/REGION]
 
-#### Character Light Movement Tracks
+#### 角色灯光运动轨迹
 
 ![](CharacterLightsMovement.png)
 
-The **Movement** tracks for both the **Primary_Light** and **Secondary_Light** function similar to other **Movement** (the keyframes tell the light to move to the designated position when the keyframe is reached). You may notice that most of the keyframes on the **Movement** track are blue and only one keyframe on the **Secondary_Light** is red. 
+**Primary_Light** 和 **Secondary_Light** 的 **Movement** 轨迹拥有和其他 Movement 轨迹相似的功能（到达关键帧后，灯光将移至指定位置）。您可能已经注意到：Movement 轨迹上大多数关键帧都是蓝色，只有 **Secondary_Light** 上存在一个红色的关键帧。 
 
-The color of the keyframes indicate which type of **Interp Mode** is being used for the movement, and for this scene most keyframes are set to use **Constant** (meaning the light will not interp to the position but will instead jump to the position). The red keyframe indicates that the **Interp Mode** is set to use **Linear** (meaning the light will interpolate smoothly between keyframes and not jump to the position). 
+关键帧的颜色说明运动所使用的 **插值模式（Interp Mode）** 类型。在此场景中，大多数关键帧均使用 **常数**（意味着灯光不会对位置进行插值，而是跳到该位置）。红色关键帧说明 **插值模式** 使用的是 **线性**（意味着灯光将在关键帧之间进行顺畅的插值，而不会跳到该位置）。 
 
 [REGION:tip]
-You can change the **Interp Mode** by **Right-Clicking** on a keyframe, and if the track supports it, selecting the **Interp Mode** option from the context menu that appears. 
+变更插值模式的方法：在一个关键帧上 **单击右键**，如轨迹支持，从出现的快捷菜单中选择 **Interp Mode** 选项。 
 [/REGION]
 
 
-#### Character Light Intensity, LightColor, and Radius
+#### 角色灯光强度、光色、半径
 
 ![](CharacterLightsOtherTracks.png)
 
-The **Intensity**, **LightColor**, and **Radius** tracks for each light allow you to modify the light's **Intensity**, **LightColor**, or **Radius** respectively at each placed keyframe. 
+利用每个灯光的 **Intensity**、**LightColor**、**Radius** 轨迹可分别修改每个关键帧上的灯光 **强度**、**光色** 和 **半径**。 
 
-The **Intensity** track for this scene also makes use of the **Curve Editor** which provides finer control of the adjustments made to the lights **Intensity** value. 
+此场景的 Intensity 轨迹利用了 **曲线编辑器** - 使用它可对灯光 **强度** 数值进行精细调控。 
 
 ![](IntensityCurveEditor.png)
 
 [REGION:note]
-For more on using the **Curve Editor**, refer to the [](Engine\UI\CurveEditor) documentation.
+如需了解曲线编辑器的详细内容，请查阅 [](Engine\UI\CurveEditor) 文档。
 [/REGION]
 
 
-### FX Tracks (Troopers)
+### FX 轨迹（战士）
 
 [REGION:fullwidth]
 ![](FX_Troopers.png)
 [/REGION]
 
-For each of the Troopers, you will see a series of **Particle Effect Groups** (prefixed by **P_** something) with a **Toggle** track for each. These represent the **Particle Effects** (which can be found in the **Game/FX/Particles/Water** folder) that are toggled on during the scene and include light and heavy footstep splashes or droplets of water spraying from the characters arms as they interact with one another. 
+在每个战士中，您将看到一系列的 **粒子效果群组**（以 **P_** 为前缀），每个群组均带有 **Toggle** 轨迹。这些轨迹代表在场景中开启的 **粒子特效**（保存在 **Game/FX/Particles/Water** 文件夹中），包括灯光和沉重脚步冲击波、以及角色发生交互时从手臂飞溅的水滴。 
 
 [REGION:tip]
-When adding a keyframe for the **Toggle** track, you are given the option to either set the effect to **On**, **Off**, or **Trigger** (which will play the effect in a one-off fashion until triggered again). 
+为 **Toggle** 轨迹添加关键帧时，可选择将特效设为 **开**、**关** 或 **触发**（特效进行单次播放，再次被触发后将再次播放）。 
 [/REGION]
 
-If you look in the **World Outliner**, you will notice that each of the emitters are parented to each of the Troopers. 
+在 **World Outliner** 中进行查看，会发现每个发射器均为每个战士的子项。 
 
 ![](CharacterParticleEffects.png)
 
-When the emitter is spawned in, **Local** or **World Space** is used to control their orientations (a foot splash for example, only the **Transform** is needed, so the effect would be left in **World Space** and the FX is authored with the **Z** axis up). 
+发射器生成后，**Local** 或 **World Space** 用于控制其朝向（例如，脚步冲击波只需要 **Transform**，因此特效将被留在 **世界空间** 中，生成时 **Z** 轴朝上）。 
 
 [REGION:note]
-For more on **Particle Effects**, refer to the [](Engine/Rendering/ParticleSystems) documentation.
+如需了解 **粒子特效** 的更多内容，请查阅 [](Engine/Rendering/ParticleSystems) 文档。
 [/REGION]
 
 
-### FX Tracks (Takedows and TileBreaks)
+### FX 轨迹（Takedowns 和 TileBreaks）
 
 [REGION:fullwidth]
 ![](FX_TakedowsTileBreaks.png)
 [/REGION]
 
-The remaining FX groups under the **FX_Takedowns** and  **FX_TileBreaks** folders are used to toggle the bigger effects in the scene such as the bigger water splashes when a character hits the ground, or as the name implies, trigger the tile breaking effect seen when the characters hit the walls. 
+**FX_Takedowns** 和 **FX_TileBreaks** 文件夹下的其他 FX 群组用于开关场景中的大型特效，如角色倒地时溅起的较大水花，或在角色撞击墙壁时瓷砖破碎效果（如文件夹名所示）。 
 
 [REGION:note]
-In order to see the tile breaks, you may need to run the game in the editor and not play it through **Matinee** as they require physics simulation to occur. 
+因需要物理模拟，在编辑器中（而非通过 Matinee）运行游戏方能看到瓷砖破碎效果。 
 [/REGION]
 
-#### FX Takedowns (Relative Scale 3D Track)
+#### FX Takedowns（相对比例 3D 轨迹）
 
 [REGION:fullwidth]
 ![](EffectsRelativeScale.png)
 [/REGION]
 
-While the **Movement** and **Toggle** tracks have been previously discussed on this page, a new type of track is used in this section, the **RelativeScale3D** track which is a component of the **Vector Property** track.  
+本页中之前已经讨论过 **Movement** 和 **Toggle** 轨迹，而该部分将使用一种新轨迹 - **RelativeScale3D** 轨迹，它是 **Vector Property** 轨迹的一个组件。  
 
-The **Vector Property** track allows you to modify the value of a vector property of an **Actor** over time (in this case, the particle effect). Using the **Curve Editor** you can modify the size of this effect and how it appears in the scene. 
+**Vector Property** 轨迹可随时间进程对 **Actor** 的矢量属性数值进行修改（在此例中 Actor 为粒子特效）。可使用 **曲线编辑器** 修改此特效的大小，以及出现在场景中的方式。 
 
 
-#### FX TileBreaks (Event Track)
-The **Movement** and **Toggle** tracks used in this section determine when the effect occurs and where, but it is the **Event** track that is of importance in this section. 
+#### FX TileBreaks（Event 轨迹）
+该部分使用的 **Movement** 和 **Toggle** 轨迹决定着特效的发生时间和发生位置，但这部分中最重要的却是 **Event** 轨迹。 
 
  ![](EffectsEventTrack.png)
 
-This track is used to communicate with the **Level Blueprint** and fire of scripted events. In this instance, it is used to set several **Static Mesh** pieces (which make up the fractured pieces of tiles) to enable physics, making them fall to the floor. For each **Event** added via this track, a scripted event is called inside the **Level Blueprint**. 
+该轨迹用于连接 **关卡蓝图** 和脚本事件触发。在此例中，该轨迹对数个 **静态网格体** 块（构成瓷砖的碎片）应用物理，使他们掉落在地上。将对此轨迹添加的每个 **Event** 在 **关卡蓝图** 中调用脚本事件。 
 
 [REGION:note]
-You can access the **Static Mesh** pieces that comprise the wall tiles that break apart in the **Game/FX/Meshes** folder under **Wall_01**, **Wall_02**, and **Wall_03**. 
+在 **Game/FX/Meshes** 文件夹的 **Wall_01**、**Wall_02** 和 **Wall_03** 中找到组成墙壁瓷砖的 **静态网格体** 块。 
 [/REGION]
 
-You can access the **Level Blueprint** by clicking the **Blueprints** button from the main **Toolbar** and selecting **Open Level Blueprint**. 
+在主 **工具栏** 中点击 **Blueprints** 按钮并选择 **Open Level Blueprint** 即可访问 **关卡蓝图**。 
 
 ![](AccessLevelBlueprint.png)
 
-Below is the **Level Blueprint** used in this scene (for a better view, it is recommended you view the **Blueprint** inside the editor). 
+下图是该场景中使用的 **关卡蓝图**（为便于查看，推荐在编辑器中查看蓝图）。 
 
 ![](LevelBlueprintFull.png)(w:780)
 
-This **Blueprint** also handles resetting of the **StaticMesh** objects when the **Matinee** loops around to play the sequence again, without this portion of script, the tiles would remain broken on the ground. 
+该蓝图还将在 Matinee 循环重新播放序列时重设 **静态网格体**。如没有这部分脚本，瓷砖仍将在地面上保持破碎状态。 
 
 [REGION:note]
-For more information on working with **Blueprints**, refer to the [](Engine/Blueprints) documentation.
+如需了解蓝图使用的更多内容，请查阅 [](Engine/Blueprints) 文档。
 [/REGION]
 
 
-### Audio Tracks
+### 声音轨迹
 
 [REGION:fullwidth]
 ![](AudioTracks.png)
 [/REGION]
 
-Each of the **Sound** tracks inside the **Audio** folder that are assigned to the different troopers contain several sound assets that are played at different keyframes during the sequence. These are used to produce the majority of the impact sounds, grunts, and VO heard during the sequence. 
+**Audio** 文件夹中的每个 **Sound** 轨迹被指定到不同的战士，其中包含数个声音资源，在序列的不同关键帧播放。它们用于生成序列中大部分的冲击声、咕噜声和旁白。 
 
-When a sound asset is added to the **Sound** track, you can **Right-Click** on the keyframe to adjust the asset's **Volume** or **Pitch** from the context menu. 
+声音资源被添加到 Sound 轨迹后，在关键帧上 **单击右键** 即可调整资源的 **音量** 或 **基音**。 
 
 ![](AudioVolumePitchMenu.png)
 
 [REGION:note]
-Most of the sound effects used can be found in the **Game/Sound/FightMatinee** folder, while VO can be found in the **Game/Sound/VO** folder and music can be found in the **Game/Sound/Music** folder. You can also locate a specific asset by choosing the **Find in Browser** option from the context menu when **Right-Clicking** on a keyframe as seen in the image above. 
+大多数音效均保存在 **Game/Sound/FightMatinee** 文件夹中；旁白保存在 **Game/Sound/VO** 文件夹中；音乐保存在 **Game/Sound/Music** 文件夹中。如上图所示，在关键帧上 **单击右键**，从快捷菜单中选择 **Find in Browser** 选项即可找到特定资源。 
 [/REGION]
 
-### Director Group
-While the **Tracks** are the main course of **Matinee**, the **Director Group** and its related tracks serve up the dessert and add polish to the scene. 
+### 导演群组
+如果说 **轨迹** 是 Matinee 的蛋糕，那么 **导演群组** 与其相关轨迹就是蛋糕上的奶油，优化场景效果。 
 
 ![](DirectorGroup.png)(w:800)
 
-In short, with the **Director Group** you have access to special tracks, most importantly the **Director Track** (which allows you to take over the players view and assign it to different **Actors** in the scene, such as different cameras). You also have the ability to fade the scene in or out with the **Fade Track**, increase or decrease the game speed (including playback of the **Matinee** sequence) with the **Slomo Track**, control the overall **Volume** or **Pitch** of audio in the game with the **Audio Master Track**, or modify the color of the scene through the **Color Scale Track**. 
+简而言之，通过 **导演群组** 可使用特殊轨迹，其中最重要的是 **Director 轨迹**（可接管玩家视图，并将其指定到场景中不同的 **Actors** 上，例如不同的摄像机）。此外，您还可利用 **Fade 轨迹** 对场景进行淡入和淡出、利用 **Slomo 轨迹** 提高或降低游戏速度（包括 **Matinee** 序列的播放）、利用 **Audio Master 轨迹** 控制游戏音频的 **音量** 或 **基音**、或通过 **Color Scale 轨迹** 修改场景颜色。 
 
 [REGION:note]
-For more information on the **Tracks** available in **Matinee**, including the **Director Group Tracks**, refer to the [](Engine/Matinee/TrackReference) documentation.
+如需 Matinee 中轨迹的更多内容（包括导演群组轨迹），请查阅 [](Engine/Matinee/TrackReference) 文档。
 [/REGION]
 
-#### Director Track
+#### 导演轨迹
 
 ![](DirectorTrack.png)
 
-In this **Matinee** sequence, the **Director** track is used mostly to switch between different camera perspectives (mostly designated to using the "shake" cameras which are children of other cameras that control its main movement). 
+在 Matinee 序列中，**Director** 轨迹主要用于不同摄像机透视之间的切换（主要为使用“摇晃”摄像机而设计，此类摄像机为其他摄像机的子项，其主要运动受父摄像机的控制）。 
 
-You can add **Shots** to the **Director Track** by pressing the **Enter** key at the desired location in the sequence. When a key is added, you are presented with a context menu which will allow you to select a **Group** to cut to for the shot (typically these are **Camera Actors**). 
+在序列中的指定位置按下 **Enter** 键即可在 **Director 轨迹** 中添加 **镜头**。添加关键帧后，将出现一个快捷菜单，选择镜头切换到的 **群组**（通常为 **摄像机 Actors**）。 
 
 ![](DirectorTrackGroupSelect.png)
 
 
-#### Slomo Track
+#### 慢动作轨迹
 
 ![](SlomoTrack.png)
 
-The **Slomo Track** was used quite frequently throughout this sequence, not just to slow the scene down at times, but also to speed it up. When you **Right-Click** on a keyframe that has been added to this track, you can choose **Set Value** to assign the new game speed at that particular time. 
+**Slomo Track** 在此序列中的使用频率较高，不仅使场景变慢，还可将其加快。在添加到此轨迹的关键帧上 **单击右键**，即可选择 **Set Value** 在此特定时间上指定新的游戏速度。 
 
-A **Value** of 1 represents the default game speed and anything lower than 1 will slow the scene down while increased numbers will speed the game up. For the majority of the scene, the value hovers between 1 and 1.2 with the occasional sequence where the game speed is slowed down (at the keyframe in the image above for example, game speed was slowed down to 0.2). 
+**数值** 1 为默认游戏速度，低于 1 的数值将使场景变慢，大于 1 的数值将使速度加快。在场景的多数时间内，数值在 1 和 1.2 之间变化，偶尔会出现出现速度较慢的序列（以上图的关键帧为例，游戏速度下降到 0.2）。 
 
 
-#### Fade Track
+#### 淡化轨迹
 
 ![](FadeTrack.png)
 
-The **Fade Track** is typically only used to fade in the beginning of the scene or fade the scene out at the end (and is the case here). When you **Right-Click** on a keyframe that has been added on this track, you can choose **Set Value** to assign the value of the fade at that particular time (similar to the **Slomo Track**). The **Fade Track's** default value is 0 which means the scene is not faded out, a value of 1 renders a faded out scene and a black screen.  
+**Fade 轨迹** 通常用于在场景开头淡入，或在场景结尾淡出（此处以淡出为例）。在添加到此轨迹的关键帧上 **单击右键**，即可选择 **Set Value** 在此特定时间上指定淡化值（与 **Slomo 轨迹** 相似）。**Fade 轨迹** 默认值为 0，此时场景并未淡出；如数值为 1，将渲染淡出的场景和黑屏。  
 
-In this example, the introduction fade in however is using a **Constant** interpolation whereas the ending fade is using a **Linear** interpolation between keyframes (you will notice that the intro fade is goes from 0 to 1 rather quickly while the ending fade which goes from 1 to 0 is much smoother and fades the scene out). 
+在此例中，在关键帧之间初始淡入使用 **常数** 插值，而结束淡出使用 **线性** 插值（您会发现初始淡入从 0 快速地变为 1，而结束淡化则平缓地从 1 变为 0，将场景淡出）。 
 
 [REGION:tip]
-Remember, you can **Right-Click** on a keyframe and choose **Interp Mode** to set the type of interpolation between keyframes used. 
+注意：可在关键帧上 **单击右键** 选择 **Interp Mode**，设置所使用关键帧之间的插值类型。 
 [/REGION]
 
-#### Sound Tracks
+#### 声音轨迹
 
-Inside the **Director Group**, you will notice that several additional **Sound Tracks** have been added which include more sound effects, music and ambient sounds. 
+在导演群组中添加有数个额外的 **Sound 轨迹**，包括更多音效、音乐和环境音。 
 
 ![](DirectorGroupSoundTracks.png)(w:800)
 
-The **Sound Tracks** included in the **Director Group** could also have been placed and lumped in with the **Sound Tracks** under the **Audio** folder in the **Tracks Window**, however for clarity purposes as these effects enhance the audio and may be deemed as polish, they are included here (you could place them in either section however). 
+导演群组中包含的 **Sound** 轨迹本因被放置在 **Tracks 窗口** 中 **Audio** 文件夹下的 Sound 轨迹中。然而为便于查找使用，它们将作为音频优化效果放置于此（将其放置在任意一处均可）。 
 
-One thing to note about this section, the **Music** is split into two different tracks and does not use a single "master" music track to supply the score but instead uses smaller snippets that are placed to accentuate the scene based on the visuals that are taking place. 
+注意：**Music** 分为两个不同的轨迹，使用小片段而并非单一的“主”音乐轨迹进行工作。这些小片段依附于视觉内容，对场景进行烘托。 
 
 
 
-#### Audio Master Track
+#### 主音频轨迹
 
 ![](AudioMasterTrack.png)
 
-The **Audio Master Track** included in this scene is there to normalize the audio to a standard volume and pitch (which are set to the default of 1). No other keyframes are placed on this track for this example, however depending upon your needs, you could add keyframes to reduce the overall volume or adjust the pitch if you desired. 
+此场景中的 **Audio Master** 轨迹用于调整音频的标准音量和基音（默认值为 1）。此例中该轨迹上未放置任何关键帧，然而您可根据个人需求添加关键帧，降低整体音量或调整所需的基音。 
 
 [REGION:tip]
-You could use this track to fade out any audio that you have in your scene (such as music, sound effects, etc.) by adding two keyframes which interp between the values 1 and 0 for the **Volume** setting. 
+可使用此轨迹淡出场景中的任意音频（如音乐、音效等） - 为 **音量** 设置添加两个在数值 1 和 0 之间插值的关键帧。 
 [/REGION]
 
-#### Event Track
+#### 事件轨迹
 
 ![](DirectorGroupEvent.png)
 
-The **Event Track** in the **Director Group** is used to reset the physics objects that are toggled on during the scene (these are the **Static Mesh** tile pieces that break apart when the characters hit the walls).  
+导演群组中的 **Event** 轨迹用于重设场景中开启的物理对象（在此例中它们是角色和墙壁发生碰撞时破碎的 **静态网格体** 瓷砖块）。  
 
-If you open the **Level Blueprint**, the section of script that is executed when this event is called is outlined below (it is recommended that you view the full **Blueprint** inside the editor). 
+打开 **关卡蓝图**，调用事件时执行的部分脚本列于下方（建议在编辑器中查看完整 **蓝图**）。 
 
 ![](EventResetBlueprint.png)(w:800)
 
 
-## Matinee Tips and Tricks
+## Matinee 提示和技巧
 
-In this section, we will cover some of the techniques used to create the fight scene as well as provide some tips and tricks to help generate your own scenes. 
+在这部分中，我们将提及用于创建打斗场景的部分技术，并阐述一些提示和技巧，助您生成一流的场景。 
 
-### Camera Transitions
+### 摄像机过渡
 
-One of the first **Camera** tips you will see used quite frequently in this **Matinee** sequence is in regards to camera movement. If you take a look at the **Director** track, each time a cut is made to a different camera, on that camera's **Movement** track you will notice that a keyframe has been placed prior to the cut occurring (see below). 
+在此 Matinee 序列中，使用较为频繁的 **摄像机** 技巧之一与摄像机运动相关。仔细观察 **Director** 轨迹：每当切至另外的摄像机时，摄像机的 **Movement** 轨迹上将出现一个关键帧（在切镜发生之前），详见下图。 
 
 ![](CameraMovementTip.png)(w:800)
 
-While the **Director** track is calling for **Camera_Shake3**, remember that its parent camera (**Camera_3**) will dictate the main movement path, while the view and "shaky" movement is assigned to **Camera_Shake3**. Placing a keyframe to start movement for **Camera_3** before the cut occurs provides a smoother transition into the cut as the camera is already in motion when cut to rather than cutting to the camera and then starting movement. 
+**Director** 轨迹调用 **Camera_Shake3** 时，其父摄像机（**Camera_3**）将指定主运动路径，同时视图和“摇晃”运动将被指定到 **Camera_Shake3**。在切镜前放置一个关键帧开始 **Camera_3** 的运动，使切换到的摄像机已处于运动状态，从而获得流畅的切镜过渡。先切换镜头，再开始摄像机运动则达不到效果。 
 
-### Locking the Editor View to a Camera
+### 将编辑器视图锁定到摄像机
 
-While the **Matinee Editor** is open, you can click on any of the tracks and it will automatically select the **Actor** (if the track is attached to an **Actor**) in the editor's viewport. With the **Actor** selected, you can then lock the viewports view to that **Actor** (a camera **Actor** for example). 
+**Matinee 编辑器** 打开时点击任意轨迹，其将在编辑器视口中自动选择 **Actor**（如轨迹附着在 **Actor** 上）。选择 **Actor** 后，即可将视口视图锁定到此 **Actor** 上（以摄像机 **Actor** 为例） 
 
 [REGION:lightbox]
 [![](MatineeSelectedActor.png)(w:800)](MatineeSelectedActor.png)
 [/REGION]
 
-_Click the image for full view._ 
+_点击图片查看全图。_ 
 
-In box 1, a keyframe on the **Movement** track of **Camera_1** has been selected. The camera assigned to the **Camera_1** group in **Matinee**, **Camera1**, is shown as selected in the viewport in box 2 and selected in the **World Outliner** in box 3. 
+在标记为 1 的框中，已选中 **Camera_1** **Movement** 轨迹上的一个关键帧。在 **Matinee** 中指定到 **Camera_1** 群组的摄像机（**Camera1**）在视口中显示为选定状态（标记为 2 的框中），在 **World Outliner** 中也显示为选定状态（标记为 3 的框中）。 
 
-Inside the viewport, if you click the **Viewport Options** dropdown menu and uncheck the **Allow Matinee Preview** options...
+在视口中，如点击 **Viewport Options** 下拉菜单并取消勾选 **Allow Matinee Preview** 选项...
 
 ![](LockCamera_DisablePreview.png)
 
-Then click the **Viewport Options** dropdown menu again, you will see the option to **Lock Viewport to Actor** and the extended window will allow you to select the **Actor** to lock it to (**Camera1** in this case). 
+然后再次点击 **Viewport Options** 下拉菜单，可看到 **Lock Viewport to Actor** 选项，在其展开的窗口中选择视图锁定的 **Actor**（在此例中为 **Camera1**）。 
 
 ![](EnableLockCamera.png)
 
-After selecting to lock the camera, you will see a lock icon in the upper left corner of the viewport indicating that the view is now locked to an **Actor**. 
+选择锁定摄像机后，视口左上角将出现一个锁图标，表明视图当前被锁定在 **Actor** 上。 
 
 ![](LockCameraIcon.png)
 
-While holding the **Right Mouse Button** down, you can now use the **W**, **A**, **S**, **D** keys to fly the camera into the position you would like for your shot at the selected keyframe, viewing it from the camera's perspective. 
+按住 **鼠标右键** 时，可使用 **W**、**A**、**S**、**D** 键将摄像机移动至镜头在所选关键帧的位置，从摄像机透视进行查看。 
 
 [REGION:tip]
-With the **Right Mouse Button** held down, you can also press the **E** key to move the camera up and the **Q** key to move the camera down. 
+按住 **鼠标右键** 时，还可按下 **E** 键使摄像机上升，按下 **Q** 键使摄像机下降。 
 [/REGION]
 
-You will need to re-enable **Allow Matinee Preview** after moving your camera in order to resume previewing the full **Matinee** sequence, but this method of locking the viewport to a camera is useful for moving your cameras into your desired positions. 
+为继续预览完整的 **Matinee** 序列，移动摄像机后需要重新启用 **Allow Matinee Preview**。将视口锁定到摄像机的这种方法可用于移动摄像机到所需位置。 
 
-### Handheld "Shaky" Camera Tips
+### 手持“摇晃”摄像机技巧
 
-The process of adding keyframes to the **Movement** track to create that shaky handheld look can be quite daunting at first glance, however, this tip may speed up the process. 
+为 **Movement** 轨迹添加关键帧形成摇晃手持效果的操作看上去会让人望而生畏，以下技巧将有助于减轻难度。 
 
-For the shot that is to utilize this type of movement, first establish the **Start** and **End** keyframes of where you want the camera to start and end at for the shot. 
+在应用此类运动的镜头中，首先在摄像机开始和结束之处创建 **开始** 和 **结束** 关键帧。 
 
 ![](ShakyTip_StartAndEnd.png)(w:800)
 
-Next, grab the **Time Bar** and scrub through the shot, periodically pressing **Enter** to add a keyframe until you reach the end keyframe. Since this is ambient movement, it does not necessarily need to be evenly spaced out but a general distance between each keyframe is good for clarity. 
+接下来在镜头中拖动 **时间条**，定期按下 **Enter** 键添加关键帧，直至结束关键帧。因为这是环境运动，其不必均匀地分布开，但为关键帧之间设置总体距离将更为清晰明了。 
 
 ![](ShakyTip_EditingKeyFrames.png)(w:800)
 
-Using the method of **Locking the Editor View to a Camera** described above, you can now select each keyframe and move the camera slightly at each keyframe. 
+利用上文所述的 **将编辑器视图锁定到摄像机** 的方法，现在可选择每个关键帧并在其之间轻微地移动摄像机。 
 
-Depending on the level of shake you want, you may need to increase the movement. Generally speaking, subtle movements are better and are not as jarring as big movements (which could be used for impacts like hitting the wall or floor, punching a character, etc.). Also, movement can be as simple as simply rotating the view instead of moving the camera's position. You will have to play with it and scrub through the sequence to get the best result. 
+可视所需的手持效果适当增加运动量。总体而言轻微的移动效果更佳，较大的运动震动幅度过大（较大的运动可用于与墙壁或地板发生碰撞、击打角色等情况）。除摄像机位置移动外，运动还可以是简单的视图旋转。您需要进行试验、调试、对序列进行整理，获得最佳效果。 
 
-### Slow Motion Keyframing
+### 慢动作关键帧
 
-There are different ways you can approach adding slow motion sequences in your scene. 
+有多种方法可在场景中添慢动作序列。 
 
-You could add three keyframes, where the first keyframe is the normal game speed, the second keyframe is the slow motion target speed, and the third keyframe returns you to the normal game speed again. 
+可添加 3 个关键帧，第一个关键帧是正常的游戏速度，第二个关键帧是慢动作目标速度，第三个关键帧重新回到正常的游戏速度。 
 
 ![](SlowMoExample1.png)
 
-This is the example used in this sequence, where the first and last keyframes are set to **1** and the keyframe in the middle is set to **0.2**. This will blend the game speed down from 1 to 0.2 and back to 1 over the course of the allotted timeframe. 
+这是该序列中的范例，第一帧和最后一帧设为 **1**，中间帧设为 **0.2**。随分配的时间线进程，游戏速度将从 1 降至 0.2，然后重新升至 1。 
 
-There may be an instance however where you do not want the speed to change during the slow motion sequence but remain constant. In this situation, you could use 4 keyframes where the first two keyframes blend from your normal speed down to your target speed and the last two keyframes blend from your target speed back to normal speed. 
+也许您会希望慢动作序列中的速度不出现变化，维持恒定。在这种情况下，您需要使用 4 个关键帧，前两个关键帧从正常速度变为目标速度，后两个关键帧从目标速度变回正常速度。 
 
 ![](SlowMoExample2.png)
 
-In this example, the speed between the second and third keyframes will not change and the sequence will play at the same speed over the course of the allotted timeframe. 
+在此例中，第二帧和第三帧之间的速度不会发生变化，序列在分配的时间线进程中以相同速度播放。 
 
 
-### Helpful Matinee View Options
+### 实用的 Matinee 视图选项
 
-Inside the **Matinee Editor** under **View** from the file menu, there are two options which are useful that you may want to enable. 
+**Matinee 编辑器** 中文件菜单的 **View** 下方有两个十分使用的选项，需要启用。 
 
 [REGION:imagetable]
 | ![](ViewOption1.png) | ![](ViewOption2.png) |
-| :---: | :---: |
+| :---:| :---:|
 | Zoom To Time Cursor Position | Allow Keyframe Bar Selection |
 [/REGION]
 
-Both of the options above are off by default and can be enabled from the **View** menu. 
+两个选项皆默认关闭，可从 **View** 菜单中启用。 
 
-**Zoom To Time Cursor Position** will allow you to **Mouse Wheel** up (to zoom in) or down (to zoom out) from the current location of the **Time Bar**. When scrubbing through your sequence, with this option off, it can be a bit of a nuisance to have to move the scroll bar over to the new location of the **Time Bar** (this option alleviates that issue). 
+**Zoom To Time Cursor Position** 选项可从 **时间条** 的当前位置向上滚动 **鼠标滚轮**（放大）或向下滚动（缩小）。整理序列时，如未开启此选项，则需将滚动条移动至 **时间条** 的新位置，较为麻烦（而该选项可解决此问题）。 
 
-**Allow Keyframe Bar Selection** is useful in that it allows you to click on the bar associated with a keyframe to select it rather than having to click on the keyframe itself. 
+**Allow Keyframe Bar Selection** 的用处在于 - 点击与关键帧相关的条即可选中关键帧，而无需在关键帧上进行点击。 
 
 ![](KeyframeBarSelect.png)
 
-In the image above, clicking anywhere on the purple bar will select the keyframe associated with this shot whereas with the option off, you would need to click on the actual keyframe itself to select it. 
+在上图中点击紫色条的任意位置即可选中与此镜头相关的关键帧，如该选项未启用，则必须点击实际的关键帧方可选中。 
 
-### Playback Shortcuts
+### 播放捷径
 
-You can use these keyboard shortcuts to control playback of the **Matinee** sequence: 
+可使用以下快捷键控制 **Matinee** 序列的播放： 
 
-| Shortcut | Description |
+| 快捷键 | 描述 |
 | ------- | ------------ |
-| **P** | This will **Play** the sequence or **Pause** the sequence from its current location.  |
-| **L** | This will only **Play** the sequence from its current location.  |
-| **K** | This will **Stop** the sequence at its current location. |
-| **J** | This will play the sequence in **Reverse** from its current location. |
+| **P** | **播放** 序列或在当前位置 **暂停** 序列。|
+| **L** | 在当前位置 **播放** 序列。|
+| **K** | 将序列 **停止** 在当前位置。|
+| **J** | 使序列从当前位置 **反转** 播放。|
 
-### Scene Composition
+### 场景合成
 
-Here are a few tips to creating more interesting and cohesive scene compositions, keep these in mind when setting up your shots and finalizing your sequence: 
+以下技巧有助于创建有趣而缜密的场景合成，请在设置镜头和完成序列时加以使用。 
 
-#### Screen Direction
+#### 屏幕方向
 
-Be aware of Screen Direction. If you establish a character that appears on the left side of the screen and an enemy appears on the right, it is important to maintain that fidelity and not have them switch side during a camera cut. You can have them switch sides, but you may want to showcase them switching before cutting. 
+请注意屏幕方向。如创建的角色出现在屏幕左侧，敌人出现在屏幕右侧，需维持保真度，镜头切换时请勿交换两者的位置。如要交换位置，则须在切镜前完成交换。 
 
-#### Rule of Thirds
-Try to make use of the Rule of Thirds in some of your shots. This is a general photography guideline that proposes that an image should be imagined as divided into nine equal parts by two equally spaced horizontal lines and two equally spaced vertical lines, and that important compositional elements should be placed along these lines or their intersections. 
+#### 三分法
+尝试在一些镜头中使用三分法。三分法是一种摄影技法，用两条等距水平线和两条等距垂直线将图像平均分为 9 块，再将重要的组成元素放置在线条或线条相交点上。 
 
 [REGION:imagetable]
-| ![](RuleOfThirds-SideBySide.gif)(w:480 convert:false) |![](RuleofThirdsMatinee.png)(w:320)|
-| :---: | :---: |
-| Center Shot vs. Rule of Thirds Shot | Matinee Example |
+| [INCLUDE:#v11] |![](RuleofThirdsMatinee.png)(h:240)|
+| :---:| :---:|
+| 居中镜头 vs. 三分法镜头 | Matinee 范例 |
 [/REGION]
 
-#### Framing Your Shots
+<!--
+[EXCERPT:v11]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+460
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+240
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+xnuP2mepDjs
+[/PARAMLITERAL]
+[/OBJECT]
+[/EXCERPT]
+-->
 
-Framing your shots, or drawing attention to the subject of the shot by blocking other parts of the shot with something else in the scene, can give your shots more context and add a sense of depth or layers to the shot. 
+#### 构建镜头
 
-Take for instance the shot below: 
+构建镜头 - 通过场景中其他物品将镜头中的次要部分阻挡，突出镜头主题，可为镜头赋予前后内涵，增加深度感和层次感。 
+
+以下图中的镜头为例： 
 
 ![](FramingShots1.png)(w:640)
 
-Notice the shot is framed by the pipes connected to the wall and the dead body on the floor. 
+该镜头由与墙壁连接的管道和地板上的尸体构成。 
 
-This could have easily been shot in a much tighter shot, cropping those elements out and keeping the characters in full view, however the scene is not as visually interesting. 
+这个镜头本可以更加紧凑，将这些无用的元素全部抛弃，使人物拥有全景，现在的场景显得毫无生趣。 
 
 ![](FramingShots2b.png)(w:640)
 
-#### Leading Lines
+#### 引导线
 
-Another photography based practice that you can use in your shots is Leading Lines, which lead your eyes to a character or object in your scenes. 
+可在镜头中使用的另一种摄影技法是引导线，可将观众的注意力吸引到场景中的一个角色或物体上。 
 
-Take for instance the shot below: 
+以下图中的镜头为例： 
 
 ![](LeadingLines1.png)(w:640)
 
-The pipes along the wall and floor move in a direction that leads your eyes to the characters in the scene. 
+沿墙壁的管道和地板均指向一个方向，将观众的注意力吸引到场景中的角色上。 
 
-Another example would be the sequence below: 
+下图中的序列是第二个例子： 
 
 ![](LeadingLines2.png)(w:640)
 
-This shot, although it does not have a character in it, setups up the next shot: 
+该镜头中虽然没有角色，但却为下个镜头做好了铺垫： 
 
 ![](LeadingLines2b.png)(w:640)
 
 
-## Make It Your Own (Editing the Matinee)
+## 展现个性（编辑 Matinee）
 
-This section will show you how you can start modifying the scene with a few examples to make it your own remixed version. 
+该部分通过数个范例向您展示如何对场景进行修改，使其独具个人风格。 
 
-### Getting Started
+### 准备开始
 
-First thing you will want to do is save the **MatineeFightScene** level as a new level to preserve the original version. 
+首先需要将 **MatineeFightScene** 关卡保存为一个新关卡，保留原始版本。 
 
-You can do that by selecting **SaveAs** from the **File** menu (or by pressing **Control+Shift+S**), then save the map by giving it a new name.
+从 **File** 菜单选择 **SaveAs**（或按下 **Control+Shift+S** 组合键），将地图重新命名并保存。
 
 [REGION:tip]
-You could also create a **Template** using this project for new projects. Refer to the [](Engine/Basics/Projects/CreatingTemplates) documentation for more info. 
+也可使用该项目为新项目创建一个 **模板**。如需更多内容，请查阅 [](Engine/Basics/Projects/CreatingTemplates) 文档。 
 [/REGION]
 
-### Editing Example
+### 编辑范例
 
-Below is an example remix of the original sequence: 
+以下是原始序列的重制版： 
 
-[![](Remix_Thumbnail.png)(w:640)](FightSceneRemix.wmv)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kzXg1NY4Aag
+[/PARAMLITERAL]
+[/OBJECT]
 
-As you can see from the video, there a number of different things you can do to modify the scene. In the video above, the following modifications were used: 
+如视频中所见，可执行一系列操作对场景进行修改。以上视频应用了下列修改： 
 
-* New camera angles were used in some shots. 
-* New shaky camera movement was added and bigger impact shaky cameras were used in some shots. 
-* New first person perspective was used in a couple shots by adjusting keyframes on the camera's **Movement** tracks. 
-* For each camera used in the scene, under the **Film** settings for each, the **Saturation** and **Contrast** values were set to 0.0 to produce the black-and-white feel. 
-* All sound was stripped and replaced with a single music score. 
-* The majority of the scene was played at a game speed of 0.7 (with the exception of the slowmo sequences which were set to 0.08). 
-* A new cut-away shot was added of the skull on the main stairwell. 
+* 部分镜头使用了全新的摄像机角度。 
+* 部分镜头新添加摄像机小幅晃动和大幅晃动。 
+* 通过摄像机 **Movement** 轨迹上的关键帧调整，在部分镜头中使用新的第一人称透视。 
+* 在场景中每个摄像机的 **Film** 设置中将 **Saturation** 和 **Contrast** 数值设为 0.0，形成黑白画面感。 
+* 所有声音均被去除，以单一的乐谱替代。 
+* 在场景中的大部分时间内，游戏速度为 0.7（只有慢动作序列的速度为 0.08）。 
+* 主楼梯井中新增斩首镜头。 
 
-You could also try rearranging the cuts in the sequence or repositioning the characters in the scene (or using a different scene entirely), adding different particle or sound effects, adjusting the Depth of Field or Character Lighting or other settings to make it your own!
+您可尝试对序列中的切镜进行重新编排、或重新放置角色在场景中的位置（或使用完全不同的场景）、添加各种粒子特效和声音效果、调整景深和角色灯光等诸多设置，使场景具有您强烈的个人风格！
 
 
 

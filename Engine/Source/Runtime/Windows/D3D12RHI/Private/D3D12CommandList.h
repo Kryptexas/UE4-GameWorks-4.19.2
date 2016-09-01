@@ -255,24 +255,14 @@ public:
 		}
 	}
 
-	FD3D12CommandListHandle& operator = (const FD3D12CommandListHandle* CL)
+	FD3D12CommandListHandle& operator = (TYPE_OF_NULLPTR)
 	{
-		if (this != CL)
+		if (CommandListData && CommandListData->Release() == 0)
 		{
-			if (CommandListData && CommandListData->Release() == 0)
-			{
-				delete CommandListData;
-			}
-
-			CommandListData = nullptr;
-
-			if (CL && CL->CommandListData)
-			{
-				CommandListData = CL->CommandListData;
-
-				CommandListData->AddRef();
-			}
+			delete CommandListData;
 		}
+
+		CommandListData = nullptr;
 
 		return *this;
 	}

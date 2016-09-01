@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604027
+﻿INTSourceChangelist:2750643
 Availability: Public
 Title:Event 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Event (이벤트)는 파티클 자체나 레벨의 다른 액터에 따라 이벤트를 생성하는 모듈입니다.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 

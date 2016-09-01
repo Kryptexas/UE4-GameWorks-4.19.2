@@ -33,7 +33,6 @@
 #include "SSequencerShotFilterOverlay.h"
 #include "GenericCommands.h"
 #include "SequencerContextMenus.h"
-#include "SSequencerTreeViewBox.h"
 #include "NumericTypeInterface.h"
 #include "NumericUnitTypeInterface.inl"
 #include "SNumericEntryBox.h"
@@ -109,7 +108,6 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	CachedViewRange = TRange<float>::Empty();
 
 	Settings = InSequencer->GetSettings();
-	Settings->GetOnShowCurveEditorChanged().AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
 	Settings->GetOnTimeSnapIntervalChanged().AddSP(this, &SSequencer::OnTimeSnapIntervalChanged);
 	if ( InSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval() > 0 )
 	{
@@ -211,7 +209,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 		.OnViewRangeChanged(InArgs._OnViewRangeChanged)
 		.ViewRange(InArgs._ViewRange);
 
-	CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
+	CurveEditor->SetAllowAutoFrame(SequencerPtr.Pin()->GetShowCurveEditor());
 	TrackArea->SetTreeView(TreeView);
 
 	const int32 Column0 = 0, Column1 = 1;
@@ -348,7 +346,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 									+ SHorizontalBox::Slot()
 									.FillWidth( FillCoefficient_0 )
 									[
-										SNew(SSequencerTreeViewBox, InSequencer, SharedThis(this))
+										SNew(SBox)
 										[
 											TreeView.ToSharedRef()
 										]
@@ -969,17 +967,27 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	{
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SetSelectionRangeStart);
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SetSelectionRangeEnd);
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().ResetSelectionRange);
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SelectKeysInSelectionRange);
 	}
 	MenuBuilder.EndSection();
 
 	// other options
 	MenuBuilder.AddMenuSeparator();
+
 	if (SequencerPtr.Pin()->IsLevelEditorSequencer())
 	{
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixActorReferences);
 	}
 	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixFrameTiming);
+
+	MenuBuilder.AddMenuSeparator();
+
+	if ( SequencerPtr.Pin()->IsLevelEditorSequencer() )
+	{
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ImportFBX );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ExportFBX );
+	}
 
 	return MenuBuilder.MakeWidget();
 }
@@ -1062,7 +1070,7 @@ TSharedRef<SWidget> SSequencer::MakeTimeRange(const TSharedRef<SWidget>& InnerCo
 	FTimeRangeArgs Args(
 		ShowRange,
 		TimeSliderController.ToSharedRef(),
-		TAttribute<EVisibility>(this, &SSequencer::GetTimeRangeVisibility),
+		EVisibility::Visible,
 		TAttribute<bool>(this, &SSequencer::ShowFrameNumbers),
 		GetZeroPadNumericTypeInterface()
 		);
@@ -1072,7 +1080,6 @@ TSharedRef<SWidget> SSequencer::MakeTimeRange(const TSharedRef<SWidget>& InnerCo
 SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
-	Settings->GetOnShowCurveEditorChanged().RemoveAll(this);
 	Settings->GetOnTimeSnapIntervalChanged().RemoveAll(this);
 }
 
@@ -1111,10 +1118,8 @@ void RestoreSelectionState(const TArray<TSharedRef<FSequencerDisplayNode>>& Disp
 		{
 			SequencerSelection.AddToSelection(DisplayNode);
 		}
-		for (TSharedRef<FSequencerDisplayNode> ChildDisplayNode : DisplayNode->GetChildNodes())
-		{
-			RestoreSelectionState(DisplayNode->GetChildNodes(), SelectedPathNames, SequencerSelection);
-		}
+
+		RestoreSelectionState(DisplayNode->GetChildNodes(), SelectedPathNames, SequencerSelection);
 	}
 }
 
@@ -1366,7 +1371,7 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 	if( bObjectAdded )
 	{
 		// Update the sequencers view of the movie scene data when any object is added
-		SequencerRef.UpdateRuntimeInstances();
+		SequencerRef.NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 
 		// Update the tree and synchronize selection
 		UpdateLayoutTree();
@@ -1388,12 +1393,6 @@ void SSequencer::OnClassesDropped( const FClassDragDropOp& DragDropOp )
 			UObject* Object = Class->GetDefaultObject();
 
 			FGuid NewGuid = SequencerRef.MakeNewSpawnable( *Object );
-
-			if (NewGuid.IsValid())
-			{
-				// Update the sequencers view of the movie scene data
-				SequencerRef.NotifyMovieSceneDataChanged();
-			}
 		}
 	}
 }
@@ -1440,10 +1439,6 @@ void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragD
 		if( Object != nullptr )
 		{
 			FGuid NewGuid = SequencerRef.MakeNewSpawnable( *Object );
-			if (NewGuid.IsValid())
-			{
-				SequencerRef.NotifyMovieSceneDataChanged();
-			}
 		}
 	}
 }
@@ -1465,9 +1460,9 @@ void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)
 		}
 		else
 		{
-			if (Settings->GetShowCurveEditor())
+			if (SequencerPtr.Pin()->GetShowCurveEditor())
 			{
-				Settings->SetShowCurveEditor(false);
+				SequencerPtr.Pin()->SetShowCurveEditor(false);
 			}
 
 			SequencerPtr.Pin()->PopToSequenceInstance( Item.MovieSceneInstance.Pin().ToSharedRef() );
@@ -1674,7 +1669,7 @@ EVisibility SSequencer::GetBreadcrumbTrailVisibility() const
 
 EVisibility SSequencer::GetCurveEditorToolBarVisibility() const
 {
-	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 
@@ -1699,7 +1694,7 @@ bool SSequencer::ShowFrameNumbers() const
 float SSequencer::GetOutlinerSpacerFill() const
 {
 	const float Column1Coeff = GetColumnFillCoefficient(1);
-	return Settings->GetShowCurveEditor() ? Column1Coeff / (1 - Column1Coeff) : 0.f;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? Column1Coeff / (1 - Column1Coeff) : 0.f;
 }
 
 
@@ -1711,13 +1706,13 @@ void SSequencer::OnColumnFillCoefficientChanged(float FillCoefficient, int32 Col
 
 EVisibility SSequencer::GetTrackAreaVisibility() const
 {
-	return Settings->GetShowCurveEditor() ? EVisibility::Collapsed : EVisibility::Visible;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 
 EVisibility SSequencer::GetCurveEditorVisibility() const
 {
-	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 
@@ -1745,13 +1740,15 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 		}
 
 		// Only zoom horizontally if the editor is visible
-		CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
+		CurveEditor->SetAllowAutoFrame(SequencerPtr.Pin()->GetShowCurveEditor());
 
 		if (CurveEditor->GetAutoFrame())
 		{
 			CurveEditor->ZoomToFit();
 		}
 	}
+
+	TreeView->UpdateTrackArea();
 }
 
 
@@ -1760,10 +1757,13 @@ void SSequencer::OnTimeSnapIntervalChanged()
 	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 	if ( Sequencer.IsValid() )
 	{
-		FScopedTransaction SetFixedFrameIntervalTransaction( NSLOCTEXT( "Sequencer", "SetFixedFrameInterval", "Set scene fixed frame interval" ) );
 		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-		MovieScene->Modify();
-		MovieScene->SetFixedFrameInterval( Settings->GetTimeSnapInterval() );
+		if (!FMath::IsNearlyEqual(MovieScene->GetFixedFrameInterval(), Settings->GetTimeSnapInterval()))
+		{
+			FScopedTransaction SetFixedFrameIntervalTransaction( NSLOCTEXT( "Sequencer", "SetFixedFrameInterval", "Set scene fixed frame interval" ) );
+			MovieScene->Modify();
+			MovieScene->SetFixedFrameInterval( Settings->GetTimeSnapInterval() );
+		}
 	}
 }
 

@@ -2,6 +2,7 @@ Availability: Public
 Title:Kill Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Kill modules will kill a given particle if it meets the rules defined by specific implementations. 
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -12,7 +13,7 @@ Kill modules will kill a given particle if it meets the rules defined by specifi
 
 ![](KillBox.png)
 
-The Kill box module is used to kill particles when they move outside of a defined box. It contains the following member(s):
+The **Kill Box** module is used to kill particles when they move outside of a defined box. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -31,7 +32,7 @@ If the 3D preview mode is enabled, the wire box will be drawn in the Cascade pre
 
 ![](KillHeight.png)
 
-The Kill height module is used to kill particles when they move above a defined height. It contains the following member(s):
+The **Kill Height** module is used to kill particles when they move above a defined height. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |

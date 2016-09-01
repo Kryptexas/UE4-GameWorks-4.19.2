@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2610045
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title:2 - ビューポートの操作
+Title:2 - ビューポートの遷移
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:様々なビューポートの操作を学びましょう 
-SkillLevel:初心者
-Version:4.8
+Description:アンリアル エンジン 4 で様々なビューポートへ遷移する方法をいろいろ学びましょう。 
+SkillLevel:Beginner
+version:4.9
 Related:Engine/UI/LevelEditor/Viewports
 Related:Engine/Levels
 Related:Engine/UI/LevelEditor/Viewports/ViewportControls
+checkpoint: editorqs
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -32,24 +33,24 @@ Related:Engine/UI/LevelEditor/Viewports/ViewportControls
 ![](TableAndChairs.png)(w:720)
 
 レベル構築のほとんどは、ビューポートで済ますことができます。前のステップで選択したテンプレート プロジェクトに含まれている小さなサンプル [**レベル**](Engine/Levels) とアセットを使って、作業を開始します。 
-この小さな領域をリファレンスのポイントとして使用して、UNREAL ENGINEのビューポートの遷移に一番よく使う方法で [**ビューポート カメラ コントロール**](Engine/UI/LevelEditor/Viewports/ViewportControls) に慣れていきましょう。 
+この小さな領域をリファレンスのポイントとして使用して、アンリアル エンジン 4 のビューポートの遷移に一番よく使う方法で [**ビューポート カメラ コントロール**](Engine/UI/LevelEditor/Viewports/ViewportControls) に慣れていきましょう。 
 
 
-## スタンダードコントロール
+## 標準の制御
 
 [INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
 
 [REGION:tip]
-[**Orthographic View**](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl&video=RoiQOwCg-4Q) へ切り替えるには、**Perspective** ドロップダウンをクリックして、Orthographic ビューモードを選択します。 
+[正投影ビュー](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl&video=RoiQOwCg-4Q) へ切り替えるには、**Perspective** ドロップダウンをクリックして、Orthographic ビューモードを選択します。 
 
 ![](OrthographicViews.png)
 [/REGION]
 
-## WASD フライコントロール
+## WASD 飛行制御
 
 [INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#GameControls]
 
-## ALT　フォーカスコントール
+##周回、ドリー 、トラック
 
 [INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#MayaLikeControls]
 

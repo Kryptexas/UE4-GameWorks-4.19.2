@@ -27,7 +27,7 @@ class FPostProcessVisualizeBufferPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("DRAWING_TILE"), bDrawingTile ? TEXT("1") : TEXT("0"));
+		OutEnvironment.SetDefine(TEXT("DRAWING_TILE"), bDrawingTile);
 	}
 
 	/** Default constructor. */

@@ -1,8 +1,11 @@
 Availability:Public
 Title:Blueprint Arrays
-Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Scripting
 Description:Documentation over Blueprint Arrays, including creation, editing, and use.
 version: 4.9
+parent:Engine/Blueprints/Scripting
+tags:Arrays and Structures
+order:1
 
 ![](Arrays.png)
 

@@ -45,7 +45,6 @@ struct FClothingBackup
 	bool						bBackedUp;
 	TArray<FClothingAssetData>	ClothingAssets;
 	TArray<FSkelMeshSection>	Sections;
-	TArray<FSkelMeshChunk>		Chunks;
 	TArray<uint32>				IndexBuffer;
 
 	void	Clear()
@@ -53,7 +52,6 @@ struct FClothingBackup
 		bBackedUp = false;
 		ClothingAssets.Empty();
 		Sections.Empty();
-		Chunks.Empty();
 	}
 };
 #endif // #if WITH_APEX_CLOTHING

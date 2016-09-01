@@ -7,6 +7,8 @@
 #include "Collision.h"
 #include "Engine/DemoNetDriver.h"
 #include "AudioDeviceManager.h"
+#include "MessageLog.h"
+#include "MapErrors.h"
 
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"
@@ -17,6 +19,8 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/MovementComponent.h"
 #include "GameFramework/GameMode.h"
+
+#define LOCTEXT_NAMESPACE "LevelActor"
 
 // CVars
 static TAutoConsoleVariable<float> CVarEncroachEpsilon(
@@ -604,11 +608,24 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	{
 		ThisActor->SetOwner(NULL);
 	}
-	// Notify net players that this guy has been destroyed.
-	UNetDriver* ActorNetDriver = GEngine->FindNamedNetDriver(this, ThisActor->GetNetDriverName());
-	if (ActorNetDriver)
+
+	// Notify net drivers that this guy has been destroyed.
+	if (GEngine->GetWorldContextFromWorld(this))
 	{
-		ActorNetDriver->NotifyActorDestroyed(ThisActor);
+		UNetDriver* ActorNetDriver = GEngine->FindNamedNetDriver(this,ThisActor->GetNetDriverName());
+		if (ActorNetDriver)
+		{
+			ActorNetDriver->NotifyActorDestroyed(ThisActor);
+		}
+	}
+	else
+	{
+		if (!IsRunningCommandlet())
+		{
+			// Only worlds in the middle of seamless travel should have no context, and in that case, we shouldn't be destroying actors on them until
+			// they have become the current world (i.e. CopyWorldData has been called)
+			UE_LOG(LogSpawn, Warning, TEXT("UWorld::DestroyActor: World has no context! World: %s, Actor: %s"), *GetName(), *ThisActor->GetPathName());
+		}
 	}
 
 	if ( DemoNetDriver )
@@ -650,6 +667,12 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 -----------------------------------------------------------------------------*/
 
 APlayerController* UWorld::SpawnPlayActor(UPlayer* NewPlayer, ENetRole RemoteRole, const FURL& InURL, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& Error, uint8 InNetPlayerIndex)
+{
+	FUniqueNetIdRepl UniqueIdRepl(UniqueId);
+	return SpawnPlayActor(NewPlayer, RemoteRole, InURL, UniqueIdRepl, Error, InNetPlayerIndex);
+}
+
+APlayerController* UWorld::SpawnPlayActor(UPlayer* NewPlayer, ENetRole RemoteRole, const FURL& InURL, const FUniqueNetIdRepl& UniqueId, FString& Error, uint8 InNetPlayerIndex)
 {
 	Error = TEXT("");
 
@@ -1215,58 +1238,79 @@ void UWorld::RefreshStreamingLevels()
 {
 	RefreshStreamingLevels( StreamingLevels );
 }
+
+void UWorld::IssueEditorLoadWarnings()
+{
+	float TotalLoadTimeFromFixups = 0;
+
+	for (int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++)
+	{
+		ULevel* Level = Levels[LevelIndex];
+
+		if (Level->FixupOverrideVertexColorsCount > 0)
+		{
+			TotalLoadTimeFromFixups += Level->FixupOverrideVertexColorsTime;
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("LoadTime"), FText::FromString(FString::Printf(TEXT("%.1fs"), Level->FixupOverrideVertexColorsTime)));
+			Arguments.Add(TEXT("NumComponents"), FText::FromString(FString::Printf(TEXT("%u"), Level->FixupOverrideVertexColorsCount)));
+			Arguments.Add(TEXT("LevelName"), FText::FromString(Level->GetOutermost()->GetName()));
+			
+			FMessageLog("MapCheck").Info()
+				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "Repaired painted vertex colors in {LoadTime} for {NumComponents} components in {LevelName}.  Resave map to fix." ), Arguments ) ))
+				->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
+		}
+	}
+
+	if (TotalLoadTimeFromFixups > 0)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("LoadTime"), FText::FromString(FString::Printf(TEXT("%.1fs"), TotalLoadTimeFromFixups)));
+			
+		FMessageLog("MapCheck").Warning()
+			->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_SpentXRepairingPaintedVertexColors", "Spent {LoadTime} repairing painted vertex colors due to static mesh re-imports!  This will happen every load until the maps are resaved." ), Arguments ) ))
+			->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
+	}
+}
+
 #endif // WITH_EDITOR
 
 
 AAudioVolume* UWorld::GetAudioSettings( const FVector& ViewLocation, FReverbSettings* OutReverbSettings, FInteriorSettings* OutInteriorSettings )
 {
-	// Find the highest priority volume encompassing the current view location. This is made easier by the linked
-	// list being sorted by priority. @todo: it remains to be seen whether we should trade off sorting for constant
-	// time insertion/ removal time via e.g. TLinkedList.
-	AAudioVolume* Volume = HighestPriorityAudioVolume;
-	while( Volume )
+	// Find the highest priority volume encompassing the current view location.
+	for (AAudioVolume* Volume : AudioVolumes)
 	{
 		// Volume encompasses, break out of loop.
-		if (Volume->bEnabled && Volume->EncompassesPoint(ViewLocation))
+		if (Volume->GetEnabled() && Volume->EncompassesPoint(ViewLocation))
 		{
-			break;
-		}
-		// Volume doesn't encompass location, further traverse linked list.
-		else
-		{
-			Volume = Volume->NextLowerPriorityVolume;
+			if( OutReverbSettings )
+			{
+				*OutReverbSettings = Volume->GetReverbSettings();
+			}
+
+			if( OutInteriorSettings )
+			{
+				*OutInteriorSettings = Volume->GetInteriorSettings();
+			}
+			return Volume;
 		}
 	}
 
-	if( Volume )
+	// If first level is a FakePersistentLevel (see CommitMapChange for more info)
+	// then use its world info for reverb settings
+	AWorldSettings* CurrentWorldSettings = GetWorldSettings(true);
+
+	if( OutReverbSettings )
 	{
-		if( OutReverbSettings )
-		{
-			*OutReverbSettings = Volume->Settings;
-		}
-
-		if( OutInteriorSettings )
-		{
-			*OutInteriorSettings = Volume->AmbientZoneSettings;
-		}
+		*OutReverbSettings = CurrentWorldSettings->DefaultReverbSettings;
 	}
-	else
+
+	if( OutInteriorSettings )
 	{
-		// If first level is a FakePersistentLevel (see CommitMapChange for more info)
-		// then use its world info for reverb settings
-		AWorldSettings* CurrentWorldSettings = GetWorldSettings(true);
-
-		if( OutReverbSettings )
-		{
-			*OutReverbSettings = CurrentWorldSettings->DefaultReverbSettings;
-		}
-
-		if( OutInteriorSettings )
-		{
-			*OutInteriorSettings = CurrentWorldSettings->DefaultAmbientZoneSettings;
-		}
+		*OutInteriorSettings = CurrentWorldSettings->DefaultAmbientZoneSettings;
 	}
-	return Volume;
+
+	return nullptr;
 }
 
 void UWorld::SetAudioDeviceHandle(const uint32 InAudioDeviceHandle)
@@ -1321,3 +1365,5 @@ void UWorld::SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects)
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

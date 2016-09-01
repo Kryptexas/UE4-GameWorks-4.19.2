@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2625743
+﻿INTSourceChangelist:2774060
 Availability:Public
-Title:ビヘイビアツリーのクイックスタートガイド
+Title:ビヘイビアツリーのクイックスタート ガイド
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:AI の概要とサンプル
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,7 +47,7 @@ Description:AI の概要とサンプル
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-ｚ1td5wSD3PPU
+q6vTg2roI6k
 [/PARAMLITERAL]
 [/OBJECT]
 

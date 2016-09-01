@@ -39,6 +39,17 @@ enum class EMouseCaptureMode : uint8
 	CaptureDuringRightMouseDown,
 };
 
+UENUM()
+enum class EMouseLockMode : uint8
+{
+	/** Do not lock the mouse cursor to the viewport */
+	DoNotLock,
+	/** Only lock the mouse cursor to the viewport when the mouse is captured */
+	LockOnCapture,
+	/** Always lock the mouse cursor to the viewport */
+	LockAlways,
+};
+
 /** Type of tick we wish to perform on the level */
 enum ELevelTick
 {
@@ -517,7 +528,11 @@ namespace ENetworkFailure
 		/** The server needs to upgrade their game */
 		OutdatedServer,
 		/** There was an error during connection to the game */
-		PendingConnectionFailure
+		PendingConnectionFailure,
+		/** NetGuid mismatch */
+		NetGuidMismatch,
+		/** Network checksum mismatch */
+		NetChecksumMismatch
 	};
 }
 
@@ -546,6 +561,10 @@ namespace ENetworkFailure
 			return TEXT("OutdatedServer");
 		case PendingConnectionFailure:
 			return TEXT("PendingConnectionFailure");
+		case NetGuidMismatch:
+			return TEXT("NetGuidMismatch");
+		case NetChecksumMismatch:
+			return TEXT("NetChecksumMismatch");
 		}
 		return TEXT("Unknown ENetworkFailure error occurred.");
 	}
@@ -887,7 +906,7 @@ enum EViewModeIndex
 
 	VMI_CollisionPawn = 15, 
 	VMI_CollisionVisibility = 16, 
-	VMI_VertexDensities = 17,
+	//VMI_UNUSED = 17,
 	/** Colored according to the current LOD index. */
 	VMI_LODColoration = 18,
 	/** Colored according to the quad coverage. */

@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2390214
-Title: クラス指定子
+﻿INTSourceChangelist:2707774
+Title:クラス指定子
 Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes
-Description:エンジンおよびエディタの各種特性でのクラスの動作を指定する、ゲームプレイクラスの宣言時に使用するキーワード
+Description:エンジンおよびエディタの様々な側面でクラスの動作を指定する、ゲームプレイクラスの宣言時に使用するキーワード
 Availability:Public
+Version:4.9
 
 [EXCERPT:main]
-各種アスペクトでのクラスがどのように動作するのか制御する指定子を 
+クラスを宣言するときに、エンジンやエディタの様々な側面でクラスがどのように動作するかを制御する指定子を 
 宣言に追加することができます。
 
 [REGION:buttonlist]

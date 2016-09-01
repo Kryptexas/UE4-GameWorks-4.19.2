@@ -1,34 +1,19 @@
-﻿INTSourceChangelist:2686394
+﻿INTSourceChangelist:2995305
 Availability:Public
 Title:ブループリントのテクニカルガイド
 Crumbs: %ROOT%, Programming
 Description:ブループリントを使用するプログラマー向けテクニカルガイド
 version:4.9
+Parent:Engine/Blueprints
+Type:guide
 
+ブループリントは、アンリアル エンジン 4 に実装されたパワフルな新機能です。  
 
-ブループリントは、アンリアル エンジン 4 に新しく実装されたパワフルな機能です。  
-
-ブループリントを一言で言うならば、コードの記述やコンパイルをせずに、新規 UClasses を作成する方法です。ブループリントを作成する場合、「ネイティブ」の C++ クラス 
+ブループリントを一言で言うならば、コードの記述やコンパイルをせずに UClasses を新規作成する手段です。ブループリントを作成する場合、「ネイティブ」の C++ クラス 
 または別のブループリントの拡張を選択することができます。さらに、コンポーネントの追加、配置、カスタマイズ、ビジュアル スクリプティング言語を用いてカスタムロジックを実装、イベントやインタラクションに対応、カスタム変数の定義、入力を処理、および 
-完全にカスタム仕様のオブジェクト タイプを作成することができます。
+すべてカスタム仕様のオブジェクト タイプを作成することができます。
 
-各ブループリントには、「コンストラクション スクリプト」があります。これは、 C++ のコンストラクタのようなものであり、オブジェクトが作成されると実行されます。このスクリプトは Actor インスタンスを任意の数のファクタに基づき、 
-動的にコンストラクトします。こうしたファクタには、建造物間のギャップを満たすように自動的に自己サイズ調整するフェンスなどがあります。こうした意味で、ブループリントは非常にパワフルなプレハブ システムであると考えることもできます。 
+各ブループリントには、「コンストラクション スクリプト」があります。これは、 C++ のコンストラクタのようなものであり、オブジェクトが作成されると実行されます。このスクリプトは どんな係数でもそれに合わせて Actor インスタンスを動的に構築します。 
+例えば、自動的に自己サイズ調整して建造物間の隙間を埋めるフェンスなどです。こうした意味で、ブループリントは非常にパワフルなプレハブ システムであると考えることもできます。 
 
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)
-	[/PARAM]
-	[PARAM:title]
-		ブループリント アーキテクチャ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Blueprints/TechnicalGuide/Compiler "%Engine/Blueprints/TechnicalGuide/Compiler:description%")
-		* [](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints "%Engine/Blueprints/TechnicalGuide/ExtendingBlueprints:description%")
-		* [](Engine/Blueprints/TechnicalGuide/Guidelines "%Engine/Blueprints/TechnicalGuide/Guidelines:description%")
-	[/PARAM]
-[/OBJECT]
-
+[DIR(output:"listbutton" parent:"Engine/Blueprints/TechnicalGuide")]

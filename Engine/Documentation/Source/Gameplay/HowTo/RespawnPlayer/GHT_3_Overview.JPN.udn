@@ -1,23 +1,23 @@
-﻿INTSourceChangelist:2320474
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:プレイヤーを再スポーンするための操作ガイド
 Crumbs: %ROOT%, Gameplay
-Description:アンリアル エンジン 4 でプレイヤー キャラクターを再スポーンするための操作ガイド 
+Description:UE4 でプレイヤー キャラクターを再スポーンするための操作ガイド 
 
 
 ## 概要
 
-ほとんどのゲームでは、プレイヤー キャラクターが殺され、ワールドに再スポーンするときがやってきます。この **操作ガイド** では、シングル プレイヤー用途での簡単な再スポーン システムのセットアップ方法について説明します。 
+ほとんどのゲームでは、プレイヤー キャラクターがキルされ、ワールドに再スポーンするときがやってきます。この **操作ガイド** では、シングル プレイヤー用途での簡単な再スポーン システムのセットアップ方法について説明します。 
 
 ## セットアップ
 
-ブループリントを使った **プレイヤーの再スポーン** については、次のいずれかをご覧ください。
+ブループリントを使った **プレイヤーの再スポーン** については、以下をご覧ください。
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\RespawnPlayer\Blueprints)
-[PUBLISH:Docs]
+<!--
 * [](Gameplay\HowTo\RespawnPlayer\Code)
-[/PUBLISH:Docs]
+-->
 [/REGION]
 
 

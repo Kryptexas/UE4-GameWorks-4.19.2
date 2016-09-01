@@ -997,7 +997,7 @@ void FConsoleManager::SaveHistory()
 }
 
 
-void FConsoleManager::ForEachConsoleObject(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const
+void FConsoleManager::ForEachConsoleObjectThatStartsWith(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const
 {
 	check(Visitor.IsBound());
 	check(ThatStartsWith);
@@ -1012,6 +1012,49 @@ void FConsoleManager::ForEachConsoleObject(const FConsoleObjectVisitor& Visitor,
 		if(MatchPartialName(*Name, ThatStartsWith))
 		{
 			Visitor.Execute(*Name, CVar);
+		}
+	}
+}
+
+void FConsoleManager::ForEachConsoleObjectThatContains(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatContains) const
+{
+	check(Visitor.IsBound());
+	check(ThatContains);
+
+	TArray<FString> ThatContainsArray;
+	FString(ThatContains).ParseIntoArray(ThatContainsArray, TEXT(" "), true);
+	int32 ContainsStringLength = FCString::Strlen(ThatContains);
+
+	//@caution, potential deadlock if the visitor tries to call back into the cvar system. Best not to do this, but we could capture and array of them, then release the lock, then dispatch the visitor.
+	FScopeLock ScopeLock( &ConsoleObjectsSynchronizationObject );
+	for(TMap<FString, IConsoleObject*>::TConstIterator PairIt(ConsoleObjects); PairIt; ++PairIt)
+	{
+		const FString& Name = PairIt.Key();
+		IConsoleObject* CVar = PairIt.Value();
+
+		if (ContainsStringLength == 1)
+		{
+			if (MatchPartialName(*Name, ThatContains))
+			{
+				Visitor.Execute(*Name, CVar);
+			}
+		}
+		else
+		{
+			bool bMatchesAll = true;
+
+			for (int32 MatchIndex = 0; MatchIndex < ThatContainsArray.Num(); MatchIndex++)
+			{
+				if (!MatchSubstring(*Name, *ThatContainsArray[MatchIndex]))
+				{
+					bMatchesAll = false;
+				}
+			}
+
+			if (bMatchesAll && ThatContainsArray.Num() > 0)
+			{
+				Visitor.Execute(*Name, CVar);
+			}
 		}
 	}
 }
@@ -1091,6 +1134,12 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 				if(Param2[0] == (TCHAR)'\"' && Param2[Param2.Len() - 1] == (TCHAR)'\"')
 				{
 					Param2 = Param2.Mid(1, Param2.Len() - 2);
+				}
+				// this is assumed to be unintended e.g. copy and paste accident from ini file
+				if(Param2.Len() > 0 && Param2[0] == (TCHAR)'=')
+				{
+					Ar.Logf(TEXT("Warning: Processing the console input parameters the leading '=' is ignored (only needed for ini files)."));
+					Param2 = Param2.Mid(1, Param2.Len() - 1);
 				}
 			}
 
@@ -1297,6 +1346,35 @@ bool FConsoleManager::MatchPartialName(const TCHAR* Stream, const TCHAR* Pattern
 	}
 
 	return true;
+}
+
+bool FConsoleManager::MatchSubstring(const TCHAR* Stream, const TCHAR* Pattern)
+{
+	while(*Stream)
+	{
+		int32 StreamIndex = 0;
+		int32 PatternIndex = 0;
+
+		do
+		{
+			if (Pattern[PatternIndex] == 0)
+			{
+				return true;
+			}
+			else if (FChar::ToLower(Stream[StreamIndex]) != FChar::ToLower(Pattern[PatternIndex]))
+			{
+				break;
+			}
+
+			PatternIndex++;
+			StreamIndex++;
+		} 
+		while (Stream[StreamIndex] != 0 || Pattern[PatternIndex] == 0);
+
+		++Stream;
+	}
+
+	return false;
 }
 
 void CreateConsoleVariables();
@@ -1587,6 +1665,7 @@ void CreateConsoleVariables()
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("VisRT"),	TEXT("GUI for visualizetexture"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("HighResShot"),	TEXT("High resolution screenshots [Magnification = 2..]"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("DumpUnbuiltLightInteractions"),	TEXT("Logs all lights and primitives that have an unbuilt interaction."), ECVF_Cheat);
+	IConsoleManager::Get().RegisterConsoleCommand(TEXT("r.ResetViewState"), TEXT("Reset some state (e.g. TemporalAA index) to make rendering more deterministic (for automated screenshot verification)"), ECVF_Cheat);
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -1673,14 +1752,6 @@ static TAutoConsoleVariable<int32> CVarClearWithExcludeRects(
 	TEXT(" 0: Force off (can be faster on hardware that has fast clears)\n")
 	TEXT(" 1: Use exclude rect if supplied\n")
 	TEXT(" 2: Auto (default is 2, pick what is considered best on this hardware)"),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarSimpleDynamicLighting(
-	TEXT("r.SimpleDynamicLighting"),
-	0,
-	TEXT("Whether to use simple dynamic lighting, which just renders an unshadowed dynamic directional light and a skylight.\n")
-	TEXT("All other lighting features are disabled when true.  This is useful for supporting very low end hardware.\n")
-	TEXT("0:off, 1:on"),
 	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarTranslucentSortPolicy(
@@ -1883,13 +1954,12 @@ static TAutoConsoleVariable<int32> CVarUseDXT5NormalMaps(
 	// Changing this causes a full shader recompile
 	ECVF_ReadOnly);
 
-// Changing this is currently unsupported after content has been chunked with the previous setting
-// Changing this causes a full shader recompile
-static TAutoConsoleVariable<int32> CVarMaxGPUSkinBones(
-	TEXT("Compat.MAX_GPUSKIN_BONES"),
-	256,
-	TEXT("Max number of bones that can be skinned on the GPU in a single draw call. Cannot be changed at runtime."),
-	ECVF_ReadOnly);
+static TAutoConsoleVariable<int32> CVarContactShadows(
+	TEXT("r.ContactShadows"),
+	1,
+	TEXT(" 0: disabled.\n")
+	TEXT(" 1: enabled.\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarAllowStaticLighting(
@@ -2163,11 +2233,11 @@ static TAutoConsoleVariable<int32> CVarDetailMode(
 static TAutoConsoleVariable<int32> CVarDBuffer(
 	TEXT("r.DBuffer"),
 	0,
-	TEXT("Experimental DBuffer feature: Generating deferred decals before the BasePass.\n")
-	TEXT("Allows decals to be correctly lit by baked lighting. Receivers need to be rendered in the early zpass.\n")
-	TEXT("At the moment only can be ensures by full enablng this pass: r.EarlyZPassMovable=1 r.EarlyZPass=2\n")
+	TEXT("Enables DBuffer decal material blend modes.\n")
+	TEXT("DBuffer decals are rendered before the base pass, allowing them to affect static lighting and skylighting correctly. \n")
+	TEXT("When enabled, a full prepass will be forced which adds CPU / GPU cost.  Several texture lookups will be done in the base pass to fetch the decal properties, which adds pixel work.\n")
 	TEXT(" 0: off\n")
-	TEXT(" 1: on (needs early pass rendering on all decal receivers and base pass lookups into the DBuffer, costs GPU memory, allows GBuffer compression)"),
+	TEXT(" 1: on"),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
 static TAutoConsoleVariable<float> CVarSkeletalMeshLODRadiusScale(
@@ -2175,14 +2245,6 @@ static TAutoConsoleVariable<float> CVarSkeletalMeshLODRadiusScale(
 	1.0f,
 	TEXT("Scale factor for the screen radius used in computing discrete LOD for skeletal meshes. (0.25-1)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-
-
-static TAutoConsoleVariable<int32> CVarOnlyStreamInTextures(
-	TEXT("r.OnlyStreamInTextures"),
-	0,
-	TEXT("If set to 1, texture will only be streamed in, not out"),
-	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarPreTileTextures(
 	TEXT("r.PreTileTextures"),
@@ -2208,13 +2270,6 @@ static TAutoConsoleVariable<int32> CVarFeatureLevelPreview(
 	TEXT("If 1 the quick settings menu will contain an option to enable feature level preview modes"),
 	ECVF_RenderThreadSafe);
 
-
-static TAutoConsoleVariable<int32> CVarGBuffer(
-	TEXT("r.GBuffer"),
-	1,
-	TEXT("0=Do not use GBuffer (fast minimal rendering path), 1=Use GBuffer [default]."),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarVerifyPeer(
 	TEXT("n.VerifyPeer"),
 	1,
@@ -2234,3 +2289,27 @@ static TAutoConsoleVariable<int32> CVarCheckSRVTransitions(
 	0,
 	TEXT("Tests that render targets are properly transitioned to SRV when SRVs are set."),
 	ECVF_RenderThreadSafe);  
+
+static TAutoConsoleVariable<int32> CVarDisableThreadedRendering(
+	TEXT("r.AndroidDisableThreadedRendering"),
+	0,
+	TEXT("Sets whether or not to allow threaded rendering for a particular Android device profile.\n")
+	TEXT("	0 = Allow threaded rendering [default]\n")
+	TEXT("	1 = Disable creation of render thread on startup"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarDisableVulkanSupport(
+	TEXT("r.Android.DisableVulkanSupport"),
+	0,
+	TEXT("Disable support for vulkan API. (Android Only)\n")
+	TEXT("  0 = vulkan API will be used (providing device and project supports it) [default]\n")
+	TEXT("  1 = vulkan will be disabled, opengl fall back will be used."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarDisableOpenGLES31Support(
+	TEXT("r.Android.DisableOpenGLES31Support"),
+	0,
+	TEXT("Disable support for OpenGLES 3.1 API. (Android Only)\n")
+	TEXT("  0 = OpenGLES 3.1 API will be used (providing device and project supports it) [default]\n")
+	TEXT("  1 = OpenGLES 3.1 will be disabled, OpenGL ES2 fall back will be used."),
+	ECVF_ReadOnly);

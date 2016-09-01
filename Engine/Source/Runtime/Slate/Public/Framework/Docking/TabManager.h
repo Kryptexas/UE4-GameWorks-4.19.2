@@ -4,6 +4,7 @@
 
 #include "SlateIcon.h"
 #include "WorkspaceItem.h"
+#include "SlateEnums.h"
 
 class FMenuBuilder;
 class FMultiBox;

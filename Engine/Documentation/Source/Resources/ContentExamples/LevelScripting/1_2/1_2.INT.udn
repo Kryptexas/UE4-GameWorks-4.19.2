@@ -2,6 +2,7 @@ Availability: Docs
 Title:1.2 - Event Dispatcher
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
 Description:An overview of the Level Scripting example level, example 1.2: Event Dispatcher used to open a door
+Version: 4.9
 
 
 [VAR:TopicCompact]

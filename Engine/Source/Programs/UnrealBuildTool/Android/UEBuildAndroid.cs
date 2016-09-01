@@ -36,7 +36,7 @@ namespace UnrealBuildTool
 
 			// Note: header is the same for all architectures so just use arch-arm
 			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
-			string NDKVulkanIncludePath = NDKPath + "/android-24/arch-arm/usr/include/vulkan";
+			string NDKVulkanIncludePath = NDKPath + "/platforms/android-24/arch-arm/usr/include/vulkan";
 
 			// Use NDK Vulkan header if discovered, or VulkanSDK if available
 			if (File.Exists(NDKVulkanIncludePath + "/vulkan.h"))
@@ -45,6 +45,11 @@ namespace UnrealBuildTool
 			}
 			else
 			if (!String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				bHaveVulkan = true;
+			}
+			else
+			if (File.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "Vulkan/Windows/Include/vulkan/vulkan.h"))
 			{
 				bHaveVulkan = true;
 			}
@@ -289,8 +294,8 @@ namespace UnrealBuildTool
 		{
 			string[] BoolKeys = new string[] {
 				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
-				"bBuildForES2", "bBuildForES31", "bSupportsVulkan",
-			};
+				"bBuildForES2", "bBuildForESDeferred", "bSupportsVulkan", "bBuildForES3"
+            };
 
 			// look up Android specific settings
 			if (!DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings",
@@ -444,7 +449,7 @@ namespace UnrealBuildTool
 
 		protected override String GetRequiredScriptVersionString()
 		{
-			return "3.0";
+			return "3.1";
 		}
 
 		// prefer auto sdk on android as correct 'manual' sdk detection isn't great at the moment.

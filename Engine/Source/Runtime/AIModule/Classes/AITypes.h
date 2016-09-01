@@ -446,6 +446,11 @@ public:
 		return RequestID;
 	}
 
+	FString ToString() const
+	{
+		return FString::FromInt(int32(RequestID));
+	}
+
 	static const FAIRequestID AnyRequest;
 	static const FAIRequestID CurrentRequest;
 	static const FAIRequestID InvalidRequest;
@@ -470,9 +475,11 @@ struct AIMODULE_API FAIMoveRequest
 	FAIMoveRequest& SetProjectGoalLocation(bool bProject) { bProjectGoalOnNavigation = bProject; return *this; }
 
 	FAIMoveRequest& SetCanStrafe(bool bStrafe) { bCanStrafe = bStrafe; return *this; }
-	FAIMoveRequest& SetStopOnOverlap(bool bStop) { bStopOnOverlap = bStop; return *this; }
+	FAIMoveRequest& SetReachTestIncludesAgentRadius(bool bIncludeRadius) { bReachTestIncludesAgentRadius = bIncludeRadius; return *this; }
+	FAIMoveRequest& SetReachTestIncludesGoalRadius(bool bIncludeRadius) { bReachTestIncludesGoalRadius = bIncludeRadius; return *this; }
 	FAIMoveRequest& SetAcceptanceRadius(float Radius) { AcceptanceRadius = Radius; return *this; }
-	FAIMoveRequest& SetUserData(FCustomMoveSharedPtr Data) { UserData = Data; return *this; }
+	FAIMoveRequest& SetUserData(const FCustomMoveSharedPtr& InUserData) { UserData = InUserData; return *this; }
+	FAIMoveRequest& SetUserFlags(int32 InUserFlags) { UserFlags = InUserFlags; return *this; }
 
 	/** the request should be either set up to move to a location, of go to a valid actor */
 	bool IsValid() const { return bInitialized && (!bMoveToActor || GoalActor); }
@@ -487,15 +494,23 @@ struct AIMODULE_API FAIMoveRequest
 	TSubclassOf<UNavigationQueryFilter> GetNavigationFilter() const { return FilterClass; }
 
 	bool CanStrafe() const { return bCanStrafe; }
-	bool CanStopOnOverlap() const { return bStopOnOverlap; }
+	bool IsReachTestIncludingAgentRadius() const { return bReachTestIncludesAgentRadius; }
+	bool IsReachTestIncludingGoalRadius() const { return bReachTestIncludesGoalRadius; }
 	float GetAcceptanceRadius() const { return AcceptanceRadius; }
-	FCustomMoveSharedPtr GetUserData() const { return UserData; }
+	const FCustomMoveSharedPtr& GetUserData() const { return UserData; }
+	int32 GetUserFlags() const { return UserFlags; }
 
 	void SetGoalActor(const AActor* InGoalActor);
 	void SetGoalLocation(const FVector& InGoalLocation);
 
 	bool UpdateGoalLocation(const FVector& NewLocation) const;
 	FString ToString() const;
+
+	DEPRECATED(4.13, "This function is deprecated, please use SetReachTestIncludesAgentRadius instead.")
+	FAIMoveRequest& SetStopOnOverlap(bool bStop);
+	
+	DEPRECATED(4.13, "This function is deprecated, please use IsReachTestIncludingAgentRadius instead.")
+	bool CanStopOnOverlap() const;
 
 protected:
 
@@ -524,8 +539,11 @@ protected:
 	/** pathfinding: goal location will be projected on navigation data before use */
 	uint32 bProjectGoalOnNavigation : 1;
 
-	/** pathfollowing: stop move when agent touches/overlaps with goal */
-	uint32 bStopOnOverlap : 1;
+	/** pathfollowing: acceptance radius needs to be increased by agent radius (stop on overlap vs exact point) */
+	uint32 bReachTestIncludesAgentRadius : 1;
+
+	/** pathfollowing: acceptance radius needs to be increased by goal actor radius */
+	uint32 bReachTestIncludesGoalRadius : 1;
 
 	/** pathfollowing: keep focal point at move goal */
 	uint32 bCanStrafe : 1;
@@ -533,11 +551,9 @@ protected:
 	/** pathfollowing: required distance to goal to complete move */
 	float AcceptanceRadius;
 
-	/** pathfollowing: custom user data */
+	/** custom user data: structure */
 	FCustomMoveSharedPtr UserData;
 
-public:
-	// deprecated
-	DEPRECATED(4.8, "FAIMoveRequest::HasGoalActor is deprecated, please use FAIMoveRequest::IsMoveToActorRequest instead.")
-	bool HasGoalActor() const { return bMoveToActor; }
+	/** custom user data: flags */
+	int32 UserFlags;
 };

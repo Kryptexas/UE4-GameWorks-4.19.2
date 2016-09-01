@@ -17,6 +17,7 @@ UAnimCompress_RemoveEverySecondKey::UAnimCompress_RemoveEverySecondKey(const FOb
 	MinKeys = 10;
 }
 
+#if WITH_EDITOR
 void UAnimCompress_RemoveEverySecondKey::DoReduction(UAnimSequence* AnimSeq, const TArray<FBoneData>& BoneData)
 {
 #if WITH_EDITORONLY_DATA
@@ -63,3 +64,4 @@ void UAnimCompress_RemoveEverySecondKey::PopulateDDCKey(FArchive& Ar)
 	Ar << bVal;
 }
 
+#endif // WITH_EDITOR

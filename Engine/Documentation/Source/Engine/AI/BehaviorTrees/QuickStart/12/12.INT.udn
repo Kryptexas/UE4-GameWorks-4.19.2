@@ -2,6 +2,7 @@ Availability:Public
 Title: 12. Make a Task
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 12. Make a Task
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,7 +22,7 @@ Description:Step 12. Make a Task
 
 %Steps%
 
-Tasks are nodes that "do" things, like move an AI, or adjust Blackboard values. They can have [**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) attached to them.
+Tasks are nodes that "do" things, like move an AI, or adjust Blackboard values. They can have [Decorators](Engine/AI/BehaviorTrees/NodeReference/Decorators) attached to them.
 
 This **Task** is basically a re-creation of the **Move To** node, with one major difference: this Task will have the AI always run towards the Player's Pawn, instead of its location. Also, it helps to break things down and see that if you don't ever execute **Finish Execute** the Task Node will continue to process, and the **AI MoveTo** node shows this perfectly.
 
@@ -29,7 +30,7 @@ This **Task** is basically a re-creation of the **Move To** node, with one major
 ## Steps
 
 1. Open the FollowerBT Behavior Tree by **Double-clicking** it in the **Content Browser**.
-1. Click New Task ![](newTask_button.png) button.
+1. Click **New Task** button.
 
 	It will create in the same folder as the Behavior Tree.
 1. Rename it in the **Content Browser** to "RapidMoveTo".

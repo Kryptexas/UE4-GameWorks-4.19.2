@@ -1,15 +1,13 @@
-﻿INTSourceChangelist:2679355
+﻿INTSourceChangelist:2968923
 Availability:Public
-Title:ブループリントのデバッグ
-Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
+Title:ブループリントのデバッグのサンプル
+Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\Workflow
 Description:ブループリントのデバッグ方法について説明します。 
-Related: Engine/Blueprints/UserGuide/Debugging
-Related: Engine/Blueprints
+Related:Engine/Blueprints/UserGuide/Debugging
+Related:Engine/Blueprints
 version:4.9
-skilllevel:Beginner
-parent:Engine/Blueprints/BP_HowTo
-order:5
-type:howto
+parent:Engine/Blueprints/Workflow
+order:6
 
 
 [TOC(start:2)]

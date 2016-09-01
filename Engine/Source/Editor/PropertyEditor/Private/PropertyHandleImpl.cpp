@@ -5,6 +5,7 @@
 #include "PropertyNode.h"
 #include "PropertyEditorHelpers.h"
 #include "ObjectPropertyNode.h"
+#include "StructurePropertyNode.h"
 #include "EditorSupportDelegates.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
@@ -1399,6 +1400,8 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 
 		int32 Index = ChildNodePtr->GetArrayIndex();
 		UObject* Obj = ObjectNode ? ObjectNode->GetUObject(0) : nullptr;
+
+		TArray< TMap<FString, int32> > ArrayIndicesPerObject;
 		if (Obj)
 		{
 			if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
@@ -1444,6 +1447,13 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 			}
 		}
 
+		if(Obj)
+		{
+
+			ArrayIndicesPerObject.Add(TMap<FString, int32>());
+			FPropertyValueImpl::GenerateArrayIndexMapToObjectNode(ArrayIndicesPerObject[0], ChildNodePtr);
+		}
+
 
 
 		//@todo Slate Property Window
@@ -1451,13 +1461,14 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 		// 		const bool bRecurse = false;
 		// 		ParentNode->SetExpanded(bExpand, bRecurse);
 
+		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::Duplicate);
+		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ValueSet);
+			
 			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
 		}
 		if (PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ValueSet);
 			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -1475,7 +1486,7 @@ FText FPropertyValueImpl::GetDisplayName() const
 }
 
 #define IMPLEMENT_PROPERTY_ACCESSOR( ValueType ) \
-	FPropertyAccess::Result FPropertyHandleBase::SetValue( const ValueType& InValue, EPropertyValueSetFlags::Type Flags ) \
+	FPropertyAccess::Result FPropertyHandleBase::SetValue( ValueType const& InValue, EPropertyValueSetFlags::Type Flags ) \
 	{ \
 		return FPropertyAccess::Fail; \
 	} \
@@ -1495,6 +1506,7 @@ IMPLEMENT_PROPERTY_ACCESSOR( uint32 )
 IMPLEMENT_PROPERTY_ACCESSOR( uint64 )
 IMPLEMENT_PROPERTY_ACCESSOR( float )
 IMPLEMENT_PROPERTY_ACCESSOR( FString )
+IMPLEMENT_PROPERTY_ACCESSOR( FText )
 IMPLEMENT_PROPERTY_ACCESSOR( FName )
 IMPLEMENT_PROPERTY_ACCESSOR( FVector )
 IMPLEMENT_PROPERTY_ACCESSOR( FVector2D )
@@ -1502,6 +1514,7 @@ IMPLEMENT_PROPERTY_ACCESSOR( FVector4 )
 IMPLEMENT_PROPERTY_ACCESSOR( FQuat )
 IMPLEMENT_PROPERTY_ACCESSOR( FRotator )
 IMPLEMENT_PROPERTY_ACCESSOR( UObject* )
+IMPLEMENT_PROPERTY_ACCESSOR( const UObject* )
 IMPLEMENT_PROPERTY_ACCESSOR( FAssetData )
 
 FPropertyHandleBase::FPropertyHandleBase( TSharedPtr<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities )
@@ -1697,6 +1710,36 @@ void FPropertyHandleBase::GetOuterObjects( TArray<UObject*>& OuterObjects ) cons
 		}
 	}
 
+}
+
+void FPropertyHandleBase::GetOuterPackages(TArray<UPackage*>& OuterPackages) const
+{
+	FComplexPropertyNode* ComplexNode = Implementation->GetPropertyNode()->FindComplexParent();
+	if (ComplexNode)
+	{
+		switch (ComplexNode->GetPropertyType())
+		{
+		case FComplexPropertyNode::EPT_Object:
+			{
+				FObjectPropertyNode* ObjectNode = static_cast<FObjectPropertyNode*>(ComplexNode);
+				for (int32 ObjectIndex = 0; ObjectIndex < ObjectNode->GetNumObjects(); ++ObjectIndex)
+				{
+					OuterPackages.Add(ObjectNode->GetUPackage(ObjectIndex));
+				}
+			}
+			break;
+
+		case FComplexPropertyNode::EPT_StandaloneStructure:
+			{
+				FStructurePropertyNode* StructNode = static_cast<FStructurePropertyNode*>(ComplexNode);
+				OuterPackages.Add(StructNode->GetOwnerPackage());
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
 }
 
 void FPropertyHandleBase::EnumerateRawData( const EnumerateRawDataFuncRef& InRawDataCallback )
@@ -1989,25 +2032,6 @@ FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValue( const int32 Obje
 	return Result;
 }
 
-TArray<FName> GetValidEnumEntries(UProperty* Property, const UEnum* InEnum)
-{
-	TArray<FName> ValidEnumValues;
-
-	static const FName ValidEnumValuesName("ValidEnumValues");
-	if (Property->HasMetaData(ValidEnumValuesName))
-	{
-		TArray<FString> ValidEnumValuesAsString;
-
-		Property->GetMetaData(ValidEnumValuesName).ParseIntoArray(ValidEnumValuesAsString, TEXT(","));
-		for (auto& Value : ValidEnumValuesAsString)
-		{
-			Value.Trim();
-			ValidEnumValues.Add(*UEnum::GenerateFullEnumName(InEnum, *Value));
-		}
-	}
-
-	return ValidEnumValues;
-}
 
 bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& OutOptionStrings, TArray< FText >& OutToolTips, TArray<bool>& OutRestrictedItems)
 {
@@ -2032,14 +2056,12 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 
 		check( Enum );
 
-		const TArray<FName> ValidEnumValues = GetValidEnumEntries(Property, Enum);
+		const TArray<FName> ValidEnumValues = PropertyEditorHelpers::GetValidEnumsFromPropertyOverride(Property, Enum);
 
 		//NumEnums() - 1, because the last item in an enum is the _MAX item
 		for( int32 EnumIndex = 0; EnumIndex < Enum->NumEnums() - 1; ++EnumIndex )
 		{
 			FString EnumValueName;
-
-			static const FName Hidden("Hidden");
 
 			// Ignore hidden enums
 			bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIndex ) || Enum->HasMetaData(TEXT("Spacer"), EnumIndex );
@@ -2204,6 +2226,7 @@ IMPLEMENT_PROPERTY_VALUE( FPropertyHandleByte )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleString )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleObject )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleArray )
+IMPLEMENT_PROPERTY_VALUE( FPropertyHandleText )
 
 // int32 
 bool FPropertyHandleInt::Supports( TSharedRef<FPropertyNode> PropertyNode )
@@ -2603,6 +2626,11 @@ bool FPropertyHandleObject::Supports( TSharedRef<FPropertyNode> PropertyNode )
 
 FPropertyAccess::Result FPropertyHandleObject::GetValue( UObject*& OutValue ) const
 {
+	return FPropertyHandleObject::GetValue((const UObject*&)OutValue);
+}
+
+FPropertyAccess::Result FPropertyHandleObject::GetValue( const UObject*& OutValue ) const
+{
 	void* PropValue = nullptr;
 	FPropertyAccess::Result Res = Implementation->GetValueData( PropValue );
 
@@ -2614,7 +2642,12 @@ FPropertyAccess::Result FPropertyHandleObject::GetValue( UObject*& OutValue ) co
 	return Res;
 }
 
-FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject*& NewValue, EPropertyValueSetFlags::Type Flags )
+FPropertyAccess::Result FPropertyHandleObject::SetValue( UObject* const& NewValue, EPropertyValueSetFlags::Type Flags )
+{
+	return FPropertyHandleObject::SetValue((const UObject*)NewValue);
+}
+
+FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject* const& NewValue, EPropertyValueSetFlags::Type Flags )
 {
 	UProperty* Property = Implementation->GetPropertyNode()->GetProperty();
 
@@ -3097,4 +3130,35 @@ bool FPropertyHandleArray::IsEditable() const
 {
 	// Property is editable if its a non-const dynamic array
 	return Implementation->HasValidPropertyNode() && !Implementation->IsEditConst() && Implementation->IsPropertyTypeOf(UArrayProperty::StaticClass());
+}
+
+// Localized Text
+bool FPropertyHandleText::Supports(TSharedRef<FPropertyNode> PropertyNode)
+{
+	UProperty* Property = PropertyNode->GetProperty();
+
+	if ( Property == nullptr )
+	{
+		return false;
+	}
+
+	// Supported if the property is a text property only
+	return Property->IsA(UTextProperty::StaticClass());
+}
+
+FPropertyAccess::Result FPropertyHandleText::GetValue(FText& OutValue) const
+{
+	return Implementation->GetValueAsText(OutValue);
+}
+
+FPropertyAccess::Result FPropertyHandleText::SetValue(const FText& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	FString StringValue;
+	FTextStringHelper::WriteToString(StringValue, NewValue);
+	return Implementation->ImportText(StringValue, Flags);
+}
+
+FPropertyAccess::Result FPropertyHandleText::SetValue(const FString& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	return SetValue(FText::FromString(NewValue), Flags);
 }

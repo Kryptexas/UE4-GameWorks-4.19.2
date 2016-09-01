@@ -73,6 +73,23 @@ Once assembled, an Animation Composite is treated just like an [Animation Sequen
 See the [](Engine/Animation/Sequences/UserGuide) for more details on playback of animations in **Animation Blueprints**.
 [/REGION]
 
+You can also embed an AnimComposite within another AnimComposite or within an [**AnimMontage**](Engine/Animation/AnimMontage).
+
+Below, an AnimComposite is created and then placed inside an AnimMontage. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+qm0KEa8K1A8
+[/PARAMLITERAL]
+[/OBJECT]
+
+
 
 ## Anim Asset Details
 

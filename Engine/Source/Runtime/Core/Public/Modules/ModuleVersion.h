@@ -10,7 +10,7 @@
 	#if ENGINE_IS_LICENSEE_VERSION
 		#define MODULE_API_VERSION BUILT_FROM_CHANGELIST
 	#else
-		#define MODULE_API_VERSION 2992821 /* Or hotfix compatibility changelist */
+		#define MODULE_API_VERSION BUILT_FROM_CHANGELIST /* Or hotfix compatibility changelist */
 	#endif
 #else
 	#define MODULE_API_VERSION 0

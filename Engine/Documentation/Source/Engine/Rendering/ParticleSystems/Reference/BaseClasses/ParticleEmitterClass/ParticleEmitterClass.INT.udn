@@ -2,6 +2,7 @@ Availability: Public
 Title:Particle Emitter Class
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:A property reference for Particle Emitters, the components that make up Cascade's Emitter List.
+Version: 4.9
 
 A ParticleEmitter is a single particle effect that can be held in a ParticleSystem. The ParticleEmitter class contains the following public variables: 
 
@@ -12,7 +13,7 @@ A ParticleEmitter is a single particle effect that can be held in a ParticleSyst
 | **Emitter Editor Color** | The color of the ParticleEmitter block when collapsed as well as in the Curve Editor and debug rendering modes. |
 | **InitialAllocationCount** | This value allows for the user to declare the number of particles that should be allocated at initialization of the emitter. If it is 0, the calculated peak count is used. (Since the calculated value can result in a higher than required count, this parameter is supplied to allow tighter memory control.) |
 | **Medium Detail Spawn Rate Scale** | This value is used to scale down the spawn rate of the emitter when the engine is running in medium or low detail mode. This can be used to optimize particle draw cost in splitscreen mode. A value of 0 effectively disables the emitter when not in high detail mode. This does not affect Spawn Per Unit, unless the value is 0. |
-| **Collapsed** | If _true_, the ParticleEmitter will appear collapsed in the Emitter List in Cascade. **Double-clicking** the ParticleEmitter block toggles this property. |
+| **Collapsed** | If _true_, the ParticleEmitter will appear collapsed in the Emitter List in Cascade. Double-clicking the ParticleEmitter block toggles this property. |
 
 
 <!-- Begin ParticleEmitter Table Includes -->

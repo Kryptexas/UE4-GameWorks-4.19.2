@@ -2,6 +2,7 @@ Availability:Public
 Title: 15. Next Steps
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 15. Next Steps
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

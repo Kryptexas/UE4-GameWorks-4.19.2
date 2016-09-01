@@ -1,16 +1,55 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Blueprint/BlueprintSupport.h"
 #include "Kismet/KismetArrayLibrary.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogArray, Warning, All);
 
+#define LOCTEXT_NAMESPACE "UKismetArrayLibrary"
+
 //////////////////////////////////////////////////////////////////////////
 // UKismetArrayLibrary
+
+const FName GetOutOfBoundsWarning = FName("GetOutOfBoundsWarning");
+const FName SetOutOfBoundsWarning = FName("SetOutOfBoundsWarning");
+const FName InsertOutOfBoundsWarning = FName("InsertOutOfBoundsWarning");
+const FName RemoveOutOfBoundsWarning = FName("RemoveOutOfBoundsWarning");
+const FName ResizeArrayNegativeWarning = FName("ResizeArrayNegativeWarning");
 
 UKismetArrayLibrary::UKismetArrayLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	FBlueprintSupport::RegisterBlueprintWarning(
+		FBlueprintWarningDeclaration (
+			GetOutOfBoundsWarning,
+			LOCTEXT("GetOutOfBoundsWarning", "Array read access out of bounds")
+		)
+	);
+	FBlueprintSupport::RegisterBlueprintWarning(
+		FBlueprintWarningDeclaration (
+			SetOutOfBoundsWarning,
+			LOCTEXT("SetOutOfBoundsWarning", "Array assignment access out of bounds")
+		)
+	);
+	FBlueprintSupport::RegisterBlueprintWarning(
+		FBlueprintWarningDeclaration (
+			InsertOutOfBoundsWarning,
+			LOCTEXT("InsertOutOfBoundsWarning", "Array insertion out of bounds")
+		)
+	);
+	FBlueprintSupport::RegisterBlueprintWarning(
+		FBlueprintWarningDeclaration (
+			RemoveOutOfBoundsWarning,
+			LOCTEXT("RemoveOutOfBoundsWarning", "Array removal out of bounds")
+		)
+	);
+	FBlueprintSupport::RegisterBlueprintWarning(
+		FBlueprintWarningDeclaration (
+			ResizeArrayNegativeWarning,
+			LOCTEXT("ResizeArrayNegativeWarning", "Array resized to negative size")
+		)
+	);
 }
 
 void UKismetArrayLibrary::FilterArray(const TArray<AActor*>& TargetArray, TSubclassOf<class AActor> FilterClass, TArray<AActor*>& FilteredArray)
@@ -92,7 +131,7 @@ void UKismetArrayLibrary::GenericArray_Insert(void* TargetArray, const UArrayPro
 		}
 		else
 		{
-			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to insert an item into array %s out of bounds [%d/%d]!"), *ArrayProp->GetName(), Index, GetLastIndex(ArrayHelper)), ELogVerbosity::Warning);
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to insert an item into array %s out of bounds [%d/%d]!"), *ArrayProp->GetName(), Index, GetLastIndex(ArrayHelper)), ELogVerbosity::Warning, InsertOutOfBoundsWarning);
 		}
 	}
 }
@@ -108,7 +147,7 @@ void UKismetArrayLibrary::GenericArray_Remove(void* TargetArray, const UArrayPro
 		}
 		else
 		{
-			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to remove an item from an invalid index from array %s [%d/%d]!"), *ArrayProp->GetName(), IndexToRemove, GetLastIndex(ArrayHelper)), ELogVerbosity::Warning);
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to remove an item from an invalid index from array %s [%d/%d]!"), *ArrayProp->GetName(), IndexToRemove, GetLastIndex(ArrayHelper)), ELogVerbosity::Warning, RemoveOutOfBoundsWarning);
 		}
 	}
 }
@@ -172,7 +211,7 @@ void UKismetArrayLibrary::GenericArray_Resize(void* TargetArray, const UArrayPro
 		}
 		else
 		{
-			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to resize an array using negative size: Array = %s, Size = %d!"), *ArrayProp->GetName(), Size), ELogVerbosity::Warning);
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to resize an array using negative size: Array = %s, Size = %d!"), *ArrayProp->GetName(), Size), ELogVerbosity::Warning, ResizeArrayNegativeWarning);
 		}
 	}
 }
@@ -214,7 +253,12 @@ void UKismetArrayLibrary::GenericArray_Get(void* TargetArray, const UArrayProper
 		}
 		else
 		{
-			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to get an item from array %s out of bounds [%d/%d]!"), *ArrayProp->GetName(), Index, GetLastIndex(ArrayHelper)), ELogVerbosity::Warning);
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to access index %d from array %s of length %d!"),
+				Index,
+				*ArrayProp->GetName(),
+				ArrayHelper.Num()),
+				ELogVerbosity::Warning,
+				GetOutOfBoundsWarning);
 			InnerProp->InitializeValue(Item);
 		}
 	}
@@ -240,7 +284,7 @@ void UKismetArrayLibrary::GenericArray_Set(void* TargetArray, const UArrayProper
 		}
 		else
 		{
-			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to set an invalid index on array %s [%d/%d]!"), *ArrayProp->GetName(), Index, GetLastIndex(ArrayHelper)), ELogVerbosity::Warning);
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to set an invalid index on array %s [%d/%d]!"), *ArrayProp->GetName(), Index, GetLastIndex(ArrayHelper)), ELogVerbosity::Warning, SetOutOfBoundsWarning);
 		}
 	}
 }
@@ -397,3 +441,5 @@ bool UKismetArrayLibrary::Array_IsValidIndex(const TArray<int32>& TargetArray, i
 	check(0);
 	return true;
 }
+
+#undef LOCTEXT_NAMESPACE

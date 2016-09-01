@@ -192,6 +192,33 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		}
 	}
 
+	const bool bResaveDirectRefsAndDeps = Switches.Contains(TEXT("resavedirectrefsanddeps"));
+	if (bExplicitPackages && PackageNames.Num() == 1 && bResaveDirectRefsAndDeps)
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		AssetRegistryModule.Get().SearchAllAssets(true);
+
+		FName PackageName = FName(*FPackageName::FilenameToLongPackageName(PackageNames[0]));
+
+		TArray<FName> Referencers;
+		AssetRegistryModule.Get().GetReferencers(PackageName, Referencers);
+		TArray<FName> Dependencies;
+		AssetRegistryModule.Get().GetDependencies(PackageName, Dependencies);
+
+		for (FName Ref : Referencers)
+		{
+			FString File;
+			FPackageName::SearchForPackageOnDisk(*Ref.ToString(), NULL, &File);
+			PackageNames.Add(File);
+		}
+		for (FName Dep : Dependencies)
+		{
+			FString File;
+			FPackageName::SearchForPackageOnDisk(*Dep.ToString(), NULL, &File);
+			PackageNames.Add(File);
+		}
+	}
+
 	// Check for the min and max versions
 	MinResaveUE4Version = IGNORE_PACKAGE_VERSION;
 	MaxResaveUE4Version = IGNORE_PACKAGE_VERSION;
@@ -325,7 +352,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 		static int32 LastErrorCount = 0;
 
-		int32 NumErrorsFromLoading = GWarn->Errors.Num();
+		int32 NumErrorsFromLoading = GWarn->GetNumErrors();
 		if (NumErrorsFromLoading > LastErrorCount)
 		{
 			UE_LOG(LogContentCommandlet, Warning, TEXT("%d total errors encountered during loading"), NumErrorsFromLoading);
@@ -388,9 +415,9 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			// if we do then we want to resave this package
 			if( !bSavePackage && FParse::Param(FCommandLine::Get(),TEXT("SavePackagesThatHaveFailedLoads")) == true )
 			{
-				//UE_LOG(LogContentCommandlet, Warning, TEXT( "NumErrorsFromLoading: %d GWarn->Errors num: %d" ), NumErrorsFromLoading, GWarn->Errors.Num() );
+				//UE_LOG(LogContentCommandlet, Warning, TEXT( "NumErrorsFromLoading: %d GWarn->Errors num: %d" ), NumErrorsFromLoading, GWarn->GetNumErrors() );
 
-				if( NumErrorsFromLoading != GWarn->Errors.Num() )
+				if( NumErrorsFromLoading != GWarn->GetNumErrors() )
 				{
 					bSavePackage = true;
 				}
@@ -463,41 +490,41 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 					if (bAutoCheckOut)
 					{
-					if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
-					{
-						UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), PackageFilename);
+						if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
+						{
+							UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
+							SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), PackageFilename);
 
-						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
-					}
-					else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
-					{
-						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
-					}
-					else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("Couldn't delete '%s' from source control, someone has it checked out, skipping..."), *Filename);
-					}
-					else if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is not in source control, attempting to delete from disk..."), *Filename);
-						if (!IFileManager::Get().Delete(*Filename, false, true))
-						{
-							UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
 						}
-					}
-					else
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is in an unknown source control state, attempting to delete from disk..."), *Filename);
-						if (!IFileManager::Get().Delete(*Filename, false, true))
+						else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
 						{
-							UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+						}
+						else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("Couldn't delete '%s' from source control, someone has it checked out, skipping..."), *Filename);
+						}
+						else if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is not in source control, attempting to delete from disk..."), *Filename);
+							if (!IFileManager::Get().Delete(*Filename, false, true))
+							{
+								UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							}
+						}
+						else
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is in an unknown source control state, attempting to delete from disk..."), *Filename);
+							if (!IFileManager::Get().Delete(*Filename, false, true))
+							{
+								UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							}
 						}
 					}
 				}
-			}
 			}
 
 			// Now based on the computation above we will see if we should actually attempt
@@ -821,6 +848,17 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 {
 	check(World);
 
+	TArray<TWeakObjectPtr<ULevel>> LevelsToRebuild;
+	ABrush::NeedsRebuild(&LevelsToRebuild);
+	for (const TWeakObjectPtr<ULevel>& Level : LevelsToRebuild)
+	{
+		if (Level.IsValid())
+		{
+			GEditor->RebuildLevel(*Level.Get());
+		}
+	}
+	ABrush::OnRebuildDone();
+
 	if (bShouldBuildLighting)
 	{
 		bool bShouldProceedWithLightmapRebuild = true;
@@ -933,7 +971,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 					UPackage* SubLevelPackage = NextStreamingLevel->GetLoadedLevel()->GetOutermost();
 					if (!SavePackageHelper(SubLevelPackage, StreamingLevelPackageFilename))
 					{
-						UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to save sub level: "), *StreamingLevelPackageFilename);
+						UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to save sub level: %s"), *StreamingLevelPackageFilename);
 					}
 					/*if (GEditor->SavePackage(SubLevelPackage, NULL, , *StreamingLevelPackageFilename, GWarn))
 					{
@@ -944,7 +982,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 		}
 		else
 		{
-			UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to complete steps necessary to start a lightmass build of "), *World->GetName());
+			UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to complete steps necessary to start a lightmass build of %s"), *World->GetName());
 		}
 
 		if ((bShouldProceedWithLightmapRebuild == false)||(bSavePackage == false))

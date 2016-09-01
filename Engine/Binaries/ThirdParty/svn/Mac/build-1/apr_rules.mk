@@ -24,9 +24,9 @@
 #
 # Configuration variables
 #
-apr_builddir=/Users/msatterthwaite/Downloads/svn/build-1
-apr_builders=/Users/msatterthwaite/Downloads/svn/build-1
-top_builddir=/Users/msatterthwaite/Downloads/svn/build-1
+apr_builddir=/Users/aliciacano/subversion-1.9.4/apr/build-1
+apr_builders=/Users/aliciacano/subversion-1.9.4/apr/build-1
+top_builddir=/Users/aliciacano/subversion-1.9.4/apr/build-1
 
 # Some layouts require knowing what version we are at.
 APR_MAJOR_VERSION=1

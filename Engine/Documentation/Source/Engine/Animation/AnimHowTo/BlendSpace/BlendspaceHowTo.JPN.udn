@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2661240
+﻿INTSourceChangelist:2819683
 Availability:Public
 Title:ブレンドスペースを作成する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -8,8 +8,8 @@ Related:Engine/Animation/NodeReference/Blend
 Related:Engine/Animation/CharacterSetupOverview
 Related:Engine/Animation/AnimBlueprints
 Related:Engine/Animation/StateMachines
-バージョン：4.9
-スキルレベル:中級者向け
+version:4.9
+skilllevel:Intermediate
 
 
 [ブレンドスペース](Engine/Animation/Blendspaces) は 2 つの入力値に基づいたアニメーションのブレンドを可能にする **AnimGraph** でサンプリングできる特殊なアセットです。単一の入力に基づいた 2 つのアニメーションの単純なブレンドは、Animation ブループリントで利用可能な標準の [ブレンド ノード](Engine/Animation/NodeReference/Blend) の一つを使用して行うことができます。ブレンドスペースは、複数の値 (現在は 2 に限定) に基づいた複数のアニメーション間で一段と複雑なブレンドを可能にします。
@@ -35,7 +35,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
 
-1.	**コンテンツ ブラウザ** で、 **[Add New (新規追加)]** ボタンをクリックします。次に **Animation** で **Blend Space** を選択します。 
+1.	**コンテンツ ブラウザ** で、 **[Add New (新規追加)]** ボタンをクリックします。次に **Animation** から **Blend Space** を選択します。 
 
 	![](BS_BlendSpace.jpg)
 
@@ -113,7 +113,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 	![](BlendSpace17.png)(w:640)
 
-	この AnimBlueprint は、 **Crouch(しゃがむ)** と呼ばれる **アクション マッピング** が存在することを想定して作られました。新しいプロジェクトにはこれが存在せず、黄色の警告記号を取り除くためには、**C** Key Event に置き換えて、C キーが押されるとプレイヤーがしゃがむようにします。 
+	この AnimBlueprint は、 **Crouch (しゃがむ)** と呼ばれる **アクション マッピング** が存在することを想定して作られました。新しいプロジェクトにはこれが存在せず、黄色の警告記号を取り除くためには、**C** Key Event に置き換えて、C キーが押されるとプレイヤーがしゃがむようにします。 
 
 1.	**Pressed** ピンを引き出して **FlipFlop** ノードを追加します。次に **A** ピンと **B** ピンを以下のように接続します。 
 

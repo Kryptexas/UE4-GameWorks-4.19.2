@@ -1,154 +1,35 @@
-﻿INTSourceChangelist:2641563
+﻿INTSourceChangelist:2958335
 Availability:Public
 Title: HTML5 프로젝트 개발 시작하기
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
 Description:HTML5 플랫폼용 개발을 위한 셋업입니다.
+Version: 4.11
+SkillLevel: Intermediate
+type:quickstart
+parent:Platforms/HTML5
+tags:HTML5
 
-[TOC(start:2 end:3)]
-
-## 들어가기 전에
 
 [REGION:todo]
 HTML5 파이프라인은 현재 실험단계 기능입니다. 일부 프로젝트는 HTML5 플랫폼용으로 제작되면 에지가 약간 거칠게 나오는 등, 정상 작동되지 않을 수 있습니다.
 [/REGION:todo]
 
-%Globals:BinarySourceSelectVar%
-
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	BinarySourceSelect
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	binaryinstall
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%binary%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	BinarySourceSelect
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	sourceinstall
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%source%
-	[/PARAM]
-[/OBJECT]
-
-
-[VAR:source]
-## 소스 및 GitHub 사용자
-
-HTML5 플랫폼을 타겟 플랫폼으로 하여 빌드하는 것은 윈도우 / 맥 호스트 플랫폼 양쪽에서 지원됩니다.
-
-HTML5 는 [Mozilla](https://www.mozilla.org/en-US/) 의 [**emscripten**](https://github.com/kripken/emscripten) 툴 체인을 사용하여 C++ 를 javascript 로 크로스 컴파일합니다. 소스 형태로 배포되어, SDK 또는 포터블 배포로 퍼블리싱됩니다. UE4 빌드는 몇 가지 절차를 통해 그 모두를 지원합니다.
-
-### 소스에서 설치
-
-설치 전 요구사항:
-
-* [Node.js](http://nodejs.org/)
-
-* [Python (2.X 시리즈)](https://www.python.org/downloads/)
-
-	* Path 환경 변수에 python.exe 가 있는지 확인하세요.
-
-* [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-
-* **emscripten** 저장소 복제 \[[emscripten Repository](https://github.com/kripken/emscripten)\]
-
-* **Fastcomp** 저장소 복제 후 빌드 \[[howto](http://kripken.github.io/emscripten-site/docs/building_from_source/building_fastcomp_manually_from_source.html)\]
-
-### .emscripten 컨픽 파일 셋업
-
-**emscripten** 툴 체인은 .emscripten 컨픽 파일이 있어야 정상 작동합니다. 이 emscripten [document](http://kripken.github.io/emscripten-site/docs/building_from_source/configuring_emscripten_settings.html) 대로 파일 셋업을 올바르게 해 줍니다.
-
-### SDK 에서 설치
-
-emscripten [website](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html) 의 안내를 따릅니다. 보통 최신 SDK 버전을 설치하는 것이 가장 좋습니다.
-
-### 언리얼 엔진 4 셋업
-
-* Unreal Engine 4 repository 를 fork 및 복제합니다 \[[UnrealEngine](https://github.com/EpicGames/UnrealEngine)\]
-
-* 셸에서 `Setup.bat -include=HTML5` 를 실행합니다.
-
-* `Engine\Config\HTML5\HTML5Engine.ini` 를 편집, `\[HTML5SDkPaths\]` 섹션 아래 OS 에 대한 SDK 경로를 구성합니다. Path 에 Python 경로도 추가시켜 줍니다. 보통 emscripten SDK 설치에 포함되어 있습니다. PATH 에 Python 경로가 포함된 경우, 이 단계는 건너뛰어도 좋습니다. 이런 모습입니다:
-
-		\[HTML5SDKPaths\]
-		Emscripten="C:/Program Files/Emscripten/emscripten/X.YY.Z"
-		Python="C:/Program Files/Emscripten/python/X.YY.Z_64bit/python.exe"
-
-다른 OS 용으로 다른 경로를 지정해야 하는 경우, 다음과 같이 해 주면 됩니다:
-
-	\[HTML5SDKPaths\]
-	Windows="C:/html5sdk/path/on/windows"
-	Mac="/html5sdk/path/on/mac"
-
-주요 브라우저 설치 및 `HTML5Engine.ini` 의 `\[HTML5DevicesWindows\]` 섹션 아래 링크가 올바른 브라우저 바이너리를 가리키는지 확인하세요.
-
-예:
-
-	\[HTML5DevicesWindows\]
-	Firefox="C:/Program Files (x86)/Mozilla Firefox/firefox.exe"
-	Chrome(32bit)="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
-	Chrome(64bit)="C:/Program Files/Google/Chrome/Application/chrome.exe"
-
-[https://github.com/EpicGames/UnrealEngine](https://github.com/EpicGames/UnrealEngine) 의 안내대로 에디터를 빌드합니다. 솔루션 환경설정을 **Development**, 솔루션 플랫폼을 **HTML5** 로 설정하고 HTML5 를 빌드합니다.
-
-### Mac OS
-
-Mac OS 에서의 emscripten 관련 문제의 경우 [http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#verifying-the-installation](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#verifying-the-installation) 문서를 참고하세요. 그리고 위 단계대로 UE4 셋업을 진행합니다. 지금은 xcode 안에서 HTML5 빌드를 할 수 있는 방법이 없지만, xcode 를 통해 내려지는 기존 스크립트를 사용하여 명령줄에서 HTML5 빌드가 가능합니다. 예:
-
-	Engine\Build\Batchfiles\Mac\Build.sh UE4Game HTML5 Development
-
-[/VAR]
-
-
-
-
-
-
-[VAR:binary]
-
-## 바이너리와 런처 사용자
-
-1. [emscripten 을 설치합니다](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html). For Windows users, it's advised to simply use the [emscripten SDK Web Installer](https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-1.29.0-web-64bit.exe).
-
-	[REGION:note]
-	emscripten 웹 인스톨러가 System Path 환경 변수에 경로를 덧붙여 주기는 하지만, 잘 되어 있는지 확인해 주시기 바랍니다.
-	[/REGION]
-
-1. [Python 2.7 를 설치합니다.](https://www.python.org/download/releases/2.7/)
-
-	Python **2.7** 어떤 버전이든 괜찮습니다. 이 글 작성 시점에서는 2.7.9 가 최신입니다. Python 3.x 는 사용하지 마세요.
-
-1. `Engine\Config\HTML5\HTML5Engine.ini` 파일을 업데이트합니다:
-
-		[HTML5SDKPaths]
-		Mac="/path/to/emscripten/sdk"
-		Emscripten="C:/Program Files/Emscripten/emscripten/1.29.0"
-		Python="C:/Python27"
-
-[REGION:warning]
-크롬이나 파이어폭스 등 다른 위치로 설치하기로 한 경우, 이 파일에서도 바꿔줘야 합니다.
-[/REGION]
-
-
-### 64 비트 브라우저 요구사항
+HTML5 는 [Mozilla](https://www.mozilla.org/en-US/) 의 emscripten 툴 체인을 사용하여 C++ 를 Javascript 로 크로스 컴파일합니다. 4.9 이상 버전에는 emscripten 과 python 이 엔진 배포에 포함되어 있습니다.
+`Engine/Source/ThirdParty/HTML5/emsdk/` 에서 찾을 수는 있지만, HTML5 디플로이를 위해 별도의 환경설정이나 추가 설치가 필요치는 않습니다.
 
 현재 HTML5 빌드를 실행하기 위해서는 64 비트 브라우저가 필수입니다.
 
 * [파이어폭스 nightly 다운로드](ftp://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/)
 * [Chromium 빌드 다운로드](http://chromium.woolyss.com/#windows-64-bit)
 
-[/VAR]
 
+설치한 후, 브라우저의 **Launch** (실행) 드롭다운 메뉴에서 [맵 실행](Engine/Deployment/Launching) 을 선택할 수 있습니다.
 
+![](LaunchNightly.png)
+
+**[패키징된 HTML5 프로젝트](Engine/Basics/Projects/Packaging) 테스트 방법:**
+1. **Package Project** (패키지 프로젝트) 맥락 메뉴에서 **HTML5** 를 선택합니다.
+1. 프로젝트 패키징이 완료되면, 대상 위치를 열고 **HTML5LaunchHelper** 를 실행합니다.
+1. 이 창에서 로컬호스트 주소를 적습니다.
+	![](localhostinfo.png)
+1. 64 비트 브라우저에서 `[Localhost Address]/[ProjectName].html` 을 엽니다. 예를 들면, 위의 로컬호스트 주소와 MyProject 라는 이름으로 `http://localhost:8000/MyProject.html` 입니다.

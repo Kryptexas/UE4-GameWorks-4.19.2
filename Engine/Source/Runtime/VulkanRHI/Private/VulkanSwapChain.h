@@ -16,17 +16,11 @@ public:
 
 	void Destroy();
 
-	void Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore);
+	bool Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore);
 
 protected:
 	VkSwapchainKHR SwapChain;
 	FVulkanDevice& Device;
-
-	PFN_vkCreateSwapchainKHR CreateSwapchainKHR;
-	PFN_vkDestroySwapchainKHR DestroySwapchainKHR;
-	PFN_vkGetSwapchainImagesKHR GetSwapchainImagesKHR;
-	PFN_vkQueuePresentKHR QueuePresentKHR;
-	PFN_vkAcquireNextImageKHR AcquireNextImageKHR;
 
 	VkSurfaceKHR Surface;
 

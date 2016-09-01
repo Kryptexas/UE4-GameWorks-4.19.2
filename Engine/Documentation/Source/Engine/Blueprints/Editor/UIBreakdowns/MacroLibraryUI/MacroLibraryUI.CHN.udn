@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2085851
+﻿INTSourceChangelist:0
 Availability:Public
-Title:宏库用户界面
+Title:Macro Library UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:关于类蓝图编辑器界面的概述。
+Description:Overview of the Blueprint Class Editor interface.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,24 +25,21 @@ Description:关于类蓝图编辑器界面的概述。
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2)]
-
-## 概述
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#intro]
 
-关于宏库及如何使用它们的更多信息，请参照[](Engine/Blueprints/UserGuide\Types\MacroLibrary)文档。
+For more information on Macro Libraries and how to use them, please see the [](Engine/Blueprints/UserGuide\Types\MacroLibrary) documentation.
 
-##界面
+## Interface
 
-和蓝图接口非常像，当您第一次为一个宏库打开蓝图编辑器时，您将会看到一个没有图表的简单的用户界面：
+Much like with Blueprint Interfaces, when you first open the Blueprint Editor for a Macro Library, you will see a simplified UI without a graph:
 
 ![](MacroLibraryUIClean.png)
 
 
 
 
-|默认可见的用户界面组件| 窗口菜单中可用的组件|
+|Default Visible UI Components| Available in the Window Menu|
 |-----------------------------|-----------------------------|
 |[INCLUDE:#visible]			  |[INCLUDE:#invisible]			|
 
@@ -49,51 +47,16 @@ Description:关于类蓝图编辑器界面的概述。
 
 <!----------
 [EXCERPT:Visible]
-1. [菜单](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [工具栏](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
-1. [我的蓝图](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
-1. [详细信息](Engine/Blueprints/Editor\UIComponents\Details)
-1. [Palette（面板）](Engine/Blueprints/Editor\UIComponents\Palette)
+1. [Menu](Engine/Blueprints/Editor\UIComponents\Menu)
+1. [Toolbar](Engine/Blueprints/Editor\UIComponents\Toolbar)
+1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
+1. [Details](Engine/Blueprints/Editor\UIComponents\Details)
+1. [Graph Editor](Engine/Blueprints/Editor\UIComponents\GraphEditor)
 [/EXCERPT:Visible]
 
 [EXCERPT:Invisible]
-* [调试](Engine/Blueprints/Editor\UIComponents\Debug)
-* [查找结果](Engine/Blueprints/Editor\UIComponents\FindResults)
+* [Debug](Engine/Blueprints/Editor\UIComponents\Debug)
+* [Find Results](Engine/Blueprints/Editor\UIComponents\FindResults)
+* [Palette](Engine/Blueprints/Editor\UIComponents\Palette)
 [/EXCERPT:Invisible]
 ------------->
-
-
-
-一旦您打开或者创建一个新宏，界面将会发生改变，显示一个图表：
-
-
-[REGION:fullwidth]
-![](MacroLibraryMacroOpen.png)
-[/REGION]
-
-
-
-
-|默认可见的用户界面组件| 窗口菜单中可用的组件|
-|-----------------------------|-----------------------------|
-|[INCLUDE:#visible2]			  |[INCLUDE:#invisible2]			|
-
-
-<!----------
-[EXCERPT:Visible2]
-1. [菜单](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [工具栏](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
-1. [我的蓝图](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
-1. [详细信息](Engine/Blueprints/Editor\UIComponents\Details)
-1. [蓝图编辑器](Engine/Blueprints/Editor\UIComponents\GraphEditor)
-[/EXCERPT:Visible2]
-
-[EXCERPT:Invisible2]
-* [调试](Engine/Blueprints/Editor\UIComponents\Debug)
-* [查找结果](Engine/Blueprints/Editor\UIComponents\FindResults)
-[/EXCERPT:Invisible2]
-------------->
-
-[REGION:note]
-如果您关闭了图表编辑器，您可以通过在 **我的蓝图** 面板中简单地点击您想编辑的宏的名称来重新打开它。
-[/REGION]

@@ -72,6 +72,25 @@ The engine currently supports importing uncompressed little endian 16 bit wave f
 
 Importing with the normal sound factory yields a simple sound node wave that can be referenced by a sound cue for playback. These sounds can be mono or stereo. Importing with a special naming convention gives the potential of multichannel (e.g. 5.1) sounds. Up to 8 channel sounds can be compressed on all platforms, although not all platforms can play them back efficiently. The package saving process does all the necessary work to convert to the platform's native format. There is no strict speaker mapping, so the number of channels infers which channels are played on which speakers (see table below).
 
+[EXCERPT:multiChannelExtensionTable]
+
+[REGION:raw]
+|                   | Extension | 4.0         | 5.1         | 6.1         | 7.1         |
+| ---               | ---       | ---         | ---         | ---         | ---         |
+| **FrontLeft**     | _fl       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   |
+| **FrontRight**    | _fr       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   |
+| **FrontCenter**   | _fc       |             |  &#x2713;   |  &#x2713;   |  &#x2713;   |
+| **LowFrequency**  | _lf       |             |  &#x2713;   |  &#x2713;   |  &#x2713;   |
+| **SideLeft**      | _sl       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   |
+| **SideRight**     | _sr       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   |
+| **BackLeft**      | _bl       |             |             |  &#x2713;   |  &#x2713;   |
+| **BackRight**     | _br       |             |             |             |  &#x2713;   |
+[/REGION]
+
+[/EXCERPT:multiChannelExtensionTable]
+
+<!--
+
 [REGION:raw]
 |                   | Extension | 4.0 | 5.1 | 6.1 | 7.1 |  
 | --- | --- | --- | --- | --- | --- | 
@@ -85,7 +104,7 @@ Importing with the normal sound factory yields a simple sound node wave that can
 | **BackRight**     | _br       |     |     |     | ![](icon_MatEd_Apply_40x.png)   |  
 [/REGION]
 
-
+-->
 
 Compression settings are tweaked to maintain similar quality across platforms. After testing many sounds, our musician determined an XMA quality of 40 was equivalent to an ogg vorbis quality of 0.15. 
 

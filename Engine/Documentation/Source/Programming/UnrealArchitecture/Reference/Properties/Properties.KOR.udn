@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2669538
+﻿INTSourceChangelist:2704972
 Availability:Public
 Title: 프로퍼티
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
@@ -40,7 +40,7 @@ Version: 4.9
 ### 스트링
 언리얼은 세 가지 핵심 유형의 스트링을 지원합니다.
 * FString 은 고정적인 "캐릭터 동적 배열" 스트링 유형입니다.
-* FName 은 글로벌 스트링 테이블로 된 변경불능 대소문자 구분없는 스트링에 대한 레퍼런스입니다. FString 보다 작아 전송에 효율적이나 조작하기가 더 어렵습니다.
+* FName 은 글로벌 스트링 테이블로 된 변경불능 대소문자 구분 없는 스트링에 대한 레퍼런스입니다. FString 보다 작아 전송에 효율적이나 조작하기가 더 어렵습니다.
 * FText 는 현지화 처리를 위해 고안된 보다 탄탄한 스트링 표현입니다.
 
 대부분의 경우, 언리얼은 캐릭터에 대해 TCHAR 유형에 의존합니다. TEXT() 매크로는 TCHAR 리터럴을 나타내는 데 사용할 수 있습니다.

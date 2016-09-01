@@ -13,7 +13,6 @@ using System.Runtime.InteropServices;
 using System.Linq;
 using System.Management;
 using Tools.DotNETCommon.CaselessDictionary;
-using Tools.DotNETCommon.HarvestEnvVars;
 using System.Web.Script.Serialization;
 
 namespace UnrealBuildTool
@@ -291,33 +290,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Sets the environment variables from the passed in batch file
-		/// </summary>
-		/// <param name="BatchFileName">Name of the batch file to parse</param>
-		/// <param name="Parameters"> Optional command-line parameters to pass to the batch file when running it</param>
-		public static void SetEnvironmentVariablesFromBatchFile(string BatchFileName, string Parameters = "")
-		{
-			// @todo ubtmake: Experiment with changing this to run asynchronously at startup, and only blocking if accessed before the .bat file finishes
-			CaselessDictionary<string> EnvVars;
-			try
-			{
-				EnvVars = HarvestEnvVars.HarvestEnvVarsFromBatchFile(BatchFileName, Parameters, HarvestEnvVars.EPathOverride.User);
-			}
-			catch (Exception Ex)
-			{
-				throw new BuildException(Ex, "Failed to harvest environment variables");
-			}
-
-			foreach (KeyValuePair<string, string> EnvVar in EnvVars)
-			{
-				Environment.SetEnvironmentVariable(EnvVar.Key, EnvVar.Value);
-			}
-		}
-
-
-		/// <summary>
 		/// Try to launch a local process, and produce a friendly error message if it fails.
-		/// /
 		/// </summary>
 		public static int RunLocalProcess(Process LocalProcess)
 		{
@@ -887,7 +860,9 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Returns the User Settings Directory path. This matches FPlatformProcess::UserSettingsDir()
+		/// Returns the User Settings Directory path. This matches FPlatformProcess::UserSettingsDir().
+		/// NOTE: This function may return null. Some accounts (eg. the SYSTEM account on Windows) do not have a personal folder, and Jenkins
+		/// runs using this account by default.
 		/// </summary>
 		public static DirectoryReference GetUserSettingDirectory()
 		{
@@ -901,7 +876,16 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				return new DirectoryReference(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+				// Not all user accounts have a local application data directory (eg. SYSTEM, used by Jenkins for builds).
+				string DirectoryName = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+				if(String.IsNullOrEmpty(DirectoryName))
+				{
+					return null;
+				}
+				else
+				{
+					return new DirectoryReference(DirectoryName);
+				}
 			}
 		}
 
@@ -1185,7 +1169,7 @@ namespace UnrealBuildTool
 		{
 			return string.Format("{0}{1}{2}{3}",
 					Timer != null ? String.Format("[{0:hh\\:mm\\:ss\\.fff}] ", Timer.Elapsed) : "",
-					bLogSources ? string.Format("{0}: ", string.IsNullOrEmpty(CustomSource) ? GetSource(StackFramesToSkip) : CustomSource) : "",
+					bLogSources ? string.Format("{0}", CustomSource == null ? GetSource(StackFramesToSkip) + ": ": CustomSource == string.Empty ? "" : CustomSource + ": ") : "",
 					bLogSeverity ? GetSeverityPrefix(Verbosity) : "",
 				// If there are no extra args, don't try to format the string, in case it has any format control characters in it (our LOCTEXT strings tend to).
 					Args.Length > 0 ? string.Format(Format, Args) : Format);

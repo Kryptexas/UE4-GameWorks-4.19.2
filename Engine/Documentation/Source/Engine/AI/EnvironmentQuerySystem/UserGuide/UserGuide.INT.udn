@@ -2,6 +2,8 @@ Availability:Public
 Title:Environment Query System User Guide
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:This document covers the interface and most commonly used workflows of the Environment Query System within Behavior Trees.
+Version: 4.9
+SkillLevel: Advanced
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -64,7 +66,7 @@ Selecting it in the Behavior Tree will enable you to set the **Query Template** 
 
 ![](runEQS_details.png)
 
-See the [**Behavior Tree**](Engine\AI\BehaviorTrees) documentation for more information on their usage.
+See the [Behavior Tree](Engine\AI\BehaviorTrees) documentation for more information on their usage.
 
 
 ### Environment Query
@@ -168,11 +170,11 @@ To use an Environment Query in a Behavior Tree, you need a **Run EQS Query** Tas
 
 ![](editTest.png)
 
-See the [**Environmental Query System Node Reference**](Engine/AI/EnvironmentQuerySystem/NodeReference) for usage information on individual tests.
+See the [Environmental Query System Node Reference](Engine/AI/EnvironmentQuerySystem/NodeReference) for usage information on individual tests.
 
 ### Previewing the Query Results
 
-See the [**Environmental Query System Test Pawn**](Engine/AI/EnvironmentQuerySystem/EQSPawn) documentation for information on how to preview the results of a Query
+See the [Environmental Query System Test Pawn](Engine/AI/EnvironmentQuerySystem/EQSPawn) documentation for information on how to preview the results of a Query
 
 ![](Engine\AI\EnvironmentQuerySystem\EQSPawn\testingPawnBanner.png)
 

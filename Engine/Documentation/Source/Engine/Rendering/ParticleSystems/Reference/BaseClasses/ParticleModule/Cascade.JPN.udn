@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2075952
+﻿INTSourceChangelist:2750555
 Availability:Public
 Title:Particle Module クラス
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:全パーティクルモジュールが継承する Cascade クラスのプロパティ リファレンス。全モジュールはこのクラス内にプロパティを格納します。
+Version:4.9
 
 **ParticleModule** は全てのモジュールの基本クラスです。つまり、全てのモジュールはこのプロパティを格納しています。クラスには次のパブリック メンバが格納されています。
 

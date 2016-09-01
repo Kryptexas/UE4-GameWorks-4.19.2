@@ -27,6 +27,9 @@ public:
 	// GetWorld() and so provide access to blueprint nodes using hidden WorldContextObject parameters.
 	virtual UWorld* GetWorld() const override;
 
+	/** [FTickableGameObject] get world function */
+	virtual UWorld* GetTickableGameObjectWorld() const override { return GetWorld(); }
+
 	/** [FTickableGameObject] tick function */
 	virtual void Tick(float DeltaTime) override;
 
@@ -132,7 +135,7 @@ public:
 	/** 
 	 *	unregisters given actor from the list of active stimuli sources
 	 */
-	void UnregisterSource(AActor& SourceActor, TSubclassOf<UAISense> Sense = nullptr);
+	void UnregisterSource(AActor& SourceActor, const TSubclassOf<UAISense> Sense = nullptr);
 
 	void OnListenerForgetsActor(const UAIPerceptionComponent& Listener, AActor& ActorToForget);
 	void OnListenerForgetsAll(const UAIPerceptionComponent& Listener);

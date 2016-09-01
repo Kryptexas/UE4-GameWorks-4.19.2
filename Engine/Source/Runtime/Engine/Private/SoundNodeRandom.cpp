@@ -63,6 +63,9 @@ void USoundNodeRandom::PostLoad()
 		UpdatePIEHiddenNodes();
 	}
 #endif //WITH_EDITOR
+
+	FixWeightsArray();
+	FixHasBeenUsedArray();
 }
 
 int32 USoundNodeRandom::ChooseNodeIndex(FActiveSound& ActiveSound)
@@ -71,7 +74,7 @@ int32 USoundNodeRandom::ChooseNodeIndex(FActiveSound& ActiveSound)
 	float WeightSum = 0.0f;
 
 #if WITH_EDITOR
-	bool bIsPIESound = (GEditor != nullptr) && ((GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL) && ActiveSound.World != NULL);
+	bool bIsPIESound = (GEditor != nullptr) && ((GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != nullptr) && ActiveSound.GetWorldID() > 0);
 
 	if (bIsPIESound)
 	{
@@ -129,8 +132,6 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 	RETRIEVE_SOUNDNODE_PAYLOAD(sizeof(int32));
 	DECLARE_SOUNDNODE_ELEMENT(int32, NodeIndex);
 
-	FixHasBeenUsedArray();  // for now prob need this until resave packages has occurred
-
 	// Pick a random child node and save the index.
 	if (*RequiresInitialization)
 	{
@@ -139,7 +140,7 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 	}
 
 #if WITH_EDITOR
-	bool bIsPIESound = (GEditor != nullptr) && ((GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL) && ActiveSound.World != NULL);
+	bool bIsPIESound = (GEditor != nullptr) && ((GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != nullptr) && ActiveSound.GetWorldID() > 0);
 #endif //WITH_EDITOR
 
 	// check to see if we have used up our random sounds

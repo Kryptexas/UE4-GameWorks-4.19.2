@@ -1,7 +1,10 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2754441
+Availability:Public
 Title:Environment Query System ユーザーガイド
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
-Description:本ページでは、インターフェースと最もよく使用されるビヘイビア ツリーを備えた Environment Query System のワークフローについて説明します。
+Description:本ページでは、ビヘイビアツリー内の Environment Query System のインターフェースと最もよく使用されるワークフローについて説明します。
+Version:4.9
+SkillLevel:Advanced
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,15 +55,15 @@ Description:本ページでは、インターフェースと最もよく使用�
 
 ## Environment Query の構成要素
 
-Environment Query は実際には異なる沢山の要素で構成されています。ビヘイビア ツリーから Environment Query を呼び出してから、実際の Environment Query はジェネレータを使用してコンテキストを参照し、テキストを使用してビヘイビアツリーにウェイトが最も高い結果が出るようにします。
+**Environment Query** は実際には多くの異なる要素で構成されています。ビヘイビア ツリーから Environment Query を呼び出し、その後その Environment Query がジェネレータを使用してコンテキストを参照し、テストを使用してビヘイビアツリーでウェイトが最も高い結果が出るようにします。
 
 ### ビヘイビアツリー
 
-ビヘイビアツリーで Environment Query を使用するためには、 **EQS Query** Task ノードを **実行する** 必要があります。
+ビヘイビアツリーで Environment Query を使用するには、 **EQS Query** Task ノードが必要です。
 
 ![](runEQS.png)
 
-ビヘイビアツリーで **EQS Query** Task ノードを有効にすると、 **Query Template** プロパティ (Environment Query アセット) 、そして(Environment Query アセットにパスされた指定値である) **Query Params** プロパティ、および最もウェイトの高い結果を返すブラックボード キーの設定が可能になります。
+ビヘイビアツリーで **EQS Query** Task ノードを選択すると、 **Query Template** プロパティ (Environment Query アセット) 、そして (Environment Query アセットに渡される指定値である) **Query Params** プロパティ、および最もウェイトの高い結果を返すブラックボード キーの設定が可能になります (オブジェクトまたはベクター)。
 
 ![](runEQS_details.png)
 
@@ -69,33 +72,33 @@ Environment Query は実際には異なる沢山の要素で構成されてい�
 
 ### Environment Query
 
-アクタや位置をいろいろテストして「一番良いもの」を決めるために、 **Run EQS Query** node 経由で Environment Query アセットをビヘイビアツリーに呼び出されます。どれが本当に「一番良い」のかは、テストの Environment Query 内での構築のされ方によって大きく変わります。
+Environment Query アセットとは、**Run EQS Query** node を使用してビヘイビアツリーに呼び出して、アクタや位置を色々テストして「一番良いもの」を決めるためのものです。どれが本当に「一番良い」のかは、Environment Query 内でのテストの構築のされ方によって大きく変わります。
 
-**環境クエリ** は、ブループリントと C++ で作成することができます。
+環境クエリは、ブループリントと C++ で作成することができます。
 
 
 ### ジェネレータ 
 
-ジェネレータは、いわゆる **アイテム** と呼ばれる位置またはアクタを生成し、それが実際にテストされウェイト付けされて、ウェイトの一番高い位置またはアクタがビヘイビアツリーに返されます。
+**ジェネレータ** は、いわゆる **アイテム** と呼ばれる位置またはアクタを生成し、それが実際にテストされウェイト付けされて、ウェイトの一番高い位置またはアクタがビヘイビアツリーに返されます。
 
-**ジェネレータ** は、ブループリントと C++ で作成することができます。
+ジェネレータ は、ブループリントと C++ で作成することができます。
 
 
 ### コンテキスト
 
-コンテキストとは、様々なテストとジェネレータに対するリファレンスのフレームです。**The Querier** のように単純の時もあれば、 **All Actors of a Type** のように複雑な場合もあります。
+**コンテキスト** とは、様々なテストとジェネレータの基準となる枠組みです。**The Querier** のように単純の時もあれば、 **All Actors of a Type** のように複雑な場合もあります。
 
-Simple Grid Generator のようなジェネレータが複数の位置あるいはアクタを返すコンテキストを使用できる点は注目すべきです。これにより、定義したサイズと密度でSimple Grid が各コンテキストの位置に作成されます。
+Simple Grid Generator のようなジェネレータが複数の位置あるいはアクタを返すコンテキストを使用できる点は注目すべきです。これにより、定義したサイズと密度で Simple Grid が各コンテキストの位置に作成されます。
 
-**コンテキスト** は、ブループリントと C++ で作成することができます。
+コンテキストは、ブループリントと C++ で作成することができます。
 
 
 ### テスト
 
-テストとは、Environment Query がどのように「一番良いアイテム」を決めるかです。デフォルト テストの内容には、別の位置へアイテムを追跡できるのか、または、アイテムとコンテキスト間の距離は指定範囲内になったいるか、などの使用事例がかなりの割合で含まれています。
+テストとは、Environment Query がどのように「一番良いアイテム」を決めるかです。デフォルト テストには、別の位置へアイテムをトレースできるのか、または、アイテムとコンテキスト間の距離は指定範囲内になっているか、などの使用事例がかなり入っています。
 
 [REGION:note]
-現在、 **テスト** は C++ で作成されなければなりません。ブループリントには実装できるバージョンはありません。
+現在、 **テスト** は C++ で作成しなければなりません。ブループリントには実装できるバージョンはありません。
 [/REGION]
 
 
@@ -128,25 +131,25 @@ Simple Grid Generator のようなジェネレータが複数の位置あるい�
 
 ![](connectRootToGen.png)
 
-Root ノードの下の黒い部分を左クリックして Generator ノードの上の部分の暗い部分へドラッグして接続します。
+Root ノードの下の黒い部分を **左クリック** して Generator ノードの上の部分の暗い部分へ **ドラッグ** して接続します。
 
-または、左クリックしてグラフエリアへドラッグすると、Generator ノードを新規作成するオプションが現れます。
+または、**左クリック** してグラフエリアへ **ドラッグ** すると、Generator ノードを新規作成するオプションが現れます。
 
 [REGION:note]
-Root へ複数の Generator ノードを接続することができますが、クエリ内で使用できるのは、一番左の有効な Generator のみです。
+Root へ複数の Generator ノードを接続することができますが、クエリ内で使用するのは、一番左の有効な Generator のみです。
 [/REGION]
 
 ## ビヘイビアツリーへクエリを追加する
 
-ビヘイビアツリーで Environment Query を使用するためには、 **EQS Query** Task ノードを **実行する** 必要があります。
+ビヘイビアツリーで Environment Query を使用するには、 **EQS Query** Task ノードが必要です。
 
 ![](runEQS.png)
 
-1. ビヘイビアツリー グラフ エリア内を 右クリックします。
+1. ビヘイビアツリーのグラフ エリア内を **右クリック** します。
 1. **Task** -> **Run EQSQuery** ノードを作成します。
-1. 新規に作成された **Run EQSQuery** ノードを選択し、Query Template プロパティを Environment Query アセットに変更します (あるいは、プルダウンから新規に作成します)。
-1. Environment Query が検索する可能性のある **Query Params** をオプションで設定します。
-1. 最後に、ブラックボードのキーが、Object と Vector ブラックボード キーのみ使用可能になるように Environment Query で設定されるように設定します。
+1. 新規作成した **Run EQSQuery** ノードを選択し、Query Template プロパティを Environment Query アセットに変更します (あるいは、プルダウンから新規に作成します)。
+1. オプションで、Environment Query が検索する可能性のある **Query Params** を設定します。
+1. 最後に、Environment Query で設定されるブラックボードのキーを設定します。ここでは Object と Vector のブラックボード キーのみ使用可能です。
 
 ## クエリの編集
 
@@ -164,7 +167,7 @@ Root へ複数の Generator ノードを接続することができますが、�
 
 ### テストの修正
 
-1. ジェネレータでテストを選択し、[Details (詳細)] パネルで修正します。
+1. ジェネレータでテストを選択し、**[Details (詳細)]** パネルで修正します。
 
 ![](editTest.png)
 
@@ -179,7 +182,7 @@ Root へ複数の Generator ノードを接続することができますが、�
 
 ## コンテキストの編集
 
-新規作成されたEnvQueryContext ブループリントには、4 つの機能が実装されています。
+新規作成された EnvQueryContext ブループリントには、4 つの機能が実装されています。
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -196,9 +199,9 @@ Root へ複数の Generator ノードを接続することができますが、�
 [/OBJECT]
 
 
-* ###Provide Single Location
+### Provide Single Location
 
-単一の位置 (ベクター) を返します。この位置は自由な方法で生成することができます。例えばこの関数は、Querier から 1500 cm 以内で検出された (ポーン、ビークルなど、 DesiredObjectType 配列で検出されたタイプの 1 つである) ランダムなアクタの追跡ヒット位置を返します 
+単一の位置 (ベクター) を返します。この位置は自由な方法で生成することができます。例えばこの関数は、Querier から 1500 cm 以内で検出された (ポーン、ビークルなど、 DesiredObjectType 配列で検出されたタイプの 1 つである) ランダムなアクタのトレース ヒット位置を返します 
 
 [REGION:lightbox]
 [![](ProvideSingleLocationImplmented.png)](ProvideSingleLocationImplmented.png)
@@ -216,7 +219,7 @@ Root へ複数の Generator ノードを接続することができますが、�
 
 ### Provide Locations Set
 
-位置 (ベクター) の配列を返します。これらの位置の生成方法は自由です。サンプルのグラフでは、環境上でのヒットを返しながら、半径が 1500 の円上で均等に間隔をあけて 16 の位置から追跡しています。
+位置 (ベクター) の配列を返します。これらの位置の生成方法は自由です。サンプルのグラフでは、環境上でのヒットを返しながら、半径が 1500 単位の円上で均等に間隔をあけて 16 の位置からトレースしています。
 
 [REGION:lightbox]
 [![](provideLocSetFunction.png)](provideLocSetFunction.png)
@@ -240,14 +243,14 @@ Root へ複数の Generator ノードを接続することができますが、�
 ![](implementDoItem.png)
 [/REGION]
 
-ジェネレータの主要関数です。この関数を実行すると、Environment Query から渡されたコンテキスト位置である位置の配列を受け取ります。この関数は、コンテキストによって Querier の位置を持つ 1 つのエントリの配列であったり、またはレベル内それぞれのヘルス値パックの位置であったりします。
+ジェネレータの主要関数です。この関数を実行すると、Environment Query から渡されたコンテキスト位置である位置の配列を受け取ります。これはコンテキストに応じて Querier の位置を持つ 1 つのエントリの配列であったり、またはレベル内それぞれのヘルス パックの位置であったりします。
 
 
 ### Add Generated Actor
 
 ![](AddGenActor.png)(convert:false)
 
-関数は値を 1 つだけしか返せないので、 "Do Item Generation" 関数は実際には Environment Query に戻すことができる配列を 2 つ持ちます。このノードは Actor return array にアクタを追加し、位置の値を返すために Add Generated Vector ノードと一緒に使うことができます。
+関数は値を 1 つしか返せないので、 "Do Item Generation" 関数は実際には Environment Query に戻すことができる配列を 2 つ持ちます。このノードは Actor return array にアクタを追加し、位置の値も返すために Add Generated Vector ノードと一緒に使うことができます。
 
 ジェネレータは、EnvQuery ノードから何をブラックボード キーに設定したかに基いて、実際にビヘイビアツリーに何を戻すかを決定します。
 
@@ -256,13 +259,13 @@ Root へ複数の Generator ノードを接続することができますが、�
 
 ![](AddGenVec.png)(convert:false)
 
-関数は値を 1 つだけしか返せないので、 "Do Item Generation" 関数は実際には Environment Query に戻すことができる配列を 2 つ持ちます。このノードはベクターを返す配列をベクターに追加します。また、Add Generated Actor ノードと一緒に使って Actor 値を返すこともできます。
+関数は値を 1 つしか返せないので、 "Do Item Generation" 関数は実際には Environment Query に戻すことができる配列を 2 つ持ちます。このノードはベクターを返す配列にベクターを追加します。また、Add Generated Actor ノードと一緒に使って Actor 値を返すこともできます。
 
 ジェネレータは、EnvQuery ノードから何をブラックボード キーに設定したかに基いて、実際にビヘイビアツリーに何を戻すかを決定します。
 
 ### Example Generator
 
-Querier に向かって **Rad** の半径を持つ円のエッジから追跡します。そして、追跡の **Number of Spokes** 値 (つまり 360/**Number of Spokes**) に基いた度数ずつ離れて追跡します。追跡の位置は、基本的には呼び出し元が分からないサーフェスを検索で、その環境にヒットした場合のみ格納されます。
+Querier に向かって **Rad** の半径を持つ円のエッジからトレースします。そして、**Number of Spokes** 値 (つまり 360/**Number of Spokes**) に基いた度数でトレースの間隔を空けます。トレースの位置は、基本的には呼び出し元が分からないサーフェスを検索し、その環境にヒットした場合のみ格納されます。
 
 [REGION:lightbox]
 [![](customGenExample.png)](customGenExample.png)
@@ -273,5 +276,10 @@ Querier に向かって **Rad** の半径を持つ円のエッジから追跡し
 ![](customGenOutput.png)
 
 [REGION:note]
-このサンプルで唯一すべきことは、円の生成場所を変更するために **Do Item Generation** に渡された **Context Locations** を使用することです。単に画像サイズ コンストレイントのために行ったのではありません。
+このサンプルで唯一すべきことは、円の生成場所を変更するために **Do Item Generation** から渡された **Context Locations** を使用することです。単に画像サイズの制約上行いませんでした。
 [/REGION]
+
+
+
+
+

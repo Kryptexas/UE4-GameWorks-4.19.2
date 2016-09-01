@@ -246,7 +246,10 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 
 		// Determine if the Property is an Array or Array Element
 		UObject* Outer = PropertyChangedEvent.Property->GetOuter();
-		bool bIsArrayOrArrayElement = PropertyThatChanged->GetActiveMemberNode()->GetValue()->IsA(UArrayProperty::StaticClass()) || ((Outer != nullptr) && Outer->IsA(UArrayProperty::StaticClass()));
+
+		bool bIsArrayOrArrayElement = PropertyThatChanged->GetActiveMemberNode()->GetValue()->IsA(UArrayProperty::StaticClass()) 
+			|| PropertyThatChanged->GetActiveMemberNode()->GetValue()->ArrayDim > 1
+			|| ((Outer != nullptr) && Outer->IsA(UArrayProperty::StaticClass()));
 
 		if (SelectedSection->GetSettingsObject()->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig) && !bIsArrayOrArrayElement)
 		{

@@ -57,9 +57,6 @@ protected:
 	UPROPERTY()
 	TArray<ULocalPlayer*> LocalPlayers;		// List of locally participating players in this game instance
 	
-	// Delegate handle that stores delegate for when an invite is accepted by a user
-	FDelegateHandle OnSessionUserInviteAcceptedDelegateHandle;
-	
 	/** Class to manage online services */
 	UPROPERTY()
 	class UOnlineSession* OnlineSession;
@@ -197,12 +194,6 @@ public:
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
-    /** Delegate that is called when a user has accepted an invite. */
-	void HandleSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< const FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);
-	
-	/** Overridable implementation of HandleSessionUserInviteAccepted, which does nothing but call this function */
-	virtual void OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< const FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);
-
 	inline FTimerManager& GetTimerManager() const { return *TimerManager; }
 
 	inline FLatentActionManager& GetLatentActionManager() const { return *LatentActionManager;  }
@@ -235,6 +226,14 @@ public:
 	 */
 	virtual void HandleGameNetControlMessage(class UNetConnection* Connection, uint8 MessageByte, const FString& MessageStr)
 	{}
+	
+	/** return true to delay an otherwise ready-to-join PendingNetGame performing LoadMap() and finishing up
+	 * useful to wait for content downloads, etc
+	 */
+	virtual bool DelayPendingNetGameTravel()
+	{
+		return false;
+	}
 
 	FTimerManager* TimerManager;
 	FLatentActionManager* LatentActionManager;

@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Pechkin</Name>
-  <Location>//depot/UE4/Engine/Binaries/DotNET</Location>
-  <Date>2015-09-04T20:08:15.853274-04:00</Date>
+  <Location>/Engine/Binaries/DotNET/</Location>
+  <Date>2016-06-17T14:27:01.1232536-04:00</Date>
   <Function>wkhtmltopdf c# wrapper to enable .NET usage.</Function>
   <Justification>The doc team want to produce the pdf versions of docs automatically.</Justification>
   <Platforms>
@@ -14,7 +14,11 @@
   </Products>
   <TpsType>Source Code</TpsType>
   <Eula>http://creativecommons.org/licenses/by/3.0/</Eula>
-  <RedistributeTo />
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>Full EULA Text</NoticeType>
@@ -95,5 +99,5 @@ Creative Commons may be contacted at http://creativecommons.org/.
 
 « Back to Commons Deed
 </Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/PECHKIN_License.txt</LicenseFolder>
 </TpsData>

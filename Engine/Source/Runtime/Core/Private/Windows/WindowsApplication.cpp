@@ -9,6 +9,7 @@
 #include "IInputDeviceModule.h"
 #include "IInputDevice.h"
 #include "IHapticDevice.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #if WITH_EDITOR
 #include "ModuleManager.h"
@@ -224,6 +225,7 @@ bool FWindowsApplication::RegisterClass( const HINSTANCE HInstance, const HICON 
 		//ShowLastError();
 
 		// @todo Slate: Error message should be localized!
+		FSlowHeartBeatScope SuspendHeartBeat;
 		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
 
 		return false;
@@ -880,7 +882,79 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		case WM_SIZING:
 			{
 				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam, 0, 0 );
-			}
+		
+				if (CurrentNativeEventWindowPtr->GetDefinition().ShouldPreserveAspectRatio)
+				{
+					// The rect we get in lParam is window rect, but we need to preserve client's aspect ratio,
+					// so we need to find what the border and title bar sizes are, if window has them and adjust the rect.
+					WINDOWINFO WindowInfo;
+					FMemory::Memzero(WindowInfo);
+					WindowInfo.cbSize = sizeof(WindowInfo);
+					::GetWindowInfo(hwnd, &WindowInfo);
+
+					RECT TestRect;
+					TestRect.left = TestRect.right = TestRect.top = TestRect.bottom = 0;
+					AdjustWindowRectEx(&TestRect, WindowInfo.dwStyle, false, WindowInfo.dwExStyle);
+
+					RECT* Rect = (RECT*)lParam;
+					Rect->left -= TestRect.left;
+					Rect->right -= TestRect.right;
+					Rect->top -= TestRect.top;
+					Rect->bottom -= TestRect.bottom;
+
+					const float AspectRatio = CurrentNativeEventWindowPtr->GetAspectRatio();
+					int32 NewWidth = Rect->right - Rect->left;
+					int32 NewHeight = Rect->bottom - Rect->top;
+
+					switch (wParam)
+					{
+					case WMSZ_LEFT:
+					case WMSZ_RIGHT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->top -= (AdjustedHeight - NewHeight) / 2;
+							Rect->bottom += (AdjustedHeight - NewHeight) / 2;
+							break;
+						}
+					case WMSZ_TOP:
+					case WMSZ_BOTTOM:
+						{
+							int32 AdjustedWidth = NewHeight * AspectRatio;
+							Rect->left -= (AdjustedWidth - NewWidth) / 2;
+							Rect->right += (AdjustedWidth - NewWidth) / 2;
+							break;
+						}
+					case WMSZ_TOPLEFT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->top -= AdjustedHeight - NewHeight;
+							break;
+						}
+					case WMSZ_TOPRIGHT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->top -= AdjustedHeight - NewHeight;
+							break;
+						}
+					case WMSZ_BOTTOMLEFT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->bottom += AdjustedHeight - NewHeight;
+							break;
+						}
+					case WMSZ_BOTTOMRIGHT:
+						{
+							int32 AdjustedHeight = NewWidth / AspectRatio;
+							Rect->bottom += AdjustedHeight - NewHeight;
+							break;
+						}
+					}
+
+					AdjustWindowRectEx(Rect, WindowInfo.dwStyle, false, WindowInfo.dwExStyle);
+
+					return TRUE;
+				}
+		}
 			break;
 		case WM_ENTERSIZEMOVE:
 			{
@@ -1698,7 +1772,13 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 
 					const bool bWasMinimized = (wParam == SIZE_MINIMIZED);
 
-					const bool Result = MessageHandler->OnSizeChanged( CurrentNativeEventWindowPtr.ToSharedRef(), NewWidth, NewHeight, bWasMinimized );
+					const bool bIsFullscreen = (CurrentNativeEventWindowPtr->GetWindowMode() == EWindowMode::Type::Fullscreen);
+
+					// When in fullscreen Windows rendering size should be determined by the application. Do not adjust based on WM_SIZE messages.
+ 					if ( !bIsFullscreen )
+					{
+						const bool Result = MessageHandler->OnSizeChanged(CurrentNativeEventWindowPtr.ToSharedRef(), NewWidth, NewHeight, bWasMinimized);
+					}
 				}
 			}
 			break;
@@ -1954,7 +2034,12 @@ void FWindowsApplication::SetForceFeedbackChannelValues(int32 ControllerId, cons
 	// send vibration to externally-implemented devices
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
 	{
-		(*DeviceIt)->SetChannelValues(ControllerId, Values);
+		// *N.B 06/20/2016*: Ideally, we would want to use GetHapticDevice instead
+		// but they're not implemented for SteamController and SteamVRController
+		if ((*DeviceIt)->IsGamepadAttached()) 
+		{
+			(*DeviceIt)->SetChannelValues(ControllerId, Values);
+		}
 	}
 }
 
@@ -2002,17 +2087,24 @@ HRESULT FWindowsApplication::OnOLEDragEnter( const HWND HWnd, const FDragDropOLE
 		return 0;
 	}
 
-	switch (OLEData.Type)
+	if ( Window->IsEnabled() )
 	{
-		case FDragDropOLEData::Text:
+		if ((OLEData.Type & FDragDropOLEData::Text) && (OLEData.Type & FDragDropOLEData::Files))
+		{
+			*CursorEffect = MessageHandler->OnDragEnterExternal(Window.ToSharedRef(), OLEData.OperationText, OLEData.OperationFilenames);
+		}
+		else if (OLEData.Type & FDragDropOLEData::Text)
+		{
 			*CursorEffect = MessageHandler->OnDragEnterText(Window.ToSharedRef(), OLEData.OperationText);
-			break;
-		case FDragDropOLEData::Files:
+		}
+		else if (OLEData.Type & FDragDropOLEData::Files)
+		{
 			*CursorEffect = MessageHandler->OnDragEnterFiles(Window.ToSharedRef(), OLEData.OperationFilenames);
-			break;
-		case FDragDropOLEData::None:
-		default:
-			break;
+		}
+	}
+	else
+	{
+		*CursorEffect = EDropEffect::None;
 	}
 
 	return 0;
@@ -2024,7 +2116,14 @@ HRESULT FWindowsApplication::OnOLEDragOver( const HWND HWnd, DWORD KeyState, POI
 
 	if ( Window.IsValid() )
 	{
-		*CursorEffect = MessageHandler->OnDragOver( Window.ToSharedRef() );
+		if ( Window->IsEnabled() )
+		{
+			*CursorEffect = MessageHandler->OnDragOver( Window.ToSharedRef() );
+		}
+		else
+		{
+			*CursorEffect = EDropEffect::None;
+		}
 	}
 
 	return 0;
@@ -2034,7 +2133,7 @@ HRESULT FWindowsApplication::OnOLEDragOut( const HWND HWnd )
 {
 	const TSharedPtr< FWindowsWindow > Window = FindWindowByHWND( Windows, HWnd );
 
-	if ( Window.IsValid() )
+	if ( Window.IsValid() && Window->IsEnabled() )
 	{
 		// User dragged out of a Slate window. We must tell Slate it is no longer in drag and drop mode.
 		// Note that this also gets triggered when the user hits ESC to cancel a drag and drop.
@@ -2050,7 +2149,14 @@ HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, const FDragDropOLEData&
 
 	if ( Window.IsValid() )
 	{
-		*CursorEffect = MessageHandler->OnDragDrop( Window.ToSharedRef() );
+		if ( Window->IsEnabled() )
+		{
+			*CursorEffect = MessageHandler->OnDragDrop(Window.ToSharedRef());
+		}
+		else
+		{
+			*CursorEffect = EDropEffect::None;
+		}
 	}
 
 	return 0;
@@ -2072,7 +2178,7 @@ void FWindowsApplication::RemoveMessageHandler(IWindowsMessageHandler& InMessage
 void FWindowsApplication::QueryConnectedMice()
 {
 	TArray<RAWINPUTDEVICELIST> DeviceList;
-	UINT DeviceCount;
+	UINT DeviceCount = 0;
 
 	GetRawInputDeviceList(nullptr, &DeviceCount, sizeof(RAWINPUTDEVICELIST));
 	if (DeviceCount == 0)
@@ -2087,7 +2193,7 @@ void FWindowsApplication::QueryConnectedMice()
 	int32 MouseCount = 0;
 	for (const auto& Device : DeviceList)
 	{
-		UINT NameLen;
+		UINT NameLen = 0;
 		TAutoPtr<char> Name;
 		if (Device.dwType != RIM_TYPEMOUSE)
 			continue;
@@ -2122,7 +2228,10 @@ void FTaskbarList::Initialize()
 {
 	if (FWindowsPlatformMisc::CoInitialize())
 	{
-		CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (void **)&TaskBarList3);
+		if (CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (void **)&TaskBarList3) != S_OK)
+		{
+			TaskBarList3 = nullptr;
+		}
 	}
 }
 

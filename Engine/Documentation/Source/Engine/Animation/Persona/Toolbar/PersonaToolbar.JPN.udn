@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2667814
+﻿INTSourceChangelist:2796819
 Availability:Public
-Title:ペルソナのツールバー
+Title:ペルソナ (Persona) のツールバー
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:ペルソナ アニメーション エディタ ツールバーのユーザーガイド
+Description:ペルソナ アニメーション エディタのツールバーのユーザーガイド
 version:4.9
 
 [VAR:Topic]
@@ -33,7 +33,7 @@ version:4.9
 
 
 [EXCERPT:Overview]
-ペルソナ インターフェース ウィンドウの上部に沿って、**ツールバー** がデフォルトで表示されます。アニメーション アセットの編集時に、必要に応じて一般的に使用するさまざまな機能があります。
+ペルソナ インターフェース ウィンドウの上部に沿って、**ツールバー** がデフォルトで表示されます。アニメーション アセットの編集時に必要な様々な一般的機能があります。
 [/EXCERPT:Overview]
 
 [REGION:tip]
@@ -42,7 +42,7 @@ version:4.9
 
 ## ツールバーのモード
 
-ご存知かもしれませんが、ペルソナには 4 種類のモードがあります。このモードを使用して、ユーザーが現在行っている作業に応じて、インターフェースの一部を選択的に表示します。これは、ペルソナ内で使用する一般的なコマンドが、モードによって変更することも意味します。ツールバーは、現在のモードで役立たないコマンドがあれば非表示にするために直観的な更新を行います。例えば、
+ペルソナには 4 種類のモードがあります。このモードを使用して、現在行っている作業に応じて、インターフェースを選択的に表示します。これは、ペルソナ内で使用する一般的なコマンドが、モードによって変更することも意味します。ツールバーは、現在のモードで役立たないコマンドがあれば非表示にするために直観的な更新を行います。例えば、以下があります。
 
 **スケルトン** 、 **メッシュ** 、または **アニメーション** のモード時は、ツールバーは以下のような表示となります。
 
@@ -53,36 +53,36 @@ version:4.9
 
 ![](PersonaToolbar.png)
 
-お気づきかもしれませんが、追加ボタンのほとんどは、ブループリントエディタ ウィンドウで使用しているボタンと同じです。 
+お気づきかもしれませんが、追加ボタンのほとんどは、ブループリントのエディタ ウィンドウで使用しているボタンと同じです。 
 
 
 ## ツールバーボタン
 
-ペルソナのツールバーボタンで、スケルトン、メッシュ、アニメーションなどのアセットモード間を簡単に切り替えることができます。Animation ブループリントの編集時に必要な一般的コマンドも含まれています。
+ペルソナのツールバーボタンで、スケルトン、メッシュ、アニメーションなどのアセット モード間を簡単に切り替えることができます。Animation ブループリントの編集時に必要な一般的コマンドも含まれています。
 
 
 | ボタン																						| 説明														|
 | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | 
-| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilesuccessful]	|
-| ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compileneeded]		|
-| ![Compile Warning Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_warning.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilewarning]		|
-| ![Compile Failed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_failed.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilefailed]		|
-| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#save]					|
-| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findincb]				| 
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png)			| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#blueprintprops]		|
-| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/defaults.png)				| [Details (詳細)] タブに [Class Defaults (クラスのデフォルト)] パネルを表示します。 |
-| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#search]				|
+| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilesuccessful]	|
+| ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compileneeded]		|
+| ![Compile Warning Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_warning.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilewarning]		|
+| ![Compile Failed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_failed.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#compilefailed]		|
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#save]					|
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#findincb]				| 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png)			| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#blueprintprops]		|
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/defaults.png)				| Shows the Class Defaults Panel in the Details Tab |
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#search]				|
 | ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png)							| [INCLUDE:Engine/UI/LevelEditor/Toolbar#simulate]			|
 | ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png)					| [INCLUDE:Engine/UI/LevelEditor/Toolbar#playin]				|
-| ![Pause Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_pause.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#pause]				|
-| ![Resume Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_resume.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#resume]				|
-| ![Frame Skip Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_frameskip.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#frameskip]			|
-| ![Stop Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_stop.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#stop]					|
-| ![Possess Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_possess.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#possess]				|
-| ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#eject]				|
-| ![Find Node Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_node.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findnode]				|
-| ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#step]					|
-| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)					| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#debugobject]			|
+| ![Pause Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_pause.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#pause]				|
+| ![Resume Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_resume.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#resume]				|
+| ![Frame Skip Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_frameskip.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#frameskip]			|
+| ![Stop Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_stop.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#stop]					|
+| ![Possess Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_possess.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#possess]				|
+| ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#eject]				|
+| ![Find Node Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_node.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#findnode]				|
+| ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)									| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#step]					|
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)					| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar#debugobject]			|
 | ![](button_Preview.png)																					| 現在選択中のアニメーション アセットのプレビューを表示します。 |
 | ![](button_RefPose.png)																					| スケルタルメッシュを参照ポーズで表示します。 |
 | ![](button_Import.png)																					| インポート ダイアログを呼び出します。 |
@@ -128,12 +128,12 @@ version:4.9
 
 
 [EXCERPT:MeshButton]
-このボタンはペルソナを [メッシュモード](Engine/Animation/Persona#ペルソナモードとユーザーインターフェース（UI）) へ切り替えます。
+このボタンはペルソナを [メッシュ モード](Engine/Animation/Persona#ペルソナモードとユーザーインターフェース（UI）) へ切り替えます。
 
 [REGION:simpletable]
 | エレメント | 説明 |
 |---|---|
-|![](button_MeshField.png)| ペルソナで現在編集しているスケルタルメッシュ アセットの名前を表示します。 |
+|![](button_MeshField.png)| ペルソナで現在編集している Skeletal Mesh アセットの名前を表示します。 |
 %pickasset%
 %search%
 [/REGION]
@@ -157,7 +157,7 @@ version:4.9
 [REGION:simpletable]
 | エレメント | 説明 |
 |---|---|
-|![](button_GraphField.png)| ペルソナで現在編集中の Animation ブループリントアセットの名前を表示します。 |
+|![](button_GraphField.png)| ペルソナで現在編集中の Animation Blueprint アセットの名前を表示します。 |
 %search%
 [/REGION]
 [/EXCERPT:GraphButton]

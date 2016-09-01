@@ -46,9 +46,11 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AimOffset) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AimOffset1D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PoseAsset));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace1D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Blueprint) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CameraAnim) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CanvasRenderTarget2D) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Curve) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveFloat) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveTable) );
@@ -107,7 +109,6 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorField) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldAnimated) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldStatic) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VertexAnimation) );
 
 	// Note: Please don't add any more actions here!  They belong in an editor-only module that is more tightly
 	// coupled to your new system, and you should not create a dependency on your new system from AssetTools.
@@ -755,7 +756,12 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 
 		const TArray<UFactory*>* FactoriesPtr = ExtensionToFactoriesMap.Find(FileExtension);
 		UFactory* Factory = nullptr;
-		if ( FactoriesPtr )
+		//When doing automationtest we can setup factory option and we need to make sure we use the specified one
+		if (GIsAutomationTesting && SpecifiedFactory && SpecifiedFactory->FactoryCanImport(Filename))
+		{
+			Factory = SpecifiedFactory;
+		}
+		else if ( FactoriesPtr )
 		{
 			const TArray<UFactory*>& Factories = *FactoriesPtr;
 
@@ -979,7 +985,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 				}
 				else
 				{
-					const FText Message = FText::Format( LOCTEXT("ImportFailed_Generic", "Failed to import '{0}'. Failed to create asset '{1}'"), FText::FromString( Filename ), FText::FromString( PackageName ) );
+					const FText Message = FText::Format( LOCTEXT("ImportFailed_Generic", "Failed to import '{0}'. Failed to create asset '{1}'.\nPlease see Output Log for details."), FText::FromString( Filename ), FText::FromString( PackageName ) );
 					FMessageDialog::Open( EAppMsgType::Ok, Message );
 					UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
 				}

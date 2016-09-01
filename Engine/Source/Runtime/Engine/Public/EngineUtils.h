@@ -56,9 +56,7 @@ struct HActor : public HHitProxy
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( Actor );
-
-		UPrimitiveComponent* NonConstPrimComp = const_cast<UPrimitiveComponent*>(PrimComponent);
-		Collector.AddReferencedObject( NonConstPrimComp );
+		Collector.AddReferencedObject( PrimComponent );
 	}
 
 	virtual EMouseCursor::Type GetMouseCursor() override
@@ -291,7 +289,7 @@ public:
 	 *
 	 * @return true if iterator points to a suitable actor, false if it has reached the end
 	 */
-	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+	FORCEINLINE explicit operator bool() const
 	{
 		return !State->ReachedEnd;
 	}

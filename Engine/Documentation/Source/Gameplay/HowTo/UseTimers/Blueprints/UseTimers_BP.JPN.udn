@@ -1,20 +1,19 @@
-﻿INTSourceChangelist:2561549
+﻿INTSourceChangelist:2713187
 Availability:Public
-Title:ブループリントでタイマーを使う
+Title:ブループリントでタイマーを使用する
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseTimers
 Description:ブループリントでタイマーを使用するための操作ガイド 
+version:4.9
 
 [TOC (start:2 end:2)]
 
-## 概要
-
-このページは、ブループリントのゲームプレイ用の **タイマー** とタイマーに関連づいたノードの使用方法を説明します。 
+このページでは、ブループリントのゲームプレイ用の **タイマー** とタイマーに関連付いたノードの使用方法を説明します。 
  
 ## タイマーの作成とクリア
 
 以下の手順で、ブループリントでタイマーを作成 / 設定します。 
 
-_例えば **Blueprint Third Person Template** を使って、徐々にプレイヤーにダメージを与えていきます。_
+例えば **Blueprint Third Person Template** を使って、時間の経過に伴いプレイヤーに炎のダメージを与えていきます。
 
 1.	プロジェクトで **ThirdPersonCharacter** ブループリントを開きます。 
 
@@ -26,21 +25,23 @@ _例えば **Blueprint Third Person Template** を使って、徐々にプレイ
 
 	![](GHT6B_2.png)
 
-	この関数は **タイマー** で徐々に呼び出されて、ダメージを適用します。 
+	この関数は **タイマー** で時間の経過に伴い呼び出されて、ダメージを適用します。 
 
-1.	 **PlayerInFire** Event を引き出して **Set Timer** ノードを追加します。 
+1.	 **PlayerInFire** Event を引き出して **Set Timer by Function Name** ノードを追加します。 
 
-1.	 **PlayerNotInFire** Event を引き出して **Clear Timer** ノードを追加します。 
+1.	 **PlayerNotInFire** Event を引き出して **Clear Timer by Handle** ノードを追加します。 
 
-1.	**Set Timer** と **Clear Timer** の両方の **Function Name** を **FireDamage** に設定します。 
+1.	**Set Timer by Function Name** に対して、 **Function Name** を **FireDamage** に設定します。 
 
 1.	 **Set Timer** 上で **Time** を **0.75** に設定して、 **[Looping]** ボックスにチェックを入れます。 
+
+1. **Set Timer by Function Name** ノードの **Return Value** ピンを **Clear Timer by Handle** ノードの **Handle** ピンに接続します。
 
 	![](GHT6B_3.png)
 
 	ここに入力された **Time** は、 **Function Name** 関数が呼ばれる間隔 (1.75 秒ごと) です。 
 
-1.	**PlayerHealth** と呼ばれる **Int** 変数を新規に作成し、 **[Compile]** をクリックし、 **Default Value** を **100** に設定します。 
+1.	**PlayerHealth** と呼ばれる **Integer** 変数を新規に作成し、 **[Compile]** をクリックし、 **Default Value** を **100** に設定します。 
 
 	![](GHT6B_4.png)
 
@@ -48,11 +49,11 @@ _例えば **Blueprint Third Person Template** を使って、徐々にプレイ
 
 1.	**Control** を押しながら、 **PlayerHealth** 変数もドラッグします。 
 
-1.	**PlayerHealth** 変数をドラッグして、 **Integer - Integer** ノードを追加したら、 0 pin を引き出して **Random Integer in Range** ノードを追加します。 
+1.	**PlayerHealth** 変数をドラッグして、 **Integer - Integer** ノードを追加したら、 0 ピンを引き出して **Random Integer in Range** ノードを追加します。 
 
 	![](GHT6B_5.png)
 
-	ここでは **Random Integer in Range** ノードで値を Min (1) と Max (4) にしましたが、好きなダメージ値を入力できます。
+	ここでは **Random Integer in Range** ノードで値を Min (1) と Max (4) にしましたが、必要に応じてダメージ値を入力できます。
 
 1.	**Set** ノードを引き出して **Print String** を追加し、 **Control** を押しながら **PlayerHealth** をドラッグして **Print String** に接続します。 
 
@@ -60,7 +61,7 @@ _例えば **Blueprint Third Person Template** を使って、徐々にプレイ
 
 	この例ではヘルス値バーは表示してませんが、これにより実際ヘルス値が減少していることが分かります。
 
-1.	**Blueprint_Effect_Fire** ブループリントを開いて、 **[Components]** タブをクリックします。 
+1.	「Content/StarterContent/Blueprints」 フォルダにある **Blueprint_Effect_Fire** ブループリントを開きます。 
 
 1.	**[Add Component]** ボタンをクリックし、 **Box** 形状を追加し「 **Trigger** 」と名付けます。 
 
@@ -68,7 +69,7 @@ _例えば **Blueprint Third Person Template** を使って、徐々にプレイ
 
 	プレイヤーがこのトリガーに出入りする時に、 **ThirdPersonCharacter** ブループリントにイベントを呼び出します。 
 
-1.	**[Graph]** タブに戻って **[Trigger]** を **右クリック** し、 **OnComponentBegin**  Overlap Event と **OnComponentEnd** Overlap Event を追加します。 
+1. **My Blueprint** タブを探して **[Trigger]** を **右クリック** し、 **OnComponentBegin** Overlap Event と **OnComponentEnd** Overlap Event を追加します。 
 
 	![](GHT6B_8.png)
 
@@ -78,41 +79,41 @@ _例えば **Blueprint Third Person Template** を使って、徐々にプレイ
 
 	![](GHT6B_8b.png)
 
-1. 	**コンパイル** し **保存** してから、ブループリントを終了します。 
+1. 	**コンパイル** し **保存** してから、ブループリントを閉じます 
 
 1.	**コンテンツ ブラウザ** で **Blueprint_Effect_Fire** ブループリントをレベルへドラッグします。 
 
 	![](GHT6B_9.png)
 
-1.	エディタで再生するための **[Play]** ボタンをクリックする時に火を登録すると、ダメージを受け始めることが分かります。 
+1.	**[Play]** ボタンをクリックしてエディタで再生し、火に入るとダメージを受け始めることが分かります。 
 
-これは、タイマーを使って徐々に与えるダメージエフェクトを作成する方法のサンプルです。ただし、 X 秒継続してプレイヤーが無敵となり他の能力を持てるようにするパワーアップなど、他のことを表すためにタイマーを使うこともできます。 
+これは、タイマーを使って時間経過に伴うダメージエフェクトを作成する方法のサンプルです。ただし、 X 秒継続してプレイヤーが無敵になったり、他の能力を持てるようにするパワーアップなど、他のことを表すためにタイマーを使うこともできます。 
 
 
 ## タイマー関連の追加ノード
 
-**Set Timer** ノードと **Clear Timer** ノードはタイマーの開始 / 停止に使用しますが、以下のノードは必要に応じて使うことができます。 
+**Set Timer by Function Name** ノードと **Clear Timer by Handle** ノードはタイマーの開始 / 停止に使用しますが、以下のノードを必要に応じて使うことができます。 
 
 ### Get Timer Elapsed と Get Timer Remaining
 
 ![](GHT6B_10.png)
 
-**Get Timer Elapsed** と **Get Timer Remaining** ノードは開始からの経過時間や、指定したタイマーに対する残り時間 (**FunctionName** により表示) を受け取ります。**Float** として値を返し、徐々にエフェクトを変更したり、エフェクトの終了時にメッセージを出すなど、様々な目的で使用することができます。 
+**Get Timer Elapsed by Handle** ノードと **Get Timer Remaining by Handle** ノードは開始からの経過時間や、指定したタイマーに対する残り時間 (FunctionName により表示) を取得します。Float として値を返し、時間の経過に伴いエフェクトを変更したり、エフェクトが終了しそうなときにメッセージを出すなど、様々な目的で使用することができます。 
 
 ### Pause Timer と Un Pause Timer
 
 ![](GHT6B_11.png)
 
-**Pause Timer** は名前の通り、現在時刻でタイマーを一時停止します。一方、 **Clear Timer** は完全に停止しリセットします。**Un Pause Timer** ノードは一時停止しているタイマーを再開し、残り時間をピックアップするために使用します。ユースケースの例としては、適用されたエフェクトをタイマー上でプレイヤーが実行し、例えばメニューやインベントリ画面にしてエフェクトを一時停止した後、ゲームプレイに戻った時に再開させるというものがあります。 
+**Pause Timer by Handle** は名前の通り、現在時刻でタイマーを一時停止します。一方、 **Clear Timer by Handle** は完全にタイマー停止しリセットします。**Unpause Timer by Handle** ノードは一時停止しているタイマーを再開するために使用し、停止した場所から始めます。ユースケースの例としては、タイマーで実行するエフェクトがプレイヤーに適用されていて、例えばメニューやインベントリ画面に入り、エフェクトを一時停止した後、ゲームプレイに戻った時に再開させるというものがあります。 
 
 ### Timer Exists 、Is Timer Active 、Is Timer Paused
 
 ![](GHT6B_12.png)
 
-**Timer Exists** 、**Is Timer Active** 、**Is Timer Paused** ノードはすべて  **True** あるいは **False** の値を返し、タイマーが存在しているのか、タイマーはアクティブな状態なのか、タイマーは一時停止中なのかを判断するために使用します。 
+**Does Timer Exist by Handle** 、**Is Timer Active by Handle** 、**Is Timer Paused by Handle** ノードはすべて **True** あるいは **False** の値を返し、タイマーが存在しているのか、タイマーはアクティブな状態なのか、タイマーは一時停止中なのかを判断するために使用します。 
 
-### Timer Delegate の設定
+### Set Timer by Event
 
 ![](GHT6B_13.png)
 
-**Set Timer Delegate** ノードは **Set Timer** ノードと同様に機能しますが、違う点は **Function Name** を指定する代わりに、発行する **Custom Event** を接続することができます。**Set Timer** ノードの場合と同様に、これもループに設定することもできます。**Clear Timer** ノードを使って、 **Function Name** に **Custom Event** 名を入力します。
+**Set Timer by Event** ノードは **Set Timer by Function Name** ノードと同様に機能しますが、違う点は Function Name を指定する代わりに、発行する **Custom Event** を接続できることです。**Set Timer by Function Name** ノードの場合と同様に、これもループに設定することもできます。

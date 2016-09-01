@@ -311,10 +311,6 @@ public:
 				{
 					ExitTextMode();
 					bDragging = true;
-				}
-
-				if( bDragging )
-				{
 					OnBeginSliderMovement.ExecuteIfBound();
 				}
 
@@ -704,7 +700,7 @@ private:
 	/** Rounds the submitted value to the correct value if it's an integer. */
 	NumericType RoundIfIntegerValue( double ValueToRound ) const
 	{
-		return TIsIntegralType<NumericType>::Value
+		return TIsIntegral<NumericType>::Value
 			? (NumericType)FMath::FloorToDouble( ValueToRound + 0.5 )
 			: (NumericType)ValueToRound;
 	}

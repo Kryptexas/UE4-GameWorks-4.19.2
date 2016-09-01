@@ -25,6 +25,12 @@ namespace BuildGraph.Tasks
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public string Arguments;
+
+		/// <summary>
+		/// The minimum exit code which is treated as an error.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public int ErrorLevel = 1;
 	}
 
 	/// <summary>
@@ -56,8 +62,8 @@ namespace BuildGraph.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			CommandUtils.Run(Parameters.Exe, Parameters.Arguments);
-			return true;
+			ProcessResult Result = CommandUtils.Run(Parameters.Exe, Parameters.Arguments);
+			return Result.ExitCode >= 0 && Result.ExitCode < Parameters.ErrorLevel;
 		}
 
 		/// <summary>
@@ -66,6 +72,24 @@ namespace BuildGraph.Tasks
 		public override void Write(XmlWriter Writer)
 		{
 			Write(Writer, Parameters);
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			yield break;
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			yield break;
 		}
 	}
 }

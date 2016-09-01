@@ -7,6 +7,7 @@
  *
  */
 
+#include "AnimTypes.h"
 #include "AnimSequenceBase.h"
 #include "AnimSequence.generated.h"
 
@@ -369,10 +370,16 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	TArray<struct FRawAnimSequenceTrack> SourceRawAnimationData;
 
 	/**
+	* Temporary base pose buffer for additive animation that is used by compression. Do not use this unless within compression. It is not available.
+	* This is used by remove linear key that has to rebuild to full transform in order to compress
+	*/
+	TArray<struct FRawAnimSequenceTrack> TemporaryAdditiveBaseAnimationData;
+
+	/**
 	 * The compression scheme that was most recently used to compress this animation.
 	 * May be NULL.
 	 */
-	UPROPERTY(Instanced, Category=Compression, EditAnywhere)
+	UPROPERTY(Category=Compression, VisibleAnywhere)
 	class UAnimCompress* CompressionScheme;
 #endif // WITH_EDITORONLY_DATA
 
@@ -460,6 +467,10 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=Animation)
 	FName RetargetSource;
 
+	/** This defines how values between keys are calculated **/
+	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category = Animation)
+	EAnimInterpolationType Interpolation;
+	
 	/** If this is on, it will allow extracting of root motion **/
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category = RootMotion, meta = (DisplayName = "EnableRootMotion"))
 	bool bEnableRootMotion;
@@ -526,7 +537,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
-	virtual void PreSave() override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -663,6 +674,8 @@ public:
 	*/
 	void ExtractBoneTransform(const struct FRawAnimSequenceTrack& InRawAnimationTrack, FTransform& OutAtom, float Time) const;
 
+	void ExtractBoneTransform(const struct FRawAnimSequenceTrack& RawTrack, FTransform& OutAtom, int32 KeyIndex) const;
+
 	// End Transform related functions 
 
 	// Begin Memory related functions
@@ -791,20 +804,20 @@ public:
 	/**
 	* Return true if compressed data is out of date / missing and so animation needs to use raw data
 	*/
-	bool DoesNeedRecompress() const { return bUseRawDataOnly; }
+	bool DoesNeedRecompress() const { return GetSkeleton() && bUseRawDataOnly; }
 
 	/**
 	 * Create Animation Sequence from Reference Pose of the Mesh
 	 */
-	bool CreateAnimation(class USkeletalMesh * Mesh);
+	bool CreateAnimation(class USkeletalMesh* Mesh);
 	/**
 	 * Create Animation Sequence from the Mesh Component's current bone transform
 	 */
-	bool CreateAnimation(class USkeletalMeshComponent * MeshComponent);
+	bool CreateAnimation(class USkeletalMeshComponent* MeshComponent);
 	/**
 	 * Create Animation Sequence from the given animation
 	 */
-	bool CreateAnimation(class UAnimSequence * Sequence);
+	bool CreateAnimation(class UAnimSequence* Sequence);
 
 	/**
 	 * Crops the raw anim data either from Start to CurrentTime or CurrentTime to End depending on
@@ -902,7 +915,7 @@ private:
 	/**
 	 * Remap Tracks to New Skeleton
 	 */
-	void RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConvertSpaces );
+	virtual void RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConvertSpaces ) override;
 	/**
 	 * Remap NaN tracks from the RawAnimation data and recompress
 	 */	

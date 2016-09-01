@@ -1,0 +1,67 @@
+Title: Radial Menu
+Description: The Radial menu provides easy access to commonly used functions such as copy, paste, undo, etc., when in VR mode.
+Crumbs:
+Availability: public
+parent: Engine/Editor/VR
+type: reference
+order: 3
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/RadialMenu:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/RadialMenu]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/RadialMenu:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/RadialMenu:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/RadialMenu]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/RadialMenu:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+The **Radial Menu** provides access to common actions like undo, redo, paste, etc.
+
+![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu_world.png)(w:640)
+
+## Using the Radial Menu
+
+1. Lightly touch the Track Pad with your thumb to display the Radial Menu.
+1. Move your thumb around the Track Pad to highlight an option.
+1. Press the Track Pad down to select the highlighted option.
+
+## Radial Menu Options
+
+| Option | Description |
+| ------ | ----------- |
+| Universal Gizmo | Toggles the Universal Gizmo on or off. |
+| Delete | Deletes the selected Actor(s). |
+| Duplicate | Creates duplicates of the selected Actor(s). |
+| Copy | Copies the selected Actor(s) to the clipboard. |
+| Paste | Pastes the contents of the clipboard into the world. |
+| Undo | Reverts the last action performed. |
+| Redo | Performs the last undone action. |
+| Snap To Ground | Moves the selected Actor(s) down until they collide with other geometry. |

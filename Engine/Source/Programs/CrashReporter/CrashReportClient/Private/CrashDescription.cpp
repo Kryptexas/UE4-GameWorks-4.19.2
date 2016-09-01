@@ -7,7 +7,7 @@
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
 #include "CrashReportUtil.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "IAnalyticsProviderET.h"
 #include "EngineBuildSettings.h"
 #include "QoSReporter.h"
 
@@ -117,7 +117,8 @@ FPrimaryCrashProperties::FPrimaryCrashProperties()
 	, TimeOfCrash( FGenericCrashContext::RuntimePropertiesTag, TEXT( "TimeOfCrash" ), this )
 	, bAllowToBeContacted( FGenericCrashContext::RuntimePropertiesTag, TEXT( "bAllowToBeContacted" ), this )
 	, CrashReporterMessage( FGenericCrashContext::RuntimePropertiesTag, TEXT( "CrashReporterMessage" ), this )
-	, BuildIntegrity(FGenericCrashContext::PlatformPropertiesTag, TEXT("BuildIntegrityStatus"), this)
+	, PlatformCallbackResult(FGenericCrashContext::PlatformPropertiesTag, TEXT("PlatformCallbackResult"), this)
+	, CrashReportClientVersion(FGenericCrashContext::RuntimePropertiesTag, TEXT("CrashReportClientVersion"), this)
 	, XmlFile( nullptr )
 {
 	CrashVersion = ECrashDescVersions::VER_1_NewCrashFormat;
@@ -191,16 +192,13 @@ void FPrimaryCrashProperties::SendPreUploadAnalytics()
 
 	if (FCrashReportAnalytics::IsAvailable())
 	{
-		// Connect the crash report client analytics provider.
-		IAnalyticsProvider& Analytics = FCrashReportAnalytics::GetProvider();
-
 		if (bIsEnsure)
 		{
-			Analytics.RecordEvent(TEXT("CrashReportClient.ReportEnsure"), CrashAttributes);
+			FCrashReportAnalytics::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportEnsure"), CrashAttributes);
 		}
 		else
 		{
-			Analytics.RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
+			FCrashReportAnalytics::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
 		}
 	}
 
@@ -257,13 +255,15 @@ void FPrimaryCrashProperties::MakeCrashEventAttributes(TArray<FAnalyticsEventAtt
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("bHasPrimaryData"), bHasPrimaryData));
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashVersion"), (int32)CrashVersion));
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashGUID"), CrashGUID));
-	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("BuildIntegrityStatus"), BuildIntegrity.AsString()));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("PlatformCallbackResult"), PlatformCallbackResult.AsString()));
 
 	//	AppID = GameName
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("GameName"), GameName));
 
 	//	AppVersion = EngineVersion
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineVersion"), EngineVersion.ToString()));
+
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashReportClientVersion"), CrashReportClientVersion.AsString()));
 
 	// @see UpdateIDs()
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("MachineID"), MachineId.AsString()));

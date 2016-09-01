@@ -2,6 +2,7 @@ Availability: Public
 Title:Vector Field Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Reference for Vector Field modules, which provide 3D motion grid data to GPU particles.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -13,7 +14,7 @@ Description:Reference for Vector Field modules, which provide 3D motion grid dat
 
 In this image, the small highlighted streaks throughout the scene are visualizations of a Global Vector Field Volume placed in the level.
 
-The Global Vector Fields module allows for particle systems to use global vector fields. These are vector fields that are placed via volumes within a level, rather than being an inherent part of a particle system.
+The **Global Vector Fields** module allows for particle systems to use global vector fields. These are vector fields that are placed via volumes within a level, rather than being an inherent part of a particle system.
 
 In order to be fully utilized, a Vector Field Volume Actor must exist in the level with a Vector Field associated with it.
 
@@ -27,7 +28,7 @@ In order to be fully utilized, a Vector Field Volume Actor must exist in the lev
 
 ![LocalVF.png](LocalVF.png)
 
-The Local Vector Field module allows for a vector field to be associated directly with an emitter inside a particle system. This is useful when the vector field and the particle system are considered a single unit.
+The **Local Vector Field** module allows for a vector field to be associated directly with an emitter inside a particle system. This is useful when the vector field and the particle system are considered a single unit.
 
 | **Properties** | **Description** |
 |[REGION:tablesection]Vector Field[/REGION]||
@@ -43,7 +44,7 @@ The Local Vector Field module allows for a vector field to be associated directl
 
 ![VFInitRot.png](VFInitRot.png)
 
-The Vector Field Initial Rotation module will allow for an initial amount of rotation to be applied to a vector field. This is useful when the vector field's overall direction needs tweaking, or to get a more randomized feel for the particle system's movement. This module automatically uses a max/min range for randomization of the vector field's rotation.
+The **Vector Field Initial Rotation** module will allow for an initial amount of rotation to be applied to a vector field. This is useful when the vector field's overall direction needs tweaking, or to get a more randomized feel for the particle system's movement. This module automatically uses a max/min range for randomization of the vector field's rotation.
 
 [REGION:note]
 	When using this module, it can be useful to visualize vector fields in the **Preview** Panel. This is done by clicking View > Vector Fields within the **Preview** Panel.
@@ -70,7 +71,7 @@ UmZ9q-3KP8o
 [/PARAMLITERAL]
 [/OBJECT]
 
-If you need a local vector field to have a constant rate of spin, then the VF Rotation Rate module is exactly what you need. Applying it allows for the specified vector field to have distributed rotation rate. This can lead to some highly interesting effects.
+If you need a local vector field to have a constant rate of spin, then the **VF Rotation Rate** module is exactly what you need. Applying it allows for the specified vector field to have distributed rotation rate. This can lead to some highly interesting effects.
 
 [REGION:note]
 	When using this module, it can be useful to visualize vector fields in the **Preview** Panel. This is done by clicking View > Vector Fields within the **Preview** Panel.
@@ -85,7 +86,7 @@ If you need a local vector field to have a constant rate of spin, then the VF Ro
 
 ## Vector Field Scale
 
-The Vector Field Scale module allows for scaling of a vector field's influence. This is calculated only at the moment of particle birth.
+The **Vector Field Scale** module allows for scaling of a vector field's influence. This is calculated only at the moment of particle birth.
 
 [REGION:note]
 	When using this module, it can be useful to visualize vector fields in the **Preview** Panel. This is done by clicking View > Vector Fields within the **Preview** Panel.
@@ -101,7 +102,7 @@ The Vector Field Scale module allows for scaling of a vector field's influence. 
 
 ## VF Scale/Life
 
-The Vector Field Scale Over Life module allows for the scaling of a local vector field to take place over the life of an emitter. This is calculated throughout a particle's lifespan.
+The **Vector Field Scale Over Life** module allows for the scaling of a local vector field to take place over the life of an emitter. This is calculated throughout a particle's lifespan.
 
 [REGION:note]
 	When using this module, it can be useful to visualize vector fields in the **Preview** Panel. This is done by clicking View > Vector Fields within the **Preview** Panel.

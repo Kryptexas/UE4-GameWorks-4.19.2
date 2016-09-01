@@ -34,7 +34,10 @@ public:
 		, SectionObject(*CastChecked<UMovieSceneSubSection>(&InSection))
 		, Sequencer(InSequencer)
 	{
-		SequenceInstance = InSequencer->GetSequenceInstanceForSection(InSection);
+		if (InSequencer->HasSequenceInstanceForSection(InSection))
+		{
+			SequenceInstance = InSequencer->GetSequenceInstanceForSection(InSection);
+		}
 	}
 
 public:
@@ -69,14 +72,14 @@ public:
 		}
 		else if(UMovieSceneSubSection::GetRecordingSection() == &SectionObject)
 		{
-			const FString& ActorToRecord = UMovieSceneSubSection::GetActorToRecord();
+			AActor* ActorToRecord = UMovieSceneSubSection::GetActorToRecord();
 
 			ISequenceRecorder& SequenceRecorder = FModuleManager::LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
 			if(SequenceRecorder.IsRecording())
 			{
-				if(ActorToRecord.Len() > 0)
+				if(ActorToRecord != nullptr)
 				{
-					return FText::Format(LOCTEXT("RecordingIndicatorWithActor", "Sequence Recording for \"{0}\""), FText::FromString(UMovieSceneSubSection::GetActorToRecord()));
+					return FText::Format(LOCTEXT("RecordingIndicatorWithActor", "Sequence Recording for \"{0}\""), FText::FromString(ActorToRecord->GetActorLabel()));
 				}
 				else
 				{
@@ -85,9 +88,9 @@ public:
 			}
 			else
 			{
-				if(ActorToRecord.Len() > 0)
+				if(ActorToRecord != nullptr)
 				{
-					return FText::Format(LOCTEXT("RecordingPendingIndicatorWithActor", "Sequence Recording Pending for \"{0}\""), FText::FromString(UMovieSceneSubSection::GetActorToRecord()));
+					return FText::Format(LOCTEXT("RecordingPendingIndicatorWithActor", "Sequence Recording Pending for \"{0}\""), FText::FromString(ActorToRecord->GetActorLabel()));
 				}
 				else
 				{
@@ -135,19 +138,30 @@ public:
 		const float StartOffset = SectionObject.TimeScale * SectionObject.StartOffset;
 		const float WorkingStart = -SectionObject.TimeScale * PlaybackRange.GetLowerBoundValue() - StartOffset;
 		const float WorkingSize = SectionObject.TimeScale * (MovieScene != nullptr ? MovieScene->GetEditorData().WorkingRange.Size<float>() : 1.0f);
+		
+		if(UMovieSceneSubSection::GetRecordingSection() == &SectionObject)
+		{
+			FColor SubSectionColor = FColor(180, 75, 75, 190);
+	
+			ISequenceRecorder& SequenceRecorder = FModuleManager::LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
+			if(SequenceRecorder.IsRecording())
+			{
+				SubSectionColor = FColor(200, 10, 10, 190);
+			}
 
-		FSlateDrawElement::MakeBox(
-			InPainter.DrawElements,
-			LayerId,
-			InPainter.SectionGeometry.ToPaintGeometry(
-				FVector2D(WorkingStart * DrawScale, 0.f),
-				FVector2D(WorkingSize * DrawScale, InPainter.SectionGeometry.Size.Y)
-			),
-			FEditorStyle::GetBrush("Sequencer.Section.SelectedTrackTint"),
-			InPainter.SectionClippingRect,
-			DrawEffects,
-			FColor(220, 120, 120)
-		);
+			FSlateDrawElement::MakeBox(
+				InPainter.DrawElements,
+				++LayerId,
+				InPainter.SectionGeometry.ToPaintGeometry(
+					FVector2D(WorkingStart * DrawScale, 0.f),
+					FVector2D(WorkingSize * DrawScale, InPainter.SectionGeometry.Size.Y)
+				),
+				FEditorStyle::GetBrush("Sequencer.Section.BackgroundTint"),
+				InPainter.SectionClippingRect,
+				DrawEffects,
+				SubSectionColor
+			);
+		}
 
 		// add dark tint for left out-of-bounds & working range
 		if (StartOffset < 0.0f)
@@ -324,7 +338,7 @@ TSharedPtr<SWidget> FSubTrackEditor::BuildOutlinerEditWidget(const FGuid& Object
 	.AutoWidth()
 	.VAlign(VAlign_Center)
 	[
-		FSequencerUtilities::MakeAddButton(LOCTEXT("SubText", "Sequence"), FOnGetContent::CreateSP(this, &FSubTrackEditor::HandleAddSubSequenceComboButtonGetMenuContent), Params.NodeIsHovered)
+		FSequencerUtilities::MakeAddButton(LOCTEXT("SubText", "Sequence"), FOnGetContent::CreateSP(this, &FSubTrackEditor::HandleAddSubSequenceComboButtonGetMenuContent, Track), Params.NodeIsHovered)
 	];
 }
 
@@ -433,7 +447,7 @@ void FSubTrackEditor::HandleAddSubTrackMenuEntryExecute()
 	auto NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneSubTrack>();
 	ensure(NewTrack);
 
-	GetSequencer()->NotifyMovieSceneDataChanged();
+	GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
 /** Helper function - get the first PIE world (or first PIE client world if there is more than one) */
@@ -454,18 +468,19 @@ static UWorld* GetFirstPIEWorld()
 	return nullptr;
 }
 
-TSharedRef<SWidget> FSubTrackEditor::HandleAddSubSequenceComboButtonGetMenuContent()
+TSharedRef<SWidget> FSubTrackEditor::HandleAddSubSequenceComboButtonGetMenuContent(UMovieSceneTrack* InTrack)
 {
 	FMenuBuilder MenuBuilder(true, nullptr);
 
 	MenuBuilder.BeginSection(TEXT("RecordSequence"), LOCTEXT("RecordSequence", "Record Sequence"));
 	{
+		AActor* ActorToRecord = nullptr;
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("RecordNewSequence", "Record New Sequence"), 
 			LOCTEXT("RecordNewSequence_ToolTip", "Record a new level sequence into this sub-track from gameplay/simulation etc.\nThis only primes the track for recording. Click the record button to begin recording into this track once primed.\nOnly one sequence can be recorded at a time."), 
 			FSlateIcon(), 
 			FUIAction(
-				FExecuteAction::CreateSP(this, &FSubTrackEditor::HandleRecordNewSequence, FString()),
+				FExecuteAction::CreateSP(this, &FSubTrackEditor::HandleRecordNewSequence, ActorToRecord, InTrack),
 				FCanExecuteAction::CreateSP(this, &FSubTrackEditor::CanRecordNewSequence)));
 
 		if(UWorld* PIEWorld = GetFirstPIEWorld())
@@ -473,13 +488,13 @@ TSharedRef<SWidget> FSubTrackEditor::HandleAddSubSequenceComboButtonGetMenuConte
 			APlayerController* Controller = GEngine->GetFirstLocalPlayerController(PIEWorld);
 			if(Controller && Controller->GetPawn())
 			{
-				FString ActorNameToRecord = Controller->GetPawn()->GetFName().ToString();
+				ActorToRecord = Controller->GetPawn();
 				MenuBuilder.AddMenuEntry(
 					LOCTEXT("RecordNewSequenceFromPlayer", "Record New Sequence From Current Player"), 
 					LOCTEXT("RecordNewSequenceFromPlayer_ToolTip", "Record a new level sequence into this sub track using the current player's pawn.\nThis only primes the track for recording. Click the record button to begin recording into this track once primed.\nOnly one sequence can be recorded at a time."), 
 					FSlateIcon(), 
 					FUIAction(
-						FExecuteAction::CreateSP(this, &FSubTrackEditor::HandleRecordNewSequence, ActorNameToRecord),
+						FExecuteAction::CreateSP(this, &FSubTrackEditor::HandleRecordNewSequence, ActorToRecord, InTrack),
 						FCanExecuteAction::CreateSP(this, &FSubTrackEditor::CanRecordNewSequence)));
 			}
 		}
@@ -490,7 +505,7 @@ TSharedRef<SWidget> FSubTrackEditor::HandleAddSubSequenceComboButtonGetMenuConte
 	{
 		FAssetPickerConfig AssetPickerConfig;
 		{
-			AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw( this, &FSubTrackEditor::HandleAddSubSequenceComboButtonMenuEntryExecute);
+			AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw( this, &FSubTrackEditor::HandleAddSubSequenceComboButtonMenuEntryExecute, InTrack);
 			AssetPickerConfig.bAllowNullSelection = false;
 			AssetPickerConfig.InitialAssetViewType = EAssetViewType::Tile;
 			AssetPickerConfig.Filter.ClassNames.Add(TEXT("LevelSequence"));
@@ -512,7 +527,7 @@ TSharedRef<SWidget> FSubTrackEditor::HandleAddSubSequenceComboButtonGetMenuConte
 	return MenuBuilder.MakeWidget();
 }
 
-void FSubTrackEditor::HandleAddSubSequenceComboButtonMenuEntryExecute(const FAssetData& AssetData)
+void FSubTrackEditor::HandleAddSubSequenceComboButtonMenuEntryExecute(const FAssetData& AssetData, UMovieSceneTrack* InTrack)
 {
 	FSlateApplication::Get().DismissAllMenus();
 
@@ -522,15 +537,15 @@ void FSubTrackEditor::HandleAddSubSequenceComboButtonMenuEntryExecute(const FAss
 	{
 		UMovieSceneSequence* MovieSceneSequence = CastChecked<UMovieSceneSequence>(AssetData.GetAsset());
 
-		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSubTrackEditor::AddKeyInternal, MovieSceneSequence) );
+		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSubTrackEditor::AddKeyInternal, MovieSceneSequence, InTrack) );
 	}
 }
 
-bool FSubTrackEditor::AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence)
+bool FSubTrackEditor::AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence, UMovieSceneTrack* InTrack)
 {	
 	if (CanAddSubSequence(*InMovieSceneSequence))
 	{
-		auto SubTrack = FindOrCreateMasterTrack<UMovieSceneSubTrack>().Track;
+		UMovieSceneSubTrack* SubTrack = Cast<UMovieSceneSubTrack>(InTrack);
 		float Duration = InMovieSceneSequence->GetMovieScene()->GetPlaybackRange().Size<float>();
 		SubTrack->AddSequence(InMovieSceneSequence, KeyTime, Duration);
 
@@ -554,22 +569,22 @@ bool FSubTrackEditor::CanRecordNewSequence() const
 	return !UMovieSceneSubSection::IsSetAsRecording();
 }
 
-void FSubTrackEditor::HandleRecordNewSequence(FString NameOfActorToRecord)
+void FSubTrackEditor::HandleRecordNewSequence(AActor* InActorToRecord, UMovieSceneTrack* InTrack)
 {
 	FSlateApplication::Get().DismissAllMenus();
 
-	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSubTrackEditor::HandleRecordNewSequenceInternal, NameOfActorToRecord) );
+	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSubTrackEditor::HandleRecordNewSequenceInternal, InActorToRecord, InTrack) );
 }
 
-bool FSubTrackEditor::HandleRecordNewSequenceInternal(float KeyTime, FString NameOfActorToRecord)
+bool FSubTrackEditor::HandleRecordNewSequenceInternal(float KeyTime, AActor* InActorToRecord, UMovieSceneTrack* InTrack)
 {
-	auto SubTrack = FindOrCreateMasterTrack<UMovieSceneSubTrack>().Track;
+	UMovieSceneSubTrack* SubTrack = Cast<UMovieSceneSubTrack>(InTrack);
 	UMovieSceneSubSection* Section = SubTrack->AddSequenceToRecord();
 
 	// @todo: we could default to the same directory as a parent sequence, or the last sequence recorded. Lots of options!
 	Section->SetTargetSequenceName(GetDefault<USequenceRecorderSettings>()->SequenceName);
 	Section->SetTargetPathToRecordTo(GetDefault<USequenceRecorderSettings>()->SequenceRecordingBasePath.Path);
-	Section->SetNameOfActorToRecord(NameOfActorToRecord);
+	Section->SetActorToRecord(InActorToRecord);
 
 	return true;
 }

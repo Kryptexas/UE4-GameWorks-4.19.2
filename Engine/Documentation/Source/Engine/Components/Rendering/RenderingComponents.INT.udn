@@ -78,7 +78,7 @@ There are several pages you can refer to for more information on working with De
 An **InstancedStaticMeshComponent** is a Component that efficiently renders multiple instances of the same Static Mesh. 
 This type of Component is particularly useful for procedural level or room creation, as instead of placing hundreds (or even thousands) of **Static Mesh Actors** in your level, you can place one **Instanced Static Mesh** and add multiple instances of the Static Mesh (floors or walls for example) at a much lower performance cost. 
 
-See the [**Procedural Room Generation**](https://docs.unrealengine.com/latest/INT/Videos/Player/index.html?series=PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f&video=mI7eYXMJ5eI&utm_source=uelauncher&utm_medium=software&utm_campaign=learntab) training stream for an example of working with **InstancedStaticMesh** Components and procedurally generating a random room. 
+See the [**Procedural Room Generation**](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f&video=mI7eYXMJ5eI) training stream on our Wiki for an example of working with **InstancedStaticMesh** Components and procedurally generating a random room. 
 
 ## Particle System Component
 

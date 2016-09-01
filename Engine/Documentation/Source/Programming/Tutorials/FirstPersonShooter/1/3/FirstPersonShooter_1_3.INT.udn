@@ -3,7 +3,7 @@ Title: 1.3 - Adding Log Messaging
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description: Learn how to add log messaging to your game.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,17 +23,17 @@ Version: 4.9
 
 %Steps%
 
-You'll add a log message to your newly created FPSGameMode in this step. Log messages are useful for verifying and debugging your code. In this case, you'll use your log message to verify that you're actually using your new Game Mode.
+A great way to start adding code to our project is by adding a log message to `FPSGameMode`. Log messages are really useful for verifying and debugging code during development. During this step, we'll use a log message to verify that we're actually using `FPSGameMode` rather than the default `Game Mode` provided to us by Unreal Engine.
 
-## FPSGameMode Interface File
+## FPSProjectGameMode Header File
 
 1.	In the **Solution Explorer**, expand **FPSProject > Source > FPSProject**.
 
 	![](InterfaceFile.png)
 
-1.	**Double-click** `FPSGameMode.h` to open the interface file for your newly created **FPSGameMode** class.
+1.	Double-click `FPSProjectGameMode.h` to open the header file for your **FPSGameMode** class.
 
-1.	Your class declaration should like the following:
+1.	Your class declaration should look like the following:
 
 		UCLASS()
 		class FPSPROJECT_API AFPSGameMode : public AGameMode
@@ -41,19 +41,13 @@ You'll add a log message to your newly created FPSGameMode in this step. Log mes
 			GENERATED_BODY()
 		};
 
-1.	Add the following constructor declaration under the `GENERATED_BODY()` macro:
-
-		AFPSGameMode(const FObjectInitializer& ObjectInitializer);
-
-1.	Add the following function declaration under the `AFPSGameMode` constructor declaration:
+1.	Add the following function declaration under the `AFPSProjectGameMode` constructor declaration:
 
 		virtual void StartPlay() override;
 
-	[REGION:note]
-	This function declaration will allow you to override the StartPlay() function (inherited from the `AActor` class) so that you can print a log message to the screen when gameplay begins.
-	[/REGION]
+	This function declaration allows you to override the `StartPlay()` function (inherited from the `AActor` class) so that you can print a log message to the screen when gameplay begins.
 
-1.	Your class interface should look like the following:
+1.	`FPSProjectGameMode.h` should now look like the following:
 
 		// Fill out your copyright notice in the Description page of Project Settings.
 		
@@ -66,76 +60,58 @@ You'll add a log message to your newly created FPSGameMode in this step. Log mes
 		 * 
 		 */
 		UCLASS()
-		class FPSPROJECT_API AFPSGameMode : public AGameMode
+		class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
 		{
 			GENERATED_BODY()
-		
-			AFPSGameMode(const FObjectInitializer& ObjectInitializer);
-		
+
 			virtual void StartPlay() override;
 		};
 
-1.	Save your interface file in Visual Studio.
+1.	Save your header file in Visual Studio.
 
-## FPSGameMode Implementation File
+## FPSProjectGameMode CPP File
 
-1.	In the **Solution Explorer**, locate `FPSGameMode.cpp` (also located in **FPSProject > Source > FPSProject**).
+1.	In the **Solution Explorer**, locate `FPSProjectGameMode.cpp` (**FPSProject > Source > FPSProject**).
 
 	![](ImplementationFile.png)
 
-1.	**Double-click** `FPSGameMode.cpp` to open the implementation file for your **FPSGameMode** class.
+1.	Double-click `FPSProjectGameMode.cpp` to open the implementation file for your **FPSGameMode** class.
 
-1.	Add the following constructor definition to `FPSGameMode.cpp`:
+1.	Now add the following lines of code for the `StartPlay()` function below the `AFPSProjectGameMode` constructor:
 
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-		}
-
-	[REGION:note]
-	The FPSGameMode is AFPSGameMode because it derives from a class that ultimately derives from the base Actor class.
-	[/REGION]
-
-1.	Add the following lines of code for the `StartPlay()` function below the `AFPSGameMode` constructor:
-
-		void AFPSGameMode::StartPlay()
+		void AFPSProjectGameMode::StartPlay()
 		{
 			Super::StartPlay();
 		
-			StartMatch();
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				// Display a debug message for five seconds. 
+				// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
 			}
-		}//StartPlay()
+		}
 
-	[REGION:note]
-	`StartPlay()` will print "Hello World, this is FPSGameMode!" to your screen in yellow text when gameplay begins.
-	[/REGION]
+	`StartPlay()` will now print a new debug message ("Hello World, this is FPSGameMode!") to the screen in yellow text for five seconds when gameplay begins.
 
-1.	Your class implementation should look like the following:
+1.	`FPSProjectGameMode.cpp` should now look like the following:
 
 		// Fill out your copyright notice in the Description page of Project Settings.
 		
 		#include "FPSProject.h"
-		#include "FPSGameMode.h"
+		#include "FPSProjectGameMode.h"
 		
-		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-		{
-		}//AFPSGameMode Constructor
-		
-		void AFPSGameMode::StartPlay()
+		void AFPSProjectGameMode::StartPlay()
 		{
 			Super::StartPlay();
 		
-			StartMatch();
-		
-			if (GEngine != nullptr)
+			if (GEngine)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+				// Display a debug message for five seconds. 
+				// The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message.
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Hello World, this is FPSGameMode!"));
 			}
-		}//StartPlay()
+		}
 
-1.	Save your implementation file in Visual Studio.
+1.	Save your CPP file in Visual Studio.
 
 %Steps%

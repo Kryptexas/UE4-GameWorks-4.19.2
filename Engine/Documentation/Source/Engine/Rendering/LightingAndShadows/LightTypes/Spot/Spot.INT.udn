@@ -69,10 +69,6 @@ Like other lights, a Spot Light can be set to one of three Mobility settings:
 [/OBJECT]
 [/EXCERPT:Intro]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Spotlight_Movable.png)(w:150 convert:false)
@@ -81,10 +77,6 @@ Like other lights, a Spot Light can be set to one of three Mobility settings:
 	**Moveable** - (pictured left) which means the light is totally dynamic and allows for dynamic shadowing. This is the slowest in terms of rendering but allows for the most flexibility during gameplay. 
 	[/PARAM]
 [/OBJECT]
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
 
 Two examples of a **Spot Light** placed inside a level are shown below demonstrating how to determine the light radius and cone effectors:
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2635963
+﻿INTSourceChangelist:2728238
 Availability:Public
 Title:루트 모션
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,33 +9,33 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Content/Tools/MayaRiggingTool
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/EventGraph
+version: 4.9
 
 [TOC(start:2 end:2)]
 
-## 개요
 
-보통 게임 애니메이션에서 캐릭터의 콜리전 캡슐(이나 다른 모양)은 콘트롤러가 씬을 통해 돌립니다. 그리고서 이 캡슐에서의 데이터를 사용해서 애니메이션을 돌립니다. 예를 들어 캡슐이 앞으로 이동중이라면, 캐릭터가 자력으로 움직이고 있구나 하는 모양새를 내기 위해 시스템이 자동으로 달리기나 걷기 애니메이션을 캐릭터에 재생시키는 것입니다.
 
-그러나 이러한 동작이 모든 상황에 항상 이상적인 것은 아닙니다. 복잡한 애니메이션으로 콜리전 캡슐을 돌리는 것은 되도 그 반대는 되지 않는 경우가 있을 수 있습니다. 이럴 때 바로 루트 모션 처리가 핵심적인 역할을 합니다.
+보통 게임 애니메이션에서 캐릭터의 콜리전 캡슐(이나 다른 모양)은 콘트롤러가 씬을 통해 돌립니다. 그리고서 이 캡슐에서의 데이터를 사용해서 애니메이션을 돌립니다. 예를 들어 캡슐이 앞으로 이동중이라면, 캐릭터가 자력으로 움직이고 있구나 하는 모양새를 내기 위해 시스템이 자동으로 달리기나 걷기 애니메이션을 캐릭터에 재생시키는 것입니다. 그러나 이러한 동작이 모든 상황에 항상 이상적인 것은 아닙니다. 복잡한 애니메이션으로 콜리전 캡슐을 돌리는 것은 되도 그 반대는 되지 않는 경우가 있을 수 있습니다. 이럴 때 바로 루트 모션 처리가 핵심적인 역할을 합니다.
 
 예를 들어 메시가 전방 돌진 사전 애니메이션 상태에서 플레이어의 특수 공격을 생각해 봅시다. 모든 캐릭터 모션이 플레이어 캡슐을 기반으로 했다면, 그러한 애니메이션은 캐릭터가 캡슐 밖으로 발을 내딛게 만들 것이고, 사실상 콜리전을 잃게 됩니다. 애니메이션 재생이 완료되면 플레이어는 콜리전 위치로 미끄러져 돌아갈 테지요. 이때 보통 모든 계산에서 중심으로 사용되는 것은 캡슐이기에 문제가 됩니다. 캡슐 밖의 캐릭터는 지오메트리를 뚫고 지나갈 것이고, 배경에 대한 반응이 적절히 이루어지지 않을 것입니다. 게다가 애니메이션 종료시 원래 캡슐로 미끄러져 돌아가는 것도 비현실적입니다.
  
 이 개념이 처음이신 분들은 올바른 루트 모션이 왜 그리 중요한지, 설명을 읽는 것만으로는 그리 와닿지 않을 것입니다. 아래는 전방 돌격 후 해머를 내려치는 사전 애니메이션 공격을 하는 캐릭터입니다. 여기서 캐릭터의 전방 이동 애니메이션은 게임에서 처리되는 것이 아니라, 애니메이션 아티스트가 생성한 것입니다.
 
-[REGION:warning]
-엔진 초기 (4.5 이전) 버전에서는 애님 몽타주를 사용해야 했습니다 (자세한 정보는 [](Engine/Animation/AnimMontage) 참고). 
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TKAcNubFOH8
+[/PARAMLITERAL]
+[/OBJECT]
 
-4.6 버전 이후, 루트 모션은 이제 애니메이션별로 처리되어 페르소나의 애니메이션 프로퍼티에서 켜고 끌 수 있습니다. 루트 모션을 완벽히 활용하기 위해서는, 캐릭터에 애니메이션 블루프린트가 필요할 것입니다 (자세한 정보는 [](Engine/Animation/AnimBlueprints/) 문서를 참고하세요). 캐릭터의 애니메이션 블루프린트 프로퍼티 안에서, 'Root Motion' 섹션을 통해 어떠한 유형의 애니메이션에 루트 모션을 적용시킬지 설정할 수 있습니다. 버전에 따라 루트 모션에 애님 몽타주를 사용해 줘야 제대로 적용될 수도 있다는 점 참고하시기 바랍니다.
-[/REGION]
-
-[REGION:lightbox]
-[![](HammerSlamStatic.png)](HammerSlam.gif)
-[/REGION]
-
-**클릭하면 애니메이션이 재생됩니다.**
 
 [REGION:tip]
-캐릭터에 적용된 **루트 모션** 의 또다른 예제는 [애니메이션 콘텐츠 예제](Resources\ContentExamples\Animation) 문서의 1.9 섹션에서 찾아볼 수 있습니다.
+**루트 모션** 또다른 예제는 [애니메이션 콘텐츠 예제](Resources\ContentExamples\Animation) 문서의 1.9 섹션에서 찾아볼 수 있습니다.
 [/REGION]
 
 
@@ -60,8 +60,52 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 ![](RootMotionAppliedBone.png)
 [/REGION]
 
-
 자, 이게 무슨 뜻일까요? 시스템이 캐릭터 애니메이션의 루트 모션을 계산에 넣게 되었으니, 이제 같은 모션을 캐릭터의 콜리전 캡슐에 재적용할 수 있게 된 것입니다. 즉 애니메이터가 의도한 모션 그대로를 유지할 수 있으나, 게임내 콜리전이나 기타 물리 및 게임플레이 이벤트에도 제대로 반응할 수 있다는 뜻입니다. 실제 어떤지는 아래 섹션에서 확인해 보도록 하겠습니다.
+
+
+## Enabling Root Motion
+
+Root Motion can be enabled inside the **Anim Asset Details** panel of **Persona** for your [Animation Sequence](Engine\Animation\Sequences). 
+
+![](RootMotion.png)
+
+[REGION:warning]
+Early versions of the engine (Versions previous to 4.5) required the use of an [Animation Montage](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimMontage/index.html) to define Root Motion. Since version 4.6, Root Motion is now handled per Animation Sequence and can be toggled on/off in the animation's properties in Persona.
+For networked games however, Root Motion still requires the use of an Animation Montage, see [Root Motion from Montages Only](#rootmotionfrommontagesonly) below. 
+
+[/REGION]
+
+While defining if Root Motion is enabled in done inside the Animation Sequence, you will still need to determine how that sequence is handled inside of an [Animation Blueprint]( Engine/Animation/AnimBlueprints). There are several different ways in which you can handle Root Motion within Animation Blueprints. You can define this through the **Root Motion Mode** drop down menu inside the Anim Blueprint Editor inside Persona. 
+
+![](RootMotionMode.png)
+
+[REGION:note]
+Make sure that you are setting this inside the **Edit Defaults** tab and not the **Edit Preview**.
+[/REGION]
+
+The options are as follows: 
+
+| **Property** | **Description** |
+| --- | --- |
+| **No Root Motion Extraction** | Root Motion is left as is (applied to the root bone). |
+| **Ignore Root Motion** | Root Motion is extracted (and removed from the root bone), but not applied to the character.  |
+| **Root Motion from Everything** | See Below. |
+| **Root Motion from Montages Only** | See Below. |
+
+### Root Motion from Everything
+
+When this option is set as the Root Motion Mode, each animation asset (AnimSequence, Blendspace, AnimMontage, etc.) that contributes to the final character pose has its Root Motion extracted (if it has been set as containing Root Motion). Each piece of extracted Root Motion is blended based on the weight of the source assets contributing to the pose. 
+
+For example:
+
+![](FromEverything.png)
+
+In the image above, the Root Motion of **Jog_Loop_Fwd_RM** and **Jog_Loop_Right_RM** would each be blended together with a weight of 0.5. The resulting animation in this case is a character running diagonally forwards and right across a map. 
+
+### Root Motion from Montages Only
+
+This method is intended for network games which is the reason for its more restricted functionally. Because **Root Motion from Everything** is designed to be unrestricted, it is recommended that it only be used in games where animation isn�t replicated over a network.  
+
 
 
 ## 실제의 루트 모션
@@ -72,34 +116,54 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 
 루트 모션이 없는 애니메이션은, 아래 보이는 것처럼 캐릭터를 캡슐에서 멀리 끌어가 버립니다. 보기 흉하게 캡슐 위치로 끌려오는 것을 보세요. 이런 일이 발생하는 이유는, 애니메이션 재생이 완료되면 캐릭터 콘트롤러는 캐릭터를 원래 위치로 끌어오기 때문입니다.
 
-[REGION:lightbox]
-[![](HammerSlamStatic_NoRootMotion.png)](HammerSlam_NoRootMotion.gif)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Xu2bVQ4pg8M
+[/PARAMLITERAL]
+[/OBJECT]
 
-**클릭하면 애니메이션이 재생됩니다.**
 
 ### 캡슐 분리가 나쁜 이유
 
-이 경우에서 해결해야할 문제는 끌려오는 문제뿐만이 아닙니다. 캐릭터가 콜리전 모양을 벗어나고 있기 때문에, 월드 오브젝트를 뚫고 지나가면서 전체적인 연속성을 깨뜨릴 것입니다. 이 예제에서는 캐릭터의 공격 동작이 벽을 뚥고 지나갔다가 되돌아 오는 것을 볼 수 있습니다.
+이 경우에서 해결해야할 문제는 끌려오는 문제뿐만이 아닙니다. 캐릭터가 콜리전 모양을 벗어나고 있기 때문에, 월드 오브젝트를 뚫고 지나가면서 전체적인 연속성을 깨뜨릴 것입니다. 이 예제에서는 캐릭터의 공격 동작이 벽을 뚫고 지나갔다가 되돌아 오는 것을 볼 수 있습니다.
 
 
-[REGION:lightbox]
-[![](HammerSlamStatic_NoRootMotion_Wall.png)](HammerSlam_NoRootMotion_Wall.gif)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+ov9pyx4MAOo
+[/PARAMLITERAL]
+[/OBJECT]
 
-**클릭하면 애니메이션이 재생됩니다.**
 
 ### 루트 모션 처리의 문제 해결 방법
 
-애니메이션이 루트 모션을 활용하도록 설정하고나면, 애니메이터가 임시로 구성한 동작이 캡슐의 포스를 돌려주게 됩니다. 이를 통해 애니메이션이 끝나는 지점에서부터 재생을 계속할 수 있습니다. 두 번째로 공격 명령을 내릴 때, 새 위치에서 시작되는 것을 볼 수 있습니다. 물론 카메라를 벗어나지 않도록 먼저 방향을 틀도록 했습니다.
+애니메이션이 루트 모션을 활용하도록 설정하고 나면, 애니메이터가 임시로 구성한 동작이 캡슐의 포스를 돌려주게 됩니다. 이를 통해 애니메이션이 끝나는 지점에서부터 재생을 계속할 수 있습니다. 두 번째로 공격 명령을 내릴 때, 새 위치에서 시작되는 것을 볼 수 있습니다. 물론 카메라를 벗어나지 않도록 먼저 방향을 틀도록 했습니다.
 
 
 
-[REGION:lightbox]
-[![](HammerSlamStatic_RootMotion_NoWall.png)](HammerSlam_RootMotion.gif)
-[/REGION]
-
-**클릭하면 애니메이션이 재생됩니다.**
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+PWB_mqjz3iA
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ### 루트 모션과 피직스
@@ -108,13 +172,22 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 
 캐릭터의 굽히는 애니메이션이 어느정도 벽을 관통하고 있으니 완벽한 것은 아니지 않나 싶어 보일겁니다. 그래도 그런 문제는 벽이나 캐릭터의 콜리전 볼륨 작업을 해 주면 되는 문제이니 쉽게 해결할 수 있습니다. 중요한 점은 캡슐이 모션에 따라붙으므로 캐릭터가 벽을 통과해 지나가거나 끌어붙일 필요가 없다는 점입니다.
 
-[REGION:lightbox]
-[![](HammerSlamStatic_RootMotion.png)](HammerAnimation_RootMotion_Wall.gif)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+YuD29-Xr7Oc
+[/PARAMLITERAL]
+[/OBJECT]
 
-**클릭하면 애니메이션이 재생됩니다.**
+루트 모션 도중 캐릭터의 피직스 상태가 고려됩니다. 예를 들어 캐릭터의 피직스가 Walking 또는 Falling 인 경우, 루트 모션의 Z 축은 무시되고 중력이 적용됩니다. 캐릭터는 떨어지거나 경사면을 미끄러지거나 계단을 오르게 됩니다. 캐릭터 피직스가 Flying 인 경우, 루트 모션이 통으로 적용되고, 중력은 무시됩니다.
 
 
+<!-- This should be a HowTo. It's actually a checkbox now instead of using AnimMontages
 ## 루트 모션 셋업
 
 UE4 에서의 루트 모션 셋업은 아주 쉽습니다만, 구체적인 방법은 사용하시는 UE4 버전에 따라 약간 다릅니다. 4.6 미만 버전의 프로세스에 대한 하이 레벨 개요는 이렇습니다:
@@ -183,7 +256,9 @@ UE4 에서의 루트 모션 셋업은 아주 쉽습니다만, 구체적인 방�
 
  ![](CreateAnimMontage.png)
 
-애님 몽타주 이름을 지은 다음 더블클릭하면 페르소나에서 열립니다. 에디터 하단 근처 가운데에 SlotName 칸이 보입니다. 슬롯에 의미있는 이름을 입력해 줍니다. 재생할 애니메이션 세트의 일부분인 경우, 그 이름을 선택해 줘야 합니다. 흔한 슬롯 이름은 _FullBody_ 로, 여기서는 이 이름을 사용하겠습니다.
+애님 몽타주 이름을 지은 다음 더블클릭하면 페르소나에서 열립니다. 에디터 하단 근처 가운데에 SlotName 칸이 보입니다. 그 아래 안경 아이콘을 클릭하여 애님 슬롯 매니저를 띄웁니다. **슬롯 추가** 버튼을 누르고 슬롯 이름을 짓습니다. 재생할 애니메이션 세트의 일부분인 경우, 그 이름을 선택해 줘야 합니다. 흔한 슬롯 이름은 FullBody 로, 여기서는 이 이름을 사용하겠습니다.
+
+그 후 몽타주 내 드롭다운 메뉴에서 새 슬롯을 선택할 수 있을 것입니다.
 
 [REGION:fullwidth]
 ![](SettingUpSlotinMontage.png)
@@ -197,22 +272,27 @@ UE4 에서의 루트 모션 셋업은 아주 쉽습니다만, 구체적인 방�
 
 ![](InsertSlotNode.png)
 
+[REGION:note]
+New State Machine 노드에 경고가 표시될 수 있습니다. 이는 구성이 완전히 끝나지 않아서인데, 이 튜토리얼의 목적상 그리 중요한 부분은 아닙니다.
+[/REGION]
+
 이게 전부입니다! 이제 루트 모션을 활용하도록 설정된 몽타주가 있는 애님 몽타주를 통해 애니메이션을 재생해 보면, 모두 잘 돌아갈 것입니다!
 
 
-[REGION:lightbox]
-[![](HammerSlamStatic_RootMotion_NoWall.png)](HammerSlam_RootMotion.gif)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+PWB_mqjz3iA
+[/PARAMLITERAL]
+[/OBJECT]
 
-**클릭하면 재생됩니다.**
+-->
 
-
-## 주의 및 고려사항
-
-
-[INCLUDE:Engine/Animation\AnimMontage#MontageReplication]
-
-루트 모션 도중 캐릭터의 피직스 상태가 고려됩니다. 예를 들어 캐릭터의 피직스가 _Walking_ 또는 _Falling_ 인 경우, 루트 모션의 Z 축은 무시되고 중력이 적용됩니다. 캐릭터는 떨어지거나 경사면을 미끄러지거나 계단을 오르게 됩니다. 캐릭터 피직스가 _Flying_ 인 경우, 루트 모션이 통으로 적용되고, 중력은 무시됩니다.
 
 
 

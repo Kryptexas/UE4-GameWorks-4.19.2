@@ -174,7 +174,7 @@ However there's a post process volume setting called **IndirectLightingIntensity
 
 
 ## Use Area Shadows for Stationary Lights
-With the 4.9 release of Unreal Engine, Stationary Directional Lights have a new shadowing option located in the Lightmass options called **Use Area Shadows for Stationary Lights**. 
+In the 4.9, or later, release of Unreal Engine, Stationary Directional Lights have a new shadowing option located in the Lightmass options called **Use Area Shadows for Stationary Lights**. 
 
 ![](Area_Shadows_Options.png)
 
@@ -193,4 +193,4 @@ In the following image you see the difference between the two shadowing methods.
 	[/PARAM]
 [/OBJECT]
 
-Note that Area Shadows will only work on Stationary Lights and you might have to increase some objects lightmap resolution to get the same shadow quality and sharpness.
+_Note that Area Shadows will only work on Stationary Lights and you might have to increase some objects lightmap resolution to get the same shadow quality and sharpness._

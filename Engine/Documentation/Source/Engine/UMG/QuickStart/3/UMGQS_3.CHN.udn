@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:3. Creating a Main Menu
+﻿INTSourceChangelist:2728602
+Availability:Public
+Title:3.创建主菜单
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
-Description:In this step we will create the visual layout for our Main Menu. 
+Description:在这一步中，我们将为主菜单创建视觉布局。
+version:4.9
 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
+		[上一步](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/UMG\QuickStart) 
+		[快速入门主页](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+		[下一步](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -25,95 +26,97 @@ Description:In this step we will create the visual layout for our Main Menu.
 
 ---
 
-First bit of business is to create the layout of our Main Menu which we will do below. 
+第一步是要创建主菜单视觉布局，创建过程如下。 
 
-1.	Open your **MainMenu** Widget Blueprint. 
+1.	打开 **主菜单** 控件蓝图。 
 
-1.	On the **Designer** tab, drag and drop widgets from the **Palette** onto the **Hierarchy** to achieve the setup below. 
+1.	在 **设计器** 标签上，从 **调色板** 上将控件拖放到 **层级** 上，完成如下设置。 
 
 	![](Hierarchy1.png)
 
-	For reference we have an **Image**, a **Vertical Box** with **Text** and 3 **Buttons** that have **Text** on our **Canvas Panel**. 
+	作为参考，我们的 **画布面板** 上有一个 **图像**、一个带 **文本** 的 **垂直框** 和 3 个拥有 **文本** 的 **按钮**。 
 
-1.	Select the **Vertical Box** in the **Hierarchy** then **Right-click** and **Copy** it. 
+1.	在 **层级** 中选择 **垂直框**，然后 **右击** 并 **复制**。 
 
-1.	**Right-click** on the **Canvas Panel** and select **Paste** to paste a second copy of the **Vertical Box**. 
+1.	在 **画布面板** 上 **右击** 并选择 **粘贴**，粘贴出 **垂直框** 的另一个副本。 
 
 	![](Hierarchy2.png)
 	 
-1.	In the new **Vertical Box**, **Right-click** copy a **Button** and paste it to create a fourth Button/Text widget. 
+1.	在新的 **垂直框** 中，**右击** 复制一个 **按钮** 并粘贴，创建第 4 个按钮/文本控件。 
 
 	![](Hierarchy3.png)
 
-1.	Select the first **Vertical Box** and in the **Details** panel, rename it to **MainMenu**, check the **isVariable** option and set **ZOrder** to **1**. 
+1.	选择 **细节** 面板中的第一个 **垂直框**，将其重命名为 **主菜单**，选择 **为变量** 选项并将 **ZOrder** 设为 **1**。 
 
 	![](Hierarchy4.png)
 
-	We are naming the widget for clarity and setting it to a variable so that we can access it as well as setting the **ZOrder** so that it appears on top of our image which we will set in a moment. 
+	我们对控件命名以便识别，并将其设置为变量以便访问；然后对 **ZOrder** 进行设置，使其显示于图像的上方，稍后我们将会对图像进行设置。 
 
-1.	Rename each of the **Buttons** as shown in the image below. 
+1.	选择 **细节** 面板中的另一个 **垂直框**，将其重命名为 **选项**，选择 **为变量** 选项并将 **ZOrder** 设为 **1**。 
+
+1.	照下图所示对每个 **按钮** 进行重命名。 
 
 	![](Hierarchy5.png)
 
-	By updating the names of our buttons so that we know what each one does, this will make it easier to script functionality for them. 
+	通过更新按钮的名称来区分它们的不同功能，以便对其功能进行脚本编辑。 
 
-1.	Update each of the **Text** widgets as shown below via the **Text** section under _Content_ in the **Details** panel. 
+1.	按以下所示，通过 **细节** 面板中 **内容** 下的 **文本** 部分更新每个 **文本** 控件。 
 
 	![](Hierarchy6.png)
 
-	Here we are updating the text that is displayed on each of the buttons as well as the menu headers. 
+	在此，我们对显示在每个按钮上的文本和菜单标题进行更新。 
 
-1.	Holding **Ctrl** select each of the **Buttons** then in the **Details** panel set a **Tint** color for **Hovered** and set each to **Fill** for **Size**. 
+1.	按住 **Ctrl** 选择每个 **按钮**，然后在 **细节** 面板中设置 **悬停** 的 **着色** 颜色并逐个设置为按 **尺寸** 进行 **填充**。 
 
 	![](Hierarchy7.png)
 
-	Here we are adjusting the size of all of our buttons as well as defining a color for the button to take when mousing over it. 
+	在此，我们对所有按钮的尺寸进行调整，并定义鼠标悬停时按钮的颜色。 
 
-1.	Select the **Image** in the **Hierarchy** then in the **Details** under _Appearance_ and _Brush_, select a **Texture** or **Material** to use. 
+1.	选择 **层级** 中的 **图像**，然后在 **外观** 和 **画刷** 下的 **细节** 中选择使用的 **纹理** 或 **材质**。 
 
 	![](Hierarchy8.png)
 
 	[REGION:note]
-	If you want to use the same one as this guide, you can download it from here: [Example Background](ExampleBackground.png)
+	如您希望使用与此指南相同的设置，可于此处下载：[范例背景](ExampleBackground.png)
 	
-	Drag-and-drop the Example Background into **Unreal Engine** to import it (click **Yes** at any confirmation messages). 
+	将范例背景拖放导入 **虚幻引擎** 中（在确认提示上点击 **是**）。 
 	[/REGION]
 
-1.	In the **Designer** window, resize the image so that it takes up the entire layout. 
+1.	在 **设计器** 窗口中，重新设置图像大小，使其将整个布局占满。 
 
 	![](Hierarchy9.png)
 
-1.	In the **Details** panel for the **Image**, click the **Anchor** button and choose the fill screen option. 
+1.	在 **图像** 的 **细节** 面板中，点击 **锚** 按钮并选择填充屏幕选项。 
 
 	![](Hierarchy10.png)
 
-1.	Select both **Vertical Boxes** and **Anchor** them to the left-center position. 
+1.	选择两个 **垂直框** 并将它们 **锚** 定在中间偏左的位置。 
 
 	![](Hierarchy11.png)
 
-1.	Select the **Options** Vertical Box and set its **Visibility** setting to **Hidden**. 
+1.	选择 **选项** 垂直框并将其 **可见性** 设为 **隐藏**。 
 
 	![](Hierarchy12.png)
 
-	We do not want options to be shown by default, we will tell it to be visible through script. 
+	我们不需要在默认情况下显示选项，只需通过脚本使其显示即可。 
 
-1.	Select the **MainMenu** Vertical Box and resize and position it as desired in the **Designer** window. 
+1.	选择 **主菜单** 垂直框并重新设置大小，再将它放在 **设计器** 窗口中的预期位置。 
 
 	![](Hierarchy13.png)
 
-1.	You can adjust the **Font**, **Size** and **Alignment** from the **Details** panel of each **Text** widget. 
+1.	可从每个 **文本** 控件的 **细节** 面板中调整 **字体**、**大小** 和 **对齐**。 
 
 	![](Hierarchy14.png)
 
-	You can experiment with these settings to get your desired effect. 
+	可对这些设置进行实验，以获得预期效果。 
 
-1.	Setup your **Options** Vertical Box as desired then move it directly behind your **Main Menu** Vertical Box. 
+1.	按预期设置 **选项** 垂直框，然后直接将其移动至 **主菜单** 垂直框后方。 
 
 	![](Hierarchy15.png)
 
-	Since only one of these will be visible at a time, it is okay that they overlap one another. 
+	因为一次只会显示其中一项，所以它们可以相互重叠。 
 
-With the visual layout of our menu complete, in the next step we will script the menu's functionality. 
+菜单的视觉布局完成后，下一步我们将编写菜单功能的脚本。 
 
 ---
 

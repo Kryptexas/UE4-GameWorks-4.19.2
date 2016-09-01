@@ -1,54 +1,55 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2713401
 Availability:Public
-Title:Conditional Property Replication
+Title:条件属性复制
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors, Gameplay/Networking/Actors/Properties
-Description:Detailed information about how to conditionally replicate Actor properties.
+Description:关于如何根据条件复制 Actor 属性的详细信息。
+version: 4.9
 
-Once a property is registered for replication, you can't unregister it (that's where the lifetime part comes from). The reason for this is because we bake in as much information as possible, so we can take advantage of sharing work across many connections for the same set of properties. This saves a lot of computation time.
+当属性被注册进行复制后，您将无法再取消注册（涉及到生存期这一话题）。之所以会这样，是因为我们要预制尽可能多的信息，以便针对同一组属性将某一工作分担给多个连接。这样可以节省大量的计算时间。
 
-So how does one get more fine grain control over how this property replicates? That's where conditional properties come in.
+那么，如何对属性复制过程进行更细化的控制呢？这时就需要用到条件属性了。
 
-By default, each replicated property has a built-in condition, and that is that they don't replicate if they haven't changed.
+默认情况下，每个复制属性都有一个内置条件：如果不发生变化就不会进行复制。
 
-To give you more control over how a property replicates, there is a special macro that allows you to add a secondary condition.
+为了加强对属性复制的控制，您可以使用一个专门的宏来添加附加条件。
 
-This macro is called `DOREPLIFETIME_CONDITION`. An example of its usage can be seen below:
+这个宏被称为 `DOREPLIFETIME_CONDITION`。它的应用示例如下：
 
 	void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 	{
 		DOREPLIFETIME_CONDITION( AActor, ReplicatedMovement, COND_SimulatedOnly );
 	}
 
-The `COND_SimulatedOnly` flag that was passed into the condition macro will cause an extra check to be performed before even considering this property for replication.In this case, it will only replicate to clients that have a simulating copy of this actor.
+传递给条件宏的 `COND_SimulatedOnly` 标志甚至可以在考虑复制属性前执行一次额外检查。这时，它只会复制到拥有此 actor 模拟复本的客户端。
 
-One of the big benefits of this is that it saves bandwidth; since we've determined that client that has the autonomous proxy version of this actor doesn't need to know about this property (this client is setting this property directly for prediction purposes for example). Another benefit is that for the client not receiving this property, the server won't step on this client's local copy.
+这样做的一个最明显的好处在于节省带宽；因为我们确信拥有此 actor 的自治代理版本的客户端无需了解这个属性（例如，该客户端为了进行预测而直接设置了这一属性）。另一个好处就是对于不接收该属性的客户端而言，服务器无需干涉这个客户端的本地复本。
 
-Here is a quick glance at the list of conditions currently supported, specified in the `ELifetimeCondition` enum in `Engine\Source\Runtime\CoreUObject\Public\UObject\CoreNet.h`:
+下面，让我们快速浏览一下目前支持的条件，它们会在 `Engine\Source\Runtime\CoreUObject\Public\UObject\CoreNet.h` 的 `ELifetimeCondition` 枚举中指定：
 
-| Condition | Description |
+| 条件 | 说明 |
 |-----------|-------------|
-| `COND_InitialOnly`		| This property will only attempt to send on the initial bunch |
-| `COND_OwnerOnly`			| This property will only send to the actor's owner |
-| `COND_SkipOwner`			| This property send to every connection EXCEPT the owner |
-| `COND_SimulatedOnly`		| This property will only send to simulated actors |
-| `COND_AutonomousOnly`		| This property will only send to autonomous actors |
-| `COND_SimulatedOrPhysics`	| This property will send to simulated OR bRepPhysics actors |
-| `COND_InitialOrOwner`		| This property will send on the initial packet, or to the actors owner |
-| `COND_Custom`				| This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride |
+| `COND_InitialOnly`		| 该属性仅在初始数据组尝试发送 |
+| `COND_OwnerOnly`			| 该属性仅发送至 actor 的所有者 |
+| `COND_SkipOwner`			| 该属性将发送至除所有者之外的每个连接 |
+| `COND_SimulatedOnly`		| 该属性仅发送至模拟 actor |
+| `COND_AutonomousOnly`		| 该属性仅发送给自治 actor |
+| `COND_SimulatedOrPhysics`	| 该属性将发送至模拟或 bRepPhysics actor |
+| `COND_InitialOrOwner`		| 该属性将发送初始数据包，或者发送至 actor 所有者 |
+| `COND_Custom`				| 该属性没有特定条件，但需要通过 SetCustomIsActiveOverride 得到开启/关闭能力 |
 
-So far we've talked about conditions that are based off of state that is already known. This makes it easy for the engine to make the necessary optimizations while still giving you enough control over property replication.
+到目前为止，我们已经讨论了基于已知状态的条件。这可以让引擎方便的做出必要的优化，同时让您对属性复制拥有足够的控制。
 
-But what if this isn't enough control? There is one more thing to talk about on this subject. There is a macro called `DOREPLIFETIME_ACTIVE_OVERRIDE`, which gives you full control over when a property does and does not replicate, using any custom condition you want. The one caveat is that this is per actor, not per connection. So in other words, it's not safe to use a state that can change per connection in your custom condition. An example can be seen below.
+如果这样的控制力还不够，那该怎么办？关于这个话题，还有一件事需要讨论。有一个名叫 `DOREPLIFETIME_ACTIVE_OVERRIDE` 的宏可以让您进行全面控制，利用您想要的任何定制条件来决定何时复制/不复制某个属性。需要注意的是，这种控制需针对每个 actor（而不是每条连接）逐一进行。换句话说，如果在定制条件中使用一个可根据连接而发生变化的状态，会存在一定的安全风险。具体示例如下。
 
 	void AActor::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker )
 	{
 		DOREPLIFETIME_ACTIVE_OVERRIDE( AActor, ReplicatedMovement, bReplicateMovement );
 	}
 
-The property ReplicatedMovement will now only replicate if bReplicateMovement is true.
+现在 ReplicatedMovement 属性只会在 bReplicateMovement 为 true 时复制。
 
-Why not use this macro all the time? There are two main reasons to avoid this method:
-* If custom condition value changes a lot, this can slow things down.
-* You cannot use condition that can change per connection (don't check RemoteRole here).
+为何不一直使用这个宏？主要有两个原因：
+* 如果定制条件的值变化太大，这种做法会降低执行速度。
+* 您不能使用根据连接而变化的条件（此时不检查 RemoteRole）。
 
-Property replication conditions give a nice balance of control vs. performance. They give the engine the opportunity to optimize the time it takes to check and send the properties for many connections, while still giving the programmer fine-grained control over how and when properties replicate.
+属性复制条件可以很好的实现控制力与性能之间的平衡。它们可以使引擎以更快的速度针对多条连接检查并发送属性，同时让程序员对复制属性的方式和时机进行精细控制。

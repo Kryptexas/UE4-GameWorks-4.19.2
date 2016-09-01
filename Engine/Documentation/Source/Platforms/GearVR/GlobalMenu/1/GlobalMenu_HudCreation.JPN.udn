@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2611017
 Availability:Public
-Title:Samsung Gear VR Global Menu HUD Creation
+Title:Samsung Gear VR の Global Menu で HUD を作成する
 Crumbs:%ROOT%, Platforms/GearVR
-Description:Instructions on how to create a new HUD to use with your Gear VR project.
+Description: 新規作成した HUD を Gear VR プロジェクトで使用する方法
 Navigation:platform
 Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.8
+Skilllevel:Intermediate
+Version:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -15,10 +15,10 @@ Version: 4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Platforms\GearVR\GlobalMenu)
+		[クイックスタート ホーム](Platforms/GearVR/GlobalMenu)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Platforms\GearVR\GlobalMenu\2 "%Platforms/GearVR/QuickStart/2:title%")
+		[次のステップ](Platforms\GearVR\GlobalMenu\2 "%Platforms/GearVR/QuickStart/2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -27,18 +27,18 @@ Version: 4.8
 %Steps%
 
 
-Before we can start to build the Global Menu HUD we first need to create a new HUD Actor so that the Blueprint code that we create has a location to be stored. 
-In the following section of this Quick Start we will go over how to create a new HUD to your Gear VR project.
+Global Menu HUD のビルドを開始する前に、作成したブループリント コードの格納場所となる HUD アクタを新規作成する必要があります。 
+クイックスタートの最初のセクションでは、Gear VR プロジェクトに HUD を新規作成する方法を説明します。
 
-1. First need to create a new HUD by **Right - Clicking** in the **Content Browser** and then selecting the **Blueprint Class** option from the **Create Basic Asset** section.
-	
+1. **[コンテンツ ブラウザ]** で **右クリック** して新規 HUD を作成します。次に、**[Create Basic Asset (基本アセットを作成)]**セクションから **[Blueprint Class]**オプションを選択します。
+
 	![](T_Create_New_BP.png)
 
-1. From the **Pick Parent Class** menu, input **HUD** into the **Search** and the select the **HUD** class.
+1. **[Pick Parent Class (親クラスを選択)]** メニューで  into the **[Search (検索)]** に **[HUD]** と入力して **HUD** クラスを選択します。
 
 	![](T_Find&Select_HUD.png)
 
-1. Once created, give the HUD a name. For this example we will use **GearVR_GlobalMenu** as the name for this Blueprint HUD.
+1. HUD が作成されたら、名前を付けます。この例では、ブループリント HUD 用の名前として **「GearVR_GlobalMenu」** を使います。
 
 	![](T_Named_HUD.png)
 

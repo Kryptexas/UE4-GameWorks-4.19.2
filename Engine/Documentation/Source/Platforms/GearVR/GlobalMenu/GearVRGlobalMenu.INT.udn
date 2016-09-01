@@ -7,6 +7,10 @@ Platform:Gear VR
 Skilllevel: Intermediate
 Version: 4.8
 prereq: Engine\Blueprints\GettingStarted
+type:overview
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 In order for your Gear VR project to be accepted to the Oculus store there are certain requirements that your project must adhere to. 
 One of these requirements is that at any point while someone is using your project they need to be able to access the Gear VR Global Menu when they hold down the back button for more than 0.75 seconds. 

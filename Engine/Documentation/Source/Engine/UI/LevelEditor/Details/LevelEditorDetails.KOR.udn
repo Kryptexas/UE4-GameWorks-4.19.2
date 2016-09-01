@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2604329
+﻿INTSourceChangelist:3047974
 Availability:Public
 Title:디테일 패널
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:레벨 에디터에서 선택된 액터에 대한 정보와 특화된 편집 툴을 제공하는 패널입니다.
+Version: 4.12
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -34,7 +35,7 @@ Description:레벨 에디터에서 선택된 액터에 대한 정보와 특화�
 패널은 선택된 액터에 사용된 머티리얼이 있으면 보여주기도 하고, 빠르게 편집할 수 있도록 열 수도 있습니다.
 [/EXCERPT:DetailsOverview]
 
-![Level Editor Details Panel](LE_DetailsUI2.png)
+![Level Editor Details Panel](details_panel.png)
 
 **디테일** 패널 UI 관련 상세 정보는 [](Engine/UI/LevelEditor\Details\Interface) 문서를 참고하시기 바랍니다.
 
@@ -61,6 +62,45 @@ Description:레벨 에디터에서 선택된 액터에 대한 정보와 특화�
 이 창이 비워졌나 확인하세요.
 [/REGION]
 
+## 즐겨찾기
+
+[REGION:warning]
+이 옵션은 현재 실험단계 기능으로 간주되어, 일부 기능이 예상대로 작동하지 않을 수 있습니다.
+[/REGION]
+
+액터 내 프로퍼티를 자주 변경하거나 빠르게 접근하려는 경우, 프로퍼티 **즐겨찾기** 를 사용하여 플래그 설정을 해 주면 **디테일** 패널 상단에 나타납니다.
+
+![](Favorites.png)
+
+[REGION:caption]
+위에서, 두 옵션을 **즐겨찾기** 로 체크했는데, 프로퍼티 이름 옆의 별 아이콘으로 쉽게 접근할 수 있음을 알 수 있습니다.
+[/REGION]
+
+**에디터 개인설정** 안에서 **즐겨찾기** 기능을 켤 수 있습니다.
+
+![](EditorPrefs.png)
+
+**실험단계** 아래, **Enable Details Panel Favorites** (디테일 패널 즐겨찾기 켜기) 옵션을 켜면 됩니다.
+
+![](Experimental.png)
+
+[REGION:note]
+변경사항 적용을 위해서는 에디터를 재시작해야 할 수 있습니다.
+[/REGION]
+
+옵션을 켜고 프로퍼티 옆의 별 아이콘을 클릭하면 즐겨찾기에 등록하면 됩니다.
+
+![](ClickFavorite.png)
+
+그러면 그 프로퍼티는 (즐겨찾기 등록된 다른 것들과 함께) 패널의 **즐겨찾기** 섹션 아래 표시됩니다.
+
+![](MarkedFavorites.png)
+
+[REGION:note]
+프로퍼티 중 일부는 그 커스터마이제이션 복잡도로 인해 즐겨찾기 기능이 제공되지 않을 수 있습니다.
+[/REGION]
+
+
 ## 기본값
 
 프로퍼티를 수정하여 _기본_ 값 이외의 값으로 변경된 경우, 알아볼 수 있도록 표식이 나타납니다.
@@ -83,7 +123,7 @@ Description:레벨 에디터에서 선택된 액터에 대한 정보와 특화�
 다른 변수 값에 따라 켤 것인지, 편집 가능한 것인지 아닌지를 결정합니다.
 
 어떤 경우에 편집 조건은 프로퍼티가 다른 값을 덮어쓸 것인지, 아니면 영향을 끼치게 할 것인지를 결정하는 데 
-사용됩니다. 그 외의 경우, 특정 프로퍼티는 일정 조건이 만족되지 않으면 그냥 당연히 안될 수도 있습니다. 예를 들어 간점광에 관련이 있는 
+사용됩니다. 그 외의 경우, 특정 프로퍼티는 일정 조건이 만족되지 않으면 그냥 당연히 안될 수도 있습니다. 예를 들어 간접광에 관련이 있는 
 프로퍼티 그룹이 있고, 간접광을 끌지 켤지 토글시키는 전역 `bool` 프로퍼티가 
 있을 수 있습니다. 그룹 내 각 프로퍼티는 간접광이 사용중일 때만 켜지도록 하기 위해, 전역 토글에 따라 조건이 
 달라지도록 할 수 있습니다.

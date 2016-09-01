@@ -1,28 +1,32 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735882
 Availability: Public
-Title:Referencing Actors
+Title:引用 Actor
 Crumbs: %ROOT%, Gameplay
-Description:A How To Guide for Referencing Actors in Unreal Engine 4. 
+Description:关于如何在虚幻引擎 4 中引用 Actor 的操作指南。
+Version: 4.9
+Parent:Gameplay
+type:how-to
+order:5
 
 [EXCERPT:ReferenceOverview]
-By establishing reference to an Actor, you can access its Properties, Variables, Events, or Functions (if applicable) during gameplay through Blueprints or C++ and alter them to suit your gameplay needs. 
+通过建立对 Actor 的引用，您可以在玩游戏期间通过蓝图或 C++ 访问其属性、变量、事件或函数（若适用），
+然后修改它们以满足您的游戏性需要。 
 
-Say for example you want a light to turn on when a player enters a Trigger Box, having reference to the light and the Trigger Box will allow you to do so by tying the light Actor to the OnComponentBeginOverlap Event of the Trigger Box (in which case you could turn on the light). 
+例如，您想在玩家进入触发器盒时开灯，则建立对灯的引用，
+然后触发器盒将允许您通过将灯 Actor 键入到触发器盒的 OnComponentBeginOverlap 事件来实现此目标（这样，您就可以开灯）。 
 
-Getting proper reference to an Actor is also important for communication between Actors, as incorrectly specifying a reference will result in failed communication and undesirable results. 
+正确引用 Actor 对 Actor 之间的通信也很重要，因为错误指定引用将导致失败的通信和不良结果。 
 [/EXCERPT:ReferenceOverview]
 
-The link below in the Setup section will give you examples on How to Reference Actors using Blueprints.
+以下“设置”部分中的链接将通过示例介绍如何使用蓝图引用 Actor。
 
-## Setup
+## 设置
 
-To learn more about Referencing Actors using Blueprints, follow the link below:
+关于使用蓝图引用 Actor 的详细信息，请访问以下链接：
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\ReferenceAssets\Blueprints)
-[PUBLISH:Docs]
-* [](Gameplay\HowTo\ReferenceAssets\Code)
-[/PUBLISH:Docs]
+
 [/REGION]
 
 

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2372968
+﻿INTSourceChangelist:3032506
 Availability:Public
 Title:스켈레탈 콘트롤
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:타겟 스켈레톤의 본을 직접 조작하거나 솔버 적용이 가능한 애니메이션 노드입니다.
+version: 4.12
 
 [REGION:banner]
 ![Skeletal Control](skelcontrol_banner.png)(convert:false)
@@ -17,11 +18,6 @@ Description:타겟 스켈레톤의 본을 직접 조작하거나 솔버 적용�
 본 _트랜스폼_ 을 조정하거나 완전 덮어쓰는 데 있어 어떠한 종류의 변경도 가능합니다.
 [/EXCERPT:Intro]
 
-## 컴포넌트 스페이스
-
-[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
-
-스페이스 변환 노드 관련 상세 정보는 [](Engine/Animation/NodeReference/SpaceConversion) 페이지를 확인해 주시기 바랍니다.
 
 ## 공통 핀 및 프로퍼티
 
@@ -35,128 +31,54 @@ Description:타겟 스켈레톤의 본을 직접 조작하거나 솔버 적용�
 | [REGION:tablesection]**출력 핀**[/REGION] ||
 | Pose (공백) | 포즈 - `트랜스폼` 적용 이후 최종 포즈입니다. |
 
-## Apply a Percentage of Rotation
+## 컴포넌트 스페이스
 
-**Apply a Percentage of Rotation** (로테이션의 백분율 적용) 콘트롤은 타겟 본의 `로테이션` 을 
-_스켈레톤_ 내 다른 본 `로테이션` 의 지정된 백분율만큼 구동시킵니다.
+[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
 
-![Apply Percentage of Rotation](node_applypercent.png)
+[REGION:note]
+스페이스 변환 노드 관련 상세 정보는 [](Engine/Animation/NodeReference/SpaceConversion) 문서를 참고하세요.
+[/REGION]
 
-| 프로퍼티 | 설명 |
-| -------- | ----------- |
-| [REGION:tablesection]**Multiplier**[/REGION] ||
-| Target Bone | 타겟 본 - 제어할 타겟 본 이름입니다. 수정할 메인 본 체인이 됩니다. |
-| Source Bone | 소스 본 - `트랜스폼` 을 구해올 소스 본 이름입니다. |
-| Rotation Axis To Refer | 로테이션 기준 축 - `로테이션` 제어할 (`X`, `Y`, `Z`) 축입니다. |
+## 스켈레탈 콘트롤 노드
 
-| 핀 | 설명 |
-| --- | ----------- |
-| [REGION:tablesection]**입력 핀**[/REGION] ||
-| Multiplier | 배수 - 타겟 본에 적용할 소스 본 `로테이션` 의 백분율을 나타내는 `float` (실수) 값입니다. [INCLUDE:#Multiplier] |
+아래는 애님 그래프 내 스켈레탈 콘트롤 노드 각각에 대한 추가 정보가 들어있는 링크입니다.
 
-<!--
-[EXCERPT:Multiplier]
-[REGION:simpletable]
-| 값 | 효과 |
-| ----- | ------ |
-| **0.0** | 소스 본 `로테이션` 을 타겟 본에 적용하지 않습니다. |
-| **1.0** | 소스 본 `로테이션` 전부를 타겟 본에 적용합니다. |
-[/REGION] 
-[/EXCERPT:Multiplier]
--->
-
-## Copy Bone
-
-**Copy Bone** (본 복사) 콘트롤은 한 본의 `트랜스폼` 데이터, 즉 `트랜슬레이션`, `로테이션`, `스케일` 
-전부 또는 일부를 다른 본으로 복사합니다.
-
-![Apply Percentage of Rotation](node_copybone.png)
-
-| 프로퍼티 | 설명 |
-| -------- | ----------- |
-| [REGION:tablesection]**Copy**[/REGION] ||
-| Target Bone | 타겟 본 - `트랜스폼` 을 복사할 타겟 본 이름입니다. |
-| Source Bone | 소스 본 - `트랜스폼` 을 복사해 올 소스 본 이름입니다. |
-
-| 핀 | 설명 |
-| --- | ----------- |
-| [REGION:tablesection]**입력 핀**[/REGION] ||
-| Copy Translation | 트랜슬레이션 복사 - 소스 본의 `트랜스폼` 중 `트랜슬레이션` 성분을 복사할지 나타내는 `bool` 입니다. |
-| Copy Rotation | 로테이션 복사 - 소스 본의 `트랜스폼` 중 `로테이션` 성분을 복사할지 나타내는 `bool` 입니다. |
-| Copy Scale | 스케일 복사 - 소스 본의 `트랜스폼` 중 `스케일` 성분을 복사할지 나타내는 `bool` 입니다. |
-
-## Transform (Modify) Bone
-
-![Apply Percentage of Rotation](node_modifybone.png)
-
-| 프로퍼티 | 설명 |
-| -------- | ----------- |
-| [REGION:tablesection]**Skeletal Control**[/REGION] ||
-| Bone To Modify | 변경할 본 - `트랜스폼` 을 변경할 타겟 본 이름입니다. |
-
-| 핀 | 설명 |
-| --- | ----------- |
-| [REGION:tablesection]**입력 핀**[/REGION] ||
-| Translation | 트랜슬레이션 - 타겟 본에 적용할 `트랜슬레이션` 을 나타내는 `Vector` 입니다. |
-| Rotation | 로테이션 - 타겟 본에 적용할 `로테이션` 을 나타내는 `Rotator` 입니다. |
-| Scale | 스케일 - 타겟 본에 적용할 `스케일` 을 나타내는 `Vector` 입니다. |
-
-## Spring
-
-**Spring** (스프링) 콘트롤러는 본을 레퍼런스 포즈 위치에서 얼마나 멀리 잡아당길 수 있는지 
-제한시키고 반대 방향으로 힘을 가하는 데 사용되는 스프링 솔버를 적용합니다.
-
-![Apply Percentage of Rotation](node_springcontroller.png)
-
-| 프로퍼티 | 설명 |
-| -------- | ----------- |
-| [REGION:tablesection]**Spring**[/REGION] ||
-| Spring Bone | 스프링 본 - 스프링 솔버를 적용할 본 이름입니다. |
-| Limit Displacement | 디스플레이스먼트 제한 - 켜면 스프링 솔버가 적용됩니다. |
-| Max Displacement | 최대 디스플레이스먼트 - 본이 늘어날 수 있는 최대 거리입니다. |
-| Spring Stiffness | 스프링 강성 - 스프링에 적용되는 힘의 양에 대한 배수입니다. 값이 클 수록 본의 위치를 변화시키기 위한 본 속도도 커야 하므로, 적용되는 힘도 커지게 됩니다. |
-| Spring Damping | 스프링 제동 - 스프링에 의해 제거되는 본의 속도량입니다. |
-| Error Reset Thresh | 오차 리셋 한계치 - 스프링이 이 한계치 이상 늘어나게 되면, 액터 텔레포트와 같은 갑작스런 디스플레이스먼트에 따라 발생하는 오차를 피하기 위해 리셋시킵니다. |
-| No ZSpring | Z 스프링 없음 - 켜면 `Z` 축 방향 디스플레이스먼트는 스프링에 무시되며, 항상 올바릅니다. |
-
-## Two Bone IK
-
-**Two Bone IK** 콘트롤은 캐릭터의 사지(limb)와 같은 _3관절_ 체인에 IK 솔버를 적용합니다.
-
-![Apply Percentage of Rotation](node_twobone.png)
-
-| 프로퍼티 | 설명 |
-| -------- | ----------- |
-| [REGION:tablesection]**IK**[/REGION] ||
-| IK Bone | IK 본 - IK 솔버를 적용할 본 이름입니다. 본 체인상의 마지막 본, 측 _ankle_ (발목)이나 _wrist_ (손목) 본이 되어야 합니다. |
-| [REGION:tablesection]**Stretch Limits**[/REGION] ||
-| X | X - Max Limb Length (최대 사지 길이) 비율로, 본 스케일을 언제 조절할지 결정하는 데 사용됩니다. |
-| Y | Y - 트랜슬레이션 컴포넌트에 허용가능한 최대 스케일 양입니다. |
-| Allow Stretching | 늘이기 허용 - True 면 본 늘이기를 허용합니다. |
-| [REGION:tablesection]**End Effector**[/REGION] ||
-| Effector Space Bone Name | 이펙터 스페이스 본 이름 - **Effector Location Space** 가 _BCS_BoneSpace_ 로 설정되었을 때 이펙터 위치로 사용할 본 이름입니다. |
-| Take Rotation from Effector Space | 이펙터 스페이스에서 로테이션 취하기 - 켜면 이펙터 (컴포넌트나 부모나 본)의 `로테이션` 이 **IK Bone** 에 적용됩니다. |
-| Maintain Effector Rel Rot | 이펙터 상대 로테 유지 - 켜면 **IK Bone** 의 `로테이션` 은 이펙터를 기준으로 유지됩니다. [REGION:note]**Take Rotation from Effector Space** 옵션이 켜지면 이 옵션은 무시됩니다.[/REGION] |
-| Effector Location Space | 이펙터 위치 스페이스 - **Effector Location** 의 기준 좌표계입니다. [INCLUDE:#LocationSpace] |
-| [REGION:tablesection]**Join Target**[/REGION] ||
-| Joint Target Location Space | 조인트 타겟 위치 스페이스 - **Joint Target Location** 에 대한 기준 좌표계입니다. [INCLUDE:#LocationSpace] |
-| Joint Target Space Bone Name | 조인트 타겟 스페이스 본 이름 - **Joint Target Location Space** 가 _BCS_BoneSpace_ 로 설정되었을 때 조인트 타겟 위치로 사용할 본 이름입니다. |
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	스켈레탈 콘트롤
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine\Animation\NodeReference\SkeletalControls\AnimDynamics "%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation "%Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController "%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\CopyBone "%Engine\Animation\NodeReference\SkeletalControls\CopyBone:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting "%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\LookAt "%Engine\Animation\NodeReference\SkeletalControls\LookAt:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\SpringController "%Engine\Animation\NodeReference\SkeletalControls\SpringController:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\TransformBone "%Engine\Animation\NodeReference\SkeletalControls\TransformBone:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\TrailController "%Engine\Animation\NodeReference\SkeletalControls\TrailController:description%")		
+		* [](Engine\Animation\NodeReference\SkeletalControls\TwistCorrective "%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK "%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:description%")
+		* [](Engine\Animation\NodeReference\SkeletalControls\ObserveBone "%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:description%")		
+	[/PARAM]
+[/OBJECT]
 
 <!--
-[EXCERPT:LocationSpace]
-[REGION:simpletable]
-| 값 | 효과 |
-| ----- | ------ |
-| BCS_WorldSpace | 위치가 월드 스페이스에 상대적인 것으로 간주됩니다. |
-| BCS_ComponentSpace | 위치가 _SkeletalMeshComponent_ 에 상대적인 것으로 간주됩니다. |
-| BCS_ParentSpace | 위치가 부모 본에 상대적인 것으로 간주됩니다. |
-| BCS_BoneSpace | 위치가 (다른 프로퍼티 값 이름으로 지정된) 임의의 본에 상대적인 것으로 간주됩니다. |
-[/REGION] 
-[/EXCERPT:LocationSpace]
+[REGION:topics third]
+%Engine\Animation\NodeReference\SkeletalControls\AnimDynamics:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\ApplyPercentRotation:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\BoneDrivenController:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\CopyBone:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\HandIKRetargeting:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\LookAt:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\SpringController:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\TransformBone:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\TrailController:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\TwistCorrective:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\TwoBoneIK:TopicCompact%
+%Engine\Animation\NodeReference\SkeletalControls\ObserveBone:TopicCompact%
+[/REGION]
 -->
-
-| 핀 | 설명 |
-| --- | ----------- |
-| [REGION:tablesection]**입력 핀**[/REGION] ||
-| Effector Location | **Effector Location Space** 의 위치 이펙터를 나타내는 `벡터` 입니다. |
-| Joint Target Location | **Joint Target Location Space** 의 조인트 타겟 위치를 나타내는 `벡터` 입니다. |

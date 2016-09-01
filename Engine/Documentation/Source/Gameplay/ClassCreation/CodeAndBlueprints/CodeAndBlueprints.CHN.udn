@@ -1,4 +1,4 @@
-INTSourceChangelist:1997546
+﻿INTSourceChangelist:1997546
 Availability:Public
 Title:C++和蓝图
 Crumbs: %ROOT%, Programming
@@ -13,13 +13,13 @@ Description:为使用虚幻引擎的游戏开发入门人员提供的入门信�
 
 在类设置的第一部分中，使用[](Programming\Development\ManagingGameCode\CppClassWizard)创建一个名称为LightSwitchBoth 的类。
 
-LightSwitchBoth类中的大部分代码设置都和[仅使用C++的LightSwitch示例](Programming\Basics\ClassCreation\CodeOnly)类似。尽管您可以让一个蓝图继承LightSwitchCodeOnly类，  
+LightSwitchBoth类中的大部分代码设置都和 [仅使用C++的LightSwitch示例](Gameplay\ClassCreation\CodeOnly) 类似。尽管您可以让一个蓝图继承LightSwitchCodeOnly类，  
 但蓝图图表并不能访问该类中创建的组件、属性及函数。该示例将使用  `UPROPERTY()`  和 `UFUNCTION()` 修饰符，这两个修饰符使得LightSwitchBoth作为继承它的蓝图的模板。
 
-您会发现首先参考下 [仅使用C++的LightSwitch示例](Programming\Basics\ClassCreation\CodeOnly)是有用的，这样您可以看下如何设置头文件及源文件
+您会发现首先参考下 [仅使用C++的LightSwitch示例](Gameplay\ClassCreation\CodeOnly)是有用的，这样您可以看下如何设置头文件及源文件
 来创建LightSwitchComponent、SphereComponent、DesiredBrightness属性及OnOverlap函数。
 
-这个头文件是从 [仅使用C++的LightSwitch示例](Programming\Basics\ClassCreation\CodeOnly) 改编而来，添加了以下功能： 
+这个头文件是从 [仅使用C++的LightSwitch示例](Gameplay\ClassCreation\CodeOnly) 改编而来，添加了以下功能： 
 
 * PointLightComponent和SphereComponent是BlueprintReadOnly（仅蓝图可读的），并且将显示在 **我的蓝图** 选卡中的  **Switch Components（切换组件）** 类目中。
 * OnOverlap现在是一个BlueprintNativeEvent，将会显示在 **我的蓝图** 选卡中的  **Switch Functions（切换函数）** 类目中。

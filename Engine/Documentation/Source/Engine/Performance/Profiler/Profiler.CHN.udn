@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Profiler
+﻿INTSourceChangelist:2956400
+Availability:Public
+Title:分析工具参考 
 Crumbs: %ROOT%, Engine, Engine/Performance
-Description:An overview on the Profiler Tool used to monitor game performance.
+Description:用于监控游戏性能的分析工具总览。
+version:4.9
+Parent:Engine/Performance
 
 [REGION:fullwidth]
 ![](Profiler_Header.png)
@@ -11,227 +13,227 @@ Description:An overview on the Profiler Tool used to monitor game performance.
 [TOC (start:2 end:2)]
 
 
-**Profiler** is the replacement for Unreal Engine 3's StatsViewer tool and is used to monitor the performance of a game by collecting and tracking game data. This data can then be used to identify possible sources of slowdowns or hitches in your game. 
+**分析工具（Profiler）** 是虚幻引擎 3 中 StatsViewer 工具的替代品，它收集并跟踪游戏数据，监控游戏性能。此数据可用于确定游戏中故障和速度减慢的原因。 
 
-If you are new to performance tuning, you may want to refer to the [](Engine/Performance) documentation first, as there are several tips in there that will help illustrate how to monitor your game's performance. 
+如您对性能调试了解不多，请先查阅 [](Engine/Performance) 文档，其中包含的技巧将指导您对游戏性能进行监控。 
 
-## Enabling Profiler
+## 启用分析工具
 
-There are two methods you can use to enable **Profiler** and collect data: 
+启用 **分析工具** 并收集数据的方法有两种： 
 
-1. Live Connection
-	* Run the game with the parameter -messaging (for example: **UE4Editor-Win64-Debug.exe -messaging**).
-	* Run the UFE with the parameter -messaging (for example: **UnrealFrontend-Win64-Debug.exe -messaging**).
-	* Select **Session Frontend** from the **Window** menu bar, then select the **Data Preview** tab. 
-1. Load previously captured data
-	* By pressing the **Load** button on the toolbar from the **Profiler** tab and selecting a **.ue4stats** file. 
-	* By dropping a stats file from explorer or other file manager into the **Profiler** window. 
+1. 即时连接
+	* 使用参数 -messaging 运行游戏（如：**UE4Editor-Win64-Debug.exe -messaging**）。
+	* 使用参数 -messaging 运行 UFE（如：**UnrealFrontend-Win64-Debug.exe -messaging**）。
+	* 从 **Window** 菜单栏的 **Developer Tools** 部分选择 **Session Frontend**，然后选择 **Profiler** 标签。 
+1. 加载之前采集的数据
+	* 按下 **Profiler** 标签工具栏上的 **Load** 按钮并选择一个 **.ue4stats** 文件。 
+	* 将来自浏览器或其他文件管理器的 stats 文件放入 **Profiler** 窗口。 
 
 [REGION:note]
-You can also launch the stand-alone **UnrealFrontEnd.exe** from the **C:\Program Files\Unreal Engine\4.3\Engine\Binaries\Win64** folder to gain access to **Session FrontEnd** and the **Profiler** tab. _(Note: your version number may differ from the path above)_.
+也可从 **C:\Program Files\Unreal Engine\4.3\Engine\Binaries\Win64** 文件夹运行单独的 **UnrealFrontEnd.exe**，以便访问 **Session FrontEnd** 和 **Profiler** 标签。（注意：上述路径中的版本号与您实际的版本号可能不一致）。
 [/REGION]
 	
-## Profiler Window
+## 分析工具窗口
 
-Below is the **Profiler** window and UI components: 
+下图即为 **Profiler** 窗口和 UI 组件： 
 
 [REGION:lightbox]
 [![](ProfilierUI.png)(w:800)](ProfilierUI.png)
 [/REGION]
 
-_Click image for full view._
+_点击图片查看全图。_
 
-1. The **Connected Session** and **Session Information** window - used as the session to obtain the stats data. 
-2. The **Main Toolbar** window - contains basic global functionality. 
-3. The **Data Graph Full** window - provides a full view of the graphical presentation of stats. 
-4. The **Data Graph** window - is the graphical presentation of the stats. 
-5. The **Filter** and **Presets** window - contains all stats and groups (user can filter and sort these stats and groups). 
-6. The **Event Graph** window - shows the selected frame or frames as the event graph. 
+1. **连接会话** 和 **会话信息** 窗口 - 用作获取 stats 数据的会话。 
+2. **主工具栏** 窗口 - 包含基础整体功能。 
+3. **完整数据图表** 窗口 - 包含 stats 图像展示的全貌。 
+4. **数据图表** 窗口 - stats 图像展示。 
+5. **过滤** 和 **预设** 窗口 - 包含所有 stats 和群组（用户可对这些 stats 和群组进行过滤和排序）。 
+6. **事件图表** 窗口 - 以事件图表显示所选帧。 
 
 
-## Main Toolbar
+## 主工具栏
 
 ![](Profiler_MainToolbar.png)
 
-Below are descriptions of each action contained on the **Main Toolbar**: 
+以下是 **主工具栏** 上每个操作的描述： 
 
-| Option | Description |
+| 选项 | 描述 |
 | ------- | ------------ |
-| ![](LoadIcon.png) | Allows you to load a stats file. |
-| ![](SaveIcon.png) | This option is not yet implemented. |
-| ![](DataPreviewIcon.png) | Only for live connection, enables communication with the connected session/client (when active, the icon will be lit). |
-| ![](LivePreviewIcon.png) | Only for live connection, enables live synchronization of the data graph view (when active, the icon will be lit). |
-| ![](DataCaptureIcon.png) | Only for live connection, captures the data on the client. When capture is complete, a pop-up message will ask if you would like to transfer the capture data to the user's machine. Once the data is transferred, a pop-up message will appear and allow you to load the stats file if desired. |
-| ![](StatisticsIcon.png) | Enables the **Stats Profiler**. |
-| ![](FPSChartIcon.png) | Displays the **FPS Chart** (**This option is work-in-progress**). |
-| ![](SettingsIcon.png) | Opens the settings for the **Profiler**: enable/disable **Single Instance Mode** or **Show Coalesced View Modes in Event Graph**. |
+| ![](LoadIcon.png) | 加载 stats 文件。 |
+| ![](SaveIcon.png) | 尚未应用此选项。 |
+| ![](DataPreviewIcon.png) | 只用于即时连接，启用和连接会话/客户端的通信（启用后将点亮图标）。 |
+| ![](LivePreviewIcon.png) | 只用于即时连接，启用数据图表视图即时同步（启用后将点亮图标）。 |
+| ![](DataCaptureIcon.png) | 只用于即时连接，采集客户端上的数据。采集完成后，将弹出提示信息询问是否需要将采集数据传输到用户的设备。完成数据传输后将弹出提示信息加载 stats 文件。 |
+| ![](StatisticsIcon.png) | 启用 **Stats 分析工具**。 |
+| ![](FPSChartIcon.png) | 显示 **FPS Chart**（**此选项的功能仍在完善中**）。 |
+| ![](SettingsIcon.png) | 打开 **分析工具** 的设置：启用/禁用 **Single Instance Mode** 或 **Show Coalesced View Modes in Event Graph**。 |
 
 [REGION:note]
-**Data Captured** files are stored in the following location **...\UE4\Engine\Programs\UnrealFrontend\Saved\Profiling\UnrealStats\Received\...**
+**数据采集** 文件保存在下列路径中 **...\UE4\Engine\Programs\UnrealFrontend\Saved\Profiling\UnrealStats\Received\...**
 [/REGION]
 
-## Filters and Presets
+## 过滤和预设
 
 ![](FilterPresetsWindow.png)
 
-Below are descriptions of each action contained on the **Main Toolbar**: 
+以下是 **主工具栏** 上每个操作的描述： 
 
-| Option | Description |
+| 选项 | 描述 |
 | ------- | ------------ |
-| **Search Box (1)**  | Used to find a stat, after typing a string, matched elements will be highlighted in the Stats/Groups Window. |
-| **Group By (2)** | Method in which stats are grouped, by default stats are grouped by Group Name. |
-| **Sort By (3)** | How to sort stats within the group, by default stats are sorted by Name. |
-| **Stats/Groups Window (4)** | Displays the Stats and Groups. Click the ![](Icon_Arrow.png) icon to expand each group. Highlight the ![](Icon_Tag.png) icon for stat information.  |
-| ![](Icon_Hier.png) | Toggles displaying hierarchical stats, aka scope counters. |
-| ![](Icon_Float.png) | Toggles displaying floating points, double counters, and accumulators. |
-| ![](Icon_Int.png) | Toggles displaying integer stats, word counters and accumulators. |
-| ![](Icon_Mem.png) | Toggles displaying memory stats (**This option is work-in-progress**). |
+| **搜索框 (1)** | 用于寻找 stat 文件，输入字符后，匹配的内容将在“Stats/群组”窗口中高亮显示。|
+| **分组方式 (2)** | Stats 的分组方法，默认按群组名分组。|
+| **排序方式 (3)** | 群组中 stats 的排序方法，默认按名称排序。|
+| **Stats/群组窗口 (4)** | 显示 Stats 和群组。点击 ![](Icon_Arrow.png) 图标展开每个群组。高亮 ![](Icon_Tag.png) 图标显示 stat 信息。 |
+| ![](Icon_Hier.png) | 切换显示层级 stats（也称作范围计数器）。 |
+| ![](Icon_Float.png) | 切换显示浮点、双计数器和累加器。 |
+| ![](Icon_Int.png) | 切换显示整数 stats、字计数器和累加器。 |
+| ![](Icon_Mem.png) | 切换显示内存 memory stats (**此选项功能仍在完善中**). |
 
-### How to Track Stats
+### 如何追踪 Stats
 
-There are three methods you can track stats: 
+追踪 stats 的方法有三种： 
 
-1. **Double-click** on the selected stat to add/remove it from displaying on the **Data Graph View**. 
-1. **Drag-and-drop** it from the **Stats/Groups Window** into the **Data Graph View** (see the image below). 
-1. **Drag-and-drop** it from the **Event Graph View**. 
+1. **双击** 选中的 stat，将其添加到 **数据图表视图** 的显示中（或从显示中移除）。 
+1. 将其从 **Stats/群组窗口** **拖放** 到 **数据图表视图** 中（如下图所示）。 
+1. 从 **数据图表视图** 进行 **拖放**。 
 
 ![](StatDragAndDrop.png)
 
-If a stat is being tracked, it will be displayed in a different color and with an "*" symbol next to the name. 
+正在被追踪的 stat 以不同颜色显示，且名称旁带有“*”符号。 
 
 ![](StatsWindowStatTracked.png)
 
-Also, you can see how many stats are being tracked in a group by looking at the second number in the () following the Group Name. 
+下列群组名后第二个括号中的数字代表群组正在被追踪的 stat 数量。 
 
 ![](MainWindowStatTracked.png)
 
-_The image above for **Audio**, there are 11 items in the group, 1 of which is currently being tracked._ 
+_上图的 **Audio** 群组中存在 11 个项目，有 1 个正被追踪。_ 
 
 
-## Data Graph
+## 数据图表
 
-The **Data Graph** view displays all tracked stats. To stop tracking a stat, press the (X) button in front of the stats' text. 
+**数据图表** 视图显示所有被追踪的 stats。在 stats 的文本前按下（X）按钮即可停止追踪 stat。 
 
 ![](ClickToStopTracking.png)(w:800)
 
-The stat's text consists of the following information and is broken down below: 
+Stat 的文本包含下列信息，详解如下： 
 
 ![](StatDescriptionBreakdown.png)(w:800)
 
-1. **(Group Name)** - The Group Name of the stat. 
-1. **Stat Name** - The name of the stat. 
-1. **Actual Value** - The actual value of the stat. 
-1. **Min Value** - The minimum value based on the whole capture. 
-1. **Avg Value** - The average value based on the whole capture. 
-1. **Max Value** - The maximum value based on the whole capture.
-1. **Calls** - The percent of frames with a call to this stat (for hierarchical data only).
-1. **Min Value** - The minimum number of calls to this stat based on the whole capture (for hierarchical data only). 
-1. **Avg Value** - The average number of calls to this stat based on the whole capture (for hierarchical data only).
-1. **Max Value** - The maximum number of calls to this stat based on the whole capture (for hierarchical data only).
+1. **（群组名）** - Stat 的群组名。 
+1. **Stat 名称** - Stat 的名称。 
+1. **实际值** - Stat 的实际值。 
+1. **最小值** - 基于整体采集的最小值。 
+1. **平均值** - 基于整体采集的平均值。 
+1. **最大值** - 基于整体采集的最大值。
+1. **调用** - 此 stat 调用的帧数百分比（仅限分层数据）。
+1. **最小值** - 基于整体采集对此 stat 的最小调用数（仅限分层数据）。 
+1. **平均值** - 基于整体采集对此 stat 的平均调用数（仅限分层数据）。
+1. **最大值** - 基于整体采集对此 stat 的最大调用数（仅限分层数据）。
 
 [REGION:note]
-The values denoted with **for hierarchical data only** are only displayed for hierarchical data and may not be displayed. 
+以“仅限分层数据”表示的数值仅限显示分层数据。 
 [/REGION]
 
-An explanation of the **Data Graph** axes are also outlined below: 
+**数据图表** 轴的解释如下： 
 
-* Bottom - Display the time from the beginning, starting from 0.0. 
-* Top - Display the frame number from the beginning, starting from 0.0. 
-* Left - Display adaptive information about time, in ms, based on the zoom level. Using the **Mouse Wheel**, there are three predefined axes for a game running at 30, 60 or 100 FPS each displayed in a different color. 
-* Right - Display adaptive information about other stats like float or memory. This axis has different scale than the left one due to the fact that float or memory values are usually larger than time related stats. 
+* 下 - 显示从初始的时间，自 0.0 开始。 
+* 下 - 显示从初始的帧数量，自 0.0 开始。 
+* 左 - 基于缩放比例显示关于时间的自适应信息（以毫秒为单位）。使用 **鼠标滚轮**，有三种预设轴，代表游戏 30、60、100 FPS 的运行速度，每个均以不同颜色显示。 
+* 右 - 显示其他 stats（如浮点或内存）的自适应信息。此轴的大小与左轴不同，因浮点或内存数值通常大于时间相关的 stats。 
 
-**Right-clicking** in the **Data Graph** window will also present a context menu with additional options: 
+在 **数据图表** 窗口中 **单击右键** 将出现带额外选项的快捷菜单： 
 
 ![](DataGraphContextMenu.png)
 
-* **View Mode** - At this time only **Index based** mode is supported (**Time based** mode is only available in the multisession mode of the **Profiler** and is an experimental feature disabled by default).
-* **Select All Frames** - This selects all frames and updates the **Event Graph View**. 
-* **Live Preview** - This option is the same as presented in the main toolbar. 
+* **View Mode** - 暂时只支持 **Index based** 模式（**Time based** 仅在 **分析工具** 的多会话模式中可用，尚处于实验阶段，默认为禁用）。
+* **Select All Frames** - 此选项可选中所有帧并更新 **事件图表视图**。 
+* **Live Preview** - 此选项与主工具栏中的选项相同。 
 
-## Event Graph
+## 事件图表
 
 ![](EventGraphView.png)
 
-The **Event Graph View** consists of the following: 
+**事件图表视图** 由以下内容组成： 
 
-1. **Title** - Displays the current connected session name or the currently loaded stats file. 
-1. **Event Graph Toolbar** - Used for **Event Graph** filtering and other functionality. 
-1. **Function Details** - Detailed view of the selected event/function. 
-1. **Main Event Graph** - Hierarchical view of the selected frame or frames. 
+1. **标题** - 显示当前连接的会话名称或当前加载的 stats 文件。 
+1. **事件图表工具栏** - 用于 **事件图表** 过滤和其他功能。 
+1. **函数细节** - 所选事件/函数的细节视图。 
+1. **主事件图表** - 所选单帧或多帧的层级视图。 
 
-### Event Graph Toolbar
+### 事件图表工具栏
 
 [REGION:fullwidth]
 ![](EventGraphToolBar.png)
 [/REGION]
 
-Below are descriptions of each action contained on the **Event Graph Toolbar**: 
+以下是 **事件图表工具栏** 上每个操作的描述： 
 
-| Option | Description |
+| 选项 | 描述 |
 | ------- | ------------ |
-| ![](EG_Icon_OneFrame.png) | Enabled only if one frame has been selected on the **Data Graph**.  |
-| ![](EG_Icon_Average.png) | Enabled by default if several frames have been selected on the **Data Graph**, this is a per-frame average graph.  |
-| ![](EG_Icon_Maximum.png) | Can be enabled if several frames have been selected on the **Data Graph**, this is the highest per-frame graph. |
-| ![](EG_Icon_Hierarchical.png) | Displays the contents in the **Main Event Graph** in a hierarchical tree view.  |
-| ![](EG_Icon_Inclusive.png) | Displays the contents of the **Main Event Graph** in a flat list of events, sorted by **Inclusive Time**. |
-| ![](EG_Icon_Inclusive2.png) | Displays the contents of the **Main Event Graph** in a flat list of events, coalesced by the **Event Name** and sorted by **Inclusive Time**. |
-| ![](EG_Icon_Exclusive.png)| Displays the contents of the **Main Event Graph** in a flat list of events, sorted by **Exclusive Time**.  |
-| ![](EG_Icon_Exclusive2.png) | Displays the contents of the **Main Event Graph** in a flat list of events, coalesced by the **Event Name** and sorted by **Exclusive Time**. |
-| ![](EG_Icon_HistoryBack.png)  | Action History backwards button. |
-| ![](EG_Icon_HistoryForward.png) | Action History forwards button. |
-| ![](EG_Icon_HistoryMenu.png) | Displays the Action History menu. |
-| ![](EG_Icon_HotPath.png) | Expands hot path for selected events based on the inclusive time and enables descending sorting by the inclusive time (this is the most performance-expensive path). |
+| ![](EG_Icon_OneFrame.png) | **数据图表** 上选中一帧后才会被启用。 |
+| ![](EG_Icon_Average.png) | 如在多帧在 **数据图表** 上被选中，将默认启用。这是一个每帧的平均图表。 |
+| ![](EG_Icon_Maximum.png) | 如在多帧在 **数据图表** 上被选中，即可启用。这是最高的每帧图表。 |
+| ![](EG_Icon_Hierarchical.png) | 以层级树视图显示 **主事件图表** 中的内容。 |
+| ![](EG_Icon_Inclusive.png) | 在平展事件列表中显示 **主事件图表** 的内容，按 **包含时间** 排序。 |
+| ![](EG_Icon_Inclusive2.png) | 在平展事件列表中显示 **主事件图表** 的内容，按 **Event Name** 合并，按 **包含时间** 排序。 |
+| ![](EG_Icon_Exclusive.png)| 在平展事件列表中显示 **主事件图表** 的内容，按 **独占时间** 排序。 |
+| ![](EG_Icon_Exclusive2.png) | 在平展事件列表中显示 **主事件图表** 的内容，按 **事件名称** 合并，按 **独占时间** 排序。 |
+| ![](EG_Icon_HistoryBack.png)  | 操作历史倒退按钮。 |
+| ![](EG_Icon_HistoryForward.png) | 操作历史前进按钮。 |
+| ![](EG_Icon_HistoryMenu.png) | 显示操作历史菜单。 |
+| ![](EG_Icon_HotPath.png) | 基于包含时间展开所选事件的热路径，并启用按包含时间进行的降序排序（这是性能消耗最高的路径）。 |
 
-### Function Details
-**Function Details** show relationships between a function/event that the user selects and the callings functions that executed the selected function/event. These relations are displayed using the buttons scaled accordingly to the percentage values. 
+### 函数细节
+**函数细节** 显示用户所选函数/事件和执行所选函数/事件的调用函数之间的关系。这些关系通过按钮展示（这些按钮根据百分比数值相应缩放）。 
 
-The user can easily follow from the top event to the bottom event looking for the performance offenders. **Function Details** view is synchronized with the **Main Event Graph** in both ways, so selecting a new function will also select that function in the **Main Event Graph**. 
+用户可轻松地从上之下跟踪事件，寻找降低性能的因素。**函数细节** 视图以两种方式与 **主事件图表** 同步，因此选中一个新函数将同时选中 **主事件图表** 中的函数。 
 
-**Function Details** consist of the following elements: 
-* **Calling Functions** - Shows the functions that called the selected function. The size of the widget is scaled based on the percentage values. 
-* **Current Functions** - Currently selected event/function in the **Main Event Graph** event. 
-* **Called Functions** - The functions called by the selected function. The size of the widget is scaled based on the percentage values. 
-	* ![](IconCulled.png)(w:20 convert:false) - When this is shown, the event has been culled in the **Main Event Graph** window (more information on this in the next section). 
-	* ![](IconFiltered.png)(w:20 convert:false) - When this is shown, the event has been filtered out in the **Main Event Graph** window (more information on this in the next section). 
+**Function Details** 由下列元素组成： 
+* **调用函数** - 显示对所选函数进行调用的函数。控件尺寸基于百分比值缩放。 
+* **当前函数** - 在 **主事件图表** 事件中当前选中的事件/函数。 
+* **被调用函数** - 被所选函数调用的函数。控件尺寸基于百分比值缩放。 
+	* ![](IconCulled.png)(w:20 convert:false) - 显示此图标时，事件已在 **主事件图表** 窗口中剔除（下一部分中有更多详情）。
+	* ![](IconFiltered.png)(w:20 convert:false) - 显示此图标时，事件已在 **主事件图表** 窗口中被过滤掉（下一部分中有更多详情）。
 
 [REGION:tip]
-Remember that hovering over the ![](Icon_Tag.png) icon will display additional information about the item. 
+在 ![](Icon_Tag.png) 图标上悬停鼠标即可显示项目的额外信息。
 [/REGION]
 
-### Main Event Graph
+### 主事件图表
 
 [REGION:fullwidth]
 ![](MainEventGraphWindow.png)
 [/REGION]
 
-The **Main Event Graph** window shows the event execution paths. There is no one root, but each thread has its own starting event. This is usually indicated by the "thread" in the name or the numeric ID of the thread, such as "[0x1234]". 
+**主事件图表** 窗口显示事件执行路径。一个根不存在，但每个线程均拥有其自身的开始事件。它通常由线程的名称或线程的数字 ID 表明，例如“[0x1234]”。 
 
-The **Main Event Graph** allows you to filter, cull, and many other functions. These functions are outlined below and are accessible by **Right-clicking** in the **Main Event Graph** window and choosing the desired action from the context menu that appears. 
+利用 **主事件图表** 可对诸多其他函数进行过滤和剔除。这些函数列举在下方。在 **主事件图表** 窗口中 **单击右键** 并从出现的快捷菜单中选择所需操作后即可进行访问。 
 
 ![](EventGraphContextMenu.png)
 
-| Option | Description |
+| 选项 | 描述 |
 | ------- | ------------ |
-| **Selection** | Displays the name of the selected event.  |
-| ![](EG_Menu_Icon_Root.png)(w:28) | **Set Root** - Sets the root to the selected event(s) and switches to hierarchical view. |
-| ![](EG_Menu_Icon_Culling.png)(w:28) | **Cull Events** - Cull events to 'Value' based on 'ColumnName'. Available only for column "Inc Time (MS)". These events will be removed from the graph, the parent of these events will display the (IconCulled.png)(w:20 convert:false) icon. For easier navigation, the user can press this icon to restore the culled events. If culling is not available, this option will be grayed out.  |
-| ![](EG_Menu_Icon_Filtering.png)(w:28) | **Filter Events** - Filter events to, 'Value' based on 'ColumnName'. Available only for column "Inc Time (MS), Exc Time (MS), Calls". These events will be displayed in gray in the graph. If Filtering is not available, this option will be grayed out.  |
-| ![](EG_Menu_Icon_Reset.png)(w:28) | **Reset to Default** - For the selected event graph, resets **Root**, **Culling** and **Filtering** to the default state and clears the Action History. |
-| ![](EG_Menu_Icon_Expand.png)(w:28) | **Expand All** - Expands all events. |
-| ![](EG_Menu_Icon_Collapse.png)(w:28) | **Collapse All** - Collapses all events. |
-| ![](EG_Menu_Icon_ExpandSelection.png)(w:28) | **Expand Selection** - Expands selected events with children. |
-| ![](EG_Menu_Icon_CollapseSelection.png)(w:28) | **Collapse Selection** - Collapse selected events with children. |
-| ![](EG_Menu_Icon_ExpandThread.png)(w:28) | **Expand Thread** - Expand selected thread with children.  |
-| ![](EG_Menu_Icon_CollapseThread.png)(w:28) | **Collapse Thread** - Collapse selected thread with children. |
-| ![](EG_Menu_Icon_ExpandHotPath.png)(w:28) | **Expand Hot Path** - Expands hot path for the selected events, based on the inclusive time, and enables descending sorting by inclusive time (this is the most performance-expensive path). |
-| ![](EG_Menu_Icon_HierarchicalView.png)(w:28) | **Show in Hierarchical View** - Switches to hierarchical view and expands selected events. |
-| ![](EG_Menu_Icon_FlatInclusiveView.png)(w:28) | **Show in Flat Inclusive View** - Switches to flat inclusive view and enables descending sorting by inclusive time. |
-| ![](EG_Menu_Icon_FlatInclusiveView2.png)(w:28) | **Show in Flat Inclusive Coalesced** - Switches to flat coalesced and enables descending sorting by inclusive time.|
-| ![](EG_Menu_Icon_FlatExclusiveView.png)(w:28)| **Show in Flat Exclusive View** - Switches to flat exclusive view and enables ascending sorting by exclusive time. |
-| ![](EG_Menu_Icon_FlatExclusiveCoalesced.png)(w:28)  | **Show in Flat Exclusive Coalesced** - Switches to flat exclusive coalesced view and enables ascending sorting by inclusive time.|
-| ![](EG_Menu_Icon_CopyToClipboard.png)(w:28) | **Copy to Clipboard** - Copies selection to the clipboard. |
-| ![](EG_Menu_Icon_SelectStack.png)(w:28)  | **Select Stack** - Selects all events in the stack. |
-| ![](EG_Menu_Icon_SortBy.png)(w:28) | **Sort By** - Displays a menu which allows you to sort by specific column and to change sorting mode. |
-| ![](EG_Menu_Icon_ViewColumn.png)(w:28) | **View Column [List of the available columns]** - Displays a menu which allows you to show or hide columns.  |
-| ![](EG_Menu_Icon_ResetColumns.png)(w:28) | **Reset Columns to Default** - Resets columns to their default setting. |
+| **Selection** | 显示所选事件名称。|
+| ![](EG_Menu_Icon_Root.png)(w:28) | **Set Root** - 设置所选事件的根并切换至等级视图。 |
+| ![](EG_Menu_Icon_Culling.png)(w:28) | **Cull Events** - 基于 'ColumnName' 将事件剔除到 'Value'。仅“Inc Time (MS)”栏可用。这些事件将从图表中移除，其父项将显示 (IconCulled.png)(w:20 convert:false) 图标。为便于查找，按下此图标即可恢复剔除的事件。如剔除不可用，此选项为灰色。 |
+| ![](EG_Menu_Icon_Filtering.png)(w:28) | **Filter Events** - 基于 'ColumnName' 过滤事件到 'Value'。仅“Inc Time (MS), Exc Time (MS), Calls”栏可用。这些事件在图表中显示为灰色。这些事件在图表中显示为灰色。如过滤不可用，此选项为灰色。 |
+| ![](EG_Menu_Icon_Reset.png)(w:28) | **Reset to Default** - 将所选事件图表的 **Root**、**Culling** 和 **Filtering** 重置为默认状态，并清除操作历史。 |
+| ![](EG_Menu_Icon_Expand.png)(w:28) | **Expand All** - 展开所有事件。 |
+| ![](EG_Menu_Icon_Collapse.png)(w:28) | **Collapse All** - 重叠所有事件。 |
+| ![](EG_Menu_Icon_ExpandSelection.png)(w:28) | **Expand Selection** - 将所选事件和子项展开。 |
+| ![](EG_Menu_Icon_CollapseSelection.png)(w:28) | **Collapse Selection** - 将所选事件和子项重叠。 |
+| ![](EG_Menu_Icon_ExpandThread.png)(w:28) | **Expand Thread** - 将所选线程和子项展开。 |
+| ![](EG_Menu_Icon_CollapseThread.png)(w:28) | **Collapse Thread** - 将所选线程和子项重叠。 |
+| ![](EG_Menu_Icon_ExpandHotPath.png)(w:28) | **Expand Hot Path** - 基于包含时间展开所选事件的热路径，并启用按包含时间进行的降序排序（这是性能消耗最高的路径）。 |
+| ![](EG_Menu_Icon_HierarchicalView.png)(w:28) | **Show in Hierarchical View** - 切换至等级视图并展开所选事件。 |
+| ![](EG_Menu_Icon_FlatInclusiveView.png)(w:28) | **Show in Flat Inclusive View** - 切换至平展包含视图并启用按包含时间进行的降序排序。 |
+| ![](EG_Menu_Icon_FlatInclusiveView2.png)(w:28) | **Show in Flat Inclusive Coalesced** - 切换至平展合并，启用按包含时间进行的降序排序。|
+| ![](EG_Menu_Icon_FlatExclusiveView.png)(w:28)| **Show in Flat Exclusive View** - 切换至平展独占视图并启用按包含时间进行的升序排序。 |
+| ![](EG_Menu_Icon_FlatExclusiveCoalesced.png)(w:28)  | **Show in Flat Exclusive Coalesced** - 切换至平展独占合并视图并启用按包含时间进行的升序排序。|
+| ![](EG_Menu_Icon_CopyToClipboard.png)(w:28) | **Copy to Clipboard** - 将选项复制到剪切板。 |
+| ![](EG_Menu_Icon_SelectStack.png)(w:28)  | **Select Stack** - 选择叠列中的所有事件。 |
+| ![](EG_Menu_Icon_SortBy.png)(w:28) | **Sort By** - 显示按特定栏排序和变更排序模式的菜单。 |
+| ![](EG_Menu_Icon_ViewColumn.png)(w:28) | **View Column [可用栏列表]** - 展示用于隐藏/显示栏的菜单。 |
+| ![](EG_Menu_Icon_ResetColumns.png)(w:28) | **Reset Columns to Default** - 恢复栏的默认设置。 |
 

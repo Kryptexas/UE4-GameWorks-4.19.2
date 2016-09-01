@@ -2,8 +2,8 @@
 Availability:Public
 Title:アセットエディタ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:ペルソナ (Persona) アニメーション エディタのアセットエディタのユーザーガイド
-バージョン：4.9
+Description:ペルソナ (Persona) アニメーション エディタのアセットエディタのユーザーガイド。
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

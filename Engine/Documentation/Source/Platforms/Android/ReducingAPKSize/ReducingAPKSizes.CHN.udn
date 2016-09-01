@@ -1,115 +1,26 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Reducing APK Package size 
+﻿INTSourceChangelist:2945303
+Availability:Public
+Title:控制 APK 包的容量 
 Crumbs:%ROOT%, Platforms, Platforms/Android
-Description:How to reduce the size of your packaged Android game.
-Skilllevel: Intermediate
-Version: 4.8
+Description:如何控制安卓游戏包容量。
+Skilllevel:Intermediate
+Version:4.8
+Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:overview
 
 [TOC(start:2 end:3)]
 
-No matter what type of Android device your UE4 project is targeting reducing the size of the Android application package or **APK** to be under the 50MB limit for the Google play store can be challenging. 
-In the following tutorial we will cover steps you can take to help reduce your projects final APK package size to be as small as possible using nothing but the tools provided to you in the UE4 Editor. 
+无论您的 UE4 项目针对何种安卓设备，将安卓应用程序包或 **APK** 控制在 Google Play 商店要求的 50MB 上限之内皆非易事。 
+以下教程中将说明如何利用 UE4 编辑器中的工具把 APK 包尽量缩小。 
 
-## Creating a new empty project
-When you first start working on your Android based mobile project you might be tempted to use an existing project as a base to work from or create a new project that has the Starter Content enabled. 
-**DO NOT** do this and instead create a new, completely empty C++ or Blueprint based project and then use the [Migration Tool](Engine/Content/Browser/UserGuide/Migrate) to bring over the content that you want to use. 
-This way you ensure that the only content in your project is content that you need to be there.
+## ETC1 纹理注意事项
+使用 ETC1 纹理格式打包安卓项目时需要注意，ETC1 不会压缩嵌入透明度信息的纹理，会将其认作完全无压缩的纹理。虽然这不会对项目的运行时性能产生较大影响，但却会增加 APK 的容量。
+如项目确实需要使用透明度的纹理，则最好使用两个单独的纹理（一个用于弥散、一个用于透明度），而不使用嵌入透明度的单个纹理，以便项目烘焙和打包时对纹理进行压缩。
 
-## Compressing Cooked Content
-The easiest and quickest way to reduce your APK package size is to tell UE4 to compress the APK packages during the packing process. 
-To turn on package compression you need to do the following in the UE4 Editor.
+## 其他平台的技巧
 
-[region:note]
-Please note that the Create compressed cooked packages option is only available in UE versions 4.8 and later.
-[/region]
+除上述安卓特定方法外，还有多种方法对目标平台的游戏包容量进行控制。
 
-1. First open up the projects settings by going to the Main Toolbar and selecting the **Edit** option then selecting **Project Settings**.
-
-	![](T_Project_Settings_Menu.png)
-
-1. Under the Project section click on the **Packaging** section to show the options for how the project will be packaged.
-
-	![](T_Project_Packaging.png)
-
-1. Click on the small white triangle that is at the bottom of the Packaging settings to expose the **Advanced Project settings**.
-
-	![](T_Expose_Advanced_Props.png)
-
-1. Look for the option labeled **Create compressed cooked packages** and enable it if not already enabled.
-
-	![](T_Enable_Comp_Packages.png)
-
-Now make note of the current size of your projects APK package and then re-package your project. 
-When finished compare the sizes and you should now see, depending on the content used in the project, quite a big difference between the sizes of the two APK files. 
-In fact it is not uncommon for some projects APK packages to be reduced in size by up to 50% when create compressed cooked packages is enabled.
-
-##  Setting up a Project's Levels
-One overlooked area that can lead to a bloating of APK package sizes is failing to properly setup your projects options like which levels should be loaded by default or which levels should be used between level transitions. 
-To set which level or levels should be used for this type of interaction you can do the following.
-
-1. First on the **Main Toolbar** go to  **Edit** > **Project Settings**.
-
-	 ![](T_Project_Settings.png)
-
-1. Then under **Project** in the **Maps & Modes** section, set the map in the **Default Maps** to a map that is specific to your project.
-
-	![](T_Set_Maps.png)
-
-## Checking what Content will be Cooked
-To ensure that only the content that is related to your project is added to your APK file, you can check which content is being added to your projects APK by looking in the **Cooked** folder in your project.
-You can find the Cooked folder by going to **(ProjectName)\Saved\Cooked** and then choosing the folder with the format you cooked your project for.
-
-![](T_Cooked_Content_Folder.png)
-
-The image below shows the Texture folder from the Match 3 sample game. 
-The content in the folder has been sorted by size so it is easier to see what assets are the biggest.
-Once the biggest assets have been established you can then examine the assets inside of UE4 to see if in fact they can be reduced in size without sacrificing the integrity of the asset.
-
-![](T_Cooked_Content.png)
-
-## Removing Unused Content
-When your project is finally ready to be packaged up for the store make sure to first remove any unused or testing content by selecting it in the Content Browser and deleting it.
-You can delete content by first selecting the content you want to delete and then either press the **Delete** key on the keyboard or use the Delete option in the Right - Click menu. 
-When you do try and delete something from your project the **Delete Assets** menu will be displayed like in the following image.
-
-[region:tip]
-This is the preferred method of deleting objects in UE4 and should be used over just simply deleting/removing the assets from their location in the content folder.
-[/region]
-
-![](T_Delete_Menu.png)
-
-The Delete Assets menu will inform you if the asset you are trying to delete is referenced by another asset or not. 
-If it is not referenced you can simply delete it, however if it is referenced by other assets you can use the **Replace References** option to replace the reference to that asset to another asset that is supposed to be packaged in your project.
-
-
-## Removing Unused Plug-ins
-Disabling any unused plug-in's inside of the UE4 Editor is another way to ensure that un-need content and code do not make it into your projects final APK package file.
-This is because some Plug-in's require a certain set of base assets and code to work correctly.
-If the Plug-in is not disabled the assets and code that are required to make the plug-in work will not be removed from your project.
-While this might not reduce your projects size as much as reducing or removing a large Texture would, every little bit can help when trying to slim your project down to the 50MB size.
-To disable a plug-in inside of UE4 you need to do the following. 
-
-[region:note]
-	Make sure you fully test your project to ensure that the plug-ins you are disabling do not interfere with the functionality of your project.
-[/region]
-
-1. First open up the Plug-ins Manager by going to the **Main Toolbar** and clicking on the **Window** option and then selecting the **Plug-in** option.
-
-	![](T_Open_Plugins_Browser.png)
-
-1. From the Plug-in Browser select the different sections and disable any plug-in's you are not using by un-checking the check mark box next to **Enabled**.
-  When you have disabled all the Plug-ins you will need to re-start the UE4 Editor and then make sure to re-package your project.
-
-	[OBJECT:EmbeddedVideo]
-	[PARAMLITERAL:width]
-	640
-	[/PARAMLITERAL]
-	[PARAMLITERAL:height]
-	360
-	[/PARAMLITERAL]
-	[PARAMLITERAL:videoid]
-	xLJ01QEvV7Y
-	[/PARAMLITERAL]
-	[/OBJECT]
-
+[INCLUDE:Engine/Performance/ReducingPackageSize#main(offset:1)]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472981
+﻿INTSourceChangelist:2916552
 Availability:Public
 Title:RPC について
 Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -8,8 +8,7 @@ Related:Gameplay/Networking/Actors/Components
 
 [TOC (start:2 end:3)]
 
-## 概要
-RPC (Remote Procedure Calls) は、ローカルで呼び出される関数ですが、別のマシンでリモートで実行されます (呼び出し側のマシンとは別)。 
+**RPCs** (**Remote Procedure Calls**) は、ローカルで呼び出される関数ですが、別のマシンでリモートで実行されます (呼び出し側のマシンとは別)。 
 
 RPC 関数は非常に便利で、クライアントまたはサーバーがネットワーク接続で互いにメッセージを送信できます。
 
@@ -23,18 +22,18 @@ RPC を使用する場合は、ほとんどの RPC の実行先を定義する�
 
 例えば、サーバーで呼び出されるが、クライアントで実行される RPC として関数を宣言するには、以下のようにします。
 
-	UFUNCTION( Client );
+	UFUNCTION( Client )
 	void ClientRPCFunction();
 
 例えば、クライアントで呼び出されるが、サーバーで実行される RPC として関数を宣言するには、上記と非常に類似していますが、以下のように `Server` のキーワードを使用します。
 
-	UFUNCTION( Server );
+	UFUNCTION( Server )
 	void ServerRPCFunction();
 
 Multicast と呼ばれる RPC 関数型の特殊型がもうひとつあります。Multicast RPC はサーバーから呼び出されるように設計されていますが、サーバーおよび現在接続しているすべてのクライアントでも実行されます。 
 Multicast 関数を宣言するには、以下のように `NetMulticast` キーワードを使用するだけです。
 
-	UFUNCTION( NetMulticast );
+	UFUNCTION( NetMulticast )
 	void MulticastRPCFunction();
 
 Multicast RPC は、クライアントからも呼び出し可能ですが、この場合はローカルでのみ実行します。
@@ -81,7 +80,7 @@ RPC が完全に機能するには、以下の満たすべき要件がありま�
 
 デフォルトで RPC は不安定です。RPC 呼び出しがリモート マシンで確実に実行されるようにするために、`Reliable` キーワードを指定できます。
 
-	UFUNCTION( Client, Reliable );
+	UFUNCTION( Client, Reliable )
 	void ClientRPCFunction();
 
 ## ブループリント
@@ -93,7 +92,7 @@ RPC とマーク付けされている関数もブループリントから呼び�
 
 この機能を使用するには、イベントグラフで新規カスタム イベントを作成します。カスタム イベントをクリックして、詳細ビューでレプリケーション設定を編集します。
 
-![](RPC_BP.png)(w:400)
+![](RPC_BP.png)
 
 ## バリデーション
 
@@ -102,24 +101,24 @@ RPC とマーク付けされている関数もブループリントから呼び�
 
 RPC のバリデーション関数を宣言するには、単に `UFUNCTION` 宣言文に `WithValidation` キーワードを追加します。
 
-	UFUNCTION( Server, WithValidation );
+	UFUNCTION( Server, WithValidation )
 	void SomeRPCFunction( int32 AddHealth );
 
 次に以下のように実装関数の隣に、Validate 関数を入れます。
 
-	bool SomeRPCFunction _Validate( int32 AddHealth )
+	bool SomeRPCFunction_Validate( int32 AddHealth )
 	{
-		If ( AddHealth > MAX_ADD_HEALTH )
+		if ( AddHealth > MAX_ADD_HEALTH )
 		{
 			return false;                       // This will disconnect the caller
 		}
-	return true;                              // This will allow the RPC to be called
+		return true;                              // This will allow the RPC to be called
 	}
 
-	void SomeRPCFunction _Implementation( int32 AddHealth )
+	void SomeRPCFunction_Implementation( int32 AddHealth )
 	{
 		Health += AddHealth;
 	}
 
-最近、UHT に変更が加えられ、 クライアント-> サーバー RPC が _Validate 関数を持つことを必要としています。これは、安全なサーバー RPC 関数を促すためであり、可能な限り簡単に コードを追加、チェックし、 
+最近、UHT に変更が加えられ、 クライアント-> サーバー RPC が _Validate 関数を持つことを必要としています。これは、安全なサーバー RPC 関数を促すためであり、可能な限り簡単にコードを追加、チェックし、 
 すべてのパラメータが既知の入力の制約に対して有効になるようにしました。

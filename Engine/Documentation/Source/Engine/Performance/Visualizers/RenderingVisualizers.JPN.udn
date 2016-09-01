@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2362484
+﻿INTSourceChangelist:2704594
 Availability:Public
 Title:レンダリング ビジュアライザ
 Crumbs: %ROOT%, Engine, Engine/Performance
@@ -48,9 +48,8 @@ Description:様々なレンダリング機能の結果をチェックするた�
 [/REGION]
 
 
-## 概要
 
-アンリアル エンジン 4 には数多くのビジュアライザがあり、デバッグしたり、シーンの裏側でアンリアル エンジン 4 が何を行っているかを表示できるようにします。これらは深度パス、モーション ブラー ベクター ビジュアライザなどの特殊なビューを表示するなどレンダリングのステップである場合があります。
+アンリアル エンジン 4 (UE4) には数多くのビジュアライザがあり、デバッグしたり、シーンの裏側で UE4 が何を行っているかを表示できるようにします。これらは深度パス、モーション ブラー ベクター ビジュアライザなどの特殊なビューを表示するなどレンダリングのステップである場合があります。
 
 [REGION:topics third]
 %Engine/Performance/Visualizers/OutOfBoundsPixels:topiccompact%

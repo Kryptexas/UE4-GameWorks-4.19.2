@@ -8,7 +8,6 @@
 #include "EnginePrivate.h"
 #include "Animation/AnimNodeBase.h"
 #include "Animation/AnimSingleNodeInstance.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "AnimationRuntime.h"
 #include "Animation/BlendSpace.h"
 #include "Animation/BlendSpaceBase.h"
@@ -92,37 +91,10 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	}
 }
 
-void UAnimSingleNodeInstance::SetVertexAnimation(UVertexAnimation* NewVertexAnim, bool bIsLooping, float InPlayRate)
+void UAnimSingleNodeInstance::SetPreviewCurveOverride(const FName& PoseName, float Value, bool bRemoveIfZero)
 {
-	if (NewVertexAnim != CurrentVertexAnim)
-	{
-		CurrentVertexAnim = NewVertexAnim;
-	}
-
-	if (USkeletalMeshComponent * MeshComponent = GetSkelMeshComponent())
-	{
-		if (MeshComponent->SkeletalMesh == nullptr)
-		{
-			// if it does not have SkeletalMesh, we nullify it
-			CurrentVertexAnim = NULL;
-		}
-		else if (CurrentVertexAnim != nullptr)
-		{
-			// if we have an anim, make sure their mesh matches, otherwise, null it
-			if (MeshComponent->SkeletalMesh != CurrentVertexAnim->BaseSkelMesh)
-			{
-				// clear asset since we do not have matching skeleton
-				CurrentVertexAnim = nullptr;
-			}
-		}
-	}
-
-	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetVertexAnimation(CurrentVertexAnim, bIsLooping, InPlayRate);
-
-	// reinitialize
-	InitializeAnimation();
+	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetPreviewCurveOverride(PoseName, Value, bRemoveIfZero);
 }
-
 
 void UAnimSingleNodeInstance::SetMontageLoop(UAnimMontage* Montage, bool bIsLooping, FName StartingSection)
 {
@@ -320,11 +292,6 @@ void UAnimSingleNodeInstance::SetPlayRate(float InPlayRate)
 UAnimationAsset* UAnimSingleNodeInstance::GetCurrentAsset()
 {
 	return CurrentAsset;
-}
-
-UVertexAnimation* UAnimSingleNodeInstance::GetCurrentVertexAnimation()
-{
-	return CurrentVertexAnim;
 }
 
 float UAnimSingleNodeInstance::GetCurrentTime() const

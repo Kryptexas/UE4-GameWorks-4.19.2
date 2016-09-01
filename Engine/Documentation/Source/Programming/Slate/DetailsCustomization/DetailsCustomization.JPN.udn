@@ -1,24 +1,25 @@
-﻿INTSourceChangelist:2568479
+﻿INTSourceChangelist:2727112
 Availability:Public
 Title: 詳細パネルのカスタマイズ
 Crumbs:%ROOT%, Programming, Programming/Slate
 Description: アンリアル・エディタ内の詳細パネルのプロパティ表示のカスタマイズに関するガイド
+version:4.9
 
-**[Details]** パネルが完全にカスタマイズ可能になりました。シンプルなシステムによるプロパティの再調整、あるいは、 [](Programming/Slate) によるプロパティの完全なカスタマイズ化が可能です。   スレート記法を使って別の UI を詳細に追加することも可能です。
+**[Details (詳細)]** パネルが完全にカスタマイズ可能になりました。シンプルなシステムによるプロパティの再調整、あるいは、[](Programming/Slate) によるプロパティの完全なカスタマイズ化が可能です。   スレート記法を使って別の UI を詳細に追加することも可能です。
 
 [TOC (start:2 end:3)]
 
 ## 設定方法
 
-1. プロパティをカスタマイズするためのクラスを作成します。`ILayoutDetails` から派生させなければなりません。
+1. プロパティをカスタマイズするためのクラスを作成します。**ILayoutDetails** から派生させなければなりません。
     
-	* 関数 `void LayoutDetails( IDetailLayoutBuilder& )` を実装します。
-	* クラス プロパティのカスタマイズをカプセル化することが、このクラスの目的です。クラスのインスタンスは、それを必要とする **[Details]** パネルに対し 1 つずつ作成されます。 
+	* 関数 **void LayoutDetails( IDetailLayoutBuilder& )** を実装します。
+	* クラス プロパティのカスタマイズをカプセル化することが、このクラスの目的です。クラスのインスタンスは、それを必要とする **[Details (詳細)]** パネルに対し 1 つずつ作成されます。 
 
-2. **[Details]** パネルが特定のクラスに対してプロパティを認識すると呼び出されるデリゲートを設定します。
+2. **[Details (詳細)]** パネルが特定のクラスに対してプロパティを認識すると呼び出されるデリゲートを設定します。
     
-	* このデリゲートの唯一の目的は、プロパティを持つ特定の `UObject` 用にカスタマイズしたクラスのインスタンスを作成することです。詳細ビューが複数ある場合がほとんどであることを覚えておいてください。その場合、詳細ビューのインスタンスはそれぞれのカスタマイズ クラス インスタンスを取得します。これによりレイアウト クラス上に詳細のインスタンス データごとに格納できるようになります。  
-	* 例 (`DetailCustomizations.cpp` では他の例もご覧頂けます)：
+	* このデリゲートの唯一の目的は、プロパティを持つ特定の **UObject** 用にカスタマイズしたクラスのインスタンスを作成することです。詳細ビューはほとんどの場合、複数であることを覚えておいてください。その場合、詳細ビューのインスタンスはそれぞれのカスタマイズ クラス インスタンスを取得します。これによりレイアウト クラス上に詳細のインスタンス データごとに格納できるようになります。  
+	* 例 (DetailCustomizations.cpp では他の例もご覧頂けます)：
 
 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 			PropertyModule.RegisterCustomPropertyLayout( ABrush::StaticClass(), FOnGetDetailLayoutInstance::CreateRaw( &FBrushDetails::MakeInstance ) );
@@ -34,14 +35,14 @@ Description: アンリアル・エディタ内の詳細パネルのプロパテ�
 	* これがエンジン クラスの場合、カスタマイズ クラスを `DetailCustomizations` モジュール (既存する場合) に追加すべきです。このモジュールは、エディタを再起動させずに再コンパイルおよび再ロードが可能なので、プロパティの迅速な微調整に役立ちます。
 	* `FDetailCustomizationsModule.StartupModule` にデリゲートを結合し、`FDetailCustomizationsModule.ShutdownModule`で結合を解除します。
 	* ゲーム固有のクラスにはゲーム固有のモジュールを使ってください。
-	* 本ガイドと `DetailCustomizations` モジュールにある例をご覧ください (`PrimitiveComponentDetails.cpp` や `StaticMeshComponentDetails.cpp` など)。
+	* 本ガイドと `DetailCustomizations` モジュールにある例をご覧ください (PrimitiveComponentDetails.cpp や StaticMeshComponentDetails.cpp など)。
 
 
 ## カスタマイズ
 
-カスタマイズ クラスの `LayoutDetails` 関数内で全てのカスタマイズを処理します。この関数は、プロパティに対するインターフェースであり、カスタマイズ ウィジェットの戻し方 `IDetailLayoutBuilder` を受け取ります。
+カスタマイズ クラスの LayoutDetails 関数内で全てのカスタマイズを処理します。この関数は、プロパティに対するインターフェースであり、カスタマイズ ウィジェットの戻し方 **IDetailLayoutBuilder** を受け取ります。
 
-主要関数 `IDetailLayoutBuilder` はプロパティとその他の詳細が常駐しているカテゴリを作成します。このクラスにはまだ他に、内容が一目瞭然のマイナーな関数があります (必要なものはほとんどありません)。これらの点に関する情報は `DetailLayoutBuilder.h` に掲載されています。
+主要関数 IDetailLayoutBuilder は、プロパティとその他の詳細が存在駐しているカテゴリを作成します。このクラスにはまだ他に、内容が一目瞭然のマイナーな関数があります (必要なものはほとんどありません)。これらの点に関する情報は DetailLayoutBuilder.h に掲載されています。
 
 カスタマイズの最初のステップは、カテゴリの編集です。
 
@@ -51,9 +52,9 @@ Description: アンリアル・エディタ内の詳細パネルのプロパテ�
 		IDetailCategory& LightingCategory = DetailBuilder.EditCategory("Lighting", TEXT("OptionalLocalizedDisplayName") );
 	}
 
-`EditCategory` 関数はプロパティが常駐するカテゴリ用の `FName` とローカライズされたオプションの表示名を受け取ります。表示名を指定すると、既存の表示名がオーバーライドされます。カテゴリ名が同じの場合は `UPROPERTY` カテゴリを再利用しますが、`UPROPERTY` マクロで指定したカテゴリ名と同じである必要は **ありません**。プロパティがカスタマイズされずツリービューにある場合、マクロのカテゴリ名をデフォルト カテゴリとして使用します。
+**EditCategory** 関数はプロパティが存在するカテゴリ用の **FName** とローカライズされたオプションの表示名を受け取ります。表示名を指定すると、既存の表示名がオーバーライドされます。カテゴリ名が同じの場合は `UPROPERTY` カテゴリを再利用しますが、`UPROPERTY` マクロで指定したカテゴリ名と同じでなくても構いません。プロパティがカスタマイズされずツリービューにある場合、マクロのカテゴリ名をデフォルト カテゴリとして使用します。
 
-`EditCategory` はプロパティのカテゴリ追加に使用する `IDetailCategoryBuilder&` を返します。方法は 2 種類あります。
+EditCategory はプロパティのカテゴリ追加に使用する **IDetailCategoryBuilder&** を返します。2 通りの方法があります。
 
 * 単純に [multibox style layout](#MultiboxStyleLayout) を使用します。プロパティの再調整が早くできます。
 * もっとも剛健なカスタマイズ オプションを提供する [スレート記法](#スレートレイアウト) を使用します。
@@ -61,14 +62,14 @@ Description: アンリアル・エディタ内の詳細パネルのプロパテ�
 
 ### Multibox Style Layout
 
-上のセクションで作成した「LightingCategory」を使用した簡単な例です。
+上のセクションで作成した **LightingCategory** を使用した簡単な例です。
 
-		// Add a property to the category (プロパティをカテゴリに追加します)。最初のパラメータはプロパティ名で、2 番目は任意の表示名でオーバーライドします。
-		LightingCategory.AddProperty("bCastStaticShadow", TEXT("Static") );
-		LightingCategory.AddProperty("bCastDynamicShadow", TEXT("Dynamic") );
-		LightingCategory.AddProperty("bCastVolumetricTranslucentShadow", TEXT("Volumetric") );
+	// Add a property to the category (プロパティをカテゴリに追加します)。最初のパラメータはプロパティ名で、2 番目は任意の表示名でオーバーライドします。
+	LightingCategory.AddProperty("bCastStaticShadow", TEXT("Static") );
+	LightingCategory.AddProperty("bCastDynamicShadow", TEXT("Dynamic") );
+	LightingCategory.AddProperty("bCastVolumetricTranslucentShadow", TEXT("Volumetric") );
 
-最も基本的な例を紹介します。オーバーライド例にあるテキストはスペース節約のためローカライズはされていませんが、実際の使用では常にローカライズすべきです)。
+最も基本的な例を紹介します。3 つのプロパティを垂直にして追加し、表示名をオーバーライドします。(この例のテキストはスペース節約のためローカライズはされていませんが、実際の使用では常にローカライズされます)。
 
 [REGION:note]
 	カスタマイズ化されたプロパティとカテゴリは、カスタマイズ化ていないもの上に常に表示されることに注目してください。このシンプルな記法を使えば、埋もれてしまう可能性のある重量なプロパティを認識することができます。
@@ -78,9 +79,9 @@ Description: アンリアル・エディタ内の詳細パネルのプロパテ�
 
 ![](multibox_layout_vertical.png)
         
-若干難しい例 (`PrimitiveComponentDetails.cpp` にあります) です。
+この例は少し難しくなります (`PrimitiveComponentDetails.cpp` にあります)。
 
-        //  Create a non-collapsible group with the display name "Shadows" which is only visible if the CastShadow property is enabled ([CastShadow] プロパティが有効化されている場合のみ表示される表示名「Shadows」を使って、折りたためないグループを作成します)。この呼び出し下にあるプロパティは、EndGroup または別の BeginGroup が呼び出されるまで、全て同じグループに表示されます。
+	//  Create a non-collapsible group with the display name "Shadows" which is only visible if the CastShadow property is enabled ([CastShadow] プロパティが有効化されている場合のみ表示される表示名「Shadows」を使って、折りたためないグループを作成します)。この呼び出し下にあるプロパティは、EndGroup または別の BeginGroup が呼び出されるまで、全て同じグループに表示されます。
 	LightingCategory.BeginGroup( TEXT("Shadows"), GroupImageName, "CastShadow" );
         // Begin a new line (新しい行を開始します)。この呼び出し下にあるプロパティは、EndLine() または別の BeginLine() が呼び出されるまでは、全て同じグループに表示されます。
         LightingCategory.BeginLine();
@@ -94,7 +95,7 @@ Description: アンリアル・エディタ内の詳細パネルのプロパテ�
                 LightingCategory.AddProperty("bCastShadowAsTwoSided", TEXT("Two Sided") );
 	LightingCategory.EndGroup();
 
-* `BeginGroup` はプロパティ グループの新規作成に使用します。グループの表示名、名前の隣に表示するオプションの画像名 (スレート ブラシ名)、 _false_ の場合、グループ全体をビューで非表示してプロパティができなくなるオプションの編集条件プロパティを受け取ります。これらの編集条件は、 1 つではなくグループのプロパティ上で動作する点を除けば `UPROPERTY` マクロスタイル編集と同じです。このようなことが今後さらに追加されます。
+* `BeginGroup` はプロパティ グループの新規作成に使用します。グループの表示名、名前の隣に表示するオプションの画像名 (スレート ブラシ名)、 _false_ の場合、グループ全体をビューで非表示してプロパティができなくなるオプションの編集条件プロパティを受け取ります。これらの編集条件は、 1 つではなくグループのプロパティ上で動作する点を除けば `UPROPERTY` マクロスタイル編集と同じです。今後以下のことが追加されます！
 * `AddProperty` はデフォルトの見た目を使ってプロパティを追加します。通常はプロパティ名がついたパラメータが 1 つだけ必要です。構造体内にあるプロパティのような複雑なプロパティには、追加情報が必要です。必要な場合は、[詳細なヒント](#詳細なヒント) セクションまたは `DetailCategoryBuilder.h` のドキュメントをご覧ください。
 * `BeginLine` はプロパティの行を新規作成します。`AddProperty` で追加された全てのプロパティが新しい行にデフォルトで作成されます。 `BeginLine` は、同じ行上に `BeginLine` または `EndLine` が来るまで全てのプロパティが確実に追加されるようにします。
 
@@ -123,7 +124,7 @@ Bool プロパティである `bOverrideLightmapRes` に対するハンドルを
 
 ここからプロパティ値の読み書き、あるいはカスタマイズのためのスレート ウィジェットへその値を渡すことが可能になります。  
 
-**Useful property handle functions** (詳細なドキュメントは `PropertyHandle.h` を参照してください):
+Useful property handle functions (詳細なドキュメントは PropertyHandle.h を参照してください):
 
 | 関数 | 説明 |
 | -------- | ----------- |
@@ -192,7 +193,7 @@ Bool プロパティである `bOverrideLightmapRes` に対するハンドルを
 		SNew( SHorizontalBox )
 		+ SHorizontalBox::Slot()
 		[
-			// Make a new SProperty (新規の SProperty を作成します)
+			// Make a new SProperty (SProperty を作成します)
 			SNew( SProperty, EnableOverrideLightmapRes )
 		]
 		+ SHorizontalBox::Slot()
@@ -252,7 +253,7 @@ Bool プロパティである `bOverrideLightmapRes` に対するハンドルを
 
 ##### SProperty Notes
 
-* カスタム ウィジェットを作成しても、`SProperty` はデフォルトへのリセットを常に表示します。この動作を切り換える引き数が `SProperty` にあります。例えば、プロパティの行がある場合、それぞれに対してデフォルトへのリセットを表示せず、一番最後にまとめたメニューで表示したいと指示したいと仮定します。以下の [`SResetToDefaultMenu`](#SResetToDefaultMenu) をご覧ください。
+* カスタム ウィジェットを作成しても、`SProperty` はデフォルトへのリセットを常に表示します。この動作を切り換える引き数が `SProperty` にあります。例えば、プロパティの行がある場合、それぞれに対してデフォルトへのリセットを表示せず、一番最後にまとめたメニューで表示したいと指示したいと仮定します。以下の [SResetToDefaultMenu](#SResetToDefaultMenu) をご覧ください。
 * 無効なハンドルを `SProperty` に渡せば表示されなくなります。
 
 
@@ -333,7 +334,7 @@ Bool プロパティである `bOverrideLightmapRes` に対するハンドルを
 
 * プロパティのカスタマイズおよび値の読み書き時にはエラーケースの確認をしてください。詳細ビューには異なる値をもつ複数のオブジェクトが一度に表示されることを覚えておいてください。カスタマイズ化されたプロパティは一般的なケースであれば複数の値に対処できるはずです。
 * カスタマイズ クラス上で選択したデータは全て格納してください。プロパティ以外の詳細の中には、カスタマイズのためにアクタを選択する必要があるものもあります。アクタは `IDetailLayoutBuilder` から選んで取得することができます。選択対象あるいは選択に応じた全てのものをカスタマイズ クラス上に格納できます。選択が詳細ビューで変わらない間はそこにあることが保証されます。
-* `FActorIterator`、`FSelectedActorIterator`、または `GEditor->GetSelectedActorIterator` は使用しないでください。**[Details]**パネルはロックすることができ、ロックされていると、**[Details]**パネルで選択されたアクタと異なるアクタのグローバル選択対象またはリスト上で動作することを覚えておいてください。これらを使うと別のデータへアクセスします。選択されたアクタで有効なものは `IDetailLayoutBuilder` から選んで取得することができます。
+* `FActorIterator`、`FSelectedActorIterator`、または `GEditor->GetSelectedActorIterator` は使用しないでください。**[Details (詳細)]**パネルはロックすることができ、ロックされていると、**[Details (詳細)]** パネルで選択されたアクタと異なるアクタのグローバル選択対象またはリスト上で動作することを覚えておいてください。これらを使うと別のデータへアクセスします。選択されたアクタで有効なものは `IDetailLayoutBuilder` から選んで取得することができます。
 * レイアウト クラスやプロパティ ハンドルに対する参照を強力にしないでください (いずれにせよ必要ありません)。詳細ビュー (特にレベル エディタのもの) は、ユーザーの選択に応じていつでも変更が可能なので、レイアウト クラスへの参照もすぐに無効にされてしまうことを覚えておいてください。このようなことが起こらないように、詳細のカスタマイズ際にレイアウト クラスに対するシェアード ポインタは一意性に対してチェックされます。
 
 
@@ -341,7 +342,7 @@ Bool プロパティである `bOverrideLightmapRes` に対するハンドルを
 
 ### 複雑なプロパティへのアクセス
 
-_複雑なプロパティ_ はプロパティ名では名前解決できないものとして定義されます。複雑なプロパティは通常構造体内にプロパティを含みます。
+複雑なプロパティはプロパティ名では名前解決できないものとして定義されます。複雑なプロパティは通常構造体内にプロパティを含みます。
 
 複雑なプロパティへのアクセス方法は 2 通りあります。
 
@@ -387,7 +388,7 @@ _複雑なプロパティ_ はプロパティ名では名前解決できない�
 
 ### Accessing Arrays
 
-`IPropertyHandle::AsArray` により配列へアクセスできます。プロパティ ハンドルが配列の場合、配列の _追加_ 、 _削除_ 、 _挿入_ 、 _複製_ をしたり、配列のエレメント番号を取得する関数をもつ `IPropertyHandleArray` を返します。
+`IPropertyHandle::AsArray` により配列へアクセスできます。プロパティ ハンドルが配列の場合、配列の追加、削除、挿入、複製をしたり、配列のエレメント番号を取得する関数をもつ `IPropertyHandleArray` を返します。
 
 ### プロパティを隠す
 

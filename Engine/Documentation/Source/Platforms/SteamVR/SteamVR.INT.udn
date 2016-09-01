@@ -4,24 +4,21 @@ Description:An introduction to getting started with SteamVR
 Availability:Public
 Navigation:platform
 Platform:SteamVR
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:SteamVR
 
 ![](T_Vive_HMD.png)
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/SteamVR_Icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		SteamVR Development
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/SteamVR/BestPractices "%Platforms/SteamVR/BestPractices:description%")
-		* [](Platforms/SteamVR/QuickStart "%Platforms/SteamVR/QuickStart:description%")
-		* [](Platforms/SteamVR/Tips_And_Tricks "%Platforms/SteamVR/Tips_And_Tricks:description%")
-	[/PARAM]
-[/OBJECT]
+## Starting Out
+
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/SteamVR")]
+
+## SteamVR Topics
+
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/SteamVR")]
+
 
 
 

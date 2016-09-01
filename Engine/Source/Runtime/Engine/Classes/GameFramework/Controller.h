@@ -92,7 +92,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category="Controller|Transform")
 	uint32 bAttachToPawn:1;
 
-	/** Whether this controller is a player controller. */
+	/** Whether this controller is a PlayerController. */
 	UPROPERTY()
 	uint32 bIsPlayerController:1;
 
@@ -217,12 +217,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual FRotator GetDesiredRotation() const;
 
-	/** returns whether this Controller is a locally controlled PlayerController.  */
+	/** Returns whether this Controller is a PlayerController.  */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
-	bool IsLocalPlayerController() const
-	{
-		return bIsPlayerController && IsLocalController();
-	}
+	bool IsPlayerController() const;
+
+	/** Returns whether this Controller is a locally controlled PlayerController.  */
+	UFUNCTION(BlueprintCallable, Category="Pawn")
+	bool IsLocalPlayerController() const;
 
 	/** Returns whether this Controller is a local controller.	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
@@ -284,7 +285,7 @@ public:
 	//~ Begin INavAgentInterface Interface
 	virtual const struct FNavAgentProperties& GetNavAgentPropertiesRef() const override;
 	virtual FVector GetNavAgentLocation() const override;
-	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
+	virtual void GetMoveGoalReachTest(const AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
 	virtual bool ShouldPostponePathUpdates() const override;
 	virtual bool IsFollowingAPath() const override;
 	//~ End INavAgentInterface Interface
@@ -361,3 +362,16 @@ protected:
 	/** Returns TransformComponent subobject **/
 	class USceneComponent* GetTransformComponent() const;
 };
+
+
+// INLINES
+
+FORCEINLINE_DEBUGGABLE bool AController::IsPlayerController() const
+{
+	return bIsPlayerController;
+}
+
+FORCEINLINE_DEBUGGABLE bool AController::IsLocalPlayerController() const
+{
+	return IsPlayerController() && IsLocalController();
+}

@@ -1,17 +1,18 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2690184
 Availability:Public
-Title:Parameter Expressions
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
-Description:Expressions that expose properties to Material Instances to be overridden in child instances or modified at runtime.
+Title:参数表达式
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:这类表达式向材质实例公开属性，以便在子实例中覆盖或在运行时修改。
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
 [/EXCERPT:TOC]
 
+(#CollectionParameters)
+## CollectionParameter（集合参数）
 
-## Collection Parameters
-
-A Collection Parameter expression is used to reference a Parameter Collection asset. These are groups of parameters that can easily be reused by many different assets such as Materials, Blueprints, and much more. For more information on Parameter Collections, be sure to read the [Parameter Collections Documentation.](Engine/Rendering/Materials\ParameterCollections)
+**CollectionParameter（集合参数）**表达式用来引用“参数集合”资产。这些是可以由许多不同资产（例如材质和蓝图等等）轻松重复使用的参数组。有关参数集合的更多信息，请务必参阅 [参数集合文档](Engine/Rendering/Materials\ParameterCollections)。
 
 
 
@@ -19,85 +20,85 @@ A Collection Parameter expression is used to reference a Parameter Collection as
 [INCLUDE:Engine/Rendering/Materials\ParameterCollections#MaterialWarning]
 [/REGION]
 
-
-## DynamicParameter
+(#DynamicParameter)
+## DynamicParameter（动态参数）
 [EXCERPT:DynamicParameter]
 
-The DynamicParameter expression provides a conduit for particle emitters to pass up to four values to the material to be used in any manner. These values are set in Cascade via a ParameterDynamic module placed on an emitter.
+**DynamicParameter（动态参数）**表达式为粒子发射器提供管道，以便将最多四个要以任意方式处理的值传递给材质。这些值是通过放置在发射器上的 **ParameterDynamic** 模块在 **Cascade** 中设置的。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Param Names** | An array of the names of the parameters. The values here will determine the text displayed on the outputs of the expression in the Material Editor and will be the names used to reference the parameters in the ParameterDynamic module in Cascade. |
-| [REGION:tablesection]Outputs[/REGION] ||
-| **Param1** | Outputs the value of the first parameter in the Param names property. The name of this output can change based on the values in the Param Names property. |
-| **Param2** | Outputs the value of the second parameter in the Param names property. The name of this output can change based on the values in the Param Names property. |
-| **Param3** | Outputs the value of the third parameter in the Param names property. The name of this output can change based on the values in the Param Names property. |
-| **Param4** | Outputs the value of the fourth parameter in the Param names property. The name of this output can change based on the values in the Param Names property. |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Param Names）** | 参数名称的数组。这里的值将确定材质编辑器中显示在表达式输出上的文本，并且将是 Cascade 中的 ParameterDynamic 模块中用来引用参数的名称。|
+| [REGION:tablesection]输出[/REGION] ||
+| **参数 1（Param1）** | 输出“参数名称”（Param names）属性中第一个参数的值。此输出的名称可根据“参数名称”（Param names）属性中的值而变化。|
+| **参数 2（Param2）** | 输出“参数名称”（Param names）属性中第二个参数的值。此输出的名称可根据“参数名称”（Param names）属性中的值而变化。|
+| **参数 3（Param3）** | 输出“参数名称”（Param names）属性中第三个参数的值。此输出的名称可根据“参数名称”（Param names）属性中的值而变化。|
+| **参数 4（Param4）** | 输出“参数名称”（Param names）属性中第四个参数的值。此输出的名称可根据“参数名称”（Param names）属性中的值而变化。|
 
 [/EXCERPT:DynamicParameter]
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Font#FontSampleParameter]
 
+(#ScalarParameter)
+## ScalarParameter（标量参数）
 
-## ScalarParameter
+**ScalarParameter（标量参数）**表达式输出单个浮点值 ([Constant（常量）](Engine/Rendering/Materials/ExpressionReference/Constant#Constant))，这个值可在材质实例中访问和更改，或者由代码快速访问和更改。  
 
-The ScalarParameter expression outputs a single float value ([Constant](Engine/Rendering/Materials/ExpressionReference/Constant#Constant)) that can be accessed and changed in an instance of the material or on the fly by code.  
-
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Default Value** | Specifies the initial value that the constant takes on. |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **默认值（Default Value）** | 指定常量采用的初始值。|
 
 
 [REGION:fullwidth]
 ![ScalarParameterExample.png](ScalarParameterExample.png)
 [/REGION]
 
+(#StaticBoolParameter)
+## StaticBoolParameter（静态布尔参数）
 
-## StaticBoolParameter
-
-The StaticBoolParameter works like StaticSwitchParameter, except that it only creates a bool parameter and does not implement the switch.
-
-[REGION:note]
-This parameter is named static because it cannot change at runtime, it can only be set in the Material Instance Editor.  Static Switches are applied at compile time, not at runtime.  This means that whatever branch of the material was dropped will never be executed, so static switches are effectively free at runtime.  On the other hand, a new version of the material must be compiled out for every **used** combination of static parameters in a material, which can lead to a shader explosion if abused.  Try to minimize the number of static parameters in the material and the number of permutations of those static parameters that are actually used.
-[/REGION]
-
-| Item | Description |
-| -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Default Value** | The default bool value of the parameter, _True_ (checked) or _False_. |
-
-
-This node is used with [MaterialFunctions](Engine/Rendering/Materials/Functions).
-
-
-
-## StaticSwitchParameter
-
-The StaticSwitchParameter expression takes in two inputs, and outputs the first if the value of the parameter is _true_, and the second otherwise.  
+**StaticBoolParameter（静态布尔参数）**的工作方式类似于 StaticSwitchParameter（静态开关参数），但是它仅创建一个布尔参数，而不实现开关。
 
 [REGION:note]
-This parameter is named static because it cannot change at runtime, it can only be set in the Material Instance Editor.  Static Switches are applied at compile time, not at runtime.  This means that whatever branch of the material was dropped will never be executed, so static switches are effectively free at runtime.  On the other hand, a new version of the material must be compiled out for every **used** combination of static parameters in a material, which can lead to a shader explosion if abused.  Try to minimize the number of static parameters in the material and the number of permutations of those static parameters that are actually used.
+此参数称为“静态”是因为它不可在运行时更改，而只能在材质实例编辑器中设置。静态开关是在编译时（而非运行时）进行应用。这意味着删除的材质分支决不会执行，因此静态开关在运行时实际上是自由的。另一方面，对于材质中 **使用的** 每一种静态参数组合（滥用静态参数组合可能会导致着色器激增），都必须通过编译来产生材质的新版本。请尽量减少材质中的静态参数数目以及实际使用的静态参数排列数。
 [/REGION]
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Default Value** | If _true_, the first input is output. Otherwise, the second input is output. |
-| **Extended Caption Display** | If _true_, the title bar of the expressions displays the value of the expression. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **A** | Takes in a value of any number of channels. |
-| **B** | Takes in a value of any number of channels. |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **默认值（Default Value）** | 参数的默认布尔值，即 _True_（选中）或 _False_。|
 
 
-**Example Usage:** Static Switches can be used to remove an entire branch of a material with no runtime cost.  Instances can have different values, making it possible to have a templated shader setup with no performance loss.
+此节点与[材质函数](Engine/Rendering/Materials/Functions)配合使用。
+
+
+(#StaticSwitchParameter)
+## StaticSwitchParameter（静态开关参数）
+
+**StaticSwitchParameter（静态开关参数）**表达式接收两个输入，并且在参数值为 _true_ 时输出第一个输入的值，否则输出第二个输入的值。  
+
+[REGION:note]
+此参数称为“静态”是因为它不可在运行时更改，而只能在材质实例编辑器中设置。静态开关是在编译时（而非运行时）进行应用。这意味着删除的材质分支决不会执行，因此静态开关在运行时实际上是自由的。另一方面，对于材质中 **使用的** 每一种静态参数组合（滥用静态参数组合可能会导致着色器激增），都必须通过编译来产生材质的新版本。请尽量减少材质中的静态参数数目以及实际使用的静态参数排列数。
+[/REGION]
+
+| 项目 | 说明 |
+| -------- | ----------- |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **默认值（Default Value）** | 如果为 _true_，那么输出将是第一个输入。否则，输出将是第二个输入。|
+| **扩展标题显示（Extended Caption Display）** | 如果为 _true_，那么表达式的标题栏将显示表达式的值。|
+| [REGION:tablesection]输入[/REGION] ||
+| **A** | 接收具有任意数目通道的值。|
+| **B** | 接收具有任意数目通道的值。|
+
+
+**用法示例：**静态开关可用于除去材质的整个分支，而不会产生运行时成本。各个实例可具有不同的值，这使您能够建立模板化的着色器设置，而不会影响性能。
 
 [REGION:fullwidth]
 ![StaticSwitchParameterExample_A.png](StaticSwitchParameterExample_A.png)
@@ -107,145 +108,151 @@ This parameter is named static because it cannot change at runtime, it can only 
 ![StaticSwitchParameterExample_B.png](StaticSwitchParameterExample_B.png)
 [/REGION]
 
-## StaticComponentMaskParameter
+(#StaticComponentMaskParameter)
+## StaticComponentMaskParameter（静态分量蒙版参数）
 
-The StaticComponentMaskParameter expression behaves just like an ordinary Component Mask, except that the mask values can be set by instances.  
+**StaticComponentMaskParameter（静态分量蒙版参数）**表达式的行为就像是普通的组件蒙版一样，只不过实例可设置蒙版值。  
 
 [REGION:note]
-This parameter is named static because it cannot change at runtime, it can only be set in the Material Instance Editor.  Static Switches are applied at compile time, not at runtime.  This means that whatever branch of the material was dropped will never be executed, so static switches are effectively free at runtime.  On the other hand, a new version of the material must be compiled out for every **used** combination of static parameters in a material, which can lead to a shader explosion if abused.  Try to minimize the number of static parameters in the material and the number of permutations of those static parameters that are actually used.
+此参数称为“静态”是因为它不可在运行时更改，而只能在材质实例编辑器中设置。静态开关是在编译时（而非运行时）进行应用。这意味着删除的材质分支决不会执行，因此静态开关在运行时实际上是自由的。另一方面，对于材质中 **使用的** 每一种静态参数组合（滥用静态参数组合可能会导致着色器激增），都必须通过编译来产生材质的新版本。请尽量减少材质中的静态参数数目以及实际使用的静态参数排列数。
 [/REGION]
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Default R** | If checked, the red, or first, channel of the input value will be passed through to the output. |
-| **Default G** | If checked, the green, or second, channel of the input value will be passed through to the output. |
-| **Default B** | If checked, the blue, or third, channel of the input value will be passed through to the output. |
-| **Default A** | If checked, the alpha, or fourth, channel of the input value will be passed through to the output. |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **默认 R（Default R）** | 如果选中此项目，那么会将输入值的红色通道（第一个通道）传递到输出。|
+| **默认 G（Default G）** | 如果选中此项目，那么会将输入值的绿色通道（第二个通道）传递到输出。|
+| **默认 B（Default B）** | 如果选中此项目，那么会将输入值的蓝色通道（第三个通道）传递到输出。|
+| **默认 A（Default A）** | 如果选中此项目，那么会将输入值的阿尔法通道（第四个通道）传递到输出。|
 
 
-**Example Usage:** Static Component Masks can be used to let instances choose which channel of a mask texture to use.  If the mask is static (does not need to change at runtime) then this approach should always be used instead of multiplying a texture lookup by a vector parameter to mask out channels, since this wastes texture bandwidth and shader instructions.
+**用法示例：**静态组件蒙版可用来让实例选择所要使用的蒙版纹理通道。对于不必在运行时更改的静态蒙版，应始终使用这种方法，而不要将纹理查找乘以矢量参数以屏蔽通道，因为这将浪费纹理带宽和着色器指令。
 
 [REGION:fullwidth]
 ![StaticComponentMaskParameterExample.png](StaticComponentMaskParameterExample.png)
 [/REGION]
 
-## VectorParameter
+(#VectorParameter)
+## VectorParameter（矢量参数）
 
-The VectorParameter expression is identical to the [Constant4Vector](Engine/Rendering/Materials/ExpressionReference/Constant#Constant4Vector), except that it is a parameter and can be modified in instances of the material and through code. One nicety of the VectorParameter is that its value can be set using the Color picker.
+**VectorParameter（矢量参数）**表达式与 [Constant4Vector（常量 4 矢量）](Engine/Rendering/Materials/ExpressionReference/Constant#Constant4Vector) 完全相同，只不过它是可在材质实例中以及通过代码来修改的参数。VectorParameter（矢量参数）的一个好处是，它的值可使用取色器来设置。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Default Value** [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#VectorParamDefaultItem] | The vector to output by default unless overridden by a MaterialInstanceConstant. [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#VectorParamDefaultDesc] |
+| [REGION:tablesection]属性[/REGION] | |
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **默认值（Default Value）** [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#VectorParamDefaultItem] | 默认情况下输出的矢量（除非被 MaterialInstanceConstant（材质实例常量）覆盖）。[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#VectorParamDefaultDesc] |
 
 [REGION:fullwidth]
 ![VectorParameterExample.png](VectorParameterExample.png)
 [/REGION]
 
 [REGION:warning]
-VertexColor is mutually exclusive with the Transform node due to limited interpolators.  If you use both a Transform node and VertexColor, then VertexColor will come out all white.
+由于插值器受限制，VertexColor（顶点颜色）与 Transform（转换）节点互斥。如果您同时使用 Transform（转换）节点和 VertexColor（顶点颜色），那么 VertexColor（顶点颜色）的结果为全白色。
 [/REGION]
 
 [REGION:note]
-**Programmers:** For sprite particles, colors are communicated to the shader per vertex, whereas colors for mesh particles are set as shader constants.
+**程序员需知：**对于精灵粒子，颜色将按顶点传达给着色器，而网格粒子的颜色将设置为着色器常量。
 [/REGION]
 
 
 
 [EXCERPT:TextureObjectParameter]
-## TextureObjectParameter
+(#TextureObjectParameter)
+## TextureObjectParameter（纹理对象参数）
 
-The TextureObjectParameter expression defines a texture parameter and outputs the texture object, used in materials that call a function with texture inputs. This node does not actually sample the texture, so it must be used in conjunction with a TextureSample node.
+**TextureObjectParameter（纹理对象参数）**表达式定义一个纹理参数并输出纹理对象，以便在调用具有纹理输入的函数的材质中使用。此节点不会对该纹理进行实际取样，因此必须与“纹理取样”（TextureSample）节点配合使用。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Texture** | Specifies the texture sampled by the expression. |
-| **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **纹理（Texture）** | 指定表达式所取样的纹理。|
+| **取样类型（Sampler Type）** | 此节点所要取样并输出的数据类型。|
+| **Mip 值模式（MipValueMode）** | 对纹理应用一个将会影响外观及性能的噪声值。|
 
-This node is used with [MaterialFunctions](Engine/Rendering/Materials/Functions).
+此节点与[材质函数](Engine/Rendering/Materials/Functions)配合使用。
 [/EXCERPT:TextureObjectParameter]
 
 
 [EXCERPT:TextureSampleParameter2D]
-## TextureSampleParameter2D
+(#TextureSampleParameter2D)
+## TextureSampleParameter2D（纹理取样参数 2D）
 
-The TextureSampleParameter2D expression is identical to the TextureSample except that it is a parameter that can be modified in instances of the material and through code.
+**TextureSampleParameter2D（纹理取样参数 2D）**表达式与 TextureSample（纹理取样）完全相同，只不过它是可在材质实例中以及通过代码来修改的参数。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Texture** | Specifies the texture sampled by the expression. |
-| **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **UVs** | Takes in UV texture coordinates to use for the texture. If no values are input to the UVs, the texture coordinates of the mesh the material is applied to are used. |
-| [REGION:tablesection]Outputs[/REGION] ||
-| **RGB** | Outputs the three-channel RGB vector value of the color. |
-| **R** | Outputs the red channel of the color. |
-| **G** | Outputs the green channel of the color. |
-| **B** | Outputs the blue channel of the color. |
-| **A** | Outputs the alpha channel of the color. If a texture does not contain an alpha channel, connecting the 'alpha' channel to something, while not technically illegal, will always result in zero (black). |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **纹理（Texture）** | 指定表达式所取样的纹理。|
+| **取样类型（Sampler Type）** | 此节点所要取样并输出的数据类型。|
+| **Mip 值模式（MipValueMode）** | 对纹理应用一个将会影响外观及性能的噪声值。|
+| [REGION:tablesection]输入[/REGION] ||
+| **UVs** | 接收 UV 纹理坐标，以用于纹理。如果没有任何值输入到 UVs，那么将使用材质所应用于的网格的纹理坐标。|
+| [REGION:tablesection]输出[/REGION] ||
+| **RGB** | 输出颜色的三通道 RGB 矢量值。|
+| **R** | 输出颜色的红色通道。|
+| **G** | 输出颜色的绿色通道。|
+| **B** | 输出颜色的蓝色通道。|
+| **A** | 输出颜色的阿尔法通道。如果纹理未包含阿尔法通道，那么将“阿尔法”通道连接到任何内容（虽然在技术上不合法）的结果将始终为零（黑色）。|
 
 [/EXCERPT:TextureSampleParameter2D]
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#TextureSampleParameterSubUV]
 
 [EXCERPT:TextureSampleParameterCube]
-## TextureSampleParameterCube
+(#TextureSampleParameterCube)
+## TextureSampleParameterCube（纹理取样参数立方体）
 
-The TextureSampleParameterCube expression is identical to the TextureSample except that it only accepts cubemaps and it is a parameter that can be modified in instances of the material and through code.
+**TextureSampleParameterCube（纹理取样参数立方体）**表达式与 TextureSample（纹理取样）完全相同，只不过它只接受立方体贴图，并且是可在材质实例中以及通过代码来修改的参数。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Texture** | Specifies the texture sampled by the expression. |
-| **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **UVs** | Takes in UV texture coordinates to use for the texture. If no values are input to the UVs, the texture coordinates of the mesh the material is applied to are used. This must be a three-channel vector value. |
-| [REGION:tablesection]Outputs[/REGION] ||
-| **RGB** | Outputs the three-channel RGB vector value of the color. |
-| **R** | Outputs the red channel of the color. |
-| **G** | Outputs the green channel of the color. |
-| **B** | Outputs the blue channel of the color. |
-| **A** | Outputs the alpha channel of the color. If a texture does not contain an alpha channel, connecting the 'alpha' channel to something, while not technically illegal, will always result in zero (black). |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **纹理（Texture）** | 指定表达式所取样的纹理。|
+| **取样类型（Sampler Type）** | 此节点所要取样并输出的数据类型。|
+| **Mip 值模式（MipValueMode）** | 对纹理应用一个将会影响外观及性能的噪声值。|
+| [REGION:tablesection]输入[/REGION] ||
+| **UVs** | 接收 UV 纹理坐标，以用于纹理。如果没有任何值输入到 UVs，那么将使用材质所应用于的网格的纹理坐标。这必须是三通道矢量值。|
+| [REGION:tablesection]输出[/REGION] ||
+| **RGB** | 输出颜色的三通道 RGB 矢量值。|
+| **R** | 输出颜色的红色通道。|
+| **G** | 输出颜色的绿色通道。|
+| **B** | 输出颜色的蓝色通道。|
+| **A** | 输出颜色的阿尔法通道。如果纹理未包含阿尔法通道，那么将“阿尔法”通道连接到任何内容（虽然在技术上不合法）的结果将始终为零（黑色）。|
 
 [/EXCERPT:TextureSampleParameterCube]
 
 [EXCERPT:TextureSampleParameterMovie]
-## TextureSampleParameterMovie
+(#TextureSampleParameterMovie)
+## TextureSampleParameterMovie（纹理取样参数电影）
 
-The TextureSampleParameterMovie expression is identical to the TextureSample except that it only accepts movie textures (Bink movies) and it is a parameter that can be modified in instances of the material and through code.
+**TextureSampleParameterMovie（纹理取样参数电影）**表达式与 TextureSample（纹理取样）完全相同，只不过它只接受电影贴图（Bink 电影），并且是可在材质实例中以及通过代码来修改的参数。
 
-| Item | Description |
+| 项目 | 说明 |
 | -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Parameter Name** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
-| **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
-| **Texture** | Specifies the texture sampled by the expression. |
-| **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
-| [REGION:tablesection]Inputs[/REGION] ||
-| **UVs** | Takes in UV texture coordinates to use for the texture. If no values are input to the UVs, the texture coordinates of the mesh the material is applied to are used. |
-| [REGION:tablesection]Outputs[/REGION] ||
-| **RGB** | Outputs the three-channel RGB vector value of the color. |
-| **R** | Outputs the red channel of the color. |
-| **G** | Outputs the green channel of the color. |
-| **B** | Outputs the blue channel of the color. |
-| **A** | Outputs the alpha channel of the color. If a texture does not contain an alpha channel, connecting the 'alpha' channel to something, while not technically illegal, will always result in zero (black). |
+| [REGION:tablesection]属性[/REGION] ||
+| **参数名称（Parameter Name）** | [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#ParameterNameDefinition] |
+| **组（Group）**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
+| **纹理（Texture）** | 指定表达式所取样的纹理。|
+| **取样类型（Sampler Type）** | 此节点所要取样并输出的数据类型。|
+| **Mip 值模式（MipValueMode）** | 对纹理应用一个将会影响外观及性能的噪声值。|
+| [REGION:tablesection]输入[/REGION] ||
+| **UVs** | 接收 UV 纹理坐标，以用于纹理。如果没有任何值输入到 UVs，那么将使用材质所应用于的网格的纹理坐标。|
+| [REGION:tablesection]输出[/REGION] ||
+| **RGB** | 输出颜色的三通道 RGB 矢量值。|
+| **R** | 输出颜色的红色通道。|
+| **G** | 输出颜色的绿色通道。|
+| **B** | 输出颜色的蓝色通道。|
+| **A** | 输出颜色的阿尔法通道。如果纹理未包含阿尔法通道，那么将“阿尔法”通道连接到任何内容（虽然在技术上不合法）的结果将始终为零（黑色）。|
 
 [/EXCERPT:TextureSampleParameterMovie]
 
@@ -263,15 +270,15 @@ The TextureSampleParameterMovie expression is identical to the TextureSample exc
 
 [EXCERPT:VectorParamDefaultDesc]
 [REGION:prop_sublist]
-	* Specifies the float value of the red, or first, channel of the vector the expression outputs.
-	* Specifies the float value of the green, or second, channel of the vector the expression outputs.
-	* Specifies the float value of the blue, or third, channel of the vector the expression outputs.
-	* Specifies the float value of the alpha, or fourth, channel of the vector the expression outputs.
+	* 指定表达式所输出的矢量的红色（第一个）通道的浮点值。
+	* 指定表达式所输出的矢量的绿色（第二个）通道的浮点值。
+	* 指定表达式所输出的矢量的蓝色（第三个）通道的浮点值。
+	* 指定表达式所输出的矢量的阿尔法（第四个）通道的浮点值。
 [/REGION]
 [/EXCERPT:VectorParamDefaultDesc]
 
-[EXCERPT:GroupDefinition]Provides a way to organize parameter names into groups, or categories, within a MaterialInstanceConstant. All parameters within a material that have the same Group property name will be listed underneath that category in the instance.[/EXCERPT:GroupDefinition]
+[EXCERPT:GroupDefinition]提供一种将参数名称组织成 MaterialInstanceConstant（材质实例常量）中的组（即类别）的方法。材质中所有具有相同“组”（Group）属性名称的参数都将在实例中该类别下列出。[/EXCERPT:GroupDefinition]
 
-[EXCERPT:ParameterNameDefinition]Specifies the name used to identify the parameter in instance of the material and through code.[/EXCERPT:ParameterNameDefinition]
+[EXCERPT:ParameterNameDefinition]指定用于在材质实例中以及通过代码来识别参数的名称。[/EXCERPT:ParameterNameDefinition]
 -->
 

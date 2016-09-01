@@ -81,6 +81,10 @@ public abstract class BaseWinPlatform : Platform
 		}
 	}
 
+    public override void ExtractPackage(ProjectParams Params, string SourcePath, string DestinationPath)
+    {
+    }
+
 	void StageBootstrapExecutable(DeploymentContext SC, string ExeName, string TargetFile, string StagedRelativeTargetPath, string StagedArguments)
 	{
 		string InputFile = CombinePaths(SC.LocalRoot, "Engine", "Binaries", SC.PlatformDir, String.Format("BootstrapPackagedGame-{0}-Shipping.exe", SC.PlatformDir));
@@ -128,7 +132,7 @@ public abstract class BaseWinPlatform : Platform
 		}
 	}
 
-	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		const string NoEditorCookPlatform = "WindowsNoEditor";
 		const string ServerCookPlatform = "WindowsServer";
@@ -152,6 +156,11 @@ public abstract class BaseWinPlatform : Platform
 	{
 		return "Windows";
 	}
+
+    public override string GetPlatformPakCommandLine()
+    {
+        return " -patchpaddingalign=2048";
+    }
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
@@ -244,7 +253,7 @@ public abstract class BaseWinPlatform : Platform
 		return ExecutableNames;
 	}
 
-	public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
+    public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
 	{
 		return false; // !String.IsNullOrEmpty(Params.StageCommandline) || !String.IsNullOrEmpty(Params.RunCommandline) || (!Params.IsCodeBasedProject && Params.NoBootstrapExe);
 	}
@@ -261,6 +270,28 @@ public abstract class BaseWinPlatform : Platform
 		CodeSign.SignMultipleFilesIfEXEOrDLL(FilesToSign);
 
 		return true;
+	}
+
+	public void StageAppLocalDependencies(ProjectParams Params, DeploymentContext SC, string PlatformDir)
+	{
+		string BaseAppLocalDependenciesPath = Path.IsPathRooted(Params.AppLocalDirectory) ? CombinePaths(Params.AppLocalDirectory, PlatformDir) : CombinePaths(SC.ProjectRoot, Params.AppLocalDirectory, PlatformDir);
+		if (Directory.Exists(BaseAppLocalDependenciesPath))
+		{
+			string ProjectBinaryPath = new DirectoryReference(SC.ProjectBinariesFolder).MakeRelativeTo(new DirectoryReference(CombinePaths(SC.ProjectRoot, "..")));
+			string EngineBinaryPath = CombinePaths("Engine", "Binaries", PlatformDir);
+
+			Log("Copying AppLocal dependencies from {0} to {1} and {2}", BaseAppLocalDependenciesPath, ProjectBinaryPath, EngineBinaryPath);
+
+			foreach (string DependencyDirectory in Directory.EnumerateDirectories(BaseAppLocalDependenciesPath))
+			{	
+				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, "*", false, null, ProjectBinaryPath);
+				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, "*", false, null, EngineBinaryPath);
+			}
+		}
+		else
+		{
+			throw new AutomationException("Unable to deploy AppLocalDirectory dependencies. No such path: {0}", BaseAppLocalDependenciesPath);
+		}
 	}
 }
 
@@ -282,6 +313,11 @@ public class Win64Platform : BaseWinPlatform
 			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup_x64.exe", false, null, InstallerRelativePath);
 		}
+
+		if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))
+		{
+			StageAppLocalDependencies(Params, SC, "Win64");
+		}
 	}
 }
 
@@ -297,11 +333,16 @@ public class Win32Platform : BaseWinPlatform
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
 		base.GetFilesToDeployOrStage(Params, SC);
-		
-		if(Params.Prereqs)
+
+		if (Params.Prereqs)
 		{
 			string InstallerRelativePath = CombinePaths("Engine", "Extras", "Redist", "en-us");
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, InstallerRelativePath), "UE4PrereqSetup_x86.exe", false, null, InstallerRelativePath);
+		}
+
+		if (!string.IsNullOrWhiteSpace(Params.AppLocalDirectory))
+		{
+			StageAppLocalDependencies(Params, SC, "Win32");
 		}
 	}
 }

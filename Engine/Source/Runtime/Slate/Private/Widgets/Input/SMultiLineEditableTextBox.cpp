@@ -108,6 +108,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.OnTextCommitted( InArgs._OnTextCommitted )
 					.OnCursorMoved( InArgs._OnCursorMoved )
 					.ContextMenuExtender( InArgs._ContextMenuExtender )
+					.CreateSlateTextLayout( InArgs._CreateSlateTextLayout )
 					.Justification(InArgs._Justification)
 					.RevertTextOnEscape(InArgs._RevertTextOnEscape)
 					.SelectAllTextWhenFocused(InArgs._SelectAllTextWhenFocused)
@@ -224,10 +225,10 @@ void SMultiLineEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
 		VScrollBar->SetStyle(&Style->ScrollBarStyle);
 	}
 
-	BorderImageNormal = &InStyle->BackgroundImageNormal;
-	BorderImageHovered = &InStyle->BackgroundImageHovered;
-	BorderImageFocused = &InStyle->BackgroundImageFocused;
-	BorderImageReadOnly = &InStyle->BackgroundImageReadOnly;
+	BorderImageNormal = &Style->BackgroundImageNormal;
+	BorderImageHovered = &Style->BackgroundImageHovered;
+	BorderImageFocused = &Style->BackgroundImageFocused;
+	BorderImageReadOnly = &Style->BackgroundImageReadOnly;
 }
 
 void SMultiLineEditableTextBox::SetText( const TAttribute< FText >& InNewText )

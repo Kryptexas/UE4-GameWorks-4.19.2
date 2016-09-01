@@ -9,6 +9,8 @@
 #include "Vehicles/WheeledVehicleMovementComponent.h"
 #include "Vehicles/TireType.h"
 #include "DisplayDebugHelpers.h"
+#include "PhysicsEngine/ConstraintInstance.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #if WITH_PHYSX
 #include "../PhysicsEngine/PhysXSupport.h"
@@ -608,9 +610,9 @@ void LogVehicleSettings( PxVehicleWheels* Vehicle )
 	}
 }
 
-void UWheeledVehicleMovementComponent::CreatePhysicsState()
+void UWheeledVehicleMovementComponent::OnCreatePhysicsState()
 {
-	Super::CreatePhysicsState();
+	Super::OnCreatePhysicsState();
 
 	VehicleSetupTag = FPhysXVehicleManager::VehicleSetupTag;
 
@@ -646,9 +648,9 @@ void UWheeledVehicleMovementComponent::CreatePhysicsState()
 	}
 }
 
-void UWheeledVehicleMovementComponent::DestroyPhysicsState()
+void UWheeledVehicleMovementComponent::OnDestroyPhysicsState()
 {
-	Super::DestroyPhysicsState();
+	Super::OnDestroyPhysicsState();
 
 	if ( PVehicle )
 	{
@@ -772,7 +774,7 @@ void UWheeledVehicleMovementComponent::UpdateDrag(float DeltaTime)
 		{
 			FVector GlobalForwardVector = UpdatedComponent->GetForwardVector();
 			FVector DragVector = -GlobalForwardVector;
-			float SpeedSquared = ForwardSpeed * ForwardSpeed;
+			float SpeedSquared = ForwardSpeed > 0.f ? ForwardSpeed * ForwardSpeed : -ForwardSpeed * ForwardSpeed;
 			float ChassisDragArea = ChassisHeight * ChassisWidth;
 			float AirDensity = 1.25 / (100 * 100 * 100); //kg/cm^3
 			float DragMag = 0.5f * AirDensity * SpeedSquared * DragCoefficient * ChassisDragArea;
@@ -1415,7 +1417,7 @@ void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 						FBodyInstance* BodyInstance = Mesh->Bodies[BodySetupIdx];
 						BodyInstance->SetResponseToAllChannels(ECR_Ignore);	//turn off collision for wheel automatically
 
-						if (UBodySetup * BodySetup = PhysicsAsset->BodySetup[BodySetupIdx])
+						if (UBodySetup * BodySetup = PhysicsAsset->SkeletalBodySetups[BodySetupIdx])
 						{
 
 							if (BodySetup->PhysicsType == PhysType_Default) 	//if they set it to unfixed we don't fixup because they are explicitely saying Unfixed

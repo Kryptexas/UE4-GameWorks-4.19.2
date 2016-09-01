@@ -69,6 +69,18 @@ void TIntermediate::error(TInfoSink& infoSink, const char* message)
 //
 void TIntermediate::merge(TInfoSink& infoSink, TIntermediate& unit)
 {
+    if (source == EShSourceNone)
+        source = unit.source;
+
+    if (source != unit.source)
+        error(infoSink, "can't link compilation units from different source languages");
+
+    if (source == EShSourceHlsl && unit.entryPoint.size() > 0) {
+        if (entryPoint.size() > 0)
+            error(infoSink, "can't handle multiple entry points per stage");
+        else
+            entryPoint = unit.entryPoint;
+    }
     numMains += unit.numMains;
     numErrors += unit.numErrors;
     numPushConstants += unit.numPushConstants;
@@ -297,6 +309,12 @@ void TIntermediate::mergeErrorCheck(TInfoSink& infoSink, const TIntermSymbol& sy
         writeTypeComparison = true;
     }
 
+    // Precise...
+    if (! crossStage && symbol.getQualifier().noContraction != unitSymbol.getQualifier().noContraction) {
+        error(infoSink, "Presence of precise qualifier must match:");
+        writeTypeComparison = true;
+    }
+
     // Auxiliary and interpolation...
     if (symbol.getQualifier().centroid  != unitSymbol.getQualifier().centroid ||
         symbol.getQualifier().smooth    != unitSymbol.getQualifier().smooth ||
@@ -355,8 +373,8 @@ void TIntermediate::mergeErrorCheck(TInfoSink& infoSink, const TIntermSymbol& sy
 // Also, lock in defaults of things not set, including array sizes.
 //
 void TIntermediate::finalCheck(TInfoSink& infoSink)
-{   
-    if (numMains < 1)
+{
+    if (source == EShSourceGlsl && numMains < 1)
         error(infoSink, "Missing entry point: Each stage requires one \"void main()\" entry point");
 
     if (numPushConstants > 1)
@@ -868,6 +886,8 @@ const int baseAlignmentVec4Std140 = 16;
 int TIntermediate::getBaseAlignmentScalar(const TType& type, int& size)
 {
     switch (type.getBasicType()) {
+    case EbtInt64:
+    case EbtUint64:
     case EbtDouble:  size = 8; return 8;
     default:         size = 4; return 4;
     }

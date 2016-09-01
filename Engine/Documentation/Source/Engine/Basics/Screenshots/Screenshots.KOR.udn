@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2694133
+﻿INTSourceChangelist:2760896
 Availability: Public
 Title:스크린샷 찍기
 Crumbs:%ROOT%, Engine
@@ -137,7 +137,6 @@ HRSST 툴 사용은 다음 몇 단계로 할 수 있는 것입니다.
 
 * **DiffuseColor**
 * **LightingModel**
-* **DecalMask**
 * **MaterialAO**
 * **Opacity**
 * **Roughness**
@@ -171,7 +170,6 @@ HRSST 에 GBuffer 를 이미지로 익스포트하는 기능을 켜려면, 먼�
 
 * **DiffuseColor**
 * **LightingModel**
-* **DecalMask**
 * **MaterialAO**
 * **Opacity**
 * **Roughness**

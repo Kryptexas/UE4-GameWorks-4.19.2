@@ -40,7 +40,7 @@ public:
 
 		if (IsInstancedStereoParameter.IsBound())
 		{
-			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, View.IsInstancedStereoPass());
+			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, false);
 		}
 
 		if (InstancedEyeIndexParameter.IsBound())

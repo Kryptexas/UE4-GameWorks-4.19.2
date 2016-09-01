@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2481343
+﻿INTSourceChangelist:2621786
 Title:Slate インゲーム UI のクイックスタート
 Crumbs:
 Description:
 Availability:Docs
-Version:4.4
+Version:4.9
 
 ## プロジェクト設定
 
@@ -85,7 +85,7 @@ Version:4.4
 
 [UE4 でLocalization Ready Game を作成する：Part 1 テキスト)(https://www.unrealengine.com/blog/creating-a-localization-ready-game-in-ue4-part-1-text)
 
-次に、「MainMenuGameMode」と呼ばれるメインメニューで再生されるプレイヤーのステートを表すための GameMode を追加します。ゲーム モードで使用する PlayerController の種類を定義して、 BeginPlay イベントを使ってメインメニューを開き、リファレンスをシェアードポインタのメインメニューに保持します。
+次に、「MainMenuGameMode」と呼ばれるメインメニューで再生されるプレイヤーのステートを表すための GameMode を追加します。ゲーム モードで使用する PlayerController の種類を定義して、BeginPlay イベントを使ってメインメニューを開き、リファレンスをシェアードポインタのメインメニューに保持します。
 
 	#pragma once
 
@@ -105,8 +105,8 @@ Version:4.4
 		virtual void BeginPlay() override;
 
 		TSharedPtr<MainMenu> MainMenuPtr;
-	};
 
+	};
 
 GameMode は Uclass であり、ヘッダーの UCLASS() macro はクラス定義の前に、 そしてGENERATED_UCLASS_BODY() はクラス定義の最初に、標準の #include が必要なことにご注意ください。
 
@@ -133,7 +133,7 @@ GameMode は Uclass であり、ヘッダーの UCLASS() macro はクラス定�
 
 ![](image005.png)
 
-あるいは、 [Project Settings] > [Maps & Modes] の [Default GameMode] でも指定できます。
+あるいは、[Project Settings (プロジェクト設定)] > [Maps & Modes] の [Default GameMode] でも指定できます。
 
 [REGION:fullwidth]
 ![](image007.png)
@@ -153,7 +153,7 @@ GameMode は Uclass であり、ヘッダーの UCLASS() macro はクラス定�
 
 ![](image011.png)
 
-これらの 3 つのボタンを広い領域に入れます。ゲームを開始する [Play] ボタン、アプリケーションを終了する [Exit] ボタン、別メニューへ移動する [Option] です。そのためには、 ConstructMenu 関数をこのように変更します。
+これらの 3 つのボタンを広い領域に入れます。ゲームを開始する [Play (再生)] ボタン、アプリケーションを終了する [Exit (終了)] ボタン、別メニューへ移動する [Option] です。そのためには、 ConstructMenu 関数をこのように変更します。
 
 	#include "StyleDefaults.h"
 
@@ -236,13 +236,13 @@ GameMode は Uclass であり、ヘッダーの UCLASS() macro はクラス定�
 
 ![](image013.png)
 
-注目している部分です。上のコードの SButton には、 OnClicked プロパティが設定されていることが分かります。これは、ボタンがクリックされた時に、選択した関数を呼び出すデリゲートです。[ゲーム開始] ボタンの OnClicked 宣言は、このようになります。
+注目している部分です。上のコードの SButton には、 OnClicked プロパティが設定されていることが分かります。これは、ボタンがクリックされた時に、選択した関数を呼び出すデリゲートです。[Start Game (ゲーム開始)] ボタンの OnClicked 宣言は、このようになります。
 
 	.OnClicked(FOnClicked::CreateSP(this, &MainMenu::StartGame))
 
 FOnClicked は、ウィジェットがユーザーにクリックされたことを通知したい時に呼び出されるデリゲートで、ボタンおよびボタンのようなウィジェットでの使用向けです。デリゲートを接続するためには、関数が呼び出されるオブジェクト、呼び出す関数、オプションで関数にパスされるパラメータを指定します。デリゲートの指定には、様々な関数を使用することができます。ここでは、シェアードポインタベースのメンバ関数デリゲートである CreateSP を使いました (MainMenu が TSharedFromThis を継承するのはこのためで、安全なシェアードポインタのオプションを使うことができます)。CreateRaw で raw C ++ ポインタを使用したり、 CreateStatic で静的関数を使用することもできます (これらの場合、関数が呼び出されるオブジェクトを指定する必要はありません)。
 
-従って、 [Start Game] ボタンと [Quit Game] ボタンのデリゲートはもう指定されているので、それらが呼び出す関数を定義する必要があります。これらはとても単純な関数です。 
+従って、[Start Game (ゲーム開始)] ボタンと [Quit Game (ゲーム終了)] ボタンのデリゲートはもう指定されているので、それらが呼び出す関数を定義する必要があります。これらはとても単純な関数です。 
 
 	FReply MainMenu::StartGame()
 	{
@@ -299,12 +299,12 @@ MainMenuGameMode は最初の PlayerController を MainMenu などにパスし�
 	{
 		if (GEngine && GEngine->GameViewport)
 		{
-			// Add our menu widget content to the game viewport so it is displayed
+			// Add our menu widget content to the game viewport so it is displayed (メニュー ウィジェット コンテンツが表示されるように、ゲーム ビューポートに追加します)
 			UGameViewportClient* const GVC = GEngine->GameViewport;
 			GVC->AddViewportWidgetContent(MenuRoot.ToSharedRef());
 			if (MyPlayerController.IsValid())
 			{
-				// Enable the mouse cursor and disable other input (moving the mouse will not rotate the camera, etc).
+				// Enable the mouse cursor and disable other input (moving the mouse will not rotate the camera, etc) (マウス カーソルを有効に、他の入力を無効にします (マウスが移動してもカメラは回転しない、など)
 				MyPlayerController->SetCinematicMode(true, false, false, true, true);
 				MyPlayerController->bShowMouseCursor = true;
 			}
@@ -317,13 +317,13 @@ MainMenuGameMode は最初の PlayerController を MainMenu などにパスし�
 	{
 		if (GEngine && GEngine->GameViewport)
 		{
-			// Remove our menu widget content from the game viewport so it is no longer displayed
+			// Remove our menu widget content from the game viewport so it is no longer displayed (ゲーム ウィジェット コンテンツが表示されないようにゲーム ビューポートから取り除きます)
 			UGameViewportClient* const GVC = GEngine->GameViewport;
 			GVC->RemoveViewportWidgetContent(MenuRoot.ToSharedRef());
 			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
 			if (MyPlayerController.IsValid())
 			{
-				// Re-enable other input and remove the mouse cursor
+				// Re-enable other input and remove the mouse cursor (他の入力を再度有効にしてマウス カーソルを取り除きます)
 				MyPlayerController->SetCinematicMode(false, false, false, true, true);
 				MyPlayerController->bShowMouseCursor = false;
 			}
@@ -336,7 +336,7 @@ MainMenuGameMode は最初の PlayerController を MainMenu などにパスし�
 
 例えば、ツールバー ボタンのスタイルは以下のように定義できます。
 
-	// Normal button
+	// Normal button (普通のボタン)
 	FButtonStyle Button = FButtonStyle()
 		.SetNormal(BOX_BRUSH("Button", FVector2D(32, 32), 8.0f / 32.0f))
 		.SetHovered(BOX_BRUSH("Button_Hovered", FVector2D(32, 32), 8.0f / 32.0f))
@@ -387,7 +387,7 @@ MainMenuGameMode は最初の PlayerController を MainMenu などにパスし�
 
 セカンド メニューの追加
 
-[Start Game] ボタンと [Quit Game] ゲームボタンの動作方法を説明しましたが、 [Options] ボタンはまだ動いていません。このボタンをクリックすると、プレイヤーは別メニューに移動することになります。ServerTravel を使って別のメニューを開く別のレベルへ移動し、 [戻る] ボタンがクリックされたら MainMenu レベルへ戻ることももちろん可能ですが、別の方法を使いました。
+[Start Game (ゲーム開始)] ボタンと [Quit Game (ゲーム終了)] ボタンの動作方法を説明しましたが、[Options] ボタンはまだ動いていません。このボタンをクリックすると、プレイヤーは別メニューに移動することになります。ServerTravel を使って別のメニューを開く別のレベルへ移動し、[Back (戻る)] ボタンがクリックされたら MainMenu レベルへ戻ることももちろん可能ですが、別の方法を使いました。
 
 メインメニュー上にオプション メニューのをポップアップ表示させるために、 SOverlay のメインメニューをラップすることで、コンテンツの異なるスロットを定義することができます。スロットはオーバーラップできます。このオーバーレイが、メニューの中で新規のルート ウィジェットとなります。 
 
@@ -398,28 +398,28 @@ Construct 関数において、両方のメニューを構成します。
 		// ...
 
 		HeaderFontInfo = FMySlateStyle::Get().GetFontStyle("RichText.Header");
-	// Set up the main menu widget contents
 
+		// Set up the main menu widget contents (メイン メニュー ウィジェット コンテンツを設定します)
 		MenuRoot =
 			SNew(SOverlay)	// Overlay used to allow the Options menu to be "overlayed" or displayed on top of this menu
 			+SOverlay::Slot()	// New Slot for the overlay.This contains just the Main Menu content
 			[
 				// ...
-				// Main menu widgets
+				// Main menu widgets (メイン メニュー ウィジェット)
 				/ ...
 			]
 		;
 
 		// ...
 
-		// Build options menu widgets
+		// Build options menu widgets (ビルド オプション メニュー ウィジェット)
 		OptionsMenuRoot = SNew(SBorder)
 			.Cursor(EMouseCursor::Default)
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
 				// ...
-				// Main menu widgets
+				// Main menu widgets (メイン メニュー ウィジェット)
 				/ ...
 			]
 			;
@@ -453,7 +453,7 @@ Construct 関数において、両方のメニューを構成します。
 
 		if (MenuRootOverlay != NULL)
 		{
-			// Remove option menu overlay slot
+			// Remove option menu overlay slot (オプション メニュー オーバーレイ スロットを取り除きます)
 			MenuRootOverlay->RemoveSlot(OptionsMenuSlot->Widget);
 		}
 
@@ -509,7 +509,7 @@ Style Combo Box 選択を変更するとメニューがリビルドされるの�
 	StyleList.Add(MakeShareable(new FString("Style1")));
 	StyleList.Add(MakeShareable(new FString("Style2")));
 
-	// Since Construct Menus is called when the menu style changes, make sure the selection in the Menu Style combo box is up to date with the new selection
+	// Since Construct Menus is called when the menu style changes, make sure the selection in the Menu Style combo box is up to date with the new selection (メニュー スタイルが変更されると Construct Menus が呼び出されるので、Menu Style コンボ ボックスの選択項目が新規の選択項目で更新されていることを確認してください)
 	FString CurrentStyleName = FMySlateStyle::Get().GetStyleSetName().ToString();
 	TSharedPtr<FString> CurrentlySelectedStyle;
 	for (TSharedPtr<FString> StyleString :StyleList)
@@ -542,14 +542,14 @@ Style Combo Box 選択を変更するとメニューがリビルドされるの�
  
 ## ウィジェット リフレクタの使用
 
-スレート メニューの作成時に特に便利なツールが、ウィジェット リフレクタです。 [Developer Tools] メニューから利用できます。
+スレート メニューの作成時に特に便利なツールが、ウィジェット リフレクタです。[Developer Tools] メニューから利用できます。
 
 [REGION:fullwidth]
 ![](image027.png)
 ![](image029.png)
 [/REGION]
  
-存在するスレート ウィジェット、存在している階層、そして可視性や作成したコードファイルやライン位置まで表示します。このような情報はメニューのデバッグ時、あるいはどのように作成されたか確認するために他のメニューを調べる際に、非常に便利です。また、[Pick Widget] ボタンで、ウィジェット階層内でカーソルを当てたウィジェットをすべて見つけることができるようなります。
+存在するスレート ウィジェット、存在している階層、そして可視性や作成したコードファイルやライン位置まで表示します。このような情報はメニューのデバッグ時、あるいはどのように作成されたか確認するために他のメニューを調べる際に、非常に便利です。また、[Pick Widget (ウィジェットを選択)] ボタンで、ウィジェット階層内でカーソルを当てたウィジェットをすべて見つけることができるようなります。
 
 [REGION:fullwidth]
 ![](image031.png)

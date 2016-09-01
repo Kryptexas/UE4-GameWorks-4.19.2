@@ -39,6 +39,7 @@ public class libcurl : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.Win32 ||
 				 Target.Platform == UnrealTargetPlatform.Win64 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
+            // @todo: If this pathing is changed, it must be updated to match in UEBuildWindows.cs so Windows XP can override.
 			PublicIncludePaths.Add(LibCurlPath + "include/Windows");
 
 			string LibCurlLibPath = LibCurlPath + "lib/";

@@ -7,6 +7,7 @@
 #include "NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
 #include "HierarchicalLODUtilities.h"
@@ -49,39 +50,42 @@ void FSplineMeshVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdLi
 		check(OverrideColorVertexBuffer);
 		static_cast<const FLocalVertexFactory*>(VertexFactory)->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
 	}
-	if (Shader->GetVertexShader())
+
+	FVertexShaderRHIRef VertexShader = Shader->GetVertexShader();
+
+	if (VertexShader)
 	{
 		checkSlow(BatchElement.bIsSplineProxy);
 		FSplineMeshSceneProxy* SplineProxy = BatchElement.SplineMeshSceneProxy;
 		FSplineMeshParams& SplineParams = SplineProxy->SplineParams;
 
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartPosParam, SplineParams.StartPos);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartTangentParam, SplineParams.StartTangent);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartRollParam, SplineParams.StartRoll);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartScaleParam, SplineParams.StartScale);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartOffsetParam, SplineParams.StartOffset);
+		SetShaderValue(RHICmdList, VertexShader, SplineStartPosParam, SplineParams.StartPos);
+		SetShaderValue(RHICmdList, VertexShader, SplineStartTangentParam, SplineParams.StartTangent);
+		SetShaderValue(RHICmdList, VertexShader, SplineStartRollParam, SplineParams.StartRoll);
+		SetShaderValue(RHICmdList, VertexShader, SplineStartScaleParam, SplineParams.StartScale);
+		SetShaderValue(RHICmdList, VertexShader, SplineStartOffsetParam, SplineParams.StartOffset);
 
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndPosParam, SplineParams.EndPos);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndTangentParam, SplineParams.EndTangent);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndRollParam, SplineParams.EndRoll);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndScaleParam, SplineParams.EndScale);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndOffsetParam, SplineParams.EndOffset);
+		SetShaderValue(RHICmdList, VertexShader, SplineEndPosParam, SplineParams.EndPos);
+		SetShaderValue(RHICmdList, VertexShader, SplineEndTangentParam, SplineParams.EndTangent);
+		SetShaderValue(RHICmdList, VertexShader, SplineEndRollParam, SplineParams.EndRoll);
+		SetShaderValue(RHICmdList, VertexShader, SplineEndScaleParam, SplineParams.EndScale);
+		SetShaderValue(RHICmdList, VertexShader, SplineEndOffsetParam, SplineParams.EndOffset);
 
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineUpDirParam, SplineProxy->SplineUpDir);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SmoothInterpRollScaleParam, SplineProxy->bSmoothInterpRollScale);
+		SetShaderValue(RHICmdList, VertexShader, SplineUpDirParam, SplineProxy->SplineUpDir);
+		SetShaderValue(RHICmdList, VertexShader, SmoothInterpRollScaleParam, SplineProxy->bSmoothInterpRollScale);
 
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshMinZParam, SplineProxy->SplineMeshMinZ);
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshScaleZParam, SplineProxy->SplineMeshScaleZ);
+		SetShaderValue(RHICmdList, VertexShader, SplineMeshMinZParam, SplineProxy->SplineMeshMinZ);
+		SetShaderValue(RHICmdList, VertexShader, SplineMeshScaleZParam, SplineProxy->SplineMeshScaleZ);
 
 		FVector DirMask(0, 0, 0);
 		DirMask[SplineProxy->ForwardAxis] = 1;
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshDirParam, DirMask);
+		SetShaderValue(RHICmdList, VertexShader, SplineMeshDirParam, DirMask);
 		DirMask = FVector::ZeroVector;
 		DirMask[(SplineProxy->ForwardAxis + 1) % 3] = 1;
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshXParam, DirMask);
+		SetShaderValue(RHICmdList, VertexShader, SplineMeshXParam, DirMask);
 		DirMask = FVector::ZeroVector;
 		DirMask[(SplineProxy->ForwardAxis + 2) % 3] = 1;
-		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshYParam, DirMask);
+		SetShaderValue(RHICmdList, VertexShader, SplineMeshYParam, DirMask);
 	}
 }
 
@@ -507,8 +511,7 @@ void USplineMeshComponent::UpdateRenderStateAndCollision()
 	MarkRenderStateDirty();
 
 #if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
-	DestroyBodySetup();
-	RecreateCollision();
+	CachedMeshBodySetupGuid.Invalidate();
 	RecreatePhysicsState();
 #endif // WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 
@@ -859,32 +862,53 @@ bool USplineMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) cons
 
 void USplineMeshComponent::GetMeshId(FString& OutMeshId)
 {
+	// First get the base mesh id from the static mesh
+	if (StaticMesh)
+	{
+		StaticMesh->GetMeshId(OutMeshId);
+	}
+
 	// new method: Same guid as the base mesh but with a unique DDC-id based on the spline params.
 	// This fixes the bug where running a blueprint construction script regenerates the guid and uses
 	// a new DDC slot even if the mesh hasn't changed
 	// If BodySetup is null that means we're *currently* duplicating one, and haven't transformed its data
 	// to fit the spline yet, so just use the data from the base mesh by using a blank MeshId
 	// It would be better if we could stop it building data in that case at all...
+
 	if (BodySetup != nullptr && BodySetup->BodySetupGuid == CachedMeshBodySetupGuid)
 	{
-		OutMeshId += FString::Printf(TEXT("(%s,%s,%s,%f,%s)_(%s,%s,%s,%f,%s)_%s_%d_%c"),
-			*SplineParams.StartPos.ToString(),
-			*SplineParams.StartTangent.ToString(),
-			*SplineParams.StartScale.ToString(),
-			SplineParams.StartRoll,
-			SplineParams.StartOffset != FVector2D::ZeroVector ? *SplineParams.StartOffset.ToString() : TEXT(""),
-			*SplineParams.EndPos.ToString(),
-			*SplineParams.EndTangent.ToString(),
-			*SplineParams.EndScale.ToString(),
-			SplineParams.EndRoll,
-			SplineParams.EndOffset != FVector2D::ZeroVector ? *SplineParams.EndOffset.ToString() : TEXT(""),
-			SplineUpDir != FVector::UpVector ? *SplineUpDir.ToString() : TEXT(""),
-			(int32)bSmoothInterpRollScale,
-			TEXT("XYZ")[(int32)ForwardAxis.GetValue()]);
+		TArray<uint8> TempBytes;
+		TempBytes.Reserve(256);
+
+		FMemoryWriter Ar(TempBytes);
+		Ar << SplineParams.StartPos;
+		Ar << SplineParams.StartTangent;
+		Ar << SplineParams.StartScale;
+		Ar << SplineParams.StartRoll;
+		Ar << SplineParams.StartOffset;
+		Ar << SplineParams.EndPos;
+		Ar << SplineParams.EndTangent;
+		Ar << SplineParams.EndScale;
+		Ar << SplineParams.EndRoll;
+		Ar << SplineParams.EndOffset;
+		Ar << SplineUpDir;
+		bool bSmoothInterp = bSmoothInterpRollScale;
+		Ar << bSmoothInterp; // can't write a bitfield member into an archive
+		Ar << ForwardAxis;
+		Ar << SplineBoundaryMin;
+		Ar << SplineBoundaryMax;
+
+		// Now convert the raw bytes to a string.
+		const uint8* SettingsAsBytes = TempBytes.GetData();
+		OutMeshId.Reserve(OutMeshId.Len() + TempBytes.Num() + 1);
+		for (int32 ByteIndex = 0; ByteIndex < TempBytes.Num(); ++ByteIndex)
+		{
+			ByteToHex(SettingsAsBytes[ByteIndex], OutMeshId);
+		}
 	}
 }
 
-void USplineMeshComponent::CreatePhysicsState()
+void USplineMeshComponent::OnCreatePhysicsState()
 {
 #if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	// With editor code we can recreate the collision if the mesh changes
@@ -901,7 +925,7 @@ void USplineMeshComponent::CreatePhysicsState()
 	}
 #endif
 
-	return Super::CreatePhysicsState();
+	return Super::OnCreatePhysicsState();
 }
 
 UBodySetup* USplineMeshComponent::GetBodySetup()
@@ -1014,8 +1038,6 @@ void USplineMeshComponent::RecreateCollision()
 				SphereElem.Center *= Mask;
 
 				SphereElem.Radius *= SliceTransform.GetMaximumAxisScale();
-
-				SliceTransform.RemoveScaling();
 				SphereElem.Center = SliceTransform.TransformPosition(SphereElem.Center);
 			}
 
@@ -1030,7 +1052,6 @@ void USplineMeshComponent::RecreateCollision()
 				SphylElem.Length = (TM * SliceTransform).TransformVector(FVector(0, 0, SphylElem.Length)).Size();
 				SphylElem.Radius *= SliceTransform.GetMaximumAxisScale();
 
-				SliceTransform.RemoveScaling();
 				SphylElem.SetTransform(TM * SliceTransform);
 			}
 
@@ -1058,11 +1079,17 @@ void USplineMeshComponent::RecreateCollision()
 			// transform the points of the convex hulls into spline space
 			for (FKConvexElem& ConvexElem : BodySetup->AggGeom.ConvexElems)
 			{
+				FTransform TM = ConvexElem.GetTransform();
 				for (FVector& Point : ConvexElem.VertexData)
 				{
-					Point = CalcSliceTransform(GetAxisValue(Point, ForwardAxis)).TransformPosition(Point * Mask);
+					// pretransform the point by its local transform so we are working in untransformed local space
+					FVector TransformedPoint = TM.TransformPosition(Point);
+					// apply the transform to spline space
+					Point = CalcSliceTransform(GetAxisValue(TransformedPoint, ForwardAxis)).TransformPosition(TransformedPoint * Mask);
 				}
 
+				// Set the local transform as an identity as points have already been transformed
+				ConvexElem.SetTransform(FTransform::Identity);
 				ConvexElem.UpdateElemBox();
 			}
 		}

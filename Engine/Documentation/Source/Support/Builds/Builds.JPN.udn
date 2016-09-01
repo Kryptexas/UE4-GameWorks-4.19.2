@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2604022
+﻿INTSourceChangelist:2760663
 Availability:Public
 Title:リリースノート
 Crumbs:%ROOT%
 Description:アンリアル エンジン ビルドのリリースノート
+parent:%ROOT%
+order:9
 
 [VAR:Params]
 [PARAM:image]
@@ -71,6 +73,11 @@ engine
 [/OBJECT]
 [/VAR]
 
+[PUBLISH:Rocket]
+[DIR(end:"1" output:"listbutton" order:"descend" parent:"Support/Builds" org:"hierarchy")]
+[/PUBLISH:Rocket]
+
+[PUBLISH:Licensee]
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 	[/PARAM]
@@ -80,6 +87,8 @@ engine
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2015/4_10)
+	* [](Support/Builds/ReleaseNotes/2015/4_9)
 	* [](Support/Builds/ReleaseNotes/2015/4_8)
 	* [](Support/Builds/ReleaseNotes/2015/4_7)
 	[/PARAM]
@@ -100,14 +109,11 @@ engine
 	* [](Support/Builds/ReleaseNotes/2014/4_3)
 	* [](Support/Builds/ReleaseNotes/2014/4_2)
 	* [](Support/Builds/ReleaseNotes/2014/4_1)
-	[PUBLISH:Licensee]
 	* [](Support/Builds/ReleaseNotes/2014/March)
 	* [](Support/Builds/ReleaseNotes/2014/January)
-	[/PUBLISH:Licensee]
 	[/PARAM]
 [/OBJECT]
 
-[PUBLISH:Licensee]
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 	[/PARAM]

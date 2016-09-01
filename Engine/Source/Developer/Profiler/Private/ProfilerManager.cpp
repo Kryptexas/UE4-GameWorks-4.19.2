@@ -111,6 +111,7 @@ void FProfilerManager::PostConstructor()
 	
 	ProfilerClient->OnLoadStarted().AddSP(this, &FProfilerManager::ProfilerClient_OnLoadStarted);
 	ProfilerClient->OnLoadCompleted().AddSP(this, &FProfilerManager::ProfilerClient_OnLoadCompleted);
+	ProfilerClient->OnLoadCancelled().AddSP(this, &FProfilerManager::ProfilerClient_OnLoadCancelled);
 
 	ProfilerClient->OnMetaDataUpdated().AddSP(this, &FProfilerManager::ProfilerClient_OnMetaDataUpdated);
 
@@ -128,6 +129,7 @@ void FProfilerManager::PostConstructor()
 void FProfilerManager::BindCommands()
 {
 	ProfilerActionManager.Map_ProfilerManager_Load();
+	ProfilerActionManager.Map_ProfilerManager_LoadMultiple();
 	ProfilerActionManager.Map_ToggleDataPreview_Global();
 	ProfilerActionManager.Map_ProfilerManager_ToggleLivePreview_Global();
 	ProfilerActionManager.Map_ToggleDataCapture_Global();
@@ -389,6 +391,18 @@ void FProfilerManager::ProfilerClient_OnLoadCompleted( const FGuid& InstanceID )
 	}
 }
 
+void FProfilerManager::ProfilerClient_OnLoadCancelled(const FGuid& InstanceID)
+{
+	// Inform that the load was cancelled and close the progress notification.
+	if (ProfilerSession.IsValid())
+	{
+		const FString Description = ProfilerSession->GetName();
+		UE_LOG(LogStats, Warning, TEXT("OnLoadCancelled: %s"), *Description);
+
+		GetProfilerWindow()->ManageLoadingProgressNotificationState(Description, EProfilerNotificationTypes::LoadingOfflineCapture, ELoadingProgressStates::Cancelled, 0.0f);
+	}
+}
+
 
 void FProfilerManager::ProfilerClient_OnProfilerFileTransfer( const FString& Filename, int64 FileProgress, int64 FileSize )
 {
@@ -553,6 +567,7 @@ void FProfilerManager::ClearStatsAndInstances()
 	TrackedStats.Empty();
 
 	ProfilerClient->Untrack( ActiveInstanceID );
+	ProfilerClient->CancelLoading( ActiveInstanceID );
 	ActiveInstanceID.Invalidate();
 }
 

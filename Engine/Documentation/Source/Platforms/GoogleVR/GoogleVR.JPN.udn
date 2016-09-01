@@ -1,0 +1,27 @@
+﻿INTSourceChangelist:2997869
+Title:VR 開発の概念	
+Crumbs:%ROOT%, Platforms
+Description:
+Availability:Public
+Navigation:platform
+Platform:GoogleVR
+Version:4.12
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:Google VR
+prereq:Platforms/Android/GettingStarted/
+social-image:googlevr_social.png
+
+## はじめよう
+
+PC および Android ベースのスマートフォンを使って UE4 と Google VR を使う方法を説明します。
+
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/GoogleVR")]
+
+## Google VR Daydream
+
+Daydream は、レンダリングの最適化とモーション コントロールの使用に特別に対応した Google VR の一部です。
+
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/GoogleVR")]
+

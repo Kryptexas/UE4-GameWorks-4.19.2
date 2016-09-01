@@ -1,36 +1,38 @@
-﻿INTSourceChangelist:2068551
+﻿INTSourceChangelist:2697139
 Availability:Licensee
 Title:Simplygon のコンパイル
 Crumbs:%ROOT%, Engine, Engine/UI/Tools/Simplygon
-Description:アンリアル エンジン 4 で Simplygon のインテグレーション用のコンパイルと使用条件に関するインストラクション
+Description:アンリアル エンジン 4 に Simplygon を統合するためのコンパイルと使用条件に関するインストラクション
+Version:4.9
+SkillLevel:Advanced
 
 [TOC(start:2)]
 
 
-## 概要
 
-Simplygon はを使用するためにライセンシーの皆様は、まず Donya Labs ((http://simplygon.com/)) からライセンスを取得する必要があります。ライセンス取得および SDK の詳細については、 Donya Labs へお問い合わせください。
+
+Simplygon はエディタに同梱されますが、使用するためにライセンシーの皆様は、まず Donya Labs ((http://simplygon.com/)) からライセンスを取得する必要があります。ライセンス取得および SDK の詳細については、 Donya Labs へお問い合わせください。
 
 
 
 ## UE4 を Simplygon SDK でコンパイルする
 
 
-1. Simplygon SDK をインストールします。デフォルトのインストールのパスは  C:\SimplygonSDKx64\\ です。
+1. Simplygon SDK をインストールします。デフォルトのインストールのパスは C:\SimplygonSDKx64\\ です。
 1. ディレクトリ「UE4\Engine\Source\ThirdParty\NoRedist\Simplygon\Simplygon-X.X.XXXX\Inc\\」を作成します。 X.X.XXXX の部分をインストールしたバージョンにしてください。
 1. ファイル「SimplygonSDK.h」をディレクトリに置きます。このヘッダファイルは Simplygon インストール ディレクトリに置かれています。
 1. Simplygon.Build.cs を編集し、文字列 SimplygonPath を上記のパスに一致するように修正します。
-1. エディタを再コンパイルして、インテグレーションへのアクセスを取得します。
+1. エディタを再コンパイルして、統合へのアクセスを取得します。
 
 
 
 
-## インテグレーションを配布する
+## 統合したものを配布する
 
-オプションで DLL とライセンスファイルを Perforce にチェックインすると、デベロッパーのマシンごとに SDK をインストールする必要がなくなります。
+オプションで DLL とライセンス ファイルを Perforce にチェックインすると、デベロッパーのマシンごとに SDK をインストールする必要がなくなります。
 
 
-1. UE4 を Simplygon SDK でコンパイルための上記のインストラクションを完了させます。
+1. UE4 を Simplygon SDK でコンパイルするための上記のインストラクションを完了させます。
 1. ディレクトリ「UE4\Engine\Binaries\NoRedist\Simplygon\\」を作成します。
 1. 「SimplygonSDKRuntimeReleasex64.dll」ファイルを Simplygon インストール ディレクトリから UE4\Engine\Binaries\NoRedist\Simplygon\\ へコピーします。
 1. Simplygon の「License.dat」ファイルを探します。Windows7 の場合、デフォルトで C:\ProgramData\DonyaLabs\SimplygonSDK\\ に置かれています。

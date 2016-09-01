@@ -508,9 +508,9 @@ void LogResourceBarriers(uint32 NumBarriers, D3D12_RESOURCE_BARRIER* pBarriers, 
 			if (!bShouldLog)
 			{
 				// See if we should log this transition.
-				for (uint32 i = 0; (i < 2) && !bShouldLog; i++)
+				for (uint32 StateIndex = 0; (StateIndex < 2) && !bShouldLog; StateIndex++)
 				{
-					const D3D12_RESOURCE_STATES& State = (i == 0) ? currentBarrier.Transition.StateBefore : currentBarrier.Transition.StateAfter;
+					const D3D12_RESOURCE_STATES& State = (StateIndex == 0) ? currentBarrier.Transition.StateBefore : currentBarrier.Transition.StateAfter;
 					bShouldLog = (State & ShouldLogMask) > 0;
 				}
 			}

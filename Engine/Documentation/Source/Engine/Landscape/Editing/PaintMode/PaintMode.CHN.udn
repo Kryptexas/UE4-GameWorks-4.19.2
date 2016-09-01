@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Paint Mode
+﻿INTSourceChangelist:2746140
+Availability:Public
+Title:绘制模式
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
-Description:Guide to the Landscape tool's Paint mode.
+Description:地形工具的绘制模式指南。
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -26,76 +27,81 @@ Description:Guide to the Landscape tool's Paint mode.
 
 [TOC(start:2 end:3)]
 
-The tools in **Paint** mode enable you to modify the appearance of your Landscape by selectively applying Material layers to parts of your Landscape.
+**Paint** 模式中的工具选择性地将材质图层应用到地形的各个部分，以便对地形外观进行修改。
 
-For more information about Landscape Materials, see [](Engine/Landscape\Materials).
+如需了解地形材质的更多内容，请查阅 [Landscape Materials](Engine/Landscape\Materials)。
 
 
-## Painting Tools
+## 绘制工具
 
-You can use the Painting Tools to modify the appearance of your Landscape by selectively applying layers of specially designed Landscape Materials to sections of your Landscape.
+可使用绘制工具选择性地将特殊设计的地形材质图层应用到地形的各个部分，以便对地形外观进行修改。
 
-| **Common Controls** | **Operation** |
+| **常用功能键** | **操作** |
 | --- | --- |
-| **Left Mouse Button** | Perform a stroke that applies the selected tool's effects to the selected layer. |
-| **Ctrl+Z** | Undo last stroke. |
-| **Ctrl+Y** | Redo last undone stroke. |
+| **鼠标左键** | 利用笔划将所选工具的效果应用至所选图层。|
+| **Ctrl+Z** | 撤销上一笔划。|
+| **Ctrl+Y** | 重新执行上步未完成的笔划。|
 
-The Painting Tools have some common options:
+绘制工具拥有一些常用选项：
 
-| **Option** | **Description** |
+| **选项** | **描述** |
 | --- | --- |
-| **Tool Strength** | Controls how much effect each brush stroke has. |
-| **Use Region as Mask** | When checked, the region selection acts as a mask with the active area being comprised of the selected region. |
-| **Negative Mask** | When checked, and when **Use Region as Mask** is also checked, the region selection acts as a mask, but the active area is comprised of the unselected region. |
+| **Tool Strength** | 设定每次笔刷笔划效果的量。|
+| **Use Region as Mask** | 勾选后，区域选择将成为活动区域（由所选区域构成）的遮罩。|
+| **Negative Mask** | 此项与 **Use Region as Mask** 同时勾选后，区域选择将成为一个遮罩，但活动区域由未选中的区域构成。|
 
 
-For more information about Landscape Material layers, see [Layers](#Layers), later on this page.
+如需了解地形材质图层的更多内容，请查阅本页后部的 [图层](#Layers)。
 
-
-### Paint
+(#Paint)
+### 绘制
 
 ![Paint Tool](Landscape_Paint.png)
 
-The Paint tool increases or decreases the weight of the Material layer being applied to the Landscape, in the shape of the currently selected brush and falloff.
+Paint 工具（以当前选中不刷和衰减的形状）增加或减少应用至地形的材质图层权重。
 
-| **Additional Option** | **Description** |
+| **额外选项** | **描述** |
 | --- | --- |
-| **Use Target Value** | If checked, blends the values of the noise being applied toward a target value. |
+| **Use Target Value** | 勾选后，将对应用至目标值的 noise 值进行混合。|
 
 
-### Smooth
+### 平滑
 
 ![Smooth Tool](Engine/Landscape/Editing/SculptMode/Landscape_Smooth.png)
 
-The Smooth tool smooths the layer weight. The strength determines the amount of smoothing.
+利用 Smooth 工具可将图层权重平滑。强度决定平滑量。
 
-**Layer Smoothing**
+**图层平滑**
 
-![Landscape_Smooth_Layer_Before.jpg](Landscape_Smooth_Layer_Before.jpg)(w:900 h:500)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Landscape Smooth Layer Before](Landscape_Smooth_Layer_Before.jpg)(w:900 h:500)
+	[/PARAM]
+	[PARAM:after]
+	![Landscape Smooth Layer After](Landscape_Smooth_Layer_After.jpg)(w:900 h:500)
+	[/PARAM]
+[/OBJECT]
 
-![Landscape_Smooth_Layer_After.jpg](Landscape_Smooth_Layer_After.jpg)(w:900 h:500)
-
-| **Additional Option** | **Description** |
+| **额外选项** | **描述** |
 | --- | --- |
-| **Filter Kernal Scale** | Sets the scale multiplier for the smoothing filter kernel. |
-| **Detail Smooth** | If checked, performs a detail preserving smooth using the specified detail smoothing value. Larger detail smoothing values remove more details, while smaller values preserve more details. |
+| **Filter Kernel Scale** | 设定平滑滤波核的标度乘数。|
+| **Detail Smooth** | 勾选后，使用指定的细节平滑值进行保留细节的平滑操作。细节平滑值越大，更多细节将被移除；而数值越小，更多细节将被保留。|
 
 
-### Flatten
+### 扁平
 
 ![Flatten Tool](Engine/Landscape/Editing/SculptMode/Landscape_FlattenTool.png)
 
-The Flatten tool directly sets the selected layer's weight to the value of the **Tool Strength** slider.
+Flatten 工具直接将所选图层的权重设为 **Tool Strength** 滑条的数值。
 
-| **Additional Option** | **Description** |
+| **额外选项** | **描述** |
 | --- | --- |
-| **Flatten Mode** | Determines whether the tool will increase or decrease the application of the selected layer's weight, or do both. |
+| **Flatten Mode** | 决定工具将增加或减少（或两者皆执行）对所选图层权重的应用。|
 
 <!----
-| **Use Slope Flatten** | If checked, flattens along a Landscape's existing slope. |
-| **Pick Value Per Apply** | If checked, constantly selects new values to flatten toward, instead of only using the first clicked point. |
-| **Flatten Target** | Sets the target value toward which to flatten. |
+| **Use Slope Flatten** | 勾选后将沿地形现有的斜坡进行扁平。|
+| **Pick Value Per Apply** | 勾选后，将固定选择新数值进行扁平，而非只使用首个点击点。|
+| **Flatten Target** | 设置进行扁平的目标值。|
 ---->
 
 
@@ -103,110 +109,111 @@ The Flatten tool directly sets the selected layer's weight to the value of the *
 
 ![Noise Tool](Engine/Landscape/Editing/SculptMode/Landscape_Noise.png)
 
-The tool applies a noise filter to the layer weight. The strength determines the amount of noise.
+该工具将 noise 过滤器应用至图层权重。强度决定 noise 的量。
 
-| **Additional Option** | **Description** |
+| **额外选项** | **描述** |
 | --- | --- |
-| **Use Target Value** | If checked, blends the values of the noise being applied toward a target value. |
-| **Noise Mode** | Determines whether to apply all noise effects, only the noise effects that result in increasing the application of the layer, or only the noise effects that result in reducing the application of the layer. |
-| **Noise Scale** | The size of the perlin noise filter used. The noise filter is related to position and scale, which means if you do not change **Noise Scale**, the same filter is applied to the same position many times. |
+| **Use Target Value** | 勾选后，将对应用至目标值的 noise 值进行混合。|
+| **Noise Mode** | 确定是否应用所有 noise 效果、确定 noise 效果只使图层应用增加，或只使图层应用减少。|
+| **Noise Scale** | 使用的 perlin noise 尺寸。Noise 过滤器与位置和比例有关，意味着如不改变 Noise Scale，同一 noise 过滤器将多次应用到相同位置。|
 
+(#Layers)
+## 图层
 
-## Layers
+图层是指定地形材质的一个部分（地形材质用于在地形上进行绘制，改变地形外貌）。  
 
-A layer is the part of the assigned Landscape Material that you want to paint onto your Landscape to change its appearance.  
+地形图层决定纹理（或材质网络）应用至地形地貌的方式。地形可使用多个图层。这些图层拥有不同的纹理、比例、旋转和平移，混合后形成最终含纹理的地貌。
 
-Landscape layers determine how a texture (or material network) is applied to a Landscape terrain. A Landscape can use multiple layers with different Textures, scaling, rotation, and panning blended together to create the final textured terrain.
-
-The layers defined in the Landscape Material automatically populate the list of **Target Layers** in the Landscape tool's **Paint** mode. Each layer is displayed with its name and a small thumbnail image. 
+地形材质中定义的图层自动填入地形工具 **Paint** 模式中的 **Target Layers** 列表。每个图层均显示其名称和缩略图。 
 
 ![Landscape_Target.png](Landscape_Target.png)(convert:false)
 
-Whichever layer is selected is the one you can apply to the Landscape with the Painting Tools, according to the tools' options and settings, and to the [brush](Engine\Landscape\Editing\Brushes) you are using.
+选中的图层即可通过绘制工具应用至地形（基于工具的选项和设置，以及所使用的 [笔刷](Engine\Landscape\Editing\Brushes)）。
 
 ![Landscape_Layers.jpg](Landscape_Layers.jpg)(w:900 h:389)
 
 [REGION:note]
-Many of the Painting Tools are similar to the Sculpting Tools, and you use them similarly, but to manipulate the application of layers instead of the heightmap.
+多数绘制工具与造型工具功能相似，使用方法也相似，但控制的是图层应用而非高度图。
 [/REGION]
 
-You create layers in the Material itself. For more information about layers and Landscape Materials, see [](Engine\Landscape\Materials).
+在材质自身中创建图层。如需了解图层和地形材质的更多内容，请查阅 [地形材质](Engine\Landscape\Materials)。
 
 
-### Layer Info Objects
+(#LayerInfoObjects)
+### 图层信息物体
 
-A layer info object is an asset that contains information about the Landscape layer. Every Landscape layer must have a layer info object assigned to it, or else it cannot be painted. You can create layer info objects from the Landscape tool.
+图层信息物体是包含地形图层信息的资源。每个地形图层均须指定图层信息物体，否则无法进行绘制。可通过地形工具创建图层信息物体。
 
 [EXCERPT:LayerInfoObjectTypes]
-There are two kinds of layer info object, Weight-Blended and Non Weight-Blended:
-* **Weight-Blended** - The usual kind of layers that affect each other. Painting a weight-blended layer will decrease the weight of all other weight-blended layers. For example, painting mud will remove grass, and painting grass will remove mud.
-* **Non Weight-Blended** - Layers that are independent of each other. Painting a non weight-blended layer does not affect the weights of the other layers. These are used for more advanced effects, such as blending snow onto other layers: instead of having grass, mud, rock _or_ snow, you would use a non weight-blended snow layer to blend between "grass, mud, or rock" and "snowy grass, snowy mud, or snowy rock."
+图层信息物体有两类：混合权重与非混合权重：
+* **权重混合** - 相互影响的普通图层。绘制权重混合图层将减少所有其他权重混合图层的权重。例如，绘制泥沼将移除草地，绘制草地将移除泥沼。
+* **非混合权重** - 相互独立的图层。绘制非混合权重图层不影响其他图层的权重。它们用于高级的效果，如将雪地混合到其他图层上：替代“草地、泥沼、岩石 _或_ 雪地”结构的是非混合权重图层，混合了“草地、泥沼或岩石”和“带雪的草地、带雪的泥沼或带雪的岩石”结构。
 [/EXCERPT:LayerInfoObjectTypes]
 
-You can either create a layer info object from the layer itself, or reuse an existing layer info object from another Landscape.
+可从图层自身创建一个图层信息物体，或利用另一个地形的现有图层信息物体。
 
-**To create a layer info object:**
+**创建图层信息物体的步骤：**
 
-1. Press the plus icon (![Create Layer Info](Engine/Landscape\Editing\icon_Landscape_CreateLayerInfo.png)) to the right of the Layer name.
-1. Choose **Weight-Blended Layer (normal)** or **Non Weight-Blended Layer**.
+1. 按下图层名称右边的加号图标。
+1. 选择 **混合权重图层（普通）** 或 **非混合权重图层**。
 ![](WeightBlended_NonWeightBlended.png)
-1. Choose the location to save the layer info object.
+1. 选择图层信息物体的保存位置。
 
-<!-- what's the difference between weight-blended and non weight-blended? -->
+<!-- 混合权重与非混合权重之间的区别是什么？ -->
 
-After their creation, layer info objects exist as assets in the **Content Browser**, such as the following:
+创建图层信息物体后，它被视为 **Content Browser** 中的资源，如下图所示：
 
 ![Layer Info Object](Landscape_InfoObject.png)
 
-They can then be reused by other Landscapes.
+在其他地形中也能使用。
 
 [REGION:note]
-Even though you can use the same layer info object in multiple Landscapes, within a single Landscape, you can use each layer info object only once. Each layer in a Landscape must use a different layer info object.
+虽然可在多个地形中使用相同的图层信息物体，但在单个地形中一个图层信息物体只能使用一次。单个地形中的每个图层必须使用不同的图层信息物体。
 [/REGION]
 
-**To reuse an existing layer info object from another Landscape:**
+**使用另一个地形的现有图层信息物体：**
 
-1. Find and select the layer info object in the **Content Browser**.
+1. 在 **Content Browser** 中选择图层信息物体。
 
-1. In the Landscape tool, in the **Target Layers** section, to the right of the layer with which you want to use the layer info type, click the Assign icon (![Assign](Shared\Icons\icon_assign_left_16x.png)).
+1. 在地形工具的 **Target Layers** 部分中点击指定图标(![Assign](Shared\Icons\icon_assign_left_16x.png))（它位于使用图层信息类型的图层右边）。
 
 [REGION:note]
-Layer info objects can only be used if their layer name matches the layer they were originally created for.
+只有图层名称和图层信息物体最初创建时的图层相吻合时，才能使用图层信息物体。
 [/REGION]
 
-The primary purpose of layer info objects is to act as a unique key for painted layer data, but they also contain a couple of user-editable properties:
+图层信息物体的主要角色是绘制图层数据的关系键，但它们也包含一些可编辑属性：
 
-| Option | Description |
+| 选项 | 描述 |
 | ------ | ----------- |
-| **Phys Material** | The [Physical Material](Engine/Physics/PhysicalMaterials) (if any) assigned to areas of Landscape where this layer is dominant. |
-| **Hardness** | The value used by the [Erosion](Engine/Landscape/Editing/SculptMode/#Erosion) tool. |
+| **Phys Material** | 指定到主导图层地形区域的 [物理材质](Engine/Physics/PhysicalMaterials)（如有）。|
+| **Hardness** | [侵蚀](Engine/Landscape/Editing/SculptMode/#Erosion) 工具使用的数值。|
 
-### Orphaned Layers
+### 孤立图层
 
-If a layer is removed from the Landscape Material after it has populated the **Target Layers** list of a Landscape, and it has painted data on the Landscape, it will be displayed in the list with a **?** icon. This denotes an orphaned layer.
+如将图层填入地形的 **Target Layers** 列表后再从地形材质中移除，地形上将留有绘制数据，在列表中显示的图层带有一个 **?** 图标。这就是所谓的孤立图层。
 
 ![Missing Layer](Engine/Landscape\Editing\Landscape_MissingLayer.png)
 
-Areas previously painted with this layer will likely appear black, but the exact behavior depends on your Landscape Material. 
+之前用此图层进行绘制的区域可能变黑，但确切的行为取决于地形材质。 
 
-#### Deleting Orphaned Layers
+#### 删除孤立图层
 
-You can delete orphaned layers from the Landscape, though it is recommended that you first paint over any areas where the layer was used. The painted layer data is preserved until the layer is deleted, so no information is lost if you make a mistake in the Landscape Material.
+可将孤立图层从地形中删除。建议您在执行删除前先对图层曾经覆盖的区域进行绘制。在图层被删除之前绘制图层数据均会被保留，即使在地形材质中出现操作失误，也不会导致信息丢失。
 
-**To delete a layer from your Landscape:**
+**从地形中删除图层的方法：**
 
-* Click the **X** icon to the right of the layer's name.
+* 点击图层名称右边的 **X** 图标。
 
 	![Delete Layer](Engine/Landscape\Editing\Landscape_DeleteLayer.png)
 
 
-### Weight Editing
+### 权重编辑
 
-At every Landscape vertex, each layer has a weight specifying how much influence that layer has on the Landscape. Layers have no particular blending order. Instead, each layer's weight is stored separately and the results added. In the case of weight-blended layers, the weights add up to 255. Non weight-blended layers are independent of other layers and can have any weight value.
+在每个地形顶点上，每个图层均有一个权重，规定图层对地形产生的影响程度。图层不存在特定的混合顺序。每个图层的权重均单独储存并添加结果。在混合权重图层中，权重合计最高为 255。非混合权重图层与其他图层之间相互独立，可拥有任意权重值。
 
-You can use the Paint tool to increase or decrease the weight of the active layer. To do so, select the layer whose weight you want to adjust, and use one of the Painting tools to apply the layer to the Landscape. For Weight-Blended layers, as you increase the weight of one layer, the weight of the other layers will be uniformly decreased. Fully painting one layer will result in no weight on any other layer.
+可使用绘制工具增加或减少活跃图层的权重。执行此操作的方法为：选择需要调整权重的图层，然后使用一种绘制工具将图层应用至地形。就混合权重图层而言，增加一个图层的权重，其他图层的权重将随之减少。在一个图层上进行完整绘制将导致其他图层上没有权重。
 
-When you are reducing a weight-blended layer by holding down **Ctrl + Shift** while painting, it is not clear what layer should be increased to replace it. The current behavior is to uniformly increase the weights of any other layers. Because of this behavior, it is not possible to paint all layers completely away. Instead of painting layers away, it is recommended you choose the layer you want to paint in its place, and paint that additively.
+绘制时按住 **Ctrl + Shift** 组合键即可减少一个混合权重图层，但需要进行添加替换的图层却并不明确。当前的行为是相应增加其他图层的权重。正因此行为的存在，无法将所有图层完全涂掉。建议您选择需要进行绘制的图层进行附加绘制，不建议将图层涂掉。
 
 
 [INCLUDE:Engine/Landscape#landscape002]

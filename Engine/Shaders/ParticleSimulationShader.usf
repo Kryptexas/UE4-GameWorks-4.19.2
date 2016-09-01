@@ -191,10 +191,10 @@ void EvaluateVectorFields(out float3 OutForce, out float4 OutVelocity, float3 Po
 
 	for (int VectorFieldIndex = 0; VectorFieldIndex < VectorFields.Count; ++VectorFieldIndex)
 	{
-		float2 IntensityAndTightness = VectorFields.IntensityAndTightness[VectorFieldIndex];
+		float2 IntensityAndTightness = VectorFields.IntensityAndTightness[VectorFieldIndex].xy;
 		float Intensity = IntensityAndTightness.x * PerParticleScale;
 		float Tightness = IntensityAndTightness.y;
-		float3 VolumeSize = VectorFields.VolumeSize[VectorFieldIndex];
+		float3 VolumeSize = VectorFields.VolumeSize[VectorFieldIndex].xyz;
 		float3 VolumeUV = mul(float4(Position.xyz,1), VectorFields.WorldToVolume[VectorFieldIndex]).xyz;
 		//Tile the UVs if needed. TilingAxes will be 1.0 or 0.0 in each channel depending on which axes are being tiled, if any.
 		VolumeUV -= floor(VolumeUV * VectorFields.TilingAxes[VectorFieldIndex].xyz);

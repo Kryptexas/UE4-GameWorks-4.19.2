@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2695872
+﻿INTSourceChangelist:2968923
 Availability:Public
 Title:ブループリント マクロ ライブラリ
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:他のブループリントで再利用するマクロを宣言および定義するブループリント
 version:4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,19 +48,19 @@ version:4.9
 [TOC(start:2)]
 
 [EXCERPT:Intro]
-**ブループリント マクロ ライブラリ (Blueprint Macro Library)** は、他のブループリントのノードとして配置可能な 
- **マクロ** または内蔵グラフのコレクションを保持するコンテナです。実行とデータ移行両方の入出力データを完全に備えた頻繁に使用するノードのシーケンスを格納できるので、 
-時間節約の手段となります。
+**ブループリント マクロ ライブラリ (Blueprint Macro Library)** は **マクロ** または内蔵グラフのコレクションを保持するコンテナで、 
+別のブループリントにノードとして配置することができます。実行とデータ移行のための入出力の両方が付いていて、 
+よく使うノードのシーケンスを格納できるため、時間を短縮できます。
 
-マクロは参照される全グラフで共有されますが、 
-コンパイル時の折りたたまれたノードのようにグラフ内へ自動的に展開されます。つまり、ブループリント マクロ ライブラリはコンパイルを必要としません。ただし、マクロへの変更は、 
+マクロは参照されるすべてのグラフで共有されますが、 
+コンパイル時の折りたたまれたノードのように、グラフへ自動的に展開されます。つまり、ブループリント マクロ ライブラリではコンパイルが必要ありません。ただし、マクロへの変更は、 
 これらのグラフを含んだブループリントが再コンパイルされた時に 
-そのマクロを参照するグラフだけにしか反映されません。
+そのマクロを参照するグラフのみに反映されます。
 [/EXCERPT:Intro]
 
 ## ブループリント マクロ ライブラリの作成
 
-ブループリント マクロ ライブラリはパッケージに格納されており、他のアセット同様コンテンツ ブラウザで作成することができます。
+ブループリント マクロ ライブラリはパッケージに格納されており、他のアセットと同様にコンテンツ ブラウザで作成することができます。
 
 1. **コンテンツブラウザ** で ![New Asset button](button_new_asset_blueprint.png) ボタンをクリックします。
 
@@ -66,7 +68,7 @@ version:4.9
 
 	![](new_asset_macrolib.png)
 
-1. ブループリント マクロライブラリから **Parent Clasee (親クラス)** を選択します。
+1. ブループリント マクロ ライブラリから **[Parent Clasee (親クラス)]** を選択します。
 
 	![Choose a Parent Class](new_asset_parent_class.png)
 
@@ -79,11 +81,11 @@ version:4.9
 	![](unsaved_macro_library.png)
 
 <!--
-1. **コンテンツ ブラウザ** から直接ブループリント マクロ ライブラリを保存するには、 **コンテンツ ブラウザ** のナビゲーション バーの **[Save... (保存)]** をクリックします。
+1. **コンテンツ ブラウザ** から直接ブループリント マクロ ライブラリを保存するには、**コンテンツ ブラウザ** のナビゲーション バーの **[Save... (保存)]** をクリックします。
 
 	![](save_macrolib_content_browser.png)
 
-1. **[Save Content (コンテンツを保存)]** ウィンドウが表示されたら、作成した  [Blueprint Macro Library] のチェックボックスが選択されていることを確認し、 ![Save Selected](button_save_selected.png) をクリックします。
+1. **[Save Content (コンテンツを保存)]** ウィンドウが表示されたら、作成した [Blueprint Macro Library] のチェックボックスが選択されていることを確認し、 ![Save Selected](button_save_selected.png) をクリックします。
 
 	![](save_selected_macrolib.png)
 

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672918
+﻿INTSourceChangelist:3020369
 Availability:Docs
 Title:1.4 - プロジェクトをコンパイルする
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description:初めての C++ クラスをコンパイルする方法を学びましょう。
-スキルレベル:初心者向け
-バージョン：4.9
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,16 +24,48 @@ Description:初めての C++ クラスをコンパイルする方法を学びま
 
 %Steps%
 
-このステップではプロジェクトをコンパイルし、コード変更がインゲームに反映されるのがわかるようにします。 
+コード変更がインゲームで反映されているかを確認するためにプロジェクトをコンパイルします。 
 
-1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
-
-1.	**[FPSProject]** 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	エディタに戻って **[Compile]** ボタンをクリックしてコードをコンパイルします。
 
 	![](CompileProject.png)
 
-1.	ビルド終了後にアンリアル エディタを開いて、新しくコンパイルした **FPSGameMode** クラスが **コンテンツ ブラウザ** で見えることを確認します。
+	_プロジェクトの構築を C++ プロジェクトとして開始したので、アンリアル エディタから直接 CPP コードをコンパイルすることができます。_
 
-	![](CompiledFPSGameModeObj.png)
+1.	**[Play (プレイ)]** ボタンをクリックして、[Play in Editor (PIE) (エディタでプレイする(PIE)) ] モードに入ります。
+
+	![](PIE_DefaultGameMode.png)
+
+	PIE モードで画面上にログ メッセージが表示されていないことを疑問に思われるかもしれません。ログ メッセージが表示されていない理由は、 
+	この開発の段階では、エディタがまだデフォルトの `Game Mode` を使っているからです。 
+
+1.	[PIE] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
+
+## CPP Game Mode クラスをブループリントに拡張する
+
+CPP Game Mode クラスをブループリントに拡張します。C++ クラスのブループリントへの拡張についての詳細は、[](Gameplay/ClassCreation/CodeAndBlueprints) の
+リファレンス ページをご覧ください。
+
+1.	まず、「Content」フォルダ内に「Blueprints」フォルダを作成します。
+
+	![](BlueprintsFolder.png)
+
+1.	`FPSProjectGameMode` クラスを右クリックして、**[C++ Class Actions]** メニューを開きます。
+
+	![](CPPClassActionsMenu.png)
+
+1.	**[Create Blueprint class based on FPSProjectGameMode]** をクリックして **[Add Blueprint Class]** ダイアログ メニューを開きます。
+
+	![](CreateDerivedBPClass.png)
+
+1.	新しい Blueprint クラスに "BP_FPSProjectGameMode" と名前を付けて、「Blueprints」フォルダを選択してから、**[Create Blueprint Class]** ボタンをクリックします。
+
+	![](AddBPClass.png)
+
+1.	ここまでで、新規作成した `BP_FPSProjectGameMode` Blueprint クラスが「Blueprint」フォルダの中にあるはずです。
+
+	![](AddedBPClass.png)
+
+1.	`BP_FPSProjectGameMode` ブループリントを保存してからブループリント エディタを閉じるようにします。
 
 %Steps%

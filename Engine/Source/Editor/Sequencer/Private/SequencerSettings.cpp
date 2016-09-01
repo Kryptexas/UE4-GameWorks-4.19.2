@@ -25,9 +25,9 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bLabelBrowserVisible = false;
+	bRewindOnRecord = true;
 	ZoomPosition = ESequencerZoomPosition::SZP_CurrentTime;
 	bAutoScrollEnabled = false;
-	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
 	bLinkCurveEditorTimeRange = false;
 	bLooping = false;
@@ -38,6 +38,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bInfiniteKeyAreas = false;
 	bShowChannelColors = false;
 	bShowViewportTransportControls = true;
+	bAllowPossessionOfPIEViewports = false;
 }
 
 EAutoKeyMode USequencerSettings::GetAutoKeyMode() const
@@ -321,6 +322,20 @@ void USequencerSettings::SetLabelBrowserVisible(bool Visible)
 	}
 }
 
+bool USequencerSettings::ShouldRewindOnRecord() const
+{
+	return bRewindOnRecord;
+}
+
+void USequencerSettings::SetRewindOnRecord(bool bInRewindOnRecord)
+{
+	if (bInRewindOnRecord != bRewindOnRecord)
+	{
+		bRewindOnRecord = bInRewindOnRecord;
+		SaveConfig();
+	}
+}
+
 ESequencerZoomPosition USequencerSettings::GetZoomPosition() const
 {
 	return ZoomPosition;
@@ -345,22 +360,6 @@ void USequencerSettings::SetAutoScrollEnabled(bool bInAutoScrollEnabled)
 	if (bAutoScrollEnabled != bInAutoScrollEnabled)
 	{
 		bAutoScrollEnabled = bInAutoScrollEnabled;
-		SaveConfig();
-	}
-}
-
-
-bool USequencerSettings::GetShowCurveEditor() const
-{
-	return bShowCurveEditor;
-}
-
-void USequencerSettings::SetShowCurveEditor(bool InbShowCurveEditor)
-{
-	if (bShowCurveEditor != InbShowCurveEditor)
-	{
-		bShowCurveEditor = InbShowCurveEditor;
-		OnShowCurveEditorChanged.Broadcast();
 		SaveConfig();
 	}
 }
@@ -516,9 +515,18 @@ float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 		: InTimeValue;
 }
 
-USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()
+bool USequencerSettings::ShouldAllowPossessionOfPIEViewports() const
 {
-	return OnShowCurveEditorChanged;
+	return bAllowPossessionOfPIEViewports;
+}
+
+void USequencerSettings::SetAllowPossessionOfPIEViewports(bool bInAllowPossessionOfPIEViewports)
+{
+	if (bInAllowPossessionOfPIEViewports != bAllowPossessionOfPIEViewports)
+	{
+		bAllowPossessionOfPIEViewports = bInAllowPossessionOfPIEViewports;
+		SaveConfig();
+	}
 }
 
 USequencerSettings::FOnTimeSnapIntervalChanged& USequencerSettings::GetOnTimeSnapIntervalChanged()

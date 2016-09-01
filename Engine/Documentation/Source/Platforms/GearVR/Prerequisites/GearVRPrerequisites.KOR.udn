@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602692
+﻿INTSourceChangelist:2940199
 Title: 삼성 기어 VR 헤드셋 요구사항
 Description:기어 VR 헤드셋의 필수 초기 구성입니다.
 Availability:Public
@@ -8,6 +8,10 @@ Platform:Gear VR
 Skilllevel: Intermediate
 Version: 4.8
 prereq: Engine\Blueprints\GettingStarted
+type:overview
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
 ![](Platforms\GearVR\QuickStart\GVR_Headset_00.png)
 

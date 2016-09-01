@@ -1317,7 +1317,7 @@ TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& Column
 		const FSlateBrush* ComponentIcon = FEditorStyle::GetBrush("SCS.NativeComponent");
 		if(NodePtr->GetComponentTemplate() != NULL)
 		{
-			ComponentIcon = FClassIconFinder::FindIconForClass( NodePtr->GetComponentTemplate()->GetClass(), TEXT("SCS.Component") );
+			ComponentIcon = FSlateIconFinder::FindIconBrushForClass( NodePtr->GetComponentTemplate()->GetClass(), TEXT("SCS.Component") );
 		}
 
 		InlineWidget =
@@ -2662,6 +2662,10 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 					SCS_Node->AttachToName = NAME_None;
 				}
 
+				// Cache the current relative location and rotation values (for propagation)
+				const FVector OldRelativeLocation = SceneComponentTemplate->RelativeLocation;
+				const FRotator OldRelativeRotation = SceneComponentTemplate->RelativeRotation;
+
 				// Reset the relative transform (location and rotation only; scale is preserved)
 				SceneComponentTemplate->SetRelativeLocation(FVector::ZeroVector);
 				SceneComponentTemplate->SetRelativeRotation(FRotator::ZeroRotator);
@@ -2677,6 +2681,10 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 					{
 						// Detach from root (keeping world transform, except for scale)
 						SceneComponentInstance->DetachFromComponent(DetachmentTransformRules);
+
+						// Propagate the default relative location & rotation reset from the template to the instance
+						FComponentEditorUtils::ApplyDefaultValueChange(SceneComponentInstance, SceneComponentInstance->RelativeLocation, OldRelativeLocation, SceneComponentTemplate->RelativeLocation);
+						FComponentEditorUtils::ApplyDefaultValueChange(SceneComponentInstance, SceneComponentInstance->RelativeRotation, OldRelativeRotation, SceneComponentTemplate->RelativeRotation);
 
 						// Must also reset the root component here, so that RerunConstructionScripts() will cache the correct root component instance data
 						AActor* Owner = SceneComponentInstance->GetOwner();
@@ -2972,7 +2980,7 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 	ensure(ColumnName == SCS_ColumnName_ComponentClass);
 
 	// Create the name field
-	TSharedPtr<SInlineEditableTextBlock> InlineWidget =
+	TSharedPtr<SInlineEditableTextBlock> InlineEditableWidget =
 		SNew(SInlineEditableTextBlock)
 		.Text(this, &SSCS_RowWidget_ActorRoot::GetActorDisplayText)
 		.OnVerifyTextChanged(this, &SSCS_RowWidget_ActorRoot::OnVerifyActorLabelChanged)
@@ -2980,7 +2988,7 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 		.IsSelected(this, &SSCS_RowWidget_ActorRoot::IsSelectedExclusively)
 		.IsReadOnly(!NodePtr->CanRename() || (SCSEditor.IsValid() && !SCSEditor.Pin()->IsEditingAllowed()));
 
-	NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
+	NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineEditableWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
 
 	return SNew(SHorizontalBox)
 		.ToolTip(CreateToolTipWidget())
@@ -3000,7 +3008,7 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 		.VAlign(VAlign_Center)
 		.Padding(0.0f, 0.0f)
 		[
-			InlineWidget.ToSharedRef()
+			InlineEditableWidget.ToSharedRef()
 		]
 
 	+SHorizontalBox::Slot()
@@ -4316,12 +4324,14 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 					AddTreeNodeFromComponent(RootComponent);
 				}
 				
-				// Now add the rest of the instanced scene component hierarchy
+				// Now add the rest of the instanced scene component hierarchy (excluding editor-only instances and nested DSOs attached to BP-constructed instances, which are not mutable)
 				for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
 				{
 					USceneComponent* SceneComp = Cast<USceneComponent>(*CompIter);
+					USceneComponent* ParentSceneComp = SceneComp != nullptr ? SceneComp->GetAttachParent() : nullptr;
 					if(SceneComp != nullptr && !SceneComp->IsEditorOnly()
-						&& (SceneComp->CreationMethod != EComponentCreationMethod::UserConstructionScript || !GetDefault<UBlueprintEditorSettings>()->bHideConstructionScriptComponentsInDetailsView))
+						&& (SceneComp->CreationMethod != EComponentCreationMethod::UserConstructionScript || !GetDefault<UBlueprintEditorSettings>()->bHideConstructionScriptComponentsInDetailsView)
+						&& (ParentSceneComp == nullptr || !ParentSceneComp->IsCreatedByConstructionScript() || !SceneComp->HasAnyFlags(RF_DefaultSubObject)))
 					{
 						AddTreeNodeFromComponent(SceneComp);
 					}
@@ -5525,30 +5535,30 @@ void SSCSEditor::GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, T
 
 EVisibility SSCSEditor::GetPromoteToBlueprintButtonVisibility() const
 {
-	EVisibility Visibility = EVisibility::Collapsed;
+	EVisibility ButtonVisibility = EVisibility::Collapsed;
 	if (EditorMode == EComponentEditorMode::ActorInstance)
 	{
 		if (GetBlueprint() == nullptr)
 		{
-			Visibility = EVisibility::Visible;
+			ButtonVisibility = EVisibility::Visible;
 		}
 	}
 
-	return Visibility;
+	return ButtonVisibility;
 }
 
 EVisibility SSCSEditor::GetEditBlueprintButtonVisibility() const
 {
-	EVisibility Visibility = EVisibility::Collapsed;
+	EVisibility ButtonVisibility = EVisibility::Collapsed;
 	if (EditorMode == EComponentEditorMode::ActorInstance)
 	{
 		if (GetBlueprint() != nullptr)
 		{
-			Visibility = EVisibility::Visible;
+			ButtonVisibility = EVisibility::Visible;
 		}
 	}
 
-	return Visibility;
+	return ButtonVisibility;
 }
 
 FText SSCSEditor::OnGetApplyChangesToBlueprintTooltip() const
@@ -5633,6 +5643,83 @@ void SSCSEditor::OnOpenBlueprintEditor(bool bForceCodeEditing) const
 	}
 }
 
+/** 
+This struct saves and deselects all selected instanced components (from given actor), then finds them (in recreated actor instance, after compilation) and selects them again.
+*/
+struct FRestoreSelectedInstanceComponent
+{
+	TWeakObjectPtr<UClass> ActorClass;
+	FName ActorName;
+	TWeakObjectPtr<UObject> ActorOuter;
+
+	struct FComponentKey
+	{
+		FName Name;
+		TWeakObjectPtr<UClass> Class;
+
+		FComponentKey(FName InName, UClass* InClass) : Name(InName), Class(InClass) {}
+	};
+	TArray<FComponentKey> ComponentKeys;
+
+	FRestoreSelectedInstanceComponent()
+		: ActorClass(nullptr)
+		, ActorOuter(nullptr)
+	{ }
+
+	void Save(AActor* InActor)
+	{
+		check(InActor);
+		ActorClass = InActor->GetClass();
+		ActorName = InActor->GetFName();
+		ActorOuter = InActor->GetOuter();
+
+		check(GEditor);
+		TArray<UActorComponent*> ComponentsToSaveAndDelesect;
+		for (auto Iter = GEditor->GetSelectedComponentIterator(); Iter; ++Iter)
+		{
+			UActorComponent* Component = CastChecked<UActorComponent>(*Iter, ECastCheckedType::NullAllowed);
+			if (Component && InActor->GetInstanceComponents().Contains(Component))
+			{
+				ComponentsToSaveAndDelesect.Add(Component);
+			}
+		}
+
+		for (UActorComponent* Component : ComponentsToSaveAndDelesect)
+		{
+			USelection* SelectedComponents = GEditor->GetSelectedComponents();
+			if (ensure(SelectedComponents))
+			{
+				ComponentKeys.Add(FComponentKey(Component->GetFName(), Component->GetClass()));
+				SelectedComponents->Deselect(Component);
+			}
+		}
+	}
+
+	void Restore()
+	{
+		AActor* Actor = (ActorClass.IsValid() && ActorOuter.IsValid()) 
+			? Cast<AActor>((UObject*)FindObjectWithOuter(ActorOuter.Get(), ActorClass.Get(), ActorName)) 
+			: nullptr;
+		if (Actor)
+		{
+			for (auto IterKey : ComponentKeys)
+			{
+				TArray<UActorComponent*> OwnedComponents;
+				Actor->GetComponents(OwnedComponents);
+				UActorComponent** ComponentPtr = OwnedComponents.FindByPredicate([&](UActorComponent* InComp)
+				{
+					return InComp && (InComp->GetFName() == IterKey.Name) && (InComp->GetClass() == IterKey.Class.Get());
+				});
+				if (ComponentPtr && *ComponentPtr)
+				{
+					check(GEditor);
+					GEditor->SelectComponent(*ComponentPtr, true, false);
+				}
+			}
+		}
+	}
+};
+
 void SSCSEditor::OnApplyChangesToBlueprint() const
 {
 	int32 NumChangedProperties = 0;
@@ -5644,6 +5731,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
 	{
 		// Cache the actor label as by the time we need it, it may be invalid
 		const FString ActorLabel = Actor->GetActorLabel();
+		FRestoreSelectedInstanceComponent RestoreSelectedInstanceComponent;
 		{
 			const FScopedTransaction Transaction(LOCTEXT("PushToBlueprintDefaults_Transaction", "Apply Changes to Blueprint"));
 
@@ -5670,6 +5758,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
 					NumChangedProperties = EditorUtilities::CopyActorProperties(Actor, BlueprintCDO, CopyOptions);
 					if (Actor->GetInstanceComponents().Num() > 0)
 					{
+						RestoreSelectedInstanceComponent.Save(Actor);
 						FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, Actor->GetInstanceComponents());
 						NumChangedProperties += Actor->GetInstanceComponents().Num();
 						Actor->ClearInstanceComponents(true);
@@ -5687,6 +5776,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
  		{
 			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 			FKismetEditorUtilities::CompileBlueprint(Blueprint);
+			RestoreSelectedInstanceComponent.Restore();
  		}
 
 		// Set up a notification record to indicate success/failure

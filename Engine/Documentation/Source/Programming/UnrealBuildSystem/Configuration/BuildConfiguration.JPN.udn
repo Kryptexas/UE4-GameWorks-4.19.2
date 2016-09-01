@@ -1,32 +1,32 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2711098
 Availability:Public
-Title:アンリアルビルドシステムの設定
+Title:アンリアル ビルド システムの設定
 Crumbs: %ROOT%, Programming, Programming/UnrealBuildSystem
-Description:エンジンのビルドを制御するアンリアルビルドシステムの設定
-Version:4.5
+Description:エンジンのビルドを制御するアンリアル ビルド システムの設定
+Version:4.9
 
-アンリアルビルドシステムは、さまざまな用途に合わせたビルドプロセスの変更を、`BuildConfiguration.cs` を通じて設定できます。
+アンリアル ビルド システムは、さまざまな用途に合わせたビルドプロセスの変更を、BuildConfiguration.cs を通じて設定できます。
 
 ## UnrealBuldTool 設定プロパティ
 
-$ bStopXGECompilationAfterErrors :_true_ の場合、エラーが発生すると XGL のコンパイルが停止します。
+$ bStopXGECompilationAfterErrors :True の場合、エラーが発生すると XGL のコンパイルが停止します。
     * コンパイルを継続すると、古いエラーの修復後に後続コンパイルの実行速度がかなり速くなります。
     * ビルド終了前に、全てのファイルのコンパイルエラーを表示します。
     * 失敗したビルドを中断するには **Ctrl + Break** キーを使用します。
-$ bOmitPCDebugInfoInDevelopment :_true_ の場合、Development設定におけるビルド時はデバッグ情報が含まれません。
-    * 常にデバッグ情報を含むには _false_ に設定します。
+$ bOmitPCDebugInfoInDevelopment :True の場合、Development 設定におけるビルド時はデバッグ情報が含まれません。
+    * 常にデバッグ情報を含むには False に設定します。
     * デバッグ情報を含むとコンパイル速度が減速しますが、Development ビルドのライン番号やスタック情報が加わります。
-$ bUseUnityBuild :エンジン全体を再ビルドする時は _true_ に設定します。高速のイタレーションモードを使用時は無効にします。詳細は [ビルドモード](#ビルドモード) を参照してください。
-$ bEnableFastIteration :_true_ の場合、コンパイルおよびリンク時間が飛躍的に減少します。ユニティビルドの実行時は無効にします。詳細は [ビルドモード](#ビルドモード) を参照してください。
+$ bUseUnityBuild :エンジン全体を再ビルドする時は True に設定します。高速のイタレーション モードを使用する時は無効にします。詳細は [ビルドモード](#ビルドモード) を参照してください。
+$ bEnableFastIteration :True の場合、コンパイルおよびリンク時間が飛躍的に減少します。ユニティビルドの実行時は無効にします。詳細は [ビルドモード](#ビルドモード) を参照してください。
     * _true_ に設定すると高速なイタレーション時間となります。
-    * 「RPC」や「PDB」など変わったエラーが発生した場合、`ValidateConfiguration()` を `bUseIncrementalLinking=false` と設定します。
+    * 「RPC」や「PDB」など変わったエラーが発生した場合、`ValidateConfiguration()` を `bUseIncrementalLinking=false` に設定します。
 
 
-##ビルドモード
+## ビルドモード
 
-ビルドモードには、 **ユニティ** と **高速イタレーション** の 2 つのモードがあります。ユニティモードはエンジン全体の再ビルドを必要とする変更に適しています。例えばエンジンヘッダの変更などです。高速イタレーションモードは局部的な変更に適しています。コンパイル/リンク時間が 4 秒以内に減少します。モードの変更は、`BuildConfiguration.cs` を開いて以下の行を検索します。
+ビルドモードには、**ユニティ** と **高速イタレーション** の 2 つのモードがあります。ユニティモードは、エンジン全体の再ビルドを必要とする変更に適しています。例えばエンジンヘッダの変更などです。高速イタレーションモードは局部的な変更に適しています。コンパイル / リンク時間が 4 秒以内に減少します。モードの変更は、BuildConfiguration.cs を開いて以下の行を検索します。
 
 	bEnableFastIteration = Utils.GetEnvironmentVariable( "ue.bEnableFastIteration", false );
 	bUseUnityBuild = Utils.GetEnvironmentVariable("ue.bUseUnityBuild", true);
 
-`true` に設定したいモードへ強制的に切り替えることが出来ます。デフォルト設定はユニティモードです。
+true に設定したいモードへ強制的に切り替えることが出来ます。デフォルト設定は、ユニティモードです。

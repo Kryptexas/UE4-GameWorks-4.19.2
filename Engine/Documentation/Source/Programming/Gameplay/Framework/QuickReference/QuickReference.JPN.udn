@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2099361
+﻿INTSourceChangelist:2711078
 Availability:Public
 Title:ゲームプレイ フレームワーク クイック リファレンス
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description: ゲームルール、キャラクター、コントローラー、ユーザーインターフェースなど、ゲームのフレームワークを構成するクラスの概略
+Version:4.9
 
 [OBJECT:Redirect]
 [PARAM:link]

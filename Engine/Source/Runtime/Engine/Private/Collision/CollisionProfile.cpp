@@ -61,6 +61,14 @@ UCollisionProfile* UCollisionProfile::Get()
 	return CollisionProfile;
 }
 
+void UCollisionProfile::PostReloadConfig(UProperty* PropertyThatWasLoaded)
+{
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		LoadProfileConfig();
+	}
+}
+
 void UCollisionProfile::GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList)
 {
 	const UCollisionProfile* CollisionProfile = UCollisionProfile::Get();
@@ -182,11 +190,7 @@ bool UCollisionProfile::ReadConfig(FName ProfileName, FBodyInstance& BodyInstanc
 		BodyInstance.CollisionResponses.SetCollisionResponseContainer(Template.ResponseToChannels);
 		BodyInstance.ResponseToChannels_DEPRECATED = Template.ResponseToChannels;
 
-		// if valid instance, make sure to update physics filter data
-		if (BodyInstance.IsValidBodyInstance())
-		{
-			BodyInstance.UpdatePhysicsFilterData();
-		}
+		BodyInstance.UpdatePhysicsFilterData();
 		return true;
 	}
 

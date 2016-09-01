@@ -1,311 +1,110 @@
-﻿INTSourceChangelist:2478900
+﻿INTSourceChangelist:2711665
 Availability:Public
-Title:ブループリントでOnHit Event を使用する方法
+Title:ブループリントで OnHit Event を使用する
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseOnHit
-Description:さまざまな方法でアクタと作用させるOnHit Eventの操作手順 
+Description:OnHit Events を使って被破壊メッシュを破砕し、それを動かすために推進力を適用します。 
 Related:Engine/Blueprints
 Related:Engine/Blueprints/UserGuide/Events
 Related:Engine/Blueprints/UserGuide/CastNodes
+version:4.9
 
 
-[TOC (start:2 end:2)]
+このページでは **OnComponentHit** と **Event Hit** [](Engine/Blueprints/UserGuide/Events) を使って被破壊メッシュにダメージを与えて破砕します。また、ヒット位置に推進力を適用し被破壊物をプッシュして、発射物によってヒットされるエフェクトをシミュレーションし、ヒット位置に力を適用します。 
 
-## 概要
-
-このページでは、照明器具のライトを撃ち抜くために **Event Hit** Event を使用します。このイベントはエミッタがスポーンされる原因となります。物理オブジェクトに推進力も適用して、オブジェクトを衝撃点の方向に起動させます。最後にオブジェクトにダメージを与えて、「ヘルス値」を使い果たした後にオブジェクトを破壊します。 
-
-## プロジェクト設定
-
-Hit Eventを作成するには、オブジェクトとその他の対象が何かに向かって発砲できなくてはいけません。以下の設定例のように設定を行います。 
- 
 [REGION:note]
-この例は **Blueprint First Person Template with Starter Content** を有効にしています。
-[/REGION:note]
+このチュートリアルでは **スターター コンテンツ** を有効にした状態で **Blueprint First Person** テンプレートを使用します。
+[/REGION]
 
-### 設定 （Bomb ブループリント）
+1.	**コンテンツ ブラウザ** のプロジェクトで、**「Content/Geometry/Meshes」** フォルダに進みます。 
 
-このセクションは、プレイヤーキャラクターが対象物を射撃したり物を投げつけたりできるように「Bomb」ブループリントを作成します。 
+1.	**1M_Cube** スタティックメッシュで **右クリック** して、 **Create Destructible Mesh** を選択します。 
 
-1.	 **コンテンツブラウザ** で、 **作成** ボタンをクリックして **ブループリント** を選択します。そして親クラスに **アクタ** を選択します。 
+	![](OnHit1.png)
 
-1.	作成したブループリントに **BP_Bomb** と名前を付けて、これを **ダブルクリック** して開きます。 
+	このスタティックメッシュから被破壊メッシュを作成して、撃たれたときにそれを破砕し、粉々になるようにします。 
 
-1.	**Add Component（コンポーネントを追加）** ボタンをクリックして、 **projectile（発射物）** を検索しながら **Projectile Movement** を選択します。 
+1.	[Destructible Mesh] エディタ内で **[Fracture Mesh]** ボタンをクリックして、次に **保存** してウィンドウを閉じます。 
 
-	[REGION:raw]
-	![](OnHit_1.png)
+	![](OnHit2.png)
+
+1.	新規作成した Destructible Mesh アセットを **右クリック** して、**[Asset Actions]** で **[Create Blueprint Using This...]** を選択します。 
+
+	![](OnHit3.png)
+
+	必ず、新規作成したこのブループリントの保存場所を選んで名前を付けるようにしてください。 
+
+1.	この新規ブループリントのブループリント エディタ内の **Components** ウィンドウで **Destructible** コンポーネントを選択します。 
+
+1.	**[Details]** パネルの **Physics** から **[Simulate Physics]** チェックボックスにチェックを入れます。 
+
+	![](OnHit4.png)
+
+	このブループリントでは、物理をシミュレーションします。 
+
+1.	**Details** パネルの下方の **Events** で **OnComponentHit** Event をクリックします。 
+
+	![](OnHit5.png)
+
+	これにより新規ノードが追加され、Event Graph が開きます。 
+
+	![](OnHit6.png)
+
+1.	**Other Actor** ピンを **左クリック** して引き出して、**Cast To FirstPersonProjectile** ノードを探して追加します。 
+
+	![](OnHit7.png)
+
+	ここでは **FirstPersonProjectile** という別のブループリントに [](Engine/Blueprints/UserGuide/CastNodes) します。被破壊メッシュをヒットする場合、実際には FirstPersonProjectile ブループリントがヒットするようにします。その場合、スクリプトを追加して、このメッシュを破砕して粉々にすることができます。そうでなければ何も行いません。 
+
+1.	**Hit** ピンを引き出して、**Break Hit Result** ノードを追加します。 
+
+	![](OnHit8.png)
+
+	**Break Hit Result** ノードによってヒット結果とその情報に関してあらゆるタイプの情報にアクセスできます。 
+
+1.	**Break Hit Result** から、**Hit Actor** ピンを引き出して **Apply Point Damage** ノードを追加します。 
+
+1.	**Apply Point Damage** ノードで、**Base Damage** を **100** に設定し、**Damage Type Class** を **Damage Type** に設定します。 
+
+	![](OnHit9.png)
+
+	Apply Point Damage ノードを使って、生じるダメージの度合いを指定するだけでなく、ダメージを受ける位置を指定することができます。 
+
+1.	**Apply Point Damage** ノードで、以下のように残りのワイヤーを接続します。 
+
+	![](OnHit10.png)
+
+	ノードをすべて接続すると、上のようなグラフになります。 
+
+1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
+
+1.	**コンテンツ ブラウザ** からこのブループリントをレベルにドラッグします。 
+
+	![](OnHit1.png)
+
+1.	エディタで再生するには、**Play** を押して、キューブで発射物を発射するには **左マウス** ボタンを使用します。 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	WRlsw9q-bVA
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	エディタで再生すると、発射された発射物でキューブをヒットすると、キューブがダメージを受けて、粉々になり、ヒットされた位置に推進力を加え、その方向に飛ばします。適用される力は、**FirstPersonProjectile** ブループリント内で定義されます。これは、**Event Hit** ノードを使って発射物が実際に何かをヒットした場合に判断します。 
+
+1.	**「Content/FirstPersonBP/Blueprints」** フォルダ内で **FirstPersonProjectile** ブループリントを開きます。 
+
+	[REGION:lightbox]
+	[![](OnHit12.png)](OnHit12.png)
 	[/REGION]
+	_拡大表示するにはここをクリック_
 
-1.	 **Add Component（コンポーネントを追加）** をクリックして、 **Sphere Collision** と **Static Mesh** を追加します。 
+	このブループリントのスクリプトは、ヒットされる物体が物理をシミュレーションするかをチェックします (ここではキューブのブループリントで true にしました)。物理をシミュレーションする場合、ヒットする位置で推進力を適用します (その量は、黄色のボックス内で定義されます。ここでは 50 に減らしました)。この値を調整して、ヒットが発生したときに適用される推進力の大きさを増減させることができます。 
 
-1.	**コンポーネント** ウィンドウで **Sphere（球体）** コンポーネントをクリックして、 **詳細** パネルで名前を **Collision** に変更します。 
 
-	[REGION:raw]
-	![](OnHit_2.png)
-	[/REGION]
 
-1.	 **Static Mesh（スタティックメッシュ）** をクリックして名前を **Bomb** に変更して、位置の **Z** 値を **-10** 、また XYZ のスケールをそれぞれ **.25** に設定します。 
-
-1.	 **Static Mesh（スタティックメッシュ）** のドロップダウンリストから **Shape_Sphere** を追加します。 
-
-	[REGION:raw]
-	![](OnHit_3.png)
-	[/REGION]
-
-	[REGION:note]
-	**Shape_Sphere** が見つからない場合は、プロジェクトの **Starter Content** が有効になっていることを確認してください。 
-	[/REGION]
-
-1.	スクロールダウンして **Collision** セクションを見つけたら、コリジョンを **NoCollision** に設定します。 
-
-	[REGION:raw]
-	![](OnHit_4.png)
-	[/REGION]
-
-	コリジョンはStatic Meshではなく、Root Sphere Componentを使用すると検知されます。 
-
-1.	 **Collision** Sphere Componentをクリックしてから、 **詳細** パネルで **Sphere Radius（球体の半径）** を **20** に設定します。 
-
-1.	 **コリジョン** の **Simulation Generates Hit Events** を **True** に設定して、 **Collision Presets** に **Block All** を設定します。 
-
-	[REGION:raw]
-	![](OnHit_5.png)
-	[/REGION]
-
-1.	 **Collision** Sphere Componentをクリックしてから、 **詳細** パネルで **Sphere Radius（球体の半径）** を **20** に設定します。 
-
-1.	**Should Bounce** にも **チェックマーク** を入れます。
-
-	[REGION:raw]
-	![](OnHit_6.png)
-	[/REGION]
-
-	前述の2つの手順で発射物の移動パターンを判断します。これらの値は自由に変更できます。 
-
-1.	詳細タブで [Blueprint Defaults] を開くために、ツールバーにある **Class Defaults** ボタンをクリックします。 **Initial Life Span** を **3** に設定します。 
-
-	[REGION:raw]
-	![](OnHit_7.png)
-	[/REGION]
-
-	この設定で一度スポーンした発射物がワールド内に留まる時間を判断できるようになりました。この値も自由に変更できます。 
-
-1.	**コンパイル** および **保存** を行ってからブループリントを閉じます。 
-
-
-### 設定 （Light ブループリント）
-
-このセクションは、ヒット時にspeakエフェクトをスポーンするためにCeiling Light ブループリントを修正します。 
-
-1.	 **Game/StarterContent/Blueprints** フォルダにある **Blueprint_CeilingLight** ブループリントを開きます。 
-
-1.	 **コンポーネント** タブから **コンポーネントを追加** をクリックして、 **パーティクルシステム** を検索して追加します。 
-
-	[REGION:raw]
-	![](OnHit_8.png)	
-	[/REGION]
-
-1.	パーティクルシステムの **詳細** パネルで、位置の **Z** 値に **-140** を設定します。この時に **P_Sparks** エフェクトを使用して **Auto Activate** のチェックを外します。 
-
-	![](OnHit_9.png)
-
-	プレイヤーがランプを攻撃するとパーティクルシステムがアクティベートされて、スパークが生じます。 
-
-1.	**コンパイル** および **保存** を行ってからブループリントを閉じます。 
-
-### 設定 （射撃可能な物理ボックス）
-
-キャラクターが破壊できる、物理面に反応する簡易なボックスを作成します。 
-
-1.	 **コンテンツブラウザ** でアクタタイプの別のブループリントを作成して、これを開きます。 
-
-1.	最初に **Scene** コンポーネントを追加します（Root コンポーネントとして使用するダミーコンポーネントです）。 
-
-	[REGION:raw]
-	![](OnHit_11.png)
-	[/REGION]
-
-1.	 **Components** タブで **Static Mesh** コンポーネントを追加します。 
-
-	[REGION:raw]
-	![](OnHit_10.png)
-	[/REGION]
-
-1.	 **スタティックメッシュ** をクリック、 **詳細** パネルで **Shape_Cube** を選択して **Simulate Physics** に **チェックマーク** を入れます。 
-
-	![](OnHit_13.png)
-
-	また選択している **Collision Preset** が **PhysicsActor** を使用していることを確認してください。 
-
-1.	**コンパイル** および **保存** を行ってからブループリントを閉じます。 
-
-### 設定 （プレイヤーキャラクター）
-
-最後の設定セクションでplayer characterブループリント修正するため、Bombを発射するボタンが押せるようになります。 
-
-1.	**Game/Blueprints** 配下の **コンテンツブラウザ** 内で **MyCharacter** ブループリントを開きます。 
-
-1.	 **グラフ** タブでグラフを **右クリック** して **Left Mouse Button** イベントを追加します。 
-
-1.	 **Pressed** ピンをドラッグして、 **SpawnActorFromClass** ノードを追加します。そして **Class** を **BP_Bomb** に設定します。 
-
-	![](OnHit_14.png)
-
-1.	**MyBlueprint** ウィンドウで、 **変数を追加** ボタンをクリックして新しい変数を作成します。 
-
-1.	 **詳細** パネルで変数名を **SpawnOffset** に変更して **Vector** タイプにします。 
-
-1.	ブループリントを **コンパイル** して、 **SpawnOffset** の **Default Value** 値に **100、33、10** に設定します。 
-
-	![](OnHit_15.png)
-
-	この変数はBomb発射物がプレイヤーから相対的にスポーンされた位置にオフセットを追加するために利用します。 
-
-1.	 **Control** を押しながら **Spawn Offset** 変数を **Left Mouse Button** イベント近くのグラフへドラッグします。 
-
-1.	グラフ内を **右クリック** して **Get Control Rotation** ノードを追加します。 
-
-1.	 **Return Value** をドラッグして **Rotate Vector** ノードを追加、 **Spawn Offset** を **A** ピンと接続します。 
-
-	![](OnHit_16.png)
-
-1.	グラフ内を **右クリック** して **Get Actor Location** ノードを追加します。 その後 **Return** をドラッグして **Vector + Vector** ノードを追加します。 
-
-1.	 **Rotate Vector** の **Return Value** を **Vector + Vector** ノードの別のピンと接続します。 
-
-	![](OnHit_17.png)
-
-	ここで、制御回転とベクター変数を利用して、プレイヤーキャラクターの位置に追加する新規ベクター値を作成します。これにより爆弾をスポーンすることが出来るオフセットが与えられます。プレイヤーキャラクター内部にスポーンしないように、プレイヤーよりも若干手前です。 
-
-1.	グラフ内を **右クリック** して **Make Transform** ノードを追加して、以下のようにノードを接続します。 
-
-	![](OnHit_18.png)
-
-## Event Hit の例 （照明器具を撃ち抜く）
-
-プロジェクト設定で、Ceiling Light（天井ランプ）を撃ち抜いてスパークエフェクトをオンにすることができる **Event Hit** ノードが使用できるようになりました。 
-
-1.	 **Game/StarterContent/Blueprints** フォルダにある **Blueprint_CeilingLight** ブループリントを開きます。 
-
-1.	 **グラフ** タブを **右クリック** して **Event Hit** ノードを追加します。 
-
-1.	 **Event Hit** ノードの **Other** ピンをドラッグして **Cast To BP_Bomb** ノードに追加します。 
-
-	![](OnHit_19.png)
-
-	**Other** ピンはコリジョンに関わるもう一方のアクタを参照します。ここで **Cast To BP_Bomb** ノードを使用することで、 **BP_Bomb** をヒットする別のアクタが関与するかどうかを確認して、そして関与する場合はスクリプトを継続実行することを示しています。そうでない場合はスクリプトの実行は継続しません。これは照明器具にヒットした対象を手っ取り早くチェックする方法です。 
-
-	[REGION:note]
-	各ピンタイプの詳細は [Event Hit](Engine/Blueprints/UserGuide/Events#eventhit) ドキュメントを参照してください。
-	[/REGION]
-
-1.	 **Ctl** キーを押しながら **Sparks** コンポーネントを **MyBlueprint** からグラフへドラッグします。 
-
-1.	 **Sparks** をドラッグして、 **Activate** ノードを追加して以下のように接続します。 
-
-	![](OnHit_20.png)
-
-1.	 **Ctl** キーを押しながら **Point Light 1** コンポーネントを **MyBlueprint** ウィンドウからグラフへドラッグします。 
-
-1.	 **Point Light 1** をドラッグして、 **Set Visibility** ノードを追加、 **New Visibility** のチェックを外したままで以下のように接続します。 
-
-	![](OnHit_21.png)
-
-1.	 **Set Visibility** の後に **Delay** ノードを追加して（1.5に設定）、その後 **Sparks** をドラッグして **Deactivate** と以下のように接続します。 
-
-	![](OnHit_22.png)
-
-1.	**コンパイル** および **保存** を行ってからブループリントを閉じます。 
-
-1.	コンテンツ ブラウザ から、レベル内の暗い領域へ **Blueprint_CeilingLight** をドロップ＆ドラッグします。 
-
-	![](OnHit_23.png)
-
-1.	エディタ内でプレイするには **Play** を押して、 **左マウスボタン** で照明器具を撃ち抜きます。 
-
-	![](OnHit_24.gif)(convert:false)
-
-	弾薬が照明器具に当たると、照明が消えて火花が散った後に消滅します。 
-
-**Cast to BP_Bomb** ノードを使用して、LightへのHit をBomb ブループリントのみに登録させることができます。別のオブジェクトで照明器具をヒットしたり別のオブジェクトにヒットを登録する場合は、スクリプトを削除して **Event Hit** ノードのみを使用します（または別のオブジェクトでヒットした時の動作を決定するために、可能であればEvent Hitの後に **Branch** を追加します） 
-
-
-## Event Hit の例 （力とダメージを適用）
-
-この例は、**Event Hit** ノードを利用して、ヒットした位置のオブジェクトに力を適用します。ヒットしたオブジェクトにもダメージを適用します。十分な回数だけヒットするとオブジェクトは破壊されます。 
-
-1.	 **コンテンツブラウザ** で **Cube** ブループリントを探してレベルへドラッグ＆ドロップします。 
-
-	![](OnHit_25.png)
-
-	現在エディタでプレイしている場合は、もしオブジェクトが物理アクタであっても、プレイヤーに撃たれても影響を受けません。プレイヤーキャラクターをキューブ内に動かすと、キューブをあちこちへ移動させることができますが、発射物とキューブの衝突時に十分な力が加えられないため、キューブは動きません。発射物とのコリジョンが発生した時にオブジェクトをプッシュする衝撃力を加えてこれを修正します。 
-
-1.	 **BP_Bomb** ブループリントを開いて、グラフ内を **右クリック** して **Event Hit** ノードを追加します。 
-
-1.	**Other Comp** ピンをドラッグして **Add Impulse at Location** ノードを追加します。 
-
-	![](OnHit_26.png)
-
-	**Other Comp** ピンは推進力を適用するコリジョンに関わるもう一方のアクタのコンポーネントを参照します。推進力はこのアクタに適用します。 
-
-1.	グラフ内を **右クリック** して **Get Velocity** ノードを追加します。ワイヤーを **Return** から外して、 **Vector X Float** ピンに追加します（100に設定）。 
-
-1.	 **Vector X Float** ノードの出力ピンを **Add Impulse at Location** ノードの **Impulse** ピンに接続します。 
-
-1.	 **Event Hit** ノードの **Hit Location** ピンを **Add Impulse at Location** ノードの **Location** ピンに接続します。 
-
-	![](OnHit_27.png)
-
-	最後のいくつかの手順が終了すると上のグラフのような結果になるはずです。ここでアクタ（爆薬）の現在のベロシティを受け取ってこれを100で乗算、ヒット位置で撃たれるアクタのコンポーネントに適用する推進力として使用します。
-
-1.	 **Event Hit** の **Other** ピンをドラッグして **Apply Damage** ノードに追加します。 
-
-1.	**Base Damage** 値を10に設定して、ノードを以下の表示のように接続します。 
-
-	![](OnHit_28.png)
-
-	アクタ自身を受け取るために **Other** ピンを使用して、**Apply Damage** ノードを利用してアクタに10のダメージを適用します。 
-
-1.	**コンパイル** および **保存** を行ってからブループリントを閉じます。 
-
-1.	**コンテンツブラウザ** から **Cube** ブループリントを開きます。 
-
-1.	**グラフ** タブの **MyBlueprint** ウィンドウで **Add Variable** ボタンをクリックします。 
-
-1.	変数に **CubeHealth** と名前を付けて、 **Float** 型に設定、そして **コンパイル** を行って **Default Value** を50に設定します。 
-
-	![](OnHit_29.png)
-
-1.	グラフを **右クリック** して **Event Any Damage** ノードを追加、 **Control** キーとドラッグ操作で **CubeHealth** 変数を配置します。 
-
-	![](OnHit_30.png)
-
-1.	**CubeHealth** をドラッグ配置して **Float - Float** ノードを追加します。その後、 **Damage** を **Float - Float** ノードの別のピンに代入します。 
-
-1.	 **Set** ノードを作成するために **Alt** キーを押しながら **CubeHealth** 変数をドラッグして、ノード同士を以下のように接続します。 
-
-	![](OnHit_31.png)
-
-1.	**B** キーを押しながらグラフ内をクリックして **Branch** ノードを作成します。 
-
-1.	**CubeHealth** 変数をドラッグ配置して **<=** ノードを追加します。その後ノードの出力ピンを **Branch** の **Condition** へ代入します。 
-
-1.	**True** を **Destroy Actor** ノードに追加、 **False** を **Print String** ノードに追加します。 
-
-1.	**CubeHealth** からワイヤーをドラッグして **Print String** ノードの **InString** に代入します（conversionノードを自動作成します）。 
-
-	![](OnHit_32.png)
-
-	グラフ設定は上の画面のように表示されるはずです。ここではCubeブループリントがダメージを受けた時に、入力ダメージを受け取って（適用時は10に設定）、この値をキューブのヘルス値全体（CubeHealth）から除算します。その後値をキューブの新しいヘルス値として設定します。 
-
-	キューブのヘルス値が0以下の場合は、キューブを破壊します。それ以外は、キューブに残されたヘルス値を確認できるように、CubeHealthの現行値がスクリーンに表示されます。 
-
-1.	**コンパイル** および **保存** を行ってからブループリントを閉じます。 
-
-1.	エディタでプレイするには **Play** ボタンをクリックします。 
-
-	[![](OnHit_32b.png)](OnHit_32.mp4)
-
-	エディタで再生時は、爆弾の発射物からの推進力にキューブが応答して、衝撃位置に力が適用されるのがわかります。キューブをヒットするたびにキューブ全体のヘルス値が減少し、スクリーンの左上隅に表示されます。5回撃たれるとキューブは破壊されます。 
-
-以上がニーズに応じたゲームプレイに使用可能な **Event Hit** の使用例です。Hit発生時やHitに基づく追加のチェックを実行したり、さまざまな動作を実行するためにさまざまなスクリプトを実行させる場合もあります。 

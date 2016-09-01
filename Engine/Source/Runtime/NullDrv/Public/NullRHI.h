@@ -529,6 +529,11 @@ public:
 
 	}
 
+	virtual void RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ) final override
+	{
+
+	}
+
 	virtual void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY) final override
 	{
 	}
@@ -781,13 +786,13 @@ public:
 	{
 
 	}
-	virtual void RHIEnqueueDecompress(uint8_t*, uint8_t*, int, void*) final override
+	virtual bool RHIEnqueueDecompress(uint8_t*, uint8_t*, int, void*) final override
 	{
-
+		return false;
 	}
-	virtual void RHIEnqueueCompress(uint8_t*, uint8_t*, int, void*) final override
+	virtual bool RHIEnqueueCompress(uint8_t*, uint8_t*, int, void*) final override
 	{
-
+		return false;
 	}
 	virtual bool RHIGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate) final override
 	{ 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2284836
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:UTextureRenderTargetCube
 Crumbs:
@@ -6,7 +6,7 @@ Description:TextureRenderTargetCube クラスの概要
 
 [EXCERPT:UTextureRenderTargetCube]
 
-キューブのレンダーターゲット
+キューブのレンダー ターゲット
 
 [VAR:ToolTipFullLink]
 

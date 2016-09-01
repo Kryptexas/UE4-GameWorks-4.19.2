@@ -219,7 +219,7 @@ Debug features can be accessed by pressing the **`** key to bring up the console
 
 ### Rendering Skeletal Mesh Bones
 
-![](ShowDebugBones.png)(h:320)
+![](AnimationShowDebugBones.jpg)(h:320)
 
 To display the Skeletal Mesh Bones, enter the `ShowDebug Bones` command inside the console. As seen in the image above the bones are represented by individual white lines. 
 
@@ -235,7 +235,7 @@ An alternative look, matching the bones displayed in Persona, can be enabled by 
 
 ### Animation Debug Output
 
-![](ShowDebugAnimation.png)
+![](AnimationShowDebugToggle.jpg)
 
 The **Animation Debug Output** information can be enabled by using the `ShowDebug Animation` command inside the console. 
 

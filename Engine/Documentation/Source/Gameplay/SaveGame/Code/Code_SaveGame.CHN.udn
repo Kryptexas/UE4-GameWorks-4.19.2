@@ -1,32 +1,32 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2716250
 Availability:Public
-Title: Saving Your Game with C++
+Title: 使用 C++ 保存游戏
 Crumbs:%ROOT%, Gameplay, Gameplay/SaveGame
-Description:How to save and load your game with C++ code
-Version: 4.6
+Description:如何使用 C++ 代码保存和加载游戏
+version: 4.9
 
 [TOC (start:2 end:2)]
 
-## Create a SaveGame Object
+## 创建 SaveGame 对象
 
-The `SaveGame` class sets up an object that can be used as a target for the saving and loading functions declared in `Kismet/GameplayStatics.h`.  
+`SaveGame` 类定义了一个对象结构，该结构可供 `Kismet/GameplayStatics.h` 中的存盘和读取的函数调用来使用。 
 
-You can create a new class based on `SaveGame` using the [](Programming\Development\ManagingGameCode\CppClassWizard).
+要新建基于 `SaveGame` 的类可使用 [](Programming\Development\ManagingGameCode\CppClassWizard)。
 
 ![](SaveGameCode.png)(w:800)
 
-In this example, the new `SaveGame` class is called `MySaveGame`.
+在本例中，新建的 `SaveGame` 类称为 `MySaveGame`。
 
-### Header
+### 头文件
 
-In the header file for your `SaveGame` object, you can declare any variables you want your `SaveGame` to store. 
+在这个 `SaveGame` 类的头文件中，您可以声明任意想要存储的变量。 
 	
 	UPROPERTY(VisibleAnywhere, Category = Basic)
 	FString PlayerName;
 
 [REGION:note]
-In this example, there are also variables declared that will be used to store default values for the `SaveSlotName` and the `UserIndex`, so that each class that saves to this
-`SaveGame` object will not have to independently set those variables. This step is optional, and will cause there to be one save slot that gets overwritten if the default values are not changed.
+在本示例中，还有一些已声明的变量，这些变量将用于存储 `SaveSlotName` 和 `UserIndex` 的默认值，保存至此 `SaveGame` 对象的各类
+就不必单独设置这些变量了。此步骤为可选步骤，将产生一个保存槽，如果默认值未发生变化，则该保存槽将被覆盖。
 [/REGION]
 
 [REGION:codetitlebar]
@@ -58,15 +58,15 @@ MySaveGame.h
 		UPROPERTY(VisibleAnywhere, Category = Basic)
 		uint32 UserIndex;
 
-		UMySaveGame(const FObjectInitializer& ObjectInitializer);
+		UMySaveGame();
 	};
 
-### Source
+### 源文件
 
-Generally, the `SaveGame` object's source file does not need any particular code to function, unless your particular save system has additional functionality you would like to set up
-here. 
+通常，`SaveGame` 对象的源文件无需为功能编写特定代码，除非您的特定保存系统有您想要在此设置的
+附加功能。 
 
-This example does define the values of `SaveSlotName` and `UserIndex` in the class constructor, so they can be read out and used by other gameplay classes.
+本例中，我们在类构建器中定义了 `SaveSlotName` 和 `UserIndex` 的值，以便其他游戏类可读取及使用这些值。
 
 [REGION:codetitlebar]
 MySaveGame.cpp
@@ -76,40 +76,42 @@ MySaveGame.cpp
 	#include "[ProjectName].h"
 	#include "MySaveGame.h"
 
-	UMySaveGame::UMySaveGame(const FObjectInitializer& ObjectInitializer)
-		: Super(ObjectInitializer)
+	UMySaveGame::UMySaveGame()
 	{
 		SaveSlotName = TEXT("TestSaveSlot");
 		UserIndex = 0;
 	}
 
-### Module Header File
+### 模块头文件
 
-To be able to easily access both your `SaveGame` object and the creating, saving, and loading functions from `GameplayStatics`, you should add the following lines to your game module's header file,
-under any other `#include` statements.
+为了能从 `GameplayStatics` 同时方便地存取 `SaveGame` 对象及创建、保存和加载功能，您应在游戏模块的头文件中的
+任何其他 `#include` 语句下面加入以下行。您的模块头文件将会自动命名为 [ProjectName].h。
 
 [REGION:codetitlebar]
 MyProject.h
 [/REGION:codetitlebar]
 	#include "MySaveGame.h"
 	#include "Kismet/GameplayStatics.h"
+[REGION:warning]
+需要保证这些 #include 语句添加在 `#include "Engine.h"` 之后，否则编译会失败。
+[/REGION]
 
-## Saving a Variable
+## 保存变量
 
-Whenever you want to save out a variable to your `SaveGame` object, you must create an instance of your `SaveGame` object, and then set the variable within it.
+当想要在 `SaveGame` 的对象中保存变量的时候，必须先创建一个 `SaveGame` 的对象实例，然后再实例中设置需要的变量。
 
-	MyPlayerName = TEXT("PlayerOne");
+	PlayerName = TEXT("PlayerOne");
 	UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
 	SaveGameInstance->PlayerName = MyPlayerName;
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveSlotName, SaveGameInstance->UserIndex);
 
-## Loading a Variable
+## 加载变量
 
-To load a variable, you must first load the `SaveGame` object using `UGameplayStatics::LoadGameFromSlot`. This creates a new instance of the `SaveGame` object.
+若要加载变量，您必须先使用 `UGameplayStatics::LoadGameFromSlot` 加载 `SaveGame` 对象。这样做将创建一个 `SaveGame` 对象的新实例。
 
-Again, in this case, an empty `SaveGame` object is first created, so the default `SaveSlotName` and `UserIndex` can be read from it. This is an optional step and may not apply in all game implementations.
+同上示例，本示例中先创建了一个空的 `SaveGame` 对象，因此可从该对象中读取默认的 `SaveSlotName` 和 `UserIndex`。此步骤为可选步骤，可能无法适用于所有游戏实施。
 
-Once the new `SaveGame` object has been loaded from the hard drive, the variable values can be read from it and assigned to the necessary Actors or classes, or used directly as shown here.
+从硬盘驱动器加载新的 `SaveGame` 对象后，即可从该对象中读取变量值，并将其指派给所需的 actor 或类，或者如此处所示直接使用。
 
 	UMySaveGame* LoadGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
 	LoadGameInstance = Cast<UMySaveGame>(UGameplayStatics::LoadGameFromSlot(LoadGameInstance->SaveSlotName, LoadGameInstance->UserIndex));

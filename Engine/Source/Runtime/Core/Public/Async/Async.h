@@ -239,11 +239,15 @@ private:
  */
 struct FAsyncThreadIndex
 {
-	CORE_API static int32 GetNext()
+#if ( !PLATFORM_WINDOWS ) || ( !defined(__clang__) )
+	static CORE_API int32 GetNext()
 	{
 		static FThreadSafeCounter ThreadIndex;
 		return ThreadIndex.Add(1);
 	}
+#else
+	static CORE_API int32 GetNext(); // @todo clang: Workaround for missing symbol export
+#endif
 };
 
 
@@ -285,7 +289,7 @@ struct FAsyncThreadIndex
  * @param Execution The execution method to use, i.e. on Task Graph or in a separate thread.
  * @param Function The function to execute.
  * @param CompletionCallback An optional callback function that is executed when the function completed execution.
- * @result A TFuture object that will receive the return value from the function.
+ * @return A TFuture object that will receive the return value from the function.
  */
 template<typename ResultType>
 TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Function, TFunction<void()> CompletionCallback = TFunction<void()>())

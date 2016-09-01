@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2623598
+﻿INTSourceChangelist:2755897
 Availability:Public
 Title:Behavior Tree ノードのリファレンス:Tasks
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree Task ノードの説明です。
+version:4.9
 
 [TOC(start:2 end:2)]
 
-ビヘイビアツリー エディタで利用可能な **Task ノード** について説明します。Tasks ノードは、AI を移動するなどのように何かを "実行する" ノード、あるいは Blackboard 値を調整します。[**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
+ビヘイビアツリー エディタで利用可能な **Task ノード** について説明します。Tasks ノードは、AI を移動するなどのように何かを "実行する"、あるいは Blackboard 値を調整するノードです。[Decorators](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
 
 ## Make Noise
 
@@ -17,13 +18,13 @@ Description:Behavior Tree Task ノードの説明です。
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Loudness** | 作成される音の音量です。 |
-| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+| **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 ## Move To
 
 ![](MoveTo.png)
 
-Move To ノードは Character Movement コンポーネントのあるポーンを NavMesh を使って ベクター ブラックボード キーへ移動させます。
+**Move To** ノードは Character Movement コンポーネントのあるポーンを NavMesh を使ってベクター ブラックボード キーへ移動させます。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
@@ -37,7 +38,7 @@ Move To ノードは Character Movement コンポーネントのあるポーン�
 
 ![](PlaySound.png)
 
-**Sound to Play** プロパティで与えられたサウンドを再生するノードです。
+**Play Sound** ノードは、Sound to Play プロパティで与えられたサウンドを再生するノードです。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
@@ -48,11 +49,11 @@ Move To ノードは Character Movement コンポーネントのあるポーン�
 
 ![](RunBehavior.png)
 
-Run Behavior ノードにより、別のビヘイビアツリーを実行することができます。 
+**Run Behavior** ノードにより、別のビヘイビアツリーを実行することができます。 
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Behavior Asset** | Behavior Tree アセットを実行します。 |
+| **Behavior Asset** | 実行する Behavior Tree アセットです。 |
 | **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 
@@ -60,12 +61,12 @@ Run Behavior ノードにより、別のビヘイビアツリーを実行する�
 
 ![](RunEQSQuery.png)
 
-Run EQS Query ノード
+**Run EQS Query** ノード
 
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Query Template** | (コンテンツ ブラウザで作成した) この EQS Query に使用する Environment Query です。 |
-| **Query Params** | マテリアルのパラメータの持ち方と同じように、Environment Query は Generator と Tests にプロパティをパラメータとして設定することができます。従って、これらのパラメータ名を入力し、その値をここで設定することにより、1 つの Environment Query で広範囲のシナリオに対応できるようになります。 |
+| **Query Params** | マテリアルがパラメータを持つやり方と同じように、Environment Query は Generator と Tests にプロパティをパラメータとして設定することができます。従って、これらのパラメータ名を入力し、その値をここで設定することにより、1 つの Environment Query で広範囲のシナリオに対応できるようになります。 |
 | **Blackboard Key**| ベクター |
 | **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 

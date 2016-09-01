@@ -1,95 +1,97 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Event Dispatchers
+﻿INTSourceChangelist:2680673
+Availability:Public
+Title:事件分配器
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:A sample of how an event called in one Blueprint can execute events in another. 
-Related: Engine/Blueprints/UserGuide/EventDispatcher
-Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
-Related: Engine/Blueprints/UserGuide
+Description:在蓝图中调用的事件如何在另一个蓝图中执行事件。 
+Related:Engine/Blueprints/UserGuide/EventDispatcher
+Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+Related:Engine/Blueprints/UserGuide
+version:4.9
+skilllevel:Advanced
 
-When an [Event Dispatcher](Engine/Blueprints/UserGuide/EventDispatcher) is called, any Blueprints that implement and have Events bound to the Event Dispatcher will also execute when the Event Dispatcher is called. In other words, whenever the Event Dispatcher is called, any Events that are bound to it are also called allowing you to execute multiple Events at once from a single source. 
+[事件分配器](Engine/Blueprints/UserGuide/EventDispatcher) 被调用时，也将执行实施事件且事件与事件分配器绑定的全部蓝图。换言之，事件分配器被调用时，与其绑定的所有事件也将被调用，以便从单一源同时执行多个事件。 
 
-This page will show you how to set up an Event Dispatcher and Bind an Event to the Event Dispatcher. 
+此页面将说明如何设置事件分配器并将事件绑定到事件分配器。 
 
-For this example we will allow the player to press a key which will cause a fire particle effect to spawn inside of a bush. 
+在此例中，玩家按键后灌木丛中将出现火焰粒子效果。 
 
 [REGION:note]
-For this guide we are using the **Blueprint Third Person** template with **Starter Content** enabled. 
+此指南使用启用 **新手内容** 的 **Blueprint Third Person** 模板。 
 [/REGION]
 
-1.  In the **Content Browser**, under the **Content/ThirdPersonBP/Blueprints** folder, open the **ThirdPersonCharacter** Blueprint. 
+1. 在 **内容浏览器** 中的 **Content/ThirdPersonBP/Blueprints** 文件夹下，打开 **ThirdPersonCharacter** 蓝图。 
 
 	![](EventD_1.png)
 
-1.	Under the **My Blueprint** window, click the **Add Event Dispatcher** button and name it **StartFire**. 
+1.	点击 **My Blueprint** 窗口中的 **Add Event Dispatcher** 按钮并将其命名为 **StartFire**。 
 
 	![](EventD_2.png)
 
-1.	**Right-click** in the graph window and add an **F** Key Event.
+1.	在图表窗口中 **单击右键**，添加一个 **F** 按键事件。
 
-1.	Drag the **StartFire** Event Dispatcher into the graph and select **Call**. 
+1.	将 **StartFire** 事件分配器拖入图表并选择 **Call**。 
 
 	![](EventD_3.png)
 
-1.	Connect the **F** Key Event to the **Call StartFire** Event Dispatcher. 
+1.	将 **F** 按键事件和 **Call StartFire** 事件分配器连接起来。 
 
 	![](EventD_4.png)
 
-	Whenever the **F** key is pressed, any Blueprints that have an Event bound to this Event Dispatcher will also be executed. 
+	**F** 键按下时，事件与此事件分配器绑定的蓝图也将被执行。 
 
-1.	**Compile** and **Save** then close the Blueprint. 
+1.	**编译** 并 **保存**，然后关闭蓝图。 
 
-1.	In the **Content Browser** under **Content/StarterContent/Props**, drag the **SM_Bush** into the level. 
+1.	在 **Content Browser** 的 **Content/StarterContent/Props** 中，将 **SM_Bush** 蓝图拖入关卡。 
 
 	![](EventD_5.png)(w:820)
 
-1.	From the Main Toolbar, click the **Blueprints** button then select **Open Level Blueprint**. 
+1.	点击主工具栏的 **Blueprints** 按钮，然后选择 **Open Level Blueprint**。 
 
 	![](EventD_6.png)
 
-1.	**Right-click** inside the graph and select the **Create a Reference to SM_Bush** node. 
+1.	在图表中 **单击右键** 并选择 **Create a Reference to SM_Bush** 节点。 
 
 	![](EventD_7.png)
 
-	Here we are getting a reference to the SM_Bush inside our level. 
+	此操作将在关卡中为 SM_Bush 创建一个引用。 
 
 	[REGION:note]
-	Don't see the node listed above? Select the **SM_Bush** inside your level then try again. 
+	如画面中不存在上图列出的节点，在关卡中选择 **SM_Bush** 并重试。 
 	[/REGION]
 
-1.	**Right-click** in the graph and add an **Event Begin Play** and **Get Player Character** node. 
+1.	在图表中 **单击右键** 并添加 **Event Begin Play** 和 **Get Player Character** 节点。 
 
-1.	Off the **Get Player Character** node, search for and add the **Cast To ThirdPersonCharacter** node. 
+1.	在 **Get Player Character** 的引出连线后搜索并添加 **Cast To ThirdPersonCharacter** 节点。 
 
 	![](EventD_8.png)
 
-	This will allow us to access the Events, Functions, Variables or Properties inside the **ThirdPersonCharacter** Blueprint. 
+	这样我们便能访问 **ThirdPersonCharacter** 蓝图中的事件、函数、变量或属性。 
 
 	[REGION:note]
-	Please see the [](Engine/Blueprints/UserGuide/CastNodes) documentation for more information regarding Blueprint Cast Nodes. 
+	在 [](Engine/Blueprints/UserGuide/CastNodes) 文档中可查阅蓝图投射节点的更多内容。 
 	[/REGION]
 
-1.	Off the **As Third Person Character** pin, search for and use the **Assign Start Fire** node. 
+1.	在 **As Third Person Character** 引脚的引出连线后搜索并使用 **Assign Start Fire** 节点。 
 
 	![](EventD_9.png)
 
-	This will create two new nodes, a **Bind Event** node and a **Custom Event**. Whenever the Event Dispatcher is called inside our Character Blueprint, since we are binding that event, the Custom Event and anything connected to it will also be executed. Any Blueprints that have Events bound to the Event Dispatcher will also be executed. 
+	此操作将新建两个节点，**Bind Event** 和 **Custom Event**。在角色蓝图中调用事件分配器时，Custom Event 和与其相连的任意事件均会被执行（因它们与事件分配器绑定）。事件与事件分配器绑定的蓝图也将被执行。 
 
-1.	Off the **Custom Event**, add a **Spawn Actor from Class** node (with **Class** set to **Blueprint_Effect_Fire**). 
+1.	在 **Custom Event** 的引出连线后添加 **Spawn Actor from Class** 节点（**Class** 设为 **Blueprint_Effect_Fire**）。 
 
-1.	Drag off the **SM_Bush** to **Get Actor Transform** and use that as the **Spawn Transform** for the Spawn Actor node. 
+1.	将 **SM_Bush** 的引出连线拉到 **Get Actor Transform**，将其用作 Spawn Actor 节点的 **Spawn Transform**。 
 
 	![](EventD_10.png)
 
-	Once all nodes are connected, your graph should look similar to above. 
+	所有节点连接完毕后，图表外观和上图相似。 
 
-1.	Click **Compile**, close the Level Blueprint, then click **Play** to play in the editor. 
+1.	点击 **Compile**，关闭关卡蓝图，然后点击 **Play** 在编辑器中开始游戏。 
 
 	![](EventD_11.png)(w:640)
 
-	When you press the **F** key, the fire effect will spawn inside the bush. 
+	按下 **F** 键后，火焰特效将出现在灌木丛中。 
 
-For more information on working with **Event Dispatcher** and sample use cases, refer to the **Related Topics** below. 
+如需了解 **事件分配器** 使用和用例范例的更多内容，请查阅下方的 **相关页面**。 
 
 
 

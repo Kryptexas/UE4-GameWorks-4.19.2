@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2617178
+﻿INTSourceChangelist:2828862
 Availability:Public
 Title: 메뉴 앵커
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -6,16 +6,17 @@ Description:팝업 메뉴에 쓰이는 Menu Anchor, 메뉴 앵커에 대한 개�
 Related: Engine/UMG/UserGuide
 Related: Engine/UMG/UserGuide/Styling
 Related: Engine/UMG/UserGuide/Slots
+version: 4.9
 
 [TOC(start:2 end:2)]
 
-## 위젯 설명
+## 설명
 
 [EXCERPT:desc]
-Menu Anchor, 메뉴 앵커는 팝업 메뉴의 기준이 되어 띄울 위치를 지정할 수 있습니다.
+이 위젯은 팝업 메뉴의 기준이 되어 띄울 위치를 지정할 수 있습니다.
 [/EXCERPT:desc]
 
-## 위젯 디테일
+## 디테일
 
 배치된 **Menu Anchor** 에 대한 **디테일** 패널에 보면, 그 위젯에 관련되어 설정할 수 있는 옵션이 몇 가지 있습니다:
 
@@ -26,12 +27,13 @@ Menu Anchor, 메뉴 앵커는 팝업 메뉴의 기준이 되어 띄울 위치를
 | **Menu Class** | 메뉴 클래스 - 메뉴 호출시 스폰시킬 위젯 블루프린트 (팝업) 입니다. 매번 새롭게 위젯을 생성합니다. |
 | **Placement** | 배치 - 생성된 위젯의 위치 결정에 사용되는 여러가지 배치 옵션입니다. |
 | **OnGetMenuContent** | 메뉴 콘텐츠 구할 때 - 팝업을 불러올 때 호출되는 **OnGetMenuContent** 이벤트에 함수나 프로퍼티를 바인딩하는 식으로 팝업의 커스터마이징이 가능합니다  (see below). |
+| **OnMenuOpenChanged** | 메뉴 열림 변경시 - 메뉴의 열림 상태가 변경되면 호출되는 **OnMenuOpenChanged** 이벤트에 함수나 프로퍼티를 바인딩시켜 맞춤형 팝업이 가능합니다. |
 
 **OnGetMenuContent** 이벤트에 대해, **디테일** 패널에서 함수를 직접 만들어 바인딩할 수 있는데, 메뉴 앵커 호출시마다 바로 그 함수가 호출됩니다. 이를 통해 팝업 메뉴 생성시 부가 기능을 추가할 수 있습니다. 예를 들어 아래에서 플레이어가 _전투중_ 인지 알아보는 검사를 실행하고, 전투중이 아니면 팝업 메뉴를 열 수 있도록 합니다. 전투중이면 팝업 메뉴를 열 수 없도록 합니다.
 
 ![](ExampleGetMenu.png)(w:840)
 
-### 메뉴 앵커 블루프린트 함수
+### 블루프린트 함수
 
 **Menu Anchor** 위젯에는 스크립트를 통해 호출 가능한 위젯 전용 함수가 몇 가지 있는데, 다음과 같습니다.
 
@@ -40,8 +42,11 @@ Menu Anchor, 메뉴 앵커는 팝업 메뉴의 기준이 되어 띄울 위치를
 | 옵션 | 설명 |
 | -------- | ----------- |
 | **Close** | 닫기 - 메뉴가 현재 열린 경우 닫습니다. |
+| **Get Menu Position** | 메뉴 위치 구하기 - 메뉴의 월드 스페이스 위치를 반환합니다. |
+| **Has Open Sub Menus** | 열린 서브 메뉴 있는지 - 메뉴에 열린 서브 메뉴가 있는지 없는지를 반환합니다. |
 | **Is Open** | 열렸는지 - 타겟 메뉴 앵커가 현재 열렸는지 검사하여 불리언을 반환합니다. |
 | **Open** | 열기 - 메뉴가 현재 닫힌 경우 엽니다. |
+| **Should Open Due to Click** | Returns wether the menu should be openable by clicking or not. |
 | **Toggle Open** | 열림 토글 - 열기/닫기 대신 메뉴가 열렸으면 닫고 닫혔으면 엽니다. |
 
 ## 용례

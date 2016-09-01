@@ -165,6 +165,53 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public abstract IEnumerable<string> FindConsumedTagNames();
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public abstract IEnumerable<string> FindProducedTagNames();
+
+		/// <summary>
+		/// Adds tag names from a filespec
+		/// </summary>
+		/// <param name="Filespec">A filespec, as can be passed to ResolveFilespec</param>
+		/// <returns>Tag names from this filespec</returns>
+		protected IEnumerable<string> FindTagNamesFromFilespec(string Filespec)
+		{
+			if(!String.IsNullOrEmpty(Filespec))
+			{
+				foreach(string Pattern in SplitDelimitedList(Filespec))
+				{
+					if(Pattern.StartsWith("#"))
+					{
+						yield return Pattern;
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Enumerates tag names from a list
+		/// </summary>
+		/// <param name="Filespec">A filespec, as can be passed to ResolveFilespec</param>
+		/// <returns>Tag names from this filespec</returns>
+		protected IEnumerable<string> FindTagNamesFromList(string TagList)
+		{
+			if(!String.IsNullOrEmpty(TagList))
+			{
+				foreach(string TagName in SplitDelimitedList(TagList))
+				{
+					yield return TagName;
+				}
+			}
+		}
+
+		/// <summary>
 		/// Resolves a single name to a file reference, resolving relative paths to the root of the current path.
 		/// </summary>
 		/// <param name="Name">Name of the file</param>
@@ -205,12 +252,21 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds or adds a set containing files with the given tag
 		/// </summary>
-		/// <param name="Name">The tag name to return a set for. An leading '#' character is optional.</param>
+		/// <param name="TagName">The tag name to return a set for. A leading '#' character is required.</param>
 		/// <returns>Set of files</returns>
-		public static HashSet<FileReference> FindOrAddTagSet(Dictionary<string, HashSet<FileReference>> TagNameToFileSet, string Name)
+		public static HashSet<FileReference> FindOrAddTagSet(Dictionary<string, HashSet<FileReference>> TagNameToFileSet, string TagName)
 		{
-			// Get the clean tag name, without the leading '#' character
-			string TagName = Name.StartsWith("#")? Name.Substring(1) : Name;
+			// Make sure the tag name contains a single leading hash
+			if (TagName.LastIndexOf('#') != 0)
+			{
+				throw new AutomationException("Tag name '{0}' is not valid - should contain a single leading '#' character", TagName);
+			}
+
+			// Any spaces should be later than the second char - most likely to be a typo if directly after the # character
+			if (TagName.IndexOf(' ') == 1)
+			{
+				throw new AutomationException("Tag name '{0}' is not valid - spaces should only be used to separate words", TagName);
+			}
 
 			// Find the files which match this tag
 			HashSet<FileReference> Files;
@@ -223,7 +279,7 @@ namespace AutomationTool
 			// If we got a null reference, it's because the tag is not listed as an input for this node (see RunGraph.BuildSingleNode). Fill it in, but only with an error.
 			if(Files == null)
 			{
-				CommandUtils.LogError("Attempt to reference tag '{0}', which is not listed as a dependency of this node.", Name);
+				CommandUtils.LogError("Attempt to reference tag '{0}', which is not listed as a dependency of this node.", TagName);
 				Files = new HashSet<FileReference>();
 				TagNameToFileSet.Add(TagName, Files);
 			}
@@ -259,16 +315,28 @@ namespace AutomationTool
 		public static HashSet<FileReference> ResolveFilespecWithExcludePatterns(DirectoryReference DefaultDirectory, string DelimitedPatterns, List<string> ExcludePatterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Split the argument into a list of patterns
-			string[] Patterns = SplitDelimitedList(DelimitedPatterns);
+			List<string> Patterns = SplitDelimitedList(DelimitedPatterns);
+			return ResolveFilespecWithExcludePatterns(DefaultDirectory, Patterns, ExcludePatterns, TagNameToFileSet);
+		}
 
+		/// <summary>
+		/// Resolve a list of files, tag names or file specifications as above, but preserves any directory references for further processing.
+		/// </summary>
+		/// <param name="DefaultDirectory">The default directory to resolve relative paths to</param>
+		/// <param name="DelimitedPatterns">List of files, tag names, or file specifications to include separated by semicolons.</param>
+		/// <param name="ExcludePatterns">Set of patterns to apply to directory searches. This can greatly speed up enumeration by earlying out of recursive directory searches if large directories are excluded (eg. .../Intermediate/...).</param>
+		/// <param name="TagNameToFileSet">Mapping of tag name to fileset, as passed to the Execute() method</param>
+		/// <returns>Set of matching files.</returns>
+		public static HashSet<FileReference> ResolveFilespecWithExcludePatterns(DirectoryReference DefaultDirectory, List<string> FilePatterns, List<string> ExcludePatterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		{
 			// Parse each of the patterns, and add the results into the given sets
 			HashSet<FileReference> Files = new HashSet<FileReference>();
-			foreach(string Pattern in Patterns)
+			foreach(string Pattern in FilePatterns)
 			{
 				// Check if it's a tag name
 				if(Pattern.StartsWith("#"))
 				{
-					Files.UnionWith(FindOrAddTagSet(TagNameToFileSet, Pattern.Substring(1)));
+					Files.UnionWith(FindOrAddTagSet(TagNameToFileSet, Pattern));
 					continue;
 				}
 
@@ -313,9 +381,9 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Text">The input string</param>
 		/// <returns>Array of the parsed items</returns>
-		public static string[] SplitDelimitedList(string Text)
+		public static List<string> SplitDelimitedList(string Text)
 		{
-			return Text.Split(';').Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
+			return Text.Split(';').Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
 		}
 	}
 }

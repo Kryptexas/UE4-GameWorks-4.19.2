@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,6 +16,8 @@ class TBigInt
 public:
 
 	typedef TBigInt<NumBits, bSigned> BigInt;
+
+	static BigInt One;
 
 private:
 
@@ -281,7 +283,6 @@ public:
 	 */
 	void Negate()
 	{
-		static const BigInt One(1LL);
 		for (int32 WordIndex = 0; WordIndex < NumWords; ++WordIndex)
 		{
 			Bits[WordIndex] = ~Bits[WordIndex];
@@ -356,7 +357,6 @@ public:
 	 */
 	void DivideWithRemainder(const BigInt& Divisor, BigInt& Remainder) 
 	{ 
-		static const BigInt One(1LL);
 		BigInt Denominator(Divisor);
 		BigInt Dividend(*this);		
 		
@@ -800,7 +800,6 @@ public:
 
 	FORCEINLINE BigInt& operator++()
 	{
-		static const BigInt One(1);
 		Add(One);
 		return *this;
 	}
@@ -820,7 +819,6 @@ public:
 
 	FORCEINLINE BigInt& operator--()
 	{
-		static const BigInt One(1);
 		Subtract(One);
 		return *this;
 	}
@@ -1011,6 +1009,9 @@ public:
 	}
 };
 
+template<int32 NumBits, bool bSigned>
+TBigInt<NumBits, bSigned> TBigInt<NumBits, bSigned>::One(1LL);
+
 // Predefined big int types
 typedef TBigInt<256> int256;
 typedef TBigInt<512> int512;
@@ -1157,7 +1158,7 @@ namespace FEncryption
 	FORCEINLINE static IntType ModularPow(IntType Base, IntType Exponent, IntType Modulus)
 	{
 		const IntType One(1);
-		IntType Result(One);
+		IntType Result(1);
 		while (Exponent > 0)
 		{
 			if (Exponent.IsFirstBitSet())

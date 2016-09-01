@@ -7,13 +7,27 @@
  */
 class CORE_API FOutputDeviceMemory : public FOutputDevice
 {
+	class FOutputDeviceMemoryProxyArchive : public FArchive
+	{
+		FOutputDeviceMemory& OutputDevice;
+	public:
+		FOutputDeviceMemoryProxyArchive(FOutputDeviceMemory& InOutputDevice)
+			: OutputDevice(InOutputDevice)
+		{}
+		virtual void Serialize(void* V, int64 Length) override
+		{
+			OutputDevice.SerializeToBuffer((ANSICHAR*)V, Length / sizeof(ANSICHAR));
+		}
+	} ArchiveProxy;
+
 public:
 	/** 
 	 * Constructor, initializing member variables.
 	 *
-	 * @param InBufferSize Maximum size of the memory ring buffer
+	 * @param InPreserveSize	Bytes of the rung buffer not to overwrite (startup info etc)
+	 * @param InBufferSize		Maximum size of the memory ring buffer
 	 */
-	FOutputDeviceMemory(int32 InBufferSize = 1024 * 1024);
+	FOutputDeviceMemory(int32 InPreserveSize = 256 * 1024, int32 InBufferSize = 2048 * 1024);
 
 	/** Dumps the contents of the buffer to an archive */
 	virtual void Dump(FArchive& Ar) override;
@@ -45,10 +59,9 @@ public:
 	//~ End FOutputDevice Interface.
 
 private:
-
+	
+	/** Serialize cast data to the actual memory buffer */
 	void SerializeToBuffer(ANSICHAR* Data, int32 Length);
-	void FormatAndSerialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time);
-	void CastAndSerializeToBuffer(const TCHAR* Data);
 
 	/** Ring buffer */
 	TArray<ANSICHAR> Buffer;
@@ -56,6 +69,8 @@ private:
 	int32 BufferStartPos;
 	/** Used data size */
 	int32 BufferLength;
+	/** Amount of data not to overwrite */
+	int32 PreserveSize;
 	/** Sync object for the buffer pos */
 	FCriticalSection BufferPosCritical;
 };

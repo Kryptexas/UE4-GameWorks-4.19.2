@@ -49,7 +49,7 @@ In the **LOD Info** section, there are settings that allow you to modify how the
 | Property| Description |
 |--- | --- |
 | **Display Factor** | Indicates when to use the LOD. A smaller number means use the LOD when further away.|
-| **LODHysteresis** | Used to avoid "flickering" when on LOD boundary. Only taken into account when moving from complex to single. |
+| **LODHysteresis** | Used to avoid "flickering" when on LOD boundary. Only taken into account when moving from complex to simple. |
 | **LODMaterial Map** | Specifies the mapping table from the LOD's materials to the USkeletalMesh materials array. |
 | **Triangle Sorting** | Set the current triangle sorting method. |
 | **Custom Left Right Axis** | Set the Left Right Axis.  |

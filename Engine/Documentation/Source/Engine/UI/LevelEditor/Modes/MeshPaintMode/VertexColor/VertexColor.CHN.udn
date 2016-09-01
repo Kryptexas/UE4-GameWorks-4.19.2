@@ -2,8 +2,10 @@ Availability: Public
 Title:网格物体描画用户指南
 Crumbs:%ROOT%, Engine
 Description:在编辑器视口中交互地在网格物体上描画顶点颜色的工具。
+Version: 4.9
 
 **网格物体描画模式** 提供了在您的网格物体上调整颜色和贴图的快速和简单的方法。以下部分涵盖了供您尽可能使用这个强劲工具的所有关键性技巧。
+
 
 
 

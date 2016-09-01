@@ -103,7 +103,7 @@ In the image above, the Root Motion of **Jog_Loop_Fwd_RM** and **Jog_Loop_Right_
 
 ### Root Motion from Montages Only
 
-This method is intended for network games which is the reason for its more restricted functionally. Because **Root Motion from Everything** is designed to be unrestricted, it is recommended that it only be used in games where animation isn’t replicated over a network.  
+This method is intended for network games which is the reason for its more restricted functionally. Because **Root Motion from Everything** is designed to be unrestricted, it is recommended that it only be used in games where animation isn't replicated over a network.  
 
 
 

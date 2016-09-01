@@ -1,19 +1,20 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:6. Further Reading
+﻿INTSourceChangelist:2708171
+Availability:Public
+Title:6.延展阅读
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
-Description:The final step in the UMG Quick Start is to provide additional links to reference documentation.
+Description:UMG 快速入门的结尾部分为参考文档提供了额外链接。
+version:4.9
 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/UMG\QuickStart\5 "%Engine/UMG\QuickStart\5:title%") 
+		[上一步](Engine/UMG\QuickStart\5 "%Engine/UMG\QuickStart\5:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/UMG\QuickStart) 
+		[快速入门主页](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -24,13 +25,13 @@ Description:The final step in the UMG Quick Start is to provide additional links
 
 ---
 
-For more information on the topics covered in this Quick Start Guide, and across the entire editor, see the [Unreal Editor Manual](Engine).
+如需本快速入门指南和整个编辑器所含主题的更多内容，请参阅 [引擎功能](Engine) 页面。
 
-As for coverage related to the topics in this guide:
+有关本指南中所涵盖的相关主题：
 
-* For more information on Unreal Motion Graphics, see: [UMG Overview](Engine/UMG)
+* 关于虚幻动态图形的详细信息，请参阅：[UMG UI 设计器](Engine/UMG)
 
-* For more information on Blueprints, see: [Blueprints Landing Page](Engine\Blueprints)
+* 关于蓝图的详细信息，请参阅：[蓝图视觉脚本编辑](Engine\Blueprints)
 
 ---
 

@@ -4,6 +4,7 @@
 #include "MovieSceneColorTrack.h"
 #include "MovieSceneColorSection.h"
 #include "ColorPropertySection.h"
+#include "CommonMovieSceneTools.h"
 #include "MovieSceneSequence.h"
 #include "FloatCurveKeyArea.h"
 
@@ -22,6 +23,7 @@ void FColorPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& 
 	LayoutBuilder.AddKeyArea( "B", NSLOCTEXT( "FColorPropertySection", "BlueArea", "Blue" ), BlueKeyArea.ToSharedRef() );
 	LayoutBuilder.AddKeyArea( "A", NSLOCTEXT( "FColorPropertySection", "OpacityArea", "Opacity" ), AlphaKeyArea.ToSharedRef() );
 }
+
 
 int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter ) const
 {
@@ -207,6 +209,7 @@ FLinearColor FColorPropertySection::FindSlateColor(const FName& ColorName) const
 	return FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
+
 void FColorPropertySection::SetIntermediateValue( FPropertyChangedParams PropertyChangedParams )
 {
 	const UStructProperty* StructProp = Cast<const UStructProperty>( PropertyChangedParams.PropertyPath.Last() );
@@ -232,6 +235,7 @@ void FColorPropertySection::SetIntermediateValue( FPropertyChangedParams Propert
 	BlueKeyArea->SetIntermediateValue(ColorValue.B);
 	AlphaKeyArea->SetIntermediateValue(ColorValue.A);
 }
+
 
 void FColorPropertySection::ClearIntermediateValue()
 {

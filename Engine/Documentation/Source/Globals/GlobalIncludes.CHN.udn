@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2745726
 Availability:NoPublish
 Title:
 Crumbs:
@@ -17,7 +17,7 @@ Description:
 [VAR:OSSelect]
 [REGION:section]
 	[REGION:titlesection]
-	Choose Your Operating System
+	选择操作系统
 	[/REGION]
 	[OBJECT:ToggleButton]
 		[PARAMLITERAL:category]
@@ -52,7 +52,7 @@ Description:
 [VAR:OSSelect_Linux]
 [REGION:section]
 	[REGION:titlesection]
-	Choose Your Operating System
+	选择操作系统
 	[/REGION]
 	[OBJECT:ToggleButton]
 		[PARAMLITERAL:category]
@@ -101,7 +101,7 @@ Description:
 [VAR:DCCSelect]
 [REGION:section]
 	[REGION:titlesection]
-	Choose Your 3D Art Tool
+	选择 3D 软件
 	[/REGION]
 	[OBJECT:ToggleButton]
 		[PARAMLITERAL:category]
@@ -137,7 +137,7 @@ Description:
 [VAR:BinarySourceSelectVar]
 [REGION:section]
 	[REGION:titlesection]
-	Choose your installation method:
+	选择安装方式
 	[/REGION]
 	[OBJECT:ToggleButton]
 		[PARAMLITERAL:category]
@@ -173,7 +173,7 @@ Description:
 [VAR:BlueprintOrCPPSelectVar]
 [REGION:section]
 	[REGION:titlesection]
-	Choose your implementation method:
+	选择实现方式
 	[/REGION]
 	[OBJECT:ToggleButton]
 		[PARAMLITERAL:category]

@@ -13,7 +13,7 @@
 class FVulkanPendingState
 {
 public:
-	typedef TMap<FStateKey, FVulkanRenderPass*> FMapRenderRass;
+	typedef TMap<FStateKey, FVulkanRenderPass*> FMapRenderPass;
 	typedef TMap<FStateKey, TArray<FVulkanFramebuffer*> > FMapFrameBufferArray;
 
 	FVulkanPendingState(FVulkanDevice* InDevice);
@@ -39,10 +39,6 @@ public:
 	
 	void SetBoundShaderState(TRefCountPtr<FVulkanBoundShaderState> InBoundShaderState);
 
-	//#todo-rco: Temp hack...
-	typedef void (TCallback)(void*);
-	void SubmitPendingCommandBuffers(TCallback* Callback, void* CallbackUserData);
-
 	// Pipeline states
 	void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ);
 	void SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY);
@@ -56,9 +52,17 @@ public:
 	FVulkanBoundShaderState& GetBoundShaderState();
 
 	// Retuns constructed render pass
-	FVulkanRenderPass& GetRenderPass();
+	inline FVulkanRenderPass& GetRenderPass()
+	{
+		check(CurrentState.RenderPass);
+		return *CurrentState.RenderPass;
+	}
 
-	FVulkanFramebuffer* GetFrameBuffer();
+	inline FVulkanFramebuffer* GetFrameBuffer()
+	{
+		return CurrentState.FrameBuffer;
+	}
+
 	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
 
 	inline void UpdateRenderPass(FVulkanCmdBuffer* CmdBuffer)
@@ -82,11 +86,6 @@ public:
 			RenderPassBegin(CmdBuffer);
 			bChangeRenderTarget = false;
 		}
-	}
-
-	inline const FVulkanPipelineGraphicsKey& GetCurrentKey() const
-	{
-		return CurrentKey;
 	}
 
 	void SetStreamSource(uint32 StreamIndex, FVulkanBuffer* VertexBuffer, uint32 Stride, uint32 Offset)
@@ -167,11 +166,14 @@ private:
 	FRHISetRenderTargetsInfo RTInfo;
 
 	// Resources caching
-	FMapRenderRass RenderPassMap;
+	FMapRenderPass RenderPassMap;
 	FMapFrameBufferArray FrameBufferMap;
 
 	FVertexStream PendingStreams[MaxVertexElementCount];
 
 	// running key of the current pipeline state
 	FVulkanPipelineGraphicsKey CurrentKey;
+
+	// bResetMap true if only reset the map, false to free the map's memory
+	void DestroyFrameBuffers(bool bResetMap);
 };

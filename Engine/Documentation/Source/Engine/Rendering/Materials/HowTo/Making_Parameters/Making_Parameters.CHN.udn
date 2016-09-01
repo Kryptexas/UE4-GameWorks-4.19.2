@@ -1,98 +1,181 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Material Editor - How To make Material Parameters
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for Setting Up and using Material Parameters
-Related: Engine/Rendering/Materials/ExpressionReference/Parameters
-Related: Engine/Rendering/Materials/MaterialInstances
-Related: Engine/Rendering/Materials/ParameterCollections
-Related: Engine/Matinee/HowTo/MHT_6
+﻿INTSourceChangelist:2747818
+Availability:Public
+Title:材质编辑器 - 构造材质参数
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
+Description:有关如何设置和使用材质参数的操作指南
+Related:Engine/Rendering/Materials/ExpressionReference/Parameters
+Related:Engine/Rendering/Materials/MaterialInstances
+Related:Engine/Rendering/Materials/ParameterCollections
+Related:Engine/Matinee/HowTo/MHT_6
+Version:4.9
+SkillLevel:Intermediate
 
 [TOC(start:2)]
 
 
 
-To interact with Material Instances, you need to use a special kind of Material Expression node called a **Material Parameter**. 
-In this How To, we will be looking at how you can add or convert Material Expression nodes into Material Parameters nodes and also how you can use those Material Parameters nodes inside of your Materials.
+为了与材质实例互动，您需要使用一种称为 **材质参数** 的特殊类型材质表达式节点。 
+在此操作指南中，我们将了解如何添加材质参数节点或将材质表达式节点转换为材质参数节点，以及如何在材质中使用那些材质参数节点。
 
-## Parameters
+## 参数
 
-Material Parameters are a special kind of Material Expression nodes that allow you to change the look of a Material without having to recompile the Material to see the effects.
-Material Parameter Expression nodes work like any other Material Node that you might use in the Material Graph but with one key difference. 
-When the Material has been compiled and used as a Material Instance, the parts of the Material that use Material Parameters as inputs can then be adjusted, in real time, allowing you to completely change the look and feel of the Material without having to re-compile the Material. 
-You can even adjust Material Parameters while the game is running allowing you to dynamically change how something looks based on certain game rules.
+材质参数是一种特殊类型的材质表达式节点，它们使您能够更改材质的外观，不必重新编译材质即可看到效果。
+材质参数表达式节点与任何其他在材质图中可能使用的材质节点有相似的工作方式，但是它们有一个关键的不同点。 
+当材质已编译并用作材质实例时，其中使用材质参数作为输入的部分仍可实时调节，因此您可以彻底改变材质的外观和质感，而不必重新编译材质。 
+您甚至可以在游戏运行时调节材质参数，这样就可以根据特定的游戏规则动态改变特定对象的外观。
 
-## Creating Parameters
+## 创建参数
 
-You can create Material Parameters in the following ways inside the Material Editor.
+您可以通过以下方式在材质编辑器中创建材质参数。
 
-### Right-Click Conversion
+### 右键交互
 
-The simplest way to make a Material Parameter out of a Material Expression is to **Right-Click** on an existing Material Expression node and then choose the **Convert to Parameter** option from the menu if available. Once converted, you can then name the Material Parameter and give it a default value. To make things better organized, you can also give your Material Parameter a **Group**. A **Group** will group Parameters with the same group inside of Material Instances, making it easier to see Parameters that go together. 
+借助材质表达式创建材质参数的最简单方式是，**右键单击** 现有的材质表达式节点，然后从菜单中选择 **转换为参数（Convert to Parameter）**选项（如果该选项可用）。一经转换，您就可以命名该材质参数并赋予其默认值。为了更好地加以管理，您还可以对材质参数指定 **组**。**组** 将材质实例中同一个组的参数归类到一起，使您可以更加方便地查看那些有共同点的参数。 
 
-![](Making_Parameters_Right_Click_Convert.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+lbCuDpVSfUA
+[/PARAMLITERAL]
+[/OBJECT]
 
 [region:note]
-Not all Material Expressions can be converted into Material Parameters. The best way to see if a Material Expression can be converted into a Material Parameter is to **Right-Click** on it and check to see if the **Convert to Parameter** option is available. If you do not see the **Convert to Parameter** option, then the Material Expression cannot be converted.
+并非所有材质表达式都可转换为材质参数。检查一个材质表达式能否转换成材质参数的最佳方法是 **右键单击** 该材质表达式，然后检查 **转换成参数（Convert to Parameter）**选项是否可用。如果您看不到 **转换成参数（Convert to Parameter）**选项，那么说明该材质表达式不可转换。
 [/region]
 
-### Adding Parameters from the Palette
+### 通过选用板添加参数
 
-You can also add a Material Parameter from the **Palette** search menu. 
-To do this, first search for the word **Parameters** in the Palette search menu.
-Then select the Material Parameter you want to use with the **Left Mouse Button** and with the **Left Mouse Button** still held down, Drag the Material Parameter you want into the Material Graph, 
-releasing the **Left Mouse Button** when your mouse pointer is over the Material Graph to add the Material Expression node in the Material Graph.
+您还可以通过 **选用板** 的搜索菜单来添加材质参数。 
+即，先在选用板搜索菜单中搜索 **Parameters** 一词。
+然后，使用 **鼠标左键** 来选择您想要使用的材质参数，在按住 **鼠标左键** 的情况下，将您所需的材质参数拖到材质图中， 
+当鼠标指针位于材质图上时，释放 **鼠标左键**，这样就会将该材质表达式节点添加到材质图中。
 
-![](Making_Parameters_Adding_From_Palette.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+8ajYkU0Qmj4
+[/PARAMLITERAL]
+[/OBJECT]
 
-### Adding Parameters from the Right-Click Menu
+### 通过快捷菜单添加参数
 
-You can also add Material Parameter Expression nodes to the Material Graph by **Right-Clicking** on an empty section of the Material Graph to display the search menu. 
-Once the search menu has been displayed, search for parameters using the word **Parameters** as the search term.
-Once the Material Parameter node you want to use has been located, select the Material Parameter Expression node from the search menu with the **Left Mouse Button** and then press the **Enter** key to place the Material Parameter node in the Material Graph.
+您也可以通过以 **右键单击** 材质图的空白部分显示搜索菜单的方式，将材质参数表达式节点添加到材质图。 
+搜索菜单显示后，您可通过搜索 **Parameters** 一词来搜索参数。
+找到您想要使用的材质参数节点后，请使用 **鼠标左键** 从搜索菜单中选择材质参数表达式节点，然后按 **Enter** 键将该材质参数节点放入材质图。
 
-![](Making_Parameters_Right_Click_Add.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+fyVkiBqwyWw
+[/PARAMLITERAL]
+[/OBJECT]
 
-## Using Parameters
+## 使用参数
 
-You use Material Parameters like you would use any other Material Expression inside your Material. 
-Where the real power of Material Parameters comes into play is when you use them in conjunction with [Material Instances]( Engine/Rendering/Materials/MaterialInstances). 
+您可以像在材质中使用任何其他材质表达式一样使用材质参数。 
+将材质参数与 [材质实例]( Engine/Rendering/Materials/MaterialInstances) 配合使用时，其强大功能才会显现。 
 
-1. First find and add the following type and amount of Material Parameter Expression nodes to the Material Graph.
+1. 首先，查找并添加下列类型及数量的材质参数表达式节点到材质图中。
 
-	* **  Vector Parameter ** x 1
-	* ** Scalar Node** x 2
+	* ** 矢量参数 ** x 1
+	* ** 标量节点 ** x 2
 	
-	![](Making_Parameters_Adding_Nodes.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	A0jBZjF7iKc
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	[region:tip]
-	You can add either Material Parameter nodes or Material Expression nodes. If you do use Material Expression nodes, make sure that you convert them to Material Parameter nodes via the **Right-Click** menu after you have selected them.
+	您可以添加材质参数节点或材质表达式节点。如果您使用材质表达式节点，请确保在选择它们之后，通过 **右键快捷** 菜单将它们转换成材质参数节点。
 	[/region]
 
-1. Next, make sure that all the Parameter nodes have names and default values. For this example, we are using the following names and default values.
+1. 接下来，请确保所有参数节点都具有名称及默认值。在此示例中，我们使用下列名称和默认值。
 
-	* ** Base_Color** R:1.0 G:0.0 B:0.0
-	* ** Metallic** 0.0
-	* ** Roughness** 0.5
+	* **Base_Color** R:1.0 G:0.0 B:0.0
+	* **Metallic** 0.0
+	* **Roughness** 0.5
 
-	![](Making_Parameters_Naming_Parameters.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	StKVHekJT14
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. Once everything is named, connect all of the Parameter nodes into their respective inputs and make sure to compile and save your Material. 
+1. 对所有参数节点进行命名后，请将所有参数节点连接到它们的对应输入，并确保编译并保存材质。 
 
-	![](Making_Parameters_Connecting_Compile.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	Fwh23pol9CI
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. Now that the Material is compiled and saved, close the Material and find it in the **Content Browser**. Once you find it, **Right-Click** on it with the mouse and select the **Create Material Instance** option to create a new Material Instance from the Material. 
+1. 既然材质已编译并保存，您可以关闭材质，并在 **内容浏览器** 中找到它。找到之后，请 **右键单击** 它并选择 **创建材质实例（Create Material Instance）**选项，从而根据该材质创建新的材质实例。 
 
-	![](Making_Parameters_Create_Material_Instance.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	N17UEEqVEx4
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-1. Open the newly created Material Instance by **Double-Clicking** on it with the **Left Mouse Button** in the **Content Browser**. Once the Material Instance is open you will be able to edit, in real time, the parameters that were set up and named inside of the Material like **Base_Color**, **Metallic**, and **Roughness**.
+1. 在 **内容浏览器** 中，通过 **鼠标左键双击** 打开新创建的材质实例。材质实例打开后，您将能够以实时方式编辑该材质中设置且命名的参数。例如
+**Base_Color**、**Metallic** 和 **Roughness**。
 
-	![](Making_Parameters_Making_Instance.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	tnmNiek09Tw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-## Conclusion 
+## 总结 
 
-Material Parameters are a very powerful and extremely useful tool that when combined with Material Instances offer you a way to add an almost endless amount of variation to your Materials. 
-However keep in mind that in order to use Material Parameters you have to use a Material Instances. 
+材质参数是十分强大且极为有用的工具，通过将它们与材质实例相结合，您可以向材质添加几乎无穷无尽的变化。 
+然而，请记住，必须使用材质实例才能使用材质参数。 
 
 
 

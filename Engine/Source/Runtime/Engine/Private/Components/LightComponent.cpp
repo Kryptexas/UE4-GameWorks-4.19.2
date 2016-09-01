@@ -29,7 +29,7 @@ FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMapData& ShadowMapData)
 
 void FStaticShadowDepthMap::InitRHI()
 {
-	if (Data.ShadowMapSizeX > 0 && Data.ShadowMapSizeY > 0 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (!FApp::ShouldUseNullRHI() && Data.ShadowMapSizeX > 0 && Data.ShadowMapSizeY > 0 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		FRHIResourceCreateInfo CreateInfo;
 		FTexture2DRHIRef Texture2DRHI = RHICreateTexture2D(Data.ShadowMapSizeX, Data.ShadowMapSizeY, PF_R16F, 1, 1, 0, CreateInfo);
@@ -215,6 +215,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, IndirectLightingScale(InLightComponent->IndirectLightingIntensity)
 	, ShadowBias(InLightComponent->ShadowBias)
 	, ShadowSharpen(InLightComponent->ShadowSharpen)
+	, ContactShadowLength(InLightComponent->ContactShadowLength)
 	, MinRoughness(InLightComponent->MinRoughness)
 	, LightGuid(InLightComponent->LightGuid)
 	, ShadowMapChannel(InLightComponent->ShadowMapChannel)
@@ -285,7 +286,7 @@ bool FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects() const
 	return HasStaticShadowing() && !HasStaticLighting();
 }
 
-/** Whether this light should create CSM for dynamic objects only (forward renderer) */
+/** Whether this light should create CSM for dynamic objects only (mobile renderer) */
 bool FLightSceneProxy::UseCSMForDynamicObjects() const
 {
 	return false;
@@ -339,6 +340,7 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	IndirectLightingIntensity = 1.0f;
 	ShadowBias = 0.5f;
 	ShadowSharpen = 0.0f;
+	ContactShadowLength = 0.0f;
 	bUseIESBrightness = false;
 	IESBrightnessScale = 1.0f;
 	IESTexture = NULL;
@@ -568,6 +570,7 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DisabledBrightness) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowBias) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowSharpen) &&
+		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ContactShadowLength) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bEnableLightShaftBloom) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, BloomScale) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, BloomThreshold) &&
@@ -1281,5 +1284,6 @@ static void ToggleLight(const TArray<FString>& Args)
 static FAutoConsoleCommand ToggleLightCmd(
 	TEXT("ToggleLight"),
 	TEXT("Toggles all lights whose name contains the specified string"),
-	FConsoleCommandWithArgsDelegate::CreateStatic(ToggleLight)
+	FConsoleCommandWithArgsDelegate::CreateStatic(ToggleLight),
+	ECVF_Cheat
 	);

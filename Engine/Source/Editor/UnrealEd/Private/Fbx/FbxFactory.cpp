@@ -10,6 +10,8 @@
 #include "FbxErrors.h"
 #include "AssetRegistryModule.h"
 #include "Engine/StaticMesh.h"
+#include "ObjectTools.h"
+#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "FBXFactory"
 
@@ -41,7 +43,7 @@ void UFbxFactory::PostInitProperties()
 
 bool UFbxFactory::DoesSupportClass(UClass * Class)
 {
-	return (Class == UStaticMesh::StaticClass() || Class == USkeletalMesh::StaticClass() || Class == UAnimSequence::StaticClass());
+	return (Class == UStaticMesh::StaticClass() || Class == USkeletalMesh::StaticClass() || Class == UAnimSequence::StaticClass() || Class == USubDSurface::StaticClass());
 }
 
 UClass* UFbxFactory::ResolveSupportedClass()
@@ -55,6 +57,10 @@ UClass* UFbxFactory::ResolveSupportedClass()
 	else if (ImportUI->MeshTypeToImport == FBXIT_Animation)
 	{
 		ImportClass = UAnimSequence::StaticClass();
+	}
+	else if (ImportUI->MeshTypeToImport == FBXIT_SubDSurface)
+	{
+		ImportClass = USubDSurface::StaticClass();
 	}
 	else
 	{
@@ -273,9 +279,9 @@ UObject* UFbxFactory::FactoryCreateBinary
 				int32 NodeIndex = 0;
 
 				int32 ImportedMeshCount = 0;
-				UStaticMesh* NewStaticMesh = NULL;
 				if ( ImportUI->MeshTypeToImport == FBXIT_StaticMesh )  // static mesh
 				{
+					UStaticMesh* NewStaticMesh = NULL;
 					if (bCombineMeshes)
 					{
 						TArray<FbxNode*> FbxMeshArray;
@@ -427,10 +433,13 @@ UObject* UFbxFactory::FactoryCreateBinary
 								// Disable material importing when importing morph targets
 								uint32 bImportMaterials = ImportOptions->bImportMaterials;
 								ImportOptions->bImportMaterials = 0;
+								uint32 bImportTextures = ImportOptions->bImportTextures;
+								ImportOptions->bImportTextures = 0;
 
 								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, LODIndex);
 							
 								ImportOptions->bImportMaterials = !!bImportMaterials;
+								ImportOptions->bImportTextures = !!bImportTextures;
 							}
 						}
 					
@@ -456,7 +465,31 @@ UObject* UFbxFactory::FactoryCreateBinary
 							FFbxErrors::SkeletalMesh_NoMeshFoundOnRoot);
 					}
 				}
-				else if ( ImportUI->MeshTypeToImport == FBXIT_Animation )// animation
+				else if ( ImportUI->MeshTypeToImport == FBXIT_SubDSurface ) // SubDSurface
+				{
+					USubDSurface* NewMesh = NULL;
+					TArray<FbxNode*> FbxMeshArray;
+					FbxImporter->FillFbxMeshArray(RootNodeToImport, FbxMeshArray, FbxImporter);
+					if (FbxMeshArray.Num() > 0)
+					{
+						NewMesh = Cast<USubDSurface>( CreateOrOverwriteAsset(USubDSurface::StaticClass(), InParent, Name, Flags) );
+						
+						bool bOk = FbxImporter->ImportSubDSurface(NewMesh, InParent, FbxMeshArray, Name, Flags, ImportUI->StaticMeshImportData);
+
+						if(!bOk)
+						{
+							FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FailedToImport_ImportSubDSurface", "Could not import subdivision surface mesh (no quad mesh?).")), 
+								FFbxErrors::SkeletalMesh_ImportSubDSurface);
+
+							ObjectTools::DeleteSingleObject(NewMesh);
+						}
+					}
+
+					ImportedMeshCount = NewMesh ? 1 : 0;
+
+					NewObject = NewMesh;
+				}
+					else if ( ImportUI->MeshTypeToImport == FBXIT_Animation )// animation
 				{
 					if (ImportOptions->SkeletonForAnimation)
 					{

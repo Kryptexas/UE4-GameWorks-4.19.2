@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2725215
 Availability:Public
-Title:Online Subsystem Overview
+Title: Online Subsystem 概述
 Crumbs:%ROOT%, Programming
-Description:Overview of the various systems related to the online platform.
+Description: 在线平台相关的几个系统的概述
 Version: 4.9
 
 
@@ -50,89 +50,88 @@ Version: 4.9
 
 
 [EXCERPT:Intro] 
-The **Online** subsystem and its interfaces exist to provide a clear abstraction to common online functionality across the available set of platforms in a given environment.   **Platforms** in this context would refer to Steam, Xbox Live, Facebook, etc.
-Portability is one of the main goals.
+**在线** 子系统（Online Subsystem）和它定义的接口提供了一套抽象并干净的通用网络接口，可用于多个在线平台。这里 **平台** 的意思是指诸如 Steam，Xbox Live，Facebook 等。这个系统的主要目的是为了较好的移植性。
 [/EXCERPT:Intro]
 
-## OnlineSubsystem module
+## OnlineSubsystem 模块
 
-### Basic design
+### 基础设计
 
-The base module OnlineSubsystem is responsible for regulating how platform specific modules are defined and registered with the engine.    All access to a platform service will go through this module.   When loaded, this module will in turn try to load the default platform service module specified in the engine.ini file.
+OnlineSubsystem 的基础模块时为了规范平台相关模块的定义，并将平台相关信息注册到引擎中。所有对在线平台服务的访问都应该通过这个模块来执行。在加载时，这个模块会尝试加载默认的在线平台服务模块，这在 engine.ini 文件中定义。
 
 	[OnlineSubsystem]
 	DefaultPlatformService=<Default Platform Identifier>
 	
-If successful, this default online interface will be available via the static accessor when no parameter is specified.
+如果成功加载，能通过一个静态访问调用来获取默认的在线接口函数。
 
 	static IOnlineSubsystem* Get(const FName& SubsystemName = NAME_None)
 	
-Additional services are loaded on demand when called from this function with the proper identifier.   Invalid identifiers or failures to load the module will gracefully return NULL.  
+可以传递给这个函数一个特定的标识用来按需加载额外的服务。无效的标识或者模块加载失败的时候，将会返回 NULL。
 
 
 
-### Use of Delegates
+### Delegate 的使用
 
-Much like Unreal Engine 3 (UE3), the online subsystem will make heavy use of delegates when calling functions with asynchronous side effects.   It is important to respect the delegates and wait for the proper delegate to be called before calling functions further down a chain.  Failure to wait for an asynchronous task can cause crashes and unexpected, undefined behavior.   Waiting for delegates is especially important during connectivity failures such as a cable pull or other disconnect events.   The amount of time a task may take to finish may seem instantaneous in the ideal case, but can be upwards of almost a minute in the timeout case.
+和虚幻引擎 3（UE3）一样，UE4 中的 Online Subsystem 仍将重度使用 delegate 的形式，这也是异步函数调用的副作用。在这个机制下，遵循 delegate 的规则，等待 delegate 的回调让后再进一步调用后续的流程是很重要的。如果不等待异步任务的回调而直接调用后续的函数，会导致无法预期，不被定义的行为。等待 deletage 的回调对于一些连接错误则更为重要，诸如网线插头松脱，或者其他连接失败的情况。不同的异步方法的等待时间差异也很大，有些可能在调用后立刻就能得到回调响应，而有些超时的情况下则可能需要一分钟的时间才会收到相应的回调。
 
-The delegate interface is fairly straightforward, with each delegate clearly defined at the top of each interface header.   Every delegate has an Add<DelegateName>, Clear<DelegateName>, and Trigger<DelegateName> function (although Triggering delegates manually is discouraged).   Common practice is to Add() the delegate right before calling the appropriate function, and then Clear() the delegate from within itself.   
+delegate 接口也比较简单明了，每个接口的前面都有一个 delegate 清晰的定义。每个 delegate 都有 Add，Clear 和 Trigger 函数（不过一般并不鼓励手动调用 Trigger ）。通常的用法是先使用 Add 增加一个 delegate 后再调用相关的函数逻辑，并在完成后使用 Clear 来对它进行清理。
 
+### 接口
 
-### Interfaces
+并不是每个平台都会实现所有的接口功能，游戏代码需要对此有相应的计划。
 
-Not all platforms will implement all interfaces and game code should plan accordingly.
+#### 用户信息
 
-#### Profile 
-
-Interface definition for the online services profile services. Profile services are defined as anything related to a given user profile and its associated metadata (online presence, access permissions, etc).
+在线服务平台的用户信息功能的接口。用户信息是用来对给定用户和相关的元数据（在线时长，访问权限等）服务的。
 
 <!--Details can be found on the [](Programming/Online/Interfaces/Profile) page.-->
 
-#### Friends
+#### 好友
 
-Interface definition for the online services friends services.  Friends services are anything related to the maintenance of friends and friends lists.
+在线服务平台的好友功能的接口。好友服务是用来维护用户的好友关系以及好友列表的。
 
 <!--Details can be found on the [](Programming/Online/Interfaces/Friends) page.-->
 
-#### Sessions
+#### 会话
 
-Interface definition for the online services session services. Session services are defined as anything related managing a session and its state.
+在线服务平台的会话功能的接口。会话功能是用来管理任何和会话相关的信息，以及会话自身的状态。（译者：会话，Session，通常在网游中也被理解为“房间”）
 
-Details can be found on the [](Programming/Online/Interfaces/Session) page.
+详细信息可以查看 [](Programming/Online/Interfaces/Session) 页面。
 
-#### Shared Cloud
+#### 共享云
 
-Provides the interface for sharing files already on the cloud (see [User Cloud](#UserCloud) with other users).
+提供在云端共享文件的接口（和其他用户交互请查看 [用户云](#BookmarkUserCloud)）。
 
 <!--Details can be found on the [](Programming/Online/Interfaces/SharedCloud) page.-->
 
-#### User Cloud
+(#BookmarkUserCloud)
+#### 用户云
 
-Provides the interface for per user cloud file storage.
+提供基于每个用户云端文件存储接口。
 
 <!--Details can be found on the [](Programming/Online/Interfaces/UserCloud) page.-->
 
-#### Leaderboards
+#### 排行榜
 
-Provides the interface for accessing online leaderboards.
+提供在线排行榜的接口
 
 <!--Details can be found on the [](Programming/Online/Interfaces/Leaderboards) page.-->
 
-#### Voice
+#### 语音
 
-Provides the interface for voice communication over network while in the game (NOT IMPLEMENTED YET).
+提供在游戏中通过网络语音交流的接口。
 
 <!--Details can be found on the [](Programming/Online/Interfaces/Voice) page.-->
 
-#### Achievements
+#### 成就
 
-Provides the interface for reading/writing/unlocking achievements (NOT IMPLEMENTED YET).
+提供 读/写/解锁 相关成就的接口。
 
 <!--Details can be found on the [](Programming/Online/Interfaces/Achievements) page.-->
 
-#### External UI
+#### 外部用户界面
 
-Provides the interface for accessing a given platform's external interfaces if available.
+如果在线平台的外部界面可用的话，提供方位外部界面的接口。
 
 <!--Details can be found on the [](Programming/Online/Interfaces/ExternalUI) page.-->
 

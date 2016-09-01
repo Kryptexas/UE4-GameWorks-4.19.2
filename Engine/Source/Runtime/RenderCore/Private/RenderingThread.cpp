@@ -427,7 +427,7 @@ public:
 	virtual uint32 Run(void) override
 	{
 		FMemory::SetupTLSCachesOnCurrentThread();
-		FPlatformProcess::SetupGameOrRenderThread(true);
+		FPlatformProcess::SetupRenderThread();
 
 #if PLATFORM_WINDOWS
 		if ( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
@@ -466,6 +466,7 @@ public:
  */
 volatile bool GRunRenderingThreadHeartbeat = false;
 
+FThreadSafeCounter OutstandingHeartbeats;
 /** The rendering thread heartbeat runnable object. */
 class FRenderingThreadTickHeartbeat : public FRunnable
 {
@@ -474,6 +475,7 @@ public:
 	// FRunnable interface.
 	virtual bool Init(void) 
 	{ 
+		OutstandingHeartbeats.Reset();
 		return true; 
 	}
 
@@ -490,11 +492,13 @@ public:
 		while(GRunRenderingThreadHeartbeat)
 		{
 			FPlatformProcess::Sleep(1.f/(4.0f * GRenderingThreadMaxIdleTickFrequency));
-			if (!GIsRenderingThreadSuspended)
+			if (!GIsRenderingThreadSuspended && OutstandingHeartbeats.GetValue() < 4)
 			{
+				OutstandingHeartbeats.Increment();
 				ENQUEUE_UNIQUE_RENDER_COMMAND(
 					HeartbeatTickTickables,
 				{
+					OutstandingHeartbeats.Decrement();
 					// make sure that rendering thread tickables get a chance to tick, even if the render thread is starving
 					if (!GIsRenderingThreadSuspended)
 					{
@@ -720,7 +724,10 @@ void CheckRenderingThreadHealth()
 
 	if (IsInGameThread())
 	{
-		GLog->FlushThreadedLogs();
+		if (!GIsCriticalError)
+		{
+			GLog->FlushThreadedLogs();
+		}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		TGuardValue<bool> GuardMainThreadBlockedOnRenderThread(GMainThreadBlockedOnRenderThread,true);
 #endif
@@ -891,6 +898,11 @@ void AdvanceFrameRenderPrerequisite()
  */
 void FlushRenderingCommands()
 {
+	if (!GIsRHIInitialized)
+	{
+		return;
+	}
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND(
 		FlushPendingDeleteRHIResources,
 	{
@@ -1002,7 +1014,7 @@ static void HandleRHIThreadEnableChanged(const TArray<FString>& Args)
 	}
 	else
 	{
-		UE_LOG(LogRendererCore, Display, TEXT("Usage: r.RHIThread.Enable 0/1"));
+		UE_LOG(LogRendererCore, Display, TEXT("Usage: r.RHIThread.Enable 0/1; Currently %d"), (int32)GUseRHIThread);
 	}
 }
 

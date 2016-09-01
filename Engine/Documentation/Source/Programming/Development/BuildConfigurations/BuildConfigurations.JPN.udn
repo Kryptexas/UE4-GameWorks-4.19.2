@@ -1,26 +1,28 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: Build Configurations Reference
-Description: Reference guide for the different build configurations available to developers.
+﻿INTSourceChangelist:2895621
+Availability:Public
+Title:ビルド コンフィギュレーションのリファレンス
+Description:ソリューションとプロジェクトのビルド コンフィギュレーションのリファレンス ガイド。
 Crumbs: %ROOT%, Programming, Programming/Development
-Prereq: GettingStarted/RecommendedSpecifications
-Prereq: GettingStarted/DownloadingUnrealEngine
-Prereq: Programming/Development/BuildingUnrealEngine
-Related: Support/Builds
-SkillLevel: Advanced
-Version: 4.8
+Prereq:GettingStarted/RecommendedSpecifications
+Related:GettingStarted/DownloadingUnrealEngine
+Related:Programming/Development/BuildingUnrealEngine
+Related:Programming/Development/CompilingProjects
+Related:Support/Builds
+Version:4.8
 
 [TOC (start:2 end:3)]
 
-## Build Configurations
+## ビルド コンフィギュレーションの説明
 
-Unreal Engine 4 (UE4) uses a custom building method via the UnrealBuildTool. This tool handles all the complex aspects of compiling the engine. 
+アンリアル エンジン4 は、UnrealBuildTool (UBT) を利用したカスタムビルド方法を使用します。このツールは、C++ コードをブループリント、レプリケーション、シリアライズ、ガーベジ コレクションに統合し、アンリアル エンジンのリフレクション システムのビルドに必要な情報を処理します。
 
 [INCLUDE:Programming/Development/CompilingProjects#winbuildconfig]
 
-### Unreal Engine Source Version
+### UE4 ソリューションのビルド コンフィギュレーション
 
-The following build configurations are available when building the source version of Unreal Engine:
+(#Bookmark1)
+
+UE4 ソリューションをコンパイルする場合、エンジンのソース コードをプロジェクトのソース コードと合わせてコンパイルしています。以下のビルド コンフィギュレーションは、以下のようにプロジェクトをビルドする場合に利用できます。
 
 |             | Debug    | DebugGame | Development | Shipping | Test     |
 | ----------- | -----    | --------- | ----------- | -------- | ----     |
@@ -29,7 +31,9 @@ The following build configurations are available when building the source versio
 | **Client ** | &#x2713; | &#x2713;  | &#x2713;    | &#x2713; | &#x2713; |
 | **Server ** | &#x2713; | &#x2713;  | &#x2713;    | &#x2713; | &#x2713; |
 													   
-### Unreal Engine Binary Version
+### UE4 プロジェクトのビルド コンフィギュレーション
+
+UE4 プロジェクトをコンパイルする場合、プロジェクトのソース コードのみをコンパイルしています。以下のビルド コンフィギュレーションは、以下のようにプロジェクトをビルドする場合に利用できます。
 
 %Globals:osselect_linux%
 
@@ -44,13 +48,12 @@ The following build configurations are available when building the source versio
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	The following build configurations are available when building the binary version of Unreal Engine:
-	|             | Debug    | DebugGame | Development | Shipping | Test     |
-    | ----------- | -----    | --------- | ----------- | -------- | ----     |
-    | **[empty]** |          | &#x2713;  | &#x2713;    | &#x2713; |          |
-    | **Editor ** |          | &#x2713;  | &#x2713;    |          |          |
-    | **Client ** |          |           |             |          |          |
-    | **Server ** |          |           |             |          |          |
+	    |             | Debug | DebugGame | Development | Shipping | Test |
+        | ----------- | ----- | --------- | ----------- | -------- | ---- |
+        | **[empty]** |       | &#x2713;  | &#x2713;    | &#x2713; |      |
+        | **Editor ** |       | &#x2713;  | &#x2713;    |          |      |
+        | **Client ** |       |           |             |          |      |
+        | **Server ** |       |           |             |          |      |
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -63,7 +66,12 @@ The following build configurations are available when building the source versio
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-		Mac Test.
+	    |             | Debug | DebugGame | Development | Shipping | Test |
+        | ----------- | ----- | --------- | ----------- | -------- | ---- |
+        | **[empty]** |       | &#x2713;  | &#x2713;    | &#x2713; |      |
+        | **Editor ** |       | &#x2713;  | &#x2713;    |          |      |
+        | **Client ** |       |           |             |          |      |
+        | **Server ** |       |           |             |          |      |
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -76,6 +84,10 @@ The following build configurations are available when building the source versio
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-		Linux Test.
+	    [REGION:warning]
+        現時点では、Linux 用のアンリアル エンジンのバイナリ インストーラは提供しておりません。  
+		Linux ユーザーは、[UE4 ソリューションのビルド コンフィギュレーション](#bookmark1) セクションを参照してください。  
+        _ソースからアンリアル エンジンをコンパイルする方法については、 [](GettingStarted/DownloadingUnrealEngine) のドキュメントを参照してください。_
+        [/REGION]
 	[/PARAM]
 [/OBJECT]

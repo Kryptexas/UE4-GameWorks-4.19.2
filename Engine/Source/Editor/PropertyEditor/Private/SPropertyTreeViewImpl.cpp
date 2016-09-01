@@ -56,6 +56,11 @@ public:
 		View.EnqueueDeferredAction( DeferredAction );
 	}
 
+	virtual void ForceRefresh() override
+	{
+		RequestRefresh();
+	}
+
 	virtual void RequestRefresh() override
 	{
 		View.RequestRefresh();

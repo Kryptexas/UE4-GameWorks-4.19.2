@@ -1,6 +1,8 @@
-Availability: Docs
-Title:虚幻引擎 4的系统设置
-Crumbs: %ROOT%, Engine, Engine/Basics
+﻿Availability: Public
+Title: 系统设置
+Crumbs: %ROOT%, Engine
+Description: 和平台相关的一些设置集合，用于控制基于硬件兼容性的游戏和引擎的各个方面。
+version: 4.9
 
 [TOC]
 

@@ -19,6 +19,7 @@
 #include "MacPlatformCrashContext.h"
 #include "PLCrashReporter.h"
 #include "GenericPlatformDriver.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -236,6 +237,43 @@ struct FMacApplicationInfo
 		{
 			SystemLogSize = IFileManager::Get().FileSize(TEXT("/var/log/system.log"));
 		}
+		
+		if (!FPlatformMisc::IsDebuggerPresent() && FParse::Param(FCommandLine::Get(), TEXT("RedirectNSLog")))
+		{
+			fflush(stderr);
+			StdErrPipe = [NSPipe new];
+			int StdErr = dup2([StdErrPipe fileHandleForWriting].fileDescriptor, STDERR_FILENO);
+			if(StdErr > 0)
+			{
+				@try
+				{
+					NSFileHandle* StdErrFile = [StdErrPipe fileHandleForReading];
+					if(StdErrFile)
+					{
+						StdErrFile.readabilityHandler = ^(NSFileHandle* Handle){
+							NSData* FileData = Handle.availableData;
+							if (FileData.length > 0)
+							{
+								NSString* NewString = (NSString*)[[[NSString alloc] initWithData:FileData encoding:NSUTF8StringEncoding] autorelease];
+								UE_LOG(LogMac, Error, TEXT("NSLog: %s"), *FString(NewString));
+							}
+						};
+					}
+				}
+				@catch (NSException* Exc)
+				{
+					UE_LOG(LogMac, Warning, TEXT("Exception redirecting stderr to capture NSLog messages: %s"), *FString([Exc description]));
+					[StdErrPipe release];
+					StdErrPipe = nil;
+				}
+			}
+			else
+			{
+				UE_LOG(LogMac, Warning, TEXT("Failed to redirect stderr in order to capture NSLog messages."));
+				[StdErrPipe release];
+				StdErrPipe = nil;
+			}
+		}
 	}
 	
 	~FMacApplicationInfo()
@@ -330,6 +368,7 @@ struct FMacApplicationInfo
 	NSOperatingSystemVersion OSXVersion;
 	FGuid RunUUID;
 	FString XcodePath;
+	NSPipe* StdErrPipe;
 	static PLCrashReporter* CrashReporter;
 	static FMacMallocCrashHandler* CrashMalloc;
 };
@@ -385,12 +424,16 @@ void FMacPlatformMisc::PlatformPreInit()
 
 void FMacPlatformMisc::PlatformInit()
 {
+	UE_LOG(LogInit, Log, TEXT("OS X %s (%s)"), *GMacAppInfo.OSVersion, *GMacAppInfo.OSBuild);
+	UE_LOG(LogInit, Log, TEXT("Model: %s"), *GMacAppInfo.MachineModel);
+	UE_LOG(LogInit, Log, TEXT("CPU: %s"), UTF8_TO_TCHAR(GMacAppInfo.MachineCPUString));
+	
+	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
+	UE_LOG(LogInit, Log, TEXT("CPU Page size=%i, Cores=%i, HT=%i"), MemoryConstants.PageSize, FPlatformMisc::NumberOfCores(), FPlatformMisc::NumberOfCoresIncludingHyperthreads() );
+
 	// Identity.
 	UE_LOG(LogInit, Log, TEXT("Computer: %s"), FPlatformProcess::ComputerName() );
 	UE_LOG(LogInit, Log, TEXT("User: %s"), FPlatformProcess::UserName() );
-
-	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
-	UE_LOG(LogInit, Log, TEXT("CPU Page size=%i, Cores=%i"), MemoryConstants.PageSize, FPlatformMisc::NumberOfCores() );
 
 	// Timer resolution.
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle() );
@@ -447,6 +490,19 @@ void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 		[NSApp setMainMenu:MenuBar];
 		[AppMenuItem setSubmenu:AppMenu];
 
+		if (FApp::IsGame())
+		{
+			NSMenu* ViewMenu = [[FCocoaMenu new] autorelease];
+			[ViewMenu setTitle:@"View"];
+			NSMenuItem* ViewMenuItem = [[NSMenuItem new] autorelease];
+			[ViewMenuItem setSubmenu:ViewMenu];
+			[[NSApp mainMenu] addItem:ViewMenuItem];
+
+			NSMenuItem* ToggleFullscreenItem = [[[NSMenuItem alloc] initWithTitle:@"Enter Full Screen" action:@selector(toggleFullScreen:) keyEquivalent:@"f"] autorelease];
+			[ToggleFullscreenItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSControlKeyMask];
+			[ViewMenu addItem:ToggleFullscreenItem];
+		}
+		
 		UpdateWindowMenu();
 	}
 
@@ -469,6 +525,16 @@ void FMacPlatformMisc::PlatformTearDown()
 		CommandletActivity = nil;
 	}
 	FApplePlatformSymbolication::EnableCoreSymbolication(false);
+	
+	if (GMacAppInfo.StdErrPipe)
+	{
+		NSFileHandle* StdErrFile = [GMacAppInfo.StdErrPipe fileHandleForReading];
+		if (StdErrFile)
+		{
+			StdErrFile.readabilityHandler = nil;
+		}
+		[GMacAppInfo.StdErrPipe release];
+	}
 }
 
 void FMacPlatformMisc::UpdateWindowMenu()
@@ -817,6 +883,8 @@ void FMacPlatformMisc::CreateGuid(FGuid& Result)
 
 EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
+	FSlowHeartBeatScope SuspendHeartBeat;
+
 	SCOPED_AUTORELEASE_POOL;
 
 	EAppReturnType::Type ReturnValue = MainThreadReturn(^{
@@ -2022,6 +2090,8 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsE
 		WriteLine(ReportFile, TEXT("</Parameter2>"));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bIsEnsure ? TEXT("1") : TEXT("0")));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted)));
 
 		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
 		
@@ -2158,6 +2228,21 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 			write(LogDst, Data, Bytes);
 		}
 		
+		// If present, include the crash report config file to pass config values to the CRC
+		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashConfigFileNameA);
+		int ConfigSrc = open(TCHAR_TO_ANSI(GetCrashConfigFilePath()), O_RDONLY);
+		int ConfigDst = open(FilePath, O_CREAT | O_WRONLY, 0766);
+
+		while ((Bytes = read(ConfigSrc, Data, PATH_MAX)) > 0)
+		{
+			write(ConfigDst, Data, Bytes);
+		}
+
+		close(ConfigDst);
+		close(ConfigSrc);
+
 		// Copy the system log to capture GPU restarts and other nasties not reported by our application
 		if ( !GMacAppInfo.bIsSandboxed && GMacAppInfo.SystemLogSize >= 0 && access("/var/log/system.log", R_OK|F_OK) == 0 )
 		{
@@ -2263,7 +2348,8 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 		sigaction(SIGSEGV, &Action, NULL);
 		sigaction(SIGSYS, &Action, NULL);
 		sigaction(SIGABRT, &Action, NULL);
-	
+		sigaction(SIGTRAP, &Action, NULL);
+		
 		raise(Signal);
 	}
 	
@@ -2334,6 +2420,8 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 {
 	if (FCString::Stricmp(FeatureName, TEXT("Metal")) == 0)
 	{
+		bool bHasMetal = false;
+		
 		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
 		if (FPlatformMisc::MacOSXVersionCompare(10, 11, 4) >= 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
 		{
@@ -2341,18 +2429,21 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 			void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
 			if (DLLHandle)
 			{
-				// Use the copy all function because we don't want to invoke a GPU switch at this point on dual-GPU Macbooks
-				MTLCopyAllDevices CopyDevicesPtr = (MTLCopyAllDevices)FPlatformProcess::GetDllExport(DLLHandle, TEXT("MTLCopyAllDevices"));
-				if (CopyDevicesPtr)
+				TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
+				for (FMacPlatformMisc::FGPUDescriptor const& GPU : GPUs)
 				{
-					SCOPED_AUTORELEASE_POOL;
-					NSArray* MetalDevices = CopyDevicesPtr();
-					[MetalDevices autorelease];
-					FPlatformProcess::FreeDllHandle(DLLHandle);
-					return MetalDevices && [MetalDevices count] > 0;
+					if (GPU.GPUMetalBundle && GPU.GPUMetalBundle.length > 0)
+					{
+						bHasMetal = true;
+						break;
+					}
 				}
+				
+				FPlatformProcess::FreeDllHandle(DLLHandle);
 			}
 		}
+		
+		return bHasMetal;
 	}
 
 	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);

@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2615429
+﻿INTSourceChangelist:2897028
 Availability:Public
 Title: 멀티캐스트 델리게이트
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
 Description:여러 함수에 바인딩시켜 동시에 실행시킬수 있는 델리게이트 입니다.
-Version: 4.5
+Version: 4.9
 
-멀티캐스트(multi-cast) 델리게이트는 싱글캐스트 델리게이트의 기능 대부분을 그대로 갖고 있습니다. 오브젝트로의 약 레퍼런스만 갖고 있으며, 구조체와 함께 사용 가능하고, 쉽게 복사할수 있고, 등등입니다. 
+멀티캐스트(multi-cast) 델리게이트는 싱글캐스트 델리게이트의 기능 대부분을 그대로 갖고 있습니다. 오브젝트로의 약 레퍼런스만 갖고 있으며, 구조체와 함께 사용 가능하고, 쉽게 복사할 수 있고, 등등입니다. 
 보통의 델리게이트와 마찬가지로 멀티캐스트 델리게이트 역시 로드/세이브 가능하며 원격으로 트리거되나, 멀티캐스트 델리게이트 함수는 반환값을 사용할 수는 없습니다.
 델리게이트 콜렉션을 쉽사리 옮기는 데 사용하기에 좋습니다.
 
@@ -17,8 +17,8 @@ Version: 4.5
 
 | 선언 매크로 | 설명 |
 | --- | --- |
-| `DECLARE_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 멀티캐스트 델리게이트를 생성합니다. |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 다이내믹 멀티캐스트 델리게이트를 생성합니다. |
+| `DECLARE_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | 멀티캐스트 델리게이트를 생성합니다. |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[RetVal, etc.]( DelegateName )` | 다이내믹 멀티캐스트 델리게이트를 생성합니다. |
 
 ## 멀티캐스트 델리게이트 바인딩
 

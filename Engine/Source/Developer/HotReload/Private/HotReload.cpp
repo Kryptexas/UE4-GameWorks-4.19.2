@@ -12,6 +12,10 @@
 #endif
 #include "Misc/ScopeExit.h"
 
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
+
 DEFINE_LOG_CATEGORY(LogHotReload);
 
 #define LOCTEXT_NAMESPACE "HotReload"
@@ -129,17 +133,6 @@ private:
 		{ }
 	};
 
-	struct FRecompiledModule
-	{
-		FString Name;
-		FString NewFilename;
-		FRecompiledModule() {}
-		FRecompiledModule(FString InName, FString InFilename)
-			: Name(MoveTemp(InName))
-			, NewFilename(MoveTemp(InFilename))
-		{}
-	};
-
 	/**
 	 * Adds a callback to directory watcher for the game binaries folder.
 	 */
@@ -163,7 +156,7 @@ private:
 	/**
 	 * Does the actual hot-reload, unloads old modules, loads new ones
 	 */
-	ECompilationResult::Type DoHotReloadInternal(const TArray<FRecompiledModule>& ChangedModules, const TArray<UPackage*>& Packages, const TArray<FName>& InDependentModules, FOutputDevice& HotReloadAr);
+	ECompilationResult::Type DoHotReloadInternal(const TMap<FString, FString>& ChangedModuleNames, const TArray<UPackage*>& Packages, const TArray<FName>& InDependentModules, FOutputDevice& HotReloadAr);
 
 	/**
 	 * Finds all references to old CDOs and replaces them with the new ones.
@@ -171,16 +164,6 @@ private:
 	 * only one needed.
 	 */
 	void ReplaceReferencesToReconstructedCDOs();
-
-	/**
-	 * Gets all currently loaded game module names and optionally, the file names for those modules
-	 */
-	void GetGameModules(TArray<FString>& OutGameModules, TArray<FString>* OutGameModuleFilePaths = nullptr);
-
-	/**
-	 * Gets packages to re-bind and dependent modules.
-	 */
-	void GetPackagesToRebindAndDependentModules(const TArray<FString>& InGameModuleNames, TArray<UPackage*>& OutPackagesToRebind, TArray<FName>& OutDependentModules);
 
 #if WITH_ENGINE
 	void RegisterForReinstancing(UClass* OldClass, UClass* NewClass);
@@ -215,10 +198,11 @@ private:
 	/**
 	 * Declares a function type that is executed after a module recompile has finished.
 	 *
-	 * The first argument signals whether compilation has finished.
-	 * The second argument shows whether compilation was successful or not.
+	 * ChangedModules: A map between the names of the modules that have changed and their filenames.
+	 * bRecompileFinished: Signals whether compilation has finished.
+	 * CompilationResult: Shows whether compilation was successful or not.
 	 */
-	typedef TFunction<void(const TArray<FRecompiledModule>& ChangedModules, bool bRecompileFinished, ECompilationResult::Type CompilationResult)> FRecompileModulesCallback;
+	typedef TFunction<void(const TMap<FString, FString>& ChangedModules, bool bRecompileFinished, ECompilationResult::Type CompilationResult)> FRecompileModulesCallback;
 
 	/**
 	 * Tries to recompile the specified modules in the background.  When recompiling finishes, the specified callback
@@ -305,7 +289,7 @@ private:
 	bool bIsHotReloadingFromEditor;
 	
 	/** New module DLLs */
-	TArray<FRecompiledModule> NewModules;
+	TMap<FString, FString> NewModules;
 
 	/** Moduels that have been recently recompiled from the editor **/
 	TSet<FString> ModulesRecentlyCompiledInTheEditor;
@@ -372,7 +356,7 @@ namespace HotReloadDefs
 
 IMPLEMENT_MODULE(FHotReloadModule, HotReload);
 
-namespace
+namespace UE4HotReload_Private
 {
 	/**
 	 * Gets editor runs directory.
@@ -434,11 +418,87 @@ namespace
 		}
 #endif // WITH_EDITOR
 	}
+
+	/**
+	 * Gets all currently loaded game module names and optionally, the file names for those modules
+	 */
+	TArray<FString> GetGameModuleNames(const FModuleManager& ModuleManager)
+	{
+		TArray<FString> Result;
+
+		// Ask the module manager for a list of currently-loaded gameplay modules
+		TArray<FModuleStatus> ModuleStatuses;
+		ModuleManager.QueryModules(ModuleStatuses);
+
+		for (FModuleStatus& ModuleStatus : ModuleStatuses)
+		{
+			// We only care about game modules that are currently loaded
+			if (ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule)
+			{
+				Result.Add(MoveTemp(ModuleStatus.Name));
+			}
+		}
+
+		return Result;
+	}
+
+	/**
+	 * Gets all currently loaded game module names and optionally, the file names for those modules
+	 */
+	TMap<FString, FString> GetGameModuleFilenames(const FModuleManager& ModuleManager)
+	{
+		TMap<FString, FString> Result;
+
+		// Ask the module manager for a list of currently-loaded gameplay modules
+		TArray< FModuleStatus > ModuleStatuses;
+		ModuleManager.QueryModules(ModuleStatuses);
+
+		for (FModuleStatus& ModuleStatus : ModuleStatuses)
+		{
+			// We only care about game modules that are currently loaded
+			if (ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule)
+			{
+				Result.Add(MoveTemp(ModuleStatus.Name), MoveTemp(ModuleStatus.FilePath));
+			}
+		}
+
+		return Result;
+	}
+
+	struct FPackagesAndDependentNames
+	{
+		TArray<UPackage*> Packages;
+		TArray<FName> DependentNames;
+	};
+
+	/**
+	 * Gets named packages and the names dependents.
+	 */
+	FPackagesAndDependentNames SplitByPackagesAndDependentNames(const TArray<FString>& ModuleNames)
+	{
+		FPackagesAndDependentNames Result;
+
+		for (const FString& ModuleName : ModuleNames)
+		{
+			FString PackagePath = TEXT("/Script/") + ModuleName;
+
+			if (UPackage* Package = FindPackage(nullptr, *PackagePath))
+			{
+				Result.Packages.Add(Package);
+			}
+			else
+			{
+				Result.DependentNames.Add(*ModuleName);
+			}
+		}
+
+		return Result;
+	}
 }
 
 void FHotReloadModule::StartupModule()
 {
-	CreateFileThatIndicatesEditorRunIfNeeded();
+	UE4HotReload_Private::CreateFileThatIndicatesEditorRunIfNeeded();
 
 	bIsHotReloadingFromEditor = false;
 
@@ -463,7 +523,7 @@ void FHotReloadModule::ShutdownModule()
 	FTicker::GetCoreTicker().RemoveTicker(TickerDelegateHandle);
 	ShutdownHotReloadWatcher();
 
-	DeleteFileThatIndicatesEditorRunIfNeeded();
+	UE4HotReload_Private::DeleteFileThatIndicatesEditorRunIfNeeded();
 }
 
 bool FHotReloadModule::Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar )
@@ -668,14 +728,14 @@ void FHotReloadModule::AddHotReloadFunctionRemap(Native NewFunctionPointer, Nati
 ECompilationResult::Type FHotReloadModule::DoHotReloadFromEditor(const bool bWaitForCompletion)
 {
 	// Get all game modules we want to compile
-	TArray<FString> GameModuleNames;
-	GetGameModules(GameModuleNames);
+	const FModuleManager& ModuleManager = FModuleManager::Get();
+	TArray<FString> GameModuleNames = UE4HotReload_Private::GetGameModuleNames(ModuleManager);
 
 	int32 NumPackagesToRebind = 0;
 	int32 NumDependentModules = 0;
 
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
-	
+
 	// Analytics
 	double Duration = 0.0;
 
@@ -683,13 +743,11 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadFromEditor(const bool bWai
 	{
 		FScopedDurationTimer Timer(Duration);
 
-		TArray<UPackage*> PackagesToRebind;
-		TArray<FName> DependentModules;
-		GetPackagesToRebindAndDependentModules(GameModuleNames, PackagesToRebind, DependentModules);
+		UE4HotReload_Private::FPackagesAndDependentNames PackagesAndDependentNames = UE4HotReload_Private::SplitByPackagesAndDependentNames(GameModuleNames);
 
-		NumPackagesToRebind = PackagesToRebind.Num();
-		NumDependentModules = DependentModules.Num();
-		Result = RebindPackagesInternal(MoveTemp(PackagesToRebind), MoveTemp(DependentModules), bWaitForCompletion, *GLog);
+		NumPackagesToRebind = PackagesAndDependentNames.Packages.Num();
+		NumDependentModules = PackagesAndDependentNames.DependentNames.Num();
+		Result = RebindPackagesInternal(MoveTemp(PackagesAndDependentNames.Packages), MoveTemp(PackagesAndDependentNames.DependentNames), bWaitForCompletion, *GLog);
 	}
 
 	RecordAnalyticsEvent(TEXT("Editor"), Result, Duration, NumPackagesToRebind, NumDependentModules);
@@ -717,7 +775,7 @@ UObject* GetCachedCDODuplicate(UObject* CDO, FName Name)
 }
 #endif // WITH_HOT_RELOAD
 
-ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRecompiledModule>& ChangedModules, const TArray<UPackage*>& Packages, const TArray<FName>& InDependentModules, FOutputDevice& HotReloadAr)
+ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TMap<FString, FString>& ChangedModules, const TArray<UPackage*>& Packages, const TArray<FName>& InDependentModules, FOutputDevice& HotReloadAr)
 {
 #if WITH_HOT_RELOAD
 
@@ -736,9 +794,10 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 
 	ModuleManager.ResetModulePathsCache();
 
+	
 	FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
-	ErrorsFC.Errors.Empty();
-	ErrorsFC.Warnings.Empty();
+	ErrorsFC.ClearWarningsAndErrors();
+
 	// Rebind the hot reload DLL 
 	TGuardValue<bool> GuardIsHotReload(GIsHotReload, true);
 	TGuardValue<bool> GuardIsInitialLoad(GIsInitialLoad, true);
@@ -754,7 +813,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 		FString PackageName = Package->GetName();
 		FString ShortPackageName = FPackageName::GetShortName(PackageName);
 
-		if (!ChangedModules.ContainsByPredicate([ShortPackageName](const FRecompiledModule& Module){ return Module.Name == ShortPackageName; }))
+		if (!ChangedModules.Contains(ShortPackageName))
 		{
 			continue;
 		}
@@ -763,8 +822,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 
 		// Abandon the old module.  We can't unload it because various data structures may be living
 		// that have vtables pointing to code that would become invalidated.
-		const bool bAbandonModule = true;
-		ModuleManager.UnloadOrAbandonModuleWithCallback(ShortPackageFName, HotReloadAr, bAbandonModule);
+		ModuleManager.AbandonModuleWithCallback(ShortPackageFName);
 
 		// Load the newly-recompiled module up (it will actually have a different DLL file name at this point.)
 		bReloadSucceeded = ModuleManager.LoadModule(ShortPackageFName).IsValid();
@@ -780,8 +838,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 	for (FName ModuleName : InDependentModules)
 	{
 		FString ModuleNameStr = ModuleName.ToString();
-		const TCHAR* ModuleNameStrPtr = *ModuleNameStr;
-		if (!ChangedModules.ContainsByPredicate([ModuleNameStrPtr](const FRecompiledModule& Module){ return Module.Name == ModuleNameStrPtr; }))
+		if (!ChangedModules.Contains(ModuleNameStr))
 		{
 			continue;
 		}
@@ -794,19 +851,15 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 		}
 	}
 
-	if (ErrorsFC.Errors.Num() || ErrorsFC.Warnings.Num())
+	if (ErrorsFC.GetNumErrors() || ErrorsFC.GetNumWarnings())
 	{
-		TArray<FString> All;
-		All = ErrorsFC.Errors;
-		All += ErrorsFC.Warnings;
-
-		ErrorsFC.Errors.Empty();
-		ErrorsFC.Warnings.Empty();
+		TArray<FString> AllErrorsAndWarnings;
+		ErrorsFC.GetErrorsAndWarningsAndEmpty(AllErrorsAndWarnings);
 
 		FString AllInOne;
-		for (int32 Index = 0; Index < All.Num(); Index++)
+		for (const FString& ErrorOrWarning : AllErrorsAndWarnings)
 		{
-			AllInOne += All[Index];
+			AllInOne += ErrorOrWarning;
 			AllInOne += TEXT("\n");
 		}
 		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("Some classes could not be reloaded:\n%s"), *AllInOne);
@@ -846,7 +899,10 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 			Script->PrepareCppStructOps();
 			check(Script->GetCppStructOps());
 		}
-		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), NumFunctionsRemapped, ScriptStructs.Num());
+		// Make sure new classes have the token stream assembled
+		UClass::AssembleReferenceTokenStreams();
+
+		HotReloadAr.Logf(ELogVerbosity::Display, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), NumFunctionsRemapped, ScriptStructs.Num());
 
 		HotReloadFunctionRemap.Empty();
 
@@ -858,7 +914,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 
 	HotReloadEvent.Broadcast( !bIsHotReloadingFromEditor );
 
-	HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload took %4.1fs."), FPlatformTime::Seconds() - HotReloadStartTime);
+	HotReloadAr.Logf(ELogVerbosity::Display, TEXT("HotReload took %4.1fs."), FPlatformTime::Seconds() - HotReloadStartTime);
 
 	bIsHotReloadingFromEditor = false;
 	return Result;
@@ -901,27 +957,12 @@ void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
 		FQueuedThreadPool* Pool;
 	} ThreadPoolManager;
 
-	TArray<UObject*> OldCDOs;
-	ReconstructedCDOsMap.GetKeys(OldCDOs);
-
-	// Structure to store CDOs reference info.
-	struct FReferenceInfo
-	{
-		UObject* Referencer;
-		UObject* Referencee;
-		UProperty* ReferencingProperty;
-
-		FReferenceInfo(UObject* InReferencer, UObject* InReferencee, UProperty* InReferencingProperty)
-			: Referencer(InReferencer), Referencee(InReferencee), ReferencingProperty(InReferencingProperty)
-		{}
-	};
-
 	// Async task to enable multithreaded CDOs reference search.
 	class FFindRefTask : public FNonAbandonableTask
 	{
 	public:
-		FFindRefTask(const TArray<UObject*>* InReferencees, int32 ReserveElements = 0)
-			: Referencees(*InReferencees)
+		explicit FFindRefTask(const TMap<UObject*, UObject*>& InReconstructedCDOsMap, int32 ReserveElements)
+			: ReconstructedCDOsMap(InReconstructedCDOsMap)
 		{
 			ObjectsArray.Reserve(ReserveElements);
 		}
@@ -930,34 +971,45 @@ void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
 		{
 			for (UObject* Object : ObjectsArray)
 			{
-				FFindReferencersArchive FindRefsArchive(Object, Referencees);
-
-				TMap<UObject*, int32> ReferenceCounts;
-				TMultiMap<UObject*, UProperty*> ReferencingProperties;
-
-				FindRefsArchive.GetReferenceCounts(ReferenceCounts, ReferencingProperties);
-
-				for (auto& ReferencingProperty : ReferencingProperties)
+				class FReplaceCDOReferencesArchive : public FArchiveUObject
 				{
-					static const UProperty* PropertyToSkip =
-#if WITH_ENGINE
-						UBlueprintGeneratedClass::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UBlueprintGeneratedClass, OverridenArchetypeForCDO));
-#else
-						nullptr;
-#endif
-					if (!ReferencingProperty.Value->IsA<UObjectProperty>() || ReferencingProperty.Value == PropertyToSkip)
+				public:
+					FReplaceCDOReferencesArchive(UObject* InPotentialReferencer, const TMap<UObject*, UObject*>& InReconstructedCDOsMap)
+						: ReconstructedCDOsMap(InReconstructedCDOsMap)
+						, PotentialReferencer(InPotentialReferencer)
 					{
-						continue;
+						ArIsObjectReferenceCollector = true;
+						ArIgnoreOuterRef = true;
 					}
 
-					References.Emplace(Object, ReferencingProperty.Key, ReferencingProperty.Value);
-				}
-			}
-		}
+					virtual FString GetArchiveName() const override
+					{
+						return TEXT("FReplaceCDOReferencesArchive");
+					}
 
-		TArray<UObject*>& GetObjectsArray()
-		{
-			return ObjectsArray;
+					FArchive& operator<<(UObject*& ObjRef)
+					{
+						UObject* Obj = ObjRef;
+
+						if (Obj && Obj != PotentialReferencer && ReconstructedCDOsMap.Contains(Obj))
+						{
+							UProperty* SerializedProp = GetSerializedProperty();
+							if (SerializedProp && SerializedProp->IsA<UObjectProperty>())
+							{
+								ObjRef = ReconstructedCDOsMap[Obj];
+							}
+						}
+					
+						return *this;
+					}
+
+					const TMap<UObject*, UObject*>& ReconstructedCDOsMap;
+					UObject* PotentialReferencer;
+				};
+
+				FReplaceCDOReferencesArchive FindRefsArchive(Object, ReconstructedCDOsMap);
+				Object->Serialize(FindRefsArchive);
+			}
 		}
 
 		FORCEINLINE TStatId GetStatId() const
@@ -965,12 +1017,10 @@ void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FFindRefTask, STATGROUP_ThreadPoolAsyncTasks);
 		}
 
-		const TArray<FReferenceInfo>& GetReferences() const { return References; }
+		TArray<UObject*> ObjectsArray;
 
 	private:
-		const TArray<UObject*>& Referencees;
-		TArray<UObject*> ObjectsArray;
-		TArray<FReferenceInfo> References;
+		const TMap<UObject*, UObject*>& ReconstructedCDOsMap;
 	};
 
 	const int32 NumberOfThreads = FPlatformMisc::NumberOfWorkerThreadsToSpawn();
@@ -983,7 +1033,7 @@ void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
 
 	for (int32 TaskId = 0; TaskId < NumberOfThreads; ++TaskId)
 	{
-		Tasks.Emplace(&OldCDOs, ObjectsPerTask);
+		Tasks.Emplace(ReconstructedCDOsMap, ObjectsPerTask);
 	}
 
 	// Distribute objects uniformly between tasks.
@@ -997,31 +1047,20 @@ void FHotReloadModule::ReplaceReferencesToReconstructedCDOs()
 			continue;
 		}
 
-		Tasks[CurrentTaskId].GetTask().GetObjectsArray().Add(CurObject);
+		Tasks[CurrentTaskId].GetTask().ObjectsArray.Add(CurObject);
 		CurrentTaskId = (CurrentTaskId + 1) % NumberOfThreads;
 	}
 
 	// Run async tasks in worker threads.
-	for (int32 TaskId = 0; TaskId < NumberOfThreads; ++TaskId)
+	for (FAsyncTask<FFindRefTask>& Task : Tasks)
 	{
-		Tasks[TaskId].StartBackgroundTask(ThreadPoolManager.GetPool());
+		Task.StartBackgroundTask(ThreadPoolManager.GetPool());
 	}
 
-	// Wait until tasks are finished and replace found references
-	// in main thread.
-	for (int32 TaskId = 0; TaskId < NumberOfThreads; ++TaskId)
+	// Wait until tasks are finished
+	for (FAsyncTask<FFindRefTask>& AsyncTask : Tasks)
 	{
-		Tasks[TaskId].EnsureCompletion();
-
-		const TArray<FReferenceInfo>& References = Tasks[TaskId].GetTask().GetReferences();
-
-		for (const FReferenceInfo& Reference : References)
-		{
-			UObject* OldCDO = Reference.Referencee;
-			UObjectProperty* Prop = (UObjectProperty*)Reference.ReferencingProperty;
-
-			Prop->SetObjectPropertyValue((uint8*)Reference.Referencer + Prop->GetOffset_ForInternal(), ReconstructedCDOsMap[OldCDO]);
-		}
+		AsyncTask.EnsureCompletion();
 	}
 
 	ReconstructedCDOsMap.Empty();
@@ -1095,7 +1134,7 @@ ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackag
 		// Start compiling modules
 		const bool bCompileStarted = RecompileModulesAsync(
 			ModuleNames,
-			[this, InPackages/*=MoveTemp(InPackages)*/, DependentModules/*=MoveTemp(DependentModules)*/, &Ar](const TArray<FRecompiledModule>& ChangedModules, bool bRecompileFinished, ECompilationResult::Type CompilationResult)
+			[this, InPackages/*=MoveTemp(InPackages)*/, DependentModules/*=MoveTemp(DependentModules)*/, &Ar](const TMap<FString, FString>& ChangedModules, bool bRecompileFinished, ECompilationResult::Type CompilationResult)
 			{
 				if (ECompilationResult::Failed(CompilationResult) && bRecompileFinished)
 				{
@@ -1152,13 +1191,23 @@ void FHotReloadModule::RegisterForReinstancing(UClass* OldClass, UClass* NewClas
 	Pair.Key = OldClass;
 	Pair.Value = NewClass;
 
-	GetClassesToReinstance().Add(MoveTemp(Pair));
+	TArray<TPair<UClass*, UClass*> >& ClassesToReinstance = GetClassesToReinstance();
+	ClassesToReinstance.Add(MoveTemp(Pair));
 }
 
 void FHotReloadModule::ReinstanceClasses()
 {
+#if WITH_HOT_RELOAD
+	if (GIsHotReload)
+	{
+		UClass::AssembleReferenceTokenStreams();
+	}
+#endif // WITH_HOT_RELOAD
+
+	TArray<TPair<UClass*, UClass*> >& ClassesToReinstance = GetClassesToReinstance();
+
 	TMap<UClass*, UClass*> OldToNewClassesMap;
-	for (TPair<UClass*, UClass*>& Pair : GetClassesToReinstance())
+	for (const TPair<UClass*, UClass*>& Pair : ClassesToReinstance)
 	{
 		if (Pair.Value != nullptr)
 		{
@@ -1166,12 +1215,12 @@ void FHotReloadModule::ReinstanceClasses()
 		}
 	}
 
-	for (TPair<UClass*, UClass*>& Pair : GetClassesToReinstance())
+	for (const TPair<UClass*, UClass*>& Pair : ClassesToReinstance)
 	{
 		ReinstanceClass(Pair.Key, Pair.Value, OldToNewClassesMap);
 	}
 
-	GetClassesToReinstance().Empty();
+	ClassesToReinstance.Empty();
 }
 
 void FHotReloadModule::ReinstanceClass(UClass* OldClass, UClass* NewClass, const TMap<UClass*, UClass*>& OldToNewClassesMap)
@@ -1185,28 +1234,6 @@ void FHotReloadModule::ReinstanceClass(UClass* OldClass, UClass* NewClass, const
 }
 #endif
 
-void FHotReloadModule::GetGameModules(TArray<FString>& OutGameModules, TArray<FString>* OutGameModuleFilePaths )
-{
-	// Ask the module manager for a list of currently-loaded gameplay modules
-	TArray< FModuleStatus > ModuleStatuses;
-	FModuleManager::Get().QueryModules(ModuleStatuses);
-
-	for (TArray< FModuleStatus >::TConstIterator ModuleStatusIt(ModuleStatuses); ModuleStatusIt; ++ModuleStatusIt)
-	{
-		const FModuleStatus& ModuleStatus = *ModuleStatusIt;
-
-		// We only care about game modules that are currently loaded
-		if (ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule)
-		{
-			OutGameModules.Add(ModuleStatus.Name);
-			if( OutGameModuleFilePaths != nullptr )
-			{
-				OutGameModuleFilePaths->Add(ModuleStatus.FilePath);
-			}
-		}
-	}
-}
-
 void FHotReloadModule::OnHotReloadBinariesChanged(const TArray<struct FFileChangeData>& FileChanges)
 {
 	if (bIsHotReloadingFromEditor)
@@ -1215,50 +1242,63 @@ void FHotReloadModule::OnHotReloadBinariesChanged(const TArray<struct FFileChang
 		return;
 	}
 
-	TArray< FString > GameModuleNames;
-	TArray< FString > GameModuleFilePaths;
-	GetGameModules(GameModuleNames, &GameModuleFilePaths);
+	const FModuleManager& ModuleManager = FModuleManager::Get();
+	TMap<FString, FString> GameModuleFilenames = UE4HotReload_Private::GetGameModuleFilenames(ModuleManager);
 
-	if (GameModuleNames.Num() > 0)
+	if (GameModuleFilenames.Num() == 0)
 	{
-		// Check if any of the game DLLs has been added
-		for (auto& Change : FileChanges)
-		{
+		return;
+	}
+
+	// Check if any of the game DLLs has been added
+	for (auto& Change : FileChanges)
+	{
+		// Ignore changes that aren't introducing a new file.
+		//
+		// On the Mac the Add event is for a temporary linker(?) file that gets immediately renamed
+		// to a dylib. In the future we may want to support modified event for all platforms anyway once
+		// shadow copying works with hot-reload.
 #if PLATFORM_MAC
-			// On the Mac the Add event is for a temporary linker(?) file that gets immediately renamed
-			// to a dylib. In the future we may want to support modified event for all platforms anyway once
-			// shadow copying works with hot-reload.
-			if (Change.Action == FFileChangeData::FCA_Modified)
+		if (Change.Action != FFileChangeData::FCA_Modified)
 #else
-			if (Change.Action == FFileChangeData::FCA_Added)
+		if (Change.Action != FFileChangeData::FCA_Added)
 #endif
+		{
+			continue;
+		}
+
+		// Ignore files that aren't of module type
+		FString Filename = FPaths::GetCleanFilename(Change.Filename);
+		if (!Filename.EndsWith(FPlatformProcess::GetModuleExtension()))
+		{
+			continue;
+		}
+
+		for (const TPair<FString, FString>& NameFilename : GameModuleFilenames)
+		{
+			// Handle module files which have already been hot-reloaded.
+			FString BaseName = FPaths::GetBaseFilename(NameFilename.Value);
+			StripModuleSuffixFromFilename(BaseName, NameFilename.Key);
+
+			// Hot reload always adds a numbered suffix preceded by a hyphen, but otherwise the module name must match exactly!
+			if (!Filename.StartsWith(BaseName + TEXT("-")))
 			{
-				const FString Filename = FPaths::GetCleanFilename(Change.Filename);
-				if (Filename.EndsWith(FPlatformProcess::GetModuleExtension()))
-				{
-					for (int32 GameModuleIndex = 0; GameModuleIndex < GameModuleNames.Num(); ++GameModuleIndex)
-					{
-						const FString& GameModuleName = GameModuleNames[GameModuleIndex];
-						const FString& GameModuleFilePath = GameModuleFilePaths[GameModuleIndex];
-
-						// Handle module files which have already been hot-reloaded.
-						FString GameModuleFileNameWithoutExtension = FPaths::GetBaseFilename(GameModuleFilePath);
-						StripModuleSuffixFromFilename(GameModuleFileNameWithoutExtension, GameModuleName);
-
-						// Hot reload always adds a numbered suffix preceded by a hyphen, but otherwise the module name must match exactly!
-						if (Filename.StartsWith(GameModuleFileNameWithoutExtension + TEXT("-")))
-						{
-							if (!NewModules.ContainsByPredicate([&](const FRecompiledModule& Module){ return Module.Name == GameModuleName; }) &&
-								!ModulesRecentlyCompiledInTheEditor.Contains(FPaths::ConvertRelativePathToFull(Change.Filename)))
-							{
-								// Add to queue. We do not hot-reload here as there may potentially be other modules being compiled.
-								NewModules.Emplace(GameModuleName, Change.Filename);
-								UE_LOG(LogHotReload, Log, TEXT("New module detected: %s"), *Filename);
-							}
-						}
-					}
-				}
+				continue;
 			}
+
+			if (NewModules.Contains(NameFilename.Key))
+			{
+				continue;
+			}
+
+			if (ModulesRecentlyCompiledInTheEditor.Contains(FPaths::ConvertRelativePathToFull(Change.Filename)))
+			{
+				continue;
+			}
+
+			// Add to queue. We do not hot-reload here as there may potentially be other modules being compiled.
+			NewModules.Emplace(NameFilename.Key, Change.Filename);
+			UE_LOG(LogHotReload, Log, TEXT("New module detected: %s"), *Filename);
 		}
 	}
 }
@@ -1322,6 +1362,23 @@ bool FHotReloadModule::Tick(float DeltaTime)
 {
 	if (NewModules.Num())
 	{
+#if WITH_EDITOR
+		if (GEditor)
+		{
+			// Don't allow hot reloading if we're running networked PIE instances
+			// The reason, is it's fairly complicated to handle the re-wiring that needs to happen when we re-instance objects like player controllers, possessed pawns, etc...
+			const TIndirectArray<FWorldContext>& WorldContextList = GEditor->GetWorldContexts();
+
+			for (const FWorldContext& WorldContext : WorldContextList)
+			{
+				if (WorldContext.World() && WorldContext.World()->WorldType == EWorldType::PIE && WorldContext.World()->NetDriver)
+				{
+					return true;		// Don't allow automatic hot reloading if we're running PIE instances
+				}
+			}
+		}
+#endif // WITH_EDITOR
+
 		// We have new modules in the queue, but make sure UBT has finished compiling all of them
 		if (!FDesktopPlatformModule::Get()->IsUnrealBuildToolRunning())
 		{
@@ -1336,36 +1393,37 @@ bool FHotReloadModule::Tick(float DeltaTime)
 	return true;
 }
 
-void FHotReloadModule::GetPackagesToRebindAndDependentModules(const TArray<FString>& InGameModuleNames, TArray<UPackage*>& OutPackagesToRebind, TArray<FName>& OutDependentModules)
-{
-	for (auto& GameModuleName : InGameModuleNames)
-	{
-		FString PackagePath(FString(TEXT("/Script/")) + GameModuleName);
-		UPackage* Package = FindPackage(NULL, *PackagePath);
-		if (Package != NULL)
-		{
-			OutPackagesToRebind.Add(Package);
-		}
-		else
-		{
-			OutDependentModules.Add(*GameModuleName);
-		}
-	}
-}
-
 void FHotReloadModule::DoHotReloadFromIDE()
 {
-	TArray<FString> GameModuleNames;
-	TArray<UPackage*> PackagesToRebind;
-	TArray<FName> DependentModules;
-	double Duration = 0.0;
+	const FModuleManager& ModuleManager = FModuleManager::Get();
+	IFileManager& FileManager = IFileManager::Get();
+
+	int32 NumPackagesToRebind = 0;
+	int32 NumDependentModules = 0;
+
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
 
-	GetGameModules(GameModuleNames);
+	double Duration = 0.0;
+
+	TArray<FString> GameModuleNames = UE4HotReload_Private::GetGameModuleNames(ModuleManager);
 
 	if (GameModuleNames.Num() > 0)
 	{
 		FScopedDurationTimer Timer(Duration);
+
+		// Remove any modules whose files have disappeared - this can happen if a compile event has
+		// failed and deleted a DLL that was there previously.
+		for (auto It = NewModules.CreateIterator(); It; ++It)
+		{
+			if (!FileManager.FileExists(*It->Value))
+			{
+				It.RemoveCurrent();
+			}
+		}
+		if (NewModules.Num() == 0)
+		{
+			return;
+		}
 
 		UE_LOG(LogHotReload, Log, TEXT("Starting Hot-Reload from IDE"));
 
@@ -1375,25 +1433,27 @@ void FHotReloadModule::DoHotReloadFromIDE()
 		SlowTask.MakeDialog();
 
 		// Update compile data before we start compiling
-		for (auto& NewModule : NewModules)
+		for (const TPair<FString, FString>& NewModule : NewModules)
 		{
 			// Move on 10% / num items
 			SlowTask.EnterProgressFrame(10.f/NewModules.Num());
 
-			UpdateModuleCompileData(*NewModule.Name);
-			OnModuleCompileSucceeded(*NewModule.Name, NewModule.NewFilename);
+			FName ModuleName = *NewModule.Key;
+
+			UpdateModuleCompileData(ModuleName);
+			OnModuleCompileSucceeded(ModuleName, NewModule.Value);
 		}
 
 		SlowTask.EnterProgressFrame(10);
-		GetPackagesToRebindAndDependentModules(GameModuleNames, PackagesToRebind, DependentModules);
-
+		UE4HotReload_Private::FPackagesAndDependentNames PackagesAndDependentNames = UE4HotReload_Private::SplitByPackagesAndDependentNames(GameModuleNames);
 		SlowTask.EnterProgressFrame(80);
-		check(PackagesToRebind.Num() || DependentModules.Num());
 
-		Result = DoHotReloadInternal(NewModules, PackagesToRebind, DependentModules, *GLog);
+		NumPackagesToRebind = PackagesAndDependentNames.Packages.Num();
+		NumDependentModules = PackagesAndDependentNames.DependentNames.Num();
+		Result = DoHotReloadInternal(NewModules, PackagesAndDependentNames.Packages, PackagesAndDependentNames.DependentNames, *GLog);
 	}
 
-	RecordAnalyticsEvent(TEXT("IDE"), Result, Duration, PackagesToRebind.Num(), DependentModules.Num());
+	RecordAnalyticsEvent(TEXT("IDE"), Result, Duration, NumPackagesToRebind, NumDependentModules);
 }
 
 void FHotReloadModule::RecordAnalyticsEvent(const TCHAR* ReloadFrom, ECompilationResult::Type Result, double Duration, int32 PackageCount, int32 DependentModulesCount)
@@ -1613,7 +1673,7 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 		
 		if (RecompileModulesCallback)
 		{
-			RecompileModulesCallback( TArray<FRecompiledModule>(), false, ECompilationResult::OtherCompilationError );
+			RecompileModulesCallback( TMap<FString, FString>(), false, ECompilationResult::OtherCompilationError );
 			RecompileModulesCallback = nullptr;
 		}
 	}
@@ -1747,7 +1807,7 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 	// in case we recompiled the modules to a new unique file name.  This is needed so that when the module
 	// is reloaded after the recompile, we load the new DLL file name, not the old one.
 	// Note that we don't want to do anything in case the build was canceled or source code has not changed.
-	TArray<FRecompiledModule> ChangedModules;
+	TMap<FString, FString> ChangedModules;
 	if(CompilationResult == ECompilationResult::Succeeded)
 	{
 		ChangedModules.Reserve(ModulesThatWereBeingRecompiled.Num());

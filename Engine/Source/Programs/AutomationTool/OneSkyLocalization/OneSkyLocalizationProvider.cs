@@ -140,7 +140,7 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 						}
 
 						MemoryStream.Position = 0;
-						using (Stream FileStream = ExportFile.OpenWrite())
+						using (Stream FileStream = ExportFile.Open(FileMode.Create))
 						{
 							MemoryStream.CopyTo(FileStream);
 							Console.WriteLine("[SUCCESS] Exported '{0}' as '{1}' ({2})", OneSkyFile.Filename, ExportFile.FullName, Culture);
@@ -180,7 +180,7 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 				}
 				else if (ExportTranslationState == UploadedFile.ExportTranslationState.NoContent)
 				{
-					Console.WriteLine("[SUCCESS] Skipped '{0}' ({1}) has no translations", OneSkyFile.Filename, Culture);
+					Console.WriteLine("[SUCCESS] Skipped '{0}' ({1}) as it has no translations", OneSkyFile.Filename, Culture);
 				}
 				else
 				{

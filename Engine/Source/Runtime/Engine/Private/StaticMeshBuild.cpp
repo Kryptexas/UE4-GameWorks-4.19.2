@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "StaticMeshResources.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"
@@ -56,6 +57,12 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 	if (SourceModels.Num() <= 0)
 	{
 		UE_LOG(LogStaticMesh,Warning,TEXT("Static mesh has no source models: %s"),*GetPathName());
+		return;
+	}
+
+	if (SourceModels.Num() > MAX_STATIC_MESH_LODS)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Cannot build LOD %d.  The maximum allowed is %d.  Skipping."), SourceModels.Num(), MAX_STATIC_MESH_LODS);
 		return;
 	}
 
@@ -136,56 +143,6 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 		{
 			if ( It->StaticMesh == this )
 			{
-				// Initialize override vertex colors on any new LODs which have just been created
-				It->SetLODDataCount(NumLODs, It->LODData.Num());
-
-				FStaticMeshComponentLODInfo& LOD0Info = It->LODData[0];
-				if (LOD0Info.OverrideVertexColors)
-				{
-					for (uint32 LODIndex = 1; LODIndex < NumLODs; ++LODIndex)
-					{
-						FStaticMeshComponentLODInfo& LODInfo = It->LODData[LODIndex];
-
-						if (LODInfo.OverrideVertexColors == nullptr && LODInfo.PaintedVertices.Num() == 0)
-						{
-							LODInfo.OverrideVertexColors = new FColorVertexBuffer;
-
-							FStaticMeshLODResources& CurRenderData = RenderData->LODResources[LODIndex];
-
-							TArray<FColor> NewOverrideColors;
-
-							if (LOD0Info.PaintedVertices.Num() > 0)
-							{
-								// Build override colors for LOD, based on LOD0
-								RemapPaintedVertexColors(
-									LOD0Info.PaintedVertices,
-									*LOD0Info.OverrideVertexColors,
-									CurRenderData.PositionVertexBuffer,
-									&CurRenderData.VertexBuffer,
-									NewOverrideColors
-									);
-							}
-							if (NewOverrideColors.Num())
-							{
-								LODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
-
-								// Update the PaintedVertices array
-								const int32 NumVerts = CurRenderData.GetNumVertices();
-								check(NumVerts == NewOverrideColors.Num());
-
-								LODInfo.PaintedVertices.Reserve(NumVerts);
-								for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
-								{
-									FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
-									Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
-									Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
-									Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
-								}
-							}
-						}
-					}
-				}
-
 				It->FixupOverrideColorsIfNecessary(true);
 				It->InvalidateLightingCache();
 			}
@@ -353,7 +310,7 @@ void RemapPaintedVertexColors(
 				{
 					FOREACH_OCTREE_CHILD_NODE( OctreeChildRef )
 					{
-						if( CurNode.HasChild( OctreeChildRef ) && CurNode.GetChild( OctreeChildRef )->GetInclusiveElementCount() > 0 )
+						if( CurNode.HasChild( OctreeChildRef ) )
 						{
 							OctreeIter.PushChild( OctreeChildRef );
 						}

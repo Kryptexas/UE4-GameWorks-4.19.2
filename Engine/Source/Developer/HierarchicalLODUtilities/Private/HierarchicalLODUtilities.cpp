@@ -35,9 +35,9 @@
 #include "HierarchicalLODUtilities.h"
 #include "HierarchicalLODProxyProcessor.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogHierarchicalLODUtilities, Verbose, All);
+
 #define LOCTEXT_NAMESPACE "HierarchicalLODUtils"
-
-
 
 void FHierarchicalLODUtilities::ExtractStaticMeshComponentsFromLODActor(AActor* Actor, TArray<UStaticMeshComponent*>& InOutComponents)
 {
@@ -135,6 +135,7 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 			return false;
 		}
 
+		UE_LOG(LogHierarchicalLODUtilities, Log, TEXT("Building Proxy Mesh for Cluster %s"), *LODActor->GetName());
 		const FScopedTransaction Transaction(LOCTEXT("UndoAction_BuildProxyMesh", "Building Proxy Mesh for Cluster"));
 		LODActor->Modify();		
 
@@ -256,6 +257,7 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
 				FBoxSphereBounds Bounds = LODActor->GetStaticMeshComponent()->CalcBounds(FTransform());
 				LODActor->LODDrawDistance = CalculateDrawDistanceFromScreenSize(Bounds.SphereRadius, LODSetup.TransitionScreenSize, ProjectionMatrix);
+				LODActor->StaticMeshComponent->MinDrawDistance = LODActor->LODDrawDistance;
 				LODActor->UpdateSubActorLODParents();
 
 				// Freshly build so mark not dirty
@@ -384,7 +386,7 @@ void FHierarchicalLODUtilities::DestroyCluster(ALODActor* InActor)
 
 	World->DestroyActor(InActor);
 
-	if (ParentLOD != nullptr && !ParentLOD->HasValidSubActors())
+	if (ParentLOD != nullptr && !ParentLOD->HasAnySubActors())
 	{
 		DestroyCluster(ParentLOD);
 	}
@@ -427,6 +429,7 @@ ALODActor* FHierarchicalLODUtilities::CreateNewClusterActor(UWorld* InWorld, con
 	NewActor->LODLevel = InLODLevel + 1;
 	NewActor->LODDrawDistance = 0.0f;
 	NewActor->SetStaticMesh(nullptr);
+	NewActor->PostEditChange();
 
 	return NewActor;
 }
@@ -459,7 +462,7 @@ ALODActor* FHierarchicalLODUtilities::CreateNewClusterFromActors(UWorld* InWorld
 			ParentActor->RemoveSubActor(Actor);
 
 			// If the parent cluster is now empty (invalid) destroy it
-			if (!ParentActor->HasValidSubActors())
+			if (!ParentActor->HasAnySubActors())
 			{
 				DestroyCluster(ParentActor);
 			}
@@ -490,7 +493,7 @@ const bool FHierarchicalLODUtilities::RemoveActorFromCluster(AActor* InActor)
 
 		bSucces = ParentActor->RemoveSubActor(InActor);
 
-		if (!ParentActor->HasValidSubActors())
+		if (!ParentActor->HasAnySubActors())
 		{
 			DestroyCluster(ParentActor);
 		}
@@ -545,7 +548,7 @@ const bool FHierarchicalLODUtilities::MergeClusters(ALODActor* TargetCluster, AL
 		AddActorToCluster(SubActor, TargetCluster);		
 	}
 
-	if (!SourceCluster->HasValidSubActors())
+	if (!SourceCluster->HasAnySubActors())
 	{
 		DestroyCluster(SourceCluster);
 	}
@@ -670,7 +673,7 @@ void FHierarchicalLODUtilities::DestroyLODActor(ALODActor* InActor)
 	DestroyCluster(InActor);
 	World->DestroyActor(InActor);
 
-	if (ParentActor && !ParentActor->HasValidSubActors())
+	if (ParentActor && !ParentActor->HasAnySubActors())
 	{
 		ParentActor->Modify();
 		DestroyLODActor(ParentActor);

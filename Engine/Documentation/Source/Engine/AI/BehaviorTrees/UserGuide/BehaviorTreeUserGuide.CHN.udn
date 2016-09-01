@@ -1,214 +1,215 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2757389
 Availability:Public
-Title: Behavior Tree User Guide
+Title:行为树用户指南
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
-Description:Behavior Tree Editor User Guide
+Description:行为树编辑器用户指南
+version:4.9
 
 [TOC(start:2 end:2)]
 
-This document will cover the most common workflows encountered while working with Behavior Trees.
+该文档中包含使用行为树时常见的工作流程。
 
-## Creating Behavior Tree Assets
+## 创建行为树资源
 
-### Creating a Behavior Tree
+### 创建一个行为树
 
-You can create a new Behavior Tree by using the **Content Browser**.
+可使用 **内容浏览器** 创建新行为树。
 
 [REGION:raw]
 ![](Engine/AI/BehaviorTrees/QuickStart/3/newBT.png)
 [/REGION]
 
-1. In the **Content Browser**, **left-click** the New button.
-1. Select **Behavior Tree** in the **Miscellaneous** category.
+1. 在 **内容浏览器** 中 **左键单击** “New” 按钮。
+1. 在 **Miscellaneous** 类目下选择 **Behavior Tree**。
 
-### Creating a Blackboard
+### 创建一个黑板
 
-You can create a Blackboard Asset using the **Content Browser**.
+可使用 **内容浏览器** 创建黑板资源。
 
 [REGION:raw]
 ![](Engine/AI/BehaviorTrees/QuickStart/3/newBB.png)
 [/REGION]
 
-1. In the **Content Browser**, **left-click** the New button.
-1. Select **Blackboard** in the **Miscellaneous** category.
+1. 在 **内容浏览器** 中 **左键单击** “New” 按钮。
+1. 在 **Miscellaneous** 类目下选择 **Blackboard**。
 
 
-Or, if you have started to edit a Behavior Tree (or simply want a new Blackboard for the Behavior Tree), you can click the New Blackboard ![](newBB_button.png) button in the Behavior Tree Editor (while in Behavior Tree Edit Mode).
+如您已开始编辑行为树（或只想为行为树添加一个新黑板），可在 **Behavior Tree Editor** 中点击 **New Blackboard** 按钮（在行为树编辑模式中）。
 
 ![](NewBBinBTE.png)(w:920 convert:false)
 
-### Creating a Task (Blueprint)
+### 创建一个 Task（蓝图）
 
-1. Click the New Task ![](Engine/AI/BehaviorTrees/QuickStart/12/newTask_button.png) button in the Behavior Tree Editor (while in Behavior Tree Edit Mode).
-1. Choose a Behavior Tree Task class to inherit from, `BTTask_BlueprintBase` is the default "blank" class.
-1. The new Task Blueprint will be created in the same folder as your Behavior Tree asset.
+1. 在行为树编辑器中点击 **New Task** 按钮（在行为树编辑模式中）。
+1. 选择需要继承的 **Behavior Tree Task** 类，`BTTask_BlueprintBase` 是默认的“空白”类。
+1. 新 Task 蓝图将创建于行为树资源的相同文件夹中。
 
-### Creating a Decorator (Blueprint)
+### 创建一个 Decorator（蓝图）
 
-1. Click the New Decorator ![](Engine/AI/BehaviorTrees/QuickStart/13/newDecorator_button.png) button in the Behavior Tree Editor (while in Behavior Tree Edit Mode).
-1. Choose a Behavior Tree Decorator class to inherit from, `BTDecorator_BlueprintBase` is the default "blank" class.
-1. The new Decorator Blueprint will be created in the same folder as your Behavior Tree asset.
+1. 在行为树编辑器中点击 **New Decorator** 按钮（在行为树编辑模式中）。
+1. 选择需要继承的 **Behavior Tree Decorator** 类，`BTDecorator_BlueprintBase` 是默认的“空白”类。
+1. 新 Decorator 蓝图将创建于行为树资源的相同文件夹中。
 
-### Creating a Service (Blueprint)
+### 创建一个 Service（蓝图）
 
-1. Click the New Service ![](Engine/AI/BehaviorTrees/QuickStart/11/newService_button.png) button in the Behavior Tree Editor (while in Behavior Tree Edit Mode).
-1. Choose a Behavior Tree Service class to inherit from, `BTService_BlueprintBase` is the default "blank" class.
-1. The new Service Blueprint will be created in the same folder as your Behavior Tree asset.
+1. 在行为树编辑器中点击 **New Service** 按钮（在行为树编辑模式中）。
+1. 选择需要继承的 **Behavior Tree Service** 类，`BTService_BlueprintBase` 是默认的“空白”类。
+1. 新 Service 蓝图将创建于行为树资源的相同文件夹中。
 
-## Editing a Blackboard
+## 编辑黑板
 
-You can edit a Blackboard by either **double-clicking** it in the **Content Browser** to open it in the Behavior Tree editor:
+黑板有两种编辑方式。在 **内容浏览器** 中 **双击**，将其在 **行为树编辑器** 中打开：
 
 ![](Engine/AI/BehaviorTrees/QuickStart/5/BBAsset.png)(convert:false)
 
-Or by switching a currently opened Behavior Tree Editor to Blackboard Edit Mode:
+或将当前打开的 **行为树编辑器** 切换至 **黑板编辑模式**：
 
 ![](blackboardMode.png)(convert:false)
 
-### Add Keys
+### 添加 Keys
 
-1. Click the New Key ![](Engine/AI/BehaviorTrees/QuickStart/5/newKey_button.png) button.
-1. Select the Type of Key to add.
-1. Adjust the name of the Key.
+1. 点击 **New Key** 按钮。
+1. 选择要添加的 Key 类型。
+1. 修改 Key 名称。
 
-### Remove Keys
+### 删除 Keys
 
-1. Select the Key you wish to remove.
-1. Press the **Delete** key.
+1. 选择需要删除的 Key。
+1. 按下 **Delete** 键。
 
-### Renaming Keys
+### 重命名 Keys
 
-1. Select the Key you wish to rename.
-1. **Right-click** and select Rename (or press F2).
-1. Enter a new name for the Key.
+1. 选择需要重命名的 Key。
+1. **单击右键** 选择 **Rename** （或按 F2 键）。
+1. 为 Key 输入一个新名字。
 
-### Object Key Specifics
+### Object Key 特性
 
-Object Keys are special in that you can change their specific type. This enables you to store any type of data that inherits from Object (such as Actors) in them.
+Object Key 的特殊性在于可改变其单独的类型。因此它们能存储从对象（如 Actors）中继承的任意类型数据。
 
-As some Decorator and Service functions require Actor Keys, this is how you change an Object Key into an Actor Key.
+因为部分 Decorator 和 Service 功能需要 Actor Key，在此说明如何将 Object Key 转变为 Actor Key。
 
-1. Select an Object Key
-1. In the **Details** Panel, expand the Key Type property.
-1. Change the Base Class property to the desired Object Type.
+1. 选择一个 **Object** Key
+1. 在 **Details** 面板中，打开 **Key Type** 属性。
+1. 将 Base Class 属性改为需要的 Object 类型。
 
-## Editing a Behavior Tree
+### 编辑行为树
 
-You can edit a Behavior Tree by either **double-clicking** it in the **Content Browser** to open it in the Behavior Tree editor:
+行为树有两种编辑方式。在 **内容浏览器** 中 **双击**，将其在行为树编辑器中打开：
 
 ![](btAsset.png)(convert:false)
 
-Or by switching a currently opened Behavior Tree Editor to Behavior Tree Edit Mode:
+或将当前打开的 **行为树编辑器** 切换至 **行为树编辑模式**：
 
 ![](Engine/AI/BehaviorTrees/QuickStart/14/btMode.png)(convert:false)
 
-### Setting the Blackboard Asset to Use
+### 设置使用的黑板资源
 
-1. Select the Root node of the Behavior Tree (or deselect all nodes)
-1. In the **Details** Panel, set the Blackboard Asset to the desired Blackboard.
+1. 在行为树上选择 **Root** 节点（或取消选择所有节点）
+1. 在 **Details** 面板中，将 **黑板资源** 设在所需的黑板上。
 
 [REGION:raw]
 ![](settingBB.png)
 [/REGION]
 
-### Adding a Node (Composites and Tasks)
+### 添加节点（Composites 和 Tasks）
 
-1. **Right-click** in the Behavior Tree Graph area to bring up the context menu.
-1. Select the node you wish to add from the context menu.
+1. 在行为树图表区域中 **单击右键** 呼出快捷菜单。
+1. 从快捷菜单中选择需要添加的节点。
 
 ![](newNode.png)
 
-### Removing a Node
+### 删除节点
 
-1. Select a node by left clicking it.
-1. Press the **Delete** key.
+1. 点击左键选择节点。
+1. 按下 **Delete** 键。
 
-### Connecting Nodes
+### 连接节点
 
-Connecting nodes in a Behavior Tree is much like connecting pins in a Blueprint. However, the primary difference is direction of the connection matters: you can only connect an output pin to an input pin.
+在行为树中连接节点的方式和在蓝图中连接引脚的方式颇为相似。然而主要的区别在于起作用连接的方向：只能将输出引脚和输入引脚连接起来。
 
-To connect nodes:
+### 连接节点的步骤：
 
-1. **Left-click** and hold on output bar.
-1. Now drag the cursor to an input bar.
-1. Release the left mouse button.
+1. 在输出条上 **单击** 并长按鼠标左键。
+1. 将光标拖至输入条。
+1. 松开鼠标左键。
 
 ![](Engine/AI/BehaviorTrees/QuickStart/14/connectNodes.png)
 
-### Breaking Connections
+### 断开连接
 
-1. **Right-click** on a connection bar to bring up the context menu.
-1. Select "Break Link(s)"
+1. 在连接条上 **单击右键** 呼出快捷菜单。
+1. 选择 “Break Link(s)”
 
 ![](context1.png)
 
-**Or**
+**或**
 
-1. **Alt + Left-click** on a connected bar.
+1. 在已连接的条上按下 **Alt + 左键单击** 组合键。
 
-### Editing Node Properties
+### 编辑节点属性
 
-1. **Left-click** to select a node.
-1. Adjust the node properties using the **Details** panel.
+1. **单击左键** 选择一个节点。
+1. 使用 **Details** 面板调整节点属性。
 
-### Adding Decorators and Services to Nodes
+### 将 Decorators 和 Services 添加至节点
 
 [REGION:raw]
 ![](newDecSer.png)
 [/REGION]
 
-1. **Right-click** a Composite or Task node to bring up the context menu.
+1. 在 Composite 或 Task 节点上 **单击右键** 呼出快捷菜单。
 
-	**Right-clicking** on the left or right edges works the best.
+	在左右边沿 **单击右键** 效果最佳。
 
-1. Select a Decorator or Service you want to add to the node.
+1. 选择需要添加至节点的 Decorator 或 Service。
 
-### Removing Decorators and Services from Nodes
+### 将 Decorators 和 Services 从节点移除
 
-1. Select a Decorator or Service on a node by **left-clicking** it (the Decorator or Service will gain a redish outline).
-
-	![](selectDec.png)
-
-1. Press the **Delete** key.
-
-### Editing Decorators and Services
-
-1. Select a Decorator or Service on a node by **left-clicking** it (the Decorator or Service will gain a redish outline).
+1. **左键单击**，在节点上选择一个 **Decorator** 或 **Service**（Decorator 或 Service 上将出现一个红色边框）。
 
 	![](selectDec.png)
 
-1. Adjust the Decorator or Service properties using the **Details** panel.
+1. 按下 **Delete** 键。
+
+### 编辑 Decorators 和 Services
+
+1. **左键单击**，在节点上选择一个 **Decorator** 或 **Service**（Decorator 或 Service 上将出现一个红色边框）。
+
+	![](selectDec.png)
+
+1. 使用 **Details** 面板调整 **Decorator** 或 **Service** 属性。
 
 	![](details.png)
 
-### Composite Decorator Specifics
+### Composite Decorator 特性
 
-**Double-click** a Composite Decorator to bring up the Composite Decorator's graph.
+**双击** Composite Decorator 呼出其图表。
 
-The Composite Decorator graph works like a simple Blueprint, but only deals with the True/False returns of the various Decorators available to the Behavior Tree.
+Composite Decorator 图表的工作方式和简单蓝图相似，但仅限于处理行为树可用的多个 Decorators 的 True/False 返回。
 
 [REGION:raw]
 ![](compositeEdit.png)(w:920)
 [/REGION]
 
 
-### Editing a Task (Blueprint)
+### 编辑 Task（蓝图）
 
-You can **double-click** a placed Task node in the Behavior Tree editor to open it in the Blueprint Editor.
+在行为树编辑器中 **双击** 一个放置好的 Task 节点，使其在蓝图编辑器中打开。
 
-Or you can **double-click** the Task in the **Content Browser**.
+或在 **内容浏览器** 中 **双击** Task。
 
-### Editing a Service (Blueprint)
+### 编辑 Service（蓝图）
 
-You can **double-click** a placed Service in the Behavior Tree editor to open it in the Blueprint Editor.
+在行为树编辑器中 **双击** 一个放置好的 Service，使其在蓝图编辑器中打开。
 
-Or you can **double-click** the Service in the **Content Browser**.
+或在 **内容浏览器** 中 **双击** Service。
 
-### Editing a Decorator (Blueprint)
+### 编辑 Decorator（蓝图）
 
-You can **double-click** a placed Decorator in the Behavior Tree editor to open it in the Blueprint Editor.
+在行为树编辑器中 **双击** 一个放置好的 Decorator，使其在蓝图编辑器中打开。
 
-Or you can **double-click** the Decorator in the **Content Browser**.
+或在 **内容浏览器** 中 **双击** Decorator。
 
 
 

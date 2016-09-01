@@ -1,26 +1,37 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Velocity Modules
+﻿INTSourceChangelist:2750835
+Availability:Public
+Title:Velocity 模块
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:Velocity modules exist to make adjustments to particle velocity in a variety of ways.
+Description:Velocity 模块以多种方式调整粒子的速度。
+Version:4.9
 
 [TOC(start:2 end:3)]
 
-Velocity modules exist to make adjustments to particle velocity in a variety of ways.
+Velocity 模块以多种方式调整粒子的速度。
 
 ## Initial Velocity
 
-![psys_initial_velocity.gif](psys_initial_velocity.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+htluEXsHV4o
+[/PARAMLITERAL]
+[/OBJECT]
 
-The Initial Velocity module sets the initial velocity of a particle. It contains the following member(s):
+**Initial Velocity** 模块设置粒子的初始速度。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Velocity[/REGION]||
-|**Start Velocity** | A vector distribution providing the velocity to apply to a particle at its spawn time. The value is retrieved using the EmitterTime of the owner emitter.|
-|**Start Velocity Radial** | A float distribution providing the velocity to apply to a particle along its radial direction. This direction is determined by the subtracting the location of the emitter from the particle location at spawn time. The value is retrieved using the EmitterTime of the owner emitter.|
-|**In World Space** | If _true_, the velocity is assumed to be in world-space.|
-|**Apply Owner Scale** | If _true_, the velocity value will be scaled by the ParticleSystemComponent's scale.|
+|**Start Velocity** | 一个矢量 distribution，用于确定粒子生成时应用的速度。利用主控者发射器的 EmitterTime 获取该数值。|
+|**Start Velocity Radial** | 一个矢量 distribution，用于确定粒子沿径向应用的速度。在生成时从发射器位置减去粒子位置即可确定方向。利用主控发射器的 EmitterTime 获取该数值。|
+| **In World Space** | 如为 _true_，速度将被假定于全局空间中。
+|**Apply Owner Scale** | 如为 _true_，可通过 ParticleSystemComponent 的缩放对速度值进行调整。|
 
 
 
@@ -28,58 +39,68 @@ The Initial Velocity module sets the initial velocity of a particle. It contains
 
 ## Initial Vel (Seed)
 
-The Initial Vel (Seed) module is identical to the [Initial Velocity](#InitialVelocity) module in that it sets the velocity of a particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+**Initial Vel (Seed)** 模块与发射时设置粒子尺寸的 [Initial Velocity](#InitialVelocity) 模块相同；然而此模块可对种子信息进行指定。该种子信息用于选择 distribution 值，从发射器每次使用的模块获得更稳定的效果。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]RandomSeed[/REGION]||
-|**Random Seed Info** | The random seed(s) to use for selecting "random" values for this module's properties.[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
+|**Random Seed Info** | 为该模块属性选择“随机”值而使用的随机种子。[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
 |[REGION:tablesection]Velocity[/REGION]||
-|**Start Velocity** | A vector distribution providing the velocity to apply to a particle at its spawn time. The value is retrieved using the EmitterTime of the owner emitter.|
-|**Start Velocity Radial** | A float distribution providing the velocity to apply to a particle along its radial direction. This direction is determined by the subtracting the location of the emitter from the particle location at spawn time. The value is retrieved using the EmitterTime of the owner emitter.|
-|**In World Space** | If _true_, the velocity is assumed to be in world-space.|
-|**Apply Owner Scale** | If _true_, the velocity value will be scaled by the ParticleSystemComponent's scale.|
+|**Start Velocity** | 一个矢量 distribution，用于确定粒子生成时应用的速度。利用主控发射器的 EmitterTime 获取该数值。|
+|**Start Velocity Radial** | 一个矢量 distribution，用于确定粒子沿径向应用的速度。在生成时从发射器位置减去粒子位置即可确定方向。利用主控者发射器的 EmitterTime 获取该数值。|
+| **In World Space** | 如为 _true_，速度将被假定于全局空间中。
+|**Apply Owner Scale** | 如为 _true_，可通过 ParticleSystemComponent 的缩放对速度值进行调整。|
 
 
 ## Velocity Cone
 
-The Velocity Cone module emits particles in the shape of a user-defined cone. 
+**Velocity Cone** 模块以用户定义的锥形发射粒子。 
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
-|**Angle**| This float distribution value sets the angle of the cone shape. If set up as a Uniform, min represents the inner cone angle and max represents the outer. The value is [0..1] based, with 1 representing an angle of 180 degrees, or a complete sphere.  | 
-|**Velocity**| A float distribution sets the velocity of the particles as they are emitted along the cone. |
-|**Direction**|A 3D vector defining the direction points.|
+|**Angle**| 此浮点 distribution 值设置锥形的角度。如需设为 Uniform，min 代表内锥形角，max 代表外锥形角。数值的最小单位为 [0..1]，1 代表 180 度，或一个完整的圆。| 
+|**Velocity**| 一个浮点 distribution，用于设置粒子沿锥形发射的速度。|
+|**Direction**|定义方向点的 3D 矢量。|
 |[REGION:tablesection]Velocity[/REGION]||
-|**In World Space** | If _true_, the velocity is assumed to be in world-space.|
-|**Apply Owner Scale** | If _true_, the velocity value will be scaled by the ParticleSystemComponent's scale.|
+| **In World Space** | 如为 _true_，速度将被假定于全局空间中。
+|**Apply Owner Scale** | 如为 _true_，可通过 ParticleSystemComponent 的缩放对速度值进行调整。|
 
-## Inherit Parent Vel
+## Inherit Parent Velocity
 
-Contributes the velocity of the parent (the particle emitter itself) to a particle when spawning. It contains the following member(s): 
+**Inherit Parent Velocity** 在粒子生成时使其获得父项（粒子发射器本身）的速度。它包含下列属性： 
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Velocity[/REGION]||
-|**Scale** | A vector distribution that is applied to the parent velocity prior to adding it to the particle velocity during the spawn. The value is retrieved using the RelativeTime of the particle.|
-|**In World Space** | If _true_, the velocity is assumed to be in world-space.|
-|**Apply Owner Scale** | If _true_, the velocity value will be scaled by the ParticleSystemComponent's scale.|
+|**Scale** | 之前即应用到父项速度一个矢量 distribution，在粒子生成时将把父项速度添加到粒子的速度。使用粒子的 RelativeTime 获取该数值。|
+| **In World Space** | 如为 _true_，速度将被假定于全局空间中。|
+|**Apply Owner Scale** | 如为 _true_，可通过 ParticleSystemComponent 的缩放对速度值进行调整。|
 
 
 
 
 ## Velocity/Life
 
-![psys_velocity_life.gif](psys_velocity_life.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+zblNBP4eJLE
+[/PARAMLITERAL]
+[/OBJECT]
 
-The Velocity/Life module scales the velocity by a given amount over the lifetime of the particle. It contains the following member(s):
+**Velocity/Life** 模块在粒子生命周期中按指定量对速度进行调整。它包含下列属性：
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Velocity[/REGION]||
-|**Absolute** | If _true_, the velocity will be set to the value in the distribution when _true_. This allows for directly setting the velocity of a particle at a given point of its lifetime. It is important to note that this setting will 'step on' any previous modules that affect velocity. It will also prevent the "Initial Velocity" module from contributing to the initial velocity of particles. If _false_, the velocity will be scaled by the value of the distribution.|
-|**Apply Owner Scale** | If _true_, the velocity value will be scaled by the ParticleSystemComponent's scale.|
-|**In World Space** | If _true_, the velocity is assumed to be in world-space. [REGION:note]Local-space emitters that are moving will see strange results.[/REGION]|
-|**Vel Over Life** | A vector distribution that is used as the scaling value applied to the velocity. The value is retrieved using the RelativeTime of the particle.|
+|**Absolute** | 如为 _true_，速度将被设为 distribution 中的数值。利用该属性可在粒子生命周期中的一个特定点对粒子速度直接进行设置。请注意，该设置将“优先于”之前影响速度的模块。它还将阻止“初始速度”模块为粒子赋予初始速度。如为 _false_，速度将根据 distribution 的值进行调整。|
+|**Apply Owner Scale** | 如为 _true_，可通过 ParticleSystemComponent 的缩放对速度值进行调整。|
+| **In World Space** | 如为 _true_，速度将被假定于全局空间中。[REGION:note]处于运动状态局部空间发射器将出现奇怪的效果。[/REGION]|
+|**Vel Over Life** | 一个矢量 distribution，作为调整值应用至速度。使用粒子的 RelativeTime 获取该数值。|
 
 

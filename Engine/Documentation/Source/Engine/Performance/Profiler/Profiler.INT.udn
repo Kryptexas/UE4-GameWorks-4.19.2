@@ -1,8 +1,9 @@
 Availability: Public
-Title:Profiler
+Title:Profiler Tool Reference 
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:An overview on the Profiler Tool used to monitor game performance.
 version: 4.9
+Parent: Engine/Performance
 
 [REGION:fullwidth]
 ![](Profiler_Header.png)

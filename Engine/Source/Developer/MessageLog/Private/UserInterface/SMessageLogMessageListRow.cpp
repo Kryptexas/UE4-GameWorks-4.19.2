@@ -172,7 +172,12 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		RowContent = CreateHyperlink(InMessageToken, FText::FromString(URLToken->GetURL()));
 	}
 		break;
-
+	case EMessageToken::EdGraph:
+	{
+		IconBrushName = FName("PropertyWindow.Button_Browse");
+		RowContent = CreateHyperlink(InMessageToken, InMessageToken->ToText());
+	}
+	break;
 	case EMessageToken::Action:
 	{
 		const TSharedRef<FActionToken> ActionToken = StaticCastSharedRef<FActionToken>(InMessageToken);

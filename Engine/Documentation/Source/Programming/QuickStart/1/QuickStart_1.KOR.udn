@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2650085
+﻿INTSourceChangelist:2969282
 Availability: Public
 Title:1 - 필수 프로젝트 생성
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:지정한 사양으로 새로운 C++ 프로젝트를 만듭니다.
 SkillLevel: Beginner
-Version: 4.8
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -13,7 +13,7 @@ Version: 4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[퀵스타트 홈](Programming\QuickStart)
+		[프로그래밍 퀵스타트 홈](Programming\QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\QuickStart\2 "%Programming\QuickStart\2:title%")
@@ -24,7 +24,7 @@ Version: 4.8
 %Steps%
 
 [REGION:note]
-이 튜토리얼 시작 전 데스크탑용 **Visual Studio 2013** (가급적 Community 또는 Professional 에디션) 설치가 되어있어야 합니다.
+이 튜토리얼 시작 전 데스크탑용 **Visual Studio 2015** (가급적 Community 또는 Professional 에디션) 설치가 되어있어야 합니다.
 [/REGION]
 
 1. 런처에서 **언리얼 엔진** 을 엽니다. [](Engine/Basics/Projects/Browser) 가 나타납니다.

@@ -638,7 +638,23 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 			const bool bHaveText = [[Event.DraggingPasteboard types] containsObject:NSPasteboardTypeString];
 			const bool bHaveFiles = [[Event.DraggingPasteboard types] containsObject:NSFilenamesPboardType];
 
-			if (bHaveFiles)
+			if (bHaveFiles && bHaveText)
+			{
+				TArray<FString> FileList;
+
+				NSArray *Files = [Event.DraggingPasteboard propertyListForType:NSFilenamesPboardType];
+				for (int32 Index = 0; Index < [Files count]; Index++)
+				{
+					NSString* FilePath = [Files objectAtIndex: Index];
+					const FString ListElement = FString([FilePath fileSystemRepresentation]);
+					FileList.Add(ListElement);
+				}
+
+				NSString* Text = [Event.DraggingPasteboard stringForType:NSPasteboardTypeString];
+
+				MessageHandler->OnDragEnterExternal(EventWindow.ToSharedRef(), FString(Text), FileList);
+			}
+			else if (bHaveFiles)
 			{
 				TArray<FString> FileList;
 

@@ -1,664 +1,140 @@
-Availability: Public
-Title:编辑景观地形
-Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/Tools, Engine/Landscape
+﻿INTSourceChangelist:2746137
+Availability:Public
+Title:编辑地形
+Crumbs: %ROOT%, Engine, Engine/Landscape
+Description:使用工具编辑地形地貌的指南。
+Version:4.9
 
-[TOC(start:2)]
-
-
-
-## 概述
-
-通过使用虚幻编辑器中的景观编辑对话框的编辑部分，可以直接地编辑景观地形。
-
-![LandscapeEditDialog.jpg](LandscapeEditDialog.jpg)(w:600 h:618)
-
-该Editing（编辑）部分允许您从关卡中所有的景观中选择一个要编辑的景观地形，并提供了访问[编辑工具](#Tools)、 [画刷](#Brushes)及[目标图层](#Targets)的方法。所有这些功能协同工作使得编辑景观地形的处理变得更加简单、直观。这个工具决定了要在景观上执行的动作。画刷决定了受到选中工具影响的景观区域。目标层决定了受到了该工具影响的景观方面，可以是高度图受到影响也可以是贴图层受到影响。
-
-
-
-## 景观编辑模式
-
-所有的景观编辑函数都可以在景观编辑模式窗口中找到。按下 **Landscape Edit Mode(景观编辑模式)** 按钮来切换编辑器到景观编辑模式中，并弹出景观编辑窗口：
-
-![Landscape_Mode.jpg](Landscape_Mode.jpg)(w:72 h:168)
-
-启用景观编辑模式同时会在编辑器中的任何透视口中启用实时更新功能。
-
-%X% %RED%**重要注意事项:**%ENDCOLOR% 自从2月份的QA验证版本开始，这个模式默认是隐藏的，除非当启动编辑器时指定了 **`-landscapeedit`** 命令行参数时才会显示它。
-
+[VAR:Topic]
+[OBJECT:Topiccompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing:title%](Engine/Landscape/Editing/landscape_editing_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Editing:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 
-## 景观选择
+创建地形之后，即可对其进行以下操作：
 
-以下显示了景观选择框，它用于设置哪个景观是激活的并且可编辑的。
+* 在 [造型](Engine/Landscape\Editing\SculptMode) 模式中修改其形状。
+* 在 [绘制](Engine/Landscape\Editing\PaintMode) 模式中修改其外观。
+* 变更用于修改地形形状和外观的 [笔刷](Engine/Landscape\Editing\Brushes) 尺寸、形状和类型。
+* 在 [管理](Engine/Landscape\Editing\ManageMode) 模式中修改其组件尺寸和形状。
+* 使用 [地形小工具](Engine/Landscape\Editing\Gizmos) 对地形高度图的部分进行复制、粘贴、导入和导出。
+* 修改地形的 [材质](Engine/Landscape\Materials)。
+* 为地形中使用的线性特征创建 [样条](Engine/Landscape\Editing\Splines)。
+* 为地形中如洞窟之类的地貌特征创建 [洞穴](Engine/Landscape\Materials)。
 
-![Landscape_Select.png](Landscape_Select.png)(w:264 h:21)
+可在 [](Engine/Landscape\Creation) 中查阅关于地形创建的信息。
 
-点击Landscape(景观)组合框将会显示一个列出了地图中当前所有景观的菜单。
+可在 [](Engine/Landscape/UI) 中查阅诸多地形工具模式和选项的快速参考指南。
 
-![Landscape_Select_Menu.png](Landscape_Select_Menu.png)(w:72 h:95)
-
-从列表中选择一个景观，使它成为激活的景观。然后便可以对那个景观应用所有的后续编辑操作。
-
-
-
-## 工具
-
-编辑景观的过程涉及到使用一个或多个工具在底下的高度图上进行描画来塑造景观地形。这些工具包括简单的描画工具及其他的使用了复杂算法的工具，从而给高度图应用有趣的效果，比如腐蚀工具。某些工具仅能应用到高度图上，而其他工具可能既可以应用到高度图也可以应用到景观的贴图层。另外，每个工具都有一组属性，决定了工具如何影响景观地形。
-
-当前选中的工具决定了将要在景观上执行的操作。这些工具使用[画刷](#Brushes)通过一笔笔的描画来应用它们的效果。
-
-| **常见控制** | **操作** |
-| --- | --- |
-| _Ctrl + 鼠标左键_ | 执行一笔描画，将选中工具的效果应用到高度图或选中的图层上。|
-| _Ctrl + Z_ | 取消上一笔描画。|
-| _Ctrl + Y_ | 重复上一笔描画。|
+如需了解地形工具操作范例，请查阅 [](Resources\ContentExamples\Landscapes)。
 
 
-### 描画工具
+[REGION:topics third]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing/ManageMode:title%](Engine/Landscape/Editing/ManageMode/landscape_Manage_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing/ManageMode:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing/ManageMode]
+	[/PARAM]
+[/OBJECT]
 
-以下工具通过使用选中的画刷在高度图或图层上执行"描画"动作。
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing/SculptMode:title%](Engine/Landscape/Editing/SculptMode/Landscape_Sculpt_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing/SculptMode:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing/SculptMode]
+	[/PARAM]
+[/OBJECT]
 
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing/PaintMode:title%](Engine/Landscape/Editing/PaintMode/landscape_Paint_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing/PaintMode:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing/PaintMode]
+	[/PARAM]
+[/OBJECT]
 
-#### Paint(描画)
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing/Brushes:title%](Engine/Landscape/Editing/Brushes/landscape_Brush_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing/Brushes:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing/Brushes]
+	[/PARAM]
+[/OBJECT]
 
-![Landscape_Tools_Paint.jpg](Landscape_Tools_Paint.jpg)(w:119 h:59)
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing/Gizmos:title%](Engine/Landscape/Editing/Gizmos/landscape_gizmos_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing/Gizmos:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing/Gizmos]
+	[/PARAM]
+[/OBJECT]
 
-当在高度图上进行操作时，这个工具将会以当前选中的画刷的形状及衰减度来增加或降低高度图的高度或图层权重。
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing/Splines:title%](Engine/Landscape/Editing/Splines/landscape_spline_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing/Splines:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing/Splines]
+	[/PARAM]
+[/OBJECT]
 
-| **可替换的控制** | **操作** |
-| --- | --- |
-| _Ctrl + Shift + 鼠标左键_ | 降低或减少高度图或选中图层的权重。|
-
-| **选项** | **描述**|
-| --- | --- |
-| _Total Strength（总强度）_ | 控制每次画刷描画所产生的影响效果的程度。|
-
-画刷强度决定了升高或降低的量。
-
-
-#### Smooth(平滑)
-
-![Landscape_Tools_Smooth.jpg](Landscape_Tools_Smooth.jpg)(w:119 h:59)
-
-工具平滑处理高度图或图层权重。该强度决定了平滑的量。
-
-**高度图平滑处理**
-
-<span style="font:italic 10px arial;">(鼠标悬停图片上查看前后对比图片)</span>
-<div style="width:400px;" onmouseover="togglePreviewImage('smooth');" onmouseout="togglePreviewImage('smooth');">
-    <div id="smooth_result" style="display:block;">
-        ![Landscape_Smooth_After_HighDetail.jpg](Landscape_Smooth_After_HighDetail.jpg)(w:900 h:325)
-    [/REGION]
-    <div id="smooth_original" style="display:none;">
-        ![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:900 h:325)
-    [/REGION]
 [/REGION]
 
-**图层平滑处理**
-
-<span style="font:italic 10px arial;">(鼠标悬停图片上查看前后对比图片)</span>
-<div style="width:400px;" onmouseover="togglePreviewImage('smoothlayer');" onmouseout="togglePreviewImage('smoothlayer');">
-    <div id="smoothlayer_result" style="display:block;">
-        ![Landscape_Smooth_Layer_After.jpg](Landscape_Smooth_Layer_After.jpg)(w:900 h:500)
-    [/REGION]
-    <div id="smoothlayer_original" style="display:none;">
-        ![Landscape_Smooth_Layer_Before.jpg](Landscape_Smooth_Layer_Before.jpg)(w:900 h:500)
-    [/REGION]
+<!-----
+[REGION:banner]
+![Editing Banner](Engine/Landscape/Landscape_banner.png)
 [/REGION]
+----->
 
-| **选项** | **描述**|
-| --- | --- |
-| _Total Strength（总强度）_ | 控制每次画刷描画所产生平滑处理的程度。|
-| _Detail Smooth(细节平滑)_ | 如果选中该项，那么则通过使用指定的细节平滑值来执行一次保持一定细节程度的平滑处理。较大的细节平滑处理值将会删除更多的细节，而较小的值将会保持更多的细节。|
-| <span style="font:italic 10px arial;">(鼠标悬停在图片上查看前后对比图)</span><div style="width:400px;" onmouseover="togglePreviewImage('detailsmooth');" onmouseout="togglePreviewImage('detailsmooth');"><div id="detailsmooth_result" style="display:block;">![Landscape_Smooth_After_LowDetail.jpg](Landscape_Smooth_After_LowDetail.jpg)(w:900 h:325)[/REGION]<div id="detailsmooth_original" style="display:none;">![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:900 h:325)[/REGION][/REGION] ||
-
-
-#### Flatten(平整)
-
-![Landscape_Tools_Flatten.jpg](Landscape_Tools_Flatten.jpg)(w:119 h:59)
-
-当您第一次激活该工具在高度图上操作它时，将会把景观地形平整到鼠标下所在位置的地形高度级别。
-
-<span style="font:italic 10px arial;">(鼠标悬停图片上查看前后对比图片)</span>
-<div style="width:400px;" onmouseover="togglePreviewImage('flatten');" onmouseout="togglePreviewImage('flatten');">
-    <div id="flatten_result" style="display:block;">
-        ![Landscape_Flatten.jpg](Landscape_Flatten.jpg)(w:900 h:325)
-    [/REGION]
-    <div id="flatten_original" style="display:none;">
-        ![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
-    [/REGION]
+<!-----
+[REGION:banner]
+![Editing Banner](Landscape_Editing_banner.png)
 [/REGION]
+---->
 
-对于图层权重来说，这个工具直接设置选中图层的权重为 **Total Strength(总强度)** 滑块的值。
 
-| **选项** | **描述**|
-| --- | --- |
-| _Total Strength(总强度)_ | 设置选中图层的权重，值为1.0意味着该图层100%不透明。|
 
 
-#### Thermal Erosion(热蚀)
 
-![Landscape_Tools_Erosion.jpg](Landscape_Tools_Erosion.jpg)(w:119 h:59)
-
-该工具使用热蚀仿真来调整高度图的高度。这模拟了土壤从较高海拔向较低海拔变换的情景。海拔差距越大，就会发生越多的腐蚀。如果需要，这个工具也可以在腐蚀效果上应用噪声处理，从产生更加自然的随机外观。
-
-<span style="font:italic 10px arial;">(鼠标悬停图片上查看前后对比图片)</span>
-<div style="width:400px;" onmouseover="togglePreviewImage('thermal');" onmouseout="togglePreviewImage('thermal');">
-    <div id="thermal_result" style="display:block;">
-        ![Landscape_Thermal_Erosion.jpg](Landscape_Thermal_Erosion.jpg)(w:900 h:325)
-    [/REGION]
-    <div id="thermal_original" style="display:none;">
-        ![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
-    [/REGION]
-[/REGION]
-
-| **选项** | **描述**|
-| --- | --- |
-| _Total Strength（总强度）_ | 控制每次画刷描画所产生的影响效果的程度。|
-| _Threshold(阈值)_ | 应用该腐蚀效果所需的最小高度差。较小的值将会导致应用更多的腐蚀。|
-| _Surface Thickness(表面厚度)_ | 图层权重腐蚀效果表面的厚度。|
-| _Iteration Num(迭代次数)_ | 执行执行的重复次数。较大的值将会导致更多层次级别的腐蚀。|
-| _Erosion Effects Filter（腐蚀效果滤镜）_ ||
-| _Subtraction（挖空型）_ | 仅应用导致降低高度图的腐蚀效果。|
-| _Both(两者都)_ | 应用所有腐蚀效果，可以升高高度图也可以降低高度图。|
-| _Addition(添加型)_ | 仅应用导致升高高度图的腐蚀效果。|
-| ![Landscape_Thermal_Erosion_Filter.jpg](Landscape_Thermal_Erosion_Filter.jpg)(w:900 h:325) ||
-| _Noise Scale(噪声比例)_ | 噪声滤镜使用的噪声大小。噪声滤镜和位置及噪声比例相关，这意味着如果您不改变 **Noise Scale(噪声比例)** ，同一个滤镜会在同一位置应用很多次。| 
-
-
-#### Hydraulic Erosion（水力腐蚀）
-
-![Landscape_Tools_Hydraulic.jpg](Landscape_Tools_Hydraulic.jpg)(w:119 h:59)
-
-该工具使用水力腐蚀（也就由水产生的腐蚀）仿真来调整高度图的高度。使用噪声滤镜来决定在哪里分布初始雨量。然后计算该仿真来决定来自初始雨量的水流、溶解量、水转移量及蒸发量。最终的计算结果产生了用于降低高度图的真实值。
-
-<span style="font:italic 10px arial;">(鼠标悬停图片上查看前后对比图片)</span>
-<div style="width:400px;" onmouseover="togglePreviewImage('hydraulic');" onmouseout="togglePreviewImage('hydraulic');">
-    <div id="hydraulic_result" style="display:block;">
-        ![Landscape_Hydraulic_Erosion.jpg](Landscape_Hydraulic_Erosion.jpg)(w:900 h:325)
-    [/REGION]
-    <div id="hydraulic_original" style="display:none;">
-        ![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
-    [/REGION]
-[/REGION]
-
-| **选项** | **描述**|
-| --- | --- |
-| _Total Strength（总强度）_ | 控制每次画刷描画所产生的影响效果的程度。|
-| _Rain Amount(雨量)_ | 应用到表面上的雨量。较大的值将会导致产生更多的腐蚀。|
-| _Sediment Cap（携带的沉积物）._ | 水可以携带的沉积物量。较大的值将会导致产生更多的腐蚀。|
-| _Iteration Num(迭代次数)_ | 执行执行的重复次数。较大的值将会导致更多层次级别的腐蚀。|
-| _Rain Distribution Filter（雨量分布滤镜）_ ||
-| _Addition(添加型)_ | 仅在噪声滤镜为正的地方应用雨。|
-| _Both(两者都)_ |在整个区域应用雨。|
-| ![Landscape_Hydraulic_Erosion_Filter.jpg](Landscape_Hydraulic_Erosion_Filter.jpg)(w:900 h:325) ||
-| _Rain Dist. Scale（雨量分布比例）_ | 应用到表面上的初始雨量的噪声滤镜的大小。噪声滤镜和位置及噪声比例相关，这意味着如果您不改变 **Noise Scale(噪声比例)** ，同一个滤镜会在同一位置应用很多次。| 
-| _Detail Smooth(细节平滑)_ | 如果选中该项，那么则通过使用指定的细节平滑值对腐蚀效果执行一次保持一定细节程度的平滑处理。较大的细节平滑处理值将会删除更多的细节，而较小的值将会保持更多的细节。|
-
-
-#### Noise(噪声)
-
-![Landscape_Tools_Noise.jpg](Landscape_Tools_Noise.jpg)(w:119 h:59)
-
-该工具给高度图或图层权重应用噪声滤镜。强度决定了噪声的量。
-
-| **选项** | **描述**|
-| --- | --- |
-| _Total Strength（总强度）_ | 控制每次画刷描画所产生的影响效果的程度。|
-| _Noise Effects Filter(噪声特效滤镜)_ ||
-| _Both（两者都）_ |应用所有噪声效果。|
-| _Addition(添加型)_ | 仅应用导致高度图升高的腐蚀效果。|
-| ![Landscape_Noise_Filter.jpg](Landscape_Noise_Filter.jpg)(w:900 h:325) ||
-| _Subtraction（挖空型）_ | 仅应用导致高度图降低的腐蚀效果。|
-| _Noise Scale(噪声比例)_ | 所使用的perlin(柏林)噪声滤镜的大小。噪声滤镜和位置及噪声比例相关，这意味着如果您不改变 **Noise Scale(噪声比例)** ，同一个滤镜会在同一位置应用很多次。|
-
-
-### 组件工具
-
-以下所介绍的工具在当前景观的组件级别上进行操作。
-
-
-#### 组件选择
-
-![Landscape_Tools_Selection.jpg](Landscape_Tools_Selection.jpg)(w:119 h:59)
-
-该工具一次选择一个景观组件，以供后续由其他工具使用，比如将组件移动到动态载入关卡中及删除组件。
-
-| **可替换的控制** | **操作** |
-| --- | --- |
-| _Ctrl + Shift + 鼠标左键_ | 取消选中光标下的组件。|
-
-这个选择光标总是限定在一个组件上：
-
-![selection_cursor.jpg](selection_cursor.jpg)(w:900 h:453)
-
-当已经选中组件时，它们将变为阴影红色:
-
-![selection_components.jpg](selection_components.jpg)(w:900 h:453)
-
-$ **Clear Component Selection(清除选中组件)** : 清除当前选中的组件。
-
-
-#### 添加新景观组件
-
-![Landscape_Tools_AddComp.jpg](Landscape_Tools_AddComp.jpg)(w:119 h:59)
-
-该工具为当前景观创建新的组件，一次创建一个。
-
-当激活 Add Landscape Component(添加景观组件)工具时，在可以添加新组建的地方光标显示为绿色线框。
-
-![selection_add_cursor.jpg](selection_add_cursor.jpg)(w:900 h:453)
-
-使用这个工具在光标所在处添加一个新的组件：
-
-![selection_add.jpg](selection_add.jpg)(w:900 h:453)
-
-
-#### 删除景观组件
-
-![Landscape_Tools_RemoveComp.jpg](Landscape_Tools_RemoveComp.jpg)(w:119 h:59)
-
-该工具在Selection（选择）工具选中的组件上执行删除动作。
-
-![selection_remove_cursor.jpg](selection_remove_cursor.jpg)(w:900 h:453)
-
-使用这个工具删除选中的组件：
-
-![selection_remove.jpg](selection_remove.jpg)(w:900 h:453)
-
-
-#### 移动到动态载入关卡
-
-![Landscape_Tools_MoveStream.jpg](Landscape_Tools_MoveStream.jpg)(w:119 h:59)
-
-该工具可以将使用Selection(选择)工具选中的组件移动到当前动态载入关卡中。这使得将景观部分移动到动态载入关卡中，以便可以在那个关卡中动态地载入及载出这些部分，从而优化景观的性能。
-
-当动态载入关卡可见时，景观将会渲染所有组件：
-
-![selection_movestream_visible.jpg](selection_movestream_visible.jpg)(w:900 h:453)
-
-切换关卡的可见性(可以通过在关卡浏览器中点击那个关卡的  ![level_visibility_button.jpg](level_visibility_button.jpg)按钮)将会导致不再渲染那个关卡中的组件：
-
-![selection_movestream_invisible.jpg](selection_movestream_invisible.jpg)(w:900 h:453)
-
-注意，如果您想使用多个动态载入关卡，您必须将您的LandscapeMaterial（景观材质）存储到一个.upk包文件中而不是存储在地图包中。如果没有这样做，当您保存关卡时将会产生跨关卡引用错误。
-
-
-### 区域工具
-
-以下这些工具用于在景观的特定区域上执行动作。
-
-
-#### 区域选择
-
-![Landscape_Tools_RegionSelect.jpg](Landscape_Tools_RegionSelect.jpg)(w:119 h:59)
-
-该工具通过使用当前的画刷设置和工具强度选择景观区域，该区域用于将gizmo(小工具)适应到指定区域，或者将其作为用于复制数据到gizmo或从gizmo中粘帖数据的蒙版。
-
-![region_selection.jpg](region_selection.jpg)(w:640 h:322)
-
-| **控制** | **操作** |
-| --- | --- |
-| _Ctrl + 鼠标左键_ | 添加到选中区域。|
-| _Ctrl + Shift + 鼠标左键_ | 从选中区域删除。|
-
-| **选项** | **描述**|
-| --- | --- |
-| _Total Strength（总强度）_ | 控制每次画刷描画所产生的影响效果的程度。|
-
-$ **Clear Region Selection(清除区域选中项)** : 清除当前选中的区域。
-$ **Use Region as Mask(使用区域作为蒙板)** : 当启用该项时，将选中区域作为蒙版，该蒙版具有由选中区域构成的激活区域。  
-    ![region_mask.jpg](region_mask.jpg)(w:640 h:322)
-$ **Negative Mask(反向蒙版)** : 当启用该项及 **Use Region as Mask(使用区域作为蒙板)** 项时，将会把选中区域作为蒙板，但是激活的区域由未选中的区域构成。  
-    ![region_mask_negative.jpg](region_mask_negative.jpg)(w:640 h:322)
-
-(#RegionCopy)
-
-
-#### 区域 复制/粘帖
-
-![Landscape_Tools_RegionCopy.jpg](Landscape_Tools_RegionCopy.jpg)(w:119 h:59)
-
-该工具允许通过使用[landscape gizmos（景观小工具）](#landscapeGizmo)将景观地形的一个区域的高度数据复制到另一个区域。
-
-$ **Copy Data to Gizmo(复制数据到小工具)** : 复制小工具范围内的数据到小工具中，包括选中区域的任何覆盖部分。
-$ **Fit Gizmo to Selected Regions(适应小工具到选中区域)** :  放置小工具并调整其大小，以便他完全地包围所有选中区域。
-$ **Fit Height Values to Gizmo Size(适应高度值到小工具尺寸)** : 
-$ **Clear Gizmo Data(清除小工具数据)** :
-
-当启用该工具时， [导入](#ImportingGizmo)和[导出](#ExportingGizmo)gizmo(小工具)数据的控件将变为激活状态。
-
-
-
-##画刷
-
-该工具使用画刷应用到景观地形上，画刷可以具有不同的形状、大小及衰减值。对于曾经使用过Photoshop或类型图像编辑应用程序的人来说，画刷应该是个熟悉的概念。从本质上讲，画刷是一种定义当前激活工具的效果影响区域的方法。
-
-$ **Brush Size(画刷尺寸)** : 这决定了画刷的大小及衰减情况，以虚幻单位为单位。在该区域内，画刷至少会有某种效果。
-$ **Brush Falloff(画刷衰减)** : 这定义了从画刷开始衰减的地方占画刷边界范围的百分比。从本质上讲，这句定了画刷边缘的尖锐度。衰减值0.0意味着画刷在整个范围内都具有完全一致效果，具有尖锐的边缘。衰减值1.0意味着画刷仅在其中心具有完全一致效果，在他的整个区域到达边缘的过程中将会衰减。
-
-当前画刷的尺寸和衰减值在视口中显示为闪光的浅紫色实心圆形，或成对的同心环。
-
-![Landscape_Brush_Viewport.jpg](Landscape_Brush_Viewport.jpg)(w:900 h:184)
-
-
-### Circle Brush(圆形画刷)
-
-圆形画刷简单地将当前工具应用到一个圆形区域。
-
-![circle.jpg](circle.jpg)(w:486 h:486)
-
-
-#### 圆形画刷衰减类型
-
-点击当前选中的画刷图标打开下拉菜单来选择衰减类型。
-
-| Icon | Type | Description |
-| --- | --- | --- |
-|![Landscape_Brush_Circle_smooth_inactive.jpg](Landscape_Brush_Circle_smooth_inactive.jpg)(w:63 h:63)|Smooth（平滑）|这个衰减类型是平滑了衰减开始和结束处的明显边缘的线性衰减。|
-|![Landscape_Brush_Circle_linear_inactive.jpg](Landscape_Brush_Circle_linear_inactive.jpg)(w:63 h:63)|Linear(线性)|这种衰减类型是具有非常尖锐明显的衰减边缘的线性衰减。|
-|![Landscape_Brush_Circle_spherical_inactive.jpg](Landscape_Brush_Circle_spherical_inactive.jpg)(w:63 h:63)|Sphere(球形)|这种衰减类型使用半椭圆形的衰减，所以衰减的开始处平滑结束处的边缘尖锐明显。|
-|![Landscape_Brush_Circle_tip_inactive.jpg](Landscape_Brush_Circle_tip_inactive.jpg)(w:63 h:63)|Tip（顶端）|这种衰减类型和球形衰减相反，开始处的衰减边缘尖锐明显，结束处是平滑的椭圆形。|
-
-以下是在高度图上操作执行这些衰减类型时的示例，设置了半径和衰减类型：
-
-![landscape_brush_falloff.png](landscape_brush_falloff.png)(w:789 h:416)
-
-
-### Pattern Brush(图案画刷)
-
-![brush_pattern.jpg](brush_pattern.jpg)(w:59 h:59)
-
-图案画刷允许您通过从贴图中采样一个单独的颜色通道作为画刷的alpha值使用任意形状的画刷。随着画刷描画将会平铺贴图图案。
-
-比如，以下贴图可以用作为alpha值：
-
-![alpha_tex.jpg](alpha_tex.jpg)(w:258 h:258) ![alpha_tex_checker.jpg](alpha_tex_checker.jpg)(w:258 h:258)
-
-这将会产生以下画刷：
-
-![alpha_pattern.jpg](alpha_pattern.jpg)(w:425 h:425) ![alpha_applied.jpg](alpha_applied.jpg)(w:425 h:425)
-
-![alpha_pattern_checker.jpg](alpha_pattern_checker.jpg)(w:425 h:425) ![alpha_default_checker.jpg](alpha_default_checker.jpg)(w:425 h:425)
-
-
-### Alpha Brush(Alpha画刷)
-
-点击Pattern(图案)画刷图标打开一个下拉菜单，该菜单允许您选择Alpha画刷。
-
-![brush_alpha.jpg](brush_alpha.jpg)(w:59 h:59)
-
-alpha画刷和图案画刷类似，但随着你描画画刷它不会平铺贴图，而是让画刷贴图朝向你描画的方向，并随着你移动光标拖动贴图的形状。
-
-![brush_alpha_drag.jpg](brush_alpha_drag.jpg)(w:273 h:475)
-
-
-#### Alpha画刷和图案画刷设置
-
-| **设置** | **描述** |
-| --- | --- |
-| _Use Texture(使用贴图)_ <br/>![alpha_usetexture.jpg](alpha_usetexture.jpg)(w:251 h:51) | 按下R,G,B 或A按钮将会把alpha画刷内容设置为内容浏览器中当前选中的贴图的对应通道的数据。在右侧，显示了alpha画刷的预览效果。点击预览图片将会在内容浏览器中定位当前alpha画刷的源贴图。|
-| _Texture Scale(贴图比例)_ (仅用于图案画刷) | 设置采样的贴图相对于景观表面的尺寸。<br/>![alpha_default.jpg](alpha_default.jpg)(w:128 h:128) ![alpha_texscale.jpg](alpha_texscale.jpg)(w:128 h:128) |
-| _Texture Rotation(贴图旋转值)_ (仅用于图案贴图) | 设置采样的贴图相对于景观表面的旋转度。<br/>![alpha_texrot_default.jpg](alpha_texrot_default.jpg)(w:128 h:128) ![alpha_texrotation.jpg](alpha_texrotation.jpg)(w:128 h:128) |
-| _Texture Pan [U/V](贴图平移[U/V])_ (仅用于图案画刷) | 设置采样的贴图在景观表面上的偏移量。<br/>![alpha_default.jpg](alpha_default.jpg)(w:128 h:128) ![alpha_texpan.jpg](alpha_texpan.jpg)(w:128 h:128) |
-
-
-### Component Brush(组件画刷)
-
-![brush_selection.jpg](brush_selection.jpg)(w:59 h:59)
-
-组件画刷是个用于在单独组件上操作的画刷。光标每次总是限定在一个单独组件上：
-
-![selection_cursor.jpg](selection_cursor.jpg)(w:900 h:453)
-
-仅当使用在单独组件级别上操作的工具时该画刷才可用。
-
-![selection_tools.jpg](selection_tools.jpg)(w:267 h:108)
-
-
-### Gizmo Brush（小工具画刷）
-
-![brush_gizmo.jpg](brush_gizmo.jpg)(w:59 h:59)
-
-Gizmo画刷用于完整地描画 [Landscape Gizmo（景观小工具）](#LandscapeGizmo)内的区域，该工具使得在景观上指定的局部区域上进行操作成为可能。
-
-![landscape_gizmo.jpg](landscape_gizmo.jpg)(w:640 h:322)
-
-该画刷仅当激活[区域 复制/粘帖](#RegionCopy)工具时才有效。
-
-![regioncopy_active.jpg](regioncopy_active.jpg)(w:260 h:90)
-
-![gizmo_active.jpg](gizmo_active.jpg)(w:263 h:80)
-
-
-
-## Targets（目标）
-
-目标是景观上可以编辑的任意单独部分。景观地形的高度图及贴图层都是目标，可以使用景观编辑对话框及工具进行编辑。当创建景观地形时高度图会被添加到Targets（目标）上。可以通过使用[编辑模式](#TargetEditing)添加新的图层，并且可以使用编辑工具调整它们的权重，这和修改高度图的方式类似，尽管仅有一小部分工具可以影响图层。
-
-Target Layers(目标图层)部分列出了所有可以使用编辑工具编辑的可能的项。选中的目标指出了该工具要影响的对象。每个目标都显示了它的名称及小缩略图。对于贴图层，这个缩略图将显示为应用到该图层上的贴图的屏幕截图。
-
-![Landscape_Target_unselected.png](Landscape_Target_unselected.png)(w:252 h:68)
-
-当选中目标或聚焦到目标上时，目标将会高亮显示为蓝色：
-
-![Landscape_Target_focused.png](Landscape_Target_focused.png)(w:252 h:68)
-
-当聚焦指向其他地方时，选中的目标将高亮显示为白色：
-
-![Landscape_Target.png](Landscape_Target.png)(w:252 h:68)
-
-
-### 图层
-
-Landscape图层决定了贴图(或材质网络)应用到景观地形上的方式。一个景观使用具有不同贴图、比例、旋转度、平移值的多个图层混合到一起来创建最终的带贴图的地形。
-
-![Landscape_Layers.jpg](Landscape_Layers.jpg)(w:900 h:389)
-
-
-#### 权重编辑
-
-每个图层有个权重，指出了那个图层对景观地形的影响程度。景观地形图层没有特定的顺序。相反，每个图层的权重是分别存储的，并且几乎所有的这些权重都要达到了1.0。
-
-要想修改该图层的权重，可以使用描画工具来增加或降低激活的图层的权重。任何时候可以修改任何图层的权重。简单地选择该图层来调整其权重，使用描画工具进行调整的方式和您描画高度图时一样。当您增加一个图层的权重时，那个区域上其他图层的权重将会均匀地降低。
-
-相反，当描画清除一个图层时(也就是在描画时按下Ctrl+Alt键)，将不清楚增加哪个图层的权重来替换它。当前的行为是均匀地增加其它层的权重来进行匹配。由于这个现象的存在，所有不可能一下子把所有图层完全地清除。推荐您在适当的位置选择您想描画的图层，然后叠加地进行描画，而不是通过描画去除图层。
-
-
-#### 景观材质
-
-除非配置使用在景观地形对象的 **LandscapeMaterial** 属性中指定材质，否则描画层将没有效果。
-
-
-* 请参照[景观材质](Landscape/Materials) 文档获得关于设置景观材质的更多信息。
-
-
-(#TargetEditing)
-
-
-### 编辑模式
-
-景观地形默认没有图层。可以通过在 Target Layers(目标图层)部分启用Edit Mode(编辑模式)来添加新的图层。点击 _Edit(编辑)_ 单选按钮来启用Edit(编辑)模式，它将切换显示用于添加新图层的控件。
-
-![Landscape_Target_Edit_Mode.png](Landscape_Target_Edit_Mode.png)(w:255 h:65)
-
-要想添加一个新图层，需要在 **Add Layer Name(添加图层名称)** 文本域中输入图层的名称，并根据需要设置其他属性：
-
-$ **Hardness(硬度)** : **稍后完成**
-$ **NoBlend(没有混合)** : **稍后完成**
-
-![Landscape_Target_Add.png](Landscape_Target_Add.png)(w:224 h:22)
-
-点击 ![Landscape_Target_Add_Button.png](Landscape_Target_Add_Button.png)按钮来创建新的图层。
-
-![Landscape_Target_Edit.png](Landscape_Target_Edit.png)(w:252 h:68)
-
-当位于Edit Mode（编辑模式）中时，列表中的目标也会显示它们的属性，正如上面所看到的，允许您编辑每个图层的 **Hardness(硬度)** 。
-
-(#TargetDebug)
-
-
-### DebugView 模式
-
-DebugView(调试视图)模式允许在视口中显示景观上指定图层的权重。当启用DebugView模式时，单选按钮允许您选择在列表中随同Targets显示选中的单独的颜色通道。
-
-![Landscape_Target_Debug.png](Landscape_Target_Debug.png)(w:252 h:68)
-
-选择一个通道将会给显示选中Target(目标)覆盖的区域的景观应用一个着色器。
-
-(#LandscapeGizmo)
-
-
-
-## Landscape Gizmos(景观小工具)
-
-Landsape Gizmos(景观小工具)仅是在编辑器中使用的工具，类似于体积，因为它们可以定义一个特定区域。它们的作用是存储景观的某个区域的高度数据，以便可以保存该数据或者将其复制到景观地形的另一个位置处。
-
-![landscape_gizmo.jpg](landscape_gizmo.jpg)(w:640 h:322)
-
-**Gizmo 属性**
-
-当导出Gizmos时会保存出这些属性。
-
-$ **Width(宽度)** : Gizmo Actor的基本宽度，以虚幻单位为单位；X轴显示为红线。
-$ **Height(高度)** : Gizmo Actor的基本高度，以虚幻单位为单位；Y轴显示为绿色。
-$ **LengthZ(长度Z)** : Gizmo Actor的基本长度，以虚幻单位为单位。
-$ **MarginZ（留白）** : 当你适应Gizmo到选中区域时所占空间的Z值，具有Max(最大)高度和Min（最小）高度。当您适应Gizmo到选中区域，LengthZ = (Max height - Min height) + 2 * MarginZ。
-$ **MinRelativeZ** : Gizmo中的数据的最小高度值。Gizmo中的高度值会被正规化到 0.f到1.f之间，显示为(Value - MinRelativeZ) * RelativeScaleZ。
-$ **RelativeScaleZ(相对比例Z)** : Gizmo中的数据的高度比例。
-
-(#CopyingData)
-
-
-###复制到Gizmo中
-
-为了复制一部分景观，那么必须将那部分景观的数据复制到gizmo中。然后，稍后可以把那个数据[粘帖](#PastingData)到另一个区域。
-
-**要想复制选中区域:**
-
-
-1. 选中 **Region Selection(区域选择)** 工具。
-1. 使用画刷描画来选择景观的区域，和正常的描画过程类似。  
-    ![copy_selectregion.jpg](copy_selectregion.jpg)(w:640 h:322)
-1. 启用 **Use Region as Mask(使用区域作为蒙板)** 项，以便当复制数据时选中部分会被用作为蒙板。  
-    ![copy_regionmask.jpg](copy_regionmask.jpg)(w:640 h:322)
-1. 选中  **Region Copy/Paste(区域 复制/粘帖)** 工具。视口中将会出现gizmo（小工具）。  
-    ![copy_gizmovisible.jpg](copy_gizmovisible.jpg)(w:640 h:322)
-1. 按下 **Fit Gizmo to Selected Regions(适应Gizmo到选中区域)** 来放置该gizmo并调整其尺寸，以便它包围所有选中区域。  
-    ![copy_fitgizmo.jpg](copy_fitgizmo.jpg)(w:640 h:322)
-1. 按下 **Copy Data to Gizmo(复制数据到Gizmo)** 来在gizmo范围内转移景观的选中区域的数据。按下 **Ctrl + C** 执行同样的功能。  
-    ![copy_gizmodata.jpg](copy_gizmodata.jpg)(w:640 h:322)
-
-
-**要想复制gizmo内的区域:**
-
-
-1. 选中  **Region Copy/Paste(区域 复制/粘帖)** 工具。gizmo（小工具）将会在视口中变为可见状态。
-1. 通过点击它选中该gizmo。将会出现变换控件。  
-    ![copygizmo_visible.jpg](copygizmo_visible.jpg)(w:640 h:322)
-1. 可以移动、旋转及缩放gizmo，以便他包围您想复制的景观部分。  
-    ![copygizmo_position.jpg](copygizmo_position.jpg)(w:640 h:322)
-1. 按下 **Copy Data to Gizmo(复制数据到Gizmo)** 按钮来在gizmo范围内转移景观的选中区域的数据。按下 **Ctrl + C** 执行同样的功能。  
-    ![copygizmo_data.jpg](copygizmo_data.jpg)(w:640 h:322)
-
-
-(#PastingData)
-
-
-### 从Gizmo中粘帖数据
-
-从gizmo中粘帖数据使得可以将景观部分从一个位置转移到另一个位置。可以完全地粘帖数据来创建一个同样的特征，或者可以通过使用画刷描画和强度设置将其描画到新的位置处来部分地转换其特征。
-
-在从gizmo粘帖数据之前，首先必须将数据 [复制](#CopyingData)到gizmo中。
-
-![paste_gizmodata.jpg](paste_gizmodata.jpg)(w:517 h:422)
-
-**要想粘帖gizmo数据:**
-
-
-1. 移动、旋转及缩放包含数据的gizmo，以便它可以覆盖您想要粘帖数据的区域。  
-    ![paste_positiongizmo.jpg](paste_positiongizmo.jpg)(w:517 h:423)
-1. 使用其中一个可用画刷（圆形画刷、图案画刷、Alpha画刷、Gizmo）粘帖数据，以便从gizmo中"描画"数据。
-    * 使用Gizmo画刷来将数据完全地从gizmo中粘帖出来。按下  **Ctrl + V** 也会执行从gizmo中完全地粘帖数据的操作。
-    * 其他画刷可以用于通过使用当前的画刷尺寸和强度来从gizmo中描画数据。  
-    ![paste_full.jpg](paste_full.jpg)(w:517 h:421)  
-   如果使用 **Region Selection(区域选择)** 工具选中了某个区域并启用了 **Use Region as Mask(使用区域作为蒙板)** 功能，那么将会根据蒙板区域应用粘帖的数据。  
-    ![pastemask_region.jpg](pastemask_region.jpg)(w:667 h:363) ![pastemask_partial.jpg](pastemask_partial.jpg)(w:667 h:363)
-
-
-
-### Gizmo数据 导入/导出
-
-可以通过 **Landscape Edit(景观编辑)** 窗口中的 **Import/Export to Gizmo(导入/导出 到Gizmo)** 部分来将高度图数据导入到gizmo中或者将数据从gizmo中导出。
-
-![importexport.jpg](importexport.jpg)(w:259 h:229)
-
-(#ImportingGizmo)
-**要想导出数据到Gizmo中:**
-
-
-1. 点击文件浏览按钮 ( ![import_filebrowse.png](import_filebrowse.png)) 并选择那个您想导入到gizmo中的高度图文件 (16-位原始文件) 。将会在gizmo中填充高度图的文件及维度。  
-    ![import_file.jpg](import_file.jpg)(w:259 h:74)  
-   %X% **注意:** 因为导入过程使用原始文件格式，所以没有办法正确地决定维度的情况。必须进行尽量的猜测，但是您可能需要手动地反转维度，以便正确地导入高度图。  
-    ![import_file_dimensions.jpg](import_file_dimensions.jpg)(w:260 h:74)
-1. 如果您想导入图层权重信息，可以按下Add Layer(添加图层)按钮 ( ![import_layeradd.png](import_layeradd.png)) 根据需要添加任意多个图层。  
-    ![import_layerfields.jpg](import_layerfields.jpg)(w:246 h:105)
-1. 选择要每个图层导入的高度图文件(8-位的原始文件)。填写文件及图层名称。图层名称默认使用文件名称。如果需要可以改变图层名称。启用 **No Import（不导入）** 复选框将会导致阻止导入任何单独图层信息。
-    ![import_layerfile.jpg](import_layerfile.jpg)(w:246 h:75)
-1. 一旦选中了高度图和任何图层，按下 **Import to Gizmo(导入到Gizmo)** 按钮来将数据导入到gizmo中。  
-   如果维度不正确，那么你可以看到类似于以下的内容：  
-    ![import_incorrect.jpg](import_incorrect.jpg)(w:640 h:322)  
-   反转维度或者重新导入高度图来获得正确的结果。如果维度是正确的，那么gizmo应该显示正确的数据。  
-    ![import_correct.jpg](import_correct.jpg)(w:640 h:322)
-
-
-(#ExportingGizmo)
-**要想导出Gizmo数据:**
-
-
-1. Gizmo内填充了数据后 (请参照[复制数据到Gizmo](#CopyingData)部分), 按下 **Export Gizmo Data（导出Gizmo数据）** 按钮可以将gizmo数据导出到文件中。启用 **Export Layers(导出图层)** 复选框将同时会导出图层权重数据到文件中。  
-1. 为高度图选择一个位置和名称。  
-    ![export_file.jpg](export_file.jpg)(w:625 h:436)
-1. 如果要导出图层，则需要为每个导出的图层选择位置和文件名。  
-    ![export_layerfile.jpg](export_layerfile.jpg)(w:625 h:436)
-
-
-
-### Gizmo列表
-
-![gizmolist.jpg](gizmolist.jpg)(w:267 h:60)
-
-Gizmo List (Gizmo列表)显示了一系列已保存的gizmo，以便稍后可以轻松地重用它们。
-
-![gizmolist_populated.jpg](gizmolist_populated.jpg)(w:266 h:98)
-
-| **控制** | **描述** |
-| --- | --- |
-| ![gizmolist_pin.jpg](gizmolist_pin.jpg)| 保存gizmo的当前位置、尺寸和旋转度到列表中。|
-| ![gizmolist_remove.jpg](gizmolist_remove.jpg)| 删除列表中当前选中的gizmo。|
-| ![gizmolist_goto.jpg](gizmolist_goto.jpg)| 设置gizmo的位置、尺寸和旋转度为列表中当前选中的gizmo的位置、尺寸和旋转度。|
-
- 
-
-<script type="text/javascript">
-    function togglePreviewImage(exp)
-    {
-        var result = document.getElementById(exp + "_result");
-        var original = document.getElementById(exp + "_original");
-
-        if(original.style.display == "none")
-        {
-            result.style.display = "none";
-            original.style.display = "block";
-        }
-        else
-        {
-            result.style.display = "block";
-            original.style.display = "none";
-        }
-    }
-</script>
 
 
 

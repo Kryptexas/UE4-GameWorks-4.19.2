@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2679375
-Availability:Public
+﻿Availability:Public
 Title:ダイレクト ブループリント通信
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:別のブループリントと直接データをやりとりする方法 
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
-Related: Engine/Blueprints/UserGuide
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+Related:Engine/Blueprints/UserGuide
 version:4.9
 skilllevel:Advanced
 
@@ -14,18 +13,18 @@ skilllevel:Advanced
 この例では、プレイヤーはボックス経由で渡して通信しパーティクルエフェクトをアクティベートすることができます。 
 
 [REGION:note]
-このガイドでは、**Starter Content** を有効にした状態で **Blueprint Third Person** テンプレートを使用します。 
+このガイドでは、**スターターコンテンツ** を有効にした状態で **Blueprint Third Person** テンプレートを使用します。 
 [/REGION]
 
 1. **コンテンツ ブラウザ** で、「 **Content/StarterContent/Shapes** 」フォルダを開きます。 
 
-1. **Shape_Cube** を **右クリック** し、 **Asset Actions** から **[Create Blueprint Using This... (これを使用してブループリントを作成...)]** を選択します。
+1. **Shape_Cube** を **右クリック** し、**[Asset Actions (アセット アクション)]** から **[Create Blueprint Using This... (これを使用してブループリントを作成...)]** を選択します。
 
 	![](DirectCom1.png)
 
 	表示された確認ボックスの **[Ok]** をクリックしてブループリントを作成します。 
 
-1. Shape_Cube ブループリントの左上の **[Components]** の **[Static Mesh]** を選択します。 
+1. Shape_Cube ブループリントで左上にある **[Components]** の **[Static Mesh]** を選択します。 
 
 1. **[Details (詳細)]** パネルで、 **[Collision Presets (コリジョン プリセット)]** を **OverlapOnlyPawn** に設定します。 
 
@@ -45,7 +44,7 @@ skilllevel:Advanced
 
 	通信相手となるブループリントを設定し、変数を公開して編集可能 (このブループリント外での編集が可能) にしました。 
 
-1. **[My Blueprint]** ウィンドウで **[Static Mesh]** を選択し、次に **[Details]** パネルに **On Component Begin Overlap** Event を追加します。 
+1. **[My Blueprint]** ウィンドウで **[Static Mesh]** を選択し、次に **[Details (詳細)]** パネルに **On Component Begin Overlap** Event を追加します。 
 
 	![](DirectCom8.png)
 
@@ -63,15 +62,15 @@ skilllevel:Advanced
 
 1. **コンテンツブラウザ** の **Content/StarterContent/Blueprints** で、 **Blueprint_Effect_Fire** ブループリントを開きます。 
 
-1. **[Components]** ウィンドウの **[P_Fire]** をクリックし、次に **[Details]** パネルの **[Auto Activate (自動アクティベート)]** のチェックを外します。 
+1. **[Components]** ウィンドウの **[P_Fire]** をクリックし、次に **[Details (詳細)]** パネルの **[Auto Activate (自動アクティベート)]** のチェックを外します。 
 
 	![](DirectCom6.png)
 
-	レベルにボックスが入った時にアクティベートする設定にしてあるので、このエフェクトが自動アクティベートしないようにしました
+	レベルにボックスが入った時にアクティベートする設定にしてあるので、このエフェクトが自動アクティベートしないようにしました。 
 
 1. **Blueprint_Effect_Fire** ブループリントをレベルへドラッグします。 
 
-1. **Shape_Cube** ブループリントを選択し、次に **[Details]** パネルのドロップダウン メニューで [**Blueprint_Effect_Fire**] ブループリントを選択します。 
+1. **Shape_Cube** ブループリントを選択し、次に **[Details (詳細)]** パネルのドロップダウン メニューで [**Blueprint_Effect_Fire**] ブループリントを選択します。 
 
 	![](DirectCom7.png)
 
@@ -81,7 +80,7 @@ skilllevel:Advanced
 	**スポイト** アイコンをクリックすれば、ドロップダウン メニューを使わなくてもレベル内の **Target Bluperint** のインスタンスを選択することができます。指定した変数タイプに基づいたブループリントしかターゲットとして選択できないのでご注意ください。 
 	[/REGION]
 
-1. **[Play]** ボタンをクリックしてエディタで再生し、キャラクターがボックスを走利抜けるテストをします。 
+1. **[Play (プレイ)]** ボタンをクリックしてエディタで再生し、キャラクターがボックスを走利抜けるテストをします。 
 
 キャラクターがボックスへ入ると、レベル内で炎のエフェクトがアクティベートするのが分かります。別のブループリントからブループリントのプロパティを変えるためだけでなく、関数やイベントといったブループリントでの通常処理の呼び出しにも **Direct Bluperint Communication** を使用できます。 
 

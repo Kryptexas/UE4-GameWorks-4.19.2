@@ -15,16 +15,17 @@ struct FConfigValue
 {
 public:
 	FConfigValue() { }
+
 	FConfigValue(const TCHAR* InValue)
 		: SavedValue(InValue)
 	{
-		ExpandValue();
+		ExpandValueInternal();
 	}
 
 	FConfigValue(FString InValue)
 		: SavedValue(MoveTemp(InValue))
 	{
-		ExpandValue();
+		ExpandValueInternal();
 	}
 
 	// Returns the ini setting with any macros expanded out
@@ -48,16 +49,59 @@ public:
 
 		if (Ar.IsLoading())
 		{
-			ConfigSection.ExpandValue();
+			ConfigSection.ExpandValueInternal();
 		}
 
 		return Ar;
 	}
 
+	/**
+	 * Given a collapsed config value, try and produce an expanded version of it (removing any placeholder tokens).
+	 *
+	 * @param InCollapsedValue		The collapsed config value to try and expand.
+	 * @param OutExpandedValue		String to fill with the expanded version of the config value.
+	 *
+	 * @return true if expansion occurred, false if the collapsed and expanded values are equal.
+	 */
+	CORE_API static bool ExpandValue(const FString& InCollapsedValue, FString& OutExpandedValue);
+
+	/**
+	 * Given a collapsed config value, try and produce an expanded version of it (removing any placeholder tokens).
+	 *
+	 * @param InCollapsedValue		The collapsed config value to try and expand.
+	 *
+	 * @return The expanded version of the config value.
+	 */
+	CORE_API static FString ExpandValue(const FString& InCollapsedValue);
+
+	/**
+	 * Given an expanded config value, try and produce a collapsed version of it (adding any placeholder tokens).
+	 *
+	 * @param InExpandedValue		The expanded config value to try and expand.
+	 * @param OutCollapsedValue		String to fill with the collapsed version of the config value.
+	 *
+	 * @return true if collapsing occurred, false if the collapsed and expanded values are equal.
+	 */
+	CORE_API static bool CollapseValue(const FString& InExpandedValue, FString& OutCollapsedValue);
+
+	/**
+	 * Given an expanded config value, try and produce a collapsed version of it (adding any placeholder tokens).
+	 *
+	 * @param InExpandedValue		The expanded config value to try and expand.
+	 *
+	 * @return The collapsed version of the config value.
+	 */
+	CORE_API static FString CollapseValue(const FString& InExpandedValue);
 
 private:
-
-	CORE_API void ExpandValue();
+	/** Internal version of ExpandValue that expands SavedValue into ExpandedValue, or produces an empty ExpandedValue if no expansion occurred. */
+	void ExpandValueInternal()
+	{
+		if (!ExpandValue(SavedValue, ExpandedValue))
+		{
+			ExpandedValue.Empty();
+		}
+	}
 
 	FString SavedValue;
 	FString ExpandedValue;
@@ -272,10 +316,13 @@ public:
 	 */
 	void ProcessSourceAndCheckAgainstBackup();
 
-private:
-
 	/** Checks if the PropertyValue should be exported in quotes when writing the ini to disk. */
-	bool ShouldExportQuotedString(const FString& PropertyValue) const;
+	static bool ShouldExportQuotedString(const FString& PropertyValue);
+
+	/** Generate a correctly escaped line to add to the config file for the given property */
+	static FString GenerateExportedPropertyLine(const FString& PropertyName, const FString& PropertyValue);
+
+private:
 
 	/** 
 	 * Save the source hierarchy which was loaded out to a backup file so we can check future changes in the base/default configs
@@ -401,9 +448,9 @@ public:
 	FConfigSection* GetSectionPrivate( const TCHAR* Section, bool Force, bool Const, const FString& Filename );
 	void SetString( const TCHAR* Section, const TCHAR* Key, const TCHAR* Value, const FString& Filename );
 	void SetText( const TCHAR* Section, const TCHAR* Key, const FText& Value, const FString& Filename );
-	void RemoveKey( const TCHAR* Section, const TCHAR* Key, const FString& Filename );
-	void EmptySection( const TCHAR* Section, const FString& Filename );
-	void EmptySectionsMatchingString( const TCHAR* SectionString, const FString& Filename );
+	bool RemoveKey( const TCHAR* Section, const TCHAR* Key, const FString& Filename );
+	bool EmptySection( const TCHAR* Section, const FString& Filename );
+	bool EmptySectionsMatchingString( const TCHAR* SectionString, const FString& Filename );
 
 	/**
 	 * Retrieve a list of all of the config files stored in the cache

@@ -24,7 +24,8 @@ public:
 		FGlobalShader(Initializer)
 	{
 		AccuracyColorsParameter.Bind(Initializer.ParameterMap,TEXT("AccuracyColors"));
-		CPULogDistanceParameter.Bind(Initializer.ParameterMap,TEXT("CPULogDistance"));
+		CPULogDistanceParameter.Bind(Initializer.ParameterMap, TEXT("CPULogDistance"));
+		PrimitiveAlphaParameter.Bind(Initializer.ParameterMap, TEXT("PrimitiveAlpha"));
 	}
 
 	FPrimitiveDistanceAccuracyPS() {}
@@ -34,6 +35,7 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << AccuracyColorsParameter;
 		Ar << CPULogDistanceParameter;
+		Ar << PrimitiveAlphaParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -64,4 +66,5 @@ private:
 
 	FShaderParameter AccuracyColorsParameter;
 	FShaderParameter CPULogDistanceParameter;
+	FShaderParameter PrimitiveAlphaParameter;
 };

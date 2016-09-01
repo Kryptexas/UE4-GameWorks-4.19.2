@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614123
+﻿INTSourceChangelist:2744667
 Availability: Public
 Title:물 예제
 Crumbs:%ROOT%, Resources, Resources/Showcases/Effects
@@ -6,6 +6,7 @@ Description:UE4 에 포함된 이펙트 예제 중 물 이펙트에 대한 개�
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Resources/ContentExamples/EffectsGallery/1_E
 Related: Engine/Rendering/ParticleSystems/Optimization
+Version: 4.9
 
 [REGION:fullwidth]
 ![](title_Water.png)
@@ -17,7 +18,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 
 다음 파티클 시스템은 이 예제용으로 만들어진 물 이펙트입니다. 캐스케이드에서 열어보고 각 이펙트가 어떻게 조립되었는지 확인해 보시기 바랍니다.
 
-캐스케이드 및 파티클 시스템 관련 상세 정보는 [파티클 시스템 문서](Engine/Rendering/ParticleSystems) 를 참고해 주시기 바랍니다.
+캐스케이드 및 파티클 시스템 관련 상세 정보는 [](Engine/Rendering/ParticleSystems) 문서를 참고해 주시기 바랍니다.
 
 ### 폭포
 

@@ -1,8 +1,14 @@
-﻿INTSourceChangelist:0
-Title:Oculus Rift Quick Start
+﻿INTSourceChangelist:2975673
+Title:Oculus Rift 快速入门
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
-Description:Instructions on setting up and launching games on the Oculus Rift.
+Description:在 Oculus Rift 上设置并运行游戏的说明。
 Availability:Public
+Version:4.11
+SkillLevel:Intermediate
+parent:Platforms/Oculus
+type:quickstart
+tags:VR
+tags:Oculus Rift
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,16 +45,14 @@ Availability:Public
 [/VAR]
 
 
-The Oculus Quick Start will walk you through setting up your computer and your Oculus Rift for Unreal Engine, as well as playing some of the sample content provided for virtual reality.
-
-
+Oculus 快速入门将指导您对电脑和 Oculus Rift 进行设置，以便使用虚幻引擎 4.0。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

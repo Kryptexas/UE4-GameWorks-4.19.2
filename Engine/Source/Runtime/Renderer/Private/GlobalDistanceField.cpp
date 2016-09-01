@@ -1005,7 +1005,7 @@ void UpdateGlobalDistanceFieldVolume(
 
 		// Recreate the view uniform buffer now that we have updated GlobalDistanceFieldInfo
 		//@todo - minimal recreate
-		View.InitRHIResources(nullptr);
+		View.InitRHIResources();
 
 		bool bHasUpdateRegions = false;
 

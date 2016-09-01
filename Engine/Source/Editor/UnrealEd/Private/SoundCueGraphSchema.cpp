@@ -437,6 +437,12 @@ void USoundCueGraphSchema::DroppedAssetsOnGraph(const TArray<FAssetData>& Assets
 
 void USoundCueGraphSchema::DroppedAssetsOnNode(const TArray<FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraphNode* Node) const
 {
+	// Currently, drag and drop is only supported for dropping on sound cue graph nodes, and in particular, sound wave players and sound dialogue players.
+	if (!Node->IsA<USoundCueGraphNode>())
+	{
+		return;
+	}
+
 	USoundCueGraphNode* SoundCueGraphNode = CastChecked<USoundCueGraphNode>(Node);
 	USoundCueGraph* SoundCueGraph = CastChecked<USoundCueGraph>(Node->GetGraph());
 	USoundCue* SoundCue = SoundCueGraph->GetSoundCue();

@@ -1,8 +1,10 @@
 Availability:Public
 Title: Blueprint Debugging
-Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Workflow
 Description:Pause execution using Breakpoints to inspect graphs and the values of variables.
 version: 4.9
+Parent:Engine/Blueprints/Workflow
+order:5
 
 [EXCERPT:Overview]
 Blueprint debugging is a very powerful feature that allows you to pause execution of the game in Play In Editor or Simulate In Editor mode and step through any graph of a Blueprint or Level Blueprint through the use of Breakpoints.

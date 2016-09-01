@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:0
-Title: 1. SteamVR Initial Setup
+﻿INTSourceChangelist:2667895
+Title:1. SteamVR の初期設定
 Crumbs:%ROOT%, Platforms
-Description: Setting up the require Hardware and Software for SteamVR
+Description:SteamVR に必要なハードウェアとソフトウェアの設定
 Availability:Public
 Navigation:platform
 Platform:SteamVR
@@ -13,7 +13,7 @@ Platform:SteamVR
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[SteamVR Quick Start Home](Platforms/SteamVR/QuickStart)
+		[クイックスタートのホーム](Platforms/GearVR/QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[Next Step](Platforms/SteamVR/QuickStart/2 "%Platforms/SteamVR/QuickStart/2:title%")
@@ -23,39 +23,39 @@ Platform:SteamVR
 
 %Steps%
 
-Making sure that the SteamVR hardware is properly setup and that the correct software is installed on your development PC is of vital importance to ensuring that the SteamVR hardware will work correctly with Unreal Engine 4. 
-In the following section we will take a look at any special considerations that you might need to make when setting up SteamVR software and hardware to work with UE4.
+SteamVR ハードウェアがアンリアル エンジン 4 で正確に動くようにするためには、SteamVR ハードウェアが適切に設定され、正しいソフトウェアが開発 PC 上にインストールされていることを確認することが非常に重要です。 
+以下のセクションでは、UE4 で使用するために必要な SteamVR ソフトウェアとハードウェアの設定をする際に特別に考慮する点について説明します。
 
 [region:note]
-With each SteamVR development kit Valve has provide [detailed instructions](http://media.steampowered.com/apps/steamvr/vr_setup.pdf ) that will show you how to correctly set everything up. 
-If you have not read this document please do so before going any further as the following information is not a substitute for the information contained in the document created by Valve.
+SteamVR 開発キット Valve には、正しい設定方法を説明した [Detailed instructions (詳しい説明)(http://media.steampowered.com/apps/steamvr/vr_setup.pdf ) が入っています。 
+今から説明する情報の中には Valve で作成したドキュメントに含まれていませんので、この文書を読んでいない場合は是非読ご一読ください。
 [/region]
 
-1. Make sure to clear a 12 x 9ft / 4 x 3M area of all objects that you could trip over or hit while you are using SteamVR.
+1. SteamVR の使用中につまずいたり当たったりするすべてのオブジェクトの 12 x 9ft / 4 x 3M エリアを開けておくようにしてください。
 
-1. Inside of the Steam Client in the **Library** section under the **Tools** option, download and install both **SteamVR** and **VRMonitor**.
+1. **[Tools]** オプションの **[Library]** セクションの Steam Client の中に、**SteamVR** と **VRMonitor** を両方ともダウンロードします。
 
 	![](T_SteamTools_Software.png)
 
-1. Ensure that the Vive Head Mounted Display (HMD), Steam Controllers, Breakout box, and Lighthouse Base stations are all unpacked, powered on, connected and setup according the the [instruction](http://media.steampowered.com/apps/steamvr/vr_setup.pdf) provide by Valve.
+1. Vive HMD (ヘッドマウント ディスプレイ)、Steam コントローラ、Breakout box、Lighthouse ベースステーションがすべて展開され、電源がオンで、接続されて、Valve の [インストラクション](http://media.steampowered.com/apps/steamvr/vr_setup.pdf) に従って設定されていることを確認します。
 
-1. Once everything is connected and turned on, pick up the Vive HMD so that the lenses are facing you.
-On the **Left Hand Side** of the Vive HMD there is a small **Black Button** with a small light above it. 
-Currently the light should be **red** meaning that the Vive HMD is in standby mode. 
-Press and hold the **Black Button** in for **5 Seconds** and the red light should change to **green**, meaning the Vive HMD is now ready to be used.
+1. すべて接続して電源を入れたら、レンズが自分に向くように Vive HMD を手に取ります。
+Vive HMD の **左側** に上に小さなライトが付いている小さな **黒いボタン** があります。 
+今ライトは **赤** のはずです。これは Vive HMD がスタンバイ モードであることを意味します。 
+**黒いボタン** を **5 秒** 長押しして、赤いライトが **緑** に変わったら Vive HMD の使用が可能という意味です。
 
 	![](T_Vive_Standby_Mode.png)
 
 	[region:note]
-	Keep in mind that in order for the Vive HMD to work correctly you will need to have a **[USB 3.0](http://en.wikipedia.org/wiki/USB_3.0)** port available to use on your development PC. 
+	Vive HMD を正しく使えるようにするには、**[USB 3.0](http://en.wikipedia.org/wiki/USB_3.0)** を開発 PC 上で使えるように開けておく必要があります。 
 	[/region]
 
-1. From the Steam client launch the **Steam VR** application and the following window will be displayed.
+1. Steam クライアントから **Steam VR** アプリケーションを起動すると、以下のウィンドウが表示されます。
 
 	![](T_Steam_VR_App.png)
 
-1. Make sure to read and complete the first 3 steps in the **Setting up** section and once everything has been completed click on the **Run your first VR app!** then put your HMD on. 
-   If everything has been setup correctly you should now see something that looks like the following image in the HMD.
+1. **「設定」** セクションの最初の 3 ステップを行って、すべて完了したら **[Run your first VR app! (初めて VR アプリケーションを実行!)]** をクリックして HMD を装着します。 
+   すべて問題なく設定されると、HMD の中に次のような画像が表示されます。
 
 	![](T_FirstVRApp.png)
 

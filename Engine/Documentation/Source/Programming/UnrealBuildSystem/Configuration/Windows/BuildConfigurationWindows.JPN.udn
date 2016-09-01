@@ -1,45 +1,46 @@
-﻿Availability:Public
-Title:Windows のアンリアル ビルドシステムの設定
+﻿INTSourceChangelist:2624354
+Availability:Public
+Title:Windows XP のアンリアル ビルドシステムの設定
 Crumbs: %ROOT%, Programming, Programming/UnrealBuildSystem/Configuration
 Description:Windows でエンジンのビルドを制御するアンリアル ビルドシステムの設定
-バージョン：4.5
+Version:4.9
 
-アンリアルビルドシステムは、さまざまな用途に合わせたビルドプロセスの変更を、`BuildConfiguration.cs` を通じて設定できます。
-Windows 固有のオプションに対して、`UEBuildWindows.cs` 設定を変更することができます。
+アンリアルビルドシステムは、さまざまな用途に合わせたビルドプロセスの変更を、BuildConfiguration.cs を通じて設定できます。
+Windows 固有のオプションに対して、UEBuildWindows.cs 設定を変更することができます。
 
 ## Windows XP のサポートを追加する
 
 ### 最低限の仕様
 
-**Service Pack 3 の Windows XP に限りサポートします。**
+Service Pack 3 の Windows XP に限りサポートします。
 
-**OpenGL 3.2 をサポートするビデオ カードも必須です。**
+OpenGL 3.2 をサポートするビデオ カードも必須です。
 
 ### Windows XP のサポートでビルドする
-$ WindowsPlatform::SupportWindowsXP :_true_ ならば、Windows XP と互換性がある UE4 のビルドが作成されます。
+$ WindowsPlatform::SupportWindowsXP :true ならば、Windows XP と互換性がある UE4 のビルドが作成されます。
 
 
-XP のサポートを有効にするには、`SetupEnvironment` で強制的にオフになる場所を見つけて、これを以下を用いて更新します。
+XP のサポートを有効にするには、SetupEnvironment で強制的にオフになる場所を見つけて、これを以下を用いて更新します。
 	public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 	{
 		...
 
-		// Win32 XP はこの場合に限りサポートされます。
+		// Win32 XP is only supported at this time. (Win32 XP はこの場合に限りサポートされます。)
 		SupportWindowsXP = InBuildTarget.Platform == UnrealTargetPlatform.Win32;
 
-Windows XP 互換のビルドを有効にすると、コンパイラが`Windows SDK 7.1` を使用するように強制します。つまり、`Windows SDK 8.0` が提供する機能はコンパイルしません。sdk 固有のコードを WINVER チェックでラップすることができます。：
+Windows XP 互換のビルドを有効にすると、コンパイラが Windows SDK 7.1 を使用するように強制します。つまり、Windows SDK 8.0 が提供する機能はコンパイルしません。sdk 固有のコードを WINVER チェックでラップすることができます。
 	#if WINVER == 0x0502
-		// Windows SDK 7.1 コードがこのブロック内に存在するはずです。
+		// Windows SDK 7.1 code should live inside this block (Windows SDK 7.1 コードがこのブロック内に存在するはずです)
 	#else
-		// Windows SDK 8.0 コードがこのブロック内に存在するはずです。
+		// Windows SDK 8.0 code should live inside this block (Windows SDK 8.0 コードがこのブロック内に存在するはずです)
 	#endif
-	### Windows XP でゲームを実行する
 
+### Windows XP でゲームを実行する
 
-WindowsXP は DirectX 10 または DirectX 11 をサポートしていないため、 ゲームのターゲット RHI として OpenGL が含まれていなければなりません。
+WindowsXP は DirectX 10 または DirectX 11 をサポートしていないため、ゲームのターゲット RHI として OpenGL が含まれていなければなりません。
 
 OpenGL を含むためのオプションは以下のようにエディタにあります。
-_Edit->Project Settings->Platform->Windows_
+Edit->Project Settings->Platform->Windows
 [![](EnableOpenGLForWindows.png)](Programming/UnrealBuildSystem/Configuration/Windows)
 
 ゲームをパッケージングすると、ゲームの実行可能ファイルを Windows XP マシンのバイナリ ディレクトリから実行できるようになります。

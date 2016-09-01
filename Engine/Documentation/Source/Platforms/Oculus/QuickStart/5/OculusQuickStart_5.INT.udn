@@ -1,11 +1,11 @@
-Title:5. Test out VR Content
+Title:5. Testing out the Rift and UE4
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Load and play content designed for the Oculus Rift using Unreal Engine 4.
 Availability:Public
-Version: 4.9
+Version: 4.11
 SkillLevel: Intermediate
 
-In this section we will cover how you can test to see if your DK2 is working inside Unreal Engine 4.
+In this section we will cover how you can test to see if your Rift is working inside Unreal Engine 4.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -25,38 +25,19 @@ In this section we will cover how you can test to see if your DK2 is working ins
 
 %Steps%
 
-1. If you have not already, download the [](Resources\ContentExamples) project from the Unreal Engine Launcher.
+1. Now that the Oculus drivers have been installed and the Oculus Rift has been set up, open up the Unreal Project Browser and in the **New Project** tab create a new project that has the following settings.
 
-1. Open the **Content Examples** project.
-	
-	![](CE_Start.png)(w:500)
+	![](Rift_New_Project_00.png)
 
-1. Click on **File > Open Level**.
+1. Once UE4 has launched, go to the Main Menu and change the Play option from the default of **Selected Viewport** to **VR Preview** and put your Rift on.
 
-1. Select the **VR.umap**, then click **Open**.
+	![](Rift_VR_Preview_00.png)
 
-	![](VRmap.png)
+1. Put the Rift HMD on your head and you should see an image that looks like the following. 
 
-1. Click on the arrow next to **Play** in the **Level Editor Toolbar** to open the **Play In Editor** options.
-
-	![](PlayDropdown.png)
-
-1. Select the **VR Preview** option and then put the HMD on.
-
-	![](StandAloneGame.png)
-
-	[REGION:tip]
-	You can use the **Standalone Game** option but if you do make sure to press **Alt+Enter** to enter VR mode. If you do not do this you will not see anything when you put the HMD on.
-	[/REGION]
-
-1. With the HMD on you should now something similar to the image below being displayed in the HMD.
-
-	![](VRMode.png)(w:800)
-
-1. To end game play you can do either of the following two options.
-
-	* Press **~** and type **Quit** in the console
-	* Press **Shift+F1** to reclaim your mouse cursor and close the window.
-
+	![](Rift_Preview_Window_00.png)
+	[region:note]
+	When using the VR preview option and the Rift, the VR preview window will display black and look like it is not updating anytime time you launch or re-launch the VR preview window. This is because when the Rift is not placed on your head it disables the output to help extend the life of the display. Placing the Rift on your head will enable the output to the VR preview window allowing you the VR preview window to show what you are seeing in the Rift.
+	[/region]
 
 %Steps%

@@ -1,73 +1,67 @@
-﻿INTSourceChangelist:1890913
-Availability:Public
+﻿Availability:Public
 Title: 蓝图类型
 Crumbs: %ROOT%, Engine/Blueprints
-Description:关于不同类型蓝图的信息的主页面。
+Description:不同类型蓝图的信息概要.
+version: 4.9
+
+
+有时候第一眼看上去很难说是哪一类的 **蓝图** ，当进入**Blueprint Macro Libraries** 以及 **Blueprint Classes**. 一个好的经验是需要询问自己
+
+* _是否有多个实例?_
+
+如果你有以到两个实例 (例如, 一个可以被打开和关闭的电视), 
+如果需要创建蓝图类，它有可能是有相关代码存在的蓝图类。 
+如果不是，只是你想要建立一些帮助功能 (类似于找到所有小于X尺寸的Actors), 这些就只需要Blueprint Macro Library.
+
 
 [EXCERPT:Main]
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](level_blueprint_test_image.png)(w:250)](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
-	[/PARAM]
-	[PARAM:title]
-		[%Engine/Blueprints/UserGuide/Types/LevelBlueprint:title%](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
-	[/PARAM]
-[/OBJECT]
+##Level Blueprint
+
+![](level_blueprint_test_image.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
+
+想要获得这部分更多的信息, 请查阅 [](Engine/Blueprints/UserGuide/Types/LevelBlueprint).
 
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](level_blueprint_test_image.png)(w:250)](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
-	[/PARAM]
-	[PARAM:title]
-		[%Engine/Blueprints/UserGuide/Types/ClassBlueprint:title%](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
-	[/PARAM]
-[/OBJECT]
+##Blueprint Class
+
+![](class_blueprint_test_image.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
+
+想要获得这部分更多的信息, 请查阅 [](Engine/Blueprints/UserGuide/Types/ClassBlueprint).
 
 [/EXCERPT:Main]
 
 
 [EXCERPT:Types]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](data_blueprint.png)(w:250)](Engine/Blueprints/UserGuide/Types/ClassBlueprint#仅包含数据的蓝图)
-	[/PARAM]
-	[PARAM:title]
-		[仅包含数据的蓝图](Engine/Blueprints/UserGuide/Types/ClassBlueprint#仅包含数据的蓝图)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](blueprint_interface.png)(w:250)](Engine/Blueprints/UserGuide/Types/Interface)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/Interface)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](macro_blueprint.png)(w:250)](Engine/Blueprints/UserGuide/Types/MacroLibrary)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/MacroLibrary)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
-	[/PARAM]
-[/OBJECT]
+
+##Data-Only Blueprint
+
+![](data_blueprint.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
+
+想要获得这部分更多的信息, 请查阅 [Data-Only Blueprint](Engine/Blueprints/UserGuide/Types/ClassBlueprint).
+
+##Blueprint Interface
+
+![](blueprint_interface.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
+
+想要获得这部分更多的信息, 请查阅 [](Engine/Blueprints/UserGuide/Types/Interface).
+
+##Blueprint Macro Library
+
+![](macro_blueprint.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
+
+想要获得这部分更多的信息, 请查阅 [](Engine/Blueprints/UserGuide/Types/MacroLibrary).
+
 
 <!--
 [OBJECT:IconSection]
@@ -75,12 +69,12 @@ Description:关于不同类型蓝图的信息的主页面。
 		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		蓝图工具
+		Blueprint Utilities
 	[/PARAM]
 	[PARAM:description]
-		**Blueprint Utility（蓝图工具）** ，也称为 **Blutility** ，是一种仅针对编辑器的 _蓝图_ ，用于执行编辑器动作或扩展 
-		编辑器功能。 这些蓝图可以把没有参数的[](Engine/Blueprints/UserGuide/Events)暴露为用户界面上的按钮， 
-		且可以执行暴露给 _蓝图_ 的任何功能，并将这些功能应用到视口中当前选中的actor上。
+		A **Blueprint Utility**, a.k.a. a **Blutility**, is an editor-only _Blueprint_ that can be used to perform editor actions or extend 
+		editor functionality. These can expose [](Engine/Blueprints/UserGuide/Events) with no parameters as buttons in the UI 
+		and have the ability to execute any functions exposed to _Blueprints_ and act on the current set of selected Actors in the viewport.
 	[/PARAM]
 [/OBJECT]
 -->

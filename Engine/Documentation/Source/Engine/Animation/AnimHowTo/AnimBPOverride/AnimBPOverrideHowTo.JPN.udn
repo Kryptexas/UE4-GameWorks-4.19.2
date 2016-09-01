@@ -1,53 +1,53 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Animation Blueprint Override
+﻿INTSourceChangelist:2692223
+Availability:Public
+Title:Animation ブループリントのオーバーライド
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Illustrates how you can override animations in a child Animation Blueprint. 
-Related: Engine\Animation\Sequences
-Related: Engine\Animation\AnimBlueprints
-Related: Engine\Animation\Skeleton
-Related: Engine\Animation\Overview
-version: 4.9
-skilllevel: Advanced
+Description:子 Animation ブループリントでアニメーションをオーバーライドする方法を説明します。 
+Related:Engine\Animation\Sequences
+Related:Engine\Animation\AnimBlueprints
+Related:Engine\Animation\Skeleton
+Related:Engine\Animation\Overview
+version:4.9
+skilllevel:Advanced
 
-When setting up characters and animation for those characters, there may be instances where you want to have one character perform an animation for an action and have another character perform a different animation for the same action. By using the **Asset Override Editor** inside of a child [Animation Blueprint](Engine/Animation/AnimBlueprints), you can override any previously set animation asset used in a [Sequence Player Node](Engine/Animation/Sequences/UserGuide) allowing you to quickly create variations of Animation Blueprints that each of your characters can use. 
+キャラクターのセットアップやアニメーションをキャラクター向けにセットアップする場合、あるキャラクターのアクションに対してあるアニメーションを実行させ、別のキャラクターには同じアクションに対して別のアニメーションを実行させたい場合があるでしょう。子 [Animation ブループリント](Engine/Animation/AnimBlueprints) 内で **Asset Override Editor** を使用することで、[Sequence Player Node](Engine/Animation/Sequences/UserGuide) で使用される以前設定したアセットをオーバーライドすることができます。これにより、各キャラクターが使用できる Animation ブループリントのバリエーションを迅速に作成できます。 
 
 
 
 [REGION:note]
-For this guide, we are using the **Blueprint Third Person** template and included the **Infinity Blade: Warriors** and **Animation Starter Pack** assets which are available for free via the Marketplace. We also performed some [Animation Retargeting](Engine/Animation/AnimHowTo/Retargeting) and retargeted the Animation Blueprint and Animations that came with the Animation Starter Pack for use with the Infinity Blade characters. 
+このガイドでは、**Blueprint Third Person** テンプレートを使用し、**Infinity Blade:Warriors** と **Animation Starter Pack** アセットを含めました。これらはマーケットから無料でご利用いただけます。[アニメーションのリターゲット](Engine/Animation/AnimHowTo/Retargeting) を行い、 Animation Starter Pack に含まれる Animation ブループリントとアニメーションを Infinity Blade のキャラクターと合わせて使用するためにリターゲットしました。 
 [/REGION]
 
-## Steps
+## ステップ
 
-1. **Right-click** on the **Animation Blueprint** you would like to override animations for and select **Create Child Blueprint Class**. 
+1. アニメーションをオーバーライドする **Animation ブループリント** 上で **右クリック** し、**Create Child Blueprint Class (子ブループリント クラスを作成) ** を選択します。 
 
 	![](01_CreateChild.png)
 
-1. Open the child Animation Blueprint, then click **Window** from the **File Menu** and select **Asset Override Editor**. 
+1. 子 Animation ブループリントを開いて、**File メニュー** から **Window** をクリックし、 **Asset Override Editor** を選択します。 
 
 	![](02_OpenEditor.png)
 
-1. The **Asset Override Editor** will open showing the available animations which can be overridden. 
+1. **Asset Override Editor** が開き、オーバーライド可能な利用可能なアニメーションが表示されます。 
 
 	![](03_AssetOverrideEditor.png)
 
-	You can expand/collapse the display of assets by clicking the arrow next to each asset. 
+	各アセットの隣にある矢印をクリックして、アセットの表示を展開、折り畳みすることができます。 
 
-1. In the **Asset** column, click the drop-down window and specify the new asset to use (which will override the existing when called). 
+1. **Asset** 列で、ドロップダウン ウィンドウをクリックして、使用する新規アセットを指定します (その結果、呼び出されると既存のものをオーバーライドします)。 
 
 	![](04_SelectAssetToOverride.png)
 
-	Clicking the eyeball icon will allow you to see a preview of the node context in the parent graph as read only in the main graph panel. 
+	目の形をしたアイコンをクリックすると、メインのグラフ パネルでリードオンリーとして親のグラフでノードのコンテキストをプレビューすることができます。 
 
 	![](05_JumpToNode.png)
 
-1. You can view your changes after you click **Compile**. That's it! 
+1. **Compile** をクリック後、変更を見ることができます。以上です！ 
 
 
-## End Result
+## 結果
 
-Below is an example where a character's default movement (assigned as Jog) in the parent Animation Blueprint is overridden so that the character performs a Walk instead. 
+以下は、親の Animation ブループリントでキャラクターのデフォルトの動き (Jog (ジョギング) としてアサイン) がオーバーライドされて、代わりにキャラクターがWalk (歩行) するようになっています。 
 
 
 [OBJECT:EmbeddedVideo]
@@ -62,7 +62,7 @@ MuQ5VQIGfY4
 [/PARAMLITERAL]
 [/OBJECT]
 
-A prime usage case for this is if you have a character that performs a certain attack when a button is pressed but you want a different character to have the same general movement but perform a different motion when the attack button is pressed. 
+上記の主な使用例としては、ボタンが押されたときに特定の攻撃をするキャラクターを持っていて、攻撃ボタンが押されたときに、別のキャラクターにだいたい同じ動きだが異なる動作をさせたい場合があります。 
 
 
 

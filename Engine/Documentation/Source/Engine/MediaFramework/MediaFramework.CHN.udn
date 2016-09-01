@@ -1,11 +1,14 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2737326
 Availability:Public
-Title: Media Framework
+Title:媒体框架
 Crumbs:%ROOT%, Engine
-Description:Overview of Media Playback functionality in Unreal Engine 4. 
-Related: Engine/Blueprints
-Related: Engine/UMG
-Related: Engine/Rendering/Materials
+Description:虚幻引擎 4 中媒体播放功能总览 
+Related:Engine/Blueprints
+Related:Engine/UMG
+Related:Engine/Rendering/Materials
+parent:Engine
+order:12
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -53,265 +56,293 @@ Related: Engine/Rendering/Materials
 [TOC(start:2 end:2)]
 
 
-While there is currently a **MoviePlayer** system in UE4, it can only be used for playing startup movies while the Engine loads up. It cannot be used to play movies in-game, 
-say for instance as part of a UI element or perhaps on a Static Mesh in your level like a movie playing on a TV. This is where the **Media Framework** comes in, as not only 
-will it allow you to do both of the examples presented above, it will also provide much more general media playback capabilities (a rundown of which are outlined below).  
+UE4 中现有一个 **MoviePlayer** 系统，它只能用于引擎加载时播放启动影片。它无法在游戏中作为 UI 元素的一部分播放影片， 
+或在关卡中的一个静态网格体上播放影片（如一台正在播放电影的电视机）。**媒体框架（Media Framework）** 应运而生，它不仅能 
+执行上述的两个例子，还提供了更多的总体媒体播放功能（概述在下方列出）。  
 
-The Media Framework in Unreal Engine 4 is...
-* Both Engine & Slate Agnostic
-* Able to support Localized Audio & Video Tracks
-* Accessible in the Content Browser, Material Editor, & Sound System
-* Available for use with Blueprint & the UMG UI Designer
-* Able to support Streaming Media
-* Able to Fast Forward, Reverse, Play, Pause, & Scrub Media
-* Able to support Pluggable Players
+虚幻引擎 4 中的媒体框架为...
+* 引擎和 Slate 独立
+* 支持本地化音频及视频
+* 可在内容浏览器、材质编辑器以及声音系统中使用
+* 可与蓝图和 UMG UI 设计器共用
+* 支持流媒体
+* 可在媒体上执行快进、倒退、播放、暂停和移动操作
+* 支持可插拔播放器
 
-As stated above, the Media Framework itself is both Engine and Slate agnostic, which means it can be used in pretty much any application not just the game engine or the 
-Editor. There are layers on top of the framework that provide media playback capabilities to other sub-systems as well, such as **Engine**, **Blueprints**, **Slate**, and 
-the **UMG UI Designer**.  This will cover most expected use cases, such as in-game textures & UI, in-Editor video tutorials, and Marketplace videos. 
+如上所述，媒体框架自身为引擎和 Slate 独立，意味着其可在任意应用中使用（而不是只能在游戏引擎 
+或编辑器中使用）。框架上有多个层，为其他子系统提供媒体播放功能，如 **引擎**、**蓝图**、**Slate**、 
+**UMG UI 设计器**。可以覆盖多数使用实例，如游戏内的纹理和 UI、编辑器内的视频教程、以及市场视频。 
 
 [REGION:warning]
-The Media Framework is not quite production ready yet and is still in the experimental stages. Some features may not work as expected, however we are currently working hard 
-to resolve those issues as well as add addition features and support. 
+媒体框架仍在实验阶段，尚不适合用于生产。部分功能可能无法正常工作，我们正努力 
+解决这些问题，同时添加额外的功能与支持。 
 [/REGION]
 
-## What is Media Framework
+## 什么是媒体框架
 
-The Media Framework is largely a collection of C++ interfaces, a couple of helper classes for common use cases and a media player factory that can be extended with so called 
-Media Player plug-ins. All the interesting work of playing movies and other media files happens in the plug-ins. 
+媒体框架很大程度上是 C++ 界面的一个合集、常规使用实例的一些助手类、以及一个媒体播放器工厂 
+（可根据所谓的媒体播放器插件进行延展）。播放影片和其他媒体文件等有趣工作均在插件中执行。 
 
 [REGION:note]
-Programmers: 
-* The code for the Media Framework is in the following location: _/Engine/Source/Runtime/Media/_
-* The existing player plug-ins can be found in the following location: _/Engine/Plugins/Media/_
+程序员须知： 
+* 媒体框架的代码位于此路径中：_/Engine/Source/Runtime/Media/_
+* 现有的播放器插件位于此路径中：_/Engine/Plugins/Media/_
 [/REGION:note]
 
-Currently a player plug-in for Windows is being used which uses the Windows Media Foundation API under the hood. There is also a plug-in for MacOS, which uses Apple's AV 
-Foundation, however it is currently quite limited but should work on iOS. Work has also begun on a player plug-in for Android. 
+当前使用的 Windows 播放器插件底层应用的是 Windows Media Foundation API。MacOS 插件使用的是 Apple 的 AV Foundation， 
+当前功能有限，但可在 iOS 上使用。已开始制作 Android 播放器插件。 
 
 [REGION:warning]
-While the Windows plug-in is the most complete, it has issues with certain movie formats, such as H.264 encoded .mp4 files. 
+虽然 Windows 插件相对完善，但它执行部分影片格式时会出现问题（如 H.264 编码的 .mp4 文件）。 
 [/REGION]
 
 
-## Media Asset Types & Importing Media
+## 媒体资源类型与媒体导入
 
-With the implementation of the Media Framework comes three new asset types can be created from the Content Browser. 
+应用媒体框架后，可在内容编辑器中创建三种新资源类型。 
 
-### MediaPlayer Asset
+### 媒体播放器资源
 
-The MediaPlayer asset represents a player for a media source such as a movie file on disk or a streaming media URL on the internet. Unlike the `UTextureMovie` in 
-Unreal Engine 3, the MediaPlayer asset does not actually contain any data, it only stores the path or URL to the media source. 
+媒体播放器资源代表媒体源播放器，如硬盘上的电影文件、或网络上的流媒体 URL。与虚幻引擎 3 中 
+的 `UTextureMovie` 不同，媒体播放器资源实际上不含任何数据，它只存储媒体源的路径或 URL。 
 
-There are a number of different ways you can create a MediaPlayer asset as illustrated below. 
+如下所示，可通过多种方法创建媒体播放器资源。 
 
-**Create MediaPlayer Asset**
+**创建媒体播放器资源**
 
-1. **Click** the **Create** button, then select **Miscellaneous** and **Media Player**. 
+1. **点击** **Create** 按钮，然后选择 **Miscellaneous** 和 **Media Player**。 
 
 	![](CreateMediaPlayerAsset.png)
 
 [REGION:note]
-Instead of clicking the **Create** button, you can also **Right-click** in the **Content Browser** to bring up the context menu.
+除点击 **Create** 按钮外，还可在 **Content Browser** 中 **单击右键** 呼出快捷菜单。
 [/REGION]
 
-1. This will create the MediaPlayer Asset (**Double-click** on it to open it up). 
+1. 此操作将创建媒体播放器资源（**双击** 打开）。 
 
 	![](MediaPlayerAsset.png)(w:720)
 
-1. Inside the MediaPlayer asset, in the Details panel, click the **Browse** button. 
+1. 在媒体播放器资源的 Details 面板中点击 **Browse** 按钮。 
 
-	![](AddMediaButton.png)
+	![](BrowseMediaPlayer.jpg)
 
-1. Browse to your media and select your file. 
+1. 浏览媒体并选择文件。 
 
 	![](BrowseToMovie.png)
 
-1. Once added, you can **click** the **Play** button inside the MediaPlayer to play your media. 
+1. 添加文件后，可 **点击** 媒体播放器中的 **Play** 按钮进行播放。 
 
 	![](MediaPlay.png)
 
-1. Inside the Details panel, you may notice that a warning icon is present. 
+1. **Details** 面板中可能存在一个警告图标。 
 
-	![](WarningIcon.png)
+	![](EpicMovieMediaFrameWorkFile.jpg)
 
-1. In order to package correctly, local media files MUST be placed in the **Content/Movies/** directory of your project. 
+1. 为正确打包，本地媒体文件必须放置在项目的 **Content/Movies/** 目录中。 
 
-	![](NoWarning.png)
+	![](EpicMovieMediaFrameWorkWMV.jpg)
 
-	Once you have placed your media in your projects Content/Movies/ folder, the warning icon will no longer be shown. 
+	将媒体文件放置在项目的 Content/Movies/ 文件夹内后，警告图标将消失。 
 	
-**Importing through Drag-and-Drop**
+**拖放导入**
 
-The easiest method of importing media is through drag-and-drop. 
+拖放是导入媒体文件的最简单方法。 
 
-1. With your media inside your project's **Content/Movies/** folder, **drag-and-drop** it into the Content Browser. 
+1. 媒体文位于项目的 **Content/Movies/** 文件夹内时，将其 **拖放** 进 Content Browser。 
 
 	![](DragAndDropMedia.png)
 
-	This will automatically create the MediaPlayer asset and assign its location. 
+	此操作将自动创建媒体播放器资源并指定其位置。 
 
-#### MediaPlayer Asset Details
+#### 媒体播放器资源细节
 
-The MediaPlayer asset can output various content streams, including: audio, video, and caption texts. You can set these from the drop-down menus located along the top of 
-the media window below the playback controls. 
+媒体播放器资源可输出诸多内容流，包括音频、视频和标题文字。可通过播放功能键下方媒体窗口顶端的下拉 
+菜单进行设置。 
 
 ![](OutputStreams.png)
 
-Inside the Details panel, you can inspect the properties of the media source. 
+可在 Details 面板中查看媒体源的属性。 
 
-![](MediaPlayerDetails.png)
+![](EpicMovieMediaFrameWork.jpg)
 
-Under the **Playback** options, you can set the media to **Auto Play** (which will automatically play the media when loaded) and **Auto Play Rate** (to define the playback 
-rate when Auto Play is enabled), as well as the ability to the media to looping when playback reaches the end. 
+在 **Playback** 选项中，勾选 **Looping** 复选框可启用媒体循环播放。 
 
-For the **Source** section, you can specify the path to the media locally or through the Internet via URL as well as set the Streaming Mode. The last section, displays 
-information about the media itself. 
+在 **Source** 部分中，可指定媒体的本地路径或网络 URL 路径，并对流模式进行设置。  
 
-### MediaTexture Asset
+### 媒体纹理资源
 
-Once you have created a MediaPlayer asset, from it you can then create a **MediaTexture** asset which will allow you to extract a video stream. The MediaTexture allows 
-you to pick a video stream (if more than one is available) and you can use it just like any other texture in the Engine.
+创建媒体播放器资源后，即可创建一个 **媒体纹理** 资源，对视频流进行提取。可为媒体纹理选择一个视频流 
+（如有多个可用）并以引擎中其他纹理的方式进行使用。
 
-To create a MediaTexture from a MediaPlayer, **Right-click** on a MediaPlayer asset then **select** the **Create Media Texture** option. 
+如需在媒体播放器中创建媒体纹理，在媒体播放器资源上 **单击右键**，然后 **选择** **Create Media Texture** 选项。 
 
 ![](MediaTextureAsset.png)
 
-After which the new MediaTexture asset will be created. 
+之后新媒体纹理资源将被创建。 
 
 ![](MediaTextureCreated.png)
 
-From here, you can **Right-click** on the MediaTexture and create a **Material** from it that can be used like any other material in the Engine. 
+在媒体纹理上 **单击右键** 并创建 **材质**，其使用方法与引擎中其他材质相同。 
 
 ![](CreateMaterial.png)
 
 [REGION:note]
-If the video does not show on the texture but plays in the Media Asset Editor, then most likely the wrong video track is selected. You can change this by **Double-clicking** 
-the MediaTexture to open the texture editor and selecting a track via the Details panel under MediaPlayer. 
+如材质未在纹理上播放而在媒体资源编辑器中播放，则很可能选择了错误的视频。在媒体播放器的 Details 面板中 **双击** 媒体纹理打开纹理编辑器 
+选择视频即可完成修改。 
 
-If this does not solve the issue, inside your MediaPlayer asset, check the **Auto Play** option to see if the video is then streamed inside your texture. If that addresses 
-the issue, you can either continue to use **Auto Play** or through **Blueprints** set up some script to play the asset (see the 
-[Media Framework With Blueprints](#mediaframeworkwithblueprints) section on this page). 
+如此操作未解决问题，在媒体播放器资源中勾选 **Auto Play** 选项，确定视频是否在纹理中流出。如此操作 
+将问题解决，可继续使用 **Auto Play** 或通过 **Blueprints** 设置播放资源的脚本 
+（查看本页的 [带蓝图的媒体框架](#mediaframeworkwithblueprints) 部分）。 
 [/REGION]
 
-### MediaSoundWaves
+### 媒体声波
 
-**MediaSoundWaves** are audio components that can be placed in your level as you would any other Sound Actor. Since it relies on the MediaPlayer Asset however, in order to
-play the sound, you would need to tell the MediaPlayer Asset to play (if it is not set to Auto Play). 
+**媒体声波** 是可放置在关卡中的声音组件（与其他声音 Actor 方式相同）。其依赖于媒体播放器资源，因此需要对
+媒体播放器资源发出播放指令（如未设为 Auto Play）。 
 
-You can create a MediaSoundWave by **Right-clicking** on a MediaPlayer asset and selecting **Create Media Sound Wave**. 
+在媒体播放器资源上 **单击右键** 并选择 **Create Media Sound Wave** 即可创建媒体声波。 
 
 ![](MediaSoundWave.png)
 
 [REGION:note]
-MediaSoundWaves are still very early in development. Additional documentation on them will be updated at a later date. 
+媒体声波仍处于早期开发阶段。之后将更新更多文档。 
 [/REGION]
 
-## Media Framework with Textures & Materials
+## 带纹理和材质的媒体框架
 
-This section will show you how to quickly get started with using the Media Framework with Textures and Materials. 
+该部分说明如何快速掌握带纹理和材质的媒体框架的使用方法。 
 
-### Textures
+### 纹理
 
-Here is an example of a MediaTexture playing on a TV (click to play). 
+以下是媒体纹理在电视机上播放的范例（点击播放）。 
 
-[![](video1_image.png)](video1.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+IdX1gEH2i6c
+[/PARAMLITERAL]
+[/OBJECT]
 
-_For this example, we **Migrated** the **SM_TV** asset from the **Realistic Rendering** project which can be found on the Learn Tab._
+_在此例中，我们从 Learn 标签上的 **Realistic Rendering** 项目 **迁移** **SM_TV** 资源。_
 
-1. Creating a MediaPlayer and MediaTexture asset with a desired video using the steps outlined on this page. 
+1. 根据此页说明的步骤使用视频创建媒体播放器和媒体纹理资源。 
 
-1. Open the MediaPlayer asset and **set** it to **Auto Play**. 
+1. 打开媒体播放器资源并将其 **设为** **Auto Play**。 
 
-1. Open up the 'M_TV' material located in the **Game/ArchVis/Materials** folder. 
+1. 打开 **Game/ArchVis/Materials** 文件夹中的“M_TV”材质。 
 
-1. **Drag in** your MediaTexture into the 'M_TV' material and **place it** next to the **ScreenColor** node. 
+1. 将媒体纹理 **拖入** “M_TV”材质并 **放置** 在 **ScreenColor** 节点旁边。 
 
 	![](Texture1.png)(w:800)
 
-1. **Delete** the ScreenColor node and **plug in** your texture to the Lerp node. 
+1. **删除** ScreenColor 节点并将纹理 **插入** Lerp 节点。 
 
-1. **Add** a **TextureCoordinate** node connected to the Texture Sample and adjust your 'UTiling' and 'VTiling' as needed. 
+1. **添加** 一个 **TextureCoordinate** 节点并连接至 Texture Sample，然后根据需要调整“UTiling”和“VTiling”。 
 
 	![](Texture2.png)
 
 
-### Materials 
+### 材质 
 
-For Materials, all you need to do is create a Material from your MediaTexture then apply the material to an object. 
+对材质而言，从媒体纹理创建一个材质并应用到物体即可。 
 
 ![](MaterialsExample.png)
 
-Above, we have applied our material to a basic cube inside our level. Our MediaPlayer asset is also set to Auto Play. 
+在上图中，我们将材质应用到关卡里一个简单立方体上。媒体播放器资源被设为 Auto Play。 
 
+(#mediaframeworkwithblueprints)
+## 带蓝图的媒体框架
 
-## Media Framework with Blueprints
-
-You can also directly access and control the MediaPlayer asset through Blueprints. In this example, we have set a Trigger in front of our TV which has a MediaTexture applied
-to it. Our MediaPlayer asset is also not set to Auto Play. 
+还可通过蓝图直接访问并控制媒体播放器资源。在此例中，应用了媒体纹理的电视机前设置了一个
+触发器。媒体播放器资源未被设为 Auto Play。 
 
 ![](Blueprint1.png)
 
-When the player enters the trigger, we will play the MediaTexture applied to the TV, when they exit the trigger we will pause it (click to play). 
+玩家进入触发器后，应用到电视机上的媒体纹理将开始播放；玩家离开触发器后，将暂停播放（点击播放）。 
 
-[![](video2_image.png)](video2.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+nmb2Fj_5PjA
+[/PARAMLITERAL]
+[/OBJECT]
 
-Inside our **Level Blueprint** we have created the following script. 
+在 **关卡蓝图** 中创建了下列脚本。 
 
 [REGION:lightbox]
 [![](LevelBlueprintExample.png)(w:800)](levelBlueprintExample.png)
 [/REGION:lightbox]
 
-_Click for a full view._
+_点击查看全图。_
 
-We have created a new variable of the MediaPlayer type and assigned our MediaPlayer asset as the Default Value. We have then stated that when the player character 
-(MyCharacter) overlaps the trigger box that we want to Play our MediaPlayer asset (which is assigned to the variable). 
+我们创建了一个媒体播放器类型的新变量，并将媒体播放器资源指定为默认值。如上所述，玩家角色 
+（MyCharacter）与触发框发生重叠时，媒体播放器资源（已指定给变量）将开始播放 
 
-We have done the same thing for when the player character leaves the trigger volume, except we have used the Pause node. The **Event End Play** node is also used to 
-pause the MediaPlayer after exiting a Play in Editor session. These are just two of the nodes you can use with respect to MediaPlayers, if you drag off a MediaPlayer 
-variable, you will notice that there are several nodes that can be used with it. 
+玩家角色离开触发框时将执行相同操作，使用的是 Pause 节点。退出 Play in Editor 会话后，**Event End Play** 节点 
+也可暂停媒体播放器。只有两个节点可与媒体播放器共用。 
+拖动 MediaPlayer 变量时将看到可以共用的几个节点。 
 
 ![](BlueprintActions.png)
 
 
-## Media Framework with UMG
+## 带 UMG 的媒体框架
 
-If you want to have media playback as part of your UI or as an in-game movie player for example, you can do so with UMG by creating a **Widget Blueprint** and assigning 
-a material that is created from a MediaTexture (which in turn is created from a MediaPlayer asset). 
+如需将媒体播放设为 UI 的一部分或游戏中的影片播放器，可通过 UMG 执行 - 创建一个 **控件蓝图** 并制定一个 
+从媒体纹理创建的材质（媒体纹理从媒体播放器资源创建）。 
 
-Below we have created a setup so that when the player press the M key in-game, a movie player is shown on screen with controls to Play, Pause, or Rewind the video that 
-is being played (click to play). 
+在下例中，玩家在游戏中按下 M 键将在屏幕上呼出一个影片播放器，并带有播放、暂停、倒回功能键 
+（点击播放）。 
 
-[![](video3_image.png)](video3.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+HuF6btgkfxE
+[/PARAMLITERAL]
+[/OBJECT]
 
-We did this by first creating a **[Widget Blueprint](Engine\UMG\UserGuide\WidgetBlueprints)** as indicated below. 
+如下图所示，首先创建一个 **[控件蓝图](Engine\UMG\UserGuide\WidgetBlueprints)**。 
 
 ![](WidgetBlueprint.png)
 
-For the **Image** inside our Widget Blueprint, we have assigned our material that uses the MediaTexture. 
+在控件蓝图的 **Image** 中指定使用媒体纹理的材质。 
 
 ![](BrushImage.png)
 
-Our Graph for the Widget Blueprint only has commands for our buttons we have placed to Play, Rewind, or Pause the video. 
+控件蓝图的图表只在播放、倒回和暂停按键上存在命令。 
 
-We have also added a MediaPlayer variable and assigned the MediaPlayer asset we want to use. 
+此外还添加了一个 MediaPlayer 变量并指派需要使用的媒体播放器资源。 
 
 ![](WidgetBlueprint2.png)(w:840)
 
-In order for the Material to be applied to our brush, we have to make one small change and set it to Emissive. 
+为将材质应用到笔刷，需要执行一个小更改，将其设为 Emissive。 
 
 ![](Material.png)
 
-In our Level Blueprint, we set up script for the player to enable/disable the in-game movie player we have created. 
+在关卡蓝图中设置脚本，以便启用/禁用创建好的游戏内影片播放器。 
 
 [REGION:lightbox]
 [![](LevelBlueprint.png)(w:840)](LevelBlueprint.png)
 [/REGION:lightbox]
 
-_Click for a full view._
+_点击查看全图。_
 
 [REGION:note]
-Additional examples can be found inside the **Content Examples** and the **UMG** and **Media** maps. 
+在 **Content Examples**、**UMG** 和 **Media** 中可找到更多范例。 
 [/REGION]
 
 

@@ -5,6 +5,7 @@
 #include "AI/Navigation/NavTestRenderingComponent.h"
 #include "DynamicMeshBuilder.h"
 #include "AI/Navigation/NavigationTestingActor.h"
+#include "AI/Navigation/RecastNavMesh.h"
 #include "Debug/DebugDrawService.h"
 
 static const FColor NavMeshRenderColor_OpenSet(255,128,0,255);

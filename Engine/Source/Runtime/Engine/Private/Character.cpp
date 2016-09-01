@@ -61,6 +61,9 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	bClientCheckEncroachmentOnNetUpdate = true;
 	JumpKeyHoldTime = 0.0f;
 	JumpMaxHoldTime = 0.0f;
+    JumpMaxCount = 1;
+    JumpCurrentCount = 0;
+    bJumpMaxCountExceeded = false;
 
 	AnimRootMotionTranslationScale = 1.0f;
 
@@ -154,9 +157,9 @@ UPawnMovementComponent* ACharacter::GetMovementComponent() const
 }
 
 
-void ACharacter::SetupPlayerInputComponent(UInputComponent* InputComponent)
+void ACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	check(InputComponent);
+	check(PlayerInputComponent);
 }
 
 
@@ -252,9 +255,23 @@ bool ACharacter::CanJump() const
 
 bool ACharacter::CanJumpInternal_Implementation() const
 {
-	const bool bCanHoldToJumpHigher = (GetJumpMaxHoldTime() > 0.0f) && IsJumpProvidingForce();
+    const bool bIsHoldTimeValid = (GetJumpMaxHoldTime() <= 0.0f) || IsJumpProvidingForce();
 
-	return !bIsCrouched && CharacterMovement && (CharacterMovement->IsMovingOnGround() || bCanHoldToJumpHigher) && CharacterMovement->IsJumpAllowed() && !CharacterMovement->bWantsToCrouch;
+	const bool bIsCharacterMovementStateValid = (CharacterMovement &&
+													CharacterMovement->IsJumpAllowed() &&
+													!CharacterMovement->bWantsToCrouch &&
+													// We can only jump from the ground, or multi-jump if we're already falling.
+													(CharacterMovement->IsMovingOnGround() || CharacterMovement->IsFalling()));
+
+	return !bIsCrouched && !bJumpMaxCountExceeded && bIsHoldTimeValid && bIsCharacterMovementStateValid;
+}
+
+void ACharacter::CheckResetJumpCount()
+{
+	if (CharacterMovement && !CharacterMovement->IsFalling())
+	{
+		JumpCurrentCount = 0;
+	}
 }
 
 void ACharacter::OnJumped_Implementation()
@@ -353,14 +370,15 @@ void ACharacter::OnEndCrouch( float HeightAdjust, float ScaledHeightAdjust )
 {
 	RecalculateBaseEyeHeight();
 
-	if (Mesh)
+	const ACharacter* DefaultChar = GetDefault<ACharacter>(GetClass());
+	if (Mesh && DefaultChar->Mesh)
 	{
-		Mesh->RelativeLocation.Z = GetDefault<ACharacter>(GetClass())->Mesh->RelativeLocation.Z;
+		Mesh->RelativeLocation.Z = DefaultChar->Mesh->RelativeLocation.Z;
 		BaseTranslationOffset.Z = Mesh->RelativeLocation.Z;
 	}
 	else
 	{
-		BaseTranslationOffset.Z = GetDefault<ACharacter>(GetClass())->BaseTranslationOffset.Z;
+		BaseTranslationOffset.Z = DefaultChar->BaseTranslationOffset.Z;
 	}
 
 	K2_OnEndCrouch(HeightAdjust, ScaledHeightAdjust);
@@ -370,9 +388,10 @@ void ACharacter::OnStartCrouch( float HeightAdjust, float ScaledHeightAdjust )
 {
 	RecalculateBaseEyeHeight();
 
-	if (Mesh)
+	const ACharacter* DefaultChar = GetDefault<ACharacter>(GetClass());
+	if (Mesh && DefaultChar->Mesh)
 	{
-		Mesh->RelativeLocation.Z = GetDefault<ACharacter>(GetClass())->Mesh->RelativeLocation.Z + HeightAdjust;
+		Mesh->RelativeLocation.Z = DefaultChar->Mesh->RelativeLocation.Z + HeightAdjust;
 		BaseTranslationOffset.Z = Mesh->RelativeLocation.Z;
 	}
 	else
@@ -511,9 +530,12 @@ namespace MovementBaseUtility
 			}
 
 			// Fall back to physics velocity.
-			if (BaseVelocity.IsZero() && MovementBase->GetBodyInstance())
+			if (BaseVelocity.IsZero())
 			{
-				BaseVelocity = MovementBase->GetBodyInstance()->GetUnrealWorldVelocity();
+				if (FBodyInstance* BaseBodyInstance = MovementBase->GetBodyInstance())
+				{
+					BaseVelocity = BaseBodyInstance->GetUnrealWorldVelocity();
+				}
 			}
 		}
 		
@@ -725,6 +747,9 @@ void ACharacter::Restart()
 {
 	Super::Restart();
 
+    JumpCurrentCount = 0;
+    bJumpMaxCountExceeded = false;
+
 	bPressedJump = false;
 	JumpKeyHoldTime = 0.0f;
 	ClearJumpInput();
@@ -869,6 +894,11 @@ void ACharacter::LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool 
 
 void ACharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode)
 {
+	if (!bPressedJump)
+	{
+		CheckResetJumpCount();
+	}
+
 	K2_OnMovementModeChanged(PrevMovementMode, CharacterMovement->MovementMode, PrevCustomMode, CharacterMovement->CustomMovementMode);
 	MovementModeChangedDelegate.Broadcast(this, PrevMovementMode, PrevCustomMode);
 }
@@ -899,19 +929,44 @@ void ACharacter::StopJumping()
 {
 	bPressedJump = false;
 	JumpKeyHoldTime = 0.0f;
+
+	CheckResetJumpCount();
 }
 
 void ACharacter::CheckJumpInput(float DeltaTime)
 {
-	const bool bWasJumping = bPressedJump && JumpKeyHoldTime > 0.0f;
-	if (bPressedJump)
+	if (CharacterMovement)
 	{
-		// Increment our timer first so calls to IsJumpProvidingForce() will return true
-		JumpKeyHoldTime += DeltaTime;
-		const bool bDidJump = CanJump() && CharacterMovement && CharacterMovement->DoJump(bClientUpdating);
-		if (!bWasJumping && bDidJump)
+		const bool bWasJumping = JumpKeyHoldTime > 0.0f;
+		if (bPressedJump)
 		{
-			OnJumped();
+			// Increment our timer first so calls to IsJumpProvidingForce() will return true
+			JumpKeyHoldTime += DeltaTime;
+
+			if (CharacterMovement->IsFalling() && JumpCurrentCount == 0)
+			{
+				JumpCurrentCount++;
+			}
+
+			if (!bWasJumping)
+			{
+				JumpCurrentCount++;
+				bJumpMaxCountExceeded = JumpCurrentCount > JumpMaxCount;
+			}
+
+			const bool bDidJump = CanJump() && CharacterMovement->DoJump(bClientUpdating);
+			if (!bWasJumping && bDidJump)
+			{
+				OnJumped();
+			}
+		}
+
+		// If the jump key is no longer pressed and the character is no longer falling,
+		// but it still "looks" like the character was jumping, reset the counters.
+		else if (bWasJumping && !CharacterMovement->IsFalling())
+		{
+			JumpKeyHoldTime = 0.0f;
+			JumpCurrentCount = 0;
 		}
 	}
 }
@@ -1284,7 +1339,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 	const FAnimMontageInstance* RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
 
-	if ( (CharacterMovement && CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources()) || RootMotionMontageInstance )
+	if ( CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources() || RootMotionMontageInstance )
 	{
 		RepRootMotion.bIsActive = true;
 		// Is position stored in local space?
@@ -1303,18 +1358,10 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		{
 			RepRootMotion.AnimMontage = nullptr;
 		}
-		if (CharacterMovement)
-		{
-			RepRootMotion.AuthoritativeRootMotion = CharacterMovement->CurrentRootMotion;
-			RepRootMotion.Acceleration = CharacterMovement->GetCurrentAcceleration();
-			RepRootMotion.LinearVelocity = CharacterMovement->Velocity;
-		}
-		else
-		{
-			RepRootMotion.AuthoritativeRootMotion.Clear();
-			RepRootMotion.Acceleration = FVector::ZeroVector;
-			RepRootMotion.LinearVelocity = FVector::ZeroVector;
-		}
+
+		RepRootMotion.AuthoritativeRootMotion = CharacterMovement->CurrentRootMotion;
+		RepRootMotion.Acceleration = CharacterMovement->GetCurrentAcceleration();
+		RepRootMotion.LinearVelocity = CharacterMovement->Velocity;
 
 		DOREPLIFETIME_ACTIVE_OVERRIDE( ACharacter, RepRootMotion, true );
 	}
@@ -1348,8 +1395,25 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		// We'll be able to look ahead in the replay to have these ahead of time for smoother playback
 		FCharacterReplaySample ReplaySample;
 
-		ReplaySample.Location			= GetActorLocation();
-		ReplaySample.Rotation			= GetActorRotation();
+		// If this is a client-recorded replay, use the mesh location and rotation, since these will always
+		// be smoothed - unlike the actor position and rotation.
+		const USkeletalMeshComponent* const MeshComponent = GetMesh();
+		if (MeshComponent && GetWorld()->IsRecordingClientReplay())
+		{
+			// Remove the base transform from the mesh's transform, since on playback the base transform
+			// will be stored in the mesh's RelativeLocation and RelativeRotation.
+			const FTransform BaseTransform(GetBaseRotationOffset(), GetBaseTranslationOffset());
+			const FTransform MeshRootTransform = BaseTransform.Inverse() * MeshComponent->GetComponentTransform();
+
+			ReplaySample.Location		= MeshRootTransform.GetLocation();
+			ReplaySample.Rotation		= MeshRootTransform.GetRotation().Rotator();
+		}
+		else
+		{
+			ReplaySample.Location		= GetActorLocation();
+			ReplaySample.Rotation		= GetActorRotation();
+		}
+
 		ReplaySample.Velocity			= GetVelocity();
 		ReplaySample.Acceleration		= CharacterMovement->GetCurrentAcceleration();
 		ReplaySample.RemoteViewPitch	= RemoteViewPitch;
@@ -1359,6 +1423,8 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 		ChangedPropertyTracker.SetExternalData( Writer.GetData(), Writer.GetNumBits() );
 	}
+
+	bReplayHasRootMotionSources = CharacterMovement ? CharacterMovement->HasRootMotionSources() : false;
 }
 
 void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
@@ -1371,6 +1437,7 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,			COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,						COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, AnimRootMotionTranslationScale,	COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, bReplayHasRootMotionSources,		COND_ReplayOnly );
 
 	// Change the condition of the replicated movement property to not replicate in replays since we handle this specifically via saving this out in external replay data
 	DOREPLIFETIME_CHANGE_CONDITION( AActor, ReplicatedMovement,				COND_SimulatedOrPhysicsNoReplay );

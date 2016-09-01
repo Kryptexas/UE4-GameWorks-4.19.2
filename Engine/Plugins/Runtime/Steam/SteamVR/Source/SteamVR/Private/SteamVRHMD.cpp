@@ -64,22 +64,95 @@ class FSteamVRPlugin : public ISteamVRPlugin
 
 public:
 	FSteamVRPlugin::FSteamVRPlugin()
-#if STEAMVR_SUPPORTED_PLATFORMS
-		: VRSystem(nullptr)
-#endif // STEAMVR_SUPPORTED_PLATFORMS
+#if !STEAMVR_SUPPORTED_PLATFORMS
 	{
 	}
+#else //STEAMVR_SUPPORTED_PLATFORMS
+		: VRSystem(nullptr)
+	{
+        LoadOpenVRModule();
+	}
 
-#if STEAMVR_SUPPORTED_PLATFORMS
+	virtual void StartupModule() override
+	{
+		IHeadMountedDisplayModule::StartupModule();
+	
+		LoadOpenVRModule();
+	}
+    
+    virtual void ShutdownModule() override
+    {
+        IHeadMountedDisplayModule::ShutdownModule();
+        
+        UnloadOpenVRModule();
+    }
+
 	virtual vr::IVRSystem* GetVRSystem() const override
 	{
 		return VRSystem;
 	}
+    
+    bool LoadOpenVRModule()
+    {
+#if PLATFORM_WINDOWS
+#if PLATFORM_64BITS
+        FString RootOpenVRPath;
+        TCHAR VROverridePath[MAX_PATH];
+        FPlatformMisc::GetEnvironmentVariable(TEXT("VR_OVERRIDE"), VROverridePath, MAX_PATH);
+        
+        if (FCString::Strlen(VROverridePath) > 0)
+        {
+            RootOpenVRPath = FString::Printf(TEXT("%s\\bin\\win64\\"), VROverridePath);
+        }
+        else
+        {
+            RootOpenVRPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/OpenVR/%s/Win64/"), OPENVR_SDK_VER);
+        }
+        
+        FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
+        OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
+        FPlatformProcess::PopDllDirectory(*RootOpenVRPath);
+#else
+        FString RootOpenVRPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/OpenVR/%s/Win32/"), OPENVR_SDK_VER);
+        FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
+        OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
+        FPlatformProcess::PopDllDirectory(*RootOpenVRPath);
+#endif
+#elif PLATFORM_MAC
+        OpenVRDLLHandle = FPlatformProcess::GetDllHandle(TEXT("libopenvr_api.dylib"));
+#endif	//PLATFORM_WINDOWS
+        
+        if (!OpenVRDLLHandle)
+        {
+            UE_LOG(LogHMD, Log, TEXT("Failed to load OpenVR library."));
+            return false;
+        }
+        
+        //@todo steamvr: Remove GetProcAddress() workaround once we update to Steamworks 1.33 or higher
+        FSteamVRHMD::VRIsHmdPresentFn = (pVRIsHmdPresent)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_IsHmdPresent"));
+        FSteamVRHMD::VRGetGenericInterfaceFn = (pVRGetGenericInterface)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetGenericInterface"));
+        vr::VR_SetGenericInterfaceCallback(FSteamVRHMD::VRGetGenericInterfaceFn);
 
-	virtual void SetVRSystem(vr::IVRSystem* InVRSystem) override
-	{
-		VRSystem = InVRSystem;
-	}
+        // Verify that we've bound correctly to the DLL functions
+        if (!FSteamVRHMD::VRIsHmdPresentFn || !FSteamVRHMD::VRGetGenericInterfaceFn)
+        {
+            UE_LOG(LogHMD, Log, TEXT("Failed to GetProcAddress() on openvr_api.dll"));
+            UnloadOpenVRModule();
+            
+            return false;
+        }
+        
+        return true;
+    }
+    
+    void UnloadOpenVRModule()
+    {
+        if (OpenVRDLLHandle != nullptr)
+        {
+            FPlatformProcess::FreeDllHandle(OpenVRDLLHandle);
+            OpenVRDLLHandle = nullptr;
+        }
+    }
 
 	virtual void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][2]) override
 	{
@@ -96,27 +169,19 @@ public:
 
 	virtual bool IsHMDConnected() override
 	{
-		TSharedPtr<FSteamVRHMD, ESPMode::ThreadSafe > Device;
-
-		// Pre-init...need to bootstrap loading things to see if it's connected
-		if (!VRSystem)
-		{
-			// Create a temporary device just for initialization purposes
-			Device = MakeShareable(new FSteamVRHMD(this));
-			
-		}
-
-		// Normal, just check if we're connected
-		if (VRSystem)
-		{
-			return VRSystem->IsTrackedDeviceConnected(vr::k_unTrackedDeviceIndex_Hmd);
-		}
-
-		return false;
+		return FSteamVRHMD::VRIsHmdPresentFn ? (bool)(*FSteamVRHMD::VRIsHmdPresentFn)() : false;
 	}
+
+	virtual void Reset() override
+	{
+		VRSystem = nullptr;
+	}
+
 
 private:
 	vr::IVRSystem* VRSystem;
+    
+    void* OpenVRDLLHandle;
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 };
 
@@ -128,6 +193,7 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FSteamVRPlugin::Cre
 	TSharedPtr< FSteamVRHMD, ESPMode::ThreadSafe > SteamVRHMD( new FSteamVRHMD(this) );
 	if( SteamVRHMD->IsInitialized() )
 	{
+		VRSystem = SteamVRHMD->GetVRSystem();
 		return SteamVRHMD;
 	}
 #endif//STEAMVR_SUPPORTED_PLATFORMS
@@ -141,9 +207,20 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FSteamVRPlugin::Cre
 
 #if STEAMVR_SUPPORTED_PLATFORMS
 
+bool FSteamVRHMD::bIsQuitting = false;
+
+pVRIsHmdPresent FSteamVRHMD::VRIsHmdPresentFn = nullptr;
+pVRGetGenericInterface FSteamVRHMD::VRGetGenericInterfaceFn = nullptr;
+
 bool FSteamVRHMD::IsHMDEnabled() const
 {
 	return bHmdEnabled;
+}
+
+EHMDWornState::Type FSteamVRHMD::GetHMDWornState()
+{
+	//HmdWornState is set in OnStartGameFrame's event loop
+	return HmdWornState;
 }
 
 void FSteamVRHMD::EnableHMD(bool enable)
@@ -246,10 +323,13 @@ void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosi
 			VRSystem->GetDeviceToAbsoluteTrackingPose(VRCompositor->GetTrackingSpace(), 0.0f, Poses, ARRAYSIZE(Poses));
 		}
 
+		bHaveVisionTracking = false;
 		for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
 		{
 			TrackingFrame.bDeviceIsConnected[i] = Poses[i].bDeviceIsConnected;
 			TrackingFrame.bPoseIsValid[i] = Poses[i].bPoseIsValid;
+
+			bHaveVisionTracking |= Poses[i].eTrackingResult == vr::ETrackingResult::TrackingResult_Running_OK;
 
 			FVector LocalCurrentPosition;
 			FQuat LocalCurrentOrientation;
@@ -279,8 +359,7 @@ void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosi
 
 void FSteamVRHMD::GetWindowBounds(int32* X, int32* Y, uint32* Width, uint32* Height)
 {
-	// (vr::IVRExtendedDisplay*)vr::VRExtendedDisplay();
-	if (vr::IVRExtendedDisplay *VRExtDisplay = VRExtendedDisplayFn())
+	if (vr::IVRExtendedDisplay *VRExtDisplay = vr::VRExtendedDisplay())
 	{
 		VRExtDisplay->GetWindowBounds(X, Y, Width, Height);
 	}
@@ -663,9 +742,16 @@ void FSteamVRHMD::OnEndPlay(FWorldContext& InWorldContext)
 
 bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 {
+	
+	
 	if (VRSystem == nullptr)
 	{
 		return false;
+	}
+
+	if (bStereoEnabled != bStereoDesired)
+	{
+		bStereoEnabled = EnableStereo(bStereoDesired);
 	}
 
 	FQuat Orientation;
@@ -676,12 +762,11 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 
 	// Poll SteamVR events
 	vr::VREvent_t VREvent;
-	while (VRSystem->PollNextEvent(&VREvent))
+	while (VRSystem->PollNextEvent(&VREvent, sizeof(VREvent)))
 	{
 		switch (VREvent.eventType)
 		{
 		case vr::VREvent_Quit:
-			FCoreDelegates::ApplicationWillTerminateDelegate.Broadcast();
 			bIsQuitting = true;
 			break;
 		case vr::VREvent_InputFocusCaptured:
@@ -690,23 +775,51 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 		case vr::VREvent_InputFocusReleased:
 			FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Broadcast();
 			break;
+		case vr::VREvent_TrackedDeviceUserInteractionStarted:
+			// if the event was sent by the HMD
+			if ((VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd) )
+			{
+				// Save the position we are currently at and put us in the state where we could move to a worn state
+				bShouldCheckHMDPosition = true;
+				HMDStartLocation = Position;
+			}
+			break;
+		case vr::VREvent_TrackedDeviceUserInteractionEnded:
+			// if the event was sent by the HMD. 
+			if ((VREvent.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd)) 
+			{
+				// Don't check to see if we might be wearing the HMD anymore.
+				bShouldCheckHMDPosition = false;
+				// Don't change our state to "not worn" unless we are currently wearing it.
+				if (HmdWornState == EHMDWornState::Worn)
+				{
+					HmdWornState = EHMDWornState::NotWorn;
+				}
+			}
+			break;
 		}
 	}
 
-	// SteamVR gives 5 seconds from VREvent_Quit till it's process is killed
+
+	// SteamVR gives 5 seconds from VREvent_Quit till its process is killed
 	if (bIsQuitting)
 	{
-		QuitTimeElapsed += TimeDeltaSeconds;
-		if (QuitTimeElapsed > 4.0f)
+		bShouldCheckHMDPosition = false;
+		Shutdown();
+		GEngine->HMDDevice.Reset();
+		GEngine->StereoRenderingDevice.Reset();
+	}
+
+	// If the HMD is being interacted with, but we haven't decided the HMD is worn yet.  
+	if (bShouldCheckHMDPosition)
+	{
+		if (FVector::Dist(HMDStartLocation, Position) > HMDWornMovementThreshold)
 		{
-			FPlatformMisc::RequestExit(true);
-			bIsQuitting = false;
-		}
-		else if (QuitTimeElapsed > 3.0f)
-		{
-			FPlatformMisc::RequestExit(false);
+			HmdWornState = EHMDWornState::Worn;
+			bShouldCheckHMDPosition = false;
 		}
 	}
+
 
 	return true;
 }
@@ -778,30 +891,41 @@ bool FSteamVRHMD::IsStereoEnabled() const
 
 bool FSteamVRHMD::EnableStereo(bool bStereo)
 {
-	bStereoEnabled = (IsHMDEnabled()) ? bStereo : false;
-
-	FSystemResolution::RequestResolutionChange(1280, 720, EWindowMode::Windowed);
+	bStereoDesired = (IsHMDEnabled()) ? bStereo : false;
 
 	// Set the viewport to match that of the HMD display
 	FSceneViewport* SceneVP = FindSceneViewport();
 	if (VRSystem && SceneVP)
 	{
-		if( bStereo )
+		TSharedPtr<SWindow> Window = SceneVP->FindWindow();
+		if (Window.IsValid() && SceneVP->GetViewportWidget().IsValid())
 		{
-			int32 PosX, PosY;
-			uint32 Width, Height;
-			GetWindowBounds( &PosX, &PosY, &Width, &Height );
-			SceneVP->SetViewportSize( Width, Height );
-		}
-		else
-		{
-			TSharedPtr<SWindow> Window = SceneVP->FindWindow();
-			if( Window.IsValid() )
+			int32 ResX = 2160;
+			int32 ResY = 1200;
+
+			MonitorInfo MonitorDesc;
+			if (GetHMDMonitorInfo(MonitorDesc))
+			{
+				ResX = MonitorDesc.ResolutionX;
+				ResY = MonitorDesc.ResolutionY;
+			}
+			FSystemResolution::RequestResolutionChange(ResX, ResY, EWindowMode::WindowedFullscreen);
+
+			if( bStereo )
+			{
+				int32 PosX, PosY;
+				uint32 Width, Height;
+				GetWindowBounds( &PosX, &PosY, &Width, &Height );
+				SceneVP->SetViewportSize( Width, Height );
+			}
+			else
 			{
 				FVector2D size = SceneVP->FindWindow()->GetSizeInScreen();
 				SceneVP->SetViewportSize( size.X, size.Y );
 				Window->SetViewportSizeDrivenByWindow( true );
 			}
+
+			bStereoEnabled = bStereoDesired;
 		}
 	}
 
@@ -887,6 +1011,13 @@ void FSteamVRHMD::InitCanvasFromView(FSceneView* InView, UCanvas* Canvas)
 {
 }
 
+void FSteamVRHMD::GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const
+{
+	const float HudOffset = 50.0f;
+	OrthoProjection[0] = FTranslationMatrix(FVector(HudOffset, 0.f, 0.f));
+	OrthoProjection[1] = FTranslationMatrix(FVector(-HudOffset + RTWidth * .5, 0.f, 0.f));
+}
+
 void FSteamVRHMD::GetEyeRenderParams_RenderThread(const FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const
 {
 	if (Context.View.StereoPass == eSSP_LEFT_EYE)
@@ -935,9 +1066,9 @@ void FSteamVRHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdLis
 
 	if (bImplicitHmdPosition)
 	{
-		const FQuat DeltaControlOrientation =  View.ViewRotation.Quaternion() * TrackingFrame.DeviceOrientation[vr::k_unTrackedDeviceIndex_Hmd].Inverse();
+		const FQuat LocalDeltaControlOrientation =  View.ViewRotation.Quaternion() * TrackingFrame.DeviceOrientation[vr::k_unTrackedDeviceIndex_Hmd].Inverse();
 		const FVector DeltaPosition = TrackingFrame.DevicePosition[vr::k_unTrackedDeviceIndex_Hmd] - View.BaseHmdLocation;
-		View.ViewLocation += DeltaControlOrientation.RotateVector(DeltaPosition);
+		View.ViewLocation += LocalDeltaControlOrientation.RotateVector(DeltaPosition);
 	}
 
  	View.UpdateViewMatrix();
@@ -945,15 +1076,19 @@ void FSteamVRHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdLis
 
 void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
+	if (bIsQuitting)
+	{
+		GEngine->HMDDevice.Reset();
+		GEngine->StereoRenderingDevice.Reset();
+	}
+
 	check(IsInRenderingThread());
 	GetActiveRHIBridgeImpl()->BeginRendering();
 
-	const float WorldToMetersScale = ViewFamily.Views[ 0 ]->WorldToMetersScale;
+	const FSceneView* MainView = ViewFamily.Views[0];
+	const float WorldToMetersScale = MainView->WorldToMetersScale;
 
-	FVector OldPosition;
-	FQuat OldOrientation;
-	GetCurrentPose(OldOrientation, OldPosition, vr::k_unTrackedDeviceIndex_Hmd);
-	const FTransform OldRelativeTransform(OldOrientation, OldPosition);
+	const FTransform OldRelativeTransform(MainView->BaseHmdOrientation, MainView->BaseHmdLocation);
 
 	FVector NewPosition;
 	FQuat NewOrientation;
@@ -1038,6 +1173,8 @@ bool FSteamVRHMD::NeedReAllocateViewportRenderTarget(const FViewport& Viewport)
 FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	VRSystem(nullptr),
 	bHmdEnabled(true),
+	HmdWornState(EHMDWornState::Unknown),
+	bStereoDesired(false),
 	bStereoEnabled(false),
 	bHmdPosTracking(true),
 	bHaveVisionTracking(false),
@@ -1045,19 +1182,19 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	WindowMirrorMode(1),
 	WindowMirrorBoundsWidth(2160),
 	WindowMirrorBoundsHeight(1200),
+	HMDWornMovementThreshold(50.0f),
 	CurHmdOrientation(FQuat::Identity),
 	LastHmdOrientation(FQuat::Identity),
 	LastHmdPosition(FVector::ZeroVector),
+	HMDStartLocation(FVector::ZeroVector),
 	BaseOrientation(FQuat::Identity),
 	BaseOffset(FVector::ZeroVector),
-	bIsQuitting(false),
-	QuitTimeElapsed(0.0f),
 	DeltaControlRotation(FRotator::ZeroRotator),
 	DeltaControlOrientation(FQuat::Identity),
 	CurHmdPosition(FVector::ZeroVector),
 	SteamVRPlugin(SteamVRPlugin),
 	RendererModule(nullptr),
-	OpenVRDLLHandle(nullptr)
+	bShouldCheckHMDPosition(false)
 {
 	Startup();
 }
@@ -1074,25 +1211,25 @@ bool FSteamVRHMD::IsInitialized() const
 
 void FSteamVRHMD::Startup()
 {
-	// load the OpenVR library
-	if (!LoadOpenVRModule())
-	{
-		return;
-	}
-
 	// grab a pointer to the renderer module for displaying our mirror window
 	static const FName RendererModuleName("Renderer");
 	RendererModule = FModuleManager::GetModulePtr<IRendererModule>(RendererModuleName);
 
 	vr::EVRInitError VRInitErr = vr::VRInitError_None;
-	//VRSystem = vr::VR_Init(&HmdErr, vr::VRApplication_Scene);
-	VRSystem = (*VRInitFn)(&VRInitErr, vr::VRApplication_Scene);
-
-	// make sure that the version of the HMD we're compiled against is correct
-	if ((VRSystem != nullptr) && (VRInitErr == vr::VRInitError_None))
+	// Attempt to initialize the VRSystem device
+	VRSystem = vr::VR_Init(&VRInitErr, vr::VRApplication_Scene);
+	if (!VRSystem || (VRInitErr != vr::VRInitError_None))
 	{
-		//VRSystem = (vr::IVRSystem*)vr::VR_GetGenericInterface(vr::IVRSystem_Version, &HmdErr);	//@todo steamvr: verify init error handling
-		VRSystem = (vr::IVRSystem*)(*VRGetGenericInterfaceFn)(vr::IVRSystem_Version, &VRInitErr);
+		UE_LOG(LogHMD, Log, TEXT("Failed to initialize OpenVR with code %d"), (int32)VRInitErr);
+		return;
+	}
+
+	// Make sure that the version of the HMD we're compiled against is correct.  This will fill out the proper vtable!
+	VRSystem = (vr::IVRSystem*)(*FSteamVRHMD::VRGetGenericInterfaceFn)(vr::IVRSystem_Version, &VRInitErr);
+	if (!VRSystem || (VRInitErr != vr::VRInitError_None))
+	{
+		UE_LOG(LogHMD, Log, TEXT("Failed to initialize OpenVR (version mismatch) with code %d"), (int32)VRInitErr);
+		return;
 	}
 
 	// attach to the compositor
@@ -1100,6 +1237,7 @@ void FSteamVRHMD::Startup()
 	{
 		//VRCompositor = (vr::IVRCompositor*)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &HmdErr);
 		VRCompositor = (vr::IVRCompositor*)(*VRGetGenericInterfaceFn)(vr::IVRCompositor_Version, &VRInitErr);
+		VROverlay = (vr::IVROverlay*)(*VRGetGenericInterfaceFn)(vr::IVROverlay_Version, &VRInitErr);
 	}
 
 	if ((VRSystem != nullptr) && (VRInitErr == vr::VRInitError_None))
@@ -1161,7 +1299,7 @@ void FSteamVRHMD::Startup()
 		}
 		else
 		{
-			UE_LOG(LogHMD, Warning, TEXT("Failed to initialize Chaperone.  Error: %d"), (int32)ChaperoneErr);
+			UE_LOG(LogHMD, Log, TEXT("Failed to initialize Chaperone.  Error: %d"), (int32)ChaperoneErr);
 		}
 
 		// Initialize our controller to device index
@@ -1192,9 +1330,6 @@ void FSteamVRHMD::Startup()
 
 		VRSystem = nullptr;
 	}
-
-	// share the IVRSystem interface out to the SteamVRController via the module layer
-	SteamVRPlugin->SetVRSystem(VRSystem);
 }
 
 void FSteamVRHMD::LoadFromIni()
@@ -1216,6 +1351,13 @@ void FSteamVRHMD::LoadFromIni()
 	{
 		WindowMirrorBoundsHeight = i;
 	}
+
+	float ConfigFloat = 0.0f;
+
+	if (GConfig->GetFloat(SteamVRSettings, TEXT("HMDWornMovementThreshold"), ConfigFloat, GEngineIni))
+	{
+		HMDWornMovementThreshold = ConfigFloat;
+	}
 }
 
 void FSteamVRHMD::SaveToIni()
@@ -1233,75 +1375,13 @@ void FSteamVRHMD::Shutdown()
 
 		// shut down our headset
 		VRSystem = nullptr;
-		SteamVRPlugin->SetVRSystem(nullptr);
-		//vr::VR_Shutdown();
-		(*VRShutdownFn)();
-	}
+		VRCompositor = nullptr;
+		VROverlay = nullptr;
+		VRChaperone = nullptr;
 
-	// unload OpenVR library
-	UnloadOpenVRModule();
-}
+		vr::VR_Shutdown();
 
-bool FSteamVRHMD::LoadOpenVRModule()
-{
-#if PLATFORM_WINDOWS
-	#if PLATFORM_64BITS
-		FString RootOpenVRPath;
-		TCHAR VROverridePath[MAX_PATH];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("VR_OVERRIDE"), VROverridePath, MAX_PATH);
-	
-		if (FCString::Strlen(VROverridePath) > 0)
-		{
-			RootOpenVRPath = FString::Printf(TEXT("%s\\bin\\win64\\"), VROverridePath);
-		}
-		else
-		{
-			RootOpenVRPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/OpenVR/%s/Win64/"), OPENVR_SDK_VER);
-		}
-		
-		FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
-		OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
-		FPlatformProcess::PopDllDirectory(*RootOpenVRPath);
-#else
-		FString RootOpenVRPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/OpenVR/%s/Win32/"), OPENVR_SDK_VER); 
-		FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
-		OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
-		FPlatformProcess::PopDllDirectory(*RootOpenVRPath);
-	#endif
-#elif PLATFORM_MAC
-	OpenVRDLLHandle = FPlatformProcess::GetDllHandle(TEXT("libopenvr_api.dylib"));
-#endif	//PLATFORM_WINDOWS
-
-	if (!OpenVRDLLHandle)
-	{
-		UE_LOG(LogHMD, Warning, TEXT("Failed to load OpenVR library."));
-		return false;
-	}
-
-	//@todo steamvr: Remove GetProcAddress() workaround once we update to Steamworks 1.33 or higher
-	VRInitFn = (pVRInit)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Init"));
-	VRShutdownFn = (pVRShutdown)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Shutdown"));
-	VRIsHmdPresentFn = (pVRIsHmdPresent)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_IsHmdPresent"));
-	VRGetStringForHmdErrorFn = (pVRGetStringForHmdError)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetStringForHmdError"));
-	VRGetGenericInterfaceFn = (pVRGetGenericInterface)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetGenericInterface"));
-	VRExtendedDisplayFn = (pVRExtendedDisplay)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VRExtendedDisplay"));
-
-	if (!VRInitFn || !VRShutdownFn || !VRIsHmdPresentFn || !VRGetStringForHmdErrorFn || !VRGetGenericInterfaceFn || !VRExtendedDisplayFn)
-	{
-		UE_LOG(LogHMD, Warning, TEXT("Failed to GetProcAddress() on openvr_api.dll"));
-		UnloadOpenVRModule();
-		return false;
-	}
-
-	return true;
-}
-
-void FSteamVRHMD::UnloadOpenVRModule()
-{
-	if (OpenVRDLLHandle != nullptr)
-	{
-		FPlatformProcess::FreeDllHandle(OpenVRDLLHandle);
-		OpenVRDLLHandle = nullptr;
+		SteamVRPlugin->Reset();
 	}
 }
 

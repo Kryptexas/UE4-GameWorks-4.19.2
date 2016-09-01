@@ -77,7 +77,7 @@ The **Clamp** expression takes in value(s) and constrains them to a specified ra
 
 ## Cosine
 
-The **Cosine** expression outputs the cosine of the value input (in radians). Most commonly, this is used to output a continuous oscillating waveform by connecting a [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) expression to its input. The output value will cycle back and forth between -1 and 1. A visual representation of the wave is shown below:
+The **Cosine** expression outputs the value of a sine wave over the range of [0, 1], repeating. Most commonly, this is used to output a continuous oscillating waveform by connecting a [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) expression to its input. The output value will cycle back and forth between -1 and 1. A visual representation of the wave is shown below:
 
 ![CosineWave.png](CosineWave.png)
 
@@ -311,7 +311,7 @@ The **Power** expression takes two inputs, raises Base to the Exp power, and out
 
 ## Sine
 
-The **Sine** expression outputs the sine of the value input (in radians). Most commonly, this is used to output a continuous oscillating waveform by connecting a [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) expression to its input. The output value will cycle back and forth between -1 and 1. The difference between this and the output of the [Cosine](#Cosine) expression is the output waveform is offset half the period. A visual representation of the wave is shown below:
+The **Sine** expression outputs the value of a sine wave over the range of [0, 1], repeating. Most commonly, this is used to output a continuous oscillating waveform by connecting a [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) expression to its input. The output value will cycle back and forth between -1 and 1. The difference between this and the output of the [Cosine](#Cosine) expression is the output waveform is offset half the period. A visual representation of the wave is shown below:
 
 ![SineWave.png](SineWave.png)
 

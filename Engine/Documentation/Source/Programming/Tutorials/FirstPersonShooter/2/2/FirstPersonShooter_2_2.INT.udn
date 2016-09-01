@@ -3,7 +3,7 @@ Title: 2.2 - Setting up Axis Mapping
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to set-up axis mapping for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,13 +23,12 @@ Version: 4.9
 
 %Steps%
 
-During this step, you're going to get your new Character to move around the map by setting up the input axis mappings for the WASD keys.
+In general, Axis Mappings allow us to map keyboard, mouse, and controller inputs to a "friendly name" that can later be bound to game behavior, such as movement. 
+Axis Mappings are continuously polled, allowing for seamless movement transitions and smooth game behavior. Hardware axes (such as controller joysticks) provide degrees of input, rather than discrete input (1 - pressed vs. 0 - not pressed). 
+While controller joystick input methods are effective at providing scalable movement input, Axis Mappings can also map common movement keys, like WASD to continuously-polled game behavior. If you want
+to learn more about Player Input before moving forward with this step, please refer to the [](Programming/Tutorials/PlayerInput) tutorial.
 
-[REGION:note]
-In general, Axis Mappings allow you to map keyboard, mouse, and controller inputs to a "friendly name" that can later be bound to game behavior (such as movement). Axis Mappings are continuously polled, allowing for smooth movement transitions and smooth game behavior. Hardware axes (such as controller joysticks) provide degrees of input, rather than discrete input (1 - pressed vs. 0 - not pressed). While controller joystick input methods are effective at providing scalable movement input, Axis Mappings can also map common movement keys, like WASD to continuously-polled game behavior.
-[/REGION]
-
-You will now set-up axis mappings for the W, A, S, and D keys.
+During this step, we're going to get our new Character to move around the map by setting up the input axis mappings for the W, A, S, and D keys.
 
 ## MoveForward Axis Mapping
 
@@ -39,9 +38,9 @@ You will now set-up axis mappings for the W, A, S, and D keys.
 
 1.	Under **Bindings**, click on the plus sign next to **Axis Mappings**.
 
-1.	**Click** on the arrow to the left of **Axis Mappings**.
+1.	Click on the arrow to the left of **Axis Mappings**.
 
-1.	Type "MoveForward" into the text field that appears, then **click** on the arrow to the left of the text box to expand the axis binding options.
+1.	Type "MoveForward" into the text field that appears, then click on the arrow to the left of the text box to expand the axis binding options.
 
 1.	In the dropdown menu, select **W** from the **Keyboard** dropdown list.
 
@@ -49,7 +48,7 @@ You will now set-up axis mappings for the W, A, S, and D keys.
 
 	![](MoveForwardAxisMap_W.png)
 
-1.	**Click** on the plus sign next to **MoveForward**.
+1.	Click on the plus sign next to **MoveForward**.
 
 1.	In the second dropdown menu, select **S** from the **Keyboard** dropdown list.
 
@@ -71,7 +70,7 @@ You will now set-up axis mappings for the W, A, S, and D keys.
 
 	![](MoveRightAxisMap_D.png)
 
-1.	**Click** on the plus sign next to **MoveRight**.
+1.	Click on the plus sign next to **MoveRight**.
 
 1.	In the second dropdown menu, select **A** from the **Keyboard** dropdown list.
 
@@ -81,6 +80,6 @@ You will now set-up axis mappings for the W, A, S, and D keys.
 
 	![](MoveRightAxisMap_A.png)
 
-1.	Close the **Project Settings** menu.
+1.	Now that you've set your MoveLeft and MoveRight Axis Mappings, go ahead and close the **Project Settings** menu.
 
 %Steps%

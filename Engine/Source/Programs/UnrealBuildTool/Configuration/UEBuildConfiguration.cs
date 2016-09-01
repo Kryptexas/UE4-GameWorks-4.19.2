@@ -99,19 +99,14 @@ namespace UnrealBuildTool
         [XmlConfig]
         public static bool bCompileSimplygonSSF;
 
-		/// <summary>
-		/// Whether we should compile in support for Steam OnlineSubsystem or not. [RCL] FIXME 2014-Apr-17: bCompileSteamOSS means "bHasSteamworksInstalled" for some code, these meanings need to be untangled
-		/// </summary>
-		[XmlConfig]
-		public static bool bCompileSteamOSS;
+        /// <summary>
+        /// Whether we should compile in support for Steam OnlineSubsystem or not.
+        /// </summary>
+        [Obsolete("To use OnlineSubsystemSteam, include the OnlineSubsystemSteam uplugin in your uproject", true)]
+        [XmlConfig]
+        public static bool bCompileSteamOSS;
 
-		/// <summary>
-		/// Whether we should compile in support for Mcp OnlineSubsystem or not.
-		/// </summary>
-		[XmlConfig]
-		public static bool bCompileMcpOSS;
-
-		/// <summary>
+        /// <summary>
 		/// Whether to compile lean and mean version of UE.
 		/// </summary>
 		[XmlConfig]
@@ -129,8 +124,8 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bMergeExternalFileList;
 
-		/** Whether to generate a list of referenced TPS files */
-		public static bool bListThirdPartySoftware;
+		/** Whether to generate a list of folders used by the build */
+		public static bool bListBuildFolders;
 
 		/// <summary>
 		/// Whether to generate a manifest file that contains the files to add to Perforce
@@ -372,8 +367,6 @@ namespace UnrealBuildTool
 			bUseLoggingInShipping = false;
 			bUseChecksInShipping = false;
             bUseLauncherChecks = false;
-			bCompileSteamOSS = true;
-			bCompileMcpOSS = true;
 			bCompilePhysXVehicle = true;
 			bCompileFreeType = true;
 			bCompileForSize = false;
@@ -395,14 +388,6 @@ namespace UnrealBuildTool
 		public static void PostReset()
 		{
 			// Configuration overrides.
-			string SteamVersion = "Steamv132";
-			bCompileSteamOSS = bCompileSteamOSS
-			   && Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;
-
-			bCompileMcpOSS = bCompileMcpOSS
-			   && Directory.Exists("Runtime/Online/NotForLicensees/OnlineSubsystemMcp") == true;
-
-
 			bCompileSimplygon = bCompileSimplygon
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon") == true

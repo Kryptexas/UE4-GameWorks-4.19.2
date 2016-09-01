@@ -1,13 +1,11 @@
-﻿INTSourceChangelist:2573136
+﻿INTSourceChangelist:2726600
 Availability:Public
 Title:マップ チェック エラー
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:アンリアル エディタでマップのビルドまたはマップのチェック実行中に生成されるエラーの説明。
+Version:4.9
 
 [TOC(start:2 end:3)]
-
-
-## 概要
 
 アンリアル エンジン 4 では、原因や解決方法もわからずに手動で問題を探す代わりに、マップ チェックのエラーや警告という形で発生しうる問題に注意喚起するメカニズムがあります。こうしたエラーは、どこに問題があるかを探すための自動的な方法であり、ゲームに深刻な影響を及ぼす前に解決できるようにします。 
 
@@ -30,7 +28,7 @@ Description:アンリアル エディタでマップのビルドまたはマッ�
 (#MatchingLightGUID)
 **[LightActor] has same light GUID as \[LightActor\] \(Duplicate and replace the orig with the new one\)** ( [LightActor] には、[LightActor\] と同じ GUID (グローバル一意識別子) があります (オリジナルを複製し、オリジナルと新しくできたものを置き換えます。) 
 
-オリジナルと新しくできたものを置き換えます。
+オリジナルを複製し、オリジナルと新しくできたものを置き換えます。
 [/EXCERPT:MatchingLightGUID]
 
 ## 警告
@@ -105,7 +103,7 @@ DrawScale、DrawScale3D X、DrawScale3D Y、および DrawScale3D Z のいずれ
 
 (#VertexColorsNotMatchOriginalMesh)
 [EXCERPT:VertexColorsNotMatchOriginalMesh]
-**\[Actor\] \(LOD \[Index\]\) has hand-painted vertex colors that no longer match the original StaticMesh [StaticMesh]** (\[Actor\] \(LOD \[Index\]\) にハンド ペイントされた頂点カラーがありますが、オリジナルのスタティック メッシュとは合わなくなっています。) 
+**\[Actor\] \(LOD \[Index\]\) has hand-painted vertex colors that no longer match the original StaticMesh [StaticMesh]** (\[Actor\] \(LOD \[Index\]\) にハンド ペイントされた頂点カラーがありますが、オリジナルのスタティック メッシュとは合わなくなっています。)
 
 インスタンスの頂点カラーがペイントされて以降、オリジナルのメッシュが変更されたようです。リフレッシュが必要かもしれません。
 [/EXCERPT:VertexColorsNotMatchOriginalMesh]
@@ -177,7 +175,7 @@ DrawScale、DrawScale3D X、DrawScale3D Y、および DrawScale3D Z のいずれ
 <!-- TODO -->
 [/EXCERPT:DeprecatedClass]
 
-### フォーリッジ
+### Foliage
 
 (#FoliageMissingStaticMesh)
 [EXCERPT:FoliageMissingStaticMesh]
@@ -193,7 +191,7 @@ DrawScale、DrawScale3D X、DrawScale3D Y、および DrawScale3D Z のいずれ
 <!-- TODO -->
 [/EXCERPT:FoliageMissingClusterComponent]
 
-### ランドスケープ
+### Landscape
 
 (#FixedUpDeletedLayerWeightmap)
 [EXCERPT:FixedUpDeletedLayerWeightmap]
@@ -251,9 +249,9 @@ LightComponent が None に設定されているライト アクタがある場�
 
 (#RebuildLighting)
 [EXCERPT:RebuildLighting]
-**Maps need lighting rebuilt** ライティングの再ビルドが必要なマップがあります。
+**Maps need lighting rebuilt** (ライティングの再ビルドが必要なマップがあります。)
 
-ライト アクタの移動や修正によりライティングが無効となった場合に、この警告が表示されます。これは、レベル内のレンダリング処理によるライティングが、当該レベルのライトの設定どおりに表示されなくなるため問題になります。このエラーは、[ビルド] メニューでマップのライティングをリビルドして解決します。
+ライト アクタの移動や修正によりライティングが無効となった場合に、この警告が表示されます。これは、レベル内のレンダリング処理によるライティングが、当該レベルのライトの設定どおりに表示されなくなるため問題になります。このエラーは、[Build (ビルド)] メニューでマップのライティングをリビルドして解決します。
 [/EXCERPT:RebuildLighting]
 
 (#StaticComponentHasInvalidLightmapSettings)
@@ -263,7 +261,7 @@ LightComponent が None に設定されているライト アクタがある場�
 <!-- TODO -->
 [/EXCERPT:StaticComponentHasInvalidLightmapSettings]
 
-### ナビゲーション
+### Navigation
 
 (#RebuildPaths)
 [EXCERPT:RebuildPaths]
@@ -333,7 +331,7 @@ Param.Material を NULL にしないでください。
 [EXCERPT:SoundCueNull]
 **Ambient sound Actor's AudioComponent has a NULL SoundCue property!** (アンビエントサウンドアクタの AudioComponent で、SoundCue プロパティが NULL です。) 
 
-この警告は、AmbientSound アクタの SoundCue プロパティが NULL に設定されているときに表示されます。これは、アクタが実際にサウンドを再生しないため問題になります。これを解決するには、Generic ブラウザでサウンド キューをまず選択し、次に、アクタの Property Window->Audio Category->Audio Component の順序で進み、「SoundCue」プロパティをセットします。
+この警告は、AmbientSound アクタの SoundCue プロパティが NULL に設定されているときに表示されます。これは、アクタが実際にサウンドを再生しないため問題になります。これを解決するには、Generic ブラウザでサウンド キューをまず選択し、次に、アクタの [Property Window (プロパティ ウィンドウ)] -> [Audio Category (オーディオ カテゴリ)] -> [Audio Component] の順序で進み、「SoundCue」プロパティをセットします。
 [/EXCERPT:SoundCueNull]
 
 
@@ -343,7 +341,7 @@ Param.Material を NULL にしないでください。
 [EXCERPT:StaticMeshNull]
 **[Static Mesh Actor] &#58; Static Mesh Actor has NULL StaticMesh property** (スタティックメッシュ アクタのスタティックメッシュ プロパティが NULL です。) 
 
-この警告は、スタティックメッシュ プロパティが NULL である スタティックメッシュ アクタがレベルにあるときに生じます。これが問題になるのは、アクタが存在してメモリを使用しているのに、実際に描くためのスタティックメッシュがないことです。この警告は、通常、Generic ブラウザでまずスタティックメッシュを選択せずに、スタティックメッシュ アクタを作成した結果生じます。これを解決するには、まず Generic ブラウザでスタティックメッシュを選択し、次に スタティックメッシュ アクタのプロパティ ウィンドウ->StaticMeshActor Category -> StaticMeshComponent -> StaticMeshComponent Category の順序で進み、スタティックメッシュのプロパティをセットします。
+この警告は、スタティックメッシュ プロパティが NULL である スタティックメッシュ アクタがレベルにあるときに生じます。これが問題になるのは、アクタが存在してメモリを使用しているのに、実際に描くためのスタティックメッシュがないことです。この警告は、通常、Generic ブラウザでまずスタティックメッシュを選択せずに、スタティックメッシュ アクタを作成した結果生じます。これを解決するには、まず Generic ブラウザでスタティックメッシュを選択し、次に スタティックメッシュ アクタの [Property Window (プロパティ ウィンドウ)] -> [StaticMeshActor Category (スタティックメッシュ カテゴリ)] -> [StaticMeshComponent] -> [StaticMeshComponent Category] の順序で進み、スタティックメッシュのプロパティをセットします。
 [/EXCERPT:StaticMeshNull]
 
 (#StaticMeshComponent)
@@ -362,7 +360,7 @@ Param.Material を NULL にしないでください。
 
 (#MoreMaterialsThanReferenced)
 [EXCERPT:MoreMaterialsThanReferenced]
-**More overriden materials [Count] on Static Mesh component than are referenced [Count] in source mesh [StaticMesh]** (スタティックメッシュ コンポーネントに存在するオーバーライドされたマテリアルの数がソース メッシュ [StaticMesh] で参照されている数を超えています) 
+**More overriden materials [Count] on Static Mesh component than are referenced [Count] in source mesh [StaticMesh]** (スタティックメッシュ コンポーネントに存在するオーバーライドされたマテリアルの数がソース メッシュ  で参照されている数を超えています) 
 
 <!-- TODO -->
 [/EXCERPT:MoreMaterialsThanReferenced]

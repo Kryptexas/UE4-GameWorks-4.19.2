@@ -22,6 +22,12 @@ struct FFPSChartEntry
 	int32		Count;
 	/** Cumulative time spent in bucket. */
 	double	CummulativeTime;
+
+	FFPSChartEntry()
+		: Count(0)
+		, CummulativeTime(0.0)
+	{
+	}
 };
 
 //@todo this is a leftover from the old stats system, which used enums
@@ -86,6 +92,18 @@ struct FHitchChartEntry
 
 	/** How many hitches were bound by the GPU? */
 	int32 GPUBoundHitchCount;
+
+	/** Time spent hitching */
+	double FrameTimeSpentInBucket;
+
+	FHitchChartEntry()
+		: HitchCount(0)
+		, GameThreadBoundHitchCount(0)
+		, RenderThreadBoundHitchCount(0)
+		, GPUBoundHitchCount(0)
+		, FrameTimeSpentInBucket(0.0)
+	{
+	}
 };
 
 

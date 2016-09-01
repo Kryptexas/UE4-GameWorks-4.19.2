@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Assign a Physical Material to a Physics Asset Body
-Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:How to assign a Physical Material to a specific Physics Body in a Physics Asset using the Physics Asset Tool.
-Version: 4.9
-SkillLevel: Intermediate
+﻿INTSourceChangelist:2715330
+Availability:Public
+Title:将物理材质分配到物理资产形体
+Crumbs:%ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+Description:如何使用物理资产工具将物理材质分配到物理资产中的特定物理形体。
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,21 +46,21 @@ SkillLevel: Intermediate
 [/VAR]
 
 
-If specific Physics Bodies need differing Physical Materials, you can then adjust them individually.
+如果特定物理形体需要不同的物理材质，您可以分别对它们进行调整。
 
-1. **Open** a Physics Asset in the Physics Asset Tool.
+1. 在物理资产工具中 **打开** 物理资产。
 
 	![](Engine\Physics\PhysicalMaterials\HowTo\PhysicsAsset1.jpg)
 
-1. **Enable Body Edit Mode** in the Physics Asset Tool.
-1. **Select** a Physics Body.
-1. In the Details pane, in the Physics Category, change the **Simple Collision Physical Material**.
+1. 在物理资产工具中 **启用形体编辑模式**。
+1. **选择** 物理形体。
+1. 在“细节”（Details）窗格中的“物理”（Physics）类别中，更改 **简单碰撞物理材质（Simple Collision Physical Material）**。
 
 	[REGION:raw]
 	![](Engine\Physics\PhysicalMaterials\HowTo\SimpleCollision.png)(w:700)
 	[/REGION]
 
-1. **Click Save** ![](Shared\Icons\icon_SaveAsset_40x.png)
+1. **单击保存** ![](Shared\Icons\icon_SaveAsset_40x.png)
 
 <!--
 The default behavior for Physics interactions with Skeletal Meshes is to only interact with its associated Physics Asset, so the Skeletal Mesh's material's Physical Material will 

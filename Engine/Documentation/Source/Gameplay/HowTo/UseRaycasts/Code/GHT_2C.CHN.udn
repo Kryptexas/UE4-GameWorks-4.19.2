@@ -1,59 +1,59 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2735882
 Availability: Docs
-Title:How to Use Raycasts (Tracing) through Code
+Title:如何通过代码方式使用 Raycasts（Tracing）
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
-Description:A How To Guide for using Raycasts (Tracing) through Code.
+Description:关于如何通过代码使用 Raycasts（Tracing）的操作指南。
 
 [TOC (start:2 end:2)]
 
-## Overview
+## 概述
 
-On this page, you will learn the difference between **Single** and **Multi** Raycasts as well as how to set up each which could be used to retrieve collision information. 
+在本页中，您将了解**Single**和**Multi**Raycasts 的区别，以及如何设置它们来检索碰撞信息。 
 
-## Single Line Trace
+## 单线跟踪
 
 ### Single Line Trace by Channel
 
-The **Single Line Trace by Channel** will perform a collision trace along a given line and return the first Object (that responds to the Trace Channel) the trace hits. 
+**Single Line Trace by Channel**将沿着指定的线路执行一次碰撞跟踪，然后返回撞到的（对跟踪通道做出响应的）第一个对象。 
 
-Below you will find steps for setting up a **Single Line Trace by Channel**. 
+以下步骤用于设置**Single Line Trace by Channel**。 
 
 
-The example above returns all Objects that are set to respond to the provided Trace Channel, however there may be instances when you want to only return certain objects. In the example above, you can use the **Actors to Ignore** pin which takes in an **Array** of Actors which should be ignored by the trace, but this would mean you have to specify each individual Actor to ignore. 
+以上示例将返回所有被设置为对提供的跟踪通道做出响应的对象，但有时您可能只想返回特定的对象。在上面的示例中，您可以使用**Actors to Ignore**针，它对应的是一个应当被跟踪所忽略的 Actor**Array**，但这意味着您需要指定每一个要忽略的 Actor。 
 
-You can also perform a **Single Line Trace by Object** where only the specified **ObjectTypes** are returned. This will allow you to target a specific set of Objects only to be included in the trace. 
+您也可以执行一个**Single Line Trace by Object**，从而仅返回指定的**ObjectTypes**。这样就可以在跟踪时只包含一组特定对象。 
 
 ### Single Line Trace by Object
 
-The **Single Line Trace by Object** will perform a collision trace along a given line and return the first Object (that responds to the ObjectType) the trace hits. 
+**Single Line Trace by Object**将沿着指定的线路执行一次碰撞跟踪，然后返回撞到的（对 ObjectType 做出响应的）第一个对象。 
 
-To set up a **Single Line Trace by Object** trace, do the following: 
+要设置**Single Line Trace by Object**，请执行以下步骤： 
 
 
-## Multi Line Trace
+## 多线跟踪
 
 ### Multi Line Trace by Channel
 
-The **Multi Line Trace by Channel** will perform a collision trace along a given line and return all hits encountered up to and including the first blocking hit, returning only objects that respond to the specified Trace Channel. 
+**Multi Line Trace by Channel**将沿着指定的线路执行一次碰撞跟踪，然后返回所有遇到的撞击，包括第一个阻挡撞击，同时仅返回对指定跟踪通道做出响应的对象。 
 
-Below you will find steps for setting up a **Multi Line Trace by Channel**. 
+以下步骤用于设置**Multi Line Trace by Channel**。 
 
 
 ### Multi Line Trace by Object
 
-The **Multi Line Trace by Object** will perform a collision trace along a given line and return all hits encountered, returning only objects that respond to the specified Object Type. 
+**Multi Line Trace by Object**将沿着指定的线路执行一次碰撞跟踪，然后返回所有遇到的撞击，同时仅返回对指定对象类型做出响应的对象。 
 
-Below you will find steps for setting up a **Multi Line Trace by Object**. 
+以下步骤用于设置**Multi Line Trace by Object**。 
 
 
 
-## Shape Traces
+## 形状跟踪
 
-When a Line Trace is not enough, you may get the results you are after by using a **Shape Trace** instead. For example, maybe you are creating a "vision cone" for an enemy and you want to detect players that enter it. A Line Trace may not be enough as players may be able to avoid detection by ducking under the Line Trace. 
+如果线性跟踪无法满足要求，您可以使用**Shape Trace**来获得所需的结果。例如，您可能要为敌人创建一个“视界圆锥”，并希望探测到进入圆锥范围内的玩家。而单靠线性跟踪可能已经不够，因为玩家可以躲在线性轨迹下方来避开探测。 
 
-In this situation, you could possibly use a **Box Trace**, **Capsule Trace** or **Sphere Trace** instead. Each Shape Trace functions like a Line Trace where you are sweeping and checking for collision from a start point to an end point, however the Shape Traces have an added layer of checking as you are using a shape as a volume of sorts in your Raycast. 
+在这种情况下，您可以使用**Box Trace**、**Capsule Trace**或**Sphere Trace**取而代之。每一种形状跟踪的工作原理都与线性跟踪类似：您需要从起点到终点进行扫描并寻找碰撞。但由于您将形状用作 Raycast 中的某种实体，形状跟踪还多出了一个检查层级。 
 
-You can use a Shape Trace as a **Single Trace** or a **Multi Trace** and each are set up in the same manner as a Line Trace however you will need to provide additional details pertaining to the size or orientation of the shape you use. 
+您可以将形状跟踪用作**Single Trace**或**Multi Trace**，并通过线性跟踪的设置方式来设置它们，但需要提供更多关于所用形状的大小或方向的详细信息。 
 
 
 

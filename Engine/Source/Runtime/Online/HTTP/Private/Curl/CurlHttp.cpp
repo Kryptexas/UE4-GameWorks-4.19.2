@@ -9,17 +9,22 @@
 
 // FCurlHttpRequest
 
-FCurlHttpRequest::FCurlHttpRequest(CURLSH* InShareHandle)
+int32 FCurlHttpRequest::NumberOfInfoMessagesToCache = 10;
+
+FCurlHttpRequest::FCurlHttpRequest()
 	:	EasyHandle(NULL)
 	,	HeaderList(NULL)
 	,	bCanceled(false)
 	,	bCompleted(false)
 	,	CurlAddToMultiResult(CURLM_OK)
 	,	CurlCompletionResult(CURLE_OK)
-	,	BytesSent(0)
 	,	CompletionStatus(EHttpRequestStatus::NotStarted)
 	,	ElapsedTime(0.0f)
 	,	TimeSinceLastResponse(0.0f)
+	,   BytesSent(0)
+	,	LastReportedBytesRead(0)
+	,	LastReportedBytesSent(0)
+	,   LeastRecentlyCachedInfoMessageIndex(0)
 {
 	EasyHandle = curl_easy_init();
 
@@ -32,7 +37,7 @@ FCurlHttpRequest::FCurlHttpRequest(CURLSH* InShareHandle)
 
 #endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
-	curl_easy_setopt(EasyHandle, CURLOPT_SHARE, InShareHandle);
+	curl_easy_setopt(EasyHandle, CURLOPT_SHARE, FCurlHttpManager::GShareHandle);
 
 	// set certificate verification (disable to allow self-signed certificates)
 	if (FCurlHttpManager::CurlRequestOptions.bVerifyPeer)
@@ -68,6 +73,8 @@ FCurlHttpRequest::FCurlHttpRequest(CURLSH* InShareHandle)
 	{
 		curl_easy_setopt(EasyHandle, CURLOPT_CAINFO, FCurlHttpManager::CurlRequestOptions.CertBundlePath);
 	}
+
+		InfoMessageCache.AddDefaulted(NumberOfInfoMessagesToCache);
 }
 
 FCurlHttpRequest::~FCurlHttpRequest()
@@ -330,8 +337,8 @@ size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlo
 
 		UE_LOG(LogHttp, Verbose, TEXT("%p: ReceiveResponseBodyCallback: %d bytes out of %d received. (SizeInBlocks=%d, BlockSizeInBytes=%d, Response->TotalBytesRead=%d, Response->GetContentLength()=%d, SizeToDownload=%d (<-this will get returned from the callback))"),
 			this,
-			static_cast<int32>(Response->TotalBytesRead + SizeToDownload), Response->GetContentLength(),
-			static_cast<int32>(SizeInBlocks), static_cast<int32>(BlockSizeInBytes), Response->TotalBytesRead, Response->GetContentLength(), static_cast<int32>(SizeToDownload)
+			static_cast<int32>(Response->TotalBytesRead.GetValue() + SizeToDownload), Response->GetContentLength(),
+			static_cast<int32>(SizeInBlocks), static_cast<int32>(BlockSizeInBytes), Response->TotalBytesRead.GetValue(), Response->GetContentLength(), static_cast<int32>(SizeToDownload)
 			);
 
 		// note that we can be passed 0 bytes if file transmitted has 0 length
@@ -340,11 +347,8 @@ size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlo
 			Response->Payload.AddUninitialized(SizeToDownload);
 
 			// save
-			FMemory::Memcpy( static_cast< uint8* >( Response->Payload.GetData() ) + Response->TotalBytesRead, Ptr, SizeToDownload );
-			Response->TotalBytesRead += SizeToDownload;
-
-			// Update response progress
-			OnRequestProgress().ExecuteIfBound(SharedThis(this), BytesSent, Response->TotalBytesRead);
+			FMemory::Memcpy(static_cast< uint8* >(Response->Payload.GetData()) + Response->TotalBytesRead.GetValue(), Ptr, SizeToDownload);
+			Response->TotalBytesRead.Add(SizeToDownload);
 
 			return SizeToDownload;
 		}
@@ -361,26 +365,24 @@ size_t FCurlHttpRequest::UploadCallback(void* Ptr, size_t SizeInBlocks, size_t B
 {
 	TimeSinceLastResponse = 0.0f;
 
-	size_t SizeToSend = RequestPayload.Num() - BytesSent;
+	size_t SizeToSend = RequestPayload.Num() - BytesSent.GetValue();
 	size_t SizeToSendThisTime = 0;
 
 	if (SizeToSend != 0)
 	{
-		OnRequestProgress().ExecuteIfBound(SharedThis(this), BytesSent, 0);
-
 		SizeToSendThisTime = FMath::Min(SizeToSend, SizeInBlocks * BlockSizeInBytes);
 		if (SizeToSendThisTime != 0)
 		{
 			// static cast just ensures that this is uint8* in fact
-			FMemory::Memcpy(Ptr, static_cast< uint8* >( RequestPayload.GetData() ) + BytesSent, SizeToSendThisTime);
-			BytesSent += SizeToSendThisTime;
+			FMemory::Memcpy(Ptr, static_cast< uint8* >(RequestPayload.GetData()) + BytesSent.GetValue(), SizeToSendThisTime);
+			BytesSent.Add(SizeToSendThisTime);
 		}
 	}
 
-	UE_LOG(LogHttp, Verbose, TEXT("%p: UploadCallback: %d bytes out of %d sent. (SizeInBlocks=%d, BlockSizeInBytes=%d, RequestPayload.Num()=%d, BytesSent=%d, SizeToSend=%d, SizeToSendThisTime=%d (<-this will get returned from the callback))"), 
+	UE_LOG(LogHttp, Verbose, TEXT("%p: UploadCallback: %d bytes out of %d sent. (SizeInBlocks=%d, BlockSizeInBytes=%d, RequestPayload.Num()=%d, BytesSent=%d, SizeToSend=%d, SizeToSendThisTime=%d (<-this will get returned from the callback))"),
 		this,
-		static_cast< int32 >(BytesSent), RequestPayload.Num(),
-		static_cast< int32 >(SizeInBlocks), static_cast< int32 >(BlockSizeInBytes), RequestPayload.Num(), static_cast< int32 >(BytesSent), static_cast< int32 >(SizeToSend),
+		static_cast< int32 >(BytesSent.GetValue()), RequestPayload.Num(),
+		static_cast< int32 >(SizeInBlocks), static_cast< int32 >(BlockSizeInBytes), RequestPayload.Num(), static_cast< int32 >(BytesSent.GetValue()), static_cast< int32 >(SizeToSend),
 		static_cast< int32 >(SizeToSendThisTime)
 		);
 
@@ -401,6 +403,11 @@ size_t FCurlHttpRequest::DebugCallback(CURL * Handle, curl_infotype DebugInfoTyp
 				DebugText.ReplaceInline(TEXT("\n"), TEXT(""), ESearchCase::CaseSensitive);
 				DebugText.ReplaceInline(TEXT("\r"), TEXT(""), ESearchCase::CaseSensitive);
 				UE_LOG(LogHttp, VeryVerbose, TEXT("%p: '%s'"), this, *DebugText);
+				if (InfoMessageCache.Num() > 0)
+				{
+					InfoMessageCache[LeastRecentlyCachedInfoMessageIndex] = DebugText;
+					LeastRecentlyCachedInfoMessageIndex = (LeastRecentlyCachedInfoMessageIndex + 1) % InfoMessageCache.Num();
+				}
 			}
 			break;
 
@@ -536,7 +543,7 @@ bool FCurlHttpRequest::SetupRequest()
 		curl_easy_setopt(EasyHandle, CURLOPT_INFILESIZE, RequestPayload.Num());
 
 		// reset the counter
-		BytesSent = 0;
+		BytesSent.Reset();
 	}
 	else if (Verb == TEXT("GET"))
 	{
@@ -637,14 +644,42 @@ bool FCurlHttpRequest::ProcessRequest()
 	// Response object to handle data that comes back after starting this request
 	Response = MakeShareable(new FCurlHttpResponse(*this));
 	// Add to global list while being processed so that the ref counted request does not get deleted
-	FHttpModule::Get().GetHttpManager().AddRequest(SharedThis(this));
+	FHttpModule::Get().GetHttpManager().AddThreadedRequest(SharedThis(this));
+	
+	UE_LOG(LogHttp, Verbose, TEXT("%p: request (easy handle:%p) has been added to threaded queue for processing"), this, EasyHandle );
+	return true;
+}
+
+bool FCurlHttpRequest::StartThreadedRequest()
+{
 	// reset timeout
 	ElapsedTime = 0.0f;
 	TimeSinceLastResponse = 0.0f;
 	
-	UE_LOG(LogHttp, Verbose, TEXT("%p: request (easy handle:%p) has been added to multi handle for processing"), this, EasyHandle );
+	UE_LOG(LogHttp, Verbose, TEXT("%p: request (easy handle:%p) has started threaded processing"), this, EasyHandle);
 
 	return true;
+}
+
+void FCurlHttpRequest::FinishRequest()
+{
+	FinishedRequest();
+}
+
+bool FCurlHttpRequest::IsThreadedRequestComplete()
+{
+	const float HttpTimeout = FHttpModule::Get().GetHttpTimeout();
+	bool bTimedOut = (HttpTimeout > 0 && TimeSinceLastResponse >= HttpTimeout);
+	return (bCompleted && ElapsedTime >= FHttpModule::Get().GetHttpDelayTime()) ||
+		bCanceled ||
+		(CurlAddToMultiResult != CURLM_OK) ||
+		bTimedOut;
+}
+
+void FCurlHttpRequest::TickThreadedRequest(float DeltaSeconds)
+{
+	ElapsedTime += DeltaSeconds;
+	TimeSinceLastResponse += DeltaSeconds;
 }
 
 FHttpRequestCompleteDelegate& FCurlHttpRequest::OnProcessRequestComplete()
@@ -660,9 +695,7 @@ FHttpRequestProgressDelegate& FCurlHttpRequest::OnRequestProgress()
 void FCurlHttpRequest::CancelRequest()
 {
 	bCanceled = true;
-    
-    // Cleanup cancel request and fire off any necessary delegates.
-    FinishedRequest();
+	FHttpModule::Get().GetHttpManager().CancelThreadedRequest(SharedThis(this));
 }
 
 EHttpRequestStatus::Type FCurlHttpRequest::GetStatus()
@@ -677,42 +710,35 @@ const FHttpResponsePtr FCurlHttpRequest::GetResponse() const
 
 void FCurlHttpRequest::Tick(float DeltaSeconds)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_Tick);
-	// keep track of elapsed seconds
-	ElapsedTime += DeltaSeconds;
-	TimeSinceLastResponse += DeltaSeconds;
+	CheckProgressDelegate();
+}
 
-	// check for true completion/cancellation
-	if (bCompleted && 
-		ElapsedTime >= FHttpModule::Get().GetHttpDelayTime())
+void FCurlHttpRequest::CheckProgressDelegate()
 	{
-		FinishedRequest();
-	}
-	else if (bCanceled)
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_CheckProgressDelegate);
+	int32 CurrentBytesRead = Response.IsValid() ? Response->TotalBytesRead.GetValue() : 0;
+	int32 CurrentBytesSent = BytesSent.GetValue();
+
+	const bool bProcessing = CompletionStatus == EHttpRequestStatus::Processing;
+	const bool bProgessChanged = (CurrentBytesSent != LastReportedBytesSent) ||
+		(Response.IsValid() && CurrentBytesRead != LastReportedBytesRead);
+	if (bProcessing && bProgessChanged)
 	{
-		FinishedRequest();
-	}
-	else if (CurlAddToMultiResult != CURLM_OK)
-	{
-		FinishedRequest();
-	}
-	else
-	{
-		const float HttpTimeout = FHttpModule::Get().GetHttpTimeout();
-		if (HttpTimeout > 0 && TimeSinceLastResponse >= HttpTimeout)
+		LastReportedBytesSent = CurrentBytesSent;
+		if (Response.IsValid())
 		{
-			UE_LOG(LogHttp, Warning, TEXT("Timeout processing Http request. %p"),
-				this);
-
-			// finish it off since it is timeout
-			FinishedRequest();
+			LastReportedBytesRead = CurrentBytesRead;
 		}
+		// Update response progress
+		OnRequestProgress().ExecuteIfBound(SharedThis(this), LastReportedBytesSent, LastReportedBytesRead);
 	}
 }
 
 void FCurlHttpRequest::FinishedRequest()
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_FinishedRequest);
+	
+	CheckProgressDelegate();
 	// if completed, get more info
 	if (bCompleted)
 	{
@@ -789,11 +815,19 @@ void FCurlHttpRequest::FinishedRequest()
 	{
 		if (CurlAddToMultiResult != CURLM_OK)
 		{
-			UE_LOG(LogHttp, Verbose, TEXT("%p: request failed, libcurl multi error: %d (%s)"), this, (int32)CurlAddToMultiResult, ANSI_TO_TCHAR(curl_multi_strerror(CurlAddToMultiResult)));
+			UE_LOG(LogHttp, Warning, TEXT("%p: request failed, libcurl multi error: %d (%s)"), this, (int32)CurlAddToMultiResult, ANSI_TO_TCHAR(curl_multi_strerror(CurlAddToMultiResult)));
 		}
 		else
 		{
-			UE_LOG(LogHttp, Verbose, TEXT("%p: request failed, libcurl error: %d (%s)"), this, (int32)CurlCompletionResult, ANSI_TO_TCHAR(curl_easy_strerror(CurlCompletionResult)));
+		UE_LOG(LogHttp, Warning, TEXT("%p: request failed, libcurl error: %d (%s)"), this, (int32)CurlCompletionResult, ANSI_TO_TCHAR(curl_easy_strerror(CurlCompletionResult)));
+		}
+
+		for (int32 i = 0; i < InfoMessageCache.Num(); ++i)
+		{
+			if (InfoMessageCache[(LeastRecentlyCachedInfoMessageIndex + i) % InfoMessageCache.Num()].Len() > 0)
+			{
+				UE_LOG(LogHttp, Warning, TEXT("%p: libcurl info message cache %d (%s)"), this, i, *(InfoMessageCache[(LeastRecentlyCachedInfoMessageIndex + i) % NumberOfInfoMessagesToCache]));
+			}
 		}
 
 		// Mark last request attempt as completed but failed
@@ -814,8 +848,6 @@ void FCurlHttpRequest::FinishedRequest()
 		// Call delegate with failure
 		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this),NULL,false);
 	}
-	// Remove from global list since processing is now complete
-	FHttpModule::Get().GetHttpManager().RemoveRequest(SharedThis(this));
 }
 
 float FCurlHttpRequest::GetElapsedTime()

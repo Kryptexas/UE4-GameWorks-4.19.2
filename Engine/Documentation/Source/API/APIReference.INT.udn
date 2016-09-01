@@ -4,7 +4,7 @@ Description:API programming reference for Unreal Engine C++ source code.
 Availability:Public
 
 [PUBLISH:Licensee]
-API refernce can be found at `//depot/UE4/Engine/Documentation/Builds/API-HTML.tar.gz`. You can extract the contents of that into your documentation folder to have it integrated with the engine documentation.
+API reference can be found at `//depot/UE4/Engine/Documentation/Builds/CodeAPI-HTML.tgz`. You can extract the contents of that into your documentation folder to have it integrated with the engine documentation.
 
 It is also available in CHM format in that same directory.
 [/PUBLISH]

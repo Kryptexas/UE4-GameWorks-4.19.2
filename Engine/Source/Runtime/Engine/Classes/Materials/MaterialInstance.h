@@ -5,6 +5,7 @@
 #include "Materials/MaterialInterface.h"
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "StaticParameterSet.h"
+#include "Materials/Material.h"
 #include "MaterialInstance.generated.h"
 
 //
@@ -253,6 +254,7 @@ public:
 	virtual ENGINE_API UMaterial* GetMaterial() override;
 	virtual ENGINE_API const UMaterial* GetMaterial() const override;
 	virtual ENGINE_API const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
+	virtual ENGINE_API FMaterialResource* AllocatePermutationResource();
 	virtual ENGINE_API FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) override;
 	virtual ENGINE_API const FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) const override;
 	virtual ENGINE_API bool GetFontParameterValue(FName ParameterName, class UFont*& OutFontValue, int32& OutFontPage) const override;
@@ -419,6 +421,8 @@ protected:
 	 * Internal interface for setting / updating values for material instances.
 	 */
 	void SetVectorParameterValueInternal(FName ParameterName, FLinearColor Value);
+	bool SetVectorParameterByIndexInternal(int32 ParameterIndex, FLinearColor Value);
+	bool SetScalarParameterByIndexInternal(int32 ParameterIndex, float Value);
 	void SetScalarParameterValueInternal(FName ParameterName, float Value);
 	void SetTextureParameterValueInternal(FName ParameterName, class UTexture* Value);
 	void SetFontParameterValueInternal(FName ParameterName, class UFont* FontValue, int32 FontPage);

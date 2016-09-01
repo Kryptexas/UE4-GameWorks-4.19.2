@@ -16,6 +16,8 @@ DECLARE_CYCLE_STAT(TEXT("Slate RT: Create Batches"), STAT_SlateRTCreateBatches, 
 DECLARE_CYCLE_STAT(TEXT("Slate RT: Fill Vertex & Index Buffers"), STAT_SlateRTFillVertexIndexBuffers, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("Slate RT: Draw Batches"), STAT_SlateRTDrawBatches, STATGROUP_Slate);
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Slate UI/present"), Stat_GPU_SlateUI, STATGROUP_GPU); 
+
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
 
@@ -197,7 +199,7 @@ void FSlateRHIRenderer::Destroy()
 	if (CrashTrackerResource != nullptr)
 	{
 		delete CrashTrackerResource;
-		CrashTrackerResource = NULL;
+		CrashTrackerResource = nullptr;
 	}
 
 	WindowToViewportInfo.Empty();
@@ -396,6 +398,7 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
+	//SCOPED_GPU_STAT(RHICmdList, Stat_GPU_SlateUI); // Disabled since this seems to be distorted by the present time
 
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
@@ -467,11 +470,9 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		}
 	}
 
-	bool bNeedCallFinishFrameForStereo = false;
 	if (GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
 	{
 		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
-		bNeedCallFinishFrameForStereo = true;
 	}
 
 	// Calculate renderthread time (excluding idle time).	
@@ -479,10 +480,6 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 	RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
 
-	if (bNeedCallFinishFrameForStereo)
-	{
-		GEngine->StereoRenderingDevice->FinishRenderingFrame_RenderThread(RHICmdList);
-	}
 	uint32 EndTime		= FPlatformTime::Cycles();
 
 	GSwapBufferTime		= EndTime - StartTime;
@@ -1185,13 +1182,12 @@ void FSlateRHIRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 	if (IsInRenderingThread())
 	{
 		Texture->GetRenderResource()->ReleaseResource();
+		delete Texture;
 	}
 	else
 	{
-		BeginReleaseResource(Texture->GetRenderResource());
-		FlushRenderingCommands();
+		Texture->Cleanup();
 	}
-	delete Texture;
 }
 
 ISlateAtlasProvider* FSlateRHIRenderer::GetTextureAtlasProvider()

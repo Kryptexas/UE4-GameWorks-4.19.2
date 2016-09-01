@@ -275,7 +275,12 @@ struct FVulkanTextureView
 	{
 	}
 
-	void Create(FVulkanDevice& Device, FVulkanSurface& Surface, VkImageViewType ViewType, VkFormat Format, uint32 NumMips);
+	void Create(FVulkanDevice& Device, VkImage Image, VkImageViewType ViewType, VkImageAspectFlags AspectFlags, EPixelFormat UEFormat, VkFormat Format, uint32 NumMips);
+
+	inline void Create(FVulkanDevice& Device, FVulkanSurface& Surface, VkImageViewType ViewType, VkFormat Format, uint32 NumMips)
+	{
+		Create(Device, Surface.Image, ViewType, Surface.GetAspectMask(), Surface.Format, Format, NumMips);
+	}
 
 	void Destroy(FVulkanDevice& Device);
 
@@ -313,8 +318,6 @@ public:
 	FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 NumMips, uint32 NumSamples, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
 	virtual ~FVulkanTexture2D();
 
-	void Destroy(FVulkanDevice& Device);
-
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const override final
 	{
@@ -342,19 +345,13 @@ protected:
 class FVulkanBackBuffer : public FVulkanTexture2D
 {
 public:
-	FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
+	FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags);
 	virtual ~FVulkanBackBuffer();
 
 	virtual bool IsBackBuffer() const override final
 	{
 		return true;
 	}
-
-	// Just a pointer, not owned by this class
-	FVulkanSemaphore* AcquiredSemaphore;
-
-	// Is owned by this class
-	FVulkanSemaphore* RenderingDoneSemaphore;
 };
 
 class FVulkanTexture2DArray : public FRHITexture2DArray, public FVulkanTextureBase
@@ -526,7 +523,7 @@ public:
 	virtual ~FVulkanTimestampQueryPool(){}
 
 	void WriteStartFrame(VkCommandBuffer CmdBuffer);
-	void WriteEndFrame(VkCommandBuffer CmdBuffer);
+	void WriteEndFrame(FVulkanCmdBuffer* CmdBuffer);
 
 	void CalculateFrameTime();
 
@@ -554,6 +551,9 @@ protected:
 	double SecondsPerTimestamp;
 	int32 UsedUserQueries;
 	bool bFirst;
+
+	FVulkanCmdBuffer* LastEndCmdBuffer;
+	uint64 LastFenceSignaledCounter;
 };
 
 /** Vulkan occlusion query */
@@ -676,9 +676,20 @@ public:
 		return Buffers[DynamicBufferIndex]->GetHandle();
 	}
 
-	bool IsDynamic() const
+	inline bool IsDynamic() const
 	{
 		return NumBuffers > 1;
+	}
+
+	inline bool IsVolatile() const
+	{
+		return NumBuffers == 0;
+	}
+
+	inline uint32 GetVolatileLockCounter() const
+	{
+		check(IsVolatile());
+		return VolatileLockInfo.LockCounter;
 	}
 
 	// Offset used for Binding a VkBuffer
@@ -770,6 +781,10 @@ public:
 class FVulkanShaderResourceView : public FRHIShaderResourceView
 {
 public:
+	FVulkanShaderResourceView()
+		: VolatileLockCounter(MAX_uint32)
+	{
+	}
 
 	void UpdateView(FVulkanDevice* Device);
 
@@ -783,6 +798,9 @@ public:
 
 	~FVulkanShaderResourceView();
 
+protected:
+	// Used to check on volatile buffers if a new BufferView is required
+	uint32 VolatileLockCounter;
 };
 
 class FVulkanVertexInputStateInfo
@@ -910,6 +928,8 @@ public:
 	void SetUniformBufferConstantData(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const TArray<uint8>& ConstantData);
 	void SetUniformBuffer(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer);
 
+	void SetSRV(EShaderFrequency Stage, uint32 TextureIndex, FVulkanShaderResourceView* SRV);
+
 	inline const FVulkanShader* GetShaderPtr(EShaderFrequency Stage) const
 	{
 		switch (Stage)
@@ -953,31 +973,7 @@ public:
 		return *Shader;
 	}
 
-
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		// Basic error handling. This allows us to track errors, while also skip draw calls
-		// which potentially may crash the driver
-		bool HasError() const { return LastError.Len() > 0; }
-
-		const FString& GetLastError() const { return LastError; }
-
-		const VkDescriptorImageInfo* GetStageImageDescriptors(EShaderFrequency Stage, uint32& OutNum) const
-		{
-			check(Stage < SF_Compute);
-			OutNum = ImageDescCount[Stage];
-			return DescriptorImageInfoForStage[Stage];
-		}
-	#endif
-
-		inline void BindPipeline(VkCommandBuffer CmdBuffer, VkPipeline NewPipeline)
-		{
-			if (LastBoundPipeline != NewPipeline)
-			{
-				//#todo-rco: Compute
-				vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, NewPipeline);
-				LastBoundPipeline = NewPipeline;
-			}
-		}
+	void BindPipeline(VkCommandBuffer CmdBuffer, VkPipeline NewPipeline);
 
 private:
 	void InitGlobalUniforms(EShaderFrequency Stage, const FVulkanShaderSerializedBindings& SerializedBindings);
@@ -988,7 +984,7 @@ private:
 
 	void GenerateVertexInputStateInfo();
 
-	void GetDescriptorInfoCounts(uint32& OutSamplerCount, uint32& OutSamplerBufferCount, uint32& OutUniformBufferCount);
+	void GetDescriptorInfoCounts(uint32& OutCombinedSamplerCount, uint32& OutSamplerBufferCount, uint32& OutUniformBufferCount);
 
 	void InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, const void* VertexStreams);
 
@@ -1037,7 +1033,7 @@ private:
 	// At this moment unused, the samplers are mapped together with texture/image
 	// we are using "VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER"
 	bool DirtySamplerStates[SF_Compute];
-	VkDescriptorImageInfo* DescriptorImageInfoForStage[SF_Compute];
+	VkDescriptorImageInfo* DescriptorSamplerImageInfoForStage[SF_Compute];
 
 	TArray< VkWriteDescriptorSet* > SRVWriteInfoForStage[SF_Compute];
 	bool DirtySRVs[SF_Compute];
@@ -1058,7 +1054,7 @@ private:
 	// InOutMask is used from VertexShader-Header to filter out active attributs
 	void ProcessVertexElementForBinding(const FVertexElement& Element);
 
-	void CreateDescriptorWriteInfo(uint32 UniformSamplerCount, uint32 UniformSamplerBufferCount, uint32 UniformBufferCount);
+	void CreateDescriptorWriteInfo(uint32 UniformCombinedSamplerCount, uint32 UniformSamplerBufferCount, uint32 UniformBufferCount);
 
 	uint32 BindingsNum;
 	uint32 BindingsMask;
@@ -1075,14 +1071,6 @@ private:
 
 	// Vertex input configuration
 	FVulkanVertexInputStateInfo VertexInputStateInfo;
-
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		void SetLastError(const FString& Error);
-
-		// If the string is not empty, an error has occurred.
-		FString LastError;
-		uint32 ImageDescCount[SF_Compute];
-	#endif
 
 	// Members in Tmp are normally allocated each frame
 	// To reduce the allocation, we reuse these array
@@ -1121,7 +1109,7 @@ private:
 	};
 	TArray<FDescriptorSetsEntry*> DescriptorSetsEntries;
 
-	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCmdBuffer* CmdBuffer);
+	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer);
 };
 
 template<class T>

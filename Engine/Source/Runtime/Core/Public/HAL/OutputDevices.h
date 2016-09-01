@@ -119,7 +119,7 @@ struct CORE_API FLogCategoryBase
 	/** Destructor, unregisters from the log suppression system **/
 	~FLogCategoryBase();
 	/** Should not generally be used directly. Tests the runtime verbosity and maybe triggers a debug break, etc. **/
-	FORCEINLINE bool IsSuppressed(ELogVerbosity::Type VerbosityLevel)
+	FORCEINLINE bool IsSuppressed(ELogVerbosity::Type VerbosityLevel) const
 	{
 		if ((VerbosityLevel & ELogVerbosity::VerbosityMask) <= Verbosity)
 		{
@@ -433,10 +433,16 @@ public:
 	/** Creates a backup copy of a log file if it already exists */
 	static void CreateBackupCopy(const TCHAR* Filename);
 
+	/** Checks if the filename represents a backup copy of a log file */
+	static bool IsBackupCopy(const TCHAR* Filename);
+
 private:
 
 	/** Writes to a file on a separate thread */
 	FAsyncWriter* AsyncWriter;
+	/** Archive used by the async writer */
+	FArchive* WriterArchive;
+
 	TCHAR Filename[1024];
 	bool Opened;
 	bool Dead;
@@ -446,13 +452,10 @@ private:
 	
 	void WriteRaw( const TCHAR* C );
 
-	FAsyncWriter* CreateWriter(uint32 MaxAttempts = 32);
+	/** Creates the async writer and its archive. Returns true if successful.  */
+	bool CreateWriter(uint32 MaxAttempts = 32);
 
 	void WriteByteOrderMarkToArchive(EByteOrderMark ByteOrderMark);
-
-	void CastAndSerializeData(const TCHAR* Data);
-
-	void WriteDataToArchive(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time);
 };
 
 // Null output device.
@@ -489,15 +492,22 @@ public:
 };
 
 /** Buffered output device. */
-class FBufferedOutputDevice : public FOutputDevice
+class CORE_API FBufferedOutputDevice : public FOutputDevice
 {
-	TArray<FBufferedLine> BufferedLines;
+protected:
+	TArray<FBufferedLine>		BufferedLines;
+	ELogVerbosity::Type			FilterLevel;
+	FCriticalSection			SynchronizationObject;
 
 public:
-	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
+
+	FBufferedOutputDevice() : FilterLevel(ELogVerbosity::All)
 	{
-		new(BufferedLines)FBufferedLine( InData, Category, Verbosity );
 	}
+
+	void	SetVerbosity(ELogVerbosity::Type Verbosity) { FilterLevel = Verbosity; }
+	void	Serialize(const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category) override;
+	void	GetContents(TArray<FBufferedLine>& DestBuffer, bool ClearDevice = true);
 
 	/** Pushes buffered lines into the specified output device. */
 	void RedirectTo( class FOutputDevice& Ar )
@@ -568,9 +578,6 @@ public:
 
 private:
 	FArchive* LogAr;
-
-private:
-	void CastAndSerializeData(const TCHAR* Data);
 };
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogHAL, Log, All);

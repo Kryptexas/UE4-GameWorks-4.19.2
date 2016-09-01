@@ -88,7 +88,7 @@ namespace AutomationTool.Tasks
 			Options.ManifestA = FileReference.Combine(CloudDir, String.Format("{0}{1}-{2}.manifest", Parameters.AppName, Parameters.BaseVersion, Parameters.Platform)).FullName;
 			Options.ManifestB = FileReference.Combine(CloudDir, String.Format("{0}{1}-{2}.manifest", Parameters.AppName, Parameters.PatchVersion, Parameters.Platform)).FullName;
 			Options.ManifestC = FileReference.Combine(CloudDir, String.Format("{0}{1}-{2}.manifest", Parameters.AppName, Parameters.FinalVersion, Parameters.Platform)).FullName;
-			Options.BuildVersion = Parameters.FinalVersion;
+			Options.BuildVersion = String.Format("{0}-{1}", Parameters.FinalVersion, Parameters.Platform);
 
 			// Run the chunking
 			BuildPatchToolBase.Get().Execute(Options);
@@ -101,6 +101,24 @@ namespace AutomationTool.Tasks
 		public override void Write(XmlWriter Writer)
 		{
 			Write(Writer, Parameters);
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			yield break;
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			yield break;
 		}
 	}
 }

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2390401
+﻿INTSourceChangelist:2897028
 Availability:Public
 Title:マルチキャスト デリゲート
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
 Description:複数の関数と結合してすべての関数を一度に実行するデリゲート
-Version:4.5
+Version:4.9
 
 マルチキャスト デリゲートは、シングルキャスト デリゲートとほぼ同じ機能を持ちます。マルチキャスト デリゲートはオブジェクトに対し弱い参照を持ち、構造体に使用したり簡単にコピーすることができます。  
 通常のデリゲート同様に、マルチキャスト デリゲートは読み込みや保存、そして間接的にトリガーすることができますが、マルチキャストの関数は戻り値を使用することはできません。これらはデリゲートのコレクションを
@@ -17,8 +17,8 @@ Version:4.5
 
 | マクロ宣言 | 説明 |
 | --- | --- |
-| `DECLARE_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | マルチキャスト デリゲートを作成します。 |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 動的なマルチキャスト デリゲートを作成します。 |
+| `DECLARE_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | マルチキャスト デリゲートを作成します。 |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | 動的なマルチキャスト デリゲートを作成します。 |
 
 ## マルチキャスト デリゲートの結合
 

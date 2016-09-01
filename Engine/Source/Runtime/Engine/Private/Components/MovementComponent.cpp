@@ -60,7 +60,7 @@ void UMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponen
 	UpdatedPrimitive = Cast<UPrimitiveComponent>(UpdatedComponent);
 
 	// Assign delegates
-	if (IsValid(UpdatedComponent))
+	if (UpdatedComponent && !UpdatedComponent->IsPendingKill())
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = true;
 		UpdatedComponent->PhysicsVolumeChangedDelegate.AddUniqueDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
@@ -286,7 +286,7 @@ bool UMovementComponent::ShouldSkipUpdate(float DeltaTime) const
 
 	if (bUpdateOnlyIfRendered)
 	{
-		if (GetNetMode() == NM_DedicatedServer)
+		if (IsNetMode(NM_DedicatedServer))
 		{
 			// Dedicated servers never render
 			return true;

@@ -129,6 +129,8 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 
 void UGatherTextFromMetaDataCommandlet::GatherTextFromUObjects(const TArray<FString>& IncludePaths, const TArray<FString>& ExcludePaths, const FGatherParameters& Arguments)
 {
+	const FFuzzyPathMatcher FuzzyPathMatcher = FFuzzyPathMatcher(IncludePaths, ExcludePaths);
+
 	for(TObjectIterator<UField> It; It; ++It)
 	{
 		// Skip editor-only properties if we're not gathering for editor-only data.
@@ -144,36 +146,8 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObjects(const TArray<FStr
 
 		check(!SourceFilePath.IsEmpty());
 
-		// Returns true if in an include path. False otherwise.
-		auto IncludePathLogic = [&]() -> bool
-		{
-			for(int32 i = 0; i < IncludePaths.Num(); ++i)
-			{
-				if(SourceFilePath.MatchesWildcard(IncludePaths[i]))
-				{
-					return true;
-				}
-			}
-			return false;
-		};
-		if(!IncludePathLogic())
-		{
-			continue;
-		}
-
-		// Returns true if in an exclude path. False otherwise.
-		auto ExcludePathLogic = [&]() -> bool
-		{
-			for(int32 i = 0; i < ExcludePaths.Num(); ++i)
-			{
-				if(SourceFilePath.MatchesWildcard(ExcludePaths[i]))
-				{
-					return true;
-				}
-			}
-			return false;
-		};
-		if(ExcludePathLogic())
+		const FFuzzyPathMatcher::EPathMatch PathMatch = FuzzyPathMatcher.TestPath(SourceFilePath);
+		if (PathMatch != FFuzzyPathMatcher::Included)
 		{
 			continue;
 		}
@@ -205,7 +179,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 
 					const FString Namespace = Arguments.OutputNamespaces[i];
 					FLocItem LocItem(MetaDataValue);
-					FContext Context;
+					FManifestContext Context;
 					Context.Key = FText::Format(Arguments.OutputKeys[i], PatternArguments).ToString();
 					Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of member %s in %s"), *Arguments.InputKeys[i], *Field->GetName(), *Field->GetFullGroupName(true));
 					ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);
@@ -241,7 +215,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 
 							const FString Namespace = Arguments.OutputNamespaces[j];
 							FLocItem LocItem(MetaDataValue);
-							FContext Context;
+							FManifestContext Context;
 							Context.Key = FText::Format(Arguments.OutputKeys[j], PatternArguments).ToString();
 							Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of enum value %s of enum %s in %s"), *Arguments.InputKeys[j], *Enum->GetEnumName(i), *Enum->GetName(), *Enum->GetFullGroupName(true));
 							ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);

@@ -166,7 +166,10 @@ void TiledDeferredLightingMain(
         frustumPlanes[i] *= rcp(length(frustumPlanes[i].xyz));
     }
 
-	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
+	// With a perspective projection, the clip space position is NDC * Clip.w
+	// With an orthographic projection, clip space is the same as NDC
+	float2 ClipPosition = ScreenPosition * (View.ViewToClip[3][3] < 1.0f ? SceneDepth : 1.0f);
+	float4 HomogeneousWorldPosition = mul(float4(ClipPosition, SceneDepth, 1), View.ScreenToWorld);
 	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 
 	// RGB accumulated RGB HDR color, A: luminance for screenspace subsurface scattering
@@ -258,16 +261,16 @@ void TiledDeferredLightingMain(
 				LightData.bSpotLight = Value.w > 0;
 				LightData.MinRoughness = abs(Value.w);
 			}
-			LightData.SpotAnglesAndSourceRadius = float4( TiledDeferred2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex].xyz, 0 );
+			LightData.SpotAnglesAndSourceRadius = TiledDeferred2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex];
 			LightData.ShadowMapChannelMask = TiledDeferred2.ShadowMapChannelMask[LightIndex];
 			LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
 			// Only radial lights supported with tiled deferred
 			LightData.bRadialLight = true;
 			// The only type of shadowing supported for lights using tiled is static shadowing, so the light should only compute shadowing if it has static shadowing
-			LightData.bShadowed = dot(LightData.ShadowMapChannelMask, float4(1, 1, 1, 1));
+			LightData.ShadowedBits = dot(LightData.ShadowMapChannelMask, float4(1, 1, 1, 1));
 	
 			// Lights requiring light attenuation are not supported tiled for now
-			CompositedLighting += GetDynamicLighting(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, InGBufferData.ShadingModelID, LightData, float4(1, 1, 1, 1), uint2(0,0));
+			CompositedLighting += GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, InGBufferData.ShadingModelID, LightData, float4(1, 1, 1, 1), uint2(0,0));
 		}
 
 		// The simple shading model does not depend on ShadingModelID, so use it anytime the material is lit

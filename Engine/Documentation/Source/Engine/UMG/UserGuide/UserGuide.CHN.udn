@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2772068
 Availability:Public
-Title: UMG UI Designer User Guide
+Title:UMG UI 设计器用户指南
 Crumbs:%ROOT%, Engine, Engine/UMG
-Description:A guide to using Unreal Motion Graphics to create UI elements. 
+Description:使用虚幻动态图形创建 UI 元素的指南。 
+version:4.9
 
 
 [VAR:Topic]
@@ -48,10 +49,9 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 ![](UserGuideHeader.png)(w:940 h:160 convert:false)
 [/REGION]
 
-## Overview
 
 [EXCERPT:umgheader]
-**Unreal Motion Graphics UI Designer (UMG)**  is a visual UI authoring tool which can be used to create UI elements such as in-game HUDs, menus or other interface related graphics you wish to present to your users. At the core of UMG are Widgets, which are a series of pre-made functions that can be used to construct your interface (things like buttons, checkboxes, sliders, progress bars, etc.). These Widgets are edited in a specialized Widget Blueprint, which uses two tabs for construction: the Designer tab allows for the visual layout of the interface and basic functions while the Graph tab provides the functionality behind the Widgets used. 
+**虚幻动态图形 UI 设计器 (UMG)** 是一款视觉 UI 创作工具，可用于创作想要呈现给用户的 UI 元素，比如游戏内的 HUD、菜单或与界面相关的其他图形。UMG 的核心是控件，即用于构成界面的一系列预先制作的功能（比如按钮、复选框、滑块、进度条等）。这些控件在专门的控件蓝图中进行编辑，编辑时将用到两个选项卡进行构建：设计器选项卡实现界面的视觉布局，而图形选项卡则实现使用控件时提供的功能。 
 [/EXCERPT:umgheader]
 
 [OBJECT:TopicButtonList]
@@ -59,10 +59,10 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Getting Started
+		入门
 	[/PARAM]
 	[PARAM:links]
-		[REGION:topics third]
+		[REGION:topics fourth]
 		[INCLUDE:#topics]
 		[/REGION]
 	[/PARAM]
@@ -121,15 +121,32 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 		[RELATIVE:Engine/UMG/UserGuide/WidgetTypeReference]
 	[/PARAM]
 [/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\UMG\UserGuide\BestPractices:title%](Engine\UMG\UserGuide\BestPractices\BestPractices.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\UMG\UserGuide\BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\UMG\UserGuide\BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\UMG\UserGuide\BestPractices]
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Topics]
-		-->
+-->
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/related_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Further Reading
+		延展阅读
 	[/PARAM]
 	[PARAM:links]
 	[REGION:topics third]
@@ -138,7 +155,7 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 			![](AnchorsTopic.png)(w:283 h:117)
 		[/PARAM]
 		[PARAM:title]
-			Anchors
+			锚
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine/UMG/UserGuide/Anchors]
@@ -149,7 +166,7 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 			![](AnimationTopic.png)(w:283 h:117)
 		[/PARAM]
 		[PARAM:title]
-			Animation
+			动画
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine/UMG/UserGuide/Animation]
@@ -160,7 +177,7 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 			![](EventsTopic.png)(w:283 h:117)
 		[/PARAM]
 		[PARAM:title]
-			Events
+			事件
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine/UMG/UserGuide/Events]
@@ -171,7 +188,7 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 			![](PropertyBindingTopic.png)(w:283 h:117)
 		[/PARAM]
 		[PARAM:title]
-			Property Binding
+			属性绑定
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine/UMG/UserGuide/PropertyBinding]
@@ -182,7 +199,7 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 			![](ScalingTopic.png)(w:283 h:117)
 		[/PARAM]
 		[PARAM:title]
-			DPI Scaling
+			DPI 缩放
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine/UMG/UserGuide/DPIScaling]
@@ -193,7 +210,7 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 			![](FontsTopic.png)(w:283 h:117)
 		[/PARAM]
 		[PARAM:title]
-			Fonts
+			字体
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine/UMG/UserGuide/Fonts]
@@ -204,7 +221,7 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 			![](StylingTopic.png)(w:283 h:117)
 		[/PARAM]
 		[PARAM:title]
-			Styling
+			样式设置
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine/UMG/UserGuide/Styling]
@@ -215,7 +232,7 @@ Description:A guide to using Unreal Motion Graphics to create UI elements.
 			![](SlotTopic.png)(w:283 h:117)
 		[/PARAM]
 		[PARAM:title]
-			Slots
+			槽
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine/UMG/UserGuide/Slots]

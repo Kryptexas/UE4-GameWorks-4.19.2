@@ -222,6 +222,7 @@ FParticleEmitterBuildInfo::FParticleEmitterBuildInfo()
 	, bLocalVectorFieldTileX(false)
 	, bLocalVectorFieldTileY(false)
 	, bLocalVectorFieldTileZ(false)
+	, bLocalVectorFieldUseFixDT(false)
 {
 	DragScale.InitializeWithConstant(1.0f);
 	VectorFieldScale.InitializeWithConstant(1.0f);
@@ -2311,7 +2312,7 @@ FBaseParticle* FParticleEmitterInstance::GetParticle(int32 Index)
 
 FBaseParticle* FParticleEmitterInstance::GetParticleDirect(int32 InDirectIndex)
 {
-	if (/*(ActiveParticles > 0) &&*/ (InDirectIndex < MaxActiveParticles))
+	if ((ActiveParticles > 0) && (InDirectIndex < MaxActiveParticles))
 	{
 		DECLARE_PARTICLE_PTR(Particle, ParticleData + ParticleStride * InDirectIndex);
 		return Particle;
@@ -2848,6 +2849,7 @@ UMaterialInterface* FParticleEmitterInstance::GetCurrentMaterial()
 	{
 		RenderMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
+	CurrentMaterial = RenderMaterial;
 	return RenderMaterial;
 }
 
@@ -3563,6 +3565,7 @@ bool FParticleMeshEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase
 		RenderMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
 	NewReplayData->MaterialInterface = RenderMaterial;
+	CurrentMaterial = RenderMaterial;
 
 	// Mesh settings
 	NewReplayData->bScaleUV = LODLevel->RequiredModule->bScaleUV;

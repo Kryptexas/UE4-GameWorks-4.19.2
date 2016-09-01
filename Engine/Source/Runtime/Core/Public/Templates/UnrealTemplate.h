@@ -329,6 +329,30 @@ FORCEINLINE typename TRemoveReference<T>::Type&& MoveTemp(T&& Obj)
 }
 
 /**
+ * CopyTemp will enforce the creation of an rvalue which can bind to rvalue reference parameters.
+ * Unlike MoveTemp, the source object will never be modifed. (i.e. a copy will be made)
+ * There is no std:: equivalent.
+ */
+template <typename T>
+FORCEINLINE T CopyTemp(T& Val)
+{
+	return const_cast<const T&>(Val);
+}
+
+template <typename T>
+FORCEINLINE T CopyTemp(const T& Val)
+{
+	return Val;
+}
+
+template <typename T>
+FORCEINLINE T&& CopyTemp(T&& Val)
+{
+	// If we already have an rvalue, just return it unchanged, rather than needlessly creating yet another rvalue from it.
+	return MoveTemp(Val);
+}
+
+/**
  * Forward will cast a reference to an rvalue reference.
  * This is UE's equivalent of std::forward.
  */
@@ -496,46 +520,6 @@ template <typename T, T Val>
 struct TIntegralConstant
 {
 	static const T Value = Val;
-};
-
-/**
- * Does LHS::Value && RHS::Value, but short-circuits if LHS::Value == false.
- */
-template <bool LHSValue, typename RHS>
-struct TAndValue
-{
-	enum { Value = RHS::Value };
-};
-
-template <typename RHS>
-struct TAndValue<false, RHS>
-{
-	enum { Value = false };
-};
-
-template <typename LHS, typename RHS>
-struct TAnd : TAndValue<LHS::Value, RHS>
-{
-};
-
-/**
- * Does LHS::Value || RHS::Value, but short-circuits if LHS::Value == true.
- */
-template <bool LHSValue, typename RHS>
-struct TOrValue
-{
-	enum { Value = RHS::Value };
-};
-
-template <typename RHS>
-struct TOrValue<true, RHS>
-{
-	enum { Value = true };
-};
-
-template <typename LHS, typename RHS>
-struct TOr : TOrValue<LHS::Value, RHS>
-{
 };
 
 /**

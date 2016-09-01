@@ -1,22 +1,22 @@
-﻿INTSourceChangelist:2419205
+﻿INTSourceChangelist:2699700
 Availability:Public
-Title:プレイヤーコントローラー
+Title:PlayerController
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework, Gameplay/Framework/Controller
-Description:PlayerController はプレーヤーから入力データを受け取り、移動、アイテムの使用、武器の発砲などのアクションへ変換する機能を実行します。
+Description:PlayerController はプレーヤーから入力データを受け取り、それを移動、アイテムの使用、武器の発砲などのアクションへ変換する機能を実行します。
 Related:Gameplay\Framework\Controller\AIController
 Related:Gameplay\Framework\Controller
 Related:Gameplay\Framework\Pawn
 Related:Gameplay\Framework\Pawn\Character
+Version:4.9
 
+**PlayerController** は、ポーンと、ポーンを操作する人プレーヤー間のインターフェースです。PlayerController は、基本的に人プレイヤーの意思を表します。
 
-プレイヤーコントローラーは、ポーンと、このポーンを操作する人プレーヤー間のインターフェースです。プレイヤーコントローラーは、基本的に人プレイヤーの意思を表します。
+PlayerController の設定時に考えることとしては、どの機能を PlayerController に入れるか、**ポーン** に何を入れるかがあります。特にあまり複雑でないケースなどポーンですべての入力を処理することが 
+可能です。ただし、 1 つのゲーム クライアント上に複数のプレイヤーがいたり、ランタイム時にキャラクターを動的に変更できるようにするなど、より複雑なニーズがある場合は、
+入力は PlayerController で処理する方が良いでしょう。このケースでは、 PlayerController が何をするかを決定してから、ポーンにコマンドを発行します ("start crouching" 、 "jump" など)。
 
-プレイヤーコントローラーの設定時には、どの機能を PlayerController とポーンに入れるのかのみを考えます。あまり複雑でないケースではポーンですべての入力を処理することが 
-可能です。ただし、 1 つのゲーム クライアント上に複数のプレイヤーがいたり、ランタイム時にキャラクターを動的に変更できるようにするなど、より複雑性が必要な場合は、
-入力は PlayerController で処理する方が良いです。このケースでは、 PlayerController が何をするかを決定してから、ポーンにコマンドを発行します ("start crouching" 、 "jump" など)。
-
- 中には、 PlayController に入力処理やその他の機能を入れることが必要なケースもあります。ポーンは一時的になることもできますが、PlayerController はゲーム中ずっと持続します。
- 例えば、デスマッチ形式のゲームプレイの中で死亡した後にポーンを再スポーンすると、ポーンは新しくなりますが PlayerController は変わりません。例えば、ソースがポーン上にあるとスコアはリセットされますが、
- スコアを PlayController に維持すると、スコアはリセットされません。
+ 中には、 PlayController に入力処理やその他の機能を入れることが必要なケースもあります。ポーンは一時的である場合がありますが、PlayerController はゲーム中ずっと持続します。
+ 例えば、デスマッチ形式のゲームプレイの中で死亡した後にポーンを再スポーンすると、ポーンは新しくなりますが PlayerController は変わりません。例えば、スコアがポーン上にあるとスコアはリセットされますが、
+ スコアを PlayController 上に維持すると、スコアはリセットされません。
 
 

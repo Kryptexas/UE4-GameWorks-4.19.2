@@ -34,19 +34,15 @@
 //POSSIBILITY OF SUCH DAMAGE.
 
 //
-// Author: John Kessenich, LunarG
-//
-
-//
 // Helper for making SPIR-V IR.  Generally, this is documented in the header
 // SpvBuilder.h.
 //
 
 #include <assert.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include <unordered_set>
+#include <algorithm>
 
 #include "SpvBuilder.h"
 
@@ -56,7 +52,7 @@
 
 namespace spv {
 
-Builder::Builder(unsigned int magicNumber) :
+Builder::Builder(unsigned int magicNumber, SpvBuildLogger* buildLogger) :
     source(SourceLanguageUnknown),
     sourceVersion(0),
     addressModel(AddressingModelLogical),
@@ -64,7 +60,9 @@ Builder::Builder(unsigned int magicNumber) :
     builderNumber(magicNumber),
     buildPoint(0),
     uniqueId(0),
-    mainFunction(0)
+    mainFunction(0),
+    generatingOpCodeForSpecConst(false),
+    logger(buildLogger)
 {
     clearAccessChain();
 }
@@ -604,7 +602,7 @@ Id Builder::findScalarConstant(Op typeClass, Op opcode, Id typeId, unsigned valu
     return 0;
 }
 
-// Version of findScalarConstant (see above) for scalars that take two operands (e.g. a 'double').
+// Version of findScalarConstant (see above) for scalars that take two operands (e.g. a 'double' or 'int64').
 Id Builder::findScalarConstant(Op typeClass, Op opcode, Id typeId, unsigned v1, unsigned v2) const
 {
     Instruction* constant;
@@ -644,6 +642,21 @@ bool Builder::isConstantOpCode(Op opcode) const
     }
 }
 
+// Return true if consuming 'opcode' means consuming a specialization constant.
+bool Builder::isSpecConstantOpCode(Op opcode) const
+{
+    switch (opcode) {
+    case OpSpecConstantTrue:
+    case OpSpecConstantFalse:
+    case OpSpecConstant:
+    case OpSpecConstantComposite:
+    case OpSpecConstantOp:
+        return true;
+    default:
+        return false;
+    }
+}
+
 Id Builder::makeBoolConstant(bool b, bool specConstant)
 {
     Id typeId = makeBoolType();
@@ -653,15 +666,15 @@ Id Builder::makeBoolConstant(bool b, bool specConstant)
     // See if we already made it. Applies only to regular constants, because specialization constants
     // must remain distinct for the purpose of applying a SpecId decoration.
     if (! specConstant) {
-    Id existing = 0;
-    for (int i = 0; i < (int)groupedConstants[OpTypeBool].size(); ++i) {
-        constant = groupedConstants[OpTypeBool][i];
-        if (constant->getTypeId() == typeId && constant->getOpCode() == opcode)
-            existing = constant->getResultId();
-    }
+        Id existing = 0;
+        for (int i = 0; i < (int)groupedConstants[OpTypeBool].size(); ++i) {
+            constant = groupedConstants[OpTypeBool][i];
+            if (constant->getTypeId() == typeId && constant->getOpCode() == opcode)
+                existing = constant->getResultId();
+        }
 
-    if (existing)
-        return existing;
+        if (existing)
+            return existing;
     }
 
     // Make it
@@ -680,13 +693,38 @@ Id Builder::makeIntConstant(Id typeId, unsigned value, bool specConstant)
     // See if we already made it. Applies only to regular constants, because specialization constants
     // must remain distinct for the purpose of applying a SpecId decoration.
     if (! specConstant) {
-    Id existing = findScalarConstant(OpTypeInt, opcode, typeId, value);
-    if (existing)
-        return existing;
+        Id existing = findScalarConstant(OpTypeInt, opcode, typeId, value);
+        if (existing)
+            return existing;
     }
 
     Instruction* c = new Instruction(getUniqueId(), typeId, opcode);
     c->addImmediateOperand(value);
+    constantsTypesGlobals.push_back(std::unique_ptr<Instruction>(c));
+    groupedConstants[OpTypeInt].push_back(c);
+    module.mapInstruction(c);
+
+    return c->getResultId();
+}
+
+Id Builder::makeInt64Constant(Id typeId, unsigned long long value, bool specConstant)
+{
+    Op opcode = specConstant ? OpSpecConstant : OpConstant;
+
+    unsigned op1 = value & 0xFFFFFFFF;
+    unsigned op2 = value >> 32;
+
+    // See if we already made it. Applies only to regular constants, because specialization constants
+    // must remain distinct for the purpose of applying a SpecId decoration.
+    if (! specConstant) {
+        Id existing = findScalarConstant(OpTypeInt, opcode, typeId, op1, op2);
+        if (existing)
+            return existing;
+    }
+
+    Instruction* c = new Instruction(getUniqueId(), typeId, opcode);
+    c->addImmediateOperand(op1);
+    c->addImmediateOperand(op2);
     constantsTypesGlobals.push_back(std::unique_ptr<Instruction>(c));
     groupedConstants[OpTypeInt].push_back(c);
     module.mapInstruction(c);
@@ -705,9 +743,9 @@ Id Builder::makeFloatConstant(float f, bool specConstant)
     // See if we already made it. Applies only to regular constants, because specialization constants
     // must remain distinct for the purpose of applying a SpecId decoration.
     if (! specConstant) {
-    Id existing = findScalarConstant(OpTypeFloat, opcode, typeId, value);
-    if (existing)
-        return existing;
+        Id existing = findScalarConstant(OpTypeFloat, opcode, typeId, value);
+        if (existing)
+            return existing;
     }
 
     Instruction* c = new Instruction(getUniqueId(), typeId, opcode);
@@ -732,9 +770,9 @@ Id Builder::makeDoubleConstant(double d, bool specConstant)
     // See if we already made it. Applies only to regular constants, because specialization constants
     // must remain distinct for the purpose of applying a SpecId decoration.
     if (! specConstant) {
-    Id existing = findScalarConstant(OpTypeFloat, opcode, typeId, op1, op2);
-    if (existing)
-        return existing;
+        Id existing = findScalarConstant(OpTypeFloat, opcode, typeId, op1, op2);
+        if (existing)
+            return existing;
     }
 
     Instruction* c = new Instruction(getUniqueId(), typeId, opcode);
@@ -794,9 +832,9 @@ Id Builder::makeCompositeConstant(Id typeId, std::vector<Id>& members, bool spec
     }
 
     if (! specConstant) {
-    Id existing = findCompositeConstant(typeClass, members);
-    if (existing)
-        return existing;
+        Id existing = findCompositeConstant(typeClass, members);
+        if (existing)
+            return existing;
     }
 
     Instruction* c = new Instruction(getUniqueId(), typeId, opcode);
@@ -893,7 +931,7 @@ void Builder::addMemberDecoration(Id id, unsigned int member, Decoration decorat
 }
 
 // Comments in header
-Function* Builder::makeMain()
+Function* Builder::makeEntrypoint(const char* entryPoint)
 {
     assert(! mainFunction);
 
@@ -901,7 +939,7 @@ Function* Builder::makeMain()
     std::vector<Id> params;
     std::vector<Decoration> precisions;
 
-    mainFunction = makeFunctionEntry(NoPrecision, makeVoidType(), "main", params, precisions, &entry);
+    mainFunction = makeFunctionEntry(NoPrecision, makeVoidType(), entryPoint, params, precisions, &entry);
 
     return mainFunction;
 }
@@ -1063,6 +1101,11 @@ Id Builder::createArrayLength(Id base, unsigned int member)
 
 Id Builder::createCompositeExtract(Id composite, Id typeId, unsigned index)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        return createSpecConstantOp(OpCompositeExtract, typeId, std::vector<Id>(1, composite), std::vector<Id>(1, index));
+    }
     Instruction* extract = new Instruction(getUniqueId(), typeId, OpCompositeExtract);
     extract->addIdOperand(composite);
     extract->addImmediateOperand(index);
@@ -1073,6 +1116,11 @@ Id Builder::createCompositeExtract(Id composite, Id typeId, unsigned index)
 
 Id Builder::createCompositeExtract(Id composite, Id typeId, std::vector<unsigned>& indexes)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        return createSpecConstantOp(OpCompositeExtract, typeId, std::vector<Id>(1, composite), indexes);
+    }
     Instruction* extract = new Instruction(getUniqueId(), typeId, OpCompositeExtract);
     extract->addIdOperand(composite);
     for (int i = 0; i < (int)indexes.size(); ++i)
@@ -1170,6 +1218,11 @@ void Builder::createMemoryBarrier(unsigned executionScope, unsigned memorySemant
 // An opcode that has one operands, a result id, and a type
 Id Builder::createUnaryOp(Op opCode, Id typeId, Id operand)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        return createSpecConstantOp(opCode, typeId, std::vector<Id>(1, operand), std::vector<Id>());
+    }
     Instruction* op = new Instruction(getUniqueId(), typeId, opCode);
     op->addIdOperand(operand);
     buildPoint->addInstruction(std::unique_ptr<Instruction>(op));
@@ -1179,6 +1232,13 @@ Id Builder::createUnaryOp(Op opCode, Id typeId, Id operand)
 
 Id Builder::createBinOp(Op opCode, Id typeId, Id left, Id right)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        std::vector<Id> operands(2);
+        operands[0] = left; operands[1] = right;
+        return createSpecConstantOp(opCode, typeId, operands, std::vector<Id>());
+    }
     Instruction* op = new Instruction(getUniqueId(), typeId, opCode);
     op->addIdOperand(left);
     op->addIdOperand(right);
@@ -1189,6 +1249,16 @@ Id Builder::createBinOp(Op opCode, Id typeId, Id left, Id right)
 
 Id Builder::createTriOp(Op opCode, Id typeId, Id op1, Id op2, Id op3)
 {
+    // Generate code for spec constants if in spec constant operation
+    // generation mode.
+    if (generatingOpCodeForSpecConst) {
+        std::vector<Id> operands(3);
+        operands[0] = op1;
+        operands[1] = op2;
+        operands[2] = op3;
+        return createSpecConstantOp(
+            opCode, typeId, operands, std::vector<Id>());
+    }
     Instruction* op = new Instruction(getUniqueId(), typeId, opCode);
     op->addIdOperand(op1);
     op->addIdOperand(op2);
@@ -1204,6 +1274,20 @@ Id Builder::createOp(Op opCode, Id typeId, const std::vector<Id>& operands)
     for (auto it = operands.cbegin(); it != operands.cend(); ++it)
         op->addIdOperand(*it);
     buildPoint->addInstruction(std::unique_ptr<Instruction>(op));
+
+    return op->getResultId();
+}
+
+Id Builder::createSpecConstantOp(Op opCode, Id typeId, const std::vector<Id>& operands, const std::vector<unsigned>& literals)
+{
+    Instruction* op = new Instruction(getUniqueId(), typeId, OpSpecConstantOp);
+    op->addImmediateOperand((unsigned) opCode);
+    for (auto it = operands.cbegin(); it != operands.cend(); ++it)
+        op->addIdOperand(*it);
+    for (auto it = literals.cbegin(); it != literals.cend(); ++it)
+        op->addImmediateOperand(*it);
+    module.mapInstruction(op);
+    constantsTypesGlobals.push_back(std::unique_ptr<Instruction>(op));
 
     return op->getResultId();
 }
@@ -1225,6 +1309,11 @@ Id Builder::createRvalueSwizzle(Decoration precision, Id typeId, Id source, std:
     if (channels.size() == 1)
         return setPrecision(createCompositeExtract(source, typeId, channels.front()), precision);
 
+    if (generatingOpCodeForSpecConst) {
+        std::vector<Id> operands(2);
+        operands[0] = operands[1] = source;
+        return setPrecision(createSpecConstantOp(OpVectorShuffle, typeId, operands, channels), precision);
+    }
     Instruction* swizzle = new Instruction(getUniqueId(), typeId, OpVectorShuffle);
     assert(isVector(source));
     swizzle->addIdOperand(source);
@@ -1290,10 +1379,25 @@ Id Builder::smearScalar(Decoration precision, Id scalar, Id vectorType)
     if (numComponents == 1)
         return scalar;
 
-    Instruction* smear = new Instruction(getUniqueId(), vectorType, OpCompositeConstruct);
-    for (int c = 0; c < numComponents; ++c)
-        smear->addIdOperand(scalar);
-    buildPoint->addInstruction(std::unique_ptr<Instruction>(smear));
+    Instruction* smear = nullptr;
+    if (generatingOpCodeForSpecConst) {
+        auto members = std::vector<spv::Id>(numComponents, scalar);
+        // Sometime even in spec-constant-op mode, the temporary vector created by
+        // promoting a scalar might not be a spec constant. This should depend on
+        // the scalar.
+        // e.g.:
+        //  const vec2 spec_const_result = a_spec_const_vec2 + a_front_end_const_scalar;
+        // In such cases, the temporary vector created from a_front_end_const_scalar
+        // is not a spec constant vector, even though the binary operation node is marked
+        // as 'specConstant' and we are in spec-constant-op mode.
+        auto result_id = makeCompositeConstant(vectorType, members, isSpecConstant(scalar));
+        smear = module.getInstruction(result_id);
+    } else {
+        smear = new Instruction(getUniqueId(), vectorType, OpCompositeConstruct);
+        for (int c = 0; c < numComponents; ++c)
+            smear->addIdOperand(scalar);
+        buildPoint->addInstruction(std::unique_ptr<Instruction>(smear));
+    }
 
     return setPrecision(smear->getResultId(), precision);
 }
@@ -1360,8 +1464,10 @@ Id Builder::createTextureCall(Decoration precision, Id resultType, bool sparse, 
     if (parameters.offset) {
         if (isConstant(parameters.offset))
             mask = (ImageOperandsMask)(mask | ImageOperandsConstOffsetMask);
-        else
+        else {
+            addCapability(CapabilityImageGatherExtended);
             mask = (ImageOperandsMask)(mask | ImageOperandsOffsetMask);
+        }
         texArgs[numArgs++] = parameters.offset;
     }
     if (parameters.offsets) {
@@ -1648,6 +1754,20 @@ Id Builder::createCompositeCompare(Decoration precision, Id value1, Id value2, b
 Id Builder::createCompositeConstruct(Id typeId, std::vector<Id>& constituents)
 {
     assert(isAggregateType(typeId) || (getNumTypeConstituents(typeId) > 1 && getNumTypeConstituents(typeId) == (int)constituents.size()));
+
+    if (generatingOpCodeForSpecConst) {
+        // Sometime, even in spec-constant-op mode, the constant composite to be
+        // constructed may not be a specialization constant.
+        // e.g.:
+        //  const mat2 m2 = mat2(a_spec_const, a_front_end_const, another_front_end_const, third_front_end_const);
+        // The first column vector should be a spec constant one, as a_spec_const is a spec constant.
+        // The second column vector should NOT be spec constant, as it does not contain any spec constants.
+        // To handle such cases, we check the constituents of the constant vector to determine whether this
+        // vector should be created as a spec constant.
+        return makeCompositeConstant(typeId, constituents,
+                                     std::any_of(constituents.begin(), constituents.end(),
+                                                 [&](spv::Id id) { return isSpecConstant(id); }));
+    }
 
     Instruction* op = new Instruction(getUniqueId(), typeId, OpCompositeConstruct);
     for (int c = 0; c < (int)constituents.size(); ++c)
@@ -1989,7 +2109,7 @@ void Builder::accessChainStore(Id rvalue)
     Id base = collapseAccessChain();
 
     if (accessChain.swizzle.size() && accessChain.component != NoResult)
-        MissingFunctionality("simultaneous l-value swizzle and dynamic component selection");
+        logger->missingFunctionality("simultaneous l-value swizzle and dynamic component selection");
 
     // If swizzle still exists, it is out-of-order or not full, we must load the target vector,
     // extract and insert elements to perform writeMask and/or swizzle.
@@ -2021,7 +2141,7 @@ Id Builder::accessChainLoad(Decoration precision, Id resultType)
         transferAccessChainSwizzle(false);
         if (accessChain.indexChain.size() > 0) {
             Id swizzleBase = accessChain.preSwizzleBaseType != NoType ? accessChain.preSwizzleBaseType : resultType;
-        
+
             // if all the accesses are constants, we can use OpCompositeExtract
             std::vector<unsigned> indexes;
             bool constant = true;
@@ -2158,7 +2278,7 @@ void Builder::eliminateDeadDecorations() {
         }
     }
     decorations.erase(std::remove_if(decorations.begin(), decorations.end(),
-        [&unreachable_definitions](std::unique_ptr<Instruction>& I) {
+        [&unreachable_definitions](std::unique_ptr<Instruction>& I) -> bool {
             Instruction* inst = I.get();
             Id decoration_id = inst->getIdOperand(0);
             return unreachable_definitions.count(decoration_id) != 0;
@@ -2268,7 +2388,7 @@ void Builder::simplifyAccessChainSwizzle()
 
 // To the extent any swizzling can become part of the chain
 // of accesses instead of a post operation, make it so.
-// If 'dynamic' is true, include transfering a non-static component index,
+// If 'dynamic' is true, include transferring a non-static component index,
 // otherwise, only transfer static indexes.
 //
 // Also, Boolean vectors are likely to be special.  While
@@ -2363,21 +2483,6 @@ void Builder::dumpInstructions(std::vector<unsigned int>& out, const std::vector
     for (int i = 0; i < (int)instructions.size(); ++i) {
         instructions[i]->dump(out);
     }
-}
-
-void TbdFunctionality(const char* tbd)
-{
-    static std::unordered_set<const char*> issued;
-
-    if (issued.find(tbd) == issued.end()) {
-        printf("TBD functionality: %s\n", tbd);
-        issued.insert(tbd);
-    }
-}
-
-void MissingFunctionality(const char* fun)
-{
-    printf("Missing functionality: %s\n", fun);
 }
 
 }; // end spv namespace

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2692223
+﻿INTSourceChangelist:2815130
 Availability: Public
 Title:애니메이션 비법
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Examples of different aspects of the Animation system in Unreal Engine 4 are demonstrated through several step-by-step How To guides.
+Description:여러가지 단계별 비법 안내를 통해 알아보는 언리얼 엔진 4 의 애니메이션 시스템 다양한 부분에 대한 예제입니다.
 version: 4.9
 
 **애니메이션 비법** 페이지에는 언리얼 엔진 4 애니메이션 툴인 [**페르소나**](Engine/Animation) 의 여러 부분을 사용하여 작업하는 법에 대한 단계별 예제가 여럿 제공됩니다. 
@@ -19,7 +19,7 @@ UE4 의 애니메이션이 처음이거나 페르소나의 특정 부분 작업 
 ## 중급
 |비법 | 설명 |
 | ------- | ------------ |
-| [](Engine\Animation\AnimHowTo\BlendSpace) | %Engine\Animation\AnimHowTo\BlendSpace:description% |
+| [](Engine\Animation\AnimHowTo\PropertyBasedBlending) | %Engine\Animation\AnimHowTo\PropertyBasedBlending:description% |
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |
 
@@ -34,15 +34,10 @@ UE4 의 애니메이션이 처음이거나 페르소나의 특정 부분 작업 
 
 <!-- Convert these to Quick Starts
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |Beginner|
-| [](Engine\Animation\AnimHowTo\BlendSpace) | %Engine\Animation\AnimHowTo\BlendSpace:description% |Beginner|
 
 Split this into two How To's
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |Intermediate|
 -->
-
-
-
-
 
 
 

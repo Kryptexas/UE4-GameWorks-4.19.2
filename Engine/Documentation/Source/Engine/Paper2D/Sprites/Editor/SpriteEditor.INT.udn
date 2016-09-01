@@ -98,7 +98,7 @@ This shows all of the editable properties of the opened Sprite asset.
 
 ### Sprite List
 
-This shows all of the Sprites that share a common source texture. **Double-clicking** on another Sprite will switch the current asset being edited, which can be useful when adjusting a bunch of Sprites in a row. Another approach for bulk editing is to use the [Property Matrix](GettingStarted/HowTo/DetailsPanel#propertymatrix) context menu option on several selected assets in the **Content Browser**.
+This shows all of the Sprites that share a common source texture. **Double-clicking** on another Sprite will switch the current asset being edited, which can be useful when adjusting a bunch of Sprites in a row. Another approach for bulk editing is to use the [Property Matrix](Engine/UI/PropertyMatrix) context menu option on several selected assets in the **Content Browser**.
 
 ![](sprite_list.png)
 

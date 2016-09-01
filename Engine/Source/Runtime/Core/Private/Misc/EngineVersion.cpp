@@ -7,8 +7,9 @@
 #include "ModuleVersion.h"
 #include "UObject/ReleaseObjectVersion.h"
 
-/** Version numbers for networking */
-int32 GEngineNetVersion = BUILT_FROM_CHANGELIST;
+/** Version numbers for networking - DEPRECATED!!!! Use FNetworkVersion::GetNetworkCompatibleChangelist instead!!! */
+int32 GEngineNetVersion = ENGINE_NET_VERSION;
+
 const int32 GEngineMinNetVersion		= 7038;
 const int32 GEngineNegotiationVersion	= 3077;
 
@@ -159,30 +160,6 @@ FString FEngineVersion::ToString(EVersionComponent LastComponent) const
 	return Result;
 }
 
-FString FEngineVersion::ToBuildInfoString() const
-{
-	FString PlatformCopy(FPlatformProperties::PlatformName());
-
-	// Strip off the word "server" from server builds
-	const int32 ServerPos = PlatformCopy.Find(TEXT("Server"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-	if (ServerPos != INDEX_NONE)
-	{
-		PlatformCopy[ServerPos] = TEXT('\0');
-	}
-	else
-	{
-		// Strip off the word "client" from client builds
-		const int32 ClientPos = PlatformCopy.Find(TEXT("Client"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-		if (ClientPos != INDEX_NONE)
-		{
-			PlatformCopy[ClientPos] = TEXT('\0');
-		}
-	}
-
-	// <Branch>-CL-<CL#>-<Platform>
-	return FString::Printf(TEXT("%s-CL-%u-%s"), *Branch, GetChangelist(), *PlatformCopy);
-}
-
 bool FEngineVersion::Parse(const FString &Text, FEngineVersion &OutVersion)
 {
 	TCHAR *End;
@@ -239,7 +216,6 @@ bool FEngineVersion::OverrideCurrentVersionChangelist(int32 NewChangelist)
 
 	CurrentVersion.Set(CurrentVersion.Major, CurrentVersion.Minor, CurrentVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CurrentVersion.Branch);
 	CompatibleWithVersion.Set(CompatibleWithVersion.Major, CompatibleWithVersion.Minor, CompatibleWithVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CompatibleWithVersion.Branch);
-	GEngineNetVersion = NewChangelist;
 	return true;
 }
 

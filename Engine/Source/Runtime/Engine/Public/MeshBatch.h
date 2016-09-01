@@ -133,6 +133,9 @@ struct FMeshBatch
 	/** Whether the mesh batch can be selected through editor selection, aka hit proxies. */
 	uint32 bSelectable : 1;
 
+	/** Whether the mesh batch needs VertexFactory->GetStaticBatchElementVisibility to be called each frame to determine which elements of the batch are visible. */
+	uint32 bRequiresPerElementVisibility : 1;
+	
 	/** Whether the mesh batch should apply dithered LOD. */
 	uint32 bDitheredLODTransition : 1;
 
@@ -162,6 +165,15 @@ struct FMeshBatch
 	{
 		// Note: blend mode does not depend on the feature level we are actually rendering in.
 		return IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
+	}
+
+	// todo: can be optimized with a single function that returns multiple states (Translucent, Decal, Masked) 
+	FORCEINLINE bool IsDecal(ERHIFeatureLevel::Type InFeatureLevel) const
+	{
+		// Note: does not depend on the feature level we are actually rendering in.
+		const FMaterial* Mat = MaterialRenderProxy->GetMaterial(InFeatureLevel);
+
+		return Mat->IsDeferredDecal();
 	}
 
 	FORCEINLINE bool IsMasked(ERHIFeatureLevel::Type InFeatureLevel) const
@@ -243,6 +255,7 @@ struct FMeshBatch
 	,	bUseWireframeSelectionColoring(false)
 	,	bUseSelectionOutline(true)
 	,	bSelectable(true)
+	,	bRequiresPerElementVisibility(false)
 	,	bDitheredLODTransition(false)
 	,   DitheredLODTransitionAlpha(0.0f)
 	,	LCI(NULL)

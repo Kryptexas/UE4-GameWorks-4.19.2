@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2699495
+Availability:Public
 Title:Material 入力			
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
 Description:マテリアルに利用可能なさまざまな入力ポートの詳細とその使用方法
+Version:4.9
 
 ここではマテリアル作成時に利用可能な入力ポートに注目していきます。これらの入力ポートに値を入力する (定数、パラメータ、テクスチャなどとして) ことによって、思いつくほとんどの物理表面を定義することができます。
 

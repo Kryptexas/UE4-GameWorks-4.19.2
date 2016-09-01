@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2709507
 Availability:Public
-Title: Styling
+Title:样式设置
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:A guide to stylizing Widget Blueprints in UMG. 
-Related: Engine\UMG\UserGuide\Slots
-Related: Engine\UMG\UserGuide\WidgetTypeReference
+Description:在 UMG 中对控件蓝图进行样式设置的指南。 
+Related:Engine\UMG\UserGuide\Slots
+Related:Engine\UMG\UserGuide\WidgetTypeReference
 
 
 [REGION:fullwidth raw]
@@ -13,110 +13,110 @@ Related: Engine\UMG\UserGuide\WidgetTypeReference
 
 [TOC(start:2 end:2)]
 
-When it comes to creating your UI screens through UMG, arranging the layout of your elements is only the beginning. For each of your Buttons, Bars, Text Boxes, etc. there are several Style options that can be assigned directly within UMG from the **Details** panel that can affect the way that they appear. 
+当通过 UMG 创建您的 UI 屏幕时，排布各种元素的布局仅仅是第一步。对于每个按钮、状态条、文本框等，UMG 的 **详情** 面板中都提供了可以直接分配的数个“样式”选项，这些选项将影响这些对象的显示方式。 
 
-Each of the Widgets below utilize the **Style** option, however their individual Style options may vary: 
+下列各个控件都使用了 **样式** 选项，但它们各自的样式选项可能有所不同： 
 
-* Button
-* Check Box
-* Editable Text Box
-* Multi Line Editable Text Box
-* Progress Bar
-* Size Box
-* Slider
-* Spin Box
-* Text Block
-* Combo Box (String)
-* Editable Text
-* Multi Line Editable Text
+* 按钮
+* 复选框
+* 可编辑的文本框
+* 可编辑的多行文本框
+* 进度条
+* 调整大小框
+* 滑块
+* 数字调整框
+* 文本块
+* 组合框（字符串）
+* 可编辑的文本
+* 可编辑的多行文本
 
 
-## States
+## 状态
 
-There may be instances, particularly with interactive Widgets, that you want to convey a different look for your Widget based on how it is interacted with or the condition it is in. For example, say you have a button on screen that appears normally and when moused over, changes colors or pulsates, then when clicked does something entirely different. Referred to as **States**, this is the most common form of styling and allows you to specify how the Widget appears based on the current state it is in. 
+在很多情况下，尤其对于交互式控件而言，您可能希望根据各个控件交互方式或所处条件的不同，需要它们具备不同的外观。例如，假设您的屏幕上有一个正常显示的按钮，当将鼠标悬停在此按钮上方时，按钮的颜色会发生变化或者按钮按一定规律闪烁，而点击按钮时又会执行完全不同的操作。我们将这种现象称为 **状态**，这是一种最常见的设定样式的形式，用于根据控件当前所处的状态来指定控件的显示方式。 
 
 ![](Style1.png)
 
-Above, a Button Widget changes based on its Normal, Pressed, Hovered, or Disabled States. Most Widgets will use the Normal, Pressed, Hovered, and Disabled States, however there may be additional options based on the type of Widget you are using. 
+上图中，按钮控件会根据正常、按下、光标悬停或禁用这些不同的状态而发生变化。大部分控件都将使用正常、按下、光标悬停和禁用状态，但根据您使用的控件类型，也可能有更多选项可用。 
 
-### Setting Image States
+### 设置图像状态
 
-For each state, you can set an **Image** (either a **Texture** or **Material** asset) for the Widget to use. **Image Size** refers to the size of the resource in Slate Units and the **Draw As** option, which uses a 9 Scale Box, allows you to specify how the image is drawn in the form of a **Box**, **Border**, or an **Image**. 
+对于每种状态，您都可以为控件设置要使用的 **图像**（**纹理** 或 **材质** 资产）。**图像大小** 是指平板单元中资源的大小，而 **绘制为** 选项使用 9 个缩放框，用于指定以 **方框**、**边框** 或 **图像** 的形式绘制图像。 
 
-Examples of each are provided below: 
+每种形式的示例如下图所示： 
 
 [REGION:imagetable]
 |![](BoxExample.png)(w:300)|![](BorderExample.png)(w:300)|![](BoxAndImage.png)(w:300)|
 |---|---|---|
-|Box|Border|Image|
+|方框|边框|图像|
 [/REGION]
 
-* The **Box** draws a 3x3 box where the sides and the middle Stretch (orange arrows) based on the Margins (dotted blue lines). 
-	*	The green arrows represent constant values based on the Margin x Image Size. 
-* The **Border** draws a 3x3 border where the sides Tile (orange arrows) based on the Margins (dotted blue lines). 
-	*	The middle is not drawn when using a Border. 
-	*	The green arrows represent constant values based on the Margin x Image Size. 
-* The **Image** will draw the image and will Stretch (orange arrow) and the Margin will be ignored.
+* **方框** 会绘制一个 3x3 的框，其中根据边距（蓝色虚线）来确定侧面和中间区域的拉伸（橙色箭头所指）。 
+	*	绿色箭头代表根据边距乘图像大小所得出的常数值。 
+* **边框** 会绘制一个 3x3 的边框，其中根据边距（蓝色虚线）来确定侧面的图块（橙色箭头所指）。 
+	*	使用边框选项时不会绘制中间部分。 
+	*	绿色箭头代表根据边距乘图像大小所得出的常数值。 
+* **图像** 将绘制图像并进行拉伸（橙色箭头所指），并且会忽略边距。
 
-#### Texture Based Images
-You can assign Textures as your Image asset, but there are some flags you will want to set in order for the Texture to show up on every device, and to show up crisp and without compression artifacts. Inside the Texture Edtior under Level Of Detail, set **Mip Gen Settings** to **NoMipmaps** and set the **LOD Group** to **UI**. Under Compression, set the **Compression Setting** to **TC Editor Icon**.  
+### 基于纹理的图像
+您可以指定纹理作为图像资产，但也可以设置一些旗标，以便在每种设备上清晰地显示纹理并避免出现压缩失真。在“细节层次”下的“纹理编辑器”中，将 **Mip Gen 设置** 设为 **NoMipmaps**，并将 **LOD 组** 设为 **UI**。在“压缩”下，将 **压缩设置** 设为 **TC 编辑器图标**。  
 
 [REGION:lightbox]
 	[![](TextureSetup.png)(w:480)](TextureSetup.png)
 [/REGION]
 
-_Click for full view._
+_点击查看全图。_
 
-#### Material Based Images
-Materials can also be assigned as the Image asset for your Image States, but you will need to change a few settings. Inside the Material, in the **Details** panel under **Usage**, you will need to check the **Used with UI** checkbox. This enables compiling a different shader specifically for Slate. You also need to only output **Emissive Color**
+### 基于材质的图像
+针对图像状态，也可以将材质指定为图像资产，但您需要更改一些设置。在“材质”中，需要在 **详情** 面板的 **使用** 下勾选 **用于 UI** 复选框。这将会为平板专门编译另一个着色器。您还需要仅输出 **放射颜色**。
 
 [REGION:lightbox]
 	[![](UsedWithUI.png)(w:760)](UsedWithUI.png)
 [/REGION]
 
-_Click for full view._
+_点击查看全图。_
 
-#### Dynamic Materials
-In order to modify Material Parameters, you need a **Dynamic Material Instance**. The Image Widget makes this especially easy as long as it has a Slate Brush on it with a Material, you can ask for the dynamic image (only creates it once and then caches it).
+#### 动态材质
+要修改材质参数，您需要一个 **动态材质实例**。只要图像控件具有带材质的平板刷功能，您可以向其请求动态图像（只需要创建一次，然后对其进行缓存即可），从而轻松实现这一目的。
 
 ![](UMG_Auto_Dynamic_Material_Image.png)(w:760)
 
-### Tint / Margin
+### 着色/边距
 
-Also under each State is the option to **Tint** the image, which allows you apply a tint color to the supplied image associated with the state. There is also a **Margin** option which allows you to enter a margin size for the **Box** and **Border** draw modes (in Image mode, margin is ignored).  
+在每种状态下，还有为图像 **着色** 的选项，用于向与状态相关的图像应用着色颜色。还有一个 **边距** 选项，您可以使用该选项来输入 **方框** 和 **边框** 绘制模式的边距尺寸（在图像模式中，会忽略边距）。  
 
-## Padding
+## 填充
 
-The **Padding** styling option refers to the border created around aspects of the Widget. 
+**填充** 样式选项是指围绕控件创建的边框。 
 
 ![](Padding.png)
 
-For example, in the image above for a Box Button, **Normal Padding** accounts for the border in the button's background image. When it is applied, the content of the button will appear flush with the button's border. **Pressed Padding** is the same as Normal Padding, however it refers to the padding applied when the button is pressed. 
+例如，在针对方框按钮的上图中，**正常填充** 负责绘制按钮背景图像中的边框。应用它时，按钮内容将与按钮的边框齐平显示。**按下填充** 与正常填充相同，但它表示的是按下按钮时所应用的填充方式。 
 
-Based on the type of Widget you are using, different **Padding** options may be available.
+根据您使用的控件类型，可能会提供不同的 **填充** 选项。
 
-## Sounds
+## 音效
 
-**Sounds** can be set for your Widgets based on the State the Widget is in. 
+可根据控件所处的状态为控件设置 **音效**。 
 
 ![](Sounds.png)
 
-Most Widgets that allow sounds to be applied make use of the Hovered or Pressed Sound Events, which play the specified sound when hovering over the Widget or clicking on the Widget. In the image above for a Check Box Widget, there is the option to set sound events for **Checked** and **Unchecked** as well as **Hovered**. 
+允许应用音效的大部分控件都使用光标悬停或按下音效事件，即在光标悬停在控件上方时或点击控件时会播放指定的音效。在针对复选框控件的上图中，存在相关选项，可以为 **选中**、**取消选中** 以及 **光标悬停** 状态设置音效事件。 
 
-Based on the type of Widget you are using, different **Sound** options may be available.
+根据您使用的控件类型，可能会提供不同的 **音效** 选项。
 
 
-## Render Transform
+## 渲染转换
 
 ![](RenderTransformMenu.png)
 
-There are additional styling options that can be used to modify the look of your Widgets found under the **Render Transform** section of the **Details** panel for your Widget. With the Render Transform settings, you can **Translate**, **Scale**, **Shear**, or **Angle** your Widgets as well as adjust its **Pivot** point. 
+在控件 **详情** 面板的 **渲染转换** 部分下，提供有更多样式设置选项，它们可用于修改您控件的外观。利用渲染转换设置，您可以 **平移**、**缩放**、**修剪** 或 **旋转** 您的控件，还可以调整它的 **枢轴** 点。 
 
-Samples of **Render Transform** settings are illustrated below.
+下图给出了 **渲染转换** 设置的示例。
 
 ![](RenderTransforms.png)(w:520)
 
-Each of the Render Transform settings can be Keyframed allowing you to modify them with Animations and they can also be modified through Blueprints allowing you to make modifications during or based on gameplay actions performed by the user. Render Transforms are relative to Layout Transforms and are not clipped by their parent (for example if you had a Scroll Box full of Buttons, adjusting the Translation in the Render Transform settings could push the Button outside of its box). 
+每个渲染转换设置都可以被设为关键帧，这让您能够通过动画功能来修改它们，而同时由于可以通过蓝图来修改它们，因此您能够在用户执行游戏操作期间或根据用户的操作来进行修改。渲染转换与布局转换是相对的，并且并不会被它们的父操作所裁剪（例如，如果您有一个布满按钮的滚动框，那么调整“渲染转换”中的“平移”设置会将按钮推出它们所在的框）。 
 
 
 

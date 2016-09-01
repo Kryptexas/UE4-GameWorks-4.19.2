@@ -17,7 +17,16 @@
 #include "UProjectInfo.h"
 
 #if UE_ENABLE_ICU
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(push)
+	#pragma warning(disable:28251)
+	#pragma warning(disable:28252)
+	#pragma warning(disable:28253)
+#endif
 	#include <unicode/locid.h>
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	#pragma warning(pop)
+#endif
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformMisc, Log, All);
@@ -242,6 +251,11 @@ FString FGenericPlatformMisc::GetCPUBrand()
 	return FString( TEXT( "GenericCPUBrand" ) );
 }
 
+uint32 FGenericPlatformMisc::GetCPUInfo()
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	return 0;
+}
 
 FString FGenericPlatformMisc::GetPrimaryGPUBrand()
 {
@@ -905,6 +919,11 @@ int32 FGenericPlatformMisc::NumberOfWorkerThreadsToSpawn()
 	int32 MaxWorkerThreadsWanted = (IsRunningGame() || IsRunningDedicatedServer() || IsRunningClientOnly()) ? MaxGameThreads : MaxThreads;
 	// need to spawn at least one worker thread (see FTaskGraphImplementation)
 	return FMath::Max(FMath::Min(NumberOfCores - 1, MaxWorkerThreadsWanted), 1);
+}
+
+int32 FGenericPlatformMisc::NumberOfIOWorkerThreadsToSpawn()
+{
+	return 4;
 }
 
 void FGenericPlatformMisc::GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames)

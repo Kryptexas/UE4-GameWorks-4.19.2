@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2284730
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:UAnimBlueprint
 Crumbs:
@@ -6,7 +6,7 @@ Description:AnimBlueprint クラスの概要
 
 [EXCERPT:UAnimBlueprint]
 
-アニメーション ブループリントは、基本的に特殊なブループリントであり、そのグラフは、スケルタルメッシュのアニメーションを制御します。アニメーションのブレンディング、スケルトンのボーンを直接制御、スケルタルメッシュの各フレームの最終ポーズを出力します。 
+Animation ブループリントは、基本的に特殊なブループリントであり、そのグラフは、スケルタルメッシュのアニメーションを制御します。アニメーションのブレンディング、スケルトンのボーンを直接制御、各フレームのスケルタルメッシュの最終ポーズを出力します。 
 
 [VAR:ToolTipFullLink]
 Engine/Animation/AnimBlueprints

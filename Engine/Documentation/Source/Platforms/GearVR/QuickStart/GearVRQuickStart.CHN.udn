@@ -1,21 +1,25 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2940199
 Availability:Public
-Title:Samsung Gear VR UE4 Quick Start
+Title:三星 Gear VR UE4 快速入门
 Crumbs:%ROOT%, Platforms/GearVR
-Description:Instructions on how to quickly setup and deploy projects for use with the Samsung Gear VR Headset.
+Description:三星 Gear VR 头戴设备项目的快速设置和部署说明。
 Navigation:platform
 Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.8
+Skilllevel:Intermediate
+Version:4.9
+type:quickstart
+parent:Platforms/GearVR
+tags:VR
+tags:GearVR
 
-The Gear VR Quick Start will walk you through how to setup your development PC and Samsung Galaxy Note 4 Smartphone to work with the Samsung Gear VR headset.
+Gear VR 快速入门将说明如何对开发电脑和三星 Galaxy Note 4 智能手机进行设置，以便结合三星 Gear VR 头戴设备使用。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

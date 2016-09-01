@@ -1,19 +1,24 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Common.Logging.dll version 2.1.1.0</Name>
-  <Location>//depot/UE4/Engine/Binaries/DotNET/</Location>
-  <Date>2015-09-04T18:23:05.5440726-04:00</Date>
+  <Location>/Engine/Binaries/DotNET/</Location>
+  <Date>2016-06-07T12:10:23.1697746-04:00</Date>
   <Function>Logging enchantments for .NET</Function>
   <Justification>The docs team wants to produce the pdf versions of docs automatically using Pechkin, which uses Common.Logging</Justification>
   <Platforms>
     <Platform>PC</Platform>
   </Platforms>
   <Products>
+    <Product>UDK4</Product>
     <Product>UE4</Product>
   </Products>
   <TpsType>dll</TpsType>
   <Eula>http://www.apache.org/licenses/LICENSE-2.0</Eula>
-  <RedistributeTo />
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>Full EULA Text</NoticeType>
@@ -219,5 +224,5 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 </Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/COMMON_LOGGING.DLL_2.1.1_license.txt</LicenseFolder>
 </TpsData>

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2722008
+﻿INTSourceChangelist:2758677
 Availability:Public
 Title:1.7 - Scene Capture 2D
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -71,12 +71,11 @@ Version:4.9
 [REGION:fullwidth]
 
 ![](Reflections_1_7_Header.png)
-## 概要
 
-[Screen Capture Cube](Resources\ContentExamples\Reflections\1_6) と同様に、 **Scene Capture 2D** はシーンの画像を _フレームごと_ に作成します。Scene Capture 2D アクタは実世界の反射のようには機能しません。このアクタはカメラから画像を受信する TV スクリーンのような機能をします。Scene Capture 2D はビュー錐台からのシーンをキャプチャして、そのビューを画像としてビューへ格納します。格納した画像はその後マテリアル内で使用されます。実際にアンリアル エディタの Scene Capture 2D 表現はカメラで行います。ゲームのセキュリティ カメラ エフェクトとして最も一般に使用されます。 
+[Screen Capture Cube](Resources\ContentExamples\Reflections\1_6) と同様に、 **Scene Capture 2D** はシーンの画像を _フレームごと_ に作成します。Scene Capture 2D アクタは実世界の反射のようには機能しません。このアクタはカメラから画像を受信する TV スクリーンのような機能をします。Scene Capture 2D は視錐台からのシーンをキャプチャして、そのビューを画像として格納します。格納した画像はその後マテリアル内で使用されます。実際にアンリアル エディタの Scene Capture 2D はカメラで表されます。ゲームのセキュリティ カメラ エフェクトとして最も一般に使用されます。 
 
 [REGION:warning]
-Scene Capture Cube よりも 6 分の 1 程度コストが高いだけですが、使用時はパフォーマンスヒットが発生するため、Scene Capture 2D の使用には未だ注意が必要です。
+Scene Capture Cube よりも 6 分の 1 程度負荷が高いだけですが、余分な処理が必要になるため、Scene Capture 2D の使用には未だ注意が必要です。
 [/REGION]
 
 

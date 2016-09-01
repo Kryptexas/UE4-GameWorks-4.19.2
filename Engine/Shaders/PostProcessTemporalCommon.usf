@@ -7,9 +7,6 @@ This is the common bits of the temporal AA shader
 which can be configured via defines for various temporal AA passes.
 =============================================================================*/
 
-// 0 / 1(default) This can be set to 0 to debug the velocity vectors
-#define NEIGHBORHOOD_CLAMPING 1
-
 // 1 = Use tighter AABB clamp for history.
 // 0 = Use simple min/max clamp.
 #ifndef AA_AABB

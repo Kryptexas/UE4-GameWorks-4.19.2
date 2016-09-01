@@ -418,7 +418,9 @@ Any existing array can be turned into a heap by calling the **Heapify** function
 
 This is a visualization of the tree:
 
+[REGION:raw] 
 ![image alt text](image_0.png)
+[/REGION]
 
 The nodes in the tree can be read from left-to-right, top-to-bottom as the order of the elements in the heapified array.  Note that the array isn't necessarily sorted after being transformed into a heap.  While a sorted array would also be a valid heap, the heap structure definition is loose enough to allow multiple valid heaps for the same set of elements.
 
@@ -427,7 +429,9 @@ New elements can be added to the heap via the HeapPush function, reordering othe
 	HeapArr.HeapPush(4);
 	// HeapArr == [1,2,4,3,4,5,8,10,7,9,6]
 
+[REGION:raw] 
 ![image alt text](image_1.png)
+[/REGION]
 
 The **HeapPop** and **HeapPopDiscard** functions are used to remove the top node from the heap.  The difference between the two are that the former takes a reference to an element type to return a copy of the top element, and the latter simply removes the top node without returning it in any way.  Both functions result in the same change to the array, and the heap is again maintained by reordering other elements appropriately:
 
@@ -436,14 +440,18 @@ The **HeapPop** and **HeapPopDiscard** functions are used to remove the top node
 	// TopNode == 1
 	// HeapArr == [2,3,4,6,4,5,8,10,7,9]
 
+[REGION:raw] 
 ![image alt text](image_2.png)
+[/REGION]
 
 **HeapRemoveAt** will remove an element from the array at a given index, and then reorder elements to maintain the heap:
 
 	HeapArr.HeapRemoveAt(1);
 	// HeapArr == [2,4,4,6,9,5,8,10,7]
 
+[REGION:raw] 
 ![image alt text](image_3.png)
+[/REGION]
 
 It should be noted that HeapPush, HeapPop, HeapPopDiscard and HeapRemoveAt should only be called when the structure is already a valid heap, e.g. after a Heapify() call, any other heap operation, or by manually manipulating the array into a heap.
 

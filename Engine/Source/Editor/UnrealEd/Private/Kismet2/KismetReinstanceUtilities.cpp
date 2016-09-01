@@ -12,6 +12,7 @@
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/Selection.h"
 #include "BlueprintEditorSettings.h"
+#include "Animation/AnimInstance.h"
 
 DECLARE_CYCLE_STAT(TEXT("Replace Instances"), EKismetReinstancerStats_ReplaceInstancesOfClass, STATGROUP_KismetReinstancer );
 DECLARE_CYCLE_STAT(TEXT("Find Referencers"), EKismetReinstancerStats_FindReferencers, STATGROUP_KismetReinstancer );
@@ -142,14 +143,26 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 	, OriginalCDO(NULL)
 	, bHasReinstanced(false)
 	, bSkipGarbageCollection(bSkipGC)
+	, ReinstClassType(RCT_Unknown)
 	, ClassToReinstanceDefaultValuesCRC(0)
 	, bIsRootReinstancer(false)
 	, bAllowResaveAtTheEndIfRequested(false)
 {
 	if( InClassToReinstance != NULL )
 	{
-		bIsReinstancingSkeleton = FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToReinstance);
-		bAllowResaveAtTheEndIfRequested = bAutoInferSaveOnCompile && !bIsBytecodeOnly && !bIsReinstancingSkeleton;
+		if (FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToReinstance))
+		{
+			ReinstClassType = RCT_BpSkeleton;
+		}
+		else if (ClassToReinstance->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			ReinstClassType = RCT_BpGenerated;
+		}
+		else if (ClassToReinstance->HasAnyClassFlags(CLASS_Native))
+		{
+			ReinstClassType = RCT_Native;
+		}
+		bAllowResaveAtTheEndIfRequested = bAutoInferSaveOnCompile && !bIsBytecodeOnly && (ReinstClassType != RCT_BpSkeleton);
 
 		SaveClassFieldMapping(InClassToReinstance);
 
@@ -259,14 +272,14 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Pull the blueprint that generated this reinstance target, and gather the blueprints that are dependent on it
 		UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassToReinstance->ClassGeneratedBy);
 		check(GeneratingBP || GIsAutomationTesting);
-		if(!bIsReinstancingSkeleton && GeneratingBP)
+		if(!IsReinstancingSkeleton() && GeneratingBP)
 		{
 			ClassToReinstanceDefaultValuesCRC = GeneratingBP->CrcLastCompiledCDO;
 			Dependencies.Empty();
 			FBlueprintEditorUtils::GetDependentBlueprints(GeneratingBP, Dependencies);
 
 			// Never queue for saving when regenerating on load
-			if (!GeneratingBP->bIsRegeneratingOnLoad && !bIsReinstancingSkeleton)
+			if (!GeneratingBP->bIsRegeneratingOnLoad && !IsReinstancingSkeleton())
 			{
 				bool const bIsLevelPackage = (UWorld::FindWorldInPackage(GeneratingBP->GetOutermost()) != nullptr);
 				// we don't want to save the entire level (especially if this 
@@ -324,6 +337,15 @@ void FBlueprintCompileReinstancer::AddReferencedObjects(FReferenceCollector& Col
 	Collector.AddReferencedObject(OriginalCDO);
 	Collector.AddReferencedObject(DuplicatedClass);
 	Collector.AllowEliminatingReferences(true);
+
+	// it's ok for these to get GC'd, but it is not ok for the memory to be reused (after a GC), 
+	// for that reason we cannot allow these to be freed during the life of this reinstancer
+	// 
+	// for example, we saw this as a problem in UpdateBytecodeReferences() - if the GC'd function 
+	// memory was used for a new (unrelated) function, then we were replacing references to the 
+	// new function (bad), as well as any old stale references (both were using the same memory address)
+	Collector.AddReferencedObjects(FunctionMap);
+	Collector.AddReferencedObjects(PropertyMap);
 }
 
 void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
@@ -397,38 +419,6 @@ public:
 		check(ClassToReinstance);
 
 		const bool bIsActor = ClassToReinstance->IsChildOf<AActor>();
-		const bool bIsAnimInstance = ClassToReinstance->IsChildOf<UAnimInstance>();
-
-		// Check for active skel mesh components. Due to a runtime optimization we will not always reinitialize the anim instances
-		// after a compile if we don't kill the instances here. Because we reinstance in compile order this can lead to
-		// a bad state in the animation when we attempt to refresh transforms
-		for(auto Obj : ObjectsToFinalize)
-		{
-			if(bIsAnimInstance)
-			{
-				if(USkeletalMeshComponent* SkelComponent = Cast<USkeletalMeshComponent>(Obj->GetOuter()))
-				{
-					// Clear out the script instance on the component to force a rebuild during initialization.
-					// This is necessary to correctly reinitialize certain properties that still reference the 
-					// old class as they are unreachable during reinstancing.
-					SkelComponent->AnimScriptInstance = nullptr;
-					SkelComponent->InitAnim(true);
-				}
-			}
-			else if(bIsActor)
-			{
-				// Check actor components for skel mesh components and reinitialize their instances
-				AActor* Actor = CastChecked<AActor>(Obj);
-				for(UActorComponent* Component : Actor->GetComponentsByClass(USkeletalMeshComponent::StaticClass()))
-				{
-					USkeletalMeshComponent* SkelComponent = CastChecked<USkeletalMeshComponent>(Component);
-					SkelComponent->AnimScriptInstance = nullptr;
-					SkelComponent->InitAnim(true);
-
-				}
-			}
-		}
-
 		if (bIsActor)
 		{
 			for (auto Obj : ObjectsToFinalize)
@@ -442,14 +432,58 @@ public:
 					// cached LinkInfo data may now be invalid. This could happen in the fast path, since the original
 					// Actor instance will not be replaced in that case, and thus might still have latent actions pending.
 					World->GetLatentActionManager().RemoveActionsForObject(Actor);
+
+					// Drop any references to anim script components for skeletal mesh components, depending on how
+					// the blueprints have changed during compile this could contain invalid data so we need to do
+					// a full initialisation to ensure everything is set up correctly.
+					TInlineComponentArray<USkeletalMeshComponent*> SkelComponents(Actor);
+					for(USkeletalMeshComponent* SkelComponent : SkelComponents)
+					{
+						SkelComponent->AnimScriptInstance = nullptr;
+					}
+
+					Actor->ReregisterAllComponents();
+					Actor->RerunConstructionScripts();
+
+					if (SelectedObjecs.Contains(Obj))
+					{
+						GEditor->SelectActor(Actor, /*bInSelected =*/true, /*bNotify =*/true, false, true);
+					}
 				}
+			}
+		}
 
-				Actor->ReregisterAllComponents();
-				Actor->RerunConstructionScripts();
-
-				if (SelectedObjecs.Contains(Obj))
+		const bool bIsAnimInstance = ClassToReinstance->IsChildOf<UAnimInstance>();
+		//UAnimBlueprintGeneratedClass* AnimClass = Cast<UAnimBlueprintGeneratedClass>(ClassToReinstance);
+		if(bIsAnimInstance)
+		{
+			for(auto Obj : ObjectsToFinalize)
+			{
+				if(USkeletalMeshComponent* SkelComponent = Cast<USkeletalMeshComponent>(Obj->GetOuter()))
 				{
-					GEditor->SelectActor(Actor, /*bInSelected =*/true, /*bNotify =*/true, false, true);
+					// This snippet catches all of the exposed value handlers that will have invalid UFunctions
+					// and clears the init flag so they will be reinitialized on the next call to InitAnim.
+					// Unknown whether there are other unreachable properties so currently clearing the anim
+					// instance below
+					// #TODO investigate reinstancing anim blueprints to correctly catch all deep references
+
+					//UAnimInstance* ActiveInstance = SkelComponent->GetAnimInstance();
+					//if(AnimClass && ActiveInstance)
+					//{
+					//	for(UStructProperty* NodeProp : AnimClass->AnimNodeProperties)
+					//	{
+					//		// Guaranteed to have only FAnimNode_Base pointers added during compilation
+					//		FAnimNode_Base* AnimNode = NodeProp->ContainerPtrToValuePtr<FAnimNode_Base>(ActiveInstance);
+					//
+					//		AnimNode->EvaluateGraphExposedInputs.bInitialized = false;
+					//	}
+					//}
+
+					// Clear out the script instance on the component to force a rebuild during initialization.
+					// This is necessary to correctly reinitialize certain properties that still reference the 
+					// old class as they are unreachable during reinstancing.
+					SkelComponent->AnimScriptInstance = nullptr;
+					SkelComponent->InitAnim(true);
 				}
 			}
 		}
@@ -523,11 +557,15 @@ void FBlueprintCompileReinstancer::CompileChildren()
 		{
 			ReparentChild(BP);
 
-			// Full compiles first recompile all skeleton classes, so they are up-to-date
-			const bool bSkeletonUpToDate = true;
+			// avoid the skeleton compile if we don't need it - if the class 
+			// we're reinstancing is a Blueprint class, then we assume sub-class
+			// skeletons were kept in-sync (updated/reinstanced when the parent 
+			// was updated); however, if this is a native class (like when hot-
+			// reloading), then we want to make sure to update the skel as well
+			const bool bSkeletonUpToDate = !ClassToReinstance->HasAnyClassFlags(CLASS_Native);
 			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, false, nullptr, bSkeletonUpToDate, false);
 		}
-		else if (bIsReinstancingSkeleton)
+		else if (IsReinstancingSkeleton())
 		{
 			const bool bForceRegeneration = true;
 			FKismetEditorUtilities::GenerateBlueprintSkeleton(BP, bForceRegeneration);
@@ -651,7 +689,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				Iter.RemoveCurrent();
 				if (auto BP = BPPtr.Get())
 				{
-					if (bIsReinstancingSkeleton)
+					if (IsReinstancingSkeleton())
 					{
 						const bool bForceRegeneration = true;
 						FKismetEditorUtilities::GenerateBlueprintSkeleton(BP, bForceRegeneration);
@@ -720,7 +758,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 			}
 
 
-			if (!bIsReinstancingSkeleton)
+			if (!IsReinstancingSkeleton())
 			{
 				TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
 
@@ -1347,8 +1385,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 				GetObjectsOfClass(OldClass, ObjectsToReplace, bIncludeDerivedClasses);
 
 				// Then fix 'real' (non archetype) instances of the class
-				for (UObject* OldObject : ObjectsToReplace)
+				for (int32 OldObjIndex = 0; OldObjIndex < ObjectsToReplace.Num(); ++OldObjIndex)
 				{
+					UObject* OldObject = ObjectsToReplace[OldObjIndex];
 					// Skip non-archetype instances, EXCEPT for component templates
 					const bool bIsComponent = NewClass->IsChildOf(UActorComponent::StaticClass());
 					if ((!bIsComponent && OldObject->IsTemplate()) || OldObject->IsPendingKill())
@@ -1357,18 +1396,32 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 						continue;
 					}
 
-					UBlueprint* CorrespondingBlueprint = Cast<UBlueprint>(OldObject->GetClass()->ClassGeneratedBy);
-					UObject*    OldBlueprintDebugObject = nullptr;
-					// If this object is being debugged, cache it off so we can preserve the 'object being debugged' association
-					if ((CorrespondingBlueprint != nullptr) && (CorrespondingBlueprint->GetObjectBeingDebugged() == OldObject))
+					UBlueprint* DebuggingBlueprint = nullptr;
+					// ObjectsToReplace is not in any garunteed order; so below there may be a 
+					// scenario where one object in ObjectsToReplace needs to come before another; 
+					// in that scenario we swap the two in ObjectsToReplace and finish the loop 
+					// with a new OldObject - to support that we need to re-cache info about the 
+					// (new) old object before it is destroyed (hence why this is all in a lambda,  
+					// for reuse).
+					auto CacheOldObjectState = [&DebuggingBlueprint](UObject* Replacee)
 					{
-						OldBlueprintDebugObject = OldObject;
-					}
+						// clear in case it has already been set, and we're re-executing this
+						DebuggingBlueprint = nullptr;
+
+						if (UBlueprint* OldObjBlueprint = Cast<UBlueprint>(Replacee->GetClass()->ClassGeneratedBy))
+						{
+							if (OldObjBlueprint->GetObjectBeingDebugged() == Replacee)
+							{
+								DebuggingBlueprint = OldObjBlueprint;
+							}
+						}
+					};
+					CacheOldObjectState(OldObject);
 
 					AActor*  OldActor = Cast<AActor>(OldObject);
 					UObject* NewUObject = nullptr;
 					// if the object to replace is an actor...
-					if (OldActor != nullptr)
+					if (OldActor != nullptr && OldActor->GetLevel())
 					{
 						FVector  Location = FVector::ZeroVector;
 						FRotator Rotation = FRotator::ZeroRotator;
@@ -1471,11 +1524,51 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 					}
 					else
 					{
-						auto OldFlags = OldObject->GetFlags();
+						// If the old object was spawned from an archetype (i.e. not the CDO), we must use the new version of that archetype as the template object when constructing the new instance.
+						UObject* OldArchetype = OldObject->GetArchetype();
+						UObject* NewArchetype = OldToNewInstanceMap.FindRef(OldArchetype);
+
+						bool bArchetypeReinstanced = (OldArchetype == OldClass->GetDefaultObject()) || (NewArchetype != nullptr);
+						// if we don't have a updated archetype to spawn from, we need to update/reinstance it
+						while (!bArchetypeReinstanced)
+						{
+							int32 ArchetypeIndex = ObjectsToReplace.Find(OldArchetype);
+							if (ArchetypeIndex != INDEX_NONE)
+							{
+								if (ensure(ArchetypeIndex > OldObjIndex))
+								{
+									// if this object has an archetype, but it hasn't been 
+									// reinstanced yet (but is queued to) then we need to swap out 
+									// the two, and reinstance the archetype first
+									ObjectsToReplace.Swap(ArchetypeIndex, OldObjIndex);
+									OldObject = ObjectsToReplace[OldObjIndex];
+									check(OldObject == OldArchetype);
+
+									// update any info that we stored regarding the previous OldObject
+									CacheOldObjectState(OldObject);
+									
+									OldArchetype = OldObject->GetArchetype();
+									NewArchetype = OldToNewInstanceMap.FindRef(OldArchetype);
+									bArchetypeReinstanced = (OldArchetype == OldClass->GetDefaultObject()) || (NewArchetype != nullptr);
+								}
+								else
+								{
+									break;
+								}
+							}
+							else
+							{
+								break;
+							}
+						}
+						// Check that either this was an instance of the class directly, or we found a new archetype for it
+						ensureMsgf(bArchetypeReinstanced, TEXT("Reinstancing non-actor (%s); failed to resolve archetype object - property values may be lost."), *OldObject->GetPathName());
+
+						EObjectFlags OldFlags = OldObject->GetFlags();
 
 						FName OldName(OldObject->GetFName());
 						OldObject->Rename(NULL, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
-						NewUObject = NewObject<UObject>(OldObject->GetOuter(), NewClass, OldName);
+						NewUObject = NewObject<UObject>(OldObject->GetOuter(), NewClass, OldName, RF_NoFlags, NewArchetype);
 						check(NewUObject != nullptr);
 
 						auto FlagMask = RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient | RF_TextExportTransient | RF_InheritableComponentTemplate; //TODO: what about RF_RootSet and RF_Standalone ?
@@ -1568,9 +1661,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 					}
 
 					// If this original object came from a blueprint and it was in the selected debug set, change the debugging to the new object.
-					if ((CorrespondingBlueprint) && (OldBlueprintDebugObject) && (NewUObject))
+					if (DebuggingBlueprint && NewUObject)
 					{
-						CorrespondingBlueprint->SetObjectBeingDebugged(NewUObject);
+						DebuggingBlueprint->SetObjectBeingDebugged(NewUObject);
 					}
 
 					if (bLogConversions)
@@ -1725,12 +1818,14 @@ void FBlueprintCompileReinstancer::ReparentChild(UBlueprint* ChildBP)
 	UClass* SkeletonClass = ChildBP->SkeletonGeneratedClass;
 	UClass* GeneratedClass = ChildBP->GeneratedClass;
 
-	if( bIsReinstancingSkeleton && SkeletonClass )
+	const bool ReparentGeneratedOnly = (ReinstClassType == RCT_BpGenerated);
+	if( !ReparentGeneratedOnly && SkeletonClass )
 	{
 		ReparentChild(SkeletonClass);
 	}
 
-	if( !bIsReinstancingSkeleton && GeneratedClass )
+	const bool ReparentSkelOnly = (ReinstClassType == RCT_BpSkeleton);
+	if( !ReparentSkelOnly && GeneratedClass )
 	{
 		ReparentChild(GeneratedClass);
 	}

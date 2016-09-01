@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:2541169
+﻿INTSourceChangelist:2708022
 Availability:Public
 Title:4.メイン メニューをスクリプティングする
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:このステップではメイン メニューの機能をスクリプティングし、ゲームに読み込みます。 
+version:4.9
 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/UMG\QuickStart\3 "%Engine/UMG\QuickStart\3:title%") 
+		[前のステップ](Engine/UMG\QuickStart\3 "%Engine/UMG\QuickStart\3:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/UMG\QuickStart) 
+		[クイックスタート ホーム](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/UMG\QuickStart\5 "%Engine/UMG\QuickStart\5:title%") 
+		[次のステップ](Engine/UMG\QuickStart\5 "%Engine/UMG\QuickStart\5:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -51,7 +52,11 @@ Description:このステップではメイン メニューの機能をスクリ�
 
 1.	**Ctrl** を押しながら、**MainMenu** と **OptionsMenu** の変数内でドラッグします。 
 
-1.	**MainMenu** からドラッグして **Set Visibility**(**Hidden** に set ) 、次に **OptionsMenu** からドラッグして **Set Visibility** を **Visible** にします。  
+1.	**MainMenu** からドラッグして、**Set Visibility** ノードを追加します。**In Visibility** を Hidden に set します。
+
+1. ドラッグして、**Set Visibility** ノードを追加します。**Invisibility** を Visible に set します。
+
+1. ターゲットを **OptionsMenu** 変数に接続します。
 
 	![](OptionsButton.png)(w:820)
 
@@ -65,7 +70,7 @@ Description:このステップではメイン メニューの機能をスクリ�
 
 	上の画面では、以下の設定を使用しました。**640x480**、**1280x720**、 および **1920x1080** 
 
-1.	**Return Button** について、ステップ 6 を繰り返しますが、設定を逆にして、メイン メニューを表示し、オプション メニューを非表示にします。 
+1.	**Return Button** について、ステップ 6 を繰り返しますが、設定を逆にして、メイン メニューを表示し、オプション メニューが非表示になるようにします。 
 
 	![](ReturnButton.png)(w:820)
 
@@ -91,7 +96,7 @@ Description:このステップではメイン メニューの機能をスクリ�
 
 1.	**Content/FirstPersonBP/Blueprints** フォルダ内で、**First Person Character** ブループリントを開きます。 
 
-1.	**Event Begin Play** スクリプトで、**Get Player Controller** を追加し、**Set Input Mode Game Only** ノードを追加します。 
+1.	**Event Begin Play** スクリプトの後に、**Get Player Controller** を追加し、**Set Input Mode Game Only** ノードを追加します。 
 
 	![](PlayerCharacterBlueprint.png)(w:820)
 
@@ -101,15 +106,25 @@ Description:このステップではメイン メニューの機能をスクリ�
 
 	![](WorldSettings.png)
 
-1.	_Game Mode_ で、**GameMode Override** を **FirstPersonGameMode** に設定し、**Default Pawn Class** を **Character** にします。 
+1.	**Game Mode** で、**GameMode Override** を **FirstPersonGameMode** に set し、**Default Pawn Class** を **Character** に変更します。 
 
 	![](Overrides.png)
 
-	このマップに対するゲームモードを割り当て、プレイヤー キャラクターがプレイ可能な **FirstPersonCharacter** ブループリント内にある Engine Default Character を使用するように変更します。メイン メニューの周囲をプレイヤーが走り回ったり、背後で射撃しないようにするためです。 
+	このマップに対するゲームモードを割り当て、プレイヤー キャラクターがプレイ可能な **FirstPersonCharacter** ブループリント内で Engine Default Character を使用するように変更します。メイン メニューの周囲をプレイヤーが走り回ったり、背後で射撃できないようにするためです。 
 
-1.	メイン ツールバーで **Play** ボタンをクリックしてエディタで再生します。 
+1.	メイン ツールバーで **Play** ボタンをクリックしてエディタで再生します。解像度のオプションをテストするには、**Play-in-Editor** ドロップダウン メニューから **New Editor Window ** を選択します。
 
-	[![](MenuImage.png)(w:720)](ExampleMainMenu.mp4)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	mEVUvk32CRI
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	_上の画像をクリックするとビデオが再生します。_
 
@@ -120,6 +135,10 @@ Description:このステップではメイン メニューの機能をスクリ�
 ---
 
 %Steps%
+
+
+
+
 
 
 

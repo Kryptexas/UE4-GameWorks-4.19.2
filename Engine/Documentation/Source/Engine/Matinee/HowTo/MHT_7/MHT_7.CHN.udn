@@ -1,227 +1,239 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Play Animations and Sounds
+﻿INTSourceChangelist:2782706
+Availability:Public
+Title:播放动画和音效
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
-Description:How to animate a Skeletal Mesh jumping onto a platform and applying sounds in Matinee. 
+Description:在 Matinee 中实现骨骼网格体跳上平台的动画，并应用音效。 
+Version:4.9
+SkillLevel:Intermediate
 
-
+ 
 ---
-In the following steps, we will have a character jump up onto a platform by applying animations and movement to a **Skeletal Mesh**. We will also add background music and sounds using the **Sound Track**. 
+在下列步骤中，我们将为一个 **骨骼网格体** 应用动画和移动，实现角色跳上平台的动作。此外还将使用 **Sound Track** 添加背景音乐和音效。 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Add the Matinee Actor and Props
+		添加 Matinee Actor 和道具
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will add our **Matinee Actor**, a **Skeletal Mesh Actor** and create a platform for the character to jump up on.  
+	在这步中，我们将添加 **Matinee Actor**，一个 **骨骼网格体 Actor**，并创建一个供角色跳跃的平台。  
 	[/PARAM]
 [/OBJECT]
 
-1. From the **Toolbar** menu, **select** Matinee and **click** the **Add Matinee** button. 
+1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_AddMatinee.png)(w:720)
 
-1. If the Matinee undo warning message appears, **click** the **Continue** button. 
+1. 如出现 Matinee 撤销警告提示，点击 **继续** 按钮。 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeWarning.png)
 	
-1. The Matinee Editor window will open. 
+1. Matinee Editor 窗口将打开。 
 
 	[REGION:lightbox]
 	[![](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeOpen.png)(w:640)](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeOpen.png)
 	[/REGION]
 
-	_Click for Full View._
+	_点击查看全图。_
 
-1.  **Minimize** the Matinee then in the Content Browser under the **Game/Character** folder, **drag-and-drop** in the **HeroTPP Skeletal Mesh** asset into the level. 
+1. 最小化 Matinee，然后在 Content Browser 的 **Game/Character** 文件夹下，将 **SK_Mannequin** 资源拖放进关卡。 
 
-	![](MHT7_AddSkeleton.png)
+	![](GrayIntoLvl.jpg)(w:720)
 
-1.  In the Details panel for the **HeroTPP**, under **Transform** set the **Location** to **-610.0**, **-690.0**, **125.0** for the **X, Y, Z** values. 
+1. 在 **SK_Mannequin** 的 Details 面板中，在 **Transform** 中将 **Location** 的 **X、Y、Z** 轴数值分别设为 **-610.0**、**-690.0**、和 **125.0**。 
 
 	![](MHT7_HeroDetails.png)
 
-1.  In the level, **grab** the small box brush above the template text and **move** it in front of the **Skeletal Mesh**. 
+1. 在关卡中，抓住模板文本上的小型方块笔刷，将其移动到 **骨骼网格体** 前面。 
 
-	![](MHT7_MoveBoxBrush.png)
+	![](DragBoxMannequin.jpg)(w:720)
 	
-1.  In the Details panel for the box brush under **Brush Settings**, **set** the X and Y values to **250.0** and the Z to **1400.0**. 
+1. 在方块笔刷的 **Details** 面板中的 **Brush Settings** 下，将 **X** 和 **Y** 轴数值设为 **250.0**，将 **Z** 轴数值设为 **1400.0**。 
 
 	![](MHT7_BoxDetails.png)
 
-	_Your box should look something like this:_
+	_方块的外观和下图相似：_
 	
-	![](MHT7_ExampleBox.png)
+	![](BoxHeightGray.jpg)
 
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Add Actor to Matinee and Add Tracks
+		为 Matinee 添加 Actor 并添加轨迹
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will add the **HeroTPP** to the **Matinee** and add the tracks we will be using for the sequence. 
+	在这步中，我们将添加 **SK_Mannequin** 到 **Matinee**，并添加用于序列的轨迹。 
 	[/PARAM]
 [/OBJECT]
 
-1.  **Select** the MatineActor from the World Outliner, then **click** the **Open Matinee** button. 
+1. 从 World Outliner 选择 **MatineActor**，然后点击 **Open Matinee** 按钮。 
 
 	![](MHT7_OpenMatineeActor.png)
 
-1.  **Minimize** the Matinee, then **select** the **HeroTPP** and **re-open** Matinee, then **Right-click** in the tracks window and **select** **Add New Skeletal Group**. 
+1. 最小化 Matinee，选择 **SK_Mannequin** 并重新打开 Matinee，然后在 Tracks 窗口中 **单击右键** 并选择 **Add New Skeletal Group**。 
 
-	![](MHT7_AddSkeletalGroup.png)
+	![](NewSkelGroupGray.jpg)
 
-	_Give the new group a name, in this example we are calling it **HeroTPP**._
+	_为新群组命名，在此例中我们命名为 **SK_Mannequin**。_
 
-1.  **Right-click** on the **Group Name** and **select** **Add New Sound Track** from the menu. 
+1. 在 **Group Name** 上 **单击右键**，从菜单中选择 **Add New Sound Track**。 
 
 	![](MHT7_AddNewSoundTrack.png)
 
-1.  **Repeat the previous step** to add another **Sound Track** so that there are two. 
+1. **重复以上步骤** 添加另一个 **Sound Track**，使关卡中存在两个 Sound Track。 
 
-1.  **Grab** the ending marker at **5.00** and **move** it to the **12.00** mark to increase the length of the Matinee. 
+1. 选取 **5.00** 处的结束标记并将其移动至 **12.00**，增加 Matinee 长度。 
 
 	![](MHT7_MoveEndMarker.png)
 
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Adding Movement and Animation
+		添加运动和动画
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will setup the movement and animation for our character which will jump to the top of the box. 
+	在这步中，我们将为角色设置运动和动画，使其跳到方块上方。 
 	[/PARAM]
 [/OBJECT]
 
-1.  With Matinee open, **click** on the Movement track then **move** the **Time Bar** to **3.00** and **press Enter** to add a keyframe. 
+1. 打开 Matinee，点击运动轨迹，然后将 **时间条** 移至 **3.00** 处，再按下 **Enter** 键添加一个关键帧。 
 
 	![](MHT7_MovementKey2.png)
 
-1.  **Repeat the step above** to add keyframes at **4.50**, **6.00**, **7.00**, and **8.00**. 
+1. **重复以上步骤**，在 **4.50**、**6.00**、**7.00** 和 **8.00** 处添加关键帧。 
 
 	![](MHT7_MovementKeysAdded.png)
 
-1.  **Click** on the second keyframe of the Movement track, minimize Matinee, then in the Details panel for HeroTPP **set** the **Location** of **Z** to **135**. 
+1. 点击运动轨迹上的第二个关键帧，最小化 Matinee，然后在 SK_Mannequin 的 Details 面板中将 **Location** 的 **Z** 轴数值设为 **135**。 
 
 	![](MHT7_MoveDetailsKey2.png)
 
-1.  **Return** to Matinee, **click** on the third keyframe for Movement, minimize Matinee and **set** the Location of Y to **-674** and Z to **385**. 
+1. 返回 Matinee，点击运动轨迹上的第三个关键帧，最小化 Matinee，然后将 **Location** 的 **Y** 轴数值设为 **-674**、**Z** 轴数值设为 **385**。 
 
 	![](MHT7_MoveDetailsKey3.png)
 
-1.  **Return** to Matinee, **click** on the fourth keyframe for Movement, minimize Matinee and **set** the Location of Y to **-622.53** and Z to **804.640**. 
+1. 返回 Matinee，点击运动轨迹上的第四个关键帧，最小化 Matinee，然后将 **Location** 的 **Y** 轴数值设为 **-622.53**、**Z** 轴数值设为 **804.640**。 
 
 	![](MHT7_MoveDetailsKey4.png)
 
-1.  **Return** to Matinee, **click** on the fifth keyframe for Movement, minimize Matinee and **set** the Location of Y to **-561.0** and Z to **872.0**. 
+1. 返回 Matinee，点击运动轨迹上的第五个关键帧，最小化 Matinee，然后将 **Location** 的 **Y** 轴数值设为 **-561.0**、**Z** 轴数值设为 **872.0**。 
 
 	![](MHT7_MoveDetailsKey5.png)
 
-1.  **Return** to Matinee, **click** on the sixth keyframe for Movement, minimize Matinee and **set** the Location of Y to **-502.0** and Z to **847.0**. 
+1. 返回 Matinee，点击运动轨迹上的第六个关键帧，最小化 Matinee，然后将 **Location** 的 **Y** 轴数值设为 **-502.0**、**Z** 轴数值设为 **847.0**。 
 
 	![](MHT7_MoveDetailsKey6.png)
 
-1.  With the final keyframe in the Movement track still selected in the level viewport, the HeroTPP Actor should be standing on the top of the platform. 
+1. 在关卡视口中选中 **运动** 轨迹中最后的关键帧，**SK_Mannequin** Actor 应站立在平台顶部上。 
 
-	![](MHT7_FinalMovementKeyframe.png)
+	![](IdleOnTop.jpg)
 
-	_If your Actor is not standing on top of the platform, you can move him (and adjust the snapping size in the box above) so that he is standing on it._
+	_如 Actor 未站立在平台顶部上，可通过移动（并在上图黄色小框中调整投射尺寸）来实现。_
 
-1.  **Move** the **Time Bar** back to **0.00**, **select** the Anim track and **press Enter** to add a keyframe, then **select** **Idle** from the menu that appears. 
+1. 将 **时间条** 移回至 **0.00**，选择动画轨迹并按下 **Enter** 键添加关键帧，然后从出现的菜单中选择 **Idle**。 
 
 	![](MHT7_AnimKey1.png)
 
-	_If you look in the level viewport, the **HeroTPP** Actor will now be in an **Idle** pose since we have specified the animation to use to start the **Matinee**._ 
+	_从关卡视口中观察，**SK_Mannequin** Actor 将保持 **待机（Idle）** 动作，因为我们已指定开始 **Matinee** 的动画。_ 
 
-1.  **Move** the **Time Bar** to **2.50** and **press Enter**, then **select** **Jump_Start** from the menu. 
+1. 将 **时间条** 移至 **2.50** 处并按下 **Enter** 键，然后从菜单中选择 **Jump_Start**。 
 
-1. **Right-click** on the **Jump_Start** keyframe at **2.50** and **select** **Set Play Rate** and set the value to **0.23**. 
+1. 在 **2.50** 处的 **Jump_Start** 关键帧上 **单击右键**，选择 **Set Play Rate** 将值设为 **0.23**。 
 
 	![](MHT7_JumpAnimAdded.png)
 
-1. **Move** the Time Bar to **4.50** and **press Enter**, then **select** **Jump_Start** again from the menu. 
+1. 将时间条移至 **4.50** 处并按下 **Enter** 键，然后再次从菜单中选择 **Jump_Start**。 
 
 	![](MHT7_AnimKey3.png)
 
-	_We could have added the **Jump_Loop** animation, however our character is going to continue ascending and using frames from the **Jump_Start** will look better._
+	_我们本可以添加 **Jump_Loop** 动画，然而角色在持续向上运动，因此使用 **Jump_Start** 的动画帧效果更佳。_
 
-1. **Right-click** on the **Jump_Start** keyframe at **4.50** and **select** **Set Start Offset** and set this to **5**. 
+1. 在 **4.50** 处的 **Jump_Start** 关键帧上 **单击右键**，选择 **Set Start Offset** 将值设为 **5**。 
 
 	![](MHT7_AnimKey4.png)
 
-	_By doing this, we have stated that we want this animation to start off at frame 5 instead of frame 0._
+	_通过此操作可使该动画从第 5 帧开始，而非从第 0 帧开始。_
 
-	![](MHT7_AnimKey5.png)(w:720)
+	![](JumpStart.jpg)(w:720)
 
-	_You should also see that the pose on the character has changed and is not using the normal Jump_Start pose of the character crouching._
+	_还可以看到角色的动作已经发生变化，并未使用角色下蹲的普通 Jump_Start 动作。_
 
-1. **Move** the Time Bar to **8.00** and **press Enter**, then **select** **Jump_End** from the menu. 
+1. 将时间条移至 **8.00** 处并按下 **Enter** 键，然后从菜单中选择 **Jump_End**。 
 
-1. Scrub the Time Bar to **8.30** and **press Enter**, then **select** **Idle** from the menu. 
+1. 将时间条移至 **8.30** 处并按下 **Enter** 键，然后从菜单中选择 **Idle**。 
 
 	![](MHT7_AnimKey6.png)
 
-1. **Right-click** on the **Idle** keyframe at **8.30** and **choose** Set Time and **set** it to **8.20**. 
+1. 在 **8.30** 处的 **Idle** 关键帧上 **单击右键**，选择 **Set Time** 将值设为 **8.20**。 
 
-1. **Right-click** on the **Idle** keyframe that was moved to **8.20** and choose **Set Looping**. 
+1. 在移至 **8.20** 的 **Idle** 关键帧上 **单击右键** 并选择 **Set Looping**。 
 
 	![](MHT7_AnimKey7.png)
 
-	_The darker section at the end of the sequence indicates that the animation is set to loop._
+	_序列后部颜色较深的部分表明动画设为循环。_
 
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Adding Sounds and Finishing Matinee
+		添加音效并完成 Matinee
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will add sounds using the sound tracks and finish up the sequence. 
+	在这步中，我们将使用 sound tracks 添加音效并完成序列。 
 	[/PARAM]
 [/OBJECT]
 
-1. **Minimize** the Matinee window, then in the Content Browser inside the **Game/Audio** folder, **click** on the **Explosion01** asset. 
+1. 最小化 Matinee 窗口，然后在 Content Browser 的 **Game/Audio** 文件夹中点击 **Explosion01** 资源。 
 
-1. **Return** to the Matinee window and **move** the Time Bar to the **2.50** mark and **press Enter**. 
+1. 返回 Matinee 窗口，将时间条移至 **2.50** 标记处，然后按下 **Enter** 键。 
 
 	![](MHT7_Sound1.png)(w:780)
 
-	_In order to add a sound asset to the **Sound Track**, a **Sound Wave** or **Sound Cue** asset must be selected in the **Content Browser**._
+	_如需添加一个音效资源到 **Sound Track**，必须在 **Content Browser** 中选择一个 **Sound Wave** 或 **Sound Cue** 资源。_
 
-1. **Right-click** on the newly added sound asset's keyframe and **select** **Set Sound Volume** and set it to **1.5**. 
+1. 在新添加音效资源的关键帧上 **单击右键**，选择 **Set Sound Volume** 将值设为 **1.5**。 
 
-1. **Repeat the previous step**, however **Right-click** and **select** **Set Sound Pitch** and set it to **0.5**. 
+1. **重复以上步骤**，**单击右键**，选择 **Set Sound Pitch** 将值设为 **0.5**。 
 
 	![](MHT7_Sound2.png)
 
-	_You will see that the volume for this sound has been increased to 1.5 while the pitch has been decreased to 0.5 on the bar in the track._
+	_可以看到该音效的音量已增加到 1.5，而轨迹中条上的基音已降低到 0.5。_
 
-1. **Click** on the other Sound Track, then in the Content Browser under **Game/Audio**, **select** the **Start_Music_Cue** asset. 
+1. 点击另一个 **Sound Track**，然后在 **Content Browser** 的 **Game/Audio** 文件夹中选择 **Start_Music_Cue** 资源。 
 
-1. **Return** to the Matinee window and **move** the Time Bar back to **0.00** and **press Enter** to add the music. 
+1. 返回 Matinee 窗口，将时间条移回 **0.00** 标记处，然后按下 **Enter** 键添加音乐。 
 
 	![](MHT7_Sound3.png)(w:780)
 
-1. In the Details panel for the Sound Track with the music, **check** the **Continue Sound on Matinee End** checkbox. 
+1. 在 Sound Track 音乐的 **Details** 面板中，勾选 **Continue Sound on Matinee End** 复选框。 
 
 	![](MHT7_Sound4.png)
 
-	_This will allow the music to continue playing once the 12 second **Matinee** sequence is over (otherwise the music would abruptly end)._ 
+	_此操作可使音乐在 12 秒的 **Matinee** 序列结束后继续播放（否则音乐将会戛然而止）。_ 
 
-1. Close the Matinee, then **select** the MatineeActor in the World Outliner. 
+1. 关闭 Matinee，在 **World Outliner** 中选择 **Matinee Actor**。 
 
-1. In the Details panel under Play, **check** the **Play on Level Load** checkbox. 
+1. 在 **Details** 面板中的 Play 下，勾选 **Play on Level Load** 复选框。 
 
 	![](MHT7_MatineeFinished.png)
 
-1. **Click** the Play button from the main toolbar to play in the editor. 
+1. 在主工具栏中点击 **Play** 按钮即可在编辑器中进行游戏。    
 
-	![](MHT7_Gif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	-FAd67U7fmo
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-	_You should now see that the **HeroTPP** Actor will jump to the top of the box, along with an explosion sound effect and music playing._
+	_现在可以看到 **SK_Mannequin** Actor 伴随着爆炸声和音乐跳上方块顶部。_
 
-	_You could apply a **Director Track** with multiple camera angles, FOVs, Post Processing effects, or a Slow-mo track to polish it up and make it your own._
+	_可将多个摄像机角度、视野、后期处理效果、或慢动作轨迹应用到 **导演轨迹** 中，使其效果更佳、独一无二。_
 
 
 

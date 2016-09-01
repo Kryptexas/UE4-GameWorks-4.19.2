@@ -13,11 +13,49 @@
 #include "ObjectEditorUtils.h"
 #include "SNotificationList.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "Serialization/ArchiveUObjectBase.h"
 
 #define LOCTEXT_NAMESPACE "EditorAnimUtils"
 
 namespace EditorAnimUtils
 {
+	/** Helper archive class to find all references, used by the cycle finder **/
+	class FFindAnimAssetRefs : public FArchiveUObject
+	{
+	public:
+		/**
+		* Constructor
+		*
+		* @param	Src		the object to serialize which may contain a references
+		*/
+		FFindAnimAssetRefs(UObject* Src, TArray<UAnimationAsset*>& OutAnimationAssets) : AnimationAssets(OutAnimationAssets)
+		{
+			// use the optimized RefLink to skip over properties which don't contain object references
+			ArIsObjectReferenceCollector = true;
+
+			ArIgnoreArchetypeRef = false;
+			ArIgnoreOuterRef = true;
+			ArIgnoreClassRef = false;
+
+			Src->Serialize(*this);
+		}
+
+		virtual FString GetArchiveName() const { return TEXT("FFindAnimAssetRefs"); }
+
+	private:
+		/** Serialize a reference **/
+		FArchive& operator<<(class UObject*& Obj)
+		{
+			if (UAnimationAsset* Anim = Cast<UAnimationAsset>(Obj))
+			{
+				AnimationAssets.AddUnique(Anim);
+			}
+			return *this;
+		}
+
+		TArray<UAnimationAsset*>& AnimationAssets;
+	};
+
 	//////////////////////////////////////////////////////////////////
 	// FAnimationRetargetContext
 	FAnimationRetargetContext::FAnimationRetargetContext(const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces, const FNameDuplicationRule& NameRule) 
@@ -74,7 +112,7 @@ namespace EditorAnimUtils
 			while (AssetIndex < AnimationAssetsToRetarget.Num())
 			{
 				UAnimationAsset* AnimAsset = AnimationAssetsToRetarget[AssetIndex++];
-				AnimAsset->GetAllAnimationSequencesReferred(AnimationAssetsToRetarget);
+				AnimAsset->HandleAnimReferenceCollection(AnimationAssetsToRetarget);
 			}
 		}
 	}
@@ -397,131 +435,51 @@ namespace EditorAnimUtils
 
 	void GetAllAnimationSequencesReferredInBlueprint(UAnimBlueprint* AnimBlueprint, TArray<UAnimationAsset*>& AnimationAssets)
 	{
-		TArray<UEdGraph*> Graphs;
-		AnimBlueprint->GetAllGraphs(Graphs);
-		for(auto GraphIter = Graphs.CreateConstIterator(); GraphIter; ++GraphIter)
+		UObject* DefaultObject = AnimBlueprint->GetAnimBlueprintGeneratedClass()->GetDefaultObject();
+		FFindAnimAssetRefs AnimRefFinderObject(DefaultObject, AnimationAssets);
+		
+		// For assets referenced in the event graph (either pin default values or variable-get nodes)
+		// we need to serialize the nodes in that graph
+		for(UEdGraph* GraphPage : AnimBlueprint->UbergraphPages)
 		{
-			const UEdGraph* Graph = *GraphIter;
-			for(auto NodeIter = Graph->Nodes.CreateConstIterator(); NodeIter; ++NodeIter)
+			for(UEdGraphNode* Node : GraphPage->Nodes)
 			{
-				if(const UAnimGraphNode_Base* AnimNode = Cast<UAnimGraphNode_Base>(*NodeIter))
-				{
-					AnimNode->GetAllAnimationSequencesReferred(AnimationAssets);
-				}
+				FFindAnimAssetRefs AnimRefFinderBlueprint(Node, AnimationAssets);
 			}
 		}
 
-		// Pull all the assets we reference from variables
-		TArray<UProperty*> SimpleAnimVariableProperties;
-		TArray<UProperty*> ComplexAnimVariableProperties;
-		TArray<UAnimSequence*> VariableReferencedSimpleAnims;
-		TArray<UAnimationAsset*> VariableReferencedComplexAnims;
-
-		UObject* DefaultObject = AnimBlueprint->GetAnimBlueprintGeneratedClass()->GetDefaultObject();
-		GetBlueprintAssetVariableProperties(AnimBlueprint, SimpleAnimVariableProperties, ComplexAnimVariableProperties);
-		GetAssetsFromProperties(SimpleAnimVariableProperties, DefaultObject, VariableReferencedSimpleAnims);
-		GetAssetsFromProperties(ComplexAnimVariableProperties, DefaultObject, VariableReferencedComplexAnims);
-
-		for(UAnimSequence* Sequence : VariableReferencedSimpleAnims)
+		// Gather references in functions
+		for(UEdGraph* GraphPage : AnimBlueprint->FunctionGraphs)
 		{
-			AnimationAssets.AddUnique(Sequence);
-		}
-
-		for(UAnimationAsset* Asset : VariableReferencedComplexAnims)
-		{
-			AnimationAssets.AddUnique(Asset);
+			for(UEdGraphNode* Node : GraphPage->Nodes)
+			{
+				FFindAnimAssetRefs AnimRefFinderBlueprint(Node, AnimationAssets);
+			}
 		}
 	}
 
 	void ReplaceReferredAnimationsInBlueprint(UAnimBlueprint* AnimBlueprint, const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap)
 	{
-		TArray<UEdGraph*> Graphs;
-		AnimBlueprint->GetAllGraphs(Graphs);
-		for(auto GraphIter = Graphs.CreateIterator(); GraphIter; ++GraphIter)
-		{
-			UEdGraph* Graph = *GraphIter;
-			for(auto NodeIter = Graph->Nodes.CreateIterator(); NodeIter; ++NodeIter)
-			{
-				if(UAnimGraphNode_Base* AnimNode = Cast<UAnimGraphNode_Base>(*NodeIter))
-				{
-					AnimNode->ReplaceReferredAnimations(AnimAssetReplacementMap);
-				}
-			}
-		}
-
-		// Push all the assets we reference from variables
-		TArray<UProperty*> SimpleAnimVariableProperties;
-		TArray<UProperty*> ComplexAnimVariableProperties;
-
 		UObject* DefaultObject = AnimBlueprint->GetAnimBlueprintGeneratedClass()->GetDefaultObject();
-		GetBlueprintAssetVariableProperties(AnimBlueprint, SimpleAnimVariableProperties, ComplexAnimVariableProperties);
 
-		for(UProperty* SimpleProp : SimpleAnimVariableProperties)
+		FArchiveReplaceObjectRef<UAnimationAsset> ReplaceAr(DefaultObject, AnimAssetReplacementMap, false, false, false);//bNullPrivateRefs, bIgnoreOuterRef, bIgnoreArchetypeRef);
+		FArchiveReplaceObjectRef<UAnimationAsset> ReplaceAr2(AnimBlueprint, AnimAssetReplacementMap, false, false, false);//bNullPrivateRefs, bIgnoreOuterRef, bIgnoreArchetypeRef);
+
+		// Replace event graph references
+		for(UEdGraph* GraphPage : AnimBlueprint->UbergraphPages)
 		{
-			if(UObject** ResolvedObject = SimpleProp->ContainerPtrToValuePtr<UObject*>(DefaultObject))
+			for(UEdGraphNode* Node : GraphPage->Nodes)
 			{
-				if(UAnimSequence* Sequence = Cast<UAnimSequence>(*ResolvedObject))
-				{
-					// Found an anim sequence variable that's set to a valid sequence
-					if(UAnimationAsset* const* NewSequence = AnimAssetReplacementMap.Find(Sequence))
-					{
-						*ResolvedObject = *NewSequence;
-					}
-				}
+				FArchiveReplaceObjectRef<UAnimationAsset> ReplaceGraphAr(Node, AnimAssetReplacementMap, false, false, false);
 			}
 		}
 
-		for(UProperty* ComplexProp : ComplexAnimVariableProperties)
+		// Replace references in functions
+		for(UEdGraph* GraphPage : AnimBlueprint->FunctionGraphs)
 		{
-			if(UObject** ResolvedObject = ComplexProp->ContainerPtrToValuePtr<UObject*>(DefaultObject))
+			for(UEdGraphNode* Node : GraphPage->Nodes)
 			{
-				if(UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(*ResolvedObject))
-				{
-					// Found an anim sequence variable that's set to a valid sequence
-					if(UAnimationAsset* const* NewAsset = AnimAssetReplacementMap.Find(AnimAsset))
-					{
-						*ResolvedObject = *NewAsset;
-					}
-				}
-			}
-		}
-	}
-
-	void GetBlueprintAssetVariableProperties(UAnimBlueprint* InBlueprint, TArray<UProperty*>& OutSimpleProperties, TArray<UProperty*>& OutComplexProperties)
-	{
-		OutSimpleProperties.Empty();
-		OutComplexProperties.Empty();
-
-		UAnimBlueprintGeneratedClass* GeneratedClass = InBlueprint->GetAnimBlueprintGeneratedClass();
-
-		for(FBPVariableDescription& VarDesc : InBlueprint->NewVariables)
-		{
-			// Grab any variables directly referencing and anim sequence object.
-			if(VarDesc.VarType.PinCategory == FString("object"))
-			{
-				if(UObject* VarSubObject = VarDesc.VarType.PinSubCategoryObject.Get())
-				{
-					// Get the object class
-					if(UClass* SubObjectAsClass = Cast<UClass>(VarSubObject))
-					{
-						// Anything that IS an anim sequence is a simple anim
-						// Anything that ISN'T an anim sequence but is an animation asset is a complex anim
-						if(SubObjectAsClass == UAnimSequence::StaticClass())
-						{
-							if(UProperty* Prop = GeneratedClass->FindPropertyByName(VarDesc.VarName))
-							{
-								OutSimpleProperties.Add(Prop);
-							}
-						}
-						else if(SubObjectAsClass->IsChildOf(UAnimationAsset::StaticClass()))
-						{
-							if(UProperty* Prop = GeneratedClass->FindPropertyByName(VarDesc.VarName))
-							{
-								OutComplexProperties.Add(Prop);
-							}
-						}
-					}
-				}
+				FArchiveReplaceObjectRef<UAnimationAsset> ReplaceGraphAr(Node, AnimAssetReplacementMap, false, false, false);
 			}
 		}
 	}
@@ -530,9 +488,7 @@ namespace EditorAnimUtils
 	{
 		// Copy curve data from source asset, preserving data in the target if present.
 		const FSmartNameMapping* OldNameMapping = OldSkeleton->GetSmartNameContainer(ContainerName);
-		const FSmartNameMapping* NewNameMapping = NewSkeleton->GetOrAddSmartNameContainer(ContainerName);
-
-		SequenceBase->RawCurveData.UpdateLastObservedNames(OldNameMapping, CurveType);
+		SequenceBase->RawCurveData.RefreshName(OldNameMapping, CurveType);
 
 		switch (CurveType)
 		{
@@ -540,7 +496,7 @@ namespace EditorAnimUtils
 			{
 				for(FFloatCurve& Curve : SequenceBase->RawCurveData.FloatCurves)
 				{
-					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.LastObservedName, Curve.CurveUid);
+					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.Name.DisplayName, Curve.Name);
 				}
 				break;
 			}
@@ -548,7 +504,7 @@ namespace EditorAnimUtils
 			{
 				for(FVectorCurve& Curve : SequenceBase->RawCurveData.VectorCurves)
 				{
-					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.LastObservedName, Curve.CurveUid);
+					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.Name.DisplayName, Curve.Name);
 				}
 				break;
 			}
@@ -556,7 +512,7 @@ namespace EditorAnimUtils
 			{
 				for(FTransformCurve& Curve : SequenceBase->RawCurveData.TransformCurves)
 				{
-					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.LastObservedName, Curve.CurveUid);
+					NewSkeleton->AddSmartNameAndModify(ContainerName, Curve.Name.DisplayName, Curve.Name);
 				}
 				break;
 			}

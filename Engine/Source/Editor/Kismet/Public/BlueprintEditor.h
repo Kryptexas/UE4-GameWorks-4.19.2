@@ -157,6 +157,7 @@ public:
 	//~ Begin IBlueprintEditor Interface
 	virtual void RefreshEditors(ERefreshBlueprintEditorReason::Type Reason = ERefreshBlueprintEditorReason::UnknownReason) override;
 	virtual void JumpToHyperlink(const UObject* ObjectReference, bool bRequestRename = false) override;
+	virtual void JumpToPin(const class UEdGraphPin* Pin) override;
 	virtual void SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false) override;
 	virtual void SummonFindAndReplaceUI() override;
 	virtual TArray<TSharedPtr<class FSCSEditorTreeNode> > GetSelectedSCSEditorTreeNodes() const override;
@@ -182,9 +183,6 @@ public:
 
 	/** Pan the view to center on a particular node */
 	void JumpToNode(const class UEdGraphNode* Node, bool bRequestRename=false);
-
-	/** Pan the view to center on a particular pin */
-	void JumpToPin(const class UEdGraphPin* Pin);
 
 	/** Returns a pointer to the Blueprint object we are currently editing, as long as we are editing exactly one */
 	virtual UBlueprint* GetBlueprintObj() const;
@@ -547,6 +545,8 @@ public:
 	void SelectGraphActionItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false);
 
 protected:
+	virtual void AppendExtraCompilerResults(TSharedPtr<class IMessageLogListing> ResultsListing);
+
 	/** Called during initialization of the blueprint editor to register any application modes. */
 	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated = false);
 
@@ -795,6 +795,8 @@ protected:
 	virtual void OnConvertToSequencePlayer() {};
 	virtual void OnConvertToBlendSpaceEvaluator() {};
 	virtual void OnConvertToBlendSpacePlayer() {};
+	virtual void OnConvertToPoseBlender() {};
+	virtual void OnConvertToPoseByName() {};
 
 	// Opens the associated asset of the selected nodes
 	virtual void OnOpenRelatedAsset() {};
@@ -834,7 +836,7 @@ protected:
 	 * @param InDestinationGraph		The destination graph to move the selected nodes to
 	 * @param InCollapsableNodes		The selection of nodes being collapsed
 	 */
-	void CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, class UK2Node_EditablePinBase* InEntryNode, class UK2Node_EditablePinBase* InResultNode, UEdGraph* InSourceGraph, UEdGraph* InDestinationGraph, TSet<UEdGraphNode*>& InCollapsableNodes);
+	void CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, class UK2Node_EditablePinBase* InEntryNode, class UK2Node_EditablePinBase* InResultNode, UEdGraph* InSourceGraph, UEdGraph* InDestinationGraph, TSet<UEdGraphNode*>& InCollapsableNodes, bool bCanDiscardEmptyReturnNode = false);
 
 	/** Called when a selection of nodes are being collapsed into a sub-graph */
 	void CollapseNodes(TSet<class UEdGraphNode*>& InCollapsableNodes);
@@ -1170,6 +1172,12 @@ private:
 
 	/** Handle to the registered OnActiveTabChanged delegate */
 	FDelegateHandle OnActiveTabChangedDelegateHandle;
+
+	/** Blueprint generated class instrumentation state */
+	bool bBlueprintHasInstrumentation;
+
+	// Allow derived editors to add command mappings 
+	virtual void OnCreateGraphEditorCommands(TSharedPtr<FUICommandList> GraphEditorCommandsList) {}
 };
 
 #undef LOCTEXT_NAMESPACE

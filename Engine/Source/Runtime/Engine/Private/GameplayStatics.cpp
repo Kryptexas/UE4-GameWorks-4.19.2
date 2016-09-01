@@ -20,6 +20,11 @@
 #include "Components/DecalComponent.h"
 #include "LandscapeProxy.h"
 #include "MessageLog.h"
+#include "UObjectToken.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/LineBatchComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 
@@ -118,6 +123,30 @@ void UGameplayStatics::RemovePlayer(APlayerController* PlayerController, bool bD
 					PlayerPawn->Destroy();
 				}
 			}
+		}
+	}
+}
+
+int32 UGameplayStatics::GetPlayerControllerID(APlayerController* PlayerController)
+{
+	if (PlayerController)
+	{
+		if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+		{
+			return LocalPlayer->GetControllerId();
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+void UGameplayStatics::SetPlayerControllerID(APlayerController* PlayerController, int32 ControllerId)
+{
+	if (PlayerController)
+	{
+		if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+		{
+			LocalPlayer->SetControllerId(ControllerId);
 		}
 	}
 }
@@ -482,7 +511,12 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 	{
 		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
 		{
-			const FString SearchPackageName = FStreamLevelAction::MakeSafeLevelName(InPackageName, World);
+			FString SearchPackageName = FStreamLevelAction::MakeSafeLevelName(InPackageName, World);
+			if (FPackageName::IsShortPackageName(SearchPackageName))
+			{
+				// Make sure MyMap1 and Map1 names do not resolve to a same streaming level
+				SearchPackageName = TEXT("/") + SearchPackageName;
+			}
 
 			for (ULevelStreaming* LevelStreaming : World->StreamingLevels)
 			{
@@ -636,6 +670,25 @@ void UGameplayStatics::GetAllActorsWithInterface(UObject* WorldContextObject, TS
 	}
 }
 
+void UGameplayStatics::GetAllActorsWithTag(UObject* WorldContextObject, FName Tag, TArray<AActor*>& OutActors)
+{
+	OutActors.Empty();
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+
+	// We do nothing if no tag is provided, rather than giving ALL actors!
+	if (!Tag.IsNone() && World)
+	{
+		for (FActorIterator It(World); It; ++It)
+		{
+			AActor* Actor = *It;
+			if (Actor && !Actor->IsPendingKill() && Actor->ActorHasTag(Tag))
+			{
+				OutActors.Add(Actor);
+			}
+		}
+	}
+}
 
 void UGameplayStatics::PlayWorldCameraShake(UObject* WorldContextObject, TSubclassOf<class UCameraShake> Shake, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff, bool bOrientShakeTowardsEpicenter)
 {
@@ -775,7 +828,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 	return PSC;
 }
 
-void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit, bool& bInitialOverlap, float& Time, FVector& Location, FVector& ImpactPoint, FVector& Normal, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem, FVector& TraceStart, FVector& TraceEnd)
+void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit, bool& bInitialOverlap, float& Time, FVector& Location, FVector& ImpactPoint, FVector& Normal, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem, int32& FaceIndex, FVector& TraceStart, FVector& TraceEnd)
 {
 	bBlockingHit = Hit.bBlockingHit;
 	bInitialOverlap = Hit.bStartPenetrating;
@@ -791,9 +844,10 @@ void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit,
 	HitItem = Hit.Item;
 	TraceStart = Hit.TraceStart;
 	TraceEnd = Hit.TraceEnd;
+	FaceIndex = Hit.FaceIndex;
 }
 
-FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, FVector TraceStart, FVector TraceEnd)
+FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, int32 FaceIndex, FVector TraceStart, FVector TraceEnd)
 {
 	FHitResult Hit;
 	Hit.bBlockingHit = bBlockingHit;
@@ -810,6 +864,7 @@ FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverl
 	Hit.Item = HitItem;
 	Hit.TraceStart = TraceStart;
 	Hit.TraceEnd = TraceEnd;
+	Hit.FaceIndex = FaceIndex;
 	return Hit;
 }
 
@@ -817,6 +872,32 @@ EPhysicalSurface UGameplayStatics::GetSurfaceType(const struct FHitResult& Hit)
 {
 	UPhysicalMaterial* const HitPhysMat = Hit.PhysMaterial.Get();
 	return UPhysicalMaterial::DetermineSurfaceType( HitPhysMat );
+}
+
+bool UGameplayStatics::FindCollisionUV(const struct FHitResult& Hit, int32 UVChannel, FVector2D& UV)
+{
+	bool bSuccess = false;
+
+	if (!UPhysicsSettings::Get()->bSupportUVFromHitResults)
+	{
+		FMessageLog("PIE").Warning(LOCTEXT("CollisionUVNoSupport", "Calling FindCollisionUV but 'Support UV From Hit Results' is not enabled in project settings. This is required for finding UV for collision results."));
+	}
+	else
+	{
+		UPrimitiveComponent* HitPrimComp = Hit.Component.Get();
+		if (HitPrimComp)
+		{
+			UBodySetup* BodySetup = HitPrimComp->GetBodySetup();
+			if (BodySetup)
+			{
+				const FVector LocalHitPos = HitPrimComp->GetComponentToWorld().InverseTransformPosition(Hit.Location);
+
+				bSuccess = BodySetup->CalcUVAtLocation(LocalHitPos, Hit.FaceIndex, UVChannel, UV);
+			}
+		}
+	}
+
+	return bSuccess;
 }
 
 bool UGameplayStatics::AreAnyListenersWithinRange(UObject* WorldContextObject, FVector Location, float MaximumRange)
@@ -856,7 +937,7 @@ void UGameplayStatics::SetGlobalPitchModulation(UObject* WorldContextObject, flo
 
 	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
-		AudioDevice->GlobalPitchScale.Set(PitchModulation, TimeSec);
+		AudioDevice->SetGlobalPitchModulation(PitchModulation, TimeSec);
 	}
 }
 
@@ -875,14 +956,17 @@ void UGameplayStatics::SetGlobalListenerFocusParameters(UObject* WorldContextObj
 
 	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
-		AudioDevice->GlobalFocusSettings.FocusAzimuthScale = FMath::Max(FocusAzimuthScale, 0.0f);
-		AudioDevice->GlobalFocusSettings.NonFocusAzimuthScale = FMath::Max(NonFocusAzimuthScale, 0.0f);
-		AudioDevice->GlobalFocusSettings.FocusDistanceScale = FMath::Max(FocusDistanceScale, 0.0f);
-		AudioDevice->GlobalFocusSettings.NonFocusDistanceScale = FMath::Max(NonFocusDistanceScale, 0.0f);
-		AudioDevice->GlobalFocusSettings.FocusVolumeScale = FMath::Max(FocusVolumeScale, 0.0f);
-		AudioDevice->GlobalFocusSettings.NonFocusVolumeScale = FMath::Max(NonFocusVolumeScale, 0.0f);
-		AudioDevice->GlobalFocusSettings.FocusPriorityScale = FMath::Max(FocusPriorityScale, 0.0f);
-		AudioDevice->GlobalFocusSettings.NonFocusPriorityScale = FMath::Max(NonFocusPriorityScale, 0.0f);
+		FGlobalFocusSettings NewFocusSettings;
+		NewFocusSettings.FocusAzimuthScale = FMath::Max(FocusAzimuthScale, 0.0f);
+		NewFocusSettings.NonFocusAzimuthScale = FMath::Max(NonFocusAzimuthScale, 0.0f);
+		NewFocusSettings.FocusDistanceScale = FMath::Max(FocusDistanceScale, 0.0f);
+		NewFocusSettings.NonFocusDistanceScale = FMath::Max(NonFocusDistanceScale, 0.0f);
+		NewFocusSettings.FocusVolumeScale = FMath::Max(FocusVolumeScale, 0.0f);
+		NewFocusSettings.NonFocusVolumeScale = FMath::Max(NonFocusVolumeScale, 0.0f);
+		NewFocusSettings.FocusPriorityScale = FMath::Max(FocusPriorityScale, 0.0f);
+		NewFocusSettings.NonFocusPriorityScale = FMath::Max(NonFocusPriorityScale, 0.0f);
+
+		AudioDevice->SetGlobalFocusSettings(NewFocusSettings);
 	}
 }
 
@@ -899,11 +983,10 @@ void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase
 		return;
 	}
 
-	// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
 	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
 		FActiveSound NewActiveSound;
-		NewActiveSound.Sound = Sound;
+		NewActiveSound.SetSound(Sound);
 
 		NewActiveSound.VolumeMultiplier = VolumeMultiplier;
 		NewActiveSound.PitchMultiplier = PitchMultiplier;
@@ -1016,7 +1099,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 
 	if (!AttachToComponent)
 	{
-		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::PlaySoundAttached: NULL AttachComponent specified! Trying to spawn sound [%s],"), *Sound->GetName());
+		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnSoundAttached: NULL AttachComponent specified! Trying to spawn sound [%s],"), *Sound->GetName());
 		return nullptr;
 	}
 
@@ -1585,8 +1668,7 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 
 	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
 
-	const float GravityZ = (OverrideGravityZ != 0.f) ? -OverrideGravityZ : -World->GetGravityZ();
-
+	const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? -World->GetGravityZ() : -OverrideGravityZ;
 
 	// v^4 - g*(g*x^2 + 2*y*v^2)
 	const float InsideTheSqrt = FMath::Square(TossSpeedSq) - GravityZ * ( (GravityZ * FMath::Square(DeltaXY)) + (2.f * DeltaZ * TossSpeedSq) );
@@ -1742,6 +1824,128 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 	}
 
 	return bFoundAValidSolution;
+}
+
+static const FName NAME_PredictProjectilePath = FName(TEXT("PredictProjectilePath"));
+
+// note: this will automatically fall back to line test if radius is small enough
+bool UGameplayStatics::PredictProjectilePath(UObject* WorldContextObject, FHitResult& OutHit, TArray<FVector>& OutPathPositions, FVector& OutLastTraceDestination, FVector StartPos, FVector LaunchVelocity, bool bTracePath, float ProjectileRadius, const TArray<TEnumAsByte<EObjectTypeQuery> >& ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, float DrawDebugTime, float SimFrequency /*= 30.f*/, float MaxSimTime /*= 2.f*/, float OverrideGravityZ /*= 0*/)
+{
+	OutPathPositions.Empty();
+	bool bBlockingHit = false;
+
+	UWorld const* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World && SimFrequency > KINDA_SMALL_NUMBER)
+	{
+		float const SubstepDeltaTime = 1.f / SimFrequency;
+		int32 const StepLimit = FMath::CeilToInt(SimFrequency * MaxSimTime);
+
+		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? World->GetGravityZ() : OverrideGravityZ;
+
+		OutPathPositions.Add(StartPos);
+
+		FVector CurrentVel = LaunchVelocity;
+		FVector TraceStart = StartPos;
+		FVector TraceEnd = TraceStart + CurrentVel * SubstepDeltaTime;
+
+		FCollisionQueryParams QueryParams(NAME_PredictProjectilePath, true);
+		QueryParams.AddIgnoredActors(ActorsToIgnore);
+		QueryParams.bTraceComplex = bTraceComplex;
+
+		FCollisionObjectQueryParams ObjQueryParams;
+		for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
+		{
+			const ECollisionChannel& Channel = UCollisionProfile::Get()->ConvertToCollisionChannel(false, *Iter);
+			ObjQueryParams.AddObjectTypesToQuery(Channel);
+		}
+
+		FHitResult TraceHit(0.f);
+		int32 StepCount = 0;
+		while (StepCount < StepLimit)
+		{
+			OutLastTraceDestination = TraceEnd;
+
+			if (bTracePath)
+			{
+				if (World->SweepSingleByObjectType(TraceHit, TraceStart, TraceEnd, FQuat::Identity, ObjQueryParams, FCollisionShape::MakeSphere(ProjectileRadius), QueryParams))
+				{
+					// hit! we are done
+					OutHit = TraceHit;
+					OutPathPositions.Add(OutHit.Location);
+					bBlockingHit = true;
+					break;
+				}
+			}
+
+			OutPathPositions.Add(TraceEnd);
+
+			// integrate and continue
+			TraceStart = TraceEnd;
+			CurrentVel = CurrentVel + FVector(0, 0, GravityZ * SubstepDeltaTime);
+			TraceEnd = TraceStart + CurrentVel * SubstepDeltaTime;
+
+			++StepCount;
+		}
+	}
+
+	if (DrawDebugType != EDrawDebugTrace::None)
+	{
+		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
+		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawDebugTime : 0.f;
+
+		float const DrawRadius = (ProjectileRadius > 0.f) ? ProjectileRadius : 5.f;
+
+		// draw the path
+		for (FVector PathPt : OutPathPositions)
+		{
+			::DrawDebugSphere(World, PathPt, DrawRadius, 12, FColor::Green, bPersistent, LifeTime);
+		}
+		// draw the impact point
+		if (bBlockingHit)
+		{
+			::DrawDebugSphere(World, OutHit.Location, 15.f, 12, FColor::Red, bPersistent, LifeTime);
+		}
+	}
+
+	return bBlockingHit;
+}
+
+bool UGameplayStatics::SuggestProjectileVelocity_CustomArc(UObject* WorldContextObject, FVector& OutLaunchVelocity, FVector StartPos, FVector EndPos, float OverrideGravityZ /*= 0*/, float ArcParam /*= 0.5f */)
+{
+	/* Make sure the start and end aren't the same location */
+	FVector const StartToEnd = EndPos - StartPos;
+	float const StartToEndDist = StartToEnd.Size();
+
+	UWorld const* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World && StartToEndDist > KINDA_SMALL_NUMBER)
+	{
+		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? World->GetGravityZ() : OverrideGravityZ;
+
+		// choose arc according to the arc param
+		FVector const StartToEndDir = StartToEnd / StartToEndDist;
+		FVector LaunchDir = FMath::Lerp(FVector::UpVector, StartToEndDir, ArcParam).GetSafeNormal();
+
+		// v = sqrt ( g * dx^2 / ( (dx tan(angle) + dz) * 2 * cos(angle))^2 ) )
+
+		FRotator const LaunchRot = LaunchDir.Rotation();
+		float const Angle = FMath::DegreesToRadians(LaunchRot.Pitch);
+
+		float const Dx = StartToEnd.Size2D();
+		float const Dz = StartToEnd.Z;
+		float const NumeratorInsideSqrt = (GravityZ * FMath::Square(Dx) * 0.5f);
+		float const DenominatorInsideSqrt = (Dz - (Dx * FMath::Tan(Angle))) * FMath::Square(FMath::Cos(Angle));
+		float const InsideSqrt = NumeratorInsideSqrt / DenominatorInsideSqrt;
+		if (InsideSqrt >= 0.f)
+		{
+			// there exists a solution
+			float const Speed = FMath::Sqrt(InsideSqrt);	// this is the mag of the vertical component
+			OutLaunchVelocity = LaunchDir * Speed;
+			return true;
+		}
+	}
+
+	OutLaunchVelocity = FVector::ZeroVector;
+	return false;
 }
 
 FIntVector UGameplayStatics::GetWorldOriginLocation(UObject* WorldContextObject)

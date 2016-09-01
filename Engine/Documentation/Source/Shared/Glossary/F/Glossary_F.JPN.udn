@@ -2,7 +2,7 @@
 Title:F
 Crumbs:Shared/Glossary
 Description:
-Availability:Public
+Availability:NoPublish
 
 [EXCERPT:Glossary_F]
 
@@ -28,7 +28,7 @@ Flow Control (フロー制御)
 	[PARAM:Definition]
 
 [EXCERPT:Glossary_Flow_Control]
-**フロー制御** オペレーションにより、ブループリントでの実行フローを明確に制御することができます。この制御は、ある条件が True  またはFalse、特定のブランチの複数実行、複数のブランチをある一定の順序で実行するなど、 
+**フロー制御** オペレーションにより、ブループリントでの実行フローを明確に制御することができます。この制御は、ある条件が True またはFalse、特定のブランチの複数実行、複数のブランチをある一定の順序で実行するなど、 
 その他さまざまな条件に基づいたブランチをグラフ上で選択して 
 制御を実行します。デフォルト設定のフロー制御オペレーションには、 
 ブランチ (if 文) 、ループ (for と while) 、ゲート、シーケンスがあります。

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2539368
+﻿INTSourceChangelist:2706343
 Availability:Public
 Title:1.必要なプロジェクト設定
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
-Description:HUDで使用するウイジェット ブループリントを作成し、HUDに情報を渡すようにキャラクターをセットアップします。 
-
+Description:HUDで使用する Widget ブループリントを作成し、HUDに情報を渡すようにキャラクターをセットアップします。 
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,10 +12,10 @@ Description:HUDで使用するウイジェット ブループリントを作成�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/UMG\QuickStart) 
+		[クイックスタート ホーム](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
+		[次のステップ](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -26,17 +26,17 @@ Description:HUDで使用するウイジェット ブループリントを作成�
 このチュートリアルでは **スターター コンテンツ** を有効にして **Blueprint First Person** テンプレートを使用します。新規プロジェクトの作成およびテンプレートの使用方法がわからない場合は、 [](Engine/Basics/Projects/Browser) ページで詳しい情報をご覧ください。 
 [/REGION]
 
-1. **コンテンツ ブラウザ** で、 **[Add New]** ボタンをクリックし、_User Interface_ で **Widget ブループリント** オプションを選択します。
+1. **コンテンツ ブラウザ** で、 **[Add New]** ボタンをクリックし、 **User Interface** で **Widget ブループリント** オプションを選択し、**HUD** と名前を付けます。
 
 	![](UMGQS1.png)
 
-	すべてのユーザー インターフェースの要素 (HUD、メニューなど) は **Widget ブループリント** 内で作成され、収容されます。Widget ブループリントでは、UI 要素を視覚的にレイアウトし、こうした要素に対してスクリプト化された機能を提供します。プレイヤー キャラクターがワールドでスポーンしたときに、表示されることがわかるようにWidget ブループリントを作成しますが、セットアップは後でします。 
+	すべてのユーザー インターフェース要素 (HUD、メニューなど) は Widget ブループリント 内で作成され、保存されます。Widget ブループリントでは、UI 要素を視覚的にレイアウトし、こうした要素に対してスクリプト化された機能を提供します。プレイヤー キャラクターがワールドでスポーンしたときに、表示されることがわかるようにWidget ブループリントを作成しますが、そのセットアップは後でします。 
 	[REGION:note]
 
-	**Widget ブループリント** の詳しい情報については、 [Widget ブループリント](Engine/UMG/UserGuide/WidgetBlueprints) のドキュメントをご覧ください。 
+	Widget ブループリントの詳しい情報については、 [Widget ブループリント](Engine/UMG/UserGuide/WidgetBlueprints) のドキュメントをご覧ください。 
 	[/REGION]
 
-1. あと 2 つ **Widget ブループリント** を作成します。ひとつは、**MainMenu** (メイン メニュー) でもうひとつは **PauseMenu** (一時停止メニュー) と呼ばれます。 
+1. あと 2 つ **Widget ブループリント** を作成します。ひとつは、**MainMenu(メイン メニュー) ** でもうひとつは **PauseMenu(一時停止メニュー)** と呼ばれます。 
 
 	![](AllWidgets.png)
 
@@ -50,9 +50,9 @@ Description:HUDで使用するウイジェット ブループリントを作成�
 
 	![](UMGQS2.png)
 
-	これはプレイ可能なキャラクターのブループリントであり、表示のために **HUD** ウィジェット ブループリントに渡す情報を作成します。 
+	これはプレイ可能なキャラクターのブループリントであり、表示のために **HUD** Widget ブループリントに渡す情報を作成します。 
 
-1.	**[MyBlueprint]** ウィンドウで **[変数追加]** (緑の枠内) ボタンをクリックします。 
+1.	**[MyBlueprint]** ウィンドウで **[Add Variable (変数追加)]** ボタンをクリックします。 
 
 	![](UMGQS3.png)
 
@@ -62,7 +62,7 @@ Description:HUDで使用するウイジェット ブループリントを作成�
 
 	この変数は、HUD に表示するプレイヤー キャラクターのヘルスを表します。 
 
-1.	 **デフォルト値** が **1.0** で **Energy** という **Float** の変数をもうひとつ作成します。 
+1.	 **デフォルト値** が **1.0** の **Energy** という **Float** 変数をもうひとつ作成します。 
 
 	![](UMGQS5.png)
 
@@ -72,35 +72,35 @@ Description:HUDで使用するウイジェット ブループリントを作成�
 	デフォルト値を入力できませんか？ツールバーにある **[コンパイル]** ボタンをクリックし、ブループリントをコンパイルしてから再度試みてください。 
 	[/REGION]
 
-1.	 **デフォルト値** が **25** で **Ammo** という **Integer** 型の変数をもうひとつ作成します。 
+1.	 **デフォルト値** が **25** の **Ammo** という **Integer** 型の変数をもうひとつ作成します。 
 
 	![](UMGQS6.png)
 
-1.	 **デフォルト値** が同じく **25** で **MaxAmmo** という **Integer** の変数をもうひとつ作成します。 
+1.	 **デフォルト値** が同じく **25** の **MaxAmmo** という **Integer** の変数をもうひとつ作成します。 
 
 1.	**グラフ** ウィンドウ内で **右クリック** して、**Event Begin Play** ノードを追加します。 
 
-1.	**Event Begin Play** を引き出して、 **Class** を **HUD** Widget ブループリントに設定した状態で **Create Widget** ノードを追加します。 
+1.	**Event Begin Play** を引き出して、 **Class** が **HUD** Widget ブループリントに設定された **Create Widget** ノードを追加します。 
 
 	![](UMGQS7.png)
 
-1.	 **Create HUD_C Widget** の **Return Value** から、**Promote to Variable** を選択し、 **HUD Reference** と名前を付けます。 
+1.	 **Create HUD_C Widget** の **Return Value** から、**Promote to Variable (変数に昇格)** を選択し、 **HUD Reference** と名前を付けます。 
 
 	![](UMGQS8.png)
 
-	これでゲーム開始時に HUD ウィジェット ブループリントが作成され、後でアクセスできるように変数として格納されます。これは、後で関数を呼び出して、HUD のプロパティを設定するのに役立ちます。例えば、ゲームを一時停止中に HUD を非表示にしたい場合、この変数を通して HUD にアクセスすることができます。 
+	これでゲーム開始時に HUD ウィジェット ブループリントが作成され、後でアクセスできるように変数として格納されます。これは、後で関数を呼び出したり、HUD のプロパティを設定するのに役立ちます。例えば、ゲームを一時停止中に HUD を非表示にしたい場合、この変数を通して HUD にアクセスすることができます。 
 
 1.	 **Set** ノードの出力ピンからドラッグして、**Add to Viewport** ノードを追加します。 
 
 	![](UMGQS9.png)
 
-	名前が表すように、対象として指定された Widget ブループリントをプレイヤーのビューポートに追加し、画面上にそれを描画します。 
+	名前が表すように、ターゲットとして指定された Widget ブループリントをプレイヤーのビューポートに追加し、画面上にそれを描画します。 
 
 ## キャラクター変数を調整する
 
 実際の HUD 生成開始前に最後に行うことは、キャラクター変数が変化する方法を与えることです。 
 
-1.  **FirstPersonCharacter** ブループリント内で、**Alt** を押しながら **Energy** 変数をドラッグして Jump スクリプトの隣に配置します。 
+1. **FirstPersonCharacter** ブループリント内で、**Alt** を押しながら **Energy** 変数をドラッグして Jump スクリプトの隣に配置します。 
 
 	![](Step2_1.png)(w:720)
 
@@ -118,7 +118,7 @@ Description:HUDで使用するウイジェット ブループリントを作成�
 
 1.	**Spawn Projectile** スクリプトを見つけて、**InputAction Fire** イベントの後で **右クリック** して **Branch** ノードを追加します。 
 
-1.	**Branch** 条件で、**Ctrl** を押しながら **0** に設定された **Integer > Integer** 変数に接続された **Ammo** 変数をドラッグします。
+1.	**Branch** 条件で、**Ctrl** を押しながら **0** に設定された **Integer > Integer** 変数に接続された **Ammo** 変数をドラッグし、以下のように接続します。
 
 	![](Step2_4.png)(w:820)
 
@@ -128,7 +128,7 @@ Description:HUDで使用するウイジェット ブループリントを作成�
 
 	![](Step2_5.png)
 
-	これで毎回プレイヤーが発射物を発砲するたびに弾薬を 1 つ差し引いて、HUD に表示するものを提供します。 
+	これで毎回プレイヤーが発射物を発砲するたびに弾薬を 1 つ差し引いて、HUD に表示するものが与えられます。 
 
 1. 	**コンパイル** し **保存** してから、ブループリントを閉じます。 
 

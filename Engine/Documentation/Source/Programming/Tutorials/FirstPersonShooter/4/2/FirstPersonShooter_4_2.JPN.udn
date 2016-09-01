@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2672915
+﻿INTSourceChangelist:2953540
 Availability:Docs
 Title:4.2 - Event Graph のセットアップ
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
-Description:First Person Shooter キャラクターの Event Graph をセットアップする方法を学びます。
-SkillLevel:初心者向け
-Version:4.9
+Description:FPS キャラクターの Event Graph をセットアップする方法を学びます。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,26 +24,26 @@ Version:4.9
 
 %Steps%
 
-このステップでは、アニメーションの Event Graph を編集して、アニメーションの遷移変数がゲーム実行中に適切に発行するようにします。
+このステップでは、アニメーションの Event Graph を編集してアニメーション遷移の変数がゲーム実行中に適切に発行されるようにします。
 
 ## ステート変数を更新する
 
-1.	**[My Blueprint]** タブで、**[EventGraph]** を **ダブルクリック** して Event Graph を開きます。
+1.	**[My Blueprint]** タブの **EventGraph** をダブルクリックしてイベントグラフを開きます。
 
 	![](OpenEventGraph.png)
 
-1.	グラフを **右クリック** して **コンテキスト メニュー** を表示します。
+1.	グラフを右クリックして **コンテキスト メニュー** を表示します。
 
-1.	**コンテキスト メニュー** の検索欄に「Update」と入力して、**[Event Blueprint Update Animation]** をクリックしてノードを追加します。
+1.	**コンテキスト メニュー** の検索欄に「Update」と入力して、ノードを追加するために **[Event Blueprint Update Animation]** をクリックします。
 
 	[REGION:note]
-	**Event Blueprint Update Animation** ノードは、アニメーションが更新されるたびにステート変数を更新するため、ゲームステートと常に同期されます。  
+	**Event Blueprint Update Animation** ノードは、アニメーションが更新されるたびにステート変数を更新し、ゲームステートと常に同期されるようにします。  
 	![](EventBlueprintUpdateAnimationNode.png)
 	[/REGION]
 
-1.	グラフを **右クリック** して **コンテキスト メニュー** を表示します。
+1.	グラフを右クリックして **コンテキスト メニュー** を表示します。
 
-1.	**コンテキスト メニュー** の検索欄に「Owner」と入力して、ノードを追加するために **[Try Get Pawn Owner]** を **クリック** します。
+1.	**コンテキスト メニュー** の検索欄に「Owner」と入力して、ノードを追加するために **[Try Get Pawn Owner]** をクリックします。
 
 	![](TryGetPawnOwnerBP_Node.png)
 
@@ -75,7 +75,7 @@ Version:4.9
 
 	![](ConnectedIsFalling.png)
 
-1.	**[My Blueprint]** タブで **[IsFalling]** を **Alt キーを押しながらクリック** してグラフにドラッグして、**Set Is Falling** ノードを作成します。
+1.	**[My Blueprint]** タブで **[IsFalling]** を Alt キーを押しながらクリックしてグラフにドラッグして、**Set Is Falling** ノードを作成します。
 
 	![](IsFalling.png)
 
@@ -97,7 +97,7 @@ Version:4.9
 
 	![](GreaterThan.png)
 
-1.	**[My Blueprint]** タブで**IsRunning**を **Alt キーを押しながらクリック** してグラフへドラッグして、**Set Is Running** ノードを作成します。
+1.	**[My Blueprint]** タブで **IsRunning** を Alt キーを押しながらクリックしてグラフへドラッグして、**Set Is Running** ノードを作成します。
 
 	![](IsRunning.png)
 

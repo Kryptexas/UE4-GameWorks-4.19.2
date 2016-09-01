@@ -2,7 +2,7 @@ Availability: Public
 Title:Painting on Meshes
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:An overview of how to lay paint strokes down on meshes using Mesh Paint Mode.
-Version: 4.9
+Version: 4.13
 SkillLevel: Intermediate
 
 [EXCERPT:Intro]
@@ -23,6 +23,10 @@ You can think of the paint brush as a cylinder projected along the surface norma
 The circular brush outline shows you the radius of the brush.  The inner circle shows the brush's _falloff_ (or inner radius.)  You probably figured this out already, but the small line sticking out from center of the brush is the mesh surface normal.
 
 To paint, hold down the **Left Mouse Button** and drag over the mesh's surface.  You can also hold down the **Shift** key while painting to erase instead.
+
+[REGION:tip]
+Mesh painting also works in the VR Editor. For the controls for Mesh Paint in VR, see the [](Engine/Editor/VR/Controls).
+[/REGION]
 
 Paint will be applied to the surface each time you click, and also each time the mouse position changes by dragging.  Also, if **Brush Flow** is enabled, paint will be applied every time the scene is rendered.
 

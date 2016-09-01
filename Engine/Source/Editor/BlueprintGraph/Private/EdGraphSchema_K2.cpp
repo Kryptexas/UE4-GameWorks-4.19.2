@@ -21,6 +21,7 @@
 #include "DefaultValueHelper.h"
 #include "ObjectEditorUtils.h"
 #include "ActorEditorUtils.h"
+#include "TextPackageNamespaceUtil.h"
 #include "ComponentTypeRegistry.h"
 #include "BlueprintComponentNodeSpawner.h"
 #include "AssetRegistryModule.h"
@@ -135,8 +136,11 @@ struct FUnloadedAssetData
 		, AssetFriendlyName(FText::FromString(FName::NameToDisplayString(InAsset.AssetName.ToString(), false)))
 		, PossibleObjectReferenceTypes(InPossibleObjectReferenceTypes)
 	{
-		const FString* TooltipPtr = InAsset.TagsAndValues.Find(TEXT("Tooltip"));
-		Tooltip = FText::FromString((TooltipPtr && !TooltipPtr->IsEmpty()) ? *TooltipPtr : InAsset.ObjectPath.ToString());
+		InAsset.GetTagValue("Tooltip", Tooltip);
+		if (Tooltip.IsEmpty())
+		{
+			Tooltip = FText::FromString(InAsset.ObjectPath.ToString());
+		}
 	}
 };
 
@@ -310,19 +314,13 @@ public:
 
 					if (Asset.IsValid() && !Asset.IsAssetLoaded())
 					{
-						const FString* BlueprintTypeStr = Asset.TagsAndValues.Find("BlueprintType");
-						const bool bNormalBP = BlueprintTypeStr && (*BlueprintTypeStr == BPNormalTypeAllowed);
-						const bool bInterfaceBP = BlueprintTypeStr && (*BlueprintTypeStr == BPInterfaceTypeAllowed);
+						const FString BlueprintTypeStr = Asset.GetTagValueRef<FString>("BlueprintType");
+						const bool bNormalBP = BlueprintTypeStr == BPNormalTypeAllowed;
+						const bool bInterfaceBP = BlueprintTypeStr == BPInterfaceTypeAllowed;
 
 						if (bNormalBP || bInterfaceBP)
 						{
-							uint32 ClassFlags = 0;
-							const FString* ClassFlagsStr = Asset.TagsAndValues.Find("ClassFlags");
-							if (ClassFlagsStr)
-							{
-								ClassFlags = FCString::Atoi(**ClassFlagsStr);
-							}
-
+							const uint32 ClassFlags = Asset.GetTagValueRef<uint32>("ClassFlags");
 							if (!(ClassFlags & CLASS_Deprecated))
 							{
 								if (bNormalBP)
@@ -933,18 +931,25 @@ bool UEdGraphSchema_K2::FunctionHasParamOfType(const UFunction* InFunction, UEdG
 		{
 			// See if this is the direction we want (input or output)
 			const bool bIsFunctionInput = !FuncParam->HasAnyPropertyFlags(CPF_OutParm) || FuncParam->HasAnyPropertyFlags(CPF_ReferenceParm);
-			if ((!bIsFunctionInput && bWantOutput) || (bIsFunctionInput && !bWantOutput))
+			if (bIsFunctionInput != bWantOutput)
 			{
 				// See if this pin has compatible types
 				FEdGraphPinType ParamPinType;
 				bool bConverted = ConvertPropertyToPinType(FuncParam, ParamPinType);
 				if (bConverted)
 				{
-					if (bIsFunctionInput && ArePinTypesCompatible(DesiredPinType, ParamPinType))
+					UClass* Context = nullptr;
+					UBlueprint* Blueprint = Cast<UBlueprint>(InGraph->GetOuter());
+					if (Blueprint)
+					{
+						Context = Blueprint->GeneratedClass;
+					}
+
+					if (bIsFunctionInput && ArePinTypesCompatible(DesiredPinType, ParamPinType, Context))
 					{
 						return true;
 					}
-					else if (!bIsFunctionInput && ArePinTypesCompatible(ParamPinType, DesiredPinType))
+					else if (!bIsFunctionInput && ArePinTypesCompatible(ParamPinType, DesiredPinType, Context))
 					{
 						return true;
 					}
@@ -1895,7 +1900,7 @@ void UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions( class FMenuBuilder& M
 	TMap< FString, uint32 > LinkTitleCount;
 
 	// Add all the links we could break from
-	for(auto PinLink : InGraphPin->LinkedTo )
+	for(const UEdGraphPin* PinLink : InGraphPin->LinkedTo )
 	{
 		FText Title = PinLink->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
 		FString TitleString = Title.ToString();
@@ -1928,7 +1933,7 @@ void UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions( class FMenuBuilder& M
 		++Count;
 
 		MenuBuilder.AddMenuEntry( Description, Description, FSlateIcon(), FUIAction(
-		FExecuteAction::CreateStatic(&FKismetEditorUtilities::BringKismetToFocusAttentionOnObject, Cast<const UObject>(PinLink), false)));
+		FExecuteAction::CreateStatic(&FKismetEditorUtilities::BringKismetToFocusAttentionOnPin, PinLink)));
 	}
 }
 
@@ -2195,7 +2200,7 @@ bool UEdGraphSchema_K2::TryCreateConnection(UEdGraphPin* PinA, UEdGraphPin* PinB
 
 	bool bModified = UEdGraphSchema::TryCreateConnection(PinA, PinB);
 
-	if (bModified && !PinA->HasAnyFlags(RF_Transient))
+	if (bModified && !PinA->IsPendingKill())
 	{
 		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 	}
@@ -2582,7 +2587,18 @@ void UEdGraphSchema_K2::AutowireConversionNode(UEdGraphPin* InputPin, UEdGraphPi
 	{
 		UEdGraphPin* TestPin = ConversionNode->Pins[PinIndex];
 
-		if ((TestPin->Direction == EGPD_Input) && (ArePinTypesCompatible(OutputPin->PinType, TestPin->PinType)))
+		UClass* Context = nullptr;
+		UK2Node* K2Node = Cast<UK2Node>(OutputPin->GetOwningNode());
+		if (K2Node != nullptr)
+		{
+			UBlueprint* Blueprint = K2Node->GetBlueprint();
+			if (Blueprint)
+			{
+				Context = Blueprint->GeneratedClass;
+			}
+		}
+
+		if ((TestPin->Direction == EGPD_Input) && (ArePinTypesCompatible(OutputPin->PinType, TestPin->PinType, Context)))
 		{
 			if(bAllowOutputConnections && TryCreateConnection(TestPin, OutputPin))
 			{
@@ -2590,7 +2606,7 @@ void UEdGraphSchema_K2::AutowireConversionNode(UEdGraphPin* InputPin, UEdGraphPi
 				bAllowOutputConnections = false;
 			}
 		}
-		else if ((TestPin->Direction == EGPD_Output) && (ArePinTypesCompatible(TestPin->PinType, InputPin->PinType)))
+		else if ((TestPin->Direction == EGPD_Output) && (ArePinTypesCompatible(TestPin->PinType, InputPin->PinType, Context)))
 		{
 			if(bAllowInputConnections && TryCreateConnection(TestPin, InputPin))
 			{
@@ -2837,7 +2853,7 @@ FText UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const
 
 void UEdGraphSchema_K2::ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FText& PinDescription, FString& TooltipOut) const
 {
-	if (Pin.HasAnyFlags(RF_Transient))
+	if (Pin.bWasTrashed)
 	{
 		return;
 	}
@@ -3422,13 +3438,13 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 	return PropertyText;
 }
 
-void UEdGraphSchema_K2::GetVariableTypeTree(TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildcard) const
+void UEdGraphSchema_K2::GetVariableTypeTree(TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, ETypeTreeFilter TypeTreeFilter) const
 {
-	GetVariableTypeTreeImpl(TypeTree, bAllowExec, bAllowWildcard, false);
-}
+	bool bAllowExec = (TypeTreeFilter & ETypeTreeFilter::AllowExec) == ETypeTreeFilter::AllowExec;
+	bool bAllowWildCard = (TypeTreeFilter & ETypeTreeFilter::AllowWildcard) == ETypeTreeFilter::AllowWildcard;
+	bool bIndexTypesOnly = (TypeTreeFilter & ETypeTreeFilter::IndexTypesOnly) == ETypeTreeFilter::IndexTypesOnly;
+	bool bRootTypesOnly = (TypeTreeFilter & ETypeTreeFilter::RootTypesOnly) == ETypeTreeFilter::RootTypesOnly;
 
-void UEdGraphSchema_K2::GetVariableTypeTreeImpl(TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildCard, bool bIndexTypesOnly) const
-{
 #ifdef SCHEMA_K2_GETVARIABLETYPETREE_LOG_TIME
 	static_assert(false, "Macro redefinition.");
 #endif
@@ -3439,13 +3455,21 @@ void UEdGraphSchema_K2::GetVariableTypeTreeImpl(TArray< TSharedPtr<FPinTypeTreeI
 #endif //SCHEMA_K2_GETVARIABLETYPETREE_LOG_TIME
 
 	FTypesDatabase TypesDatabase;
-	FGatherTypesHelper::FillLoadedTypesDatabase(TypesDatabase, bIndexTypesOnly);
+	FTypesDatabase* TypesDatabasePtr = nullptr;
+	if (!bRootTypesOnly)
+	{
+		TypesDatabasePtr = &TypesDatabase;
+		FGatherTypesHelper::FillLoadedTypesDatabase(TypesDatabase, bIndexTypesOnly);
+	}
 
 #if SCHEMA_K2_GETVARIABLETYPETREE_LOG_TIME
 	const auto DatabaseLoadedTime = FPlatformTime::Seconds();
 #endif //SCHEMA_K2_GETVARIABLETYPETREE_LOG_TIME
 
-	FGatherTypesHelper::FillUnLoadedTypesDatabase(TypesDatabase, bIndexTypesOnly);
+	if (!bRootTypesOnly)
+	{
+		FGatherTypesHelper::FillUnLoadedTypesDatabase(TypesDatabase, bIndexTypesOnly);
+	}
 
 #if SCHEMA_K2_GETVARIABLETYPETREE_LOG_TIME
 	const auto DatabaseUnLoadedTime = FPlatformTime::Seconds();
@@ -3470,9 +3494,12 @@ void UEdGraphSchema_K2::GetVariableTypeTreeImpl(TArray< TSharedPtr<FPinTypeTreeI
 		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Text, true), PC_Text, this, LOCTEXT("TextType", "A localizable text string"))));
 
 		// Add in special first-class struct types
-		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(PC_Struct, TBaseStructure<FVector>::Get(), LOCTEXT("VectorType", "A 3D vector"))));
-		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(PC_Struct, TBaseStructure<FRotator>::Get(), LOCTEXT("RotatorType", "A 3D rotation"))));
-		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(PC_Struct, TBaseStructure<FTransform>::Get(), LOCTEXT("TransformType", "A 3D transformation, including translation, rotation and 3D scale."))));
+		if (!bRootTypesOnly)
+		{
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(PC_Struct, TBaseStructure<FVector>::Get(), LOCTEXT("VectorType", "A 3D vector"))));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(PC_Struct, TBaseStructure<FRotator>::Get(), LOCTEXT("RotatorType", "A 3D rotation"))));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(PC_Struct, TBaseStructure<FTransform>::Get(), LOCTEXT("TransformType", "A 3D transformation, including translation, rotation and 3D scale."))));
+		}
 	}
 	// Add wildcard type
 	if (bAllowWildCard)
@@ -3480,14 +3507,23 @@ void UEdGraphSchema_K2::GetVariableTypeTreeImpl(TArray< TSharedPtr<FPinTypeTreeI
 		TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Wildcard, true), PC_Wildcard, this, LOCTEXT("WildcardType", "Wildcard type (unspecified).")) ) );
 	}
 
-	FTypesDatabase* TypesDatabasePtr = &TypesDatabase;
 	// Add the types that have subtrees
 	if (!bIndexTypesOnly)
 	{
 		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Struct, true), PC_Struct, this, LOCTEXT("StructType", "Struct (value) types."), true, TypesDatabasePtr)));
 		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Interface, true), PC_Interface, this, LOCTEXT("InterfaceType", "Interface pointer."), true, TypesDatabasePtr)));
 
-		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(AllObjectTypes, true), AllObjectTypes, this, LOCTEXT("ObjectType", "Object pointer."), true, TypesDatabasePtr)));
+		if (!bRootTypesOnly)
+		{
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(AllObjectTypes, true), AllObjectTypes, this, LOCTEXT("ObjectType", "Object pointer."), true, TypesDatabasePtr)));
+		}
+		else
+		{
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Object, true), PC_Object, this, LOCTEXT("ObjectType", "Object pointer."), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Class, true), PC_Class, this, LOCTEXT("ClassType", "Class pointer."), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_AssetClass, true), PC_AssetClass, this, LOCTEXT("AssetClassType", "Class ID."), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Asset, true), PC_Asset, this, LOCTEXT("AssetType", "Asset ID."), true, TypesDatabasePtr)));
+		}
 	}
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Enum, true), PC_Enum, this, LOCTEXT("EnumType", "Enumeration types."), true, TypesDatabasePtr) ) );
 
@@ -3496,11 +3532,6 @@ void UEdGraphSchema_K2::GetVariableTypeTreeImpl(TArray< TSharedPtr<FPinTypeTreeI
 	UE_LOG(LogBlueprint, Log, TEXT("UEdGraphSchema_K2::GetVariableTypeTree times - LoadedTypesDatabase: %f UnLoadedTypesDatabase: %f FPinTypeTreeInfo: %f"), DatabaseLoadedTime - StartTime, DatabaseUnLoadedTime - DatabaseLoadedTime, EndTime - DatabaseUnLoadedTime);
 #endif //SCHEMA_K2_GETVARIABLETYPETREE_LOG_TIME
 #undef SCHEMA_K2_GETVARIABLETYPETREE_LOG_TIME
-}
-
-void UEdGraphSchema_K2::GetVariableIndexTypeTree( TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildcard ) const
-{
-	GetVariableTypeTreeImpl(TypeTree, bAllowExec, bAllowWildcard, true);
 }
 
 bool UEdGraphSchema_K2::DoesTypeHaveSubtypes(const FString& Category) const
@@ -4083,24 +4114,6 @@ void UEdGraphSchema_K2::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* 
 
 void UEdGraphSchema_K2::ReconstructNode(UEdGraphNode& TargetNode, bool bIsBatchRequest/*=false*/) const
 {
-	{
-		TArray<UObject *> NodeChildren;
-		GetObjectsWithOuter(&TargetNode, NodeChildren, false);
-		for (int32 Iter = 0; Iter < NodeChildren.Num(); ++Iter)
-		{
-			UEdGraphPin* Pin = Cast<UEdGraphPin>(NodeChildren[Iter]);
-			const bool bIsValidPin = !Pin 
-				|| (Pin->IsPendingKill() && !Pin->LinkedTo.Num()) 
-				|| TargetNode.Pins.Contains(Pin);
-			if (!bIsValidPin)
-			{
-				UE_LOG(LogBlueprint, Warning,
-					TEXT("Invalid pin: '%s' thinks it belongs to a node ('%s' - '%s') which doesn't have record of it. Try refreshing the node, then compile and resave the Blueprint to hopefully aleviate the problem."),
-					*Pin->PinName, *TargetNode.GetNodeTitle(ENodeTitleType::MenuTitle).ToString(), *TargetNode.GetFullName());
-			}
-		}
-	}
-
 	Super::ReconstructNode(TargetNode, bIsBatchRequest);
 
 	// If the reconstruction is being handled by something doing a batch (i.e. the blueprint autoregenerating itself), defer marking the blueprint as modified to prevent multiple recompiles
@@ -4174,8 +4187,15 @@ void UEdGraphSchema_K2::TrySetDefaultValue(UEdGraphPin& Pin, const FString& NewD
 	}
 	else if(Pin.PinType.PinCategory == PC_Text)
 	{
+		FString PackageNamespace;
+#if USE_STABLE_LOCALIZATION_KEYS
+		if (GIsEditor)
+		{
+			PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(Pin.GetOwningNodeUnchecked());
+		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 		FText NewTextValue;
-		if (!FTextStringHelper::ReadFromString(*NewDefaultValue, NewTextValue))
+		if (!FTextStringHelper::ReadFromString(*NewDefaultValue, NewTextValue, nullptr, *PackageNamespace))
 		{
 			NewTextValue = FText::FromString(NewDefaultValue);
 		}
@@ -4347,7 +4367,14 @@ void UEdGraphSchema_K2::SetPinDefaultValue(UEdGraphPin* Pin, const UFunction* Fu
 		{
 			if (Pin->PinType.PinCategory == PC_Text)
 			{
-				if (!FTextStringHelper::ReadFromString(*Pin->AutogeneratedDefaultValue, Pin->DefaultTextValue))
+				FString PackageNamespace;
+#if USE_STABLE_LOCALIZATION_KEYS
+				if (GIsEditor)
+				{
+					PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(Pin->GetOwningNodeUnchecked());
+				}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+				if (!FTextStringHelper::ReadFromString(*Pin->AutogeneratedDefaultValue, Pin->DefaultTextValue, nullptr, *PackageNamespace))
 				{
 					Pin->DefaultTextValue = FText::FromString(Pin->AutogeneratedDefaultValue);
 				}
@@ -5594,7 +5621,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				{
 					PreExistingNode = FBlueprintEditorUtils::FindCustomEventNode(Blueprint, EventNode->CustomFunctionName);
 				}
-				else if (EventNode->FindEventSignatureFunction() != nullptr)
+				else if (ensure(EventNode->FindEventSignatureFunction() != nullptr))
 				{
 					// EventNode::FindEventSignatureFunction will return null if it is deleted (for instance, someone declared a 
 					// BlueprintImplementableEvent, and some blueprint implements it, but then the declaration is deleted)
@@ -5625,7 +5652,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				check(Pin);
 
 				// Reparent the pin to the new custom event node
-				Pin->Rename(*Pin->GetName(), CustomEventNode, RenameFlags | (Pin->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects) ? REN_ForceNoResetLoaders : RF_NoFlags));
+				Pin->SetOwningNode(CustomEventNode);
 
 				// Don't include execution or delegate output pins as user-defined pins
 				if(!bOriginalWasCustomEvent && !IsExecPin(*Pin) && !IsDelegateCategory(Pin->PinType.PinCategory))
@@ -6184,7 +6211,7 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		}
 
 		GraphNode->Pins.Remove(SubPin);
-		Blueprint->PinWatches.Remove(SubPin);
+		Blueprint->WatchedPins.Remove(SubPin);
 	}
 
 	if (Pin->Direction == EGPD_Input)
@@ -6219,7 +6246,18 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		}
 	}
 
-	ParentPin->SubPins.Empty();	
+	// Clear out subpins:
+	TArray<UEdGraphPin*>& ParentSubPins = ParentPin->SubPins;
+	while (ParentSubPins.Num())
+	{
+		// To ensure that MarkPendingKill does not mutate ParentSubPins, we null out the ParentPin
+		// if we assume that MarkPendingKill *will* mutate ParentSubPins we could introduce an infinite
+		// loop. No known case of this being possible, but it would be trivial to write bad node logic
+		// that introduces this problem:
+		ParentSubPins.Last()->ParentPin = nullptr; 
+		ParentSubPins.Last()->MarkPendingKill();
+		ParentSubPins.RemoveAt(ParentSubPins.Num()-1);
+	}
 
 	Graph->NotifyGraphChanged();
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);

@@ -314,9 +314,9 @@ void UParticleModule::AutoPopulateInstanceProperties(UParticleSystemComponent* P
 			{
 				ParamType = PSPT_Scalar;
 				ParamName = DistFloatParam->ParameterName;
+				
 			}
-			else 
-			if (DistVectorParam != NULL)
+			else if (DistVectorParam != NULL)
 			{
 				ParamType = PSPT_Vector;
 				ParamName = DistVectorParam->ParameterName;
@@ -342,6 +342,18 @@ void UParticleModule::AutoPopulateInstanceProperties(UParticleSystemComponent* P
 					PSysComp->InstanceParameters[NewParamIndex].Name		= ParamName;
 					PSysComp->InstanceParameters[NewParamIndex].ParamType	= ParamType;
 					PSysComp->InstanceParameters[NewParamIndex].Actor		= NULL;
+					// Populate a Vector or Scalar using GetValue. (If we just call GetValue with no parameters we will get the default value based on the setting of the Parameter)
+					switch (ParamType)
+					{
+					case PSPT_Vector:
+						PSysComp->InstanceParameters[NewParamIndex].Vector = DistVectorParam->GetValue();
+						PSysComp->InstanceParameters[NewParamIndex].Vector_Low = DistVectorParam->MinOutput;
+						break;
+					case PSPT_Scalar:
+						PSysComp->InstanceParameters[NewParamIndex].Scalar = DistFloatParam->GetValue();
+						PSysComp->InstanceParameters[NewParamIndex].Scalar_Low = DistFloatParam->MinOutput;
+						break;
+					}
 				}
 			}
 		}
@@ -1866,6 +1878,16 @@ void UParticleModuleSubUV::InitializeDefaults()
 	}
 }
 
+void UParticleModuleSubUV::PostLoad()
+{
+	Super::PostLoad();
+
+	if (Animation)
+	{
+		Animation->ConditionalPostLoad();
+	}	
+}
+
 void UParticleModuleSubUV::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -2901,24 +2923,35 @@ bool UParticleModuleLight::CanTickInAnyThread()
 	return !bHighQualityLights && BrightnessOverLife.OkForParallel() && ColorScaleOverLife.OkForParallel() && RadiusScale.OkForParallel() && LightExponent.OkForParallel();
 }
 
+static TAutoConsoleVariable<int32> CVarParticleLightQuality(
+	TEXT("r.ParticleLightQuality"),
+	2,
+	TEXT("0: No lights. 1:Only simple lights. 2:Simple+HQ lights"),
+	ECVF_Scalability
+	);
+
 void UParticleModuleLight::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
-	SPAWN_INIT;
-	PARTICLE_ELEMENT(FLightParticlePayload, LightData);
-	const float Brightness = BrightnessOverLife.GetValue(Particle.RelativeTime, Owner->Component, InRandomStream);
-	LightData.ColorScale = ColorScaleOverLife.GetValue(Particle.RelativeTime, Owner->Component, 0, InRandomStream) * Brightness;
-	LightData.RadiusScale = RadiusScale.GetValue(Owner->EmitterTime, Owner->Component, InRandomStream);
-	// Exponent of 0 is interpreted by renderer as inverse squared falloff
-	LightData.LightExponent = bUseInverseSquaredFalloff ? 0 : LightExponent.GetValue(Owner->EmitterTime, Owner->Component, InRandomStream);
-	const float RandomNumber = InRandomStream ? InRandomStream->GetFraction() : FMath::SRand();
-	LightData.bValid = RandomNumber < SpawnFraction;
-	LightData.bAffectsTranslucency = bAffectsTranslucency;
-	LightData.bHighQuality = bHighQualityLights;
-	LightData.LightId = 0;
+	int32 ParticleLightQuality = CVarParticleLightQuality.GetValueOnAnyThread();
+	if (ParticleLightQuality > 0)
+	{
+		SPAWN_INIT;
+		PARTICLE_ELEMENT(FLightParticlePayload, LightData);
+		const float Brightness = BrightnessOverLife.GetValue(Particle.RelativeTime, Owner->Component, InRandomStream);
+		LightData.ColorScale = ColorScaleOverLife.GetValue(Particle.RelativeTime, Owner->Component, 0, InRandomStream) * Brightness;
+		LightData.RadiusScale = RadiusScale.GetValue(Owner->EmitterTime, Owner->Component, InRandomStream);
+		// Exponent of 0 is interpreted by renderer as inverse squared falloff
+		LightData.LightExponent = bUseInverseSquaredFalloff ? 0 : LightExponent.GetValue(Owner->EmitterTime, Owner->Component, InRandomStream);
+		const float RandomNumber = InRandomStream ? InRandomStream->GetFraction() : FMath::SRand();
+		LightData.bValid = RandomNumber < SpawnFraction;
+		LightData.bAffectsTranslucency = bAffectsTranslucency;
+		LightData.bHighQuality = bHighQualityLights;
+		LightData.LightId = 0;
 
-	if (bHighQualityLights)
-	{		
-		LightData.LightId = SpawnHQLight(LightData, Particle, Owner);
+		if (bHighQualityLights && ParticleLightQuality > 1)
+		{		
+			LightData.LightId = SpawnHQLight(LightData, Particle, Owner);
+		}
 	}
 }
 
@@ -3291,6 +3324,16 @@ void UParticleModuleTypeDataMesh::CreateDistribution()
 	}
 }
 
+
+void UParticleModuleTypeDataMesh::PostLoad()
+{
+	Super::PostLoad();
+
+	if (Mesh != nullptr)
+	{
+		Mesh->ConditionalPostLoad();
+	}
+}
 
 
 #if WITH_EDITOR
@@ -4388,7 +4431,7 @@ void UParticleModuleTypeDataGpu::BeginDestroy()
 
 void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildInfo )
 {
-//#if WITH_EDITOR
+#if WITH_EDITOR
 	FVector4Distribution Curve;
 	FComposableFloatDistribution ZeroDistribution;
 	FComposableFloatDistribution OneDistribution;
@@ -4613,7 +4656,7 @@ void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildI
 	EmitterInfo.LocalVectorField.bTileX = EmitterBuildInfo.bLocalVectorFieldTileX;
 	EmitterInfo.LocalVectorField.bTileY = EmitterBuildInfo.bLocalVectorFieldTileY;
 	EmitterInfo.LocalVectorField.bTileZ = EmitterBuildInfo.bLocalVectorFieldTileZ;
-
+	EmitterInfo.LocalVectorField.bUseFixDT = EmitterBuildInfo.bLocalVectorFieldUseFixDT;
 
 	// Vector field scales.
 	FComposableFloatDistribution NormalizedVectorFieldScale(EmitterBuildInfo.VectorFieldScale);
@@ -4683,7 +4726,7 @@ void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildI
 	// Collision flag.
 	EmitterInfo.bEnableCollision = EmitterBuildInfo.bEnableCollision;
 	EmitterInfo.CollisionMode = (EParticleCollisionMode::Type)EmitterBuildInfo.CollisionMode;
-//#endif
+#endif
 
 
 	// Create or update GPU resources.

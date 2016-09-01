@@ -8,6 +8,7 @@
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Animation/AnimSequence.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxAnimationExport, Log, All);
 
@@ -168,6 +169,7 @@ void FFbxExporter::CorrectAnimTrackInterpolation( TArray<FbxNode*>& BoneNodes, F
 		for(int32 CurveIndex = 0; CurveIndex < 3; ++CurveIndex)
 		{
 			FbxAnimCurve* CurrentCurve = Curves[CurveIndex];
+			CurrentCurve->KeyModifyBegin();
 
 			float CurrentAngleOffset = 0.f;
 			for(int32 KeyIndex = 1; KeyIndex < CurrentCurve->KeyGetCount(); ++KeyIndex)
@@ -190,6 +192,8 @@ void FFbxExporter::CorrectAnimTrackInterpolation( TArray<FbxNode*>& BoneNodes, F
 
 				CurrentCurve->KeySetValue(KeyIndex, CurrentOutVal);
 			}
+
+			CurrentCurve->KeyModifyEnd();
 		}
 	}
 }
@@ -311,6 +315,8 @@ void FFbxExporter::ExportAnimSequencesAsSingle( USkeletalMesh* SkelMesh, const A
 
 }
 
+
+
 /**
  * Exports all the animation sequences part of a single Group in a Matinee sequence
  * as a single animation in the FBX document.  The animation is created by sampling the
@@ -344,14 +350,17 @@ void FFbxExporter::ExportMatineeGroup(class AMatineeActor* MatineeActor, USkelet
 	FbxSkeletonRoots.Add(SkeletalMeshComponent, SkeletonRootNode);
 	BaseNode->AddChild(SkeletonRootNode);
 
-	ExportAnimTrack(MatineeActor, SkeletalMeshComponent);
+	FMatineeAnimTrackAdapter AnimTrackAdapter(MatineeActor);
+	ExportAnimTrack(AnimTrackAdapter, SkeletalMeshComponent);
 }
 
-void FFbxExporter::ExportAnimTrack(class AMatineeActor* MatineeActor, USkeletalMeshComponent* SkeletalMeshComponent)
+void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, USkeletalMeshComponent* SkeletalMeshComponent)
 {
 	static const float SamplingRate = 1.f / DEFAULT_SAMPLERATE;
 
-	float MatineeLength = MatineeActor->MatineeData->InterpLength;
+	float AnimationStart = AnimTrackAdapter.GetAnimationStart();
+	float AnimationLength = AnimTrackAdapter.GetAnimationLength();
+	float AnimationEnd = AnimationStart + AnimationLength;
 	// show a status update every 1 second worth of samples
 	const float UpdateFrequency = 1.0f;
 	float NextUpdateTime = UpdateFrequency;
@@ -366,10 +375,10 @@ void FFbxExporter::ExportAnimTrack(class AMatineeActor* MatineeActor, USkeletalM
 	}
 
 	float SampleTime;
-	for(SampleTime = 0.f; SampleTime <= MatineeLength; SampleTime += SamplingRate)
+	for(SampleTime = AnimationStart; SampleTime <= AnimationEnd; SampleTime += SamplingRate)
 	{
 		// This will call UpdateSkelPose on the skeletal mesh component to move bones based on animations in the matinee group
-		MatineeActor->UpdateInterp( SampleTime, true );
+		AnimTrackAdapter.UpdateAnimation( SampleTime );
 
 		FbxTime ExportTime;
 		ExportTime.SetSecondDouble(SampleTime);
@@ -379,7 +388,7 @@ void FFbxExporter::ExportAnimTrack(class AMatineeActor* MatineeActor, USkeletalM
 		if( NextUpdateTime <= 0.0f )
 		{
 			NextUpdateTime = UpdateFrequency;
-			GWarn->StatusUpdate( FMath::RoundToInt( SampleTime ), FMath::RoundToInt(MatineeLength), NSLOCTEXT("FbxExporter", "ExportingToFbxStatus", "Exporting to FBX") );
+			GWarn->StatusUpdate( FMath::RoundToInt( SampleTime ), FMath::RoundToInt(AnimationLength), NSLOCTEXT("FbxExporter", "ExportingToFbxStatus", "Exporting to FBX") );
 		}
 
 		// Add the animation data to the bone nodes
@@ -403,7 +412,7 @@ void FFbxExporter::ExportAnimTrack(class AMatineeActor* MatineeActor, USkeletalM
 				Curves[i]->KeyModifyBegin();
 			}
 
-			FTransform BoneTransform = SkeletalMeshComponent->LocalAtoms[BoneIndex];
+			FTransform BoneTransform = SkeletalMeshComponent->BoneSpaceTransforms[BoneIndex];
 			FbxVector4 Translation = Converter.ConvertToFbxPos(BoneTransform.GetLocation());
 			FbxVector4 Rotation = Converter.ConvertToFbxRot(BoneTransform.GetRotation().Euler());
 

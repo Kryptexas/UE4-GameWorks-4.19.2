@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:2536078
+﻿INTSourceChangelist:2750813
 Availability:Public
 Title:SubUV モジュール
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:SubUV モジュールによって、パーティクルは subUV マルチフレームテクスチャを利用することが出来ます。
+Version:4.9
 
 [TOC(start:2 end:3)]
-
-## SubUVモジュール 
 
 SubUV モジュールによって、パーティクルは subUV テクスチャを利用することが出来ます。subUV テクスチャには個別「フレーム」のグリッドが配置されています。
 
@@ -14,9 +13,9 @@ SubUV モジュールによって、パーティクルは subUV テクスチャ�
 SubUV モジュールは、InterpolationMethod が PSUVIM_None 以外に設定されている時のみエミッタに適用します。 
 [/REGION]
 
-### SubImage Indexモジュール
+## SubImage Index モジュール
 
-SubImage Index モジュールはフロート分布に基づいて使用するサブイメージを選択します。現状のサブイメージは、左から右、上から下への順序になっています。以下のメンバーが含まれます
+**SubImage Index** モジュールは、フロート分布に基づいて使用するサブイメージを選択します。現状のサブイメージは、左から右、上から下への順序になっています。以下のメンバーが含まれます。
 
 | プロパティ | 説明 |
 | ---- | ---- |
@@ -27,16 +26,16 @@ SubImage Index モジュールはフロート分布に基づいて使用する�
 
 
 
-### SubUV Movieモジュール
+## SubUV Movie モジュール
 
 SubUV Movie モジュールは、指定されたフレームレートの順序でテクスチャのサブイメージを繰り返し表示します。フリップブックテクスチャの動作と類似しています。以下のメンバーが含まれます
 
 | プロパティ | 説明 |
 | ---- | ---- |
 |[REGION:tablesection]FlipBook[/REGION]||
-|**Use Emitter Time** | _true_ の場合、_FrameRate_ 分布の値の取得にエミッタ時間を使用します。さもなければ相対的なパーティクル時間を使用します。
+|**Use Emitter Time** | _true_ の場合、_FrameRate_ 分布の値の取得にエミッタ時間を使用します。さもなければ相対的なパーティクル時間を使用します。|
 |**Frame Rate** | サブイメージをフリップさせるフレームレートを指定した float 分布です。|
-|**Starting Frame** | SubUV（1＝最初のフレーム）が開始する画像のインデックスです。左-＞右、上-＞下の順序が前提となっています。最終フレームよりも大きい場合、最終フレームにクランプされます。値が 0 の場合、開始フレームをランダムに選択します。
+|**Starting Frame** | SubUV (1＝ 最初のフレーム) が開始する画像のインデックスです。左-＞右、上-＞下の順序が前提となっています。最終フレームよりも大きい場合、最終フレームにクランプされます。値が 0 の場合、開始フレームをランダムに選択します。
 |[REGION:tablesection]Realtime[/REGION]||
 |**Use Real Time**| _true_ の場合、ゲームのスローモーション設定に関係なく、ムービーをリアルタイムで再生します。|
 

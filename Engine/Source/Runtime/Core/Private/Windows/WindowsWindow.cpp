@@ -3,6 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "WindowsWindow.h"
 #include "WindowsApplication.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #if WINVER > 0x502	// Windows Vista or better required for DWM
@@ -176,6 +177,8 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 
 	if( HWnd == NULL )
 	{
+		FSlowHeartBeatScope SuspendHeartBeat;
+
 		// @todo Error message should be localized!
 		MessageBox(NULL, TEXT("Window Creation Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
 		checkf(0, TEXT("Window Creation Failed (%d)"), ::GetLastError() );
@@ -244,6 +247,7 @@ FWindowsWindow::FWindowsWindow()
 	: HWnd(NULL)
 	, WindowMode( EWindowMode::Windowed )
 	, OLEReferenceCount(0)
+	, AspectRatio(1.0f)
 	, bIsVisible( false )
 {
 	FMemory::Memzero(PreFullscreenWindowPlacement);
@@ -347,6 +351,8 @@ void FWindowsWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int3
 	FMemory::Memzero( WindowInfo );
 	WindowInfo.cbSize = sizeof( WindowInfo );
 	::GetWindowInfo( HWnd, &WindowInfo );
+
+	AspectRatio = (float)NewWidth / (float)NewHeight;
 
 	// X,Y, Width, Height defines the top-left pixel of the client area on the screen
 	if( Definition->HasOSWindowBorder )
@@ -751,6 +757,12 @@ void FWindowsWindow::Enable( bool bEnable )
 	::EnableWindow( HWnd, bEnable );
 }
 
+/** @return True if the window is enabled */
+bool FWindowsWindow::IsEnabled()
+{
+	return !!::IsWindowEnabled( HWnd );
+}
+
 /** @return true if native window exists underneath the coordinates */
 bool FWindowsWindow::IsPointInWindow( int32 X, int32 Y ) const
 {
@@ -868,18 +880,18 @@ FDragDropOLEData DecipherOLEData(IDataObject* DataObjectPointer)
 	if (bHaveUnicodeText && S_OK == DataObjectPointer->GetData(&FormatEtc_UNICODE, &StorageMedium))
 	{
 		FOLEResourceGuard ResourceGuard(StorageMedium);
-		OLEData.Type = FDragDropOLEData::Text;
+		OLEData.Type |= FDragDropOLEData::Text;
 		OLEData.OperationText = static_cast<TCHAR*>(ResourceGuard.DataPointer);
 	}
-	else if (bHaveAnsiText && S_OK == DataObjectPointer->GetData(&FormatEtc_Ansii, &StorageMedium))
+	if (bHaveAnsiText && S_OK == DataObjectPointer->GetData(&FormatEtc_Ansii, &StorageMedium))
 	{
 		FOLEResourceGuard ResourceGuard(StorageMedium);
-		OLEData.Type = FDragDropOLEData::Text;
+		OLEData.Type |= FDragDropOLEData::Text;
 		OLEData.OperationText = static_cast<ANSICHAR*>(ResourceGuard.DataPointer);
 	}
-	else if (bHaveFiles && S_OK == DataObjectPointer->GetData(&FormatEtc_File, &StorageMedium))
+	if (bHaveFiles && S_OK == DataObjectPointer->GetData(&FormatEtc_File, &StorageMedium))
 	{
-		OLEData.Type = FDragDropOLEData::Files;
+		OLEData.Type |= FDragDropOLEData::Files;
 
 		FOLEResourceGuard ResourceGuard(StorageMedium);
 		const DROPFILES* DropFiles = static_cast<DROPFILES*>(ResourceGuard.DataPointer);

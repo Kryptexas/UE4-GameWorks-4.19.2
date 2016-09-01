@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2757177
 Availability:Public
 Title:6.AI Controller ブループリントの設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:ステップ 6AI Controller ブループリントの設定
+Description:ステップ 6.AI Controller ブループリントの設定
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -30,13 +31,13 @@ Top Down テンプレートを使用すると、マウス制御を使ってキ�
 
 **イベント グラフ** の作成手順の最初の部分は以下のようになります。ステップ「 _7.AI Controller ブループリント:ブラックボードの初期値_ 」およびステップ「 _8.AI Controller ブループリント:ビヘイビアツリーを実行する_ 」にも、このグラフの編集が含まれます。
 
-## 手順
+## ステップ
 
 1. **コンテンツブラウザ** の AI Controller ブループリントを **ダブルクリック** して編集を開始します。
 
 	![](followerAICONAsset.png)
 
-1. **[Graph]** パネルのコンテクスト メニューを **右クリック** します。
+1. **[Graph]** パネルのコンテキスト メニューを **右クリック** します。
 
 	1. **Event Begin Play** ノードを追加します。
 

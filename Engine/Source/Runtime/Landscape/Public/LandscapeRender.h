@@ -12,6 +12,7 @@ LandscapeRender.h: New terrain rendering
 #include "LandscapeProxy.h"
 #include "LandscapeMeshProxyComponent.h"
 
+#include "Materials/MaterialInterface.h"
 #include "PrimitiveSceneProxy.h"
 #include "StaticMeshResources.h"
 
@@ -67,12 +68,12 @@ namespace ELandscapeEditRenderMode
 LANDSCAPE_API extern bool GLandscapeEditModeActive;
 LANDSCAPE_API extern int32 GLandscapeEditRenderMode;
 LANDSCAPE_API extern int32 GLandscapePreviewMeshRenderMode;
-LANDSCAPE_API extern UMaterial* GLayerDebugColorMaterial;
-LANDSCAPE_API extern UMaterialInstanceConstant* GSelectionColorMaterial;
-LANDSCAPE_API extern UMaterialInstanceConstant* GSelectionRegionMaterial;
-LANDSCAPE_API extern UMaterialInstanceConstant* GMaskRegionMaterial;
+LANDSCAPE_API extern UMaterialInterface* GLayerDebugColorMaterial;
+LANDSCAPE_API extern UMaterialInterface* GSelectionColorMaterial;
+LANDSCAPE_API extern UMaterialInterface* GSelectionRegionMaterial;
+LANDSCAPE_API extern UMaterialInterface* GMaskRegionMaterial;
 LANDSCAPE_API extern UTexture2D* GLandscapeBlackTexture;
-LANDSCAPE_API extern UMaterial* GLandscapeLayerUsageMaterial;
+LANDSCAPE_API extern UMaterialInterface* GLandscapeLayerUsageMaterial;
 #endif
 
 
@@ -535,7 +536,7 @@ protected:
 	FLandscapeSharedBuffers*	SharedBuffers;
 	FLandscapeVertexFactory*	VertexFactory;
 
-	UMaterialInterface* MaterialInterface;
+	TArray<UMaterialInterface*, TInlineAllocator<2>> MaterialInterfacesByLOD;
 	FMaterialRelevance MaterialRelevance;
 
 	// Reference counted vertex and index buffer shared among all landscape scene proxies of the same component size
@@ -560,6 +561,11 @@ protected:
 	FCollisionResponseContainer CollisionResponse;
 #endif
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** LightMap resolution used for VMI_LightmapDensity */
+	int32 LightMapResolution;
+#endif
+
 	TUniformBuffer<FLandscapeUniformShaderParameters> LandscapeUniformShaderParameters;
 
 	// Cached versions of these
@@ -569,7 +575,7 @@ protected:
 
 public:
 	// constructor
-	FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData);
+	FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, TArrayView<UMaterialInterface* const> InMaterialInterfacesByLOD, FLandscapeEditToolRenderData* InEditToolRenderData);
 
 	// FPrimitiveSceneProxy interface.
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
@@ -605,6 +611,10 @@ public:
 	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription) override;
 
 	virtual void GetLCIs(FLCIArray& LCIs) override;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	virtual int32 GetLightMapResolution() const override { return LightMapResolution; }
+#endif
 };
 
 class FLandscapeDebugMaterialRenderProxy : public FMaterialRenderProxy

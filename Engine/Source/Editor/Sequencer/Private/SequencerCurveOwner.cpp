@@ -191,7 +191,7 @@ void FSequencerCurveOwner::OnCurveChanged( const TArray<FRichCurveEditInfo>& Cha
 		}
 	}
 
-	SequencerNodeTree->GetSequencer().UpdateRuntimeInstances();
+	SequencerNodeTree->GetSequencer().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 }
 
 bool FSequencerCurveOwner::IsValidCurve( FRichCurveEditInfo CurveInfo )

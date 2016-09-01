@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "PhysicsPublic.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "LevelUtils.h"
 #if WITH_EDITOR
 #include "ShowFlags.h"
@@ -28,6 +29,7 @@
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/DamageType.h"
 #include "Components/ChildActorComponent.h"
+#include "Streaming/TextureStreamingHelpers.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
@@ -152,6 +154,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	PostPhysicsComponentTick.TickGroup = TG_PostPhysics;
 
 	LastRenderTime = -1000.0f;
+	LastRenderTimeOnScreen = -1000.0f;
 	BoundsScale = 1.0f;
 	MinDrawDistance = 0.0f;
 	DepthPriorityGroup = SDPG_World;
@@ -246,9 +249,19 @@ void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextu
 	GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
 	for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
 	{
-		if (!OutStreamingTextures[Index].Texture || !Cast<UTexture2D>(OutStreamingTextures[Index].Texture))
+		const FStreamingTexturePrimitiveInfo& Info = OutStreamingTextures[Index];
+		if (!IsStreamingTexture(Info.Texture))
 		{
 			OutStreamingTextures.RemoveAt(Index--);
+		}
+		else
+		{
+			// Other wise check that everything is setup right.
+			const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && Info.Bounds.SphereRadius > SMALL_NUMBER && ensure(FMath::IsFinite(Info.TexelFactor));
+			if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
+			{
+				OutStreamingTextures.RemoveAt(Index--);
+			}
 		}
 	}
 }
@@ -513,9 +526,9 @@ void UPrimitiveComponent::DestroyRenderState_Concurrent()
 //////////////////////////////////////////////////////////////////////////
 // Physics
 
-void UPrimitiveComponent::CreatePhysicsState()
+void UPrimitiveComponent::OnCreatePhysicsState()
 {
-	Super::CreatePhysicsState();
+	Super::OnCreatePhysicsState();
 
 	// if we have a scene, we don't want to disable all physics and we have no bodyinstance already
 	if(!BodyInstance.IsValidBodyInstance())
@@ -600,7 +613,7 @@ void UPrimitiveComponent::SendPhysicsTransform(ETeleportType Teleport)
 	BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D());
 }
 
-void UPrimitiveComponent::DestroyPhysicsState()
+void UPrimitiveComponent::OnDestroyPhysicsState()
 {
 	// we remove welding related to this component
 	UnWeldFromParent();
@@ -613,7 +626,7 @@ void UPrimitiveComponent::DestroyPhysicsState()
 		BodyInstance.TermBody();
 	}
 
-	Super::DestroyPhysicsState();
+	Super::OnDestroyPhysicsState();
 }
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const
@@ -717,8 +730,7 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 			return Mobility != EComponentMobility::Movable || bLightAsIfStatic;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, LightingChannels)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, bSingleSampleShadowFromStationaryLights))
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, bSingleSampleShadowFromStationaryLights))
 		{
 			return Mobility != EComponentMobility::Static;
 		}
@@ -1052,9 +1064,9 @@ bool UPrimitiveComponent::ShouldRenderSelected() const
 			{
 				return true;
 			}
-			else if (UChildActorComponent* ParentComponent = Owner->GetParentComponent())
+			else if (AActor* ParentActor = Owner->GetParentActor())
 			{
-				return ParentComponent->GetOwner()->IsSelected();
+				return ParentActor->IsSelected();
 			}
 		}
 	}
@@ -1608,7 +1620,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 
 			// If we had a valid blocking hit, store it.
 			// If we are looking for overlaps, store those as well.
-			uint32 FirstNonInitialOverlapIdx = INDEX_NONE;
+			int32 FirstNonInitialOverlapIdx = INDEX_NONE;
 			if (bHadBlockingHit || bGenerateOverlapEvents)
 			{
 				int32 BlockingHitIndex = INDEX_NONE;
@@ -1695,7 +1707,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 					// Remove any pending overlaps after this point, we are not going as far as we swept.
 					if (FirstNonInitialOverlapIdx != INDEX_NONE)
 					{
-						PendingOverlaps.SetNum(FirstNonInitialOverlapIdx);
+						const bool bAllowShrinking = false;
+						PendingOverlaps.SetNum(FirstNonInitialOverlapIdx, bAllowShrinking);
 					}
 				}
 			}
@@ -2370,15 +2383,18 @@ bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCached
 void UPrimitiveComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (BodyInstance.bSimulatePhysics && !BodyInstance.WeldParent)
+	if(FBodyInstance* BI = GetBodyInstance(NAME_None, /*bGetWelded=*/ false))
 	{
-		//Since the object is physically simulated it can't be attached
-		const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
-		bDisableDetachmentUpdateOverlaps = true;
-		DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
+		if (BI->bSimulatePhysics && !BI->WeldParent)
+		{
+			//Since the object is physically simulated it can't be attached
+			const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
+			bDisableDetachmentUpdateOverlaps = true;
+			DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+			bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
+		}
 	}
+	
 }
 
 void UPrimitiveComponent::IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore)
@@ -2536,8 +2552,9 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					}
 					else
 					{
-						// Remove stale item
-						OverlappingComponents.RemoveSingleSwap(OtherOverlap);
+						// Remove stale item. Reclaim memory only if it's getting large, to try to avoid churn but avoid bloating component's memory usage.
+						const bool bAllowShrinking = (OverlappingComponents.Max() >= 24);
+						OverlappingComponents.RemoveSingleSwap(OtherOverlap, bAllowShrinking);
 					}
 				}
 			}

@@ -83,6 +83,28 @@ class WebViewControl
 		});
 	}
 
+	public void ExecuteJavascript(final String script)
+	{
+		GameActivity._activity.runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				if(webView != null)
+				{
+					if(android.os.Build.VERSION.SDK_INT >= 19) /* Kitkat*/
+					{
+						webView.evaluateJavascript(script, null);
+					}
+					else
+					{
+						webView.loadUrl("javascript:" + script);
+					}
+				}
+			}
+		});
+	}
+
 	// called from C++ paint event
 	public void Update(final int x, final int y, final int width, final int height)
 	{

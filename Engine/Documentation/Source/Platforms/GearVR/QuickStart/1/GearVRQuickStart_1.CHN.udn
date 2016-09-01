@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2743354
 Availability:Public
-Title:1. Gear VR Project Creation
+Title:1.Gear VR 项目创建
 Crumbs:%ROOT%, Platforms/GearVR
-Description:How to create a UE4 C++ based project that can be used with the Gear VR Headset.
+Description:如何创建 Gear VR 头戴设备可用的 UE4 C++ 项目。
 Navigation:platform
-Skilllevel: Intermediate
-Version: 4.8
+Skilllevel:Intermediate
+Version:4.9
 
 
 [VAR:Steps]
@@ -26,37 +26,37 @@ Version: 4.8
 
 %Steps%
 
-With the release of Unreal Engine 4.8, setting up a project that works with the Samsung Gear VR Headset is no different than setup than a normal UE4 project. 
-In the following section we will go over everything you need to know in order to create a new project that will work with the Gear VR headset.
+在虚幻引擎 4.8 或更新版本中，三星 Gear VR 头戴设备项目的设置和普通 UE4 项目的设置同样简单。 
+以下部分将讲述如何创建 Gear VR 头戴设备可用的项目。
 
 [REGION:warning]
-If you are using UE4 version 4.7 you will need to create your project as a C++ project and not a Blueprint project.
-In UE4 version 4.8 and later you do not have to do this and can use either C++ or Blueprints for your projects.
+如您使用的是 UE4 4.7 版本，则需要创建 C++ 项目，而非蓝图项目。
+在 UE4 4.8 或更新版本中，则可创建 C++ 或蓝图项目。
 [/REGION]
 
-1. First make sure that you have UE4 version **4.7.4** or later downloaded and installed on your development PC. 
-You can get UE4 version **4.7.4** or later from the [Unreal Engine Launcher](http://tinyurl.com/oawb7x2) or from [Github](https://www.unrealengine.com/ue4-on-github). 
+1. 首先在您的开发电脑上下载并安装 UE4 **4.7.4** 或更新版本。 
+可从 [Unreal Engine Launcher](http://tinyurl.com/oawb7x2) 或 [Github](https://www.unrealengine.com/ue4-on-github) 下载 UE4 **4.7.4** 或更新版本。 
 
 	[Region:note]
-	If you are using the [Github](https://www.unrealengine.com/ue4-on-github) version of UE4 to run the **Setup.Bat** file before going any further to ensure that you have the proper files downloaded to your development PC.
+	如使用 UE4 [Github](https://www.unrealengine.com/ue4-on-github) 版本运行 **Setup.Bat** 文件，在继续操作前必须将正确文件下载到开发电脑。
 	[/REGION]
 
 	![](GVR_New_Project_03.png)
 
-1. Once you have a version of UE4 **4.7.4** or later installed on your development PC create a new **C++ Project** from the **New Project Tab**.
+1. 在开发电脑上安装 UE4 **4.7.4** 或更新版本后，在 **New Project 标签** 中新建一个 **C++ 项目**。
 	![](GVR_New_Project_00.png)
 
 	[Region:note]
-	If you are using Unreal Engine 4.8 or later you can use either a C++ based project or a Blueprint based project.
+	如使用的是虚幻引擎 4.8 或更新版本，则可随意使用 C++ 项目或蓝图项目。
 	[/REGION]
 
-1. Next select the **First Person Template** as the template to be used and make sure to change the following options.
+1. 下一步，选择 **First Person** 作为模板，并变更以下选项。
 	* **Mobile / Tablet**
 	* **Scalable 3D / 2D** 
-	* Also make sure to not include the **Starter Content** to help reduce project size.
+	* 不包含 **Starter Content**，控制项目容量。
 	![](GVR_New_Project_01.png)
 
-1. Finally give the project a location to be saved to and a name. The name for this example the project name will be **GearVR_QS**. Once everything has been completed press the green **Create Project** button to create the project.
+1. 最后设置项目的存储路径和命名。此例中的项目命名为 **GearVR_QS**。设置完成后，按下绿色的 **Create Project** 按钮创建项目。
 	![](GVR_New_Project_02.png)
 
 

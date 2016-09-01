@@ -1,25 +1,24 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2725276
 Availability:Public
 Title:オンライン サブシステムのタイプ
 Crumbs:%ROOT%, Programming
 Description:オンライン サブシステムで定義されている主要タイプの概要
-バージョン：4.5
+Version:4.9
 
 [TOC(start:2)]
 
 
-## 概要
 
 このドキュメントは、オンライン サブシステムを通じて使用されるさまざまなデータ構造体を定義しています。
 
 ### IOnlinePlatformData
 
- *全ての基本クラスは、格納するクラスを考慮せずにデータを渡すことができるように、絶対に不透明である必要があります。*
- 人間が読める形式のデータは、ToString() 関数から利用出来ます。もしくは、プラットフォーム コードのみが直接データを操作します。
+ **IOnlinePlatformData** は全ての基本クラスなので、格納するクラスを考慮せずにデータを渡すことができるように、絶対に不透明である必要があります。
+ 人間が読める形式のデータは、**ToString()** 関数から利用出来ます。もしくは、プラットフォーム コードのみが直接データを操作します。
 
  しばしゲームによる処理が必要とされるものの、詳細のエキスポーズは不要な、いくつかの構築のプラットフォーム固有表現があります。これにより、ゲームによってデータが保持され、詳細を理解することなしに他のマシーンへデータをレプリケートします。
  
- **IOnlinePlatformData** から派生するクラスは以下の通りです。
+ IOnlinePlatformData から派生するクラスは以下の通りです。
  * [FUniqueNetId](#FUniqueNetId)
  * [FSharedContentHandle](#FSharedContentHandle)
  * [FSessionInfo](#FSessionInfo)
@@ -57,32 +56,30 @@ Description:オンライン サブシステムで定義されている主要タ�
 
 ### FUniqueNetId
 
-*プロファイル サービス オンライン ID を格納し、個人プレイヤー、フレンド、またはセッションから何でも表現します。*
+**FUniqueNetId** は、プロファイル サービス オンライン ID を格納し、個人プレイヤー、フレンド、またはセッションから何でも表現します。
 
-以下のリンクを参照してください。
- * [](Programming/Online/Interfaces/Profile)
+<!--[](Programming/Online/Interfaces/Profile) をご覧ください。-->
 
 
 ### FSharedContentHandle
 
-*プロファイル サービス共有ファイルハンドルを含みます。* 適切な権限が付与されると、この処理は共有コンテンツへアクセスするためにどこからでも渡されたり使用することができます。
+**FSharedContentHandle** は、プロファイルサービスの共有ファイル処理を格納します。適切な権限が付与されると、この処理は共有コンテンツへアクセスするためにどこからでも渡されたり使用することができます。
 
-以下のリンクを参照してください。
- * [](Programming/Online/Interfaces/SharedCloud)
+<!--:
+ * [](Programming/Online/Interfaces/SharedCloud) をご覧ください。-->
 
 
  
 ### FSessionInfo
 
-*セッションのプラットフォームのみの情報を含みます。* 大抵の場合、セッションID、ホストアドレス、もしくは作成されたセッションの特定や、接続を試みる別の手段です。
+**FSessionInfo** は、セッションのプラットーフォーム固有の情報を格納します。大抵の場合、セッションID、ホストアドレス、もしくは作成されたセッションの特定や、接続を試みる別の手段です。
 
-以下のリンクを参照してください。
- * [](Programming/Online/Interfaces/Session)
+以下のリンクを参照してください。[](Programming/Online/Interfaces/Session)
 
 
 ### FEmsFile
 
-*ダウンロード可能な任意のファイルに関するメタデータ。* この構造体は、任意のサービスから利用可能なデータを列挙する際に使用します。 
+**FEmsFile** は、ダウンロードが可能な任意のファイルに関するメタデータです。この構造体は、任意のサービスから利用可能なデータを列挙する際に使用します。 
 
 以下の要素を格納します。
  * Hash - 任意のファイル コンテンツのハッシュ値です。
@@ -91,29 +88,29 @@ Description:オンライン サブシステムで定義されている主要タ�
  * File size - ファイルサイズです。  
 
 
-以下のリンクを参照してください。
+<!--:
  * [](Programming/Online/Interfaces/SharedCloud)
- * [](Programming/Online/Interfaces/UserCloud)
+ * [](Programming/Online/Interfaces/UserCloud) をご覧ください。-->
 
 
 ### FTitleFile
 
-*オンライン サービスからファイルを非同期ダウンロードする際に使用される、データを格納する内部構造体です。*
+**FTitleFile** は、オンラインサービスからファイルを非同期ダウンロードする際に使用されるデータを格納する内部構造体です。
 
 以下の要素を格納します。
  * Filename - ダウンロード時のファイル名です。
- * Async state - ダウンロードされたファイルのステートです (参照: [Async States]#EOnlineAsyncTaskState) )
+ * Async state - ダウンロードされたファイルのステートです。（[Async States](#EOnlineAsyncTaskState) をご覧ください。）
  * Data - ファイル コンテンツを格納するバッファです。
 
 
-以下のリンクを参照してください。 
+<!--:
  * [](Programming/Online/Interfaces/SharedCloud)
- * [](Programming/Online/Interfaces/UserCloud)
+ * [](Programming/Online/Interfaces/UserCloud) をご覧ください。-->
 
 
 ### EOnlineAsyncTaskState
 
-*非同期オペレーションの可能なステートを表すシンプルな列挙型変数。* 
+**EOnlineAsyncTaskState** は、非同期オペレーションの可能なステートを表すシンプルな列挙型変数です。
 
 
 		/** The task has not been started */

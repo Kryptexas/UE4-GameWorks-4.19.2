@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SGraphNodeK2Base.h"
+#include "Engine/PoseWatch.h"
 
 class SAnimationGraphNode : public SGraphNodeK2Base
 {
@@ -13,11 +14,25 @@ public:
 	void Construct(const FArguments& InArgs, UAnimGraphNode_Base* InNode);
 
 protected:
+	// SWidget interface
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	// End of SWidget interface
+
 	// SGraphNode interface
 	virtual TArray<FOverlayWidgetInfo> GetOverlayWidgets(bool bSelected, const FVector2D& WidgetSize) const override;
 	// End of SGraphNode interface
 
 private:
+	// Return Pose View Colour for slate indicator
+	FSlateColor GetPoseViewColour() const;
+
+	FReply SpawnColourPicker();
+
 	/** Keep a reference to the indicator widget handing around */
 	TSharedPtr<SWidget> IndicatorWidget;
+
+	/** Keep a reference to the pose view indicator widget handing around */
+	TSharedPtr<SWidget> PoseViewWidget;
+
+	TWeakObjectPtr<class UPoseWatch> PoseWatch;
 };

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2604027
+﻿INTSourceChangelist:2750705
 Availability: Public
 Title:기본 Required, Spawn 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:이미터에 기본 포함되어 정상 작동에 필요한 모듈입니다.
+Version: 4.9
+
 
 [TOC(start:2 end:3)]
 
@@ -52,6 +54,7 @@ Description:이미터에 기본 포함되어 정상 작동에 필요한 모듈�
 | [REGION:tablesection]Rendering[/REGION] ||
 | **Use Max Draw Count** | 최대 그리기 횟수 사용 - _True_ 면 MaxDrawCount 갯수 이상의 파티클은 절대 그리지 않습니다. 틱에 모든 파티클 업데이트는 계속 일어납니다. |
 | **Max Draw Count** | 최대 그리기 횟수 - 파티클 렌더링 갯수를 이만큼으로 제한시킵니다. |
+| **UV Flipping Mode** | UV 뒤집기 모드 - 스프라이트와 GPU 파티클의 UV 를 여러가지 방식으로 뒤집을 수 있습니다. [INCLUDE:#UVFlipping] |
 | [REGION:tablesection]Normals[/REGION] ||
 | **Emitter Normals Mode** | 이미터 노멀 모드 - 이 이미터 LOD 에 대한 노멀 생성시 이 모드를 사용합니다. [INCLUDE:#NormalsMode] |
 | **Normals Sphere Center** | 노멀 구체 중심 - _Emitter Normals Mode_ 가 _ENM_Sperical_ 일 때, 파티클 노멀이 _Normals Sphere Center_ 반대 방향을 보도록 생성됩니다. 이 값은 로컬 스페이스 기준입니다. |
@@ -62,8 +65,6 @@ Description:이미터에 기본 포함되어 정상 작동에 필요한 모듈�
 ## Spawn 모듈
 
 모든 파티클 이미터에는 파티클 스폰 방식을 결정하는 프로퍼티가 들어있는 이 모듈이 들어 있습니다. 내용은 다음과 같습니다:
-
-
 
 | 프로퍼티 | 설명 |
 | -------- | ----------- |
@@ -106,6 +107,22 @@ Description:이미터에 기본 포함되어 정상 작동에 필요한 모듈�
 | _PSORTMODE_Age_NewestFirst_  | 나이별로, 새로운 것이 먼저 오도록 파티클을 소팅합니다. |
 [/REGION]
 [/EXCERPT:SortMode]
+
+[EXCERPT:UVFlipping]
+[REGION:simpletable]
+| 모드 | 설명 |
+| --- | --- |
+|None|없음 - UV 뒤집기가 일어나지 않습니다. 기본값입니다. |
+|FlipUV|UV 뒤집기 - U 와 V 텍스처 좌표를 뒤집습니다. |
+|U Only|U 만 - U 텍스처 좌표만 뒤집습니다.|
+|V Only|V 만 - V 텍스처 좌표를 뒤집습니다.|
+|Random Flip UV|UV 임의 뒤집기 - 스폰 시간에 U 와 V 를 같이 무작위로 뒤집습니다. |
+|Random Flip U Only|U 만 임의 뒤집기 - 스폰 시간에 U 만 무작위로 뒤집습니다.|
+|Random Flip V Only|V 만 임의 뒤집기 - 스폰 시간에 V 만 무작위로 뒤집습니다.|
+|Random Flip UV Independent|UV 독립적 임의 뒤집기 - 스폰 시간에 U 와 V 를 독립적으로 무작위 뒤집습니다.|
+[/REGION]
+[/EXCERPT:UVFlipping]
+
 
 [EXCERPT:InterpMethod]
 [REGION:simpletable]

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2523071
+﻿INTSourceChangelist:2985651
 Availability:Public
 Title: 리플렉션 인바이언먼트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:국소적 광택 리플렉션을 캡처하여 표시하는 시스템입니다.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -69,11 +70,15 @@ Reflection Override 뷰모드를 통해 캡처중인 모습을 확인할 수 있
 하늘의 스페큘러를 구하기도 하지만, 스카이 라이트 큐브맵은 무한히 먼 거리에 있는 것이기에 국소적 반사에는 쓸 수 없습니다. 간접 스페큘러는 씬의 모든 부분이 다른 모든 부분에 반사되도록 하는데, 
 이러한 것은 디퓨즈 반응이 없는 메탈같은 재질에 특히나 중요합니다.
 
-[REGION:imagetable]
-| ![Diffuse Only](DiffuseOnly.png)(w:465) | ![Reflection Only](ReflectionOnly.png)(w:465) |
-| ------ | ------ |
-| 디퓨즈만 | 리플렉션만 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Diffuse Only](DiffuseOnly.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Reflection Only](ReflectionOnly.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
 
 **풀 라이팅**
 
@@ -107,11 +112,16 @@ Reflection Environment 작동방식은 여러 지점에서 정적인 씬을 캡�
 맵에 유의미한 간접 디퓨즈 라이팅이 있어야 함을, 그리고 그 라이팅 빌드가 이미 끝나서 결과를 볼 수 있어야 함을 
 뜻합니다.
 
-[REGION:imagetable]
-| ![Rough with no Shadowing](2RoughWithNoShadowing.png)(w:465) | ![Rough with Shadowing](2RoughWithShadowing.png)(w:465) |
-| ------ | ------ |
-| 셰이딩 없이 거친 표면 위의 리플렉션 | 라이트맵에서의 섀도잉과 SSAO 결합 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Reflections on a rough surface with no shadowing](2RoughWithNoShadowing.png)(w:550)
+	[/PARAM]
+	[PARAM:after]
+	![Rough with Shadowing](2RoughWithShadowing.png)(w:550)
+	[/PARAM]
+[/OBJECT]
+
+]
 
 ## 리플렉션 캡처 모양
 
@@ -222,3 +232,78 @@ Reflection Environment 비용은 화면상의 픽셀에 얼마나 많은 캡처�
 한 면에 올바른 리플렉션 셋업이 가능하기는 하지만, 반대편에는 항상 누수가 생깁니다.
 * DX11 하드웨어의 한계로 인해 씬을 캡처하는 데 사용되는 큐브맵은 각 면이 모두 128 이며, 
 월드에 최대로 가능한 리플렉션 캡처 수는 한 번에 341 개입니다.
+
+
+## 플레이너 리플렉션
+UE4 는 이제 실시간 플레이너 리플렉을 지원, 스크린 스페이스 리플렉션(SSR)보다 정확한 리플렉션 제공이 가능하나, 렌더링 비용이 더 높습니다. 그 이유는 리플렉션 방향에서 씬을 실제로 다시 한 번 렌더링하는 그 작동방식 때문입니다. 이로 인해 플레이너 리플렉 사용 여부와는 상관없이 베이스 패스의 트라이앵글 비용이 최대 15% 상승합니다.
+
+![](Planar_Reflections_00.png)
+
+### 스크린 스페이스 리플렉션 대 플레이너 리플렉션
+스크린 스페이스 리플렉션(SSR)은 렌더링 비용 측면에서 플레이너 리플렉션보다 훨씬 효율적이나 안정성이 훨씬 떨어지기도 합니다. 아래 그림 비교를 통해 SSR 과 플레이너 리플렉션의 한계를 확인할 수 있습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![스크린 스페이스 리플렉션](SSR_Relections_00.png)(w:800 h:500)
+	[/PARAM]
+	[PARAM:after]
+	![플레이너 리플렉션](PR_00.png)(w:800 h:500)
+	[/PARAM]
+[/OBJECT]
+
+* **스크린 스페이스 리플렉션:** 왼쪽 그림은 스크린 스페이스 리플렉션의 한계를 보여줍니다. 그림 가장자리에 상당량의 '누수' 현상이 보이고 있습니다. SSR 은 화면 밖의 오브젝트를 반사하지 못하기 때문에 벌어지는 일입니다.
+
+* **평편 리플렉션:** 오른쪽 그림은 같은 씬을 플레이너 리플렉을 켜고 렌더링한 것입니다. 그림에, 그리고 가장자리에서도, 누수가 없습니다. 평편 리플렉션은 화면 밖의 오브젝트 반사가 가능하기 때문입니다.
+
+### UE4 프로젝트에서 플레이너 리플렉 활성화
+UE4 프로젝트에서 플레이너 리플렉을 활성화시키고 사용하는 방법은 다음과 같습니다.
+
+1. 메인 툴바에서 **편집** > **프로젝트 세팅** 으로 가 **렌더링** > **최적화** 섹션을 선택합니다.
+
+	![](PR_Project_Settings_00.png)
+
+1. **Support global clip plane for Planar Reflections** (플레이너 리플렉에 글로벌 클립 면 지원) 옆의 체크박스를 클릭하고, 확인창이 뜨면 UE4 에디터를 재시작합니다.
+	
+	![](PR_Enable_PR_00.png)
+
+	[region:warning]
+	플레이너 리플렉 활성화 후 UE4 에디터를 재시작하지 않으면 프로젝트의 플레이너 리플렉이 작동하지 않을 것입니다.
+	[/region]
+
+1. UE4 에디터가 재시작되면, **모드** 패널의 **비주얼 이펙트** 섹션에서 **Planar Reflection Actor** (플레이너 리플렉 액터)를 끌어 레벨에 놓습니다.
+
+	![](PR_Add_Actor_00.png)
+
+1. 레벨에 플레이너 리플렉 액터를 놓았으면 **이동**, **회전**, **스케일** 툴을 사용하여 플레이너 리플렉 액터 위치를 레벨에 맞게 배치하세요.
+	
+	[region:tip]
+	플레이너 리플렉 액터를 레벨에 배치하자 마자 근처에 리플렉션이 있는 머티리얼은 자동으로 영향받을 것입니다. 레벨에 배치된 스태틱 메시 역시 노멀을 사용하여 리플렉션에 디스토션 효과를 주어, 파동 시뮬레이션이 가능합니다.
+	[/region]
+
+### 플레이너 리플렉 액터 프로퍼티 분석
+플레이너 리플렉 액터에 있는 여러가지 프로퍼티 조정을 통해 리플렉션 모양에 큰 영향을 끼칠 수 있습니다. 그러한 프로퍼티에는 어떤 것들이 있으며 어떤 영향을 끼치는지, 다음과 같습니다.
+
+![](PR_Props_Breakdown_00.png)
+
+|세팅 이름| 설명 |
+|------------------|--------------------|
+||Normal Distortion Strength|노멀 디스토션 세기 - 플레이너 리플렉에 디스토션 적용시의 노멀 세기를 조절합니다. |
+|Prefilter Roughness| 사전필터 러프니스 - 플레이너 리플렉 텍스처에 사전 필터를 적용할 러프니스 값으로, 저해상도를 숨기는 데 좋습니다. 값이 크면 GPU 비용이 늘어납니다. |
+|Distance from Plane Fade Start|평면 페이드 시작에서의 거리 - 리플렉션 평면과 이 거리에서 받는 픽셀은 플레이너 리플렉의 페이드 아웃이 시작됩니다. |
+|Distance from Plane Fade End|평면 페이드 끝에서의 거리 - 리플렉션 평면과 이 거리에서 받는 픽셀은 플레이너 리플렉의 페이드 아웃이 완전 종료됩니다. |
+|Angle from Plane Fade Start|평면 페이드 시작에서의 각도 - 리플렉션 평면에서 그 노멀이 이 각도로 받는 픽셀은 플레이너 리플렉의 페이드 아웃이 시작됩니다. |
+|Angle from Plane Fade End|평면 페이드 끝에서의 각도 - 리플렉션 평면에서 그 노멀이 이 각도로 받는 픽셀은 플레이너 리플렉의 페이드 아웃이 완전 종료됩니다. |
+|Prefilter Roughness Distance|사전필터 러프니스 거리 - 사전필터 러프니스 값이 이루어지는 거리입니다. |
+|Screen Percentage|화면 백분율 - 다운샘플 백분율을 사용하면 플레이너 리플렉 렌더링 GPU 시간을 감소시킬 수 있습니다.|
+|Extra FOV|부가 FOV - 리플렉션 텍스처에 렌더링할 때 사용되는 부가 FOV 입니다. 노멀 디스토션으로 인해 리플렉션 텍스처 외부의 읽기가 생길 때 좋습니다. 값이 클 수록 렌더링 스레드와 GPU 비용이 늘어나는데, 플레이너 리플렉에 렌더링해야 하는 오브젝트와 트라이앵글 수가 많아지기 때문입니다. |
+
+### 플레이너 리플렉 한계
+플레이너 리플렉이 매우 사실적인 리플렉션을 제공해 주기는 하지만, 몇 가지 한계점이 있는데 다음과 같습니다.
+
+* 리플렉션 패스에서 어떤 렌더링 기능을 켤지 제어할 수 있는 방법이 없습니다.
+* 리플렉션 패스에서는 다이내믹 섀도우와 포그가 틀리게 나옵니다.
+* 러프니스 값은 상수만 지원되며, 머티리얼이 아닌 Planar Reflection Component 에 지정됩니다.
+
+
+
+

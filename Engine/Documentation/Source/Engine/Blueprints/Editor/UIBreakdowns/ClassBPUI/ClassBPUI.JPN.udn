@@ -39,7 +39,7 @@ version:4.9
 <!----------
 [EXCERPT:Visible]
 1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [ツールバー](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions)
+1. [ツールバー](Engine/Blueprints/Editor/UIComponents/Toolbar)
 1. [コンポーネント](Engine/Blueprints/UserGuide/Components)
 1. [My Blueprint](Engine/Blueprints/Editor/UIComponents/MyBlueprint)
 1. [グラフ エディタ](Engine/Blueprints/Editor/UIComponents/GraphEditor)

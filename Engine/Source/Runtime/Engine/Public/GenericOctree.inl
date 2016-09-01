@@ -363,7 +363,7 @@ TOctree<ElementType, OctreeSemantics>::TOctree()
 #endif // WITH_HOT_RELOAD_CTORS
 
 template<typename ElementType,typename OctreeSemantics>
-void TOctree<ElementType,OctreeSemantics>::ApplyOffset(const FVector& InOffset)
+void TOctree<ElementType,OctreeSemantics>::ApplyOffset(const FVector& InOffset, bool bGlobalOctree)
 {
 	// Shift elements
 	RootNode.ApplyOffset(InOffset);
@@ -376,8 +376,11 @@ void TOctree<ElementType,OctreeSemantics>::ApplyOffset(const FVector& InOffset)
 	// Call destroy to clean up octree
 	Destroy();
 
-	RootNodeContext.Bounds.Center += FVector4(InOffset, 0.0f);
-
+	if (!bGlobalOctree)
+	{
+		RootNodeContext.Bounds.Center += FVector4(InOffset, 0.0f);
+	}
+	
 	// Add all elements from a saved nodes to a new empty octree
 	for (TConstIterator<> NodeIt(OldRootNode, RootNodeContext); NodeIt.HasPendingNodes(); NodeIt.Advance())
 	{

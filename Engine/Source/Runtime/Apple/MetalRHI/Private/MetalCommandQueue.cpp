@@ -7,6 +7,7 @@
 #include "MetalRHIPrivate.h"
 
 #include "MetalCommandQueue.h"
+#include "MetalCommandBuffer.h"
 #include "MetalCommandList.h"
 #include "MetalProfiler.h"
 #if METAL_STATISTICS
@@ -20,6 +21,9 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 : CommandQueue(nil)
 #if METAL_STATISTICS
 , Statistics(nullptr)
+#endif
+#if !UE_BUILD_SHIPPING
+, RuntimeDebuggingLevel(EMetalDebugLevelOff)
 #endif
 {
 	if(MaxNumCommandBuffers == 0)
@@ -64,6 +68,12 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 	@autoreleasepool
 	{
 		id<MTLCommandBuffer> CmdBuffer = [[CommandQueue commandBuffer] retain];
+#if !UE_BUILD_SHIPPING
+		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
+		{
+			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
+		}
+#endif
 		TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
 		return CmdBuffer;
 	}
@@ -71,13 +81,20 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 {
+	static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
+	id<MTLCommandBuffer> CmdBuffer = nil;
 	@autoreleasepool
 	{
-		static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
-		id<MTLCommandBuffer> CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
-		TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
-		return CmdBuffer;
+		CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
+#if !UE_BUILD_SHIPPING
+		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
+		{
+			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
+		}
+#endif
 	}
+	TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
+	return CmdBuffer;
 }
 
 void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandBuffer)
@@ -86,10 +103,19 @@ void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandB
 	UNTRACK_OBJECT(STAT_MetalCommandBufferCount, CommandBuffer);
 	
 	[CommandBuffer commit];
+	
+	// Wait for completion when debugging command-buffers.
+#if !UE_BUILD_SHIPPING
+	if (RuntimeDebuggingLevel >= EMetalDebugLevelWaitForComplete)
+	{
+		[CommandBuffer waitUntilCompleted];
+	}
+#endif
+	
 	[CommandBuffer release];
 }
 
-void FMetalCommandQueue::SubmitCommandBuffers(FMetalCommandList* BufferList, uint32 Index, uint32 Count)
+void FMetalCommandQueue::SubmitCommandBuffers(NSArray<id<MTLCommandBuffer>>* BufferList, uint32 Index, uint32 Count)
 {
 	check(BufferList);
 	CommandBuffers.SetNumZeroed(Count);
@@ -101,16 +127,18 @@ void FMetalCommandQueue::SubmitCommandBuffers(FMetalCommandList* BufferList, uin
 	}
 	if (bComplete)
 	{
-		GetMetalDeviceContext().SubmitCommandsHint(true);
+		GetMetalDeviceContext().SubmitCommandsHint();
 		
 		for (uint32 i = 0; i < Count; i++)
 		{
-			FMetalCommandList* List = CommandBuffers[i];
-			for (id<MTLCommandBuffer> Buffer in List->GetCommandBuffers())
+			NSArray<id<MTLCommandBuffer>>* CmdBuffers = CommandBuffers[i];
+			check(CmdBuffers);
+			for (id<MTLCommandBuffer> Buffer in CmdBuffers)
 			{
+				check(Buffer);
 				CommitCommandBuffer(Buffer);
 			}
-			List->OnScheduled();
+			[CommandBuffers[i] release];
 			CommandBuffers[i] = nullptr;
 		}
 	}
@@ -129,6 +157,18 @@ void FMetalCommandQueue::InsertDebugCaptureBoundary(void)
 {
 	[CommandQueue insertDebugCaptureBoundary];
 }
+
+#if !UE_BUILD_SHIPPING
+void FMetalCommandQueue::SetRuntimeDebuggingLevel(int32 const Level)
+{
+	RuntimeDebuggingLevel = Level;
+}
+
+int32 FMetalCommandQueue::GetRuntimeDebuggingLevel(void) const
+{
+	return RuntimeDebuggingLevel;
+}
+#endif
 
 #if METAL_STATISTICS
 #pragma mark - Public Statistics Extensions -

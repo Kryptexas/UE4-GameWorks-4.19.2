@@ -1,28 +1,37 @@
-﻿INTSourceChangelist:0
-Title: Samsung Gear VR Development
-Description:Instructions on how to get the Samsung Gear VR Headset to work with UE4.
+﻿INTSourceChangelist:2940199
+Title:三星 Gear VR 开发
+Description:结合 UE4 使用三星 Gear VR 头戴设备的说明。
 Availability:Public
 Navigation:platform
 Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.8
-prereq: Engine\Blueprints\GettingStarted
+Skilllevel:Intermediate
+Version:4.9
+prereq:Engine\Blueprints\GettingStarted
+Crumbs:%ROOT%, Platforms
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:GearVR
 
+## 开始
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Gear VR Development
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/GearVR/Prerequisites "%Platforms/GearVR/Prerequisites:description%")
-		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
-		* [](Platforms/GearVR/GlobalMenu "%Platforms/GearVR/GlobalMenu:description%")
-		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
-		* [](Platforms/GearVR/Debugging "%Platforms/GearVR/BestPractices:description%")
-	[/PARAM]
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/GearVR")]
+
+## GearVR 要点
+
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/GearVR")]
+
+## 培训视频
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+rNjDsNYvgfk
+[/PARAMLITERAL]
 [/OBJECT]
+

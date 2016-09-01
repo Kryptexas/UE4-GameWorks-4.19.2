@@ -2,8 +2,8 @@ Availability: Public
 Title:Orbit Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Orbit modules allow for rendering particle sprites offset/rotated away from the actual particle center.
+Version: 4.9
 
-[TOC(start:2 end:3)]
 
 Orbit modules allow for rendering particle sprites offset/rotated away from the actual particle center.
 
@@ -21,6 +21,7 @@ Orbit modules allow for rendering particle sprites offset/rotated away from the 
 sdpZ2_8GUp4
 [/PARAMLITERAL]
 [/OBJECT]
+
 This is the only orbit module implemented. It allows for offsetting and rotating the sprite from the actual particle position. Multiple orbit modules can be chained together in a variety of ways.
 
 | Property | Description |

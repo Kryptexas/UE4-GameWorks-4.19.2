@@ -43,6 +43,9 @@ public class UnrealCodeAnalyzerTarget : TargetRules
 		// No editor needed
 		UEBuildConfiguration.bBuildEditor = false;
 
+		// Do not link against CoreUObject
+		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 

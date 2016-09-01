@@ -279,6 +279,8 @@ struct FBehaviorTreeInstanceId
 	}
 };
 
+struct FBehaviorTreeSearchData;
+
 /** data required for instance of single subtree */
 struct FBehaviorTreeInstance
 {
@@ -324,14 +326,14 @@ struct FBehaviorTreeInstance
 	/** initialize memory and create node instances */
 	void Initialize(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex, EBTMemoryInit::Type InitType);
 
-	/** update injected nodes */
-	void InjectNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex);
-
 	/** cleanup node instances */
 	void Cleanup(UBehaviorTreeComponent& OwnerComp, EBTMemoryClear::Type CleanupType);
 
 	/** check if instance has active node with given execution index */
 	bool HasActiveNode(uint16 TestExecutionIndex) const;
+
+	/** deactivate all active aux nodes and remove their requests from SearchData */
+	void DeactivateNodes(FBehaviorTreeSearchData& SearchData, uint16 InstanceIndex);
 
 protected:
 

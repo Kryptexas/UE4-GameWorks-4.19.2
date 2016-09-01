@@ -111,6 +111,13 @@ void SWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FW
 {
 }
 
+void SWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
+{
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	OnFocusChanging(PreviousFocusPath, NewWidgetPath);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
 FReply SWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
 {
 	return FReply::Unhandled();
@@ -145,23 +152,48 @@ FReply SWidget::OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalog
 	return FReply::Unhandled();
 }
 
-FReply SWidget::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	return FReply::Unhandled();
-}
-
 FReply SWidget::OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
 }
 
-FReply SWidget::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply SWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	if (MouseButtonDownHandler.IsBound())
+	{
+		// If a handler is assigned, call it.
+		return MouseButtonDownHandler.Execute(MyGeometry, MouseEvent);
+	}
 	return FReply::Unhandled();
 }
 
-FReply SWidget::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply SWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	if (MouseButtonUpHandler.IsBound())
+	{
+		// If a handler is assigned, call it.
+		return MouseButtonUpHandler.Execute(MyGeometry, MouseEvent);
+	}
+	return FReply::Unhandled();
+}
+
+FReply SWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseMoveHandler.IsBound())
+	{
+		// A valid handler is assigned for mouse move; let it handle the event.
+		return MouseMoveHandler.Execute(MyGeometry, MouseEvent);
+	}
+	return FReply::Unhandled();
+}
+
+FReply SWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseDoubleClickHandler.IsBound())
+	{
+		// A valid handler is assigned; let it handle the event.
+		return MouseDoubleClickHandler.Execute(MyGeometry, MouseEvent);
+	}
 	return FReply::Unhandled();
 }
 
@@ -191,11 +223,6 @@ FCursorReply SWidget::OnCursorQuery( const FGeometry& MyGeometry, const FPointer
 TOptional<TSharedRef<SWidget>> SWidget::OnMapCursor(const FCursorReply& CursorReply) const
 {
 	return TOptional<TSharedRef<SWidget>>();
-}
-
-FReply SWidget::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
-{
-	return FReply::Unhandled();
 }
 
 bool SWidget::OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent )
@@ -388,7 +415,7 @@ void SWidget::CacheDesiredSize(float LayoutScaleMultiplier)
 	this->Advanced_SetDesiredSize(this->ComputeDesiredSize(LayoutScaleMultiplier));
 }
 
-void SWidget::CachePrepass(ILayoutCache* InLayoutCache)
+void SWidget::CachePrepass(const TWeakPtr<ILayoutCache>& InLayoutCache)
 {
 	if ( bCanHaveChildren )
 	{
@@ -451,7 +478,12 @@ const FSlateBrush* SWidget::GetFocusBrush() const
 
 bool SWidget::HasMouseCapture() const
 {
-	return FSlateApplicationBase::Get().HasMouseCapture(SharedThis(this));
+	return FSlateApplicationBase::Get().DoesWidgetHaveMouseCapture(SharedThis(this));
+}
+
+bool SWidget::HasMouseCaptureByUser(int32 UserIndex, TOptional<int32> PointerIndex) const
+{
+	return FSlateApplicationBase::Get().DoesWidgetHaveMouseCaptureByUser(SharedThis(this), UserIndex, PointerIndex);
 }
 
 void SWidget::OnMouseCaptureLost()
@@ -654,7 +686,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	}
 
 	// Record hit test geometry, but only if we're not caching.
-	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry(this, AllottedGeometry, MyClippingRect);
+	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry(this, AllottedGeometry, LayerId, MyClippingRect);
 
 	// Paint the geometry of this widget.
 	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
@@ -732,4 +764,24 @@ void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
 			ActiveTimers.RemoveAt(i);
 		}
 	}
+}
+
+void SWidget::SetOnMouseButtonDown(FPointerEventHandler EventHandler)
+{
+	MouseButtonDownHandler = EventHandler;
+}
+
+void SWidget::SetOnMouseButtonUp(FPointerEventHandler EventHandler)
+{
+	MouseButtonUpHandler = EventHandler;
+}
+
+void SWidget::SetOnMouseMove(FPointerEventHandler EventHandler)
+{
+	MouseMoveHandler = EventHandler;
+}
+
+void SWidget::SetOnMouseDoubleClick(FPointerEventHandler EventHandler)
+{
+	MouseDoubleClickHandler = EventHandler;
 }

@@ -12,7 +12,7 @@
 #include "UnrealExporter.h"
 #include "GenericCommands.h"
 #include "SourceCodeNavigation.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "AssetEditorManager.h"
 #include "Components/DecalComponent.h"
 
@@ -87,25 +87,50 @@ protected:
 	virtual bool CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const override
 	{
 		// Only allow actor component types to be created
-		return ObjectClass->IsChildOf(UActorComponent::StaticClass());
+		bool bCanCreate = ObjectClass->IsChildOf(UActorComponent::StaticClass());
+
+		// Also allow actor types to pass, in order to enable proper creation of actor component types as subobjects. The actor instance will be discarded after processing.
+		if (!bCanCreate)
+		{
+			bCanCreate = ObjectClass->IsChildOf(AActor::StaticClass());
+		}
+
+		return bCanCreate;
 	}
 
 	virtual void ProcessConstructedObject(UObject* NewObject) override
 	{
 		check(NewObject);
 
-		// Add it to the new object map
-		NewObjectMap.Add(NewObject->GetFName(), Cast<UActorComponent>(NewObject));
-
-		// If this is a scene component and it has a parent
-		USceneComponent* SceneComponent = Cast<USceneComponent>(NewObject);
-		if (SceneComponent && SceneComponent->GetAttachParent())
+		TInlineComponentArray<UActorComponent*> ActorComponents;
+		if (UActorComponent* NewActorComponent = Cast<UActorComponent>(NewObject))
 		{
-			// Add an entry to the child->parent name map
-			ParentMap.Add(NewObject->GetFName(), SceneComponent->GetAttachParent()->GetFName());
+			ActorComponents.Add(NewActorComponent);
+		}
+		else if (AActor* NewActor = Cast<AActor>(NewObject))
+		{
+			if (USceneComponent* RootComponent = NewActor->GetRootComponent())
+			{
+				RootComponent->SetWorldLocationAndRotationNoPhysics(FVector(0.f),FRotator(0.f));
+			}
+			NewActor->GetComponents(ActorComponents);
+		}
 
-			// Clear this so it isn't used when constructing the new SCS node
-			SceneComponent->SetupAttachment(nullptr);
+		for(UActorComponent* ActorComponent : ActorComponents)
+		{
+			// Add it to the new object map
+			NewObjectMap.Add(ActorComponent->GetFName(), ActorComponent);
+
+			// If this is a scene component and it has a parent
+			USceneComponent* SceneComponent = Cast<USceneComponent>(ActorComponent);
+			if (SceneComponent && SceneComponent->GetAttachParent())
+			{
+				// Add an entry to the child->parent name map
+				ParentMap.Add(ActorComponent->GetFName(), SceneComponent->GetAttachParent()->GetFName());
+
+				// Clear this so it isn't used when constructing the new SCS node
+				SceneComponent->SetupAttachment(nullptr);
+			}
 		}
 	}
 
@@ -829,7 +854,7 @@ void FComponentEditorUtils::FillComponentContextMenuOptions(FMenuBuilder& MenuBu
 				MenuBuilder.AddMenuEntry(
 					FText::Format(LOCTEXT("GoToBlueprintForComponent", "Edit {0}"), FText::FromString(Component->GetClass()->ClassGeneratedBy->GetName())),
 					LOCTEXT("EditBlueprintForComponent_ToolTip", "Edits the Blueprint Class that defines this component."),
-					FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(Component->GetClass())),
+					FSlateIconFinder::FindIconForClass(Component->GetClass()),
 					FUIAction(
 					FExecuteAction::CreateStatic(&FComponentEditorUtils::OnEditBlueprintComponent, Component->GetClass()->ClassGeneratedBy),
 					FCanExecuteAction()));

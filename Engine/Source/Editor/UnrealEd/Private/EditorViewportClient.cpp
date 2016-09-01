@@ -31,6 +31,8 @@
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "EditorBuildUtils.h"
+#include "AudioDevice.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -760,7 +762,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
     
 			    if (bConstrainAspectRatio)
 			    {
-				    if ((int32)ERHIZBuffer::IsInverted != 0)
+				    if ((bool)ERHIZBuffer::IsInverted)
 				    {
 					    ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
 						    MatrixFOV,
@@ -801,7 +803,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 					    YAxisMultiplier = 1.0f;
 				    }
     
-				    if ((int32)ERHIZBuffer::IsInverted != 0)
+				    if ((bool)ERHIZBuffer::IsInverted)
 				    {
 					    ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
 						    MatrixFOV,
@@ -828,7 +830,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 		}
 		else
 		{
-			static_assert((int32)ERHIZBuffer::IsInverted != 0, "Check all the Rotation Matrix transformations!");
+			static_assert((bool)ERHIZBuffer::IsInverted, "Check all the Rotation Matrix transformations!");
 			float ZScale = 0.5f / HALF_WORLD_MAX;
 			float ZOffset = HALF_WORLD_MAX;
 
@@ -3192,7 +3194,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	float DeltaTimeSeconds;
 
 	UWorld* World = GetWorld();
-	if (( GetScene() != World->Scene) || (IsRealtime() == true))
+	// During Simulation blueprints are directly using the World time, causing a mismatch with Material's Frame time
+	if (( GetScene() != World->Scene) || (IsRealtime() && !IsSimulateInEditorViewport()))
 	{
 		// Use time relative to start time to avoid issues with float vs double
 		TimeSeconds = FApp::GetCurrentTime() - GStartTime;
@@ -3906,7 +3909,7 @@ void FEditorViewportClient::ConvertMovementToDragRot(const FVector& InDelta,
 			else if( MiddleMouseButtonDown || bIsUsingTrackpad || ( ( LeftMouseButtonDown || bIsUsingTrackpad ) && RightMouseButtonDown ) )
 			{
 				// Pan left/right/up/down
-				bool bInvert = !bIsUsingTrackpad && MiddleMouseButtonDown && GetDefault<ULevelEditorViewportSettings>()->bInvertMiddleMousePan;
+				const bool bInvert = !bIsUsingTrackpad && MiddleMouseButtonDown && GetDefault<ULevelEditorViewportSettings>()->bInvertMiddleMousePan;
 
 
 				float Direction = bInvert ? 1 : -1;
@@ -3918,8 +3921,12 @@ void FEditorViewportClient::ConvertMovementToDragRot(const FVector& InDelta,
 			{
 				// Change viewing angle
 
+				// inverting orbit axis is handled elsewhere
+				const bool bInvertY = !ShouldOrbitCamera() && GetDefault<ULevelEditorViewportSettings>()->bInvertMouseLookYAxis;
+				float Direction = bInvertY ? -1 : 1;
+
 				InRotDelta.Yaw = InDelta.X * ViewportSettings->MouseSensitivty;
-				InRotDelta.Pitch = InDelta.Y * ViewportSettings->MouseSensitivty;
+				InRotDelta.Pitch = InDelta.Y * ViewportSettings->MouseSensitivty * Direction;
 			}
 		}
 		break;
@@ -3979,9 +3986,12 @@ void FEditorViewportClient::ConvertMovementToOrbitDragRot(const FVector& InDelta
 
 			if( IsOrbitRotationMode( Viewport ) )
 			{
+				const bool bInvertY = GetDefault<ULevelEditorViewportSettings>()->bInvertOrbitYAxis;
+				float Direction = bInvertY ? -1 : 1;
+
 				// Change the viewing angle
 				InRotDelta.Yaw = InDelta.X * ViewportSettings->MouseSensitivty;
-				InRotDelta.Pitch = InDelta.Y * ViewportSettings->MouseSensitivty;
+				InRotDelta.Pitch = InDelta.Y * ViewportSettings->MouseSensitivty * Direction;
 			}
 			else if( IsOrbitPanMode( Viewport ) )
 			{
@@ -4587,10 +4597,13 @@ void FEditorViewportClient::UpdateHiddenCollisionDrawing()
 			bool bCollisionMode = EngineShowFlags.Collision || EngineShowFlags.CollisionVisibility || EngineShowFlags.CollisionPawn;
 
 			// Tell engine to create proxies for hidden components, so we can still draw collision
-			World->bCreateRenderStateForHiddenComponents = bCollisionMode;
+			if (World->bCreateRenderStateForHiddenComponents != bCollisionMode)
+			{
+				World->bCreateRenderStateForHiddenComponents = bCollisionMode;
 
-			// Need to recreate scene proxies when this flag changes.
-			FGlobalComponentRecreateRenderStateContext Recreate;
+				// Need to recreate scene proxies when this flag changes.
+				FGlobalComponentRecreateRenderStateContext Recreate;
+			}
 		}
 	}
 }
@@ -4618,6 +4631,10 @@ void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 {
 	if (IsPerspective())
 	{
+		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshTexCoordSizeAccuracy || InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy)
+		{
+			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy, true);
+		}
 		PerspViewModeIndex = InViewModeIndex;
 		ApplyViewMode(PerspViewModeIndex, true, EngineShowFlags);
 		bForcingUnlitForNewMap = false;
@@ -4861,7 +4878,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 
 		// If capture region isn't valid, we need to determine which rectangle to capture from.
 		// We need to calculate a proper view rectangle so that we can take into account camera
-		// properties, such as it being aspect ratio constrainted
+		// properties, such as it being aspect ratio constrained
 		if (GIsHighResScreenshot && !bCaptureAreaValid)
 		{
 			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -5129,6 +5146,16 @@ const TArray<FString>* FEditorViewportClient::GetEnabledStats() const
 void FEditorViewportClient::SetEnabledStats(const TArray<FString>& InEnabledStats)
 {
 	EnabledStats = InEnabledStats;
+
+#if !UE_BUILD_SHIPPING
+	if (UWorld* MyWorld = GetWorld())
+	{
+		if (FAudioDevice* AudioDevice = MyWorld->GetAudioDevice())
+		{
+			AudioDevice->ResolveDesiredStats(this);
+		}
+	}
+#endif
 }
 
 bool FEditorViewportClient::IsStatEnabled(const FString& InName) const

@@ -20,7 +20,7 @@
             "Name": "GoogleVRController",
             "Type": "Runtime",
             "LoadingPhase": "PostConfigInit",
-            "WhitelistPlatforms": [ "Android" ]
+            "WhitelistPlatforms": [ "Android", "Mac", "Win32", "Win64"]
         }
     ]
 }

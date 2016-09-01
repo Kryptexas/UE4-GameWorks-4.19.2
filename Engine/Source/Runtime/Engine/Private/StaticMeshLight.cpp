@@ -48,7 +48,7 @@ FStaticMeshStaticLightingMesh::FStaticMeshStaticLightingMesh(const UStaticMeshCo
 		InPrimitive->StaticMesh->RenderData->LODResources[InLODIndex].GetNumVertices(),
 		InPrimitive->StaticMesh->RenderData->LODResources[InLODIndex].GetNumVertices(),
 		0,
-		(InPrimitive->GetOwner() && InPrimitive->GetOwner()->bHidden) ? !!(InPrimitive->bCastHiddenShadow) : !!(InPrimitive->CastShadow),
+		!!(InPrimitive->CastShadow | InPrimitive->bCastHiddenShadow),
 		false,
 		InRelevantLights,
 		InPrimitive,
@@ -350,7 +350,6 @@ ELightMapInteractionType UStaticMeshComponent::GetStaticLightingType() const
 	if( HasValidSettingsForStaticLighting(false) )
 	{
 		// Process each LOD separately.
-		TArray<FStaticMeshStaticLightingMesh*> StaticLightingMeshes;
 		for(int32 LODIndex = 0;LODIndex < StaticMesh->RenderData->LODResources.Num();LODIndex++)
 		{
 			const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[LODIndex];

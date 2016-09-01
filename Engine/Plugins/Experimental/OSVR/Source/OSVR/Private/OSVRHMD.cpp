@@ -22,6 +22,8 @@
 #include "SceneViewport.h"
 #include "OSVREntryPoint.h"
 
+#include "Runtime/Core/Public/Misc/DateTime.h"
+
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
 #endif
@@ -36,6 +38,7 @@
 #endif
 
 #include <osvr/Util/MatrixConventionsC.h>
+#include <osvr/ClientKit/ParametersC.h>
 
 DEFINE_LOG_CATEGORY(OSVRHMDLog);
 
@@ -43,14 +46,41 @@ DEFINE_LOG_CATEGORY(OSVRHMDLog);
 // IHeadMountedDisplay Implementation
 //---------------------------------------------------
 
+#if OSVR_UNREAL_4_12
 void FOSVRHMD::OnBeginPlay(FWorldContext& InWorldContext)
+#else
+void FOSVRHMD::OnBeginPlay()
+#endif
 {
     bPlaying = true;
+    StartCustomPresent();
 }
 
+#if OSVR_UNREAL_4_12
 void FOSVRHMD::OnEndPlay(FWorldContext& InWorldContext)
+#else
+void FOSVRHMD::OnEndPlay()
+#endif
 {
     bPlaying = false;
+    StopCustomPresent();
+}
+
+void FOSVRHMD::StartCustomPresent()
+{
+#if PLATFORM_WINDOWS
+    if (!mCustomPresent && IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
+    {
+        // currently, FCustomPresent creates its own client context, so no need to
+        // synchronize with the one from FOSVREntryPoint.
+        mCustomPresent = new FCurrentCustomPresent(nullptr/*osvrClientContext*/, mScreenScale);
+    }
+#endif
+}
+
+void FOSVRHMD::StopCustomPresent()
+{
+    mCustomPresent = nullptr;
 }
 
 bool FOSVRHMD::IsHMDConnected()
@@ -78,6 +108,42 @@ EHMDDeviceType::Type FOSVRHMD::GetHMDDeviceType() const
     return EHMDDeviceType::DT_ES2GenericStereoMesh;
 }
 
+/**
+ * This is more of a temporary workaround to an issue with getting the render target
+ * size from the RenderManager. On the game thread, we can't get the render target sizes
+ * unless we have already initialized the render manager, which we can only do on the render
+ * thread. In the future, we'll move those RenderManager APIs to OSVR-Core so we can call
+ * them from any thread with access to the client context.
+ */
+static void GetRenderTargetSize_GameThread(float windowWidth, float windowHeight, float &width, float &height)
+{
+    auto clientContext = IOSVR::Get().GetEntryPoint()->GetClientContext();
+    size_t length;
+    osvrClientGetStringParameterLength(clientContext, "/renderManagerConfig", &length);
+    if (length > 0)
+    {
+        char* renderManagerConfigStr = new char[length];
+        osvrClientGetStringParameter(clientContext, "/renderManagerConfig", renderManagerConfigStr, length);
+
+        auto reader = TJsonReaderFactory<>::Create(renderManagerConfigStr);
+        TSharedPtr<FJsonObject> jsonObject;
+        if (FJsonSerializer::Deserialize(reader, jsonObject))
+        {
+            auto subObj = jsonObject->GetObjectField("renderManagerConfig");
+            double renderOverfillFactor = subObj->GetNumberField("renderOverfillFactor");
+            double renderOversampleFactor = subObj->GetNumberField("renderOversampleFactor");
+            width = windowWidth * renderOverfillFactor * renderOversampleFactor;
+            height = windowHeight * renderOverfillFactor * renderOversampleFactor;
+        }
+        delete[] renderManagerConfigStr;
+    }
+    else
+    {
+        width = windowWidth;
+        height = windowHeight;
+    }
+}
+
 bool FOSVRHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
 {
     auto entryPoint = IOSVR::Get().GetEntryPoint();
@@ -90,12 +156,14 @@ bool FOSVRHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
         OSVR_ViewportDimension width = (OSVR_ViewportDimension)leftEye.X + (OSVR_ViewportDimension)rightEye.X;
         OSVR_ViewportDimension height = (OSVR_ViewportDimension)leftEye.Y;
 
+        float fWidth, fHeight;
+        GetRenderTargetSize_GameThread(width, height, fWidth, fHeight);
         MonitorDesc.MonitorName = "OSVR-Display"; //@TODO
         MonitorDesc.MonitorId = 0;				  //@TODO
         MonitorDesc.DesktopX = 0;
         MonitorDesc.DesktopY = 0;
-        MonitorDesc.ResolutionX = width;
-        MonitorDesc.ResolutionY = height;
+        MonitorDesc.ResolutionX = fWidth;
+        MonitorDesc.ResolutionY = fHeight;
         return true;
     }
     else
@@ -196,10 +264,8 @@ void FOSVRHMD::SetInterpupillaryDistance(float NewInterpupillaryDistance)
 
 void FOSVRHMD::GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const
 {
-    FVector2D FOVs = HMDDescription.GetFov(OSVRHMDDescription::LEFT_EYE);
-
-    OutHFOVInDegrees = FOVs.X;
-    OutVFOVInDegrees = FOVs.Y;
+    OutHFOVInDegrees = 0.0f;
+    OutVFOVInDegrees = 0.0f;
 }
 
 void FOSVRHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition)
@@ -343,6 +409,13 @@ bool FOSVRHMD::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
     return false;
 }
 
+#if !OSVR_UNREAL_4_12
+void FOSVRHMD::OnScreenModeChange(EWindowMode::Type WindowMode)
+{
+    EnableStereo(WindowMode != EWindowMode::Windowed);
+}
+#endif
+
 bool FOSVRHMD::IsPositionalTrackingEnabled() const
 {
     return bHmdPosTracking;
@@ -375,37 +448,61 @@ bool FOSVRHMD::EnableStereo(bool bStereo)
     // On Android, we currently use the resolution Unreal sets for us, bypassing OSVR
     // We may revisit once display plugins are added to OSVR-Core.
 #if !PLATFORM_ANDROID
-    FSystemResolution::RequestResolutionChange(width, height, EWindowMode::Windowed);
+    FSystemResolution::RequestResolutionChange(1280, 720, EWindowMode::Windowed);
 #endif
+
+    GetRenderTargetSize_GameThread(width, height, width, height);
 
     FSceneViewport* sceneViewport;
     if (!GIsEditor)
     {
+        //UE_LOG(OSVRHMDLog, Warning, TEXT("OSVR getting UGameEngine::SceneViewport viewport"));
         UGameEngine* gameEngine = Cast<UGameEngine>(GEngine);
         sceneViewport = gameEngine->SceneViewport.Get();
     }
 #if WITH_EDITOR
     else
     {
-        UEditorEngine* editorEngine = Cast<UEditorEngine>(GEngine);
-        sceneViewport = (FSceneViewport*)(editorEngine->GetPIEViewport());
+        //UE_LOG(OSVRHMDLog, Warning, TEXT("OSVR getting editor viewport"));
+        UEditorEngine* editorEngine = CastChecked<UEditorEngine>(GEngine);
+        sceneViewport = (FSceneViewport*)editorEngine->GetPIEViewport();
+        if (sceneViewport == nullptr || !sceneViewport->IsStereoRenderingAllowed())
+        {
+            sceneViewport = (FSceneViewport*)editorEngine->GetActiveViewport();
+            if (sceneViewport != nullptr && !sceneViewport->IsStereoRenderingAllowed())
+            {
+                sceneViewport = nullptr;
+            }
     }
+}
 #endif
 
-    if (sceneViewport)
+    if (!sceneViewport)
     {
-        // the render targets may be larger or smaller than the display resolution
-        // due to renderOverfillFactor and renderOversampleFactor settings
-        // The viewports should match the render target size not the display size
-        //if (mCustomPresent)
-        //{
+        UE_LOG(OSVRHMDLog, Warning, TEXT("OSVR scene viewport does not exist"));
+        return false;
+    }
+    else
+    {
+        //UE_LOG(OSVRHMDLog, Warning, TEXT("OSVR scene viewport exists"));
+#if !WITH_EDITOR
+        auto window = sceneViewport->FindWindow();
+#endif
+        if (bStereo)
+        {
+            //UE_LOG(OSVRHMDLog, Warning, TEXT("OSVR bStereo was true"));
+            // the render targets may be larger or smaller than the display resolution
+            // due to renderOverfillFactor and renderOversampleFactor settings
+            // The viewports should match the render target size not the display size
+            //if (mCustomPresent)
+            //{
             //uint32 iWidth, iHeight;
             //mCustomPresent->CalculateRenderTargetSize(iWidth, iHeight);
             //width = float(iWidth) * (1.0f / this->mScreenScale);
             //height = float(iHeight) * (1.0f / this->mScreenScale);
-        //}
-        //else
-        //{
+            //}
+            //else
+            //{
             // temporary workaround. The above code doesn't work because when the game
             // is packaged, mCustomPresent is not initialized before this call. In the editor, it is.
             // calling CalculateRenderTargetSize when mCustomPresent isn't initialized
@@ -414,29 +511,28 @@ bool FOSVRHMD::EnableStereo(bool bStereo)
             // so we don't need a graphics context to calculate them. In the meantime, we'll
             // implement this temporary workaround (parse the renderManagerConfig manually and
             // calculate the render target sizes ourselves).
-            auto clientContext = IOSVR::Get().GetEntryPoint()->GetClientContext();
-            size_t length;
-            osvrClientGetStringParameterLength(clientContext, "/renderManagerConfig", &length);
-            if (length > 0)
+
+            //}
+            //UE_LOG(OSVRHMDLog, Warning, TEXT("OSVR Actually set viewport size"));
+            sceneViewport->SetViewportSize(width, height);
+#if !WITH_EDITOR
+            if (window.IsValid())
             {
-                char* renderManagerConfigStr = new char[length];
-                osvrClientGetStringParameter(clientContext, "/renderManagerConfig", renderManagerConfigStr, length);
-
-                auto reader = TJsonReaderFactory<>::Create(renderManagerConfigStr);
-                TSharedPtr<FJsonObject> jsonObject;
-                if (FJsonSerializer::Deserialize(reader, jsonObject))
-                {
-                    auto subObj = jsonObject->GetObjectField("renderManagerConfig");
-                    double renderOverfillFactor = subObj->GetNumberField("renderOverfillFactor");
-                    double renderOversampleFactor = subObj->GetNumberField("renderOversampleFactor");
-                    width = width * renderOverfillFactor * renderOversampleFactor;
-                    height = height * renderOverfillFactor * renderOversampleFactor;
-                }
-                delete[] renderManagerConfigStr;
+                window->SetViewportSizeDrivenByWindow(false);
             }
-        //}
-
-        sceneViewport->SetViewportSize(width, height);
+#endif
+        }
+#if !WITH_EDITOR
+        else
+        {
+            if (window.IsValid())
+            {
+                auto size = sceneViewport->FindWindow()->GetSizeInScreen();
+                sceneViewport->SetViewportSize(size.X, size.Y);
+                window->SetViewportSizeDrivenByWindow(true);
+            }
+        }
+#endif
     }
 
     GEngine->bForceDisableFrameRateSmoothing = bStereo;
@@ -546,19 +642,21 @@ FMatrix FOSVRHMD::GetStereoProjectionMatrix(enum EStereoscopicPass StereoPassTyp
     FScopeLock lock(mutex);
 
     FMatrix ret;
+    float nearClip = GNearClippingPlane;
+    float farClip = TNumericLimits< float >::Max();
     if (mCustomPresent)
     {
-        double left, right, bottom, top;
+        float left, right, bottom, top;
         mCustomPresent->GetProjectionMatrix(
             StereoPassType == eSSP_LEFT_EYE ? 0 : 1,
-            left, right, bottom, top);
-        ret = HMDDescription.GetProjectionMatrix(left, right, bottom, top);
+            left, right, bottom, top, nearClip, farClip);
+        ret = HMDDescription.GetProjectionMatrix(left, right, bottom, top, nearClip, farClip);
     }
     else
     {
         ret = HMDDescription.GetProjectionMatrix(
             StereoPassType == eSSP_LEFT_EYE ? OSVRHMDDescription::LEFT_EYE : OSVRHMDDescription::RIGHT_EYE,
-            DisplayConfig);
+            DisplayConfig, nearClip, farClip);
     }
 
     return ret;
@@ -642,14 +740,7 @@ FOSVRHMD::FOSVRHMD()
         mScreenScale = float(CVScreenPercentage->GetInt()) / 100.0f;
     }
 
-#if PLATFORM_WINDOWS
-    if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
-    {
-        // currently, FCustomPresent creates its own client context, so no need to
-        // synchronize with the one from FOSVREntryPoint.
-        mCustomPresent = new FCurrentCustomPresent(nullptr/*osvrClientContext*/, mScreenScale);
-    }
-#endif
+    StartCustomPresent();
 
     // enable vsync
     IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
@@ -678,9 +769,9 @@ FOSVRHMD::FOSVRHMD()
         }
         else
         {
-            auto begin = FApp::GetCurrentTime();
-            auto end = begin + 1.f;
-            while (!bDisplayConfigOK && FApp::GetCurrentTime() < end)
+            auto begin = FDateTime::Now().GetSecond();
+            auto end = begin + 3;
+            while (!bDisplayConfigOK && FDateTime::Now().GetSecond() < end)
             {
                 bDisplayConfigOK = osvrClientCheckDisplayStartup(DisplayConfig) == OSVR_RETURN_SUCCESS;
                 if (!bDisplayConfigOK)

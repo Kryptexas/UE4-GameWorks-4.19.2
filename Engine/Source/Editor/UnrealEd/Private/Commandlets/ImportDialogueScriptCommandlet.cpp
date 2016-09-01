@@ -320,7 +320,7 @@ bool UImportDialogueScriptCommandlet::ImportDialogueScriptForCulture(const FStri
 			}
 
 			// Find the correct entry for our context
-			const FContext* ContextManifestEntryContext = ContextManifestEntry->FindContextByKey(ContextLocalizationKey);
+			const FManifestContext* ContextManifestEntryContext = ContextManifestEntry->FindContextByKey(ContextLocalizationKey);
 			check(ContextManifestEntryContext); // This should never fail as we pass in the key to FindEntryByKey
 
 			// Find the correct source text (we might have a native translation that we should update instead of the source)

@@ -32,7 +32,32 @@ enum EMetalFeatures
 	/** Support for specifying resource usage & memory options */
 	EMetalFeaturesResourceOptions = 1 << 3,
 	/** Supports texture->buffer blit options for depth/stencil blitting */
-	EMetalFeaturesDepthStencilBlitOptions = 1 << 4
+	EMetalFeaturesDepthStencilBlitOptions = 1 << 4,
+    /** Supports creating a native stencil texture view from a depth/stencil texture */
+    EMetalFeaturesStencilView = 1 << 5,
+    /** Supports a depth-16 pixel format */
+    EMetalFeaturesDepth16 = 1 << 6,
+	/** Supports NSUInteger counting visibility queries */
+	EMetalFeaturesCountingQueries = 1 << 7,
+	/** Supports base vertex/instance for draw calls */
+	EMetalFeaturesBaseVertexInstance = 1 << 8,
+	/** Supports indirect buffers for draw calls */
+	EMetalFeaturesIndirectBuffer = 1 << 9,
+	/** Supports layered rendering */
+	EMetalFeaturesLayeredRendering = 1 << 10
+};
+
+/**
+ * Enumeration for submission hints to avoid unclear bool values.
+ */
+enum EMetalSubmitFlags
+{
+	/** No submission flags. */
+	EMetalSubmitFlagsNone = 0,
+	/** Create the next command buffer. */
+	EMetalSubmitFlagsCreateCommandBuffer = 1 << 0,
+	/** Wait on the submitted command buffer. */
+	EMetalSubmitFlagsWaitOnCommandBuffer = 1 << 1
 };
 
 class FMetalRHICommandContext;
@@ -70,13 +95,14 @@ public:
 	/**
 	 * Do anything necessary to prepare for any kind of draw call 
 	 * @param PrimitiveType The UE4 primitive type for the draw call, needed to compile the correct render pipeline.
+	 * @returns True if the preparation completed and the draw call can be encoded, false to skip.
 	 */
-	void PrepareToDraw(uint32 PrimitiveType);
+	bool PrepareToDraw(uint32 PrimitiveType);
 	
 	/**
 	 * Set the color, depth and stencil render targets, and then make the new command buffer/encoder
 	 */
-	void SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo);
+	void SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo, bool const bReset = true);
 	
 	/**
 	 * Allocate from a dynamic ring buffer - by default align to the allowed alignment for offset field when setting buffers
@@ -91,16 +117,19 @@ public:
 	{
 		return QueryBuffer.ToSharedRef();
 	}
+	
+	/** @returns True if the Metal validation layer is enabled else false. */
+	bool IsValidationLayerEnabled() const { return bValidationEnabled; }
 
-    void SubmitCommandsHint(bool const bCreateNew = true, bool const bWait = false);
+    void SubmitCommandsHint(uint32 const bFlags = EMetalSubmitFlagsCreateCommandBuffer);
 	void SubmitCommandBufferAndWait();
-	void SubmitComputeCommandBufferAndWait();
 	void ResetRenderCommandEncoder();
 	
 	void SetShaderResourceView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV);
+	void SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV);
 
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
-#if PLATFORM_MAC
+#if METAL_API_1_1
 	void DispatchIndirect(FMetalVertexBuffer* ArgumentBuffer, uint32 ArgumentOffset);
 #endif
 
@@ -145,6 +174,8 @@ private:
 	
 	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState, float CurrentTime);
 	
+	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV, float CurrentTime);
+	
 	template <typename MetalResourceType>
 	inline int32 SetShaderResourcesFromBuffer(uint32 ShaderStage, FMetalUniformBuffer* RESTRICT Buffer, const uint32* RESTRICT ResourceMap, int32 BufferIndex);
 	
@@ -187,6 +218,9 @@ protected:
 	
 	/** the slot to store a per-thread context ref */
 	static uint32 CurrentContextTLSSlot;
+	
+	/** The side table for runtiem validation of buffer access */
+	uint32 BufferSideTable[SF_NumFrequencies][MaxMetalStreams];
 	
 	/** The number of outstanding draw & dispatch commands in the current command buffer, used to commit command buffers at encoder boundaries when sufficiently large. */
 	uint32 OutstandingOpCount;
@@ -250,11 +284,12 @@ private:
 	
 	/** Free lists for releasing objects only once it is safe to do so */
 	TSet<id> FreeList;
+	NSMutableSet<id<MTLBuffer>>* FreeBuffers;
 	struct FMetalDelayedFreeList
 	{
 		dispatch_semaphore_t Signal;
 		TSet<id> FreeList;
-        int FrameCount;
+		NSMutableSet<id<MTLBuffer>>* FreeBuffers;
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;
 	

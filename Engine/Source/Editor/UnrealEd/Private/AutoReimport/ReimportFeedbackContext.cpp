@@ -44,8 +44,7 @@ class SWidgetStack : public SVerticalBox
 	virtual FVector2D ComputeDesiredSize(float) const override
 	{
 		const float Lerp = SizeCurve.GetLerp();
-		FVector2D DesiredSize = ComputeTotalSize() * Lerp + StartSizeOffset * (1.f-Lerp);
-		return DesiredSize;
+		return ComputeTotalSize() * Lerp + StartSizeOffset * (1.f-Lerp);
 	}
 
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override

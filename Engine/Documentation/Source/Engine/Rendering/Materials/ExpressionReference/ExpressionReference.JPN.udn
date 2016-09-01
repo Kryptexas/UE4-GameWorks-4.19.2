@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2420985
+﻿INTSourceChangelist:2688589
 Availability:Public
 title:マテリアル式リファレンス
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:複雑なノードベースのシェーダーネットワークを作成するための、マテリアルエディタで利用可能な全マテリアル式のリファレンス
+Version:4.9
 
 [REGION:banner]
 ![Materials Compendium](compendium.png)
@@ -10,13 +11,12 @@ Description:複雑なノードベースのシェーダーネットワークを�
 
 [TOC (start:2 end:3)]
 
-## 概要
 
 マテリアル エディタで利用可能な全てのマテリアル式ノードのリファレンスについて説明します。マテリアル式は、アンリアル エンジン 4 で完全に機能する、マテリアルの作成に使用する基礎的要素です。各マテリアル式は独立した黒いボックスで、一連の値、またはより詳細な値、または 1 つ以上の入力に対して単一操作を実行して、その操作の結果を出力します。
 
 ## パラメータ
 
-マテリアル式がパラメータの場合もあります。つまり、これらの値は、パラメータを格納しているベースマテリアルの MaterialInstance で修正 (ランタイム中に動的のケースもあります) することができます。マテリアル式は、特定のパラメータの識別に使用するため、 **Parameter name** プロパティを通じて、 MaterialInstance 内で固有の名前を付けなくてはいけません。同マテリアル内に同名で同タイプのパラメータが 2 つ存在する場合、同一パラメータであると仮定されます。MaterialInstance のパラメータの値を変更すると、マテリアル内のパラメータ式両方の値が変更されます。パラメータのデフォルト値もベースマテリアルで設定されます。オーバーライドや修正がない限り、 MaterialInstance 内のパラメータの値となります。
+マテリアル式がパラメータの場合もあります。つまり、これらの値は、パラメータを格納しているベースマテリアルの Material Instance で修正 (ランタイム中に動的のケースもあります) することができます。マテリアル式は、特定のパラメータの識別に使用するため、**Parameter name** プロパティを通じて、Material Instance 内で固有の名前を付けなくてはいけません。同マテリアル内に同名で同タイプのパラメータが 2 つ存在する場合、同一パラメータであると仮定されます。Material Instance のパラメータの値を変更すると、マテリアル内のパラメータ式両方の値が変更されます。パラメータのデフォルト値もベースマテリアルで設定されます。オーバーライドや修正がない限り、MaterialInstance 内のパラメータの値となります。
 
 ##マテリアル式
 
@@ -25,9 +25,9 @@ Description:複雑なノードベースのシェーダーネットワークを�
 
 1. **説明** - 全てのマテリアル式には共通の **Desc** プロパティがあります。このプロパティに入力されたテキストは、マテリアルエディタに表示されます。ワークスペース内の表現式の真上です。どんな目的にも使用できますが、通常は表現式の目的や機能など、短いメモを残すために使用します。
 1. **タイトル バー** - 名前を表示、もしくはマテリアル式のプロパティの関連情報を表示します。
-1. **出力** - マテリアル式操作の結果を出力するリンクです。
-1. **プレビュー** - マテリアル式が出力する値のプレビューを表示します。リアルタイム更新が有効な時は、自動的に更新します。スペースバーで、手動で更新することも出来ます。
 1. **入力** - マテリアル式で使用するために値を受け取るリンクです。
+1. **プレビュー** - マテリアル式が出力する値のプレビューを表示します。リアルタイム更新が有効な時は、自動的に更新します。スペースバーで、手動で更新することも出来ます。
+1. **出力** - マテリアル式操作の結果を出力するリンクです。
 
 
 ### 式のタイプ
@@ -197,7 +197,7 @@ Description:複雑なノードベースのシェーダーネットワークを�
 		![%Engine/Rendering/Materials/ExpressionReference/Landscape:title%](exp_landscape.png)
 	[/PARAM]
 	[PARAM:title]
-		ランドスケープ
+		Landscapes　(ランドスケープ)
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Rendering/Materials/ExpressionReference/Landscape]
@@ -255,25 +255,25 @@ Description:複雑なノードベースのシェーダーネットワークを�
 
 [/REGION]
 
-##表現式の索引
+## 表現式の索引
 
 ユーザーの方々がこのページを少しでもブックマークしやすいようにリストを作成しました。必要な表現式ノードを **Ctrl+F** キーで検索して、記述のリンクを辿ってください。 
 
-[**Atmosphere 表現式**](Engine/Rendering/Materials\ExpressionReference\Atmosphere)
+[**Atmosphere**](Engine/Rendering/Materials\ExpressionReference\Atmosphere)
 [REGION:indentedlist]
-* [AtmosphericFogColor](Engine/Rendering/Materials\ExpressionReference\Atmosphere#AtmosphericFogのカラー)
+* [AtmosphericFogColor](Engine/Rendering/Materials\ExpressionReference\Atmosphere#AtmosphericFogColor)
 [/REGION]
 
 
 
-[ユーティリティ表現式](Engine/Rendering/Materials\ExpressionReference\Utility)
+[**Color**](Engine/Rendering/Materials\ExpressionReference\Utility)
 [REGION:indentedlist]
 * [Desaturation](Engine/Rendering/Materials\ExpressionReference\Utility#Desaturation)
 [/REGION]
 
 
 
-[**Constant 表現式**](Engine/Rendering/Materials\ExpressionReference\Constant)
+[**Constants**](Engine/Rendering/Materials\ExpressionReference\Constant)
 [REGION:indentedlist]
 * [Constant](Engine/Rendering/Materials\ExpressionReference\Constant#Constant)
 * [Constant2Vector](Engine/Rendering/Materials\ExpressionReference\Constant#Constant2Vector)
@@ -287,7 +287,7 @@ Description:複雑なノードベースのシェーダーネットワークを�
 * [ParticleRelativeTime](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleRelativeTime)
 * [ParticleSize](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleSize)
 * [ParticleSpeed](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleSpeed)
-* [PerInstanceFadeAmount](Engine/Rendering/Materials\ExpressionReference\Constant#ParticleSpeed)
+* [PerInstanceFadeAmount](Engine/Rendering/Materials\ExpressionReference\Constant#PerInstanceFadeAmount)
 * [PerInstanceRandom](Engine/Rendering/Materials\ExpressionReference\Constant#PerInstanceRandom)
 * [Time](Engine/Rendering/Materials\ExpressionReference\Constant#Time)
 * [TwoSidedSign](Engine/Rendering/Materials\ExpressionReference\Constant#TwoSidedSign)
@@ -297,11 +297,11 @@ Description:複雑なノードベースのシェーダーネットワークを�
 
 
 
-[**Coordinates 表現式**](Engine/Rendering/Materials\ExpressionReference\Coordinates)
+[**Coordinates**](Engine/Rendering/Materials\ExpressionReference\Coordinates)
 [REGION:indentedlist]
 * [ActorPositionWS](Engine/Rendering/Materials\ExpressionReference\Coordinates#ActorPositionWS)
 * [CameraPositionWS](Engine/Rendering/Materials\ExpressionReference\Coordinates#CameraPositionWS)
-* [LightmapUV](Engine/Rendering/Materials\ExpressionReference\Coordinates#LightmapUV)
+* [LightmapUV](Engine/Rendering/Materials\ExpressionReference\Coordinates#LightmapUVs)
 * [ObjectOrientation](Engine/Rendering/Materials\ExpressionReference\Coordinates#ObjectOrientation)
 * [ObjectPositionWS](Engine/Rendering/Materials\ExpressionReference\Coordinates#ObjectPositionWS)
 * [ObjectRadius](Engine/Rendering/Materials\ExpressionReference\Coordinates#ObjectRadius)
@@ -319,27 +319,27 @@ Description:複雑なノードベースのシェーダーネットワークを�
 
 
 
-[**Custom 表現式**](Engine/Rendering/Materials\ExpressionReference\Custom)
+[**Custom**](Engine/Rendering/Materials\ExpressionReference\Custom)
 [REGION:indentedlist]
 * [Custom](Engine/Rendering/Materials\ExpressionReference\Custom#Custom)
 [/REGION]
 
 
 
-[**Depth 表現式**](Engine/Rendering/Materials\ExpressionReference\Depth)
+[**Depth**](Engine/Rendering/Materials\ExpressionReference\Depth)
 [REGION:indentedlist]
 * [DepthFade](Engine/Rendering/Materials\ExpressionReference\Depth#DepthFade)
 * [PixelDepth](Engine/Rendering/Materials\ExpressionReference\Depth#PixelDepth)
 * [SceneDepth](Engine/Rendering/Materials\ExpressionReference\Depth#SceneDepth)
 [/REGION]
 
-[**Font 表現式**](Engine/Rendering/Materials\ExpressionReference\Font)
+[**Font**](Engine/Rendering/Materials\ExpressionReference\Font)
 [REGION:indentedlist]
 * [FontSample](Engine/Rendering/Materials\ExpressionReference\Font#FontSample)
 * [FontSampleParameter](Engine/Rendering/Materials\ExpressionReference\Font#FontSampleParameter)
 [/REGION]
 
-[**Function 表現式**](Engine/Rendering/Materials\ExpressionReference\Functions)
+[**Functions**](Engine/Rendering/Materials\ExpressionReference\Functions)
 [REGION:indentedlist]
 * [FunctionInput](Engine/Rendering/Materials\ExpressionReference\Functions#FunctionInput)
 * [FunctionOutput](Engine/Rendering/Materials\ExpressionReference\Functions#FunctionOutput)
@@ -349,13 +349,13 @@ Description:複雑なノードベースのシェーダーネットワークを�
 * [TextureObject](Engine/Rendering/Materials\ExpressionReference\Functions#TextureObject)
 [/REGION]
 
-[**MaterialAttributes 表現式**](Engine/Rendering/Materials\ExpressionReference\MaterialAttributes)
+[**MaterialAttributes**](Engine/Rendering/Materials\ExpressionReference\MaterialAttributes)
 [REGION:indentedlist]
 * [BreakMaterialAttributes](Engine/Rendering/Materials\ExpressionReference\MaterialAttributes#BreakMaterialAttributes)
 * [MakeMaterialAttributes](Engine/Rendering/Materials\ExpressionReference\MaterialAttributes#MakeMaterialAttributes)
 [/REGION]
 
-[**Math 表現式**](Engine/Rendering/Materials\ExpressionReference\Math)
+[**Math**](Engine/Rendering/Materials\ExpressionReference\Math)
 [REGION:indentedlist]
 * [Abs](Engine/Rendering/Materials\ExpressionReference\Math#Abs)
 * [Add](Engine/Rendering/Materials\ExpressionReference\Math#Add)
@@ -381,7 +381,7 @@ Description:複雑なノードベースのシェーダーネットワークを�
 * [Subtract](Engine/Rendering/Materials\ExpressionReference\Math#Subtract)
 [/REGION]
 
-[**Parameters 表現式**](Engine/Rendering/Materials\ExpressionReference\Parameters)
+[**Parameters**](Engine/Rendering/Materials\ExpressionReference\Parameters)
 [REGION:indentedlist]
 * [CollectionParameters](Engine/Rendering/Materials\ExpressionReference\Parameters#CollectionParameters)
 * [DynamicParameter](Engine/Rendering/Materials\ExpressionReference\Parameters#DynamicParameter)
@@ -398,7 +398,7 @@ Description:複雑なノードベースのシェーダーネットワークを�
 * [TextureSampleParameterMovie](Engine/Rendering/Materials\ExpressionReference\Parameters#TextureSampleParameterMovie)
 [/REGION]
 
-[**Particles 表現式**](Engine/Rendering/Materials\ExpressionReference\Particles)
+[**Particles**](Engine/Rendering/Materials\ExpressionReference\Particles)
 [REGION:indentedlist]
 * [DynamicParameter](Engine/Rendering/Materials\ExpressionReference\Particles#DynamicParameter)
 * [ParticleColor](Engine/Rendering/Materials\ExpressionReference\Particles#ParticleColor)
@@ -415,7 +415,7 @@ Description:複雑なノードベースのシェーダーネットワークを�
 * [TextureSampleParameterSubUV](Engine/Rendering/Materials\ExpressionReference\Particles#TextureSampleParameterSubUV)
 [/REGION]
 <!---
-[**SpeedTree 表現式**](Engine/Rendering/Materials\ExpressionReference\SpeedTree)
+[**SpeedTree**](Engine/Rendering/Materials\ExpressionReference\SpeedTree)
 [REGION:indentedlist]
 * [SpeedTree](Engine/Rendering/Materials\ExpressionReference\SpeedTree#SpeedTree)
 [/REGION]
@@ -427,7 +427,7 @@ Description:複雑なノードベースのシェーダーネットワークを�
 * [LandscapeLayerSwitch](Engine/Rendering/Materials\ExpressionReference\Landscape#LandscapeLayerSwitch)
 [/REGION]
 
-[**Texture 表現式**](Engine/Rendering/Materials\ExpressionReference\Textures)
+[**Texture**](Engine/Rendering/Materials\ExpressionReference\Textures)
 [REGION:indentedlist]
 * [FontSample](Engine/Rendering/Materials\ExpressionReference\Textures#FontSample)
 * [FontSampleParameter](Engine/Rendering/Materials\ExpressionReference\Textures#FontSampleParameter)
@@ -437,7 +437,7 @@ Description:複雑なノードベースのシェーダーネットワークを�
 * [TextureSample](Engine/Rendering/Materials\ExpressionReference\Textures#TextureSample)
 [/REGION]
 
-[**Utilty 表現式**](Engine/Rendering/Materials\ExpressionReference\Utility)
+[**Utility**](Engine/Rendering/Materials\ExpressionReference\Utility)
 [REGION:indentedlist]
 * [BlackBody](Engine/Rendering/Materials\ExpressionReference\Utility#BlackBody)
 * [BumpOffset](Engine/Rendering/Materials\ExpressionReference\Utility#BumpOffset)
@@ -459,7 +459,7 @@ Description:複雑なノードベースのシェーダーネットワークを�
 * [AntialiasedTextureMask](Engine/Rendering/Materials\ExpressionReference\Utility#AntialiasedTextureMask)
 [/REGION]
 
-[**VectorOps 表現式**](Engine/Rendering/Materials\ExpressionReference\VectorOps)
+[**VectorOps**](Engine/Rendering/Materials\ExpressionReference\VectorOps)
 [REGION:indentedlist]
 * [AppendVector](Engine/Rendering/Materials\ExpressionReference\VectorOps#AppendVector)
 * [ComponentMask](Engine/Rendering/Materials\ExpressionReference\VectorOps#ComponentMask)
@@ -471,7 +471,7 @@ Description:複雑なノードベースのシェーダーネットワークを�
 * [TransformPosition](Engine/Rendering/Materials\ExpressionReference\VectorOps#TransformPosition)
 [/REGION]
 
-[**Vectors 表現式**](Engine/Rendering/Materials\ExpressionReference\Vector)
+[**Vectors**](Engine/Rendering/Materials\ExpressionReference\Vector)
 [REGION:indentedlist]
 * [ActorPositionWS](Engine/Rendering/Materials\ExpressionReference\Vector#ActorPositionWS)
 * [CameraPositionWS](Engine/Rendering/Materials\ExpressionReference\Vector#ActorPositionWS)

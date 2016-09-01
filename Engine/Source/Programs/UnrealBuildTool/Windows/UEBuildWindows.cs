@@ -114,6 +114,12 @@ namespace UnrealBuildTool
 
 			if (SupportWindowsXP)
 			{
+                // Change libcurl path for XP as the default Win32 lib calls functions not supported on the platform
+                // Remove path must exactly match what is created in libcurl.Build.cs
+                string LibCurlOriginalLibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/lib/" + ((Target.Platform == UnrealTargetPlatform.Win64) ? "Win64/" : "Win32/") + "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+                Rules.PublicLibraryPaths.Remove(LibCurlOriginalLibPath);
+                Rules.PublicLibraryPaths.Add(LibCurlOriginalLibPath + "_xp");
+
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D12RHI");
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D11RHI");
 				Rules.DynamicallyLoadedModuleNames.Remove("ShaderFormatD3D");
@@ -237,8 +243,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINDOWS=1");
 
 			String MorpheusShaderPath = Path.Combine(BuildConfiguration.RelativeEnginePath, "Shaders/PS4/PostProcessHMDMorpheus.usf");
-			//@todo: VS2015 currently does not have support for Morpheus
-			if (File.Exists(MorpheusShaderPath) && WindowsPlatform.Compiler != WindowsCompiler.VisualStudio2015)
+			if (File.Exists(MorpheusShaderPath))
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_MORPHEUS=1");
 
@@ -531,7 +536,7 @@ namespace UnrealBuildTool
 		public static readonly bool bCompileWithClang = false;
 
 		/// When using Clang, enabling enables the MSVC-like "clang-cl" wrapper, otherwise we pass arguments to Clang directly
-		public static readonly bool bUseVCCompilerArgs = !bCompileWithClang || false;
+		public static readonly bool bUseVCCompilerArgs = true;
 
 		/// True if we should use the Clang linker (LLD) when bCompileWithClang is enabled, otherwise we use the MSVC linker
 		public static readonly bool bAllowClangLinker = bCompileWithClang && false;
@@ -603,6 +608,24 @@ namespace UnrealBuildTool
 		public override SDKStatus HasRequiredSDKsInstalled()
 		{
 			return SDK.HasRequiredSDKsInstalled();
+		}
+
+		/// <summary>
+		/// Returns the human-readable name of the given compiler
+		/// </summary>
+		/// <param name="Compiler">The compiler value</param>
+		/// <returns>Name of the compiler</returns>
+		public static string GetCompilerName(WindowsCompiler Compiler)
+		{
+			switch(Compiler)
+			{
+				case WindowsCompiler.VisualStudio2013:
+					return "Visual Studio 2013";
+				case WindowsCompiler.VisualStudio2015:
+					return "Visual Studio 2015";
+				default:
+					return Compiler.ToString();
+			}
 		}
 
 		/// <summary>
@@ -683,24 +706,24 @@ namespace UnrealBuildTool
                 @"Microsoft\WDExpress"					// VSExpress on 32-bit machine.
             };
 
-			string VSPath = null;
-
 			foreach (string PossibleRegPath in PossibleRegPaths)
 			{
-				VSPath = (string)Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
-
+				string VSPath = (string)Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
 				if (VSPath != null)
 				{
-					break;
+					return new DirectoryInfo(Path.Combine(VSPath, "..", "Tools")).FullName;
 				}
 			}
 
-			if (VSPath == null)
+			// Fall back to checking the environment variable
+			string ComnToolsPath = Environment.GetEnvironmentVariable(string.Format("VS{0}0COMNTOOLS", VSVersion));
+			if (!String.IsNullOrEmpty(ComnToolsPath))
 			{
-				return null;
+				return new DirectoryInfo(ComnToolsPath).FullName;
 			}
 
-			return new DirectoryInfo(Path.Combine(VSPath, "..", "Tools")).FullName;
+			// Otherwise fail
+			return null;
 		}
 
 		/// <summary>

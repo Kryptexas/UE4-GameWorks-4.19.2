@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2702491
 Availability:Public
-Title: Landscape Quick Start Guide
+Title:地形快速入门指南
 Crumbs: %ROOT%, GettingStarted
-Description: Getting up and running with the basics of the Landscape System in Unreal Engine.
+Description:在虚幻引擎中学习地形（Landscape）系统的基础并开始实践。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,14 +39,14 @@ Description: Getting up and running with the basics of the Landscape System in U
 [/OBJECT]
 [/VAR]
 
-The Unreal Editor Landscape Quick Start Guide walks you through creating a new Landscape, Sculpting the Landscape, Creating new Materials for the Landscape, and Painting those materials on the Landscape. 
+虚幻编辑器地形快速入门指南包括如下内容：创建新地形、对地形进行造型、为地形创建新材质、在地形上绘制新材质。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

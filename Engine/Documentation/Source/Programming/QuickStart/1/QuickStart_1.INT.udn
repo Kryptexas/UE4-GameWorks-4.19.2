@@ -1,5 +1,5 @@
 Availability: Public
-Title:1 - Essential Project Setup
+Title:1 - Required Project Setup
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Creating a new project with the specifications we need
 SkillLevel: Beginner
@@ -12,7 +12,7 @@ Version: 4.9
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[QuickStart Home](Programming\QuickStart)
+		[Programming Quick Start Home](Programming\QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[Next Step](Programming\QuickStart\2 "%Programming\QuickStart\2:title%")
@@ -23,7 +23,7 @@ Version: 4.9
 %Steps%
 
 [REGION:note]
-You should have a copy of **Visual Studio 2013** for Desktop (Preferably Community or Professional Editions) installed before starting this tutorial.
+You should have a copy of **Visual Studio 2015** for Desktop (Preferably Community or Professional Editions) installed before starting this tutorial.
 [/REGION]
 
 1. Open **Unreal Engine** from the Launcher. The [](Engine/Basics/Projects/Browser) will appear.

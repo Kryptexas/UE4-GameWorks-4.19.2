@@ -233,6 +233,24 @@ class OCULUSLIBRARY_API UOculusFunctionLibrary : public UBlueprintFunctionLibrar
 	static bool IsAutoLoadingSplashScreenEnabled();
 
 	/**
+	 * Sets a texture for loading icon mode and shows it. This call will clear all the splashes. 
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary")
+	static void ShowLoadingIcon(class UTexture2D* Texture);
+
+	/**
+	 * Clears the loading icon. This call will clear all the splashes.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary")
+	static void HideLoadingIcon();
+
+	/**
+	 * Returns true, if the splash screen is in loading icon mode.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
+	static bool IsLoadingIconEnabled();
+
+	/**
 	 * Sets loading splash screen parameters. 
 	 *
 	 * @param TexturePath		(in) A path to the texture asset to be used for the splash. GearVR uses it as a path for loading icon; all other params are currently ignored by GearVR.

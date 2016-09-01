@@ -211,10 +211,17 @@ public:
 	 *
 	 * @param InModuleName The name of the module to unload.
 	 * @param Ar The archive to receive error messages, if any.
-	 * @param bAbandonOnly Do not try to unload the module, only abandon.
 	 * @see LoadModuleWithCallback
 	 */
-	void UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar, bool bAbandonOnly = false);
+	void UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar);
+
+	/**
+	 * Calls PreUnload then abandons a module in memory.
+	 *
+	 * @param InModuleName The name of the module to unload.
+	 * @see LoadModuleWithCallback
+	 */
+	void AbandonModuleWithCallback( const FName InModuleName );
 
 	/** Delegate that's used by the module manager to find all the valid modules in a directory matching a pattern */
 	typedef TMap<FString, FString> FModuleNamesMap;
@@ -461,6 +468,14 @@ protected:
 		: bCanProcessNewlyLoadedObjects(false)
 	{ }
 
+private:
+
+	/**
+	 * Prevent copy constructor from being triggered.
+	 */
+	FModuleManager(const FModuleManager&)
+	{ }
+
 protected:
 
 	/**
@@ -560,14 +575,14 @@ private:
 	mutable TOptional<TMap<FName, FString>> ModulePathsCache;
 
 	/** Multicast delegate that will broadcast a notification when modules are loaded, unloaded, or
-	    our set of known modules changes */
+		our set of known modules changes */
 	FModulesChangedEvent ModulesChangedEvent;
 	
 	/** Multicast delegate called to process any new loaded objects. */
 	FSimpleMulticastDelegate ProcessLoadedObjectsCallback;
 
 	/** When module manager is linked against an application that supports UObjects, this delegate will be primed
-	    at startup to provide information about whether a UObject package is loaded into memory. */
+		at startup to provide information about whether a UObject package is loaded into memory. */
 	FIsPackageLoadedCallback IsPackageLoaded;
 
 	/** Array of engine binaries directories. */
@@ -772,7 +787,7 @@ class FDefaultGameModuleImpl
 #else
 
 /** IMPLEMENT_PRIMARY_GAME_MODULE must be used for at least one game module in your game.  It sets the "name"
-    your game when compiling in monolithic mode. This is passed in by UBT from the .uproject name, and manually specifying a 
+	your game when compiling in monolithic mode. This is passed in by UBT from the .uproject name, and manually specifying a 
 	name is no longer necessary. */
 #if IS_MONOLITHIC
 	#if PLATFORM_DESKTOP

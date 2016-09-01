@@ -89,6 +89,7 @@ public:
 		, _ExternalScrollbar()
 		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
 		, _AllowOverscroll(EAllowOverscroll::Yes)
+		, _WheelScrollMultiplier( WheelScrollAmount )
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -125,6 +126,8 @@ public:
 		
 		SLATE_ARGUMENT( EAllowOverscroll, AllowOverscroll );
 
+		SLATE_ARGUMENT( float, WheelScrollMultiplier );
+
 	SLATE_END_ARGS()
 
 		
@@ -150,6 +153,8 @@ public:
 		this->bClearSelectionOnClick = InArgs._ClearSelectionOnClick;
 		this->ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
 		this->AllowOverscroll = InArgs._AllowOverscroll;
+
+		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;

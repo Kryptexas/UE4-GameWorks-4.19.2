@@ -1,17 +1,22 @@
-﻿INTSourceChangelist:2430506
+﻿INTSourceChangelist:2940199
 Availability:Public
 Title:最新の iOS PC/Mac 向けワークフロー
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:iOS プラットフォーム開発の環境設定
 prereq:Platforms/iOS/QuickStart
+Version:4.9
+SkillLevel:Intermediate
+parent:Platforms/iOS
+order:0
+type:overview
 
 [TOC(start:2 end:2)]
 
 %Globals:OSSelect%
 
-## 概要
 
-このドキュメントは、iOS 搭載デバイスのためにコンパイルを実行する開発環境の設定方法に加え、iOS プラットフォームをターゲットとする「Unreal」プロジェクトをデプロイするための一般的なワークフローについて説明します。
+
+このドキュメントは、iOS 搭載デバイス用にコンパイルを実行する開発環境の設定方法に加えて、iOS プラットフォームをターゲットとする「Unreal」プロジェクトをデプロイするための一般的なワークフローについて説明します。
 
 [PUBLISH:Rocket]
 [REGION:note]
@@ -19,7 +24,7 @@ prereq:Platforms/iOS/QuickStart
 [/REGION]
 [/PUBLISH]
 
-##デバイス/SDK
+##デバイス / SDK
 UE4 は iPhone4 / iPad2 とその後継機種、および iOS 6.0 以上のバージョンで動作します。
 
 お持ちのデバイスのエンジン機能との互換性の確認については、 [](Platforms\iOS\DeviceCompatibility) をご覧ください。
@@ -64,7 +69,7 @@ Windows のシステム要件の詳細については、[推奨される仕様](
 [EXCERPT:MacOSConfig]
 
 Mac のシステム要件の詳細については、[推奨される仕様](GettingStarted/RecommendedSpecifications) を参照してください。iOS 7.1 へデプロイするには、 Xcode 5.1 をインストールする必要があります。ご注意ください。
-Xcode は App Store で [無料でダウンロードできます](https://itunes.apple.com/us/app/xcode/id497799835?mt=12)。
+XCode は App Store で [無料でダウンロードできます](https://itunes.apple.com/us/app/xcode/id497799835?mt=12)。
 
 [/EXCERPT:MacOSConfig]
 -->
@@ -87,7 +92,7 @@ Apple developer アカウントの作成時には、以下の作業が必須で�
 * プロビジョニング プロファイルへユーザーのデバイスを全て追加
 
 詳細は Apple 社のサイトの以下のページを参照してください。
-* [App Distribution Guide](https://developer.apple.com/library/ios/documentation/IDEs/Conceptual/AppDistributionGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40012582-CH1-SW1) 
+* [App ディストリビューション ガイド](https://developer.apple.com/library/ios/documentation/IDEs/Conceptual/AppDistributionGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40012582-CH1-SW1) 
 * [識別子、デバイス、プロファイルの管理](https://developer.apple.com/library/ios/documentation/IDEs/Conceptual/AppDistributionGuide/MaintainingProfiles/MaintainingProfiles.html#//apple_ref/doc/uid/TP40012582-CH30-SW1)
 * [デバイス上で App を起動する](https://developer.apple.com/library/ios/documentation/IDEs/Conceptual/AppDistributionGuide/LaunchingYourApponDevices/LaunchingYourApponDevices.html#//apple_ref/doc/uid/TP40012582-CH27-SW4)
 
@@ -129,10 +134,10 @@ iPhone Packager にはタブが 2 つあります。
 * New User (新規ユーザー)
 * Already a registered iOS developer (iOS developer として登録済みのユーザー)
 
-* [New User] タブには、初めて iOS アプリケーションを開発するデベロッパ向けのツールがあります。 
+* [New User (新規ユーザー)] タブには、初めて iOS アプリケーションを開発するデベロッパ向けのツールがあります。 
 
 このタブから以下の操作ができます。
-* [Generate Certificate Request] ウィンドウを開けます。[Generate Certificate Request] ウィンドウを使用して、iOS アプリケーションに署名するための鍵のペアおよび Apple 社の Developer ウェブサイトで証明書を作成するための証明書リクエストを生成します。 
+* [Generate Certificate Request (証明書リクエストを作成)] ウィンドウを開けます。[Generate Certificate Request (証明書リクエストを作成)] ウィンドウを使用して、iOS アプリケーションに署名するための鍵のペアおよび Apple 社の Developer ウェブサイトで証明書を作成するための証明書リクエストを生成します。 
 * Apple 社の Developer ウェブサイトからダウンロードしたプロビジョニング プロファイルをインポートします。
 * Apple 社の Developer ウェブサイトからダウンロードした開発証明書と鍵のペアをインポートします。
 
@@ -140,7 +145,7 @@ iPhone Packager にはタブが 2 つあります。
 Edit Info.plist ウィンドウを開くオプションがありますが、これは古いオプションであり不要になりました。最終的に、iPhone Packager の機能がアンリアル エディタに統合されます。 
 [/REGION]
 
-[Already a registered iOS developer] タブには、アンリアル製品または他の方法を用いて過去に iOS アプリケーションを開発したことがあり、開発証明書とプロビジョニング プロファイルを取得済みのデベロッパ向けのツールがあります。 
+[Already a registered iOS developer (iOS developer として登録済み)] タブには、アンリアル製品または他の方法を用いて過去に iOS アプリケーションを開発したことがあり、開発証明書とプロビジョニング プロファイルを取得済みのデベロッパ向けのツールがあります。 
 
 このタブから以下の操作ができます。
 * Apple 社の Developer ウェブサイトからダウンロードしたプロビジョニング プロファイルをインポートします。
@@ -159,9 +164,9 @@ Edit Info.plist ウィンドウを開くオプションがありますが、こ�
 
 * Keychain Access アプリケーションの使用
     * ログイン キーチェーンの選択
-    * [Category] セクションで [My Certificates] を選択
+    * [Category (カテゴリ)] セクションで [My Certificates] を選択
     * 新規の証明書を選択 ("iPhone Developer" で開始します)
-    * これを右クリックして [Export] を選択
+    * これを右クリックして [Export (エクスポート)] を選択
     * プロンプトに従います (安全に保存した場合、空のパスワードで問題ありません)
     * 「.p12」を他のユーザーにも割り当てます
     * その後、証明書をログインキーチェーンへインストールするために、これをダブルクリック、または「.p12」を [Keychain Access] へドラッグします。
@@ -172,8 +177,8 @@ Edit Info.plist ウィンドウを開くオプションがありますが、こ�
     * プロンプトに従います (パスワード入力も含みます。チーム内で共有できるパスワードを使用します)
     * プロファイル ファイルを他のユーザーにも割り当てます。
     * これにより他のユーザーは、Xcode の Organizer へ「Developer Profile」をインポートすることができます
+	次に、Apple サイトから `.mobileprovision` をダウンロードします。「&lt;ProfileName&gt;.mobileprovision」と言う名前でファイルがダウンロードされます。`.mobileprovision` ファイルを以下のいずれかの場所に置きます。
 
-次に、Apple サイトから `.mobileprovision` をダウンロードします。「&lt;ProfileName&gt;.mobileprovision」と言う名前でファイルがダウンロードされます。`.mobileprovision` ファイルを以下のいずれかの場所に置きます。
 * `[GameDir]/Build/IOS/[GameName].mobileprovision`
 * `Engine/Build/IOS/UE4Game.mobileprovision`
 
@@ -189,7 +194,7 @@ Edit Info.plist ウィンドウを開くオプションがありますが、こ�
 ## iOS デバイスにデプロイする
 
 iOS デバイス上で現在のレベルのテストをすぐに開始するために、アンリアル エディタ内の **[Launch]** ボタンを使用します。 
-**File > Package** コマンドを使って、iOS デバイス上でテストするためにゲームをクックしパッケージ化することもできます。詳細は、 [](Engine\Deployment\Launching) を参照してください。
+**[File] > [Package]** コマンドを使って、iOS デバイス上でテストするためにゲームをクックしパッケージ化することもできます。詳細は、 [](Engine\Deployment\Launching) を参照してください。
 
 
 [PUBLISH:Licensee]
@@ -218,22 +223,13 @@ iOS デバイス上で現在のレベルのテストをすぐに開始するた�
         * for (( ;; )) ; do ./UnrealRemoteTool; done
     * Mountain Lion は、Terminal が作業ディレクトリとコマンドヒストリ-を記憶することに留意してください。そのため再起動しても上矢印キーでコマンドを呼び戻すことができます。
 
-## Windows のシステム設定
-
-* 環境変数を設定します (もしくは単一 Mac を他のユーザーと共有できるように「RemoteToolchain.cs」でコードを修正します)。
-    * 「ue.RemoteCompileServerName = The DNS name」 またはコンパイルに使用した Mac のIPアドレス (例えばa1012)
-    * ue.IOSSigningServer = これは任意です (コンパイル時は、パッケージが「ue.RemoteCompileServerName」同様に強制しますが、独自の「IPhonePackager.exe」を実行すると、「-mac」が指定されていない限りMacの使用を判断します)。
-
-2 セットの環境変数である理由は、全く異なるコンパイルや検証サーバーを有効にするためです。変更を有効にするために、コンピューターの再起動が必要かもしれません。
-
-
 ### Windowsでのコンパイル作業
 Windows または Mac システムのセットアップに上記手順が完了すると、コンパイルの実行に UnrealBuildTool を使用するためコンパイルは単純な作業になります。
 * 「//depot/UE4/GenerateProjectFiles_AllPlatforms.bat」を実行します
 * 作成された「UE4.sln」を開きます。
 * ゲーム ソリューション フォルダを開きます。
 * Development Editor コンフィギュレーション、そして Win64 プラットフォームを選択します。
-* 選択するゲーム (例えばQAGame) を **右クリック** して [Build] を選択します。
+* 選択するゲーム (例えばQAGame) を **右クリック** して [Build (ビルド)] を選択します。
 * 次に、Development コンフィギュレーション、そして IOS プラットフォームを選択します。
 * ここで再びゲームをビルドします。
     * UnrealRemoteTool を実行している Mac と接続してファイルをコピー、その後 Mac 上にリモートコンパイルコマンドを実行します。
@@ -268,7 +264,7 @@ Mac で IOS をコンパイルできます。これはかなり新しいワー�
 * 「//depot/UE4/GenerateProjectFiles_AllPlatforms.command」を実行します
 * Xcode で「UE4/UE4.xcodeproj」を開きます
 * 「QAGame - Mac」と選択します。 
-* スキーム (Option-Command-R) で、 [Development] を選択して最後に終了をクリックします。「Command-B」で Mac の実行ファイルをビルドします。
+* スキーム (Option-Command-R) で、[Development (開発)] を選択して最後に終了をクリックします。「Command-B」で Mac の実行ファイルをビルドします。
 * Terminal から IOS クッカを実行します。
     * 「Terminal.app」を起動して「UE4/Engine/Binaries/Mac」へディレクトリを変更します。その後以下を実行します (ユーザーのゲームと QAGame を差し替えます)：
 	    * open UE4Editor.app --args QAGame -run=cook -targetplatform=ios -cookonthefly

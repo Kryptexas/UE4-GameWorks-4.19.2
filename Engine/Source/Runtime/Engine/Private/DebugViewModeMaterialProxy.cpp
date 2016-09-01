@@ -46,7 +46,7 @@ const FMaterial* FDebugViewModeMaterialProxy::GetShader(EDebugViewShaderMode Deb
 	if (DebugViewShaderMode == DVSM_MaterialTexCoordScalesAccuracy || DebugViewShaderMode == DVSM_MaterialTexCoordScalesAnalysis)
 	{
 		FDebugViewModeMaterialProxy** BoundMaterial = DebugMaterialShaderMap.Find(Material);
-		if (BoundMaterial)
+		if (BoundMaterial && *BoundMaterial && (*BoundMaterial)->IsValid())
 		{
 			return *BoundMaterial;
 		}
@@ -69,6 +69,41 @@ void FDebugViewModeMaterialProxy::ClearAllShaders()
 	DebugMaterialShaderMap.Empty();
 
 	bReentrantCall = false;
+}
+
+void FDebugViewModeMaterialProxy::ValidateAllShaders(OUT FTexCoordScaleMap& TexCoordScales)
+{
+	FlushRenderingCommands();
+
+	for (TMap<const FMaterial*, FDebugViewModeMaterialProxy*>::TIterator It(DebugMaterialShaderMap); It; ++It)
+	{
+		const FMaterial* OriginalMaterial = It.Key();
+		FDebugViewModeMaterialProxy* DebugMaterial = It.Value();
+
+		if (OriginalMaterial && DebugMaterial && OriginalMaterial->GetGameThreadShaderMap() && DebugMaterial->GetGameThreadShaderMap())
+		{
+			const FUniformExpressionSet& DebugViewUniformExpressionSet = DebugMaterial->GetGameThreadShaderMap()->GetUniformExpressionSet();
+			const FUniformExpressionSet& OrignialUniformExpressionSet = OriginalMaterial->GetGameThreadShaderMap()->GetUniformExpressionSet();
+
+			if (!(DebugViewUniformExpressionSet == OrignialUniformExpressionSet))
+			{
+				// This will happen when the debug shader compiled misses logic. Usually caused by custom features in the original shader compilation not implemented in FDebugViewModeMaterialProxy.
+				UE_LOG(TextureStreamingBuild, Verbose, TEXT("Uniform expression set mismatch for %s, skipping shader"), *DebugMaterial->GetMaterialInterface()->GetName());
+
+				// Here we can't destroy the invalid material because it would trigger ClearAllShaders.
+				DebugMaterial->MarkAsInvalid();
+				TexCoordScales.Remove(DebugMaterial->GetMaterialInterface());
+			}
+		}
+		else if (DebugMaterial)
+		{
+			UE_LOG(TextureStreamingBuild, Verbose, TEXT("Can't get valid shadermap for %s, skipping shader"), *DebugMaterial->GetMaterialInterface()->GetName());
+
+			// Here we can't destroy the invalid material because it would trigger ClearAllShaders.
+			DebugMaterial->MarkAsInvalid();
+			TexCoordScales.Remove(DebugMaterial->GetMaterialInterface());
+		}
+	}
 }
 
 FDebugViewModeMaterialProxy::FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage)
@@ -149,7 +184,7 @@ bool FDebugViewModeMaterialProxy::IsLightFunction() const
 	return Material && Material->MaterialDomain == MD_LightFunction;
 }
 
-bool FDebugViewModeMaterialProxy::IsUsedWithDeferredDecal() const
+bool FDebugViewModeMaterialProxy::IsDeferredDecal() const
 {
 	return	Material && Material->MaterialDomain == MD_DeferredDecal;
 }
@@ -182,6 +217,14 @@ enum EMaterialShadingModel FDebugViewModeMaterialProxy::GetShadingModel() const
 float FDebugViewModeMaterialProxy::GetOpacityMaskClipValue() const
 { 
 	return Material ? Material->GetOpacityMaskClipValue() : .5f;
+}
+
+void FDebugViewModeMaterialProxy::GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
+{
+	if (Material)
+	{
+		Material->GetAllCustomOutputExpressions(OutCustomOutputs);
+	}
 }
 
 #endif

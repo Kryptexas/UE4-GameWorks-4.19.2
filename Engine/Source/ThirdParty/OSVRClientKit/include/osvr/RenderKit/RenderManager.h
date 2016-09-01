@@ -26,9 +26,12 @@ Russ Taylor <russ@sensics.com>
 
 // Internal Includes
 #include <osvr/RenderKit/Export.h>
-#include "MonoPointMeshTypes.h"
 #include "osvr_display_configuration.h"
 #include "RenderKitGraphicsTransforms.h"
+#include "DistortionParameters.h"
+#include "UnstructuredMeshInterpolator.h"
+#include "Float2.h"
+#include "DistortionMesh.h"
 
 // Library/third-party includes
 #include <osvr/ClientKit/ContextC.h>
@@ -112,6 +115,13 @@ namespace renderkit {
         // send images to RenderManager to display before the next frame is
         // presented.
     } RenderTimingInfo;
+
+    /// @brief Simple structure for representing a float based RGB color
+    typedef struct {
+        float r;
+        float g;
+        float b;
+    } RGBColorf;
 
     /// @brief Describes the parameters for a display callback handler.
     ///
@@ -218,9 +228,6 @@ namespace renderkit {
         OSVR_ProjectionMatrix
             projection; //< Projection matrix set by RenderManager
     } RenderInfo;
-
-    /// 2D float data, like a texture coordinate for example.
-    using Float2 = std::array<float, 2>;
 
     class RenderManager {
       public:
@@ -474,6 +481,17 @@ namespace renderkit {
                                      std::vector<OSVR_ViewportDescription>(),
                              bool flipInY = false);
 
+        /// @brief Sends solid color to all eyes and displays.
+        ///
+        /// Sends a solid color to be displayed on every eye and
+        /// display.
+        /// Uses the various Render* functions below to call subclasses.
+        ///  NOTE: Most subclasses will NOT override this function.
+        ///  @param[in] color The colors to present.
+        ///  @return Returns true on success and false on failure.
+        bool OSVR_RENDERMANAGER_EXPORT
+          PresentSolidColor(const RGBColorf &color);
+
         ///-------------------------------------------------------------
         /// @brief Get rendering-time statistics
         ///
@@ -492,115 +510,6 @@ namespace renderkit {
             ) {
             return false;
         }
-
-        ///-------------------------------------------------------------
-        /// Class that stores one of a set of possible distortion parameters.
-        /// The type of parameters is determined by the m_type, and which
-        /// other entries are valid depends on the type.
-        /// === Description of mono_point_samples parameters follows
-        /// @todo
-        /// === Description of rgb_symmetric_polynomials parameters follows
-        /// Because distortion correction depends on the lens geometry and the
-        /// screen geometry, and may not be directly related to the viewport
-        /// size or aspect ratio (for lenses that expand more in one direction
-        /// than the other), we need to allow the specification of not only the
-        /// radial distortion polynomial coefficients (which scale powers of the
-        /// distance from the center of projection to the point), but also the
-        /// space in
-        /// which this is measured.  We specify the space by telling the number
-        /// of unit radii in the space the parameters are defined in lies across
-        /// the
-        /// texture coordinates, which range from 0 to 1.
-        ///   This can be different for X and Y, as the viewport may be
-        ///   non-square
-        /// and the lens system may make yet a different aspect ratio.  The D[0]
-        /// component tells the width and D[1] tells the height.
-        ///   The coefficients for R, G, and B and the Distances for X and Y
-        /// may be specified in any consistent space that
-        /// is desired (scaling all of them linearly will have no impact on the
-        /// result), but lower-left corner of the space (as viewed on the
-        /// screen)
-        /// must be (0,0) and the far side of the pixels on the top and right
-        /// are
-        /// at the D-specified locations.
-        ///   The first coefficient in each polynomial is a constant factor
-        /// (multiplied by offset^0, or 1), the second is the linear factor, the
-        /// third is quadratic, and so forth.
-        /// @todo Turn COP always into the range 0-1, and have it always use the
-        /// lower-left corner of the display, even for Direct3D.  Do the
-        /// conversions
-        /// internally.  When this is done, also adjust the
-        ///   For a display 10 pixels wide by 8 pixels high that has square
-        ///   pixels
-        /// whose center of projection is in the middle of the image, we would
-        /// get:
-        /// D = (10, 8); COP = (4.5, 3.5); parameters specified in pixel-unit
-        /// offsets.
-        ///   For a display that is 6 units wide by 12 units high, but whose
-        ///   optics
-        /// stretch the view horizontally to produce a square viewing image with
-        /// pixels that are stretched in X, we could have:
-        /// D = (12, 12); COP = (5.5, 5.5); parameters specified in vertical
-        /// pixel-sized
-        /// units
-        ///   -or-
-        /// D = (6,6); COP = (2.5, 2.5); parameters specified in horizontal
-        /// pixel-sized units.
-        ///   The parameters for each color specify the new radial displacement
-        /// from the center of projection as a function of the original
-        /// displacement.
-        ///   In D-scaled space, this is:
-        ///    Offset = Orig - COP;              // Vector
-        ///    OffsetMag = sqrt(Offset.length() * Offset.length());  // Scalar
-        ///    NormOffset = Offset / OffsetMag;  // Vector
-        ///    Final = COP + (a0 + a1*OffsetMag + a2*OffsetMag*OffsetMag + ...)
-        ///            * NormOffset; // Position
-
-        class DistortionParameters {
-          public:
-            typedef enum {
-                mono_point_samples,
-                rgb_point_samples,
-                rgb_symmetric_polynomials
-            } Type;
-
-            DistortionParameters() {
-                m_type = rgb_symmetric_polynomials;
-                m_distortionCOP = {0.5f /* X */, 0.5f /* Y */};
-                m_distortionD = {1 /* DX */, 1 /* DY */};
-                m_distortionPolynomialRed = {0, 1};
-                m_distortionPolynomialGreen = {0, 1};
-                m_distortionPolynomialBlue = {0, 1};
-                m_desiredTriangles = 2;
-            };
-
-            // Parameters valid for all mesh types
-            Type m_type; //< Type of parameters stored, determines which fields
-            // below are valid.
-            size_t m_desiredTriangles; //< How many triangles would we like in
-            // the mesh?
-
-            // Parameters valid for a mesh of type mono_point_samples
-            MonoPointDistortionMeshDescriptions m_monoPointSamples;
-
-            // Parameters valid for a mesh of type rgb_point_samples
-            RGBPointDistortionMeshDescriptions m_rgbPointSamples;
-
-            // Parameters valid for a mesh of type rgb_symmetric_polynomials
-            std::vector<float> m_distortionPolynomialRed; //< Constant, linear,
-            // quadratic, ... for
-            // Red
-            std::vector<float> m_distortionPolynomialGreen; //< Constant,
-            // linear, quadratic,
-            //... for Green
-            std::vector<float> m_distortionPolynomialBlue; //< Constant, linear,
-            // quadratic, ... for
-            // Blue
-            std::vector<float> m_distortionCOP; //< (X,Y) location of center of
-            // projection in texture coords
-            std::vector<float> m_distortionD; //< How many K1's wide and high is
-                                              //(0-1) in texture coords
-        };
 
         ///-------------------------------------------------------------
         /// Values that control how we do our rendering.  Some RenderManager
@@ -689,7 +598,7 @@ namespace renderkit {
             /// render 4x as many pixels (2x in both X and Y).
             float m_renderOverfillFactor;
 
-            /// This inreases the density of the render texture, adding more
+            /// This increases the density of the render texture, adding more
             /// pixels within the texture, so that when it is rendered into
             /// the final buffer with distortion correction it can be
             /// expanded by the distortion without making fat pixels.
@@ -728,10 +637,6 @@ namespace renderkit {
             /// pointer for the m_renderLibrary must be filled in.
             GraphicsLibrary m_graphicsLibrary;
         };
-
-        /// Describes the type of mesh to be constructed for distortion
-        /// correction.
-        typedef enum { SQUARE, RADIAL } DistortionMeshType;
 
         //--------------------------------------------------------------------------
         // Methods needed to handle passing information across a DLL boundary in
@@ -814,6 +719,9 @@ namespace renderkit {
                 normalizedCroppingViewports =
                     std::vector<OSVR_ViewportDescription>(),
             bool flipInY = false);
+
+        virtual bool PresentSolidColorInternal(
+          const RGBColorf& color);
 
         virtual bool UpdateDistortionMeshesInternal(
             DistortionMeshType type //< Type of mesh to produce
@@ -1105,96 +1013,6 @@ namespace renderkit {
             OSVR_ViewportDescription normalizedCroppingViewport,
             matrix16& outMatrix);
 
-        /// @brief Spatial-calculation-acceleration structure.
-        ///  This class makes a spatial data structure that makes it faster
-        /// to determine the interpolated coordinates between vertices
-        /// in an unstructured mesh.  It pre-fills in a small list of the
-        /// nearest unstructured vertices to each location in a regular
-        /// grid and then uses these to more-rapidly identify the nearest
-        /// points when a large number of interpolations need to be done.
-        class UnstructuredMeshInterpolator {
-        public:
-          /// Constructor, provided the list of points it is to use.
-          /// Fills in the acceleration structure so that calls to
-          /// interpolate will be faster.
-          /// @param points Unstructured mesh points to use for interpolation
-          /// @param numSamplesX Optional parameter describing the size of
-          ///        the acceleration mesh structure.
-          /// @param numSamplesY Optional parameter describing the size of
-          ///        the acceleration mesh structure.
-          UnstructuredMeshInterpolator(
-            const MonoPointDistortionMeshDescription& points,
-            int numSamplesX = 20,
-            int numSamplesY = 20
-          );
-
-          /// Find an interpolation of the value based on the three
-          /// nearest non-collinear points in the unstructured mesh.
-          /// Attempts to use the spatial acceleration structure to
-          /// speed up the query if it can.
-          /// @param xN Normalized x coordinate
-          /// @param yN Normalized y coordinate
-          /// @return Normalized coordinate interpolated from
-          ///  unstructured distortion map mesh.
-          Float2 interpolateNearestPoints(float xN, float yN);
-
-        protected:
-
-          /// Return the three nearest non-collinear points in the
-          /// unstructured mesh description passed in.  If there are
-          /// not three such points, can return fewer.
-          /// @param xN Normalized texture coordinate in X
-          /// @param yN Normalized texture coordinate in Y
-          /// @param points Vector of points to search in.
-          /// @return vector of up to three points.
-          MonoPointDistortionMeshDescription getNearestPoints(
-            float xN, float yN,
-            const MonoPointDistortionMeshDescription &points);
-
-          const MonoPointDistortionMeshDescription m_points;
-
-          /// Structure to store points from the m_points array
-          /// in a regular mesh covering the range of
-          /// normalized texture coordinates from (0,0) to (1,1).
-          ///  It is filled by the constructor and is used by the
-          /// interpolator to hopefully provide a fast way to get
-          /// a list of the three nearest non-collinear points.
-          /// If there are not three such points here, the acceleration
-          /// has failed for a location and the full point list is
-          /// searched.
-          std::vector<    // Range in X
-            std::vector<  // Range in Y
-              MonoPointDistortionMeshDescription //< Points
-            >
-          > m_grid;
-          int m_numSamplesX = 0; //< Size of the grid in X
-          int m_numSamplesY = 0; //< Size of the grid in Y
-
-          // Return the index of the closest grid point to a
-          // specified location.  Clamps to the range of
-          // the grid even for points outside it.
-          /// @param xN [in] Normalized X coordinate
-          /// @param yN [in] Normalized Y coordinate
-          /// @param xIndexOut [out] Index of nearest grid point
-          /// @param yIndexOut [out] Index of nearest grid point
-          /// @return True on success, false on no samples in X,Y
-          inline bool getIndex(double xN, double yN,
-            int &xIndexOut, int &yIndexOut) {
-            if (m_numSamplesX * m_numSamplesY == 0) {
-              return false;
-            }
-            int xIndex = static_cast<int>(0.5 + xN * (m_numSamplesX - 1));
-            if (xIndex < 0) { xIndex = 0; }
-            if (xIndex >= m_numSamplesX) { xIndex = m_numSamplesX - 1; }
-            int yIndex = static_cast<int>(0.5 + yN * (m_numSamplesY - 1));
-            if (yIndex < 0) { yIndex = 0; }
-            if (yIndex >= m_numSamplesY) { yIndex = m_numSamplesY - 1; }
-            xIndexOut = xIndex;
-            yIndexOut = yIndex;
-            return true;
-          };
-        };
-
         /// Vector of interpolators constructed by the
         /// ComputeDistortionMesh() function to be used by the
         /// DistortionCorrectTextureCoordinate() function based on
@@ -1203,70 +1021,6 @@ namespace renderkit {
         /// for our current eye)
         /// when it is using an unstructured grid.
         std::vector<UnstructuredMeshInterpolator *> m_interpolators;
-
-        /// @brief Distortion-correct a texture coordinate in PresentMode
-        ///  Takes a texture coordinate that is specified in the coordinate
-        /// system of a Presented texture for a given eye, which has (0,0)
-        /// at the lower left and (1,1) at the upper right.  The lower left
-        /// and upper right are at the boundaries specified by the overfill
-        /// rectangle, which are not visible for overfill factors > 1.
-        ///  Returns the distorted location, in the same coordinate system.
-        ///  Uses the specified distortion parameters to convert to the
-        /// distortion space, distort, and convert back (also taking into
-        /// account that the distortion parameters are specified for a window
-        /// that has no overfill).
-        ///  @return New coordinates on success, unchanged coordinates on
-        ///  failure.
-        Float2 DistortionCorrectTextureCoordinate(
-            size_t eye //< Eye this relates to
-            , Float2 const& inCoords //< Coordinates to modify
-            , DistortionParameters distort //< Distortion parameters
-            , size_t color //< 0 = red, 1 = green, 2 = blue
-            );
-
-        /// Describes a vertex 2D position plus three 2D texture coordinates.
-        class DistortionMeshVertex {
-          public:
-            DistortionMeshVertex(Float2 const& pos,
-                                 Float2 const& texRed, Float2 const& texGreen,
-                                 Float2 const& texBlue)
-                : m_pos(pos), m_texRed(texRed), m_texGreen(texGreen),
-                  m_texBlue(texBlue) {}
-
-            // Flips a texture coordinate that is in the range 0..1 so that
-            // it is inverted about 0.5 to be in the range 1..0.  Useful for
-            // flipping OpenGL Y coordinates into Direct3D ones.
-            static float flipTexCoord(float c) { return 1.0f - c; }
-
-            Float2 m_pos;             //< X,Y
-            Float2 m_texRed;          //< U,V
-            Float2 m_texGreen;        //< U,V
-            Float2 m_texBlue;         //< U,V
-        };
-
-        /// @brief Constructs a mesh to correct lens distortions
-        ///  Constructs a set of vertices in the range (-1,-1) to (1,1),
-        /// with (-1,-1) at the lower-left corner and (1,1) at the upper
-        /// right and the first coordinate in X.  The number and
-        /// arrangement of these vertices can be specified.
-        ///  NOTE: The vertices only have two coordinates; you need
-        /// to fill in a default Z and homogenous value (maybe 0,1)
-        /// when you use them.
-        ///  Attaches to each vertex three pairs of texture coordinates
-        /// that are the texture location that will be mapped onto this
-        /// screen location by the lens distortion.  These coordinates
-        /// will be in the subset of the range (0,0) to (1,1) that falls
-        /// onto the screen after distortion is applied.  There is one
-        /// pair for red, one for green, and one for blue.
-        ///  There are sets of 3 vertices produced, suitable for sending
-        /// as a set of triangles to the rendering system.
-        ///  @todo Consider switching to an indexed-based mesh.
-        ///  @return Vector of triangles (sets of 3 vertices), empty on failure.
-        std::vector<DistortionMeshVertex> ComputeDistortionMesh(
-            size_t eye //< Which eye?
-            , DistortionMeshType type //< Type of mesh to produce
-            , DistortionParameters distort //< Distortion parameters
-            );
 
         //=============================================================
         // These methods must be implemented by all derived classes.
@@ -1379,6 +1133,12 @@ namespace renderkit {
             // for none)
         };
         virtual bool PresentEye(PresentEyeParameters params) = 0;
+
+        /// @brief Set the specified eye to the specified color
+        /// @param eye[in] The eye to set.
+        /// @param color[in] The color to set, RGB, 0-1 for each.
+        /// @return True on success, false on failure.
+        virtual bool SolidColorEye(size_t eye, const RGBColorf &color) = 0;
 
         /// @brief Finalize presentation for a new display
         virtual bool

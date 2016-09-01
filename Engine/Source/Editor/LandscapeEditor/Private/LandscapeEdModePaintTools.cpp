@@ -134,7 +134,7 @@ public:
 				for (ULandscapeComponent* Component : SelectedComponents)
 				{
 					Component->LayerWhitelist.RemoveSingle(Target.LayerInfo.Get());
-					Component->DeleteLayer(Target.LayerInfo.Get(), &LandscapeEdit);
+					Component->DeleteLayer(Target.LayerInfo.Get(), LandscapeEdit);
 				}
 			}
 
@@ -531,6 +531,7 @@ public:
 		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 		// expand the area by one vertex in each direction to ensure normals are calculated correctly
+		CA_SUPPRESS(6326);
 		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
 		{
 			X1 -= 1;
@@ -695,6 +696,7 @@ public:
 		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 		// expand the area by one vertex in each direction to ensure normals are calculated correctly
+		CA_SUPPRESS(6326);
 		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
 		{
 			X1 -= 1;
@@ -892,6 +894,7 @@ public:
 		float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 		// expand the area by one vertex in each direction to ensure normals are calculated correctly
+		CA_SUPPRESS(6326);
 		if (ToolTarget::TargetType == ELandscapeToolTargetType::Heightmap)
 		{
 			X1 -= 1;
@@ -905,11 +908,13 @@ public:
 		this->Cache.GetCachedData(X1, Y1, X2, Y2, Data);
 
 		float BrushSizeAdjust = 1.0f;
+		CA_SUPPRESS(6326);
 		if (ToolTarget::TargetType != ELandscapeToolTargetType::Weightmap && UISettings->BrushRadius < UISettings->MaximumValueRadius)
 		{
 			BrushSizeAdjust = UISettings->BrushRadius / UISettings->MaximumValueRadius;
 		}
 
+		CA_SUPPRESS(6326);
 		bool bUseWeightTargetValue = UISettings->bUseWeightTargetValue && ToolTarget::TargetType == ELandscapeToolTargetType::Weightmap;
 
 		// Apply the brush

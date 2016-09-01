@@ -26,7 +26,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 
 #include "D3D12RHI.h"
-#include "D3D12RHIBasePrivate.h"
+#include "Windows/D3D12RHIBasePrivate.h"
 #include "StaticArray.h"
 
 #include "D3D12Residency.h"
@@ -43,7 +43,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 #include "D3D12DiskCache.h"
 #include "D3D12PipelineState.h"
 #include "D3D12DescriptorCache.h"
-#include "D3D12StateCache.h"
+#include "Windows/D3D12StateCache.h"
 #include "D3D12DirectCommandListManager.h"
 #include "D3D12Allocation.h"
 #include "D3D12CommandContext.h"

@@ -204,7 +204,7 @@ bool FFileHelper::LoadFileToString( FString& Result, const TCHAR* Filename, uint
 /**
  * Save a binary array to a file.
  */
-bool FFileHelper::SaveArrayToFile( const TArray<uint8>& Array, const TCHAR* Filename, IFileManager* FileManager /*= &IFileManager::Get()*/, uint32 WriteFlags )
+bool FFileHelper::SaveArrayToFile(TArrayView<const uint8> Array, const TCHAR* Filename, IFileManager* FileManager /*= &IFileManager::Get()*/, uint32 WriteFlags)
 {
 	FArchive* Ar = FileManager->CreateFileWriter( Filename, WriteFlags );
 	if( !Ar )
@@ -849,33 +849,40 @@ void FMaintenance::DeleteOldLogs()
 			Filename = FPaths::GameLogDir() / Filename;
 		}
 
-		// If required, trim the number of files on disk
-		if (MaxLogFilesOnDisk >= 0 && Files.Num() > MaxLogFilesOnDisk)
+		struct FSortByDateNewestFirst
 		{
-			struct FSortByDateNewestFirst
+			bool operator()(const FString& A, const FString& B) const
 			{
-				bool operator()(const FString& A, const FString& B) const
-				{
-					const FDateTime TimestampA = IFileManager::Get().GetTimeStamp(*A);
-					const FDateTime TimestampB = IFileManager::Get().GetTimeStamp(*B);
-					return TimestampB < TimestampA;
-				}
-			};
-			Files.Sort(FSortByDateNewestFirst());
-			while (Files.Num() && Files.Num() > MaxLogFilesOnDisk)
-			{
-				IFileManager::Get().Delete(*Files.Pop());
+				const FDateTime TimestampA = IFileManager::Get().GetTimeStamp(*A);
+				const FDateTime TimestampB = IFileManager::Get().GetTimeStamp(*B);
+				return TimestampB < TimestampA;
 			}
-		}
+		};
+		Files.Sort(FSortByDateNewestFirst());
 
 		// delete all those with the backup text in their name and that are older than the specified number of days
 		double MaxFileAgeSeconds = 60.0 * 60.0 * 24.0 * double(PurgeLogsDays);
-		for (const FString& Filename : Files)
+		for (int32 FileIndex = Files.Num() - 1; FileIndex >= 0; --FileIndex)
 		{
-			if (Filename.Contains(BACKUP_LOG_FILENAME_POSTFIX) && IFileManager::Get().GetFileAgeSeconds(*Filename) > MaxFileAgeSeconds)
+			const FString& Filename = Files[FileIndex];
+			if (FOutputDeviceFile::IsBackupCopy(*Filename) && IFileManager::Get().GetFileAgeSeconds(*Filename) > MaxFileAgeSeconds)
 			{
 				UE_LOG(LogStreaming, Log, TEXT("Deleting old log file %s"), *Filename);
 				IFileManager::Get().Delete(*Filename);
+				Files.RemoveAt(FileIndex);
+			}
+		}
+
+		// If required, trim the number of files on disk
+		if (MaxLogFilesOnDisk >= 0 && Files.Num() > MaxLogFilesOnDisk)
+		{
+			for (int32 FileIndex = Files.Num() - 1; FileIndex >= 0 && Files.Num() > MaxLogFilesOnDisk; --FileIndex)
+			{
+				if (FOutputDeviceFile::IsBackupCopy(*Files[FileIndex]))
+				{
+					IFileManager::Get().Delete(*Files[FileIndex]);
+					Files.RemoveAt(FileIndex);
+				}
 			}
 		}
 
@@ -1170,6 +1177,11 @@ void FBlueprintExceptionTracker::ResetRunaway()
 	Runaway = 0;
 	Recurse = 0;
 	bRanaway = false;
+}
+
+FBlueprintExceptionTracker& FBlueprintExceptionTracker::Get()
+{
+	return TThreadSingleton<FBlueprintExceptionTracker>::Get();
 }
 #endif // DO_BLUEPRINT_GUARD
 

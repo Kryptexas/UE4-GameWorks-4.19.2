@@ -82,6 +82,7 @@ void* FVulkanResourceMultiBuffer::Lock(EResourceLockMode LockMode, uint32 Size, 
 			bool bResult = Device->GetImmediateContext().GetTempFrameAllocationBuffer().Alloc(Size + Offset, 256, VolatileLockInfo);
 			Data = VolatileLockInfo.Data;
 			check(bResult);
+			++VolatileLockInfo.LockCounter;
 		}
 	}
 	else
@@ -102,7 +103,7 @@ void* FVulkanResourceMultiBuffer::Lock(EResourceLockMode LockMode, uint32 Size, 
 			check(LockMode == RLM_WriteOnly);
 			DynamicBufferIndex = (DynamicBufferIndex + 1) % NumBuffers;
 
-			auto* StagingBuffer = Device->GetStagingManager().AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+			VulkanRHI::FStagingBuffer* StagingBuffer = Device->GetStagingManager().AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
 			PendingLock.StagingBuffer = StagingBuffer;
 
@@ -162,7 +163,7 @@ void FVulkanResourceMultiBuffer::Unlock()
 			Region.size = LockSize;
 			//Region.srcOffset = 0;
 			Region.dstOffset = LockOffset + Buffers[DynamicBufferIndex]->GetOffset();
-			vkCmdCopyBuffer(CmdBuffer, StagingBuffer->GetHandle(), Buffers[DynamicBufferIndex]->GetHandle(), 1, &Region);
+			VulkanRHI::vkCmdCopyBuffer(CmdBuffer, StagingBuffer->GetHandle(), Buffers[DynamicBufferIndex]->GetHandle(), 1, &Region);
 			//UpdateBuffer(ResourceAllocation, IndexBuffer->GetBuffer(), LockSize, LockOffset);
 
 			//Device->GetDeferredDeletionQueue().EnqueueResource(Cmd, StagingBuffer);

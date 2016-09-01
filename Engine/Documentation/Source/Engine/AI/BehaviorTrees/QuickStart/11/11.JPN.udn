@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2671305
+﻿INTSourceChangelist:2782951
 Availability:Public
 Title:11.サービスの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 11サービスの作成
-バージョン：4.9
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -13,7 +13,7 @@ Description:ステップ 11サービスの作成
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[クイックスタートのホーム](Engine/AI/BehaviorTrees/QuickStart)
+		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/12 "%Engine/AI/BehaviorTrees/QuickStart/12:title%")
@@ -23,7 +23,7 @@ Description:ステップ 11サービスの作成
 
 %Steps%
 
-**Services** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。
+**Services** は [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。
 
 ここでは、サービスは AI Character ではない **Pawn** を探して、TargetToFollow キーと TargetLocation Blackboard キーを設定します。
 
@@ -31,11 +31,11 @@ Description:ステップ 11サービスの作成
 ## ステップ
 
 1. **コンテンツ ブラウザ** で FollowerBT Behavior Tree を **ダブルクリック** して開きます。
-1. New Service ![](newService_button.png) ボタンをクリックします。
+1. **[New Service (新規サービス)]** ボタンをクリックします。
 
 	ビヘイビアツリーと同じフォルダの中に作成されます。
 1. **コンテンツ ブラウザ** の中で「AgroCheck」に名前を変更します。
-1. 編集のためにエディタによって既に開いた状態になっているはずですが、もしそうでない場合はコンテンツ ブラウザで **ダブルクリック** してください。
+1. 編集のためにエディタによって既に開いた状態になっているはずですが、もしそうでない場合は **コンテンツ ブラウザ** で **ダブルクリック** してください。
 1. 次のグラフを作成します。
 
 	[OBJECT:Snippet]
@@ -52,7 +52,7 @@ Description:ステップ 11サービスの作成
 		[/PARAM]
 	[/OBJECT]
 
-	_画像をクリックして拡大、または [こちら](fullGraph.png) をクリックしてウィンドウ中で開きます。_
+	_画像をクリックして拡大、または [こちら](fullGraph.png) をクリックしてウィンドウ内で開きます。_
 
 	![](variables.png)
 
@@ -63,7 +63,7 @@ Description:ステップ 11サービスの作成
 [VAR:varTable1]
 | 変数名 | タイプ | 値 |
 | --- | --- | --- |
-| **DesiredObjectTypes** | タイプ EObjectTypeQuery の **Array** | 単一のエレメントを Pawn に設定します。 |
+| **DesiredObjectTypes** | タイプ EObjectTypeQuery の **Array** | ひとつのエレメントを Pawn に設定します。 |
 | **MyLocation** | Vector 3 | 0,0,0 |
 | **AI_CON_Ref** | Follower_AI_CON_C | None |
 | **TargetToFollow** | BlackboardKeySelector | None - ただしこの変数には **True** に設定している「編集可能な」フラグがあるので、ビヘイビアツリー上でインスタンスごとに変更することができます。 |
@@ -71,7 +71,7 @@ Description:ステップ 11サービスの作成
 [/VAR]
 
 [REGION:note]
-変数 **DesiredObjectTypes** は、単一のエレメントが **Pawn** に設定されたタイプ `EObjectTypeQuery` の Array です。手順は、まず [My Blueprint] パネルで **DesiredObjectTypes** 変数を選び、[Details (詳細)] パネルの Default Value カテゴリで、 ![](plus_button.png) ボタンをクリックしてエレメントを追加します。そのエレメントのプルダウン メニューから **[Pawn]** を選択します。
+変数 **DesiredObjectTypes** は、単一のエレメントが **Pawn** に設定されたタイプ `EObjectTypeQuery` の配列です。手順は、まず [My Blueprint] パネルで **DesiredObjectTypes** 変数を選び、[Details (詳細)] パネルの Default Value カテゴリで、 ![](plus_button.png) ボタンをクリックしてエレメントを追加します。そのエレメントのプルダウン メニューから **[Pawn]** を選択します。
 
 Default Value カテゴリが何も表示しない場合は、ブループリントをコンパイルします。
 [/REGION]
@@ -79,10 +79,10 @@ Default Value カテゴリが何も表示しない場合は、ブループリン
 このグラフでは、以下のことが行われています。
 
 1. **Event Tick** は、ビヘイビアツリーで定義されているレートでティックする以外は、アクタ内でさえも同様に動きます。
-1. 渡された **もう 1 つのアクタ** は常にビヘイビアツリーを呼び出すコントローラです。それを格納しましょう。ただしこの作業は、それを格納していない場合のみ行ってください。キャスト ノードからのオーバーヘッドを減らすためです。
+1. 渡された **Owner アクタ** は常にビヘイビアツリーを呼び出すコントローラです。それを格納しましょう。ただしこの作業は、それを格納していない場合のみ行ってください。キャスト ノードからのオーバーヘッドを減らすためです。
 1. 制御されたポーンの位置に応じてオブジェクトに対して Multi Sphere Trace を行い、制御されたポーンを除く全てのポーンを取得します。
 1. それから、プレイヤーがヒットしているかどうかを **For Each** ループが調べます。
-1. ヒットしている場合、可視性トレースを行って AI ポーンがプレイヤー ポーンを見ることができるか調べます。
+1. ヒットしている場合、可視性トレースを行って AI ポーンがプレイヤー ポーンを見ることができるかを調べます。
 1. 見える場合、ブラックボード オブジェクト上で AI ポーンに対して適切な値を設定します (**Target to Follow** および **Target Location**)。
 1. 見えない場合、ブラックボード上で **Target to Follow** キーをクリアします。
 

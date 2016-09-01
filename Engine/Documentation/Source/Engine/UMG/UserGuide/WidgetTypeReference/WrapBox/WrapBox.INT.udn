@@ -8,13 +8,13 @@ Related: Engine/UMG/UserGuide/Slots
 
 [TOC(start:2 end:2)]
 
-## Widget Description
+## Description
 
 [EXCERPT:desc]
-Arranges widgets left-to-right. When the widgets exceed the Width, it will place widgets on the next line. 
+This widget arranges child widgets from left-to-right and widgets exceed that the Width, will be placed on the next line. 
 [/EXCERPT:desc]
 
-## Widget Details
+## Details
 
 In the **Details** panel of a Widget that is placed inside a **Wrap Box**, there are some settings that can be used to adjust how the Widget functions which are outlined below. 
 

@@ -163,6 +163,7 @@ void AndroidEGL::TerminateEGL()
 {
 
 	eglTerminate(PImplData->eglDisplay);
+	PImplData->eglDisplay = EGL_NO_DISPLAY;
 	PImplData->Initalized = false;
 }
 
@@ -324,12 +325,12 @@ void AndroidEGL::CreateEGLSurface(ANativeWindow* InWindow, bool bCreateWndSurfac
 void AndroidEGL::InitEGL(APIVariant API)
 {
 	// make sure we only do this once (it's optionally done early for cooker communication)
-	static bool bAlreadyInitialized = false;
-	if (bAlreadyInitialized)
+//	static bool bAlreadyInitialized = false;
+	if (PImplData->Initalized)
 	{
 		return;
 	}
-	bAlreadyInitialized = true;
+//	bAlreadyInitialized = true;
 
 	check(PImplData->eglDisplay == EGL_NO_DISPLAY)
 	PImplData->eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);

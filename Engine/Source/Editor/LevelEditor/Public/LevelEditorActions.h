@@ -35,6 +35,7 @@ public:
 	
 	TSharedPtr< FUICommandInfo > BrowseDocumentation;
 	TSharedPtr< FUICommandInfo > BrowseAPIReference;
+	TSharedPtr< FUICommandInfo > BrowseCVars;
 	TSharedPtr< FUICommandInfo > BrowseViewportControls;
 
 	/** Level file commands */
@@ -614,6 +615,9 @@ public:
 
 	/** Opens the API documentation CHM */
 	static void BrowseAPIReference();
+
+	/** Creates an HTML file to browse the console variables and commands */
+	static void BrowseCVars();
 
 	/** Opens the viewport controls page*/
 	static void BrowseViewportControls();

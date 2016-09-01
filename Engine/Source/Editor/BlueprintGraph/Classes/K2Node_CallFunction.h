@@ -76,7 +76,7 @@ public:
 	virtual void PostPlacedNewNode() override;
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
+	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const override;
@@ -182,7 +182,7 @@ public:
 	static bool CanFunctionSupportMultipleTargets(UFunction const* InFunction);
 
 	/** */
-	static FName GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor);
+	static FSlateIcon GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor);
 
 private: 
 	/* Looks at function metadata and properties to determine if this node should be using enum to exec expansion */

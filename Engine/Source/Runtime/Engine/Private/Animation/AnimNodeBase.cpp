@@ -226,11 +226,15 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 	if (LinkedNode != NULL)
 	{
 #if ENABLE_ANIMNODE_POSE_DEBUG
-		CurrentPose.ResetToIdentity();
+		CurrentPose.ResetToAdditiveIdentity();
 #endif
 		LinkedNode->Evaluate(Output);
 #if ENABLE_ANIMNODE_POSE_DEBUG
 		CurrentPose.CopyBonesFrom(Output.Pose);
+#endif
+
+#if WITH_EDITOR
+		Output.AnimInstanceProxy->RegisterWatchedPose(Output.Pose, LinkID);
 #endif
 	}
 	else
@@ -290,6 +294,10 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 	if (LinkedNode != NULL)
 	{
 		LinkedNode->EvaluateComponentSpace(Output);
+
+#if WITH_EDITOR
+		Output.AnimInstanceProxy->RegisterWatchedPose(Output.Pose, LinkID);
+#endif
 	}
 	else
 	{
@@ -348,13 +356,23 @@ void FNodeDebugData::AddDebugItem(FString DebugData, bool bPoseSource)
 	check(NodeChain.Num() == 0 || NodeChain.Last().ChildNodeChain.Num() == 0); //Cannot add to this chain once we have branched
 
 	NodeChain.Add( DebugItem(DebugData, bPoseSource) );
+	NodeChain.Last().ChildNodeChain.Reserve(ANIM_NODE_DEBUG_MAX_CHILDREN);
 }
 
 FNodeDebugData& FNodeDebugData::BranchFlow(float BranchWeight, FString InNodeDescription)
 {
-	DebugItem& LatestItem = NodeChain.Last();
-	new (LatestItem.ChildNodeChain) FNodeDebugData(AnimInstance, BranchWeight*AbsoluteWeight, InNodeDescription);
-	return LatestItem.ChildNodeChain.Last();
+	NodeChain.Last().ChildNodeChain.Add(FNodeDebugData(AnimInstance, BranchWeight*AbsoluteWeight, InNodeDescription, RootNodePtr));
+	NodeChain.Last().ChildNodeChain.Last().NodeChain.Reserve(ANIM_NODE_DEBUG_MAX_CHAIN);
+	return NodeChain.Last().ChildNodeChain.Last();
+}
+
+FNodeDebugData* FNodeDebugData::GetCachePoseDebugData(float GlobalWeight)
+{
+	check(RootNodePtr);
+
+	RootNodePtr->SaveCachePoseNodes.Add( FNodeDebugData(AnimInstance, GlobalWeight, FString(), RootNodePtr) );
+	RootNodePtr->SaveCachePoseNodes.Last().NodeChain.Reserve(ANIM_NODE_DEBUG_MAX_CHAIN);
+	return &RootNodePtr->SaveCachePoseNodes.Last();
 }
 
 void FNodeDebugData::GetFlattenedDebugData(TArray<FFlattenedDebugData>& FlattenedDebugData, int32 Indent, int32& ChainID)
@@ -374,6 +392,16 @@ void FNodeDebugData::GetFlattenedDebugData(TArray<FFlattenedDebugData>& Flattene
 				++ChainID;
 			}
 			Child.GetFlattenedDebugData(FlattenedDebugData, ChildIndent, ChainID);
+		}
+	}
+
+	// Do CachePose nodes only from the root.
+	if (RootNodePtr == this)
+	{
+		for (FNodeDebugData& CachePoseData : SaveCachePoseNodes)
+		{
+			++ChainID;
+			CachePoseData.GetFlattenedDebugData(FlattenedDebugData, 0, ChainID);
 		}
 	}
 }
@@ -407,7 +435,7 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 	}
 
 	// initialize copy records
-	for(auto& CopyRecord : CopyRecords)
+	for(FExposedValueCopyRecord& CopyRecord : CopyRecords)
 	{
 		UProperty* SourceProperty = AnimInstanceObject->GetClass()->FindPropertyByName(CopyRecord.SourcePropertyName);
 		check(SourceProperty);
@@ -447,13 +475,31 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			check(ArrayHelper.IsValidIndex(CopyRecord.DestArrayIndex));
 			CopyRecord.Dest = ArrayHelper.GetRawPtr(CopyRecord.DestArrayIndex);
 			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
-			CopyRecord.CachedDestContainer = AnimNode;
+
+			if(CopyRecord.bInstanceIsTarget)
+			{
+				CopyRecord.CachedDestContainer = AnimInstanceObject;
+			}
+			else
+			{
+				CopyRecord.CachedDestContainer = AnimNode;
+			}
 		}
 		else
 		{
 			CopyRecord.Dest = CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode, CopyRecord.DestArrayIndex);
+			
+			if(CopyRecord.bInstanceIsTarget)
+			{
+				CopyRecord.CachedDestContainer = AnimInstanceObject;
+				CopyRecord.Dest = CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject, CopyRecord.DestArrayIndex);
+			}
+			else
+			{
+				CopyRecord.CachedDestContainer = AnimNode;
+			}
+
 			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
-			CopyRecord.CachedDestContainer = AnimNode;
 		}
 	}
 

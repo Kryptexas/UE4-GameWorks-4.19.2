@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2426256
+﻿INTSourceChangelist:2828862
 Availability:Public
 Title:Wrap Box
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -9,13 +9,13 @@ Related:Engine/UMG/UserGuide/Slots
 
 [TOC(start:2 end:2)]
 
-## ウィジェットの説明
+## 説明
 
 [EXCERPT:desc]
-左から右にウィジェットを配置します。ウィジェットが幅を超えると、次の行にウィジェットを配置します。 
+このウィジェットは子ウィジェットを左から右に並べて、その幅を超えたウィジェットを次の行に配置します。 
 [/EXCERPT:desc]
 
-## ウィジェットの詳細
+## 詳細
 
 **Wrap Box** 内に配置されたウィジェットの **詳細** パネルには、以下で説明するウィジェットの機能を調整するために使用可能ないくつかの設定があります。 
 
@@ -26,15 +26,15 @@ Related:Engine/UMG/UserGuide/Slots
 | **Padding** | スロットとスロットに入っているコンテンツとの間のパディング領域です。 |
 | **Fill Empty Space** | 行の残りのスペースをスロットが満たすべきかを決めます。 |
 | **Fill Span when Less Than** | ラップボックスで利用可能な合計スペースが指定した閾値よりも低くなるかを示し、スロットは行全体を埋めようとします。値 0 は何も埋められないことを示します。  |
-| **Horizontal Alignment** | オブジェクトを水平にアライメントします。 |
-| **Vertical Alignment** | オブジェクトを垂直にアライメントします。 |
+| **Horizontal Alignment** | オブジェクトを横方向にアライメントします。 |
+| **Vertical Alignment** | オブジェクトを縦方向にアライメントします。 |
 
 
 ## 使用例
 
-**Wrap Box** はコンテナの幅に合わせてコンテナ内のアイテムを、均一なスペースで一列に並べ、その中のコンテンツを自動的にフォーマットする場合に役立ちます。 
+Wrap Box はコンテナの幅に合わせてコンテナ内のアイテムを、均一なスペースで一列に並べ、その中のコンテンツを自動的にフォーマットする場合に役立ちます。 
 
-例えば、いくつかのアイテムがプレイヤーに提示される "shop" 画面のようなものを作成した以下の画像を例として考えます。 
+例えば、いくつかのアイテムがプレイヤーに提示される "shop" 画面のようなものを作成した以下の画像を考えます。 
 
 ![](WrapBox1.png)(w:520)
 
@@ -42,17 +42,51 @@ Related:Engine/UMG/UserGuide/Slots
 
 例えば、アイテムを「購入」し、取り除くと以下のようにウィンドウが更新されます。 
 
-![](Gif1.gif)(w:520 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+50iC91BMqr0
+[/PARAMLITERAL]
+[/OBJECT]
 
 アイテムの「販売」と同様に以下のようにアイテムを追加します (ウィンドウの最大幅に到達すると自動的にラップします)。 
 
-![](GIF2.gif)(w:520 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+IN6MhFKqyiI
+[/PARAMLITERAL]
+[/OBJECT]
 
 ウィンドウをリサイズする場合に、その中の配置を保つためにも使用できます。 
 
-![](GIF3.gif)(w:520 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+8zKkdb4hees
+[/PARAMLITERAL]
+[/OBJECT]
 
-**Wrap Box** は、その中のウィジェットをいつ整理するかを決める場合に幅だけをチェックします。**Wrap Box** を Scroll Box と組み合わせて使用することもできます。Scroll Box は、ウィンドウ内のウィジェットの表示が切れてしまう場合にスクロールバーを追加し、残りのウィジェットをスクロールできるようにします。 
+Wrap Box は、その中のウィジェットをいつ整理するかを決める場合に幅だけをチェックします。Wrap Box を Scroll Box と組み合わせて使用することもできます。Scroll Box は、ウィンドウ内のウィジェットの表示が切れてしまう場合にスクロールバーを追加し、残りのウィジェットをスクロールして見ることができるようにします。 
+
+
+
+
 
 
 

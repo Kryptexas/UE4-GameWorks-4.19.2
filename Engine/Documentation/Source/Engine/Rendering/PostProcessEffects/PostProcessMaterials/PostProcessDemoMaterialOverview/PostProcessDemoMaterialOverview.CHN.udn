@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2686729
 Availability:Public
-Title:Post Process Material Example
+Title:后期处理材质范例
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects, Engine/Rendering/PostProcessEffects/PostProcessMaterials
-Description:An overview of a video-scanline post process material
+Description:视频扫描线后期处理材质总览。
+Version:4.9
+SkillLevel:Advanced
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,38 +54,39 @@ Description:An overview of a video-scanline post process material
 w:450
 [/VAR]
 
-## Creating a Material for Post Process Effects
+## 创建后期处理效果材质
 
-Below are some basic instructions on how to set up a simple Post Process Material:
+以下是设置简单后期处理材质的基础说明：
 
-1. Create a new Level by choosing **File > New Level** from the Main Menu Bar.
+1. 从主菜单栏中选择 **File** > **New Level** 创建一个新关卡。
 
-1. Create a new Material by clicking the ![](CB_button_NewAsset.png) button in the **Content Browser** and choosing **Material**. Provide a name for the Material.
+1. 点击 **Content Browser** 中的  ![](CB_button_NewAsset.png) 按钮并选择 **Material** 创建一个新材质，然后为材质命名。
 
 	![](CreateNewMaterial.png)
 
-1. **Double-click** this new Material to open it up in the Material Editor.
+1. **双击** 此新材质将其在材质编辑器中打开。
 
-1. In the **Material Properties** panel, look under the Material category and set the Material Domain property to _Post Process_. This will require you to also set the Shading Model property to _Unlit_.
+1. 在 **Material Properties** 面板中，在 Material 类目下将 Material Domain 属性设为 _Post Process_。此外还需要将 Shading Model 属性设为 _Unlit_。
 
 	![](PostMaterialProperties.png)
 
-1. In the **Post Process Material** category, be sure to set the **Blendable Location** property to _Before Tonemapping_. This makes for more of a performance hit, but prevents ghosting of the scan lines while the view is in motion. For more information about the Blendable Location property, see the [Critical Settings for Post Process Materials](Engine/Rendering\PostProcessEffects\PostProcessMaterials#CriticalSettingsforPostProcessMaterials) section below. 
+1. 在 **Post Process Material** 类目中将 **Blendable Location** 属性设为 _Before Tonemapping_。这会对性能产生影响，但可防止视图运动时出现重影。如需了解 Blendable Location 属性的更多信息，请查阅下面的 [**后期处理材质的关键设置**](Engine/Rendering\PostProcessEffects\PostProcessMaterials#CriticalSettingsforPostProcessMaterials) 部分。 
 
 	![](PostProcessMaterialsCategory.png)
 
-1. At this point, you would create some Material expression network that defined the look of your post process. As a test for this example, we will create a video scan line overlay effect. You can really make just about anything you like, however. If you would like an example of a cool video scan line post process material, see the [Material Setup](#MaterialSetup) section.
+1. 现在即可创建一些材质表现网络，定义后期处理的效果。作为此范例的测验，我们将创建一个视频扫描线叠加效果。可任意设置效果。可在 [**材质设置**](#MaterialSetup) 部分查看优秀的扫描线后期处理材质范例。
 
 
-## Material Setup
+(#MaterialSetup)
+## 材质设置
 
-This document is an overview and breakdown of simple video scan line Post Process Material.
+该文档中包含简单视频扫描线后期处理材质的总览和讲解。
 
 [REGION:fullwidth]
 ![](VideoScanlineEffect.png)
 [/REGION]
 
-First, here are the textures used in the effect. You can **right-click** and save each one if you like or create variations of your own. They are all pretty simple.
+这是用于此效果的纹理。如需自行创建纹理变化，可在每个纹理上 **单击右键** 并进行保存。非常简单。
 
 [REGION:imagetable]
 |![](ScanDistort.png)(w:%Third% h:%Third% convert:false)|![](Noise.png)(w:%Third% h:%Third% convert:false) |![](Scanlines.png)(w:%Third% h:%Third% convert:false) |
@@ -92,56 +95,58 @@ First, here are the textures used in the effect. You can **right-click** and sav
 [/REGION]
 
 
-It should be noted that the images seen here in this document are slightly misleading in that they have been scaled for visual clarity. When you download them **(right-click > Save As)**, they will come through at their original sizes, which are noted in the table. 
+注意：您可能误认为已针对视觉清晰度对文档中的图片进行缩放。图片下载后 **（单击右键 > Save As）**，其仍为原始尺寸（如表中所示）。 
 
-### Assembly Overview
+### 拼接总览
 
-To facilitate putting this Material together, we have broken the key elements into separate numbered Comment boxes. You can go through each one and simply recreate each node network and connect them together and shown in the network image. Please be aware that the image of the network is rather large; it would be best to save it separately and view it on your computer.
+为说明此材质的拼接，我们将关键要素拆分为单独编号的注释框。可逐个进行查看，简单重建每个节点网络，并将他们在网络图片中连接并显示出来。请注意：网络的图片较大，建议在电脑上单独保存并查看。
 
 
 [REGION:lightbox]
 [![](VideoScanlineEffectNetwork.png)(w:900)](VideoScanlineEffectNetwork.png)
 [/REGION]
 
-**The numbered steps below overview what is going on in the numbered Comment Boxes in the image. By using the two in tandem, you should be able to recreate this effect if you desire.**
+**以下步骤将总览上图编号注释框中的操作。结合这两个说明即可创建所需的效果。**
 
-1. We start with the Scene Texture expression, which is set to bring in the Scene Color. This is how we will manipulate the scene via post process.
-1. We perturb the UVs of the Scene Color using a simple panning texture (ScanDistort.png). This is done by multiplying the result of the texture by 0.03 and then combining it only with the red channel of the texture coordinates, effectively sliding the pixels across the screen. This creates a distortion effect.
-1. We bring in our 4x4 pixel scan line texture and tile it very heavily in the vertical direction (v:128). We also pan it downward very slowly.
-1. We reuse the same scanline texture, this time tiling it only by 1.28 and panning it upward, but a little more quickly. We also clamp it between 0.1 and 0.5. This will be used to create some variation in the scanlines.
-1. Create a time-driven sine wave that runs between 0.6 and 1.0, at a frequency of 10 Hz. This will be used to flicker the scanlines.
-1. Take the noise texture and tile and pan it at 2 different amounts and speeds for variation.
-1. Make an average of the two noises, then multiply it by the ScanDistort texture. Multiply _that_ by 40 and add it into the result to create white static.
-1. We take the panning ScanDistort texture, raise it to a power of 4 (this boosts contrast), multiply it by 40 to make it very bright, but then _subtract_ that from the final result to push it to full black. This creates the black bar effect often seen when tracking an old-school [VCR](http://en.wikipedia.org/wiki/Vcr).
+1. 从 Scene Texture 表现开始，将其设为使用 Scene Color。即可通过后期处理对场景进行设置。
+1. 使用简单的平移纹理 (ScanDistort.png) 扰乱场景颜色 UV。操作方法为 - 将纹理的结果乘以 0.03，然后将其和纹理坐标的红色通道组合，在屏幕上有效地滑动像素。可创建出扭曲效果。
+1. 使用 4x4 像素扫描线纹理，在垂直方向大量平铺 (v:128)。然后很慢地向下平移。
+1. 使用相同的扫描线纹理，平铺值设为 1.28，向上平移，速度稍快。并将其锁定在 0.1 到 0.5 之间。可在扫描线中形成一些变化。
+1. 创建一个时间驱动的正弦波，在 0.6 到 1.0 之间以 10 Hz 的频率运行。可使扫描线出现闪烁。
+1. 选取 noise 纹理，以两种不同的量和速度执行平铺和平移，获得不同效果。
+1. 取两个 noise 的平均值，然后与 ScanDistort 纹理相乘。_将其_ 乘以 40，然后添加到结果中，创建白色静态画面。
+1. 选取平移 ScanDistort 纹理，将其提升为四的幂次方（提升对比度），乘以 40 使其更明亮，然后从最后结果中将其 _减去_，使其变为全黑色。可创建出复古 [**VCR**](http://en.wikipedia.org/wiki/Vcr) 中常见的黑条效果。
 
-[REGION:silver]If you actually needed to click the VCR link above, then we do not expect you to really appreciate this effect.[/REGION] 
+[REGION:silver]点击上方的 VCR 链接查看，您可能不会喜欢这个效果。[/REGION] 
 
-## Assigning to a Post Process Volume
+## 指定到后期处理体积
 
 
-1. We now need to associate the Material with a post process volume. In our case, we will use the Global Post Process. In the **World Outliner**, click _Global PostProcess_.
+1. 现在需要将材质和后期处理体积关联起来。在此例中我们使用 Global Post Process。在 **World Outliner** 中点击 _Global PostProcess_。
 
 	![](SceneOutlinerGlobalPost.png)
 
-1. In the **Details** panel, locate the **Blendables** property, found under the **Misc** category. Click the ![](button_Plus.png) button next to the property to add a new element.
+1. 找到 **Details** 面板 **Misc** 类目下的 **Blendables** 属性。点击属性旁的 ![](button_Plus.png) 按钮添加一个新元素。
 
 	![](BlendablesProperty.png)
 
-1. Select your new Material in the **Content Browser** and click the ![](button_CBApply.png) button to apply the Material into the element. Your effect is now applied.
+1. 在 **Content Browser** 中选择新材质，然后点击 ![](button_CBApply.png) 按钮将材质应用到元素。效果现已应用。
 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Before post process material applied](BeforePost.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![After post process material applied](AfterPost.png)(w:600)
+	[/PARAM]
+[/OBJECT]
 
-[REGION:imagetable]
-|![](BeforePost.png)(%PostTest%) | ![](AfterPost.png)(%PostTest%)|
-|:---:|:---:|
-| Before post process material applied | After post process material applied |
-[/REGION]
-
-Now you can add in some of the property-based post process settings that are a part of the Post Process Volume. In this case, we did the following:
+现在可添加一些基于属性的后期处理设置，这些设置是后期处理体积的一部分。在此例中我们执行了下列操作：
 	
-* Pull **Saturation** to very near zero.
-* Use **Tint** to put a pale green cast over the result.
-* Boost **Contrast** to about 0.65.
-* Tweak **Crush Shadows** and **Crush Highlights** to increase contrast even further.
-* Set **Vignette Intensity** to about 0.9 for a really strong vignette.
-* Kick **Bloom** intensity up to about 3.0.
+* 使 **Saturation** 值接近于零。
+* 利用 **Tint** 在结果上投射出淡绿色。
+* 将 **Contrast** 设为 0.65 左右。
+* 调整 **Crush Shadows** 和 **Crush Highlights**，进一步增加对比度。
+* 将 **Vignette Intensity** 设为 0.9 左右，形成极强的晕映。
+* 将 **Bloom** 强度设为 3.0 左右。
 

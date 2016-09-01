@@ -75,7 +75,7 @@ FMapLoadObserver::~FMapLoadObserver()
 {
 }
 
-void FMapLoadObserver::OnPreLoadMap()
+void FMapLoadObserver::OnPreLoadMap(const FString& MapName)
 {
 	check( Owner != NULL );
 	Owner->OnPreLoadMap();

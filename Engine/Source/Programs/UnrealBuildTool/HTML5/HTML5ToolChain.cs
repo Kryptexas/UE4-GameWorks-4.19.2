@@ -93,7 +93,7 @@ namespace UnrealBuildTool
 //			Result += " -s USE_PTHREADS=2"; // 2:polyfill -- SharedInt\d+Array available by ES7
 
 			// export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions.
-			Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_resize_game', '_on_fatal']\"";
+			Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_on_fatal']\"";
 
 			// NOTE: This may slow down the compiler's startup time!
 			{

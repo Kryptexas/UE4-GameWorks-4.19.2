@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2918212
 Availability:Public
 Title: 렌더링 & 그래픽
 Crumbs: %ROOT%, Engine
 Description:라이팅과 섀도잉, 머티리얼과 텍스처, 파티클과 이펙트, 포스트 프로세싱 등의 렌더링 시스템입니다.
 Related:Programming/Rendering
+Version: 4.9
+parent:Engine
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]

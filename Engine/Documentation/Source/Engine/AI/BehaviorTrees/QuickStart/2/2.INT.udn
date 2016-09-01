@@ -2,6 +2,7 @@ Availability:Public
 Title: 2. Create a Nav Mesh Bounds Volume
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 2. Create a Nav Mesh Bounds Volume
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

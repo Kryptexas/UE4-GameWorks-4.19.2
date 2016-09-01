@@ -1,8 +1,50 @@
 ﻿INTSourceChangelist:1885554
 Availability:Public
 Title:图表
-Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: 使用事件及函数调用来执行动作的节点图表，用于对和该蓝图相关的游戏事件作出反应。
+version: 4.9
+Parent:Engine/Blueprints/Anatomy
+Tags:Graphs
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Graphs:title%](Engine\Blueprints\UserGuide\graph_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Graphs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Graphs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Graphs]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Graphs:title%](Engine\Blueprints\UserGuide\graph_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Graphs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Graphs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Graphs]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
 
 
 **Graph（图表）** 是一个彼此相连的节点构成网络，以便可以定义该网络的执行流程。图表是在蓝图中实现功能的基础。

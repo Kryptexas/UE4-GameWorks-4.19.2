@@ -2,6 +2,7 @@ Availability:Public
 Title: 4. Setup the Character Blueprint
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 4. Setup the Character Blueprint
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -33,7 +34,7 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 	![](meshComp.png)
 
-1. In the **Details** panel, find the **Mesh** category and assign the `SK_Mannequin` (or your own) **Skeletal Mesh**.
+1. In the **Details** panel, find the **Mesh** category and assign the SK_Mannequin (or your own) **Skeletal Mesh**.
 
 	![](assignSkelMesh.png)
 
@@ -41,7 +42,7 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 1. Rotate the **Mesh** Component so it faces the direction the blue Arrow Component is pointing.
 
-1. In the **Details** panel, find the **Animation** category and assign the `TopDown_AnimBP` to the **Animation Blueprint Generated Class** property.
+1. In the **Details** panel, find the **Animation** category and assign the ThirdPerson_AnimBP to the **Animation Blueprint Generated Class** property.
 
 	![](assignAnimBP.png)
 
@@ -63,11 +64,11 @@ This Character will become our new AI Character. The reason we use a Character, 
 	
 	![](maxWalk.png)
 
-1. Click the **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) button and assign the new AI Controller (`Follower_AI_CON`) to the **AIController Class** property in the **Pawn** category.
+1. Click the **Class Defaults** button and assign the new AI Controller (`Follower_AI_CON`) to the **AIController Class** property in the **Pawn** category.
 
 	![](AI_con.png)
 
-1. Compile ![](compile_button.png) and Save ![](save_button.png)
+1. Compile and Save.
 
 
 %Steps%

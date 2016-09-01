@@ -1,196 +1,198 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2659924
 Availability: Public
-Title:Using Additive Animations
+Title:使用附加动画
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Demonstrates how to blend animations together, in this case a character that can move and fire a weapon. 
+Description:说明如何将动画混合在一起，这里是指可移动和射击武器的 character。 
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimMontage
 Related: Engine/Animation/NodeReference/Blend
 Related: Engine/Animation/AnimationBlending
+version: 4.9
+skilllevel: Advanced
 
-Animation blending, as a concept, simply means making a smooth transition between two or more animations on a single character or Skeletal Mesh. In Unreal Engine 4, there are various ways in which such blending can be applied either through [](Engine/Animation/Blendspaces), through additive methods by literally combining two animations based on a weighted bias or alpha value, or even applying direct overrides of the existing pose. 
+动画混合这一概念实际上就是在单个 character 或骨骼网格体上的两个或更多动画之间进行流畅过渡。在虚幻引擎 4 中，可使用多种方法应用此类混合：即使用 [](Engine/Animation/Blendspaces)，使用基于加权偏差或 alpha 值结合两个动画的叠加方法，或者直接应用现有姿势的覆盖。 
 
-You can also send animation directly to a specific bone in the Skeleton and all of its children. For instance, you can start with an animation in which the character is running, but then selectively apply a shooting animation to the upper body of the character. The final result would be a character that is running and shooting at the same time, which is what this page will teach you to do in the steps below. 
+您还可以将动画直接发送到骨架中的特定骨骼和其所有子对象。例如，您可以从 Character 奔跑的动画开始，然后选择性地将射击动画应用到该 Character 的上身区域。最终会生成奔跑和射击同时进行的 Character，本页面上的以下步骤将讲解此内容。 
 
 [TOC(start:2 end:2)]
 
 [EXCERPT:Intro]
-[REGION:note]
-For this guide, we have created a new project using the **Blueprint Third Person** template with **Starter Content** enabled. 
+对于本指南，我们已经使用 **Blueprint Third Person** 模板创建了新项目，并启用了 **默认资源**。
 
-We are also using the **Animation Starter Pack** which is available for download for free via the **Marketplace**. 
+我们还会使用 **Animation Starter Pack**，您可通过 **商城** 免费下载。 
 
 ![](AnimationAssetPack.png)
 
-Once downloaded, you can add the Animation Starter Pack to your project via the **Add to project** button from the Launcher.
-[/REGION]
+下载后，您可以从启动程序，通过 **Add To Project** 按钮将 Animation Starter Pack 添加到您的项目中。
 [/EXCERPT:Intro]
 
-## Setting up the Animation to Blend
+## 设置要混合的动画
 
-In this section, we assign our player character and make modifications to the animation we will blend in with our movement animations. 
+在本部分中，我们为玩家设置了 Character，并对将要用于移动动作的动画数据做一些修改。
 
-1.  With your project open, inside the **Content Browser** under the **Game/Blueprints** folder, open the **ThirdPersonGameMode** Blueprint. 
+1.	打开项目，在 **内容浏览器** 中的 **Game/ThirdPersonBP/Blueprints** 文件夹下，打开 **ThirdPersonGameMode** 蓝图。 
 
-1.	Under **Default Pawn Class**, click the dropdown menu and select the **Ue4ASP_Character**. 
+1.	在 **Default Pawn Class** 下，单击下拉菜单，然后选择 **Ue4ASP_Character**。 
 
 	![](Animations1.png)
 
-1.	**Compile** and **Save** then close the Blueprint. 
+1.	**编译** 并 **保存**，然后关闭蓝图。 
 
-1.	In the **Content Browser**, open the **Game/AnimStarterPack** folder. 
+1.	在 **内容浏览器** 中，打开 **Game/AnimStarterPack** 文件夹。 
 
-1.	**Right-click** on the **Fire_Shotgun_Ironsights** animation, select **Create** then **Create AnimMontage**.
+1.	**右键单击** **Fire_Shotgun_Ironsights** 动画，依次选择 **Create** 和 **Create AnimMontage**。
   
 	![](Animations2.png)
-
-	You can filter the window by typing **Fire** inside the search window as shown above. 
-
-1.	Rename the Montage if you wish, then open it up and click the magnifying glass icon. 
+	[REGION:note]
+	您可以通过在上图所示的搜索窗口中键入 “Fire” 来筛选窗口。 
+	[/REGION]
+1.	随意重命名 Montage，然后打开 Montage，单击放大镜图标。 
 
 	![](Animations3.png)
 
-	This will open the **Anim Slot Manager** which we will use to create a **Slot** that we can use to blend to when calling the Slot by name. 
+	此时将打开 **Anim Slot Manager**，我们将使用该管理器创建 **Slot**，这可在按名称调用 Slot 时用于混合。 
 
-1.	Click the **Add Slot** button, then name the slot **UpperBody** then **Save** and close the window. 
+1.	单击 **Add Slot** 按钮，然后将 slot 命名为 **UpperBody**，然后 **Save** 并关闭窗口。 
 
 	![](Animations4.png)
 
-1.	Click the dropdown menu inside the **Montage Group** section and change it to **DefaultGroup.UpperBody**, then close the window. 
+1.	单击 **Montage Group** 部分中的下拉菜单，将其更改为 **DefaultGroup.UpperBody**，然后关闭窗口。 
 
 	![](Animations5.png)
 
-	We have now associated this Montage with the **DefaultGroup.UpperBody**, allowing it to play when the Slot is called.  
+	现在，我们已将此 Montage 与 **DefaultGroup.UpperBody** 关联，从而使其在调用 Slot 时播放。  
 
-## Updating the Character Blueprint
+## 更新 Character 蓝图
 
-Next we will make some updates to our Character Blueprint so that we can determine when they are pressing the shoot button. 
+接下来，我们将更新 Character 蓝图，以便我们可以判断何时响应用户按下射击按钮。
 
-1.	Inside the **Content Browser** under **Game/AnimStarterPack/Character**, open the **Ue4ASP_Character** Blueprint. 
+1.	在 **内容浏览器** 中的 **Game/AnimStarterPack** 下，打开 **Ue4ASP_Character** 蓝图。 
 
-1.	Locate the **Crouching** section, and delete the **InputAction Crouch** Event (with the Warning!) sign. 
+1.	找到 **Crouching** 部分，然后删除 **InputAction Crouch** 事件（带有 Warning!）符号。 
 
 	![](Animations6.png)
 
-	There is a warning on this node because our project is not set up to use the InputAction event "Crouch". 
+	此节点上存在警告，因为我们未将项目设置为使用 “Crouch” InputAction 事件。 
 
-1.	**Right-click** in the graph and add a **C** Key Event and connect as shown below. 
+1.	在图表中 **右键单击**，然后添加 **C** 键事件，并如下图所示进行连接。 
 
 	![](Animations7.png)
 
-	We have just associated crouch now with the **C** key press, you can change this input to whatever you would like. 
+	现在，我们已将 crouch 与 **C** 键按键事件关联，您可以随意更改此输入。 
 
-1.	In the **MyBlueprint** window, click the **Add Variable** button to create a **Boolean** variable. 
+1.	在 **MyBlueprint** 窗口中，单击 **Add Variable** 按钮以创建 **Boolean** 变量。 
 
-1.	Name the variable **Fire Button Down** and click the eye icon to make the variable public. 
+1.	将变量命名为 **Fire Button Down**，然后单击眼睛图标以使变量公开。 
 
 	![](Animations8.png)
 
-1.	**Right-click** in the graph and add the **Left Mouse Button** Key Event. 
+1.	在图表中 **右键单击**，然后添加 **Left Mouse Button** 按键事件。 
 
-1.	Holding **Alt**, drag the **Fire Button Down** variable in the graph to create a **Set** node. 
+1.	按住 **Alt**，将 **Fire Button Down** 变量拖入图表，以创建 **Set** 节点。 
 
-1.	Repeat the previous step (or copy the **Set** node) and connect as shown below. 
+1.	重复以上步骤（或复制 **Set** 节点），然后如下图所示进行连接。 
 
 	![](Animations9.png)
 
-	Make sure that **Fire Button Down** is **True** when **Left Mouse Button** is **Pressed** and **False** when **Released**. 
+	请确保 **按下** **鼠标左键** 时 **Fire Button Down** 为 **True**，**松开** 时为 **False**。 
 
-1.	**Compile** and **Save** then close the Blueprint. 
+1.	**编译** 并 **保存**，然后关闭蓝图。 
 
-## Setting up the Animation Graph
+## 设置动画图表
 
-Here we will set up the Animation Graph and place the nodes needed to blend between our current pose and the fire weapon animation. 
+在本部分中，我们将设置动画图表，然后将需要混合的节点放置在当前姿势和射击武器动画之间。 
 
-1.	Also under **Game/AnimStarterPack/Character**, open the **UE4ASP_HeroTPP_AnimBlueprint** Animation Blueprint. 
+1.	同样，在 **Game/AnimStarterPack** 下，打开 **UE4ASP_HeroTPP_AnimBlueprint** 动画蓝图。 
 
-1.	Inside the **MyBlueprint** window, open the **AnimGraph**. 
+1.	在 **MyBlueprint** 窗口中，打开 **AnimGraph**。 
 
 	![](Animations9b.png)
 
-1.	Drag off the **Locomotion** State Machine and search for and add **New Save cached pose**. 
+1.	从 **Locomotion** 状态机连出线来，然后搜索并添加 **New Save cached pose**。 
 
 	![](Animations10.png)
 
-	Here we are getting the resulting pose from our Locomotion State Machine and storing it in a cached pose that we can use elsewhere. 
+	此时，我们将从 Locomotion 状态机得到生成后的姿势，并将其存储于缓存姿势中，以便可以在其他地方使用。
 
-1.	Give the cached pose a name such as **LocomotionCache**. 
+1.	为缓存姿势命名，如 **LocomotionCache**。 
 
 	![](Animations11.png)
 
-1.	**Right-click** in the graph and add the **Use cached pose 'LocomotionCache'** (or whatever you named the cached pose). 
+1.	在图表中 **右键单击**，然后添加 **Use cached pose 'LocomotionCache'**（或您随意命名的缓存姿势）。 
 
 	![](Animations12.png)
 
-1.	Drag off the **Use cached pose** node and search for and add the **Layered blend per bone** node. 
+1.	从 **Use cached pose** 节点连出线来，然后搜索并添加 **Layered blend per bone** 节点。 
 
 	![](Animations13.png)
 
-	The **Layered Blend Per Bone** node will allow us to blend animations together from a specified bone on the Skeleton.
+	**Layered Blend Per Bone** 节点可让我们从骨架上的某个指定骨骼处起，将不同的动画混合在一起。
 
-1.	Copy/Paste the **Use cached pose 'LocomotionCache'** node, then drag off it and add the **Slot 'DefaultSlot'** node. 
+1.	复制并粘贴 **Use cached pose 'LocomotionCache'** 节点，然后从中连出线来，添加 **Slot 'DefaultSlot'** 节点。 
 
 	![](Animations14.png)
 
-1.	In the **Settings** for the **Slot** node, click the dropdown menu and select **DefaultGroup.UpperBody**. 
+1.	在 **Slot** 节点的 **Settings** 部分中，单击下拉菜单，然后选择 **DefaultGroup.UpperBody**。 
 
 	![](Animations15.png)
 
-1.	Connect the **Slot** to the **Blend Poses 0** pin on the **Layered blend per bone** node, then connect its out to the **Result**. 
+1.	将 **Slot** 连接到 **Layered blend per bone** 节点上的 **Blend Poses 0** 针，然后将后一节点的输出连接到 **Result**。 
 
 	![](Animations16.png)
 
-	Our AnimGraph is complete, but we still need to modify some settings on the **Layered blend per bone** node. 
+	AnimGraph 完成了，但我们仍需修改 **Layered blend per bone** 节点上的某些设置。 
 
-## Adjusting the Blend Settings
+## 调整混合设置
 
-Finally, we update the way we blend between animations so that our upperbody plays one animation while our lowerbody plays another. 
+最后，我们要更新混合动画的方式，以使上身区域播放一个动画，同时下身区域播放另一个动画。 
 
-1.	Click on the **Layered blend per bone** node, then expand the **Layer Setup** section and click the **+** sign. 
+1.	单击 **Layered blend per bone** 节点，然后展开 **Layer Setup** 部分，单击 **+** 号。 
 
 	![](Animations17.png)
 
-1.	Under **Bone Name** enter **spine_01**, then set **Blend Depth** to **1** and check **Mesh Space Rotation Blend**. 
+1.	在 **Bone Name** 下输入 **spine_01**，然后将 **Blend Depth** 设置为 **1**，选中 **Mesh Space Rotation Blend**。 
 
 	![](Animations18.png)
 
-	With these settings we can blend the shooting AnimMontage onto our Skeleton starting from the **spine_01** bone. 
+	借助这些设置，我们可以从 **spine_01** 骨骼开始，将射击 AnimMontage 混合到骨架上。 
 
-1.	Inside the **MyBlueprint** window, open the **EventGraph**. 
+1.	在 **MyBlueprint** 窗口中，打开 **EventGraph**。 
 
 	![](Animations18b.png)
 
-1.	Drag off the **As Ue 4ASP Character** pin of the **Cast To Ue4ASP_Character** node and add the **Get Fire Button Down** node. 
+1.	从 **Cast To Ue4ASP_Character** 节点的 **As Ue 4ASP Character** 针连出线来，然后添加 **Get Fire Button Down** 节点。 
 
 	![](Animations19.png)
 
-	This will tell us if the player is pressing the fire button or not. 
+	此处将告诉我们玩家是否按下射击按钮。 
 
-1.	Hold **B** and **Left-click** in the graph to create a **Branch** node and connect it following **Set Crouching**. 
+1.	按住 **B** 键并在图表中 **左键单击**，以创建 **Branch** 节点，然后将该节点连接到 **Set Crouching**。 
 
 	![](Animations20.png)
 
-	For the **Condition**, plug in the **FireButtonDown** pin. 
+	对于 **Condition**，将其插入 **FireButtonDown** 针。 
 
-1.	**Right-click** in the graph and add the **Montage Is Playing** node. 
+1.	在图表中 **右键单击**，然后添加 **Montage Is Playing** 节点。 
 
 	![](Animations21.png)
 
-1.	Connect the **Montage Is Playing** node to the **True** of the **Branch**. 
+1.	将 **Montage Is Playing** 节点连接到 **Branch** 节点的 **True**。 
 
 	![](Animations22.png)
 
-	For the **Montage**, select your Montage (**Fire_Shotgun_Ironsights_Montage**). 
+	对于 **Montage**，请选择您的 Montage (**Fire_Shotgun_Ironsights_Montage**)。 
 
-1.	Off the **Return Value** of the **Montage Is Playing** node, add a **Branch**. 
+1.	从 **Montage Is Playing** 节点的 **Return Value** 针连出线来，然后添加 **Branch**。 
 
-1.	Off the **False** of the new **Branch** node, add the **Montage Play** node with **Montage to Play** set to your Montage. 
+1.	从新 **Branch** 节点的 **False** 针连出线来，然后添加 **Montage Play** 节点，并将 **Montage to Play** 设置为您的 Montage。 
 
 	![](Animations23.png)
 
-	This will check now if the Montage is currently playing and if it is, do not play it (and if it is not, play the Montage). 
+	此操作将检查当前是否在播放 Montage，如果是，则不要播放 Montage（如果未播放，则播放 Montage）。 
 
-1.	**Compile** and **Save**, close the **Blueprint** and play in the editor. 
+1.	**编译** 并 **保存**，然后关闭 **蓝图**，并删除场景中现有的 **ThirdPersonCharacter**。 
+
+1. 在编辑器中 **播放**。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -204,9 +206,9 @@ Finally, we update the way we blend between animations so that our upperbody pla
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-You should now see that when you hold the **Left Mouse Button** down, the character will play the shooting AnimMontage. You can walk around while shooting, you can even crouch (by holding **C**) and shoot as well. 
+现在，您将看到当按下 **鼠标左键** 时，character 将播放射击 AnimMontage。您可以在射击时四处走动，您甚至还可以蹲伏（按 **C** 键）并射击。 
 
-You could use this same method to play a melee attack or reload animation, by creating an **AnimMontage** for the animation you want to blend with the movement animation set and assigning it to the **UpperBody** slot as done in Step 8 above. Because the Slot was set up in the AnimGraph of the character's Animation Blueprint, any animation that is set to use that particular Slot is passed to the Animation Graph and blended in when called. 
+可以使用相同方法来设置近战攻击动作或武器换弹动作的表现，正如上述的第八个步骤中一样，通过创建一个所需要动画的相应 **AnimMontage** 并和移动动画去混合，并将这个新创建的 AnimMontage 设置于 UpperBody 的 Slot 上。因为 Slot 是在 character 动画蓝图的 AnimGraph 中设置的，所以应用于该 Slot 的任何动画都将被动画图表中进行计算，并在调用时被混合计算。
 
 
 

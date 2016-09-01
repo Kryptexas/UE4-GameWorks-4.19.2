@@ -410,8 +410,6 @@ struct FCachedSystemScalabilityCVars
 	int32 MaxShadowResolution;
 	float ViewDistanceScale;
 	float ViewDistanceScaleSquared;
-	// 0:off, 1:on, -1:unknown
-	int32 SimpleDynamicLighting;
 
 	FCachedSystemScalabilityCVars();
 

@@ -1,7 +1,7 @@
 ﻿Availability:Docs
-Title:被破壊性アクタ作成のチュートリアル
+Title:Destructible アクタのチュートリアル
 Crumbs: %ROOT%, Engine
-Description:機能的な被破壊性アクタ作成のチュートリアル
+Description:機能する Destructible アクタのチュートリアル
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -18,7 +18,7 @@ Description:機能的な被破壊性アクタ作成のチュートリアル
 		%Engine/Physics/Destructibles/DestructibleTutorial:description%
 	[/PARAM]
 	[PARAMLITERAL:path]
-		エンジン/物理/被破壊性物のチュートリアル
+		Engine/Physics/Destructibles/DestructibleTutorial
 	[/PARAMLITERAL]
 [/OBJECT]
 [/VAR]

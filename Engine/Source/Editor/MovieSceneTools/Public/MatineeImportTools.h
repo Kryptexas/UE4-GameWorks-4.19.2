@@ -4,6 +4,7 @@
 #include "Matinee/InterpTrackToggle.h"
 #include "MovieSceneParticleSection.h"
 
+class UInterpTrackLinearColorProp;
 class UInterpTrackColorProp;
 class UInterpTrackBoolProp;
 class UInterpTrackFloatBase;
@@ -57,6 +58,9 @@ public:
 
 	/** Copies keys from a matinee color track to a sequencer color track. */
 	static bool CopyInterpColorTrack( UInterpTrackColorProp* ColorPropTrack, UMovieSceneColorTrack* ColorTrack );
+
+	/** Copies keys from a matinee linear color track to a sequencer color track. */
+	static bool CopyInterpLinearColorTrack( UInterpTrackLinearColorProp* LinearColorPropTrack, UMovieSceneColorTrack* ColorTrack );
 
 	/** Copies keys from a matinee toggle track to a sequencer particle track. */
 	static bool CopyInterpParticleTrack( UInterpTrackToggle* MatineeToggleTrack, UMovieSceneParticleTrack* ParticleTrack );

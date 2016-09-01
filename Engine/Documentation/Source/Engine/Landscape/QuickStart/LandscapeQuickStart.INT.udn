@@ -3,6 +3,8 @@ Title: Landscape Quick Start Guide
 Crumbs: %ROOT%, GettingStarted
 Description: Getting up and running with the basics of the Landscape System in Unreal Engine.
 version: 4.9
+parent:Engine/Landscape
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]

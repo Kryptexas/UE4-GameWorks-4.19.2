@@ -423,7 +423,7 @@ public class HTML5Platform : Platform
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		// look for browser
-		string BrowserPath = Params.Device.Replace("HTML5@", "");
+		string BrowserPath = Params.Devices[0].Replace("HTML5@", "");
 
 		// open the webpage
 		Int32 ServerPort = 8000;
@@ -479,7 +479,7 @@ public class HTML5Platform : Platform
 		return BrowserProcess;
 	}
 
-	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		return "HTML5";
 	}

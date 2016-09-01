@@ -52,7 +52,6 @@ public:
 	explicit FScopedDurationTimer(double& AccumulatorIn)
 		: FDurationTimer(AccumulatorIn)
 	{
-		Start();
 	}
 
 	/** Dtor, updating seconds with time delta. */

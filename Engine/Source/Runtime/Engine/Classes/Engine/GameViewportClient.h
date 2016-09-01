@@ -183,9 +183,6 @@ public:
 	bool HandleViewModeCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleNextViewModeCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandlePrevViewModeCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
-#if WITH_EDITOR
-	bool HandleShowMouseCursorCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-#endif // WITH_EDITOR
 	bool HandlePreCacheCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleToggleFullscreenCommand();
 	bool HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -588,10 +585,7 @@ public:
 	 *
 	 * @param InEnabledStats	Stats to enable
 	 */
-	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override
-	{
-		EnabledStats = InEnabledStats;
-	}
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override;
 
 	/**
 	 * Check whether a specific stat is enabled for this viewport
@@ -662,9 +656,10 @@ public:
 	/**
 	 * Sets whether or not the cursor is locked to the viewport when the viewport captures the mouse
 	 */
+	DEPRECATED(4.13, "Mouse locking is now controlled by an enum value. Please call UGameViewportClient::SetMouseLockMode(EMouseLockMode) instead.")
 	void SetLockDuringCapture(bool InLockDuringCapture)
 	{
-		bLockDuringCapture = InLockDuringCapture;
+		SetMouseLockMode( InLockDuringCapture ? EMouseLockMode::LockOnCapture : EMouseLockMode::DoNotLock );
 	}
 
 	/**
@@ -672,26 +667,50 @@ public:
 	 */
 	virtual bool LockDuringCapture() override
 	{
-		return bLockDuringCapture;
+		return MouseLockMode != EMouseLockMode::DoNotLock;
 	}
 
 	/**
-	* Sets whether or not the cursor is hidden when the viewport captures the mouse
+	 * Gets whether or not the cursor should always be locked to the viewport
+	 */
+	virtual bool ShouldAlwaysLockMouse() override
+	{
+		return MouseLockMode == EMouseLockMode::LockAlways;
+	}
+
+	/**
+	* Sets the current mouse cursor lock mode when the viewport is clicked
 	*/
+	void SetMouseLockMode(EMouseLockMode InMouseLockMode)
+	{
+		MouseLockMode = InMouseLockMode;
+	}
+
+	/**
+	 * Sets whether or not the cursor is hidden when the viewport captures the mouse
+	 */
 	void SetHideCursorDuringCapture(bool InHideCursorDuringCapture)
 	{
 		bHideCursorDuringCapture = InHideCursorDuringCapture;
 	}
 
 	/**
-	* Gets whether or not the cursor is hidden when the viewport captures the mouse
-	*/
+	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
+	 */
 	virtual bool HideCursorDuringCapture() override
 	{
 		return bHideCursorDuringCapture;
 	}
 
 	virtual FPopupMethodReply OnQueryPopupMethod() const override;
+
+#if WITH_EDITOR
+	/** Accessor for delegate called when a game viewport received input key */
+	FOnGameViewportInputKey& OnGameViewportInputKey()
+	{
+		return GameViewportInputKeyDelegate;
+	}
+#endif
 
 private:
 	/**
@@ -768,6 +787,11 @@ private:
 	 */
 	bool SetDisplayConfiguration( const FIntPoint* Dimensions, EWindowMode::Type WindowMode);
 
+#if WITH_EDITOR
+	/** Delegate called when game viewport client received input key */
+	FOnGameViewportInputKey GameViewportInputKeyDelegate;
+#endif
+
 	/** Delegate called at the end of the frame when a screenshot is captured */
 	static FOnScreenshotCaptured ScreenshotCapturedDelegate;
 
@@ -816,11 +840,11 @@ private:
 	/** Mouse capture behavior when the viewport is clicked */
 	EMouseCaptureMode MouseCaptureMode;
 
-	/** Whether or not the cursor is locked when the viewport captures the mouse */
-	bool bLockDuringCapture;
-
 	/** Whether or not the cursor is hidden when the viewport captures the mouse */
 	bool bHideCursorDuringCapture;
+
+	/** Mouse cursor locking behavior when the viewport is clicked */
+	EMouseLockMode MouseLockMode;
 
 	/** Handle to the audio device created for this viewport. Each viewport (for multiple PIE) will have its own audio device. */
 	uint32 AudioDeviceHandle;

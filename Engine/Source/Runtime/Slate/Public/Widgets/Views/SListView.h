@@ -60,6 +60,8 @@ public:
 		, _ExternalScrollbar()
 		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
+		, _WheelScrollMultiplier( WheelScrollAmount )
+		, _HandleGamepadEvents( true )
 		{ }
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -96,6 +98,10 @@ public:
 
 		SLATE_ARGUMENT( EConsumeMouseWheel, ConsumeMouseWheel );
 
+		SLATE_ARGUMENT( float, WheelScrollMultiplier );
+
+		SLATE_ARGUMENT( bool, HandleGamepadEvents );
+
 	SLATE_END_ARGS()
 
 	/**
@@ -120,6 +126,9 @@ public:
 
 		this->AllowOverscroll = InArgs._AllowOverscroll;
 		this->ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
+
+		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
+		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -243,7 +252,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up)
+			else if (InKeyEvent.GetKey() == EKeys::Up || ( bHandleGamepadEvents && ( InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up ) ) )
 			{
 				int32 SelectionIndex = 0;
 				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
@@ -261,7 +270,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if (InKeyEvent.GetKey() == EKeys::Down || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down)
+			else if (InKeyEvent.GetKey() == EKeys::Down || ( bHandleGamepadEvents && ( InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down ) ) )
 			{
 				// Begin at INDEX_NONE so the first item will get selected
 				int32 SelectionIndex = INDEX_NONE;
@@ -467,6 +476,8 @@ private:
 		 */
 		void OnEndGenerationPass()
 		{
+			ensureMsgf( OwnerList, TEXT( "OwnerList is null, something is wrong." ) );
+
 			for( int32 ItemIndex = 0; ItemIndex < ItemsToBeCleanedUp.Num(); ++ItemIndex )
 			{
 				ItemType ItemToBeCleanedUp = ItemsToBeCleanedUp[ItemIndex];
@@ -478,12 +489,21 @@ private:
 					WidgetMapToItem.Remove( &WidgetToCleanUp.Get() );
 
 					// broadcast here
-					OwnerList->OnRowReleased.ExecuteIfBound( WidgetToCleanUp );
+					if ( OwnerList )
+					{
+						OwnerList->OnRowReleased.ExecuteIfBound( WidgetToCleanUp );
+					}
 				}				
 			}
 
-			checkf(ItemToWidgetMap.Num() == WidgetMapToItem.Num(), TEXT("ItemToWidgetMap length (%d) does not match WidgetMapToItem length (%d).  %s"), ItemToWidgetMap.Num(), WidgetMapToItem.Num(), *OwnerList->ToString());
-			checkf(WidgetMapToItem.Num() == ItemsWithGeneratedWidgets.Num(), TEXT("WidgetMapToItem length (%d) does not match ItemsWithGeneratedWidgets length (%d). This is often because the same item is in the list more than once.  %s"), WidgetMapToItem.Num(), ItemsWithGeneratedWidgets.Num(), *OwnerList->ToString());
+			checkf( ItemToWidgetMap.Num() == WidgetMapToItem.Num(),
+			        TEXT( "ItemToWidgetMap length (%d) does not match WidgetMapToItem length (%d).  %s" ), ItemToWidgetMap.Num(),
+			        WidgetMapToItem.Num(), OwnerList ? *OwnerList->ToString() : TEXT( "null" ) );
+
+			checkf( WidgetMapToItem.Num() == ItemsWithGeneratedWidgets.Num(),
+			        TEXT( "WidgetMapToItem length (%d) does not match ItemsWithGeneratedWidgets length (%d). This is often because the same item is in the list more than once.  %s" ),
+			        WidgetMapToItem.Num(), ItemsWithGeneratedWidgets.Num(), OwnerList ? *OwnerList->ToString() : TEXT( "null" ) );
+
 			ItemsToBeCleanedUp.Reset();
 		}
 
@@ -1033,6 +1053,13 @@ public:
 		return SelectedItems.Num();
 	}
 
+	/** Deletes all items and rebuilds the list */
+	void RebuildList()
+	{
+		WidgetGenerator.Clear();
+		RequestListRefresh();
+	}
+
 	/**
 	 * Returns a list of selected item indices, or an empty array if nothing is selected
 	 *
@@ -1419,6 +1446,9 @@ protected:
 
 	/** If true, the selection will be cleared if the user clicks in empty space (not on an item) */
 	bool bClearSelectionOnClick;
+
+	/** Should gamepad nav be supported */
+	bool bHandleGamepadEvents;
 
 private:
 

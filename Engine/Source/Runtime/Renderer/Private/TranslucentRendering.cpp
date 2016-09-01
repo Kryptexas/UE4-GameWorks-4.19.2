@@ -14,6 +14,11 @@
 DECLARE_CYCLE_STAT(TEXT("TranslucencyTimestampQueryFence Wait"), STAT_TranslucencyTimestampQueryFence_Wait, STATGROUP_SceneRendering);
 DECLARE_CYCLE_STAT(TEXT("TranslucencyTimestampQuery Wait"), STAT_TranslucencyTimestampQuery_Wait, STATGROUP_SceneRendering);
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Translucency GPU Time (MS)"), STAT_TranslucencyGPU, STATGROUP_SceneRendering);
+
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Translucency"), Stat_GPU_Translucency, STATGROUP_GPU);
+
+
 static TAutoConsoleVariable<int32> CVarSeparateTranslucencyAutoDownsample(
 	TEXT("r.SeparateTranslucencyAutoDownsample"),
 	0,
@@ -40,11 +45,13 @@ static TAutoConsoleVariable<float> CVarSeparateTranslucencyMinDownsampleChangeTi
 	TEXT("Minimum time in seconds between changes to automatic downsampling state, used to prevent rapid swapping between half and full res."),
 	ECVF_Scalability | ECVF_Default);
 
-void FDeferredShadingSceneRenderer::UpdateSeparateTranslucencyBufferSize(FRHICommandListImmediate& RHICmdList)
+void FDeferredShadingSceneRenderer::UpdateTranslucencyTimersAndSeparateTranslucencyBufferSize(FRHICommandListImmediate& RHICmdList)
 {
 	bool bAnyViewWantsDownsampledSeparateTranslucency = false;
-
-	if (CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+	bool bCVarSeparateTranslucencyAutoDownsample = CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0;
+#if (!STATS)
+	if (bCVarSeparateTranslucencyAutoDownsample)
+#endif
 	{
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -53,85 +60,61 @@ void FDeferredShadingSceneRenderer::UpdateSeparateTranslucencyBufferSize(FRHICom
 
 			if (ViewState)
 			{
-				// Buffer one extra frame for translucency timestamps because we don't care about latency (times are smoothed anyway)
-				// And we want to make sure we never block on the RHI thread or GPU
-				const int32 NumTimestampBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames() + 1;
-				const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryLookupIndex(View.ViewState->OcclusionFrameCounter, NumTimestampBufferedFrames);
-
-				if (GSupportsTimestampRenderQueries
-					&& ViewState->PendingTranslucencyStartTimestamps[QueryIndex]
-					&& ViewState->PendingTranslucencyEndTimestamps[QueryIndex])
+				//We always tick the separate trans timer but only need the other timer for stats
+				bool bSeparateTransTimerSuccess = ViewState->SeparateTranslucencyTimer.Tick(RHICmdList);
+				if (STATS)
 				{
-					if (GRHIThread)
+					ViewState->TranslucencyTimer.Tick(RHICmdList);
+					//Stats are fed the most recent available time and so are lagged a little. 
+					float MostRecentTotalTime = ViewState->TranslucencyTimer.GetTimeMS() + ViewState->SeparateTranslucencyTimer.GetTimeMS();
+					SET_FLOAT_STAT(STAT_TranslucencyGPU, MostRecentTotalTime);
+				}
+			
+				if (bCVarSeparateTranslucencyAutoDownsample && bSeparateTransTimerSuccess)
+				{
+					float LastFrameTranslucencyDurationMS = ViewState->SeparateTranslucencyTimer.GetTimeMS();
+					const bool bOriginalShouldAutoDownsampleTranslucency = ViewState->bShouldAutoDownsampleTranslucency;
+
+					if (ViewState->bShouldAutoDownsampleTranslucency)
 					{
-						// Block until the RHI thread has processed the previous query commands, if necessary
-						// Stat disabled since we buffer 2 frames minimum, it won't actually block
-						//SCOPE_CYCLE_COUNTER(STAT_TranslucencyTimestampQueryFence_Wait);
-						int32 BlockFrame = NumTimestampBufferedFrames - 1;
-						FRHICommandListExecutor::WaitOnRHIThreadFence(TranslucencyTimestampQuerySubmittedFence[BlockFrame]);
-						TranslucencyTimestampQuerySubmittedFence[BlockFrame] = nullptr;
-					}
+						ViewState->SmoothedFullResTranslucencyGPUDuration = 0;
+						const float LerpAlpha = ViewState->SmoothedHalfResTranslucencyGPUDuration == 0 ? 1.0f : .1f;
+						ViewState->SmoothedHalfResTranslucencyGPUDuration = FMath::Lerp(ViewState->SmoothedHalfResTranslucencyGPUDuration, LastFrameTranslucencyDurationMS, LerpAlpha);
 
-					uint64 StartMicroseconds;
-					uint64 EndMicroseconds;
-					bool bStartSuccess;
-					bool bEndSuccess;
-
-					{
-						// Block on the GPU until we have the timestamp query results, if necessary
-						// Stat disabled since we buffer 2 frames minimum, it won't actually block
-						//SCOPE_CYCLE_COUNTER(STAT_TranslucencyTimestampQuery_Wait);
-						bStartSuccess = RHICmdList.GetRenderQueryResult(ViewState->PendingTranslucencyStartTimestamps[QueryIndex], StartMicroseconds, true);
-						bEndSuccess = RHICmdList.GetRenderQueryResult(ViewState->PendingTranslucencyEndTimestamps[QueryIndex], EndMicroseconds, true);
-					}
-
-					if (bStartSuccess && bEndSuccess)
-					{
-						const float LastFrameTranslucencyDurationMS = (EndMicroseconds - StartMicroseconds) / 1000.0f;
-						const bool bOriginalShouldAutoDownsampleTranslucency = ViewState->bShouldAutoDownsampleTranslucency;
-
-						//UE_LOG(LogRenderer, Log, TEXT("%u %.1fms"), bOriginalShouldAutoDownsampleTranslucency, LastFrameTranslucencyDurationMS);
-
-						if (ViewState->bShouldAutoDownsampleTranslucency)
+						// Don't re-asses switching for some time after the last switch
+						if (View.Family->CurrentRealTime - ViewState->LastAutoDownsampleChangeTime > CVarSeparateTranslucencyMinDownsampleChangeTime.GetValueOnRenderThread())
 						{
-							ViewState->SmoothedFullResTranslucencyGPUDuration = 0;
-							const float LerpAlpha = ViewState->SmoothedHalfResTranslucencyGPUDuration == 0 ? 1.0f : .1f;
-							ViewState->SmoothedHalfResTranslucencyGPUDuration = FMath::Lerp(ViewState->SmoothedHalfResTranslucencyGPUDuration, LastFrameTranslucencyDurationMS, LerpAlpha);
+							// Downsample if the smoothed time is larger than the threshold
+							ViewState->bShouldAutoDownsampleTranslucency = ViewState->SmoothedHalfResTranslucencyGPUDuration > CVarSeparateTranslucencyDurationUpsampleThreshold.GetValueOnRenderThread();
 
-							// Don't re-asses switching for some time after the last switch
-							if (View.Family->CurrentRealTime - ViewState->LastAutoDownsampleChangeTime > CVarSeparateTranslucencyMinDownsampleChangeTime.GetValueOnRenderThread())
+							if (!ViewState->bShouldAutoDownsampleTranslucency)
 							{
-								// Downsample if the smoothed time is larger than the threshold
-								ViewState->bShouldAutoDownsampleTranslucency = ViewState->SmoothedHalfResTranslucencyGPUDuration > CVarSeparateTranslucencyDurationUpsampleThreshold.GetValueOnRenderThread();
-
-								if (!ViewState->bShouldAutoDownsampleTranslucency)
-								{
-									// Do 'log LogRenderer verbose' to get these
-									UE_LOG(LogRenderer, Verbose, TEXT("Upsample: %.1fms < %.1fms"), ViewState->SmoothedHalfResTranslucencyGPUDuration, CVarSeparateTranslucencyDurationUpsampleThreshold.GetValueOnRenderThread());
-								}
+								// Do 'log LogRenderer verbose' to get these
+								UE_LOG(LogRenderer, Verbose, TEXT("Upsample: %.1fms < %.1fms"), ViewState->SmoothedHalfResTranslucencyGPUDuration, CVarSeparateTranslucencyDurationUpsampleThreshold.GetValueOnRenderThread());
 							}
 						}
-						else
+					}
+					else
+					{
+						ViewState->SmoothedHalfResTranslucencyGPUDuration = 0;
+						const float LerpAlpha = ViewState->SmoothedFullResTranslucencyGPUDuration == 0 ? 1.0f : .1f;
+						ViewState->SmoothedFullResTranslucencyGPUDuration = FMath::Lerp(ViewState->SmoothedFullResTranslucencyGPUDuration, LastFrameTranslucencyDurationMS, LerpAlpha);
+
+						if (View.Family->CurrentRealTime - ViewState->LastAutoDownsampleChangeTime > CVarSeparateTranslucencyMinDownsampleChangeTime.GetValueOnRenderThread())
 						{
-							ViewState->SmoothedHalfResTranslucencyGPUDuration = 0;
-							const float LerpAlpha = ViewState->SmoothedFullResTranslucencyGPUDuration == 0 ? 1.0f : .1f;
-							ViewState->SmoothedFullResTranslucencyGPUDuration = FMath::Lerp(ViewState->SmoothedFullResTranslucencyGPUDuration, LastFrameTranslucencyDurationMS, LerpAlpha);
+							// Downsample if the smoothed time is larger than the threshold
+							ViewState->bShouldAutoDownsampleTranslucency = ViewState->SmoothedFullResTranslucencyGPUDuration > CVarSeparateTranslucencyDurationDownsampleThreshold.GetValueOnRenderThread();
 
-							if (View.Family->CurrentRealTime - ViewState->LastAutoDownsampleChangeTime > CVarSeparateTranslucencyMinDownsampleChangeTime.GetValueOnRenderThread())
+							if (ViewState->bShouldAutoDownsampleTranslucency)
 							{
-								ViewState->bShouldAutoDownsampleTranslucency = ViewState->SmoothedFullResTranslucencyGPUDuration > CVarSeparateTranslucencyDurationDownsampleThreshold.GetValueOnRenderThread();
-
-								if (ViewState->bShouldAutoDownsampleTranslucency)
-								{
-									UE_LOG(LogRenderer, Verbose, TEXT("Downsample: %.1fms > %.1fms"), ViewState->SmoothedFullResTranslucencyGPUDuration, CVarSeparateTranslucencyDurationDownsampleThreshold.GetValueOnRenderThread());
-								}
+								UE_LOG(LogRenderer, Verbose, TEXT("Downsample: %.1fms > %.1fms"), ViewState->SmoothedFullResTranslucencyGPUDuration, CVarSeparateTranslucencyDurationDownsampleThreshold.GetValueOnRenderThread());
 							}
 						}
+					}
 
-						if (bOriginalShouldAutoDownsampleTranslucency != ViewState->bShouldAutoDownsampleTranslucency)
-						{
-							ViewState->LastAutoDownsampleChangeTime = View.Family->CurrentRealTime;
-						}
+					if (bOriginalShouldAutoDownsampleTranslucency != ViewState->bShouldAutoDownsampleTranslucency)
+					{
+						ViewState->LastAutoDownsampleChangeTime = View.Family->CurrentRealTime;
 					}
 
 					bAnyViewWantsDownsampledSeparateTranslucency = bAnyViewWantsDownsampledSeparateTranslucency || ViewState->bShouldAutoDownsampleTranslucency;
@@ -148,20 +131,12 @@ void FDeferredShadingSceneRenderer::BeginTimingSeparateTranslucencyPass(FRHIComm
 {
 	if (View.ViewState 
 		&& GSupportsTimestampRenderQueries
-		&& CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+#if !STATS
+		&& (CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+#endif
+	)
 	{
-		// Buffer one extra frame for translucency timestamps because we don't care about latency (times are smoothed anyway)
-		// And we want to make sure we never block on the RHI thread or GPU
-		const int32 NumTimestampBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames() + 1;
-		const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(View.ViewState->OcclusionFrameCounter, NumTimestampBufferedFrames);
-
-		if (!View.ViewState->PendingTranslucencyStartTimestamps[QueryIndex])
-		{
-			View.ViewState->PendingTranslucencyStartTimestamps[QueryIndex] = RHICmdList.CreateRenderQuery(RQT_AbsoluteTime);
-		}
-						
-		// Insert a timestamp query at the beginning of separate translucency rendering
-		RHICmdList.EndRenderQuery(View.ViewState->PendingTranslucencyStartTimestamps[QueryIndex]);
+		View.ViewState->SeparateTranslucencyTimer.Begin(RHICmdList);
 	}
 }
 
@@ -169,50 +144,26 @@ void FDeferredShadingSceneRenderer::EndTimingSeparateTranslucencyPass(FRHIComman
 {
 	if (View.ViewState 
 		&& GSupportsTimestampRenderQueries
-		&& CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+#if !STATS
+		&& (CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+#endif
+	)
 	{
-		// Buffer one extra frame for translucency timestamps because we don't care about latency (times are smoothed anyway)
-		// And we want to make sure we never block on the RHI thread or GPU
-		const int32 NumTimestampBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames() + 1;
-		const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(View.ViewState->OcclusionFrameCounter, NumTimestampBufferedFrames);
-
-		if (!View.ViewState->PendingTranslucencyEndTimestamps[QueryIndex])
-		{
-			View.ViewState->PendingTranslucencyEndTimestamps[QueryIndex] = RHICmdList.CreateRenderQuery(RQT_AbsoluteTime);
-		}
-
-		// Insert a timestamp query at the end of separate translucency rendering
-		RHICmdList.EndRenderQuery(View.ViewState->PendingTranslucencyEndTimestamps[QueryIndex]);
-
-		// Hint to the RHI to submit commands up to this point to the GPU if possible.  Can help avoid CPU stalls next frame waiting
-		// for these query results on some platforms.
-		RHICmdList.SubmitCommandsHint();
-
-		if (GRHIThread)
-		{
-			int32 NumFrames = NumTimestampBufferedFrames;
-			for (int32 Dest = 1; Dest < NumFrames; Dest++)
-			{
-				TranslucencyTimestampQuerySubmittedFence[Dest] = TranslucencyTimestampQuerySubmittedFence[Dest - 1];
-			}
-			// Start an RHI thread fence so we can be sure the RHI thread has processed the EndRenderQuery before we ask for results
-			TranslucencyTimestampQuerySubmittedFence[0] = RHICmdList.RHIThreadFence();
-			RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
-		}
+		View.ViewState->SeparateTranslucencyTimer.End(RHICmdList);
 	}
 }
 
-static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, const FViewInfo& View, ETranslucencyPassType TranslucenyPassType, bool bFirstTimeThisFrame = false)
+static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, const FViewInfo& View, ETranslucencyPass::Type TranslucencyPass, bool bFirstTimeThisFrame = false)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	bool bSetupTranslucentState = true;
 	bool bNeedsClear = (&View == View.Family->Views[0]) && bFirstTimeThisFrame;
 
-	if ((TranslucenyPassType == TPT_SeparateTransluceny) && SceneContext.IsSeparateTranslucencyActive(View))
+	if ((TranslucencyPass == ETranslucencyPass::TPT_SeparateTransluceny) && SceneContext.IsSeparateTranslucencyActive(View))
 	{
 		bSetupTranslucentState = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, bNeedsClear);
 	}
-	else if (TranslucenyPassType == TPT_NonSeparateTransluceny)
+	else if (TranslucencyPass == ETranslucencyPass::TPT_NonSeparateTransluceny)
 	{
 		SceneContext.BeginRenderingTranslucency(RHICmdList, View, bNeedsClear);
 	}
@@ -224,12 +175,12 @@ static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, cons
 	}
 }
 
-static void FinishTranslucentRenderTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, ETranslucencyPassType TranslucenyPassType)
+static void FinishTranslucentRenderTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, ETranslucencyPass::Type TranslucencyPass)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FinishTranslucentRenderTarget);
 	
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	if ((TranslucenyPassType == TPT_SeparateTransluceny) && SceneContext.IsSeparateTranslucencyActive(View))
+	if ((TranslucencyPass == ETranslucencyPass::TPT_SeparateTransluceny) && SceneContext.IsSeparateTranslucencyActive(View))
 	{
 		SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);
 	}
@@ -239,7 +190,7 @@ static void FinishTranslucentRenderTarget(FRHICommandListImmediate& RHICmdList, 
 	}
 }
 
-const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentShadowMap(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, ETranslucencyPassType TranslucenyPassType)
+const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentShadowMap(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, ETranslucencyPass::Type TranslucencyPass)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_PrepareTranslucentShadowMap);
 	const FVisibleLightInfo* VisibleLightInfo = NULL;
@@ -247,7 +198,7 @@ const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentSha
 
 	// Find this primitive's self shadow if there is one
 	if (PrimitiveSceneInfo->Proxy && PrimitiveSceneInfo->Proxy->CastsVolumetricTranslucentShadow())
-	{			
+	{		
 		for (FLightPrimitiveInteraction* Interaction = PrimitiveSceneInfo->LightList;
 			Interaction && !TranslucentSelfShadow;
 			Interaction = Interaction->GetNextLight()
@@ -255,85 +206,25 @@ const FProjectedShadowInfo* FDeferredShadingSceneRenderer::PrepareTranslucentSha
 		{
 			const FLightSceneInfo* LightSceneInfo = Interaction->GetLight();
 
-			if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional
-				// Only reuse cached shadows from the light which last used TranslucentSelfShadowLayout
-				// This has the side effect of only allowing per-pixel self shadowing from one light
-				&& LightSceneInfo->Id == CachedTranslucentSelfShadowLightId)
+			// Note: applying shadowmap from first directional light found
+			if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional)
 			{
 				VisibleLightInfo = &VisibleLightInfos[LightSceneInfo->Id];
-				FProjectedShadowInfo* ObjectShadow = NULL;
 
 				for (int32 ShadowIndex = 0, Count = VisibleLightInfo->AllProjectedShadows.Num(); ShadowIndex < Count; ShadowIndex++)
 				{
 					FProjectedShadowInfo* CurrentShadowInfo = VisibleLightInfo->AllProjectedShadows[ShadowIndex];
 
-					if (CurrentShadowInfo && CurrentShadowInfo->bTranslucentShadow && CurrentShadowInfo->GetParentSceneInfo() == PrimitiveSceneInfo)
+					if (CurrentShadowInfo 
+						&& CurrentShadowInfo->bTranslucentShadow 
+						&& CurrentShadowInfo->GetParentSceneInfo() == PrimitiveSceneInfo
+						&& CurrentShadowInfo->ShadowDepthView)
 					{
+						check(CurrentShadowInfo->RenderTargets.ColorTargets.Num() > 0);
 						TranslucentSelfShadow = CurrentShadowInfo;
 						break;
 					}
 				}
-			}
-		}
-
-		// Allocate and render the shadow's depth map if needed
-		if (TranslucentSelfShadow && !TranslucentSelfShadow->bAllocatedInTranslucentLayout)
-		{
-			check(IsInRenderingThread());
-			bool bPossibleToAllocate = true;
-
-			// Attempt to find space in the layout
-			TranslucentSelfShadow->bAllocatedInTranslucentLayout = TranslucentSelfShadowLayout.AddElement(
-				TranslucentSelfShadow->X,
-				TranslucentSelfShadow->Y,
-				TranslucentSelfShadow->ResolutionX + SHADOW_BORDER * 2,
-				TranslucentSelfShadow->ResolutionY + SHADOW_BORDER * 2);
-
-			// Free shadowmaps from this light until allocation succeeds
-			while (!TranslucentSelfShadow->bAllocatedInTranslucentLayout && bPossibleToAllocate)
-			{
-				bPossibleToAllocate = false;
-
-				for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo->AllProjectedShadows.Num(); ShadowIndex++)
-				{
-					FProjectedShadowInfo* CurrentShadowInfo = VisibleLightInfo->AllProjectedShadows[ShadowIndex];
-
-					if (CurrentShadowInfo->bTranslucentShadow && CurrentShadowInfo->bAllocatedInTranslucentLayout)
-					{
-						verify(TranslucentSelfShadowLayout.RemoveElement(
-							CurrentShadowInfo->X,
-							CurrentShadowInfo->Y,
-							CurrentShadowInfo->ResolutionX + SHADOW_BORDER * 2,
-							CurrentShadowInfo->ResolutionY + SHADOW_BORDER * 2));
-
-						CurrentShadowInfo->bAllocatedInTranslucentLayout = false;
-
-						bPossibleToAllocate = true;
-						break;
-					}
-				}
-
-				TranslucentSelfShadow->bAllocatedInTranslucentLayout = TranslucentSelfShadowLayout.AddElement(
-					TranslucentSelfShadow->X,
-					TranslucentSelfShadow->Y,
-					TranslucentSelfShadow->ResolutionX + SHADOW_BORDER * 2,
-					TranslucentSelfShadow->ResolutionY + SHADOW_BORDER * 2);
-			}
-
-			if (!bPossibleToAllocate)
-			{
-				// Failed to allocate space for the shadow depth map, so don't use the self shadow
-				TranslucentSelfShadow = NULL;
-			}
-			else
-			{
-				check(TranslucentSelfShadow->bAllocatedInTranslucentLayout);
-
-				// Render the translucency shadow map
-				TranslucentSelfShadow->RenderTranslucencyDepths(RHICmdList, this);
-
-				// Restore state
-				SetTranslucentRenderTargetAndState(RHICmdList, View, TranslucenyPassType);
 			}
 		}
 	}
@@ -422,7 +313,7 @@ public:
 	bool bBackFace;
 	FMeshDrawingRenderState DrawRenderState;
 	bool bUseTranslucentSelfShadowing;
-	float SeparateTranslucencyScreenTextureScaleFactor;
+	float DownsampleFactorFromSceneBufferSize;
 
 	/** Initialization constructor. */
 	FDrawTranslucentMeshAction(
@@ -432,7 +323,7 @@ public:
 		FHitProxyId InHitProxyId,
 		const FProjectedShadowInfo* InTranslucentSelfShadow,
 		bool bInUseTranslucentSelfShadowing,
-		float ScreenTextureUVScaleFactor
+		float InDownsampleFactorFromSceneBufferSize
 		) :
 		View(InView),
 		TranslucentSelfShadow(InTranslucentSelfShadow),
@@ -440,7 +331,7 @@ public:
 		bBackFace(bInBackFace),
 		DrawRenderState(InDrawRenderState),
 		bUseTranslucentSelfShadowing(bInUseTranslucentSelfShadowing),
-		SeparateTranslucencyScreenTextureScaleFactor(ScreenTextureUVScaleFactor)
+		DownsampleFactorFromSceneBufferSize(InDownsampleFactorFromSceneBufferSize)
 	{}
 
 	bool UseTranslucentSelfShadowing() const 
@@ -478,6 +369,9 @@ public:
 
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
+		const bool bRenderSkylight = Scene && Scene->ShouldRenderSkylight(Parameters.BlendMode) && bIsLitMaterial;
+		const bool bRenderAtmosphericFog =(Scene && Scene->HasAtmosphericFog() && Scene->ReadOnlyCVARCache.bEnableAtmosphericFog) && View.Family->EngineShowFlags.AtmosphericFog && View.Family->EngineShowFlags.Fog;
+
 		TBasePassDrawingPolicy<LightMapPolicyType> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
 			Parameters.Mesh.MaterialRenderProxy,
@@ -487,14 +381,14 @@ public:
 			Parameters.BlendMode,
 			// Translucent meshes need scene render targets set as textures
 			ESceneRenderTargetsMode::SetTextures,
-			bIsLitMaterial && Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting,
-			Scene && Scene->HasAtmosphericFog() && View.Family->EngineShowFlags.AtmosphericFog && View.Family->EngineShowFlags.Fog,
+			bRenderSkylight,
+			bRenderAtmosphericFog,
 			View.Family->GetDebugViewShaderMode(),
 			Parameters.bAllowFog,
 			false,
 			false);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(), SeparateTranslucencyScreenTextureScaleFactor);
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(), DownsampleFactorFromSceneBufferSize);
 
 		int32 BatchElementIndex = 0;
 		uint64 BatchElementMask = Parameters.BatchElementMask;
@@ -530,7 +424,7 @@ static void CopySceneColorAndRestore(FRHICommandList& RHICmdList, const FViewInf
 	check(IsInRenderingThread());
 	FTranslucencyDrawingPolicyFactory::CopySceneColor(RHICmdList, View, PrimitiveSceneProxy);
 	// Restore state
-	SetTranslucentRenderTargetAndState(RHICmdList, View, TPT_NonSeparateTransluceny);
+	SetTranslucentRenderTargetAndState(RHICmdList, View, ETranslucencyPass::TPT_NonSeparateTransluceny);
 }
 
 class FCopySceneColorAndRestoreRenderThreadTask
@@ -594,7 +488,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	// Only render translucent materials
 	if(IsTranslucentBlendMode(BlendMode))
 	{
-		bool bCurrentlyRenderingSeparateTranslucency = Material->IsSeparateTranslucencyEnabled() == (DrawingContext.TranslucenyPassType == TPT_SeparateTransluceny);
+		bool bCurrentlyRenderingSeparateTranslucency = Material->IsSeparateTranslucencyEnabled() == (DrawingContext.TranslucenyPassType == ETranslucencyPass::TPT_SeparateTransluceny);
 		// if we are in relevant pass
 		if (bCurrentlyRenderingSeparateTranslucency || bSeparateTranslucencyEnabled == false)
 		{
@@ -615,7 +509,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 						CopySceneColorAndRestore(RHICmdList, View, PrimitiveSceneProxy);
 					}
 					// todo: this optimization is currently broken
-					DrawingContext.bSceneColorCopyIsUpToDate = (DrawingContext.TranslucenyPassType == TPT_SeparateTransluceny);
+					DrawingContext.bSceneColorCopyIsUpToDate = (DrawingContext.TranslucenyPassType == ETranslucencyPass::TPT_SeparateTransluceny);
 				}
 			}
 
@@ -665,7 +559,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 					HitProxyId,
 					DrawingContext.TranslucentSelfShadow,
 					PrimitiveSceneProxy && PrimitiveSceneProxy->CastsVolumetricTranslucentShadow(),
-					bCurrentlyRenderingSeparateTranslucency ? OutScale : 1.0f
+					bCurrentlyRenderingSeparateTranslucency ? 1.0f / OutScale : 1.0f
 				)
 			);
 
@@ -753,24 +647,19 @@ void FTranslucentPrimSet::DrawAPrimitive(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	FDeferredShadingSceneRenderer& Renderer,
-	ETranslucencyPassType TranslucenyPassType,
+	ETranslucencyPass::Type TranslucencyPass,
 	int32 PrimIdx
 	) const
 {
-	const TArray<FSortedPrim, SceneRenderingAllocator>& PhaseSortedPrimitives =
-		(TranslucenyPassType == TPT_SeparateTransluceny) ? SortedSeparateTranslucencyPrims : SortedPrims;
-
-	check(PrimIdx < PhaseSortedPrimitives.Num());
-
-	FPrimitiveSceneInfo* PrimitiveSceneInfo = PhaseSortedPrimitives[PrimIdx].PrimitiveSceneInfo;
+	FPrimitiveSceneInfo* PrimitiveSceneInfo = SortedPrims[PrimIdx].PrimitiveSceneInfo;
 	int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
 	const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 
 	checkSlow(ViewRelevance.HasTranslucency());
 
-	const FProjectedShadowInfo* TranslucentSelfShadow = Renderer.PrepareTranslucentShadowMap(RHICmdList, View, PrimitiveSceneInfo, TranslucenyPassType);
+	const FProjectedShadowInfo* TranslucentSelfShadow = Renderer.PrepareTranslucentShadowMap(RHICmdList, View, PrimitiveSceneInfo, TranslucencyPass);
 
-	RenderPrimitive(RHICmdList, View, PrimitiveSceneInfo, ViewRelevance, TranslucentSelfShadow, TranslucenyPassType);
+	RenderPrimitive(RHICmdList, View, PrimitiveSceneInfo, ViewRelevance, TranslucentSelfShadow, TranslucencyPass);
 }
 
 class FVolumetricTranslucentShadowRenderThreadTask
@@ -779,12 +668,12 @@ class FVolumetricTranslucentShadowRenderThreadTask
 	const FTranslucentPrimSet &PrimSet;
 	const FViewInfo& View;
 	FDeferredShadingSceneRenderer& Renderer;
-	ETranslucencyPassType TranslucenyPassType;
+	ETranslucencyPass::Type TranslucenyPassType;
 	int32 Index;
 
 public:
 
-	FORCEINLINE_DEBUGGABLE FVolumetricTranslucentShadowRenderThreadTask(FRHICommandList& InRHICmdList, const FTranslucentPrimSet& InPrimSet, const FViewInfo& InView, FDeferredShadingSceneRenderer& InRenderer, ETranslucencyPassType InTranslucenyPassType, int32 InIndex)
+	FORCEINLINE_DEBUGGABLE FVolumetricTranslucentShadowRenderThreadTask(FRHICommandList& InRHICmdList, const FTranslucentPrimSet& InPrimSet, const FViewInfo& InView, FDeferredShadingSceneRenderer& InRenderer, ETranslucencyPass::Type InTranslucenyPassType, int32 InIndex)
 		: RHICmdList(InRHICmdList)
 		, PrimSet(InPrimSet)
 		, View(InView)
@@ -816,19 +705,14 @@ void FTranslucentPrimSet::DrawPrimitivesParallel(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	FDeferredShadingSceneRenderer& Renderer,
-	ETranslucencyPassType TranslucenyPassType,
-	int32 FirstIndex, int32 LastIndex
+	ETranslucencyPass::Type TranslucenyPassType,
+	int32 FirstPrimIdx, int32 LastPrimIdx
 	) const
 {
-	const TArray<FSortedPrim, SceneRenderingAllocator>& PhaseSortedPrimitives =
-		(TranslucenyPassType == TPT_SeparateTransluceny) ? SortedSeparateTranslucencyPrims : SortedPrims;
-
-	check(LastIndex < PhaseSortedPrimitives.Num());
-	
 	// Draw sorted scene prims
-	for (int32 PrimIdx = FirstIndex; PrimIdx <= LastIndex; PrimIdx++)
+	for (int32 PrimIdx = FirstPrimIdx; PrimIdx <= LastPrimIdx; PrimIdx++)
 	{
-		FPrimitiveSceneInfo* PrimitiveSceneInfo = PhaseSortedPrimitives[PrimIdx].PrimitiveSceneInfo;
+		FPrimitiveSceneInfo* PrimitiveSceneInfo = SortedPrims[PrimIdx].PrimitiveSceneInfo;
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
 		const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 
@@ -854,16 +738,15 @@ void FTranslucentPrimSet::DrawPrimitives(
 	FRHICommandListImmediate& RHICmdList,
 	const FViewInfo& View,
 	FDeferredShadingSceneRenderer& Renderer,
-	ETranslucencyPassType TranslucenyPassType
+	ETranslucencyPass::Type TranslucenyPassType
 	) const
 {
-	const TArray<FSortedPrim,SceneRenderingAllocator>& PhaseSortedPrimitives =
-		(TranslucenyPassType == TPT_SeparateTransluceny) ? SortedSeparateTranslucencyPrims : SortedPrims;
+	FInt32Range PassRange = SortedPrimsNum.GetPassRange(TranslucenyPassType);
 
 	// Draw sorted scene prims
-	for( int32 PrimIdx = 0, Count = PhaseSortedPrimitives.Num(); PrimIdx < Count; PrimIdx++ )
+	for( int32 PrimIdx = PassRange.GetLowerBoundValue(); PrimIdx < PassRange.GetUpperBoundValue(); PrimIdx++ )
 	{
-		FPrimitiveSceneInfo* PrimitiveSceneInfo = PhaseSortedPrimitives[PrimIdx].PrimitiveSceneInfo;
+		FPrimitiveSceneInfo* PrimitiveSceneInfo = SortedPrims[PrimIdx].PrimitiveSceneInfo;
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
 		const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 
@@ -883,7 +766,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 	FPrimitiveSceneInfo* PrimitiveSceneInfo,
 	const FPrimitiveViewRelevance& ViewRelevance,
 	const FProjectedShadowInfo* TranslucentSelfShadow,
-	ETranslucencyPassType TranslucenyPassType) const
+	ETranslucencyPass::Type TranslucenyPassType) const
 {
 	checkSlow(ViewRelevance.HasTranslucency());
 	auto FeatureLevel = View.GetFeatureLevel();
@@ -892,18 +775,21 @@ void FTranslucentPrimSet::RenderPrimitive(
 	{
 		FTranslucencyDrawingPolicyFactory::ContextType Context(TranslucentSelfShadow, TranslucenyPassType);
 
-		// need to chec further down if we can skip rendering ST primitives, because we need to make sure they render in the normal translucency pass otherwise
+		// need to check further down if we can skip rendering ST primitives, because we need to make sure they render in the normal translucency pass otherwise
 		// getting the cvar here and passing it down to be more efficient		
 		bool bSeparateTranslucencyPossible = (FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread() != 0) && View.Family->EngineShowFlags.SeparateTranslucency && View.Family->EngineShowFlags.PostProcessing;
+		
+		// Render dynamic scene prim
+		{	
+			// range in View.DynamicMeshElements[]
+			FInt32Range range = View.GetDynamicMeshElementRange(PrimitiveSceneInfo->GetIndex());
 
-
-		//@todo parallelrendering - come up with a better way to filter these by primitive
-		for (int32 MeshBatchIndex = 0, Count = View.DynamicMeshElements.Num(); MeshBatchIndex < Count; MeshBatchIndex++)
-		{
-			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-			if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy)
+			for (int32 MeshBatchIndex = range.GetLowerBoundValue(); MeshBatchIndex < range.GetUpperBoundValue(); MeshBatchIndex++)
 			{
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+				checkSlow(MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy);
+
 				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, bSeparateTranslucencyPossible);
 			}
@@ -916,7 +802,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 			for (int32 StaticMeshIdx = 0, Count = PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx < Count; StaticMeshIdx++)
 			{
 				FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
-				bool bMaterialMatchesPass = (StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsSeparateTranslucencyEnabled() == (TranslucenyPassType == TPT_SeparateTransluceny));
+				bool bMaterialMatchesPass = (StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsSeparateTranslucencyEnabled() == (TranslucenyPassType == ETranslucencyPass::TPT_SeparateTransluceny));
 				bool bShouldRenderMesh = bMaterialMatchesPass || (!bSeparateTranslucencyPossible);
 
 				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
@@ -929,7 +815,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 					View,
 					FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow, TranslucenyPassType),
 					StaticMesh,
-					StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
+					StaticMesh.bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num()) - 1),
 					false,
 					PrimitiveSceneInfo->Proxy,
 					StaticMesh.BatchHitProxyId,
@@ -966,81 +852,48 @@ inline float CalculateTranslucentSortKey(FPrimitiveSceneInfo* PrimitiveSceneInfo
 	return SortKey;
 }
 
-/**
-* Add a new primitive to the list of sorted prims
-* @param PrimitiveSceneInfo - primitive info to add. Origin of bounds is used for sort.
-* @param ViewInfo - used to transform bounds to view space
-*/
-void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency)
+void FTranslucentPrimSet::AppendScenePrimitives(FTranslucentSortedPrim* Elements, int32 Num, const FTranslucenyPrimCount& TranslucentPrimitiveCountPerPass)
 {
-	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
-
-	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
-
-	const bool bIsSeparateTranslucency = (bUseSeparateTranslucency && FeatureLevel >= ERHIFeatureLevel::SM4) || (bUseMobileSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4);
-
-	// Force separate translucency to be rendered normally if the feature level does not support separate translucency
-	const bool bIsNormalTranslucency = bUseNormalTranslucency || (bUseSeparateTranslucency && !bUseMobileSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4);
-
-	if (bIsSeparateTranslucency)
-	{
-		// add to list of translucent prims that use scene color
-		new(SortedSeparateTranslucencyPrims) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
-	}
-
-	if (bIsNormalTranslucency)
-	{
-		// add to list of translucent prims
-		new(SortedPrims) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
-	}
+	SortedPrims.Append(Elements, Num);
+	SortedPrimsNum.Append(TranslucentPrimitiveCountPerPass);
 }
 
-void FTranslucentPrimSet::AppendScenePrimitives(FSortedPrim* Normal, int32 NumNormal, FSortedPrim* Separate, int32 NumSeparate)
-{
-	SortedPrims.Append(Normal, NumNormal);
-	SortedSeparateTranslucencyPrims.Append(Separate, NumSeparate);
-}
-
-void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum)
+void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency,
+	FTranslucentPrimSet::FTranslucentSortedPrim *InArrayStart, int32& InOutArrayNum, FTranslucenyPrimCount& OutCount)
 {
 	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
 	int32 CVarEnabled = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
 
-	// This condition must match with FSceneRenderTargets::IsSeparateTranslucencyActive
 	bool bCanBeSeparate = CVarEnabled
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
 		&& ViewInfo.Family->EngineShowFlags.PostProcessing 
 		&& !ViewInfo.Family->EngineShowFlags.ShaderComplexity
 		&& ViewInfo.Family->EngineShowFlags.SeparateTranslucency;
 
-	// add to list of sepaate translucency prims 
-	if (bUseSeparateTranslucency
-		&& bCanBeSeparate
-		)
-	{
-		new (SeparatePlace) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
-		SeparateNum++;
-	}
+	bool bIsSeparateTranslucency = bUseSeparateTranslucency && bCanBeSeparate;
+	bool bIsNonSeparateTranslucency = bUseNormalTranslucency || !bCanBeSeparate;
 
-	// add to list of translucent prims
-	if (bUseNormalTranslucency 
-		|| !bCanBeSeparate
-		)
+	if (bIsSeparateTranslucency)
 	{
-		new (NormalPlace) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
-		NormalNum++;
+		ETranslucencyPass::Type TranslucencyPass = ETranslucencyPass::TPT_SeparateTransluceny;
+
+		new(&InArrayStart[InOutArrayNum++]) FTranslucentSortedPrim(PrimitiveSceneInfo, TranslucencyPass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
+		OutCount.Add(TranslucencyPass);
+	}
+	if (bIsNonSeparateTranslucency)
+	{
+		ETranslucencyPass::Type TranslucencyPass = ETranslucencyPass::TPT_NonSeparateTransluceny;
+
+		new(&InArrayStart[InOutArrayNum++]) FTranslucentSortedPrim(PrimitiveSceneInfo, TranslucencyPass, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority(), SortKey);
+		OutCount.Add(TranslucencyPass);
 	}
 }
 
-/**
-* Sort any primitives that were added to the set back-to-front
-*/
 void FTranslucentPrimSet::SortPrimitives()
 {
-	// sort prims based on depth
-	SortedPrims.Sort( FCompareFSortedPrim() );
-	SortedSeparateTranslucencyPrims.Sort( FCompareFSortedPrim() );
+	// sort prims based on the specified criteria (usually depth)
+	SortedPrims.Sort( FCompareFTranslucentSortedPrim() );
 }
 
 bool FSceneRenderer::ShouldRenderTranslucency() const
@@ -1051,7 +904,7 @@ bool FSceneRenderer::ShouldRenderTranslucency() const
 	{
 		const FViewInfo& View = Views[ViewIndex];
 
-		if (View.TranslucentPrimSet.NumPrims() > 0 || View.bHasTranslucentViewMeshElements || View.TranslucentPrimSet.NumSeparateTranslucencyPrims() > 0)
+		if (View.TranslucentPrimSet.NumPrims() || View.bHasTranslucentViewMeshElements)
 		{
 			bRender = true;
 			break;
@@ -1066,7 +919,7 @@ class FDrawSortedTransAnyThreadTask : public FRenderTask
 	FDeferredShadingSceneRenderer& Renderer;
 	FRHICommandList& RHICmdList;
 	const FViewInfo& View;
-	ETranslucencyPassType TranslucenyPassType;
+	ETranslucencyPass::Type TranslucenyPassType;
 
 	const int32 FirstIndex;
 	const int32 LastIndex;
@@ -1077,7 +930,7 @@ public:
 		FDeferredShadingSceneRenderer& InRenderer,
 		FRHICommandList& InRHICmdList,
 		const FViewInfo& InView,
-		ETranslucencyPassType InTranslucenyPassType,
+		ETranslucencyPass::Type InTranslucenyPassType,
 		int32 InFirstIndex,
 		int32 InLastIndex
 		)
@@ -1110,10 +963,10 @@ DECLARE_CYCLE_STAT(TEXT("Translucency"), STAT_CLP_Translucency, STATGROUP_Parall
 
 class FTranslucencyPassParallelCommandListSet : public FParallelCommandListSet
 {
-	ETranslucencyPassType TranslucenyPassType;
+	ETranslucencyPass::Type TranslucenyPassType;
 	bool bFirstTimeThisFrame;
 public:
-	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPassType InTranslucenyPassType)
+	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPass::Type InTranslucenyPassType)
 		: FParallelCommandListSet(GET_STATID(STAT_CLP_Translucency), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, TranslucenyPassType(InTranslucenyPassType)
 		, bFirstTimeThisFrame(true)
@@ -1153,7 +1006,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 	check(IsInRenderingThread());
 
 	GParallelTranslucencyContext.TranslucentSelfShadow = nullptr;
-	GParallelTranslucencyContext.TranslucenyPassType = TPT_NonSeparateTransluceny;
+	GParallelTranslucencyContext.TranslucenyPassType = ETranslucencyPass::TPT_NonSeparateTransluceny;
 	GParallelTranslucencyContext.bSceneColorCopyIsUpToDate = false;
 	FScopedCommandListWaitForTasks Flusher(CVarRHICmdFlushRenderThreadTasksTranslucentPass.GetValueOnRenderThread() > 0 || CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() > 0, RHICmdList);
 
@@ -1177,23 +1030,33 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 					DownsampleDepthSurface(RHICmdList, SceneContext.GetSeparateTranslucencyDepthSurface(), View, Scale, false);
 				}
 			}
+
+#if STATS
+			if (View.ViewState)
+			{
+				View.ViewState->TranslucencyTimer.Begin(RHICmdList);
+			}
+#endif
+			
+			ETranslucencyPass::Type TranslucenyPassType = ETranslucencyPass::TPT_NonSeparateTransluceny;
+
 			FTranslucencyPassParallelCommandListSet ParallelCommandListSet(View, RHICmdList, 
 				CVarRHICmdTranslucencyPassDeferredContexts.GetValueOnRenderThread() > 0, 
 				CVarRHICmdFlushRenderThreadTasksTranslucentPass.GetValueOnRenderThread() == 0  && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0, 
-				TPT_NonSeparateTransluceny);
+				TranslucenyPassType);
 
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_Start_FDrawSortedTransAnyThreadTask);
-				int32 NumPrims = View.TranslucentPrimSet.NumPrims() - View.TranslucentPrimSet.NumSeparateTranslucencyPrims();
+				
+				FInt32Range PassRange = View.TranslucentPrimSet.SortedPrimsNum.GetPassRange(TranslucenyPassType);
+				int32 NumPrims = PassRange.Size<int32>();
 				int32 EffectiveThreads = FMath::Min<int32>(FMath::DivideAndRoundUp(NumPrims, ParallelCommandListSet.MinDrawsPerCommandList), ParallelCommandListSet.Width);
 
-				int32 Start = 0;
+				int32 Start = PassRange.GetLowerBoundValue();
 				if (EffectiveThreads)
 				{
-
 					int32 NumPer = NumPrims / EffectiveThreads;
 					int32 Extra = NumPrims - NumPer * EffectiveThreads;
-
 
 					for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
 					{
@@ -1202,9 +1065,9 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 
 						{
 							FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
-
+						
 							FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
-								.ConstructAndDispatchWhenReady(*this, *CmdList, View, TPT_NonSeparateTransluceny, Start, Last);
+								.ConstructAndDispatchWhenReady(*this, *CmdList, View, TranslucenyPassType, Start, Last);
 
 							ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 						}
@@ -1215,15 +1078,22 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 			// Draw the view's mesh elements with the translucent drawing policy.
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_SDPG_World);
-			DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(GParallelTranslucencyContext, SDPG_World, false, ParallelCommandListSet);
+				DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(GParallelTranslucencyContext, SDPG_World, false, ParallelCommandListSet);
 			}
 			// Draw the view's mesh elements with the translucent drawing policy.
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_SDPG_Foreground);
-			DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(GParallelTranslucencyContext, SDPG_Foreground, false, ParallelCommandListSet);
+				DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(GParallelTranslucencyContext, SDPG_Foreground, false, ParallelCommandListSet);
 			}
+
+			FinishTranslucentRenderTarget(RHICmdList, View, TranslucenyPassType);
 		}
-		FinishTranslucentRenderTarget(RHICmdList, View, TPT_NonSeparateTransluceny);
+#if STATS
+		if (View.ViewState)
+		{
+			View.ViewState->TranslucencyTimer.End(RHICmdList);
+		}
+#endif
 
 #if 0 // unsupported visualization in the parallel case
 		const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
@@ -1241,27 +1111,29 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 			BeginTimingSeparateTranslucencyPass(RHICmdList, View);
 
 			{
+				ETranslucencyPass::Type TranslucencyPass = ETranslucencyPass::TPT_SeparateTransluceny;
+
 				// always call BeginRenderingSeparateTranslucency() even if there are no primitives to we keep the RT allocated
 				FTranslucencyPassParallelCommandListSet ParallelCommandListSet(View, 
 					RHICmdList, 
 					CVarRHICmdTranslucencyPassDeferredContexts.GetValueOnRenderThread() > 0, 
 					CVarRHICmdFlushRenderThreadTasksTranslucentPass.GetValueOnRenderThread() == 0 && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0, 
-					TPT_SeparateTransluceny);
+					TranslucencyPass);
 
 				// Draw only translucent prims that are in the SeparateTranslucency pass
-				if (View.TranslucentPrimSet.NumSeparateTranslucencyPrims() > 0)
+				if (View.TranslucentPrimSet.SortedPrimsNum.Num(TranslucencyPass) > 0)
 				{
 					QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_Start_FDrawSortedTransAnyThreadTask_SeparateTransluceny);
 
-					int32 NumPrims = View.TranslucentPrimSet.NumSeparateTranslucencyPrims();
+					FInt32Range PassRange = View.TranslucentPrimSet.SortedPrimsNum.GetPassRange(TranslucencyPass);
+					int32 NumPrims = PassRange.Size<int32>();
 					int32 EffectiveThreads = FMath::Min<int32>(FMath::DivideAndRoundUp(NumPrims, ParallelCommandListSet.MinDrawsPerCommandList), ParallelCommandListSet.Width);
 
-					int32 Start = 0;
+					int32 Start = PassRange.GetLowerBoundValue();
 					check(EffectiveThreads);
 					{
 						int32 NumPer = NumPrims / EffectiveThreads;
 						int32 Extra = NumPrims - NumPer * EffectiveThreads;
-
 
 						for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
 						{
@@ -1272,7 +1144,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 								FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 								FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawSortedTransAnyThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
-									.ConstructAndDispatchWhenReady(*this, *CmdList, View, TPT_SeparateTransluceny, Start, Last);
+									.ConstructAndDispatchWhenReady(*this, *CmdList, View, TranslucencyPass, Start, Last);
 
 								ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 							}
@@ -1294,12 +1166,12 @@ static TAutoConsoleVariable<int32> CVarParallelTranslucency(
 	ECVF_RenderThreadSafe
 	);
 
-void FDeferredShadingSceneRenderer::DrawAllTranslucencyPasses(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, ETranslucencyPassType TranslucenyPassType)
+void FDeferredShadingSceneRenderer::DrawAllTranslucencyPasses(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, ETranslucencyPass::Type TranslucencyPass)
 {
 	// Draw translucent prims
-	View.TranslucentPrimSet.DrawPrimitives(RHICmdList, View, *this, TranslucenyPassType);
+	View.TranslucentPrimSet.DrawPrimitives(RHICmdList, View, *this, TranslucencyPass);
 
-	FTranslucencyDrawingPolicyFactory::ContextType Context(0, TranslucenyPassType);
+	FTranslucencyDrawingPolicyFactory::ContextType Context(0, TranslucencyPass);
 
 	// editor and debug rendering
 	DrawViewElements<FTranslucencyDrawingPolicyFactory>(RHICmdList, View, Context, SDPG_World, false);
@@ -1311,6 +1183,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 	if (ShouldRenderTranslucency())
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, Translucency);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Translucency);
 
 		if (GRHICommandList.UseParallelAlgorithms() && CVarParallelTranslucency.GetValueOnRenderThread())
 		{
@@ -1326,10 +1199,17 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 			// non separate translucency
 			{
-				bool bFirstTimeThisFrame = (ViewIndex == 0);
-				SetTranslucentRenderTargetAndState(RHICmdList, View, TPT_NonSeparateTransluceny, bFirstTimeThisFrame);
+#if STATS
+				if (View.ViewState)
+				{
+					View.ViewState->TranslucencyTimer.Begin(RHICmdList);
+				}
+#endif
 
-				DrawAllTranslucencyPasses(RHICmdList, View, TPT_NonSeparateTransluceny);
+				bool bFirstTimeThisFrame = (ViewIndex == 0);
+				SetTranslucentRenderTargetAndState(RHICmdList, View, ETranslucencyPass::TPT_NonSeparateTransluceny, bFirstTimeThisFrame);
+
+				DrawAllTranslucencyPasses(RHICmdList, View, ETranslucencyPass::TPT_NonSeparateTransluceny);
 
 				const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
 
@@ -1343,7 +1223,14 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 					}
 				}
 
-				FinishTranslucentRenderTarget(RHICmdList, View, TPT_NonSeparateTransluceny);
+				FinishTranslucentRenderTarget(RHICmdList, View, ETranslucencyPass::TPT_NonSeparateTransluceny);
+
+#if STATS
+				if (View.ViewState)
+				{
+					View.ViewState->TranslucencyTimer.End(RHICmdList);
+				}
+#endif
 			}
 			
 			// separate translucency
@@ -1369,7 +1256,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 					const TIndirectArray<FMeshBatch>& WorldList = View.ViewMeshElements;
 					const TIndirectArray<FMeshBatch>& ForegroundList = View.TopViewMeshElements;
 
-					bool bRenderSeparateTranslucency = View.TranslucentPrimSet.NumSeparateTranslucencyPrims() > 0 || WorldList.Num() || ForegroundList.Num();
+					bool bRenderSeparateTranslucency = View.TranslucentPrimSet.SortedPrimsNum.Num(ETranslucencyPass::TPT_SeparateTransluceny) > 0 || WorldList.Num() || ForegroundList.Num();
 
 					// Draw only translucent prims that are in the SeparateTranslucency pass
 					if (bRenderSeparateTranslucency)
@@ -1379,7 +1266,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 							RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 						}
 					
-						DrawAllTranslucencyPasses(RHICmdList, View, TPT_SeparateTransluceny);
+						DrawAllTranslucencyPasses(RHICmdList, View, ETranslucencyPass::TPT_SeparateTransluceny);
 					}
 
 					SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);

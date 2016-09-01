@@ -21,23 +21,29 @@ namespace AutomationTool.Tasks
 		[TaskParameter]
 		public string AppName;
 
-        /// <summary>
-        /// Platform we are staging for.
-        /// </summary>
-		[TaskParameter]
-        public MCPPlatform Platform;
+		/// <summary>
+		/// The application id
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public int AppID = 1;
 
-        /// <summary>
-        /// BuildVersion of the App we are staging.
-        /// </summary>
+		/// <summary>
+		/// Platform we are staging for.
+		/// </summary>
 		[TaskParameter]
-        public string BuildVersion;
+		public MCPPlatform Platform;
 
-        /// <summary>
-        /// Directory that build data will be copied from.
-        /// </summary>
+		/// <summary>
+		/// BuildVersion of the App we are staging.
+		/// </summary>
 		[TaskParameter]
-        public string InputDir;
+		public string BuildVersion;
+
+		/// <summary>
+		/// Directory that build data will be copied from.
+		/// </summary>
+		[TaskParameter]
+		public string InputDir;
 
 		/// <summary>
 		/// Optional list of files that should be considered
@@ -57,11 +63,36 @@ namespace AutomationTool.Tasks
 		[TaskParameter(Optional = true)]
 		public string LaunchArgs;
 
-        /// <summary>
-        /// Full path to the CloudDir where chunks and manifests should be staged.
-        /// </summary>
+		/// <summary>
+		/// Full path to the CloudDir where chunks and manifests should be staged.
+		/// </summary>
 		[TaskParameter]
-        public string CloudDir;
+		public string CloudDir;
+
+		/// <summary>
+		/// Determines the version of BuildPatchTool to use, for example, to allow us to use a pre-release version.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public BuildPatchToolBase.ToolVersion ToolVersion = BuildPatchToolBase.ToolVersion.Live;
+
+		/// <summary>
+		/// Location of a file listing attributes to apply to chunked files.
+		/// Should contain quoted InputDir relative files followed by optional attribute keywords readonly compressed executable, separated by \\r\\n line endings.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string AttributesFileName;
+
+		/// <summary>
+		/// The prerequisites installer to launch on successful product install, must be relative to, and inside of InputDir.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string PrereqPath;
+
+		/// <summary>
+		/// The commandline to send to prerequisites installer on launch.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string PrereqArgs;
 	}
 
 	/// <summary>
@@ -98,39 +129,47 @@ namespace AutomationTool.Tasks
 
 			// If there's a set of files specified, generate a temporary ignore list.
 			FileReference IgnoreList = null;
-			if(Parameters.Files != null)
+			if (Parameters.Files != null)
 			{
 				// Find the files which are to be included
-				// HashSet<FileReference> IncludeFiles = ResolveFilespec(InputDir, Parameters.Files, TagNameToFileSet);
+				HashSet<FileReference> IncludeFiles = ResolveFilespec(InputDir, Parameters.Files, TagNameToFileSet);
 
 				// Create a file to store the ignored file list
 				IgnoreList = new FileReference(LogUtils.GetUniqueLogName(Path.Combine(CommandUtils.CmdEnv.LogFolder, Parameters.AppName + "-Ignore")));
-				using(StreamWriter Writer = new StreamWriter(IgnoreList.FullName))
+				using (StreamWriter Writer = new StreamWriter(IgnoreList.FullName))
 				{
 					DirectoryInfo InputDirInfo = new DirectoryInfo(InputDir.FullName);
-					foreach(FileInfo File in InputDirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
+					foreach (FileInfo File in InputDirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
 					{
-						string RelativePath = new FileReference(File).MakeRelativeTo(InputDir);
-						const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffZ";
-						Writer.WriteLine("\"{0}\"\t{1}", RelativePath, File.LastWriteTimeUtc.ToString(Iso8601DateTimeFormat));
+						FileReference FileRef = new FileReference(File);
+						if (!IncludeFiles.Contains(FileRef))
+						{
+							string RelativePath = FileRef.MakeRelativeTo(InputDir);
+							const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffZ";
+							Writer.WriteLine("{0}\t{1}", (RelativePath.IndexOf(' ') == -1) ? RelativePath : "\"" + RelativePath + "\"", File.LastWriteTimeUtc.ToString(Iso8601DateTimeFormat));
+						}
 					}
 				}
 			}
 
 			// Create the staging info
-			BuildPatchToolStagingInfo StagingInfo = new BuildPatchToolStagingInfo(Job.OwnerCommand, Parameters.AppName, 1, Parameters.BuildVersion, Parameters.Platform, Parameters.CloudDir);
+			BuildPatchToolStagingInfo StagingInfo = new BuildPatchToolStagingInfo(Job.OwnerCommand, Parameters.AppName, Parameters.AppID, Parameters.BuildVersion, Parameters.Platform, Parameters.CloudDir);
 
 			// Set the patch generation options
 			BuildPatchToolBase.PatchGenerationOptions Options = new BuildPatchToolBase.PatchGenerationOptions();
 			Options.StagingInfo = StagingInfo;
 			Options.BuildRoot = ResolveDirectory(Parameters.InputDir).FullName;
-			Options.FileIgnoreList = (IgnoreList != null)? IgnoreList.FullName : null;
+			Options.FileIgnoreList = (IgnoreList != null) ? IgnoreList.FullName : null;
+			Options.FileAttributeList = Parameters.AttributesFileName ?? "";
 			Options.AppLaunchCmd = Parameters.Launch ?? "";
 			Options.AppLaunchCmdArgs = Parameters.LaunchArgs ?? "";
 			Options.AppChunkType = BuildPatchToolBase.ChunkType.Chunk;
+			Options.Platform = Parameters.Platform;
+			Options.PrereqPath = Parameters.PrereqPath ?? "";
+			Options.PrereqArgs = Parameters.PrereqArgs ?? "";
 
 			// Run the chunking
-			BuildPatchToolBase.Get().Execute(Options);
+			BuildPatchToolBase.Get().Execute(Options, Parameters.ToolVersion);
 			return true;
 		}
 
@@ -140,6 +179,24 @@ namespace AutomationTool.Tasks
 		public override void Write(XmlWriter Writer)
 		{
 			Write(Writer, Parameters);
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			return FindTagNamesFromFilespec(Parameters.Files);
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			yield break;
 		}
 	}
 }

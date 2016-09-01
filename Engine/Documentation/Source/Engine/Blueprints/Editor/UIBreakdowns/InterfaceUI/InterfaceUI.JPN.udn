@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2683039
+﻿INTSourceChangelist:2953341
 Availability:Public
 Title:ブループリントインターフェース UI
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Editor
-Description:ブループリント クラス エディタ インターフェースの概要
+Description:Blueprint インターフェースで作業する際のブループリント エディタの UI エレメントの分類
 version:4.9
 
 [VAR:Topic]
@@ -45,7 +45,7 @@ version:4.9
 <!----------
 [EXCERPT:Visible]
 1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
-1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar)
 1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
 1. [詳細](Engine/Blueprints/Editor\UIComponents\Details)
 1. [グラフ エディタ](Engine/Blueprints/Editor\UIComponents\GraphEditor)
@@ -54,10 +54,10 @@ version:4.9
 [EXCERPT:Invisible]
 * [デバッグ](Engine/Blueprints/Editor\UIComponents\Debug)
 * [コンパイラの結果](Engine/Blueprints/Editor\UIComponents\CompilerResults)
-* [Find Resuslts パネル](Engine/Blueprints/Editor\UIComponents\FindResults)
+* [検索結果パネル](Engine/Blueprints/Editor\UIComponents\FindResults)
 [/EXCERPT:Invisible]
 ------------->
 
 このグラフビューは、ブループリント エディタ内で通常利用可能なグラフ エディタとは若干違うということを覚えておくことが重要です。このグラフビューはグレイアウトされ、ナビゲーションやノードの追加はできません。なぜなら、グラフを編集する手段というよりは、ビジュアル化ツールであるためです。インターフェイス内およびインターフェイス自体に機能はありません。したがって、この場合、実際に機能するネットワークを作成する必要はありません。このビューは、単に入出力の結果を示すプレビューとしてお考えください。
 
-ブループリント インターフェイスの作成、およびその作業に関する詳しい情報は、 [](Engine/Blueprints/UserGuide\Types\Interface) を参照してください。
+ブループリント インターフェイスの作成、およびその作業に関する詳しい情報は、[](Engine/Blueprints/UserGuide\Types\Interface) を参照してください。

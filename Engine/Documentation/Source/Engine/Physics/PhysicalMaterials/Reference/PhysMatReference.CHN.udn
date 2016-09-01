@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physical Materials Reference
+﻿INTSourceChangelist:2713165
+Availability:Public
+Title:物理材质参考
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:Assets applied to physically simulated primitives directly or via materials used to configure and control physical properties used by the simulation.
+Description:资源被直接应用到物理模拟基元，或通过配置和控制物理属性（这些属性被模拟所使用）的材质进行应用。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -44,16 +44,16 @@ Description:Assets applied to physically simulated primitives directly or via ma
 
 [INCLUDE:Shared/Glossary/P/#Glossary_Physical_Material]
 
-## Properties
+## 属性
 
-Below are the properties for Physical Materials separated by major category.
+以下是按主要类目区分的物理材质属性。
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		physmat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physical Material
+		物理材质
 	[/PARAM]
 	[PARAM:content]
 		%p1%
@@ -62,20 +62,20 @@ Below are the properties for Physical Materials separated by major category.
 
 [VAR:p1]
 
-This category contains the core properties of the Physics Material: Friction, Restitution, and Density.
+该类目包含物理材质的核心属性：摩擦、恢复、以及密度。
 
 ![](p1.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 属性 | %spacer% | 描述 |
 | -------- | --- | :---------- |
-| **Friction** || This is the friction value of the surface, which controls how easily things can slide on this surface. |
+| **Friction** || 这是表面的摩擦值，控制物体在该表面形成滑动的难易度。|
 | **Friction Combine Mode** || [INCLUDE:#FcombineMode]  |
-| **Override Friction Combine Mode** || By default, the Friction Combine Mode is set to **Average**, by enabling this property you can change how Frictions are combined between touching Physical Materials.|
-| **Restitution** || This is how "bouncy" the surface is, or how much energy it retains when it collides with another surface. |
+| **Override Friction Combine Mode** || Friction Combine Mode 默认设为 **Average**，启用该属性可对接触的物理材质之间的摩擦合并方式进行变更。
+| **Restitution** || 该属性决定表面的“回弹度”（即它与另一表面碰撞后保留能量的多少）。|
 | **Restitution Combine Mode** || [INCLUDE:#RcombineMode] |
-| **Override Restitution Combine Mode** || By default, the Restitution Combine Mode is set to **Average**, by enabling this property you can change how Restitutions are combined between touching Physical Materials. |
-| **Density** || Used with the shape of the object to calculate its mass properties. The higher the number, the heavier the object. Measured as **g** per cubic **cm**. |
+| **Override Restitution Combine Mode** || Restitution Combine Mode 默认设为 **Average**，启用该属性可对接触的物理材质之间的恢复合并方式进行变更。|
+| **Density** || 与物体的形态一同使用，计算重量属性。数字越高，物体越重。测定为 **克** 每立方 **厘米**。|
 [/REGION]
 
 [/VAR]
@@ -86,7 +86,7 @@ This category contains the core properties of the Physics Material: Friction, Re
 		adv
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Advanced
+		高级
 	[/PARAM]
 	[PARAM:content]
 		%p2%
@@ -95,14 +95,14 @@ This category contains the core properties of the Physics Material: Friction, Re
 
 [VAR:p2]
 
-This category contains a property to change how scale affects the mass of the Actor with the Physical Material applied to it.
+该类目包含一个属性，利用 Actor 应用的物理材质改变体积对 Actor 重量的影响方式。
 
 ![](p2.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 属性 | %spacer% | 描述 |
 | -------- | --- | :---------- |
-| **Raise Mass To Power** || Used to adjust the way that mass increases as objects get larger. This is applied to the mass as calculated based on a "solid" object. In actuality, larger objects do not tend to be solid, and become more like "shells" (e.g. a car is not a solid piece of metal). Values are clamped to 1 or less. |
+| **Raise Mass To Power** || 用于调整物体质量随体积增加的方式。它被应用于质量上，因为计算基于一个“坚固”的物体。事实上，较大的物体往往并不坚固，与“贝壳”原理相似（例如一辆汽车并非是一个坚固的铁块）。数值被锁定为 1 或更低。|
 [/REGION]
 
 [/VAR]
@@ -114,7 +114,7 @@ This category contains a property to change how scale affects the mass of the Ac
 		dest
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Destruction
+		破坏
 	[/PARAM]
 	[PARAM:content]
 		%p3%
@@ -123,14 +123,14 @@ This category contains a property to change how scale affects the mass of the Ac
 
 [VAR:p3]
 
-Properties that are specific to the Destruction system in Unreal Engine 4.
+虚幻引擎 4 中破坏系统特有的属性。
 
 ![](p3.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| -------- | :---: | :---------- |
-| **Destructible Damage Threshold Scale** || How much to scale the damage threshold by on any destructible this Physics Material is applied to. |
+| 属性 | %spacer% | 描述 |
+| -------- | :---:| :---------- |
+| **Destructible Damage Threshold Scale** || 基于应用此物理材质的可破坏物调整破坏阈值。|
 [/REGION]
 
 [/VAR]
@@ -142,7 +142,7 @@ Properties that are specific to the Destruction system in Unreal Engine 4.
 		physpro
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physical Properties
+		物理属性
 	[/PARAM]
 	[PARAM:content]
 		%p4%
@@ -151,14 +151,14 @@ Properties that are specific to the Destruction system in Unreal Engine 4.
 
 [VAR:p4]
 
-Gameplay related properties for the Physical Material.
+物理材质和游戏性相关的属性。
 
 ![](p4.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 属性 | %spacer% | 描述 |
 | -------- | --- | :---------- |
-| **Surface Type** || [INCLUDE:#one]|
+| **表面类型** || [INCLUDE:#one]|
 [/REGION]
 
 [/VAR]
@@ -170,7 +170,7 @@ Gameplay related properties for the Physical Material.
 		vehicles
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Vehicles
+		载具
 	[/PARAM]
 	[PARAM:content]
 		%p5%
@@ -179,15 +179,15 @@ Gameplay related properties for the Physical Material.
 
 [VAR:p5]
 
-These properties are specific to Vehicles in Unreal Engine 4. While they may say they deal with Tires, they only do so when applied to a Vehicle (as Tire Data Types, and Wheel Blueprints, don't directly reference a Physical Material).
+这些是虚幻引擎 4 中载具特有的属性。对轮胎进行设置只会在应用到载具时进行（因为轮胎数据类型和轮子蓝图不会直接引用物理材质）。
 
 ![](p5.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
-| -------- | :---: | :---------- |
-| **Tire Friction Scale** || Overall tire friction scalar when this Physical Material is applied to a Vehicle. This value is multiplied against the Vehicle's Wheels' specific Friction Scale values. |
-| **Tire Friction Scales** || Tire friction scales for specific Wheels when this Physical Material is applied to a Vehicle. These values are multiplied against the Vehicle's Wheels' specific Friction Scale values. |
+| 属性 | %spacer% | 描述 |
+| -------- | :---:| :---------- |
+| **Tire Friction Scale** || 该物理材质应用至载具时的整体轮胎摩擦系数。该数值和载具轮子独有的摩擦系数值相乘。|
+| **Tire Friction Scales** || 该物理材质应用至载具时特定轮子的摩擦系数。这些数值和载具轮子独有的摩擦系数值相乘。|
 [/REGION]
 
 [/VAR]
@@ -196,36 +196,36 @@ These properties are specific to Vehicles in Unreal Engine 4. While they may say
 
 <!--
 [EXCERPT:one]
-Surface Types are set in the `DefaultEngine.ini` file for your project. They define an enum to be used in the engine for defining any number of things, from what sound plays as a character walks across a surface, to the type of decal an explosion should leave on different surfaces.
+可在项目的 `DefaultEngine.ini` 文件中对表面类型进行设置。表面类型定义了一个列举，用于在引擎中确定多种情况，如角色走过表面时播放的音效、爆炸在不同表面上形成的贴图类型。
 
-You can use ProjectSetting/Physics/Physical Surfaces
+可使用 ProjectSetting/Physics/Physical Surfaces
 
-This data can be pulled in code or Blueprint:
+该数据可被拖入代码或蓝图：
 
 ![](SurfaceType.png)(w:600)
 
-By default, without editing the source code, you are limited to 30 Surface Types, labeled SurfaceType1 through SurfaceType30.
+未编辑源代码时默认最多 30 个表面类型，标记为 SurfaceType1 到 SurfaceType30。
 
 [/EXCERPT:one]
 
 [EXCERPT:FcombineMode]
-This property enables you to adjust how Physical Material frictions are combined. This is set to Average by default, but can be overriden using the **Override Friction Combine Mode** property. 
+利用该属性可调整物理材质摩擦的计算方式。它默认设为 Average，但可使用 **Override Friction Combine Mode** 属性进行覆盖。 
 
 | --- | --- |
-| **Average** | Uses the average value of the touching materials: (a+b)/2 |
-| **Min** | Uses the smaller value of the touching materials: min(a,b) |
-| **Multiply** | Multiplies the values of the touching materials: a*b |
-| **Max** | Uses the larger value of the touching materials: max(a,b) |
+| **Average** | 使用两种接触材质的平均值：(a+b)/2 |
+| **Min** | 使用两种接触材质中较小的值：min(a,b) |
+| **Multiply** | 将两种接触材质的数值相乘 a*b |
+| **Max** | 使用两种接触材质中较大的值：max(a,b) |
 [/EXCERPT]
 
 [EXCERPT:RcombineMode]
-This property enables you to adjust how Physical Material restitutions are combined. This is set to Average by default, but can be overriden using the **Override Restitution Combine Mode** property. 
+利用该属性可调整物理材质恢复的计算方式。它默认设为 Average，但可使用 **Override Restitution Combine Mode** 属性进行覆盖。 
 
 | --- | --- |
-| **Average** | Uses the average value of the touching materials: (a+b)/2 |
-| **Min** | Uses the smaller value of the touching materials: min(a,b) |
-| **Multiply** | Multiplies the values of the touching materials: a*b |
-| **Max** | Uses the larger value of the touching materials: max(a,b) |
+| **Average** | 使用两种接触材质的平均值：(a+b)/2 |
+| **Min** | 使用两种接触材质中较小的值：min(a,b) |
+| **Multiply** | 将两种接触材质的数值相乘 a*b |
+| **Max** | 使用两种接触材质中较大的值：max(a,b) |
 [/EXCERPT]
 -->
 

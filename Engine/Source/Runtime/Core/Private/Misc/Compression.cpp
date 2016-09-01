@@ -5,7 +5,7 @@
 #include "GenericPlatformCompression.h"
 #include "TargetPlatform.h"
 // #include "TargetPlatformBase.h"
-#include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
+#include "zlib.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCompression, Log, All);
 DEFINE_LOG_CATEGORY(LogCompression);

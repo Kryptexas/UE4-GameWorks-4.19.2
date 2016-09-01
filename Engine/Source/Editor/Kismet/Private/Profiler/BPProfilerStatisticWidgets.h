@@ -15,8 +15,8 @@ namespace EBlueprintProfilerStat
 	{
 		Name = 0,
 		TotalTime,
+		AverageTime,
 		InclusiveTime,
-		Time,
 		PureTime,
 		MaxTime,
 		MinTime,
@@ -54,97 +54,18 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// FBPProfilerStatDiplayOptions
-
-struct FBPProfilerStatDiplayOptions : public TSharedFromThis<FBPProfilerStatDiplayOptions>
-{
-public:
-
-	/** Display flags controlling widget appearance */
-	enum EDisplayFlags
-	{
-		DisplayByInstance			= 0x00000001,	// Show instance stats
-		ScopeToDebugInstance		= 0x00000002,	// Scope stats to current debug instance
-		GraphFilter					= 0x00000004,	// Filter to current graph
-		DisplayPure					= 0x00000008,	// Display pure stats
-		AutoExpand					= 0x00000010,	// Auto expand stats
-		Modified					= 0x10000000,	// Display state was changed
-		Default						= DisplayByInstance|ScopeToDebugInstance|DisplayPure|GraphFilter|Modified
-	};
-
-	FBPProfilerStatDiplayOptions()
-		: ActiveInstance(NAME_None)
-		, ActiveGraph(NAME_None)
-		, Flags(Default)
-	{
-	}
-
-	/** Marks display state as modified */
-	void SetStateModified() { Flags |= Modified; }
-
-	/** Returns if the filter state options are modified */
-	bool IsStateModified() const { return (Flags & Modified) != 0U; }
-
-	/** Add flags */
-	void AddFlags(const uint32 FlagsIn) { Flags |= FlagsIn; }
-
-	/** Clear flags */
-	void ClearFlags(const uint32 FlagsIn) { Flags &= ~FlagsIn; }
-
-	/** Returns true if any flags match */
-	bool HasFlags(const uint32 FlagsIn) const { return (Flags & FlagsIn) != 0U; }
-
-	/** Returns true if all flags match */
-	bool HasAllFlags(const uint32 FlagsIn) const { return (Flags & FlagsIn) == FlagsIn; }
-
-	/** Set active instance name */
-	FName GetActiveInstance() const { return ActiveInstance; }
-
-	/** Set active instance name */
-	void SetActiveInstance(const FName InstanceName);
-
-	/** Set active graph name */
-	void SetActiveGraph(const FName GraphName);
-
-	/** Create toolbar widget */
-	TSharedRef<SWidget> CreateToolbar();
-
-	/** Returns if the UI should be checked for flags */
-	ECheckBoxState GetChecked(const uint32 FlagsIn) const;
-
-	/** Handles UI check states */
-	void OnChecked(ECheckBoxState NewState, const uint32 FlagsIn);
-
-	/** Returns true if the exec node passes current filters */
-	bool IsFiltered(TSharedPtr<class FScriptExecutionNode> Node) const;
-
-private:
-
-	/** The active instance name */
-	FName ActiveInstance;
-	/** The active graph name */
-	FName ActiveGraph;
-	/** The display flags */
-	uint32 Flags;
-};
-
-//////////////////////////////////////////////////////////////////////////
 // FBPProfilerStatWidget
 
 class FBPProfilerStatWidget : public TSharedFromThis<FBPProfilerStatWidget>
 {
 public:
 
-	FBPProfilerStatWidget(TSharedPtr<class FScriptExecutionNode> InExecNode, const FTracePath& WidgetTracePathIn)
-		: WidgetTracePath(WidgetTracePathIn)
-		, ExecNode(InExecNode)
-	{
-	}
+	FBPProfilerStatWidget(TSharedPtr<class FScriptExecutionNode> InExecNode, const FTracePath& WidgetTracePathIn);
 
 	virtual ~FBPProfilerStatWidget() {}
 
 	/** Generate exec node widgets */
-	virtual void GenerateExecNodeWidgets(const TSharedPtr<FBPProfilerStatDiplayOptions> DisplayOptions);
+	void GenerateExecNodeWidgets(const TSharedPtr<struct FBlueprintProfilerStatOptions> DisplayOptions);
 
 	/** Gather children for list/tree widget */
 	void GatherChildren(TArray<TSharedPtr<FBPProfilerStatWidget>>& OutChildren);
@@ -175,8 +96,32 @@ public:
 
 protected:
 
+	/** Generate standard node widgets */
+	void GenerateStandardNodeWidgets(const TSharedPtr<struct FBlueprintProfilerStatOptions> DisplayOptions);
+
+	/** Generate pure node widgets */
+	void GeneratePureNodeWidgets(const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions);
+
+	/** Generate simple tunnel widgets */
+	void GenerateSimpleTunnelWidgets(TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryNode, const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions);
+
+	/** Generate complex tunnel widgets */
+	void GenerateComplexTunnelWidgets(TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryNode, const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions);
+
+	/** Generate tunnel exit site linked widgets */
+	void GenerateTunnelLinkWidgets(const TSharedPtr<FBlueprintProfilerStatOptions> DisplayOptions, const int32 ScriptOffset = INDEX_NONE);
+
 	/** Navigate to referenced node */
 	void NavigateTo() const;
+
+	/** Calculate and return the heat color to use for average timing stats. */
+	FSlateColor GetAverageHeatColor() const;
+
+	/** Calculate and return the heat color to use for inclusive timing stats. */
+	FSlateColor GetInclusiveHeatColor() const;
+
+	/** Calculate and return the heat color to use for max time stats. */
+	FSlateColor GetMaxTimeHeatColor() const;
 
 protected:
 
@@ -188,5 +133,4 @@ protected:
 	TSharedPtr<FScriptPerfData> PerformanceStats;
 	/** Child statistics */
 	TArray<TSharedPtr<FBPProfilerStatWidget>> CachedChildren;
-
 };

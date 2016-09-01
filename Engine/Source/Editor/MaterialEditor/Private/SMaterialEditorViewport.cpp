@@ -92,10 +92,10 @@ void FMaterialEditorViewportClient::Tick(float DeltaSeconds)
 }
 
 
-void FMaterialEditorViewportClient::Draw(FViewport* Viewport,FCanvas* Canvas)
+void FMaterialEditorViewportClient::Draw(FViewport* InViewport,FCanvas* Canvas)
 {
-	FEditorViewportClient::Draw(Viewport, Canvas);
-	MaterialEditorPtr.Pin()->DrawMessages(Viewport, Canvas);
+	FEditorViewportClient::Draw(InViewport, Canvas);
+	MaterialEditorPtr.Pin()->DrawMessages(InViewport, Canvas);
 }
 
 bool FMaterialEditorViewportClient::ShouldOrbitCamera() const
@@ -124,7 +124,7 @@ FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const
 			{
 				BackgroundColor = FLinearColor::White;
 			}
-			else if(PreviewBlendMode == BLEND_Translucent)
+			else if(PreviewBlendMode == BLEND_Translucent || PreviewBlendMode == BLEND_AlphaComposite)
 			{
 				BackgroundColor = FColor(64, 64, 64);
 			}

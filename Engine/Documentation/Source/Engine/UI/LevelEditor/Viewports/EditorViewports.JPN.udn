@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2046926
+﻿INTSourceChangelist:2695201
 Availability:Public
 Title:エディタ ビューポート
 Crumbs: %ROOT%, Engine, Engine/UI
-Description:アンリアル・エディタビューポートのナビゲーション技術やビジュアル化設定に関するガイドです。
+Description:エディタ ビューポートのナビゲーション技術やビジュアル化設定に関するガイドです。
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,15 +49,13 @@ Description:アンリアル・エディタビューポートのナビゲーシ�
 ![](Viewports_Topic.png)
 [/REGION]
 
-## 概要
-
 [EXCERPT:Intro]
 [INCLUDE:Shared/Tutorials/inEditorTutorialCamera#viewportintro]
 [/EXCERPT:Intro]
 
 ## ビューポートに関するトピック
 
-以下のトピックでは、アンリアル・エディタのビューポートを様々な方法で活用できるように情報を提供します。
+以下のトピックでは、エディタのビューポートを様々な方法で迅速に活用できるように情報を提供します。
 
 [REGION:topics third]
 %Engine/UI/LevelEditor\Viewports\Basics:Topic%

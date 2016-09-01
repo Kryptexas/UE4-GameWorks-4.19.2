@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2716708
-Availability:Public
+﻿Availability:Public
 Title:3.1 - IES ライト プロファイル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
 Description:ライティングのサンプル レベルの概要、3.1：IES ライト プロファイル
@@ -59,7 +58,7 @@ Version:4.9
 
 Illuminating Engineering Society (IES) プロファイルは、現実世界の照明器具の輝度やフォールオフのダイアグラム (照度データ) を作成する北米照明学会の標準手法です。IES プロファイルは測光ライトとして長年の間 CGI 分野で使用されてきました。アンリアル・エンジン 4 は照明メーカーから直接入手したプロファイルに基づいて、リアルなライティング効果を表現する IES プロファイルを使用します。
 
-IES プロファイルのレンダリングはとても速く、パフォーマンスに対する重要な影響はありません。ライト機能と比べてより理想的なライトの生成オプションです。ライト機能に関しては[3.2](Resources\ContentExamples\Lighting\3_2) で説明します。さまざまな照明設備のプロファイルを、照明メーカーのウェブサイトからダウンロードすることができます。詳細は [IES ライト プロファイル](Engine/Rendering\LightingAndShadows\IESLightProfiles) を参照してください。
+IES プロファイルのレンダリングはとても速く、パフォーマンスに対する重要な影響はありません。Light 関数よりも理想的なライトの生成オプションです。Light 関数に関しては[3.2](Resources\ContentExamples\Lighting\3_2) で説明します。さまざまな照明設備のプロファイルを、照明メーカーのウェブサイトからダウンロードすることができます。詳細は [IES ライト プロファイル](Engine/Rendering\LightingAndShadows\IESLightProfiles) を参照してください。
 
 
 

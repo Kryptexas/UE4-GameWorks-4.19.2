@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2754441
 Availability:Public
-Title:Environment Query System User Guide
+Title:场景查询系统用户指南
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
-Description:This document covers the interface and most commonly used workflows of the Environment Query System within Behavior Trees.
+Description:此文档包含行为树中场景查询系统的界面和最常用的工作流。
+Version:4.9
+SkillLevel:Advanced
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -43,144 +45,144 @@ Description:This document covers the interface and most commonly used workflows 
 [/OBJECT]
 [/VAR]
 
-## Enabling the Environment Query System
+## 启用环境查询系统
 
 1. **Edit Menu** -> **Editor Preferences**
 1. **Experimental**
-1. Scroll down to **AI**
-1. Enable **Environment Query System**
+1. 向下滚屏到 **AI**
+1. 启用 **环境查询系统**
 
 
-## Parts of a Environment Query
+## 场景查询的部分
 
-An Environment Query is actually made up a number of different pieces. You must call an Environment Query from a Behavior Tree, and then the actual Environment Query will use its Generator, reference its Contexts, and use its Tests to give the Behavior Tree the highest weighted result.
+**场景查询** 实际上由诸多不同部分组成。必须从行为树调用一个场景查询，之后实际的场景查询将使用其生成器、引用其 Context、并通过其测试为行为树提供最高的加权结果。
 
-### Behavior Tree
+### 行为树
 
-To use an Environment Query in a Behavior Tree, you need a **Run EQS Query** Task node.
+通过 **Run EQS Query** Task 节点即可在行为树中使用场景查询。
 
 ![](runEQS.png)
 
-Selecting it in the Behavior Tree will enable you to set the **Query Template** property (the Environment Query asset), set its **Query Params** properties (which are the named values that are passed into the Environment Query asset),  and which Blackboard Key it should return the highest weighted result to (object or vector).
+在行为树中将其选中即可设置 **Query Template** 属性（场景查询资源）、设置其 **Query Params** 属性（即为传入场景查询资源的命名数值）、以及设置最高加权结果返回的黑板键（对象或矢量）。
 
 ![](runEQS_details.png)
 
-See the [Behavior Tree](Engine\AI\BehaviorTrees) documentation for more information on their usage.
+如需了解其使用的详细内容，请查阅 [行为树](Engine\AI\BehaviorTrees) 文档。
 
 
-### Environment Query
+### 场景查询
 
-The Environment Query asset is what you call in the Behavior Tree using the **Run EQS Query** node, to test a number of Actors or locations to find the "best" one. What is really defined as "best" is really up to the way the Tests are structured in the Environment Query.
+使用 **Run EQS Query** 节点在行为树中调用的便是场景查询（Environment Query）资源，以便对多个 Actors 或位置进行测试，找到“最佳”的选择。而“最佳”的定义取决于测试在场景查询中的构成方式。
 
-**Environment Queries** can be created in Blueprint and C++.
+场景查询可在蓝图和 C++ 中进行创建。
 
 
-### Generator 
+### 生成器 
 
-A Generator produces the locations or Actors, referred to as **Items**, that will actually be tested and weighted, with the highest weighted location or Actor being returned to the Behavior Tree.
+**生成器（Generator）** 生成位置或 Actors（统称为 **项目（Items）**）。它们将被测试和加权，最高加权的位置或 Actor 将被返回到行为树。
 
-**Generators** can be created in Blueprint and C++.
+生成器可在蓝图和 C++ 中进行创建。
 
 
 ### Contexts
 
-Contexts are a frame of reference for various tests and Generators. They can be as simple as **The Querier** or more complex such as **All Actors of a Type**.
+**Contexts** 是诸多测试和生成器的参考框架。它们可能如 **查询器** 一样简单，也可能如 **一种类型的所有 Actors** 那样复杂。
 
-Of note is the fact a Generator, such as the Simple Grid Generator can use a Context that returns multiple locations or Actors. This will create a Simple Grid, of the defined size and density, at the location of each Context.
+需要注意的是生成器（如 Simple Grid 生成器）可使用返回多个位置或 Actors 的 Context。这将在每个 Context 的位置创建一个拥有特定尺寸和密度的简单网格。
 
-**Contexts** can be created in Blueprint and C++.
+Context 可在蓝图和 C++ 中进行创建。
 
 
-### Tests
+### 测试
 
-Tests are how the Environment Query decides which item from the Generator is the "best". The default tests cover a good percentage of use cases, such as can an item trace to another location or is the distance between an item and context is within a specified range.
+场景查询通过测试来确定生成器中的哪个项目为“最佳”。默认测试包含较大比例的使用情况，如项目是否能追踪至另一个位置，或项目和 context 之间的距离是否在特定范围之内。
 
 [REGION:note]
-Currently, **Tests** must be created in C++; there is no Blueprint implementable version of them.
+当前版本中，**测试** 必须在 C++ 中进行创建，无法在蓝图中进行创建。
 [/REGION]
 
 
-## Creating a Query
+## 创建查询
 
 [REGION:raw]
 ![](newQuery.png)
 [/REGION]
 
-1. In the Content Browser, **left-click** the **Create** button
-1. Select **Miscellaneous** -> **Environment Query**
+1. 在内容浏览器中 **左键单击** **Create** 按钮
+1. 选择 **Miscellaneous** -> **Environment Query**
 
-## Creating a Blueprint Context
+## 创建蓝图 Context
 
-1. In the Content Browser, **left-click** the **Create** button
-1. Select **Blueprint**
-1. Expand **All Classes**
-1. Search for **EnvQueryContext**
-1. Select **EnvQueryContext_BlueprintBase**
+1. 在内容浏览器中 **左键单击** **Create** 按钮
+1. 选择 **Blueprint**
+1. 点开 **All Classes**
+1. 搜索 **EnvQueryContext**
+1. 选择 **EnvQueryContext_BlueprintBase**
 
-## Creating a Blueprint Generator
+## 创建蓝图生成器
 
-1. In the Content Browser, **left-click** the **Create** button
-1. Select **Blueprint**
-1. Expand **All Classes**
-1. Search for **EnvQueryGenerator**
-1. Select **EnvQueryGenerator_BlueprintBase**
+1. 在内容浏览器中 **左键单击** **Create** 按钮
+1. 选择 **Blueprint**
+1. 点开 **All Classes**
+1. 搜索 **EnvQueryGenerator**
+1. 选择 **EnvQueryGenerator_BlueprintBase**
 
-## Connecting the Root to the Generator
+## 将 Root 和 Generator 连接起来
 
 ![](connectRootToGen.png)
 
-Just left-click and drag from the dark bar at the bottom of the Root node to the dark bar at the top of the Generator node to make a connection.
+从 Root 节点下方的深色条 **左键单击** 并 **拖动** 至 Generator 节点上方的深色条构成连接。
 
-Alternatively, if you left-click and drag into the graph area, you'll get an option to create a new Generator node.
+此外，**左键单击** 并 **拖动** 进图表区中也可获得新建 Generator 节点的选项。
 
 [REGION:note]
-While you can have more than one Generator connected to the Root, only the left most, valid Generator is used in the Query.
+虽然可以在 Root 节点上连接多个 Generator 节点，但只有最左边的有效 Generator 才用于查询中。
 [/REGION]
 
-## Adding a Query to a Behavior Tree
+## 为行为树添加一个查询
 
-To use an Environment Query in a Behavior Tree, you need a **Run EQS Query** Task node.
+通过 **Run EQS Query** Task 节点即可在行为树中使用场景查询。
 
 ![](runEQS.png)
 
-1. Right-click in the Behavior Tree graph area.
-1. Create a **Task** -> **Run EQSQuery** node.
-1. Select the newly created **Run EQSQuery** node, and change the Query Template property to your Environment Query asset (or you can create a new one from within the pull down).
-1. Optionally, set any **Query Params** the Environment Query may be looking for.
-1. Finally, set the Blackboard Key to be set by the Environment Query, only Object and Vector Blackboard Keys are usable here.
+1. 在行为树图表区中 **单击右键**。
+1. 创建一个 **Task** -> **Run EQSQuery** 节点。
+1. 选择新建的 **Run EQSQuery** 节点，将 Query Template 属性改为您的场景查询资源（或从下拉菜单中新建一个资源）。
+1. 可根据需求选择性地设置场景查询寻找的 **Query Params**。
+1. 最后，选择场景查询设置的黑板键，此处仅限使用对象和矢量黑板键。
 
-## Editing a Query
+## 编辑查询
 
-### Adding a Generator
+### 添加生成器
 
-1. Right-click in the graph area of the Query, and select a Generator.
+1. 在查询的图表区中单击右键，选择一个生成器。
 
 ![](addGenToQuery.png)
 
-### Adding Tests
+### 添加测试
 
-1. Right-click a Generator and select a Test to add.
+1. 右键单击生成器并选择添加一个测试。
 
 ![](addTest.png)
 
-### Modifying Tests
+### 修改测试
 
-1. Select a Test on a Generator and modify it in the Details Panel
+1. 在生成器上选择一个测试，并在 **Details** 面板中进行修改
 
 ![](editTest.png)
 
-See the [Environmental Query System Node Reference](Engine/AI/EnvironmentQuerySystem/NodeReference) for usage information on individual tests.
+参考 [场景查询系统节点参考](Engine/AI/EnvironmentQuerySystem/NodeReference) 部分的个体测试使用信息。
 
-### Previewing the Query Results
+### 预览查询结果
 
-See the [Environmental Query System Test Pawn](Engine/AI/EnvironmentQuerySystem/EQSPawn) documentation for information on how to preview the results of a Query
+在 [场景查询系统测试 Pawn](Engine/AI/EnvironmentQuerySystem/EQSPawn) 文档中可查阅到如何预览查询结果。
 
 ![](Engine\AI\EnvironmentQuerySystem\EQSPawn\testingPawnBanner.png)
 
 
-## Editing a Context
+## 编辑 Context
 
-A newly created EnvQueryContext Blueprint will have 4 implementable functions:
+新建的 EnvQueryContext 蓝图拥有 4 个可应用函数：
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -192,48 +194,48 @@ A newly created EnvQueryContext Blueprint will have 4 implementable functions:
 		* **Provide Locations Set**
 		* **Provide Actors Set**
 
-		Implementing one (or more) of these will enable you to create your own custom Contexts for use within Tests in a Query. Right-click the function or functions you want to implement and select **Implement Function**.
+		应用一个（或多个）函数可创建您的自定义 Context，以便在查询的测试中使用。右键单击需要应用的函数，选择 **Implement Function**。
 	[/PARAM]
 [/OBJECT]
 
 
-### Provide Single Location
+### 提供单一位置
 
-Returns a single location (vector). How you generate that location is up to you. For example, this function will return the trace hit location of a random Actor (that is one of the types found in the DesiredObjectType array, such as Pawn, Vehicle, etc...) found within 1500 cm of the Querier:
+返回一个单一位置（矢量）。如何生成位置，则由您决定。例如此函数将返回查询器 1500 厘米内随机 Actor（DesiredObjectType 阵列中的类型，如 Pawn、载具等...）的追踪命中位置。
 
 [REGION:lightbox]
 [![](ProvideSingleLocationImplmented.png)](ProvideSingleLocationImplmented.png)
 [/REGION]
 
 
-### Provide Single Actor
+### 提供单一 Actor
 
-Returns a single Actor. How you find that Actor is up to you. In this example, the function will return Player 0's controlled (possessed) Actor:
+返回一个单一 Actor。如何找到该 Actor，则由您决定。在此例中，函数将返回玩家 0 的受控（拥有的）Actor：
 
 [REGION:lightbox]
 [![](provideSingleActorImp.png)](provideSingleActorImp.png)
 [/REGION]
 
 
-### Provide Locations Set
+### 提供位置集
 
-Returns an array of locations (vectors). How you generate these locations is up to you. This example graph will trace from 16 evenly spaced locations on a circle with a radius of 1500 units, returning successful hits on the environment:
+返回位置的阵列（矢量）。如何生成这些位置，则由您决定。此范例图表将从半径为 1500 个单位的圆上 16 个平均分布的位置进行追踪，返回成功的场景命中。
 
 [REGION:lightbox]
 [![](provideLocSetFunction.png)](provideLocSetFunction.png)
 [/REGION]
 
 
-### Provide Actors Set
+### 提供 Actors 集
 
-Returns an array of Actors. How you find these Actors is up to you. For example, this function will return an array of **MyCharacter** Actors that have the variable **Team Number** set to `1`:
+返回 Actors 的阵列。如何找到这些 Actors，则由您决定。例如，此函数将返回 **MyCharacter** Actors 的一个阵列，其变量 **Team Number** 设为 `1`：
 
 [REGION:lightbox]
 [![](provideActorSetFunction.png)](provideActorSetFunction.png)
 [/REGION]
 
 
-## Editing a Generator
+## 编辑生成器
 
 ### Event Do Item Generation
 
@@ -241,40 +243,40 @@ Returns an array of Actors. How you find these Actors is up to you. For example,
 ![](implementDoItem.png)
 [/REGION]
 
-This is the primary function for the Generator. When you implement this function, you'll get an array of locations that are the Context locations passed in from the Environment Query. Depending on the Context, this just may be an array of one entry with the location of the Querier, or it could be the locations of every health pack in the level.
+这是生成器的主要函数。应用此函数时将获得一个位置的阵列，这些位置是从场景查询传入的 Context 位置。这完全取决于 Context，它可能只是查询器位置条目的阵列，也可能是关卡中每个体力回复包的所在位置。
 
 
-### Add Generated Actor
+### 添加生成的 Actor
 
 ![](AddGenActor.png)(convert:false)
 
-Since functions can only return one value, the "Do Item Generation" function actually has two arrays it can fancily pass back to the Environment Query. This node will add an Actor to the Actor return array, and can also be used with the Add Generated Vector node to also return location values.
+因为函数只能返回一个值，“Do Item Generation”函数实际拥有两个阵列，可巧妙地把它们传回到场景查询。此节点将添加一个 Actor 到 Actor 返回阵列，也可与 Add Generated Vector 节点共用，返回位置数值。
 
-How the Generator decides what it's actually passing back to the Behavior tree is based on what Blackboard key you are setting from the EnvQuery node.
+至于生成器如何定义实际被传回行为树的内容，则基于从 EnvQuery 节点设置的黑板键。
 
 
-### Add Generated Vector
+### 添加生成的矢量
 
 ![](AddGenVec.png)(convert:false)
 
-Since functions can only return one value, the "Do Item Generation" function actually has two arrays it can fancily pass back to the Environment Query. This node will add a Vector to the vector return array, and can also be used with the Add Generated Actor node to also return Actor values.
+因为函数只能返回一个值，“Do Item Generation”函数实际拥有两个阵列，可巧妙地把它们传回到场景查询。此节点将添加一个矢量到矢量返回阵列，也可与 Add Generated Actor 节点共用，返回 Actor 数值。
 
-How the Generator decides what it's actually passing back to the Behavior tree is based on what Blackboard key you are setting from the EnvQuery node.
+至于生成器如何定义实际被传回行为树的内容，则基于从 EnvQuery 节点设置的黑板键。
 
-### Example Generator
+### 范例生成器
 
-This will trace from the edge of a circle that has a radius of **Rad** towards the Querier. It will space the traces a number of degrees apart based on the **Number of Spokes** value (so 360/**Number of Spokes**). The locations of the traces will only be stored if they hit the environment, essentially looking for a surface that can't see who's calling it.
+它从一个圆的边沿开始向查询器追踪，此圆的半径为 **Rad**。它基于 **Number of Spokes** 数值将追踪以一定角度分隔开来（为 360/**Number of Spokes** 数值）。追踪命中场景时才会保存其位置，本质上是寻找一个无法看到调用者的表面。
 
 [REGION:lightbox]
 [![](customGenExample.png)](customGenExample.png)
 [/REGION]
 
-It ends up looking like this:
+最终效果如下图：
 
 ![](customGenOutput.png)
 
 [REGION:note]
-The one thing this example should do is use the **Context Locations** passed in from the **Do Item Generation** to modify where the circle is generated. This wasn't done just do to image size constraints.
+此范例应该执行操作是 ：使用从 **Do Item Generation** 传入的 **Context Locations** 对圆的生成位置进行修改。由于图像尺寸限制，此操作未能完成。
 [/REGION]
 
 

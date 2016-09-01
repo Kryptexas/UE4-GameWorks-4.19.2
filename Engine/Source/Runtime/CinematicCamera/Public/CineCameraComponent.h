@@ -142,11 +142,11 @@ struct FCameraFocusSettings
 
 #if WITH_EDITORONLY_DATA
 	/** True to draw a translucent plane at the current focus depth, for easy tweaking. */
-	UPROPERTY(Transient, EditAnywhere, Category = "Focus Settings")
+	UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Focus Settings")
 	uint8 bDrawDebugFocusPlane : 1;
 
 	/** For customizing the focus plane color, in case the default doesn't show up well in your scene. */
-	UPROPERTY(EditAnywhere, Category = "Focus Settings", meta = (EditCondition = "bDrawDebugFocusPlane"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Focus Settings", meta = (EditCondition = "bDrawDebugFocusPlane"))
 	FColor DebugFocusPlaneColor;
 #endif 
 
@@ -237,6 +237,9 @@ public:
 	/** Returns a list of available lens presets. */
 	static TArray<FNamedLensPreset> const& GetLensPresets();
 
+	/** Update the debug focus plane position and orientation. */
+	void UpdateDebugFocusPlane();
+
 protected:
 
 	/** Most recent calculated focus distance. Used for interpolation. */
@@ -305,7 +308,7 @@ protected:
 	
 private:
 	void RecalcDerivedData();
-	float GetDesiredFocusDistance(FMinimalViewInfo& DesiredView) const;
+	float GetDesiredFocusDistance(const FVector& InLocation) const;
 	float GetWorldToMetersScale() const;
 
 	void CreateDebugFocusPlane();

@@ -9,24 +9,34 @@
 #include "SequenceRecorderSettings.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "ActorRecording.h"
+#include "Animation/AnimSequence.h"
 
 TSharedPtr<IMovieSceneSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(const FActorRecordingSettings& InActorRecordingSettings) const
 {
 	return nullptr;
 }
 
-TSharedPtr<FMovieSceneAnimationSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(UActorRecording* InActorRecording) const
+TSharedPtr<FMovieSceneAnimationSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(UActorRecording* InActorRecording, const FAnimationRecordingSettings& InAnimationSettings) const
 {
-	return MakeShareable(new FMovieSceneAnimationSectionRecorder(InActorRecording->AnimationSettings, InActorRecording->TargetAnimation.Get()));
+	return MakeShareable(new FMovieSceneAnimationSectionRecorder(InAnimationSettings, InActorRecording->TargetAnimation.Get()));
 }
 
 bool FMovieSceneAnimationSectionRecorderFactory::CanRecordObject(UObject* InObjectToRecord) const
 {
-	return InObjectToRecord->IsA<USkeletalMeshComponent>();
+	if (InObjectToRecord->IsA<USkeletalMeshComponent>())
+	{
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(InObjectToRecord);
+		if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 FMovieSceneAnimationSectionRecorder::FMovieSceneAnimationSectionRecorder(const FAnimationRecordingSettings& InAnimationSettings, UAnimSequence* InSpecifiedSequence)
 	: AnimSequence(InSpecifiedSequence)
+	, bRemoveRootTransform(true)
 	, AnimationSettings(InAnimationSettings)
 {
 }
@@ -104,9 +114,18 @@ void FMovieSceneAnimationSectionRecorder::FinalizeSection()
 {
 	if(AnimSequence.IsValid())
 	{
-		// enable root motion on the animation
-		AnimSequence->bEnableRootMotion = true;
-		AnimSequence->RootMotionRootLock = ERootMotionRootLock::Zero;
+		if (AnimationSettings.bRemoveRootAnimation)
+		{
+			// enable root motion on the animation
+			AnimSequence->bEnableRootMotion = true;
+			AnimSequence->RootMotionRootLock = ERootMotionRootLock::Zero;
+		}
+		else
+		{
+			// enable root motion on the animation
+			AnimSequence->bEnableRootMotion = false;
+			AnimSequence->RootMotionRootLock = ERootMotionRootLock::RefPose;
+		}
 	}
 
 	if(SkeletalMeshComponent.IsValid())

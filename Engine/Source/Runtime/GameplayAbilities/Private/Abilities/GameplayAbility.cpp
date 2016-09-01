@@ -66,6 +66,8 @@ UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
 	bReplicateInputDirectly = false;
 	RemoteInstanceEnded = false;
 
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerExecution;
+
 	ScopeLockCount = 0;
 }
 
@@ -891,11 +893,8 @@ USkeletalMeshComponent* UGameplayAbility::GetOwningComponentFromActorInfo() cons
 	{
 		return nullptr;
 	}
-	if (CurrentActorInfo->AnimInstance.IsValid())
-	{
-		return CurrentActorInfo->AnimInstance.Get()->GetOwningComponent();
-	}
-	return NULL;
+
+	return CurrentActorInfo->SkeletalMeshComponent.Get();
 }
 
 FGameplayEffectSpecHandle UGameplayAbility::MakeOutgoingGameplayEffectSpec(TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level) const
@@ -1066,7 +1065,7 @@ FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFr
 {
 	FGameplayAbilityTargetingLocationInfo ReturnLocation;
 	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::SocketTransform;
-	ReturnLocation.SourceComponent = GetActorInfo().AnimInstance.IsValid() ? GetActorInfo().AnimInstance.Get()->GetOwningComponent() : NULL;
+	ReturnLocation.SourceComponent = GetActorInfo().SkeletalMeshComponent.Get();
 	ReturnLocation.SourceAbility = this;
 	ReturnLocation.SourceSocketName = SocketName;
 	return ReturnLocation;
@@ -1257,6 +1256,13 @@ void UGameplayAbility::K2_ExecuteGameplayCueWithParams(FGameplayTag GameplayCueT
 void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context, bool bRemoveOnAbilityEnd)
 {
 	check(CurrentActorInfo);
+
+	// Make default context if nothing is passed in
+	if (Context.IsValid() == false)
+	{
+		Context = MakeEffectContext(CurrentSpecHandle, CurrentActorInfo);
+	}
+
 	Context.SetAbility(this);
 
 	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, Context);
@@ -1729,7 +1735,7 @@ void UGameplayAbility::NotifyAbilityTaskWaitingOnPlayerData(class UAbilityTask* 
 
 void UGameplayAbility::NotifyAbilityTaskWaitingOnAvatar(class UAbilityTask* AbilityTask)
 {
-	if (!CurrentActorInfo || CurrentActorInfo->AvatarActor.IsValid() == false)
+	if (CurrentActorInfo && CurrentActorInfo->AvatarActor.IsValid() == false)
 	{
 		ABILITY_LOG(Log, TEXT("Ability %s is force cancelling because Task %s has started while there is no valid AvatarActor"), *GetName(), *AbilityTask->GetDebugString());
 		CurrentActorInfo->AbilitySystemComponent->ForceCancelAbilityDueToReplication(this);

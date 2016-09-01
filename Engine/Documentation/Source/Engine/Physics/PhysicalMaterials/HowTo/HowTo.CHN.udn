@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Physical Material How To Guides
-Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
-Description:Various How To Guides focused on the creation and usage of Physical Materials.
-Version: 4.9
-SkillLevel: Intermediate
+﻿INTSourceChangelist:2715330
+Availability:Public
+Title:物理材质操作指南
+Crumbs:%ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+Description:各种着重介绍物理材质的创建和使用的操作指南。
+Version:4.9
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,14 +45,14 @@ SkillLevel: Intermediate
 [/OBJECT]
 [/VAR]
 
-This section of documentation contains a number of short "how to" guides focused on getting things done with **Physical Materials**.
+本部分的文档包含多份简短的操作指南，重点说明如何使用 **物理材质** 实现目的。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		How To
+		操作指南
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Physics/PhysicalMaterials/HowTo/Creation)

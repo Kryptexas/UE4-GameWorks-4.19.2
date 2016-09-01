@@ -1,7 +1,7 @@
 Availability:Public
 Title: Widget Type Reference
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:Reference guide to the different types of Widgets that can be used in a Widget Blueprint in UMG. 
+Description:Reference for the types of Widgets available in Unreal Motion Graphics.
 version: 4.9
 
 [TOC(start:2 end:2)]
@@ -25,13 +25,14 @@ The most frequently used Widgets will more than likely fall under this category.
 | -------- | ----------- |
 | **Border** | A border is a container widget that can contain one child widget, providing an opportunity to surround it with a border image and adjustable padding. |
 | **Button** | The button is a single-child, click-able primitive widget which enables basic interaction. You can place any other widget inside a button to make a more complex and interesting click-able element in your UI.  |
-| **Check Box** | The check box widget allows you to display a toggled state of 'unchecked', 'checked', and 'indeterminable'. You can use the check box for a classic check box, or as a toggle button, or as radio buttons.  |
+| **Check Box** | The check box widget allows you to display a toggled state of 'unchecked', 'checked', and 'indeterminable'. You can use the check box for a classic check box, as a toggle button, or as radio buttons.  |
 | **Image** | The image widget allows you to display a Slate Brush, Texture, or Material in the UI. |
 | [Named Slot](Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot#desc] |
 | **Progress Bar** | The progress bar widget is a simple bar that fills up and can be restyled to fit any number of uses such as Experience, Health, Points, etc. |
 | **Slider** | A simple widget that shows a sliding bar with a handle that allows you to control the value between 0-1. |
 | **Text** | The basic method for displaying text on screen and could be used for text descriptions of options or other UI elements. |
 | **Text Box** | Allows the user to type in custom text. Only permits a single line of text to be entered. |
+
 
 ## Input Widgets
 
@@ -41,7 +42,7 @@ There are a couple of options on how to allow Input from a user which are outlin
 
 | Option | Description |
 | -------- | ----------- |
-| **Combo Box (String)** | The combo box (string) allows you to display a list of options to the user in a dropdown menu from them to select one. |
+| **Combo Box (String)** | The combo box (string) allows you to display a list of options to the user in a dropdown menu for them to select one. |
 | **Spin Box** | A numerical entry box that allows for direct entry of the number or allows the user to click and slide the number. |
 | **Text Box (Multi-Line)** | Similar to the Text Box but allows a user to enter multiple lines of text instead of a single line. |
 
@@ -73,7 +74,7 @@ The **Panel** category contains useful Widgets for controlling layouts and placi
 | **Scroll Box** | An arbitrary scrollable collection of widgets. This is great for presenting 10-100 widgets in a list. This does not support virtualization. |
 | **Uniform Grid Panel** | A panel that evenly divides up available space between all of its children. |
 | **Vertical Box** | A vertical box widget is a layout panel allowing child widgets to be automatically laid out vertically. This is great for stacking widgets on top of each other and keeping widgets aligned vertically.|
-| **Widget Switcher** | A widget switcher is like a tab control but without the tabs which you can create on your own and combine with this to get a tabbed effect. At most one widget is visible at a time.  |
+| **Widget Switcher** | A widget switcher is like a tab control but without the tabs which you can create on your own and combine with this to get a tabbed effect. At most, one widget is visible at a time.  |
 | [Wrap Box](Engine\UMG\UserGuide\WidgetTypeReference\WrapBox) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WrapBox#desc] |
 
 
@@ -104,7 +105,15 @@ For example, you could create a _Player Health_ widget that contains display inf
 
 
 
+## Experimental Widgets
 
+![](ExperimentalPalette.png)
+
+These widgets are considered to be in the early stages of development and are **Experimental**. In order to access these widgets, you will need to enable them from the **Editor Preferences/Experimental** section or from the **Plugins** menu.  
+
+| Option | Description |
+| -------- | ----------- |
+| [Web Browser](Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser#desc] |
 
 
 

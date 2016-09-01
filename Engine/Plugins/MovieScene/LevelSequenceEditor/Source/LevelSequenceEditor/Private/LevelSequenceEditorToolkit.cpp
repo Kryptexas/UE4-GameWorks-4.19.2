@@ -7,7 +7,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "CineCameraActor.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "ISequencer.h"
 #include "ISequencerModule.h"
 #include "LevelSequenceActor.h"
@@ -25,8 +25,10 @@
 #include "SceneOutlinerModule.h"
 #include "SceneOutlinerPublicTypes.h"
 #include "SDockTab.h"
+#include "LevelSequencePlayer.h"
 #include "SequencerSettings.h"
 #include "SequencerSpawnRegister.h"
+#include "MovieSceneCaptureDialogModule.h"
 
 // @todo sequencer: hack: setting defaults for transform tracks
 #include "MovieScene3DTransformSection.h"
@@ -46,6 +48,66 @@ namespace SequencerDefs
 	static const FName SequencerAppIdentifier(TEXT("SequencerApp"));
 }
 
+// Defer to ULevelSequencePlayer's implementation for getting event contexts from the current world
+TArray<UObject*> GetLevelSequenceEditorEventContexts()
+{
+	TArray<UObject*> Contexts;
+
+	// Return PIE worlds if there are any
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::PIE)
+		{
+			ULevelSequencePlayer::GetEventContexts(*Context.World(), Contexts);
+		}
+	}
+
+	if (Contexts.Num())
+	{
+		return Contexts;
+	}
+
+	// Else just return the editor world
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::Editor)
+		{
+			ULevelSequencePlayer::GetEventContexts(*Context.World(), Contexts);
+			break;
+		}
+	}
+
+	return Contexts;
+}
+
+UObject* GetLevelSequenceEditorPlaybackContext()
+{
+	UWorld* PIEWorld = nullptr;
+	UWorld* EditorWorld = nullptr;
+
+	IMovieSceneCaptureDialogModule* CaptureDialogModule = FModuleManager::GetModulePtr<IMovieSceneCaptureDialogModule>("MovieSceneCaptureDialog");
+	UWorld* RecordingWorld = CaptureDialogModule ? CaptureDialogModule->GetCurrentlyRecordingWorld() : nullptr;
+
+	// Return PIE worlds if there are any
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::PIE)
+		{
+			UWorld* ThisWorld = Context.World();
+			if (RecordingWorld != ThisWorld)
+			{
+				PIEWorld = ThisWorld;
+			}
+		}
+		else if (Context.WorldType == EWorldType::Editor)
+		{
+			// We can always animate PIE worlds
+			EditorWorld = Context.World();
+		}
+	}
+
+	return PIEWorld ? PIEWorld : EditorWorld;
+}
 
 static TArray<FLevelSequenceEditorToolkit*> OpenToolkits;
 
@@ -70,13 +132,14 @@ FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkitOpened& FLevelSequenceEd
  *****************************************************************************/
 
 FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkit(const TSharedRef<ISlateStyle>& InStyle)
-	: Style(InStyle)
+	: LevelSequence(nullptr)
+	, Style(InStyle)
 {
 	// register sequencer menu extenders
 	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
-	int32 NewIndex = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().Add(
+	int32 NewIndex = SequencerModule.GetAddTrackMenuExtensibilityManager()->GetExtenderDelegates().Add(
 		FAssetEditorExtender::CreateRaw(this, &FLevelSequenceEditorToolkit::HandleMenuExtensibilityGetExtender));
-	SequencerExtenderHandle = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
+	SequencerExtenderHandle = SequencerModule.GetAddTrackMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
 
 	OpenToolkits.Add(this);
 }
@@ -101,7 +164,7 @@ FLevelSequenceEditorToolkit::~FLevelSequenceEditorToolkit()
 
 	// unregister sequencer menu extenders
 	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
-	SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().RemoveAll([this](const FAssetEditorExtender& Extender)
+	SequencerModule.GetAddTrackMenuExtensibilityManager()->GetExtenderDelegates().RemoveAll([this](const FAssetEditorExtender& Extender)
 	{
 		return SequencerExtenderHandle == Extender.GetHandle();
 	});
@@ -141,6 +204,8 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
 		SequencerInitParams.SpawnRegister = SpawnRegister;
+		SequencerInitParams.EventContexts.BindStatic(GetLevelSequenceEditorEventContexts);
+		SequencerInitParams.PlaybackContext.BindStatic(GetLevelSequenceEditorPlaybackContext);
 
 		TSharedRef<FExtender> AddMenuExtender = MakeShareable(new FExtender);
 
@@ -213,27 +278,27 @@ FString FLevelSequenceEditorToolkit::GetWorldCentricTabPrefix() const
 }
 
 
-void FLevelSequenceEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FLevelSequenceEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	if (IsWorldCentricAssetEditor())
 	{
 		return;
 	}
 
-	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
+	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
 
-	TabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FLevelSequenceEditorToolkit::HandleTabManagerSpawnTab))
+	InTabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FLevelSequenceEditorToolkit::HandleTabManagerSpawnTab))
 		.SetDisplayName(LOCTEXT("SequencerMainTab", "Sequencer"))
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
 		.SetIcon(FSlateIcon(Style->GetStyleSetName(), "LevelSequenceEditor.Tabs.Sequencer"));
 }
 
 
-void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	if (!IsWorldCentricAssetEditor())
 	{
-		TabManager->UnregisterTabSpawner(SequencerMainTabId);
+		InTabManager->UnregisterTabSpawner(SequencerMainTabId);
 	}
 
 	// @todo remove when world-centric mode is added
@@ -490,6 +555,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 			}
 
 			Sequencer->KeyProperty(KeyPropertyParams);
+
 			Sequencer->UpdateRuntimeInstances();
 		}
 	}
@@ -514,13 +580,11 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 	ActorsValidForPossession.RemoveAll([&](AActor* In){ return !IsActorValidForPossession(In); });
 
 	FText SelectedLabel;
-	FSlateIcon ActorIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(AActor::StaticClass()));
-
+	FSlateIcon ActorIcon = FSlateIconFinder::FindIconForClass(AActor::StaticClass());
 	if (ActorsValidForPossession.Num() == 1)
 	{
 		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add '{0}'"), FText::FromString(ActorsValidForPossession[0]->GetActorLabel()));
-		FName IconName = FClassIconFinder::FindIconNameForActor(ActorsValidForPossession[0]);
-		ActorIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(ActorsValidForPossession[0]->GetClass()));
+		ActorIcon = FSlateIconFinder::FindIconForClass(ActorsValidForPossession[0]->GetClass());
 	}
 	else if (ActorsValidForPossession.Num() > 1)
 	{
@@ -602,7 +666,7 @@ void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute(UPrimi
 		MaterialTrack->Modify();
 		MaterialTrack->SetMaterialIndex( MaterialIndex );
 
-		Sequencer->NotifyMovieSceneDataChanged();
+		Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
 }
 
@@ -647,7 +711,7 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 			UObject* SpawnedCamera = GetSequencer()->FindSpawnedObjectOrTemplate(CameraGuid);
 			if (SpawnedCamera)
 			{
-				GWorld->EditorDestroyActor(NewCamera, true);
+				GCurrentLevelEditingViewportClient->GetWorld()->EditorDestroyActor(NewCamera, true);
 				NewCamera = Cast<ACineCameraActor>(SpawnedCamera);
 			}
 		}

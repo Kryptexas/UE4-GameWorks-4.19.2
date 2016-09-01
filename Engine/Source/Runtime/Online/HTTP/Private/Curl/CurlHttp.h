@@ -99,7 +99,7 @@ namespace
 /**
  * Curl implementation of an HTTP request
  */
-class FCurlHttpRequest : public IHttpRequest
+class FCurlHttpRequest : public IHttpThreadedRequest
 {
 public:
 
@@ -133,6 +133,13 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual float GetElapsedTime() override;
 	//~ End IHttpRequest Interface
+
+	//~ Begin IHttpRequestThreaded Interface
+	virtual bool StartThreadedRequest() override;
+	virtual void FinishRequest() override;
+	virtual bool IsThreadedRequestComplete() override;
+	virtual void TickThreadedRequest(float DeltaSeconds) override;
+	//~ End IHttpRequestThreaded Interface
 
 	/**
 	 * Returns libcurl's easy handle - needed for HTTP manager.
@@ -169,7 +176,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	FCurlHttpRequest(CURLSH* InShareHandle);
+	FCurlHttpRequest();
 
 	/**
 	 * Destructor. Clean up any connection/request handles
@@ -287,6 +294,11 @@ private:
 	 */
 	void CleanupRequest();
 
+	/**
+	 * Trigger the request progress delegate if progress has changed
+	 */
+	void CheckProgressDelegate();
+
 private:
 
 	/** Pointer to an easy handle specific to this request */
@@ -305,8 +317,6 @@ private:
 	CURLMcode		CurlAddToMultiResult;
 	/** Operation result code as returned by libcurl */
 	CURLcode		CurlCompletionResult;
-	/** Number of bytes sent already */
-	uint32			BytesSent;
 	/** The response object which we will use to pair with this request */
 	TSharedPtr<class FCurlHttpResponse,ESPMode::ThreadSafe> Response;
 	/** BYTE array payload to use with the request. Typically for a POST */
@@ -323,6 +333,18 @@ private:
 	float ElapsedTime;
 	/** Elapsed time since the last received HTTP response. */
 	float TimeSinceLastResponse;
+	/** Number of bytes sent already */
+	FThreadSafeCounter BytesSent;
+	/** Last bytes read reported to progress delegate */
+	int32 LastReportedBytesRead;
+	/** Last bytes sent reported to progress delegate */
+	int32 LastReportedBytesSent;
+	/** Number of info channel messages to cache */
+	static int32 NumberOfInfoMessagesToCache;
+	/** Index of least recently cached message */
+	int32 LeastRecentlyCachedInfoMessageIndex;
+	/** Cache of info messages from libcurl */
+	TArray<FString> InfoMessageCache;
 };
 
 
@@ -380,7 +402,7 @@ private:
 	/** BYTE array to fill in as the response is read via didReceiveData */
 	TArray<uint8> Payload;
 	/** Caches how many bytes of the response we've read so far */
-	int32 TotalBytesRead;
+	FThreadSafeCounter TotalBytesRead;
 	/** Cached key/value header pairs. Parsed once request completes */
 	TMap<FString, FString> Headers;
 	/** Cached code from completed response */

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2622022
 Availability:Public
 Title:シェアード ポインタ
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
 Description:共有のオーナーシップ、自動的な無効化、弱い参照などをサポートするスマートポインタ
-Version:4.5
+Version:4.9
 
 [TOC(start:2)]
 
@@ -29,10 +29,10 @@ Version:4.5
 
 新規シェアードポインタの作成例：
 
-	// 空のシェアードポインタを作成
+	// Create an empty shared pointer (空のシェアードポインタを作成)
 	TSharedPtr<FTreeNode> EmptyNode;
 
-	// 新規オブジェクトにシェアードポインタを作成
+	// Create a shared pointer to a new object (新規オブジェクトにシェアードポインタを作成)
 	TSharedPtr<FTreeNode> Node( new FTreeNode() );
 
 2 番めの例では、新しい FTreeNode オブジェクトは、オブジェクトを指すシェアードポインタによって実際に所有されています。シェアードポインタのスコープが外れると、オブジェクトは破棄されます。
@@ -43,10 +43,10 @@ Version:4.5
 
 参照しているシェアードポインタがなくなるまでオブジェクトは存在し続けます。
 
-シェアードポインタは、`Reset()` メソッドまたは NULL をアサインしてリセットできます。
+シェアードポインタは、**Reset()** メソッドまたは NULL をアサインしてリセットできます。
 
 	Node.Reset();
-	Node = NULL;
+	Node = null;
 
 ## 逆参照とアクセス
 
@@ -67,25 +67,25 @@ Version:4.5
 		...
 	}
 
-シェアードポインタは、`IsValid()` メソッドを使用して NULL をテストしたり、または生ポインタにアクセスし、比較を実行します。
+シェアードポインタは、**IsValid()** メソッドを使用して NULL をテストしたり、または生ポインタにアクセスし、比較を実行します。
 
 	if( Node.IsValid() )
 	{
 		...
 	}
 
-	if( Node.Get() != NULL )
+	if( Node.Get() != null )
 	{
 		...
 	}
 
 ## 変換
 
-暗黙の変換は非常に危険なため禁止されています。例えば以下はコンパイルされません。
+暗黙の変換は非常に危険なため禁止されています。例えば、以下はコンパイルされません。
 
 	TSharedPtr<float> Height = 45.0f;
 
-しかし、`MakeShareable()`メソッドで明示的な変換ができます。
+しかし、MakeShareable() メソッドで明示的な変換ができます。
 
 	TSharedPtr<float> Height = MakeShareable( new float( 45.0f ) );
 

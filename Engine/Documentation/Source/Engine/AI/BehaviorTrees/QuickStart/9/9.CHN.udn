@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2774060
 Availability:Public
-Title: 9. Place the Character
+Title:9.放置角色
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
-Description:Step 9. Place the Character
+Description:第九步。放置角色
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,14 +25,14 @@ Description:Step 9. Place the Character
 
 [EXCERPT:s9]
 
-We need to place our AI_Character into the level so it can interact with the player or environment.
+需要将 AI_Character 放入关卡中，使其与玩家和场景形成互动。
 
-## Steps
+## 步骤
 
-* From the **Content Browser**, click and drag the `AI_Character`, that you created earlier, into the level.
+* 在 **内容浏览器** 中，点击之前创建的 AI_Character 并将其拖入关卡。
 
 [REGION:lightbox]
-[![](placeCharacter.png)(w:940 convert:false)](placeCharacter.png)
+[![](AIDragIntoLevel.jpg)(w:920)
 [/REGION]
 [/EXCERPT:s9]
 

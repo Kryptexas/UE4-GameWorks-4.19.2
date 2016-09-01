@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreUObject.h"
 #include "Factory.generated.h"
 
 
@@ -20,11 +21,11 @@ public:
 
 	/** The class manufactured by this factory. */
 	UPROPERTY()
-	TSubclassOf<class UObject>  SupportedClass;
+	TSubclassOf<UObject>  SupportedClass;
 
 	/** Class of the context object used to help create the object. */
 	UPROPERTY()
-	TSubclassOf<class UObject>  ContextClass;
+	TSubclassOf<UObject>  ContextClass;
 
 	/** List of formats supported by the factory. Each entry is of the form "ext;Description" where ext is the file extension. */
 	UPROPERTY()

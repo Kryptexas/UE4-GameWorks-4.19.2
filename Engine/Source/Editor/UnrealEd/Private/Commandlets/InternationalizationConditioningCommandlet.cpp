@@ -357,7 +357,7 @@ bool UInternationalizationConditioningCommandlet::ProcessManifest( const FString
 
 		// We use the file(package) name and the namespace for the manifest namespace so we avoid potential collisions when multiple ini files have entries where the KEY and namespace are the same but the source text is different
 		FString NewNamespace = Prop.Namespace;
-		FContext PropContext;
+		FManifestContext PropContext;
 		PropContext.Key = Prop.Key;
 		PropContext.SourceLocation = NewNamespace;
 		FLocItem Source( Prop.SourceText );

@@ -793,6 +793,24 @@ bool FBaseParser::MatchIdentifier( const TCHAR* Match )
 	return false;
 }
 
+bool FBaseParser::MatchConstInt( const TCHAR* Match )
+{
+	FToken Token;
+	if (GetToken(Token))
+	{
+		if( Token.TokenType==TOKEN_Const && Token.Type == CPT_Int && FCString::Stricmp(Token.Identifier,Match)==0 )
+		{
+			return true;
+		}
+		else
+		{
+			UngetToken(Token);
+		}
+	}
+	
+	return false;
+}
+
 
 void FBaseParser::MatchSemi()
 {

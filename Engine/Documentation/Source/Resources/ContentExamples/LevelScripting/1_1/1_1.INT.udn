@@ -2,6 +2,7 @@ Availability: Docs
 Title:1.1 - Trigger Box
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
 Description:An overview of the Level Scripting example level, example 1.1: Trigger box used to open a door
+Version: 4.9
 
 
 [VAR:TopicCompact]

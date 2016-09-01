@@ -1785,28 +1785,9 @@ uint32 UParticleModuleLocationBoneSocket::RequiredBytesPerInstance()
 
 	SetSourceIndexMode();
 
-	int32 ArraySize = 0;
-	int32 ElemSize = 0;
-	switch (SourceIndexMode)
-	{
-		case EBoneSocketSourceIndexMode::SourceLocations:
-		{
-			ArraySize = SourceLocations.Num();
-			ElemSize = InheritingBoneVelocity() ? sizeof(FVector) * 2 : 0;
-		}
-		break;
-		case EBoneSocketSourceIndexMode::PreSelectedIndices:
-		{
-			ArraySize = NumPreSelectedIndices;
-			ElemSize = (sizeof(FVector) * 2) + sizeof(int32);
-		}
-		break;
-		case EBoneSocketSourceIndexMode::Direct:
-		{
-			ArraySize = 0;
-		}
-		break;
-	}
+	//Have to take the max of all variants as lots of code assumes all LODs use the same memory and prep it the same way :(
+	int32 ArraySize = FMath::Max(SourceLocations.Num(), NumPreSelectedIndices);
+	int32 ElemSize = (sizeof(FVector)* 2) + sizeof(int32);
 	
 	int32 BoneArraySize = ArraySize * ElemSize;
 	
@@ -1819,27 +1800,12 @@ uint32 UParticleModuleLocationBoneSocket::PrepPerInstanceBlock(FParticleEmitterI
 	if (Payload)
 	{
 		FMemory::Memzero(Payload, sizeof(FModuleLocationBoneSocketInstancePayload));
-		
-		int32 ArraySize = 0;
-		bool bNeedPreSelectedIndices = false;
-		switch (SourceIndexMode)
-		{
-			case EBoneSocketSourceIndexMode::SourceLocations:
-			{
-				ArraySize = InheritingBoneVelocity() ? SourceLocations.Num() : 0;
-			}
-			break;
-			case EBoneSocketSourceIndexMode::PreSelectedIndices:
-			{
-				ArraySize = NumPreSelectedIndices;
-				bNeedPreSelectedIndices = true;
-			}
-			break;
-		}
 
+		int32 ArraySize = FMath::Max(SourceLocations.Num(), NumPreSelectedIndices);
+	
 		if (ArraySize > 0)
 		{
-			Payload->InitArrayProxies(ArraySize, bNeedPreSelectedIndices);
+			Payload->InitArrayProxies(ArraySize);
 		}
 	}
 	return 0xffffffff;
@@ -2855,93 +2821,59 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticl
 			(FModuleLocationVertSurfaceInstancePayload*)(Owner->GetModuleInstanceData(this));
 
 		// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
-		int32 ChunkIndex;
+		int32 SectionIndex;
 		int32 VertIndex;
-		bool bSoftVertex;
 		bool bHasExtraBoneInfluences;
-		Model.GetChunkAndSkinType(InVertexIndex, ChunkIndex, VertIndex, bSoftVertex, bHasExtraBoneInfluences);
+		Model.GetSectionFromVertexIndex(InVertexIndex, SectionIndex, VertIndex, bHasExtraBoneInfluences);
 
-		check(ChunkIndex < Model.Chunks.Num());
+		check(SectionIndex < Model.Sections.Num());
+
+		FSkelMeshSection& Section = Model.Sections[SectionIndex];
 
 		if (ValidMaterialIndices.Num() > 0)
 		{
-			for (int32 SectIdx = 0; SectIdx < Model.Sections.Num(); SectIdx++)
+			// Does the material match one of the valid ones
+			bool bFound = false;
+			for (int32 ValidIdx = 0; ValidIdx < ValidMaterialIndices.Num(); ValidIdx++)
 			{
-				FSkelMeshSection& Section = Model.Sections[SectIdx];
-				if (Section.ChunkIndex == ChunkIndex)
+				if (ValidMaterialIndices[ValidIdx] == Section.MaterialIndex)
 				{
-					// Does the material match one of the valid ones
-					bool bFound = false;
-					for (int32 ValidIdx = 0; ValidIdx < ValidMaterialIndices.Num(); ValidIdx++)
-					{
-						if (ValidMaterialIndices[ValidIdx] == Section.MaterialIndex)
-						{
-							bFound = true;
-							break;
-						}
-					}
-
-					if (!bFound)
-					{
-						// Material wasn't in the valid list...
-						return false;
-					}
+					bFound = true;
+					break;
 				}
+			}
+
+			if (!bFound)
+			{
+				// Material wasn't in the valid list...
+				return false;
 			}
 		}
 
-		const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIndex];
-
 		return Model.VertexBufferGPUSkin.HasExtraBoneInfluences()
-			? VertInfluencedByActiveBoneTyped<true>(bSoftVertex, Model, Chunk, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
-			: VertInfluencedByActiveBoneTyped<false>(bSoftVertex, Model, Chunk, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
+			? VertInfluencedByActiveBoneTyped<true>(Model, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
+			: VertInfluencedByActiveBoneTyped<false>(Model, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
 	}
 	return false;
 }
 
 template<bool bExtraBoneInfluencesT>
-bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(bool bSoftVertex, FStaticLODModel& Model, const FSkelMeshChunk& Chunk, int32 VertIndex, USkeletalMeshComponent* InSkelMeshComponent, FModuleLocationVertSurfaceInstancePayload* InstancePayload, int32* OutBoneIndex)
+bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(FStaticLODModel& Model, const FSkelMeshSection& Section, int32 VertIndex, USkeletalMeshComponent* InSkelMeshComponent, FModuleLocationVertSurfaceInstancePayload* InstancePayload, int32* OutBoneIndex)
 {
 	const TArray<int32>& MasterBoneMap = InSkelMeshComponent->GetMasterBoneMap();
 	// Do soft skinning for this vertex.
-	if(bSoftVertex)
-	{
-		const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcSoftVertex = Model.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Chunk.GetSoftVertexBufferIndex()+VertIndex);
+	const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcSoftVertex = Model.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Section.GetVertexBufferIndex()+VertIndex);
 
 #if !PLATFORM_LITTLE_ENDIAN
-		// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
-		for(int32 InfluenceIndex = MAX_INFLUENCES-1;InfluenceIndex >=  MAX_INFLUENCES-Chunk.MaxBoneInfluences;InfluenceIndex--)
+	// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
+	for(int32 InfluenceIndex = MAX_INFLUENCES-1;InfluenceIndex >=  MAX_INFLUENCES- Section.MaxBoneInfluences;InfluenceIndex--)
 #else
-		for(int32 InfluenceIndex = 0;InfluenceIndex < Chunk.MaxBoneInfluences;InfluenceIndex++)
+	for(int32 InfluenceIndex = 0;InfluenceIndex < Section.MaxBoneInfluences;InfluenceIndex++)
 #endif
-		{
-			int32 BoneIndex = Chunk.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
-			if(InSkelMeshComponent->MasterPoseComponent.IsValid())
-			{		
-				check(MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
-				BoneIndex = MasterBoneMap[BoneIndex];
-			}
-
-			if(!InstancePayload->NumValidAssociatedBoneIndices || InstancePayload->ValidAssociatedBoneIndices.Contains(BoneIndex))
-			{
-				if(OutBoneIndex)
-				{
-					*OutBoneIndex = BoneIndex;
-				}
-
-				return true;
-			}
-		}
-	}
-	// Do rigid (one-influence) skinning for this vertex.
-	else
 	{
-		const int32 RigidInfluenceIndex = SkinningTools::GetRigidInfluenceIndex();
-		const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcRigidVertex = Model.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Chunk.GetRigidVertexBufferIndex()+VertIndex);
-
-		int32 BoneIndex = Chunk.BoneMap[SrcRigidVertex->InfluenceBones[RigidInfluenceIndex]];
+		int32 BoneIndex = Section.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
 		if(InSkelMeshComponent->MasterPoseComponent.IsValid())
-		{
+		{		
 			check(MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
 			BoneIndex = MasterBoneMap[BoneIndex];
 		}
@@ -2952,9 +2884,11 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(boo
 			{
 				*OutBoneIndex = BoneIndex;
 			}
+
 			return true;
 		}
 	}
+
 
 	return false;
 }

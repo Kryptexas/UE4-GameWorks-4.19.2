@@ -1,19 +1,25 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2690185
 Availability:Public
-Title:シーン フリンジ
+Title:Scene Fringe
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:実際のカメラレンズ端付近の色の移り変わりをシミュレートする色収差エフェクト
+Version:4.9
+
 
 [EXCERPT:SceneFringe_Desc]
 **Scene Fringe** は色収差エフェクトで、現実世界のカメラレンズで色の移り変わりをシミュレートします。エフェクトは、主に画像の輪郭に顕著に現れます。
 [/EXCERPT:SceneFringe_Desc]
 
-[REGION:imagetable]
-| ![Without Scene Fringe](scenefringe_0.png)(w:455) | ![With Scene Fringe](scenefringe_2.png)(w:455) |
-| :----: | :----: |
-| シーンフリンジ無し | シーンフリンジ有 (極端な設定) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Without Scene Frigne](scenefringe_0.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![With Scene Fringe](scenefringe_2.png)(w:700)
+	[/PARAM]
+[/OBJECT]
 
+**Scene Fringe** 設定は、**[Post Process Settings (ポストプロセス設定)]** の **[Scene Color (シーンカラー)]** にあります。
 
 | プロパティ | 説明 |
 | -------- | ----------- |

@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2685380
+Availability:Public
 Title:レンズフレア
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:カメラレンズのマイナスの特性により明るいオブジェクトから散乱する光源のシミュレーション
+Version:4.9
 
 [REGION:fullwidth]
 ![Lens Flare](lens_flare.png)(w:1182)
@@ -20,36 +22,51 @@ Description:カメラレンズのマイナスの特性により明るいオブ�
 | **Lens Flare Tints 1/2/3/4/5/6/7/8** | 個々のレンズフレアの色調を弱めます。|
 | **Intensity** | 画像ベースのレンズフレアの輝度スケール (リニア)。 |
 
+
+
 <!--
+
 [EXCERPT:Tint]
-[REGION:imagetable]
-| ![Lens Flare Tint - (1.0, 1.0, 1.0)](lens_flare_tint_off_small.png)(w:350) | ![Lens Flare Tint - (0.25, 1.0, 1.0)](lens_flare_tint_on_small.png)(w:350)
-| ------ | ------ |
-| (1.0, 1.0, 1.0) | (0.25, 1.0, 1.0) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lens Flare Tint (1.0, 1.0, 1.0)](lens_flare_tint_off_small.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Lens Flare Tint (0.25, 1.0, 1.0)](lens_flare_tint_on_small.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Tint]
 
 [EXCERPT:Threshold]
-[REGION:imagetable]
-| ![Lens Flare Threshold - 0.1](lens_flare_threshold_0_small.png)(w:350) | ![Lens Flare Threshold - 8](lens_flare_threshold_8_small.png)(w:350) |
-| ------ | ------ |
-| 0.1 | 8.0 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lens Flare Threshold - 0.1](lens_flare_threshold_0_small.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Lens Flare Threshold - 8](lens_flare_threshold_8_small.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Threshold]
 
 [EXCERPT:BokehSize]
-[REGION:imagetable]
-| ![Lens Flare Size - 1](lens_flare_bokehsize_1_small.png)(w:350) | ![Lens Flare Size - 8](lens_flare_bokehsize_8_small.png)(w:350) |
-| ------ | ------ |
-| 1.0 | 8.0 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lens Flare Size - 1](lens_flare_bokehsize_1_small.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Lens Flare Size - 8](lens_flare_bokehsize_8_small.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:BokehSize]
 
 [EXCERPT:BokehShape]
-[REGION:imagetable]
-| ![Lens Flare Shape - Default](lens_flare_bokehshape_default_small.png)(w:350) | ![Lens Flare Shape - Square](lens_flare_bokehshape_square_small.png)(w:350) |
-| ------ | ------ |
-| ボケ形状 - デフォルト | ボケ形状 - スクエア (正方) |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Lens Flare Shape - Default](lens_flare_bokehshape_default_small.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Lens Flare Shape - Square](lens_flare_bokehshape_square_small.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:BokehShape]
 -->

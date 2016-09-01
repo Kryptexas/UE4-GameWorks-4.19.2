@@ -1,28 +1,37 @@
-﻿INTSourceChangelist:2602692
+﻿INTSourceChangelist:2940199
 Title: 삼성 Gear VR 개발
 Description:UE4 에서 삼성 Gear VR 헤드셋을 사용하기 위한 안내입니다.
 Availability:Public
 Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
-Version: 4.8
+Version: 4.9
 prereq: Engine\Blueprints\GettingStarted
+Crumbs:%ROOT%, Platforms
+type:landing
+parent:Platforms/VR
+tags:VR
+tags:GearVR
 
+## 시작하기
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/vr_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		기어 VR 개발
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Platforms/GearVR/Prerequisites "%Platforms/GearVR/Prerequisites:description%")
-		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
-		* [](Platforms/GearVR/GlobalMenu "%Platforms/GearVR/GlobalMenu:description%")
-		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
-		* [](Platforms/GearVR/Debugging "%Platforms/GearVR/BestPractices:description%")
-	[/PARAM]
+[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/GearVR")]
+
+## GearVR 토픽
+
+[DIR(output:"listbutton" type:"overview" parent:"Platforms/GearVR")]
+
+## Training Streams
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+rNjDsNYvgfk
+[/PARAMLITERAL]
 [/OBJECT]
+

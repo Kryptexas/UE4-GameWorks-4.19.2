@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2950818
+Title:启动 VR 模式
+Description:学习如何在虚幻编辑器中启用 VR 模式
+Crumbs:
+Availability: public
+parent:Engine/Editor/VR
+type: howto
+order:2
+tags:VR
+tags:准备开始
+version:4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/ActivateVRMode:title%](Engine/Editor/VR/ActivateVRMode/activate_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/ActivateVRMode:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/ActivateVRMode]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/ActivateVRMode:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/ActivateVRMode:title%](Engine/Editor/VR/ActivateVRMode/activate_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/ActivateVRMode:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/ActivateVRMode]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/ActivateVRMode:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:main]
+
+1. 编辑器加载后，点击 **File > New** 并打开新的“VR-Basic”关卡。该场景是一个理想的训练场，便于您学习如何控制。
+
+	![](vr_map_template.png)
+
+1. 在 Editor Preferences（**Edit > Editor Preferences**）中，选择 **Experimental** 类目，然后选中 **Enable VR Editing**。
+
+1. 点击编辑器主工具栏上的 **VR** 按钮即可启动 VR 模式。如果追踪空间已正确校正，您会看到一个漂浮的教程窗口，以及部分帮助说明。
+
+	![](vrmode_toolbar.png)
+	
+	[REGION:tip]
+	将命令行上的 `-VREditor` 传到 UE4Editor.exe 即可直接进入 VR 模式。
+	[/REGION]
+1. 如需使用此教程，将控制器放置在需要阅读的部分上，按下扳机键即可打开此部分。 
+
+随时按下 Home 键均可返回此菜单，可选择其他部分进行阅读。
+
+[/EXCERPT:main]

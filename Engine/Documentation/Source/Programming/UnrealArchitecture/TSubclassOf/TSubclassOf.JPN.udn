@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2465658
+﻿INTSourceChangelist:2624274
 Title:TSubclassOf
 Crumbs:
 Description:
 Availability:Public
-Version:4.7
+Version:4.9
 
-TSubclassOf は UClass 型安全性を提供するテンプレート クラスです。例えば、デザイナーがダメージタイプを指定できる Projectile クラスを作成していると想像してみましょう。タイプ UClass の UPROPERTY を作成して、デザイナーが常に UDamageType から派生したクラスをアサインしてくれるように願うか、 TSubclassOf テンプレートを使って選択するように強制します。次のサンプル コードでその違いが分かります。
+**TSubclassOf** は UClass 型に安全性を提供するテンプレート クラスです。例えば、デザイナーがダメージタイプを指定できる Projectile クラスを作成しているとします。タイプ UClass の UPROPERTY を作成して、デザイナーが常に UDamageType から派生したクラスをアサインしてくれるよう期待するか、もしくは TSubclassOf テンプレートを使って強制的に選択するようにします。次のサンプル コードでその違いが分かります。
 
 	/** type of damage */
 	UPROPERTY(EditDefaultsOnly, Category=Damage)

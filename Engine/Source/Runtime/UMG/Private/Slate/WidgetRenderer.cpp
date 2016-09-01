@@ -18,6 +18,8 @@ void SVirtualWindow::Construct(const FArguments& InArgs)
 {
 	bIsPopupWindow = true;
 	bVirtualWindow = true;
+	bIsFocusable = false;
+	bShouldResolveDeferred = true;
 	SetCachedSize(InArgs._Size);
 	SetNativeWindow(MakeShareable(new FGenericWindow()));
 
@@ -47,6 +49,39 @@ bool SVirtualWindow::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipConten
 	return true;
 }
 
+void SVirtualWindow::SetShouldResolveDeferred(bool bResolve)
+{
+	bShouldResolveDeferred = bResolve;
+}
+
+void SVirtualWindow::SetIsFocusable(bool bFocusable)
+{
+	bIsFocusable = bFocusable;
+}
+
+bool SVirtualWindow::SupportsKeyboardFocus() const
+{
+	return bIsFocusable;
+}
+
+int32 SVirtualWindow::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	if ( bShouldResolveDeferred )
+	{
+		OutDrawElements.BeginDeferredGroup();
+	}
+	
+	// We intentionally skip SWindow's OnPaint, since we are going to do our own handling of deferred groups.
+	int32 MaxLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	if ( bShouldResolveDeferred )
+	{
+		OutDrawElements.EndDeferredGroup();
+	}
+
+	return MaxLayer;
+}
+
 void SVirtualWindow::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
 	SWindow::OnArrangeChildren(AllottedGeometry, ArrangedChildren);
@@ -64,9 +99,11 @@ void SVirtualWindow::OnArrangeChildren(const FGeometry& AllottedGeometry, FArran
 	}
 }
 
-FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection)
+FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection, bool bInClearTarget)
 	: bPrepassNeeded(true)
 	, bUseGammaSpace(bUseGammaCorrection)
+	, bClearTarget(bInClearTarget)
+	, ViewOffset(0.0f, 0.0f)
 {
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer())
@@ -198,26 +235,33 @@ void FWidgetRenderer::DrawWindow(
 			    Window->IsEnabled());
 	    }
 
+		//MaxLayerId = WindowElementList.PaintDeferred(MaxLayerId);
+		DeferredPaints = WindowElementList.GetDeferredPaintList();
+
 		Renderer->DrawWindow_GameThread(DrawBuffer);
+
+		DrawBuffer.ViewOffset = ViewOffset;
 
 		struct FRenderThreadContext
 		{
 			FSlateDrawBuffer* DrawBuffer;
 			FTextureRenderTarget2DResource* RenderTargetResource;
 			TSharedPtr<ISlate3DRenderer, ESPMode::ThreadSafe> Renderer;
-		};
-		FRenderThreadContext Context =
+			bool bClearTarget;
+		}
+		Context =		
 		{
 			&DrawBuffer,
 			static_cast<FTextureRenderTarget2DResource*>(RenderTarget->GameThread_GetRenderTargetResource()),
-			Renderer
+			Renderer,
+			bClearTarget
 		};
 
 		// Enqueue a command to unlock the draw buffer after all windows have been drawn
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(FWidgetRenderer_DrawWindow,
 			FRenderThreadContext, InContext, Context,
 			{
-				InContext.Renderer->DrawWindowToTarget_RenderThread(RHICmdList, InContext.RenderTargetResource, *InContext.DrawBuffer);
+				InContext.Renderer->DrawWindowToTarget_RenderThread(RHICmdList, InContext.RenderTargetResource, *InContext.DrawBuffer, InContext.bClearTarget);
 			});
 	}
 #endif // !UE_SERVER

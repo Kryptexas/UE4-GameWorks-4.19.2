@@ -29,6 +29,7 @@ private:
 
 
 	/** FTickableGameObject interface */
+	virtual UWorld* GetTickableGameObjectWorld() const override { return ActiveCaptures.Num() != 0 ? ActiveCaptures[0]->GetWorld() : nullptr; }
 	virtual bool IsTickableInEditor() const override { return false; }
 	virtual bool IsTickable() const override { return ActiveCaptures.Num() != 0; }
 	virtual bool IsTickableWhenPaused() const override { return false; }

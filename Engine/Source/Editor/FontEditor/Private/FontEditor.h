@@ -14,6 +14,8 @@
 class FFontEditor : public IFontEditor, public FGCObject, public FNotifyHook, public FEditorUndoClient
 {
 public:
+	FFontEditor();
+
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 

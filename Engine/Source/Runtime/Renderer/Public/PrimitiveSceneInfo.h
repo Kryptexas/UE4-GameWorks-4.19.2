@@ -184,6 +184,9 @@ public:
 	 */
 	float* ComponentLastRenderTime;
 
+	/** Same as ComponentLastRenderTime but only updated if the component is on screen. Used by the texture streamer. */
+	float* ComponentLastRenderTimeOnScreen;
+
 	/** 
 	 * The root attachment component id for use with lighting, if valid.
 	 * If the root id is not valid, this is a parent primitive.

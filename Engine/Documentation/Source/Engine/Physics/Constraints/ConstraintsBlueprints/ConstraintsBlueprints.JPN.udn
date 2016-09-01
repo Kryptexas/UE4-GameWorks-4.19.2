@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2608331
+﻿INTSourceChangelist:2713167
 Availability:Public
 Title:Physics Constraint （物理コンストレイント） コンポーネントのユーザー ガイド
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -23,7 +23,7 @@ Physics Constraint (物理コンストレイント) コンポーネントは、�
 
 ## 使用法
 
-1. 制約に使用するコンポーネントを作成します。このデモでは、スタティックメッシュ `Shape_Cube` を参照する 2 つの **スタティックメッシュ** コンポーネントを使用します。
+1. コンストレイント (制約) に使用するコンポーネントを作成します。このデモでは、スタティックメッシュ `Shape_Cube` を参照する 2 つの **StaticMesh** コンポーネントを使用します。
 	[REGION:raw]
 	 ![](PhysConBP_Cubes.png)
 	[/REGION]
@@ -43,7 +43,7 @@ Physics Constraint (物理コンストレイント) コンポーネントは、�
 	[REGION:raw]
 	![](PhysConBP_RedBlue2.png)
 	[/REGION]
-1. 以下のように[Physics Constraint] プロパティを設定します。
+1. 以下のように [Physics Constraint] プロパティを設定します。
 	* **[Angular Swing 1Motion]** と **[Angular Swing 2Motion]** を **[ACM_Limited]** にします。
 	* **[Swing 1Limit Angle]** と **[Swing 2Limit Angle]** を 45 度にします。
 	* **[Swing Limit Soft]** を無効にします。
@@ -52,13 +52,13 @@ Physics Constraint (物理コンストレイント) コンポーネントは、�
 	![](PhysConBP_ConSettingsVis.png)
 	[/REGION]
 	Physics Constraint コンポーネントの全てのプロパティがそれぞれどのような影響を与えるかを知りたいですか？ **[%Engine/Physics\Constraints\ConstraintsReference:title%](Engine/Physics\Constraints\ConstraintsReference)** で詳細をご覧いただけます。
-1. 直線の制限 (Linear Limit) と 角度の制限 (Angular Limit) を構成するために、Physics Constraint コンポーネントを必要に応じて回転させます。
+1. 直線の制限 (Linear Limit) と 角度の制限 (Angular Limit) を設定するために、Physics Constraint コンポーネントを必要に応じて回転させます。
 
 	![](PhysConBP_Rotated.png)
-1. レベルにBlueprint アクタを配置して、必要な場所に配置します。
+1. レベルに Blueprint アクタを配置して、必要な場所に配置します。
 
 	![](PhysConBP_IntoWorld.png)(w:900)
-1. [Simulate in Editor (エディタでシミュレーション)] または [Play in Editor (エディタで再生) ] を使用してテストします。
+1. [Simulate in Editor (エディタでシミュレーション)] または [Play in Editor (エディタでプレイする) ] を使用してテストします。
 	![](PhysConBP_Sim.png)(h:600)
 
 

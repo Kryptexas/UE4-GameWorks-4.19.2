@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:3007724
+Availability:Docs
+Title:高度なブループリントのネイティブ化
+Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
+Description:ゲームプレイ要素をブループリントに公開するゲームプレイ プログラマーのためのテクニカル ガイド
+Related: Engine/Blueprints/TechnicalGuide/NativizingBlueprints
+Parent:Engine/Blueprints/TechnicalGuide
+Version:4.12
+type:reference
+
+[TOC(start:2)]
+
+
+## アンリアル アニメーション ツールでビルドする
+アンリアル アニメーション ツールによるビルド中にブループリントをネイティブ化するには、BuildCookRun コマンドラインに `-nativizeAssets` スイッチを追加します。
+
+## C++ との連携
+
+ネイティブ化されたブループリントは、新しい別のモジュールに格納されます。つまり、ゲームプレイ モジュールのヘッダはモジュール外で使用することが可能になります。 
+すべてのヘッダが、使用しているすべてのクラスと構造体を、インクルード ヘッダもしくは前方宣言として宣言していることを確認してください。
+
+手書きのコードとネイティブ化したコード間の連携の信頼性と効率をさらに高めるルール / 制限があります。 
+
+以下のインプリメンテーションはサポートされていません： 
+- `BlueprintVisible` あるいは `Editable` タグのある pribate/protected 変数
+- `BlueprintPure` あるいは`BlueprintCallable` としてマークされた pribate/protected 変数
+- `noexport` 構造体 / クラス
+- `BlueprintVisible` あるいは `Editable` タグのあるビットフィールド変数
+- private ビットフィールド変数
+- `UBlueprintGeneratedClass`、`UUserDefinedStruct`、`UUserDefinedEnum` 変数、もしくはそれらをベースにした変数型
+
+## 技術的な詳細
+
+ブループリントのネイティブ化は Visual Studio 2013 と Visual Studio 2015 で使用できますが、大規模プロジェクトの処理も可能な 2015 を推奨します。
+LNK1000 や LNK1248 などの変わったコンパイル / リンカ エラーが出たら、型や特定のブループリントを除外してネイティブ化したブループリントの量を減らしてみてください。
+
+`BlueprintCompilerCppBackend` モジュール (格納場所: `Engine\Source\Developer\BlueprintCompilerCppBackend\`) はブループリント記法のツリーを C++ に変換します。 
+`BlueprintNativeCodeGen` モジュール (格納場所: `Engine\Source\Developer\BlueprintNativeCodeGen\`) は、クックおよびパッキング中に素晴らしいことがいろいろできます。 
+
+
+[PUBLISH:Licensee]
+## Windows での変換コードのデバッグ
+
+プロジェクトに既に C++ コードが含まれている場合、既存プロジェクトのソリューションを使ってデバッグできます。
+ただし、プロジェクトにもともとブループリントしか含まれていない場合、`GenerateProjectFiles.bat` を実行してプロジェクトにソリューションを作ります。  
+プロジェクトのコンパイル、あるいはプロジェクトのエディタ版のビルドには、このソリューション (主となる UE4 ソリューションの新規プロジェクト) は使用しないでください。 
+
+Debug .exe ファイルのビルド手順です：
+
+1. 以下のラインを実行します。ネイティブ化されたビルドをパッケージ処理する出力ログにあるので、 
+スイッチが環境に合っているか検証する一番簡単な方法は、それらをコピーすることです。`Development` スイッチを `Debug` に変えるだけです。 
+
+		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <project name> Win64 Debug -Project=<project path>\<project name>.uproject  <project path>\<project name>.uproject  -PLUGIN "<project path>\Intermediate\<platform>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<project path>" -noxge -generatemanifest -NoHotReloadFromIDE -ignorejunk
+
+		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <project name> Win64 Debug -Project=<project path>\<project name>.uproject  <project path>\<project name>.uproject  -PLUGIN "<project path>\Intermediate\<platform>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<project path>" -noxge -NoHotReloadFromIDE -ignorejunk
+
+2. Visual Studio プロジェクトで作業中のディレクトリ (デバッグ設定) を `<Packaged Folder>\<platform>\<project name>\Binaries\Win64\` に設定します。
+
+3. Visual Studio でデバッグを実行しますが、Visual Studio からはプロジェクトを再コンパイルしないでください。
+
+[/PUBLISH:Licensee]

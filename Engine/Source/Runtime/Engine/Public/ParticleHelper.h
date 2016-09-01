@@ -290,7 +290,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Tick Time"),STAT_GPUSpriteTickTime,STATGR
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Spawn Time"),STAT_GPUSpriteSpawnTime,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite PreRender Time"),STAT_GPUSpritePreRenderTime,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Sprite Render Time"),STAT_GPUSpriteRenderingTime,STATGROUP_GPUParticles, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Particle Tick Time"),STAT_GPUParticleTickTime,STATGROUP_GPUParticles, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("GPU Particle Tick Time"),STAT_GPUParticleTickTime,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Build Sim Commands"),STAT_GPUParticleBuildSimCmdsTime,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Cull Vector Fields"),STAT_GPUParticleVFCullTime,STATGROUP_GPUParticles, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Misc1"),STAT_GPUParticleMisc1,STATGROUP_GPUParticles, );
@@ -2443,7 +2443,6 @@ public:
 	}
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
-	virtual void OnActorPositionChanged() override;
 	virtual void OnTransformChanged() override;
 
 	/** Gathers simple lights for this emitter. */
@@ -2486,6 +2485,7 @@ public:
 		return( AdditionalSize ); 
 	}
 
+	// @param FrameNumber from ViewFamily.FrameNumber
 	void DetermineLODDistance(const FSceneView* View, int32 FrameNumber);
 
 	/**
@@ -2605,6 +2605,7 @@ protected:
 	float PendingLODDistance;
 	int32 VisualizeLODIndex; // Only used in the LODColoration view mode.
 
+	// from ViewFamily.FrameNumber
 	int32 LastFramePreRendered;
 
 	/** The primitive's uniform buffer.  Mutable because it is cached state during GetDynamicMeshElements. */

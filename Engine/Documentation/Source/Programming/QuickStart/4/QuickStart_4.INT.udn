@@ -13,7 +13,7 @@ Version: 4.9
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Programming Home](Programming)
+		[Programming Quick Start Home](Programming\QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[Next Step](Programming\QuickStart\5 "%Programming\QuickStart\5:title%")

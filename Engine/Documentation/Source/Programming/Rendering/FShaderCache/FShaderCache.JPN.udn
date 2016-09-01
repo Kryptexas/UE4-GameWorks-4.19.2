@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:2892575
+Availability:Public
+Title:FShaderCache
+Crumbs:%ROOT%, Programming, Programming/Rendering
+Description:FShaderCache によりインゲームでのシェーダーの処理落ちを減らすメカニズムができます。
+Version:4.9
+
+
+## 概要
+FShaderCache は、インゲームでのシェーダーの処理落ちを減らすメカニズムを提供します。OpenGLDrv RHI をサポートし、Mac、Linux、Windows プラットフォームで利用できます。
+
+いろいろなコンソール コマンドで FShaderCache 機能の有効 / 無効の切り替えができます。
+
+| コンソール コマンド | 説明 |
+| --------------- | ------------|
+| `r.UseShaderCaching [0/1]` | [INCLUDE:#UseShaderCaching] |
+| `r.UseShaderDrawLog [0/1]`| RHI ドロー ステートを追跡し、それぞれの結合シェーダー ステートが predraw 処理できるようにします。| 
+| `r.UseShaderPredraw [0/1]`| 追跡した RHI ドロー ステートを predraw 処理して、初回使用時の処理落ち回数を減らします。|
+| `r.PredrawBatchTime [Time in (ms)]` | 必要に応じて、フレーム毎の predraw 処理時間を制御して多くのフレームを配布します。すべてのフレームに -1 を使用します。| 
+
+<!--
+[EXCERPT:UseShaderCaching]
+[REGION:plainlist]
+* 必要に応じてではなく、シェーダーのデシリアライゼーション中の早期サブミット
+* 早期サブミット中に事前に結合されるように結合シェーダー ステートを追跡
+[/REGION]
+[/EXCERPT]
+-->
+
+
+## 使用方法
+開発マシン上で `r.UseShaderCaching` と `r.UseShaderDrawLog` を有効にするとキャッシュがエントリされます。 
+その後で、ユーザー / プレイヤーは `r.UseShaderCaching` と `r.UseShaderPredraw`を有効にして、キャッシュを消費します。 
+Draw logging (`r.UseShaderDrawLog`) は、明らかに修正されているオーバーヘッドを必要に応じて追加して、出荷された製品でそれが有効にされないようにします。 
+キャッシュはシェーダー ハッシュによって実行されるので、ほとんど完成しているコンテンツに対しては最適化の仕上げとして、シェーダー ハッシュのみの使用をお勧めします。 
+理由は、シェーダー ハッシュに対する変更は、キャッシュ中に累積された未使用のエントリとなり、処理落ちを減らすどころかキャッシュ サイズを増やしてしまうからです。
+
+ コードは、まず書き込み可能なキャッシュの取り込みを試み、その後で必要に応じて配布にフォール バックします。
+
+| キャッシュの種類 | キャッシュ場所 |
+| --------- |  --------- |
+| Writable (書き込み可能) | `<Game>/Saved/ShaderCache.ushadercache` |
+| Distribution (配布) | `<Game>/Content/ShaderCache.ushadercache` |
+
+
+
+
+## 更新 / 無効化処理
+キャッシュの更新が必要となり、書き込み可能なキャッシュが無効になると、ゲームは新しい GameVersion を指定します。
+RHI を初期化する前に `FShaderCache::SetGameVersion` を呼び出します。これにより、前のバージョンで生成されたキャッシュのコンテンツが無視されます。現在、前のバージョンのキャッシュ エントリの持ち越しはできません。
+
+## リージョン / ストリーミングのバッチ処理
+ゲームのストリーミングの際、もしくはキャッシュが非常に大きくなると、その時に関連しているゲームのリージョン / ストリーミング レベルに対するユニークな値で `FShaderCache::SetStreamingKey` が追加で呼び出されます (必要に応じて)。記録されたドロー ステートは、アクティブなストリーミング キーにリンクされます。このため、predraw 処理は、この後の実行でアクティブなストリーミング キーで要求されるこれらのドロー ステートに制限されます。
+

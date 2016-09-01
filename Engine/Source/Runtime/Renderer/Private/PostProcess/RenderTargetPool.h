@@ -47,10 +47,10 @@ struct FPooledRenderTarget : public IPooledRenderTarget
 
 	// interface IPooledRenderTarget --------------
 
-	virtual uint32 AddRef() const;
-	virtual uint32 Release() const;
-	virtual uint32 GetRefCount() const;
-	virtual bool IsFree() const;
+	virtual uint32 AddRef() const override final;
+	virtual uint32 Release() const override final;
+	virtual uint32 GetRefCount() const override final;
+	virtual bool IsFree() const override final;
 	virtual void SetDebugName(const TCHAR *InName);
 	virtual const FPooledRenderTargetDesc& GetDesc() const;
 	virtual uint32 ComputeMemorySize() const;

@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Title: TSubclassOf
+﻿INTSourceChangelist:2624274
+Title:TSubclassOf
 Crumbs:
 Description:
 Availability:Public
-Version:4.7
+Version:4.9
 
-TSubclassOf is a template class that provides UClass type safety. For instance, let's imagine that you are creating a projectile class that allows the designer to specify the damage type. You could just create a UPROPERTY of type UClass and hope the designer always assigns a class derived from UDamageType or you could use the TSubclassOf template to enforce the choice. The sample code below illustrates the difference:
+**TSubclassOf** 是提供 UClass 类型安全性的模板类。例如您在创建一个投射物类，允许设计者指定伤害类型。您可只创建一个 UClass 类型的 UPROPERTY，让设计者指定派生自 UDamageType 的类；或者您可使用 TSubclassOf 模板强制要求此选择。以下示例代码展示了不同之处：
 
 	/** type of damage */
 	UPROPERTY(EditDefaultsOnly, Category=Damage)
@@ -17,14 +17,14 @@ Vs.
 	UPROPERTY(EditDefaultsOnly, Category=Damage)
 	TSubclassOf<UDamageType> DamageType;
 
-In the second declaration, the template class tells the editor's property windows to list only classes derived from UDamageType as choices for the property. In the first declaration any UClass can be chosen. The image below illustrates this.
+在第二个声明中，模板类告知编辑器的属性窗口只列出派生自 UDamageType 的类（作为属性选择）。在第一个声明中可选择任意 UClass。下图对此进行了说明。
 
 ![image alt text](image_0.png)
 [REGION:caption]
-Example from StrategyGame's projectile Blueprint
+策略游戏投射物蓝图的范例
 [/REGION]
 
-In addition to this UPROPERTY safety, you get type safety at the C++ level too. If you try to assign incompatible TSubclassOf types to each other you'll get a compilation error. In the case you are trying to assign a generic UClass, it will perform a runtime check to verify that it can do the assignment. If the runtime check fails, the resulting value is nullptr.
+除 UPROPERTY 安全外，您还能获得 C++ 层级上的类型安全。如尝试进行不兼容 TSubclassOf 类型的相互指定，将出现编译错误。尝试指定泛型 UClass 时，它将执行一个运行时检查，以确定它可执行指定。如运行时检查失败，结果数值为 nullptr。
 
 	UClass* ClassA = UDamageType::StaticClass();
 	

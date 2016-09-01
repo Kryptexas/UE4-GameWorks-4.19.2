@@ -259,7 +259,7 @@ void UAIPerceptionComponent::GetHostileActors(TArray<AActor*>& OutActors) const
 	bool bDeadDataFound = false;
 
 	OutActors.Reserve(PerceptualData.Num());
-	for (TActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
+	for (FActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
 	{
 		if (DataIt->Value.bIsHostile && DataIt->Value.HasAnyKnownStimulus())
 		{
@@ -290,7 +290,7 @@ const FActorPerceptionInfo* UAIPerceptionComponent::GetFreshestTrace(const FAISe
 
 	bool bDeadDataFound = false;
 	
-	for (TActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
+	for (FActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
 	{
 		const FActorPerceptionInfo* Info = &DataIt->Value;
 		const float Age = Info->LastSensedStimuli[Sense].GetAge();
@@ -330,7 +330,7 @@ void UAIPerceptionComponent::SetDominantSense(TSubclassOf<UAISense> InDominantSe
 		DominantSense = InDominantSense;
 		DominantSenseID = UAISense::GetSenseID(InDominantSense);
 		// update all perceptual info with this info
-		for (TActorPerceptionContainer::TIterator DataIt = GetPerceptualDataIterator(); DataIt; ++DataIt)
+		for (FActorPerceptionContainer::TIterator DataIt = GetPerceptualDataIterator(); DataIt; ++DataIt)
 		{
 			DataIt->Value.DominantSense = DominantSenseID;
 		}
@@ -498,7 +498,7 @@ bool UAIPerceptionComponent::AgeStimuli(const float ConstPerceptionAgingRate)
 {
 	bool bExpiredStimuli = false;
 
-	for (TActorPerceptionContainer::TIterator It(PerceptualData); It; ++It)
+	for (FActorPerceptionContainer::TIterator It(PerceptualData); It; ++It)
 	{
 		FActorPerceptionInfo& ActorPerceptionInfo = It->Value;
 
@@ -598,7 +598,7 @@ bool UAIPerceptionComponent::HasActiveStimulus(const AActor& Source, FAISenseID 
 
 void UAIPerceptionComponent::RemoveDeadData()
 {
-	for (TActorPerceptionContainer::TIterator It(PerceptualData); It; ++It)
+	for (FActorPerceptionContainer::TIterator It(PerceptualData); It; ++It)
 	{
 		if (It->Value.Target.IsValid() == false)
 		{
@@ -615,14 +615,33 @@ void UAIPerceptionComponent::GetPerceivedHostileActors(TArray<AActor*>& OutActor
 	GetHostileActors(OutActors);
 }
 
-void UAIPerceptionComponent::GetPerceivedActors(TSubclassOf<UAISense> SenseToUse, TArray<AActor*>& OutActors) const
+void UAIPerceptionComponent::GetCurrentlyPerceivedActors(TSubclassOf<UAISense> SenseToUse, TArray<AActor*>& OutActors) const
 {
 	const FAISenseID SenseID = UAISense::GetSenseID(SenseToUse);
 
 	OutActors.Reserve(PerceptualData.Num());
-	for (TActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
+	for (FActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
 	{
-		if (SenseToUse == nullptr || DataIt->Value.IsSenseRegistered(SenseID))
+		const bool bCurrentlyPerceived = (SenseToUse == nullptr) ? DataIt->Value.HasAnyCurrentStimulus() : DataIt->Value.IsSenseRegistered(SenseID);
+		if (bCurrentlyPerceived)
+		{
+			if (DataIt->Value.Target.IsValid())
+			{
+				OutActors.Add(DataIt->Value.Target.Get());
+			}
+		}
+	}
+}
+
+void UAIPerceptionComponent::GetKnownPerceivedActors(TSubclassOf<UAISense> SenseToUse, TArray<AActor*>& OutActors) const
+{
+	const FAISenseID SenseID = UAISense::GetSenseID(SenseToUse);
+
+	OutActors.Reserve(PerceptualData.Num());
+	for (FActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
+	{
+		const bool bWasEverPerceived = (SenseToUse == nullptr) ? DataIt->Value.HasAnyKnownStimulus() : DataIt->Value.HasKnownStimulusOfSense(SenseID);
+		if (bWasEverPerceived)
 		{
 			if (DataIt->Value.Target.IsValid())
 			{
@@ -659,7 +678,7 @@ void UAIPerceptionComponent::DescribeSelfToGameplayDebugger(FGameplayDebuggerCat
 		return;
 	}
 
-	for (UAIPerceptionComponent::TActorPerceptionContainer::TConstIterator It(GetPerceptualDataConstIterator()); It; ++It)
+	for (UAIPerceptionComponent::FActorPerceptionContainer::TConstIterator It(GetPerceptualDataConstIterator()); It; ++It)
 	{
 		const FActorPerceptionInfo& ActorPerceptionInfo = It->Value;
 		if (ActorPerceptionInfo.Target.IsValid() && It->Key)
@@ -683,7 +702,10 @@ void UAIPerceptionComponent::DescribeSelfToGameplayDebugger(FGameplayDebuggerCat
 
 	for (UAISenseConfig* SenseConfig : SensesConfig)
 	{
-		SenseConfig->DescribeSelfToGameplayDebugger(this, DebuggerCategory);
+		if (SenseConfig)
+		{
+			SenseConfig->DescribeSelfToGameplayDebugger(this, DebuggerCategory);
+		}
 	}
 }
 #endif // WITH_GAMEPLAY_DEBUGGER
@@ -701,4 +723,9 @@ void UAIPerceptionComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) con
 void UAIPerceptionComponent::UpdatePerceptionFilter(FAISenseID Channel, bool bNewValue)
 {
 	UpdatePerceptionWhitelist(Channel, bNewValue);
+}
+
+void UAIPerceptionComponent::GetPerceivedActors(TSubclassOf<UAISense> SenseToUse, TArray<AActor*>& OutActors) const
+{
+	GetCurrentlyPerceivedActors(SenseToUse, OutActors);
 }

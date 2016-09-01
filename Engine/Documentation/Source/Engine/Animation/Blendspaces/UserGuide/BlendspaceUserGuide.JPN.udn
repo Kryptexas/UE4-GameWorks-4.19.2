@@ -3,7 +3,7 @@ Availability:Public
 Title:Blend Space の使用方法
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
 Description:Animation ブループリントの Blend Space を使用してアニメーション ポーズのデータを入力しサンプルを出力するためのガイド
-バージョン：4.9
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

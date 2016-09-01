@@ -164,9 +164,9 @@ struct FDragDropOLEData
 {
 	enum EWindowsOLEDataType
 	{
-		None,
-		Text,
-		Files
+		None = 0,
+		Text = 1<<0,
+		Files = 1<<1,
 	};
 
 	FDragDropOLEData()
@@ -175,7 +175,7 @@ struct FDragDropOLEData
 
 	FString OperationText;
 	TArray<FString> OperationFilenames;
-	EWindowsOLEDataType Type;
+	uint8 Type;
 };
 
 

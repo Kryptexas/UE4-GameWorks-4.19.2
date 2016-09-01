@@ -9,6 +9,7 @@ Version: 4.9
 ![](Teaser1.png)
 ![](Teaser2.png)
 
+[TOC(start:2 end:4)]
 
 ## Post Processing Graph
 
@@ -34,14 +35,14 @@ Through post process settings (usually defined with post process volumes or came
 At the moment, only **materials** and **material instances** are blendable assets. The engine provides a few post process materials but with this feature
 you can create your own **custom post processing** without any programmer help.
 
-Simply assign one or more post process materials to a post process volume in the **Blendables** section. First press the + to add
+Simply assign one or more post process materials to a post process volume in the **Blendables** section. First press the **+** to add
 new slots, select a material in the **Content Browser**, and press the left arrow to assign it. The order here is not important and unused slots are simply ignored.
 
 ![](PostProcessSettings.png)
 
 ## Making a Simple Post Process Material
 
-For an overview of creating a simple Post Process Material effect from scratch, see the **[](Engine/Rendering/PostProcessEffects/PostProcessMaterials/PostProcessDemoMaterialOverview)**.
+For an overview of creating a simple Post Process Material effect from scratch, see the [](Engine/Rendering/PostProcessEffects/PostProcessMaterials/PostProcessDemoMaterialOverview).
 
 ![](Engine/Rendering/PostProcessEffects/PostProcessMaterials/PostProcessDemoMaterialOverview/FinalPostEffect.png)(w:640)
 
@@ -67,14 +68,38 @@ The typical postprocess input comes from the pass before. That color can be acce
 
 ## Blending Between Different Material Instances
 
+[Using A Post Process Material](#UsingaPostProcessMaterial)
+
 With postprocess volumes, it is easy to setup soft transitions between multiple postprocess materials. Here we use one volume that is marked unbound and one volume that has larger blend radius (e.g. 1000):
 
-![](BlendingAVolume.png)
+[REGION:imagetable]
+| ![](BlendingAVolume.png) | ![](BlendingAVolume1.png) |
+|----|----|
+| Post Process Set to Unbound | Post Process Bound Volume |
+[/REGION]
 
 Each volume we specify a different material instance of the same material. The color is specified as a material parameter which allows different settings for the two material instances.
 
-Depending on the camera position the setting of one volume are used:
+[REGION:lightbox]
+![](PP_BlendedMaterial.png)
+[/REGION]
 
+[REGION:imagetable]
+| ![](BlendMatInst1.png)(w:400) | ![](BlendMatInst2.png)(w:400) |
+|----|----|
+| Material Instance RED | Material Instance GREEN |  
+[/REGION]
+
+Depending on the camera position the setting of one volume is used and blended when within the Blend Radius' range:
+
+[REGION:imagetable]
+| ![](Blend1.png)(w:300) | ![](Blend2.png)(w:300) | ![](Blend3.png)(w:300) |
+|----|----|----|
+| Unbound Post Process Volume Material Instance (RED) set to 0.75 | Blend Radius of 1000  | Post Process Volume Material Instance (GREEN) set to 0.75 |  
+[/REGION]
+
+
+<!---
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
 	![Green vignette material instance](VignetteG.png)(w:450)
@@ -83,11 +108,11 @@ Depending on the camera position the setting of one volume are used:
 	![Red vignette material instance](VignetteR.png)(w:450)
 	[/PARAM]
 [/OBJECT]
+--->
 
+With camera movement, you can perceive soft linear transition between the two effects setting.
 
-With camera movement, you can perceive soft linear transition between the two effect setting.
-
-The following shows a top down view of a level that has how two volumes. The large volume has a red material instance and the small volume has a green material instance specific as blendable.
+The following shows a top down view of a level that has how two volumes. The large unbound volume has a red material instance and the small volume has a green material instance specified as blendable.
 The smaller volume has a higher priority. The material params are getting blended depending on the camera position.
 The fuzzy borders are defined by the BlendRadius property specified in the volumes and extend the volume shape.
 
@@ -103,7 +128,7 @@ With the correct setup all blending happens as expected.
 [/OBJECT]
 
 
-The difference between the both setup is the default value specified on the material (scalar or vector) parameters.
+The difference between the both setup is the default value specified on the material (scalar or vector) parameters. 
 The good setup has values that make the pass appear to not have any effect (e.g. multiply with white or lerp with 0).
 
 **In both setup we see this:** When the camera is outside the influence of either volume the postprocess pass is not getting rendered (visualize by the grey grid).
@@ -179,14 +204,14 @@ Here you can see how we used the custom depth input to visualize a silhouette ar
 
 Notice that the former image has no anti-aliasing on the silhouette but in motion you also would see the silhouette jittering around 1 pixel.
 This is because temporal anti-aliasing moves the rendering of the whole scene by a sub pixel each frame. Multiple frames together are getting combined to produce the final anti-aliased image.
-We can however move the material to an earlier sport in the post processing graph to fix this issue.
+We can however move the material to an earlier spot in the post processing graph to fix this issue.
 
 This is the result:
 
 ![](sceneBeforeTonemapper.png)
 
 We get a stable and anti-aliased image. In motion we might see some artifacts with the temporal anti-aliasing. This feature is using the depth buffer to replace old images. With the border rendered inside the object
-it works ok but outside the object we would also need to adjust the depth buffer (not done yet, costs extra performance). Note that TemporalAA is still under development - here it appears the outline is thicker
+it works ok but outside the object we would also need to adjust the depth buffer (not done yet, costs extra performance)
 but ideally this should not be. 
 
 ## UV and ScreenPosition
@@ -194,7 +219,7 @@ but ideally this should not be.
 With post process materials you can look up into screen aligned buffers, but you need to know the right UVs. 
 The **ScreenPosition** material expression with the mapping option set to **ViewportUV** outputs the UV with 0,0 at the left top of the viewport and 1,1 at the bottom right.
 In contrast, using the **SceneTextureUV** mapping in this material expression might give you different results. This is because the actual texture (more correctly it is a render target) is potentially larger than the viewport.
-It can be larger in editor because we share this texture for multiple viewports and the largest extent is use for all viewports.
+It can be larger in editor because we share this texture for multiple viewports and the largest extent is used for all viewports.
 Even in game it can be larger in some cases (e.g. SceneCaptureActors might have a smaller viewport, Matinee black borders, Splitscreen, VR, ...).
 The **SceneTextureUV** option gives you the UV for this larger texture. If you only need a relative offset (e.g. pixel sized edge detection) you need to scale with the right size.
 The **SceneTexture** material expression has outputs for the size and the inverse of the size (efficient and useful for pixel offsets).
@@ -207,7 +232,7 @@ Many of the screen space textures do not support filtering (e.g. GBuffer). Not e
 
 ## Replacing the Tonemapper
 
-It is possible to override the in engine tonemapper with your own one by using the "Replacing the Tonemapper" blendable location. This is a world in progress features meaning it will likely change and it does not have all the functionality yet.
+It is possible to override the in engine tonemapper with your own one by using the "Replacing the Tonemapper" blendable location. This is a work in progress feature meaning it will likely change and it does not have all the functionality yet.
 
 ![](ReplacingTheTonemapper.png)
 

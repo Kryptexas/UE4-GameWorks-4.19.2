@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2614967
+﻿INTSourceChangelist:2859170
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 인스턴스 생성 및 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -9,6 +9,8 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/Editor
 Related: Engine/Rendering/Materials/IntroductionToMaterials
 Related: Engine/Rendering/Materials/MaterialProperties
+Version:4.9
+SkillLevel: Intermediate
 
 [TOC(start:2 end:3)]
 
@@ -115,7 +117,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1. 모두 연결해주고나면, 일부 머티리얼 노드를 [머티리얼 인스턴스](Resources/ContentExamples/MaterialInstances/1_2) 에서 사용할 수 있도록 **파라미터** 노드로 변환해 줄 차례입니다. 그러기 위해서는 변환하려는 머티리얼 노드에 **우클릭** 한 다음 **파라미터로 변환** 옵션을 선택해 주면 됩니다.
+1. 모두 연결해주고 나면, 일부 머티리얼 노드를 [머티리얼 인스턴스](Resources/ContentExamples/MaterialInstances/1_2) 에서 사용할 수 있도록 **파라미터** 노드로 변환해 줄 차례입니다. 그러기 위해서는 변환하려는 머티리얼 노드에 **우클릭** 한 다음 **파라미터로 변환** 옵션을 선택해 주면 됩니다.
 	
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -223,7 +225,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
    그러기 위해서는 **콘텐츠 브라우저** 에서 **Material_Master** 에 **우클릭** 한 다음 메뉴에서 **새 머티리얼 인스턴스 생성** 을 선택합니다.
    머티리얼 인스턴스가 총 세 개 생길 때까지 이 작업을 반복합니다.
 
-	![](Materails_Instances_Create_3_New_MI.png)
+	![](Materails_Instances_Create_3_New_MI.png)(w:800)
 
 1. 머티리얼 인스턴스를 세 개 더 만들었으니, 이제 그 **파라미터** 를 열어 조정을 시작해 볼 차례입니다.
    머티리얼 인스턴스 중 하나를 열려면, **콘텐츠 브라우저** 안에서 **더블클릭** 하면 됩니다.

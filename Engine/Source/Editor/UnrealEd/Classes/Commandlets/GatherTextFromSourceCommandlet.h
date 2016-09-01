@@ -23,7 +23,7 @@ private:
 
 	struct FSourceFileParseContext
 	{
-		bool AddManifestText( const FString& Token, const FString& Namespace, const FString& SourceText, const FContext& Context );
+		bool AddManifestText( const FString& Token, const FString& Namespace, const FString& SourceText, const FManifestContext& Context );
 
 		void PushMacroBlock( const FString& InBlockCtx );
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2612449
+﻿INTSourceChangelist:2849961
 Availability:Public
 Title:UnrealVS 익스텐션
 Crumbs: %ROOT%, GettingStarted, Programming, Programming/Development/VisualStudioSetup
@@ -34,10 +34,10 @@ UnrealVS 익스텐션은 Visual Studio 2013 Express 버전에서 작동하지 �
 
 1. `UnrealVS.vsix` 파일을 더블클릭하여 설치를 시작합니다.
 
-1. UnrealVS 익스텐션이 특정 Visual Studio 버전을 대상으로 삼습니다. 인스톨러가 올바른 버전을 대상으로 삼는지, 박스가 체크되어 있는지 확인한 다음 ![Install](button_install.png) 버튼을 눌러 계속합니다.
+1. UnrealVS 익스텐션이 특정 Visual Studio 버전을 대상으로 삼습니다. 인스톨러가 올바른 버전을 대상으로 삼는지, 박스가 체크되어 있는지 확인한 다음 **설치** 버튼을 눌러 계속합니다.
 
 	![](install_dialog.png)
-1. 설치가 끝나면 ![Close](button_close.png) 버튼을 누릅니다.
+1. 설치가 끝나면 **닫기** 버튼을 누릅니다.
 
 	![Install Complete](install_complete_dialog.png)
 
@@ -69,7 +69,7 @@ UnrealVS 익스텐션은 Visual Studio 2013 Express 버전에서 작동하지 �
 
 **Startup Project** 드롭다운으로 _Startup Project_ 간의 전환이나 세팅을 빠르게 할 수 있습니다.
 솔루션에서 실행파일을 빌드하는 데 사용할 수 있는 게임 프로젝트가 자동으로 모두 나열됩니다.
-목록에서 프로젝트를 선택하면 그것이 현재 스타트멉 프로젝트로 설정됩니다.
+목록에서 프로젝트를 선택하면 그것이 현재 스타트업 프로젝트로 설정됩니다.
 
 ![](startup_project_menu.png)
 
@@ -86,10 +86,10 @@ UnrealVS 옵션에서 나열되는 프로젝트를 변경할 수 있습니다. G
 
 1. **Tools->Options...** 대화창에서 **Environment** 트리 아래 **Keyboard** 를 선택합니다.
 
-1. 목록에서 **_UnrealVS.BuildStartupProject_** 명령을 선택합니다.
+1. 목록에서 **UnrealVS.BuildStartupProject** 명령을 선택합니다.
 
 	[REGION:tip]
-		검색창에 '`UnrealVS`' 를 입력하여 걸러낼 수 있습니다.
+		검색창에 "UnrealVS" 를 입력하여 걸러낼 수 있습니다.
 	[/REGION]
 
 	![Filtered Command List](build_startup_search.png)
@@ -104,12 +104,12 @@ UnrealVS 옵션에서 나열되는 프로젝트를 변경할 수 있습니다. G
 		경고가 뜹니다.
 	[/REGION]
 
-1. ![Assign](button_assign.png) 버튼을 눌러 명령에 키를 지정합니다. 지정된 키는 
+1. **할당** 버튼을 눌러 명령에 키를 지정합니다. 지정된 키는 
 	**Shortcuts for selected command** 박스에 표시됩니다.
 
 	![Assigned Keys](build_startup_assigned.png)
 
-1. ![OK](button_ok.png) 버튼을 눌러 변경내용을 저장합니다. 이제 그 단축키를 사용하면 _Startup Project_ 로 설정된 프로젝트가 자동 빌드됩니다.
+1. **OK** 버튼을 눌러 변경내용을 저장합니다. 이제 그 단축키를 사용하면 _Startup Project_ 로 설정된 프로젝트가 자동 빌드됩니다.
 
 
 ## 명령줄 인수
@@ -139,7 +139,9 @@ UnrealVS 옵션에서 나열되는 프로젝트를 변경할 수 있습니다. G
 
 **프로젝트 파일을 새로고치려면:**
 
-1. **UnrealVS** 툴바의 ![Refresh Projects](button_refresh.png) 프로젝트 새로고침 버튼을 누릅니다.
+1. **UnrealVS** 툴바의 프로젝트 새로고침 버튼을 누릅니다.
+
+![Refresh Projects](button_refresh.png)
 
 1. 프로젝트 생성 프로세스 진행과정이 **출력** 창에 표시됩니다.
 
@@ -153,8 +155,10 @@ UnrealVS 옵션에서 나열되는 프로젝트를 변경할 수 있습니다. G
 
 **뱃치 빌더 창을 열려면:**
 
-1. **UnrealVS** 툴바의 ![Batch Builder](button_batchbuilder.png) 뱃치 빌더 버튼을 누르거나 _UnrealVS.BatchBuilder_ 명령에 할당시킨 키보드 단축키를 누릅니다.
+1. **UnrealVS** 툴바의 뱃치 빌더 버튼을 누르거나 _UnrealVS.BatchBuilder_ 명령에 할당시킨 키보드 단축키를 누릅니다.
 (**UnrealVS** 명령에 키보드 단축키를 설정하는 방법은 위의 **스타트업 프로젝트 빌드** 부분을 참고하세요).
+
+![Batch Builder](button_batchbuilder.png)
 
 1. **UnrealVS 뱃치 빌더** 창이 나타납니다.
 
@@ -162,7 +166,7 @@ UnrealVS 옵션에서 나열되는 프로젝트를 변경할 수 있습니다. G
 	
 	* Project, Config, Platform, 잡 유형을 설정하여 **Build Job** 을 만듭니다.
 	* 화살표 버튼으로 잡을 추가/제거 합니다.
-	* 화살펴 버튼으로 선택된 잡을 목록에서 위/아래 이동시킵니다.
+	* 화살표 버튼으로 선택된 잡을 목록에서 위/아래 이동시킵니다.
 	* 콘트롤은 콤보에 표시된 현재 **Job Set** 를 편집합니다.
 	* 새로운 **Job Set** 를 생성하려면 콤보에 새 이름을 입력합니다.
 	* 드롭다운 목록을 사용하여 기존 **Job Sets** 를 선택하면 됩니다.
@@ -199,7 +203,7 @@ UnrealVS 옵션에서 나열되는 프로젝트를 변경할 수 있습니다. G
 
 1. **Solution Explorer** 에서 Project 노드에 우클릭합니다.
 
-1. *UnrealVS Quick Build* 메뉴에는 언리얼 엔진 솔루션에서 사용가능한 플랫폼과 빌드 환경설정에 대한 서브메뉴가 들어있습니다.
+1. **UnrealVS Quick Build** 메뉴에는 언리얼 엔진 솔루션에서 사용가능한 플랫폼과 빌드 환경설정에 대한 서브메뉴가 들어있습니다.
 
 1. 항목을 선택하여 선택된 프로젝트, 플랫폼, 환경설정으로 빌드합니다. IDE 에서 Solution Configuration 과 Solution Platform 을 바꾸고 빌드를 시작시킨 다음 원래대로 다시 
 설정하는 것보다 훨씬 빠릅니다.

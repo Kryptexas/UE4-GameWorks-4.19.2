@@ -1,7 +1,14 @@
-﻿Title:iOS 快速入门
+﻿INTSourceChangelist:2940199
+Title:iOS 快速入门
 Crumbs:%ROOT%, Platforms, Platforms/iOS
 Description:在iOS设备上设置并启动游戏的指南。
 Availability:Public
+Version:4.9
+tags:iOS
+tags:mobile
+parent:Platforms/iOS
+order:1
+type:quickstart
 
 [VAR:Topic]
 [OBJECT:Topic]

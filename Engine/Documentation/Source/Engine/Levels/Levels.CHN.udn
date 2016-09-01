@@ -1,12 +1,16 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2813813
 Availability: Public
-Title:Levels
+Title: 场景关卡
 Crumbs: %ROOT%, Engine
-Description:Information regarding the creation and managing of levels inside Unreal Engine 4. 
+Description: 在虚幻引擎 4 中创建、管理场景的信息。
 Related: Engine/UI/LevelEditor
 Related: Engine/Actors
 Related: Engine/LevelStreaming
 Related: Resources/ContentExamples/LevelDesign
+SkillLevel: Beginner
+Version: 4.9
+parent:Engine/Editor
+order:4
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,140 +55,177 @@ Related: Resources/ContentExamples/LevelDesign
 
 ![](Level_Intro.png)
 
-When playing a Video Game, every object that you see or interact with in the world resides in what is known as a **Level**. In Unreal Engine 4 terms, a Level is made up of a collection of Static Meshes, Volumes, Lights, and Blueprints all working together to bring the desired experience to the player. Levels in UE4 can range in size from massive terrain based worlds to very small levels for just a single mini-game to take place in. The following guide will tell you all you need to know about creating and managing Levels inside of UE4. 
+在玩游戏的过程中，玩家看见的每个东西，交互的每个东西，都是存在于一个世界，这个世界我们叫做 **场景关卡（Level）**。
+在虚幻引擎 4 中，一个场景关卡是由一组静态网格物体（Static Mesh），体积（Volume），灯光（Light）和蓝图（Blueprint）等物件共同组成，并带给玩家预期的游戏体验。
+在虚幻 4 中，一个场景可以大到是巨大的地图世界，也可以小到是小游戏的一个小关卡。接下去的指南中将会讲解在虚幻 4 中创建并管理场景所需要知道的所有信息。
 
-## How to Create Levels
-The ability to create new levels is a must when trying to develop a game. Creating new levels inside UE4 is a very simple process that can be accomplished by following the instructions listed below.
+## 如何创建场景
 
-1. To create a new level, we first need to go to the **File** option that is located on the **Main** tool bar.
-![](Level_File_New_Level.png)
+要开发游戏的话，必须要学会如何创建新场景。在虚幻 4 中创建新场景十分简单，描述如下：
 
-1. Next from the **File** menu, we need to select the **New Level** option.
-	![](Level_Create_New_Level.png)
+1. 要创建一个新场景，首先在 **主工具栏** 中点开 **文件 File** 菜单。
+	![](Level_File_New_Level.jpg)
+
+1. 在 **文件 File** 菜单中，选择 **新建场景 New Level** 项。
+	![](Level_Create_New_Level.jpg)
+
 	[Region:tip]
-	You can also create new levels by using the keyboard shortcut  **Crtl + N**. 
+	也可以通过键盘快捷键 **Crtl + N** 来新建场景。
 	[/region]
 
-1. When **New Level** is selected, you will be presented with a pop-up box displaying two types of levels you can chose from, Default or Empty Level.
+1. 在选择 **新建场景** 后，将会有一个弹窗，显示可以使用的两种场景类型，默认类型（Default）或者空场景（Empty Level）。
 
 	![](Level_New_Level_Type.png)
 
-	* **Default:** This will give you a new level with a basic setup that includes a player start, a light, a sky dome, and other various Actors you need for a level to work correctly. 
-	* **Blank:** This will give you a new level that is completely empty. 
+	* **默认类型：** 将会在新场景中提供基础设置，包括玩家的起始点，默认灯光，天空球，以及其他多个 Actor 来让场景正常工作。
+	* **空场景：** 将会提供完全空的全新场景。
 
-1. Select the level that you want by clicking on it with the **Left Mouse  Button**. After you do this, the level type that you picked will now be loaded up in the editor. 
-![](Level_Both_Types.png)
+1. 通过点击 **鼠标左键** 选择你想要的场景。在此之后，该场景类型将会在编辑器窗口加载。
 
-[region:tip]
-When connected to source control, new levels that you create and save will be automatically added to source control.
-[/region]
+	![](Level_Both_Types.jpg)
 
-## Opening & Saving Levels
-Depending on the complexity of your game, you might need to have your game content spread out among multiple levels. This means that you will need to have the ability to open and save these levels at will. UE4 makes opening and saving levels quite easy and the process for both opening levels and saving levels is outlined below. 
-
-### Opening Levels 
-Opening already created levels inside UE4 is a very simple process that can be accomplished by following the instructions listed below. 
-
-1. To open a level, we first need to go to the **File** option that is located on the **Main** tool bar.
-	![](Level_File_New_Level.png)
-
-1. Next from the **File** menu, we need to select the **Open Level ** option.
-	![](Level_Open_New_Level.png)
-	[Region:tip]
-	You can also open levels by using the keyboard shortcut  **Crtl + O**, or by simply **Double Clicking** on the map asset inside the **Content Browser**. 
+	[region:tip]
+	当具有版本控制软件的连接时，新创建并保存的关卡将会自动被添加到版本控制中。
 	[/region]
 
-1. When **Open Level** is selected from the menu, a pop up box showing the levels that can be opened will be displayed. 
+## 打开场景及保存场景
+
+根据游戏内容的复杂程度，游戏内容可能会被分布在多个场景关卡中。这意味着需要能够打开不同的关卡并相应的保存它们。虚幻 4 打开、保存关卡都十分简单。这里简要说明一下打开和保存场景关卡的步骤。
+
+### 打开场景 
+
+打开一个已经创建的场景在虚幻 4 中非常简单，只需要遵循以下步骤。
+
+1. 要打开一个场景，首先选择在 **主菜单** 上的 **文件 File** 菜单。
+
+	![](Level_File_New_Level.png)
+
+1. 在 **文件 File** 菜单中，选择 **打开场景 Open Level** 项。
+
+	![](Level_Open_New_Level.jpg)
+
+	[Region:tip]
+	也可以使用键盘快捷键 **Crtl + O** 来打开场景。或者在 **内容浏览器** 中对地图资源直接 **双击** 也能打开。
+	[/region]
+
+1. 当从菜单中选择 **打开场景** 后，当前可用的场景会显示在一个新的弹窗中。
+
 	![](Level_Available_Levels.png)
 
-1. To open a level, simply find the level you wish to open in the list, click on it, and then press the button labeled **Open**.
-	![](Level_Open_Selected_Level.png)
+1. 要打开某个场景，只需要在这个列表中找到它并点击选中，然后点击下方的 **打开 Open** 按钮。
 
-1. Once you have pressed the **Open** button, the level that you have selected will be loaded in the editor. 
+	![](Level_Open_Selected_Level.jpg)
+
+1. 点击 **打开** 按钮后，选择的场景关卡将会在编辑器中加载并显示。
+
 	![](Level_Selected_Level.png)
 
-### Saving Levels 
-Saving levels inside UE4 is a very simple process that can be accomplished by following the instructions listed below. 
+### 保存场景 
 
-1. To save a level, we first need to go to the **File** option that is located on the **Main** tool bar.
+在虚幻 4 中保存场景的步骤也十分简单，只需要遵循以下步骤。
+
+1. 要保存一个场景，首先选择在 **主菜单** 上的 **文件 File** 菜单。
+
 	![](Level_File_New_Level.png)
 
-1. Next from the **File** menu, we need to select the **Save** option.
-	![](Level_Save_Level.png)
+1. 在 **文件 File** 菜单中，选择 **保存 Save** 项。
+
+	![](Level_Save_Level.jpg)
+
 	[Region:tip]
-	You can also save all opened levels by using the keyboard shortcut  **Crtl + S**. 
+	也可以使用键盘快捷键 **Crtl + S** 来保存所有当前打开状态的场景。
 	[/region]
 
-1. Depending on if this is a new map or not, two things can happen when you press **Save**. 
-	* **New Map:** If this is a new map, the first time you press save, you will be prompted with the **Save Level As** dialogue box. In this box, you can give your new level a name and location to be saved to. 
-	![](Level_Save_Level_Box.png)
-	* **Pre-Existing Map:** If this is not a new map but one that already exists in the project, then when you press save, the map will be saved. 
+1. 取决于是否是新建的场景地图，在点击了 **保存** 后可能有两种情况。
 
-1. Once your level has been saved, you are now free to continue working, open a new level, or close down the Unreal Editor. 
+	* **新建的场景地图：** 如果是一个新地图，当第一次被保存时，会提示 **将场景保存为（Save Level As）** 的对话框。在该对话框中，可以输入场景保存的名称以及保存的具体位置。
+	![](Level_Save_Level_Box.jpg)
+	* **已经存在的场景地图：** 如果当前并非新建地图，而是先前就已经创建的项目地图，当点击保存时，该地图将会被存盘。
 
-## Changing Default Starting Level
-When creating any game, you will need the ability to set a default level for the game to start on. UE4 not only offers you the ability to define what level your game starts on, it also allows you to define what level your editor will start on as well. As with everything in UE4, the process for changing your default level is quite simple and outlined below. 
+1. 一旦场景被保存后，可以自由的选择是继续当前的工作，还是打开一个新的场景，或者关闭虚幻编辑器。
 
-1. To change any settings specific to our project, we first need to go to the **Edit** option that is located on the **Main** tool bar.
-	![](Level_Edit_Options.png)
+## 设定默认地图
 
-1. From the **Edit** menu, we then need to select the **Project Settings** option.
-	![](Level_Project_Settings.png)
+在制作游戏时，需要设置一个默认场景地图用于游戏启动时加载使用。虚幻 4 不仅能够设置游戏启动时的默认地图，还可以设定编辑器启动时的默认加载地图。
+同其他步骤一样，这个设置过程也是简单明了，在下面描述过程。
 
-1. Selecting the **Project Settings** option will open up your projects settings.   
+1. 要修改关于项目的设置，首先打开位于 **主菜单** 中的 **编辑 Editor** 菜单。
+
+	![](Level_Edit_Options.jpg)
+
+1. 在 **编辑** 菜单中，需要选择 **项目设置 Project Settings** 选项。
+
+	![](Level_Project_Settings.jpg)
+
+1. 选择 **项目设置** 后将会打开一个项目设置的选项窗口。
+
 	![](Level_Project_Settings_Menu.png)
 
-1. In this menu, you can edit all kinds of options about your project but for now we will be looking at the **Maps & Modes** Section. To active the **Maps & Modes** section, simply click on it in the menu. When you do so, you should now have something that looks like this in the **Project Settings** box.
-	![](Level_Maps_&_Modes.png)
+1. 在这里，可以编辑各种关于项目的设置选项。但现在我们先来看一下 **地图 & 模式（Maps & Modes）** 部分。
+	点击 **地图 & 模式** 切换到该内容，这时可以看到类似于下图这样的配置画面。
 
-1. To change your projects default game and editor starting levels, simply press on the arrow icon to the right of the name box and then select the level you want from the list that is displayed. 
-	![](Level_Change_Default_Map.png)
+	![](Level_Maps_&_Modes.jpg)
 
-1. Repeat the process above if you wish to change the Editor start up map as well. 
+1. 要改变游戏呵呵编辑器的默认初始地图，只需要点击地图名右边的下拉箭头，在下拉列表中选择希望的场景关卡即可。
 
+	![](Level_Change_Default_Map.jpg)
 
-## Level World Settings
-Each level can have unique settings applied to it via the **World Settings** options. The **World Settings** options allow you to do everything from making sure the right **Game Mode** is activated when you play the level too allowing you to adjust how the Global Illumination will look for that level. To activate the **World Settings** options, you need to do the following.
+1. 同样的方法，可以修改编辑器的默认初始地图。
 
-1. On the **Toolbar** that is across the top of the editor, click on the **Settings** option. 
-	![](Level_Settings_Menu.png)
+## 场景的世界设置
 
-1. Clicking on the **Settings** option will display the game specific settings menu and from the menu select **World Settings.**
-	![](Level_Settings_Options.png)
+每个场景关卡都可以具有相应的 **世界设置 World Settings** 的选项设置。在 **世界设置** 中，能够做各种设置，比如设置正确的 **游戏模式 Game Mode** 来为场景服务，或者能够调整全局光照在该场景中如何表现。要打开 **世界设置** 选项，只需按照以下步骤。
 
-1. Clicking on the **World Settings** option will open up the levels settings in the **World Settings** tab of the **Details** panel.
+1. 在编辑器顶部的 **工具栏 Toolbar** 中，点击 **设置 Settings** 选项。
+
+	![](Level_Settings_Menu.jpg)
+
+1. 在点击 **设置** 按钮后，会有一个游戏相关的设置菜单，在这里选择 **世界设置 World Settings**。
+
+	![](Level_Settings_Options.jpg)
+
+1. 在点击 **世界设置** 后，会在 **细节** 面板中的 **世界设置** 分页中看到该场景的设置内容。
+
 	![](Level_Settings_Options_Menu.png)
 
-1. From the **World Settings** panel, you can adjust all kinds of options for your level from how Lightmass will work to what game mode is used. 
+1. 在 **世界设置** 面板上，可以修改各种该关卡的设置，从 Lightmass 的设定，到游戏模式的使用。 
 
-## Level Migration
-Sometimes you might need to move entire levels and all of their content from one project to another one. In previous versions of UE4, this task was almost impossible because levels content could have been spread out all over your content folder. Now using the improved migration tool, UE4 will now not only migrate your level over to a new project, it will also migrate all of the content that is also associated with that level. Migrating one level and its assets from one UE4 project to another can be accomplished in the following simple steps. 
+## 迁移场景
 
-1. First, make sure that you have the level and all the content that you want to move saved. 
+有可能会遇到这样的需求，需要把一个场景关卡，包括它的内容，从一个项目迁移到另一个项目。在先前虚幻 4 的版本中，这个需求几乎是无法实现的，因为场景关卡的内容有可能会散布在内容文件夹内的各个位置。
+现在，使用已经改进过的迁移工具，虚幻 4 能够在迁移场景的同时，自动的迁移所有该场景相关的所有内容。将一个场景从一个虚幻 4 的项目迁移到另一个项目可以遵循以下步骤。
 
-1. Once you have everything saved, find the level that you want to **Migrate** in the **Content Browser.**
-	![](Level_Level_To_Migrate.png)
+1. 首先，确认要被迁移的场景以及所有相关的内容都已经恰当的存盘保存。
 
-1. After the level is found, all you have to do is **Right-Click** on the level and then choose the **Migrate** option from the list.  
-	![](Level_Select_Migrate.png)
+1. 当所有的内容都保存后，在 **内容浏览器** 中找到准备 **迁移** 的场景关卡资源。
 
-1. Once the **Migrate** option was selected, you will be presented with an **Asset Report** box that will allow you to pick and choose what you would like to migrate over to the new project. Once you have selected what you want to move, press the **Ok** button.
-	![](Level_What_To_Migrate.png)
+	![](Level_Level_To_Migrate.jpg)
 
-1. After you press the **Ok** button, you will then be asked where you want the content to be moved to. Using the **Browse For Folder** dialogue box, find a location where you would like to move the content to and then press the **Ok** button. Remember that you have to move it to a location that is under the ** Content** folder or the migrate might not work correctly. 
-	![](Level_Where_To_Migrate_to.png)
+1. 找到该关卡后，只需要在该关卡上 **点击右键** 并从右键菜单中选择 **迁移 Migrate** 选项。
 
-1. After you press **Ok**, the migration process will start and run until it is done. You can tell if the migration was successful or not if you get the following message in the lower right hand portion of your editor window. 
-	![](Level_Migrate_Completed_Scuess.png)
+	![](Level_Select_Migrate.jpg)
 
-### Level Migration Troubleshooting
-During the process of migrating a level, you might receive a few error messages. Here is a list of known error message and ways to avoid them. 
+1. 当选择了 **迁移** 项后，将会显示一个 **资源汇总 Asset Report** 窗口，这里可以选择哪些资源希望被迁移到新项目上。一旦选定哪些资源会被迁移后，点击 **确认 OK** 按钮。
 
-* This error message means that the content that you are trying to migrate already exists in the location that you are trying to migrate to. You can either cancel or overwrite the information if you are sure that what you are migrating is correct.
+	![](Level_What_To_Migrate.jpg)
+
+1. 但点击 **确认** 按钮后，会被提示希望将资源移动到何处。在 **浏览目录 Browse For Folder** 的对话框中，选择一个希望移动的目录位置然后点击 **确认 OK**。要记住移动的目标位置必须是在 **Content** 目录内，否则迁移后可能无法正确的工作。
+
+	![](Level_Where_To_Migrate_to.jpg)
+
+1. 点击 **确认** 后，迁移的过程会启动并一直执行到全部完成。可以通过下图中编辑器右下角的信息（“内容迁移已经成功完成”）来判断迁移过程是否成功。
+
+	![](Level_Migrate_Completed_Scuess.jpg)
+
+### 场景关卡迁移可能遇到的问题及解决
+
+在迁移场景的过程中，可能会遇到一些错误提示。这里提供一个已知的错误提示列表，以及如何避免它们。
+
+* 以下错误提示的意思是，当前正在尝试迁移的目标位置中已经有内容存在。可以选择取消迁移，或者如果肯定当前迁移是正确的话也可以选择继续迁移并覆盖已有内容。
 
 	![](Level_Error_Level_ALready_Exists.png)
 
-* This error message means that you are trying to migrate content to another location that is not inside the content folder. For migrated content to work correctly, you must make sure that you always use the main **Content Folder** of your project. If not, you run the risk of the migration not working correctly. 
+* 以下错误提示的意思是，当前试图迁移的目标位置并非在 Content 目录内。为了让迁移后的内容能够正确工作，应该选择项目的 **Content 目录** 作为迁移的目标位置。否则，迁移后的数据可能无法正常工作。
 
 	![](Level_Error_Level_Not_In_Content_Folder.png)
 

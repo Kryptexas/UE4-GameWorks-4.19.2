@@ -141,7 +141,7 @@ namespace FNavMeshRenderingHelpers
 		return FColor(((Col >> 1) & 0x007f7f7f) | (Col & 0xff000000));
 	}
 
-	void AddVertex(FNavMeshSceneProxyData::FDebugMeshData& MeshData, const FVector& Pos, const FColor Color = FColor::White)
+	void AddVertex(FNavMeshSceneProxyData::FDebugMeshData& MeshData, const FVector& Pos, const FColor Color)
 	{
 		const int32 VertexIndex = MeshData.Vertices.Num();
 		FDynamicMeshVertex* Vertex = new(MeshData.Vertices) FDynamicMeshVertex;
@@ -681,8 +681,9 @@ void FNavMeshSceneProxyData::GatherData(const ARecastNavMesh* NavMesh, int32 InN
 						}
 					}
 
-					PathCollidingGeomVerts.SetNum(CollidingVerts.Num(), false);
-					for (int32 Idx = 0; Idx < 0; Idx++)
+					int32 NumVerts = CollidingVerts.Num();
+					PathCollidingGeomVerts.SetNum(NumVerts, false);
+					for (int32 Idx = 0; Idx < NumVerts; Idx++)
 					{
 						PathCollidingGeomVerts[Idx] = FDynamicMeshVertex(CollidingVerts[Idx]);
 					}
@@ -1094,7 +1095,12 @@ void FNavMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>&
 
 void FNavMeshSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController*)
 {
-	const bool bVisible = (Canvas && Canvas->SceneView && !!Canvas->SceneView->Family->EngineShowFlags.Navigation) || bForceRendering;
+	if (!Canvas)
+	{
+		return;
+	}
+
+	const bool bVisible = (Canvas->SceneView && !!Canvas->SceneView->Family->EngineShowFlags.Navigation) || bForceRendering;
 	if (!bVisible || ProxyData.bNeedsNewData || ProxyData.DebugLabels.Num() == 0)
 	{
 		return;
@@ -1173,12 +1179,6 @@ UNavMeshRenderingComponent::UNavMeshRenderingComponent(const FObjectInitializer&
 	AlwaysLoadOnServer = false;
 	bSelectable = false;
 	bCollectNavigationData = false;
-}
-
-bool UNavMeshRenderingComponent::NeedsLoadForServer() const
-{
-	// This rendering component is not needed in dedicated server builds
-	return false;
 }
 
 bool UNavMeshRenderingComponent::IsNavigationShowFlagSet(const UWorld* World)

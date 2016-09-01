@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2624288
 Availability:Public
 Title:アンリアル ビルド システムの設定
 Crumbs: %ROOT%, Programming
-Description:エンジンとゲームプロジェクトをコンパイルするためのアンリアル・エンジンのカスタムビルドシステム
-
+Description:エンジンとゲーム プロジェクトをコンパイルするためのアンリアル・エンジンのカスタムビルドシステム
+version:4.9
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -29,7 +29,7 @@ Description:エンジンとゲームプロジェクトをコンパイルする�
 [/REGION]
 
 ### UnrealBuildTool
-UnrealBuildTool (UBT) は、多数のビルド コンフィギュレーションの UE4 ソース コードのビルド プロセスを管理するカスタム ツールです。ユーザー設定可能な様々なビルド オプションについては、 
+**UnrealBuildTool** (UBT) は、多数のビルド コンフィギュレーションの **Unreal Engine 4** (UE4) ソース コードのビルド プロセスを管理するカスタム ツールです。ユーザー設定可能な様々なビルド オプションについては、 
 BuildConfiguration.cs を調べてください。
 
 [REGION:note]
@@ -37,7 +37,7 @@ Mac OS X で UnrealBuildTool や UnrealAutomationTool をデバッグする場�
 [/REGION]
 
 ### UnrealHeaderTool
-UnrealHeaderTool (UHT) は、UObject システムをサポートするカスタムのパースおよびコード生成のツールです。コードのコンパイルは以下の 2 つのフェーズで行われます。
+**UnrealHeaderTool** (UHT) は、UObject システムをサポートするカスタムのパースおよびコード生成のツールです。コードのコンパイルは以下の 2 つのフェーズで行われます。
 
 1.	UHT が呼び出されると、Unreal 関連のクラスのメタデータの C++ ヘッダーをパースし、様々な UObject 関連の機能を実装するためのカスタム コードを生成します。
 1.	結果をコンパイルするために通常の C++ コンパイラが呼び出されます。
@@ -74,7 +74,7 @@ UE4 は多くのモジュールに分かれています。各モジュールに�
 		![](%ROOT%/profile_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		 プロジェクト設定とコンフィギュレーション
+		プロジェクト設定とコンフィギュレーション
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

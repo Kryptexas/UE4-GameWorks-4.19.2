@@ -8,7 +8,7 @@ Related: Engine/Content/QuickStart
 Related: Programming/QuickStart
 Related: Engine/QuickStart
 Related: Support/Builds
-Version: 4.9
+Version: 4.11
 SkillLevel: Advanced
 
 %Globals:osselect_linux%
@@ -29,49 +29,7 @@ SkillLevel: Advanced
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-		[REGION:note]
-		Make sure that Microsoft Visual Studio 2013 is installed prior to building Unreal Engine from source.
-		[/REGION]
-
-		1.	Inside the root directory, run **GenerateProjectFiles.bat** to set-up your project files.
-
-			[REGION:warning]
-			All project files are intermediate (`[UE4Root]\Engine\Intermediate\ProjectFiles`). You must generate project files each time you sync a new build to ensure they are up to date. If you delete your `Intermediate` folder, you must regenerate project files using the 'GenerateProjectFiles' batch file.
-			[/REGION]
-
-		1.	Load the project into Visual Studio by **Double-clicking UE4.sln**.
-
-		1.	Set your solution configuration to **Development Editor**.
-
-			![](configMenu_updated.png)
-
-		1.	Set your solution platform to **Win64**.
-
-			![](platform_menu_updated.png)
-
-		1.	**Right-click** the UE4 target and select **Build**.
-
-			![](BuildUE4.png)
-
-			[REGION:note]
-			Depending on your system's specifications, it may take between 10 and 40 minutes to compile the engine from source.
-			[/REGION]
-
-		1.	After compiling the engine, set your startup project to **UE4**.
-
-			![](SetUE4_StartPrj.png)
-
-		1.	**Right-click** the **UE4** project, **hover over 'Debug'** and **click 'Start New Instance'** to launch the editor.
-
-			![](RunCompiledWindowsEditor.png)
-
-			[REGION:tip]
-			Alternatively, you can **press the F5 key** on your keyboard to start a new instance of the editor.
-			[/REGION]
-
-		1.	Congratulations! You've compiled and launched the engine from source.
-
-			![](CompiledEditor_Windows.png)
+		[INCLUDE:#windowscompile]
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -84,33 +42,7 @@ SkillLevel: Advanced
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-		[REGION:note]
-		Make sure that the latest version of XCode is installed prior to building Unreal Engine from Source.
-		[/REGION]
-		
-		1.	Inside the root directory, run **GenerateProjectFiles.command** to set-up your project files.
-		
-		1.	Load the project into XCode by **Double-clicking UE4.xcodeproj**.
-
-		1.	To set your build target, select **UE4Editor - Mac** for **My Mac** in the title bar.
-
-			![](SettingMacTarget.png)
-
-		1.	To build the project, select **Product > Build**.
-
-			![](BuildingMacEditor.png)
-
-			[REGION:note]
-			Depending on your system's specifications, it may take between 15 and 40 minutes to compile the engine from source.
-			[/REGION]
-		
-		1.	After compiling the engine, select **Product > Run** to launch the editor.
-		
-			![](RunningMacEditor.png)
-
-		1.	Congratulations! You've compiled and launched the engine from source.
-
-			![](CompiledEditor_Mac.png)
+		[INCLUDE:#maccompile]
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -123,41 +55,122 @@ SkillLevel: Advanced
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-		[REGION:warning]
-		Our developers and support teams currently use the latest version of Ubuntu; as a result, we may not be able to provide support for other Linux distributions (including other versions of Ubuntu).
-		[/REGION]
-		
-		1.  Inside the root directory, run **Setup.sh** from the terminal to setup the files to prepare for generating the project files
-
-			![](RunSetupShellScript_Linux.png)
-
-		1.	Inside the root directory, run **GenerateProjectFiles.sh** from the terminal to generate your project files. 
-
-			![](RunGenPrjFilesShellScript_Linux.png)
-
-		1.	To build the project, run **make** from the terminal.
-
-			![](RunMakeFile_Linux.png)
-
-			[REGION:tip]
-			You can also build the engine with QtCreator, CodeLite, KDevelop, and CMake.
-			[/REGION]
-
-		1.	After compiling the engine, navigate to the editor's binary path by entering ** cd Engine/Binaries/Linux/ ** into the terminal.
-
-		1.	Run **UE4Editor** to launch the editor.
-
-			![](RunUE4Editor_Linux.png)
-
-			[REGION:warning]
-			If you're unable to create an OpenGL context, you may need to update your graphics drivers (refer to Ubuntu's documentation). We recommend using NVidia binary drivers (versions equal to or greater than 343.xx).
-  			[/REGION]
-
-		1.	Congratulations! You've compiled and launched the engine from source.
-
-			![](CompiledEditor_Linux.png)
+		[INCLUDE:#linuxcompile]
 	[/PARAM]
 [/OBJECT]
+
+<!--
+[EXCERPT:windowscompile]
+[REGION:note]
+Make sure that Microsoft Visual Studio 2015 is installed prior to building Unreal Engine from source.
+[/REGION]
+
+1.	Inside the root directory, run **GenerateProjectFiles.bat** to set-up your project files.
+
+	[REGION:warning]
+	All project files are intermediate (`[UE4Root]\Engine\Intermediate\ProjectFiles`). You must generate project files each time you sync a new build to ensure they are up to date. If you delete your `Intermediate` folder, you must regenerate project files using the 'GenerateProjectFiles' batch file.
+	[/REGION]
+
+1.	Load the project into Visual Studio by **Double-clicking UE4.sln**.
+
+1.	Set your solution configuration to **Development Editor**.
+
+	![](configMenu_updated.png)
+
+1.	Set your solution platform to **Win64**.
+
+	![](platform_menu_updated.png)
+
+1.	**Right-click** the UE4 target and select **Build**.
+
+	![](BuildUE4.png)
+
+	[REGION:note]
+	Depending on your system's specifications, it may take between 10 and 40 minutes to compile the engine from source.
+	[/REGION]
+
+1.	After compiling the engine, set your startup project to **UE4**.
+
+	![](SetUE4_StartPrj.png)
+
+1.	**Right-click** the **UE4** project, **hover over 'Debug'** and **click 'Start New Instance'** to launch the editor.
+
+	![](RunCompiledWindowsEditor.png)
+
+	[REGION:tip]
+	Alternatively, you can **press the F5 key** on your keyboard to start a new instance of the editor.
+	[/REGION]
+
+1.	Congratulations! You've compiled and launched the engine from source.
+
+	![](CompiledEditor_Windows.png)
+
+[/EXCERPT:windowscompile]
+[EXCERPT:maccompile]
+[REGION:note]
+Make sure that the latest version of XCode is installed prior to building Unreal Engine from Source.
+[/REGION]
+		
+1.	Inside the root directory, run **GenerateProjectFiles.command** to set-up your project files.
+		
+1.	Load the project into XCode by **Double-clicking UE4.xcodeproj**.
+
+1.	To set your build target, select **UE4Editor - Mac** for **My Mac** in the title bar.
+
+	![](SettingMacTarget.png)
+
+1.	To build the project, select **Product > Build**.
+
+	![](BuildingMacEditor.png)
+
+	[REGION:note]
+	Depending on your system's specifications, it may take between 15 and 40 minutes to compile the engine from source.
+	[/REGION]
+		
+1.	After compiling the engine, select **Product > Run** to launch the editor.
+		
+	![](RunningMacEditor.png)
+
+1.	Congratulations! You've compiled and launched the engine from source.
+
+	![](CompiledEditor_Mac.png)
+[/EXCERPT:maccompile]
+[EXCERPT:linuxcompile]
+[REGION:warning]
+Our developers and support teams currently use the latest version of Ubuntu; as a result, we may not be able to provide support for other Linux distributions (including other versions of Ubuntu).
+[/REGION]
+		
+1.  Inside the root directory, run **Setup.sh** from the terminal to setup the files to prepare for generating the project files.
+
+	![](RunSetupShellScript_Linux.png)
+
+1.	Inside the root directory, run **GenerateProjectFiles.sh** from the terminal to generate your project files. 
+
+	![](RunGenPrjFilesShellScript_Linux.png)
+
+1.	To build the project, run **make** from the terminal.
+
+	![](RunMakeFile_Linux.png)
+
+	[REGION:tip]
+	You can also build the engine with QtCreator, CodeLite, KDevelop, and CMake.
+	[/REGION]
+
+1.	After compiling the engine, navigate to the editor's binary path by entering ** cd Engine/Binaries/Linux/ ** into the terminal.
+
+1.	Run **UE4Editor** to launch the editor.
+
+	![](RunUE4Editor_Linux.png)
+
+	[REGION:warning]
+	If you're unable to create an OpenGL context, you may need to update your graphics drivers (refer to Ubuntu's documentation). We recommend using NVidia binary drivers (versions equal to or greater than 343.xx).
+  	[/REGION]
+
+1.	Congratulations! You've compiled and launched the engine from source.
+
+	![](CompiledEditor_Linux.png)
+[/EXCERPT:linuxcompile]
+-->
 
 ## Getting Started with Unreal Engine
 

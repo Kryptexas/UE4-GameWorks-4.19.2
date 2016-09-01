@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:2821916
 Availability:Public
 Title:プログラミング ガイド
 Crumbs:%ROOT%
@@ -33,7 +33,7 @@ order:4
 	![](%ROOT%/prog_icon.png)(convert:false)
 [/PARAM]
 [PARAM:title]
-	プログラマー
+	Programmers
 [/PARAM]
 [PARAM:description]
 	%Programming:description%
@@ -59,7 +59,7 @@ order:4
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
-プログラマー
+programmer
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
@@ -68,7 +68,7 @@ order:4
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
-プログラミング
+programming
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
@@ -137,6 +137,19 @@ C++ クラスはブループリント クラスの基底として使用できま
 [/OBJECT]
 [/REGION]
 
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		アンリアル エンジンの開発の設定
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming/Development "%Programming/Development:description%")
+	[/PARAM]
+[/OBJECT]
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

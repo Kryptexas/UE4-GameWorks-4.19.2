@@ -5,6 +5,8 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "PhysicsEngine/ConstraintUtils.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "ConstraintComponent"
@@ -130,7 +132,7 @@ FBox UPhysicsConstraintComponent::GetBodyBoxInternal(EConstraintFrame::Type Fram
 			if(BoneIndex != INDEX_NONE && BodyIndex != INDEX_NONE)
 			{	
 				const FTransform BoneTransform = SkelComp->GetBoneTransform(BoneIndex);
-				ResultBox = PhysicsAsset->BodySetup[BodyIndex]->AggGeom.CalcAABB(BoneTransform);
+				ResultBox = PhysicsAsset->SkeletalBodySetups[BodyIndex]->AggGeom.CalcAABB(BoneTransform);
 			}
 		}
 	}
@@ -185,6 +187,12 @@ FBodyInstance* UPhysicsConstraintComponent::GetBodyInstance(EConstraintFrame::Ty
 }
 
 
+/** Wrapper that calls our constraint broken delegate */
+void UPhysicsConstraintComponent::OnConstraintBrokenWrapper(int32 ConstraintIndex)
+{
+	OnConstraintBroken.Broadcast(ConstraintIndex);
+}
+
 void UPhysicsConstraintComponent::InitComponentConstraint()
 {
 	// First we convert world space position of constraint into local space frames
@@ -193,7 +201,8 @@ void UPhysicsConstraintComponent::InitComponentConstraint()
 	// Then we init the constraint
 	FBodyInstance* Body1 = GetBodyInstance(EConstraintFrame::Frame1);
 	FBodyInstance* Body2 = GetBodyInstance(EConstraintFrame::Frame2);
-	ConstraintInstance.InitConstraint(this, Body1, Body2, GetConstraintScale());
+
+	ConstraintInstance.InitConstraint(Body1, Body2, GetConstraintScale(), this, FOnConstraintBroken::CreateUObject(this, &UPhysicsConstraintComponent::OnConstraintBrokenWrapper));
 }
 
 void UPhysicsConstraintComponent::TermComponentConstraint()
@@ -315,12 +324,15 @@ void UPhysicsConstraintComponent::PostLoad()
 		{
 			float AverageMass = TotalMass / NumDynamic;
 
-			ConstraintInstance.LinearLimitStiffness /= AverageMass;
-			ConstraintInstance.SwingLimitStiffness /= AverageMass;
-			ConstraintInstance.TwistLimitStiffness /= AverageMass;
-			ConstraintInstance.LinearLimitDamping /= AverageMass;
-			ConstraintInstance.SwingLimitDamping /= AverageMass;
-			ConstraintInstance.TwistLimitDamping /= AverageMass;
+#if WITH_EDITORONLY_DATA
+			ConstraintInstance.ProfileInstance.LinearLimit.Stiffness /= AverageMass;
+			ConstraintInstance.SwingLimitStiffness_DEPRECATED /= AverageMass;
+			ConstraintInstance.TwistLimitStiffness_DEPRECATED /= AverageMass;
+			ConstraintInstance.LinearLimitDamping_DEPRECATED /= AverageMass;
+			ConstraintInstance.SwingLimitDamping_DEPRECATED /= AverageMass;
+			ConstraintInstance.TwistLimitDamping_DEPRECATED /= AverageMass;
+			
+#endif
 		}
 
 	}
@@ -463,11 +475,11 @@ void UPhysicsConstraintComponent::UpdateSpriteTexture()
 {
 	if (SpriteComponent)
 	{
-		if (ConstraintInstance.IsHinge())
+		if (ConstraintUtils::IsHinge(ConstraintInstance))
 		{
 			SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/S_KHinge.S_KHinge")));
 		}
-		else if (ConstraintInstance.IsPrismatic())
+		else if (ConstraintUtils::IsPrismatic(ConstraintInstance))
 		{
 			SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/S_KPrismatic.S_KPrismatic")));
 		}

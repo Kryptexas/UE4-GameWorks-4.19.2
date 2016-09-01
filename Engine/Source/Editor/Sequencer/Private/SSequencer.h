@@ -198,6 +198,9 @@ public:
 	/** Called when the save-as button is clicked */
 	void OnSaveMovieSceneAsClicked();
 
+	/** Called when the curve editor is shown or hidden */
+	void OnCurveEditorVisibilityChanged();
+
 	/** Access the tree view for this sequencer */
 	TSharedPtr<SSequencerTreeView> GetTreeView() const;
 
@@ -375,9 +378,6 @@ private:
 
 	/** Called when a column fill percentage is changed by a splitter slot. */
 	void OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex);
-
-	/** Called when the curve editor is shown or hidden */
-	void OnCurveEditorVisibilityChanged();
 
 	/** Called when the time snap interval is changed. */
 	void OnTimeSnapIntervalChanged();

@@ -1,22 +1,23 @@
-﻿INTSourceChangelist:2541375
+﻿INTSourceChangelist:2708150
 Availability:Public
 Title:5.ゲーム内の一時停止メニューの作成 / スクリプティング
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:ゲームを一時停止または終了できるゲーム内の一時停止メニューを作成します。 
+version:4.9
 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+		[前のステップ](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/UMG\QuickStart) 
+		[クイックスタート ホーム](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-	[Next Step](Engine/UMG\QuickStart\6 "%Engine/UMG\QuickStart\6:title%") 
+	[次のステップ](Engine/UMG\QuickStart\6 "%Engine/UMG\QuickStart\6:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -25,7 +26,7 @@ Description:ゲームを一時停止または終了できるゲーム内の一�
 
 ---
 
-最後に、シンプルな一時停止 (Pause) メニューを作成します。このメニューを使うとプレイヤーはゲームを一時停止または終了できます。 
+最後に、シンプルな一時停止 (Pause) メニューを作成します。このメニューを使ってプレイヤーはゲームを一時停止または終了できます。 
 
 
 ## ビジュアル：一時停止メニューのレイアウト
@@ -34,11 +35,11 @@ Description:ゲームを一時停止または終了できるゲーム内の一�
 
 1.	**Pause Menu** Widget ブループリントを開きます。 
 
-1.	**Designer** タブで、**Palette** からウィジェットをドラッグして **Hierarchy** にドロップして以下のようにセットアップします。 
+1.	**[Designer (デザイナ)]** タブで、**パレット** からウィジェットを **Hierarchy** にドラッグ＆ドロップして以下のようにセットアップします。 
 
 	![](Pause1.png)
 
-	**Canvas Panel** には、**Text** 付き **Vertical Box** を含む **Border** が 1 つ、およびそれぞれ **Text** を持つ 2 つの **Button** があります。 
+	**キャンバス パネル** には、**テキスト** 付き **Vertical Box** が 1 つ、およびそれぞれ **テキスト** を持つ 2 つの **ボタン** を含む **Border** が 1 つあります。 
 
 1.	**Designer** ウィンドウで、 **Border** をサイズ調整して点線のウィンドウ全体を占有するようにします (画面を満たす)。 
 
@@ -60,11 +61,11 @@ Description:ゲームを一時停止または終了できるゲーム内の一�
 
 	![](Pause5.png)
 
-1.	**Vertical Box** の下にある **Text** を選択して、**コンテンツ** の **[詳細]** パネルで **Pause Menu** (一時停止メニュー) と入力します。 
+1.	**Vertical Box** の下にある **Text** を選択して、**コンテンツ** の **[詳細]** パネルで **Pause Menu** と入力します。 
 
 	![](Pause6.png)
 
-1.	他の 2 つの **Text** ブロックに **Resume** (再開) と **Quit** (終了) を入力します。 
+1.	他の 2 つの **テキスト** ブロックに **Resume** と **Quit** を入力します。 
 
 	![](Pause7.png)
 
@@ -81,9 +82,9 @@ Description:ゲームを一時停止または終了できるゲーム内の一�
 
 ビジュアル面を設定したら、次にスクリプティングした機能を一時停止メニューに設定します。 
 
-1.	[Widget Blueprint Editor] ウィンドウの右上隅にある **[Graph]** ボタンをクリックします。 
+1.	[Widget Blueprint Editor] ウィンドウの右上隅にある **[グラフ]** ボタンをクリックします。 
 
-1.	**[My Blueprint]** ウィンドウの **[グラフ]** タブ上で、 **QuitButton** をクリックします。 **Details** パネルで **OnClicked** イベントを追加します。 
+1.	**[My Blueprint]** ウィンドウの **[グラフ]** タブ上で、 **QuitButton** をクリックします。 **[Details (詳細)]** パネルで **OnClicked** Event を追加します。 
 
 	![](PauseScript1.png)
 
@@ -99,7 +100,7 @@ Description:ゲームを一時停止または終了できるゲーム内の一�
 
 	**Resume Button** をクリックすると、入力モードはゲームのみになり、一時停止メニューが有効な時に表示されるカーソルが取り除かれます。**Set Game Paused** ノードを使用して **Paused** のチェックは外して一時停止状態から離れる前に、**Remove from Parent** ノードを使用して、実際の Pause Menu ウィジェットを取り除きます。 
 
-1.	**Remove HUD** という **Function** を作成します。 
+1.	**Remove HUD** という新しい **Function** を作成します。 
 
 	![](PauseScript4.png)
 
@@ -123,7 +124,7 @@ Description:ゲームを一時停止または終了できるゲーム内の一�
 
 	**Quit** をクリックすると、メインメニューに戻るときにメニューを移動するためにマウス カーソルがオンになります。 
 
-1.	上記で作成した **Remove HUD** 関数を追加し、その後に **Open Level** (**MainMenu** に設定) を追加し、以下のように接続します。 
+1.	上記で作成した **Remove HUD** 関数を追加し、その後に **Open Level** (**Main** または独自のメインメニューがあるレベルの名前に設定) を追加し、以下のように接続します。 
 
 	[REGION:lightbox]
 	[![](PauseScript8.png)(w:840)](PauseScript8.png)
@@ -164,13 +165,24 @@ Description:ゲームを一時停止または終了できるゲーム内の一�
 	[REGION:lightbox]
 	[![](PauseScript14.png)(w:840)](PauseScript14.png)
 	[/REGION]
+
 	_クリックしてフルサイズで表示_
 
 	一時停止メニューをセットアップしたので、テストします。 
 
-1.	**Compile** ボタンと **Save** ボタンをクリックします。次に、エディタで再生するために **Play** ボタンをクリックします。 
+1.	**コンパイル** ボタンと **保存** ボタンをクリックします。次に、エディタで再生するために **再生** ボタンをクリックします。 
 
-	[![](Engine\UMG\QuickStart\4\MenuImage.png)(w:720)](PauseMovie.mp4)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	RALk7pUzRdw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	ゲーム内で、**M** Key (または割り当てた任意のキー) を押すと、ゲームが一時停止し、一時停止メニューが表示されるのがわかります。ここから **Resume** ボタンでゲームプレイを再開するか、**Quit** ボタンを使用して終了してメインメニューに戻ります。 
 	次のセクションでは、 **UMG (Unreal Motion Graphics)** と **ブループリント** を使用した作業に関する追加情報を提供します。 
@@ -180,6 +192,10 @@ Description:ゲームを一時停止または終了できるゲーム内の一�
 ---
 
 %Steps%
+
+
+
+
 
 
 

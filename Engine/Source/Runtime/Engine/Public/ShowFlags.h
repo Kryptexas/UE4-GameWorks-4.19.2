@@ -32,7 +32,7 @@ enum EShowFlagInitMode
 	ESFIM_All0
 };
 
-#if (UE_BUILD_SHIPPING) || (UE_BUILD_TEST)
+#if (UE_BUILD_SHIPPING)
 	#define UE_BUILD_OPTIMIZED_SHOWFLAGS 1
 #else
 	#define UE_BUILD_OPTIMIZED_SHOWFLAGS 0
@@ -196,6 +196,32 @@ struct FEngineShowFlags
 		SetSkinCache(true);
 	}
 
+	void EnableAdvancedFeatures()
+	{
+		SetLensFlares(true);
+		SetEyeAdaptation(true);
+		SetColorGrading(true);
+		SetCameraImperfections(true);
+		SetDepthOfField(true);
+		SetVignette(true);
+		SetGrain(true);
+		SetSeparateTranslucency(true);
+		SetScreenSpaceReflections(true);
+		SetTemporalAA(true);
+
+		// might cause reallocation if we render rarely to it - for now off
+		SetAmbientOcclusion(true);
+
+		// Requires resources in the FScene, which get reallocated for every temporary scene if enabled
+		SetIndirectLightingCache(true);
+
+		SetLightShafts(true);
+		SetPostProcessMaterial(true);
+		SetDistanceFieldAO(true);
+		SetDistanceFieldGI(true);
+	}
+
+
 	// ---------------------------------------------------------
 	// The following methods are there for serialization, localization and in general to iterate and manipulate flags.
 	// ---------------------------------------------------------
@@ -304,7 +330,6 @@ private:
 		SetShaderComplexityWithQuadOverdraw(false);
 		SetStationaryLightOverlap(false);
 		SetLightMapDensity(false);
-		SetVertexDensities(false);
 		SetLODColoration(false);
 		SetHLODColoration(false);
 		SetVisualizeLPV(false);

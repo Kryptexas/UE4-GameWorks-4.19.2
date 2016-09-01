@@ -1,12 +1,33 @@
-﻿INTSourceChangelist:2702483
+﻿INTSourceChangelist:3053927
 Availability:Public
 Title:ランドスケープ マテリアル
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:ランドスケープ テレインで作業するためのマテリアルを設定
 version:4.9
+parent:Engine/Landscape
+order:5
 
 [VAR:Topic]
-[OBJECT:Topiccompact]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Landscape/Materials:title%](Engine/Landscape/Materials/landscape_materials_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Materials:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Materials:description%
+	[/PARAM]
+	[PARAMLITERAL:path]
+		[RELATIVE:Engine/Landscape/Materials]
+	[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
 	[PARAM:image]
 		![%Engine/Landscape/Materials:title%](Engine/Landscape/Materials/landscape_materials_topic.png)
 	[/PARAM]
@@ -203,10 +224,10 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details (詳細)]**
 	![](Landscape_Layer_Weight_Base.png)
 	[/REGION]
 
-1. **[Details]** パネルで、**[Parameter Name (パレット名)]** を記述的なレイヤー名に変更します。例えば、「岩」などです。
+1. **[Details (詳細)]** パネルで、**[Parameter Name (パラメータ名)]** を記述的なレイヤー名に変更します。例えば、「岩」などです。
 
 	![Layer Name](Landscape_Mat_ParamName.png)<br/>
-	**[Parameter Name]** に入力すると、ノード自体が更新されます。<br/>
+	**[Parameter Name (パラメータ名)]** に入力すると、ノード自体が更新されます。<br/>
 	![](Landscape_Layer_Weight_Named_Layer.png)
 
 1. マテリアルに入れたい各レイヤーに 1 つずつ付くまで **LandscapeLayerWeight** ノードを追加していきます。この例では、**LandscapeLayerWeight** ノードを 2 つ使っていきます。
@@ -237,7 +258,7 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details (詳細)]**
 1. マテリアル エディタで LandscapeLayerBlend を追加します。
 	![](Landscape_LayerBlend_Material_Example_00.png)
 
-1. **[Details]** パネルの **Layers** の隣のプラス アイコン ![Plus Sign](Shared/Icons/icon_PlusSymbol_12x.png) をクリックしてレイヤーを追加します。
+1. **[Details (詳細)]** パネルで、 **Layers** の隣のプラス アイコン ![Plus Sign](Shared/Icons/icon_PlusSymbol_12x.png) をクリックしてレイヤーを追加します。
 	![](Landscape_LayerBlend_Material_Example_01.png)
 
 1. レイヤーを展開してプロパティを表示します。
@@ -252,7 +273,7 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details (詳細)]**
 
 	![Blend Type](Landscape_Mat_BlendType.png)
 
-1. ランドスケープに好きな数だけレイヤーを追加します。名前を変更して、 **Blend Types** を正しく設定します。
+1. ランドスケープに好きな数だけレイヤーを追加します。名前を変更して、**Blend Types** を正しく設定します。
 
 1. LandscapeLayerBlend ノードの出力ピンを、マテリアルの基本ノードの **Base Color** 入力ピンに接続します。
 
@@ -297,15 +318,15 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details (詳細)]**
 
 ## Landscape Hole マテリアル
 
-[Manage モード](Engine/Landscape/Editing/ManageMode) でランドスケープ内に穴を作成することができますが、ランドスケープ コンポーネント全体を 1 度に削除することになります。これを回避するには、Landscape Hole マテリアルを使ってランドスケープ上の所定位置の可視性とコリジョンをマスクします。山のどこかに、ある洞窟の入り口のようなものを作成する際に便利です。 
+[Manage モード](Engine/Landscape/Editing/ManageMode) でランドスケープ内に穴を作成することができますが、ランドスケープ コンポーネント全体を 1 度に削除することになります。これを回避するには、Landscape Hole マテリアルを使ってランドスケープ上の所定位置の可視性とコリジョンをマスクします。山の斜面の洞窟の入口などの作成に便利です。 
 
 [Region:tip]
 Lansdcape マテリアルと Landscape Hole マテリアルには同じマテリアルを使用できますが、オパシティ マスクを使っているマテリアルはそうでないマテリアルよりもパフォーマンス全体の負荷が大きいです。このような理由で、Landscape Hole マテリアルを別に作成するオプションが付いているのです。
 [/region]
 
-**Landscape Hole マテリアルの作成方法**
+**Landscape Hole マテリアルの作成方法:**
 
-1. まず、マテリアル エディタでマテリアルを開く、もしくは新規に作成します。マテリアルを開いたら、**[Details]** パネルを見て、 **Blend モード** を **Masked** に設定します。
+1. まず、マテリアル エディタでマテリアルを開く、もしくは新規に作成します。マテリアルを開いたら、**[Details (詳細)]** パネルを見て、**[Blend Mode]** を **[Masked]** に設定します。
 
 	![](Landscape_BaseNodeOpacity.png)
 
@@ -323,7 +344,7 @@ Lansdcape マテリアルと Landscape Hole マテリアルには同じマテリ
 
 	![](Landscape_VisibilityMaskSetup_In_Material.png)
 
-1. マテリアルをコンパイルしたら、それを使用するためにランドスケープに割り当てます。**[Details]** パネルの **[Landscape Hole Material]** セクションで行います。
+1. マテリアルをコンパイルしたら、それを使用するためにランドスケープに割り当てます。**[Details (詳細)]** パネルの **[Landscape Hole Material]** セクションで行います。
 
 	![](Landscape_Hole_Materail_Assign.png)
 
@@ -351,11 +372,11 @@ Lansdcape マテリアルと Landscape Hole マテリアルには同じマテリ
 作成されたマテリアルは、使用したり表示したりするために、レベル内のランドスケープ アクタに割り当てられなければなりません。次の方法でマテリアルを Landscape アクタに割り当てます。
 
 
-**マテリアルをランドスケープに割り当てる:**
+**マテリアルをランドスケープに割り当てる**
 
 1. **コンテンツ ブラウザ** から使用する Landscape マテリアルを検索して、これを選択します。
 1. レベル ビューポート または **ワールド アウトライナー** でランドスケープを選択します。
-1. レベル エディタのランドスケープの **[Details]** パネルの **[Landscape]** セクションの **Landscape Material** の横にある割り当て矢印 (![Assign arrow](Shared/Icons/icon_assign_left_16x.png)) をクリックして選択中のマテリアルを割り当てます。
+1. レベル エディタのランドスケープの **[Details (詳細)]** パネルの **[Landscape]** セクションの **Landscape Material** の横にある割り当て矢印 (![Assign arrow](Shared/Icons/icon_assign_left_16x.png)) をクリックして選択中のマテリアルを割り当てます。
 
 	![Assigned Material](Landscape_Material_Assigned.png)
 
@@ -365,7 +386,7 @@ Lansdcape マテリアルと Landscape Hole マテリアルには同じマテリ
 
 1. **コンテンツ ブラウザ** から使用する Landscape Hole マテリアルを検索して、これを選択します。
 1. レベル ビューポート または **ワールド アウトライナー** でランドスケープを選択します。
-1. レベル エディタのランドスケープの **[Details]** パネルの **[Landscape]** セクションの **Landscape Hole Material** の横にある[Assign] 矢印 (![Assign arrow](Shared/Icons/icon_assign_left_16x.png)) をクリックして選択中のマテリアルを割り当てます。
+1. レベル エディタのランドスケープの **[Details (詳細)]** パネルの **[Landscape]** セクションの **[Landscape Hole Material]** の横にある[Assign] 矢印 (![Assign arrow](Shared/Icons/icon_assign_left_16x.png)) をクリックして選択中のマテリアルを割り当てます。
 
 	![](Landscape_HoleSettings.png)
 
@@ -385,7 +406,7 @@ Landscape Hole マテリアルの使用に関する詳細は、[オパシティ�
 マテリアルの **Tessellation Multipliers (テッセレーション乗数)** と **World Displacement (ワールド変位)** チャンネルは、ランドスケープ テレインと連動して使用されることによって、付加的な詳細と変形をもたらします。これらのチャンネルは、他の標準的なマテリアルの場合とまったく同じように機能します。また、レイヤーのブレンドは、 **Base Color** や **法線** 、他チャンネルの場合とちょうど同じように、これらのチャンネルとともに使用することができます。
 
 [REGION:note]
-これらの機能を使用できるのは、 DirectX 11 が有効になっている場合に限られます。そのため、 DirectX 11 のハードウェアを特にターゲットにしていない場合は、上記機能は補助的な仕上げ効果として利用してください。
+これらの機能を使用できるのは、DirectX 11 が有効になっている場合に限られます。そのため、DirectX 11 のハードウェアを特にターゲットにしていない場合は、上記機能は補助的な仕上げ効果として利用してください。
 [/REGION]
 
 

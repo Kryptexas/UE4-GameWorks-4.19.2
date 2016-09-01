@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2521349
+﻿INTSourceChangelist:2918212
 Availability:Public
 Title:レンダリング＆グラフィック
 Crumbs: %ROOT%, Engine
 Description:光源処理とシャドウイング、マテリアルとテクスチャ、パーティクルとエフェクト、そしてポストプロセスを含むレンダリングのサブシステム
 Related:Programming/Rendering
+Version:4.9
+parent:Engine
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -94,10 +97,15 @@ Related:Programming/Rendering
 %Engine/Actors/FogEffects:Topic%
 [/REGION]
 
-##パフォーマンスとデバッグ作業
+## パフォーマンスとデバッグ作業
 
 [REGION:topics third]
 %Engine/Performance:topic%
 %Engine/Performance/Scalability:topic%
 %Engine/Performance/Visualizers:topic%
 [/REGION]
+
+
+
+
+

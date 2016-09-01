@@ -4,8 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:The Blueprint Editor Reference page outlines the Blueprint Editor's Interface elements and its basic usage instructions. 
 version: 4.9
 parent:Engine/Blueprints
-order:4
-type:reference
+
 
 [VAR:Topic]
 [OBJECT:Topic]

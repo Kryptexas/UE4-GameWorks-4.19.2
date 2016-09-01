@@ -260,7 +260,7 @@
 		}
 		case EX_InstrumentationEvent:
 		{
-			iCode += sizeof(int32);
+			iCode += sizeof(uint8);
 			break;
 		}
 		case EX_Return:

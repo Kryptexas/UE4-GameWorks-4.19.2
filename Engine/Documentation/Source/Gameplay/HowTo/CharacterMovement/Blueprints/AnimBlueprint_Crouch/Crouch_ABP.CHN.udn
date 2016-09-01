@@ -3,6 +3,8 @@ Availability: Public
 Title:6.动画蓝图 - 蹲伏状态
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:继续为我们的人物设置动画蓝图，在本节中，我们设置蹲伏状态。 
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:2672918
+﻿INTSourceChangelist:2923484
 Availability:Docs
 Title:1 - プロジェクトを設定する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
 Description:First Person Shooter プロジェクトの設定方法を学びます。
-prereq:Programming/Tutorials/FirstPersonShooter
-スキルレベル:初心者向け
-バージョン：4.9
+SkillLevel:Beginner
+Version:4.11
 
 ![](SectionResult.png)
- _このセクションの最後まで終了すると、上の画面のようになります。_
+_このセクションの最後まで終了すると、上の画面のようになります。_
 
 ## 目標
 
@@ -19,7 +18,7 @@ prereq:Programming/Tutorials/FirstPersonShooter
 このチュートリアルのセクションの最後まで進むと、以下ができるようになります。
 
 * 新規プロジェクトのセットアップ
-* C++ Class Wizard の使用
+* Visual Studio でプロジェクトを開く
 * ログ メッセージをプロジェクトに追加
 * 初めての C++ Class のコンパイル
 * デフォルトのゲーム モードの設定

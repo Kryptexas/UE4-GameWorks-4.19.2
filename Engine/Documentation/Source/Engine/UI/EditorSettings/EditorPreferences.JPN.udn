@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2407771
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:エディタのプリファレンス
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:制御、ビューポート、ソース制御などの一般的なエディタ構成の設定
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
+		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
@@ -16,7 +17,7 @@ Description:制御、ビューポート、ソース制御などの一般的な�
 		Editor Settings (エディタ設定)
 	[/PARAM]
 	[PARAM:description]
-		%Editor/EditorSettings:description%
+		%Engine/UI/EditorSettings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/EditorSettings]
@@ -26,7 +27,7 @@ Description:制御、ビューポート、ソース制御などの一般的な�
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
+		![%Engine/UI/EditorSettings:title%](Engine/UI/EditorSettings_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
@@ -35,7 +36,7 @@ Description:制御、ビューポート、ソース制御などの一般的な�
 		Editor Settings (エディタ設定)
 	[/PARAM]
 	[PARAM:description]
-		%Editor/EditorSettings:description%
+		%Engine/UI/EditorSettings:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/EditorSettings]
@@ -61,10 +62,10 @@ Description:制御、ビューポート、ソース制御などの一般的な�
 
 ### 制御
 
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
 | **Flight Camera Control type** | この設定はフライトカメラの使用とそのアクセス方法を決定します。フライトカメラでは、移動撮影とパンの操作に W 、 A 、 S 、そして D キーを使用します。標準の FPS 制御の作業方法に似ています。W と S キーはカメラを内外に移動撮影させて、 A と D キーはカメラをパンまたは前向きに平行移動させます。有効時はこれらの制御によって全てのホットキーがオーバーライドされます。フラグ表示のトグルも含まれます。[INCLUDE:#CameraControls] |
-| **Grab and Drag to Move Orthographic Cameras** | 有効になると、左右マウスボタンのクリック操作や Ortho ビューポート内のマウスのドラッグ操作でカメラがスクロールされます。実際には、ユーザーがマウスをクリックまたはドラッグすると、シーンがマウスと一緒に動きます。この機能が無効になると、シーンはマウスの反対側へ動きます。|
+| **Grab and Drag to Move Orthographic Cameras** | 有効になると、左マウスの右ボタンのクリック操作や Ortho ビューポート内のマウスのドラッグ操作でカメラがスクロールされます。実際には、ユーザーがマウスをクリックまたはドラッグすると、シーンがマウスと一緒に動きます。この機能が無効になると、シーンはマウスの反対側へ動きます。|
 | **Orthographic Zoom to Cursor Position** | 有効になると、 Ortho ビューポートのズームインはカーソルを軸に展開します。この機能が無効になると、ズームインはビューポートの中心を軸に展開します。|
 | **Link Orthographic Viewport Movement** | 有効になると、全ての Ortho ビューポートがリンクして同位置に焦点を合わせます。そのため 1 つの Ortho ビューポートでカメラを移動させると、その他の Ortho ビューポートがその動きに従います。この機能を無効にすると、それぞれのビューポートを個別に移動させることができます。 |
 | **Aspect Ratio Axis Constraint** | サイズ変更時に縦横比を維持するために、 FOV の制御に使用する パースペクティブ ビューポートの軸を決定します。 [INCLUDE:#AspectConstraint] |
@@ -72,9 +73,24 @@ Description:制御、ビューポート、ソース制御などの一般的な�
 
 ### ビューポートの操作感
 
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
-| **Highlight Objects Under Mouse Cursor** | 有効になると、カーソルをビューポートの上に表示しながら透明なオーバーレイでオブジェクトがハイライトされます。 [REGION:none]![](selection_hover.gif)(w:360 convert:false)[/REGION] |
+| **Highlight Objects Under Mouse Cursor** | 有効になると、カーソルをビューポートの上に表示しながら透明なオーバーレイでオブジェクトがハイライトされます。 !(selection_hover.gif)(w:360 convert:false) | 
+[REGION:none]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+420
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+200
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+yvwZUtmW12I
+[/PARAMLITERAL]
+[/OBJECT]
+[/REGION] 
+
+|
 | **Highlight Selected Objects with Brackets** | [INCLUDE:Shared/Types/ULevelEditorViewportSettings#bhighlightwithbrackets] |
 | **Use Selection Outline** | [INCLUDE:Shared/Types/ULevelEditorViewportSettings#buseselectionoutline] |
 | **Selection Highlight Intensity** | [INCLUDE:Shared/Types/ULevelEditorViewportSettings#selectionhighlightintensity] |
@@ -85,22 +101,22 @@ Description:制御、ビューポート、ソース制御などの一般的な�
 
 ### エディタの操作感
 
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
 | **Use Small Tool Bar Icons** | 有効になると、エディタ全体のツールバーアイコンが縮小してラベルが非表示になります。 [INCLUDE:#SmallToolBarIcons] |
 
 ### レベルの編集
 
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
 | **Enable Combined translate/Rotate Widget** | [INCLUDE:Shared/Types/ULevelEditorViewportSettings#ballowtranslaterotatezwidget] |
-| **Clicking BSP Enables Brush**| 有効時は、ブラシ サーフェスをクリックするとブラシを選択し、 **Ctrl + Shift + Click** キー操作でサーフェスを選択します。無効時は逆の操作となります。クリックするとサーフェスを選択、 **Ctrl + Shift + Click** キー操作でブラを選択します。 |
-| **Update BSP Automatically** | 有効になると、ビューポートでブラシを移動または修正すると ブラシ ジオメトリが自動的に再ビルドします。無効時は、変更を確認するにはジオメトリを再ビルドしなくてはいけません。 |
+| **Clicking BSP Enables Brush**| 有効時は、ブラシ サーフェスをクリックするとブラシを選択し、 **Ctrl + Shift + Click** キー操作でサーフェスを選択します。無効時は逆の操作となります。クリックするとサーフェスを選択、 **Ctrl + Shift + Click** キー操作でブラシを選択します。 |
+| **Update BSP Automatically** | 有効になると、ビューポートでブラシを移動または修正するとブラシ ジオメトリが自動的に再ビルドします。無効時は、変更を確認するにはジオメトリを再ビルドしなくてはいけません。 |
 | **Preserve Actor Scale on Replace** | 有効時は、アクタを置き換えると、オリジナルアクタのスケーリングが尊重されます。そうでない場合、置き換えられたアクタは 1.0 でスケーリングします。 |
 
 ### ソースコントロール
 
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
 | **Prompt for Checkout on Package Modification** | 有効になると、エディタはパッケージ修正で SCC チェックアウトを自動的に促します。 |
 | **Allow Source Control** | 有効になると、パッケージとマップにエディタのソース制御の統合が使用されます。 |
@@ -111,20 +127,20 @@ Description:制御、ビューポート、ソース制御などの一般的な�
 
 ### パーティクル
 
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
 | **Use Curves for Distributions** | 有効になると、 [ディストリビューション](Engine/Basics/Distributions) はエディタでレンダリング中にベイクされた参照テーブルの代わりにカーブを使用します。 |
 
-###コンテントブラウザ
+### コンテンツブラウザ
 
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
 | **Auto Reimport Textures** | 有効になると、テクスチャのソースファイルはモニタリングされ、テクスチャはソースファイルが変更されると自動的に再インポートされます。 |
 | **Assets to Load at Once before Warning** | たくさんのアセットの読み込みに関する警告を表示する前に、 **コンテンツブラウザ** から一度に読み込むオブジェクト数です。 |
 
 ### オートセーブ
 
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
 | **Enable AutoSave** | 有効になると、エディタは一定のインターバルで自動的に保存処理を実行します。 |
 | **Save Maps** | 有効になると、自動保存手順によって修正および読み込まれたマップが保存されます。 |
@@ -136,7 +152,7 @@ Description:制御、ビューポート、ソース制御などの一般的な�
 <!--
 [EXCERPT:CameraControls]
 [REGION:simpletable]
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
 | _Use WASD for Camera Controls_ | フライトカメラと WASD 制御は常に有効になります。 |
 | _Use WASD Only When Right Mouse Button is Held_ | フライトカメラと WASD 制御は RMB キーが押下された時のみ有効になります。 |
@@ -146,7 +162,7 @@ Description:制御、ビューポート、ソース制御などの一般的な�
 
 [EXCERPT:AspectConstraint]
 [REGION:simpletable]
-| オプション | 説明 |
+| オプション| 説明 |
 | ------ | ----------- |
 | _Maintain Y-Axis FOV_ | FOVの決定に Y 軸 (垂直) を使用します。|
 | _Maintain X-Axis FOV_ | FOVの決定に X 軸 (平行) を使用します。 |

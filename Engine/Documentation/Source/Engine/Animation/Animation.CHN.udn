@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title: Persona: 骨架网格物体动画
+Title: Persona：骨架网格体的动画
 Crumbs: %ROOT%, Engine
-Description:基于关键帧动画数据和顶点变形对象的变形骨架网格物体的系统。
+Description: 基于关键帧动画数据和顶点变形对象的变形骨架网格物体的系统。
 Navigation:topic
+parent:Engine
+order:3
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,6 +26,7 @@ Navigation:topic
 	[/PARAM]
 [/OBJECT]
 [/VAR]
+
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -105,6 +108,7 @@ Navigation:topic
 		* [](Engine/Animation/PhysicallyDrivenAnimation "%Engine/Animation/PhysicallyDrivenAnimation:description%")
 		* [](Engine/Animation/RootMotion "%Engine/Animation/RootMotion:description%")
 		* [](Engine/Animation/NonUniformScale "%Engine/Animation/NonUniformScale:description%")
+		* [](Engine\Animation\NonLinearBlends "%Engine\Animation\NonLinearBlends:description%")
 	[/PARAM]
 [/OBJECT]
 
@@ -133,7 +137,7 @@ Navigation:topic
 		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
 		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
 		* **Programming**		
-			* [](Programming/Animation "%Programming/Animation:description%")
+			* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
 		* **Tutorials**		
 			* [](Engine/Animation/CharacterSetupOverview "%Engine/Animation/CharacterSetupOverview:description%")
 			* [](Engine/Animation/IKSetups "%Engine/Animation/IKSetups:description%")

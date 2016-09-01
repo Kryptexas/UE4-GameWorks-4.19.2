@@ -41,7 +41,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Tag to be applied to build products of this task
 		/// </summary>
-		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
 		public string Tag;
 	}
 
@@ -112,8 +112,15 @@ namespace AutomationTool
 			// Build everything
 			Dictionary<UE4Build.BuildTarget, BuildManifest> TargetToManifest = new Dictionary<UE4Build.BuildTarget,BuildManifest>();
             UE4Build Builder = new UE4Build(Job.OwnerCommand);
-			Builder.Build(Agenda, InDeleteBuildProducts: false, InUpdateVersionFiles: false, InForceNoXGE: false, InUseParallelExecutor: true, InTargetToManifest: TargetToManifest);
-            UE4Build.CheckBuildProducts(Builder.BuildProductFiles);
+			try
+			{
+				Builder.Build(Agenda, InDeleteBuildProducts: null, InUpdateVersionFiles: false, InForceNoXGE: false, InUseParallelExecutor: true, InTargetToManifest: TargetToManifest);
+			}
+			catch (CommandUtils.CommandFailedException)
+			{
+				return false;
+			}
+			UE4Build.CheckBuildProducts(Builder.BuildProductFiles);
 
 			// Tag all the outputs
 			foreach(KeyValuePair<UE4Build.BuildTarget, string> TargetTagName in TargetToTagName)
@@ -124,9 +131,12 @@ namespace AutomationTool
 					throw new AutomationException("Missing manifest for target {0} {1} {2}", TargetTagName.Key.TargetName, TargetTagName.Key.Platform, TargetTagName.Key.Config);
 				}
 
-				HashSet<FileReference> FileSet = FindOrAddTagSet(TagNameToFileSet, TargetTagName.Value);
-				FileSet.UnionWith(Manifest.BuildProducts.Select(x => new FileReference(x)));
-				FileSet.UnionWith(Manifest.LibraryBuildProducts.Select(x => new FileReference(x)));
+				foreach(string TagName in SplitDelimitedList(TargetTagName.Value))
+				{
+					HashSet<FileReference> FileSet = FindOrAddTagSet(TagNameToFileSet, TagName);
+					FileSet.UnionWith(Manifest.BuildProducts.Select(x => new FileReference(x)));
+					FileSet.UnionWith(Manifest.LibraryBuildProducts.Select(x => new FileReference(x)));
+				}
 			}
 
 			// Add everything to the list of build products
@@ -156,6 +166,24 @@ namespace AutomationTool
 
 				Write(Writer, Parameters);
 			}
+		}
+
+		/// <summary>
+		/// Find all the tags which are used as inputs to this task
+		/// </summary>
+		/// <returns>The tag names which are read by this task</returns>
+		public override IEnumerable<string> FindConsumedTagNames()
+		{
+			yield break;
+		}
+
+		/// <summary>
+		/// Find all the tags which are modified by this task
+		/// </summary>
+		/// <returns>The tag names which are modified by this task</returns>
+		public override IEnumerable<string> FindProducedTagNames()
+		{
+			return TargetToTagName.Values.SelectMany(x => SplitDelimitedList(x));
 		}
 	}
 }

@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2629334
 Availability:Public
-Title:Samsung Gear VR Global Menu Blueprint Setup
+Title:三星 Gear VR 全局菜单蓝图设置
 Crumbs:%ROOT%, Platforms/GearVR
-Description: How to setup a Blueprint to display the Gear VR Global Menu
+Description:如何设置蓝图显示 Gear VR 全局菜单
 Navigation:platform
 Platform:Gear VR
-Skilllevel: Intermediate
-Version: 4.8
+Skilllevel:Intermediate
+Version:4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -25,68 +25,68 @@ Version: 4.8
 
 %Steps%
 
-With the **GearVR_GlobalMenu** HUD now assigned as the game HUD, we can now start to build the Blueprint logic that will call the menu based on the requirements from Oculus.
+将 **GearVR_GlobalMenu** HUD 指定为游戏 HUD 后，现在即可开始构建蓝图逻辑，根据 Oculus 的要求调用菜单。
 
 
-1. Open up the **GearVR_GlobalMenu** Blueprint by **Double - Clicking** on it inside of the **Content Browser**.
+1. 在 **内容浏览器** 中 **双击** 打开 **GearVR_GlobalMenu** 蓝图。
 
-1. Once the **GearVR_GlobalMenu** Blueprint is open, go the **Event Graph** and then delete everything that is there leaving a blank graph to work with.
+1. **GearVR_GlobalMenu** 蓝图打开后，前往 **Event Graph** 删除所有内容，留出空白图表使用。
 
 	![](T_Empty_BP.png)
 
-1. In the **Variables** section create the following variables types with the following names.
+1. 在 **Variables** 部分，以下列名称创建以下变量类型。
 	
 	![](T_Variable_Names.png)
 
-	|Variable Type     |Name    |Default Value|
+	|变量类型     |名称    |默认值|
 	|------------------|--------|------------------| 
 	| Boolean| Invoked          | False|
 	| Float|IncrementGlobalMenuPressTimer|0.0|
 	| Float|GlobalMenuPressTimer|0.0|
 
-1. In order for the HUD to know that the back button is being pressed on the Gear VR Head Mounted Display (HMD) we have to enable the HUD to receive input signals by using the **Enable Input** node. 
-	Inside of your HUD Blueprint add and connect the nodes like in the following image. 
+1. 为使 HUD 了解 Gear VR 头戴显示器（HMD）上的 back 键已按下，需使用 **Enable Input** 节点让 HUD 接收输入信号。 
+	在 HUD 蓝图中，按下图中的方式添加并连接节点。 
 
 	![](T_Enable_HUD_Input.png)
 
 	[region:note]
-	If you are having issues finding **Enable Input** try turning off **Context Sensitive** and searching for it again. 
+	如未能找到 **Enable Input**，尝试关闭 **Context Sensitive** 并再次进行搜索。 
 
 	![](T_Turn_Off_Context_Sensitive.png)
 	[/region]
 
-1. Now that the HUD can receive button inputs, add and setup the following nodes so that when the **Android Back** button is pressed we can enable the Global Menu. Then, when it's released, we can reset everything for the next time it is pressed.
+1. HUD 可接收按键输入后，需要添加并设置以下节点，使 **Android Back** 键按下时呼出全局菜单。松开此键后对所有内容进行重设，为下次按键事件做好准备。
 
 	![](T_Key_Input.png)
 
 	[region:note]
-	To quickly test to see if your button logic is working, add a keyboard input key as an additional input to the back button. 
-	While this will not active the Global Menu while testing on PC, it will be able to help you see everything up till the menu is supposed to be called helping you see if everything is connected correctly.
+	为快速测试按键逻辑是否正常，可添加一个键盘输入键，作为 back 键的额外输入。 
+	虽然在 PC 上进行测试时不会启用全局菜单，但有助于您了解菜单被调用前的一切，以确认所有内容是否正常连接。
 
 	![](T_Testing_Tip.png)
 	[/region]
 
-1. With the back button able to send and receive events we now need setup some logic to call the Global Menu after the back button has been held down for more than **0.75** seconds to meet the requirements set by Oculus. 
-	Setup up your HUD Blueprint to match the image below:
+1. Back 键可发送并接收事件后，需要设置一些逻辑，在 back 键长按超过 **0.75** 秒后调用全局菜单，满足 Oculus 的要求。 
+	对 HUD 蓝图进行设置，参考下图：
 
 	![](T_Timer_Logic.png)
 
-1. Input **0.75** in the **B** input of the **>= Node** then input **OVRGLOBALMENU** into the **Command** section of the **Execute Console Command** node.
+1. 在 **>= 节点** 的 **B** 输入中输入 **0.75**，然后在 **Execute Console Command** 节点的 **Command** 部分输入 **OVRGLOBALMENU**。
 
 	![](T_Timer_Values.png)
 
-1. Finally as per the instructions from Oculus, we need to display something that will grow over time to notify the user the Global Menu is being activated. 
-	Add and setup the nodes in your Blueprint to match the image below:
+1. 最后，根据 Oculus 的说明，还需要显示随时间变化的内容，以便提醒用户已开启全局菜单。 
+	在蓝图中添加并设置节点，参考下图：
 
 	![](T_Draw_HUD.png)
 
-1. When everything has been completed your Blueprint graph should look like this:
+1. 完成后，蓝图图表外观应与下图相似：
 
 	![](T_Final_Graph.png)
 
-1. Now you can package your project up and deploy it to your Smartphone to use with the Gear VR HMD. 
-	To see the menu in action, launch your project and then hold down the back button that is on the side of Gear VR HMD.
-	As you do you will see a line being drawn across the screen and then when it finishes the Global Menu will be displayed.
+1. 现在即可打包项目，并部署到智能手机结合三星 Gear VR HMD 使用。 
+	启动项目，长按三星 Gear VR HMD 侧面的 back 键即可确认菜单的工作。
+	执行此操作时，屏幕上将画过一条线，线条画完后便会出现全局菜单。
 
 
 

@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2565490
+﻿INTSourceChangelist:2975673
 Title:6. 부가 자료
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:언리얼 엔진으로 오큘러스 개발을 하는 데 관련된 부가 자료입니다.
 Availability:Public
+Version: 4.9
+SkillLevel: Intermediate
 
+Here are some additional resources that provide useful information for developing VR projects inside of Unreal Engine 4.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -58,4 +61,8 @@ Availability:Public
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
+
+
+
+
 %Steps%

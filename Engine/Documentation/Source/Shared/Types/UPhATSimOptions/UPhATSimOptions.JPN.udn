@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2308803
+﻿INTSourceChangelist:2591123
 Availability:NoPublish
 Title:UDestructibleComponent RTTs
 Crumbs:
@@ -146,7 +146,7 @@ Engine/Physics/PhAT/Properties#physicsassettoolproperties
 
 [EXCERPT:PokeStrength]
 
-シミュレーション中に "ctrl + 左クリック" することで、ニュートン力が適用されます。ほとんどの物の場合、デフォルトが 100 ニュートンだとあまり反応はありません。人間の形をしたキャラクターであれば、 1500 ニュートンあたりが良いでしょう。15000 ニュートンですと、鈍器のようなものでの一撃になります。それ以上になると、ビークルと衝撃したような反応になります。
+シミュレーション中に "ctrl + 左クリック" を押すと、ニュートン力が適用されます。ほとんどの物の場合、デフォルトが 100 ニュートンだとあまり反応はありません。人間の形をしたキャラクターであれば、 1500 ニュートンあたりが良いでしょう。15000 ニュートンですと、鈍器のようなものでの一撃になります。それ以上になると、ビークルと衝撃したような反応になります。
 
 [VAR:ToolTipFullLink]
 Engine/Physics/PhAT/Properties#physicsassettoolproperties
@@ -183,7 +183,7 @@ Engine/Physics/PhAT/Properties#physicsassettoolproperties
 
 [EXCERPT:bPromptOnBoneDelete]
 
-物理ボディの削除時の警告の都度表示を、有効または無効にします。
+物理ボディの削除のたびに警告を表示する機能を有効または無効にします。
 
 ![](PhAT_DelBone.png)
 [/EXCERPT:bPromptOnBoneDelete]

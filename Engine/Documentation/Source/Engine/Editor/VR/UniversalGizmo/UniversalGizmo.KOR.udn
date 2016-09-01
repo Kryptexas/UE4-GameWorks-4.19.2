@@ -1,0 +1,60 @@
+﻿INTSourceChangelist:2911160
+Title: 유니버설 기즈모
+Description: VR 에서 액터 이동, 회전, 스케일 조절에 사용되는 트랜스폼 위젯입니다.
+Crumbs:
+Availability: public
+parent: Engine/Editor/VR
+type: reference
+order: 4
+tags: VR
+version: 4.11
+skilllevel: intermediate
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/UniversalGizmo:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/UniversalGizmo:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Editor/VR/UniversalGizmo:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Editor/VR/UniversalGizmo:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+**Universal Gizmo** (유니버설 기즈모)는 VR 모드 작업시 액터의 이동, 회전, 스케일 조절을 위해 디자인된 트랜스폼 위젯입니다.
+
+![](universalgizmo.png)(w:400)
+
+유니버설 기즈모의 요소는 빨강, 초록, 파랑으로 이루어져 있으며, 각각 X, Y, Z 축을 나타냅니다.
+
+| 동작 | 조작기 | 사용법 |
+| --- | --- | --- |
+| **이동** | ![](universalgizmo_move.png)(w:192) | 콘트롤러의 이동 조작기 중 하나에 조준한 뒤 트리거를 절반쯤 쥐면 잡힙니다. 이 상태에서 콘트롤러를 움직이면 선택된 액터가 해당 축상에서 이동됩니다. |
+| **면 이동** | ![](universalgizmo_moveplane.png)(w:192) | 콘트롤러를 이동 면 조작기 중 하나에 조준한 뒤 **트리거** 를 절반쯤 쥐면 잡힙니다. 이 상태에서 콘트롤러를 움직이면 액터가 선택된 면(2 축) 상에서 움직입니다. |
+| **회전** | ![](universalgizmo_rotate.png)(w:192) | 콘트롤러를 회전 조작기 중 하나에 조준한 뒤 트리거를 절반쯤 쥐면 잡힙니다. 이 상태에서 콘트롤러를 움직이면 선택된 액터가 해당 축을 중심으로 회전합니다. |
+| **스케일** | ![](universalgizmo_scale.png)(w:192)  | 콘트롤러를 스케일 조작기 중 하나에 조준한 뒤 트리거를 절반쯤 쥐면 잡힙니다. 이 상태에서 콘트롤러를 움직이면 선택된 액터의 Y 축 스케일을 조절합니다. |
+| **균등 스케일** | ![](universalgizmo_uniformscale.png)(w:192) | 콘트롤러를 스트레치 조작기 중 하나에 조준한 뒤 트리거를 절반쯤 쥐면 잡힙니다. 이 상태에서 콘트롤러를 움직이면 선택된 액터의 모든 축 스케일을 균등 조절합니다. |
+| **스트레치** | ![](universalgizmo_stretch.png)(w:192) | 콘트롤러를 스트레치 조작기 중 하나에 조준한 뒤 트리거를 절반쯤 쥐면 잡힙니다. 이 상태에서 콘트롤러를 움직이면 반대쪽 코너에 앵커가 잡힌 상태로 남아있는 상태로 선택된 액터의 스케일이 비균등 조절됩니다. |

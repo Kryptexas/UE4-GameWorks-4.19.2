@@ -1,45 +1,47 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Material Editor - How To Place Material Expression and Functions
-Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for how to place Material Expression and Functions inside the Material graph.
-Related: Engine/Rendering/Materials/ExpressionReference/Functions
-Related: Engine/Rendering/Materials/ExpressionReference
-Related: Engine/UI/KeyBindings
+﻿INTSourceChangelist:2731729
+Availability:Public
+Title:材质编辑器 - 如何放置材质表达式和函数
+Crumbs:%ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
+Description:有关如何在材质图中放置材质表达式和函数的操作指南。
+Related:Engine/Rendering/Materials/ExpressionReference/Functions
+Related:Engine/Rendering/Materials/ExpressionReference
+Related:Engine/UI/KeyBindings
+Version:4.9
+SkillLevel:Intermediate
 
 [TOC(start:2)]
 
 
-Material Expressions and Material Functions are the building blocks used to create fully functional Materials inside Unreal Engine 4.
-Each expression or function is a self-contained black box that can run little snippets of code on their inputs and output the results. 
-In this How To guide, we will be learning the various ways that we can place Material Expressions and Material Functions inside of the Material Graph. 
+**材质表达式** 和 **材质函数** 是虚幻引擎 4 中的构建块，用来创建功能完整的材质。
+每个表达式或函数都是独立的黑匣，可以对其输入运行一小段代码，然后输出结果。 
+在本操作指南中，我们会学习将材质表达式和材质函数放入材质图的各种方法。 
 
-## Material Expressions
+## 材质表达式
 
-Material Expression nodes contain tiny snippets of HLSL code that perform very specific tasks inside of a Material. 
-Materials are built using combinations of Material Expression nodes that are combined together to do certain tasks. 
-For example, if you want a Texture to move inside of a Material, you can use the Panner Material Expression node. 
-This node contains specific HLSL code that tells the Material to move the UV coordinates of the Texture that it is applied to in a specific direction, making it look like it is moving. 
-As you will soon see,  Material Expression nodes are key to building and interacting with the Materials you create.
-
-
-## Difference Between Material Expressions and Material Functions
-
-While Material Expressions and Material Functions are the building blocks used to create Materials, there are some differences between the nodes and how they work.
-The main difference between Material Functions and Material Expressions is that Material Functions are made inside of the Material Function Editor and saved assets in the **Content Browser**. 
-
-* [Material Expressions]( Engine/Rendering/Materials/ExpressionReference): Material Expressions are static pieces of code that can only do what they are programmed to do. For example, a Multiply node can only Multiply, it will never be able to add two numbers together. The only way you could change this was to make changes to the source code.
-
-* [Material Functions]( Engine/Rendering/Materials/Functions): Material Functions are more dynamic because you can create Material Functions to perform any type of calculations you want. If you wanted your Material Function to have the ability to not only Multiply but also Add, you could set it up to do so as those changes would be made right inside the Material Function Editor without having to make source code changes.
+**材质表达式** 节点包含一小段 HLSL 代码，这些代码在材质内部执行非常特定的任务。 
+材质是使用材质表达式节点的组合来构建的，这些节点组合在一起可执行特定的任务。 
+例如，如果您希望在材质内部移动纹理，那么可使用“平移”材质表达式节点。 
+此节点包含特定的 HLSL 代码，这些代码指示材质沿特定方向移动其应用纹理的 UV 坐标，使它看起来像在运动一样。 
+您很快将看到，材质表达式节点是构建材质并与其互动的关键。
 
 
-## Placing Material Expressions
+## 材质表达式与材质函数之间的差别
 
-You can place Material Expression into a Material Graph in the following three ways. 
+虽然材质表达式和材质函数都是用来创建材质的构建块，但在节点及其工作方式方面存在一些差异。
+材质函数与材质表达式之间的主要差异是，材质函数是在材质函数编辑器中构造，并且是保存在内容浏览器中的资产。 
 
-### Drag and Drop from the Palette
+* [材质表达式]( Engine/Rendering/Materials/ExpressionReference)：材质表达式是静态代码段，只能执行编程时指定的操作。例如，乘法（Multiply）节点只能执行乘法，而永远无法将两个数字相加。您要更改其功能的唯一方法就是更改源代码。
 
-You can drag and drop any Material Expression right form the **Palette** menu directly into the Material graph. To do this, search for the Expression that you want and then click on it with the **Left Mouse Button** and then drag it into the Material Graph. When you release the **Left Mouse Button**, the Material Expression will be placed in the Material graph.
+* [材质函数]( Engine/Rendering/Materials/Functions)：材质函数较为灵活，因为您可以创建材质函数以执行您所需的任何类型的计算。如果您希望材质函数不仅能够执行乘法，也能够执行加法，您可以在材质函数编辑器中进行相应的更改来实现，而不必更改源代码。
+
+
+## 放置材质表达式
+
+您可以采用下列三种方法将材质表达式放入材质图。 
+
+### 从选用板中拖放
+
+您可以将任何材质表达式从 **选用板（Palette）**菜单直接拖放到材质图中。即，搜索所需的表达式，用 **鼠标左键** 单击选中它，然后将它拖到材质图中。当您释放 **鼠标左键** 时，材质表达式将放置在材质图中。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -53,9 +55,9 @@ You can drag and drop any Material Expression right form the **Palette** menu di
 	[/PARAMLITERAL]
 [/OBJECT]
 
-### Right-Click Search
+### 右键单击搜索
 
-You can also add Material Expressions by **Right-Clicking** anywhere in the Material graph and then selecting the Material Expression you want from the menu context menu by clicking on it with the **Left Mouse Button** to place it in the Material graph. You can also use the keyboard to search for the Material Expression you want. When you find the one you are looking for, press the **Enter** key to place the Expression node in the Material Graph.
+您也可以这样添加材质表达式：**右键单击** 材质图中的任何位置，从快捷菜单中选择所需的材质表达式，然后单击 **鼠标左键** 将它放入材质图中。您还可以使用键盘来搜索所需的材质表达式。找到所需的材质表达式后，按 **Enter** 键就可以将表达式节点放入材质图中。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -69,9 +71,9 @@ You can also add Material Expressions by **Right-Clicking** anywhere in the Mate
 	[/PARAMLITERAL]
 [/OBJECT]
 
-### Keyboard Shortcuts
+### 键盘快捷键
 
-There are a number of Keyboard shortcuts that you can use to help you quickly place down Material Expressions that are most commonly used. You can change what key spawns what Material Expression by going to **Edit -> Editor Preferences -> Keyboard Shortcuts -> Material Editor Spawn Nodes**.
+您可以使用许多键盘快捷键来帮助您快速放置最常用的材质表达式。您可以通过 **编辑（Edit）-> 编辑器首选项（Editor Preferences）-> 键盘快捷键（Keyboard Shortcuts）-> 材质编辑器产生节点（Material Editor Spawn Nodes）**来更改产生材质表达式的键。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -85,39 +87,39 @@ There are a number of Keyboard shortcuts that you can use to help you quickly pl
 	[/PARAMLITERAL]
 [/OBJECT]
 
-Here is a list of the current default keyboard shortcuts and what Material Expression will be created when the keys are pressed.  
+以下是当前默认键盘快捷键的清单，及按下按键时材质表达式将会创建的表达式。  
 
-| Keyboard Shortcut Key | Material Expression|
+| 键盘快捷键 | 材质表达式|
 |--------------|--------------------|
-| A			   |  Add Material Expression|
-| B		       |  Bump Offset Material Expression|
-| 1		       |  Constant Material Expression|
-| 2		       |  Constant2 Vector Material Expression|
-| 3		       |  Constant3 Vector Material Expression|
-| 4		       |  Constant4 Vector Material Expression|
-| D		       |  Divide Material Expression|
-| I		       |  If Material Expression|
-| L		       |  Linear Interpolate Material Expression|
-| F		       |  Material Function Material Expression|
-| M		       |  Multiply Expression|
-| N 	       |  Normalize Expression|
-| O 	       |  One Minus Expression|
-| P 	       |  Panner Expression|
-| E 	       |  Power Expression|
-| R 	       |  Vector WS Expression|
-| S 	       |  Scalar Expression|
-| U 	       |  Texture Coordinate Expression|
-| V	           |  Vector Sample Expression|
+| A			   |  “加法”材质表达式|
+| B		       |  “凹凸贴图偏移”材质表达式|
+| 1		       |  “常量”材质表达式|
+| 2		       |  “常量 2 矢量”材质表达式|
+| 3		       |  “常量 3 矢量”材质表达式|
+| 4		       |  “常量 4 矢量”材质表达式|
+| D		       |  “除法”材质表达式|
+| I		       |  “如果”材质表达式|
+| L		       |  “线性插值”材质表达式|
+| F		       |  “材质函数”材质表达式|
+| M		       |  “乘法”表达式|
+| N 	       |  “规格化”表达式|
+| O 	       |  “一减”表达式|
+| P 	       |  “平移”表达式|
+| E 	       |  “幂”表达式|
+| R 	       |  “矢量 WS”表达式|
+| S 	       |  “标量”表达式|
+| U 	       |  “纹理坐标”表达式|
+| V	           |  “矢量取样”表达式|
 
 
 
-## Placing Material Functions 
+## 放置材质函数 
 
-Material Functions can be placed inside of a Material Graph in the exact same manner as Material Expressions. 
+您可以采用放置材质表达式的方法，将材质函数放入材质图中。 
 
-### Drag and Drop from the Palette
+### 从选用板中拖放
 
-You can drag and drop any Material Function right from the **Palette** menu directly into the Material graph. To do this, search for the Function that you want and then click on it with the **Left Mouse Button** and drag it into the Material Graph. When you release the **Left Mouse Button**, the Material Expression will be placed in the Material graph.
+您可以将任何材质函数从 **选用板（Palette）**菜单直接拖放到材质图中。即，搜索所需的函数，用 **鼠标左键** 单击选中它，然后将它拖到材质图中。当您释放 **鼠标左键** 时，材质表达式将放入材质图中。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -132,18 +134,18 @@ You can drag and drop any Material Function right from the **Palette** menu dire
 [/OBJECT]
 
 [region:tip]
-The Palette offers the ability to filter your search so that you can limit your search results to either Expressions, Functions, or both. To set your search filter settings, use the **Left Mouse Button** to click on the **Category** button and then select what you wish to search for from the drop down menu. 
+选用板提供了搜索过滤功能，您可以将搜索结果限制为表达式、函数或这两者。要设置搜索过滤器设置，请使用 **鼠标左键** 单击 **类别** 按钮，然后从下拉菜单中选择您想要搜索的类别。 
 
 ![](Placing_Functions_Search_Options.png)
 
 [/region]
 
-### Right-Click Search
+### 右键单击搜索
 
-You can also add Material Functions by **Right-Clicking** anywhere in the Material graph and then selecting the Material Function you want from the menu context menu by clicking on it with the **Left Mouse Button** to place it in the Material graph. You can also use the **Keyboard** to search for the Material Function you want by typing the name of what you are looking for in the **Search** box. When you find the one you are looking for, press the **Enter** key to place the Function node in the Material Graph.
+您也可以这样添加材质函数：**右键单击** 材质图中的任何位置，从快捷菜单中选择所需的材质函数，然后单击 **鼠标左键** 将它放入材质图中。您还可以使用 **键盘** 在 **搜索（Search）**框中输入您要查找的名称，来搜索您所需的材质函数。找到所需的材质表达式后，按 **Enter** 键就可以将函数节点放入材质图中。
 
 [region:note]
-The **Right-Click** menu cannot filter by Functions or Expression and displays them both when you are searching.
+**快捷** 菜单无法按函数或表达式进行过滤，在您进行搜索时，这两者都将显示。
 [/region]
 
 [OBJECT:EmbeddedVideo]
@@ -160,14 +162,14 @@ The **Right-Click** menu cannot filter by Functions or Expression and displays t
 
 [region:tip]
 
-Material Function nodes will always have the color Blue at the top. You can also use the **Left Mouse Button** to **Double Click** on them  to open them up to see what they do. 
+材质函数节点的顶部总是显示为蓝色。您还可以通过 **鼠标左键双击** 将它们打开，来查看它们所执行的操作。 
 
 ![](Placing_Functions_Functions_Blue_Tops.png)(w:500 h:375)
 [/region]
 
-### From the Content Browser
+### 从内容浏览器
 
-One thing that is exclusive to Material Functions is that you also have the ability to Drag and Drop them from the **Content Browser** into your Material graph. To do this, find the Material Function you want to use in the **Content Browser** then click on it with the **Left Mouse Button** and drag it into your Material graph. Once your Mouse is over the Material graph, release the **Left Mouse Button** to add the Material Function you selected.
+这种方法仅适用于材质函数，您可以将它们从 **内容浏览器** 拖放到材质图中。即，在 **内容浏览器** 中查找所需使用的材质函数，用 **鼠标左键** 单击选中它，然后将它拖到材质图中。当鼠标移到材质图上时，释放 **鼠标左键** 即可添加您所选择的材质函数。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -181,10 +183,10 @@ One thing that is exclusive to Material Functions is that you also have the abil
 	[/PARAMLITERAL]
 [/OBJECT]
 [region:note]
-To find the Material Functions in the **Content Browser**, you will need to look in the Engine folder. 
-However, by default the Engine folder is disabled and to see it you will need to enable it. 
-To do this, use the **Left Mouse Button** to click on to View Options that is on the lower right hand corner of the **Content Browser**. 
-Then from the pop-up menu, select the **Show Engine Content** option to display the content in the Engine Folder.  
+要在内容浏览器中查找材质函数，您需要在 Engine 文件夹中进行查找。 
+但是，默认情况下，Engine 文件夹处于禁用状态，您需要将其启用才能查看。 
+即，使用 **鼠标左键** 单击内容浏览器右下角的查看选项（View Options）。 
+然后，从弹出菜单中，选择 **显示引擎内容（Show Engine Content）**选项以显示 Engine 文件夹中的内容。  
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -200,13 +202,13 @@ Then from the pop-up menu, select the **Show Engine Content** option to display 
 
 [/region]
 
-## Conclusion
+## 结论
 
-Material Expressions and Material Functions are key to getting what you want out of the Material Editor. 
-No matter what type of Material you are building, the Material will always be made up of a combination of Material Expressions and or Material Functions.
-Keep in mind that when adjusting Material Functions that are currently in use, you can run the risk of breaking other Materials and Material Instances that use that Material Function.
-Also if you are unsure what a specific Material Expression node does, you can always do a quick internet search for the name of the Material Expressions node.
-Because most of the Material Expressions nodes are pure HLSL code, node just in node forum, the official Microsoft documentation on HLSL can sometimes help you figure out what the Material Expressions might do.
+材质表达式和材质函数是您使用材质编辑器的关键。 
+无论您构建哪一类材质，材质都由材质表达式和/或材质函数组成。
+请记住，调整当前使用中的材质函数时，可能有导致其他使用该材质函数的材质及材质实例损坏的风险。
+另外，每当您不确定某个特定材质表达式节点的功能时，都可以在因特网上快速搜索该材质表达式节点的名称。
+因为大部分材质表达式节点都是纯 HLSL 代码，节点仅在节点论坛中，有关 HLSL 的 Microsoft 官方文档有时可以帮助您了解材质表达式可能执行的操作。
 
 
 

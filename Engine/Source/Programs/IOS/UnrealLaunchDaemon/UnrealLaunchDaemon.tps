@@ -2,7 +2,7 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>UnrealLaunchDaemon</Name>
   <Location>/Engine/Source/Programs/IOS/UnrealLaunchDaemon/</Location>
-  <Date>2016-04-04T17:13:01.1362634-04:00</Date>
+  <Date>2016-06-16T14:00:18.2736214-04:00</Date>
   <Function />
   <Justification />
   <Platforms>
@@ -13,7 +13,7 @@
     <Product>UE4</Product>
   </Products>
   <TpsType>Source Code</TpsType>
-  <Eula>See Zombie UE4 iOS Development and Support Agreement</Eula>
+  <Eula>See Zombie UE4 iOS Development and Support Agreement in Contraxx</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
@@ -23,5 +23,5 @@
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>None</NoticeType>
   <Notification />
-  <LicenseFolder />
+  <LicenseFolder>None</LicenseFolder>
 </TpsData>

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2604027
+﻿INTSourceChangelist:2750697
 Availability: Public
 Title:Orientation 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:파티클의 오리엔테이션, 즉 일정한 축에 대한 회전을 못하게 하는 모듈입니다.
+Version: 4.9
 
-[TOC(start:2 end:3)]
 
 파티클의 오리엔테이션, 즉 일정한 축에 대한 회전을 못하게 하는 모듈입니다.
 

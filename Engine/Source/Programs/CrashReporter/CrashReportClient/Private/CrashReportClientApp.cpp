@@ -151,6 +151,14 @@ FPlatformErrorReport LoadErrorReport()
 
 		if (NameMatch && GUIDMatch)
 		{
+			FString ConfigFilename;
+			if (ErrorReport.FindFirstReportFileWithExtension(ConfigFilename, *FGenericCrashContext::CrashConfigExtension))
+			{
+				FConfigFile CrashConfigFile;
+				CrashConfigFile.Read(ReportDirectoryAbsolutePath / ConfigFilename);
+				FCrashReportClientConfig::Get().SetProjectConfigOverrides(CrashConfigFile);
+			}
+
 			return ErrorReport;
 		}
 #endif
@@ -313,6 +321,8 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	
 	if (ErrorReport.HasFilesToUpload() && FPrimaryCrashProperties::Get() != nullptr)
 	{
+		ErrorReport.SetCrashReportClientVersion(FCrashReportClientConfig::Get().GetVersion());
+
 		FCrashReportAnalytics::Initialize();
 		FQoSReporter::Initialize();
 		FQoSReporter::SetBackendDeploymentName(FPrimaryCrashProperties::Get()->DeploymentName);
@@ -340,6 +350,11 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 		// Shutdown analytics.
 		FCrashReportAnalytics::Shutdown();
 		FQoSReporter::Shutdown();
+	}
+	else
+	{
+		// Needed to let systems that are shutting down that we are shutting down by request
+		GIsRequestingExit = true;
 	}
 
 	FPrimaryCrashProperties::Shutdown();

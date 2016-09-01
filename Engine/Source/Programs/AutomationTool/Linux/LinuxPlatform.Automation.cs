@@ -23,105 +23,111 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 	}
 
-	public override List<string> GetExecutableNames(DeploymentContext SC, bool bIsRun = false)
-	{
-		List<string> Exes = base.GetExecutableNames(SC, bIsRun);
-		// replace the binary name to match what was staged
-		if (bIsRun && !SC.IsCodeBasedProject)
-		{
-			Exes[0] = CommandUtils.CombinePaths(SC.StageProjectRoot, "Binaries", SC.PlatformDir, SC.ShortProjectName);
-		}
-		return Exes;
-	}
-
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-		// FIXME: use build architecture
-		string BuildArchitecture = "x86_64-unknown-linux-gnu";
-
 		if (SC.bStageCrashReporter)
 		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient", false, null, null, true);
-		}
-
-		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/ICU/icu4c-53_1/", SC.PlatformDir, BuildArchitecture), Params.bDebugBuildsActuallyUseDebugCRT ? "*d.so*" : "*.so*", false, new[] { Params.bDebugBuildsActuallyUseDebugCRT ? "*.so*" : "*d.so*" }, CombinePaths("Engine/Binaries", SC.PlatformDir));
-		}
-
-		// assume that we always have to deploy Steam (FIXME: should be automatic - UEPLAT-807)
-		{
-			string SteamVersion = "Steamv132";
-
-			// Check if the Steam directory exists. We need it for Steam controller support, so we include it whenever we can.
-			if (Directory.Exists(CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/Steamworks/" + SteamVersion)))
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.UnrealBuildTool.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
+			if (File.Exists(ReceiptFileName))
 			{
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/Steamworks/" + SteamVersion, SC.PlatformDir), "libsteam_api.so", false, null, CombinePaths("Engine/Binaries", SC.PlatformDir));
+				TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
+				Receipt.ExpandPathVariables(UnrealBuildTool.UnrealBuildTool.EngineDirectory, (Params.RawProjectPath == null) ? UnrealBuildTool.UnrealBuildTool.EngineDirectory : Params.RawProjectPath.Directory);
+				SC.StageBuildProductsFromReceipt(Receipt, true, false);
 			}
-
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "controller.vdf", false, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Saved/Config"));
-			// copy optional perfcounters definition file
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Config"), "PerfCounters.json", false, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Saved/Config"), true);
 		}
 
-		// stage libLND (omit it for dedservers and Installed Engine - proper resolution is to use build receipts, see UEPLAT-807)
-		if (!SC.DedicatedServer && (!Automation.IsEngineInstalled() || Directory.Exists(CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/LinuxNativeDialogs/", SC.PlatformDir, BuildArchitecture))))
+		// Stage all the build products
+		Console.WriteLine("Staging all {0} build products", SC.StageTargets.Count);
+		int BuildProductIdx = 0;
+		foreach (StageTarget Target in SC.StageTargets)
 		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/LinuxNativeDialogs/", SC.PlatformDir, BuildArchitecture), "libLND*.so");
-		}
-
-		// assume that we always have to deploy OpenAL (FIXME: should be automatic - UEPLAT-807)
-		{
-			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenAL/", SC.PlatformDir), "libopenal.so.1", false, null, CombinePaths("Engine/Binaries", SC.PlatformDir));
-		}
+			Console.WriteLine(" Product {0}: {1}", BuildProductIdx, Target.Receipt.TargetName);
+			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.bTreatNonShippingBinariesAsDebugFiles);
+			++BuildProductIdx;
+        }
 
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 
-	    List<string> Exes = GetExecutableNames(SC);
-
-		foreach (var Exe in Exes)
+		// Stage the bootstrap executable
+		if (!Params.NoBootstrapExe)
 		{
-
-			if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
+			foreach (StageTarget Target in SC.StageTargets)
 			{
-				// remap the project root. For content-only projects, rename the executable to the project name.
-				if (!Params.IsCodeBasedProject && Exe == Exes[0])
+				BuildProduct Executable = Target.Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
+				if (Executable != null)
 				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe), true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, true, SC.ShortProjectName);
-				}
-				else
-				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe), true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false);
-				}
-			}
-			else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
-			{
-				// Move the executable for content-only projects into the project directory, using the project name, so it can figure out the UProject to look for and is consistent with code projects.
-				if (!Params.IsCodeBasedProject && Exe == Exes[0])
-				{
-                    // ensure the ue4game binary exists, if applicable
-                    string FullExePath = CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), Path.GetFileNameWithoutExtension(Exes[0]));
-					if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullExePath) && !SC.bIsCombiningMultiplePlatforms)
+					// only create bootstraps for executables
+					string FullExecutablePath = Path.GetFullPath(Executable.Path);
+					if (Executable.Path.Replace("\\", "/").Contains("/" + TargetPlatformType.ToString() + "/"))
 					{
-						LogError("Failed to find game binary " + FullExePath);
-                        throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find game binary {0}. You may need to build the UE4 project with your target configuration and platform.", Params.ProjectGameExeFilename);
-					}
+						string BootstrapArguments = "";
+						if (!SC.IsCodeBasedProject && !ShouldStageCommandLine(Params, SC))
+						{
+							BootstrapArguments = String.Format("\\\"../../../{0}/{0}.uproject\\\"", SC.ShortProjectName);
+						}
 
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe), true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, true, SC.ShortProjectName);
-				}
-				else
-				{
-					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe), true, null, null, false);
+						string BootstrapExeName;
+						if (SC.StageTargetConfigurations.Count > 1)
+						{
+							BootstrapExeName = Path.GetFileName(Executable.Path);
+						}
+						else if (Params.IsCodeBasedProject)
+						{
+							BootstrapExeName = Target.Receipt.TargetName;
+						}
+						else
+						{
+							BootstrapExeName = SC.ShortProjectName;
+						}
+
+						foreach (string StagePath in SC.NonUFSStagingFiles[FullExecutablePath])
+						{
+							StageBootstrapExecutable(SC, BootstrapExeName + ".sh", FullExecutablePath, StagePath, BootstrapArguments);
+						}
+					}
 				}
 			}
-			else
-			{
-				throw new AutomationException("Can't stage the exe {0} because it doesn't start with {1} or {2}", Exe, CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir), CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir));
-            }
-        }
-		
+		}
 	}
 
-	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+	public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
+	{
+		return false;
+	}
+
+	void StageBootstrapExecutable(DeploymentContext SC, string ExeName, string TargetFile, string StagedRelativeTargetPath, string StagedArguments)
+	{
+		// create a temp script file location
+		string IntermediateDir = CombinePaths(SC.ProjectRoot, "Intermediate", "Staging");
+		string IntermediateFile = CombinePaths(IntermediateDir, ExeName);
+		InternalUtils.SafeCreateDirectory(IntermediateDir);
+
+		// make sure slashes are good
+		StagedRelativeTargetPath = StagedRelativeTargetPath.Replace("\\", "/");
+
+		// make contents
+		StringBuilder Script = new StringBuilder();
+		string EOL = "\n";
+		Script.Append("#!/bin/sh" + EOL);
+		Script.AppendFormat("chmod +x {0}" + EOL, StagedRelativeTargetPath);
+		Script.AppendFormat("{0} {1} $@" + EOL, StagedRelativeTargetPath, StagedArguments);
+
+		// write out the 
+		File.WriteAllText(IntermediateFile, Script.ToString());
+
+		if (Utils.IsRunningOnMono)
+		{
+			var Result = CommandUtils.Run("sh", string.Format("-c 'chmod +x \\\"{0}\\\"'", IntermediateFile));
+			if (Result.ExitCode != 0)
+			{
+				throw new AutomationException(string.Format("Failed to chmod \"{0}\"", IntermediateFile));
+			}
+		}
+
+		SC.StageFiles(StagedFileType.NonUFS, IntermediateDir, ExeName, false, null, "");
+	}
+
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		const string NoEditorCookPlatform = "LinuxNoEditor";
 		const string ServerCookPlatform = "LinuxServer";
@@ -164,14 +170,14 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 		if (!String.IsNullOrEmpty(Params.ServerDeviceAddress))
 		{
-			string sourcePath = CombinePaths(Params.BaseStageDirectory, GetCookPlatform(Params.DedicatedServer, false, ""));
+			string sourcePath = CombinePaths(Params.BaseStageDirectory, GetCookPlatform(Params.DedicatedServer, false));
 			string destPath = Params.DeviceUsername + "@" + Params.ServerDeviceAddress + ":.";
 			RunAndLog(CmdEnv, pscpPath, String.Format("-batch -i {0} -r {1} {2}", Params.DevicePassword, sourcePath, destPath));
 
 			List<string> Exes = GetExecutableNames(SC);
 
-			string binPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir, Path.GetFileName(Exes[0])).Replace("\\", "/");
-			string iconPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage, SC.ShortProjectName + ".png").Replace("\\", "/");
+			string binPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false), SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir, Path.GetFileName(Exes[0])).Replace("\\", "/");
+			string iconPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false), SC.RelativeProjectRootForStage, SC.ShortProjectName + ".png").Replace("\\", "/");
 
 			string DesiredGLVersion = "4.3";
 
@@ -340,7 +346,7 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.
 		}
 		else if ((ProjParams.Deploy || ProjParams.Run) && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux)
 		{
-			throw new AutomationException("must specify device IP for remote Linux target (-serverdevice=<ip>)");
+			throw new AutomationException("must specify device IP for remote Linux target (-serverdevice=linux@<ip>)");
 		}
 	}
 	public override List<string> GetDebugFileExtentions()

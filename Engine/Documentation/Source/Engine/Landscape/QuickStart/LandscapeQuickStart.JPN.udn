@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2702491
+﻿INTSourceChangelist:3053927
 Availability:Public
 Title:ランドスケープのクイックスタートガイド
 Crumbs: %ROOT%, GettingStarted
 Description:アンリアル エンジンのランドスケープ システムの基礎を用いて作業を開始します。
 version:4.9
+parent:Engine/Landscape
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -44,7 +44,6 @@ public class LevelEditor : ModuleRules
                 "EditorStyle",
 				"Engine",
 				"MessageLog",
-				"NewsFeed",
                 "SourceControl",
                 "SourceControlWindows",
                 "StatsViewer",
@@ -69,6 +68,7 @@ public class LevelEditor : ModuleRules
                 "HierarchicalLODUtilities",
 				"MaterialShaderQualitySettings",
                 "PixelInspectorModule",
+                "FbxAutomationBuilderModule"
 			}
 		);
 

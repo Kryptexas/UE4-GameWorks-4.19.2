@@ -18,6 +18,26 @@ typedef ICMP_ECHO_REPLY FIcmpEchoReply;
 typedef ICMP_ECHO_REPLY32 FIcmpEchoReply;
 #endif
 
+uint16 NtoHS(uint16 val)
+{
+	return ntohs(val);
+}
+
+uint16 HtoNS(uint16 val)
+{
+	return htons(val);
+}
+
+uint32 NtoHL(uint32 val)
+{
+	return ntohl(val);
+}
+
+uint32 HtoNL(uint32 val)
+{
+	return htonl(val);
+}
+
 namespace IcmpWindows
 {
 	// 32 bytes is the default size for the windows ping utility, and windows has problems with sending < 18 bytes.
@@ -37,12 +57,12 @@ namespace IcmpWindows
 	}
 }
 
-FIcmpEchoResult IcmpEchoImpl(const FString& TargetAddress, float Timeout)
+FIcmpEchoResult IcmpEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetAddress, float Timeout)
 {
 	FIcmpEchoResult Result;
 
 	FString ResolvedAddress;
-	if (!ResolveIp(TargetAddress, ResolvedAddress))
+	if (!ResolveIp(SocketSub, TargetAddress, ResolvedAddress))
 	{
 		Result.Status = EIcmpResponseStatus::Unresolvable;
 		return Result;

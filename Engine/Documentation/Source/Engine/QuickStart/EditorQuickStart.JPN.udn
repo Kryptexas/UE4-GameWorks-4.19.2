@@ -1,8 +1,15 @@
-﻿INTSourceChangelist:2465567
+﻿INTSourceChangelist:2744014
 Availability:Public
-Title:レベルデザイン クイックスタート
+Title:レベル デザイナー向けクイックスタート
 Crumbs: %ROOT%, GettingStarted
-Description:エディタの基礎を覚えてデザインしましょう
+Description:アンリアルエディタの基礎を用いて作業を開始します。
+prereq:GettingStarted/Installation
+prereq:Engine/Basics/Projects/Browser
+SkillLevel:Beginner
+Version:4.9
+parent:Engine/Editor
+order:1
+checkpoint: editorqs
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,11 +45,24 @@ Description:エディタの基礎を覚えてデザインしましょう
 [/OBJECT]
 [/VAR]
 
-![](Engine\QuickStart\6\built.png)(w:940)
+![](Finished.png)
 
-エディタのクイックスタートガイドでは、新規プロジェクトの作成、ビューポートのナビゲーション、新規レベルの作成、アクタのレベル内への配置と編集に加えて、レベルのビルドと実行など、UNREAL ENGINE 4 の基本操作に関して説明します。ガイドを終える頃には、上図のような部屋が出来上がります。本ガイドの最終ステップでは、自分の知識を応用して仕上げ、また関連するトピックスへのリンクも紹介します。 
+_このガイドを終える頃には、上図のような部屋が出来上がります。_
 
-[OBJECT:TopicButtonList]
+## 目標
+
+アンリアル エディタのクイックスタートガイドでは、アンリアル エンジン 4 の基本操作に関して説明します。
+
+## 目的
+
+このチュートリアルでは、以下の習得を目指します。
+
+*	ビューポートのナビゲーション方法
+*	新規レベルの作成方法
+*	レベル内のアクタの配置および編集方法
+* 	レベルのビルドおよび実行方法
+
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
@@ -52,14 +72,10 @@ Description:エディタの基礎を覚えてデザインしましょう
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* [](Engine/QuickStart/1 "%Engine/QuickStart/1:description%")
-	* [](Engine/QuickStart/2 "%Engine/QuickStart/2:description%")
-	* [](Engine/QuickStart/3 "%Engine/QuickStart/3:description%")
-	* [](Engine/QuickStart/4 "%Engine/QuickStart/4:description%")
-	* [](Engine/QuickStart/5 "%Engine/QuickStart/5:description%")
-	* [](Engine/QuickStart/6 "%Engine/QuickStart/6:description%")
+	[DIR(output:"checkpoint" parent:"Engine/QuickStart" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 
-
-
+[REGION:call_to_action]
+	[クイックスタートへ](Engine/QuickStart/1 "%Engine/QuickStart/1:title%")
+[/REGION]

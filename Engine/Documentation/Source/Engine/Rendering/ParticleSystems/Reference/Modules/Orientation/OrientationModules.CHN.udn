@@ -1,25 +1,25 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Orientation Modules
+﻿INTSourceChangelist:2750697
+Availability:Public
+Title:Orientation 模块
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
-Description:These modules control the orientation of particles, preventing rotation on certain axes.
+Description:这些模块控制粒子的方向，阻止旋转在特定的轴上发生。
+Version:4.9
 
-[TOC(start:2 end:3)]
 
-These modules control the orientation of particles, preventing rotation on certain axes.
+这些模块控制粒子的方向，阻止旋转在特定的轴上发生。
 
 ## Axis Lock
 
-The Axis Lock module is used to lock the particle facing to a given axis. Currently, this is a sprite-based module only. It contains the following member(s): 
+**Axis Lock** 模块可将粒子锁定朝向固定的轴。这当下只是一个基于 sprite 的模块。它包含下列属性： 
 
 ![](LockAxis.png)
 
-In this image, the particle sprites are being locked to the positive Y-Axis.
+在上图中，粒子 sprites 锁定的是正 Y 轴。
 
-| Property | Description |
+| 属性 | 描述 |
 | ---- | ---- |
 |[REGION:tablesection]Orientation[/REGION]||
-|**Lock Axis Flags** | Indicate the axis the particle should lock to. It can be one of the following values:[INCLUDE:#LockAxisFlags] |
+|**Lock Axis Flags** | 确定粒子锁定的轴。可为下列数值之一：[INCLUDE:#LockAxisFlags]|
 
 
 
@@ -32,18 +32,18 @@ In this image, the particle sprites are being locked to the positive Y-Axis.
 
 [EXCERPT:LockAxisFlags]
 [REGION:simpletable]
-|**Flag**|**Description**|
+|**标记**|**描述**|
 | --- | --- |
-|_EPAL_NONE_|No locking to an axis.|
-|_EPAL_X_|Lock the sprite facing towards +X.|
-|_EPAL_Y_|Lock the sprite facing towards +Y.|
-|_EPAL_Z_|Lock the sprite facing towards +Z.|
-|_EPAL_NEGATIVE_X_|Lock the sprite facing towards -X.|
-|_EPAL_NEGATIVE_Y_|Lock the sprite facing towards -Y.|
-|_EPAL_NEGATIVE_Z_|Lock the sprite facing towards -Z.|
-|_EPAL_ROTATE_X_|Lock the sprite rotation on the X-axis.|
-|_EPAL_ROTATE_Y_|Lock the sprite rotation on the Y-axis.|
-|_EPAL_ROTATE_Z_|Lock the sprite rotation on the Z-axis.|
+|_EPAL_NONE_|无锁定轴。|
+|_EPAL_X_|锁定 sprite 朝向 +X 轴。|
+|_EPAL_Y_|锁定 sprite 朝向 +Y 轴。|
+|_EPAL_Z_|锁定 sprite 朝向 +Z 轴。|
+|_EPAL_NEGATIVE_X_|锁定 sprite 朝向 -X 轴。|
+|_EPAL_NEGATIVE_Y_|锁定 sprite 朝向 -Y 轴。|
+|_EPAL_NEGATIVE_Z_|锁定 sprite 朝向 -Z 轴。|
+|_EPAL_ROTATE_X_|锁定 sprite 在 X 轴上旋转。|
+|_EPAL_ROTATE_Y_|锁定 sprite 在 Y 轴上旋转。|
+|_EPAL_ROTATE_Z_|锁定 sprite 在 Z 轴上旋转。|
 [/REGION]
 [/EXCERPT:LockAxisFlags]
 

@@ -652,6 +652,11 @@ public:
  *  Global thread pool for shared async operations
  */
 extern CORE_API FQueuedThreadPool* GThreadPool;
+
+#if USE_NEW_ASYNC_IO
+extern CORE_API FQueuedThreadPool* GIOThreadPool;
+#endif // USE_NEW_ASYNC_IO
+
 #if WITH_EDITOR
 extern CORE_API FQueuedThreadPool* GLargeThreadPool;
 #endif
@@ -1217,6 +1222,12 @@ FORCEINLINE bool IsInGameThread()
 
 	return true;
 }
+
+/** @return True if called from the audio thread, and not merely a thread calling audio functions. */
+extern CORE_API bool IsInAudioThread();
+
+/** Thread used for audio */
+extern CORE_API FRunnableThread* GAudioThread;
 
 /** @return True if called from the slate thread, and not merely a thread calling slate functions. */
 extern CORE_API bool IsInSlateThread();

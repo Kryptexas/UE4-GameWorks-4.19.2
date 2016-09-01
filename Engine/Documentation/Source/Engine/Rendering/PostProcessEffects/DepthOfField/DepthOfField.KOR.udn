@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2624544
+﻿INTSourceChangelist:2957999
 Availability:Public
 Title:뎁스 오브 필드
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:깊이에 따라 씬을 흐리게 만드는 초점 효과 시뮬레이션입니다.
+Version: 4.9
 
 [REGION:fullwidth]
 ![Depth of Field](dof.png)
@@ -47,7 +48,7 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 하지만 특히 전환되는 영역에서 퍼포먼스가 (보케보다 꽤나) 좋고 퀄리티도 나쁘지 않습니다.
 
 원형 DOF 기본은 쾌적함을 위해 의도적으로 약하게 했습니다. 최대한의 효과를 위해서는 트윅 작업이 필요합니다. 커다란 보케에는 작은 Aperture 값을 사용하고, 오브젝트에 가까이 가서 필드 오브 뷰를 낮춥니다.
-초점 거리를 설정하고 플레이합니다.
+초점 거리를 통해, 이상적으로는 초점 면 전후방에 초점이 나간 씬 콘텐츠를 구합니다. VisualizeDepthOfField 표시 플래그로 올바른 세팅을 찾는 데 도움이 될 수 있습니다.
 
 [/EXCERPT:DepthOfField_Circle]
 
@@ -61,12 +62,14 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 
 
 이행 구역을 포함한 이 레이어들은 ( **표시 > 시각화** 아래) **뎁스 오브 필드 레이어** 표시 옵션으로 시각화시켜 볼 수 있습니다. 근경 레이어는 초록, 원경 레이어는 파랑, 초점구역은 검정색으로 표시됩니다.
-
-[REGION:imagetable]
-| ![Scene](dof_layers.png)(w:455) | ![Layer Visualization](dof_layers_visualize.png)(w:455) |
-| :----: | :----: |
-| DoF 적용 씬 | DoF 레이어 시각화 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene](dof_layers.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Layer Visualization](dof_layers_visualize.png)(w:700)
+	[/PARAM]
+[/OBJECT]
 
 여러가지 흥미로운 정보 역시 포함하기 위해 시각화를 더욱 개선시켰습니다.
 
@@ -174,13 +177,17 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 
 보케 뎁스 오브 필드는 퍼포먼스 상의 이유로 인해 기본적으로 (각 방향마다 절반 해상도씩) 1/4 해상도로 렌더링됩니다. 대부분의 경우 이러한 다운샘플링이 문제되는 일 없이 완벽히 수용할 만 하기는 하지만, 부작용이 심해 원치 않는 결과가 나는 상황도 있습니다.
 
-[REGION:imagetable]
-| ![Adaptive Reoslution - Off](dof_adaptive_0.png)(w:455) | ![Adaptive Reoslution - On](dof_adaptive_1.png)(w:455) |
-| :----: | :----: |
-| 다운샘플링 | 적응형 알고리즘 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Adaptive Resolution - Off](dof_adaptive_0.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Adaptive Reoslution - On](dof_adaptive_1.png)(w:700)
+	[/PARAM]
+[/OBJECT]
 
-다운샘플링 DoF 기법만 사용할 때, 배경에 블러링이 적용되고 있는 캐릭터를 보면 덩어리진 모습을 확인할 수 있습니다. 게다가 전경의 캐릭터 뿔 주변에 약간의 부작용도 보입니다. 적응형 DoF 를 사용하니 부작용도 사라지고 배경 캐리릭터의 모습도 훨씬 부드러워 졌습니다.
+
+다운샘플링 DoF 기법만 사용할 때, 배경에 블러링이 적용되고 있는 캐릭터를 보면 덩어리진 모습을 확인할 수 있습니다. 게다가 전경의 캐릭터 뿔 주변에 약간의 부작용도 보입니다. 적응형 DoF 를 사용하니 부작용도 사라지고 배경 캐릭터의 모습도 훨씬 부드러워 졌습니다.
 
 적응형 DoF 는 ( **표시 > 시각화** 아래) **적응형 뎁스 오브 필드** 표시 옵션으로 시각화시켜 볼 수 있습니다. 켜면 다운샘플링 이펙트가 사용된 곳은 어디인지 (초록으로), 최대 해상도 이펙트가 사용된 곳은 어디인지 (빨강으로) 보여주는 오버레이가 표시됩니다. 블러링이 적용되지 않은 곳은 원래 씬 색으로 표시됩니다.
 
@@ -190,8 +197,12 @@ Depth of Field (DoF, 뎁스 오브 필드)는 씬의 포커스 지점 앞이나 
 
 일반적으로 모두 초록으로 나타나는 것이 좋습니다. 시각화에 빨강으로 나타나는 부분이 많을 수록, 매 프레임마다 씬 렌더링에 드는 비용이 늘어납니다.
 
-[REGION:imagetable]
-| ![Adaptive Reoslution - Optimized](dof_adaptive_good.png)(w:455) | ![Adaptive Reoslution - Expensive](dof_adaptive_bad.png)(w:455) |
-| :----: | :----: |
-| 최적입니다. | 비쌉니다. |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Adaptive Resolution - Optimized](dof_adaptive_good.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Adaptive Resolution - Expensive](dof_adaptive_bad.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+

@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2968923
 Availability:Public
-Title:Online Session Nodes
+Title:在线会话节点
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
-Description:Describes the different kinds of Online and Error Related Blueprint Nodes.
-Related: Engine/Blueprints
-Related: Programming/Online
-Related: Gameplay/Networking/Actors
-Related: Resources/ContentExamples/Networking
-
+Description:介绍各种类型的在线及错误相关的蓝图节点。
+Related:Engine/Blueprints
+Related:Programming/Online
+Related:Gameplay/Networking/Actors
+Related:Resources/ContentExamples/Networking
+version:4.9
+Parent:Engine/Blueprints
+Type:guide
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -53,61 +55,61 @@ Related: Resources/ContentExamples/Networking
 
 [EXCERPT:OnlineNodes]
 
-## Online Session Nodes
+## 在线会话节点
 
-The nodes below are responsible for hosting, discovering, joining, or leaving multiplayer games through **Blueprints**. 
+以下节点通过 **蓝图** 在多人游戏中创建主机、寻找、加入或退出。 
 
-Each of these nodes are _latent_, meaning they perform their operation in the background (usually because these operations must communicate over the network) and will finish at some point in the future. This is also denoted on the nodes themselves in the upper right corner by a clock icon.
+这些节点为 _隐藏_，意味着它们在后台执行操作（通常因为这些操作必须通过网络进行交流），并在之后的某点结束。节点右上角的钟表图标即代表其为隐藏节点。
 
-### Create Session
+### 创建会话
 
 ![](CreateSession.png)
 
-The **Create Session** node is where everything starts. Once your game has successfully created a session, other instances of your game will be able to discover it (using the **Find Session** node) and then join it (using the **Join Session** node). On this node, you can specify the number of players allowed in the session and whether the session should be created in LAN mode. For online subsystem modules that support it, setting LAN mode to false will attempt to create an Internet game. 
+首先从 **Create Session** 节点开始。游戏成功创建一个会话后，游戏的其他实例即可发现（使用 **Find Session** 节点）并加入（使用 **Join Session** 节点）。在此节点上可指定会话中允许的玩家数量，以及是否可在 LAN 模式中创建会话。对于支持的在线子系统模块而言，将 LAN 模式设为 false 将尝试创建在线游戏。 
 
 [REGION:note]
-For an overview of the Online Subsystem and Session Interface, see the [](Programming/Online) documentation.
+[](Programming/Online) 文档中有在线子系统和会话界面的综述。
 [/REGION]
 
-### Find Sessions
+### 寻找会话
 
 ![](FindSessions.png)
 
-Use the **Find Sessions** node to get a list of game sessions that are currently being advertised and joinable. The **BlueprintSessionResult** objects returned from a successful call will allow you to get the server's name, ping, and player counts. 
+使用 **Find Sessions** 节点获取当前公布并可加入的游戏会话的列表。**BlueprintSessionResult** 从成功调用返回后可获取服务器的名称、ping 和玩家数量。 
 
-### Join Session
+### 加入会话
 
 ![](JoinSession.png)
 
-Once you know which **BlueprintSessionResult** you would like to join, pass it into a **Join Session** call. If the game successfully connects to the server, it will automatically travel to the server's map and join gameplay. 
+确定加入的 **BlueprintSessionResult** 后，将其传入 **Join Session** 调用。如游戏成功连接到服务器，它将自动前往服务器的映射并加入游戏。 
 
-### Destroy Session
+### 销毁会话
 
 ![](DestroySession.png)
 
-When you no longer want other players to be able to discover and join your game, you can call the **Destroy Session** node. This will effectively cause you to leave the session, and if you are the host, shut down the session so that it is no longer discoverable. 
+如不希望其他玩家发现并加入游戏，可调用 **Destroy Session** 节点。此操作将导致您离开会话；如您为主机，将会话关闭，使其无法被发现。 
 
 [REGION:note]
-This node is also used for leaving sessions. Clients also need to call this node when they leave a game.
+此节点还用于离开会话。客机离开游戏时也需要调用此节点。
 [/REGION]
 
-## Error Handling Nodes
+## 错误处理节点
 
-Unfortunately, when dealing with network operations, errors are always a possibility and game should handle them gracefully. Perhaps the host of the session you try to join has just quit a moment earlier, or perhaps your internet service went down temporarily, or any number of other problems occur. Through Blueprints, your games have more flexibility in how they handle these network-related errors. 
+处理网络操作时始终存在出现错误的可能，游戏需要对错误进行恰当的处理。可能主机已于先前推出您尝试加入的会话，也可能您的网络服务已临时关闭，还可能出现不胜枚举的各种其他错误。游戏可通过蓝图灵活处理这些与网络相关的错误。 
 
-Failures that originate from the Session Operations described above will be reported through the **OnFailure** execution pin, so you can set up your game to handle these failures as you wish. For certain kinds of failures however, or failures that occur in the middle of gameplay, there are a couple of Error Events that can be called within a **GameInstance** Blueprint, **Network Error** and **Travel Error**. 
+以上会话操作出现的错误将通过 **OnFailure** 执行引脚进行报告，以便对游戏进行设置，处理问题。对于一些特定类型的错误，或游戏进程中发生的错误，可从 **GameInstance** 蓝图中调用两个错误事件 - **Network Error** 和 **Travel Error**。 
 
 ### Event Network Error
 
 ![](EventNetworkError.png)
 
-The **Network Error** Event allows games to respond to the event, receive an enumeration value that describes the type of error, and respond appropriately - a game may want to display a dialog box to the user, for example. 
+**Network Error** 事件允许游戏对事件进行回应，接收描述错误类型的枚举值，并进行适当的回应 - 如游戏可能对用户显示一个对话框。 
 
 ### Event Travel Error
 
 ![](EventTravelError.png)
 
-The **Travel Error** Event, which is less common than the **Network Error** Event, allows games to handle cases such as trying to load an invalid map, which are not covered by **Network Error**. 
+**Travel Error** 事件不及 **Network Error** 常见，使游戏处理 **Network Error** 未涉及的情况（如尝试加载无效地图）。 
 
 [/EXCERPT:OnlineNodes]
 

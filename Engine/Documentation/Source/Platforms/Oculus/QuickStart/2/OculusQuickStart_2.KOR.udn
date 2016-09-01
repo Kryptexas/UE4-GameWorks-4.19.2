@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2385999
-Title:2. 오큘러스 런타임 다운로드
+﻿INTSourceChangelist:2982497
+Title:2. 오큘러스 런타임 설치
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
-Description:오큘러스 리프트에서 게임을 실행하는 데 필요한 소프트웨어를 다운로드합니다.
+Description:오큘러스 리프트에서의 게임 실행에 필요한 소프트웨어를 다운로드하고 설치합니다.
 Availability:Public
-
+Version: 4.9
+SkillLevel: Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,59 +22,43 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
+여기서는 오큘러스 런타임 설치 방법과 아울러 설치 프로세스 도중 벌어질 수 있는 문제 해결 방법을 알아보도록 하겠습니다.
+
+[region:note]
+오큘러스 런타임 설치 도중 30 - 60 분 동안 인터넷 연결이 필요합니다.
+[/region]
+
 %Steps%
 
+1. 오큘러스 런타임 다운로드가 완료되면, **OculusSetup.exe** 를 찾아 더블클릭하여 설치를 시작합니다.
 
-[REGION:note]
-언리얼 엔진 4 와 현재 호환되는 오큘러스 런타임 버전은 **Oculus SDK v0.4.2 Beta** 입니다. 
-[/REGION]
+	![](RIft_EXE_Download_00.png)
 
-%Globals:OSSelect%
+1. 오큘러스 리프트 인스톨러가 열리면, **Let's Go** 버튼을 눌러 설치를 시작합니다.
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
-[/OBJECT]
-<!--
-[EXCERPT:windows]
-1. [Oculus Runtime for Windows version 0.4.2-beta](https://developer.oculus.com/downloads/#id=9f27e6a8) 를 클릭합니다. 
+	![](Rift_Install_Start_00.png)
 
-	![](3-oculus-runtime-for-windows.jpg)
-1. EULA 조항을 읽고 동의하여 다운로드를 시작합니다.
+1. 개인보호 취급정책과 사용권 조항에 동의한다면 **Agree** 버튼을 눌러 다음 설치 단계로 이동합니다.
 
-	![](3-oculus-eula.jpg)
-[/EXCERPT:windows]
-[EXCERPT:macos]
-[INCLUDE:Platforms/Oculus#warning]
-1. [Oculus Runtime for OS X version 0.4.2-beta](https://developer.oculus.com/downloads/#id=4d85655b) 를 클릭합니다.
-	![](3-oculus-runtime-for-os-x.jpg)
-1. EULA 조항을 읽고 동의하여 다운로드를 시작합니다.
+	![](Rift_TC_00.png)
 
-	![](3-oculus-eula.jpg)
-[/EXCERPT:macos]
--->
+1. 건강 & 안전 경고 메시지를 읽고 동의한다면, **I Understand** 버튼을 눌러 다음 설치 단계로 넘어갑니다.
+
+	![](Rift_Health_Safety_Warning_00.png)
+
+1. **Install Now** 버튼을 눌러 오큘러스 런타임을 C: 드라이브에 설치합니다.
+
+	![](Rift_Install_Now.png)
+	[region:note]
+	C 드라이브에 충분한 공간이 없거나 다른 위치에 설치하려는 경우, **Change Drive** 버튼을 눌러 오큘러스 런타임을 설치할 드라이브를 변경할 수 있습니다.
+	[/region]
+
+1. 오큘러스 리프트 런타임 다운로드가 시작되어 PC 에 설치됩니다.
+
+	![](Rift_Installing_Progress_00.png)
+
+1. 설치 프로세스 도중 Oculus VR, LLC 에서 디바이스 소프트웨어를 설치하겠냐고 묻는 창이 뜹니다. 여기서 **Install** 버튼을 눌러 설치를 계속합니다.
+
+	![](Rift_Device_Software_Install_00.png)
 
 %Steps%

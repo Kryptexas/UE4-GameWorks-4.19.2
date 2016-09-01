@@ -1,15 +1,13 @@
-﻿INTSourceChangelist:2679355
+﻿INTSourceChangelist:2968923
 Availability: Public
-Title:블루프린트 디버깅
-Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
+Title:블루프린트 디버깅 예제
+Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\Workflow
 Description:블루프린트를 디버깅하는 방법에 대한 설명입니다.
 Related: Engine/Blueprints/UserGuide/Debugging
 Related: Engine/Blueprints
 version:4.9
-skilllevel:Beginner
-parent:Engine/Blueprints/BP_HowTo
-order:5
-type:howto
+parent:Engine/Blueprints/Workflow
+order:6
 
 
 [TOC(start:2)]
@@ -50,7 +48,7 @@ UtS3wgltYgg
 [/PARAMLITERAL]
 [/OBJECT]
 
-위 예제에는, 레벨에 두 개의 화염 이펙트 블루프린트가 있는데, 각기 비활성화 시칸이 다르게 설정되어 있습니다. **Event Begin Play** (게임 실행)시 **Delay** 노드를 사용하여 화염을 **Deactivate** 시키고, 변수에 지정된 시간 이후 그에 관련된 사운드 이펙트가 재생됩니다.
+위 예제에는, 레벨에 두 개의 화염 이펙트 블루프린트가 있는데, 각기 비활성화 시간이 다르게 설정되어 있습니다. **Event Begin Play** (게임 실행)시 **Delay** 노드를 사용하여 화염을 **Deactivate** 시키고, 변수에 지정된 시간 이후 그에 관련된 사운드 이펙트가 재생됩니다.
 
 게임이 실행되면 왼쪽 창에 스크립트가 실행되는 것을 볼 수 있습니다 (요동치는 선이 빨강 Event Begin Play 노드를 떠나 Delay 노드로 들어갑니다). 지정된 시간 이후 요동치는 부분이 화염 이펙트 중 하나를 비활성화시키는 데 사용되는 세 번째 노드로 들어가는 것이 보입니다.
 

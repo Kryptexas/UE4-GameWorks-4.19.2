@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2630489
+﻿INTSourceChangelist:2746140
 Availability:Public
 Title:Paint モード
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:ランドスケープ ツールの Paint モードのガイド
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -28,7 +29,7 @@ Description:ランドスケープ ツールの Paint モードのガイド
 
 **Paint** モードのツールは、マテリアル レイヤーをランドスケープの選択箇所に適用して、ランドスケープの外観を修正します。
 
-Landscape マテリアルに関する詳細は、[**Landscape マテリアル**](Engine/Landscape\Materials) をご覧ください。
+Landscape マテリアルに関する詳細は、[Landscape マテリアル](Engine/Landscape\Materials) をご覧ください。
 
 
 ## ペイント ツール
@@ -72,9 +73,14 @@ Landscape マテリアルに関する詳細は、[**Landscape マテリアル**]
 
 **レイヤーのスムージング**
 
-![Landscape_Smooth_Layer_Before.jpg](Landscape_Smooth_Layer_Before.jpg)(w:900 h:500)
-
-![Landscape_Smooth_Layer_After.jpg](Landscape_Smooth_Layer_After.jpg)(w:900 h:500)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Landscape Smooth Layer Before](Landscape_Smooth_Layer_Before.jpg)(w:900 h:500)
+	[/PARAM]
+	[PARAM:after]
+	![Landscape Smooth Layer After](Landscape_Smooth_Layer_After.jpg)(w:900 h:500)
+	[/PARAM]
+[/OBJECT]
 
 | **追加オプション** | **説明** |
 | --- | --- |
@@ -109,7 +115,7 @@ Landscape マテリアルに関する詳細は、[**Landscape マテリアル**]
 | --- | --- |
 | **Use Target Value** | チェックが入っていると、適用されているノイズの値をターゲット値に適用します。 |
 | **Noise Mode** | 全てのノイズ エフェクト、結果的にレイヤーのアプリケーションを増加するノイズ エフェクトのみ、または結果的にレイヤーのアプリケーションを削減するノイズ エフェクトのみのいずれかの適用を決定します。|
-| **Noise Scale** | 使用するパーリン ノイズ フィルターの大きさです。ノイズ フィルターは、位置とスケールに関係します。したがって、 **Noise Scale** を変更しなければ、同じフィルターが同じ位置に何度も適用されます。 |
+| **Noise Scale** | 使用するパーリン ノイズ フィルターの大きさです。ノイズ フィルターは、位置とスケールに関係します。したがって、 Noise Scale を変更しなければ、同じフィルターが同じ位置に何度も適用されます。 |
 
 
 ## Layer（レイヤー）
@@ -130,7 +136,7 @@ Landscape マテリアルに関する詳細は、[**Landscape マテリアル**]
 ペイントツールの多くはスカルプト ツールと似ています。使用法も似ていますが、ハイトマップの代わりにレイヤーのアプリケーションの操作に使用します。
 [/REGION]
 
-レイヤーはマテリアルで作成します。レイヤーと Landscape マテリアルに関する詳細は、[**ランドスケープ マテリアル**](Engine/Landscape\Materials) をご覧ください。
+レイヤーはマテリアルで作成します。レイヤーと Landscape マテリアルに関する詳細は、[ランドスケープ マテリアル](Engine/Landscape\Materials) をご覧ください。
 
 
 ### Layer Info Objects（レイヤー情報オブジェクト）
@@ -147,7 +153,7 @@ Landscape マテリアルに関する詳細は、[**Landscape マテリアル**]
 
 ** レイヤー情報オブジェクトを作成する方法**
 
-1. レイヤー名の右側のプラスアイコン (![Create Layer Info](Engine/Landscape\Editing\icon_Landscape_CreateLayerInfo.png)) を押します。
+1. レイヤー名の右側のプラスアイコンを押します。
 1. **Weight-Blended Layer (normal)** または **Non Weight-Blended Layer** を選択します。
 ![](WeightBlended_NonWeightBlended.png)
 1. レイヤー情報オブジェクトの保存場所を選択します。
@@ -179,7 +185,7 @@ Landscape マテリアルに関する詳細は、[**Landscape マテリアル**]
 | オプション | 説明 |
 | ------ | ----------- |
 | **Phys Material** | このレイヤーが優先されているランドスケープ領域に割り当てられた [物理マテリアル](Engine/Physics/PhysicalMaterials) (ある場合) です。 |
-| **Hardness** | [侵食](Engine/Landscape/Editing/SculptMode/#Erosion（浸食）) ツールで使用する値です。 |
+| **Hardness** | [侵食](Engine/Landscape/Editing/SculptMode/#Erosion（浸食） ツールで使用する値です。 |
 
 ### 存在しないレイヤー
 

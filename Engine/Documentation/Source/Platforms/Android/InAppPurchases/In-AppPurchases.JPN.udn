@@ -1,0 +1,48 @@
+﻿INTSourceChangelist:2945303
+Title:Android でアプリ内課金を使用する
+Description:アプリ内課金を使って Android ゲームに有料コンテンツを追加する
+Crumbs:
+Availability:Public
+version:4.10
+Parent:Platforms/Android
+tags:Mobile
+tags:Android
+type:howto
+
+
+## コンフィギュレーション
+
+1. Google Play でアプリ内課金を設定するためのステップを説明します。
+
+    [REGION:note]
+	Google Play の id はすべて小文字でなければなりません。さらに、iOS と Android の ID を一致させておくとブループリントの設定がとても楽になります。
+	[/REGION]
+
+	![image alt text](image_0.png)
+
+1. 使用する ID およびアイテムが消費型かそうでないかをメモしておきましょう。
+
+1. ブループリント プロジェクトであれば設定の必要はありません。コード プロジェクトのためオンライン システムを使う設定が必要な場合は、プロジェクトの Build.cs ファイルに次のブロックを加えてください。 
+
+		if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "OnlineSubsystem" });
+			DynamicallyLoadedModuleNames.Add("OnlineSubsystemGooglePlay");
+		}
+
+1. **[Project Settings (プロジェクト設定)]> [Platforms] > [Android]** の [Advanced APKPackaging] セクションを開きます。
+
+1. ExtraPermissions に"：com.android.vending.BILLING" というエレメントを追加します。
+
+	![image alt text](image_2.png)
+
+[INCLUDE:Platforms/Mobile/InAppPurchases#usage_android]
+
+## テスティング
+
+Android をテストするには、正しいテスティング プロファイルを設定するだけでなく、パッケージ化した APK を Google Play にアップロードする必要があります。カスタム仕様のキーストアも必要になります。 
+
+## 役に立つリンク
+
+* [アプリ内請求の管理 (製品の作成)](http://developer.android.com/google/play/billing/billing_admin.html)
+* [Android をテストする](http://developer.android.com/google/play/billing/billing_testing.html)

@@ -25,9 +25,13 @@
 #include "WidgetBlueprintCompiler.h"
 #include "WidgetBlueprintEditorUtils.h"
 
+#include "Settings/WidgetDesignerSettings.h"
+
 #include "Blueprint/UserWidget.h"
 #include "WidgetBlueprint.h"
 #include "ObjectEditorUtils.h"
+
+#include "Settings/ContentBrowserSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -341,11 +345,33 @@ void SPaletteView::BuildClassWidgetList()
 
 	auto ActiveWidgetBlueprintClass = GetBlueprint()->GeneratedClass;
 	FName ActiveWidgetBlueprintClassName = ActiveWidgetBlueprintClass->GetFName();
+	UWidgetDesignerSettings* ViewportSettings = GetMutableDefault<UWidgetDesignerSettings>();
 
 	// Locate all UWidget classes from code and loaded widget BPs
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
 		UClass* WidgetClass = *ClassIt;
+
+		// Initialize AssetData for checking PackagePath
+		FAssetData WidgetAssetData = FAssetData(WidgetClass);
+
+		// Excludes engine content if user sets it to false
+		if (!GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder())
+		{
+			if (WidgetAssetData.PackagePath.ToString().Find((TEXT("/Engine"))) == 0)
+			{
+				continue;
+			}
+		}
+
+		// Excludes developer content if user sets it to false
+		if (!GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder())
+		{
+			if (WidgetAssetData.PackagePath.ToString().Find((TEXT("/Game/Developers"))) == 0)
+			{
+				continue;
+			}
+		}
 
 		if ( FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass) )
 		{
@@ -382,11 +408,30 @@ void SPaletteView::BuildClassWidgetList()
 	AssetRegistryModule.Get().GetAssetsByClass(UWidgetBlueprint::StaticClass()->GetFName(), AllWidgetBPsAssetData, true);
 
 	FName ActiveWidgetBlueprintName = ActiveWidgetBlueprintClass->ClassGeneratedBy->GetFName();
-	for (auto& WidgetBPAssetData : AllWidgetBPsAssetData)
+	for (FAssetData& WidgetBPAssetData : AllWidgetBPsAssetData)
 	{
+		// Excludes the blueprint you're currently in
 		if (WidgetBPAssetData.AssetName == ActiveWidgetBlueprintName)
 		{
 			continue;
+		}
+
+		// Excludes engine content if user sets it to false
+		if (!GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder() )
+		{
+			if (WidgetBPAssetData.PackagePath.ToString().Find((TEXT("/Engine"))) == 0)
+			{
+				continue;
+			}
+		}
+
+		// Excludes developer content if user sets it to false
+		if (!GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder() )
+		{
+			if (WidgetBPAssetData.PackagePath.ToString().Find((TEXT("/Game/Developers"))) == 0)
+			{
+				continue;
+			}
 		}
 
 		// If the blueprint generated class was found earlier, pass it to the template

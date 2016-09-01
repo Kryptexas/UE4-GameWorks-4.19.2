@@ -1,20 +1,22 @@
-﻿INTSourceChangelist:2420231
+﻿INTSourceChangelist:2735882
 Availability:Public
-Title:変数をレプリケーションする方法
+Title:変数をレプリケートする
 Crumbs: %ROOT%, Gameplay
-Description:マルチプレイヤー ゲームで変数をレプリケーションするためのガイド 
+Description:マルチプレイヤー ゲームで変数をレプリケーションするためのガイド
+Version:4.9
+Parent:Gameplay
+type:how-to
+order:17
 
-
-## 概要
 [EXCERPT:Overview]
-[アクタ](Gameplay\HowTo\Networking\ReplicateActor) と同様に [関数](Gameplay\HowTo\Networking\ReplicateFunction) もネットワーク上でレプリケーション可能であり、**変数** も同様です。ゲームプレイに重要な変数だけを Network Authority (サーバー) 側で編集し、知っておく必要のある情報のみをリモートのマシン (クライアント) にレプリケートします。いつ変数が変更できるかは不正につながりうるためクライアントに定義させたくないでしょう (例、ヘルス、武器、エクスペリエンスの値)。 
+[アクタ](Gameplay\HowTo\Networking\ReplicateActor) と同様に [関数](Gameplay\HowTo\Networking\ReplicateFunction) もネットワーク上でレプリケーション可能であり、**変数** も同様です。ゲームプレイに重要な変数だけを Network Authority (サーバー) 側で編集し、知っておく必要のある情報のみをリモートのマシン (クライアント) にレプリケートします。いつ変数が変更できるかは不正につながりうるためクライアントに定義させないようにします (例、ヘルス、弾薬、エクスペリエンスの値)。 
 
-変数を **Replicated** に設定することができます。これは、サーバーからクライアントにレプリケートされる変数が 1 対 1 のコピーを作ることを意味します。または、**RepNotify** を使用することもできます。これは、 **Replicated** が行うことを何でも行いますが、アタッチされている変数が更新されるたびに呼び出され、サーバーとクライアントの両方のマシンで実行する関数があります。 
+変数を Replicated に設定することができます。これは、サーバーからクライアントにレプリケートされる変数が 1 対 1 のコピーを作ることを意味します。または、RepNotify を使用することもできます。これは、 Replicated が行うことを何でも行いますが、それに加えてアタッチされている変数が更新されるたびに呼び出され、サーバーとクライアントの両方のマシンで実行する関数があります。 
 [/EXCERPT:Overview]
 
 ## セットアップ
 
-ブループリントを使った **Replicated Variables** のセットアップ方法については、以下のリンクを参照してください。
+ブループリントを使った Replicated 変数のセットアップ方法については、以下のリンクを参照してください。
 
 [REGION:buttonlist]
 * [](Gameplay\HowTo\Networking\ReplicateVariable\Blueprints)

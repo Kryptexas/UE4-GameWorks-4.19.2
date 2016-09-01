@@ -29,6 +29,24 @@ struct CORE_API FFrameworkObjectVersion
 		// which causes issues with undo. Restore the flag at this version
 		FixNonTransactionalPins,
 
+		// Create new struct for SmartName, and use that for CurveName
+		SmartNameRefactor,
+		
+		// Add Reference Skeleton to Rig
+		AddSourceReferenceSkeletonToRig, 
+
+		// Refactor ConstraintInstance so that we have an easy way to swap behavior paramters
+		ConstraintInstanceBehaviorParameters,
+
+		// Pose Asset support mask per bone
+		PoseAssetSupportPerBoneMask,
+
+		// Physics Assets now use SkeletalBodySetup instead of BodySetup
+		PhysAssetUseSkeletalBodySetup,
+
+		// Remove SoundWave CompressionName
+		RemoveSoundWaveCompressionName,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

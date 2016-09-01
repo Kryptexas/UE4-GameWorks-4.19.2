@@ -187,10 +187,23 @@ namespace
 {
 	void GatherBlueprintForLocalization(const UObject* const Object, FPropertyLocalizationDataGatherer& PropertyLocalizationDataGatherer, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 	{
-		const UBlueprintCore* const Blueprint = CastChecked<UBlueprintCore>(Object);
+		const UBlueprintCore* const BlueprintCore = CastChecked<UBlueprintCore>(Object);
 
 		// Blueprint assets never exist at runtime, so treat all of their properties as editor-only, but allow their script (which is available at runtime) to be gathered by a game
-		PropertyLocalizationDataGatherer.GatherLocalizationDataFromObject(Blueprint, GatherTextFlags | EPropertyLocalizationGathererTextFlags::ForceEditorOnlyProperties);
+		EPropertyLocalizationGathererTextFlags BlueprintGatherFlags = GatherTextFlags | EPropertyLocalizationGathererTextFlags::ForceEditorOnlyProperties;
+
+#if WITH_EDITOR
+		if (const UBlueprint* const Blueprint = Cast<UBlueprint>(Object))
+		{
+			if (!FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
+			{
+				// Force non-data-only blueprints to set the HasScript flag, as they may not currently have bytecode due to a compilation error
+				BlueprintGatherFlags |= EPropertyLocalizationGathererTextFlags::ForceHasScript;
+			}
+		}
+#endif
+
+		PropertyLocalizationDataGatherer.GatherLocalizationDataFromObject(BlueprintCore, BlueprintGatherFlags);
 	}
 }
 #endif
@@ -199,13 +212,7 @@ UBlueprintCore::UBlueprintCore(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	static struct FAutomaticRegistrationOfLocalizationGatherer
-	{
-		FAutomaticRegistrationOfLocalizationGatherer()
-		{
-			FPropertyLocalizationDataGatherer::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UBlueprintCore::StaticClass(), &GatherBlueprintForLocalization);
-		}
-	} AutomaticRegistrationOfLocalizationGatherer;
+	{ static const FAutoRegisterLocalizationDataGatheringCallback AutomaticRegistrationOfLocalizationGatherer(UBlueprintCore::StaticClass(), &GatherBlueprintForLocalization); }
 #endif
 
 	bLegacyGeneratedClassIsAuthoritative = false;
@@ -310,9 +317,9 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 }
 
 #if WITH_EDITORONLY_DATA
-void UBlueprint::PreSave()
+void UBlueprint::PreSave(const class ITargetPlatform* TargetPlatform)
 {
-	Super::PreSave();
+	Super::PreSave(TargetPlatform);
 
 	// Clear all upgrade notes, the user has saved and should not see them anymore
 	UpgradeNotesLog.Reset();
@@ -591,6 +598,13 @@ void UBlueprint::PostLoad()
 	// Make sure that all of the interfaces this BP implements have all required graphs
 	FBlueprintEditorUtils::ConformImplementedInterfaces(this);
 
+	// Make sure that there are no function graphs that are marked as bAllowDeletion=false 
+	// (possible if a blueprint was reparented prior to 4.11):
+	if (GetLinkerCustomVersion(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::AllowDeletionConformed)
+	{
+		FBlueprintEditorUtils::ConformAllowDeletionFlag(this);
+	}
+
 	// Update old Anim Blueprints
 	FBlueprintEditorUtils::UpdateOutOfDateAnimBlueprints(this);
 
@@ -744,10 +758,12 @@ UWorld* UBlueprint::GetWorldBeingDebugged()
 
 void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	UClass* GenClass = Cast<UClass>(GeneratedClass);
-	if ( GenClass && GenClass->GetDefaultObject() )
+	if (UClass* GenClass = Cast<UClass>(GeneratedClass))
 	{
-		GenClass->GetDefaultObject()->GetAssetRegistryTags(OutTags);
+		if (UObject* CDO = GenClass->GetDefaultObject())
+		{
+			CDO->GetAssetRegistryTags(OutTags);
+		}
 	}
 
 	Super::GetAssetRegistryTags(OutTags);
@@ -796,12 +812,12 @@ void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 	OutTags.Add( FAssetRegistryTag("ClassFlags", FString::FromInt(ClassFlagsTagged), FAssetRegistryTag::TT_Hidden) );
 
-	if ( ParentClass )
-	{
-		OutTags.Add( FAssetRegistryTag( "IsDataOnly",
+	OutTags.Add( FAssetRegistryTag( "IsDataOnly",
 			FBlueprintEditorUtils::IsDataOnlyBlueprint(this) ? TEXT("True") : TEXT("False"),
 			FAssetRegistryTag::TT_Alphabetical ) );
 
+	if ( ParentClass )
+	{
 		OutTags.Add( FAssetRegistryTag("FiBData", FFindInBlueprintSearchManager::Get().QuerySingleBlueprint((UBlueprint*)this, false), FAssetRegistryTag::TT_Hidden) );
 	}
 
@@ -1231,13 +1247,13 @@ void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 {
 	Super::TagSubobjects(NewFlags);
 
-	if (GeneratedClass && !GeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) && !GeneratedClass->IsRooted())
+	if (GeneratedClass && !GeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS))
 	{
 		GeneratedClass->SetFlags(NewFlags);
 		GeneratedClass->TagSubobjects(NewFlags);
 	}
 
-	if (SkeletonGeneratedClass && SkeletonGeneratedClass != GeneratedClass && !SkeletonGeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) && !SkeletonGeneratedClass->IsRooted())
+	if (SkeletonGeneratedClass && SkeletonGeneratedClass != GeneratedClass && !SkeletonGeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS))
 	{
 		SkeletonGeneratedClass->SetFlags(NewFlags);
 		SkeletonGeneratedClass->TagSubobjects(NewFlags);

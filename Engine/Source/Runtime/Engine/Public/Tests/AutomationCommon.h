@@ -6,6 +6,8 @@
 #include "AutomationTest.h"
 #include "Delegate.h"
 
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
+
 ///////////////////////////////////////////////////////////////////////
 // Common Latent commands which are used across test type. I.e. Engine, Network, etc...
 
@@ -13,6 +15,8 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEditorAutomationTests, Log, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngineAutomationTests, Log, All);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEditorAutomationMapLoad, const FString&, FString*);
+
+#endif
 
 /** Common automation functions */
 namespace AutomationCommon
@@ -66,6 +70,8 @@ namespace AutomationCommon
 		return HardwareDetailsString;
 	}
 
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
+
 	/** Gets a path used for automation testing (PNG sent to the AutomationTest folder) */
 	static void GetScreenshotPath(const FString& TestName, FString& OutScreenshotName, const bool bIncludeHardwareDetails)
 	{
@@ -86,7 +92,11 @@ namespace AutomationCommon
 	{
 		return OnEditorAutomationMapLoad;
 	}
+
+#endif
 }
+
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 
 /**
  * Parameters to the Latent Automation command FTakeEditorScreenshotCommand
@@ -155,6 +165,10 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecStringLatentCommand, FString
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEngineWaitLatentCommand, float, Duration);
 
+/**
+* Wait until data is streamed in
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FStreamAllResourcesLatentCommand, float, Duration);
 
 /**
 * Enqueue performance capture commands after a map has been loaded
@@ -171,3 +185,11 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FMatineePerformanceCaptureCommand
 * Latent command to run an exec command that also requires a UWorld.
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecWorldStringLatentCommand, FString, ExecCommand);
+
+
+/**
+* Waits for shaders to finish compiling before moving on to the next thing.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompilingInGame);
+
+#endif

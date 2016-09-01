@@ -1,182 +1,220 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Editing Animation Layers
-Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:An idle animation is edited to create a new reload animation through Animation Layer Editing.
-Related: Engine\Animation\Sequences
-Related: Engine\Animation\AnimMontage
-Related: Engine\Animation\AnimBlueprints
-Related: Engine\Animation\AnimHowTo\AdditiveAnimations
-Related: Engine\Animation\Skeleton
-Related: Engine\Animation\Overview
+﻿INTSourceChangelist:2661444
+Availability:Public
+Title:编辑动画层
+Crumbs:%ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:通过动画层编辑功能编辑一段闲散动画以创建新的填弹动画。
+Related:Engine\Animation\Sequences
+Related:Engine\Animation\AnimMontage
+Related:Engine\Animation\AnimBlueprints
+Related:Engine\Animation\AnimHowTo\AdditiveAnimations
+Related:Engine\Animation\Skeleton
+Related:Engine\Animation\Overview
+version:4.9
+skilllevel:Advanced
 
-**Animation Layer Editing** allows you to modify any existing [](Engine\Animation\Sequences) inside Unreal Engine 4 as part of Additive Layer Tracks. With Animation Layer Editing you can take an existing animation and adjust it to produce a different take on that animation, or you can create a separate, new animation with its own motion you provide based off the original. 
+动画层编辑功能允许您在虚幻引擎 4 中修改任何现有的 [](Engine\Animation\Sequences)，作为附加层轨道的一部分。通过动画层编辑，您可以提取现有动画并进行调整，产生该动画的不同副镜头，也可以基于原动画创建一段独立的、有自身动作的新动画。 
 
-This page will show you how to use the Animation Layer Editing tools and take an Idle animation and repurpose it into a Reload animation. 
+本页将向您说明如何使用动画层编辑工具，并提取一段闲散动画将其重新制作为填弹动画。 
 
 [TOC(start:2 end:2)]
 
 [REGION:note]
-For this guide, we created a New Project using the **Blueprint First Person** template with **Starter Content** enabled. 
+对于本操作指南，我们在启用了 **起步内容** 的前提下使用 **Blueprint First Person** 模板创建了新项目。 
 [/REGION]
 
-## Creating the New Animation
+## 创建新动画
 
-In this section, we will create a copy of the Idle animation that we can then modify, leaving the original intact. 
+在本节中我们将创建一个闲散动画的副本，然后我们可以修改该副本，保留原动画不变。 
 
-1.  Inside the **Content Browser**, under the **Game/FirstPersonBP/Animations** folder, open the **Prone_Idle** animation. 
+1. 在 **内容浏览器** 中的 **Game/FirstPerson/Animations** 文件夹下，打开 **FirstPerson_Idle** 动画。 
 
 	![](AnimEdit1.png)
 
-1.	With the animation open, use the **Playback Controls** to pause the animation and set it to frame 0 so it is at the beginning. 
+1. 	打开动画后，使用 **播放控件** 暂停动画，然后将其设置到第 0 帧，使其停在开始处。 
 
 	![](AnimEdit2.png)(w:640)
 
-1.	Click the **Create Asset** button from the Toolbar Menu, then under _Create Animation_, select **From Current Animation**. 
+1. 	单击工具栏菜单中的 **创建资产（Create Asset）**按钮，然后在 **创建动画（Create Animation）**下选择 **从当前动画（From Current Animation）**。 
 
-	![](AnimEdit3.png)
+	![](LE_FromCurrentAnimation.jpg)
 
-	Here we are creating a new animation based off the idle animation. There are also options for creating a new animation based off a specific pose within an animation or from the base reference pose. For our purposes, we want the entire idle animation from which to work with when modifying it to perform a reload motion, therefore **From Current Animation** is the best choice. 
+	此处我们基于闲散动画创建了一个新动画。还有基于动画中的特定姿势或从基本参考姿势创建新动画的选项。为了达到我们的目的，我们需要整段闲散动画，以便用它进行修改来执行填弹动作，因此 **从当前动画（From Current Animation）**是最好的选择。 
 
-1.	In the **Create a New Animation Asset** window, select the **Animations** folder, name it **FirstPerson_Reload** then click **OK**. 
+1. 	在 **创建新动画资产（Create a New Animation Asset）**窗口中，选择 **Animations** 文件夹，将动画资产命名为 **FirstPerson_Reload**，然后单击 **确定（OK）**。 
 
 	![](AnimEdit4.png)
 
-	The animation will be created and automatically open, allowing us to begin editing it. 
+	系统将创建该动画并自动打开，以便我们开始编辑。 
 
-## Editing the New Animation
+## 编辑新动画
 
-With the **FirstPerson_Reload** animation created, we can begin editing it through Animation Layer Editing. 
+创建 **FirstPerson_Reload** 动画后，我们可以通过动画层编辑开始编辑它。 
 
-1.  With the **FirstPerson_Reload** animation open, click the **ToNext** button in the **Playback Controls** and advance to frame 15. 
+1. 在 **FirstPerson_Reload** 动画打开的情况下，单击 **播放控件** 中的 **前进** 按钮，前进至第 15 帧。 
 
 	![](AnimEdit5.png)
 
-1.	In the **Skeleton Tree**, click the **upperarm_l** Bone so that it is selected. 
+1. 	在 **骨架树（Skeleton Tree）**中，单击 **upperarm_l** 骨骼以选中它。 
 
-	![](AnimEdit6.png)
+	![](LE_Leftarm.jpg)
 
-	In order to start editing, you must first select the Bone that will be modified in the **Additive Layer Tracks** which we have done above. 
+	为了开始编辑，您必须先选择将在 **附加层轨道** 中修改的骨骼，我们已经在上文完成了这一步。 
 
 	[REGION:tip]
-	You might want to also fly the camera around to get a better view of the left arm which will make editing easier. Inside the viewport, hold the **Right Mouse Button** and use the **WASD** keys to move the camera around to your desired view. 
+	您可能还希望移动摄像机，以获得观察左臂的更好视角，从而方便编辑。在视口中，按住 **鼠标右键**，使用 **WASD** 键移动摄像机来获得您需要的视角。 
 	[/REGION]
 
-1.	From the Toolbar Menu, click the **Add Key** button. 
+1. 	在工具栏中，单击 **添加键（Add Key）**按钮。 
 
 	![](AnimEdit7.png)
 
-	This will add keys to the Additive Layer Tracks as shown below for the Bone's current location. 
+	这将向附加层轨道添加对应骨骼当前位置的键，如下图所示。 
 
 	![](AnimEdit8.png)(w:520)
 
-	Above, three separate tracks were added for the **upperarm_l** Bone: a **Translation** track (1), a **Rotation** track (2) and a **Scale** track (3).
+	在上图中，已经为 **upperarm_l** 骨骼添加了三条独立的轨道：一条 **平移** 轨道 (1)、一条 **旋转** 轨道 (2) 和一条 **比例** 轨道 (3)。
 
-1.	Click the **ToNext** button to advance to frame 30. 
+1. 	单击 **前进** 按钮前进至第 30 帧。 
 
 	![](AnimEdit9.png)
 
-1.	Inside the viewport, **Left-click** on the yellow arch of the **Rotation** widget. 
+1. 	在视口中，**左键单击** **旋转** 小部件的绿色圆弧。 
 
-	![](AnimEdit10.png)
+	![](LE_LeftArmRot.jpg)
 
-	It will change to an Axis Rotation widget, move the mouse to the left to the **-60.00** mark. 
+	它将变为轴旋转小部件，将鼠标向左移动到 **-60.00** 标记处。 
 
-	![](AnimEdit11.png)
+	![](LE_LeftArmMinus60.jpg)
 
-	From a first person perspective, this will pull the hand down off screen. 
+	从第一人称视角来看，这将使手下落到屏幕外。 
 
-1.	From the Toolbar Menu, click the **Add Key** button (or press the **S** key). 
+1. 	在工具栏中，单击 **添加键（Add Key）**按钮（或按 *S** 键）。 
 
 	![](AnimEdit12.png)(w:640)
 
-	The new keys will be added to the Additive Layer Tracks and a curve from the first key to the second key will be created. 
+	系统将向附加层轨道添加新的键，并创建一条从第一个键到第二个键的曲线。 
 
-1.	Click the **ToNext** button on the **Playback Controls** to advance to frame 45. 
+1. 	单击 **播放控件** 上的 **前进** 按钮前进至第 45 帧。 
 
-1.	In the viewport, **Left-click** on and drag the yellow arch of the **Rotation** widget, then rotate to the right to the **60.00** mark. 
+1. 	在视口中，**左键单击** 并拖动 **旋转** 小部件的绿色圆弧，然后向右旋转到 **60.00** 标记处。 
 
-	![](AnimEdit14.png)
+	![](LE_LeftArmUp60.jpg)
 
-1.	From the Toolbar Menu, click the **Add Key** button (or press the **S** key). 
+1. 	在工具栏中，单击 **添加键（Add Key）**按钮（或按 *S** 键）。 
 
 	![](AnimEdit15.png)(w:640)
 
-	The new keys will be added and should be the same values as the first set of keys. 
+	系统将添加新的键，它们的值应该与第一组键相同。 
 
-1.	Click the **ToNext** button on the **Playback Controls** to advance to frame 50, then press **S** to add a set of keys. 
+1. 	单击 **播放控件** 上的 **前进** 按钮前进至第 50 帧，然后按 *S** 键添加一组键。 
 
 	![](AnimEdit17.png)(w:640)
 
-1.	Click the **ToNext** button on the **Playback Controls** to advance to frame 60. 
+1. 	单击 **播放控件** 上的 **前进** 按钮前进至第 60 帧。 
 
-1.	In the viewport, press **W** to switch to **Translation** mode, then **Left-click** and drag the yellow arrow to the right slightly. 
+1. 	在视口中，按 **W** 切换到 **平移** 模式，然后 **左键单击** 并将红色箭头向右移动少许。 
 
-	![](AnimEdit19.png)
+	![](LE_LeftArmPump.jpg)
 
-	This will shift the arm backwards as if "pumping" the shotgun. You can use your discretion to determine how much to move it.  
+	这将使手臂向后移动，仿佛在给散弹枪上膛。您可以根据自己的判断来决定要移动多少距离。  
 
-1.	From the Toolbar Menu, click the **Add Key** button (or press the **S** key). 
+1. 	在工具栏中，单击 **添加键（Add Key）**按钮（或按 *S** 键）。 
 
 	![](AnimEdit20.png)(w:640)
 
-	The keys for the pose will be added to the Additive Layer Tracks along with a curve from the previous keys. 
+	系统将把对应姿势的键添加到附加层轨道，与先前的键组成的曲线并列。 
 
-1.	Click the **ToNext** button on the **Playback Controls** to advance to frame 65, then press **S** to add a set of keys. 
+1. 	单击 **播放控件** 上的 **前进** 按钮前进至第 65 帧，然后按 *S** 键添加一组键。 
 
 	![](AnimEdit22.png)(w:640)
 
-	The values for the new keys will be zeroed out, which you can verify by clicking on the key in the track. 
+	新键的值将归零，您可以单击轨道中的键来确认。 
 
 	![](AnimEdit23.png)(w:640)
 
-	You can also manually enter the **Time** or **Value** for a key by clicking on it in the track to get exact values if you wish. 
+	您也可以在轨道中单击某个键，手动输入 **时间（Time）**或 **值（Value）**来得到您需要的确切值。 
 
-1.	From the Toolbar Menu, click the green **Apply** button to apply the changes to the animation. 
+1. 	在工具栏菜单中，单击绿色的 **应用（Apply）**按钮将更改应用到动画。 
 
 	![](AnimEdit24.png)
 
-	When keys and curves are added to an animation, the result is an additive motion applied to the base animation. By clicking the **Apply** button, the key and curve data will be baked into the final animation. 
+	将键和曲线添加到动画后，就得到了一段应用于基本动画的附加动画。只要单击 **应用（Apply）**按钮，系统就会将键和曲线数据烘焙到最终动画中。 
 
-1.	Click the **Save** button as your animation is complete. 
+1. 	完成动画时，单击 **保存（Save）**按钮。
  
-Below is an example of the animation playing on a character in-game. 
+1. 在 **Game/FirstPerson/Animations** 文件夹中，**双击** **FirstPerson_AnimBP** 将其打开。
 
-![](ReloadGIF.gif)(convert:false)
+	![](AnimEdit28.png)
 
-## Conclusion & FAQ
+1. 在 **动画蓝图编辑器** 中，**双击** **我的蓝图（My Blueprint）**面板中的 **动画图（Anim Graph）**将其打开
 
-You can continue to modify this animation by moving to a frame on the timeline and selecting the Bone you want to modify and keying it, then moving the timeline forward some and moving the Bone to a new location and keying it again. The Bone will move from your first key to your second key along the curve created as the timeline progresses. You can modify as many Bones as you wish for more precision than our example, but the process of keying is the same. 
+	![](AnimEdit29.png)
 
-### FAQ
+1. **双击** **动画图（Anim Graph）**中的 **新建状态机器（New State Machine）**节点。
 
-**What happens if you export the animation?**
+	![](AnimEdit30.png)
 
-*	When you export, it will be whichever baked version of the animation is available. If you apply all the curves, it will export with curves. 
+1. 找到标题为 **FPP_Idle** 的节点，**双击** 打开它。
 
-**What happens if you re-import the animation?**
+	![](AnimEdit31.png)
 
-*	Reimporting the animation, it will overwrite the source data and apply the curves. If you do not want the curves, you can remove them. 
+1. 在图中 **右键单击**，然后创建一个 **Play FirstPerson_Reload** 节点。
 
-**Can I temporarily disable or remove tracks?**
+	![](AnimEdit32.png)
 
-*	Yes, you can do both from the **Track Options** menu located in the upper right-corner of the track window. 
+1. 将现有的 **Play FirstPerson_Idle** 节点替换为新的 **Play FirstPerson_Reload** 节点，方法是按住 **Ctrl**，同时按住 **鼠标左键** 从 **Play FirstPerson_Idle** 节点的输出拖动到 **Play FirstPerson_Reload** 节点。
+
+	![](AnimEdit33.png)
+
+1. **编译** 并 **保存** 动画蓝图，然后关闭它，再单击 **播放（Play）**测试您的新动画。
+
+下面是该动画在游戏中角色上播放的示例。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Soior02AUtE
+[/PARAMLITERAL]
+[/OBJECT]
+
+## 总结和常见问题
+
+您可以继续修改此动画，方法是移动到时间轴上的某一帧，选择您要修改的骨骼并为其设键，然后将时间轴向前移动一些，将骨骼移动到新位置并再次设键。骨骼将沿着随时间轴推进而创建的曲线从第一个键移动到第二个键。您可以根据需要修改任意数量的骨骼来获得比我们的示例更精确的动画，但设键的过程是相同的。 
+
+### 常见问题
+
+**如果导出动画会怎样？**
+
+*	如果导出动画，可以获得任意一个经过烘焙的动画版本。如果您应用所有曲线，它将带着曲线导出。 
+
+**如果重新导入动画会怎样？**
+
+*	如果重新导入动画，它将覆盖源数据并应用曲线。如果您不需要曲线，可以将它们移除。 
+
+**我可以临时禁用或移除轨道吗？**
+
+*	可以，您可以在位于轨道窗口右上角的 **轨道选项（Track Options）**菜单中进行这两种操作。 
 
 	![](AnimEdit25.png)
 
-**Is there a way to see the difference of my edited animation versus its source?**
+**有没有办法查看我编辑过的动画与源动画的差异？**
 
-*	Inside the **Show** menu options, you can enable the **Source Animation** and (or) **Baked Animation** for display in the viewport. The Source Animation can be seen as a white skeleton, while the Baked Animation can be seen as a blue skeleton as shown in the image below. 
+*	在 **显示（Show）**菜单选项中，您可以启用 **源动画（Source Animation）**和（或）**烘焙动画（Baked Animation）**在视口中的显示。可以查看以白色骨架显示的源动画和以蓝色骨架显示的烘焙动画，如下图所示。 
 
-	![](AnimEdit26.png)
+	![](LE_SourceBakedAnim.jpg)
 
-**Can Animation Layer Editing be used to create root motion?**
+**动画层编辑可用来创建根运动吗？**
 
-*	Yes. Select your Root Bone and key it, then scrub the timeline forward and move the Root Bone and re-key it. 
+*	可以。选择您的根骨骼并为其设键，然后将时间轴向前推进，移动根骨骼并重新设键。 
 
-	![](AnimEdit27.png)
+	![](LE_ThirdPersonAnim.jpg)
 
-	Above we have enabled the Source and Baked Animation preview where the white skeleton is the source animation. 
+	在上面我们启用了源动画和烘焙动画预览，其中白色骨架是源动画。 
 
 
 

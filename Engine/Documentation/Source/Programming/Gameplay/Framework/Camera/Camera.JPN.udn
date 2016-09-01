@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2711053
+Availability:Public
 Title:カメラ
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description: **Camera** は、ワールドを見るプレーヤーの視点を表します。
+Version:4.9
 
 [OBJECT:Redirect]
 [PARAM:link]

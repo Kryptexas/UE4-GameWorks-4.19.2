@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2521522
+﻿INTSourceChangelist:2666790
 Availability:Public
 Title:間接ライティング キャッシュ
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:動的オブジェクトのグローバル イルミネーションおよびビルドされていないシーンのプレビューに使用するキャッシュされた間接ライティングのサンプル
+Versinon:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -74,7 +75,7 @@ Description:動的オブジェクトのグローバル イルミネーション�
 [/REGION]
 
 [REGION:caption]
-ライトマスによって生成されたライティング サンプルを視覚化するためには、[Show]->[Visualize]->[Volume Lighting Samples] を選択します。
+ライトマスによって生成されたライティング サンプルを視覚化するためには、[Show (表示)]->[Visualize (可視化)]->[Volume Lighting Samples] を選択します。
 [/REGION]
 
 このワークフローの最終目的は、コンテンツの設定を最小限にとどめることです。ただし、配置ヒューリスティックは、空間でフロート (浮動) している領域に対し 

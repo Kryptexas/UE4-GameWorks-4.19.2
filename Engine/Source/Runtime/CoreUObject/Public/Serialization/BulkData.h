@@ -30,6 +30,8 @@ enum EBulkDataFlags
 	BULKDATA_ForceStreamPayload = 1 << 7,
 	/** If set, payload is stored in a .upack file alongside the uasset				*/
 	BULKDATA_PayloadInSeperateFile				= 1 << 8,
+	/** If set, payload is compressed using platform specific bit window			*/
+	BULKDATA_SerializeCompressedBitWindow		= 1<<9,
 
 };
 
@@ -100,12 +102,10 @@ private:
 			return Ptr;
 		}
 
-		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
+		FORCEINLINE explicit operator bool() const
 		{
 			return bAllocated;
 		}
-
-		SAFE_BOOL_OPERATORS(FAllocatedPtr)
 
 		void Reallocate(int32 Count, int32 Alignment = DEFAULT_ALIGNMENT)
 		{

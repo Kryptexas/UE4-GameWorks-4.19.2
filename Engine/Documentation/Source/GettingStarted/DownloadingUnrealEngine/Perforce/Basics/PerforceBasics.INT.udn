@@ -1,11 +1,16 @@
-Availability:NoPublish
+﻿Availability:NoPublish
 Title:Downloading Unreal Engine with Perforce
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:Instructions for downloading Unreal Engine source code with Perforce.
 
+<!--
 ## Connect to Epic's VPN
 
 [INCLUDE:GettingStarted/DownloadingUnrealEngine/VPNSetup#Browser]
+-->
+
+[EXCERPT:main]
+Connecting to Epic perforce requires utilizing the SSL feature, and you must be running a 2012.1 or later version of a Perforce client (P4V, p4, or API). You can take advantage of latency based routing to automatically connect to the closest Perforce regional proxy by using the global DNS name. Alternatively, you can connect direct to a regional proxy to ensure you always connect to the closest one. 
 
 ## Connect to Epic's Perforce Server
 
@@ -17,13 +22,15 @@ Description:Instructions for downloading Unreal Engine source code with Perforce
 
 1.	In the Open Connection dialog, enter the following connection info:
 
-	* **Server**: _p4-licensee-proxy.epicgames.net:1667_
+	* **Server**: _ssl:p4-licensee.epicgames.com:1667_
 		
-	[REGION:note]
-		There are additional proxies available for licensees in east Asia or Europe. If located in those regions, using these should result in better performance.
-		* **East Asian Proxy**: _p4-licensee-proxy-asia.epicgames.net:1667_
-		* **European Proxy**: _p4-licensee-proxy-euro.epicgames.net:1667_
-	[/REGION]
+		[REGION:tip]
+			The address above should automatically direct you to a regional proxy with the best latency based on your geographic location. If for some reason you need to connect to a specific regional proxy, you can connect to them using the addresses below:
+			* **United States East (Virginia)**: _ssl:p4-licensee-east.us.epicgames.com:1667_
+			* **United States West (Oregon)**: _ssl:p4-licensee-west.us.epicgames.com:1667_
+			* **Asia Pacific Northeast (Tokyo)**: _ssl:p4-licensee-northeast.ap.epicgames.com:1667_
+			* **Europe Central (Frankfurt)**: _ssl:p4-licensee-central.eu.epicgames.com:1667_
+		[/REGION]
 
 	* **User**: Perforce username provided by Epic Games.
 	* **Password**: Perforce password provided by Epic Games.
@@ -31,6 +38,35 @@ Description:Instructions for downloading Unreal Engine source code with Perforce
 
 1.	Press OK to connect to the Perforce Server.
 
+[REGION:note]
+Epic maintains a consistent certificate fingerprint for all broker and proxy SSL endpoints, however Perforce requires a trust per IP address + fingerprint pair. When connecting to an endpoint for the first time, you must explicitly trust that endpoint. The Epic fingerprint is 45:0D:78:E2:0E:9E:E4:82:45:80:16:36:29:5E:54:4D:66:31:6C:43.
+
+P4V will prompt to trust the new endpoint:
+
+![](fingerprint.png)(w:640 convert:false)
+
+Command line p4 uses the p4 trust command. 
+
+	$ p4 trust -y
+	The fingerprint of the server of your P4PORT setting
+	'ssl:p4-licensee-east.us.epicgames.com:1666' (52.23.106.194:1666) is not known.
+	That fingerprint is 45:0D:78:E2:0E:9E:E4:82:45:80:16:36:29:5E:54:4D:66:31:6C:43
+	Added trust for P4PORT 'ssl:p4-licensee-east.us.epicgames.com:1666' (52.23.106.194:1666)
+[/REGION]
+
+### Using a Local Proxy Server
+
+If you are running a local proxy, you  must connect through a broker instead of using the region proxy servers. You can connect to the global broker using the address below:
+
+* ssl:p4-licensee.epicgames.com:1666
+
+[REGION:tip]
+	The address above should automatically direct you to a regional broker with the best latency based on your geographic location. If for some reason you need to connect to a specific regional broker, you can connect to them using the addresses below:
+			
+	* **United States East (Virginia)**: _ssl:p4-licensee-east.us.epicgames.com:1666_
+	* **Asia Pacific Northeast (Tokyo)**: _ssl:p4-licensee-northeast.ap.epicgames.com:1666_
+	* **Europe Central (Frankfurt)**: _ssl:p4-licensee-central.eu.epicgames.com:1666_
+[/REGION]
 
 ## Download Unreal Engine 4
 
@@ -56,3 +92,18 @@ basis. This can dramatically reduce idle time spent waiting for the download to 
 1.	Press the **Browse** button and select either *QA_APPROVED_UE4_BUILD_MINIMUM* (minimum files needed to run the engine) or *QA_APPROVED_UE4_BUILD_CURRENT* (includes sample projects and is much larger) in the dialog that opens. Press **OK**.
 
 1.	Press **Get Revision** to begin downloading Unreal Engine 4. 
+
+[/EXCERPT:main]
+
+## Migrating an Existing Workspace
+
+To avoid having to force sync your entire workspace when creating a new one on the global replica, users can use p4 flush to populate the have information based on the files in a local workspace. This procedure will be much faster than a force sync, and allow users to essentially pick up where they left off.
+
+1. Create a new workspace on the global replica, copying the view and root settings from the original workspace.
+1. Switch to the new workspace.
+1. Issue p4 flush command or p4 sync -k to populate have information on the server. 
+1. Old workspaces will be aged out automatically by Epic if they are unused for six months. 
+
+[REGION:warning]
+Users with write access rely on your P4 depot/VPN accounts to connect to Epic depots. These VPN accounts will remain active. Please do not transition to the cloud to avoid disruptions in service.
+[/REGION]

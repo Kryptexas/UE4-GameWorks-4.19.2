@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2653041
 Availability:Public
-Title: 3. Create Nav Mesh Volume
+Title:3.创建寻路网格体体积框
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description: Create a Nav Mesh Volume so our AI can walk around.
+Description:创建一个供 AI 行走的寻路网格体体积框。
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

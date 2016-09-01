@@ -129,6 +129,24 @@ Please note that the Open World Tools are still in an experimental state which m
 	[/PARAM]
 [/OBJECT]
 
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Engine\OpenWorldTools\Reference\FT_Reference_Page_Image.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\OpenWorldTools\Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\OpenWorldTools\Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\OpenWorldTools\Reference]
+	[/PARAM]
+[/OBJECT]
+
 [/REGION]
 
 

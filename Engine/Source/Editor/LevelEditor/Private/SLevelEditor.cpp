@@ -31,7 +31,6 @@
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "EditorModes.h"
 #include "IDocumentation.h"
-#include "NewsFeed.h"
 #include "TutorialMetaData.h"
 #include "SDockTab.h"
 #include "SActorDetails.h"
@@ -44,7 +43,6 @@
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
 static const FName LevelEditorStatsViewerTab("LevelEditorStatsViewer");
 static const FName MainFrameModuleName("MainFrame");
-static const FName NewsFeedModuleName("NewsFeed");
 static const FName LevelEditorModuleName("LevelEditor");
 static const FName WorldBrowserHierarchyTab("WorldBrowserHierarchy");
 static const FName WorldBrowserDetailsTab("WorldBrowserDetails");
@@ -238,21 +236,6 @@ void SLevelEditor::ConstructNotificationBar()
 			FLevelEditorMenu::MakeNotificationBar( LevelEditorCommands, SharedThis(this ) )
 		];
 
-#define SHOW_NEWS_FEED 0
-
-#if SHOW_NEWS_FEED
-	// news feed button
-	INewsFeedModule& NewsFeedModule = FModuleManager::LoadModuleChecked<INewsFeedModule>(NewsFeedModuleName);
-
-	NotificationBarBox->AddSlot()
-		.AutoWidth()
-		.Padding(5.0f, 0.0f, 0.0f, 0.0f)
-		.VAlign(VAlign_Bottom)
-		[
-			NewsFeedModule.CreateNewsFeedButton()
-		];
-
-#endif
 	// developer tools
 	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(MainFrameModuleName);
 

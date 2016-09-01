@@ -179,8 +179,12 @@ FText UFactory::GetDisplayName() const
 		TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(LocalSupportedClass);
 		if ( AssetTypeActions.IsValid() )
 		{
-			// @todo AssetTypeActions should be returning a FText so we dont have to do this conversion here.
-			return AssetTypeActions.Pin()->GetName();
+			FText Name = AssetTypeActions.Pin()->GetName();
+
+			if (!Name.IsEmpty())
+			{
+				return Name;
+			}
 		}
 
 		// Factories whose classes do not have asset type actions should just display the sanitized class name

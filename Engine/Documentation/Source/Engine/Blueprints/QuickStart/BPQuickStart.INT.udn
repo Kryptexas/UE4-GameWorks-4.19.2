@@ -10,7 +10,7 @@ type:quickstart
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
+		![%Engine/Blueprints/QuickStart:title%](QuickStart.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%
@@ -27,7 +27,7 @@ type:quickstart
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Blueprints/QuickStart:title%](Engine/Blueprints/QuickStart/engine_qs_topic.png)
+		![%Engine/Blueprints/QuickStart:title%](QuickStart.png)
 	[/PARAM]
 	[PARAM:title]
 		%Engine/Blueprints/QuickStart:title%

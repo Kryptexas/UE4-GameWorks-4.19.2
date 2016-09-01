@@ -18,13 +18,18 @@
 	#include <dbghelp.h>
 	#include <Shlwapi.h>
 
+#ifndef UE_LOG_CRASH_CALLSTACK
+	#define UE_LOG_CRASH_CALLSTACK 1
+#endif
+
 #pragma comment( lib, "version.lib" )
 #pragma comment( lib, "Shlwapi.lib" )
 
 void FWindowsPlatformCrashContext::AddPlatformSpecificProperties()
 {
 	AddCrashProperty(TEXT("PlatformIsRunningWindows"), 1);
-	AddCrashProperty(TEXT("BuildIntegrityStatus"), GetImageIntegrityStatus());
+	// On windows track the crash type
+	AddCrashProperty(TEXT("PlatformCallbackResult"), GetCrashType());
 }
 
 namespace
@@ -204,7 +209,7 @@ void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInf
 	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::GetOriginal(), LocalBuffer );
 	Result = WerReportSetParameter( ReportHandle, WER_P8, TEXT( "Commandline" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
+	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%u" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
 	Result = WerReportSetParameter( ReportHandle, WER_P9, TEXT( "BranchBaseDir" ), StringBuffer );
 }
 
@@ -299,7 +304,7 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 
 		// Create a crash event report
 		HREPORT ReportHandle = NULL;
-		if( WerReportCreate( APPCRASH_EVENT, WerReportApplicationCrash, &ReportInformation, &ReportHandle ) == S_OK )
+		if( WerReportCreate( FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted), WerReportApplicationCrash, &ReportInformation, &ReportHandle ) == S_OK )
 		{
 			// Set the standard set of a crash parameters
 			SetReportParameters( ReportHandle, ExceptionInfo, ErrorMessage );
@@ -336,6 +341,13 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 				if (bHasLogFile)
 				{
 					WerReportAddFile(ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA);
+				}
+
+				// If present, include the crash report config file to pass config values to the CRC
+				const TCHAR* CrashConfigFilePath = FWindowsPlatformCrashContext::GetCrashConfigFilePath();
+				if (IFileManager::Get().FileExists(CrashConfigFilePath))
+				{
+					WerReportAddFile(ReportHandle, CrashConfigFilePath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA);
 				}
 
 				const FString CrashVideoPath = FPaths::GameLogDir() / TEXT( "CrashVideo.avi" );
@@ -437,6 +449,7 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 		// the engine is already in a bad state.
 		return;
 	}
+
 	// Simple re-entrance guard.
 	EnsureLock.Lock();
 
@@ -563,6 +576,7 @@ class FCrashReportingThread
 		{
 			if (WaitForSingleObject(CrashEvent, 500) == WAIT_OBJECT_0)
 			{
+				ResetEvent(CrashHandledEvent);
 				HandleCrashInternal();
 				ResetEvent(CrashEvent);
 				// Let the thread that crashed know we're done.				
@@ -589,10 +603,13 @@ public:
 	{
 		// Create a background thread that will process the crash and generate crash reports
 		Thread = CreateThread(NULL, 0, CrashReportingThreadProc, this, 0, &ThreadId);
-		SetThreadPriority(Thread, THREAD_PRIORITY_BELOW_NORMAL);
-		// Synchronization objects
-		CrashEvent = CreateEvent(nullptr, true, 0, nullptr);
-		CrashHandledEvent = CreateEvent(nullptr, false, 0, nullptr);
+		if (Thread)
+		{
+			SetThreadPriority(Thread, THREAD_PRIORITY_BELOW_NORMAL);
+			// Synchronization objects
+			CrashEvent = CreateEvent(nullptr, true, 0, nullptr);
+			CrashHandledEvent = CreateEvent(nullptr, true, 0, nullptr);
+		}
 	}
 
 	FORCENOINLINE ~FCrashReportingThread()
@@ -664,7 +681,12 @@ private:
 		// Then try run time crash processing and broadcast information about a crash.
 		FCoreDelegates::OnHandleSystemError.Broadcast();
 
-		const bool bGenerateRuntimeCallstack = FParse::Param(FCommandLine::Get(), TEXT("ForceLogCallstacks")) || FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
+		const bool bGenerateRuntimeCallstack =
+#if UE_LOG_CRASH_CALLSTACK
+			true;
+#else
+			FParse::Param(FCommandLine::Get(), TEXT("ForceLogCallstacks")) || FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
+#endif // UE_LOG_CRASH_CALLSTACK
 		if (bGenerateRuntimeCallstack)
 		{
 			const SIZE_T StackTraceSize = 65535;
@@ -701,15 +723,16 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {
 	// Only create a minidump the first time this function is called.
 	// (Can be called the first time from the RenderThread, then a second time from the MainThread.)
-	if (FPlatformAtomics::InterlockedIncrement(&ReportCrashCallCount) != 1 || !GCrashReportingThread.IsValid())
+	if (GCrashReportingThread.IsValid())
 	{
-		return EXCEPTION_EXECUTE_HANDLER;
+		if (FPlatformAtomics::InterlockedIncrement(&ReportCrashCallCount) == 1)
+		{
+			GCrashReportingThread->OnCrashed(ExceptionInfo);
+		}
+
+		// Wait 60s for the crash reporting thread to process the message
+		GCrashReportingThread->WaitUntilCrashIsHandled();
 	}
-
-	GCrashReportingThread->OnCrashed(ExceptionInfo);
-
-	// Wait 60s for the crash reporting thread to process the message
-	GCrashReportingThread->WaitUntilCrashIsHandled();
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }

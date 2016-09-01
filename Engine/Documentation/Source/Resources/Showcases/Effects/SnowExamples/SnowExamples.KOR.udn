@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2744667
 Availability: Public
 Title:눈 예제
 Crumbs:%ROOT%, Resources, Resources/Showcases/Effects
@@ -7,6 +7,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 Related: Resources/ContentExamples/EffectsGallery/1_E
 Related: Engine/Rendering/ParticleSystems/Optimization
+Version: 4.9
 
 
 
@@ -22,7 +23,7 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 
 다음 파티클 시스템은 이 예제용으로 생성된 눈 이펙트입니다. 캐스케이드에서 열어 이펙트를 어떻게 만들었는지 확인해 보시기 바랍니다.
 
-캐스케이드와 파티클 시스템 관련 상세 정보는 [파티클 시스템 관련 문서](Engine/Rendering/ParticleSystems) 를 참고해 주시기 바랍니다.
+캐스케이드와 파티클 시스템 관련 상세 정보는 [](Engine/Rendering/ParticleSystems) 문서를 참고해 주시기 바랍니다.
 
 ## 눈보라
 
@@ -36,11 +37,15 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 
 이 프로퍼티는 작은 반투명 오브젝트(, 여기서는 _눈송이_) 에 쓰기 좋은데, 언리얼 엔진의 Temporal Antialiasing 으로 인해 실루엣 품질이 저하될 것이기 때문입니다. 아무튼 **Enable Responsive AA** 는 배경에 계단현상이 생기므로 이러한 경우에만 사용해야 할 것입니다.
 
-[REGION:imagetable]
-| ![](WithEnable.png)(w:450)  | ![](WithoutEnable.png)(w:450)  |
-| :---: | :---: |
-|_Enable Responsive AA_ 켠 상태 | _Enable Responsive AA_  끈 상태 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Enable Responsive AA 있음](WithEnable.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Enable Responsive AA 없음](WithoutEnable.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
 
 커다란 _unlit_ (즉 _Emissive_) 스프라이트는 널리 퍼지는 아지랑이나 안개를 생성, 이펙트를 채우고 보다 복잡한 대기의 느낌을 냅니다.
 

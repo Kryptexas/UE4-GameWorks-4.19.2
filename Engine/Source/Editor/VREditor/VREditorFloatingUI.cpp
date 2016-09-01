@@ -7,6 +7,7 @@
 #include "VREditorMode.h"
 #include "WidgetComponent.h"
 #include "VREditorWidgetComponent.h"
+#include "VREditorInteractor.h"
 #include "SLevelViewport.h"	// For tab manager tricks
 
 
@@ -14,33 +15,22 @@ namespace VREd
 {
 	static FAutoConsoleVariable UIFadeSpeed( TEXT( "VREd.UIFadeSpeed" ), 6.0f, TEXT( "How fast UI should fade in and out" ) );
 	static FAutoConsoleVariable UIBrightness( TEXT( "VREd.UIBrightness" ), 0.3f, TEXT( "How bright the UI should be" ) );
-	static FAutoConsoleVariable UIOnHandRotationOffset( TEXT( "VREd.UIOnHandRotationOffset" ), 45.0f, TEXT( "Rotation offset for UI that's docked to your hand, to make it more comfortable to hold" ) );
 }
 
 
 AVREditorFloatingUI::AVREditorFloatingUI()
-	: LocalRotation( FRotator( 90.0f, 180.0f, 0.0f ) ),
-	  RelativeOffset( FVector::ZeroVector ),
-	  SlateWidget( nullptr ),
-	  UserWidget( nullptr ),
-	  WidgetComponent( nullptr ),
-	  Scale( 1.0f ),
-	  Resolution( 0, 0 ),
-	  Owner( nullptr ),
-	  DockedTo( EDockedTo::Nothing ),
-	  PreviousDockedTo( EDockedTo::Nothing ),
-	  UserWidgetClass( nullptr ),
-	  bShouldBeVisible(),
-	  FadeAlpha( 1.0f ),
-	  bCollisionOnShowUI( true ),
-	  FadeDelay( 0.0f ),
-	  InitialScale( 1.0f ),
-	  bIsMoving( false ),
-	  MoveToTransform( FTransform() ),
-	  StartMoveToTransform( FTransform() ),
-	  MoveToAlpha( 0.0f ),
-	  MoveToTime( 0.0f ),
-	  MoveToResultDock( EDockedTo::Nothing )
+	: Super(),
+	SlateWidget( nullptr ),
+	UserWidget( nullptr ),
+	WidgetComponent( nullptr ),
+	Resolution( 0, 0 ),
+	Owner( nullptr ),
+	UserWidgetClass( nullptr ),
+	bShouldBeVisible(),
+	FadeAlpha( 1.0f ),
+	bCollisionOnShowUI( true ),
+	FadeDelay( 0.0f ),
+	InitialScale( 1.0f )
 {
 	const bool bTransient = true;
 	USceneComponent* SceneComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "SceneComponent" ), bTransient );
@@ -108,9 +98,10 @@ void AVREditorFloatingUI::SetupWidgetComponent()
 	UpdateTransformIfDocked();
 }
 
-void AVREditorFloatingUI::SetSlateWidget( FVREditorUISystem& InitOwner, const TSharedRef<SWidget>& InitSlateWidget, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
+void AVREditorFloatingUI::SetSlateWidget( UVREditorUISystem& InitOwner, const TSharedRef<SWidget>& InitSlateWidget, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
 {
 	Owner = &InitOwner;
+	SetVRMode( &Owner->GetOwner() );
 
 	SlateWidget = InitSlateWidget;
 
@@ -120,15 +111,16 @@ void AVREditorFloatingUI::SetSlateWidget( FVREditorUISystem& InitOwner, const TS
 	Scale = InitScale;
 	InitialScale = Scale;
 
-	DockedTo = InitDockedTo;
+	SetDockedTo( InitDockedTo );
 
 	SetupWidgetComponent();
 }
 
 
-void AVREditorFloatingUI::SetUMGWidget( FVREditorUISystem& InitOwner, TSubclassOf<UVREditorBaseUserWidget> InitUserWidgetClass, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
+void AVREditorFloatingUI::SetUMGWidget( UVREditorUISystem& InitOwner, TSubclassOf<UVREditorBaseUserWidget> InitUserWidgetClass, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
 {
 	Owner = &InitOwner;
+	SetVRMode( &Owner->GetOwner() );
 
 	check( InitUserWidgetClass != nullptr );
 	UserWidgetClass = InitUserWidgetClass;
@@ -139,11 +131,10 @@ void AVREditorFloatingUI::SetUMGWidget( FVREditorUISystem& InitOwner, TSubclassO
 	Scale = InitScale;
 	InitialScale = Scale;
 
-	DockedTo = InitDockedTo;
+	SetDockedTo( InitDockedTo );
 
 	SetupWidgetComponent();
 }
-
 
 void AVREditorFloatingUI::Destroyed()
 {
@@ -168,23 +159,18 @@ void AVREditorFloatingUI::Destroyed()
 	Super::Destroyed();
 }
 
-
-void AVREditorFloatingUI::TickManually( float DeltaTime )
+void AVREditorFloatingUI::SetTransform( const FTransform& Transform )
 {
-	Super::Tick( DeltaTime );
+	const FVector AnimatedScale = CalculateAnimatedScale();
 
-	// Update fading state
-	UpdateFadingState( DeltaTime );
+	FTransform AnimatedTransform = Transform;
+	AnimatedTransform.SetScale3D( AnimatedTransform.GetScale3D() * AnimatedScale );
 
-	if ( bIsMoving )
-	{
-		TickMoveTo( DeltaTime );
-	}
-	else
-	{
-		// Update transform
-		UpdateTransformIfDocked();
-	}
+	const float Aspect = ( float ) Resolution.X / ( float ) Resolution.Y;
+
+	RootComponent->SetWorldLocation( AnimatedTransform.GetLocation() );
+	RootComponent->SetWorldRotation( AnimatedTransform.GetRotation() );
+	WidgetComponent->SetWorldScale3D( FVector( 1.0f / AnimatedTransform.GetScale3D().X, 1.0f / ( float ) Resolution.X, 1.0f / ( float ) Resolution.Y / Aspect ) * AnimatedTransform.GetScale3D() );
 }
 
 
@@ -238,51 +224,6 @@ void AVREditorFloatingUI::UpdateFadingState( const float DeltaTime )
 		WidgetComponent->SetTintColorAndOpacity( FLinearColor( UIBrightness, UIBrightness, UIBrightness ).CopyWithNewOpacity( FadeAlpha ) );
 	}
 }
-	
-
-void AVREditorFloatingUI::UpdateTransformIfDocked()
-{
-	if( DockedTo != EDockedTo::Nothing && DockedTo != EDockedTo::Dragging )
-	{
-		FTransform NewTransform;
-		
-		if( DockedTo == EDockedTo::LeftHand )
-		{
-			const bool bOnArm = false;
-			NewTransform = MakeUITransformLockedToHand( VREditorConstants::LeftHandIndex, bOnArm );
-		}
-		else if( DockedTo == EDockedTo::RightHand )
-		{
-			const bool bOnArm = false;
-			NewTransform = MakeUITransformLockedToHand( VREditorConstants::RightHandIndex, bOnArm );
-		}
-		else if( DockedTo == EDockedTo::LeftArm )
-		{
-			const bool bOnArm = true;
-			NewTransform = MakeUITransformLockedToHand( VREditorConstants::LeftHandIndex, bOnArm );
-		}
-		else if( DockedTo == EDockedTo::RightArm )
-		{
-			const bool bOnArm = true;
-			NewTransform = MakeUITransformLockedToHand( VREditorConstants::RightHandIndex, bOnArm );
-		}
-		else if( DockedTo == EDockedTo::Room)
-		{
-			NewTransform = MakeUITransformLockedToRoom();
-		}
-		else if( DockedTo == EDockedTo::Custom )
-		{
-			NewTransform = MakeCustomUITransform();
-		}
-		else
-		{
-			check( 0 );
-		}
-
-		SetTransform( NewTransform );
-	}
-}
-
 
 FVector AVREditorFloatingUI::CalculateAnimatedScale() const
 {
@@ -300,32 +241,6 @@ FVector AVREditorFloatingUI::CalculateAnimatedScale() const
 	return AnimatedScale;
 }
 
-
-void AVREditorFloatingUI::SetTransform( const FTransform& Transform )
-{
-	const FVector AnimatedScale = CalculateAnimatedScale();
-	
-	FTransform AnimatedTransform = Transform;
-	AnimatedTransform.SetScale3D( AnimatedTransform.GetScale3D() * AnimatedScale );
-
-	const float Aspect = (float)Resolution.X / (float)Resolution.Y;
-
-	RootComponent->SetWorldLocation( AnimatedTransform.GetLocation() );
-	RootComponent->SetWorldRotation( AnimatedTransform.GetRotation() );
-	WidgetComponent->SetWorldScale3D( FVector( 1.0f / AnimatedTransform.GetScale3D().X, 1.0f / (float)Resolution.X, 1.0f / (float)Resolution.Y / Aspect ) * AnimatedTransform.GetScale3D() );
-}
-
-
-void AVREditorFloatingUI::SetRelativeOffset( const FVector& InRelativeOffset )
-{
-	RelativeOffset = InRelativeOffset;
-}
-
-void AVREditorFloatingUI::SetLocalRotation( const FRotator& InLocalRotation )
-{
-	LocalRotation = InLocalRotation;
-}
-
 void AVREditorFloatingUI::SetCollisionOnShow( const bool bInCollisionOnShow )
 {
 	bCollisionOnShowUI = bInCollisionOnShow;
@@ -334,88 +249,6 @@ void AVREditorFloatingUI::SetCollisionOnShow( const bool bInCollisionOnShow )
 float AVREditorFloatingUI::GetInitialScale() const
 {
 	return InitialScale;
-}
-
-FTransform AVREditorFloatingUI::MakeUITransformLockedToHand( const int32 HandIndex, const bool bOnArm )
-{
-	return MakeUITransformLockedToHand( HandIndex, bOnArm, RelativeOffset, LocalRotation );
-}
-
-FTransform AVREditorFloatingUI::MakeUITransformLockedToHand( const int32 HandIndex, const bool bOnArm, const FVector& InRelativeOffset, const FRotator& InLocalRotation )
-{
-	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
-
-	FTransform UIToHandTransform( InLocalRotation, InRelativeOffset * WorldScaleFactor );
-	if (!bOnArm)
-	{
-		UIToHandTransform *= FTransform( FRotator( VREd::UIOnHandRotationOffset->GetFloat(), 0.0f, 0.0f ).Quaternion(), FVector::ZeroVector );
-	}
-
-	const FTransform HandToWorldTransform = Owner->GetOwner().GetVirtualHand( HandIndex ).Transform;
-
-	FTransform UIToWorldTransform = UIToHandTransform * HandToWorldTransform;
-	UIToWorldTransform.SetScale3D( FVector( Scale * WorldScaleFactor ) );
-
-	return UIToWorldTransform;
-}
-
-void AVREditorFloatingUI::MoveTo( const FTransform& ResultTransform, const float TotalMoveToTime, const EDockedTo ResultDock )
-{
-	MoveToTime = TotalMoveToTime;
-	bIsMoving = true;
-	StartMoveToTransform = GetActorTransform();
-	MoveToTransform = ResultTransform;
-	MoveToAlpha = 0.0f;
-	MoveToResultDock = ResultDock;
-}
-
-void AVREditorFloatingUI::StopMoveTo()
-{
-	bIsMoving = false;
-	SetTransform( MoveToTransform );
-	MoveToTransform = FTransform();
-}
-
-FTransform AVREditorFloatingUI::MakeUITransformLockedToRoom()
-{
-	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
-
-	const FTransform UIToRoomTransform( LocalRotation, RelativeOffset * WorldScaleFactor );
-
-	const FTransform RoomToWorldTransform = Owner->GetOwner().GetRoomTransform();
-
-	FTransform UIToWorldTransform = UIToRoomTransform * RoomToWorldTransform;
-	UIToWorldTransform.SetScale3D( FVector( Scale * WorldScaleFactor ) );
-
-	return UIToWorldTransform;
-}
-
-void AVREditorFloatingUI::TickMoveTo( const float DeltaTime )
-{
-	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
-
-	MoveToAlpha += DeltaTime;
-	const float LerpTime = MoveToTime;
-	if (MoveToAlpha > MoveToTime)
-	{
-		MoveToAlpha = MoveToTime;
-		bIsMoving = false;
-		SetDockedTo( MoveToResultDock );
-	}
-
-	const float CurrentALpha = MoveToAlpha / LerpTime;
-	const FVector NewLocation = FMath::Lerp( StartMoveToTransform.GetLocation(), MoveToTransform.GetLocation(), CurrentALpha );
-	const FQuat NewRotation = FMath::Lerp( StartMoveToTransform.GetRotation(), MoveToTransform.GetRotation(), CurrentALpha );
-	FTransform NewTransform( NewRotation, NewLocation, FVector( Scale * WorldScaleFactor ) );
-
-	SetTransform( NewTransform );
-}
-
-void AVREditorFloatingUI::SetDockedTo( const EDockedTo NewDockedTo )
-{
-	PreviousDockedTo = DockedTo;
-	DockedTo = NewDockedTo;
-	UpdateTransformIfDocked();
 }
 
 
@@ -435,16 +268,6 @@ void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, con
 			SetActorHiddenInGame( !bShow );
 			WidgetComponent->SetVisibility( bShow );
 			FadeAlpha = bShow ? 1.0f : 0.0f;
-		}
-
-		const TSharedRef<SViewport>& ViewportWidget = Owner->GetOwner().GetLevelViewportPossessedForVR().GetViewportWidget().Pin().ToSharedRef();
-		if ( bShow )
-		{
-			WidgetComponent->RegisterHitTesterWithViewport(ViewportWidget);
-		}
-		else
-		{
-			WidgetComponent->UnregisterHitTesterWithViewport(ViewportWidget);
 		}
 
 		FadeDelay = InitFadeDelay;

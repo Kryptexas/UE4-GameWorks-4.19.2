@@ -79,10 +79,26 @@ public:
 	// UObject overrides
 	virtual UWorld* GetWorld() const override;
 
+	/** Don't delete the underlying resource if it already exists */
+	void FastUpdateResource();
+
+	FORCEINLINE bool ShouldClearRenderTargetOnReceiveUpdate() const { return bShouldClearRenderTargetOnReceiveUpdate; }
+	FORCEINLINE void SetShouldClearRenderTargetOnReceiveUpdate(bool bInShouldClearRenderTargetOnReceiveUpdate)
+	{
+		bShouldClearRenderTargetOnReceiveUpdate = bInShouldClearRenderTargetOnReceiveUpdate;
+	}
+
 protected:
+
+	void RepaintCanvas();
 
 	/* The world this render target will be used with */
 	UPROPERTY()
 	TWeakObjectPtr<UWorld> World;
 	
+	// If true, clear the render target to green whenever OnReceiveUpdate() is called.  (Defaults to true.)
+	// If false, the render target will retain whatever values it had, allowing the user to update only areas that
+	// have changed.
+	UPROPERTY(Transient)
+	bool bShouldClearRenderTargetOnReceiveUpdate;
 };

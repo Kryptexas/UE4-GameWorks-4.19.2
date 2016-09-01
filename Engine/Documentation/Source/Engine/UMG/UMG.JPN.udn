@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2373757
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title: UMG UI デザイナ
+Title:UMG UI デザイナ
 Crumbs:%ROOT%, Engine
-Description:UMG（Unreal Motion Graphics） を使用して UI エレメントを作成するためのガイド 
+Description:UMG を使用して UI エレメントを作成するためのガイド 
+Version:4.9
+parent:Engine
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -74,8 +77,8 @@ Description:UMG（Unreal Motion Graphics） を使用して UI エレメント�
 			* [](Engine/UMG/UserGuide/Fonts)
 			* [](Engine/UMG/UserGuide/Styling)
 			* [](Engine/UMG/UserGuide/Slots)
-		
-	[/PARAM]
+		[/PARAM]
+
 [/OBJECT]
 
 [OBJECT:TopicButtonList]
@@ -91,3 +94,4 @@ Description:UMG（Unreal Motion Graphics） を使用して UI エレメント�
 		* [](Engine/Blueprints)
 	[/PARAM]
 [/OBJECT]
+

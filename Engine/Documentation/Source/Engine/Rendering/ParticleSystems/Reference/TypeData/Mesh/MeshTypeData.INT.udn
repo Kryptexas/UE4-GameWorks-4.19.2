@@ -2,6 +2,7 @@ Availability: Public
 Title:Mesh Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:The Mesh Type Data module allows users to create effects where polygon meshes are used in place of sprite particles.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -12,7 +13,7 @@ Description:The Mesh Type Data module allows users to create effects where polyg
 The **Mesh** type data module indicates that the emitter should use StaticMesh instances rather than sprite particles. This is great for effects such as shrapnel or debris.
 [/EXCERPT:Intro]
 
-The Mesh type data module has the following properties:
+The **Mesh** type data module has the following properties:
 
 |Property|Description|
 |---|---|
@@ -24,7 +25,7 @@ The Mesh type data module has the following properties:
 |**Pitch**| The 'pre' rotation pitch (in degrees) to apply to the Static Mesh used.|
 |**Roll**| The 'pre' rotation roll (in degrees) to apply to the Static Mesh used.|
 |**Yaw**| The 'pre' rotation yaw (in degrees) to apply to the Static Mesh used.|
-|**Axis Lock Option**| The axis to lock the mesh on. This overrides TypeSpecific mesh alignment as well as the LockAxis module. The following options are provided: [INCLUDE:#CameraFacingOption]|
+|**Axis Lock Option**| The axis to lock the mesh on. This overrides TypeSpecific mesh alignment as well as the LockAxis module. The following options are provided: [INCLUDE:#AxisLockOption]|
 |[REGION:tablesection]CameraFacing[/REGION]||
 |**Camera Facing**| If _true_, then the X-axis of the mesh will always point towards the camera. When set, _Axis Lock Option_ as well as all other locked axis/screen alignment settings are ignored.|
 |**Camera Facing Option**| Determines how the mesh is oriented when the _Camera Facing_ option is enabled. The following options are provided: [INCLUDE:#CameraFacingOption]|

@@ -16,13 +16,10 @@ namespace UnrealBuildTool
 	{
 		Win32,
 		Win64,
-		UWP,
 		Mac,
 		XboxOne,
 		PS4,
 		Android,
-		WinRT,
-		WinRT_ARM,
 		IOS,
 		HTML5,
 		Linux,
@@ -220,6 +217,11 @@ namespace UnrealBuildTool
 		public DirectoryReference OutputDirectory = null;
 
 		/// <summary>
+		/// The directory to put precompiled header files in. Experimental setting to allow using a path on a faster drive. Defaults to the standard output directory if not set.
+		/// </summary>
+		public DirectoryReference PCHOutputDirectory = null;
+
+		/// <summary>
 		/// The directory to shadow source files in for syncing to remote compile servers
 		/// </summary>
 		public DirectoryReference LocalShadowDirectory = null;
@@ -377,6 +379,7 @@ namespace UnrealBuildTool
 			base(InCopyEnvironment)
 		{
 			OutputDirectory = InCopyEnvironment.OutputDirectory;
+			PCHOutputDirectory = InCopyEnvironment.PCHOutputDirectory;
 			LocalShadowDirectory = InCopyEnvironment.LocalShadowDirectory;
 			PCHHeaderNameInCode = InCopyEnvironment.PCHHeaderNameInCode;
 			PrecompiledHeaderIncludeFilename = InCopyEnvironment.PrecompiledHeaderIncludeFilename;

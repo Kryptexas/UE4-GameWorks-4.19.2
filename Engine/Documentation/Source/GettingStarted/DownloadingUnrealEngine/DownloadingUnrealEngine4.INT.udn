@@ -12,7 +12,7 @@ SkillLevel: Advanced
 
 [EXCERPT:Main]
 [PUBLISH:Licensee]
-Unreal Engine 4 is available to be downloaded by licensees directly from Epic's Perforce (P4V) server. Before you can connect to the server, a secure VPN connection must be established. The login credentials for both the VPN and Perforce server are provided to your team's technical lead by Epic Games in your UDN welcome email. Only one set of login credentials is provided to each team.
+Unreal Engine 4 is available to be downloaded by licensees from Epic's Perforce (P4V) proxy server. The login credentials for the Perforce server are provided to your team's technical lead by Epic Games in your UDN welcome email. Only one set of login credentials is provided to each team.
 [/PUBLISH:Licensee]
 [PUBLISH:Rocket]
 
@@ -27,7 +27,7 @@ With access to our source code, subscribers can customize the engine and tools t
 [/PUBLISH:Rocket]
 
 [PUBLISH:Licensee]
-[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics#main]
 [/PUBLISH:Licensee]
 
 [PUBLISH:Rocket]

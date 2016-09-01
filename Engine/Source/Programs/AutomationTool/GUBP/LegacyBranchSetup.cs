@@ -628,6 +628,11 @@ partial class GUBP
 				BranchConfig.AddNode(new NonUnityTestNode(BranchConfig, HostPlatform));
 			}
 
+			if (HostPlatform == UnrealTargetPlatform.Win64 && !BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform) && !BranchOptions.ExcludeNodes.Contains("StaticAnalysis"))
+			{
+				BranchConfig.AddNode(new StaticAnalysisTestNode(BranchConfig, HostPlatform));
+			}
+
             if (DoASharedPromotable)
             {
                 var AgentSharingGroup = "Shared_EditorTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
@@ -683,7 +688,7 @@ partial class GUBP
                         }
                         foreach (var Plat in Platforms)
                         {
-                            if (!Platform.Platforms[HostPlatform].CanHostPlatform(Plat))
+                            if (!Platform.GetPlatform(HostPlatform).CanHostPlatform(Plat))
                             {
                                 throw new AutomationException("Project {0} asked for platform {1} with host {2}, but the host platform cannot build that platform.", Branch.BaseEngineProject.GameName, Plat.ToString(), HostPlatform.ToString());
                             }
@@ -739,7 +744,7 @@ partial class GUBP
                         var Platforms = Target.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
                         foreach (var Plat in Platforms)
                         {
-                            if (!Platform.Platforms[HostPlatform].CanHostPlatform(Plat))
+                            if (!Platform.GetPlatform(HostPlatform).CanHostPlatform(Plat))
                             {
                                 throw new AutomationException("Project {0} asked for platform {1} with host {2}, but the host platform cannot build that platform.", Branch.BaseEngineProject.GameName, Plat.ToString(), HostPlatform.ToString());
                             }
@@ -750,7 +755,7 @@ partial class GUBP
 
                             if (ActivePlatforms.Contains(Plat))
                             {
-                                string CookedPlatform = Platform.Platforms[Plat].GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client, "");								
+                                string CookedPlatform = Platform.GetPlatform(Plat).GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client);								
                                 if (!BranchConfig.HasNode(CookNode.StaticGetFullName(HostPlatform, Branch.BaseEngineProject, CookedPlatform)))
                                 {
 									GameCookNodes.Add(BranchConfig.AddNode(new CookNode(BranchConfig, HostPlatform, Branch.BaseEngineProject, Plat, CookedPlatform)));
@@ -971,7 +976,7 @@ partial class GUBP
 						var AllPlatforms = Platforms.Union(AdditionalPlatforms);
 						foreach (var Plat in AllPlatforms)
                         {
-                            if (!Platform.Platforms[HostPlatform].CanHostPlatform(Plat))
+                            if (!Platform.GetPlatform(HostPlatform).CanHostPlatform(Plat))
                             {
                                 throw new AutomationException("Project {0} asked for platform {1} with host {2}, but the host platform cannot build that platform.", CodeProj.GameName, Plat.ToString(), HostPlatform.ToString());
                             }
@@ -1007,7 +1012,7 @@ partial class GUBP
 								var FormalBuildConfigs = Target.Rules.GUBP_GetConfigsForFormalBuilds_MonolithicOnly(HostPlatform);
 								if (!AdditionalPlatforms.Contains(Plat) && (BranchOptions.ProjectsToCook.Contains(CodeProj.GameName) || BranchOptions.ProjectsToCook.Count == 0))
 								{
-									string CookedPlatform = Platform.Platforms[Plat].GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client, "");
+									string CookedPlatform = Platform.GetPlatform(Plat).GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client);
 									if (Target.Rules.GUBP_AlternateCookPlatform(HostPlatform, CookedPlatform) != "")
 									{
 										CookedPlatform = Target.Rules.GUBP_AlternateCookPlatform(HostPlatform, CookedPlatform);
@@ -1137,6 +1142,32 @@ partial class GUBP
 		if (HostPlatforms.Contains(UnrealTargetPlatform.Win64) && BranchConfig.HasNode(RootEditorNode.StaticGetFullName(UnrealTargetPlatform.Win64)) && BranchOptions.bBuildEngineLocalization)
 		{
 			BranchConfig.AddNode(new BuildEngineLocalizationNode(BranchOptions.EngineLocalizationBranchSuffix));
+		}
+
+		if(BranchConfig.BranchName != null && (BranchConfig.BranchName.StartsWith("//UE4/Dev-", StringComparison.InvariantCultureIgnoreCase) || ParseParam("WithSingleTargetNodes")))
+		{
+			List<BranchInfo.BranchUProject> CodeProjects = new List<BranchInfo.BranchUProject>();
+			CodeProjects.Add(BranchConfig.Branch.BaseEngineProject);
+			CodeProjects.AddRange(BranchConfig.Branch.CodeProjects);
+
+			foreach(BranchInfo.BranchUProject CodeProject in CodeProjects)
+			{
+				SingleTargetProperties Properties;
+				if(CodeProject.Properties.Targets.TryGetValue(TargetRules.TargetType.Game, out Properties))
+				{
+					foreach(UnrealTargetPlatform HostPlatform in HostPlatforms)
+					{
+						HashSet<UnrealTargetPlatform> TargetPlatforms = new HashSet<UnrealTargetPlatform>();
+						TargetPlatforms.UnionWith(Properties.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform));
+						TargetPlatforms.UnionWith(Properties.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform));
+						foreach(UnrealTargetPlatform TargetPlatform in TargetPlatforms)
+						{
+							GUBP.SingleTargetNode TargetNode = new SingleTargetNode(BranchConfig, HostPlatform, CodeProject, Properties.TargetName, TargetPlatform, UnrealTargetConfiguration.Development);
+							BranchConfig.AddNode(TargetNode);
+						}
+					}
+				}
+			}
 		}
 
         BranchConfig.AddNode(new WaitForTestShared(this));

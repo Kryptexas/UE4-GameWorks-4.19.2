@@ -24,6 +24,7 @@
 #include "Animation/BlendProfile.h"
 #include "SBlendProfilePicker.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
+#include "Animation/AnimInstance.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -239,10 +240,11 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 bool FAnimGraphNodeDetails::OnShouldFilterAnimAsset( const FAssetData& AssetData, const UClass* NodeToFilterFor ) const
 {
 	const FString* SkeletonName = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
-	if (*SkeletonName == TargetSkeletonName)
+	if ((SkeletonName != nullptr) && (*SkeletonName == TargetSkeletonName))
 	{
 		const UClass* AssetClass = AssetData.GetClass();
-		if (NodeToFilterFor == GetNodeClassForAsset(AssetClass))
+		// If node is an 'asset player', only let you select the right kind of asset for it
+		if (!NodeToFilterFor->IsChildOf(UAnimGraphNode_AssetPlayerBase::StaticClass()) || SupportNodeClassForAsset(AssetClass, NodeToFilterFor))
 		{
 			return false;
 		}
@@ -292,7 +294,7 @@ void FAnimGraphNodeDetails::OnBlendProfileChanged(UBlendProfile* NewProfile, TSh
 {
 	if(PropertyHandle.IsValid())
 	{
-		PropertyHandle->SetValue((const UObject*&)NewProfile);
+		PropertyHandle->SetValue(NewProfile);
 	}
 }
 
@@ -490,6 +492,20 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 			TargetSkeleton = AnimationAsset->GetSkeleton();
 			break;
 		}
+
+		if (UAnimInstance* AnimInstance = Cast<UAnimInstance>(*OuterIter))
+		{
+			if (AnimInstance->CurrentSkeleton)
+			{
+				TargetSkeleton = AnimInstance->CurrentSkeleton;
+				break;
+			}
+			else if (UAnimBlueprintGeneratedClass* AnimBPClass = Cast<UAnimBlueprintGeneratedClass>(AnimInstance->GetClass()))
+			{
+				TargetSkeleton = AnimBPClass->TargetSkeleton;
+				break;
+			}
+		}
 	}
 
 	if (TargetSkeleton)
@@ -501,8 +517,7 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 
 		HeaderRow.ValueContent()
 		[
-			SNew(SBoneSelectionWidget)
-			.Skeleton(TargetSkeleton)
+			SNew(SBoneSelectionWidget, TargetSkeleton)
 			.Tooltip(StructPropertyHandle->GetToolTipText())
 			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
 			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
@@ -641,23 +656,23 @@ void SParentPlayerTreeRow::Construct(const FArguments& InArgs, const TSharedRef<
 
 TSharedRef<SWidget> SParentPlayerTreeRow::GenerateWidgetForColumn(const FName& ColumnName)
 {
-	TSharedPtr<SHorizontalBox> Box;
-	SAssignNew(Box, SHorizontalBox);
+	TSharedPtr<SHorizontalBox> HorizBox;
+	SAssignNew(HorizBox, SHorizontalBox);
 
 	if(ColumnName == "Name")
 	{
-		Box->AddSlot()
+		HorizBox->AddSlot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
 			[
 				SNew(SExpanderArrow, SharedThis(this))
 			];
 
-		Item->GenerateNameWidget(Box);
+		Item->GenerateNameWidget(HorizBox);
 	}
 	else if(Item->Override)
 	{
-		Box->AddSlot()
+		HorizBox->AddSlot()
 			.Padding(2)
 			.VAlign(VAlign_Center)
 			.AutoWidth()
@@ -676,7 +691,7 @@ TSharedRef<SWidget> SParentPlayerTreeRow::GenerateWidgetForColumn(const FName& C
 		
 		TArray<const UClass*> AllowedClasses;
 		AllowedClasses.Add(UAnimationAsset::StaticClass());
-		Box->AddSlot()
+		HorizBox->AddSlot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
 			[
@@ -687,7 +702,7 @@ TSharedRef<SWidget> SParentPlayerTreeRow::GenerateWidgetForColumn(const FName& C
 				.AllowedClass(GetCurrentAssetToUse()->GetClass())
 			];
 
-		Box->AddSlot()
+		HorizBox->AddSlot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
 			[
@@ -704,17 +719,17 @@ TSharedRef<SWidget> SParentPlayerTreeRow::GenerateWidgetForColumn(const FName& C
 			];
 	}
 
-	return Box.ToSharedRef();
+	return HorizBox.ToSharedRef();
 }
 
 bool SParentPlayerTreeRow::OnShouldFilterAsset(const FAssetData& AssetData)
 {
-	const FString* SkeletonName = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
+	const FString SkeletonName = AssetData.GetTagValueRef<FString>("Skeleton");
 
-	if(SkeletonName)
+	if(!SkeletonName.IsEmpty())
 	{
 		USkeleton* CurrentSkeleton = GraphNode->GetAnimBlueprint()->TargetSkeleton;
-		if(*SkeletonName == FString::Printf(TEXT("%s'%s'"), *CurrentSkeleton->GetClass()->GetName(), *CurrentSkeleton->GetPathName()))
+		if(SkeletonName == FString::Printf(TEXT("%s'%s'"), *CurrentSkeleton->GetClass()->GetName(), *CurrentSkeleton->GetPathName()))
 		{
 			return false;
 		}

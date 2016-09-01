@@ -116,6 +116,7 @@ void FAISchemaAction_NewSubNode::AddReferencedObjects(FReferenceCollector& Colle
 
 	// These don't get saved to disk, but we want to make sure the objects don't get GC'd while the action array is around
 	Collector.AddReferencedObject(NodeTemplate);
+	Collector.AddReferencedObject(ParentNode);
 }
 //////////////////////////////////////////////////////////////////////////
 

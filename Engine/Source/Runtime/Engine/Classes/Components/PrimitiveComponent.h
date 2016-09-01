@@ -6,6 +6,7 @@
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
 #include "SceneTypes.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Engine/EngineTypes.h"
 #include "AI/Navigation/NavRelevantInterface.h"
 #include "PrimitiveComponent.generated.h"
@@ -472,6 +473,8 @@ public:
 	UPROPERTY(transient)
 	float LastRenderTime;
 
+	UPROPERTY(transient)
+	float LastRenderTimeOnScreen;
 private:
 	UPROPERTY()
 	TEnumAsByte<enum ECanBeCharacterBase> CanBeCharacterBase_DEPRECATED;
@@ -1175,6 +1178,22 @@ public:
 	 */
 	void GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
 
+	/**
+	* Return whether this primitive should have section data for texture streaming but it is missing. Used for incremental updates.
+	*
+	* @param bCheckTexCoordScales - If true, section data must contains texcoord scales to be valid.
+	*
+	* @return - true if some sections have missing data. If this component is not expected to have data, this should return false.
+	*/
+	virtual bool HasMissingStreamingSectionData(bool bCheckTexCoordScales) const { return false; }
+
+	/**
+	* Update section data for texture streaming. Note that this data is expected to be transient.
+	* Only useful within the texture streaming build, or streaming accuracy viewmodes.
+	*
+	* @param	TexCoordScales - The texcoord scales for each texture register of each relevant materials.
+	*/
+	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales) {}
 
 	/**
 	 * Determines the DPG the primitive's primary elements are drawn in.
@@ -1251,15 +1270,30 @@ public:
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const;
 
 	/** 
-	 * returns Distance to closest Body Instance surface. 
+	 * returns The square of the distance to closest Body Instance surface. 
 	 *
 	 * @param Point				World 3D vector
+	 * @param OutSquaredDistance The squared distance to closest Body Instance surface. 0 if inside of the body
 	 * @param OutPointOnBody	Point on the surface of collision closest to Point
 	 * 
-	 * @return		Success if returns > 0.f, if returns 0.f, it is either not convex or inside of the point
-	 *				If returns < 0.f, this primitive does not have collsion
+	 * @return		true if a distance to the body was found and OutDistanceSquared has been populated
 	 */
-	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const;
+	virtual bool GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const;
+
+	/** 
+	* returns Distance to closest Body Instance surface. 
+	*
+	* @param Point				World 3D vector
+	* @param OutPointOnBody	Point on the surface of collision closest to Point
+	* 
+	* @return		Success if returns > 0.f, if returns 0.f, point is inside the geometry
+	*				If returns < 0.f, this primitive does not have collsion or if geometry is not supported
+	*/	
+	float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const 
+	{
+		float DistanceSqr = -1.f;
+		return (GetSquaredDistanceToCollision(Point, DistanceSqr, ClosestPointOnCollision) ? FMath::Sqrt(DistanceSqr) : -1.f);
+	}
 
 	/**
 	* Returns the distance and closest point to the collision surface.
@@ -1332,7 +1366,7 @@ public:
 	/**
 	*	Adds the bodies that are currently welded to the OutWeldedBodies array 
 	*/
-	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels);
+	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels, bool bIncludingAutoWeld = false);
 	
 	/** Whether the component has been welded to another simulating component */
 	bool IsWelded() const;
@@ -1395,8 +1429,8 @@ protected:
 	virtual void OnRegister()  override;
 	virtual void OnUnregister()  override;
 	virtual void DestroyRenderState_Concurrent() override;
-	virtual void CreatePhysicsState() override;
-	virtual void DestroyPhysicsState() override;
+	virtual void OnCreatePhysicsState() override;
+	virtual void OnDestroyPhysicsState() override;
 	virtual void OnActorEnableCollisionChanged() override;
 	/**
 	 * Called to get the Component To World Transform from the Root BodyInstance

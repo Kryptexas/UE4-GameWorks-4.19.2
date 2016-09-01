@@ -254,51 +254,6 @@ protected:
 	 */
 	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink );
 
-	/**
-	 * Creates an asynchronous UAT task.
-	 *
-	 * @param CommandLine - The command line for the UAT task.
-	 * @param PlatformDisplayName - The display name of the platform that the task is running for.
-	 * @param TaskName - The human readable name of the task.
-	 * @param TaskIcon - The icon for the task (to show in the notification item).
-	 */
-	static void CreateUatTask( const FString& CommandLine, const FText& PlatformDisplayName, const FText& TaskName, const FText &TaskShortName, const FSlateBrush* TaskIcon );
-
-	/**
-	 * Translate the given error code to human readable text
-	 *
-	 * @param ErrorCode - the error code returned from UAT task
-	 *
-	 * @return the human readable error string
-	 */
-	static FString TranslateUATError(int32 ErrorCode);
-
-private:
-
-	struct EventData
-	{
-		FString EventName;
-		bool bProjectHasCode;
-		double StartTime;
-	};
-
-	// Handles clicking the packager notification item's Cancel button.
-	static void HandleUatCancelButtonClicked( TSharedPtr<FMonitoredProcess> PackagerProcess );
-
-	static void HandleUatCancelButtonClicked(TWeakPtr<FMonitoredProcess> PackagerProcess);
-
-	// Handles clicking the hyper link on a packager notification item.
-	static void HandleUatHyperlinkNavigate( );
-
-	// Handles canceled packager processes.
-	static void HandleUatProcessCanceled( TWeakPtr<class SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName, EventData Event );
-
-	// Handles the completion of a packager process.
-	static void HandleUatProcessCompleted( int32 ReturnCode, TWeakPtr<class SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName, EventData Event );
-
-	// Handles packager process output.
-	static void HandleUatProcessOutput( FString Output, TWeakPtr<class SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName );
-
 private:
 
 	/** The notification in place while we choose packages to check in */

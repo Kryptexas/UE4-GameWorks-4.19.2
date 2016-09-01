@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2721649
 Availability:Public
-Title:開発の設定
+Title:開発のセットアップ
 Crumbs: %ROOT%, Programming
 Description:コード環境の設定、コード プロジェクトの作成、アンリアル エンジン ソースでの作業
+version:4.9
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

@@ -18,9 +18,13 @@
 #include "VersionManifest.h"
 #include "UObject/DevObjectVersion.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "MallocProfiler.h"
+
+#include "NetworkVersion.h"
 
 #if WITH_COREUOBJECT
 	#include "Internationalization/PackageLocalizationManager.h"
+	#include "CoreUObject.h"
 #endif
 
 #if WITH_EDITOR
@@ -37,6 +41,7 @@
 #endif
 
 #if WITH_ENGINE
+	#include "AudioThread.h"
 	#include "AutomationController.h"
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
@@ -45,7 +50,6 @@
 	#include "DistanceFieldAtlas.h"
 	#include "GlobalShader.h"
 	#include "ParticleHelper.h"
-	#include "Online.h"
 	#include "PhysicsPublic.h"
 	#include "PlatformFeatures.h"
 	#include "DeviceProfiles/DeviceProfileManager.h"
@@ -57,6 +61,7 @@
 	#include "ISessionService.h"
 	#include "ISessionServicesModule.h"
 	#include "Engine/GameInstance.h"
+	#include "Net/OnlineEngineInterface.h"
 	#include "Internationalization/EnginePackageLocalizationCache.h"
 
 #if !UE_SERVER
@@ -132,9 +137,9 @@ public:
 		if ( (bAllowLogVerbosity && Verbosity <= ELogVerbosity::Log) || (Verbosity <= ELogVerbosity::Display) )
 		{
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
-			wprintf(TEXT("\n%ls"), *FOutputDevice::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("\n%ls"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #else
-			wprintf(TEXT("\n%s"), *FOutputDevice::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("\n%s"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #endif
 			fflush(stdout);
 		}
@@ -196,6 +201,9 @@ static TScopedPointer<FOutputDeviceTestExit> GScopedTestExit;
 #if WITH_ENGINE
 static void RHIExitAndStopRHIThread()
 {
+#if HAS_GPU_STATS
+	FRealtimeGPUProfiler::Get()->Release();
+#endif
 	RHIExit();
 
 	// Stop the RHI Thread
@@ -757,7 +765,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if (ILauncherCheckModule::Get().WasRanFromLauncher() == false)
 	{
 		// Tell Launcher to run us instead
-		ILauncherCheckModule::Get().RunLauncher();
+		ILauncherCheckModule::Get().RunLauncher(ELauncherAction::AppLaunch);
 		// We wish to exit
 		GIsRequestingExit = true;
 		return 0;
@@ -876,7 +884,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	GIsGameThreadIdInitialized = true;
 
 	FPlatformProcess::SetThreadAffinityMask(FPlatformAffinity::GetMainGameMask());
-	FPlatformProcess::SetupGameOrRenderThread(false);
+	FPlatformProcess::SetupGameThread();
 
 	// Figure out whether we're the editor, ucc or the game.
 	const SIZE_T CommandLineSize = FCString::Strlen(CmdLine)+1;
@@ -1090,22 +1098,28 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FApp::SetBenchmarking(false);
 #endif // !UE_BUILD_SHIPPING
 
-	FApp::SetUseFixedTimeStep(FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
+	// "-Deterministic" is a shortcut for "-UseFixedTimeStep -FixedSeed"
+	bool bDeterministic = FParse::Param(FCommandLine::Get(), TEXT("Deterministic"));
+
+	FApp::SetUseFixedTimeStep(bDeterministic || FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
+
+	FApp::bUseFixedSeed = bDeterministic || FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FixedSeed"));
 
 	// Initialize random number generator.
-	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED")) )
 	{
-		FMath::RandInit( 0 );
-		FMath::SRandInit( 0 );
-		UE_LOG(LogInit, Display, TEXT("RandInit(0) SRandInit(0)."));
-	}
-	else
-	{
-		uint32 Cycles1 = FPlatformTime::Cycles();
-		FMath::RandInit(Cycles1);
-		uint32 Cycles2 = FPlatformTime::Cycles();
-		FMath::SRandInit(Cycles2);
-		UE_LOG(LogInit, Display, TEXT("RandInit(%d) SRandInit(%d)."), Cycles1, Cycles2);
+		uint32 Seed1 = 0;
+		uint32 Seed2 = 0;
+
+		if(!FApp::bUseFixedSeed)
+		{
+			Seed1 = FPlatformTime::Cycles();
+			Seed2 = FPlatformTime::Cycles();
+		}
+
+		FMath::RandInit(Seed1);
+		FMath::SRandInit(Seed2);
+
+		UE_LOG(LogInit, Display, TEXT("RandInit(%d) SRandInit(%d)."), Seed1, Seed2);
 	}
 
 	// Set up the module list and version information, if it's not compiled-in
@@ -1199,23 +1213,36 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	if (FPlatformProcess::SupportsMultithreading())
 	{
-		GThreadPool	= FQueuedThreadPool::Allocate();
-		int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfWorkerThreadsToSpawn();
-
-		// we are only going to give dedicated servers one pool thread
-		if (FPlatformProperties::IsServerOnly())
 		{
-			NumThreadsInThreadPool = 1;
+			GThreadPool = FQueuedThreadPool::Allocate();
+			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfWorkerThreadsToSpawn();
+
+			// we are only going to give dedicated servers one pool thread
+			if (FPlatformProperties::IsServerOnly())
+			{
+				NumThreadsInThreadPool = 1;
+			}
+			verify(GThreadPool->Create(NumThreadsInThreadPool, 128 * 1024));
 		}
-		verify(GThreadPool->Create(NumThreadsInThreadPool));
+#if USE_NEW_ASYNC_IO
+		{
+			GIOThreadPool = FQueuedThreadPool::Allocate();
+			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfIOWorkerThreadsToSpawn();
+			if (FPlatformProperties::IsServerOnly())
+			{
+				NumThreadsInThreadPool = 2;
+			}
+			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 16 * 1024, TPri_AboveNormal));
+		}
+#endif // USE_NEW_ASYNC_IO
 
 #if WITH_EDITOR
 		// when we are in the editor we like to do things like build lighting and such
 		// this thread pool can be used for those purposes
 		GLargeThreadPool = FQueuedThreadPool::Allocate();
 		int32 NumThreadsInLargeThreadPool = FMath::Max(FPlatformMisc::NumberOfCoresIncludingHyperthreads() - 2, 2);
-
-		verify(GLargeThreadPool->Create(NumThreadsInLargeThreadPool));
+		
+		verify(GLargeThreadPool->Create(NumThreadsInLargeThreadPool, 128 * 1024));
 #endif
 	}
 
@@ -1236,6 +1263,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	// Apply renderer settings from console variables stored in the INI.
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"),*GEngineIni, ECVF_SetByProjectSetting);
+	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererOverrideSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.StreamingSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.GarbageCollectionSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 
@@ -1419,6 +1447,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	EndInitTextLocalization();
 
+	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowAudioThread())
+	{
+		bool bUseThreadedAudio = false;
+		if (!GIsEditor)
+		{
+			GConfig->GetBool(TEXT("Audio"), TEXT("UseAudioThread"), bUseThreadedAudio, GEngineIni);
+		}
+		FAudioThread::SetUseThreadedAudio(bUseThreadedAudio);
+	}
+
 	if (FPlatformProcess::SupportsMultithreading() && !IsRunningDedicatedServer() && (bIsRegularClient || bHasEditorToken))
 	{
 		FPlatformSplash::Show();
@@ -1435,6 +1473,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// that it does that still must be done
 		EKeys::Initialize();
 		FCoreStyle::ResetToDefault();
+	}
+
+	if (GIsEditor)
+	{
+		// The editor makes use of all cultures in its UI, so pre-load the resource data now to avoid a hitch later
+		FInternationalization::Get().LoadAllCultureData();
 	}
 
 	FScopedSlowTask SlowTask(100, NSLOCTEXT("EngineLoop", "EngineLoop_Initializing", "Initializing..."));
@@ -1618,13 +1662,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// At least one startup package failed to load, return 1 to indicate an error
 		return 1;
 	}
+#endif // WITH_ENGINE
 
+#if WITH_COREUOBJECT
 	if (GUObjectArray.IsOpenForDisregardForGC())
 	{
 		GUObjectArray.CloseDisregardForGC();
 	}
+#endif // WITH_COREUOBJECT
 
-	if (IOnlineSubsystem::IsLoaded())
+#if WITH_ENGINE
+	if (UOnlineEngineInterface::Get()->IsLoaded())
 	{
 		SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
 	}
@@ -1783,7 +1831,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			// Log warning/ error summary.
 			if( Commandlet->ShowErrorCount )
 			{
-				if( GWarn->Errors.Num() || GWarn->Warnings.Num() )
+				TArray<FString> AllErrors;
+				TArray<FString> AllWarnings;
+				GWarn->GetErrors(AllErrors);
+				GWarn->GetWarnings(AllWarnings);
+
+				if (AllErrors.Num() || AllWarnings.Num())
 				{
 					SET_WARN_COLOR(COLOR_WHITE);
 					UE_LOG(LogInit, Display, TEXT(""));
@@ -1791,13 +1844,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					UE_LOG(LogInit, Display, TEXT("-----------------------------------"));
 
 					const int32 MaxMessagesToShow = (GIsBuildMachine || FParse::Param(FCommandLine::Get(), TEXT("DUMPALLWARNINGS"))) ? 
-						FMath::Max(GWarn->Errors.Num(), GWarn->Warnings.Num()) : 50;
-
-					TSet<FString> ShownMessages;
+						FMath::Max(AllErrors.Num(), AllWarnings.Num()) : 50;
 					
-					SET_WARN_COLOR(COLOR_RED);
+					TSet<FString> ShownMessages;					
 					ShownMessages.Empty(MaxMessagesToShow);
-					for (const FString& ErrorMessage : GWarn->Errors)
+
+					SET_WARN_COLOR(COLOR_RED);
+
+					for (const FString& ErrorMessage : AllErrors)
 					{
 						bool bAlreadyShown = false;
 						ShownMessages.Add(ErrorMessage, &bAlreadyShown);
@@ -1807,7 +1861,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 							if (ShownMessages.Num() > MaxMessagesToShow)
 							{
 								SET_WARN_COLOR(COLOR_WHITE);
-								UE_CLOG(MaxMessagesToShow < GWarn->Errors.Num(), LogInit, Display, TEXT("NOTE: Only first %d errors displayed."), MaxMessagesToShow);
+								UE_CLOG(MaxMessagesToShow < AllErrors.Num(), LogInit, Display, TEXT("NOTE: Only first %d errors displayed."), MaxMessagesToShow);
 								break;
 							}
 
@@ -1817,7 +1871,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 					SET_WARN_COLOR(COLOR_YELLOW);
 					ShownMessages.Empty(MaxMessagesToShow);
-					for (const FString& WarningMessage : GWarn->Warnings)
+
+					for (const FString& WarningMessage : AllWarnings)
 					{
 						bool bAlreadyShown = false;
 						ShownMessages.Add(WarningMessage, &bAlreadyShown);
@@ -1827,7 +1882,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 							if (ShownMessages.Num() > MaxMessagesToShow)
 							{
 								SET_WARN_COLOR(COLOR_WHITE);
-								UE_CLOG(MaxMessagesToShow < GWarn->Warnings.Num(), LogInit, Display, TEXT("NOTE: Only first %d warnings displayed."), MaxMessagesToShow);
+								UE_CLOG(MaxMessagesToShow < AllWarnings.Num(), LogInit, Display, TEXT("NOTE: Only first %d warnings displayed."), MaxMessagesToShow);
 								break;
 							}
 
@@ -1842,17 +1897,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				{
 					SET_WARN_COLOR(COLOR_RED);
 					UE_LOG(LogInit, Display, TEXT("Commandlet->Main return this error code: %d"), ErrorLevel );
-					UE_LOG(LogInit, Display, TEXT("With %d error(s), %d warning(s)"), GWarn->Errors.Num(), GWarn->Warnings.Num() );
+					UE_LOG(LogInit, Display, TEXT("With %d error(s), %d warning(s)"), AllErrors.Num(), AllWarnings.Num() );
 				}
-				else if( ( GWarn->Errors.Num() == 0 ) )
+				else if( ( AllErrors.Num() == 0 ) )
 				{
-					SET_WARN_COLOR(GWarn->Warnings.Num() ? COLOR_YELLOW : COLOR_GREEN);
-					UE_LOG(LogInit, Display, TEXT("Success - %d error(s), %d warning(s)"), GWarn->Errors.Num(), GWarn->Warnings.Num() );
+					SET_WARN_COLOR(AllWarnings.Num() ? COLOR_YELLOW : COLOR_GREEN);
+					UE_LOG(LogInit, Display, TEXT("Success - %d error(s), %d warning(s)"), AllErrors.Num(), AllWarnings.Num() );
 				}
 				else
 				{
 					SET_WARN_COLOR(COLOR_RED);
-					UE_LOG(LogInit, Display, TEXT("Failure - %d error(s), %d warning(s)"), GWarn->Errors.Num(), GWarn->Warnings.Num() );
+					UE_LOG(LogInit, Display, TEXT("Failure - %d error(s), %d warning(s)"), AllErrors.Num(), AllWarnings.Num() );
 					ErrorLevel = 1;
 				}
 				CLEAR_WARN_COLOR();
@@ -2121,7 +2176,7 @@ bool FEngineLoop::LoadStartupCoreModules()
 	}
 
 	// We need this for blueprint projects that have online functionality.
-	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
+	//FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
 
 	if (IsRunningCommandlet())
 	{
@@ -2300,6 +2355,8 @@ int32 FEngineLoop::Init()
 		GIsRequestingExit = true;
 		return 1;
 	}
+
+	GEngine->Start();
 	
 	GetMoviePlayer()->WaitForMovieToFinish();
 
@@ -2340,6 +2397,7 @@ int32 FEngineLoop::Init()
 	// Ready to measure thread heartbeat
 	FThreadHeartBeat::Get().Start();
 
+	FCoreDelegates::OnFEngineLoopInitComplete.Broadcast();
 	return 0;
 }
 
@@ -2386,8 +2444,6 @@ void FEngineLoop::Exit()
 	}
 #endif // WITH_ENGINE
 
-	MALLOC_PROFILER( GEngine->Exec( nullptr, TEXT( "MPROF STOP" ) ); )
-
 	if ( GEngine != nullptr )
 	{
 		GEngine->ShutdownAudioDeviceManager();
@@ -2398,6 +2454,9 @@ void FEngineLoop::Exit()
 		GEngine->PreExit();
 	}
 
+	// close all windows
+	FSlateApplication::Shutdown();
+
 #if !UE_SERVER
 	if ( FEngineFontServices::IsInitialized() )
 	{
@@ -2405,14 +2464,14 @@ void FEngineLoop::Exit()
 	}
 #endif
 
-	// close all windows
-	FSlateApplication::Shutdown();
-
 #if !PLATFORM_ANDROID 	// AppPreExit doesn't work on Android
 	AppPreExit();
 
 	TermGamePhys();
 	ParticleVertexFactoryPool_FreePool();
+#else
+	// AppPreExit() stops malloc profiler, do it here instead
+	MALLOC_PROFILER( GMalloc->Exec(nullptr, TEXT("MPROF STOP"), *GLog);	);
 #endif // !ANDROID
 
 	// Stop the rendering thread.
@@ -3090,7 +3149,10 @@ bool FEngineLoop::AppInit( )
 		{
 			bool bNeedCompile = false;
 			GConfig->GetBool(TEXT("/Script/UnrealEd.EditorLoadingSavingSettings"), TEXT("bForceCompilationAtStartup"), bNeedCompile, GEditorPerProjectIni);
-
+			if(FParse::Param(FCommandLine::Get(), TEXT("SKIPCOMPILE")) || FParse::Param(FCommandLine::Get(), TEXT("MULTIPROCESS")))
+			{
+				bNeedCompile = false;
+			}
 			if(!bNeedCompile)
 			{
 				// Check if any of the project or plugin modules are out of date, and the user wants to compile them.
@@ -3155,6 +3217,27 @@ bool FEngineLoop::AppInit( )
 	}
 #endif
 
+#if WITH_ENGINE
+	if (!IsRunningCommandlet())
+	{
+		// Earliest place to init the online subsystems (via plugins)
+		// Code needs GConfigFile to be valid
+		// Must be after FThreadStats::StartThread();
+		// Must be before Render/RHI subsystem D3DCreate()
+		// For platform services that need D3D hooks like Steam
+		// --
+		// Why load HTTP?
+		// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
+		// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
+		// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
+
+		// These should not be LoadModuleChecked because these modules might not exist
+		FModuleManager::Get().LoadModule(TEXT("XMPP"));
+		FModuleManager::Get().LoadModule(TEXT("HTTP"));
+		// OSS Default/Console are loaded in plugins immediately following
+	}
+#endif
+
 	// Load "pre-init" plugin modules
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit))
 	{
@@ -3210,9 +3293,10 @@ bool FEngineLoop::AppInit( )
 	}
 
 	//// Command line.
-	UE_LOG(LogInit, Log, TEXT("Version: %s"), *FEngineVersion::Current().ToString());
-	UE_LOG(LogInit, Log, TEXT("API Version: %u"), FEngineVersion::CompatibleWith().GetChangelist());
-	UE_LOG(LogInit, Log, TEXT("Net Version: %u"), GEngineNetVersion);
+	UE_LOG(LogInit, Log, TEXT("Build: %s"), FApp::GetBuildVersion());
+	UE_LOG(LogInit, Log, TEXT("Engine Version: %s"), *FEngineVersion::Current().ToString());
+	UE_LOG(LogInit, Log, TEXT("Compatible Engine Version: %s"), *FEngineVersion::CompatibleWith().ToString());
+	UE_LOG(LogInit, Log, TEXT("Net CL: %u"), FNetworkVersion::GetNetworkCompatibleChangelist());
 	FDevVersionRegistration::DumpVersionsToLog();
 
 #if PLATFORM_64BITS
@@ -3257,31 +3341,6 @@ bool FEngineLoop::AppInit( )
 	FApp::InitializeSession();
 #endif
 
-#if WITH_ENGINE
-	if (!IsRunningCommandlet())
-	{
-		// Earliest place to init the online subsystems
-		// Code needs GConfigFile to be valid
-		// Must be after FThreadStats::StartThread();
-		// Must be before Render/RHI subsystem D3DCreate()
-		// For platform services that need D3D hooks like Steam
-		// --
-		// Why load HTTP?
-		// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
-		// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
-		// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
-		if (FModuleManager::Get().ModuleExists(TEXT("XMPP")))
-		{
-			FModuleManager::Get().LoadModule(TEXT("XMPP"));
-		}
-		FModuleManager::Get().LoadModule(TEXT("HTTP"));
-		FModuleManager::Get().LoadModule(TEXT("OnlineSubsystem"));
-		FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));
-		// Also load the console/platform specific OSS which might not necessarily be the default OSS instance
-		IOnlineSubsystem::GetByPlatform();
-	}
-#endif
-
 	// Checks.
 	check(sizeof(uint8) == 1);
 	check(sizeof(int8) == 1);
@@ -3302,7 +3361,6 @@ bool FEngineLoop::AppInit( )
 	check(sizeof(bool) == 1);
 	check(sizeof(float) == 4);
 	check(sizeof(double) == 8);
-	check(GEngineNetVersion == 0 || GEngineNetVersion >= GEngineMinNetVersion || FEngineVersion::Current().IsLicenseeVersion());
 
 	// Init list of common colors.
 	GColorList.CreateColorMap();
@@ -3324,6 +3382,8 @@ void FEngineLoop::AppPreExit( )
 
 	FCoreDelegates::OnPreExit.Broadcast();
 
+	MALLOC_PROFILER( GMalloc->Exec(nullptr, TEXT("MPROF STOP"), *GLog);	);
+
 #if WITH_ENGINE
 	if (FString(FCommandLine::Get()).Contains(TEXT("CreatePak")) && GetDerivedDataCache())
 	{
@@ -3344,6 +3404,12 @@ void FEngineLoop::AppPreExit( )
 	{
 		GThreadPool->Destroy();
 	}
+#if USE_NEW_ASYNC_IO
+	if (GIOThreadPool != nullptr)
+	{
+		GIOThreadPool->Destroy();
+	}
+#endif // USE_NEW_ASYNC_IO
 
 #if WITH_ENGINE
 	if ( GShaderCompilingManager )

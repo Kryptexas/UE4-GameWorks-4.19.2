@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2651303
-Availability:Public
+﻿Availability:Public
 Title:アクタを選択する
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:レベルエディタのビューポートでアクタを選択するために利用可能な方法の概要
-バージョン：4.9
+version:4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -72,7 +71,7 @@ Description:レベルエディタのビューポートでアクタを選択す�
 
 アクタの選択は本質的には単純なものですが、レベルの編集プロセスの重要な部分です。作業を行いたいアクタを迅速かつ容易に選択できる機能があれば、生産性が高まりデザイン プロセスがはかどります。
 
-アクタやアクタのグループを選択する方法は数多くあります。以下で、各方法について詳細に説明します。
+アクタやアクタをグループ単位で選択する方法は数多くあります。以下で、各方法について詳細に説明します。
 
 
 ## 単純な選択

@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Components/LineBatchComponent.h"
 #include "MessageLog.h"
+#include "PhysicsEngine/BodySetup.h"
 
 //////////////// PRIMITIVECOMPONENT ///////////////
 
@@ -634,7 +635,7 @@ void UPrimitiveComponent::SyncComponentToRBPhysics()
 	if(!NewTransform.EqualsNoScale(ComponentToWorld))
 	{
 		const FVector MoveBy = NewTransform.GetLocation() - ComponentToWorld.GetLocation();
-		const FQuat NewRotation = NewTransform.GetRotation();
+		const FRotator NewRotation = NewTransform.Rotator();
 
 		//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)
 		MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
@@ -682,7 +683,7 @@ UPrimitiveComponent * GetRootWelded(const UPrimitiveComponent* PrimComponent, FN
 	return Result;
 }
 
-void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels)
+void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels, bool bIncludingAutoWeld)
 {
 	OutWeldedBodies.Add(&BodyInstance);
 	OutLabels.Add(NAME_None);
@@ -693,9 +694,9 @@ void UPrimitiveComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodi
 		{
 			if (FBodyInstance* BI = PrimChild->GetBodyInstance(NAME_None, false))
 			{
-				if (BI->bWelded)
+				if (BI->bWelded || (bIncludingAutoWeld && BI->bAutoWeld))
 				{
-					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels);
+					PrimChild->GetWeldedBodies(OutWeldedBodies, OutLabels, bIncludingAutoWeld);
 				}
 			}
 		}
@@ -792,6 +793,13 @@ void UPrimitiveComponent::UnWeldFromParent()
 		return;
 	}
 
+	// If we're purging (shutting down everything to kill the runtime) don't proceed
+	// to make new physics bodies and weld them, as they'll never be used.
+	if(GExitPurge)
+	{
+		return;
+	}
+
 	FName SocketName;
 	UPrimitiveComponent * RootComponent = GetRootWelded(this, GetAttachSocketName(), &SocketName);
 
@@ -800,6 +808,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 		if (FBodyInstance* RootBI = RootComponent->GetBodyInstance(SocketName, false))
 		{
 			bool bRootIsBeingDeleted = RootComponent->IsPendingKillOrUnreachable();
+			const FBodyInstance* PrevWeldParent = NewRootBI->WeldParent;
 			if (!bRootIsBeingDeleted)
 			{
 				//create new root
@@ -807,7 +816,6 @@ void UPrimitiveComponent::UnWeldFromParent()
 			}
 
 			NewRootBI->bWelded = false;
-			const FBodyInstance* PrevWeldParent = NewRootBI->WeldParent;
 			FPlatformAtomics::InterlockedExchangePtr((void**)&NewRootBI->WeldParent, nullptr);
 
 			bool bHasBodySetup = GetBodySetup() != nullptr;
@@ -834,6 +842,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 			for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
 			{
 				FBodyInstance* ChildBI = ChildrenBodies[ChildIdx];
+				checkSlow(ChildBI);
 				if (ChildBI != NewRootBI)
 				{
 					if (!bRootIsBeingDeleted)
@@ -841,10 +850,17 @@ void UPrimitiveComponent::UnWeldFromParent()
 						RootBI->UnWeld(ChildBI);
 					}
 
-					//At this point, NewRootBI must be kinematic because it's being unwelded. It's up to the code that simulates to call Weld on the children as needed
+					//At this point, NewRootBI must be kinematic because it's being unwelded.
 					FPlatformAtomics::InterlockedExchangePtr((void**)&ChildBI->WeldParent, nullptr); //null because we are currently kinematic
 				}
 			}
+
+			//If the new root body is simulating, we need to apply the weld on the children
+			if(NewRootBI->IsInstanceSimulatingPhysics())
+			{
+				NewRootBI->ApplyWeldOnChildren();
+			}
+			
 		}
 	}
 }
@@ -880,17 +896,17 @@ FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWel
 	return const_cast<FBodyInstance*>(&BodyInstance);
 }
 
-float UPrimitiveComponent::GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const
+bool UPrimitiveComponent::GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const
 {
-	ClosestPointOnCollision=Point;
+	OutClosestPointOnCollision = Point;
 
 	FBodyInstance* BodyInst = GetBodyInstance();
-	if(BodyInst != NULL)
+	if (BodyInst != nullptr)
 	{
-		return BodyInst->GetDistanceToBody(Point, ClosestPointOnCollision);
+		return BodyInst->GetSquaredDistanceToBody(Point, OutSquaredDistance, OutClosestPointOnCollision);
 	}
 
-	return -1.f;
+	return false;
 }
 
 float UPrimitiveComponent::GetClosestPointOnCollision(const FVector& Point, FVector& OutPointOnBody, FName BoneName) const
@@ -963,6 +979,12 @@ void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)
 
 		EnsurePhysicsStateCreated();
 		OnComponentCollisionSettingsChanged();
+
+		if(IsRegistered() && BodyInstance.bSimulatePhysics && !IsWelded())
+		{
+			
+			BodyInstance.ApplyWeldOnChildren();
+		}
 
 	}
 }

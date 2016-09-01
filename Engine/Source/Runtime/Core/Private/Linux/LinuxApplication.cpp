@@ -56,7 +56,7 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 			auto Controller = SDL_GameControllerOpen(i);
 			if (Controller == nullptr)
 			{
-				UE_LOG(LogLoad, Warning, TEXT("Could not open gamecontroller %i: %s\n"), i, ANSI_TO_TCHAR(SDL_GetError()) );
+				UE_LOG(LogLoad, Warning, TEXT("Could not open gamecontroller %i: %s\n"), i, UTF8_TO_TCHAR(SDL_GetError()) );
 			}
 			else
 			{
@@ -336,11 +336,11 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			if(bUsingHighPrecisionMouseInput)
 			{
 				// hack to work around jumps
-				const int kTooFarAway = 100;
+				const int kTooFarAway = 250;
 				const int kTooFarAwaySquare = kTooFarAway * kTooFarAway;
 				if (motionEvent.xrel * motionEvent.xrel + motionEvent.yrel * motionEvent.yrel > kTooFarAwaySquare)
 				{
-					UE_LOG(LogLinuxWindowEvent, Warning, TEXT("Suppressing too large relative mouse movement due to an apparent bug (%d, %d is larger than treshold %d)"),
+					UE_LOG(LogLinuxWindowEvent, Warning, TEXT("Suppressing too large relative mouse movement due to an apparent bug (%d, %d is larger than threshold %d)"),
 						motionEvent.xrel, motionEvent.yrel,
 						kTooFarAway
 						);
@@ -990,6 +990,9 @@ EWindowZone::Type FLinuxApplication::WindowHitTest(const TSharedPtr< FLinuxWindo
 
 void FLinuxApplication::ProcessDeferredEvents( const float TimeDelta )
 {
+	// delete pending destroy windows before, and not after processing events, to prolong their lifetime
+	DestroyPendingWindows();
+
 	// This function can be reentered when entering a modal tick loop.
 	// We need to make a copy of the events that need to be processed or we may end up processing the same messages twice
 	SDL_HWindow NativeWindow = NULL;
@@ -1000,6 +1003,25 @@ void FLinuxApplication::ProcessDeferredEvents( const float TimeDelta )
 	for( int32 Index = 0; Index < Events.Num(); ++Index )
 	{
 		ProcessDeferredMessage( Events[Index] );
+	}
+}
+
+void FLinuxApplication::DestroyPendingWindows()
+{
+	if (UNLIKELY(PendingDestroyWindows.Num()))
+	{
+		// destroy native windows that we deferred
+		const double Now = FPlatformTime::Seconds();
+		for(TMap<SDL_HWindow, double>::TIterator It(PendingDestroyWindows); It; ++It)
+		{
+			if (Now > It.Value())
+			{
+				SDL_HWindow Window = It.Key();
+				UE_LOG(LogLinuxWindow, Verbose, TEXT("Destroying SDL window %p"), Window);
+				SDL_DestroyWindow(Window);
+				It.RemoveCurrent();
+			}
+		}
 	}
 }
 
@@ -1685,6 +1707,22 @@ void FLinuxApplication::GetWindowPositionInEventLoop(SDL_HWindow NativeWindow, i
 		*x = 0;
 		*y = 0;
 	}
+}
+
+void FLinuxApplication::DestroyNativeWindow(SDL_HWindow NativeWindow)
+{
+	UE_LOG(LogLinuxWindow, Verbose, TEXT("Asked to destroy SDL window %p"), NativeWindow);
+
+	if (PendingDestroyWindows.Find(NativeWindow) != nullptr)
+	{
+		UE_LOG(LogLinuxWindow, Verbose, TEXT("  SDL window %p is already pending deletion!"), NativeWindow);
+		return;	// use the original 'deadline', do not renew it.
+	}
+
+	// Set deadline to make sure the window survives at least one tick.
+	PendingDestroyWindows.Add(NativeWindow, FPlatformTime::Seconds() + 0.1);
+
+	UE_LOG(LogLinuxWindow, Verbose, TEXT("  Deferring destroying of SDL window %p"), NativeWindow);
 }
 
 bool FLinuxApplication::IsMouseAttached() const

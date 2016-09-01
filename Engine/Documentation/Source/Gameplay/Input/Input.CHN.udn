@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:1929496
+﻿INTSourceChangelist:2711553
 Availability: Public
 Title:输入
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description: **输入** 目标负责将玩家输入的内容转换为Actor可以理解并使用的数据形式。
+version: 4.9
 
 
 **PlayerInput** (玩家输入）目标负责将玩家输入的内容转换为Actor,例如PlayerController或Pawn，可以理解并使用的数据形式。 这是输入处理流程的一部分，它会将玩家的硬件输入转换成为游戏事件以及随PlayerInput映射及InputComponent而进行的移动行为。

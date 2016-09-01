@@ -2,6 +2,7 @@ Availability: Public
 Title:Velocity Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Velocity modules exist to make adjustments to particle velocity in a variety of ways.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -21,7 +22,7 @@ htluEXsHV4o
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Initial Velocity module sets the initial velocity of a particle. It contains the following member(s):
+The **Initial Velocity** module sets the initial velocity of a particle. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -37,7 +38,7 @@ The Initial Velocity module sets the initial velocity of a particle. It contains
 
 ## Initial Vel (Seed)
 
-The Initial Vel (Seed) module is identical to the [Initial Velocity](#InitialVelocity) module in that it sets the velocity of a particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
+The **Initial Vel (Seed)** module is identical to the [Initial Velocity](#InitialVelocity) module in that it sets the velocity of a particle when it is emitted; however, this module allows you to specify seed information to be used when choosing distribution values in order to provide a more consistent effect from the module each time the emitter is used. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |
@@ -52,7 +53,7 @@ The Initial Vel (Seed) module is identical to the [Initial Velocity](#InitialVel
 
 ## Velocity Cone
 
-The Velocity Cone module emits particles in the shape of a user-defined cone. 
+The **Velocity Cone** module emits particles in the shape of a user-defined cone. 
 
 | Property | Description |
 | ---- | ---- |
@@ -63,9 +64,9 @@ The Velocity Cone module emits particles in the shape of a user-defined cone.
 |**In World Space** | If _true_, the velocity is assumed to be in world-space.|
 |**Apply Owner Scale** | If _true_, the velocity value will be scaled by the ParticleSystemComponent's scale.|
 
-## Inherit Parent Vel
+## Inherit Parent Velocity
 
-Contributes the velocity of the parent (the particle emitter itself) to a particle when spawning. It contains the following member(s): 
+**Inherit Parent Velocity** contributes the velocity of the parent (the particle emitter itself) to a particle when spawning. It contains the following member(s): 
 
 | Property | Description |
 | ---- | ---- |
@@ -91,7 +92,7 @@ zblNBP4eJLE
 [/PARAMLITERAL]
 [/OBJECT]
 
-The Velocity/Life module scales the velocity by a given amount over the lifetime of the particle. It contains the following member(s):
+The **Velocity/Life** module scales the velocity by a given amount over the lifetime of the particle. It contains the following member(s):
 
 | Property | Description |
 | ---- | ---- |

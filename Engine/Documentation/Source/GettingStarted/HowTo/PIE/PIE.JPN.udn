@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2719326
+﻿INTSourceChangelist:2796819
 Availability:Public
 Title:再生とシミュレーション
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -69,8 +69,8 @@ version:4.9
 1.	レベル エディタ ビューポートのテキスト上で **左クリック** して、**[Details (詳細)]**パネルでその **テキスト** 値を変更します。 
 
 	![](PIE_7.png)	
-	 **Enter** を押すと、テキストが確認されてレベル エディタ ビューポートのウィンドウで変更されます。 
 
+	 **Enter** を押すと、テキストが確認されてレベル エディタ ビューポートのウィンドウで変更されます。 
 
 1.	 **[Possess (所有)]** ボタンをクリックして **メイン ツールバー** で、 **[Resume (再開)]** をクリックします。  
 
@@ -89,8 +89,7 @@ version:4.9
 	[REGION:tip]
 	コンテキスト メニューを使用する代わりにアクタを選択し、 **K** キーを押して [Keep Simulation Changes (シミュレーション変更を維持)] を行うことができます。
 	[/REGION]
-	1.	**Esc** を押して再生セッションを終了すると変更が保存されているのがわかります。 
-
+1.	**Esc** を押して再生セッションを終了すると変更が保存されているのがわかります。 
 
 ### 再生モード
 
@@ -123,7 +122,7 @@ version:4.9
 
 	![](Sim1.png)
 
-1.	[移動ツール](GettingStarted\HowTo\PlacingActors) ウィジェットの矢印をクリックして以下の画面のように球体を上に移動します。 
+1.	[移動ツール](Engine/Actors/Placement) ウィジェットの矢印をクリックして以下の画面のように球体を上に移動します。 
 
 	![](Sim2.png)
 

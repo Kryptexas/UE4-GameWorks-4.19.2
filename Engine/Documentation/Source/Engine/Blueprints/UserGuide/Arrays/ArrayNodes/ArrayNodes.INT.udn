@@ -3,6 +3,9 @@ Title:Array Nodes
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Arrays
 Description: Nodes designed to aid in working with Blueprint arrays.
 version: 4.9
+parent:Engine/Blueprints/Scripting
+tags:Arrays and Structures
+order:2
 
 [VAR:Topic]
 [OBJECT:Topic]

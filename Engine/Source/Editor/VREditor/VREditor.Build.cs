@@ -8,6 +8,7 @@ namespace UnrealBuildTool.Rules
 		{
 			PrivateDependencyModuleNames.AddRange(
                 new string[] {
+                    "AppFramework",
 				    "Core",
 				    "CoreUObject",
 				    "Engine",
@@ -18,7 +19,9 @@ namespace UnrealBuildTool.Rules
 				    "UnrealEd",
 					"UMG",
 					"LevelEditor",
-					"HeadMountedDisplay"
+					"HeadMountedDisplay",
+                    "ViewportInteraction",
+					"Analytics"
 				}
 			);
 

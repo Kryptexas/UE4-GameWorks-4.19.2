@@ -70,7 +70,6 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, bUnifiedBlueprintEditor(true)
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
-	, BlueprintProfilerRecentSampleBias(0.2f)
 	, bUseOpenCLForConvexHullDecomp(false)
 	, bAllowPotentiallyUnsafePropertyEditing(false)
 {
@@ -107,10 +106,6 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 			}
 		}
 	}
-	else if (Name == FName(TEXT("BlueprintProfilerRecentSampleBias")))
-	{
-		FScriptPerfData::SetRecentSampleBias(BlueprintProfilerRecentSampleBias);
-	}
 
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
 	{
@@ -141,7 +136,6 @@ UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitial
 
 	bPromptBeforeAutoImporting = true;
 }
-
 
 // @todo thomass: proper settings support for source control module
 void UEditorLoadingSavingSettings::SccHackInitialize()
@@ -460,8 +454,8 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr)
-		? PropertyChangedEvent.Property->GetFName()
+	const FName Name = (PropertyChangedEvent.MemberProperty != nullptr)
+		? PropertyChangedEvent.MemberProperty->GetFName()
 		: NAME_None;
 
 	if (Name == FName((TEXT("DirectoriesToAlwaysCook"))))
@@ -518,6 +512,31 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 			if (HttpChunkInstallDataVersion.IsEmpty())
 			{
 				HttpChunkInstallDataVersion = TEXT("release1");
+			}
+		}
+	}
+	else if (Name == FName((TEXT("ApplocalPrerequisitesDirectory"))))
+	{
+		// If a variable is already in use, assume the user knows what they are doing and don't modify the path
+		if(!ApplocalPrerequisitesDirectory.Path.Contains("$("))
+		{
+			// Try making the path local to either project or engine directories.
+			FString EngineRootedPath = ApplocalPrerequisitesDirectory.Path;
+			FString EnginePath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::EngineDir())) + "/";
+			FPaths::MakePathRelativeTo(EngineRootedPath, *EnginePath);
+			if (FPaths::IsRelative(EngineRootedPath))
+			{
+				ApplocalPrerequisitesDirectory.Path = "$(EngineDir)/" + EngineRootedPath;
+				return;
+			}
+
+			FString ProjectRootedPath = ApplocalPrerequisitesDirectory.Path;
+			FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::GetProjectFilePath())) + "/";
+			FPaths::MakePathRelativeTo(ProjectRootedPath, *ProjectPath);
+			if (FPaths::IsRelative(EngineRootedPath))
+			{
+				ApplocalPrerequisitesDirectory.Path = "$(ProjectDir)/" + ProjectRootedPath;
+				return;
 			}
 		}
 	}

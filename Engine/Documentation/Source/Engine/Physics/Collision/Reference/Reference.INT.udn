@@ -120,6 +120,7 @@ The default collision profiles and any you have created in Project **Settings** 
 [REGION:raw]
 | Property | %spacer2% | Description |
 | --- | :---: | :--- |
+| **Default** || Use the settings that were applied to the Static Mesh in the Static Mesh Editor. |
 | **Custom...** || Set all custom collision settings for this instance. |
 | **NoCollision** || No Collision. |
 | **BlockAll** || WorldStatic object that blocks all actors by default. All new custom channels will use its own default response.  |
@@ -151,10 +152,10 @@ Collision Enabled can have 4 possible states as listed below.
 [REGION:raw]
 | Property | %spacer2% | Description |
 | --- | :---: | :--- |
-| **No Collision** || No collision is enabled for this body.  |
-| **Query Only** || This body is used only for collision queries (raycasts, sweeps, and overlaps). |
-| **Physics Only** || This body is used only for physics collision. |
-| **Collision Enabled** || This body interacts with all collision (Query and Physics). |
+| **No Collision** || This body Will have no representation in the physics engine. It cannot be used for spatial queries (raycasts, sweeps, overlaps) or simulation (rigid body, constraints). This setting gives the best performance possible, especially for moving objects.  |
+| **Query Only** || This body is used only for spatial queries (raycasts, sweeps, and overlaps). It cannot be used for simulation (rigid body, constraints). This setting is useful for character movement and objects that do not need physical simulation. Some performance gains are made by reducing the data in the physics simulation tree. |
+| **Physics Only** || This body is only for physics simulation (rigid body, constraints). It cannot be used for spatial queries (raycasts, sweeps, overlaps). This setting is useful for simulated secondary motion on characters that do not need per bone detection. Some performance gains are made by reducing the data in the query tree. |
+| **Collision Enabled** || This body can be used for both spatial queries (raycasts, sweeps, overlaps) and simulation (rigid body, constraints). |
 [/REGION]
 [/EXCERPT]
 

@@ -274,6 +274,8 @@ struct FParticleEventCollideData : public FParticleExistingData
 	/** Name of bone we hit (for skeletal meshes). */
 	FName BoneName;
 
+	/** The physical material for this collision. */
+	UPhysicalMaterial* PhysMat;
 
 	FParticleEventCollideData()
 		: Normal(ForceInit)
@@ -503,7 +505,6 @@ public:
 	uint32 bForceLODUpdateFromRenderer:1;
 
 	/** The view relevance flags for each LODLevel. */
-	UPROPERTY(transient)
 	TArray<FMaterialRelevance> CachedViewRelevanceFlags;
 
 	/** If true, the ViewRelevanceFlags are dirty and should be recached */
@@ -796,6 +797,95 @@ public:
 	virtual void SetBeamTargetStrength(int32 EmitterIndex, float NewTargetStrength, int32 TargetIndex);
 
 	/**
+	*	Get the beam end point
+	*
+	*	@param	EmitterIndex		The index of the emitter to get the value of
+	*
+	*	@return	true		EmitterIndex is valid and End point is set - OutEndPoint is valid
+	*			false		EmitterIndex invalid or End point is not set - OutEndPoint is invalid
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Components|ParticleSystem")
+	virtual bool GetBeamEndPoint(int32 EmitterIndex, FVector& OutEndPoint) const;
+	
+	/**
+	*	Get the beam source point
+	*
+	*	@param	EmitterIndex		The index of the emitter to get
+	*	@param	SourceIndex			Which beam within the emitter to get
+	*	@param	OutSourcePoint		Value of source point
+	*
+	*	@return	true		EmitterIndex and SourceIndex are valid - OutSourcePoint is valid
+	*			false		EmitterIndex or SourceIndex is invalid - OutSourcePoint is invalid
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Components|ParticleSystem")
+	virtual bool GetBeamSourcePoint(int32 EmitterIndex, int32 SourceIndex, FVector& OutSourcePoint) const;
+
+	/**
+	*	Get the beam source tangent
+	*
+	*	@param	EmitterIndex		The index of the emitter to get
+	*	@param	SourceIndex			Which beam within the emitter to get
+	*	@param	OutTangentPoint		Value of source tangent
+	*
+	*	@return	true		EmitterIndex and SourceIndex are valid - OutTangentPoint is valid
+	*			false		EmitterIndex or SourceIndex is invalid - OutTangentPoint is invalid
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Components|ParticleSystem")
+	virtual bool GetBeamSourceTangent(int32 EmitterIndex, int32 SourceIndex, FVector& OutTangentPoint) const;
+
+	/**
+	*	Get the beam source strength
+	*
+	*	@param	EmitterIndex		The index of the emitter to get
+	*	@param	SourceIndex			Which beam within the emitter to get
+	*	@param	OutSourceStrength		Value of source tangent
+	*
+	*	@return	true		EmitterIndex and SourceIndex are valid - OutSourceStrength is valid
+	*			false		EmitterIndex or SourceIndex is invalid - OutSourceStrength is invalid
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Components|ParticleSystem")
+	virtual bool GetBeamSourceStrength(int32 EmitterIndex, int32 SourceIndex, float& OutSourceStrength) const;
+
+	/**
+	*	Get the beam target point
+	*
+	*	@param	EmitterIndex		The index of the emitter to get
+	*	@param	TargetIndex			Which beam within the emitter to get
+	*	@param	OutTargetPoint		Value of target point
+	*
+	*	@return	true		EmitterIndex and TargetIndex are valid - OutTargetPoint is valid
+	*			false		EmitterIndex or TargetIndex is invalid - OutTargetPoint is invalid
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Components|ParticleSystem")
+	virtual bool GetBeamTargetPoint(int32 EmitterIndex, int32 TargetIndex, FVector& OutTargetPoint) const;
+
+	/**
+	*	Get the beam target tangent
+	*
+	*	@param	EmitterIndex		The index of the emitter to get
+	*	@param	TargetIndex			Which beam within the emitter to get
+	*	@param	OutTangentPoint		Value of target tangent
+	*
+	*	@return	true		EmitterIndex and TargetIndex are valid - OutTangentPoint is valid
+	*			false		EmitterIndex or TargetIndex is invalid - OutTangentPoint is invalid
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Components|ParticleSystem")
+	virtual bool GetBeamTargetTangent(int32 EmitterIndex, int32 TargetIndex, FVector& OutTangentPoint) const;
+	
+	/**
+	*	Get the beam target strength
+	*
+	*	@param	EmitterIndex		The index of the emitter to get
+	*	@param	TargetIndex			Which beam within the emitter to get
+	*	@param	OutTargetStrength	Value of target tangent
+	*
+	*	@return	true		EmitterIndex and TargetIndex are valid - OutTargetStrength is valid
+	*			false		EmitterIndex or TargetIndex is invalid - OutTargetStrength is invalid
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Components|ParticleSystem")
+	virtual bool GetBeamTargetStrength(int32 EmitterIndex, int32 TargetIndex, float& OutTargetStrength) const;
+	
+	/**
 	 *	Enables/Disables a sub-emitter
 	 *
 	 *	@param	EmitterName			The name of the sub-emitter to set it on
@@ -1011,11 +1101,11 @@ public:
 		SILENT, // this would only be appropriate for editor only or other unusual things that we never see in game
 	};
 	/** If there is async work outstanding, force it to be completed now **/
-	FORCEINLINE void ForceAsyncWorkCompletion(EForceAsyncWorkCompletion Behavior) const
+	FORCEINLINE void ForceAsyncWorkCompletion(EForceAsyncWorkCompletion Behavior, bool bDefinitelyGameThread = true) const
 	{
 		if (AsyncWork.GetReference())
 		{
-			WaitForAsyncAndFinalize(Behavior);
+			WaitForAsyncAndFinalize(Behavior, bDefinitelyGameThread);
 		}
 	}
 
@@ -1033,7 +1123,7 @@ public:
 
 private:
 	/** Wait on the async task and call finalize on the tick **/
-	void WaitForAsyncAndFinalize(EForceAsyncWorkCompletion Behavior) const;
+	void WaitForAsyncAndFinalize(EForceAsyncWorkCompletion Behavior, bool bDefinitelyGameThread = true) const;
 
 	/** Cache view relevance flags. */
 	void CacheViewRelevanceFlags(class UParticleSystem* TemplateToCache);
@@ -1225,7 +1315,7 @@ public:
 	 */
 	void ReportEventCollision(const FName InEventName, const float InEmitterTime, const FVector InLocation,
 		const FVector InDirection, const FVector InVelocity, const TArray<class UParticleModuleEventSendToGame*>& InEventData, 
-		const float InParticleTime, const FVector InNormal, const float InTime, const int32 InItem, const FName InBoneName);
+		const float InParticleTime, const FVector InNormal, const float InTime, const int32 InItem, const FName InBoneName, UPhysicalMaterial* PhysMat);
 
 	/**
 	 *	Record a bursting event.

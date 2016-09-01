@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2508659
+﻿INTSourceChangelist:2743354
 Availability:Public
-Title:1.Gear VR C++ プロジェクト作成
+Title:1. Gear VR プロジェクトの作成
 Crumbs:%ROOT%, Platforms/GearVR
 Description:Gear VR ヘッドセットを使用する C++ ベースの UE4 プロジェクトの作成方法
 Navigation:platform
+Skilllevel:Intermediate
+Version:4.9
 
 
 [VAR:Steps]
@@ -16,7 +18,7 @@ Navigation:platform
 		[クイックスタートのホーム画面](Platforms/GearVR/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[次の手順](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
+		[次のステップ](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -24,17 +26,15 @@ Navigation:platform
 
 %Steps%
 
-Samsung Gear VR ヘッドセットと連携する UE4 プロジェクトの設定は、通常の UE4 プロジェクトの設定と多少異なります。 
-理由は Gear VR ヘッドセットプロジェクトは C++ プロジェクトとして作成しなくてはいけないからです。そして Gear VR ヘッドセット固有のファイルを確実にプロジェクトバイナリファイルへコンパイルした状態でコンパイルをしなくてはいけません。 
-次のセクションで、プロジェクトと Gear VR ヘッドセットをきちんと連携させるための設定について復讐していきます。
+アンリアル エンジン 4.8 以降がリリースされて、Samsung Gear VR ヘッドセットと連携する UE4 プロジェクトの設定は、通常の UE4 プロジェクトの設定と同じになりました。 
+次のセクションで、Gear VR ヘッドセットと連携する新規プロジェクトの作成方法を説明します。
 
 [REGION:warning]
-現時点ではブループリントベースのテンプレートを使用したプロジェクトは Gear VR ヘッドセットと機能 **しません** 。 
-つまり新規に作成した Gear VR プロジェクトは C++ ベースのテンプレートの1つを使用しなくては **いけません** 。 
-C++ ベースのテンプレートを使用しても、自身のプロジェクトにブループリントを使用出来ないわけではありません。
+使用する UE4 のバージョンが 4.7 の場合、ブループリント プロジェクトではなく C++ プロジェクトでプロジェクトを作成する必要があります。
+4.8 以降であればこの制限はなく、C++ とブループリントのどちらでもプロジェクトに使用することができます。
 [/REGION]
 
-1. 最初に UE4 のバージョン **4.7.4** かそれ以降をダウンロードして、開発に使用するPCにインストールされていることを確認します。 
+1. 最初に UE4 のバージョン **4.7.4** かそれ以降をダウンロードして、開発に使用する PC にインストールされていることを確認します。 
 UE4 のバージョン **4.7.4** かそれ以降は [アンリアルエンジンランチャー](http://tinyurl.com/oawb7x2) か [Github](https://www.unrealengine.com/ue4-on-github) からダウンロードできます。 
 
 	[Region:note]
@@ -43,16 +43,20 @@ UE4 のバージョン **4.7.4** かそれ以降は [アンリアルエンジン
 
 	![](GVR_New_Project_03.png)
 
-1. UE4 のバージョン **4.7.4** かそれ以降を開発PC にインストールしたら **New Project タブ** から新規 **C++ Project** を作成します。
+1. UE4 のバージョン **4.7.4** かそれ以降を開発PC にインストールしたら **New Project Tab** から新規 **C++ Project** を作成します。
 	![](GVR_New_Project_00.png)
+
+	[Region:note]
+	4.8 以降であればこの制限はなく、C++ ベース、もしくはブループリントベースのプロジェクトを使用することができます。
+	[/REGION]
 
 1. 次に使用するテンプレートに **First Person Template** を選択して、以下のオプションを必ず変更してください。
 	* **Mobile / Tablet**
 	* **Scalable 3D / 2D** 
-	* プロジェクトサイズを縮小するために **Starter Content（スターターコンテンツ）** は含まないでください。
+	* プロジェクトサイズを縮小するために **Starter Content (スターターコンテンツ)** は含まないでください。
 	![](GVR_New_Project_01.png)
 
-1. 最後にプロジェクトの保存場所を指定して名前を付けます。この例ではプロジェクトに **GearVR_QS** と名前を付けます。すべての手順が完了したら緑の **Create Project（プロジェクトを作成）** ボタンを押してプロジェクトを作成します。
+1. 最後にプロジェクトの保存場所を指定して名前を付けます。この例ではプロジェクトに **GearVR_QS** と名前を付けます。すべての手順が完了したら緑の **Create Project (プロジェクトを作成)** ボタンを押してプロジェクトを作成します。
 	![](GVR_New_Project_02.png)
 
 

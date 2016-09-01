@@ -14,8 +14,6 @@
 #include "Apple/ApplePlatformTime.h"
 #elif PLATFORM_ANDROID
 #include "Android/AndroidTime.h"
-#elif PLATFORM_WINRT
-#include "WinRT/WinRTTime.h"
 #elif PLATFORM_HTML5
 #include "HTML5/HTML5PlatformTime.h"
 #elif PLATFORM_LINUX

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2438964
+﻿INTSourceChangelist:2683826
 Availability:Public
-Title:3.ポイントライトの追加
+Title:3.Point Light（ポイントライト）の追加
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
-Description:このステップでは、ポイントライトを使って小さな浴室を明るくします。 
+Description:このステップでは、Point Light（ポイントライト）を使って小さな浴室を明るくします。 
+SkillLevel:Beginner
+Version:4.9
 
 
 [VAR:Steps]
@@ -23,9 +25,9 @@ Description:このステップでは、ポイントライトを使って小さ�
 
 %Steps%
 
-基本的なレベルのライトを追加したので、次は小さなアパートの浴室に **ポイントライト** を追加します。 
+基本的なレベルのライトを追加したので、次は小さなアパートの浴室に **Point Light** を追加します。 
 
-1. **Lights** の **[Modes]** メニューで、 **[Point Light]** を小さな浴室にドラッグします。 
+1. **[Modes]** メニューの **[Lights]** から **[Point Light]** を小さな浴室にドラッグします。 
 
 	![](step3_1.png)
 
@@ -37,13 +39,13 @@ Description:このステップでは、ポイントライトを使って小さ�
 
 	![](step3_3.png)
 
-1. ライトの **[詳細]** パネルで、ライトの色を変更し、ライトの **Intensity (強度)** を下げます。 
+1. ライトの **[Details (詳細)]** パネルで、ライトの色を変更し、ライトの **Intensity (強度)** を下げます。 
 
 	![](step3_4.png)
 
-	**Intensity** は、ライトの輝度の調整に使う設定の 1 つです。 
+	**Intensity** は、ライトの輝度調整に使う設定の 1 つです。 
 
-1. **Attenuation Radius** フィールドを選択します。 
+1. **[Attenuation Radius (減衰半径)]** フィールドを選択します。 
 
 	![](step3_5.png)
 
@@ -62,10 +64,10 @@ Description:このステップでは、ポイントライトを使って小さ�
 1.	**メイン ツールバー** から [Build] アイコンをクリックして、ライトをビルドします。 
 
 [REGION:note]
-**ポイントライト** に使用できる設定の詳細は、[](Engine/Rendering/LightingAndShadows/LightTypes/Point) をご覧ください。 
+**Point Lights** に使用できる設定の詳細は、[](Engine/Rendering/LightingAndShadows/LightTypes/Point) をご覧ください。 
 [/REGION]
 
-浴室に **ポイントライト** を追加したので、 **次のステップ** では小さなアパートに **スポットライト** を追加します。 
+浴室に **Point Lights** を追加したので、 **次のステップ** では小さなアパートに **Spot Light** を追加します。 
 
 
 %Steps%

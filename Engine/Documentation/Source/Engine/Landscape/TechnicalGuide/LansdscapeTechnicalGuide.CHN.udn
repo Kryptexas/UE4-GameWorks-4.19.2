@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Landscape Technical Guide
+﻿INTSourceChangelist:2735872
+Availability:Public
+Title:地形技术指南
 Crumbs: %ROOT%, Engine, Engine/Landscape
-Description:Technical Settings for Landscape.
+Description:地形技术设置
+version:4.9
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -27,83 +28,82 @@ Description:Technical Settings for Landscape.
 [TOC(start:2 end:3)]
 
 
-## Overview
 
-To get the best performance possible from the Landscape system, there are certain technical restrictions that have to be adhered to. The following document aims to bring these restrictions to your attention as well as provide you with valuable information so that you can strike the best balance between beauty and performance with your Landscape. 
-
-
-## Technical Details
+从地形系统获得最佳性能的前提是对技术规范的遵守。以下文档将说明这些技术规范，并提供一些宝贵建议，助您达到美丽画面和流畅性能间的最佳平衡。 
 
 
-Valid dimensions for Landscape heightmaps are not always immediately obvious when getting started. Being able to determine what dimensions for heightmaps are valid and, beyond that, which are optimal requires a thorough understanding of the underlying architecture of the Landscape. In order to create a system that allows for huge terrains while still being efficient in terms of memory and performance, the architecture implicitly applies restrictions on the dimensions of the heightmap, meaning there are certain dimensions that are valid and others that are not. In previous terrain systems in Unreal Engine, there were either no restrictions (i.e., any dimensions were valid and would work) or the restrictions were fairly simple (i.e., only square power of two heightmaps were allowed). The restrictions on heightmaps for Landscapes are much more complex and rigid.
+## 技术细节
 
-A Landscape Actor is color coded so that it is easier to tell what each section does. The edges of the Landscape are highlighted in **Yellow**, the edge of each component is in **Light Green**, section edges (if set to 2x2 sections) in a **Medium Green**, and the individual Landscape quads in a **Dark Green**.
 
-| Color: |Landscape Component|
+初始时，地面高度图的有效维度不会立即便变得明显。对地形的底层结构有透彻的理解后方能确定高度图维度为有效或最佳。为创建支持巨型地貌且高效利用内存和性能的系统，建筑隐含地在高度图维度上应用了限制，意味着一些维度为有效，而另一些为无效。在虚幻引擎旧版本的地形系统中几乎不存在任何限制（即任意维度皆为有效并可使用），存在的限制也非常简单（即只允许两个高度图的方幂）。地形系统中的高度图限制更加复杂和严格。
+
+地形 Actor 拥有颜色编码，可以明确分辨每个分段的作用。地形的边缘以黄色高亮，每个组件的边缘为浅绿色，分段边缘（如设为 2x2 分段）为中绿色，个体地形四边形为深绿色。
+
+| 颜色：|地形组件|
 |---|---|
-| **Yellow:**|Landscape Actor Edge|
-|**Light Green:**| Landscape Component Edge|
-|**Medium Green:**| Landscape Section Edge|
-|**Dark Green:**|Landscape Individual Quad|
+| **黄色：**|地形 Actor 边缘|
+|**浅绿色：**| 地形组件边缘|
+|**中绿色：**| 地形分段边缘|
+|**深绿色：**|地形个体四边形|
 ![](Landscape_Create_Preview.png)
 
-## Landscape Components
+## 地形组件
 
-Landscapes are divided into multiple Components, which are Unreal's base unit of rendering, visibility calculation, and collision. Components in a Landscape are all the same size and are always square. The size of the Landscape component is decided when the Landscape is created and the choice depends on the size and detail of the Landscape you wish to create.
+地形被划分为多个组件，即为虚幻引擎的渲染、可视性计算和碰撞的基础单元。地形中的组件尺寸均相同，且为方形。地形创建时将决定地形组件的尺寸，选择取决于需要创建的地形尺寸和细节。
 
-Each component's height data is stored in a single texture. Because of this, its size has to be a power-of-two number of vertices. The shared row of vertices along the edge of two neighboring components are duplicated and stored in each component. For this reason, it makes sense to think about the number of quads in each component.
+每个组件的高度数据存储在单个纹理中。因此，其尺寸必须为 2 的幂次方顶点数量。两个相邻组件边缘上的共享顶点被复制并存储在每个组件中。因此，需要在每个组件中考虑四边形的数量。
 
-A very simple Landscape is illustrated below (outlined in green) containing four components. Each component is made up of a single quad. One component has been separated to show how the vertices where the components meet are duplicated.
+简单的地形如下图所示（轮廓为绿色），它包含四个组件。每个组件由单个四边形组成。已经分离出一个组件，用于展示组件相交位置顶点的复制方式。
 
 ![Landscape_Components.jpg](Landscape_Components.jpg)(w:256 h:256)
 
 
-## Component Sections
+## 组件分段
 
-Components can optionally be divided into either 1 or 4 (2x2) subsections. These sections are the base unit of Landscape LOD calculation.
+组件可被划分为 1 个或 4 个（2x2）子分段。这些分段是地形 LOD 计算的基础单元。
 
-Using the 4 (2x2) subsections option gives you the same size heightmap as using four times as many components with only one subsection each, but using fewer components generally gives better performance.
+使用 4 个（2x2）子分段选项获得的高度图与在一个子分段上使用 4 次组件所获得的高度图相同，但使用的组件次数越少，运行性能越好。
 
-The size of each section (in number of vertices) must be a power of two (with a maximum of 256x256). This is so that the different LOD levels can be stored in mipmaps of the texture. This will lead to the number of quads in a component either being a power of two minus 1 (if 1 section per component) or a power of two minus 2 (if 4 sections per component).
+每个分段的尺寸（以顶点数为单位）必须为 2 的幂次方（最大为 256x256）。因此不同的 LOD 层级可存储在纹理的 mipmap 中。这将使一个组件中四边形的数量为 2 的幂次方减 1（如每个组件有一个分段）或 2 的幂次方减 2（如每个组件有四个分段）。
 
-An individual component is illustrated below (outlined in green) containing four sections. Each section is made up of 9 (3x3) quads. Again, you can see that the vertices where the sections meet are duplicated.
+一个单独组件如下图所示（轮廓为绿色），它包含四个分段。每个分段由 9 个（3x3）四边形组成。可再次看到分段相交处复制的顶点。
 
 ![Landscape_Component_Sections.jpg](Landscape_Component_Sections.jpg)(w:256 h:256)
 
 
-## Calculating Heightmap Dimensions
+## 计算高度图维度
 
-As you can see, the dimensions for a Landscape are based on the number of quads in each section, the number of sections in each component, and the number of components present in the Landscape. Once you determine the number of components and the resolution of each of those components, then calculating the dimensions of the Landscape as a whole becomes a trivial calculation.
+如您所见，地形的维度基于每个分段中的四边形数量、每个组件中的分段数量、以及地形中的组件数量。确定组件数量和每个组件的分辨率后，整体地形维度的计算则十分简单。
 
-Here are some example scenarios:
+以下是一些范例：
 
-**Example 1**
-
-<blockquote>
-If we start with a component comprised of a single section that contains 64x64 vertices, then the component size is 63x63 quads. Say we have a Landscape of 10x10 of these components, then we have 630x630 quads total in our Landscape. Now if we wanted to import the heights for such a Landscape, we would have to have a heightmap of 631x631 vertices, because there is always one more row of vertices than there are quads (think of a 1x1 quad - it needs 4 vertices).  So 631x631 is a valid Landscape size.
-</blockquote>
-
-**Example 2**
-
-<blockquote>
-If we have a component divided into 4 subsections, each of which is made up of 64x64 vertices. That leads to 63x63 quads per section and 126x126 quads per component. If we have 32x32 of these components, we get 126 * 32 = 4032 quads total in each direction. So the total Landscape will be 4033x4033 vertices.
-</blockquote>
-
-These examples focus on square Landscapes. However, you can create Landscapes that are not square. For instance, in the first example the 10x10 is not special. Assuming 63 quads per component, you could have any Landscape of AxB components with total size in vertices of (A*63+1 , B*63+1).
+**范例 1**
 
 
-## Performance Considerations
-
-The choice of component size vs the total number of components is a performance trade-off. Smaller component sizes allow quicker LOD transitions and also allows for the occlusion of more terrain, but the smaller size necessitates more components.
-
-Each component has a render-thread CPU processing cost and each section is a draw call, so try to keep these numbers to a minimum. For the largest Landscapes, Epic recommends a maximum of 1024 components.
+如组件由包含 64x64 个顶点组成的单个分段组成，则组件尺寸为 63x63 四边形。如地形中有 10x10 个这样的组件，则地形中共有 630x630 个四边形。如果我们要将高度导入此地形，则高度图需要有 631x631 个顶点，因为顶点总是比四边形多出一行（1x1 的四边形拥有 4 个顶点）。因此 631x631 为有效的地形尺寸。
 
 
-## Recommended Landscape Sizes
+**范例 2**
 
-In order to make things easier, here are a number of sizes that maximize the area while minimizing the number of Landscape components.
+
+如组件被分为 4 个子分段，每个子分段由 64x64 个顶点组成。因此每个分段拥有 63x63 个四边形，每个组件拥有 126x126 个四边形。如有 32x32 个这样的组件，则每个方向上共有 126 * 32 = 4032 个四边形。因此总地形拥有 4033x4033 个顶点。
+
+
+这些范例中使用的均为方块地形。然而也可创建不为方形的地形。例如，范例 1 中 10x10 的组件并不特殊。假设每个组件拥有 63 个四边形，则可获得 AxB 组件总尺寸顶点数为（A*63+1、B*63+1）的任意地形。
+
+
+## 性能注意事项
+
+对组件尺寸和组件总数量进行选择是为保证性能进行的平衡。组件尺寸越小，LOD 的过渡越快，并对更多地形构成遮挡，但需要的组件数量越多。
+
+每个组件均有渲染线程 CPU 处理消耗，每个分段均为绘制调用，因此需要将它们的数量控制到最低。Epic 推荐使用的巨型地形最大组件数量为 1024。
+
+
+## 推荐地形尺寸
+
+为简化操作，以下将提供一些用于最大区域并最小化地形组件数量的尺寸。
 [EXCERPT:RecommendedLSS]
-| **Overall size** (vertices) | **Quads / section** | **Sections / component** | **Component size** | **Total Components** |
+| **整体尺寸** （顶点） | **四边形 / 分段** | **分段 / 组件** | **组件尺寸** | **总组件数** |
 | --------- | --- | ------- | ------- | ------------ |
 | 8129x8129 | 127 | 4 (2x2) | 254x254 | 1024 (32x32) |
 | 4033x4033 | 63  | 4 (2x2) | 126x126 | 1024 (32x32) |
@@ -118,19 +118,19 @@ In order to make things easier, here are a number of sizes that maximize the are
 | 127x127   | 63  | 1       | 63x63   | 4 (2x2)      |
 
 
-## Layer Debug Mode
+## 图层调试模式
 
-**Layer Debug** mode allows the weight of specific layers to be visualized on the Landscape in the viewport. You can enable **Layer Debug** mode in the viewport's View menu, under **Landscape Visualizers**. For more information about the viewport's Landscape-related view modes, see the "[Landscape Visualizers](Engine/UI/LevelEditor/Viewports/ViewModes\#LandscapeVisualizers)".
+**Layer Debug** 模式在视口中地形上显示特定层的权重。可在视口内 View 菜单下的 **Landscape Visualizers** 中启用 Layer Debug 模式。如需了解视口的地形相关查看模式的更多内容，请查阅 [地形可视化器](Engine/UI/LevelEditor/Viewports/ViewModes\#LandscapeVisualizers)。
 
-When **Layer Debug** mode is enabled, radio buttons allowing selection of individual color channels are shown with the target layers in the list.
+启用 Layer Debug 模式后，列表中将显示目标图层和选择单个颜色通道的单选按钮。
 
 ![Landscape_Target_Debug.png](Landscape_Target_Debug.png)(convert:false)
 
-Selecting a channel will apply a shader to the Landscape which shows the area that channel of the selected target layer covers.
+选择通道的操作将把着色器应用到地形上，地形将显示所选目标图层通道覆盖的区域。
 
 ![Landscape_Target_Debug_Demo.png](Landscape_Target_Debug_Demo.png)
 
-[/EXCERPT]
+[/EXCERPT:RecommendedLSS]
 
 
 

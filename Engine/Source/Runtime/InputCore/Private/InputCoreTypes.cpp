@@ -505,7 +505,7 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::LeftParantheses, FText::FromString("(")));
 	AddKey(FKeyDetails(EKeys::RightParantheses, FText::FromString(")")));
 	AddKey(FKeyDetails(EKeys::Ampersand, FText::FromString("&")));
-	AddKey(FKeyDetails(EKeys::Asterix, LOCTEXT("Asterix", "Asterix")));
+	AddKey(FKeyDetails(EKeys::Asterix, LOCTEXT("Asterix", "Asterisk")));
 	AddKey(FKeyDetails(EKeys::Caret, FText::FromString("^")));
 	AddKey(FKeyDetails(EKeys::Dollar, FText::FromString("$")));
 	AddKey(FKeyDetails(EKeys::Exclamation, FText::FromString("!")));

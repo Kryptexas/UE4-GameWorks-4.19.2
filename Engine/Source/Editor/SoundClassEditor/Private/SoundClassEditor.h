@@ -29,6 +29,7 @@ public:
 	 */
 	void InitSoundClassEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit );
 
+	FSoundClassEditor();
 	virtual ~FSoundClassEditor();
 
 	/** FGCObject interface */

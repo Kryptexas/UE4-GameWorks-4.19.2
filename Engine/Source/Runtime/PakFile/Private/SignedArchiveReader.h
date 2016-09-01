@@ -124,6 +124,12 @@ class FChunkCacheWorker : public FRunnable
 	FEncryptionKey DecryptionKey;
 	/** The time at which the chunk cache worker started, for debugging purposes */
 	double StartTime;
+	/** Track the index of the last signature decrypted in the background, for debugging purposes */
+	int32 LastDecryptedSignatureIndex;
+	/** Stored CRC for the encrypted signature data after loading */
+	uint32 EncryptedSignaturesCRC;
+	/** Stored CRC for the fully dencrypted signature data after loading. Only computed when all signatures were decrypted */
+	uint32 DecryptedSignaturesCRC;
 
 	/** 
 	 * Process requested chunks 

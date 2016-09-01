@@ -41,7 +41,7 @@ Description:当蓝图编辑器处理类蓝图时所包含的UI元素的详细介
 <!----------
 [EXCERPT:Visible]
 1. [菜单](Engine/Blueprints/Editor/UIComponents/Menu)
-1. [工具栏](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions)
+1. [工具栏](Engine/Blueprints/Editor/UIComponents/Toolbar)
 1. [组件](Engine/Blueprints/UserGuide/Components)
 1. [我的蓝图](Engine/Blueprints/Editor/UIComponents/MyBlueprint)
 1. [图表编辑器](Engine/Blueprints/Editor/UIComponents/GraphEditor)

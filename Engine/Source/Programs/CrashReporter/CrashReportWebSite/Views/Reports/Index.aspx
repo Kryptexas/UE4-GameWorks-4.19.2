@@ -1,7 +1,7 @@
 ﻿<%-- // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. --%>
 
 <%@ Page Title="" Language="C#" MasterPageFile="~/Views/Shared/Site.Master" Inherits="System.Web.Mvc.ViewPage<ReportsViewModel>" %>
-<%@ Import Namespace="Tools.CrashReporter.CrashReportWebSite.Models" %>
+<%@ Import Namespace="Tools.CrashReporter.CrashReportWebSite.ViewModels" %>
 
 <asp:Content ID="StyleSheet" ContentPlaceHolderID="CssContent" runat="server">
 	<link href="../../Content/Site.css" rel="stylesheet" type="text/css" />
@@ -79,7 +79,7 @@
         <p>
             <span class="SearchTextTitle">Select the report branch</span>
         </p>
-        <p id="BranchFilter"><%=Html.DropDownListFor( m=>m.BranchName, Model.BranchNames )%></p>
+        <p id="BranchFilter"><%=Html.DropDownListFor( m => m.BranchName, Model.BranchNames )%></p>
         <p>
             <span class="SearchTextTitle">Enter email : </span>
             <input id="subscribeEmail" type="text" class="date" autocomplete="OFF" style="width:200px" />

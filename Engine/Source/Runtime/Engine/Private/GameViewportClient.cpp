@@ -114,8 +114,8 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	, HighResScreenshotDialog(NULL)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
-	, bLockDuringCapture(true)
 	, bHideCursorDuringCapture(false)
+	, MouseLockMode(EMouseLockMode::LockOnCapture)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
 {
@@ -173,8 +173,8 @@ UGameViewportClient::UGameViewportClient(FVTableHelper& Helper)
 	, HighResScreenshotDialog(NULL)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
-	, bLockDuringCapture(true)
 	, bHideCursorDuringCapture(false)
+	, MouseLockMode(EMouseLockMode::LockOnCapture)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
 {
@@ -267,6 +267,22 @@ FString UGameViewportClient::ConsoleCommand( const FString& Command)
 	return *ConsoleOut;
 }
 
+void UGameViewportClient::SetEnabledStats(const TArray<FString>& InEnabledStats)
+{
+	EnabledStats = InEnabledStats;
+
+#if !UE_BUILD_SHIPPING
+	if (UWorld* MyWorld = GetWorld())
+	{
+		if (FAudioDevice* AudioDevice = MyWorld->GetAudioDevice())
+		{
+			AudioDevice->ResolveDesiredStats(this);
+		}
+	}
+#endif
+}
+
+
 void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance, bool bCreateNewAudioDevice)
 {
 	// set reference to world context
@@ -277,7 +293,7 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 
 	// Set the projects default viewport mouse capture mode
 	MouseCaptureMode = GetDefault<UInputSettings>()->DefaultViewportMouseCaptureMode;
-	bLockDuringCapture = GetDefault<UInputSettings>()->bDefaultViewportMouseLock;
+	MouseLockMode = GetDefault<UInputSettings>()->DefaultViewportMouseLockMode;
 
 	// Create the cursor Widgets
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
@@ -287,13 +303,22 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 		if (AudioDeviceManager)
 		{
-			FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(AudioDeviceHandle, bCreateNewAudioDevice);
-			if (NewAudioDevice)
+			FAudioDeviceManager::FCreateAudioDeviceResults NewDeviceResults;
+			if (AudioDeviceManager->CreateAudioDevice(bCreateNewAudioDevice, NewDeviceResults))
 			{
+				AudioDeviceHandle = NewDeviceResults.Handle;
+
+#if !UE_BUILD_SHIPPING
+				if (NewDeviceResults.bNewDevice)
+				{
+					NewDeviceResults.AudioDevice->UpdateSoundShowFlags(0, GetSoundShowFlags());
+				}
+#endif // UE_BUILD_SHIPPING
+
 				// Set the base mix of the new device based on the world settings of the world
 				if (World)
 				{
-					NewAudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
+					NewDeviceResults.AudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
 
 					// Set the world's audio device handle to use so that sounds which play in that world will use the correct audio device
 					World->SetAudioDeviceHandle(AudioDeviceHandle);
@@ -338,13 +363,31 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		return true;
 	}
 
-	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
+	const int32 NumLocalPlayers = World->GetGameInstance()->GetNumLocalPlayers();
+
+	if (NumLocalPlayers > 1 && Key.IsGamepadKey() && GetDefault<UGameMapsSettings>()->bOffsetPlayerGamepadIds)
+	{
+		++ControllerId;
+	}
+	else if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
 	{
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
 	}
 
+#if WITH_EDITOR
+	// Give debugger commands a chance to process key binding
+	if (GameViewportInputKeyDelegate.IsBound())
+	{
+		if ( GameViewportInputKeyDelegate.Execute(Key, FSlateApplication::Get().GetModifierKeys()) )
+		{
+			return true;
+		}
+	}
+#endif
+
 	// route to subsystems that care
-	bool bResult = (ViewportConsole ? ViewportConsole->InputKey(ControllerId, Key, EventType, AmountDepressed, bGamepad) : false);
+	bool bResult = ( ViewportConsole ? ViewportConsole->InputKey(ControllerId, Key, EventType, AmountDepressed, bGamepad) : false );
+
 	if (!bResult)
 	{
 		ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(this, ControllerId);
@@ -360,14 +403,14 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		}
 	}
 
-	// For PIE, let the next PIE window handle the input if we didn't
+	// For PIE, let the next PIE window handle the input if none of our players did
 	// (this allows people to use multiple controllers to control each window)
-	if (!bResult && ControllerId > 0 && InViewport->IsPlayInEditorViewport())
+	if (!bResult && ControllerId > NumLocalPlayers - 1 && InViewport->IsPlayInEditorViewport())
 	{
 		UGameViewportClient *NextViewport = GEngine->GetNextPIEViewport(this);
 		if (NextViewport)
 		{
-			bResult = NextViewport->InputKey(InViewport, ControllerId-1, Key, EventType, AmountDepressed, bGamepad);
+			bResult = NextViewport->InputKey(InViewport, ControllerId - NumLocalPlayers, Key, EventType, AmountDepressed, bGamepad);
 		}
 	}
 
@@ -382,12 +425,18 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 		return false;
 	}
 
-	bool bResult = false;
+	const int32 NumLocalPlayers = World->GetGameInstance()->GetNumLocalPlayers();
 
-	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
+	if (NumLocalPlayers > 1 && Key.IsGamepadKey() && GetDefault<UGameMapsSettings>()->bOffsetPlayerGamepadIds)
+	{
+		++ControllerId;
+	}
+	else if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
 	{
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
 	}
+
+	bool bResult = false;
 
 	// Don't allow mouse/joystick input axes while in PIE and the console has forced the cursor to be visible.  It's
 	// just distracting when moving the mouse causes mouse look while you are trying to move the cursor over a button
@@ -408,14 +457,14 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 			}
 		}
 
-		// For PIE, let the next PIE window handle the input if we didn't
+		// For PIE, let the next PIE window handle the input if none of our players did
 		// (this allows people to use multiple controllers to control each window)
-		if (!bResult && ControllerId > 0 && InViewport->IsPlayInEditorViewport())
+		if (!bResult && ControllerId > NumLocalPlayers - 1 && InViewport->IsPlayInEditorViewport())
 		{
 			UGameViewportClient *NextViewport = GEngine->GetNextPIEViewport(this);
 			if (NextViewport)
 			{
-				bResult = NextViewport->InputAxis(InViewport, ControllerId-1, Key, Delta, DeltaTime, NumSamples, bGamepad);
+				bResult = NextViewport->InputAxis(InViewport, ControllerId - NumLocalPlayers, Key, Delta, DeltaTime, NumSamples, bGamepad);
 			}
 		}
 
@@ -732,9 +781,9 @@ bool UGameViewportClient::ShouldForceFullscreenViewport() const
 	{
 		bResult = true;
 	}
-	else if ( GetWorld() )
+	else if ( UWorld* MyWorld = GetWorld() )
 	{
-		if ( GetWorld()->bIsDefaultLevel )
+		if ( MyWorld->bIsDefaultLevel )
 		{
 			bResult = true;
 		}
@@ -837,11 +886,13 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	bool bUIDisableWorldRendering = false;
 	FGameViewDrawer GameViewDrawer;
-	
+
+	UWorld* MyWorld = GetWorld();
+
 	// create the view family for rendering the world scene to the viewport's render target
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues( 	
 		InViewport,
-		GetWorld()->Scene,
+		MyWorld->Scene,
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
 
@@ -900,13 +951,9 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	TMap<ULocalPlayer*,FSceneView*> PlayerViewMap;
 
-	FAudioDevice* AudioDevice = GetWorld()->GetAudioDevice();
+	FAudioDevice* AudioDevice = MyWorld->GetAudioDevice();
 
-	bool bReverbSettingsFound = false;
-	FReverbSettings ReverbSettings;
-	class AAudioVolume* AudioVolume = nullptr;
-
-	for (FLocalPlayerIterator Iterator(GEngine, GetWorld()); Iterator; ++Iterator)
+	for (FLocalPlayerIterator Iterator(GEngine, MyWorld); Iterator; ++Iterator)
 	{
 		ULocalPlayer* LocalPlayer = *Iterator;
 		if (LocalPlayer)
@@ -1010,27 +1057,15 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 								ListenerTransform.SetTranslation(Location);
 								ListenerTransform.NormalizeRotation();
 
-								bReverbSettingsFound = true;
-
-								FReverbSettings PlayerReverbSettings;
-								FInteriorSettings PlayerInteriorSettings;
-								class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings(Location, &PlayerReverbSettings, &PlayerInteriorSettings);
-
-								if (AudioVolume == nullptr || (PlayerAudioVolume != nullptr && PlayerAudioVolume->Priority > AudioVolume->Priority))
-								{
-									AudioVolume = PlayerAudioVolume;
-									ReverbSettings = PlayerReverbSettings;
-								}
-
 								uint32 ViewportIndex = PlayerViewMap.Num() - 1;
-								AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerAudioVolume, PlayerInteriorSettings);
+								AudioDevice->SetListener(MyWorld, ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : MyWorld->GetDeltaSeconds()));
 							}
 						}
 					}
 
 					// Add view information for resource streaming.
 					IStreamingManager::Get().AddViewInformation(View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0]);
-					GetWorld()->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
+					MyWorld->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
 				}
 			}
 		}
@@ -1038,13 +1073,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	FinalizeViews(&ViewFamily, PlayerViewMap);
 
-	if (bReverbSettingsFound)
-	{
-		AudioDevice->SetReverbSettings( AudioVolume, ReverbSettings );
-	}
-
 	// Update level streaming.
-	GetWorld()->UpdateLevelStreaming();
+	MyWorld->UpdateLevelStreaming();
 
 	// Find largest rectangle bounded by all rendered views.
 	uint32 MinX=InViewport->GetSizeXY().X, MinY=InViewport->GetSizeXY().Y, MaxX=0, MaxY=0;
@@ -1118,20 +1148,20 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	}
 	
 	// Remove temporary debug lines.
-	if (GetWorld()->LineBatcher != NULL)
+	if (MyWorld->LineBatcher != nullptr)
 	{
-		GetWorld()->LineBatcher->Flush();
+		MyWorld->LineBatcher->Flush();
 	}
 
-	if (GetWorld()->ForegroundLineBatcher != NULL)
+	if (MyWorld->ForegroundLineBatcher != nullptr)
 	{
-		GetWorld()->ForegroundLineBatcher->Flush();
+		MyWorld->ForegroundLineBatcher->Flush();
 	}
 
 	// Draw FX debug information.
-	if (GetWorld()->FXSystem)
+	if (MyWorld->FXSystem)
 	{
-		GetWorld()->FXSystem->DrawDebug(SceneCanvas);
+		MyWorld->FXSystem->DrawDebug(SceneCanvas);
 	}
 
 	// Render the UI.
@@ -1140,7 +1170,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 		// render HUD
 		bool bDisplayedSubtitles = false;
-		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
+		for( FConstPlayerControllerIterator Iterator = MyWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
 			APlayerController* PlayerController = *Iterator;
 			if (PlayerController)
@@ -1202,7 +1232,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 							const uint32 SizeX = SceneCanvas->GetRenderTarget()->GetSizeXY().X;
 							const uint32 SizeY = SceneCanvas->GetRenderTarget()->GetSizeXY().Y;
 							FIntRect SubtitleRegion(FMath::TruncToInt(SizeX * MinPos.X), FMath::TruncToInt(SizeY * MinPos.Y), FMath::TruncToInt(SizeX * MaxPos.X), FMath::TruncToInt(SizeY * MaxPos.Y));
-							FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( SceneCanvas, SubtitleRegion, GetWorld()->GetAudioTimeSeconds() );
+							FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( SceneCanvas, SubtitleRegion, MyWorld->GetAudioTimeSeconds() );
 							bDisplayedSubtitles = true;
 						}
 					}
@@ -1234,13 +1264,13 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	FVector PlayerCameraLocation = FVector::ZeroVector;
 	FRotator PlayerCameraRotation = FRotator::ZeroRotator;
 	{
-		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
+		for( FConstPlayerControllerIterator Iterator = MyWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
 			(*Iterator)->GetPlayerViewPoint( PlayerCameraLocation, PlayerCameraRotation );
 		}
 	}
 
-	DrawStatsHUD( GetWorld(), InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation );
+	DrawStatsHUD( MyWorld, InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation );
 
 	if (GEngine->IsStereoscopic3D(InViewport))
 	{
@@ -1287,6 +1317,7 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 		{
 			if (ScreenshotCapturedDelegate.IsBound() && CVarScreenshotDelegate.GetValueOnGameThread())
 			{
+				// If delegate subscribed, fire it instead of writing out a file to disk
 				ScreenshotCapturedDelegate.Broadcast(Size.X, Size.Y, Bitmap);
 			}
 			else
@@ -1520,7 +1551,7 @@ ULocalPlayer* UGameViewportClient::SetupInitialLocalPlayer(FString& OutError)
 
 	ActiveSplitscreenType = ESplitScreenType::None;
 
-#if !UE_BUILD_SHIPPING
+#if ALLOW_CONSOLE
 	// Create the viewport's console.
 	ViewportConsole = NewObject<UConsole>(this, GetOuterUEngine()->ConsoleClass);
 	// register console to get all log messages
@@ -2067,12 +2098,6 @@ bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice&
 	{
 		return HandlePrevViewModeCommand( Cmd, Ar, InWorld );
 	}
-#if WITH_EDITOR
-	else if( FParse::Command( &Cmd, TEXT("ShowMouseCursor") ) )
-	{
-		return HandleShowMouseCursorCommand( Cmd, Ar );
-	}
-#endif
 	else if( FParse::Command(&Cmd,TEXT("PRECACHE")) )
 	{
 		return HandlePreCacheCommand( Cmd, Ar );
@@ -2363,6 +2388,7 @@ void UGameViewportClient::ToggleShowCollision()
 		}
 	}
 
+#if !UE_BUILD_SHIPPING
 	if (World != nullptr)
 	{
 		// Tell engine to create proxies for hidden components, so we can still draw collision
@@ -2371,6 +2397,7 @@ void UGameViewportClient::ToggleShowCollision()
 		// Need to recreate scene proxies when this flag changes.
 		FGlobalComponentRecreateRenderStateContext Recreate;
 	}
+#endif // !UE_BUILD_SHIPPING
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -2600,15 +2627,6 @@ bool UGameViewportClient::HandlePrevViewModeCommand( const TCHAR* Cmd, FOutputDe
 	return true;
 }
 
-#if WITH_EDITOR
-bool UGameViewportClient::HandleShowMouseCursorCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
-	FSlateApplication::Get().ResetToDefaultInputSettings();
-	return true;
-}
-#endif // WITH_EDITOR
-
 bool UGameViewportClient::HandlePreCacheCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	Precache();
@@ -2660,10 +2678,6 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 	check(CVar);
 	auto FullScreenMode = CVar->GetValueOnGameThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
 	FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode;
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
-	{
-		FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen;
-	}
 
 	if (PLATFORM_WINDOWS && FullScreenMode == EWindowMode::Fullscreen)
 	{
@@ -2756,8 +2770,6 @@ bool UGameViewportClient::HandleScreenshotCommand( const TCHAR* Cmd, FOutputDevi
 		const bool bAddFilenameSuffix = true;
 		FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
 
-		GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
-		GAreScreenMessagesEnabled = false;
 		GScreenshotResolutionX = Viewport->GetSizeXY().X;
 		GScreenshotResolutionY = Viewport->GetSizeXY().Y;
 	}

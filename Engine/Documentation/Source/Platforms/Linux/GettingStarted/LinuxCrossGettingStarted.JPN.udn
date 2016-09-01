@@ -1,14 +1,34 @@
-﻿INTSourceChangelist:2543338
-Availability:Docs
+﻿Availability:Public
 Title:入門編:Linux プロジェクトの開発
 Crumbs:%ROOT%, Platforms, Platforms/Linux
 Description:Linux プラットフォーム開発の環境設定
+Version:4.9
+SkillLevel:Advanced
+type:quickstart
+parent:Platforms/Linux
+tags:Linux
+
+<!--- %Globals:BinarySourceSelectVar% --->
 
 [TOC(start:2 end:3)]
 
-## ご注意
+## クロスコンパイルが必要な理由
 
-%Globals:BinarySourceSelectVar%
+クロスコンパイルは、ゲームデベロッパー (Windows 中心のワークフローを導入してるデベロッパ対象) が Linux をターゲットとした開発をしやくするために選択されました。現時点では、 [native compilation](https://wiki.unrealengine.com/Building_On_Linux) を使っている Windows と Mac ユーザーのみをサポートしています。Linux-x86_64 のサポートおよびテストも行いますが、 Linux ARM のコンパイルを有効にするライブラリやツールチェーン (clang-3.5.0-arm) も提供しています。ただし、ユーザーは UBT でコードを (マイナー) 変更しなくてはいけません。
+
+以下に記述する内容のほとんどは ARM のコンパイル (別のツールチェーンを除く) にも通用しますが、ここから先は x86_64 Linux をターゲットに開発を行うユーザーを想定しています。異なるバージョンのツールや別のアーキテクチャをターゲットとする場合は、独自の [応用編](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) ツールチェーンを構築することができます。
+
+## ツールチェーンの設定 
+
+[Control Panel (コントロールパネル)]->[System (システム)]->[Advanced system settings (詳細システム設定)]->[Advanced (詳細)]->[Environment variables (環境変数)] の順に選んで、 LINUX_ROOT という名前の環境変数を追加します。この値はツールチェーンの後に続くバックスラッシュなしの絶対パスです。
+
+[REGION:raw]
+![](image00.png)
+[/REGION]
+
+変数を設定したら、 UE4 プロジェクトファイルを再生成 (「GenerateProjectFiles.bat」を使用) して Visual Studio を再起動します。終了したら、Win32/Win64 コンフィギュレーションで "Linux" が表示されて、クロスコンパイルが可能になります。
+
+## Linux 向けパッケージングの設定
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -38,59 +58,56 @@ Description:Linux プラットフォーム開発の環境設定
 	[/PARAM]
 [/OBJECT]
 
-
 [VAR:source]
-## ソースと Github ユーザー向け
+Linux プラットフォーム対応のッケージを作成するには、以下のターゲットのビルドが必須です。
 
-Linux ターゲットプラットフォームは、Windows ホストプラットフォームと Linux プラットフォームをサポートしています（Macプラットフォームはまだサポートしていません）。 このユーザーガイドは Linux 向けにクロスコンパイルを行う Windows ユーザー向けです。 Linux でアンリアルエンジンを実行する場合は、現時点では単独に行わなくてはいけない手順はありません。
-（現時点のLinux はシステムで利用可能なコンパイラを使用しています。将来的には、配布に依存しない方法でバイナリの準備も可能にする安定したビルド環境を提供するためにひとまとまりになる可能性があります）。
+Linux 向け:
 
-Windowsは、 Linux バイナリのクロスコンパイルに [クロスコンパイラーツールチェーン](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) を使用します。 
+* CrashReportClient
+* UE4Game (コンテンツのみのプロジェクトの場合、それ以外はプロジェクトのみをビルド)
 
-### ソースからのインストール方法： 
+Windows 向け:
 
-このガイドは Windows を実行していることを仮定しているので、最初にツールチェーンをインストールしなくてはいけません。
-
-* [Clang-3.5.0 based tool chain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)
-
-### ツールチェーンの設定
-
-スペースや非ASCII文字を含まないパスへ上記のファイルを解凍して（例えば C:\CrossToolchain350 が良い例）、ツールチェーン（例えば C:\CrossToolchain350\toolchain\)の「toolchain」ディレクトリへ絶対パスを格納するために LINUX_ROOT 環境変数を設定します。
-詳細は https://wiki.unrealengine.com/Compiling_For_Linux を参照してください。
-
-### アンリアルエンジン4の設定方法 
-
-* アンリアルエンジン4のレポジトリをフォークおよびクローンします \[[UnrealEngine](https://github.com/EpicGames/UnrealEngine)\]
-
-* シェルで `Setup.bat -include=Linux` を実行します。
-
- [https://github.com/EpicGames/UnrealEngine](https://github.com/EpicGames/UnrealEngine) に掲載されている指示に従ってエディタをビルドします。ソリューションコンフィギュレーションを **Development** 、ソリューションプラットフォームを **Linux** に設定して Linux ターゲットをビルドします。
+* エディタ自体 (Unreal Editor と Unreal Frontend で Linux 対応のゲームをクック / パッケージ化するために、 Linux ターゲットモジュールビルドを取得するために必要)
+* UnrealPak と ShaderCompileWorker (おそらくビルドされるでしょうが、総合的に言及)
 
 [/VAR]
-
-
-
-
-
 
 [VAR:binary]
-
-## バイナリとランチャーユーザー向け
-
-Linux ターゲットプラットフォームは、Windows ホストプラットフォームと Linux プラットフォームをサポートしています（Macプラットフォームはまだサポートしていません）。 このユーザーガイドは Linux 向けにクロスコンパイルを行う Windows ユーザー向けです。 Linux でアンリアルエンジンを実行する場合は、現時点では単独に行わなくてはいけない手順はありません。
-（現時点のLinux はシステムで利用可能なコンパイラを使用しています。将来的には、配布に依存しない方法でバイナリの準備も可能にする安定したビルド環境を提供するためにひとまとまりになる可能性があります）。
-
-Windowsは、 Linux バイナリのクロスコンパイルに [クロスコンパイラーツールチェーン](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) を使用します。 
-
-### インストール方法 
-
-このガイドは Windows を実行していることを仮定しているので、最初にツールチェーンをインストールしなくてはいけません。
-
-* [Clang-3.5.0 based tool chain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)
-
-### ツールチェーンの設定
-
-スペースや非ASCII文字を含まないパスへ上記のファイルを解凍して（例えば C:\CrossToolchain350 が良い例）、ツールチェーン（例えば C:\CrossToolchain350\toolchain\)の「toolchain」ディレクトリへ絶対パスを格納するために LINUX_ROOT 環境変数を設定します。
-詳細は https://wiki.unrealengine.com/Compiling_For_Linux を参照してください。
-
+バイナリ リリースは、コンテンツ専用プロジェクトのみのパッケージを作成できることに注意してください。Linux 向けにコードベースのプロジェクトをパッケージ化する場合 (または規定外のサードパーティプラグインがあるプロジェクト) は、ソースビルドを設定しなくてはいけません。コンテンツ専用のパッケージ化が必要な場合は、UE4Game と CrashReportClient の Linux バイナリがバンドルされているため何もする必要がありません。
 [/VAR]
+
+## Linux 向けのパッケージング:
+
+エディタでパッケージ プロジェクトを開いて、[File]->[Package To]->[Linux] の順に選択する方法が最も簡単なパッケージの作成手段です (前の手順でクロスツールチェーンをインストール済みで、 Linux ターゲットモジュールが対象エディタ用にビルドされていることが前提です。リストに 「Linux」 が表示されない場合は、いずれかの手順が終了してない可能性があります。上記を参照してください)。サンプリングしばらくすると (対象プロジェクトに依存、サンプル プロジェクトはいくらか短時間) 、パッケージを作成するディレクトリにゲームアセットとバイナリが表示されます。
+
+パッケージ作成のプロセスに関する詳細は、 "Show Output Log" リンクから参照してください。プロセスが "unable to find UnrealPak or ShaderCompileWorker" のエラーメッセージで失敗した場合は、ホスト (Windows) プラットフォーム向けのパッケージのビルド方法を上記で参照してください。
+
+Scp もしくはターゲット マシーンにコピー (ターゲット マシーンのディスク スペースが不足している場合は、Samba の設定方法を知っているのであれば、Samba share の実装が良いでしょう。反復時間も削減することができます)、ターゲット実行ファイルを chmod +x t に指定して (場所は 「LinuxNoEditor/<ProjectName>/Binaries/Linux/ directory」) してこれを実行します。
+
+線形###Linux ARM プラットフォームの変更点
+
+Linux-ARM クロスコンパイル ツールチェーンを使用している場合は、以下の 「GenerateProjectFiles.bat」 を実行する前に UE4 ソースコードで以下のファイルを編集します。 
+
+.../UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Linux/UEBuildLinux.cs 
+
+次の行をコメントアウトします。 
+
+static private string DefaultArchitecture = "x86_64-unknown-linux-gnu"; 
+
+次のように Linux-ARM アーキテクチャの行のコメントを削除します。 
+
+//static private string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
+
+Linux-ARM プラットフォーム上で実行可能なパッケージ プロジェクトは追加の手順が必要です。パッケージプロジェクトが 「\foo\bar\SunTemple_Linux」 に保存されていると仮定して、以下の保存場所を開きます。
+
+\foo\bar\SunTemple_Linux\LinuxNoEditor\Engine\Binaries\Linux 
+
+そして 「libopenal.so.1」を以下のバージョンから置換します。 
+
+...\UnrealEngine\Engine\Source\ThirdParty\OpenAL\1.15.1\lib\Linux\arm-unknown-linux-gnueabihf\libopenal.so 
+
+「 ...\UnrealEngine」 は UE4 のソースコードの保存場所です。かならず 「libopenal.so」 を 「libopenal.so.1」に名前変更してください。
+
+プロジェクトをターゲットマシーンへコピー出来るようになりました。ターゲット実行ファイルを chmod+x で実行して、上記の説明通りに実行します。
+

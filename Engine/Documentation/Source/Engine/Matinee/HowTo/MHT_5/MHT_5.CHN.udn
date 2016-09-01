@@ -1,166 +1,168 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Adjust Lights
+﻿INTSourceChangelist:2732056
+Availability:Public
+Title:调整灯光
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
-Description:Light Color, Brightness and other Light Settings are adjusted in this scene. 
+Description:在场景中对灯光颜色、明亮度以及其他灯光设定进行调整。 
+Version:4.9
+SkillLevel:Intermediate
 
 
 ---
-In the following steps, we will create a light that moves, changes colors and brightness using **Matinee**. 
+在下列步骤中，我们将利用 **Matinee** 创建可以移动、存在颜色和明亮度变化的灯光。 
 
 [INCLUDE:Engine/Matinee/HowTo/MHT_1#projectstart]
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Add the Matinee Actor, Hallway and Light
+		添加 Matinee Actor、走廊和灯光
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will add our **Matinee Actor**, create a small hallway and add a light. 
+	在这步中，我们将添加 **Matinee Actor**，创建一个小走廊并添加灯光。 
 	[/PARAM]
 [/OBJECT]
 
-1. From the **Toolbar** menu, **select** **Matinee** and **click** the **Add Matinee** button. 
+1. 在 **工具栏** 菜单中选择 **Matinee** 并点击 **Add Matinee** 按钮。 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_AddMatinee.png)(w:720)
 
-1. If the Matinee undo warning message appears, **click** the **Continue** button. 
+1. 如出现 Matinee 撤销警告提示，点击 **继续** 按钮。 
 
 	![](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeWarning.png)
 	
-1. The **Matinee Editor** window will open. 
+1. **Matinee Editor** 窗口将打开。 
 
 	[REGION:lightbox]
 	[![](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeOpen.png)(w:640)](Engine\Matinee\HowTo\MHT_1\MHT1_MatineeOpen.png)
 	[/REGION]
 
-	_Click for Full View._
+	_点击查看全图。_
 
-1.  Minimize the Matinee window, then from the **Modes** menu under the **BSP** tab, **Drag-and-drop** a **Box** into the viewport.
+1. 最小化 Matinee 窗口，从 **Modes** 菜单的 **BSP** 标签下将一个 **方块（Box）** 拖进视口。
 
 	![](MHT5_DragInBox.png)(w:580)
 
-	_Try to drag the box onto the Template Text icon, it will center it on the text._
+	_尝试将方块拖至模板文本图标上，它将位于文本的正中。_
 
-1.  In the **Details** panel for the box, set the **Brush Settings** to the values below. 
+1. 按下图所示，在方块的 **Details** 面板中完成 **Brush Settings** 设置。 
 
 	![](MHT5_BoxSettings.png)(w:380)
 
-1.  Fly inside the box and **grab** the red arrow of the **Translation** widget and **move it towards** the text to remove the pieces of geometry that clip inside. 
+1. 进入方块中，拖动 **平移** 控件的 **红色箭头** 将其向文本移动，以消除夹在其中的几何体部分。 
 
 	![](MHT5_MoveBox.png)(w:380)
 
-	_You can also grab the blue arrow of the Translation widget and pull it up slightly to raise the roof of the box._
+	_可拖动平移控件的蓝色箭头，将其上拉至方块的顶部。_
 
-1. From the BSP tab, **Drag-and-drop** another **Box** into the viewport and set its settings to the values below. 
+1. 从 BSP 标签中将另一个 **方块** 拖放进视口，按下图设置其数值。 
 
 	![](MHT5_SubtractBrush.png)(w:380)
 
-1. Move the **Subtraction** box to one end of the **Addition** box to create an opening in the box. 
+1. 将 **Subtraction** 框向 **Addition** 框的一端移动，在方块上形成一个开口。 
 
 	![](MHT5_Opening1.png)(w:380)
 
-1. With the Subtraction box still selected, **press** **Control+W** to duplicate it and move it to the other end of the box to create another opening. 
+1. 选中 Subtraction 框，按下 **Control+W** 组合键将其复制，并移动至方块的另一端形成另一个开口。 
 
 	![](MHT5_Opening2.png)(w:380)
 
-1. From the **Lights** tab of the Modes menu, **Drag-and-drop** a **Point Light** into the level and center it near the top of one of the door openings. 
+1. 从 Modes 菜单的 **Lights** 标签中将一个 **Point Light** 拖放进关卡，使其位于一个开口顶部附近的中间位置。 
 
 	![](MHT5_AddPointLight.png)
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Add the Light to Matinee and Setup Tracks
+		为 Matinee 添加灯光并设置轨迹
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will add the light to **Matinee** and set up our tracks with keyframes. 
+	在这步中，我们将为 **Matinee** 添加灯光并使用关键帧设置轨迹。 
 	[/PARAM]
 [/OBJECT]
 
-1. Open Matinee by **clicking** on the Matinee Actor in the **World Outliner** and choosing **Open Matinee** from the Details panel. 
+1. 在 **World Outliner** 中点击 Matinee Actor，从 Details 面板中选择 **Open Matinee** 打开 Matinee。 
 
 	![](MHT5_OpenMatinee.png)
 
-1. **Minimize** Matinee, **click** on the Point Light then re-open Matinee and **Right-Click** in the **Tracks** window and select **Add New Lighting Group**. 
+1. **最小化** Matinee，点击 Point Light，然后重新打开 Matinee，在 **Tracks** 窗口中 **单击右键** 并选择 **Add New Lighting Group**。 
 
 	![](MHT5_AddLightingGroup.png)
 
-	_In the **Name Group** box that appears, give it a name such as **Light1**._
+	_在出现的 **Name Group** 框中将其命名为 **Light1**。_
 
-1. **Grab** the ending marker at **5.00** and **drag** it over to **8.00** to increase the length of the Matinee. 
+1. **选取** **5.00** 处的结束标记并将其 **拖至** **8.00**，增加 Matinee 长度。 
 
 	![](MHT5_IncreaseLength.png)(w:720)
 
-1. **Right-Click** on the **Radius** track and select **Delete Track**, then **Right-Click** on the Light1 group and **select** **Add New Float Property Track**. 
+1. 在 **Radius** 轨迹上 **单击右键** 并选择 **删除轨迹**，然后在 Light1 群组上 **单击右键** 并选择 **Add New Float Property Track**。 
 
 	![](MHT5_AddPropertyTrack.png)
 
-	_We will be adjusting the **Attenuation Radius** which will affect the range at which the light is displayed._
+	_我们将对影响灯光显示范围的 **衰减半径（Attenuation Radius）** 进行调整。_
 
-1. In the pop-up menu that appears, select **LightComponent0.AttenuationRadius** and **press** **Ok** to add the track. 
+1. 在弹出菜单中选择 **LightComponent0.AttenuationRadius** 并按下 **Ok** 添加轨迹。 
 
 	![](MHT5_AttenuationRadius.png)
 
-1. Click the **Movement** track, and **press** **Enter** to add a keyframe then **Right-Click** on the keyframe and choose **Set Time** and set it to **2**. 
+1. 点击 **Movement** 轨迹，**按下** **Enter 键** 添加一个关键帧；在关键帧上 **单击右键**，选择 **Set Time** 将其设为 **2**。 
 
-1. Repeat the previous step and assign keys to **0**, **2**, **4**, **6**, and **8**. 
+1. 重复之前步骤，将关键帧指派到 **0**、**2**、**4**、**6**、**8**。 
 
 	![](MHT5_MovementKeys.png)(w:720)
 
-1. Repeat the previous two steps for the **Intensity**, **Light Color**, and **AttenuationRadius** tracks. 
+1. 在 **Intensity**、**Light Color**、**AttenuationRadius** 轨迹上重复之前两个步骤。 
 
 	![](MHT5_AllKeysAdded.png)(w:720)
 
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Adjust Movement and Intensity
+		调整运动和强度
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will set up movement for the light and adjust its intensity. 
+	在这步中，我们将设置灯光运动并对其强度进行调整。 
 	[/PARAM]
 [/OBJECT]
 
-1. In Matinee on the Movement track, **click** on the second keyframe (at **2.00**) then minimize Matinee and **move** the light to the center of the hallway. 
+1. 在 Matinee 中的运动轨迹上，点击第二个关键帧（**2.00** 处），然后最小化 Matinee，将灯光移至走廊的中央。 
 
 	![](MHT5_MovementKey2.png)(w:720)
 
-	_You can zoom out then grab green arrow of the **Translation** widget and slide it to the right into the center._
+	_可将镜头拉远，然后抓住 **平移** 控件的绿色箭头，将其移至右方中部。_
 
-1. **Return** to Matinee and **click** on the third keyframe of the Movement track (at **4.00**), **minimize** Matinee, then **move** the light to the end of the hallway. 
+1. **返回** Matinee 并 **点击** 运动轨迹的第三个关键帧（**4.00** 处），**最小化** Matinee，然后将灯光移至走廊的尽头。 
 
 	![](MHT5_MovementKey3.png)(w:720)
 
-1. **Return** to Matinee, **click** on the fourth keyframe of the Movement track (at **6.00**), **minimize** Matinee and then **move** the light to the center of the hallway. 
+1. **返回** Matinee，**点击** 运动轨迹的第四个关键帧（**6.00** 处），**最小化** Matinee，然后将灯光 **移至** 走廊的中间。 
 
-1. In the Details panel for the light, under **Transform**, find the **Mobility** section and **click** the third icon to enable the **Movable** setting for the light. 
+1. 在灯光 Details 面板中的 **Transform** 下，在 **Mobility** 部分 **点击** 第三个图标启用灯光的 **Movable** 设置。 
 
 	![](MHT5_LightMobility.png)
 
-1. In Matinee, **Right-click** on the second keyframe of the **Intensity** track (at **2.00**) and Set Value to **20,000**; do the same for the fourth keyframe (at **6.00**). 
+1. 在 Matinee 中 **强度** 轨迹的第二个关键帧上（**2.00** 处） **单击右键** 并将值设为 **20,000**，然后为第四个关键帧（**6.00** 处）执行相同操作。 
 
 	![](MHT5_IntensityValues.png)(w:720)
 
-	_This will increase the intensity of the light, making it brighter, as it moves to the center of the hallway._
+	_此操作将增加灯光的强度，使其向走廊中央移动时变得更加明亮。_
 
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Adjust Light Color and Attenuation Radius
+		调整灯光颜色和衰减半径
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will adjust the color of the light as it moves through the hallway as well as its size (or **Attenuation Radius**). 
+	在这步中，我们将调整灯光在走廊中移动时的颜色和尺寸（或称作 **衰减半径**）。 
 	[/PARAM]
 [/OBJECT]
 
-1. In Matinee on the **Light Color** track, **click** on the first keyframe (at **0.00**) and **select** **Set Color**; in the **Color Picker** window select any color. 
+1. 在 Matinee 中的 **Light Color** 轨迹上，**点击** 第一个关键帧（**0.00** 处）并选择 **Set Color**，然后在 **Color Picker** 窗口中选择任意颜色。 
 
 	![](MHT5_RedLight.png)(w:720)
 
-1. **Repeat** the previous step for the third keyframe (at **4.00**) and in the Color Picker window, **select** a different color. 
+1. 在第三个关键帧上重复以上步骤（**4.00** 处），然后在 Color Picker 窗口中选择一个不同的颜色。 
 
-1. **Repeat** the previous step for the last keyframe (at **8.00**) and in the Color Picker window, **select** the color that was used in step 1. 
+1. 在最后一个关键帧上重复以上步骤（**8.00** 处），然后在 Color Picker 窗口中选择步骤一中使用的颜色。 
 
-1. **Right-click** on the second keyframe of the **Attenuation Radius** track (at **2.00**) and Set Value to **250**, do the same for the fourth keyframe (at **6.00**). 
+1. 在 **Attenuation Radius** 轨迹的第二个关键帧上（**2.00** 处） **单击右键** 并将值设为 **250**，然后为第四个关键帧（**6.00** 处）执行相同操作。 
 
 	![](MHT5_AttenuationKey4.png)(w:720)
 
@@ -169,33 +171,43 @@ In the following steps, we will create a light that moves, changes colors and br
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		Finishing Up - Building and Playing
+		完成 - 构建并开始游戏
 	[/PARAM]
 	[PARAM:description]
-	In this step, we will finish the **Matinee**, **Build** the geometry and lighting, then **Play** in the editor to see the finished result. 
+	在这步中我们将完成 **Matinee**、**构建** 几何体与灯光，然后在编辑器中 **开始游戏**，查看实现的效果。 
 	[/PARAM]
 [/OBJECT]
 
-1. In the World Outliner, **select** the Matinee Actor and under the **Play** section, **enable** Play on Level Load and Looping. 
+1. 在 World Outliner 中选择 **Matinee Actor**，然后在 Play 部分 **启用** Play on Level Load 和 Looping。 
 
 	![](MHT5_MatineeSettings.png)
 
-1. From the main toolbar, **click** the **Build** icon, then when building is complete, **select** the **Apply Now** button in the lower right portion of the screen. 
+1. 在主工具栏中点击 **Build** 图表，构建完成后点击屏幕右下部的 **Apply Now** 按钮。 
 
 	![](MHT5_BuildIcon.png)
 
-	_When building is complete..._
+	_构建完成时..._
 
 	![](MHT5_ApplyLighting.png)
 
-	_will appear. Click the **Apply Now** button."_
+	_将出现。点击 **Apply Now** 按钮_
 
-1. From the main toolbar, **click** the Play icon to play in the editor. 
+1. 在主编辑器中，点击 Play 图标在编辑器中进行游戏。 
 
-	![](MHT5_LightingGif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	03aOF5yUdiE
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-	_When you enter the hallway, you should see the light moving up and down the hallway._
+	_角色进入走廊时，将看到灯光在走廊上下移动。_
 
-	_The light will blend between colors as it moves through the hallway and reduce in size as it enters the center of the hallway._
+	_灯光在走廊中移动时将进行颜色混合，到达走廊中部时其尺寸将变小。_
 
 

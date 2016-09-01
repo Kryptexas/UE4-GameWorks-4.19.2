@@ -17,7 +17,7 @@ Version:4.9
 
 ## LightmapUVs
 
-The **LightmapUVs** expression outputs the lightmap UV texture coordinates in the forum of a two-channel vector value. If lightmap UVs are unavailable, it will output a two-channel vector value of (0,0).
+The **LightmapUVs** expression outputs the lightmap UV texture coordinates in the form of a two-channel vector value. If lightmap UVs are unavailable, it will output a two-channel vector value of (0,0).
 
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Vector#ObjectOrientation]

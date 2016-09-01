@@ -285,7 +285,7 @@ public:
 
 	void PostSerialize(const FArchive& Ar);
 
-public:
+	void AddReferencedObjects(FReferenceCollector& Collector);
 
 	/**
 	 * Gets the identifier for UObject based texture paths.
@@ -297,9 +297,10 @@ public:
 protected:
 
 	/**
-	 * The image to render for this brush, can be a UTexture2D or Material.
+	 * The image to render for this brush, can be a UTexture or UMaterialInterface or an object implementing 
+	 * the AtlasedTextureInterface. 
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayThumbnail="true", DisplayName="Image", AllowedClasses="Texture2D,MaterialInterface" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayThumbnail="true", DisplayName="Image", AllowedClasses="Texture,MaterialInterface,SlateTextureAtlasInterface" ))
 	UObject* ResourceObject;
 
 	/** The name of the rendering resource to use */

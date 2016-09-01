@@ -75,73 +75,68 @@ void UPhysicsHandleComponent::GrabComponent(UPrimitiveComponent* InComponent, FN
 
 	ExecuteOnPxRigidDynamicReadWrite(BodyInstance, [&](PxRigidDynamic* Actor)
 	{
-		if(PxScene* Scene = Actor->getScene())
+		PxScene* Scene = Actor->getScene();
+		
+		// Get transform of actor we are grabbing
+		PxVec3 KinLocation = U2PVector(Location);
+		PxTransform GrabbedActorPose = Actor->getGlobalPose();
+		PxTransform KinPose(KinLocation, GrabbedActorPose.q);
+
+		// set target and current, so we don't need another "Tick" call to have it right
+		TargetTransform = CurrentTransform = P2UTransform(KinPose);
+
+		// If we don't already have a handle - make one now.
+		if (!HandleData)
 		{
-			// Get transform of actor we are grabbing
-			PxVec3 KinLocation = U2PVector(Location);
-			PxTransform GrabbedActorPose = Actor->getGlobalPose();
-			PxTransform KinPose(KinLocation, GrabbedActorPose.q);
+			// Create kinematic actor we are going to create joint with. This will be moved around with calls to SetLocation/SetRotation.
+			PxRigidDynamic* KinActor = Scene->getPhysics().createRigidDynamic(KinPose);
+			KinActor->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
+			KinActor->setMass(1.0f);
+			KinActor->setMassSpaceInertiaTensor(PxVec3(1.0f, 1.0f, 1.0f));
 
-			// set target and current, so we don't need another "Tick" call to have it right
-			TargetTransform = CurrentTransform = P2UTransform(KinPose);
+			// No bodyinstance
+			KinActor->userData = NULL;
 
-			// If we don't already have a handle - make one now.
-			if(!HandleData)
+			// Add to Scene
+			Scene->addActor(*KinActor);
+
+			// Save reference to the kinematic actor.
+			KinActorData = KinActor;
+
+			// Create the joint
+			PxVec3 LocalHandlePos = GrabbedActorPose.transformInv(KinLocation);
+			PxD6Joint* NewJoint = PxD6JointCreate(Scene->getPhysics(), KinActor, PxTransform::createIdentity(), Actor, PxTransform(LocalHandlePos));
+
+			if (!NewJoint)
 			{
-				// Create kinematic actor we are going to create joint with. This will be moved around with calls to SetLocation/SetRotation.
-				PxRigidDynamic* KinActor = Scene->getPhysics().createRigidDynamic(KinPose);
-				KinActor->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
-				KinActor->setMass(1.0f);
-				KinActor->setMassSpaceInertiaTensor(PxVec3(1.0f, 1.0f, 1.0f));
-
-				// No bodyinstance
-				KinActor->userData = NULL;
-
-				// Add to Scene
-				Scene->addActor(*KinActor);
-
-				// Save reference to the kinematic actor.
-				KinActorData = KinActor;
-
-				// Create the joint
-				PxVec3 LocalHandlePos = GrabbedActorPose.transformInv(KinLocation);
-				PxD6Joint* NewJoint = PxD6JointCreate(Scene->getPhysics(), KinActor, PxTransform::createIdentity(), Actor, PxTransform(LocalHandlePos));
-
-				if(!NewJoint)
-				{
-					HandleData = 0;
-				}
-				else
-				{
-					// No constraint instance
-					NewJoint->userData = NULL;
-					HandleData = NewJoint;
-
-					// Remember the scene index that the handle joint/actor are in.
-					FPhysScene* RBScene = FPhysxUserData::Get<FPhysScene>(Scene->userData);
-					const uint32 SceneType = InComponent->BodyInstance.UseAsyncScene(RBScene) ? PST_Async : PST_Sync;
-					SceneIndex = RBScene->PhysXSceneIndex[SceneType];
-
-					// Setting up the joint
-					NewJoint->setMotion(PxD6Axis::eX, PxD6Motion::eFREE);
-					NewJoint->setMotion(PxD6Axis::eY, PxD6Motion::eFREE);
-					NewJoint->setMotion(PxD6Axis::eZ, PxD6Motion::eFREE);
-					NewJoint->setDrivePosition(PxTransform(PxVec3(0, 0, 0)));
-
-					NewJoint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
-					NewJoint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
-					NewJoint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
-
-					bRotationConstrained = bConstrainRotation;
-
-					UpdateDriveSettings();
-				}
+				HandleData = 0;
 			}
-		}
-		else
-		{
-			// We don't have a scene - the actor has not been inserted yet (most likely an APEX actor as they are heavily deferred)
-			UE_LOG(LogPhysics, Warning, TEXT("Attempted to call GrabComponent targeting an actor that currently isn't in a physics scene - cannot apply a grab until an actor is in a scene. APEX actors will not be placed in a scene until after BeginPlay."));
+			else
+			{
+				// No constraint instance
+				NewJoint->userData = NULL;
+				HandleData = NewJoint;
+
+				// Remember the scene index that the handle joint/actor are in.
+				FPhysScene* RBScene = FPhysxUserData::Get<FPhysScene>(Scene->userData);
+				const uint32 SceneType = InComponent->BodyInstance.UseAsyncScene(RBScene) ? PST_Async : PST_Sync;
+				SceneIndex = RBScene->PhysXSceneIndex[SceneType];
+
+				// Setting up the joint
+				NewJoint->setMotion(PxD6Axis::eX, PxD6Motion::eFREE);
+				NewJoint->setMotion(PxD6Axis::eY, PxD6Motion::eFREE);
+				NewJoint->setMotion(PxD6Axis::eZ, PxD6Motion::eFREE);
+				NewJoint->setDrivePosition(PxTransform(PxVec3(0, 0, 0)));
+
+				NewJoint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+				NewJoint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+				NewJoint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+
+				bRotationConstrained = bConstrainRotation;
+
+				UpdateDriveSettings();
+			}
+
 		}
 	});
 	

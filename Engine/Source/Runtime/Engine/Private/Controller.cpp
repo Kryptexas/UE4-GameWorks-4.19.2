@@ -59,12 +59,6 @@ void AController::K2_DestroyActor()
 
 bool AController::IsLocalController() const
 {
-	if (FGenericPlatformProperties::IsServerOnly())
-	{
-		// Never local on dedicated server. IsServerOnly() is checked at compile time and optimized out if false.
-		return false;
-	}
-
 	const ENetMode NetMode = GetNetMode();
 
 	if (NetMode == NM_Standalone)
@@ -625,7 +619,7 @@ FVector AController::GetNavAgentLocation() const
 	return Pawn ? Pawn->GetNavAgentLocation() : FVector::ZeroVector;
 }
 
-void AController::GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const 
+void AController::GetMoveGoalReachTest(const AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const 
 {
 	if (Pawn)
 	{
@@ -671,7 +665,7 @@ void AController::StopMovement()
 	UPathFollowingComponent* PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
 	if (PathFollowingComp != NULL)
 	{
-		PathFollowingComp->AbortMove(TEXT("StopMovement"));
+		PathFollowingComp->AbortMove(*this, FPathFollowingResultFlags::MovementStop);
 	}
 }
 

@@ -57,12 +57,10 @@ public:
 	void KillHeartBeat();
 	/** 
 	 * Suspend heartbeat measuring for the current thread if the thread has already had a heartbeat 
-	 * @returns ID of the current thread heartbeat that was suspended
 	 */
 	void SuspendHeartBeat();
 	/** 
 	 * Resume heartbeat measuring for the current thread 
-	 * @param ThreadId ID of the thread heartbeat to be resumed
 	 */
 	void ResumeHeartBeat();
 

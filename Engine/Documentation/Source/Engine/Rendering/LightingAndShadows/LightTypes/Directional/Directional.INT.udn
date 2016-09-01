@@ -54,11 +54,6 @@ Version: 4.9
 [EXCERPT:Intro]
 The **Directional Light** simulates light that is being emitted from a source that is infinitely far away. This means that all shadows cast by this light will be parallel, making this the ideal choice for simulating sunlight. The Directional Light when placed can be set to one of three **Mobility** settings:
 
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Directional_LightStationary.png)(w:150 convert:false)
@@ -71,11 +66,6 @@ The **Directional Light** simulates light that is being emitted from a source th
 [/OBJECT]
 [/EXCERPT:Intro]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](Directional_LightMove.png)(w:150 convert:false)
@@ -85,16 +75,7 @@ The **Directional Light** simulates light that is being emitted from a source th
 	[/PARAM]
 [/OBJECT]
 
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 Below you will see a representation of sunlight being cast through an opening in a roof. 
-
-[REGION:raw]
-![](spacer.png)
-[/REGION]
-
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -179,7 +160,7 @@ Property | Description |
 | **Dynamic Shadow Distance MovableLight** | How far **Cascaded Shadow Map** dynamic shadows will cover for a movable light, measured from the camera. |
 | **Dynamic Shadow Distance StationaryLight** | How far **Cascaded Shadow Map** dynamic shadows will cover for a stationary light, measured from the camera. |
 | **Num Dynamic Shadow Cascades** | Number of cascades to split the view frustum into for the whole scene.  |
-| **Cascade Distribution Exponent** | Controls whether the cascades are distributed closer to the camera (larget exponent) or further from the camera (smaller exponent). |
+| **Cascade Distribution Exponent** | Controls whether the cascades are distributed closer to the camera (larger exponent) or further from the camera (smaller exponent). |
 | **Cascade Transition Fraction** | Proportion of the fade region between cascades. |
 | **Shadow Distance Fadeout Fraction** | Controls the size of the fade out region at the far extent of the dynamic shadow's influence.|
 | **Use Inset Shadows for Movable Objects** | (Stationary lights only) Whether to use per-object inset shadows for movable components, even though cascaded shadow maps are enabled.|

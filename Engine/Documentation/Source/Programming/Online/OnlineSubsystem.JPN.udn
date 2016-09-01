@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2725215
 Availability:Public
 Title:オンライン サブシステムの概要
 Crumbs:%ROOT%, Programming
 Description:オンライン プラットフォームに関連するさまざまなシステムの概要
-バージョン：4.5
+バージョン：4.9
 
 
 [VAR:Topic]
@@ -50,7 +50,7 @@ Description:オンライン プラットフォームに関連するさまざま�
 
 
 [EXCERPT:Intro] 
-**オンライン** サブシステムとそのインターフェースは、ある特定の環境で利用可能なプラットフォーム一式にわたって共通のオンライン機能に明確な抽象化を提供するために存在します。この文脈における **プラットフォーム** とは、Steam、Xbox、Facebook などを指します。
+**オンライン** サブシステムとそのインターフェースは、ある特定の環境で利用可能なプラットフォーム一式にわたって共通のオンライン機能に明確な抽象化を提供するために存在します。   この文脈における **プラットフォーム** とは、Steam、Xbox、Facebook などを指します。
 移植性は主要目的の 1 つです。
 [/EXCERPT:Intro]
 
@@ -58,16 +58,16 @@ Description:オンライン プラットフォームに関連するさまざま�
 
 ###基本デザイン
 
-基本モジュールの OnlineSubsystem は、プラットフォーム特有のモジュールの定義やエンジンへの登録方法の管理をします。    プラットフォーム サービスへの全てのアクセスはこのモジュールを通じて行われます。   このモジュールがロードされると、次にこのモジュールがエンジンの「.ini」ファイルで指定されたプラットフォーム サービス モジュールを読み込もうとします。
+基本モジュールの OnlineSubsystem は、プラットフォーム特有のモジュールの定義やエンジンへの登録方法の管理をします。    プラットフォーム サービスへの全てのアクセスはこのモジュールを通じて行われます。   このモジュールがロードされると、次にこのモジュールがエンジンの .ini ファイルで指定されたプラットフォーム サービス モジュールを読み込もうとします。
 
 	[OnlineSubsystem]
 	DefaultPlatformService=<Default Platform Identifier>
+	読み込みが成功すると、パラメータが指定されていない限り、デフォルトのオンライン インターフェースが静的アクセス制御機構を通じて利用可能となります。
 
-読み込みが成功すると、パラメータが指定されていない限り、デフォルトのオンライン インターフェースが静的アクセス制御機構を通じて利用可能となります。
 
 	static IOnlineSubsystem* Get(const FName& SubsystemName = NAME_None)
+	適切な識別子と一緒にこの関数から呼ばれた時に、追加サービスがオンデマンドで読み込まれます。   モジュールを読み込みに無効な識別子または失敗は、 NULL を返します。  
 
-適切な識別子と一緒にこの関数から呼ばれた時に、追加サービスがオンデマンドで読み込まれます。   モジュールを読み込みに無効な識別子または失敗は、 NULL を返します。  
 
 
 
@@ -86,55 +86,55 @@ Description:オンライン プラットフォームに関連するさまざま�
 
 オンラインサービスのプロファイルサービスのインターフェース定義です。プロファイルサービスは、ユーザーのプロファイルおよびメタデータに関連付けにより定義されます (オンラインプレゼンス、アクセス許可など)。
 
-詳細は [](Programming/Online/Interfaces/Profile) ページで参照してください。
+<!--詳細は [](Programming/Online/Interfaces/Profile) をご覧ください。-->
 
 #### フレンド
 
 オンラインサービスのフレンドサービスのインターフェース定義です。フレンドサービスとは、フレンドのメンテナンスやフレンドリストに関連するものすべてのことです。
 
-詳細は [](Programming/Online/Interfaces/Friends) ページで参照してください。
+<!--詳細は [](Programming/Online/Interfaces/Friends) をご覧ください。-->
 
-####セッション
+#### セッション
 
 オンラインサービスのセッションサービスのインターフェース定義です。セッションサービスは、セッションとそのステートの管理に関連するものとして定義されます。
 
 詳細は [](Programming/Online/Interfaces/Session) ページで参照してください。
 
-####共有クラウド
+#### 共有クラウド
 
 既にクラウドに存在するファイルを共有するためのインターフェースです (他のユーザーとの共有は [ユーザークラウド](#ユーザークラウド) 参照)。
 
-詳細は [](Programming/Online/Interfaces/SharedCloud) ページで参照してください。
+<!--Details can be found on the [](Programming/Online/Interfaces/SharedCloud) page.-->
 
-####ユーザークラウド
+#### ユーザークラウド
 
 ユーザーごとのクラウドファイル保存スペースのインターフェースです。
 
-詳細は [](Programming/Online/Interfaces/UserCloud) ページで参照してください。
+<!--Details can be found on the [](Programming/Online/Interfaces/UserCloud) page.-->
 
 #### 成績表
 
 オンライン成績表へアクセスするインターフェースです。
 
-詳細は [](Programming/Online/Interfaces/Leaderboards) ページで参照してください。
+<!--詳細は [](Programming/Online/Interfaces/Leaderboards) をご覧ください。-->
 
 #### ボイス
 
-ゲーム中にネットワーク上のボイス コミュニケーションを提供するインターフェースです (まだ実装されていません)。
+ゲーム中にネットワーク上のボイス コミュニケーションを提供するインターフェースです。
 
-詳細は [](Programming/Online/Interfaces/Voice) ページで参照してください。
+<!--詳細は [](Programming/Online/Interfaces/Voice) をご覧ください。-->
 
 #### 実績
 
-読み込み/書き込み/実績のアンロックを提供するインターフェースです (まだ実装されていません)。
+読み込み/書き込み/実績のアンロックを提供するインターフェースです。
 
-詳細は [](Programming/Online/Interfaces/Achievements) ページで参照してください。
+<!--詳細は [](Programming/Online/Interfaces/Achievements) をご覧ください。-->
 
 #### 外部 UI
 
 任意のプラットフォームの外部インターフェース (利用可能な場合) へアクセスするインターフェースです。
 
-詳細は [](Programming/Online/Interfaces/ExternalUI) ページで参照してください。
+<!--詳細は [](Programming/Online/Interfaces/ExternalUI) をご覧ください。-->
 
 
 [OBJECT:TopicButtonList]
@@ -147,20 +147,19 @@ Description:オンライン プラットフォームに関連するさまざま�
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Programming/Online/Interfaces/Profile "%Programming/Online/Interfaces/Profile:Description%")
-		* [](Programming/Online/Interfaces/Friends "%Programming/Online/Interfaces/Friends:Description%")
+		<!--* [](Programming/Online/Interfaces/Profile "%Programming/Online/Interfaces/Profile:Description%")-->
+		<!--* [](Programming/Online/Interfaces/Friends "%Programming/Online/Interfaces/Friends:Description%")-->
 		* [](Programming/Online/Interfaces/Session "%Programming/Online/Interfaces/Session:Description%")
-		* [](Programming/Online/Interfaces/SharedCloud "%Programming/Online/Interfaces/SharedCloud:Description%")
-		* [](Programming/Online/Interfaces/UserCloud "%Programming/Online/Interfaces/UserCloud:Description%")
-		* [](Programming/Online/Interfaces/Leaderboards "%Programming/Online/Interfaces/Leaderboards:Description%")
-		* [](Programming/Online/Interfaces/Voice "%Programming/Online/Interfaces/Voice:Description%")
-		* [](Programming/Online/Interfaces/Achievements "%Programming/Online/Interfaces/Achievements:Description%")
-		* [](Programming/Online/Interfaces/ExternalUI "%Programming/Online/Interfaces/ExternalUI:Description%")
+		<!--* [](Programming/Online/Interfaces/SharedCloud "%Programming/Online/Interfaces/SharedCloud:Description%")-->
+		<!--* [](Programming/Online/Interfaces/UserCloud "%Programming/Online/Interfaces/UserCloud:Description%")-->
+		<!--* [](Programming/Online/Interfaces/Leaderboards "%Programming/Online/Interfaces/Leaderboards:Description%")-->
+		<!--* [](Programming/Online/Interfaces/Voice "%Programming/Online/Interfaces/Voice:Description%")-->
+		<!--* [](Programming/Online/Interfaces/Achievements "%Programming/Online/Interfaces/Achievements:Description%")-->
+		<!--* [](Programming/Online/Interfaces/ExternalUI "%Programming/Online/Interfaces/ExternalUI:Description%")-->
 		* [](Programming/Online/Types/ "%Programming/Online/Types:Description%")
-		* [](Programming/Online/AsyncManager/ "%Programming/Online/AsyncManager:Description%")
+		<!--* [](Programming/Online/AsyncManager/ "%Programming/Online/AsyncManager:Description%")-->
 	[/PARAM]
 [/OBJECT]
-
 
 
    

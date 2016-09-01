@@ -1,77 +1,71 @@
-﻿INTSourceChangelist:2253210
-Title: 3. 创建基本资源
-Crumbs:%ROOT%, Engine, Engine/AI/BehaviorTrees/QuickStart
-Description:步骤 3. 创建基本资源
+﻿INTSourceChangelist:2774060
 Availability:Public
+Title:3.创建基础资源
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
+Description:第三步。创建基础资源
+version:4.9
 
 [VAR:Steps]
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:title%")
 	[/PARAM]
-	[PARAM:title]
-		步骤
+	[PARAM:current]
 	[/PARAM]
-	[PARAM:description]
+	[PARAM:home]
+		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
 	[/PARAM]
-	[PARAM:links]
-		* [前一步 - %Engine/AI/BehaviorTrees/QuickStart/2:Title%](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:description%")
-		* **%Engine/AI/BehaviorTrees/QuickStart/3:Title%**
-		* [下一步 - %Engine/AI/BehaviorTrees/QuickStart/4:Title%](Engine/AI/BehaviorTrees/QuickStart/4 "%Engine/AI/BehaviorTrees/QuickStart/4:description%")
+	[PARAM:next]
+		[Next Step](Engine/AI/BehaviorTrees/QuickStart/4 "%Engine/AI/BehaviorTrees/QuickStart/4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
----
 
-开始前，您需要在内容浏览器中创建4个资源： 一个AI控制器蓝图、一个角色蓝图、行为树资源和一个Black Board(黑板)资源。
+开始前，需要在 **内容浏览器** 中创建 4 个资源：一个 AI 控制器蓝图、一个角色蓝图、一个行为树资源，以及一个黑板资源。
 
 [REGION:raw]
-![](Assets.png)
+![](ContentBrowser.jpg)
 [/REGION]
 
-1. **New（新建）** -> **Blueprint（蓝图）** -> **AI Controller（AI控制器）**
+## 步骤
 
-	您需要搜索 AI Controller(AI控制器)，因为它们和Player Controller(玩家控制器)是不同的。
+1. **New** -> **Blueprint** -> **AI Controller**
+
+	需要搜索 AI 控制器，因其与玩家控制器并不相同。
 
 	![](AIC.png)
 
-	命名该 **蓝图** 为 `Follower_AI_CON` 。
+	将该 **蓝图** 命名为 “Follower_AI_CON”。
 
-1. **New（新建）** -> **Blueprint（蓝图）** -> **Character（角色）**
+1. **New** -> **Blueprint** -> **Character**
 
 	![](charBP.png)
 
-	命名该 **蓝图** 为  `AI_Character` 。
+	将该 **蓝图** 命名为 “AI_Character”。
 
-1. **New（新建）** -> **Miscellaneous（其他）** -> **Behavior Tree（行为树）**
+1. **New** -> **Artificial Intelligence** -> **Behavior Tree**
 
 	[REGION:raw]
 	![](newBT.png)
 	[/REGION]
 
-	命名该 **行为树** 为 `FollowerBT` 。
+	将 **行为树** 命名为 “FollowerBT”。
 
-	[REGION:note]
-	在列表中没有看到行为树？ 目前， **Behavior Trees(行为树)**  被认为是试验性的功能，您需要在编辑器中启用它们。
-	
-	1. 跳转到 **Edit（编辑）** -> **Editor Preferences（编辑器偏好设置）** -> **Experimental（试验性功能）**
-	1. 启用 Behavior Tree Editor（行为树编辑器）
-
-	![](EnableBT.png)
-
-	[/REGION]
-
-1. **New（新建）** -> **Miscellaneous（其他）** ->  **Blackboard（黑板）** 。
+1. **New** -> **Artificial Intelligence** -> **Blackboard**。
 	
 	[REGION:raw]
 	![](newBB.png)
 	[/REGION]	
 
-	命名该 **Blackboard（黑板）** 为 `FollowerBlackboard` 。
+	将 **黑板** 命名为 “FollowerBlackboard”。
 
----
 
 %Steps%
+
+
+
+
+

@@ -1,68 +1,73 @@
-﻿INTSourceChangelist:2423859
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:カメラ
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
-Description: Camera は、ワールドを見るプレーヤーの視点を表します。
+Description:カメラは、ワールドを見るプレーヤーの視点を表します。
+Version:4.9
+type:reference
+parent:Gameplay/Framework
+order:6
+tags:Gameplay Framework
 
-**Camera** は、プレーヤーがどのようにワールドを見ているのか、プレーヤーの視点を表します。従って 
-カメラは人間に制御されたプレーヤーのみに関連性をもちます。**PlayerController** は camera クラスを指定し、 
-プレーヤーが見ているワールドの位置と方向の計算に使う **カメラ** アクタを 
+**Camera (カメラ)** は、プレーヤーがどのようにワールドを見ているのか、プレーヤーの視点を表します。従って 
+カメラは人が制御するプレーヤーのみに関連性をもちます。**PlayerController** は Camera クラスを指定し、 
+プレーヤーが見ているワールドの位置と方向の計算に使う Camera アクタを 
 インスタンス化します。
 
 [REGION:note]
-**Cameras** の操作のサンプルは、 [カメラの使用方法](Gameplay\HowTo\UsingCameras) を参照してください。[CameraAnim 機能](Gameplay\HowTo\UsingCameras) を使って、カメラをアニメーションへ重ねることもできます。
+Cameras の操作方法の例は、 [カメラの使用方法](Gameplay\HowTo\UsingCameras) を参照してください。[CameraAnim 機能](Gameplay\HowTo\UsingCameras) を使って、カメラをアニメーションへ重ねることもできます。
 [/REGION]
 
-## CameraComponent と CameraActor
+## Camera コンポーネントと Camera アクタ
 
-カメラのプロパティと動作は全て CameraComponent で設定します。つまり、CameraActor クラスは主に CameraComponent として機能するので、
+カメラのプロパティと動作は全て **CameraComponent** で設定します。CameraActor クラスは主に Camera コンポーネントのラッパーとして機能するので、
 カメラを他のクラスの中ではなく直接レベルに配置することができます。  
 
-CameraComponent では、カメラをパースペクティブモードにするか、正投影モードにするかの設定ができます。パースペクティブモードに対しては、垂直に合わせる視野角 (FOV) が設定可能で、 
+CameraComponentで、カメラを [パースペクティブ] モードまたは [正投影] モードのどちらかへ設定することができます。パースペクティブ モードに対しては、垂直に合わせる視野角 (FOV) が設定可能で、 
 正投影モードに対しては、ワールド単位の幅の設定ができます。どちらのモードも、アスペクト比を設定することができ、 
-一般的なデバイスやディスプレイタイプ用のプリセット アスペクト比が設定できます。[ポストプロセス エフェクト](Engine/Rendering\PostProcessEffects) をカメラへ追加したり、ポストプロセスエフェクトの強度をスケーリングすることができます。
+一般的なデバイスやディスプレイタイプ用のプリセット アスペクト比が設定できます。[ポストプロセス エフェクト](Engine/Rendering\PostProcessEffects) をカメラへ追加したり、ポストプロセス エフェクトの強度をスケーリングすることもできます。
 
-エディタにおける視覚的な配置を補助するため、2 つのコンポーネントが CameraComponent に追加されますが、それらはゲーム中には表示されません。FrustumComponent により 
+エディタにおける視覚的な配置を補助するため、2 つのコンポーネントが Camera コンポーネントに追加されますが、それらはゲーム中には表示されません。**FrustumComponent** により 
 カメラの視野角の場所が表示されます。デフォルトでは非表示ですが、 **ビューポート** の**[Show] > [Advanced] > [Camera Frustums]** を選択すると表示することができます。StaticMeshComponent は 
  レベル内のカメラの配置を表示します。 
 
 
 ## PlayerCameraManager
 
-PlayerCameraManager クラスは、カメラマネージャーです。ビルトインされている動作により、ペンディングしているビュータッゲットとコンソールのコマンドでトリガーされるデバッグカメラがデフォルトでブレンドされます。もしくは、 
-カメラの視点、またその他全てのカメラ設定をどうするのか ViewTarget にクエリーを行います。通常は PlayerCameraManager サブクラスは必要ありません。 
-自動ルールでは不十分な場合、ViewTarget を設定するルールを追加することができます。
+**PlayerCameraManager** クラスは、カメラ マネージャーです。デフォルトでは、ビルトインされている動作により、ペンディングしているビューターゲットとコンソールのコマンドでトリガーされるデバッグカメラがブレンドされます。デフォルトでない場合は、カメラのビューポイントおよび 
+他の全てのカメラ設定をどうするかを ViewTarget にクエリーします。通常は PlayerCameraManager サブクラスは不要です。 
+自動ルールでは不十分な場合、ViewTarget を設定するルールを追加する以外は、PlayerCameraManager への変更はほとんど必要ありません。
 
-PlayerCameraManager のサブクラス化が必要で、これを C++コードではなくブループリントで行う場合、カメラのカスタム実装に「BlueprintUpdateCamera」関数を使用します。戻り値を使用するために _true_ を返すか、
-戻り値を無視するために _false_ を返します。
+PlayerCameraManager のサブクラス化が必要で、これを C++コードではなくブループリントで行う場合、カメラのカスタム実装に `BlueprintUpdateCamera` 関数を使用します。この関数を使用する場合、
+戻り値を使用するために _true_ を返し、戻り値を無視するために _false_ を返します。
 
 ### ViewTarget
 
-PlayerCameraManager で定義される ViewTarget 構造体は、理想的な視点 (POV) を持った PlayerCameraManager を提供します。ViewTarget は、ターゲットアクタ、
-ターゲットアクタのコントローラ (ローカル以外で制御されるポーン）、スペクテート中のポーンの遷移やその他の変更を通じて同一プレーヤーを追尾するために使用する PlayerState に関する情報を含みます。POV プロパティ経由で PlayerCameraManager へパスされるカメラ情報は、
- 'FMinimalViewInfo' 構造体形式です。この構造体には、位置、回転、投影モード (パースペクティブまたは正投影) 、FOV 、正投影幅、アスペクト比、ポストプロセスエフェクトなど、
-CameraComponent からの基本的なカメラ情報が含まれます。これらの値を PlayerCameraManager が受け取ることにより、
-PlayerCamera はカメラマネージメント中に 2 つのカメラモードをブレンドすることができます。 
+PlayerCameraManager で定義される **ViewTarget** 構造体は、理想的な視点 (POV) を持った PlayerCameraManager を提供します。ViewTarget にはターゲットアクタの情報、ターゲットアクタの
+コントローラー (ローカル外でコントロールされるポーンに対して)、ポーンのトランジションや観戦中のその他の変更を通して、同一プレイヤーの追跡を行う PlayerState に関する情報が含まれます。POV プロパティ経由で PlayerCameraManager へ渡されるカメラ情報は、
+'FMinimalViewInfo' 構造体形式です。この構造体には、位置、回転、投影モード (パースペクティブまたは正投影) 、FOV 、正投影幅、アスペクト比、ポストプロセスエフェクトなど、
+CameraComponent からの基本的なカメラ情報が含まれます。PlayerCameraManager にこうした値へのアクセスを提供することにより、
+PlayerCameraManager はカメラのマネージメント中に 2 つのカメラ モード間でブレンドすることができます。 
 
 
 ## Camera Responsibility Chain
 
-ゲーム固有のカメラ動作は、カメラの「Chain of Responsibility」と一緒にどの時点でも提供することができます。ALocalPlayer へ渡す前に、以下のクラスを通じて上から下へフローし、レンダリング、シーン表示、そして関連システムで終了します。
+ゲーム固有のカメラ動作は、カメラの「responsibility chain (責任の連鎖) 」に沿ってどの時点でも提供することができます。これは、以下のクラスを通って一番上から下に流れてから、ALocalPlayer へ渡され、レンダリング、シーン表示、そして関連システムで終了します。
 
 ### CameraComponent 
 
-ViewTarget が CameraActor または CameraComponent を含み bFindCameraComponentWhenViewTarget が _true_ に設定されているアクタである場合、
-CameraComponent はカメラのプロパティに関する情報を提供します。`bTakeCameraControlWhenPossessed` は、すべてのポーンに設定することができる関連プロパティです。これにより、PlayerController に所有されるとポーンは自動的に ViewTarget になります。
+ViewTarget が CameraActor または **CameraComponent** を含み bFindCameraComponentWhenViewTarget が _true_ に設定されているアクタである場合、
+CameraComponent はカメラのプロパティに関する情報を提供します。すべてのポーンに設定することができる関連プロパティは、`bTakeCameraControlWhenPossessed` です。これにより、PlayerController に所有されるとポーンは自動的に ViewTarget になります。
 
 ### Actor or PlayerController
 
-PlayerController とアクタの両方に CalcCamera 関数が含まれています。アクタの CalcCamera 関数は、「bFindCameraComponentWhenViewTarget」が _true_ で CameraComponent が存在する場合、アクタの最初の CameraComponent のカメラビューを返します。  
-そうでない場合は、アクタの位置と回転を取得します。PlayerController の CalcCamera 関数の動きは 2 つ目のケースと似ており、所有されたポーンが存在する場合は 
+**PlayerController** と **アクタ** の両方に CalcCamera 関数が含まれています。アクタの CalcCamera 関数は、`bFindCameraComponentWhenViewTarget` が _true_ で CameraComponent が存在する場合、アクタの最初の CameraComponent のカメラビューを返します。  
+そうでなければアクタの位置と回転を受け取ります。PlayerController の CalcCamera 関数の動きは 2 つ目のケースと似ており、所有されたポーンが存在する場合は 
 その位置および PlayerController の回転制御を返します。  
 
 
 ### PlayerCameraManager
 
-PlayerCameraManager 内の UpdateViewTarget 関数は、ViewTarget にクエリを実行して、 ViewTarget の POV を返します。APlayerCamera がサブクラス化されていて、CameraComponent 経由で見ていない場合、 
-この関数はいわゆる BlueprintUpdateCamera でもあります。
+PlayerCameraManager 内の **UpdateViewTarget** 関数は、ViewTarget にクエリを実行して、 ViewTarget の POV を返します。APlayerCamera がサブクラス化されていて、CameraComponent 経由で見ていない場合、 
+この関数も BlueprintUpdateCamera を呼び出します。
 

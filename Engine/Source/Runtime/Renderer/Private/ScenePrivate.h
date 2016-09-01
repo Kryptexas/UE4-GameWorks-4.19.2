@@ -88,7 +88,7 @@ public:
 #include "DeferredShadingRenderer.h"
 #include "FogRendering.h"
 #include "BasePassRendering.h"
-#include "ForwardBasePassRendering.h"
+#include "MobileBasePassRendering.h"
 #include "DynamicPrimitiveDrawing.h"
 #include "TranslucentRendering.h"
 #include "VelocityRendering.h"
@@ -412,6 +412,49 @@ private:
 /** Random table for occlusion **/
 extern FOcclusionRandomStream GOcclusionRandomStream;
 
+
+/**
+Helper class to time sections of the GPU work.
+Buffers multiple frames to avoid waiting on the GPU so times are a little lagged.
+*/
+class FLatentGPUTimer
+{
+	static const int32 NumBufferedFrames = FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1;
+
+public:
+
+	FLatentGPUTimer(int32 InAvgSamples = 30);
+
+	void Release();
+
+	/** Retrieves the most recently ready query results. */
+	bool Tick(FRHICommandListImmediate& RHICmdList);
+	/** Kicks off the query for the start of the rendering you're timing. */
+	void Begin(FRHICommandListImmediate& RHICmdList);
+	/** Kicks off the query for the end of the rendering you're timing. */
+	void End(FRHICommandListImmediate& RHICmdList);
+
+	/** Returns the most recent time in ms. */
+	float GetTimeMS();
+	/** Gets the average time in ms. Average is tracked over AvgSamples. */
+	float GetAverageTimeMS();
+
+private:
+
+	int32 GetQueryIndex();
+
+	//Average Tracking;
+	int32 AvgSamples;
+	TArray<float> TimeSamples;
+	float TotalTime;
+	int32 SampleIndex;
+
+	int32 QueryIndex;
+	FRenderQueryRHIRef StartQueries[NumBufferedFrames];
+	FRenderQueryRHIRef EndQueries[NumBufferedFrames];
+	FGraphEventRef QuerySubmittedFences[NumBufferedFrames];
+};
+
 /**
  * The scene manager's private implementation of persistent view state.
  * This class is associated with a particular camera across multiple frames by the game thread.
@@ -427,13 +470,14 @@ public:
 
 		FORCEINLINE bool operator == (const FProjectedShadowKey &Other) const
 		{
-			return (PrimitiveId == Other.PrimitiveId && Light == Other.Light && ShadowSplitIndex == Other.ShadowSplitIndex && bTranslucentShadow == Other.bTranslucentShadow);
+			return (PrimitiveId == Other.PrimitiveId && Light == Other.Light && ShadowSplitIndex == Other.ShadowSplitIndex && CacheMode == Other.CacheMode && bTranslucentShadow == Other.bTranslucentShadow);
 		}
 
 		FProjectedShadowKey(const FProjectedShadowInfo& ProjectedShadowInfo)
 			: PrimitiveId(ProjectedShadowInfo.GetParentSceneInfo() ? ProjectedShadowInfo.GetParentSceneInfo()->PrimitiveComponentId : FPrimitiveComponentId())
 			, Light(ProjectedShadowInfo.GetLightSceneInfo().Proxy->GetLightComponent())
 			, ShadowSplitIndex(ProjectedShadowInfo.CascadeSettings.ShadowSplitIndex)
+			, CacheMode(ProjectedShadowInfo.CacheMode)
 			, bTranslucentShadow(ProjectedShadowInfo.bTranslucentShadow)
 		{
 		}
@@ -442,6 +486,7 @@ public:
 			: PrimitiveId(InPrimitiveId)
 			, Light(InLight)
 			, ShadowSplitIndex(InSplitIndex)
+			, CacheMode(SDCM_Uncached)
 			, bTranslucentShadow(bInTranslucentShadow)
 		{
 		}
@@ -455,6 +500,7 @@ public:
 		FPrimitiveComponentId PrimitiveId;
 		const ULightComponent* Light;
 		int32 ShadowSplitIndex;
+		EShadowDepthCacheMode CacheMode;
 		bool bTranslucentShadow;
 	};
 
@@ -583,11 +629,15 @@ private:
 	TArray<UMaterialInstanceDynamic*> MIDPool;
 	uint32 MIDUsedCount;
 
-	// if TemporalAA is on this cycles through 0..TemporalAASampleCount-1
+	// if TemporalAA is on this cycles through 0..TemporalAASampleCount-1, ResetViewState() puts it back to 0
 	uint8 TemporalAASampleIndex;
 	// >= 1, 1 means there is no TemporalAA
 	uint8 TemporalAASampleCount;
 
+	// counts up by one each frame, warped in 0..7 range, ResetViewState() puts it back to 0
+	uint32 FrameIndexMod8;
+	
+	// counts up by one each frame, warped in 0..3 range, ResetViewState() puts it back to 0
 	int32 DistanceFieldTemporalSampleIndex;
 
 	// light propagation volume used in this view
@@ -624,6 +674,8 @@ public:
 	FTextureRHIRef SelectionOutlineCacheKey;
 	TRefCountPtr<FRHIShaderResourceView> SelectionOutlineCacheValue;
 
+	FForwardLightingViewResources ForwardLightingResources;
+
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
 
@@ -640,8 +692,8 @@ public:
 	FRWBuffer CapsuleTileIntersectionCountsBuffer;
 
 	/** Timestamp queries around separate translucency, used for auto-downsampling. */
-	TArray<FRenderQueryRHIRef, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1> > PendingTranslucencyStartTimestamps;
-	TArray<FRenderQueryRHIRef, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1> > PendingTranslucencyEndTimestamps;
+	FLatentGPUTimer TranslucencyTimer;
+	FLatentGPUTimer SeparateTranslucencyTimer;
 
 	/** This is float since it is derived off of UWorld::RealTimeSeconds, which is relative to BeginPlay time. */
 	float LastAutoDownsampleChangeTime;
@@ -659,22 +711,37 @@ public:
 	// True when Sequencer has paused
 	bool bSequencerIsPaused;
 
-	FTemporalLODState TemporalLODState;	
+	FTemporalLODState TemporalLODState;
 
-	// call after SetupTemporalAA()
+	// call after OnFrameRenderingSetup()
 	virtual uint32 GetCurrentTemporalAASampleIndex() const
 	{
 		return TemporalAASampleIndex;
 	}
 
-	// call after SetupTemporalAA()
+	// call after OnFrameRenderingSetup()
 	uint32 GetCurrentTemporalAASampleCount() const
 	{
 		return TemporalAASampleCount;
 	}
 
+	virtual uint32 GetFrameIndexMod8() const
+	{
+		return FrameIndexMod8;
+	}
+
+	// to make rendering more deterministic
+	virtual void ResetViewState()
+	{
+		TemporalAASampleIndex = 0;
+		FrameIndexMod8 = 0;
+		DistanceFieldTemporalSampleIndex = 0;
+
+		ReleaseDynamicRHI();
+	}
+
 	// @param SampleCount 0 or 1 for no TemporalAA 
-	void SetupTemporalAA(uint32 SampleCount, const FSceneViewFamily& Family)
+	void OnFrameRenderingSetup(uint32 SampleCount, const FSceneViewFamily& Family)
 	{
 		if(!SampleCount)
 		{
@@ -686,6 +753,8 @@ public:
 		if (!Family.bWorldIsPaused)
 		{
 			TemporalAASampleIndex++;
+
+			FrameIndexMod8 = (FrameIndexMod8 + 1) % 8;
 		}
 
 		if(TemporalAASampleIndex >= TemporalAASampleCount)
@@ -860,16 +929,9 @@ public:
 		IndirectShadowLightDirectionVertexBuffer.SafeRelease();
 		IndirectShadowLightDirectionSRV.SafeRelease();
 		CapsuleTileIntersectionCountsBuffer.Release();
-
-		for (int32 QueryIndex = 0; QueryIndex < PendingTranslucencyStartTimestamps.Num(); QueryIndex++)
-		{
-			PendingTranslucencyStartTimestamps[QueryIndex].SafeRelease();
-		}
-
-		for (int32 QueryIndex = 0; QueryIndex < PendingTranslucencyEndTimestamps.Num(); QueryIndex++)
-		{
-			PendingTranslucencyEndTimestamps[QueryIndex].SafeRelease();
-		}
+		TranslucencyTimer.Release();
+		SeparateTranslucencyTimer.Release();
+		ForwardLightingResources.Release();
 	}
 
 	// FSceneViewStateInterface
@@ -882,12 +944,8 @@ public:
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
-		uint32 Count = MIDPool.Num();
-
-		for(uint32 i = 0; i < Count; ++i)
+		for(UMaterialInstanceDynamic*& MID : MIDPool)
 		{
-			UMaterialInstanceDynamic* MID = MIDPool[i];
-
 			Collector.AddReferencedObject(MID);
 		}
 	}
@@ -1363,7 +1421,7 @@ public:
 
 	FIndirectLightingCacheAllocation* FindPrimitiveAllocation(FPrimitiveComponentId PrimitiveId);	
 
-	/** Updates indirect lighting in the cache based on visibility syncronously. */
+	/** Updates indirect lighting in the cache based on visibility synchronously. */
 	void UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview);
 
 	/** Starts a task to update the cache primitives.  Results and task ref returned in the FILCUpdatePrimTaskData structure */
@@ -1639,6 +1697,21 @@ private:
 
 typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
 
+class FCachedShadowMapData
+{
+public:
+	FWholeSceneProjectedShadowInitializer Initializer;
+	FShadowMapRenderTargetsRefCounted ShadowMap;
+	float LastUsedTime;
+	bool bCachedShadowMapHasPrimitives;
+
+	FCachedShadowMapData(const FWholeSceneProjectedShadowInitializer& InInitializer, float InLastUsedTime) :
+		Initializer(InInitializer),
+		LastUsedTime(InLastUsedTime),
+		bCachedShadowMapHasPrimitives(true)
+	{}
+};
+
 #if WITH_EDITOR
 	class FPixelInspectorData
 	{
@@ -1669,6 +1742,15 @@ typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
 class FScene : public FSceneInterface
 {
 public:
+
+	struct FReadOnlyCVARCache
+	{
+		FReadOnlyCVARCache();
+		bool bEnablePointLightShadows;
+		bool bEnableStationarySkylight;
+		bool bEnableAtmosphericFog;
+		bool bEnableLowQualityLightmaps;
+	};
 
 	/** An optional world associated with the scene. */
 	UWorld* World;
@@ -1709,12 +1791,17 @@ public:
 	template<typename LightMapPolicyType>
 	TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& GetBasePassDrawList(EBasePassDrawListType DrawType);
 
-	/** Forward shading base pass draw lists */
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FUniformLightMapPolicy,0> > BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_MAX];
+	/** Mobile base pass draw lists */
+	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, 0> > MobileBasePassUniformLightMapPolicyDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, 0> > MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_MAX];
+
 
 	/** Maps a light-map type to the appropriate base pass draw list. */
 	template<typename LightMapPolicyType>
-	TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType,0> >& GetForwardShadingBasePassDrawList(EBasePassDrawListType DrawType);
+	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<LightMapPolicyType,0> >& GetMobileBasePassDrawList(EBasePassDrawListType DrawType);
+
+	template<typename LightMapPolicyType>
+	TStaticMeshDrawList<TMobileBasePassDrawingPolicy<LightMapPolicyType, 0> >& GetMobileBasePassCSMDrawList(EBasePassDrawListType DrawType);
 
 	/**
 	 * The following arrays are densely packed primitive data needed by various
@@ -1744,6 +1831,9 @@ public:
 	 */
 	TSparseArray<FLightSceneInfoCompact> InvisibleLights;
 
+	/** Map from light id to the cached shadowmap data for that light. */
+	TMap<int32, FCachedShadowMapData> CachedShadowMaps;
+
 	/** The mobile quality level for which static draw lists have been built. */
 	bool bStaticDrawListsMobileHDR;
 	bool bStaticDrawListsMobileHDR32bpp;
@@ -1765,6 +1855,9 @@ public:
 
 	/** The directional light to use for simple dynamic lighting, if any. */
 	FLightSceneInfo* SimpleDirectionalLight;
+
+	/** For the mobile renderer, the first directional light in each lighting channel. */
+	FLightSceneInfo* MobileDirectionalLights[NUM_LIGHTING_CHANNELS];
 
 	/** The sun light for atmospheric effect, if any. */
 	FLightSceneInfo* SunLight;
@@ -1839,9 +1932,6 @@ public:
 	/** Set by the rendering thread to signal to the game thread that the scene needs a static lighting build. */
 	volatile mutable int32 NumUncachedStaticLightingInteractions;
 
-	FLinearColor UpperDynamicSkylightColor;
-	FLinearColor LowerDynamicSkylightColor;
-
 	FMotionBlurInfoData MotionBlurInfoData;
 
 	/** Uniform buffers for parameter collections with the corresponding Ids. */
@@ -1853,6 +1943,8 @@ public:
 	float DefaultMaxDistanceFieldOcclusionDistance;
 
 	float GlobalDistanceFieldViewDistance;
+
+	FReadOnlyCVARCache ReadOnlyCVARCache;
 
 #if WITH_EDITOR
 	/** Editor Pixel inspector */
@@ -1897,7 +1989,6 @@ public:
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void UpdateLightTransform(ULightComponent* Light) override;
 	virtual void UpdateLightColorAndBrightness(ULightComponent* Light) override;
-	virtual void UpdateDynamicSkyLight(const FLinearColor& UpperColor, const FLinearColor& LowerColor) override;
 	virtual void AddExponentialHeightFog(UExponentialHeightFogComponent* FogComponent) override;
 	virtual void RemoveExponentialHeightFog(UExponentialHeightFogComponent* FogComponent) override;
 	virtual void AddAtmosphericFog(UAtmosphericFogComponent* FogComponent) override;
@@ -1918,12 +2009,6 @@ public:
 	virtual void DumpStaticMeshDrawListStats() const override;
 	virtual void SetClearMotionBlurInfoGameThread() override;
 	virtual void UpdateParameterCollections(const TArray<FMaterialParameterCollectionInstanceResource*>& InParameterCollections) override;
-
-	/** Determines whether the scene has dynamic sky lighting. */
-	bool HasDynamicSkyLighting() const
-	{
-		return (!UpperDynamicSkylightColor.Equals(FLinearColor::Black) || !LowerDynamicSkylightColor.Equals(FLinearColor::Black));
-	}
 
 	/** Determines whether the scene has atmospheric fog and sun light. */
 	bool HasAtmosphericFog() const
@@ -1963,6 +2048,8 @@ public:
 	 * If the proxy was not found in the scene's reflection state, the outputs are not written to.
 	 */
 	void GetCaptureParameters(const FReflectionCaptureProxy* ReflectionProxy, FTextureRHIParamRef& ReflectionCubemapArray, int32& ArrayIndex) const;
+
+	int64 GetCachedWholeSceneShadowMapsSize() const;
 
 	/**
 	 * Marks static mesh elements as needing an update if necessary.
@@ -2029,9 +2116,26 @@ public:
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
 
-	bool ShouldRenderSkylight() const
+	bool ShouldRenderSkylight(EBlendMode BlendMode) const
 	{
-		return SkyLight && !SkyLight->bHasStaticLighting && GSupportsRenderTargetFormat_PF_FloatRGBA;
+		return ShouldRenderSkylight_Internal(BlendMode) && ReadOnlyCVARCache.bEnableStationarySkylight;
+	}
+
+	bool ShouldRenderSkylight_Internal(EBlendMode BlendMode) const
+	{
+		if (IsTranslucentBlendMode(BlendMode))
+		{
+			return SkyLight && !SkyLight->bHasStaticLighting;
+		}
+		else
+	{
+		const bool bRenderSkylight = SkyLight
+			&& !SkyLight->bHasStaticLighting
+			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+			&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
+
+		return bRenderSkylight;
+	}
 	}
 
 	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override

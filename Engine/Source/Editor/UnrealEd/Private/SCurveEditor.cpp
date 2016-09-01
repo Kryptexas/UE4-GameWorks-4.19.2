@@ -1272,6 +1272,9 @@ void SCurveEditor::DeleteSelectedKeys()
 
 FReply SCurveEditor::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
+	// End any transactions that weren't ended cleanly
+	EndDragTransaction();
+
 	const bool bLeftMouseButton = InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton;
 	const bool bMiddleMouseButton = InMouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton;
 	const bool bRightMouseButton = InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton;
@@ -2708,6 +2711,7 @@ bool SCurveEditor::IsEditingEnabled() const
 
 void SCurveEditor::AddReferencedObjects( FReferenceCollector& Collector )
 {
+	Collector.AddReferencedObject( Settings );
 	Collector.AddReferencedObject( CurveFactory );
 }
 

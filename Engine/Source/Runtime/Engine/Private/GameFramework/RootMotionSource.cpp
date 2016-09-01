@@ -402,6 +402,8 @@ FRootMotionSource_RadialForce::FRootMotionSource_RadialForce()
 	, bNoZForce(false)
 	, StrengthDistanceFalloff(nullptr)
 	, StrengthOverTime(nullptr)
+	, bUseFixedWorldDirection(false)
+	, FixedWorldDirection(EForceInit::ForceInitToZero)
 {
 }
 
@@ -423,12 +425,14 @@ bool FRootMotionSource_RadialForce::Matches(const FRootMotionSource* Other) cons
 
 	return bIsPush == OtherCast->bIsPush &&
 		bNoZForce == OtherCast->bNoZForce &&
+		bUseFixedWorldDirection == OtherCast->bUseFixedWorldDirection &&
 		StrengthDistanceFalloff == OtherCast->StrengthDistanceFalloff &&
 		StrengthOverTime == OtherCast->StrengthOverTime &&
 		(LocationActor == OtherCast->LocationActor ||
 		FVector::PointsAreNear(Location, OtherCast->Location, 1.0f)) &&
 		FMath::IsNearlyEqual(Radius, OtherCast->Radius, SMALL_NUMBER) &&
-		FMath::IsNearlyEqual(Strength, OtherCast->Strength, SMALL_NUMBER);
+		FMath::IsNearlyEqual(Strength, OtherCast->Strength, SMALL_NUMBER) &&
+		FixedWorldDirection.Equals(OtherCast->FixedWorldDirection, 3.0f);
 }
 
 bool FRootMotionSource_RadialForce::MatchesAndHasSameState(const FRootMotionSource* Other) const
@@ -488,11 +492,18 @@ void FRootMotionSource_RadialForce::PrepareRootMotion
 			CurrentStrength = Strength * FMath::Clamp(AdditiveStrengthFactor, 0.f, 1.f);
 		}
 
-		Force = (ForceLocation - CharacterLocation).GetSafeNormal() * CurrentStrength;
-
-		if (bIsPush)
+		if (bUseFixedWorldDirection)
 		{
-			Force *= -1.f;
+			Force = FixedWorldDirection.Vector() * CurrentStrength;
+		}
+		else
+		{
+			Force = (ForceLocation - CharacterLocation).GetSafeNormal() * CurrentStrength;
+			
+			if (bIsPush)
+			{
+				Force *= -1.f;
+			}
 		}
 	}
 
@@ -534,6 +545,8 @@ bool FRootMotionSource_RadialForce::NetSerialize(FArchive& Ar, UPackageMap* Map,
 	Ar << bNoZForce;
 	Ar << StrengthDistanceFalloff;
 	Ar << StrengthOverTime;
+	Ar << bUseFixedWorldDirection;
+	Ar << FixedWorldDirection;
 
 	bOutSuccess = true;
 	return true;
@@ -1503,10 +1516,10 @@ void FRootMotionSourceGroup::AccumulateRootMotionVelocityFromSource
 	// Transform RootMotion if needed (world vs local space)
 	if (RootMotionSource.bInLocalSpace && MoveComponent.UpdatedComponent)
 	{
-		RootMotionParams.Set( RootMotionParams.RootMotionTransform * MoveComponent.UpdatedComponent->GetComponentToWorld().GetRotation() );
+		RootMotionParams.Set( RootMotionParams.GetRootMotionTransform() * MoveComponent.UpdatedComponent->GetComponentToWorld().GetRotation() );
 	}
 
-	const FVector RootMotionVelocity = RootMotionParams.RootMotionTransform.GetTranslation();
+	const FVector RootMotionVelocity = RootMotionParams.GetRootMotionTransform().GetTranslation();
 
 	if (RootMotionSource.AccumulateMode == ERootMotionAccumulateMode::Override)
 	{

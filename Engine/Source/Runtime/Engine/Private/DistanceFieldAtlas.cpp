@@ -7,10 +7,22 @@
 #include "EnginePrivate.h"
 #include "StaticMeshResources.h"
 #include "DistanceFieldAtlas.h"
+#include "CookStats.h"
 
 #if WITH_EDITOR
 #include "DerivedDataCacheInterface.h"
 #include "MeshUtilities.h"
+#endif
+
+#if ENABLE_COOK_STATS
+namespace DistanceFieldCookStats
+{
+	FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("DistanceField.Usage"), TEXT(""));
+	});
+}
 #endif
 
 static TAutoConsoleVariable<int32> CVarDistField(
@@ -261,13 +273,17 @@ void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStatic
 {
 	TArray<uint8> DerivedData;
 
+	COOK_STAT(auto Timer = DistanceFieldCookStats::UsageStats.TimeSyncWork());
 	if (GetDerivedDataCacheRef().GetSynchronous(*InDDCKey, DerivedData))
 	{
+		COOK_STAT(Timer.AddHit(DerivedData.Num()));
 		FMemoryReader Ar(DerivedData, /*bIsPersistent=*/ true);
 		Ar << *this;
 	}
 	else
 	{
+		// We don't actually build the resource until later, so only track the cycles used here.
+		COOK_STAT(Timer.TrackCyclesOnly());
 		FAsyncDistanceFieldTask* NewTask = new FAsyncDistanceFieldTask;
 		NewTask->DDCKey = InDDCKey;
 		NewTask->StaticMesh = Mesh;
@@ -392,6 +408,16 @@ uint32 FBuildDistanceFieldThreadRunnable::Run()
 	return 0;
 }
 
+FAsyncDistanceFieldTask::FAsyncDistanceFieldTask()
+	: StaticMesh(nullptr)
+	, GenerateSource(nullptr)
+	, DistanceFieldResolutionScale(0.0f)
+	, bGenerateDistanceFieldAsIfTwoSided(false)
+	, GeneratedVolumeData(nullptr)
+{
+}
+
+
 FDistanceFieldAsyncQueue::FDistanceFieldAsyncQueue() 
 {
 #if WITH_EDITOR
@@ -436,6 +462,11 @@ void FDistanceFieldAsyncQueue::AddTask(FAsyncDistanceFieldTask* Task)
 
 void FDistanceFieldAsyncQueue::BlockUntilBuildComplete(UStaticMesh* StaticMesh, bool bWarnIfBlocked)
 {
+	// We will track the wait time here, but only the cycles used.
+	// This function is called whether or not an async task is pending, 
+	// so we have to look elsewhere to properly count how many resources have actually finished building.
+	COOK_STAT(auto Timer = DistanceFieldCookStats::UsageStats.TimeAsyncWait());
+	COOK_STAT(Timer.TrackCyclesOnly());
 	bool bReferenced = false;
 	bool bHadToBlock = false;
 	double StartTime = 0;
@@ -519,6 +550,8 @@ void FDistanceFieldAsyncQueue::ProcessAsyncTasks()
 
 	for (int TaskIndex = 0; TaskIndex < LocalCompletedTasks.Num(); TaskIndex++)
 	{
+		// We want to count each resource built from a DDC miss, so count each iteration of the loop separately.
+		COOK_STAT(auto Timer = DistanceFieldCookStats::UsageStats.TimeSyncWork());
 		FAsyncDistanceFieldTask* Task = LocalCompletedTasks[TaskIndex];
 
 		ReferencedTasks.Remove(Task);
@@ -545,6 +578,7 @@ void FDistanceFieldAsyncQueue::ProcessAsyncTasks()
 			FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
 			Ar << *(Task->StaticMesh->RenderData->LODResources[0].DistanceFieldData);
 			GetDerivedDataCacheRef().Put(*Task->DDCKey, DerivedData);
+			COOK_STAT(Timer.AddMiss(DerivedData.Num()));
 		}
 
 		delete Task;

@@ -761,16 +761,16 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		NonConstView.ViewMatrices.TranslatedViewProjectionMatrix = NonConstView.ViewMatrices.TranslatedViewMatrix * NonConstView.ViewMatrices.ProjMatrix;
 		NonConstView.ViewMatrices.InvTranslatedViewProjectionMatrix = NonConstView.ViewMatrices.GetInvProjMatrix() * NonConstView.ViewMatrices.TranslatedViewMatrix.Inverse();
 
-		NonConstView.InitRHIResources(nullptr);
+		NonConstView.InitRHIResources();
 	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
-
 	Ret.Reset();
-	//Ret.Format = PF_FloatRGBA;
+	//regardless of input type, PF_FloatRGBA is required to properly accumulate between frames for a good result.
+	Ret.Format = PF_FloatRGBA;
 	Ret.DebugName = TEXT("TemporalAA");
 	Ret.AutoWritable = false;
 

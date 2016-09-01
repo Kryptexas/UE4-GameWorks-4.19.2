@@ -120,7 +120,10 @@ namespace UnrealBuildTool
 		{
 			base.SetUpGlobalEnvironment();
 
-			SetupXcodePaths(true);
+			if (!UEBuildConfiguration.bListBuildFolders)
+			{
+				SetupXcodePaths(true);
+			}
 		}
 
 		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
@@ -150,7 +153,7 @@ namespace UnrealBuildTool
 		string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
 		{
 			// @todo tvos merge: Make sure PlatformContext is proper (TVOS vs IOS platform)
-			PlatformContext.SetUpProjectEnvironment();
+			PlatformContext.SetUpProjectEnvironment(CompileEnvironment.Config.Target.Configuration);
 
 			string Result = "";
 
@@ -193,6 +196,11 @@ namespace UnrealBuildTool
 			{
 				Result += " -Wno-inconsistent-missing-override"; // too many missing overrides...
 				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
+			}
+
+			if (PlatformContext.IsBitcodeCompilingEnabled(CompileEnvironment.Config.Target.Configuration))
+			{
+				Result += " -fembed-bitcode";
 			}
 
 			Result += " -c";
@@ -362,7 +370,7 @@ namespace UnrealBuildTool
 
 		string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
 		{
-			PlatformContext.SetUpProjectEnvironment();
+			PlatformContext.SetUpProjectEnvironment(LinkEnvironment.Config.Target.Configuration);
 
 			string Result = "";
 
@@ -371,11 +379,25 @@ namespace UnrealBuildTool
 			bool bIsDevice = (LinkEnvironment.Config.Target.Architecture != "-simulator");
 			Result += String.Format(" -isysroot {0}Platforms/{1}.platform/Developer/SDKs/{1}{2}.sdk",
 				XcodeDeveloperDir, PlatformContext.GetXcodePlatformName(bIsDevice), IOSSDKVersion);
-			
+
+			if(PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Config.Target.Configuration))
+			{
+				FileItem OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
+				FileItem RemoteOutputFile = LocalToRemoteFileItem(OutputFile, false);
+
+				Result += " -fembed-bitcode -Xlinker -bitcode_verify -Xlinker -bitcode_hide_symbols -Xlinker -bitcode_symbol_map ";
+				Result += " -Xlinker " + Path.GetDirectoryName(RemoteOutputFile.AbsolutePath);
+			}
+
 			Result += " -dead_strip";
 			Result += " -m" + PlatformContext.GetXcodeMinVersionParam() + "=" + PlatformContext.GetRunTimeVersion();
-			Result += " -Wl,-no_pie";
+			Result += " -Wl";
+			if(!PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Config.Target.Configuration))
+			{
+				Result += "-no_pie";
+			}
 			Result += " -stdlib=libc++";
+			Result += " -ObjC";
 			//			Result += " -v";
 
 			Result += " " + PlatformContext.GetAdditionalLinkerFlags(LinkEnvironment.Config.Target.Configuration);
@@ -596,17 +618,16 @@ namespace UnrealBuildTool
 
 			// RPC utility parameters are in terms of the Mac side
 			LinkAction.WorkingDirectory = GetMacDevSrcRoot();
-			LinkAction.CommandPath = LinkerPath;
 
 			// build this up over the rest of the function
-			LinkAction.CommandArguments = LinkEnvironment.Config.bIsBuildingLibrary ? GetArchiveArguments_Global(LinkEnvironment) : GetLinkArguments_Global(LinkEnvironment);
+			string LinkCommandArguments = LinkEnvironment.Config.bIsBuildingLibrary ? GetArchiveArguments_Global(LinkEnvironment) : GetLinkArguments_Global(LinkEnvironment);
 
 			if (!LinkEnvironment.Config.bIsBuildingLibrary)
 			{
 				// Add the library paths to the argument list.
 				foreach (string LibraryPath in LinkEnvironment.Config.LibraryPaths)
 				{
-					LinkAction.CommandArguments += string.Format(" -L\"{0}\"", LibraryPath);
+					LinkCommandArguments += string.Format(" -L\"{0}\"", LibraryPath);
 				}
 
 				// Add the additional libraries to the argument list.
@@ -621,11 +642,11 @@ namespace UnrealBuildTool
 						LinkAction.PrerequisiteItems.Add(RemoteLibFile);
 
 						// and add to the commandline
-						LinkAction.CommandArguments += string.Format(" \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
+						LinkCommandArguments += string.Format(" \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
 					}
 					else
 					{
-						LinkAction.CommandArguments += string.Format(" -l\"{0}\"", AdditionalLibrary);
+						LinkCommandArguments += string.Format(" -l\"{0}\"", AdditionalLibrary);
 					}
 				}
 			}
@@ -700,12 +721,12 @@ namespace UnrealBuildTool
 			{
 				foreach (string Filename in InputFileNames)
 				{
-					LinkAction.CommandArguments += " " + Filename;
+					LinkCommandArguments += " " + Filename;
 				}
 				// @todo rocket lib: the -filelist command should take a response file (see else condition), except that it just says it can't
 				// find the file that's in there. Rocket.lib may overflow the commandline by putting all files on the commandline, so this 
 				// may be needed:
-				// LinkAction.CommandArguments += string.Format(" -filelist \"{0}\"", ConvertPath(ResponsePath));
+				// LinkCommandArguments += string.Format(" -filelist \"{0}\"", ConvertPath(ResponsePath));
 			}
 			else
 			{
@@ -720,26 +741,43 @@ namespace UnrealBuildTool
 				{
 					ResponseFile.Create(new FileReference(ConvertPath(ResponsePath.FullName)), InputFileNames);
 				}
-				LinkAction.CommandArguments += string.Format(" @\"{0}\"", ConvertPath(ResponsePath.FullName));
+				LinkCommandArguments += string.Format(" @\"{0}\"", ConvertPath(ResponsePath.FullName));
 			}
 
 			// Add the output file to the command-line.
-			LinkAction.CommandArguments += string.Format(" -o \"{0}\"", RemoteOutputFile.AbsolutePath);
+			LinkCommandArguments += string.Format(" -o \"{0}\"", RemoteOutputFile.AbsolutePath);
 
 			// Add the additional arguments specified by the environment.
-			LinkAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
+			LinkCommandArguments += LinkEnvironment.Config.AdditionalArguments;
 
 			// Only execute linking on the local PC.
 			LinkAction.bCanExecuteRemotely = false;
 
 			LinkAction.StatusDescription = string.Format("{0}", OutputFile.AbsolutePath);
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
-/*			// For iPhone, generate the dSYM file if the config file is set to do so
-			if (BuildConfiguration.bGeneratedSYMFile == true && Path.GetExtension(OutputFile.AbsolutePath) != ".a")
+
+			LinkAction.CommandPath = "sh";
+			if(LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping && Path.GetExtension(RemoteOutputFile.AbsolutePath) != ".a")
 			{
-				Log.TraceInformation("Generating the dSYM file - this will add some time to your build...");
-				RemoteOutputFile = GenerateDebugInfo(RemoteOutputFile);
-			}*/
+				// When building a shipping package, symbols are stripped from the exe as the last build step. This is a problem
+				// when re-packaging and no source files change because the linker skips symbol generation and dsymutil will 
+				// recreate a new .dsym file from a symboless exe file. It's just sad. To make things happy we need to delete 
+				// the output file to force the linker to recreate it with symbols again.
+				string	linkCommandArguments = "-c '";
+
+				linkCommandArguments += string.Format("rm -f \"{0}\";", RemoteOutputFile.AbsolutePath);
+				linkCommandArguments += string.Format("rm -f \"{0}\\*.bcsymbolmap\";", Path.GetDirectoryName(RemoteOutputFile.AbsolutePath));
+				linkCommandArguments += LinkerPath + " " + LinkCommandArguments + ";";
+
+				linkCommandArguments += "'";
+
+				LinkAction.CommandArguments = linkCommandArguments;
+			}
+			else
+			{
+				// This is not a shipping build so no need to delete the output file since symbols will not have been stripped from it.
+				LinkAction.CommandArguments = string.Format("-c '{0} {1}'", LinkerPath, LinkCommandArguments);
+			}
 
 			return RemoteOutputFile;
 		}
@@ -800,8 +838,7 @@ namespace UnrealBuildTool
 		{
             // Make a file item for the source and destination files
             FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
-            string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), Path.GetFileName(LocalExecutable.AbsolutePath) + ".dSYM");
-			string FullDestPath = FullDestPathRoot;
+			string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), Path.GetFileName(LocalExecutable.AbsolutePath) + ".dSYM");
 
             FileItem OutputFile;
             OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
@@ -816,9 +853,19 @@ namespace UnrealBuildTool
 
 			GenDebugAction.WorkingDirectory = GetMacDevSrcRoot();
 			GenDebugAction.CommandPath = "sh";
-			GenDebugAction.CommandArguments = string.Format("-c '/usr/bin/dsymutil \"{0}\" -f -o \"{1}\"'",
+			if(BuildConfiguration.bGeneratedSYMBundle)
+			{
+				GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{1}\"; /usr/bin/dsymutil \"{0}\" -o \"{1}\"; cd \"{1}/..\"; zip -r -y -1 {2}.zip {2}'",
 					Executable.AbsolutePath,
-					DestFile.AbsolutePath);
+                    DestFile.AbsolutePath,
+					Path.GetFileName(FullDestPathRoot));
+			}
+			else
+			{
+				GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{1}\"; /usr/bin/dsymutil \"{0}\" -f -o \"{1}\"'",
+						Executable.AbsolutePath,
+						DestFile.AbsolutePath);
+			}
 			GenDebugAction.PrerequisiteItems.Add(Executable);
 			GenDebugAction.ProducedItems.Add(DestFile);
 			GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;// string.Format("Generating debug info for {0}", Path.GetFileName(Executable.AbsolutePath));
@@ -1077,7 +1124,7 @@ namespace UnrealBuildTool
             }
 
             // For IOS/tvOS, generate the dSYM file if the config file is set to do so
-            if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true) && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
+			if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bGeneratedSYMBundle == true || BuildConfiguration.bUsePDBFiles == true) && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
             {
                 OutputFiles.Add(GenerateDebugInfo(Executable));
             }
@@ -1153,7 +1200,7 @@ namespace UnrealBuildTool
 					if (Directory.Exists(Project))
 					{
 						// ensure the plist, entitlements, and provision files are properly copied
-						var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+						var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(new FileReference(Project), PlatformContext) : new UEDeployTVOS(new FileReference(Project), PlatformContext));
 						DeployHandler.PrepTargetForDeployment(Target);
 
 						var ConfigName = Target.Configuration.ToString();
@@ -1268,9 +1315,17 @@ namespace UnrealBuildTool
 					{
 						RPCUtilHelper.CopyFile(RemoteExecutablePath, FilePath.FullName, false);
 
-						if (BuildConfiguration.bGeneratedSYMFile == true && Path.GetExtension(FilePath.FullName) != ".a")
+						if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bGeneratedSYMBundle == true) && Path.GetExtension(FilePath.FullName) != ".a")
 						{
-							string DSYMExt = ".dSYM";
+							string DSYMExt;
+							if(BuildConfiguration.bGeneratedSYMBundle)
+							{
+								DSYMExt = ".dSYM.zip";
+							}
+							else
+							{
+								DSYMExt = ".dSYM";
+							}
 							RPCUtilHelper.CopyFile(RemoteExecutablePath + DSYMExt, FilePath.FullName + DSYMExt, false);
 						}
 					}
@@ -1280,7 +1335,7 @@ namespace UnrealBuildTool
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
 					// ensure the plist, entitlements, and provision files are properly copied
-					var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+					var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(Target.ProjectFile, PlatformContext) : new UEDeployTVOS(Target.ProjectFile, PlatformContext));
 					DeployHandler.PrepTargetForDeployment(Target);
 
 					if (!bUseDangerouslyFastMode)

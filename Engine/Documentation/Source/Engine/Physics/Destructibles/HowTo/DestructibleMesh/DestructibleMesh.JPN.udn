@@ -1,39 +1,32 @@
-﻿INTSourceChangelist:2673035
+﻿INTSourceChangelist:2872497
 Availability:Docs
 Title:Destructible Meshes（被破壊メッシュ）
 Description:UE4 で Destructible Mesh（被破壊メッシュ）を作成および使用する
 SkillLevel:Intermediate
-バージョン：4.9
+Version: 4.9
 
-このページでは、アンリアル エンジン 4 で Destructible Static Mesh アクタを作成および使用する方法を説明します。 
-サンプルを使って、まず最初にコンテンツ ブラウザからスタティックメッシュを使って Destructible Static Mesh を作成します。 
-作成した Destructible Static Mesh をレベルに追加し、レベルがプレイされたら被破壊スタティックメッシュがフロアへ落ちて粉々に「粉砕する」ようにします。
-
+このページでは、Destructible Static Mesh アクタを作成および使用する方法を説明します。 
+サンプルを使って、まず最初にコンテンツ ブラウザからスタティックメッシュを使って Destructible Mesh を作成します。 
+作成した Destructible Mesh をレベルに追加し、レベルがプレイされたら Destructible Static Mesh がフロアへ落ちて粉々に粉砕するようにします。
 
 [REGION:note]
 このチュートリアルでは **スターター コンテンツ** を有効にした状態で **Blueprint First Person** テンプレートを使用します。 
 [/REGION]
 
-1. まず最初に **コンテンツ ブラウザ** の「 **Geometry** 」フォルダで、「**Meshes** 」フォルダの中の **1M_Cube** スタティックメッシュを選択します。
+1. **コンテンツ ブラウザ** から **「Geometry」** > **「Meshes」** フォルダを開き、**1M_Cube** スタティックメッシュを選択します。
 
 	![](Pick_SM_For_Des.png)
 
-1. 1M_Cube を選んだ状態で 1M_Cube を **右クリック** し表示メニューから **[Create Destructible Mesh (被破壊メッシュを作成)]** オプションを選択します。 
+1. 1M_Cube を選んだ状態で 1M_Cube を **右クリック** し表示メニューから **[Create Destructible Mesh (被破壊メッシュを作成)]** オプションを選択して、スタティックメッシュから Destructible Mesh アセットを作成し、それを被破壊メッシュエディタの中で開きます。 
 
 	![](Create_Des_Mesh.png)
 
-1. ここまで完了すると、次の 2 つの手順を行います。 
-	まず、Destructible Mesh アセットが新規作成され、そのスタティックメッシュと同じ名前の最後に **_DM** を追加してコンテンツ ブラウザに置かれます。
-	次に、**[Destructible Mesh Editor (被破壊メッシュエディタ)]** ウィンドウが表示されます。
-	**被破壊メッシュエディタ** ツールは、破壊に使うスタティックメッシュの分割の仕方や、これらのピースが Destructible Mesh の残りから分かれた時の反応の仕方について、様々な側面の調整ができるツールです。
-
-	![](DSM_Editor.png)
-
-1. **被破壊メッシュエディタ** ツールの **[Fracture Settings (フラクチャ設定)]** の **[Voronoi](https://en.wikipedia.org/wiki/Voronoi_diagram)** セクションで、**[Cell Site Count]** を 25 から **50**、**[Random Seed (ランダムシード)]** を **240** に設置します。
+1. **被破壊メッシュエディタ** ツールの **[Fracture Settings (フラクチャ設定)]** タブの **[Voronoi](https://en.wikipedia.org/wiki/Voronoi_diagram)** セクションで、 
+**[Cell Site Count]** を 25 から 50、[Random Seed (ランダムシード)] を **240** に変更します。
 
 	![](Setting_Up_Fracture.png)
 
-1. **[Fracture Mesh (メッシュを破砕)]** ボタンを押して、破砕されたメッシュの様子を確認します。
+1. ここで、**[Fracture Mesh (メッシュを破砕)]** ボタンを押して、破砕されたメッシュの様子を確認します。
 
 	![](Applying_Fracture.png)
 
@@ -41,34 +34,35 @@ SkillLevel:Intermediate
 	何が起こっているのか見やすいように、**Explode Amount (フラクチャ量)** スライダーを使って、破砕されてバラバラになったピースを移動させることができます。 
 	[/region]
 
-1. メッシュが破砕されたらコンテンツ ブラウザの「 **Meshes*** 」フォルダへ戻って、「**MAT_Inside** 」と「 **MAT_Outside** 」という名前でメッシュを 2 つ作成します。 
+1. **「Meshes」*** フォルダへ戻って、**「MAT_Inside」** と **「MAT_Outside」** という名前でメッシュを 2 つ作成します。 
 
 	![](Create_Two_New_Materails.png)
 
-1. **Mat_Outside** マテリアルを開き、**Constant 3 Vector** 表現式ノードと **Constant** 表現式ノードの 2 つのマテリアル表現式ノードをマテリアル グラフに追加します。
+1. **Mat_Outside** マテリアルをダブルクリックで開き、**Constant 3 Vector** 表現式ノードと **Constant** 表現式ノードの 2 つのマテリアル表現式ノードをマテリアル グラフに追加します。
 
 	![](Adding_MEN_To_Graph.png)
 
-1. ここで **Constant 3 Vector** を **Base Color** 入力に代入し、色が **赤** になるように設定したら、**Constant** を **Roughness** 入力に代入して値を **.25** に設定したら **[Apply (適用)]** ボタンと **[Save (保存)]** ボタンを押して作業を保存します。 
+1. **Constant 3 Vector** を **Base Color** 入力に接続し、色が **赤** になるように設定したら、**Constant** を **Roughness** 入力に代入して値を **.25** に設定したら **[Apply (適用)]** ボタンと **[Save (保存)]** ボタンを押して作業を保存します。 
 
 	![](Connecting_And_SettingUp_MEN.png)
 
-1. **MAT_Inside** マテリアルを開いて **Mat_Outside** と同様の設定をしますが、色は赤ではなく **緑** に、そして **Roughness** を **0.5** に設定します。
+1. **Mat_Outside** マテリアルをダブルクリックで開き、**Constant 3 Vector** 表現式ノードと **Constant** 表現式ノードの 2 つのマテリアル表現式ノードをマテリアル グラフに追加します。 
+ただしここでは、**Base Color** は **緑**、そして **Roughness** は **0.5** に設定します。
 
 	![](Setting_Up_Inside_Material.png)
 
 	[region:note]
-	Destructible Meshes を使用するマテリアルには、**[Used with Skeletal Mesh (スケルタルメッシュと一緒に使う)]** を有効にした **Usage** フラグが必ず必要になります。 
+	Destructible Mesh を使用する場合は、マテリアルのプロパティの [Used with Skeletal Mesh flag (スケルタルメッシュと一緒に使う)] を有効にしておく必要があります。
 	このフラグを有効にし忘れが場合、UE4 が自動的に有効にし、Destructible Mesh にこのマテリアルを入れた時に再コンパイルしてくれます。
 
 	![](Enable_Usage_Flag.png)
 	[/region]
 
-1. **1M_Cube_DM** Destructible Mesh を開き、**[Skeletal Mesh]** セクションを見ます。2 つの **[Materials]** セクションを展開して、**MAT_Inside** と **MAT_Outside Materials** を適用します。
+1. コンテンツ ブラウザで **1M_Cube_DM** Destructible Mesh をダブルクリックして開き、**[Destructible Settings (被破壊メッシュの設定)]** > **[Skeletal Mesh]** を選んで、**MAT_Inside** と **MAT_Outside Materials** を適用します。
 
 	![](Applied_Materials.png)
 
-1. マテリアルを適用したら、**[Damage]** セクションを展開して、名前の横にあるチェックマーク ボックスをクリックして、**[Enable Impact Damage (衝撃ダメージを有効にする)]** オプションを有効にします。
+1. **[Damage]** セクションを展開して、チェックマーク ボックスをクリックして、**[Enable Impact Damage (衝撃ダメージを有効にする)]** オプションを有効にします。
 
 	![](Enable_Impact_Damge.png)
 
@@ -76,12 +70,11 @@ SkillLevel:Intermediate
 
 	![](Adding_DM_To_Level.png)
 
-1. 今レベルに置いた Destructible Mesh を選択して、**[Details (詳細)]** パネルの **[Physics (物理)]** セクションで **[Simulate Physics (物理をシミュレート)]** オプションをオンにします。
+1. 追加した Destructible Mesh アクタを選んで、**[Details (詳細)]** パネルの **[Physics]** で **[Simulate Physics (物理をシミュレート)]** を有効して、ゲームがプレイされるとアクタが物理シミュレーションによって操作されるようにします。
 
 	![](Enable_Physics.png)
 
-1. ここで **[Play (プレイ)]** ボタンを押します。レベルが開始すると追加された Destructible Mesh がグラウンドへ落ちていくのが見えるはずです。 
-	Destructible Mesh がグラウンドに触れると、以下のビデオのように粉砕して粉々になります。
+1. ツールバー内の [Play] ボタンを押して、レベルをテストします。Destructible Mesh アクタがフロアへ落ちて粉々に粉砕します。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]

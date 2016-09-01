@@ -238,7 +238,7 @@ namespace FbxMeshUtils
 				TArray<FbxNode*>* MeshObject = NULL;;
 
 				// Populate the mesh array
-				FFbxImporter->FillFbxSkelMeshArrayInScene(FFbxImporter->Scene->GetRootNode(), MeshArray, false);
+				FFbxImporter->FillFbxSkelMeshArrayInScene(FFbxImporter->Scene->GetRootNode(), MeshArray, false, ImportOptions->bImportScene);
 
 				// Nothing found, error out
 				if (MeshArray.Num() == 0)

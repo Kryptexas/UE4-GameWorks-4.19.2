@@ -10,6 +10,10 @@ Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/ExpressionReference/Utility
 Related: Platforms/Mobile/Lighting
 version: 4.9
+parent:Platforms/Mobile
+order:1
+type:overview
+tags:mobile
 
 [TOC(start:2)]
 

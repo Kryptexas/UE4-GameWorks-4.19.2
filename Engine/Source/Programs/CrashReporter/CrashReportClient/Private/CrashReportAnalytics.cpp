@@ -4,12 +4,11 @@
 
 #include "CrashReportAnalytics.h"
 #include "EngineBuildSettings.h"
-#include "Runtime/Analytics/AnalyticsET/Public/AnalyticsET.h"
-
-// WARNING! Copied from EngineAnalytics.cpp
+#include "AnalyticsET.h"
+#include "IAnalyticsProviderET.h"
 
 bool FCrashReportAnalytics::bIsInitialized;
-TSharedPtr<IAnalyticsProvider> FCrashReportAnalytics::Analytics;
+TSharedPtr<IAnalyticsProviderET> FCrashReportAnalytics::Analytics;
 
 /**
  * Default config func that essentially tells the crash reporter to disable analytics.
@@ -33,7 +32,7 @@ TFunction<FAnalyticsET::Config()>& GetCrashReportAnalyticsConfigFunc()
 /**
  * On-demand construction of the singleton. 
  */
-IAnalyticsProvider& FCrashReportAnalytics::GetProvider()
+IAnalyticsProviderET& FCrashReportAnalytics::GetProvider()
 {
 	checkf(bIsInitialized && Analytics.IsValid(), TEXT("FCrashReportAnalytics::GetProvider called outside of Initialize/Shutdown."));
 	return *Analytics.Get();

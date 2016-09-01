@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2620413
+﻿INTSourceChangelist:2750697
 Availability: Public
 Title:Orbit 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Orbit, 선회는 실제 파티클 중심에서 오프셋/로테이션을 적용하여 파티클 스프라이트를 렌더링하는 모듈입니다.
+Version: 4.9
 
-[TOC(start:2 end:3)]
 
 Orbit (선회)는 실제 파티클 중심에서 오프셋/로테이션을 적용하여 파티클 스프라이트를 렌더링하는 모듈입니다.
 
@@ -22,6 +22,7 @@ Orbit (선회)는 실제 파티클 중심에서 오프셋/로테이션을 적용
 sdpZ2_8GUp4
 [/PARAMLITERAL]
 [/OBJECT]
+
 구현된 유일한 선회 모듈입니다. 실제 파티클 위치에서 스프라이트를 이동시키거나 회전시키는 것이 가능합니다. 다수의 Orbit 모듈을 다양한 방식으로 줄줄이 엮는 것도 가능합니다.
 
 | 프로퍼티 | 설명 |

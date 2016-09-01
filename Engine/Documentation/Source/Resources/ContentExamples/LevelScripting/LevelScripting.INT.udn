@@ -2,6 +2,7 @@ Availability: Docs
 Title:Level Scripting
 Crumbs:%ROOT%, Resources
 Description:An overview of the Level Scripting example level
+Version: 4.9
 
 [REGION:banner]
 ![](level_scripting_header.png)(convert:false)

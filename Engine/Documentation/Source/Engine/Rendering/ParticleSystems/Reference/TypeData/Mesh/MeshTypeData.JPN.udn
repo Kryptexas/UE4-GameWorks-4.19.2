@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2536143
+﻿INTSourceChangelist:2750847
 Availability:Public
 Title:Mesh Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Mesh Type Data モジュールは、スプライト パーティクルの代わりにポリゴンメッシュを適用した箇所にエフェクトを作成します。
+Version:4.9
 
 [TOC(start:2 end:3)]
 
@@ -22,9 +23,9 @@ Mesh Type Data モジュールには、以下のプロパティがあります�
 |**Mesh Alignment**| メッシュのレンダリングに使用するアライメントです。このプロパティに効果をもたらすには、Required モジュールの _Screen Alignment_ プロパティが _PSA_TypeSpecific_ に設定されていなくてはいけません。以下のオプションが提供されます: [INCLUDE:#MeshAlignmentOption]|
 |**Override Material**| _true_ の場合、メッシュは、スタティックメッシュモデルに適用されたマテリアルではなく、エミッタからのマテリアル (Required モジュールで割り当て) を利用してレンダリングされます。マテリアルを割り当てるメッシュに複数の UV チャンネルを持っていない限り、 MeshMaterial モジュールにこれを使用します。または、コードのマテリアル割り当てをパラメータ化する必要があります。
 |[REGION:tablesection]Orientation[/REGION]||
-|**Pitch**| 使用するスタティックメッシュに適用する「'pre'」回転ピッチ (上下動) (度数) です。|
-|**Roll**| 使用するスタティックメッシュに適用する「'pre'」回転ロール (進行軸回転) (度数) です。 |
-|**Yaw**| 使用するスタティックメッシュに適用する「'pre'」回転ヨー (左右回転) (度数) です。 |
+|**Pitch**| 使用するスタティックメッシュに適用する 'pre' 回転ピッチ (上下動) (度数) です。|
+|**Roll**| 使用するスタティックメッシュに適用する 'pre' 回転ロール (進行軸回転) (度数) です。 |
+|**Yaw**| 使用するスタティックメッシュに適用する 'pre' 回転ヨー (左右回転) (度数) です。 |
 |**Axis Lock Option**| メッシュを固定する軸です。これは TypeSpecific メッシュの割り当てに加えて、 LockAxis モジュールもオーバーライドします。以下のオプションが提供されます: [INCLUDE:#CameraFacingOption]|
 |[REGION:tablesection]CameraFacing[/REGION]||
 |**Camera Facing**| _true_ の場合、メッシュの X 軸は常にカメラ方向へ向きます。このプロパティが設定されると、_Axis Lock Option_ と他の固定された軸 / スクリーンの割り当て設定が全て無視されます。|
@@ -45,8 +46,8 @@ Mesh Type Data モジュールには、以下のプロパティがあります�
 |_EPAL_NEGATIVE_X_| X 軸の負の方向へメッシュの X 軸を固定します。|
 |_EPAL_NEGATIVE_Y_| Y 軸の負の方向へメッシュの X 軸を固定します。|
 |_EPAL_NEGATIVE_Z_| Z 軸の負の方向へメッシュの X 軸を固定します。|
-|_EPAL_ROTATE_X_| メッシュエミッタを無視します。EPAL_NONEとして処理されます。|
-|_EPAL_ROTATE_Y_|メッシュエミッタを無視します。EPAL_NONEとして処理されます。|
+|_EPAL_ROTATE_X_| メッシュエミッタを無視します。EPAL_NONE として処理されます。|
+|_EPAL_ROTATE_Y_|メッシュエミッタを無視します。EPAL_NONE として処理されます。|
 |_EPAL_ROTATE_Z_|メッシュエミッタを無視します。EPAL_NONE として処理されます。|
 [/REGION]
 [/EXCERPT:AxisLockOption]

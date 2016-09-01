@@ -21,6 +21,7 @@
 #include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "SceneOutlinerPublicTypes.h"
+#include "TrackEditorThumbnailPool.h"
 
 #define LOCTEXT_NAMESPACE "FCameraCutTrackEditor"
 
@@ -166,6 +167,9 @@ UMovieSceneCameraCutTrack* FCameraCutTrackEditor::FindOrCreateCameraCutTrack()
 
 	if (CameraCutTrack == nullptr)
 	{
+		const FScopedTransaction Transaction(LOCTEXT("AddCameraCutTrack_Transaction", "Add Camera Cut Track"));
+		FocusedMovieScene->Modify();
+		
 		CameraCutTrack = FocusedMovieScene->AddCameraCutTrack(UMovieSceneCameraCutTrack::StaticClass());
 	}
 
@@ -216,7 +220,7 @@ bool FCameraCutTrackEditor::HandleAddCameraCutTrackMenuEntryCanExecute() const
 void FCameraCutTrackEditor::HandleAddCameraCutTrackMenuEntryExecute()
 {
 	FindOrCreateCameraCutTrack();
-	GetSequencer()->NotifyMovieSceneDataChanged();
+	GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
 bool FCameraCutTrackEditor::IsCameraPickable(const AActor* const PickableActor)
@@ -322,14 +326,12 @@ void FCameraCutTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState)
 	}
 	else
 	{
-		// TODO: MaxC, is this right?
 		GetSequencer()->UpdateCameraCut(nullptr, nullptr);
 		GetSequencer()->SetPerspectiveViewportCameraCutEnabled(false);
 	}
 
-	GetSequencer()->UpdateRuntimeInstances();
+	GetSequencer()->SetGlobalTime(GetSequencer()->GetGlobalTime());
 }
-
 
 FText FCameraCutTrackEditor::GetLockCameraToolTip() const
 {

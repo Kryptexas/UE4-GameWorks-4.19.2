@@ -12,8 +12,9 @@ namespace SWindowDefs
 	static const int32 CornerRadius = 6;
 }
 
-FOverlayPopupLayer::FOverlayPopupLayer(const TSharedRef<SWidget>& InitHostWidget, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay)
-	: FPopupLayer(InitHostWidget, InitPopupContent)
+FOverlayPopupLayer::FOverlayPopupLayer(const TSharedRef<SWindow>& InitHostWindow, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay)
+	: FPopupLayer(InitHostWindow, InitPopupContent)
+	, HostWindow(InitHostWindow)
 	, Overlay(InitOverlay)
 {
 	Overlay->AddSlot()
@@ -27,6 +28,10 @@ void FOverlayPopupLayer::Remove()
 	Overlay->RemoveSlot(GetContent());
 }
 
+FSlateRect FOverlayPopupLayer::GetAbsoluteClientRect()
+{
+	return HostWindow->GetClientRectInScreen();
+}
 
 
 /**
@@ -236,8 +241,10 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->bHasMinimizeButton = InArgs._SupportsMinimize;
 	this->bHasMaximizeButton = InArgs._SupportsMaximize;
 	this->bHasSizingFrame = !InArgs._IsPopupWindow && InArgs._SizingRule == ESizingRule::UserSized;
+	this->bShouldPreserveAspectRatio = InArgs._ShouldPreserveAspectRatio;
 	this->LayoutBorder = InArgs._LayoutBorder;
 	this->UserResizeBorder = InArgs._UserResizeBorder;
+	this->bVirtualWindow = false;
 	this->SizeLimits = FWindowSizeLimits()
 		.SetMinWidth(InArgs._MinWidth)
 		.SetMinHeight(InArgs._MinHeight)
@@ -337,8 +344,8 @@ void SWindow::Construct(const FArguments& InArgs)
 		WindowPosition = DisplayTopLeft + ( DisplaySize - WindowSize ) * 0.5f;
 
 		// Don't allow the window to center to outside of the work area
-		WindowPosition.X = FMath::Max(WindowPosition.X, (float)PrimaryDisplayRect.Left);
-		WindowPosition.Y = FMath::Max(WindowPosition.Y, (float)PrimaryDisplayRect.Top);
+		WindowPosition.X = FMath::Max(WindowPosition.X, AutoCenterRect.Left);
+		WindowPosition.Y = FMath::Max(WindowPosition.Y, AutoCenterRect.Top);
 	}
 
 #if PLATFORM_HTML5 
@@ -710,11 +717,21 @@ FSlateRect SWindow::GetNonMaximizedRectInScreen() const
 
 FSlateRect SWindow::GetRectInScreen() const
 { 
+	if ( bVirtualWindow )
+	{
+		return FSlateRect(0, 0, Size.X, Size.Y);
+	}
+
 	return FSlateRect( ScreenPosition, ScreenPosition + Size );
 }
 
 FSlateRect SWindow::GetClientRectInScreen() const
 {
+	if ( bVirtualWindow )
+	{
+		return FSlateRect(0, 0, Size.X, Size.Y);
+	}
+
 	if (HasOSWindowBorder())
 	{
 		return GetRectInScreen();
@@ -1155,7 +1172,7 @@ void SWindow::NotifyWindowBeingDestroyed()
 	OnWindowClosed.ExecuteIfBound( SharedThis( this ) );
 
 	// Logging to track down window shutdown issues with movie loading threads. Too spammy in editor builds with all the windows
-#if !WITH_EDITOR
+#if !WITH_EDITOR && !IS_PROGRAM
 	UE_LOG(LogSlate, Log, TEXT("Window '%s' being destroyed"), *GetTitle().ToString() );
 #endif
 }
@@ -1725,6 +1742,7 @@ SWindow::SWindow()
 	, bHasMaximizeButton( false )
 	, bHasSizingFrame( false )
 	, bIsModalWindow( false )
+	, bShouldPreserveAspectRatio( false )
 	, InitialDesiredScreenPosition( FVector2D::ZeroVector )
 	, InitialDesiredSize( FVector2D::ZeroVector )
 	, ScreenPosition( FVector2D::ZeroVector )

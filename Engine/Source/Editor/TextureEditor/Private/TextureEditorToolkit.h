@@ -15,6 +15,7 @@ class FTextureEditorToolkit
 	, public FGCObject
 {
 public:
+	FTextureEditorToolkit();
 
 	/**
 	 * Destructor.

@@ -1,7 +1,7 @@
 ﻿INTSourceChangelist:1698095
-Availability:Public
-Title: 镜头控制
-Crumbs: %ROOT%, Shared/Tutorials
+Availability:NoPublish
+Title:Camera Controls
+Crumbs:
 Description: 基本镜头控制介绍
 
 [EXCERPT:ViewportMove]

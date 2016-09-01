@@ -81,8 +81,9 @@ bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator
 	if (IsInGameThread())
 	{
 		// Cache state from the game thread for use on the render thread
-		const APlayerController* Actor = Cast<APlayerController>(GetOwner());
-		bHasAuthority = !Actor || Actor->IsLocalPlayerController();
+		const AActor* MyOwner = GetOwner();
+		const APawn* MyPawn = Cast<APawn>(MyOwner);
+		bHasAuthority = MyPawn ? MyPawn->IsLocallyControlled() : (MyOwner->Role == ENetRole::ROLE_Authority);
 	}
 
 	if ((PlayerIndex != INDEX_NONE) && bHasAuthority)
@@ -142,7 +143,7 @@ void UMotionControllerComponent::FViewExtension::PreRenderViewFamily_RenderThrea
 	{
 		// Calculate the late update transform that will rebase all children proxies within the frame of reference
 		const FTransform OldLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(MotionControllerComponent->GetRelativeTransform());
-		const FTransform NewLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(FTransform(Orientation, Position));
+		const FTransform NewLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(FTransform(Orientation, Position, MotionControllerComponent->GetComponentScale()));
 		const FMatrix LateUpdateTransform = (OldLocalToWorldTransform.Inverse() * NewLocalToWorldTransform).ToMatrixWithScale();
 
 		// Apply delta to the affected scene proxies

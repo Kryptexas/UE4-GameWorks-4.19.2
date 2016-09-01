@@ -5,23 +5,7 @@
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
-#if WITH_D3DX_LIBS
-#include "AllowWindowsPlatformTypes.h"
-	#if defined(__clang__)
-		#define XM_NO_OPERATOR_OVERLOADS 1		// @todo clang: These xnamath operators don't compile correctly under clang
-		#define _XM_NO_INTRINSICS_ 1	// @todo clang: Clang has issues with __m128 intrinsics in xnamathvector.inl
-	#endif
-	#if _MSC_VER == 1900
-		#pragma warning(push)
-		#pragma warning(disable:4838)
-	#endif // _MSC_VER == 1900
-	#include <xnamath.h>
-	#if _MSC_VER == 1900
-		#pragma warning(pop)
-	#endif // _MSC_VER == 1900
-#include "HideWindowsPlatformTypes.h"
-#endif
-#include "D3D11RHIPrivateUtil.h"
+#include "Windows/D3D11RHIPrivateUtil.h"
 #include "StaticBoundShaderState.h"
 #include "GlobalShader.h"
 #include "OneColorShader.h"
@@ -68,6 +52,14 @@ static FAutoConsoleVariableRef CVarDX11TransitionChecks(
 	TEXT("r.TransitionChecksEnableDX11"),
 	GEnableDX11TransitionChecks,
 	TEXT("Enables transition checks in the DX11 RHI."),
+	ECVF_Default
+	);
+
+int32 GUnbindResourcesBetweenDrawsInDX11 = 0;
+static FAutoConsoleVariableRef CVarUnbindResourcesBetweenDrawsInDX11(
+	TEXT("r.UnbindResourcesBetweenDrawsInDX11"),
+	GUnbindResourcesBetweenDrawsInDX11,
+	TEXT("Unbind resources between material changes in DX11."),
 	ECVF_Default
 	);
 
@@ -174,6 +166,11 @@ void FD3D11DynamicRHI::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,uint32 
 	}
 }
 
+void FD3D11DynamicRHI::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
+{
+	UE_LOG(LogD3D11RHI, Fatal, TEXT("D3D11 RHI does not support set stereo viewport!"));
+}
+
 void FD3D11DynamicRHI::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 MinY,uint32 MaxX,uint32 MaxY)
 {
 	if(bEnable)
@@ -244,6 +241,11 @@ void FD3D11DynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Boun
 		{
 			BoundUniformBuffers[Frequency][BindIndex].SafeRelease();
 		}
+	}
+
+	if (GUnbindResourcesBetweenDrawsInDX11)
+	{
+		ClearAllShaderResources();
 	}
 }
 
@@ -2139,7 +2141,11 @@ void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, c
 		{
 			for (int32 TargetIndex = 0; TargetIndex < BoundRenderTargets.GetNumActiveTargets(); TargetIndex++)
 			{				
-				Direct3DDeviceIMContext->ClearRenderTargetView(BoundRenderTargets.GetRenderTargetView(TargetIndex),(float*)&ClearColorArray[TargetIndex]);
+				ID3D11RenderTargetView* RenderTargetView = BoundRenderTargets.GetRenderTargetView(TargetIndex);
+				if (RenderTargetView != nullptr)
+				{
+					Direct3DDeviceIMContext->ClearRenderTargetView(RenderTargetView, (float*)&ClearColorArray[TargetIndex]);
+				}
 			}
 		}
 
@@ -2271,9 +2277,9 @@ void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess Transiti
 	}
 }
 
-void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteFence)
+void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 InNumUAVs, FComputeFenceRHIParamRef WriteFence)
 {
-	for (int32 i = 0; i < NumUAVs; ++i)
+	for (int32 i = 0; i < InNumUAVs; ++i)
 	{
 		if (InUAVs[i])
 		{

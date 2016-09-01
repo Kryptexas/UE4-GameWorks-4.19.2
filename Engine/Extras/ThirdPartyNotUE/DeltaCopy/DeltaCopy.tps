@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>DeltaCopy</Name>
-  <Location>/Engine/Extras/ThirdPartyNotUE</Location>
-  <Date>2016-04-25T11:00:28.7796454-04:00</Date>
+  <Location>/Engine/Extras/ThirdPartyNotUE/</Location>
+  <Date>2016-06-09T12:00:38.0430074-04:00</Date>
   <Function>Supplies ssh.exe and rsync.exe</Function>
   <Justification>Remote compile IOS builds from Windows on a Mac, securely</Justification>
   <Platforms>
@@ -13,7 +13,7 @@
     <Product>UE4</Product>
   </Products>
   <TpsType>dll</TpsType>
-  <Eula>http://www.aboutmyip.com/AboutMyXApp/DeltaCopy.jsp  -- https://rsync.samba.org/GPL.html</Eula>
+  <Eula>https://rsync.samba.org/GPL.html</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
@@ -696,5 +696,5 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 &lt;http://www.gnu.org/philosophy/why-not-lgpl.html&gt;.</Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Extras/ThirdPartyNotUE/DeltaCopy/DeltaCopy_License.txt</LicenseFolder>
 </TpsData>
