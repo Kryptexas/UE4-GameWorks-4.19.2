@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3026918
+﻿INTSourceChangelist:3068762
 Availability:Public
 Title:スケルタル制御
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
-Description:ターゲット スケルトンのボーンを直接操作し、ソルバを適用できるアニメーション ノード
-version: 4.12
+Description:ターゲット スケルトンのボーンを直接操作し、ソルバを適用できるアニメーション ノードについて説明します。
+version:4.12
 
 [REGION:banner]
 ![Skeletal Control](skelcontrol_banner.png)(convert:false)
@@ -27,9 +27,18 @@ Animation ブループリント内で使用します。下層スケルトンを�
 | --- | ----------- |
 | [REGION:tablesection]**入力ピン**[/REGION] ||
 | **Component Pose** | トランスフォームさせる入力ポーズです。 |
-| **Alpha** | スケルタル制御で適用されるトランスフォームの重みづけを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をしたトランスフォームに対し最大限の重み付けをします。|
+| **Alpha** | スケルタル制御で適用されるトランスフォームの重み付けを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をしたトランスフォームに対し最大限の重み付けをします。|
 | [REGION:tablesection]**出力ピン**[/REGION] ||
 | **Pose (Blank)** | トランスフォーム適用後の最終ポーズ |
+
+[EXCERPT:LODThresh]
+![](perf.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **LOD Threshold** | このノードで実行が認められている最高 LOD (Level of Detail) (**LOD**) です。例えば、LOD Threshold を **2** に設定すると、**LOD 2** になるまでは実行しますが、コンポーネントの LOD が **3** になると無効になります。 |
+[/EXCERPT]
+
 
 ## コンポーネント空間
 
