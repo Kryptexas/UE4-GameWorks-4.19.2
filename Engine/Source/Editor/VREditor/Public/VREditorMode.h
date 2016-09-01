@@ -2,48 +2,57 @@
 
 #pragma once
 
-#include "IVREditorMode.h"
 #include "IVREditorModule.h"
-#include "HeadMountedDisplayTypes.h"	// For EHMDDeviceType::Type
+#include "HeadMountedDisplayTypes.h"					// For EHMDDeviceType::Type
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDTrackingOrigin::Type
+#include "VREditorMode.generated.h"
 
-// Forward declare the GizmoHandleTypes that is defined in VREditorTransformGizmo
+// Forward declare the GizmoHandleTypes that is defined in VIBaseTransformGizmo.h
 enum class EGizmoHandleTypes : uint8;
 
 /** Reason for exiting the VR editor */
 enum EVREditorExitType
 {
 	Normal = 0,
-	PIE_VR = 1
+	PIE_VR = 1,		//Play in editor with VR
+	SIE_VR = 2		//Simulate in editor with VR
 };
+
+/**
+* Types of actions that can be performed with VR controller devices
+*/
+namespace VRActionTypes
+{
+	static const FName Touch( "Touch" );
+	static const FName Modifier( "Modifier" );
+	static const FName ConfirmRadialSelection( "ConfirmRadialSelection" );
+	static const FName TrackpadPositionX( "TrackpadPositionX" );
+	static const FName TrackpadPositionY( "TrackpadPositionY" );
+	static const FName TriggerAxis( "TriggerAxis" );
+}
 
 /**
  * VR Editor Mode.  Extends editor viewports with functionality for VR controls and object manipulation
  */
-class FVREditorMode : public IVREditorMode
+UCLASS()
+class VREDITOR_API UVREditorMode : public UObject
 {
+
+	GENERATED_UCLASS_BODY()
+
 public:
 
-	/** Default constructor for FVREditorMode, called when the editor starts up after the VREditor module is loaded */
-	FVREditorMode();
-
 	/** Cleans up this mode, called when the editor is shutting down */
-	virtual ~FVREditorMode();
-
-	/** Static: Gets the ID of our editor mode */
-	static FEditorModeID GetVREditorModeID()
-	{
-		return VREditorModeID;
-	}
+	virtual ~UVREditorMode();
 
 	/** Static: Sets whether we should actually use an HMD.  Call this before activating VR mode */
-	static void SetActuallyUsingVR( const bool bShouldActuallyUseVR )
+	void SetActuallyUsingVR( const bool bShouldActuallyUseVR )
 	{
 		bActuallyUsingVR = bShouldActuallyUseVR;
 	}
 
 	/** Returns true if we're actually using VR, or false if we're faking it */
-	static bool IsActuallyUsingVR()
+	bool IsActuallyUsingVR()
 	{
 		return bActuallyUsingVR;
 	}
@@ -63,27 +72,71 @@ public:
 		return ExitType;
 	}
 
-	// FEdMode interface
-	virtual void Enter() override;
-	virtual void Exit() override;
-	virtual void Tick( FEditorViewportClient* ViewportClient, float DeltaTime ) override;
-	virtual bool InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) override;
-	virtual bool InputAxis( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime ) override;
-	virtual bool IsCompatibleWith( FEditorModeID OtherModeID ) const override;
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
-	virtual void Render( const FSceneView* SceneView, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) override;	
+	/** EditorWorldManager initializes the start of the editor */
+	void Init( class UViewportWorldInteraction* InViewportWorldInteraction );
 
-	// IVREditorMode interface
-	virtual AActor* GetAvatarMeshActor() override;
-	virtual UWorld* GetWorld() const override;
-	virtual FTransform GetRoomTransform() const override;
-	virtual void SetRoomTransform( const FTransform& NewRoomTransform ) override;
-	virtual FTransform GetRoomSpaceHeadTransform() const override;
-	virtual FTransform GetHeadTransform() const override;
-	virtual const class UViewportWorldInteraction& GetWorldInteraction() const override;
-	virtual class UViewportWorldInteraction& GetWorldInteraction() override;
-	virtual bool IsFullyInitialized() const override;
-	virtual FOnVRTickHandle& OnTickHandle() override
+	/** EditorWorldManager shuts down the VREditor when closing the editor */
+	void Shutdown();
+
+	/** When the user actually enters the VR Editor mode */
+	void Enter();
+
+	/** When the user leaves the VR Editor mode */
+	void Exit();
+
+	/** Tick before the ViewportWorldInteraction is ticked */
+	void PreTick( const float DeltaTime );
+
+	/** Tick after the ViewportWorldInteraction is ticked */
+	void Tick( const float DeltaTime );
+	
+	//bool InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event );
+	//bool InputAxis( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime );
+	//bool IsCompatibleWith( FEditorModeID OtherModeID ) const;
+	//void Render( const FSceneView* SceneView, FViewport* Viewport, FPrimitiveDrawInterface* PDI );	
+
+	/**
+	 * Gets our avatar's mesh actor
+	 *
+	 * @return	The mesh actor
+	 */
+	AActor* GetAvatarMeshActor();
+
+	/** Gets the World from the ViewportWorldInteraction used by this mode */
+	UWorld* GetWorld() const;
+
+	/** Gets the world space transform of the calibrated VR room origin.  When using a seated VR device, this will feel like the
+	camera's world transform (before any HMD positional or rotation adjustments are applied.) */
+	FTransform GetRoomTransform() const;
+
+	/** Sets a new transform for the room, in world space.  This is basically setting the editor's camera transform for the viewport */
+	void SetRoomTransform( const FTransform& NewRoomTransform );
+
+	/** Gets the transform of the user's HMD in room space */
+	FTransform GetRoomSpaceHeadTransform() const;
+
+	/**
+	 * Gets the world space transform of the HMD (head)
+	 *
+	 * @return	World space space HMD transform
+	 */
+	FTransform GetHeadTransform() const;
+
+	/** Gets access to the world interaction system (const) */
+	const class UViewportWorldInteraction& GetWorldInteraction() const;
+
+	/** Gets access to the world interaction system */
+	class UViewportWorldInteraction& GetWorldInteraction();
+
+	/** If the mode was completely initialized */
+	bool IsFullyInitialized() const;
+
+	/** If the mode is currently running */
+	bool IsActive() const;
+	
+	/** * Gets the tick handle to give external systems the change to be ticked right after the ViewportWorldInteraction is ticked */
+	DECLARE_EVENT_OneParam(UVREditorMode, FOnVRTickHandle, const float /* DeltaTime */);
+	FOnVRTickHandle& OnTickHandle()
 	{
 		return TickHandle;
 	}
@@ -178,21 +231,24 @@ public:
 	/** Stops the haptic feedback for the left and right hand interactors for the oculus */
 	void StopOldHapticEffects();
 
+	/** Snaps the current selected actor to the ground */
+	void SnapSelectedActorsToGround();
+
+	void GoToDefaultScale();
+
 private:
+	//Handles closing the VR mode by escape key
+	void InputKey(const FEditorViewportClient& InViewportClient, const FKey InKey, const EInputEvent InEvent, bool& bOutWasHandled);
 
 	/** Called when someone closes a standalone VR Editor window */
 	void OnVREditorWindowClosed( const TSharedRef<SWindow>& ClosedWindow );
 
 	/** FEditorDelegates callbacks */
-	void OnMapChange( uint32 MapChangeFlags );
 	void OnBeginPIE( const bool bIsSimulatingInEditor );
 	void OnEndPIE( const bool bIsSimulatingInEditor );
 	void OnSwitchBetweenPIEAndSIE( const bool bIsSimulatingInEditor );
 
 protected:
-
-	/** Static ID name for our editor mode */
-	static FEditorModeID VREditorModeID;
 
 	//
 	// Startup/Shutdown
@@ -238,8 +294,8 @@ protected:
 		
 	} SavedEditorState;
 
-	/** Static: True if we're in using an actual HMD in this mode, or false if we're "faking" VR mode for testing */
-	static bool bActuallyUsingVR;
+	/** True if we're in using an actual HMD in this mode, or false if we're "faking" VR mode for testing */
+	bool bActuallyUsingVR;
 
 	/** True if we currently want to exit VR mode.  This is used to defer exiting until it is safe to do that */
 	bool bWantsToExitMode;
@@ -288,9 +344,11 @@ protected:
 	//
 
 	/** VR UI system */
+	UPROPERTY()
 	class UVREditorUISystem* UISystem;
 
 	/** Teleporter system */
+	UPROPERTY()
 	class UVREditorTeleporter* TeleporterSystem;
 
 	//
@@ -298,22 +356,29 @@ protected:
 	//
 
 	/** World interaction manager */
-	class UVREditorWorldInteraction* WorldInteraction;
+	UPROPERTY()
+	class UViewportWorldInteraction* WorldInteraction;
 
 	/** The current Gizmo type that is used for the TransformGizmo Actor */
 	EGizmoHandleTypes CurrentGizmoType;
+
+	UPROPERTY()
+	class UVREditorWorldInteraction* VRWorldInteractionExtension;
 
 	//
 	// Interactors
 	//
 
 	/** The mouse cursor interactor (currently only available when not in VR) */
+	UPROPERTY()
 	class UMouseCursorInteractor* MouseCursorInteractor;
 
 	/** The right motion controller */
+	UPROPERTY()
 	class UVREditorMotionControllerInteractor* LeftHandInteractor; //@todo vreditor: Hardcoded interactors
 	
 	/** The right motion controller */
+	UPROPERTY()
 	class UVREditorMotionControllerInteractor* RightHandInteractor; 
 
 	//
@@ -358,5 +423,7 @@ private:
 	/** The reason for exiting the mode, so the module can close the mode and take further actions on what should happen next */
 	EVREditorExitType ExitType;
 
+	/** If this current mode is running */
+	bool bIsActive;
 };
 

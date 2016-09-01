@@ -60,6 +60,8 @@
 #include "EngineModule.h"
 #include "RendererInterface.h"
 
+#include "EditorWorldManager.h"
+
 #if PLATFORM_WINDOWS
 // For WAVEFORMATEXTENSIBLE
 	#include "AllowWindowsPlatformTypes.h"
@@ -548,6 +550,9 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 
 	// create the timer manager
 	TimerManager = MakeShareable(new FTimerManager());
+
+	// create the editor world manager
+	EditorWorldManager = MakeShareable(new FEditorWorldManager());
 
 	// Settings.
 	FBSPOps::GFastRebuild = 0;
@@ -1472,7 +1477,10 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			ViewportClient->Tick(DeltaSeconds);
 		}
 	}
-	
+
+	// Updates the ViewportWorldInteraction
+	EditorWorldManager->Tick( DeltaSeconds );
+
 	bool bIsMouseOverAnyLevelViewport = false;
 
 	//Do this check separate to the above loop as the ViewportClient may no longer be valid after we have ticked it

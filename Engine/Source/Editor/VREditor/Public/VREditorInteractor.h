@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Editor/ViewportInteraction/Public/ViewportInteractor.h"
+#include "ViewportInteractor.h"
 #include "VREditorInteractor.generated.h"
 
 /**
@@ -18,16 +18,16 @@ public:
 	virtual ~UVREditorInteractor();
 
 	/** Initialize default values */
-	virtual void Init( class FVREditorMode* InVRMode );
+	virtual void Init( class UVREditorMode* InVRMode );
 
 	/** Gets the owner of this system */
-	class FVREditorMode& GetVRMode()
+	class UVREditorMode& GetVRMode()
 	{
 		return *VRMode;
 	}
 
 	/** Gets the owner of this system (const) */
-	const class FVREditorMode& GetVRMode() const
+	const class UVREditorMode& GetVRMode() const
 	{
 		return *VRMode;
 	}
@@ -107,7 +107,8 @@ public:
 protected:
 
 	/** The mode that owns this interactor */
-	class FVREditorMode* VRMode;
+	UPROPERTY()
+	class UVREditorMode* VRMode;
 
 	//
 	// General input @todo: VREditor: Should this be general (non-UI) in interactordata ?

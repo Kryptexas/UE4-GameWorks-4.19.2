@@ -4,12 +4,12 @@
 
 #include "Framework/Application/IInputProcessor.h"
 
-class UViewportWorldInteraction;
+class FViewportWorldInteractionManager;
 
 class FViewportInteractionInputProcessor : public IInputProcessor
 {
 public:
-	FViewportInteractionInputProcessor ( UViewportWorldInteraction& InWorldInteraction );
+	FViewportInteractionInputProcessor ( FViewportWorldInteractionManager* InWorldInteractionManager );
 	virtual ~FViewportInteractionInputProcessor ();
 
 	virtual void Tick( const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor ) override;
@@ -29,5 +29,6 @@ public:
 private:
 
 	/** The WorldInteraction that will receive the input */
-	UViewportWorldInteraction& WorldInteraction;
+	FViewportWorldInteractionManager* WorldInteractionManager;
+
 };

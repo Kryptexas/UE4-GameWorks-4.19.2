@@ -400,10 +400,6 @@ public:
 	virtual void Tick( FEditorViewportClient* ViewportClient, float DeltaTime ) override;
 	// End of FEdMode interface
 
-
-	/** Called when an editor mode is entered or exited */
-	void OnEditorModeChanged( FEdMode* EditorMode, bool bEntered );
-
 	/** Returns true if we need to force a render/update through based fill/copy */
 	bool IsForceRendered (void) const;
 

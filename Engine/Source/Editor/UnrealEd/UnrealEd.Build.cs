@@ -61,6 +61,8 @@ public class UnrealEd : ModuleRules
                 "PortalRpc",
                 "PortalServices",
                 "BlueprintNativeCodeGen",
+                "ViewportInteraction",
+                "VREditor"
 			}
 		);
 
@@ -144,6 +146,8 @@ public class UnrealEd : ModuleRules
                 "PixelInspectorModule",
 				"MovieScene",
 				"MovieSceneTracks",
+                "ViewportInteraction",
+                "VREditor"
             }
 		);
 
@@ -215,7 +219,6 @@ public class UnrealEd : ModuleRules
                 "PortalServices",
                 "GeometryCacheEd",
                 "BlueprintNativeCodeGen",
-				"VREditor"
 			}
 		);
 

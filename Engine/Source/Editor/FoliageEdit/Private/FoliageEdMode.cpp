@@ -38,8 +38,10 @@
 
 // VR Editor
 #include "IVREditorModule.h"
+#include "VREditorMode.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
+#include "EditorWorldManager.h"
 
 
 #define LOCTEXT_NAMESPACE "FoliageEdMode"
@@ -345,18 +347,15 @@ void FEdModeFoliage::Enter()
 	// Update UI
 	NotifyNewCurrentLevel();
 
-	// Register to find out when foliage mode is activated
-	GetModeManager()->OnEditorModeChanged().AddRaw(this, &FEdModeFoliage::OnEditorModeChanged);
-
 	// Register for VR input events
-	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
-	if (VREditorMode != nullptr)
+	UViewportWorldInteraction* ViewportWorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld())->GetViewportWorldInteraction();
+	if (ViewportWorldInteraction != nullptr)
 	{
-		VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll(this);
-		VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().AddRaw(this, &FEdModeFoliage::OnVRAction);
+		ViewportWorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
+		ViewportWorldInteraction->OnViewportInteractionInputAction().AddRaw(this, &FEdModeFoliage::OnVRAction);
 
-		VREditorMode->GetWorldInteraction().OnViewportInteractionHoverUpdate().RemoveAll(this);
-		VREditorMode->GetWorldInteraction().OnViewportInteractionHoverUpdate().AddRaw(this, &FEdModeFoliage::OnVRHoverUpdate);
+		ViewportWorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
+		ViewportWorldInteraction->OnViewportInteractionHoverUpdate().AddRaw(this, &FEdModeFoliage::OnVRHoverUpdate);
 	}
 }
 
@@ -366,17 +365,14 @@ void FEdModeFoliage::Exit()
 	// Unregister VR mode from event handlers
 	if (IVREditorModule::IsAvailable())
 	{
-		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
-		if (VREditorMode != nullptr)
+		UViewportWorldInteraction* WorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld())->GetViewportWorldInteraction();
+		if (WorldInteraction != nullptr)
 		{
-			VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll(this);
-			VREditorMode->GetWorldInteraction().OnViewportInteractionHoverUpdate().RemoveAll(this);
+			WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
+			WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
 			FoliageInteractor = nullptr;
 		}
 	}
-
-	// Unregister foliage mode from event handlers
-	GetModeManager()->OnEditorModeChanged().RemoveAll(this);
 
 	FToolkitManager::Get().CloseToolkit(Toolkit.ToSharedRef());
 	Toolkit.Reset();
@@ -434,32 +430,12 @@ void FEdModeFoliage::Exit()
 	FEdMode::Exit();
 }
 
-void FEdModeFoliage::OnEditorModeChanged(FEdMode* EditorMode, bool bEntered)
-{
-	// Detect if we're switching to VR Editor mode
-	// VR Editor mode may have gone away, so re-register for events in case it's a different object than the one we were originally bound to
-	check(EditorMode != nullptr);
-	FoliageInteractor = nullptr;
-	if (bEntered && EditorMode->GetID() == IVREditorModule::Get().GetVREditorModeID())
-	{
-		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(EditorMode);
-		if (VREditorMode != nullptr)
-		{
-			VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll(this);
-			VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().AddRaw(this, &FEdModeFoliage::OnVRAction);
-
-			VREditorMode->GetWorldInteraction().OnViewportInteractionHoverUpdate().RemoveAll(this);
-			VREditorMode->GetWorldInteraction().OnViewportInteractionHoverUpdate().AddRaw(this, &FEdModeFoliage::OnVRHoverUpdate);
-		}
-	}
-}
-
 void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled)
 {
 	// Check if VR Editor is active
 	if (IVREditorModule::IsAvailable())
 	{
-		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
+		UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
 		if (VREditorMode != nullptr && VREditorMode->IsFullyInitialized())
 		{
 			// Grab interactor
@@ -499,8 +475,7 @@ void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UVie
 
 void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled)
 {
-	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
-
+	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
 	if (VREditorMode != nullptr && Interactor != nullptr)
 	{
 		const UVREditorInteractor* VRInteractor =  Cast<UVREditorInteractor>(Interactor);
@@ -843,8 +818,8 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, co
 bool FEdModeFoliage::MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY)
 {
 	// Use mouse capture if there's no other interactor currently tracing brush
-	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
-	if (VREditorMode == nullptr)
+	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient->GetWorld())->GetVREditorMode();
+	if (!VREditorMode->IsActive())
 	{
 		// Compute a world space ray from the screen space mouse coordinates
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -881,8 +856,8 @@ bool FEdModeFoliage::MouseMove(FEditorViewportClient* ViewportClient, FViewport*
 bool FEdModeFoliage::CapturedMouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY)
 {
 	// Use mouse capture if there's no other interactor currently tracing brush
-	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
-	if (VREditorMode == nullptr)
+	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient->GetWorld())->GetVREditorMode();
+	if (!VREditorMode->IsActive())
 	{
 		 //Compute a world space ray from the screen space mouse coordinates
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -2831,10 +2806,9 @@ bool FEdModeFoliage::CanPaint(const UFoliageType* FoliageType, const ULevel* InL
 
 bool FEdModeFoliage::IsModifierButtonPressed(const FEditorViewportClient* ViewportClient) const
 {
-	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
 	const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(FoliageInteractor);
 	bool bIsModifierPressed = false;
-	if (VREditorMode != nullptr && VRInteractor != nullptr)
+	if (VRInteractor != nullptr)
 	{
 		bIsModifierPressed = VRInteractor->IsModifierPressed();
 	}

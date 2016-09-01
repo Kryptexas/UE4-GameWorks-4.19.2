@@ -10600,6 +10600,7 @@ void UEngine::DestroyWorldContext(UWorld * InWorld)
 	{
 		if (WorldList[idx].World() == InWorld)
 		{
+			WorldContextDestroyedEvent.Broadcast(WorldList[idx]);
 			// Set the current world to NULL so that any external referencers are cleaned up before we remove
 			WorldList[idx].SetCurrentWorld(NULL);
 			WorldList.RemoveAt(idx);

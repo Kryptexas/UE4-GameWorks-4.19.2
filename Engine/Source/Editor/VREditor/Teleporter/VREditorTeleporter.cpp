@@ -2,7 +2,7 @@
 
 #include "VREditorModule.h"
 #include "VREditorTeleporter.h"
-#include "IVREditorMode.h"
+#include "VREditorMode.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
 
@@ -29,7 +29,7 @@ UVREditorTeleporter::UVREditorTeleporter( const FObjectInitializer& Initializer 
 	check( TeleportSound != nullptr );
 }
 
-void UVREditorTeleporter::Init( IVREditorMode* InMode )
+void UVREditorTeleporter::Init( UVREditorMode* InMode )
 {
 	VRMode = InMode;
 	VRMode->OnTickHandle().AddUObject( this, &UVREditorTeleporter::Tick );
@@ -41,6 +41,7 @@ void UVREditorTeleporter::Shutdown()
 	VRMode->OnTickHandle().RemoveAll( this );
 	VRMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll( this );
 	TeleportSound = nullptr;
+	VRMode = nullptr;
 }
 
 void UVREditorTeleporter::Tick( const float DeltaTime )

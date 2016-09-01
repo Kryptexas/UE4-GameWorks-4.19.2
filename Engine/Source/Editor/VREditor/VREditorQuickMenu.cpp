@@ -4,7 +4,7 @@
 #include "VREditorQuickMenu.h"
 #include "VREditorUISystem.h"
 #include "VREditorMode.h"
-#include "VREditorWorldInteraction.h"
+#include "ViewportWorldInteraction.h"
 #include "VREditorFloatingUI.h"
 #include "VREditorTransformGizmo.h"
 #include "SLevelViewport.h"	// For Simulate toggle

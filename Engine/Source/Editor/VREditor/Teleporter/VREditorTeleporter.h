@@ -15,7 +15,7 @@ class UVREditorTeleporter : public UObject
 public:
 
 	/** Initializes the teleport system */
-	void Init( class IVREditorMode* InMode );
+	void Init( class UVREditorMode* InMode );
 
 	/** Shuts down the teleport system */
 	void Shutdown();
@@ -46,7 +46,8 @@ private:
 	//
 
 	/** Owning mode */
-	IVREditorMode* VRMode;
+	UPROPERTY()
+	UVREditorMode* VRMode;
 
 	/** If we are currently teleporting */
 	bool bIsTeleporting;

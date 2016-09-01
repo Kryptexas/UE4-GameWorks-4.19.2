@@ -19,7 +19,7 @@ public:
 	virtual ~UVREditorMotionControllerInteractor();
 	
 	// UVREditorInteractor overrides
-	virtual void Init( class FVREditorMode* InVRMode ) override;
+	virtual void Init( class UVREditorMode* InVRMode ) override;
 	/** Gets the trackpad slide delta */
 	virtual float GetSlideDelta() override;
 

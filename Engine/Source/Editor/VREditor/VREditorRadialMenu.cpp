@@ -6,7 +6,7 @@
 #include "VREditorFloatingUI.h"
 #include "VREditorUISystem.h"
 #include "VREditorMode.h"
-#include "VREditorWorldInteraction.h"
+#include "ViewportWorldInteraction.h"
 #include "VREditorTransformGizmo.h"
 #include "VREditorInteractor.h"
 #include "VREditorMotionControllerInteractor.h"
@@ -222,11 +222,7 @@ void UVREditorRadialMenu::OnPasteButtonClicked()
 
 void UVREditorRadialMenu::OnSnapActorsToGroundClicked()
 {
-	UVREditorWorldInteraction* WorldInteraction = Cast<UVREditorWorldInteraction>( &( GetOwner()->GetOwner().GetOwner().GetWorldInteraction() ) );
-	if ( WorldInteraction )
-	{
-		WorldInteraction->SnapSelectedActorsToGround();
-	}
+	GetOwner()->GetOwner().GetOwner().SnapSelectedActorsToGround();
 }
 
 

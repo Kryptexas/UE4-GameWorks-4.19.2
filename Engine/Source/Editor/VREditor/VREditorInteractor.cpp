@@ -2,7 +2,7 @@
 
 #include "VREditorModule.h"
 #include "VREditorInteractor.h"
-#include "VREditorWorldInteraction.h"
+#include "ViewportWorldInteraction.h"
 
 #include "VREditorMode.h"
 #include "VREditorFloatingText.h"
@@ -35,7 +35,7 @@ UVREditorInteractor::~UVREditorInteractor()
 	Shutdown();
 }
 
-void UVREditorInteractor::Init( FVREditorMode* InVRMode )
+void UVREditorInteractor::Init( UVREditorMode* InVRMode )
 {
 	VRMode = InVRMode;
 	KeyToActionMap.Reset();
@@ -99,7 +99,7 @@ FHitResult UVREditorInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 void UVREditorInteractor::ResetHoverState( const float DeltaTime )
 {
 	bIsHoveringOverUI = false;
-}
+}	
 
 void UVREditorInteractor::OnStartDragging( UActorComponent* ClickedComponent, const FVector& HitLocation, const bool bIsPlacingActors )
 {

@@ -9,7 +9,7 @@
 #include "VREditorRadialMenu.h"
 #include "VREditorRadialMenuItem.h"
 #include "IHeadMountedDisplay.h"
-#include "VREditorWorldInteraction.h"
+#include "ViewportWorldInteraction.h"
 #include "ViewportInteractor.h"
 #include "VREditorInteractor.h"
 #include "VREditorMotionControllerInteractor.h"
@@ -169,7 +169,6 @@ void UVREditorUISystem::Shutdown()
 
 	DefaultWindowTransforms.Empty();
 
-
 	QuickMenuWidgetClass = nullptr;
 	QuickRadialWidgetClass = nullptr;
 	TutorialWidgetClass = nullptr;
@@ -190,7 +189,11 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 		{
 			if ( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
 			{
-				if ( Action.Event == IE_Pressed )
+				const EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
+				if ( Action.Event == IE_Pressed && 
+					 ( DraggingMode != EViewportInteractionDraggingMode::ActorsFreely && DraggingMode != EViewportInteractionDraggingMode::World && 
+					   ( DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
+						 Interactor->GetOtherInteractor() != nullptr && Interactor->GetOtherInteractor()->GetDraggingMode() == EViewportInteractionDraggingMode::World ) ) )
 				{
 					UVREditorRadialMenu* RadialMenu = QuickRadialMenu->GetUserWidget<UVREditorRadialMenu>();
 					if ( IsShowingRadialMenu( VREditorInteractor ) )
@@ -199,9 +202,8 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 					}
 
 					RadialMenu->SelectCurrentItem();
+					bWasHandled = true;
 				}
-
-				bWasHandled = true;
 			}
 			else if ( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
 			{
@@ -278,6 +280,13 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 										else
 										{
 											Reply = FSlateApplication::Get().RoutePointerDownEvent(WidgetPathUnderFinger, PointerEvent);
+										}
+
+										// In case of selecting a level in the content browser the VREditormode is closed, this makes sure nothing happens after that.
+										if( !IVREditorModule::Get().IsVREditorModeActive() )
+										{
+											bWasHandled = true;
+											return;
 										}
 										
 										VREditorInteractor->SetIsClickingOnUI( true );
@@ -1040,6 +1049,7 @@ void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor )
 			DraggingMode != EViewportInteractionDraggingMode::ActorsAtLaserImpact &&	// Don't show radial menu if the hand is busy dragging something around
 			DraggingMode != EViewportInteractionDraggingMode::ActorsFreely &&
 			DraggingMode != EViewportInteractionDraggingMode::ActorsWithGizmo &&
+			DraggingMode != EViewportInteractionDraggingMode::World &&
 			DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
 			( InteractorDraggingUI == nullptr || InteractorDraggingUI != Interactor ) &&
 			!Interactor->IsHoveringOverUI();	// Don't show radial menu when aiming at a UI  (too much clutter)

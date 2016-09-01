@@ -32,10 +32,12 @@
 #include "MeshPaintAdapterFactory.h"
 #include "Components/SplineMeshComponent.h"
 
+#include "VREditorMode.h"
 #include "ViewportWorldInteraction.h"
 #include "ViewportInteractableInterface.h"
 #include "VREditorInteractor.h"
 #include "VIBaseTransformGizmo.h"
+#include "EditorWorldManager.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -201,18 +203,19 @@ void FEdModeMeshPaint::Enter()
 		ApplyOrRemoveForceBestLOD(/*bApply=*/ true);
 	}
 
-	// Register to find out about editor modes being activated
-	GetModeManager()->OnEditorModeChanged().AddRaw( this, &FEdModeMeshPaint::OnEditorModeChanged );
-
-	// Register to find out about VR input events
-	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
-	if( VREditorMode != nullptr )
+	TSharedPtr<FEditorWorldWrapper> EditorWorld = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper( GetWorld() );
+	if(EditorWorld.IsValid())
 	{
-		VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll( this );
-		VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().AddRaw( this, &FEdModeMeshPaint::OnVRAction );
+		// Register to find out about VR input events
+		UViewportWorldInteraction* WorldInteraction = EditorWorld->GetViewportWorldInteraction();
+		if(WorldInteraction != nullptr)
+		{
+			WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
+			WorldInteraction->OnViewportInteractionInputAction().AddRaw(this, &FEdModeMeshPaint::OnVRAction);
 
-		// Hide the VR transform gizmo while we're in mesh paint mode.  It sort of gets in the way of painting.
-		VREditorMode->GetWorldInteraction().SetTransformGizmoVisible( false );
+			// Hide the VR transform gizmo while we're in mesh paint mode.  It sort of gets in the way of painting.
+			WorldInteraction->SetTransformGizmoVisible(false);
+		}
 	}
 }
 
@@ -221,18 +224,16 @@ void FEdModeMeshPaint::Exit()
 {
 	if( IVREditorModule::IsAvailable() )
 	{
-		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
-		if( VREditorMode != nullptr )
+		UViewportWorldInteraction* ViewpportWorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld())->GetViewportWorldInteraction();
+		if(ViewpportWorldInteraction != nullptr )
 		{
 			// Restore the transform gizmo visibility
-			VREditorMode->GetWorldInteraction().SetTransformGizmoVisible( true );
+			ViewpportWorldInteraction->SetTransformGizmoVisible( true );
 
 			// Unregister from event handlers
-			VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll( this );
+			ViewpportWorldInteraction->OnViewportInteractionInputAction().RemoveAll( this );
 		}
 	}
-
-	GetModeManager()->OnEditorModeChanged().RemoveAll( this );
 
 	//If we're painting vertex colors then propagate the painting done on LOD0 to all lower LODs. 
 	//Then stop forcing the LOD level of the mesh to LOD0.
@@ -300,24 +301,6 @@ void FEdModeMeshPaint::Exit()
 
 	// Call parent implementation
 	FEdMode::Exit();
-}
-
-
-void FEdModeMeshPaint::OnEditorModeChanged( FEdMode* EditorMode, bool bEntered )
-{
-	// VR Editor mode may have gone away, so re-register for events in case it's a different object than the one we were originally bound to
-	check( EditorMode != nullptr );
-	if( bEntered && EditorMode->GetID() == IVREditorModule::Get().GetVREditorModeID() )
-	{
-		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( EditorMode );
-		if ( VREditorMode != nullptr )
-		{
-			VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().RemoveAll( this );
-			VREditorMode->GetWorldInteraction().OnViewportInteractionInputAction().AddRaw( this, &FEdModeMeshPaint::OnVRAction );
-		}
-
-		PaintingWithInteractorInVR = nullptr;
-	}
 }
 
 
@@ -2653,8 +2636,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 		static TArray<FPaintRay> PaintRays;
 		PaintRays.Reset();
 		
-
-		IVREditorMode* VREditorMode = static_cast<IVREditorMode*>(GetModeManager()->GetActiveMode(IVREditorModule::Get().GetVREditorModeID()));
+		UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper( Viewport->GetClient()->GetWorld() )->GetVREditorMode();
 
 		// Check to see if VREditorMode is active. If so, we're painting with interactor
 		bool bIsInVRMode = false;
@@ -3566,7 +3548,7 @@ EMeshPaintAction::Type FEdModeMeshPaint::GetPaintAction(FViewport* InViewport)
 		// When painting using VR, allow the modifier button to activate Erase mode
 		if( PaintingWithInteractorInVR )
 		{
-			IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
+			UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper( GetWorld() )->GetVREditorMode();
 			UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( PaintingWithInteractorInVR );
 			if( VREditorMode != nullptr && VRInteractor != nullptr )
 			{
@@ -5125,10 +5107,9 @@ TWeakObjectPtr<AActor> FEdModeMeshPaint::GetEditingActor() const
 void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, 
 	const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
-	IVREditorMode* VREditorMode = static_cast<IVREditorMode*>( GetModeManager()->GetActiveMode( IVREditorModule::Get().GetVREditorModeID() ) );
+	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
 	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
-
-	if( VREditorMode != nullptr && VRInteractor != nullptr )
+	if( VREditorMode != nullptr && VREditorMode->IsActive() && VRInteractor != nullptr )
 	{
 		if( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
 		{

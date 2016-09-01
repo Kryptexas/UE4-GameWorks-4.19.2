@@ -34,6 +34,12 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 	bIsDrawingWorldMovementPostProcess( false ),
 	VRMode( nullptr )
 {
+	{
+		USceneComponent* SceneRootComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "RootComponent" ) );
+		AddOwnedComponent( SceneRootComponent );
+		SetRootComponent( SceneRootComponent );
+	}
+
 	// Give us a head mesh
 	{
 		HeadMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "HeadMeshComponent" ) );
@@ -195,23 +201,23 @@ AVREditorAvatarActor::~AVREditorAvatarActor()
 	UserScaleIndicatorText = nullptr;
 }
 
-void AVREditorAvatarActor::Init( FVREditorMode* InVRMode  )
+void AVREditorAvatarActor::Init( UVREditorMode* InVRMode  )
 {
 	VRMode = InVRMode;
 
 	// Set the default color for the progress bar
 	{
 		static FName StaticLaserColorName( "LaserColor" );
-		const FLinearColor FixedProgressbarColor = VRMode->GetColor( FVREditorMode::EColors::WorldDraggingColor_TwoHands );
+		const FLinearColor FixedProgressbarColor = VRMode->GetColor( UVREditorMode::EColors::WorldDraggingColor_TwoHands );
 		FixedUserScaleMID->SetVectorParameterValue( StaticLaserColorName, FixedProgressbarColor );
 		TranslucentFixedUserScaleMID->SetVectorParameterValue( StaticLaserColorName, FixedProgressbarColor );
 
-		const FLinearColor CurrentProgressbarColor = VRMode->GetColor( FVREditorMode::EColors::GreenGizmoColor );
+		const FLinearColor CurrentProgressbarColor = VRMode->GetColor( UVREditorMode::EColors::GreenGizmoColor );
 		CurrentUserScaleMID->SetVectorParameterValue( StaticLaserColorName, CurrentProgressbarColor );
 		TranslucentCurrentUserScaleMID->SetVectorParameterValue( StaticLaserColorName, CurrentProgressbarColor );
 	}
 
-	UserScaleIndicatorText->SetTextRenderColor( VRMode->GetColor( FVREditorMode::EColors::WorldDraggingColor_TwoHands ).ToFColor( false ) );
+	UserScaleIndicatorText->SetTextRenderColor( VRMode->GetColor( UVREditorMode::EColors::WorldDraggingColor_TwoHands ).ToFColor( false ) );
 
 	// Tell the grid to stay relative to the rootcomponent
 	const FAttachmentTransformRules AttachmentTransformRules = FAttachmentTransformRules( EAttachmentRule::KeepRelative, true );

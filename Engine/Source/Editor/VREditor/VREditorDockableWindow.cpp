@@ -7,7 +7,7 @@
 #include "VREditorBaseUserWidget.h"
 #include "WidgetComponent.h"
 #include "VREditorWidgetComponent.h"
-#include "VREditorWorldInteraction.h"
+#include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
 
 namespace VREd
@@ -167,8 +167,8 @@ void AVREditorDockableWindow::SetupWidgetComponent()
 {
 	Super::SetupWidgetComponent();
 
-	SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UISelectionBarColor ) );
-	SetCloseButtonColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UICloseButtonColor ) );
+	SetSelectionBarColor( GetOwner().GetOwner().GetColor( UVREditorMode::EColors::UISelectionBarColor ) );
+	SetCloseButtonColor( GetOwner().GetOwner().GetColor( UVREditorMode::EColors::UICloseButtonColor ) );
 }
 
 
@@ -214,7 +214,7 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 		}
 
 		const float AnimationOvershootAmount = 1.0f;	// @todo vreditor tweak
-		float EasedAimingAtMeFadeAlpha = FVREditorMode::OvershootEaseOut( AimingAtMeFadeAlpha, AnimationOvershootAmount );
+		float EasedAimingAtMeFadeAlpha = UVREditorMode::OvershootEaseOut( AimingAtMeFadeAlpha, AnimationOvershootAmount );
 
 		// Only show our extra buttons and controls if the user is roughly aiming toward us.  This just reduces clutter.
 		SelectionBarMeshComponent->SetVisibility( EasedAimingAtMeFadeAlpha > KINDA_SMALL_NUMBER ? true : false );
@@ -260,7 +260,7 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 				-( GetSize().Y * 0.5f + SelectionBarSize.Z * 0.5f + VREd::DockUISelectionBarVerticalOffset->GetFloat() ) ) * AnimatedScale * WorldScaleFactor;
 			SelectionBarMeshComponent->SetRelativeLocation( SelectionBarRelativeLocation );
 
-			SetSelectionBarColor( GetOwner().GetOwner().GetColor( bIsHoveringOverSelectionBar ? FVREditorMode::EColors::UISelectionBarHoverColor : FVREditorMode::EColors::UISelectionBarColor ) );
+			SetSelectionBarColor( GetOwner().GetOwner().GetColor( bIsHoveringOverSelectionBar ? UVREditorMode::EColors::UISelectionBarHoverColor : UVREditorMode::EColors::UISelectionBarColor ) );
 		}
 
 		// Update the close button
@@ -288,7 +288,7 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 				( GetSize().Y * 0.5f + CloseButtonSize.Z * 0.5f + VREd::DockUICloseButtonOffsetFromCorner->GetFloat() ) ) * AnimatedScale * WorldScaleFactor;
 			CloseButtonMeshComponent->SetRelativeLocation( CloseButtonRelativeLocation );
 
-			SetCloseButtonColor( GetOwner().GetOwner().GetColor( bIsHoveringOverCloseButton ? FVREditorMode::EColors::UICloseButtonHoverColor : FVREditorMode::EColors::UICloseButtonColor ) );
+			SetCloseButtonColor( GetOwner().GetOwner().GetColor( bIsHoveringOverCloseButton ? UVREditorMode::EColors::UICloseButtonHoverColor : UVREditorMode::EColors::UICloseButtonColor ) );
 		}
 	}
 } 

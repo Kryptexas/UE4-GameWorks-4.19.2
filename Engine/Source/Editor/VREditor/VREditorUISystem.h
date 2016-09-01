@@ -46,19 +46,19 @@ public:
 	void Render( const class FSceneView* SceneView, class FViewport* Viewport, class FPrimitiveDrawInterface* PDI );
 
 	/** Sets the owner of this system */
-	void SetOwner( class FVREditorMode* NewOwner )
+	void SetOwner( class UVREditorMode* NewOwner )
 	{
 		VRMode = NewOwner;
 	}
 
 	/** Gets the owner of this system */
-	class FVREditorMode& GetOwner()
+	class UVREditorMode& GetOwner()
 	{
 		return *VRMode;
 	}
 
 	/** Gets the owner of this system (const) */
-	const class FVREditorMode& GetOwner() const
+	const class UVREditorMode& GetOwner() const
 	{
 		return *VRMode;
 	}
@@ -161,7 +161,8 @@ protected:
 protected:
 
 	/** Owning object */
-	class FVREditorMode* VRMode;
+	UPROPERTY()
+	class UVREditorMode* VRMode;
 
 	/** All of the floating UIs.  These may or may not be visible (spawned) */
 	UPROPERTY()

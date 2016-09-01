@@ -7,6 +7,7 @@
 #include "VREditorUISystem.h"
 #include "VREditorFloatingText.h"
 #include "VREditorDockableWindow.h"
+#include "VIBaseTransformGizmo.h"
 
 #include "IMotionController.h"
 #include "IHeadMountedDisplay.h"
@@ -108,7 +109,7 @@ UVREditorMotionControllerInteractor::~UVREditorMotionControllerInteractor()
 }
 
 
-void UVREditorMotionControllerInteractor::Init( class FVREditorMode* InVRMode )
+void UVREditorMotionControllerInteractor::Init( class UVREditorMode* InVRMode )
 {
 	Super::Init( InVRMode );
 	bHaveMotionController = true;
@@ -141,8 +142,6 @@ void UVREditorMotionControllerInteractor::Init( class FVREditorMode* InVRMode )
 		AddKeyAction( EKeys::MotionController_Right_Grip1, FViewportActionKeyInput( ViewportWorldActionTypes::WorldMovement ) );
 		AddKeyAction( UVREditorMotionControllerInteractor::MotionController_Right_FullyPressedTriggerAxis, FViewportActionKeyInput( ViewportWorldActionTypes::SelectAndMove ) );
 		AddKeyAction( UVREditorMotionControllerInteractor::MotionController_Right_LightlyPressedTriggerAxis, FViewportActionKeyInput( ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) );
-		AddKeyAction( EKeys::MotionController_Right_Thumbstick, FViewportActionKeyInput( VRActionTypes::ConfirmRadialSelection ) );
-
 		AddKeyAction( SteamVRControllerKeyNames::Touch1, FViewportActionKeyInput( VRActionTypes::Touch ) );
 		AddKeyAction( EKeys::MotionController_Right_TriggerAxis, FViewportActionKeyInput( UVREditorMotionControllerInteractor::TriggerAxis ) );
 		AddKeyAction( EKeys::MotionController_Right_Thumbstick_X, FViewportActionKeyInput( UVREditorMotionControllerInteractor::TrackpadPositionX ) );
@@ -418,7 +417,7 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 
 	// Updating laser colors for both hands
 	{
-		FVREditorMode::EColors ResultColorType = FVREditorMode::EColors::DefaultColor;
+		UVREditorMode::EColors ResultColorType = UVREditorMode::EColors::DefaultColor;
 		float CrawlSpeed = 0.0f;
 		float CrawlFade = 0.0f;
 
@@ -431,7 +430,7 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 
 		if ( bIsDraggingWorldWithTwoHands )
 		{
-			ResultColorType = FVREditorMode::EColors::WorldDraggingColor_TwoHands;
+			ResultColorType = UVREditorMode::EColors::WorldDraggingColor_TwoHands;
 		}
 		else if ( DraggingMode == EViewportInteractionDraggingMode::World )
 		{
@@ -445,7 +444,7 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 			// We can teleport in this mode, so animate the laser a bit
 			CrawlFade = 1.0f;
 			CrawlSpeed = 5.0f;
-			ResultColorType = FVREditorMode::EColors::WorldDraggingColor_OneHand;
+			ResultColorType = UVREditorMode::EColors::WorldDraggingColor_OneHand;
 			//			}
 		}
 		else if ( DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact ||
@@ -456,7 +455,7 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 			DraggingMode == EViewportInteractionDraggingMode::Interactable ||
 			( GetVRMode().GetUISystem().IsInteractorDraggingDockUI( this ) && GetVRMode().GetUISystem().IsDraggingDockUI() ) )
 		{
-			ResultColorType = FVREditorMode::EColors::SelectionColor;
+			ResultColorType = UVREditorMode::EColors::SelectionColor;
 		}
 
 		const FLinearColor ResultColor = GetVRMode().GetColor( ResultColorType );

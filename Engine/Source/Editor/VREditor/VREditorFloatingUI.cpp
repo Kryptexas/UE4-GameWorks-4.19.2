@@ -228,7 +228,7 @@ void AVREditorFloatingUI::UpdateFadingState( const float DeltaTime )
 FVector AVREditorFloatingUI::CalculateAnimatedScale() const
 {
 	const float AnimationOvershootAmount = 0.7f;	// @todo vreditor tweak
-	const float EasedAlpha = FVREditorMode::OvershootEaseOut( FadeAlpha, AnimationOvershootAmount );
+	const float EasedAlpha = UVREditorMode::OvershootEaseOut( FadeAlpha, AnimationOvershootAmount );
 
 	// Animate vertically more than horizontally; just looks a little better
 	const float ZScale = FMath::Max( 0.001f, EasedAlpha );

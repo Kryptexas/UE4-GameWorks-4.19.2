@@ -411,9 +411,6 @@ public:
 	/** Add desired instances. Uses foliage settings to determine location/scale/rotation and whether instances should be ignored */
 	static void AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances, const FFoliagePaintingGeometryFilter& OverrideGeometryFilter);
 
-	/** Called when an editor mode is entered or exited */
-	void OnEditorModeChanged(FEdMode* EditorMode, bool bEntered);
-
 	/** Called when the user presses a button on their motion controller device */
 	void OnVRAction(class FEditorViewportClient& ViewportClient, class UViewportInteractor* Interactor, const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled);
 

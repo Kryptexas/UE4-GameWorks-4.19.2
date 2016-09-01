@@ -2620,7 +2620,25 @@ public:
 	virtual void VerifyLoadMapWorldCleanup();
 
 	FWorldContext& CreateNewWorldContext(EWorldType::Type WorldType);
+
 	virtual void DestroyWorldContext(UWorld * InWorld);
+
+#if WITH_EDITOR
+	/** Triggered when a world context is destroyed. */
+	DECLARE_EVENT_OneParam(UEngine, FWorldContextDestroyedEvent, FWorldContext&);
+
+	/** Return the world context destroyed event. */
+	FWorldContextDestroyedEvent&	OnWorldContextDestroyed() { return WorldContextDestroyedEvent; }
+#endif // #if WITH_EDITOR
+
+private:
+
+#if WITH_EDITOR
+	/** Delegate broadcast when a world context is destroyed */
+	FWorldContextDestroyedEvent WorldContextDestroyedEvent;
+#endif // #if WITH_EDITOR
+
+public:
 
 	bool ShouldAbsorbAuthorityOnlyEvent();
 	bool ShouldAbsorbCosmeticOnlyEvent();
