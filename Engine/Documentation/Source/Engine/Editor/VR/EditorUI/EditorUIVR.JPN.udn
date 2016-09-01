@@ -1,4 +1,5 @@
-﻿Title:VR モードでのエディタ ウィンドウ
+﻿INTSourceChangelist:3095099
+Title:VR モードでのエディタ ウィンドウ
 Description:VR モードでの作業中、エディタ パネルとウィンドウを呼び出してインタラクトすることができます。
 Crumbs:
 Availability: public
@@ -6,7 +7,7 @@ parent:Engine/Editor/VR
 type: reference
 order:5
 tags:VR
-version:4.11
+version:4.13
 skilllevel: intermediate
 
 [VAR:Topic]
@@ -48,9 +49,11 @@ skilllevel: intermediate
 VR エディタで以下のような各種パネルとウィンドウを多数呼び出してドックすることができます。
 
 [REGION:imagetable]
-| ![](window_content.png)(w:145) | ![](window_details.png)(w:145) | ![](window_modes.png)(w:145) | ![](window_outliner.png)(w:145) | ![](window_tutorials.png)(w:145) | ![](window_asset.png)(w:145) |
-| --- | --- | --- | --- | --- | --- |
-| コンテンツ ブラウザ | 詳細パネル | モード パネル | アウトライナー パネル | チュートリアル | アセット パネル |
+| ![](window_content.png)(w:225) | ![](window_details.png)(w:225) | ![](window_modes.png)(w:225) | ![](window_outliner.png)(w:225) |
+| --- | --- | --- | --- |
+| コンテンツ ブラウザ | 詳細パネル | モード パネル | アセット パネル | 
+|![](window_tutorials.png)(w:225) | ![](window_asset.png)(w:225) | ![](colorPicker.png)(w:225)| ![](worldSettings.png)(w:225)|
+|チュートリアル | アセット パネル | カラー ピッカー | ワールド設定 |
 [/REGION]
 
 ## VR モードでウィンドウを開く
@@ -59,11 +62,11 @@ VR エディタで以下のような各種パネルとウィンドウを多数�
 
 1. 片方のコントローラの照準をもう片方に合わせて **[Quick Select (クイック選択)]** メニューを開きます。
 
-	![](window_quick_select.png)(w:480)
+	![](quickmenu_1.png)(w:480)
 
 1. フリーな方のコントローラの照準を [Interface] セクションのオプションの一つに合わせて **トリガー** を引いて、そのウィンドウを開きます。
 
-	![](window_quick_select_highlight.png)(w:480)
+	![](quickmenu_2.png)(w:480)
 
 
 ## ドッキング
@@ -117,13 +120,13 @@ VR エディタでは、様々な方法でパネルおよびウィンドウと�
 
 1. トリガーを引いて、ウィンドウを終了します。
 
-**すべてのウィンドウを表示 / 非表示にする方法** 
+**コンテンツ ブラウザ、詳細パネル、モード パネル、シーン アウトライナーなど主要ウィンドウを表示 / 非表示にするには、以下の手順に従います。** 
 
-1. ウィンドウが開いた状態で、もう一度 **トラックパッド** を押して、すべてのウィンドウを非表示にします。
+1. ウィンドウを開いたまま **トラックパッド** を 1 回押すと、そのウィンドウが非表示になります。
 
 	![](window_show.png)(w:480) ![](window_hide.png)(w:480)
 
-1. ウィンドウが非表示の状態で、もう一度 **トラックパッド** を押して、すべてのウィンドウを表示します。
+1. ウィンドウが非表示の状態で、再度 **トラックパッド** を押すと、そのウィンドウが表示されます。
 
 	![](window_hide.png)(w:480) ![](window_show.png)(w:480)
 
