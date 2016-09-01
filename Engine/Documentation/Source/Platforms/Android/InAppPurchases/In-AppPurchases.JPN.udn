@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2945303
+﻿INTSourceChangelist:3085384
 Title:Android でアプリ内課金を使用する
 Description:アプリ内課金を使って Android ゲームに有料コンテンツを追加する
 Crumbs:
@@ -8,7 +8,7 @@ Parent:Platforms/Android
 tags:Mobile
 tags:Android
 type:howto
-
+Related:Platforms/Mobile/InAppPurchases/
 
 ## コンフィギュレーション
 
@@ -35,6 +35,14 @@ type:howto
 1. ExtraPermissions に"：com.android.vending.BILLING" というエレメントを追加します。
 
 	![image alt text](image_2.png)
+
+1. [ProjectName]/Config/Android/AndroidEngine.ini: を編集します。
+
+		[OnlineSubsystem]
+		DefaultPlatformService=GooglePlay
+
+		[OnlineSubsystemGooglePlay.Store]
+		bSupportsInAppPurchasing=True
 
 [INCLUDE:Platforms/Mobile/InAppPurchases#usage_android]
 
