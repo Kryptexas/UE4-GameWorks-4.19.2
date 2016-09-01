@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3020428
+﻿INTSourceChangelist:3060419
 Availability:Public
 Title:Spring Controller
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
@@ -71,5 +71,9 @@ A7J0Xd79HhY
 | **Spring Damping** | スプリングで取り除いたボーンのベロシティの量です。 |
 | **Error Reset Thresh** | 変位の閾値。スプリングがこの値以上に伸縮した場合、アクタのテレポートなど突然発生する大きな変位を避けるためにリセットします。 |
 | **No ZSpring** | 有効になると、Z 軸の変位はスプリングによって無視されて、常に正しくなります。|
+
+**Spring Controller** ノードも 4.11 で導入された **LOD Threshold** システムの影響を受けます。**Spring Controller** ノードの **[Details (詳細)]** パネルにこの設定が表示されます。
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
 
