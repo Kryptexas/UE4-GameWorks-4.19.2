@@ -59,11 +59,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\IOS\DeploymentInterface\DeploymentInterface.csproj">
-      <Project>{2da5397a-f93f-41e0-a1ad-b220d40fd739}</Project>
-      <Name>DeploymentInterface</Name>
-      <Private>True</Private>
-    </ProjectReference>
     <ProjectReference Include="..\..\UnrealBuildTool\UnrealBuildTool.csproj">
       <Project>{fd7c5e1a-cfe4-4fd5-a525-1eb1599a39ac}</Project>
       <Name>UnrealBuildTool</Name>
