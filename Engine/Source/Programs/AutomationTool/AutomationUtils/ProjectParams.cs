@@ -276,7 +276,8 @@ namespace AutomationTool
 			this.StageCommandline = InParams.StageCommandline;
             this.BundleName = InParams.BundleName;
 			this.RunCommandline = InParams.RunCommandline;
-			this.Package = InParams.Package;
+			this.ServerCommandline = InParams.ServerCommandline;
+            this.Package = InParams.Package;
 			this.Deploy = InParams.Deploy;
 			this.IterativeDeploy = InParams.IterativeDeploy;
 			this.IgnoreCookErrors = InParams.IgnoreCookErrors;
@@ -615,7 +616,9 @@ namespace AutomationTool
 			this.BundleName = ParseParamValueIfNotSpecified(Command, BundleName, "bundlename");
 			this.RunCommandline = ParseParamValueIfNotSpecified(Command, RunCommandline, "addcmdline");
 			this.RunCommandline = this.RunCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
-			this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
+			this.ServerCommandline = ParseParamValueIfNotSpecified(Command, ServerCommandline, "servercmdline");
+			this.ServerCommandline = this.ServerCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
+            this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
 			this.IterativeDeploy = GetParamValueIfNotSpecified(Command, IterativeDeploy, this.IterativeDeploy, new string[] {"iterativedeploy", "iterate" } );
 			this.FastCook = GetParamValueIfNotSpecified(Command, FastCook, this.FastCook, "FastCook");
@@ -1508,6 +1511,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("addcmdline", "Additional command line arguments for the program")]
 		public string RunCommandline;
+
+        /// <summary>
+		/// Run: Additional command line arguments to pass to the server
+		/// </summary>
+		[Help("servercmdline", "Additional command line arguments for the program")]
+		public string ServerCommandline;
 
         /// <summary>
         /// Run:adds -nullrhi to the client commandline

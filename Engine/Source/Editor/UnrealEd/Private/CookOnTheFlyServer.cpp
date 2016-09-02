@@ -427,6 +427,7 @@ namespace DetailedCookStats
 	double TickCookOnTheSideSaveCookedPackageTimeSec = 0.0;
 	double TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec = 0.0;
 	double TickCookOnTheSideFinishPackageCacheForCookedPlatformDataTimeSec = 0.0;
+	double GameCookModificationDelegateTimeSec = 0.0;
 }
 #endif
 
@@ -3878,6 +3879,7 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 
 	if (!(FilesToCookFlags & ECookByTheBookOptions::NoGameAlwaysCookPackages))
 	{
+		COOK_STAT(FScopedDurationTimer TickTimer(DetailedCookStats::GameCookModificationDelegateTimeSec));
 		// allow the game to fill out the asset registry, as well as get a list of objects to always cook
 		TArray<FString> FilesInPathStrings;
 		FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPathStrings);
@@ -4811,7 +4813,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		{
 			CookRequests.EnqueueUnique( MoveTemp( FFilePlatformRequest( PackageFileFName, TargetPlatformNames ) ) );
 		}
-		else if (!FLinkerLoad::KnownMissingPackages.Contains(FileFName))
+		else if (!FLinkerLoad::IsKnownMissingPackage(FileFName))
 		{
 			const FString FileName = FileFName.ToString();
 			LogCookerMessage( FString::Printf(TEXT("Unable to find package for cooking %s"), *FileName), EMessageSeverity::Warning );

@@ -2422,7 +2422,7 @@ FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
 	}
 
 	return PrimaryGPUBrand;
-	}
+}
 
 static void GetVideoDriverDetails(const FString& Key, FGPUDriverInfo& Out)
 {

@@ -26,6 +26,7 @@ public:
 public:
 	SLATE_BEGIN_ARGS( SMenuAnchor )
 		: _Content()
+		, _Padding(FMargin(0.f))
 		, _MenuContent( SNew(STextBlock) .Text( NSLOCTEXT("SMenuAnchor", "NoMenuContent", "No Menu Content Assigned; use .MenuContent") ) )
 		, _OnGetMenuContent()
 		, _Placement( MenuPlacement_BelowAnchor )
@@ -36,6 +37,8 @@ public:
 		{}
 		
 		SLATE_DEFAULT_SLOT( FArguments, Content )
+
+		SLATE_ARGUMENT( FMargin, Padding )
 		
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, MenuContent )
 

@@ -370,8 +370,6 @@ namespace UnrealBuildTool
 			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				Result += " -Wno-unused-value";
-
-				// Not stripping debug info in Shipping @FIXME: temporary hack for FN to enable callstack in Shipping builds (proper resolution: UEPLAT-205)
 				Result += " -fomit-frame-pointer";
 			}
 			// switches to help debugging
@@ -1210,12 +1208,10 @@ namespace UnrealBuildTool
 				FixDepsScript.Close();
 			}
 
-			// piping output through the handler during native builds is unnecessary and reportedly causes problems with tools like octobuild.
 			if (CrossCompiling())
 			{
 				LinkAction.OutputEventHandler = new DataReceivedEventHandler(CrossCompileOutputReceivedDataEventHandler);
 			}
-
 			return OutputFile;
 		}
 

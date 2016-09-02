@@ -856,10 +856,11 @@ UCanvas* UWorld::GetCanvasForDrawMaterialToRenderTarget()
 UAISystemBase* UWorld::CreateAISystem()
 {
 	// create navigation system for editor and server targets, but remove it from game clients
-	if (AISystem == NULL && UAISystemBase::ShouldInstantiateInNetMode(GetNetMode()))
+	if (AISystem == NULL && UAISystemBase::ShouldInstantiateInNetMode(GetNetMode()) && PersistentLevel)
 	{
 		FName AIModuleName = UAISystemBase::GetAISystemModuleName();
-		if (AIModuleName.IsNone() == false)
+		const AWorldSettings* WorldSettings = PersistentLevel->GetWorldSettings(false);
+		if (AIModuleName.IsNone() == false && WorldSettings && WorldSettings->bEnableAISystem)
 		{
 			IAISystemModule* AISystemModule = FModuleManager::LoadModulePtr<IAISystemModule>(UAISystemBase::GetAISystemModuleName());
 			if (AISystemModule)
@@ -959,18 +960,20 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	}
 
 	// Prepare AI systems
-	if (IVS.bCreateNavigation)
+	if (IVS.bCreateNavigation || IVS.bCreateAISystem)
 	{
 		AWorldSettings* WorldSettings = GetWorldSettings();
-		if (WorldSettings && WorldSettings->bEnableNavigationSystem)
+		if (WorldSettings)
 		{
-			UNavigationSystem::CreateNavigationSystem(this);
+			if (IVS.bCreateNavigation && WorldSettings->bEnableNavigationSystem)
+			{
+				UNavigationSystem::CreateNavigationSystem(this);
+			}
+			if (IVS.bCreateAISystem && WorldSettings->bEnableAISystem)
+			{
+				CreateAISystem();
+			}
 		}
-	}
-
-	if (IVS.bCreateAISystem)
-	{
-		CreateAISystem();
 	}
 	
 	if (GEngine->AvoidanceManagerClass != NULL)

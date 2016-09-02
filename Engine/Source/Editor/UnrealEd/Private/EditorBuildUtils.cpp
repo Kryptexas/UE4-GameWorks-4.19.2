@@ -882,10 +882,10 @@ FBuildAllHandler::FBuildAllHandler()
 	BuildSteps.Add(FBuildOptions::BuildGeometry);
 	BuildSteps.Add(FBuildOptions::BuildHierarchicalLOD);
 	BuildSteps.Add(FBuildOptions::BuildAIPaths);
-	BuildSteps.Add(FBuildOptions::BuildTextureStreaming);
-	
 	//Lighting must always be the last one when doing a build all
 	BuildSteps.Add(FBuildOptions::BuildLighting);
+	//Texture streaming follows lighting because it could generate lightmap related data.
+	BuildSteps.Add(FBuildOptions::BuildTextureStreaming);
 }
 
 /**

@@ -832,7 +832,12 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 	}
 
 	// Tick navigation mesh async builders
-	if (!bAsyncBuildPaused && (bNavigationAutoUpdateEnabled || bIsGame))
+	if (!bAsyncBuildPaused && (bNavigationAutoUpdateEnabled || bIsGame 
+#if WITH_EDITOR
+		// continue ticking if build is in progress
+		|| (GIsEditor && IsNavigationBuildInProgress())
+#endif // WITH_EDITOR
+		))
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickAsyncBuild);
 		for (ANavigationData* NavData : NavDataSet)
@@ -3322,6 +3327,7 @@ bool UNavigationSystem::IsNavigationBuildInProgress(bool bCheckDirtyToo)
 
 	if (NavDataSet.Num() == 0)
 	{
+		// @todo this is wrong! Should not need to create a navigation data instance in a "getter" like function
 		// update nav data. If none found this is the place to create one
 		GetMainNavData(FNavigationSystem::DontCreate);
 	}

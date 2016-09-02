@@ -327,6 +327,7 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 				// Update the sync group if it exists
 				if (SyncGroup != NULL)
 				{
+					// the max count should be 2 as you had older one and you have newer one. After TestMontageTickRecordForLeadership, it should set to be 1
 					SyncGroup->TestMontageTickRecordForLeadership();
 				}
 			}

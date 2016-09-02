@@ -2852,6 +2852,40 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 	{
 		DisplayDebugManager.SetDrawColor(FColor::White);
 		DisplayDebugManager.DrawString(FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall));
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("Pawn: %s"), *this->AcknowledgedPawn->GetFName().ToString()));
+		
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+		DisplayDebugManager.DrawString(TEXT("Last Played Force Feedback"));
+		const float CurrentTime = GetWorld()->GetTimeSeconds();
+		for (int32 i = ForceFeedbackEffectHistoryEntries.Num() - 1; i >= 0; --i)
+		{
+			if (CurrentTime > ForceFeedbackEffectHistoryEntries[i].TimeShown + 5.0f)
+			{
+				ForceFeedbackEffectHistoryEntries.RemoveAtSwap(i, 1, /*bAllowShrinking=*/ false);
+				continue;
+			}
+			const FActiveForceFeedbackEffect& LastActiveEffect = ForceFeedbackEffectHistoryEntries[i].LastActiveForceFeedbackEffect;
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Object Name: %s"), *LastActiveEffect.ForceFeedbackEffect->GetFName().ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Tag: %s"), *LastActiveEffect.Tag.ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Looping: %s"), (LastActiveEffect.bLooping ? TEXT("true") : TEXT("false"))));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Duration: %f"), LastActiveEffect.ForceFeedbackEffect->GetDuration()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Start Time: %f"), ForceFeedbackEffectHistoryEntries[i].TimeShown));
+		}
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+		DisplayDebugManager.DrawString(TEXT("Current Playing Force Feedback"));
+		for (int32 Index = ActiveForceFeedbackEffects.Num() - 1; Index >= 0; --Index)
+		{
+			FActiveForceFeedbackEffect ActiveEffect = ActiveForceFeedbackEffects[Index];
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Object Name: %s"), *ActiveEffect.ForceFeedbackEffect->GetFName().ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Tag: %s"), *ActiveEffect.Tag.ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Looping: %s"), (ActiveEffect.bLooping ? TEXT("true") : TEXT("false"))));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Play Time: %f"), ActiveEffect.PlayTime));
+		}
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+#endif
 	}
 
 	YPos = DisplayDebugManager.GetYPos();
@@ -3402,6 +3436,10 @@ void APlayerController::ClientPlayForceFeedback_Implementation( UForceFeedbackEf
 
 		FActiveForceFeedbackEffect ActiveEffect(ForceFeedbackEffect, bLooping, Tag);
 		ActiveForceFeedbackEffects.Add(ActiveEffect);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		ForceFeedbackEffectHistoryEntries.Emplace(ActiveEffect, GetWorld()->GetTimeSeconds());
+#endif
 	}
 }
 

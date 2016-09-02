@@ -151,10 +151,14 @@ void UYVYConvertPS(
 	float2 InUV : TEXCOORD0,
 	out float4 OutColor : SV_Target0)
 {
-	float4 UYVY = UYVYConvertUB.UYVYTexture.Sample(UYVYConvertUB.UYVYSampler, float2(InUV.x, InUV.y));
+	float4 UYVYB = UYVYConvertUB.UYVYTexture.Sample(UYVYConvertUB.UYVYSamplerB, float2(InUV.x, InUV.y));
+	float4 UYVYP = UYVYConvertUB.UYVYTexture.Sample(UYVYConvertUB.UYVYSamplerP, float2(InUV.x, InUV.y));
 
-	uint Pos = InUV.x * UYVYConvertUB.Width;
-	float3 YUV = (Pos % 2 == 0) ? UYVY.yxz : UYVY.wxz;
+	float Pos = 2.0f * InUV.x * UYVYConvertUB.Width;
+	float3 YUV;
+
+	YUV.x = (floor(Pos % 2.0f) == 0) ? UYVYP.y : UYVYP.w;
+	YUV.yz = UYVYB.zx;
 
 	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_MSDN);
 	OutColor.w = 1.0f;
@@ -183,10 +187,14 @@ void YUY2ConvertPS(
 	float2 InUV : TEXCOORD0,
 	out float4 OutColor : SV_Target0)
 {
-	float4 YUY2 = YUY2ConvertUB.YUY2Texture.Sample(YUY2ConvertUB.YUY2Sampler, float2(InUV.x, InUV.y));
+	float4 YUY2B = YUY2ConvertUB.YUY2Texture.Sample(YUY2ConvertUB.YUY2SamplerB, float2(InUV.x, InUV.y));
+	float4 YUY2P = YUY2ConvertUB.YUY2Texture.Sample(YUY2ConvertUB.YUY2SamplerP, float2(InUV.x, InUV.y));
 
-	uint Pos = InUV.x * YUY2ConvertUB.Width;
-	float3 YUV = (Pos % 2 == 0) ? YUY2.xyw : YUY2.zyw;
+	float Pos = 2.0f * InUV.x * YUY2ConvertUB.Width;
+	float3 YUV;
+
+	YUV.x = (floor(Pos % 2.0f) == 0) ? YUY2P.z : YUY2P.x;
+	YUV.yz = YUY2B.yw;
 
 	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_MSDN);
 	OutColor.w = 1.0f;
@@ -199,10 +207,14 @@ void YVYUConvertPS(
 	float2 InUV : TEXCOORD0,
 	out float4 OutColor : SV_Target0)
 {
-	float4 YVYU = YVYUConvertUB.YVYUTexture.Sample(YVYUConvertUB.YVYUSampler, float2(InUV.x, InUV.y));
+	float4 YVYUB = YVYUConvertUB.YVYUTexture.Sample(YVYUConvertUB.YVYUSamplerB, float2(InUV.x, InUV.y));
+	float4 YVYUP = YVYUConvertUB.YVYUTexture.Sample(YVYUConvertUB.YVYUSamplerP, float2(InUV.x, InUV.y));
 
-	uint Pos = InUV.x * YVYUConvertUB.Width;
-	float3 YUV = (Pos % 2 == 0) ? YVYU.xwy : YVYU.zwy;
+	float Pos = 2.0f * InUV.x * YVYUConvertUB.Width;
+	float3 YUV;
+
+	YUV.x = (floor(Pos % 2.0f) == 0) ? YVYUP.z : YVYUP.x;
+	YUV.yz = YVYUB.wy;
 
 	OutColor.xyz = YuvToRgb(YUV, YUV_TO_RGB_MSDN);
 	OutColor.w = 1.0f;

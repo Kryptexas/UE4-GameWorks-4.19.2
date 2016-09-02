@@ -311,7 +311,7 @@ bool FCustomCalculationBasedFloat::operator!=(const FCustomCalculationBasedFloat
 bool FGameplayEffectModifierMagnitude::CanCalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec) const
 {
 	// Only can calculate magnitude properly if all required capture definitions are fulfilled by the spec
-	static TArray<FGameplayEffectAttributeCaptureDefinition> ReqCaptureDefs;
+	TArray<FGameplayEffectAttributeCaptureDefinition> ReqCaptureDefs;
 	ReqCaptureDefs.Reset();
 
 	GetAttributeCaptureDefinitions(ReqCaptureDefs);
@@ -365,7 +365,7 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 
 bool FGameplayEffectModifierMagnitude::AttemptRecalculateMagnitudeFromDependentChange(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude, const FAggregator* ChangedAggregator) const
 {
-	static TArray<FGameplayEffectAttributeCaptureDefinition > ReqCaptureDefs;
+	TArray<FGameplayEffectAttributeCaptureDefinition > ReqCaptureDefs;
 	ReqCaptureDefs.Reset();
 
 	GetAttributeCaptureDefinitions(ReqCaptureDefs);
@@ -728,7 +728,7 @@ void FGameplayEffectSpec::SetupAttributeCaptureDefinitions()
 		CapturedRelevantAttributes.AddCaptureDefinition(UAbilitySystemComponent::GetIncomingDurationCapture());
 	}
 
-	static TArray<FGameplayEffectAttributeCaptureDefinition> CaptureDefs;
+	TArray<FGameplayEffectAttributeCaptureDefinition> CaptureDefs;
 
 	// Gather capture definitions from duration	
 	{
@@ -1939,7 +1939,12 @@ void FActiveGameplayEffectsContainer::OnStackCountChange(FActiveGameplayEffect& 
 		// Only update attributes if stack count actually changed.
 		UpdateAllAggregatorModMagnitudes(ActiveEffect);
 	}
-	Owner->NotifyTagMap_StackCountChange(ActiveEffect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
+
+	if (ActiveEffect.Spec.Def != nullptr)
+	{
+		Owner->NotifyTagMap_StackCountChange(ActiveEffect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
+	}
+
 	Owner->NotifyTagMap_StackCountChange(ActiveEffect.Spec.DynamicGrantedTags);
 
 	ActiveEffect.OnStackChangeDelegate.Broadcast(ActiveEffect.Handle, ActiveEffect.Spec.StackCount, OldStackCount);

@@ -33,7 +33,8 @@ FTimerManager::FTimerManager()
 {
 	if (IsRunningDedicatedServer())
 	{
-		FCoreDelegates::OnHandleSystemError.AddRaw(this, &FTimerManager::OnCrash);
+		// Off by default, renable if needed
+		//FCoreDelegates::OnHandleSystemError.AddRaw(this, &FTimerManager::OnCrash);
 	}
 }
 

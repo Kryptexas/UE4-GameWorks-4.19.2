@@ -254,7 +254,19 @@ namespace UE4Function_Private
 			checkf(false, TEXT("Attempting to call an unbound TFunction!"));
 
 			// This doesn't need to be valid, because it'll never be reached, but it does at least need to compile.
-			return FakeCall((Ret*)Obj);
+			return FakeCall((typename TRemoveReference<Ret>::Type*)Obj);
+		}
+	};
+
+	template <typename Ret, typename... ParamTypes>
+	struct TFunctionRefAsserter<Ret& (ParamTypes...)>
+	{
+		static Ret& Call(void* Obj, ParamTypes&...)
+		{
+			checkf(false, TEXT("Attempting to call a null TFunction!"));
+
+			// This doesn't need to be valid, because it'll never be reached, but it does at least need to compile.
+			return (*(Ret*)Obj);
 		}
 	};
 

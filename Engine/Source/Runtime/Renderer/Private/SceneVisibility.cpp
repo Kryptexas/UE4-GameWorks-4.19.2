@@ -2947,6 +2947,8 @@ void FLODSceneTree::AddChildNode(const FPrimitiveComponentId NodeId, FPrimitiveS
 			{
 				Node->SceneInfo = Scene->Primitives[ParentIndex];
 			}
+			//new nodes that will need distance scale, reset since we don't keep stateful data about this per node.
+			ResetHLODDistanceScaleApplication();
 		}
 
 		Node->AddChild(ChildSceneInfo);

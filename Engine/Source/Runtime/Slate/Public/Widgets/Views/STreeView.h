@@ -143,6 +143,7 @@ public:
 	void Construct( const FArguments& InArgs )
 	{
 		this->OnGenerateRow = InArgs._OnGenerateRow;
+		this->OnRowReleased = InArgs._OnRowReleased;
 		this->OnItemScrolledIntoView = InArgs._OnItemScrolledIntoView;
 		this->OnGetChildren = InArgs._OnGetChildren;
 		this->OnSetExpansionRecursive = InArgs._OnSetExpansionRecursive;

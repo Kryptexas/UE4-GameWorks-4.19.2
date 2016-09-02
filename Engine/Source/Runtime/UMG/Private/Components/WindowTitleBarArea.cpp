@@ -45,9 +45,16 @@ TSharedRef<SWidget> UWindowTitleBarArea::RebuildWidget()
 		WindowActionNotificationHandle.Reset();
 	}
 
+	MyWindowTitleBarArea->SetOnDoubleClickCallback(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleMouseButtonDoubleClick));
+
 	if (GetChildrenCount() > 0)
 	{
 		Cast<UWindowTitleBarAreaSlot>(GetContentSlot())->BuildSlot(MyWindowTitleBarArea.ToSharedRef());
+	}
+
+	if (GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid())
+	{
+		MyWindowTitleBarArea->SetGameWindow(GEngine->GameViewport->GetWindow());
 	}
 
 	return BuildDesignTimeWidget(MyWindowTitleBarArea.ToSharedRef());
@@ -131,6 +138,15 @@ bool UWindowTitleBarArea::HandleWindowAction(const TSharedRef<FGenericWindow>& P
 		return true;
 	}
 	return false;
+}
+
+void UWindowTitleBarArea::HandleMouseButtonDoubleClick()
+{
+	// This is only called in fullscreen mode when user double clicks the title bar.
+	if (GEngine)
+	{
+		GEngine->DeferredCommands.Add(TEXT("TOGGLE_FULLSCREEN"));
+	}
 }
 
 #if WITH_EDITOR

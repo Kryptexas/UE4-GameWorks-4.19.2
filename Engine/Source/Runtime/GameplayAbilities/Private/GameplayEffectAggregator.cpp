@@ -202,6 +202,7 @@ void FAggregator::AddAggregatorMod(float EvaluatedMagnitude, TEnumAsByte<EGamepl
 	NewMod.SourceTagReqs = SourceTagReqs;
 	NewMod.TargetTagReqs = TargetTagReqs;
 	NewMod.EvaluatedMagnitude = EvaluatedMagnitude;
+	NewMod.StackCount = 0;
 	NewMod.ActiveHandle = ActiveHandle;
 	NewMod.IsPredicted = IsPredicted;
 

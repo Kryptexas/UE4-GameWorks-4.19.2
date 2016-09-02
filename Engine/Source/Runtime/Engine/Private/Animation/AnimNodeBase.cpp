@@ -500,6 +500,7 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			}
 
 			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
+			CopyRecord.CachedStructDestProperty = Cast<UStructProperty>(CopyRecord.DestProperty);
 		}
 	}
 
@@ -529,6 +530,10 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 				{
 					bool bValue = CopyRecord.CachedBoolSourceProperty->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
 					CopyRecord.CachedBoolDestProperty->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, bValue, CopyRecord.DestArrayIndex);
+				}
+				else if(CopyRecord.CachedStructDestProperty != nullptr)
+				{
+					CopyRecord.CachedStructDestProperty->Struct->CopyScriptStruct(CopyRecord.Dest, CopyRecord.Source);
 				}
 				else
 				{

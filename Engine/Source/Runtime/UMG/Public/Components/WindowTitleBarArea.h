@@ -66,6 +66,7 @@ protected:
 private:
 
 	bool HandleWindowAction(const TSharedRef<FGenericWindow>& PlatformWindow, EWindowAction::Type WindowAction);
+	void HandleMouseButtonDoubleClick();
 
 private:
 

@@ -190,6 +190,9 @@ public:
 	/** Returns true if bone is child of for current asset. */
 	bool BoneIsChildOf(const int32& BoneIndex, const int32& ParentBoneIndex) const;
 
+	/** Returns true if bone is child of for current asset. */
+	bool BoneIsChildOf(const FCompactPoseBoneIndex& BoneIndex, const FCompactPoseBoneIndex& ParentBoneIndex) const;
+
 	/**
 	* Serializes the bones
 	*

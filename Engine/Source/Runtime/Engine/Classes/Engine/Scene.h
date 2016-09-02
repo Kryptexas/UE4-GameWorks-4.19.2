@@ -142,6 +142,11 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_ColorOffsetHighlights : 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorCorrectionShadowsMax : 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Overrides, meta = (PinHiddenByDefault, InlineEditConditionToggle))
+	uint32 bOverride_ColorCorrectionHighlightsMin : 1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_FilmWhitePoint:1;
 
@@ -515,6 +520,8 @@ struct FPostProcessSettings
 	FVector4 ColorGainShadows;
 	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Shadows", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorOffsetShadows", DisplayName = "OffsetShadows"))
 	FVector4 ColorOffsetShadows;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Shadows", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorCorrectionShadowsMax", DisplayName = "ShadowsMax"))
+	float ColorCorrectionShadowsMax;
 
 	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Midtones", meta = (UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorSaturationMidtones", DisplayName = "SaturationMidtones"))
 	FVector4 ColorSaturationMidtones;
@@ -537,6 +544,8 @@ struct FPostProcessSettings
 	FVector4 ColorGainHighlights;
 	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Highlights", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorOffsetHighlights", DisplayName = "OffsetHighlights"))
 	FVector4 ColorOffsetHighlights;
+	UPROPERTY(interp, BlueprintReadWrite, Category = "ColorGrading|Highlights", meta = (UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorCorrectionHighlightsMin", DisplayName = "HighlightsMin"))
+	float ColorCorrectionHighlightsMin;
 
 	UPROPERTY(interp, BlueprintReadWrite, Category=Film, meta=(editcondition = "bOverride_FilmWhitePoint", DisplayName = "Tint", HideAlphaChannel))
 	FLinearColor FilmWhitePoint;
@@ -1130,6 +1139,9 @@ struct FPostProcessSettings
 		ColorGammaHighlights = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 		ColorGainHighlights = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 		ColorOffsetHighlights = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
+
+		ColorCorrectionShadowsMax = 0.09f;
+		ColorCorrectionHighlightsMin = 0.5f;
 
 		// default values:
 		FilmWhitePoint = FLinearColor(1.0f,1.0f,1.0f);

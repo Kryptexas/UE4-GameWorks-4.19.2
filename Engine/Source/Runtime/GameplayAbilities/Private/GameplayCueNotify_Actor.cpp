@@ -28,6 +28,16 @@ AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& Obj
 	bAutoAttachToOwner = false;
 }
 
+void AGameplayCueNotify_Actor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (EndPlayReason == EEndPlayReason::Destroyed)
+	{
+		UAbilitySystemGlobals::Get().GetGameplayCueManager()->NotifyGameplayCueActorEndPlay(this);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 #if WITH_EDITOR
 void AGameplayCueNotify_Actor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -270,8 +280,6 @@ bool AGameplayCueNotify_Actor::GameplayCuePendingRemove()
 
 bool AGameplayCueNotify_Actor::Recycle()
 {
-	
-
 	bHasHandledOnActiveEvent = false;
 	bHasHandledWhileActiveEvent = false;
 	bHasHandledOnRemoveEvent = false;

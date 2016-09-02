@@ -57,6 +57,21 @@ struct FDynamicForceFeedbackDetails
 	void Update(FForceFeedbackValues& Values) const;
 };
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+/** Used to display the force feedback history of what was played most recently. */
+struct FForceFeedbackEffectHistoryEntry
+{
+	FActiveForceFeedbackEffect LastActiveForceFeedbackEffect;
+	float TimeShown;
+
+	FForceFeedbackEffectHistoryEntry(FActiveForceFeedbackEffect LastActiveFFE, float Time)
+	{
+		LastActiveForceFeedbackEffect = LastActiveFFE;
+		TimeShown = Time;
+	}
+};
+#endif
+
 /** Abstract base class for Input Mode structures */
 struct ENGINE_API FInputModeDataBase
 {
@@ -251,6 +266,11 @@ class ENGINE_API APlayerController : public AController
 	
 	UPROPERTY(transient)
 	TArray<FActiveForceFeedbackEffect> ActiveForceFeedbackEffects;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** For debbugging, shows the last force feeback effects that played */
+	TArray<FForceFeedbackEffectHistoryEntry> ForceFeedbackEffectHistoryEntries;
+#endif
 
 	TMap<int32, FDynamicForceFeedbackDetails> DynamicForceFeedbacks;
 

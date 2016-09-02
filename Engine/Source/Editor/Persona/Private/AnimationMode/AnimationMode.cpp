@@ -5,6 +5,7 @@
 #include "Persona.h"
 #include "Editor/Kismet/Public/BlueprintEditorTabs.h"
 #include "Editor/KismetWidgets/Public/SSingleObjectDetailsPanel.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
 
 #include "AnimationMode.h"
 #include "IDocumentation.h"
@@ -54,8 +55,22 @@ public:
 		return PersonaPtr.Pin()->GetAnimationAssetBeingEdited();
 	}
 
+	bool IsReadOnlyProperty()
+	{
+		class UAnimationAsset* AnimAsset = Cast<UAnimationAsset> (PersonaPtr.Pin()->GetAnimationAssetBeingEdited());
+		if (AnimAsset)
+		{
+			// if child anim montage, you can't edit property for it. 
+			return !AnimAsset->HasParentAsset();
+		}
+
+		return false;
+	}
+
 	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) override
 	{
+		PropertyView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SAnimAssetPropertiesTabBody::IsReadOnlyProperty));
+
 		return SNew(SVerticalBox)
 			+SVerticalBox::Slot()
 			.AutoHeight()

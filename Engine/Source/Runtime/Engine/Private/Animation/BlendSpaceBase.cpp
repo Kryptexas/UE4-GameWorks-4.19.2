@@ -1304,21 +1304,23 @@ void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleData
 }
 
 #if WITH_EDITOR
-bool UBlendSpaceBase::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
+bool UBlendSpaceBase::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive /*= true*/)
 {
+	Super::GetAllAnimationSequencesReferred(AnimationAssets, bRecursive);
+
 	for (auto Iter = SampleData.CreateConstIterator(); Iter; ++Iter)
 	{
 		// saves all samples in the AnimSequences
 		UAnimSequence* Sequence = (*Iter).Animation;
 		if (Sequence)
 		{
-			Sequence->HandleAnimReferenceCollection(AnimationAssets);
+			Sequence->HandleAnimReferenceCollection(AnimationAssets, bRecursive);
 		}
 	}
 
 	if (PreviewBasePose)
 	{
-		PreviewBasePose->HandleAnimReferenceCollection(AnimationAssets);
+		PreviewBasePose->HandleAnimReferenceCollection(AnimationAssets, bRecursive);
 	}
  
 	return (AnimationAssets.Num() > 0);
@@ -1326,6 +1328,8 @@ bool UBlendSpaceBase::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>&
 
 void UBlendSpaceBase::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
+	Super::ReplaceReferredAnimations(ReplacementMap);
+
 	TArray<FBlendSample> NewSamples;
 	for (auto Iter = SampleData.CreateIterator(); Iter; ++Iter)
 	{

@@ -39,7 +39,7 @@ public:
 
 	virtual ~FPersona();
 
-	TSharedPtr<SDockTab> OpenNewDocumentTab(class UAnimationAsset* InAnimAsset);
+	TSharedPtr<SDockTab> OpenNewDocumentTab(class UAnimationAsset* InAnimAsset, bool bAddToHistory = true);
 
 	void ExtendDefaultPersonaToolbar();
 
@@ -262,6 +262,8 @@ protected:
 	virtual void OnConvertToSequenceEvaluator() override;
 	virtual void OnConvertToSequencePlayer() override;
 	virtual void OnConvertToBlendSpaceEvaluator() override;
+	virtual void OnConvertToAimOffsetLookAt() override;
+	virtual void OnConvertToAimOffsetSimple() override;
 	virtual void OnConvertToBlendSpacePlayer() override;
 	virtual void OnConvertToPoseBlender() override;
 	virtual void OnConvertToPoseByName() override;

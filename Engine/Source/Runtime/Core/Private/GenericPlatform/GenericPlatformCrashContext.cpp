@@ -92,7 +92,7 @@ void FGenericCrashContext::Initialize()
 
 	// Using the -fullcrashdump parameter will cause full memory minidumps to be created for crashes
 	NCachedCrashContextProperties::CrashDumpMode = (int32)ECrashDumpMode::Default;
-	if (FCommandLine::IsInitialized())
+	if (FPlatformMisc::SupportsFullCrashDumps() && FCommandLine::IsInitialized())
 	{
 		const TCHAR* CmdLine = FCommandLine::Get();
 		if (FParse::Param( CmdLine, TEXT("fullcrashdumpalways") ))
@@ -198,6 +198,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "EngineMode" ), FPlatformMisc::GetEngineMode() );
 	AddCrashProperty( TEXT( "DeploymentName"), FApp::GetDeploymentName() );
 	AddCrashProperty( TEXT( "EngineVersion" ), *FEngineVersion::Current().ToString() );
+	AddCrashProperty( TEXT( "BuildVersion" ), FApp::GetBuildVersion() );
 	AddCrashProperty( TEXT("CommandLine"), *NCachedCrashContextProperties::CommandLine );
 	if (FInternationalization::IsAvailable())
 	{

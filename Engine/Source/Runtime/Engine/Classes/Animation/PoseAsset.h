@@ -193,7 +193,7 @@ public:
 	ENGINE_API void UpdatePoseFromAnimation(class UAnimSequence* AnimSequence);
 
 	// Begin AnimationAsset interface
-	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) override;
+	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive = true) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap) override;
 	// End AnimationAsset interface
 #endif

@@ -4,6 +4,7 @@
 
 #include "PerfCountersModule.h"
 #include "ThreadingBase.h"
+#include "ProfilingDebugging/Histogram.h"
 
 class FZeroLoad : public FRunnable
 {
@@ -14,7 +15,7 @@ class FZeroLoad : public FRunnable
 	double TickRate;
 
 	/** Histogram of thread loop times, not accessed outside of the thread */
-	FHistogram	TickTimeHistogram;
+	FHistogram TickTimeHistogram;
 
 	/** Guards access to hitch messages */
 	FCriticalSection HitchMessagesLock;

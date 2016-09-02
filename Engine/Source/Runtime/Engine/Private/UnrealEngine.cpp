@@ -129,6 +129,8 @@
 #include "ABTesting.h"
 #include "Performance/EnginePerformanceTargets.h"
 
+#include "Classes/Engine/LODActor.h"
+
 #if !UE_BUILD_SHIPPING
 #include "AutomationTest.h"
 #include "IAutomationWorkerModule.h"
@@ -3558,12 +3560,9 @@ bool UEngine::HandleStartFPSChartCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 bool UEngine::HandleStopFPSChartCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	// stop the chart data capture
-	StopFPSChart();
-
-	// save out to disk
+	// stop the chart data capture and log it
 	const FString MapName = InWorld ? InWorld->GetMapName() : TEXT("None");
-	DumpFPSChart( MapName, /*bForceDump=*/ true );
+	StopFPSChart( MapName );
 	return true;
 }
 
@@ -7616,6 +7615,240 @@ bool UEngine::ShouldThrottleCPUUsage() const
 }
 
 /**
+*	Renders warnings about the level that should be addressed prior to shipping
+*
+*	@param World			The World to render stats about
+*	@param Viewport			The viewport to render to
+*	@param Canvas			Canvas object to use for rendering
+*	@param CanvasObject		Optional canvas object for visualizing properties
+*	@param MessageX			X Pos to start drawing at on the Canvas
+*	@param MessageY			Y Pos to draw at on the Canvas
+*
+*	@return The Y position in the canvas after the last drawn string
+*/
+float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, float MessageX, float MessageY)
+{
+	FCanvasTextItem SmallTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
+	SmallTextItem.EnableShadow(FLinearColor::Black);
+
+	const int32 FontSizeY = 20;
+
+	if (GIsTextureMemoryCorrupted)
+	{
+		FCanvasTextItem TextItem(FVector2D(100, 200), LOCTEXT("OutOfTextureMemory", "RAN OUT OF TEXTURE MEMORY, EXPECT CORRUPTION AND GPU HANGS!"), GEngine->GetMediumFont(), FLinearColor::Red);
+		TextItem.EnableShadow(FLinearColor::Black);
+		Canvas->DrawItem(TextItem);
+	}
+
+
+	// Put the messages over fairly far to stay in the safe zone on consoles
+	if (World->NumLightingUnbuiltObjects > 0)
+	{
+		SmallTextItem.SetColor(FLinearColor::White);
+		// Color unbuilt lighting red if encountered within the last second
+		if (FApp::GetCurrentTime() - World->LastTimeUnbuiltLightingWasEncountered < 1)
+		{
+			SmallTextItem.SetColor(FLinearColor::Red);
+		}
+		// Use 'DumpUnbuiltLightInteractions' to investigate, if lighting is still unbuilt after a lighting build
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("LIGHTING NEEDS TO BE REBUILT (%u unbuilt object(s))"), World->NumLightingUnbuiltObjects));
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	// Check HLOD clusters and show warning if unbuilt
+#if WITH_EDITOR
+	if (World->GetWorldSettings()->bEnableHierarchicalLODSystem)
+#endif // WITH_EDITOR
+	{
+		// Cache so we don't iterate everything in non-editor builds
+		static TMap<FString, int32>  WorldUnbuiltHLODMap;
+
+		static double LastCheckTime = 0;
+		static int32 UnbuiltLODCount = 0;
+
+		double TimeNow = FPlatformTime::Seconds();
+
+		// Recheck every 20 secs to handle the case where levels may have been
+		// Streamed in/out
+		if ((TimeNow - LastCheckTime) > 20)
+		{
+			LastCheckTime = TimeNow;
+			UnbuiltLODCount = 0;
+			for (TActorIterator<ALODActor> HLODIt(World); HLODIt; ++HLODIt)
+			{
+				if (!HLODIt->IsBuilt())
+				{
+					++UnbuiltLODCount;
+				}
+			}
+		}
+
+		if (UnbuiltLODCount)
+		{
+			SmallTextItem.SetColor(FLinearColor::Red);
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("HLOD CLUSTER(S) NEED TO BE REBUILT (%u unbuilt object(s)"), UnbuiltLODCount));
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
+		}
+	}
+
+	if (World->NumTextureStreamingUnbuiltComponents > 0 || World->NumTextureStreamingDirtyResources > 0)
+	{
+		SmallTextItem.SetColor(FLinearColor::Red);
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING NEEDS TO BE REBUILT (%u Components, %u Resource Refs)"), World->NumTextureStreamingUnbuiltComponents, World->NumTextureStreamingDirtyResources));
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	if (FPlatformProperties::SupportsTextureStreaming() && IStreamingManager::Get().IsTextureStreamingEnabled())
+	{
+		auto MemOver = IStreamingManager::Get().GetTextureStreamingManager().GetMemoryOverBudget();
+		if (MemOver > 0)
+		{
+			SmallTextItem.SetColor(FLinearColor::Red);
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING POOL OVER %0.2f MB"), (float)MemOver / 1024.0f / 1024.0f));
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
+		}
+	
+	}
+
+	// check navmesh
+#if WITH_EDITOR
+	const bool bIsNavigationAutoUpdateEnabled = UNavigationSystem::GetIsNavigationAutoUpdateEnabled();
+#else
+	const bool bIsNavigationAutoUpdateEnabled = true;
+#endif
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+	if (NavSys && NavSys->IsNavigationDirty() &&
+		(!bIsNavigationAutoUpdateEnabled || !NavSys->SupportsNavigationGeneration() || !NavSys->CanRebuildDirtyNavigation()))
+	{
+		SmallTextItem.SetColor(FLinearColor::White);
+		SmallTextItem.Text = LOCTEXT("NAVMESHERROR", "NAVMESH NEEDS TO BE REBUILT");
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	if (World->bKismetScriptError)
+	{
+		SmallTextItem.Text = LOCTEXT("BlueprintInLevelHadCompileErrorMessage", "BLUEPRINT COMPILE ERROR");
+		SmallTextItem.SetColor(FLinearColor::Red);
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	SmallTextItem.SetColor(FLinearColor::White);
+
+	if (GShaderCompilingManager && GShaderCompilingManager->IsCompiling())
+	{
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("Shaders Compiling (%u)"), GShaderCompilingManager->GetNumRemainingJobs()));
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	/* @todo ue4 temporarily disabled
+	AWorldSettings* WorldSettings = World->GetWorldSettings();
+	if( !WorldSettings->IsNavigationRebuilt() )
+	{
+	DrawShadowedString(Canvas,
+	MessageX,
+	MessageY,
+	TEXT("PATHS NEED TO BE REBUILT"),
+	GEngine->GetSmallFont(),
+	FColor(128,128,128)
+	);
+	MessageY += FontSizeY;
+	}
+	*/
+
+	if (World->bIsLevelStreamingFrozen)
+	{
+		SmallTextItem.Text = LOCTEXT("Levelstreamingfrozen", "Level streaming frozen...");
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	extern bool GIsPrepareMapChangeBroken;
+	if (GIsPrepareMapChangeBroken)
+	{
+		SmallTextItem.Text = LOCTEXT("PrepareMapChangeError", "PrepareMapChange had a bad level name! Check the log (tagged with PREPAREMAPCHANGE) for info");
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+#endif
+
+	return MessageY;
+}
+
+/**
+*	Renders warnings about the level that should be addressed prior to shipping
+*
+*	@param World			The World to render stats about
+*	@param Viewport			The viewport to render to
+*	@param Canvas			Canvas object to use for rendering
+*	@param CanvasObject		Optional canvas object for visualizing properties
+*	@param MessageX			X Pos to start drawing at on the Canvas
+*	@param MessageY			Y Pos to draw at on the Canvas
+*
+*	@return The Y position in the canvas after the last drawn string
+*/
+float DrawOnscreenDebugMessages(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, float MessageX, float MessageY)
+{
+	int32 YPos = MessageY;
+	const int32 MaxYPos = CanvasObject ? CanvasObject->SizeY : 700;
+	if (GEngine->PriorityScreenMessages.Num() > 0)
+	{
+		FCanvasTextItem MessageTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
+		MessageTextItem.EnableShadow(FLinearColor::Black);
+		for (int32 PrioIndex = GEngine->PriorityScreenMessages.Num() - 1; PrioIndex >= 0; PrioIndex--)
+		{
+			FScreenMessageString& Message = GEngine->PriorityScreenMessages[PrioIndex];
+			if (YPos < MaxYPos)
+			{
+				MessageTextItem.Text = FText::FromString(Message.ScreenMessage);
+				MessageTextItem.SetColor(Message.DisplayColor);
+				MessageTextItem.Scale = Message.TextScale;
+				Canvas->DrawItem(MessageTextItem, FVector2D(MessageX, YPos));
+				YPos += MessageTextItem.DrawnSize.Y * 1.15f;
+			}
+			Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
+			if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)
+			{
+				GEngine->PriorityScreenMessages.RemoveAt(PrioIndex);
+			}
+		}
+	}
+
+	if (GEngine->ScreenMessages.Num() > 0)
+	{
+		FCanvasTextItem MessageTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
+		MessageTextItem.EnableShadow(FLinearColor::Black);
+		for (TMap<int32, FScreenMessageString>::TIterator MsgIt(GEngine->ScreenMessages); MsgIt; ++MsgIt)
+		{
+			FScreenMessageString& Message = MsgIt.Value();
+			if (YPos < MaxYPos)
+			{
+				MessageTextItem.Text = FText::FromString(Message.ScreenMessage);
+				MessageTextItem.SetColor(Message.DisplayColor);
+				MessageTextItem.Scale = Message.TextScale;
+				Canvas->DrawItem(MessageTextItem, FVector2D(MessageX, YPos));
+				YPos += MessageTextItem.DrawnSize.Y * 1.15f;
+			}
+			Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
+			if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)
+			{
+				MsgIt.RemoveCurrent();
+			}
+		}
+	}
+
+	return MessageY;
+}
+
+
+/**
  *	Renders stats
  *
  *  @param World			The World to render stats about
@@ -7641,242 +7874,87 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 	const int32 FPSXOffset	= (GEngine->IsStereoscopic3D(Viewport)) ? Viewport->GetSizeXY().X * 0.5f * 0.334f : (FPlatformProperties::SupportsWindowedMode() ? 110 : 250);
 	const int32 StatsXOffset = 100;// FPlatformProperties::SupportsWindowedMode() ? 4 : 100;
 
-	int32 MessageY = 35;
+	static const int32 MessageStartY = GIsEditor ? 35 : 100; // Account for safe frame
+	int32 MessageY = MessageStartY;
 	const int32 FontSizeY = 20;
 
-	if( !GIsEditor )
+#if !UE_BUILD_SHIPPING
+	if (!GIsHighResScreenshot && !GIsDumpingMovie && GAreScreenMessagesEnabled)
 	{
-		// Account for safe frame
-		MessageY = 100;
-	}
+		const int32 MessageX = (GEngine->IsStereoscopic3D(Viewport)) ? Viewport->GetSizeXY().X * 0.5f * 0.3f : 40;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if( !GIsHighResScreenshot && !GIsDumpingMovie && GAreScreenMessagesEnabled )
-	{
-		const int32 MessageX = ( GEngine->IsStereoscopic3D( Viewport ) ) ? Viewport->GetSizeXY().X * 0.5f * 0.3f : 40;
+		FCanvasTextItem SmallTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
+		SmallTextItem.EnableShadow(FLinearColor::Black);
 
+		// Draw map warnings?
 		if (!GEngine->bSuppressMapWarnings)
 		{
-			FCanvasTextItem SmallTextItem( FVector2D( 0, 0 ), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
-			SmallTextItem.EnableShadow( FLinearColor::Black );
-
-			if( GIsTextureMemoryCorrupted )
-			{
-				FCanvasTextItem TextItem( FVector2D( 100, 200 ), LOCTEXT("OutOfTextureMemory", "RAN OUT OF TEXTURE MEMORY, EXPECT CORRUPTION AND GPU HANGS!"), GEngine->GetMediumFont(), FLinearColor::Red );
-				TextItem.EnableShadow( FLinearColor::Black );	
-				Canvas->DrawItem( TextItem );
-			}
-
-			bool bDisplaySuppressInfo = false;
-
-			// Put the messages over fairly far to stay in the safe zone on consoles
-			if( World->NumLightingUnbuiltObjects > 0 )
-			{
-				SmallTextItem.SetColor( FLinearColor::White );
-				// Color unbuilt lighting red if encountered within the last second
-				if( FApp::GetCurrentTime() - World->LastTimeUnbuiltLightingWasEncountered < 1 )
-				{
-					SmallTextItem.SetColor( FLinearColor::Red );
-				}
-				// Use 'DumpUnbuiltLightInteractions' to investigate, if lighting is still unbuilt after a lighting build
-				SmallTextItem.Text =  FText::FromString( FString::Printf(TEXT("LIGHTING NEEDS TO BE REBUILT (%u unbuilt object(s))"), World->NumLightingUnbuiltObjects) );				
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-
-				MessageY += FontSizeY;
-				bDisplaySuppressInfo = true;
-			}
-			
-			if (World->NumTextureStreamingUnbuiltComponents > 0 || World->NumTextureStreamingDirtyResources > 0)
-			{
-				SmallTextItem.SetColor(FLinearColor::Red);
-				SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING NEEDS TO BE REBUILT (%u Components, %u Resource Refs)"), World->NumTextureStreamingUnbuiltComponents, World->NumTextureStreamingDirtyResources));
-				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
-				MessageY += FontSizeY;
-				bDisplaySuppressInfo = true;
-			}
-
-			if (FPlatformProperties::SupportsTextureStreaming() && IStreamingManager::Get().IsTextureStreamingEnabled())
-			{
-				auto MemOver = IStreamingManager::Get().GetTextureStreamingManager().GetMemoryOverBudget();
-				if (MemOver > 0)
-				{
-					SmallTextItem.SetColor(FLinearColor::Red);
-					SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING POOL OVER %0.2f MB"), (float)MemOver / 1024.0f / 1024.0f));
-					Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
-					MessageY += FontSizeY;
-					bDisplaySuppressInfo = true;
-				}
-			}
-
-			if (bDisplaySuppressInfo)
-			{
-				SmallTextItem.SetColor(FLinearColor(.05f, .05f, .05f, .2f));
-				SmallTextItem.Text = FText::FromString(FString(TEXT("'DisableAllScreenMessages' to suppress")));
-				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX + 50, MessageY));
-				MessageY += FontSizeY;
-			}
-
-			// check navmesh
-#if WITH_EDITOR
-			const bool bIsNavigationAutoUpdateEnabled = UNavigationSystem::GetIsNavigationAutoUpdateEnabled();
-#else
-			const bool bIsNavigationAutoUpdateEnabled = true;
-#endif
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
-			if (NavSys && NavSys->IsNavigationDirty() &&
-				(!bIsNavigationAutoUpdateEnabled || !NavSys->SupportsNavigationGeneration() || !NavSys->CanRebuildDirtyNavigation()))
-			{
-				SmallTextItem.SetColor( FLinearColor::White );
-				SmallTextItem.Text =  LOCTEXT("NAVMESHERROR", "NAVMESH NEEDS TO BE REBUILT");				
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += FontSizeY;
-			}
-
-			if( World->bKismetScriptError )
-			{
-				SmallTextItem.Text = LOCTEXT("BlueprintInLevelHadCompileErrorMessage", "BLUEPRINT COMPILE ERROR" );
-				SmallTextItem.SetColor( FLinearColor::Red );
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += FontSizeY;
-			}
-
-			SmallTextItem.SetColor( FLinearColor::White );
-
-			if (GShaderCompilingManager && GShaderCompilingManager->IsCompiling())
-			{
-				SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("Shaders Compiling (%u)"), GShaderCompilingManager->GetNumRemainingJobs()));
-				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
-				MessageY += FontSizeY;
-			}
+			MessageY = DrawMapWarnings(World, Viewport, Canvas, CanvasObject, MessageX, MessageY);
+		}
 
 #if ENABLE_VISUAL_LOG
-			if (FVisualLogger::Get().IsRecording() || FVisualLogger::Get().IsRecordingOnServer() )
-			{
-				int32 XSize;
-				int32 YSize;
-				FString String = FString::Printf(TEXT("VisLog recording active"));
-				StringSize(GEngine->GetSmallFont(), XSize, YSize, *String);
+		if (FVisualLogger::Get().IsRecording() || FVisualLogger::Get().IsRecordingOnServer())
+		{
+			int32 XSize;
+			int32 YSize;
+			FString String = FString::Printf(TEXT("VisLog recording active"));
+			StringSize(GEngine->GetSmallFont(), XSize, YSize, *String);
 
-				SmallTextItem.Position = FVector2D((int32)Viewport->GetSizeXY().X - XSize - 16, 36);
-				SmallTextItem.Text = FText::FromString(String);
-				SmallTextItem.SetColor(FLinearColor::Red);
-				SmallTextItem.EnableShadow(FLinearColor::Black);
-				Canvas->DrawItem(SmallTextItem);
-				SmallTextItem.SetColor(FLinearColor::White);
-			}
+			SmallTextItem.Position = FVector2D((int32)Viewport->GetSizeXY().X - XSize - 16, 36);
+			SmallTextItem.Text = FText::FromString(String);
+			SmallTextItem.SetColor(FLinearColor::Red);
+			SmallTextItem.EnableShadow(FLinearColor::Black);
+			Canvas->DrawItem(SmallTextItem);
+			SmallTextItem.SetColor(FLinearColor::White);
+		}
 #endif
-
-			/* @todo ue4 temporarily disabled
-			AWorldSettings* WorldSettings = World->GetWorldSettings();
-			if( !WorldSettings->IsNavigationRebuilt() )
-			{
-				DrawShadowedString(Canvas,
-					MessageX,
-					MessageY,
-					TEXT("PATHS NEED TO BE REBUILT"),
-					GEngine->GetSmallFont(),
-					FColor(128,128,128)
-					);
-				MessageY += FontSizeY;
-			}
-			*/
-
-			if (World->bIsLevelStreamingFrozen)
-			{
-				SmallTextItem.Text =  LOCTEXT("Levelstreamingfrozen", "Level streaming frozen..." );
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += FontSizeY;
-			}
-
-			if (GIsPrepareMapChangeBroken)
-			{
-				SmallTextItem.Text =  LOCTEXT("PrepareMapChangeError", "PrepareMapChange had a bad level name! Check the log (tagged with PREPAREMAPCHANGE) for info" );
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += FontSizeY;
-			}
 
 #if STATS
-			if (FThreadStats::IsCollectingData())
+		if (FThreadStats::IsCollectingData())
+		{
+			SmallTextItem.SetColor(FLinearColor::Red);
+			if (!GEngine->bDisableAILogging)
 			{
-				SmallTextItem.SetColor( FLinearColor::Red );
-				if (!GEngine->bDisableAILogging)
-				{				
-					SmallTextItem.Text =  LOCTEXT("AIPROFILINGWARNING", "PROFILING WITH AI LOGGING ON!" );
-					Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-					MessageY += FontSizeY;
-				}
-				if (GShouldVerifyGCAssumptions)
-				{
-					SmallTextItem.Text =  LOCTEXT("GCPROFILINGWARNING", "PROFILING WITH GC VERIFY ON!" );
-					Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );					
-					MessageY += FontSizeY;
-				}
-
-				const bool bIsStatsFileActive = FCommandStatsFile::Get().IsStatFileActive();
-				if (bIsStatsFileActive)
-				{
-					SmallTextItem.SetColor( FLinearColor::White );
-					SmallTextItem.Text = FCommandStatsFile::Get().GetFileMetaDesc();
-					Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-					MessageY += FontSizeY;
-				}
+				SmallTextItem.Text = LOCTEXT("AIPROFILINGWARNING", "PROFILING WITH AI LOGGING ON!");
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+				MessageY += FontSizeY;
 			}
-#endif
+			if (GShouldVerifyGCAssumptions)
+			{
+				SmallTextItem.Text = LOCTEXT("GCPROFILINGWARNING", "PROFILING WITH GC VERIFY ON!");
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+				MessageY += FontSizeY;
+			}
+
+			const bool bIsStatsFileActive = FCommandStatsFile::Get().IsStatFileActive();
+			if (bIsStatsFileActive)
+			{
+				SmallTextItem.SetColor(FLinearColor::White);
+				SmallTextItem.Text = FCommandStatsFile::Get().GetFileMetaDesc();
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+				MessageY += FontSizeY;
+			}
+		}
+#endif // STATS
+
+		// Only output disable message if there actually were any
+		if (MessageY != MessageStartY)
+		{
+			SmallTextItem.SetColor(FLinearColor(.05f, .05f, .05f, .2f));
+			SmallTextItem.Text = FText::FromString(FString(TEXT("'DisableAllScreenMessages' to suppress")));
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX + 50, MessageY));
+			MessageY += 16;
 		}
 
-		int32 YPos = MessageY;
-
+#if !(UE_BUILD_TEST)
 		if (GEngine->bEnableOnScreenDebugMessagesDisplay && GEngine->bEnableOnScreenDebugMessages)
 		{
-			const int32 MaxYPos = CanvasObject ? CanvasObject->SizeY : 700;
-			if (GEngine->PriorityScreenMessages.Num() > 0)
-			{
-				FCanvasTextItem MessageTextItem( FVector2D( 0, 0 ), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
-				MessageTextItem.EnableShadow( FLinearColor::Black );
-				for (int32 PrioIndex = GEngine->PriorityScreenMessages.Num() - 1; PrioIndex >= 0; PrioIndex--)
-				{
-					FScreenMessageString& Message = GEngine->PriorityScreenMessages[PrioIndex];
-					if (YPos < MaxYPos)
-					{
-						MessageTextItem.Text =  FText::FromString( Message.ScreenMessage );
-						MessageTextItem.SetColor( Message.DisplayColor );
-						MessageTextItem.Scale = Message.TextScale;
-						Canvas->DrawItem( MessageTextItem, FVector2D( MessageX, YPos ) );
-						YPos += MessageTextItem.DrawnSize.Y * 1.15f;
-					}
-					Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
-					if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)
-					{
-						GEngine->PriorityScreenMessages.RemoveAt(PrioIndex);
-					}
-				}
-			}
-
-			if (GEngine->ScreenMessages.Num() > 0)
-			{
-				FCanvasTextItem MessageTextItem( FVector2D( 0, 0 ), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
-				MessageTextItem.EnableShadow( FLinearColor::Black );
-				for (TMap<int32, FScreenMessageString>::TIterator MsgIt(GEngine->ScreenMessages); MsgIt; ++MsgIt)
-				{
-					FScreenMessageString& Message = MsgIt.Value();
-					if (YPos < MaxYPos)
-					{
-						MessageTextItem.Text =  FText::FromString( Message.ScreenMessage );
-						MessageTextItem.SetColor( Message.DisplayColor );
-						MessageTextItem.Scale = Message.TextScale;
-						Canvas->DrawItem( MessageTextItem, FVector2D( MessageX, YPos ) );												
-						YPos += MessageTextItem.DrawnSize.Y * 1.15f;
-					}
-					Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
-					if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)
-					{
-						MsgIt.RemoveCurrent();
-					}
-				}
-			}
+			MessageY = DrawOnscreenDebugMessages(World, Viewport, Canvas, CanvasObject, MessageX, MessageY);
 		}
+#endif // UE_BUILD_TEST
+
 	}
-#endif
+#endif // UE_BUILD_SHIPPING 
 
 	{
 		int32 X = (CanvasObject) ? CanvasObject->SizeX - FPSXOffset : Viewport->GetSizeXY().X - FPSXOffset; //??
@@ -8020,7 +8098,6 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 	}
 #endif
 }
-
 
 
 /**

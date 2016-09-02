@@ -79,7 +79,7 @@ struct FAnimSegment
 	int32		LoopingCount;
 
 	FAnimSegment()
-		: AnimReference(NULL)
+		: AnimReference(nullptr)
 		, StartPos(0.f)
 		, AnimStartTime(0.f)
 		, AnimEndTime(0.f)
@@ -210,10 +210,10 @@ struct FAnimTrack
 	ENGINE_API bool IsValidToAdd(const UAnimSequenceBase* SequenceBase) const;
 
 	/** Gets the index of the segment at the given absolute montage time. */	
-	int32 GetSegmentIndexAtTime(float InTime);
+	ENGINE_API int32 GetSegmentIndexAtTime(float InTime);
 
 	/** Get the segment at the given absolute montage time */
-	FAnimSegment* GetSegmentAtTime(float InTime);
+	ENGINE_API FAnimSegment* GetSegmentAtTime(float InTime);
 
 	/** Get animation pose function */
 	void GetAnimationPose(/*out*/ FCompactPose& OutPose,/*out*/ FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
@@ -222,7 +222,7 @@ struct FAnimTrack
 	void EnableRootMotionSettingFromMontage(bool bInEnableRootMotion, const ERootMotionRootLock::Type InRootMotionRootLock);
 
 #if WITH_EDITOR
-	bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const;
+	bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive) const;
 	void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap);
 
 	/** Moves anim segments so that there are no gaps between one finishing

@@ -380,6 +380,15 @@ private:
 	static UAnimMontage* InitializeMatineeControl(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, bool bLooping);
 };
 
+/* 
+ * Any property you're adding to AnimMontage and parent class has to be considered for Child Asset
+ * 
+ * Child Asset is considered to be only asset mapping feature using everything else in the class
+ * For example, you can just use all parent's setting  for the montage, but only remap assets
+ * This isn't magic bullet unfortunately and it is consistent effort of keeping the data synced with parent
+ * If you add new property, please make sure those property has to be copied for children. 
+ * If it does, please add the copy in the function RefreshParentAssetData
+ */
 UCLASS(config=Engine, hidecategories=(UObject, Length), MinimalAPI, BlueprintType)
 class UAnimMontage : public UAnimCompositeBase
 {
@@ -442,7 +451,7 @@ class UAnimMontage : public UAnimCompositeBase
 
 #if WITH_EDITORONLY_DATA
 	/** Preview Base pose for additive BlendSpace **/
-	UPROPERTY(EditAnywhere, Category=AdditiveSettings)
+	UPROPERTY(EditAnywhere, Category = AdditiveSettings)
 	UAnimSequence* PreviewBasePose;
 #endif // WITH_EDITORONLY_DATA
 
@@ -476,7 +485,7 @@ public:
 
 #if WITH_EDITOR
 	//~ Begin UAnimationAsset Interface
-	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) override;
+	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive = true) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap) override;
 	//~ End UAnimationAsset Interface
 
@@ -598,6 +607,22 @@ private:
 	/** Sort CompositeSections in the order of StartPos */
 	void SortAnimCompositeSectionByPos();
 
+	/** Refresh Parent Asset Data to the child */
+	virtual void RefreshParentAssetData() override;
+	
+	/** Propagate the changes to children */
+	void PropagateChanges();
+
+private:
+	DECLARE_MULTICAST_DELEGATE(FOnMontageChangedMulticaster);
+	FOnMontageChangedMulticaster OnMontageChanged;
+
+public:
+	typedef FOnMontageChangedMulticaster::FDelegate FOnMontageChanged;
+
+	/** Registers a delegate to be called after notification has changed*/
+	ENGINE_API void RegisterOnMontageChanged(const FOnMontageChanged& Delegate);
+	ENGINE_API void UnregisterOnMontageChanged(void* Unregister);
 #endif	//WITH_EDITOR
 
 private:

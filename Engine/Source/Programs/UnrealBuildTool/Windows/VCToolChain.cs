@@ -311,13 +311,12 @@ namespace UnrealBuildTool
 			{
 				if (WindowsPlatform.bUseVCCompilerArgs)
 				{
-					if (CompileEnvironment.Config.OptimizeCode == ModuleRules.CodeOptimization.InShippingBuildsOnly && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping)
+					if (CompileEnvironment.Config.OptimizeCode == ModuleRules.CodeOptimization.Never ||
+						(CompileEnvironment.Config.OptimizeCode == ModuleRules.CodeOptimization.InShippingBuildsOnly && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping))
 					{
 						// Disable compiler optimization.
 						Arguments.Append(" /Od");
 
-						// Favor code size (especially useful for embedded platforms).
-						Arguments.Append(" /Os");
 					}
 					else
 					{

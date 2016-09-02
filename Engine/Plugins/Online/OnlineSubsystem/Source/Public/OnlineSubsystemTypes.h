@@ -117,7 +117,7 @@ namespace ELoginStatus
 /** Possible connection states */
 namespace EOnlineServerConnectionStatus
 {
-	enum Type
+	enum Type : unsigned int
 	{
 		/** System normal (used for default state) */
 		Normal,

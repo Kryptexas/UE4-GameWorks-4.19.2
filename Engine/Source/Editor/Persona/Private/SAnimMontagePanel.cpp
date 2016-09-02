@@ -32,9 +32,9 @@ void SAnimMontagePanel::Construct(const FArguments& InArgs)
 	Montage = InArgs._Montage;
 	MontageEditor = InArgs._MontageEditor;
 	SectionTimingNodeVisibility = InArgs._SectionTimingNodeVisibility;
+	bChildAnimMontage = InArgs._bChildAnimMontage;
 
 	//TrackStyle = TRACK_Double;
-
 	CurrentPosition = InArgs._CurrentPosition;
 
 	this->ChildSlot
@@ -146,6 +146,7 @@ void SAnimMontagePanel::Update()
 				.Padding( FMargin(0.5f, 0.5f) )
 				[
 					SAssignNew(SectionNameTrack, STrack)
+					.IsEnabled(!bChildAnimMontage)
 					.ViewInputMin(ViewInputMin)
 					.ViewInputMax(ViewInputMax)
 					.TrackColor( ColourTracker->GetNextColor() )
@@ -240,32 +241,62 @@ void SAnimMontagePanel::Update()
 						]
 				];
 
-				SectionTrack->LeftColumn->AddSlot()
-				.AutoHeight()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SAnimSegmentsPanel)
-					.AnimTrack(&Montage->SlotAnimTracks[SlotAnimIdx].AnimTrack)
-					.NodeSelectionSet(&SelectionSet)
-					.ViewInputMin(ViewInputMin)
-					.ViewInputMax(ViewInputMax)
-					.ColorTracker(ColourTracker)
-					.NodeColor(NodeColor)
-					.DraggableBars(Editor, &SMontageEditor::GetSectionStartTimes)
-					.DraggableBarSnapPositions(Editor, &SMontageEditor::GetAnimSegmentStartTimes)
-					.ScrubPosition( Editor, &SMontageEditor::GetScrubValue )
-					.TrackMaxValue(this, &SAnimMontagePanel::GetSequenceLength)
-					.TrackNumDiscreteValues(Montage->GetNumberOfFrames())
+				SectionTrack->RightColumn->SetEnabled(!bChildAnimMontage);
+				if (bChildAnimMontage)
+				{
+					SectionTrack->LeftColumn->AddSlot()
+					.AutoHeight()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SAnimSegmentsPanel)
+						.AnimTrack(&Montage->SlotAnimTracks[SlotAnimIdx].AnimTrack)
+						.SlotName(Montage->SlotAnimTracks[SlotAnimIdx].SlotName)
+						.NodeSelectionSet(&SelectionSet)
+						.ViewInputMin(ViewInputMin)
+						.ViewInputMax(ViewInputMax)
+						.ColorTracker(ColourTracker)
+						.bChildAnimMontage(bChildAnimMontage)
+						.NodeColor(NodeColor)
+						.OnPreAnimUpdate(Editor, &SMontageEditor::PreAnimUpdate)
+						.OnPostAnimUpdate(Editor, &SMontageEditor::PostAnimUpdate)
+						.OnAnimReplaceMapping(Editor, &SMontageEditor::ReplaceAnimationMapping)
+						.OnDiffFromParentAsset(Editor, &SMontageEditor::IsDiffererentFromParent)
+						.ScrubPosition(Editor, &SMontageEditor::GetScrubValue)
+						.TrackMaxValue(this, &SAnimMontagePanel::GetSequenceLength)
+						.TrackNumDiscreteValues(Montage->GetNumberOfFrames())
+					];
 
-					.OnAnimSegmentNodeClicked( this, &SAnimMontagePanel::ShowSegmentInDetailsView, SlotAnimIdx )
-					.OnPreAnimUpdate( Editor, &SMontageEditor::PreAnimUpdate )
-					.OnPostAnimUpdate( Editor, &SMontageEditor::PostAnimUpdate )
-					.OnAnimSegmentRemoved(this, &SAnimMontagePanel::OnAnimSegmentRemoved, SlotAnimIdx )
-					.OnBarDrag(Editor, &SMontageEditor::OnEditSectionTime)
-					.OnBarDrop(Editor, &SMontageEditor::OnEditSectionTimeFinish)
-					.OnBarClicked(SharedThis(this), &SAnimMontagePanel::ShowSectionInDetailsView)
-					.OnTrackRightClickContextMenu( this, &SAnimMontagePanel::SummonTrackContextMenu, static_cast<int>(SlotAnimIdx))
-				];
+				}
+				else
+				{
+					SectionTrack->LeftColumn->AddSlot()
+					.AutoHeight()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SAnimSegmentsPanel)
+						.AnimTrack(&Montage->SlotAnimTracks[SlotAnimIdx].AnimTrack)
+						.SlotName(Montage->SlotAnimTracks[SlotAnimIdx].SlotName)
+						.NodeSelectionSet(&SelectionSet)
+						.ViewInputMin(ViewInputMin)
+						.ViewInputMax(ViewInputMax)
+						.ColorTracker(ColourTracker)
+						.bChildAnimMontage(bChildAnimMontage)
+						.NodeColor(NodeColor)
+						.DraggableBars(Editor, &SMontageEditor::GetSectionStartTimes)
+						.DraggableBarSnapPositions(Editor, &SMontageEditor::GetAnimSegmentStartTimes)
+						.ScrubPosition(Editor, &SMontageEditor::GetScrubValue)
+						.TrackMaxValue(this, &SAnimMontagePanel::GetSequenceLength)
+						.TrackNumDiscreteValues(Montage->GetNumberOfFrames())
+						.OnAnimSegmentNodeClicked(this, &SAnimMontagePanel::ShowSegmentInDetailsView, SlotAnimIdx)
+						.OnPreAnimUpdate(Editor, &SMontageEditor::PreAnimUpdate)
+						.OnPostAnimUpdate(Editor, &SMontageEditor::PostAnimUpdate)
+						.OnAnimSegmentRemoved(this, &SAnimMontagePanel::OnAnimSegmentRemoved, SlotAnimIdx)
+						.OnBarDrag(Editor, &SMontageEditor::OnEditSectionTime)
+						.OnBarDrop(Editor, &SMontageEditor::OnEditSectionTimeFinish)
+						.OnBarClicked(SharedThis(this), &SAnimMontagePanel::ShowSectionInDetailsView)
+						.OnTrackRightClickContextMenu(this, &SAnimMontagePanel::SummonTrackContextMenu, static_cast<int>(SlotAnimIdx))
+					];
+				}
 			}
 		}
 	}

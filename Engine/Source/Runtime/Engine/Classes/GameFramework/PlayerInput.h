@@ -513,6 +513,7 @@ public:
 	const TArray<FInputActionKeyMapping>& GetKeysForAction(const FName ActionName);
 
 	static const TArray<FInputActionKeyMapping>& GetEngineDefinedActionMappings() { return EngineDefinedActionMappings; }
+	static const TArray<FInputAxisKeyMapping>& GetEngineDefinedAxisMappings() { return EngineDefinedAxisMappings; }
 
 private:
 	/** 

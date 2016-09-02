@@ -95,6 +95,8 @@ FWindowsCursor::FWindowsCursor()
 
 	// Set the default cursor
 	SetType( EMouseCursor::Default );
+
+	ClipRect.left = ClipRect.right = ClipRect.top = ClipRect.bottom = -1;
 }
 
 FWindowsCursor::~FWindowsCursor()
@@ -156,6 +158,9 @@ void FWindowsCursor::SetType( const EMouseCursor::Type InNewCursor )
 	checkf( InNewCursor < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), (int)InNewCursor );
 	CurrentType = InNewCursor;
 	::SetCursor( CursorHandles[ InNewCursor ] );
+
+	bIsVisible = CurrentType != EMouseCursor::None;
+	UpdateClipping();
 }
 
 void FWindowsCursor::GetSize( int32& Width, int32& Height ) const
@@ -171,15 +176,53 @@ void FWindowsCursor::Show( bool bShow )
 		// Show mouse cursor. Each time ShowCursor(true) is called an internal value is incremented so we 
 		// call ShowCursor until the cursor is actually shown (>= 0 value returned by showcursor)
 		while ( ::ShowCursor(true)<0 );
+		bIsVisible = CurrentType != EMouseCursor::None;
 	}
 	else
 	{		// Disable the cursor.  Wait until its actually disabled.
 		while ( ::ShowCursor(false)>=0 );
+		bIsVisible = false;
 	}
+	UpdateClipping();
 }
 
 void FWindowsCursor::Lock( const RECT* const Bounds )
 {
-	// Lock/Unlock the cursor
-	::ClipCursor( Bounds );
+	if (Bounds)
+	{
+		ClipRect.left = Bounds->left;
+		ClipRect.right = Bounds->right;
+		ClipRect.top = Bounds->top;
+		ClipRect.bottom = Bounds->bottom;
+	}
+	else
+	{
+		ClipRect.left = ClipRect.right = ClipRect.top = ClipRect.bottom = -1;
+	}
+	UpdateClipping();
+}
+
+void FWindowsCursor::UpdateClipping()
+{
+	if (ClipRect.left == -1 && ClipRect.right == -1 && ClipRect.top == -1 && ClipRect.bottom == -1)
+	{
+		// Unlock the cursor
+		::ClipCursor(nullptr);
+	}
+	else if (bIsVisible)
+	{
+		// Lock the cursor
+		::ClipCursor(&ClipRect);
+	}
+	else
+	{
+		// If the cursor is not visible, assume we're in game where mouse is controlling the camera and lock it to the center of the widget.
+		// This is a workaround for a problem in borderless window mode with round window corners where the cursor in the corner is in fact outside of the window area.
+		RECT Center;
+		Center.left = ClipRect.left + (ClipRect.right - ClipRect.left) / 2;
+		Center.right = Center.left + 1;
+		Center.top = ClipRect.top + (ClipRect.bottom - ClipRect.top) / 2;
+		Center.bottom = Center.top + 1;
+		::ClipCursor(&Center);
+	}
 }

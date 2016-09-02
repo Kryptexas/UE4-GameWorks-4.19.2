@@ -93,6 +93,8 @@ FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PostRenderingThreadCreated;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PreRenderingThreadDestroyed;
 FSimpleMulticastDelegate FCoreDelegates::OnFEngineLoopInitComplete;
+FCoreDelegates::FImageIntegrityChanged  FCoreDelegates::OnImageIntegrityChanged;
+
 FCoreDelegates::FApplicationReceivedOnScreenOrientationChangedNotificationDelegate FCoreDelegates::ApplicationReceivedScreenOrientationChangedNotificationDelegate;
 
 FCoreDelegates::FConfigReadyForUse FCoreDelegates::ConfigReadyForUse;

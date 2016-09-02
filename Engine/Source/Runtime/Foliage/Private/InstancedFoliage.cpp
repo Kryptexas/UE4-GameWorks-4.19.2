@@ -23,6 +23,13 @@ InstancedFoliage.cpp: Instanced foliage implementation.
 
 DEFINE_LOG_CATEGORY(LogInstancedFoliage);
 
+
+static TAutoConsoleVariable<int32> CVarFoliageDiscardDataOnLoad(
+	TEXT("foliage.DiscardDataOnLoad"),
+	0,
+	TEXT("1: Discard scalable foliage data on load (disables all scalable foliage types); 0: Keep scalable foliage data (requires reloading level)"),
+	ECVF_Scalability);
+
 // Custom serialization version for all packages containing Instance Foliage
 struct FFoliageCustomVersion
 {
@@ -2503,6 +2510,16 @@ void AInstancedFoliageActor::PostLoad()
 		FFoliageInstanceBaseCache::CompactInstanceBaseCache(this);
 	}
 #endif// WITH_EDITOR
+
+	if (!GIsEditor && CVarFoliageDiscardDataOnLoad.GetValueOnGameThread())
+	{
+		for (auto& MeshPair : FoliageMeshes)
+		{
+			MeshPair.Value->Component->ConditionalPostLoad();
+			MeshPair.Value->Component->DestroyComponent();
+			MeshPair.Value = FFoliageMeshInfo();
+		}
+	}
 }
 
 #if WITH_EDITOR

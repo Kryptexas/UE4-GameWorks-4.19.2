@@ -1194,8 +1194,6 @@ bool UMaterialExpressionTextureSample::CanEditChange(const UProperty* InProperty
 
 void UMaterialExpressionTextureSample::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeProperty( PropertyChangedEvent );
-
 	if ( PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("Texture") )
 	{
 		if ( Texture )
@@ -1216,6 +1214,9 @@ void UMaterialExpressionTextureSample::PostEditChangeProperty(FPropertyChangedEv
 			}
 		}
 	}
+	
+	// Need to update expression properties before super call (which triggers recompile)
+	Super::PostEditChangeProperty( PropertyChangedEvent );	
 }
 #endif // WITH_EDITOR
 

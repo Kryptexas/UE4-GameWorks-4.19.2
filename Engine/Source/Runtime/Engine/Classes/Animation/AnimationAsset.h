@@ -12,6 +12,7 @@
 #include "Animation/Skeleton.h"
 #include "Engine/SkeletalMesh.h"
 #include "Interfaces/Interface_AssetUserData.h"
+#include "Animation/AssetMappingTable.h"
 #include "AnimationAsset.generated.h"
 
 namespace MarkerIndexSpecialValues
@@ -760,6 +761,43 @@ private:
 	UPROPERTY(Category=MetaData, instanced, EditAnywhere)
 	TArray<class UAnimMetaData*> MetaData;
 
+public:
+	/* 
+	 * Parent asset is used for AnimMontage when it derives all settings but remap animation asset. 
+	 * For example, you can just use all parent's setting  for the montage, but only remap assets
+	 * This isn't magic bullet unfortunately and it is consistent effort of keeping the data synced with parent
+	 * If you add new property, please make sure those property has to be copied for children. 
+	 * If it does, please add the copy in the function RefreshParentAssetData
+	 * We'd like to extend this feature to BlendSpace in the future
+	 */
+#if WITH_EDITORONLY_DATA
+	/** Parent Asset, if set, you won't be able to edit any data in here but just mapping table
+	 * 
+	 * During cooking, this data will be used to bake out to normal asset */
+	UPROPERTY(Category=Animation, VisibleAnywhere)
+	class UAnimationAsset* ParentAsset;
+
+	/** 
+	 * @todo : comment
+	 */
+	void ValidateParentAsset();
+
+	/**
+	 * note this is transient as they're added as they're loaded
+	 */
+	UPROPERTY(transient)
+	TArray<class UAnimationAsset*> ChildrenAssets;
+
+	const UAssetMappingTable* GetAssetMappingTable() const
+	{
+		return AssetMappingTable;
+	}
+protected:
+	/** Asset mapping table when ParentAsset is set */
+	UPROPERTY(Category=Animation, VisibleAnywhere)
+	class UAssetMappingTable* AssetMappingTable;
+#endif // WITH_EDITORONLY_DATA
+
 protected:
 	/** Array of user data stored with the asset */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = Animation)
@@ -809,14 +847,14 @@ public:
 	ENGINE_API bool ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces=false);
 
 	// Helper function for GetAllAnimationSequencesReferred, it adds itself first and call GetAllAnimationSEquencesReferred
-	ENGINE_API void HandleAnimReferenceCollection(TArray<UAnimationAsset*>& AnimationAssets);
+	ENGINE_API void HandleAnimReferenceCollection(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive);
 
 protected:
 	/** Retrieve all animations that are used by this asset 
 	 * 
 	 * @param (out)		AnimationSequences 
 	 **/
-	ENGINE_API virtual bool GetAllAnimationSequencesReferred(TArray<class UAnimationAsset*>& AnimationSequences);
+	ENGINE_API virtual bool GetAllAnimationSequencesReferred(TArray<class UAnimationAsset*>& AnimationSequences, bool bRecursive = true);
 
 public:
 	/** Replace this assets references to other animations based on ReplacementMap 
@@ -829,8 +867,20 @@ public:
 	ENGINE_API USkeletalMesh* GetPreviewMesh();
 
 	ENGINE_API virtual int32 GetMarkerUpdateCounter() const { return 0; }
+
+	/** 
+	 * Parent Asset related function. Used by editor
+	 */
+	ENGINE_API void SetParentAsset(UAnimationAsset* InParentAsset);
+	ENGINE_API bool HasParentAsset() { return ParentAsset != nullptr;  }
+	ENGINE_API bool RemapAsset(UAnimationAsset* SourceAsset, UAnimationAsset* TargetAsset);
+	// we have to update whenever we have anything loaded
+	void UpdateParentAsset();
+protected:
+	virtual void RefreshParentAssetData();
 #endif //WITH_EDITOR
 
+public:
 	/** Return a list of unique marker names for blending compatibility */
 	ENGINE_API virtual TArray<FName>* GetUniqueMarkerNames() { return NULL; }
 

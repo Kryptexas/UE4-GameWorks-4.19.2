@@ -442,7 +442,7 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AnimSpawnTime);
 
-			UAnimSingleNodeInstance* OldInstance = NULL;
+			UAnimSingleNodeInstance* OldInstance = nullptr;
 			if (!bForceReinit)
 			{
 				OldInstance = Cast<UAnimSingleNodeInstance>(AnimScriptInstance);
@@ -462,6 +462,11 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 				FSingleAnimationPlayData CachedData;
 				CachedData.PopulateFrom(OldInstance);
 				CachedData.Initialize(Cast<UAnimSingleNodeInstance>(AnimScriptInstance));
+			}
+			else
+			{
+				// otherwise, initialize with AnimationData
+				AnimationData.Initialize(Cast<UAnimSingleNodeInstance>(AnimScriptInstance));
 			}
 		}
 
@@ -1259,7 +1264,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 
 	const bool bInvalidCachedCurve = bDoEvaluationRateOptimization && 
-									CachedCurve.Num() != GetCurveNumber(SkeletalMesh->Skeleton);
+									((CachedCurve.Num() != GetCurveNumber(SkeletalMesh->Skeleton)) || (CachedCurve.UIDList != &CachedAnimCurveMappingNameUids));
 
 	const bool bShouldDoEvaluation = !bDoEvaluationRateOptimization || bInvalidCachedBones || bInvalidCachedCurve || !AnimUpdateRateParams->ShouldSkipEvaluation();
 
@@ -1280,8 +1285,11 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	AnimEvaluationContext.SkeletalMesh = SkeletalMesh;
 	AnimEvaluationContext.AnimInstance = AnimScriptInstance;
-	AnimEvaluationContext.Curve.InitFrom(&CachedAnimCurveMappingNameUids);
 
+	if ((AnimEvaluationContext.Curve.Num() != GetCurveNumber(SkeletalMesh->Skeleton)) || (AnimEvaluationContext.Curve.UIDList != &CachedAnimCurveMappingNameUids))
+	{
+		AnimEvaluationContext.Curve.InitFrom(&CachedAnimCurveMappingNameUids);
+	}
 	AnimEvaluationContext.bDoEvaluation = bShouldDoEvaluation;
 	AnimEvaluationContext.bDoUpdate = AnimScriptInstance && AnimScriptInstance->NeedsUpdate();
 	
@@ -1400,7 +1408,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 	if (EvaluationContext.bDuplicateToCacheCurve)
 	{
-		CachedCurve.InitFrom(EvaluationContext.Curve);
+		CachedCurve.CopyFrom(EvaluationContext.Curve);
 	}
 	
 	if (EvaluationContext.bDuplicateToCacheBones)
@@ -1878,8 +1886,11 @@ void USkeletalMeshComponent::SetAnimationMode(EAnimationMode::Type InAnimationMo
 	{
 		AnimationMode = InAnimationMode;
 		ClearAnimScriptInstance();
-		InitializeAnimScriptInstance();
 	}
+
+	// when mode is swapped, make sure to reinitialize
+	// even if it was same mode
+	InitializeAnimScriptInstance(true);
 }
 
 EAnimationMode::Type USkeletalMeshComponent::GetAnimationMode() const
@@ -2004,6 +2015,18 @@ float USkeletalMeshComponent::GetPlayRate() const
 	}
 
 	return 0.f;
+}
+
+void USkeletalMeshComponent::OverrideAnimationData(UAnimationAsset* InAnimToPlay, bool bIsLooping /*= true*/, bool bIsPlaying /*= true*/, float Position /*= 0.f*/, float PlayRate /*= 1.f*/)
+{
+	AnimationData.AnimToPlay = InAnimToPlay;
+	AnimationData.bSavedLooping = bIsLooping;
+	AnimationData.bSavedPlaying = bIsPlaying;
+	AnimationData.SavedPosition = Position;
+	AnimationData.SavedPlayRate = PlayRate;
+	SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	TickAnimation(0.f, false);
+	RefreshBoneTransforms();
 }
 
 class UAnimSingleNodeInstance* USkeletalMeshComponent::GetSingleNodeInstance() const

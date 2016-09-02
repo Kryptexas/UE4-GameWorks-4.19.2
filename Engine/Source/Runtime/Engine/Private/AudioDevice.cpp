@@ -2990,6 +2990,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 					FAudioStats::FStatSoundInfo& StatSoundInfo = StatSoundInfos.Last();
 					StatSoundInfo.SoundName = ActiveSound->GetSound()->GetPathName();
 					StatSoundInfo.Distance = (ListenerPosition - ActiveSound->Transform.GetTranslation()).Size();
+
 					if (USoundClass* SoundClass = ActiveSound->GetSoundClass())
 					{
 						StatSoundInfo.SoundClassName = SoundClass->GetFName();

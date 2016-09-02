@@ -58,55 +58,6 @@ const FAnimTrack* UAnimMontage::GetAnimationData(FName InSlotName) const
 	return NULL;
 }
 
-#if WITH_EDITOR
-/*
-void UAnimMontage::SetAnimationMontage(FName SectionName, FName SlotName, UAnimSequence * Sequence)
-{
-	// if valid section
-	if ( IsValidSectionName(SectionName) )
-	{
-		bool bNeedToAddSlot=true;
-		bool bNeedToAddSection=true;
-		// see if we need to replace current one first
-		for ( int32 I=0; I<AnimMontages.Num() ; ++I )
-		{
-			if (AnimMontages(I).SectionName == SectionName)
-			{
-				// found the section, now find slot name
-				for ( int32 J=0; J<AnimMontages(I).Animations.Num(); ++J )
-				{
-					if (AnimMontages(I).Animations(J).SlotName == SlotName)
-					{
-						AnimMontages(I).Animations(J).SlotAnim = Sequence;
-						bNeedToAddSlot = false;
-						break;
-					}
-				}
-
-				// we didn't find any slot that works, break it
-				if (bNeedToAddSlot)
-				{
-					AnimMontages(I).Animations.Add(FSlotAnimTracks(SlotName, Sequence));
-				}
-
-				// we found section, no need to add section
-				bNeedToAddSection = false;
-				break;
-			}
-		}
-
-		if (bNeedToAddSection)
-		{
-			int32 NewIndex = AnimMontages.Add(FMontageSlot(SectionName));
-			AnimMontages(NewIndex).Animations.Add(FSlotAnimTracks(SlotName, Sequence));
-		}
-
-		// rebuild section data to sync runtime data
-		BuildSectionData();
-	}	
-}*/
-#endif
-
 bool UAnimMontage::IsWithinPos(int32 FirstIndex, int32 SecondIndex, float CurrentTime) const
 {
 	float StartTime;
@@ -345,6 +296,14 @@ void UAnimMontage::SortAnimCompositeSectionByPos()
 	CompositeSections.Sort( FCompareFCompositeSection() );
 }
 
+void UAnimMontage::RegisterOnMontageChanged(const FOnMontageChanged& Delegate)
+{
+	OnMontageChanged.Add(Delegate);
+}
+void UAnimMontage::UnregisterOnMontageChanged(void* Unregister)
+{
+	OnMontageChanged.RemoveAll(Unregister);
+}
 #endif	//WITH_EDITOR
 
 void UAnimMontage::PostLoad()
@@ -601,6 +560,9 @@ void UAnimMontage::RefreshCacheData()
 
 	// This gets called whenever notifies are modified in the editor, so refresh our branch list
 	RefreshBranchingPointMarkers();
+#if WITH_EDITOR
+	PropagateChanges();
+#endif // WITH_EDITOR
 }
 
 void UAnimMontage::AddBranchingPointMarker(FBranchingPointMarker TickMarker, TMap<float, FAnimNotifyEvent*>& TriggerTimes)
@@ -689,6 +651,24 @@ void UAnimMontage::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	if (SyncGroup != NAME_None)
 	{
 		CollectMarkers();
+	}
+
+	PropagateChanges();
+}
+
+void UAnimMontage::PropagateChanges()
+{
+	// @note propagate to children
+	// this isn't that slow yet, but if this gets slow, we'll have to do guid method
+	if (ChildrenAssets.Num() > 0)
+	{
+		for (UAnimationAsset* Child : ChildrenAssets)
+		{
+			if (Child)
+			{
+				Child->UpdateParentAsset();
+			}
+		}
 	}
 }
 #endif // WITH_EDITOR
@@ -950,18 +930,22 @@ const TArray<class UAnimMetaData*> UAnimMontage::GetSectionMetaData(FName Sectio
 }
 
 #if WITH_EDITOR
-bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
+bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive /*= true*/)
 {
+	Super::GetAllAnimationSequencesReferred(AnimationAssets, bRecursive);
+
 	for (auto Iter = SlotAnimTracks.CreateConstIterator(); Iter; ++Iter)
 	{
 		const FSlotAnimationTrack& Track = (*Iter);
-		Track.AnimTrack.GetAllAnimationSequencesReferred(AnimationAssets);
+		Track.AnimTrack.GetAllAnimationSequencesReferred(AnimationAssets, bRecursive);
 	}
 	return (AnimationAssets.Num() > 0);
 }
 
 void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
+	Super::ReplaceReferredAnimations(ReplacementMap);
+
 	for (auto Iter = SlotAnimTracks.CreateIterator(); Iter; ++Iter)
 	{
 		FSlotAnimationTrack& Track = (*Iter);
@@ -987,7 +971,7 @@ void UAnimMontage::UpdateLinkableElements()
 	}
 }
 
-ENGINE_API void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx)
+void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx)
 {
 	FAnimSegment* UpdatedSegment = &SlotAnimTracks[SlotIdx].AnimTrack.AnimSegments[SegmentIdx];
 
@@ -1014,6 +998,53 @@ ENGINE_API void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 Segmen
 			Notify.RefreshEndTriggerOffset(CalculateOffsetForNotify(Notify.EndLink.GetTime()));
 		}
 	}
+}
+
+void UAnimMontage::RefreshParentAssetData()
+{
+	Super::RefreshParentAssetData();
+
+	UAnimMontage* ParentMontage = CastChecked<UAnimMontage>(ParentAsset);
+
+	BlendIn = ParentMontage->BlendIn;
+	BlendOut = ParentMontage->BlendOut;
+	BlendOutTriggerTime = ParentMontage->BlendOutTriggerTime;
+	SyncGroup = ParentMontage->SyncGroup;
+	SyncSlotIndex = ParentMontage->SyncSlotIndex;
+
+	MarkerData = ParentMontage->MarkerData;
+	CompositeSections = ParentMontage->CompositeSections;
+	SlotAnimTracks = ParentMontage->SlotAnimTracks;
+
+	PreviewBasePose = ParentMontage->PreviewBasePose;
+	BranchingPointMarkers = ParentMontage->BranchingPointMarkers;
+	BranchingPointStateNotifyIndices = ParentMontage->BranchingPointStateNotifyIndices;
+
+	for (int32 SlotIdx = 0; SlotIdx < SlotAnimTracks.Num(); ++SlotIdx)
+	{
+		FSlotAnimationTrack& SlotTrack = SlotAnimTracks[SlotIdx];
+		
+		for (int32 SegmentIdx = 0; SegmentIdx < SlotTrack.AnimTrack.AnimSegments.Num(); ++SegmentIdx)
+		{
+			FAnimSegment& Segment = SlotTrack.AnimTrack.AnimSegments[SegmentIdx];
+			FAnimSegment& ParentSegment = ParentMontage->SlotAnimTracks[SlotIdx].AnimTrack.AnimSegments[SegmentIdx];
+			UAnimSequenceBase* SourceReference = Segment.AnimReference;
+			UAnimSequenceBase* TargetReference = Cast<UAnimSequenceBase>(AssetMappingTable->GetMappedAsset(SourceReference));
+			Segment.AnimReference = TargetReference;
+
+			float LengthChange = FMath::IsNearlyZero(SourceReference->SequenceLength) ? 0.f : TargetReference->SequenceLength / SourceReference->SequenceLength;
+			float RateChange = FMath::IsNearlyZero(SourceReference->RateScale) ? 0.f : FMath::Abs(TargetReference->RateScale / SourceReference->RateScale);
+			float TotalRateChange = FMath::IsNearlyZero(RateChange)? 0.f : (LengthChange / RateChange);
+			Segment.AnimPlayRate *= TotalRateChange;
+			Segment.AnimStartTime *= LengthChange;
+			Segment.AnimEndTime *= LengthChange;
+		}
+	}
+
+	// this delegate causes it to reconstrucand this code can be called by UI. 
+	// that is dangerous as it can cause the UI to reconstruct in the middle of it. 
+	// until this, the multi window won't work well. 
+	//OnMontageChanged.Broadcast();
 }
 
 #endif
@@ -2210,7 +2241,10 @@ UAnimMontage* FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName Slo
 		}
 
 		// Allow the proxy to update (this also filters unfiltered notifies)
-		AnimInst->ParallelUpdateAnimation();
+		if (AnimInst->NeedsUpdate())
+		{
+			AnimInst->ParallelUpdateAnimation();
+		}
 
 		// Explicitly call post update (also triggers notifies)
 		AnimInst->PostUpdateAnimation();

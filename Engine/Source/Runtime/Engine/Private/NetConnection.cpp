@@ -741,6 +741,11 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		OutPacketId++;
 		++OutPackets;
 		Driver->OutPackets++;
+
+		//Record the packet time to the histogram
+		double LastPacketTimeDiffInMs = (Driver->Time - LastSendTime) * 1000.0;
+		NetConnectionHistogram.AddMeasurement(LastPacketTimeDiffInMs);
+
 		LastSendTime = Driver->Time;
 
 		const int32 PacketBytes = SendBuffer.GetNumBytes() + PacketOverhead;

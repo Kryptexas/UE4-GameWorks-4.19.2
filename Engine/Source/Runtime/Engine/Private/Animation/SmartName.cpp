@@ -123,6 +123,16 @@ void FSmartNameMapping::Serialize(FArchive& Ar)
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::SmartNameRefactor)
 	{
+		if (Ar.IsSaving() && Ar.IsCooking())
+		{
+			// stript out guid from the map
+			for (TPair<FName, FGuid>& GuidPair: GuidMap)
+			{
+				// clear guid, so that we don't use it once cooked
+				GuidPair.Value = FGuid();
+			}
+		}
+
 		Ar << GuidMap;
 
 		if (Ar.ArIsLoading)
@@ -207,6 +217,25 @@ bool FSmartNameMapping::FindOrAddSmartName(FName Name, FSmartName& OutName)
 bool FSmartNameMapping::AddSmartName(FSmartName& OutName)
 {
 	return AddName(OutName.DisplayName, OutName.UID, OutName.Guid);
+}
+
+#else 
+
+// in cooked build, we don't have Guid, so just register with empty guid. 
+// you only should come here if it it hasn't found yet. 
+bool FSmartNameMapping::FindOrAddSmartName(FName Name, UID& OutUid)
+{
+	FSmartName FoundName;
+	if (FindSmartName(Name, FoundName))
+	{
+		OutUid = FoundName.UID;
+		return true;
+	}
+	else
+	{
+		// the guid is discarded, just we want to make sure it's not same
+		return AddName(Name, OutUid, FGuid::NewGuid());
+	}
 }
 #endif // WITH_EDITOR
 

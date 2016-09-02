@@ -639,9 +639,16 @@ void UAnimSequence::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	bool bAdditiveSettingsChanged = false;
 	if(PropertyChangedEvent.Property)
 	{
-		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAnimSequence, AdditiveAnimType) ||
+		const bool bChangedRefFrameIndex = PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAnimSequence, RefFrameIndex);
+
+		if (bChangedRefFrameIndex)
+		{
+			bUseRawDataOnly = true;
+		}
+
+		if ((bChangedRefFrameIndex && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive) ||
+			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAnimSequence, AdditiveAnimType) ||
 			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAnimSequence, RefPoseSeq) ||
-			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAnimSequence, RefFrameIndex) ||
 			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAnimSequence, RefPoseType))
 		{
 			bAdditiveSettingsChanged = true;
@@ -3309,17 +3316,20 @@ int32 UAnimSequence::InsertTrack(const FName& BoneName)
 	return NewTrackIndex;
 }
 
-bool UAnimSequence::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
+bool UAnimSequence::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive /*= true*/)
 {
+	Super::GetAllAnimationSequencesReferred(AnimationAssets, bRecursive);
 	if (RefPoseSeq  && RefPoseSeq != this && !AnimationAssets.Contains(RefPoseSeq))
 	{
-		RefPoseSeq->HandleAnimReferenceCollection(AnimationAssets);
+		RefPoseSeq->HandleAnimReferenceCollection(AnimationAssets, bRecursive);
 	}
 	return AnimationAssets.Num() > 0;
 }
 
 void UAnimSequence::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
+	Super::ReplaceReferredAnimations(ReplacementMap);
+
 	if (RefPoseSeq)
 	{
 		UAnimSequence* const* ReplacementAsset = (UAnimSequence*const*)ReplacementMap.Find(RefPoseSeq);

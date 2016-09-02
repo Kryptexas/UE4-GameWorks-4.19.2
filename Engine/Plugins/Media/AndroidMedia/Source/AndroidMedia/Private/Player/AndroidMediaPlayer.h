@@ -80,6 +80,9 @@ private:
 	/** Currently opened media. */
 	FString MediaUrl;
 
+	/** Media information string. */
+	FString Info;
+
 	/** Our understanding of the state of the Java media player. */
 	EMediaState State;
 

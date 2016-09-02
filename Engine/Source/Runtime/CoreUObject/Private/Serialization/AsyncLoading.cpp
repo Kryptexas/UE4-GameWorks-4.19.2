@@ -1704,7 +1704,7 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 			
 
 		// Don't try to import a package that is in an import table that we know is an invalid entry
-		if (FLinkerLoad::KnownMissingPackages.Contains(Import->ObjectName))
+		if (FLinkerLoad::IsKnownMissingPackage(Import->ObjectName))
 		{
 			continue;
 		}
@@ -2408,9 +2408,12 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 	{
 		check(LinkerToClose);
 		check(LinkerToClose->LinkerRoot);
-		FLinkerManager::Get().ResetLoaders(LinkerToClose->LinkerRoot);
-		check(LinkerToClose->LinkerRoot == nullptr);
-		check(LinkerToClose->AsyncRoot == nullptr);
+		if (!LinkerToClose->AsyncRoot)
+		{
+			FLinkerManager::Get().ResetLoaders(LinkerToClose->LinkerRoot);
+			check(LinkerToClose->LinkerRoot == nullptr);
+			check(LinkerToClose->AsyncRoot == nullptr);
+		}
 	}
 
 	// If we successfully loaded

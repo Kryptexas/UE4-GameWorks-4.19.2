@@ -1680,6 +1680,12 @@ public:
 	bool IsActive() const { return (SceneNodes.Num() > 0); }
 
 private:
+
+	void ResetHLODDistanceScaleApplication()
+	{
+		LastHLODDistanceScale = -1.0f;
+	}
+
 	/** Scene this Tree belong to */
 	FScene* Scene;
 

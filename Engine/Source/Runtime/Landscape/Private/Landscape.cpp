@@ -97,7 +97,7 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 : Super(ObjectInitializer)
 , GrassData(MakeShareable(new FLandscapeComponentGrassData()))
 {
-	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bGenerateOverlapEvents = false;
 	CastShadow = true;
 	// by default we want to see the Landscape shadows even in the far shadow cascades
@@ -126,6 +126,9 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 #endif
 
 	LpvBiasMultiplier = 0.0f; // Bias is 0 for landscape, since it's single sided
+
+	// We don't want to load this on the server, this component is for graphical purposes only
+	AlwaysLoadOnServer = false;
 }
 
 void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -1421,13 +1424,16 @@ void ALandscapeProxy::PostLoad()
 	}
 
 #if WITH_EDITOR
-	if ((GetLinker() && (GetLinker()->UE4Ver() < VER_UE4_LANDSCAPE_COMPONENT_LAZY_REFERENCES)) ||
-		LandscapeComponents.Num() != CollisionComponents.Num() ||
-		LandscapeComponents.ContainsByPredicate([](ULandscapeComponent* Comp) { return !Comp->CollisionComponent.IsValid(); }))
+	if (GIsEditor && !GetWorld()->IsGameWorld())
 	{
-		// Need to clean up invalid collision components
-		CreateLandscapeInfo();
-		RecreateCollisionComponents();
+		if ((GetLinker() && (GetLinker()->UE4Ver() < VER_UE4_LANDSCAPE_COMPONENT_LAZY_REFERENCES)) ||
+			LandscapeComponents.Num() != CollisionComponents.Num() ||
+			LandscapeComponents.ContainsByPredicate([](ULandscapeComponent* Comp) { return ((Comp != nullptr) && !Comp->CollisionComponent.IsValid()); }))
+		{
+			// Need to clean up invalid collision components
+			CreateLandscapeInfo();
+			RecreateCollisionComponents();
+		}
 	}
 
 	EditorLayerSettings.Remove(nullptr);

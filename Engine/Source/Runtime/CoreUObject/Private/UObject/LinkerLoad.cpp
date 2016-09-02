@@ -4869,6 +4869,11 @@ FName FLinkerLoad::FindNewNameForClass(FName OldClassName, bool bIsInstance)
 	return NAME_None;
 }
 
+bool  FLinkerLoad::IsKnownMissingPackage(FName PackageName)
+{
+	return KnownMissingPackages.Contains(PackageName);
+}
+
 #if WITH_EDITOR
 
 /**

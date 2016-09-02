@@ -51,6 +51,8 @@
 #include "AnimGraphNode_PoseBlendNode.h"
 #include "AnimGraphNode_Slot.h"
 #include "Customization/AnimGraphNodeSlotDetails.h"
+#include "AnimGraphNode_AimOffsetLookAt.h"
+#include "AnimGraphNode_RotationOffsetBlendSpace.h"
 
 #include "AnimPreviewInstance.h"
 
@@ -454,7 +456,7 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 	return OpenedTab;
 }
 
-TSharedPtr<SDockTab> FPersona::OpenNewDocumentTab(class UAnimationAsset* InAnimAsset)
+TSharedPtr<SDockTab> FPersona::OpenNewDocumentTab(class UAnimationAsset* InAnimAsset, bool bAddToHistory/* = true*/)
 {
 	/// before opening new asset, clear the currently selected object
 	SetDetailObject(NULL);
@@ -462,6 +464,12 @@ TSharedPtr<SDockTab> FPersona::OpenNewDocumentTab(class UAnimationAsset* InAnimA
 	TSharedPtr<SDockTab> NewTab;
 	if (InAnimAsset)
 	{
+		// add to history
+		if (bAddToHistory && SequenceBrowser.IsValid())
+		{
+			SequenceBrowser.Pin()->AddToHistory(InAnimAsset);
+		}
+
 		// Are we allowed to open animation documents right now?
 		//@TODO: Super-hacky check
 		FName CurrentMode = GetCurrentMode();
@@ -1757,6 +1765,131 @@ void FPersona::OnConvertToBlendSpacePlayer()
 
 				OldPosePin = OldNode->FindPin(TEXT("Pose"));
 				NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FPersona::OnConvertToAimOffsetLookAt()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_RotationOffsetBlendSpace* OldNode = Cast<UAnimGraphNode_RotationOffsetBlendSpace>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.BlendSpace)
+			{
+				//const FScopedTransaction Transaction( LOCTEXT("ConvertToSequenceEvaluator", "Convert to Single Frame Animation") );
+
+				// convert to sequence evaluator
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new evaluator
+				FGraphNodeCreator<UAnimGraphNode_AimOffsetLookAt> NodeCreator(*TargetGraph);
+				UAnimGraphNode_AimOffsetLookAt* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.BlendSpace = OldNode->Node.BlendSpace;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				OldPosePin = OldNode->FindPin(TEXT("BasePose"));
+				NewPosePin = NewNode->FindPin(TEXT("BasePose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FPersona::OnConvertToAimOffsetSimple()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_AimOffsetLookAt* OldNode = Cast<UAnimGraphNode_AimOffsetLookAt>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.BlendSpace)
+			{
+				//const FScopedTransaction Transaction( LOCTEXT("ConvertToSequenceEvaluator", "Convert to Single Frame Animation") );
+				// convert to sequence player
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new player
+				FGraphNodeCreator<UAnimGraphNode_RotationOffsetBlendSpace> NodeCreator(*TargetGraph);
+				UAnimGraphNode_RotationOffsetBlendSpace* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.BlendSpace = OldNode->Node.BlendSpace;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				OldPosePin = OldNode->FindPin(TEXT("BasePose"));
+				NewPosePin = NewNode->FindPin(TEXT("BasePose"));
 
 				if (ensure(OldPosePin && NewPosePin))
 				{

@@ -922,6 +922,14 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			{
 				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
 
+				const bool bWasMaximized = (wParam == SIZE_MAXIMIZED);
+				const bool bWasRestored = (wParam == SIZE_RESTORED);
+
+				if (bWasMaximized || bWasRestored)
+				{
+					MessageHandler->OnWindowAction(CurrentNativeEventWindow, bWasMaximized ? EWindowAction::Maximize : EWindowAction::Restore);
+				}
+
 				return 0;
 			}
 			break;

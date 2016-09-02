@@ -422,7 +422,7 @@ void UEnvQueryTest::UpdatePreviewData()
 
 	if (PreviewData.bShowClampMin)
 	{
-		const int32 FixedIdx = FMath::FloorToInt(PreviewData.ClampMin * PreviewData.Samples.Num());
+		const int32 FixedIdx = FMath::RoundToInt(PreviewData.ClampMin * (PreviewData.Samples.Num() - 1));
 		for (int32 Idx = 0; Idx < FixedIdx; Idx++)
 		{
 			PreviewData.Samples[Idx] = PreviewData.Samples[FixedIdx];
@@ -431,7 +431,7 @@ void UEnvQueryTest::UpdatePreviewData()
 
 	if (PreviewData.bShowClampMax)
 	{
-		const int32 FixedIdx = FMath::CeilToInt(PreviewData.ClampMax * PreviewData.Samples.Num());
+		const int32 FixedIdx = FMath::RoundToInt(PreviewData.ClampMax * (PreviewData.Samples.Num() - 1));
 		for (int32 Idx = FixedIdx + 1; Idx < PreviewData.Samples.Num(); Idx++)
 		{
 			PreviewData.Samples[Idx] = PreviewData.Samples[FixedIdx];

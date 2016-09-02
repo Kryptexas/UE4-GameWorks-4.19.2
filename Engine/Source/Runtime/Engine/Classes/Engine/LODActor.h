@@ -58,6 +58,7 @@ public:
 	/** Sets StaticMesh and IsPreviewActor to true if InStaticMesh equals nullptr */
 	void SetStaticMesh(UStaticMesh* InStaticMesh);
 
+	const bool IsBuilt() { return StaticMeshComponent->StaticMesh != nullptr;  }
 
 #if WITH_EDITOR
 	/**

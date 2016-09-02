@@ -610,21 +610,11 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		// If we're not in fullscreen, make it so
 		if (NewWindowMode == EWindowMode::WindowedFullscreen || NewWindowMode == EWindowMode::Fullscreen)
 		{
-			const bool bIsBorderlessGameWindow = Definition->Type == EWindowType::GameWindow && !Definition->HasOSWindowBorder;
-
 			::GetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
 
 			// Setup Win32 flags for fullscreen window
-			if (bIsBorderlessGameWindow && !bTrueFullscreen)
-			{
-				WindowStyle &= ~FullscreenModeStyle;
-				WindowStyle |= WindowedModeStyle;
-			}
-			else
-			{
-				WindowStyle &= ~WindowedModeStyle;
-				WindowStyle |= FullscreenModeStyle;
-			}
+			WindowStyle &= ~WindowedModeStyle;
+			WindowStyle |= FullscreenModeStyle;
 
 			SetWindowLong(HWnd, GWL_STYLE, WindowStyle);
 			::SetWindowPos(HWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);

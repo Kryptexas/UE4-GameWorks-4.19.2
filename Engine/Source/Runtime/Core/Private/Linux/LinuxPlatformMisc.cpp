@@ -377,6 +377,28 @@ uint32 FLinuxPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint3
 uint8 GOverriddenReturnCode = 0;
 bool GHasOverriddenReturnCode = false;
 
+void FLinuxPlatformMisc::RequestExit(bool Force)
+{
+	UE_LOG(LogLinux, Log,  TEXT("FLinuxPlatformMisc::RequestExit(%i)"), Force );
+	if( Force )
+	{
+		// Force immediate exit. Cannot call abort() here, because abort() raises SIGABRT which we treat as crash
+		// (to prevent other, particularly third party libs, from quitting without us noticing)
+		// Propagate override return code, but normally don't exit with 0, so the parent knows it wasn't a normal exit.
+		if (GHasOverriddenReturnCode)
+		{
+			_exit(GOverriddenReturnCode);
+		}
+		else
+		{
+			_exit(1);
+		}
+	}
+
+	// Tell the platform specific code we want to exit cleanly from the main loop.
+	FGenericPlatformMisc::RequestExit(Force);
+}
+
 void FLinuxPlatformMisc::RequestExitWithStatus(bool Force, uint8 ReturnCode)
 {
 	UE_LOG(LogLinux, Log, TEXT("FLinuxPlatformMisc::RequestExit(bForce=%s, ReturnCode=%d)"), Force ? TEXT("true") : TEXT("false"), ReturnCode);

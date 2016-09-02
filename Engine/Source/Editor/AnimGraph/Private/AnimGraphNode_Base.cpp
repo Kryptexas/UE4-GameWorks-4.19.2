@@ -265,6 +265,6 @@ void UAnimGraphNode_Base::HandleAnimReferenceCollection(UAnimationAsset* AnimAss
 {
 	if(AnimAsset)
 	{
-		AnimAsset->HandleAnimReferenceCollection(AnimationAssets);
+		AnimAsset->HandleAnimReferenceCollection(AnimationAssets, true);
 	}
 }

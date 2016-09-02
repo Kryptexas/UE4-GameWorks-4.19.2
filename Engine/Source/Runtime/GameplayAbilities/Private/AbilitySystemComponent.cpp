@@ -1055,7 +1055,17 @@ void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag Gamepla
 
 		ForceReplication();
 		GameplayCueContainer.AddCue(GameplayCueTag, ScopedPredictionKey, Parameters);
-		NetMulticast_InvokeGameplayCueAdded_WithParams(GameplayCueTag, ScopedPredictionKey, Parameters);
+		
+		// For mixed minimal replication mode, we do NOT want the owning client to play the OnActive event through this RPC, since he will get the full replicated 
+		// GE in his AGE array. Generate a prediction key for him, which he will look for on the _Implementation function and ignore.
+		{
+			FPredictionKey PredictionKeyForRPC = ScopedPredictionKey;
+			if (GameplayCueContainer.bMinimalReplication && (ReplicationMode == EReplicationMode::Mixed) && ScopedPredictionKey.IsValidKey() == false)
+			{
+				PredictionKeyForRPC = FPredictionKey::CreateNewServerInitiatedKey(this);
+			}
+			NetMulticast_InvokeGameplayCueAdded_WithParams(GameplayCueTag, PredictionKeyForRPC, Parameters);
+		}
 
 		if (!bWasInList)
 		{
@@ -1164,6 +1174,14 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_WithParams_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters Parameters)
 {
+	// If server generated prediction key and auto proxy, skip this message. 
+	// This is an RPC from mixed replication mode code, we will get the "real" message from our OnRep on the autonomous proxy
+	// See UAbilitySystemComponent::AddGameplayCue_Internal for more info.
+	if (PredictionKey.IsServerInitiatedKey() && AbilityActorInfo->IsLocallyControlledPlayer())
+	{
+		return;
+	}
+
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, Parameters);

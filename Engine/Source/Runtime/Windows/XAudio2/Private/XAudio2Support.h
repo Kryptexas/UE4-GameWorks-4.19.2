@@ -639,9 +639,6 @@ struct FXAudioDeviceProperties
 	/** Source callback to handle looping sound callbacks */
 	FXAudio2SoundSourceCallback	SourceCallback;
 	
-	/** The array of voice pools. Each pool is according to the sound format (and max effect chain channels) */
-	TArray<FSourceVoicePoolEntry*> VoicePool;
-
 	/** Number of non-free active voices */
 	int32 NumActiveVoices;
 
@@ -657,25 +654,6 @@ struct FXAudioDeviceProperties
 	{
 		// Make sure we've free'd all of our active voices at this point!
 		check(NumActiveVoices == 0);
-
-		// Destroy all the xaudio2 voices allocated in our pools
-		for (int32 i = 0; i < VoicePool.Num(); ++i)
-		{
-			for (int32 j = 0; j < VoicePool[i]->FreeVoices.Num(); ++j)
-			{
-				IXAudio2SourceVoice** Voice = &VoicePool[i]->FreeVoices[j];
-				check(*Voice != nullptr);
-				(*Voice)->DestroyVoice();
-				*Voice = nullptr;
-			}
-		}
-
-		// Now delete all the pool entries
-		for (int32 i = 0; i < VoicePool.Num(); ++i)
-		{
-			delete VoicePool[i];
-			VoicePool[i] = nullptr;
-		}
 
 		// close hardware interfaces
 		if (MasteringVoice)

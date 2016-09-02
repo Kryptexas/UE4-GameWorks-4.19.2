@@ -126,8 +126,6 @@ public:
 	static TMap<FName, FName> StructNameRedirects;
 	/** Old plugin name to new plugin name mapping */
 	static TMap<FString, FString> PluginNameRedirects;
-	/** Packages that are known to be missing when verifying imports that we don't want a message about */
-	COREUOBJECT_API static TSet<FName> KnownMissingPackages;
 
 	/** Object name to required class and new name for load-time remapping */
 	struct FSubobjectRedirect
@@ -161,7 +159,18 @@ public:
 	 */
 	COREUOBJECT_API static FName FindNewNameForClass(FName OldClassName, bool bIsInstance);
 
+	/**
+	* Utility functions to check the list of known missing packages and silence any warnings
+	* that may have occurred on load.
+	* @return true if the provided package is in the KnownMissingPackage list
+	*/
+	COREUOBJECT_API static bool IsKnownMissingPackage(FName PackageName);
+
 private:
+
+	/** Packages that are known to be missing when verifying imports that we don't want a message about */
+	COREUOBJECT_API static TSet<FName> KnownMissingPackages;
+
 	// Variables used during async linker creation.
 
 	/** Current index into name map, used by async linker creation for spreading out serializing name entries.					*/

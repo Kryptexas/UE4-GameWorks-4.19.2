@@ -1009,6 +1009,11 @@ void FHttpNetworkReplayStreamer::CancelInFlightOrPendingTask( const EQueuedHttpR
 
 	if ( InFlightHttpRequest.IsValid() && InFlightHttpRequest->Type == Type )
 	{
+		if ( InFlightHttpRequest->Request->OnProcessRequestComplete().IsBound() )
+		{
+			InFlightHttpRequest->Request->OnProcessRequestComplete().Unbind();
+		}
+
 		InFlightHttpRequest->Request->CancelRequest();
 		InFlightHttpRequest = NULL;
 	}
@@ -1174,6 +1179,11 @@ void FHttpNetworkReplayStreamer::CancelStreamingRequests()
 	// Cancel any in flight request
 	if ( InFlightHttpRequest.IsValid() )
 	{
+		if ( InFlightHttpRequest->Request->OnProcessRequestComplete().IsBound() )
+		{
+			InFlightHttpRequest->Request->OnProcessRequestComplete().Unbind();
+		}
+
 		InFlightHttpRequest->Request->CancelRequest();
 		InFlightHttpRequest = NULL;
 	}

@@ -592,6 +592,7 @@ void FAttributeSetInitterDiscreteLevels::PreloadAttributeSetData(const TArray<UC
 void FAttributeSetInitterDiscreteLevels::InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level, bool bInitialInit) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_InitAttributeSetDefaults);
+	check(AbilitySystemComponent != nullptr);
 	
 	const FAttributeSetDefaultsCollection* Collection = Defaults.Find(GroupName);
 	if (!Collection)

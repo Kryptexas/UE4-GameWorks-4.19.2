@@ -2127,6 +2127,19 @@ public:
 	 */
 	void DelayGarbageCollection();
 
+	/**
+	 * Updates the timer (as a one-off) that is used to trigger garbage collection; this should only be used for things
+	 * like performance tests, using it recklessly can dramatically increase memory usage and cost of the eventual GC.
+	 *
+	 * Note: Things that force a GC will still force a GC after using this method (and they will also reset the timer)
+	 */
+	void SetTimeUntilNextGarbageCollection(float MinTimeUntilNextPass);
+
+	/**
+	 * Returns the current desired time between garbage collection passes (not the time remaining)
+	 */
+	float GetTimeBetweenGarbageCollectionPasses() const;
+
 protected:
 
 	/**

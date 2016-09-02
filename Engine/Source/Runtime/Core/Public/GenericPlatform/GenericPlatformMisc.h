@@ -356,6 +356,12 @@ struct CORE_API FGenericPlatformMisc
 		return true;
 	}
 
+	/** Platform can generate a full-memory crashdump during crash handling. */
+	static bool SupportsFullCrashDumps()
+	{
+		return true;
+	}
+
 	/**
 	 * Enforces strict memory load/store ordering across the memory barrier call.
 	 */

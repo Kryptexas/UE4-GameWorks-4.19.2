@@ -1134,11 +1134,12 @@ void UPoseAsset::RemapTracksToNewSkeleton(USkeleton* NewSkeleton, bool bConvertS
 	RecacheTrackmap();
 }
 
-bool UPoseAsset::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
+bool UPoseAsset::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive /*= true*/)
 {
+	Super::GetAllAnimationSequencesReferred(AnimationAssets, bRecursive);
 	if (SourceAnimation)
 	{
-		SourceAnimation->HandleAnimReferenceCollection(AnimationAssets);
+		SourceAnimation->HandleAnimReferenceCollection(AnimationAssets, bRecursive);
 	}
 
 	return AnimationAssets.Num() > 0;
@@ -1146,6 +1147,7 @@ bool UPoseAsset::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& Anim
 
 void UPoseAsset::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
+	Super::ReplaceReferredAnimations(ReplacementMap);
 	if (SourceAnimation)
 	{
 		UAnimSequence* const* ReplacementAsset = (UAnimSequence*const*)ReplacementMap.Find(SourceAnimation);

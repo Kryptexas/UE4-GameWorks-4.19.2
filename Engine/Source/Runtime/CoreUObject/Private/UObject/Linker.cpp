@@ -537,7 +537,7 @@ FLinkerLoad* GetPackageLinker
 		if ( !DoesPackageExist )
 		{
 			// In memory-only packages have no linker and this is ok.
-			if (!(LoadFlags & LOAD_AllowDll) && !InOuter->HasAnyPackageFlags(PKG_InMemoryOnly) && !FLinkerLoad::KnownMissingPackages.Contains(InOuter->GetFName()))
+			if (!(LoadFlags & LOAD_AllowDll) && !InOuter->HasAnyPackageFlags(PKG_InMemoryOnly) && !FLinkerLoad::IsKnownMissingPackage(InOuter->GetFName()))
 			{
 				FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 				FFormatNamedArguments Arguments;
@@ -581,7 +581,7 @@ FLinkerLoad* GetPackageLinker
 		const bool DoesPackageExist = DoesPackageExistForGetPackageLinker(PackageName, CompatibleGuid, NewFilename);
 		if( !DoesPackageExist )
 		{
-			if (!FLinkerLoad::KnownMissingPackages.Contains(InLongPackageName))
+			if (!FLinkerLoad::IsKnownMissingPackage(InLongPackageName))
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));

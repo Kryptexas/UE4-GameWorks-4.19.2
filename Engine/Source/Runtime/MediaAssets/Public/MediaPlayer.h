@@ -684,6 +684,7 @@ private:
 	FName PlayerName;
 
 #if WITH_EDITOR
+	/** Whether the player was playing in PIE/SIE. */
 	bool WasPlayingInPIE;
 #endif
 };

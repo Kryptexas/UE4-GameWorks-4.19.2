@@ -39,7 +39,7 @@ FName UBlackboardData::GetKeyName(FBlackboard::FKey KeyID) const
 TSubclassOf<UBlackboardKeyType> UBlackboardData::GetKeyType(FBlackboard::FKey KeyID) const
 {
 	const FBlackboardEntry* KeyEntry = GetKey(KeyID);
-	return KeyEntry ? KeyEntry->KeyType->GetClass() : NULL;
+	return KeyEntry && KeyEntry->KeyType ? KeyEntry->KeyType->GetClass() : NULL;
 }
 
 bool UBlackboardData::IsKeyInstanceSynced(FBlackboard::FKey KeyID) const

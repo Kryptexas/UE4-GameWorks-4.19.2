@@ -12,6 +12,7 @@
 #include "Engine/NetDriver.h"
 #include "GameFramework/OnlineReplStructs.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
+#include "ProfilingDebugging/Histogram.h"
 
 #include "NetConnection.generated.h"
 

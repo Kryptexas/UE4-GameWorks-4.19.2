@@ -726,7 +726,7 @@ void UMediaPlayer::HandleMediaTextureBeginDestroy(UMediaTexture& DestroyedMediaT
 	{
 		if (&DestroyedMediaTexture == ImageTexture)
 		{
-			Player->GetOutput().SetAudioSink(nullptr);
+			Player->GetOutput().SetImageSink(nullptr);
 		}
 		else if (&DestroyedMediaTexture == VideoTexture)
 		{

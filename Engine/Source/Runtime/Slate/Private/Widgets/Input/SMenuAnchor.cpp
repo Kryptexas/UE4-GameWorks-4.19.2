@@ -101,7 +101,7 @@ void SMenuAnchor::Construct( const FArguments& InArgs )
 	
 
 	Children[0]
-		.Padding(0)
+		.Padding(InArgs._Padding)
 		[
 			InArgs._Content.Widget
 		];

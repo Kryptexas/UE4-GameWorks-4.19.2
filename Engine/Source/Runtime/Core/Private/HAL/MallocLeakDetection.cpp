@@ -10,17 +10,6 @@
 
 #if MALLOC_LEAKDETECTION
 
-FAutoConsoleCommand InvalidateCachedShaders(
-	TEXT("MallocLeak"),
-	TEXT("Usage:\n")
-	TEXT("'MallocLeak Start'  Begins accumulating unique callstacks\n")
-	TEXT("'MallocLeak Stop [Size]'  Dumps outstanding unique callstacks and stops accumulation (with an optional filter size in bytes, if not specified 128 KB is assumed).  Also clears data.\n")
-	TEXT("'MallocLeak Clear'  Clears all accumulated data.  Does not change start/stop state.\n")
-	TEXT("'MallocLeak Dump [Size]' Dumps oustanding unique callstacks with optional size filter in bytes (if size is not specified it is assumed to be 128 KB).\n"),
-	FConsoleCommandWithArgsDelegate::CreateStatic(FMallocLeakDetection::HandleMallocLeakCommand),
-	ECVF_Default	
-	);
-
 FMallocLeakDetection::FMallocLeakDetection()
 	: bCaptureAllocs(false)
 	, bDumpOustandingAllocs(false)
@@ -37,22 +26,19 @@ FMallocLeakDetection::~FMallocLeakDetection()
 {	
 }
 
-void FMallocLeakDetection::HandleMallocLeakCommandInternal(const TArray< FString >& Args)
+bool FMallocLeakDetection::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	if (Args.Num() >= 1)
+	if (FParse::Command(&Cmd, TEXT("mallocleak")))
 	{
-		if (Args[0].Compare(TEXT("Start"), ESearchCase::IgnoreCase) == 0)
-		{		
+		if (FParse::Command(&Cmd, TEXT("start")))
+		{
 			UE_LOG(LogConsoleResponse, Display, TEXT("Starting allocation tracking."));
 			SetAllocationCollection(true);
 		}
-		else if (Args[0].Compare(TEXT("Stop"), ESearchCase::IgnoreCase) == 0)
+		else if (FParse::Command(&Cmd, TEXT("stop")))
 		{
 			uint32 FilterSize = 128 * 1024;
-			if (Args.Num() >= 2)
-			{
-				FilterSize = FCString::Atoi(*Args[1]);
-			}
+			FParse::Value(Cmd, TEXT("filtersize="), FilterSize);
 
 			UE_LOG(LogConsoleResponse, Display, TEXT("Stopping allocation tracking and clearing data."));
 			SetAllocationCollection(false);
@@ -62,29 +48,31 @@ void FMallocLeakDetection::HandleMallocLeakCommandInternal(const TArray< FString
 
 			ClearData();
 		}
-		else if (Args[0].Compare(TEXT("Clear"), ESearchCase::IgnoreCase) == 0)
+		else if (FParse::Command(&Cmd, TEXT("Clear")))
 		{
 			UE_LOG(LogConsoleResponse, Display, TEXT("Clearing tracking data."));
 			ClearData();
 		}
-		else if (Args[0].Compare(TEXT("Dump"), ESearchCase::IgnoreCase) == 0)
+		else if (FParse::Command(&Cmd, TEXT("Dump")))
 		{
 			uint32 FilterSize = 128 * 1024;
-			if (Args.Num() >= 2)
-			{
-				FilterSize = FCString::Atoi(*Args[1]);
-			}
+			FParse::Value(Cmd, TEXT("filtersize="), FilterSize);
+
 			UE_LOG(LogConsoleResponse, Display, TEXT("Dumping unique calltacks with %i bytes or more oustanding."), FilterSize);
 			DumpOpenCallstacks(FilterSize);
 		}
+		else
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("'MallocLeak Start'  Begins accumulating unique callstacks\n")
+				TEXT("'MallocLeak Stop filtersize=[Size]'  Dumps outstanding unique callstacks and stops accumulation (with an optional filter size in bytes, if not specified 128 KB is assumed).  Also clears data.\n")
+				TEXT("'MallocLeak Clear'  Clears all accumulated data.  Does not change start/stop state.\n")
+				TEXT("'MallocLeak Dump filtersize=[Size]' Dumps oustanding unique callstacks with optional size filter in bytes (if size is not specified it is assumed to be 128 KB).\n"));
+		}
+
+		return true;
 	}
+	return false;
 }
-
-void FMallocLeakDetection::HandleMallocLeakCommand(const TArray< FString >& Args)
-{
-	Get().HandleMallocLeakCommandInternal(Args);
-}
-
 
 void FMallocLeakDetection::AddCallstack(FCallstackTrack& Callstack)
 {
@@ -167,11 +155,6 @@ void FMallocLeakDetection::ClearData()
 	FScopeLock Lock(&AllocatedPointersCritical);
 	OpenPointers.Empty();
 	UniqueCallstacks.Empty();
-}
-
-bool FMallocLeakDetection::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
-{		
-	return false;
 }
 
 void FMallocLeakDetection::Malloc(void* Ptr, SIZE_T Size)

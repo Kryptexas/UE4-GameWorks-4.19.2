@@ -14,6 +14,11 @@ class FTypeContainer;
 class IMessageRpcClient;
 class IPortalRpcLocator;
 class IPortalServiceLocator;
+class IPerformanceDataConsumer;
+class FPerformanceTrackingChart;
+#if ALLOW_DEBUG_FILES
+class FFineGrainedPerformanceTracker;
+#endif
 
 /**
  * Enumerates types of fully loaded packages.
@@ -1990,79 +1995,37 @@ public:
 #endif	// UE_BUILD_SHIPPING
 
 	/**
-	 * Ticks the FPS chart.
-	 *
-	 * @param DeltaSeconds	Time in seconds passed since last tick.
-	 */
-	virtual void TickFPSChart( float DeltaSeconds );
-
-	/**
-	 * Starts the FPS chart data capture.
+	 * Starts the FPS chart data capture (if another run is already active then this command is ignored except to change the active label).
 	 *
 	 * @param	Label		Label for this run
 	 * @param	bRecordPerFrameTimes	Should we record per-frame times (potentially unbounded memory growth; used when triggered via the console but not when triggered by game code)
 	 */
-	virtual void StartFPSChart( const FString& Label, bool bRecordPerFrameTimes );
+	virtual void StartFPSChart(const FString& Label, bool bRecordPerFrameTimes);
 
 	/**
-	 * Stops the FPS chart data capture.
+	 * Stops the FPS chart data capture (if no run is active then this command is ignored).
 	 */
-	virtual void StopFPSChart();
+	virtual void StopFPSChart(const FString& MapName);
+
 
 	/**
-	* Pauses FPS chart data capture if in progress. Useful for omitting known-problem areas from charts.
+	 * Calculates information about the previous frame and passes it to all active performance data consumers.
 	 *
-	 * @param	bPause	Pause State
+	 * @param DeltaSeconds	Time in seconds passed since last tick.
 	 */
-	virtual void PauseFPSChart(bool bPause);
+	void TickPerformanceMonitoring(float DeltaSeconds);
 
-	/**
-	 * Dumps the FPS chart information to the passed in archive.
-	 *
-	 * @param	InMapName	Name of the map (Or Global)
-	 * @param	bForceDump	Whether to dump even if FPS chart info is not enabled.
-	 */
-	virtual void DumpFPSChart( const FString& InMapName, bool bForceDump = false );
+	/** Register a performance data consumer with the engine; it will be passed performance information each frame */
+	void AddPerformanceDataConsumer(TSharedPtr<IPerformanceDataConsumer> Consumer);
 
-	/**
-	* Dumps the FPS chart information to the passed in archive for analytics.
-	*
-	* @param	InMapName	Name of the map (Or Global)
-	*/
-	virtual void DumpFPSChartAnalytics(const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray, bool bIncludeClientHWInfo);
+	/** Remove a previously registered performance data consumer */
+	void RemovePerformanceDataConsumer(TSharedPtr<IPerformanceDataConsumer> Consumer);
 
-	/** Delegate called when FPS charting detects a hitch (it is not triggered if a capture isn't in progress). */
+public:
+	/** Delegate called when FPS charting detects a hitch (it is not triggered if there are no active performance data consumers). */
 	FEngineHitchDetectedDelegate OnHitchDetectedDelegate;
 
-	/** After running Start/StopFPSChart, this returns the number of frames that were bound by the game thread, render thread, or GPU. */
-	virtual void GetFPSChartBoundByFrameCounts(uint32& OutGameThread, uint32& OutRenderThread, uint32& OutGPU) const;
-
 private:
-
-	/**
-	 * Dumps the FPS chart information to HTML.
-	 */
-	virtual void DumpFPSChartToHTML( float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName  );
-
-	/**
-	 * Dumps the FPS chart information to the log.
-	 */
-	virtual void DumpFPSChartToLog( float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName );
-
-	/**
-	 * Dumps the FPS chart information to the special stats log file.
-	 */
-	virtual void DumpFPSChartToStatsLog( float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName );
-
-	/**
-	* Dumps the FPS chart information to an analytic event param array.
-	*/
-	virtual void DumpFPSChartToAnalyticsParams(float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName, TArray<struct FAnalyticsEventAttribute>& InParamArray);
-
-	/**
-	 * Dumps the frame times information to the special stats log file.
-	 */
-	virtual void DumpFrameTimesToStatsLog( float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName );
 
 	/**
 	 * Callback for external UI being opened.
@@ -2213,6 +2176,16 @@ protected:
 	/** Holds registered service instances. */
 	TSharedPtr<IPortalServiceLocator> ServiceLocator;
 
+	/** Active FPS chart (initialized by startfpschart, finalized by stopfpschart) */
+	TSharedPtr<FPerformanceTrackingChart> ActivePerformanceChart;
+
+#if ALLOW_DEBUG_FILES
+	/** Active fine-grained per-frame chart (initialized by startfpschart, finalized by stopfpschart) */
+	TSharedPtr<FFineGrainedPerformanceTracker> ActiveFrameTimesChart;
+#endif
+
+	/** List of all active performance consumers */
+	TArray<TSharedPtr<IPerformanceDataConsumer>> ActivePerformanceDataConsumers;
 
 public:
 

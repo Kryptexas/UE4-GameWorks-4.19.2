@@ -58,6 +58,12 @@ void UAudioComponent::BeginDestroy()
 {
 	Super::BeginDestroy();
 
+	if (bIsActive && Sound && Sound->IsLooping())
+	{
+		UE_LOG(LogAudio, Warning, TEXT("Audio Component is being destroyed without stopping looping sound '%s'"), *Sound->GetName());
+		Stop();
+	}
+
 	AudioIDToComponentMap.Remove(AudioComponentID);
 }
 

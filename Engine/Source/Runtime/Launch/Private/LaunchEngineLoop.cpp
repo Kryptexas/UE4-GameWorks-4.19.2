@@ -2762,7 +2762,7 @@ void FEngineLoop::Tick()
 
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_TickFPSChart);
-			GEngine->TickFPSChart( FApp::GetDeltaTime() );
+			GEngine->TickPerformanceMonitoring( FApp::GetDeltaTime() );
 		}
 
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Malloc_UpdateStats);
@@ -3110,6 +3110,11 @@ bool FEngineLoop::AppInit( )
 	if (FParse::Param(FCommandLine::Get(), TEXT("purgatorymallocproxy")))
 	{
 		FMemory::EnablePurgatoryTests();
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("poisonmallocproxy")))
+	{
+		FMemory::EnablePoisonTests();
 	}
 
 #if !UE_BUILD_SHIPPING

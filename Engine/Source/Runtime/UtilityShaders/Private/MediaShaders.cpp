@@ -128,7 +128,8 @@ void FYCbCrConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FR
 BEGIN_UNIFORM_BUFFER_STRUCT(FUYVYConvertUB, )
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, Width)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, UYVYTexture)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, UYVYSampler)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, UYVYSamplerB)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, UYVYSamplerP)
 END_UNIFORM_BUFFER_STRUCT(FUYVYConvertUB)
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FUYVYConvertUB, TEXT("UYVYConvertUB"));
@@ -141,7 +142,8 @@ void FUYVYConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRH
 	{
 		UB.Width = UYVYTexture->GetSizeX();
 		UB.UYVYTexture = UYVYTexture;
-		UB.UYVYSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.UYVYSamplerB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.UYVYSamplerP = TStaticSamplerState<SF_Point>::GetRHI();
 	}
 
 	TUniformBufferRef<FUYVYConvertUB> Data = TUniformBufferRef<FUYVYConvertUB>::CreateUniformBufferImmediate(UB, UniformBuffer_SingleFrame);
@@ -188,7 +190,8 @@ void FYUVConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHI
 BEGIN_UNIFORM_BUFFER_STRUCT(FYUY2ConvertUB, )
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, Width)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, YUY2Texture)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, YUY2Sampler)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, YUY2SamplerB)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, YUY2SamplerP)
 END_UNIFORM_BUFFER_STRUCT(FYUY2ConvertUB)
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FYUY2ConvertUB, TEXT("YUY2ConvertUB"));
@@ -201,7 +204,8 @@ void FYUY2ConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRH
 	{
 		UB.Width = YUY2Texture->GetSizeX();
 		UB.YUY2Texture = YUY2Texture;
-		UB.YUY2Sampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.YUY2SamplerB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.YUY2SamplerP = TStaticSamplerState<SF_Point>::GetRHI();
 	}
 
 	TUniformBufferRef<FYUY2ConvertUB> Data = TUniformBufferRef<FYUY2ConvertUB>::CreateUniformBufferImmediate(UB, UniformBuffer_SingleFrame);
@@ -215,7 +219,8 @@ void FYUY2ConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRH
 BEGIN_UNIFORM_BUFFER_STRUCT(FYVYUConvertUB, )
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, Width)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, YVYUTexture)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, YVYUSampler)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, YVYUSamplerB)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, YVYUSamplerP)
 END_UNIFORM_BUFFER_STRUCT(FYVYUConvertUB)
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FYVYUConvertUB, TEXT("YVYUConvertUB"));
@@ -228,7 +233,8 @@ void FYVYUConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRH
 	{
 		UB.Width = YVYUTexture->GetSizeX();
 		UB.YVYUTexture = YVYUTexture;
-		UB.YVYUSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.YVYUSamplerB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.YVYUSamplerP = TStaticSamplerState<SF_Point>::GetRHI();
 	}
 
 	TUniformBufferRef<FYVYUConvertUB> Data = TUniformBufferRef<FYVYUConvertUB>::CreateUniformBufferImmediate(UB, UniformBuffer_SingleFrame);

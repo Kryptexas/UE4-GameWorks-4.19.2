@@ -20,6 +20,8 @@ void SWindowTitleBarArea::Construct( const FArguments& InArgs )
 	[
 		InArgs._Content.Widget
 	];
+
+	OnDoubleClick = InArgs._OnDoubleClick;
 }
 
 void SWindowTitleBarArea::SetContent(const TSharedRef< SWidget >& InContent)
@@ -101,7 +103,28 @@ int32 SWindowTitleBarArea::OnPaint( const FPaintArgs& Args, const FGeometry& All
 	return LayerId;
 }
 
+FReply SWindowTitleBarArea::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	// Handle double click here in fullscreen mode only. In windowed mode double click is handled via window actions.
+	if (GameWindow.IsValid() && GameWindow->GetWindowMode() != EWindowMode::Windowed)
+	{
+		if (OnDoubleClick.IsBound())
+		{
+			OnDoubleClick.Execute();
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
 EWindowZone::Type SWindowTitleBarArea::GetWindowZoneOverride() const
 {
-	return EWindowZone::TitleBar;
+	EWindowZone::Type Zone = EWindowZone::TitleBar;
+	if (GameWindow.IsValid() && GameWindow->GetWindowMode() != EWindowMode::Windowed)
+	{
+		// In fullscreen, return ClientArea to prevent window from being moved
+		Zone = EWindowZone::ClientArea;
+	}
+	return Zone;
 }

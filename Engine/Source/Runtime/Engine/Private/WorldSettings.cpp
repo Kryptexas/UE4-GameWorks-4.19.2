@@ -40,6 +40,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 
 	bEnableWorldBoundsChecks = true;
 	bEnableNavigationSystem = true;
+	bEnableAISystem = true;
 	bEnableWorldComposition = false;
 	bEnableWorldOriginRebasing = false;
 #if WITH_EDITORONLY_DATA	

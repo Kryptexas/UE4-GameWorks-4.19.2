@@ -9,6 +9,9 @@ struct FMarkerPair;
 struct FPassedMarker;
 struct FMarkerSyncAnimPosition;
 
+// Disable debugging information for shipping and test builds.
+#define ENABLE_ANIM_DEBUG (1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+
 namespace EAnimEventTriggerOffsets
 {
 	enum Type

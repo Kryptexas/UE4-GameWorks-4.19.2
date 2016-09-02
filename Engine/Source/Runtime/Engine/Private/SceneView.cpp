@@ -1183,6 +1183,9 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(ColorGainHighlights);
 		LERP_PP(ColorOffsetHighlights);
 
+		LERP_PP(ColorCorrectionShadowsMax);
+		LERP_PP(ColorCorrectionHighlightsMin);
+
 		LERP_PP(FilmWhitePoint);
 		LERP_PP(FilmSaturation);
 		LERP_PP(FilmChannelMixerRed);

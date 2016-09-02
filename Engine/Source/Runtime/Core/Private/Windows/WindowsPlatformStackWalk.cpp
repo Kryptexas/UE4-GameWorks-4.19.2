@@ -24,8 +24,10 @@ static bool GNeedToRefreshSymbols = false;
 static const TCHAR* CrashReporterSettings = TEXT("/Script/UnrealEd.CrashReporterSettings");
 
 // NOTE: Make sure to enable Stack Frame pointers: bOmitFramePointers = false, or /Oy-
-// If GStackWalkingInitialized is true, traces will work anyway but will be much slower.
 #define USE_FAST_STACKTRACE 1
+
+// Uses StackWalk64 interface which is more reliable, but 500-1000x slower than the fast stacktrace.
+#define USE_SLOW_STACKTRACE 0
 
 typedef bool  (WINAPI *TFEnumProcesses)( uint32* lpidProcess, uint32 cb, uint32* cbNeeded);
 typedef bool  (WINAPI *TFEnumProcessModules)(HANDLE hProcess, HMODULE *lphModule, uint32 cb, LPDWORD lpcbNeeded);
@@ -220,88 +222,80 @@ void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32
 {
 	// Make sure we have place to store the information before we go through the process of raising
 	// an exception and handling it.
-	if( BackTrace == NULL || MaxDepth == 0 )
+	if (BackTrace == NULL || MaxDepth == 0)
 	{
 		return;
 	}
 
-	if( Context )
+	if (Context)
 	{
-		CaptureStackTraceHelper( BackTrace, MaxDepth, (CONTEXT*)Context );
+		CaptureStackTraceHelper(BackTrace, MaxDepth, (CONTEXT*)Context);
 	}
 	else
 	{
 #if USE_FAST_STACKTRACE
+		if (!GMaxCallstackDepthInitialized)
+		{
+			DetermineMaxCallstackDepth();
+		}
+		PVOID WinBackTrace[MAX_CALLSTACK_DEPTH];
+		uint16 NumFrames = RtlCaptureStackBackTrace(0, FMath::Min<ULONG>(GMaxCallstackDepth, MaxDepth), WinBackTrace, NULL);
+		for (uint16 FrameIndex = 0; FrameIndex < NumFrames; ++FrameIndex)
+		{
+			BackTrace[FrameIndex] = (uint64)WinBackTrace[FrameIndex];
+		}
+		while (NumFrames < MaxDepth)
+		{
+			BackTrace[NumFrames++] = 0;
+		}		
+#elif USE_SLOW_STACKTRACE
 		// NOTE: Make sure to enable Stack Frame pointers: bOmitFramePointers = false, or /Oy-
 		// If GStackWalkingInitialized is true, traces will work anyway but will be much slower.
-		if ( GStackWalkingInitialized )
+		if (!GStackWalkingInitialized)
 		{
-			CONTEXT HelperContext;
-			RtlCaptureContext( &HelperContext );
+			InitStackWalking();
+		}
+		
+		CONTEXT HelperContext;
+		RtlCaptureContext(&HelperContext);
 
-			// Capture the back trace.
-			CaptureStackTraceHelper( BackTrace, MaxDepth, &HelperContext );
-		}
-		else
-		{
-			if ( !GMaxCallstackDepthInitialized )
-			{
-				DetermineMaxCallstackDepth();
-			}
-			PVOID WinBackTrace[MAX_CALLSTACK_DEPTH];
-			uint16 NumFrames = RtlCaptureStackBackTrace( 0, FMath::Min<ULONG>(GMaxCallstackDepth,MaxDepth), WinBackTrace, NULL );
-			for ( uint16 FrameIndex=0; FrameIndex < NumFrames; ++FrameIndex )
-			{
-				BackTrace[ FrameIndex ] = (uint64) WinBackTrace[ FrameIndex ];
-			}
-			while ( NumFrames < MaxDepth )
-			{
-				BackTrace[ NumFrames++ ] = 0;
-			}
-		}
+		// Capture the back trace.
+		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext);		
 #elif PLATFORM_64BITS
 		// Raise an exception so CaptureStackBackTraceHelper has access to context record.
 		__try
 		{
-			RaiseException(	0,			// Application-defined exception code.
-							0,			// Zero indicates continuable exception.
-							0,			// Number of arguments in args array (ignored if args is NULL)
-							NULL );		// Array of arguments
-			}
+			RaiseException(0,			// Application-defined exception code.
+				0,			// Zero indicates continuable exception.
+				0,			// Number of arguments in args array (ignored if args is NULL)
+				NULL);		// Array of arguments
+		}
 		// Capture the back trace.
-		__except( CaptureStackTraceHelper( BackTrace, MaxDepth, (GetExceptionInformation())->ContextRecord ) )
+		__except (CaptureStackTraceHelper(BackTrace, MaxDepth, (GetExceptionInformation())->ContextRecord))
 		{
 		}
-#elif 1
+#else
 		// Use a bit of inline assembly to capture the information relevant to stack walking which is
 		// basically EIP and EBP.
 		CONTEXT HelperContext;
-		memset( &HelperContext, 0, sizeof(CONTEXT) );
+		memset(&HelperContext, 0, sizeof(CONTEXT));
 		HelperContext.ContextFlags = CONTEXT_FULL;
 
 		// Use a fake function call to pop the return address and retrieve EIP.
 		__asm
 		{
 			call FakeFunctionCall
-		FakeFunctionCall: 
+			FakeFunctionCall :
 			pop eax
-			mov HelperContext.Eip, eax
-			mov HelperContext.Ebp, ebp
-			mov HelperContext.Esp, esp
+				mov HelperContext.Eip, eax
+				mov HelperContext.Ebp, ebp
+				mov HelperContext.Esp, esp
 		}
 
 		// Capture the back trace.
-		CaptureStackTraceHelper( BackTrace, MaxDepth, &HelperContext );
-#else
-		CONTEXT HelperContext;
-		// RtlCaptureContext relies on EBP being untouched so if the below crashes it is because frame pointer
-		// omission is enabled. It is implied by /Ox or /O2 and needs to be manually disabled via /Oy-
-		RtlCaptureContext( HelperContext );
-
-		// Capture the back trace.
-		CaptureStackTraceHelper( BackTrace, MaxDepth, &HelperContext );
+		CaptureStackTraceHelper(BackTrace, MaxDepth, &HelperContext);
 #endif
-	}
+	}	
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

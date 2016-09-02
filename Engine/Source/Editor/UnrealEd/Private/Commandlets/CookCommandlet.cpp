@@ -50,6 +50,7 @@ namespace DetailedCookStats
 	extern double TickCookOnTheSideSaveCookedPackageTimeSec;
 	extern double TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec;
 	extern double TickCookOnTheSideFinishPackageCacheForCookedPlatformDataTimeSec;
+	extern double GameCookModificationDelegateTimeSec;
 	double TickLoopGCTimeSec = 0.0;
 	double TickLoopRecompileShaderRequestsTimeSec = 0.0;
 	double TickLoopShaderProcessAsyncResultsTimeSec = 0.0;
@@ -65,6 +66,7 @@ namespace DetailedCookStats
 		ADD_COOK_STAT_FLT(" 0. 0", StartupWallTimeSec);
 		ADD_COOK_STAT_FLT(" 0. 1", NewCookTimeSec);
 		ADD_COOK_STAT_FLT(" 0. 1. 0", StartCookByTheBookTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 1. 0. 0", GameCookModificationDelegateTimeSec);
 		ADD_COOK_STAT_FLT(" 0. 1. 1", TickCookOnTheSideTimeSec);
 		ADD_COOK_STAT_FLT(" 0. 1. 1. 0", TickCookOnTheSideLoadPackagesTimeSec);
 		ADD_COOK_STAT_FLT(" 0. 1. 1. 1", TickCookOnTheSideSaveCookedPackageTimeSec);

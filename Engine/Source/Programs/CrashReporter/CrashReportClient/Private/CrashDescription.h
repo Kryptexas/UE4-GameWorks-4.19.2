@@ -27,6 +27,7 @@ struct FAnalyticsEventAttribute;
 	"PlatformFullName"
 	"EngineMode"
 	"EngineVersion"
+	"BuildVersion"
 	"CommandLine"
 	"LanguageLCID"
 	"AppDefaultLocale"

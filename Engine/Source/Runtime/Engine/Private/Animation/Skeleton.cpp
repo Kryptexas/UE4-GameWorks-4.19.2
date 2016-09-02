@@ -1263,8 +1263,11 @@ bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName&
 			}
 		}
 #else
-		// it always should have name
-		ensureAlways(FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName));
+		// if cooking didn't save the skeleton package properly
+		// meaning it can be loaded by animations but not saved together
+		// then later on, it gets loaded, and it's saved with empty array
+		// so it can fail to load the name, so we'll have to add it manually
+		Mapping->FindOrAddSmartName(DisplayName, InOutSmartName.UID);
 #endif // WITH_EDITOR
 	}
 

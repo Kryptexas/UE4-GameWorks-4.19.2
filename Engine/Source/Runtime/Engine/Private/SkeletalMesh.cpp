@@ -1055,6 +1055,12 @@ void FMultiSizeIndexContainer::CopyIndexBuffer(const TArray<uint32>& NewArray)
 		IndexBuffer->Empty();
 		for (int32 i = 0; i < NewArray.Num(); ++i)
 		{
+#if WITH_EDITOR
+			if(DataTypeSize == sizeof(uint16) && NewArray[i] > MAX_uint16)
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Attempting to copy %u into a uint16 index buffer - this value will overflow to %u, use RebuildIndexBuffer to create a uint32 index buffer!"), NewArray[i], (uint16)NewArray[i]);
+			}
+#endif
 			IndexBuffer->AddItem(NewArray[i]);
 		}
 	}
@@ -1487,9 +1493,23 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		bKeepBuffersInCPUMemory = !CVar->GetValueOnAnyThread();
 	}
 
-	Ar << Sections;
-	MultiSizeIndexContainer.Serialize(Ar, bKeepBuffersInCPUMemory);
-	Ar << ActiveBoneIndices;
+	if (StripFlags.IsDataStrippedForServer())
+	{
+		TArray<FSkelMeshSection> TempSections;
+		Ar << TempSections;
+
+		FMultiSizeIndexContainer	TempMultiSizeIndexContainer;
+		TempMultiSizeIndexContainer.Serialize(Ar, bKeepBuffersInCPUMemory);
+
+		TArray<FBoneIndexType> TempActiveBoneIndices;
+		Ar << TempActiveBoneIndices;
+	}
+	else
+	{
+		Ar << Sections;
+		MultiSizeIndexContainer.Serialize(Ar, bKeepBuffersInCPUMemory);
+		Ar << ActiveBoneIndices;
+	}
 
 	// Array of Sections for backwards compat
 	Ar.UsingCustomVersion(FSkeletalMeshCustomVersion::GUID);
@@ -1536,8 +1556,19 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		RawPointIndices.Serialize( Ar, Owner );
 	}
 
-	Ar << MeshToImportVertexMap;
-	Ar << MaxImportVertex;
+	if (StripFlags.IsDataStrippedForServer())
+	{
+		TArray<int32> TempMeshToImportVertexMap;
+		Ar << TempMeshToImportVertexMap;
+
+		int32 TempMaxImportVertex;
+		Ar << TempMaxImportVertex;
+	}
+	else
+	{
+		Ar << MeshToImportVertexMap;
+		Ar << MaxImportVertex;
+	}
 
 	if( !StripFlags.IsDataStrippedForServer() )
 	{

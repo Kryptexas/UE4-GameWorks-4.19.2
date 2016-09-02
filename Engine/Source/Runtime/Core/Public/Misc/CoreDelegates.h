@@ -279,6 +279,12 @@ public:
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FResolvePackageNameDelegate, const FString&, FString&);
 	static TArray<FResolvePackageNameDelegate> PackageNameResolvers;
 
+	// Called when module integrity has been compromised. Code should do as little as
+	// possible since the app may be in an unknown state. Return 'true' to handle the
+	// event and prevent the default check/ensure process occuring
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FImageIntegrityChanged, const TCHAR*, int32);
+	static FImageIntegrityChanged OnImageIntegrityChanged;
+
 private:
 
 	// Callbacks for hotfixes

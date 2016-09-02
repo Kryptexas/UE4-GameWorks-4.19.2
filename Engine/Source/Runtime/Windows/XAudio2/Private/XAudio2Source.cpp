@@ -1091,7 +1091,7 @@ void FXAudio2SoundSource::RouteToRadio(float ChannelVolumes[CHANNEL_MATRIX_COUNT
 
 			// Mono sounds map 1 channel to 6 speakers.
 			AudioDevice->ValidateAPICall( TEXT( "SetOutputMatrix (Mono radio)" ), 
-				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 1, SPEAKER_COUNT, OutputMatrix ) );
+				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 1, SPEAKER_COUNT, OutputMatrix) );
 		}
 		break;
 
@@ -1110,7 +1110,7 @@ void FXAudio2SoundSource::RouteToRadio(float ChannelVolumes[CHANNEL_MATRIX_COUNT
 
 			// Stereo sounds map 2 channels to 6 speakers.
 			AudioDevice->ValidateAPICall( TEXT( "SetOutputMatrix (Stereo radio)" ), 
-				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 2, SPEAKER_COUNT, OutputMatrix ) );
+				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 2, SPEAKER_COUNT, OutputMatrix) );
 		}
 		break;
 	}
@@ -1270,7 +1270,7 @@ void FXAudio2SoundSource::Update()
 	Pitch = FMath::Clamp<float>(Pitch, MIN_PITCH, MAX_PITCH);
 
 	AudioDevice->ValidateAPICall( TEXT( "SetFrequencyRatio" ), 
-		Source->SetFrequencyRatio( Pitch ) );
+		Source->SetFrequencyRatio( Pitch) );
 
 	// Set whether to bleed to the rear speakers
 	SetStereoBleed();

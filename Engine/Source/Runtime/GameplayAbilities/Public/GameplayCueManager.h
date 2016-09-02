@@ -102,6 +102,9 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	/** Notify that this actor is finished and should be destroyed or recycled */
 	virtual void NotifyGameplayCueActorFinished(AGameplayCueNotify_Actor* Actor);
 
+	/** Notify to say the actor is about to be destroyed and the GC manager needs to remove references to it. This should not happen in normal play with recycling enabled, but could happen in replays. */
+	virtual void NotifyGameplayCueActorEndPlay(AGameplayCueNotify_Actor* Actor);
+
 	/** Resets preallocation for a given world */
 	void ResetPreallocation(UWorld* World);
 

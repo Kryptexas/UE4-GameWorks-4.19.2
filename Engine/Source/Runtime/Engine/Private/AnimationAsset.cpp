@@ -63,6 +63,17 @@ void FAnimGroupInstance::TestMontageTickRecordForLeadership()
 		MontageLeaderWeight = Candidate.EffectiveBlendWeight;
 		Candidate.LeaderScore = LEADERSCORE_MONTAGE;
 	}
+	else
+	{
+		if (TestIndex != 0)
+		{
+			// we delete the later ones because we only have one montage for leader. 
+			// this can happen if there was already active one with higher weight. 
+			ActivePlayers.RemoveAt(TestIndex, 1);
+		}
+	}
+
+	ensureAlways(ActivePlayers.Num() == 1);
 }
 
 void FAnimGroupInstance::Finalize(const FAnimGroupInstance* PreviousGroup)
@@ -172,6 +183,10 @@ void UAnimationAsset::PostLoad()
 	ValidateSkeleton();
 
 	check( Skeleton==NULL || SkeletonGuid.IsValid() );
+
+#if WITH_EDITOR
+	UpdateParentAsset();
+#endif // WITH_EDITOR
 }
 
 void UAnimationAsset::ResetSkeleton(USkeleton* NewSkeleton)
@@ -248,20 +263,59 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 	return false;
 }
 
-bool UAnimationAsset::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationSequences)
+bool UAnimationAsset::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationSequences, bool bRecursive /*= true*/) 
 {
-	return false;
+	//@todo:@fixme: this doens't work for retargeting because postload gets called after duplication, mixing up the mapping table
+	// because skeleton changes, for now we don't support retargeting for parent asset, it will disconnect, and just duplicate everything else
+// 	if (ParentAsset)
+// 	{
+// 		ParentAsset->HandleAnimReferenceCollection(AnimationSequences, bRecursive);
+// 	}
+// 
+// 	if (AssetMappingTable)
+// 	{
+// 		AssetMappingTable->GetAllAnimationSequencesReferred(AnimationSequences, bRecursive);
+// 	}
+
+	return (AnimationSequences.Num() > 0);
 }
 
-void UAnimationAsset::HandleAnimReferenceCollection(TArray<UAnimationAsset*>& AnimationAssets) 
+void UAnimationAsset::HandleAnimReferenceCollection(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive)
 {
 	AnimationAssets.AddUnique(this);
-	// anim sequence still should call this
-	GetAllAnimationSequencesReferred(AnimationAssets);
+	if (bRecursive)
+	{
+		// anim sequence still should call this. since bRecursive is true, I'm not sending the parameter with it
+		GetAllAnimationSequencesReferred(AnimationAssets);
+	}
 }
 
 void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
+	//@todo:@fixme: this doens't work for retargeting because postload gets called after duplication, mixing up the mapping table
+	// because skeleton changes, for now we don't support retargeting for parent asset, it will disconnect, and just duplicate everything else
+	if (ParentAsset)
+	{
+		// clear up, so that it doesn't try to use from other asset
+		ParentAsset = nullptr;
+		AssetMappingTable = nullptr;
+	}
+
+// 	if (ParentAsset)
+// 	{
+// 		// now fix everythign else
+// 		UAnimationAsset* const* ReplacementAsset = ReplacementMap.Find(ParentAsset);
+// 		if (ReplacementAsset)
+// 		{
+// 			ParentAsset = *ReplacementAsset;
+// 			ParentAsset->ReplaceReferredAnimations(ReplacementMap);
+// 		}
+// 	}
+// 
+// 	if (AssetMappingTable)
+// 	{
+// 		AssetMappingTable->ReplaceReferredAnimations(ReplacementMap);
+// 	}
 }
 
 USkeletalMesh* UAnimationAsset::GetPreviewMesh() 
@@ -291,6 +345,104 @@ void UAnimationAsset::SetPreviewMesh(USkeletalMesh* PreviewMesh)
 {
 	Modify();
 	PreviewSkeletalMesh = PreviewMesh;
+}
+
+void UAnimationAsset::UpdateParentAsset()
+{
+	ValidateParentAsset();
+
+	if (ParentAsset)
+	{
+		TArray<UAnimationAsset*> AnimAssetsReferencedDirectly;
+		if (ParentAsset->GetAllAnimationSequencesReferred(AnimAssetsReferencedDirectly, false))
+		{
+			AssetMappingTable->RefreshAssetList(AnimAssetsReferencedDirectly);
+		}
+	}
+	else
+	{
+		// if somehow source data is gone, there is nothing much to do here
+		ParentAsset = nullptr;
+		AssetMappingTable = nullptr;
+	}
+
+	if (ParentAsset)
+	{
+		RefreshParentAssetData();
+	}
+}
+
+void UAnimationAsset::ValidateParentAsset()
+{
+	if (ParentAsset)
+	{
+		if (ParentAsset->GetSkeleton() != GetSkeleton())
+		{
+			// parent asset chnaged skeleton, so we'll have to discard parent asset
+			UE_LOG(LogAnimation, Warning, TEXT("%s: ParentAsset %s linked to different skeleton. Removing the reference."), *GetName(), *GetNameSafe(ParentAsset));
+			ParentAsset = nullptr;
+			Modify();
+		}
+		else if (ParentAsset->StaticClass() != StaticClass())
+		{
+			// parent asset chnaged skeleton, so we'll have to discard parent asset
+			UE_LOG(LogAnimation, Warning, TEXT("%s: ParentAsset %s class type doesn't match. Removing the reference."), *GetName(), *GetNameSafe(ParentAsset));
+			ParentAsset = nullptr;
+			Modify();
+		}
+	}
+}
+
+void UAnimationAsset::RefreshParentAssetData()
+{
+	// should only allow within the same skeleton
+	ParentAsset->ChildrenAssets.AddUnique(this);
+	MetaData = ParentAsset->MetaData;
+	PreviewPoseAsset = ParentAsset->PreviewPoseAsset;
+	PreviewSkeletalMesh = ParentAsset->PreviewSkeletalMesh;
+}
+
+void UAnimationAsset::SetParentAsset(UAnimationAsset* InParentAsset)
+{
+	// only same class and same skeleton
+	if (InParentAsset && InParentAsset->HasParentAsset() == false && 
+		InParentAsset->StaticClass() == StaticClass() && InParentAsset->GetSkeleton() == GetSkeleton())
+	{
+		ParentAsset = InParentAsset;
+
+		// if ParentAsset exists, just create mapping table.
+		// it becomes messy if we only created when we have assets to map
+		if (AssetMappingTable == nullptr)
+		{
+			AssetMappingTable = NewObject<UAssetMappingTable>(this);
+		}
+		else
+		{
+			AssetMappingTable->Clear();
+		}
+
+		UpdateParentAsset();
+	}
+	else
+	{
+		// otherwise, clear it
+		ParentAsset = nullptr;
+		AssetMappingTable = nullptr;
+	}
+}
+
+bool UAnimationAsset::RemapAsset(UAnimationAsset* SourceAsset, UAnimationAsset* TargetAsset)
+{
+	if (AssetMappingTable)
+	{
+		if (AssetMappingTable->RemapAsset(SourceAsset, TargetAsset))
+		{
+			RefreshParentAssetData();
+			return true;
+		}
+	}
+
+	return false;
 }
 #endif
 
@@ -541,6 +693,30 @@ bool FBoneContainer::BoneIsChildOf(const int32& BoneIndex, const int32& ParentBo
 	checkSlow( IsValid() );
 	checkSlow( (BoneIndex != INDEX_NONE) && (ParentBoneIndex != INDEX_NONE) );
 	return RefSkeleton->BoneIsChildOf(BoneIndex, ParentBoneIndex);
+}
+
+bool FBoneContainer::BoneIsChildOf(const FCompactPoseBoneIndex& BoneIndex, const FCompactPoseBoneIndex& ParentBoneIndex) const
+{
+	checkSlow(IsValid());
+	checkSlow((BoneIndex != INDEX_NONE) && (ParentBoneIndex != INDEX_NONE));
+
+	// Bones are in strictly increasing order.
+	// So child must have an index greater than his parent.
+	if (BoneIndex > ParentBoneIndex)
+	{
+		FCompactPoseBoneIndex SearchBoneIndex = GetParentBoneIndex(BoneIndex);
+		do
+		{
+			if (SearchBoneIndex == ParentBoneIndex)
+			{
+				return true;
+			}
+			SearchBoneIndex = GetParentBoneIndex(SearchBoneIndex);
+
+		} while (SearchBoneIndex != INDEX_NONE);
+	}
+
+	return false;
 }
 
 void FBoneContainer::RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton& TargetSkeleton)

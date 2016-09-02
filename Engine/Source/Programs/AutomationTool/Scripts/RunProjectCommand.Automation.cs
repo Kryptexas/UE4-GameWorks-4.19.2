@@ -981,7 +981,19 @@ public partial class Project : CommandUtils
 			{
 				Map += "?fake";
 			}
-			Args += String.Format("{0} -server -abslog={1}  -unattended -FORCELOGFLUSH -log -Messaging -nomcp", Map, CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile));
+
+			Args += String.Format("{0} -server -abslog={1}  -unattended -FORCELOGFLUSH -log -Messaging", Map, CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile));
+
+			// Do not blindly add -nomcp, only do so if the client is using it
+			if (Params.RunCommandline.Contains("-nomcp"))
+			{
+				Args += " -nomcp";
+			}
+
+			if (Params.ServerCommandline.Length > 0)
+			{
+				Args += " " + Params.ServerCommandline;
+			}
 		}
 
 		if (ServerParams.UsePak(SC.StageTargetPlatform))

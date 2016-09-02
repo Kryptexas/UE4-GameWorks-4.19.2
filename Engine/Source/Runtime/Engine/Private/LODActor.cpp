@@ -110,6 +110,29 @@ static FAutoConsoleCommandWithWorldAndArgs GHLODCmd(
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(HLODConsoleCommand)
 	);
 
+static void ListUnbuiltHLODActors(const TArray<FString>& Args, UWorld* World)
+{
+	int32 NumUnbuilt = 0;
+	for (TActorIterator<ALODActor> HLODIt(World); HLODIt; ++HLODIt)
+	{
+		ALODActor* Actor = *HLODIt;
+		if (!Actor->IsBuilt())
+		{
+			++NumUnbuilt;
+			FString ActorPathName = Actor->GetPathName(World);
+			UE_LOG(LogInit, Warning, TEXT("HLOD %s is unbuilt"), *ActorPathName);
+		}
+	}
+
+	UE_LOG(LogInit, Warning, TEXT("%d HLOD actor(s) were unbuilt"), NumUnbuilt);
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GHLODListUnbuiltCmd(
+	TEXT("r.HLOD.ListUnbuilt"),
+	TEXT("Lists all unbuilt HLOD actors in the world"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(ListUnbuiltHLODActors)
+);
+
 #endif // !(UE_BUILD_SHIPPING)
 
 //////////////////////////////////////////////////////////////////////////

@@ -52,11 +52,8 @@ class FMallocLeakDetection
 	FMallocLeakDetection();
 	~FMallocLeakDetection();
 
-	
-
 	void AddCallstack(FCallstackTrack& Callstack);
 	void RemoveCallstack(FCallstackTrack& Callstack);
-	void HandleMallocLeakCommandInternal(const TArray< FString >& Args);
 
 	/** List of all currently allocated pointers */
 	TMap<void*, FCallstackTrack> OpenPointers;
@@ -73,7 +70,6 @@ class FMallocLeakDetection
 public:	
 
 	static FMallocLeakDetection& Get();
-	static void HandleMallocLeakCommand(const TArray< FString >& Args);
 
 	void SetAllocationCollection(bool bEnabled);
 	void DumpOpenCallstacks(uint32 FilterSize = 0);
@@ -147,6 +143,7 @@ public:
 
 	virtual void DumpAllocatorStats(FOutputDevice& Ar) override
 	{
+		FScopeLock Lock(&AllocatedPointersCritical);
 		Verify.DumpOpenCallstacks(1024 * 1024);
 		UsedMalloc->DumpAllocatorStats(Ar);
 	}
@@ -158,7 +155,11 @@ public:
 
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
 	{
-		Verify.Exec(InWorld, Cmd, Ar);
+		FScopeLock Lock(&AllocatedPointersCritical);
+		if (Verify.Exec(InWorld, Cmd, Ar))
+		{
+			return true;
+		}
 		return UsedMalloc->Exec(InWorld, Cmd, Ar);
 	}
 

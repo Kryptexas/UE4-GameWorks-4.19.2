@@ -1154,6 +1154,14 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnConvertToBlendSpacePlayer )
 				);
 
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().ConvertToAimOffsetLookAt,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnConvertToAimOffsetLookAt)
+			);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().ConvertToAimOffsetSimple,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnConvertToAimOffsetSimple)
+			);
+
 			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().ConvertToPoseBlender,
 				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnConvertToPoseBlender)
 				);

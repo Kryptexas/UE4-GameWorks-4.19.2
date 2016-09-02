@@ -38,8 +38,8 @@ static TAutoConsoleVariable<int32> CVarTonemapper2084(
 	TEXT("r.Tonemapper2084"),
 	0,
 	TEXT("0: use sRGB on PC monitor output\n")
-	TEXT("1: use ACES 2000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
-	TEXT("2: use SMPTE ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
+	TEXT("1: use ACES 1000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
+	TEXT("2: use ACES 2000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
 	TEXT("3: use Unreal Filmic Tonemapping with for ST-2084 (Dolby PQ) for HDR displays"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 

@@ -809,8 +809,13 @@ void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx, bo
 		Montage_JumpToSection(Montage->GetSectionName(PreviewFromSection));
 		MontagePreview_RemoveBlendOut();
 		Proxy.SetPlaying(bPlay);
-		GetActiveMontageInstance()->SetWeight(1.0f);
-		GetActiveMontageInstance()->bPlaying = Proxy.IsPlaying();
+
+		FAnimMontageInstance* MontageInstance = GetActiveMontageInstance();
+		if (MontageInstance)
+		{
+			MontageInstance->SetWeight(1.0f);
+			MontageInstance->bPlaying = Proxy.IsPlaying();
+		}
 	}
 }
 
@@ -830,8 +835,12 @@ void UAnimPreviewInstance::MontagePreview_PreviewAllSections(bool bPlay)
 		MontagePreview_JumpToPreviewStart();
 		MontagePreview_RemoveBlendOut();
 		Proxy.SetPlaying(bPlay);
-		GetActiveMontageInstance()->SetWeight(1.0f);
-		GetActiveMontageInstance()->bPlaying = Proxy.IsPlaying();
+		FAnimMontageInstance* MontageInstance = GetActiveMontageInstance();
+		if (MontageInstance)
+		{
+			MontageInstance->SetWeight(1.0f);
+			MontageInstance->bPlaying = Proxy.IsPlaying();
+		}
 	}
 }
 

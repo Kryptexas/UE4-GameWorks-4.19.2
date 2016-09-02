@@ -31,7 +31,12 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 	MontageObj = InArgs._Montage;
 	check(MontageObj);
 
+	MontageObj->RegisterOnMontageChanged(UAnimMontage::FOnMontageChanged::CreateSP(this, &SMontageEditor::RebuildMontagePanel, false));
+		
 	WeakPersona = InArgs._Persona;
+	
+	// set child montage if montage has parent
+	bChildAnimMontage = MontageObj->HasParentAsset();
 
 	bDragging = false;
 	bIsActiveTimerRegistered = false;
@@ -44,10 +49,11 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 	if(SharedPersona.IsValid())
 	{
 		SharedPersona->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SMontageEditor::PostUndo ) );
-		SharedPersona->RegisterOnPersonaRefresh(FPersona::FOnPersonaRefresh::CreateSP(this, &SMontageEditor::RebuildMontagePanel));
+		SharedPersona->RegisterOnPersonaRefresh(FPersona::FOnPersonaRefresh::CreateSP(this, &SMontageEditor::RebuildMontagePanel, true));
 	}
 
 	SAssignNew(AnimTimingPanel, SAnimTimingPanel)
+		.IsEnabled(!bChildAnimMontage)
 		.InWeakPersona(PersonaPtr)
 		.InSequence(MontageObj)
 		.WidgetWidth(S2ColumnWidget::DEFAULT_RIGHT_COLUMN_WIDTH)
@@ -61,6 +67,78 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 	TAttribute<EVisibility> NotifyVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(AnimTimingPanel.ToSharedRef(), &SAnimTimingPanel::IsElementDisplayVisible, ETimingElementType::QueuedNotify));
 	FOnGetTimingNodeVisibility TimingNodeVisibilityDelegate = FOnGetTimingNodeVisibility::CreateSP(AnimTimingPanel.ToSharedRef(), &SAnimTimingPanel::IsElementDisplayVisible);
 	
+	if (bChildAnimMontage)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ParentClassName"), FText::FromString(GetNameSafe(MontageObj->ParentAsset)) );
+
+		// add child montage warning section - and link to parent
+		EditorPanels->AddSlot()
+		.AutoHeight()
+		.Padding(0, 10)
+		[
+			SNew(SVerticalBox)
+			
+			+SVerticalBox::Slot()
+			.Padding(3.f, 1.f)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.ShadowOffset(FVector2D::UnitVector)
+					.Text(LOCTEXT("ParentAnimMontageLink", " This is a child anim montage. To edit the lay out, please go to parent montage "))
+					.Font(FEditorStyle::GetFontStyle("Persona.RetargetManager.BoldFont"))
+					.ColorAndOpacity(FLinearColor(FLinearColor::Yellow))
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.VAlign(VAlign_Center)
+					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+					.OnClicked(this, &SMontageEditor::OnFindParentClassInContentBrowserClicked)
+					.ToolTipText(LOCTEXT("FindParentInCBToolTip", "Find parent in Content Browser"))
+					.ContentPadding(4.0f)
+					.ForegroundColor(FSlateColor::UseForeground())
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Browse"))
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.VAlign(VAlign_Center)
+					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+					.OnClicked(this, &SMontageEditor::OnEditParentClassClicked)
+					.ToolTipText(LOCTEXT("EditParentClassToolTip", "Open parent in editor"))
+					.ContentPadding(4.0f)
+					.ForegroundColor(FSlateColor::UseForeground())
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Edit"))
+					]
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.Padding(3.f, 1.f)
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+				.ShadowOffset(FVector2D::UnitVector)
+				.Text(LOCTEXT("RemapHelpText", " To remap asset to different asset, use context menu or drag and drop the animation on the segment."))
+				.Font(FEditorStyle::GetFontStyle("Persona.RetargetManager.BoldFont"))
+				.ColorAndOpacity(FLinearColor(FLinearColor::Yellow))
+			]
+		];
+	}
+
 	EditorPanels->AddSlot()
 	.AutoHeight()
 	.Padding(0, 10)
@@ -68,6 +146,7 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 		SAssignNew( AnimMontagePanel, SAnimMontagePanel )
 		.Persona(PersonaPtr)
 		.Montage(MontageObj)
+		.bChildAnimMontage(bChildAnimMontage)
 		.MontageEditor(SharedThis(this))
 		.WidgetWidth(S2ColumnWidget::DEFAULT_RIGHT_COLUMN_WIDTH)
 		.ViewInputMin(this, &SAnimEditorBase::GetViewMinInput)
@@ -83,6 +162,7 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 	.Padding(0, 10)
 	[
 		SAssignNew( AnimMontageSectionsPanel, SAnimMontageSectionsPanel )
+		.bChildAnimMontage(bChildAnimMontage)
 		.Montage(MontageObj)
 		.MontageEditor(SharedThis(this))
 	];
@@ -99,6 +179,7 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 	.Padding(0, 10)
 	[
 		SAssignNew( AnimNotifyPanel, SAnimNotifyPanel )
+		.IsEnabled(!bChildAnimMontage)
 		.Persona(InArgs._Persona)
 		.Sequence(MontageObj)
 		.WidgetWidth(S2ColumnWidget::DEFAULT_RIGHT_COLUMN_WIDTH)
@@ -119,6 +200,7 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 	.Padding(0, 10)
 	[
 		SAssignNew( AnimCurvePanel, SAnimCurvePanel )
+		.IsEnabled(!bChildAnimMontage)
 		.Persona(InArgs._Persona)
 		.Sequence(MontageObj)
 		.WidgetWidth(S2ColumnWidget::DEFAULT_RIGHT_COLUMN_WIDTH)
@@ -139,8 +221,43 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 	CollapseMontage();
 }
 
+FReply SMontageEditor::OnFindParentClassInContentBrowserClicked()
+{
+	if (MontageObj != NULL)
+	{
+		UObject* ParentClass = MontageObj->ParentAsset;
+		if (ParentClass != NULL)
+		{
+			TArray< UObject* > ParentObjectList;
+			ParentObjectList.Add(ParentClass);
+			GEditor->SyncBrowserToObjects(ParentObjectList);
+		}
+	}
+
+	return FReply::Handled();
+}
+
+FReply SMontageEditor::OnEditParentClassClicked()
+{
+	if (MontageObj != NULL)
+	{
+		UObject* ParentClass = MontageObj->ParentAsset;
+		if (ParentClass != NULL)
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(ParentClass);
+		}
+	}
+
+	return FReply::Handled();
+}
+
 SMontageEditor::~SMontageEditor()
 {
+	if (MontageObj)
+	{
+		MontageObj->UnregisterOnMontageChanged(this);
+	}
+
 	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
 	if (SharedPersona.IsValid())
 	{
@@ -305,7 +422,7 @@ void SMontageEditor::OnEditSectionTimeFinish( int32 SectionIndex )
 	{
 		SortSections();
 		RefreshNotifyTriggerOffsets();
-		MontageObj->MarkPackageDirty();
+		OnMontageModified();
 		AnimMontageSectionsPanel->Update();
 	}
 
@@ -321,16 +438,78 @@ void SMontageEditor::PreAnimUpdate()
 	MontageObj->Modify();
 }
 
-void SMontageEditor::PostAnimUpdate()
+void SMontageEditor::OnMontageModified()
 {
+	MontageObj->PostEditChange();
 	MontageObj->MarkPackageDirty();
-	SortAndUpdateMontage();
 }
 
-void SMontageEditor::RebuildMontagePanel()
+void SMontageEditor::PostAnimUpdate()
+{
+	SortAndUpdateMontage();
+	OnMontageModified();
+}
+
+bool SMontageEditor::IsDiffererentFromParent(FName SlotName, int32 SegmentIdx, const FAnimSegment& Segment)
+{
+	// if it doesn't hare parent asset, no reason to come here
+	if (MontageObj && ensureAlways(MontageObj->ParentAsset))
+	{
+		// find correct source asset from parent
+		UAnimMontage* ParentMontage = Cast<UAnimMontage>(MontageObj->ParentAsset);
+		if (ParentMontage->IsValidSlot(SlotName))
+		{
+			const FAnimTrack* ParentTrack = ParentMontage->GetAnimationData(SlotName);
+
+			if (ParentTrack && ParentTrack->AnimSegments.IsValidIndex(SegmentIdx))
+			{
+				UAnimSequenceBase* SourceAsset = ParentTrack->AnimSegments[SegmentIdx].AnimReference;
+				return (SourceAsset != Segment.AnimReference);
+			}
+		}
+	}
+
+	// if something doesn't match, we assume they're different, so default feedback  is to return true
+	return true;
+}
+
+void SMontageEditor::ReplaceAnimationMapping(FName SlotName, int32 SegmentIdx, UAnimSequenceBase* OldSequenceBase, UAnimSequenceBase* NewSequenceBase)
+{
+	// if it doesn't hare parent asset, no reason to come here
+	if (MontageObj && ensureAlways(MontageObj->ParentAsset))
+	{
+		// find correct source asset from parent
+		UAnimMontage* ParentMontage = Cast<UAnimMontage>(MontageObj->ParentAsset);
+		if (ParentMontage->IsValidSlot(SlotName))
+		{
+			const FAnimTrack* ParentTrack = ParentMontage->GetAnimationData(SlotName);
+
+			if (ParentTrack && ParentTrack->AnimSegments.IsValidIndex(SegmentIdx))
+			{
+				UAnimSequenceBase* SourceAsset = ParentTrack->AnimSegments[SegmentIdx].AnimReference;
+				if (MontageObj->RemapAsset(SourceAsset, NewSequenceBase))
+				{
+					// success
+					return;
+				}
+			}
+		}
+	}
+
+	// failed to do the process, check if the animation is correct or if the same type of animation
+	// print error
+	FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("FailedToRemap", "Make sure the target animation is valid. If source is additive, target animation has to be additive also."));
+}
+
+void SMontageEditor::RebuildMontagePanel(bool bNotifyAsset /*= true*/)
 {
 	SortAndUpdateMontage();
 	AnimMontageSectionsPanel->Update();
+
+	if (bNotifyAsset)
+	{
+		OnMontageModified();
+	}
 }
 
 EActiveTimerReturnType SMontageEditor::TriggerRebuildMontagePanel(double InCurrentTime, float InDeltaTime)
@@ -358,8 +537,6 @@ void SMontageEditor::OnMontageChange(class UObject *EditorAnimBaseObj, bool Rebu
 		{
 			CollapseMontage();
 		}
-		
-		MontageObj->MarkPackageDirty();
 
 		// if animation length changed, we might be out of range, let's restart
 		if (GetSequenceLength() != PreviouewSeqLength)
@@ -367,6 +544,8 @@ void SMontageEditor::OnMontageChange(class UObject *EditorAnimBaseObj, bool Rebu
 			// this might not be safe
 			RestartPreview();
 		}
+
+		OnMontageModified();
 	}
 }
 
@@ -461,14 +640,14 @@ void SMontageEditor::EnsureStartingSection()
 		NewSection.SetTime(0.0f);
 		NewSection.SectionName = FName(TEXT("Default"));
 		MontageObj->CompositeSections.Add(NewSection);
-		MontageObj->MarkPackageDirty();
+		OnMontageModified();
 	}
 
 	check(MontageObj->CompositeSections.Num() > 0);
 	if(MontageObj->CompositeSections[0].GetTime() > 0.0f)
 	{
 		MontageObj->CompositeSections[0].SetTime(0.0f);
-		MontageObj->MarkPackageDirty();
+		OnMontageModified();
 	}
 }
 
@@ -478,7 +657,7 @@ void SMontageEditor::EnsureSlotNode()
 	if (MontageObj && MontageObj->SlotAnimTracks.Num()==0)
 	{
 		AddNewMontageSlot(FAnimSlotGroup::DefaultSlotName.ToString());
-		MontageObj->MarkPackageDirty();
+		OnMontageModified();
 	}
 }
 
@@ -526,6 +705,7 @@ void SMontageEditor::AddNewSection(float StartTime, FString SectionName)
 		{
 			RebuildMontagePanel();
 		}
+		OnMontageModified();
 	}
 }
 
@@ -538,7 +718,7 @@ void SMontageEditor::RemoveSection(int32 SectionIndex)
 
 		MontageObj->CompositeSections.RemoveAt(SectionIndex);
 		EnsureStartingSection();
-		MontageObj->MarkPackageDirty();
+		OnMontageModified();
 		AnimMontageSectionsPanel->Update();
 		AnimTimingPanel->Update();
 		RestartPreview();
@@ -565,7 +745,7 @@ void SMontageEditor::RenameSlotNode(int32 SlotIndex, FString NewSlotName)
 			MontageObj->Modify();
 
 			MontageObj->SlotAnimTracks[SlotIndex].SlotName = NewName;
-			MontageObj->MarkPackageDirty();
+			OnMontageModified();
 		}
 	}
 }
@@ -580,7 +760,7 @@ void SMontageEditor::AddNewMontageSlot( FString NewSlotName )
 		FSlotAnimationTrack NewTrack;
 		NewTrack.SlotName = FName(*NewSlotName);
 		MontageObj->SlotAnimTracks.Add( NewTrack );
-		MontageObj->MarkPackageDirty();
+		OnMontageModified();
 
 		AnimMontagePanel->Update();
 	}
@@ -603,7 +783,7 @@ void SMontageEditor::RemoveMontageSlot(int32 AnimSlotIndex)
 		MontageObj->Modify();
 
 		MontageObj->SlotAnimTracks.RemoveAt(AnimSlotIndex);
-		MontageObj->MarkPackageDirty();
+		OnMontageModified();
 		AnimMontagePanel->Update();
 
 		// Iterate the notifies and relink anything that is now invalid
@@ -633,7 +813,7 @@ void SMontageEditor::DuplicateMontageSlot(int32 AnimSlotIndex)
 		NewTrack.AnimTrack = MontageObj->SlotAnimTracks[AnimSlotIndex].AnimTrack;
 
 		MontageObj->SlotAnimTracks.Add(NewTrack);
-		MontageObj->MarkPackageDirty();
+		OnMontageModified();
 
 		AnimMontagePanel->Update();
 	}

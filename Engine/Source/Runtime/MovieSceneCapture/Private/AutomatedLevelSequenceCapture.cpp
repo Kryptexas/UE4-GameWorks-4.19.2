@@ -138,7 +138,17 @@ void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InVie
 
 	if (Actor)
 	{
-		Actor->BurnInOptions = BurnInOptions;
+		if (BurnInOptions)
+		{
+			Actor->BurnInOptions = BurnInOptions;
+
+			bool bUseBurnIn = false;
+			if( FParse::Bool( FCommandLine::Get(), TEXT( "-UseBurnIn=" ), bUseBurnIn ) )
+			{
+				Actor->BurnInOptions->bUseBurnIn = bUseBurnIn;
+			}
+		}
+
 		Actor->RefreshBurnIn();
 
 		// Make sure we're not playing yet (in case AutoPlay was called from BeginPlay)

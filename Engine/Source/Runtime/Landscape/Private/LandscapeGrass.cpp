@@ -78,6 +78,12 @@ static TAutoConsoleVariable<int32> CVarGrassEnable(
 	1,
 	TEXT("1: Enable Grass; 0: Disable Grass"));
 
+static TAutoConsoleVariable<int32> CVarGrassDiscardDataOnLoad(
+	TEXT("grass.DiscardDataOnLoad"),
+	0,
+	TEXT("1: Discard grass data on load (disables grass); 0: Keep grass data (requires reloading level)"),
+	ECVF_Scalability);
+
 static TAutoConsoleVariable<int32> CVarUseStreamingManagerForCameras(
 	TEXT("grass.UseStreamingManagerForCameras"),
 	1,
@@ -1165,6 +1171,11 @@ FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data)
 
 	// Each weight data array, being 1 byte will be serialized in bulk.
 	Ar << Data.WeightData;
+
+	if (Ar.IsLoading() && !GIsEditor && CVarGrassDiscardDataOnLoad.GetValueOnGameThread())
+	{
+		Data = FLandscapeComponentGrassData();
+	}
 
 	return Ar;
 }

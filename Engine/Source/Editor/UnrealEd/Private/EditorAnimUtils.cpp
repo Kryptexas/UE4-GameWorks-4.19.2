@@ -112,7 +112,7 @@ namespace EditorAnimUtils
 			while (AssetIndex < AnimationAssetsToRetarget.Num())
 			{
 				UAnimationAsset* AnimAsset = AnimationAssetsToRetarget[AssetIndex++];
-				AnimAsset->HandleAnimReferenceCollection(AnimationAssetsToRetarget);
+				AnimAsset->HandleAnimReferenceCollection(AnimationAssetsToRetarget, true);
 			}
 		}
 	}

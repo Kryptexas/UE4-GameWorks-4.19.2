@@ -141,7 +141,7 @@ namespace Win.Automation
 		{
 			// Find the matching files
 			FileReference[] Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet).ToArray();
-			Files = Files.Where(x => x.HasExtension(".pdb")).ToArray();
+			Files = Files.Where(x => x.HasExtension(".pdb") || x.HasExtension(".exe") || x.HasExtension(".dll")).ToArray();
 
 			// Get the symbol store directory
 			DirectoryReference StoreDir = ResolveDirectory(Parameters.StoreDir);

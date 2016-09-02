@@ -39,6 +39,7 @@ public:
 		, _OnSetInputViewRange()
 		, _OnGetScrubValue()
 		, _OnMontageChange()
+		, _bChildAnimMontage(false)
 	{}
 
 	SLATE_ARGUMENT( class UAnimMontage*, Montage)
@@ -54,6 +55,7 @@ public:
 	SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
 	SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
 	SLATE_EVENT( FOnAnimObjectChange, OnMontageChange )
+	SLATE_ARGUMENT(bool, bChildAnimMontage)
 	SLATE_END_ARGS()
 
 	~SAnimMontagePanel();
@@ -125,6 +127,13 @@ private:
 
 	TSharedPtr<STrack> SectionNameTrack;
 	TAttribute<EVisibility> SectionTimingNodeVisibility;
+
+  	/* 
+	 * Child Anim Montage: Child Anim Montage only can replace name of animations, and no other meaningful edits 
+	 * as it will derive every data from Parent. There might be some other data that will allow to be replaced, but for now, it is
+	 * not. 
+	 */
+	bool bChildAnimMontage;
 
 	/************************************************************************/
 	/* Status Bar                                                           */

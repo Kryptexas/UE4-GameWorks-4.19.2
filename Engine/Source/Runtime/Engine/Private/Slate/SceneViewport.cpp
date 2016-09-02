@@ -341,8 +341,17 @@ FCursorReply FSceneViewport::OnCursorQuery( const FGeometry& MyGeometry, const F
 		return FCursorReply::Cursor(EMouseCursor::None);
 	}
 
+	EMouseCursor::Type MouseCursorToUse = EMouseCursor::Default;
+
+	// If the cursor should be hidden, use EMouseCursor::None,
+	// only when in the foreground, or we'll hide the mouse in the window/program above us.
+	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
+	{
+		MouseCursorToUse = ViewportClient->GetCursor( this, GetMouseX(), GetMouseY() );
+	}
+
 	// In game mode we may be using a borderless window, which needs OnCursorQuery call to handle window resize cursors
-	if (IsRunningGame() && GEngine && GEngine->GameViewport)
+	if (IsRunningGame() && GEngine && GEngine->GameViewport && MouseCursorToUse != EMouseCursor::None)
 	{
 		TSharedPtr<SWindow> Window = GEngine->GameViewport->GetWindow();
 		if (Window.IsValid())
@@ -353,15 +362,6 @@ FCursorReply FSceneViewport::OnCursorQuery( const FGeometry& MyGeometry, const F
 				return Reply;
 			}
 		}
-	}
-
-	EMouseCursor::Type MouseCursorToUse = EMouseCursor::Default;
-
-	// If the cursor should be hidden, use EMouseCursor::None,
-	// only when in the foreground, or we'll hide the mouse in the window/program above us.
-	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
-	{
-		MouseCursorToUse = ViewportClient->GetCursor( this, GetMouseX(), GetMouseY() );
 	}
 
 	// Use the default cursor if there is no viewport client or we dont have focus

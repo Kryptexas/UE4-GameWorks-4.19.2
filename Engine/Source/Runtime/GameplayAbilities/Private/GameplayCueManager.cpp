@@ -232,6 +232,15 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 				while (true)
 				{
 					SpawnedCue = PreallocatedList->Pop(false);
+
+					// Temp: tracking down possible memory corruption
+					// null is maybe ok. But invalid low level is bad and we want to crash hard to find out who/why.
+					if (SpawnedCue && (SpawnedCue->IsValidLowLevelFast() == false))
+					{
+						checkf(false, TEXT("UGameplayCueManager::GetInstancedCueActor found an invalid SpawnedCue for class %s"), *GetNameSafe(CueClass));
+					}
+
+					// Normal check: if cue was destroyed or is pending kill, then don't use it.
 					if (SpawnedCue && SpawnedCue->IsPendingKill() == false)
 					{
 						break;
@@ -346,6 +355,16 @@ void UGameplayCueManager::NotifyGameplayCueActorFinished(AGameplayCueNotify_Acto
 
 	// We didn't recycle, so just destroy
 	Actor->Destroy();
+}
+
+void UGameplayCueManager::NotifyGameplayCueActorEndPlay(AGameplayCueNotify_Actor* Actor)
+{
+	if (Actor && Actor->bInRecycleQueue)
+	{
+		FPreallocationInfo& Info = GetPreallocationInfo(Actor->GetWorld());
+		TArray<AGameplayCueNotify_Actor*>& PreAllocatedList = Info.PreallocatedInstances.FindOrAdd(Actor->GetClass());
+		PreAllocatedList.Remove(Actor);
+	}
 }
 
 // ------------------------------------------------------------------------
@@ -1225,16 +1244,18 @@ void UGameplayCueManager::UpdatePreallocation(UWorld* World)
 
 FPreallocationInfo& UGameplayCueManager::GetPreallocationInfo(UWorld* World)
 {
+	FObjectKey ObjKey(World);
+
 	for (FPreallocationInfo& Info : PreallocationInfoList_Internal)
 	{
-		if (FObjectKey(World) == Info.OwningWorldKey)
+		if (ObjKey == Info.OwningWorldKey)
 		{
 			return Info;
 		}
 	}
 
 	FPreallocationInfo NewInfo;
-	NewInfo.OwningWorldKey = FObjectKey(World);
+	NewInfo.OwningWorldKey = ObjKey;
 
 	PreallocationInfoList_Internal.Add(NewInfo);
 	return PreallocationInfoList_Internal.Last();

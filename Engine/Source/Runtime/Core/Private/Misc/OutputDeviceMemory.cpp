@@ -102,5 +102,24 @@ void FOutputDeviceMemory::SerializeToBuffer(ANSICHAR* Data, int32 Length)
 
 void FOutputDeviceMemory::Dump(FArchive& Ar)
 {
-	Ar.Serialize(Buffer.GetData(), BufferLength * sizeof(ANSICHAR));
+	const int32 BufferCapacity = Buffer.Num(); // Never changes
+
+	// Dump the startup logs
+	Ar.Serialize(Buffer.GetData(), PreserveSize * sizeof(ANSICHAR));
+
+	// If the log has wrapped, dump the earliest portion chronologically from the end
+	if (BufferLength == BufferCapacity)
+	{
+		ANSICHAR* BufferStartPosPtr = Buffer.GetData() + BufferStartPos * sizeof(ANSICHAR);
+		const int32 PreWrapLength = BufferCapacity - BufferStartPos;
+		Ar.Serialize(BufferStartPosPtr, PreWrapLength * sizeof(ANSICHAR));
+	}
+
+	// Dump the logs from preserved section up to current, if we've made it that far
+	if (BufferLength > PreserveSize)
+	{
+		ANSICHAR* PreservePosPtr = Buffer.GetData() + PreserveSize * sizeof(ANSICHAR);
+		const int32 AfterPreserveLength = BufferStartPos - PreserveSize;
+		Ar.Serialize(PreservePosPtr, AfterPreserveLength * sizeof(ANSICHAR));
+	}
 }

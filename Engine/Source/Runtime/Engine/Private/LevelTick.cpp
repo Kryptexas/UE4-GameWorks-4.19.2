@@ -1450,11 +1450,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		TimeSinceLastPendingKillPurge += DeltaSeconds;
 
-		const bool bAtLeastOnePlayerConnected = NetDriver && NetDriver->ClientConnections.Num() > 0;
-		const bool bShouldUseLowFrequencyGC = IsRunningDedicatedServer() && !bAtLeastOnePlayerConnected;
-		const float TimeBetweenPurgingPendingKillObjects = bShouldUseLowFrequencyGC ? 
-			GTimeBetweenPurgingPendingKillObjects * 10 :
-			GTimeBetweenPurgingPendingKillObjects;
+		const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
+
+		
 
 		// See if we should delay garbage collect for this frame
 		if (bShouldDelayGarbageCollect)
@@ -1563,6 +1561,22 @@ void UWorld::DelayGarbageCollection()
 	bShouldDelayGarbageCollect = true;
 }
 
+void UWorld::SetTimeUntilNextGarbageCollection(float MinTimeUntilNextPass)
+{
+	const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
+
+	// This can make it go negative if the desired interval is longer than the typical interval, but it's only ever compared against TimeBetweenPurgingPendingKillObjects
+	TimeSinceLastPendingKillPurge = TimeBetweenPurgingPendingKillObjects - MinTimeUntilNextPass;
+}
+
+float UWorld::GetTimeBetweenGarbageCollectionPasses() const
+{
+	const bool bAtLeastOnePlayerConnected = NetDriver && NetDriver->ClientConnections.Num() > 0;
+	const bool bShouldUseLowFrequencyGC = IsRunningDedicatedServer() && !bAtLeastOnePlayerConnected;
+
+	return bShouldUseLowFrequencyGC ? (GTimeBetweenPurgingPendingKillObjects * 10) : GTimeBetweenPurgingPendingKillObjects;
+}
+
 /**
  *  Interface to allow WorldSettings to request immediate garbage collection
  */
@@ -1578,7 +1592,7 @@ void UWorld::PerformGarbageCollectionAndCleanupActors()
 			CleanupActors();
 
 			// Reset counter.
-			TimeSinceLastPendingKillPurge = 0;
+			TimeSinceLastPendingKillPurge = 0.0f;
 		}
 	}
 }
@@ -1617,8 +1631,6 @@ void UWorld::CleanupActors()
 
 void UWorld::ForceGarbageCollection( bool bForcePurge/*=false*/ )
 {
-	TimeSinceLastPendingKillPurge = 1.f + GTimeBetweenPurgingPendingKillObjects;
+	TimeSinceLastPendingKillPurge = 1.0f + GetTimeBetweenGarbageCollectionPasses();
 	FullPurgeTriggered = FullPurgeTriggered || bForcePurge;
 }
-
-
