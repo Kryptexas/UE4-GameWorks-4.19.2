@@ -13,6 +13,7 @@ enum ESourceType
 	SRC_AndroidVersion,
 	SRC_DeviceMake,
 	SRC_DeviceModel,
+	SRC_VulkanVersion,
 	SRC_MAX,
 };
 
