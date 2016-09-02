@@ -294,8 +294,10 @@ void ICrashDebugHelper::ShutdownSourceControl()
 }
 
 
-bool ICrashDebugHelper::SyncModules()
+bool ICrashDebugHelper::SyncModules(bool& bOutPDBCacheEntryValid)
 {
+	bOutPDBCacheEntryValid = false;
+
 	if( !FPDBCache::Get().UsePDBCache() )
 	{
 		UE_LOG( LogCrashDebugHelper, Warning, TEXT( "The PDB Cache is disabled, cannot proceed, %s" ), *CrashInfo.EngineVersion );
@@ -537,6 +539,7 @@ bool ICrashDebugHelper::SyncModules()
 		}
 	}
 
+	bOutPDBCacheEntryValid = CrashInfo.PDBCacheEntry.IsValid() && CrashInfo.PDBCacheEntry->Files.Num() > 0;
 	return true;
 }
 

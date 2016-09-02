@@ -662,7 +662,8 @@ bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCras
 				{
 					FindSymbolsAndBinariesStorage();
 					
-					SyncModules();
+					bool bPDBCacheEntryValid = false;
+					SyncModules(bPDBCacheEntryValid);
 				}
 			}
 			
