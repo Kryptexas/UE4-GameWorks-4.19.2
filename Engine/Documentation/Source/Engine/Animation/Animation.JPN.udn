@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3094382
 Availability:Public
 Title:ペルソナ：スケルタルメッシュのアニメーション
 Crumbs: %ROOT%, Engine
@@ -57,7 +57,7 @@ order:3
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		必須情報
+		基本
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Animation/Overview "%Engine/Animation/Overview:description%")
@@ -136,7 +136,7 @@ order:3
 		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
 		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
 		* **プログラミング**		
-			* [](Programming/Animation/AnimNodes) - %Programming/Animation/AnimNodes:description%
+			* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
 		* **チュートリアル**		
 			* [](Engine/Animation/CharacterSetupOverview "%Engine/Animation/CharacterSetupOverview:description%")
 			* [](Engine/Animation/IKSetups "%Engine/Animation/IKSetups:description%")
