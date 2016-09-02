@@ -24,7 +24,6 @@
 #include "OVR_MessageType.h"
 #include "OVR_NetworkingPeer.h"
 #include "OVR_OrgScopedID.h"
-#include "OVR_PidArray.h"
 #include "OVR_PingResult.h"
 #include "OVR_ProductArray.h"
 #include "OVR_Purchase.h"
@@ -60,7 +59,6 @@ OVRP_PUBLIC_FUNCTION(ovrMatchmakingStatsHandle)                ovr_Message_GetMa
 OVRP_PUBLIC_FUNCTION(ovrMessageHandle)                         ovr_Message_GetNativeMessage(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrNetworkingPeerHandle)                  ovr_Message_GetNetworkingPeer(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrOrgScopedIDHandle)                     ovr_Message_GetOrgScopedID(const ovrMessageHandle obj);
-OVRP_PUBLIC_FUNCTION(ovrPidArrayHandle)                        ovr_Message_GetPidArray(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrPingResultHandle)                      ovr_Message_GetPingResult(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrProductArrayHandle)                    ovr_Message_GetProductArray(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrPurchaseHandle)                        ovr_Message_GetPurchase(const ovrMessageHandle obj);

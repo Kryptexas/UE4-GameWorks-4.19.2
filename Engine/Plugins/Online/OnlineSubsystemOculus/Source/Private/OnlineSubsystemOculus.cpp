@@ -9,10 +9,6 @@
 #include "OnlineLeaderboardInterfaceOculus.h"
 #include "OnlineSessionInterfaceOculus.h"
 
-#if PLATFORM_ANDROID
-#include "AndroidApplication.h"
-#endif
-
 #if !OVRPL_DISABLED && WITH_EDITOR
 OVRPL_PUBLIC_FUNCTION(void) ovr_ResetInitAndContext();
 #endif
@@ -180,12 +176,7 @@ void FOnlineSubsystemOculus::RemoveNotifDelegate(ovrMessageType MessageType, con
 
 bool FOnlineSubsystemOculus::Init()
 {
-	bool bOculusInit = false;
-#if PLATFORM_WINDOWS
-	bOculusInit = InitWithWindowsPlatform();
-#elif PLATFORM_ANDROID
-	bOculusInit = InitWithAndroidPlatform();
-#endif
+	bool bOculusInit = InitWithWindowsPlatform();
 	if (bOculusInit)
 	{
 		MessageTaskManager = MakeUnique<FOnlineMessageTaskManagerOculus>();
@@ -205,7 +196,6 @@ bool FOnlineSubsystemOculus::Init()
 	return bOculusInit;
 }
 
-#if PLATFORM_WINDOWS
 bool FOnlineSubsystemOculus::InitWithWindowsPlatform()
 {
 	UE_LOG_ONLINE(Display, TEXT("FOnlineSubsystemOculus::InitWithWindowsPlatform()"));
@@ -219,40 +209,11 @@ bool FOnlineSubsystemOculus::InitWithWindowsPlatform()
 	auto InitResult = ovr_PlatformInitializeWindows(TCHAR_TO_ANSI(*OculusAppId));
 	if (InitResult != ovrPlatformInitialize_Success)
 	{
-		UE_LOG_ONLINE(Error, TEXT("Failed to initialize the Oculus Platform SDK! Error code: %d"), (int)InitResult);
+		UE_LOG_ONLINE(Error, TEXT("Failed to initialize the Oculus Platform SDK! Error code: %d"), (int) InitResult);
 		return false;
 	}
 	return true;
 }
-#elif PLATFORM_ANDROID
-bool FOnlineSubsystemOculus::InitWithAndroidPlatform()
-{
-	UE_LOG_ONLINE(Display, TEXT("FOnlineSubsystemOculus::InitWithAndroidPlatform()"));
-	auto OculusAppId = GetAppId();
-	if (OculusAppId.IsEmpty())
-	{
-		UE_LOG_ONLINE(Error, TEXT("Missing OculusAppId key in OnlineSubsystemOculus of DefaultEngine.ini"));
-		return false;
-	}
-
-	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
-
-	if (Env == nullptr)
-	{
-		UE_LOG_ONLINE(Error, TEXT("Missing JNIEnv"));
-		return false;
-	}
-
-	auto InitResult = ovr_PlatformInitializeAndroid(TCHAR_TO_ANSI(*OculusAppId), FAndroidApplication::GetGameActivityThis(), Env);
-	if (InitResult != ovrPlatformInitialize_Success)
-	{
-		UE_LOG_ONLINE(Error, TEXT("Failed to initialize the Oculus Platform SDK! Error code: %d"), (int)InitResult);
-		return false;
-	}
-
-	return true;
-}
-#endif
 
 bool FOnlineSubsystemOculus::Shutdown()
 {
