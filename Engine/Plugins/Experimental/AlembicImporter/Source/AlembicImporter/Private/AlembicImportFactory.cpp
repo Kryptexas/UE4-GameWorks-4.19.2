@@ -68,6 +68,7 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 	{
 		// Failed to read the file info, fail the import
 		FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
+		return nullptr;
 	}
 
 	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();	

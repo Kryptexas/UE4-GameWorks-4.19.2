@@ -70,7 +70,7 @@ const EAbcImportError FAbcImporter::OpenAbcFileForImport(const FString InFilePat
 	Factory.setOgawaNumStreams(12);
 	
 	// Convert FString to const char*
-	const char* CharFilePath = TCHAR_TO_ANSI(*InFilePath);
+	const char* CharFilePath = TCHAR_TO_ANSI(*FPaths::ConvertRelativePathToFull(InFilePath));
 
 	// Extract Archive and compression type from file
 	Alembic::AbcCoreFactory::IFactory::CoreType CompressionType;
