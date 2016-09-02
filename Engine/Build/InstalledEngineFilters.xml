@@ -47,6 +47,7 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/CHM/API.chm" If="Exists('Engine/Documentation/CHM/API.chm')"/>
 	<!-- In-editor documentation -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/Source/Shared/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Documentation/Extras/..."/>
 
 	<!-- Content folders -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Content/..."/>
