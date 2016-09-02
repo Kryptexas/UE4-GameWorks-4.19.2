@@ -3288,7 +3288,11 @@ void ALandscape::PostEditMove(bool bFinished)
 	if (bFinished)
 	{
 		// align all proxies to landscape actor
-		GetLandscapeInfo()->FixupProxiesTransform();
+		auto* LandscapeInfo = GetLandscapeInfo();
+		if (LandscapeInfo)
+		{
+			LandscapeInfo->FixupProxiesTransform();
+		}
 	}
 
 	Super::PostEditMove(bFinished);
