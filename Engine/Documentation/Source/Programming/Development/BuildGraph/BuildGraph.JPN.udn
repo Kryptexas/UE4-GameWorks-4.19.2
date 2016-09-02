@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3091148
+﻿INTSourceChangelist:3102857
 Availability:Docs
 Title:BuildGraph
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -11,7 +11,7 @@ tags:BuildGraph
 **BuildGraph** はスクリプト ベースのビルド自動化システムです。アンリアル エンジン 4 (UE4) のプロジェクトに共通のビルディング ブロックのグラフを特徴とします。 
 BuildGraph は UnrealBuildTool、 AutomationTool、およびエディタと統合し、プロジェクトに応じて拡張したり、カスタマイズすることができます。
 
-BuildGraph スクリプトは [XML](https://www.w3.org/TR/NOTE-dcd]) で記述され、ユーザー定義のノードのグラフを 
+BuildGraph スクリプトは XML で記述され、ユーザー定義のノードのグラフを 
 その依存関係と共に指定します。各ノードは何らかの出力を生成するためにシーケンスで実行されるタスクで構成されます 
  (例、プロジェクトをコンパイルしてからクックし、テストを実行するなど)。ターゲット (つまり、ノードまたは名前付けされた出力) をビルドするように求められると BuildGraph は、 
 ビルドが起こるために必要なグラフ内のすべてのノードを実行します。
@@ -33,8 +33,47 @@ Visual Studio でスクリプトを開くと、`[UE4Root]Engine/Build/Graph/Sche
 
 ## BuildGraph スクリプトを記述する
 
+**BuildGraph** スクリプトの記述方法を学びたい場合は、グラフを構成する様々な部分のことを知ると役立ちます。 
+グラフは以下のエレメントで作成されます。
+
+* Tasks:ビルド プロセスの一部として実行されるアクション (コンパイル、クックなど) です。
+* Nodes:出力を生成するために実行される順序付けされたタスクに対して名前付けされたシーケンスです。実行前に、ノードは 
+先にタスクを実行している他のノードに依存する場合があります。
+* Agents:同じマシンで実行される (ビルド システムの一部として実行している場合) 複数のノードのグループです。ローカルでビルドする場合、 
+エージェントは何も効果を及ぼしません。 
+* Triggers:手動で介入後に限り実行するグループのためのコンテナです。 
+* Aggregates:単一の名前で参照可能なノードのグループと名前付けされた出力です。
+
+スクリプトでは通常、再利用可能または条件付きで定義される値のプロパティを頻繁に使用します。プロパティは、 
+`<Property>` エレメントで宣言され、最初の宣言のポイントにスコープが適用されます。`$(PropertyName)` の表記法で参照されるプロパティは、 
+すべての属性文字列内で有効であり、スクリプトが読み出されるときに展開されます。コマンドラインでユーザーが指定するプロパティは、 
+`<Option>`エレメントで宣言可能であり、環境変数は 
+`<EnvVar>` エレメントを使ってプロパティにインポートすることができます。
+
+"If" 属性でどのようなエレメントでも条件付きで定義することができます。条件式のシンタックスについては、以下をご覧ください。
+
+BuildGraph は通常、パッケージ化されたゲームで使用されます。そのため、フィルタリングとファイルの操作はネイティブにサポートされます。ファイルの一覧をアクセプトする属性があれば、 
+Perforce スタイルのワイルドカード (どの場所でも "..."、 "*"、および "?" のパターンにいくつでもマッチ)、 
+フルパス名、タグ付けされたファイル コレクションへの参照で構成されます。属性は、 `#` の文字の 
+プレフィックスを付けて表します。`<Tag>` タスクを使ってタグ セットにファイルを追加することができます。これにより、結合 / 差分スタイルの演算を 
+行うことができます。各ノードは、名前付けされたタグの一覧という形式で複数の出力を宣言することができます。こうしたタグに、他のノードが依存することができます。
+
+ビルド システムの一部としてグラフを平行して実行することができます。これを行うには、最初のグラフ設定は、 
+`-Export=<Filename>` 引数を実行することによって生成されます (実行するノードと従属関係を一覧表示する JSON ファイルを生成します)。参加する各エージェントは、 
+同じチェンジリストに同期し、AutomationTool (UAT) は適切な`-SingleNode=<Name>` 引数で 
+再実行するようにします。様々なノードからの出力は共有ストレージを介して (通常は、ネットワークで共有)  
+エージェント間で転送されます。このストレージへのパスは `-SharedStorageDir=<Path>`引数を使ってコマンドラインで指定することができます。マシンの割り当て (およびマシン間の調整) は、 
+外部システムによる管理を前提にしていることにご注意ください。
+
+BuildGraph の構成要素を定義するために使うエレメントのシンタックスは、以下のセクションに一覧表示されています。
+
+## BuildGraph スクリプティングのリファレンス
+
 [REGION:topics third]
-%Programming/Development/BuildGraph/ScriptAnatomy:topiccompact%
+%Programming/Development/BuildGraph/ScriptAnatomy/Types:topiccompact%
+%Programming/Development/BuildGraph/ScriptAnatomy/Elements:topiccompact%
+%Programming/Development/BuildGraph/ScriptAnatomy/Conditions:topiccompact%
+%Programming/Development/BuildGraph/ScriptAnatomy/Tasks:topiccompact%
 [/REGION]
 
 ## BuildGraph を使用する
