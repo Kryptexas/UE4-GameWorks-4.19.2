@@ -298,6 +298,7 @@ void ULandscapeComponent::UpdateMaterialInstances()
 			TessellationMaterialInstance->SetParentEditorOnly(MaterialInstance);
 			Context.AddMaterialInstance(TessellationMaterialInstance); // must be done after SetParent
 			TessellationMaterialInstance->bDisableTessellation = true;
+			TessellationMaterialInstance->PostEditChange();
 		}
 		else
 		{
