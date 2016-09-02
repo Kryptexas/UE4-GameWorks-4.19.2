@@ -27,6 +27,7 @@ UMotionControllerComponent::UMotionControllerComponent(const FObjectInitializer&
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	PrimaryComponentTick.bTickEvenWhenPaused = true;
 
 	PlayerIndex = 0;
 	Hand = EControllerHand::Left;

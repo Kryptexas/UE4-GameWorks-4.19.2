@@ -1,5 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "OnlineSubsystemOculusPrivatePCH.h"
+#if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
 
 /************************************************************************************
@@ -658,4 +659,5 @@ OVRPL_PUBLIC_FUNCTION(void) ovr_ResetInitAndContext()
 	InitializeResult = ovrPlatformInitialize_Uninitialized;
 }
 
+#endif
 #endif
