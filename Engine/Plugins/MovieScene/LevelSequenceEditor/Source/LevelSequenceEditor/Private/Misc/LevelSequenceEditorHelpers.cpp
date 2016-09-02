@@ -211,7 +211,7 @@ void LevelSequenceEditorHelpers::OpenMasterSequenceDialog(const TSharedRef<FTabM
 			.HasCloseButton(true)
 			.SupportsMaximize(false)
 			.SupportsMinimize(false)
-			.ClientSize(FVector2D(600, 540));
+			.ClientSize(FVector2D(600, 600));
 
 		TSharedPtr<SDockTab> OwnerTab = TabManager->GetOwnerTab();
 		TSharedPtr<SWindow> RootWindow = OwnerTab.IsValid() ? OwnerTab->GetParentWindow() : TSharedPtr<SWindow>();
