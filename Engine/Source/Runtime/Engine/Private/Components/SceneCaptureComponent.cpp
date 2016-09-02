@@ -579,6 +579,8 @@ UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer&
 	PrefilterRoughnessDistance = 10000;
 	ScreenPercentage = 50;
 	NormalDistortionStrength = 500;
+	DistanceFromPlaneFadeStart_DEPRECATED = 400;
+	DistanceFromPlaneFadeEnd_DEPRECATED = 600;
 	DistanceFromPlaneFadeoutStart = 60;
 	DistanceFromPlaneFadeoutEnd = 100;
 	AngleFromPlaneFadeStart = 20;
