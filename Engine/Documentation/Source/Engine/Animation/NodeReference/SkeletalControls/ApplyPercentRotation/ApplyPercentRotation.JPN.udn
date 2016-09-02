@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3020428
+﻿INTSourceChangelist:3060419
 Availability:Public
 Title:Apply a Percentage of Rotation （回転の割合の適用）
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:Apply a Percentage of Rotation を使って、スケルトン内の別のボーンに指定された回転の割合でターゲット ボーンの回転を操作します。
-version: 4.12
+version:4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -78,4 +78,6 @@ yEmsKOXBGyg
 | [REGION:tablesection]**入力ピン**[/REGION] ||
 | **Multiplier** | ターゲット ボーンに適用するソース ボーンの回転の割合を表す浮動小数点値です。**Multiplier** が 0 の場合、ソース ボーンの回転はターゲット ボーンに全く適用されません。1.0 の場合は、ソース ボーンの回転のすべてが適用されます。 |
 
+**Apply a Percentage of Rotation** ノードも 4.11 で導入された **LOD Threshold** システムの影響を受けます。**Apply a Percentage of Rotation** ノードの **[Details (詳細)]** パネルにこの設定が表示されます。
 
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
