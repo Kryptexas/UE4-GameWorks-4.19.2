@@ -632,7 +632,13 @@ public:
 			uint32 Signature;
 			verify( DirectoryMap.Seek(Offset) );
 			verify( DirectoryMap.Read((uint8*)&Signature, sizeof(Signature)) );
-			check( Signature == kCDESignature );
+
+			// NumEntries may be 65535 so also stop if signature invalid.
+			if (Signature != kCDESignature)
+			{
+				// Hit the end of the central directory, stop.
+				break;
+			}
 
 			// Entry information. Note, we try and read in incremental
 			// order to avoid missing read-aheads.

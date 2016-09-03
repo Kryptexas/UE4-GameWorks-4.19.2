@@ -575,7 +575,7 @@ protected:
 
 public:
 	// constructor
-	FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData);
+	FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, TArrayView<UMaterialInterface* const> InMaterialInterfacesByLOD, FLandscapeEditToolRenderData* InEditToolRenderData);
 
 	// FPrimitiveSceneProxy interface.
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;

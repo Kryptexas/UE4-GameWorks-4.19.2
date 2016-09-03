@@ -1651,14 +1651,15 @@ EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 	if (VariableProperty && !IsALocalVariable(VariableProperty))
 	{
 		const bool bIsInteger = VariableProperty->IsA(UIntProperty::StaticClass());
-		const bool bIsNonEnumByte = (VariableProperty->IsA(UByteProperty::StaticClass()) && Cast<const UByteProperty>(VariableProperty)->Enum == NULL);
+		const bool bIsByte = VariableProperty->IsA(UByteProperty::StaticClass());
 		const bool bIsFloat = VariableProperty->IsA(UFloatProperty::StaticClass());
 		const bool bIsBool = VariableProperty->IsA(UBoolProperty::StaticClass());
+		const bool bIsStr = VariableProperty->IsA(UStrProperty::StaticClass());
 		const bool bIsVectorStruct = VariableProperty->IsA(UStructProperty::StaticClass()) && Cast<UStructProperty>(VariableProperty)->Struct->GetFName() == NAME_Vector;
 		const bool bIsColorStruct = VariableProperty->IsA(UStructProperty::StaticClass()) && Cast<UStructProperty>(VariableProperty)->Struct->GetFName() == NAME_Color;
 		const bool bIsLinearColorStruct = VariableProperty->IsA(UStructProperty::StaticClass()) && Cast<UStructProperty>(VariableProperty)->Struct->GetFName() == NAME_LinearColor;
 
-		if (bIsFloat || bIsBool || bIsVectorStruct || bIsColorStruct || bIsLinearColorStruct)
+		if (bIsInteger || bIsByte || bIsFloat || bIsBool || bIsStr || bIsVectorStruct || bIsColorStruct || bIsLinearColorStruct)
 		{
 			return EVisibility::Visible;
 		}

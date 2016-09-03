@@ -2226,9 +2226,12 @@ namespace ObjectTools
 		}
 
 		TArray<UPackage*> PotentialPackagesToDelete;
-		for ( int32 ObjIdx = 0; ObjIdx < ObjectsToDelete.Num(); ++ObjIdx )
+		for(TWeakObjectPtr<UObject>& Object : ObjectsToDelete)
 		{
-			PotentialPackagesToDelete.AddUnique(ObjectsToDelete[ObjIdx]->GetOutermost());
+			if(Object.IsValid())
+			{
+				PotentialPackagesToDelete.AddUnique(Object->GetOutermost());
+			}
 		}
 
 		if (PotentialPackagesToDelete.Num() > 0)

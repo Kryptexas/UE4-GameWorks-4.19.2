@@ -377,7 +377,10 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		if (PresentCount >= FVulkanDevice::NumTimestampPools)
 		{
 			FVulkanTimestampQueryPool* PrevTimestampPool = Device->GetTimestampQueryPool((PresentCount + FVulkanDevice::NumTimestampPools - 1) % FVulkanDevice::NumTimestampPools);
-			PrevTimestampPool->CalculateFrameTime();
+			if (PrevTimestampPool != nullptr)
+			{
+				PrevTimestampPool->CalculateFrameTime();
+			}
 		}
 	}
 

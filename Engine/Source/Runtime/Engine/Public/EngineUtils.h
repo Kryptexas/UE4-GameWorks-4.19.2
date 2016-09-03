@@ -55,9 +55,7 @@ struct HActor : public HHitProxy
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( Actor );
-
-		UPrimitiveComponent* NonConstPrimComp = const_cast<UPrimitiveComponent*>(PrimComponent);
-		Collector.AddReferencedObject( NonConstPrimComp );
+		Collector.AddReferencedObject( PrimComponent );
 	}
 
 	virtual EMouseCursor::Type GetMouseCursor() override

@@ -196,6 +196,7 @@ private:
 	{
 	public:
 		/** Gets the length of the animation track. */
+		virtual float GetAnimationStart() const = 0;
 		virtual float GetAnimationLength() const = 0;
 		/** Updates the runtime state of the animation track to the specified time. */
 		virtual void UpdateAnimation( float Time ) = 0;
@@ -206,6 +207,7 @@ private:
 	{
 	public:
 		FMatineeAnimTrackAdapter( AMatineeActor* InMatineeActor );
+		virtual float GetAnimationStart() const override;
 		virtual float GetAnimationLength() const override;
 		virtual void UpdateAnimation( float Time ) override;
 
@@ -217,12 +219,14 @@ private:
 	class FLevelSequenceAnimTrackAdapter : public FFbxExporter::IAnimTrackAdapter
 	{
 	public:
-		FLevelSequenceAnimTrackAdapter( IMovieScenePlayer* InMovieScenePlayer );
+		FLevelSequenceAnimTrackAdapter( IMovieScenePlayer* InMovieScenePlayer, UMovieScene* InMovieScene );
+		virtual float GetAnimationStart() const override;
 		virtual float GetAnimationLength() const override;
 		virtual void UpdateAnimation( float Time ) override;
 
 	private:
 		IMovieScenePlayer* MovieScenePlayer;
+		UMovieScene* MovieScene;
 	};
 
 	/**
@@ -357,7 +361,7 @@ private:
 	/**
 	 * Exports a level sequence 3D transform track into the FBX animation stack.
 	 */
-	void ExportLevelSequence3DTransformTrack( FbxNode& FbxActor, UMovieScene3DTransformTrack& TransformTrack, AActor* Actor );
+	void ExportLevelSequence3DTransformTrack( FbxNode& FbxActor, UMovieScene3DTransformTrack& TransformTrack, AActor* Actor, const TRange<float>& InPlaybackRange );
 
 	/** 
 	 * Exports a level sequence float track into the FBX animation stack. 
@@ -374,7 +378,7 @@ private:
 	};
 
 	/** Exports an unreal rich curve to an fbx animation curve. */
-	void ExportRichCurveToFbxCurve( FRichCurve& RichCurve, FbxAnimCurve& FbxCurve, TRange<float> InterpolationRange, ERichCurveValueMode ValueMode = ERichCurveValueMode::Default );
+	void ExportRichCurveToFbxCurve(FbxAnimCurve& InFbxCurve, FRichCurve& InRichCurve, ERichCurveValueMode ValueMode = ERichCurveValueMode::Default, bool bNegative = false);
 
 	/**
 	 * Finds the given actor in the already-exported list of structures

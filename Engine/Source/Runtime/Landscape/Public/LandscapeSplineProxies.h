@@ -72,4 +72,9 @@ struct HLandscapeSplineProxy_Tangent : public HLandscapeSplineProxy
 	{
 		return EMouseCursor::CardinalCross;
 	}
+
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
+	{
+		Collector.AddReferencedObject( SplineSegment );
+	}
 };

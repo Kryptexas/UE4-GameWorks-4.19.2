@@ -109,7 +109,7 @@ void SetDeferredLightParameters(
 	const ELightComponentType LightType = (ELightComponentType)LightSceneInfo->Proxy->GetLightType();
 
 
-	if (LightType == LightType_Point || LightType == LightType_Spot)
+	if ((LightType == LightType_Point || LightType == LightType_Spot) && View.IsPerspectiveProjection())
 	{
 		DeferredLightUniformsValue.LightColor *= GetLightFadeFactor(View, LightSceneInfo->Proxy);
 	}

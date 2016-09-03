@@ -3566,8 +3566,8 @@ APhysicsVolume* UWorld::GetDefaultPhysicsVolume() const
 	if (DefaultPhysicsVolume == nullptr)
 	{
 		// Try WorldSettings first
-		AWorldSettings* WorldSettings = GetWorldSettings();
-		UClass* DefaultPhysicsVolumeClass = WorldSettings->DefaultPhysicsVolumeClass;
+		AWorldSettings* WorldSettings = GetWorldSettings(/*bCheckStreamingPesistent=*/ false, /*bChecked=*/ false);
+		UClass* DefaultPhysicsVolumeClass = (WorldSettings ? WorldSettings->DefaultPhysicsVolumeClass : nullptr);
 
 		// Fallback on DefaultPhysicsVolume static
 		if (DefaultPhysicsVolumeClass == nullptr)

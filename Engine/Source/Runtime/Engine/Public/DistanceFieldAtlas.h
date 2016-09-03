@@ -166,6 +166,8 @@ public:
 class FAsyncDistanceFieldTask
 {
 public:
+	FAsyncDistanceFieldTask();
+
 	TArray<EBlendMode> MaterialBlendModes;
 	UStaticMesh* StaticMesh;
 	UStaticMesh* GenerateSource;

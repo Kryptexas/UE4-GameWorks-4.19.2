@@ -117,12 +117,14 @@ void FBatchedElements::AddTriangle(int32 V0, int32 V1, int32 V2, const FTexture*
 	
 void FBatchedElements::AddTriangle(int32 V0,int32 V1,int32 V2,FBatchedElementParameters* BatchedElementParameters,ESimpleElementBlendMode BlendMode)
 {
-	AddTriangleExtensive( V0, V1, V2, BatchedElementParameters, NULL, BlendMode );
+	AddTriangleExtensive( V0, V1, V2, BatchedElementParameters, GWhiteTexture, BlendMode );
 }
 
 
 void FBatchedElements::AddTriangleExtensive(int32 V0,int32 V1,int32 V2,FBatchedElementParameters* BatchedElementParameters,const FTexture* Texture,ESimpleElementBlendMode BlendMode, const FDepthFieldGlowInfo& GlowInfo)
 {
+	check(Texture);
+
 	// Find an existing mesh element for the given texture and blend mode
 	FBatchedMeshElement* MeshElement = NULL;
 	for(int32 MeshIndex = 0;MeshIndex < MeshElements.Num();MeshIndex++)

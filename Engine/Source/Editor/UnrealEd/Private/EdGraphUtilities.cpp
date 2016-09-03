@@ -21,6 +21,7 @@ public:
 	TSet<UEdGraphNode*> SubstituteNodes;
 	const UEdGraph* DestinationGraph;
 	TArray<FName> ExtraNamesInUse;
+	TArray<UEdGraphNode*> NodesToDestroy;
 public:
 	FGraphObjectTextFactory(const UEdGraph* InDestinationGraph)
 		: FCustomizableTextObjectFactory(GWarn)
@@ -60,25 +61,24 @@ protected:
 	{
 		if (UEdGraphNode* Node = Cast<UEdGraphNode>(CreatedObject))
 		{
+			UEdGraphNode* CreatedNode = Node;
 			if (!Node->CanPasteHere(DestinationGraph))
 			{
 				// Attempt to create a substitute node if it cannot be pasted (note: the return value can be NULL, indicating that the node cannot be pasted into the graph)
-				Node = DestinationGraph->GetSchema()->CreateSubstituteNode(Node, DestinationGraph, &InstanceGraph, ExtraNamesInUse);
-				SubstituteNodes.Add(Node);
+				CreatedNode = DestinationGraph->GetSchema()->CreateSubstituteNode(CreatedNode, DestinationGraph, &InstanceGraph, ExtraNamesInUse);
+				SubstituteNodes.Add(CreatedNode);
 			}
 
-			if (Node != CreatedObject)
+			if (Node != CreatedNode)
 			{
-				// Move the old node into the transient package so that it is GC'd
-				CreatedObject->Rename(NULL, GetTransientPackage());
-				CreatedObject->MarkPendingKill();
+				NodesToDestroy.Add(Node);
 			}
 
-			if (Node)
+			if (CreatedNode)
 			{
-				SpawnedNodes.Add(Node);
+				SpawnedNodes.Add(CreatedNode);
 
-				Node->GetGraph()->Nodes.Add(Node);
+				CreatedNode->GetGraph()->Nodes.Add(CreatedNode);
 			}
 		}
 	}
@@ -97,6 +97,16 @@ protected:
 			{
 				Notification->SetCompletionState(SNotificationItem::CS_None);
 			}
+
+
+		}
+
+		for (UEdGraphNode* Node : NodesToDestroy)
+		{
+			// Move the old node into the transient package so that it is GC'd
+			Node->BreakAllNodeLinks();
+			Node->Rename(NULL, GetTransientPackage());
+			Node->MarkPendingKill();
 		}
 	}
 };

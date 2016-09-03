@@ -422,10 +422,12 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Enum : public FEdGraphSchemaAct
 
 	FEdGraphSchemaAction_K2Enum() 
 		: FEdGraphSchemaAction()
+		, Enum(nullptr)
 	{}
 
 	FEdGraphSchemaAction_K2Enum (const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+		, Enum(nullptr)
 	{}
 };
 

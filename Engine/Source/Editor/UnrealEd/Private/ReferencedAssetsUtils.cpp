@@ -65,22 +65,13 @@ void FFindReferencedAssets::OnEditorMapChange( uint32 Flag )
 void FFindReferencedAssets::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	// serialize all of our object references
-	for( ObjectReferenceGraph::TIterator It( ReferenceGraph ); It; ++It )
+	for( TPair< UObject*, TSet<UObject*> >& Node : ReferenceGraph )
 	{
-		Collector.AddReferencedObject( It.Key() );
-		for(TSet<UObject*>::TIterator SetIt(It.Value()); SetIt; ++SetIt)
-		{
-			Collector.AddReferencedObject( *SetIt );
-		}
+		Collector.AddReferencedObject( Node.Key );
+		Collector.AddReferencedObjects( Node.Value );
 	}
-	for( int32 Index = 0; Index < IgnoreClasses.Num(); Index++ )
-	{
-		Collector.AddReferencedObject( IgnoreClasses[ Index ] );
-	}
-	for( int32 Index = 0; Index < IgnorePackages.Num(); Index++ )
-	{
-		Collector.AddReferencedObject( IgnorePackages[ Index ] );
-	}
+	Collector.AddReferencedObjects( IgnoreClasses );
+	Collector.AddReferencedObjects( IgnorePackages );
 }
 
 /**

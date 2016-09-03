@@ -204,12 +204,10 @@ void ABrush::PostLoad()
 				{
 					if(!Poly.Normal.Equals(Normal))
 					{
-						UE_LOG(LogBrush, Warning, TEXT("%s had invalid poly normals which have been fixed. Resave the level to remove this warning."), *Brush->GetName());
-						if(IsStaticBrush())
-						{
-							// Flag BSP as needing rebuild
-							SetNeedRebuild(GetLevel());
-						}
+						UE_LOG(LogBrush, Log, TEXT("%s had invalid poly normals which have been fixed. Resave the level '%s' to remove this warning."), *Brush->GetName(), *GetLevel()->GetOuter()->GetName());
+
+						// Flag BSP as needing rebuild
+						SetNeedRebuild(GetLevel());
 					}
 				}
 			}

@@ -943,12 +943,8 @@ public:
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
-		uint32 Count = MIDPool.Num();
-
-		for(uint32 i = 0; i < Count; ++i)
+		for(UMaterialInstanceDynamic*& MID : MIDPool)
 		{
-			UMaterialInstanceDynamic* MID = MIDPool[i];
-
 			Collector.AddReferencedObject(MID);
 		}
 	}

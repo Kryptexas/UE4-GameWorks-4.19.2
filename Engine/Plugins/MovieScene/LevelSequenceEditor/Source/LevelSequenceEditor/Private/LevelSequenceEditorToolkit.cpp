@@ -132,7 +132,8 @@ FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkitOpened& FLevelSequenceEd
  *****************************************************************************/
 
 FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkit(const TSharedRef<ISlateStyle>& InStyle)
-	: Style(InStyle)
+	: LevelSequence(nullptr)
+	, Style(InStyle)
 {
 	// register sequencer menu extenders
 	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");

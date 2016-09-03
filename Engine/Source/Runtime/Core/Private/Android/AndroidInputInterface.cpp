@@ -73,13 +73,22 @@ FAndroidInputInterface::FAndroidInputInterface( const TSharedRef< FGenericApplic
 
 	VibeIsOn = false;
 
-	ResetGamepadAssignments();
+	for (int32 DeviceIndex = 0; DeviceIndex < MAX_NUM_CONTROLLERS; DeviceIndex++)
+	{
+		DeviceMapping[DeviceIndex].DeviceInfo.DeviceId = 0;
+		DeviceMapping[DeviceIndex].DeviceState = MappingState::Unassigned;
+	}
 }
 
 void FAndroidInputInterface::ResetGamepadAssignments()
 {
 	for (int32 DeviceIndex = 0; DeviceIndex < MAX_NUM_CONTROLLERS; DeviceIndex++)
 	{
+		if (DeviceMapping[DeviceIndex].DeviceState == MappingState::Valid)
+		{
+			FCoreDelegates::OnControllerConnectionChange.Broadcast(false, -1, DeviceIndex);
+		}
+
 		DeviceMapping[DeviceIndex].DeviceInfo.DeviceId = 0;
 		DeviceMapping[DeviceIndex].DeviceState = MappingState::Unassigned;
 	}
@@ -89,6 +98,11 @@ void FAndroidInputInterface::ResetGamepadAssignmentToController(int32 Controller
 {
 	if (ControllerId < 0 || ControllerId >= MAX_NUM_CONTROLLERS)
 		return;
+
+	if (DeviceMapping[ControllerId].DeviceState == MappingState::Valid)
+	{
+		FCoreDelegates::OnControllerConnectionChange.Broadcast(false, -1, ControllerId);
+	}
 
 	DeviceMapping[ControllerId].DeviceInfo.DeviceId = 0;
 	DeviceMapping[ControllerId].DeviceState = MappingState::Unassigned;

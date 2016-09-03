@@ -95,10 +95,11 @@ public class IOSPlatform : Platform
 		return 4;
 	}
 
-	public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject)
+	public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, UnrealBuildTool.IOSPlatformContext inIOSPlatformContext)
 	{
 		Console.WriteLine("Getting IOS Deploy()");
-		return new UnrealBuildTool.UEDeployIOS(InProject);
+	
+		return new UnrealBuildTool.UEDeployIOS(InProject, inIOSPlatformContext);
 	}
 
 	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
@@ -165,6 +166,16 @@ public class IOSPlatform : Platform
 			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find binary {0}. You may need to build the UE4 project with your target configuration and platform.", FullExePath);
 		}
 
+		if (SC.StageTargetConfigurations.Count != 1)
+		{
+			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+		}
+		
+		var TargetConfiguration = SC.StageTargetConfigurations[0];
+
+		UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
+		BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
+
 		//@TODO: We should be able to use this code on both platforms, when the following issues are sorted:
 		//   - Raw executable is unsigned & unstripped (need to investigate adding stripping to IPP)
 		//   - IPP needs to be able to codesign a raw directory
@@ -174,7 +185,7 @@ public class IOSPlatform : Platform
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
 			// copy in all of the artwork and plist
-			var DeployHandler = GetDeployHandler(Params.RawProjectPath);
+			var DeployHandler = GetDeployHandler(Params.RawProjectPath, BuildPlatContext);
 
 			DeployHandler.PrepForUATPackageOrDeploy(Params.RawProjectPath,
 				Params.ShortProjectName,
@@ -218,11 +229,6 @@ public class IOSPlatform : Platform
 			}
 		}
 
-		if (SC.StageTargetConfigurations.Count != 1)
-		{
-			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
-		}
-
         bCreatedIPA = false;
 		bool bNeedsIPA = false;
 		if (Params.IterativeDeploy)
@@ -244,18 +250,12 @@ public class IOSPlatform : Platform
 
 		if (String.IsNullOrEmpty(Params.Provision))
 		{
-			UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
-			BuildPlatContext.SetUpProjectEnvironment();
 			Params.Provision = BuildPlatContext.MobileProvision;
 		}
 		if (String.IsNullOrEmpty(Params.Certificate))
 		{
-			UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
-			BuildPlatContext.SetUpProjectEnvironment();
 			Params.Certificate = BuildPlatContext.SigningCertificate;
 		}
-
-		var TargetConfiguration = SC.StageTargetConfigurations[0];
 
 		// Scheme name and configuration for code signing with Xcode project
 		string SchemeName = Params.IsCodeBasedProject ? Params.RawProjectPath.GetFileNameWithoutExtension() : "UE4";
@@ -703,15 +703,36 @@ public class IOSPlatform : Platform
 					{
 						UnrealBuildTool.UnrealBuildTool.SetRemoteIniPath(SC.ProjectRoot);
 					}
-					GetDeployHandler(new FileReference(SC.ProjectRoot)).GeneratePList((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.LocalRoot + "/Engine", (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/" + PlatformName + "/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
+					
+					if (SC.StageTargetConfigurations.Count != 1)
+					{
+						throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+					}
+					
+					var TargetConfiguration = SC.StageTargetConfigurations[0];
+			
+					UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
+					BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
+
+					GetDeployHandler(
+						new FileReference(SC.ProjectRoot), BuildPlatContext).GeneratePList(
+							(SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), 
+							!SC.IsCodeBasedProject, 
+							(SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), 
+							SC.ShortProjectName, SC.LocalRoot + "/Engine", 
+							(SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/" + PlatformName + "/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
 				}
 
 				SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");
 			}
 		}
-	}
+        {
+            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(SC.RelativeProjectRootForStage, "Engine/Content/Movies"), true, true, null, true, true, SC.StageTargetPlatform.DeployLowerCaseFilenames(true));
+            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, true, null, true, true, SC.StageTargetPlatform.DeployLowerCaseFilenames(true));
+        }
+    }
 
-	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
+    public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
 	{
 		if (SC.StageTargetConfigurations.Count != 1)
 		{
@@ -1337,7 +1358,7 @@ public class IOSPlatform : Platform
 
 	public override bool StageMovies
 	{
-		get { return true; }
+		get { return false; }
 	}
 
 	public override bool RequiresPackageToDeploy

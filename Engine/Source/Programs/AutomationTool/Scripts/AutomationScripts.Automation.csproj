@@ -53,6 +53,15 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="OneSkyLocalization.Automation">
+      <HintPath>..\OneSkyLocalization\obj\Development\OneSkyLocalization.Automation.dll</HintPath>
+    </Reference>
+    <Reference Include="Localization.Automation">
+      <HintPath>..\Localization\obj\Development\Localization.Automation.dll</HintPath>
+    </Reference>
+    <Reference Include="GUBP.Automation">
+      <HintPath>..\GUBP\obj\Development\GUBP.Automation.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\DotNETCommon\MetaData.cs">
@@ -70,6 +79,7 @@
     <Compile Include="BuildProjectCommand.Automation.cs" />
     <Compile Include="BuildTargetCommand.Automation.cs" />
     <Compile Include="BuildThirdPartyLibs.Automation.cs" />
+    <Compile Include="CleanFormalBuilds.Automation.cs" />
     <Compile Include="CodeSurgery.Automation.cs" />
     <Compile Include="CookCommand.Automation.cs" />
     <Compile Include="CookTargetCommand.Automation.cs" />

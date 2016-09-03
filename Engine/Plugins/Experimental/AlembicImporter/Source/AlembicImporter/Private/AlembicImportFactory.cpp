@@ -62,6 +62,7 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 
 	FAbcImporter Importer;
 	EAbcImportError ErrorCode = Importer.OpenAbcFileForImport(UFactory::CurrentFilename);
+	ImportSettings->bReimport = false;
 	
 	if (ErrorCode != AbcImportError_NoError)
 	{
@@ -283,6 +284,7 @@ void UAlembicImportFactory::SetReimportPaths(UObject* Obj, const TArray<FString>
 
 EReimportResult::Type UAlembicImportFactory::Reimport(UObject* Obj)
 {
+	ImportSettings->bReimport = true;
 	if (Obj->GetClass() == UStaticMesh::StaticClass())
 	{
 		UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
@@ -390,6 +392,7 @@ EReimportResult::Type UAlembicImportFactory::ReimportGeometryCache(UGeometryCach
 
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::GeometryCache;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 	
 	if (!Options->ShouldImport())
@@ -451,6 +454,7 @@ EReimportResult::Type UAlembicImportFactory::ReimportSkeletalMesh(USkeletalMesh*
 
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::Skeletal;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 
 	if (!Options->ShouldImport())
@@ -512,6 +516,7 @@ EReimportResult::Type UAlembicImportFactory::ReimportStaticMesh(UStaticMesh* Mes
 
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::StaticMesh;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 
 	if (!Options->ShouldImport())

@@ -121,6 +121,13 @@ void FFontEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InT
 	InTabManager->UnregisterTabSpawner( PagePropertiesTabId );
 }
 
+FFontEditor::FFontEditor()
+	: Font(nullptr)
+	, TGAExporter(nullptr)
+	, Factory(nullptr)
+{
+}
+
 FFontEditor::~FFontEditor()
 {
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);

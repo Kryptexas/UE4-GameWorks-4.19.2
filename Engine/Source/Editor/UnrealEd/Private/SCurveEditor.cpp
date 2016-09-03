@@ -2711,6 +2711,7 @@ bool SCurveEditor::IsEditingEnabled() const
 
 void SCurveEditor::AddReferencedObjects( FReferenceCollector& Collector )
 {
+	Collector.AddReferencedObject( Settings );
 	Collector.AddReferencedObject( CurveFactory );
 }
 

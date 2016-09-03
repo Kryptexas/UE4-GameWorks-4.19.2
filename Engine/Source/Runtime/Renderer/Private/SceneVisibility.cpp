@@ -2675,13 +2675,20 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 
 				if (View.ViewFrustum.IntersectSphere(Proxy->GetOrigin(), Radius))
 				{
-					FSphere Bounds = Proxy->GetBoundingSphere();
-					float DistanceSquared = (Bounds.Center - View.ViewMatrices.ViewOrigin).SizeSquared();
-					float MaxDistSquared = Proxy->GetMaxDrawDistance() * Proxy->GetMaxDrawDistance();
-					const bool bDrawLight = (FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared < 1.0f)
-												& (MaxDistSquared == 0 || DistanceSquared < MaxDistSquared);
+					if (View.IsPerspectiveProjection())
+					{
+						FSphere Bounds = Proxy->GetBoundingSphere();
+						float DistanceSquared = (Bounds.Center - View.ViewMatrices.ViewOrigin).SizeSquared();
+						float MaxDistSquared = Proxy->GetMaxDrawDistance() * Proxy->GetMaxDrawDistance();
+						const bool bDrawLight = (FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared < 1.0f)
+													&& (MaxDistSquared == 0 || DistanceSquared < MaxDistSquared);
 							
-					VisibleLightViewInfo.bInViewFrustum = bDrawLight;
+						VisibleLightViewInfo.bInViewFrustum = bDrawLight;
+					}
+					else
+					{
+						VisibleLightViewInfo.bInViewFrustum = true;
+					}
 				}
 			}
 			else

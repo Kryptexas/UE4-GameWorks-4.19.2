@@ -447,6 +447,7 @@ namespace HLODOutliner
 		{
 			DestroySelectionActors();
 			CurrentWorld->HierarchicalLODBuilder->BuildMeshesForLODActors();
+			SetForcedLODLevel(ForcedLODLevel);
 		}
 
 		FMessageLog("HLODResults").Open();		
@@ -694,6 +695,7 @@ namespace HLODOutliner
 				}
 			}
 			
+			SetForcedLODLevel(ForcedLODLevel);
 			TreeView->RequestScrollIntoView(SelectedItems[0]);
 		}
 		
@@ -726,6 +728,7 @@ namespace HLODOutliner
 				}
 			}
 
+			SetForcedLODLevel(ForcedLODLevel);
 			TreeView->RequestScrollIntoView(SelectedItems[0]);
 		}
 

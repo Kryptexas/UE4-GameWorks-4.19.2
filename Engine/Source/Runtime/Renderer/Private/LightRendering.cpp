@@ -716,7 +716,11 @@ void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandList
 /** Sets up rasterizer and depth state for rendering bounding geometry in a deferred pass. */
 void SetBoundingGeometryRasterizerAndDepthState(FRHICommandList& RHICmdList, const FViewInfo& View, const FSphere& LightBounds)
 {
-	const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.ViewOrigin - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f);
+	const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.ViewOrigin - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f)
+		// Always draw backfaces in ortho
+		//@todo - accurate ortho camera / light intersection
+		|| !View.IsPerspectiveProjection();
+
 	if (bCameraInsideLightGeometry)
 	{
 		// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light geometry

@@ -621,6 +621,13 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& 
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_PreFilter);
 
+	if(!shape)
+	{
+		// Shape shouldn't be invalid here, dump what data we have and ignore the collision (eNONE)
+		UE_LOG(LogCollision, Warning, TEXT("Invalid shape encountered in FPxQueryFilterCallback::preFilter, actor: %p, filterData: %x %x %x %x"), actor, filterData.word0, filterData.word1, filterData.word2, filterData.word3);
+		return (PrefilterReturnValue = PxSceneQueryHitType::eNONE);
+	}
+
 	// Check if the shape is the right complexity for the trace 
 	PxFilterData ShapeFilter = shape->getQueryFilterData();
 	PxFilterData ShapeSimFilter = shape->getSimulationFilterData();	//This is a bit of a hack. We do this because word2 has our component ID

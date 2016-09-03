@@ -918,6 +918,26 @@ namespace PropertyEditorHelpers
 		}
 		
 	}
+
+	TArray<FName> GetValidEnumsFromPropertyOverride(const UProperty* Property, const UEnum* InEnum)
+	{
+		TArray<FName> ValidEnumValues;
+
+		static const FName ValidEnumValuesName("ValidEnumValues");
+		if(Property->HasMetaData(ValidEnumValuesName))
+		{
+			TArray<FString> ValidEnumValuesAsString;
+
+			Property->GetMetaData(ValidEnumValuesName).ParseIntoArray(ValidEnumValuesAsString, TEXT(","));
+			for(auto& Value : ValidEnumValuesAsString)
+			{
+				Value.Trim();
+				ValidEnumValues.Add(*UEnum::GenerateFullEnumName(InEnum, *Value));
+			}
+		}
+
+		return ValidEnumValues;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

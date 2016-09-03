@@ -504,11 +504,7 @@ void ALODActor::SetIsDirty(const bool bNewState)
 	}	
 	else
 	{
-		// Update SubActor's LOD parent component
-		for (AActor* SubActor : SubActors)
-		{
-			SubActor->SetLODParent(StaticMeshComponent, StaticMeshComponent->MinDrawDistance);
-		}
+		UpdateSubActorLODParents();
 	}
 }
 

@@ -25,6 +25,7 @@ LandscapeRender.cpp: New terrain rendering
 #include "UnrealEngine.h"
 #include "LandscapeLight.h"
 #include "LandscapeLayerInfoObject.h"
+#include "Algo/Find.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, TEXT("LandscapeParameters"));
 
@@ -545,7 +546,7 @@ TMap<FLandscapeNeighborInfo::FLandscapeKey, TMap<FIntPoint, const FLandscapeNeig
 
 const static FName NAME_LandscapeResourceNameForDebugging(TEXT("Landscape"));
 
-FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData)
+FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, TArrayView<UMaterialInterface* const> InMaterialInterfacesByLOD, FLandscapeEditToolRenderData* InEditToolRenderData)
 	: FPrimitiveSceneProxy(InComponent, NAME_LandscapeResourceNameForDebugging)
 	, FLandscapeNeighborInfo(InComponent->GetWorld(), InComponent->GetLandscapeProxy()->GetLandscapeGuid(), InComponent->GetSectionBase() / InComponent->ComponentSizeQuads, InComponent->HeightmapTexture, InComponent->ForcedLOD, InComponent->LODBias)
 	, MaxLOD(FMath::CeilLogTwo(InComponent->SubsectionSizeQuads + 1) - 1)
@@ -582,7 +583,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	, LightMapResolution(InComponent->GetStaticLightMapResolution())
 #endif
 {
-	MaterialInterfacesByLOD.Append(InComponent->MaterialInstances);
+	MaterialInterfacesByLOD.Append(InMaterialInterfacesByLOD.GetData(), InMaterialInterfacesByLOD.Num());
 
 	if (!IsComponentLevelVisible())
 	{
@@ -1110,19 +1111,22 @@ void FLandscapeComponentSceneProxy::OnTransformChanged()
 void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
 {
 	const int32 NumBatchesPerLOD = (ForcedLOD < 0 && NumSubsections > 1) ? (FMath::Square(NumSubsections) + 1) : 1;
-	int32 NumBatches = (1 + LastLOD - FirstLOD) * NumBatchesPerLOD;
-	StaticBatchParamArray.Empty(NumBatches);
+	const int32 NumBatchesLastLOD = (ForcedLOD < 0) ? (1 + LastLOD - FirstLOD) * NumBatchesPerLOD : 1;
 
-	const int32 LastMaterialLOD = FMath::Min(LastLOD, MaterialInterfacesByLOD.Num() - 1);
-	for (int i = FirstLOD; i <= LastMaterialLOD; ++i)
+	StaticBatchParamArray.Empty(ForcedLOD < 0 ? (1 + LastLOD - FirstLOD) * NumBatchesPerLOD : 1);
+
+	const int32 LastMaterialIndex = MaterialInterfacesByLOD.Num() - 1;
+	const int32 LastMaterialLOD = FMath::Min(LastLOD, LastMaterialIndex);
+
+	for (int i = FirstLOD; i <= LastLOD; ++i)
 	{
 		// the LastMaterialLOD covers all LODs up to LastLOD
-		const bool bLast = (i == LastMaterialLOD);
+		const bool bLast = (i >= LastMaterialLOD);
 
 		FMeshBatch MeshBatch;
-		MeshBatch.Elements.Empty(bLast ? (1 + LastLOD - LastMaterialLOD) * NumBatchesPerLOD : NumBatchesPerLOD);
+		MeshBatch.Elements.Empty(bLast ? NumBatchesLastLOD : NumBatchesPerLOD);
 
-		UMaterialInterface* MaterialInterface = MaterialInterfacesByLOD[i];
+		UMaterialInterface* MaterialInterface = MaterialInterfacesByLOD[FMath::Min(i, LastMaterialIndex)];
 
 		// Could be different from bRequiresAdjacencyInformation during shader compilation
 		bool bCurrentRequiresAdjacencyInformation = MaterialRenderingRequiresAdjacencyInformation_RenderingThread(MaterialInterface, VertexFactory->GetType(), GetScene().GetFeatureLevel());
@@ -1202,6 +1206,11 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 		}
 
 		PDI->DrawMesh(MeshBatch, FLT_MAX);
+
+		if (bLast)
+		{
+			break;
+		}
 	}
 }
 
@@ -2623,37 +2632,30 @@ public:
 
 	bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const override
 	{
-		//return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
-
-		static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
-		static const FName LandscapeVertexFactory = FName(TEXT("FLandscapeVertexFactory"));
-		static const FName LandscapeXYOffsetVertexFactory = FName(TEXT("FLandscapeXYOffsetVertexFactory"));
-		static const FName LandscapeVertexFactoryMobile = FName(TEXT("FLandscapeVertexFactoryMobile"));
-
-		static const FName TBasePassVSFNoLightMapPolicy = FName(TEXT("TBasePassVSFNoLightMapPolicy"));
-		static const FName TBasePassPSFNoLightMapPolicy = FName(TEXT("TBasePassPSFNoLightMapPolicy"));
-		static const FName TBasePassVSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy"));
-		static const FName TBasePassPSFCachedPointIndirectLightingPolicy = FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy"));
-		static const FName TShadowDepthVSVertexShadowDepth_OutputDepthfalse = FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse"));
-		static const FName TDepthOnly_PositionOnlyfalse = FName(TEXT("TDepthOnlyVS<false>"));
-		static const FName TDepthOnly_PositionOnlytrue = FName(TEXT("TDepthOnlyVS<true>"));
-
 		if (VertexFactoryType)
 		{
 			if (bIsLayerThumbnail)
 			{
 				// Thumbnail MICs are only rendered in the preview scene using a simple LocalVertexFactory
+				static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
 				if (VertexFactoryType->GetFName() == LocalVertexFactory)
 				{
-					if (ShaderType->GetFName() == TBasePassVSFNoLightMapPolicy ||
-						ShaderType->GetFName() == TBasePassPSFNoLightMapPolicy ||
-						ShaderType->GetFName() == TBasePassVSFCachedPointIndirectLightingPolicy ||
-						ShaderType->GetFName() == TBasePassPSFCachedPointIndirectLightingPolicy ||
-						ShaderType->GetFName() == TShadowDepthVSVertexShadowDepth_OutputDepthfalse ||
-						ShaderType->GetFName() == TDepthOnly_PositionOnlyfalse ||
-						ShaderType->GetFName() == TDepthOnly_PositionOnlytrue)
+					// reduce the number of shaders compiled for the thumbnail materials by only compiling with shader types known to be used by the preview scene
+					// (out of 41 known total shader types)
+					static const TArray<FName> AllowedShaderTypes =
 					{
-						return true;
+						FName(TEXT("TBasePassVSFNoLightMapPolicy")),
+						FName(TEXT("TBasePassPSFNoLightMapPolicy")),
+						FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy")),
+						FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy")),
+						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse")),
+						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse")),
+						FName(TEXT("TDepthOnlyVS<false>")),
+						FName(TEXT("TDepthOnlyVS<true>"))
+					};
+					if (Algo::Find(AllowedShaderTypes, ShaderType->GetFName()))
+					{
+						return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
 					}
 				}
 			}
@@ -2661,11 +2663,14 @@ public:
 			{
 				// Landscape MICs are only for use with the Landscape vertex factories
 				// Todo: only compile LandscapeXYOffsetVertexFactory if we are using it
+				static const FName LandscapeVertexFactory = FName(TEXT("FLandscapeVertexFactory"));
+				static const FName LandscapeXYOffsetVertexFactory = FName(TEXT("FLandscapeXYOffsetVertexFactory"));
+				static const FName LandscapeVertexFactoryMobile = FName(TEXT("FLandscapeVertexFactoryMobile"));
 				if (VertexFactoryType->GetFName() == LandscapeVertexFactory ||
 					VertexFactoryType->GetFName() == LandscapeXYOffsetVertexFactory ||
 					VertexFactoryType->GetFName() == LandscapeVertexFactoryMobile)
 				{
-					return true;
+					return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
 				}
 			}
 		}
@@ -2713,14 +2718,14 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 	}
 
 	// TODO - LOD Materials - Currently all LOD materials are instances of [0] so have the same textures
-	UMaterialInstance* MaterialInstance = MaterialInstances[0];
+    UMaterialInterface* MaterialInterface = GetWorld()->FeatureLevel >= ERHIFeatureLevel::SM4 ? MaterialInstances[0] : MobileMaterialInterface;
 
 	// Normal usage...
 	// Enumerate the textures used by the material.
-	if (MaterialInstance)
+	if (MaterialInterface)
 	{
 		TArray<UTexture*> Textures;
-		MaterialInstance->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GetWorld()->FeatureLevel, false);
+		MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GetWorld()->FeatureLevel, false);
 		// Add each texture to the output with the appropriate parameters.
 		// TODO: Take into account which UVIndex is being used.
 		for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++)
@@ -2734,7 +2739,7 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 			StreamingTexture.Texture = Texture2D;
 		}
 
-		UMaterial* Material = MaterialInstance->GetMaterial();
+		UMaterial* Material = MaterialInterface->GetMaterial();
 		if (Material)
 		{
 			int32 NumExpressions = Material->Expressions.Num();

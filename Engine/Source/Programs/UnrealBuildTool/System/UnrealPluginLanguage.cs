@@ -222,6 +222,7 @@ namespace UnrealBuildTool
 	 * Nodes for inserting text into the section are as follows:
 	 * 
 	 *	<insert> body </insert>
+	 *	<insertNewline/>
 	 *	<insertValue value=""/>
 	 *	<loadLibrary name="" failmsg=""/>
 	 *	
@@ -1479,6 +1480,10 @@ namespace UnrealBuildTool
 						}
 						break;
 
+					case "insertNewline":
+						GlobalContext.StringVariables["Output"] += "\n";
+						break;
+
 					case "insertValue":
 						{
 							string Value = GetAttribute(CurrentContext, Node, "value");
@@ -1992,7 +1997,12 @@ namespace UnrealBuildTool
 								ConfigCacheIni_UPL ConfigIni = GetConfigCacheIni_UPL(Ini);
 								if (ConfigIni != null)
 								{
-									ConfigIni.GetString(Section, Property, out Value);
+									if (!ConfigIni.GetString(Section, Property, out Value))
+									{
+										// If the string was not found in the config, Value will have been set to an empty string
+										// Set it back to the DefaultVal
+										Value = DefaultVal;
+									}
 								}
 								if (Result == "Output")
 								{

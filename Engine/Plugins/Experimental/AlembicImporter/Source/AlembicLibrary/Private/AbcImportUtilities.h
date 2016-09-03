@@ -1101,6 +1101,53 @@ namespace AbcImporterUtilities
 		InOutStartFrameIndex = FMath::Max(FMath::FloorToInt(InOutStartFrameIndex * FrameStepRatio), 0);
 		InOutEndFrameIndex = FMath::CeilToInt(InOutEndFrameIndex * FrameStepRatio);
 	}
+
+	static const bool AreVerticesEqual(const FSoftSkinVertex& V1, const FSoftSkinVertex& V2)
+	{
+		if (FMath::Abs(V1.Position.X - V2.Position.X) > THRESH_POINTS_ARE_SAME
+			|| FMath::Abs(V1.Position.Y - V2.Position.Y) > THRESH_POINTS_ARE_SAME
+			|| FMath::Abs(V1.Position.Z - V2.Position.Z) > THRESH_POINTS_ARE_SAME)
+		{
+			return false;
+		}
+
+		for (int32 UVIdx = 0; UVIdx < MAX_TEXCOORDS; ++UVIdx)
+		{
+			if (FMath::Abs(V1.UVs[UVIdx].X - V2.UVs[UVIdx].X) >(1.0f / 1024.0f))
+				return false;
+
+			if (FMath::Abs(V1.UVs[UVIdx].Y - V2.UVs[UVIdx].Y) > (1.0f / 1024.0f))
+				return false;
+		}
+
+		FVector N1, N2;
+		N1 = V1.TangentX;
+		N2 = V2.TangentX;
+
+		if (FMath::Abs(N1.X - N2.X) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Y - N2.Y) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Z - N2.Z) > THRESH_NORMALS_ARE_SAME)
+		{
+			return false;
+		}
+
+		N1 = V1.TangentY;
+		N2 = V2.TangentY;
+
+		if (FMath::Abs(N1.X - N2.X) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Y - N2.Y) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Z - N2.Z) > THRESH_NORMALS_ARE_SAME)
+		{
+			return false;
+		}
+
+		N1 = V1.TangentZ;
+		N2 = V2.TangentZ;
+
+		if (FMath::Abs(N1.X - N2.X) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Y - N2.Y) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Z - N2.Z) > THRESH_NORMALS_ARE_SAME)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 };
 
 #undef LOCTEXT_NAMESPACE // "AbcImporterUtilities"

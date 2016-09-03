@@ -114,6 +114,12 @@ namespace UnrealBuildTool
 
 			if (SupportWindowsXP)
 			{
+                // Change libcurl path for XP as the default Win32 lib calls functions not supported on the platform
+                // Remove path must exactly match what is created in libcurl.Build.cs
+                string LibCurlOriginalLibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/lib/" + ((Target.Platform == UnrealTargetPlatform.Win64) ? "Win64/" : "Win32/") + "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+                Rules.PublicLibraryPaths.Remove(LibCurlOriginalLibPath);
+                Rules.PublicLibraryPaths.Add(LibCurlOriginalLibPath + "_xp");
+
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D12RHI");
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D11RHI");
 				Rules.DynamicallyLoadedModuleNames.Remove("ShaderFormatD3D");

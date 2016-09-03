@@ -124,7 +124,8 @@ public:
 // FTileSetEditor
 
 FTileSetEditor::FTileSetEditor()
-	: bUseAlternateLayout(false)
+	: TileSetBeingEdited(nullptr)
+	, bUseAlternateLayout(false)
 {
 	// Register to be notified when properties are edited
 	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedDelegate = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FTileSetEditor::OnPropertyChanged);

@@ -852,6 +852,17 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 {
 	check(World);
 
+	TArray<TWeakObjectPtr<ULevel>> LevelsToRebuild;
+	ABrush::NeedsRebuild(&LevelsToRebuild);
+	for (const TWeakObjectPtr<ULevel>& Level : LevelsToRebuild)
+	{
+		if (Level.IsValid())
+		{
+			GEditor->RebuildLevel(*Level.Get());
+		}
+	}
+	ABrush::OnRebuildDone();
+
 	if (bShouldBuildLighting)
 	{
 		bool bShouldProceedWithLightmapRebuild = true;

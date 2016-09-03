@@ -7,6 +7,7 @@ UAbcImportSettings::UAbcImportSettings(const FObjectInitializer& ObjectInitializ
 : Super(ObjectInitializer)
 {
 	ImportType = EAlembicImportType::StaticMesh;
+	bReimport = false;
 }
 
 UAbcImportSettings* UAbcImportSettings::Get()

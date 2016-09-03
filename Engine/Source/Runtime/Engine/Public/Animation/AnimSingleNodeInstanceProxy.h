@@ -161,10 +161,7 @@ private:
 	FMarkerTickRecord MarkerTickRecord;
 
 	float PlayRate;
-
-	uint32 bLooping:1;
-
-	uint32 bPlaying:1;
-
-	uint32 bReverse:1;
+	bool bLooping;
+	bool bPlaying;
+	bool bReverse;
 };

@@ -291,6 +291,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // FSpriteEditor
 
+FSpriteEditor::FSpriteEditor()
+	: SpriteBeingEdited(nullptr)
+{
+}
+
 TSharedRef<SDockTab> FSpriteEditor::SpawnTab_Viewport(const FSpawnTabArgs& Args)
 {
 	return SNew(SDockTab)

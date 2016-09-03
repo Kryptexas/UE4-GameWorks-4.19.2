@@ -499,14 +499,19 @@ FXAudio2EffectsManager::FXAudio2EffectsManager(FXAudio2Device* InDevice)
 	ReverbEffectVoice = NULL;
 	RadioEffectVoice = NULL;
 
-	// Create premaster voices for EQ and dry passes
-	CreateEQPremasterVoices();
+	// Only initialize effects if we've successfully initialized hardware
+	if (InDevice->bIsAudioDeviceHardwareInitialized)
+	{
 
-	// Create reverb voice 
-	CreateReverbVoice();
+		// Create premaster voices for EQ and dry passes
+		CreateEQPremasterVoices();
 
-	// Create radio voice
-	CreateRadioVoice();
+		// Create reverb voice 
+		CreateReverbVoice();
+
+		// Create radio voice
+		CreateRadioVoice();
+	}
 }
 
 /**

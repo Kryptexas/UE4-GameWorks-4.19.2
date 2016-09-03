@@ -206,4 +206,6 @@ class ALEMBICLIBRARY_API UAbcImportSettings : public UObject
 
 	UPROPERTY(EditAnywhere, meta = (ShowOnlyInnerProperties), Category = StaticMesh)
 	FAbcStaticMeshSettings StaticMeshSettings;
+
+	bool bReimport;
 };

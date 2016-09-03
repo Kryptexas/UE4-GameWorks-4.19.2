@@ -34,6 +34,11 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 	bIsDrawingWorldMovementPostProcess( false ),
 	VRMode( nullptr )
 {
+	if (UNLIKELY(IsRunningDedicatedServer()))
+	{
+		return;
+	}
+
 	// Give us a head mesh
 	{
 		HeadMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "HeadMeshComponent" ) );

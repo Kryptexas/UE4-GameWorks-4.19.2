@@ -612,13 +612,13 @@ namespace UnrealBuildTool
             {
                 MacPlatform MacBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Mac) as MacPlatform;
                 MacPlatformContext PlatformContextMac = (MacPlatformContext)MacBuildPlat.CreateContext(ProjectFile);
-                PlatformContextMac.SetUpProjectEnvironment();
+                PlatformContextMac.SetUpProjectEnvironment(Config.BuildConfig);
             }
             else if (UnrealBuildTool.IsValidPlatform(UnrealTargetPlatform.IOS))
             {
                 IOSPlatform IOSBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
                 IOSPlatformContext PlatformContextIOS = (IOSPlatformContext)IOSBuildPlat.CreateContext(ProjectFile);
-                PlatformContextIOS.SetUpProjectEnvironment();
+                PlatformContextIOS.SetUpProjectEnvironment(Config.BuildConfig);
             }
             else
             {
@@ -649,7 +649,7 @@ namespace UnrealBuildTool
 				{
 					IOSPlatform IOSBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
 					IOSPlatformContext PlatformContextIOS = (IOSPlatformContext)IOSBuildPlat.CreateContext(ProjectFile);
-					PlatformContextIOS.SetUpProjectEnvironment();
+					PlatformContextIOS.SetUpProjectEnvironment(Config.BuildConfig);
 					IOSRunTimeVersion = PlatformContextIOS.GetRunTimeVersion();
 					IOSRunTimeDevices = PlatformContextIOS.GetRunTimeDevices();
 					ValidArchs += " arm64 armv7 armv7s";
@@ -660,7 +660,7 @@ namespace UnrealBuildTool
 				{
 					TVOSPlatform TVOSBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.TVOS) as TVOSPlatform;
 					TVOSPlatformContext PlatformContextTVOS = (TVOSPlatformContext)TVOSBuildPlat.CreateContext(ProjectFile);
-					PlatformContextTVOS.SetUpProjectEnvironment();
+					PlatformContextTVOS.SetUpProjectEnvironment(Config.BuildConfig);
 					TVOSRunTimeVersion = PlatformContextTVOS.GetRunTimeVersion();
 					TVOSRunTimeDevices = PlatformContextTVOS.GetRunTimeDevices();
 					if (ValidArchs == "x86_64")

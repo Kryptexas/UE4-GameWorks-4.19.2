@@ -126,12 +126,14 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	bool bSupportsPointLights = false;
 	bool bSupportsTiledReflections = false;
 	bool bSupportsDistanceFields = false;
+	bool bSupportsRHIThread = false;
 	if(GRHIAdapterName.Contains("Nvidia"))
 	{
 		bSupportsPointLights = true;
 		GRHIVendorId = 0x10DE;
 		bSupportsTiledReflections = true;
 		bSupportsDistanceFields = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
+		bSupportsRHIThread = (FPlatformMisc::MacOSXVersionCompare(10,12,0) >= 0);
 	}
 	else if(GRHIAdapterName.Contains("ATi") || GRHIAdapterName.Contains("AMD"))
 	{
@@ -143,11 +145,13 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		}
 		bSupportsTiledReflections = true;
 		bSupportsDistanceFields = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
+		bSupportsRHIThread = true;
 	}
 	else if(GRHIAdapterName.Contains("Intel"))
 	{
 		bSupportsPointLights = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
 		GRHIVendorId = 0x8086;
+		bSupportsRHIThread = true;
 	}
 	
 	// Make sure the vendors match - the assumption that order in IORegistry is the order in Metal may not hold up forever.
@@ -221,9 +225,9 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	{
 #if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
 #if WITH_EDITORONLY_DATA
-		GRHISupportsRHIThread = !GIsEditor;
+		GRHISupportsRHIThread = (!GIsEditor && bSupportsRHIThread);
 #else
-		GRHISupportsRHIThread = true;
+		GRHISupportsRHIThread = bSupportsRHIThread;
 #endif
 		GRHISupportsParallelRHIExecute = GRHISupportsRHIThread;
 #endif

@@ -27,6 +27,11 @@ const FName FSoundCueEditor::GraphCanvasTabId( TEXT( "SoundCueEditor_GraphCanvas
 const FName FSoundCueEditor::PropertiesTabId( TEXT( "SoundCueEditor_Properties" ) );
 const FName FSoundCueEditor::PaletteTabId( TEXT( "SoundCueEditor_Palette" ) );
 
+FSoundCueEditor::FSoundCueEditor()
+	: SoundCue(nullptr)
+{
+}
+
 void FSoundCueEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SoundCueEditor", "Sound Cue Editor"));

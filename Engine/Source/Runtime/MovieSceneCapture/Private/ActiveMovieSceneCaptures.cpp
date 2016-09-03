@@ -61,8 +61,5 @@ void FActiveMovieSceneCaptures::Shutdown()
 
 void FActiveMovieSceneCaptures::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	for (auto* Obj : ActiveCaptures)
-	{
-		Collector.AddReferencedObject(Obj);
-	}
+	Collector.AddReferencedObjects(ActiveCaptures);
 }

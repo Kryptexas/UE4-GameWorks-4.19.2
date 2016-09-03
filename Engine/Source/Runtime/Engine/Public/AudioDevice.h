@@ -11,6 +11,7 @@
  */
 
 class FAudioEffectsManager;
+class FViewportClient;
 class ICompressedAudioInfo;
 class IAudioSpatializationPlugin;
 class IAudioSpatializationAlgorithm;
@@ -81,8 +82,9 @@ namespace ERequestedAudioStats
 	static const uint8 SoundWaves = 0x1;
 	static const uint8 SoundCues = 0x2;
 	static const uint8 Sounds = 0x4;
-	static const uint8 DebugSounds = 0x8;
-	static const uint8 LongSoundNames = 0x01;
+	static const uint8 SoundMixes = 0x8;
+	static const uint8 DebugSounds = 0x10;
+	static const uint8 LongSoundNames = 0x20;
 };
 
 /** 
@@ -301,12 +303,28 @@ struct FAudioStats
 		TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
 	};
 
+	struct FStatSoundMix
+	{
+		FString MixName;
+		float InterpValue;
+		int32 RefCount;
+		bool bIsCurrentEQ;
+	};
+
 	uint8 bStale:1;
 	FVector ListenerLocation;
 	TArray<FStatSoundInfo> StatSoundInfos;
+	TArray<FStatSoundMix> StatSoundMixes;
 
 };
 #endif
+
+/** Interface to register a device changed listener to respond to audio device changes. */
+class IDeviceChangedListener
+{
+public:
+	virtual void OnDeviceRemoved(FString DeviceID) = 0;
+};
 
 class ENGINE_API FAudioDevice : public FExec
 {
@@ -988,6 +1006,12 @@ public:
 	*/
 	FVector GetListenerTransformedDirection(const FVector& Position, float* OutDistance);
 
+	/** Returns the current audio device update delta time. */
+	float GetUpdateDeltaTime() const
+	{
+		return UpdateDeltaTime;
+	}
+
 private:
 	/** Processes the set of pending sounds that need to be stopped */ 
 	void ProcessingPendingActiveSoundStops(bool bForceDelete = false);
@@ -1144,6 +1168,9 @@ public:
 	/* HACK: Temporarily disable audio caching.  This will be done better by changing the decompression pool size in the future */
 	uint8 bDisableAudioCaching:1;
 
+	/** Whether or not the lower-level audio device hardware initialized. */
+	uint32 bIsAudioDeviceHardwareInitialized : 1;
+
 private:
 	/* True once the startup sounds have been precached */
 	uint8 bStartupSoundsPreCached:1;
@@ -1171,6 +1198,8 @@ private:
 
 	FAudioStats AudioStats;
 #endif
+	/** The game thread update delta time for this update tick. */
+	float UpdateDeltaTime;
 
 	TArray<FActiveSound*> ActiveSounds;
 	TArray<FWaveInstance*> ActiveWaveInstances;

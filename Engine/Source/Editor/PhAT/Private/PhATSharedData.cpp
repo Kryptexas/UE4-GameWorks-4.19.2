@@ -1640,4 +1640,19 @@ void FPhATSharedData::Redo()
 	HierarchyChangedEvent.Broadcast();
 }
 
+void FPhATSharedData::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(PhysicsAsset);
+	Collector.AddReferencedObject(EditorSkelComp);
+	Collector.AddReferencedObject(PhysicalAnimationComponent);
+	Collector.AddReferencedObject(EditorSkelMesh);
+	Collector.AddReferencedObject(EditorFloorComp);
+	Collector.AddReferencedObject(EditorSimOptions);
+	Collector.AddReferencedObject(MouseHandle);
+	Collector.AddReferencedObject(CopiedBodySetup);
+	Collector.AddReferencedObject(CopiedConstraintTemplate);
+
+	PreviewScene.AddReferencedObjects(Collector);
+}
+
 #undef LOCTEXT_NAMESPACE

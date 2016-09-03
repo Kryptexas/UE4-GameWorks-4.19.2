@@ -889,13 +889,20 @@ void FMetalContext::ResetRenderCommandEncoder()
 	}
 }
 
-void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
+bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MetalPrepareDrawTime);
 	TRefCountPtr<FMetalBoundShaderState> CurrentBoundShaderState = StateCache.GetBoundShaderState();
 	
 	// Enforce calls to SetRenderTarget prior to issuing draw calls.
+#if PLATFORM_MAC
 	check(StateCache.GetHasValidRenderTarget());
+#else
+	if (!StateCache.GetHasValidRenderTarget())
+	{
+		return false;
+	}
+#endif
 	
 	bool bUpdatedStrides = false;
 	MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout.VertexDesc;
@@ -1178,6 +1185,8 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		
 		OutstandingOpCount++;
 	}
+	
+	return true;
 }
 
 void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo, bool const bReset)
@@ -1354,6 +1363,7 @@ void FMetalContext::SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, u
 			FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
 			if (Surface != nullptr)
 			{
+				Surface->bWritten = true;
 				GetCommandEncoder().SetShaderTexture(ShaderStage, Surface->Texture, BindIndex);
 			}
 			else

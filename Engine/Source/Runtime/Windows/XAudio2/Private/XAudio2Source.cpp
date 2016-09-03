@@ -66,6 +66,11 @@ FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 
 	FMemory::Memzero( XAudio2Buffers, sizeof( XAudio2Buffers ) );
 	FMemory::Memzero( XAudio2BufferXWMA, sizeof( XAudio2BufferXWMA ) );
+
+	if (!InAudioDevice->bIsAudioDeviceHardwareInitialized)
+	{
+		bIsVirtual = true;
+	}
 }
 
 /**
@@ -358,6 +363,12 @@ bool FXAudio2SoundSource::CreateSource( void )
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioSourceCreateTime );
 
+	// No need to create a hardware voice if we're virtual
+	if (bIsVirtual)
+	{
+		return true;
+	}
+
 	uint32 NumSends = 0;
 
 	// Create a source that goes to the spatialisation code and reverb effect
@@ -447,6 +458,14 @@ bool FXAudio2SoundSource::CreateSource( void )
 
 bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance)
 {
+	// If virtual only need wave instance data and no need to load source data
+	if (bIsVirtual)
+	{
+		WaveInstance = InWaveInstance;
+		bIsFinished = false;
+		return true;
+	}
+
 	// Reset so next instance will warn if algorithm changes inflight
 	bEditorWarnedChangedSpatialization = false;
 
@@ -500,11 +519,21 @@ bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance
 
 bool FXAudio2SoundSource::IsPreparedToInit()
 {
-	return (XAudio2Buffer && XAudio2Buffer->IsRealTimeSourceReady());
+	return bIsVirtual || (XAudio2Buffer && XAudio2Buffer->IsRealTimeSourceReady());
 }
 
 bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 {
+	if (bIsVirtual)
+	{
+		bInitialized = true;
+
+		// Setup our virtual duration/playback data
+		VirtualDuration = InWaveInstance->WaveData->GetDuration();
+		VirtualPlaybackTime = 0.0f;
+		return true;
+	}
+
 	check(XAudio2Buffer);
 	check(XAudio2Buffer->IsRealTimeSourceReady());
 	check(Buffer);
@@ -578,6 +607,8 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
  */
 void FXAudio2SoundSource::GetChannelVolumes(float ChannelVolumes[CHANNEL_MATRIX_COUNT], float AttenuatedVolume)
 {
+	check(!bIsVirtual);
+
 	if (AudioDevice->IsAudioDeviceMuted())
 	{
 		for( int32 i = 0; i < CHANNELOUT_COUNT; i++ )
@@ -1254,8 +1285,8 @@ void FXAudio2SoundSource::Update()
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioUpdateSources );
 
-	if (!WaveInstance || !Source || Paused || !bInitialized)
-	{	
+	if (!WaveInstance || (!bIsVirtual && !Source) || Paused || !bInitialized)
+	{
 		return;
 	}
 
@@ -1269,56 +1300,82 @@ void FXAudio2SoundSource::Update()
 
 	Pitch = FMath::Clamp<float>(Pitch, MIN_PITCH, MAX_PITCH);
 
-	AudioDevice->ValidateAPICall( TEXT( "SetFrequencyRatio" ), 
-		Source->SetFrequencyRatio( Pitch) );
-
-	// Set whether to bleed to the rear speakers
-	SetStereoBleed();
-
-	// Set the amount to bleed to the LFE speaker
-	SetLFEBleed();
-
-	// Set the low pass filter frequency value
-	SetFilterFrequency();
-
-	if (LastLPFFrequency != LPFFrequency)
+	// If this is a virtual source, then update it's duration and do any notification on completion based on duration
+	if (bIsVirtual)
 	{
-		// Apply the low pass filter
-		XAUDIO2_FILTER_PARAMETERS LPFParameters = { LowPassFilter, 1.0f, AudioDevice->GetLowPassFilterResonance() };
+		// Get the game-thread update delta time
+		float DeviceDeltaTime = AudioDevice->GetUpdateDeltaTime();
 
-		check(AudioDevice->SampleRate > 0.0f);
+		// Scale the virtual playback time based on the pitch of the sound
+		VirtualPlaybackTime += DeviceDeltaTime * Pitch;
 
-		// Convert the frequency value to normalized radian frequency values where 0.0f to 2.0f sweeps 0.0hz to sample rate
-		// and 1.0f is the nyquist frequency. A normalized frequency of 1.0f is an effective bypass.
-		LPFParameters.Frequency = FMath::Clamp(2.0f * LPFFrequency / AudioDevice->SampleRate, 0.0f, 1.0f);
-
-		AudioDevice->ValidateAPICall(TEXT("SetFilterParameters"),
-									 Source->SetFilterParameters(&LPFParameters));
-
-		LastLPFFrequency = LPFFrequency;
+		if (VirtualPlaybackTime >= VirtualDuration)
+		{
+			if (WaveInstance->LoopingMode == LOOP_Never)
+			{
+				bIsFinished = true;
+			}
+			else
+			{
+				// This will trigger a loop callback notification
+				bLoopCallback = true;
+			}
+		}
 	}
-
-	// Initialize channel volumes
-	float ChannelVolumes[CHANNEL_MATRIX_COUNT] = { 0.0f };
-
-	const float Volume = FSoundSource::GetDebugVolume(WaveInstance->GetActualVolume());
-
-	GetChannelVolumes( ChannelVolumes, Volume );
-
-	// Send to the 5.1 channels
-	RouteDryToSpeakers( ChannelVolumes );
-
-	// Send to the reverb channel
-	if( bReverbApplied )
+	else
 	{
-		RouteToReverb( ChannelVolumes );
-	}
 
-	// If this audio can have radio distortion applied, 
-	// send the volumes to the radio distortion voice. 
-	if( WaveInstance->bApplyRadioFilter )
-	{
-		RouteToRadio( ChannelVolumes );
+		AudioDevice->ValidateAPICall(TEXT("SetFrequencyRatio"),
+			Source->SetFrequencyRatio(Pitch));
+
+		// Set whether to bleed to the rear speakers
+		SetStereoBleed();
+
+		// Set the amount to bleed to the LFE speaker
+		SetLFEBleed();
+
+		// Set the low pass filter frequency value
+		SetFilterFrequency();
+
+		if (LastLPFFrequency != LPFFrequency)
+		{
+			// Apply the low pass filter
+			XAUDIO2_FILTER_PARAMETERS LPFParameters = { LowPassFilter, 1.0f, AudioDevice->GetLowPassFilterResonance() };
+
+			check(AudioDevice->SampleRate > 0.0f);
+
+			// Convert the frequency value to normalized radian frequency values where 0.0f to 2.0f sweeps 0.0hz to sample rate
+			// and 1.0f is the nyquist frequency. A normalized frequency of 1.0f is an effective bypass.
+			LPFParameters.Frequency = FMath::Clamp(2.0f * LPFFrequency / AudioDevice->SampleRate, 0.0f, 1.0f);
+
+			AudioDevice->ValidateAPICall(TEXT("SetFilterParameters"),
+				Source->SetFilterParameters(&LPFParameters));
+
+			LastLPFFrequency = LPFFrequency;
+		}
+
+		// Initialize channel volumes
+		float ChannelVolumes[CHANNEL_MATRIX_COUNT] = { 0.0f };
+
+		const float Volume = FSoundSource::GetDebugVolume(WaveInstance->GetActualVolume());
+
+		GetChannelVolumes( ChannelVolumes, Volume );
+
+		// Send to the 5.1 channels
+		RouteDryToSpeakers(ChannelVolumes);
+
+		// Send to the reverb channel
+		if (bReverbApplied)
+		{
+			RouteToReverb(ChannelVolumes);
+		}
+
+		// If this audio can have radio distortion applied, 
+		// send the volumes to the radio distortion voice. 
+		if (WaveInstance->bApplyRadioFilter)
+		{
+			RouteToRadio(ChannelVolumes);
+		}
 	}
 
 	FSoundSource::DrawDebugInfo();
@@ -1329,14 +1386,6 @@ void FXAudio2SoundSource::Play()
 {
 	if (WaveInstance)
 	{
-		if (!Playing)
-		{
-			if (Buffer->NumChannels >= SPEAKER_COUNT)
-			{
-				XMPHelper.CinematicAudioStarted();
-			}
-		}
-
 		// It's possible if Pause and Play are called while a sound is async initializing. In this case
 		// we'll just not actually play the source here. Instead we'll call play when the sound finishes loading.
 		if (Source && bInitialized)
@@ -1358,14 +1407,6 @@ void FXAudio2SoundSource::Stop()
 	
 	if( WaveInstance )
 	{	
-		if( Playing )
-		{
-			if( Buffer->NumChannels >= SPEAKER_COUNT )
-			{
-				XMPHelper.CinematicAudioStopped();
-			}
-		}
-
 		Paused = false;
 		Playing = false;
 
@@ -1515,23 +1556,25 @@ bool FXAudio2SoundSource::IsFinished()
 		return(false);
 	}
 
-	if (WaveInstance && Source)
+
+	if (!WaveInstance || (!bIsVirtual && !Source))
 	{
-		if (bIsFinished)
-		{
-			WaveInstance->NotifyFinished();
-			return true;
-		}
-
-		if (bLoopCallback && WaveInstance->LoopingMode == LOOP_WithNotification)
-		{
-			WaveInstance->NotifyFinished();
-			bLoopCallback = false;
-		}
-
-		return false;
+		return true;
 	}
-	return true;
+
+	if (bIsFinished)
+	{
+		WaveInstance->NotifyFinished();
+		return true;
+	}
+
+	if (bLoopCallback && WaveInstance->LoopingMode == LOOP_WithNotification)
+	{
+		WaveInstance->NotifyFinished();
+		bLoopCallback = false;
+	}
+
+	return false;
 }
 
 bool FXAudio2SoundSource::IsUsingHrtfSpatializer()

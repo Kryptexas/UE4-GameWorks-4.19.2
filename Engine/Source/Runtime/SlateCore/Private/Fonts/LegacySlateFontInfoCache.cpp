@@ -167,16 +167,19 @@ const FFontData& FLegacySlateFontInfoCache::GetLastResortFontData()
 
 void FLegacySlateFontInfoCache::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	for (const auto& Pair : AllLocalizedFallbackFontData)
+	for (TPair<FString, TSharedPtr<const FFontData>>& Pair : AllLocalizedFallbackFontData)
 	{
-		const UFontBulkData* TmpPtr = Pair.Value->BulkDataPtr;
-		Collector.AddReferencedObject(TmpPtr);
+		Collector.AddReferencedObject(const_cast<const UFontBulkData*&>(Pair.Value->BulkDataPtr));
+	}
+
+	if (LocalizedFallbackFontData.IsValid())
+	{
+		Collector.AddReferencedObject(const_cast<const UFontBulkData*&>(LocalizedFallbackFontData->BulkDataPtr));
 	}
 
 	if (LastResortFontData.IsValid())
 	{
-		const UFontBulkData* TmpPtr = LastResortFontData->BulkDataPtr;
-		Collector.AddReferencedObject(TmpPtr);
+		Collector.AddReferencedObject(const_cast<const UFontBulkData*&>(LastResortFontData->BulkDataPtr));
 	}
 }
 

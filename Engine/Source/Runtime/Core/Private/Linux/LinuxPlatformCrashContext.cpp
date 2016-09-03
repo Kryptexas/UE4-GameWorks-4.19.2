@@ -663,19 +663,7 @@ void FLinuxPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCra
 		}
 	}
 
-	checkf(IsInGameThread(), TEXT("Crash handler should be set from the main thread only."));
-	stack_t SignalHandlerStack;
-	
-	FMemory::Memzero(SignalHandlerStack);
-	SignalHandlerStack.ss_sp = FRunnableThreadLinux::MainThreadSignalHandlerStack;
-	SignalHandlerStack.ss_size = sizeof(FRunnableThreadLinux::MainThreadSignalHandlerStack);
+	checkf(IsInGameThread(), TEXT("Crash handler for the game thread should be set from the game thread only."));
 
-	if (sigaltstack(&SignalHandlerStack, nullptr) < 0)
-	{
-		int ErrNo = errno;
-		UE_LOG(LogLinux, Warning, TEXT("Unable to set alternate stack for crash handler, sigaltstack() failed with errno=%d (%s)"),
-			ErrNo,
-			UTF8_TO_TCHAR(strerror(ErrNo))
-			);
-	}
+	FRunnableThreadLinux::SetupSignalHandlerStack(FRunnableThreadLinux::MainThreadSignalHandlerStack, sizeof(FRunnableThreadLinux::MainThreadSignalHandlerStack), nullptr);
 }

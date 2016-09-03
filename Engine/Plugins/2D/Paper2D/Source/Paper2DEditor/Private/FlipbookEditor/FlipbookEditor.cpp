@@ -206,6 +206,7 @@ public:
 // FFlipbookEditor
 
 FFlipbookEditor::FFlipbookEditor()
+	: FlipbookBeingEdited(nullptr)
 {
 }
 

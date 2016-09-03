@@ -77,16 +77,24 @@ void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedRef
 	// For enums, look for rich tooltip information
 	if(PropertyEditor.IsValid() && PropertyEditor->GetProperty())
 	{
-		if(UEnum* Enum = CastChecked<UByteProperty>(PropertyEditor->GetProperty())->Enum)
+		const UProperty* Property = PropertyEditor->GetProperty();
+		if(UEnum* Enum = CastChecked<UByteProperty>(Property)->Enum)
 		{
+			TArray<FName> AllowedPropertyEnums = PropertyEditorHelpers::GetValidEnumsFromPropertyOverride(Property, Enum);
+
 			// Get enum doc link (not just GetDocumentationLink as that is the documentation for the struct we're in, not the enum documentation)
-			FString DocLink = PropertyEditorHelpers::GetEnumDocumentationLink(PropertyEditor->GetProperty());
+			FString DocLink = PropertyEditorHelpers::GetEnumDocumentationLink(Property);
 			
 			for(int32 EnumIdx = 0; EnumIdx < Enum->NumEnums() - 1; ++EnumIdx)
 			{
 				FString Excerpt = Enum->GetEnumName(EnumIdx);
 
 				bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIdx) || Enum->HasMetaData(TEXT("Spacer"), EnumIdx);
+				if( !bShouldBeHidden && AllowedPropertyEnums.Num() != 0 )
+				{
+					bShouldBeHidden = AllowedPropertyEnums.Find(Enum->GetEnum(EnumIdx)) == INDEX_NONE;
+				}
+
 				if(!bShouldBeHidden)
 				{
 					RichToolTips.Add(IDocumentation::Get()->CreateToolTip(Enum->GetToolTipText(EnumIdx), nullptr, DocLink, Excerpt));

@@ -7435,8 +7435,8 @@ void UInterpTrackAnimControl::UpdateTrack(float NewPosition, UInterpTrackInst* T
 	if(AnimSeqs.Num() == 0 || NewPosition <= AnimInst->LastUpdatePosition || bJump)
 	{
 		UAnimSequence* NewAnimSequence = NULL;
-		float NewAnimPosition;
-		bool bNewLooping;
+		float NewAnimPosition = 0.0f;
+		bool bNewLooping = false;
 		GetAnimForTime(NewPosition, &NewAnimSequence, NewAnimPosition, bNewLooping);
 
 		if( NewAnimSequence != NULL )

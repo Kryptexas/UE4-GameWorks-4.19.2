@@ -768,15 +768,7 @@ void PopulateLayoutMenu(FMenuBuilder& MenuBuilder, const TSharedRef<SDockTabStac
 
 void FPhAT::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	Collector.AddReferencedObject(SharedData->PhysicsAsset);
-	Collector.AddReferencedObject(SharedData->EditorSimOptions);
-
-	if (PreviewViewport.IsValid())
-	{
-		SharedData->PreviewScene.AddReferencedObjects(Collector);
-	}
-
-	Collector.AddReferencedObject(SharedData->MouseHandle);
+	SharedData->AddReferencedObjects(Collector);
 }
 
 void FPhAT::PostUndo(bool bSuccess)

@@ -63,6 +63,9 @@ void USoundNodeRandom::PostLoad()
 		UpdatePIEHiddenNodes();
 	}
 #endif //WITH_EDITOR
+
+	FixWeightsArray();
+	FixHasBeenUsedArray();
 }
 
 int32 USoundNodeRandom::ChooseNodeIndex(FActiveSound& ActiveSound)
@@ -128,8 +131,6 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 {
 	RETRIEVE_SOUNDNODE_PAYLOAD(sizeof(int32));
 	DECLARE_SOUNDNODE_ELEMENT(int32, NodeIndex);
-
-	FixHasBeenUsedArray();  // for now prob need this until resave packages has occurred
 
 	// Pick a random child node and save the index.
 	if (*RequiresInitialization)

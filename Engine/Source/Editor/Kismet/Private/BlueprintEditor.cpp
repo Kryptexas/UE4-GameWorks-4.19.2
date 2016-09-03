@@ -3469,11 +3469,9 @@ void FBlueprintEditor::JumpToPin(const UEdGraphPin* Pin)
 
 void FBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
 {
-	for (int32 i = 0; i < GetEditingObjects().Num(); ++i)
-	{
-		UObject* EditingObject = GetEditingObjects()[i];
-		Collector.AddReferencedObject(EditingObject);
-	}
+	TArray<UObject*>& LocalEditingObjects = const_cast<TArray<UObject*>&>(GetEditingObjects());
+
+	Collector.AddReferencedObjects(LocalEditingObjects);
 
 	Collector.AddReferencedObjects(StandardLibraries);
 
@@ -8385,4 +8383,3 @@ void FBlueprintEditor::SelectGraphActionItemByName(const FName& ItemName, ESelec
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE
-

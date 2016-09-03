@@ -376,7 +376,7 @@ struct FMeshMergingSettings
 		, bMergeMaterials(false)
 		, bBakeVertexDataToMesh(false)
 		, bCalculateCorrectLODModel_DEPRECATED(false)
-		, LODSelectionType(EMeshLODSelectionType::AllLODs)
+		, LODSelectionType(EMeshLODSelectionType::CalculateLOD)
 		, ExportSpecificLOD_DEPRECATED(0)
 		, SpecificLOD(0)
 		, bUseLandscapeCulling(false)

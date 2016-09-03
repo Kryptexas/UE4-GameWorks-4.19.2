@@ -20,8 +20,9 @@ static TAutoConsoleVariable<float> CVarCSMShadowDepthBias(
 
 static TAutoConsoleVariable<float> CVarPerObjectDirectionalShadowDepthBias(
 	TEXT("r.Shadow.PerObjectDirectionalDepthBias"),
-	4.0f,
-	TEXT("Constant depth bias used by per-object shadows from directional lights"),
+	20.0f,
+	TEXT("Constant depth bias used by per-object shadows from directional lights\n")
+	TEXT("Lower values give better self-shadowing, but increase self-shadowing artifacts"),
 	ECVF_RenderThreadSafe);
 
 

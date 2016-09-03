@@ -162,6 +162,8 @@ public class AndroidPlatform : Platform
 		{
 			ObbFile.CompressionMethod = CompressionMethod.None;
 			ObbFile.CompressionLevel = Ionic.Zlib.CompressionLevel.None;
+			ObbFile.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Never;
+
 			int ObbFileCount = 0;
 			ObbFile.AddProgress +=
 				delegate(object sender, AddProgressEventArgs e)
@@ -175,7 +177,15 @@ public class AndroidPlatform : Platform
 					}
 				};
 			ObbFile.AddDirectory(SC.StageDirectory+"/"+SC.ShortProjectName, SC.ShortProjectName);
-			ObbFile.Save();
+			try
+			{
+				ObbFile.Save();
+			}
+			catch (Exception)
+			{
+				Log("Failed to build OBB: " + LocalObbName);
+				throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not build OBB {0}. The file may be too big to fit in an OBB (2 GiB limit)", LocalObbName);
+			}
 		}
 
 		// collect plugin extra data paths from target receipts

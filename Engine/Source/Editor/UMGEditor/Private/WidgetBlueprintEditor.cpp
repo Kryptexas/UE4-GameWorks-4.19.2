@@ -689,9 +689,15 @@ void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimatio
 	}
 
 	CurrentAnimation = &InAnimationToView;
-	CurrentAnimation->Initialize(PreviewWidgetPtr.Get());
+	if (CurrentAnimation.IsValid())
+	{
+		CurrentAnimation->Initialize(PreviewWidgetPtr.Get());
+	}
 
-	Sequencer->ResetToNewRootSequence(InAnimationToView);
+	if (Sequencer.IsValid())
+	{
+		Sequencer->ResetToNewRootSequence(InAnimationToView);
+	}
 
 	TSharedPtr<SOverlay> SequencerOverlayPin = SequencerOverlay.Pin();
 	if (SequencerOverlayPin.IsValid())

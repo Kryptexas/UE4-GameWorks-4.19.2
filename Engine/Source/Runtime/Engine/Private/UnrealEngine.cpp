@@ -696,21 +696,12 @@ void FWorldContext::AddReferencedObjects(FReferenceCollector& Collector, const U
 	//	 hopefully a utility to push the WorldContext back in to the collector with property collection
 	//       will happen in the future
 	Collector.AddReferencedObject(PendingNetGame, ReferencingObject);
-	for (const FFullyLoadedPackagesInfo& PackageInfo : PackagesToFullyLoad)
+	for (FFullyLoadedPackagesInfo& PackageInfo : PackagesToFullyLoad)
 	{
-		for (UObject* LoadedObject : PackageInfo.LoadedObjects)
-		{
-			Collector.AddReferencedObject(LoadedObject, ReferencingObject);
-		}
+		Collector.AddReferencedObjects(PackageInfo.LoadedObjects, ReferencingObject);
 	}
-	for (ULevel* LoadedLevel : LoadedLevelsForPendingMapChange)
-	{
-		Collector.AddReferencedObject(LoadedLevel, ReferencingObject);
-	}
-	for (UObjectReferencer* ObjectReferencer : ObjectReferencers)
-	{
-		Collector.AddReferencedObject(ObjectReferencer, ReferencingObject);
-	}
+	Collector.AddReferencedObjects(LoadedLevelsForPendingMapChange, ReferencingObject);
+	Collector.AddReferencedObjects(ObjectReferencers, ReferencingObject);
 	Collector.AddReferencedObject(GameViewport, ReferencingObject);
 	Collector.AddReferencedObject(OwningGameInstance, ReferencingObject);
 	for (FNamedNetDriver& ActiveNetDriver : ActiveNetDrivers)
@@ -1005,7 +996,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_ColorList"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatColorList, NULL));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Levels"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatLevels, NULL));
 #if !UE_BUILD_SHIPPING
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundMixes"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundMixes, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundMixes"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundMixes, &UEngine::ToggleStatSoundMixes));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Reverb"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatReverb, NULL));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundWaves"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundWaves, &UEngine::ToggleStatSoundWaves));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundCues"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundCues, &UEngine::ToggleStatSoundCues));
@@ -10945,10 +10936,7 @@ public:
 
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
-		for( int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++ )
-		{
-			Collector.AddReferencedObject( Levels[ LevelIndex ] ); 
-		}
+		Collector.AddReferencedObjects( Levels ); 
 	}
 };
 
@@ -11563,6 +11551,16 @@ bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel)
 // Helper function for changing system resolution via the r.setres console command
 void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWindowMode::Type InWindowMode)
 {
+	if (PLATFORM_LINUX)
+	{
+		// Fullscreen and WindowedFullscreen behave the same on Linux, see FLinuxWindow::ReshapeWindow()/SetWindowMode().
+		// Allowing Fullscreen window mode confuses higher level code (see UE-19996).
+		if (InWindowMode == EWindowMode::Fullscreen)
+		{
+			InWindowMode = EWindowMode::WindowedFullscreen;
+		}
+	}
+
 	FString WindowModeSuffix;
 	switch (InWindowMode)
 	{
@@ -12419,44 +12417,39 @@ void FAudioDevice::RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas*
 // SOUNDMIXES
 int32 UEngine::RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation)
 {
-#if 0
 	Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Mixes:"), GetSmallFont(), FColor::Green);
 	Y += 12;
 
+	bool bDisplayedSoundMixes = false;
+
 	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 	{
-		if (AudioDevice->SoundMixModifiers.Num() > 0)
-		{
-			USoundMix* CurrentEQMix = AudioDevice->Effects->GetCurrentEQMix();
+		const FAudioStats& AudioStats = AudioDevice->GetAudioStats();
 
-			for (TMap< USoundMix*, FSoundMixState >::TIterator It(AudioDevice->SoundMixModifiers); It; ++It)
+		if (!AudioStats.bStale)
+		{
+			if (AudioStats.StatSoundMixes.Num() > 0)
 			{
-				uint32 TotalRefCount = It.Value().ActiveRefCount + It.Value().PassiveRefCount;
-				FString TheString = FString::Printf(TEXT("%s - Fade Proportion: %1.2f - Total Ref Count: %i"), *It.Key()->GetName(), It.Value().InterpValue, TotalRefCount);
+				bDisplayedSoundMixes = true;
 
-				FColor TextColour = FColor::White;
-				if (It.Key() == CurrentEQMix)
+				for (const FAudioStats::FStatSoundMix& StatSoundMix : AudioStats.StatSoundMixes)
 				{
-					TextColour = FColor(255, 255, 0);
+					const FString TheString = FString::Printf(TEXT("%s - Fade Proportion: %1.2f - Total Ref Count: %i"), *StatSoundMix.MixName, StatSoundMix.InterpValue, StatSoundMix.RefCount);
+
+					const FColor& TextColour = (StatSoundMix.bIsCurrentEQ ? FColor::Yellow : FColor::White);
+
+					Canvas->DrawShadowedString(X + 12, Y, *TheString, GetSmallFont(), TextColour);
+					Y += 12;
 				}
-
-				Canvas->DrawShadowedString(X + 12, Y, *TheString, GetSmallFont(), TextColour);
-				Y += 12;
 			}
-
-		}
-		else
-		{
-			Canvas->DrawShadowedString(X + 12, Y, TEXT("None"), GetSmallFont(), FColor::White);
-			Y += 12;
 		}
 	}
-	else
+	
+	if (!bDisplayedSoundMixes)
 	{
 		Canvas->DrawShadowedString(X + 12, Y, TEXT("None"), GetSmallFont(), FColor::White);
 		Y += 12;
 	}
-#endif
 	return Y;
 }
 
@@ -12509,6 +12502,15 @@ void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
 		ClearStats |= ERequestedAudioStats::SoundWaves;
 	}
 
+	if (ViewportClient->IsStatEnabled(TEXT("SoundMixes")))
+	{
+		SetStats |= ERequestedAudioStats::SoundMixes;
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::SoundMixes;
+	}
+
 	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.ResolveDesiredStats"), STAT_AudioResolveDesiredStats, STATGROUP_TaskGraphTasks);
 
 	FAudioDevice* AudioDevice = this;
@@ -12546,6 +12548,15 @@ bool UEngine::ToggleStatSoundCues(UWorld* World, FCommonViewportClient* Viewport
 	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 	{
 		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundCues);
+	}
+	return true;
+}
+
+bool UEngine::ToggleStatSoundMixes(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
+{
+	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+	{
+		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundMixes);
 	}
 	return true;
 }
@@ -12641,9 +12652,16 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 
 		for (const FAudioStats::FStatSoundInfo& StatSoundInfo : AudioDevice->GetAudioStats().StatSoundInfos)
 		{
-			const FString TheString = FString::Printf(TEXT("%4i. %s %s"), ActiveSoundCount++, *StatSoundInfo.SoundName, *StatSoundInfo.SoundClassName.ToString());
-			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
-			Y += 12;
+			for (const FAudioStats::FStatWaveInstanceInfo& WaveInstanceInfo : StatSoundInfo.WaveInstanceInfos)
+			{
+				if (WaveInstanceInfo.ActualVolume >= 0.01f)
+				{
+					const FString TheString = FString::Printf(TEXT("%4i. %s %s"), ActiveSoundCount++, *StatSoundInfo.SoundName, *StatSoundInfo.SoundClassName.ToString());
+					Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
+					Y += 12;
+					break;
+				}
+			}
 		}
 	}
 

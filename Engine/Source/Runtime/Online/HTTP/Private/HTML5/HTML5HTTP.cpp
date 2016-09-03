@@ -327,12 +327,29 @@ extern "C" void UnRegister_OnBeforeUnload(void *ctx, void(*callback)(void*))
 
 bool FHTML5HttpRequest::StartRequest()
 {
+#if ! PLATFORM_HTML5_BROWSER
 	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::StartRequest()"));
 
 	UE_LOG(LogHttp, Verbose, TEXT("%p: URL='%s'"), this, *URL);
 	UE_LOG(LogHttp, Verbose, TEXT("%p: Verb='%s'"), this, *Verb);
 	UE_LOG(LogHttp, Verbose, TEXT("%p: Custom headers are %s"), this, Headers.Num() ? TEXT("present") : TEXT("NOT present"));
 	UE_LOG(LogHttp, Verbose, TEXT("%p: Payload size=%d"), this, RequestPayload.Num());
+#else
+	// for some reason, UE_LOG() above is crashing in the browser...
+	if( UE_LOG_ACTIVE(LogHttp, Verbose) )
+	{
+		const TCHAR* zurl = *URL;
+		const TCHAR* zverb = *Verb;
+		EM_ASM_({
+			console.log( "FHTML5HttpRequest::StartRequest()" + $0);
+
+			console.log( "- URL='" + $1 + "'");
+			console.log( "- Verb='" + $2 + "'");
+			console.log( "- Custom headers are " + $3 );
+			console.log( "- Payload size=" + $4 );
+		}, this, zurl, zverb, Headers.Num() ? TEXT("present") : TEXT("NOT present"), RequestPayload.Num());
+	}
+#endif
 
 	if (!FHttpModule::Get().IsHttpEnabled())
 	{

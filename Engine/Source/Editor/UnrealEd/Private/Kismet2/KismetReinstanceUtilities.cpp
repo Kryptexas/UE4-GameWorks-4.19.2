@@ -433,6 +433,15 @@ public:
 					// Actor instance will not be replaced in that case, and thus might still have latent actions pending.
 					World->GetLatentActionManager().RemoveActionsForObject(Actor);
 
+					// Drop any references to anim script components for skeletal mesh components, depending on how
+					// the blueprints have changed during compile this could contain invalid data so we need to do
+					// a full initialisation to ensure everything is set up correctly.
+					TInlineComponentArray<USkeletalMeshComponent*> SkelComponents(Actor);
+					for(USkeletalMeshComponent* SkelComponent : SkelComponents)
+					{
+						SkelComponent->AnimScriptInstance = nullptr;
+					}
+
 					Actor->ReregisterAllComponents();
 					Actor->RerunConstructionScripts();
 

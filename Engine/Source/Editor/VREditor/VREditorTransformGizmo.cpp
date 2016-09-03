@@ -21,6 +21,11 @@ namespace VREd
 
 ATransformGizmo::ATransformGizmo()
 {
+	if (UNLIKELY(IsRunningDedicatedServer()))
+	{
+		return;
+	}
+
 	TranslationGizmoHandleGroup = CreateDefaultSubobject<UVREditorTranslationGizmoHandleGroup>( TEXT( "TranslationHandles" ), true );
 	TranslationGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	TranslationGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );

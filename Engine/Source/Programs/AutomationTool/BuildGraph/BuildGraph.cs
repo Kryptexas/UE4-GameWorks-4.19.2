@@ -232,6 +232,19 @@ namespace AutomationTool
 				// Find all the lock files
 				HashSet<FileReference> RequiredTokens = new HashSet<FileReference>(TargetNodes.SelectMany(x => x.RequiredTokens));
 
+				// List out all the required tokens
+				if(SingleNodeName == null)
+				{
+					CommandUtils.Log("Required tokens:");
+					foreach(Node Node in TargetNodes)
+					{
+						foreach(FileReference RequiredToken in Node.RequiredTokens)
+						{
+							CommandUtils.Log("  '{0}' requires {1}", Node, RequiredToken);
+						}
+					}
+				}
+
 				// Try to create all the lock files
 				List<FileReference> CreatedTokens = new List<FileReference>();
 				if(!bListOnly)
@@ -255,11 +268,33 @@ namespace AutomationTool
 				{
 					if(bSkipTargetsWithoutTokens)
 					{
-						foreach(KeyValuePair<FileReference, string> Pair in MissingTokens)
+						// Find all the nodes we're going to skip
+						HashSet<Node> SkipNodes = new HashSet<Node>();
+						foreach(IGrouping<string, FileReference> MissingTokensForBuild in MissingTokens.GroupBy(x => x.Value, x => x.Key))
 						{
-							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTokens.Contains(Pair.Key)).ToList();
-							Log("Skipping {0} due to previous build: {1}", String.Join(", ", SkipNodes), Pair.Value);
+							Log("Skipping the following nodes due to {0}:", MissingTokensForBuild.Key);
+							foreach(FileReference MissingToken in MissingTokensForBuild)
+							{
+								foreach(Node SkipNode in TargetNodes.Where(x => x.RequiredTokens.Contains(MissingToken) && SkipNodes.Add(x)))
+								{
+									Log("    {0}", SkipNode);
+								}
+							}
+						}
+
+						// Write a list of everything left over
+						if(SkipNodes.Count > 0)
+						{
 							TargetNodes.ExceptWith(SkipNodes);
+							Log("Remaining target nodes:");
+							foreach(Node TargetNode in TargetNodes)
+							{
+								Log("    {0}", TargetNode);
+							}
+							if(TargetNodes.Count == 0)
+							{
+								Log("    None.");
+							}
 						}
 					}
 					else

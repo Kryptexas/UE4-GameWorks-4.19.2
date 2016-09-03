@@ -1846,6 +1846,8 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					(HasExceededMaxMemory()==false) && 
 					((Timer.NumPackagesSaved + PackagesToSave.Num()) < Timer.MaxNumPackagesToSave)) // if we don't need to GC and also we have memory then load some more packages ;)
 				{
+					GShaderCompilingManager->ProcessAsyncResults(true, false); // we can afford to do work here because we are essentually requing this package for processing later
+					Timer.SavedPackage();  // this is a special case to prevent infinite loop, if we only have one package we might fall through this and could loop forever.  
 					CookRequests.EnqueueUnique(ToBuild, false);
 					continue;
 				}
@@ -1943,8 +1945,8 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				if (bShouldFinishTick)
 				{
 					SCOPE_TIMER(EnqueueUnsavedPackages);
-					// don't save these packages because we have a real request
 					// enqueue all the packages which we were about to save
+					Timer.SavedPackage();  // this is a special case to prevent infinite loop, if we only have one package we might fall through this and could loop forever.  
 					if (IsCookByTheBookMode())
 					{
 						for (int32 RemainingIndex = I; RemainingIndex < PackagesToSave.Num(); ++RemainingIndex)

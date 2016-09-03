@@ -15,10 +15,12 @@ namespace UnrealBuildTool
 	public class UEDeployIOS : UEBuildDeploy
 	{
 		FileReference ProjectFile;
+		IOSPlatformContext	IOSPlatformContext;
 
-		public UEDeployIOS(FileReference InProjectFile)
+		public UEDeployIOS(FileReference InProjectFile, IOSPlatformContext inIOSPlatformContext)
 		{
 			ProjectFile = InProjectFile;
+			IOSPlatformContext = inIOSPlatformContext;
 		}
 
 		protected UnrealPluginLanguage UPL = null;
@@ -237,32 +239,14 @@ namespace UnrealBuildTool
 			// short version string
 			string BundleShortVersion;
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "VersionInfo", out BundleShortVersion);
-
-			// required capabilities
-            string RequiredCaps = "";
-            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bSupported);
-            RequiredCaps += bSupported ? "\t\t<string>armv7</string>\n" : "";
-            if (!bSupported)
-            {
-                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bSupported);
-                RequiredCaps += bSupported ? "\t\t<string>armv7</string>\n" : "";
-            }
-
-            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bSupported);
-            RequiredCaps += bSupported ? "\t\t<string>arm64</string>\n" : "";
-            if (!bSupported)
-            {
-                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bSupported);
-                RequiredCaps += bSupported ? "\t\t<string>arm64</string>\n" : "";
-            }
-
-            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bSupported);
-            RequiredCaps += bSupported ? "\t\t<string>armv7s</string>\n" : "";
-            if (!bSupported)
-            {
-                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bSupported);
-                RequiredCaps += bSupported ? "\t\t<string>armv7s</string>\n" : "";
-            }
+			
+			string RequiredCaps = "";
+			
+			if(InThis != null)
+			{
+				// required capabilities
+	            RequiredCaps += InThis.IOSPlatformContext.GetRequiredCapabilities();
+			}
 
 			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsOpenGLES2", out bSupported);
 			RequiredCaps += bSupported ? "\t\t<string>opengles-2</string>\n" : "";
@@ -804,7 +788,7 @@ namespace UnrealBuildTool
 
 			// Run through iOS APL file
 			IOSPlatformContext PlatformContext = new IOSPlatformContext(InTarget.ProjectFile);
-			PlatformContext.SetUpProjectEnvironment();
+			PlatformContext.SetUpProjectEnvironment(InTarget.Configuration);
 
 			string BaseSoName = InTarget.OutputPaths[0].FullName;
 

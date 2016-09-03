@@ -358,7 +358,9 @@ void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, USkeleta
 {
 	static const float SamplingRate = 1.f / DEFAULT_SAMPLERATE;
 
-	float MatineeLength = AnimTrackAdapter.GetAnimationLength();
+	float AnimationStart = AnimTrackAdapter.GetAnimationStart();
+	float AnimationLength = AnimTrackAdapter.GetAnimationLength();
+	float AnimationEnd = AnimationStart + AnimationLength;
 	// show a status update every 1 second worth of samples
 	const float UpdateFrequency = 1.0f;
 	float NextUpdateTime = UpdateFrequency;
@@ -373,7 +375,7 @@ void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, USkeleta
 	}
 
 	float SampleTime;
-	for(SampleTime = 0.f; SampleTime <= MatineeLength; SampleTime += SamplingRate)
+	for(SampleTime = AnimationStart; SampleTime <= AnimationEnd; SampleTime += SamplingRate)
 	{
 		// This will call UpdateSkelPose on the skeletal mesh component to move bones based on animations in the matinee group
 		AnimTrackAdapter.UpdateAnimation( SampleTime );
@@ -386,7 +388,7 @@ void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, USkeleta
 		if( NextUpdateTime <= 0.0f )
 		{
 			NextUpdateTime = UpdateFrequency;
-			GWarn->StatusUpdate( FMath::RoundToInt( SampleTime ), FMath::RoundToInt(MatineeLength), NSLOCTEXT("FbxExporter", "ExportingToFbxStatus", "Exporting to FBX") );
+			GWarn->StatusUpdate( FMath::RoundToInt( SampleTime ), FMath::RoundToInt(AnimationLength), NSLOCTEXT("FbxExporter", "ExportingToFbxStatus", "Exporting to FBX") );
 		}
 
 		// Add the animation data to the bone nodes

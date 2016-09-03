@@ -33,6 +33,11 @@ const FName FTextureEditorToolkit::PropertiesTabId(TEXT("TextureEditor_Propertie
 /* FTextureEditorToolkit structors
  *****************************************************************************/
 
+FTextureEditorToolkit::FTextureEditorToolkit()
+	: Texture(nullptr)
+{
+}
+
 FTextureEditorToolkit::~FTextureEditorToolkit( )
 {
 	FReimportManager::Instance()->OnPreReimport().RemoveAll(this);

@@ -168,6 +168,7 @@ void SStaticMeshEditorViewport::AddReferencedObjects( FReferenceCollector& Colle
 {
 	Collector.AddReferencedObject( PreviewMeshComponent );
 	Collector.AddReferencedObject( StaticMesh );
+	Collector.AddReferencedObjects( SocketPreviewMeshComponents );
 }
 
 void SStaticMeshEditorViewport::RefreshViewport()

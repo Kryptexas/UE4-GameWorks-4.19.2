@@ -4072,7 +4072,7 @@ namespace UnrealBuildTool
 			// Initialize the compile and link environments for the platform, configuration, and project.
 			SetUpPlatformEnvironment();
 			SetUpConfigurationEnvironment();
-			SetUpProjectEnvironment();
+			SetUpProjectEnvironment(Configuration);
 
 			// Validates current settings and updates if required.
 			BuildConfiguration.ValidateConfiguration(
@@ -4117,9 +4117,9 @@ namespace UnrealBuildTool
 			GlobalLinkEnvironment.Config.bIsBuildingLibrary = bIsBuildingLibrary;
 		}
 
-		void SetUpProjectEnvironment()
+		void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
 		{
-			PlatformContext.SetUpProjectEnvironment();
+			PlatformContext.SetUpProjectEnvironment(Configuration);
 		}
 
 		/// <summary>

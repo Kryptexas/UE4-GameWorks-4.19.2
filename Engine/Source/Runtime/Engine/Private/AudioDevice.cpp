@@ -100,6 +100,7 @@ FAudioDevice::FAudioDevice()
 	, bHRTFEnabledForAll_OnGameThread(false)
 	, bGameWasTicking(true)
 	, bDisableAudioCaching(false)
+	, bIsAudioDeviceHardwareInitialized(false)
 	, bStartupSoundsPreCached(false)
 	, bSpatializationExtensionEnabled(false)
 	, bHRTFEnabledForAll(false)
@@ -110,6 +111,7 @@ FAudioDevice::FAudioDevice()
 #if !UE_BUILD_SHIPPING
 	, RequestedAudioStats(0)
 #endif
+	, UpdateDeltaTime(0.0f)
 	, ConcurrencyManager(this)
 {
 }
@@ -2849,12 +2851,12 @@ void FAudioDevice::Update(bool bGameTicking)
 	FScopeCycleCounter AudioUpdateTimeCounter(GET_STATID(STAT_AudioUpdateTime));
 
 	double CurrTime = FPlatformTime::Seconds();
-	double DeltaTime = CurrTime - LastUpdateTime;
+	UpdateDeltaTime = CurrTime - LastUpdateTime;
 	LastUpdateTime = CurrTime;
 
 	if (bGameTicking)
 	{
-		GlobalPitchScale.Update(DeltaTime);
+		GlobalPitchScale.Update(UpdateDeltaTime);
 	}
 
 	// Start a new frame
@@ -2898,7 +2900,7 @@ void FAudioDevice::Update(bool bGameTicking)
 	Effects->Update();
 
 	// Gets the current state of the sound classes accounting for sound mix
-	UpdateSoundClassProperties(DeltaTime);
+	UpdateSoundClassProperties(UpdateDeltaTime);
 
 	ProcessingPendingActiveSoundStops();
 
@@ -2971,6 +2973,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 {
 #if !UE_BUILD_SHIPPING
 	TArray<FAudioStats::FStatSoundInfo> StatSoundInfos;
+	TArray<FAudioStats::FStatSoundMix> StatSoundMixes;
 	const bool bStatsStale = (RequestedAudioStats == 0);
 	if (RequestedAudioStats != 0)
 	{
@@ -3025,6 +3028,18 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 				StatSoundInfos[*SoundInfoIndex].WaveInstanceInfos.Add(MoveTemp(WaveInstanceInfo));
 			}
 		}
+
+		USoundMix* CurrentEQMix = Effects->GetCurrentEQMix();
+
+		for (const TPair<USoundMix*, FSoundMixState>& SoundMixPair : SoundMixModifiers)
+		{
+			StatSoundMixes.AddDefaulted();
+			FAudioStats::FStatSoundMix& StatSoundMix = StatSoundMixes.Last();
+			StatSoundMix.MixName = SoundMixPair.Key->GetName();
+			StatSoundMix.InterpValue = SoundMixPair.Value.InterpValue;
+			StatSoundMix.RefCount = SoundMixPair.Value.ActiveRefCount + SoundMixPair.Value.PassiveRefCount;
+			StatSoundMix.bIsCurrentEQ = (SoundMixPair.Key == CurrentEQMix);
+		}
 	}
 #endif
 
@@ -3035,7 +3050,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 	UReverbEffect* ReverbEffect = Effects->GetCurrentReverbEffect();
 	FAudioThread::RunCommandOnGameThread([AudioDeviceID, ReverbEffect
 #if !UE_BUILD_SHIPPING
-											, StatSoundInfos, bStatsStale
+											, StatSoundInfos, StatSoundMixes, bStatsStale
 #endif
 													]()
 	{
@@ -3046,6 +3061,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 				AudioDevice->CurrentReverbEffect = ReverbEffect;
 #if !UE_BUILD_SHIPPING
 				AudioDevice->AudioStats.StatSoundInfos = MoveTemp(StatSoundInfos);
+				AudioDevice->AudioStats.StatSoundMixes = MoveTemp(StatSoundMixes);
 				AudioDevice->AudioStats.bStale = bStatsStale;
 #endif
 			}
@@ -3861,9 +3877,21 @@ void FAudioDevice::StopSourcesUsingBuffer(FSoundBuffer* SoundBuffer)
 
 void FAudioDevice::RegisterSoundClass(USoundClass* InSoundClass)
 {
-	check(IsInAudioThread());
 	if (InSoundClass)
 	{
+		if (!IsInAudioThread())
+		{
+			DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.RegisterSoundClass"), STAT_AudioRegisterSoundClass, STATGROUP_AudioThreadCommands);
+
+			FAudioDevice* AudioDevice = this;
+			FAudioThread::RunCommandOnAudioThread([AudioDevice, InSoundClass]()
+			{
+				AudioDevice->RegisterSoundClass(InSoundClass);
+			}, GET_STATID(STAT_AudioRegisterSoundClass));
+
+			return;
+		}
+
 		// If the sound class wasn't already registered get it in to the system.
 		if (!SoundClasses.Contains(InSoundClass))
 		{
@@ -3885,6 +3913,8 @@ FSoundClassProperties* FAudioDevice::GetSoundClassCurrentProperties(USoundClass*
 {
 	if (InSoundClass)
 	{
+		check(IsInAudioThread());
+
 		FSoundClassProperties* Properties = SoundClasses.Find(InSoundClass);
 		return Properties;
 	}

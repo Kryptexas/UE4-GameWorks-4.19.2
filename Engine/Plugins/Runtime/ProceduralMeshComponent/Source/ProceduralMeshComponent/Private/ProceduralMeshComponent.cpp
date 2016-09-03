@@ -401,6 +401,16 @@ UProceduralMeshComponent::UProceduralMeshComponent(const FObjectInitializer& Obj
 	bUseComplexAsSimpleCollision = true;
 }
 
+void UProceduralMeshComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	if (ProcMeshBodySetup && IsTemplate())
+	{
+		ProcMeshBodySetup->SetFlags(RF_Public);
+	}
+}
+
 void UProceduralMeshComponent::CreateMeshSection_LinearColor(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FLinearColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision)
 {
 	// Convert FLinearColors to FColors
@@ -818,7 +828,8 @@ void UProceduralMeshComponent::CreateProcMeshBodySetup()
 {
 	if (ProcMeshBodySetup == NULL)
 	{
-		ProcMeshBodySetup = NewObject<UBodySetup>(this);
+		// The body setup in a template needs to be public since the property is Tnstanced and thus is the archetype of the instance meaning there is a direct reference
+		ProcMeshBodySetup = NewObject<UBodySetup>(this, NAME_None, (IsTemplate() ? RF_Public : RF_NoFlags));
 		ProcMeshBodySetup->BodySetupGuid = FGuid::NewGuid();
 
 		ProcMeshBodySetup->bGenerateMirroredCollision = false;

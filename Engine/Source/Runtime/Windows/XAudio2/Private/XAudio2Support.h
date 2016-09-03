@@ -32,6 +32,116 @@
 	#include <X3Daudio.h>
 #include "HideWindowsPlatformTypes.h"
 
+#if PLATFORM_WINDOWS
+#include "AllowWindowsPlatformTypes.h"
+#include <mmdeviceapi.h>
+#include <functiondiscoverykeys_devpkey.h>
+
+class FMMNotificationClient : public IMMNotificationClient
+{
+public:
+	FMMNotificationClient()
+		: Ref(1)
+	{
+		bComInitialized = FWindowsPlatformMisc::CoInitialize();
+		HRESULT Result = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (void**)&DeviceEnumerator);
+		if (Result == S_OK)
+		{
+			DeviceEnumerator->RegisterEndpointNotificationCallback(this);
+		}
+	}
+
+	~FMMNotificationClient()
+	{
+		if (DeviceEnumerator)
+		{
+			DeviceEnumerator->UnregisterEndpointNotificationCallback(this);
+			SAFE_RELEASE(DeviceEnumerator);
+		}
+
+		if (bComInitialized)
+		{
+			FWindowsPlatformMisc::CoUninitialize();
+		}
+	}
+
+	HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(EDataFlow flow, ERole role, LPCWSTR pwstrDeviceId) override
+	{
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE OnDeviceAdded(LPCWSTR pwstrDeviceId) override
+	{
+		return S_OK;
+	};
+
+	HRESULT STDMETHODCALLTYPE OnDeviceRemoved(LPCWSTR pwstrDeviceId) override
+	{
+		for (IDeviceChangedListener* Listener : Listeners)
+		{
+			Listener->OnDeviceRemoved(FString(pwstrDeviceId));
+		}
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE OnDeviceStateChanged(LPCWSTR pwstrDeviceId, DWORD dwNewState) override
+	{
+		if (dwNewState == DEVICE_STATE_DISABLED || dwNewState == DEVICE_STATE_UNPLUGGED || dwNewState == DEVICE_STATE_NOTPRESENT)
+		{
+			for (IDeviceChangedListener* Listener : Listeners)
+			{
+				Listener->OnDeviceRemoved(FString(pwstrDeviceId));
+			}
+		}
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(LPCWSTR pwstrDeviceId, const PROPERTYKEY key)
+	{
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE QueryInterface(const IID &, void **) override
+	{
+		return S_OK;
+	}
+
+	ULONG STDMETHODCALLTYPE AddRef() override
+	{
+		return InterlockedIncrement(&Ref);
+	}
+
+	ULONG STDMETHODCALLTYPE Release() override
+	{
+		ULONG ulRef = InterlockedDecrement(&Ref);
+		if (0 == ulRef)
+		{
+			delete this;
+		}
+		return ulRef;
+	}
+
+	void RegisterDeviceChangedListener(IDeviceChangedListener* DeviceChangedListener)
+	{
+		Listeners.Add(DeviceChangedListener);
+	}
+
+	void UnRegisterDeviceDeviceChangedListener(IDeviceChangedListener* DeviceChangedListener)
+	{
+		Listeners.Remove(DeviceChangedListener);
+	}
+
+private:
+	LONG Ref;
+	TSet<IDeviceChangedListener*> Listeners;
+	IMMDeviceEnumerator* DeviceEnumerator;
+	bool bComInitialized;
+};
+
+#include "HideWindowsPlatformTypes.h"
+#endif 
+
+
 /*------------------------------------------------------------------------------------
 	Dependencies, helpers & forward declarations.
 ------------------------------------------------------------------------------------*/
@@ -508,6 +618,12 @@ protected:
 	/** Which sound buffer should be written to next - used for triple buffering. */
 	int32 CurrentBuffer;
 
+	/** The duration of the sound to use when playing virtualized. */
+	float VirtualDuration;
+
+	/** The virtual current playback time. Used to trigger notifications when finished. */
+	float VirtualPlaybackTime;
+
 	/** Set to true when the loop end callback is hit */
 	FThreadSafeBool bLoopCallback;
 
@@ -619,7 +735,7 @@ FORCEINLINE bool operator==(const WAVEFORMATEX& FormatA, const WAVEFORMATEX& For
 
 
 /** This structure holds any singleton XAudio2 resources which need to be used, not just "properties" of the device. */
-struct FXAudioDeviceProperties
+struct FXAudioDeviceProperties : public IDeviceChangedListener
 {
 	// These variables are non-static to support multiple audio device instances
 	struct IXAudio2*					XAudio2;
@@ -633,6 +749,10 @@ struct FXAudioDeviceProperties
 	static XAUDIO2_DEVICE_DETAILS		DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
+#if PLATFORM_WINDOWS
+	static FMMNotificationClient* NotificationClient;
+#endif
+
 	// For calculating speaker maps for 3d audio
 	FSpatializationHelper				SpatializationHelper;
 
@@ -642,16 +762,36 @@ struct FXAudioDeviceProperties
 	/** Number of non-free active voices */
 	int32 NumActiveVoices;
 
+	/** Whether or not the audio device changed. Used to trigger device reset when audio device changes. */
+	FThreadSafeBool bDeviceChanged;
+
 	FXAudioDeviceProperties()
 		: XAudio2(nullptr)
 		, MasteringVoice(nullptr)
 		, XAudio2Dll(nullptr)
 		, NumActiveVoices(0)
 	{
+#if PLATFORM_WINDOWS
+		if (NotificationClient == nullptr)
+		{
+			NotificationClient = new FMMNotificationClient();
+		}
+		else
+		{
+			NotificationClient->AddRef();
+		}
+
+		NotificationClient->RegisterDeviceChangedListener(this);
+#endif
 	}
 	
 	~FXAudioDeviceProperties()
 	{
+#if PLATFORM_WINDOWS
+		NotificationClient->UnRegisterDeviceDeviceChangedListener(this);
+		NotificationClient->Release();
+#endif
+
 		// Make sure we've free'd all of our active voices at this point!
 		check(NumActiveVoices == 0);
 
@@ -679,6 +819,23 @@ struct FXAudioDeviceProperties
 			}
 		}
 #endif
+	}
+
+	void OnDeviceRemoved(FString DeviceID) override
+	{
+#if XAUDIO_SUPPORTS_DEVICE_DETAILS
+		if (DeviceID == FString(DeviceDetails.DeviceID))
+		{
+			bDeviceChanged = true;
+		}
+#endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
+	}
+
+	bool DidAudioDeviceChange()
+	{
+		bool bChanged = bDeviceChanged;
+		bDeviceChanged = false;
+		return bChanged;
 	}
 
 	bool Validate(const TCHAR* Function, uint32 ErrorCode) const
