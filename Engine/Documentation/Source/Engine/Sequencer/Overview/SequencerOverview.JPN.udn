@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3075953
+﻿INTSourceChangelist:3108675
 Availability:Public
 Title:シーケンサーの概要
 Crumbs: %ROOT%, Engine
@@ -257,6 +257,17 @@ EDLs の使用についての手順を示したガイドについては、[](Eng
 [/REGION]
 [/PUBLISH:docs]
 
+[PUBLISH:docs]
+### カスタム レンダー パス
+
+異なるレンダー パスでシネマティックスのエクスポートをするには、**[Render Movie Settings]** ウィンドウから行うことができます。 
+ここからシーケンスをエクスポートする場合に使うレンダー パスを指定することができます。HDR データを.exr ファイルとしてエクスポートして、圧縮と色域の設定を定義することができます。 
+
+
+[REGION:note]
+詳細は、 [](Engine\Sequencer\Workflow\CustomRenderPass) をご覧ください。
+[/REGION]
+[/PUBLISH:docs]
 
 
 ## ワークフロー上の考慮事項
