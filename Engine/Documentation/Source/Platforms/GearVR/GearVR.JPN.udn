@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2940199
-Title:Sumsung Gear VR の開発
+﻿INTSourceChangelist:3076265
+Title:Samsung Gear VR の開発
 Description:Samsung Gear VR ヘッドセットを UE4 と使用する方法。
 Availability:Public
 Navigation:platform
 Platform:Gear VR
-SkillLevel:Intermediate
+Skilllevel:Intermediate
 Version:4.9
 prereq:Engine\Blueprints\GettingStarted
 Crumbs:%ROOT%, Platforms
