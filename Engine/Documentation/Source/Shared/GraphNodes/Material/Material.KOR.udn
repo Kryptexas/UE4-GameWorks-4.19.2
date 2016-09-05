@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3079611
+﻿INTSourceChangelist:3091931
 Availability:NoPublish
 Title:
 Crumbs:
@@ -11,6 +11,22 @@ Atmospheric Fog (애트머스페릭 포그) 머티리얼 표현식으로는 월�
 Engine/Rendering/Materials/ExpressionReference/Atmosphere
 [/VAR]
 [/EXCERPT:UMaterialExpressionAtmosphericFogColor]
+
+[EXCERPT:UMaterialExpressionAtmosphericLightVector]
+Atmospheric Light Vector (애트머스페릭 라이트 벡터) 머티리얼 표현식은 씬의 Atmosphere Sun Light (대기 태양광) 옵션이 체크된 디렉셔널 라이트에 대한 라이트 벡터를 반환합니다. 태양의 라이트 벡터를 사용하여 어떤 커스텀 셰이딩 작업을 하고자 하는 이펙트 머티리얼에 좋습니다.
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Atmosphere
+[/VAR]
+[/EXCERPT:UMaterialExpressionAtmosphericLightVector]
+
+[EXCERPT:UMaterialExpressionAtmosphericLightColor]
+Atmospheric Light Color (애트머스페릭 라이트 컬러) 머티리얼 표현식은 씬의 Atmosphere Sun Light (대기 태양광) 옵션이 체크된 디렉셔널 라이트에 대한 라이트 컬러를 반환합니다. 태양의 라이트 컬러를 사용하여 어떤 커스텀 셰이딩 작업을 하고자 하는 이펙트 머티리얼에 좋습니다.
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Atmosphere
+[/VAR]
+[/EXCERPT:UMaterialExpressionAtmosphericLightColor]
 
 
 [EXCERPT:UMaterialExpressionDesaturation]
