@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3112258
 Availability:Public
-Title:Unreal Engine 4.13 Release Notes
+Title:언리얼 엔진 4.13 릴리즈 노트
 Crumbs:%ROOT%, Engine
 Description:
 order:13
@@ -23,789 +23,789 @@ reference-image:image_41.gif
 reference-image:image_45.gif
 reference-image:image_52.gif
 
-This release brings hundreds of updates for Unreal Engine 4, including 145 improvements submitted by the community of Unreal Engine developers on GitHub! Thanks to all of these contributors to Unreal Engine 4.13:
+이번 릴리즈에는 GitHub 의 언리얼 엔진 개발자 커뮤니티가 제공한 145 종의 개선사항을 포함해서, 수백종의 언리얼 엔진 4 업데이트가 포함되어 있습니다. 언리얼 엔진 4.13 에 기여해 주신 모든 분들께 감사드립니다:
 
 alk3ovation, Allegorithmic (Allegorithmic), Alwin Tom (alwintom), Andreas Axelsson (judgeaxl), Andrew Scheidecker (AndrewScheidecker), Andrian Nord (NightNord), ArnoB (ABeekhub), Artem (umerov1999), Artem V. Navrotskiy (bozaro), Błażej Szczygieł (zaps166), Brent Scriver (FineRedMist), Cedric Neukirchen (eXifreXi), Céleste (CelPlays), Chris Conway (Koderz), Chris528, Christoph Becher (chbecher), Christopher P. Yarger (cpyarger), DanielDylan, DaveC79, Derek van Vliet (derekvanvliet), DevVancouver, Eric-Ketchum, Eugene (grisevg), Franco Salas (SupremeNinjaMaster), gameDNA (gameDNAstudio), ghost, Joel McGinnis (joelmcginnis), Jonathan Johansson (DualCoder), Jørgen P. Tjernø (jorgenpt), Joshua Kaiser (JoshuaKaiser), korkuveren, Kory Postma (korypostma), Krish Munot (KrishMunot), Kuts Alexey (krunt), Lars Jørgen Solberg (larsjsol), Lectem, Lee Reilly (leereilly), Lukasz Baran (iniside), madsystem, Manny (Manny-MADE), Marat Radchenko (slonopotamus), Markus Breyer (pluranium), Martin Gerhardy (mgerhardy), Marvin Pohl (pampersrocker), massanoori, Mateusz Polewaczyk (matii1509), Matthias Huerbe (MatzeOGH), Matthijs Lavrijsen (Mattiwatti), MaximDC, mfortin-bhvr, Michael Allar (Allar), Michael Schoell (MichaelSchoell), mik14a, Miłosz Kosobucki (MiKom), mkirzinger, Moritz Wundke (moritz-wundke), Nachtmahr (NachtMahr87), Narendra Umate (ardneran), NaturalMotionTechnology, Oleksandr Kuznietsov (Teivaz), OWIAdmin, Patryk Stępniewski (kodomastro), Paul Evans (paulevans), pfranz, Piotr Bąk (Pierdek), PistonMiner, projectgheist, Rama (EverNewJoy), Ricardo Maes (kukiric), Rick Deist (dreckard), Robert Segal (robertfsegal), RobertTroughton, Rohan Liston (rohanliston), Saffron (SaffronCR), Sajid (sajidfarooq), salamanderrake, Samuel Maddock (samuelmaddock), Sébastien Rombauts (SRombauts), Tanner Mickelson (DarthCoder117), Thomas Mayer (tommybear), tmiv, Tyler Thompson (Bogustus), Victor Polevoy (vityafx), Webster Sheets (Web-eWorks), Wesley Hearn (wshearn), yehaike, Yohann Martel (ymartel06), Yong-Quan Chen (wingedrobin), Yu He (yuhe00), Zachary Burke (error454)
 
-# What’s New
+# 새로운 소식
 
-**Unreal Engine 4.13** has arrived!  In this version you'll find numerous improvements across the board.
+**언리얼 엔진 4.13** 버전이 출시되었습니다! 이번 버전은 다양한 분야에 걸친 여러가지 기능이 개선되었습니다.
 
-Many new **rendering features** have been added, such as mesh decals, Blueprint drawing to render targets, GPU morph targets, refraction improvements and high quality, optimized noise functions are now available to materials.  Shadow map caching allows for more shadow-casting dynamic lights in a scene than ever before!
+**렌더링 기능** 다수가 추가되었습니다. 이제 메시 데칼, 블루프린트로 렌더 타겟에 그리기, GPU 모프 타겟, 굴절 효과 향상, 고품질 최적화된 노이즈 함수를 머티리얼에 사용할 수 있습니다. 섀도 맵 캐시를 통해 한 씬에 그림자를 드리우는 다이내믹 라이트를 전보다 많이 둘 수 있게 되었습니다!
 
-**Sequencer**, our new non-linear cinematic editor, has been updated with a slew of new features for high-end cinematography.  **Live recording** from gameplay has been significantly improved.  Also, you can now transfer shots and animations back and forth from external applications.  You can see these features in our [Siggraph Real-time Live! 2016 demonstration](http://www.unrealengine.com/blog/unreal-engine-4-powers-real-time-cinematography-at-siggraph).
+새로운 비선형 시네마틱 에디터인 **시퀀서** 에, 고사양 영화 촬영 기법에 사용되는 여러가지 신기능이 업데이트되었습니다. 게임플레이에서의 라이브 녹화 기능이 크게 향상되었습니다. 또 이제 샷과 애니메이션을 외부 어플리케이션과 자유롭게 공유할 수 있습니다. 이 기능은 [시그라프 리얼타임 라이브! 2016 데모 영상](http://www.unrealengine.com/blog/unreal-engine-4-powers-real-time-cinematography-at-siggraph) 에서 참고하실 수 있습니다.
 
-**Alembic** support allows you to import complex and interesting vertex animations.  And the new **Physical Animation Component** lets your characters respond realistically to physical forces by driving their skeletal animation through motors.
+**Alembic** (얼렘빅) 지원을 통해 재미있고 복잡한 버텍스 애니메이션도 임포트할 수 있습니다. 그리고 새로운 **피지컬 애니메이션 컴포넌트** 를 통해서는 캐릭터의 스켈레탈 애니메이션을 모터를 통해 구동시킴으로써 물리적 힘에 사실적으로 반응하도록 만들 수 있습니다.
 
-For **mobile developers**, dynamic shadows have been optimized, full-precision materials are supported, and custom post-processing is now possible.  OpenGL ES 3.1 can now be used on Android, and binary shader caching will improve your iteration times.
+**모바일 개발자** 를 위한 희소식, 다이내믹 섀도우가 최적화되고, 최대 정밀도의 머티리얼이 지원되며, 커스텀 포스트 프로세싱이 가능해졌습니다. 이제 안드로이드에서 OpenGL ES 3.1 을 사용할 수 있으며, 바이너리 셰이더 캐시로 반복처리 시간이 빨라질 것입니다.
 
-**VR games** can now use capsule shadows, and stereo instancing has been optimized.  Oh, and check out the new **VR Template Project**!  It's a great example of how to use motion controllers to interact and navigate in your VR game.  
+**VR 게임** 에서 이제 캡슐 그림자를 사용할 수 있으며, 스테레오 인스턴싱 기능이 최적화되었습니다. 새로운 VR 템플릿 프로젝트도 확인해 보세요! 모션 컨트롤러를 사용하여 VR 게임에서 조작과 이동하는 법을 확인하기에 좋은 예제입니다.
 
-Want to build your levels while in VR?  Unreal's **VR Editor** has been improved with support for mesh and foliage painting, a new transform gizmo, and VR color picking.  Finally, you now can instantly play your game right from VR!  You can turn on "Enable VR Editing" in the Experimental section of your Editor Preferences.
+가상현실 레벨 제작은 가상현실에서? 언리얼의 **VR 에디터** 에 메시와 폴리지 페인팅이 지원되고, 새로운 트랜스폼 기즈모와 VR 색 선택기가 업데이트되었습니다. 마지막으로, VR 에서 바로 게임을 즉시 플레이해 볼 수도 있습니다! 에디터 개인설정에서 실험단계 기능 부분의 'Enable VR Editing' (VR 편집 활성화) 옵션을 켜면 됩니다.
 
-# Major Features
+# 주요 기능
 
-## New: Sequencer Live Recording
+## 시퀀서 라이브 녹화
 
-Sequencer been updated with new Live Recording improvements as shown at [Siggraph Real-Time Live! 2016](https://www.unrealengine.com/blog/unreal-engine-4-powers-real-time-cinematography-at-siggraph).
+시퀀서의 라이브 녹화 기능이 향상되었습니다. 시그라프 실시간 라이브! 2016 영상을 확인해 보세요.
 
 ![image alt text](image_1.jpg)(h:674 w:929 convert:false)
 
-The Sequence Recorder allows you to capture live gameplay, including all animation, audio and effects into a standalone asset that you can edit using Sequencer!  New features in this release:
+시퀀서 녹화기에서는 모든 애니메이션, 오디오, 이펙트 전부가 포함된 라이브 게임플레이를 독립형 애셋에 캡처하여, 시퀀서에서 바로 편집할 수 있습니다. 이번 버전에 새로 추가된 기능은 다음과 같습니다:
 
-* Quickly record selected actors and automatically create camera cuts track if camera is recorded.
+* 선택된 액터를 빠르게 녹화하고 카메라가 녹화된 경우 자동으로 카메라 컷 트랙을 생성합니다.
 
-* Ability to specify arbitrary components and properties to record.
+* 녹화할 컴포넌트와 프로퍼티를 임의로 지정할 수 있습니다.
 
-* Optionally record data to actor possessed in level.
+* 옵션으로 레벨에 빙의된 액터에 데이터를 녹화합니다.
 
-* Record transforms in world space when actor is attached but not recorded.
+* 액터가 붙어는 있으나 녹화되지는 않은 경우 월드 스페이스의 트랜스폼을 녹화합니다.
 
-## New: Shadow Map Caching for Movable Lights
+## 무버블 라이트용 섀도우 맵 캐시
 
-When a point or spot light is not moving, we can store off the shadow map for that light and reuse it next frame.  This is now done automatically and makes shadow casting movable point and spot lights much more affordable in games where the environment is often not moving.
+포인트 또는 스포트 라이트가 움직이지 않으면, 그 라이트에 대한 섀도 맵을 저장한 뒤 다음 프레임에 재사용할 수 있습니다. 이 기능은 이제 자동으로 이루어져 배경이 잘 움직이지 않는 게임에서는 그림자를 드리우는 무버블 포인트 / 스포트 라이트 비용 부담이 크게 줄어듭니다.
 
 ![image alt text](image_2.jpg)(h:541 w:929 convert:false)
 
-The above image shows 33 dynamic shadow-casting point lights, with very minimal overhead:
+위 그림은 다이내믹 섀도를 드리우는 포인트 라이트가 33 개나 되는데, 부하가 매우 적게 걸리고 있습니다:
 
-Performance results on a 970 GTX at 1920x1200
+970 GTX 에서 1920x1200 해상도로 돌렸을 때 나오는 퍼포먼스는 다음과 같습니다:
 
-* 33 shadow casting point lights without caching: **14.89ms to render Shadow Depths.**
+* 그림자를 드리우는 포인트 라이트 33 개를 섀도 뎁스에 렌더링할 때, 캐시가 없을 때: 14.89ms.
 
-* With cached shadow maps: **.9ms** **(about 16 times faster!)**
+* 섀도 맵 캐시가 있을 때: .9ms (약 16 배 향상!)
 
-* Note that it still costs 2ms to render the contributions of the 33 point lights, which can be optimized in other ways but is not affected by this change.
+* 참고로 33 개의 포인트 라이트가 기여하는 바를 렌더링하는 데 여전히 2ms 가 드는데, 이는 다른 방식으로 최적화시킬 수는 있지만, 이 변경사항에 영향을 받지는 않습니다.
 
-* Memory used by the cache can be seen under ‘Stat ShadowRendering’ and was 25.6Mb in this scene.
+* 캐시에 사용되는 메모리는 "Stat ShadowRendering" 하에서 볼 수 있으며, 이 씬에서는 25.6Mb 였습니다.
 
-* Max memory used by the cache can be controlled with ‘r.Shadow.WholeSceneShadowCacheMb’
+* 캐시에 사용되는 최대 메모리는 "r.Shadow.WholeSceneShadowCacheMb" 옵션으로 제어할 수 있습니다.
 
-Limitations
+한계
 
-* By default, caching can only happen when:
+* 기본적으로, 캐시가 벌어지는 상황은 다음과 같습니다:
 
-    * Primitives have mobility set to Static or Stationary 
+	* 프리미티브의 모빌리티가 스태틱 또는 스테이셔너리 로 설정되어 있고
 
-    * Materials used do not use World Position Offset
+	* 사용된 머티리얼이 월드 포지션 오프셋을 사용하지 않으며
 
-    * Light is point or spot, shadow casting, and mobility set to Movable but not currently moving
+	* 라이트가 포인트 또는 스포트이고, 그림자를 드리우고, 모빌리티가 무버블로 설정되었으나 현재 움직이지는 않는 경우
 
-* Materials that use an animating Tessellation or Pixel Depth Offset can cause artifacts as their shadow depths are cached.
+* 애니메이션이 있는 테셀레이션이나 픽셀 뎁스 오프셋을 사용하는 머티리얼의 경우, 섀도 뎁스가 캐시되므로 부작용이 생길 수 있습니다.
 
-## New: Voronoi Noise Materials
+## 보로노이 노이즈 머티리얼
 
-We’ve added a new Voronoi noise option available for the Noise material node. Voronoi noise, also sometimes called Worley or Cellular noise, is can be useful for procedural material creation. 
+Noise 머티리얼 노드에 사용할 수 있는 Voronoi (보로노이) 노이즈 옵션을 추가했습니다. 보로노이 노이즈는 Worley (월리) 또는 Cellular (셀룰러) 노이즈라고도 하는데, 머티리얼 자동 생성에 유용할 수 있습니다.
 
 ![image alt text](image_3.jpg)(h:333 w:624 convert:false)
 
-Voronoi noise can be used to generate patterns for familiar physical materials such as marble, as seen on the statue below.
+보로노이 노이즈는 아래 석상에서 보이는 것처럼 대리석과 같은 친숙한 피지컬 머티리얼의 패턴을 생성하는 데 사용할 수 있습니다.
 
 ![image alt text](image_4.jpg)(h:377 w:624 convert:false)
 
-This example uses a Voronoi noise with a technique called ‘gradient mapping’ to achieve a marble look.
+이 예제는 보로노이 노이즈에 "그레디언트 매핑" 이라는 기법을 같이 써서 대리석 모양을 낸 것입니다.
 
 ![image alt text](image_5.jpg)(h:233 w:929 convert:false)
 
-From Left to Right:
+왼쪽에서 오른쪽으로:
 
-1) Standard Voronoi Noise, 1 octave
+1) 표준 보로노이 노이즈, 1 옥타브
 
-2) Voronoi with "Gradient" noise added to input position, set to 0.05
+2) 보로노이 노이즈에 '그레디언트' 노이즈를 추가하여 위치 입력은 0.05 로 설정
 
-3) Gradient noise multiplied by 0.3 before adding to Voronoi input position
+3) 그레디언트 노이즈에 0.3 을 곱한 뒤 보로노이 입력 위치에 추가
 
-4) Using result of step 3 as texture coordinates for a random tiling texture
+4) 위 3) 의 결과를 랜덤 타일 텍스처의 텍스처 좌표로 사용
 
-The Voronoi noise has four quality levels, with decreasing grid artifacts at the higher levels at the cost of significantly increased shading time.
+보로노이 노이즈는 퀄리티가 4 레벨로 되어 있으며, 레벨이 높아질 수록 셰이딩 시간이 크게 늘어나는 대신 그리드 부작용이 줄어듭니다.
 
-Also, performance has been improved for several of the Noise Material Node features, with more detailed description of the performance tradeoffs in the function selection tooltips. Most of these can be slow for runtime use, so baking the results into a texture is encouraged.
+또한, 여러가지 노이즈 머티리얼 노드의 퍼포먼스가 향상되었으며, 함수 선택 툴팁에서 보다 자세한 퍼포먼스 증감 내용을 확인할 수 있습니다. 대부분 실행시간에 사용하기는 느릴 수 있으니, 결과를 텍스처에 구워 넣는 것이 좋습니다.
 
-## New: Blueprint Drawing to Render Targets
+## 블루프린트로 렌더 타겟에 그리기
 
-Blueprint functions can now be used to draw materials into render targets.  This enables a huge variety of game-specific rendering effects to be implemented without having to modify source code.
+이제 블루프린트 함수를 사용하여 머티리얼을 렌더 타겟에 그릴 수 있습니다. 이를 통해 소스 코드 수정 없이도 엄청나게 다양한 게임 전용 렌더링 이펙트들을 구현할 수 있습니다.
 
 [REGION:asyncgif]
 ![image alt text](image_6.gif)
 [/REGION]
 
-This is a fluid surface simulation implemented entirely in Blueprint and Material graphs.  Characters and projectiles can push the fluid around!
+블루프린트와 머티리얼 그래프만 가지고 구현한 유체 표면 시뮬레이션입니다. 캐릭터와 프로젝타일이 유체를 밀어내고 있습니다!
 
 [REGION:asyncgif]
 ![image alt text](image_7.gif)
 [/REGION]
 
-Above shows a simple heightfield painter made entirely in Blueprint, by accumulating a height value at projectile impacts.
+위는 블루프린트로만 만든 간단한 하이트필드 페인터인데, 발사체에 맞은 곳의 높이 값을 누적시킵니다.
 
-The new Blueprint function **Draw Material to Render Target** draws a quad filling the destination render target with the **Emissive Color** input in the material.
+새로운 블루프린트 함수 Draw Material to Render Target (렌더 타겟에 머티리얼 그리기)는 대상 렌터 타겟을 머티리얼의 이미시브 컬러 입력 색으로 채워 쿼드를 그립니다.
 
 ![image alt text](image_8.jpg)(h:149 w:661 convert:false)
 
-Upon starting the game, **Begin Play** is called and the render target is filled with blue.  You can then right-click on the render target and save it as a static Texture which can be compressed.  
+게임을 시작하면, Begin Play 가 호출되어 렌더 타겟을 파랑으로 채웁니다. 그런 다음 렌더 타겟에 우클릭한 후 스태틱 텍스처로 저장하여 압축할 수 있습니다.
 
 ![image alt text](image_9.jpg)(h:164 w:500 convert:false)
 
-For more advanced drawing to a render target, use **Begin Draw Canvas to Render Target **and **End Draw Canvas to Render Target**.  These allow multiple draws to a subset of the render target efficiently, as well as font drawing methods through the Canvas object.
+렌더 타겟에 그리기 고급 기능은, Begin Draw Canvas to Render Target 과 End Draw Canvas to Render Target (렌더 타겟에 캔버스 그리기 시작/끝)입니다. 이를 통해 다수의 드로를 렌더 타겟의 부분집합에 효율적으로 그려넣을 수 있을 뿐만 아니라, 캔버스 오브젝트를 통한 폰트 그리기 메소드도 가능합니다.
 
 ![image alt text](image_10.jpg)(h:517 w:896 convert:false)
 
-Being able to render off-screen from blueprint enables a ton of rendering features to be implemented quickly without a graphics programmer.  It's also very easy to tank the GPU by doing a lot of pixel shader work with many passes to large render targets.  These draw calls show up after typing 'ProfileGPU' in the debug console (under the WorldTick event)
+블루프린트에서 화면 밖 부분을 렌더링할 수 있다는 것은, 엄청나게 많은 렌더링 기능들을 그래픽 프로그래머 없이도 빠르게 구현할 수 있다는 뜻입니다. 여러 패스로 이루어진 다수의 픽셀 셰이더 작업을 커다란 렌더 타겟에 해냄으로써 GPU 를 확보하기도 매우 쉽습니다. 이러한 드로 콜은 디버그 콘솔에 'ProfileGPU' 를 치면 (WorldTick 이벤트 아래에) 나타납니다.
 
-Limitations
+한계
 
-* You cannot draw to a render target that is being sampled as a texture by the material you specify.  Either use alpha blending to modify a render target in-place, or ping-pong between two different render targets.
+* 지정한 머티리얼에 의해 텍스처로 샘플링되고 있는 렌더 타겟에는 그릴 수 없습니다. 알파 블렌딩을 사용하여 그 렌더 타겟을 변경하거나, 두 개의 다른 렌더 타겟을 왔다갔다 하거나 해야 합니다.
 
-* Only the Emissive Color and Opacity outputs of the material are valid when drawing to a render target, lighting is not supported and nodes like WorldPosition may have unexpected values.
+* 렌더 타겟에 그리기는 머티리얼의 이미시브 컬러와 오파시티 출력만 사용 가능합니다. 라이팅은 지원되지 않으며, WorldPosition 같은 노드는 예상치 못한 결과를 낼 수 있습니다.
 
-* Emissive Color is clamped to be positive by default, but you can output negative values by enabling the material property ‘AllowNegativeEmissiveColor’
+* 이미시브 컬러는 기본적으로 양수 범위로 제한되나, "AllowNegativeEmissiveColor" 머티리얼 프로퍼티를 켜는 것으로 음수 값을 출력할 수 있습니다.
 
-Check out the **BlueprintRenderToTarget **map in the ContentExamples project for working examples!
+실전 예제는 ContentExamples 프로젝트의 BlueprintRenderToTarget 맵을 참고해 주세요!
 
-## New: Alembic Importer for Vertex Animation (Experimental)
+## 버텍스 애니메이션용 얼렘빅 임포터 (실험단계)
 
-Alembic animation import is now supported!  Alembic allows for complex animations to be authored offline, then rendered in real-time inside UE4!  This feature is still considered experimental, but please try it out and send us feedback.
+이제 Alembic (얼렘빅) 애니메이션 임포트 기능이 지원됩니다! 얼렘빅으로 복잡한 애니메이션을 오프라인에서 만든 다음, UE4 안에서 실시간으로 렌더링할 수 있습니다. 이 기능은 아직 실험단계 기능으로, 시험해 보시고 피드백을 부탁드립니다.
 
 [REGION:asyncgif]
 ![image alt text](image_11.gif)
 [/REGION]
 
-We allow importing Alembic caches in different ways:
+지원되는 얼렘빅 캐시 임포트 방식은 여러가지입니다:
 
-* **Static Mesh**.  A single frame from the Alembic animation will be imported as a static mesh asset (no animation.)
+* **스태틱 메시**. 얼렘빅 애니메이션의 한 프레임을 스태틱 메시 애셋으로 (애니메이션 없이) 임포트합니다.
 
-* **Geometry Cache.  **This is a new type of animation asset that allows playback of vertex-varying sequences.  The imported Alembic animation will be played back as a flipbook of frames.  Performance will scale with your mesh’s complexity and may not be optimal in all cases
+* **지오메트리 캐시**. 버텍스가 변하는 시퀀스 재생을 가능하게 해주는 새로운 유형의 애니메이션 애셋입니다. 임포트된 얼렘빅 애니메이션은 프레임의 플립북처럼 재생됩니다. 퍼포먼스는 메시의 복잡도에 비례하며, 항상 최적의 퍼포먼스를 내지는 못할 수 있습니다.
 
-* **Skeletal Mesh**.  This is the most efficient way to play back an Alembic animation, as long as the vertex count doesn’t change.  During import, your animation sequence will be compressed using a PCA scheme, in which common poses (bases) are extracted and weighted to compose the original animation during playback time. The percentage or fixed number of bases used can be set during import to tweak the level of compression
+* **스켈레탈 메시**. 얼렘빅 애니메이션을 재생하기에 가장 효율적인 방식으로, 버텍스 수가 변하지 않을 경우 특히 그렇습니다. 임포트 도중, 애니메이션 시퀀스는 PCA 스키마를 사용하여 압축되며, 공통 포즈(베이스)를 추출하고 웨이팅을 입혀 재생 시간 도중 원본 애니메이션을 합성합니다. 임포트 도중 사용되는 베이스의 백분율 또는 고정 수치를 설정하여 압축 수준을 조정할 수 있습니다.
 
-## New: Mesh Preview Scenes
+## 메시 프리뷰 씬
 
-New functionality has been added to setup the scene used to preview Static and Skeletal meshes. 
+스태틱 / 스켈레탈 메시를 미리보는 데 사용되는 씬을 구성할 수 있는 기능이 새로 추가되었습니다.
 
 ![image alt text](image_12.jpg)(h:232 w:929 convert:false)
 
-A new Preview Scene Settings panel has been added to the Static Mesh and Skeletal Mesh editors.  Here, you can setup multiple profiles (scenes) to preview your meshes, and the profiles allow for changing:
+스태틱 메시와 스켈레탈 메시 에디터에 프리뷰 씬 세팅 패널이 새로 추가되었습니다. 여기서 메시를 미리보는 데 사용되는 프로파일(씬)을 여럿 구성할 수 있으며, 프로파일에서는 다음과 같은 변경이 가능합니다:
 
-* Directional light (colour, intensity, rotation)
+* 디렉셔널 라이트 (색, 강도, 회전)
 
-* Sky light (HDRI environment map, intensity, rotation)
+* 스카이 라이트 (HDRI 환경 맵, 강도, 회전)
 
-* Post processing settings (identical to post process volume)
+* 포스트 프로세싱 세팅 (포스트 프로세스 볼륨과 동일)
 
 ![image alt text](image_13.jpg)(h:494 w:766 convert:false)
 
-We’ve also added some showcase functionality:
+쇼케이스 함수성도 몇 가지 추가했습니다:
 
-* Manually rotate environment (hold K key) and directional light (hold L key)
+* 수동으로 배경 (K 키) 및 디렉셔널 라이트 (L 키) 회전
 
-* Automatically rotate lighting rig (directional light and environment)
+* 라이팅 릭 (디렉셔널 라이트와 배경) 자동 회전
 
-* Easily hide the floor (O key) and environment (I key)
+* 쉬운 바닥 (O 키) 및 배경 (I 키) 숨김
 
-## New: Mesh Decals
+## 메시 데칼
 
-The new Mesh Decals feature lets you efficiently splat materials on top of your static meshes, effectively allowing you to smoothly layer different materials on top of one another.  You can think of it as a second mesh that sits above the underlying geometry’s profile with it’s own topology and materials. 
+새로운 메시 데칼 기능을 통해 스태틱 메시 위에 머티리얼을 효율적으로 바를 수 있어, 한 머티리얼 위에 다른 머티리얼을 부드럽게 겹쳐놓을 수 있습니다. 바탕이 되는 지오메트리의 프로파일 위에 별도의 형태적 특징과 머티리얼을 지닌 이차 메시를 얹어 놓는 것이라 생각하면 됩니다.
 
 ![image alt text](image_14.jpg)(h:326 w:428 convert:false)
 
-The above pillars are each created as base mesh overlayed with a single detailed break mesh, as shown in the wireframe below. The left pillar is using a mesh decal to allow smoothly blended color, normals and roughness. The right-most pillar is a masked material, just for comparison.  
+위의 기둥은 각각 바탕 메시에 깨진 메시 디테일을 하나씩 겹쳐놓은 것으로, 아래 와이어프레임에서 확인할 수 있습니다. 왼쪽 기둥은 메시 데칼을 사용하여 컬러, 노멀, 러프니스를 부드럽게 블렌딩한 것입니다. 가장 오른쪽의 기둥은 비교용 마스크드 머티리얼입니다.
 
 ![image alt text](image_15.jpg)(h:220 w:165 convert:false)![image alt text](image_16.jpg)(h:220 w:169 convert:false)
 
-Unlike deferred decals there is no projection involved, so a typical decal mesh which is tightly coupled to the underlying surface may need to include a surface offset in the material.  Also, be careful if you have LODs where the mesh decal geometry would interpenetrate the LOD mesh.
+디퍼드 데칼과 달리 프로젝션이 포함되어 있지 않아서, 바탕이 되는 표면에 강 결합되어 있는 전형적인 데칼 메시는 머티리얼에서 표면 오프셋을 포함시켜줘야 할 것입니다. 또한 LOD 가 있는 경우 메시 데칼 지오메트리가 LOD 메시와 상호 관통될 수 있으니 주의하시기 바랍니다.
 
-## New: Widget Interaction Component
+## 위젯 인터랙션 컴포넌트
 
-Using the widget interaction component, you can now simulate hardware input events with widget components in the world.  
+Widget Interaction Component (위젯 인터랙션 컴포넌트)를 사용하면, 월드의 위젯 컴포넌트로 하드웨이 입력 이벤트를 시뮬레이션할 수 있습니다.
 
 [REGION:asyncgif]
 ![image alt text](image_17.gif)
 [/REGION]
 
-You can attach it like a laser pointer to any object in the world to interact with widgets; there are also some other options available for more customized behavior.  When standard input comes to the player controller, you’ll instruct the interaction component to simulate a particular hardware input such as Left Mouse Down/Up over whatever widget the user happens to be hovering at that time.
+레이저 포인터처럼 붙여서 월드에 있는 아무 오브젝트나 지시하여 위젯으로 상호작용하도록 할 수 있습니다. 조금 더 독특한 동작을 하도록 할 수 있는 옵션도 몇 가지 있습니다. 플레이어 컨트롤러에서 표준 입력을 받을 때, 인터랙션 컴포넌트더러 특정 하드웨어 입력을 시뮬레이션하도록 할 수 있습니다. 이를테면 당시에 지시하고 있던 위젯이 무엇이든 거기에 왼쪽 마우스 버튼 클릭을 하도록 말이지요.
 
-For users who were previously relying on clicking directly on Widget Components in the world using the mouse, that path is no longer supported.  Users will need to attach an Interaction Component (In Mouse Mode) to their player, then forward input to the Interaction Component when the player receives it.
+기존에 마우스로 월드의 위젯 컴포넌트를 직접 클릭하던 방식은 더이상 지원하지 않습니다. 플레이어에게 (마우스 모드에서) 인터랙션 컴포넌트를 붙인 다음, 플레이어가 입력을 받으면 인터랙션 컴포넌트에 전송하도록 해야 합니다.
 
-## New: VR Project Template
+## VR 프로젝트 템플릿
 
-We’ve added a new project template designed for Virtual Reality on desktop and console.
+데스크탑과 콘솔에서의 가상 현실용으로 디자인된 프로젝트 템플릿을 새로 추가했습니다.
 
 [REGION:asyncgif]![image alt text](image_18.gif)(h:380)[/REGION] [REGION:asyncgif]![image alt text](image_19.gif)(h:380)[/REGION]
 
-To access this, simply choose the new VR option in the New Project template selection window.
+열어보려면, 새 프로젝트 템플릿 선택 창에서 새로 생긴 VR 옵션을 선택해 주기만 하면 됩니다.
 
-This Blueprint project has settings that are optimized to run in VR up to 90 frames per second.  To support different types of controllers the template includes two methods of locomotion, split into two distinct Pawn Blueprints. The first is designed for gamepads while the second supports motion controllers.  When using motion controllers, you can teleport to different locations and grab and throw objects.  A C++ version of this template will follow in a future update.  Also, mobile VR templates will be coming later too.
+이 블루프린트 프로젝트는 VR 에서 초당 최대 90 프레임의 속도로 실행되게끔 세팅이 최적화되어 있습니다. 여러가지 유형의 컨트롤러를 지원하기 위해 이 템플릿에는 두 가지 보행 방식이 포함되어 있는데, 두 개의 별도 폰 블루프린트로 나뉘어 있습니다. 첫 번째 것은 게임패드용으로 디자인되어 있고, 두 번째 것은 모션 컨트롤러를 지원합니다. 모션 컨트롤러를 사용하면, 다른 위치로 순간이동하거나 사물을 잡아 던질 수 있습니다. 이 템플릿의 C++ 버전은 나중에 추가될 예정입니다. 또한 모바일 VR 템플릿 역시도 준비중입니다.
 
-## New: Custom Post-Process for Mobile
+## 모바일용 커스텀 포스트 프로세스
 
-Custom Post-Process materials now can be used on Mobile devices!  Here is a "TV Static" effect displayed using the mobile renderer.
+이제 모바일에서 커스텀 포스트 프로세스 머티리얼을 사용할 수 있습니다! 모바일 렌더러를 사용하여 출력한 'TV Static' 이펙트입니다.
 
 [REGION:asyncgif]
 ![image alt text](image_20.gif)
 [/REGION]
 
-* This feature requires the "**Mobile HDR**" option to be enabled in your Project Settings
+* 이 기능을 사용하려면 프로젝트 세팅에서 'Mobile HDR' (모바일 HDR) 옵션을 켜야 합니다.
 
-* Supports fetching from PostProcessInput0 (SceneColor) with blendable location ‘Before Tonemapping’ and ‘After Tonemapping’
+* 블렌더블 위치를 "Before Tonemapping" (톤매핑 전) 및 "After Tonemapping" (톤매핑 후)로 하는 PostProcessInput0 (SceneColor) 에서의 펫치를 지원합니다.
 
-* This feature does not currently work on older Android devices which require the ‘mosaic’ mode for HDR rendering.
+* 이 기능은 현재 HDR 렌더링에 "모자이크" 모드를 요하는 구형 안드로이드 디바이스에서는 작동하지 않습니다.
 
-* Pixel depth information is not yet supported.
+* 픽셀 깊이 정보는 아직 지원되지 않습니다.
 
-## New: Lighting Channels on Mobile
+## 모바일에서의 라이팅 채널
 
-Lighting channels now work in the mobile renderer!  These allows you to selectively influence objects with specific lights.  Great for cinematics of advanced lighting rigs.
+이제 모바일 렌더러에서 라이팅 채널이 작동합니다. 이를 통해 특정 라이트가 영향을 끼치는 오브젝트를 선택할 수 있습니다. 고급 라이팅 릭을 사용하는 시네마틱에 좋습니다.
 
 ![image alt text](image_21.jpg)(h:224 w:793 convert:false)
 
-* Multiple directional lights are supported in different channels.
+* 다중 채널에 복수의 디렉셔널 라이트가 지원됩니다.
 
-* Each primitive can be affected by only one directional light. The first lighting channel set on a primitive determines which directional light will affect it.
+* 하나의 프리미티브는 하나의 디렉셔널 라이트에만 영향받을 수 있습니다. 프리미티브에 설정된 첫 번째 라이팅 채널이 영향받을 디렉셔널 라이트를 결정합니다.
 
-* CSM shadows from stationary or movable directional lights cast only on primitives with matching lighting channels.
+* 스테이셔너리 또는 무버블 디렉셔널 라이트에서의 CSM 그림자는 일치하는 라이팅 채널의 프리미트브에만 드리워집니다.
 
-* Dynamic point lights fully support lighting channels.
+* 다이내믹 포인트 라이트는 라이팅 채널을 완벽 지원합니다.
 
-## New: Shader Model 5 Rendering for Mac
+## 맥용 셰이더 모델 5 렌더링
 
-Mac Metal now has initial Shader Model 5 support enabled by default. This exposes all the available features of Metal on Mac OS X 10.11.6 that are applicable to Unreal Engine 4. 
+이제 맥 메탈에 기본적으로 셰이더 모델 5 가 지원됩니다. 언리얼 엔진 4 에 적용되는 Mac OS X 10.11.6 에서 쓸 수 있는 메탈 기능이 전부 노출됩니다.
 
 ![image alt text](image_22.jpg)(h:521 w:925 convert:false)
 
-* Implements the RHI thread & parallel translation features to parallelise render command dispatch.
+* RHI 스레드 & 병렬 트랜지션을 구현하여 렌더 커맨드 디스패치를 병렬 처리합니다.
 
-* Exposes support for Metal compute shaders.
+* 메탈 컴퓨트 셰이더 지원이 노출됩니다.
 
-* Exposes asynchronous compute support on AMD GPUs.
+* AMD GPU 에서는 비동기 계산 기능 지원이 노출됩니다.
 
-* Enables high-end rendering features previously unavailable on Mac, including:
+* 맥에서 새롭게 가능해진 고사양 렌더링 기능은 다음과 같습니다:
 
-    * *High quality dynamic exposure (a.k.a. Eye Adaptation).*
+	* 고품질 동적 노출 (소위 눈 순응 효과).
 
-    * *Compute-shader reflection environments - only available on discrete GPUs for 4.13.*
+	* 컴퓨트 셰이더 리플렉션 인바이언먼트 - 4.13 별개의 GPU 에서만 가능.
 
-    * *DistanceField Ambient Occlusion - only available on discrete GPUs for 4.13.*
+	* 디스턴스 필드 앰비언트 오클루전 - 4.13 별개의 GPU 에서만 가능.
 
-    * *DistanceField Shadowing - only available on discrete GPUs for 4.13.*
+	* 디스턴스 필드 섀도잉 - 4.13 별개의 GPU 에서만 가능.
 
-## New: Physical Animation Component (Experimental)
+## 피지컬 애니메이션 컴포넌트 (실험단계)
 
-We’ve added a physical animation component that allows you to easily drive skeletal mesh animation through physical motors! 
+피지컬 애니메이션 컴포넌트를 추가했습니다. 피지컬 모터를 통해 스켈레탈 메시 애니메이션 구동을 쉽게 처리해 줍니다!
 
 [REGION:asyncgif]![image alt text](image_23.gif)(h:401)[/REGION] [REGION:asyncgif]![image alt text](image_24.gif)(h:401)[/REGION]
 
-The component allows you to set motor strengths directly, as well as using pre-configured physical animation profiles which can be created and edited inside PhAT.  The new "**Physical Animation Profiles**" feature in PhAT provide a powerful way to customize character physics in different game contexts, as well as fine tune it for special animations. 
+이 컴포넌트는 모터 세기를 직접 설정할 수 있을 뿐만 아니라, PhAT 에서 만들고 편집할 수 있는 사전 설정 피지컬 애니메이션 프로파일을 사용할 수도 있습니다. PhAT 의 새로운 'Physical Animation Profiles' (피지컬 애니메이션 프로파일) 기능은 다양한 게임 맥락 속에 특화된 캐릭터 물리 법칙과 특수 애니메이션용 미세 조정을 할 수 있는 강력한 수단을 제공해 줍니다.
 
-You can create and edit different profiles within the PhAT tool, and then change between them easily at runtime.  Check out the new "Apply Physical Animation Profile" and “Apply Physical Animation Settings” functions in Blueprints, which allow you to to change physical animation behavior dynamically.
+PhAT 툴에서 다양한 프로파일을 만들고 편집한 뒤 실행시간에 쉽게 교체할 수 있습니다. 블루프린트에 새로 생긴 'Apply Physical Animation Profile' (피지컬 애니메이션 프로파일 적용) 및 "Apply Physical Animation Settings" (피지컬 애니메이션 세팅 적용) 함수로, 물리 애니메이션 작동방식을 동적으로 변경할 수 있습니다.
 
-## New: Procedural Mesh Slicing
+## 프로시저럴 메시 가르기
 
-There is a new utility in Procedural Mesh Component which will ‘slice’ a Procedural Mesh at runtime using a plane.
+Procedural Mesh Component (프로시저럴 메시 컴포넌트)에 새로 생긴 도구를 통해 실행시간에 프로시저럴 메시를 면으로 "slice" 가를 수 있습니다.
 
 [REGION:asyncgif]
 ![image alt text](image_25.gif)
 [/REGION]
 
-After slicing, we support adding ‘capping’ geometry, and creating a second Procedural Mesh Component for the ‘other half’ if desired. 
+가른 뒤에는, 지오메트리에 "capping" (뚜껑덮기)를 하거나, 필요에 따라 이차 프로시저럴 메시 컴포넌트로 다른 반쪽을 만들 수도 있습니다.
 
-Also, Procedural Mesh now supports simple collision, so physics simulation can be enabled!  Finally, we added a utility to copy data from a Static Mesh to a Procedural Mesh (‘Allow CPU Access’ flag must be set on the Static Mesh for this to work in cooked builds.) 
+또 이제 프로시저럴 메시에 단순 콜리전이 지원되어, 물리 시뮬레이션 적용이 가능합니다! 마지막으로 스태틱 메시에서 프로시저럴 메시로 데이터를 복사하는 유틸리티를 추가했습니다 (쿠킹 빌드에서 이 기능의 정상 작동을 위해서는 스태틱 메시에서 "Allow CPU Access" (CPU 접근 허용) 옵션을 설정해야 합니다).
 
-## New: Mesh Painting in VR
+## VR 메시 페인팅
 
-You can now paint on textures and mesh vertices in using the VR Editor.
+이제 VR 에디터를 사용해서 텍스처와 메시 버텍스 페인팅이 가능합니다.
 
 [REGION:asyncgif]
 ![image alt text](image_26.gif)
 [/REGION]
 
-This allows you to use motion controllers to paint on static meshes while immersed in VR.    To use this feature, open the "Modes" window in VR, then click the “Mesh Paint” tab.  Now simply select an object in the world, then aim and pull your trigger to paint!  Pressure sensitivity is supported on your controller’s trigger, and you can hold the ‘Modifier’ button to erase instead of paint.
+이를 통해 모션 컨트롤러를 사용하여 VR 몰입 상태에서 스태틱 메시에 칠을 할 수 있습니다. 이 기능을 사용하려면, VR 에서 '모드' 창을 연 상태로 "메시 페인트" 탭을 클릭하면 됩니다. 이제 단순히 월드의 오브젝트를 선택한 뒤, 조준하고 트리거를 당기기만 하면 칠이 됩니다! 컨트롤러의 트리거 압력 감지도 지원이 되며, "Modifier" (다른 동작) 버튼을 누른 상태에서는 칠을 벗겨낼 수도 있습니다.
 
-## New: Foliage Painting in VR
+## VR 폴리지 페인팅
 
-In this release, you can use motion controllers to spray down foliage instances while in VR.
+이번 버전에서는, 모션 컨트롤러를 사용하여 VR 상태에서 폴리지 인스턴스 스프레이를 뿌릴 수 있습니다.
 
 [REGION:asyncgif]
 ![image alt text](image_27.gif)
 [/REGION]
 
-Select a foliage type, aim your laser and pull the trigger to paint foliage! You can hold the modifier button to erase foliage. Pressure sensitivity on the trigger is supported. Additionally, the Foliage Editor has been improved to be a bit more functional while in VR, although some features, lasso tool and select tool, are still unavailable.
+폴리지 유형을 선택하고, 레이저를 조준한 뒤 트리거를 당기면 폴리지를 칠합니다! 다른 동작 버튼을 쥔 상태에서는 폴리지를 벗겨냅니다. 트리거 압력 감지도 지원됩니다. 추가적으로 VR 상태의 폴리지 에디터에서 아직 올가미나 선택 툴과 같은 것은 안되지만, 보다 많은 기능을 사용할 수 있게 되었습니다.
 
-## New: Color Picker in VR
+## VR 모드 색 선택기
 
-The Color Picker window is now available in VR, so you can change color properties on lights and other Actors in your level. You can also use the Color Picker to select colors for Vertex Painting and Texture Painting in VR. 
+이제 VR 모드에서 색 선택기 창을 사용할 수 있어, 라이트의 컬러 프로퍼티나 레벨의 다른 액터를 변경할 수 있습니다. 색 선택기를 사용해서 VR 모드 버텍스 페인팅이나 텍스처 페인팅 색을 선택할 수도 있습니다.
 
 [REGION:asyncgif]
 ![image alt text](image_28.gif)
 [/REGION]
 
-## New: Play from VR Editor
+## VR 에디터에서 플레이
 
-To easily prototype your project it is now possible to play your game in VR from within the VR Editor. Press the "Play" button on the quick menu to start playing in VR!  To instantly go back to the VR Editor, *hold the Grip buttons on both controllers and squeeze both trigger buttons*.
+프로젝트 프로토타입 작업을 수월하게 하기 위해, 이제 VR 에디터 안에서 VR 게임 플레이가 가능해졌습니다. 퀵 메뉴의 '플레이' 버튼을 누르면 VR 모드에서 플레이가 시작됩니다! VR 에디터에 바로 돌아가려면, 양쪽 컨트롤러의 그립 버튼을 쥔 상태에서 양쪽 트리거 버튼을 쥐면 됩니다.
 
 [REGION:asyncgif]
 ![image alt text](image_29.gif)
 [/REGION]
 
-## New: Improved VR Transform Gizmo
+## 향상된 VR 트랜스폼 기즈모
 
-The VR Editor’s transform gizmo has been improved with better usability and new features!
+VR 에디터의 트랜스폼 기즈모에 신기능이 추가되고 보다 사용하기 쉽도록 개선되었습니다!
 
 ![image alt text](image_30.jpg)(h:442 w:466 convert:false)
 
-Translating and rotating objects feels much more natural, and you can now uniformly scale objects or translate them along a single 2D plane in VR.  We’ll continue to make improvements to VR gizmos in future releases.
+오브젝트 이동과 회전 느낌이 훨씬 자연스러워졌으며, 이제 VR 안에서 한 2D 면을 기준으로 한 오브젝트 균등 스케일 및 이동 작업이 가능합니다. 계속해서 VR 기즈모를 발전시켜 나가도록 할 것입니다.
 
-## New: VR Editor Flashlight
+## VR 에디터 손전등
 
-Using the Quick Menu, you can now add a flashlight to your controller, to light up dark parts of your scene or see how light interacts with different Materials.
+이제 퀵 메뉴를 사용하여 컨트롤러에 손전등을 달아 씬의 어두운 구석을 밝히거나 다양한 머티리얼이 빛에 어떻게 반응하는지를 확인할 수 있습니다.
 
 ![image alt text](image_31.jpg)(h:333 w:466 convert:false)
 
-## New: Screenshots from VR Editor
+## VR 에디터에서 스크린샷
 
-You can now take screenshots right from VR!
+이제 VR 에서 바로 스크린샷을 찍을 수 있습니다!
 
 ![image alt text](image_32.jpg)(h:392 w:604 convert:false)
 
-## New: Automatic Entry to VR Editing Mode
+## VR 편집 모드 자동 전환
 
-You can now enter and leave VR editing mode when the VR editor is enabled without having to use the VR button or escape manually! As long as the editor is in the foreground, when you wear the headset, you will automatically enter VR editing mode; when you remove the headset, you will leave it.
+이제 VR 에디터가 활성화되어 있으면 VR 버튼을 누르거나 수동으로 탈출할 필요 없이 VR 편집 모드로 들어가고 나올 수 있습니다! 에디터가 포어그라운드 실행된 상태에서 헤드셋을 착용하면, VR 편집 모드에 자동으로 들어가고, 헤드셋을 벗으면 나오게 됩니다.
 
 [REGION:asyncgif]
 ![image alt text](image_33.gif)
 [/REGION]
 
-There is a setting under VR in the Experimental section of Editor Settings that will allow you to turn off auto-entry if you prefer.
+에디터 세팅 실험단계 부분의 VR 아래 VR 모드 자동 전환을 선택할 수 있는 세팅이 있습니다.
 
 ![image alt text](image_34.jpg)(h:84 w:384 convert:false)
 
-## New: Sequencer Import/Export
+## 시퀀서 임포트/익스포트
 
-Sequencer can now import and export CMX EDL files for interchange with non-linear editing packages. 
+이제 시퀀서에서 비선형 동영상 편집 프로그램 공용 파일인 CMS EDL 파일을 임포트/익스포트할 수 있습니다.
 
 [REGION:raw]
 ![image alt text](image_35.jpg)(h:529 w:869 convert:false)
 [/REGION]
 
-The above shot shows a sequence that was exported to Adobe Premiere Pro.  Each shot in a sequence will be written to a separate movie file which is referenced by the EDL file.  Any sequencing changes made in Premiere can then be imported back into UE4’s Sequencer!
+위의 샷은 시퀀스를 Adobe Premiere Pro 에 익스포트한 것입니다. 시퀀스 내 각 샷은 별도의 무비 파일로 작성되고, 이것을 EDL 파일이 레퍼런싱합니다. Premiere 에서 시퀀스에 가한 변경사항을 다시 UE4 시퀀서에 임포트해 올 수 있습니다!
 
-Sequencer’s ability to export HDR data in OpenEXR files has been expanded to give the user a choice of the color gamut used to encode the HDR data. 
+시퀀서에서 OpenEXR 파일로 HDR 데이터를 익스포트하는 기능을 확장시켜 HDR 데이터 인코딩에 사용되는 색 공간을 선택할 수 있도록 했습니다.
 
 ![image alt text](image_36.jpg)(h:220 w:492 convert:false)
 
-Finally, Sequencer now supports importing FBX animation directly to an object or track. You can also export animated tracks to FBX!
+마지막으로, 이제 시퀀서에 오브젝트나 트랙으로 FBX 애니메이션을 바로 익스포트하는 기능이 지원됩니다. 애니메이션 트랙을 FBX 로 익스포트할 수도 있습니다!
 
-## New: Sequencer Burn-ins on Renders
+## 렌더시 시퀀서 번 인
 
-When rendering out your movie sequence, you can now configure a "Burn-in" for the exported images.  This is very useful in dailies for identifying and tracking shots.
+무비 시퀀스를 렌더링할 때, 익스포트된 이미지에 대한 '번 인' 환경설정이 가능합니다. 샷 식별이나 기록을 유지하는 일상 작업에 매우 유용합니다.
 
 [REGION:raw]
 ![image alt text](image_37.jpg)(h:458 w:865 convert:false)
 [/REGION]
 
-## New: Media Framework Overhaul
+## 미디어 프레임워크 개조
 
-Media Framework API has been completely overhauled, with many new features!  Media Framework allows you embed live video and audio into your projects, with numerous powerful features.
+미디어 프레임워크 API 가 완전히 개조되고, 새로운 기능이 다수 추가되었습니다. 미디어 프레임워크는 라이브 비디오 오디오를 프로젝트에 삽입할 수 있는 API 로, 여러가지 강력한 기능이 추가되어 있습니다.
 
 ![image alt text](image_38.jpg)(convert:false)
 
-* Playlist assets for playing multiple media sources in a row
+* 재생목록 애셋으로 다수의 미디어 소스 연속 재생
 
-* Audio playback support has been added
+* 오디오 재생 지원
 
-* Improved media file import workflow
+* 미디어 파일 임포트 작업방식 개선
 
-* Improved Blueprint integration
+* 블루프린트 통합 부분 개선
 
-* Performance improvements on several platforms
+* 다중 플랫폼 퍼포먼스 향상
 
-* Pixel format conversion on the GPU
+* GPU 상에서의 픽셀 포맷 변환
 
-* Support for dynamically changing video dimensions on some platforms
+* 일부 플랫폼 비디오 크기 동적 변경 지원
 
-**Android**
+**안드로이드**
 
-* Support for multiple audio tracks
+* 다중 오디오 트랙 지원
 
-* HTTP Live Streaming (HLS) on devices supporting it (m3u8)
+* 디바이스에서 가능한 경우 HTTP 라이브 스트리밍 (HLS) 지원 (m3u8)
 
 **Playstation 4**
 
-* HTTP Live Streaming (HLS)
+* HTTP 라이브 스트리밍 (HLS)
 
-* Improved playback controls (Pause, SetRate, etc.)
+* 재생 조작 방식 개선 (일시정지, 속도설정 등)
 
-* Media files can be pre-cached to memory
+* 미디어 파일 메모리에 사전 캐시 가능
 
-* Opening media from FArchive
+* FArchive 에서 미디어 열기
 
-* Ability to play multiple videos at once (may require increased memory pool settings)
+* 동시에 여러 비디오 재생 가능 (메모리 풀 세팅을 증가시켜야 할 수도 있습니다)
 
-**Windows**
+**윈도우**
 
-* H.264 is now supported
+* H.264 지원
 
-* Better support for HTTP(S) and RTSP streams
+* HTTP(S) 및 RTSP 스트림 지원 안전성 향상
 
-* Better error handling and logging
+* 오류 처리 및 로그 기록 향상
 
-* Stability and usability improvements
+* 안전성 및 사용 편의성 개선
 
-* Graceful handling of non-standard & unsupported codecs
+* 비표준 & 미지원 코덱 지원 개선
 
-**Notes**
+**주**
 
-* Early experimental macOS/iOS support (*AvfMedia* plug-in)
+* 초기 실험단계 macOS/iOS 지원 (AvfMedia 플러그인)
 
-* Experimental Linux support (via *VlcMedia* plug-in on Github)
+* 실험단계 리눅스 지원 (GitHub 의 VlcMedia 플러그인 필요)
 
-* Experimental Video-Over-IP support (via *NdiMedia* plug-in on Github)
+* 실험단계 Video-Over-IP 지원 (GitHub 의 NdiMedia 플러그인 필요)
 
-* XboxOne (*MfMedia*) and HTML5 are not supported yet
+* XboxOne (MfMedia) 및 HTML5 는 아직 미지원
 
-* Integration with Sequencer/Video Recording is scheduled for 4.14
+* 시퀀서/비디오 녹화 기능과의 통합은 4.14 예정
 
-* *PlatformMediaSource* asset is not implemented yet
+* PlatformMediaSource 애셋 아직 미구현
 
-## New: Platform SDK Updates
+## 플랫폼 SDK 업데이트
 
-In every release, we update the engine to support the latest SDK releases from platform partners.  Also in this release, you can remote compile iOS/tvOS projects from Windows in the binary version of UE4!
+새로운 버전이 나올 때마다 플랫폼 파트너의 최신 SDK 릴리즈 버전을 지원하도록 엔진을 업데이트하고 있습니다. 또 이번 릴리즈 버전에서는, UE4 바이너리 버전의 윈도우에서 iOS/tvOS 프로젝트를 원격 컴파일할 수 있습니다!
 
 ![image alt text](image_39.jpg)(h:377 w:888 convert:false)
 
-* iOs/tvOS: Code projects are now supported in the Windows version of the binary version of UE4 with the Unreal Engine Launcher. (You do need a Mac somewhere to remote compile on)
+* iOs/tvOS: 이제 언리얼 엔진 런처로 실행되는 UE4 바이너리 버전의 윈도우 버전에서 코드 프로젝트가 지원됩니다 (원격 컴파일할 맥이 필요합니다).
 
-* macOS: Now supports Xcode8 and macOS 10.13 Sierra
+* macOS: 이제 Xcode8 과 macOS 10.13 Sierra 를 지원합니다.
 
-* iOS/tvOS: Now supports iOS10/tvOS10
+* iOS/tvOS: 이제 iOS10/tvOS10 을 지원합니다.
 
-* Xbox One: Upgraded to August 2016 XDK
+* XboxOne: August 2016 XDK 로 업그레이드했습니다.
 
-* Playstation 4: Upgraded to PS4 SDK 3.508.201
+* Playstation 4: PS4 SDK 3.508.201 로 업그레이드했습니다.
 
-* Oculus Rift: Updated to the Oculus 1.6 Runtime
+* Oculus Rift: Oculus 1.6 Runtime 으로 업그레이드했습니다.
 
-* SteamVR:  Updated to OpenVR 1.0.2
+* SteamVR: OpenVR 1.0.2 로 업그레이드했습니다.
 
-* Google VR: Added Google VR (Cardboard) support for iOS
+* Google VR: iOS 용 Google VR (Cardboard) 가 지원됩니다.
 
-* OSVR:  Updated to v0.6-1194-g0c54f5e
+* OSVR: v0.6-1194-g0c54f5e 로 업데이트했습니다.
 
-* Android: Google Play Games native C++ SDK updated to 2.1
+* 안드로이드: Google Play Games 네이티브 C++ SDK 가 2.1 로 업데이트됐습니다.
 
-* Android: Google Play Services updated to  9.2.0
+* 안드로이드: Google Play Services 가 9.2.0 로 업데이트됐습니다.
 
-* Android: Supports running on Nougat aka Android 7.0
+* 안드로이드: Nougat, 소위 안드로이드 7.0 에서의 실행을 지원합니다.
 
-* Vulkan API: Updated SDK to 1.0.17.0 (for Android and Windows)
+* Vulkan API: SDK 를 1.0.17.0 버전으로 업데이트했습니다 (안드로이드 및 윈도우 용).
 
-## New: Improved Landscape Tessellation
+## 랜드스케이프 테셀레이션 개선
 
-Hardware tessellation on landscape is now much faster!  Landscape will now only render hardware tessellation on the highest level-of-detail (LOD), fading out as the landscape approaches the second LOD. Subsequent LODs will no longer have tessellation enabled. This significantly improves performance of enabling tessellation for displacement or extra detail up close to the camera. 
+랜드스케이프의 하드웨어 테셀레이션이 훨씬 빨라졌습니다! 랜드스케이프는 이제 최상위 레벨 오브 디테일(LOD) 에서만 하드웨어 테셀레이션을 렌더링하며, 랜드스케이프가 두 번째 LOD 로 접어들면서 페이드 아웃 됩니다. 그 이후의 LOD 에는 더이상 테셀레이션이 활성화되지 않습니다. 이를 통해 카메라에 매우 가까운 경우 디스플레이스먼트나 디테일 추가를 위해 테셀레이션을 켜는 경우의 퍼포먼스가 크게 향상됩니다.
 
 ![image alt text](image_40.jpg)(h:429 w:593 convert:false)
 
-In the visualization above, the highest the LOD (white) is rendered with tessellation enabled, while the other LODs (colors) are rendered without tessellation.
+위 시각화에서, 최상위 LOD (흰색)은 테셀레이션을 켜고 렌더링한 반면, 다른 LOD (유색)은 테셀레이션 없이 렌더링되었습니다.
 
-## New: Animation Pose Assets
+## 애니메이션 포즈 애셋
 
-We have added a new type of animation asset called a Pose Asset. This contains a set of named bone poses, which you can blend additively, in a similar manner to blend shapes for vertices. 
+포즈 애셋이라는 새로운 유형의 애니메이션 애셋을 추가했습니다. 여기에는 네임드 본 포즈 세트가 들어있어, 애디티브 방식으로 블렌딩할 수 있으며, 버텍스용 셰이프 블렌딩을 할 때와 비슷한 식입니다.
 
 [REGION:asyncgif]
 ![image alt text](image_41.gif)
 [/REGION]
 
-One use for this is to support facial animation where either FACS (Facial Action Coding System) or viseme curves can drive poses. However you could use this system to create new animation by blending multiple poses.
+한 가지 사용 예라면, FACS (Facial Action Codding System, 얼굴 동작 코딩 시스템)이나 비짐(viseme) 커브로 포즈 구동이 가능한 얼굴 애니메이션을 지원할 때 사용할 수 있습니다. 하지만 이 시스템은 여러 포즈를 블렌딩하여 새로운 애니메이션을 만들 때도 사용할 수 있습니다.
 
-Currently you create a Pose Asset from an Anim Sequence using Content Browser context menu or the Create Asset menu in Persona. When you create a Pose Asset, the pose names will be automatically generated. After that you can rename each pose manually, or use clipboard paste to rename all of them at once. 
+현재 콘텐츠 브라우저의 맥락 메뉴나 페르소나의 애셋 생성 메뉴를 통해 애님 시퀀스에서 포즈 애셋을 만들 수 있습니다. 포즈 애셋을 만들 때, 포즈 이름은 자동 생성됩니다. 그 후 각 포즈의 이름 변경은 일일히 해주거나, 클립보드 붙여넣기를 통해 한꺼번에 할 수도 있습니다.
 
-Poses are driven by normal animation curves. As long as they exist in the animation you can see the curve. In Persona, in order to preview a pose from a curve, you need to set the current Preview Pose Asset. 
+포즈는 일반 애니메이션 커브로 구동됩니다. 애니메이션에 존재하는 한 커브를 확인할 수 있습니다. 페르소나에서 커브로 구동되는 포즈를 미리보려면, 현재 프리뷰 포즈 애셋을 설정해야 합니다.
 
 ![image alt text](image_42.jpg)(h:152 w:348 convert:false)
 
-In the AnimGraph, you can use a Pose Blender Node (or Pose By Name) to output the pose based on the incoming curves. 
+애님 그래프에서 Pose Blender (또는 Pose By Name) 노드를 사용하여 들어오는 커브에 따른 포즈를 출력할 수 있습니다.
 
 ![image alt text](image_43.jpg)(h:146 w:422 convert:false)
 
-To support this system, we have improved how we handle scale with additive blending. In the future we would like to support curves on other assets (e.g. Sound Waves) that can be used to drive Pose Assets and Morph Targets.
+이 시스템을 지원하기 위해 애디티브 블렌딩 관련 스케일 처리 방식을 개선시켰습니다. 앞으로 (사운드 웨이브와 같은) 다른 애셋의 커브도 지원하여 포즈 애셋과 모프 타겟을 구동시키는 데도 쓸 수 있도록 할 것입니다.
 
-## New: Pose Driver Animation Node (Experimental)
+## 포즈 드라이버 애니메이션 노드 (실험단계)
 
-We have added a new Pose Driver node, which lets you drive a curve value (such as a morph target weight) based on a bone’s movement. 
+Pose Driver 노드를 새로 추가, 본의 이동에 따라 (모프 타겟 웨이트와 같은) 커브 값을 구동시킬 수 있습니다.
 
 [REGION:asyncgif]
 ![image alt text](image_44.gif)
 [/REGION]
 
-This uses an RBF (Radial Basis Function) to interpolate driven values based on the orientation of a target bone. You use a PoseAsset to define the target poses for the bone, and the desired curve values at each pose. This node can be used as a Pose Space Deformer, to drive corrective blend shapes based on the orientation of a bone.
+이는 RBF (Radial Basis Function, 레이디얼 기저함수)를 사용하여 대상 본의 오리엔테이션에 따라 구동되는 값을 보간시킵니다. 포즈 애셋을 사용하여 본에 대한 타겟 포즈와, 각 포즈에서 원하는 커브 값을 정의합니다. 이 노드는 Pose Space Deformer (포즈 스페이스 디포머)로 사용하여, 본의 오리엔테이션에 따라 교정형 블렌드 셰이프를 구동시킬 수 있습니다.
 
-## New: Animation Node Pose Watching 
+## 애니메이션 노드 포즈 감시
 
-Anim graph nodes can now be "watched" in Persona. 
+이제 애님 그래프 노드를 페르소나에서 '감시'할 수 있습니다.
 
 [REGION:asyncgif]
 ![image alt text](image_45.gif)
 [/REGION]
 
-This allows you to see a representation of the pose being generated at any point in the anim graph dynamically. Multiple watches can be active at once allowing you to compare poses at different points and find the exact point at which any errors in your current pose are introduced. This can be very useful for debugging complex Animation Blueprints and previously would only have been achievable by connecting the node you wanted to view directly to the root node and recompiling the blueprint.
+이를 통해 애님 그래프의 특정 시점에서 생성되는 포즈의 표상을 동적으로 확인할 수 있습니다. 다수의 감시값을 한꺼번에 활성화시켜 각기 다른 지점에서의 포즈를 비교해 보면서 정확히 어느 지점에서 현재 포즈에 오차가 생기는지 찾아낼 수 있습니다. 이는 복잡한 애니메이션 블루프린트를 디버깅할 때 매우 유용하게 쓰이며, 더이상 보고자 하는 노드를 루트 노드에 바로 연결해서 블루프린트를 다시 컴파일하지 않아도 됩니다.
 
-## New: Improved Scene Capture
+## 씬 캡처 개선
 
-Scene Captures have been improved to be more useful with the new ‘Blueprint Drawing to Render Targets’ feature!
+씬 캡처가 새로운 Blueprint Drawing to Render Targets (블루프린트로 렌더 타겟에 그리기) 기능으로 유용해 졌습니다!
 
 ![image alt text](image_46.jpg)(h:173 w:929 convert:false)
 
-* Orthographic projections are now supported.
+* 이제 정투영도법이 지원됩니다.
 
-* When blueprints update a scene capture through the **Capture Scene** function, it happens immediately, allowing subsequent image processing with **Draw Material to Render Target**
+* 블루프린트가 Capture Scene 함수를 통해 씬 캡처를 업데이트하면, 즉시 수행하여 이후의 이미지 처리는 Draw Material to Render Target 으로 할 수 있도록 합니다.
 
-* Opacity is now captured in alpha, which allows partial rendering in a scene capture and compositing into another scene later.
+* 오파시티가 이제 알파에 캡처되어, 씬 캡처의 일부분의 렌더링을 나중에 다른 씬과 합성할 수 있습니다.
 
-* Various GBuffer attributes are now available to be captured, including depth.
+* 이제 뎁스를 포함한 다양한 GBuffer 특성도 캡처할 수 있습니다.
 
-* Added ‘Hidden Actors’ and ‘Show Only Actors’ arrays which can be used to easily control what is rendered into a scene capture.
+* Hidden Actors (숨겨진 액터)와 Show Only Actors (액터만 표시) 배열을 추가, 씬 캡처에다 무엇을 렌더링할지 쉽게 제어할 수 있습니다.
 
 ![image alt text](image_47.jpg)(h:312 w:364 convert:false)
 
-Game specific effects like fog of war can be implemented by rendering meshes as visibility shapes into an orthographic scene capture, and then doing image processing with Draw Material To Render Target.
+전장의 안개같은 게임 전용 이펙트도 메시를 정투영 씬 캡처에다 보이는 셰이프로 렌더링한 뒤, Draw Material To Render Target 를 통해 이미지 처리를 하는 것으로 쉽게 구현할 수 있습니다.
 
-## New: Improved Refraction Shaders
+## 굴절 셰이더 개선
 
-There’s a new "Pixel Normal Offset" refraction mode which uses the vertex normal as a reference, and computes the refraction offset from how different the per-pixel normal is from the vertex normal.  This is non-physical but allows refraction to be used on flat water surfaces.
+Pixel Normal Offset (픽셀 노멀 오프셋) 이라는 새로운 굴절 모드가 생겼습니다. 버텍스 노멀을 기준으로 사용하여, 버텍스 노멀과 픽셀별 노멀의 차이를 통해 굴절 오프셋을 계산합니다. 이는 물리가 아니지만, 평평한 수면에 굴절 효과를 적용시킬 수 있습니다.
 
 ![image alt text](image_48.jpg)(h:153 w:929 convert:false)
 
-Left: simple scene with no refraction
+왼쪽: 굴절 없는 단순한 씬
 
-Center: default refraction method which causes an undesired constant offset for a water surface
+가운데: 수면에 적합치 않은 상수 오프셋이 나오는 기본 굴절 메소드
 
-Right: Pixel Normal Offset refraction method which distorts based on the normalmap difference
+오른쪽: 노멀맵 차를 기반으로 왜곡시키는 픽셀 노멀 오프셋 굴절 메소드
 
 ![image alt text](image_49.jpg)(h:78 w:344 convert:false)
 
-## New: Texture Coordinates from Line Traces
+## 라인 트레이스에서의 텍스처 좌표
 
-We have added a project setting to support texture coordinate (UV) info from line traces. 
+라인 트레이스로부터 텍스처 좌표(UV)를 얻어낼 수 있는 프로젝트 세팅을 추가했습니다.
 
 ![image alt text](image_50.jpg)(h:330 w:297 convert:false)
 
-The option is under Project Settings -> Physics -> Optimizations. When this is enabled, you can use the ‘Find Collision UV’ function to take a Hit Result and find the UV info for any UV channel at the point of impact. Enabling this feature does use extra memory, as a copy of UV information must be stored in CPU memory.
+이 옵션은 프로젝트 세팅 - 피직스 - 최적화 아래에 있습니다. 켜면 Find Collision UV 함수를 사용하여 Hit Result 를 취한 뒤 충격 지점에서의 UV 채널에 대한 UV 정보를 알아낼 수 있습니다. 이 기능에는 메모리 비용이 추가로 들지 않는데, UV 정보 사본은 CPU 메모리에 저장되어 있기 때문입니다.
 
-## New: Spline Editing Improvements
+## 스플라인 편집 개선
 
-**Editing Spline Component defaults in the Blueprint Editor**
+**블루프린트 에디터에서 스플라인 컴포넌트 기본값 편집**
 
-Now it's possible to set Spline Component points in the Blueprint Editor using the standard spline visualizer editing features.  New instances of the Blueprint will be created with these defaults, although these too can be overridden on a per-instance level once placed.
+이제 블루프린트 에디터에서 표준 스플라인 비주얼라이저 편집 기능을 사용하여 스플라인 컴포넌트 점을 설정할 수 있습니다. 이 기본값으로 블루프린트의 새 인스턴스가 생성되나, 배치되고나면 이 역시도 인스턴스 단위로 덮어쓸 수 있습니다.
 
 ![image alt text](image_51.jpg)(h:445 w:929 convert:false)
 
-The "Reset to Default" context action on the spline visualizer will set an instance back to the Blueprint default.  Any changes made to the Blueprint default will be propagated to any instance whose spline points have not been subsequently edited.
+스플라인 비주얼라이저의 맥락 메뉴 중 Reset to Default (기본값으로 리셋) 으로 인스턴스를 블루프린트 기본으로 다시 설정합니다. 블루프린트 기본값을 변경하면 추후 스플라인 지점을 따로 편집하지 않은 모든 인스턴스에 전파됩니다.
 
 [REGION:asyncgif]
 ![image alt text](image_52.gif)
 [/REGION]
 
-**Numerical editing of spline points in the Details panel**
+**디테일 패널에서 스플라인 점을 수치로 편집**
 
-Before there was no way to precisely place spline points and assign scale, roll or tangents to them.  Now these properties are exposed in the Details panel for selected spline points:
+예전에는 스플라인 점을 정확히 배치하거나 거기에 스케일, 롤, 탄젠트를 적용할 수 있는 방법이 없었습니다. 이제 그 프로퍼티가 스플라인 점을 선택한 경우 디테일 패널에 노출됩니다:
 
 ![image alt text](image_53.jpg)(h:190 w:449 convert:false)
 
-**New spline point properties**
+**새로운 스플라인 점 프로퍼티**
 
-Spline points can now be defined with distinct arrive and leave tangents, and an arbitrary input key.  The former allows for splines with discontinuities, while the latter allows for greater control of interpolation speed between points.   This allows for greater versatility when designing spline paths.
+스플라인 점에 대한 정의를 이제 도착/출발 탄젠트와 임의의 입력 키로 할 수 있습니다. 전자는 불연속 스플라인이 가능한 반면, 후자는 두 점 사이의 보간 속도에 대한 미세 조정이 가능합니다. 이를 통해 스플라인 경로 디자인 자유도가 높아졌습니다.
 
-In the spline visualizer, in the Spline Component details, there is an option in the context menu to allow the arrive and leave tangents to be edited separately instead of locked:
+스플라인 비주얼라이저의 스플라인 컴포넌트 디테일에 보면, 맥락 메뉴에 도착/출발 탄젠트를 고정시키지 않고 별도로 편집할 수 있는 옵션이 있습니다.
 
 ![image alt text](image_54.jpg)(h:220 w:190 convert:false)
 
-As a consequence of being able to set arbitrary input keys per point, there is now also a way to specify the input key of the Loop Position for closed splines:
+점마다 임의의 입력 키를 설정할 수 있게 됨에 따라, 닫힌 스플라인의 경우 루프 위치 입력 키를 지정할 수 있는 방법도 생겼습니다:
 
 ![image alt text](image_55.jpg)(h:192 w:454 convert:false)
 
-If input keys or a loop position are not specified, they will default to starting at 0.0 and incrementing by 1.0 for each point, as before.
+입력 키 또는 루프 위치가 지정되지 않은 경우, 기본값은 전과 같이 0.0 에서 시작하여 점마다 1.0 씩 증가합니다.
 
-**Defer spline update in Blueprints**
+**블루프린트에서 디퍼드 방식 스플라인 업데이트**
 
-Sometimes it's desirable to build splines procedurally in a Blueprint construction script.  Previously every operation on a spline point would cause the spline to be rebuilt, but now - for optimization purposes - it's possible to specify whether the spline should be rebuilt following a spline point operation.  There's also an explicit Update Spline node.
+가끔 블루프린트 컨스트럭션 스크립트에서 스플라인을 순차 방식으로 만들면 좋을 때가 있습니다. 기존에 스플라인 점에 어떤 작업을 할 때마다 스플라인이 다시 빌드되었으나, 이제 최적화의 한 방편으로, 스플라인 점 작업을 한 뒤 스플라인을 다시 빌드할지를 지정할 수가 있게 되었습니다. 명시적으로 Update Spline 노드를 통해 업데이트시킬 수도 있습니다.
 
 ![image alt text](image_56.jpg)(h:413 w:918 convert:false)
 
-**Input Spline Points to Construction Script**
+**컨스트럭션 스크립트에 스플라인 점 입력**
 
-Sometimes it's useful to be able to hand edit a spline with the spline visualizer, and then refine them with a Blueprint construction script.  An example might be a Blueprint which locks all edited points to the surface of a sphere, like this:
+가끔 스플라인 비주얼라이저로 스플라인을 수동 편집한 뒤, 블루프린트 컨스트럭션 스크립트로 정돈해 둘 수 있으면 좋을 때가 있습니다. 예로 편집된 모든 점을 구체의 표면에 고정시키는 블루프린트를 들 수 있습니다:
 
 ![image alt text](image_57.jpg)(h:456 w:929 convert:false)
 
-This is now achievable by checking the "Input Spline Points to Construction Script" property:
+Input Spline Points to Construction Script 프로퍼티만 체크하면 이런 효과를 낼 수 있습니다:
 
 ![image alt text](image_58.jpg)(h:196 w:452 convert:false)
 
-## New: Sub Animation Blueprints
+## 서브 애니메이션 블루프린트
 
-You can now share animation logic by using a ‘Sub Anim Instance’ node within your Animation Blueprint to reference another Sub Animation Blueprint. This also allows you to break up large Animation Blueprints into separate assets, for example into ‘locomotion’ and ‘physics’ parts. 
+이제 애니메이션 블루프린트 안에서 Sub Anim Instance 노드를 사용하여 다른 서브 애니메이션 블루프린트를 레퍼런싱하는 것으로 애니메이션 로직을 공유할 수 있습니다. 또한 이를 통해 큰 애니메이션 블루프린트를 별개의 애셋들로, 예를 들면 '보행'과 '물리' 부분으로 나눌 수 있습니다.
 
 ![image alt text](image_59.jpg)(h:149 w:644 convert:false)
 
-Member variables of the Sub Blueprint can be exposed as input pins on the node. The Sub Animation Blueprint must use the same Skeleton as the outer Animation Blueprint.
+서브 블루프린트의 멤버 변수는 노드의 입력 핀으로 노출시킬 수 있습니다. 서브 애니메이션 블루프린트는 반드시 같은 스켈레톤을 아우터 애니메이션 블루프린트로 사용해야 합니다.
 
-## New: Animation Curve Viewer
+## 애니메이션 커브 뷰어
 
-We removed the Skeleton Curve tab from Persona, and moved that functionality into the improved Animation Curves tab. Here you can now rename and delete curves, as well as previewing curve data. 
+페르소나에서 스켈레톤 커브 탭을 제거하고, 그 기능을 개선된 애니메이션 커브 탭으로 옮겼습니다. 이제 여기서 커브 이름변경이나 삭제는 물론, 커브 데이터를 미리보는 것도 가능합니다.
 
 ![image alt text](image_60.jpg)(h:381 w:622 convert:false)
 
-You can see all curves that belong to current skeleton or currently active curves from preview asset. And you could also filter by specific type of curves if you only want to see active curves. Please note that we named default curve to be called "Attribute", so any animation curves will be by default attribute curves. 
+현재 스켈레톤에 속하는 모든 커브 또는 프리뷰 애셋에서 현재 활성화된 커브를 확인할 수 있습니다. 또 활성화된 커브만 보고자 하는 경우 특정 유형 커브만 필터링할 수도 있습니다. 참고로 기본 커브 이름은 Attribute (특성)이니, 어떤 애니메이션 커브도 기본으로 특성 커브가 될 것입니다.
 
-If you want to modify the curve value, you can either turn off Auto check box option or just type the value. 
+커브 값을 변경하고자 하는 경우, Auto (자동) 옵션을 끄거나, 그냥 값을 입력해도 됩니다.
 
-## New: Sprites in UMG Widgets
+## UMG 위젯의 스프라이트
 
-You can now use Paper2D Sprites as Brush inputs for UMG and Slate Widgets.  In addition to allowing users to reference UI art that may have been developed as a sprite sheet, it permits users to more efficiently render widgets on platforms where the draw call count budget is tight.  Sprites that are part of the same texture atlas can be batched together in Slate, provided they all share the same layer when rendered.
+이제 Paper2D 스프라이트를 UMG 나 슬레이트 위젯의 브러시 입력으로 사용할 수 있습니다. 스프라이트 시트로 개발되었을 수도 있는 UI 아트를 레퍼런싱 가능한 것은 물론, 드로 콜 수 예산이 빡빡한 플랫폼에서 위젯 렌더링 효율을 높이는 데도 도움이 됩니다. 같은 텍스처 아틀라스의 일부인 스프라이트는, 렌더링되었을 때 모두 같은 레이어를 공유하기만 한다면 슬레이트에서 같이 일괄 처리시킬 수 있습니다.
 
 ![image alt text](image_61.jpg)(h:257 w:460 convert:false)![image alt text](image_62.jpg)(h:258 w:460 convert:false)
 
-## New: Optimized Instanced Stereo Rendering for VR
+## VR 용 인스턴스드 스테레오 렌더링 최적화
 
-There have been a number of improvements to instanced stereo rendering, including moving the velocity pass to use instanced stereo rendering.  Multi-view support has also been enabled on the PS4, which leads to significant performance improvements when using the ISR path.
+인스턴스드 스테레오 렌더링이 여러모로 개선되었는데, 그 중에는 벨로시티 패스를 인스턴스드 스테레오 렌더링을 사용하도록 이동시킨 것도 포함됩니다. PS4 에서의 멀티 뷰 지원도 활성화되어, ISR 경로 사용시 퍼포먼스가 크게 향상되었습니다.
 
-## New: GPU Morph Targets
+## GPU 모프 타겟
 
-Projects can now enable calculating morph targets on the GPU on Shader Model 5 level hardware. This frees the CPU from performing those calculations:
+이제 셰이더 모델 5 수준 하드웨어에서 모프 타겟 계산을 GPU 에서 하도록 하는 기능을 프로젝트 단에서 설정하여, 그만큼 CPU 부하를 줄일 수 있게 되었습니다:
 
 ![image alt text](image_63.jpg)(h:194 w:520 convert:false)
 
-## New: Optimized Landscape Shader Memory
+## 랜드스케이프 셰이더 메모리 최적화
 
-Landscape now compiles dramatically fewer shader combinations for landscape materials, improving first-load shader compile times, improving editor iteration and reducing memory usage and shader cache size.
+이제 랜드스케이프가 랜드스케이프 머티리얼에 대한 셰이더 조합을 극히 적은 수만 컴파일하여, 첫 로드시 셰이더 컴파일 시간이 단축되고, 에디터 반복처리 시간이 빨라지며, 메모리 사용량과 셰이더 캐시 크기가 줄어들었습니다.
 
-## New: Shadow Optimizations for Mobile
+## 모바일용 그림자 최적화
 
-Optimizations have been added to the Combined Static and CSM shadow mode added in 4.12. In this mode, a stationary directional lights cast static shadows from static objects and CSM shadows for dynamic objects. In 4.13, the appropriate shader is now automatically selected based on the bounds of the dynamic objects casting CSM shadows, and there is no longer any need to manually tag each primitive that will receive combined static and CSM shadows.
+4.12 버전에 Combined Static and CSM (스태틱과 CSM 결합) 섀도 모드가 최적화가 추가되었었습니다. 이 모드에서는 스테이셔너리 디렉셔널 라이트가 스태틱 오브젝트에서는 스태틱 섀도를 드리우고, 다이내믹 오브젝트에서는 CSM 섀도를 드리웁니다. 4.13 버전에서는, CSM 섀도를 드리우는 다이내믹 오브젝트의 바운드에 따라 적합한 셰이더가 자동 선택되며, 스태틱과 CSM 결합 섀도를 받게 될 프리미티브마다 일일히 태그 설정해 줄 필요가 없게 되었습니다.
 
-## New: Landscape Import Plug-ins
+## 랜드스케이프 임포트 플러그인
 
-A new plugin API has been added for landscape file formats, allowing developers to create plugins that add support for different heightmap and weightmap file formats to landscape. The existing raw and png support has been converted to the new API. The png support in particular makes a good reference for implementing new landscape file format plugins.
+랜드스케이프 파일 포맷에 새로운 플러그인 API 가 추가되어, 랜드스케이프에 각기 다른 하이트맵과 웨이트맵 파일 포맷을 지원하는 플러그인을 개발할 수 있게 되었습니다. 기존의 raw 및 png 지원 부분이 새로운 API 로 변환되었습니다. 특히 png 지원 부분을 보면 새로운 랜드스케이프 파일 포맷 플러그인 구현을 위한 좋은 참고가 될 것입니다.
 
-## New: Automation Testing for Android
+## 안드로이드용 자동화 테스팅
 
-The Project Launcher is now able to package and launch your project onto multiple Android devices simultaneously. The app running on each device will communicate back to your host PC over the USB cable and the will appear in the Session Frontend window.
+이제 프로젝트 런처로 자신의 프로젝트를 여러 대의 안드로이드 디바이스에 동시 실행시킬 수 있습니다. 각 디바이스에서 실행되는 앱은 USB 케이블로 연결된 호스트 PC 와 상호 통신하여 세션 프론트엔드 창에 나타날 것입니다.
 
-You can then launch Automated Tests on all the devices and see the results in the Session Frontend.
+그 후 모든 디바이스에서 자동화 테스트를 실행시키고 세션 프론트엔드에서 결과를 확인할 수 있습니다.
 
 ![image alt text](image_64.jpg)(h:542 w:838 convert:false)
 
-## New: OpenGL ES 3.1 on Android
+## 안드로이드에 OpenGL ES 3.1 지원
 
-While UE4 has long supported many OpenGL ES 3.0 and 3.1 features on Android, you can now specifically target ES 3.1 on Android. This brings feature parity with Metal and Vulkan to higher-end Android devices and gives you access to 16 texture samplers as well as improved performance through the use of uniform buffers.
+UE4 가 안드로에드에 다수의 OpenGL ES 2.0 과 3.1 기능을 지원한지도 오래 되었지만, 이제 안드로이드에서 ES 3.1 을 전용 타겟으로 삼을 수 있습니다. 이로써 고사양 안드로이드 디바이스가 메탈이나 불칸과 기능적으로 호환되게 되었으며, 사용할 수 있는 텍스처 샘플러 갯수도 16 개로 늘어날 뿐만 아니라 유니폼 버퍼를 사용하여 퍼포먼스도 향상됩니다.
 
-You can choose to package bothe ES 2.0 and ES 3.1 shaders for the same project, and the device will chooses the best shader platform based on the device’s capabilities. 
+프로젝트를 패키징할 때 ES 2.0 과 ES 3.1 셰이더를 모두 패키징해 두고, 디바이스 성능에 따라 최적의 셰이더 플랫폼을 선택하도록 할 수도 있습니다.
 
 ![image alt text](image_65.jpg)(h:220 w:582 convert:false)
 
-## New: Mobile Packaging Wizard 
+## 모바일 패키지 마법사
 
-We have added a Mobile Packaging Wizard to help support packaging for mobile where a minimal app without any content is uploaded to an App Store and the rest of the content is downloaded from the Cloud.
+콘텐츠 없이 최소 앱만 앱 스토어에 올리고 나머지 콘텐츠는 클라우드에서 내려받도록 하는 모바일용 패키징을 지원하는 모바일 패키지 마법사를 추가했습니다.
 
 ![image alt text](image_66.jpg)(h:484 w:800 convert:false)
 
-* This type of packaging is common with larger games that have regular DLC updates
+* 주기적인 DLC 업데이트가 있는 대규모 게임에서는 흔한 패키징 방식입니다.
 
-* It also allows the user to download only the specific content required for their device, such as the texture or shader format their device needs
+* 텍스처나 셰이더 포맷등 사용자 디바이스에 맞는 콘텐츠만 내려받도록 할 수도 있습니다.
 
-* Wizard can be accessed from Project Launcher window as an option for new profile creation
+* 프로젝트 런처 창에서 새 프로파일 생성 옵션으로 마법사를 열 수 있습니다.
 
-## New: Full Precision Materials on Mobile
+## 모바일에서 최대 정밀도 머티리얼
 
-Materials have an option to use full precision (default: medium precision) in pixel shader when used on Mobile devices. For example this helps in cases when material uses world coordinates in computations.
+모바일 디바이스에서 사용되는 픽셀 셰이더에 (기본값은 중간 정밀도이지만) 최대 정밀도를 사용하도록 하는 옵션이 머티리얼에 생겼습니다. 머티리얼에서 월드 좌표를 계산하는 경우 도움이 됩니다.
 
 ![image alt text](image_67.jpg)(h:92 w:260 convert:false)
 
-## New: Binary Shader Caching for Android
+## 안드로이드용 바이너리 셰이더 캐시
 
-Compiled shaders will be stored on the disk on first use and then reused on subsequent application runs. 
+컴파일된 셰이더를 첫 사용시 디스크에 저장해 두고, 다시 실행할 때 저장된 셰이더를 재사용합니다.
 
-* Requires GL_OES_get_program_binary extension 
+* GL_OES_get_program_binary 익스텐션이 필요합니다.
 
-* Disabled by default, can be enabled only on Android devices (r.UseProgramBinaryCache=1)
+* 기본적으로 꺼져있지만, 안드로이드 디바이스에서만 켤 수 있습니다. (r.UseProgramBinaryCache=1)
 
-## New: Localized Text Formatting Improvements
+## 현지화 텍스트 포맷 개선
 
-We’ve improved our localized text formatting to allow your translations to be more accurate.
+번역 정확도 향상을 위해 현지화 텍스트 포맷을 개선시켰습니다.
 
-**Plural Forms**:
+**한글 조사 변환:**
 
-* Plural forms allow you to use different text based upon a numeric variable given to your text format. Plural forms may be cardinal, eg "There is 1 cat", “There are 4 cats”, or ordinal, eg) “You came 1st!”, “You came 2nd!”, etc.
+* hpp(Hangul Post-Positions)는 한국어에서 선행하는 낱말 끝 글자의 종성 유무에 따라 바뀌는 조사를 자동으로 처리해 줍니다.
 
-* Plural forms are specified as key->value pairs, and support any of the following keywords (as defined for your culture by the [CLDR data](http://www.unicode.org/cldr/charts/29/supplemental/language_plural_rules.html)): zero, one, two, few, many, other. Values are an optionally quoted string that may also contain format markers.
+* 문법: {변수}|hpp(은,는) - {변수}가 종성으로 끝나면 조사는 "은", 아니면 "는" 이 됩니다. 지원되는 조사 목록은 다음과 같습니다: (은,는) (이,가) (을,를) (과,와) (아,야) (이어,여) (이에,예) (이었,였) (으로,로)
 
-* Cardinal Format Example: "There {NumCats}|plural(one=is,other=are) {NumCats} {NumCats}|plural(one=cat,other=cats)"
+* 포맷 예제: "{Arg}|hpp(은,는)", {Arg}="사람" 이면 결과는 "사람은", {Arg}="사자" 면 결과는 "사자는"
 
-* Ordinal Format Example: "You came {Place}{Place}|ordinal(one=st,two=nd,few=rd,other=th)!"
+**복수에 따른 변환:**
 
-**Gender Forms:**
+* plural (복수)는 텍스트 포맷에 주어진 수에 따라 다른 텍스트를 선택합니다. 복수는 "There is 1 cat" 이나 "There are 4 cats" 처럼 기수가 될 수도, "You came 1st!" 나 "You came 2nd!" 처럼 서수(ordinal)가 될 수도 있습니다.
 
-* Gender forms allow you to use different text based upon an ETextGender value given to your text format, eg) "Le guerrier est fort", “La guerrière est forte”.
+* 복수는 키-값 짝 형태로 지정하며, 뒤따르는 키워드는 다음과 같습니다 ([CLDR 데이터](http://www.unicode.org/cldr/charts/29/supplemental/language_plural_rules.html) 를 기준으로 한 문화권 정의에 따릅니다): zero, one, two, few, many, other. 값은 따옴표로 포맷 마커를 포함할 수도 있습니다.
 
-* Gender forms are specified as a list of values in the order of masculine, feminine, neuter (neuter is optional). Values are an optionally quoted string that may also contain format markers.
+* 기수 포맷 예제: "There {NumCats}|plural(one=is,other=are) {NumCats} {NumCats}|plural(one=cat,other=cats)"
 
-* Format Example: "{Gender}|gender(Le,La) {Gender}|gender(guerrier,guerrière) est {Gender}|gender(fort,forte)"
+* 서수 포맷 예제: "You came {Place}{Place}|ordinal(one=st,two=nd,few=rd,other=th)!"
 
-**Hangul Post-Positions:**
+**성별에 따른 변환:**
 
-* Hangul post-positions help you deal with the grammar rules present in Korean, and will insert the correct glyph(s) based upon whether the value being inserted ends in a consonant or a vowel, eg) "사람은", “사자는”.
+* 성별(gender)은 텍스트 포맷에 주어진 ETextGender 값에 따라 다른 텍스트를 사용합니다. 예: "Le guerrier est fort", "La guerrière est forte".
 
-* Hangul post-positions are specified as a list of values in the order of consonant, vowel. Values are an optionally quoted string.
+* 성별은 masculine (남성), feminine (여성), neuter (중성) 순서의 값 목록으로 지정합니다 (중성은 옵션입니다). 값은 따옴표로 포맷 마커를 포함할 수도 있습니다.
 
-* Format Example: "{Arg}|hpp(은,는)"
+* 포맷 예제: "{Gender}|gender(Le,La) {Gender}|gender(guerrier,guerrière) est {Gender}|gender(fort,forte)"
 
-To allow you to pass in the numeric/gender values needed for plural/gender form support, all of the FText::Format(...) family of functions now take their values as FFormatArgumentValue rather than FText. This can be implicitly constructed from any numeric type, ETextGender, or FText.
+* 복수/성별 포맷 지원에 필요한 수치/성별 값 전달을 위해, FText::Format(...) 함수군 모두 이제 FText 가 아닌 FFormatArgumentValue 를 값으로 받습니다. 이는 어떠한 수치 유형이나 ETextGender 또는 FText 에서도 묵시적 생성이 가능합니다.
 
-The ability to set these value types in Blueprints has been exposed using wildcard pins on the "Format Text" node:
+블루프린트에서 이러한 값 유형을 설정하는 방법은 Format Text 노드에 와일드카드 핀으로 노출시키는 것입니다:
 
 ![image alt text](image_68.jpg)(h:166 w:564 convert:false)
 
 ![image alt text](image_69.jpg)(h:168 w:820 convert:false)
 
-You can also pre-compile your format pattern if you’re going to be re-using it for multiple calls to FText::Format(...). Simply create and store a FTextFormat instance and pass it as the pattern to FText::Format(...).
+FText::Format(...) 를 여러번 호출하기 위해 재사용할 때는 포맷 패턴을 미리 컴파일해둘 수도 있습니다. FTextFormat 인스턴스를 만들어 저장한 다음 FText::Format(...) 에 패턴으로 전달해 주기만 하면 됩니다.
 
-## New: Multi-threaded Audio (Experimental)
+## 멀티스레드 오디오 (실험단계)
 
-Outside of the editor, sound cue evaluation and active wave instance determination can now run independently of the game thread. Benefits will vary per game depending on the quantity and complexity of active sound cues, however for some context, in early testing, we’ve seen a shift of approximately 1ms per frame off of the Game Thread and on to the Audio thread.  
+에디터 외부에서, 사운드 큐 평가와 활성 웨이브 인스턴스 결정 작업이 이제 게임 스레드와 독립적으로 가능해졌습니다. 게임의 활성 사운드 큐 양이나 복잡도에 따라 볼 수 있는 이득은 달라지지만, 평균적으로 초기 테스팅에서 프레임당 게임 스레드에서 대략 1 ms 가 오디오 스레드로 전환되는 것을 볼 수 있었습니다.
 
-This feature is disabled by default in 4.13, but you can try it out by changing **UseAudioThread** to **true** in the [Audio] section of BaseEngine.ini.
+이 기능은 4.13 에서는 기본적으로 꺼져있으나, BaseEngine.ini 의 [Audio] 섹션에서 UseAudioThread 를 true 설정하면 사용할 수 있습니다.
 
-## New: Network Replay Backwards Compatibility
+## 네트워크 리플레이 하위 호환성
 
-The replay recording feature now supports backwards compatibility. This means you can make modifications to a build, even add or remove replicated properties and then load replays on the new build that were recorded with an older build. 
+리플레이 녹화 기능이 이제 하위 호환됩니다. 즉 빌드에 변경을 가하거나, 심지어 리플리케이트되는 프로퍼티를 추가 또는 제거한 뒤에도 구버전에서 녹화한 리플레이를 신버전에서 로드할 수 있습니다.
 
-To test this feature out, you can simply record a replay with a certain build, change some replicated properties, and then load that same replay on a newer build!
+이 기능을 테스트해 보려면, 단순히 특정 빌드로 녹화를 한 뒤, 리플리케이트되는 프로퍼티를 변경하고서, 새 빌드로 같은 리플레이를 로드해 보면 됩니다!
 
-Most of the work is handled by the low level reflection information we have for each replicated property. For custom serialized network data (UObject::NetSerialize), you can now use two new functions added to FArchive (FArchive::EngineNetVer() and FArchive::GameNetVer()) which allow you to obtain the current network version of the stream and handle old data manually.
+대부분의 작업은 각각의 리플리케이트되는 프로퍼티에 대한 로우 레벨 반영 정보에 의해 처리됩니다. 커스텀 시리얼라이즈된 (UObject::NetSerialize) 네트워크 데이터의 경우, 이제 새로 추가된 두 개의 FArchive 함수 (FArchive::EngineNetVer() 와 FArchive::GameNetVer()) 를 사용하여 스트림의 현재 네트워크 버전을 구하여 구버전 데이터를 수동 처리할 수 있습니다.
 
-## New: Build Graph Scripting (Experimental)
+## 빌드 그래프 스크립트 (실험단계)
 
-BuildGraph scripts can be used to create custom sequences of UE4 build commands for build automation. Graphs are declared using an XML script using syntax similar to MSBuild, ANT or NAnt, and consist of a network of dependent *nodes* made up of *tasks*. 
+BuildGraph (빌드 그래프) 스크립트를 통해 UE4 빌드 명령 커스텀 시퀀스를 만들어 빌드를 자동화시킬 수 있습니다. 그래프는 MSBuild 나 ANT 나 NAnt 와 비슷한 문법을 사용하는 XML 스크립트를 사용하여 선언하며, '태스크'로 이루어진 종속 '노드' 망으로 구성됩니다.
 
 ![image alt text](image_70.jpg)(h:382 w:677 convert:false)
 
-Some example BuildGraph scripts are stored under Engine/Build/Graph/Examples/…
+Engine/Build/Graph/Examples/… 에서 몇 가지 BuildGraph 스크립트 예제를 확인하실 수 있습니다.
 
-## New: Script for Making Installed Builds
+## 설치 빌드 제작용 스크립트
 
-The build process for installed UE4 distributions has been re-written using the BuildGraph scripting language, with a goal to making the process simpler and more transparent for other development teams with engine customizations. The script can be found at Engine/Build/InstalledEngineBuild.xml, and can be run by invoking AutomationTool with one of the following command lines:
+설치 UE4 배포판용 빌드 프로세스를 BuildGraph 스크립트 언어로 재작성했습니다. 프로세스를 단순화시키고 엔진을 커스터마이징하여 사용하는 다른 개발팀과의 투명성 제고를 위함입니다. 이 스크립트는 Engine/Build/InstalledEngineBuild.xml 에서 찾을 수 있으며, 다음 명령줄로 자동화 툴을 호출하여 실행시킬 수 있습니다:
 
-**Windows:**
+윈도우:
 
-BuildGraph -target="Make Installed Build Win64” -script=Engine/Build/InstalledEngineBuild.xml -clean
+BuildGraph -target="Make Installed Build Win64" -script=Engine/Build/InstalledEngineBuild.xml -clean
 
-**Mac:**
+맥:
 
-BuildGraph -target="Make Installed Build Mac” -script=Engine/Build/InstalledEngineBuild.xml -clean
+BuildGraph -target="Make Installed Build Mac" -script=Engine/Build/InstalledEngineBuild.xml -clean
 
-Append the -listonly option to view a list of available options for customizing the build process.
+빌드 프로세스 커스터마이징에 쓸 수 있는 옵션 목록을 확인하려면 -listonly 를 붙이면 됩니다.
 
-## New: TSets as Unreal Properties
+## TSet 의 언리얼 프로퍼티화
 
-TSets can now be used as a UPROPERTY for the purposes of automatic serialization, garbage collection, ini settings, and editing via the details panel (limited to entering as a string (i.e. "(1,2,3)")). Similar to TMap, TSet properties do not yet work as replicated members, nor can they be used in Blueprints.
+이제 TSet 를 UPROPERTY 로 사용하여 자동 시리얼라이즈, 가비지 콜렉션, ini 세팅, 디테일 패널을 통한 (입력은 "(1,2,3)" 식의 스트링으로 제한된) 편집에 사용할 수 있습니다. TMap 과 비슷하게 TSet 프로퍼티의 경우 아직은 리플리케이트되는 멤버나 블루프린트에서 사용할 수 없습니다.
 
 # Release Notes
 
