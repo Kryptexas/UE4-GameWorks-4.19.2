@@ -1,0 +1,57 @@
+﻿INTSourceChangelist:0
+availability:docs
+title: Blueprint and Render Targets - How Tos
+description: A How To Guide for using Blueprints to manipulate render targets. 
+crumbs:
+version:4.13
+Type:topic
+SkillLevel:Intermediate
+parent:Engine
+order:2
+Navigation:topic
+
+The **Blueprint and Render Targets - How To** pages provide step by step examples on how to use Blueprints to work with render targets. Whether you want to use Blueprints and render targets to create Textures for use in your project's Materials, or you want to create a surface that deforms when the player shoots at it, these pages will guide you on how to accomplish this. Reference links are also included to provi
+
+## Intermediate
+[REGION:wrapper transparent]
+[](FANCY:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\CreatingTextures "%Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\CreatingTextures:description%")
+
+[/REGION]
+
+
+## Advanced
+[REGION:wrapper transparent]
+[](FANCY:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter "%Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter:description%")
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
