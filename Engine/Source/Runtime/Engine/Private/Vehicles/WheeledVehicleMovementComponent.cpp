@@ -1282,6 +1282,19 @@ bool UWheeledVehicleMovementComponent::GetUseAutoGears() const
 	return false;
 }
 
+void UWheeledVehicleMovementComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::WheelOffsetIsFromWheel)
+	{
+		bDeprecatedSpringOffsetMode = true;	//Existing content is tuned with the old way of applying spring force offset. There's no easy way to re-compute this at the wheel level since it's a shared asset
+	}
+}
+
+
 #if WITH_VEHICLE
 
 void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* Canvas, float GraphX, float GraphY, float GraphWidth, float GraphHeight, float& OutX )
@@ -1387,18 +1400,6 @@ float UWheeledVehicleMovementComponent::GetMaxSpringForce() const
 
 	return MaxSpringCompression;
 
-}
-
-void UWheeledVehicleMovementComponent::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-
-	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
-
-	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::WheelOffsetIsFromWheel)
-	{
-		bDeprecatedSpringOffsetMode = true;	//Existing content is tuned with the old way of applying spring force offset. There's no easy way to re-compute this at the wheel level since it's a shared asset
-	}
 }
 
 void UWheeledVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& YPos)
