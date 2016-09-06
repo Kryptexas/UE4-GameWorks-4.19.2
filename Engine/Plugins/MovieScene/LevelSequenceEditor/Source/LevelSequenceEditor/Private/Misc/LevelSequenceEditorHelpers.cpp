@@ -60,15 +60,18 @@ class SMasterSequenceSettings : public SCompoundWidget, public FGCObject
 			SNew(SVerticalBox)
 
 			+ SVerticalBox::Slot()
-			.AutoHeight()
+			.FillHeight(1.0f)
+			.Padding(4, 4, 4, 4)
 			[
-				Details1View.ToSharedRef()
-			]
-
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				Details2View.ToSharedRef()
+				SNew(SScrollBox)
+				+SScrollBox::Slot()
+				[
+					Details1View.ToSharedRef()
+				]
+				+SScrollBox::Slot()
+				[
+					Details2View.ToSharedRef()
+				]
 			]
 
 			+ SVerticalBox::Slot()
