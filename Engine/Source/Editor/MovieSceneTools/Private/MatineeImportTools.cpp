@@ -375,7 +375,7 @@ bool FMatineeImportTools::CopyInterpMoveTrack( UInterpTrackMove* MoveTrack, UMov
 					{
 						SubTrackCurve = &TranslationZCurve;
 					}
-					else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationY)
+					else if (MoveSubTrack->MoveAxis == EInterpMoveAxis::AXIS_RotationX)
 					{
 						SubTrackCurve = &RotationXCurve;
 					}
