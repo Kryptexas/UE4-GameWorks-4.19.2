@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2654654
+﻿INTSourceChangelist:2994308
 Availability:Public
 Title:14.これから先のこと
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:EQS クイックスタート終了後に行うことを提案します。
-バージョン：4.9
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -27,8 +27,8 @@ Description:EQS クイックスタート終了後に行うことを提案しま�
 ## 改善のアイデア
 
 * TopDownCharacter は特殊すぎるため、よりフレキシブルなシステムに、すべてを更新します。
-* ビヘイビア ツリーは、こうしたシステムを以下のようにセットアップするひとつの方法を示します。
-	* Cooldown デコレータの代わりに Wait ノードを使ってみてください。これは Bool Blackboard のエントリと AI コントローラでいくつかの追加作業が必要になります。
+* ビヘイビア ツリー は、こうしたシステムを以下のようにセットアップするひとつの方法を示します。
+	* Cooldown デコレータの代わりに Wait ノードを使ってみてください。これは Bool ブラックボードのエントリと AI コントローラでいくつかの追加作業が必要になります。
 	* 一定時間経過後、AI が移動し始める第 2 のビヘイビアを追加します。
 	* Bonus - プレイヤーの最後にわかっている位置を格納し、それを Environment Query で使用して、より良い隠れ場所を見つけます。
 	* Double Bonus - プレイヤーの前方ビューの円弧に入ることなく、AI をプレイヤーの背後から近づかせます。
