@@ -168,9 +168,6 @@ public:
 	/** Whether or not the sound has checked if it was occluded already. Used to initialize a sound as occluded and bypassing occlusion interpolation. */
 	uint8 bHasCheckedOcclusion:1;
 
-	/** Flag to trigger binding our trace delegate for async trace calls */
-	uint8 bIsTraceDelegateBound:1;
-
 	/** Is this sound allowed to be spatialized? */
 	uint8 bAllowSpatialization:1;
 
@@ -238,9 +235,6 @@ public:
 
 	/** Whether or not we have a low-pass filter enabled on this active sound. */
 	uint8 bEnableLowPassFilter : 1;
-
-	/** Whether or not to use an async trace for occlusion */
-	uint8 bOcclusionAsyncTrace : 1;
 
 public:
 	uint8 UserIndex;
