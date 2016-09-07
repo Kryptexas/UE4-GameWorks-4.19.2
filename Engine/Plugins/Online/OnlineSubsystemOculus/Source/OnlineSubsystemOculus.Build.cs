@@ -30,11 +30,11 @@ public class OnlineSubsystemOculus : ModuleRules
 				"PacketHandler",
 			}
 			);
-			
+
+		PublicDependencyModuleNames.AddRange(new string[] { "LibOVRPlatform" });
+
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			PublicDependencyModuleNames.AddRange(new string[] { "LibOVRPlatform" });
-
 			if (Target.Platform == UnrealTargetPlatform.Win32)
 			{
 				PublicDelayLoadDLLs.Add("LibOVRPlatform32_1.dll");
