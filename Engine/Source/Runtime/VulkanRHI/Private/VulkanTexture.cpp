@@ -1269,6 +1269,8 @@ void FVulkanDynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, co
 {
 #if VULKAN_ENABLE_DUMP_LAYER
 	{
+// TODO: this dies in the printf on android. Needs investigation.
+#if !PLATFORM_ANDROID
 		if (FRHITexture2D* Tex2d = TextureRHI->GetTexture2D())
 		{
 			FVulkanTexture2D* VTex2d = (FVulkanTexture2D*)Tex2d;
@@ -1284,7 +1286,8 @@ void FVulkanDynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, co
 			FVulkanTexture3D* VTex3d = (FVulkanTexture3D*)Tex3d;
 			VulkanRHI::PrintfBegin(FString::Printf(TEXT("vkDebugMarkerSetObjectNameEXT(%p=%s)"), VTex3d->Surface.Image, Name));
 		}
-}
+	#endif
+	}
 #endif
 
 #if VULKAN_ENABLE_DRAW_MARKERS

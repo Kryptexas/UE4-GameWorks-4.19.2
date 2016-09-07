@@ -4563,6 +4563,8 @@ void APlayerController::ActivateTouchInterface(UTouchInterface* NewTouchInterfac
 		{
 			LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
 		}
+		//clear any input before clearing the VirtualJoystick
+		FlushPressedKeys();
 		VirtualJoystick = NULL;
 	}
 }

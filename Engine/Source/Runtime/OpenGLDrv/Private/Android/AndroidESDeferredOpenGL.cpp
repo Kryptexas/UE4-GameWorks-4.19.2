@@ -594,4 +594,14 @@ void FAndroidAppEntry::PlatformInit()
 	}
 }
 
+void FAndroidAppEntry::ReleaseEGL()
+{
+	AndroidEGL* EGL = AndroidEGL::GetInstance();
+	if (EGL->IsInitialized())
+	{
+		EGL->DestroyBackBuffer();
+		EGL->Terminate();
+	}
+}
+
 #endif

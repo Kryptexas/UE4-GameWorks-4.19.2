@@ -39,6 +39,10 @@ struct FPlatformOpenGLContext;
 #define GL_HALF_FLOAT 0x140B
 #endif
 
+#ifndef GL_RGBA16F
+#define GL_RGBA16F    0x881A
+#endif
+
 // Base static class
 class FOpenGLBase
 {
@@ -161,6 +165,8 @@ public:
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT16; }
 	static FORCEINLINE GLenum GetShadowDepthFormat()					{ return GL_DEPTH_COMPONENT16; }
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return GL_HALF_FLOAT; }
+	static FORCEINLINE GLenum GetTextureHalfFloatPixelType()			{ return GL_HALF_FLOAT; }
+	static FORCEINLINE GLenum GetTextureHalfFloatInternalFormat()		{ return GL_RGBA16F; }
 
 	static FORCEINLINE GLint GetMaxTextureImageUnits()			{ check(MaxTextureImageUnits != -1); return MaxTextureImageUnits; }
 	static FORCEINLINE GLint GetMaxVertexTextureImageUnits()	{ check(MaxVertexTextureImageUnits != -1); return MaxVertexTextureImageUnits; }

@@ -27,20 +27,45 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 #endif
 
 #if PLATFORM_ANDROID
-#include "VulkanLoader.h"
-#define VULKAN_COMMANDWRAPPERS_ENABLE 0
+	#define VULKAN_COMMANDWRAPPERS_ENABLE VULKAN_ENABLE_API_DUMP
+	#define VULKAN_DYNAMICALLYLOADED 1
 #else
-#include <vulkan/vulkan.h>
-#define VULKAN_COMMANDWRAPPERS_ENABLE 1
+	#define VULKAN_COMMANDWRAPPERS_ENABLE 1
+	#define VULKAN_DYNAMICALLYLOADED 0
+#endif
+
+#if VULKAN_DYNAMICALLYLOADED
+	#include "VulkanLoader.h"
+#else
+	#include <vulkan/vulkan.h>
+#endif
+
+#if VULKAN_COMMANDWRAPPERS_ENABLE
+	#if VULKAN_DYNAMICALLYLOADED
+		// Vulkan API is defined in VulkanDynamicAPI namespace.
+		#define VULKANAPINAMESPACE VulkanDynamicAPI
+	#else
+		// Vulkan API is in the global namespace.
+		#define VULKANAPINAMESPACE
+	#endif
+	#include "VulkanCommandWrappers.h"
+#else
+	#if VULKAN_DYNAMICALLYLOADED
+		// Bring functions from VulkanDynamicAPI to VulkanRHI
+		#define VK_DYNAMICAPI_TO_VULKANRHI(Type,Func) using VulkanDynamicAPI::Func;
+		namespace VulkanRHI
+		{
+			ENUM_VK_ENTRYPOINTS_ALL(VK_DYNAMICAPI_TO_VULKANRHI);
+		}
+	#else
+		#error "Statically linked vulkan api must be wrapped!"
+	#endif
 #endif
 
 #include "VulkanRHI.h"
 #include "VulkanGlobalUniformBuffer.h"
 #include "RHI.h"
 
-#if VULKAN_COMMANDWRAPPERS_ENABLE
-#include "VulkanCommandWrappers.h"
-#endif
 using namespace VulkanRHI;
 
 // Default is 1 (which is aniso off), the number is adjusted after the limits are queried.

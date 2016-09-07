@@ -645,14 +645,11 @@ void FReflectionCaptureEncodedHDRDerivedData::GenerateFromDerivedDataSource(cons
 	}
 }
 
-// Generate a new guid to force a recache of all encoded HDR derived data
-#define REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER TEXT("6B6DFE9DF44888914934C082283C3296")
-
 FString FReflectionCaptureEncodedHDRDerivedData::GetDDCKeyString(const FGuid& StateId, int32 CubemapDimension)
 {
 	return FDerivedDataCacheInterface::BuildCacheKey(
-		TEXT("REFL_ENC"), 
-		REFLECTIONCAPTURE_ENCODED_DERIVEDDATA_VER, 
+		TEXT("REFL_ENC"),
+		*ReflectionCaptureDDCVer.ToString(),
 		*StateId.ToString().Append("_").Append(FString::FromInt(CubemapDimension))
 		);
 }

@@ -954,6 +954,23 @@ MaterialFloat4 Decode32BPPHDR(MaterialFloat4 Encoded, MaterialFloat3 OtherEncode
 	}
 }
 
+// Demosaic capable 32bpp hdr decode.
+float4 Decode32BPPHDR(float4 Pixel, float2 SvPosition, Texture2D SourceTexture, SamplerState SourceSampler, float2 InTexCoords[4])
+{
+	half3 PixelColorN = SourceTexture.Sample(SourceSampler, InTexCoords[0].xy).rgb;
+	half3 PixelColorE = SourceTexture.Sample(SourceSampler, InTexCoords[1].xy).rgb;
+	half3 PixelColorW = SourceTexture.Sample(SourceSampler, InTexCoords[2].xy).rgb;
+	half3 PixelColorS = SourceTexture.Sample(SourceSampler, InTexCoords[3].xy).rgb;
+	half3 PixelColorV = PixelColorN * 0.5 + PixelColorS * 0.5;
+	half3 PixelColorH = PixelColorW * 0.5 + PixelColorE * 0.5;
+	if(abs(PixelColorN.g - PixelColorS.g) < abs(PixelColorW.g - PixelColorE.g)) 
+	{
+		PixelColorH = PixelColorV;
+	}
+	Pixel.rgb = Decode32BPPHDR(Pixel, PixelColorH, SvPosition.xy).rgb;
+	Pixel.a = 0.0;
+	return Pixel;
+}
 
 /** Get render target write mask value
   * This gets a bit from a write mask texture created with FRTWriteMaskDecodeCS. Only supprted on some platforms.

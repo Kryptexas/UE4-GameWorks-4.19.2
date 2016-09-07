@@ -180,7 +180,7 @@ public:
 
 	inline const FVector2D* GetFrameData(int32 FrameIndex) const
 	{
-		return &DerivedData.BoundingGeometry[FrameIndex * GetNumFrames()];
+		return &DerivedData.BoundingGeometry[FrameIndex * GetNumBoundingVertices()];
 	}
 
 	inline FShaderResourceViewRHIParamRef GetBoundingGeometrySRV() const

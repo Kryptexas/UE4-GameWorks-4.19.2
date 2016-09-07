@@ -70,6 +70,8 @@ public:
 
 	static void OnWindowSizeChanged();
 
+	virtual bool IsGamepadAttached() const override;
+
 private:
 
 	FAndroidApplication();

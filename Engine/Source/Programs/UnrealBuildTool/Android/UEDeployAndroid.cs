@@ -1201,7 +1201,7 @@ namespace UnrealBuildTool
 
 
 
-		private string GenerateManifest(AndroidToolChain ToolChain, string ProjectName, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch)
+		private string GenerateManifest(AndroidToolChain ToolChain, string ProjectName, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch, string CookFlavor)
 		{
 			string Arch = GetNDKArch(UE4Arch);
 			int NDKLevelInt = ToolChain.GetNdkApiLevelInt();
@@ -1301,6 +1301,51 @@ namespace UnrealBuildTool
 				{
 					Log.TraceInformation("Disabling Show Launch Image for GearVR enabled application");
 					bShowLaunchImage = false;
+				}
+			}
+
+			//figure out which texture compressions are supported
+			bool bETC1Enabled, bETC2Enabled, bDXTEnabled, bATCEnabled, bPVRTCEnabled, bASTCEnabled;
+			bETC1Enabled = bETC2Enabled = bDXTEnabled = bATCEnabled = bPVRTCEnabled = bASTCEnabled = false;
+			if (CookFlavor.Length < 1)
+			{
+				//All values supproted
+				bETC1Enabled = bETC2Enabled = bDXTEnabled = bATCEnabled = bPVRTCEnabled = bASTCEnabled = true;
+			}
+			else
+			{
+				switch(CookFlavor)
+				{
+					case "_Multi":
+						//need to check ini to determine which are supported
+						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_ETC1", out bETC1Enabled);
+						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_ETC2", out bETC2Enabled);
+						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_DXT", out bDXTEnabled);
+						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_ATC", out bATCEnabled);
+						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_PVRTC", out bPVRTCEnabled);
+						Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bMultiTargetFormat_ASTC", out bASTCEnabled);
+						break;
+					case "_ETC1":
+						bETC1Enabled = true;
+						break;
+					case "_ETC2":
+						bETC2Enabled = true;
+						break;
+					case "_DXT":
+						bDXTEnabled = true;
+						break;
+					case "_ATC":
+						bATCEnabled = true;
+						break;
+					case "_PVRTC":
+						bPVRTCEnabled = true;
+						break;
+					case "_ASTC":
+						bASTCEnabled = true;
+						break;
+					default:
+						Log.TraceWarning("Invalid or unknown CookFlavor used in GenerateManifest: {0}", CookFlavor);
+						break;
 				}
 			}
 
@@ -1490,6 +1535,36 @@ namespace UnrealBuildTool
 					{
 						Text.AppendLine("\t" + Line);
 					}
+				}
+
+				Text.AppendLine("\t<!-- Supported texture compression formats (cooked) -->");
+				if (bETC1Enabled)
+				{
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_OES_compressed_ETC1_RGB8_texture\" />");
+				}
+				if (bETC2Enabled)
+				{
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_COMPRESSED_RGB8_ETC2\" />");
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_COMPRESSED_RGBA8_ETC2_EAC\" />");
+				}
+				if (bATCEnabled)
+				{
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_AMD_compressed_ATC_texture\" />");
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_ATI_texture_compression_atitc\" />");
+				}
+				if (bDXTEnabled)
+				{
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_EXT_texture_compression_dxt1\" />");
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_EXT_texture_compression_s3tc\" />");
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_NV_texture_compression_s3tc\" />");
+				}
+				if (bPVRTCEnabled)
+				{
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_IMG_texture_compression_pvrtc\" />");
+				}
+				if (bASTCEnabled)
+				{
+					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_KHR_texture_compression_astc_ldr\" />");
 				}
 			}
 
@@ -1864,7 +1939,7 @@ namespace UnrealBuildTool
 			{
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
-							let manifest = GenerateManifest(ToolChain, ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch)
+							let manifest = GenerateManifest(ToolChain, ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor)
 							select Tuple.Create(Arch, GPUArch, manifest);
 			}
 			else
@@ -1872,7 +1947,7 @@ namespace UnrealBuildTool
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
 							let manifestFile = Path.Combine(IntermediateAndroidPath, Arch + "_" + GPUArch + "_AndroidManifest.xml")
-							let manifest = GenerateManifest(ToolChain, ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch)
+							let manifest = GenerateManifest(ToolChain, ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, RequiresOBB(bDisallowPackagingDataInApk, ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch, CookFlavor)
 							let OldManifest = File.Exists(manifestFile) ? File.ReadAllText(manifestFile) : ""
 							where manifest != OldManifest
 							select Tuple.Create(Arch, GPUArch, manifest);

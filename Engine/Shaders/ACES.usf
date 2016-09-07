@@ -238,7 +238,7 @@ float cubic_basis_shaper
 		int j = knot_coord;
 		float t = knot_coord - j;
       
-		float monomials[4] = { t*t*t, t*t, t, 1. };
+		float monomials[4] = { t*t*t, t*t, t, 1.0 };
 
 		// (if/else structure required for compatibility with CTL < v1.5.)
 		if ( j == 3) {
@@ -340,7 +340,7 @@ float segmented_spline_c5_fwd( float x )
 
 		float3 cf = { C.coefsLow[ j], C.coefsLow[ j + 1], C.coefsLow[ j + 2]};
     
-		float3 monomials = { t * t, t, 1 };
+		float3 monomials = { t * t, t, 1.0 };
 		logy = dot( monomials, mul( cf, M));
 	}
 	else if (( logx >= log10(C.midPoint.x) ) && ( logx < log10(C.maxPoint.x) ))
@@ -351,7 +351,7 @@ float segmented_spline_c5_fwd( float x )
 
 		float3 cf = { C.coefsHigh[ j], C.coefsHigh[ j + 1], C.coefsHigh[ j + 2]};
 
-		float3 monomials = { t * t, t, 1 };
+		float3 monomials = { t * t, t, 1.0 };
 		logy = dot( monomials, mul( cf, M));
 	}
 	else
@@ -488,7 +488,7 @@ float segmented_spline_c9_fwd( float x, const SegmentedSplineParams_c9 C )
 
 		float3 cf = { C.coefsLow[j], C.coefsLow[j + 1], C.coefsLow[j + 2] };
 
-		float3 monomials = { t * t, t, 1 };
+		float3 monomials = { t * t, t, 1.0 };
 		logy = dot(monomials, mul(cf, M));
 	}
 	else if ((logx >= log10(C.midPoint.x)) && (logx < log10(C.maxPoint.x)))
@@ -499,7 +499,7 @@ float segmented_spline_c9_fwd( float x, const SegmentedSplineParams_c9 C )
 
 		float3 cf = { C.coefsHigh[j], C.coefsHigh[j + 1], C.coefsHigh[j + 2] };
 
-		float3 monomials = { t * t, t, 1 };
+		float3 monomials = { t * t, t, 1.0 };
 		logy = dot(monomials, mul(cf, M));
 	}
 	else//if ( logIn >= log10(C.maxPoint.x) )

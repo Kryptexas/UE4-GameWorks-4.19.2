@@ -1002,13 +1002,13 @@ void FViewInfo::SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUnif
 	ViewUniformShaderParameters.GlobalVolumeTexelSize_UB = 0.0f;
 	ViewUniformShaderParameters.MaxGlobalDistance_UB = 0.0f;
 
-	ViewUniformShaderParameters.GlobalDistanceFieldTexture0_UB = GBlackVolumeTexture->TextureRHI.GetReference();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture0_UB = OrBlack3DIfNull(GBlackVolumeTexture->TextureRHI.GetReference());
 	ViewUniformShaderParameters.GlobalDistanceFieldSampler0_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-	ViewUniformShaderParameters.GlobalDistanceFieldTexture1_UB = GBlackVolumeTexture->TextureRHI.GetReference();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture1_UB = OrBlack3DIfNull(GBlackVolumeTexture->TextureRHI.GetReference());
 	ViewUniformShaderParameters.GlobalDistanceFieldSampler1_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-	ViewUniformShaderParameters.GlobalDistanceFieldTexture2_UB = GBlackVolumeTexture->TextureRHI.GetReference();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture2_UB = OrBlack3DIfNull(GBlackVolumeTexture->TextureRHI.GetReference());
 	ViewUniformShaderParameters.GlobalDistanceFieldSampler2_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-	ViewUniformShaderParameters.GlobalDistanceFieldTexture3_UB = GBlackVolumeTexture->TextureRHI.GetReference();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture3_UB = OrBlack3DIfNull(GBlackVolumeTexture->TextureRHI.GetReference());
 	ViewUniformShaderParameters.GlobalDistanceFieldSampler3_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 }
 

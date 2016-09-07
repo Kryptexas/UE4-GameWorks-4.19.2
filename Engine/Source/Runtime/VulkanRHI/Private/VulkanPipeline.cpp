@@ -340,11 +340,11 @@ void FVulkanPipelineStateCache::Save(FString& CacheFilename)
 	Ar << DiskEntries;
 	TArray<uint8> DeviceCache;
 	size_t Size = 0;
-	VERIFYVULKANRESULT(vkGetPipelineCacheData(Device->GetInstanceHandle(), PipelineCache, &Size, nullptr));
+	VERIFYVULKANRESULT(VulkanRHI::vkGetPipelineCacheData(Device->GetInstanceHandle(), PipelineCache, &Size, nullptr));
 	if (Size > 0)
 	{
 		DeviceCache.AddUninitialized(Size);
-		VERIFYVULKANRESULT(vkGetPipelineCacheData(Device->GetInstanceHandle(), PipelineCache, &Size, DeviceCache.GetData()));
+		VERIFYVULKANRESULT(VulkanRHI::vkGetPipelineCacheData(Device->GetInstanceHandle(), PipelineCache, &Size, DeviceCache.GetData()));
 	}
 	Ar << DeviceCache;
 

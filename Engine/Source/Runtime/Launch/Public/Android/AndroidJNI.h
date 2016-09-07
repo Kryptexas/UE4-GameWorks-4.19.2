@@ -30,6 +30,7 @@ public:
 	static jmethodID AndroidThunkJava_InitHMDs;
 	static jmethodID AndroidThunkJava_DismissSplashScreen;
 	static jmethodID AndroidThunkJava_GetInputDeviceInfo;
+	static jmethodID AndroidThunkJava_IsGamepadAttached;
 	static jmethodID AndroidThunkJava_HasMetaDataKey;
 	static jmethodID AndroidThunkJava_GetMetaDataBoolean;
 	static jmethodID AndroidThunkJava_GetMetaDataInt;

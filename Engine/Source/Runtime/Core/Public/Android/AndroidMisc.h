@@ -120,6 +120,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static bool SupportsShaderFramebufferFetch();
 	static int GetAndroidBuildVersion();
 	static bool ShouldUseVulkan();
+	static FString GetVulkanVersion();
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();

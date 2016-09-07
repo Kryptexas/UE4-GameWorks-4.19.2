@@ -2324,3 +2324,9 @@ static TAutoConsoleVariable<int32> CVarDisableOpenGLES31Support(
 	TEXT("  0 = OpenGLES 3.1 API will be used (providing device and project supports it) [default]\n")
 	TEXT("  1 = OpenGLES 3.1 will be disabled, OpenGL ES2 fall back will be used."),
 	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> GLSLCvar(
+	TEXT("r.Vulkan.UseGLSL"),
+	0,
+	TEXT("2 to use ES GLSL\n1 to use GLSL\n0 to use SPIRV")
+);

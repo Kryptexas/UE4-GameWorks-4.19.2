@@ -3186,6 +3186,28 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 			Level->RouteActorInitialize();
 		}
 
+		// Let server know client sub-levels visibility state
+		for (int32 LevelIndex = 1; LevelIndex < Levels.Num(); LevelIndex++)
+		{
+			ULevel*	SubLevel = Levels[LevelIndex];
+			// Remap packagename for PIE networking before sending out to server
+			FName PackageName = SubLevel->GetOutermost()->GetFName();
+			FString PackageNameStr = PackageName.ToString();
+			if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
+			{
+				PackageName = FName(*PackageNameStr);
+			}
+
+			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
+			{
+				APlayerController* LocalPlayerController = It->GetPlayerController(this);
+				if (LocalPlayerController != NULL)
+				{
+					LocalPlayerController->ServerUpdateLevelVisibility(PackageName, SubLevel->bIsVisible);
+				}
+			}
+		}
+
 		bStartup = 0;
 	}
 

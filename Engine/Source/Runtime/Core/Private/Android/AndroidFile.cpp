@@ -310,6 +310,10 @@ public:
 			Source += ThisSize;
 			BytesToWrite -= ThisSize;
 		}
+		
+		// Update the cached file length
+		Length = FMath::Max(Length, CurrentOffset);
+
 		return true;
 	}
 

@@ -57,8 +57,6 @@ extern PFNBLITFRAMEBUFFERNVPROC					glBlitFramebufferNV ;
 #define GL_SAMPLES_PASSED_EXT					0x8914
 #define GL_ANY_SAMPLES_PASSED_EXT				0x8C2F
 
-/* from GL_EXT_color_buffer_half_float */
-#define GL_RGBA16F_EXT                          0x881A
 
 typedef void (GL_APIENTRYP PFNGLGENQUERIESEXTPROC) (GLsizei n, GLuint *ids);
 typedef void (GL_APIENTRYP PFNGLDELETEQUERIESEXTPROC) (GLsizei n, const GLuint *ids);
@@ -273,7 +271,7 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	static FORCEINLINE bool TexStorage2D(GLenum Target, GLint Levels, GLint InternalFormat, GLsizei Width, GLsizei Height, GLenum Format, GLenum Type, uint32 Flags)
 	{
-		if( bUseHalfFloatTexStorage && Type == GL_HALF_FLOAT_OES && (Flags & TexCreate_RenderTargetable) != 0 )
+		if( bUseHalfFloatTexStorage && Type == GetTextureHalfFloatPixelType() && (Flags & TexCreate_RenderTargetable) != 0 )
 		{
 			glTexStorage2D(Target, Levels, InternalFormat, Width, Height);
 			VERIFY_GL(glTexStorage2D)
@@ -427,6 +425,16 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	// Adreno doesn't support HALF_FLOAT
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
+
+	static FORCEINLINE GLenum GetTextureHalfFloatPixelType()			
+	{ 
+		return bES30Support ? GL_HALF_FLOAT : GL_HALF_FLOAT_OES;
+	}
+
+	static FORCEINLINE GLenum GetTextureHalfFloatInternalFormat()		
+	{ 
+		return bES30Support ? GL_RGBA16F : GL_RGBA;
+	}
 
 	// Android ES2 shaders have code that allows compile selection of
 	// 32 bpp HDR encoding mode via 'intrinsic_GetHDR32bppEncodeModeES2()'.

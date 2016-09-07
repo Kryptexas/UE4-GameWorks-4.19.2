@@ -95,6 +95,18 @@ IInputInterface* FAndroidApplication::GetInputInterface()
 	return InputInterface.Get();
 }
 
+bool FAndroidApplication::IsGamepadAttached() const
+{
+	FAndroidInputInterface* AndroidInputInterface = (FAndroidInputInterface*)InputInterface.Get();
+
+	if (AndroidInputInterface)
+	{
+		return AndroidInputInterface->IsGamepadAttached();
+	}
+
+	return false;
+}
+
 void FDisplayMetrics::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics )
 {
 	// Get screen rect

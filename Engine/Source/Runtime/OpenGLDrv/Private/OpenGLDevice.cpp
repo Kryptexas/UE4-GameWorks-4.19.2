@@ -904,7 +904,9 @@ static void InitRHICapabilitiesForGL()
 		if (FOpenGL::SupportsColorBufferHalfFloat() && FOpenGL::SupportsTextureHalfFloat())
 		{
 #if PLATFORM_ANDROID
-			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA16F_EXT, GL_RGBA16F_EXT, GL_RGBA, GL_HALF_FLOAT_OES, false, false));
+			GLenum InternalFormatRGBA16 = FOpenGL::GetTextureHalfFloatInternalFormat();
+			GLenum PixelTypeRGBA16 = FOpenGL::GetTextureHalfFloatPixelType();
+			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(InternalFormatRGBA16, InternalFormatRGBA16, GL_RGBA, PixelTypeRGBA16, false, false));
 #else
 			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA, GL_HALF_FLOAT_OES, false, false));
 #endif

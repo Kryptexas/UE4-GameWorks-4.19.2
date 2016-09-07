@@ -1164,17 +1164,17 @@ struct FInstanceStream
 		Me->InstanceOrigin.W = RandomInstanceID;
 
 		Me->InstanceTransform1[0] = Transform.M[0][0];
-		Me->InstanceTransform1[1] = Transform.M[1][0];
-		Me->InstanceTransform1[2] = Transform.M[2][0];
+		Me->InstanceTransform1[1] = Transform.M[0][1];
+		Me->InstanceTransform1[2] = Transform.M[0][2];
 		Me->InstanceTransform1[3] = FloatType();
 
-		Me->InstanceTransform2[0] = Transform.M[0][1];
+		Me->InstanceTransform2[0] = Transform.M[1][1];
 		Me->InstanceTransform2[1] = Transform.M[1][1];
-		Me->InstanceTransform2[2] = Transform.M[2][1];
+		Me->InstanceTransform2[2] = Transform.M[1][2];
 		Me->InstanceTransform2[3] = FloatType();
 
-		Me->InstanceTransform3[0] = Transform.M[0][2];
-		Me->InstanceTransform3[1] = Transform.M[1][2];
+		Me->InstanceTransform3[0] = Transform.M[2][0];
+		Me->InstanceTransform3[1] = Transform.M[2][1];
 		Me->InstanceTransform3[2] = Transform.M[2][2];
 		Me->InstanceTransform3[3] = FloatType();
 
@@ -1191,15 +1191,15 @@ struct FInstanceStream
 		Transform.M[3][2] = InstanceOrigin.Z;
 
 		Transform.M[0][0] = InstanceTransform1[0];
-		Transform.M[1][0] = InstanceTransform1[1];
-		Transform.M[2][0] = InstanceTransform1[2];
+		Transform.M[0][1] = InstanceTransform1[1];
+		Transform.M[0][2] = InstanceTransform1[2];
 
-		Transform.M[0][1] = InstanceTransform2[0];
+		Transform.M[1][0] = InstanceTransform2[0];
 		Transform.M[1][1] = InstanceTransform2[1];
-		Transform.M[2][1] = InstanceTransform2[2];
+		Transform.M[1][2] = InstanceTransform2[2];
 
-		Transform.M[0][2] = InstanceTransform3[0];
-		Transform.M[1][2] = InstanceTransform3[1];
+		Transform.M[2][0] = InstanceTransform3[0];
+		Transform.M[2][1] = InstanceTransform3[1];
 		Transform.M[2][2] = InstanceTransform3[2];
 
 		Transform.M[0][3] = 0.f;
@@ -1250,17 +1250,17 @@ struct FInstanceStream
 		Me->InstanceOrigin.W = RandomInstanceID;
 
 		Me->InstanceTransform1[0] = Transform.M[0][0];
-		Me->InstanceTransform1[1] = Transform.M[1][0];
-		Me->InstanceTransform1[2] = Transform.M[2][0];
+		Me->InstanceTransform1[1] = Transform.M[0][1];
+		Me->InstanceTransform1[2] = Transform.M[0][2];
 		Me->InstanceTransform1[3] = ((float)HitProxyColor.R) + (bSelected ? 256.f : 0.0f);
 
-		Me->InstanceTransform2[0] = Transform.M[0][1];
+		Me->InstanceTransform2[0] = Transform.M[1][0];
 		Me->InstanceTransform2[1] = Transform.M[1][1];
-		Me->InstanceTransform2[2] = Transform.M[2][1];
+		Me->InstanceTransform2[2] = Transform.M[1][2];
 		Me->InstanceTransform2[3] = (float)HitProxyColor.G;
 
-		Me->InstanceTransform3[0] = Transform.M[0][2];
-		Me->InstanceTransform3[1] = Transform.M[1][2];
+		Me->InstanceTransform3[0] = Transform.M[2][0];
+		Me->InstanceTransform3[1] = Transform.M[2][1];
 		Me->InstanceTransform3[2] = Transform.M[2][2];
 		Me->InstanceTransform3[3] = (float)HitProxyColor.B;
 
@@ -1283,17 +1283,17 @@ struct FInstanceStream
 		Me->InstanceOrigin.W = RandomInstanceID;
 
 		Me->InstanceTransform1[0] = Transform.M[0][0];
-		Me->InstanceTransform1[1] = Transform.M[1][0];
-		Me->InstanceTransform1[2] = Transform.M[2][0];
+		Me->InstanceTransform1[1] = Transform.M[0][1];
+		Me->InstanceTransform1[2] = Transform.M[0][2];
 		Me->InstanceTransform1[3] = FloatType();
 
-		Me->InstanceTransform2[0] = Transform.M[0][1];
+		Me->InstanceTransform2[0] = Transform.M[1][0];
 		Me->InstanceTransform2[1] = Transform.M[1][1];
-		Me->InstanceTransform2[2] = Transform.M[2][1];
+		Me->InstanceTransform2[2] = Transform.M[1][2];
 		Me->InstanceTransform2[3] = FloatType();
 
-		Me->InstanceTransform3[0] = Transform.M[0][2];
-		Me->InstanceTransform3[1] = Transform.M[1][2];
+		Me->InstanceTransform3[0] = Transform.M[2][0];
+		Me->InstanceTransform3[1] = Transform.M[2][1];
 		Me->InstanceTransform3[2] = Transform.M[2][2];
 		Me->InstanceTransform3[3] = FloatType();
 

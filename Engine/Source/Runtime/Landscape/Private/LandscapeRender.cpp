@@ -1414,6 +1414,21 @@ void FLandscapeComponentSceneProxy::CalcLODParamsForSubsection(const FSceneView&
 	OutNeighborLODs[3] = FMath::Max<float>(OutfLOD, CalcDesiredLOD(View, CameraLocalPos, SubX,     SubY + 1));
 }
 
+namespace
+{
+    FLinearColor GetColorForLod(int32 CurrentLOD, int32 ForcedLOD)
+    {
+	    int32 ColorIndex = INDEX_NONE;
+	    if (GEngine->LODColorationColors.Num() > 0)
+	    {
+		    ColorIndex = CurrentLOD;
+		    ColorIndex = FMath::Clamp(ColorIndex, 0, GEngine->LODColorationColors.Num() - 1);
+	    }
+	    const FLinearColor& LODColor = ColorIndex != INDEX_NONE ? GEngine->LODColorationColors[ColorIndex] : FLinearColor::Gray;
+	    return ForcedLOD >= 0 ? LODColor : LODColor * 0.2f;
+	}
+}
+
 void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FLandscapeComponentSceneProxy_GetMeshElements);
@@ -1547,6 +1562,8 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 			// Render the landscape component
 #if WITH_EDITOR
+			const bool bMaterialModifiesMeshPosition = MaterialInterface->GetRenderProxy(false)->GetMaterial(View->GetFeatureLevel())->MaterialModifiesMeshPosition_RenderThread();
+
 			switch (GLandscapeViewMode)
 			{
 			case ELandscapeViewMode::DebugLayer:
@@ -1613,43 +1630,29 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 			case ELandscapeViewMode::LOD:
 			{
-				for (int32 i = 0; i < MeshTools.Elements.Num(); i++)
+				auto& TemplateMesh = bIsWireframe ? Mesh : MeshTools;
+				for (int32 i = 0; i < TemplateMesh.Elements.Num(); i++)
 				{
 					FMeshBatch& LODMesh = Collector.AllocateMesh();
-					LODMesh = MeshTools;
+					LODMesh = TemplateMesh;
 					LODMesh.Elements.Empty(1);
-					LODMesh.Elements.Add(MeshTools.Elements[i]);
-
-					int32 ColorIndex = INDEX_NONE;
-					if (GEngine->LODColorationColors.Num() > 0)
-					{
-						ColorIndex = ((FLandscapeBatchElementParams*)MeshTools.Elements[i].UserData)->CurrentLOD;
-						ColorIndex = FMath::Clamp(ColorIndex, 0, GEngine->LODColorationColors.Num() - 1);
-						LODMesh.VisualizeLODIndex = ColorIndex;
-					}
-
-					const FLinearColor& LODColor = ColorIndex != INDEX_NONE ? GEngine->LODColorationColors[ColorIndex] : FLinearColor::Gray;
-					FLinearColor Color = ForcedLOD >= 0 ? LODColor : LODColor * 0.2f;
-
-					auto LODMaterialInstance = new FColoredMaterialRenderProxy(GEngine->LevelColorationUnlitMaterial->GetRenderProxy(false), Color);
-					LODMesh.MaterialRenderProxy = LODMaterialInstance;
-					Collector.RegisterOneFrameMaterialProxy(LODMaterialInstance);
-
-					if (ViewFamily.EngineShowFlags.Wireframe)
-					{
-						LODMesh.bCanApplyViewModeOverrides = false;
-						LODMesh.bWireframe = true;
-					}
-					else
-					{
-						LODMesh.bCanApplyViewModeOverrides = true;
-						LODMesh.bUseWireframeSelectionColoring = IsSelected();
-					}
-
+					LODMesh.Elements.Add(TemplateMesh.Elements[i]);
+					int32 CurrentLOD = ((FLandscapeBatchElementParams*)TemplateMesh.Elements[i].UserData)->CurrentLOD;
+					LODMesh.VisualizeLODIndex = CurrentLOD;
+					FLinearColor Color = GetColorForLod(CurrentLOD, ForcedLOD);
+					FMaterialRenderProxy* LODMaterialProxy =
+						bMaterialModifiesMeshPosition && bIsWireframe
+						? (FMaterialRenderProxy*)new FOverrideSelectionColorMaterialRenderProxy(MaterialInterface->GetRenderProxy(false), Color)
+						: (FMaterialRenderProxy*)new FColoredMaterialRenderProxy(GEngine->LevelColorationUnlitMaterial->GetRenderProxy(false), Color);
+					Collector.RegisterOneFrameMaterialProxy(LODMaterialProxy);
+					LODMesh.MaterialRenderProxy = LODMaterialProxy;
+					LODMesh.bCanApplyViewModeOverrides = !bIsWireframe;
+					LODMesh.bWireframe = bIsWireframe;
+					LODMesh.bUseWireframeSelectionColoring = IsSelected();
 					Collector.AddMesh(ViewIndex, LODMesh);
 
 					NumPasses++;
-					NumTriangles += MeshTools.Elements[i].NumPrimitives;
+					NumTriangles += TemplateMesh.Elements[i].NumPrimitives;
 					NumDrawCalls++;
 				}
 			}

@@ -1281,6 +1281,11 @@ public:
 	GLuint	Resource;
 	GLuint  BufferResource;
 	GLenum	Format;
+
+	virtual uint32 GetBufferSize()
+	{
+		return 0;
+	}
 };
 
 class FOpenGLTextureUnorderedAccessView : public FOpenGLUnorderedAccessView
@@ -1306,6 +1311,8 @@ public:
 	FVertexBufferRHIRef VertexBufferRHI; // to keep the vertex buffer alive
 
 	FOpenGLDynamicRHI* OpenGLRHI;
+
+	virtual uint32 GetBufferSize() override;
 };
 
 class FOpenGLShaderResourceView : public FRHIShaderResourceView

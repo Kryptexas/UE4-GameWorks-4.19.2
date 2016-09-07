@@ -382,6 +382,11 @@ FWorldCompositionTile* UWorldComposition::FindTileByName(const FName& InPackageN
 	}
 }
 
+UWorldComposition::FTilesList& UWorldComposition::GetTilesList()
+{
+	return Tiles;
+}
+
 #if WITH_EDITOR
 
 FWorldTileInfo UWorldComposition::GetTileInfo(const FName& InPackageName) const
@@ -438,11 +443,6 @@ void UWorldComposition::OnTileInfoUpdated(const FName& InPackageName, const FWor
 			LevelPackage->MarkPackageDirty();
 		}
 	}
-}
-
-UWorldComposition::FTilesList& UWorldComposition::GetTilesList()
-{
-	return Tiles;
 }
 
 void UWorldComposition::RestoreDirtyTilesInfo(const FTilesList& TilesPrevState)

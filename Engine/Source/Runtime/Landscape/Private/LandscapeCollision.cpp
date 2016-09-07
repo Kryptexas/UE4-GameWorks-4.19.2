@@ -1384,7 +1384,7 @@ void ULandscapeHeightfieldCollisionComponent::Serialize(FArchive& Ar)
 
 		if (bCooked)
 		{
-			Ar << CookedCollisionData;
+			CookedCollisionData.BulkSerialize(Ar);
 		}
 		else
 		{

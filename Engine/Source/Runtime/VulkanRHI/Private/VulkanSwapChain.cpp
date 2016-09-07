@@ -38,12 +38,12 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 	FMemory::Memzero(CurrFormat);
 	{
 		uint32 NumFormats;
-		VERIFYVULKANRESULT_EXPANDED(vkGetPhysicalDeviceSurfaceFormatsKHR(Device.GetPhysicalHandle(), Surface, &NumFormats, nullptr));
+		VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkGetPhysicalDeviceSurfaceFormatsKHR(Device.GetPhysicalHandle(), Surface, &NumFormats, nullptr));
 		check(NumFormats > 0);
 
 		TArray<VkSurfaceFormatKHR> Formats;
 		Formats.AddZeroed(NumFormats);
-		VERIFYVULKANRESULT_EXPANDED(vkGetPhysicalDeviceSurfaceFormatsKHR(Device.GetPhysicalHandle(), Surface, &NumFormats, Formats.GetData()));
+		VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkGetPhysicalDeviceSurfaceFormatsKHR(Device.GetPhysicalHandle(), Surface, &NumFormats, Formats.GetData()));
 
 		if (Formats.Num() == 1 && Formats[0].format == VK_FORMAT_UNDEFINED && InOutPixelFormat == PF_Unknown)
 		{
@@ -85,7 +85,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 
 	//#todo-rco: Check multiple Gfx Queues?
 	VkBool32 bSupportsPresent = VK_FALSE;
-	VERIFYVULKANRESULT(vkGetPhysicalDeviceSurfaceSupportKHR(Device.GetPhysicalHandle(), Device.GetQueue()->GetFamilyIndex(), Surface, &bSupportsPresent));
+	VERIFYVULKANRESULT(VulkanRHI::vkGetPhysicalDeviceSurfaceSupportKHR(Device.GetPhysicalHandle(), Device.GetQueue()->GetFamilyIndex(), Surface, &bSupportsPresent));
 	//#todo-rco: Find separate present queue if the gfx one doesn't support presents
 	check(bSupportsPresent);
 
@@ -94,12 +94,12 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 #if !PLATFORM_ANDROID
 	{
 		uint32 NumFoundPresentModes = 0;
-		VERIFYVULKANRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(Device.GetPhysicalHandle(), Surface, &NumFoundPresentModes, nullptr));
+		VERIFYVULKANRESULT(VulkanRHI::vkGetPhysicalDeviceSurfacePresentModesKHR(Device.GetPhysicalHandle(), Surface, &NumFoundPresentModes, nullptr));
 		check(NumFoundPresentModes > 0);
 
 		TArray<VkPresentModeKHR> FoundPresentModes;
 		FoundPresentModes.AddZeroed(NumFoundPresentModes);
-		VERIFYVULKANRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(Device.GetPhysicalHandle(), Surface, &NumFoundPresentModes, FoundPresentModes.GetData()));
+		VERIFYVULKANRESULT(VulkanRHI::vkGetPhysicalDeviceSurfacePresentModesKHR(Device.GetPhysicalHandle(), Surface, &NumFoundPresentModes, FoundPresentModes.GetData()));
 
 		bool bFoundDesiredMode = false;
 		for (size_t i = 0; i < NumFoundPresentModes; i++)
@@ -121,7 +121,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 	// Check the surface properties and formats
 	
 	VkSurfaceCapabilitiesKHR SurfProperties;
-	VERIFYVULKANRESULT_EXPANDED(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Device.GetPhysicalHandle(),
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Device.GetPhysicalHandle(),
 		Surface,
 		&SurfProperties));
 	VkSurfaceTransformFlagBitsKHR PreTransform;

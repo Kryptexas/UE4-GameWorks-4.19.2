@@ -57,6 +57,7 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_InitHMDs = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_InitHMDs", "()V", bIsOptional);
 	AndroidThunkJava_DismissSplashScreen = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_DismissSplashScreen", "()V", bIsOptional);
 	AndroidThunkJava_GetInputDeviceInfo = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetInputDeviceInfo", "(I)Lcom/epicgames/ue4/GameActivity$InputDeviceInfo;", bIsOptional);
+	AndroidThunkJava_IsGamepadAttached = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_IsGamepadAttached", "()Z", bIsOptional);
 	AndroidThunkJava_HasMetaDataKey = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_HasMetaDataKey", "(Ljava/lang/String;)Z", bIsOptional);
 	AndroidThunkJava_GetMetaDataBoolean = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataBoolean", "(Ljava/lang/String;)Z", bIsOptional);
 	AndroidThunkJava_GetMetaDataInt = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataInt", "(Ljava/lang/String;)I", bIsOptional);
@@ -206,6 +207,7 @@ jmethodID FJavaWrapper::AndroidThunkJava_KeepScreenOn;
 jmethodID FJavaWrapper::AndroidThunkJava_InitHMDs;
 jmethodID FJavaWrapper::AndroidThunkJava_DismissSplashScreen;
 jmethodID FJavaWrapper::AndroidThunkJava_GetInputDeviceInfo;
+jmethodID FJavaWrapper::AndroidThunkJava_IsGamepadAttached;
 jmethodID FJavaWrapper::AndroidThunkJava_HasMetaDataKey;
 jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataBoolean;
 jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataInt;
@@ -342,6 +344,16 @@ bool AndroidThunkCpp_GetInputDeviceInfo(int32 deviceId, FAndroidInputDeviceInfo 
 	results.Name = FString("Unknown");
 	results.Descriptor = FString("Unknown");
 	return false;
+}
+
+bool AndroidThunkCpp_IsGamepadAttached()
+{
+	bool Result = false;
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		Result = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_IsGamepadAttached);
+	}
+	return Result;
 }
 
 bool AndroidThunkCpp_HasMetaDataKey(const FString& Key)

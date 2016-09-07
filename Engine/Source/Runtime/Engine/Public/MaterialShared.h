@@ -1548,10 +1548,10 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const;
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const;
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const;
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const;
+	ENGINE_API virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const;
+	ENGINE_API virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const;
+	ENGINE_API virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const;
+	ENGINE_API virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const;
 };
 
 

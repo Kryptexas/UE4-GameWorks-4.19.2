@@ -439,7 +439,9 @@ namespace VulkanRHI
 			VKSWITCHCASE(VK_ERROR_OUT_OF_DATE_KHR)
 			VKSWITCHCASE(VK_ERROR_INCOMPATIBLE_DISPLAY_KHR)
 			VKSWITCHCASE(VK_ERROR_VALIDATION_FAILED_EXT)
+#if VK_HEADER_VERSION >= 13
 			VKSWITCHCASE(VK_ERROR_INVALID_SHADER_NV)
+#endif
 #undef VKSWITCHCASE
 		default:
 			break;
@@ -824,6 +826,30 @@ namespace VulkanRHI
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
 			DebugLog += FString::Printf(TEXT(" -> %s => %s=%p\n"), *GetVkResultErrorString(Result), HandleName, Handle);
+			if (Result < VK_SUCCESS)
+			{
+				FlushDebugWrapperLog();
+			}
+		}
+	}
+
+	void PrintResultAndPointer(VkResult Result, uint64 Handle)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DebugLog += FString::Printf(TEXT(" -> %s => %ull\n"), *GetVkResultErrorString(Result), Handle);
+			if (Result < VK_SUCCESS)
+			{
+				FlushDebugWrapperLog();
+			}
+		}
+	}
+
+	void PrintResultAndNamedHandle(VkResult Result, const TCHAR* HandleName, uint64 Handle)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DebugLog += FString::Printf(TEXT(" -> %s => %s=%ull\n"), *GetVkResultErrorString(Result), HandleName, Handle);
 			if (Result < VK_SUCCESS)
 			{
 				FlushDebugWrapperLog();
@@ -1352,13 +1378,13 @@ namespace VulkanRHI
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
 			FlushDebugWrapperLog();
-			auto GetSubpassContents = [](VkSubpassContents Contents) -> FString
+			auto GetSubpassContents = [](VkSubpassContents InContents) -> FString
 				{
-					switch (Contents)
+					switch (InContents)
 					{
-					case VK_SUBPASS_CONTENTS_INLINE: return TEXT("INLINE");
-					case VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: return TEXT("SECONDARY_CMD_BUFS");
-					default: return FString::Printf(TEXT("%d"), (int32)Contents);
+						case VK_SUBPASS_CONTENTS_INLINE: return TEXT("INLINE");
+						case VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: return TEXT("SECONDARY_CMD_BUFS");
+						default: return FString::Printf(TEXT("%d"), (int32)InContents);
 					}					
 				};
 			CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdBeginRenderPass(BeginInfo=%p, Contents=%s)"), RenderPassBegin, *GetSubpassContents(Contents)));

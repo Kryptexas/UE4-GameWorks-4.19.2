@@ -176,6 +176,113 @@ void FDeferredShadingSceneRenderer::CopySceneCaptureComponentToTarget(FRHIComman
 	}
 }
 
+
+/**
+* Shader set for decoding a mosaic or RGBE encoded HDR image as part of a copy operation.
+*/
+template<bool bDemosaic>
+class FHDRDecodePS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FHDRDecodePS, Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform) { return IsES2Platform(Platform); }
+
+	FHDRDecodePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		InTexture.Bind(Initializer.ParameterMap, TEXT("InTexture"), SPF_Mandatory);
+		InTextureSampler.Bind(Initializer.ParameterMap, TEXT("InTextureSampler"));
+	}
+	FHDRDecodePS() {}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("DECODING_MOSAIC"), bDemosaic ? 1u : 0u);
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef TextureRHI)
+	{
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
+		SetTextureParameter(RHICmdList, GetPixelShader(), InTexture, InTextureSampler, SamplerStateRHI, TextureRHI);
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << InTexture;
+		Ar << InTextureSampler;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+	FShaderResourceParameter InTexture;
+	FShaderResourceParameter InTextureSampler;
+};
+
+/**
+* A vertex shader for rendering a textured screen element.
+*/
+template<bool bDemosaic>
+class FHDRDecodeVS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FHDRDecodeVS, Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform) { return IsES2Platform(Platform); }
+
+	FHDRDecodeVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		InvTexSizeParameter.Bind(Initializer.ParameterMap, TEXT("InvTexSize"));
+	}
+	FHDRDecodeVS() {}
+	
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("DECODING_MOSAIC"), bDemosaic ? 1u : 0u);
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View, const FIntPoint& SourceTexSize)
+	{
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
+		if(InvTexSizeParameter.IsBound())
+		{
+			FVector2D InvTexSize(1.0f / SourceTexSize.X, 1.0f / SourceTexSize.Y);
+			SetShaderValue(RHICmdList, GetVertexShader(), InvTexSizeParameter, InvTexSize);
+		}
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << InvTexSizeParameter;
+		return bShaderHasOutdatedParameters;
+	}
+
+	FShaderParameter InvTexSizeParameter;
+};
+
+IMPLEMENT_SHADER_TYPE(template<>, FHDRDecodePS<false>, TEXT("Decode32bppHDR"), TEXT("MainPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FHDRDecodePS<true>, TEXT("Decode32bppHDR"), TEXT("MainPS"), SF_Pixel);
+
+IMPLEMENT_SHADER_TYPE(template<>, FHDRDecodeVS<false>, TEXT("Decode32bppHDR"), TEXT("MainVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>, FHDRDecodeVS<true>, TEXT("Decode32bppHDR"), TEXT("MainVS"), SF_Vertex);
+
+template <bool bDemosaic>
+static FShader* SetCaptureToTargetShaders(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FIntPoint& SourceTexSize, FTextureRHIParamRef SourceTextureRHI)
+{
+	TShaderMapRef<FHDRDecodeVS<bDemosaic>> VertexShader(View.ShaderMap);
+	TShaderMapRef<FHDRDecodePS<bDemosaic>> PixelShader(View.ShaderMap);
+	static FGlobalBoundShaderState BoundShaderState;
+	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+	VertexShader->SetParameters(RHICmdList, View, SourceTexSize);
+	PixelShader->SetParameters(RHICmdList, View, TStaticSamplerState<SF_Point>::GetRHI(), SourceTextureRHI);
+
+	return *VertexShader;
+}
+
 // Copies into render target, optionally flipping it in the Y-axis
 static void CopyCaptureToTarget(FRHICommandListImmediate& RHICmdList, const FRenderTarget* Target, const FIntPoint& TargetSize, FViewInfo& View, const FIntRect& ViewRect, FTextureRHIParamRef SourceTextureRHI, bool bNeedsFlippedRenderTarget)
 {
@@ -187,13 +294,17 @@ static void CopyCaptureToTarget(FRHICommandListImmediate& RHICmdList, const FRen
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-	TShaderMapRef<FScreenVS> VertexShader(View.ShaderMap);
-	TShaderMapRef<FScreenPS> PixelShader(View.ShaderMap);
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-	VertexShader->SetParameters(RHICmdList, View);
-	PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), SourceTextureRHI);
+	const bool bUsingDemosaic = IsMobileHDRMosaic();
+	FShader* VertexShader;
+	FIntPoint SourceTexSize = bNeedsFlippedRenderTarget ? TargetSize : FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
+	if (bUsingDemosaic)
+	{
+		VertexShader = SetCaptureToTargetShaders<true>(RHICmdList, View, SourceTexSize, SourceTextureRHI);
+	}
+	else
+	{
+		VertexShader = SetCaptureToTargetShaders<false>(RHICmdList, View, SourceTexSize, SourceTextureRHI);
+	}
 
 	if (bNeedsFlippedRenderTarget)
 	{
@@ -204,8 +315,8 @@ static void CopyCaptureToTarget(FRHICommandListImmediate& RHICmdList, const FRen
 			ViewRect.Min.X, ViewRect.Height() - ViewRect.Min.Y,
 			ViewRect.Width(), -ViewRect.Height(),
 			TargetSize,
-			TargetSize,
-			*VertexShader,
+			SourceTexSize,
+			VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 	else
@@ -217,8 +328,8 @@ static void CopyCaptureToTarget(FRHICommandListImmediate& RHICmdList, const FRen
 			ViewRect.Min.X, ViewRect.Min.Y,
 			ViewRect.Width(), ViewRect.Height(),
 			TargetSize,
-			FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY(),
-			*VertexShader,
+			SourceTexSize,
+			VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 }
