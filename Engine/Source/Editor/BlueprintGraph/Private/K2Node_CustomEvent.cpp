@@ -133,6 +133,7 @@ void UK2Node_CustomEvent::Serialize(FArchive& Ar)
 			if (Pin)
 			{
 				if (Pin->Direction == EGPD_Output
+					&& !Pin->PinType.bIsConst
 					&& !K2Schema->IsExecPin(*Pin)
 					&& !K2Schema->IsDelegateCategory(Pin->PinType.PinCategory))
 				{
@@ -140,14 +141,7 @@ void UK2Node_CustomEvent::Serialize(FArchive& Ar)
 					{
 						if (PinInfo->PinName == Pin->PinName)
 						{
-							if (!Pin->PinType.bIsConst)
-							{
-								Pin->PinType.bIsConst = PinInfo->PinType.bIsConst = PinInfo->PinType.bIsArray || PinInfo->PinType.bIsReference;
-							}
-							
-							// Some legacy blueprints have incorrectly serialized the pin direction to EGPD_Input
-							// even though CustomEvent only supports Output pins. This works around that issue.
-							PinInfo->DesiredPinDirection = Pin->Direction;
+							Pin->PinType.bIsConst = PinInfo->PinType.bIsConst = PinInfo->PinType.bIsArray || PinInfo->PinType.bIsReference;
 							break;
 						}
 					}
