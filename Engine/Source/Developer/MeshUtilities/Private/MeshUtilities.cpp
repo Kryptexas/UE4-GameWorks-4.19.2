@@ -7367,6 +7367,17 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	FRawMeshExt MergedMesh;
 	FMemory::Memset(&MergedMesh, 0, sizeof(MergedMesh));
 
+	// Flatten out the occupied UV channel flags, we need this to ensure the same amount of uv sets written out for each mesh
+	bool bFlattenedOcuppiedUVChannels[MAX_MESH_TEXTURE_COORDS] = {};
+	FMemory::Memset(bFlattenedOcuppiedUVChannels, 0, sizeof(bool) * MAX_MESH_TEXTURE_COORDS);	
+	for (int CoordinateIndex = 0; CoordinateIndex < MAX_MESH_TEXTURE_COORDS; ++CoordinateIndex)
+	{
+		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
+		{
+			bFlattenedOcuppiedUVChannels[CoordinateIndex] |= bOcuppiedUVChannels[LODIndex][CoordinateIndex];
+		}
+	}
+
 	int32 MaxExportLODs = bMergeAllAvailableLODs ? NumMaxLOD : 1;
 	// Merge meshes into single mesh
 	for (int32 SourceMeshIdx = 0; SourceMeshIdx < SourceMeshes.Num(); ++SourceMeshIdx)
@@ -7450,7 +7461,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
 			{
 				// Whether this channel has data
-				if (bOcuppiedUVChannels[SourceLODIndex][ChannelIdx])
+				if (bFlattenedOcuppiedUVChannels[ChannelIdx])
 				{
 					const TArray<FVector2D>& SourceChannel = SourceRawMesh.WedgeTexCoords[ChannelIdx];
 					TArray<FVector2D>& TargetChannel = TargetRawMesh.WedgeTexCoords[ChannelIdx];
@@ -7486,12 +7497,18 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	
 	// Compute target lightmap channel for each LOD
 	// User can specify any index, but there are should not be empty gaps in UV channel list
-	int32 TargetLightMapUVChannel[MAX_STATIC_MESH_LODS];
-	for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
-	{		
-		for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS && bOcuppiedUVChannels[LODIndex][ChannelIdx]; ++ChannelIdx)
+	int32 LightMapUVChannel = 0;
+	for (int32 ChannelIdx = InSettings.TargetLightMapUVChannel; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
+	{
+		bool bOccupied = false;		
+		if (bFlattenedOcuppiedUVChannels[ChannelIdx])
 		{
-			TargetLightMapUVChannel[LODIndex] = FMath::Min(InSettings.TargetLightMapUVChannel, ChannelIdx);
+			continue;
+		}
+		else
+		{
+			LightMapUVChannel = ChannelIdx;
+			break;
 		}
 	}
 
@@ -7533,17 +7550,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		if (InSettings.bGenerateLightMapUV)
 		{
 			StaticMesh->LightMapResolution = InSettings.TargetLightMapResolution;
-
-			int32 TargetLightMapIndex = InSettings.TargetLightMapUVChannel;	
-			for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
-			{
-				for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS && bOcuppiedUVChannels[LODIndex][ChannelIdx]; ++ChannelIdx)
-				{
-					TargetLightMapIndex = FMath::Max(TargetLightMapIndex, ChannelIdx);
-				}
-			}
-
-			StaticMesh->LightMapCoordinateIndex = TargetLightMapIndex + 1;
+			StaticMesh->LightMapCoordinateIndex = LightMapUVChannel;
 		}
 
 		for (int32 LODIndex = 0; LODIndex < NumMaxLOD; ++LODIndex)
@@ -7563,7 +7570,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 					SrcModel->BuildSettings.bGenerateLightmapUVs = InSettings.bGenerateLightMapUV;
 					SrcModel->BuildSettings.MinLightmapResolution = InSettings.TargetLightMapResolution;
 					SrcModel->BuildSettings.SrcLightmapIndex = 0;
-					SrcModel->BuildSettings.DstLightmapIndex = StaticMesh->LightMapCoordinateIndex;
+					SrcModel->BuildSettings.DstLightmapIndex = LightMapUVChannel;
 
 					SrcModel->RawMeshBulkData->SaveRawMesh(MergedMeshLOD);
 				}
