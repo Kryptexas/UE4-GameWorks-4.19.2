@@ -169,6 +169,10 @@ struct FFBXUVs
 						{
 							const char* UVSetName = ElementUV->GetName();
 							FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
+							if (LocalUVSetName.IsEmpty())
+							{
+								LocalUVSetName = TEXT("UVmap_") + FString::FromInt(UVLayerIndex);
+							}
 							if (LocalUVSetName == UVSets[UVIndex])
 							{
 								LayerElementUV[UVIndex] = ElementUV;
