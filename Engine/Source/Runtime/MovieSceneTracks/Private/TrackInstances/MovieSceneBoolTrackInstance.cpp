@@ -57,14 +57,16 @@ void FMovieSceneBoolTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UObj
 
 void FMovieSceneBoolTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
-	bool BoolValue = false;
-
-	if( BoolTrack->Eval( UpdateData.Position, UpdateData.LastPosition, BoolValue ) )
+	for (auto ObjectPtr : RuntimeObjects)
 	{
-		for (auto ObjectPtr : RuntimeObjects)
+		UObject* Object = ObjectPtr.Get();
+		if (Object != nullptr)
 		{
-			UObject* Object = ObjectPtr.Get();
-			PropertyBindings->CallFunction<bool>( Object, &BoolValue );
+			bool BoolValue = PropertyBindings->GetCurrentValue<bool>(Object);
+			if (BoolTrack->Eval(UpdateData.Position, UpdateData.LastPosition, BoolValue))
+			{
+				PropertyBindings->CallFunction<bool>(Object, &BoolValue);
+			}
 		}
 	}
 }

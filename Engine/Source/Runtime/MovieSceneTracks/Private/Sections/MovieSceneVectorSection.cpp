@@ -222,3 +222,12 @@ void UMovieSceneVectorSection::SetDefault(const FVectorKey& Key)
 	FRichCurve* ChannelCurve = GetCurveForChannel(Key.Channel, Curves, ChannelsUsed);
 	ChannelCurve->SetDefaultValue(Key.Value);
 }
+
+
+void UMovieSceneVectorSection::ClearDefaults()
+{
+	for (auto Curve : Curves)
+	{
+		Curve.ClearDefaultValue();
+	}
+}

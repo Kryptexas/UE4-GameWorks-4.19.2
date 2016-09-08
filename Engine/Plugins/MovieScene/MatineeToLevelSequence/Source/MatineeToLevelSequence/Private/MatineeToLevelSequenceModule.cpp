@@ -289,7 +289,7 @@ protected:
 				NewSequence->BindPossessableObject(ObjectGuid, *PropObject, BindingContext);
 			}
 
-			// cbb: String manipulations to get the property path in the rigth form for sequencer
+			// cbb: String manipulations to get the property path in the right form for sequencer
 			FString PropertyName = Property->GetFName().ToString();
 
 			// Special case for Light components which have some deprecated names
@@ -306,36 +306,31 @@ protected:
 				}
 			}
 
-			// Strip the object part of the property path
-			FString PropertyPath = Property->GetPathName();
-			int32 DotPos = INDEX_NONE;
-			if (PropertyPath.FindLastChar(TEXT('.'), DotPos))
+			TArray<UObject*> PropertyArray;
+			UObject* Outer = Property->GetOuter();
+			while (Outer->IsA(UProperty::StaticClass()) || Outer->IsA(UScriptStruct::StaticClass()))
 			{
-				PropertyPath = PropertyPath.RightChop(DotPos+1);
+				PropertyArray.Insert(Outer, 0);
+				Outer = Outer->GetOuter();
 			}
-
-			// Split it into the components
-			TArray<FString> PropertyPaths;
-			PropertyPath.ParseIntoArray(PropertyPaths, TEXT(":"));
-
-			// Reassemble path with "." separators
-			FString NewPropertyPath;
-			for (int32 PropertyIndex=0; PropertyIndex<PropertyPaths.Num()-1; ++PropertyIndex)
-			{		
-				if (NewPropertyPath.Len())
+			
+			FString PropertyPath;
+			for (auto PropertyIt : PropertyArray)
+			{
+				if (PropertyPath.Len())
 				{
-					NewPropertyPath = NewPropertyPath + TEXT(".");
+					PropertyPath = PropertyPath + TEXT(".");
 				}
-				NewPropertyPath = NewPropertyPath + PropertyPaths[PropertyIndex];
+				PropertyPath = PropertyPath + PropertyIt->GetName();
 			}
-			if (NewPropertyPath.Len())
+			if (PropertyPath.Len())
 			{
-				NewPropertyPath = NewPropertyPath + TEXT(".");
+				PropertyPath = PropertyPath + TEXT(".");
 			}
-			NewPropertyPath = NewPropertyPath + PropertyName;
+			PropertyPath = PropertyPath + PropertyName;
 
 			PropertyTrack = NewMovieScene->AddTrack<T>(ObjectGuid);	
-			PropertyTrack->SetPropertyNameAndPath(*PropertyName, NewPropertyPath);
+			PropertyTrack->SetPropertyNameAndPath(*PropertyName, PropertyPath);
 		}
 		else
 		{

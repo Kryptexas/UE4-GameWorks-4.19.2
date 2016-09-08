@@ -52,13 +52,13 @@ void FMovieSceneFloatTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UOb
 
 void FMovieSceneFloatTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
-	float FloatValue = 0.0f;
-	if( FloatTrack->Eval( UpdateData.Position, UpdateData.LastPosition, FloatValue ) )
+	for (auto ObjectPtr : RuntimeObjects)
 	{
-		for(auto ObjectPtr : RuntimeObjects)
+		UObject* Object = ObjectPtr.Get();
+		float FloatValue = PropertyBindings->GetCurrentValue<float>(Object);
+		if (FloatTrack->Eval(UpdateData.Position, UpdateData.LastPosition, FloatValue))
 		{
-			UObject* Object = ObjectPtr.Get();
-			PropertyBindings->CallFunction<float>( Object, &FloatValue );
+			PropertyBindings->CallFunction<float>(Object, &FloatValue);
 		}
 	}
 }

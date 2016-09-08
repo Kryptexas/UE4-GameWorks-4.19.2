@@ -37,7 +37,7 @@ bool UMovieSceneSpawnTrack::Eval(float Position, float LastPostion, bool& bOutSp
 		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
 	}
 
-	bOutSpawned = Section->Eval(Position);
+	bOutSpawned = Section->Eval(Position, bOutSpawned);
 	return true;
 }
 

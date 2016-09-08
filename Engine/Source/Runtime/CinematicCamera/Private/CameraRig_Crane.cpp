@@ -14,6 +14,8 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 	CraneYaw = 0.f;
 	CranePitch = 0.f;
 	CraneArmLength = 500.f;
+	bLockMountPitch = false;
+	bLockMountYaw = false;
 
 	// create the root component
 	TransformComponent = CreateDefaultSubobject<USceneComponent>(TEXT("TransformComponent"));
@@ -148,8 +150,16 @@ void ACameraRig_Crane::UpdateCraneComponents()
 
 	// zero the pitch from the camera mount component
 	// this effectively gives us bAbsoluteRotation for only pitch component of an attached camera
-	FRotator NewCameraMountWorldRot = CraneCameraMount->GetComponentRotation();
-	NewCameraMountWorldRot.Pitch = 0.f;
+	FRotator NewCameraMountWorldRot = CraneCameraMount->GetAttachParent() ? CraneCameraMount->GetAttachParent()->GetComponentRotation() : FRotator(0.f, 0.f, 0.f);
+	if (!bLockMountPitch)
+	{
+		NewCameraMountWorldRot.Pitch = 0.f;
+	}
+	if (!bLockMountYaw)
+	{
+		NewCameraMountWorldRot.Yaw = RootComponent->RelativeRotation.Yaw;
+	}
+	NewCameraMountWorldRot.Roll = 0.f;
 	CraneCameraMount->SetWorldRotation(NewCameraMountWorldRot);
 
 	UpdatePreviewMeshes();
@@ -168,6 +178,13 @@ void ACameraRig_Crane::Tick(float DeltaTime)
 void ACameraRig_Crane::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	UpdateCraneComponents();
+}
+
+void ACameraRig_Crane::PostEditUndo()
+{
+	Super::PostEditUndo();
 
 	UpdateCraneComponents();
 }

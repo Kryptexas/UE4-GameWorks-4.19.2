@@ -106,6 +106,7 @@ FAudioDevice::FAudioDevice()
 	, bHRTFEnabledForAll(false)
 	, bIsDeviceMuted(false)
 	, bIsInitialized(false)
+	, AudioClock(0.0)
 	, bHasActivatedReverb(false)
 	, bAllowVirtualizedSounds(true)
 #if !UE_BUILD_SHIPPING

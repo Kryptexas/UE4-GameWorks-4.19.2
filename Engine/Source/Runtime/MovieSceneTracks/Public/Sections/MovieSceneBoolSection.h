@@ -31,7 +31,7 @@ public:
 	 *
 	 * @param Position The position in time within the movie scene.
 	 */
-	virtual bool Eval(float Position) const;
+	virtual bool Eval(float Position, bool DefaultValue) const;
 
 	/** Gets all the keys of this boolean section. */
 	FIntegralCurve& GetCurve()
@@ -46,7 +46,8 @@ public:
 	virtual void AddKey(float Time, const bool& Value, EMovieSceneKeyInterpolation KeyInterpolation) override;
 	virtual void SetDefault(const bool& Value) override;
 	virtual bool NewKeyIsNewData(float Time, const bool& Value) const override;
-	virtual bool HasKeys(const bool& Value) const;
+	virtual bool HasKeys(const bool& Value) const override;
+	virtual void ClearDefaults() override;
 
 public:
 

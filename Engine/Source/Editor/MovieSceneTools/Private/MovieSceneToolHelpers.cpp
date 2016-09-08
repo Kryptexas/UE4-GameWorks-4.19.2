@@ -403,7 +403,6 @@ class SEnumCombobox : public SComboBox<TSharedPtr<int32>>
 public:
 	SLATE_BEGIN_ARGS(SEnumCombobox) {}
 
-	SLATE_ATTRIBUTE(TOptional<uint8>, IntermediateValue)
 	SLATE_ATTRIBUTE(int32, CurrentValue)
 	SLATE_ARGUMENT(FOnEnumSelectionChanged, OnEnumSelectionChanged)
 
@@ -412,7 +411,6 @@ public:
 	void Construct(const FArguments& InArgs, const UEnum* InEnum)
 	{
 		Enum = InEnum;
-		IntermediateValue = InArgs._IntermediateValue;
 		CurrentValue = InArgs._CurrentValue;
 		check(CurrentValue.IsBound());
 		OnEnumSelectionChangedDelegate = InArgs._OnEnumSelectionChanged;
@@ -448,12 +446,6 @@ public:
 private:
 	FText GetCurrentValue() const
 	{
-		if(IntermediateValue.IsSet() && IntermediateValue.Get().IsSet())
-		{
-			int32 IntermediateNameIndex = Enum->GetIndexByValue(IntermediateValue.Get().GetValue());
-			return Enum->GetDisplayNameText(IntermediateNameIndex);
-		}
-
 		int32 CurrentNameIndex = Enum->GetIndexByValue(CurrentValue.Get());
 		return Enum->GetDisplayNameText(CurrentNameIndex);
 	}
@@ -497,8 +489,6 @@ private:
 
 	TAttribute<int32> CurrentValue;
 
-	TAttribute<TOptional<uint8>> IntermediateValue;
-
 	TArray<TSharedPtr<int32>> VisibleEnumNameIndices;
 
 	bool bUpdatingSelectionInternally;
@@ -506,12 +496,11 @@ private:
 	FOnEnumSelectionChanged OnEnumSelectionChangedDelegate;
 };
 
-TSharedRef<SWidget> MovieSceneToolHelpers::MakeEnumComboBox(const UEnum* InEnum, TAttribute<int32> InCurrentValue, FOnEnumSelectionChanged InOnSelectionChanged, TAttribute<TOptional<uint8>> InIntermediateValue)
+TSharedRef<SWidget> MovieSceneToolHelpers::MakeEnumComboBox(const UEnum* InEnum, TAttribute<int32> InCurrentValue, FOnEnumSelectionChanged InOnSelectionChanged)
 {
 	return SNew(SEnumCombobox, InEnum)
 		.CurrentValue(InCurrentValue)
-		.OnEnumSelectionChanged(InOnSelectionChanged)
-		.IntermediateValue(InIntermediateValue);
+		.OnEnumSelectionChanged(InOnSelectionChanged);
 }
 
 bool MovieSceneToolHelpers::ShowImportEDLDialog(UMovieScene* InMovieScene, float InFrameRate, FString InOpenDirectory)

@@ -105,7 +105,7 @@ struct FCameraTrackingFocusSettings
 	GENERATED_USTRUCT_BODY()
 
 	/** Focus distance will be tied to this actor's location. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracking Focus")
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Tracking Focus")
 	AActor* ActorToTrack;
 
 	/** Offset from actor position to track. Relative to actor if tracking an actor, relative to world otherwise. */

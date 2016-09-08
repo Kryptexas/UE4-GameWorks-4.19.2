@@ -197,7 +197,7 @@ bool FXAudio2Device::InitializeHardware()
 	}
 
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
-	UE_LOG(LogInit, Log, TEXT("XAudio2 using '%s' : %d channels at %g kHz using %d bits per sample (channel mask 0x%x)"),
+	UE_LOG(LogInit, Log, TEXT( "XAudio2 using '%s' : %d channels at %g kHz using %d bits per sample (channel mask 0x%x)" ), 
 		FXAudioDeviceProperties::DeviceDetails.DisplayName,
 		FXAudioDeviceProperties::NumSpeakers, 
 		( float )SampleRate / 1000.0f, 
@@ -249,6 +249,9 @@ bool FXAudio2Device::InitializeHardware()
 		CommonAudioPoolFreeBytes = 0;
 	}
 
+	// Now initialize the audio clock voice after xaudio2 is initialized
+	DeviceProperties->InitAudioClockVoice();
+
 	return true;
 }
 
@@ -289,6 +292,9 @@ void FXAudio2Device::UpdateHardware()
 		}
 #endif
 	}
+
+	// Update the audio clock time
+	AudioClock = DeviceProperties->GetAudioClockTime();
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()

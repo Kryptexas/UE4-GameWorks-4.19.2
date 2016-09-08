@@ -57,6 +57,7 @@ public:
 	virtual bool NewKeyIsNewData(float Time, const FMarginKey& Key ) const override;
 	virtual bool HasKeys(const FMarginKey& Key) const override;
 	virtual void SetDefault(const FMarginKey& Key) override;
+	virtual void ClearDefaults() override;
 
 	/**
 	 * Gets the top curve

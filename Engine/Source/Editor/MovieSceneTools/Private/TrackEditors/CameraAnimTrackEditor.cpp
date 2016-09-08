@@ -80,7 +80,7 @@ bool FCameraAnimTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) co
 }
 
 
-TSharedRef<ISequencerSection> FCameraAnimTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<ISequencerSection> FCameraAnimTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding )
 {
 	check( SupportsType( SectionObject.GetOuter()->GetClass() ) );
 	return MakeShareable(new FCameraAnimSection(SectionObject));

@@ -5752,7 +5752,10 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("Cube"),
 			TEXT("Sphere"),
 			TEXT("Cylinder"),
-			TEXT("Cone")
+			TEXT("Cone"),
+			TEXT("CineCameraActor"),
+			TEXT("CameraRig_Crane"),
+			TEXT("CameraRig_Rail")
 		};
 
 		const TCHAR* Path = TEXT("Icons/AssetIcons/%s_%dx");

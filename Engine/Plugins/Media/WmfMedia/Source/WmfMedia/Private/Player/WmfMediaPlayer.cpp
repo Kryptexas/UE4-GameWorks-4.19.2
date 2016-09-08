@@ -505,8 +505,9 @@ void FWmfMediaPlayer::AddStreamToTopology(uint32 StreamIndex, IMFTopology* Topol
 			const bool OutputRgba = 
 				(SubType != MFVideoFormat_H264) &&		// H.264 to RGB is broken
 				(SubType != MFVideoFormat_H264_ES) &&	// H.264 to RGB is broken
-				(SubType != MFVideoFormat_M4S2) &&		// incorrect brightness
-				(SubType != MFVideoFormat_WMV3);		// Kite demo outro issue (UE-35162)
+				(SubType != MFVideoFormat_M4S2) &&		// YUV to RGB has incorrect brightness
+				(SubType != MFVideoFormat_WMV2) &&		// YUV to RGB has incorrect brightness
+				(SubType != MFVideoFormat_WMV3);		// brightness issues (UE-35162)
 
 			Result = OutputType->SetGUID(MF_MT_SUBTYPE, OutputRgba ? MFVideoFormat_RGB32 : MFVideoFormat_YUY2);
 

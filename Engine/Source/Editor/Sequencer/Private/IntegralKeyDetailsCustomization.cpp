@@ -60,8 +60,7 @@ void FIntegralKeyDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 					FOnEnumSelectionChanged::CreateLambda([ValueProperty](int32 Selection, ESelectInfo::Type SelectionType)
 					{
 						ValueProperty->SetValue(Selection);
-					}),
-					TAttribute<TOptional<uint8>>());
+					}));
 			}
 			else
 			{

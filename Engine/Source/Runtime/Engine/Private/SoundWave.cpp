@@ -559,13 +559,16 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 	if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
 	{
 		FQueueSubtitleParams QueueSubtitleParams(Subtitles);
-		QueueSubtitleParams.AudioComponentID = ActiveSound.GetAudioComponentID();
-		QueueSubtitleParams.WorldPtr = ActiveSound.GetWeakWorld();
-		QueueSubtitleParams.WaveInstance = (PTRINT)WaveInstance;
-		QueueSubtitleParams.SubtitlePriority = ActiveSound.SubtitlePriority;
-		QueueSubtitleParams.Duration = Duration;
-		QueueSubtitleParams.bManualWordWrap = bManualWordWrap;
-		QueueSubtitleParams.bSingleLine = bSingleLine;
+		{
+			QueueSubtitleParams.AudioComponentID = ActiveSound.GetAudioComponentID();
+			QueueSubtitleParams.WorldPtr = ActiveSound.GetWeakWorld();
+			QueueSubtitleParams.WaveInstance = (PTRINT)WaveInstance;
+			QueueSubtitleParams.SubtitlePriority = ActiveSound.SubtitlePriority;
+			QueueSubtitleParams.Duration = Duration;
+			QueueSubtitleParams.bManualWordWrap = bManualWordWrap;
+			QueueSubtitleParams.bSingleLine = bSingleLine;
+			QueueSubtitleParams.RequestedStartTime = ActiveSound.RequestedStartTime;
+		}
 
 		FSubtitleManager::QueueSubtitles(QueueSubtitleParams);
 	}

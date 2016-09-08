@@ -36,6 +36,7 @@ public:
 		Set("MediaPlayerEditor.SettingsButton", new IMAGE_BRUSH("btn_settings_16x", Icon12x12));
 
 		// misc
+		Set("MediaPlayerEditor.DragDropBorder", new BOX_BRUSH("border_dragdrop.png", 0.5f));
 		Set("MediaPlayerEditor.FileMediaSourcePrecached", new IMAGE_BRUSH("filemediasource_precached", Icon12x12));
 		Set("MediaPlayerEditor.MediaSourceOpened", new IMAGE_BRUSH("mediasource_opened", Icon8x8));
 

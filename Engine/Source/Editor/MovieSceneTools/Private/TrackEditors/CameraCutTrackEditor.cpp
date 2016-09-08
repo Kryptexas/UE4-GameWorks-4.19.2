@@ -100,7 +100,7 @@ TSharedPtr<SWidget> FCameraCutTrackEditor::BuildOutlinerEditWidget(const FGuid& 
 }
 
 
-TSharedRef<ISequencerSection> FCameraCutTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track)
+TSharedRef<ISequencerSection> FCameraCutTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding)
 {
 	check(SupportsType(SectionObject.GetOuter()->GetClass()));
 
@@ -174,35 +174,6 @@ UMovieSceneCameraCutTrack* FCameraCutTrackEditor::FindOrCreateCameraCutTrack()
 	}
 
 	return CastChecked<UMovieSceneCameraCutTrack>(CameraCutTrack);
-}
-
-
-UFactory* FCameraCutTrackEditor::GetAssetFactoryForNewCameraCut( UClass* SequenceClass )
-{
-	static TWeakObjectPtr<UFactory> CameraCutFactory;
-
-	if( !CameraCutFactory.IsValid() || CameraCutFactory->SupportedClass != SequenceClass )
-	{
-		TArray<UFactory*> Factories;
-		for (TObjectIterator<UClass> It; It; ++It)
-		{
-			UClass* Class = *It;
-			if (Class->IsChildOf(UFactory::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract))
-			{
-				UFactory* Factory = Class->GetDefaultObject<UFactory>();
-				if (Factory->CanCreateNew())
-				{
-					UClass* SupportedClass = Factory->GetSupportedClass();
-					if ( SupportedClass == SequenceClass )
-					{
-						CameraCutFactory = Factory;
-					}
-				}
-			}
-		}
-	}
-
-	return CameraCutFactory.Get();
 }
 
 

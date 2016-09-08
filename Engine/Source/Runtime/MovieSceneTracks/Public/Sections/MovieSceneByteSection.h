@@ -23,7 +23,7 @@ public:
 	 *
 	 * @param Position The position in time within the movie scene
 	 */
-	virtual uint8 Eval(float Position) const;
+	virtual uint8 Eval(float Position, uint8 DefaultValue) const;
 
 	/** Gets all the keys of this byte section */
 	FIntegralCurve& GetCurve()
@@ -39,6 +39,7 @@ public:
 	virtual bool NewKeyIsNewData(float Time, const uint8& Value) const override;
 	virtual bool HasKeys(const uint8& Value) const override;
 	virtual void SetDefault(const uint8& Value) override;
+	virtual void ClearDefaults() override;
 
 public:
 

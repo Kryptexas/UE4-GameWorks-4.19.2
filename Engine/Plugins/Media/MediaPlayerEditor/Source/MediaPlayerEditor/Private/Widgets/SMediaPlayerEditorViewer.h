@@ -39,6 +39,15 @@ public:
 	 */
 	void Construct(const FArguments& InArgs, UMediaPlayer& InMediaPlayer, const TSharedRef<ISlateStyle>& InStyle);
 
+public:
+
+	//~ SWidget interface
+
+	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) override;
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+
 protected:
 
 	/** Open the media URL in the url text box. */
@@ -110,6 +119,12 @@ private:
 	FReply HandleUrlBoxKeyDown(const FGeometry&, const FKeyEvent& KeyEvent);
 
 private:
+
+	/** Whether something is currently being dragged over the widget. */
+	bool DragOver;
+
+	/** Whether the dragged object is a media file that can be played. */
+	bool DragValid;
 
 	/** Pointer to the media player that is being viewed. */
 	UMediaPlayer* MediaPlayer;

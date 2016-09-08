@@ -9,6 +9,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bKeyAllEnabled = false;
 	bKeyInterpPropertiesOnly = false;
 	KeyInterpolation = EMovieSceneKeyInterpolation::Auto;
+	bAutoSetTrackDefaults = false;
 	SpawnPosition = SSP_Origin;
 	bCreateSpawnableCameras = true;
 	bShowFrameNumbers = true;
@@ -38,7 +39,19 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bInfiniteKeyAreas = false;
 	bShowChannelColors = false;
 	bShowViewportTransportControls = true;
+	bLockPlaybackToAudioClock = false;
 	bAllowPossessionOfPIEViewports = false;
+}
+
+void USequencerSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(USequencerSettings, bLockPlaybackToAudioClock))
+	{
+		OnLockPlaybackToAudioClockChanged.Broadcast(bLockPlaybackToAudioClock);
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 EAutoKeyMode USequencerSettings::GetAutoKeyMode() const
@@ -525,6 +538,35 @@ void USequencerSettings::SetAllowPossessionOfPIEViewports(bool bInAllowPossessio
 	if (bInAllowPossessionOfPIEViewports != bAllowPossessionOfPIEViewports)
 	{
 		bAllowPossessionOfPIEViewports = bInAllowPossessionOfPIEViewports;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::ShouldLockPlaybackToAudioClock() const
+{
+	return bLockPlaybackToAudioClock;
+}
+
+void USequencerSettings::SetLockPlaybackToAudioClock(bool bInLockPlaybackToAudioClock)
+{
+	if (bLockPlaybackToAudioClock != bInLockPlaybackToAudioClock)
+	{
+		bLockPlaybackToAudioClock = bInLockPlaybackToAudioClock;
+		OnLockPlaybackToAudioClockChanged.Broadcast(bLockPlaybackToAudioClock);
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetAutoSetTrackDefaults() const
+{
+	return bAutoSetTrackDefaults;
+}
+
+void USequencerSettings::SetAutoSetTrackDefaults(bool bInAutoSetTrackDefaults)
+{
+	if (bInAutoSetTrackDefaults != bAutoSetTrackDefaults)
+	{
+		bAutoSetTrackDefaults = bInAutoSetTrackDefaults;
 		SaveConfig();
 	}
 }

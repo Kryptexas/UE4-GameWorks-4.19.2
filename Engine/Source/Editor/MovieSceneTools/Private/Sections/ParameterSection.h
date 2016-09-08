@@ -22,13 +22,6 @@ public:
 
 public:
 
-	//~ FPropertySection interface
-
-	virtual void SetIntermediateValue(FPropertyChangedParams PropertyChangedParams) override { }
-	virtual void ClearIntermediateValue() override { }
-
-public:
-
 	//~ ISequencerSection interface
 
 	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override;

@@ -4,6 +4,7 @@
 #include "MovieSceneCapture.h"
 
 #include "UnrealEdMisc.h"
+#include "GameFramework/GameMode.h"
 
 #include "SlateBasics.h"
 #include "SlateExtras.h"
@@ -489,6 +490,12 @@ private:
 					
 					Window->Resize(PreviewWindowSize);
 
+					if (CaptureObject->Settings.GameModeOverride != nullptr)
+					{
+						CachedGameMode = CapturingFromWorld->GetWorldSettings()->DefaultGameMode;
+						CapturingFromWorld->GetWorldSettings()->DefaultGameMode = CaptureObject->Settings.GameModeOverride;
+					}
+
 					CaptureObject->Initialize(SlatePlayInEditorSession->SlatePlayInEditorWindowViewport, Context.PIEInstance);
 					OnStarted();
 				}
@@ -520,6 +527,11 @@ private:
 			{
 				CVarUseFixedPoolSize->Set(BackedUpUseFixedPoolSize, ECVF_SetByConsole);
 			}
+		}
+
+		if (CaptureObject->Settings.GameModeOverride != nullptr)
+		{
+			CapturingFromWorld->GetWorldSettings()->DefaultGameMode = CachedGameMode;
 		}
 
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
@@ -558,6 +570,8 @@ private:
 	int32 BackedUpUseFixedPoolSize;
 	TArray<uint8> BackedUpPlaySettings;
 	UMovieSceneCapture* CaptureObject;
+
+	TSubclassOf<AGameMode> CachedGameMode;
 };
 
 class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule

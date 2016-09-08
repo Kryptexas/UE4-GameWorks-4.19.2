@@ -8,6 +8,9 @@
 ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 	: Super(Init)
 {
+	USceneComponent* SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComp"));
+	RootComponent = SceneComponent;
+
 #if WITH_EDITORONLY_DATA
 	UBillboardComponent* SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 
@@ -29,7 +32,6 @@ ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 			SpriteComponent->bAbsoluteScale = true;
 			SpriteComponent->bReceivesDecals = false;
 			SpriteComponent->bHiddenInGame = true;
-			SetRootComponent(SpriteComponent);
 		}
 	}
 #endif //WITH_EDITORONLY_DATA
@@ -72,6 +74,20 @@ void ALevelSequenceActor::Tick(float DeltaSeconds)
 	{
 		SequencePlayer->Update(DeltaSeconds);
 	}
+}
+
+void ALevelSequenceActor::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_EDITORONLY_DATA
+	// Fix sprite component so that it's attached to the root component. In the past, the sprite component was the root component.
+	UBillboardComponent* SpriteComponent = FindComponentByClass<UBillboardComponent>();
+	if (SpriteComponent && SpriteComponent->GetAttachParent() != RootComponent)
+	{
+		SpriteComponent->SetupAttachment(RootComponent);
+	}
+#endif
 }
 
 

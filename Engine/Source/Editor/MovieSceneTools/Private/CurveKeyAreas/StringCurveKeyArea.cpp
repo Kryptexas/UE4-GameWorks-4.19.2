@@ -27,24 +27,25 @@ TArray<FKeyHandle> FStringCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyI
 			OwningSection->SetEndTime(Time);
 		}
 
-		FString Value = Curve->Eval(Time, Curve->GetDefaultValue());
-
-		if (TimeToCopyFrom != FLT_MAX)
+		FString Value;
+		if (ExternalValue.IsSet() && ExternalValue.Get().IsSet() && TimeToCopyFrom == FLT_MAX)
 		{
-			Value = Curve->Eval(TimeToCopyFrom, Curve->GetDefaultValue());
+			Value = ExternalValue.Get().GetValue();
 		}
-		else if ( IntermediateValue.IsSet() )
+		else
 		{
-			Value = IntermediateValue.GetValue();
+			float EvalTime = TimeToCopyFrom != FLT_MAX ? Time : TimeToCopyFrom;
+			FString DefaultValue;
+			Value = Curve->Eval(EvalTime, DefaultValue);
 		}
 
 		Curve->AddKey(Time, Value, CurrentKeyHandle);
 		AddedKeyHandles.Add(CurrentKeyHandle);
 	}
-	else if ( IntermediateValue.IsSet() )
+	else if (ExternalValue.IsSet() && ExternalValue.Get().IsSet())
 	{
-		FString Value = IntermediateValue.GetValue();
-		Curve->UpdateOrAddKey(Time,Value);
+		FString Value = ExternalValue.Get().GetValue();
+		Curve->UpdateOrAddKey(Time, Value);
 	}
 
 	return AddedKeyHandles;
@@ -78,10 +79,7 @@ TSharedRef<SWidget> FStringCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(Curve)
-		.OnValueChanged(this, &FStringCurveKeyArea::OnValueChanged)
-		.IntermediateValue_Lambda([this] {
-			return IntermediateValue;
-		});
+		.ExternalValue(ExternalValue);
 };
 
 
@@ -243,9 +241,4 @@ void FStringCurveKeyArea::PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack
 			
 		return true;
 	});
-}
-
-void FStringCurveKeyArea::OnValueChanged(FString InValue)
-{
-	ClearIntermediateValue();
 }

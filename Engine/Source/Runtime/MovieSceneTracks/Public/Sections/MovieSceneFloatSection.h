@@ -24,7 +24,7 @@ public:
 	 *
 	 * @param Position	The position in time within the movie scene
 	 */
-	virtual float Eval( float Position ) const;
+	virtual float Eval( float Position, float DefaultValue ) const;
 
 	/**
 	 * @return The float curve on this section
@@ -36,10 +36,11 @@ public:
 
 	//~ IKeyframeSection interface
 
-	void AddKey( float Time, const float& Value, EMovieSceneKeyInterpolation KeyInterpolation );
-	bool NewKeyIsNewData(float Time, const float& Value) const;
-	bool HasKeys( const float& Value ) const;
-	void SetDefault( const float& Value );
+	virtual void AddKey( float Time, const float& Value, EMovieSceneKeyInterpolation KeyInterpolation ) override;
+	virtual bool NewKeyIsNewData(float Time, const float& Value) const override;
+	virtual bool HasKeys( const float& Value ) const override;
+	virtual void SetDefault( const float& Value ) override;
+	virtual void ClearDefaults() override;
 
 public:
 

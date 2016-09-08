@@ -7,6 +7,34 @@
 static FName PrecacheFileName("PrecacheFile");
 
 
+/* UFileMediaSource interface
+ *****************************************************************************/
+
+void UFileMediaSource::SetFilePath(const FString& Path)
+{
+	if (Path.IsEmpty() || Path.StartsWith(TEXT("./")))
+	{
+		FilePath = Path;
+	}
+	else
+	{
+		FString FullPath = FPaths::ConvertRelativePathToFull(Path);
+		const FString FullGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+
+		if (FullPath.StartsWith(FullGameContentDir))
+		{
+			FPaths::MakePathRelativeTo(FullPath, *FullGameContentDir);
+			FullPath = FString(TEXT("./")) + FullPath;
+		}
+
+		FilePath = FullPath;
+	}
+}
+
+
+/* UMediaSource overrides
+ *****************************************************************************/
+
 bool UFileMediaSource::GetMediaOption(const FName& Key, bool DefaultValue) const
 {
 	if (Key == PrecacheFileName)
@@ -29,6 +57,9 @@ bool UFileMediaSource::Validate() const
 	return FPaths::FileExists(GetFullPath());
 }
 
+
+/* UFileMediaSource implementation
+ *****************************************************************************/
 
 FString UFileMediaSource::GetFullPath() const
 {

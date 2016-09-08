@@ -151,6 +151,14 @@ public:
 	float GetKeyTime(FKeyHandle KeyHandle) const;
 
 	/**
+	* Get the value for the Key with the specified index.
+	*
+	* @param KeyHandle Handle to the key whose value to get.
+	* @return The key's value.
+	*/
+	FString GetKeyValue(FKeyHandle KeyHandle) const;
+
+	/**
 	 * Set the default value of the curve.
 	 *
 	 * @param InDefaultValue The value to set.
@@ -158,6 +166,14 @@ public:
 	void SetDefaultValue(const FString& InDefaultValue)
 	{
 		DefaultValue = InDefaultValue;
+	}
+
+	/**
+	 * Clears the default value for this curve if it has been set. 
+	 */
+	void ClearDefaultValue()
+	{
+		DefaultValue.Empty();
 	}
 
 	/**
@@ -169,6 +185,14 @@ public:
 	 * @param NewTime The new time to set on the key.
 	 */
 	FKeyHandle SetKeyTime(FKeyHandle KeyHandle, float NewTime);
+
+	/**
+	* Assign a new value to a key.
+	*
+	* @param KeyHandle The handle of the key to change.
+	* @param NewTime The new value to set on the key.
+	*/
+	void SetKeyValue(FKeyHandle KeyHandle, FString NewValue);
 
 	/**
 	 * Finds the key at InTime, and updates its value. If it can't find the key within the KeyTimeTolerance, it adds one at that time.

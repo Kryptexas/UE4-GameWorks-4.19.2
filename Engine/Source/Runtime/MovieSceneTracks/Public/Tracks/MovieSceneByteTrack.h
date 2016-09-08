@@ -25,10 +25,10 @@ public:
 	 *
 	 * @param Position	The current playback position
 	 * @param LastPosition	The last plackback position
-	 * @param OutByte 	The value at the playback position
-	 * @return true if anything was evaluated. Note: if false is returned OutByte remains unchanged
+	 * @param InOutByte 	The value at the playback position
+	 * @return true if anything was evaluated. Note: if false is returned InOutByte remains unchanged
 	 */
-	virtual bool Eval( float Position, float LastPostion, uint8& OutByte ) const;
+	virtual bool Eval( float Position, float LastPostion, uint8& InOutByte ) const;
 
 	void SetEnum(UEnum* Enum);
 

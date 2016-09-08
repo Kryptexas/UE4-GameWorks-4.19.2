@@ -73,6 +73,7 @@
 #include "CameraRig_Rail.h"
 #include "CameraRig_Crane.h"
 #include "Components/SplineComponent.h"
+#include "AudioDevice.h"
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
 #include "FbxExporter.h"
@@ -157,6 +158,9 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 
 		SettingsModule->RegisterSettings("Editor", "ContentEditors", SettingsSectionName, SettingsDisplayName, SettingsDescription, Settings);
 	}
+	
+	Settings->GetOnLockPlaybackToAudioClockChanged().AddSP(this, &FSequencer::ResetTimingManager);
+	ResetTimingManager(Settings->ShouldLockPlaybackToAudioClock());
 
 	ToolkitHost = InitParams.ToolkitHost;
 
@@ -396,6 +400,8 @@ void FSequencer::Tick(float InDeltaTime)
 		SetPlaybackStatus(StoredPlaybackState);
 	}
 
+	FTimeAndDelta TimeAndDelta = TimingManager->AdjustTime(GetGlobalTime(), InDeltaTime, PlayRate);
+
 	static const float AutoScrollFactor = 0.1f;
 
 	// Animate the autoscroll offset if it's set
@@ -433,26 +439,16 @@ void FSequencer::Tick(float InDeltaTime)
 		}
 	}
 
-	float TimeDilation = 1.f;
-	UWorld* PlaybackContext = Cast<UWorld>(GetPlaybackContext());
-	if (PlaybackContext)
-	{
-		TimeDilation = PlaybackContext->GetWorldSettings()->MatineeTimeDilation;
-	}
-
-	// calculate new global time
-	float NewTime = GetGlobalTime() + InDeltaTime * TimeDilation * PlayRate;
-
 	if (PlaybackState == EMovieScenePlayerStatus::Playing ||
 		PlaybackState == EMovieScenePlayerStatus::Recording)
 	{
-		SetGlobalTimeLooped(NewTime);
+		SetGlobalTimeLooped(TimeAndDelta.Time);
 	}
 
 	// Tick all the tools we own as well
 	for (int32 EditorIndex = 0; EditorIndex < TrackEditors.Num(); ++EditorIndex)
 	{
-		TrackEditors[EditorIndex]->Tick(InDeltaTime * PlayRate);
+		TrackEditors[EditorIndex]->Tick(TimeAndDelta.Delta * PlayRate);
 	}
 
 	if (!IsInSilentMode())
@@ -1053,6 +1049,10 @@ void FSequencer::NotifyMovieSceneDataChanged( EMovieSceneDataChangeType DataChan
 		bNeedTreeRefresh = false;
 		SetPlaybackStatus( StoredPlaybackState );
 	}
+	else if (DataChangeType == EMovieSceneDataChangeType::TrackValueChangedRefreshImmediately)
+	{
+		UpdateRuntimeInstances();
+	}
 	else
 	{
 		if ( DataChangeType != EMovieSceneDataChangeType::TrackValueChanged )
@@ -1364,6 +1364,12 @@ bool FSequencer::GetInfiniteKeyAreas() const
 void FSequencer::SetInfiniteKeyAreas(bool bInfiniteKeyAreas)
 {
 	Settings->SetInfiniteKeyAreas(bInfiniteKeyAreas);
+}
+
+
+bool FSequencer::GetAutoSetTrackDefaults() const
+{
+	return Settings->GetAutoSetTrackDefaults();
 }
 
 
@@ -1930,6 +1936,8 @@ void FSequencer::SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatu
 		PlayRate = 1.f;
 		ShuttleMultiplier = 0;
 	}
+
+	TimingManager->Update(PlaybackState, GetGlobalTime());
 }
 
 
@@ -2775,6 +2783,7 @@ void FSequencer::SetGlobalTimeLooped(float InTime)
 				InTime >= FocusedSequence->GetMovieScene()->GetPlaybackRange().GetUpperBoundValue())
 			{
 				InTime = PlayRate > 0 ? FocusedSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() : FocusedSequence->GetMovieScene()->GetPlaybackRange().GetUpperBoundValue();
+				TimingManager->OnStartPlaying(InTime);
 				bRestarted = true;
 			}
 		}
@@ -3667,14 +3676,7 @@ void FSequencer::OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, cons
 					UProperty* CurrentPositionOnRailProperty = RailActor->GetClass()->FindPropertyByName(TEXT("CurrentPositionOnRail"));
 					PropertyPath.Add(CurrentPositionOnRailProperty);
 
-					FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(RailActor), PropertyPath);
-					{
-						KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
-						KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
-						KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = false;
-						KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = true;
-						KeyPropertyParams.KeyParams.bCreateKeyOnlyWhenAutoKeying = false;
-					}
+					FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(RailActor), PropertyPath, ESequencerKeyMode::ManualKeyForced);
 
 					float OriginalTime = GetGlobalTime();
 
@@ -3739,6 +3741,8 @@ void FSequencer::OnPreBeginPIE(bool bIsSimulating)
 {
 	RootMovieSceneSequenceInstance->RestoreState(*this);
 	PrePossessionViewTargets.Reset();
+
+	bNeedInstanceRefresh = true;
 }
 
 
@@ -5364,6 +5368,7 @@ void FSequencer::SetKeyTime(const bool bUseFrames)
 
 void FSequencer::OnSetKeyTimeTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, const bool bUseFrames)
 {
+	bool bAnythingChanged = false;
 	CloseEntryPopupMenu();
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
@@ -5385,9 +5390,24 @@ void FSequencer::OnSetKeyTimeTextCommitted(const FText& InText, ETextCommit::Typ
 				if (Key.Section->TryModify())
 				{
 					Key.KeyArea->SetKeyTime(Key.KeyHandle.GetValue(), NewKeyTime);
+					bAnythingChanged = true;
+
+					if( NewKeyTime > Key.Section->GetEndTime() )
+					{
+						Key.Section->SetEndTime( NewKeyTime );
+					}
+					else if( NewKeyTime < Key.Section->GetStartTime() )
+					{
+						Key.Section->SetStartTime( NewKeyTime );
+					}
 				}
 			}
 		}
+	}
+
+	if (bAnythingChanged)
+	{
+		NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
 	}
 }
 
@@ -6775,5 +6795,17 @@ void FSequencer::BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBo
 	}
 }
 
+void FSequencer::ResetTimingManager(bool bInShouldLockToAudioClock)
+{
+	if (bInShouldLockToAudioClock && GEngine->GetMainAudioDevice())
+	{
+		TimingManager.Reset(new FSequencerAudioClockTimer);
+	}
+	else
+	{
+		TimingManager.Reset(new FSequencerDefaultTimingManager);
+	}
+	TimingManager->Update(PlaybackState, GetGlobalTime());
+}
 
 #undef LOCTEXT_NAMESPACE

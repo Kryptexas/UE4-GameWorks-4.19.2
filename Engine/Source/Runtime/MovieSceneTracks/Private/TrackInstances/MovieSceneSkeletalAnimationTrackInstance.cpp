@@ -135,6 +135,12 @@ USkeletalMeshComponent* GetSkeletalMeshComponentFromRuntimeObjectPtr( TWeakObjec
 
 void FMovieSceneSkeletalAnimationTrackInstance::Update( EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
 {
+	if (UpdateData.UpdatePass == MSUP_PreUpdate)
+	{
+		UpdateRefreshBones(RuntimeObjects);
+		return;
+	}
+
 	// @todo Sequencer gameplay update has a different code path than editor update for animation
 	for ( TWeakObjectPtr<UObject> RuntimeObjectPtr : RuntimeObjects )
 	{
@@ -204,6 +210,8 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( EMovieSceneUpdateData& U
 
 void FMovieSceneSkeletalAnimationTrackInstance::RefreshInstance( const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
 {
+	UpdateRefreshBones(RuntimeObjects);
+
 	// When not in preview playback we need to stop any running animations to prevent the animations from being advanced a frame when
 	// they are ticked by the engine.
 	for ( TWeakObjectPtr<UObject> RuntimeObjectPtr : RuntimeObjects )
@@ -368,4 +376,17 @@ bool FMovieSceneSkeletalAnimationTrackInstance::ShouldUsePreviewPlayback(class I
 	// we also use PreviewSetAnimPosition in PIE when not playing, as we can preview in PIE
 	bool bIsNotInPIEOrNotPlaying = (RuntimeObject && RuntimeObject->GetWorld() && !RuntimeObject->GetWorld()->HasBegunPlay()) || Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Playing;
 	return GIsEditor && bIsNotInPIEOrNotPlaying;
+}
+
+void FMovieSceneSkeletalAnimationTrackInstance::UpdateRefreshBones(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects)
+{
+	for ( TWeakObjectPtr<UObject> RuntimeObjectPtr : RuntimeObjects )
+	{
+		USkeletalMeshComponent* SkeletalMeshComponent = GetSkeletalMeshComponentFromRuntimeObjectPtr( RuntimeObjectPtr );
+
+		if (SkeletalMeshComponent && SkeletalMeshComponent->MeshComponentUpdateFlag != EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones)
+		{
+			SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+		}
+	}
 }

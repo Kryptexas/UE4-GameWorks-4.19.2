@@ -208,7 +208,7 @@ public:
 			return FReply::Unhandled();
 		}
 
-		FScopedTransaction Transaction(LOCTEXT("AddKeys", "Add keys at current time"));
+		FScopedTransaction Transaction(LOCTEXT("AddKeys", "Add Keys at Current Time"));
 		for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
 		{
 			UMovieSceneSection* OwningSection = KeyArea->GetOwningSection();

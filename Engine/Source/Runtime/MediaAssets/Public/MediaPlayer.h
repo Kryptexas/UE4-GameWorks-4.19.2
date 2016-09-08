@@ -63,7 +63,7 @@ class MEDIAASSETS_API UMediaPlayer
 public:
 
 	/**
-	 * Checks whether media playback can be paused right now.
+	 * Check whether media playback can be paused right now.
 	 *
 	 * Playback can be paused if the media supports pausing and if it is currently playing.
 	 *
@@ -72,6 +72,30 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool CanPause() const;
+
+	/**
+	 * Check whether the specified media source can be played by this player.
+	 *
+	 * If a desired player name is set for this player (DesiredPlayerName), it will
+	 * only check whether that particular player type can play the specified source.
+	 *
+	 * @param MediaSource The media source to check.
+	 * @return true if the media source can be opened, false otherwise.
+	 * @see CanPlayUrl, DesiredPlayerName
+	 */
+	bool CanPlaySource(UMediaSource* MediaSource);
+
+	/**
+	 * Check whether the specified URL can be played by this player.
+	 *
+	 * If a desired player name is set for this player (DesiredPlayerName), it will
+	 * only check whether that particular player type can play the specified URL.
+	 *
+	 * @param Url The URL to check.
+	 * @see CanPlaySource, DesiredPlayerName
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	bool CanPlayUrl(const FString& Url);
 
 	/**
 	 * Close the currently open media, if any.
@@ -602,6 +626,16 @@ public:
 #endif
 
 protected:
+
+	/**
+	 * Find a player that can play the specified media URL.
+	 *
+	 * @param Url The URL to play.
+	 * @param Options The media options for the URL.
+	 * @param OutPlayerName Will contain the name of the found player.
+	 * @return The player if found, or nullptr otherwise.
+	 */
+	TSharedPtr<IMediaPlayer> FindPlayerForUrl(const FString& Url, const IMediaOptions& Options, FName& OutPlayerName);
 
 	/**
 	 * Open a media source from a URL with optional parameters.

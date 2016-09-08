@@ -8,6 +8,7 @@
 #include "MovieScenePossessable.h"
 #include "SequencerLabelManager.h"
 #include "LevelEditor.h"
+#include "SequencerTimingManager.h"
 
 class ACineCameraActor;
 class FMenuBuilder;
@@ -547,6 +548,7 @@ public:
 	virtual void SetKeyInterpolation(EMovieSceneKeyInterpolation) override;
 	virtual bool GetInfiniteKeyAreas() const override;
 	virtual void SetInfiniteKeyAreas(bool bInfiniteKeyAreas) override;
+	virtual bool GetAutoSetTrackDefaults() const override;
 	virtual bool IsRecordingLive() const override;
 	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
 	virtual float GetGlobalTime() const override;
@@ -853,6 +855,10 @@ protected:
 	void PossessPIEViewports(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut);
 
 private:
+
+	/** Reset the timing manager to default, or audio clock locked */
+	void ResetTimingManager(bool bUseAudioClock);
+
 	/** Performs any post-tick rendering work needed when moving through scenes */
 	void PostTickRenderStateFixup();
 
@@ -996,6 +1002,9 @@ private:
 	/** The maximum tick rate prior to playing (used for overriding delta time during playback). */
 	double OldMaxTickRate;
 
+	/** Timing manager that can adjust playback times */
+	TUniquePtr<FSequencerTimingManager> TimingManager;
+	
 	struct FCachedViewTarget
 	{
 		/** The player controller we're possessing */

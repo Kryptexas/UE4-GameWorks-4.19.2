@@ -165,6 +165,9 @@ private:
 	/** Built-in transform recorder factory */
 	FMovieScene3DTransformSectionRecorderFactory TransformSectionRecorderFactory;
 
+	/** Audio recorder */
+	TUniquePtr<ISequenceAudioRecorder> AudioRecorder;
+
 	/** Built in multi-property recorder */
 	FMovieSceneMultiPropertyRecorderFactory MultiPropertySectionRecorder;
 };

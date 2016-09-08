@@ -401,7 +401,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 					}
 
 					// @todo sequencer: hack: setting defaults for transform tracks
-					if (NewTrack->IsA(UMovieScene3DTransformTrack::StaticClass()))
+					if (NewTrack->IsA(UMovieScene3DTransformTrack::StaticClass()) && Sequencer->GetAutoSetTrackDefaults())
 					{
 						auto TransformSection = Cast<UMovieScene3DTransformSection>(NewSection);
 
@@ -545,14 +545,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 			}
 
 			// key property
-			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), PropertyPath);
-			{
-				KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
-				KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
-				KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = false;
-				KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = false;
-				KeyPropertyParams.KeyParams.bCreateKeyOnlyWhenAutoKeying = false;
-			}
+			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), PropertyPath, ESequencerKeyMode::ManualKey);
 
 			Sequencer->KeyProperty(KeyPropertyParams);
 

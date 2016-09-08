@@ -127,6 +127,7 @@ public:
 	virtual bool NewKeyIsNewData(float Time, const FColorKey& Key) const override;
 	virtual bool HasKeys(const FColorKey& Key) const override;
 	virtual void SetDefault(const FColorKey& Key) override;
+	virtual void ClearDefaults() override;
 
 private:
 

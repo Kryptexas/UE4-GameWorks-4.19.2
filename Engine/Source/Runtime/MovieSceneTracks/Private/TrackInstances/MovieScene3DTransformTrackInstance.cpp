@@ -90,33 +90,28 @@ void FMovieScene3DTransformTrackInstance::Update(EMovieSceneUpdateData& UpdateDa
 	{
 		UpdateRuntimeMobility(RuntimeObjects);
 	}
-
-	FVector Translation;
-	FRotator Rotation;
-	FVector Scale;
-
-	if( TransformTrack->Eval( UpdateData.Position, UpdateData.LastPosition, Translation, Rotation, Scale ) )
+	else // UpdateData.UpdatePass == MSUP_Update
 	{
-		for( int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex )
+		for (TWeakObjectPtr<UObject> ObjectPtr : RuntimeObjects)
 		{
-			UObject* Object = RuntimeObjects[ObjIndex].Get();
-			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(Object);
-
-			if (SceneComponent != nullptr)
+			if (ObjectPtr.IsValid())
 			{
-				if (UpdateData.UpdatePass == MSUP_PreUpdate)
-				{		
-					// Set the transforms to identity explicitly instead of ResetRelativeTransform so that overlaps aren't evaluated at the origin
-					SceneComponent->RelativeLocation = FVector(FVector::ZeroVector);
-					SceneComponent->RelativeRotation = FRotator(FRotator::ZeroRotator);
-					SceneComponent->RelativeScale3D = FVector(1.f);
-					SceneComponent->UpdateComponentToWorld();
-				}
-				else if (UpdateData.UpdatePass == MSUP_Update)
+				USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(ObjectPtr.Get());
+				if (SceneComponent != nullptr)
 				{
-					SceneComponent->AddRelativeLocation(Translation);
-					SceneComponent->AddRelativeRotation(Rotation);
-					SceneComponent->SetRelativeScale3D(Scale);
+					FVector Translation = SceneComponent->GetRelativeTransform().GetTranslation();
+					FRotator Rotation = FRotator(SceneComponent->GetRelativeTransform().GetRotation());
+					FVector Scale = SceneComponent->GetRelativeTransform().GetScale3D();
+
+					if (TransformTrack->Eval(UpdateData.Position, UpdateData.LastPosition, Translation, Rotation, Scale))
+					{
+						SceneComponent->SetRelativeLocationAndRotation(Translation, Rotation);
+						SceneComponent->SetRelativeScale3D(Scale);
+
+						// Force the location and rotation values to avoid Rot->Quat->Rot conversions
+						SceneComponent->RelativeLocation = Translation;
+						SceneComponent->RelativeRotation = Rotation;
+					}
 				}
 			}
 		}

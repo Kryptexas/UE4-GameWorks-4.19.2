@@ -1021,6 +1021,9 @@ public:
 	/** Query if the editor is in VR Preview for the current play world. Returns false for non-editor builds */
 	static bool CanUseVRAudioDevice();
 
+	/** Returns the audio clock of the audio device. Not supported on all platforms. */
+	double GetAudioClock() const { return AudioClock; }
+
 #if !UE_BUILD_SHIPPING
 	void DumpActiveSounds() const;
 
@@ -1186,6 +1189,13 @@ private:
 
 	/** Whether the audio device has been initialized */
 	uint8 bIsInitialized:1;
+
+protected:
+
+	/** The audio clock from the audio hardware. Not supported on all platforms. */
+	double AudioClock;
+
+private:
 
 	/** Whether the value in HighestPriorityActivatedReverb should be used - Audio Thread owned */
 	uint8 bHasActivatedReverb:1;

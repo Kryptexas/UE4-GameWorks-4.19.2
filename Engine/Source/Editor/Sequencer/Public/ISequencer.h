@@ -75,6 +75,8 @@ enum class EMovieSceneDataChangeType
 {
 	/** Data owned by a track has been modified such as adding or removing keys, or changing their values. */
 	TrackValueChanged,
+	/** Data owned by a track has been modified such as adding or removing keys, or changing their values. Refresh immediately. */
+	TrackValueChangedRefreshImmediately,
 	/** The structure of the movie scene has changed by adding folders, object bindings, tracks, or sections. */
 	MovieSceneStructureItemAdded,
 	/** The structure of the movie scene has changed by removing folders, object bindings, tracks, or sections. */
@@ -200,6 +202,9 @@ public:
 
 	/** Set infinite key area default */
 	virtual void SetInfiniteKeyAreas(bool bInfiniteKeyAreas) = 0;
+
+	/** Gets whether or not property track defaults will be automatically set when adding tracks. */
+	virtual bool GetAutoSetTrackDefaults() const = 0;
 
 	/** @return Returns whether sequencer is currently recording live data from simulated actors */
 	virtual bool IsRecordingLive() const = 0;

@@ -34,6 +34,32 @@ bool UMediaPlayer::CanPause() const
 }
 
 
+bool UMediaPlayer::CanPlaySource(UMediaSource* MediaSource)
+{
+	if ((MediaSource == nullptr) || !MediaSource->Validate())
+	{
+		return false;
+	}
+
+	FName OutPlayerName;
+
+	return FindPlayerForUrl(MediaSource->GetUrl(), *MediaSource, OutPlayerName).IsValid();
+}
+
+
+bool UMediaPlayer::CanPlayUrl(const FString& Url)
+{
+	if (Url.IsEmpty())
+	{
+		return false;
+	}
+
+	FName OutPlayerName;
+
+	return FindPlayerForUrl(Url, *GetDefault<UMediaSource>(), OutPlayerName).IsValid();
+}
+
+
 void UMediaPlayer::Close()
 {
 	CurrentUrl.Empty();
@@ -455,6 +481,7 @@ void UMediaPlayer::BeginDestroy()
 	if (Player.IsValid())
 	{
 		Player->Close();
+		Player->GetOutput().SetCaptionSink(nullptr);
 		Player->OnMediaEvent().RemoveAll(this);
 		Player.Reset();
 	}
@@ -556,6 +583,91 @@ void UMediaPlayer::PreEditChange(UProperty* PropertyAboutToChange)
 /* UMediaPlayer implementation
  *****************************************************************************/
 
+TSharedPtr<IMediaPlayer> UMediaPlayer::FindPlayerForUrl(const FString& Url, const IMediaOptions& Options, FName& OutPlayerName)
+{
+	// reuse existing player if desired
+	if ((DesiredPlayerName == PlayerName) && (PlayerName != NAME_None))
+	{
+		OutPlayerName = PlayerName;
+
+		return Player;
+	}
+
+	OutPlayerName = NAME_None;
+
+	// load media module
+	IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
+
+	if (MediaModule == nullptr)
+	{
+		UE_LOG(LogMediaAssets, Error, TEXT("Failed to load Media module"));
+		return nullptr;
+	}
+
+	// try to create desired player
+	if (DesiredPlayerName != NAME_None)
+	{
+		IMediaPlayerFactory* Factory = MediaModule->GetPlayerFactory(DesiredPlayerName);
+
+		if (Factory == nullptr)
+		{
+			UE_LOG(LogMediaAssets, Error, TEXT("Could not find desired player %s for %s"), *DesiredPlayerName.ToString(), *Url);
+			return nullptr;
+		}
+
+		TSharedPtr<IMediaPlayer> NewPlayer = Factory->CreatePlayer();
+
+		if (!NewPlayer.IsValid())
+		{
+			UE_LOG(LogMediaAssets, Error, TEXT("Failed to create desired player %s for %s"), *DesiredPlayerName.ToString(), *Url);
+			return nullptr;
+		}
+
+		OutPlayerName = DesiredPlayerName;
+
+		return NewPlayer;
+	}
+
+	// try to reuse existing player
+	if (PlayerName != NAME_None)
+	{
+		IMediaPlayerFactory* Factory = MediaModule->GetPlayerFactory(PlayerName);
+
+		if ((Factory != nullptr) && Factory->CanPlayUrl(Url, Options))
+		{
+			OutPlayerName = PlayerName;
+
+			return Player;
+		}
+	}
+
+	// try to auto-select new player
+	const TArray<IMediaPlayerFactory*>& PlayerFactories = MediaModule->GetPlayerFactories();
+	const FString RunningPlatformName(FPlatformProperties::IniPlatformName());
+
+	for (IMediaPlayerFactory* Factory : PlayerFactories)
+	{
+		if (!Factory->SupportsPlatform(RunningPlatformName) || !Factory->CanPlayUrl(Url, Options))
+		{
+			continue;
+		}
+
+		TSharedPtr<IMediaPlayer> NewPlayer = Factory->CreatePlayer();
+
+		if (NewPlayer.IsValid())
+		{
+			OutPlayerName = Factory->GetName();
+
+			return NewPlayer;
+		}
+	}
+
+	UE_LOG(LogMediaAssets, Error, TEXT("Could not find a native player for %s"), *Url);
+
+	return nullptr;
+}
+
+
 bool UMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 {
 	if (IsRunningDedicatedServer())
@@ -568,94 +680,10 @@ bool UMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 		return false;
 	}
 
-	// load media module
-	IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
+	// find & initialize new player
+	FName OutPlayerName = NAME_None;
+	TSharedPtr<IMediaPlayer> NewPlayer = FindPlayerForUrl(Url, Options, OutPlayerName);
 
-	if (MediaModule == nullptr)
-	{
-		UE_LOG(LogMediaAssets, Error, TEXT("Failed to load Media module"));
-
-		return false;
-	}
-
-	TSharedPtr<IMediaPlayer> NewPlayer;
-	FName NewPlayerName = NAME_None;
-
-	// find a native player
-	if (DesiredPlayerName != NAME_None)
-	{
-		if (DesiredPlayerName != PlayerName)
-		{
-			// create desired player
-			IMediaPlayerFactory* Factory = MediaModule->GetPlayerFactory(DesiredPlayerName);
-
-			if (Factory == nullptr)
-			{
-				UE_LOG(LogMediaAssets, Error, TEXT("Could not find desired player %s for %s"), *DesiredPlayerName.ToString(), *Url);
-			}
-			else
-			{
-				NewPlayer = Factory->CreatePlayer();
-
-				if (!NewPlayer.IsValid())
-				{
-					UE_LOG(LogMediaAssets, Error, TEXT("Failed to create desired player %s for %s"), *DesiredPlayerName.ToString(), *Url);
-				}
-				else
-				{
-					NewPlayerName = DesiredPlayerName;
-				}
-			}
-		}
-		else
-		{
-			NewPlayer = Player; // reuse existing player
-		}
-	}
-	else
-	{
-		if (PlayerName != NAME_None)
-		{
-			// try to reuse existing player
-			IMediaPlayerFactory* Factory = MediaModule->GetPlayerFactory(PlayerName);
-
-			if ((Factory != nullptr) && Factory->CanPlayUrl(Url, Options))
-			{
-				NewPlayer = Player;
-			}
-		}
-
-		if (!NewPlayer.IsValid())
-		{
-			// automatically select & create new player
-			const TArray<IMediaPlayerFactory*>& PlayerFactories = MediaModule->GetPlayerFactories();
-			const FString RunningPlatformName(FPlatformProperties::IniPlatformName());
-
-			for (IMediaPlayerFactory* Factory : PlayerFactories)
-			{
-				if (!Factory->SupportsPlatform(RunningPlatformName) || !Factory->CanPlayUrl(Url, Options))
-				{
-					continue;
-				}
-
-				NewPlayer = Factory->CreatePlayer();
-
-				if (NewPlayer.IsValid())
-				{
-					NewPlayerName = Factory->GetName();
-
-					break;
-				}
-			}
-
-			if (!NewPlayer.IsValid())
-			{
-				UE_LOG(LogMediaAssets, Error, TEXT("Could not find a native player for %s"), *Url);
-			}
-		}
-	}
-
-	// initialize new player
 	if (NewPlayer != Player)
 	{
 		if (Player.IsValid())
@@ -667,14 +695,10 @@ bool UMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 		if (NewPlayer.IsValid())
 		{
 			NewPlayer->OnMediaEvent().AddUObject(this, &UMediaPlayer::HandlePlayerMediaEvent);
-			PlayerName = NewPlayerName;
-		}
-		else
-		{
-			PlayerName = NAME_None;
 		}
 
 		Player = NewPlayer;
+		PlayerName = OutPlayerName;
 	}
 
 	if (!Player.IsValid())
@@ -748,6 +772,7 @@ void UMediaPlayer::HandlePlayerMediaEvent(EMediaEvent Event)
 
 	case EMediaEvent::MediaOpened:
 		Player->GetControls().SetLooping(Loop);
+		Player->GetOutput().SetCaptionSink(CaptionSink);
 
 		if (ImageTexture != nullptr)
 		{

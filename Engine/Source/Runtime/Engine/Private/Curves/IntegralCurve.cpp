@@ -159,6 +159,26 @@ float FIntegralCurve::GetKeyTime(FKeyHandle KeyHandle) const
 }
 
 
+void FIntegralCurve::SetKeyValue(FKeyHandle KeyHandle, int32 NewValue)
+{
+	if (IsKeyHandleValid(KeyHandle))
+	{
+		GetKey(KeyHandle).Value = NewValue;
+	}
+}
+
+
+int32 FIntegralCurve::GetKeyValue(FKeyHandle KeyHandle) const
+{
+	if (!IsKeyHandleValid(KeyHandle))
+	{
+		return 0.f;
+	}
+
+	return GetKey(KeyHandle).Value;
+}
+
+
 void FIntegralCurve::ShiftCurve(float DeltaTime)
 {
 	TSet<FKeyHandle> KeyHandles;

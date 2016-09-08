@@ -136,6 +136,11 @@ void ULevelSequencePlayer::Stop()
 		TimeCursorPosition = PlaybackSettings.PlayRate < 0.f ? GetLength() : 0.f;
 		CurrentNumLoops = 0;
 
+		if (RootMovieSceneInstance.IsValid())
+		{
+			RootMovieSceneInstance->RestoreState(*this);
+		}
+
 		SetTickPrerequisites(false);
 
 		if (OnStop.IsBound())

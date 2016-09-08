@@ -55,7 +55,7 @@ void FMovieSceneActorReferenceTrackInstance::RestoreState(const TArray<TWeakObje
 
 void FMovieSceneActorReferenceTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
-	
+	// TODO: Support default values.
 	FGuid ActorReferenceGuid;
 	if( ActorReferenceTrack->Eval( UpdateData.Position, UpdateData.LastPosition, ActorReferenceGuid ) )
 	{

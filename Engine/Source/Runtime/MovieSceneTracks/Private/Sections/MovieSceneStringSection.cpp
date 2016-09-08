@@ -43,6 +43,11 @@ void UMovieSceneStringSection::SetDefault(const FString& Value)
 	StringCurve.SetDefaultValue(Value);
 }
 
+void UMovieSceneStringSection::ClearDefaults()
+{
+	StringCurve.ClearDefaultValue();
+}
+
 
 /* UMovieSceneSection interface
  *****************************************************************************/

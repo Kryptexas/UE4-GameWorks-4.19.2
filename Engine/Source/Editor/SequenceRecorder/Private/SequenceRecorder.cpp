@@ -304,7 +304,7 @@ void FSequenceRecorder::Tick(float DeltaSeconds)
 
 void FSequenceRecorder::DrawDebug(UCanvas* InCanvas, APlayerController* InPlayerController)
 {
-	const float NumFrames = 4.0f;
+	const float NumFrames = 9.0f;
 	const bool bCountingDown = CurrentDelay > 0.0f && CurrentDelay < NumFrames;
 
 	if(bCountingDown)
@@ -316,6 +316,8 @@ void FSequenceRecorder::DrawDebug(UCanvas* InCanvas, APlayerController* InPlayer
 		FVector2D Center;
 		InCanvas->GetCenter(Center.X, Center.Y);
 		FVector2D IconPosition = Center - HalfIconSize;
+
+		InCanvas->SetDrawColor(FColor::White);
 
 		FCanvasIcon Icon = UCanvas::MakeIcon(CountdownTexture.Get(), FMath::FloorToFloat(NumFrames - CurrentDelay) * IconSize.X, 0.0f, IconSize.X, IconSize.Y);
 		InCanvas->DrawIcon(Icon, IconPosition.X, IconPosition.Y);
@@ -459,7 +461,7 @@ bool FSequenceRecorder::StartRecording(const FOnRecordingStarted& OnRecordingSta
 	if(Settings->RecordingDelay > 0.0f)
 	{
 		CurrentDelay = Settings->RecordingDelay;
-		
+
 		UE_LOG(LogAnimation, Display, TEXT("Starting sequence recording with delay of %f seconds"), CurrentDelay);
 
 		return QueuedRecordings.Num() > 0;
@@ -603,6 +605,40 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 
 		UE_LOG(LogAnimation, Display, TEXT("Started recording sequence %s"), *LevelSequence->GetPathName());
 
+		// If we created an audio recorder at the start of the count down, then start recording
+		// Create the audio recorder now before the count down finishes
+		if (Settings->RecordAudio != EAudioRecordingMode::None)
+		{
+			if (LevelSequence)
+			{
+				FDirectoryPath AudioDirectory;
+				AudioDirectory.Path = Settings->SequenceRecordingBasePath.Path;
+				if (Settings->AudioSubDirectory.Len())
+				{
+					AudioDirectory.Path /= Settings->AudioSubDirectory;
+				}
+
+				ISequenceRecorder& Recorder = FModuleManager::Get().LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
+
+				FAudioRecorderSettings AudioSettings;
+				AudioSettings.Directory = AudioDirectory;
+				AudioSettings.AssetName = FText::Format(LOCTEXT("AudioFormatStr", "{0}_Audio"), FText::FromString(LevelSequence->GetName())).ToString();
+				AudioSettings.RecordingDurationSec = Settings->SequenceLength;
+				AudioSettings.GainDB = Settings->AudioGain;
+				AudioSettings.InputBufferSize = Settings->AudioInputBufferSize;
+
+				AudioRecorder = Recorder.CreateAudioRecorder();
+				if (AudioRecorder)
+				{
+					AudioRecorder->Start(AudioSettings);
+				}
+			}
+			else
+			{
+				UE_LOG(LogAnimation, Display, TEXT("'Create Level Sequence' needs to be enabled for audio recording"));
+			}
+		}
+
 		OnRecordingStartedDelegate.ExecuteIfBound(CurrentSequence.Get());
 		return true;
 	}
@@ -642,8 +678,52 @@ bool FSequenceRecorder::StopRecording()
 		}
 	}
 
-	FScopedSlowTask SlowTask((float)(QueuedRecordings.Num() + DeadRecordings.Num()), LOCTEXT("ProcessingRecording", "Processing Recording"));
+	// 1 step for the audio processing
+	static const uint8 NumAdditionalSteps = 1;
+
+	FScopedSlowTask SlowTask((float)(QueuedRecordings.Num() + DeadRecordings.Num() + NumAdditionalSteps), LOCTEXT("ProcessingRecording", "Processing Recording"));
 	SlowTask.MakeDialog(false, true);
+
+	// Process audio first so it doesn't record while we're processing the other captured state
+	ULevelSequence* LevelSequence = CurrentSequence.Get();
+
+	SlowTask.EnterProgressFrame(1.f, LOCTEXT("ProcessingAudio", "Processing Audio"));
+	if (AudioRecorder && LevelSequence)
+	{
+		USoundWave* RecordedAudio = AudioRecorder->Stop();
+		AudioRecorder.Reset();
+
+		if (RecordedAudio)
+		{
+			// Add a new master audio track to the level sequence
+			
+			UMovieScene* MovieScene = LevelSequence->GetMovieScene();
+
+			UMovieSceneAudioTrack* AudioTrack = MovieScene->FindMasterTrack<UMovieSceneAudioTrack>();
+			if (!AudioTrack)
+			{
+				AudioTrack = MovieScene->AddMasterTrack<UMovieSceneAudioTrack>();
+				AudioTrack->SetDisplayName(LOCTEXT("DefaultAudioTrackName", "Recorded Audio"));
+			}
+
+			int32 RowIndex = -1;
+			for (UMovieSceneSection* Section : AudioTrack->GetAllSections())
+			{
+				RowIndex = FMath::Max(RowIndex, Section->GetRowIndex());
+			}
+
+			UMovieSceneAudioSection* NewAudioSection = NewObject<UMovieSceneAudioSection>(AudioTrack, UMovieSceneAudioSection::StaticClass());
+
+			NewAudioSection->SetRowIndex(RowIndex + 1);
+			NewAudioSection->SetSound(RecordedAudio);
+			NewAudioSection->SetStartTime(0);
+			NewAudioSection->SetEndTime(RecordedAudio->GetDuration());
+
+			AudioTrack->AddSection(*NewAudioSection);
+		}
+	}
+
+
 
 	CurrentDelay = 0.0f;
 
@@ -681,10 +761,8 @@ bool FSequenceRecorder::StopRecording()
 
 	if(Settings->bCreateLevelSequence)
 	{
-		if(CurrentSequence.IsValid())
+		if(LevelSequence)
 		{
-			ULevelSequence* LevelSequence = CurrentSequence.Get();
-
 			// Stop referencing the sequence so we are listed as 'not recording'
 			CurrentSequence = nullptr;
 

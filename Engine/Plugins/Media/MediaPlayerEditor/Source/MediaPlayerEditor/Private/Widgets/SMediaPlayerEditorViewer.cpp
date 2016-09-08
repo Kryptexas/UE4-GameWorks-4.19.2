@@ -13,7 +13,9 @@
  *****************************************************************************/
 
 SMediaPlayerEditorViewer::SMediaPlayerEditorViewer()
-	: MediaPlayer(nullptr)
+	: DragOver(false)
+	, DragValid(false)
+	, MediaPlayer(nullptr)
 { }
 
 
@@ -142,231 +144,317 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 
 	ChildSlot
 	[
-		SNew(SVerticalBox)
+		SNew(SOverlay)
 
-		+ SVerticalBox::Slot()
-			.AutoHeight()
+		+ SOverlay::Slot()
 			[
-				SNew(SHorizontalBox)
+				SNew(SVerticalBox)
 
-				+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
+				+ SVerticalBox::Slot()
+					.AutoHeight()
 					[
-						// url box
-						SAssignNew(UrlTextBox, SEditableTextBox)
-							.ClearKeyboardFocusOnCommit(true)
-							.HintText(LOCTEXT("UrlTextBoxHint", "Media URL"))
-							.ToolTipText(LOCTEXT("UrlTextBoxToolTip", "Enter the URL of a media source"))
-							.OnKeyDownHandler(this, &SMediaPlayerEditorViewer::HandleUrlBoxKeyDown)
-							.OnTextCommitted_Lambda([this](const FText& InText, ETextCommit::Type InCommitType){
-								if (InCommitType == ETextCommit::OnEnter)
-								{
-									OpenUrlTextBoxUrl();
-								}
-							})
-					]
+						SNew(SHorizontalBox)
 
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-					[
-						// go button
-						SNew(SButton)
-							.ToolTipText_Lambda([this]() {
-								return ((UrlTextBox->GetText().ToString() == MediaPlayer->GetUrl()) && !MediaPlayer->GetUrl().IsEmpty())
-									? LOCTEXT("ReloadButtonToolTip", "Reload the current media URL")
-									: LOCTEXT("GoButtonToolTip", "Open the specified media URL");
-							})
-							.IsEnabled_Lambda([this]{
-								return !UrlTextBox->GetText().IsEmpty();
-							})
-							.OnClicked_Lambda([this]{
-								OpenUrlTextBoxUrl();
-								return FReply::Handled();
-							})
+						+ SHorizontalBox::Slot()
+							.FillWidth(1.0f)
 							[
-								SNew(SImage)
-									.Image_Lambda([this]() {
-										return ((UrlTextBox->GetText().ToString() == MediaPlayer->GetUrl()) && !MediaPlayer->GetUrl().IsEmpty())
-											? Style->GetBrush("MediaPlayerEditor.ReloadButton")
-											: Style->GetBrush("MediaPlayerEditor.GoButton");
+								// url box
+								SAssignNew(UrlTextBox, SEditableTextBox)
+									.ClearKeyboardFocusOnCommit(true)
+									.HintText(LOCTEXT("UrlTextBoxHint", "Media URL"))
+									.ToolTipText(LOCTEXT("UrlTextBoxToolTip", "Enter the URL of a media source"))
+									.OnKeyDownHandler(this, &SMediaPlayerEditorViewer::HandleUrlBoxKeyDown)
+									.OnTextCommitted_Lambda([this](const FText& InText, ETextCommit::Type InCommitType){
+										if (InCommitType == ETextCommit::OnEnter)
+										{
+											OpenUrlTextBoxUrl();
+										}
 									})
 							]
-					]
-			]
 
-		+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-			[
-				SNew(SBorder)
-					.BorderImage(FCoreStyle::Get().GetBrush("BlackBrush"))
-					.Padding(0.0f)
-					.OnMouseButtonUp(this, &SMediaPlayerEditorViewer::HandleTextureMouseButtonUp)
-					[
-						SNew(SOverlay)
-
-						+ SOverlay::Slot()
+						+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 							[
-								// movie texture
-								SNew(SScaleBox)
-									.Stretch_Lambda([]() -> EStretch::Type { return GetDefault<UMediaPlayerEditorSettings>()->ScaleVideoToFit ? EStretch::ScaleToFit : EStretch::Fill; })
+								// go button
+								SNew(SButton)
+									.ToolTipText_Lambda([this]() {
+										return ((UrlTextBox->GetText().ToString() == MediaPlayer->GetUrl()) && !MediaPlayer->GetUrl().IsEmpty())
+											? LOCTEXT("ReloadButtonToolTip", "Reload the current media URL")
+											: LOCTEXT("GoButtonToolTip", "Open the specified media URL");
+									})
+									.IsEnabled_Lambda([this]{
+										return !UrlTextBox->GetText().IsEmpty();
+									})
+									.OnClicked_Lambda([this]{
+										OpenUrlTextBoxUrl();
+										return FReply::Handled();
+									})
 									[
-										SNew(SMediaPlayerEditorOutput, InMediaPlayer)
+										SNew(SImage)
+											.Image_Lambda([this]() {
+												return ((UrlTextBox->GetText().ToString() == MediaPlayer->GetUrl()) && !MediaPlayer->GetUrl().IsEmpty())
+													? Style->GetBrush("MediaPlayerEditor.ReloadButton")
+													: Style->GetBrush("MediaPlayerEditor.GoButton");
+											})
 									]
-							]
-
-						+ SOverlay::Slot()
-							.Padding(FMargin(12.0f, 8.0f))
-							[
-								SNew(SHorizontalBox)
-
-								+ SHorizontalBox::Slot()
-									.HAlign(HAlign_Left)
-									.VAlign(VAlign_Top)
-									[
-										// playback state
-										SNew(STextBlock)
-											.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-											.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-											.ShadowOffset(FVector2D(1.f, 1.f))
-											.Text(this, &SMediaPlayerEditorViewer::HandleOverlayStateText)
-									]
-
-								+ SHorizontalBox::Slot()
-									.HAlign(HAlign_Right)
-									.VAlign(VAlign_Top)
-									[
-										// player name
-										SNew(STextBlock)
-											.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-											.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-											.ShadowOffset(FVector2D(1.f, 1.f))
-											.Text(this, &SMediaPlayerEditorViewer::HandleOverlayPlayerNameText)
-									]
-							]
-
-						+ SOverlay::Slot()
-							.HAlign(HAlign_Fill)
-							.VAlign(VAlign_Bottom)
-							.Padding(FMargin(50.0f, 20.0f))
-							[
-								// caption text
-								SNew(STextBlock)
-									.AutoWrapText(true)
-									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14))
-									.ShadowOffset(FVector2D(1.f, 1.f))
-									.Text(this, &SMediaPlayerEditorViewer::HandleOverlayCaptionText)
 							]
 					]
-			]
 
-		+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0.0f, 2.0f, 0.0f, 0.0f)
-			.VAlign(VAlign_Center)
-			[
-				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-					.ForegroundColor(FLinearColor::Gray)
-					.Padding(6.0f)
+				+ SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 					[
-						SNew(SVerticalBox)
-
-						+ SVerticalBox::Slot()
-							.AutoHeight()
+						SNew(SBorder)
+							.BorderImage(FCoreStyle::Get().GetBrush("BlackBrush"))
+							.Padding(0.0f)
+							.OnMouseButtonUp(this, &SMediaPlayerEditorViewer::HandleTextureMouseButtonUp)
 							[
 								SNew(SOverlay)
 
 								+ SOverlay::Slot()
 									[
-										// scrubber
-										SAssignNew(ScrubberSlider, SSlider)
-											.IsEnabled(this, &SMediaPlayerEditorViewer::HandlePositionSliderIsEnabled)
-											.OnMouseCaptureBegin(this, &SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureBegin)
-											.OnMouseCaptureEnd(this, &SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureEnd)
-											.OnValueChanged(this, &SMediaPlayerEditorViewer::HandlePositionSliderValueChanged)
-											.Orientation(Orient_Horizontal)
-											.Value(this, &SMediaPlayerEditorViewer::HandlePositionSliderValue)
+										// movie texture
+										SNew(SScaleBox)
+											.Stretch_Lambda([]() -> EStretch::Type { return GetDefault<UMediaPlayerEditorSettings>()->ScaleVideoToFit ? EStretch::ScaleToFit : EStretch::Fill; })
+											[
+												SNew(SMediaPlayerEditorOutput, InMediaPlayer)
+											]
 									]
 
 								+ SOverlay::Slot()
+									.Padding(FMargin(12.0f, 8.0f))
 									[
-										SNew(SProgressBar)
-											.ToolTipText(LOCTEXT("BufferingTooltip", "Buffering..."))
-											.Visibility_Lambda([this]() -> EVisibility { return MediaPlayer->IsPreparing() ? EVisibility::Visible : EVisibility::Hidden; })
+										SNew(SHorizontalBox)
+
+										+ SHorizontalBox::Slot()
+											.HAlign(HAlign_Left)
+											.VAlign(VAlign_Top)
+											[
+												// playback state
+												SNew(STextBlock)
+													.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+													.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
+													.ShadowOffset(FVector2D(1.f, 1.f))
+													.Text(this, &SMediaPlayerEditorViewer::HandleOverlayStateText)
+											]
+
+										+ SHorizontalBox::Slot()
+											.HAlign(HAlign_Right)
+											.VAlign(VAlign_Top)
+											[
+												// player name
+												SNew(STextBlock)
+													.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+													.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
+													.ShadowOffset(FVector2D(1.f, 1.f))
+													.Text(this, &SMediaPlayerEditorViewer::HandleOverlayPlayerNameText)
+											]
+									]
+
+								+ SOverlay::Slot()
+									.HAlign(HAlign_Fill)
+									.VAlign(VAlign_Bottom)
+									.Padding(FMargin(50.0f, 20.0f))
+									[
+										// caption text
+										SNew(STextBlock)
+											.AutoWrapText(true)
+											.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14))
+											.ShadowOffset(FVector2D(1.f, 1.f))
+											.Text(this, &SMediaPlayerEditorViewer::HandleOverlayCaptionText)
 									]
 							]
+					]
 
-						+ SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(0.0f, 2.0f, 0.0f, 0.0f)
+				+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0.0f, 2.0f, 0.0f, 0.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							.ForegroundColor(FLinearColor::Gray)
+							.Padding(6.0f)
 							[
-								SNew(SHorizontalBox)
+								SNew(SVerticalBox)
 
-								// timer
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.Padding(0.0f, 0.0f, 4.0f, 0.0f)
-									.VAlign(VAlign_Center)
+								+ SVerticalBox::Slot()
+									.AutoHeight()
 									[
-										SNew(STextBlock)
-											.Text(this, &SMediaPlayerEditorViewer::HandleTimerTextBlockText)
-											.ToolTipText(this, &SMediaPlayerEditorViewer::HandleTimerTextBlockToolTipText)
-									]
+										SNew(SOverlay)
 
-								// transport controls
-								+ SHorizontalBox::Slot()
-									.FillWidth(1.0f)
-									.Padding(8.0f, 0.0f)
-									.VAlign(VAlign_Center)
-									[
-										SNew(SSpacer)
-										//SNew(STransportControl)
-									]
-
-								// settings
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-									.VAlign(VAlign_Center)
-									[
-										SNew(SComboButton)
-											.ContentPadding(0.0f)
-											.ButtonContent()
+										+ SOverlay::Slot()
 											[
-												SNew(SHorizontalBox)
-
-												+ SHorizontalBox::Slot()
-													.AutoWidth()
-													.VAlign(VAlign_Center)
-													[
-														SNew(SImage)
-															.Image(InStyle->GetBrush("MediaPlayerEditor.SettingsButton"))
-													]
-
-												+ SHorizontalBox::Slot()
-													.AutoWidth()
-													.Padding(3.0f, 0.0f, 0.0f, 0.0f)
-													.VAlign(VAlign_Center)
-													[
-														SNew(STextBlock)
-															.Text(LOCTEXT("OptionsButton", "Playback Options"))
-													]
+												// scrubber
+												SAssignNew(ScrubberSlider, SSlider)
+													.IsEnabled(this, &SMediaPlayerEditorViewer::HandlePositionSliderIsEnabled)
+													.OnMouseCaptureBegin(this, &SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureBegin)
+													.OnMouseCaptureEnd(this, &SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureEnd)
+													.OnValueChanged(this, &SMediaPlayerEditorViewer::HandlePositionSliderValueChanged)
+													.Orientation(Orient_Horizontal)
+													.Value(this, &SMediaPlayerEditorViewer::HandlePositionSliderValue)
 											]
-											.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-											.ForegroundColor(FSlateColor::UseForeground())
-											.MenuContent()
+
+										+ SOverlay::Slot()
 											[
-												SettingsMenuBuilder.MakeWidget()
+												SNew(SProgressBar)
+													.ToolTipText(LOCTEXT("BufferingTooltip", "Buffering..."))
+													.Visibility_Lambda([this]() -> EVisibility { return MediaPlayer->IsPreparing() ? EVisibility::Visible : EVisibility::Hidden; })
+											]
+									]
+
+								+ SVerticalBox::Slot()
+									.AutoHeight()
+									.Padding(0.0f, 2.0f, 0.0f, 0.0f)
+									[
+										SNew(SHorizontalBox)
+
+										// timer
+										+ SHorizontalBox::Slot()
+											.AutoWidth()
+											.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+											.VAlign(VAlign_Center)
+											[
+												SNew(STextBlock)
+													.Text(this, &SMediaPlayerEditorViewer::HandleTimerTextBlockText)
+													.ToolTipText(this, &SMediaPlayerEditorViewer::HandleTimerTextBlockToolTipText)
+											]
+
+										// transport controls
+										+ SHorizontalBox::Slot()
+											.FillWidth(1.0f)
+											.Padding(8.0f, 0.0f)
+											.VAlign(VAlign_Center)
+											[
+												SNew(SSpacer)
+												//SNew(STransportControl)
+											]
+
+										// settings
+										+ SHorizontalBox::Slot()
+											.AutoWidth()
+											.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+											.VAlign(VAlign_Center)
+											[
+												SNew(SComboButton)
+													.ContentPadding(0.0f)
+													.ButtonContent()
+													[
+														SNew(SHorizontalBox)
+
+														+ SHorizontalBox::Slot()
+															.AutoWidth()
+															.VAlign(VAlign_Center)
+															[
+																SNew(SImage)
+																	.Image(InStyle->GetBrush("MediaPlayerEditor.SettingsButton"))
+															]
+
+														+ SHorizontalBox::Slot()
+															.AutoWidth()
+															.Padding(3.0f, 0.0f, 0.0f, 0.0f)
+															.VAlign(VAlign_Center)
+															[
+																SNew(STextBlock)
+																	.Text(LOCTEXT("OptionsButton", "Playback Options"))
+															]
+													]
+													.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+													.ForegroundColor(FSlateColor::UseForeground())
+													.MenuContent()
+													[
+														SettingsMenuBuilder.MakeWidget()
+													]
 											]
 									]
 							]
 					]
 			]
+
+		+ SOverlay::Slot()
+			[
+				SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
+					.BorderBackgroundColor_Lambda([this]() -> FLinearColor {
+						return DragValid
+							? FLinearColor(0.0f, 1.0f, 0.0f, 0.15f)
+							: FLinearColor(1.0f, 0.0f, 0.0f, 0.15f);
+					})
+					.Visibility_Lambda([this]() -> EVisibility {
+						return DragOver && FSlateApplication::Get().IsDragDropping()
+							? EVisibility::HitTestInvisible
+							: EVisibility::Hidden;
+					})
+			]
 	];
 
 	RegisterActiveTimer(0.0f, FWidgetActiveTimerDelegate::CreateSP(this, &SMediaPlayerEditorViewer::HandleActiveTimer));
+}
+
+
+/* SWidget interface
+ *****************************************************************************/
+
+void SMediaPlayerEditorViewer::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	DragOver = true;
+
+	TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+	
+	if (DragDropOp.IsValid() && DragDropOp->HasFiles())
+	{
+		const TArray<FString>& Files = DragDropOp->GetFiles();
+		
+		if (Files.Num() == 1)
+		{
+			DragValid = MediaPlayer->CanPlayUrl(FString(TEXT("file://")) + Files[0]);
+
+			return;
+		}
+	}
+
+	DragValid = false;
+}
+
+
+void SMediaPlayerEditorViewer::OnDragLeave(const FDragDropEvent& DragDropEvent)
+{
+	DragOver = false;
+}
+
+
+FReply SMediaPlayerEditorViewer::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	if (DragValid)
+	{
+		return FReply::Handled();
+	}
+
+	return SCompoundWidget::OnDragOver(MyGeometry,DragDropEvent);
+}
+
+
+FReply SMediaPlayerEditorViewer::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	if (DragValid)
+	{
+		TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+
+		if (DragDropOp.IsValid() && DragDropOp->HasFiles())
+		{
+			const TArray<FString>& Files = DragDropOp->GetFiles();
+
+			if (Files.Num() == 1)
+			{
+				MediaPlayer->OpenUrl(FString(TEXT("file://")) + Files[0]);
+
+				return FReply::Handled();
+			}
+		}
+	}
+
+	return SCompoundWidget::OnDrop(MyGeometry,DragDropEvent);
 }
 
 

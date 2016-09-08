@@ -260,6 +260,9 @@ public:
 	/** Get the default value for the curve */
 	float GetDefaultValue() const { return DefaultValue; }
 
+	/** Removes the default value for this curve. */
+	void ClearDefaultValue() { DefaultValue = MAX_flt; }
+
 	/** Shifts all keys forwards or backwards in time by an even amount, preserving order */
 	void ShiftCurve(float DeltaTime);
 	void ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles);

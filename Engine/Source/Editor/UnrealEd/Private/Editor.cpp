@@ -590,7 +590,7 @@ namespace EditorUtilities
 	AActor* GetEditorWorldCounterpartActor( AActor* Actor )
 	{
 		const bool bIsSimActor = Actor->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
-		if( bIsSimActor && GEditor->PlayWorld != NULL )
+		if( bIsSimActor && GEditor && GEditor->PlayWorld != NULL )
 		{
 			// Do we have a counterpart in the editor world?
 			auto* SimWorldActor = Actor;
@@ -621,7 +621,7 @@ namespace EditorUtilities
 	AActor* GetSimWorldCounterpartActor( AActor* Actor )
 	{
 		const bool bIsSimActor = Actor->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
-		if( !bIsSimActor && GEditor->EditorWorld != NULL )
+		if( !bIsSimActor && GEditor && GEditor->EditorWorld != NULL )
 		{
 			// Do we have a counterpart in the sim world?
 			auto* EditorWorldActor = Actor;

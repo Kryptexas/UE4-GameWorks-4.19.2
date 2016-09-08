@@ -12,7 +12,7 @@
 /* UMovieSceneStringTrack interface
  *****************************************************************************/
 
-bool UMovieSceneStringTrack::AddKeyToSection(float Time, const FString& String, FKeyParams KeyParams)
+bool UMovieSceneStringTrack::AddKeyToSection(float Time, const FString& String)
 {
 	UMovieSceneSection* TargetSection = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Time);
 
@@ -38,7 +38,7 @@ bool UMovieSceneStringTrack::AddKeyToSection(float Time, const FString& String, 
 }
 
 
-bool UMovieSceneStringTrack::Eval(float Position, float LastPostion, FString& OutString) const
+bool UMovieSceneStringTrack::Eval(float Position, float LastPostion, FString& InOutString) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Position);
 
@@ -49,7 +49,7 @@ bool UMovieSceneStringTrack::Eval(float Position, float LastPostion, FString& Ou
 			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
 		}
 
-		OutString = CastChecked<UMovieSceneStringSection>(Section)->Eval(Position, OutString);
+		InOutString = CastChecked<UMovieSceneStringSection>(Section)->Eval(Position, InOutString);
 	}
 
 	return Section != nullptr;

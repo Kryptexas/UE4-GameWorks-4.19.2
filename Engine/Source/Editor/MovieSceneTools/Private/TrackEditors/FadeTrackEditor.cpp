@@ -66,7 +66,7 @@ public:
 
 			for (auto Time : TimesWithKeys)
 			{
-				float Value = FadeSection->Eval(Time);
+				float Value = FadeSection->Eval(Time, 0.f);
 			
 				FLinearColor Color = FLinearColor::Black;
 				Color.A = Value*255.f;
@@ -112,16 +112,13 @@ FFadeTrackEditor::FFadeTrackEditor(TSharedRef<ISequencer> InSequencer)
 	: FFloatPropertyTrackEditor(InSequencer)
 { }
 
-/* FFPropertyTrackEditor interface
+/* ISequencerTrackEditor interface
  *****************************************************************************/
 
-TSharedRef<FPropertySection> FFadeTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<ISequencerSection> FFadeTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding)
 {
 	return MakeShareable(new FFadeSection(SectionObject, Track.GetDisplayName()));
 }
-
-/* ISequencerTrackEditor interface
- *****************************************************************************/
 
 void FFadeTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
