@@ -229,9 +229,13 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 		}
 		if (GetAllAnimationSequencesReferred(AnimAssetsToReplace))
 		{
-			for (auto Iter = AnimAssetsToReplace.CreateIterator(); Iter; ++Iter)
+			// since poseprocess was called by remap, if it's additive with base, it will try post process
+			// inside of remap without converting base animation, so by going backway, it will convert
+			// base animation and then additive, and compression will work correctly
+			// this is termporary fix - another ticket has been entered to fix it properly UE-35689
+			for (int32 AnimationIndex = AnimAssetsToReplace.Num()-1 ; AnimationIndex >=0; --AnimationIndex)
 			{
-				UAnimationAsset* IterAsset = (*Iter);
+				UAnimationAsset* IterAsset = AnimAssetsToReplace[AnimationIndex];
 				// these two are different functions for now
 				// technically if you have implementation for Remap, it will also set skeleton 
 				IterAsset->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
