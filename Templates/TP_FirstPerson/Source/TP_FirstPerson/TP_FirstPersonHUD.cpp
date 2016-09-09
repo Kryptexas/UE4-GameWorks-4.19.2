@@ -25,7 +25,7 @@ void ATP_FirstPersonHUD::DrawHUD()
 
 	// offset by half the texture's dimensions so that the center of the texture aligns with the center of the Canvas
 	const FVector2D CrosshairDrawPosition( (Center.X),
-										   (Center.Y));
+										   (Center.Y + 20.0f));
 
 	// draw the crosshair
 	FCanvasTileItem TileItem( CrosshairDrawPosition, CrosshairTex->Resource, FLinearColor::White);
