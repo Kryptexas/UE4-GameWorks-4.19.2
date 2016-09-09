@@ -2885,9 +2885,9 @@ void UKismetSystemLibrary::DrawDebugFloatHistoryLocation(UObject* WorldContextOb
 
 FDebugFloatHistory UKismetSystemLibrary::AddFloatHistorySample(float Value, const FDebugFloatHistory& FloatHistory)
 {
-	FDebugFloatHistory NewDebugFloatHistory = FloatHistory;
-	NewDebugFloatHistory.AddSample(Value);
-	return NewDebugFloatHistory;
+	FDebugFloatHistory* const MutableFloatHistory = const_cast<FDebugFloatHistory*>(&FloatHistory);
+	MutableFloatHistory->AddSample(Value);
+	return FloatHistory;
 }
 
 /** Mark as modified. */

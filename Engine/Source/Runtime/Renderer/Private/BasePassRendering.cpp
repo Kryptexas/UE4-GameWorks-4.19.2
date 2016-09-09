@@ -1001,9 +1001,9 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View
 	if (bShaderComplexity)
 	{
 		// Additive blending when shader complexity viewmode is enabled.
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_One>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 		// Disable depth writes as we have a full depth prepass.
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 	}
 	else
 	{
@@ -1018,11 +1018,11 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View
 			RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA>::GetRHI());
 		}
 
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_DepthNearOrEqual>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 	}
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 
-	if (!View.IsInstancedStereoPass())
+	if (!View.IsInstancedStereoPass() || bIsEditorPrimitivePass)
 	{
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 	}

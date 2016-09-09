@@ -721,17 +721,17 @@ public:
 	/** Makes sure the current kinematic state matches the simulate flag */
 	void UpdateInstanceSimulatePhysics();
 	/** Returns true if this body is simulating, false if it is fixed (kinematic) */
-	bool IsInstanceSimulatingPhysics();
+	bool IsInstanceSimulatingPhysics() const;
 	/** Should Simulate Physics **/
-	bool ShouldInstanceSimulatingPhysics();
+	bool ShouldInstanceSimulatingPhysics() const;
 	/** Returns whether this body is awake */
 	bool IsInstanceAwake() const;
 	/** Wake this body */
 	void WakeInstance();
 	/** Force this body to sleep */
 	void PutInstanceToSleep();
-	/** Gets the multiplier to the theshold where the body will go to sleep automatically. */
-	float GetSleepThresholdMultiplier();
+	/** Gets the multiplier to the threshold where the body will go to sleep automatically. */
+	float GetSleepThresholdMultiplier() const;
 	/** Add custom forces and torques on the body. The callback will be called more than once, if substepping enabled, for every substep.  */
 	void AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhysics);
 	/** Add a force to this body */
@@ -1209,12 +1209,12 @@ FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBody(const FVector& Pos
 	return OverlapTestForBodiesImpl(Position, Rotation, InlineArray);
 }
 
-FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics()
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics() const
 {
 	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
 }
 
-FORCEINLINE_DEBUGGABLE bool FBodyInstance::ShouldInstanceSimulatingPhysics()
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::ShouldInstanceSimulatingPhysics() const
 {
 	return bSimulatePhysics;
 }

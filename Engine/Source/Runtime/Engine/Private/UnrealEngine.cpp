@@ -2120,6 +2120,7 @@ bool UEngine::InitializeHMDDevice()
 	return StereoRenderingDevice.IsValid();
 }
 
+
 void UEngine::RecordHMDAnalytics()
 {
 	if( !GIsEditor )

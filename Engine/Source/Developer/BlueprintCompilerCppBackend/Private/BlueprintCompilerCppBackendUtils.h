@@ -44,8 +44,13 @@ struct FEmitterLocalContext
 
 	EGeneratedCodeType CurrentCodeType;
 
-	TArray<const UObject*> UsedObjectInCurrentClass;
+	// List od assets directly used in class implementation.
+	TArray<const UObject*> UsedObjectInCurrentClass; 
 	TArray<const UUserDefinedEnum*> EnumsInCurrentClass;
+
+	// Nativized UDS doesn't reference its default value dependencies. When ::GetDefaultValue is used, then we need to reference the dependencies in the class.
+	TArray<UUserDefinedStruct*> StructsWithDefaultValuesUsed;
+
 private:
 	int32 LocalNameIndexMax;
 
@@ -234,7 +239,7 @@ struct FEmitHelper
 
 	static bool ShouldHandleAsImplementableEvent(UFunction* Function);
 
-	static bool GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
+	static bool GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd, bool bForceReference = false);
 
 	static FString GenerateReplaceConvertedMD(UObject* Obj);
 
@@ -292,7 +297,7 @@ struct FEmitDefaultValueHelper
 	// returns true, and fill OutResult, when the structure is handled in a custom way.
 	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
 
-	// Add static initialization functions. Must be call after Context.UsedObjectInCurrentClass is fully filled
+	// Add static initialization functions. Must be called after Context.UsedObjectInCurrentClass is fully filled
 	static void AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
 
 	static void AddRegisterHelper(FEmitterLocalContext& Context);

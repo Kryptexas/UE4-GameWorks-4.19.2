@@ -1000,6 +1000,11 @@ bool FMaterialResource::IsDitheredLODTransition() const
 	return MaterialInstance ? MaterialInstance->IsDitheredLODTransition() : Material->IsDitheredLODTransition();
 }
 
+bool FMaterialResource::IsTranslucencyWritingCustomDepth() const
+{
+	return Material->IsTranslucencyWritingCustomDepth();
+}
+
 bool FMaterialResource::IsMasked() const 
 {
 	return MaterialInstance ? MaterialInstance->IsMasked() : Material->IsMasked();

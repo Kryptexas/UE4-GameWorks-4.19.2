@@ -968,6 +968,7 @@ public:
 	virtual int32 GetMaterialDomain() const = 0; // See EMaterialDomain.
 	virtual bool IsTwoSided() const = 0;
 	virtual bool IsDitheredLODTransition() const = 0;
+	virtual bool IsTranslucencyWritingCustomDepth() const { return false; }
 	virtual bool IsTangentSpaceNormal() const { return false; }
 	virtual bool ShouldInjectEmissiveIntoLPV() const { return false; }
 	virtual bool ShouldBlockGI() const { return false; }
@@ -1595,6 +1596,7 @@ public:
 	ENGINE_API virtual int32 GetMaterialDomain() const override;
 	ENGINE_API virtual bool IsTwoSided() const override;
 	ENGINE_API virtual bool IsDitheredLODTransition() const override;
+	ENGINE_API virtual bool IsTranslucencyWritingCustomDepth() const override;
 	ENGINE_API virtual bool IsTangentSpaceNormal() const override;
 	ENGINE_API virtual bool ShouldInjectEmissiveIntoLPV() const override;
 	ENGINE_API virtual bool ShouldBlockGI() const override;

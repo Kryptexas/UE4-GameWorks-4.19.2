@@ -514,6 +514,7 @@ public:
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const;
 	ENGINE_API virtual bool IsTwoSided() const;
 	ENGINE_API virtual bool IsDitheredLODTransition() const;
+	ENGINE_API virtual bool IsTranslucencyWritingCustomDepth() const;
 	ENGINE_API virtual bool IsMasked() const;
 	ENGINE_API virtual bool IsDeferredDecal() const;
 

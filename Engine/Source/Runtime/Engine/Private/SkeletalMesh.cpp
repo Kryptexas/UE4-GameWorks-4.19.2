@@ -5413,11 +5413,13 @@ FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneVi
 	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
 	Result.bUsesLightingChannels = GetLightingChannelMask() != GetDefaultLightingChannelMask();
+	
 	MaterialRelevance.SetPrimitiveViewRelevance(Result);
 
 #if !UE_BUILD_SHIPPING
 	Result.bSeparateTranslucencyRelevance |= View->Family->EngineShowFlags.Constraints;
 #endif
+
 	return Result;
 }
 

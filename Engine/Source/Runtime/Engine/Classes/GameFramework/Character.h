@@ -325,11 +325,16 @@ public:
 	/** Returns ReplicatedMovementMode */
 	uint8 GetReplicatedMovementMode() const { return ReplicatedMovementMode; }
 
-	/** @return Saved translation offset of mesh. */
-	const FVector& GetBaseTranslationOffset() const { return BaseTranslationOffset; }
+	/** Get the saved translation offset of mesh. This is how much extra offset is applied from the center of the capsule. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	FVector GetBaseTranslationOffset() const { return BaseTranslationOffset; }
 
-	/** @return Saved rotation offset of mesh. */
-	const virtual FQuat GetBaseRotationOffset() const { return BaseRotationOffset; }
+	/** Get the saved rotation offset of mesh. This is how much extra rotation is applied from the capsule rotation. */
+	virtual FQuat GetBaseRotationOffset() const { return BaseRotationOffset; }
+
+	/** Get the saved rotation offset of mesh. This is how much extra rotation is applied from the capsule rotation. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Character", meta=(DisplayName="GetBaseRotationOffset"))
+	FRotator GetBaseRotationOffsetRotator() const { return GetBaseRotationOffset().Rotator(); }
 
 	//~ Begin INavAgentInterface Interface
 	virtual FVector GetNavAgentLocation() const override;

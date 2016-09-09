@@ -4359,7 +4359,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							// Check if we have a redirect to original.
 							if (DependencyIndex.IsNull() && DuplicateRedirects.Contains(DependentObject))
 							{
-								DependencyIndex = ExportToIndexMap.FindRef(DuplicateRedirects[DependentObject]);
+								UObject** const RedirectObj = DuplicateRedirects.Find(DependentObject);
+								if (RedirectObj)
+								{
+									DependencyIndex = ExportToIndexMap.FindRef(*RedirectObj);
+								}
 							}
 #endif
 							// if we didn't find it (FindRef returns 0 on failure, which is good in this case), then we are in trouble, something went wrong somewhere

@@ -4108,8 +4108,11 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	// Check to see if the variable is deprecated, and if so set the flag
 	{
 		FString VarName(VarProperty.Identifier);
-		int32 DeprecatedIndex = VarName.Find(TEXT("_DEPRECATED"));
-		if (DeprecatedIndex != INDEX_NONE)
+
+		const int32 DeprecatedIndex = VarName.Find(TEXT("_DEPRECATED"));
+		const int32 NativizedPropertyPostfixIndex = VarName.Find(TEXT("__pf")); //TODO: check OverrideNativeName in Meta Data, to be sure it's not a random occurrence of the "__pf" string.
+		bool bIgnoreDeprecatedWord = (NativizedPropertyPostfixIndex != INDEX_NONE) && (NativizedPropertyPostfixIndex > DeprecatedIndex);
+		if ((DeprecatedIndex != INDEX_NONE) && !bIgnoreDeprecatedWord)
 		{
 			if (DeprecatedIndex != VarName.Len() - 11)
 			{

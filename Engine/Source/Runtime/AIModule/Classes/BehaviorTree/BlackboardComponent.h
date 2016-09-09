@@ -314,11 +314,16 @@ bool UBlackboardComponent::SetValue(FBlackboard::FKey KeyID, typename TDataClass
 					UBlackboardComponent* OtherBlackboard = Iter.Value();
 					if (OtherBlackboard != nullptr && ShouldSyncWithBlackboard(*OtherBlackboard))
 					{
-						UBlackboardKeyType* OtherKeyOb = EntryInfo->KeyType->IsInstanced() ? OtherBlackboard->KeyInstances[KeyID] : EntryInfo->KeyType;
-						uint8* OtherRawData = OtherBlackboard->GetKeyRawData(KeyID) + DataOffset;
+						UBlackboardData* const OtherBlackboardAsset = OtherBlackboard->GetBlackboardAsset();
+						const int32 OtherKeyID = OtherBlackboardAsset ? OtherBlackboardAsset->GetKeyID(EntryInfo->EntryName) : FBlackboard::InvalidKey;
+						if (OtherKeyID != FBlackboard::InvalidKey)
+						{
+							UBlackboardKeyType* OtherKeyOb = EntryInfo->KeyType->IsInstanced() ? OtherBlackboard->KeyInstances[OtherKeyID] : EntryInfo->KeyType;
+							uint8* OtherRawData = OtherBlackboard->GetKeyRawData(OtherKeyID) + DataOffset;
 
-						TDataClass::SetValue((TDataClass*)OtherKeyOb, OtherRawData, Value);
-						OtherBlackboard->NotifyObservers(KeyID);
+							TDataClass::SetValue((TDataClass*)OtherKeyOb, OtherRawData, Value);
+							OtherBlackboard->NotifyObservers(OtherKeyID);
+						}
 					}
 				}
 			}

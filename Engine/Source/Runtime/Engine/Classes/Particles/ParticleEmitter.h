@@ -210,6 +210,11 @@ class UParticleEmitter : public UObject
 	int32 TypeDataOffset;
 	int32 TypeDataInstanceOffset;
 
+	/** Particle alignment overrides */
+	uint32 bRemoveHMDRollInVR : 1;
+	float MinFacingCameraBlendDistance;
+	float MaxFacingCameraBlendDistance;
+
 	// Array of modules that want emitter instance data
 	TArray<UParticleModule*> ModulesNeedingInstanceData;
 

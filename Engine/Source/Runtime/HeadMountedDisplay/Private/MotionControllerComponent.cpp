@@ -33,6 +33,7 @@ UMotionControllerComponent::UMotionControllerComponent(const FObjectInitializer&
 	Hand = EControllerHand::Left;
 	bDisableLowLatencyUpdate = false;
 	bHasAuthority = false;
+	bAutoActivate = true;
 }
 
 //=============================================================================
@@ -60,19 +61,22 @@ void UMotionControllerComponent::TickComponent(float DeltaTime, enum ELevelTick 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	FVector Position;
-	FRotator Orientation;
-	bTracked = PollControllerState(Position, Orientation);
-	if (bTracked)
+	if (bIsActive)
 	{
-		SetRelativeLocationAndRotation(Position, Orientation);
-	}
+		FVector Position;
+		FRotator Orientation;
+		bTracked = PollControllerState(Position, Orientation);
+		if (bTracked)
+		{
+			SetRelativeLocationAndRotation(Position, Orientation);
+		}
 
-	if (!ViewExtension.IsValid() && GEngine)
-	{
-		TSharedPtr< FViewExtension, ESPMode::ThreadSafe > NewViewExtension( new FViewExtension(this) );
-		ViewExtension = NewViewExtension;
-		GEngine->ViewExtensions.Add(ViewExtension);
+		if (!ViewExtension.IsValid() && GEngine)
+		{
+			TSharedPtr< FViewExtension, ESPMode::ThreadSafe > NewViewExtension(new FViewExtension(this));
+			ViewExtension = NewViewExtension;
+			GEngine->ViewExtensions.Add(ViewExtension);
+		}
 	}
 }
 

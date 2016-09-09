@@ -128,7 +128,9 @@ FString UBoolProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 {
 	check(FieldSize != 0);
 
-	if (IsNativeBool() || (CPPExportFlags & (CPPF_Implementation|CPPF_ArgumentOrReturnValue)) == (CPPF_Implementation|CPPF_ArgumentOrReturnValue))
+	if (IsNativeBool() 
+		|| ((CPPExportFlags & (CPPF_Implementation|CPPF_ArgumentOrReturnValue)) == (CPPF_Implementation|CPPF_ArgumentOrReturnValue))
+		|| ((CPPExportFlags & CPPF_BlueprintCppBackend) != 0))
 	{
 		// Export as bool if this is actually a bool or it's being exported as a return value of C++ function definition.
 		return TEXT("bool");

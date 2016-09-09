@@ -18,7 +18,7 @@ SamplerState IndirectOcclusionTextureSampler;
 float GetIndirectOcclusion(float4 ScreenPosition, FGBufferData GBufferData)
 {
 	float2 NDC = ScreenPosition.xy / ScreenPosition.w;
-	float2 ScreenUV = NDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+	float2 ScreenUV = NDC * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz;
 	
 	float IndirectOcclusion;
 #if SUPPORTS_INDEPENDENT_SAMPLERS
@@ -40,7 +40,7 @@ float3 GetForwardDirectLighting(uint GridIndex, float4 ScreenPosition, float3 Wo
 
 	#if MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED
 		float2 NDC = ScreenPosition.xy / ScreenPosition.w;
-		float2 ScreenUV = NDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+		float2 ScreenUV = NDC * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz;
 		DynamicShadowFactors = GetPerPixelLightAttenuation(ScreenUV);
 	#endif
 

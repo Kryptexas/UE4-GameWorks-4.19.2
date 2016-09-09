@@ -10,7 +10,7 @@
 #if OCULUS_INPUT_SUPPORTED_PLATFORMS
 
 /**
- * Digital buttons on the SteamVR controller
+ * Digital buttons on the Touch controller
  */
 enum class EOculusTouchControllerButton
 {
@@ -21,6 +21,8 @@ enum class EOculusTouchControllerButton
 	XA,
 	YB,
 	Thumbstick,
+
+	Menu,
 
 	/** Total number of controller buttons */
 	TotalButtonCount
@@ -221,6 +223,7 @@ struct FOculusTouchControllerState
 		Buttons[ (int32)EOculusTouchControllerButton::Thumbstick ].Key = ( Hand == EControllerHand::Left ) ? FGamepadKeyNames::MotionController_Left_Thumbstick : FGamepadKeyNames::MotionController_Right_Thumbstick;
 		Buttons[ (int32)EOculusTouchControllerButton::XA ].Key = (Hand == EControllerHand::Left) ? FGamepadKeyNames::MotionController_Left_FaceButton1 : FGamepadKeyNames::MotionController_Right_FaceButton1;
 		Buttons[ (int32)EOculusTouchControllerButton::YB ].Key = (Hand == EControllerHand::Left) ? FGamepadKeyNames::MotionController_Left_FaceButton2 : FGamepadKeyNames::MotionController_Right_FaceButton2;
+		Buttons[ (int32)EOculusTouchControllerButton::Menu ].Key = FGamepadKeyNames::SpecialRight;
 
 		CapacitiveAxes[(int32)EOculusTouchCapacitiveAxes::Thumbstick].Axis = (Hand == EControllerHand::Left) ? FOculusKeyNames::OculusTouch_Left_Thumbstick : FOculusKeyNames::OculusTouch_Right_Thumbstick;
 		CapacitiveAxes[(int32)EOculusTouchCapacitiveAxes::Trigger].Axis = (Hand == EControllerHand::Left) ? FOculusKeyNames::OculusTouch_Left_Trigger : FOculusKeyNames::OculusTouch_Right_Trigger;

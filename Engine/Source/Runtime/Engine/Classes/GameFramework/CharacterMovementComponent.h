@@ -1631,6 +1631,9 @@ protected:
 	/** Slows towards stop. */
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration);
 
+
+public:
+
 	/**
 	 * Return true if the 2D distance to the impact point is inside the edge tolerance (CapsuleRadius minus a small rejection threshold).
 	 * Useful for rejecting adjacent hits when finding a floor or landing spot.
@@ -1639,28 +1642,53 @@ protected:
 
 	/**
 	 * Sweeps a vertical trace to find the floor for the capsule at the given location. Will attempt to perch if ShouldComputePerchResult() returns true for the downward sweep result.
+	 * No floor will be found if collision is disabled on the capsule!
 	 *
 	 * @param CapsuleLocation:		Location where the capsule sweep should originate
 	 * @param OutFloorResult:		[Out] Contains the result of the floor check. The HitResult will contain the valid sweep or line test upon success, or the result of the sweep upon failure.
 	 * @param bZeroDelta:			If true, the capsule was not actively moving in this update (can be used to avoid unnecessary floor tests).
 	 * @param DownwardSweepResult:	If non-null and it contains valid blocking hit info, this will be used as the result of a downward sweep test instead of doing it as part of the update.
 	 */
-	virtual void FindFloor(const FVector& CapsuleLocation, struct FFindFloorResult& OutFloorResult, bool bZeroDelta, const FHitResult* DownwardSweepResult = NULL) const;
+	virtual void FindFloor(const FVector& CapsuleLocation, FFindFloorResult& OutFloorResult, bool bZeroDelta, const FHitResult* DownwardSweepResult = NULL) const;
+
+	/**
+	* Sweeps a vertical trace to find the floor for the capsule at the given location. Will attempt to perch if ShouldComputePerchResult() returns true for the downward sweep result.
+	* No floor will be found if collision is disabled on the capsule!
+	*
+	* @param CapsuleLocation		Location where the capsule sweep should originate
+	* @param FloorResult			Result of the floor check
+	*/
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName="FindFloor"))
+	void K2_FindFloor(FVector CapsuleLocation, FFindFloorResult& FloorResult) const;
 
 	/**
 	 * Compute distance to the floor from bottom sphere of capsule and store the result in OutFloorResult.
 	 * This distance is the swept distance of the capsule to the first point impacted by the lower hemisphere, or distance from the bottom of the capsule in the case of a line trace.
-	 * SweepDistance MUST be greater than or equal to the line distance.
+	 * This function does not care if collision is disabled on the capsule (unlike FindFloor).
 	 * @see FindFloor
 	 *
 	 * @param CapsuleLocation:	Location of the capsule used for the query
 	 * @param LineDistance:		If non-zero, max distance to test for a simple line check from the capsule base. Used only if the sweep test fails to find a walkable floor, and only returns a valid result if the impact normal is a walkable normal.
-	 * @param SweepDistance:	If non-zero, max distance to use when sweeping a capsule downwards for the test.
+	 * @param SweepDistance:	If non-zero, max distance to use when sweeping a capsule downwards for the test. MUST be greater than or equal to the line distance.
 	 * @param OutFloorResult:	Result of the floor check. The HitResult will contain the valid sweep or line test upon success, or the result of the sweep upon failure.
 	 * @param SweepRadius:		The radius to use for sweep tests. Should be <= capsule radius.
 	 * @param DownwardSweepResult:	If non-null and it contains valid blocking hit info, this will be used as the result of a downward sweep test instead of doing it as part of the update.
 	 */
 	virtual void ComputeFloorDist(const FVector& CapsuleLocation, float LineDistance, float SweepDistance, FFindFloorResult& OutFloorResult, float SweepRadius, const FHitResult* DownwardSweepResult = NULL) const;
+
+	/**
+	* Compute distance to the floor from bottom sphere of capsule and store the result in FloorResult.
+	* This distance is the swept distance of the capsule to the first point impacted by the lower hemisphere, or distance from the bottom of the capsule in the case of a line trace.
+	* This function does not care if collision is disabled on the capsule (unlike FindFloor).
+	*
+	* @param CapsuleLocation		Location where the capsule sweep should originate
+	* @param LineDistance			If non-zero, max distance to test for a simple line check from the capsule base. Used only if the sweep test fails to find a walkable floor, and only returns a valid result if the impact normal is a walkable normal.
+	* @param SweepDistance			If non-zero, max distance to use when sweeping a capsule downwards for the test. MUST be greater than or equal to the line distance.
+	* @param SweepRadius			The radius to use for sweep tests. Should be <= capsule radius.
+	* @param FloorResult			Result of the floor check
+	*/
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DisplayName="ComputeFloorDistance"))
+	void K2_ComputeFloorDist(FVector CapsuleLocation, float LineDistance, float SweepDistance, float SweepRadius, FFindFloorResult& FloorResult) const;
 
 	/**
 	 * Sweep against the world and return the first blocking hit.
@@ -1716,6 +1744,9 @@ protected:
 	 * @return True if the current location is a valid spot at which to perch.
 	 */
 	virtual bool ComputePerchResult(const float TestRadius, const FHitResult& InHit, const float InMaxFloorDist, FFindFloorResult& OutPerchFloorResult) const;
+
+
+protected:
 
 	/** Called when the collision capsule touches another primitive component */
 	UFUNCTION()

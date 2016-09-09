@@ -747,7 +747,7 @@ bool UActorComponent::SetupActorComponentTickFunction(struct FTickFunction* Tick
 
 void UActorComponent::SetComponentTickEnabled(bool bEnabled)
 {
-	if (!IsTemplate() && PrimaryComponentTick.bCanEverTick)
+	if (PrimaryComponentTick.bCanEverTick && !IsTemplate())
 	{
 		PrimaryComponentTick.SetTickFunctionEnable(bEnabled);
 	}
@@ -755,7 +755,7 @@ void UActorComponent::SetComponentTickEnabled(bool bEnabled)
 
 void UActorComponent::SetComponentTickEnabledAsync(bool bEnabled)
 {
-	if (!IsTemplate() && PrimaryComponentTick.bCanEverTick)
+	if (PrimaryComponentTick.bCanEverTick && !IsTemplate())
 	{
 		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SetComponentTickEnabledAsync"),
 			STAT_FSimpleDelegateGraphTask_SetComponentTickEnabledAsync,

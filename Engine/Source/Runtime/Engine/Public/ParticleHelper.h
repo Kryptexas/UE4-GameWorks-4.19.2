@@ -1469,13 +1469,16 @@ struct FDynamicSpriteEmitterReplayDataBase
 	int32							SubUVDataOffset;
 	int32							SubImages_Horizontal;
 	int32							SubImages_Vertical;
-	bool							bUseLocalSpace;
-	bool							bLockAxis;
-	uint8							ScreenAlignment;
-	uint8							LockAxisFlag;
-	uint8							EmitterRenderMode;
-	uint8							EmitterNormalsMode;
-	FVector2D						PivotOffset;
+	bool						bUseLocalSpace;
+	bool						bLockAxis;
+	uint8						ScreenAlignment;
+	uint8						LockAxisFlag;
+	uint8						EmitterRenderMode;
+	uint8						EmitterNormalsMode;
+	FVector2D					PivotOffset;
+	bool						bRemoveHMDRoll;
+	float						MinFacingCameraBlendDistance;
+	float						MaxFacingCameraBlendDistance;
 	
 	/** Constructor */
 	FDynamicSpriteEmitterReplayDataBase();

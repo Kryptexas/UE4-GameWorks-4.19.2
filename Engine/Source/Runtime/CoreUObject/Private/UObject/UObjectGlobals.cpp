@@ -2892,7 +2892,7 @@ void FObjectInitializer::InstanceSubobjects(UClass* Class, bool bNeedInstancing,
 		for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
 		{
 			UObject* Subobject = ComponentInits.SubobjectInits[Index].Subobject;
-			UObject* Template = ComponentInits.SubobjectInits[Index].Template;
+			UObject* Template = ComponentInits	.SubobjectInits[Index].Template;
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 			if ( !Subobject->HasAnyFlags(RF_NeedLoad) || bIsDeferredInitializer )

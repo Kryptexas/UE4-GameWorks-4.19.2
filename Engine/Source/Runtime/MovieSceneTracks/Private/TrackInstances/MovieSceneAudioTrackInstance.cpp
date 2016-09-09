@@ -233,7 +233,9 @@ TWeakObjectPtr<UAudioComponent> FMovieSceneAudioTrackInstance::GetAudioComponent
 		USoundCue* TempPlaybackAudioCue = NewObject<USoundCue>();
 		UWorld* World = Actor ? Actor->GetWorld() : (Player.GetPlaybackContext() != nullptr) ? Player.GetPlaybackContext()->GetWorld() : nullptr;
 
-		UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(TempPlaybackAudioCue, World, Actor, false, false);
+		AActor* OuterActor = nullptr; // The audio component should be transient but attached to the actor
+
+		UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(TempPlaybackAudioCue, World, OuterActor, false, false);								
 		if (AudioComponent && Actor)
 		{
 			AudioComponent->SetFlags(RF_Transient);

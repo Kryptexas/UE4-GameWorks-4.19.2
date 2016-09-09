@@ -3600,7 +3600,7 @@ void FBodyInstance::PutInstanceToSleep()
 #endif
 }
 
-float FBodyInstance::GetSleepThresholdMultiplier()
+float FBodyInstance::GetSleepThresholdMultiplier() const
 {
 	if (SleepFamily == ESleepFamily::Sensitive)
 	{

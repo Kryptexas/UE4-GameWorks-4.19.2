@@ -223,6 +223,9 @@ FParticleEmitterBuildInfo::FParticleEmitterBuildInfo()
 	, bLocalVectorFieldTileY(false)
 	, bLocalVectorFieldTileZ(false)
 	, bLocalVectorFieldUseFixDT(false)
+	, bRemoveHMDRoll(0)
+	, MinFacingCameraBlendDistance(0.0f)
+	, MaxFacingCameraBlendDistance(0.0f)
 {
 	DragScale.InitializeWithConstant(1.0f);
 	VectorFieldScale.InitializeWithConstant(1.0f);
@@ -2596,6 +2599,10 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 		NewReplayData->NormalsCylinderDirection = LODLevel->RequiredModule->NormalsCylinderDirection;
 
 		NewReplayData->PivotOffset = PivotOffset;
+
+		NewReplayData->bRemoveHMDRoll = LODLevel->RequiredModule->bRemoveHMDRoll;
+		NewReplayData->MinFacingCameraBlendDistance = LODLevel->RequiredModule->MinFacingCameraBlendDistance;
+		NewReplayData->MaxFacingCameraBlendDistance = LODLevel->RequiredModule->MaxFacingCameraBlendDistance;
 	}
 
 
@@ -3702,6 +3709,9 @@ FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
 	, EmitterRenderMode(0)
 	, EmitterNormalsMode(0)
 	, PivotOffset(-0.5f, -0.5f)
+	, bRemoveHMDRoll(false)
+	, MinFacingCameraBlendDistance(0.f)
+	, MaxFacingCameraBlendDistance(0.f)
 {
 }
 
@@ -3733,4 +3743,8 @@ void FDynamicSpriteEmitterReplayDataBase::Serialize( FArchive& Ar )
 	Ar << MaterialInterface;
 
 	Ar << PivotOffset;
+
+	Ar << bRemoveHMDRoll;
+	Ar << MinFacingCameraBlendDistance;
+	Ar << MaxFacingCameraBlendDistance;
 }

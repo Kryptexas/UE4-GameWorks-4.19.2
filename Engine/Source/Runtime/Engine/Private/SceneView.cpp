@@ -513,6 +513,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	}
 
 	ViewMatrices.ViewMatrix = FTranslationMatrix(-ViewOrigin) * ViewRotationMatrix;
+	ViewMatrices.HMDViewMatrixNoRoll = InitOptions.ViewRotationMatrix;
 
 	// Adjust the projection matrix for the current RHI.
 	ViewMatrices.ProjMatrix = AdjustProjectionMatrixForRHI(ProjectionMatrixUnadjustedForRHI);
@@ -849,13 +850,20 @@ void FSceneView::UpdateViewMatrix()
 
 	ViewMatrices.ViewOrigin = StereoViewLocation;
 
-	ViewMatrices.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
-	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FInverseRotationMatrix(ViewRotation);
-	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FMatrix(
+	FMatrix ViewPlanesMatrix = FMatrix(
 		FPlane(0,	0,	1,	0),
 		FPlane(1,	0,	0,	0),
 		FPlane(0,	1,	0,	0),
 		FPlane(0,	0,	0,	1));
+
+	ViewMatrices.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
+	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FInverseRotationMatrix(ViewRotation);
+	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * ViewPlanesMatrix;
+
+	// Duplicate HMD rotation matrix with roll removed
+	FRotator HMDViewRotation = ViewRotation;
+	HMDViewRotation.Roll = 0.f;
+	ViewMatrices.HMDViewMatrixNoRoll = FInverseRotationMatrix(HMDViewRotation) * ViewPlanesMatrix;
  
 	ViewMatrices.PreViewTranslation = -ViewMatrices.ViewOrigin;
 	ViewMatrices.TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation) * ViewMatrices.ViewMatrix;
@@ -878,20 +886,20 @@ void FSceneView::UpdatePlanarReflectionViewMatrix(const FSceneView& SourceView, 
 {
 	// This is a subset of the FSceneView ctor that recomputes the transforms changed by late updating the parent camera (in UpdateViewMatrix)
 	const FMatrix ViewMatrix(MirrorMatrix * SourceView.ViewMatrices.ViewMatrix);
-	const FMatrix ViewRotationMatrix = ViewMatrix.RemoveTranslation();
+	ViewMatrices.HMDViewMatrixNoRoll = ViewMatrix.RemoveTranslation();
 	
 	ViewMatrices.ViewOrigin = ViewMatrix.InverseTransformPosition(FVector::ZeroVector);
 	ViewMatrices.PreViewTranslation = -ViewMatrices.ViewOrigin;
 
-	ViewMatrices.ViewMatrix = FTranslationMatrix(-ViewMatrices.ViewOrigin) * ViewRotationMatrix;
+	ViewMatrices.ViewMatrix = FTranslationMatrix(-ViewMatrices.ViewOrigin) * ViewMatrices.HMDViewMatrixNoRoll;
 
 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
 	const FMatrix InvProjectionMatrix = ViewMatrices.GetInvProjMatrix();
 
-	InvViewMatrix = ViewRotationMatrix.GetTransposed() * FTranslationMatrix(ViewMatrices.ViewOrigin);
+	InvViewMatrix = ViewMatrices.HMDViewMatrixNoRoll.GetTransposed() * FTranslationMatrix(ViewMatrices.ViewOrigin);
 	InvViewProjectionMatrix = InvProjectionMatrix * InvViewMatrix;
 
-	ViewMatrices.TranslatedViewMatrix = ViewRotationMatrix;
+	ViewMatrices.TranslatedViewMatrix = ViewMatrices.HMDViewMatrixNoRoll;
 	const FMatrix InvTranslatedViewMatrix = ViewMatrices.TranslatedViewMatrix.GetTransposed();
 
 	ViewMatrices.TranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewMatrix * ViewMatrices.ProjMatrix;
@@ -2097,6 +2105,8 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	ViewUniformShaderParameters.ViewForward = EffectiveTranslatedViewMatrix.GetColumn(2);
 	ViewUniformShaderParameters.ViewUp = EffectiveTranslatedViewMatrix.GetColumn(1);
 	ViewUniformShaderParameters.ViewRight = EffectiveTranslatedViewMatrix.GetColumn(0);
+	ViewUniformShaderParameters.HMDViewNoRollUp = ViewMatrices.HMDViewMatrixNoRoll.GetColumn(1);
+	ViewUniformShaderParameters.HMDViewNoRollRight = ViewMatrices.HMDViewMatrixNoRoll.GetColumn(0);
 	ViewUniformShaderParameters.InvDeviceZToWorldZTransform = InvDeviceZToWorldZTransform;
 	ViewUniformShaderParameters.WorldViewOrigin = EffectiveViewToTranslatedWorld.TransformPosition(FVector(0)) - ViewMatrices.PreViewTranslation;
 	ViewUniformShaderParameters.WorldCameraOrigin = ViewMatrices.ViewOrigin;

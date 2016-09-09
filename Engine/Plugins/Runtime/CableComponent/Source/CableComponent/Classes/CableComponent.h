@@ -70,13 +70,17 @@ public:
 	UPROPERTY(EditAnywhere, Category="Cable")
 	FComponentReference AttachEndTo;
 
-	/** End location of cable, relative to AttachEndTo if specified, otherwise relative to cable component. */
+	/** Socket name on the AttachEndTo component to attach to */
+	UPROPERTY(EditAnywhere, Category = "Cable")
+	FName AttachEndToSocketName;
+
+	/** End location of cable, relative to AttachEndTo (or AttachEndToSocketName) if specified, otherwise relative to cable component. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cable", meta=(MakeEditWidget=true))
 	FVector EndLocation;
 
 	/** Attaches the end of the cable to a specific Component within an Actor **/
 	UFUNCTION(BlueprintCallable, Category = "Cable")
-	void SetAttachEndTo(AActor* Actor, FName ComponentProperty);
+	void SetAttachEndTo(AActor* Actor, FName ComponentProperty, FName SocketName = NAME_None);
 	
 	/** Gets the Actor that the cable is attached to **/
 	UFUNCTION(BlueprintCallable, Category = "Cable")

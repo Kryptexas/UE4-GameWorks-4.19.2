@@ -72,6 +72,48 @@ namespace ELerpInterpolationMode
 	};
 }
 
+USTRUCT(BlueprintType)
+struct ENGINE_API FFloatSpringState
+{
+	GENERATED_BODY()
+
+	float PrevError;
+	float Velocity;
+
+	FFloatSpringState()
+	: PrevError(0.f)
+	, Velocity(0.f)
+	{
+
+	}
+
+	void Reset()
+	{
+		PrevError = Velocity = 0.f;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct ENGINE_API FVectorSpringState
+{
+	GENERATED_BODY()
+
+	FVector PrevError;
+	FVector Velocity;
+
+	FVectorSpringState()
+	: PrevError(FVector::ZeroVector)
+	, Velocity(FVector::ZeroVector)
+	{
+
+	}
+
+	void Reset()
+	{
+		PrevError = Velocity = FVector::ZeroVector;
+	}
+};
+
 UCLASS()
 class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
@@ -1836,6 +1878,40 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, Category = "Math|Interpolation", meta = (Keywords = "color"))
 	static FLinearColor CInterpTo(FLinearColor Current, FLinearColor Target, float DeltaTime, float InterpSpeed);
+
+	/** 
+	 * Uses a simple spring model to interpolate a float from Current to Target.
+	 *
+	 * @param Current				Current value
+	 * @param Target				Target value
+	 * @param SpringState			Data related to spring model (velocity, error, etc..) - Create a unique variable per spring
+	 * @param Stiffness				How stiff the spring model is (more stiffness means more oscillation around the target value)
+	 * @param CriticalDampingFactor	How much damping to apply to the spring (0 means no damping, 1 means critically damped which means no oscillation)
+	 * @param Mass					Multiplier that acts like mass on a spring
+	 */
+	UFUNCTION(BlueprintCallable, Category = Spring)
+	static float FloatSpringInterp(float Current, float Target, UPARAM(ref) FFloatSpringState& SpringState, float Stiffness, float CriticalDampingFactor, float DeltaTime, float Mass = 1.f);
+
+	/**
+	* Uses a simple spring model to interpolate a vector from Current to Target.
+	*
+	* @param Current				Current value
+	* @param Target					Target value
+	* @param SpringState			Data related to spring model (velocity, error, etc..) - Create a unique variable per spring
+	* @param Stiffness				How stiff the spring model is (more stiffness means more oscillation around the target value)
+	* @param CriticalDampingFactor	How much damping to apply to the spring (0 means no damping, 1 means critically damped which means no oscillation)
+	* @param Mass					Multiplier that acts like mass on a spring
+	*/
+	UFUNCTION(BlueprintCallable, Category = Spring)
+	static FVector VectorSpringInterp(FVector Current, FVector Target, UPARAM(ref) FVectorSpringState& SpringState, float Stiffness, float CriticalDampingFactor, float DeltaTime, float Mass = 1.f);
+
+	/** Resets the state of a given spring */
+	UFUNCTION(BlueprintCallable, Category = Spring)
+	static void ResetFloatSpringState(UPARAM(ref) FFloatSpringState& SpringState);
+
+	/** Resets the state of a given spring */
+	UFUNCTION(BlueprintCallable, Category = Spring)
+	static void ResetVectorSpringState(UPARAM(ref) FVectorSpringState& SpringState);
 
 	//
 	// Random stream functions

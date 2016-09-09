@@ -564,10 +564,11 @@ void UCableComponent::PerformSubstep(float InSubstepTime, const FVector& Gravity
 	}
 }
 
-void UCableComponent::SetAttachEndTo(AActor* Actor, FName ComponentProperty)
+void UCableComponent::SetAttachEndTo(AActor* Actor, FName ComponentProperty, FName SocketName)
 {
 	AttachEndTo.OtherActor = Actor;
 	AttachEndTo.ComponentProperty = ComponentProperty;
+	AttachEndToSocketName = SocketName;
 }
 
 AActor* UCableComponent::GetAttachedActor() const
@@ -602,7 +603,15 @@ void UCableComponent::GetEndPositions(FVector& OutStartPosition, FVector& OutEnd
 		EndComponent = this;
 	}
 
-	OutEndPosition = EndComponent->ComponentToWorld.TransformPosition(EndLocation);
+	if (AttachEndToSocketName != NAME_None)
+	{
+		OutEndPosition = EndComponent->GetSocketTransform(AttachEndToSocketName).TransformPosition(EndLocation);
+	}
+	else
+	{
+		OutEndPosition = EndComponent->ComponentToWorld.TransformPosition(EndLocation);
+	}
+
 }
 
 void UCableComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)

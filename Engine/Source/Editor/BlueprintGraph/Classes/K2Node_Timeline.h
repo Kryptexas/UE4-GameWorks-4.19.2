@@ -30,6 +30,10 @@ class UK2Node_Timeline : public UK2Node
 	UPROPERTY(Transient)
 	uint32 bReplicated:1;
 
+	/** If the timeline should ignore global time dilation */
+	UPROPERTY(Transient)
+	uint32 bIgnoreTimeDilation : 1;
+
 	//~ Begin UEdGraphNode Interface.
 	virtual void AllocateDefaultPins() override;
 	virtual void DestroyNode() override;

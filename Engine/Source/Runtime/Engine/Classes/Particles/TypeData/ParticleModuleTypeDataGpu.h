@@ -175,6 +175,18 @@ struct FGPUSpriteEmitterInfo
 
 	UPROPERTY()
 	TEnumAsByte<EParticleCollisionMode::Type> CollisionMode;
+	
+	/** If true, removes the HMD view roll (e.g. in VR) */
+	UPROPERTY()
+	uint32 bRemoveHMDRoll : 1;
+	
+	/** The distance at which PSA_FacingCameraDistanceBlend	is fully PSA_Square */
+	UPROPERTY()
+	float MinFacingCameraBlendDistance;
+
+	/** The distance at which PSA_FacingCameraDistanceBlend	is fully PSA_FacingCameraPosition */
+	UPROPERTY()
+	float MaxFacingCameraBlendDistance;
 
 	/** Dynamic color scale from the ColorOverLife module. */
 	UPROPERTY()
@@ -209,6 +221,9 @@ struct FGPUSpriteEmitterInfo
 		, LockAxisFlag(0)
 		, bEnableCollision(false)
 		, CollisionMode(EParticleCollisionMode::SceneDepth)
+		, bRemoveHMDRoll(0)
+		, MinFacingCameraBlendDistance(0.f)
+		, MaxFacingCameraBlendDistance(0.f)
 	{
 	}
 
@@ -358,6 +373,18 @@ struct FGPUSpriteResourceData
 	/** Pivot offset in UV space for placing the verts of each particle. */
 	UPROPERTY()
 	FVector2D PivotOffset;
+	
+	/** If true, removes the HMD view roll (e.g. in VR) */
+	UPROPERTY()
+	uint32 bRemoveHMDRoll:1;
+
+	/** The distance at which PSA_FacingCameraDistanceBlend	is fully PSA_Square */
+	UPROPERTY()
+	float MinFacingCameraBlendDistance;
+
+	/** The distance at which PSA_FacingCameraDistanceBlend	is fully PSA_FacingCameraPosition */
+	UPROPERTY()
+	float MaxFacingCameraBlendDistance;
 
 	FGPUSpriteResourceData()
 		: ColorScale(ForceInit)
@@ -392,6 +419,9 @@ struct FGPUSpriteResourceData
 		, ScreenAlignment(0)
 		, LockAxisFlag(0)
 		, PivotOffset(-0.5f,-0.5f)
+		, bRemoveHMDRoll(0)
+		, MinFacingCameraBlendDistance(0.f)
+		, MaxFacingCameraBlendDistance(0.f)		
 	{
 	}
 

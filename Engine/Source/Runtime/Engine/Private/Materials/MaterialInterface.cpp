@@ -307,6 +307,11 @@ bool UMaterialInterface::IsDitheredLODTransition() const
 	return false;
 }
 
+bool UMaterialInterface::IsTranslucencyWritingCustomDepth() const
+{
+	return false;
+}
+
 bool UMaterialInterface::IsMasked() const
 {
 	return false;

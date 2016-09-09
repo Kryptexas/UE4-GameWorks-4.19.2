@@ -885,10 +885,7 @@ FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWel
 		{
 			if (FBodyInstance* BI = RootComponentWelded->GetBodyInstance(OutSocket, bGetWelded))
 			{
-				if (BI->bSimulatePhysics)
-				{
-					return BI;
-				}
+				return BI;
 			}
 		}
 	}

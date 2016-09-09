@@ -102,10 +102,19 @@ class UParticleModuleRequired : public UParticleModule
 	 *	PSA_Rectangle		- Non-uniform scale (via SizeX and SizeY) facing the camera
 	 *	PSA_Velocity		- Orient the particle towards both the camera and the direction 
 	 *						  the particle is moving. Non-uniform scaling is allowed.
-	 *	PSA_TypeSpecific	- Use the alignment method indicated int he type data module.
+	 *	PSA_TypeSpecific	- Use the alignment method indicated in the type data module.
+	 *	PSA_FacingCameraDistanceBlend - Blends between PSA_FacingCameraPosition and PSA_Square over specified distance.
 	 */
 	UPROPERTY(EditAnywhere, Category=Emitter)
 	TEnumAsByte<EParticleScreenAlignment> ScreenAlignment;
+
+	/** The distance at which PSA_FacingCameraDistanceBlend	is fully PSA_Square */
+	UPROPERTY(EditAnywhere, Category=Emitter, meta=(UIMin = "0"))
+	float MinFacingCameraBlendDistance;
+
+	/** The distance at which PSA_FacingCameraDistanceBlend	is fully PSA_FacingCameraPosition */
+	UPROPERTY(EditAnywhere, Category=Emitter, meta=(UIMin = "0"))
+	float MaxFacingCameraBlendDistance;
 
 	/** If true, update the emitter in local space										*/
 	UPROPERTY(EditAnywhere, Category=Emitter)
@@ -143,6 +152,10 @@ class UParticleModuleRequired : public UParticleModule
 	 */
 	UPROPERTY(EditAnywhere, Category=Emitter)
 	uint32 bUseLegacyEmitterTime:1;
+
+	/** If true, removes the HMD view roll (e.g. in VR) */
+	UPROPERTY(EditAnywhere, Category=Emitter, meta=(DisplayName = "Remove HMD Roll"))
+	uint32 bRemoveHMDRoll:1;
 
 	/** 
 	 *	How long, in seconds, the emitter will run before looping.

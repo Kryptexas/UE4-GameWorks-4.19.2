@@ -483,3 +483,67 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 	}
 }
 
+TSet<const UObject*> FGatherConvertedClassDependencies::AllDependencies() const
+{
+	TSet<const UObject*> All;
+	for (auto It : Assets)
+	{
+		All.Add(It);
+	}
+	for (auto It : ConvertedClasses)
+	{
+		All.Add(It);
+	}
+	for (auto It : ConvertedStructs)
+	{
+		All.Add(It);
+	}
+	for (auto It : ConvertedEnum)
+	{
+		All.Add(It);
+	}
+	return All;
+}
+
+class FArchiveReferencesInStructIntance : public FArchive
+{
+public:
+
+	using FArchive::operator<<; // For visibility of the overloads we don't override
+
+	TSet<UObject*> References;
+
+	//~ Begin FArchive Interface
+	virtual FArchive& operator<< (class FLazyObjectPtr& Value) override { return *this; }
+	virtual FArchive& operator<< (class FAssetPtr& Value) override { return *this; }
+	virtual FArchive& operator<< (struct FStringAssetReference& Value) override { return *this; }
+
+	virtual FArchive& operator<<(UObject*& Object) override
+	{
+		if (Object)
+		{
+			References.Add(Object);
+		}
+		return *this;
+	}
+	//~ End FArchive Interface
+
+	FArchiveReferencesInStructIntance()
+	{
+		ArIsObjectReferenceCollector = true;
+		ArIsFilterEditorOnly = true;
+	}
+};
+
+
+void FGatherConvertedClassDependencies::GatherAssetReferencedByUDSDefaultValue(TSet<UObject*>& Dependencies, UUserDefinedStruct* Struct)
+{
+	if (Struct)
+	{
+		FStructOnScope StructOnScope(Struct);
+		Struct->InitializeDefaultValue(StructOnScope.GetStructMemory());
+		FArchiveReferencesInStructIntance ArchiveReferencesInStructIntance;
+		Struct->SerializeItem(ArchiveReferencesInStructIntance, StructOnScope.GetStructMemory(), nullptr);
+		Dependencies.Append(ArchiveReferencesInStructIntance.References);
+	}
+}

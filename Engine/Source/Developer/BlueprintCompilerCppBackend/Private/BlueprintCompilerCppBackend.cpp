@@ -460,17 +460,31 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 	{
 		auto TermToRef = [&](const FBPTerminal* Term) -> FString
 		{
+			const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+			check(Schema);
+
+			FString BeginCast;
+			FString EndCast;
+			FEdGraphPinType LType;
+			if (Schema->ConvertPropertyToPinType(DefaultValueTerm->AssociatedVarProperty, LType))
+			{
+				FEmitHelper::GenerateAutomaticCast(EmitterContext, LType, Term->Type, BeginCast, EndCast, true);
+			}
+
 			const FString TermEvaluation = TermToText(EmitterContext, Term, ENativizedTermUsage::UnspecifiedOrReference); //should bGetter be false ?
+			const FString CastedTerm = FString::Printf(TEXT("%s%s%s"), *BeginCast, *TermEvaluation, *EndCast);
 			if (Term->bIsLiteral) //TODO it should be done for every term, that cannot be handled as reference.
 			{
 				const FString LocalVarName = EmitterContext.GenerateUniqueLocalName();
-				EmitterContext.AddLine(FString::Printf(TEXT("%s %s = %s;"), *ValueDeclaration, *LocalVarName, *TermEvaluation));
+				EmitterContext.AddLine(FString::Printf(TEXT("%s %s = %s;"), *ValueDeclaration, *LocalVarName, *CastedTerm));
 				return LocalVarName;
 			}
-			return TermEvaluation;
+			return CastedTerm;
 		};
+
 		const FString Term0_Index = TermToText(EmitterContext, Statement.RHS[TermIndex], ENativizedTermUsage::UnspecifiedOrReference);
 		const FString Term1_Ref = TermToRef(Statement.RHS[TermIndex + 1]);
+
 		Result += FString::Printf(TEXT(", TSwitchPair<%s, %s>(%s, %s)")
 			, *IndexDeclaration
 			, *ValueDeclaration
@@ -483,10 +497,65 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 	return Result;
 }
 
+struct FCastWildCard
+{
+	TArray<FString> TypeDependentPinNames;
+	int32 ArrayParamIndex = -1;
+	const FBlueprintCompiledStatement& Statement;
+
+	FCastWildCard(const FBlueprintCompiledStatement& InStatement) : ArrayParamIndex(-1), Statement(InStatement)
+	{
+		const FString DependentPinMetaData = Statement.FunctionToCall->GetMetaData(FBlueprintMetadata::MD_ArrayDependentParam);
+		DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
+
+		FString ArrayPointerMetaData = Statement.FunctionToCall->GetMetaData(FBlueprintMetadata::MD_ArrayParam);
+		TArray<FString> ArrayPinComboNames;
+		ArrayPointerMetaData.ParseIntoArray(ArrayPinComboNames, TEXT(","), true);
+
+		int32 LocNumParams = 0;
+		if (ArrayPinComboNames.Num() == 1)
+		{
+			for (TFieldIterator<UProperty> PropIt(Statement.FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+			{
+				if (!PropIt->HasAnyPropertyFlags(CPF_ReturnParm))
+				{
+					if (PropIt->GetName() == ArrayPinComboNames[0])
+					{
+						ArrayParamIndex = LocNumParams;
+						break;
+					}
+					LocNumParams++;
+				}
+			}
+		}
+	}
+
+	bool FillWildcardType(const UProperty* FuncParamProperty, FEdGraphPinType& LType)
+	{
+		if ((FuncParamProperty->HasAnyPropertyFlags(CPF_ConstParm) || !FuncParamProperty->HasAnyPropertyFlags(CPF_OutParm)) // it's pointless(?) and unsafe(?) to cast Output parameter
+			&& (ArrayParamIndex >= 0)
+			&& ((LType.PinCategory == UEdGraphSchema_K2::PC_Wildcard) || (LType.PinCategory == UEdGraphSchema_K2::PC_Int))
+			&& TypeDependentPinNames.Contains(FuncParamProperty->GetName()))
+		{
+			FBPTerminal* ArrayTerm = Statement.RHS[ArrayParamIndex];
+			check(ArrayTerm);
+			LType.PinCategory = ArrayTerm->Type.PinCategory;
+			LType.PinSubCategory = ArrayTerm->Type.PinSubCategory;
+			LType.PinSubCategoryObject = ArrayTerm->Type.PinSubCategoryObject;
+			LType.PinSubCategoryMemberReference = ArrayTerm->Type.PinSubCategoryMemberReference;
+			return true;
+		}
+		return false;
+	}
+};
+
 FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocalContext& EmitterContext, FBlueprintCompiledStatement& Statement)
 {
+	FCastWildCard CastWildCard(Statement);
+
 	FString Result;
 	int32 NumParams = 0;
+
 	for (TFieldIterator<UProperty> PropIt(Statement.FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 	{
 		UProperty* FuncParamProperty = *PropIt;
@@ -530,6 +599,8 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 				ENativizedTermUsage TermUsage = ENativizedTermUsage::UnspecifiedOrReference;
 				if (Schema->ConvertPropertyToPinType(FuncParamProperty, LType))
 				{
+					CastWildCard.FillWildcardType(FuncParamProperty, LType);
+
 					FEmitHelper::GenerateAutomaticCast(EmitterContext, LType, Term->Type, BeginCast, CloseCast);
 					TermUsage = LType.bIsReference ? ENativizedTermUsage::UnspecifiedOrReference : ENativizedTermUsage::Getter;
 				}
@@ -538,7 +609,7 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 				VarName += CloseCast;
 			}
 
-			if (FuncParamProperty->HasAnyPropertyFlags(CPF_OutParm))
+			if (FuncParamProperty->HasAnyPropertyFlags(CPF_OutParm) && !FuncParamProperty->HasAnyPropertyFlags(CPF_ConstParm))
 			{
 				Result += TEXT("/*out*/ ");
 			}
@@ -897,9 +968,11 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 			ResultPath = Term->Name;
 		}
 
-		if (Term->Type.bIsWeakPointer && bGetter)
+		const bool bUseWeakPtrGetter = Term->Type.bIsWeakPointer && bGetter;
+		const TCHAR* WeakPtrGetter = TEXT(".Get()");
+		if (bUseWeakPtrGetter)
 		{
-			ResultPath += TEXT(".Get()");
+			ResultPath += WeakPtrGetter;
 		}
 
 		const bool bNativeConstTemplateArg = Term->AssociatedVarProperty && Term->AssociatedVarProperty->HasMetaData(FName(TEXT("NativeConstTemplateArg")));
@@ -939,7 +1012,8 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 				: FString::Printf(TEXT("%s{}"), *CppType);
 
 			EmitterContext.AddLine(*FString::Printf(TEXT("%s %s = %s;"), *CppType, *DefaultValueVariable, *DefaultValueConstructor));
-			return FString::Printf(TEXT("((%s) ? (%s) : (%s))"), *Conditions, *ResultPath, *DefaultValueVariable);
+			const FString DefaultExpression = bUseWeakPtrGetter ? (DefaultValueVariable + WeakPtrGetter) : DefaultValueVariable;
+			return FString::Printf(TEXT("((%s) ? (%s) : (%s))"), *Conditions, *ResultPath, *DefaultExpression);
 		}
 		return ResultPath; 
 	}

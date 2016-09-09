@@ -1655,6 +1655,9 @@ bool UGameplayStatics::BlueprintSuggestProjectileVelocity(UObject* WorldContextO
 	return UGameplayStatics::SuggestProjectileVelocity(WorldContextObject, OutTossVelocity, StartLocation, EndLocation, LaunchSpeed, bFavorHighArc, CollisionRadius, OverrideGravityZ, TraceOption, FCollisionResponseParams::DefaultResponseParam, TArray<AActor*>(), bDrawDebug);
 }
 
+// note: this will automatically fall back to line test if radius is small enough
+static const FName NAME_SuggestProjVelTrace = FName(TEXT("SuggestProjVelTrace"));
+
 // Based on analytic solution to ballistic angle of launch http://en.wikipedia.org/wiki/Trajectory_of_a_projectile#Angle_required_to_hit_coordinate_.28x.2Cy.29
 bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bFavorHighArc, float CollisionRadius, float OverrideGravityZ, ESuggestProjVelocityTraceOption::Type TraceOption, const FCollisionResponseParams& ResponseParam, const TArray<AActor*>& ActorsToIgnore, bool bDrawDebug)
 {
@@ -1778,9 +1781,6 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 				}
 				else
 				{
-					// note: this will automatically fall back to line test if radius is small enough
-					static const FName NAME_SuggestProjVelTrace = FName(TEXT("SuggestProjVelTrace"));
-
 					FCollisionQueryParams QueryParams(NAME_SuggestProjVelTrace, true);
 					QueryParams.AddIgnoredActors(ActorsToIgnore);
 					if (World->SweepTestByChannel(TraceStart, TraceEnd, FQuat::Identity, ECC_WorldDynamic, FCollisionShape::MakeSphere(CollisionRadius), QueryParams, ResponseParam))

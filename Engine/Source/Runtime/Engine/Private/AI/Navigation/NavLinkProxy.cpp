@@ -186,7 +186,7 @@ FBox ANavLinkProxy::GetComponentsBoundingBox(bool bNonColliding) const
 
 	LinksBB = LinksBB.TransformBy(RootComponent->ComponentToWorld);
 
-	if (SmartLinkComp->IsNavigationRelevant())
+	if (SmartLinkComp && SmartLinkComp->IsNavigationRelevant())
 	{
 		LinksBB += SmartLinkComp->GetStartPoint();
 		LinksBB += SmartLinkComp->GetEndPoint();

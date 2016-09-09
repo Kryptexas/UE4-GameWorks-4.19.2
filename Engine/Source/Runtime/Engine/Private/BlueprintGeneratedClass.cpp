@@ -827,6 +827,12 @@ void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTim
 	{
 		NewTimeline->SetIsReplicated(true);
 	}
+
+	// Set replication, if desired
+	if (TimelineTemplate->bIgnoreTimeDilation)
+	{
+		NewTimeline->SetIgnoreTimeDilation(true);
+	}
 }
 
 void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass, AActor* Actor)

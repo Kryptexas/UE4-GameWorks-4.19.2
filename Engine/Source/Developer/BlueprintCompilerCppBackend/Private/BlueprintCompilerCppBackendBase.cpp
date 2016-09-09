@@ -289,7 +289,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 		UBlueprintGeneratedClass* ParentBPGC = Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass());
 		ParentDependencies = TSharedPtr<FGatherConvertedClassDependencies>(ParentBPGC ? new FGatherConvertedClassDependencies(ParentBPGC) : nullptr);
 
-		FEmitDefaultValueHelper::FillCommonUsedAssets(EmitterContext, ParentDependencies);
+		//FEmitDefaultValueHelper::FillCommonUsedAssets(EmitterContext, ParentDependencies);
 
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("%s(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());"), *CppClassName));
 		EmitterContext.Header.AddLine(TEXT("virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;"));
@@ -333,7 +333,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 
 	if (!bIsInterface)
 	{
-		// must be called after GenerateConstructor
+		// must be called after GenerateConstructor and other functions implementation
 		// now we knows which assets are directly used in source code
 		FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(EmitterContext, ParentDependencies);
 		FEmitDefaultValueHelper::AddRegisterHelper(EmitterContext);
@@ -490,12 +490,13 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 			{
 				if (FEmitHelper::PropertyForConstCast(Property))
 				{
-					const uint32 ExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
-					const FString ActualArg = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, false);
-					const FString NoConstType = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, true);
+					const uint32 ExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef;
+					const FString NoConstNoRefType = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, true);
 					const FString TypeDefName = FString(TEXT("T")) + EmitterContext.GenerateUniqueLocalName();
-					EmitterContext.AddLine(FString::Printf(TEXT("typedef %s %s;"), *NoConstType, *TypeDefName));
-					EmitterContext.AddLine(FString::Printf(TEXT("%s = *const_cast<%s *>(&%s__const);"), *ActualArg, *TypeDefName, *FEmitHelper::GetCppName(Property)));
+					EmitterContext.AddLine(FString::Printf(TEXT("typedef %s %s;"), *NoConstNoRefType, *TypeDefName));
+
+					const FString ParamName = FEmitHelper::GetCppName(Property);
+					EmitterContext.AddLine(FString::Printf(TEXT("%s& %s = *const_cast<%s *>(&%s__const);"), *TypeDefName, *ParamName, *TypeDefName, *ParamName));
 				}
 			}
 			const int32 ExecutionGroup = bManyExecutionGroups ? ExecutionGroupIndex : -1;

@@ -2725,7 +2725,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DitherOpacityMask)
 			)
 		{
-			return BlendMode == BLEND_Masked;
+			return BlendMode == BLEND_Masked || IsTranslucencyWritingCustomDepth();
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DecalBlendMode))
@@ -4118,6 +4118,10 @@ bool UMaterial::IsDitheredLODTransition() const
 	return DitheredLODTransition != 0;
 }
 
+bool UMaterial::IsTranslucencyWritingCustomDepth() const
+{
+	return AllowTranslucentCustomDepthWrites != 0 && IsTranslucentBlendMode(GetBlendMode());
+}
 
 bool UMaterial::IsMasked() const
 {

@@ -462,6 +462,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Directional Lighting Intensity"))
 	float TranslucencyDirectionalLightingIntensity;
 
+	/** Allows a translucenct material to be used with custom depth writing by compiling additional shaders. */
+	UPROPERTY(EditAnywhere, Category=Translucency, AdvancedDisplay, meta=(DisplayName = "Allow Custom Depth Writes"))
+	uint32 AllowTranslucentCustomDepthWrites:1;
+
 	/** Scale used to make translucent shadows more or less opaque than the material's actual opacity. */
 	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Shadow Density Scale"))
 	float TranslucentShadowDensityScale;
@@ -853,6 +857,7 @@ public:
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const override;
 	ENGINE_API virtual bool IsTwoSided() const override;
 	ENGINE_API virtual bool IsDitheredLODTransition() const override;
+	ENGINE_API virtual bool IsTranslucencyWritingCustomDepth() const override;
 	ENGINE_API virtual bool IsMasked() const override;
 	ENGINE_API virtual bool IsUIMaterial() const { return MaterialDomain == MD_UI; }
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;

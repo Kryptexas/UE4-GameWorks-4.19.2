@@ -394,7 +394,7 @@ int32 FEmitHelper::GetInheritenceLevel(const UStruct* Struct)
 
 bool FEmitHelper::PropertyForConstCast(const UProperty* Property)
 {
-	return Property && !Property->IsA<UStructProperty>() && Property->HasAnyPropertyFlags(CPF_ConstParm) && !Property->HasAnyPropertyFlags(CPF_OutParm);
+	return Property && Property->HasAnyPropertyFlags(CPF_ConstParm);
 }
 
 void FEmitHelper::ArrayToString(const TArray<FString>& Array, FString& OutString, const TCHAR* Separator)
@@ -927,7 +927,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	}
 	else if (UEdGraphSchema_K2::PC_Struct == Type.PinCategory)
 	{
-		auto StructType = Cast<UScriptStruct>(Type.PinSubCategoryObject.Get());
+		UScriptStruct* StructType = Cast<UScriptStruct>(Type.PinSubCategoryObject.Get());
 		ensure(StructType);
 
 		if (StructType == TBaseStructure<FVector>::Get())
@@ -966,13 +966,13 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			Color.InitFromString(CustomValue);
 			return FString::Printf(TEXT("FColor(%d,%d,%d,%d)"), Color.R, Color.G, Color.B, Color.A);
 		}
-		if (StructType == TBaseStructure<FVector2D>::Get())
+		else if (StructType == TBaseStructure<FVector2D>::Get())
 		{
 			FVector2D Vect = FVector2D::ZeroVector;
 			Vect.InitFromString(CustomValue);
 			return FString::Printf(TEXT("FVector2D(%s,%s)"), *FloatToString(Vect.X), *FloatToString(Vect.Y));
 		}
-		else
+		else if(StructType)
 		{
 			//@todo:  This needs to be more robust, since import text isn't really proper for struct construction.
 			const bool bEmptyCustomValue = CustomValue.IsEmpty() || (CustomValue == TEXT("()"));
@@ -980,13 +980,21 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			const FString LocalStructNativeName = EmitterContext.GenerateUniqueLocalName();
 			if (bEmptyCustomValue)
 			{
+				UUserDefinedStruct* AsUDS = Cast<UUserDefinedStruct>(StructType);
 				// The local variable is created to fix: "fatal error C1001: An internal error has occurred in the compiler."
-				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s%s;"), *LocalStructNativeName, *StructName, 
-					StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : FEmitHelper::EmptyDefaultConstructor(StructType)));
+				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s%s;")
+					, *LocalStructNativeName
+					, *StructName
+					, AsUDS ? TEXT("::GetDefaultValue()") : FEmitHelper::EmptyDefaultConstructor(StructType)));
+				if (AsUDS)
+				{
+					EmitterContext.StructsWithDefaultValuesUsed.Add(AsUDS);
+				}
 			}
 			else
 			{
 				FStructOnScope StructOnScope(StructType);
+				StructType->InitializeDefaultValue(StructOnScope.GetStructMemory()); // after cl#3098294 only delta (of structure data) against the default value is stored in string. So we need to explicitly provide default values before serialization.
 
 				class FImportTextErrorContext : public FStringOutputDevice
 				{
@@ -1256,7 +1264,7 @@ bool FEmitHelper::ShouldHandleAsImplementableEvent(UFunction* Function)
 	return false;
 }
 
-bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd)
+bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd, bool bForceReference)
 {
 	if ((RType.bIsArray != LType.bIsArray) || (LType.PinCategory != RType.PinCategory))
 	{
@@ -1273,15 +1281,19 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		{
 			ensure(!LTypeEnum->IsA<UUserDefinedEnum>() || LTypeEnum->CppType.IsEmpty());
 			const FString EnumCppType = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : FEmitHelper::GetCppName(LTypeEnum);
-			OutCastBegin = FString::Printf(TEXT("static_cast<%s>("), *EnumCppType);
-			OutCastEnd = TEXT(")");
+			OutCastBegin = bForceReference 
+				? FString::Printf(TEXT("*(%s*)(&("), *EnumCppType) 
+				: FString::Printf(TEXT("static_cast<%s>("), *EnumCppType);
+			OutCastEnd = bForceReference ? TEXT("))") :  TEXT(")");
 			return true;
 		}
 		if (!LTypeEnum && RTypeEnum)
 		{
 			ensure(!RTypeEnum->IsA<UUserDefinedEnum>() || RTypeEnum->CppType.IsEmpty());
 			const FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
-			OutCastBegin = FString::Printf(TEXT("EnumToByte<%s>(TEnumAsByte<%s>("), *EnumCppType, *EnumCppType);
+			OutCastBegin = bForceReference
+				? FString(TEXT("*(uint8*)(&(")) 
+				: FString::Printf(TEXT("EnumToByte<%s>(TEnumAsByte<%s>("), *EnumCppType, *EnumCppType);
 			OutCastEnd = TEXT("))");
 			return true;
 		}
@@ -1293,6 +1305,13 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		UClass* LClass = EmitterContext.Dependencies.FindOriginalClass( Cast<UClass>(LType.PinSubCategoryObject.Get()) );
 		LClass = LClass ? EmitterContext.GetFirstNativeOrConvertedClass(LClass) : nullptr;
 		UClass* RClass = EmitterContext.Dependencies.FindOriginalClass( Cast<UClass>(RType.PinSubCategoryObject.Get()) );
+		if (!RType.bIsArray && LClass && RClass && (LType.bIsReference || bForceReference) && (LClass != RClass) && RClass->IsChildOf(LClass))
+		{
+			// when pointer is passed as reference, the type must be exactly the same
+			OutCastBegin = FString::Printf(TEXT("*(%s**)(&("), *FEmitHelper::GetCppName(LClass));
+			OutCastEnd = TEXT("))");
+			return true;
+		}
 		if (!RType.bIsArray && LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
 		{
 			OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));

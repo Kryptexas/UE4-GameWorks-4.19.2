@@ -2067,7 +2067,7 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 	
 	const FTransform DeltaWorldTransform(DeltaWorldRotation, DeltaWorldTranslation);
 
-	UE_LOG(LogRootMotion, Log, TEXT("ConvertLocalRootMotionToWorld LocalT: %s, LocalR: %s, WorldT: %s, WorldR: %s."),
+	UE_LOG(LogRootMotion, Log,  TEXT("ConvertLocalRootMotionToWorld LocalT: %s, LocalR: %s, WorldT: %s, WorldR: %s."),
 		*InTransform.GetTranslation().ToCompactString(), *InTransform.GetRotation().Rotator().ToCompactString(),
 		*DeltaWorldTransform.GetTranslation().ToCompactString(), *DeltaWorldTransform.GetRotation().Rotator().ToCompactString());
 
@@ -2312,7 +2312,7 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 		RootBodyData.TransformToRoot = FTransform::Identity;
 
 		// Only need to do further work if we have any bodies at all (ie physics state is created)
-		if(Bodies.Num() > 0)
+		if (Bodies.Num() > 0)
 		{
 			if (Bodies.IsValidIndex(RootBodyData.BodyIndex))
 			{

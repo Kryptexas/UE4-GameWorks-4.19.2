@@ -1148,13 +1148,16 @@ void UPathFollowingComponent::StartUsingCustomLink(INavLinkCustomInterface* Cust
 
 void UPathFollowingComponent::FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink)
 {
-	UObject* NavLinkOb = Cast<UObject>(CustomNavLink);
-	if (CurrentCustomLinkOb == NavLinkOb)
+	if (CustomNavLink)
 	{
-		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Finish custom move using navlink: %s"), *GetPathNameSafe(NavLinkOb));
+		UObject* NavLinkOb = Cast<UObject>(CustomNavLink);
+		if (CurrentCustomLinkOb == NavLinkOb)
+		{
+			UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Finish custom move using navlink: %s"), *GetPathNameSafe(NavLinkOb));
 
-		CustomNavLink->OnLinkMoveFinished(this);
-		CurrentCustomLinkOb.Reset();
+			CustomNavLink->OnLinkMoveFinished(this);
+			CurrentCustomLinkOb.Reset();
+		}
 	}
 }
 

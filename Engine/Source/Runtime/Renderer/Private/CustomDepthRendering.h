@@ -7,7 +7,7 @@
 #pragma once
 
 /** 
-* Set of distortion scene prims  
+* Set of custom depth scene prims  
 */
 class FCustomDepthPrimSet
 {

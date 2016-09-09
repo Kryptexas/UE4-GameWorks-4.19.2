@@ -5384,12 +5384,6 @@ void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocatio
 {
 	OutFloorResult.Clear();
 
-	// No collision, no floor...
-	if (!UpdatedComponent->IsQueryCollisionEnabled())
-	{
-		return;
-	}
-
 	float PawnRadius, PawnHalfHeight;
 	CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleSize(PawnRadius, PawnHalfHeight);
 
@@ -5422,7 +5416,7 @@ void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocatio
 	// We require the sweep distance to be >= the line distance, otherwise the HitResult can't be interpreted as the sweep result.
 	if (SweepDistance < LineDistance)
 	{
-		check(SweepDistance >= LineDistance);
+		ensure(SweepDistance >= LineDistance);
 		return;
 	}
 
@@ -5622,6 +5616,24 @@ void UCharacterMovementComponent::FindFloor(const FVector& CapsuleLocation, FFin
 				OutFloorResult.bWalkableFloor = false;
 			}
 		}
+	}
+}
+
+
+void UCharacterMovementComponent::K2_FindFloor(FVector CapsuleLocation, FFindFloorResult& FloorResult) const
+{
+	FindFloor(CapsuleLocation, FloorResult, false);
+}
+
+void UCharacterMovementComponent::K2_ComputeFloorDist(FVector CapsuleLocation, float LineDistance, float SweepDistance, float SweepRadius, FFindFloorResult& FloorResult) const
+{
+	if (HasValidData())
+	{
+		SweepDistance = FMath::Max(SweepDistance, 0.f);
+		LineDistance = FMath::Clamp(LineDistance, 0.f, SweepDistance);
+		SweepRadius = FMath::Max(SweepRadius, 0.f);
+
+		ComputeFloorDist(CapsuleLocation, LineDistance, SweepDistance, FloorResult, SweepRadius);
 	}
 }
 

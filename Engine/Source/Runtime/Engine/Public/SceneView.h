@@ -161,6 +161,7 @@ struct FViewMatrices
 	{
 		ProjMatrix.SetIdentity();
 		ViewMatrix.SetIdentity();
+		HMDViewMatrixNoRoll.SetIdentity();
 		TranslatedViewMatrix.SetIdentity();
 		TranslatedViewProjectionMatrix.SetIdentity();
 		InvTranslatedViewProjectionMatrix.SetIdentity();
@@ -177,6 +178,8 @@ struct FViewMatrices
 	FMatrix		ProjMatrix;
 	// WorldToView..
 	FMatrix		ViewMatrix;
+	// HMD WorldToView with roll removed
+	FMatrix		HMDViewMatrixNoRoll;
 	/** WorldToView with PreViewTranslation. */
 	FMatrix		TranslatedViewMatrix;
 	/** The view-projection transform, starting from world-space points translated by -ViewOrigin. */
@@ -373,6 +376,8 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, ViewForward, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, ViewUp, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, ViewRight, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, HMDViewNoRollUp, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, HMDViewNoRollRight, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, InvDeviceZToWorldZTransform) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, ScreenPositionScaleBias, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector, WorldCameraOrigin) \

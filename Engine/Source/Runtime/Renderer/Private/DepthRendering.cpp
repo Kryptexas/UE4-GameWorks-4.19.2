@@ -82,7 +82,7 @@ public:
 		}
 
 		// Only compile for the default material and masked materials
-		return (Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() || Material->MaterialMayModifyMeshPosition());
+		return (Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() || Material->MaterialMayModifyMeshPosition() || Material->IsTranslucencyWritingCustomDepth());
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -193,7 +193,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Compile for materials that are masked.
-		return (!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected());
+		return (!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected() || Material->IsTranslucencyWritingCustomDepth());
 	}
 
 	FDepthOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -246,10 +246,10 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	const FMaterial& InMaterialResource,
 	bool bIsTwoSided,
 	ERHIFeatureLevel::Type InFeatureLevel
-	):
-	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,DVSM_None,/*bInTwoSidedOverride=*/ bIsTwoSided)
+	) :
+	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, DVSM_None,/*bInTwoSidedOverride=*/ bIsTwoSided)
 {
-	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset());
+	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset() || InMaterialResource.IsTranslucencyWritingCustomDepth());
 	if (!bNeedsPixelShader)
 	{
 		PixelShader = nullptr;
@@ -618,9 +618,9 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 			bDirty = true;
 		}
-		else if (!IsTranslucentBlendMode(BlendMode))
+		else if (!IsTranslucentBlendMode(BlendMode) || Material->IsTranslucencyWritingCustomDepth())
 		{
-			const bool bMaterialMasked = !Material->WritesEveryPixel();
+			const bool bMaterialMasked = !Material->WritesEveryPixel() || Material->IsTranslucencyWritingCustomDepth();
 
 			bool bDraw = true;
 

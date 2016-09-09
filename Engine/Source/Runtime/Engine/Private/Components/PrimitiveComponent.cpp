@@ -33,7 +33,6 @@
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
-
 //////////////////////////////////////////////////////////////////////////
 // Globals
 
@@ -587,7 +586,7 @@ void UPrimitiveComponent::EnsurePhysicsStateCreated()
 
 bool UPrimitiveComponent::IsWelded() const
 {
-	return GetBodyInstance() != GetBodyInstance(NAME_None, false);
+	return BodyInstance.WeldParent != nullptr;
 }
 
 void UPrimitiveComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
@@ -1834,8 +1833,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	{
 		if (bFilledHitResult)
 		{
-		*OutHit = BlockingHit;
-	}
+			*OutHit = BlockingHit;
+		}
 		else
 		{
 			OutHit->Init(TraceStart, TraceEnd);

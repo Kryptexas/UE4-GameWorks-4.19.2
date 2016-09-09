@@ -543,7 +543,7 @@ FVector2D GetParticleSize(const FBaseParticle& Particle, const FDynamicSpriteEmi
 	FVector2D Size;
 	Size.X = FMath::Abs(Particle.Size.X * Source.Scale.X);
 	Size.Y = FMath::Abs(Particle.Size.Y * Source.Scale.Y);
-	if (Source.ScreenAlignment == PSA_Square || Source.ScreenAlignment == PSA_FacingCameraPosition)
+	if (Source.ScreenAlignment == PSA_Square || Source.ScreenAlignment == PSA_FacingCameraPosition || Source.ScreenAlignment == PSA_FacingCameraDistanceBlend)
 	{
 		Size.Y = Size.X;
 	}
@@ -1282,6 +1282,30 @@ void FDynamicSpriteEmitterData::UpdateRenderThreadResourcesEmitter(const FPartic
 			// For locked rotation about Z the particle should be rotated by 90 degrees.
 			UniformParameters.RotationBias = (LockAxisFlag == EPAL_ROTATE_Z) ? (0.5f * PI) : 0.0f;
 		}
+
+		// Alignment overrides
+		UniformParameters.RemoveHMDRoll = SourceData->bRemoveHMDRoll ? 1.f : 0.f;
+
+		if (SourceData->ScreenAlignment == PSA_FacingCameraDistanceBlend)
+		{
+			float DistanceBlendMinSq = SourceData->MinFacingCameraBlendDistance * SourceData->MinFacingCameraBlendDistance;
+			float DistanceBlendMaxSq = SourceData->MaxFacingCameraBlendDistance * SourceData->MaxFacingCameraBlendDistance;
+			float InvBlendRange = 1.f / FMath::Max(DistanceBlendMaxSq - DistanceBlendMinSq, 1.f);
+			float BlendScaledMinDistace = DistanceBlendMinSq * InvBlendRange;
+
+			UniformParameters.CameraFacingBlend.X = 1.f;
+			UniformParameters.CameraFacingBlend.Y = InvBlendRange;
+			UniformParameters.CameraFacingBlend.Z = BlendScaledMinDistace;
+
+			// Treat as camera facing if needed
+			UniformParameters.TangentSelector.W = 1.f;
+		}
+		else
+		{
+			UniformParameters.CameraFacingBlend.X = 0.f;
+			UniformParameters.CameraFacingBlend.Y = 0.f;
+			UniformParameters.CameraFacingBlend.Z = 0.f;
+		}	
 
 		// SubUV information.
 		UniformParameters.SubImageSize = FVector4(

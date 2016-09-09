@@ -767,30 +767,27 @@ public:
 
 void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies)
 {
-
-
-	// 0.ALL ASSETS TO LIST
-	TSet<const UObject*> StaticDependenciesAssets;
+	// 1. GATHER UDS DEFAULT VALUE DEPENDENCIES
 	{
-		for (UObject* LocAsset : Context.Dependencies.Assets)
+		TSet<UObject*> References;
+		for (UUserDefinedStruct* UDS : Context.StructsWithDefaultValuesUsed)
 		{
-			if (ParentDependencies.IsValid() && ParentDependencies->Assets.Contains(LocAsset))
-			{
-				continue;
-			}
-			StaticDependenciesAssets.Add(LocAsset);
+			FGatherConvertedClassDependencies::GatherAssetReferencedByUDSDefaultValue(References, UDS);
 		}
-		for (UBlueprintGeneratedClass* LocAsset : Context.Dependencies.ConvertedClasses)
+		for (UObject* Obj : References)
 		{
-			if (ParentDependencies.IsValid() && (ParentDependencies->ConvertedClasses.Contains(LocAsset) || ParentDependencies->Assets.Contains(LocAsset)))
-			{
-				continue;
-			}
-			StaticDependenciesAssets.Add(LocAsset);
+			Context.UsedObjectInCurrentClass.AddUnique(Obj);
 		}
 	}
 
-	// 1. USED ASSETS LIST
+	// 2. ALL ASSETS TO LIST
+	TSet<const UObject*> AllDependenciesToHandle = Context.Dependencies.AllDependencies();
+	if (ParentDependencies.IsValid())
+	{
+		AllDependenciesToHandle = AllDependenciesToHandle.Difference(ParentDependencies->AllDependencies());
+	}
+
+	// HELPERS
 	auto SourceClass = Context.GetCurrentlyGeneratedClass();
 	auto OriginalClass = Context.Dependencies.FindOriginalClass(SourceClass);
 	const FString CppClassName = FEmitHelper::GetCppName(OriginalClass);
@@ -819,7 +816,7 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 			, *AssetType->GetName());
 	};
 
-	auto AddAssetArray = [&](TArray<const UObject*>& Assets)
+	auto AddAssetArray = [&](const TArray<const UObject*>& Assets)
 	{
 		TMap<FString, FString> PrefixToLocalVariable;
 		for (const UObject* LocAsset : Assets)
@@ -855,8 +852,9 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		}
 	};
 
-	int32 UsedAssetIndex = 0;
-	// 1. COMMON DEPENDENCIES ASSETS - USED BOTH BY __StaticDependenciesAssets and __StaticDependencies_DirectlyUsedAssets
+	int32 UsedAssetIndex = 0; //We need this, to preserve the order of assets in UsedAssets. They are identified by index. 
+
+	// 3. COMMON DEPENDENCIES ASSETS - USED BOTH BY __StaticDependenciesAssets and __StaticDependencies_DirectlyUsedAssets
 	{
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependencies_CommonAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
@@ -866,11 +864,14 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		for (;UsedAssetIndex < Context.UsedObjectInCurrentClass.Num(); ++UsedAssetIndex)
 		{
 			const UObject* LocAsset = Context.UsedObjectInCurrentClass[UsedAssetIndex];
-			if (!StaticDependenciesAssets.Contains(LocAsset))
+			if (!AllDependenciesToHandle.Contains(LocAsset))
 			{
+				UE_LOG(LogK2Compiler, Log, TEXT("FEmitDefaultValueHelper::AddStaticFunctionsForDependencies [%s] %s is directly used, but is not inluded in static dependencies")
+					, *GetPathNameSafe(OriginalClass)
+					, *GetPathNameSafe(LocAsset));
 				break;
 			}
-			StaticDependenciesAssets.Remove(LocAsset);
+			AllDependenciesToHandle.Remove(LocAsset);
 			AssetsToAdd.Add(LocAsset);
 		}
 		AddAssetArray(AssetsToAdd);
@@ -879,9 +880,8 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		Context.AddLine(TEXT("}"));
 	}
 
-	//
+	// 4. LIST OF UsedAssets
 	{
-		// __StaticDependencies_DirectlyUsedAssets
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
@@ -892,7 +892,10 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		for (; UsedAssetIndex < Context.UsedObjectInCurrentClass.Num(); ++UsedAssetIndex)
 		{
 			const UObject* LocAsset = Context.UsedObjectInCurrentClass[UsedAssetIndex];
-			ensure(!StaticDependenciesAssets.Contains(LocAsset));
+			if (AllDependenciesToHandle.Contains(LocAsset))
+			{
+				UE_LOG(LogK2Compiler, Log, TEXT("FEmitDefaultValueHelper::AddStaticFunctionsForDependencies %s should be listed as common asset"), *GetPathNameSafe(LocAsset));
+			}
 			AssetsToAdd.Add(LocAsset);
 		}
 		AddAssetArray(AssetsToAdd);
@@ -901,8 +904,7 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		Context.AddLine(TEXT("}"));
 	}
 
-	// 2. REMAINING DEPENDENCIES
-	// __StaticDependenciesAssets
+	// 5. REMAINING DEPENDENCIES
 	{
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
@@ -916,12 +918,7 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		}
 		Context.AddLine(FString(TEXT("__StaticDependencies_CommonAssets(AssetsToLoad);")));
 
-		TArray<const UObject*> AssetsToAdd;
-		for (const UObject* LocAsset : StaticDependenciesAssets)
-		{
-			AssetsToAdd.Add(LocAsset);
-		}
-		AddAssetArray(AssetsToAdd);
+		AddAssetArray(AllDependenciesToHandle.Array());
 
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
@@ -1414,7 +1411,7 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 	}
 	else
 	{
-		const FString OuterStr = Context.FindGloballyMappedObject(Object);
+		const FString OuterStr = Context.FindGloballyMappedObject(Object->GetOuter());
 		if (OuterStr.IsEmpty())
 		{
 			ensure(false);

@@ -3177,7 +3177,7 @@ void UParticleModuleLight::UpdateHQLight(UPointLightComponent* PointLightCompone
 	FVector2D Size;
 	Size.X = FMath::Abs(Particle.Size.X * ComponentScale.X);
 	Size.Y = FMath::Abs(Particle.Size.Y * ComponentScale.Y);
-	if (ScreenAlignment == PSA_Square || ScreenAlignment == PSA_FacingCameraPosition)
+	if (ScreenAlignment == PSA_Square || ScreenAlignment == PSA_FacingCameraPosition || ScreenAlignment == PSA_FacingCameraDistanceBlend)
 	{
 		Size.Y = Size.X;
 	}
@@ -4848,6 +4848,14 @@ void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildI
 	// Store screen alignment for particles.
 	EmitterInfo.ScreenAlignment = EmitterBuildInfo.RequiredModule->ScreenAlignment;
 	ResourceData.ScreenAlignment = EmitterBuildInfo.RequiredModule->ScreenAlignment;
+
+	EmitterInfo.bRemoveHMDRoll = EmitterBuildInfo.RequiredModule->bRemoveHMDRoll;
+	EmitterInfo.MinFacingCameraBlendDistance = EmitterBuildInfo.RequiredModule->MinFacingCameraBlendDistance;
+	EmitterInfo.MaxFacingCameraBlendDistance = EmitterBuildInfo.RequiredModule->MaxFacingCameraBlendDistance;
+	
+	ResourceData.bRemoveHMDRoll = EmitterBuildInfo.RequiredModule->bRemoveHMDRoll;
+	ResourceData.MinFacingCameraBlendDistance = EmitterBuildInfo.RequiredModule->MinFacingCameraBlendDistance;
+	ResourceData.MaxFacingCameraBlendDistance = EmitterBuildInfo.RequiredModule->MaxFacingCameraBlendDistance;
 
 	// Particle axis lock
 	for (int32 ModuleIndex = 0; ModuleIndex < EmitterInfo.SpawnModules.Num(); ++ModuleIndex)
