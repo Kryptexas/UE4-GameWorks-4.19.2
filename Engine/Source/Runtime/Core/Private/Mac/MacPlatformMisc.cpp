@@ -1450,10 +1450,19 @@ FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescripti
 	SCOPED_AUTORELEASE_POOL;
 
 	FGPUDriverInfo Info;
+	TArray<FString> NameComponents;
 	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = GetGPUDescriptors();
+	
 	for(FMacPlatformMisc::FGPUDescriptor const& GPU : GPUs)
 	{
-		if (DeviceDescription.Contains(FString(GPU.GPUName).Trim()))
+		NameComponents.Empty();
+		bool bMatchesName = FString(GPU.GPUName).Trim().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
+		for (FString& Component : NameComponents)
+		{
+			bMatchesName &= DeviceDescription.Contains(Component);
+		}
+		
+		if (bMatchesName)
 		{
 			Info.VendorId = GPU.GPUVendorId;
 			Info.DeviceDescription = FString(GPU.GPUName);

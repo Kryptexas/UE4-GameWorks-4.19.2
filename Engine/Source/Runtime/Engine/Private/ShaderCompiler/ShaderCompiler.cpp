@@ -1238,11 +1238,7 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	FPaths::NormalizeDirectoryName(AbsoluteDebugInfoDirectory);
 	AbsoluteShaderDebugInfoDirectory = AbsoluteDebugInfoDirectory;
 
-#if PLATFORM_MAC // @todo marksatt 1/14/16 Temporary emergency hack for Mac builders - 24 * SCW consumes 72GB of RAM (~3GB each) which prevents successful Mac cooking.
-    const int32 NumVirtualCores = FPlatformMisc::NumberOfCores();
-#else
-    const int32 NumVirtualCores = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
-#endif
+	const int32 NumVirtualCores = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
 
 	NumShaderCompilingThreads = bAllowCompilingThroughWorkers ? (NumVirtualCores - NumUnusedShaderCompilingThreads) : 1;
 
@@ -2308,89 +2304,90 @@ void GlobalBeginCompileShader(
 	// asset material name or "Global"
 	Input.DebugGroupName = DebugGroupName;
 
+	if (ShaderPipelineType)
+	{
+		Input.DebugGroupName = Input.DebugGroupName / ShaderPipelineType->GetName();
+	}
+	
+	if (VFType)
+	{
+		FString VFName = VFType->GetName();
+		if (GDumpShaderDebugInfoShort)
+		{
+			// Shorten vertex factory name
+			if (VFName[0] == TCHAR('F') || VFName[0] == TCHAR('T'))
+			{
+				VFName.RemoveAt(0);
+			}
+			VFName.ReplaceInline(TEXT("VertexFactory"), TEXT("VF"));
+			VFName.ReplaceInline(TEXT("GPUSkinAPEXCloth"), TEXT("APEX"));
+			VFName.ReplaceInline(TEXT("true"), TEXT("_1"));
+			VFName.ReplaceInline(TEXT("false"), TEXT("_0"));
+		}
+		Input.DebugGroupName = Input.DebugGroupName / VFName;
+	}
+	
+	{
+		FString ShaderTypeName = ShaderType->GetName();
+		if (GDumpShaderDebugInfoShort)
+		{
+			// Shorten known types
+			if (ShaderTypeName[0] == TCHAR('F') || ShaderTypeName[0] == TCHAR('T'))
+			{
+				ShaderTypeName.RemoveAt(0);
+			}
+		}
+		Input.DebugGroupName = Input.DebugGroupName / ShaderTypeName;
+		
+		if (GDumpShaderDebugInfoShort)
+		{
+			Input.DebugGroupName.ReplaceInline(TEXT("BasePass"), TEXT("BP"));
+			Input.DebugGroupName.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
+			Input.DebugGroupName.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
+			Input.DebugGroupName.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
+			Input.DebugGroupName.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Ambient"), TEXT("Amb"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Occlusion"), TEXT("Occ"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Position"), TEXT("Pos"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Skylight"), TEXT("Sky"));
+			Input.DebugGroupName.ReplaceInline(TEXT("LightingPolicy"), TEXT("LP"));
+			Input.DebugGroupName.ReplaceInline(TEXT("TranslucentLighting"), TEXT("TranslLight"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Translucency"), TEXT("Transl"));
+			Input.DebugGroupName.ReplaceInline(TEXT("DistanceField"), TEXT("DistFiel"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Indirect"), TEXT("Ind"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Cached"), TEXT("Cach"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Inject"), TEXT("Inj"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Visualization"), TEXT("Viz"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Instanced"), TEXT("Inst"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Evaluate"), TEXT("Eval"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Landscape"), TEXT("Land"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Dynamic"), TEXT("Dyn"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Vertex"), TEXT("Vtx"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Output"), TEXT("Out"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Directional"), TEXT("Dir"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Irradiance"), TEXT("Irr"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Deferred"), TEXT("Def"));
+			Input.DebugGroupName.ReplaceInline(TEXT("true"), TEXT("_1"));
+			Input.DebugGroupName.ReplaceInline(TEXT("false"), TEXT("_0"));
+			Input.DebugGroupName.ReplaceInline(TEXT("PROPAGATE_AO"), TEXT("AO"));
+			Input.DebugGroupName.ReplaceInline(TEXT("PROPAGATE_SECONDARY_OCCLUSION"), TEXT("SEC_OCC"));
+			Input.DebugGroupName.ReplaceInline(TEXT("PROPAGATE_MULTIPLE_BOUNCES"), TEXT("MULT_BOUNC"));
+			Input.DebugGroupName.ReplaceInline(TEXT("PostProcess"), TEXT("Post"));
+			Input.DebugGroupName.ReplaceInline(TEXT("AntiAliasing"), TEXT("AA"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Mobile"), TEXT("Mob"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Linear"), TEXT("Lin"));
+			Input.DebugGroupName.ReplaceInline(TEXT("INT32_MAX"), TEXT("IMAX"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Policy"), TEXT("Pol"));
+		}
+	}
+	
 	if (GDumpShaderDebugInfo != 0)
 	{
-		Input.DumpDebugInfoPath = Input.DumpDebugInfoRootPath / DebugGroupName;
-
-		if (ShaderPipelineType)
-		{
-			Input.DumpDebugInfoPath = Input.DumpDebugInfoPath / ShaderPipelineType->GetName();
-		}
-
-		if (VFType)
-		{
-			FString VFName = VFType->GetName();
-			if (GDumpShaderDebugInfoShort)
-			{
-				// Shorten vertex factory name
-				if (VFName[0] == TCHAR('F') || VFName[0] == TCHAR('T'))
-				{
-					VFName.RemoveAt(0);
-				}
-				VFName.ReplaceInline(TEXT("VertexFactory"), TEXT("VF"));
-				VFName.ReplaceInline(TEXT("GPUSkinAPEXCloth"), TEXT("APEX"));
-				VFName.ReplaceInline(TEXT("true"), TEXT("_1"));
-				VFName.ReplaceInline(TEXT("false"), TEXT("_0"));
-			}
-			Input.DumpDebugInfoPath = Input.DumpDebugInfoPath / VFName;
-		}
-
-		{
-			FString ShaderTypeName = ShaderType->GetName();
-			if (GDumpShaderDebugInfoShort)
-			{
-				// Shorten known types
-				if (ShaderTypeName[0] == TCHAR('F') || ShaderTypeName[0] == TCHAR('T'))
-				{
-					ShaderTypeName.RemoveAt(0);
-				}
-			}
-			Input.DumpDebugInfoPath = Input.DumpDebugInfoPath / ShaderTypeName;
-
-			if (GDumpShaderDebugInfoShort)
-			{
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("BasePass"), TEXT("BP"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Ambient"), TEXT("Amb"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Occlusion"), TEXT("Occ"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Position"), TEXT("Pos"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Skylight"), TEXT("Sky"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightingPolicy"), TEXT("LP"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("TranslucentLighting"), TEXT("TranslLight"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Translucency"), TEXT("Transl"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("DistanceField"), TEXT("DistFiel"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Indirect"), TEXT("Ind"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Cached"), TEXT("Cach"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Inject"), TEXT("Inj"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Visualization"), TEXT("Viz"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Instanced"), TEXT("Inst"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Evaluate"), TEXT("Eval"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Landscape"), TEXT("Land"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Dynamic"), TEXT("Dyn"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Vertex"), TEXT("Vtx"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Output"), TEXT("Out"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Directional"), TEXT("Dir"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Irradiance"), TEXT("Irr"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Deferred"), TEXT("Def"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("true"), TEXT("_1"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("false"), TEXT("_0"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_AO"), TEXT("AO"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_SECONDARY_OCCLUSION"), TEXT("SEC_OCC"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_MULTIPLE_BOUNCES"), TEXT("MULT_BOUNC"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PostProcess"), TEXT("Post"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("AntiAliasing"), TEXT("AA"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Mobile"), TEXT("Mob"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Linear"), TEXT("Lin"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("INT32_MAX"), TEXT("IMAX"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Policy"), TEXT("Pol"));
-			}
-		}
+		Input.DumpDebugInfoPath = Input.DumpDebugInfoRootPath / Input.DebugGroupName;
+		
 		// Sanitize the name to be used as a path
 		// List mostly comes from set of characters not allowed by windows in a path.  Just try to rename a file and type one of these for the list.
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT("<"), TEXT("("));

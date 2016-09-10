@@ -10,12 +10,141 @@ using System.Text.RegularExpressions;
 using Ionic.Zip;
 using Ionic.Zlib;
 using System.Security.Principal; 
+using System.Threading;
+using System.Diagnostics;
+using Manzana;
 
 static class IOSEnvVarNames
 {
 	// Should we code sign when staging?  (defaults to 1 if not present)
 	static public readonly string CodeSignWhenStaging = "uebp_CodeSignWhenStaging";
 }
+
+class IOSClientProcess : IProcessResult
+{
+	private IProcessResult	childProcess;
+	private Thread			consoleLogWorker;
+	private bool			processConsoleLogs;
+	
+	public IOSClientProcess(IProcessResult inChildProcess, string inDeviceID)
+	{
+		childProcess = inChildProcess;
+		
+		// Startup another thread that collect device console logs
+		processConsoleLogs = true;
+		consoleLogWorker = new Thread(() => ProcessConsoleOutput(inDeviceID));
+		consoleLogWorker.Start();
+	}
+	
+	public void StopProcess(bool KillDescendants = true)
+	{
+		childProcess.StopProcess(KillDescendants);
+		StopConsoleOutput();
+	}
+	
+	public bool HasExited
+	{
+		get
+		{ 
+			bool	result = childProcess.HasExited;
+			
+			if(result)
+			{
+				StopConsoleOutput();
+			}
+			
+			return result; 
+		}
+	}
+	
+	public string GetProcessName()
+	{
+		return childProcess.GetProcessName();
+	}
+
+	public void OnProcessExited()
+	{
+		childProcess.OnProcessExited();
+		StopConsoleOutput();
+	}
+	
+	public void DisposeProcess()
+	{
+		childProcess.DisposeProcess();
+	}
+	
+	public void StdOut(object sender, DataReceivedEventArgs e)
+	{
+		childProcess.StdOut(sender, e);
+	}
+	
+	public void StdErr(object sender, DataReceivedEventArgs e)
+	{
+		childProcess.StdErr(sender, e);
+	}
+	
+	public int ExitCode
+	{
+		get { return childProcess.ExitCode; }
+		set { childProcess.ExitCode = value; }
+	}
+		
+	public string Output
+	{
+		get { return childProcess.Output; }
+	}
+
+	public Process ProcessObject
+	{
+		get { return childProcess.ProcessObject; }
+	}
+
+	public new string ToString()
+	{
+		return childProcess.ToString();
+	}
+	
+	public void WaitForExit()
+	{
+		childProcess.WaitForExit();
+	}
+	
+	private void StopConsoleOutput()
+	{
+		processConsoleLogs = false;
+		consoleLogWorker.Join();
+	}
+	
+	public void ProcessConsoleOutput(string inDeviceID)
+	{		
+		MobileDeviceInstance	targetDevice = null;
+		foreach(MobileDeviceInstance curDevice in MobileDeviceInstanceManager.GetSnapshotInstanceList())
+		{
+			if(curDevice.DeviceId == inDeviceID)
+			{
+				targetDevice = curDevice;
+				break;
+			}
+		}
+		
+		if(targetDevice == null)
+		{
+			return;
+		}
+		
+		targetDevice.StartSyslogService();
+		
+		while(processConsoleLogs)
+		{
+			string logData = targetDevice.GetSyslogData();
+			
+			Console.WriteLine("DeviceLog: " + logData);
+		}
+		
+		targetDevice.StopSyslogService();
+	}
+
+};
 
 public class IOSPlatform : Platform
 {
@@ -530,7 +659,7 @@ public class IOSPlatform : Platform
 				}
 			}
 		}
-		ProcessResult Result = Run ("/usr/bin/env", Arguments, null, ERunOptions.Default);
+		IProcessResult Result = Run ("/usr/bin/env", Arguments, null, ERunOptions.Default);
 		if (bWasGenerated)
 		{
 			InternalUtils.SafeDeleteDirectory( XcodeProj, true);
@@ -1054,8 +1183,16 @@ public class IOSPlatform : Platform
     {
         return new List<string> { ".dsym" };
     }
+	
+	void MobileDeviceConnected(object sender, ConnectEventArgs args)
+	{
+	}
+	
+	void MobileDeviceDisconnected(object sender, ConnectEventArgs args)
+	{
+	}
 
-	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
+	public override IProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
@@ -1063,7 +1200,15 @@ public class IOSPlatform : Platform
             {
                 throw new AutomationException("Can only run on a single specified device, but {0} were specified", Params.Devices.Count);
             }
-
+			
+			// This code only cares about connected devices so just call the run loop a few times to get the existing connected devices
+			MobileDeviceInstanceManager.Initialize(MobileDeviceConnected, MobileDeviceDisconnected);
+			for(int i = 0; i < 4; ++i)
+			{
+				System.Threading.Thread.Sleep(1);
+				CoreFoundationRunLoop.RunLoopRunInMode(CoreFoundationRunLoop.kCFRunLoopDefaultMode(), 0.25, 0);
+			}
+			
             /*			string AppDirectory = string.Format("{0}/Payload/{1}.app",
 				Path.GetDirectoryName(Params.ProjectGameExeFilename), 
 				Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename));
@@ -1099,18 +1244,18 @@ public class IOSPlatform : Platform
 			Arguments += " -t 'Activity Monitor'";
 			Arguments += " -D \"" + Params.BaseStageDirectory + "/" + PlatformName + "/launch.trace\"";
 			Arguments += " '" + BundleIdentifier + "'";
-			ProcessResult ClientProcess = Run ("/usr/bin/env", Arguments, null, ClientRunFlags | ERunOptions.NoWaitForExit);
-			return ClientProcess;
+			IProcessResult ClientProcess = Run ("/usr/bin/env", Arguments, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+			return new IOSClientProcess(ClientProcess, Params.DeviceNames[0]);
 		}
 		else
 		{
-			ProcessResult Result = new ProcessResult("DummyApp", null, false, null);
+			IProcessResult Result = new ProcessResult("DummyApp", null, false, null);
 			Result.ExitCode = 0;
 			return Result;
 		}
 	}
 
-	public override void PostRunClient(ProcessResult Result, ProjectParams Params)
+	public override void PostRunClient(IProcessResult Result, ProjectParams Params)
 	{
 		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{

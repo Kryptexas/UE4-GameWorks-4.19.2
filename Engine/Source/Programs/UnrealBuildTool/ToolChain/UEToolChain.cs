@@ -155,5 +155,21 @@ namespace UnrealBuildTool
 			Log.TraceWarning("StripSymbols() has not been implemented for {0}; copying files", CppPlatform.ToString());
 			File.Copy(SourceFileName, TargetFileName, true);
 		}
+
+        public virtual bool PublishSymbols(DirectoryReference SymbolStoreDirectory, List<FileReference> Files, string Product)
+        {
+            Log.TraceWarning("PublishSymbols() has not been implemented for {0}", CppPlatform.ToString());
+            return false;
+        }
+
+        /// <summary>
+        /// When overridden, returns the directory structure of the platform's symbol server.
+        /// Each element is a semi-colon separated string of possible directory names.
+        /// The * wildcard is allowed in any entry. {0} will be substituted for a custom filter string.
+        /// </summary>
+        public virtual string[] SymbolServerDirectoryStructure
+        {
+             get { return null; }
+        }
 	};
 }

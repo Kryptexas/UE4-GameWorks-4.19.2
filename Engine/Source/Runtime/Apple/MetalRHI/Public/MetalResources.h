@@ -175,7 +175,7 @@ public:
 	void PrepareToDraw(FMetalContext* Context, FMetalHashedVertexDescriptor const& VertexDesc, const struct FMetalRenderPipelineDesc& RenderPipelineDesc, MTLRenderPipelineReflection** Reflection = nil);
 
 protected:
-	FCriticalSection PipelineMutex;
+	pthread_rwlock_t PipelineMutex;
 	TMap<FMetalRenderPipelineHash, TMap<FMetalHashedVertexDescriptor, id<MTLRenderPipelineState>>> PipelineStates;
 };
 

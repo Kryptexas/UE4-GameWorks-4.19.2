@@ -356,7 +356,7 @@ public class MacPlatform : Platform
 		}
 	}
 
-	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
+	public override IProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		if (!File.Exists(ClientApp))
 		{
@@ -374,7 +374,7 @@ public class MacPlatform : Platform
 
 		PushDir(Path.GetDirectoryName(ClientApp));
 		// Always start client process and don't wait for exit.
-		ProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+		IProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
 		PopDir();
 
 		return ClientProcess;

@@ -147,9 +147,9 @@ const TCHAR* FLinuxPlatformProcess::BaseDir()
 		}
 		SelfPath[ARRAY_COUNT(SelfPath) - 1] = 0;
 
-		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, UTF8_TO_TCHAR(dirname(SelfPath)));
+		FCString::Strncpy(CachedResult, UTF8_TO_TCHAR(dirname(SelfPath)), ARRAY_COUNT(CachedResult) - 1);
 		CachedResult[ARRAY_COUNT(CachedResult) - 1] = 0;
-		FCString::Strcat(CachedResult, ARRAY_COUNT(CachedResult) - 1, TEXT("/"));
+		FCString::Strncat(CachedResult, TEXT("/"), ARRAY_COUNT(CachedResult) - 1);
 		bHaveResult = true;
 	}
 	return CachedResult;

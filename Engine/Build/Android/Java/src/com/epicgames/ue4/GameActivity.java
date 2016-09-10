@@ -64,6 +64,7 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.InterstitialAd;
 
 import com.google.android.gms.plus.Plus;
 
@@ -151,6 +152,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private boolean adInit = false;
 	private LinearLayout adLayout;
 	private int adGravity = Gravity.TOP;
+	private InterstitialAd interstitialAd;
+	private boolean isInterstitialAdLoaded = false;
+	private boolean isInterstitialAdRequested = false;
+	private AdRequest interstitialAdRequest;
 
 	// layout required by popups, e.g ads, native controls
 	LinearLayout activityLayout;
@@ -1287,6 +1292,72 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				updateAdVisibility(true);
 			}
 		});
+	}
+	
+	public void AndroidThunkJava_LoadInterstitialAd(String AdMobAdUnitID)
+	{
+		interstitialAdRequest = new AdRequest.Builder().build();
+
+		interstitialAd = new InterstitialAd(this);
+		isInterstitialAdLoaded = false;
+		isInterstitialAdRequested = true;
+		interstitialAd.setAdUnitId(AdMobAdUnitID);
+
+		_activity.runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				interstitialAd.loadAd(interstitialAdRequest);				
+			}
+		});
+		
+		interstitialAd.setAdListener(new AdListener()
+		{
+			@Override
+			public void onAdFailedToLoad(int errorCode) 
+			{
+				Log.debug("Interstitial Ad failed to load, errocode: " + errorCode);
+				isInterstitialAdLoaded = false;
+				isInterstitialAdRequested = false;
+			}
+			@Override
+			public void onAdLoaded() 
+			{
+				//track if the ad is loaded since we can only called interstitialAd.isLoaded() from the uiThread				
+				isInterstitialAdLoaded = true;
+				isInterstitialAdRequested = false;
+			}    
+		});
+	}
+
+	public boolean AndroidThunkJava_IsInterstitialAdAvailable()
+	{
+		return interstitialAd != null && isInterstitialAdLoaded;
+	}
+
+	public boolean AndroidThunkJava_IsInterstitialAdRequested()
+	{
+		return interstitialAd != null && isInterstitialAdRequested;
+	}
+
+	public void AndroidThunkJava_ShowInterstitialAd()
+	{
+		if(isInterstitialAdLoaded)
+		{
+			_activity.runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{					
+					interstitialAd.show();
+				}
+			});
+		}
+		else
+		{
+			Log.debug("Interstitial Ad is not available to show - call LoadInterstitialAd or wait for it to finish loading");
+		}
 	}
 
 	public void AndroidThunkJava_GoogleClientConnect()

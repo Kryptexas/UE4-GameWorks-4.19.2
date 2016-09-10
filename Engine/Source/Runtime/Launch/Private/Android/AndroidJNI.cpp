@@ -86,6 +86,10 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_ShowAdBanner = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_ShowAdBanner", "(Ljava/lang/String;Z)V", bIsOptional);
 	AndroidThunkJava_HideAdBanner = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_HideAdBanner", "()V", bIsOptional);
 	AndroidThunkJava_CloseAdBanner = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_CloseAdBanner", "()V", bIsOptional);
+	AndroidThunkJava_LoadInterstitialAd = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_LoadInterstitialAd", "(Ljava/lang/String;)V", bIsOptional);
+	AndroidThunkJava_IsInterstitialAdAvailable = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IsInterstitialAdAvailable", "()Z", bIsOptional);
+	AndroidThunkJava_IsInterstitialAdRequested = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IsInterstitialAdRequested", "()Z", bIsOptional);
+	AndroidThunkJava_ShowInterstitialAd = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_ShowInterstitialAd", "()V", bIsOptional);
 	AndroidThunkJava_GoogleClientConnect = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_GoogleClientConnect", "()V", bIsOptional);
 	AndroidThunkJava_GoogleClientDisconnect = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_GoogleClientDisconnect", "()V", bIsOptional);
 
@@ -228,6 +232,10 @@ jmethodID FJavaWrapper::AndroidThunkJava_ResetAchievements;
 jmethodID FJavaWrapper::AndroidThunkJava_ShowAdBanner;
 jmethodID FJavaWrapper::AndroidThunkJava_HideAdBanner;
 jmethodID FJavaWrapper::AndroidThunkJava_CloseAdBanner;
+jmethodID FJavaWrapper::AndroidThunkJava_LoadInterstitialAd;
+jmethodID FJavaWrapper::AndroidThunkJava_IsInterstitialAdAvailable;
+jmethodID FJavaWrapper::AndroidThunkJava_IsInterstitialAdRequested;
+jmethodID FJavaWrapper::AndroidThunkJava_ShowInterstitialAd;
 jmethodID FJavaWrapper::AndroidThunkJava_GoogleClientConnect;
 jmethodID FJavaWrapper::AndroidThunkJava_GoogleClientDisconnect;
 
@@ -577,6 +585,46 @@ void AndroidThunkCpp_CloseAdBanner()
  	{
 		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_CloseAdBanner);
  	}
+}
+
+void AndroidThunkCpp_LoadInterstitialAd(const FString& AdUnitID)
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		jstring AdUnitIDArg = Env->NewStringUTF(TCHAR_TO_UTF8(*AdUnitID));
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_LoadInterstitialAd, AdUnitIDArg);
+		Env->DeleteLocalRef(AdUnitIDArg);
+	}
+}
+
+bool AndroidThunkCpp_IsInterstitialAdAvailable()
+{
+	bool bIsAdAvailable = false;
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		bIsAdAvailable = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IsInterstitialAdAvailable);
+	}
+
+	return bIsAdAvailable;
+}
+
+bool AndroidThunkCpp_IsInterstitialAdRequested()
+{
+	bool bIsAdRequested = false;
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		bIsAdRequested = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IsInterstitialAdRequested);
+	}
+
+	return bIsAdRequested;
+}
+
+void AndroidThunkCpp_ShowInterstitialAd()
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_ShowInterstitialAd);
+	}
 }
 
 void AndroidThunkCpp_GoogleClientConnect()

@@ -398,8 +398,9 @@ bool FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked( EProjectPack
 void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 {
 	GUnrealEd->CancelPlayingViaLauncher();
-	TArray<FString> Packages;
-	GUnrealEd->SaveWorldForPlay(Packages);
+	/*TArray<FString> Packages;
+	GUnrealEd->SaveWorldForPlay(Packages);*/
+	SaveAll();
 	
 	// does the project have any code?
 	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));

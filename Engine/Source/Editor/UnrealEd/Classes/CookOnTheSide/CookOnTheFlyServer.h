@@ -976,14 +976,6 @@ public:
 	uint32 TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackagesCount );
 
 	/**
-	 * Editor Tick, special tick which is called only when used from the editor (IsCookingInEditor)
-	 *
-	 * @param Timeslice, duration this function is allowed to run in
-	 * @param RequestedTargetPlatform, keep this target platform up to date this is the platform we are likely to launch on next
-	 */
-	void EditorTick( const float Timeslice, const TArray<const ITargetPlatform*>& RequestedTargetPlatform);
-
-	/**
 	 * Clear all the previously cooked data all cook requests from now on will be considered recook requests
 	 */
 	void ClearAllCookedData();

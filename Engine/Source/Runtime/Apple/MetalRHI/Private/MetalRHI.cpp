@@ -135,7 +135,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	{
 		bSupportsPointLights = true;
 		GRHIVendorId = 0x1002;
-		if(GPUDesc.GPUVendorId == GRHIVendorId)
+		if((FPlatformMisc::MacOSXVersionCompare(10,12,0) < 0) && GPUDesc.GPUVendorId == GRHIVendorId)
 		{
 			GRHIAdapterName = FString(GPUDesc.GPUName);
 		}
@@ -145,6 +145,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	}
 	else if(GRHIAdapterName.Contains("Intel"))
 	{
+		bSupportsTiledReflections = (FPlatformMisc::MacOSXVersionCompare(10,12,0) >= 0);
 		bSupportsPointLights = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
 		GRHIVendorId = 0x8086;
 		bSupportsRHIThread = true;

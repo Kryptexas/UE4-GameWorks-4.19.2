@@ -1947,6 +1947,11 @@ void UEditorEngine::PlayUsingLauncher()
 			bool bPromptUserToSave = true;
 			bool bSaveMapPackages = true;
 			bool bSaveContentPackages = true;
+			if (!FEditorFileUtils::SaveCurrentLevel())
+			{
+				CancelRequestPlaySession();
+				return;
+			}
 			if (!FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
 			{
 				CancelRequestPlaySession();

@@ -639,6 +639,7 @@ protected:
 	{
 		check(0 && "ir_rvalue not handled for GLSL export.");
 	}
+	
 
 	void print_zero_initialiser(const glsl_type * type)
 	{
@@ -1926,7 +1927,18 @@ protected:
 			if (constant->is_component_finite(index))
 			{
 				float value = constant->value.f[index];
-				const char *format = (fabsf(fmodf(value,1.0f)) < 1.e-8f) ? "%.1f" : "%.8f";
+				float absval = fabsf(value);
+				
+				const char *format = "%e";
+				if (absval >= 1.0f)
+				{
+					format = (fmodf(absval,1.0f) < 1.e-8f) ? "%.1f" : "%.8f";
+				}
+				else if (absval < 1.e-18f)
+				{
+					format = "%.1f";
+				}
+				
 				ralloc_asprintf_append(buffer, format, value);
 			}
 			else

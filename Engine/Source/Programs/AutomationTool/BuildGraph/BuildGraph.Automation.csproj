@@ -34,6 +34,26 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DocumentationFile>..\..\..\..\Binaries\DotNET\AutomationScripts\BuildGraph.Automation.xml</DocumentationFile>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>..\..\..\..\Binaries\DotNET\AutomationScripts\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Development|x64'">
+    <OutputPath>..\..\..\..\Binaries\DotNET\AutomationScripts\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>..\..\..\..\Binaries\DotNET\AutomationScripts\BuildGraph.Automation.xml</DocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Ionic.Zip.Reduced">
       <HintPath>..\..\..\..\Binaries\DotNET\Ionic.Zip.Reduced.dll</HintPath>
@@ -66,6 +86,7 @@
     <Compile Include="Badge.cs" />
     <Compile Include="BuildGraph.cs" />
     <Compile Include="Graph.cs" />
+    <Compile Include="LockFile.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="Report.cs" />
     <Compile Include="Task.cs" />
@@ -74,8 +95,10 @@
     <Compile Include="Condition.cs" />
     <Compile Include="Schema.cs" />
     <Compile Include="Script.cs" />
+    <Compile Include="Tasks\AgeStoreTask.cs" />
     <Compile Include="Tasks\CommandletTask.cs" />
     <Compile Include="Tasks\CsCompileTask.cs" />
+    <Compile Include="Tasks\SymStoreTask.cs" />
     <Compile Include="Tasks\TagReceiptTask.cs" />
     <Compile Include="Tasks\PakFileTask.cs" />
     <Compile Include="Tasks\RenameTask.cs" />

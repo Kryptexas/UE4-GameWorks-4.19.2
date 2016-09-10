@@ -417,6 +417,11 @@ extern VideoBootStrap VIVANTE_bootstrap;
 #if SDL_VIDEO_DRIVER_EMSCRIPTEN
 extern VideoBootStrap Emscripten_bootstrap;
 #endif
+/* EG BEGIN */
+#if SDL_VIDEO_DRIVER_OFFSCREEN
+extern VideoBootStrap OFFSCREEN_bootstrap;
+#endif
+/* EG END */
 
 extern SDL_VideoDevice *SDL_GetVideoDevice(void);
 extern int SDL_AddBasicVideoDisplay(const SDL_DisplayMode * desktop_mode);

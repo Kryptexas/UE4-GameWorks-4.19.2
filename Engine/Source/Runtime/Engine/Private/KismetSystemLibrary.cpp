@@ -3192,6 +3192,40 @@ void UKismetSystemLibrary::ForceCloseAdBanner()
 	}
 }
 
+void UKismetSystemLibrary::LoadInterstitialAd(int32 AdIdIndex)
+{
+	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
+	{
+		Provider->LoadInterstitialAd(AdIdIndex);
+	}
+}
+
+bool UKismetSystemLibrary::IsInterstitialAdAvailable()
+{
+	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
+	{
+		return Provider->IsInterstitialAdAvailable();
+	}
+	return false;
+}
+
+bool UKismetSystemLibrary::IsInterstitialAdRequested()
+{
+	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
+	{
+		return Provider->IsInterstitialAdRequested();
+	}
+	return false;
+}
+
+void UKismetSystemLibrary::ShowInterstitialAd()
+{
+	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
+	{
+		Provider->ShowInterstitialAd();
+	}
+}
+
 void UKismetSystemLibrary::ShowPlatformSpecificLeaderboardScreen(const FString& CategoryName)
 {
 	// not PIE safe, doesn't have world context

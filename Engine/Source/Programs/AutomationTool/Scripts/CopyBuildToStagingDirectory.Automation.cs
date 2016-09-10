@@ -270,10 +270,11 @@ public partial class Project : CommandUtils
             string[] ExcludeWildCards = {"AssetRegistry.bin"};
 
             // Stage any loose files in the root folder
-            SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
+			SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
 
-            // Stage each sub directory separately so that we can skip Engine if need be
-            string[] SubDirs = CommandUtils.FindDirectories(true, "*", false, new string[] { PlatformCookDir });
+			// Stage each sub directory separately so that we can skip Engine if need be
+			string[] SubDirs = CommandUtils.FindDirectories(true, "*", false, new string[] { PlatformCookDir });
+
             foreach (string SubDir in SubDirs)
             {
                 // Dedicated server cook doesn't save shaders so no Engine dir is created
@@ -281,8 +282,15 @@ public partial class Project : CommandUtils
                 {
                     continue;
                 }
-                SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
-            }
+				// SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform), "*", true, new[] { CommandUtils.CombinePaths("Engine", "*") }, "", true, !Params.UsePak(SC.StageTargetPlatform));
+				string MountPoint = SubDir.Substring(PlatformCookDir.Length);
+				if ( MountPoint.StartsWith("\\") || MountPoint.StartsWith("/") )
+				{
+					MountPoint = MountPoint.Substring(1);
+				}
+				SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, MountPoint, true, !Params.UsePak(SC.StageTargetPlatform));
+				//SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
+			}
 
             return;
         }
@@ -479,12 +487,12 @@ public partial class Project : CommandUtils
                         if (PathParts.Length == 3)
                         {
                             var RelativePath = PathParts[1];
-                            SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
+                            SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
                         }
                         else if (PathParts.Length == 1)
                         {
                             var RelativePath = PathParts[0];
-                            SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
+                            SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(StageContentRoot, RelativePath), true, !Params.UsePak(SC.StageTargetPlatform));
                         }
                     }
                 }
@@ -1877,3 +1885,4 @@ public partial class Project : CommandUtils
 
 	#endregion
 }
+

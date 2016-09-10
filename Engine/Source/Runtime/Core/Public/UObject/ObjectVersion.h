@@ -606,6 +606,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_NAME_HASHES_SERIALIZED,
 	// Updating custom material expression nodes for instanced stereo implementation refactor
 	VER_UE4_INSTANCED_STEREO_UNIFORM_REFACTOR,
+	// Added compression to the shader resource for memory savings
+	VER_UE4_COMPRESSED_SHADER_RESOURCES,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

@@ -53,6 +53,10 @@ public:
 	static jmethodID AndroidThunkJava_ShowAdBanner;
 	static jmethodID AndroidThunkJava_HideAdBanner;
 	static jmethodID AndroidThunkJava_CloseAdBanner;
+	static jmethodID AndroidThunkJava_LoadInterstitialAd;
+	static jmethodID AndroidThunkJava_IsInterstitialAdAvailable;
+	static jmethodID AndroidThunkJava_IsInterstitialAdRequested;
+	static jmethodID AndroidThunkJava_ShowInterstitialAd;
 	static jmethodID AndroidThunkJava_GoogleClientConnect;
 	static jmethodID AndroidThunkJava_GoogleClientDisconnect;
 

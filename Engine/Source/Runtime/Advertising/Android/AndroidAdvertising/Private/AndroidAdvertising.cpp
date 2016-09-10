@@ -48,3 +48,47 @@ int32 FAndroidAdvertisingProvider::GetAdIDCount()
 
 	return count;
 }
+
+void FAndroidAdvertisingProvider::LoadInterstitialAd(int32 adID)
+{
+	extern void AndroidThunkCpp_LoadInterstitialAd(const FString&);
+
+	TArray<FString> AdUnitIDs;
+	int32 count = GConfig->GetArray(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("AdMobAdUnitIDs"), AdUnitIDs, GEngineIni);
+
+	if (count == 0)
+	{
+		// Fall back to checking old setting
+		FString AdUnitID;
+		bool found = GConfig->GetString(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("AdMobAdUnitID"), AdUnitID, GEngineIni);
+		if (found && !AdUnitID.IsEmpty())
+			AndroidThunkCpp_LoadInterstitialAd(AdUnitID);
+		return;
+	}
+
+	if (adID >= 0 && adID < count && !AdUnitIDs[adID].IsEmpty())
+	{
+		AndroidThunkCpp_LoadInterstitialAd(AdUnitIDs[adID]);
+	}
+}
+
+bool FAndroidAdvertisingProvider::IsInterstitialAdAvailable()
+{
+	extern bool AndroidThunkCpp_IsInterstitialAdAvailable();
+
+	return AndroidThunkCpp_IsInterstitialAdAvailable();
+}
+
+bool FAndroidAdvertisingProvider::IsInterstitialAdRequested()
+{
+	extern bool AndroidThunkCpp_IsInterstitialAdRequested();
+
+	return AndroidThunkCpp_IsInterstitialAdRequested();
+}
+
+void FAndroidAdvertisingProvider::ShowInterstitialAd()
+{
+	extern void AndroidThunkCpp_ShowInterstitialAd();
+
+	AndroidThunkCpp_ShowInterstitialAd();
+}

@@ -6,17 +6,25 @@ namespace UnrealBuildTool.Rules
 	{
 		public HTML5Networking(TargetInfo Target)
 		{
+			Definitions.Add("ONLINESUBSYSTEMUTILS_PACKAGE=1");
+
+			PrivateIncludePaths.Add("OnlineSubsystemUtils/Private");
+
             PrivateDependencyModuleNames.AddRange(
                 new string[] { 
                     "Core", 
                     "CoreUObject",
                     "Engine",
+					"EngineSettings",
                     "ImageCore",
                     "Sockets",
+					"PacketHandler",
                     "libWebSockets",
                     "zlib"
                 }
             );
+
+	        PublicDependencyModuleNames.Add("OnlineSubsystem");
 		}
 	}
 }

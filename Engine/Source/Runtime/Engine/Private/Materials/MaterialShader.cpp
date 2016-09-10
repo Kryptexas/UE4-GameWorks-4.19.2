@@ -40,7 +40,7 @@ namespace MaterialShaderCookStats
 TMap<FMaterialShaderMapId,FMaterialShaderMap*> FMaterialShaderMap::GIdToMaterialShaderMap[SP_NumPlatforms];
 TArray<FMaterialShaderMap*> FMaterialShaderMap::AllMaterialShaderMaps;
 // The Id of 0 is reserved for global shaders
-uint32 FMaterialShaderMap::NextCompilingId = 1;
+uint32 FMaterialShaderMap::NextCompilingId = 2;
 /** 
  * Tracks material resources and their shader maps that are being compiled.
  * Uses a TRefCountPtr as this will be the only reference to a shader map while it is being compiled.

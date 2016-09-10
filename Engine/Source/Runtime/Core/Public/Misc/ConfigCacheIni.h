@@ -18,22 +18,59 @@ public:
 
 	FConfigValue(const TCHAR* InValue)
 		: SavedValue(InValue)
+#if WITH_EDITOR
+		, bRead(false)
+#endif
 	{
 		ExpandValueInternal();
 	}
 
 	FConfigValue(FString InValue)
 		: SavedValue(MoveTemp(InValue))
+#if WITH_EDITOR
+		, bRead(false)
+#endif
 	{
 		ExpandValueInternal();
 	}
 
+	FConfigValue( const FConfigValue& InConfigValue ) 
+		: SavedValue( InConfigValue.SavedValue )
+		, ExpandedValue( InConfigValue.ExpandedValue )
+#if WITH_EDITOR
+		, bRead( InConfigValue.bRead )
+#endif
+	{
+		// shouldn't need to expand value it's assumed that the other FConfigValue has done this already
+	}
+
 	// Returns the ini setting with any macros expanded out
-	const FString& GetValue() const { return (ExpandedValue.Len() > 0 ? ExpandedValue : SavedValue); }
+	const FString& GetValue() const 
+	{ 
+#if WITH_EDITOR
+		bRead = true; 
+#endif
+		return (ExpandedValue.Len() > 0 ? ExpandedValue : SavedValue); 
+	}
 
 	// Returns the original ini setting without macro expansion
-	const FString& GetSavedValue() const { return SavedValue; }
-
+	const FString& GetSavedValue() const 
+	{ 
+#if WITH_EDITOR
+		bRead = true; 
+#endif
+		return SavedValue; 
+	}
+#if WITH_EDITOR
+	inline const bool HasBeenRead() const
+	{
+		return bRead;
+	}
+	inline void SetHasBeenRead(bool InBRead ) const
+	{
+		bRead = InBRead;
+	}
+#endif
 	DEPRECATED(4.12, "Please switch to explicitly doing a GetValue() or GetSavedValue()")
 	operator const FString& () const { return GetValue(); }
 
@@ -105,6 +142,9 @@ private:
 
 	FString SavedValue;
 	FString ExpandedValue;
+#if WITH_EDITOR
+	mutable bool bRead; // has this value been read since the config system started
+#endif
 };
 
 typedef TMultiMap<FName,FConfigValue> FConfigSectionMap;

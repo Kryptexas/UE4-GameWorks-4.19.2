@@ -476,6 +476,11 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 				UATCommand += InProfile->GetDLCName();
 			}
 
+			if ( InProfile->IsDLCIncludingEngineContent() )
+			{
+				UATCommand += TEXT(" -DLCIncludeEngineContent");
+			}
+
 			if ( InProfile->IsGeneratingPatch() )
 			{
 				UATCommand += TEXT(" -generatepatch");

@@ -2011,5 +2011,84 @@ namespace UnrealBuildTool
 			StartInfo.CreateNoWindow = true;
 			Utils.RunLocalProcessAndLogOutput(StartInfo);
 		}
-	};
+
+        /// <summary>
+        /// Try to get the SYMSTORE.EXE path from the given Windows SDK version
+        /// </summary>
+        /// <param name="SdkVersion">The SDK version string</param>
+        /// <param name="SymStoreExe">Receives the path to symstore.exe if found</param>
+        /// <returns>True if found, false otherwise</returns>
+        private static bool TryGetSymStoreExe(string SdkVersion, out FileReference SymStoreExe)
+        {
+            // Try to get the SDK installation directory
+            string SdkFolder = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Microsoft SDKs\Windows\" + SdkVersion, "InstallationFolder", null) as String;
+            if (SdkFolder == null)
+            {
+                SdkFolder = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + SdkVersion, "InstallationFolder", null) as String;
+                if (SdkFolder == null)
+                {
+                    SdkFolder = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + SdkVersion, "InstallationFolder", null) as String;
+                    if (SdkFolder == null)
+                    {
+                        SymStoreExe = null;
+                        return false;
+                    }
+                }
+            }
+
+            // Check for the 64-bit toolchain first, then the 32-bit toolchain
+            FileReference CheckSymStoreExe = FileReference.Combine(new DirectoryReference(SdkFolder), "Debuggers", "x64", "SymStore.exe");
+            if (!CheckSymStoreExe.Exists())
+            {
+                CheckSymStoreExe = FileReference.Combine(new DirectoryReference(SdkFolder), "Debuggers", "x86", "SymStore.exe");
+                if (!CheckSymStoreExe.Exists())
+                {
+                    SymStoreExe = null;
+                    return false;
+                }
+            }
+
+            SymStoreExe = CheckSymStoreExe;
+            return true;
+        }
+
+        public override bool PublishSymbols(DirectoryReference SymbolStoreDirectory, List<FileReference> Files, string Product)
+        {
+            // Get the SYMSTORE.EXE path, using the latest SDK version we can find.
+            FileReference SymStoreExe;
+            if (!TryGetSymStoreExe("v10.0", out SymStoreExe) && !TryGetSymStoreExe("v8.1", out SymStoreExe) && !TryGetSymStoreExe("v8.0", out SymStoreExe))
+            {
+                Log.WriteLine(LogEventType.Error, "Couldn't find SYMSTORE.EXE in any Windows SDK installation");
+                return false;
+            }
+
+            bool bSuccess = true;
+            foreach (var File in Files.Where(x => x.HasExtension(".pdb") || x.HasExtension(".exe") || x.HasExtension(".dll")))
+            {
+                ProcessStartInfo StartInfo = new ProcessStartInfo();
+                StartInfo.FileName = SymStoreExe.FullName;
+                StartInfo.Arguments = string.Format("add /f \"{0}\" /s \"{1}\" /t \"{2}\"", File.FullName, SymbolStoreDirectory.FullName, Product);
+                StartInfo.UseShellExecute = false;
+                StartInfo.CreateNoWindow = true;
+                if (Utils.RunLocalProcessAndLogOutput(StartInfo) != 0)
+                {
+                    bSuccess = false;
+                }
+            }
+
+            return bSuccess;
+        }
+
+        public override string[] SymbolServerDirectoryStructure
+        {
+            get
+            {
+                return new string[]
+                {
+                    "{0}*.pdb;{0}*.exe;{0}*.dll", // Binary File Directory (e.g. QAGameClient-Win64-Test.exe --- .pdb, .dll and .exe are allowed extensions)
+                    "*",                          // Hash Directory        (e.g. A92F5744D99F416EB0CCFD58CCE719CD1)
+                };
+            }
+        }
+    }
 }

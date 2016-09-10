@@ -76,11 +76,11 @@ public:
 		return PostOpaqueRenderDelegate.IsBound();
 	}
 
-	virtual bool HasPostResolvedSceneColorExtension() const override
+	virtual FOnResolvedSceneColor& GetResolvedSceneColorCallbacks() override
 	{
-		return PostResolvedSceneColorCallback != nullptr;
+		return PostResolvedSceneColorCallbacks;
 	}
-	virtual void RegisterPostResolvedSceneColorExtension(TPostResolvedSceneColorCallback InCallback) override;
+
 	virtual void RenderPostResolvedSceneColorExtension(FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext) override;
 
 private:
@@ -88,7 +88,7 @@ private:
 	ICustomCulling* CustomCullingImpl;
 	FPostOpaqueRenderDelegate PostOpaqueRenderDelegate;
 	FPostOpaqueRenderDelegate OverlayRenderDelegate;
-	TPostResolvedSceneColorCallback PostResolvedSceneColorCallback;
+	FOnResolvedSceneColor PostResolvedSceneColorCallbacks;
 };
 
 extern ICustomCulling* GCustomCullingImpl;

@@ -239,6 +239,7 @@ namespace AutomationTool
 			this.Cook = InParams.Cook;
 			this.IterativeCooking = InParams.IterativeCooking;
             this.CookAll = InParams.CookAll;
+			this.CookPartialGC = InParams.CookPartialGC;
             this.CookMapsOnly = InParams.CookMapsOnly;
 			this.SkipCook = InParams.SkipCook;
 			this.SkipCookOnTheFly = InParams.SkipCookOnTheFly;
@@ -320,7 +321,6 @@ namespace AutomationTool
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
 			this.bIsCodeBasedProject = InParams.bIsCodeBasedProject;
 			this.bCodeSign = InParams.bCodeSign;
-			this.UploadSymbols = InParams.UploadSymbols;
 			this.TitleID = InParams.TitleID;
 			this.bTreatNonShippingBinariesAsDebugFiles = InParams.bTreatNonShippingBinariesAsDebugFiles;
 			this.RunAssetNativization = InParams.RunAssetNativization;
@@ -367,6 +367,7 @@ namespace AutomationTool
             bool? UseDebugParamForEditorExe = null,
             bool? IterativeCooking = null,
             bool? CookAll = null,
+			bool? CookPartialGC = null,
             bool? CookMapsOnly = null,
             bool? CookOnTheFly = null,
             bool? CookOnTheFlyStreaming = null,
@@ -433,7 +434,6 @@ namespace AutomationTool
             bool? RunAssetNativization = null,
 			bool? CodeSign = null,
 			bool? TreatNonShippingBinariesAsDebugFiles = null,
-			bool? UploadSymbols = null,
 			string Provision = null,
 			string Certificate = null,
 			ParamList<string> InMapsToRebuildLightMaps = null,
@@ -559,7 +559,8 @@ namespace AutomationTool
             this.UseDebugParamForEditorExe = GetParamValueIfNotSpecified(Command, UseDebugParamForEditorExe, this.UseDebugParamForEditorExe, "UseDebugParamForEditorExe");
             this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, new string[] { "iterativecooking", "iterate" } );
 			this.SkipCookOnTheFly = GetParamValueIfNotSpecified(Command, SkipCookOnTheFly, this.SkipCookOnTheFly, "skipcookonthefly");
-            this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
+			this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
+			this.CookPartialGC = GetParamValueIfNotSpecified(Command, CookPartialGC, this.CookPartialGC, "CookPartialGC");
             this.CookMapsOnly = GetParamValueIfNotSpecified(Command, CookMapsOnly, this.CookMapsOnly, "CookMapsOnly");
 			this.FileServer = GetParamValueIfNotSpecified(Command, FileServer, this.FileServer, "fileserver");
 			this.DedicatedServer = GetParamValueIfNotSpecified(Command, DedicatedServer, this.DedicatedServer, "dedicatedserver", "server");
@@ -624,7 +625,6 @@ namespace AutomationTool
 			this.FastCook = GetParamValueIfNotSpecified(Command, FastCook, this.FastCook, "FastCook");
 			this.IgnoreCookErrors = GetParamValueIfNotSpecified(Command, IgnoreCookErrors, this.IgnoreCookErrors, "IgnoreCookErrors");
             this.RunAssetNativization = GetParamValueIfNotSpecified(Command, RunAssetNativization, this.RunAssetNativization, "nativizeAssets");
-			this.UploadSymbols = GetParamValueIfNotSpecified(Command, UploadSymbols, this.UploadSymbols, "uploadsymbols");
 
             string DeviceString = ParseParamValueIfNotSpecified(Command, Device, "device", String.Empty).Trim(new char[] { '\"' });
             if(DeviceString == "")
@@ -1435,6 +1435,13 @@ namespace AutomationTool
         public bool CookOnTheFlyStreaming { private set; get; }
 
 		/// <summary>
+		/// Run: The client should run in streaming mode when connecting to cook on the fly server
+		/// </summary>
+		[Help("CookPartialgc", "while cooking clean up packages as we are done with them rather then cleaning everything up when we run out of space")]
+		public bool CookPartialGC { private set; get; }
+
+
+		/// <summary>
 		/// Run: The client runs with cooked data provided by UnrealFileServer, command line: -fileserver
 		/// </summary>
 		[Help("fileserver", "run the client with cooked data provided by UnrealFileServer")]
@@ -1597,9 +1604,6 @@ namespace AutomationTool
 
 		[Help("SpecifiedArchitecture", "Determine a specific Minimum OS")]
 		public string SpecifiedArchitecture;
-
-		[Help("UploadSymbols", "upload symbols while packaging")]
-		public bool UploadSymbols { get; set; }
 
 		#endregion
 
@@ -2303,6 +2307,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("IsProgramTarget={0}", IsProgramTarget.ToString());
 				CommandUtils.LogLog("IterativeCooking={0}", IterativeCooking);
                 CommandUtils.LogLog("CookAll={0}", CookAll);
+				CommandUtils.LogLog("CookPartialGC={0}", CookPartialGC);
                 CommandUtils.LogLog("CookMapsOnly={0}", CookMapsOnly);
                 CommandUtils.LogLog("Deploy={0}", Deploy);
 				CommandUtils.LogLog("IterativeDeploy={0}", IterativeDeploy);
@@ -2353,7 +2358,6 @@ namespace AutomationTool
 				CommandUtils.LogLog("bUsesSlate={0}", bUsesSlate);
                 CommandUtils.LogLog("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
 				CommandUtils.LogLog("bTreatNonShippingBinariesAsDebugFiles={0}", bTreatNonShippingBinariesAsDebugFiles);
-				CommandUtils.LogLog("UploadSymbols={0}", UploadSymbols);
                 CommandUtils.LogLog("NativizeAssets={0}", RunAssetNativization);
 				CommandUtils.LogLog("Project Params **************");
 			}

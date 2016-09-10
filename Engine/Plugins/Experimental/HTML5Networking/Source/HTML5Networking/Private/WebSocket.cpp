@@ -26,7 +26,7 @@
 #if !PLATFORM_HTML5
 #include "libwebsockets.h"
 #include "private-libwebsockets.h"
-#endif 
+#endif
 
 #if PLATFORM_WINDOWS
 #include "HideWindowsPlatformTypes.h"
@@ -36,15 +36,12 @@
 #if !PLATFORM_HTML5
 uint8 PREPADDING[LWS_SEND_BUFFER_PRE_PADDING];
 uint8 POSTPADDING[LWS_SEND_BUFFER_POST_PADDING];
-#endif 
 
-
-#if !PLATFORM_HTML5
 static void libwebsocket_debugLogS(int level, const char *line)
 {
 	UE_LOG(LogHTML5Networking, Log, TEXT("client: %s"), ANSI_TO_TCHAR(line));
 }
-#endif 
+#endif
 
 FWebSocket::FWebSocket(
 		const FInternetAddr& ServerAddress
@@ -56,7 +53,7 @@ FWebSocket::FWebSocket(
 
 #if !UE_BUILD_SHIPPING
 	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_DEBUG | LLL_INFO, libwebsocket_debugLogS);
-#endif 
+#endif
 
 	Protocols = new libwebsocket_protocols[3];
 	FMemory::Memzero(Protocols, sizeof(libwebsocket_protocols) * 3);
@@ -81,23 +78,18 @@ FWebSocket::FWebSocket(
 
 	Context = libwebsocket_create_context(&Info);
 
-	check(Context); 
+	check(Context);
 
 
 	Wsi = libwebsocket_client_connect_extended
-							(Context, 
-							TCHAR_TO_ANSI(*ServerAddress.ToString(false)), 
-							ServerAddress.GetPort(), 
+							(Context,
+							TCHAR_TO_ANSI(*ServerAddress.ToString(false)),
+							ServerAddress.GetPort(),
 							false, "/", TCHAR_TO_ANSI(*ServerAddress.ToString(false)), TCHAR_TO_ANSI(*ServerAddress.ToString(false)), Protocols[1].name, -1,this);
 
 	check(Wsi);
 
-#endif 
-
-#if PLATFORM_HTML5_BROWSER
-
-	struct sockaddr_in addr;
-	int res;
+#else // PLATFORM_HTML5_BROWSER
 
 	SockFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (SockFd == -1) {
@@ -110,45 +102,50 @@ FWebSocket::FWebSocket(
 
 	fcntl(SockFd, F_SETFL, O_NONBLOCK);
 
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(ServerAddress.GetPort());
+#endif
 
-	if (inet_pton(AF_INET, TCHAR_TO_ANSI(*ServerAddress.ToString(false)), &addr.sin_addr) != 1) {
+	memset(&RemoteAddr, 0, sizeof(RemoteAddr));
+	RemoteAddr.sin_family = AF_INET;
+	RemoteAddr.sin_port = htons(ServerAddress.GetPort());
+
+	if (inet_pton(AF_INET, TCHAR_TO_ANSI(*ServerAddress.ToString(false)), &RemoteAddr.sin_addr) != 1) {
 		UE_LOG(LogHTML5Networking, Warning, TEXT("inet_pton failed "));
-		return; 
+		return;
 	}
 
-	int Ret = connect(SockFd, (struct sockaddr *)&addr, sizeof(addr));
+#if PLATFORM_HTML5_BROWSER
+	int Ret = connect(SockFd, (struct sockaddr *)&RemoteAddr, sizeof(RemoteAddr));
 	UE_LOG(LogHTML5Networking, Warning, TEXT(" Connect socket returned %d"), Ret);
-
-#endif 
+#endif
 }
 
+#if !PLATFORM_HTML5
 FWebSocket::FWebSocket(WebSocketInternalContext* InContext, WebSocketInternal* InWsi)
 	: Context(InContext)
 	, Wsi(InWsi)
 	, IsServerSide(true)
 	, Protocols(nullptr)
 {
+	int sock = libwebsocket_get_socket_fd(Wsi);
+	socklen_t len = sizeof RemoteAddr;
+	getpeername(sock, (struct sockaddr*)&RemoteAddr, &len);
 }
-
+#endif
 
 bool FWebSocket::Send(uint8* Data, uint32 Size)
 {
 	TArray<uint8> Buffer;
-	// insert size. 
 
 #if !PLATFORM_HTML5
 	Buffer.Append((uint8*)&PREPADDING, sizeof(PREPADDING));
-#endif 
+#endif
 
-	Buffer.Append((uint8*)&Size, sizeof (uint32));
+	Buffer.Append((uint8*)&Size, sizeof (uint32)); // insert size.
 	Buffer.Append((uint8*)Data, Size);
 
 #if !PLATFORM_HTML5
 	Buffer.Append((uint8*)&POSTPADDING, sizeof(POSTPADDING));
-#endif 
+#endif
 
 	OutgoingBuffer.Add(Buffer);
 
@@ -157,34 +154,45 @@ bool FWebSocket::Send(uint8* Data, uint32 Size)
 
 void FWebSocket::SetRecieveCallBack(FWebsocketPacketRecievedCallBack CallBack)
 {
-	RecievedCallBack = CallBack; 
+	RecievedCallBack = CallBack;
 }
 
-FString FWebSocket::RemoteEndPoint()
+FString FWebSocket::RemoteEndPoint(bool bAppendPort)
 {
-#if !PLATFORM_HTML5
-	ANSICHAR Peer_Name[128];
-	ANSICHAR Peer_Ip[128];
-	libwebsockets_get_peer_addresses(Context, Wsi, libwebsocket_get_socket_fd(Wsi), Peer_Name, sizeof Peer_Name, Peer_Ip, sizeof Peer_Ip);
-	return FString(Peer_Name);
-#endif
-
-#if PLATFORM_HTML5
-	return FString(TEXT("TODO:REMOTEENDPOINT"));
-#endif
+	ANSICHAR Buffer[INET_ADDRSTRLEN];
+	FString remote(ANSI_TO_TCHAR(inet_ntop(AF_INET, &RemoteAddr.sin_addr, Buffer, INET_ADDRSTRLEN)));
+	if ( bAppendPort )
+	{
+		remote += FString::Printf(TEXT(":%i"), ntohs(RemoteAddr.sin_port));
+	}
+	return remote;
 }
 
+struct sockaddr_in* FWebSocket::GetRemoteAddr()
+{
+	return &RemoteAddr;
+}
 
-FString FWebSocket::LocalEndPoint()
+FString FWebSocket::LocalEndPoint(bool bAppendPort)
 {
 #if !PLATFORM_HTML5
-	return FString(ANSI_TO_TCHAR(libwebsocket_canonical_hostname(Context)));
-#endif 
+	int sock = libwebsocket_get_socket_fd(Wsi);
+	struct sockaddr_in addr;
+	socklen_t len = sizeof addr;
+	getsockname(sock, (struct sockaddr*)&addr, &len);
 
-#if PLATFORM_HTML5
-	return FString(TEXT("TODO:LOCALENDPOINT"));
+	ANSICHAR Buffer[INET_ADDRSTRLEN];
+	FString remote(ANSI_TO_TCHAR(inet_ntop(AF_INET, &addr.sin_addr, Buffer, INET_ADDRSTRLEN)));
+	if ( bAppendPort )
+	{
+		remote += FString::Printf(TEXT(":%i"), ntohs(addr.sin_port));
+	}
+	return remote;
+#else
+	// NOTE: there's no way to get this info from browsers...
+	// return generic localhost without port #
+	return FString(TEXT("127.0.0.1"));
 #endif
-
 }
 
 void FWebSocket::Tick()
@@ -195,14 +203,12 @@ void FWebSocket::Tick()
 void FWebSocket::HandlePacket()
 {
 #if !PLATFORM_HTML5
-	{
-		libwebsocket_service(Context, 0);
-		if (!IsServerSide)
-			libwebsocket_callback_on_writable_all_protocol(&Protocols[0]);
-	}
-#endif 
 
-#if PLATFORM_HTML5
+	libwebsocket_service(Context, 0);
+	if (!IsServerSide)
+		libwebsocket_callback_on_writable_all_protocol(&Protocols[0]);
+
+#else // PLATFORM_HTML5
 
 	fd_set Fdr;
 	fd_set Fdw;
@@ -219,9 +225,9 @@ void FWebSocket::HandlePacket()
 		UE_LOG(LogHTML5Networking, Warning, TEXT("Select Failed!"));
 		return;
 	}
-	
+
 	if (FD_ISSET(SockFd, &Fdr)) {
-		// we can read! 
+		// we can read!
 		OnRawRecieve(NULL, NULL);
 	}
 
@@ -229,7 +235,8 @@ void FWebSocket::HandlePacket()
 		// we can write
 		OnRawWebSocketWritable(NULL);
 	}
-#endif 
+
+#endif
 }
 
 void FWebSocket::Flush()
@@ -244,7 +251,7 @@ void FWebSocket::Flush()
 			libwebsocket_callback_on_writable(Context, Wsi);
 #endif
 		HandlePacket();
-		if (PendingMesssages >= OutgoingBuffer.Num()) 
+		if (PendingMesssages >= OutgoingBuffer.Num())
 		{
 			UE_LOG(LogHTML5Networking, Warning, TEXT("Unable to flush all of OutgoingBuffer in FWebSocket."));
 			break;
@@ -254,42 +261,65 @@ void FWebSocket::Flush()
 
 void FWebSocket::SetConnectedCallBack(FWebsocketInfoCallBack CallBack)
 {
-	ConnectedCallBack = CallBack; 
+	ConnectedCallBack = CallBack;
 }
 
 void FWebSocket::SetErrorCallBack(FWebsocketInfoCallBack CallBack)
 {
-	ErrorCallBack = CallBack; 
+	ErrorCallBack = CallBack;
 }
 
 void FWebSocket::OnRawRecieve(void* Data, uint32 Size)
 {
-#if PLATFORM_HTML5
+#if !PLATFORM_HTML5
+
+	RecievedBuffer.Append((uint8*)Data, Size); // consumes all of Data
+	while (RecievedBuffer.Num() > sizeof(uint32))
+	{
+		uint32 BytesToBeRead = *(uint32*)RecievedBuffer.GetData();
+		if (BytesToBeRead <= ((uint32)RecievedBuffer.Num() - sizeof(uint32)))
+		{
+			RecievedCallBack.ExecuteIfBound((void*)((uint8*)RecievedBuffer.GetData() + sizeof(uint32)), BytesToBeRead);
+			RecievedBuffer.RemoveAt(0, sizeof(uint32) + BytesToBeRead );
+		}
+		else
+		{
+			break;
+		}
+	}
+
+#else // PLATFORM_HTML5
+
+	// browser was crashing when using RecievedBuffer...
+
 	check(Data == NULL); // jic this is not obvious, Data will be resigned to Buffer below
 
 	uint8 Buffer[1024]; // should be at MAX PACKET SIZE.
-	Data = (void*)Buffer;
-	Size = recv(SockFd, Data, sizeof(Buffer), 0);
-	while ( Size > 0 )
+	Size = recv(SockFd, Buffer, sizeof(Buffer), 0);
+//	while ( Size > sizeof(uint32) )
+	if ( Size > sizeof(uint32) )
 	{
-#endif
-		RecievedBuffer.Append((uint8*)Data, Size); // consumes all of Data
-		while (RecievedBuffer.Num())
+		Data = (void*)Buffer;
+		uint32 BytesToBeRead = *(uint32*)Data;
+		uint32 BytesLeft = Size;
+		while ( ( BytesToBeRead > 0 ) && ( BytesToBeRead < BytesLeft ) )
 		{
-			uint32 BytesToBeRead = *(uint32*)RecievedBuffer.GetData();
-			if (BytesToBeRead <= ((uint32)RecievedBuffer.Num() - sizeof(uint32)))
-			{
-				RecievedCallBack.ExecuteIfBound((void*)((uint8*)RecievedBuffer.GetData() + sizeof(uint32)), BytesToBeRead);
-				RecievedBuffer.RemoveAt(0, sizeof(uint32) + BytesToBeRead );
-			}
-			else
+			Data = (void*)((uint8*)Data + sizeof(uint32));
+			RecievedCallBack.ExecuteIfBound(Data, BytesToBeRead);
+
+			// "RecievedBuffer.RemoveAt()"
+			Data = (void*)((uint8*)Data + BytesToBeRead);
+			BytesLeft -= BytesToBeRead + sizeof(uint32);
+			if ( (uint8*)Data >= (Buffer+Size)  // hard cap
+				||	BytesLeft == 0	)           // soft limit
 			{
 				break;
 			}
+			BytesToBeRead = *(uint32*)Data;
 		}
-#if PLATFORM_HTML5
-		Size = recv(SockFd, Data, sizeof(Buffer), 0);
+//		Size = recv(SockFd, Buffer, sizeof(Buffer), 0);
 	}
+
 #endif
 }
 
@@ -321,30 +351,28 @@ void FWebSocket::OnRawWebSocketWritable(WebSocketInternal* wsi)
 
 	check(Wsi == wsi);
 
-#endif
-
-#if  PLATFORM_HTML5_BROWSER
+#else // PLATFORM_HTML5_BROWSER
 
 	uint32 TotalDataSize = Packet.Num();
 	uint32 DataToSend = TotalDataSize;
 	while (DataToSend)
 	{
-		// send actual data in one go. 
+		// send actual data in one go.
 		int Result = send(SockFd, Packet.GetData()+(DataToSend-TotalDataSize),DataToSend, 0);
 		if (Result == -1)
 		{
-			// we are caught with our pants down. fail. 
+			// we are caught with our pants down. fail.
 			UE_LOG(LogHTML5Networking, Error, TEXT("Could not write %d bytes"), Packet.Num());
-			ErrorCallBack.ExecuteIfBound(); 
+			ErrorCallBack.ExecuteIfBound();
 			return;
 		}
 		UE_CLOG((uint32)Result < DataToSend, LogHTML5Networking, Warning, TEXT("Could not write all '%d' bytes to socket"), DataToSend);
 		DataToSend-=Result;
 	}
-	
-#endif 
 
-	// this is very inefficient we need a constant size circular buffer to efficiently not do unnecessary allocations/deallocations. 
+#endif
+
+	// this is very inefficient we need a constant size circular buffer to efficiently not do unnecessary allocations/deallocations.
 	OutgoingBuffer.RemoveAt(0);
 
 }
@@ -352,9 +380,11 @@ void FWebSocket::OnRawWebSocketWritable(WebSocketInternal* wsi)
 FWebSocket::~FWebSocket()
 {
 	RecievedCallBack.Unbind();
-	Flush();
 
 #if !PLATFORM_HTML5
+
+	Flush();
+
 	if ( !IsServerSide)
 	{
 		libwebsocket_context_destroy(Context);
@@ -362,21 +392,22 @@ FWebSocket::~FWebSocket()
 		delete Protocols;
 		Protocols = NULL;
 	}
-#endif 
 
-#if PLATFORM_HTML5
+#else // PLATFORM_HTML5
+
 	close(SockFd);
-#endif 
+
+#endif
 
 }
 
 #if !PLATFORM_HTML5
 int FWebSocket::unreal_networking_client(
-		struct libwebsocket_context *Context, 
-		struct libwebsocket *Wsi, 
-		enum libwebsocket_callback_reasons Reason, 
-		void *User, 
-		void *In, 
+		struct libwebsocket_context *Context,
+		struct libwebsocket *Wsi,
+		enum libwebsocket_callback_reasons Reason,
+		void *User,
+		void *In,
 		size_t Len)
 {
 	FWebSocket* Socket = (FWebSocket*)libwebsocket_context_user(Context);;
@@ -397,8 +428,8 @@ int FWebSocket::unreal_networking_client(
 		break;
 	case LWS_CALLBACK_CLIENT_RECEIVE:
 		{
-			// push it on the socket. 
-			Socket->OnRawRecieve(In, (uint32)Len); 
+			// push it on the socket.
+			Socket->OnRawRecieve(In, (uint32)Len);
 			check(Socket->Wsi == Wsi);
 			libwebsocket_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
 			break;
@@ -406,10 +437,10 @@ int FWebSocket::unreal_networking_client(
 	case LWS_CALLBACK_CLIENT_WRITEABLE:
 		{
 			check(Socket->Wsi == Wsi);
-			Socket->OnRawWebSocketWritable(Wsi); 
+			Socket->OnRawWebSocketWritable(Wsi);
 			libwebsocket_callback_on_writable(Context, Wsi);
 			libwebsocket_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
-			break; 
+			break;
 		}
 	case LWS_CALLBACK_CLOSED:
 		{
@@ -418,7 +449,7 @@ int FWebSocket::unreal_networking_client(
 		}
 	}
 
-	return 0; 
+	return 0;
 }
-#endif 
+#endif
 

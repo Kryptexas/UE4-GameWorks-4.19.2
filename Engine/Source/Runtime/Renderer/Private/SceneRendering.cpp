@@ -1700,7 +1700,6 @@ void OnChangeCVarRequiringRecreateRenderState(IConsoleVariable* Var)
 
 FRendererModule::FRendererModule()
 	: CustomCullingImpl(nullptr)
-	, PostResolvedSceneColorCallback(nullptr)
 {
 	CVarSimpleForwardShading.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeSimpleForwardShading));
 
@@ -1882,18 +1881,10 @@ void FRendererModule::RenderOverlayExtensions(const FSceneView& View, FRHIComman
 	OverlayRenderDelegate.ExecuteIfBound(RenderParameters);
 }
 
-void FRendererModule::RegisterPostResolvedSceneColorExtension(TPostResolvedSceneColorCallback InCallback)
-{
-	check(PostResolvedSceneColorCallback == nullptr);
-	PostResolvedSceneColorCallback = InCallback;
-}
-
 void FRendererModule::RenderPostResolvedSceneColorExtension(FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext)
 {
-	check(PostResolvedSceneColorCallback);
-	PostResolvedSceneColorCallback(RHICmdList, SceneContext);
+	PostResolvedSceneColorCallbacks.Broadcast(RHICmdList, SceneContext);
 }
-
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

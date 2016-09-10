@@ -2237,6 +2237,24 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Reads in the version manifest
+		/// </summary>
+		public bool ReadReceipts()
+		{
+			if (!TargetReceipt.TryRead(ForceReceiptFileName, out Receipt))
+			{
+				if (!TargetReceipt.TryRead(ReceiptFileName, out Receipt))
+				{
+					return false;
+				}
+			}
+
+			//@todo read in all of the module manifests
+
+			return true;
+		}
+
+		/// <summary>
 		/// Gathers dependency modules for given binaries list.
 		/// </summary>
 		/// <param name="Binaries">Binaries list.</param>

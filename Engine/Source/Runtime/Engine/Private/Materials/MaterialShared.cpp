@@ -126,7 +126,7 @@ static bool SerializeExpressionInput(FArchive& Ar, FExpressionInput& Input)
 	}
 
 #if WITH_EDITORONLY_DATA
-	if (!Ar.IsCooking())
+	if (!Ar.IsFilterEditorOnly())
 	{
 		Ar << Input.Expression;
 	}
@@ -141,7 +141,7 @@ static bool SerializeExpressionInput(FArchive& Ar, FExpressionInput& Input)
 
 	// Some expressions may have been stripped when cooking and Expression can be null after loading
 	// so make sure we keep the information about the connected node in cooked packages
-	if (FPlatformProperties::RequiresCookedData() || (Ar.IsSaving() && Ar.IsCooking()))
+	if ( Ar.IsFilterEditorOnly() )
 	{
 #if WITH_EDITORONLY_DATA
 		if (Ar.IsSaving())
@@ -1606,7 +1606,7 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 
 	if (GameThreadShaderMap && GameThreadShaderMap->TryToAddToExistingCompilationTask(this))
 	{
-		OutstandingCompileShaderMapIds.Add(GameThreadShaderMap->GetCompilingId());
+		OutstandingCompileShaderMapIds.AddUnique(GameThreadShaderMap->GetCompilingId());
 		// Reset the shader map so the default material will be used until the compile finishes.
 		GameThreadShaderMap = nullptr;
 		bSucceeded = true;
@@ -1724,7 +1724,7 @@ bool FMaterial::BeginCompileShaderMap(
 		}
 		else
 		{
-			OutstandingCompileShaderMapIds.Add( NewShaderMap->GetCompilingId() );
+			OutstandingCompileShaderMapIds.AddUnique( NewShaderMap->GetCompilingId() );
 			// Async compile, use NULL so that rendering will fall back to the default material.
 			OutShaderMap = nullptr;
 		}

@@ -1290,7 +1290,7 @@ void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 
 	for (int32 ChunkID = 0, MaxChunk = ChunkManifests.Num(); ChunkID < MaxChunk; ++ChunkID)
 	{
-		if (FinalChunkManifests[ChunkID] != nullptr)
+		if (FinalChunkManifests[ChunkID] != nullptr && ChunkManifests[ChunkID] != nullptr)
 		{
 			UE_LOG(LogChunkManifestGenerator, Log, TEXT("Chunk: %i, Started with %i packages, Final after dependency resolve: %i"), ChunkID, ChunkManifests[ChunkID]->Num(), FinalChunkManifests[ChunkID]->Num());
 		}

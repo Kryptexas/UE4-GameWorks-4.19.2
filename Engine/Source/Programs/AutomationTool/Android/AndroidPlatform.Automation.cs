@@ -542,7 +542,7 @@ public class AndroidPlatform : Platform
 		return Message;
 	}
 
-	private ProcessResult RunAdbCommand(ProjectParams Params, string SerialNumber, string Args, string Input = null, ERunOptions Options = ERunOptions.Default)
+	private IProcessResult RunAdbCommand(ProjectParams Params, string SerialNumber, string Args, string Input = null, ERunOptions Options = ERunOptions.Default)
 	{
 		string AdbCommand = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/platform-tools/adb" + (Utils.IsRunningOnMono ? "" : ".exe"));
 		if (Options.HasFlag(ERunOptions.AllowSpew) || Options.HasFlag(ERunOptions.SpewIsVerbose))
@@ -563,7 +563,7 @@ public class AndroidPlatform : Platform
 	public override void GetConnectedDevices(ProjectParams Params, out List<string> Devices)
 	{
 		Devices = new List<string>();
-		ProcessResult Result = RunAdbCommand(Params, "", "devices");
+		IProcessResult Result = RunAdbCommand(Params, "", "devices");
 
 		if (Result.Output.Length > 0)
 		{
@@ -630,9 +630,9 @@ public class AndroidPlatform : Platform
 		UFSManifests = null;
 		NonUFSManifests = null;
 
-        // Query the storage path from the device
-        string DeviceStorageQueryCommand = GetStorageQueryCommand();
-		ProcessResult StorageResult = RunAdbCommand(Params, DeviceName, DeviceStorageQueryCommand, null, ERunOptions.AppMustExist);
+		// Query the storage path from the device
+		string DeviceStorageQueryCommand = GetStorageQueryCommand();
+		IProcessResult StorageResult = RunAdbCommand(Params, DeviceName, DeviceStorageQueryCommand, null, ERunOptions.AppMustExist);
 		String StorageLocation = StorageResult.Output.Trim();
 		string RemoteDir = StorageLocation + "/UE4Game/" + Params.ShortProjectName;
 
@@ -642,7 +642,7 @@ public class AndroidPlatform : Platform
 
 		// Try retrieving the UFS files manifest files from the device
 		string UFSManifestFileName = CombinePaths(SC.StageDirectory, SC.UFSDeployedManifestFileName + "_" + SanitizedDeviceName);
-		ProcessResult UFSResult = RunAdbCommand(Params, DeviceName, " pull " + RemoteDir + "/" + SC.UFSDeployedManifestFileName + " \"" + UFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
+		IProcessResult UFSResult = RunAdbCommand(Params, DeviceName, " pull " + RemoteDir + "/" + SC.UFSDeployedManifestFileName + " \"" + UFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
 		if (!(UFSResult.Output.Contains("bytes") || UFSResult.Output.Contains("[100%]")))
 		{
 			return false;
@@ -650,7 +650,7 @@ public class AndroidPlatform : Platform
 
 		// Try retrieving the non UFS files manifest files from the device
 		string NonUFSManifestFileName = CombinePaths(SC.StageDirectory, SC.NonUFSDeployedManifestFileName + "_" + SanitizedDeviceName);
-		ProcessResult NonUFSResult = RunAdbCommand(Params, DeviceName, " pull " + RemoteDir + "/" + SC.NonUFSDeployedManifestFileName + " \"" + NonUFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
+		IProcessResult NonUFSResult = RunAdbCommand(Params, DeviceName, " pull " + RemoteDir + "/" + SC.NonUFSDeployedManifestFileName + " \"" + NonUFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
 		if (!(NonUFSResult.Output.Contains("bytes") || NonUFSResult.Output.Contains("[100%]")))
 		{
 			// Did not retrieve both so delete one we did retrieve
@@ -702,7 +702,7 @@ public class AndroidPlatform : Platform
 
             // Setup the OBB name and add the storage path (queried from the device) to it
             string DeviceStorageQueryCommand = GetStorageQueryCommand();
-            ProcessResult Result = RunAdbCommand(Params, DeviceName, DeviceStorageQueryCommand, null, ERunOptions.AppMustExist);
+            IProcessResult Result = RunAdbCommand(Params, DeviceName, DeviceStorageQueryCommand, null, ERunOptions.AppMustExist);
             String StorageLocation = Result.Output.Trim(); // "/mnt/sdcard";
             string DeviceObbName = StorageLocation + "/" + GetDeviceObbName(ApkName);
             string RemoteDir = StorageLocation + "/UE4Game/" + Params.ShortProjectName;
@@ -713,7 +713,7 @@ public class AndroidPlatform : Platform
             if (Params.IterativeDeploy)
             {
                 // Check for apk installed with this package name on the device
-                ProcessResult InstalledResult = RunAdbCommand(Params, DeviceName, "shell pm list packages " + PackageName, null, ERunOptions.AppMustExist);
+                IProcessResult InstalledResult = RunAdbCommand(Params, DeviceName, "shell pm list packages " + PackageName, null, ERunOptions.AppMustExist);
                 if (InstalledResult.Output.Contains(PackageName))
                 {
                     // See if apk is up to date on device
@@ -907,7 +907,7 @@ public class AndroidPlatform : Platform
                 // to deploy. Files we deploy will get individually copied
                 // and dirs will get the tree copies by default (that's
                 // what ADB does).
-                HashSet<ProcessResult> DeployCommands = new HashSet<ProcessResult>();
+                HashSet<IProcessResult> DeployCommands = new HashSet<IProcessResult>();
                 foreach (string Entry in EntriesToDeploy)
                 {
                     string FinalRemoteDir = RemoteDir;
@@ -926,14 +926,14 @@ public class AndroidPlatform : Platform
                         {
                             Thread.Sleep(1);
                             DeployCommands.RemoveWhere(
-                                delegate (ProcessResult r)
+                                delegate (IProcessResult r)
                                 {
                                     return r.HasExited;
                                 });
                         }
                     }
                 }
-                foreach (ProcessResult deploy_result in DeployCommands)
+                foreach (IProcessResult deploy_result in DeployCommands)
                 {
                     deploy_result.WaitForExit();
                 }
@@ -1162,7 +1162,7 @@ public class AndroidPlatform : Platform
 		var AppArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllArchitectures();
 
 		// ask the device
-		ProcessResult ABIResult = RunAdbCommand(Params, DeviceName, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
+		IProcessResult ABIResult = RunAdbCommand(Params, DeviceName, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
 
 		// the output is just the architecture
 		string DeviceArch = UnrealBuildTool.UEDeployAndroid.GetUE4Arch(ABIResult.Output.Trim());
@@ -1227,7 +1227,7 @@ public class AndroidPlatform : Platform
 		var AppGPUArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
 
 		// get the device extensions
-		ProcessResult ExtensionsResult = RunAdbCommand(Params, DeviceName, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);
+		IProcessResult ExtensionsResult = RunAdbCommand(Params, DeviceName, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);
 		string Extensions = ExtensionsResult.Output.Trim();
 
 		// look for AEP support (on device and in project)
@@ -1242,7 +1242,7 @@ public class AndroidPlatform : Platform
 		return "-es2";
 	}
 
-	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
+	public override IProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		//make a copy of the device names, we'll be working through them
 		List<string> DeviceNames = new List<string>();
@@ -1296,7 +1296,7 @@ public class AndroidPlatform : Platform
 				string DeviceName = DeviceNames[DeviceIndex];
 
 				bool FinishedRunning = false;
-				ProcessResult ProcessesResult = RunAdbCommand(Params, DeviceName, "shell ps", null, ERunOptions.SpewIsVerbose);
+				IProcessResult ProcessesResult = RunAdbCommand(Params, DeviceName, "shell ps", null, ERunOptions.SpewIsVerbose);
 
 				string RunningProcessList = ProcessesResult.Output;
 				if (!RunningProcessList.Contains(PackageNames[DeviceIndex]))
@@ -1323,7 +1323,7 @@ public class AndroidPlatform : Platform
 					RunAdbCommand(Params, DeviceName, "logcat -d -s UE4 -s Debug");
 
 					// get the log we actually want to save
-					ProcessResult LogFileProcess = RunAdbCommand(Params, DeviceName, "logcat -d", null, ERunOptions.AppMustExist);
+					IProcessResult LogFileProcess = RunAdbCommand(Params, DeviceName, "logcat -d", null, ERunOptions.AppMustExist);
 
 					string LogPath = Path.Combine(Params.BaseStageDirectory, "Android\\logs");
 					string LogFilename = Path.Combine(LogPath, "devicelog" + DeviceName + ".log");

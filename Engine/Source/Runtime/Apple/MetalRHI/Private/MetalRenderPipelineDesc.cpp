@@ -10,7 +10,7 @@ TMap<FMetalRenderPipelineDesc::FMetalRenderPipelineKey, id<MTLRenderPipelineStat
 #if !UE_BUILD_SHIPPING
 TMap<FMetalRenderPipelineDesc::FMetalRenderPipelineKey, MTLRenderPipelineReflection*> FMetalRenderPipelineDesc::MetalReflectionCache;
 #endif
-FCriticalSection FMetalRenderPipelineDesc::MetalPipelineMutex;
+pthread_rwlock_t FMetalRenderPipelineDesc::MetalPipelineMutex;
 
 uint32 FMetalRenderPipelineDesc::BlendBitOffsets[] = { Offset_BlendState0, Offset_BlendState1, Offset_BlendState2, Offset_BlendState3, Offset_BlendState4, Offset_BlendState5, };
 uint32 FMetalRenderPipelineDesc::RTBitOffsets[] = { Offset_RenderTargetFormat0, Offset_RenderTargetFormat1, Offset_RenderTargetFormat2, Offset_RenderTargetFormat3, Offset_RenderTargetFormat4, Offset_RenderTargetFormat5, };
@@ -24,6 +24,14 @@ FMetalRenderPipelineDesc::FMetalRenderPipelineDesc()
 	{
 		[PipelineDescriptor.colorAttachments setObject:[[MTLRenderPipelineColorAttachmentDescriptor new] autorelease] atIndexedSubscript:Index];
 	}
+	int Err = pthread_rwlock_init(&MetalPipelineMutex, nullptr);
+	checkf(Err == 0, TEXT("pthread_rwlock_init failed with error: %d"), errno);
+}
+
+FMetalRenderPipelineDesc::~FMetalRenderPipelineDesc()
+{
+	int Err = pthread_rwlock_destroy(&MetalPipelineMutex);
+	checkf(Err == 0, TEXT("MetalPipelineMutex failed with error: %d"), errno);
 }
 
 id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBoundShaderState(FMetalBoundShaderState* BSS, FMetalHashedVertexDescriptor const& VertexDesc, MTLRenderPipelineReflection** Reflection) const
@@ -62,7 +70,8 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	
 	if(GUseRHIThread)
 	{
-		MetalPipelineMutex.Lock();
+		int Err = pthread_rwlock_rdlock(&MetalPipelineMutex);
+		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), errno);
 	}
 	
 	FMetalRenderPipelineKey ComparableDesc;
@@ -74,38 +83,79 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	id<MTLRenderPipelineState> PipelineState = MetalPipelineCache.FindRef(ComparableDesc);
 	if(PipelineState == nil)
 	{
+		if(GUseRHIThread)
+		{
+			int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
+			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
+		}
+	
 		id<MTLDevice> Device = GetMetalDeviceContext().GetDevice();
 #if !UE_BUILD_SHIPPING
 		if (Reflection)
 		{
 			PipelineState = [Device newRenderPipelineStateWithDescriptor:PipelineDescriptor options:MTLPipelineOptionArgumentInfo reflection:Reflection error:&Error];
-			if (PipelineState)
-			{
-				check(*Reflection);
-				MetalReflectionCache.Add(ComparableDesc, [*Reflection retain]);
-			}
 		}
 		else
 #endif
 		{
-			PipelineState = [Device newRenderPipelineStateWithDescriptor:PipelineDescriptor error : &Error];
+			PipelineState = [Device newRenderPipelineStateWithDescriptor:PipelineDescriptor error: &Error];
 		}
 		TRACK_OBJECT(STAT_MetalRenderPipelineStateCount, PipelineState);
+
 		if(PipelineState)
 		{
-			MetalPipelineCache.Add(ComparableDesc, PipelineState);
-		}
+			if(GUseRHIThread)
+			{
+				int Err = pthread_rwlock_wrlock(&MetalPipelineMutex);
+				checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with error: %d"), errno);
+			}
+		
+			id<MTLRenderPipelineState> ExistingPipeline = MetalPipelineCache.FindRef(ComparableDesc);
+			if (!ExistingPipeline)
+			{
+				MetalPipelineCache.Add(ComparableDesc, PipelineState);			
+#if !UE_BUILD_SHIPPING
+				if (Reflection)
+				{
+					check(*Reflection);				
+					MetalReflectionCache.Add(ComparableDesc, [*Reflection retain]);
+				}
+#endif
+			}
+			else // Someone beat us to it - release our references and hand back the existing version.
+			{
+				[PipelineState release];
+				PipelineState = ExistingPipeline;
+#if !UE_BUILD_SHIPPING
+				if (Reflection)
+				{
+					*Reflection = MetalReflectionCache.FindChecked(ComparableDesc);
+				}
+#endif
+			}
+			
+			if(GUseRHIThread)
+			{
+				int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
+				checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
+			}
+		}		
 	}
 #if !UE_BUILD_SHIPPING
 	else if (Reflection)
 	{
 		*Reflection = MetalReflectionCache.FindChecked(ComparableDesc);
+		if(GUseRHIThread)
+		{
+			int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
+			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
+		}
 	}
 #endif
-	
-	if(GUseRHIThread)
+	else if(GUseRHIThread)
 	{
-		MetalPipelineMutex.Unlock();
+		int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
+		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 	}
 	
 	PipelineDescriptor.depthAttachmentPixelFormat = DepthFormat;
@@ -129,7 +179,8 @@ MTLRenderPipelineReflection* FMetalRenderPipelineDesc::GetReflectionData(FMetalB
 {
 	if(GUseRHIThread)
 	{
-		MetalPipelineMutex.Lock();
+		int Err = pthread_rwlock_rdlock(&MetalPipelineMutex);
+		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), errno);
 	}
 	
 	FMetalRenderPipelineKey ComparableDesc;
@@ -142,7 +193,8 @@ MTLRenderPipelineReflection* FMetalRenderPipelineDesc::GetReflectionData(FMetalB
 	
 	if(GUseRHIThread)
 	{
-		MetalPipelineMutex.Unlock();
+		int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
+		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 	}
 	
 	return Reflection;

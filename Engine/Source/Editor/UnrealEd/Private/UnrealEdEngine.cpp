@@ -409,29 +409,7 @@ void UUnrealEdEngine::Tick(float DeltaSeconds, bool bIdleMode)
 	// Update lightmass
 	UpdateBuildLighting();
 	
-	if (!GIsSlowTask && !bFirstTick)
-	{
-		if (CookServer && 
-			CookServer->IsCookByTheBookMode() && 
-			!CookServer->IsCookByTheBookRunning() )
-		{
-			TArray<const ITargetPlatform*> CacheTargetPlatforms;
-
-			const ULevelEditorPlaySettings* PlaySettings = GetDefault<ULevelEditorPlaySettings>();
-			ITargetPlatform* TargetPlatform = nullptr;
-			if (PlaySettings && (PlaySettings->LastExecutedLaunchModeType == LaunchMode_OnDevice))
-			{
-				FString DeviceName = PlaySettings->LastExecutedLaunchDevice.Left(PlaySettings->LastExecutedLaunchDevice.Find(TEXT("@")));
-				CacheTargetPlatforms.Add( GetTargetPlatformManager()->FindTargetPlatform(DeviceName) );
-			}
-
-			if (CacheTargetPlatforms.Num() > 0)
-			{
-				CookServer->EditorTick(0.001f, CacheTargetPlatforms);
-			}
-		}
-	}
-
+	
 	ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>( FName("CrashTracker") );
 	bool bCrashTrackerEnabled = false;
 	if (CrashTracker)

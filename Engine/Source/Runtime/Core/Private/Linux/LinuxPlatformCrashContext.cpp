@@ -423,8 +423,8 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 
 		// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
 		//FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
-		//FCStringAnsi::Strcat(FilePath, PATH_MAX, "/" );
-		//FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashContextRuntimeXMLNameA );
+		//FCStringAnsi::Strncat(FilePath, "/", PATH_MAX);
+		//FCStringAnsi::Strncat(FilePath, FGenericCrashContext::CrashContextRuntimeXMLNameA, PATH_MAX);
 		//SerializeAsXML( FilePath ); @todo uncomment after verification
 
 		// copy log

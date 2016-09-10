@@ -23,6 +23,10 @@ extern PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT_ProcAddress;	// set in OpenG
 static void ContextMakeCurrent( HDC DC, HGLRC RC )
 {
 	BOOL Result = wglMakeCurrent( DC, RC );
+	if (!Result)
+	{
+		Result = wglMakeCurrent( nullptr, nullptr );
+	}
 	check(Result);
 }
 

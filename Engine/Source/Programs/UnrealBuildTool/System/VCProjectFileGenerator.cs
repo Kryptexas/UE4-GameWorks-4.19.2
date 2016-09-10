@@ -185,7 +185,7 @@ namespace UnrealBuildTool
 		static public readonly string DefaultPlatformName = "Win32";
 
 		/// The platform name that must be used for .NET projects
-		static public readonly string DotNetPlatformName = "Any CPU";
+		static public readonly string DotNetPlatformName = "x64";
 
 
 		/// <summary>

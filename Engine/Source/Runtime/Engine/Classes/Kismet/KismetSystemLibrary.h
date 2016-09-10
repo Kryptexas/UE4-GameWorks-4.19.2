@@ -1427,7 +1427,7 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * Will show an ad banner (iAd on iOS, or AdMob on Android) on the top or bottom of screen, on top of the GL view (doesn't resize the view)
 	 * (iOS and Android only)
 	 *
-	 * @param AdIdIndex The index of the ID to select for the add to show
+	 * @param AdIdIndex The index of the ID to select for the ad to show
 	 * @param bShowOnBottomOfScreen If true, the iAd will be shown at the bottom of the screen, top otherwise
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
@@ -1452,6 +1452,36 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void ForceCloseAdBanner();
+
+	/**
+	* Will load a fullscreen interstitial AdMob ad. Call this before using ShowInterstitialAd
+	* (Android only)
+	*
+	* @param AdIdIndex The index of the ID to select for the ad to show
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+		static void LoadInterstitialAd(int32 AdIdIndex);
+
+	/**
+	* Returns true if the requested interstitial ad is loaded and ready
+	* (Android only)
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+		static bool IsInterstitialAdAvailable();
+
+	/**
+	* Returns true if the requested interstitial ad has been successfully requested (false if load request fails)
+	* (Android only)
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+		static bool IsInterstitialAdRequested();
+
+	/**
+	* Shows the loaded interstitial ad (loaded with LoadInterstitialAd)
+	* (Android only)
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+		static void ShowInterstitialAd();
 
 	/**
 	 * Displays the built-in leaderboard GUI (iOS and Android only; this function may be renamed or moved in a future release)

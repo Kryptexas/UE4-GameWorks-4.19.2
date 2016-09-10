@@ -48,6 +48,7 @@ enum EMetalPipelineHashOffsets
 struct FMetalRenderPipelineDesc
 {
 	FMetalRenderPipelineDesc();
+	~FMetalRenderPipelineDesc();
 
 	template<typename Type>
 	inline void SetHashValue(uint32 Offset, uint32 NumBits, Type Value)
@@ -94,7 +95,7 @@ struct FMetalRenderPipelineDesc
 		}
 	};
 	
-	static FCriticalSection MetalPipelineMutex;
+	static pthread_rwlock_t MetalPipelineMutex;
 	static TMap<FMetalRenderPipelineKey, id<MTLRenderPipelineState>> MetalPipelineCache;
 	static uint32 BlendBitOffsets[6];
 	static uint32 RTBitOffsets[6];

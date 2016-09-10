@@ -672,9 +672,13 @@ public:
 	virtual void RenderOverlayExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext) = 0;
 	virtual bool HasPostOpaqueExtentions() const = 0;
 
-	typedef void(*TPostResolvedSceneColorCallback)(FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext);
-	virtual bool HasPostResolvedSceneColorExtension() const = 0;
-	virtual void RegisterPostResolvedSceneColorExtension(TPostResolvedSceneColorCallback Callback) = 0;
+	/** Delegate that is called upon resolving scene color. */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnResolvedSceneColor, FRHICommandListImmediate& /*RHICmdList*/, class FSceneRenderTargets& /*SceneContext*/);
+
+	/** Accessor for post scene color resolve delegates */
+	virtual FOnResolvedSceneColor& GetResolvedSceneColorCallbacks() = 0;
+
+	/** Calls registered post resolve delegates, if any */
 	virtual void RenderPostResolvedSceneColorExtension(FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext) = 0;
 };
 

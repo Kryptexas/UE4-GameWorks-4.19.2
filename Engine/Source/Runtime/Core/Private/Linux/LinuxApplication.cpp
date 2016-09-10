@@ -1743,7 +1743,7 @@ bool FLinuxApplication::IsMouseAttached() const
 	int rc;
 	char Mouse[64] = "/sys/class/input/mouse0";
 	int MouseIdx = strlen(Mouse) - 1;
-	strcat(Mouse, "/device/name");
+	FCStringAnsi::Strncat(Mouse, "/device/name", sizeof(Mouse) - 1);
 
 	for (int i=0; i<9; i++)
 	{

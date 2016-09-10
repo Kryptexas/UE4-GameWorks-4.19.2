@@ -269,6 +269,11 @@ void FMacApplication::SetHighPrecisionMouseMode(const bool Enable, const TShared
 	((FMacCursor*)Cursor.Get())->SetHighPrecisionMouseMode(Enable);
 }
 
+bool FMacApplication::IsGamepadAttached() const
+{
+	return HIDInput->IsGamepadAttached();
+}
+
 FPlatformRect FMacApplication::GetWorkArea(const FPlatformRect& CurrentWindow) const
 {
 	SCOPED_AUTORELEASE_POOL;

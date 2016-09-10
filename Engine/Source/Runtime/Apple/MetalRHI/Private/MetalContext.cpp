@@ -20,11 +20,15 @@ static FAutoConsoleVariableRef CVarMetalCommandBufferCommitThreshold(
 	GMetalCommandBufferCommitThreshold,
 	TEXT("When enabled (> 0) if the command buffer has more than this number of draw/dispatch command encoded then it will be committed at the next encoder boundary to keep the GPU busy. (Default: 100, set to <= 0 to disable)"));
 
+#if PLATFORM_MAC
+static int32 GMetalCommandQueueSize = 256;
+#else
 static int32 GMetalCommandQueueSize = 64;
+#endif
 static FAutoConsoleVariableRef CVarMetalCommandQueueSize(
 	TEXT("rhi.Metal.CommandQueueSize"),
 	GMetalCommandQueueSize,
-	TEXT("The maximum number of command-buffers that can be allocated from each command-queue. (Default: 64)"));
+	TEXT("The maximum number of command-buffers that can be allocated from each command-queue. (Default: 256 Mac, 64 iOS/tvOS)"));
 
 #if !UE_BUILD_SHIPPING
 static int32 GMetalRuntimeDebugLevel = 0;
@@ -171,12 +175,19 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 	if (ExplicitRendererId >= 0 && ExplicitRendererId < GPUs.Num())
 	{
 		FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[ExplicitRendererId];
+		TArray<FString> NameComponents;
+		FString(GPU.GPUName).Trim().ParseIntoArray(NameComponents, TEXT(" "));	
 		for (id<MTLDevice> Device in DeviceList)
 		{
 			if(([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
 			   || ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
 			   || ([Device.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
+				bool bMatchesName = (NameComponents.Num() > 0);
+				for (FString& Component : NameComponents)
+				{
+					bMatchesName &= FString(SelectedDevice.name).Contains(Component);
+				}
 				if((Device.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || FString(Device.name).Contains(FString(GPU.GPUName).Trim()))
 				{
 					DeviceIndex = ExplicitRendererId;
@@ -192,6 +203,7 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 	}
 	if (SelectedDevice == nil)
 	{
+		TArray<FString> NameComponents;
 		SelectedDevice = MTLCreateSystemDefaultDevice();
 		bool bFoundDefault = false;
 		for (uint32 i = 0; i < GPUs.Num(); i++)
@@ -201,7 +213,13 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 			   || ([SelectedDevice.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
 			   || ([SelectedDevice.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
-				if((SelectedDevice.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || FString(SelectedDevice.name).Contains(FString(GPU.GPUName).Trim()))
+				NameComponents.Empty();
+				bool bMatchesName = FString(GPU.GPUName).Trim().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
+				for (FString& Component : NameComponents)
+				{
+					bMatchesName &= FString(SelectedDevice.name).Contains(Component);
+				}
+				if((SelectedDevice.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || bMatchesName)
 				{
 					DeviceIndex = i;
 					bFoundDefault = true;

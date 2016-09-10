@@ -33,6 +33,8 @@ private:
 	WebSocketInternalProtocol* Protocols;
 
 	friend class FWebSocket;
+	uint32 ServerPort;
+	bool IsAlive;
 };
 
 

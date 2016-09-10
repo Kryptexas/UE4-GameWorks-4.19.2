@@ -39,7 +39,7 @@ FString FHTML5HttpRequest::GetURL()
 void FHTML5HttpRequest::SetURL(const FString& InURL)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::SetURL() - %s"), *InURL);
-	URL = InURL; 
+	URL = InURL;
 }
 
 
@@ -201,7 +201,8 @@ bool IsURLEncoded(const TArray<uint8> & Payload)
 	return true;
 }
 
-void FHTML5HttpRequest::StaticReceiveCallback(void *arg, void *buffer, uint32 size, void* httpHeaders){
+void FHTML5HttpRequest::StaticReceiveCallback(void *arg, void *buffer, uint32 size, void* httpHeaders)
+{
 	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::StaticReceiveDataCallback()"));
 
 	FHTML5HttpRequest* Request = reinterpret_cast<FHTML5HttpRequest*>(arg);
@@ -209,7 +210,8 @@ void FHTML5HttpRequest::StaticReceiveCallback(void *arg, void *buffer, uint32 si
 	return Request->ReceiveCallback(arg, buffer, size, httpHeaders);
 }
 
-void FHTML5HttpRequest::ReceiveCallback(void *arg, void *buffer, uint32 size, void* httpHeaders) {
+void FHTML5HttpRequest::ReceiveCallback(void *arg, void *buffer, uint32 size, void* httpHeaders)
+{
 	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::ReceiveDataCallback()"));
 	UE_LOG(LogHttp, Verbose, TEXT("Response size: %d"), size);
 
@@ -265,15 +267,17 @@ void FHTML5HttpRequest::ReceiveCallback(void *arg, void *buffer, uint32 size, vo
 	}
 }
 
-void FHTML5HttpRequest::StaticErrorCallback(void* arg, int httpStatusCode, const char* httpStatusText) {
+void FHTML5HttpRequest::StaticErrorCallback(void* arg, int httpStatusCode, const char* httpStatusText)
+{
 	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::StaticErrorDataCallback()"));
 
 	FHTML5HttpRequest* Request = reinterpret_cast<FHTML5HttpRequest*>(arg);
 	return Request->ErrorCallback(arg, httpStatusCode, httpStatusText);
 }
 
-void FHTML5HttpRequest::ErrorCallback(void* arg, int httpStatusCode, const char* httpStatusText) {
- 	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::ErrorDataCallback() HttpStatusCode: %d"), httpStatusCode);
+void FHTML5HttpRequest::ErrorCallback(void* arg, int httpStatusCode, const char* httpStatusText)
+{
+	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::ErrorDataCallback() HttpStatusCode: %d"), httpStatusCode);
 
 	check(Response.IsValid());
 
@@ -287,7 +291,8 @@ void FHTML5HttpRequest::ErrorCallback(void* arg, int httpStatusCode, const char*
 
 }
 
-void FHTML5HttpRequest::StaticProgressCallback(void* arg, int Loaded, int Total) {
+void FHTML5HttpRequest::StaticProgressCallback(void* arg, int Loaded, int Total)
+{
 	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::StaticProgressCallback()"));
 
 	FHTML5HttpRequest* Request = reinterpret_cast<FHTML5HttpRequest*>(arg);
@@ -295,17 +300,20 @@ void FHTML5HttpRequest::StaticProgressCallback(void* arg, int Loaded, int Total)
 	return Request->ProgressCallback(arg, Loaded, Total);
 }
 
-void FHTML5HttpRequest::ProgressCallback(void* arg, int Loaded, int Total) {
+void FHTML5HttpRequest::ProgressCallback(void* arg, int Loaded, int Total)
+{
 	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::ProgressCallback()"));
 
-	if (GetVerb() == TEXT("GET")) {
+	if (GetVerb() == TEXT("GET"))
+	{
 		if (Response.IsValid())
 		{
 			Response->TotalBytesRead = Loaded;
 			OnRequestProgress().ExecuteIfBound(SharedThis(this), 0, Response->TotalBytesRead);
 		}
 	}
-	else {
+	else
+	{
 		BytesSent = Loaded;
 		OnRequestProgress().ExecuteIfBound(SharedThis(this), BytesSent, 0);
 	}
@@ -382,7 +390,7 @@ bool FHTML5HttpRequest::StartRequest()
 
 	TArray<FString> AllHeaders = GetAllHeaders();
 
-	// Create a String which emscripten can understand. 
+	// Create a String which emscripten can understand.
 	FString RequestHeaders = FString::Join(AllHeaders, TEXT("%"));
 	
 	// set up verb (note that Verb is expected to be uppercase only)
@@ -559,7 +567,7 @@ EHttpRequestStatus::Type FHTML5HttpRequest::GetStatus()
 	return CompletionStatus;
 }
 
-const FHttpResponsePtr FHTML5HttpRequest::GetResponse() const 
+const FHttpResponsePtr FHTML5HttpRequest::GetResponse() const
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::GetResponse()"));
 	return Response;

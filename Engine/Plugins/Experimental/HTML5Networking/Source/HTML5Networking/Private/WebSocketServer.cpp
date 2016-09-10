@@ -10,13 +10,13 @@
 
 #if !PLATFORM_HTML5
 #include "libwebsockets.h"
-#endif 
+#endif
 
 #if PLATFORM_WINDOWS
 #include "HideWindowsPlatformTypes.h"
 #endif
 
-// a object of this type is associated by libwebsocket to every connected session. 
+// a object of this type is associated by libwebsocket to every connected session.
 struct PerSessionDataServer
 {
 	FWebSocket *Socket; // each session is actually a socket to a client
@@ -24,7 +24,7 @@ struct PerSessionDataServer
 
 
 #if !PLATFORM_HTML5
-// real networking handler. 
+// real networking handler.
 static int unreal_networking_server(
 	struct libwebsocket_context *,
 	struct libwebsocket *wsi,
@@ -37,19 +37,19 @@ static int unreal_networking_server(
 
 #if !UE_BUILD_SHIPPING
 	void libwebsocket_debugLog(int level, const char *line)
-	{ 
+	{
 		UE_LOG(LogHTML5Networking, Log, TEXT("websocket server: %s"), ANSI_TO_TCHAR(line));
 	}
-#endif 
-#endif 
+#endif
+#endif
 
 bool FWebSocketServer::Init(uint32 Port, FWebsocketClientConnectedCallBack CallBack)
 {
 #if !PLATFORM_HTML5
-	// setup log level.
 #if !UE_BUILD_SHIPPING
+	// setup log level.
 	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_DEBUG | LLL_INFO, libwebsocket_debugLog);
-#endif 
+#endif
 
 	Protocols = new libwebsocket_protocols[3];
 	FMemory::Memzero(Protocols, sizeof(libwebsocket_protocols) * 3);
@@ -65,9 +65,10 @@ bool FWebSocketServer::Init(uint32 Port, FWebsocketClientConnectedCallBack CallB
 
 	struct lws_context_creation_info Info;
 	memset(&Info, 0, sizeof(lws_context_creation_info));
-	// look up libwebsockets.h for details. 
+	// look up libwebsockets.h for details.
 	Info.port = Port;
-	// we listen on all available interfaces. 
+	ServerPort = Port;
+	// we listen on all available interfaces.
 	Info.iface = NULL;
 	Info.protocols = &Protocols[0];
 	// no extensions
@@ -75,30 +76,35 @@ bool FWebSocketServer::Init(uint32 Port, FWebsocketClientConnectedCallBack CallB
 	Info.gid = -1;
 	Info.uid = -1;
 	Info.options = 0;
-	// tack on this object. 
+	// tack on this object.
 	Info.user = this;
-	Info.port = Port; 
 	Context = libwebsocket_create_context(&Info);
 
-	if (Context == NULL) 
+	if (Context == NULL)
 	{
-		return false; // couldn't create a server. 
+		ServerPort = 0;
+		delete Protocols;
+		Protocols = NULL;
+		IsAlive = false;
+		return false; // couldn't create a server.
 	}
 
-	ConnectedCallBack = CallBack; 
+	ConnectedCallBack = CallBack;
+	IsAlive = true;
 
 #endif
-	return true; 
+	return true;
 }
 
 bool FWebSocketServer::Tick()
 {
 #if !PLATFORM_HTML5
+	if (IsAlive)
 	{
 		libwebsocket_service(Context, 0);
 		libwebsocket_callback_on_writable_all_protocol(&Protocols[0]);
 	}
-#endif 
+#endif
 	return true;
 }
 
@@ -110,45 +116,48 @@ FWebSocketServer::~FWebSocketServer()
 #if !PLATFORM_HTML5
 	if (Context)
 	{
-
 		libwebsocket_context_destroy(Context);
 		Context = NULL;
 	}
 
-	 delete Protocols; 
-	 Protocols = NULL; 
-#endif 		
+	 delete Protocols;
+	 Protocols = NULL;
+
+	 IsAlive = false;
+#endif
 }
 
 FString FWebSocketServer::Info()
 {
-
 #if !PLATFORM_HTML5
-	return FString(ANSI_TO_TCHAR(libwebsocket_canonical_hostname(Context)));
+	return FString::Printf(TEXT("%s:%i"), ANSI_TO_TCHAR(libwebsocket_canonical_hostname(Context)), ServerPort);
 #else 
 	return FString(TEXT("NOT SUPPORTED"));
 #endif 
-
 }
 
-// callback. 
+// callback.
 #if !PLATFORM_HTML5
 int FWebSocket::unreal_networking_server
 	(
-		struct libwebsocket_context *Context, 
-		struct libwebsocket *Wsi, 
-		enum libwebsocket_callback_reasons Reason, 
-		void *User, 
-		void *In, 
+		struct libwebsocket_context *Context,
+		struct libwebsocket *Wsi,
+		enum libwebsocket_callback_reasons Reason,
+		void *User,
+		void *In,
 		size_t Len
 	)
 {
 	PerSessionDataServer* BufferInfo = (PerSessionDataServer*)User;
 	FWebSocketServer* Server = (FWebSocketServer*)libwebsocket_context_user(Context);
+	if (!Server->IsAlive)
+	{
+		return 0;
+	}
 
 	switch (Reason)
 	{
-		case LWS_CALLBACK_ESTABLISHED: 
+		case LWS_CALLBACK_ESTABLISHED:
 			{
 				BufferInfo->Socket = new FWebSocket(Context, Wsi);
 				Server->ConnectedCallBack.ExecuteIfBound(BufferInfo->Socket);
@@ -161,21 +170,29 @@ int FWebSocket::unreal_networking_server
 				BufferInfo->Socket->OnRawRecieve(In, Len);
 				libwebsocket_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
 			}
-			break; 
+			break;
 
-		case LWS_CALLBACK_SERVER_WRITEABLE: 
+		case LWS_CALLBACK_SERVER_WRITEABLE:
 			{
 				BufferInfo->Socket->OnRawWebSocketWritable(Wsi);
 				libwebsocket_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
 			}
-			break; 
+			break;
 		case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
 			{
 				BufferInfo->Socket->ErrorCallBack.ExecuteIfBound();
 			}
 			break;
+		case LWS_CALLBACK_WSI_DESTROY:
+		case LWS_CALLBACK_PROTOCOL_DESTROY:
+		case LWS_CALLBACK_CLOSED:
+		case LWS_CALLBACK_CLOSED_HTTP:
+			{
+				Server->IsAlive = false;
+			}
+			break;
 	}
 
-	return 0; 
+	return 0;
 }
 #endif

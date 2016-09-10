@@ -1206,10 +1206,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Resolve the scene color for post processing.
 	SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
-	if (RendererModule.HasPostResolvedSceneColorExtension())
-	{
-		RendererModule.RenderPostResolvedSceneColorExtension(RHICmdList, SceneContext);
-	}
+	GetRendererModule().RenderPostResolvedSceneColorExtension(RHICmdList, SceneContext);
 
 	CopySceneCaptureComponentToTarget(RHICmdList);
 

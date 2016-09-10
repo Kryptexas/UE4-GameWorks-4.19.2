@@ -42,6 +42,7 @@ namespace NCachedCrashContextProperties
 	static FString ExecutableName;
 	static FString PlatformName;
 	static FString PlatformNameIni;
+	static FString DeploymentName;
 	static FString BaseDir;
 	static FString RootDir;
 	static FString EpicAccountId;
@@ -61,6 +62,7 @@ namespace NCachedCrashContextProperties
 	static FString UserActivityHint;
 	static FString GameSessionID;
 	static FString CommandLine;
+	static int32 LanguageLCID;
 	static FString CrashReportClientRichText;
 }
 
@@ -75,6 +77,7 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::ExecutableName = FPlatformProcess::ExecutableName();
 	NCachedCrashContextProperties::PlatformName = FPlatformProperties::PlatformName();
 	NCachedCrashContextProperties::PlatformNameIni = FPlatformProperties::IniPlatformName();
+	NCachedCrashContextProperties::DeploymentName = FApp::GetDeploymentName();
 	NCachedCrashContextProperties::BaseDir = FPlatformProcess::BaseDir();
 	NCachedCrashContextProperties::RootDir = FPlatformMisc::RootDir();
 	NCachedCrashContextProperties::EpicAccountId = FPlatformMisc::GetEpicAccountId();
@@ -89,6 +92,24 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::UserName = FPlatformProcess::UserName();
 	NCachedCrashContextProperties::DefaultLocale = FPlatformMisc::GetDefaultLocale();
 	NCachedCrashContextProperties::CommandLine = FCommandLine::IsInitialized() ? FCommandLine::GetOriginalForLogging() : TEXT(""); 
+
+	if (FInternationalization::IsAvailable())
+	{
+		NCachedCrashContextProperties::LanguageLCID = FInternationalization::Get().GetCurrentCulture()->GetLCID();
+	}
+	else
+	{
+		FCulturePtr DefaultCulture = FInternationalization::Get().GetCulture(TEXT("en"));
+		if (DefaultCulture.IsValid())
+		{
+			NCachedCrashContextProperties::LanguageLCID = DefaultCulture->GetLCID();
+		}
+		else
+		{
+			const int DefaultCultureLCID = 1033;
+			NCachedCrashContextProperties::LanguageLCID = DefaultCultureLCID;
+		}
+	}
 
 	// Using the -fullcrashdump parameter will cause full memory minidumps to be created for crashes
 	NCachedCrashContextProperties::CrashDumpMode = (int32)ECrashDumpMode::Default;
@@ -196,28 +217,14 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "PlatformName" ), *NCachedCrashContextProperties::PlatformName );
 	AddCrashProperty( TEXT( "PlatformNameIni" ), *NCachedCrashContextProperties::PlatformNameIni );
 	AddCrashProperty( TEXT( "EngineMode" ), FPlatformMisc::GetEngineMode() );
-	AddCrashProperty( TEXT( "DeploymentName"), FApp::GetDeploymentName() );
+
+	AddCrashProperty( TEXT( "DeploymentName"), *NCachedCrashContextProperties::DeploymentName );
+
 	AddCrashProperty( TEXT( "EngineVersion" ), *FEngineVersion::Current().ToString() );
-	AddCrashProperty( TEXT( "BuildVersion" ), FApp::GetBuildVersion() );
-	AddCrashProperty( TEXT("CommandLine"), *NCachedCrashContextProperties::CommandLine );
-	if (FInternationalization::IsAvailable())
-	{
-		AddCrashProperty(TEXT("LanguageLCID"), FInternationalization::Get().GetCurrentCulture()->GetLCID());
-	}
-	else
-	{
-		FCulturePtr DefaultCulture = FInternationalization::Get().GetCulture(TEXT("en"));
-		if (DefaultCulture.IsValid())
-		{
-			AddCrashProperty(TEXT("LanguageLCID"), DefaultCulture->GetLCID());
-		}
-		else
-		{
-			const int DefaultCultureLCID = 1033;
-			AddCrashProperty(TEXT("LanguageLCID"), DefaultCultureLCID);
-		}
-	}
+	AddCrashProperty( TEXT( "CommandLine" ), *NCachedCrashContextProperties::CommandLine );
+	AddCrashProperty( TEXT( "LanguageLCID" ), NCachedCrashContextProperties::LanguageLCID );
 	AddCrashProperty( TEXT( "AppDefaultLocale" ), *NCachedCrashContextProperties::DefaultLocale );
+	AddCrashProperty( TEXT( "BuildVersion" ), FApp::GetBuildVersion() );
 
 	AddCrashProperty( TEXT( "IsUE4Release" ), NCachedCrashContextProperties::bIsUE4Release );
 

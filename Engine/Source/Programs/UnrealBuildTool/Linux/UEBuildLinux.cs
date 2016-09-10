@@ -236,8 +236,7 @@ namespace UnrealBuildTool
 
 		public override bool CanUseXGE()
 		{
-			// [RCL] 2015-08-04 FIXME: we have seen XGE builds fail on Windows
-			return BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux;
+			return true;
 		}
 
 		/// <summary>

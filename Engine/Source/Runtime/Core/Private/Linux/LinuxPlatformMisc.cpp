@@ -435,14 +435,12 @@ const TCHAR* FLinuxPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 B
 
 void FLinuxPlatformMisc::ClipboardCopy(const TCHAR* Str)
 {
-	if (SDL_HasClipboardText() == SDL_TRUE)
+	if (SDL_SetClipboardText(TCHAR_TO_UTF8(Str)))
 	{
-		if (SDL_SetClipboardText(TCHAR_TO_UTF8(Str)))
-		{
-			UE_LOG(LogInit, Fatal, TEXT("Error copying clipboard contents: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
-		}
+		UE_LOG(LogInit, Fatal, TEXT("Error copying clipboard contents: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
 	}
 }
+
 void FLinuxPlatformMisc::ClipboardPaste(class FString& Result)
 {
 	char* ClipContent;

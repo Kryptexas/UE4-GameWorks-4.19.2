@@ -1719,6 +1719,7 @@ public:
 	/**
 	 *	Returns if any body in this component is currently awake and simulating.
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (Keywords = "physics asleep sleeping awake simulating"))
 	virtual bool IsAnyRigidBodyAwake();
 	
 	/**

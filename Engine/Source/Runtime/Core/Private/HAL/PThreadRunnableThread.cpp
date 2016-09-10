@@ -8,7 +8,6 @@
 
 uint32 FRunnableThreadPThread::Run()
 {
-	ThreadIsRunning = true;
 	// Assume we'll fail init
 	uint32 ExitCode = 1;
 	check(Runnable);
@@ -37,9 +36,6 @@ uint32 FRunnableThreadPThread::Run()
 		// Initialization has failed, release the sync event
 		ThreadInitSyncEvent->Trigger();
 	}
-
-	// Clean ourselves up without waiting
-	ThreadIsRunning = false;
 
 	return ExitCode;
 }
