@@ -269,9 +269,13 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
+}
+
+void FXAudio2Device::CheckDeviceStateChange()
+{
+#if PLATFORM_WINDOWS
 	if (DeviceProperties)
 	{
-#if PLATFORM_WINDOWS
 		if (DeviceProperties->DidAudioDeviceChange())
 		{
 			// Stop any sounds that are playing
@@ -286,8 +290,8 @@ void FXAudio2Device::UpdateHardware()
 			// And switch to no-audio mode.
 			bIsAudioDeviceHardwareInitialized = false;
 		}
-#endif
 	}
+#endif
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()

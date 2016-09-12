@@ -972,6 +972,11 @@ public:
 	{
 	}
 
+	/** Checks hardware device state changes */
+	virtual void CheckDeviceStateChange()
+	{
+	}
+
 	/** Creates a new platform specific sound source */
 	virtual FAudioEffectsManager* CreateEffectsManager();
 
