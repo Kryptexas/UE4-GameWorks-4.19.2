@@ -94,9 +94,6 @@ class FXAudio2Device : public FAudioDevice
 	/** Lets the platform any tick actions */
 	virtual void UpdateHardware() override;
 
-	/** Checks the device state change */
-	virtual void CheckDeviceStateChange() override;
-
 	/** Creates a new platform specific sound source */
 	virtual FAudioEffectsManager* CreateEffectsManager() override;
 
