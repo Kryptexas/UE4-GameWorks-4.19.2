@@ -2650,6 +2650,8 @@ public:
 						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse")),
 						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse")),
 						FName(TEXT("TDepthOnlyVS<false>")),
+						FName(TEXT("TDepthOnlyVS<true>")),
+						FName(TEXT("FDepthOnlyPS")),
 					};
 					if (Algo::Find(AllowedShaderTypes, ShaderType->GetFName()))
 					{
