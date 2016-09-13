@@ -43,6 +43,8 @@ void UAbilitySystemComponent::UninitializeComponent()
 {
 	Super::UninitializeComponent();
 	
+	ActiveGameplayEffects.Uninitialize();
+
 	for (UAttributeSet* Set : SpawnedAttributes)
 	{
 		if (Set)
@@ -346,7 +348,7 @@ void UAbilitySystemComponent::OnGiveAbility(FGameplayAbilitySpec& Spec)
 
 			if (!CountChangedEvent.IsBoundToObject(this))
 			{
-				MonitoredTagChangedDelegatHandle = CountChangedEvent.AddUObject(this, &UAbilitySystemComponent::MonitoredTagChanged);
+				MonitoredTagChangedDelegateHandle = CountChangedEvent.AddUObject(this, &UAbilitySystemComponent::MonitoredTagChanged);
 			}
 		}
 	}
@@ -439,7 +441,7 @@ void UAbilitySystemComponent::CheckForClearedAbilities()
 		
 			if (CountChangedEvent.IsBoundToObject(this))
 			{
-				CountChangedEvent.Remove(MonitoredTagChangedDelegatHandle);
+				CountChangedEvent.Remove(MonitoredTagChangedDelegateHandle);
 			}
 		}
 
@@ -2227,6 +2229,12 @@ void UAbilitySystemComponent::AnimMontage_UpdateReplicatedData()
 		{
 			// Set this prior to calling UpdateShouldTick, so we start ticking if we are playing a Montage
 			RepAnimMontageInfo.IsStopped = bIsStopped;
+
+			// When we start or stop an animation, update the clients right away for the Avatar Actor
+			if (AbilityActorInfo->AvatarActor != nullptr)
+			{
+				AbilityActorInfo->AvatarActor->ForceNetUpdate();
+			}
 
 			// When this changes, we should update whether or not we should be ticking
 			UpdateShouldTick();

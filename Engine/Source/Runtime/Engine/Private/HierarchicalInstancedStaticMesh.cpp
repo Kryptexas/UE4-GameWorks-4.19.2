@@ -2494,6 +2494,7 @@ void FAsyncBuildInstanceBuffer::DoWork()
 	FRandomStream RandomStream(Component->InstancingRandomSeed);
 	bool bUseRemapTable = Component->PerInstanceSMData.Num() == Component->InstanceReorderTable.Num();
 
+	int32 InitializedIndexCount = 0;
 	for (int32 InstanceIndex = 0; InstanceIndex < NumInstances; InstanceIndex++)
 	{
 		const FInstancedStaticMeshInstanceData& Instance = Component->PerInstanceSMData[InstanceIndex];
@@ -2501,6 +2502,7 @@ void FAsyncBuildInstanceBuffer::DoWork()
 		if (DestInstanceIndex != INDEX_NONE)
 		{
 			Component->WriteOncePrebuiltInstanceBuffer.SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+			InitializedIndexCount++;
 		}
 	}
 	if (Component->RemovedInstances.Num())
@@ -2510,6 +2512,38 @@ void FAsyncBuildInstanceBuffer::DoWork()
 		{
 			const int32 DestInstanceIndex = Component->RemovedInstances[InstanceIndex];
 			Component->WriteOncePrebuiltInstanceBuffer.NullifyInstance(DestInstanceIndex);
+			InitializedIndexCount++;
+		}
+	}
+
+	if (!ensure(InitializedIndexCount == NumRenderInstances))
+	{
+		// Nullify any remaining bogus render instances that were not init above.
+		// This should not happen, but this code will avoid uninitialized memory causing odd behavior if it does.
+		TSet<int32> InitializedIdicies;
+		for (int32 InstanceIndex = 0; InstanceIndex < NumInstances; InstanceIndex++)
+		{
+			const FInstancedStaticMeshInstanceData& Instance = Component->PerInstanceSMData[InstanceIndex];
+			const int32 DestInstanceIndex = bUseRemapTable ? Component->InstanceReorderTable[InstanceIndex] : InstanceIndex;
+			if (DestInstanceIndex != INDEX_NONE)
+			{
+				InitializedIdicies.Add(DestInstanceIndex);
+			}
+		}
+
+		for (int32 InstanceIndex = 0; InstanceIndex < Component->RemovedInstances.Num(); InstanceIndex++)
+		{
+			const int32 DestInstanceIndex = Component->RemovedInstances[InstanceIndex];
+			InitializedIdicies.Add(DestInstanceIndex);
+		}
+
+		for (int32 InstanceIndex = 0; InstanceIndex < NumRenderInstances; InstanceIndex++)
+		{
+			if (!InitializedIdicies.Contains(InstanceIndex))
+			{
+				// This was an instance that was not initialized. Nullify it.
+				Component->WriteOncePrebuiltInstanceBuffer.NullifyInstance(InstanceIndex);
+			}
 		}
 	}
 

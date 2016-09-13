@@ -49,11 +49,6 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 	ReplicationMode = EReplicationMode::Full;
 }
 
-UAbilitySystemComponent::~UAbilitySystemComponent()
-{
-	ActiveGameplayEffects.PreDestroy();
-}
-
 const UAttributeSet* UAbilitySystemComponent::InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable)
 {
 	const UAttributeSet* AttributeObj = NULL;
@@ -652,6 +647,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	// Initializing it like this will set the bPassedFiltersAndWasExecuted on the FActiveGameplayEffectHandle to true so we can know that we applied a GE
 	FActiveGameplayEffectHandle	MyHandle(INDEX_NONE);
 	bool bInvokeGameplayCueApplied = Spec.Def->DurationPolicy != EGameplayEffectDurationType::Instant; // Cache this now before possibly modifying predictive instant effect to infinite duration effect.
+	bool bFoundExistingStackableGE = false;
 
 	FActiveGameplayEffect* AppliedEffect = nullptr;
 
@@ -660,7 +656,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	{
 		if (Spec.Def->DurationPolicy != EGameplayEffectDurationType::Instant || bTreatAsInfiniteDuration)
 		{
-			AppliedEffect = ActiveGameplayEffects.ApplyGameplayEffectSpec(Spec, PredictionKey);
+			AppliedEffect = ActiveGameplayEffects.ApplyGameplayEffectSpec(Spec, PredictionKey, bFoundExistingStackableGE);
 			if (!AppliedEffect)
 			{
 				return FActiveGameplayEffectHandle();
@@ -701,7 +697,9 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	
 
 	// We still probably want to apply tags and stuff even if instant?
-	if (!bSuppressGameplayCues && bInvokeGameplayCueApplied && AppliedEffect && !AppliedEffect->bIsInhibited)
+	// If bSuppressStackingCues is set for this GameplayEffect, only add the GameplayCue if this is the first instance of the GameplayEffect
+	if (!bSuppressGameplayCues && bInvokeGameplayCueApplied && AppliedEffect && !AppliedEffect->bIsInhibited && 
+		(!bFoundExistingStackableGE || !Spec.Def->bSuppressStackingCues))
 	{
 		// We both added and activated the GameplayCue here.
 		// On the client, who will invoke the gameplay cue from an OnRep, he will need to look at the StartTime to determine
@@ -1898,16 +1896,13 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 			{
 				FAggregator& Aggregator = *AggregatorRef.Get();
 
-				bool HasActiveMod = false;
-				for (int32 ModOpIdx = 0; ModOpIdx < ARRAY_COUNT(Aggregator.Mods); ++ModOpIdx)
+				TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*> ModMap;
+				Aggregator.DebugGetAllAggregatorMods(ModMap);
+
+				if (ModMap.Num() == 0)
 				{
-					if (Aggregator.Mods[ModOpIdx].Num() > 0)
-					{
-						HasActiveMod = true;
-					}
-				}
-				if (HasActiveMod == false)
 					continue;
+				}
 
 				float FinalValue = GetNumericAttribute(Attribute);
 				float BaseValue = Aggregator.GetBaseValue();
@@ -1918,34 +1913,54 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 					AttributeString += FString::Printf(TEXT(" (Base: %.2f)"), BaseValue);
 				}
 
-				if (Info.Canvas) Info.Canvas->SetDrawColor(FColor::White);
-				
+				if (Info.Canvas)
+				{
+					Info.Canvas->SetDrawColor(FColor::White);
+				}
 
 				DebugLine(Info, AttributeString, 4.f, 0.f);
 
 				DrawAttributes.Add(Attribute);
 
-				for (int32 ModOpIdx = 0; ModOpIdx < ARRAY_COUNT(Aggregator.Mods); ++ModOpIdx)
-				{
-					for (const FAggregatorMod& Mod : Aggregator.Mods[ModOpIdx])
+ 				for (const auto& CurMapElement : ModMap)
+ 				{
+					const EGameplayModEvaluationChannel Channel = CurMapElement.Key;
+					const TArray<FAggregatorMod>* ModArrays = CurMapElement.Value;
+
+					const FString ChannelNameString = UAbilitySystemGlobals::Get().GetGameplayModEvaluationChannelAlias(Channel).ToString();
+					for (int32 ModOpIdx = 0; ModOpIdx < EGameplayModOp::Max; ++ModOpIdx)
 					{
-						FAggregatorEvaluateParameters EmptyParams;
-						bool IsActivelyModifyingAttribute = Mod.Qualifies(EmptyParams);
-						if (Info.Canvas) Info.Canvas->SetDrawColor(IsActivelyModifyingAttribute ? FColor::Yellow : FColor(128, 128, 128));
-
-						FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Mod.ActiveHandle);
-						FString SrcName = ActiveGE ? ActiveGE->Spec.Def->GetName() : FString(TEXT(""));
-
-						if (IsActivelyModifyingAttribute == false)
+						const TArray<FAggregatorMod>& CurModArray = ModArrays[ModOpIdx];
+						for (const FAggregatorMod& Mod : CurModArray)
 						{
-							if (Mod.SourceTagReqs) SrcName += FString::Printf(TEXT(" SourceTags: [%s] "), *Mod.SourceTagReqs->ToString());
-							if (Mod.TargetTagReqs) SrcName += FString::Printf(TEXT("TargetTags: [%s]"), *Mod.TargetTagReqs->ToString());
-						}
+							FAggregatorEvaluateParameters EmptyParams;
+							bool IsActivelyModifyingAttribute = Mod.Qualifies(EmptyParams);
+							if (Info.Canvas)
+							{
+								Info.Canvas->SetDrawColor(IsActivelyModifyingAttribute ? FColor::Yellow : FColor(128, 128, 128));
+							}
 
-						DebugLine(Info, FString::Printf(TEXT("   %s\t %.2f - %s"), *EGameplayModOpToString(ModOpIdx), Mod.EvaluatedMagnitude, *SrcName), 7.f, 0.f);
-						Info.NewColumnYPadding = FMath::Max<float>(Info.NewColumnYPadding, Info.YPos + Info.YL);
+							FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Mod.ActiveHandle);
+							FString SrcName = ActiveGE ? ActiveGE->Spec.Def->GetName() : FString(TEXT(""));
+
+							if (IsActivelyModifyingAttribute == false)
+							{
+								if (Mod.SourceTagReqs)
+								{
+									SrcName += FString::Printf(TEXT(" SourceTags: [%s] "), *Mod.SourceTagReqs->ToString());
+								}
+								if (Mod.TargetTagReqs)
+								{
+									SrcName += FString::Printf(TEXT("TargetTags: [%s]"), *Mod.TargetTagReqs->ToString());
+								}
+							}
+
+							DebugLine(Info, FString::Printf(TEXT("   %s %s\t %.2f - %s"), *ChannelNameString, *EGameplayModOpToString(ModOpIdx), Mod.EvaluatedMagnitude, *SrcName), 7.f, 0.f);
+							Info.NewColumnYPadding = FMath::Max<float>(Info.NewColumnYPadding, Info.YPos + Info.YL);
+						}
 					}
-				}
+ 				}
+
 				AccumulateScreenPos(Info);
 			}
 		}

@@ -79,7 +79,6 @@ void FNiagaraSceneProxy::CreateRenderThreadResources()
 	return;
 }
 
-
 void FNiagaraSceneProxy::OnTransformChanged()
 {
 	//WorldSpacePrimitiveUniformBuffer.ReleaseResource();

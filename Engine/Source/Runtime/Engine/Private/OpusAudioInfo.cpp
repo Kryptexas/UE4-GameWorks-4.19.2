@@ -144,7 +144,7 @@ bool FOpusAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InS
 	CurrentSampleCount = 0;
 
 	// Read Identifier, True Sample Count, Number of channels and Frames to Encode first
-	if (FCStringAnsi::Strcmp((char*)InSrcBufferData, OPUS_ID_STRING) != 0)
+	if (!InSrcBufferData || FCStringAnsi::Strcmp((char*)InSrcBufferData, OPUS_ID_STRING) != 0)
 	{
 		return false;
 	}

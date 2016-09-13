@@ -881,6 +881,9 @@ void APlayerController::GetPlayerViewPoint( FVector& out_Location, FRotator& out
 		{
 			Super::GetPlayerViewPoint(out_Location,out_Rotation);
 		}
+
+		out_Location.DiagnosticCheckNaN(*FString::Printf(TEXT("APlayerController::GetPlayerViewPoint: out_Location, ViewTarget=%s"), *GetNameSafe(TheViewTarget)));
+		out_Rotation.DiagnosticCheckNaN(*FString::Printf(TEXT("APlayerController::GetPlayerViewPoint: out_Rotation, ViewTarget=%s"), *GetNameSafe(TheViewTarget)));
 	}
 }
 

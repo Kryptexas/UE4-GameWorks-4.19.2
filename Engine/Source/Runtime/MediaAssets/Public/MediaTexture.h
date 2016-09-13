@@ -16,7 +16,6 @@ class IMediaTextureSink;
 UCLASS(hidecategories=(Compression, LevelOfDetail, Object, Texture))
 class MEDIAASSETS_API UMediaTexture
 	: public UTexture
-	, public FTickerObjectBase
 	, public IMediaTextureSink
 {
 	GENERATED_UCLASS_BODY()
@@ -40,12 +39,6 @@ public:
 	{
 		return BeginDestroyEvent;
 	}
-
-public:
-
-	//~ FTickerObjectBase interface
-
-	virtual bool Tick(float DeltaTime) override;
 
 public:
 
@@ -106,9 +99,6 @@ private:
 
 	/** Critical section for synchronizing access to texture resource object. */
 	mutable FCriticalSection CriticalSection;
-
-	/** Asynchronous tasks for the game thread. */
-	TQueue<TFunction<void()>> GameThreadTasks;
 
 	/** Width and height of the texture (in pixels). */
 	FIntPoint SinkDimensions;

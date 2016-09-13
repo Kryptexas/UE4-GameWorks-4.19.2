@@ -27,6 +27,8 @@ TSharedRef<IPropertyTypeCustomization> FAttributePropertyDetails::MakeInstance()
 void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	MyProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayAttribute,Attribute));
+	OwnerProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayAttribute,AttributeOwner));
+	NameProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayAttribute,AttributeName));
 
 	PropertyOptions.Empty();
 	PropertyOptions.Add(MakeShareable(new FString("None")));
@@ -186,6 +188,22 @@ void FAttributePropertyDetails::OnAttributeChanged(UProperty* SelectedAttribute)
 	if (MyProperty.IsValid())
 	{
 		MyProperty->SetValue(SelectedAttribute);
+
+		// When we set the attribute we should also set the owner and name info
+		if (OwnerProperty.IsValid())
+		{
+			OwnerProperty->SetValue(SelectedAttribute ? SelectedAttribute->GetOwnerStruct() : nullptr);
+		}
+
+		if (NameProperty.IsValid())
+		{
+			FString AttributeName;
+			if (SelectedAttribute)
+			{
+				SelectedAttribute->GetName(AttributeName);
+			}
+			NameProperty->SetValue(AttributeName);
+		}
 	}
 }
 

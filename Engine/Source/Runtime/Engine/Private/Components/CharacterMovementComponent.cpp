@@ -7473,7 +7473,7 @@ void UCharacterMovementComponent::ServerMoveOld_Implementation
 	uint8 OldMoveFlags
 	)
 {
-	if (!HasValidData() || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsActive())
 	{
 		return;
 	}
@@ -7817,7 +7817,7 @@ void UCharacterMovementComponent::ServerMove_Implementation(
 	FName ClientBaseBoneName,
 	uint8 ClientMovementMode)
 {
-	if (!HasValidData() || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsActive())
 	{
 		return;
 	}	
@@ -8255,7 +8255,7 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 	uint8 ServerMovementMode
 	)
 {
-	if (!HasValidData() || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsActive())
 	{
 		return;
 	}
@@ -8375,7 +8375,7 @@ void UCharacterMovementComponent::ClientAdjustRootMotionPosition_Implementation(
 	bool bBaseRelativePosition,
 	uint8 ServerMovementMode)
 {
-	if (!HasValidData() || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsActive())
 	{
 		return;
 	}
@@ -8441,7 +8441,7 @@ void UCharacterMovementComponent::ClientAdjustRootMotionSourcePosition_Implement
 	bool bBaseRelativePosition,
 	uint8 ServerMovementMode)
 {
-	if (!HasValidData() || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsActive())
 	{
 		return;
 	}
@@ -8519,7 +8519,7 @@ void UCharacterMovementComponent::ClientAdjustRootMotionSourcePosition_Implement
 
 void UCharacterMovementComponent::ClientAckGoodMove_Implementation(float TimeStamp)
 {
-	if (!HasValidData() || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsActive())
 	{
 		return;
 	}

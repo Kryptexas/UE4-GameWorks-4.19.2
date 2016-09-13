@@ -34,6 +34,15 @@ static FAutoConsoleVariableRef CVarCacheLightShaftDownsampleFactor(
 	ECVF_RenderThreadSafe
 	);
 
+int32 GLightShaftRenderToSeparateTranslucency = 0;
+static FAutoConsoleVariableRef CVarRenderLightshaftsToSeparateTranslucency(
+	TEXT("r.LightShaftRenderToSeparateTranslucency"),
+	GLightShaftRenderToSeparateTranslucency,
+	TEXT("If enabled, light shafts will be rendered to the separate translucency buffer.\n")
+	TEXT("This ensures postprocess materials with BL_BeforeTranslucnecy are applied before light shafts"),
+	ECVF_RenderThreadSafe
+	);
+
 int32 GetLightShaftDownsampleFactor()
 {
 	return FMath::Clamp(GLightShaftDownsampleFactor, 1, 8);
@@ -869,7 +878,17 @@ IMPLEMENT_SHADER_TYPE(,FApplyLightShaftsPixelShader,TEXT("LightShaftShader"),TEX
 void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FLightSceneInfo* const LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+
+	bool bUseSeparateTranslucency = false;
+	if (SceneContext.IsSeparateTranslucencyActive(View) && GLightShaftRenderToSeparateTranslucency )
+	{
+		SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, false);
+		bUseSeparateTranslucency = true;
+	}
+	else
+	{
+		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+	}
 
 	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 	RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
@@ -901,7 +920,14 @@ void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo&
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
-	SceneContext.FinishRenderingSceneColor(RHICmdList);
+	if ( bUseSeparateTranslucency )
+	{
+		SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);
+	}
+	else
+	{
+		SceneContext.FinishRenderingSceneColor(RHICmdList);
+	}
 }
 
 void FSceneViewState::TrimHistoryRenderTargets(const FScene* Scene)

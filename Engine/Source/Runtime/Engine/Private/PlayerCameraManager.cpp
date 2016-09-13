@@ -962,6 +962,9 @@ FPOV APlayerCameraManager::BlendViewTargets(const FTViewTarget& A,const FTViewTa
 
 void APlayerCameraManager::FillCameraCache(const FMinimalViewInfo& NewInfo)
 {
+	NewInfo.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::FillCameraCache: NewInfo.Location"));
+	NewInfo.Rotation.DiagnosticCheckNaN(TEXT("APlayerCameraManager::FillCameraCache: NewInfo.Rotation"));
+
 	// Backup last frame results.
 	if (CameraCache.TimeStamp != GetWorld()->TimeSeconds)
 	{
@@ -1043,6 +1046,11 @@ void APlayerCameraManager::ApplyWorldOffset(const FVector& InOffset, bool bWorld
 	
 	ViewTarget.POV.Location+= InOffset;
 	PendingViewTarget.POV.Location+= InOffset;
+
+	CameraCache.POV.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::ApplyWorldOffset: CameraCache.POV.Location"));
+	LastFrameCameraCache.POV.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::ApplyWorldOffset: LastFrameCameraCache.POV.Location"));
+	ViewTarget.POV.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::ApplyWorldOffset: ViewTarget.POV.Location"));
+	PendingViewTarget.POV.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::ApplyWorldOffset: PendingViewTarget.POV.Location"));
 }
 
 AEmitterCameraLensEffectBase* APlayerCameraManager::FindCameraLensEffect(TSubclassOf<AEmitterCameraLensEffectBase> LensEffectEmitterClass)

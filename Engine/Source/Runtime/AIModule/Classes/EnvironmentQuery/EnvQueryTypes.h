@@ -153,7 +153,7 @@ namespace EEnvItemStatus
 	};
 }
 
-UENUM()
+UENUM(BlueprintType)
 namespace EEnvQueryStatus
 {
 	enum Type

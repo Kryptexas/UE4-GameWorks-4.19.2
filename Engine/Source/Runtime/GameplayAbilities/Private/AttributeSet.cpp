@@ -64,6 +64,8 @@ FGameplayAttribute::FGameplayAttribute(UProperty *NewProperty)
 
 void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttributeSet* Dest) const
 {
+	check(Dest);
+
 	UNumericProperty* NumericProperty = Cast<UNumericProperty>(Attribute);
 	float OldValue = 0.f;
 	if (NumericProperty)
@@ -92,7 +94,7 @@ void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttribute
 	// draw a graph of the changes to the attribute in the visual logger
 	if (bDoAttributeGraphVLogging && FVisualLogger::IsRecording())
 	{
-		AActor* OwnerActor = Dest->GetOwningAbilitySystemComponent()->OwnerActor;
+		AActor* OwnerActor = Dest->GetOwningActor();
 		if (OwnerActor)
 		{
 			ABILITY_VLOG_ATTRIBUTE_GRAPH(OwnerActor, Log, GetName(), OldValue, NewValue);
@@ -194,19 +196,22 @@ bool FGameplayAttribute::IsGameplayAttributeDataProperty(const UProperty* Proper
 // Fill in missing attribute information
 void FGameplayAttribute::PostSerialize(const FArchive& Ar)
 {
-	if (AttributeName.IsEmpty() || AttributeOwner == nullptr)
+	if (Ar.IsLoading() && Ar.IsPersistent() && !Ar.HasAnyPortFlags(PPF_Duplicate | PPF_DuplicateForPIE))
 	{
 		if (Attribute)
 		{
 			AttributeOwner = Attribute->GetOwnerStruct();
 			Attribute->GetName(AttributeName);
 		}
-	}
-	else
-	{
-		if (!Attribute)
+		else if (!AttributeName.IsEmpty() && AttributeOwner != nullptr)
 		{
 			Attribute = FindField<UProperty>(AttributeOwner, *AttributeName);
+
+			if (!Attribute)
+			{
+				FString OwnerName = AttributeOwner ? AttributeOwner->GetName() : TEXT("NONE");
+				ABILITY_LOG(Warning, TEXT("FGameplayAttribute::PostSerialize called on an invalid attribute with owner %s and name %s."), *OwnerName, *AttributeName);
+			}
 		}
 	}
 }
@@ -262,7 +267,7 @@ void UAttributeSet::InitFromMetaDataTable(const UDataTable* DataTable)
 
 UAbilitySystemComponent* UAttributeSet::GetOwningAbilitySystemComponent() const
 {
-	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(CastChecked<AActor>(GetOuter()));
+	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwningActor());
 }
 
 FGameplayAbilityActorInfo* UAttributeSet::GetActorInfo() const

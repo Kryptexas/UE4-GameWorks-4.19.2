@@ -19,6 +19,8 @@ UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectIni
 
 	MinimalReplicationTagCountBits = 5;
 
+	bAllowGameplayModEvaluationChannels = false;
+
 #if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
 #endif // #if WITH_EDITORONLY_DATA
@@ -90,6 +92,28 @@ void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName,
 #endif
 }
 
+bool UAbilitySystemGlobals::ShouldAllowGameplayModEvaluationChannels() const
+{
+	return bAllowGameplayModEvaluationChannels;
+}
+
+bool UAbilitySystemGlobals::IsGameplayModEvaluationChannelValid(EGameplayModEvaluationChannel Channel) const
+{
+	// Only valid if channels are allowed and the channel has a game-specific alias specified or if not using channels and the channel is Channel0
+	const bool bAllowChannels = ShouldAllowGameplayModEvaluationChannels();
+	return bAllowChannels ? (!GetGameplayModEvaluationChannelAlias(Channel).IsNone()) : (Channel == EGameplayModEvaluationChannel::Channel0);
+}
+
+const FName& UAbilitySystemGlobals::GetGameplayModEvaluationChannelAlias(EGameplayModEvaluationChannel Channel) const
+{
+	return GetGameplayModEvaluationChannelAlias(static_cast<int32>(Channel));
+}
+
+const FName& UAbilitySystemGlobals::GetGameplayModEvaluationChannelAlias(int32 Index) const
+{
+	check(Index >= 0 && Index < ARRAY_COUNT(GameplayModEvaluationChannelAliases));
+	return GameplayModEvaluationChannelAliases[Index];
+}
 
 #if WITH_EDITOR
 

@@ -248,10 +248,16 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUseLoggingInShipping;
 
-        /// <summary>
-        /// Whether to check that the process was launched through an external launcher
-        /// </summary>
-        [XmlConfig]
+		/// <summary>
+		/// Whether to turn on logging to memory for test/shipping builds
+		/// </summary>
+		[XmlConfig]
+		public static bool bLoggingToMemoryEnabled;
+
+		/// <summary>
+		/// Whether to check that the process was launched through an external launcher
+		/// </summary>
+		[XmlConfig]
         public static bool bUseLauncherChecks;
 
 		/// <summary>

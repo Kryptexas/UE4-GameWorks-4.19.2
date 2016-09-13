@@ -641,12 +641,12 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 	// Cache the primitive's initial transform.
 	FMatrix RenderMatrix = Primitive->GetRenderMatrix();
-	FVector OwnerPosition(0);
+	FVector AttachmentRootPosition(0);
 
-	AActor* Owner = Primitive->GetOwner();
-	if (Owner)
+	AActor* AttachmentRoot = Primitive->GetAttachmentRootActor();
+	if (AttachmentRoot)
 	{
-		OwnerPosition = Owner->GetActorLocation();
+		AttachmentRootPosition = AttachmentRoot->GetActorLocation();
 	}
 
 	struct FCreateRenderThreadParameters
@@ -654,7 +654,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		FPrimitiveSceneProxy* PrimitiveSceneProxy;
 		FMatrix RenderMatrix;
 		FBoxSphereBounds WorldBounds;
-		FVector OwnerPosition;
+		FVector AttachmentRootPosition;
 		FBoxSphereBounds LocalBounds;
 	};
 	FCreateRenderThreadParameters Params =
@@ -662,7 +662,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		PrimitiveSceneProxy,
 		RenderMatrix,
 		Primitive->Bounds,
-		OwnerPosition,
+		AttachmentRootPosition,
 		Primitive->CalcBounds(FTransform::Identity)
 	};
 
@@ -677,7 +677,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 	{
 		FPrimitiveSceneProxy* SceneProxy = Params.PrimitiveSceneProxy;
 		FScopeCycleCounter Context(SceneProxy->GetStatId());
-		SceneProxy->SetTransform(Params.RenderMatrix, Params.WorldBounds, Params.LocalBounds, Params.OwnerPosition);
+		SceneProxy->SetTransform(Params.RenderMatrix, Params.WorldBounds, Params.LocalBounds, Params.AttachmentRootPosition);
 
 		// Create any RenderThreadResources required.
 		SceneProxy->CreateRenderThreadResources();
@@ -707,7 +707,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 }
 
-void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition)
+void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& AttachmentRootPosition)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePrimitiveTransformRenderThreadTime);
 
@@ -724,7 +724,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	Scene->MotionBlurInfoData.UpdatePrimitiveMotionBlur(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 	
 	// Update the primitive transform.
-	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, OwnerPosition);
+	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition);
 
 	DistanceFieldSceneData.UpdatePrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 
@@ -763,12 +763,12 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 		}
 		else
 		{
-			FVector OwnerPosition(0);
+			FVector AttachmentRootPosition(0);
 
-			AActor* Actor = Primitive->GetOwner();
+			AActor* Actor = Primitive->GetAttachmentRootActor();
 			if (Actor != NULL)
 			{
-				OwnerPosition = Actor->GetActorLocation();
+				AttachmentRootPosition = Actor->GetActorLocation();
 			}
 
 			struct FPrimitiveUpdateParams
@@ -778,7 +778,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 				FBoxSphereBounds WorldBounds;
 				FBoxSphereBounds LocalBounds;
 				FMatrix LocalToWorld;
-				FVector OwnerPosition;
+				FVector AttachmentRootPosition;
 			};
 
 			FPrimitiveUpdateParams UpdateParams;
@@ -786,7 +786,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 			UpdateParams.PrimitiveSceneProxy = Primitive->SceneProxy;
 			UpdateParams.WorldBounds = Primitive->Bounds;
 			UpdateParams.LocalToWorld = Primitive->GetRenderMatrix();
-			UpdateParams.OwnerPosition = OwnerPosition;
+			UpdateParams.AttachmentRootPosition = AttachmentRootPosition;
 			UpdateParams.LocalBounds = Primitive->CalcBounds(FTransform::Identity);
 
 			// Help track down primitive with bad bounds way before the it gets to the Renderer
@@ -798,7 +798,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 				FPrimitiveUpdateParams,UpdateParams,UpdateParams,
 				{
 					FScopeCycleCounter Context(UpdateParams.PrimitiveSceneProxy->GetStatId());
-					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(RHICmdList, UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.OwnerPosition);
+					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(RHICmdList, UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.AttachmentRootPosition);
 				});
 		}
 	}

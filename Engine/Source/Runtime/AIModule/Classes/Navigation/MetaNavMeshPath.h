@@ -33,8 +33,11 @@ struct AIMODULE_API FMetaNavMeshPath : public FNavMeshPath
 	/** initialize path for path following */
 	virtual void Initialize(const FVector& AgentLocation);
 
-	/** try switching to next waypoint */
+	/** try switching to next waypoint, depends on WaypointSwitchRadius */
 	virtual bool ConditionalMoveToNextSection(const FVector& AgentLocation, EMetaPathUpdateReason Reason);
+
+	/** force switching to next waypoint */
+	bool ForceMoveToNextSection(const FVector& AgentLocation);
 
 	/** updates underlying navmesh path for current target waypoint */
 	virtual bool UpdatePath(const FVector& AgentLocation);
@@ -53,6 +56,9 @@ struct AIMODULE_API FMetaNavMeshPath : public FNavMeshPath
 
 	/** returns waypoint array */
 	const TArray<FVector>& GetWaypoints() const { return Waypoints; }
+
+	/** returns cached path goal */
+	AActor* GetMetaPathGoal() const { return PathGoal.Get(); }
 
 	/** tries to set waypoints, fails when path is ready being followed */
 	bool SetWaypoints(const TArray<FVector>& InWaypoints);

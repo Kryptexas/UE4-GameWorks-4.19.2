@@ -345,7 +345,7 @@ void SScrollBox::ClearChildren()
 
 bool SScrollBox::IsRightClickScrolling() const
 {
-	return AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistance() && this->ScrollBar->IsNeeded();
+	return FSlateApplication::IsInitialized() && AmountScrolledWhileRightMouseDown >= FSlateApplication::Get().GetDragTriggerDistance() && this->ScrollBar->IsNeeded();
 }
 
 float SScrollBox::GetScrollOffset()
@@ -367,6 +367,8 @@ void SScrollBox::ScrollToStart()
 void SScrollBox::ScrollToEnd()
 {
 	bScrollToEnd = true;
+
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 void SScrollBox::ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll, EDescendantScrollDestination InDestination)
@@ -379,6 +381,8 @@ void SScrollBox::ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFin
 	bIsScrolling = true;
 	bIsScrollingActiveTimerRegistered = true;
 	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
+
+	Invalidate(EInvalidateWidget::Layout);
 }
 
 bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll, EDescendantScrollDestination InDestination)
@@ -580,10 +584,16 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 		TargetPhysicalOffset += Overscroll.GetOverscroll();
 	}
 
+	const bool bWasScrolling = bIsScrolling;
 	bIsScrolling = !FMath::IsNearlyEqual(TargetPhysicalOffset, ScrollPanel->PhysicalOffset, 0.001f);
 	ScrollPanel->PhysicalOffset = (bAnimateScroll)
 		? FMath::FInterpTo(ScrollPanel->PhysicalOffset, TargetPhysicalOffset, InDeltaTime, 15.f)
 		: TargetPhysicalOffset;
+
+	if (bWasScrolling && !bIsScrolling)
+	{
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
+	}
 	
 	ScrollBar->SetState(ViewOffset, ViewFraction);
 	if (!ScrollBar->IsNeeded())
@@ -591,6 +601,11 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 		// We cannot scroll, so ensure that there is no offset.
 		ScrollPanel->PhysicalOffset = 0.0f;
 	}
+}
+
+bool SScrollBox::ComputeVolatility() const
+{
+	return bIsScrolling || IsRightClickScrolling();
 }
 
 FReply SScrollBox::OnPreviewMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -603,6 +618,9 @@ FReply SScrollBox::OnPreviewMouseButtonDown(const FGeometry& MyGeometry, const F
 		AmountScrolledWhileRightMouseDown = 0;
 		// Someone put their finger down in this list, so they probably want to drag the list.
 		bStartedTouchInteraction = true;
+
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
+
 		return FReply::Unhandled();
 	}
 	else
@@ -619,6 +637,8 @@ FReply SScrollBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && ScrollBar->IsNeeded() )
 	{
 		AmountScrolledWhileRightMouseDown = 0;
+
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 
 		// NOTE: We don't bother capturing the mouse, unless the user starts dragging a few pixels (see the
 		// mouse move handling here.)  This is important so that the item row has a chance to select
@@ -645,6 +665,8 @@ FReply SScrollBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 		}
 
 		AmountScrolledWhileRightMouseDown = 0;
+
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 
 		FReply Reply = FReply::Handled().ReleaseMouseCapture();
 		bShowSoftwareCursor = false;
@@ -676,6 +698,8 @@ FReply SScrollBox::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 		// If scrolling with the right mouse button, we need to remember how much we scrolled.
 		// If we did not scroll at all, we will bring up the context menu when the mouse is released.
 		AmountScrolledWhileRightMouseDown += FMath::Abs( ScrollByAmount );
+
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 
 		// Has the mouse moved far enough with the right mouse button held down to start capturing
 		// the mouse and dragging the view?
@@ -714,7 +738,11 @@ void SScrollBox::OnMouseLeave( const FPointerEvent& MouseEvent )
 	if (HasMouseCapture() == false)
 	{
 		// No longer scrolling (unless we have mouse capture)
-		AmountScrolledWhileRightMouseDown = 0;
+		if (AmountScrolledWhileRightMouseDown != 0)
+		{
+			AmountScrolledWhileRightMouseDown = 0;
+			Invalidate(EInvalidateWidget::LayoutAndVolatility);
+		}
 		bStartedTouchInteraction = false;
 	}
 }
@@ -735,6 +763,7 @@ FReply SScrollBox::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 			bIsScrolling = true;
 			bIsScrollingActiveTimerRegistered = true;
 			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
+			Invalidate(EInvalidateWidget::LayoutAndVolatility);
 		}
 
 		return bScrollWasHandled ? FReply::Handled() : FReply::Unhandled();
@@ -808,6 +837,8 @@ FReply SScrollBox::OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent
 		AmountScrolledWhileRightMouseDown += FMath::Abs(ScrollByAmount);
 		TickScrollDelta -= ScrollByAmount;
 
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
+
 		if ( AmountScrolledWhileRightMouseDown > FSlateApplication::Get().GetDragTriggerDistance() )
 		{
 			const float AmountScrolled = this->ScrollBy(MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes, true);
@@ -831,6 +862,8 @@ FReply SScrollBox::OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent
 
 	AmountScrolledWhileRightMouseDown = 0;
 	bStartedTouchInteraction = false;
+
+	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 
 	bIsScrollingActiveTimerRegistered = true;
 	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));

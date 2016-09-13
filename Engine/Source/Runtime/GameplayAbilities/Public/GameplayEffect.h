@@ -11,6 +11,7 @@
 #include "GameplayEffectAggregator.h"
 #include "GameplayEffectCalculation.h"
 #include "ActiveGameplayEffectIterator.h"
+#include "ObjectKey.h"
 #include "GameplayEffect.generated.h"
 
 struct FActiveGameplayEffect;
@@ -32,7 +33,7 @@ enum class EGameplayEffectMagnitudeCalculation : uint8
 	AttributeBased,
 	/** Perform a custom calculation, capable of capturing and acting on multiple attributes, in either BP or native. */
 	CustomCalculationClass,	
-	/** This magnitude will be set explicity by that code/blueprint that creates the spec. */
+	/** This magnitude will be set explicitly by the code/blueprint that creates the spec. */
 	SetByCaller,
 };
 
@@ -45,7 +46,9 @@ enum class EAttributeBasedFloatCalculationType : uint8
 	/** Use the base value of the attribute. */
 	AttributeBaseValue,
 	/** Use the "bonus" evaluated magnitude of the attribute: Equivalent to (FinalMag - BaseValue). */
-	AttributeBonusMagnitude
+	AttributeBonusMagnitude,
+	/** Use a calculated magnitude stopping with the evaluation of the specified "Final Channel" */
+	AttributeMagnitudeEvaluatedUpToChannel
 };
 
 struct GAMEPLAYABILITIES_API FGameplayEffectConstants
@@ -81,6 +84,7 @@ public:
 		, PostMultiplyAdditiveValue(0.f)
 		, BackingAttribute()
 		, AttributeCalculationType(EAttributeBasedFloatCalculationType::AttributeMagnitude)
+		, FinalChannel(EGameplayModEvaluationChannel::Channel0)
 	{}
 
 	/**
@@ -119,6 +123,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
 	EAttributeBasedFloatCalculationType AttributeCalculationType;
 
+	/** Channel to terminate evaluation on when using AttributeEvaluatedUpToChannel calculation type */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	EGameplayModEvaluationChannel FinalChannel;
+
 	/** Filter to use on source tags; If specified, only modifiers applied with all of these tags will factor into the calculation */
 	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
 	FGameplayTagContainer SourceTagFilter;
@@ -132,7 +140,7 @@ public:
 	bool operator!=(const FAttributeBasedFloat& Other) const;
 };
 
-/** Structure to encapsulate magnitude that are calculated via custom calculation */
+/** Structure to encapsulate magnitudes that are calculated via custom calculation */
 USTRUCT()
 struct FCustomCalculationBasedFloat
 {
@@ -255,7 +263,7 @@ public:
 	bool AttemptCalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude, bool WarnIfSetByCallerFail=true, float DefaultSetbyCaller=0.f) const;
 
 	/** Attempts to recalculate the magnitude given a changed aggregator. This will only recalculate if we are a modifier that is linked (non snapshot) to the given aggregator. */
-	bool AttemptRecalculateMagnitudeFromDependentChange(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude, const FAggregator* ChangedAggregator) const;
+	bool AttemptRecalculateMagnitudeFromDependentAggregatorChange(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude, const FAggregator* ChangedAggregator) const;
 
 	/**
 	 * Gather all of the attribute capture definitions necessary to compute the magnitude and place them into the provided array
@@ -271,6 +279,9 @@ public:
 
 	/** Returns the DataName associated with this magnitude if it is set by caller */
 	bool GetSetByCallerDataNameIfPossible(FName& OutDataName) const;
+
+	/** Returns the custom magnitude calculation class, if any, for this magnitude. Only applies to CustomMagnitudes */
+	TSubclassOf<UGameplayModMagnitudeCalculation> GetCustomMagnitudeCalculationClass() const;
 
 	bool operator==(const FGameplayEffectModifierMagnitude& Other) const;
 	bool operator!=(const FGameplayEffectModifierMagnitude& Other) const;
@@ -339,6 +350,10 @@ struct FGameplayEffectExecutionScopedModifierInfo
 	/** Magnitude of the scoped modifier */
 	UPROPERTY(EditDefaultsOnly, Category=Execution)
 	FGameplayEffectModifierMagnitude ModifierMagnitude;
+
+	/** Evaluation channel settings of the scoped modifier */
+	UPROPERTY(EditDefaultsOnly, Category=Execution)
+	FGameplayModEvaluationChannelSettings EvaluationChannelSettings;
 
 	/** Source tag requirements for the modifier to apply */
 	UPROPERTY(EditDefaultsOnly, Category=Execution)
@@ -418,17 +433,15 @@ struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayEffectModifierMagnitude ModifierMagnitude;
 
+	/** Evaluation channel settings of the modifier */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	FGameplayModEvaluationChannelSettings EvaluationChannelSettings;
+
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayTagRequirements	SourceTags;
 
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayTagRequirements	TargetTags;
-
-
-	FString ToSimpleString() const
-	{
-		return FString::Printf(TEXT("%s BaseVaue: %s"), *EGameplayModOpToString(ModifierOp), *Magnitude.ToSimpleString());
-	}
 
 	/** Equality/Inequality operators */
 	bool operator==(const FGameplayModifierInfo& Other) const;
@@ -629,6 +642,18 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpec
 	 * @return True if the magnitude was successfully calculated, false if it was not
 	 */
 	bool AttemptCalculateAttributeMagnitude(const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const;
+
+	/**
+	 * Attempts to calculate the magnitude of the captured attribute given the specified parameters, up to the specified evaluation channel (inclusive).
+	 * Can fail if the spec doesn't have a valid capture yet.
+	 * 
+	 * @param InEvalParams	Parameters to evaluate the attribute under
+	 * @param FinalChannel	Evaluation channel to terminate the calculation at
+	 * @param OutMagnitude	[OUT] Computed magnitude
+	 * 
+	 * @return True if the magnitude was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateAttributeMagnitudeUpToChannel(const FAggregatorEvaluateParameters& InEvalParams, EGameplayModEvaluationChannel FinalChannel, OUT float& OutMagnitude) const;
 
 	/**
 	 * Attempts to calculate the magnitude of the captured attribute given the specified parameters, including a starting base value. 
@@ -1337,6 +1362,20 @@ struct FActiveGameplayEffectQuery
 	TArray<FActiveGameplayEffectHandle> IgnoreHandles;
 };
 
+/** Helper struct to hold data about external dependencies for custom modifiers */
+struct FCustomModifierDependencyHandle
+{
+	FCustomModifierDependencyHandle()
+		: ActiveEffectHandles()
+		, ActiveDelegateHandle()
+	{}
+
+	/** Set of handles of active gameplay effects dependent upon a particular external dependency */
+	TSet<FActiveGameplayEffectHandle> ActiveEffectHandles;
+
+	/** Delegate handle populated as a result of binding to an external dependency delegate */
+	FDelegateHandle ActiveDelegateHandle;
+};
 
 /**
  * Active GameplayEffects Container
@@ -1355,7 +1394,6 @@ struct FActiveGameplayEffectQuery
  *	for (auto It = CreateConstIterator(); It; ++It) 
  *	{
  *	}
- *
  *
  */
 USTRUCT()
@@ -1401,7 +1439,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	void RegisterWithOwner(UAbilitySystemComponent* Owner);	
 	
-	FActiveGameplayEffect* ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey& InPredictionKey);
+	FActiveGameplayEffect* ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey& InPredictionKey, bool& bFoundExistingStackableGE);
 
 	FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle);
 
@@ -1478,7 +1516,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms);
 
-	void PreDestroy();	
+	void Uninitialize();	
 
 	// ------------------------------------------------
 
@@ -1621,6 +1659,15 @@ private:
 	/** Updates tag dependency map when a GameplayEffect is removed */
 	void RemoveActiveEffectTagDependency(const FGameplayTagContainer& Tags, FActiveGameplayEffectHandle Handle);
 
+	/** Internal helper function to bind the active effect to all of the custom modifier magnitude external dependency delegates it contains, if any */
+	void AddCustomMagnitudeExternalDependencies(FActiveGameplayEffect& Effect);
+
+	/** Internal helper function to unbind the active effect from all of the custom modifier magnitude external dependency delegates it may have bound to, if any */
+	void RemoveCustomMagnitudeExternalDependencies(FActiveGameplayEffect& Effect);
+
+	/** Internal callback fired as a result of a custom modifier magnitude external dependency delegate firing; Updates affected active gameplay effects as necessary */
+	void OnCustomMagnitudeExternalDependencyFired(TSubclassOf<UGameplayModMagnitudeCalculation> MagnitudeCalculationClass);
+
 	/** Internal helper function to apply expiration effects from a removed/expired gameplay effect spec */
 	void InternalApplyExpirationEffects(const FGameplayEffectSpec& ExpiringSpec, bool bPrematureRemoval);
 
@@ -1633,6 +1680,9 @@ private:
 	TMap<FGameplayAttribute, FOnGameplayAttributeChange> AttributeChangeDelegates;
 
 	TMap<FGameplayTag, TSet<FActiveGameplayEffectHandle> >	ActiveEffectTagDependencies;
+
+	/** Mapping of custom gameplay modifier magnitude calculation class to dependency handles for triggering updates on external delegates firing */
+	TMap<FObjectKey, FCustomModifierDependencyHandle> CustomMagnitudeClassDependencies;
 
 	/** A map to manage stacking while we are the source */
 	TMap<TWeakObjectPtr<UGameplayEffect>, TArray<FActiveGameplayEffectHandle> >	SourceStackingMap;
@@ -1830,6 +1880,10 @@ public:
 	/** If true, cues will only trigger when GE modifiers succeed being applied (whether through modifiers or executions) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Display)
 	bool bRequireModifierSuccessToTriggerCues;
+
+	/** If true, GameplayCues will only be triggered for the first instance in a stacking GameplayEffect. */
+	UPROPERTY(EditDefaultsOnly, Category = Display)
+	bool bSuppressStackingCues;
 
 	/** Cues to trigger non-simulated reactions in response to this GameplayEffect such as sounds, particle effects, etc */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Display)

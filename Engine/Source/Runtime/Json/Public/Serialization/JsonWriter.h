@@ -125,57 +125,46 @@ public:
 		PreviousTokenWritten = EJsonToken::SquareClose;
 	}
 
-	void WriteValue( const FString& Identifier, const bool Value )
+	template <class FValue>
+	void WriteValue(FValue Value)
+	{
+		check(CanWriteValueWithoutIdentifier());
+		WriteCommaIfNeeded();
+
+		if (PreviousTokenWritten == EJsonToken::SquareOpen || EJsonToken_IsShortValue(PreviousTokenWritten))
+		{
+			PrintPolicy::WriteSpace( Stream );
+		}
+		else
+		{
+			PrintPolicy::WriteLineTerminator(Stream);
+			PrintPolicy::WriteTabs(Stream, IndentLevel);
+		}
+
+		PreviousTokenWritten = WriteValueOnly( Value );
+	}
+
+	void WriteValue(const FString& Value)
+	{
+		check(CanWriteValueWithoutIdentifier());
+		WriteCommaIfNeeded();
+
+		PrintPolicy::WriteLineTerminator(Stream);
+		PrintPolicy::WriteTabs(Stream, IndentLevel);
+		PreviousTokenWritten = WriteValueOnly(Value);
+	}
+
+	template <class FValue>
+	void WriteValue(const FString& Identifier, FValue Value)
 	{
 		check( Stack.Top() == EJson::Object );
 		WriteIdentifier( Identifier );
 
 		PrintPolicy::WriteSpace(Stream);
-		WriteBoolValue( Value );
-		PreviousTokenWritten = Value ? EJsonToken::True : EJsonToken::False;
+		PreviousTokenWritten = WriteValueOnly(MoveTemp(Value));
 	}
 
-	void WriteValue( const FString& Identifier, const double Value )
-	{
-		check( Stack.Top() == EJson::Object );
-		WriteIdentifier( Identifier );
-
-		PrintPolicy::WriteSpace(Stream);
-		WriteNumberValue( Value );
-		PreviousTokenWritten = EJsonToken::Number;
-	}
-
-	void WriteValue( const FString& Identifier, const int32 Value )
-	{
-		check( Stack.Top() == EJson::Object );
-		WriteIdentifier( Identifier );
-
-		PrintPolicy::WriteSpace(Stream);
-		WriteIntegerValue( Value );
-		PreviousTokenWritten = EJsonToken::Number;
-	}
-
-	void WriteValue( const FString& Identifier, const int64 Value )
-	{
-		check( Stack.Top() == EJson::Object );
-		WriteIdentifier( Identifier );
-
-		PrintPolicy::WriteSpace(Stream);
-		WriteIntegerValue( Value );
-		PreviousTokenWritten = EJsonToken::Number;
-	}
-
-	void WriteValue( const FString& Identifier, const FString& Value )
-	{
-		check( Stack.Top() == EJson::Object );
-		WriteIdentifier( Identifier );
-
-		PrintPolicy::WriteSpace(Stream);
-		WriteStringValue( Value );
-		PreviousTokenWritten = EJsonToken::String;
-	}
-
-	void WriteValue( const FString& Identifier, const TCHAR* Value )
+	void WriteValue(const FString& Identifier, const TCHAR* Value)
 	{
 		WriteValue(Identifier, FString(Value));
 	}
@@ -194,98 +183,7 @@ public:
 
 	void WriteNull( const FString& Identifier )
 	{
-		check( Stack.Top() == EJson::Object );
-		WriteIdentifier( Identifier );
-
-		PrintPolicy::WriteSpace(Stream);
-		WriteNullValue();
-		PreviousTokenWritten = EJsonToken::Null;
-	}
-
-	void WriteValue( const bool Value )
-	{
-		check(CanWriteValueWithoutIdentifier());
-		WriteCommaIfNeeded();
-
-		if ( PreviousTokenWritten != EJsonToken::True && PreviousTokenWritten != EJsonToken::False && PreviousTokenWritten != EJsonToken::SquareOpen )
-		{
-			PrintPolicy::WriteLineTerminator(Stream);
-			PrintPolicy::WriteTabs(Stream, IndentLevel);
-		}
-		else
-		{
-			PrintPolicy::WriteSpace( Stream );
-		}
-
-		WriteBoolValue( Value );
-		PreviousTokenWritten = Value ? EJsonToken::True : EJsonToken::False;
-	}
-
-	void WriteValue( const double Value )
-	{
-		check(CanWriteValueWithoutIdentifier());
-		WriteCommaIfNeeded();
-
-		if ( PreviousTokenWritten != EJsonToken::Number && PreviousTokenWritten != EJsonToken::SquareOpen )
-		{
-			PrintPolicy::WriteLineTerminator(Stream);
-			PrintPolicy::WriteTabs(Stream, IndentLevel);
-		}
-		else
-		{
-			PrintPolicy::WriteSpace( Stream );
-		}
-
-		WriteNumberValue( Value );
-		PreviousTokenWritten = EJsonToken::Number;
-	}
-
-	void WriteValue( const int32 Value )
-	{
-		check(CanWriteValueWithoutIdentifier());
-		WriteCommaIfNeeded();
-
-		if ( PreviousTokenWritten != EJsonToken::Number && PreviousTokenWritten != EJsonToken::SquareOpen )
-		{
-			PrintPolicy::WriteLineTerminator(Stream);
-			PrintPolicy::WriteTabs(Stream, IndentLevel);
-		}
-		else
-		{
-			PrintPolicy::WriteSpace( Stream );
-		}
-
-		WriteIntegerValue( Value );
-		PreviousTokenWritten = EJsonToken::Number;
-	}
-
-	void WriteValue( const int64 Value )
-	{
-		check(CanWriteValueWithoutIdentifier());
-		WriteCommaIfNeeded();
-
-		if ( PreviousTokenWritten != EJsonToken::Number && PreviousTokenWritten != EJsonToken::SquareOpen )
-		{
-			PrintPolicy::WriteLineTerminator(Stream);
-			PrintPolicy::WriteTabs(Stream, IndentLevel);
-		}
-		else
-		{
-			PrintPolicy::WriteSpace( Stream );
-		}
-
-		WriteIntegerValue( Value );
-		PreviousTokenWritten = EJsonToken::Number;
-	}
-
-	void WriteValue( const FString& Value )
-	{
-		check(CanWriteValueWithoutIdentifier());
-		WriteCommaIfNeeded();
-		PrintPolicy::WriteLineTerminator(Stream);
-		PrintPolicy::WriteTabs(Stream, IndentLevel);
-		WriteStringValue( Value );
-		PreviousTokenWritten = EJsonToken::String;
+		WriteValue(Identifier, nullptr);
 	}
 
 	void WriteValue( const TCHAR* Value )
@@ -295,21 +193,7 @@ public:
 
 	void WriteNull()
 	{
-		check(CanWriteValueWithoutIdentifier());
-		WriteCommaIfNeeded();
-
-		if ( PreviousTokenWritten != EJsonToken::Null && PreviousTokenWritten != EJsonToken::SquareOpen )
-		{
-			PrintPolicy::WriteLineTerminator(Stream);
-			PrintPolicy::WriteTabs(Stream, IndentLevel);
-		}
-		else
-		{
-			PrintPolicy::WriteSpace( Stream );
-		}
-
-		WriteNullValue();
-		PreviousTokenWritten = EJsonToken::Null;
+		WriteValue(nullptr);
 	}
 
 	virtual bool Close()
@@ -376,26 +260,47 @@ protected:
 		PrintPolicy::WriteChar(Stream, CharType(':'));
 	}
 
-	FORCEINLINE void WriteBoolValue( const bool Value )
+	FORCEINLINE EJsonToken WriteValueOnly(bool Value)
 	{
 		PrintPolicy::WriteString(Stream, Value ? TEXT("true") : TEXT("false"));
+		return Value ? EJsonToken::True : EJsonToken::False;
 	}
 
-	FORCEINLINE void WriteNumberValue( const double Value)
+	FORCEINLINE EJsonToken WriteValueOnly(float Value)
+	{
+		PrintPolicy::WriteString(Stream, FString::Printf(TEXT("%g"), Value));
+		return EJsonToken::Number;
+	}
+
+	FORCEINLINE EJsonToken WriteValueOnly(double Value)
 	{
 		// Specify 17 significant digits, the most that can ever be useful from a double
 		// In particular, this ensures large integers are written correctly
 		PrintPolicy::WriteString(Stream, FString::Printf(TEXT("%.17g"), Value));
+		return EJsonToken::Number;
 	}
 
-	FORCEINLINE void WriteIntegerValue( const int64 Value)
+	FORCEINLINE EJsonToken WriteValueOnly(int32 Value)
+	{
+		return WriteValueOnly((int64)Value);
+	}
+
+	FORCEINLINE EJsonToken WriteValueOnly(int64 Value)
 	{
 		PrintPolicy::WriteString(Stream, FString::Printf(TEXT("%lld"), Value));
+		return EJsonToken::Number;
 	}
 
-	FORCEINLINE void WriteNullValue()
+	FORCEINLINE EJsonToken WriteValueOnly(TYPE_OF_NULLPTR)
 	{
 		PrintPolicy::WriteString(Stream, TEXT("null"));
+		return EJsonToken::Null;
+	}
+
+	FORCEINLINE EJsonToken WriteValueOnly(const FString& Value)
+	{
+		WriteStringValue(Value);
+		return EJsonToken::String;
 	}
 
 	virtual void WriteStringValue( const FString& String )
@@ -419,8 +324,6 @@ protected:
 		OutString += TEXT("\"");
 		PrintPolicy::WriteString(Stream, OutString);
 	}
-
-protected:
 
 	FArchive* const Stream;
 	TArray<EJson> Stack;

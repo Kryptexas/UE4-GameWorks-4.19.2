@@ -661,29 +661,39 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			}
 		}
 		
-		// Retain and/or release the depth-stencil surface in case it is a temporary surface for a draw call that writes to depth without a depth/stencil buffer bound.
-		DepthStencilSurface = RenderTargetsInfo.DepthStencilRenderTarget.Texture;
-		
-		// Assert that the render target state is valid because there appears to be a bug where it isn't.
-		check(bHasValidRenderTarget);
-	
-		// update hash for the depth/stencil buffer & sample count
-		PipelineDesc.SetHashValue(Offset_DepthFormat, NumBits_DepthFormat, DepthFormatKey);
-		PipelineDesc.SetHashValue(Offset_StencilFormat, NumBits_StencilFormat, StencilFormatKey);
-		PipelineDesc.SetHashValue(Offset_SampleCount, NumBits_SampleCount, PipelineDesc.SampleCount);
-	
 		// commit pending commands on the old render target
 		if(CommandEncoder.IsRenderCommandEncoderActive() || CommandEncoder.IsBlitCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive())
 		{
 			CommandEncoder.EndEncoding();
 		}
 	
-		// Set render to the framebuffer
-		CommandEncoder.SetRenderPassDescriptor(RenderPass, bReset);
-		
-		if (bNeedsClear || !PLATFORM_MAC || IsRHIDeviceNVIDIA() || IsRHIDeviceIntel())
+		// Assert that the render target state is valid because there appears to be a bug where it isn't.
+		if (bHasValidRenderTarget)
 		{
-			CommandEncoder.BeginRenderCommandEncoding();
+			// Retain and/or release the depth-stencil surface in case it is a temporary surface for a draw call that writes to depth without a depth/stencil buffer bound.
+			DepthStencilSurface = RenderTargetsInfo.DepthStencilRenderTarget.Texture;
+			
+			// update hash for the depth/stencil buffer & sample count
+			PipelineDesc.SetHashValue(Offset_DepthFormat, NumBits_DepthFormat, DepthFormatKey);
+			PipelineDesc.SetHashValue(Offset_StencilFormat, NumBits_StencilFormat, StencilFormatKey);
+			PipelineDesc.SetHashValue(Offset_SampleCount, NumBits_SampleCount, PipelineDesc.SampleCount);
+			
+			// Set render to the framebuffer
+			CommandEncoder.SetRenderPassDescriptor(RenderPass, bReset);
+			
+			if (bNeedsClear || !PLATFORM_MAC || IsRHIDeviceNVIDIA() || IsRHIDeviceIntel())
+			{
+				CommandEncoder.BeginRenderCommandEncoding();
+			}
+		}
+		else
+		{
+			// update hash for the depth/stencil buffer & sample count
+			PipelineDesc.SetHashValue(Offset_DepthFormat, NumBits_DepthFormat, 0);
+			PipelineDesc.SetHashValue(Offset_StencilFormat, NumBits_StencilFormat, 0);
+			PipelineDesc.SetHashValue(Offset_SampleCount, NumBits_SampleCount, 0);
+			
+			DepthStencilSurface.SafeRelease();
 		}
 		
 		if (bReset)
@@ -698,7 +708,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	
 #if PLATFORM_MAC
 	// Ensure that the RenderPassDesc is valid in the CommandEncoder.
-	check(CommandEncoder.IsRenderPassDescriptorValid());
+	check(!bHasValidRenderTarget || CommandEncoder.IsRenderPassDescriptorValid());
 #endif
 }
 

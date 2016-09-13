@@ -42,6 +42,7 @@ class FMMNotificationClient : public IMMNotificationClient
 public:
 	FMMNotificationClient()
 		: Ref(1)
+		, DeviceEnumerator(nullptr)
 	{
 		bComInitialized = FWindowsPlatformMisc::CoInitialize();
 		HRESULT Result = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), (void**)&DeviceEnumerator);
@@ -770,12 +771,17 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 	/** Whether or not the audio device changed. Used to trigger device reset when audio device changes. */
 	FThreadSafeBool bDeviceChanged;
 
+	/** Whether or not to allow new voices to be created. */
+	FThreadSafeBool bAllowNewVoices;
+
 	FXAudioDeviceProperties()
 		: XAudio2(nullptr)
 		, AudioClockVoice(nullptr)
 		, MasteringVoice(nullptr)
 		, XAudio2Dll(nullptr)
 		, NumActiveVoices(0)
+		, bDeviceChanged(false)
+		, bAllowNewVoices(true)
 	{
 #if PLATFORM_WINDOWS
 		if (NotificationClient == nullptr)
@@ -833,8 +839,14 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 		if (DeviceID == FString(DeviceDetails.DeviceID))
 		{
 			bDeviceChanged = true;
+
+			// Immediately disallow new voices to be created
+			bAllowNewVoices = false;
+
+			// Log that the default audio device changed 
+			UE_LOG(LogAudio, Warning, TEXT("Current Audio Device with ID %s was removed. Shutting down audio device."), *DeviceID);
 		}
-#endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
+#endif // XAUDIO_SUPPORTS_DEVICE_DETAILS
 	}
 
 	bool DidAudioDeviceChange()
@@ -955,9 +967,13 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 	{
 		bool bSuccess = false;
 
-		check(XAudio2 != nullptr);
-		bSuccess = Validate(TEXT("GetFreeSourceVoice, XAudio2->CreateSourceVoice"),
-							XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, SendList, EffectChain));
+		if (bAllowNewVoices)
+		{
+			check(XAudio2 != nullptr);
+			bSuccess = Validate(TEXT("GetFreeSourceVoice, XAudio2->CreateSourceVoice"),
+				XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, SendList, EffectChain));
+		}
+
 		if (bSuccess)
 		{
 			// Track the number of source voices out in the world
@@ -974,7 +990,6 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 	void ReleaseSourceVoice(IXAudio2SourceVoice* Voice, const FPCMBufferInfo& BufferInfo, const int32 MaxEffectChainChannels)
 	{
 		Voice->DestroyVoice();
-
 		--NumActiveVoices;
 	}
 

@@ -2396,7 +2396,8 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	bool bSupportsOnlinePIE = false;
 	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 
-	if (SupportsOnlinePIE())
+	// Online PIE is disabled in SIE
+	if (SupportsOnlinePIE() && !bInSimulateInEditor)
 	{
 		bool bHasRequiredLogins = PlayNumberOfClients <= UOnlineEngineInterface::Get()->GetNumPIELogins();
 		if (bHasRequiredLogins)
@@ -2411,6 +2412,8 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 			FMessageLog(NAME_CategoryPIE).Warning(ErrorMsg);
 		}
 	}
+
+	UOnlineEngineInterface::Get()->SetShouldTryOnlinePIE(bSupportsOnlinePIE);
 
 	FModifierKeysState KeysState = FSlateApplication::Get().GetModifierKeys();
 	if (bInSimulateInEditor || KeysState.IsControlDown())

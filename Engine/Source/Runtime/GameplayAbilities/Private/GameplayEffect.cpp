@@ -214,9 +214,17 @@ float FAttributeBasedFloat::CalculateMagnitude(const FGameplayEffectSpec& InRele
 		{
 			CaptureSpec->AttemptCalculateAttributeMagnitude(EvaluationParameters, AttribValue);
 		}
-		else
+		else if (AttributeCalculationType == EAttributeBasedFloatCalculationType::AttributeBonusMagnitude)
 		{
 			CaptureSpec->AttemptCalculateAttributeBonusMagnitude(EvaluationParameters, AttribValue);
+		}
+		else if (AttributeCalculationType == EAttributeBasedFloatCalculationType::AttributeMagnitudeEvaluatedUpToChannel)
+		{
+			const bool bRequestingValidChannel = UAbilitySystemGlobals::Get().IsGameplayModEvaluationChannelValid(FinalChannel);
+			ensure(bRequestingValidChannel);
+			const EGameplayModEvaluationChannel ChannelToUse = bRequestingValidChannel ? FinalChannel : EGameplayModEvaluationChannel::Channel0;
+
+			CaptureSpec->AttemptCalculateAttributeMagnitudeUpToChannel(EvaluationParameters, ChannelToUse, AttribValue);
 		}
 	}
 
@@ -363,7 +371,7 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 	return bCanCalc;
 }
 
-bool FGameplayEffectModifierMagnitude::AttemptRecalculateMagnitudeFromDependentChange(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude, const FAggregator* ChangedAggregator) const
+bool FGameplayEffectModifierMagnitude::AttemptRecalculateMagnitudeFromDependentAggregatorChange(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude, const FAggregator* ChangedAggregator) const
 {
 	TArray<FGameplayEffectAttributeCaptureDefinition > ReqCaptureDefs;
 	ReqCaptureDefs.Reset();
@@ -432,6 +440,18 @@ bool FGameplayEffectModifierMagnitude::GetSetByCallerDataNameIfPossible(FName& O
 	}
 
 	return false;
+}
+
+TSubclassOf<UGameplayModMagnitudeCalculation> FGameplayEffectModifierMagnitude::GetCustomMagnitudeCalculationClass() const
+{
+	TSubclassOf<UGameplayModMagnitudeCalculation> CustomCalcClass = nullptr;
+
+	if (MagnitudeCalculationType == EGameplayEffectMagnitudeCalculation::CustomCalculationClass)
+	{
+		CustomCalcClass = CustomMagnitude.CalculationClassMagnitude;
+	}
+
+	return CustomCalcClass;
 }
 
 bool FGameplayEffectModifierMagnitude::operator==(const FGameplayEffectModifierMagnitude& Other) const
@@ -1070,6 +1090,18 @@ bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeMagnitude(con
 	if (Agg)
 	{
 		OutMagnitude = Agg->Evaluate(InEvalParams);
+		return true;
+	}
+
+	return false;
+}
+
+bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeMagnitudeUpToChannel(const FAggregatorEvaluateParameters& InEvalParams, EGameplayModEvaluationChannel FinalChannel, OUT float& OutMagnitude) const
+{
+	FAggregator* Agg = AttributeAggregator.Get();
+	if (Agg)
+	{
+		OutMagnitude = Agg->EvaluateToChannel(InEvalParams, FinalChannel);
 		return true;
 	}
 
@@ -1903,11 +1935,13 @@ void FActiveGameplayEffectsContainer::OnMagnitudeDependencyChange(FActiveGamepla
 			FGameplayEffectSpec& Spec = ActiveEffect->Spec;
 
 			// We must update attribute aggregators only if we are actually 'on' right now, and if we are non periodic (periodic effects do their thing on execute callbacks)
-			bool MustUpdateAttributeAggregators = (ActiveEffect->bIsInhibited == false && (Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD));
+			const bool MustUpdateAttributeAggregators = (ActiveEffect->bIsInhibited == false && (Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD));
 
 			// As we update our modifier magnitudes, we will update our owner's attribute aggregators. When we do this, we have to clear them first of all of our (Handle's) previous mods.
 			// Since we could potentially have two mods to the same attribute, one that gets updated, and one that doesnt - we need to do this in two passes.
-			TSet<FGameplayAttribute>	AttributesToUpdate;
+			TSet<FGameplayAttribute> AttributesToUpdate;
+
+			bool bMarkedDirty = false;
 
 			// First pass: update magnitudes of our modifiers that changed
 			for(int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
@@ -1915,8 +1949,23 @@ void FActiveGameplayEffectsContainer::OnMagnitudeDependencyChange(FActiveGamepla
 				const FGameplayModifierInfo& ModDef = Spec.Def->Modifiers[ModIdx];
 				FModifierSpec& ModSpec = Spec.Modifiers[ModIdx];
 
-				if (ModDef.ModifierMagnitude.AttemptRecalculateMagnitudeFromDependentChange(Spec, ModSpec.EvaluatedMagnitude, ChangedAgg))
+				float RecalculatedMagnitude = 0.f;
+				if (ModDef.ModifierMagnitude.AttemptRecalculateMagnitudeFromDependentAggregatorChange(Spec, RecalculatedMagnitude, ChangedAgg))
 				{
+					// If this is the first pending magnitude change, need to mark the container item dirty as well as
+					// wake the owner actor from dormancy so replication works properly
+					if (!bMarkedDirty)
+					{
+						bMarkedDirty = true;
+						if (Owner && Owner->OwnerActor && IsNetAuthority())
+						{
+							Owner->OwnerActor->FlushNetDormancy();
+						}
+						MarkItemDirty(*ActiveEffect);
+					}
+
+					ModSpec.EvaluatedMagnitude = RecalculatedMagnitude;
+
 					// We changed, so we need to reapply/update our spot in the attribute aggregator map
 					if (MustUpdateAttributeAggregators)
 					{
@@ -2353,11 +2402,13 @@ void FActiveGameplayEffectsContainer::ApplyModToAttribute(const FGameplayAttribu
 	}
 }
 
-FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey& InPredictionKey)
+FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(const FGameplayEffectSpec& Spec, FPredictionKey& InPredictionKey, bool& bFoundExistingStackableGE)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ApplyGameplayEffectSpec);
 
 	GAMEPLAYEFFECT_SCOPE_LOCK();
+
+	bFoundExistingStackableGE = false;
 
 	if (Owner && Owner->OwnerActor && IsNetAuthority())
 	{
@@ -2385,6 +2436,8 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 			// Server invalidates the prediction key for this GE since client is not predicting it
 			InPredictionKey = FPredictionKey();
 		}
+
+		bFoundExistingStackableGE = true;
 
 		FGameplayEffectSpec& ExistingSpec = ExistingStackableGE->Spec;
 		StartingStackCount = ExistingSpec.StackCount;
@@ -2636,7 +2689,9 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiv
 {
 	SCOPE_CYCLE_COUNTER(STAT_OnActiveGameplayEffectAdded);
 
-	if (Effect.Spec.Def == nullptr)
+	const UGameplayEffect* EffectDef = Effect.Spec.Def;
+
+	if (EffectDef == nullptr)
 	{
 		ABILITY_LOG(Error, TEXT("FActiveGameplayEffectsContainer serialized new GameplayEffect with NULL Def!"));
 		return;
@@ -2645,15 +2700,18 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiv
 	GAMEPLAYEFFECT_SCOPE_LOCK();
 
 	// Add our ongoing tag requirements to the dependency map. We will actually check for these tags below.
-	for (const FGameplayTag& Tag : Effect.Spec.Def->OngoingTagRequirements.IgnoreTags)
+	for (const FGameplayTag& Tag : EffectDef->OngoingTagRequirements.IgnoreTags)
 	{
 		ActiveEffectTagDependencies.FindOrAdd(Tag).Add(Effect.Handle);
 	}
 
-	for (const FGameplayTag& Tag : Effect.Spec.Def->OngoingTagRequirements.RequireTags)
+	for (const FGameplayTag& Tag : EffectDef->OngoingTagRequirements.RequireTags)
 	{
 		ActiveEffectTagDependencies.FindOrAdd(Tag).Add(Effect.Handle);
 	}
+
+	// Add any external dependencies that might dirty the effect, if necessary
+	AddCustomMagnitudeExternalDependencies(Effect);
 
 	// Check if we should actually be turned on or not (this will turn us on for the first time)
 	static FGameplayTagContainer OwnerTags;
@@ -2699,7 +2757,7 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 			// Ongoing tags being met. We either calculate magnitude one time, or its done via OnDirty calls (or potentially a frequency timer one day)
 
 			FAggregator* Aggregator = FindOrCreateAttributeAggregator(Effect.Spec.Def->Modifiers[ModIdx].Attribute).Get();
-			Aggregator->AddAggregatorMod(Effect.Spec.GetModifierMagnitude(ModIdx, true), ModInfo.ModifierOp, &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.PredictionKey.WasLocallyGenerated(), Effect.Handle);
+			Aggregator->AddAggregatorMod(Effect.Spec.GetModifierMagnitude(ModIdx, true), ModInfo.ModifierOp, ModInfo.EvaluationChannelSettings.GetEvaluationChannel(), &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.PredictionKey.WasLocallyGenerated(), Effect.Handle);
 		}
 	}
 
@@ -2916,6 +2974,8 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(FAct
 		{
 			RemoveActiveGameplayEffectGrantedTagsAndModifiers(Effect, bInvokeGameplayCueEvents);
 		}
+
+		RemoveCustomMagnitudeExternalDependencies(Effect);
 	}
 	else
 	{
@@ -3002,7 +3062,7 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 
 			if (bInvokeGameplayCueEvents)
 			{
-				Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::Removed);			
+				Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::Removed);
 			}
 
 			if (ShouldUseMinimalReplication())
@@ -3027,6 +3087,129 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffectTagDependency(const FGam
 			if (Ptr->Num() <= 0)
 			{
 				ActiveEffectTagDependencies.Remove(Tag);
+			}
+		}
+	}
+}
+
+void FActiveGameplayEffectsContainer::AddCustomMagnitudeExternalDependencies(FActiveGameplayEffect& Effect)
+{
+	const UGameplayEffect* GEDef = Effect.Spec.Def;
+	if (GEDef)
+	{
+		const bool bIsNetAuthority = IsNetAuthority();
+
+		// Check each modifier to see if it has a custom external dependency
+		for (const FGameplayModifierInfo& CurMod : GEDef->Modifiers)
+		{
+			TSubclassOf<UGameplayModMagnitudeCalculation> ModCalcClass = CurMod.ModifierMagnitude.GetCustomMagnitudeCalculationClass();
+			if (ModCalcClass)
+			{
+				const UGameplayModMagnitudeCalculation* ModCalcClassCDO = ModCalcClass->GetDefaultObject<UGameplayModMagnitudeCalculation>();
+				if (ModCalcClassCDO)
+				{
+					// Only register the dependency if acting as net authority or if the calculation class has indicated it wants non-net authorities
+					// to be allowed to perform the calculation as well
+					UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+					FOnExternalGameplayModifierDependencyChange* ExternalDelegate = ModCalcClassCDO->GetExternalModifierDependencyMulticast(Effect.Spec, World);
+					if (ExternalDelegate && (bIsNetAuthority || ModCalcClassCDO->ShouldAllowNonNetAuthorityDependencyRegistration()))
+					{
+						FObjectKey ModCalcClassKey(*ModCalcClass);
+						FCustomModifierDependencyHandle* ExistingDependencyHandle = CustomMagnitudeClassDependencies.Find(ModCalcClassKey);
+						
+						// If the dependency has already been registered for this container, just add the handle of the effect to the existing list
+						if (ExistingDependencyHandle)
+						{
+							ExistingDependencyHandle->ActiveEffectHandles.Add(Effect.Handle);
+						}
+						// If the dependency is brand new, bind an update to the delegate and cache off the handle
+						else
+						{
+							FCustomModifierDependencyHandle& NewDependencyHandle = CustomMagnitudeClassDependencies.Add(ModCalcClassKey);
+							NewDependencyHandle.ActiveDelegateHandle = ExternalDelegate->AddRaw(this, &FActiveGameplayEffectsContainer::OnCustomMagnitudeExternalDependencyFired, ModCalcClass);
+							NewDependencyHandle.ActiveEffectHandles.Add(Effect.Handle);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void FActiveGameplayEffectsContainer::RemoveCustomMagnitudeExternalDependencies(FActiveGameplayEffect& Effect)
+{
+	const UGameplayEffect* GEDef = Effect.Spec.Def;
+	if (GEDef && CustomMagnitudeClassDependencies.Num() > 0)
+	{
+		const bool bIsNetAuthority = IsNetAuthority();
+		for (const FGameplayModifierInfo& CurMod : GEDef->Modifiers)
+		{
+			TSubclassOf<UGameplayModMagnitudeCalculation> ModCalcClass = CurMod.ModifierMagnitude.GetCustomMagnitudeCalculationClass();
+			if (ModCalcClass)
+			{
+				const UGameplayModMagnitudeCalculation* ModCalcClassCDO = ModCalcClass->GetDefaultObject<UGameplayModMagnitudeCalculation>();
+				if (ModCalcClassCDO)
+				{
+					UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+					FOnExternalGameplayModifierDependencyChange* ExternalDelegate = ModCalcClassCDO->GetExternalModifierDependencyMulticast(Effect.Spec, World);
+					if (ExternalDelegate && (bIsNetAuthority || ModCalcClassCDO->ShouldAllowNonNetAuthorityDependencyRegistration()))
+					{
+						FObjectKey ModCalcClassKey(*ModCalcClass);
+						FCustomModifierDependencyHandle* ExistingDependencyHandle = CustomMagnitudeClassDependencies.Find(ModCalcClassKey);
+						
+						// If this dependency was bound for this effect, remove it
+						if (ExistingDependencyHandle)
+						{
+							ExistingDependencyHandle->ActiveEffectHandles.Remove(Effect.Handle);
+
+							// If this was the last effect for this dependency, unbind the delegate and remove the dependency entirely
+							if (ExistingDependencyHandle->ActiveEffectHandles.Num() == 0)
+							{
+								ExternalDelegate->Remove(ExistingDependencyHandle->ActiveDelegateHandle);
+								CustomMagnitudeClassDependencies.Remove(ModCalcClassKey);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void FActiveGameplayEffectsContainer::OnCustomMagnitudeExternalDependencyFired(TSubclassOf<UGameplayModMagnitudeCalculation> MagnitudeCalculationClass)
+{
+	if (MagnitudeCalculationClass)
+	{
+		FObjectKey ModCalcClassKey(*MagnitudeCalculationClass);
+		FCustomModifierDependencyHandle* ExistingDependencyHandle = CustomMagnitudeClassDependencies.Find(ModCalcClassKey);
+		if (ExistingDependencyHandle)
+		{
+			const bool bIsNetAuthority = IsNetAuthority();
+			const UGameplayModMagnitudeCalculation* CalcClassCDO = MagnitudeCalculationClass->GetDefaultObject<UGameplayModMagnitudeCalculation>();
+			const bool bRequiresDormancyFlush = CalcClassCDO ? !CalcClassCDO->ShouldAllowNonNetAuthorityDependencyRegistration() : false;
+
+			const TSet<FActiveGameplayEffectHandle>& HandlesNeedingUpdate = ExistingDependencyHandle->ActiveEffectHandles;
+
+			// Iterate through all effects, updating the ones that specifically respond to the external dependency being updated
+			for (FActiveGameplayEffect& Effect : this)
+			{
+				if (HandlesNeedingUpdate.Contains(Effect.Handle))
+				{
+					if (bIsNetAuthority)
+					{
+						// By default, a dormancy flush should be required here. If a calculation class has requested that
+						// non-net authorities can respond to external dependencies, the dormancy flush is skipped as a desired optimization
+						if (bRequiresDormancyFlush && Owner && Owner->OwnerActor)
+						{
+							Owner->OwnerActor->FlushNetDormancy();
+						}
+
+						MarkItemDirty(Effect);
+					}
+
+					Effect.Spec.CalculateModifierMagnitudes();
+					UpdateAllAggregatorModMagnitudes(Effect);
+				}
 			}
 		}
 	}
@@ -3218,9 +3401,13 @@ bool FActiveGameplayEffectsContainer::NetDeltaSerialize(FNetDeltaSerializeInfo& 
 	return RetVal;
 }
 
-void FActiveGameplayEffectsContainer::PreDestroy()
+void FActiveGameplayEffectsContainer::Uninitialize()
 {
-	
+	for (FActiveGameplayEffect& CurEffect : this)
+	{
+		RemoveCustomMagnitudeExternalDependencies(CurEffect);
+	}
+	ensure(CustomMagnitudeClassDependencies.Num() == 0);
 }
 
 float FActiveGameplayEffectsContainer::GetServerWorldTime() const
@@ -3801,7 +3988,7 @@ void FActiveGameplayEffectsContainer::DebugCyclicAggregatorBroadcasts(FAggregato
 			{
 				ABILITY_LOG(Warning, TEXT(" Attribute %s was the triggered aggregator (%s)"), *Attribute.GetName(), *Owner->GetPathName());
 			}
-			else if (Aggregator->IsBroadcastingDirty)
+			else if (Aggregator->bIsBroadcastingDirty)
 			{
 				ABILITY_LOG(Warning, TEXT(" Attribute %s is broadcasting dirty (%s)"), *Attribute.GetName(), *Owner->GetPathName());
 			}
@@ -3855,7 +4042,7 @@ void FActiveGameplayEffectsContainer::CloneFrom(const FActiveGameplayEffectsCont
 	}
 
 	// Make all of our copied GEs "unique" by giving them a new handle
-	TArray< TPair<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle> >	SwappedHandles;
+	TMap<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle> SwappedHandles;
 
 	for (FActiveGameplayEffect& Effect : this)
 	{
@@ -3866,16 +4053,12 @@ void FActiveGameplayEffectsContainer::CloneFrom(const FActiveGameplayEffectsCont
 		// For client only, capture attribute data since this data is constructed for replicated active gameplay effects by default
 		Effect.Spec.RecaptureAttributeDataForClone(Source.Owner, Owner);
 
-		TPair<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle> SwapPair;
-
-		SwapPair.Key = Effect.Handle;
+		FActiveGameplayEffectHandle& NewHandleRef = SwappedHandles.Add(Effect.Handle);
 		Effect.Spec.CapturedRelevantAttributes.UnregisterLinkedAggregatorCallbacks(Effect.Handle);
 
 		Effect.Handle = FActiveGameplayEffectHandle::GenerateNewHandle(Owner);
 		Effect.Spec.CapturedRelevantAttributes.RegisterLinkedAggregatorCallbacks(Effect.Handle);
-		SwapPair.Value = Effect.Handle;
-
-		SwappedHandles.Add(SwapPair);
+		NewHandleRef = Effect.Handle;
 
 		// Update any captured attribute references to the proxy source.
 		for (TPair<FAggregatorRef, FAggregatorRef>& SwapAgg : SwappedAggregators)
@@ -3889,45 +4072,10 @@ void FActiveGameplayEffectsContainer::CloneFrom(const FActiveGameplayEffectsCont
 	{
 		FGameplayAttribute& Attribute = It.Key;
 		FAggregatorRef& AggregatorRef = It.Value;
-
-		if (FAggregator* Aggregator = AggregatorRef.Get())
+		FAggregator* Aggregator = AggregatorRef.Get();
+		if (Aggregator)
 		{
-			// Dependents
-			for (int32 idx=Aggregator->Dependents.Num()-1; idx >= 0; idx--)
-			{
-				FActiveGameplayEffectHandle& DependentHandle = Aggregator->Dependents[idx];
-				
-				bool found = false;
-				for (TPair<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle>& SwapPair : SwappedHandles)
-				{
-					if (SwapPair.Key == DependentHandle || SwapPair.Value == DependentHandle)
-					{
-						DependentHandle = SwapPair.Value;
-						found = true;
-						break;
-					}
-				}
-				if (found == false)
-				{
-					// This is a dependant outside of this cloned effects container. Don't bring this over in the clone.
-					Aggregator->Dependents.RemoveAtSwap(idx, 1, false);
-				}
-			}
-
-			for (int32 idx=0; idx < EGameplayModOp::Max; ++idx)
-			{
-				for (FAggregatorMod& Mod : Aggregator->Mods[idx])
-				{
-					for (TPair<FActiveGameplayEffectHandle, FActiveGameplayEffectHandle>& SwapPair : SwappedHandles)
-					{
-						if (SwapPair.Key == Mod.ActiveHandle)
-						{
-							Mod.ActiveHandle = SwapPair.Value;
-							break;
-						}
-					}
-				}
-			}
+			Aggregator->OnActiveEffectDependenciesSwapped(SwappedHandles);
 		}
 	}
 
@@ -3936,7 +4084,6 @@ void FActiveGameplayEffectsContainer::CloneFrom(const FActiveGameplayEffectsCont
 	{
 		FAggregatorRef& AggregatorRef = It.Value;
 		AggregatorRef.Get()->BroadcastOnDirty();
-
 	}
 }
 

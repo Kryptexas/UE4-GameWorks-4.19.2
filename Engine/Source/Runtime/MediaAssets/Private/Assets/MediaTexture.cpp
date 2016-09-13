@@ -21,23 +21,6 @@ UMediaTexture::UMediaTexture(const FObjectInitializer& ObjectInitializer)
 }
 
 
-/* FTickerObjectBase interface
- *****************************************************************************/
-
-bool UMediaTexture::Tick(float DeltaTime)
-{
-	// process deferred tasks
-	TFunction<void()> Task;
-
-	while (GameThreadTasks.Dequeue(Task))
-	{
-		Task();
-	}
-
-	return true;
-}
-
-
 /* IMediaTextureSink interface
  *****************************************************************************/
 
@@ -124,13 +107,16 @@ void UMediaTexture::ShutdownTextureSink()
 {
 	if (ClearColor.A != 0.0f)
 	{
+		// reset to 1x1 clear color
 		SinkDimensions = FIntPoint(1, 1);
 		SinkFormat = EMediaTextureSinkFormat::CharBGRA;
 		SinkMode = EMediaTextureSinkMode::Unbuffered;
 
-		GameThreadTasks.Enqueue([=]() {
-			UpdateResource();
-		});
+		FScopeLock Lock(&CriticalSection);
+		if (Resource != nullptr)
+		{
+			((FMediaTextureResource*)Resource)->InitializeBuffer(SinkDimensions, SinkFormat, SinkMode);
+		}
 	}
 }
 

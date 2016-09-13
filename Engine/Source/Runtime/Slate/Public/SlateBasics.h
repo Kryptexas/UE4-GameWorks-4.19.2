@@ -15,6 +15,8 @@
 	#include "Android/AndroidPlatformTextField.h"
 #elif PLATFORM_PS4
 	#include "PS4/PS4PlatformTextField.h"
+#elif PLATFORM_XBOXONE
+	#include "XboxOne/XboxOnePlatformTextField.h"
 #else
 	#include "GenericPlatformTextField.h"
 #endif

@@ -276,6 +276,7 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 	, NavOctree(NULL)
 	, NavBuildingLockFlags(0)
 	, InitialNavBuildingLockFlags(0)
+	, bNavOctreeLock(false)
 	, bInitialSetupHasBeenPerformed(false)
 	, bInitialLevelsAdded(false)
 	, bWorldInitDone(false)
@@ -503,23 +504,26 @@ bool UNavigationSystem::ConditionalPopulateNavOctree()
 #endif // WITH_RECAST
 		}
 
-		UWorld* World = GetWorld();
-		check(World);
-		
-		// now process all actors on all levels
-		for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); ++LevelIndex) 
+		if (!IsNavigationOctreeLocked())
 		{
-			ULevel* Level = World->GetLevel(LevelIndex);
-			AddLevelCollisionToOctree(Level);
+			UWorld* World = GetWorld();
+			check(World);
 
-			for (int32 ActorIndex=0; ActorIndex<Level->Actors.Num(); ActorIndex++)
+			// now process all actors on all levels
+			for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); ++LevelIndex)
 			{
-				AActor* Actor = Level->Actors[ActorIndex];
+				ULevel* Level = World->GetLevel(LevelIndex);
+				AddLevelCollisionToOctree(Level);
 
-				const bool bLegalActor = Actor && !Actor->IsPendingKill();
-				if (bLegalActor)
+				for (int32 ActorIndex = 0; ActorIndex < Level->Actors.Num(); ActorIndex++)
 				{
-					UpdateActorAndComponentsInNavOctree(*Actor);
+					AActor* Actor = Level->Actors[ActorIndex];
+
+					const bool bLegalActor = Actor && !Actor->IsPendingKill();
+					if (bLegalActor)
+					{
+						UpdateActorAndComponentsInNavOctree(*Actor);
+					}
 				}
 			}
 		}
@@ -1285,6 +1289,12 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 	{
 		PFollowComp->AbortMove(*NavSys, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest
 			, FAIRequestID::AnyRequest, bAlreadyAtGoal ? EPathFollowingVelocityMode::Reset : EPathFollowingVelocityMode::Keep);
+	}
+
+	// script source, keep only one move request at time
+	if (PFollowComp->GetStatus() != EPathFollowingStatus::Idle)
+	{
+		PFollowComp->AbortMove(*NavSys, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest);
 	}
 
 	if (bAlreadyAtGoal)
@@ -2286,6 +2296,12 @@ FSetElementId UNavigationSystem::RegisterNavOctreeElement(UObject* ElementOwner,
 		return SetId;
 	}
 
+	if (IsNavigationOctreeLocked())
+	{
+		UE_LOG(LogNavOctree, Log, TEXT("IGNORE(RegisterNavOctreeElement) %s"), *GetPathNameSafe(ElementOwner));
+		return SetId;
+	}
+
 	const bool bIsRelevant = ElementInterface->IsNavigationRelevant();
 	UE_LOG(LogNavOctree, Log, TEXT("REG %s %s"), *GetNameSafe(ElementOwner), bIsRelevant ? TEXT("[relevant]") : TEXT(""));
 
@@ -2418,6 +2434,12 @@ void UNavigationSystem::UnregisterNavOctreeElement(UObject* ElementOwner, INavRe
 
 	if (NavOctree.IsValid() == false || ElementOwner == NULL || ElementInterface == NULL)
 	{
+		return;
+	}
+
+	if (IsNavigationOctreeLocked())
+	{
+		UE_LOG(LogNavOctree, Log, TEXT("IGNORE(UnregisterNavOctreeElement) %s"), *GetPathNameSafe(ElementOwner));
 		return;
 	}
 
@@ -2641,6 +2663,12 @@ void UNavigationSystem::ClearNavOctreeAll(AActor* Actor)
 void UNavigationSystem::UpdateNavOctreeElement(UObject* ElementOwner, INavRelevantInterface* ElementInterface, int32 UpdateFlags)
 {
 	INC_DWORD_STAT(STAT_Navigation_UpdateNavOctree);
+
+	if (IsNavigationOctreeLocked())
+	{
+		UE_LOG(LogNavOctree, Log, TEXT("IGNORE(UpdateNavOctreeElement) %s"), *GetPathNameSafe(ElementOwner));
+		return;
+	}
 
 	// grab existing octree data
 	FBox CurrentBounds;

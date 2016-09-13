@@ -221,6 +221,7 @@ ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer)
 	, DefaultMaxHierarchicalSearchNodes(RECAST_MAX_SEARCH_NODES)
 	, bPerformVoxelFiltering(true)	
 	, bMarkLowHeightAreas(false)
+	, bStoreEmptyTileLayers(false)
 	, bUseVirtualFilters(true)
 	, TileSetUpdateInterval(1.0f)
 	, NavMeshVersion(NAVMESHVER_LATEST)	
@@ -424,7 +425,7 @@ void ARecastNavMesh::CleanUp()
 void ARecastNavMesh::PostLoad()
 {
 	Super::PostLoad();
-	// tilesize validation. This is temporary and should get removed by 4.9
+	// @TODO tilesize validation. This is temporary and should get removed by 4.9
 	TileSizeUU = FMath::Clamp(TileSizeUU, CellSize, ArbitraryMaxVoxelTileSize * CellSize);
 	UpdatePolyRefBitsPreview();
 }
@@ -860,6 +861,14 @@ void ARecastNavMesh::AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<F
 	if (RecastNavMeshImpl)
 	{
 		RecastNavMeshImpl->AddTileCacheLayers(TileX, TileY, InLayers);
+	}
+}
+
+void ARecastNavMesh::MarkEmptyTileCacheLayers(int32 TileX, int32 TileY)
+{
+	if (RecastNavMeshImpl && bStoreEmptyTileLayers)
+	{
+		RecastNavMeshImpl->MarkEmptyTileCacheLayers(TileX, TileY);
 	}
 }
 	
@@ -2207,10 +2216,56 @@ bool ARecastNavMesh::HasValidNavmesh() const
 #endif // WITH_RECAST
 }
 
+#if WITH_RECAST
+bool ARecastNavMesh::HasCompleteDataInRadius(const FVector& TestLocation, float TestRadius) const
+{
+	if (HasValidNavmesh() == false)
+	{
+		return false;
+	}
+
+	const dtNavMesh* NavMesh = RecastNavMeshImpl->DetourNavMesh;
+	const dtNavMeshParams* NavParams = RecastNavMeshImpl->DetourNavMesh->getParams();
+	const float NavTileSize = CellSize * FMath::TruncToInt(TileSizeUU / CellSize);
+	const FVector RcNavOrigin(NavParams->orig[0], NavParams->orig[1], NavParams->orig[2]);
+
+	const FBox RcBounds = Unreal2RecastBox(FBox::BuildAABB(TestLocation, FVector(TestRadius, TestRadius, 0)));
+	const FVector RcTestLocation = Unreal2RecastPoint(TestLocation);
+
+	const int32 MinTileX = FMath::FloorToInt((RcBounds.Min.X - RcNavOrigin.X) / NavTileSize);
+	const int32 MaxTileX = FMath::CeilToInt((RcBounds.Max.X - RcNavOrigin.X) / NavTileSize);
+	const int32 MinTileY = FMath::FloorToInt((RcBounds.Min.Z - RcNavOrigin.Z) / NavTileSize);
+	const int32 MaxTileY = FMath::CeilToInt((RcBounds.Max.Z - RcNavOrigin.Z) / NavTileSize);
+	const FVector RcTileExtent2D(NavTileSize * 0.5f, 0.f, NavTileSize * 0.5f);
+	const float RadiusSq = FMath::Square(TestRadius);
+
+	for (int32 TileX = MinTileX; TileX <= MaxTileX; TileX++)
+	{
+		for (int32 TileY = MinTileY; TileY <= MaxTileY; TileY++)
+		{
+			const FVector RcTileCenter(RcNavOrigin.X + ((TileX + 0.5f) * NavTileSize), RcTestLocation.Y, RcNavOrigin.Z + ((TileY + 0.5f) * NavTileSize));
+			const bool bInside = FMath::SphereAABBIntersection(RcTestLocation, RadiusSq, FBox::BuildAABB(RcTileCenter, RcTileExtent2D));
+			if (bInside)
+			{
+				const int32 NumTiles = NavMesh->getTileCountAt(TileX, TileY);
+				if (NumTiles <= 0)
+				{
+					const bool bHasFailsafeData = bStoreEmptyTileLayers && RecastNavMeshImpl->HasTileCacheLayers(TileX, TileY);
+					if (!bHasFailsafeData)
+					{
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
 //----------------------------------------------------------------------//
 // RecastNavMesh: Active Tiles 
 //----------------------------------------------------------------------//
-#if WITH_RECAST
 void ARecastNavMesh::UpdateActiveTiles(const TArray<FNavigationInvokerRaw>& InvokerLocations)
 {
 	if (HasValidNavmesh() == false)
@@ -2242,7 +2297,7 @@ void ARecastNavMesh::UpdateActiveTiles(const TArray<FNavigationInvokerRaw>& Invo
 	//const int32 TileRadius = FMath::CeilToInt(Radius / TileDim);
 	static const float SqareRootOf2 = FMath::Sqrt(2.f);
 
-	for (const auto& Invoker : InvokerLocations)
+	for (const FNavigationInvokerRaw& Invoker : InvokerLocations)
 	{
 		const FVector InvokerRelativeLocation = (NavmeshOrigin - Invoker.Location);
 		const float TileCenterDistanceToRemoveSq = FMath::Square(TileDim * SqareRootOf2 / 2 + Invoker.RadiusMax);

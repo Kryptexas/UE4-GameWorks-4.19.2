@@ -82,9 +82,10 @@ public:
 	 * Gets the asset data for the specified object path
 	 *
 	 * @param ObjectPath the path of the object to be looked up
-	 * @param OutAssetData the assets data;Will be invalid if object could not be found
+	 * @param bIncludeOnlyOnDiskAssets if true, in-memory objects will be ignored. The call will be faster.
+	 * @return the assets data;Will be invalid if object could not be found
 	 */
-	virtual FAssetData GetAssetByObjectPath( const FName ObjectPath ) const = 0;
+	virtual FAssetData GetAssetByObjectPath( const FName ObjectPath, bool bIncludeOnlyOnDiskAssets = false ) const = 0;
 
 	/**
 	 * Gets asset data for all assets in the registry.

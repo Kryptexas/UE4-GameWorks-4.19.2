@@ -2851,6 +2851,9 @@ void FAudioDevice::Update(bool bGameTicking)
 	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.AudioUpdateTime"), STAT_AudioUpdateTime, STATGROUP_AudioThreadCommands);
 	FScopeCycleCounter AudioUpdateTimeCounter(GET_STATID(STAT_AudioUpdateTime));
 
+	// Check for any audio device state changes before playing or updating audio
+	CheckDeviceStateChange();
+
 	double CurrTime = FPlatformTime::Seconds();
 	UpdateDeltaTime = CurrTime - LastUpdateTime;
 	LastUpdateTime = CurrTime;

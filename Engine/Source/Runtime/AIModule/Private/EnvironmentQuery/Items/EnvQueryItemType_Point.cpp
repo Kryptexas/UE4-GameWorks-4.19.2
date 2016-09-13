@@ -3,18 +3,6 @@
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Point.h"
 
-template<>
-void FEnvQueryInstance::AddItemData<UEnvQueryItemType_Point, FNavLocation>(FNavLocation ItemValue)
-{
-	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
-
-	const int32 DataOffset = RawData.AddUninitialized(ValueSize);
-	UEnvQueryItemType_Point::SetNavValue(RawData.GetData() + DataOffset, ItemValue);
-	Items.Add(FEnvQueryItem(DataOffset));
-
-	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
-}
-
 UEnvQueryItemType_Point::UEnvQueryItemType_Point(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FNavLocation);
@@ -30,14 +18,14 @@ void UEnvQueryItemType_Point::SetValue(uint8* RawData, const FVector& Value)
 	return SetValueInMemory<FNavLocation>(RawData, FNavLocation(Value));
 }
 
+void UEnvQueryItemType_Point::SetValue(uint8* RawData, const FNavLocation& Value)
+{
+	return SetValueInMemory<FNavLocation>(RawData, Value);
+}
+
 FNavLocation UEnvQueryItemType_Point::GetNavValue(const uint8* RawData)
 {
 	return GetValueFromMemory<FNavLocation>(RawData);
-}
-
-void UEnvQueryItemType_Point::SetNavValue(uint8* RawData, const FNavLocation& Value)
-{
-	return SetValueInMemory<FNavLocation>(RawData, Value);
 }
 
 FVector UEnvQueryItemType_Point::GetItemLocation(const uint8* RawData) const
@@ -52,7 +40,7 @@ FNavLocation UEnvQueryItemType_Point::GetItemNavLocation(const uint8* RawData) c
 
 void UEnvQueryItemType_Point::SetItemNavLocation(uint8* RawData, const FNavLocation& Value) const
 {
-	UEnvQueryItemType_Point::SetNavValue(RawData, Value);
+	UEnvQueryItemType_Point::SetValue(RawData, Value);
 }
 
 void UEnvQueryItemType_Point::SetContextHelper(FEnvQueryContextData& ContextData, const FVector& SinglePoint)

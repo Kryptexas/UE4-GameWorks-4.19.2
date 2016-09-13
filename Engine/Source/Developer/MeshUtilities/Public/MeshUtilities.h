@@ -157,6 +157,7 @@ public:
 		const TArray<EBlendMode>& MaterialBlendModes,
 		const FBoxSphereBounds& Bounds,
 		float DistanceFieldResolutionScale,
+		float DistanceFieldBias,
 		bool bGenerateAsIfTwoSided,
 		class FDistanceFieldVolumeData& OutData) = 0;
 

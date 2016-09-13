@@ -1296,7 +1296,8 @@ struct FOffMeshData
 			NewInfo.snapHeight = Link.bUseSnapHeight ? Link.SnapHeight : DefaultSnapHeight;
 			NewInfo.userID = Link.UserId;
 
-			const int32* AreaID = AreaClassToIdMap->Find(Link.AreaClass ? Link.AreaClass : UNavigationSystem::GetDefaultWalkableArea());
+			UClass* AreaClass = Link.GetAreaClass();
+			const int32* AreaID = AreaClassToIdMap->Find(AreaClass);
 			if (AreaID != NULL)
 			{
 				NewInfo.area = *AreaID;
@@ -1304,7 +1305,7 @@ struct FOffMeshData
 			}
 			else
 			{
-				UE_LOG(LogNavigation, Warning, TEXT("FRecastTileGenerator: Trying to use undefined area class while defining Off-Mesh links! (%s)"), *GetNameSafe(Link.AreaClass));
+				UE_LOG(LogNavigation, Warning, TEXT("FRecastTileGenerator: Trying to use undefined area class while defining Off-Mesh links! (%s)"), *GetNameSafe(AreaClass));
 			}
 
 			// snap area is currently not supported for regular (point-point) offmesh links
@@ -1336,7 +1337,8 @@ struct FOffMeshData
 			NewInfo.snapHeight = Link.bUseSnapHeight ? Link.SnapHeight : DefaultSnapHeight;
 			NewInfo.userID = Link.UserId;
 
-			const int32* AreaID = AreaClassToIdMap->Find(Link.AreaClass);
+			UClass* AreaClass = Link.GetAreaClass();
+			const int32* AreaID = AreaClassToIdMap->Find(AreaClass);
 			if (AreaID != NULL)
 			{
 				NewInfo.area = *AreaID;
@@ -1344,7 +1346,7 @@ struct FOffMeshData
 			}
 			else
 			{
-				UE_LOG(LogNavigation, Warning, TEXT("FRecastTileGenerator: Trying to use undefined area class while defining Off-Mesh links! (%s)"), *GetNameSafe(Link.AreaClass));
+				UE_LOG(LogNavigation, Warning, TEXT("FRecastTileGenerator: Trying to use undefined area class while defining Off-Mesh links! (%s)"), *GetNameSafe(AreaClass));
 			}
 
 			LinkParams.Add(NewInfo);
@@ -4038,6 +4040,7 @@ TArray<uint32> FRecastNavMeshGenerator::ProcessTileTasks(const int32 NumTasksToS
 				UpdatedTiles.Append(
 					RemoveTileLayers(PendingElement.Coord.X, PendingElement.Coord.Y)
 				);
+				DestNavMesh->MarkEmptyTileCacheLayers(PendingElement.Coord.X, PendingElement.Coord.Y);
 					
 				// TODO: should we increment NumSubmittedTasks here? 
 				// We can count removing as a tasks to avoid hitches when there are large number of pending tiles to remove
@@ -4076,6 +4079,10 @@ TArray<uint32> FRecastNavMeshGenerator::ProcessTileTasks(const int32 NumTasksToS
 				{
 					QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMeshGenerator_StoringCompressedLayers);
 					DestNavMesh->AddTileCacheLayers(Element.Coord.X, Element.Coord.Y, TileGenerator.GetCompressedLayers());
+				}
+				else
+				{
+					DestNavMesh->MarkEmptyTileCacheLayers(Element.Coord.X, Element.Coord.Y);
 				}
 			}
 

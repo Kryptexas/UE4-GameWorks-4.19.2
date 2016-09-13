@@ -60,6 +60,9 @@ FString FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 	return Filename;
 }
 
+#ifndef WITH_LOGGING_TO_MEMORY
+	#define WITH_LOGGING_TO_MEMORY 0
+#endif
 
 class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 {
@@ -68,6 +71,7 @@ class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 		TAutoPtr<FOutputDevice> LogDevice;
 		FLogOutputDeviceInitializer()
 		{
+#if WITH_LOGGING_TO_MEMORY
 #if !IS_PROGRAM && !WITH_EDITORONLY_DATA
 			if (!LogDevice.IsValid() 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -79,7 +83,8 @@ class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 			{
 				LogDevice = new FOutputDeviceMemory();
 			}
-#endif
+#endif // !IS_PROGRAM && !WITH_EDITORONLY_DATA
+#endif // WITH_LOGGING_TO_MEMORY
 			if (!LogDevice.IsValid())
 			{
 				LogDevice = new FOutputDeviceFile();

@@ -412,7 +412,7 @@ public:
 	ENGINE_API bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText);
 
 	ENGINE_API const FString& GetName() const { return PinName; }
-	ENGINE_API UEdGraphNode* GetOuter() const { return GetOwningNode(); }
+	ENGINE_API UEdGraphNode* GetOuter() const { return GetOwningNodeUnchecked(); }
 	ENGINE_API bool IsPendingKill() const {	return bWasTrashed; }
 
 	/** Verification that all pins have been destroyed after shutting down */

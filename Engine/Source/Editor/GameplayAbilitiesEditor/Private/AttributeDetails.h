@@ -41,7 +41,13 @@ public:
 
 private:
 
+	// the attribute property
 	TSharedPtr<IPropertyHandle> MyProperty;
+	// the owner property
+	TSharedPtr<IPropertyHandle> OwnerProperty;
+	// the name property
+	TSharedPtr<IPropertyHandle> NameProperty;
+
 	TArray<TSharedPtr<FString>> PropertyOptions;
 
 	TSharedPtr<FString>	GetPropertyType() const;

@@ -105,7 +105,8 @@ namespace UnrealBuildTool
 				case ModuleHostType.RuntimeNoCommandlet:
 				case ModuleHostType.RuntimeAndProgram:
 				case ModuleHostType.ServerOnly:
-					return UHTModuleType.EngineRuntime;
+                case ModuleHostType.ClientOnly:
+                    return UHTModuleType.EngineRuntime;
 				case ModuleHostType.Developer:
 					return UHTModuleType.EngineDeveloper;
 				case ModuleHostType.Editor:
@@ -123,7 +124,8 @@ namespace UnrealBuildTool
 				case ModuleHostType.RuntimeNoCommandlet:
 				case ModuleHostType.RuntimeAndProgram:
 				case ModuleHostType.ServerOnly:
-					return UHTModuleType.GameRuntime;
+                case ModuleHostType.ClientOnly:
+                    return UHTModuleType.GameRuntime;
 				case ModuleHostType.Developer:
 					return UHTModuleType.GameDeveloper;
 				case ModuleHostType.Editor:
@@ -350,39 +352,23 @@ namespace UnrealBuildTool
 
 		public static UHTModuleType GetEngineModuleTypeFromDescriptor(ModuleDescriptor Module)
 		{
-			switch (Module.Type)
-			{
-				case ModuleHostType.Developer:
-					return UHTModuleType.EngineDeveloper;
-				case ModuleHostType.Editor:
-				case ModuleHostType.EditorNoCommandlet:
-					return UHTModuleType.EngineEditor;
-				case ModuleHostType.Runtime:
-				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeAndProgram:
-					return UHTModuleType.EngineRuntime;
-				default:
-					throw new BuildException("Unhandled engine module type {0}", Module.Type.ToString());
-			}
-		}
+            UHTModuleType? Type = UHTModuleTypeExtensions.EngineModuleTypeFromHostType(Module.Type);
+            if (Type == null)
+            {
+                throw new BuildException("Unhandled engine module type {0}", Module.Type.ToString());
+            }
+            return Type.GetValueOrDefault();
+        }
 
 		public static UHTModuleType GetGameModuleTypeFromDescriptor(ModuleDescriptor Module)
 		{
-			switch (Module.Type)
-			{
-				case ModuleHostType.Developer:
-					return UHTModuleType.GameDeveloper;
-				case ModuleHostType.Editor:
-				case ModuleHostType.EditorNoCommandlet:
-					return UHTModuleType.GameEditor;
-				case ModuleHostType.Runtime:
-				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeAndProgram:
-					return UHTModuleType.GameRuntime;
-				default:
-					throw new BuildException("Unhandled game module type {0}", Module.Type.ToString());
-			}
-		}
+            UHTModuleType? Type = UHTModuleTypeExtensions.GameModuleTypeFromHostType(Module.Type);
+            if (Type == null)
+            {
+                throw new BuildException("Unhandled game module type {0}", Module.Type.ToString());
+            }
+            return Type.GetValueOrDefault();
+        }
 
 		public static UHTModuleType? GetEngineModuleTypeBasedOnLocation(FileReference ModuleFileName)
 		{

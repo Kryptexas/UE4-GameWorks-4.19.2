@@ -146,6 +146,7 @@ private:
 	TOptional<float> GetBuildScaleY() const;
 	TOptional<float> GetBuildScaleZ() const;
 	float GetDistanceFieldResolutionScale() const;
+	float GetDistanceFieldBias() const;
 
 	void OnRecomputeNormalsChanged(ECheckBoxState NewState);
 	void OnRecomputeTangentsChanged(ECheckBoxState NewState);
@@ -166,6 +167,8 @@ private:
 
 	void OnDistanceFieldResolutionScaleChanged(float NewValue);
 	void OnDistanceFieldResolutionScaleCommitted(float NewValue, ETextCommit::Type TextCommitType);
+	void OnDistanceFieldBiasChanged(float NewValue);
+	void OnDistanceFieldBiasCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	FString GetCurrentDistanceFieldReplacementMeshPath() const;
 	void OnDistanceFieldReplacementMeshSelected(const FAssetData& AssetData);
 

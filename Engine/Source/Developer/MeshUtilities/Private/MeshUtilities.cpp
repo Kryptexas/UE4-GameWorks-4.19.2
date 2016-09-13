@@ -129,10 +129,11 @@ private:
 
 	virtual void GenerateSignedDistanceFieldVolumeData(
 		const FStaticMeshLODResources& LODModel,
-	class FQueuedThreadPool& ThreadPool,
+		class FQueuedThreadPool& ThreadPool,
 		const TArray<EBlendMode>& MaterialBlendModes,
 		const FBoxSphereBounds& Bounds,
 		float DistanceFieldResolutionScale,
+		float DistanceFieldBias,
 		bool bGenerateAsIfTwoSided,
 		FDistanceFieldVolumeData& OutData) override;
 
@@ -529,6 +530,7 @@ public:
 		FBox InVolumeBounds,
 		FIntVector InVolumeDimensions,
 		float InVolumeMaxDistance,
+		float InDistanceFieldBias,
 		int32 InZIndex,
 		TArray<FFloat16>* DistanceFieldVolume)
 		:
@@ -537,6 +539,7 @@ public:
 		VolumeBounds(InVolumeBounds),
 		VolumeDimensions(InVolumeDimensions),
 		VolumeMaxDistance(InVolumeMaxDistance),
+		DistanceFieldBias(InDistanceFieldBias),
 		ZIndex(InZIndex),
 		OutDistanceFieldVolume(DistanceFieldVolume),
 		bNegativeAtBorder(false)
@@ -562,6 +565,7 @@ private:
 	FBox VolumeBounds;
 	FIntVector VolumeDimensions;
 	float VolumeMaxDistance;
+	float DistanceFieldBias;
 	int32 ZIndex;
 
 	// Output
@@ -638,6 +642,7 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 				MinDistance = -UnsignedDistance;
 			}
 
+			MinDistance = FMath::Min(MinDistance + DistanceFieldBias, VolumeMaxDistance);
 			const float VolumeSpaceDistance = MinDistance / VolumeBounds.GetExtent().GetMax();
 
 			if (MinDistance < 0 &&
@@ -655,10 +660,11 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 
 void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 	const FStaticMeshLODResources& LODModel,
-class FQueuedThreadPool& ThreadPool,
+	class FQueuedThreadPool& ThreadPool,
 	const TArray<EBlendMode>& MaterialBlendModes,
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale,
+	float DistanceFieldBias,
 	bool bGenerateAsIfTwoSided,
 	FDistanceFieldVolumeData& OutData)
 {
@@ -787,6 +793,7 @@ class FQueuedThreadPool& ThreadPool,
 					DistanceFieldVolumeBounds,
 					VolumeDimensions,
 					DistanceFieldVolumeMaxDistance,
+					DistanceFieldBias,
 					ZIndex,
 					&OutData.DistanceFieldVolume);
 
@@ -831,10 +838,11 @@ class FQueuedThreadPool& ThreadPool,
 
 void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 	const FStaticMeshLODResources& LODModel,
-class FQueuedThreadPool& ThreadPool,
+	class FQueuedThreadPool& ThreadPool,
 	const TArray<EBlendMode>& MaterialBlendModes,
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale,
+	float DistanceFieldBias,
 	bool bGenerateAsIfTwoSided,
 	FDistanceFieldVolumeData& OutData)
 {

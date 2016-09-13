@@ -73,7 +73,9 @@ bool AutomationOpenMap(const FString& MapName)
 	{
 		UWorld* TestWorld = AutomationCommon::GetAnyGameWorld();
 
-		if ( TestWorld->GetMapName() != MapName )
+		//Don't reload the map if it's already loaded. Check if the two are equal or one contains the other,
+		// since sometime one is a path and the other is the asset name, depending on whether we're in PIE.
+		if ( !TestWorld->GetMapName().Contains(MapName) && !MapName.Contains(TestWorld->GetMapName()) )
 		{
 			FString OpenCommand = FString::Printf(TEXT("Open %s"), *MapName);
 			GEngine->Exec(TestWorld, *OpenCommand);

@@ -553,6 +553,9 @@ private:
 	/** Whether the text has been committed by a virtual keyboard */
 	bool bTextCommittedByVirtualKeyboard;
 
+	/** What text was submitted by a virtual keyboard */
+	FText VirtualKeyboardText;
+
 	/** How the text was committed by the virtual keyboard */
 	ETextCommit::Type VirtualKeyboardTextCommitType;
 

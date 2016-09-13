@@ -9,6 +9,10 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 USafeZone::USafeZone()
+	: PadLeft(true)
+	, PadRight(true)
+	, PadTop(true)
+	, PadBottom(true)
 {
 	bCanHaveMultipleChildren = false;
 	Visibility = ESlateVisibility::SelfHitTestInvisible;
@@ -55,6 +59,7 @@ void USafeZone::UpdateWidgetProperties()
 		MySafeZone->SetHAlign( SafeSlot->HAlign.GetValue() );
 		MySafeZone->SetVAlign( SafeSlot->VAlign.GetValue() );
 		MySafeZone->SetPadding( SafeSlot->Padding );
+		MySafeZone->SetSidesToPad( PadLeft, PadRight, PadTop, PadBottom );
 	}
 }
 
@@ -68,6 +73,10 @@ TSharedRef<SWidget> USafeZone::RebuildWidget()
 		.HAlign( SafeSlot ? SafeSlot->HAlign.GetValue() : HAlign_Fill )
 		.VAlign( SafeSlot ? SafeSlot->VAlign.GetValue() : VAlign_Fill )
 		.Padding( SafeSlot ? SafeSlot->Padding : FMargin() )
+		.PadLeft( PadLeft )
+		.PadRight( PadRight )
+		.PadTop( PadTop )
+		.PadBottom( PadBottom )
 		[
 			GetChildAt( 0 ) ? GetChildAt( 0 )->TakeWidget() : SNullWidget::NullWidget
 		];

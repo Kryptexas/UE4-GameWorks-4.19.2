@@ -5,8 +5,8 @@
 
 UGameplayModMagnitudeCalculation::UGameplayModMagnitudeCalculation(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bAllowNonNetAuthorityDependencyRegistration(false)
 {
-
 }
 
 float UGameplayModMagnitudeCalculation::CalculateBaseMagnitude_Implementation(const FGameplayEffectSpec& Spec) const
@@ -14,6 +14,16 @@ float UGameplayModMagnitudeCalculation::CalculateBaseMagnitude_Implementation(co
 	return 0.f;
 }
 
+FOnExternalGameplayModifierDependencyChange* UGameplayModMagnitudeCalculation::GetExternalModifierDependencyMulticast(const FGameplayEffectSpec& Spec, UWorld* World) const
+{
+	return nullptr;
+}
+
+bool UGameplayModMagnitudeCalculation::ShouldAllowNonNetAuthorityDependencyRegistration() const
+{
+	ensureMsgf(!bAllowNonNetAuthorityDependencyRegistration || RelevantAttributesToCapture.Num() == 0, TEXT("Cannot have a client-side based custom mod calculation that relies on attribute capture!"));
+	return bAllowNonNetAuthorityDependencyRegistration;
+}
 
 bool UGameplayModMagnitudeCalculation::GetCapturedAttributeMagnitude(const FGameplayEffectAttributeCaptureDefinition& Def, const FGameplayEffectSpec& Spec, const FAggregatorEvaluateParameters& EvaluationParameters, OUT float& Magnitude) const
 {

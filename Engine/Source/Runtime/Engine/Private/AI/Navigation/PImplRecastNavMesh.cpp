@@ -116,7 +116,7 @@ ENavigationQueryResult::Type DTStatusToNavQueryResult(dtStatus Status)
 {
 	// @todo look at possible dtStatus values (in DetourStatus.h), there's more data that can be retrieved from it
 
-	// Partial paths are treated by Recast as Success while we threat as fail
+	// Partial paths are treated by Recast as Success while we treat as fail
 	return dtStatusSucceed(Status) ? (dtStatusDetail(Status, DT_PARTIAL_RESULT) ? ENavigationQueryResult::Fail : ENavigationQueryResult::Success)
 		: (dtStatusDetail(Status, DT_INVALID_PARAM) ? ENavigationQueryResult::Error : ENavigationQueryResult::Fail);
 }
@@ -2732,6 +2732,15 @@ void FPImplRecastNavMesh::AddTileCacheLayer(int32 TileX, int32 TileY, int32 Laye
 	}
 }
 
+void FPImplRecastNavMesh::MarkEmptyTileCacheLayers(int32 TileX, int32 TileY)
+{
+	if (!CompressedTileCacheLayers.Contains(FIntPoint(TileX, TileY)))
+	{
+		TArray<FNavMeshTileData> EmptyLayersList;
+		CompressedTileCacheLayers.Add(FIntPoint(TileX, TileY), EmptyLayersList);
+	}
+}
+
 FNavMeshTileData FPImplRecastNavMesh::GetTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx) const
 {
 	const TArray<FNavMeshTileData>* LayersList = CompressedTileCacheLayers.Find(FIntPoint(TileX, TileY));
@@ -2746,6 +2755,11 @@ FNavMeshTileData FPImplRecastNavMesh::GetTileCacheLayer(int32 TileX, int32 TileY
 TArray<FNavMeshTileData> FPImplRecastNavMesh::GetTileCacheLayers(int32 TileX, int32 TileY) const
 {
 	return CompressedTileCacheLayers.FindRef(FIntPoint(TileX, TileY));
+}
+
+bool FPImplRecastNavMesh::HasTileCacheLayers(int32 TileX, int32 TileY) const
+{
+	return CompressedTileCacheLayers.Contains(FIntPoint(TileX, TileY));
 }
 
 #undef INITIALIZE_NAVQUERY

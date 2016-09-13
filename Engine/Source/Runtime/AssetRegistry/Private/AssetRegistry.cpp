@@ -763,13 +763,16 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 	return true;
 }
 
-FAssetData FAssetRegistry::GetAssetByObjectPath( const FName ObjectPath ) const 
+FAssetData FAssetRegistry::GetAssetByObjectPath( const FName ObjectPath, bool bIncludeOnlyOnDiskAssets ) const
 {
-	UObject* Asset = FindObject<UObject>( nullptr, *ObjectPath.ToString() );
-
-	if ( Asset != nullptr )
+	if (!bIncludeOnlyOnDiskAssets)
 	{
-		return FAssetData( Asset );
+		UObject* Asset = FindObject<UObject>( nullptr, *ObjectPath.ToString() );
+
+		if ( Asset != nullptr )
+		{
+			return FAssetData( Asset );
+		}
 	}
 
 	const FAssetData* const * AssetData = CachedAssetsByObjectPath.Find( ObjectPath );
@@ -787,7 +790,7 @@ bool FAssetRegistry::GetAllAssets(TArray<FAssetData>& OutAssetData, bool bInclud
 	double GetAllAssetsStartTime = FPlatformTime::Seconds();
 
 	// All in memory assets
-	if (bIncludeOnlyOnDiskAssets)
+	if (!bIncludeOnlyOnDiskAssets)
 	{
 		for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
 		{

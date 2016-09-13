@@ -2925,12 +2925,16 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 {
 	if (bTextCommittedByVirtualKeyboard)
 	{
-		// Let outsiders know that the text content has been changed
-		OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
-		bTextCommittedByVirtualKeyboard = false;
+		if (SetEditableText(VirtualKeyboardText))
+		{
+			// Let outsiders know that the text content has been changed
+			OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
+			bTextCommittedByVirtualKeyboard = false;
+		}
 	}
 	else if (bTextChangedByVirtualKeyboard)
 	{
+		SetEditableText(VirtualKeyboardText);
 		// Let outsiders know that the text content has been changed
 		OwnerWidget->OnTextChanged(GetEditableText());
 		bTextChangedByVirtualKeyboard = false;
@@ -3226,15 +3230,13 @@ void FSlateEditableTextLayout::FVirtualKeyboardEntry::SetTextFromVirtualKeyboard
 	}
 
 	// Update the internal editable text
-	if (OwnerLayout->SetEditableText(InNewText))
+	// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
+	// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
+	// fired on the game thread in Tick.		
+	OwnerLayout->VirtualKeyboardText = InNewText;
+	if (SetTextType == ESetTextType::Changed)
 	{
-		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
-		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
-		// fired on the game thread in Tick.		
-		if (SetTextType == ESetTextType::Changed)
-		{
-			OwnerLayout->bTextChangedByVirtualKeyboard = true;
-		}
+		OwnerLayout->bTextChangedByVirtualKeyboard = true;
 	}
 	if (SetTextType == ESetTextType::Commited)
 	{

@@ -267,7 +267,7 @@ public:
 
 	/** Sets the current enabled status of the widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void SetIsEnabled(bool bInIsEnabled);
+	virtual void SetIsEnabled(bool bInIsEnabled);
 
 	/** Sets the tooltip text for the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -295,7 +295,7 @@ public:
 
 	/** Sets the visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void SetVisibility(ESlateVisibility InVisibility);
+	virtual void SetVisibility(ESlateVisibility InVisibility);
 
 	/** Sets the forced volatility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")

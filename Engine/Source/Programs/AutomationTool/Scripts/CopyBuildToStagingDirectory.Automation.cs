@@ -159,7 +159,8 @@ public partial class Project : CommandUtils
 		LogLog("UProjectCommandLineArgInternalRoot = {0}", SC.UProjectCommandLineArgInternalRoot);
 		LogLog("PakFileInternalRoot = {0}", SC.PakFileInternalRoot);
 		LogLog("UnrealFileServerInternalRoot = {0}", SC.UnrealFileServerInternalRoot);
-		LogLog("End Deployment Context **************");
+        LogLog("PlatformUsesChunkManifests = {0}", SC.PlatformUsesChunkManifests);
+        LogLog("End Deployment Context **************");
 	}
 
 	public static Dictionary<string, string> ConvertToLower(Dictionary<string, string> Mapping)
@@ -1281,7 +1282,7 @@ public partial class Project : CommandUtils
 	{
 		if (ShouldCreatePak(Params, SC))
 		{
-			if (Params.Manifests && DoesChunkPakManifestExist(Params, SC))
+			if (SC.PlatformUsesChunkManifests && DoesChunkPakManifestExist(Params, SC))
 			{
 				CreatePaksUsingChunkManifests(Params, SC);
 			}
@@ -1776,6 +1777,7 @@ public partial class Project : CommandUtils
 				Params.Archive,
 				Params.IsProgramTarget,
 				Params.Client,
+				Params.Manifests,
 				bInUseWebsocketNetDriver: CreateWebSocketsServer
 				);
 			LogDeploymentContext(SC);

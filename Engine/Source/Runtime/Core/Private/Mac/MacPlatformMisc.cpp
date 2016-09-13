@@ -533,6 +533,7 @@ void FMacPlatformMisc::PlatformTearDown()
 		{
 			StdErrFile.readabilityHandler = nil;
 		}
+		
 		[GMacAppInfo.StdErrPipe release];
 	}
 }
@@ -809,8 +810,8 @@ void FMacPlatformMisc::RequestExit( bool Force )
 	
 	if( Force )
 	{
-		// Abort allows signal handler to know we aborted.
-		abort();
+		// Exit immediately, by request.
+		_Exit(GIsCriticalError ? 3 : 0);
 	}
 	else
 	{

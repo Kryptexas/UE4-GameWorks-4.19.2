@@ -101,7 +101,6 @@ void FXAudio2SoundSource::FreeResources( void )
 		AudioDevice->DeviceProperties->ReleaseSourceVoice(Source, XAudio2Buffer->PCM, MaxEffectChainChannels);
 		Source = nullptr;
 	}
-	
 
 	if (XAudio2Buffer && XAudio2Buffer->RealtimeAsyncHeaderParseTask)
 	{
@@ -380,6 +379,7 @@ bool FXAudio2SoundSource::CreateSource( void )
 	{
 		Destinations[NumSends].pOutputVoice = Effects->EQPremasterVoice;
 	}
+
 	NumSends++;
 
 	if( bReverbApplied )
@@ -1283,7 +1283,7 @@ FString FXAudio2SoundSource::Describe_Internal(bool bUseLongName, bool bIncludeC
 
 void FXAudio2SoundSource::Update()
 {
-	SCOPE_CYCLE_COUNTER( STAT_AudioUpdateSources );
+	SCOPE_CYCLE_COUNTER(STAT_AudioUpdateSources);
 
 	if (!WaveInstance || (!bIsVirtual && !Source) || Paused || !bInitialized)
 	{	
@@ -1324,7 +1324,7 @@ void FXAudio2SoundSource::Update()
 	}
 	else
 	{
-
+		// Set the pitch on the xaudio2 source
 	AudioDevice->ValidateAPICall( TEXT( "SetFrequencyRatio" ), 
 		Source->SetFrequencyRatio( Pitch) );
 
@@ -1409,15 +1409,6 @@ void FXAudio2SoundSource::Stop()
 	{	
 		Paused = false;
 		Playing = false;
-
-		if (Source && Playing)
-		{
-			AudioDevice->ValidateAPICall(TEXT("FlushSourceBuffers"),
-										 Source->FlushSourceBuffers());
-
-			AudioDevice->ValidateAPICall(TEXT("Stop"),
-										 Source->Stop(0));
-		}
 
 		// Free resources
 		FreeResources();

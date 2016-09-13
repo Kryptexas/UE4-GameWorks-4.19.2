@@ -289,11 +289,16 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 InDev
 		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
 
 #if PLATFORM_TVOS
+		Features |= EMetalFeaturesDepthClipMode;
 		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
 		{
 			Features |= EMetalFeaturesStencilView;
 		}
 #else
+		{
+			Features |= EMetalFeaturesDepthClipMode;
+		}
+		
 		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
 		{
 			Features |= EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer;

@@ -939,6 +939,12 @@ bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& An
 		const FSlotAnimationTrack& Track = (*Iter);
 		Track.AnimTrack.GetAllAnimationSequencesReferred(AnimationAssets, bRecursive);
 	}
+
+	if (PreviewBasePose)
+	{
+		PreviewBasePose->HandleAnimReferenceCollection(AnimationAssets, bRecursive);
+	}
+
 	return (AnimationAssets.Num() > 0);
 }
 
@@ -950,6 +956,16 @@ void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnima
 	{
 		FSlotAnimationTrack& Track = (*Iter);
 		Track.AnimTrack.ReplaceReferredAnimations(ReplacementMap);
+	}
+
+	if (PreviewBasePose)
+	{
+		UAnimSequence* const* ReplacementAsset = (UAnimSequence*const*)ReplacementMap.Find(PreviewBasePose);
+		if (ReplacementAsset)
+		{
+			PreviewBasePose = *ReplacementAsset;
+			PreviewBasePose->ReplaceReferredAnimations(ReplacementMap);
+		}
 	}
 }
 

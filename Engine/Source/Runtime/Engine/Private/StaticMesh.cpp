@@ -1118,12 +1118,10 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	
 	Ar << BuildSettings.DistanceFieldResolutionScale;
 	Ar << BuildSettings.bGenerateDistanceFieldAsIfTwoSided;
+	Ar << BuildSettings.DistanceFieldBias;
 
-	if (BuildSettings.DistanceFieldReplacementMesh)
-	{
-		FString ReplacementMeshName = BuildSettings.DistanceFieldReplacementMesh->GetPathName();
-		Ar << ReplacementMeshName;
-	}
+	FString ReplacementMeshName = BuildSettings.DistanceFieldReplacementMesh->GetPathName();
+	Ar << ReplacementMeshName;
 
 	return Ar;
 }
@@ -1309,7 +1307,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			BuildSettings.DistanceFieldReplacementMesh->ConditionalPostLoad();
 		}
 
-		LODResources[0].DistanceFieldData->CacheDerivedData(DistanceFieldKey, Owner, MeshToGenerateFrom, BuildSettings.DistanceFieldResolutionScale, BuildSettings.bGenerateDistanceFieldAsIfTwoSided);
+		LODResources[0].DistanceFieldData->CacheDerivedData(DistanceFieldKey, Owner, MeshToGenerateFrom, BuildSettings.DistanceFieldResolutionScale, BuildSettings.DistanceFieldBias, BuildSettings.bGenerateDistanceFieldAsIfTwoSided);
 	}
 }
 #endif // #if WITH_EDITOR

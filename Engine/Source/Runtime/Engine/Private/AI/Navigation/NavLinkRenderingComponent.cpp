@@ -135,7 +135,7 @@ void FNavLinkRenderingProxy::StorePointLinks(const FTransform& InLocalToWorld, c
 		LinkDrawing.Left = InLocalToWorld.TransformPosition(Link->Left);
 		LinkDrawing.Right = InLocalToWorld.TransformPosition(Link->Right);
 		LinkDrawing.Direction = Link->Direction;
-		LinkDrawing.Color = UNavArea::GetColor(Link->AreaClass);
+		LinkDrawing.Color = UNavArea::GetColor(Link->GetAreaClass());
 		LinkDrawing.SnapRadius = Link->SnapRadius;
 		LinkDrawing.SnapHeight = Link->bUseSnapHeight ? Link->SnapHeight : -1.0f;
 		LinkDrawing.SupportedAgentsBits = Link->SupportedAgents.PackedBits;
@@ -154,7 +154,7 @@ void FNavLinkRenderingProxy::StoreSegmentLinks(const FTransform& InLocalToWorld,
 		LinkDrawing.RightStart = InLocalToWorld.TransformPosition(Link->RightStart);
 		LinkDrawing.RightEnd = InLocalToWorld.TransformPosition(Link->RightEnd);
 		LinkDrawing.Direction = Link->Direction;
-		LinkDrawing.Color = UNavArea::GetColor(Link->AreaClass);
+		LinkDrawing.Color = UNavArea::GetColor(Link->GetAreaClass());
 		LinkDrawing.SnapRadius = Link->SnapRadius;
 		LinkDrawing.SnapHeight = Link->bUseSnapHeight ? Link->SnapHeight : -1.0f;
 		LinkDrawing.SupportedAgentsBits = Link->SupportedAgents.PackedBits;

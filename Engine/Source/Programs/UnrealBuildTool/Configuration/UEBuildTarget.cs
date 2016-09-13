@@ -4025,6 +4025,15 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.Config.Definitions.Add("USE_LOGGING_IN_SHIPPING=0");
 			}
 
+			if (UEBuildConfiguration.bLoggingToMemoryEnabled)
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("WITH_LOGGING_TO_MEMORY=1");
+			}
+			else
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("WITH_LOGGING_TO_MEMORY=0");
+			}
+
 			if (UEBuildConfiguration.bUseChecksInShipping)
 			{
 				GlobalCompileEnvironment.Config.Definitions.Add("USE_CHECKS_IN_SHIPPING=1");

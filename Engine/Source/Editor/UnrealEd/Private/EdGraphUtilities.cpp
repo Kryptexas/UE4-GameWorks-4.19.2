@@ -22,6 +22,8 @@ public:
 	const UEdGraph* DestinationGraph;
 	TArray<FName> ExtraNamesInUse;
 	TArray<UEdGraphNode*> NodesToDestroy;
+
+	TArray<UEdGraphNode*> PendingNodes;
 public:
 	FGraphObjectTextFactory(const UEdGraph* InDestinationGraph)
 		: FCustomizableTextObjectFactory(GWarn)
@@ -57,9 +59,9 @@ protected:
 		return false;
 	}
 
-	virtual void ProcessConstructedObject(UObject* CreatedObject) override
+	void HandleNode(UEdGraphNode* CreatedObject)
 	{
-		if (UEdGraphNode* Node = Cast<UEdGraphNode>(CreatedObject))
+		if (UEdGraphNode* Node = CreatedObject)
 		{
 			UEdGraphNode* CreatedNode = Node;
 			if (!Node->CanPasteHere(DestinationGraph))
@@ -83,8 +85,48 @@ protected:
 		}
 	}
 
+	virtual void ProcessConstructedObject(UObject* CreatedObject) override
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(CreatedObject))
+		{
+			PendingNodes.Add(Node);
+		}
+	}
+
 	virtual void PostProcessConstructedObjects() override
 	{
+		// First handle elements that can change the BPGC signature (for example Custom Event nodes).
+		for (int32 Idx = 0; Idx < PendingNodes.Num();)
+		{
+			UK2Node* Node = Cast<UK2Node>(PendingNodes[Idx]);
+			if (Node && Node->NodeCausesStructuralBlueprintChange())
+			{
+				HandleNode(Node);
+				PendingNodes.RemoveAtSwap(Idx);
+			}
+			else
+			{
+				Idx++;
+			}
+		}
+
+		// Update Skel Class signature
+		if (SpawnedNodes.Num())
+		{
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(DestinationGraph);
+			if (Blueprint)
+			{
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			}
+
+		}
+
+		// Handle all remaining nodes. Some of them can depend on the BPGC signature
+		for (UEdGraphNode* Node : PendingNodes)
+		{
+			HandleNode(Node);
+		}
+
 		if (SubstituteNodes.Num() > 0)
 		{
 			// Display a notification to inform the user that the variable type was invalid (likely due to corruption), it should no longer appear in the list.

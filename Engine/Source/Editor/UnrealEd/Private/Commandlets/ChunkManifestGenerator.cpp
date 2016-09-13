@@ -67,6 +67,7 @@ FChunkManifestGenerator::FChunkManifestGenerator(const TArray<ITargetPlatform*>&
 	: AssetRegistry(FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get())
 	, Platforms(InPlatforms)
 	, bGenerateChunks(false)
+	, bForceGenerateChunksForAllPlatforms(false)
 {
 	DependencyInfo = GetMutableDefault<UChunkDependencyInfo>();
 
@@ -117,6 +118,22 @@ bool FChunkManifestGenerator::CleanTempPackagingDirectory(const FString& Platfor
 		}
 	}
 	return true;
+}
+
+bool FChunkManifestGenerator::ShouldPlatformGenerateStreamingInstallManifest(const ITargetPlatform* Platform) const
+{
+	if (Platform)
+	{
+		FConfigFile PlatformIniFile;
+		FConfigCacheIni::LoadLocalIniFile(PlatformIniFile, TEXT("Game"), true, *Platform->IniPlatformName());
+		FString ConfigString;
+		if (PlatformIniFile.GetString(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bGenerateChunks"), ConfigString))
+		{
+			return FCString::ToBool(*ConfigString);
+		}
+	}
+
+	return false;
 }
 
 bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const FString& Platform)
@@ -257,6 +274,11 @@ bool FChunkManifestGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 	{
 		for (auto Platform : Platforms)
 		{
+			if (!bForceGenerateChunksForAllPlatforms && !ShouldPlatformGenerateStreamingInstallManifest(Platform))
+			{
+				continue;
+			}
+
 			if (!GenerateStreamingInstallManifest(Platform->PlatformName()))
 			{
 				return false;
@@ -379,7 +401,26 @@ void FChunkManifestGenerator::Initialize(const TArray<FName> &InStartupPackages)
 
 void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPackages, FSandboxPlatformFile* InSandboxFile, bool bGenerateStreamingInstallManifest)
 {
-	bGenerateChunks = bGenerateStreamingInstallManifest;
+	// If we were asked to generate a streaming install manifest explicitly we will generate chunks for all platforms.
+	// Otherwise, we will defer to the config settings for each platform.
+	bForceGenerateChunksForAllPlatforms = bGenerateStreamingInstallManifest;
+	if (bForceGenerateChunksForAllPlatforms)
+	{
+		bGenerateChunks = true;
+	}
+	else
+	{
+		// If at least one platform is asking for chunk manifests, we will generate them.
+		for (const ITargetPlatform* Platform : Platforms)
+		{
+			if (ShouldPlatformGenerateStreamingInstallManifest(Platform))
+			{
+				// We found one asking for chunk manifests. We can stop looking.
+				bGenerateChunks = true;
+				break;
+			}
+		}
+	}
 
 	// initialize LargestChunkId, FoundIDList, PackageChunkIDMap, AssetRegistryData
 
@@ -940,14 +981,14 @@ bool FChunkManifestGenerator::SaveCookedPackageAssetRegistry( const FString& San
 	return bSuccess;
 }
 
-bool FChunkManifestGenerator::GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TArray<FName>& VisitedPackages, TArray<FName>& OutDependencyChain)
+bool FChunkManifestGenerator::GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TSet<FName>& VisitedPackages, TArray<FName>& OutDependencyChain)
 {	
 	//avoid crashing from circular dependencies.
 	if (VisitedPackages.Contains(SourcePackage))
 	{		
 		return false;
 	}
-	VisitedPackages.AddUnique(SourcePackage);
+	VisitedPackages.Add(SourcePackage);
 
 	if (SourcePackage == TargetPackage)
 	{		
@@ -988,6 +1029,9 @@ bool FChunkManifestGenerator::GatherAllPackageDependencies(FName PackageName, TA
 		return false;
 	}
 
+	TSet<FName> VisitedPackages;
+	VisitedPackages.Append(DependentPackageNames);
+
 	int32 DependencyCounter = 0;
 	while (DependencyCounter < DependentPackageNames.Num())
 	{
@@ -1001,7 +1045,11 @@ bool FChunkManifestGenerator::GatherAllPackageDependencies(FName PackageName, TA
 
 		for (const auto& ChildDependentPackageName : ChildDependentPackageNames)
 		{
-			DependentPackageNames.AddUnique(ChildDependentPackageName);
+			if (!VisitedPackages.Contains(ChildDependentPackageName))
+			{
+				DependentPackageNames.Add(ChildDependentPackageName);
+				VisitedPackages.Add(ChildDependentPackageName);
+			}
 		}
 	}
 
@@ -1120,10 +1168,10 @@ void FChunkManifestGenerator::ResolveChunkDependencyGraph(const FChunkDependency
 		for (auto It = BaseAssetSet.CreateConstIterator(); It; ++It)
 		{
 			// Remove any assets belonging to our parents.			
-			OutPackagesMovedBetweenChunks[Node.ChunkID].Add(It.Key());
 			if (FinalChunkManifests[Node.ChunkID]->Remove(It.Key()) > 0)
 			{
-				UE_LOG(LogChunkManifestGenerator, Log, TEXT("Removed %s from chunk %i because it is duplicated in another chunk."), *It.Key().ToString(), Node.ChunkID);
+				OutPackagesMovedBetweenChunks[Node.ChunkID].Add(It.Key());
+				UE_LOG(LogChunkManifestGenerator, Verbose, TEXT("Removed %s from chunk %i because it is duplicated in another chunk."), *It.Key().ToString(), Node.ChunkID);
 			}
 		}
 		// Add the current Chunk's assets
@@ -1211,15 +1259,18 @@ void FChunkManifestGenerator::AddPackageAndDependenciesToChunk(FChunkPackageSet*
 					}
 					else
 					{
-						// It was not assigned to this chunk and we're forcing it to be dragged in, let the user known
-						UE_LOG(LogChunkManifestGenerator, Log, TEXT("Adding %s to chunk %i because %s depends on it."), *FilteredPackageName.ToString(), ChunkID, *InPkgName.ToString());
-
-						TArray<FName> VisitedPackages;
-						TArray<FName> DependencyChain;
-						GetPackageDependencyChain(InPkgName, PkgName, VisitedPackages, DependencyChain);
-						for (const auto& ChainName : DependencyChain)
+						if (UE_LOG_ACTIVE(LogChunkManifestGenerator, Verbose))
 						{
-							UE_LOG(LogChunkManifestGenerator, Log, TEXT("\tchain: %s"), *ChainName.ToString());
+							// It was not assigned to this chunk and we're forcing it to be dragged in, let the user known
+							UE_LOG(LogChunkManifestGenerator, Verbose, TEXT("Adding %s to chunk %i because %s depends on it."), *FilteredPackageName.ToString(), ChunkID, *InPkgName.ToString());
+
+							TSet<FName> VisitedPackages;
+							TArray<FName> DependencyChain;
+							GetPackageDependencyChain(InPkgName, PkgName, VisitedPackages, DependencyChain);
+							for (const auto& ChainName : DependencyChain)
+							{
+								UE_LOG(LogChunkManifestGenerator, Verbose, TEXT("\tchain: %s"), *ChainName.ToString());
+							}
 						}
 					}
 				}
@@ -1232,6 +1283,9 @@ void FChunkManifestGenerator::AddPackageAndDependenciesToChunk(FChunkPackageSet*
 
 void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatformFile* InSandboxFile)
 {
+	UE_LOG(LogChunkManifestGenerator, Log, TEXT("Starting FixupPackageDependenciesForChunks..."));
+	SCOPE_LOG_TIME_IN_SECONDS(TEXT("... FixupPackageDependenciesForChunks complete."), nullptr);
+
 	for (int32 ChunkID = 0, MaxChunk = ChunkManifests.Num(); ChunkID < MaxChunk; ++ChunkID)
 	{
 		FinalChunkManifests.Add(nullptr);
@@ -1290,10 +1344,9 @@ void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 
 	for (int32 ChunkID = 0, MaxChunk = ChunkManifests.Num(); ChunkID < MaxChunk; ++ChunkID)
 	{
-		if (FinalChunkManifests[ChunkID] != nullptr && ChunkManifests[ChunkID] != nullptr)
-		{
-			UE_LOG(LogChunkManifestGenerator, Log, TEXT("Chunk: %i, Started with %i packages, Final after dependency resolve: %i"), ChunkID, ChunkManifests[ChunkID]->Num(), FinalChunkManifests[ChunkID]->Num());
-		}
+		const int32 ChunkManifestNum = ChunkManifests[ChunkID] ? ChunkManifests[ChunkID]->Num() : 0;
+		const int32 FinalChunkManifestNum = FinalChunkManifests[ChunkID] ? FinalChunkManifests[ChunkID]->Num() : 0;
+		UE_LOG(LogChunkManifestGenerator, Log, TEXT("Chunk: %i, Started with %i packages, Final after dependency resolve: %i"), ChunkID, ChunkManifestNum, FinalChunkManifestNum);
 	}
 	
 

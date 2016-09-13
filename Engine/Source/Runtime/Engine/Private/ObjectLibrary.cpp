@@ -162,6 +162,7 @@ bool UObjectLibrary::AddObject(UObject *NewObject)
 		if (WeakObjects.Add(NewObject) != INDEX_NONE)
 		{
 			Modify();
+			OnObjectAddedEvent.Broadcast(NewObject);
 			return true;
 		}
 	}
@@ -175,6 +176,7 @@ bool UObjectLibrary::AddObject(UObject *NewObject)
 		if (Objects.Add(NewObject) != INDEX_NONE)
 		{
 			Modify();
+			OnObjectAddedEvent.Broadcast(NewObject);
 			return true;
 		}
 	}
@@ -189,6 +191,7 @@ bool UObjectLibrary::RemoveObject(UObject *ObjectToRemove)
 		if (Objects.Remove(ObjectToRemove) != 0)
 		{
 			Modify();
+			OnObjectRemovedEvent.Broadcast(ObjectToRemove);
 			return true;
 		}
 	}
@@ -197,6 +200,7 @@ bool UObjectLibrary::RemoveObject(UObject *ObjectToRemove)
 		if (WeakObjects.Remove(ObjectToRemove) != 0)
 		{
 			Modify();
+			OnObjectRemovedEvent.Broadcast(ObjectToRemove);
 			return true;
 		}
 	}

@@ -150,7 +150,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 
-	void CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, bool bGenerateDistanceFieldAsIfTwoSided);
+	void CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, float DistanceFieldBias, bool bGenerateDistanceFieldAsIfTwoSided);
 
 #endif
 
@@ -172,6 +172,7 @@ public:
 	UStaticMesh* StaticMesh;
 	UStaticMesh* GenerateSource;
 	float DistanceFieldResolutionScale;
+	float DistanceFieldBias;
 	bool bGenerateDistanceFieldAsIfTwoSided;
 	FString DDCKey;
 	FDistanceFieldVolumeData* GeneratedVolumeData;

@@ -29,6 +29,8 @@ class FChunkManifestGenerator
 	TMap<FName, TArray<int32> > PackageToRegistryDataMap;
 	/** Should the chunks be generated or only asset registry */
 	bool bGenerateChunks;
+	/** True when all platforms should generate chunks, regardless of config settings */
+	bool bForceGenerateChunksForAllPlatforms;
 	/** Array of Maps with chunks<->packages assignments */
 	TArray<FChunkPackageSet*>		ChunkManifests;
 	/** Map of packages that has not been assigned to chunks */
@@ -156,6 +158,9 @@ class FChunkManifestGenerator
 	 */
 	bool CleanTempPackagingDirectory(const FString& Platform) const;
 
+	/** Returns true if the specific platform desires a chunk manifest */
+	bool ShouldPlatformGenerateStreamingInstallManifest(const ITargetPlatform* Platform) const;
+
 	/**
 	 * Generates and saves streaming install chunk manifest.
 	 *
@@ -172,7 +177,7 @@ class FChunkManifestGenerator
 	/**
 	* Gather the list of dependencies that link the source to the target.  Output array includes the target.
 	*/
-	bool GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TArray<FName>& VisitedPackages, TArray<FName>& OutDependencyChain);
+	bool GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TSet<FName>& VisitedPackages, TArray<FName>& OutDependencyChain);
 
 	/**
 	* Get an array of Packages this package will import.

@@ -2773,6 +2773,9 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 
 				if (OriginalSpawnTransform->Equals(UserTransform) == false)
 				{
+					UserTransform.GetLocation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: UserTransform.GetLocation()"));
+					UserTransform.GetRotation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: UserTransform.GetRotation()"));
+
 					// caller passed a different transform!
 					// undo the original spawn transform to get back to the template transform, so we can recompute a good
 					// final transform that takes into account the template's transform
@@ -2784,6 +2787,9 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 			// should be fast and relatively rare
 			ValidateDeferredTransformCache();
 		}
+
+		FinalRootComponentTransform.GetLocation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: FinalRootComponentTransform.GetLocation()"));
+		FinalRootComponentTransform.GetRotation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: FinalRootComponentTransform.GetRotation()"));
 
 		ExecuteConstruction(FinalRootComponentTransform, InstanceDataCache, bIsDefaultTransform);
 
@@ -3000,7 +3006,7 @@ void AActor::SwapRolesForReplay()
 
 void AActor::BeginPlay()
 {
-	ensure(ActorHasBegunPlay == EActorBeginPlayState::HasNotBegunPlay);
+	ensureMsgf(ActorHasBegunPlay == EActorBeginPlayState::HasNotBegunPlay, TEXT("BeginPlay was called on actor %s which was in state %d"), *GetPathName(), ActorHasBegunPlay);
 	SetLifeSpan( InitialLifeSpan );
 	RegisterAllActorTickFunctions(true, false); // Components are done below.
 

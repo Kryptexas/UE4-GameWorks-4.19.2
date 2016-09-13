@@ -364,13 +364,6 @@ enum
 
 bool FProfilerSession::HandleTicker( float DeltaTime )
 {
-	// Update metadata if needed
-	if( bRequestStatMetadataUpdate )
-	{
-		StatMetaData->Update( ClientStatMetadata );
-		bRequestStatMetadataUpdate = false;
-	}
-
 	static double ProcessingTime = 1.0;
 	ProcessingTime -= DeltaTime;
 
@@ -394,7 +387,14 @@ bool FProfilerSession::HandleTicker( float DeltaTime )
 			break;
 		}
 
-		static FTotalTimeAndCount Current( 0.0f, 0 );
+		// Update metadata if needed
+		if (bRequestStatMetadataUpdate)
+		{
+			StatMetaData->Update(ClientStatMetadata);
+			bRequestStatMetadataUpdate = false;
+		}
+
+		static FTotalTimeAndCount Current(0.0f, 0);
 		PROFILER_SCOPE_LOG_TIME( TEXT( "1 FProfilerSession::HandleTicker" ), &Current );
 
 		NumFramesProcessedLastTime++;
@@ -509,14 +509,14 @@ bool FProfilerSession::HandleTicker( float DeltaTime )
 		// Update aggregated stats
 		UpdateAggregatedStats( DataProviderFrameIndex );
 
-		// Update aggregated events.
+		// Update aggregated events - NOTE: This may update the metadata and set bRequestStatMetadataUpdate = true
 		UpdateAggregatedEventGraphData( DataProviderFrameIndex );
 
 		// Update mini-view.
 		OnAddThreadTime.ExecuteIfBound( DataProviderFrameIndex, ThreadMS, StatMetaData );
 		
 		FrameToProfilerDataMapping.Remove( TargetFrame );
-	}	
+	}
 
 	if( SessionType == EProfilerSessionTypes::StatsFile )
 	{

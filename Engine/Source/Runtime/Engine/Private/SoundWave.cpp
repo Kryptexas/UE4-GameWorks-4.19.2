@@ -738,7 +738,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		}
 
 		// Only append to the wave instances list if we're virtual (always append) or we're audible (non-zero volume)
-		if (WaveInstance->GetActualVolume() > KINDA_SMALL_NUMBER || (bVirtualizeWhenSilent && AudioDevice->VirtualSoundsEnabled()))
+		if (WaveInstance->GetVolume() > KINDA_SMALL_NUMBER || (bVirtualizeWhenSilent && AudioDevice->VirtualSoundsEnabled()))
 		{
 			WaveInstances.Add(WaveInstance);
 		}

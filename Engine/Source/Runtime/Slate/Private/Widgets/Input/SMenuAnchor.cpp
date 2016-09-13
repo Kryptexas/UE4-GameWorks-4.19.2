@@ -185,6 +185,11 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 	bDismissedThisTick = false;
 }
 
+bool SMenuAnchor::ComputeVolatility() const
+{
+	return IsOpen();
+}
+
 void SMenuAnchor::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	ArrangeSingleChild( AllottedGeometry, ArrangedChildren, Children[0], FVector2D::UnitVector );
@@ -538,6 +543,8 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 				SNullWidget::NullWidget
 			];
 		}
+
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 

@@ -423,8 +423,7 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 	APawn* const MyPawn = GetPawn();
 	if (MyPawn)
 	{
-		const FRotator InitialControlRotation = GetControlRotation();		
-		FRotator NewControlRotation = InitialControlRotation;
+		FRotator NewControlRotation = GetControlRotation();
 
 		// Look toward focus
 		const FVector FocalPoint = GetFocalPoint();
@@ -443,11 +442,13 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 			NewControlRotation.Pitch = 0.f;
 		}
 
-		if (InitialControlRotation.Equals(NewControlRotation, 1e-3f) == false)
-		{
-			SetControlRotation(NewControlRotation);
+		SetControlRotation(NewControlRotation);
 
-			if (bUpdatePawn)
+		if (bUpdatePawn)
+		{
+			const FRotator CurrentPawnRotation = MyPawn->GetActorRotation();
+
+			if (CurrentPawnRotation.Equals(NewControlRotation, 1e-3f) == false)
 			{
 				MyPawn->FaceRotation(NewControlRotation, DeltaTime);
 			}

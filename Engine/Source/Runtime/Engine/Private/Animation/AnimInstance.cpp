@@ -1595,6 +1595,24 @@ void UAnimInstance::QueueMontageEndedEvent(const FQueuedMontageEndedEvent& Monta
 
 void UAnimInstance::TriggerMontageEndedEvent(const FQueuedMontageEndedEvent& MontageEndedEvent)
 {
+	// Send end notifications for anim notify state when we are stopped
+	USkeletalMeshComponent* SkelMeshComp = GetOwningComponent();
+
+	if (SkelMeshComp != nullptr)
+	{
+		for (int32 Index = ActiveAnimNotifyState.Num() - 1; Index >= 0; --Index)
+		{
+			const FAnimNotifyEvent& AnimNotifyEvent = ActiveAnimNotifyState[Index];
+			UAnimMontage* NotifyMontage = Cast<UAnimMontage>(AnimNotifyEvent.NotifyStateClass->GetOuter());
+
+			if (NotifyMontage && (NotifyMontage == MontageEndedEvent.Montage))
+			{
+				AnimNotifyEvent.NotifyStateClass->NotifyEnd(SkelMeshComp, NotifyMontage);
+				ActiveAnimNotifyState.RemoveAtSwap(Index);
+			}
+		}
+	}
+
 	MontageEndedEvent.Delegate.ExecuteIfBound(MontageEndedEvent.Montage, MontageEndedEvent.bInterrupted);
 	OnMontageEnded.Broadcast(MontageEndedEvent.Montage, MontageEndedEvent.bInterrupted);
 }
@@ -1823,7 +1841,7 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 {
 	if (MontageToPlay && (MontageToPlay->SequenceLength > 0.f) && MontageToPlay->HasValidSlotSetup())
 	{
-		if (CurrentSkeleton->IsCompatible(MontageToPlay->GetSkeleton()))
+		if (CurrentSkeleton && CurrentSkeleton->IsCompatible(MontageToPlay->GetSkeleton()))
 		{
 			// Enforce 'a single montage at once per group' rule
 			FName NewMontageGroupName = MontageToPlay->GetGroupName();

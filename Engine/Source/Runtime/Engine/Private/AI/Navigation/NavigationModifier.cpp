@@ -25,10 +25,38 @@ static const float CONVEX_HULL_POINTS_MIN_DISTANCE_SQ = 4.0f * 4.0f;
 //----------------------------------------------------------------------//
 FNavigationLinkBase::FNavigationLinkBase() 
 	: LeftProjectHeight(0.0f), MaxFallDownLength(1000.0f), Direction(ENavLinkDirection::BothWays), UserId(0),
-	  SnapRadius(30.f), SnapHeight(50.0f), bUseSnapHeight(false), bSnapToCheapestArea(true)
+	  SnapRadius(30.f), SnapHeight(50.0f), bUseSnapHeight(false), bSnapToCheapestArea(true), bAreaClassInitialized(false)
 {
 	AreaClass = NULL;
 	SupportedAgentsBits = 0xFFFFFFFF;
+}
+
+void FNavigationLinkBase::SetAreaClass(UClass* InAreaClass)
+{
+	AreaClassOb = InAreaClass;
+	AreaClass = InAreaClass;
+	bAreaClassInitialized = true;
+}
+
+UClass* FNavigationLinkBase::GetAreaClass() const
+{
+	UClass* ClassOb = AreaClassOb.Get();
+	return ClassOb ? ClassOb : (UClass*)UNavigationSystem::GetDefaultWalkableArea();
+}
+
+void FNavigationLinkBase::InitializeAreaClass()
+{
+	if (!bAreaClassInitialized)
+	{
+		AreaClassOb = (UClass*)AreaClass;
+		bAreaClassInitialized = true;
+	}
+}
+
+bool FNavigationLinkBase::HasMetaArea() const
+{
+	UClass* ClassOb = GetAreaClass();
+	return ClassOb && ClassOb->IsChildOf(UNavAreaMeta::StaticClass());
 }
 
 void FNavigationLinkBase::PostSerialize(const FArchive& Ar)
@@ -52,6 +80,11 @@ void FNavigationLinkBase::PostSerialize(const FArchive& Ar)
 		SupportedAgents.bSupportsAgent14 = bSupportsAgent14;
 		SupportedAgents.bSupportsAgent15 = bSupportsAgent15;
 		SupportedAgents.MarkInitialized();
+	}
+
+	if (Ar.IsLoading())
+	{
+		InitializeAreaClass();
 	}
 }
 
@@ -114,6 +147,7 @@ void FNavigationLinkBase::DescribeCustomFlags(const TArray<FString>& EditableFla
 //----------------------------------------------------------------------//
 UNavLinkDefinition::UNavLinkDefinition(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bHasInitializedAreaClasses(false)
 	, bHasDeterminedMetaAreaClass(false)
 	, bHasMetaAreaClass(false)
 	, bHasDeterminedAdjustableLinks(false)
@@ -123,20 +157,28 @@ UNavLinkDefinition::UNavLinkDefinition(const FObjectInitializer& ObjectInitializ
 
 const TArray<FNavigationLink>& UNavLinkDefinition::GetLinksDefinition(UClass* LinkDefinitionClass)
 {
-	static const TArray<FNavigationLink> DummyDefinition;
+	const UNavLinkDefinition* LinkDefCDO = LinkDefinitionClass ? LinkDefinitionClass->GetDefaultObject<UNavLinkDefinition>() : nullptr;
+	if (LinkDefCDO)
+	{
+		LinkDefCDO->InitializeAreaClass();
+		return LinkDefCDO->Links;
+	}
 
-	return (LinkDefinitionClass != NULL/* && LinkDefinitionClass->IsA(StaticClass())*/) 
-		? ((UNavLinkDefinition*)LinkDefinitionClass->GetDefaultObject())->Links
-		: DummyDefinition;
+	static const TArray<FNavigationLink> DummyDefinition;
+	return DummyDefinition;
 }
 
 const TArray<FNavigationSegmentLink>& UNavLinkDefinition::GetSegmentLinksDefinition(UClass* LinkDefinitionClass)
 {
-	static const TArray<FNavigationSegmentLink> DummyDefinition;
+	const UNavLinkDefinition* LinkDefCDO = LinkDefinitionClass ? LinkDefinitionClass->GetDefaultObject<UNavLinkDefinition>() : nullptr;
+	if (LinkDefCDO)
+	{
+		LinkDefCDO->InitializeAreaClass();
+		return LinkDefCDO->SegmentLinks;
+	}
 
-	return (LinkDefinitionClass != NULL/* && LinkDefinitionClass->IsA(StaticClass())*/) 
-		? ((UNavLinkDefinition*)LinkDefinitionClass->GetDefaultObject())->SegmentLinks
-		: DummyDefinition;
+	static const TArray<FNavigationSegmentLink> DummyDefinition;
+	return DummyDefinition;
 }
 
 #if WITH_EDITOR
@@ -150,6 +192,29 @@ void UNavLinkDefinition::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 }
 #endif
 
+void UNavLinkDefinition::InitializeAreaClass() const
+{
+	if (bHasInitializedAreaClasses)
+	{
+		return;
+	}
+
+	UNavLinkDefinition* MutableThis = (UNavLinkDefinition*)this;
+	MutableThis->bHasInitializedAreaClasses = true;
+
+	for (int32 Idx = 0; Idx < Links.Num(); Idx++)
+	{
+		FNavigationLink& LinkData = MutableThis->Links[Idx];
+		LinkData.InitializeAreaClass();
+	}
+
+	for (int32 Idx = 0; Idx < SegmentLinks.Num(); Idx++)
+	{
+		FNavigationSegmentLink& LinkData = MutableThis->SegmentLinks[Idx];
+		LinkData.InitializeAreaClass();
+	}
+}
+
 bool UNavLinkDefinition::HasMetaAreaClass() const
 {
 	if (bHasDeterminedMetaAreaClass)
@@ -157,20 +222,25 @@ bool UNavLinkDefinition::HasMetaAreaClass() const
 		return bHasMetaAreaClass;
 	}
 
-	bHasDeterminedMetaAreaClass = true;
-	for (TArray<FNavigationLink>::TConstIterator LinkIt(Links); LinkIt; ++LinkIt)
+	UNavLinkDefinition* MutableThis = (UNavLinkDefinition*)this;
+	MutableThis->bHasDeterminedMetaAreaClass = true;
+
+	for (int32 Idx = 0; Idx < Links.Num(); Idx++)
 	{
-		if ((LinkIt->AreaClass != NULL) && LinkIt->AreaClass->IsChildOf(UNavAreaMeta::StaticClass()))
+		const FNavigationLink& LinkData = Links[Idx];
+		if (!bHasMetaAreaClass && LinkData.HasMetaArea())
 		{
-			bHasMetaAreaClass = true;
+			MutableThis->bHasMetaAreaClass = true;
 			return true;
 		}
 	}
-	for (TArray<FNavigationSegmentLink>::TConstIterator LinkIt(SegmentLinks); LinkIt; ++LinkIt)
+
+	for (int32 Idx = 0; Idx < SegmentLinks.Num(); Idx++)
 	{
-		if ((LinkIt->AreaClass != NULL) && LinkIt->AreaClass->IsChildOf(UNavAreaMeta::StaticClass()))
+		const FNavigationSegmentLink& LinkData = SegmentLinks[Idx];
+		if (!bHasMetaAreaClass && LinkData.HasMetaArea())
 		{
-			bHasMetaAreaClass = true;
+			MutableThis->bHasMetaAreaClass = true;
 			return true;
 		}
 	}
@@ -185,22 +255,23 @@ bool UNavLinkDefinition::HasAdjustableLinks() const
 		return bHasAdjustableLinks;
 	}
 
-	bHasDeterminedAdjustableLinks = true;
-	const FNavigationLink* Link = Links.GetData();
-	for (int32 LinkIndex = 0; LinkIndex < Links.Num(); ++LinkIndex, ++Link)
+	UNavLinkDefinition* MutableThis = (UNavLinkDefinition*)this;
+	MutableThis->bHasDeterminedAdjustableLinks = true;
+
+	for (int32 Idx = 0; Idx < Links.Num(); Idx++)
 	{
-		if (Link->MaxFallDownLength > 0)
+		if (Links[Idx].MaxFallDownLength > 0)
 		{
-			bHasAdjustableLinks = true;
+			MutableThis->bHasAdjustableLinks = true;
 			return true;
 		}
 	}
-	const FNavigationSegmentLink* SegmentLink = SegmentLinks.GetData();
-	for (int32 LinkIndex = 0; LinkIndex < SegmentLinks.Num(); ++LinkIndex, ++SegmentLink)
+
+	for (int32 Idx = 0; Idx < SegmentLinks.Num(); Idx++)
 	{
-		if (SegmentLink->MaxFallDownLength > 0)
+		if (SegmentLinks[Idx].MaxFallDownLength > 0)
 		{
-			bHasAdjustableLinks = true;
+			MutableThis->bHasAdjustableLinks = true;
 			return true;
 		}
 	}
@@ -315,22 +386,25 @@ void FAreaNavModifier::Init(const TSubclassOf<UNavArea> InAreaClass)
 	bIncludeAgentHeight = false;
 	Cost = 0.0f;
 	FixedCost = 0.0f;
-	ReplaceAreaClass = NULL;
 	SetAreaClass(InAreaClass);
 }
 
 void FAreaNavModifier::SetAreaClass(const TSubclassOf<UNavArea> InAreaClass)
 {
-	AreaClass = InAreaClass;
-	bHasMetaAreas = (ReplaceAreaClass && ReplaceAreaClass->IsChildOf(UNavAreaMeta::StaticClass())) ||
-		(AreaClass && AreaClass->IsChildOf(UNavAreaMeta::StaticClass()));
+	AreaClassOb = (UClass*)InAreaClass;
+
+	const UClass* AreaClass1 = AreaClassOb.Get();
+	const UClass* AreaClass2 = ReplaceAreaClassOb.Get();
+	bHasMetaAreas = (AreaClass1 && AreaClass1->IsChildOf(UNavAreaMeta::StaticClass())) || (AreaClass2 && AreaClass2->IsChildOf(UNavAreaMeta::StaticClass()));
 }
 
 void FAreaNavModifier::SetAreaClassToReplace(const TSubclassOf<UNavArea> InAreaClass)
 {
-	ReplaceAreaClass = InAreaClass;
-	bHasMetaAreas = (ReplaceAreaClass && ReplaceAreaClass->IsChildOf(UNavAreaMeta::StaticClass())) ||
-		(AreaClass && AreaClass->IsChildOf(UNavAreaMeta::StaticClass()));
+	ReplaceAreaClassOb = (UClass*)InAreaClass;
+
+	const UClass* AreaClass1 = AreaClassOb.Get();
+	const UClass* AreaClass2 = ReplaceAreaClassOb.Get();
+	bHasMetaAreas = (AreaClass1 && AreaClass1->IsChildOf(UNavAreaMeta::StaticClass())) || (AreaClass2 && AreaClass2->IsChildOf(UNavAreaMeta::StaticClass()));
 }
 
 bool IsAngleMatching(float Angle)
@@ -444,14 +518,19 @@ void FAreaNavModifier::SetConvex(const FVector* InPoints, const int32 FirstIndex
 //----------------------------------------------------------------------//
 void FCustomLinkNavModifier::Set(TSubclassOf<UNavLinkDefinition> InPresetLinkClass, const FTransform& InLocalToWorld)
 {
-	LinkDefinitionClass = InPresetLinkClass;
+	LinkDefinitionClassOb = (UClass*)InPresetLinkClass;
 	LocalToWorld = InLocalToWorld;
-	bHasMetaAreas = false;
 
-	const TArray<FNavigationLink>& NavLinks = UNavLinkDefinition::GetLinksDefinition(InPresetLinkClass);
-	for (int32 i = 0; i < NavLinks.Num() && !bHasMetaAreas; i++)
+	const UNavLinkDefinition* LinkDefOb = InPresetLinkClass->GetDefaultObject<UNavLinkDefinition>();
+	if (LinkDefOb)
 	{
-		bHasMetaAreas = NavLinks[i].AreaClass->IsChildOf(UNavAreaMeta::StaticClass());
+		LinkDefOb->InitializeAreaClass();
+
+		bHasMetaAreas = LinkDefOb->HasMetaAreaClass();
+	}
+	else
+	{
+		bHasMetaAreas = false;
 	}
 }
 
@@ -463,10 +542,12 @@ void FSimpleLinkNavModifier::SetLinks(const TArray<FNavigationLink>& InLinks)
 	Links = InLinks;
 	bHasMetaAreasPoint = false;
 
-	for (int32 i = 0; i < InLinks.Num() && (!bHasMetaAreasPoint || !bHasFallDownLinks); i++)
+	for (int32 Idx = 0; Idx < Links.Num(); Idx++)
 	{
-		bHasMetaAreasPoint |= InLinks[i].AreaClass->IsChildOf(UNavAreaMeta::StaticClass());
-		bHasFallDownLinks |= InLinks[i].MaxFallDownLength > 0.f;
+		FNavigationLink& LinkData = Links[Idx];
+
+		bHasMetaAreasPoint |= LinkData.HasMetaArea();
+		bHasFallDownLinks |= LinkData.MaxFallDownLength > 0.f;
 	}
 
 	bHasMetaAreas = bHasMetaAreasSegment || bHasMetaAreasPoint;
@@ -477,11 +558,13 @@ void FSimpleLinkNavModifier::SetSegmentLinks(const TArray<FNavigationSegmentLink
 	SegmentLinks = InLinks;
 
 	bHasMetaAreasSegment = false;
-	for (int32 i = 0; i < SegmentLinks.Num(); i++)
+	for (int32 Idx = 0; Idx < SegmentLinks.Num(); Idx++)
 	{
-		SegmentLinks[i].UserId = UserId;
-		bHasMetaAreasSegment |= InLinks[i].AreaClass->IsChildOf(UNavAreaMeta::StaticClass());
-		bHasFallDownLinks |= InLinks[i].MaxFallDownLength > 0.f;
+		FNavigationSegmentLink& LinkData = SegmentLinks[Idx];
+		LinkData.UserId = UserId;
+
+		bHasMetaAreasSegment |= LinkData.HasMetaArea();
+		bHasFallDownLinks |= LinkData.MaxFallDownLength > 0.f;
 	}
 	
 	bHasMetaAreas = bHasMetaAreasSegment || bHasMetaAreasPoint;
@@ -489,12 +572,15 @@ void FSimpleLinkNavModifier::SetSegmentLinks(const TArray<FNavigationSegmentLink
 
 void FSimpleLinkNavModifier::AppendLinks(const TArray<FNavigationLink>& InLinks)
 {
+	const int32 LinkBase = SegmentLinks.Num();
 	Links.Append(InLinks);
 
-	for (int32 i = 0; i < InLinks.Num() && (!bHasMetaAreasPoint || !bHasFallDownLinks); i++)
+	for (int32 Idx = 0; Idx < InLinks.Num(); Idx++)
 	{
-		bHasMetaAreasPoint |= InLinks[i].AreaClass->IsChildOf(UNavAreaMeta::StaticClass());
-		bHasFallDownLinks |= InLinks[i].MaxFallDownLength > 0.f;
+		FNavigationLink& LinkData = Links[LinkBase + Idx];
+
+		bHasMetaAreasPoint |= LinkData.HasMetaArea();
+		bHasFallDownLinks |= LinkData.MaxFallDownLength > 0.f;
 	}
 
 	bHasMetaAreas = bHasMetaAreasSegment || bHasMetaAreasPoint;
@@ -505,11 +591,13 @@ void FSimpleLinkNavModifier::AppendSegmentLinks(const TArray<FNavigationSegmentL
 	const int32 LinkBase = SegmentLinks.Num();
 	SegmentLinks.Append(InLinks);
 
-	for (int32 i = 0; i < InLinks.Num(); i++)
+	for (int32 Idx = 0; Idx < InLinks.Num(); Idx++)
 	{
-		SegmentLinks[LinkBase + i].UserId = UserId;
-		bHasMetaAreasPoint |= InLinks[i].AreaClass->IsChildOf(UNavAreaMeta::StaticClass());
-		bHasFallDownLinks |= InLinks[i].MaxFallDownLength > 0.f;
+		FNavigationSegmentLink& LinkData = SegmentLinks[LinkBase + Idx];
+		LinkData.UserId = UserId;
+
+		bHasMetaAreasSegment |= LinkData.HasMetaArea();
+		bHasFallDownLinks |= LinkData.MaxFallDownLength > 0.f;
 	}
 
 	bHasMetaAreas = bHasMetaAreasSegment || bHasMetaAreasPoint;
@@ -517,21 +605,24 @@ void FSimpleLinkNavModifier::AppendSegmentLinks(const TArray<FNavigationSegmentL
 
 void FSimpleLinkNavModifier::AddLink(const FNavigationLink& InLink)
 {
-	Links.Add(InLink);
+	const int32 LinkIdx = Links.Add(InLink);
 
-	bHasMetaAreasPoint = InLink.AreaClass->IsChildOf(UNavAreaMeta::StaticClass());
-	bHasFallDownLinks |= InLink.MaxFallDownLength > 0.f;
+	FNavigationLink& LinkData = Links[LinkIdx];
+
+	bHasMetaAreasPoint |= LinkData.HasMetaArea();
+	bHasFallDownLinks |= LinkData.MaxFallDownLength > 0.f;
 	bHasMetaAreas = bHasMetaAreasSegment || bHasMetaAreasPoint;
 }
 
 void FSimpleLinkNavModifier::AddSegmentLink(const FNavigationSegmentLink& InLink)
 {
-	const int32 LinkBase = SegmentLinks.Num();
-	SegmentLinks.Add(InLink);
-	SegmentLinks[LinkBase].UserId = UserId;
+	const int32 LinkIdx = SegmentLinks.Add(InLink);
 
-	bHasMetaAreasSegment = InLink.AreaClass->IsChildOf(UNavAreaMeta::StaticClass());
-	bHasFallDownLinks |= InLink.MaxFallDownLength > 0.f;
+	FNavigationSegmentLink& LinkData = SegmentLinks[LinkIdx];
+	LinkData.UserId = UserId;
+
+	bHasMetaAreasSegment |= LinkData.HasMetaArea();
+	bHasFallDownLinks |= LinkData.MaxFallDownLength > 0.f;
 	bHasMetaAreas = bHasMetaAreasSegment || bHasMetaAreasPoint;
 }
 
@@ -543,7 +634,7 @@ void FSimpleLinkNavModifier::UpdateFlags()
 
 	for (int32 Idx = 0; Idx < Links.Num(); Idx++)
 	{
-		bHasMetaAreasPoint |= Links[Idx].AreaClass->IsChildOf(UNavAreaMeta::StaticClass());
+		bHasMetaAreasPoint |= Links[Idx].HasMetaArea();
 		bHasFallDownLinks |= Links[Idx].MaxFallDownLength > 0.f;
 	}
 	
@@ -624,13 +715,13 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 				for (int32 LinkIndex = 0; LinkIndex < SimpleLink->Links.Num(); ++LinkIndex)
 				{
 					FNavigationLink& Link = SimpleLink->Links[LinkIndex];
-					Link.AreaClass = UNavAreaMeta::PickAreaClass(Link.AreaClass, ActorOwner, *NavAgent);
+					Link.SetAreaClass(UNavAreaMeta::PickAreaClass(Link.GetAreaClass(), ActorOwner, *NavAgent));
 				}
 
 				for (int32 LinkIndex = 0; LinkIndex < SimpleLink->SegmentLinks.Num(); ++LinkIndex)
 				{
 					FNavigationSegmentLink& Link = SimpleLink->SegmentLinks[LinkIndex];
-					Link.AreaClass = UNavAreaMeta::PickAreaClass(Link.AreaClass, ActorOwner, *NavAgent);
+					Link.SetAreaClass(UNavAreaMeta::PickAreaClass(Link.GetAreaClass(), ActorOwner, *NavAgent));
 				}
 			}
 		}
@@ -658,7 +749,7 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 				{
 					const int32 AddedIdx = SimpleLink.Links.Add(Links[LinkIndex]);
 					FNavigationLink& NavLink = SimpleLink.Links[AddedIdx];
-					NavLink.AreaClass = UNavAreaMeta::PickAreaClass(NavLink.AreaClass, ActorOwner, *NavAgent);
+					NavLink.SetAreaClass(UNavAreaMeta::PickAreaClass(NavLink.GetAreaClass(), ActorOwner, *NavAgent));
 				}				
 
 				const TArray<FNavigationSegmentLink>& SegmentLinks = UNavLinkDefinition::GetSegmentLinksDefinition(CustomLink->GetNavLinkClass());
@@ -673,7 +764,7 @@ FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const F
 				{
 					const int32 AddedIdx = SimpleSegLink.SegmentLinks.Add(SegmentLinks[LinkIndex]);
 					FNavigationSegmentLink& NavLink = SimpleSegLink.SegmentLinks[AddedIdx];
-					NavLink.AreaClass = UNavAreaMeta::PickAreaClass(NavLink.AreaClass, ActorOwner, *NavAgent);
+					NavLink.SetAreaClass(UNavAreaMeta::PickAreaClass(NavLink.GetAreaClass(), ActorOwner, *NavAgent));
 				}
 
 				Result.CustomLinks.RemoveAtSwap(Index, 1, false);

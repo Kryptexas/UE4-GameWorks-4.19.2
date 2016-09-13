@@ -19,6 +19,14 @@ FAutoConsoleVariableRef CVarMetalMaxOutstandingAsyncTexUploads(
 	ECVF_ReadOnly|ECVF_RenderThreadSafe
 	);
 
+int32 GMetalAllowStencils = 1;
+FAutoConsoleVariableRef CVarMetalAllowStencils(
+	TEXT("rhi.Metal.AllowStencils"),
+	GMetalAllowStencils,
+	TEXT("Set to 1 if stencils are allowed (default). If 0, stencils will always return a value of 0 if queried."),
+	ECVF_RenderThreadSafe
+);
+
 /** Texture reference class. */
 class FMetalTextureReference : public FRHITextureReference
 {
@@ -1150,24 +1158,27 @@ void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 #if METAL_API_1_1
 	if (PixelFormat == PF_X24_G8 && Texture != StencilTexture && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions) && !GetMetalDeviceContext().SupportsFeature(EMetalFeaturesStencilView))
 	{
-		// In this case StencilTexture is the source depth/stencil texture and Texture is our target Stencil-only copy
+		if (GMetalAllowStencils)
+		{
+			// In this case StencilTexture is the source depth/stencil texture and Texture is our target Stencil-only copy
 		
-		id<MTLBlitCommandEncoder> BlitEncoder = FMetalContext::GetCurrentContext()->GetBlitContext();
+			id<MTLBlitCommandEncoder> BlitEncoder = FMetalContext::GetCurrentContext()->GetBlitContext();
 		
-		uint32 SizePerImage = Texture.width * Texture.height;
-		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), SizePerImage, MTLStorageModeShared));
-		[Buf.Buffer retain];
-		INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
+			uint32 SizePerImage = Texture.width * Texture.height;
+			FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), SizePerImage, MTLStorageModeShared));
+			[Buf.Buffer retain];
+			INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 		
-		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"FMetalSurface::UpdateSRV %p(Source %p)", this, SourceTex.GetReference());
-		[BlitEncoder copyFromTexture:StencilTexture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toBuffer:Buf.Buffer destinationOffset:0 destinationBytesPerRow:Texture.width destinationBytesPerImage:SizePerImage options:MTLBlitOptionStencilFromDepthStencil];
+			METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"FMetalSurface::UpdateSRV %p(Source %p)", this, SourceTex.GetReference());
+			[BlitEncoder copyFromTexture:StencilTexture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toBuffer:Buf.Buffer destinationOffset:0 destinationBytesPerRow:Texture.width destinationBytesPerImage:SizePerImage options:MTLBlitOptionStencilFromDepthStencil];
 		
-		[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toTexture:Texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
+			[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toTexture:Texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
 		
-		bWritten = true;
+			bWritten = true;
 		
-		DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
-		SafeReleasePooledBuffer(Buf.Buffer);
+			DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
+			SafeReleasePooledBuffer(Buf.Buffer);
+		}
 	}
 	// Handle the case where a texture or render-target is created without PixelFormatView & then recreated with it enabled in order to create appropriate SRVs.
 	// If an existing SRV simply exposed the source format & mip-levels it won't have a pixel-format-view so we need to update the texture ref we return.

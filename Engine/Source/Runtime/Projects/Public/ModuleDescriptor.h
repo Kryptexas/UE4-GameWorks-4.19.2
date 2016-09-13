@@ -70,6 +70,7 @@ namespace EHostType
 		EditorNoCommandlet,
 		Program,		//!< Program-only plugin type
 		ServerOnly,
+		ClientOnly,
 		// NOTE: If you add a new value, make sure to update the ToString() method below!
 
 		Max

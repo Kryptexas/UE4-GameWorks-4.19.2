@@ -467,6 +467,11 @@ bool UOnlineEngineInterfaceImpl::SupportsOnlinePIE()
 	return Online::GetUtils()->SupportsOnlinePIE();
 }
 
+void UOnlineEngineInterfaceImpl::SetShouldTryOnlinePIE(bool bShouldTry)
+{
+	Online::GetUtils()->SetShouldTryOnlinePIE(bShouldTry);
+}
+
 int32 UOnlineEngineInterfaceImpl::GetNumPIELogins()
 {
 	return Online::GetUtils()->GetNumPIELogins();

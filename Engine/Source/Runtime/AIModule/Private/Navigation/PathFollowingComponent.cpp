@@ -264,16 +264,6 @@ bool UPathFollowingComponent::HandlePathUpdateEvent()
 	}
 
 	return true;
-
-	if (Status == EPathFollowingStatus::Waiting || Status == EPathFollowingStatus::Moving)
-	{
-		Status = EPathFollowingStatus::Moving;
-
-		const int32 CurrentSegment = DetermineStartingPathPoint(Path.Get());
-		SetMoveSegment(CurrentSegment);
-	}
-
-	return true;
 }
 
 FAIRequestID UPathFollowingComponent::RequestMove(const FAIMoveRequest& RequestData, FNavPathSharedPtr InPath)
@@ -938,20 +928,26 @@ bool UPathFollowingComponent::HasReached(const AActor& TestGoal, EPathFollowingR
 		InAcceptanceRadius = MyDefaultAcceptanceRadius;
 	}
 
-	if (bUseNavAgentGoalLocation)
+	const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(&TestGoal);
+	if (NavAgent)
 	{
-		const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(&TestGoal);
-		if (NavAgent)
+		const AActor* OwnerActor = GetOwner();
+		const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(OwnerActor);
+		NavAgent->GetMoveGoalReachTest(OwnerActor, GoalMoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
+
+		if (bUseNavAgentGoalLocation)
 		{
-			const AActor* OwnerActor = GetOwner();
-			const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(OwnerActor);
-			NavAgent->GetMoveGoalReachTest(OwnerActor, GoalMoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
 			TestPoint = FQuatRotationTranslationMatrix(TestGoal.GetActorQuat(), NavAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
 
 			if ((ReachMode == EPathFollowingReachMode::ExactLocation) || (ReachMode == EPathFollowingReachMode::OverlapAgent))
 			{
 				GoalRadius = 0.0f;
 			}
+		}
+
+		if ((ReachMode == EPathFollowingReachMode::ExactLocation) || (ReachMode == EPathFollowingReachMode::OverlapAgent))
+		{
+			GoalRadius = 0.0f;
 		}
 	}
 
@@ -1341,7 +1337,7 @@ void UPathFollowingComponent::UpdateMoveFocus()
 			const FVector MoveFocus = GetMoveFocus(AIOwner->bAllowStrafe);
 			AIOwner->SetFocalPoint(MoveFocus, EAIFocusPriority::Move);
 		}
-		else
+		else if (Status == EPathFollowingStatus::Idle)
 		{
 			AIOwner->ClearFocus(EAIFocusPriority::Move);
 		}

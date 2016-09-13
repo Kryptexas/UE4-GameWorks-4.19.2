@@ -1832,19 +1832,6 @@ namespace AutomationTool
 					ProjectGameExePath = CommandUtils.CombinePaths(ProjectBinariesPath, GameTarget + Platform.GetExeExtension(ClientTargetPlatforms[0].Type));
 				}
 			}
-
-			// for the moment, allow the commandline to override the ini if set.  This will keep us from breaking licensee packaging scripts until we have
-			// the full solution for per-platform packaging settings.
-			if (!Manifests)
-			{				
-				ConfigCacheIni GameIni = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Game", RawProjectPath.Directory);
-				String IniPath = "/Script/UnrealEd.ProjectPackagingSettings";
-				bool bSetting = false;
-				if (!GameIni.GetBool(IniPath, "bGenerateChunks", out bSetting))
-				{
-					Manifests = bSetting;
-				}
-			}
 		}
 
 		#endregion

@@ -4,10 +4,13 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "AttributeDetails.h"
 #include "AttributeSet.h"
+#include "AbilitySystemGlobals.h"
 #include "GameplayEffectDetails.h"
 #include "GameplayEffectExecutionScopedModifierInfoDetails.h"
 #include "GameplayEffectExecutionDefinitionDetails.h"
 #include "GameplayEffectModifierMagnitudeDetails.h"
+#include "GameplayModEvaluationChannelSettingsDetails.h"
+#include "AttributeBasedFloatDetails.h"
 
 #include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
@@ -61,6 +64,10 @@ protected:
 	static void GameplayTagTreeChanged();
 
 private:
+
+	/** Helper function to apply the gameplay mod evaluation channel aliases as display name data to the enum */
+	void ApplyGameplayModEvaluationChannelAliasesToEnumMetadata();
+
 	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
 
@@ -94,6 +101,8 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 	PropertyModule.RegisterCustomPropertyTypeLayout( "GameplayEffectExecutionDefinition", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FGameplayEffectExecutionDefinitionDetails::MakeInstance ) );
 	PropertyModule.RegisterCustomPropertyTypeLayout( "GameplayEffectModifierMagnitude", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FGameplayEffectModifierMagnitudeDetails::MakeInstance ) );
 	PropertyModule.RegisterCustomPropertyTypeLayout( "GameplayCueTag", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FGameplayCueTagDetails::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "GameplayModEvaluationChannelSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FGameplayModEvaluationChannelSettingsDetails::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "AttributeBasedFloat", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FAttributeBasedFloatDetails::MakeInstance ) );
 
 	PropertyModule.RegisterCustomClassLayout( "AttributeSet", FOnGetDetailCustomizationInstance::CreateStatic( &FAttributeDetails::MakeInstance ) );
 	PropertyModule.RegisterCustomClassLayout( "GameplayEffect", FOnGetDetailCustomizationInstance::CreateStatic( &FGameplayEffectDetails::MakeInstance ) );
@@ -123,6 +132,8 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory())
 		//.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsDebugCategory());
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Profiler.EventGraph.ExpandHotPath16"));
+
+	ApplyGameplayModEvaluationChannelAliasesToEnumMetadata();
 }
 
 void FGameplayAbilitiesEditorModule::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
@@ -153,10 +164,12 @@ void FGameplayAbilitiesEditorModule::ShutdownModule()
 		PropertyModule.UnregisterCustomClassLayout("GameplayEffect");
 		PropertyModule.UnregisterCustomClassLayout("AttributeSet");
 
+		PropertyModule.UnregisterCustomPropertyTypeLayout("AttributeBasedFloat");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayModEvaluationChannelSettings");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayCueTag");
 		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayEffectModifierMagnitude");
 		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayEffectExecutionDefinition");
 		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayEffectExecutionScopedModifierInfo");
-		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayModifierInfo");
 		PropertyModule.UnregisterCustomPropertyTypeLayout("ScalableFloat");
 		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayAttribute");
 	}
@@ -214,4 +227,51 @@ TSharedPtr<SWidget> FGameplayAbilitiesEditorModule::SummonGameplayCueEditorUI()
 		ReturnWidget = SNew(SGameplayCueEditor);			
 	}
 	return ReturnWidget;
+
+}
+
+void FGameplayAbilitiesEditorModule::ApplyGameplayModEvaluationChannelAliasesToEnumMetadata()
+{
+	UAbilitySystemGlobals* AbilitySystemGlobalsCDO = UAbilitySystemGlobals::StaticClass()->GetDefaultObject<UAbilitySystemGlobals>();
+	const UEnum* EvalChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModEvaluationChannel"));
+	if (ensure(EvalChannelEnum) && ensure(AbilitySystemGlobalsCDO))
+	{
+		const TCHAR* DisplayNameMeta = TEXT("DisplayName");
+		const TCHAR* HiddenMeta = TEXT("Hidden");
+		const TCHAR* UnusedMeta = TEXT("Unused");
+
+		const int32 NumEnumValues = EvalChannelEnum->NumEnums();
+			
+		// First mark all of the enum values hidden and unused
+		for (int32 EnumValIdx = 0; EnumValIdx < NumEnumValues; ++EnumValIdx)
+		{
+			EvalChannelEnum->SetMetaData(HiddenMeta, TEXT(""), EnumValIdx);
+			EvalChannelEnum->SetMetaData(DisplayNameMeta, UnusedMeta, EnumValIdx);
+		}
+
+		// If allowed to use channels, mark the valid ones with aliases
+		if (AbilitySystemGlobalsCDO->ShouldAllowGameplayModEvaluationChannels())
+		{
+			const int32 MaxChannelVal = static_cast<int32>(EGameplayModEvaluationChannel::Channel_MAX);
+			for (int32 AliasIdx = 0; AliasIdx < MaxChannelVal; ++AliasIdx)
+			{
+				const FName& Alias = AbilitySystemGlobalsCDO->GetGameplayModEvaluationChannelAlias(AliasIdx);
+				if (!Alias.IsNone())
+				{
+					EvalChannelEnum->RemoveMetaData(HiddenMeta, AliasIdx);
+					EvalChannelEnum->SetMetaData(DisplayNameMeta, *Alias.ToString(), AliasIdx);
+				}
+			}
+		}
+		else
+		{
+			// If not allowed to use channels, also hide the "Evaluate up to channel" option 
+			const UEnum* AttributeBasedFloatCalculationTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAttributeBasedFloatCalculationType"));
+			if (ensure(AttributeBasedFloatCalculationTypeEnum))
+			{
+				const int32 ChannelBasedCalcIdx = AttributeBasedFloatCalculationTypeEnum->GetIndexByValue(static_cast<int32>(EAttributeBasedFloatCalculationType::AttributeMagnitudeEvaluatedUpToChannel));
+				AttributeBasedFloatCalculationTypeEnum->SetMetaData(HiddenMeta, TEXT(""), ChannelBasedCalcIdx);
+			}
+		}
+	}
 }

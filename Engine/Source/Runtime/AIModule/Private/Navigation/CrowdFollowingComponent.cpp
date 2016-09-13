@@ -334,6 +334,15 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 
 bool UCrowdFollowingComponent::ShouldTrackMovingGoal(FVector& OutGoalLocation) const
 {
+	if (bIsUsingMetaPath)
+	{
+		FMetaNavMeshPath* MetaPath = Path.IsValid() ? Path->CastPath<FMetaNavMeshPath>() : nullptr;
+		if (MetaPath && !MetaPath->IsLastSection())
+		{
+			return false;
+		}
+	}
+
 	if (bFinalPathPart && !bUpdateDirectMoveVelocity &&
 		Path.IsValid() && !Path->IsPartial() && Path->GetGoalActor())
 	{
@@ -764,7 +773,13 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		// which means, that PathPoints contains only start and end position 
 		// full path is available through PathCorridor array (poly refs)
 
-		ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(MyNavData);
+		ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(NavMeshPath->GetNavigationDataUsed());
+		if (RecastNavData == nullptr)
+		{
+			UE_VLOG(GetOwner(), LogCrowdFollowing, Error, TEXT("Invalid navigation data in UCrowdFollowingComponent::SetMoveSegment, expected ARecastNavMesh class, got: %s"), *GetNameSafe(NavMeshPath->GetNavigationDataUsed()));
+			OnPathFinished(FPathFollowingResult(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath));
+			return;
+		}
 
 		const int32 PathPartSize = 15;
 		const int32 LastPolyIdx = NavMeshPath->PathCorridor.Num() - 1;

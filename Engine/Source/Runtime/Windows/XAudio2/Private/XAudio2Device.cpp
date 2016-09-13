@@ -42,6 +42,7 @@ public:
 
 IMPLEMENT_MODULE(FXAudio2DeviceModule, XAudio2);
 
+
 /*------------------------------------------------------------------------------------
 Static variables from the early init
 ------------------------------------------------------------------------------------*/
@@ -273,9 +274,13 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
+}
+
+void FXAudio2Device::CheckDeviceStateChange()
+{
+#if PLATFORM_WINDOWS
 	if (DeviceProperties)
 	{
-#if PLATFORM_WINDOWS
 		if (DeviceProperties->DidAudioDeviceChange())
 		{
 			// Stop any sounds that are playing
@@ -290,8 +295,8 @@ void FXAudio2Device::UpdateHardware()
 			// And switch to no-audio mode.
 			bIsAudioDeviceHardwareInitialized = false;
 		}
-#endif
 	}
+#endif
 
 	// Update the audio clock time
 	AudioClock = DeviceProperties->GetAudioClockTime();

@@ -129,12 +129,13 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	// cant fire arbitrary delegates here off the game thread
 	if (IsInGameThread())
 	{
+#if DO_BLUEPRINT_GUARD
 		// If nothing is bound, show warnings so something is left in the log.
 		if (bShouldLogWarning && (OnScriptException.IsBound() == false))
 		{
 			UE_LOG(LogScript, Warning, TEXT("%s"), *StackFrame.GetStackTrace());
 		}
-
+#endif
 		OnScriptException.Broadcast(ActiveObject, StackFrame, Info);
 	}
 
@@ -366,12 +367,14 @@ void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Ve
 	// Tracking down some places that display warnings but no message..
 	ensure(Verbosity > ELogVerbosity::Warning || FCString::Strlen(Message) > 0);
 
+#if DO_BLUEPRINT_GUARD
 	// Show the stackfor fatal/error, and on warning if that option is enabled
 	if (Verbosity <= ELogVerbosity::Error || (ShowKismetScriptStackOnWarnings() && Verbosity == ELogVerbosity::Warning))
 	{
 		ScriptStack = TEXT("Script call stack:\n");
 		ScriptStack += GetScriptCallstack();
 	}
+#endif
 
 	if (Verbosity == ELogVerbosity::Fatal)
 	{
@@ -382,7 +385,10 @@ void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Ve
 	{
 		// Call directly so we can pass verbosity through
 		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("Script Msg: %s"), Message);
-		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s"), *ScriptStack);
+		if (!ScriptStack.IsEmpty())
+		{
+			FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s"), *ScriptStack);
+		}
 	}	
 #endif
 }

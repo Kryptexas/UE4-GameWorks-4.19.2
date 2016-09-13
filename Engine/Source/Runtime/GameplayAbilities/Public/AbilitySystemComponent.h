@@ -84,8 +84,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	friend FGameplayEffectSpec;
 	friend class AAbilitySystemDebugHUD;
 
-	virtual ~UAbilitySystemComponent();
-
 	virtual void InitializeComponent() override;
 	virtual void UninitializeComponent() override;
 	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
@@ -1475,7 +1473,7 @@ protected:
 	FGameplayTagCountContainer GameplayTagCountContainer;
 
 	UPROPERTY(Replicated)
-	FMinimapReplicationTagCountMap MinimalReplicationTags;
+	FMinimalReplicationTagCountMap MinimalReplicationTags;
 
 	void ResetTagMap();
 
@@ -1504,6 +1502,6 @@ protected:
 	friend struct FAggregator;
 
 private:
-	FDelegateHandle MonitoredTagChangedDelegatHandle;
+	FDelegateHandle MonitoredTagChangedDelegateHandle;
 	FTimerHandle    OnRep_ActivateAbilitiesTimerHandle;
 };

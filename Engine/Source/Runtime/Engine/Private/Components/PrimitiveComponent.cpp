@@ -1598,11 +1598,11 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			{
 				if (Actor)
 				{
-					UE_LOG(LogPrimitiveComponent, Fatal,TEXT("%s MovedComponent %s not initialized deleteme %d"),*Actor->GetName(), *GetName(), Actor->IsPendingKill());
+					ensureMsgf(IsRegistered(), TEXT("%s MovedComponent %s not initialized deleteme %d"),*Actor->GetName(), *GetName(), Actor->IsPendingKill());
 				}
 				else
 				{
-					UE_LOG(LogPrimitiveComponent, Fatal,TEXT("MovedComponent %s not initialized"), *GetFullName());
+					ensureMsgf(IsRegistered(), TEXT("MovedComponent %s not initialized"), *GetFullName());
 				}
 			}
 #endif

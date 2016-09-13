@@ -668,7 +668,7 @@ void FGameplayTagContainer::AppendTags(FGameplayTagContainer const& Other)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FGameplayTagContainer_AppendTags);
 
-	GameplayTags.Reserve(Other.Num());
+	GameplayTags.Reserve(GameplayTags.Num() + Other.Num());
 
 	//add all the tags
 	for(TArray<FGameplayTag>::TConstIterator It(Other.GameplayTags); It; ++It)

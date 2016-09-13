@@ -5,6 +5,56 @@
 #include "GameplayTagsModule.h"
 #include "GameplayEffectTypes.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+
+#if WITH_EDITORONLY_DATA
+const FName FGameplayModEvaluationChannelSettings::ForceHideMetadataKey(TEXT("ForceHideEvaluationChannel"));
+const FString FGameplayModEvaluationChannelSettings::ForceHideMetadataEnabledValue(TEXT("True"));
+#endif // #if WITH_EDITORONLY_DATA
+
+FGameplayModEvaluationChannelSettings::FGameplayModEvaluationChannelSettings()
+{
+	static const UEnum* EvalChannelEnum = nullptr;
+	static EGameplayModEvaluationChannel DefaultChannel = EGameplayModEvaluationChannel::Channel0;
+
+	// The default value for this struct is actually dictated by a config value, so a degree of trickery is involved.
+	// The first time through, try to find the enum and the default value, if any, and then use that to set the
+	// static default channel used to initialize this struct
+	if (!EvalChannelEnum)
+	{
+		EvalChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModEvaluationChannel"));
+		if (ensure(EvalChannelEnum) && ensure(GConfig))
+		{
+			const FString INISection(TEXT("/Script/GameplayAbilities.AbilitySystemGlobals"));
+			const FString INIKey(TEXT("DefaultGameplayModEvaluationChannel"));
+			
+			FString DefaultEnumString;
+			if (GConfig->GetString(*INISection, *INIKey, DefaultEnumString, GGameIni))
+			{
+				if (!DefaultEnumString.IsEmpty())
+				{
+					const int32 EnumVal = EvalChannelEnum->GetValueByName(FName(*DefaultEnumString));
+					if (EnumVal != INDEX_NONE)
+					{
+						DefaultChannel = static_cast<EGameplayModEvaluationChannel>(EnumVal);
+					}
+				}
+			}
+		}
+	}
+
+	Channel = DefaultChannel;
+}
+
+EGameplayModEvaluationChannel FGameplayModEvaluationChannelSettings::GetEvaluationChannel() const
+{
+	if (ensure(UAbilitySystemGlobals::Get().IsGameplayModEvaluationChannelValid(Channel)))
+	{
+		return Channel;
+	}
+
+	return EGameplayModEvaluationChannel::Channel0;
+}
 
 float GameplayEffectUtilities::GetModifierBiasByModifierOp(EGameplayModOp::Type ModOp)
 {
@@ -788,7 +838,7 @@ const UObject* FGameplayCueParameters::GetSourceObject() const
 	return EffectContext.GetSourceObject();
 }
 
-bool FMinimapReplicationTagCountMap::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+bool FMinimalReplicationTagCountMap::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	const int32 CountBits = UAbilitySystemGlobals::Get().MinimalReplicationTagCountBits;
 	const int32 MaxCount = ((1 << CountBits)-1);
