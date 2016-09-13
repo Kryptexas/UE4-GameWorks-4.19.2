@@ -8,7 +8,7 @@
 
 static TAutoConsoleVariable<int> CVarGPUStatsEnabled(
 	TEXT("r.GPUStatsEnabled"),
-	1,
+	0,
 	TEXT("Enables or disables GPU stat recording"));
 
 // If this is enabled, the child stat timings will be included in their parents' times.
