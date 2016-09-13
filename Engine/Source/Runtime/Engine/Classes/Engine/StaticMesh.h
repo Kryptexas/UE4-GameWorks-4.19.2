@@ -310,10 +310,6 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	/** Map of LOD+Section index to per-section info. */
 	FMeshSectionInfoMap SectionInfoMap;
 
-	/** The pixel error allowed when computing auto LOD distances. */
-	UPROPERTY()
-	float AutoLODPixelError;
-
 	/** The LOD group to which this mesh belongs. */
 	UPROPERTY()
 	FName LODGroup;

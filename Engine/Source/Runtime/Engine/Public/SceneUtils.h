@@ -166,6 +166,7 @@
 
 class FRealtimeGPUProfilerEvent;
 class FRealtimeGPUProfilerFrame;
+class FRenderQueryPool;
 
 /**
 * FRealtimeGPUProfiler class. This manages recording and reporting all for GPU stats
@@ -197,6 +198,7 @@ private:
 	int32 WriteBufferIndex;
 	int32 ReadBufferIndex;
 	uint32 WriteFrameNumber;
+	FRenderQueryPool* RenderQueryPool;
 };
 
 /**
@@ -244,3 +246,28 @@ ENGINE_API bool IsMobileHDR32bpp();
 
 /** True if the mobile renderer is emulating HDR with mosaic. */
 ENGINE_API bool IsMobileHDRMosaic();
+
+/**
+* A pool of render (e.g. occlusion/timer) queries which are allocated individually, and returned to the pool as a group.
+*/
+class ENGINE_API FRenderQueryPool
+{
+public:
+	FRenderQueryPool(ERenderQueryType InQueryType) :QueryType(InQueryType) { }
+	virtual ~FRenderQueryPool();
+
+	/** Releases all the render queries in the pool. */
+	void Release();
+
+	/** Allocates an render query from the pool. */
+	FRenderQueryRHIRef AllocateQuery();
+
+	/** De-reference an render query, returning it to the pool instead of deleting it when the refcount reaches 0. */
+	void ReleaseQuery(FRenderQueryRHIRef &Query);
+
+private:
+	/** Container for available render queries. */
+	TArray<FRenderQueryRHIRef> Queries;
+
+	ERenderQueryType QueryType;
+};

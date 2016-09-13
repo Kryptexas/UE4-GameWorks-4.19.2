@@ -831,8 +831,8 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			}
 			else
 			{
-				const float ViewDistance = CalculateViewDistance(LOD.MaxDeviation, Owner->AutoLODPixelError);
-				ScreenSize[LODIndex] = 2.0f * Bounds.SphereRadius / ViewDistance;
+				const float ViewDistance = CalculateViewDistance(LOD.MaxDeviation, Owner->SourceModels[LODIndex].ReductionSettings.PixelError);
+				ScreenSize[LODIndex] = PI * FMath::Square( 0.5f * Bounds.SphereRadius / ( Bounds.SphereRadius + ViewDistance ) );
 			}
 		}
 		else if (Owner->SourceModels.IsValidIndex(LODIndex))
@@ -939,6 +939,11 @@ void FStaticMeshLODSettings::ReadEntry(FStaticMeshLODGroup& Group, FString Entry
 		Settings.MaxDeviation = FMath::Clamp<float>(Settings.MaxDeviation, 0.0f, 1000.0f);
 	}
 
+	if (FParse::Value(*Entry, TEXT("PixelError="), Settings.PixelError))
+	{
+		Settings.PixelError = FMath::Clamp<float>(Settings.PixelError, 1.0f, 1000.0f);
+	}
+
 	if (FParse::Value(*Entry, TEXT("WeldingThreshold="), Settings.WeldingThreshold))
 	{
 		Settings.WeldingThreshold = FMath::Clamp<float>(Settings.WeldingThreshold, 0.0f, 10.0f);
@@ -981,6 +986,11 @@ void FStaticMeshLODSettings::ReadEntry(FStaticMeshLODGroup& Group, FString Entry
 	if (FParse::Value(*Entry, TEXT("MaxDeviationBias="), Bias.MaxDeviation))
 	{
 		Bias.MaxDeviation = FMath::Clamp<float>(Bias.MaxDeviation, -1000.0f, 1000.0f);
+	}
+
+	if (FParse::Value(*Entry, TEXT("PixelErrorBias="), Bias.PixelError))
+	{
+		Bias.PixelError = FMath::Clamp<float>(Bias.PixelError, 1.0f, 1000.0f);
 	}
 
 	if (FParse::Value(*Entry, TEXT("WeldingThresholdBias="), Bias.WeldingThreshold))
@@ -1037,6 +1047,7 @@ FMeshReductionSettings FStaticMeshLODGroup::GetSettings(const FMeshReductionSett
 
 	// Bias the remaining settings.
 	FinalSettings.MaxDeviation = FMath::Max(InSettings.MaxDeviation + SettingsBias.MaxDeviation, 0.0f);
+	FinalSettings.PixelError = FMath::Max(InSettings.PixelError + SettingsBias.PixelError, 1.0f);
 	FinalSettings.WeldingThreshold = FMath::Max(InSettings.WeldingThreshold + SettingsBias.WeldingThreshold, 0.0f);
 	FinalSettings.HardAngleThreshold = FMath::Clamp(InSettings.HardAngleThreshold + SettingsBias.HardAngleThreshold, 0.0f, 180.0f);
 	FinalSettings.SilhouetteImportance = (EMeshFeatureImportance::Type)FMath::Clamp<int32>(InSettings.SilhouetteImportance + SettingsBias.SilhouetteImportance, EMeshFeatureImportance::Off, EMeshFeatureImportance::Highest);
@@ -1067,6 +1078,7 @@ FArchive& operator<<(FArchive& Ar, FMeshReductionSettings& ReductionSettings)
 {
 	Ar << ReductionSettings.PercentTriangles;
 	Ar << ReductionSettings.MaxDeviation;
+	Ar << ReductionSettings.PixelError;
 	Ar << ReductionSettings.WeldingThreshold;
 	Ar << ReductionSettings.HardAngleThreshold;
 	Ar << ReductionSettings.SilhouetteImportance;
@@ -1313,7 +1325,6 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	StreamingDistanceMultiplier=1.0f;
 	bHasNavigationData=true;
 #if WITH_EDITORONLY_DATA
-	AutoLODPixelError = 1.0f;
 	bAutoComputeLODScreenSize=true;
 #endif // #if WITH_EDITORONLY_DATA
 	LightMapResolution = 4;
@@ -1670,7 +1681,6 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		// Update the extended bounds
 		CalculateExtendedBounds();
 	}
-	AutoLODPixelError = FMath::Max(AutoLODPixelError, 1.0f);
 
 	if (!bAutoComputeLODScreenSize
 		&& RenderData

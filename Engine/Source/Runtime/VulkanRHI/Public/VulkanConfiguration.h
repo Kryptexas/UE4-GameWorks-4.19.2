@@ -4,7 +4,7 @@
 	VulkanConfiguration.h: Vulkan resource RHI definitions.
 =============================================================================*/
 
-// Compiled with 1.0.17.0
+// Compiled with 1.0.24.0
 
 #pragma once
 
@@ -96,6 +96,8 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #define VULKAN_ENABLE_PIPELINE_CACHE							1
 
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
+
+#define VULKAN_USE_NEW_RENDERPASSES								0
 
 //#todo-rco: While validation is not fixed...
 #define VULKAN_REUSE_FENCES										(VK_HEADER_VERSION < 17)

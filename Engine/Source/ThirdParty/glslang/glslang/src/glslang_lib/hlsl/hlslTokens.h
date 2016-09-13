@@ -64,6 +64,7 @@ enum EHlslTokenClass {
     EHTokIn,
     EHTokOut,
     EHTokInOut,
+    EHTokLayout,
 
     // template types
     EHTokBuffer,
@@ -212,6 +213,8 @@ enum EHlslTokenClass {
     EHTokIdentifier,
     EHTokTypeName,
     EHTokStruct,
+    EHTokCBuffer,
+    EHTokTBuffer,
     EHTokTypedef,
 
     // constant
@@ -220,6 +223,7 @@ enum EHlslTokenClass {
     EHTokIntConstant,
     EHTokUintConstant,
     EHTokBoolConstant,
+    EHTokStringConstant,
 
     // control flow
     EHTokFor,

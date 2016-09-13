@@ -424,7 +424,7 @@ float3 GetSimpleForwardLightingDirectionalLight(FGBufferData GBuffer, float3 Dif
 	float3 LightColor = ResolvedView.DirectionalLightColor.rgb * PI;
 	
 	// Not computing specular, material was forced fully rough
-	float3 DiffuseLighting = StandardShading(DiffuseColor, SpecularColor, Roughness.xxx, 1.0f, L, V, N, float2(1, 0));
+	float3 DiffuseLighting = Diffuse_Lambert( DiffuseColor );
 	float3 SubsurfaceLighting = SubsurfaceShading(GBuffer, L, V, N, 1.0f, uint2(0, 0));
 
 	return LightColor * NoL * (DiffuseLighting + SubsurfaceLighting);
@@ -962,7 +962,7 @@ void FPixelShaderInOut_MainPS(
 				// to the specular component, otherwise lighting is applied twice
 				Color *= !bChecker;
 			}
-			LightAccumulator_Add(LightAccumulator, DiffuseColor, Color, 1.0f, GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
+			LightAccumulator_Add(LightAccumulator, Color + DiffuseColor, DiffuseColor, 1.0f, GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
 #else
 			LightAccumulator_Add(LightAccumulator, Color, 0, 1.0f, false);
 #endif

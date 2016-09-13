@@ -133,6 +133,9 @@
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslParseables.cpp">
       <Filter>hlsl</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\ParseContextBase.cpp">
+      <Filter>glslang\MachineIndependent</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\glslang_lib\SPIRV\disassemble.h">
@@ -281,6 +284,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslParseables.h">
       <Filter>hlsl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\glslang_lib\SPIRV\GLSL.ext.AMD.h">
+      <Filter>SPIRV</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

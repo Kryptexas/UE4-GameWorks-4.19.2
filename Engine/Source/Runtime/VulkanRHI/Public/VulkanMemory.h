@@ -269,11 +269,13 @@ namespace VulkanRHI
 		{
 			VkDeviceSize TotalSize;
 			VkDeviceSize UsedSize;
+			VkDeviceSize PeakSize;
 			TArray<FDeviceMemoryAllocation*> Allocations;
 
 			FHeapInfo() :
 				TotalSize(0),
-				UsedSize(0)
+				UsedSize(0),
+				PeakSize(0)
 			{
 			}
 		};
@@ -369,7 +371,7 @@ namespace VulkanRHI
 
 		void ReleaseAllocation(FOldResourceAllocation* Allocation);
 
-		FOldResourceHeap* GetOwner()
+		inline FOldResourceHeap* GetOwner()
 		{
 			return Owner;
 		}
@@ -390,7 +392,7 @@ namespace VulkanRHI
 			uint32 Offset;
 			uint32 Size;
 
-			bool operator<(const FPair& In) const
+			inline bool operator<(const FPair& In) const
 			{
 				return Offset < In.Offset;
 			}
@@ -401,6 +403,7 @@ namespace VulkanRHI
 
 	class FBufferAllocation;
 
+	// This holds the information for a SubAllocation (a range); does NOT hold any information about what the object type is
 	class FResourceSuballocation : public FRefCount
 	{
 	public:
@@ -430,6 +433,7 @@ namespace VulkanRHI
 		uint32 AllocationOffset;
 	};
 
+	// Suballocation of a VkBuffer
 	class FBufferSuballocation : public FResourceSuballocation
 	{
 	public:
@@ -449,11 +453,12 @@ namespace VulkanRHI
 			return Handle;
 		}
 
-		FBufferAllocation* GetBufferAllocation()
+		inline FBufferAllocation* GetBufferAllocation()
 		{
 			return Owner;
 		}
 
+		// Returns the pointer to the mapped data for this SubAllocation, not the full buffer!
 		void* GetMappedPointer();
 
 	protected:
@@ -462,6 +467,7 @@ namespace VulkanRHI
 		VkBuffer Handle;
 	};
 
+	// Generically mantains/manages sub-allocations; doesn't know what the object type is
 	class FSubresourceAllocator
 	{
 	public:
@@ -496,12 +502,12 @@ namespace VulkanRHI
 			return TryAllocateNoLocking(InSize, InAlignment, File, Line);
 		}
 
-		uint32 GetAlignment() const
+		inline uint32 GetAlignment() const
 		{
 			return Alignment;
 		}
 
-		void* GetMappedPointer()
+		inline void* GetMappedPointer()
 		{
 			return MemoryAllocation->GetMappedPointer();
 		}
@@ -527,12 +533,15 @@ namespace VulkanRHI
 				return Offset < In.Offset;
 			}
 		};
+		// List of free ranges
 		TArray<FPair> FreeList;
 
+		// Active sub-allocations
 		TArray<FResourceSuballocation*> Suballocations;
 		bool JoinFreeBlocks();
 	};
 
+	// Manages/maintains sub-allocations of a VkBuffer; assumes it was created elsewhere, but it does destroy it
 	class FBufferAllocation : public FSubresourceAllocator
 	{
 	public:
@@ -676,7 +685,10 @@ namespace VulkanRHI
 		void Init();
 		void Deinit();
 
+		// Returns a sub-allocation, as there can be space inside a previously allocated VkBuffer to be reused; to release a sub allocation, just delete the pointer
 		FBufferSuballocation* AllocateBuffer(uint32 Size, VkBufferUsageFlags BufferUsageFlags, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line);
+
+		// Release a whole allocation; this is only called from within a FBufferAllocation
 		void ReleaseBuffer(FBufferAllocation* BufferAllocation);
 #if 0
 		FImageSuballocation* AllocateImage(uint32 Size, VkImageUsageFlags ImageUsageFlags, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line);
@@ -770,6 +782,16 @@ namespace VulkanRHI
 		inline void* GetMappedPointer()
 		{
 			return ResourceAllocation->GetMappedPointer();
+		}
+
+		inline uint32 GetOffset() const
+		{
+			return ResourceAllocation->GetOffset();
+		}
+
+		inline VkDeviceMemory GetDeviceMemoryHandle() const
+		{
+			return ResourceAllocation->GetHandle();
 		}
 
 	protected:

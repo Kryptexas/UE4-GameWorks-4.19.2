@@ -38,6 +38,7 @@ public:
 		struct FRawMesh& OutReducedMesh,
 		float& OutMaxDeviation,
 		const struct FRawMesh& InMesh,
+		const TMultiMap<int32, int32>& InOverlappingCorners,
 		const struct FMeshReductionSettings& ReductionSettings
 		) = 0;
 	/**
@@ -127,6 +128,16 @@ public:
 		class FStaticMeshRenderData& OutRenderData,
 		TArray<struct FStaticMeshSourceModel>& SourceModels,
 		const class FStaticMeshLODGroup& LODGroup
+		) = 0;
+
+	virtual void BuildStaticMeshVertexAndIndexBuffers(
+		TArray<FStaticMeshBuildVertex>& OutVertices,
+		TArray<TArray<uint32> >& OutPerSectionIndices,
+		TArray<int32>& OutWedgeMap,
+		const FRawMesh& RawMesh,
+		const TMultiMap<int32, int32>& OverlappingCorners,
+		float ComparisonThreshold,
+		FVector BuildScale
 		) = 0;
 
 	/**

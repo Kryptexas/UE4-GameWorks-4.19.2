@@ -242,8 +242,10 @@ static_assert(sizeof(GDebugPipelineKey) == 2 * sizeof(uint64), "Debug struct not
 
 FVulkanPendingState::FVulkanPendingState(FVulkanDevice* InDevice)
 	: Device(InDevice)
+#if !VULKAN_USE_NEW_RENDERPASSES
 	, bBeginRenderPass(false)
 	, bChangeRenderTarget(false)
+#endif
 	, GlobalUniformPool(nullptr)
 	, bScissorEnable(false)
 {
@@ -265,11 +267,13 @@ FVulkanPendingState::~FVulkanPendingState()
 
 	DestroyFrameBuffers(false);
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 	for (auto& Pair : RenderPassMap)
 	{
 		delete Pair.Value;
 	}
 	RenderPassMap.Empty(0);
+#endif
 }
 
 void FVulkanPendingState::DestroyFrameBuffers(bool bResetMap)
@@ -300,6 +304,7 @@ FVulkanGlobalUniformPool& FVulkanPendingState::GetGlobalUniformPool()
     return *GlobalUniformPool;
 }
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 bool FVulkanPendingState::RenderPassBegin(FVulkanCmdBuffer* CmdBuffer)
 {
 	check(!bBeginRenderPass);
@@ -402,13 +407,15 @@ void FVulkanPendingState::RenderPassEnd(FVulkanCmdBuffer* CmdBuffer)
 	CmdBuffer->EndRenderPass();
 	bBeginRenderPass = false;
 }
+#endif
 
 // Expected to be called after render pass has been ended
 // and only from "FVulkanDynamicRHI::RHIEndDrawingViewport()"
 void FVulkanPendingState::Reset()
 {
+#if !VULKAN_USE_NEW_RENDERPASSES
 	check(!bBeginRenderPass);
-
+#endif
 	CurrentState.Reset();
 
 	FMemory::Memzero(PendingStreams);
@@ -423,6 +430,7 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 {
 	MaxDescriptorSets = 8192;
 	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
+	FMemory::Memzero(MaxAllocatedTypes);
 	FMemory::Memzero(NumAllocatedTypes);
 	FMemory::Memzero(PeakAllocatedTypes);
 
@@ -458,6 +466,11 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	Type->type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 	Type->descriptorCount = LimitMaxUniformTexelBuffers;
 
+	for (const VkDescriptorPoolSize& PoolSize : Types)
+	{
+		MaxAllocatedTypes[PoolSize.type] = PoolSize.descriptorCount;
+	}
+
 	VkDescriptorPoolCreateInfo PoolInfo;
 	FMemory::Memzero(PoolInfo);
 	PoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -480,9 +493,6 @@ FVulkanDescriptorPool::~FVulkanDescriptorPool()
 
 void FVulkanDescriptorPool::TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout)
 {
-	// Check if we can allocate new DescriptorSet
-	checkf(NumAllocatedDescriptorSets < MaxDescriptorSets, TEXT("DescriptorSet allocation overflow %u"), MaxDescriptorSets);
-
 	// Check and increment our current type usage
 	for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex < VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
 	{
@@ -529,15 +539,21 @@ void FVulkanPendingState::PrepareDraw(FVulkanCommandListContext* CmdListContext,
 	checkf(Topology < (1 << NUMBITS_POLYTYPE), TEXT("PolygonMode was too high a value for the PSO key [%d]"), Topology);
 	SetKeyBits(CurrentKey, OFFSET_POLYTYPE, NUMBITS_POLYTYPE, Topology);
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 	//@TODO: let's try not to do this per draw call?
 	UpdateRenderPass(Cmd);
+#endif
 
 	check(CurrentState.Shader);
     bool bHasDescriptorSets = CurrentState.Shader->UpdateDescriptorSets(CmdListContext, Cmd, GlobalUniformPool);
 
 	// let the BoundShaderState return a pipeline object for the full current state of things
 	CurrentState.InputAssembly.topology = Topology;
+#if VULKAN_USE_NEW_RENDERPASSES
+	FVulkanPipeline* Pipeline = CurrentState.Shader->PrepareForDraw(CmdListContext->GetCurrentRenderPass(), CurrentKey, CurrentState.Shader->GetVertexInputStateInfo().GetHash(), CurrentState);
+#else
 	FVulkanPipeline* Pipeline = CurrentState.Shader->PrepareForDraw(CurrentKey, CurrentState.Shader->GetVertexInputStateInfo().GetHash(), CurrentState);
+#endif
 
 	check(Pipeline);
 
@@ -555,6 +571,7 @@ void FVulkanPendingState::PrepareDraw(FVulkanCommandListContext* CmdListContext,
 	}
 }
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 void FVulkanPendingState::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& InRTInfo)
 {
 	//#todo-rco: Check perf
@@ -654,13 +671,17 @@ bool FVulkanPendingState::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo&
 
 	return bAllChecksPassed == false;
 }
+#endif
 
 void FVulkanPendingState::InitFrame()
 {
 	// make sure the first SetRenderTarget goes through
+#if !VULKAN_USE_NEW_RENDERPASSES
 	PrevRenderTargetsInfo.NumColorRenderTargets = -1;
+#endif
 }
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 FVulkanRenderPass* FVulkanPendingState::GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout)
 {
 	uint32 Hash = RTLayout.GetHash();
@@ -675,6 +696,7 @@ FVulkanRenderPass* FVulkanPendingState::GetOrCreateRenderPass(const FVulkanRende
 	RenderPassMap.Add(Hash, OutRenderPass);
 	return OutRenderPass;
 }
+#endif
 
 FVulkanFramebuffer* FVulkanPendingState::GetOrCreateFramebuffer(const FRHISetRenderTargetsInfo& RHIRTInfo, const FVulkanRenderTargetLayout& InRTInfo, const FVulkanRenderPass& inRenderPass)
 {
@@ -818,11 +840,19 @@ void FVulkanPendingState::NotifyDeletedRenderTarget(const FVulkanTextureBase* Te
 		for (int32 Index = FrameBuffers.Num() - 1; Index >= 0; --Index)
 		{
 			FVulkanFramebuffer* FB = FrameBuffers[Index];
-			if (FB->ContainsRenderTarget(Texture))
+			if (FB->ContainsRenderTarget(Texture->Surface.Image))
 			{
 				//FramebuffersToDelete.Add(FB->GetHandle());
 				FrameBuffers.RemoveAtSwap(Index, 1, false);
 				FB->Destroy(*Device);
+#if VULKAN_USE_NEW_RENDERPASSES
+				ensure(0);
+#else
+				if (FB == CurrentState.FrameBuffer)
+				{
+					CurrentState.FrameBuffer = nullptr;
+				}
+#endif
 				delete FB;
 			}
 		}

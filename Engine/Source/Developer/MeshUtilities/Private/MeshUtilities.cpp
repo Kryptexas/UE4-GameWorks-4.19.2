@@ -64,6 +64,15 @@ static TAutoConsoleVariable<int32> CVarTriangleOrderOptimization(
 	TEXT("2: No triangle order optimization. (least efficient, debugging purposes only)"),
 	ECVF_Default);
 
+static TAutoConsoleVariable<int32> CVarUseSimplygon(
+	TEXT("r.UseSimplygon"),
+	1,
+	TEXT("Whether to use Simplygon.\n")
+	TEXT("0: Don't use Simplygon for anything\n")
+	TEXT("1: Use Simplygon where necessary (not for static mesh reduction)")
+	TEXT("2: Use Simplygon for everything (including static mesh reduction)"),
+	ECVF_Default);
+
 class FMeshUtilities : public IMeshUtilities
 {
 public:
@@ -104,6 +113,16 @@ private:
 		FStaticMeshRenderData& OutRenderData,
 		TArray<FStaticMeshSourceModel>& SourceModels,
 		const FStaticMeshLODGroup& LODGroup
+		) override;
+
+	virtual void BuildStaticMeshVertexAndIndexBuffers(
+		TArray<FStaticMeshBuildVertex>& OutVertices,
+		TArray<TArray<uint32> >& OutPerSectionIndices,
+		TArray<int32>& OutWedgeMap,
+		const FRawMesh& RawMesh,
+		const TMultiMap<int32, int32>& OverlappingCorners,
+		float ComparisonThreshold,
+		FVector BuildScale
 		) override;
 
 	virtual bool GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup) override;
@@ -1528,17 +1547,6 @@ inline bool PointsEqual(const FVector& V1, const FVector& V2, float ComparisonTh
 	return true;
 }
 
-inline bool UVsEqual(const FVector2D& UV1, const FVector2D& UV2)
-{
-	if (FMath::Abs(UV1.X - UV2.X) > (1.0f / 1024.0f))
-		return false;
-
-	if (FMath::Abs(UV1.Y - UV2.Y) > (1.0f / 1024.0f))
-		return false;
-
-	return true;
-}
-
 static inline FVector GetPositionForWedge(FRawMesh const& Mesh, int32 WedgeIndex)
 {
 	int32 VertexIndex = Mesh.WedgeIndices[WedgeIndex];
@@ -2926,7 +2934,7 @@ static bool AreVerticesEqual(
 	return true;
 }
 
-static void BuildStaticMeshVertexAndIndexBuffers(
+void FMeshUtilities::BuildStaticMeshVertexAndIndexBuffers(
 	TArray<FStaticMeshBuildVertex>& OutVertices,
 	TArray<TArray<uint32> >& OutPerSectionIndices,
 	TArray<int32>& OutWedgeMap,
@@ -3221,11 +3229,12 @@ public:
 
 			if (MeshReduction && (ReductionSettings.PercentTriangles < 1.0f || ReductionSettings.MaxDeviation > 0.0f))
 			{
-				FRawMesh InMesh = LODMeshes[ReductionSettings.BaseLODModel];
+				FRawMesh& InMesh = LODMeshes[ReductionSettings.BaseLODModel];
 				FRawMesh& DestMesh = LODMeshes[NumValidLODs];
+				TMultiMap<int32, int32>& InOverlappingCorners = LODOverlappingCorners[ReductionSettings.BaseLODModel];
 				TMultiMap<int32, int32>& DestOverlappingCorners = LODOverlappingCorners[NumValidLODs];
 
-				MeshReduction->Reduce(DestMesh, LODMaxDeviation[NumValidLODs], InMesh, ReductionSettings);
+				MeshReduction->Reduce(DestMesh, LODMaxDeviation[NumValidLODs], InMesh, InOverlappingCorners, ReductionSettings);
 				if (DestMesh.WedgeIndices.Num() > 0 && !DestMesh.IsValid())
 				{
 					UE_LOG(LogMeshUtilities, Error, TEXT("Mesh reduction produced a corrupt mesh for LOD%d"), LODIndex);
@@ -3288,7 +3297,7 @@ public:
 				TArray<int32> TempWedgeMap;
 				TArray<int32>& WedgeMap = (LODIndex == 0 && InOutModels[0].ReductionSettings.PercentTriangles >= 1.0f) ? OutRenderData.WedgeMap : TempWedgeMap;
 				float ComparisonThreshold = GetComparisonThreshold(LODBuildSettings[LODIndex]);
-				BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale3D);
+				MeshUtilities.BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale3D);
 				check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());
 
 				if (RawMesh.WedgeIndices.Num() < 100000 * 3)
@@ -7676,6 +7685,17 @@ void FMeshUtilities::StartupModule()
 
 		for (int32 Index = 0; Index < ModuleNames.Num(); Index++)
 		{
+			bool bIsSimplygon = ModuleNames[Index].GetPlainNameString().Contains(TEXT("Simplygon"));
+
+			if( CVarUseSimplygon.GetValueOnAnyThread() == 0 && bIsSimplygon )
+			{
+				continue;
+			}
+			if( CVarUseSimplygon.GetValueOnAnyThread() == 2 && !bIsSimplygon )
+			{
+				continue;
+			}
+			
 			IMeshReductionModule& MeshReductionModule = FModuleManager::LoadModuleChecked<IMeshReductionModule>(ModuleNames[Index]);
 
 			// Look for MeshReduction interface

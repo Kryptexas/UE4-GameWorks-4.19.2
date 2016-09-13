@@ -28,6 +28,21 @@ struct FRHICommandAcquireBackBuffer : public FRHICommand<FRHICommandAcquireBackB
 };
 
 
+struct FRHICommandProcessDeferredDeletionQueue : public FRHICommand<FRHICommandProcessDeferredDeletionQueue>
+{
+	FVulkanDevice* Device;
+	FORCEINLINE_DEBUGGABLE FRHICommandProcessDeferredDeletionQueue(FVulkanDevice* InDevice)
+		: Device(InDevice)
+	{
+	}
+
+	void Execute(FRHICommandListBase& CmdList)
+	{
+		Device->GetDeferredDeletionQueue().ReleaseResources();
+	}
+};
+
+
 FVulkanViewport::FVulkanViewport(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, void* InWindowHandle, uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen, EPixelFormat InPreferredPixelFormat)
 	: VulkanRHI::FDeviceChild(InDevice)
 	, RHI(InRHI)
@@ -147,7 +162,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	for (int32 Index = 0; Index < InRTInfo.NumColorRenderTargets; ++Index)
 	{
 		FRHITexture* RHITexture = InRTInfo.ColorRenderTarget[Index].Texture;
-		if(!RHITexture)
+		if (!RHITexture)
 		{
 			continue;
 		}
@@ -156,6 +171,9 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	#if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 		if (Texture->MSAASurface)
 		{
+#if VULKAN_USE_NEW_RENDERPASSES
+			ensure(0);
+#else
 #if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 			check(0);
 #endif
@@ -178,10 +196,34 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		    Barrier.subresourceRange.layerCount = 1;
 			Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+#endif
 		}
 	#endif
 		MipIndex = InRTInfo.ColorRenderTarget[Index].MipIndex;
-		VkImageView RTView = Texture->CreateRenderTargetView(MipIndex, FMath::Max(0, (int32)InRTInfo.ColorRenderTarget[Index].ArraySliceIndex));
+		//#todo-rco
+#if VULKAN_USE_NEW_RENDERPASSES
+		VkImageView RTView = VK_NULL_HANDLE;
+		if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D)
+		{
+			RTView = Texture->CreateRenderTargetView(MipIndex, 1, FMath::Max(0, (int32)InRTInfo.ColorRenderTarget[Index].ArraySliceIndex), 1);
+		}
+		else if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_CUBE)
+		{
+			// Cube always renders one face at a time
+			RTView = FVulkanTextureView::StaticCreate(*Texture->Surface.Device, Texture->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, Texture->Surface.GetFullAspectMask(), Texture->Surface.Format, Texture->Surface.InternalFormat, MipIndex, 1, InRTInfo.ColorRenderTarget[Index].ArraySliceIndex, 1, true);
+		}
+		else if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_3D)
+		{
+			RTView = FVulkanTextureView::StaticCreate(*Texture->Surface.Device, Texture->Surface.Image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, Texture->Surface.GetFullAspectMask(), Texture->Surface.Format, Texture->Surface.InternalFormat, MipIndex, 1, 0, Texture->Surface.Depth, true);
+		}
+		else
+		{
+			ensure(0);
+		}
+		AttachmentViews.Add(RTView);
+		AttachmentViewsToDelete.Add(RTView);
+#else
+		VkImageView RTView = Texture->CreateRenderTargetView(MipIndex, 1, FMath::Max(0, (int32)InRTInfo.ColorRenderTarget[Index].ArraySliceIndex), 1);
 		AttachmentViews.Add(RTView);
 
 		// Create a write-barrier
@@ -205,7 +247,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 			FVulkanTexture2D* Texture2D = (FVulkanTexture2D*)Texture;
 			BackBuffer = Texture2D->GetBackBuffer();
 		}
-
+#endif
 		NumColorAttachments++;
 	}
 
@@ -214,7 +256,10 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(InRTInfo.DepthStencilRenderTarget.Texture);
 
 		bool bHasStencil = (Texture->Surface.Format == PF_DepthStencil);
-
+#if VULKAN_USE_NEW_RENDERPASSES
+		ensure(Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D);
+		AttachmentViews.Add(Texture->DefaultView.View);
+#else
 		// Create a write-barrier
 		WriteBarriers.AddZeroed();
 		VkImageMemoryBarrier& Barrier = WriteBarriers.Last();
@@ -232,9 +277,10 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		//#todo-rco: Cube depth face?
 		//Barrier.subresourceRange.baseArrayLayer = 0;
 		Barrier.subresourceRange.layerCount = 1;
-
-		VkImageView RTView = Texture->CreateRenderTargetView(0, 0);
+		//#todo-rco
+		VkImageView RTView = Texture->CreateRenderTargetView(0, 1, 0, 1);
 		AttachmentViews.Add(RTView);
+#endif
 	}
 
 	VkFramebufferCreateInfo Info;
@@ -244,9 +290,10 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	Info.renderPass = RenderPass.GetHandle();
 	Info.attachmentCount = AttachmentViews.Num();
 	Info.pAttachments = AttachmentViews.GetData();
-	Info.width  = RTLayout.GetExtent3D().width;
-	Info.height = RTLayout.GetExtent3D().height;
-	Info.layers = 1;
+	const VkExtent3D& RTExtents = RTLayout.GetExtent3D();
+	Info.width  = RTExtents.width;
+	Info.height = RTExtents.height;
+	Info.layers = RTExtents.depth;
 	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateFramebuffer(Device.GetInstanceHandle(), &Info, nullptr, &Framebuffer));
 
 	Extents.width = Info.width;
@@ -257,7 +304,11 @@ void FVulkanFramebuffer::Destroy(FVulkanDevice& Device)
 {
 	VulkanRHI::FDeferredDeletionQueue& Queue = Device.GetDeferredDeletionQueue();
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	for (int32 Index = 0; Index < AttachmentViewsToDelete.Num(); ++Index)
+#else
 	for (int32 Index = 0; Index < AttachmentViews.Num(); ++Index)
+#endif
 	{
 		Queue.EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::ImageView, AttachmentViews[Index]);
 	}
@@ -472,6 +523,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	return bResult;
 }
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 void FVulkanFramebuffer::InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer)
 {
 	if (WriteBarriers.Num() == 0)
@@ -485,6 +537,7 @@ void FVulkanFramebuffer::InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer)
 	check(CmdBuffer->IsOutsideRenderPass());
 	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer->GetHandle(), SrcStages, DestStages, 0, 0, nullptr, 0, nullptr, WriteBarriers.Num(), WriteBarriers.GetData());
 }
+#endif
 
 /*=============================================================================
  *	The following RHI functions must be called from the main thread.
@@ -645,6 +698,19 @@ void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 	for (FVulkanViewport* Viewport : Viewports)
 	{
 		Viewport->AdvanceBackBufferFrame();
+	}
+
+	{
+		FRHICommandList& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+		if (RHICmdList.Bypass() || !GRHIThread)
+		{
+			FRHICommandProcessDeferredDeletionQueue Cmd(Device);
+			Cmd.Execute(RHICmdList);
+		}
+		else
+		{
+			new (RHICmdList.AllocCommand<FRHICommandProcessDeferredDeletionQueue>()) FRHICommandProcessDeferredDeletionQueue(Device);
+		}
 	}
 }
 

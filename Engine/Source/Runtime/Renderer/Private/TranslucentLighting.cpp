@@ -1178,12 +1178,13 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLightingAsyncCompute(F
 	static const FName BeginComputeFenceName(TEXT("TranslucencyLightingVolumeClearBeginComputeFence"));
 	FComputeFenceRHIRef ClearBeginFence = RHICmdList.CreateComputeFence(BeginComputeFenceName);
 
+	//write fence on the Gfx pipe so the async clear compute shader won't clear until the Gfx pipe is caught up.
+	RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, VolumeUAVs, 4, ClearBeginFence);
+
 	//Grab the async compute commandlist.
 	FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
 	{
 		SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ClearTranslucencyLightingVolume, TEXT("ClearTranslucencyLightingVolumeCompute %d"), GTranslucencyLightingVolumeDim);
-
-		RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, VolumeUAVs, 4, ClearBeginFence);
 
 		//we must wait on the fence written from the Gfx pipe to let us know all our dependencies are ready.
 		RHICmdListComputeImmediate.WaitComputeFence(ClearBeginFence);

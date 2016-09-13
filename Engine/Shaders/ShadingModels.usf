@@ -44,8 +44,7 @@ void StandardShadingPerLight( Shared, float3 L, float3 V, half3 N )
 }
 #endif
 
-// @param DiffSpecMask .r: diffuse, .g:specular e.g. float2(1,1) for both, float2(1,0) for diffuse only
-float3 StandardShading( float3 DiffuseColor, float3 SpecularColor, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, half3 N, float2 DiffSpecMask )
+float3 StandardShading( float3 DiffuseColor, float3 SpecularColor, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, half3 N )
 {
 	float3 H = normalize(V + L);
 	float NoL = saturate( dot(N, L) );
@@ -61,8 +60,8 @@ float3 StandardShading( float3 DiffuseColor, float3 SpecularColor, float3 LobeRo
 	float3 Diffuse = Diffuse_Lambert( DiffuseColor );
 	//float3 Diffuse = Diffuse_Burley( DiffuseColor, LobeRoughness[1], NoV, NoL, VoH );
 	//float3 Diffuse = Diffuse_OrenNayar( DiffuseColor, LobeRoughness[1], NoV, NoL, VoH );
-	
-	return Diffuse * (LobeEnergy[2] * DiffSpecMask.r) + (D * Vis * DiffSpecMask.g) * F;
+
+	return Diffuse * LobeEnergy[2] + (D * Vis) * F;
 }
 
 float3 SimpleShading( float3 DiffuseColor, float3 SpecularColor, float Roughness, float3 L, float3 V, half3 N )
@@ -772,7 +771,7 @@ float3 SubsurfaceShadingPreintegratedSkin( FGBufferData GBuffer, float3 L, float
 }
 
 // @param DiffSpecMask .r: diffuse, .g:specular e.g. float2(1,1) for both, float2(1,0) for diffuse only
-float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, half3 N, float2 DiffSpecMask, uint2 Random )
+float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, half3 N, uint2 Random )
 {
 	switch( GBuffer.ShadingModelID )
 	{
@@ -782,7 +781,7 @@ float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEn
 		case SHADINGMODELID_PREINTEGRATED_SKIN:
 		case SHADINGMODELID_SUBSURFACE_PROFILE:
 		case SHADINGMODELID_TWOSIDED_FOLIAGE:
-			return StandardShading( GBuffer.DiffuseColor, GBuffer.SpecularColor, LobeRoughness, LobeEnergy, L, V, N, DiffSpecMask);
+			return StandardShading( GBuffer.DiffuseColor, GBuffer.SpecularColor, LobeRoughness, LobeEnergy, L, V, N );
 		case SHADINGMODELID_CLEAR_COAT:
 			return ClearCoatShading( GBuffer, LobeRoughness, LobeEnergy, L, V, N );
 		case SHADINGMODELID_CLOTH:

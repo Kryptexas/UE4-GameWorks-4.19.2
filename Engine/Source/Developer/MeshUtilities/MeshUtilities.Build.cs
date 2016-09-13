@@ -33,7 +33,7 @@ public class MeshUtilities : ModuleRules
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");
         AddEngineThirdPartyPrivateStaticDependencies(Target, "ForsythTriOptimizer");
-        AddEngineThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "QuadricMeshReduction");
         AddEngineThirdPartyPrivateStaticDependencies(Target, "MikkTSpace");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "nvTessLib");
 

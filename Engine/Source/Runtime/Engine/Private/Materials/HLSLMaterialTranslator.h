@@ -19,6 +19,7 @@
 #include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
+#include "Materials/MaterialExpressionVectorNoise.h"
 #include "Materials/MaterialFunction.h"
 #include "MaterialCompiler.h"
 #include "MaterialUniformExpressions.h"
@@ -4198,6 +4199,45 @@ protected:
 			*GetParameterCode(FilterWidth),
 			*GetParameterCode(TilingConst),
 			*GetParameterCode(RepeatSizeConst));
+	}
+
+	virtual int32 VectorNoise(int32 Position, int32 Quality, uint8 NoiseFunction, bool bTiling, uint32 TileSize) override
+	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES2) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if (Position == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		int32 QualityConst = Constant(Quality);
+		int32 NoiseFunctionConst = Constant(NoiseFunction);
+		int32 TilingConst = Constant(bTiling);
+		int32 TileSizeConst = Constant(TileSize);
+
+		if (NoiseFunction == VNF_GradientALU || NoiseFunction == VNF_VoronoiALU)
+		{
+			return AddCodeChunk(MCT_Float4,
+				TEXT("MaterialExpressionVectorNoise(%s,%s,%s,%s,%s)"),
+				*GetParameterCode(Position),
+				*GetParameterCode(QualityConst),
+				*GetParameterCode(NoiseFunctionConst),
+				*GetParameterCode(TilingConst),
+				*GetParameterCode(TileSizeConst));
+		}
+		else
+		{
+			return AddCodeChunk(MCT_Float3,
+				TEXT("MaterialExpressionVectorNoise(%s,%s,%s,%s,%s).xyz"),
+				*GetParameterCode(Position),
+				*GetParameterCode(QualityConst),
+				*GetParameterCode(NoiseFunctionConst),
+				*GetParameterCode(TilingConst),
+				*GetParameterCode(TileSizeConst));
+		}
 	}
 
 	virtual int32 BlackBody( int32 Temp ) override

@@ -128,6 +128,12 @@ public:
 	// OutSets must have been previously pre-allocated
 	FVulkanDescriptorPool* AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& DescriptorSetAllocateInfo, VkDescriptorSet* OutSets);
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	inline FVulkanRenderPass* GetCurrentRenderPass()
+	{
+		return RenderPassState.CurrentRenderPass;
+	}
+#endif
 protected:
 	FVulkanDynamicRHI* RHI;
 	FVulkanDevice* Device;
@@ -155,6 +161,26 @@ protected:
 
 	TArray<FVulkanDescriptorPool*> DescriptorPools;
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	struct FRenderPassState
+	{
+		FRenderPassState()
+			: CurrentRenderPass(nullptr)
+			, CurrentFramebuffer(nullptr)
+		{
+		}
+
+		void BeginRenderPass(FVulkanCommandListContext& Context, FVulkanDevice& InDevice, FVulkanCmdBuffer* CmdBuffer, const FRHISetRenderTargetsInfo& RenderTargetsInfo);
+		void EndRenderPass(FVulkanCmdBuffer* CmdBuffer);
+
+		FVulkanRenderPass* CurrentRenderPass;
+		FVulkanFramebuffer* CurrentFramebuffer;
+
+		TMap<VkImage, VkImageLayout> CurrentLayout;
+
+	};
+	FRenderPassState RenderPassState;
+#endif
 	//#todo-rco: Temp!
 	FVulkanPendingState* PendingState;
 

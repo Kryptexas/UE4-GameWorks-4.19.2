@@ -5,6 +5,40 @@
 #include "IMediaOutput.h"
 #include "IMediaTracks.h"
 
+#include "TickableObjectRenderThread.h"
+
+class FAvfVideoSampler : public FTickableObjectRenderThread
+{
+public:
+	FAvfVideoSampler();
+	virtual ~FAvfVideoSampler();
+	
+	void SetTrack(IMediaTextureSink* VideoSink, AVPlayerItemVideoOutput* Output);
+
+public:
+	/* FTickableObjectRenderThread interface */
+	virtual TStatId GetStatId() const override;
+	
+	virtual bool IsTickable() const override;
+	
+	virtual void Tick(float /*DeltaTime*/) override;
+	
+private:
+	/** Mutex to ensure thread-safe access */
+	FCriticalSection CriticalSection;
+	
+	/** The video sink */
+	IMediaTextureSink* VideoSink;
+	
+	/** The track's video output handle */
+	AVPlayerItemVideoOutput* Output;
+	
+#if WITH_ENGINE && !PLATFORM_MAC
+private:
+	/** The Metal texture cache for unbuffered texture uploads. */
+	CVMetalTextureCacheRef MetalTextureCache;
+#endif
+};
 
 class FAvfMediaTracks
 	: public IMediaOutput
@@ -157,6 +191,9 @@ private:
 
 	/** The player item containing the track information. */
 	AVPlayerItem* PlayerItem;
+	
+	/** Object to sample video frames */
+	FAvfVideoSampler* VideoSampler;
 
 	/** Index of the selected audio track. */
 	int32 SelectedAudioTrack;
@@ -183,10 +220,4 @@ private:
 	
 	/** Has been played with fast/slow rate? */
 	bool bZoomed;
-	
-#if WITH_ENGINE && !PLATFORM_MAC
-private:
-	/** The Metal texture cache for unbuffered texture uploads. */
-	CVMetalTextureCacheRef MetalTextureCache;
-#endif
 };

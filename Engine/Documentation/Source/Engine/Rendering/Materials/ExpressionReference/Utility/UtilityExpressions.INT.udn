@@ -233,13 +233,13 @@ The **Noise** expression creates a procedural noise field, giving you control ov
 | -------- | ----------- |
 | [REGION:tablesection]Properties[/REGION] ||
 | **Scale** | Changes the overall size of the noise cells. Lower numbers make the noise bigger. |
-| **Quality** | A look/performance setting. 0 is fast. Higher values are slower but may look better. |
+| **Quality** | A look/performance setting. Lower values are faster but may look worse, higher values are slower but may look better. |
 | **Function** | [INCLUDE:#NoiseFunctions] |
-| **Turbulence** | Whether or not to calculate multiple levels of noise on top of one another. |
-| **Levels** | How many different levels of noise are combined. Only useful is Turbulence is active. |
+| **Turbulence** | Whether to use an absolute value when combining noise levels, results in a veined or billowy look. |
+| **Levels** | How many different levels of noise at different scales to combine, multiplies the computational cost by the number of levels. |
 | **Output Min** | The lowest value output by the noise calculation. |
 | **Output Max** | The highest value output by the noise calculation. |
-| **Level Scale** | Controls the scale of individual levels when Turbulence is active. This defaults to 2, but higher values can result in more efficient use of low numbers of levels.
+| **Level Scale** | Controls the scale of individual levels when using multiple levels of noise. This defaults to 2 so each level is twice the frequency at half the magnitude. |
 | **Tiling** | For noise functions that support it, allows noise to tile. This is more expensive, but useful when baking noise into a seamless wrapping texture. |
 | **Repeat Size** | When tiling, how often should the noise repeat. |
 || [REGION:tablesection]Inputs[/REGION] ||
@@ -247,6 +247,25 @@ The **Noise** expression creates a procedural noise field, giving you control ov
 | **FilterWidth** | In effect, controls how much blur will be applied to the noise texture. |
 
 ![NoiseExample.png](NoiseExample.png)
+
+
+## Vector Noise
+
+The **Vector Noise** expression creates a variety of procedural noise effects with 3D output.
+
+| Item | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Properties[/REGION] ||
+| **Function** | [INCLUDE:#VectorNoiseFunctions] |
+| **Quality** | A look/performance setting. Lower values are faster but may look worse, higher values are slower but may look better. |
+| **Tiling** | For noise functions that support it, allows noise to tile. This is more expensive, but useful when baking noise into a seamless wrapping texture. |
+| **Tile Size** | When tiling, how often should the noise repeat. For Perlin noise variants, the Tile Size must be a multiple of three. |
+|| [REGION:tablesection]Inputs[/REGION] ||
+| **Position** | Allows the texture size to be adjusted via a 3D vector. |
+
+![Cellnoise.png](Cellnoise.png)
+![PerlinGradient.png](PerlinGradient.png)
+![Voronoi.png](Voronoi.png)
 
 
 ## QualitySwitch
@@ -410,11 +429,24 @@ The image below shows what data the DistanceFieldGradient will use when the vari
 
 |Function| Description|
 |---------|-----------|
-|Simplex - Texture Based|High quality for direct use and bumps ~77 instructions per level, 4 Texture lookups, Can not tile.|
-|Gradient - Texture Based| High quality for direct use and bumps. Non-tiled: ~61 instructions per level, 8 Texture lookups. Tiling: ~74 instructions per level, 8 Texture lookups. Even "non tiled' mode has a repeat of 128. Useful repeat size range <= 128. Formerly labeled as Perlin Noise.|
-|Fast Gradient - 3D Texture | High quality for direct use, **BAD** for bumps. ~16 instructions per level, 1 Texture lookup. Always tiles with a repeat of 16, "Tiling" mode is not an option for Fast Gradient noise.|
-| Gradient - Computational | High quality for direct use and bumps. Non-tiled: ~80 instructions per level, no Textures. Tiling: ~143 instructions per level, no Textures. |
-| Value - Computational | Low quality, but pure computation. Non-tiled: ~53 instructions per level, no Textures. Tiling: ~118 instructions per level, no Textures. Formerly mislabeled as Gradient noise. |
-| Voronoi | Also know as Worley or Cellular noise. Quality=1 searches 8 cells, Quality=2 searches 16 cells, Quality=3 searches 27 cells, Quality=4 searches 32 cells. All are about ~20 instructions per cell searched. |
+|Simplex | Texture Based|High quality for direct use and bumps about 77 instructions per level, 4 Texture lookups, Can not tile.|
+|Gradient | Texture Based| High quality for direct use and bumps. Non-tiled: about 61 instructions per level, 8 Texture lookups. Tiling: about 74 instructions per level, 8 Texture lookups. Even "non tiled' mode has a repeat of 128. Useful repeat size range <= 128. Formerly labeled as Perlin Noise.|
+|Fast Gradient | 3D Texture | High quality for direct use, **BAD** for bumps. about 16 instructions per level, 1 Texture lookup. Always tiles with a repeat of 16, "Tiling" mode is not an option for Fast Gradient noise.|
+| Gradient | Computational | High quality for direct use and bumps. Non-tiled: about 80 instructions per level, no Textures. Tiling: about 143 instructions per level, no Textures. |
+| Value | Computational | Low quality, but pure computation. Non-tiled: about 53 instructions per level, no Textures. Tiling: about 118 instructions per level, no Textures. Formerly mislabeled as Gradient noise. |
+| Voronoi | Also know as Worley or Cellular noise. Quality=1 searches 8 cells, Quality=2 searches 16 cells, Quality=3 searches 27 cells, Quality=4 searches 32 cells. All are about about 20 instructions per cell searched. |
+[/EXCERPT]
+-->
+
+<!--
+[EXCERPT:VectorNoiseFunctions]
+
+|Function| Description|
+|---------|-----------|
+|Cellnoise | Random color for each integer grid cell in 3D space. |
+|Perlin 3D Noise | Computational Perlin noise with 3D output, each channel output ranges from -1 to 1.|
+|Perlin Gradient | Computes the gradient of a Perlin noise function. RGB output contains the gradient vector, A is the scalar noise. |
+|Perlin Curl | Computes a 3D curl noise. Output is the mathematical curl of Perlin 3D Noise. |
+| Voronoi | The same algorithm as the Voronoi function in the *Noise* expression, but RGB is the location of the closest seed point in each Voronoi cell, and A is the distance to that seed point. |
 [/EXCERPT]
 -->

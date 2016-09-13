@@ -596,6 +596,7 @@ enum class ESimpleRenderTargetMode
 	EClearColorAndDepth,							// Clear color and depth to bound clear values.
 	EExistingContents_NoDepthStore,					// Load existing contents, but don't store depth out.  depth can be written.
 	EExistingColorAndClearDepth,					// Color = Existing, Depth = clear value
+	EExistingColorAndDepthAndClearStencil,			// Color = Existing, Depth = Existing, Stencil = clear
 
 	// If you add an item here, make sure to add it to DecodeRenderTargetMode() as well!
 };

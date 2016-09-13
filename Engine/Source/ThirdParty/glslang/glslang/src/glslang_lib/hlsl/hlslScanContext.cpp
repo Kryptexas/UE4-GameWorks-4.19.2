@@ -38,7 +38,7 @@
 // HLSL scanning, leveraging the scanning done by the preprocessor.
 //
 
-#include <string.h>
+#include <cstring>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -117,6 +117,7 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["in"] =                      EHTokIn;
     (*KeywordMap)["out"] =                     EHTokOut;
     (*KeywordMap)["inout"] =                   EHTokInOut;
+    (*KeywordMap)["layout"] =                  EHTokLayout;
 
     (*KeywordMap)["Buffer"] =                  EHTokBuffer;
     (*KeywordMap)["vector"] =                  EHTokVector;
@@ -258,6 +259,8 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["Texture2DMSArray"] =        EHTokTexture2DMSarray;
 
     (*KeywordMap)["struct"] =                  EHTokStruct;
+    (*KeywordMap)["cbuffer"] =                 EHTokCBuffer;
+    (*KeywordMap)["tbuffer"] =                 EHTokTBuffer;
     (*KeywordMap)["typedef"] =                 EHTokTypedef;
 
     (*KeywordMap)["true"] =                    EHTokBoolConstant;
@@ -408,6 +411,11 @@ EHlslTokenClass HlslScanContext::tokenizeClass(HlslToken& token)
             return token;
         }
 
+        case PpAtomConstString: {
+            parserToken->string = NewPoolTString(ppToken.name);
+            return EHTokStringConstant;
+        }
+
         case EndOfInput:               return EHTokNone;
 
         default:
@@ -455,6 +463,8 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     case EHTokIn:
     case EHTokOut:
     case EHTokInOut:
+    case EHTokPrecise:
+    case EHTokLayout:
         return keyword;
 
     // template types
@@ -574,6 +584,9 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     // variable, user type, ...
     case EHTokStruct:
     case EHTokTypedef:
+    case EHTokCBuffer:
+    case EHTokTBuffer:
+        return keyword;
 
     case EHTokBoolConstant:
         if (strcmp("true", tokenText) == 0)

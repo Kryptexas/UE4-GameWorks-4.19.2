@@ -284,7 +284,11 @@ FVulkanBoundShaderState::~FVulkanBoundShaderState()
 	DEC_DWORD_STAT(STAT_VulkanNumBoundShaderState);
 }
 
+#if VULKAN_USE_NEW_RENDERPASSES
+FVulkanPipeline* FVulkanBoundShaderState::PrepareForDraw(FVulkanRenderPass* RenderPass, const FVulkanPipelineGraphicsKey& PipelineKey, uint32 VertexInputKey, const struct FVulkanPipelineState& State)
+#else
 FVulkanPipeline* FVulkanBoundShaderState::PrepareForDraw(const FVulkanPipelineGraphicsKey& PipelineKey, uint32 VertexInputKey, const struct FVulkanPipelineState& State)
+#endif
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanGetOrCreatePipeline);
 
@@ -310,7 +314,11 @@ FVulkanPipeline* FVulkanBoundShaderState::PrepareForDraw(const FVulkanPipelineGr
 			// Create a new one
 			Pipeline = new FVulkanPipeline(Device);
 #if VULKAN_ENABLE_PIPELINE_CACHE
+#if VULKAN_USE_NEW_RENDERPASSES
+			Device->PipelineStateCache->CreateAndAdd(RenderPass, PipelineCreateInfo, Pipeline, State, *this);
+#else
 			Device->PipelineStateCache->CreateAndAdd(PipelineCreateInfo, Pipeline, State, *this);
+#endif
 #else
 			Pipeline->Create(State);
 #endif

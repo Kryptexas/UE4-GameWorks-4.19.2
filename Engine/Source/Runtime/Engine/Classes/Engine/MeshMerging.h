@@ -27,67 +27,72 @@ struct FMeshReductionSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-		/** Percentage of triangles to keep. 1.0 = no reduction, 0.0 = no triangles. */
-		UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		float PercentTriangles;
+	/** Percentage of triangles to keep. 1.0 = no reduction, 0.0 = no triangles. */
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+	float PercentTriangles;
 
 	/** The maximum distance in object space by which the reduced mesh may deviate from the original mesh. */
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		float MaxDeviation;
+	float MaxDeviation;
+
+	/** The amount of error in pixels allowed for this LOD. */
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+	float PixelError;
 
 	/** Threshold in object space at which vertices are welded together. */
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		float WeldingThreshold;
+	float WeldingThreshold;
 
 	/** Angle at which a hard edge is introduced between faces. */
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		float HardAngleThreshold;
+	float HardAngleThreshold;
 
 	/** Higher values minimize change to border edges. */
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		TEnumAsByte<EMeshFeatureImportance::Type> SilhouetteImportance;
+	TEnumAsByte<EMeshFeatureImportance::Type> SilhouetteImportance;
 
 	/** Higher values reduce texture stretching. */
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		TEnumAsByte<EMeshFeatureImportance::Type> TextureImportance;
+	TEnumAsByte<EMeshFeatureImportance::Type> TextureImportance;
 
 	/** Higher values try to preserve normals better. */
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		TEnumAsByte<EMeshFeatureImportance::Type> ShadingImportance;
+	TEnumAsByte<EMeshFeatureImportance::Type> ShadingImportance;
 
 	/*UPROPERTY(EditAnywhere, Category = ReductionSettings)
 	bool bActive;*/
 
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		bool bRecalculateNormals;
+	bool bRecalculateNormals;
 
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		int32 BaseLODModel;
+	int32 BaseLODModel;
 
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		bool bGenerateUniqueLightmapUVs;
+	bool bGenerateUniqueLightmapUVs;
 
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		bool bKeepSymmetry;
+	bool bKeepSymmetry;
 
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		bool bVisibilityAided;
+	bool bVisibilityAided;
 
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		bool bCullOccluded;
+	bool bCullOccluded;
 
 	/** Higher values generates fewer samples*/
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		TEnumAsByte<EMeshFeatureImportance::Type> VisibilityAggressiveness;
+	TEnumAsByte<EMeshFeatureImportance::Type> VisibilityAggressiveness;
 
 	/** Higher values minimize change to vertex color data. */
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
-		TEnumAsByte<EMeshFeatureImportance::Type> VertexColorImportance;
+	TEnumAsByte<EMeshFeatureImportance::Type> VertexColorImportance;
 
 	/** Default settings. */
 	FMeshReductionSettings()
 		: PercentTriangles(1.0f)
 		, MaxDeviation(0.0f)
+		, PixelError(1.0f)
 		, WeldingThreshold(0.0f)
 		, HardAngleThreshold(80.0f)
 		, SilhouetteImportance(EMeshFeatureImportance::Normal)
@@ -107,6 +112,7 @@ struct FMeshReductionSettings
 	FMeshReductionSettings(const FMeshReductionSettings& Other)
 		: PercentTriangles(Other.PercentTriangles)
 		, MaxDeviation(Other.MaxDeviation)
+		, PixelError(1.0f)
 		, WeldingThreshold(Other.WeldingThreshold)
 		, HardAngleThreshold(Other.HardAngleThreshold)
 		, SilhouetteImportance(Other.ShadingImportance)
@@ -128,6 +134,7 @@ struct FMeshReductionSettings
 	{
 		return PercentTriangles == Other.PercentTriangles
 			&& MaxDeviation == Other.MaxDeviation
+			&& PixelError == Other.PixelError
 			&& WeldingThreshold == Other.WeldingThreshold
 			&& HardAngleThreshold == Other.HardAngleThreshold
 			&& SilhouetteImportance == Other.SilhouetteImportance

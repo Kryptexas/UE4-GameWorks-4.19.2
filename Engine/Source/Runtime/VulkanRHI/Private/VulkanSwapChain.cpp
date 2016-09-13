@@ -133,7 +133,8 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 	{
 		PreTransform = SurfProperties.currentTransform;
 	}
-	uint32 DesiredNumBuffers = FMath::Clamp(*InOutDesiredNumBackBuffers, SurfProperties.minImageCount, SurfProperties.maxImageCount);
+	// 0 means no limit, so use the requested number
+	uint32 DesiredNumBuffers = SurfProperties.maxImageCount > 0 ? FMath::Clamp(*InOutDesiredNumBackBuffers, SurfProperties.minImageCount, SurfProperties.maxImageCount) : *InOutDesiredNumBackBuffers;
 	
 	VkSwapchainCreateInfoKHR SwapChainInfo;
 	FMemory::Memzero(SwapChainInfo);

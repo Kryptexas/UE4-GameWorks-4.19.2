@@ -131,6 +131,7 @@
 #include "Materials/MaterialExpressionTransform.h"
 #include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionTwoSidedSign.h"
+#include "Materials/MaterialExpressionVectorNoise.h"
 #include "Materials/MaterialExpressionVertexColor.h"
 #include "Materials/MaterialExpressionVertexNormalWS.h"
 #include "Materials/MaterialExpressionViewProperty.h"
@@ -8889,6 +8890,77 @@ int32 UMaterialExpressionNoise::Compile(class FMaterialCompiler* Compiler, int32
 void UMaterialExpressionNoise::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Noise"));
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionVectorNoise
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionVectorNoise::UMaterialExpressionVectorNoise(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	Quality = 1;
+	NoiseFunction = VNF_CellnoiseALU;
+	bTiling = false;
+	TileSize = 300;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+}
+
+#if WITH_EDITOR
+bool UMaterialExpressionVectorNoise::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+	if (bIsEditable && InProperty != NULL)
+	{
+		FName PropertyFName = InProperty->GetFName();
+
+		bool bSupportsQuality = (NoiseFunction == VNF_VoronoiALU);
+
+		if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionVectorNoise, TileSize))
+		{
+			bIsEditable = bTiling;
+		}
+
+		else if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionVectorNoise, Quality))
+		{
+			bIsEditable = bSupportsQuality;
+		}
+	}
+
+	return bIsEditable;
+}
+
+int32 UMaterialExpressionVectorNoise::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	int32 PositionInput;
+
+	if (Position.Expression)
+	{
+		PositionInput = Position.Compile(Compiler);
+	}
+	else
+	{
+		PositionInput = Compiler->WorldPosition(WPT_Default);
+	}
+
+	return Compiler->VectorNoise(PositionInput, Quality, NoiseFunction, bTiling, TileSize);
+}
+
+void UMaterialExpressionVectorNoise::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Vector Noise"));
 }
 #endif // WITH_EDITOR
 

@@ -576,6 +576,12 @@ void FVulkanDynamicRHI::InitInstance()
 		GRHISupportsRHIThread = GRHIThreadCvar->GetInt() != 0;
 #endif
 
+#if VULKAN_USE_NEW_RENDERPASSES
+		GSupportsVolumeTextureRendering = true;
+
+		//@todo-rco: TEMP
+		GSupportsDepthFetchDuringDepthTest = false;
+#endif
 		// Indicate that the RHI needs to use the engine's deferred deletion queue.
 		GRHINeedsExtraDeletionLatency = true;
 
@@ -660,11 +666,13 @@ void FVulkanCommandListContext::RHIBeginScene()
 void FVulkanCommandListContext::RHIEndScene()
 {
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndScene()")));
+#if !VULKAN_USE_NEW_RENDERPASSES
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	if (PendingState->IsRenderPassActive())
 	{
 		PendingState->RenderPassEnd(CmdBuffer);
 	}
+#endif
 }
 
 void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTargetRHI)
@@ -688,13 +696,16 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 	check(bPresent);
 	RHI->Present();
 */
-	FVulkanCommandBufferManager* ImmediateCmdBufferManager = Device->GetImmediateContext().GetCommandBufferManager();
-	FVulkanCmdBuffer* CmdBuffer = ImmediateCmdBufferManager->GetActiveCmdBuffer();
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	check(!CmdBuffer->HasEnded());
 	if (CmdBuffer->IsInsideRenderPass())
 	{
+#if VULKAN_USE_NEW_RENDERPASSES
+		RenderPassState.EndRenderPass(CmdBuffer);
+#else
 		checkf(bPresent, TEXT("An open render pass when not presenting is not allowed..."));
 		PendingState->RenderPassEnd(CmdBuffer);
+#endif
 	}
 
 	bool bNativePresent = Viewport->Present(CmdBuffer, Device->GetQueue(), bLockToVsync);
@@ -708,7 +719,6 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 void FVulkanCommandListContext::RHIEndFrame()
 {
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndFrame()")));
-	Device->GetDeferredDeletionQueue().ReleaseResources();
 
 	Device->GetStagingManager().ProcessPendingFree();
 	Device->GetResourceHeapManager().ReleaseFreedPages();
@@ -1131,6 +1141,10 @@ void VulkanSetImageLayout(
 	ImageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	ImageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	ImageBarrier.srcAccessMask = VulkanRHI::GetAccessMask(OldLayout);
+	ImageBarrier.dstAccessMask = VulkanRHI::GetAccessMask(NewLayout);
+#else
 	switch (NewLayout)
 	{
 	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
@@ -1170,7 +1184,7 @@ void VulkanSetImageLayout(
 		check(0);
 		break;
 	}
-
+#endif
 	VkImageMemoryBarrier BarrierList[] ={ImageBarrier};
 
 	VkPipelineStageFlags SourceStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;

@@ -700,11 +700,17 @@ void FVulkanCommandListContext::RHIClear(bool bClearColor,const FLinearColor& Co
 	{
 		return;
 	}
-
+	//FRCLog::Printf(TEXT("RHIClear"));
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+
+#if VULKAN_USE_NEW_RENDERPASSES
+	const uint32 NumColorAttachments = bClearColor ? RenderPassState.CurrentFramebuffer->GetNumColorAttachments() : 0;
+#else
 	PendingState->UpdateRenderPass(CmdBuffer);
 
 	const uint32 NumColorAttachments = PendingState->GetFrameBuffer()->GetNumColorAttachments();
+#endif
+
 	FVulkanCommandListContext::InternalClearMRT(CmdBuffer, bClearColor, NumColorAttachments, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
 
@@ -718,16 +724,100 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 	check(bClearColor ? NumClearColors > 0 : true);
 
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-	PendingState->UpdateRenderPass(CmdBuffer);
+	//FRCLog::Printf(TEXT("RHIClearMRT"));
 
+#if !VULKAN_USE_NEW_RENDERPASSES
+	PendingState->UpdateRenderPass(CmdBuffer);
+#endif
+
+#if VULKAN_USE_NEW_RENDERPASSES
+	const uint32 NumColorAttachments = RenderPassState.CurrentFramebuffer->GetNumColorAttachments();
+	check(!bClearColor || (uint32)NumClearColors <= NumColorAttachments);
+	InternalClearMRT(CmdBuffer, bClearColor, bClearColor ? NumClearColors : 0, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+#else
 	const uint32 NumColorAttachments = PendingState->GetFrameBuffer()->GetNumColorAttachments();
 	check(!bClearColor || (uint32)NumClearColors <= NumColorAttachments);
 	InternalClearMRT(CmdBuffer, bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+#endif
 }
 
 void FVulkanCommandListContext::InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
 {
+#if VULKAN_USE_NEW_RENDERPASSES
+	const VkExtent2D& Extents = RenderPassState.CurrentRenderPass->GetLayout().GetExtent2D();
+	if (ExcludeRect.Min.X == 0 && ExcludeRect.Width() == Extents.width && ExcludeRect.Min.Y == 0 && Extents.height)
+	{
+		//if (ForceFullScreen == EForceFullScreenClear::EDoNotForce)
+		{
+			return;
+		}
+		//else
+		{
+			//ensureMsgf(false, TEXT("Forced Full Screen Clear ignoring Exclude Rect Restriction"));
+		}
+	}
+
+	ensure(ExcludeRect.Area() == 0);
+
+	if (RenderPassState.CurrentRenderPass)
+	{
+		VkClearRect Rect;
+		FMemory::Memzero(Rect);
+		Rect.rect.offset.x = 0;
+		Rect.rect.offset.y = 0;
+		Rect.rect.extent = Extents;
+
+		VkClearAttachment Attachments[MaxSimultaneousRenderTargets + 1];
+		FMemory::Memzero(Attachments);
+
+		uint32 NumAttachments = NumClearColors;
+		if (bClearColor)
+		{
+			for (int32 i = 0; i < NumClearColors; ++i)
+			{
+				Attachments[i].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				Attachments[i].colorAttachment = i;
+				Attachments[i].clearValue.color.float32[0] = ClearColorArray[i].R;
+				Attachments[i].clearValue.color.float32[1] = ClearColorArray[i].G;
+				Attachments[i].clearValue.color.float32[2] = ClearColorArray[i].B;
+				Attachments[i].clearValue.color.float32[3] = ClearColorArray[i].A;
+			}
+		}
+
+		if (bClearDepth || bClearStencil)
+		{
+			Attachments[NumClearColors].aspectMask = bClearDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
+			Attachments[NumClearColors].aspectMask |= bClearStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+			Attachments[NumClearColors].colorAttachment = 0;
+			Attachments[NumClearColors].clearValue.depthStencil.depth = Depth;
+			Attachments[NumClearColors].clearValue.depthStencil.stencil = Stencil;
+			++NumAttachments;
+		}
+
+		VulkanRHI::vkCmdClearAttachments(CmdBuffer->GetHandle(), NumAttachments, Attachments, 1, &Rect);
+	}
+	else
+	{
+		ensure(0);
+		//VulkanRHI::vkCmdClearColorImage(CmdBuffer->GetHandle(), )
+	}
+#else
 #if VULKAN_ALLOW_MIDPASS_CLEAR
+	const VkExtent2D& Extents = PendingState->GetRenderPass().GetLayout().GetExtent2D();
+	if (ExcludeRect.Min.X == 0 && ExcludeRect.Width() == Extents.width && ExcludeRect.Min.Y == 0 && Extents.height)
+	{
+		//if (ForceFullScreen == EForceFullScreenClear::EDoNotForce)
+		{
+			return;
+		}
+		//else
+		{
+			//ensureMsgf(false, TEXT("Forced Full Screen Clear ignoring Exclude Rect Restriction"));
+		}
+	}
+
+	ensure(ExcludeRect.Area() == 0);
+
 	VkClearRect Rect;
 	FMemory::Memzero(Rect);
 	Rect.rect.offset.x = 0;
@@ -762,6 +852,7 @@ void FVulkanCommandListContext::InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bo
 	}
 
 	VulkanRHI::vkCmdClearAttachments(CmdBuffer->GetHandle(), NumAttachments, Attachments, 1, &Rect);
+#endif
 #endif
 }
 

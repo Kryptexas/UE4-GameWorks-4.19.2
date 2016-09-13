@@ -195,6 +195,7 @@ private:
 	FReply OnApplyChanges();
 	float GetPercentTriangles() const;
 	float GetMaxDeviation() const;
+	float GetPixelError() const;
 	float GetWeldingThreshold() const;
 	ECheckBoxState ShouldRecalculateNormals() const;
 	float GetHardAngleThreshold() const;
@@ -203,6 +204,8 @@ private:
 	void OnPercentTrianglesCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	void OnMaxDeviationChanged(float NewValue);
 	void OnMaxDeviationCommitted(float NewValue, ETextCommit::Type TextCommitType);
+	void OnPixelErrorChanged(float NewValue);
+	void OnPixelErrorCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	void OnReductionAmountChanged(float NewValue);
 	void OnRecalculateNormalsChanged(ECheckBoxState NewValue);
 	void OnWeldingThresholdChanged(float NewValue);
@@ -303,8 +306,6 @@ private:
 	bool IsAutoLODEnabled() const;
 	ECheckBoxState IsAutoLODChecked() const;
 	void OnAutoLODChanged(ECheckBoxState NewState);
-	float GetPixelError() const;
-	void OnPixelErrorChanged(float NewValue);
 	void OnImportLOD(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 	void UpdateLODNames();
 	FText GetLODCountTooltip() const;

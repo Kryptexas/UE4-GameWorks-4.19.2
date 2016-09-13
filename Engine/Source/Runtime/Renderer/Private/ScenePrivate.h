@@ -234,31 +234,6 @@ struct FPrimitiveOcclusionHistoryKeyFuncs : BaseKeyFuncs<FPrimitiveOcclusionHist
 };
 
 
-/**
- * A pool of render (e.g. occlusion/timer) queries which are allocated individually, and returned to the pool as a group.
- */
-class FRenderQueryPool
-{
-public:
-	FRenderQueryPool(ERenderQueryType InQueryType) :QueryType(InQueryType) { }
-	virtual ~FRenderQueryPool();
-
-	/** Releases all the render queries in the pool. */
-	void Release();
-
-	/** Allocates an render query from the pool. */
-	FRenderQueryRHIRef AllocateQuery();
-
-	/** De-reference an render query, returning it to the pool instead of deleting it when the refcount reaches 0. */
-	void ReleaseQuery(FRenderQueryRHIRef &Query);
-
-private:
-	/** Container for available render queries. */
-	TArray<FRenderQueryRHIRef> Queries;
-
-	ERenderQueryType QueryType;
-};
-
 class FIndividualOcclusionHistory
 {
 	TArray<FRenderQueryRHIRef, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames> > PendingOcclusionQuery;

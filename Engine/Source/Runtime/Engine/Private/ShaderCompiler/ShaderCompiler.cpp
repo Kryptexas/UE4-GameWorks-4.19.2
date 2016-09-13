@@ -27,6 +27,21 @@ const int32 ShaderCompileWorkerSingleJobHeader = 'S';
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerPipelineJobHeader = 'P';
 
+static void ModalErrorOrLog(const FString& Text)
+{
+	if (FPlatformProperties::SupportsWindowedMode())
+	{
+		UE_LOG(LogShaderCompilers, Error, TEXT("%s"), *Text);
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Text));
+		FPlatformMisc::RequestExit(false);
+		return;
+	}
+	else
+	{
+		UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), *Text);
+	}
+}
+
 // Set to 1 to debug ShaderCompilerWorker.exe. Set a breakpoint in LaunchWorker() to get the cmd-line.
 #define DEBUG_SHADERCOMPILEWORKER 0
 
@@ -175,6 +190,69 @@ namespace ShaderCompilerCookStats
 	});
 }
 #endif
+
+// Make functions so the crash reporter can disambiguate the actual error because of the different callstacks
+namespace SCWErrorCode
+{
+	enum EErrors
+	{
+		Success,
+		GeneralCrash,
+		BadShaderFormatVersion,
+		BadInputVersion,
+		BadSingleJobHeader,
+		BadPipelineJobHeader,
+		CantDeleteInputFile,
+		CantSaveOutputFile,
+		NoTargetShaderFormatsFound,
+		CantCompileForSpecificFormat,
+	};
+
+	void HandleGeneralCrash(const TCHAR* ExceptionInfo, const TCHAR* Callstack)
+	{
+		UE_LOG(LogShaderCompilers, Fatal, TEXT("ShaderCompileWorker crashed!\n%s\n\t%s"), ExceptionInfo, Callstack);
+	}
+
+	void HandleBadShaderFormatVersion(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleBadInputVersion(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleBadSingleJobHeader(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleBadPipelineJobHeader(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleCantDeleteInputFile(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleCantSaveOutputFile(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleNoTargetShaderFormatsFound(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleCantCompileForSpecificFormat(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+}
 
 static const TArray<const IShaderFormat*>& GetShaderFormats()
 {
@@ -395,21 +473,6 @@ static void ProcessErrors(const FShaderCompileJob& CurrentJob, TArray<FString>& 
 	}
 }
 
-static void ModalErrorOrLog(const FString& Text)
-{
-	if (FPlatformProperties::SupportsWindowedMode())
-	{
-		UE_LOG(LogShaderCompilers, Error, TEXT("%s"), *Text);
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Text));
-		FPlatformMisc::RequestExit(false);
-		return;
-	}
-	else
-	{
-		UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), *Text);
-	}
-}
-
 static void ReadSingleJob(FShaderCompileJob* CurrentJob, FArchive& OutputFile)
 {
 	check(!CurrentJob->bFinalized);
@@ -446,7 +509,7 @@ static void DoReadTaskResults(const TArray<FShaderCommonCompileJob*>& QueuedJobs
 	OutputFile << ExceptionInfoLength;
 
 	// Worker crashed
-	if (ErrorCode == 1 || ErrorCode == 2)
+	if (ErrorCode != SCWErrorCode::Success)
 	{
 		TArray<TCHAR> Callstack;
 		Callstack.AddUninitialized(CallstackLength + 1);
@@ -458,21 +521,41 @@ static void DoReadTaskResults(const TArray<FShaderCommonCompileJob*>& QueuedJobs
 		OutputFile.Serialize(ExceptionInfo.GetData(), ExceptionInfoLength * sizeof(TCHAR));
 		ExceptionInfo[ExceptionInfoLength] = 0;
 
-		if (ErrorCode == 2)
+		// One entry per error code as we want to have different callstacks for crash reporter...
+		switch (ErrorCode)
 		{
-			if (FPlatformProperties::SupportsWindowedMode())
-			{
-				UE_LOG(LogShaderCompilers, Error, TEXT("%s\n%s"), ExceptionInfo.GetData(), Callstack.GetData());
-				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(ExceptionInfo.GetData()));
-				FPlatformMisc::RequestExit(false);
-			}
-			else
-			{
-				UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), Callstack.GetData());
-			}
+		default:
+		case SCWErrorCode::GeneralCrash:
+			SCWErrorCode::HandleGeneralCrash(ExceptionInfo.GetData(), Callstack.GetData());
+			break;
+		case SCWErrorCode::BadShaderFormatVersion:
+			SCWErrorCode::HandleBadShaderFormatVersion(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::BadInputVersion:
+			SCWErrorCode::HandleBadInputVersion(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::BadSingleJobHeader:
+			SCWErrorCode::HandleBadSingleJobHeader(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::BadPipelineJobHeader:
+			SCWErrorCode::HandleBadPipelineJobHeader(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::CantDeleteInputFile:
+			SCWErrorCode::HandleCantDeleteInputFile(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::CantSaveOutputFile:
+			SCWErrorCode::HandleCantSaveOutputFile(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::NoTargetShaderFormatsFound:
+			SCWErrorCode::HandleNoTargetShaderFormatsFound(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::CantCompileForSpecificFormat:
+			SCWErrorCode::HandleCantCompileForSpecificFormat(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::Success:
+			// Can't get here...
+			break;
 		}
-
-		UE_LOG(LogShaderCompilers, Fatal, TEXT("ShaderCompileWorker crashed! \n %s \n %s"), ExceptionInfo.GetData(), Callstack.GetData());
 	}
 
 	TArray<FShaderCompileJob*> QueuedSingleJobs;
@@ -1351,7 +1434,8 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 		// Note: Set breakpoint here and launch the ShaderCompileWorker with WorkerParameters a cmd-line
 		const TCHAR* WorkerParametersText = *WorkerParameters;
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker w/ WorkerParameters\n\t%s\n"), WorkerParametersText);
-		return FProcHandle();
+		FProcHandle DummyHandle;
+		return DummyHandle;
 	}
 	else
 	{
@@ -2434,7 +2518,7 @@ void GlobalBeginCompileShader(
 		// Throw a warning if we are silently disabling ISR due to missing platform support.
 		if (bIsInstancedStereoCVar && !bIsInstancedStereo && !GShaderCompilingManager->AreWarningsSuppressed(ShaderPlatform))
 		{
-			UE_LOG(LogShaderCompilers, Log, TEXT("Instanced stereo rendering is not supported for the %s shader platform."), *LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
+			UE_LOG(LogShaderCompilers, Warning, TEXT("Instanced stereo rendering is not supported for the %s shader platform."), *LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
 			GShaderCompilingManager->SuppressWarnings(ShaderPlatform);
 		}
 	}

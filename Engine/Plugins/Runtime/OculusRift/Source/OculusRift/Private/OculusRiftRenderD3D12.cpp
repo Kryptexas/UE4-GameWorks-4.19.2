@@ -26,7 +26,7 @@
 #define FD3DGPUProfiler FD3D12GPUProfiler
 #define FRangeAllocator FRangeAllocator_D3D12
 
-#include "D3D12RHIPrivate.h"
+#include "../Private/D3D12RHIPrivate.h"
 #include "D3D12Util.h"
 
 #undef GetD3D11CubeFace

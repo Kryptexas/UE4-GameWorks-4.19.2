@@ -67,7 +67,8 @@ namespace glslang {
         bool acceptSamplerDeclarationDX9(TType&);
         bool acceptSamplerState();
         bool acceptFullySpecifiedType(TType&);
-        void acceptQualifier(TQualifier&);
+        bool acceptQualifier(TQualifier&);
+        bool acceptLayoutQualifierList(TQualifier&);
         bool acceptType(TType&);
         bool acceptTemplateType(TBasicType&);
         bool acceptVectorTemplateType(TType&);
@@ -83,6 +84,7 @@ namespace glslang {
         bool acceptExpression(TIntermTyped*&);
         bool acceptInitializer(TIntermTyped*&);
         bool acceptAssignmentExpression(TIntermTyped*&);
+        bool acceptConditionalExpression(TIntermTyped*&);
         bool acceptBinaryExpression(TIntermTyped*&, PrecedenceLevel);
         bool acceptUnaryExpression(TIntermTyped*&);
         bool acceptPostfixExpression(TIntermTyped*&);

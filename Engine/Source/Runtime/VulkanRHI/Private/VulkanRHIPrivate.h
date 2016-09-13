@@ -37,7 +37,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 #if VULKAN_DYNAMICALLYLOADED
 	#include "VulkanLoader.h"
 #else
-	#include <vulkan/vulkan.h>
+	#include <vulkan.h>
 #endif
 
 #if VULKAN_COMMANDWRAPPERS_ENABLE
@@ -61,6 +61,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 		#error "Statically linked vulkan api must be wrapped!"
 	#endif
 #endif
+
 
 #include "VulkanRHI.h"
 #include "VulkanGlobalUniformBuffer.h"
@@ -218,51 +219,57 @@ public:
 	}
 
 	TArray<VkImageView> AttachmentViews;
+#if VULKAN_USE_NEW_RENDERPASSES
+	TArray<VkImageView> AttachmentViewsToDelete;
+#endif
 	TArray<VkImageSubresourceRange> SubresourceRanges;
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
-
+#endif
 	// Returns the backbuffer render target if used by this framebuffer
 	FVulkanBackBuffer* GetBackBuffer()
 	{
 		return BackBuffer;
 	}
 
-	inline bool ContainsRenderTarget(const FRHITexture* Texture) const
+	inline bool ContainsRenderTarget(VkImage Image) const
 	{
-		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
-		{
-			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
-			if (Texture == RHITexture)
-			{
-				return true;
-			}
-		}
-
-		return Texture == (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
-	}
-
-	inline bool ContainsRenderTarget(const FVulkanTextureBase* Texture) const
-	{
-		check(Texture);
+		ensure(Image != VK_NULL_HANDLE);
 		for (int32 Index = 0; Index < FMath::Min((int32)NumColorAttachments, RTInfo.NumColorRenderTargets); ++Index)
 		{
 			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
-			if (RHITexture->GetTexture2D() && Texture == (FVulkanTextureBase*)(FVulkanTexture2D*)RHITexture)
+			if (auto* Texture2D = RHITexture->GetTexture2D())
 			{
-				return true;
+				if (Image == ((FVulkanTexture2D*)Texture2D)->Surface.Image)
+				{
+					return true;
+				}
 			}
-			else if (RHITexture->GetTextureCube() && Texture == (FVulkanTextureBase*)(FVulkanTextureCube*)RHITexture)
+			else if (auto* TextureCube = RHITexture->GetTextureCube())
 			{
-				return true;
+				if (Image == ((FVulkanTextureCube*)TextureCube)->Surface.Image)
+				{
+					return true;
+				}
 			}
-			else if (RHITexture->GetTexture3D() && Texture == (FVulkanTextureBase*)(FVulkanTexture3D*)RHITexture)
+			else if (auto* Texture3D = RHITexture->GetTexture3D())
 			{
-				return true;
+				if (Image == ((FVulkanTexture3D*)Texture3D)->Surface.Image)
+				{
+					return true;
+				}
 			}
 		}
 
-		return Texture == (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
+		FVulkanTexture2D* Depth = (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
+		if (Depth)
+		{
+			ensure(RTInfo.DepthStencilRenderTarget.Texture->GetTexture2D());
+			return Depth && Depth->Surface.Image == Image;
+		}
+
+		return false;
 	}
 
 	inline uint32 GetWidth() const
@@ -361,7 +368,7 @@ public:
 	FVulkanDescriptorPool(FVulkanDevice* InDevice);
 	~FVulkanDescriptorPool();
 
-	VkDescriptorPool GetHandle() const
+	inline VkDescriptorPool GetHandle() const
 	{
 		return DescriptorPool;
 	}
@@ -382,6 +389,7 @@ private:
 	uint32 PeakAllocatedDescriptorSets;
 
 	// Tracks number of allocated types, to ensure that we are not exceeding our allocated limit
+	int32 MaxAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	int32 NumAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 	int32 PeakAllocatedTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 
@@ -416,7 +424,7 @@ private:
 
 namespace VulkanRHI
 {
-	inline void SetupBarrier(VkImageMemoryBarrier& Barrier, const FVulkanSurface& Surface, VkAccessFlags SrcMask, VkImageLayout SrcLayout, VkAccessFlags DstMask, VkImageLayout DstLayout)
+	inline void SetupImageBarrier(VkImageMemoryBarrier& Barrier, const FVulkanSurface& Surface, VkAccessFlags SrcMask, VkImageLayout SrcLayout, VkAccessFlags DstMask, VkImageLayout DstLayout, uint32 NumLayers = 1)
 	{
 		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		Barrier.srcAccessMask = SrcMask;
@@ -428,15 +436,31 @@ namespace VulkanRHI
 		Barrier.subresourceRange.levelCount = Surface.GetNumMips();
 		//#todo-rco: Cubemaps?
 		//Barriers[Index].subresourceRange.baseArrayLayer = 0;
-		Barrier.subresourceRange.layerCount = 1;
+		Barrier.subresourceRange.layerCount = NumLayers;
 		Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	}
 
-	inline void SetupAndZeroBarrier(VkImageMemoryBarrier& Barrier, const FVulkanSurface& Surface, VkAccessFlags SrcMask, VkImageLayout SrcLayout, VkAccessFlags DstMask, VkImageLayout DstLayout)
+	inline void SetupBufferBarrier(VkBufferMemoryBarrier& Barrier, VkAccessFlags SrcAccess, VkAccessFlags DstAccess, VkBuffer Buffer, uint32 Offset, uint32 Size)
+	{
+		Barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		Barrier.srcAccessMask = SrcAccess;
+		Barrier.dstAccessMask = DstAccess;
+		Barrier.buffer = Buffer;
+		Barrier.offset = Offset;
+		Barrier.size = Size;
+	}
+
+	inline void SetupAndZeroImageBarrier(VkImageMemoryBarrier& Barrier, const FVulkanSurface& Surface, VkAccessFlags SrcMask, VkImageLayout SrcLayout, VkAccessFlags DstMask, VkImageLayout DstLayout)
 	{
 		FMemory::Memzero(Barrier);
-		SetupBarrier(Barrier, Surface, SrcMask, SrcLayout, DstMask, DstLayout);
+		SetupImageBarrier(Barrier, Surface, SrcMask, SrcLayout, DstMask, DstLayout);
+	}
+
+	inline void SetupAndZeroBufferBarrier(VkBufferMemoryBarrier& Barrier, VkAccessFlags SrcAccess, VkAccessFlags DstAccess, VkBuffer Buffer, uint32 Offset, uint32 Size)
+	{
+		FMemory::Memzero(Barrier);
+		SetupBufferBarrier(Barrier, SrcAccess, DstAccess, Buffer, Offset, Size);
 	}
 }
 

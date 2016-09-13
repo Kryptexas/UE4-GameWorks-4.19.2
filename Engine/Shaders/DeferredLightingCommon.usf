@@ -149,7 +149,7 @@ float3 SphereLightingMIS( FGBufferData GBuffer, FDeferredLightData LightData, fl
 				}
 				float Weight = rcp( InvWeight );
 
-				float3 Shading = SurfaceShading( GBuffer, LobeRoughness, 1, L, V, N, 1, Random ) * NoL;
+				float3 Shading = SurfaceShading( GBuffer, LobeRoughness, 1, L, V, N, Random ) * NoL;
 				Shading += SubsurfaceShading( GBuffer, L, V, N, 1, Random );
 			
 				Lighting += SampleColor * Shading * Weight;
@@ -507,26 +507,17 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferDat
 #else
 			float3 LobeEnergy = AreaLightSpecular(LightData, LobeRoughness, ToLight, L, V, N);
 
-			// accumulate diffuse and specular
+			// accumulate surface
 			{
-#if 1	// for testing if there is a perf impact
-				// correct screen space subsurface scattering
-				float3 SurfaceLightingDiff = SurfaceShading(GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(1, 0), Random);
-				float3 SurfaceLightingSpec = SurfaceShading(GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(0, 1), Random);
-				LightAccumulator_Add(LightAccumulator, SurfaceLightingDiff, SurfaceLightingSpec, LightColor * (NoL * SurfaceAttenuation), bNeedsSeparateSubsurfaceLightAccumulation);
-				//LightAccumulator_Add(LightAccumulator, SurfaceLightingDiff, SurfaceLightingSpec, LightColor * (SurfaceAttenuation), bNeedsSeparateSubsurfaceLightAccumulation );
-#else
-				// wrong screen space subsurface scattering but potentially faster
-				float3 SurfaceLighting = SurfaceShading(GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(1, 1), Random);
-				LightAccumulator_Add(LightAccumulator, SurfaceLighting, 0, LightColor * (NoL * SurfaceAttenuation), bNeedsSeparateSubsurfaceLightAccumulation);
-#endif
+				float3 SurfaceLighting = SurfaceShading(GBuffer, LobeRoughness, LobeEnergy, L, V, N, Random);
+				LightAccumulator_Add(LightAccumulator, SurfaceLighting, (1.0/PI), LightColor * (NoL * SurfaceAttenuation), bNeedsSeparateSubsurfaceLightAccumulation);
 			}
 
 			// accumulate subsurface
 			{
 				float3 SubsurfaceLighting = SubsurfaceShading(GBuffer, L, V, N, SubsurfaceShadow, Random);
 
-				LightAccumulator_Add(LightAccumulator, SubsurfaceLighting, 0, LightColor * SubsurfaceAttenuation, bNeedsSeparateSubsurfaceLightAccumulation);
+				LightAccumulator_Add(LightAccumulator, SubsurfaceLighting, 0, LightColor * SubsurfaceAttenuation, false);
 
 				LightAccumulator.EstimatedCost += 0.4f;		// add the cost of the lighting computations (should sum up to 1 form one light)
 			}

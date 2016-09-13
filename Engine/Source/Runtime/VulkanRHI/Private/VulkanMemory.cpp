@@ -142,6 +142,7 @@ namespace VulkanRHI
 		uint32 HeapIndex = MemoryProperties.memoryTypes[MemoryTypeIndex].heapIndex;
 		HeapInfos[HeapIndex].Allocations.Add(NewAllocation);
 		HeapInfos[HeapIndex].UsedSize += AllocationSize;
+		HeapInfos[HeapIndex].PeakSize = FMath::Max(HeapInfos[HeapIndex].PeakSize, HeapInfos[HeapIndex].UsedSize);
 
 		return NewAllocation;
 	}
@@ -179,10 +180,14 @@ namespace VulkanRHI
 			for (int32 SubIndex = 0; SubIndex < HeapInfo.Allocations.Num(); ++SubIndex)
 			{
 				FDeviceMemoryAllocation* Allocation = HeapInfo.Allocations[SubIndex];
+#if VULKAN_TRACK_MEMORY_USAGE
+				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d Size %d Handle %p %s(%d)"), SubIndex, Allocation->Size, (void*)Allocation->Handle, ANSI_TO_TCHAR(Allocation->File), Allocation->Line);
+#else
 				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d Size %d Handle %p"), SubIndex, Allocation->Size, (void*)Allocation->Handle);
+#endif
 				TotalSize += Allocation->Size;
 			}
-			UE_LOG(LogVulkanRHI, Display, TEXT("\t\tTotal Allocated %.2f MB"), TotalSize / 1024.0f / 1024.0f);
+			UE_LOG(LogVulkanRHI, Display, TEXT("\t\tTotal Allocated %.2f MB, Peak %.2f MB"), TotalSize / 1024.0f / 1024.0f, HeapInfo.PeakSize / 1024.0f / 1024.0f);
 		}
 	}
 #endif
@@ -776,6 +781,7 @@ namespace VulkanRHI
 
 		VkMemoryRequirements MemReqs;
 		VulkanRHI::vkGetBufferMemoryRequirements(Device->GetInstanceHandle(), Buffer, &MemReqs);
+		Alignment = FMath::Max((uint32)MemReqs.alignment, Alignment);
 
 		uint32 MemoryTypeIndex;
 		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
@@ -883,8 +889,15 @@ namespace VulkanRHI
 
 		for (int32 Index = 0; Index < ResourceTypeHeaps.Num(); ++Index)
 		{
-			UE_LOG(LogVulkanRHI, Display, TEXT("Heap %d, Memory Type Index %d"), Index, ResourceTypeHeaps[Index]->MemoryTypeIndex);
-			ResourceTypeHeaps[Index]->DumpMemory();
+			if (ResourceTypeHeaps[Index])
+			{
+				UE_LOG(LogVulkanRHI, Display, TEXT("Heap %d, Memory Type Index %d"), Index, ResourceTypeHeaps[Index]->MemoryTypeIndex);
+				ResourceTypeHeaps[Index]->DumpMemory();
+			}
+			else
+			{
+				UE_LOG(LogVulkanRHI, Display, TEXT("Heap %d, NOT USED"), Index);
+			}
 		}
 
 		UE_LOG(LogVulkanRHI, Display, TEXT("Buffer Allocations: %d Used / %d Free"), UsedBufferAllocations.Num(), FreeBufferAllocations.Num());

@@ -291,7 +291,7 @@ struct FVulkanTextureBase : public FVulkanBaseShaderResource
 	FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType ResourceType, EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 SizeZ, VkImage InImage, VkDeviceMemory InMem, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo = FRHIResourceCreateInfo());
 	virtual ~FVulkanTextureBase();
 
-	VkImageView CreateRenderTargetView(uint32 MipIndex, uint32 ArraySliceIndex);
+	VkImageView CreateRenderTargetView(uint32 MipIndex, uint32 NumMips, uint32 ArraySliceIndex, uint32 NumArraySlices);
 
 	FVulkanSurface Surface;
 
@@ -385,8 +385,8 @@ public:
 	:	FRHITexture3D(SizeX, SizeY, SizeZ, NumMips, Format, Flags, InClearValue)
 	,	FVulkanTextureBase(Device, VK_IMAGE_VIEW_TYPE_3D, Format, SizeX, SizeY, SizeZ, /*bArray=*/ false, 1, NumMips, /*NumSamples=*/ 1, Flags, BulkData)
 	{
-	
 	}
+	virtual ~FVulkanTexture3D();
 
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const override final
@@ -408,8 +408,6 @@ class FVulkanTextureCube : public FRHITextureCube, public FVulkanTextureBase
 public:
 	FVulkanTextureCube(FVulkanDevice& Device, EPixelFormat Format, uint32 Size, bool bArray, uint32 ArraySize, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData, const FClearValueBinding& InClearValue);
 	virtual ~FVulkanTextureCube();
-
-	void Destroy(FVulkanDevice& Device);
 
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const override final
@@ -492,7 +490,7 @@ class FVulkanQueryPool
 {
 public:
 	FVulkanQueryPool(FVulkanDevice* InDevice, uint32 InNumQueries, VkQueryType InQueryType);
-	virtual ~FVulkanQueryPool(){}
+	virtual ~FVulkanQueryPool() {}
 	virtual void Destroy();
 
 	VkQueryPool QueryPool;
@@ -885,7 +883,11 @@ public:
 	// After the shader is set, it is expected that all require states are provided/set by the engine
 	void ResetState();
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	class FVulkanPipeline* PrepareForDraw(class FVulkanRenderPass* RenderPass, const struct FVulkanPipelineGraphicsKey& PipelineKey, uint32 VertexInputKey, const struct FVulkanPipelineState& State);
+#else
 	class FVulkanPipeline* PrepareForDraw(const struct FVulkanPipelineGraphicsKey& PipelineKey, uint32 VertexInputKey, const struct FVulkanPipelineState& State);
+#endif
 
 	bool UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
 

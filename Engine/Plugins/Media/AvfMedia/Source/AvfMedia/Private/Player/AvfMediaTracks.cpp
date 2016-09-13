@@ -140,23 +140,32 @@ FAvfMediaTracks::FAvfMediaTracks()
 	, CaptionSink(nullptr)
 	, VideoSink(nullptr)
 	, PlayerItem(nullptr)
+	, VideoSampler(nullptr)
 	, SelectedAudioTrack(INDEX_NONE)
 	, SelectedCaptionTrack(INDEX_NONE)
 	, SelectedVideoTrack(INDEX_NONE)
 	, bAudioPaused(false)
 	, SeekTime(-1.0)
 	, bZoomed(false)
-#if WITH_ENGINE && !PLATFORM_MAC
-	, MetalTextureCache(nullptr)
-#endif
 {
 	LastAudioSample = kCMTimeZero;
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
+	{
+		This->VideoSampler = new FAvfVideoSampler();
+	});
 }
 
 
 FAvfMediaTracks::~FAvfMediaTracks()
 {
 	Reset();
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UninitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
+	{
+		delete This->VideoSampler;
+	});
+
+	FlushRenderingCommands();
 }
 
 
@@ -239,7 +248,7 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem)
 		}
 		else if (([mediaType isEqualToString:AVMediaTypeClosedCaption]) || ([mediaType isEqualToString:AVMediaTypeSubtitle]))
 		{
-			FAVPlayerItemLegibleOutputPushDelegate* Delegate = [[FAVPlayerItemLegibleOutputPushDelegate alloc] init];
+			FAVPlayerItemLegibleOutputPushDelegate* Delegate = [[FAVPlayerItemLegibleOutputPushDelegate alloc] initWithMediaTracks:this];
 			AVPlayerItemLegibleOutput* Output = [AVPlayerItemLegibleOutput new];
 			check(Output);
 			
@@ -324,6 +333,11 @@ void FAvfMediaTracks::Reset()
 {
 	FScopeLock Lock(&CriticalSection);
 
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
+    {
+		This->VideoSampler->SetTrack(nullptr, nil);
+    });
+	
 	SelectedAudioTrack = INDEX_NONE;
 	SelectedCaptionTrack = INDEX_NONE;
 	SelectedVideoTrack = INDEX_NONE;
@@ -383,14 +397,6 @@ void FAvfMediaTracks::Reset()
 	bAudioPaused = false;
 	SeekTime = -1.0;
 	bZoomed = false;
-	
-#if WITH_ENGINE && !PLATFORM_MAC
-	if (MetalTextureCache)
-	{
-		CFRelease(MetalTextureCache);
-		MetalTextureCache = nullptr;
-	}
-#endif
 }
 
 
@@ -522,14 +528,6 @@ void FAvfMediaTracks::AppendStats(FString &OutStats) const
 bool FAvfMediaTracks::Tick(float DeltaTime)
 {
 	FScopeLock Lock(&CriticalSection);
-	
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		FAvfMediaTracksTick,
-		FAvfMediaTracks*, Tracks, this,
-		{
-			Tracks->UpdateVideoSink();
-		}
-	);
 
 #if PLATFORM_MAC
 	if (AudioSink && SelectedAudioTrack != INDEX_NONE)
@@ -1095,17 +1093,63 @@ void FAvfMediaTracks::InitializeVideoSink()
 		EMediaTextureSinkMode::Buffered
 	);
 #endif
+	
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(InitialiseAvfVideoSampler,
+												 FAvfMediaTracks*, This, this,
+												 IMediaTextureSink*, VideoSink, VideoSink,
+												 AVPlayerItemVideoOutput*, Output, (AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output,
+    {
+		This->VideoSampler->SetTrack(VideoSink, Output);
+    });
 }
 
-void FAvfMediaTracks::UpdateVideoSink()
+FAvfVideoSampler::FAvfVideoSampler()
+: VideoSink(nullptr)
+, Output(nil)
+{
+	
+}
+
+FAvfVideoSampler::~FAvfVideoSampler()
+{
+	[Output release];
+#if WITH_ENGINE && !PLATFORM_MAC
+	if (MetalTextureCache)
+	{
+		CFRelease(MetalTextureCache);
+		MetalTextureCache = nullptr;
+	}
+#endif
+}
+
+void FAvfVideoSampler::SetTrack(IMediaTextureSink* InVideoSink, AVPlayerItemVideoOutput* InOutput)
+{
+	FScopeLock Lock(&CriticalSection);
+	VideoSink = InVideoSink;
+	[InOutput retain];
+	[Output release];
+	Output = InOutput;
+}
+
+/* FTickableObjectRenderThread interface
+ *****************************************************************************/
+
+TStatId FAvfVideoSampler::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FAvfVideoSampler, STATGROUP_Tickables);
+}
+
+bool FAvfVideoSampler::IsTickable() const
+{
+	return ((VideoSink != nullptr) && (Output != nil));
+}
+
+void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 {
 	FScopeLock Lock(&CriticalSection);
 	
-	if ((VideoSink != nullptr) && (SelectedVideoTrack != INDEX_NONE))
+	if ((VideoSink != nullptr) && (Output != nil))
 	{
-		AVPlayerItemVideoOutput* Output = (AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output;
-		check(Output);
-		
 		CMTime OutputItemTime = [Output itemTimeForHostTime:CACurrentMediaTime()];
 		if ([Output hasNewPixelBufferForItemTime:OutputItemTime])
 		{

@@ -178,6 +178,7 @@ public:
 		FRawMesh& OutReducedMesh,
 		float& OutMaxDeviation,
 		const FRawMesh& InMesh,
+		const TMultiMap<int32, int32>& InOverlappingCorners,
 		const FMeshReductionSettings& InSettings
 		) override
 	{
@@ -2053,32 +2054,6 @@ private:
 		BoneSettings->SetBoneReductionTargets( SimplygonSDK::SG_BONEREDUCTIONTARGET_BONERATIO );
 		BoneSettings->SetBoneRatio ( Settings.BoneReductionRatio );
 		BoneSettings->SetMaxBonePerVertex( Settings.MaxBonesPerVertex );
-	}
-
-	/**
-	 * Calculates the view distance that a mesh should be displayed at.
-	 * @param MaxDeviation The maximum surface-deviation between the reduced geometry and the original. This value should be acquired from Simplygon
-	 * @returns The calculated view distance	 
-	 */
-	float CalculateViewDistance( float MaxDeviation )
-	{
-		// We want to solve for the depth in world space given the screen space distance between two pixels
-		//
-		// Assumptions:
-		//   1. There is no scaling in the view matrix.
-		//   2. The horizontal FOV is 90 degrees.
-		//   3. The backbuffer is 1920x1080.
-		//
-		// If we project two points at (X,Y,Z) and (X',Y,Z) from view space, we get their screen
-		// space positions: (X/Z, Y'/Z) and (X'/Z, Y'/Z) where Y' = Y * AspectRatio.
-		//
-		// The distance in screen space is then sqrt( (X'-X)^2/Z^2 + (Y'-Y')^2/Z^2 )
-		// or (X'-X)/Z. This is in clip space, so PixelDist = 1280 * 0.5 * (X'-X)/Z.
-		//
-		// Solving for Z: ViewDist = (X'-X * 640) / PixelDist
-
-		const float ViewDistance = (MaxDeviation * 960.0f);
-		return ViewDistance;
 	}
 
 	/**

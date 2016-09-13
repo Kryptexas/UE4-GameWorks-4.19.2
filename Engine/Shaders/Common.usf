@@ -1329,14 +1329,14 @@ float Noise3D_Multiplexer(int Function, float3 Position, int Quality, bool bTili
 		case 4:
 			return ValueNoise3D_ALU(Position, bTiling, RepeatSize);
 		default:
-			return VoronoiNoise3D_ALU(Position, Quality, bTiling, RepeatSize);
+			return VoronoiNoise3D_ALU(Position, Quality, bTiling, RepeatSize, true).w * 2. - 1.;
 	}
 	return 0;
 }
 
 // @param LevelScale usually 2 but higher values allow efficient use of few levels
 // @return in user defined range (OutputMin..OutputMax)
-float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Function, bool bTurbulence, uint Levels, float OutputMin, float OutputMax, float LevelScale, float FilterWidth, bool bTiling, float RepeatSize)
+MaterialFloat MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Function, bool bTurbulence, uint Levels, float OutputMin, float OutputMax, float LevelScale, float FilterWidth, bool bTiling, float RepeatSize)
 {
 	Position *= Scale;
 	FilterWidth *= Scale;
@@ -1373,6 +1373,37 @@ float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Fun
 
 	// Out is in 0..1 range
 	return lerp(OutputMin, OutputMax, Out);
+}
+
+
+// Material node for noise functions returning a vector value
+// @param LevelScale usually 2 but higher values allow efficient use of few levels
+// @return in user defined range (OutputMin..OutputMax)
+MaterialFloat4 MaterialExpressionVectorNoise(MaterialFloat3 Position, int Quality, int Function, bool bTiling, float TileSize)
+{
+	float4 result = float4(0,0,0,1);
+	float3x4 Jacobian = JacobianSimplex_ALU(Position, bTiling, TileSize);	// compiled out if not used
+
+	// verified, HLSL compiled out the switch if Function is a constant
+	switch (Function)
+	{
+	case 0:	// Cellnoise
+		result.xyz = float3(Rand3DPCG16(int3(floor(NoiseTileWrap(Position, bTiling, TileSize))))) / 0xffff;
+		break;
+	case 1: // Color noise
+		result.xyz = float3(Jacobian[0].w, Jacobian[1].w, Jacobian[2].w);
+		break;
+	case 2: // Gradient
+		result = Jacobian[0];
+		break;
+	case 3: // Curl
+		result.xyz = float3(Jacobian[2][1] - Jacobian[1][2], Jacobian[0][2] - Jacobian[2][0], Jacobian[1][0] - Jacobian[0][1]);
+		break;
+	default: // Voronoi
+		result = VoronoiNoise3D_ALU(Position, Quality, bTiling, TileSize, false);
+		break;
+	}
+	return result;
 }
 
 

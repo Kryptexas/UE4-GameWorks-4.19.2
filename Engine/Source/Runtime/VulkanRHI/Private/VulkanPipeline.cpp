@@ -76,9 +76,18 @@ void FVulkanPipeline::Create(const FVulkanPipelineState& State)
 	VkPipelineColorBlendStateCreateInfo CBInfo;
 	FMemory::Memzero(CBInfo);
 	CBInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+#if VULKAN_USE_NEW_RENDERPASSES
+	CBInfo.attachmentCount = State.RenderPass->GetLayout().GetNumColorAttachments();
+#else
 	CBInfo.attachmentCount = State.FrameBuffer->GetNumColorAttachments();
+#endif
 	CBInfo.pAttachments = State.BlendState->BlendStates;
-
+#if VULKAN_USE_NEW_RENDERPASSES
+	CBInfo.blendConstants[0] = 1.0f;
+	CBInfo.blendConstants[1] = 1.0f;
+	CBInfo.blendConstants[2] = 1.0f;
+	CBInfo.blendConstants[3] = 1.0f;
+#endif
 	// Viewport
 	VkPipelineViewportStateCreateInfo VPInfo;
 	FMemory::Memzero(VPInfo);
@@ -356,7 +365,11 @@ void FVulkanPipelineStateCache::Save(FString& CacheFilename)
 	}
 }
 
+#if VULKAN_USE_NEW_RENDERPASSES
+void FVulkanPipelineStateCache::CreateAndAdd(FVulkanRenderPass* RenderPass, const FVulkanPipelineStateKey& CreateInfo, FVulkanPipeline* Pipeline, const FVulkanPipelineState& State, const FVulkanBoundShaderState& BSS)
+#else
 void FVulkanPipelineStateCache::CreateAndAdd(const FVulkanPipelineStateKey& CreateInfo, FVulkanPipeline* Pipeline, const FVulkanPipelineState& State, const FVulkanBoundShaderState& BSS)
+#endif
 {
 	//if (EnablePipelineCacheCvar.GetValueOnRenderThread() == 1)
 	//SCOPE_CYCLE_COUNTER(STAT_VulkanCreatePipeline);
@@ -364,7 +377,11 @@ void FVulkanPipelineStateCache::CreateAndAdd(const FVulkanPipelineStateKey& Crea
 	FDiskEntry* DiskEntry = new FDiskEntry();
 	DiskEntry->GraphicsKey = CreateInfo.PipelineKey;
 	DiskEntry->VertexInputKey = CreateInfo.VertexInputKey;
+#if VULKAN_USE_NEW_RENDERPASSES
+	PopulateDiskEntry(State, RenderPass, DiskEntry);
+#else
 	PopulateDiskEntry(State, State.RenderPass, DiskEntry);
+#endif
 
 	// Create the pipeline
 	CreatePipelineFromDiskEntry(DiskEntry, Pipeline);
@@ -531,12 +548,14 @@ void FVulkanPipelineStateCache::FDiskEntry::FDepthStencil::ReadFrom(const VkPipe
 	FrontPassOp =			(uint8)InState.front.passOp;
 	FrontDepthFailOp =		(uint8)InState.front.depthFailOp;
 	FrontCompareOp =		(uint8)InState.front.compareOp;
+	FrontCompareMask =		(uint8)InState.front.compareMask;
 	FrontWriteMask =		InState.front.writeMask;
 	FrontReference =		InState.front.reference;
 	BackFailOp =			(uint8)InState.back.failOp;
 	BackPassOp =			(uint8)InState.back.passOp;
 	BackDepthFailOp =		(uint8)InState.back.depthFailOp;
 	BackCompareOp =			(uint8)InState.back.compareOp;
+	BackCompareMask =		(uint8)InState.back.compareMask;
 	BackWriteMask =			InState.back.writeMask;
 	BackReference =			InState.back.reference;
 }
@@ -554,6 +573,7 @@ void FVulkanPipelineStateCache::FDiskEntry::FDepthStencil::WriteInto(VkPipelineD
 	Out.front.passOp =			(VkStencilOp)FrontPassOp;
 	Out.front.depthFailOp =		(VkStencilOp)FrontDepthFailOp;
 	Out.front.compareOp =		(VkCompareOp)FrontCompareOp;
+	Out.front.compareMask =		FrontCompareMask;
 	Out.front.writeMask =		FrontWriteMask;
 	Out.front.reference =		FrontReference;
 	Out.back.failOp =			(VkStencilOp)BackFailOp;
@@ -561,6 +581,7 @@ void FVulkanPipelineStateCache::FDiskEntry::FDepthStencil::WriteInto(VkPipelineD
 	Out.back.depthFailOp =		(VkStencilOp)BackDepthFailOp;
 	Out.back.compareOp =		(VkCompareOp)BackCompareOp;
 	Out.back.writeMask =		BackWriteMask;
+	Out.back.compareMask =		BackCompareMask;
 	Out.back.reference =		BackReference;
 }
 
@@ -575,12 +596,14 @@ FArchive& operator << (FArchive& Ar, FVulkanPipelineStateCache::FDiskEntry::FDep
 	Ar << DepthStencil.FrontPassOp;
 	Ar << DepthStencil.FrontDepthFailOp;
 	Ar << DepthStencil.FrontCompareOp;
+	Ar << DepthStencil.FrontCompareMask;
 	Ar << DepthStencil.FrontWriteMask;
 	Ar << DepthStencil.FrontReference;
 	Ar << DepthStencil.BackFailOp;
 	Ar << DepthStencil.BackPassOp;
 	Ar << DepthStencil.BackDepthFailOp;
 	Ar << DepthStencil.BackCompareOp;
+	Ar << DepthStencil.BackCompareMask;
 	Ar << DepthStencil.BackWriteMask;
 	Ar << DepthStencil.BackReference;
 	return Ar;
@@ -791,7 +814,12 @@ void FVulkanPipelineStateCache::CreatePipelineFromDiskEntry(const FDiskEntry* Di
 		DiskEntry->ColorAttachmentStates[Index].WriteInto(BlendStates[Index]);
 	}
 	CBInfo.pAttachments = BlendStates;
-
+#if VULKAN_USE_NEW_RENDERPASSES
+	CBInfo.blendConstants[0] = 1.0f;
+	CBInfo.blendConstants[1] = 1.0f;
+	CBInfo.blendConstants[2] = 1.0f;
+	CBInfo.blendConstants[3] = 1.0f;
+#endif
 	// Viewport
 	VkPipelineViewportStateCreateInfo VPInfo;
 	FMemory::Memzero(VPInfo);
@@ -893,10 +921,18 @@ void FVulkanPipelineStateCache::CreatePipelineFromDiskEntry(const FDiskEntry* Di
 
 void FVulkanPipelineStateCache::PopulateDiskEntry(const FVulkanPipelineState& State, const FVulkanRenderPass* RenderPass, FVulkanPipelineStateCache::FDiskEntry* OutDiskEntry)
 {
+#if VULKAN_USE_NEW_RENDERPASSES
+	OutDiskEntry->RasterizationSamples = RenderPass->GetLayout().GetAttachmentDescriptions()[0].samples;
+#else
 	OutDiskEntry->RasterizationSamples = State.RenderPass->GetLayout().GetAttachmentDescriptions()[0].samples;
+#endif
 	OutDiskEntry->Topology = (uint32)State.InputAssembly.topology;
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	OutDiskEntry->ColorAttachmentStates.AddUninitialized(RenderPass->GetLayout().GetNumColorAttachments());
+#else
 	OutDiskEntry->ColorAttachmentStates.AddUninitialized(State.FrameBuffer->GetNumColorAttachments());
+#endif
 	for (int32 Index = 0; Index < OutDiskEntry->ColorAttachmentStates.Num(); ++Index)
 	{
 		OutDiskEntry->ColorAttachmentStates[Index].ReadFrom(State.BlendState->BlendStates[Index]);
