@@ -215,8 +215,7 @@ bool FGearVR::OnStartGameFrame( FWorldContext& WorldContext )
 	{
 		if (!HasValidOvrMobile())
 		{
-			// re-enter VR mode if necessary
-			EnterVRMode();
+			UE_LOG(LogHMD, Log, TEXT("No OVRMobile!!"));
 		}
 	}
 	CurrentFrame->GameThreadId = gettid();
@@ -673,10 +672,6 @@ bool FGearVR::DoEnableStereo(bool bStereo)
 
 	Settings->Flags.bStereoEnabled = stereoToBeEnabled;
 
-	if (!stereoToBeEnabled)
-	{
-		LeaveVRMode();
-	}
 	return Settings->Flags.bStereoEnabled;
 }
 
@@ -995,6 +990,8 @@ void FGearVR::Startup()
 	pGearVRBridge = new FCustomPresent(GNativeAndroidApp->activity->clazz, MinimumVsyncs);
 #endif
 
+	EnterVRMode();
+
 	SaveSystemValues();
 
 	if(CVarGearVREnableMSAA.GetValueOnAnyThread())
@@ -1064,6 +1061,8 @@ void FGearVR::ApplicationResumeDelegate()
 {
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("+++++++ GEARVR APP RESUME ++++++, tid = %d"), gettid());
 	OCFlags.bResumed = true;
+
+	EnterVRMode();
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("------- GEARVR APP RESUME ------, tid = %d"), gettid());
 }
 
@@ -1327,8 +1326,21 @@ void FGearVR::PushBlackFinal()
 	FCustomPresent*, pGearVRBridge, pGearVRBridge,
 	FGameFrame*, Frame, GetGameFrame(),
 	{
-		pGearVRBridge->PushBlackFinal(Frame);
+		pGearVRBridge->PushBlack(Frame, true);
 	});
+	FlushRenderingCommands(); // wait till complete
+}
+
+void FGearVR::PushBlack()
+{
+	check(IsInGameThread());
+	
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(OVRPushBlackFinal,
+		FCustomPresent*, pGearVRBridge, pGearVRBridge,
+		FGameFrame*, Frame, GetGameFrame(),
+		{
+			pGearVRBridge->PushBlack(Frame);
+		});
 	FlushRenderingCommands(); // wait till complete
 }
 
@@ -1422,13 +1434,11 @@ void FGearVR::OnBeginPlay(FWorldContext& InWorldContext)
 	auto CurrentFrame = GetGameFrame();
 	if (CurrentFrame && CurrentFrame->Flags.bOutOfFrame)
 	{
-		EnterVRMode();
 		bool rv = GetEyePoses(*CurrentFrame, CurrentFrame->CurEyeRenderPose, CurrentFrame->CurSensorState);
 		if (!rv)
 		{
 			UE_LOG(LogHMD, Log, TEXT("FGearVR::OnBeginPlay: Can't get Eye Poses, OvrMobile is %s"), HasValidOvrMobile() ? TEXT("OK") : TEXT("NULL"));
 		}
-		LeaveVRMode();
 	}
 }
 

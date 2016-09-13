@@ -1011,7 +1011,6 @@ void FCustomPresent::OnReleaseThreadOwnership()
 	UE_LOG(LogHMD, Log, TEXT("!!! Rendering thread is released! tid = %d"), gettid());
 
 	check(RenderThreadId == 0 || RenderThreadId == gettid());
-	LeaveVRMode_RenderThread();
 
 	if (JavaRT.Env)
 	{
@@ -1167,17 +1166,17 @@ void FCustomPresent::DoRenderLoadingIcon_RenderThread(int CpuLevel, int GpuLevel
 	}
 }
 
-void FCustomPresent::PushBlackFinal(const FGameFrame* frame)
+void FCustomPresent::PushBlack(const FGameFrame* frame, bool isFinal)
 {
 	check(IsInRenderingThread());
 
 	FScopeLock lock(&OvrMobileLock);
 	if (OvrMobile)
 	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("+++++++ PushBlackFinal() ++++++, On RT! tid = %d"), gettid());
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("+++++++ PushBlack() ++++++, On RT! tid = %d, final = %b"), gettid(), isFinal);
 		
 		check(JavaRT.Vm != nullptr);
-		ovrFrameParms frameParms = vrapi_DefaultFrameParms(&JavaRT, VRAPI_FRAME_INIT_BLACK_FINAL, vrapi_GetTimeInSeconds(), nullptr);
+		ovrFrameParms frameParms = vrapi_DefaultFrameParms(&JavaRT, isFinal ? VRAPI_FRAME_INIT_BLACK_FINAL : VRAPI_FRAME_INIT_BLACK, vrapi_GetTimeInSeconds(), nullptr);
 		frameParms.PerformanceParms = DefaultPerfParms;
 		frameParms.Java = JavaRT;
 		if (frame)
