@@ -75,7 +75,7 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 		{
 			if (OutMsg)
 			{
-				if (const UK2Node_BaseMCDelegate* DelegateNode = Cast<const UK2Node_BaseMCDelegate>(OtherPin->GetOwningNode()))
+				if (const UK2Node_BaseMCDelegate* DelegateNode = OtherPin ? Cast<const UK2Node_BaseMCDelegate>(OtherPin->GetOwningNode()) : nullptr)
 				{
 					const FString DelegateName = DelegateNode->GetPropertyName().ToString();
 

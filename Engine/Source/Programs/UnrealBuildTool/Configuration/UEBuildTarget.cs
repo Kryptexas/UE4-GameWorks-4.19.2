@@ -2187,7 +2187,11 @@ namespace UnrealBuildTool
 					// causing bModifyingEngineFiles to be incorrect on the next invocation).
 					foreach (KeyValuePair<FileReference, VersionManifest> FileNameToVersionManifest in FileReferenceToVersionManifestPairs)
 					{
-						FileNameToVersionManifest.Key.Delete();
+						// Make sure the file (and directory) exists before trying to delete it
+						if(FileNameToVersionManifest.Key.Exists())
+						{
+							FileNameToVersionManifest.Key.Delete();
+						}
 					}
 				}
 				else if(OutputPaths.Count == 1 && OutputPaths[0].IsUnderDirectory(UnrealBuildTool.EngineDirectory))
@@ -2231,6 +2235,7 @@ namespace UnrealBuildTool
 			{
 				foreach (KeyValuePair<FileReference, VersionManifest> FileNameToVersionManifest in FileReferenceToVersionManifestPairs)
 				{
+					Directory.CreateDirectory(Path.GetDirectoryName(FileNameToVersionManifest.Key.FullName));
 					FileNameToVersionManifest.Value.Write(FileNameToVersionManifest.Key.FullName);
 				}
 			}

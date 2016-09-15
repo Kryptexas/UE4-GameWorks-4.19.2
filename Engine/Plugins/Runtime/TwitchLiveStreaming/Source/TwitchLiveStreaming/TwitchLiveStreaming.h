@@ -6,10 +6,12 @@
 
 #if WITH_TWITCH
 
-// Twitch SDK includes
-#include "twitchsdk.h"
-#include "twitchwebcam.h"
-#include "twitchchat.h"
+THIRD_PARTY_INCLUDES_START
+	// Twitch SDK includes
+	#include "twitchsdk.h"
+	#include "twitchwebcam.h"
+	#include "twitchchat.h"
+THIRD_PARTY_INCLUDES_END
 
 
 /**

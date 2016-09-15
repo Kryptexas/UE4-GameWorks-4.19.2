@@ -1038,6 +1038,7 @@ void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor )
 
 		EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
 
+		CA_SUPPRESS(6011); // warning C6011: Dereferencing NULL pointer 'Interactor'.
 		bool bNeedsSpawn =
 			( QuickRadialMenu->bHidden || DockedToInteractor != Interactor ) &&
 			DraggingMode != EViewportInteractionDraggingMode::ActorsAtLaserImpact &&	// Don't show radial menu if the hand is busy dragging something around

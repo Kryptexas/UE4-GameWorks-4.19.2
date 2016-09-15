@@ -166,6 +166,8 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 		}
 		else
 		{
+			check(ImportData);
+
 			// find the correct animation based on import data
 			FbxAnimStack* CurAnimStack = nullptr;
 			
@@ -980,7 +982,7 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		TargetSequence->RawCurveData.RefreshName(Mapping);
 
 		TargetSequence->MarkRawDataAsModified();
-		if (ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale))
+		if (CurveToImport && ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale))
 		{
 			if (ImportOptions->bRemoveRedundantKeys)
 			{

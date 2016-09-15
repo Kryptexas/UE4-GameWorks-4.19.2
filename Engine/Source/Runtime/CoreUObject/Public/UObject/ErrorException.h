@@ -4,7 +4,7 @@
 
 #if HACK_HEADER_GENERATOR
 	#include "Templates/IsValidVariadicFunctionArg.h"
-	#include "Templates/AndOr.h"
+	#include "Templates/AndOrNot.h"
 
 	/** 
 	 * FError

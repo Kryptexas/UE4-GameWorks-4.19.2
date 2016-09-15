@@ -248,7 +248,7 @@ FText SKismetInspector::GetContextualEditingWidgetTitle() const
 		}
 		else if (SelectedObjects.Num() > 1)
 		{
-			UClass* BaseClass = NULL;
+			UClass* BaseClass = nullptr;
 
 			for (auto ObjectWkPtrIt = SelectedObjects.CreateConstIterator(); ObjectWkPtrIt; ++ObjectWkPtrIt)
 			{
@@ -265,9 +265,10 @@ FText SKismetInspector::GetContextualEditingWidgetTitle() const
 					}
 
 					// Keep track of the class of objects selected
-					if (BaseClass == NULL)
+					if (BaseClass == nullptr)
 					{
 						BaseClass = ObjClass;
+						checkSlow(ObjClass);
 					}
 					while (!ObjClass->IsChildOf(BaseClass))
 					{

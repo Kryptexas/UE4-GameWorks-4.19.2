@@ -1187,6 +1187,9 @@ UObject* UPolysFactory::FactoryCreateText
 	FFeedbackContext*	Warn
 )
 {
+	FVector PointPool[4096];
+	int32 NumPoints = 0;
+
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
 	// Create polys.	
@@ -1215,9 +1218,9 @@ UObject* UPolysFactory::FactoryCreateText
 		else if( FCString::Strstr(Str,TEXT("ENTITIES")) && First )
 		{
 			UE_LOG(LogEditorFactories, Log, TEXT("Reading Autocad DXF file"));
-			int32 Started=0, NumPts=0, IsFace=0;
-			FVector PointPool[4096];
+			int32 Started=0, IsFace=0;
 			FPoly NewPoly; NewPoly.Init();
+			NumPoints = 0;
 
 			while
 			(	FParse::Line( &Buffer, StrLine, 1 )
@@ -1234,7 +1237,7 @@ UObject* UPolysFactory::FactoryCreateText
 						if( NewPoly.Vertices.Num() == 0 )
 						{
 							// Got a vertex definition.
-							NumPts++;
+							NumPoints++;
 						}
 						else if( NewPoly.Vertices.Num()>=3 )
 						{
@@ -1258,7 +1261,7 @@ UObject* UPolysFactory::FactoryCreateText
 					if( FParse::Command(&Str,TEXT("VERTEX")) )
 					{
 						// Start of new vertex.
-						PointPool[NumPts] = FVector::ZeroVector;
+						PointPool[NumPoints] = FVector::ZeroVector;
 						Started = 1;
 						IsFace  = 0;
 					}
@@ -1271,7 +1274,7 @@ UObject* UPolysFactory::FactoryCreateText
 					else if( FParse::Command(&Str,TEXT("SEQEND")) )
 					{
 						// End of sequence.
-						NumPts=0;
+						NumPoints=0;
 					}
 					else if( FParse::Command(&Str,TEXT("EOF")) )
 					{
@@ -1294,26 +1297,26 @@ UObject* UPolysFactory::FactoryCreateText
 						{
 							NewPoly.Vertices.AddZeroed(VertexIndex - NewPoly.Vertices.Num() + 1);
 						}
-						NewPoly.Vertices[VertexIndex].X = PointPool[NumPts].X = FCString::Atof(*ExtraLine);
+						NewPoly.Vertices[VertexIndex].X = PointPool[NumPoints].X = FCString::Atof(*ExtraLine);
 					}
 					else if( Code>=20 && Code<=29 )
 					{
 						// Y coordinate.
 						int32 VertexIndex = Code-20;
-						NewPoly.Vertices[VertexIndex].Y = PointPool[NumPts].Y = FCString::Atof(*ExtraLine);
+						NewPoly.Vertices[VertexIndex].Y = PointPool[NumPoints].Y = FCString::Atof(*ExtraLine);
 					}
 					else if( Code>=30 && Code<=39 )
 					{
 						// Z coordinate.
 						int32 VertexIndex = Code-30;
-						NewPoly.Vertices[VertexIndex].Z = PointPool[NumPts].Z = FCString::Atof(*ExtraLine);
+						NewPoly.Vertices[VertexIndex].Z = PointPool[NumPoints].Z = FCString::Atof(*ExtraLine);
 					}
 					else if( Code>=71 && Code<=79 && (Code-71)==NewPoly.Vertices.Num() )
 					{
 						int32 iPoint = FMath::Abs(FCString::Atoi(*ExtraLine));
-						if( iPoint>0 && iPoint<=NumPts )
+						if( iPoint>0 && iPoint<=NumPoints )
 							new(NewPoly.Vertices) FVector(PointPool[iPoint-1]);
-						else UE_LOG(LogEditorFactories, Warning, TEXT("DXF: Invalid point index %i/%i"), iPoint, NumPts );
+						else UE_LOG(LogEditorFactories, Warning, TEXT("DXF: Invalid point index %i/%i"), iPoint, NumPoints );
 					}
 				}
 			}
@@ -1326,22 +1329,22 @@ UObject* UPolysFactory::FactoryCreateText
 		else if( FCString::Strstr(Str,TEXT("Tri-mesh,")) && First )
 		{
 			UE_LOG(LogEditorFactories, Log,  TEXT("Reading 3D Studio ASC file") );
-			FVector PointPool[4096];
+			NumPoints = 0;
 
 			AscReloop:
-			int32 NumVerts = 0, TempNumPolys=0, TempVerts=0;
+			int32 TempNumPolys=0, TempVerts=0;
 			while( FParse::Line( &Buffer, StrLine ) )
 			{
 				Str = *StrLine;
 
-				FString VertText = FString::Printf( TEXT("Vertex %i:"), NumVerts );
+				FString VertText = FString::Printf( TEXT("Vertex %i:"), NumPoints );
 				FString FaceText = FString::Printf( TEXT("Face %i:"), TempNumPolys );
 				if( FCString::Strstr(Str,*VertText) )
 				{
-					PointPool[NumVerts].X = FCString::Atof(FCString::Strstr(Str,TEXT("X:"))+2);
-					PointPool[NumVerts].Y = FCString::Atof(FCString::Strstr(Str,TEXT("Y:"))+2);
-					PointPool[NumVerts].Z = FCString::Atof(FCString::Strstr(Str,TEXT("Z:"))+2);
-					NumVerts++;
+					PointPool[NumPoints].X = FCString::Atof(FCString::Strstr(Str,TEXT("X:"))+2);
+					PointPool[NumPoints].Y = FCString::Atof(FCString::Strstr(Str,TEXT("Y:"))+2);
+					PointPool[NumPoints].Z = FCString::Atof(FCString::Strstr(Str,TEXT("Z:"))+2);
+					NumPoints++;
 					TempVerts++;
 				}
 				else if( FCString::Strstr(Str,*FaceText) )
@@ -3086,7 +3089,7 @@ void DecompressTGA_RLE_24bpp( const FTGAFileHeader* TGA, uint32* TextureData )
 	uint8*	IdData = (uint8*)TGA + sizeof(FTGAFileHeader); 
 	uint8*	ColorMap = IdData + TGA->IdFieldLength;
 	uint8*	ImageData = (uint8*) (ColorMap + (TGA->ColorMapEntrySize + 4) / 8 * TGA->ColorMapLength);
-	uint8    Pixel[4];
+	uint8    Pixel[4] = {};
 	int32     RLERun = 0;
 	int32     RAWRun = 0;
 

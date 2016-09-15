@@ -264,7 +264,7 @@ struct AIMODULE_API FEnvNamedValue
 	FName ParamName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
-	TEnumAsByte<EAIParamType> ParamType;
+	EAIParamType ParamType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	float Value;
@@ -1236,7 +1236,7 @@ struct AIMODULE_API FAIDynamicParam
 	FName ParamName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = EQS)
-	TEnumAsByte<EAIParamType> ParamType;
+	EAIParamType ParamType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EQS)
 	float Value;

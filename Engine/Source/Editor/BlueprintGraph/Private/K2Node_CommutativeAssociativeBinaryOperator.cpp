@@ -291,8 +291,9 @@ void UK2Node_CommutativeAssociativeBinaryOperator::ExpandNode(FKismetCompilerCon
 			CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *NewOperatorInputB);
 
 			LastOutPin = NewOperator->FindOutPin();
-			check(LastOutPin);
 		}
+
+		check(LastOutPin);
 
 		UEdGraphPin* TrueOutPin = FindOutPin();
 		check(TrueOutPin);

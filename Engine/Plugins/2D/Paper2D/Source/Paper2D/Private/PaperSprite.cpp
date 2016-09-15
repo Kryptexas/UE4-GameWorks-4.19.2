@@ -796,6 +796,7 @@ void UPaperSprite::RebuildCollisionData()
 
 	if (SpriteCollisionDomain != ESpriteCollisionMode::None)
 	{
+		check(BodySetup);
 		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		switch (CollisionGeometry.GeometryType)
 		{

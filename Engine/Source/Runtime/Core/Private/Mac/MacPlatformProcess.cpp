@@ -1094,7 +1094,7 @@ bool FMacPlatformProcess::WritePipe(void* WritePipe, const FString& Message, FSt
 	Buffer[BytesAvailable] = '\n';
 
 	// Write to pipe
-	uint32 BytesWritten = write([(NSFileHandle*)WritePipe fileDescriptor], Buffer, BytesAvailable);
+	uint32 BytesWritten = write([(NSFileHandle*)WritePipe fileDescriptor], Buffer, BytesAvailable + 1);
 
 	// Get written message
 	if (OutWritten)

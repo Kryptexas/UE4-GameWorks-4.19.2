@@ -263,7 +263,7 @@ protected:
 
 	/** Enable or disable autokeying. */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
-	TEnumAsByte<EAutoKeyMode> AutoKeyMode;
+	EAutoKeyMode AutoKeyMode;
 
 	/** Enable or disable keying all channels when any are keyed. */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
@@ -275,7 +275,7 @@ protected:
 
 	/** The interpolation type for newly created keyframes */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
-	TEnumAsByte<EMovieSceneKeyInterpolation> KeyInterpolation;
+	EMovieSceneKeyInterpolation KeyInterpolation;
 
 	/** Whether or not track defaults will be automatically set when modifying tracks. */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing, meta = (ToolTip = "When setting keys on properties and transforms automatically update the track default values used when there are no keys."))

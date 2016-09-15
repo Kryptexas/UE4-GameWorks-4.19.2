@@ -1194,9 +1194,11 @@ UEnum* FHeaderParser::CompileEnum()
 	// Validate the metadata for the enum
 	ValidateMetaDataFormat(Enum, EnumToken.MetaData);
 
-	// Read optional base for enum class
-	if (CppForm == UEnum::ECppForm::EnumClass && MatchSymbol(TEXT(":")))
+	// Read base for enum class
+	if (CppForm == UEnum::ECppForm::EnumClass)
 	{
+		RequireSymbol(TEXT(":"), TEXT("'Enum'"));
+
 		FToken BaseToken;
 		if (!GetIdentifier(BaseToken))
 		{

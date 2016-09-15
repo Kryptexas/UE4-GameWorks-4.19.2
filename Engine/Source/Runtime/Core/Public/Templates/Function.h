@@ -8,6 +8,8 @@
 #include "ContainerAllocationPolicies.h"
 #include "UnrealMathUtility.h"
 #include "UnrealMemory.h"
+#include "Templates/Decay.h"
+#include "Templates/RemoveReference.h"
 
 // Disable visualization hack for shipping or test builds.
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -215,16 +217,9 @@ namespace UE4Function_Private
 		};
 	#endif
 
-	template <typename T>
-	inline T&& FakeCall(T* Ptr)
-	{
-		return MoveTemp(*Ptr);
-	}
-
-	inline void FakeCall(void* Ptr)
-	{
-	}
-
+	/**
+	 * Function which invokes the passed callable when invoked.
+	 */
 	template <typename Functor, typename Ret, typename... ParamTypes>
 	struct TFunctionRefCaller<Functor, Ret (ParamTypes...)>
 	{
@@ -234,9 +229,6 @@ namespace UE4Function_Private
 		}
 	};
 
-	/**
-	 * Specialization for void return types.
-	 */
 	template <typename Functor, typename... ParamTypes>
 	struct TFunctionRefCaller<Functor, void (ParamTypes...)>
 	{
@@ -246,6 +238,9 @@ namespace UE4Function_Private
 		}
 	};
 
+	/**
+	 * Function which asserts when invoked.
+	 */
 	template <typename Ret, typename... ParamTypes>
 	struct TFunctionRefAsserter<Ret (ParamTypes...)>
 	{
@@ -254,19 +249,16 @@ namespace UE4Function_Private
 			checkf(false, TEXT("Attempting to call an unbound TFunction!"));
 
 			// This doesn't need to be valid, because it'll never be reached, but it does at least need to compile.
-			return FakeCall((typename TRemoveReference<Ret>::Type*)Obj);
+			return Forward<Ret&&>(*(typename TRemoveReference<Ret>::Type*)Obj);
 		}
 	};
 
-	template <typename Ret, typename... ParamTypes>
-	struct TFunctionRefAsserter<Ret& (ParamTypes...)>
+	template <typename... ParamTypes>
+	struct TFunctionRefAsserter<void (ParamTypes...)>
 	{
-		static Ret& Call(void* Obj, ParamTypes&...)
+		static void Call(void*, ParamTypes&...)
 		{
-			checkf(false, TEXT("Attempting to call a null TFunction!"));
-
-			// This doesn't need to be valid, because it'll never be reached, but it does at least need to compile.
-			return (*(Ret*)Obj);
+			checkf(false, TEXT("Attempting to call an unbound TFunction!"));
 		}
 	};
 

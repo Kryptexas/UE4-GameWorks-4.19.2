@@ -754,7 +754,22 @@ float TMeshSimplifier<T, NumAttributes>::ComputeNewVerts( TSimpEdge<T>* edge, T*
 	TSimpVert<T>* v;
 	uint32 i = 0;
 
+// Avoid warning C6262: Function uses '121180' bytes of stack:  exceeds /analyze:stacksize '81940'.  Consider moving some data to heap.
+// as suppression doesn't seem to work on VS2015 Update 2.
+#if defined(_MSC_VER) && USING_CODE_ANALYSIS
+	QuadricType* quadrics = new QuadricType[256];
+	struct FDeleteQuadrics
+	{
+		~FDeleteQuadrics()
+		{
+			delete [] quadrics;
+		}
+
+		QuadricType* quadrics;
+	} DeleteQuadrics = { quadrics };
+#else
 	QuadricType quadrics[256];
+#endif
 
 	TQuadricAttrOptimizer< NumAttributes > optimizer;
 	FVector newPos;
@@ -1328,6 +1343,8 @@ float TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxErrorLimit, int 
 			edgeList[ numEdges++ ] = edge;
 			edge = edge->next;
 		} while( edge != top );
+
+		check(top);
 
 		// skip locked edges
 		bool locked = false;

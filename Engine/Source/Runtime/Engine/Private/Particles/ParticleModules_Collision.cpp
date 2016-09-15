@@ -644,8 +644,10 @@ void UParticleModuleCollisionGPU::CompileModule(struct FParticleEmitterBuildInfo
 #if WITH_EDITOR
 bool UParticleModuleCollisionGPU::IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString)
 {
+	check(LODLevel);
+
 	UMaterialInterface* Material = NULL;
-	if (LODLevel && LODLevel->RequiredModule)
+	if (LODLevel->RequiredModule)
 	{
 		Material = LODLevel->RequiredModule->Material;
 	}

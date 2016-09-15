@@ -99,7 +99,8 @@ UEdGraphNode* FEdGraphSchemaAction_K2NewNode::PerformAction(class UEdGraph* Pare
 
 		// See if we need to recompile skeleton after adding this node, or just mark dirty
 		UK2Node* K2Node = Cast<UK2Node>(ResultNode);
-		if(K2Node != NULL && K2Node->NodeCausesStructuralBlueprintChange())
+		check(K2Node);
+		if(K2Node->NodeCausesStructuralBlueprintChange())
 		{
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 		}

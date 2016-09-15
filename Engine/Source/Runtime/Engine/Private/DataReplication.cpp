@@ -28,7 +28,6 @@ public:
 		{
 			UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
 			check(CppStructOps); // else should not have STRUCT_NetSerializeNative
-			check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_NetSerializeNative
 			bool bSuccess = true;
 			if (!CppStructOps->NetSerialize(Ar, Map, bSuccess, Data))
 			{
@@ -100,7 +99,6 @@ bool FObjectReplicator::SerializeCustomDeltaProperty( UNetConnection * Connectio
 	UScriptStruct::ICppStructOps * CppStructOps = StructProperty->Struct->GetCppStructOps();
 
 	check(CppStructOps); // else should not have STRUCT_NetSerializeNative
-	check(!StructProperty->Struct->InheritedCppStructOps()); // else should not have STRUCT_NetSerializeNative
 
 	Parms.Struct = StructProperty->Struct;
 
@@ -603,7 +601,6 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 			UScriptStruct::ICppStructOps * CppStructOps = InnerStruct->GetCppStructOps();
 
 			check( CppStructOps );
-			check( !InnerStruct->InheritedCppStructOps() );
 
 			FNetDeltaSerializeInfo Parms;
 
@@ -1424,7 +1421,6 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 		UScriptStruct::ICppStructOps* CppStructOps = InnerStruct->GetCppStructOps();
 
 		check( CppStructOps );
-		check( !InnerStruct->InheritedCppStructOps() );
 
 		FNetDeltaSerializeInfo Parms;
 

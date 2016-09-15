@@ -69,7 +69,7 @@ FIcmpEchoResult IcmpEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetA
 	}
 	Result.ResolvedAddress = ResolvedAddress;
 
-	static const SIZE_T ReplyBufferSize = (sizeof(ICMP_ECHO_REPLY) + IcmpWindows::IcmpPayloadSize);
+	static const SIZE_T ReplyBufferSize = (sizeof(ICMP_ECHO_REPLY) + IcmpWindows::IcmpPayloadSize + 8);
 	uint8 ReplyBuffer[ReplyBufferSize];
 
 	uint32 Ip = inet_addr(TCHAR_TO_UTF8(*ResolvedAddress));

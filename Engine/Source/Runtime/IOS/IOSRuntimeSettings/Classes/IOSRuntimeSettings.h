@@ -296,14 +296,14 @@ public:
 	// Specifies the version for the application.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = BundleInformation)
 	FString VersionInfo;
-    
-    /** Set the maximum frame rate to save on power consumption */
+
+	/** Set the maximum frame rate to save on power consumption */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = PowerUsage, meta = (ConfigHierarchyEditable))
-    TEnumAsByte<EPowerUsageFrameRateLock> FrameRateLock;
+	EPowerUsageFrameRateLock FrameRateLock;
 
 	// Minimum iOS version this game supports
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = OSInfo)
-	TEnumAsByte<EIOSVersion> MinimumiOSVersion;
+	EIOSVersion MinimumiOSVersion;
 
 	// Whether or not to add support for iPad devices
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceUsage)

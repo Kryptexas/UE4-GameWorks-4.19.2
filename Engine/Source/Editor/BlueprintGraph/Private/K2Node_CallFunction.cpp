@@ -1011,15 +1011,17 @@ void UK2Node_CallFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
 	Super::NotifyPinConnectionListChanged(Pin);
 
-	if (Pin)
+	if (!ensure(Pin))
 	{
-		FCustomStructureParamHelper::UpdateCustomStructurePins(GetTargetFunction(), this, Pin);
+		return;
+	}
 
-		// Refresh the node to hide internal-only pins once the [invalid] connection has been broken
-		if (Pin->bHidden && Pin->bNotConnectable && Pin->LinkedTo.Num() == 0)
-		{
-			GetGraph()->NotifyGraphChanged();
-		}
+	FCustomStructureParamHelper::UpdateCustomStructurePins(GetTargetFunction(), this, Pin);
+
+	// Refresh the node to hide internal-only pins once the [invalid] connection has been broken
+	if (Pin->bHidden && Pin->bNotConnectable && Pin->LinkedTo.Num() == 0)
+	{
+		GetGraph()->NotifyGraphChanged();
 	}
 
 	if (bIsBeadFunction)
@@ -2409,6 +2411,7 @@ UEdGraph* UK2Node_CallFunction::GetFunctionGraph(const UEdGraphNode*& OutGraphNo
 				FName FunctionName = FunctionReference.GetMemberName();
 				for (UEdGraph* Graph : Blueprint->FunctionGraphs) 
 				{
+					CA_SUPPRESS(28182); // warning C28182: Dereferencing NULL pointer. 'Graph' contains the same NULL value as 'TargetGraph' did.
 					if (Graph->GetFName() == FunctionName)
 					{
 						TargetGraph = Graph;

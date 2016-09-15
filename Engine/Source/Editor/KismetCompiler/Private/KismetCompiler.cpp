@@ -2424,6 +2424,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 					VariableSetNode->VariableReference.SetSelfMember(NAME_None);
 					AssignmentNode = VariableSetNode;
 				}
+				check(AssignmentNode);
 				AssignmentNode->AllocateDefaultPins();
 			}
 
@@ -3999,7 +4000,7 @@ void FKismetCompilerContext::SetCanEverTick() const
 					// Nothing allowing us to tick
 					const FString ReceiveTickEventWarning = FString::Printf(
 						*LOCTEXT("ReceiveTick_CanNeverTick", "@@ is not allowed for Blueprints based on the C++ parent class %s, so it will never Tick!").ToString(),
-						*FirstNativeClass->GetPathName());
+						FirstNativeClass ? *FirstNativeClass->GetPathName() : TEXT("<null>"));
 					MessageLog.Warning(*ReceiveTickEventWarning, FindLocalEntryPoint(ReceiveTickEvent));
 
 					const FString ReceiveTickEventRemedies = FString::Printf(

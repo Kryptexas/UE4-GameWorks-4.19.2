@@ -27,6 +27,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 					// Clean up the directory watcher and crash processor threads
 					foreach (var Processor in Processors)
 					{
+						// Non-blocking cancel request
+						Processor.RequestStop();
+					}
+					foreach (var Processor in Processors)
+					{
+						// Blocking stop and dispose
 						Processor.Dispose();
 					}
 					Processors.Clear();

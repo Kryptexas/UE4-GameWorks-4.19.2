@@ -359,7 +359,7 @@ typedef uint64 EClassCastFlags;
 #define CPF_ReturnParm						DECLARE_UINT64(0x0000000000000400)		// Return value.
 #define CPF_DisableEditOnTemplate			DECLARE_UINT64(0x0000000000000800)		// Disable editing of this property on an archetype/sub-blueprint
 //#define CPF_      						DECLARE_UINT64(0x0000000000001000)		// 
-#define CPF_Transient   					DECLARE_UINT64(0x0000000000002000)		// Property is transient: shouldn't be saved, zero-filled at load time.
+#define CPF_Transient   					DECLARE_UINT64(0x0000000000002000)		// Property is transient: shouldn't be saved or loaded, except for Blueprint CDOs.
 #define CPF_Config      					DECLARE_UINT64(0x0000000000004000)		// Property should be loaded/saved as permanent profile.
 //#define CPF_								DECLARE_UINT64(0x0000000000008000)		// 
 #define CPF_DisableEditOnInstance			DECLARE_UINT64(0x0000000000010000)		// Disable editing on an instance of this class

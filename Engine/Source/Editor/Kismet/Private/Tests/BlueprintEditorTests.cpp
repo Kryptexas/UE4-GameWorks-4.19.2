@@ -226,6 +226,8 @@ namespace BlueprintEditorPromotionUtils
 			}
 		}
 
+		check(OldParent);
+
 		//Remove the new root from its old parent and 
 		OldParent->ChildNodes.Remove(NewRoot);
 		NewRoot->Modify();
@@ -689,6 +691,8 @@ namespace BlueprintEditorPromotionTestHelper
 		FBlueprintEditorPromotionTestHelper(FAutomationTestExecutionInfo* InExecutionInfo) :
 			CurrentStage(0)
 		{
+			check(InExecutionInfo);
+
 			FMemory::Memzero(this, sizeof(FBlueprintEditorPromotionTestHelper));
 
 			TestExecutionInfo = InExecutionInfo;
@@ -743,7 +747,7 @@ namespace BlueprintEditorPromotionTestHelper
 		*/
 		void TagPreviousLogs(const FString& NewLogTag)
 		{
-			if (TestExecutionInfo && NewLogTag.Len() > 0)
+			if (NewLogTag.Len() > 0)
 			{
 				for (int32 ErrorIndex = LastErrorCount; ErrorIndex < TestExecutionInfo->Errors.Num(); ++ErrorIndex)
 				{

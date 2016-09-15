@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SimplygonSwarmPrivatePCH.h"
-#include <algorithm>
+THIRD_PARTY_INCLUDES_START
+	#include <algorithm>
+THIRD_PARTY_INCLUDES_END
 #define LOCTEXT_NAMESPACE "SimplygonSwarm"
 
 #include "MeshMergeData.h"

@@ -2354,6 +2354,8 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 				FIOSystem::Get().HintDoneWithFile(Linker->Filename);
 			}
 		}
+
+		FStringAssetReference::InvalidateTag();
 	}
 
 	return Result;

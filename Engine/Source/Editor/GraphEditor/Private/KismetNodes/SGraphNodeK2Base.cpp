@@ -384,9 +384,9 @@ void SGraphNodeK2Base::GetOverlayBrushes(bool bSelected, const FVector2D WidgetS
 				const float Padding = 2.5f;
 				IPOverlayInfo.OverlayOffset.X = WidgetSize.X - IPOverlayInfo.Brush->ImageSize.X - Padding;
 				IPOverlayInfo.OverlayOffset.Y = Padding;
+				Offset = IPOverlayInfo.Brush->ImageSize.X;
 			}
 			Brushes.Add(IPOverlayInfo);
-			Offset = IPOverlayInfo.Brush->ImageSize.X;
 		}
 		if (Timeline && Timeline->bLoop)
 		{

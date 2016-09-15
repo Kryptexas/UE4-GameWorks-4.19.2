@@ -2252,7 +2252,7 @@ bool DeleteLayerIfAllZero(ULandscapeComponent* const Component, const uint8* con
 			const int32 TexDataIndex = 4 * (TexX + TexY * TexSize);
 
 			// Stop the first time we see any non-zero data
-			const uint8& Weight = TexDataPtr[TexDataIndex];
+			uint8 Weight = TexDataPtr[TexDataIndex];
 			if (Weight != 0)
 			{
 				return false;

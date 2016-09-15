@@ -1187,9 +1187,9 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 		}
 	
 		// draw all triangles
-		for (int32 I=0; I<TriangleList.Num(); ++I)
+		for (FTriangle* Triangle : TriangleList)
 		{
-			FTriangle * Triangle = TriangleList[I];
+			check(Triangle);
 			bool bHighlighted = (HighlightTriangle == Triangle) ||  NewTriangles.Find(Triangle)!=INDEX_NONE;
 			// if currently highlighted, use highlight color
 			FColor ColorToDraw = (bHighlighted)?((bPreviewOn)? ImportantColor: HighlightColor): FColor(200,200,200);

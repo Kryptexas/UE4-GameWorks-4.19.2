@@ -603,7 +603,10 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 		}
 #endif
 
-		UE_LOG(LogAnimation, Display, TEXT("Started recording sequence %s"), *LevelSequence->GetPathName());
+		if (LevelSequence)
+		{
+			UE_LOG(LogAnimation, Display, TEXT("Started recording sequence %s"), *LevelSequence->GetPathName());
+		}
 
 		// If we created an audio recorder at the start of the count down, then start recording
 		// Create the audio recorder now before the count down finishes
@@ -853,6 +856,8 @@ float FSequenceRecorder::GetCurrentDelay() const
 
 bool FSequenceRecorder::IsActorValidForRecording(AActor* Actor)
 {
+	check(Actor);
+
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 
 	float Distance = Settings->NearbyActorRecordingProximity;

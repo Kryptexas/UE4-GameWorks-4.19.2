@@ -895,7 +895,7 @@ public:
 	* @param	Scale					Scale between 0.0 and 1.0 on the intensity of playback
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
-	void PlayHapticEffect(class UHapticFeedbackEffect_Base* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale = 1.f,  bool bLoop = false);
+	void PlayHapticEffect(class UHapticFeedbackEffect_Base* HapticEffect, EControllerHand Hand, float Scale = 1.f,  bool bLoop = false);
 
 	/**
 	* Stops a playing haptic feedback curve
@@ -903,7 +903,7 @@ public:
 	* @param	Hand					Which hand to stop the effect for
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
-	void StopHapticEffect(TEnumAsByte<EControllerHand> Hand);
+	void StopHapticEffect(EControllerHand Hand);
 
 	/**
 	* Sets the value of the haptics for the specified hand directly, using frequency and amplitude.  NOTE:  If a curve is already
@@ -914,7 +914,7 @@ public:
 	* @param	Hand					Which hand to play the effect on
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
-	void SetHapticsByValue(const float Frequency, const float Amplitude, TEnumAsByte<EControllerHand> Hand);
+	void SetHapticsByValue(const float Frequency, const float Amplitude, EControllerHand Hand);
 	
 	/**
 	* Sets the light color of the player's controller

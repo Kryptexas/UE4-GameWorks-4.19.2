@@ -52,7 +52,7 @@ class ENGINE_API UInputSettings
 	
 	/** The default mouse capture mode for the game viewport */
 	UPROPERTY(config, EditAnywhere, Category = "ViewportProperties")
-	TEnumAsByte<EMouseCaptureMode> DefaultViewportMouseCaptureMode;
+	EMouseCaptureMode DefaultViewportMouseCaptureMode;
 
 	/** The default mouse lock state when the viewport acquires capture */
 	UPROPERTY(config)

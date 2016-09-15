@@ -82,7 +82,7 @@ bool FTcpDeserializedMessage::Deserialize(const FArrayReaderPtr& Message)
 	{
 		MessageReader << Scope;
 
-		if (static_cast<uint8>(Scope.GetValue()) > static_cast<uint8>(EMessageScope::All))
+		if (Scope > EMessageScope::All)
 		{
 			return false;
 		}

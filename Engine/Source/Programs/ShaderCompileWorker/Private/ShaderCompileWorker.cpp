@@ -47,6 +47,10 @@ static void WriteXGESuccessFile(const TCHAR* WorkingDirectory)
 	delete IFileManager::Get().CreateFileWriter(*FString::Printf(TEXT("%s/Success"), WorkingDirectory), FILEWRITE_EvenIfReadOnly);
 }
 
+#if USING_CODE_ANALYSIS
+	FUNCTION_NO_RETURN_START static inline void ExitWithoutCrash(ESCWErrorCode ErrorCode, const FString& Message) FUNCTION_NO_RETURN_END;
+#endif
+
 static inline void ExitWithoutCrash(ESCWErrorCode ErrorCode, const FString& Message)
 {
 	GFailedErrorCode = ErrorCode;

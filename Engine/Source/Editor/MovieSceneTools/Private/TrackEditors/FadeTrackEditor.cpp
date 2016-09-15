@@ -175,10 +175,10 @@ void FFadeTrackEditor::HandleAddFadeTrackMenuEntryExecute()
 	MovieScene->Modify();
 
 	FadeTrack = FindOrCreateMasterTrack<UMovieSceneFadeTrack>().Track;
-	ensure(FadeTrack);
+	check(FadeTrack);
 
 	UMovieSceneSection* NewSection = FadeTrack->CreateNewSection();
-	ensure(NewSection);
+	check(NewSection);
 
 	FadeTrack->AddSection(*NewSection);
 

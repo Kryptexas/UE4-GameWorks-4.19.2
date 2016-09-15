@@ -499,7 +499,7 @@ bool FLinuxPlatformProcess::WritePipe(void* WritePipe, const FString& Message, F
 	Buffer[BytesAvailable] = '\n';
 
 	// write to pipe
-	uint32 BytesWritten = write(*(int*)WritePipe, Buffer, BytesAvailable);
+	uint32 BytesWritten = write(*(int*)WritePipe, Buffer, BytesAvailable + 1);
 
 	// Get written message
 	if (OutWritten)

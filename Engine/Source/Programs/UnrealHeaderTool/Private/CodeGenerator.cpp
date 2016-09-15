@@ -3937,18 +3937,26 @@ FString FNativeClassHeaderGenerator::GetNullParameterValue( UProperty* Prop, boo
 {
 	UClass* PropClass = Prop->GetClass();
 	UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Prop);
-	if (PropClass == UByteProperty::StaticClass()
-	||	PropClass == UIntProperty::StaticClass()
-	||	PropClass == UBoolProperty::StaticClass()
+	if (PropClass == UByteProperty::StaticClass())
+	{
+		UByteProperty* ByteProp = (UByteProperty*)Prop;
+
+		// if it's an enum class then we need an explicit cast
+		if( ByteProp->Enum && ByteProp->Enum->GetCppForm() == UEnum::ECppForm::EnumClass )
+		{
+			return FString::Printf(TEXT("(%s)0"), *ByteProp->GetCPPType());
+		}
+
+		return TEXT("0");
+	}
+	else if ( PropClass == UBoolProperty::StaticClass() )
+	{
+		return TEXT("false");
+	}
+	else if ( PropClass == UIntProperty::StaticClass()
 	||	PropClass == UFloatProperty::StaticClass()
 	||	PropClass == UDoubleProperty::StaticClass())
 	{
-		// if we have a BoolProperty then set it to be false instead of 0
- 		if( PropClass == UBoolProperty::StaticClass() )
- 		{
- 			return TEXT("false");
- 		}
-
 		return TEXT("0");
 	}
 	else if ( PropClass == UNameProperty::StaticClass() )
@@ -4327,6 +4335,18 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 		else
 		{
 			EvalBaseText += Param->GetCPPMacroType(TypeText);
+
+			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Param);
+			if (ArrayProperty)
+			{
+				UInterfaceProperty* InterfaceProperty = Cast<UInterfaceProperty>(ArrayProperty->Inner);
+				if (InterfaceProperty)
+				{
+					FString InterfaceTypeText;
+					InterfaceProperty->GetCPPMacroType(InterfaceTypeText);
+					TypeText += FString::Printf(TEXT("<%s>"), *InterfaceTypeText);
+				}
+			}
 		}
 
 		if (Param->HasAllPropertyFlags(CPF_UObjectWrapper | CPF_OutParm) 

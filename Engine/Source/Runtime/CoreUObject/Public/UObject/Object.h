@@ -338,10 +338,7 @@ public:
 	 *
 	 * @return	true if this object should not be loaded on clients
 	 */
-	virtual bool NeedsLoadForClient() const 
-	{ 
-		return true; 
-	}
+	virtual bool NeedsLoadForClient() const;
 
 	/**
 	 * Called during saving to determine the load flags to save with the object.
@@ -371,6 +368,15 @@ public:
 		return false;
 	}
 
+	/**
+	*	Update the list of classes that we should exclude from dedicated server builds
+	*/
+	static void UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames);
+
+	/**
+	*	Update the list of classes that we should exclude from dedicated client builds
+	*/
+	static void UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames);
 
 	/** 
 	 *	Determines if you can create an object from the supplied template in the current context (editor, client only, dedicated server, game/listen) 

@@ -147,7 +147,8 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 void UFunctionalTestingManager::TriggerFirstValidTest()
 {
 	UWorld* World = GetWorld();
-	bIsRunning = World != nullptr && World->GetNavigationSystem() != nullptr;
+	check(World);
+	bIsRunning = World->GetNavigationSystem() != nullptr;
 
 	if (bInitialDelayApplied == true && (bWaitForNavigationBuildFinish == false || UNavigationSystem::IsNavigationBeingBuilt(World) == false) && World->AreActorsInitialized())
 	{

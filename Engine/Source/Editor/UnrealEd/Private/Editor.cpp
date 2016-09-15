@@ -1058,16 +1058,15 @@ namespace EditorUtilities
 
 
 		int32 TargetComponentIndex = 0;
-		for( auto SourceComponentIter( SourceComponents.CreateConstIterator() ); SourceComponentIter; ++SourceComponentIter )
+		for( UActorComponent* SourceComponent : SourceComponents )
 		{
-			UActorComponent* SourceComponent = *SourceComponentIter;
 			if (SourceComponent->CreationMethod == EComponentCreationMethod::UserConstructionScript)
 			{
 				continue;
 			}
 			UActorComponent* TargetComponent = FindMatchingComponentInstance( SourceComponent, TargetActor, TargetComponents, TargetComponentIndex );
 
-			if( SourceComponent != nullptr && TargetComponent != nullptr )
+			if( TargetComponent != nullptr )
 			{
 				UClass* ComponentClass = SourceComponent->GetClass();
 				check( ComponentClass == TargetComponent->GetClass() );

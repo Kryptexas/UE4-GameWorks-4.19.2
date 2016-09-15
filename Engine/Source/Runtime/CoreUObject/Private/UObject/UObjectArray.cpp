@@ -17,7 +17,7 @@ FUObjectArray::FUObjectArray()
 , OpenForDisregardForGC(!HACK_HEADER_GENERATOR)
 , MasterSerialNumber(START_SERIAL_NUMBER)
 {
-	FCoreDelegates::GetObjectArrayForDebugVisualizersDelegate().BindStatic(GetObjectArrayForDebugVisualizers);
+	GCoreObjectArrayForDebugVisualizers = &GUObjectArray.ObjObjects;
 }
 
 void FUObjectArray::AllocateObjectPool(int32 InMaxUObjects, int32 InMaxObjectsNotConsideredByGC)
@@ -314,9 +314,4 @@ int32 FUObjectArray::AllocateSerialNumber(int32 Index)
  */
 void FUObjectArray::ShutdownUObjectArray()
 {
-}
-
-FFixedUObjectArray* FUObjectArray::GetObjectArrayForDebugVisualizers()
-{
-	return &GUObjectArray.ObjObjects;
 }

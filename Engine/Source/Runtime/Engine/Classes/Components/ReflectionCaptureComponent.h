@@ -75,7 +75,7 @@ private:
 };
 
 UENUM()
-enum class EReflectionSourceType
+enum class EReflectionSourceType : uint8
 {
 	/** Construct the reflection source from the captured scene*/
 	CapturedScene,
@@ -94,7 +94,7 @@ class UReflectionCaptureComponent : public USceneComponent
 
 	/** Indicates where to get the reflection source from. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ReflectionCapture)
-	TEnumAsByte<EReflectionSourceType> ReflectionSourceType;
+	EReflectionSourceType ReflectionSourceType;
 
 	/** Cubemap to use for reflection if ReflectionSourceType is set to RS_SpecifiedCubemap. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ReflectionCapture)

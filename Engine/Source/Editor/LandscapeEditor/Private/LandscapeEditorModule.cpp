@@ -212,8 +212,8 @@ public:
 	virtual const TCHAR* GetHeightmapExportDialogTypeString() const override;
 	virtual const TCHAR* GetWeightmapExportDialogTypeString() const override;
 
-	virtual const ILandscapeHeightmapFileFormat* GetHeightmapFormatByExtension(const TCHAR* Extension) override;
-	virtual const ILandscapeWeightmapFileFormat* GetWeightmapFormatByExtension(const TCHAR* Extension) override;
+	virtual const ILandscapeHeightmapFileFormat* GetHeightmapFormatByExtension(const TCHAR* Extension) const override;
+	virtual const ILandscapeWeightmapFileFormat* GetWeightmapFormatByExtension(const TCHAR* Extension) const override;
 
 protected:
 	TSharedPtr<FExtender> ViewportMenuExtender;
@@ -364,7 +364,7 @@ const TCHAR* FLandscapeEditorModule::GetWeightmapExportDialogTypeString() const
 	return *WeightmapExportDialogTypeString;
 }
 
-const ILandscapeHeightmapFileFormat* FLandscapeEditorModule::GetHeightmapFormatByExtension(const TCHAR* Extension)
+const ILandscapeHeightmapFileFormat* FLandscapeEditorModule::GetHeightmapFormatByExtension(const TCHAR* Extension) const
 {
 	auto* FoundFormat = HeightmapFormats.FindByPredicate(
 		[Extension](const FRegisteredLandscapeHeightmapFileFormat& HeightmapFormat)
@@ -375,7 +375,7 @@ const ILandscapeHeightmapFileFormat* FLandscapeEditorModule::GetHeightmapFormatB
 	return FoundFormat ? &FoundFormat->FileFormat.Get() : nullptr;
 }
 
-const ILandscapeWeightmapFileFormat* FLandscapeEditorModule::GetWeightmapFormatByExtension(const TCHAR* Extension)
+const ILandscapeWeightmapFileFormat* FLandscapeEditorModule::GetWeightmapFormatByExtension(const TCHAR* Extension) const
 {
 	auto* FoundFormat = WeightmapFormats.FindByPredicate(
 		[Extension](const FRegisteredLandscapeWeightmapFileFormat& WeightmapFormat)

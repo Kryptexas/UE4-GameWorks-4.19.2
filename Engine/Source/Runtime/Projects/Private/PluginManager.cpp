@@ -33,7 +33,7 @@ namespace PluginSystemDefs
 		{
 			FString PluginPath;
 
-			SearchStr = FCString::Strfind(SearchStr, SwitchStr);
+			SearchStr = FCString::Strifind(SearchStr, SwitchStr);
 			if (FParse::Value(SearchStr, SwitchStr, PluginPath))
 			{
 				FString PluginDir = FPaths::GetPath(PluginPath);

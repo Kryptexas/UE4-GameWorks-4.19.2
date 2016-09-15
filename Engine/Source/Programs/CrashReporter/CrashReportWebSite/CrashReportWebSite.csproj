@@ -355,6 +355,7 @@
     <Content Include="Scripts\modernizr-1.7.js" />
     <Content Include="Scripts\modernizr-1.7.min.js" />
     <Content Include="Scripts\searchCollapse.js" />
+    <Content Include="Scripts\UserFilterScript.js" />
     <Content Include="Views\Buggs\Index.aspx" />
     <Content Include="Views\Buggs\Show.aspx" />
     <Content Include="Views\Buggs\ViewBuggs.ascx" />

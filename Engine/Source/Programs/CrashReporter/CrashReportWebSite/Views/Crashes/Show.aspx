@@ -179,7 +179,7 @@
 
 			<dt>User</dt>
 				<dd>
-					<%=Html.DisplayFor(m => Model.Crash.UserName) %>
+					<%=Html.DisplayFor(m => Model.Crash.User.UserName) %>
 				</dd>
 
 			<dt>User Group</dt>

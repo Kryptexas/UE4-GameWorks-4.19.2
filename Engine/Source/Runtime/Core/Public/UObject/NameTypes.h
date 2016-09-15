@@ -980,8 +980,6 @@ public:
 	 */
 	static bool SplitNameWithCheck(const WIDECHAR* OldName, WIDECHAR* NewName, int32 NewNameLen, int32& NewNumber);
 
-	/** Singleton to retrieve a table of all names (single threaded) for debug visualizers. */
-	static TArray<FNameEntry const*>* GetNameTableForDebuggerVisualizers_ST();
 	/** Singleton to retrieve a table of all names (multithreaded) for debug visualizers. */
 	static FNameEntry*** GetNameTableForDebuggerVisualizers_MT();
 	/** Run autotest on FNames. */

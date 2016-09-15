@@ -57,8 +57,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 #define LOCTEXT_NAMESPACE "UnrealEdSrv"
 
 //@hack: this needs to be cleaned up!
-static TCHAR TempStr[MAX_EDCMD], TempName[MAX_EDCMD], Temp[MAX_EDCMD];
-static uint16 Word1, Word4;
+static TCHAR TempStr[MAX_EDCMD];
+static uint16 Word1;
 
 
 /**

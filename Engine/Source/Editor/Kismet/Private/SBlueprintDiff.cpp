@@ -412,6 +412,7 @@ FListItemGraphToDiff::~FListItemGraphToDiff()
 TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget() 
 {
 	auto Graph = GraphOld ? GraphOld : GraphNew;
+	check(Graph);
 	
 	FLinearColor Color = (GraphOld && GraphNew) ? FLinearColor::White : FLinearColor(0.3f,0.3f,1.f);
 
@@ -514,6 +515,7 @@ FText FListItemGraphToDiff::GetToolTip()
 	else
 	{
 		auto GoodGraph = GraphOld ? GraphOld : GraphNew;
+		check(GoodGraph);
 		const FRevisionInfo& Revision = GraphNew ? RevisionOld : RevisionNew;
 		FText RevisionText = LOCTEXT("CurrentRevision", "Current Revision");
 

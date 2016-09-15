@@ -466,22 +466,25 @@ UObject* FAssetTools::DuplicateAsset(const FString& AssetName, const FString& Pa
 
 	TSet<UPackage*> ObjectsUserRefusedToFullyLoad;
 	UObject* NewObject = ObjectTools::DuplicateSingleObject(OriginalObject, PGN, ObjectsUserRefusedToFullyLoad);
-	if(NewObject != nullptr && ISourceControlModule::Get().IsEnabled())
+	if(NewObject != nullptr)
 	{
-		// Save package here if SCC is enabled because the user can use SCC to revert a change
-		TArray<UPackage*> OutermostPackagesToSave;
-		OutermostPackagesToSave.Add(NewObject->GetOutermost());
+		if ( ISourceControlModule::Get().IsEnabled() )
+		{
+			// Save package here if SCC is enabled because the user can use SCC to revert a change
+			TArray<UPackage*> OutermostPackagesToSave;
+			OutermostPackagesToSave.Add(NewObject->GetOutermost());
 
-		const bool bCheckDirty = false;
-		const bool bPromptToSave = false;
-		FEditorFileUtils::PromptForCheckoutAndSave(OutermostPackagesToSave, bCheckDirty, bPromptToSave);
+			const bool bCheckDirty = false;
+			const bool bPromptToSave = false;
+			FEditorFileUtils::PromptForCheckoutAndSave(OutermostPackagesToSave, bCheckDirty, bPromptToSave);
 
-		// now attempt to branch, we can do this now as we should have a file on disk
-		SourceControlHelpers::BranchPackage(NewObject->GetOutermost(), OriginalObject->GetOutermost());
+			// now attempt to branch, we can do this now as we should have a file on disk
+			SourceControlHelpers::BranchPackage(NewObject->GetOutermost(), OriginalObject->GetOutermost());
+		}
+
+		// analytics create record
+		FAssetTools::OnNewCreateRecord(NewObject->GetClass(), true);
 	}
-
-	// analytics create record
-	FAssetTools::OnNewCreateRecord(NewObject->GetClass(), true);
 
 	return NewObject;
 }

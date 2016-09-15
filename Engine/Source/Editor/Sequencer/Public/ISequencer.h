@@ -23,7 +23,7 @@ enum class EMapChangeType : uint8;
  * Defines auto-key modes.
  */
 UENUM()
-enum class EAutoKeyMode
+enum class EAutoKeyMode : uint8
 {
 	/** Key all properties that change. */
 	KeyAll,

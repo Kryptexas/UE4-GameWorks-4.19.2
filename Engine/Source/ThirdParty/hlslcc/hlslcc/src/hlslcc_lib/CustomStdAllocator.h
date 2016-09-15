@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include <string>
+THIRD_PARTY_INCLUDES_START
+	#include <string>
+THIRD_PARTY_INCLUDES_END
 
 // on Linux, use a custom allocator to work around mismatch between STL classes in a precompiled hlslcc and the engine
 #ifdef __gnu_linux__

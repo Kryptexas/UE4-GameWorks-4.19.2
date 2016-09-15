@@ -44,7 +44,8 @@ VkImage FVulkanSurface::CreateImage(
 	checkf(GPixelFormats[InFormat].Supported, TEXT("Format %d"), InFormat);
 
 	VkImageCreateInfo TmpCreateInfo;
-	VkImageCreateInfo& ImageCreateInfo = OutInfo ? *OutInfo : TmpCreateInfo;
+	VkImageCreateInfo* ImageCreateInfoPtr = OutInfo ? OutInfo : &TmpCreateInfo;
+	VkImageCreateInfo& ImageCreateInfo = *ImageCreateInfoPtr;
 	FMemory::Memzero(ImageCreateInfo);
 	ImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 
@@ -232,8 +233,8 @@ VkImage FVulkanSurface::CreateImage(
 
 	// Fetch image size
 	VkMemoryRequirements tmpMemReq;
-	VkMemoryRequirements& MemReq = OutMemoryRequirements ? *OutMemoryRequirements : tmpMemReq;
-	VulkanRHI::vkGetImageMemoryRequirements(InDevice.GetInstanceHandle(), Image, &MemReq);
+	VkMemoryRequirements* MemReq = OutMemoryRequirements ? OutMemoryRequirements : &tmpMemReq;
+	VulkanRHI::vkGetImageMemoryRequirements(InDevice.GetInstanceHandle(), Image, MemReq);
 
 	return Image;
 }

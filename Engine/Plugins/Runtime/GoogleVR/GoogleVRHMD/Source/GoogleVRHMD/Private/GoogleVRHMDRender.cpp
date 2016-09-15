@@ -35,6 +35,8 @@ void FGoogleVRHMD::GenerateDistortionCorrectionIndexBuffer()
 	delete [] DistortionMeshIndices;
 	DistortionMeshIndices = nullptr;
 
+	check(NumIndices == (DistortionPointsY - 1) * (DistortionPointsX - 1) * 6);
+
 	// Allocate new indices
 	DistortionMeshIndices = new uint16[NumIndices];
 
@@ -59,8 +61,6 @@ void FGoogleVRHMD::GenerateDistortionCorrectionIndexBuffer()
 			InsertIndex += 6;
 		}
 	}
-
-	check(InsertIndex == NumIndices);
 }
 
 void FGoogleVRHMD::GenerateDistortionCorrectionVertexBuffer(EStereoscopicPass Eye)

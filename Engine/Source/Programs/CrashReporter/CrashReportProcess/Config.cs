@@ -89,10 +89,28 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public string InvalidReportsDirectory { get; set; }
 
 		/// <summary>
+		/// Number of reports in a queue at which reports will start to be discarded to stop a backlog from growing uncontrollably.
+		/// </summary>
+		[XmlElement]
+		public int QueueLowerLimitForDiscard { get; set; }
+
+		/// <summary>
+		/// Number of reports in a queue at which reports will all be discarded so this is the upper limit for a backlog.
+		/// </summary>
+		[XmlElement]
+		public int QueueUpperLimitForDiscard { get; set; }
+
+		/// <summary>
 		/// String passed to Minidump Diagnostics to modify its Perforce depot root.
 		/// </summary>
 		[XmlElement]
 		public string DepotIndex { get; set; }
+
+		/// <summary>
+		/// Whether MDD is synched from source control to get the latest files when the CRP starts. Switch off to manually deploy MDD.
+		/// </summary>
+		[XmlElement]
+		public bool bSyncMinidumpDiagnostics { get; set; }
 
 		/// <summary>
 		/// String specifying the binaries that will be synched from source control to get the latest MinidumpDiagnostics.
@@ -119,6 +137,36 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public string MDDBinariesFolderInDepot { get; set; }
 
 		/// <summary>
+		/// String specifying the path to the folder used by MinidumpDiagnostics for the PDB cache
+		/// </summary>
+		[XmlElement]
+		public string MDDPDBCachePath { get; set; }
+
+		/// <summary>
+		/// Number telling MinidumpDiagnostics how large it can make the PDB cache
+		/// </summary>
+		[XmlElement]
+		public int MDDPDBCacheSizeGB { get; set; }
+
+		/// <summary>
+		/// Number telling MinidumpDiagnostics when it should start clearing cache entries to create more disk space
+		/// </summary>
+		[XmlElement]
+		public int MDDPDBCacheMinFreeSpaceGB { get; set; }
+
+		/// <summary>
+		/// Number telling MinidumpDiagnostics the minimum age if a cache entry that should be considered for deletion/stale
+		/// </summary>
+		[XmlElement]
+		public int MDDPDBCacheFileDeleteDays { get; set; }
+
+		/// <summary>
+		/// Timeout when waiting for MinidumpDiagnostics to complete
+		/// </summary>
+		[XmlElement]
+		public int MDDTimeoutMinutes { get; set; }
+
+		/// <summary>
 		/// The number of threads created by each main processor thread to upload crashes to the website. (relieves a bottleneck when using a single processor thread)
 		/// </summary>
 		[XmlElement]
@@ -129,6 +177,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		[XmlElement]
 		public int ProcessorThreadCount { get; set; }
+
+		/// <summary>
+		/// The number of parallel MDD instances allowed
+		/// </summary>
+		[XmlElement]
+		public int MaxConcurrentMDDs { get; set; }
 
 		/// <summary>
 		/// Incoming webhook URL for Slack integration.
@@ -153,6 +207,18 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		[XmlElement]
 		public string SlackEmoji { get; set; }
+
+		/// <summary>
+		/// The time period in which an alert with the same identifying key is not allowed to repeat.
+		/// </summary>
+		[XmlElement]
+		public int SlackAlertRepeatMinimumMinutes { get; set; }
+
+		/// <summary>
+		/// The time period in which a crash decimation (large backlog) alert with the same identifying key is not allowed to repeat.
+		/// </summary>
+		[XmlElement]
+		public int SlackDecimateAlertRepeatMinimumMinutes { get; set; }
 
 		/// <summary>
 		/// Local folder used to setup testing folders in Debug builds. Overrides other folder params in config.
@@ -246,6 +312,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public int AddCrashRetryDelayMillisec { get; set; }
 
 		/// <summary>
+		/// Disk space available threshold that generates alerts. If a disk has less space than this, it will generate alerts.
+		/// </summary>
+		[XmlElement]
+		public float DiskSpaceAlertPercent { get; set; }
+
+		/// <summary>
 		/// Get the default config object (lazy loads it on first access)
 		/// </summary>
 		public static Config Default
@@ -304,6 +376,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 #if SLACKTESTING
 			LoadedConfig.SlackUsername = "CrashReportProcess_TESTING_IgnoreMe";
+			//LoadedConfig.SlackChannel = "OPTIONALTESTINGCHANNELHERE";
 #else
 			LoadedConfig.SlackWebhookUrl = string.Empty;	// no Slack in dbeug
 #endif

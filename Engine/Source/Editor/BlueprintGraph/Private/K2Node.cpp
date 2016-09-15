@@ -771,7 +771,10 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 			{
 				if (Pin->SubPins.Num() == SubPinIndex)
 				{
-					CompilerContext->MessageLog.Error(*LOCTEXT("PinExpansionError", "Failed to expand pin @@, likely due to bad logic in node @@").ToString(), Pin, Pin->GetOwningNode());
+					if (CompilerContext)
+					{
+						CompilerContext->MessageLog.Error(*LOCTEXT("PinExpansionError", "Failed to expand pin @@, likely due to bad logic in node @@").ToString(), Pin, Pin->GetOwningNode());
+					}
 					break;
 				}
 

@@ -111,7 +111,7 @@ void UDeviceProfile::PostEditChangeProperty( FPropertyChangedEvent& PropertyChan
 				if( !ParentProfile->IsPendingKill() )
 				{
 					int32 ProfileGeneration = 1;
-					while( ParentProfile != NULL )
+					do
 					{
 						if( this->GetName() == ParentProfile->BaseProfileName )
 						{
@@ -122,7 +122,7 @@ void UDeviceProfile::PostEditChangeProperty( FPropertyChangedEvent& PropertyChan
 
 						ParentProfile = FindObject<UDeviceProfile>( GetTransientPackage(), *ParentProfile->BaseProfileName );
 						++ProfileGeneration;
-					}
+					} while ( ParentProfile );
 				}
 			}
 

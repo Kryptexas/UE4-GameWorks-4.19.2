@@ -187,6 +187,8 @@ void UK2Node_VariableSetRef::CoerceTypeFromPin(const UEdGraphPin* Pin)
 	UEdGraphPin* TargetPin = GetTargetPin();
 	UEdGraphPin* ValuePin = GetValuePin();
 
+	check(TargetPin && ValuePin);
+
 	if( Pin )
 	{
 		check((Pin != TargetPin) || (Pin->PinType.bIsReference && !Pin->PinType.bIsArray));

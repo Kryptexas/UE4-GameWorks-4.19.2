@@ -1477,40 +1477,38 @@ void FLightmassExporter::WriteMeshInstances( int32 Channel )
 		// Collect the material guids for each element
 		TArray<Lightmass::FMaterialElementData> MaterialElementData;
 		const UStaticMesh* StaticMesh = SMLightingMesh->StaticMesh;
+		check(StaticMesh);
 
-		if (StaticMesh)
+		const UStaticMeshComponent* Primitive = SMLightingMesh->Primitive;
+		if (Primitive)
 		{
-			const UStaticMeshComponent* Primitive = SMLightingMesh->Primitive;
-			if (Primitive)
-			{	
-				// get the meshindex from the component
-				MeshId = ComponentToIDMap.Find(Primitive);
+			// get the meshindex from the component
+			MeshId = ComponentToIDMap.Find(Primitive);
 
-				if (StaticMesh->RenderData && SMLightingMesh->LODIndex < StaticMesh->RenderData->LODResources.Num())
+			if (StaticMesh->RenderData && SMLightingMesh->LODIndex < StaticMesh->RenderData->LODResources.Num())
+			{
+				const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[SMLightingMesh->LODIndex];
+				for (int32 SectionIndex = 0; SectionIndex < LODRenderData.Sections.Num(); SectionIndex++)
 				{
-					const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[SMLightingMesh->LODIndex];
-					for (int32 SectionIndex = 0; SectionIndex < LODRenderData.Sections.Num(); SectionIndex++)
+					const FStaticMeshSection& Section = LODRenderData.Sections[ SectionIndex ];
+					UMaterialInterface* Material = Primitive->GetMaterial(Section.MaterialIndex);
+					if (Material == NULL)
 					{
-						const FStaticMeshSection& Section = LODRenderData.Sections[ SectionIndex ];
-						UMaterialInterface* Material = Primitive->GetMaterial(Section.MaterialIndex);
-						if (Material == NULL)
-						{
-							Material = UMaterial::GetDefaultMaterial(MD_Surface);
-						}
-						Lightmass::FMaterialElementData NewElementData;
-						GetMaterialHash(Material, NewElementData.MaterialHash);
-						NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
-						NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
-						NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;
-						NewElementData.bUseVertexNormalForHemisphereGather = Primitive->LightmassSettings.bUseVertexNormalForHemisphereGather;
-						// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
-						NewElementData.EmissiveLightFalloffExponent = Primitive->LightmassSettings.EmissiveLightFalloffExponent;
-						NewElementData.EmissiveLightExplicitInfluenceRadius = Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius;
-						NewElementData.EmissiveBoost = Primitive->GetEmissiveBoost(SectionIndex) * LevelSettings.EmissiveBoost;
-						NewElementData.DiffuseBoost = Primitive->GetDiffuseBoost(SectionIndex) * LevelSettings.DiffuseBoost;
-						NewElementData.FullyOccludedSamplesFraction = Primitive->LightmassSettings.FullyOccludedSamplesFraction;
-						MaterialElementData.Add(NewElementData);
+						Material = UMaterial::GetDefaultMaterial(MD_Surface);
 					}
+					Lightmass::FMaterialElementData NewElementData;
+					GetMaterialHash(Material, NewElementData.MaterialHash);
+					NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
+					NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
+					NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;
+					NewElementData.bUseVertexNormalForHemisphereGather = Primitive->LightmassSettings.bUseVertexNormalForHemisphereGather;
+					// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
+					NewElementData.EmissiveLightFalloffExponent = Primitive->LightmassSettings.EmissiveLightFalloffExponent;
+					NewElementData.EmissiveLightExplicitInfluenceRadius = Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius;
+					NewElementData.EmissiveBoost = Primitive->GetEmissiveBoost(SectionIndex) * LevelSettings.EmissiveBoost;
+					NewElementData.DiffuseBoost = Primitive->GetDiffuseBoost(SectionIndex) * LevelSettings.DiffuseBoost;
+					NewElementData.FullyOccludedSamplesFraction = Primitive->LightmassSettings.FullyOccludedSamplesFraction;
+					MaterialElementData.Add(NewElementData);
 				}
 			}
 		}

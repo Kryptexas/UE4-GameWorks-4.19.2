@@ -39,22 +39,38 @@ FString FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 
 	if (!Filename[0])
 	{
-		// The Editor requires a fully qualified directory to not end up putting the log in various directories.
-		FCString::Strcpy(Filename, *FPaths::GameLogDir());
+		FCString::Strcpy(Filename, ARRAY_COUNT(Filename), *FPaths::GameLogDir());
+		FString LogFilename;
+		if (!FParse::Value(FCommandLine::Get(), TEXT("LOG="), LogFilename))
+		{
+			if (FParse::Value(FCommandLine::Get(), TEXT("ABSLOG="), LogFilename))
+			{
+				Filename[0] = 0;
+			}
+		}
 
-		if(	!FParse::Value(FCommandLine::Get(), TEXT("LOG="), Filename+FCString::Strlen(Filename), ARRAY_COUNT(Filename)-FCString::Strlen(Filename) )
-			&&	!FParse::Value(FCommandLine::Get(), TEXT("ABSLOG="), Filename, ARRAY_COUNT(Filename) ) )
+		FString Extension(FPaths::GetExtension(LogFilename));
+		if (Extension != TEXT("log") && Extension != TEXT("txt"))
+		{
+			// Ignoring the specified log filename because it doesn't have a .log extension			
+			LogFilename.Empty();
+		}
+
+		if (LogFilename.Len() == 0)
 		{
 			if (FCString::Strlen(FApp::GetGameName()) != 0)
 			{
-				FCString::Strcat(Filename, FApp::GetGameName());
+				LogFilename = FApp::GetGameName();
 			}
 			else
 			{
-				FCString::Strcat( Filename, TEXT("UE4") );
+				LogFilename = TEXT("UE4");
 			}
-			FCString::Strcat( Filename, TEXT(".log") );
+
+			LogFilename += TEXT(".log");
 		}
+
+		FCString::Strcat(Filename, ARRAY_COUNT(Filename) - FCString::Strlen(Filename), *LogFilename);
 	}
 
 	return Filename;

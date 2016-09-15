@@ -1965,7 +1965,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		// Where generated assets will be stored
 		UPackage* AssetsOuter = SimplificationDetails.bCreatePackagePerAsset ? nullptr : LODPackage;
 		// In case we don't have outer generated assets should have same path as LOD level
-		const FString AssetsPath = AssetsOuter ? TEXT("") : FPackageName::GetLongPackagePath(LODLevelPackageName) + TEXT("/");
+		const FString AssetsPath = SimplificationDetails.bCreatePackagePerAsset ? FPackageName::GetLongPackagePath(LODLevelPackageName) + TEXT("/") : TEXT("");
 	
 		// Generate Proxy LOD mesh for all actors excluding landscapes
 		if (Actors.Num() && MeshMerging != nullptr)
@@ -2072,7 +2072,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			// Construct landscape static mesh
 			FString LandscapeMeshAssetName = TEXT("SM_") + LandscapeBaseAssetName;
 			UPackage* MeshOuter = AssetsOuter;
-			if (MeshOuter == nullptr)
+			if (SimplificationDetails.bCreatePackagePerAsset)
 			{
 				MeshOuter = CreatePackage(nullptr, *(AssetsPath + LandscapeMeshAssetName));
 				MeshOuter->FullyLoad();

@@ -10,6 +10,10 @@
 #pragma warning(push)
 #pragma warning(disable : 4263) // 'function' : member function does not override any base class virtual member function
 #pragma warning(disable : 4264) // 'virtual_function' : no override available for virtual member function from base 
+#if USING_CODE_ANALYSIS
+	#pragma warning(disable:6509) // Invalid annotation: 'return' cannot be referenced in some contexts
+	#pragma warning(disable:6101) // Returning uninitialized memory '*lpdwExitCode'.  A successful path through the function does not set the named _Out_ parameter.
+#endif
 #include "AllowWindowsPlatformTypes.h"
 #include <streams.h>
 #include "HideWindowsPlatformTypes.h"

@@ -588,18 +588,10 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 			UScriptStruct& ScriptStruct = dynamic_cast<UScriptStruct&>(*this);
 			ScriptStruct.PrepareCppStructOps();
 
-			if (auto* CppStructOps = ScriptStruct.GetCppStructOps())
+			if (UScriptStruct::ICppStructOps* CppStructOps = ScriptStruct.GetCppStructOps())
 			{
-				if (!ScriptStruct.InheritedCppStructOps())
-				{
-					MinAlignment = CppStructOps->GetAlignment();
-					PropertiesSize = CppStructOps->GetSize();
-				}
-				else
-				{
-					// derived class might have increased the alignment, we want the max
-					MinAlignment = FMath::Max(MinAlignment, CppStructOps->GetAlignment());
-				}
+				MinAlignment = CppStructOps->GetAlignment();
+				PropertiesSize = CppStructOps->GetSize();
 				bHandledWithCppStructOps = true;
 			}
 		}
@@ -1729,7 +1721,6 @@ UScriptStruct::UScriptStruct( EStaticConstructor, int32 InSize, EObjectFlags InF
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
 #endif
-	, bCppStructOpsFromBaseClass(false)
 	, bPrepareCppStructOpsCompleted(false)
 	, CppStructOps(NULL)
 {
@@ -1741,7 +1732,6 @@ UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer, UScrip
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
 #endif
-	, bCppStructOpsFromBaseClass(false)
 	, bPrepareCppStructOpsCompleted(false)
 	, CppStructOps(InCppStructOps)
 {
@@ -1754,7 +1744,6 @@ UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer)
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
 #endif
-	, bCppStructOpsFromBaseClass(false)
 	, bPrepareCppStructOpsCompleted(false)
 	, CppStructOps(NULL)
 {
@@ -1766,17 +1755,19 @@ UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer)
 **/
 void UScriptStruct::DeferCppStructOps(FName Target, ICppStructOps* InCppStructOps)
 {
-	if (GetDeferredCppStructOps().Contains(Target))
+	TMap<FName,UScriptStruct::ICppStructOps*>& DeferredStructOps = GetDeferredCppStructOps();
+
+	if (UScriptStruct::ICppStructOps* ExistingOps = DeferredStructOps.FindRef(Target))
 	{
 #if WITH_HOT_RELOAD
 		if (!GIsHotReload) // in hot reload, we will just leak these...they may be in use.
 #endif
 		{
-			check(GetDeferredCppStructOps().FindRef(Target) != InCppStructOps); // if it was equal, then we would be re-adding a now stale pointer to the map
-			delete GetDeferredCppStructOps().FindRef(Target);
+			check(ExistingOps != InCppStructOps); // if it was equal, then we would be re-adding a now stale pointer to the map
+			delete ExistingOps;
 		}
 	}
-	GetDeferredCppStructOps().Add(Target,InCppStructOps);
+	DeferredStructOps.Add(Target,InCppStructOps);
 }
 
 /** Look for the CppStructOps if we don't already have it and set the property size **/
@@ -1799,9 +1790,10 @@ void UScriptStruct::PrepareCppStructOps()
 			bPrepareCppStructOpsCompleted = true;
 			return;
 		}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// test that the constructor is initializing everything
-		if (CppStructOps && !CppStructOps->HasZeroConstructor()
+		if (!CppStructOps->HasZeroConstructor()
 #if WITH_HOT_RELOAD
 			&& !GIsHotReload // in hot reload, these produce bogus warnings
 #endif
@@ -1829,132 +1821,101 @@ void UScriptStruct::PrepareCppStructOps()
 		}
 #endif
 	}
-	bCppStructOpsFromBaseClass = false;
-	if (!CppStructOps)
-	{
-		UScriptStruct* Base = dynamic_cast<UScriptStruct*>(GetSuperStruct());
-		if (Base)
-		{
-			Base->PrepareCppStructOps();
-			CppStructOps = Base->GetCppStructOps();
-			bCppStructOpsFromBaseClass = true;
-		}
-	}
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!CppStructOps)
-	{
-		UScriptStruct* Base = dynamic_cast<UScriptStruct*>(GetSuperStruct());
 
-		while (Base)
-		{
-			if ((Base->StructFlags&STRUCT_Native) || Base->GetCppStructOps())
-			{
-				UE_LOG(LogClass, Fatal,TEXT("Couldn't bind to native BASE struct %s %s."),*GetName(),*Base->GetName());
-				break;
-			}
-			Base = dynamic_cast<UScriptStruct*>(Base->GetSuperStruct());
-		}
-	}
-#endif
 	check(!(StructFlags & STRUCT_ComputedFlags));
-	if (CppStructOps)
+	if (CppStructOps->HasSerializer())
 	{
-		if (!bCppStructOpsFromBaseClass) // if this cpp ops from the base class, we do not propagate certain custom aspects
-		{
-			if (CppStructOps->HasSerializer())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom serializer."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_SerializeNative );
-			}
-			if (CppStructOps->HasPostSerialize())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s wants post serialize."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_PostSerializeNative );
-			}
-			if (CppStructOps->HasNetSerializer())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom net serializer."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_NetSerializeNative);
-			}
-			if (CppStructOps->HasNetDeltaSerializer())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom net delta serializer."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_NetDeltaSerializeNative);
-			}
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom serializer."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_SerializeNative );
+	}
+	if (CppStructOps->HasPostSerialize())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s wants post serialize."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_PostSerializeNative );
+	}
+	if (CppStructOps->HasNetSerializer())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom net serializer."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_NetSerializeNative);
+	}
+	if (CppStructOps->HasNetDeltaSerializer())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom net delta serializer."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_NetDeltaSerializeNative);
+	}
 
-			if (CppStructOps->IsPlainOldData())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s is plain old data."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_IsPlainOldData | STRUCT_NoDestructor);
-			}
-			else
-			{
-				if (CppStructOps->HasCopy())
-				{
-					UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a native copy."),*GetName());
-					StructFlags = EStructFlags(StructFlags | STRUCT_CopyNative);
-				}
-				if (!CppStructOps->HasDestructor())
-				{
-					UE_LOG(LogClass, Verbose, TEXT("Native struct %s has no destructor."),*GetName());
-					StructFlags = EStructFlags(StructFlags | STRUCT_NoDestructor);
-				}
-			}
-			if (CppStructOps->HasZeroConstructor())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has zero construction."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_ZeroConstructor);
-			}
-			if (CppStructOps->IsPlainOldData() && !CppStructOps->HasZeroConstructor())
-			{
-				// hmm, it is safe to see if this can be zero constructed, lets try
-				int32 Size = CppStructOps->GetSize();
-				uint8* TestData00 = (uint8*)FMemory::Malloc(Size);
-				FMemory::Memzero(TestData00,Size);
-				CppStructOps->Construct(TestData00);
-				CppStructOps->Construct(TestData00); // slightly more like to catch "internal counters" if we do this twice
-				bool IsZeroConstruct = true;
-				for (int32 Index = 0; Index < Size && IsZeroConstruct; Index++)
-				{
-					if (TestData00[Index])
-					{
-						IsZeroConstruct = false;
-					}
-				}
-				FMemory::Free(TestData00);
-				if (IsZeroConstruct)
-				{
-					UE_LOG(LogClass, Verbose, TEXT("Native struct %s has DISCOVERED zero construction. Size = %d"),*GetName(), Size);
-					StructFlags = EStructFlags(StructFlags | STRUCT_ZeroConstructor);
-				}
-			}
-			if (CppStructOps->HasIdentical())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native identical."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_IdenticalNative);
-			}
-			if (CppStructOps->HasAddStructReferencedObjects())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native AddStructReferencedObjects."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_AddStructReferencedObjects);
-			}
-			if (CppStructOps->HasExportTextItem())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native ExportTextItem."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_ExportTextItemNative);
-			}
-			if (CppStructOps->HasImportTextItem())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native ImportTextItem."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_ImportTextItemNative);
-			}
-			if (CppStructOps->HasSerializeFromMismatchedTag())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native SerializeFromMismatchedTag."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_SerializeFromMismatchedTag);
-			}
+	if (CppStructOps->IsPlainOldData())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s is plain old data."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_IsPlainOldData | STRUCT_NoDestructor);
+	}
+	else
+	{
+		if (CppStructOps->HasCopy())
+		{
+			UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a native copy."),*GetName());
+			StructFlags = EStructFlags(StructFlags | STRUCT_CopyNative);
+		}
+		if (!CppStructOps->HasDestructor())
+		{
+			UE_LOG(LogClass, Verbose, TEXT("Native struct %s has no destructor."),*GetName());
+			StructFlags = EStructFlags(StructFlags | STRUCT_NoDestructor);
 		}
 	}
+	if (CppStructOps->HasZeroConstructor())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has zero construction."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_ZeroConstructor);
+	}
+	if (CppStructOps->IsPlainOldData() && !CppStructOps->HasZeroConstructor())
+	{
+		// hmm, it is safe to see if this can be zero constructed, lets try
+		int32 Size = CppStructOps->GetSize();
+		uint8* TestData00 = (uint8*)FMemory::Malloc(Size);
+		FMemory::Memzero(TestData00,Size);
+		CppStructOps->Construct(TestData00);
+		CppStructOps->Construct(TestData00); // slightly more like to catch "internal counters" if we do this twice
+		bool IsZeroConstruct = true;
+		for (int32 Index = 0; Index < Size && IsZeroConstruct; Index++)
+		{
+			if (TestData00[Index])
+			{
+				IsZeroConstruct = false;
+			}
+		}
+		FMemory::Free(TestData00);
+		if (IsZeroConstruct)
+		{
+			UE_LOG(LogClass, Verbose, TEXT("Native struct %s has DISCOVERED zero construction. Size = %d"),*GetName(), Size);
+			StructFlags = EStructFlags(StructFlags | STRUCT_ZeroConstructor);
+		}
+	}
+	if (CppStructOps->HasIdentical())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native identical."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_IdenticalNative);
+	}
+	if (CppStructOps->HasAddStructReferencedObjects())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native AddStructReferencedObjects."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_AddStructReferencedObjects);
+	}
+	if (CppStructOps->HasExportTextItem())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native ExportTextItem."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_ExportTextItemNative);
+	}
+	if (CppStructOps->HasImportTextItem())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native ImportTextItem."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_ImportTextItemNative);
+	}
+	if (CppStructOps->HasSerializeFromMismatchedTag())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native SerializeFromMismatchedTag."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_SerializeFromMismatchedTag);
+	}
+
 	check(!bPrepareCppStructOpsCompleted); // recursion is unacceptable
 	bPrepareCppStructOpsCompleted = true;
 }
@@ -2004,7 +1965,6 @@ void UScriptStruct::SerializeItem(FArchive& Ar, void* Value, void const* Default
 	{
 		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
 		check(TheCppStructOps); // else should not have STRUCT_SerializeNative
-		check(!InheritedCppStructOps()); // else should not have STRUCT_SerializeNative
 		bItemSerialized = TheCppStructOps->Serialize(Ar, Value);
 	}
 
@@ -2032,7 +1992,6 @@ void UScriptStruct::SerializeItem(FArchive& Ar, void* Value, void const* Default
 	{
 		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
 		check(TheCppStructOps); // else should not have STRUCT_PostSerializeNative
-		check(!InheritedCppStructOps()); // else should not have STRUCT_PostSerializeNative
 		TheCppStructOps->PostSerialize(Ar, Value);
 	}
 }
@@ -2172,7 +2131,7 @@ void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const
 
 		InitializedSize = TheCppStructOps->GetSize();
 		// here we want to make sure C++ and the property system agree on the size
-		check(InheritedCppStructOps() || (Stride == InitializedSize && PropertiesSize == InitializedSize));
+		check(Stride == InitializedSize && PropertiesSize == InitializedSize);
 	}
 
 	if (PropertiesSize > InitializedSize)
@@ -2229,7 +2188,7 @@ void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim) const
 		}
 		ClearedSize = TheCppStructOps->GetSize();
 		// here we want to make sure C++ and the property system agree on the size
-		check(InheritedCppStructOps() || (Stride == ClearedSize && PropertiesSize == ClearedSize));
+		check(Stride == ClearedSize && PropertiesSize == ClearedSize);
 	}
 	if ( PropertiesSize > ClearedSize )
 	{
@@ -2278,7 +2237,7 @@ void UScriptStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
 		}
 		ClearedSize = TheCppStructOps->GetSize();
 		// here we want to make sure C++ and the property system agree on the size
-		check(InheritedCppStructOps() || (Stride == ClearedSize && PropertiesSize == ClearedSize));
+		check(Stride == ClearedSize && PropertiesSize == ClearedSize);
 	}
 
 	if (PropertiesSize > ClearedSize)

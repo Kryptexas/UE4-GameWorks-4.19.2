@@ -110,10 +110,6 @@ class UInterpCurveEdSetup : public UObject
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	virtual bool NeedsLoadForClient() const override
-	{
-		return false;
-	}
 	//~ End UObject Interface
 	
 	//~ Begin InterpCurveEdSetup Interface

@@ -14,6 +14,7 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/Rig.h"
+#include "Animation/AnimationSettings.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Animation/AnimStats.h"
 #include "MessageLog.h"
@@ -122,7 +123,7 @@ UAnimSequence::UAnimSequence(const FObjectInitializer& ObjectInitializer)
 	, bEnableRootMotion(false)
 	, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	, bRootMotionSettingsCopiedFromMontage(false)
-	, bUseRawDataOnly(true)
+	, bUseRawDataOnly(!FPlatformProperties::RequiresCookedData())
 {
 	RateScale = 1.0;
 }
@@ -245,8 +246,10 @@ void UAnimSequence::Serialize(FArchive& Ar)
 		const bool bIsCooking = Ar.IsCooking();
 		const bool bIsDuplicating = Ar.HasAnyPortFlags(PPF_DuplicateForPIE) || Ar.HasAnyPortFlags(PPF_Duplicate);
 		const bool bIsTransacting = Ar.IsTransacting();
+		const bool bIsCookingForDedicatedServer = bIsCooking && Ar.CookingTarget()->IsServerOnly();
+		const bool bCookingTargetNeedsCompressedData = bIsCooking && (!UAnimationSettings::Get()->bStripAnimationDataOnDedicatedServer || !bIsCookingForDedicatedServer);
 
-		bool bSerializeCompressedData = bIsCooking || bIsDuplicating || bIsTransacting;
+		bool bSerializeCompressedData = bCookingTargetNeedsCompressedData || bIsDuplicating || bIsTransacting;
 		Ar << bSerializeCompressedData;
 
 		if (bIsDuplicating)

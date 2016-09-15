@@ -6013,7 +6013,9 @@ error:
 			if (buffer) buffer->Release();
 			object->Release();
 		}
-		CloseHandle(handle->condition);
+		if (handle->condition) {
+			CloseHandle(handle->condition);
+		}
 		delete handle;
 		stream_.apiHandle = 0;
 	}

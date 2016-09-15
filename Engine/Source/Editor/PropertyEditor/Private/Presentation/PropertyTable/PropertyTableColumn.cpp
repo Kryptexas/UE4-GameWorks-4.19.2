@@ -561,6 +561,11 @@ void FPropertyTableColumn::Sort( TArray< TSharedRef< class IPropertyTableRow > >
 		Property = Path->GetLeafMostProperty().Property.Get();
 	}
 
+	if (!Property)
+	{
+		return;
+	}
+
 	if ( Property->IsA( UByteProperty::StaticClass() ) )
 	{
 		TWeakObjectPtr<UByteProperty> ByteProperty( Cast< UByteProperty >( Property ) );

@@ -72,6 +72,10 @@ void FAIMessage::Broadcast(UObject* WorldContextObject, const FAIMessage& Messag
 	}
 }
 
+FAIMessageObserver::FAIMessageObserver()
+{
+}
+
 FAIMessageObserverHandle FAIMessageObserver::Create(AController* Controller, FName MessageType, FOnAIMessage const& Delegate)
 {
 	UBrainComponent* BrainComp = FindBrainComponentHelper(Controller);

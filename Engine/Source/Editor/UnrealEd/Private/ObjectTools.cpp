@@ -1157,6 +1157,8 @@ namespace ObjectTools
 					for(TSet<UObject*>::TConstIterator SetIt(ReferencedObjects); SetIt; ++SetIt)
 					{
 						const UObject *ReferencedObject = *SetIt;
+						check(ReferencedObject);
+
 						// Don't list an object as referring to itself.
 						if ( ReferencedObject != Object )
 						{

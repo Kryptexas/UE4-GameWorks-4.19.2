@@ -854,8 +854,10 @@ FActorComponentInstanceData* UInstancedStaticMeshComponent::GetComponentInstance
 	FActorComponentInstanceData* InstanceData = nullptr;
 	FInstancedStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
 
+	bool bHasSelectedInstances = SelectedInstances.Num() > 0;
+
 	// Don't back up static lighting if there isn't any
-	if (bHasCachedStaticLighting || SelectedInstances.Num() > 0)
+	if (bHasCachedStaticLighting || bHasSelectedInstances)
 	{
 		InstanceData = StaticMeshInstanceData = new FInstancedStaticMeshComponentInstanceData(*this);	
 	}
@@ -879,7 +881,7 @@ FActorComponentInstanceData* UInstancedStaticMeshComponent::GetComponentInstance
 	}
 
 	// Back up instance selection
-	if (SelectedInstances.Num() > 0)
+	if (bHasSelectedInstances)
 	{
 		StaticMeshInstanceData->SelectedInstances = SelectedInstances;
 	}

@@ -826,9 +826,11 @@ TSharedRef<SWidget> SMyBlueprint::OnCreateWidgetForAction(FCreateWidgetForAction
 
 void SMyBlueprint::GetChildGraphs(UEdGraph* InEdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions, FText ParentCategory)
 {
+	check(InEdGraph);
+
 	// Grab display info
 	FGraphDisplayInfo EdGraphDisplayInfo;
-	if (const UEdGraphSchema* Schema = InEdGraph ? InEdGraph->GetSchema() : nullptr)
+	if (const UEdGraphSchema* Schema = InEdGraph->GetSchema())
 	{
 		Schema->GetGraphDisplayInformation(*InEdGraph, EdGraphDisplayInfo);
 	}

@@ -1278,6 +1278,8 @@ void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 
 	if(PreviewExpression)
 	{
+		check(ExpressionPreviewMaterial);
+
 		// The preview material's expressions array must stay up to date before recompiling 
 		// So that RebuildMaterialFunctionInfo will see all the nested material functions that may need to be updated
 		ExpressionPreviewMaterial->Expressions = Material->Expressions;
@@ -1779,6 +1781,8 @@ void FMaterialEditor::UpdateGraphNodeStates()
 
 			if (MaterialNode->bIsErrorExpression && !MaterialNode->bHasCompilerMessage)
 			{
+				check(MaterialNode->MaterialExpression);
+
 				bUpdatedErrorState = true;
 				MaterialNode->bHasCompilerMessage = true;
 				MaterialNode->ErrorMsg = MaterialNode->MaterialExpression->LastErrorText;

@@ -329,7 +329,12 @@ FBlueprintNativeCodeGenManifest& FBlueprintNativeCodeGenModule::GetManifest(cons
 
 void FBlueprintNativeCodeGenModule::GenerateSingleStub(UBlueprint* BP, const TCHAR* PlatformName)
 {
-	UClass* Class = BP ? BP->GeneratedClass : nullptr;
+	if (!ensure(BP))
+	{
+		return;
+	}
+
+	UClass* Class = BP->GeneratedClass;
 	if (!ensure(Class))
 	{
 		return;
@@ -631,6 +636,11 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 
 EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const UObject* Object) const
 {
+	if (Object == nullptr)
+	{
+		return EReplacementResult::DontReplace;
+	}
+
 	const UStruct* Struct = Cast<UStruct>(Object);
 	const UEnum* Enum = Cast<UEnum>(Object);
 

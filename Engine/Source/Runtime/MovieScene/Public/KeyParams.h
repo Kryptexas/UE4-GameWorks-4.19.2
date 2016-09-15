@@ -3,7 +3,7 @@
 #pragma once
 
 UENUM()
-enum class EMovieSceneKeyInterpolation
+enum class EMovieSceneKeyInterpolation : uint8
 {
 	/** Auto. */
 	Auto UMETA(DisplayName="Auto"),

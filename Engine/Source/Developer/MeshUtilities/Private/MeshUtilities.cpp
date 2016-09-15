@@ -5481,7 +5481,7 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 	{
 		// Extract landscape proxies from the world
 		TArray<ALandscapeProxy*> LandscapeActors;		
-		UWorld* InWorld = InActors.Num() ? InActors[0]->GetWorld() : nullptr;
+		UWorld* InWorld = InActors[0]->GetWorld();
 
 		uint32 MaxLandscapeExportLOD = 0;
 		if (InWorld->IsValidLowLevel())

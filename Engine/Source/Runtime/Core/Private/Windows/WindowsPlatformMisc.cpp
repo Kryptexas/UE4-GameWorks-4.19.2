@@ -808,25 +808,9 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 
 				//get the paths that the files will actually have been saved to
 				FString UserIniDumpPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*IniDumpPath);
-				FString LogDirectory = FPaths::GameLogDir();
+				FString LogDirectory = FPlatformOutputDevices::GetAbsoluteLogFilename();
 				TCHAR CommandlineLogFile[MAX_SPRINTF]=TEXT("");
-
-				//use the log file specified on the commandline if there is one
-				if (FParse::Value(FCommandLine::Get(), TEXT("LOG="), CommandlineLogFile, ARRAY_COUNT(CommandlineLogFile)))
-				{
-					LogDirectory += CommandlineLogFile;
-				}
-				else if (!FApp::IsGameNameEmpty())
-				{
-					// If the app name is defined, use it as the log filename
-					LogDirectory += FString::Printf(TEXT("%s.Log"), FApp::GetGameName());
-				}
-				else
-				{
-					// Revert to hardcoded UE4.log
-					LogDirectory += TEXT("UE4.Log");
-				}
-
+				
 				FString UserLogFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*LogDirectory);
 				FString UserReportDumpPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ReportDumpPath);
 				FString UserCrashVideoPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CrashVideoPath);

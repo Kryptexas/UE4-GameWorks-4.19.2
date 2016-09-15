@@ -724,7 +724,7 @@ void FKismetCompilerUtilities::CreateObjectAssignmentStatement(FKismetFunctionCo
 	{
 		// Create a literal term from the class specified in the node
 		FBPTerminal* ClassTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
-		ClassTerm->Name = OutputObjClass->GetName();
+		ClassTerm->Name = GetNameSafe(OutputObjClass);
 		ClassTerm->bIsLiteral = true;
 		ClassTerm->Source = DstTerm->Source;
 		ClassTerm->ObjectLiteral = OutputObjClass;

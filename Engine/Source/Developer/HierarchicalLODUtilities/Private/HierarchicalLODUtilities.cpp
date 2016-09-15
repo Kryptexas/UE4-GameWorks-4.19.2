@@ -236,6 +236,11 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 					}
 				}
 
+				if (!MainMesh)
+				{
+					return false;
+				}
+
 				LODActor->SetStaticMesh(MainMesh);
 				LODActor->SetActorLocation(OutProxyLocation);
 				LODActor->SubObjects = OutAssets;

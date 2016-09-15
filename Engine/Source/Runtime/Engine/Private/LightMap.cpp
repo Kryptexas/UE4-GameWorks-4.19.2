@@ -1354,6 +1354,7 @@ void FLightMapPendingTexture::StartEncoding()
 		Texture->Source.Init2DWithMipChain(GetSizeX(), GetSizeY() * 2, TSF_BGRA8);	// Top/bottom atlased
 		Texture->MipGenSettings = TMGS_LeaveExistingMips;
 		int32 NumMips = Texture->Source.GetNumMips();
+		check(NumMips > 0);
 		Texture->SRGB = 0;
 		Texture->Filter	= GUseBilinearLightmaps ? TF_Default : TF_Nearest;
 		Texture->LODGroup = TEXTUREGROUP_Lightmap;

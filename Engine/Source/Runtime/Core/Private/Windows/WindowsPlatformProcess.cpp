@@ -1188,7 +1188,7 @@ bool FWindowsPlatformProcess::WritePipe(void* WritePipe, const FString& Message,
 
 	// Write to pipe
 	uint32 BytesWritten = 0;
-	bool bIsWritten = !!WriteFile(WritePipe, Buffer, BytesAvailable, (::DWORD*)&BytesWritten, nullptr);
+	bool bIsWritten = !!WriteFile(WritePipe, Buffer, BytesAvailable + 1, (::DWORD*)&BytesWritten, nullptr);
 
 	// Get written message
 	if (OutWritten)

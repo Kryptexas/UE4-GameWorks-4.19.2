@@ -77,7 +77,7 @@ namespace GameProjectAutomationUtils
 		OutMatchedProjects = 0;
 		UEnum* SourceCategoryEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EContentSourceCategory"));
 
-		// The category name int he FTemplateItem is not the same as the enum definition EContentSourceCategory - convert it
+		// The category name in the FTemplateItem is not the same as the enum definition EContentSourceCategory - convert it
 		FName CategoryName;
 		if( InCategory == EContentSourceCategory::BlueprintFeature)
 		{
@@ -89,8 +89,8 @@ namespace GameProjectAutomationUtils
 		}
 		else
 		{
-			// We didnt match a category
-			if (SourceCategoryEnum == nullptr)
+			// We didn't match a category
+			if (SourceCategoryEnum != nullptr)
 			{
 				UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Test failed! Unknown category type %d"), *SourceCategoryEnum->GetEnumName(int32(InCategory)));
 			}
@@ -262,16 +262,13 @@ bool FBuildPromotionNewProjectMapTest::RunTest(const FString& Parameters)
 {
 	//New level
 	UWorld* CurrentWorld = FAutomationEditorCommonUtils::CreateNewMap();
-	if (CurrentWorld)
-	{
-		UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Adding Level Geometry"));
-	}
-	else
+	if (!CurrentWorld)
 	{
 		UE_LOG(LogGameProjectGenerationTests, Error, TEXT("Failed to create an empty level"));
+		return false;
 	}
 
-	
+	UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Adding Level Geometry"));
 
 	//Add some bsp and a player start
 	GEditor->Exec(CurrentWorld, TEXT("BRUSH Scale 1 1 1"));

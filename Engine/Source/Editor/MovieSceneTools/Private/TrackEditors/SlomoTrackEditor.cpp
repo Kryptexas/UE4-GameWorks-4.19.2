@@ -82,12 +82,12 @@ void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddSlomoTrack_Transaction", "Add Play Rate Track"));
 
 	MovieScene->Modify();
-		
+
 	SlomoTrack = FindOrCreateMasterTrack<UMovieSceneSlomoTrack>().Track;
-	ensure(SlomoTrack);
+	check(SlomoTrack);
 
 	UMovieSceneSection* NewSection = SlomoTrack->CreateNewSection();
-	ensure(NewSection);
+	check(NewSection);
 
 	SlomoTrack->AddSection(*NewSection);
 

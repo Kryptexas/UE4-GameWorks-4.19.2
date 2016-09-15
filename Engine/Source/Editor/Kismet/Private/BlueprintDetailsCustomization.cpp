@@ -2606,31 +2606,34 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 	if (ParamItemPtr.IsValid() && FBlueprintEditorUtils::IsPinTypeValid(PinType))
 	{
 		const FString PinName = ParamItemPtr.Pin()->PinName;
-		auto GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
+		TSharedPtr<class FBaseBlueprintGraphActionDetails> GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
 		if (GraphActionDetailsPinned.IsValid())
 		{
-			auto MyBPPinned = GraphActionDetailsPinned->GetMyBlueprint().Pin();
+			TSharedPtr<SMyBlueprint> MyBPPinned = GraphActionDetailsPinned->GetMyBlueprint().Pin();
 			if (MyBPPinned.IsValid())
 			{
 				MyBPPinned->GetLastFunctionPinTypeUsed() = PinType;
 			}
 			if( !ShouldPinBeReadOnly(true) )
 			{
-				auto TargetNodes = GatherAllResultNodes(TargetNode);
-				for (auto Node : TargetNodes)
+				TArray<UK2Node_EditablePinBase*> TargetNodes = GatherAllResultNodes(TargetNode);
+				for (UK2Node_EditablePinBase* Node : TargetNodes)
 				{
-					auto UDPinPtr = Node->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& UDPin)
+					if (Node)
 					{
-						return UDPin.IsValid() && (UDPin->PinName == PinName);
-					});
-					if (UDPinPtr)
-					{
-						(*UDPinPtr)->PinType = PinType;
+						auto UDPinPtr = Node->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& UDPin)
+						{
+							return UDPin.IsValid() && (UDPin->PinName == PinName);
+						});
+						if (UDPinPtr)
+						{
+							(*UDPinPtr)->PinType = PinType;
 
-						// Array types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
-						(*UDPinPtr)->PinType.bIsConst = PinType.bIsArray && Node && Node->IsA<UK2Node_CustomEvent>();
+							// Array types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
+							(*UDPinPtr)->PinType.bIsConst = PinType.bIsArray && Node->IsA<UK2Node_CustomEvent>();
+						}
+						GraphActionDetailsPinned->OnParamsChanged(Node);
 					}
-					GraphActionDetailsPinned->OnParamsChanged(Node);
 				}
 			}
 		}

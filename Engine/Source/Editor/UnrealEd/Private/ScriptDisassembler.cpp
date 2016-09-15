@@ -46,7 +46,7 @@ void FKismetBytecodeDisassembler::DisassembleAllFunctionsInClasses(FOutputDevice
 		UClass* Class = *ClassIter;
 
 		FString ClassName = Class->GetName();
-		if (FCString::Strfind(*ClassName, *ClassnameSubstring))
+		if (FCString::Strifind(*ClassName, *ClassnameSubstring))
 		{
 			Ar.Logf(TEXT("Processing class %s"), *ClassName);
 

@@ -458,6 +458,7 @@ bool UFactory::ImportUntypedBulkDataFromText(const TCHAR*& Buffer, FUntypedBulkD
 				}
 				else if (FParse::Value(Str, TEXT("BEGIN "), ParsedText) && (ParsedText.ToUpper() == TEXT("BINARY")))
 				{
+					check(RawData);
 					uint8* BulkDataPointer = RawData;
 					while(FParse::Line(&Buffer,StrLine))
 					{

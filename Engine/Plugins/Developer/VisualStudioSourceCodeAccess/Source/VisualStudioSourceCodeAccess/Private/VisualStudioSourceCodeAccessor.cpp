@@ -13,9 +13,11 @@
 
 #include "AllowWindowsPlatformTypes.h"
 #if VSACCESSOR_HAS_DTE
+	#pragma warning(push)
 	#pragma warning(disable: 4278)
 	#pragma warning(disable: 4146)
 	#pragma warning(disable: 4191)
+	#pragma warning(disable: 6244)
 
 	// atltransactionmanager.h doesn't use the W equivalent functions, use this workaround
 	#ifndef DeleteFile
@@ -31,9 +33,7 @@
 	// import EnvDTE
 	#import "libid:80cc9f66-e7d8-4ddd-85b6-d9e6cd0e93e2" version("8.0") lcid("0") raw_interfaces_only named_guids
 
-	#pragma warning(default: 4191)
-	#pragma warning(default: 4146)
-	#pragma warning(default: 4278)
+	#pragma warning(pop)
 #endif
 	#include <tlhelp32.h>
 	#include <wbemidl.h>

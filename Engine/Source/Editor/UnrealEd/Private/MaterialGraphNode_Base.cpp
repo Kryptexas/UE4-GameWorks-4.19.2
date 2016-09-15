@@ -85,6 +85,7 @@ void UMaterialGraphNode_Base::GetOutputPins(TArray<class UEdGraphPin*>& OutOutpu
 
 void UMaterialGraphNode_Base::ReplaceNode(UMaterialGraphNode_Base* OldNode)
 {
+	check(OldNode);
 	check(OldNode != this);
 
 	// Get Pins from node passed in

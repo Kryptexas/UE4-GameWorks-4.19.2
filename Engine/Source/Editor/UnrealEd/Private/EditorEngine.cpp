@@ -3440,7 +3440,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 				SpawnInfo.OverrideLevel = Info.SourceLevel;
 				SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 				if( bToStaticMesh )
-				{					
+				{
 					AStaticMeshActor* SMActor = CastChecked<AStaticMeshActor>( World->SpawnActor( ToClass, &Info.Location, &Info.Rotation, SpawnInfo ) );
 					SMActor->UnregisterAllComponents();
 					Info.SetToActor(SMActor, SMActor->GetStaticMeshComponent());
@@ -3449,8 +3449,9 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					Actor = SMActor;
 				}
 				else if(bToInteractiveFoliage)
-				{					
+				{
 					AInteractiveFoliageActor* FoliageActor = World->SpawnActor<AInteractiveFoliageActor>( Info.Location, Info.Rotation, SpawnInfo );
+					check(FoliageActor);
 					FoliageActor->UnregisterAllComponents();
 					Info.SetToActor(FoliageActor, FoliageActor->GetStaticMeshComponent());
 					FoliageActor->RegisterAllComponents();

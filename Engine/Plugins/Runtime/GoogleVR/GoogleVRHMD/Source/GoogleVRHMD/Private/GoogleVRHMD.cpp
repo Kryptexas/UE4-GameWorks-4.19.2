@@ -533,8 +533,10 @@ void FGoogleVRHMD::HandleGVRBackEvent()
 
 void FGoogleVRHMD::SetDistortionCorrectionEnabled(bool bEnable)
 {
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	// Can't turn off distortion correction if using offscreen framebuffers
-	if(!bUseOffscreenFramebuffers || !GOOGLEVRHMD_SUPPORTED_PLATFORMS)
+	if(!bUseOffscreenFramebuffers)
+#endif
 	{
 		bDistortionCorrectionEnabled = bEnable;
 	}

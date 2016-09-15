@@ -122,7 +122,6 @@ bool UStructProperty::NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Da
 	{
 		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
 		check(CppStructOps); // else should not have STRUCT_NetSerializeNative
-		check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_NetSerializeNative
 		bool bSuccess = true;
 		bool bMapped = CppStructOps->NetSerialize(Ar, Map, bSuccess, Data);
 		if (!bSuccess)
@@ -271,7 +270,6 @@ void UStructProperty::ExportTextItem( FString& ValueStr, const void* PropertyVal
 	{
 		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
 		check(CppStructOps); // else should not have STRUCT_ExportTextItemNative
-		check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_ExportTextItemNative
 		if (CppStructOps->ExportTextItem(ValueStr, PropertyValue, DefaultValue, Parent, PortFlags, ExportRootScope))
 		{
 			return;
@@ -302,7 +300,6 @@ const TCHAR* UStructProperty::ImportText_Static(UScriptStruct* InStruct, const F
 	{
 		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
 		check(CppStructOps); // else should not have STRUCT_ImportTextItemNative
-		check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_ImportTextItemNative
 		if (CppStructOps->ImportTextItem(InBuffer, Data, PortFlags, Parent, ErrorText))
 		{
 			return InBuffer;

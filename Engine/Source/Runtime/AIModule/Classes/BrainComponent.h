@@ -64,6 +64,7 @@ typedef TSharedPtr<struct FAIMessageObserver, ESPMode::Fast> FAIMessageObserverH
 struct AIMODULE_API FAIMessageObserver : public TSharedFromThis<FAIMessageObserver>
 {
 public:
+	FAIMessageObserver();
 
 	static FAIMessageObserverHandle Create(AController* Controller, FName MessageType, FOnAIMessage const& Delegate);
 	static FAIMessageObserverHandle Create(AController* Controller, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate);
@@ -100,6 +101,10 @@ private:
 
 	/** brain component owning this observer */
 	TWeakObjectPtr<UBrainComponent> Owner;
+
+	// Non-copyable
+	FAIMessageObserver(const FAIMessageObserver&);
+	FAIMessageObserver& operator=(const FAIMessageObserver&);
 };
 
 UCLASS(abstract, BlueprintType)

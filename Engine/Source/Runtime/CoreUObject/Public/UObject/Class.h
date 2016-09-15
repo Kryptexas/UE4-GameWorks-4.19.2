@@ -1026,8 +1026,6 @@ public:
 #endif
 
 private:
-	/** true if these cpp ops are not for me, but rather this is an incomplete cpp ops from my base class. **/
-	bool bCppStructOpsFromBaseClass;
 	/** true if we have performed PrepareCppStructOps **/
 	bool bPrepareCppStructOpsCompleted;
 	/** Holds the Cpp ctors and dtors, sizeof, etc. Is not owned by this and is not released. **/
@@ -1059,18 +1057,10 @@ public:
 		return CppStructOps;
 	}
 
-	/** return true if these cpp ops are not for me, but rather this is an incomplete cpp ops from my base class **/
-	FORCEINLINE bool InheritedCppStructOps() const
-	{
-		check(bPrepareCppStructOpsCompleted);
-		return bCppStructOpsFromBaseClass;
-	}
-
 	void ClearCppStructOps()
 	{
 		StructFlags = EStructFlags(StructFlags & ~STRUCT_ComputedFlags);
 		bPrepareCppStructOpsCompleted = false;
-		bCppStructOpsFromBaseClass = false;
 		CppStructOps = NULL;
 	}
 	/** 
@@ -1393,9 +1383,8 @@ public:
 
 	// UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
 	// End of UObject interface.
-
-	~UEnum();
 
 	/*
 	 *	Try to update an out-of-date enum index after an enum's change

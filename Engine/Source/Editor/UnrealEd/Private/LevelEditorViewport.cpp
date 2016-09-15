@@ -169,10 +169,11 @@ TArray<AActor*> FLevelEditorViewportClient::TryPlacingActorFromObject( ULevel* I
 	if ( ObjectClass == NULL )
 	{
 		ObjectClass = ObjToUse->GetClass();
+		check(ObjectClass);
 	}
 
 	AActor* PlacedActor = NULL;
-	if ( ObjectClass != NULL && ObjectClass->IsChildOf( AActor::StaticClass() ) )
+	if ( ObjectClass->IsChildOf( AActor::StaticClass() ) )
 	{
 		//Attempting to drop a UClass object
 		UActorFactory* ActorFactory = FactoryToUse;
@@ -4240,6 +4241,8 @@ void FLevelEditorViewportClient::UpdateLinkedOrthoViewports( bool bInvalidate )
 		for( int32 ViewportIndex = 0; ViewportIndex < GEditor->LevelViewportClients.Num(); ++ViewportIndex )
 		{
 			FLevelEditorViewportClient* Client = GEditor->LevelViewportClients[ViewportIndex];
+			check(Client);
+
 			// Only update other orthographic viewports viewing the same scene
 			if( (Client != this) && Client->IsOrtho() && (Client->GetScene() == this->GetScene()) )
 			{

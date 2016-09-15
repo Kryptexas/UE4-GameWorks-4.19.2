@@ -5187,7 +5187,7 @@ void UEditorEngine::AssignReplacementComponentsByActors(TArray<AActor*>& ActorsT
 	UPrimitiveComponent* ReplacementComponent = NULL;
 
 	// loop over the clases until a component is found
-	for (int32 ClassIndex = 0; ClassIndex < ARRAY_COUNT(PossibleReplacementClass) && ReplacementComponent == NULL; ClassIndex++)
+	for (int32 ClassIndex = 0; ClassIndex < ARRAY_COUNT(PossibleReplacementClass); ClassIndex++)
 	{
 		// use ClassToReplace of UMeshComponent if not specified
 		UClass* ReplacementComponentClass = ClassToReplace ? ClassToReplace : PossibleReplacementClass[ClassIndex];
@@ -5204,11 +5204,12 @@ void UEditorEngine::AssignReplacementComponentsByActors(TArray<AActor*>& ActorsT
 				if (PrimitiveComponent->IsA(ReplacementComponentClass))
 				{
 					ReplacementComponent = PrimitiveComponent;
-					break;
+					goto FoundComponent;
 				}
 			}
 		}
 	}
+FoundComponent:
 
 	// attempt to set replacement component for all selected actors
 	for (int32 ActorIndex = 0; ActorIndex < ActorsToReplace.Num(); ActorIndex++)

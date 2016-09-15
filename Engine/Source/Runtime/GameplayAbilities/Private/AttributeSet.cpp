@@ -723,36 +723,39 @@ static bool CheckForBadScalableFloats_Prop_r(void* Data, UProperty* Prop, UClass
 		if (StructProperty->Struct == FScalableFloat::StaticStruct())
 		{
 			FScalableFloat* ThisScalableFloat = static_cast<FScalableFloat*>(InnerData);
-			if (ThisScalableFloat && ThisScalableFloat->IsValid() == false)
+			if (ThisScalableFloat)
 			{
-				if (ThisScalableFloat->Curve.RowName == NAME_None)
+				if (ThisScalableFloat->IsValid() == false)
 				{
-					// Just fix this case up here
-					ThisScalableFloat->Curve.CurveTable = nullptr;
-					GCurrentBadScalableFloat.Asset->MarkPackageDirty();
-				}
-				else if (ThisScalableFloat->Curve.CurveTable == nullptr)
-				{
-					// Just fix this case up here
-					ThisScalableFloat->Curve.RowName = NAME_None;
-					GCurrentBadScalableFloat.Asset->MarkPackageDirty();
-				}
-				else
-				{
-					GCurrentBadScalableFloat.Property = Prop;
-					GCurrentBadScalableFloat.String = ThisScalableFloat->ToSimpleString();
+					if (ThisScalableFloat->Curve.RowName == NAME_None)
+					{
+						// Just fix this case up here
+						ThisScalableFloat->Curve.CurveTable = nullptr;
+						GCurrentBadScalableFloat.Asset->MarkPackageDirty();
+					}
+					else if (ThisScalableFloat->Curve.CurveTable == nullptr)
+					{
+						// Just fix this case up here
+						ThisScalableFloat->Curve.RowName = NAME_None;
+						GCurrentBadScalableFloat.Asset->MarkPackageDirty();
+					}
+					else
+					{
+						GCurrentBadScalableFloat.Property = Prop;
+						GCurrentBadScalableFloat.String = ThisScalableFloat->ToSimpleString();
 
-					GCurrentBadScalableFloatList.Add(GCurrentBadScalableFloat);
+						GCurrentBadScalableFloatList.Add(GCurrentBadScalableFloat);
+					}
 				}
-			}
-			else 
-			{
-				if (ThisScalableFloat->Curve.CurveTable != nullptr && ThisScalableFloat->Value != 1.f)
+				else 
 				{
-					GCurrentBadScalableFloat.Property = Prop;
-					GCurrentBadScalableFloat.String = ThisScalableFloat->ToSimpleString();
+					if (ThisScalableFloat->Curve.CurveTable != nullptr && ThisScalableFloat->Value != 1.f)
+					{
+						GCurrentBadScalableFloat.Property = Prop;
+						GCurrentBadScalableFloat.String = ThisScalableFloat->ToSimpleString();
 
-					GCurrentNaughtyScalableFloatList.Add(GCurrentBadScalableFloat);
+						GCurrentNaughtyScalableFloatList.Add(GCurrentBadScalableFloat);
+					}
 				}
 			}
 		}

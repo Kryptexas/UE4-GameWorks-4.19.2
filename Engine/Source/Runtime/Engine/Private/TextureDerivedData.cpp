@@ -1783,7 +1783,7 @@ void UTexture::FinishCachePlatformData()
 				GetBuildSettingsForRunningPlatform(*this, BuildSettings);
 				GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
 
-				check(RunningPlatformData->DerivedDataKey == DerivedDataKey);
+				check(!RunningPlatformData || RunningPlatformData->DerivedDataKey == DerivedDataKey);
 			}
 #endif
 		}

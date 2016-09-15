@@ -2,6 +2,7 @@
 
 #pragma once
 #include "GameFramework/Info.h"
+#include "GameFramework/OnlineReplStructs.h"
 #include "PlayerState.generated.h"
 
 /**

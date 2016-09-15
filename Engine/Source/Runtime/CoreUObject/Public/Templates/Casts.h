@@ -2,10 +2,13 @@
 
 #pragma once
 
-#include "Templates/AndOr.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/RemoveReference.h"
 #include "SubclassOf.h"
 
-COREUOBJECT_API void CastLogError(const TCHAR* FromType, const TCHAR* ToType);
+FUNCTION_NO_RETURN_START
+	COREUOBJECT_API void CastLogError(const TCHAR* FromType, const TCHAR* ToType)
+FUNCTION_NO_RETURN_END;
 
 /**
  * Metafunction which detects whether or not a class is an IInterface.  Rules:
@@ -88,9 +91,6 @@ template <typename From, typename To, uint64 CastClass> struct TGetCastType<From
 
 template <typename To, typename From>
 To* Cast(From* Src);
-
-template <typename To, typename From>
-To* CastChecked(From* Src, ECastCheckedType::Type CheckType = ECastCheckedType::NullChecked);
 
 template <typename From, typename To, ECastType CastType = TGetCastType<From, To>::Value>
 struct TCastImpl
@@ -188,6 +188,25 @@ FORCEINLINE T* ExactCast( UObject* Src )
 #if DO_CHECK
 
 	template <typename To, typename From>
+	FUNCTION_NON_NULL_RETURN_START
+		To* CastChecked(From* Src)
+	FUNCTION_NON_NULL_RETURN_END
+	{
+		if (!Src)
+		{
+			CastLogError(TEXT("nullptr"), *GetTypeName<To>());
+		}
+
+		To* Result = Cast<To>(Src);
+		if (!Result)
+		{
+			CastLogError(*Cast<UObject>(Src)->GetFullName(), *GetTypeName<To>());
+		}
+
+		return Result;
+	}
+
+	template <typename To, typename From>
 	To* CastChecked(From* Src, ECastCheckedType::Type CheckType)
 	{
 		if (Src)
@@ -210,6 +229,14 @@ FORCEINLINE T* ExactCast( UObject* Src )
 	}
 
 #else
+
+	template <typename To, typename From>
+	FUNCTION_NON_NULL_RETURN_START
+		FORCEINLINE To* CastChecked(From* Src)
+	FUNCTION_NON_NULL_RETURN_END
+	{
+		return TCastImpl<From, To>::DoCastCheckedWithoutTypeCheck(Src);
+	}
 
 	template <typename To, typename From>
 	FORCEINLINE To* CastChecked(From* Src, ECastCheckedType::Type CheckType)

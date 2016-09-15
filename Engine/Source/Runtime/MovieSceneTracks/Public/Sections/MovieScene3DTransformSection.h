@@ -22,7 +22,7 @@ namespace EKey3DTransformChannel
 #if WITH_EDITORONLY_DATA
 /** Visibility options for 3d trajectory. */
 UENUM()
-enum class EShow3DTrajectory
+enum class EShow3DTrajectory : uint8
 {
 	EST_OnlyWhenSelected UMETA(DisplayName="Only When Selected"),
 	EST_Always UMETA(DisplayName="Always"),
@@ -272,6 +272,6 @@ private:
 #if WITH_EDITORONLY_DATA
 	/** Whether to show the 3d trajectory */
 	UPROPERTY(EditAnywhere, DisplayName = "Show 3D Trajectory", Category = "Transform")
-	TEnumAsByte<EShow3DTrajectory> Show3DTrajectory;
+	EShow3DTrajectory Show3DTrajectory;
 #endif
 };

@@ -32,6 +32,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 result.VersionNames = _unitOfWork.CrashRepository.GetVersionsAsListItems();
                 result.PlatformNames = _unitOfWork.CrashRepository.GetPlatformsAsListItems();
                 result.EngineModes = _unitOfWork.CrashRepository.GetEngineModesAsListItems();
+                result.EngineVersions = _unitOfWork.CrashRepository.GetEngineVersionsAsListItems();
 				result.GenerationTime = logTimer.GetElapsedSeconds().ToString( "F2" );
 				return View( "Index", result );
 			}

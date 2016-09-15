@@ -37,11 +37,6 @@ void UObjectRedirector::Serialize( FArchive& Ar )
 	Ar << DestinationObject;
 }
 
-bool UObjectRedirector::NeedsLoadForClient() const
-{
-	return false;
-}
-
 bool UObjectRedirector::NeedsLoadForEditorGame() const
 {
 	return true;

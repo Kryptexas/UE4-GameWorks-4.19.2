@@ -19,8 +19,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <summary>
 		/// Constructor taking the landing zone
 		/// </summary>
-		public ReceiverReportQueue(string InQueueName, string LandingZonePath)
-			: base(InQueueName, LandingZonePath)
+		public ReceiverReportQueue(string InQueueName, string LandingZonePath, int InDecimateWaitingCountStart, int InDecimateWaitingCountEnd)
+			: base(InQueueName, LandingZonePath, InDecimateWaitingCountStart, InDecimateWaitingCountEnd)
 		{
 		}
 

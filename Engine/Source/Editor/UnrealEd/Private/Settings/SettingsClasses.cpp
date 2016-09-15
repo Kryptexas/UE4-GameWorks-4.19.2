@@ -396,18 +396,21 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 			IndexRef = &(CurrentScalingGridSize);
 		}
 
-		// Don't allow an empty array of grid sizes
-		if (ArrayRef->Num() == 0)
+		if (ArrayRef && IndexRef)
 		{
-			ArrayRef->Add(MinGridSize);
-		}
-
-		// Don't allow negative numbers
-		for (int32 SizeIdx = 0; SizeIdx < ArrayRef->Num(); ++SizeIdx)
-		{
-			if ((*ArrayRef)[SizeIdx] < MinGridSize)
+			// Don't allow an empty array of grid sizes
+			if (ArrayRef->Num() == 0)
 			{
-				(*ArrayRef)[SizeIdx] = MinGridSize;
+				ArrayRef->Add(MinGridSize);
+			}
+
+			// Don't allow negative numbers
+			for (int32 SizeIdx = 0; SizeIdx < ArrayRef->Num(); ++SizeIdx)
+			{
+				if ((*ArrayRef)[SizeIdx] < MinGridSize)
+				{
+					(*ArrayRef)[SizeIdx] = MinGridSize;
+				}
 			}
 		}
 	}

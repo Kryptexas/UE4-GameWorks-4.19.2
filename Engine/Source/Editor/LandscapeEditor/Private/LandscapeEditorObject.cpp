@@ -605,7 +605,7 @@ void ULandscapeEditorObject::RefreshImportLayersList()
 					ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
 					const ILandscapeWeightmapFileFormat* WeightmapFormat = LandscapeEditorModule.GetWeightmapFormatByExtension(*FPaths::GetExtension(NewImportLayer.SourceFilePath, true));
 
-					if (!WeightmapFormat)
+					if (WeightmapFormat)
 					{
 						FLandscapeWeightmapInfo WeightmapImportInfo = WeightmapFormat->Validate(*NewImportLayer.SourceFilePath, NewImportLayer.LayerName);
 						NewImportLayer.ImportResult = WeightmapImportInfo.ResultCode;

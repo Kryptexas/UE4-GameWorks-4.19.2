@@ -5252,11 +5252,11 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		// if we specified a parameter in the command, but no objects of that parameter were found,
 		// and they didn't specify "all", then don't list all objects
 		if ( bAll ||
-			((CheckType		||	!FCString::Strfind(Cmd,TEXT("CLASS=")))
-			&&	(MetaClass		||	!FCString::Strfind(Cmd,TEXT("TYPE=")))
-			&&	(CheckOuter		||	!FCString::Strfind(Cmd,TEXT("OUTER=")))
-			&&	(InsidePackage	||	!FCString::Strfind(Cmd,TEXT("PACKAGE="))) 
-			&&	(InsideObject	||	!FCString::Strfind(Cmd,TEXT("INSIDE=")))))
+			((CheckType		||	!FCString::Strifind(Cmd,TEXT("CLASS=")))
+			&&	(MetaClass		||	!FCString::Strifind(Cmd,TEXT("TYPE=")))
+			&&	(CheckOuter		||	!FCString::Strifind(Cmd,TEXT("OUTER=")))
+			&&	(InsidePackage	||	!FCString::Strifind(Cmd,TEXT("PACKAGE="))) 
+			&&	(InsideObject	||	!FCString::Strifind(Cmd,TEXT("INSIDE=")))))
 		{
 			const bool bTrackDetailedObjectInfo = bAll || (CheckType != NULL && CheckType != UObject::StaticClass()) || CheckOuter != NULL || InsideObject != NULL || InsidePackage != NULL || !ObjectName.IsEmpty();
 			const bool bOnlyListGCObjects = FParse::Param(Cmd, TEXT("GCONLY"));

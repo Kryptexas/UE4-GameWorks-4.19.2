@@ -37,7 +37,7 @@ public:
 	 * Determine the minimum supported 
 	 */
 	UPROPERTY(EditAnywhere, config, Category="OS Info", Meta=(DisplayName = "Minimum OS Version"))
-	TEnumAsByte<EMinimumSupportedOS> MinimumOSVersion;
+	EMinimumSupportedOS MinimumOSVersion;
 
 	/** The audio device name to use if not the default windows audio device. Leave blank to use default audio device. */
 	UPROPERTY(config, EditAnywhere, Category = "Audio")

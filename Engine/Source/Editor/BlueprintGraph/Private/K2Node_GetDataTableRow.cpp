@@ -319,7 +319,7 @@ void UK2Node_GetDataTableRow::ExpandNode(class FKismetCompilerContext& CompilerC
         
     UEdGraphPin* OriginalDataTableInPin = GetDataTablePin();
     UDataTable* Table = (OriginalDataTableInPin != NULL) ? Cast<UDataTable>(OriginalDataTableInPin->DefaultObject) : NULL;
-    if((0 == OriginalDataTableInPin->LinkedTo.Num()) && (NULL == Table))
+    if((nullptr == OriginalDataTableInPin) || (0 == OriginalDataTableInPin->LinkedTo.Num() && nullptr == Table))
     {
         CompilerContext.MessageLog.Error(*LOCTEXT("GetDataTableRowNoDataTable_Error", "GetDataTableRow must have a DataTable specified.").ToString(), this);
         // we break exec links so this is the only error we get

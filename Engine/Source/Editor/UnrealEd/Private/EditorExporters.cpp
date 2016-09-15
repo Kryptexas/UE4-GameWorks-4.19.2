@@ -921,10 +921,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 					UMaterialInterface* Material = 0;
 
 					// Get the material for this triangle by first looking at the material overrides array and if that is NULL by looking at the material array in the original static mesh
-					if (StaticMeshComponent)
-					{
-						Material = StaticMeshComponent->GetMaterial(Section.MaterialIndex);
-					}
+					Material = StaticMeshComponent->GetMaterial(Section.MaterialIndex);
 
 					// cache the set of needed materials if desired
 					if (Materials && Material)

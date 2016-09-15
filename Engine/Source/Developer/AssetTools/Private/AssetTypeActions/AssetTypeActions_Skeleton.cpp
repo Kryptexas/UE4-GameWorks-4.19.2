@@ -521,7 +521,7 @@ void FAssetTypeActions_Skeleton::CreateRig(const TWeakObjectPtr<USkeleton> Skele
 
 void FAssetTypeActions_Skeleton::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bAllowRemapToExisting, bool bConvertSpaces, const EditorAnimUtils::FNameDuplicationRule* NameRule)
 {
-	if((OldSkeleton && OldSkeleton->GetPreviewMesh(true) == NULL))
+	if(OldSkeleton == nullptr || OldSkeleton->GetPreviewMesh(true) == nullptr)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("OldSkeletonName"), FText::FromString(GetNameSafe(OldSkeleton)));

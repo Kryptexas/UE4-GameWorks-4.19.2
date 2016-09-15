@@ -826,17 +826,22 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromDC( UFont* Font, HDC dc, int3
 			}
 		} Resources;
 		Resources.BitmapDC = CreateCompatibleDC(dc);
-		Resources.BitmapHandle = CreateDIBSection(Resources.BitmapDC, &BitmapInfo, DIB_RGB_COLORS, 0, 0, 0);
 
-		// Bind the bitmap to the Device Context
-		SelectObject(Resources.BitmapDC, Resources.BitmapHandle);
+		void* BitsPtr;
+		Resources.BitmapHandle = CreateDIBSection(Resources.BitmapDC, &BitmapInfo, DIB_RGB_COLORS, &BitsPtr, 0, 0);
 
-		// Copy from the Device Context to the Bitmap we created
-		BitBlt(Resources.BitmapDC, 0, 0, BitmapWidth, BitmapHeight, dc, 0, 0, TTFConstants::WIN_SRCCOPY);
+		if (Resources.BitmapHandle)
+		{
+			// Bind the bitmap to the Device Context
+			SelectObject(Resources.BitmapDC, Resources.BitmapHandle);
 
-		// Finally copy the data from the Bitmap into an Unreal data array.
-		SourceData.AddUninitialized(BitmapWidth * BitmapHeight);
-		GetDIBits( Resources.BitmapDC, Resources.BitmapHandle, 0, BitmapHeight, SourceData.GetData(), &BitmapInfo, DIB_RGB_COLORS );
+			// Copy from the Device Context to the Bitmap we created
+			BitBlt(Resources.BitmapDC, 0, 0, BitmapWidth, BitmapHeight, dc, 0, 0, TTFConstants::WIN_SRCCOPY);
+
+			// Finally copy the data from the Bitmap into an Unreal data array.
+			SourceData.AddUninitialized(BitmapWidth * BitmapHeight);
+			GetDIBits( Resources.BitmapDC, Resources.BitmapHandle, 0, BitmapHeight, SourceData.GetData(), &BitmapInfo, DIB_RGB_COLORS );
+		}
 	}
 
 	uint8* MipData = Texture->Source.LockMip(0);
@@ -1455,7 +1460,7 @@ FString UTrueTypeFontFactory::FindBitmapFontFile()
 			continue;
 		}
 
-		if( FCString::Strnicmp( *ImportOptions->Data.FontName, Name, ImportOptions->Data.FontName.Len() ) == 0 && FCString::Strfind( Name, TEXT("(TrueType)") ) == NULL )
+		if( FCString::Strnicmp( *ImportOptions->Data.FontName, Name, ImportOptions->Data.FontName.Len() ) == 0 && FCString::Strifind( Name, TEXT("(TrueType)") ) == NULL )
 		{
 			FontFile = Data;
 			break;

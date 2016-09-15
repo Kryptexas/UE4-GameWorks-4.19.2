@@ -59,3 +59,13 @@ struct TOr<>
 {
 	enum { Value = false };
 };
+
+/**
+ * Does a boolean NOT of the ::Value static members of the type.
+ */
+template <typename Type>
+struct TNot
+{
+	enum { Value = !Type::Value };
+};
+

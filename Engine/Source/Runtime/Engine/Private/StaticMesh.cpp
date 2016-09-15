@@ -1712,7 +1712,11 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 void UStaticMesh::BeginDestroy()
 {
 	Super::BeginDestroy();
-	ReleaseResources();
+
+	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject))
+	{
+		ReleaseResources();
+	}
 }
 
 bool UStaticMesh::IsReadyForFinishDestroy()

@@ -2818,7 +2818,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 				if( !bIsHoveringOverViewportInteractable )
 				{
 					// Apply VR controller trigger pressure if we're painting in VR
-					if (bIsPainting && PaintingWithInteractorInVR && VREditorMode != nullptr)
+					if (bIsPainting && PaintingWithInteractorInVR && VREditorMode != nullptr && VRInteractor != nullptr)
 					{
 						StrengthScale *= VRInteractor->GetSelectAndMoveTriggerValue();
 					}

@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "RtAudio.h"
+THIRD_PARTY_INCLUDES_START
+	#include "RtAudio.h"
+THIRD_PARTY_INCLUDES_END
 #include "UnrealEd.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMicManager, Log, All);

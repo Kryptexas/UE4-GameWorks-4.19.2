@@ -1150,7 +1150,7 @@ public:
 				}
 
  				FContextEmitter CallContextWriter(*this);
-				UProperty* RValueProperty = RValueTerm ? RValueTerm->AssociatedVarProperty : nullptr;
+				UProperty* RValueProperty = RValueTerm->AssociatedVarProperty;
 				CallContextWriter.TryStartContext(Term->Context, /*@TODO: bUnsafeToSkip*/ true, /*bIsInterfaceContext*/ false, RValueProperty);
 
 				EmitTermExpr(Term, CoerceProperty);

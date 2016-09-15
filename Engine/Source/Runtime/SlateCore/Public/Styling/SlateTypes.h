@@ -11,7 +11,7 @@
 
 /** Used to determine how we should handle mouse wheel input events when someone scrolls. */
 UENUM()
-enum class EConsumeMouseWheel
+enum class EConsumeMouseWheel : uint8
 {
 	/** Only consume the mouse wheel event when we actually scroll some amount. */
 	WhenScrollingPossible,

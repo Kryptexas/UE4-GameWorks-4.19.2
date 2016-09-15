@@ -131,12 +131,9 @@ void UWorldThumbnailRenderer::GetView(UWorld* World, FSceneViewFamily* ViewFamil
 			const float WorldRadius = WorldBox.GetSize().Size() / 2.f;
 			float TargetDistance = WorldRadius / FMath::Tan(HalfFOVRadians);
 
-			if (ensure(ThumbnailInfo))
+			if (TargetDistance + ThumbnailInfo->OrbitZoom < 0)
 			{
-				if (TargetDistance + ThumbnailInfo->OrbitZoom < 0)
-				{
-					ThumbnailInfo->OrbitZoom = -TargetDistance;
-				}
+				ThumbnailInfo->OrbitZoom = -TargetDistance;
 			}
 
 			float OrbitPitch = GlobalOrbitPitchOffset + ThumbnailInfo->OrbitPitch;

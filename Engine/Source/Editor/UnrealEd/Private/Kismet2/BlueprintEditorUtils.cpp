@@ -300,7 +300,7 @@ void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePi
 	}
 	else if (FunctionDefNode || EventNode)
 	{
-		auto Func = FFunctionFromNodeHelper::FunctionFromNode(FunctionDefNode ? static_cast<const UK2Node*>(FunctionDefNode) : static_cast<const UK2Node*>(EventNode));
+		UFunction* Func = FFunctionFromNodeHelper::FunctionFromNode(FunctionDefNode ? static_cast<const UK2Node*>(FunctionDefNode) : static_cast<const UK2Node*>(EventNode));
 		const FName FuncName = Func 
 			? Func->GetFName() 
 			: (FunctionDefNode ? FunctionDefNode->SignatureName : EventNode->GetFunctionName());
@@ -315,7 +315,7 @@ void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePi
 			if (NodeIsNotTransient(CallSite))
 			{
 				UBlueprint* CallSiteBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(CallSite);
-				if (CallSiteBlueprint == nullptr)
+				if (!CallSiteBlueprint)
 				{
 					// the node doesn't have a Blueprint in its outer chain, 
 					// probably signifying that it is part of a graph that has 
@@ -326,7 +326,7 @@ void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePi
 				const bool bNameMatches = (CallSite->FunctionReference.GetMemberName() == FuncName);
 				const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite->GetBlueprintClassFromNode());
 				const bool bClassMatchesEasy = (MemberParentClass != NULL) && (MemberParentClass->IsChildOf(SignatureClass) || MemberParentClass->IsChildOf(InBlueprint->GeneratedClass));
-				const bool bClassMatchesHard = (CallSiteBlueprint != NULL) && (CallSite->FunctionReference.IsSelfContext()) && (SignatureClass == NULL) 
+				const bool bClassMatchesHard = (CallSite->FunctionReference.IsSelfContext()) && (SignatureClass == NULL) 
 					&& (CallSiteBlueprint == InBlueprint || CallSiteBlueprint->SkeletonGeneratedClass->IsChildOf(InBlueprint->SkeletonGeneratedClass));
 				const bool bValidSchema = CallSite->GetSchema() != NULL;
 
@@ -6980,6 +6980,7 @@ bool FBlueprintEditorUtils::KismetDiagnosticExec(const TCHAR* InStream, FOutputD
 			UObject* TestObj = *ObjectIt;
 
 			// If the test object is itself transient, there is no concern
+			CA_SUPPRESS(28182); // https://connect.microsoft.com/VisualStudio/feedback/details/3082622
 			if (TestObj->HasAnyFlags(RF_Transient))
 			{
 				continue;
@@ -7841,7 +7842,7 @@ bool FBlueprintEditorUtils::PropertyValueToString_Direct(const UProperty* Proper
 
 		UUserDefinedStruct* UserDefinedStruct = StructProperty ? Cast<UUserDefinedStruct>(StructProperty->Struct) : nullptr;
 		FStructOnScope StructOnScope(UserDefinedStruct);
-		if (StructOnScope.IsValid())
+		if (UserDefinedStruct && StructOnScope.IsValid())
 		{
 			UserDefinedStruct->InitializeDefaultValue(StructOnScope.GetStructMemory());
 			DefaultValue = StructOnScope.GetStructMemory();

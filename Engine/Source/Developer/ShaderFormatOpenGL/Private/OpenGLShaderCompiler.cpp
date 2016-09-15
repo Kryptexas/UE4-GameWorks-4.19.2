@@ -953,7 +953,7 @@ static void PrecompileGLSLES2(FShaderCompilerOutput& ShaderOutput, const FShader
 				bSavedSuccessfully = true;
 
 				// @todo: Patch the code so that textureCubeLodEXT gets converted to textureCubeLod to workaround PowerVR issues
-				const ANSICHAR* VersionString = FCStringAnsi::Strfind(ShaderSource, "#version 100");
+				const ANSICHAR* VersionString = FCStringAnsi::Strifind(ShaderSource, "#version 100");
 				check(VersionString);
 				VersionString += 12;	// strlen("# version 100");
 				Ar->Serialize((void*)ShaderSource, (VersionString - ShaderSource) * sizeof(ANSICHAR));

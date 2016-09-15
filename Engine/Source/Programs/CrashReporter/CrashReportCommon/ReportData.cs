@@ -73,7 +73,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 			string EngineVersion = string.Format
 			(
 				"{0}-{1}+{2}",
-				!string.IsNullOrEmpty( BuildVersion ) ? BuildVersion : "NO_BUILD_VERSION",
+				!string.IsNullOrEmpty( EngineBuildVersion ) ? EngineBuildVersion : "NO_BUILD_VERSION",
 				!string.IsNullOrEmpty( BuiltFromCL ) ? BuiltFromCL : "NO_BUILT_FROM_CL",
 				!string.IsNullOrEmpty( BranchName ) ? BranchName.Replace( '/', '+' ) : "NO_BRANCH"
 			);
@@ -87,7 +87,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 			string EngineVersion = string.Format
 			(
 				"{0}-{1}+{2}",
-				!string.IsNullOrEmpty( BuildVersion ) ? BuildVersion : "",
+				!string.IsNullOrEmpty( EngineBuildVersion ) ? EngineBuildVersion : "",
 				!string.IsNullOrEmpty( BuiltFromCL ) ? BuiltFromCL : "",
 				!string.IsNullOrEmpty( BranchNameWithDepot ) ? BranchNameWithDepot.Replace( '/', '+' ) : ""
 			);
@@ -138,7 +138,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 		}
 
 		/// <summary>Accessor for the build version string from the report metadata</summary>
-		public string BuildVersion
+		public string EngineBuildVersion
 		{
 			get
 			{
@@ -434,6 +434,15 @@ namespace Tools.CrashReporter.CrashReportCommon
 			get
 			{
 				return Metadata.DynamicSignatures.IsEnsure;
+			}
+		}
+
+		/// <summary> Is the build version string (cannot be parsed for details - set unique per-project and build) </summary>
+		public string BuildVersion
+		{
+			get
+			{
+				return Metadata.DynamicSignatures.BuildVersion;
 			}
 		}
 

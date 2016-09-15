@@ -1011,7 +1011,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			FParse::Value(Cmd, TEXT("ZOFF="), off.Z);
 			FParse::Value(Cmd, TEXT("YAW="), yaw);
 
-			if (FCString::Strfind(Cmd+1, TEXT("GEARVR")))
+			if (FCString::Strifind(Cmd+1, TEXT("GEARVR")))
 			{
 				CMType = CM_GearVR;
 			}

@@ -172,22 +172,8 @@ struct FMacApplicationInfo
 		
 		// Use the log file specified on the commandline if there is one
 		CommandLine = FCommandLine::Get();
-		if (FParse::Value(*CommandLine, TEXT("LOG="), CommandlineLogFile, ARRAY_COUNT(CommandlineLogFile)))
-		{
-			LogDirectory += CommandlineLogFile;
-		}
-		else if (AppName.Len() != 0)
-		{
-			// If the app name is defined, use it as the log filename
-			LogDirectory += FString::Printf(TEXT("%s.Log"), *AppName);
-		}
-		else
-		{
-			// Revert to hardcoded UE4.log
-			LogDirectory += TEXT("UE4.Log");
-		}
-		FString LogPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*LogDirectory);
-		FCStringAnsi::Strcpy(AppLogPath, PATH_MAX+1, TCHAR_TO_UTF8(*LogPath));
+		FString LogPath = FGenericPlatformOutputDevices::GetAbsoluteLogFilename();
+		FCStringAnsi::Strcpy(AppLogPath, PATH_MAX + 1, TCHAR_TO_UTF8(*LogPath));
 
 		FString UserCrashVideoPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CrashVideoPath);
 		FCStringAnsi::Strcpy(CrashReportVideo, PATH_MAX+1, TCHAR_TO_UTF8(*UserCrashVideoPath));

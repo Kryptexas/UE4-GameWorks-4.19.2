@@ -588,12 +588,12 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, FArchive& Ar)
 	UObject* Search = Obj;
 	do
 	{
-		if (!Search->NeedsLoadForClient())
+		if (!Obj->HasAnyMarks(OBJECTMARK_NotForClient) && !Search->NeedsLoadForClient())
 		{
 			Obj->Mark(OBJECTMARK_NotForClient);
 		}
 
-		if (!Search->NeedsLoadForServer())
+		if (!Obj->HasAnyMarks(OBJECTMARK_NotForServer) && !Search->NeedsLoadForServer())
 		{
 			Obj->Mark(OBJECTMARK_NotForServer);
 		}
@@ -4759,8 +4759,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						// Restore BulkData flags to before serialization started
 						BulkDataStorageInfo.BulkData->ClearBulkDataFlags(0xFFFFFFFF);
 						BulkDataStorageInfo.BulkData->SetBulkDataFlags(OldBulkDataFlags);
-
 						BulkDataStorageInfo.BulkData->Unlock();
+						BulkDataStorageInfo.BulkData->RemoveBulkData();
 					}
 
 					if (BulkArchive)

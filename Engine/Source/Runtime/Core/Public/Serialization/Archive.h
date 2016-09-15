@@ -7,6 +7,8 @@
 #include "Misc/Compression.h"
 #include "Misc/EngineVersionBase.h"
 #include "TextNamespaceFwd.h"
+#include "Templates/EnableIf.h"
+#include "Templates/IsEnumClass.h"
 
 class FAssetPtr;
 class FCustomVersionContainer;
@@ -307,6 +309,21 @@ public:
 		Ar.ByteOrderSerialize(&Value, sizeof(Value));
 
 		return Ar;
+	}
+
+	/**
+	 * Serializes enum classes as their underlying type.
+	 *
+	 * @param Ar The archive to serialize from or to.
+	 * @param Value The value to serialize.
+	 */
+	template <
+		typename EnumType,
+		typename = typename TEnableIf<TIsEnumClass<EnumType>::Value>::Type
+	>
+	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, EnumType& Value)
+	{
+		return Ar << (__underlying_type(EnumType)&)Value;
 	}
 
 	/**

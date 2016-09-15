@@ -80,6 +80,7 @@ void FMovieSceneAnimationSectionRecorder::CreateSection(UObject* InObjectToRecor
 
 				FString AssetName = Settings->SequenceName.Len() > 0 ? Settings->SequenceName : TEXT("RecordedSequence");
 				AssetName += TEXT("_");
+				check(Actor);
 				AssetName += Actor->GetActorLabel();
 
 				AnimSequence = SequenceRecorderUtils::MakeNewAsset<UAnimSequence>(AssetPath, AssetName);

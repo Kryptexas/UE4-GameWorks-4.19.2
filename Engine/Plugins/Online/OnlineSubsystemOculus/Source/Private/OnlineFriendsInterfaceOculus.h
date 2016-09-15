@@ -6,7 +6,9 @@
 #include "OnlinePresenceInterface.h"
 #include "OnlineSubsystemOculusTypes.h"
 #include "OnlineSubsystemOculusPackage.h"
-#include <string>
+THIRD_PARTY_INCLUDES_START
+	#include <string>
+THIRD_PARTY_INCLUDES_END
 
 class FOnlineOculusFriend : public FOnlineFriend
 {

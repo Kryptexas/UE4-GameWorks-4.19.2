@@ -2658,7 +2658,7 @@ void FLevelEditorActionCallbacks::MoveActorTo_Clicked( const bool InAlign, const
 	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 	{
 		AActor* Actor = Cast<AActor>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
+		checkSlow( Actor );
 		if ( Actor == InDestination )	// Early out
 		{
 			continue;

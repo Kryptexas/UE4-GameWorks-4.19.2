@@ -3258,11 +3258,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		DebugCanvas->SetScaledToRenderTarget(bStereoRendering);
 		DebugCanvas->SetStereoRendering(bStereoRendering);
 	}
-	if (Canvas)
-	{
-		Canvas->SetScaledToRenderTarget(bStereoRendering);
-		Canvas->SetStereoRendering(bStereoRendering);
-	}
+	Canvas->SetScaledToRenderTarget(bStereoRendering);
+	Canvas->SetStereoRendering(bStereoRendering);
 
 	// Setup a FSceneViewFamily/FSceneView for the viewport.
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(

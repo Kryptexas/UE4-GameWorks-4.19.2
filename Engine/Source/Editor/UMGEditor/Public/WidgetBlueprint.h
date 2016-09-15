@@ -175,12 +175,6 @@ class UMGEDITOR_API UWidgetBlueprint : public UBlueprint
 
 public:
 
-	//~ Begin UObject Interface
-	virtual bool NeedsLoadForClient() const override;
-	//~ End UObject Interface
-
-public:
-
 #if WITH_EDITORONLY_DATA
 	/** A tree of the widget templates to be created */
 	UPROPERTY()

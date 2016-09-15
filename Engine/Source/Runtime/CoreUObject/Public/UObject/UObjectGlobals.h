@@ -1195,7 +1195,9 @@ COREUOBJECT_API void CheckIsClassChildOf_Internal(UClass* Parent, UClass* Child)
  * @return	a pointer of type T to a new object of the specified class
  */
 template< class T >
-T* NewObject(UObject* Outer, UClass* Class, FName Name = NAME_None, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+FUNCTION_NON_NULL_RETURN_START
+	T* NewObject(UObject* Outer, UClass* Class, FName Name = NAME_None, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+FUNCTION_NON_NULL_RETURN_END
 {
 	if (Name == NAME_None)
 	{
@@ -1211,7 +1213,9 @@ T* NewObject(UObject* Outer, UClass* Class, FName Name = NAME_None, EObjectFlags
 }
 
 template< class T >
-T* NewObject(UObject* Outer = (UObject*)GetTransientPackage())
+FUNCTION_NON_NULL_RETURN_START
+	T* NewObject(UObject* Outer = (UObject*)GetTransientPackage())
+FUNCTION_NON_NULL_RETURN_END
 {
 	// Name is always None for this case
 	FObjectInitializer::AssertIfInConstructor(Outer, TEXT("NewObject with empty name can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use ObjectInitializer.CreateDefaultSuobject<> instead."));
@@ -1220,7 +1224,9 @@ T* NewObject(UObject* Outer = (UObject*)GetTransientPackage())
 }
 
 template< class T >
-T* NewObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+FUNCTION_NON_NULL_RETURN_START
+	T* NewObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+FUNCTION_NON_NULL_RETURN_END
 {
 	if (Name == NAME_None)
 	{

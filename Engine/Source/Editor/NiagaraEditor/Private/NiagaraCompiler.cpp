@@ -139,7 +139,7 @@ bool FNiagaraCompiler::CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs
 			FText ErrorText = FText::Format(LOCTEXT("Expression {0} has incorrect inputs!\nExpected: {1} - Actual: {2}", ""),
 				FText::FromString(OpName.ToString()),
 				FText::AsNumber((int32)OpInfo->Inputs[i].DataType),
-				FText::AsNumber((int32)((TNiagaraExprPtr)Inputs[i])->Result.Type.GetValue()));
+				FText::AsNumber((int32)((TNiagaraExprPtr)Inputs[i])->Result.Type));
 			MessageLog.Error(*ErrorText.ToString());
 		}
 	}
@@ -163,7 +163,7 @@ bool FNiagaraCompiler::CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outpu
 			FText ErrorText = FText::Format(LOCTEXT("Expression {0} has incorrect inputs!\nExpected: {1} - Actual: {2}", ""),
 				FText::FromString(OpName.ToString()),
 				FText::AsNumber((int32)OpInfo->Outputs[i].DataType),
-				FText::AsNumber((int32)((TNiagaraExprPtr)Outputs[i])->Result.Type.GetValue()));
+				FText::AsNumber((int32)((TNiagaraExprPtr)Outputs[i])->Result.Type));
 			MessageLog.Error(*ErrorText.ToString());
 		}
 	}

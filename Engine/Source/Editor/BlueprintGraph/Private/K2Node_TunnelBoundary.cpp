@@ -25,7 +25,7 @@ public:
 				case TBT_EntrySite:
 				case TBT_ExitSite:
 				{
-					GenerateSimpleThenGoto(Context, *Node);
+		GenerateSimpleThenGoto(Context, *Node);
 					break;
 				}
 				case TBT_EndOfThread:
@@ -93,30 +93,32 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(UEdGraph* TunnelGraph, 
 
 void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel* TunnelInstance, UEdGraph* TunnelGraph, class FCompilerResultsLog& MessageLog)
 {
+	if (!TunnelGraph)
+	{
+		return;
+	}
+
 	TArray<UEdGraphPin*> TunnelEntryPins;
 	TArray<UEdGraphPin*> TunnelExitPins;
 	UEdGraphNode* TunnelExitNode = nullptr;
-	if (TunnelGraph)
+	TArray<UK2Node_Tunnel*> Tunnels;
+	TunnelGraph->GetNodesOfClass<UK2Node_Tunnel>(Tunnels);
+	for (auto TunnelNode : Tunnels)
 	{
-		TArray<UK2Node_Tunnel*> Tunnels;
-		TunnelGraph->GetNodesOfClass<UK2Node_Tunnel>(Tunnels);
-		for (auto TunnelNode : Tunnels)
+		if (IsPureTunnel(TunnelNode))
 		{
-			if (IsPureTunnel(TunnelNode))
+			for (UEdGraphPin* Pin : TunnelNode->Pins)
 			{
-				for (UEdGraphPin* Pin : TunnelNode->Pins)
+				if (Pin->LinkedTo.Num() && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 				{
-					if (Pin->LinkedTo.Num() && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+					if (Pin->Direction == EGPD_Output)
 					{
-						if (Pin->Direction == EGPD_Output)
-						{
-							TunnelEntryPins.Add(Pin);
-						}
-						else
-						{
-							TunnelExitNode = TunnelNode;
-							TunnelExitPins.Add(Pin);
-						}
+						TunnelEntryPins.Add(Pin);
+					}
+					else
+					{
+						TunnelExitNode = TunnelNode;
+						TunnelExitPins.Add(Pin);
 					}
 				}
 			}
@@ -296,11 +298,12 @@ UEdGraphNode* UK2Node_TunnelBoundary::FindTrueSourceTunnelInstance(UEdGraphNode*
 					if (GraphNode->NodeGuid == Tunnel->NodeGuid)
 					{
 						SourceNode = GraphNode;
+						break;
 					}
-					else if (GraphNode->IsA<UK2Node_Composite>() || GraphNode->IsA<UK2Node_MacroInstance>())
+
+					if (GraphNode->IsA<UK2Node_Composite>() || GraphNode->IsA<UK2Node_MacroInstance>())
 					{
 						SourceNode = FindTrueSourceTunnelInstance(Tunnel, GraphNode);
-					}
 					if (SourceNode)
 					{
 						break;
@@ -308,6 +311,7 @@ UEdGraphNode* UK2Node_TunnelBoundary::FindTrueSourceTunnelInstance(UEdGraphNode*
 				}
 			}
 		}
+	}
 	}
 	return SourceNode;
 }

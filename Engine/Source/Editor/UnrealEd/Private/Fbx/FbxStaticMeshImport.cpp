@@ -1668,8 +1668,13 @@ struct FbxSocketNode
 
 static void FindMeshSockets( FbxNode* StartNode, TArray<FbxSocketNode>& OutFbxSocketNodes )
 {
+	if( !StartNode )
+	{
+		return;
+	}
+
 	static const FString SocketPrefix( TEXT("SOCKET_") );
-	if( StartNode && StartNode->GetNodeAttributeCount() > 0 )
+	if( StartNode->GetNodeAttributeCount() > 0 )
 	{
 		// Find null attributes, they cold be sockets
 		FbxNodeAttribute* Attribute = StartNode->GetNodeAttribute();

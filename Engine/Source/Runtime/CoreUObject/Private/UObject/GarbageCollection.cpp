@@ -1714,7 +1714,6 @@ void UStructProperty::EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset)
 	{
 		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
 		check(CppStructOps); // else should not have STRUCT_AddStructReferencedObjects
-		check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_AddStructReferencedObjects
 		FGCReferenceFixedArrayTokenHelper FixedArrayHelper(OwnerClass, BaseOffset + GetOffset_ForGC(), ArrayDim, ElementSize, *this);
 
 		OwnerClass.EmitObjectReference(BaseOffset + GetOffset_ForGC(), GetFName(), GCRT_AddStructReferencedObjects);

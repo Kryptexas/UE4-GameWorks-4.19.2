@@ -61,13 +61,14 @@ static EComponentMobility::Type GetInheritedMobility(USceneComponent const* cons
 			{
 				for (USCS_Node const* Node : BlueprintClass->SimpleConstructionScript->GetAllNodes())
 				{
+					check(Node); // fix for this bug: https://connect.microsoft.com/VisualStudio/feedback/details/3081898
 					if (Node->VariableName == ComponentNode->ParentComponentOrVariableName)
 					{
 						ParentNode = Node;
 						break;
 					}
 				}
-			}			
+			}
 
 			if (ParentNode != NULL)
 			{

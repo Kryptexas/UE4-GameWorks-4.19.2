@@ -100,15 +100,16 @@ void FSlateD3DVS::BindParameters()
 {
 	UpdateParameters();
 
-	if( ShaderBindings.ResourceViews.Num() > 0 )
+	int32 NumViews = ShaderBindings.ResourceViews.Num();
+	if( NumViews > 0 )
 	{
-		ID3D11ShaderResourceView** const Views = new ID3D11ShaderResourceView*[ ShaderBindings.ResourceViews.Num() ];
-		for( int32 I = 0; I < ShaderBindings.ResourceViews.Num(); ++I )
+		ID3D11ShaderResourceView** const Views = new ID3D11ShaderResourceView*[ NumViews ];
+		for( int32 I = 0; I < NumViews; ++I )
 		{
 			Views[I] = ShaderBindings.ResourceViews[I]->GetParameter().GetReference();
 		}
 
-		GD3DDeviceContext->VSSetShaderResources(0, ShaderBindings.ResourceViews.Num(), Views);
+		GD3DDeviceContext->VSSetShaderResources(0, NumViews, Views);
 
 		delete[] Views;
 	}
@@ -194,28 +195,32 @@ void FSlateD3DPS::BindParameters()
 {
 	UpdateParameters();
 
-	if( ShaderBindings.ResourceViews.Num() )
+	int32 NumViews = ShaderBindings.ResourceViews.Num();
+
+	if( NumViews )
 	{
-		ID3D11ShaderResourceView** const Views = new ID3D11ShaderResourceView*[ ShaderBindings.ResourceViews.Num() ];
-		for( int32 I = 0; I < ShaderBindings.ResourceViews.Num(); ++I )
+		ID3D11ShaderResourceView** const Views = new ID3D11ShaderResourceView*[ NumViews ];
+		for( int32 I = 0; I < NumViews; ++I )
 		{
 			Views[I] = ShaderBindings.ResourceViews[I]->GetParameter().GetReference();
 		}
 
-		GD3DDeviceContext->PSSetShaderResources(0, ShaderBindings.ResourceViews.Num(), Views);
+		GD3DDeviceContext->PSSetShaderResources(0, NumViews, Views);
 
 		delete[] Views;
 	}
 
-	if( ShaderBindings.ConstantBuffers.Num() )
+	int32 NumBuffers = ShaderBindings.ConstantBuffers.Num();
+
+	if( NumBuffers )
 	{
-		ID3D11Buffer** const ConstantBuffers = new ID3D11Buffer*[ ShaderBindings.ConstantBuffers.Num()  ];
-		for( int32 I = 0; I < ShaderBindings.ConstantBuffers.Num(); ++I )
+		ID3D11Buffer** const ConstantBuffers = new ID3D11Buffer*[ NumBuffers ];
+		for( int32 I = 0; I < NumBuffers; ++I )
 		{
 			ConstantBuffers[I] = ShaderBindings.ConstantBuffers[I]->GetParameter().GetReference();
 		}
 
-		GD3DDeviceContext->PSSetConstantBuffers(0, ShaderBindings.ConstantBuffers.Num(), ConstantBuffers);
+		GD3DDeviceContext->PSSetConstantBuffers(0, NumBuffers, ConstantBuffers);
 
 		delete[] ConstantBuffers;
 	}	

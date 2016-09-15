@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include <Alembic/AbcGeom/All.h>
+THIRD_PARTY_INCLUDES_START
+	#include <Alembic/AbcGeom/All.h>
+THIRD_PARTY_INCLUDES_END
 
 class UStaticMesh;
 class USkeletalMesh;

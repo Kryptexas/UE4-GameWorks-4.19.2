@@ -3,7 +3,11 @@
 #pragma once
 
 #include "Templates/UnrealTypeTraits.h"
+#include "Templates/IsEnumClass.h"
 
+template <bool> struct TEnumAsByte_EnumClass;
+template <> struct DEPRECATED(4.13, "TEnumAsByte is not intended for use with enum classes - please derive your enum class from uint8 instead.") TEnumAsByte_EnumClass<true> {};
+template <> struct TEnumAsByte_EnumClass<false> {};
 
 /**
  * Template to store enumeration values as bytes in a type-safe way.
@@ -11,6 +15,8 @@
 template<class TEnum>
 class TEnumAsByte
 {
+	typedef TEnumAsByte_EnumClass<TIsEnumClass<TEnum>::Value> Check;
+
 public:
 	typedef TEnum EnumType;
 

@@ -227,25 +227,30 @@ FString FPropertyValueImpl::GetPropertyValueArray() const
 	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
 	if( PropertyNodePin.IsValid() )
 	{
-		uint8* Addr = nullptr;
 		FReadAddressList ReadAddresses;
-		UProperty* NodeProperty = PropertyNodePin->GetProperty();
 
 		bool bSingleValue = PropertyNodePin->GetReadAddress( !!PropertyNodePin->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly), ReadAddresses, false );
 
-		Addr = ReadAddresses.GetAddress(0);
-		if( bSingleValue && Addr )
+		if( bSingleValue )
 		{
-			if ( NodeProperty != nullptr && Cast<UArrayProperty>(NodeProperty) != nullptr )
+			UProperty* NodeProperty = PropertyNodePin->GetProperty();
+			if( NodeProperty != nullptr )
 			{
-				String = FString::Printf( TEXT("%(%d)"), FScriptArrayHelper::Num(Addr) );
-			}
-			else
-			{
-				String = FString::Printf( TEXT("%[%d]"), NodeProperty->ArrayDim );
+				uint8* Addr = ReadAddresses.GetAddress(0);
+				if( Addr )
+				{
+					if ( NodeProperty->IsA<UArrayProperty>() )
+					{
+						String = FString::Printf( TEXT("%(%d)"), FScriptArrayHelper::Num(Addr) );
+					}
+					else
+					{
+						String = FString::Printf( TEXT("%[%d]"), NodeProperty->ArrayDim );
+					}
+				}
 			}
 		}
-		else if( !bSingleValue )
+		else
 		{
 			String = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString();
 		}

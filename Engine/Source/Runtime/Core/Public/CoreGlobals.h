@@ -426,3 +426,7 @@ extern CORE_API bool IsInRHIThread();
 
 /** Thread used for RHI */
 extern CORE_API FRunnableThread* GRHIThread;
+
+/** Array to help visualize weak pointers in the debugger */
+class FFixedUObjectArray;
+extern CORE_API FFixedUObjectArray* GCoreObjectArrayForDebugVisualizers;

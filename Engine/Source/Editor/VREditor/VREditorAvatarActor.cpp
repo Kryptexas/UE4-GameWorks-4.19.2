@@ -235,7 +235,8 @@ void AVREditorAvatarActor::TickManually( const float DeltaTime )
 		RoomSpaceTransformWithWorldToMetersScaling.SetScale3D( RoomSpaceTransformWithWorldToMetersScaling.GetScale3D( ) * WorldScaleFactorVector );
 
 		// @todo vreditor urgent: Head disabled until we can fix late frame update issue
-		if ( false && VRMode->IsActuallyUsingVR() && GEngine->HMDDevice.IsValid( ) && GEngine->HMDDevice->IsHeadTrackingAllowed( ) )
+#if 0
+		if ( VRMode->IsActuallyUsingVR() && GEngine->HMDDevice.IsValid( ) && GEngine->HMDDevice->IsHeadTrackingAllowed( ) )
 		{
 			HeadMeshComponent->SetVisibility( true );
 
@@ -246,6 +247,7 @@ void AVREditorAvatarActor::TickManually( const float DeltaTime )
 			HeadMeshComponent->SetRelativeTransform( RoomSpaceTransformWithWorldToMetersScaling );
 		}
 		else
+#endif
 		{
 			HeadMeshComponent->SetVisibility( false );
 		}

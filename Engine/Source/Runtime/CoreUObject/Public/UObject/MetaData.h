@@ -123,7 +123,6 @@ public:
 
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
-	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForEditorGame() const override;
 	virtual bool IsAsset() const override { return false; }
 	// End of UObject interface

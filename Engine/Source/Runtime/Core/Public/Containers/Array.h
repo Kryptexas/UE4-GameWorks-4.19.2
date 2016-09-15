@@ -1382,15 +1382,8 @@ public:
 		return Index;
 	}
 
-	/**
-	 * Removes an element (or elements) at given location optionally shrinking
-	 * the array.
-	 *
-	 * @param Index Location in array of the element to remove.
-	 * @param Count (Optional) Number of elements to remove. Default is 1.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink array if suitable after remove. Default is true.
-	 */
-	void RemoveAt(int32 Index, int32 Count = 1, bool bAllowShrinking = true)
+private:
+	void RemoveAtImpl(int32 Index, int32 Count, bool bAllowShrinking)
 	{
 		if (Count)
 		{
@@ -1419,19 +1412,37 @@ public:
 		}
 	}
 
+public:
 	/**
 	 * Removes an element (or elements) at given location optionally shrinking
 	 * the array.
 	 *
-	 * This version is much more efficient than RemoveAt (O(Count) instead of
-	 * O(ArrayNum)), but does not preserve the order.
+	 * @param Index Location in array of the element to remove.
+	 * @param Count (Optional) Number of elements to remove. Default is 1.
+	 * @param bAllowShrinking (Optional) Tells if this call can shrink array if suitable after remove. Default is true.
+	 */
+	FORCEINLINE void RemoveAt(int32 Index)
+	{
+		RemoveAtImpl(Index, 1, true);
+	}
+
+	/**
+	 * Removes an element (or elements) at given location optionally shrinking
+	 * the array.
 	 *
 	 * @param Index Location in array of the element to remove.
 	 * @param Count (Optional) Number of elements to remove. Default is 1.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink array if
-	 *                        suitable after remove. Default is true.
+	 * @param bAllowShrinking (Optional) Tells if this call can shrink array if suitable after remove. Default is true.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE void RemoveAtSwap(int32 Index, int32 Count = 1, bool bAllowShrinking = true)
+	template <typename CountType>
+	FORCEINLINE void RemoveAt(int32 Index, CountType Count, bool bAllowShrinking = true)
+	{
+		static_assert(!TAreTypesEqual<CountType, bool>::Value, "TArray::RemoveAt: unexpected bool passed as the Count argument");
+		RemoveAtImpl(Index, Count, bAllowShrinking);
+	}
+
+private:
+	AGRESSIVE_ARRAY_FORCEINLINE void RemoveAtSwapImpl(int32 Index, int32 Count = 1, bool bAllowShrinking = true)
 	{
 		if (Count)
 		{
@@ -1459,6 +1470,43 @@ public:
 				ResizeShrink();
 			}
 		}
+	}
+
+public:
+	/**
+	 * Removes an element (or elements) at given location optionally shrinking
+	 * the array.
+	 *
+	 * This version is much more efficient than RemoveAt (O(Count) instead of
+	 * O(ArrayNum)), but does not preserve the order.
+	 *
+	 * @param Index Location in array of the element to remove.
+	 * @param Count (Optional) Number of elements to remove. Default is 1.
+	 * @param bAllowShrinking (Optional) Tells if this call can shrink array if
+	 *                        suitable after remove. Default is true.
+	 */
+	FORCEINLINE void RemoveAtSwap(int32 Index)
+	{
+		RemoveAtSwapImpl(Index, 1, true);
+	}
+
+	/**
+	 * Removes an element (or elements) at given location optionally shrinking
+	 * the array.
+	 *
+	 * This version is much more efficient than RemoveAt (O(Count) instead of
+	 * O(ArrayNum)), but does not preserve the order.
+	 *
+	 * @param Index Location in array of the element to remove.
+	 * @param Count (Optional) Number of elements to remove. Default is 1.
+	 * @param bAllowShrinking (Optional) Tells if this call can shrink array if
+	 *                        suitable after remove. Default is true.
+	 */
+	template <typename CountType>
+	FORCEINLINE void RemoveAtSwap(int32 Index, CountType Count, bool bAllowShrinking = true)
+	{
+		static_assert(!TAreTypesEqual<CountType, bool>::Value, "TArray::RemoveAtSwap: unexpected bool passed as the Count argument");
+		RemoveAtSwapImpl(Index, Count, bAllowShrinking);
 	}
 
 	/**

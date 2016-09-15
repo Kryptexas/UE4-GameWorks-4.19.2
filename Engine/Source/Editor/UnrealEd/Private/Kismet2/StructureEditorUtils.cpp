@@ -807,15 +807,20 @@ bool FStructureEditorUtils::CanEnable3dWidget(const UUserDefinedStruct* Struct, 
 
 bool FStructureEditorUtils::Change3dWidgetEnabled(UUserDefinedStruct* Struct, FGuid VarGuid, bool bIsEnabled)
 {
-	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
-	const auto PropertyStruct = VarDesc ? Cast<const UStruct>(VarDesc->SubCategoryObject.Get()) : NULL;
+	FStructVariableDescription* VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	if (!VarDesc)
+	{
+		return false;
+	}
+
+	const UStruct* PropertyStruct = Cast<const UStruct>(VarDesc->SubCategoryObject.Get());
 	if (FEdMode::CanCreateWidgetForStructure(PropertyStruct) && (VarDesc->bEnable3dWidget != bIsEnabled))
 	{
 		const FScopedTransaction Transaction(LOCTEXT("Change3dWidgetEnabled", "Change 3d Widget Enabled"));
 		ModifyStructData(Struct);
 
 		VarDesc->bEnable3dWidget = bIsEnabled;
-		auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
+		UProperty* Property = FindField<UProperty>(Struct, VarDesc->VarName);
 		if (Property)
 		{
 			if (VarDesc->bEnable3dWidget)

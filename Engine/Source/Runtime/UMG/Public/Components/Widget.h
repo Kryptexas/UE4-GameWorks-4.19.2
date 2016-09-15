@@ -163,7 +163,7 @@ public:
 
 	/** The visibility of the widget */
 	UPROPERTY()
-	TEnumAsByte<ESlateVisibility> Visiblity_DEPRECATED;
+	ESlateVisibility Visiblity_DEPRECATED;
 
 	/** The visibility of the widget */
 	UPROPERTY(EditAnywhere, Category="Behavior")

@@ -21,12 +21,6 @@ FCoreDelegates::FHotFixDelegate& FCoreDelegates::GetHotfixDelegate(EHotfixDelega
 	return HotFixDelegates[HotFix];
 }
 
-FCoreDelegates::FObjectArrayForDebugVisualizersDelegate& FCoreDelegates::GetObjectArrayForDebugVisualizersDelegate()
-{
-	static FObjectArrayForDebugVisualizersDelegate StaticDelegate;
-	return StaticDelegate;
-}
-
 FCoreDelegates::FOnPreMainInit& FCoreDelegates::GetPreMainInitDelegate()
 {
 	static FOnPreMainInit StaticDelegate;

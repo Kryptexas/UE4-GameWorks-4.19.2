@@ -126,6 +126,7 @@ void UActorRecording::GetSceneComponents(TArray<USceneComponent*>& OutArray, boo
 		TInlineComponentArray<USceneComponent*> OwnedComponents(GetActorToRecord());
 		for(USceneComponent* OwnedComponent : OwnedComponents)
 		{
+			check(OwnedComponent);
 			if(OwnedComponent->GetAttachParent() == nullptr && OwnedComponent != RootComponent)
 			{
 				OutArray.Add(OwnedComponent);
@@ -709,6 +710,7 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 
 							for (USceneComponent* Child : AllChildren)
 							{
+								CA_SUPPRESS(28182); // Dereferencing NULL pointer. 'Child' contains the same NULL value as 'AttachToComponent' did.
 								if (Child->GetFName() == AttachName)
 								{
 									AttachToComponent = Child;

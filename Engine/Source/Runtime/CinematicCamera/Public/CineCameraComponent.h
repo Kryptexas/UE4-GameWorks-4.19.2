@@ -130,7 +130,7 @@ struct FCameraFocusSettings
 
 	/** Which method to use to handle camera focus */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Focus Method")
-	TEnumAsByte<ECameraFocusMethod> FocusMethod;
+	ECameraFocusMethod FocusMethod;
 	
 	/** Manually-controlled focus distance (manual focus mode only) */
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Manual Focus Settings", meta=(Units=cm))

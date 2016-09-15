@@ -3567,7 +3567,7 @@ void APlayerController::PlayDynamicForceFeedback(float Intensity, float Duration
 	}
 }
 
-void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale, bool bLoop)
+void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffect, EControllerHand Hand, float Scale, bool bLoop)
 {
 	if (HapticEffect)
 	{
@@ -3582,18 +3582,18 @@ void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffec
 			ActiveHapticEffect_Right = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 			break;
 		default:
-			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand.GetValue(), *HapticEffect->GetName());
+			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand, *HapticEffect->GetName());
 			break;
 		}
 	}
 }
 
-void APlayerController::StopHapticEffect(TEnumAsByte<EControllerHand> Hand)
+void APlayerController::StopHapticEffect(EControllerHand Hand)
 {
 	SetHapticsByValue(0.f, 0.f, Hand);
 }
 
-void APlayerController::SetHapticsByValue(const float Frequency, const float Amplitude, TEnumAsByte<EControllerHand> Hand)
+void APlayerController::SetHapticsByValue(const float Frequency, const float Amplitude, EControllerHand Hand)
 {
 	if (Hand == EControllerHand::Left)
 	{
@@ -3605,7 +3605,7 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 	}
 	else
 	{
-		UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for setting haptic feedback values (F: %f A: %f)"), (int32)Hand.GetValue(), Frequency, Amplitude);
+		UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for setting haptic feedback values (F: %f A: %f)"), (int32)Hand, Frequency, Amplitude);
 		return;
 	}
 
@@ -3620,7 +3620,7 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 		const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
 
 		FHapticFeedbackValues Values(Frequency, Amplitude);
-		InputInterface->SetHapticFeedbackValues(ControllerId, (int32)Hand.GetValue(), Values);
+		InputInterface->SetHapticFeedbackValues(ControllerId, (int32)Hand, Values);
 	}
 }
 

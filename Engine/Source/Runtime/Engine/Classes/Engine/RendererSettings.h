@@ -394,7 +394,7 @@ private:
 	void SanatizeReflectionCaptureResolution();
 	
 	UPROPERTY(config)
-	TEnumAsByte<EUIScalingRule> UIScaleRule_DEPRECATED;
+	EUIScalingRule UIScaleRule_DEPRECATED;
 
 	UPROPERTY(config)
 	FRuntimeFloatCurve UIScaleCurve_DEPRECATED;

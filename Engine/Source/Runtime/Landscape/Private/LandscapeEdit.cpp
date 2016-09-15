@@ -3042,6 +3042,8 @@ void ULandscapeInfo::ExportHeightmap(const FString& Filename)
 
 void ULandscapeInfo::ExportLayer(ULandscapeLayerInfoObject* LayerInfo, const FString& Filename)
 {
+	check(LayerInfo);
+
 	int32 MinX = MAX_int32;
 	int32 MinY = MAX_int32;
 	int32 MaxX = -MAX_int32;
@@ -3058,11 +3060,9 @@ void ULandscapeInfo::ExportLayer(ULandscapeLayerInfoObject* LayerInfo, const FSt
 
 	TArray<uint8> WeightData;
 	WeightData.AddZeroed((MaxX - MinX + 1) * (MaxY - MinY + 1));
-	if (LayerInfo)
-	{
-		FLandscapeEditDataInterface LandscapeEdit(this);
-		LandscapeEdit.GetWeightDataFast(LayerInfo, MinX, MinY, MaxX, MaxY, WeightData.GetData(), 0);
-	}
+
+	FLandscapeEditDataInterface LandscapeEdit(this);
+	LandscapeEdit.GetWeightDataFast(LayerInfo, MinX, MinY, MaxX, MaxY, WeightData.GetData(), 0);
 
 	const ILandscapeWeightmapFileFormat* WeightmapFormat = LandscapeEditorModule.GetWeightmapFormatByExtension(*FPaths::GetExtension(Filename, true));
 	if (WeightmapFormat)

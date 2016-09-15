@@ -1693,6 +1693,8 @@ void FEdModeFoliage::SelectInvalidInstances(const UFoliageType* Settings)
 				for (const FHitResult& Hit : Hits)
 				{
 					UPrimitiveComponent* HitComponent = Hit.GetComponent();
+					check(HitComponent);
+
 					if (HitComponent->IsCreatedByConstructionScript())
 					{
 						continue;
