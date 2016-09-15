@@ -42,8 +42,19 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* FileName )
 {
 	check(FileName);
 
+	// Combine the explicit DLL search directories with the contents of the directory stack 
+	TArray<FString> SearchPaths;
+	for(int32 Idx = DllDirectoryStack.Num() - 1; Idx >= 0; Idx--)
+	{
+		SearchPaths.AddUnique(DllDirectoryStack[Idx]);
+	}
+	for(int32 Idx = 0; Idx < DllDirectories.Num(); Idx++)
+	{
+		SearchPaths.AddUnique(DllDirectories[Idx]);
+	}
+
 	::SetErrorMode(SEM_NOOPENFILEERRORBOX);
-	return LoadLibraryWithSearchPaths(FileName, DllDirectories);
+	return LoadLibraryWithSearchPaths(FileName, SearchPaths);
 }
 
 void FWindowsPlatformProcess::FreeDllHandle( void* DllHandle )
