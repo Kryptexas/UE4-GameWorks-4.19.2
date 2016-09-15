@@ -40,6 +40,20 @@ if exist "%ProgramFiles(x86)%\MSBuild\14.0\bin\MSBuild.exe" (
 	goto ReadyToCompile
 )
 
+rem ## Check for Visual Studio 2017
+
+pushd %~dp0
+call GetVSComnToolsPath 15
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2017Environment
+rem ## Check if the C++ toolchain is not installed
+if not exist "%VsComnToolsPath%/../IDE/VC/bin/x86_amd64/vcvarsx86_amd64.bat" goto NoVisualStudio2017Environment
+call "%VsComnToolsPath%/../IDE/VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
+:NoVisualStudio2017Environment
+
 rem ## Check for Visual Studio 2015
 
 pushd %~dp0

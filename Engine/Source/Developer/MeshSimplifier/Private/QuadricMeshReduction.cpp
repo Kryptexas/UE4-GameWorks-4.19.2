@@ -23,7 +23,7 @@ public:
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogQuadricSimplifier, Log, All);
-IMPLEMENT_MODULE(FQuadricSimplifierMeshReductionModule, MeshSimplify);
+IMPLEMENT_MODULE(FQuadricSimplifierMeshReductionModule, MeshSimplifier);
 
 template< uint32 NumTexCoords >
 class TVertSimp

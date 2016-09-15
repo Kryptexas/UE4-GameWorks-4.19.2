@@ -20,6 +20,9 @@ namespace UnrealBuildTool
 
 		/// Visual Studio 2015 (Visual C++ 14.0)
 		VisualStudio2015,
+
+		/// Visual Studio "15" (2017?) (Visual C++ 15.0)
+		VisualStudio2017,
 	}
 
 	public class WindowsPlatformContext : UEBuildPlatformContext
@@ -176,7 +179,7 @@ namespace UnrealBuildTool
 			}
 
 			// A bug in the UCRT can cause XGE to hang on VS2015 builds. Figure out if this hang is likely to effect this build and workaround it if able.
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015)
 			{
 				if (BuildConfiguration.bAllowXGE)
 				{
@@ -503,49 +506,76 @@ namespace UnrealBuildTool
 			get
 			{
 				// Cache the result because Compiler is often used.
-				if (CachedCompiler.HasValue)
+				if (!CachedCompiler.HasValue)
 				{
-					return CachedCompiler.Value;
+					CachedCompiler = GetDefaultCompiler();
 				}
-
-				// First, default based on whether there is a command line override...
-				if (UnrealBuildTool.CommandLineContains("-2013"))
-				{
-					CachedCompiler = WindowsCompiler.VisualStudio2013;
-				}
-				else if (UnrealBuildTool.CommandLineContains("-2015"))
-				{
-					CachedCompiler = WindowsCompiler.VisualStudio2015;
-				}
-				// Second, default based on what's installed, test for 2015 first
-				else if (!Utils.IsRunningOnMono && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2015)))
-				{
-					CachedCompiler = WindowsCompiler.VisualStudio2015;
-
-					// Check that the Visual C++ toolchain is installed
-					string CompilerExe = Path.Combine(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2015), "../../VC/bin/cl.exe");
-					if (!File.Exists(CompilerExe))
-					{
-						Log.TraceWarning("Visual C++ 2015 toolchain does not appear to be correctly installed. Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
-					}
-				}
-				else if (!Utils.IsRunningOnMono && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
-				{
-					CachedCompiler = WindowsCompiler.VisualStudio2013;
-				}
-				else
-				{
-					// Finally assume 2015 (and 2013 on non-Windows platforms) is installed to defer errors somewhere else like VCToolChain
-					CachedCompiler = Utils.IsRunningOnMono ? WindowsCompiler.VisualStudio2013 : WindowsCompiler.VisualStudio2015;
-				}
-
 				return CachedCompiler.Value;
 			}
-
 			set
 			{
 				CachedCompiler = value;
 			}
+		}
+
+		/// <summary>
+		/// Gets the default compiler which should be used
+		/// </summary>
+		/// <returns>The default compiler version</returns>
+		private static WindowsCompiler GetDefaultCompiler()
+		{
+			// First, default based on whether there is a command line override...
+			if (UnrealBuildTool.CommandLineContains("-2013"))
+			{
+				return WindowsCompiler.VisualStudio2013;
+			}
+			if (UnrealBuildTool.CommandLineContains("-2015"))
+			{
+				return WindowsCompiler.VisualStudio2015;
+			}
+			if (UnrealBuildTool.CommandLineContains("-2017"))
+			{
+				return WindowsCompiler.VisualStudio2017;
+			}
+
+			// Assume 2013 on non-Windows platforms (which all still enable the Windows toolchain for some reason)
+			if(Utils.IsRunningOnMono)
+			{
+				return WindowsCompiler.VisualStudio2013;
+			}
+
+			// Second, default based on what's installed, test for 2015 first
+			DirectoryReference VCInstallDir;
+			if(TryGetVCInstallDir(WindowsCompiler.VisualStudio2015, out VCInstallDir))
+			{
+				return WindowsCompiler.VisualStudio2015;
+			}
+			if(TryGetVCInstallDir(WindowsCompiler.VisualStudio2013, out VCInstallDir))
+			{
+				return WindowsCompiler.VisualStudio2013;
+			}
+			if(TryGetVCInstallDir(WindowsCompiler.VisualStudio2017, out VCInstallDir))
+			{
+				return WindowsCompiler.VisualStudio2017;
+			}
+
+			// If we do have a Visual Studio installation, but we're missing just the C++ parts, warn about that.
+			DirectoryReference VSInstallDir;
+			if(TryGetVSInstallDir(WindowsCompiler.VisualStudio2015, out VSInstallDir))
+			{
+				Log.TraceWarning("Visual Studio 2015 is installed, but is missing the C++ toolchain. Please verify that \"Common Tools for Visual C++ 2015\" are selected from the Visual Studio 2015 installation options.");
+			}
+			else if(TryGetVSInstallDir(WindowsCompiler.VisualStudio2017, out VSInstallDir))
+			{
+				Log.TraceWarning("Visual Studio 2017 is installed, but is missing the C++ toolchain. Please verify that \"Common Tools for Visual C++ 2015\" are selected from the Visual Studio 2015 installation options.");
+			}
+			else
+			{
+				Log.TraceWarning("No Visual C++ installation was found. Please download and install Visual Studio 2015 with C++ components.");
+			}
+			
+			// Finally, default to VS2015 anyway
+			return WindowsCompiler.VisualStudio2015;
 		}
 
 		/// <summary>
@@ -581,7 +611,7 @@ namespace UnrealBuildTool
 		/// Microsoft provides legacy_stdio_definitions library to enable building with VS2015 until they fix everything up.
 		public static bool bNeedsLegacyStdioDefinitionsLib
 		{
-			get { return Compiler == WindowsCompiler.VisualStudio2015; }
+			get { return Compiler == WindowsCompiler.VisualStudio2015 || Compiler == WindowsCompiler.VisualStudio2017; }
 		}
 
 		/// <summary>
@@ -603,6 +633,9 @@ namespace UnrealBuildTool
 					string DTEKey = null;
 					switch (Compiler)
 					{
+						case WindowsCompiler.VisualStudio2017:
+							DTEKey = "VisualStudio.DTE.15.0";
+							break;
 						case WindowsCompiler.VisualStudio2015:
 							DTEKey = "VisualStudio.DTE.14.0";
 							break;
@@ -651,18 +684,11 @@ namespace UnrealBuildTool
 					return "Visual Studio 2013";
 				case WindowsCompiler.VisualStudio2015:
 					return "Visual Studio 2015";
+				case WindowsCompiler.VisualStudio2017:
+					return "Visual Studio \"15\"";
 				default:
 					return Compiler.ToString();
 			}
-		}
-
-		/// <summary>
-		/// Returns VisualStudio common tools path for current compiler.
-		/// </summary>
-		/// <returns>Common tools path.</returns>
-		public static string GetVSComnToolsPath()
-		{
-			return GetVSComnToolsPath(Compiler);
 		}
 
 		public static bool HasVSInstalled(WindowsCompiler Toolchain)
@@ -675,6 +701,9 @@ namespace UnrealBuildTool
 					break;
 				case WindowsCompiler.VisualStudio2015:
 					VSVersion = "14.0";
+					break;
+				case WindowsCompiler.VisualStudio2017:
+					VSVersion = "15.0";
 					break;
 				default:
 					throw new NotSupportedException("Not supported compiler.");
@@ -702,56 +731,131 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Returns VisualStudio common tools path for given compiler.
+		/// Read the Visual Studio install directory for the given compiler version. Note that it is possible for the compiler toolchain to be installed without
+		/// Visual Studio.
 		/// </summary>
-		/// <param name="Compiler">Compiler for which to return tools path.</param>
-		/// <returns>Common tools path.</returns>
-		public static string GetVSComnToolsPath(WindowsCompiler Compiler)
+		/// <param name="Compiler">Version of the toolchain to look for.</param>
+		/// <param name="InstallDir">On success, the directory that Visual Studio is installed to.</param>
+		/// <returns>True if the directory was found, false otherwise.</returns>
+		public static bool TryGetVSInstallDir(WindowsCompiler Compiler, out DirectoryReference InstallDir)
 		{
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win64 && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win32)
 			{
-				return null;
+				InstallDir = null;
+				return false;
 			}
 
-			int VSVersion;
-
-			switch (Compiler)
+			switch(Compiler)
 			{
 				case WindowsCompiler.VisualStudio2013:
-					VSVersion = 12;
-					break;
+					return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VS7", "12.0", out InstallDir);
 				case WindowsCompiler.VisualStudio2015:
-					VSVersion = 14;
-					break;
+					return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VS7", "14.0", out InstallDir);
+				case WindowsCompiler.VisualStudio2017:
+					return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VS7", "15.0", out InstallDir);
 				default:
-					throw new NotSupportedException("Not supported compiler.");
+					throw new BuildException("Invalid compiler version ({0})", Compiler);
+			}
+		}
+
+		/// <summary>
+		/// Read the Visual C++ install directory for the given version.
+		/// </summary>
+		/// <param name="Compiler">Version of the toolchain to look for.</param>
+		/// <param name="InstallDir">On success, the directory that Visual C++ is installed to.</param>
+		/// <returns>True if the directory was found, false otherwise.</returns>
+		public static bool TryGetVCInstallDir(WindowsCompiler Compiler, out DirectoryReference InstallDir)
+		{
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win64 && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win32)
+			{
+				InstallDir = null;
+				return false;
 			}
 
-			string[] PossibleRegPaths = new string[] {
-                @"Wow6432Node\Microsoft\VisualStudio",	// VS2015 on 64-bit machine.
-                @"Microsoft\VisualStudio",				// VS2015 on 32-bit machine.
-				@"Wow6432Node\Microsoft\WDExpress",		// VSExpress on 64-bit machine.
-                @"Microsoft\WDExpress"					// VSExpress on 32-bit machine.
-            };
-
-			foreach (string PossibleRegPath in PossibleRegPaths)
+			if(Compiler == WindowsCompiler.VisualStudio2013)
 			{
-				string VSPath = (string)Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
-				if (VSPath != null)
+				return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VC7", "12.0", out InstallDir);
+			}
+			else if(Compiler == WindowsCompiler.VisualStudio2015)
+			{
+				return TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VC7", "14.0", out InstallDir);
+			}
+			else if(Compiler == WindowsCompiler.VisualStudio2017)
+			{
+				// VS15Preview installs the compiler under the IDE directory, and does not register it as a standalone component. Check just in case this changes 
+				// for compat in future since it's more specific.
+				if(TryReadInstallDirRegistryKey32("Microsoft\\VisualStudio\\SxS\\VC7", "15.0", out InstallDir))
 				{
-					return new DirectoryInfo(Path.Combine(VSPath, "..", "Tools")).FullName;
+					return true;
 				}
-			}
 
-			// Fall back to checking the environment variable
-			string ComnToolsPath = Environment.GetEnvironmentVariable(string.Format("VS{0}0COMNTOOLS", VSVersion));
-			if (!String.IsNullOrEmpty(ComnToolsPath))
+				// Otherwise just check under the VS folder...
+				DirectoryReference VSInstallDir;
+				if(TryGetVSInstallDir(Compiler, out VSInstallDir))
+				{
+					FileReference CompilerPath = FileReference.Combine(VSInstallDir, "Common7", "IDE", "VC", "bin", "cl.exe");
+					if(CompilerPath.Exists())
+					{
+						InstallDir = CompilerPath.Directory.ParentDirectory;
+						return true;
+					}
+				}
+				return false;
+			}
+			else
 			{
-				return new DirectoryInfo(ComnToolsPath).FullName;
+				throw new BuildException("Invalid compiler version ({0})", Compiler);
 			}
+		}
 
-			// Otherwise fail
-			return null;
+		/// <summary>
+		/// Reads an install directory for a 32-bit program from a registry key. This checks for per-user and machine wide settings, and under the Wow64 virtual keys (HKCU\SOFTWARE, HKLM\SOFTWARE, HKCU\SOFTWARE\Wow6432Node, HKLM\SOFTWARE\Wow6432Node).
+		/// </summary>
+		/// <param name="KeySuffix">Path to the key to read, under one of the roots listed above.</param>
+		/// <param name="ValueName">Value to be read.</param>
+		/// <param name="InstallDir">On success, the directory corresponding to the value read.</param>
+		/// <returns>True if the key was read, false otherwise.</returns>
+		static bool TryReadInstallDirRegistryKey32(string KeySuffix, string ValueName, out DirectoryReference InstallDir)
+		{
+			if(TryReadDirRegistryKey("HKEY_CURRENT_USER\\SOFTWARE\\" + KeySuffix, ValueName, out InstallDir))
+			{
+				return true;
+			}
+			if(TryReadDirRegistryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\" + KeySuffix, ValueName, out InstallDir))
+			{
+				return true;
+			}
+			if(TryReadDirRegistryKey("HKEY_CURRENT_USER\\SOFTWARE\\Wow6432Node\\" + KeySuffix, ValueName, out InstallDir))
+			{
+				return true;
+			}
+			if(TryReadDirRegistryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\" + KeySuffix, ValueName, out InstallDir))
+			{
+				return true;
+			}
+			return false;
+		}
+
+		/// <summary>
+		/// Attempts to reads a directory name stored in a registry key
+		/// </summary>
+		/// <param name="KeyName">Key to read from</param>
+		/// <param name="ValueName">Value within the key to read</param>
+		/// <param name="Value">The directory read from the registry key</param>
+		/// <returns>True if the key was read, false if it was missing or empty</returns>
+		static bool TryReadDirRegistryKey(string KeyName, string ValueName, out DirectoryReference Value)
+		{
+			string StringValue = Registry.GetValue(KeyName, ValueName, null) as string;
+			if(String.IsNullOrEmpty(StringValue))
+			{
+				Value = null;
+				return false;
+			}
+			else
+			{
+				Value = new DirectoryReference(StringValue);
+				return true;
+			}
 		}
 
 		/// <summary>
@@ -803,7 +907,6 @@ namespace UnrealBuildTool
 			return base.GetBinaryExtension(InBinaryType);
 		}
 
-
 		/// <summary>
 		/// When using a Visual Studio compiler, returns the version name as a string
 		/// </summary>
@@ -816,6 +919,8 @@ namespace UnrealBuildTool
 					return "2013";
 				case WindowsCompiler.VisualStudio2015:
 					return "2015";
+				case WindowsCompiler.VisualStudio2017:
+					return "2015"; // VS2017 is backwards compatible with VS2015 compiler
 
 				default:
 					throw new BuildException("Unexpected WindowsCompiler version for GetVisualStudioCompilerVersionName().  Either not using a Visual Studio compiler or switch block needs to be updated");

@@ -1,9 +1,6 @@
 <?xml version='1.0' ?>
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../../Engine/Build/Graph/Schema.xsd" >
 
-	<!-- The output directory to store zip files and full symbols -->
-	<Option Name="PublishDir" DefaultValue="$(RootDir)/LocalBuilds/Engine" Description="Root directory to contain published builds and symbols"/>
-	
 	<!-- Helper option to make installed build for host platform only -->
 	<Option Name="HostPlatformOnly" Restrict="true|false" DefaultValue="false" Description="A helper option to make an installed build for your host platform only, so that you don't have to disable each platform individually"/>
 	
@@ -325,6 +322,7 @@
                 <CsCompile Project="Engine/Source/Editor/SwarmInterface/DotNET/SwarmInterface.csproj" Configuration="Development" Platform="AnyCPU" Tag="#Build Tools CS" TagReferences="#Build Tools CS"/>
                 <CsCompile Project="Engine/Source/Programs/UnrealSwarm/SwarmCoordinator/SwarmCoordinator.csproj" Configuration="Development" Platform="AnyCPU" Tag="#Build Tools CS" TagReferences="#Build Tools CS"/>
                 <CsCompile Project="Engine/Source/Programs/UnrealSwarm/Agent/Agent.csproj" Configuration="Development" Platform="AnyCPU" Tag="#Build Tools CS" TagReferences="#Build Tools CS"/>
+                <CsCompile Project="Engine/Source/Programs/PS4/PS4DevKitUtil/PS4DevKitUtil.csproj" Configuration="Development" Platform="AnyCPU" Tag="#Build Tools CS" TagReferences="#Build Tools CS" If="'$(WithPS4)' == true"/>
             </Do>
 			<CsCompile Project="Engine/Source/Programs/NetworkProfiler/NetworkProfiler/NetworkProfiler.csproj" Configuration="Development" Platform="AnyCPU" Tag="#Build Tools CS" TagReferences="#Build Tools CS"/>
 			<CsCompile Project="Engine/Source/Programs/UnrealControls/UnrealControls.csproj" Configuration="Development" Platform="AnyCPU" Tag="#Build Tools CS" TagReferences="#Build Tools CS"/>

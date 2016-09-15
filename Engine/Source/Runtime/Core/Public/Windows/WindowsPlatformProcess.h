@@ -199,6 +199,60 @@ private:
 	 * All the DLL directories we want to load from. 
 	 */
 	static TArray<FString> DllDirectories;
+
+	/**
+	 * Replacement implementation of the Win32 LoadLibrary function which searches the given list of directories for dependent imports, and attempts
+	 * to load them from the correct location first. The normal LoadLibrary function (pre-Win8) only searches a limited list of locations. 
+	 *
+	 * @param FileName Path to the library to load
+	 * @param SearchPaths Search directories to scan for imports
+	 */
+	static void* LoadLibraryWithSearchPaths(const FString& FileName, const TArray<FString>& SearchPaths);
+
+	/**
+	 * Resolve all the imports for the given library, searching through a set of directories.
+	 *
+	 * @param FileName Path to the library to load
+	 * @param SearchPaths Search directories to scan for imports
+	 * @param ImportFileNames Array which is filled with a list of the resolved imports found in the given search directories
+	 * @param VisitedImportNames Array which stores a list of imports which have been checked
+	 */
+	static void ResolveImportsRecursive(const FString& FileName, const TArray<FString>& SearchPaths, TArray<FString>& ImportFileNames, TArray<FString>& VisitedImportNames);
+
+	/**
+	 * Resolve an individual import.
+	 *
+	 * @param ImportName Name of the imported module
+	 * @param SearchPaths Search directories to scan for imports
+	 * @param OutFileName On success, receives the path to the imported file
+	 * @return true if an import was found.
+	 */
+	static bool ResolveImport(const FString& ImportName, const TArray<FString>& SearchPaths, FString& OutFileName);
+
+	/**
+	 * Reads a list of import names from a portable executable file.
+	 *
+	 * @param FileName Path to the library
+	 * @param ImportNames Array to receive the list of imported PE file names
+	 */
+	static bool ReadLibraryImports(const TCHAR* FileName, TArray<FString>& ImportNames);
+
+	/**
+	 * Reads a list of import names from a portable executable file mapped into memory
+	 *
+	 * @param Header Header for the PE file
+	 * @param ImportNames Array to receive the list of imported PE file names
+	 */
+	static bool ReadLibraryImportsFromMemory(const IMAGE_DOS_HEADER *Header, TArray<FString> &ImportNames);
+
+	/**
+	 * Maps a relative-virtual address within a PE file to an actual pointer.
+	 *
+	 * @param Header Pointer to the PE header
+	 * @param NtHeader Pointer to the PE NT-header
+	 * @param Rva The RVA to map.
+	 */
+	static const void *MapRvaToPointer(const IMAGE_DOS_HEADER *Header, const IMAGE_NT_HEADERS *NtHeader, size_t Rva);
 };
 
 

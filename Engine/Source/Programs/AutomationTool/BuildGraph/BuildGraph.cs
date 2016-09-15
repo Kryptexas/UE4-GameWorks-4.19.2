@@ -633,7 +633,7 @@ namespace AutomationTool
 					TempStorageBlock CurrentStorageBlock;
 					if(FileToStorageBlock.TryGetValue(File, out CurrentStorageBlock))
 					{
-						LogError("File '{0}' was produced by {1} and {2}", InputStorageBlock, CurrentStorageBlock);
+						LogError("File '{0}' was produced by {1} and {2}", File, InputStorageBlock, CurrentStorageBlock);
 					}
 					FileToStorageBlock[File] = InputStorageBlock;
 				}

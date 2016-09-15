@@ -1139,6 +1139,10 @@ namespace UnrealBuildTool
 					if (UnrealBuildTool.CommandLineContains("-2015"))
 					{
 						BuildToolOverride = " -2015";
+ 					}
+					if (UnrealBuildTool.CommandLineContains("-2017"))
+					{
+						BuildToolOverride = " -2017";
 					}
 					BuildArguments += BuildToolOverride;
 

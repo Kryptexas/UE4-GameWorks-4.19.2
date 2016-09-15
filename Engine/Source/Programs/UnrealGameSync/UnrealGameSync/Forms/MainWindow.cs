@@ -1238,7 +1238,7 @@ namespace UnrealGameSync
 						Color BadgeColor = Color.FromArgb(128, 192, 64);
 						if(Badge.Item1.Result == BuildDataResult.Starting)
 						{
-							BadgeColor = Color.FromArgb(192, 192, 192);
+							BadgeColor = Color.FromArgb(128, 192, 255);
 						}
 						else if(Badge.Item1.Result == BuildDataResult.Warning)
 						{

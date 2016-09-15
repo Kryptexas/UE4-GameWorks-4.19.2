@@ -418,7 +418,7 @@ public class DeploymentContext //: ProjectParams
 
 				StageFile(FileTypeToUse, BuildProduct.Path);
 			}
-			else if(BuildProduct.Type == BuildProductType.SymbolFile)
+			else if(BuildProduct.Type == BuildProductType.SymbolFile || BuildProduct.Type == BuildProductType.MapFile)
 			{
 				// Symbol files aren't true dependencies so we can skip if they don't exist
 				if (File.Exists(BuildProduct.Path))

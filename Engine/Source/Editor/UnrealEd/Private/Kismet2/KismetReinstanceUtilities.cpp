@@ -1457,7 +1457,11 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 			UClass* OldClass = OldToNewClass.Key;
 			UClass* NewClass = OldToNewClass.Value;
 			check(OldClass && NewClass);
+#if WITH_HOT_RELOAD
 			check(OldClass != NewClass || GIsHotReload);
+#else
+			check(OldClass != NewClass);
+#endif
 
 			{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_ReplaceInstancesOfClass);
 
@@ -1790,7 +1794,11 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 			UClass* OldClass = OldToNewClass.Key;
 			UClass* NewClass = OldToNewClass.Value;
 			check(OldClass && NewClass);
+#if WITH_HOT_RELOAD
 			check(OldClass != NewClass || GIsHotReload);
+#else
+			check(OldClass != NewClass);
+#endif
 
 			FReplaceReferenceHelper::IncludeCDO(OldClass, NewClass, OldToNewInstanceMap, SourceObjects, InOriginalCDO);
 

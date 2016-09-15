@@ -202,7 +202,7 @@ public class BuildCookRun : BuildCommand
 		const ProjectBuildTargets ClientTargets = ProjectBuildTargets.ClientCooked | ProjectBuildTargets.ServerCooked;
         bool bGenerateNativeScripts = Params.RunAssetNativization;
 		int WorkingCL = -1;
-		if (P4Enabled && AllowSubmit)
+		if (P4Enabled && GlobalCommandLine.Submit && AllowSubmit)
 		{
 			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("{0} build from changelist {1}", Params.ShortProjectName, P4Env.Changelist));
 		}

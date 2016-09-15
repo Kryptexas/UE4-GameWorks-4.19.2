@@ -197,6 +197,9 @@ private:
 	// Sleep interval to use
 	float SleepInterval;
 
+	// Buffered output text which does not contain a newline
+	FString OutputBuffer;
+
 private:
 
 	// Holds a delegate that is executed when the process has been canceled. */

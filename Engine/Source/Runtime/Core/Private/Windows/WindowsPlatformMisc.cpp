@@ -2762,34 +2762,27 @@ bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey,
 
 bool FWindowsPlatformMisc::GetVSComnTools(int32 Version, FString& OutData)
 {
-	checkf(12 <= Version && Version <= 14, L"Not supported Visual Studio version.");
+	checkf(12 <= Version && Version <= 15, L"Not supported Visual Studio version.");
 
-	const TCHAR* PossibleRegPaths[] = {
-		L"Wow6432Node\\Microsoft\\VisualStudio",	// Non-express VS201x on 64-bit machine.
-		L"Microsoft\\VisualStudio",					// Non-express VS201x on 32-bit machine.
-		L"Wow6432Node\\Microsoft\\WDExpress",		// Express VS201x on 64-bit machine.
-		L"Microsoft\\WDExpress"						// Express VS201x on 32-bit machine.
-	};
+	FString ValueName = FString::Printf(TEXT("%d.0"), Version);
 
-	bool bResult = false;
 	FString IDEPath;
-
-	for (int32 Index = 0; Index < sizeof(PossibleRegPaths) / sizeof(const TCHAR *); ++Index)
+	if (!QueryRegKey(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\VisualStudio\\SxS\\VS7"), *ValueName, IDEPath))
 	{
-		bResult = QueryRegKey(HKEY_LOCAL_MACHINE, *FString::Printf(L"SOFTWARE\\%s\\%d.0", PossibleRegPaths[Index], Version), L"InstallDir", IDEPath);
-
-		if (bResult)
+		if (!QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\VisualStudio\\SxS\\VS7"), *ValueName, IDEPath))
 		{
-			break;
+			if (!QueryRegKey(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Wow6432Node\\Microsoft\\VisualStudio\\SxS\\VS7"), *ValueName, IDEPath))
+			{
+				if (!QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Wow6432Node\\Microsoft\\VisualStudio\\SxS\\VS7"), *ValueName, IDEPath))
+				{
+					return false;
+				}
+			}
 		}
 	}
-	
-	if(bResult)
-	{
-		OutData = FPaths::ConvertRelativePathToFull(FPaths::Combine(*IDEPath, L"..", L"Tools"));
-	}
 
-	return bResult;
+	OutData = FPaths::ConvertRelativePathToFull(FPaths::Combine(*IDEPath, L"Common7", L"Tools"));
+	return true;
 }
 
 const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()

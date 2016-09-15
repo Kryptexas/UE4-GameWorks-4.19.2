@@ -3,6 +3,8 @@
 #include "RawMesh.h"
 #include "SecureHash.h"
 
+IMPLEMENT_MODULE(FDefaultModuleImpl, RawMesh);
+
 /*------------------------------------------------------------------------------
 	FRawMesh
 ------------------------------------------------------------------------------*/

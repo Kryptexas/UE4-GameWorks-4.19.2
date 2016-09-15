@@ -124,6 +124,7 @@ namespace UnrealBuildTool
             VisualStudio2012, // Unsupported
 			VisualStudio2013,
 			VisualStudio2015,
+			VisualStudio2017, // "15"
 		}
 
 		/// "4.0", "12.0", or "14.0", etc...
@@ -139,6 +140,8 @@ namespace UnrealBuildTool
 						return "12.0";
 					case VCProjectFileFormat.VisualStudio2015:
 						return "14.0";
+					case VCProjectFileFormat.VisualStudio2017:
+						return "15.0";
 				}
 				return string.Empty;
 			}
@@ -156,6 +159,7 @@ namespace UnrealBuildTool
                     case VCProjectFileFormat.VisualStudio2013:
                         return "v120";
                     case VCProjectFileFormat.VisualStudio2015:
+                    case VCProjectFileFormat.VisualStudio2017:
                         return "v140";
                 }
 				return string.Empty;
@@ -175,6 +179,9 @@ namespace UnrealBuildTool
 					break;
 				case WindowsCompiler.VisualStudio2015:
 					ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
+					break;
+				case WindowsCompiler.VisualStudio2017:
+					ProjectFileFormat = VCProjectFileFormat.VisualStudio2017;
 					break;
 			}
 		}
@@ -208,6 +215,9 @@ namespace UnrealBuildTool
 					case WindowsCompiler.VisualStudio2015:
 						ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
 						break;
+					case WindowsCompiler.VisualStudio2017:
+						ProjectFileFormat = VCProjectFileFormat.VisualStudio2017;
+						break;
 				}
 			}
 
@@ -227,16 +237,10 @@ namespace UnrealBuildTool
 					case "-2015":
 						ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
 						break;
-				}
-			}
 
-			// By default VS2015 doesn't install the C++ toolchain. Help developers out with a special message.
-			if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
-			{
-				string ToolsPath = WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2015);
-				if(String.IsNullOrEmpty(ToolsPath) || !File.Exists(Path.Combine(ToolsPath, "../../VC/bin/cl.exe")))
-				{
-					Log.TraceInformation("Visual C++ 2015 toolchain does not appear to be correctly installed. Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
+					case "-2017":
+						ProjectFileFormat = VCProjectFileFormat.VisualStudio2017;
+						break;
 				}
 			}
 		}
@@ -353,7 +357,16 @@ namespace UnrealBuildTool
 			const string VersionTag = "# UnrealEngineGeneratedSolutionVersion=1.0";
 
 			// Solution file header
-			if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
+			if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2017)
+			{
+				VCSolutionFileContent.Append(
+					ProjectFileGenerator.NewLine +
+					"Microsoft Visual Studio Solution File, Format Version 12.00" + ProjectFileGenerator.NewLine +
+					"# Visual Studio 15" + ProjectFileGenerator.NewLine +
+					"VisualStudioVersion = 15.0.25618.0" + ProjectFileGenerator.NewLine +
+					"MinimumVisualStudioVersion = 10.0.40219.1" + ProjectFileGenerator.NewLine);
+			}
+			else if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
 			{
 				VCSolutionFileContent.Append(
 					ProjectFileGenerator.NewLine +
@@ -886,29 +899,30 @@ namespace UnrealBuildTool
 			if (bSuccess)
 			{
 				// Figure out the filename for the SUO file. VS will automatically import the options from earlier versions if necessary.
-				string SolutionOptionsExtension = "vUnknown.suo";
+				FileReference SolutionOptionsFileName;
 				switch (ProjectFileFormat)
                 {
                     case VCProjectFileFormat.VisualStudio2012:
-                        SolutionOptionsExtension = "v11.suo";
+						SolutionOptionsFileName = FileReference.Combine(MasterProjectPath, Path.ChangeExtension(SolutionFileName, "v11.suo"));
                         break;
 					case VCProjectFileFormat.VisualStudio2013:
-						SolutionOptionsExtension = "v12.suo";
+						SolutionOptionsFileName = FileReference.Combine(MasterProjectPath, Path.ChangeExtension(SolutionFileName, "v12.suo"));
 						break;
 					case VCProjectFileFormat.VisualStudio2015:
-						SolutionOptionsExtension = "v14.suo";
+						SolutionOptionsFileName = FileReference.Combine(MasterProjectPath, ".vs", Path.GetFileNameWithoutExtension(SolutionFileName), "v14", ".suo");
 						break;
+					case VCProjectFileFormat.VisualStudio2017:
+						SolutionOptionsFileName = FileReference.Combine(MasterProjectPath, ".vs", Path.GetFileNameWithoutExtension(SolutionFileName), "v15", ".suo");
+						break;
+					default:
+						throw new BuildException("Unsupported Visual Studio version");
 				}
 
 				// Check it doesn't exist before overwriting it. Since these files store the user's preferences, it'd be bad form to overwrite them.
-				string SolutionOptionsFileName = Path.Combine(MasterProjectPath.FullName, Path.ChangeExtension(SolutionFileName, SolutionOptionsExtension));
-				if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
+				if (!SolutionOptionsFileName.Exists())
 				{
-					SolutionOptionsFileName = Path.Combine(MasterProjectPath.FullName, ".vs", Path.GetFileNameWithoutExtension(SolutionFileName), "v14", ".suo");
-					Directory.CreateDirectory(Path.Combine(MasterProjectPath.FullName, ".vs", Path.GetFileNameWithoutExtension(SolutionFileName), "v14"));
-				}
-				if (!File.Exists(SolutionOptionsFileName))
-				{
+					SolutionOptionsFileName.Directory.CreateDirectory();
+
 					VCSolutionOptions Options = new VCSolutionOptions();
 
 					// Set the default configuration and startup project
@@ -947,7 +961,7 @@ namespace UnrealBuildTool
 					// Write the file
 					if (Options.Sections.Count > 0)
 					{
-						Options.Write(SolutionOptionsFileName);
+						Options.Write(SolutionOptionsFileName.FullName);
 					}
 				}
 			}

@@ -2600,7 +2600,7 @@ namespace AutomationTool
 			}
 
 			string SignToolName = null;
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015)
 			{
 				//@todo: Get these paths from the registry
 				if (WindowsPlatform.bUseWindowsSDK10)

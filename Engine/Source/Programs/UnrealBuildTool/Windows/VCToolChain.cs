@@ -92,7 +92,7 @@ namespace UnrealBuildTool
 		{
 			// @todo UWP: Why do we ever need WinRT headers when building regular Win32?  Is this just needed for the Windows 10 SDK?
 			// @todo UWP: These include paths should be added in SetUpEnvironment(), not here.  Do they need to be the last includes or something?
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
+			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
 			{
 				if (Directory.Exists(EnvVars.WindowsSDKExtensionDir))
 				{
@@ -138,6 +138,11 @@ namespace UnrealBuildTool
 						break;
 
 					case WindowsCompiler.VisualStudio2015:
+						VersionString = "19.0";
+						FullVersionString = "1900";
+						break;
+
+					case WindowsCompiler.VisualStudio2017:
 						VersionString = "19.0";
 						FullVersionString = "1900";
 						break;
@@ -225,13 +230,13 @@ namespace UnrealBuildTool
 			// Previously %s meant "the current character set" and %S meant "the other one".
 			// Now %s means multibyte and %S means wide. %Ts means "natural width".
 			// Reverting this behaviour until the UE4 source catches up.
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015)
 			{
 				AddDefinition(Arguments, "_CRT_STDIO_LEGACY_WIDE_SPECIFIERS=1");
 			}
 
 			// @todo UWP: Silence the hash_map deprecation errors for now. This should be replaced with unordered_map for the real fix.
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015)
 			{
 				AddDefinition(Arguments, "_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1");
 			}
@@ -614,7 +619,7 @@ namespace UnrealBuildTool
 			}
 
 			//@todo: Disable warnings for VS2015. These should be reenabled as we clear the reasons for them out of the engine source and the VS2015 toolchain evolves.
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseVCCompilerArgs)
+			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseVCCompilerArgs)
 			{
 				// Disable shadow variable warnings
 				if (CompileEnvironment.Config.bEnableShadowVariableWarning == false)
@@ -838,7 +843,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /DEBUG");
 
 				// Allow partial PDBs for faster linking
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && BuildConfiguration.bUseFastPDBLinking)
+				if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015 && BuildConfiguration.bUseFastPDBLinking)
 				{
 					Arguments.Append(":FASTLINK");
 				}
@@ -1381,7 +1386,7 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					CompileAction.CommandPath = EnvVars.CompilerPath;
+					CompileAction.CommandPath = EnvVars.CompilerPath.FullName;
 				}
 
 				string UnrealCodeAnalyzerArguments = "";
@@ -1466,7 +1471,7 @@ namespace UnrealBuildTool
 				Action CompileAction = new Action(ActionType.Compile);
 				CompileAction.CommandDescription = "Resource";
 				CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
-				CompileAction.CommandPath = EnvVars.ResourceCompilerPath;
+				CompileAction.CommandPath = EnvVars.ResourceCompilerPath.FullName;
 				CompileAction.StatusDescription = Path.GetFileName(RCFile.AbsolutePath);
 
 				// Resource tool can run remotely if possible
@@ -1545,7 +1550,7 @@ namespace UnrealBuildTool
 			VCEnvironment EnvVars = VCEnvironment.SetEnvironment(LinkEnvironment.Config.Target.Platform, bSupportWindowsXP);
 
 			// @todo UWP: These paths should be added in SetUpEnvironment(), not here.  Also is this actually needed for classic desktop targets or only UWP?
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
+			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
 			{
 				if (LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)
 				{
@@ -1747,7 +1752,7 @@ namespace UnrealBuildTool
 			Action LinkAction = new Action(ActionType.Link);
 			LinkAction.CommandDescription = "Link";
 			LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
-			LinkAction.CommandPath = bIsBuildingLibrary ? EnvVars.LibraryLinkerPath : EnvVars.LinkerPath;
+			LinkAction.CommandPath = bIsBuildingLibrary ? EnvVars.LibraryManagerPath.FullName : EnvVars.LinkerPath.FullName;
 			LinkAction.CommandArguments = Arguments.ToString();
 			LinkAction.ProducedItems.AddRange(ProducedItems);
 			LinkAction.PrerequisiteItems.AddRange(PrerequisiteItems);
@@ -1891,6 +1896,14 @@ namespace UnrealBuildTool
 			if (Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
 			{
 				BuildProducts.Add(FileReference.Combine(Binary.Config.IntermediateDirectory, Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".lib"), BuildProductType.ImportLibrary);
+			}
+			if(Binary.Config.Type == UEBuildBinaryType.Executable && BuildConfiguration.bCreateMapFile)
+			{
+				foreach(FileReference OutputFilePath in Binary.Config.OutputFilePaths)
+				{
+					BuildProducts.Add(FileReference.Combine(OutputFilePath.Directory, OutputFilePath.GetFileNameWithoutExtension() + ".map"), BuildProductType.MapFile);
+					BuildProducts.Add(FileReference.Combine(OutputFilePath.Directory, OutputFilePath.GetFileNameWithoutExtension() + ".objpaths"), BuildProductType.MapFile);
+				}
 			}
 		}
 

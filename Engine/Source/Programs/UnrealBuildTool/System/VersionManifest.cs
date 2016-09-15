@@ -122,6 +122,7 @@ namespace UnrealBuildTool
 		/// <param name="BuildArchitecture">The architecture of the target platform</param>
 		public void Write(string FileName)
 		{
+			Directory.CreateDirectory(Path.GetDirectoryName(FileName));
 			using (JsonWriter Writer = new JsonWriter(FileName))
 			{
 				Writer.WriteObjectStart();

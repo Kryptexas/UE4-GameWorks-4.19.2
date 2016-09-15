@@ -85,4 +85,4 @@ private:
 };
 
 
-IMPLEMENT_MODULE(FProjectLauncherModule, SProjectLauncher);
+IMPLEMENT_MODULE(FProjectLauncherModule, ProjectLauncher);

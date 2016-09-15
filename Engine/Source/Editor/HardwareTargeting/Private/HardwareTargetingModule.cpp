@@ -306,7 +306,7 @@ IHardwareTargetingModule& IHardwareTargetingModule::Get()
 	return Instance;
 }
 
-IMPLEMENT_MODULE(FHardwareTargetingModule, HardwareTarget);
+IMPLEMENT_MODULE(FHardwareTargetingModule, HardwareTargeting);
 
 #undef UE_META_SETTING_ENTRY
 #undef LOCTEXT_NAMESPACE

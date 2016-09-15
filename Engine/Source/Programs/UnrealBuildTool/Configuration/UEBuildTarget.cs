@@ -1388,7 +1388,7 @@ namespace UnrealBuildTool
 				Log.TraceVerbose("\tTargetFilename {0}", TargetFilename);
 
 				// Collect all files to delete.
-				string[] AdditionalFileExtensions = new string[] { ".lib", ".exp", ".dll.response" };
+				string[] AdditionalFileExtensions = new string[] { ".lib", ".exp", ".dll.response", ".map", ".objpaths" };
 				List<string> AllFilesToDelete = new List<string>();
 				foreach (BuildProduct BuildProduct in ReceiptWithFullPaths.BuildProducts)
 				{

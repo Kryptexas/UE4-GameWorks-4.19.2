@@ -132,6 +132,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_LINUX=1");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("LINUX=1");
 
+		    InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_SUPPORTS_JEMALLOC=1");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo linux: valid?
 
 			if (GetActiveArchitecture().StartsWith("arm"))

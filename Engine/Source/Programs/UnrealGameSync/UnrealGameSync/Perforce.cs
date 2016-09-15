@@ -800,7 +800,7 @@ namespace UnrealGameSync
 			bool bResult;
 			using(PerforceTagRecordParser Parser = new PerforceTagRecordParser(x => SyncOutput(new PerforceFileRecord(x))))
 			{
-				bResult = RunCommand(String.Format("-r5 -x \"{0}\" -z tag sync", TempFileName), null, Line => FilterSyncOutput(Line, Parser, TamperedFiles, Log), CommandOptions.NoFailOnErrors | CommandOptions.IgnoreFilesUpToDateError | CommandOptions.IgnoreExitCode, Log);
+				bResult = RunCommand(String.Format("-x \"{0}\" -z tag sync", TempFileName), null, Line => FilterSyncOutput(Line, Parser, TamperedFiles, Log), CommandOptions.NoFailOnErrors | CommandOptions.IgnoreFilesUpToDateError | CommandOptions.IgnoreExitCode, Log);
 			}
 			return bResult;
 		}
