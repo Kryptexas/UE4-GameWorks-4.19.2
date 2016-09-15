@@ -2502,7 +2502,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 			// When Maya plug-in exports rigid binding, it will generate "CompensationCluster" for each ancestor links.
 			// FBX writes these "CompensationCluster" out. The CompensationCluster also has weight 1 for vertices.
 			// Unreal importer should skip these clusters.
-			if(!Cluster || FCStringAnsi::Strcmp(Cluster->GetUserDataID(), "Maya_ClusterHint") == 0 && FCStringAnsi::Strcmp(Cluster->GetUserData(), "CompensationCluster")  == 0)
+			if(!Cluster || (FCStringAnsi::Strcmp(Cluster->GetUserDataID(), "Maya_ClusterHint") == 0 && FCStringAnsi::Strcmp(Cluster->GetUserData(), "CompensationCluster")  == 0))
 			{
 				continue;
 			}

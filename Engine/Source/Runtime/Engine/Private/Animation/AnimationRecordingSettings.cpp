@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Animation/AnimationRecordingSettings.h"
+#include "Animation/AnimSequenceBase.h"
 
 /** 30Hz default sample rate */
 const float FAnimationRecordingSettings::DefaultSampleRate = DEFAULT_SAMPLERATE;
