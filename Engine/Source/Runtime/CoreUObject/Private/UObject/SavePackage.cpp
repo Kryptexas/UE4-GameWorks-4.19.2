@@ -4760,7 +4760,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						BulkDataStorageInfo.BulkData->ClearBulkDataFlags(0xFFFFFFFF);
 						BulkDataStorageInfo.BulkData->SetBulkDataFlags(OldBulkDataFlags);
 						BulkDataStorageInfo.BulkData->Unlock();
-						BulkDataStorageInfo.BulkData->RemoveBulkData();
 					}
 
 					if (BulkArchive)
