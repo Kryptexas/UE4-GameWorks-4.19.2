@@ -3,7 +3,17 @@
 #pragma once
 
 #include "AlembicLibraryPublicPCH.h"
+
+#include <Alembic/AbcCoreHDF5/All.h>
+#include <Alembic/AbcCoreOgawa/All.h>
+#include <Alembic/AbcCoreFactory/All.h>
+#include <Alembic/AbcCoreAbstract/TimeSampling.h>
+#include <Alembic/AbcCoreHDF5/All.h>
+#include <Alembic/Abc/All.h>
+#include <Alembic/AbcGeom/All.h>
+
 #include "AbcImportUtilities.h"
+#include "AbcImportData.h"
 
 #define LOCTEXT_NAMESPACE "AbcImporterUtilities"
 

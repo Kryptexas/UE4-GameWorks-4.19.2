@@ -4,6 +4,10 @@
 
 #include "AlembicLibraryPublicPCH.h"
 
+#include <Alembic/AbcCoreAbstract/TimeSampling.h>
+#include <Alembic/Abc/All.h>
+#include <Alembic/AbcGeom/All.h>
+
 #include "GeometryCache.h"
 #include "GeometryCacheTrackFlipbookAnimation.h"
 #include "GeometryCacheTrackTransformAnimation.h"
@@ -16,6 +20,10 @@
 
 #include "AbcImportLogger.h"
 #include "AbcImportSettings.h"
+
+struct FAbcMeshSample;
+struct FAbcPolyMeshObject;
+struct FCompressedAbcData;
 
 namespace AbcImporterUtilities
 {
@@ -191,4 +199,4 @@ namespace AbcImporterUtilities
 	void CalculateNewStartAndEndFrameIndices(const float FrameStepRatio, uint32& InOutStartFrameIndex, uint32& InOutEndFrameIndex );
 
 	bool AreVerticesEqual(const FSoftSkinVertex& V1, const FSoftSkinVertex& V2);
-};
+}
