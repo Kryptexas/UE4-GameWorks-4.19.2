@@ -1644,6 +1644,7 @@ namespace AutomationTool
 						"UnrealBuildTool.exe.config",
 						"AutomationUtils.Automation.dll",
 						"DotNETUtilities.dll",
+						"MobileDeviceInterface.dll"
 					});
 
 			foreach (var UATFile in UATFiles)
