@@ -1714,18 +1714,18 @@ namespace UnrealBuildTool
 			// Search all the output directories for files with a name matching one of our output files
 			foreach(DirectoryReference OutputDirectory in OutputFiles.Select(x => x.Directory).Distinct())
 			{
-				if(OutputDirectory.Exists())
-				{
-					foreach(FileReference ExistingFile in OutputDirectory.EnumerateFileReferences())
-					{
-						FileReference OutputFile;
-						if(OutputFileNames.TryGetValue(ExistingFile.GetFileName(), out OutputFile) && !OutputFiles.Contains(ExistingFile))
-						{
-							Log.TraceInformation("Deleting '{0}' to avoid ambiguity with '{1}'", ExistingFile, OutputFile);
-							CleanFile(ExistingFile.FullName);
-						}
-					}
-				}
+                if (OutputDirectory.Exists())
+                {
+                    foreach (FileReference ExistingFile in OutputDirectory.EnumerateFileReferences())
+                    {
+                        FileReference OutputFile;
+                        if (OutputFileNames.TryGetValue(ExistingFile.GetFileName(), out OutputFile) && !OutputFiles.Contains(ExistingFile))
+                        {
+                            Log.TraceInformation("Deleting '{0}' to avoid ambiguity with '{1}'", ExistingFile, OutputFile);
+                            CleanFile(ExistingFile.FullName);
+                        }
+                    }
+                }
 			}
 		}
 
@@ -4149,15 +4149,15 @@ namespace UnrealBuildTool
 			GlobalLinkEnvironment.Config.bIsBuildingLibrary = bIsBuildingLibrary;
 		}
 
-		void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
-		{
-			PlatformContext.SetUpProjectEnvironment(Configuration);
-		}
+        void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
+        {
+            PlatformContext.SetUpProjectEnvironment(Configuration);
+        }
 
-		/// <summary>
-		/// Create a rules object for the given module, and set any default values for this target
-		/// </summary>
-		private ModuleRules CreateModuleRulesAndSetDefaults(string ModuleName, out FileReference ModuleFileName)
+        /// <summary>
+        /// Create a rules object for the given module, and set any default values for this target
+        /// </summary>
+        private ModuleRules CreateModuleRulesAndSetDefaults(string ModuleName, out FileReference ModuleFileName)
 		{
 			// Create the rules from the assembly
 			ModuleRules RulesObject = RulesAssembly.CreateModuleRules(ModuleName, TargetInfo, out ModuleFileName);

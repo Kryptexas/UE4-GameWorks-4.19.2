@@ -116,12 +116,40 @@ public:
 	UPROPERTY(config)
 	uint32 bShowLaunchMenus : 1;
 
+	/** The color used for the background in the output log */
+	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Background Color"))
+	FLinearColor LogBackgroundColor;
+
+	/** The color used for the background of selected text in the output log */
+	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Selection Background Color"))
+	FLinearColor LogSelectionBackgroundColor;
+
+	/** The color used for normal text in the output log */
+	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Normal Text Color"))
+	FLinearColor LogNormalColor;
+
+	/** The color used for normal text in the output log */
+	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Command Text Color"))
+	FLinearColor LogCommandColor;
+
+	/** The color used for warning log lines */
+	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Warning Text Color"))
+	FLinearColor LogWarningColor;
+
+	/** The color used for error log lines */
+	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Error Text Color"))
+	FLinearColor LogErrorColor;
+
+	/** The font size used in the output log */
+	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Log Font Size", ConfigRestartRequired=true))
+	int32 LogFontSize;
+
 	/** The display mode for timestamps in the output log */
-	UPROPERTY(EditAnywhere, config, Category=Logging)
+	UPROPERTY(EditAnywhere, config, Category="Output Log")
 	TEnumAsByte<ELogTimes::Type> LogTimestampMode;
 
 	/** Should warnings and errors in the Output Log during "Play in Editor" be promoted to the message log? */
-	UPROPERTY(EditAnywhere, config, Category=Logging)
+	UPROPERTY(EditAnywhere, config, Category="Output Log")
 	bool bPromoteOutputLogWarningsDuringPIE;
 
 	/** New asset editor tabs will open at the specified location. */

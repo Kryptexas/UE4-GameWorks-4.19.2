@@ -116,8 +116,8 @@ namespace UnrealBuildTool
 		{
 			SetUpProjectEnvironment(Configuration);
 
-			// get the list of architectures to compile
-			string Archs =
+            // get the list of architectures to compile
+            string Archs =
 				UBTArchitecture == "-simulator" ? "i386" :
 				(Configuration == CPPTargetConfiguration.Shipping) ? ShippingArchitectures : NonShippingArchitectures;
 

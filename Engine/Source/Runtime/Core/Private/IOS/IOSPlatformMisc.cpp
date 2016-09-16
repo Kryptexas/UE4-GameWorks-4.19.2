@@ -668,8 +668,33 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 
 class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
 {
-    static FIOSChunkInstall Singleton;
-    return &Singleton;
+	static IPlatformChunkInstall* ChunkInstall = nullptr;
+	if (!ChunkInstall)
+	{
+		FString ProviderName;
+		GConfig->GetString(TEXT("StreamingInstall"), TEXT("DefaultProviderName"), ProviderName, GEngineIni);
+		if (ProviderName == TEXT("HTTPChunkInstaller"))
+		{
+			IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
+			if (PlatformChunkInstallModule != NULL)
+			{
+				// Attempt to grab the platform installer
+				ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+			}
+		}
+		else if (ProviderName == TEXT("IOSChunkInstaller"))
+		{
+			static FIOSChunkInstall Singleton;
+			ChunkInstall = &Singleton;
+		}
+		if (!ChunkInstall)
+		{
+			// Placeholder instance
+			ChunkInstall = FGenericPlatformMisc::GetPlatformChunkInstall();
+		}
+	}
+
+	return ChunkInstall;
 }
 
 

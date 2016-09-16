@@ -798,7 +798,13 @@ public partial class Project : CommandUtils
 
 		var UnrealPakResponseFile = CreatePakResponseFileFromStagingManifest(SC);
 
-		CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName, Params.SignPak);
+        if (Params.CreateChunkInstall)
+        {
+            string ChunkInstallBasePath = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform);
+            string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
+            InternalUtils.SafeDeleteDirectory(CloudDir, true);
+        }
+        CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName, Params.SignPak);
 	}
 
 	/// <summary>
@@ -1165,7 +1171,14 @@ public partial class Project : CommandUtils
 
 		IEnumerable<Tuple<Dictionary<string,string>, string>> PakPairs = PakResponseFiles.Zip(ChunkList, (a, b) => Tuple.Create(a, b));
 
-		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
+        if (Params.CreateChunkInstall)
+        {
+            string ChunkInstallBasePath = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform);
+            string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
+            InternalUtils.SafeDeleteDirectory(CloudDir, true);
+        }
+
+        System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
 		{
 			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);
 			CreatePak(Params, SC, PakPair.Item1, ChunkName, Params.SignPak);

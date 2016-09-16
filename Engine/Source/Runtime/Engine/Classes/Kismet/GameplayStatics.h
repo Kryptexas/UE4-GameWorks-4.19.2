@@ -885,9 +885,10 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Player			Project using this player's view.
 	 * @param WorldPosition		World position to project.
 	 * @param ScreenPosition	(out) Corresponding 2D position in screen space
+	 * @param bPlayerViewportRelative	Should this be relative to the player viewport subregion (useful when using player attached widgets in split screen)
 	 */
 	UFUNCTION(BlueprintPure, Category = "Utilities")
-	static bool ProjectWorldToScreen(APlayerController const* Player, const FVector& WorldPosition, FVector2D& ScreenPosition);
+	static bool ProjectWorldToScreen(APlayerController const* Player, const FVector& WorldPosition, FVector2D& ScreenPosition, bool bPlayerViewportRelative = false);
 
 	//~ Utility functions for interacting with Options strings
 

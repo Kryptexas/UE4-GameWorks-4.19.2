@@ -543,13 +543,16 @@ private:
 		const FText Text = LOCTEXT("TestText", "The quick brown fox jumps over the lazy dog 0123456789");
 		const FString FontName( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf" ) );
 		uint32 FontSize = 14;
+		FSlateFontInfo FontInfo(FontName, FontSize);
+		FontInfo.OutlineSettings.OutlineColor = FLinearColor::Blue;
+		FontInfo.OutlineSettings.OutlineSize = 2;
 
 		FSlateDrawElement::MakeText(
 			InParams.OutDrawElements,
 			InParams.Layer,
 			InParams.Geometry.ToPaintGeometry(FVector2D(0,0), InParams.Geometry.Size, FontScale),
 			Text.ToString(),
-			FSlateFontInfo( FontName,FontSize ),
+			FontInfo,
 			InParams.ClippingRect,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			FColor( 255, 255, 255 )

@@ -31,10 +31,7 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 		= false;
 #endif
 
-	if (CurrentAsset != NULL &&
-//@HSL_BEGIN - CCL - Seeing crashes due to processing animations that have begun to be destroyed
-		!CurrentAsset->HasAnyFlags(RF_BeginDestroyed))
-//@HSL_END
+	if (CurrentAsset != NULL && !CurrentAsset->HasAnyFlags(RF_BeginDestroyed))
 	{
 		//@TODO: animrefactor: Seems like more code duplication than we need
 		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(CurrentAsset))

@@ -836,7 +836,7 @@ static void BuildShaderOutput(
 		FMemoryWriter Ar(ShaderOutput.ShaderCode.GetWriteAccess(), true);
 		Ar << Header;
 		Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
-		
+
 		// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
 		// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared. 
 		//			uncommenting this will cause the project to have non deterministic materials and will hurt patch sizes

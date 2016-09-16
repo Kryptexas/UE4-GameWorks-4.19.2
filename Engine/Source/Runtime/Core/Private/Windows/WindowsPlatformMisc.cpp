@@ -2863,7 +2863,7 @@ IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
 #endif
 		{
 			// Placeholder instance
-			ChunkInstall = new FGenericPlatformChunkInstall();
+			ChunkInstall = FGenericPlatformMisc::GetPlatformChunkInstall();
 		}
 	}
 

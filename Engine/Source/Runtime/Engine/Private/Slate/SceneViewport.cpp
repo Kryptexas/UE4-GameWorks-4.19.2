@@ -1158,9 +1158,7 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 			}
 
 			// Resize viewport
-// @HSL_CHANGE_BEGIN - ngreen@hardsuitlabs.com - 5/31/2016 - Fixing windowed mode
 			FVector2D ViewportSize = WindowToResize->GetWindowSizeFromClientSize(FVector2D(SizeX, SizeY));
-// @HSL_CHANGE_END - ngreen@hardsuitlabs.com - 5/31/2016
 			FVector2D NewViewportSize = WindowToResize->GetViewportSize();
 
 			if (NewViewportSize != ViewportSize || NewWindowMode != WindowMode)

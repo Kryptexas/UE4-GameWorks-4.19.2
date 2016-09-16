@@ -58,7 +58,12 @@ UGeneralEngineSettings::UGeneralEngineSettings( const FObjectInitializer& Object
 UGeneralProjectSettings::UGeneralProjectSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 	, bShouldWindowPreserveAspectRatio(true)
+	, bUseBorderlessWindow(false)
 	, bStartInVR(false)
+	, bAllowWindowResize(true)
+	, bAllowClose(true)
+	, bAllowMaximize(true)
+	, bAllowMinimize(true)
 { }
 
 

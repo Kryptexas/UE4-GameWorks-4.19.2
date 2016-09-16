@@ -331,6 +331,10 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	const FText WindowTitle = FText::Format(WindowTitleVar, Args);
 	const bool bShouldPreserveAspectRatio = GetDefault<UGeneralProjectSettings>()->bShouldWindowPreserveAspectRatio;
 	const bool bUseBorderlessWindow = GetDefault<UGeneralProjectSettings>()->bUseBorderlessWindow;
+	const bool bAllowWindowResize = GetDefault<UGeneralProjectSettings>()->bAllowWindowResize;
+	const bool bAllowClose = GetDefault<UGeneralProjectSettings>()->bAllowClose;
+	const bool bAllowMaximize = GetDefault<UGeneralProjectSettings>()->bAllowMaximize;
+	const bool bAllowMinimize = GetDefault<UGeneralProjectSettings>()->bAllowMinimize;
 
 	// Allow optional winX/winY parameters to set initial window position
 	EAutoCenter::Type AutoCenterType = EAutoCenter::PrimaryWorkArea;
@@ -387,7 +391,11 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	.UseOSWindowBorder(!bUseBorderlessWindow)
 	.CreateTitleBar(!bUseBorderlessWindow)
 	.ShouldPreserveAspectRatio(bShouldPreserveAspectRatio)
-	.LayoutBorder(bUseBorderlessWindow ? FMargin(0) : FMargin(5, 5, 5, 5));
+	.LayoutBorder(bUseBorderlessWindow ? FMargin(0) : FMargin(5, 5, 5, 5))
+	.SizingRule(bAllowWindowResize ? ESizingRule::UserSized : ESizingRule::FixedSize)
+	.HasCloseButton(bAllowClose)
+	.SupportsMinimize(bAllowMinimize)
+	.SupportsMaximize(bAllowMaximize);
 
 	const bool bShowImmediately = false;
 

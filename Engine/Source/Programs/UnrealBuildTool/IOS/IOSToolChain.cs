@@ -152,10 +152,10 @@ namespace UnrealBuildTool
 
 		string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
 		{
-			// @todo tvos merge: Make sure PlatformContext is proper (TVOS vs IOS platform)
-			PlatformContext.SetUpProjectEnvironment(CompileEnvironment.Config.Target.Configuration);
+            // @todo tvos merge: Make sure PlatformContext is proper (TVOS vs IOS platform)
+            PlatformContext.SetUpProjectEnvironment(CompileEnvironment.Config.Target.Configuration);
 
-			string Result = "";
+            string Result = "";
 
 			Result += " -fmessage-length=0";
 			Result += " -pipe";
@@ -370,9 +370,9 @@ namespace UnrealBuildTool
 
 		string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
 		{
-			PlatformContext.SetUpProjectEnvironment(LinkEnvironment.Config.Target.Configuration);
+            PlatformContext.SetUpProjectEnvironment(LinkEnvironment.Config.Target.Configuration);
 
-			string Result = "";
+            string Result = "";
 
 			Result += PlatformContext.GetArchitectureArgument(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
 
@@ -1199,9 +1199,9 @@ namespace UnrealBuildTool
 
 					if (Directory.Exists(Project))
 					{
-						// ensure the plist, entitlements, and provision files are properly copied
-						var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(new FileReference(Project), PlatformContext) : new UEDeployTVOS(new FileReference(Project), PlatformContext));
-						DeployHandler.PrepTargetForDeployment(Target);
+                        // ensure the plist, entitlements, and provision files are properly copied
+                        var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(new FileReference(Project), PlatformContext) : new UEDeployTVOS(new FileReference(Project), PlatformContext));
+                        DeployHandler.PrepTargetForDeployment(Target);
 
 						var ConfigName = Target.Configuration.ToString();
 						if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
@@ -1334,9 +1334,9 @@ namespace UnrealBuildTool
 				// Generate the stub
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
-					// ensure the plist, entitlements, and provision files are properly copied
-					var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(Target.ProjectFile, PlatformContext) : new UEDeployTVOS(Target.ProjectFile, PlatformContext));
-					DeployHandler.PrepTargetForDeployment(Target);
+                    // ensure the plist, entitlements, and provision files are properly copied
+                    var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(Target.ProjectFile, PlatformContext) : new UEDeployTVOS(Target.ProjectFile, PlatformContext));
+                    DeployHandler.PrepTargetForDeployment(Target);
 
 					if (!bUseDangerouslyFastMode)
 					{

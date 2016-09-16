@@ -709,10 +709,8 @@ private:
 	virtual FVector2D ComputeDesiredSize(float) const override;
 
 public:
-// @HSL_CHANGE_BEGIN - ngreen@hardsuitlabs.com - 5/31/2016 - need access to this to fix windowed mode
 	// For a given client size, calculate the window size required to accomodate any potential non-OS borders and tilebars
 	FVector2D GetWindowSizeFromClientSize(FVector2D InClientSize);
-// @HSL_CHANGE_END - ngreen@hardsuitlabs.com - 5/31/2016 - need access to this to fix windowed mode
 
 	/** @return true if this window will be focused when it is first shown */
 	inline bool IsFocusedInitially() const

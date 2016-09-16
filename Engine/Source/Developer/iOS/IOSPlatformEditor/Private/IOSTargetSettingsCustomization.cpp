@@ -130,7 +130,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 
 		// Now split up the log into multiple lines
 		TArray<FString> LogLines;
-		OutputMessage.ParseIntoArray(LogLines, LINE_TERMINATOR, true);
+		OutputMessage.ParseIntoArray(LogLines, TEXT("\n"), true);
 		
 		// format of the line being read here!!
 		bool bCerts = false;

@@ -60,6 +60,13 @@ FSlateEditorStyle::FStyle::FStyle( const TWeakObjectPtr< UEditorStyleSettings >&
 	, SelectionColor_Inactive_LinearRef( MakeShareable( new FLinearColor( 0.25f, 0.25f, 0.25f ) ) )
 	, SelectionColor_Pressed_LinearRef( MakeShareable( new FLinearColor( 0.701f, 0.225f, 0.003f ) ) )
 
+	, LogColor_Background_LinearRef(MakeShareable(new FLinearColor(FColor(0xFF3E3E3E))))
+	, LogColor_SelectionBackground_LinearRef(MakeShareable(new FLinearColor(FColor(0xff666666))))
+	, LogColor_Normal_LinearRef(MakeShareable(new FLinearColor(FColor(0xffaaaaaa))))
+	, LogColor_Command_LinearRef(MakeShareable(new FLinearColor(FColor(0xff33dd33))))
+	, LogColor_Warning_LinearRef(MakeShareable(new FLinearColor(FColor(0xffbbbb44))))
+	, LogColor_Error_LinearRef(MakeShareable(new FLinearColor(FColor(0xffdd0000))))
+
 	// These are the Slate colors which reference those above; these are the colors to put into the style
 	, DefaultForeground( DefaultForeground_LinearRef )
 	, InvertedForeground( InvertedForeground_LinearRef )
@@ -68,6 +75,13 @@ FSlateEditorStyle::FStyle::FStyle( const TWeakObjectPtr< UEditorStyleSettings >&
 	, SelectionColor_Subdued( SelectionColor_Subdued_LinearRef )
 	, SelectionColor_Inactive( SelectionColor_Inactive_LinearRef )
 	, SelectionColor_Pressed( SelectionColor_Pressed_LinearRef )
+
+	, LogColor_Background( LogColor_Background_LinearRef )
+	, LogColor_SelectionBackground( LogColor_SelectionBackground_LinearRef )
+	, LogColor_Normal( LogColor_Normal_LinearRef )
+	, LogColor_Command( LogColor_Command_LinearRef )
+	, LogColor_Warning( LogColor_Warning_LinearRef )
+	, LogColor_Error( LogColor_Error_LinearRef )
 
 	, InheritedFromBlueprintTextColor(FLinearColor(0.25f, 0.5f, 1.0f))
 
@@ -101,6 +115,13 @@ void FSlateEditorStyle::FStyle::SyncSettings()
 		SetColor( SelectionColor_LinearRef, Settings->SelectionColor );
 		SetColor( SelectionColor_Inactive_LinearRef, Settings->InactiveSelectionColor );
 		SetColor( SelectionColor_Pressed_LinearRef, Settings->PressedSelectionColor );
+
+		SetColor( LogColor_Background_LinearRef, Settings->LogBackgroundColor );
+		SetColor( LogColor_SelectionBackground_LinearRef, Settings->LogSelectionBackgroundColor );
+		SetColor( LogColor_Normal_LinearRef, Settings->LogNormalColor );
+		SetColor( LogColor_Command_LinearRef, Settings->LogCommandColor );
+		SetColor( LogColor_Warning_LinearRef, Settings->LogWarningColor );
+		SetColor( LogColor_Error_LinearRef, Settings->LogErrorColor );
 
 		// The subdued selection color is derived from the selection color
 		auto SubduedSelectionColor = Settings->GetSubduedSelectionColor();
@@ -1074,32 +1095,35 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	// Output Log Window
 #if WITH_EDITOR || IS_PROGRAM
 	{
+		const int32 LogFontSize = Settings.IsValid() ? Settings->LogFontSize : 9;
+
 		const FTextBlockStyle NormalLogText = FTextBlockStyle(NormalText)
-			.SetFont( TTF_FONT( "Fonts/DroidSansMono", 9 ) )
-			.SetColorAndOpacity( FLinearColor(FColor(0xffaaaaaa)) )
-			.SetSelectedBackgroundColor( FLinearColor(FColor(0xff666666)) );
+			.SetFont( TTF_FONT( "Fonts/DroidSansMono", LogFontSize ) )
+			.SetColorAndOpacity( LogColor_Normal )
+			.SetSelectedBackgroundColor( LogColor_SelectionBackground );
 
 		Set("Log.Normal", NormalLogText );
 
 		Set("Log.Command", FTextBlockStyle(NormalLogText)
-			.SetColorAndOpacity( FLinearColor(FColor(0xff33dd33)) )
+			.SetColorAndOpacity( LogColor_Command )
 			);
 
 		Set("Log.Warning", FTextBlockStyle(NormalLogText)
-			.SetColorAndOpacity( FLinearColor(FColor(0xffbbbb44)) )
+			.SetColorAndOpacity( LogColor_Warning )
 			);
 
 		Set("Log.Error", FTextBlockStyle(NormalLogText)
-			.SetColorAndOpacity( FLinearColor(FColor(0xffdd0000)) )
+			.SetColorAndOpacity( LogColor_Error )
 			);
 
 		Set("Log.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_OutputLog_16x", Icon16x16 ) );
 
 		Set("Log.TextBox", FEditableTextBoxStyle(NormalEditableTextBoxStyle)
-			.SetBackgroundImageNormal( BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) )
-			.SetBackgroundImageHovered( BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) )
-			.SetBackgroundImageFocused( BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) )
-			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageNormal( BOX_BRUSH( "Common/WhiteGroupBorder", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageHovered( BOX_BRUSH( "Common/WhiteGroupBorder", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageFocused( BOX_BRUSH( "Common/WhiteGroupBorder", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/WhiteGroupBorder", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundColor( LogColor_Background )
 			);
 
 		Set("DebugConsole.Background", new BOX_BRUSH("Old/Menu_Background", FMargin(8.0f / 64.0f)));

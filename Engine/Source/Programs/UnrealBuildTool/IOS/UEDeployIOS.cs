@@ -15,15 +15,15 @@ namespace UnrealBuildTool
 	public class UEDeployIOS : UEBuildDeploy
 	{
 		FileReference ProjectFile;
-		IOSPlatformContext	IOSPlatformContext;
+        IOSPlatformContext IOSPlatformContext;
 
-		public UEDeployIOS(FileReference InProjectFile, IOSPlatformContext inIOSPlatformContext)
-		{
-			ProjectFile = InProjectFile;
-			IOSPlatformContext = inIOSPlatformContext;
-		}
+        public UEDeployIOS(FileReference InProjectFile, IOSPlatformContext inIOSPlatformContext)
+        {
+            ProjectFile = InProjectFile;
+            IOSPlatformContext = inIOSPlatformContext;
+        }
 
-		protected UnrealPluginLanguage UPL = null;
+        protected UnrealPluginLanguage UPL = null;
 
 		public void SetIOSPluginData(List<string> Architectures, List<string> inPluginExtraData)
 		{
@@ -236,19 +236,24 @@ namespace UnrealBuildTool
 			string BundleName;
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "BundleName", out BundleName);
 
+			// disable https requirement
+            bool bDisableHTTPS;
+            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDisableHTTPS", out bDisableHTTPS);
+
 			// short version string
 			string BundleShortVersion;
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "VersionInfo", out BundleShortVersion);
-			
-			string RequiredCaps = "";
-			
-			if(InThis != null)
-			{
-				// required capabilities
-	            RequiredCaps += InThis.IOSPlatformContext.GetRequiredCapabilities();
-			}
 
-			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsOpenGLES2", out bSupported);
+            // required capabilities
+            string RequiredCaps = "";
+
+            if (InThis != null)
+            {
+                // required capabilities
+                RequiredCaps += InThis.IOSPlatformContext.GetRequiredCapabilities();
+            }
+
+            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsOpenGLES2", out bSupported);
 			RequiredCaps += bSupported ? "\t\t<string>opengles-2</string>\n" : "";
 			if (!bSupported)
 			{
@@ -484,6 +489,16 @@ namespace UnrealBuildTool
 			// disable exempt encryption
 			Text.AppendLine("\t<key>ITSAppUsesNonExemptEncryption</key>");
 			Text.AppendLine("\t<false/>");
+			
+			// disable HTTPS requirement
+            if (bDisableHTTPS)
+            {
+                Text.AppendLine("\t<key>NSAppTransportSecurity</key>");
+                Text.AppendLine("\t\t<dict>");
+                Text.AppendLine("\t\t\t<key>NSAllowsArbitraryLoads</key><true/>");
+                Text.AppendLine("\t\t</dict>");
+            }
+            
 			if (bEnableFacebookSupport)
 			{
 				Text.AppendLine("\t<key>FacebookAppID</key>");
@@ -788,9 +803,9 @@ namespace UnrealBuildTool
 
 			// Run through iOS APL file
 			IOSPlatformContext PlatformContext = new IOSPlatformContext(InTarget.ProjectFile);
-			PlatformContext.SetUpProjectEnvironment(InTarget.Configuration);
+            PlatformContext.SetUpProjectEnvironment(InTarget.Configuration);
 
-			string BaseSoName = InTarget.OutputPaths[0].FullName;
+            string BaseSoName = InTarget.OutputPaths[0].FullName;
 
 			// get the receipt
 			UnrealTargetPlatform Platform = InTarget.Platform;

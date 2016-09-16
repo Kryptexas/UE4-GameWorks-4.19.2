@@ -84,7 +84,9 @@ void FSlateFontInfoStructCustomization::CustomizeHeader(TSharedRef<IPropertyHand
 
 void FSlateFontInfoStructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& InStructBuilder, IPropertyTypeCustomizationUtils& InStructCustomizationUtils)
 {
-	InStructBuilder.AddChildProperty( InStructPropertyHandle->GetChildHandle( TEXT("FontMaterial") ).ToSharedRef() );
+	InStructBuilder.AddChildProperty(InStructPropertyHandle->GetChildHandle( TEXT("FontMaterial")).ToSharedRef());
+
+	InStructBuilder.AddChildProperty(InStructPropertyHandle->GetChildHandle(TEXT("OutlineSettings")).ToSharedRef());
 }
 
 bool FSlateFontInfoStructCustomization::OnFilterFontAsset(const FAssetData& InAssetData)

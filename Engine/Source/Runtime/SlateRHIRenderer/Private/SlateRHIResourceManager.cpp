@@ -46,9 +46,9 @@ TSharedPtr<FSlateAtlasedTextureResource> FDynamicResourceMap::GetAtlasedTextureR
 	return nullptr;
 }
 
-TSharedPtr<FSlateMaterialResource> FDynamicResourceMap::GetMaterialResource( const UMaterialInterface* Material ) const
+TSharedPtr<FSlateMaterialResource> FDynamicResourceMap::GetMaterialResource( const FMaterialKey& InKey ) const
 {
-	return MaterialMap.FindRef( Material );
+	return MaterialMap.FindRef( InKey );
 }
 
 
@@ -68,10 +68,10 @@ void FDynamicResourceMap::AddUTextureResource( UTexture* TextureObject, TSharedR
 	}
 }
 
-void FDynamicResourceMap::AddMaterialResource( const UMaterialInterface* Material, TSharedRef<FSlateMaterialResource> InMaterialResource )
+void FDynamicResourceMap::AddMaterialResource( const FMaterialKey& InKey, TSharedRef<FSlateMaterialResource> InMaterialResource )
 {
-	check( Material == InMaterialResource->GetMaterialObject() );
-	MaterialMap.Add(Material, InMaterialResource);
+	check(InKey.Material == InMaterialResource->GetMaterialObject() );
+	MaterialMap.Add(InKey, InMaterialResource);
 }
 
 void FDynamicResourceMap::RemoveDynamicTextureResource(FName ResourceName)
@@ -88,9 +88,9 @@ void FDynamicResourceMap::RemoveUTextureResource( UTexture* TextureObject )
 	}
 }
 
-void FDynamicResourceMap::RemoveMaterialResource( const UMaterialInterface* Material )
+void FDynamicResourceMap::RemoveMaterialResource( const FMaterialKey& InKey )
 {
-	MaterialMap.Remove(Material);
+	MaterialMap.Remove(InKey);
 }
 
 void FDynamicResourceMap::AddAtlasedTextureResource(UTexture* TextureObject, TSharedRef<FSlateAtlasedTextureResource> InResource)
@@ -172,8 +172,8 @@ void FDynamicResourceMap::RemoveExpiredMaterialResources(TArray< TSharedPtr<FSla
 	{
 		for ( FMaterialResourceMap::TIterator It(MaterialMap); It; ++It )
 		{
-			TWeakObjectPtr<UMaterialInterface>& Key = It.Key();
-			if ( !Key.IsValid() )
+			FMaterialKey& Key = It.Key();
+			if ( !Key.Material.IsValid() )
 			{
 				RemovedMaterials.Push(It.Value());
 
@@ -511,7 +511,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 	}
 	else if (InBrush.GetResourceObject() && InBrush.GetResourceObject()->IsA<UMaterialInterface>())
 	{
-		FSlateMaterialResource* Resource = GetMaterialResource(InBrush.GetResourceObject(), InBrush.ImageSize, nullptr);
+		FSlateMaterialResource* Resource = GetMaterialResource(InBrush.GetResourceObject(), InBrush.ImageSize, nullptr, 0);
 		Texture = Resource->SlateProxy;
 	}
 	else if( InBrush.IsDynamicallyLoaded() || ( InBrush.HasUObject() ) )
@@ -528,7 +528,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 	return Texture;
 }
 
-FSlateShaderResource* FSlateRHIResourceManager::GetFontShaderResource( uint32 FontAtlasIndex, FSlateShaderResource* FontTextureAtlas, const class UObject* FontMaterial )
+FSlateShaderResource* FSlateRHIResourceManager::GetFontShaderResource( int32 InTextureAtlasIndex, FSlateShaderResource* FontTextureAtlas, const class UObject* FontMaterial )
 {
 	if( FontMaterial == nullptr )
 	{
@@ -536,7 +536,7 @@ FSlateShaderResource* FSlateRHIResourceManager::GetFontShaderResource( uint32 Fo
 	}
 	else
 	{
-		return GetMaterialResource( FontMaterial, FVector2D::ZeroVector, FontTextureAtlas );
+		return GetMaterialResource( FontMaterial, FVector2D::ZeroVector, FontTextureAtlas, InTextureAtlasIndex );
 	}
 }
 
@@ -741,13 +741,15 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 	return nullptr;
 }
 
-FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObject* InMaterial, FVector2D ImageSize, FSlateShaderResource* TextureMask )
+FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObject* InMaterial, FVector2D ImageSize, FSlateShaderResource* TextureMask, int32 InMaskKey )
 {
 	checkSlow(IsThreadSafeForSlateRendering());
 
 	const UMaterialInterface* Material = CastChecked<UMaterialInterface>(InMaterial);
 
-	TSharedPtr<FSlateMaterialResource> MaterialResource = DynamicResourceMap.GetMaterialResource(Material);
+	FMaterialKey Key(Material, InMaskKey);
+
+	TSharedPtr<FSlateMaterialResource> MaterialResource = DynamicResourceMap.GetMaterialResource(Key);
 	if (!MaterialResource.IsValid())
 	{
 		// Get a resource from the free list if possible
@@ -762,7 +764,7 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 			MaterialResource = MakeShareable(new FSlateMaterialResource(*Material, ImageSize, TextureMask));
 		}
 		
-		DynamicResourceMap.AddMaterialResource(Material, MaterialResource.ToSharedRef());
+		DynamicResourceMap.AddMaterialResource(Key, MaterialResource.ToSharedRef());
 	}
 	else if( MaterialResource->GetTextureMaskResource() != TextureMask )
 	{
@@ -823,9 +825,11 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 			{
 				UMaterialInterface* Material = Cast<UMaterialInterface>(ResourceObject);
 
-				TSharedPtr<FSlateMaterialResource> MaterialResource = DynamicResourceMap.GetMaterialResource(Material);
+				FMaterialKey Key(Material, 0);
+
+				TSharedPtr<FSlateMaterialResource> MaterialResource = DynamicResourceMap.GetMaterialResource(Key);
 				
-				DynamicResourceMap.RemoveMaterialResource(Material);
+				DynamicResourceMap.RemoveMaterialResource(Key);
 
 				if (MaterialResource.IsValid())
 				{

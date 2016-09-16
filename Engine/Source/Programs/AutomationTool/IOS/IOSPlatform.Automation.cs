@@ -224,14 +224,13 @@ public class IOSPlatform : Platform
 		return 4;
 	}
 
-	public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, UnrealBuildTool.IOSPlatformContext inIOSPlatformContext)
-	{
-		Console.WriteLine("Getting IOS Deploy()");
-	
-		return new UnrealBuildTool.UEDeployIOS(InProject, inIOSPlatformContext);
-	}
+    public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, UnrealBuildTool.IOSPlatformContext inIOSPlatformContext)
+    {
+        Console.WriteLine("Getting IOS Deploy()");
+        return new UnrealBuildTool.UEDeployIOS(InProject, inIOSPlatformContext);
+    }
 
-	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
+    protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
 	{
 		string ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", PlatformName, (Params.Distribution ? "Distro_" : "") + Params.ShortProjectName);
 		if (TargetConfiguration != UnrealTargetConfiguration.Development)
@@ -295,28 +294,28 @@ public class IOSPlatform : Platform
 			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find binary {0}. You may need to build the UE4 project with your target configuration and platform.", FullExePath);
 		}
 
-		if (SC.StageTargetConfigurations.Count != 1)
+        if (SC.StageTargetConfigurations.Count != 1)
+        {
+            throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+        }
+
+        var TargetConfiguration = SC.StageTargetConfigurations[0];
+
+        UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
+        BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
+
+        //@TODO: We should be able to use this code on both platforms, when the following issues are sorted:
+        //   - Raw executable is unsigned & unstripped (need to investigate adding stripping to IPP)
+        //   - IPP needs to be able to codesign a raw directory
+        //   - IPP needs to be able to take a .app directory instead of a Payload directory when doing RepackageFromStage (which would probably be renamed)
+        //   - Some discrepancy in the loading screen pngs that are getting packaged, which needs to be investigated
+        //   - Code here probably needs to be updated to write 0 byte files as 1 byte (difference with IPP, was required at one point when using Ionic.Zip to prevent issues on device, maybe not needed anymore?)
+        if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 		{
-			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
-		}
-		
-		var TargetConfiguration = SC.StageTargetConfigurations[0];
+            // copy in all of the artwork and plist
+            var DeployHandler = GetDeployHandler(Params.RawProjectPath, BuildPlatContext);
 
-		UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
-		BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
-
-		//@TODO: We should be able to use this code on both platforms, when the following issues are sorted:
-		//   - Raw executable is unsigned & unstripped (need to investigate adding stripping to IPP)
-		//   - IPP needs to be able to codesign a raw directory
-		//   - IPP needs to be able to take a .app directory instead of a Payload directory when doing RepackageFromStage (which would probably be renamed)
-		//   - Some discrepancy in the loading screen pngs that are getting packaged, which needs to be investigated
-		//   - Code here probably needs to be updated to write 0 byte files as 1 byte (difference with IPP, was required at one point when using Ionic.Zip to prevent issues on device, maybe not needed anymore?)
-		if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
-		{
-			// copy in all of the artwork and plist
-			var DeployHandler = GetDeployHandler(Params.RawProjectPath, BuildPlatContext);
-
-			DeployHandler.PrepForUATPackageOrDeploy(Params.RawProjectPath,
+            DeployHandler.PrepForUATPackageOrDeploy(Params.RawProjectPath,
 				Params.ShortProjectName,
 				Path.GetDirectoryName(Params.RawProjectPath.FullName),
 				CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0]),
@@ -832,27 +831,27 @@ public class IOSPlatform : Platform
 					{
 						UnrealBuildTool.UnrealBuildTool.SetRemoteIniPath(SC.ProjectRoot);
 					}
-					
-					if (SC.StageTargetConfigurations.Count != 1)
-					{
-						throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
-					}
-					
-					var TargetConfiguration = SC.StageTargetConfigurations[0];
-			
-					UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
-					BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
 
-					GetDeployHandler(
-						new FileReference(SC.ProjectRoot), BuildPlatContext).GeneratePList(
-							(SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), 
-							!SC.IsCodeBasedProject, 
-							(SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), 
-							SC.ShortProjectName, SC.LocalRoot + "/Engine", 
-							(SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/" + PlatformName + "/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
-				}
+                    if (SC.StageTargetConfigurations.Count != 1)
+                    {
+                        throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+                    }
 
-				SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");
+                    var TargetConfiguration = SC.StageTargetConfigurations[0];
+
+                    UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
+                    BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
+
+                    GetDeployHandler(
+                        new FileReference(SC.ProjectRoot), BuildPlatContext).GeneratePList(
+                            (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"),
+                            !SC.IsCodeBasedProject,
+                            (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"),
+                            SC.ShortProjectName, SC.LocalRoot + "/Engine",
+                            (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/" + PlatformName + "/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
+                }
+
+                SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");
 			}
 		}
         {

@@ -724,7 +724,7 @@ class IPlatformChunkInstall* FAndroidMisc::GetPlatformChunkInstall()
 		else
 		{
 			// Placeholder instance
-			ChunkInstall = new FGenericPlatformChunkInstall();
+			ChunkInstall = FGenericPlatformMisc::GetPlatformChunkInstall();
 		}
 	}
 

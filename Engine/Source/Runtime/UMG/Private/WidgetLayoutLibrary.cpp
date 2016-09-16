@@ -29,7 +29,7 @@ bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(APla
 	if ( PlayerController )
 	{
 		FVector PixelLocation;
-		const bool bProjected = PlayerController->ProjectWorldLocationToScreenWithDistance(WorldLocation, PixelLocation);
+		const bool bProjected = PlayerController->ProjectWorldLocationToScreenWithDistance(WorldLocation, PixelLocation, /*bPlayerViewportRelative=*/ true);
 
 		if ( bProjected )
 		{
@@ -53,7 +53,7 @@ bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(APla
 		}
 	}
 
-	ScreenPosition = FVector(0, 0, 0);
+	ScreenPosition = FVector::ZeroVector;
 
 	return false;
 }

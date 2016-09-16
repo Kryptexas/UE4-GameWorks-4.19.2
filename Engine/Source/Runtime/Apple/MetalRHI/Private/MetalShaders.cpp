@@ -128,8 +128,6 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 	FMetalCompiledShaderKey Key(CodeLength, CodeCRC);
 
 	// Find the existing compiled shader in the cache.
-	Function = GetMetalCompiledShaderCache().FindRef(Key);
-	if (!Function)
 	{
 		id<MTLLibrary> Library;
 		

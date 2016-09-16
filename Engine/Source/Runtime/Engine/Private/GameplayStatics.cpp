@@ -2014,7 +2014,7 @@ bool UGameplayStatics::DeprojectScreenToWorld(APlayerController const* Player, c
 	return false;
 }
 
-bool UGameplayStatics::ProjectWorldToScreen(APlayerController const* Player, const FVector& WorldPosition, FVector2D& ScreenPosition)
+bool UGameplayStatics::ProjectWorldToScreen(APlayerController const* Player, const FVector& WorldPosition, FVector2D& ScreenPosition, bool bPlayerViewportRelative)
 {
 	ULocalPlayer* const LP = Player ? Player->GetLocalPlayer() : nullptr;
 	if (LP && LP->ViewportClient)
@@ -2024,7 +2024,14 @@ bool UGameplayStatics::ProjectWorldToScreen(APlayerController const* Player, con
 		if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
 		{
 			FMatrix const ViewProjectionMatrix = ProjectionData.ComputeViewProjectionMatrix();
-			return FSceneView::ProjectWorldToScreen(WorldPosition, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition);
+			const bool bResult = FSceneView::ProjectWorldToScreen(WorldPosition, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition);
+
+			if (bPlayerViewportRelative)
+			{
+				ScreenPosition -= FVector2D(ProjectionData.GetConstrainedViewRect().Min);
+			}
+
+			return bResult;
 		}
 	}
 

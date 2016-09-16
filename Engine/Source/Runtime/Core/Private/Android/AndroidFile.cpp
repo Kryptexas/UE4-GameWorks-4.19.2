@@ -296,7 +296,8 @@ public:
 			// Can't write to assets.
 			return false;
 		}
-		
+
+		bool bSuccess = true;
 		while (BytesToWrite)
 		{
 			check(BytesToWrite >= 0);
@@ -304,7 +305,8 @@ public:
 			check(Source);
 			if (pwrite(File->Handle, Source, ThisSize, CurrentOffset) != ThisSize)
 			{
-				return false;
+				bSuccess = false;
+				break;
 			}
 			CurrentOffset += ThisSize;
 			Source += ThisSize;
@@ -314,7 +316,7 @@ public:
 		// Update the cached file length
 		Length = FMath::Max(Length, CurrentOffset);
 
-		return true;
+		return bSuccess;
 	}
 
 	virtual int64 Size() override

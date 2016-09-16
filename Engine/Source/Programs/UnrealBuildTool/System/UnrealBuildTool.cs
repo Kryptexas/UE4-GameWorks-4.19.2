@@ -1906,6 +1906,7 @@ namespace UnrealBuildTool
 						UBTMakefile.TargetNameToUObjectModules = TargetNameToUObjectModules;
 						UBTMakefile.Targets = Targets;
 						UBTMakefile.SourceFileWorkingSet = Unity.SourceFileWorkingSet;
+						UBTMakefile.CandidateSourceFilesForWorkingSet = Unity.CandidateSourceFilesForWorkingSet;
 
 						if (BuildConfiguration.bUseUBTMakefiles)
 						{
@@ -2319,11 +2320,15 @@ namespace UnrealBuildTool
 			/// </summary>
 			public List<UEBuildTarget> Targets;
 
-
 			/// <summary>
 			/// Current working set of source files, for when bUseAdaptiveUnityBuild is enabled
 			/// </summary>
 			public HashSet<FileItem> SourceFileWorkingSet = new HashSet<FileItem>();
+
+			/// <summary>
+			/// Set of source files which are included in unity files, but which should invalidate the makefile if modified (for when bUseAdaptiveUnityBuild is enabled)
+			/// </summary>
+			public HashSet<FileItem> CandidateSourceFilesForWorkingSet = new HashSet<FileItem>();
 
 			public UBTMakefile()
 			{
@@ -2344,6 +2349,7 @@ namespace UnrealBuildTool
 				TargetNameToUObjectModules = (Dictionary<string, List<UHTModuleInfo>>)Info.GetValue("nu", typeof(Dictionary<string, List<UHTModuleInfo>>));
 				Targets = (List<UEBuildTarget>)Info.GetValue("ta", typeof(List<UEBuildTarget>));
 				SourceFileWorkingSet = (HashSet<FileItem>)Info.GetValue("ws", typeof(HashSet<FileItem>));
+				CandidateSourceFilesForWorkingSet = (HashSet<FileItem>)Info.GetValue("wc", typeof(HashSet<FileItem>));
 			}
 
 			public void GetObjectData(SerializationInfo Info, StreamingContext Context)
@@ -2356,6 +2362,7 @@ namespace UnrealBuildTool
 				Info.AddValue("nu", TargetNameToUObjectModules);
 				Info.AddValue("ta", Targets);
 				Info.AddValue("ws", SourceFileWorkingSet);
+				Info.AddValue("wc", CandidateSourceFilesForWorkingSet);
 			}
 
 
@@ -2368,7 +2375,8 @@ namespace UnrealBuildTool
 					EnvironmentVariables != null &&
 					TargetNameToUObjectModules != null && TargetNameToUObjectModules.Count > 0 &&
 					Targets != null && Targets.Count > 0 &&
-					SourceFileWorkingSet != null;
+					SourceFileWorkingSet != null &&
+					CandidateSourceFilesForWorkingSet != null;
 			}
 		}
 
@@ -2615,37 +2623,25 @@ namespace UnrealBuildTool
 			// iteration times.)
 			if (BuildConfiguration.bUseAdaptiveUnityBuild)
 			{
-				// Get all .cpp files in processed modules newer than the makefile itself
-				foreach (UEBuildTarget Target in LoadedUBTMakefile.Targets)
+				// Check if any source files in the working set no longer belong in it
+				foreach(FileItem SourceFile in LoadedUBTMakefile.SourceFileWorkingSet)
 				{
-					foreach (FlatModuleCsDataType FlatModule in Target.FlatModuleCsData.Values)
+					if(!UnrealBuildTool.ShouldSourceFileBePartOfWorkingSet(SourceFile.AbsolutePath) && File.GetLastWriteTimeUtc(SourceFile.AbsolutePath) > UBTMakefileInfo.LastWriteTimeUtc)
 					{
-						if (FlatModule != null && FlatModule.ModuleSourceFolder != null)
-						{
-							// Has the directory been touched?  Don't bother checking folders that haven't been written to since the
-							// Makefile was created. 
-							//if( Directory.GetLastWriteTimeUtc( FlatModule.ModuleSourceFolder ) > UBTMakefileInfo.LastWriteTimeUtc )
-							{
-								foreach (FileReference SourceFilePath in FlatModule.ModuleSourceFolder.EnumerateFileReferences("*.cpp", SearchOption.AllDirectories))
-								{
-									// Was the file written to since the Makefile was created?  We're not able to do a fully exhaustive
-									// check for working sets when in assembler mode, so we might get it wrong occasionally.  This is
-									// why we only want to check newly-modified or created files.  Otherwise, we could potentially
-									// invalidate the Makefile every single run.
-									if (File.GetLastWriteTimeUtc(SourceFilePath.FullName) > UBTMakefileInfo.LastWriteTimeUtc)
-									{
-										bool bShouldBePartOfWorkingSet = UnrealBuildTool.ShouldSourceFileBePartOfWorkingSet(SourceFilePath.FullName);
-										bool bIsAlreadyPartOfWorkingSet = LoadedUBTMakefile.SourceFileWorkingSet.Contains(FileItem.GetItemByFileReference(SourceFilePath));
-										if (bShouldBePartOfWorkingSet != bIsAlreadyPartOfWorkingSet)
-										{
-											Log.TraceVerbose("{0} {1} part of source working set and now {2}; invalidating makefile ({3})", SourceFilePath, bIsAlreadyPartOfWorkingSet ? "was" : "was not", bShouldBePartOfWorkingSet ? "is" : "is not", UBTMakefileInfo.FullName);
-											ReasonNotLoaded = string.Format("working set of source files changed");
-											return null;
-										}
-									}
-								}
-							}
-						}
+						Log.TraceVerbose("{0} was part of source working set and now is not; invalidating makefile ({1})", SourceFile.AbsolutePath, UBTMakefileInfo.FullName);
+						ReasonNotLoaded = string.Format("working set of source files changed");
+						return null;
+					}
+				}
+
+				// Check if any source files that are eligable for being in the working set have been modified
+				foreach (FileItem SourceFile in LoadedUBTMakefile.CandidateSourceFilesForWorkingSet)
+				{
+					if(UnrealBuildTool.ShouldSourceFileBePartOfWorkingSet(SourceFile.AbsolutePath) && File.GetLastWriteTimeUtc(SourceFile.AbsolutePath) > UBTMakefileInfo.LastWriteTimeUtc)
+					{
+						Log.TraceVerbose("{0} was part of source working set and now is not; invalidating makefile ({1})", SourceFile.AbsolutePath, UBTMakefileInfo.FullName);
+						ReasonNotLoaded = string.Format("working set of source files changed");
+						return null;
 					}
 				}
 			}

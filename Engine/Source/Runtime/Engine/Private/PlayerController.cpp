@@ -1905,15 +1905,15 @@ bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float Scre
 }
 
 
-bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const
+bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation, bool bPlayerViewportRelative) const
 {
-	return UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLocation);
+	return UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLocation, bPlayerViewportRelative);
 }
 
-bool APlayerController::ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation) const
+bool APlayerController::ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation, bool bPlayerViewportRelative) const
 {
 	FVector2D ScreenLoc2D;
-	if (UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLoc2D))
+	if (UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLoc2D, bPlayerViewportRelative))
 	{
 		// find distance
 		ULocalPlayer const* const LP = GetLocalPlayer();
@@ -4177,35 +4177,38 @@ void APlayerController::SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn)
 
 ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 {
-	ASpectatorPawn* SpawnedSpectator = NULL;
+	ASpectatorPawn* SpawnedSpectator = nullptr;
 
 	// Only spawned for the local player
-	if (GetSpectatorPawn() == NULL && IsLocalController())
+	if ((GetSpectatorPawn() == nullptr) && IsLocalController())
 	{
-		AGameState const* const GameState = GetWorld()->GameState;
-		if (GameState)
+		UWorld* World = GetWorld();
+		if (AGameState const* const GameState = World->GameState)
 		{
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = this;
-			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-			SpawnParams.ObjectFlags |= RF_Transient;	// We never want to save spectator pawns into a map
-			SpawnedSpectator = GetWorld()->SpawnActor<ASpectatorPawn>(GameState->SpectatorClass, GetSpawnLocation(), GetControlRotation(), SpawnParams);
-			if (SpawnedSpectator)
+			if (UClass* SpectatorClass = GameState->SpectatorClass)
 			{
-				SpawnedSpectator->SetReplicates(false); // Client-side only
-				SpawnedSpectator->PossessedBy(this);
-				SpawnedSpectator->PawnClientRestart();
-				if (SpawnedSpectator->PrimaryActorTick.bStartWithTickEnabled)
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.Owner = this;
+				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+				SpawnParams.ObjectFlags |= RF_Transient;	// We never want to save spectator pawns into a map
+				SpawnedSpectator = World->SpawnActor<ASpectatorPawn>(SpectatorClass, GetSpawnLocation(), GetControlRotation(), SpawnParams);
+				if (SpawnedSpectator)
 				{
-					SpawnedSpectator->SetActorTickEnabled(true);
-				}
+					SpawnedSpectator->SetReplicates(false); // Client-side only
+					SpawnedSpectator->PossessedBy(this);
+					SpawnedSpectator->PawnClientRestart();
+					if (SpawnedSpectator->PrimaryActorTick.bStartWithTickEnabled)
+					{
+						SpawnedSpectator->SetActorTickEnabled(true);
+					}
 
-				UE_LOG(LogPlayerController, Verbose, TEXT("Spawned spectator %s [server:%d]"), *GetNameSafe(SpawnedSpectator), GetNetMode() < NM_Client);
-			}
-			else
-			{
-				UE_LOG(LogPlayerController, Warning, TEXT("Failed to spawn spectator with class %s"), GameState->SpectatorClass ? *GameState->SpectatorClass->GetName() : TEXT("NULL"));
+					UE_LOG(LogPlayerController, Verbose, TEXT("Spawned spectator %s [server:%d]"), *GetNameSafe(SpawnedSpectator), GetNetMode() < NM_Client);
+				}
+				else
+				{
+					UE_LOG(LogPlayerController, Warning, TEXT("Failed to spawn spectator with class %s"), *GetNameSafe(SpectatorClass));
+				}
 			}
 		}
 		else
