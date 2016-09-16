@@ -1321,9 +1321,9 @@ FProcHandle FWindowsPlatformProcess::OpenProcess(uint32 ProcessID)
 
 void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileName, const TArray<FString>& SearchPaths)
 {
-	// Create a list of files which we've already checked for imports
+	// Create a list of files which we've already checked for imports. Don't add the initial file to this list to improve the resolution of dependencies for direct circular dependencies of this
+	// module; by allowing the module to be visited twice, any mutually depended on DLLs will be visited first.
 	TArray<FString> VisitedImportNames;
-	VisitedImportNames.Add(FPaths::GetCleanFilename(FileName));
 
 	// Find a list of all the DLLs that need to be loaded
 	TArray<FString> ImportFileNames;
