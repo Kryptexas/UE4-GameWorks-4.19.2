@@ -438,7 +438,11 @@ public:
 	void ReimportData(const FLandscapeTargetListInfo& TargetInfo);
 	void ImportData(const FLandscapeTargetListInfo& TargetInfo, const FString& Filename);
 
+	/** Resample landscape to a different resolution or change the component size */
 	ALandscape* ChangeComponentSetting(int32 NumComponentsX, int32 NumComponentsY, int32 InNumSubsections, int32 InSubsectionSizeQuads, bool bResample);
+
+	/** Delete the specified landscape components */
+	void DeleteLandscapeComponents(ULandscapeInfo* LandscapeInfo, TSet<ULandscapeComponent*> ComponentsToDelete);
 
 	TArray<FLandscapeToolMode> LandscapeToolModes;
 	TArray<TUniquePtr<FLandscapeTool>> LandscapeTools;
@@ -460,7 +464,7 @@ private:
 
 	UMaterialInterface* CachedLandscapeMaterial;
 
-	bool bToolActive;
+	const FViewport* ToolActiveViewport;
 
 	FDelegateHandle OnWorldChangeDelegateHandle;
 	FDelegateHandle OnMaterialCompilationFinishedDelegateHandle;

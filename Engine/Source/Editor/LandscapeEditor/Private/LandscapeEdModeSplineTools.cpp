@@ -632,7 +632,7 @@ public:
 			{
 				if (!ToLandscape)
 				{
-					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo(false);
+					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo();
 					check(ProxyLandscapeInfo);
 					ToLandscape = ProxyLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 					if (!ToLandscape)
@@ -722,7 +722,7 @@ public:
 			{
 				if (!ToLandscape)
 				{
-					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo(false);
+					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo();
 					check(ProxyLandscapeInfo);
 					ToLandscape = ProxyLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 					if (!ToLandscape)
