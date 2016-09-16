@@ -114,6 +114,9 @@ PACKAGE_SCOPE:
 	/** Start a logout task if one isn't already in progress. */
 	void StartLogoutTask(int32 LocalUserNum);
 
+	/** Callback from JNI when Google Client is connected */
+	void ProcessGoogleClientConnectResult(bool bInSuccessful, FString AccessToken);
+
 private:
 
 	/** Google callback when auth is complete */

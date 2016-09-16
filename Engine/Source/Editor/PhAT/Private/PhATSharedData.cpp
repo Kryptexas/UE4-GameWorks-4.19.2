@@ -107,6 +107,7 @@ void FPhATSharedData::Initialize()
 	// Create SkeletalMeshComponent for rendering skeletal mesh
 	EditorSkelComp = NewObject<UPhATEdSkeletalMeshComponent>();
 	EditorSkelComp->SharedData = this;
+	EditorSkelComp->SetPhysicsAsset(PhysicsAsset);
 
 	PhysicalAnimationComponent = NewObject<UPhysicalAnimationComponent>();
 	PhysicalAnimationComponent->SetSkeletalMeshComponent(EditorSkelComp);
@@ -1637,6 +1638,21 @@ void FPhATSharedData::Redo()
 
 	PreviewChangedEvent.Broadcast();
 	HierarchyChangedEvent.Broadcast();
+}
+
+void FPhATSharedData::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(PhysicsAsset);
+	Collector.AddReferencedObject(EditorSkelComp);
+	Collector.AddReferencedObject(PhysicalAnimationComponent);
+	Collector.AddReferencedObject(EditorSkelMesh);
+	Collector.AddReferencedObject(EditorFloorComp);
+	Collector.AddReferencedObject(EditorSimOptions);
+	Collector.AddReferencedObject(MouseHandle);
+	Collector.AddReferencedObject(CopiedBodySetup);
+	Collector.AddReferencedObject(CopiedConstraintTemplate);
+
+	PreviewScene.AddReferencedObjects(Collector);
 }
 
 #undef LOCTEXT_NAMESPACE

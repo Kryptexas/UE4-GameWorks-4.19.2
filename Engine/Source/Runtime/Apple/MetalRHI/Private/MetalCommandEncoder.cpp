@@ -16,7 +16,7 @@ FMetalCommandEncoder::FMetalCommandEncoder(FMetalCommandList& CmdList)
 : CommandList(CmdList)
 , FrontFacingWinding(MTLWindingClockwise)
 , CullMode(MTLCullModeNone)
-#if METAL_API_1_1
+#if METAL_API_1_1 && PLATFORM_MAC
 , DepthClipMode(MTLDepthClipModeClip)
 #endif
 , FillMode(MTLTriangleFillModeFill)
@@ -120,7 +120,7 @@ void FMetalCommandEncoder::Reset(void)
 	
 	FrontFacingWinding = MTLWindingClockwise;
 	CullMode = MTLCullModeNone;
-#if METAL_API_1_1
+#if METAL_API_1_1 && PLATFORM_MAC
 	DepthClipMode = MTLDepthClipModeClip;
 #endif
 	FillMode = MTLTriangleFillModeFill;
@@ -337,7 +337,7 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 	[RenderCommandEncoder setViewport:Viewport];
 	[RenderCommandEncoder setFrontFacingWinding:FrontFacingWinding];
 	[RenderCommandEncoder setCullMode:CullMode];
-#if METAL_API_1_1
+#if METAL_API_1_1 && PLATFORM_MAC
 	if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthClipMode))
 	{
 		[RenderCommandEncoder setDepthClipMode:DepthClipMode];
@@ -696,7 +696,7 @@ void FMetalCommandEncoder::SetCullMode(MTLCullMode const InCullMode)
 	}
 }
 
-#if METAL_API_1_1
+#if METAL_API_1_1 && PLATFORM_MAC
 void FMetalCommandEncoder::SetDepthClipMode(MTLDepthClipMode const InDepthClipMode)
 {
 	DepthClipMode = InDepthClipMode;
@@ -852,6 +852,45 @@ void FMetalCommandEncoder::SetShaderBuffer(EShaderFrequency Frequency, id<MTLBuf
                 break;
         }
     }
+}
+
+bool FMetalCommandEncoder::SetShaderBufferConditional(EShaderFrequency const Frequency, id<MTLBuffer> const Buffer, NSUInteger const Offset, NSUInteger const index)
+{
+	check(index < ML_MaxBuffers);
+	check(Buffer);
+	bool bBound = (ShaderBuffers[Frequency].Bound & (1 << index));
+    if (!bBound)
+    {
+		ShaderBuffers[Frequency].Bound |= (1 << index);
+		ShaderBuffers[Frequency].Buffers[index] = Buffer;
+        ShaderBuffers[Frequency].Offsets[index] = Offset;
+        switch (Frequency)
+        {
+            case SF_Vertex:
+				if (RenderCommandEncoder)
+				{
+					[RenderCommandEncoder setVertexBuffer:Buffer offset:Offset atIndex:index];
+				}
+                break;
+            case SF_Pixel:
+				if (RenderCommandEncoder)
+				{
+					[RenderCommandEncoder setFragmentBuffer:Buffer offset:Offset atIndex:index];
+				}
+                break;
+            case SF_Compute:
+				if (ComputeCommandEncoder)
+				{
+					[ComputeCommandEncoder setBuffer:Buffer offset:Offset atIndex:index];
+				}
+                break;
+            default:
+                check(false);
+                break;
+        }
+    }
+    
+    return !bBound;
 }
 
 void FMetalCommandEncoder::SetShaderBufferOffset(EShaderFrequency Frequency, NSUInteger const Offset, NSUInteger index)
@@ -1107,6 +1146,82 @@ void FMetalCommandEncoder::SetShaderSamplerStates(EShaderFrequency Frequency, co
 			check(false);
 			break;
 	}
+}
+
+bool FMetalCommandEncoder::ValidateArgumentBindings(EShaderFrequency const Frequency, MTLRenderPipelineReflection* Reflection)
+{
+    bool bOK = true;
+    
+	NSArray<MTLArgument*>* Arguments = nil;
+	switch(Frequency)
+	{
+		case SF_Vertex:
+		{
+			Arguments = Reflection.vertexArguments;
+			break;
+		}
+		case SF_Pixel:
+		{
+			Arguments = Reflection.fragmentArguments;
+			break;
+		}
+		default:
+			check(false);
+			break;
+	}
+	
+	for (uint32 i = 0; i < Arguments.count; i++)
+	{
+		MTLArgument* Arg = [Arguments objectAtIndex:i];
+		check(Arg);
+		switch(Arg.type)
+		{
+			case MTLArgumentTypeBuffer:
+			{
+				checkf(Arg.index < ML_MaxBuffers, TEXT("Metal buffer index exceeded!"));
+				if (ShaderBuffers[Frequency].Buffers[Arg.index] == nil || !(ShaderBuffers[Frequency].Bound & (1 << Arg.index)))
+				{
+                    bOK = false;
+					UE_LOG(LogMetal, Warning, TEXT("Unbound buffer at Metal index: %u which will crash the driver."), (uint32)Arg.index);
+				}
+				break;
+			}
+   			case MTLArgumentTypeThreadgroupMemory:
+			{
+				break;
+			}
+    		case MTLArgumentTypeTexture:
+			{
+				checkf(Arg.index < ML_MaxTextures, TEXT("Metal texture index exceeded!"));
+				if (ShaderTextures[Frequency].Textures[Arg.index] == nil || !(ShaderTextures[Frequency].Bound & (1 << Arg.index)))
+                {
+                    bOK = false;
+					UE_LOG(LogMetal, Warning, TEXT("Unbound texture at Metal index: %u which will crash the driver."), (uint32)Arg.index);
+				}
+				else if (ShaderTextures[Frequency].Textures[Arg.index].textureType != Arg.textureType)
+                {
+                    bOK = false;
+					UE_LOG(LogMetal, Warning, TEXT("Incorrect texture type bound at Metal index: %u which will crash the driver."), (uint32)Arg.index);
+				}
+				break;
+			}
+    		case MTLArgumentTypeSampler:
+			{
+				checkf(Arg.index < ML_MaxSamplers, TEXT("Metal sampler index exceeded!"));
+				if (ShaderSamplers[Frequency].Samplers[Arg.index] == nil || !(ShaderSamplers[Frequency].Bound & (1 << Arg.index)))
+                {
+                    bOK = false;
+					UE_LOG(LogMetal, Warning, TEXT("Unbound sampler at Metal index: %u which will crash the driver."), (uint32)Arg.index);
+				}
+				break;
+			}
+			default:
+				check(false);
+				break;
+		}	
+	}
+    
+    return bOK;
 }
 
 #pragma mark - Public Compute State Mutators -

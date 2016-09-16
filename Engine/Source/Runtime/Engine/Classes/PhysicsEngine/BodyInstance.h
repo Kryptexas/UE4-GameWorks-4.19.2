@@ -28,12 +28,6 @@ DECLARE_DELEGATE_TwoParams(FCalculateCustomPhysics, float, FBodyInstance*);
   * Since this could be called many times by GetWorldTransform any expensive computations should be cached if possible.*/
 DECLARE_DELEGATE_TwoParams(FCalculateCustomProjection, const FBodyInstance*, FTransform&);
 
-/** Delegate for body initialization. Called at the end of FBodyInstance::InitBody.*/
-DECLARE_MULTICAST_DELEGATE_OneParam(FBodyInstanceInit, const FBodyInstance*);
-
-/** Delegate for body termination. Called at the beginning of FBodyInstance::TermBody.*/
-DECLARE_MULTICAST_DELEGATE_OneParam(FBodyInstanceTerm, const FBodyInstance*);
-
 #if WITH_PHYSX
 struct FShapeData;
 
@@ -164,10 +158,6 @@ USTRUCT()
 struct ENGINE_API FBodyInstance
 {
 	GENERATED_USTRUCT_BODY()
-
-	/** Body initialization and termination delegates.*/
-	static FBodyInstanceInit InitBodyDelegate;
-	static FBodyInstanceTerm TermBodyDelegate;
 
 	/** 
 	 *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 
@@ -653,6 +643,9 @@ public:
 	 * Takes a welded body and unwelds it. This function does not create the new body, it only removes the old one */
 	void UnWeld(FBodyInstance* Body);
 
+	/** Finds all children that are technically welded to us (for example kinematics are welded but not as far as physx is concerned) and apply the actual physics engine weld on them*/
+	void ApplyWeldOnChildren();
+
 	/**
 	 * After adding/removing shapes call this function to update mass distribution etc... */
 	void PostShapeChange();
@@ -728,17 +721,17 @@ public:
 	/** Makes sure the current kinematic state matches the simulate flag */
 	void UpdateInstanceSimulatePhysics();
 	/** Returns true if this body is simulating, false if it is fixed (kinematic) */
-	bool IsInstanceSimulatingPhysics();
+	bool IsInstanceSimulatingPhysics() const;
 	/** Should Simulate Physics **/
-	bool ShouldInstanceSimulatingPhysics();
+	bool ShouldInstanceSimulatingPhysics() const;
 	/** Returns whether this body is awake */
 	bool IsInstanceAwake() const;
 	/** Wake this body */
 	void WakeInstance();
 	/** Force this body to sleep */
 	void PutInstanceToSleep();
-	/** Gets the multiplier to the theshold where the body will go to sleep automatically. */
-	float GetSleepThresholdMultiplier();
+	/** Gets the multiplier to the threshold where the body will go to sleep automatically. */
+	float GetSleepThresholdMultiplier() const;
 	/** Add custom forces and torques on the body. The callback will be called more than once, if substepping enabled, for every substep.  */
 	void AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhysics);
 	/** Add a force to this body */
@@ -1106,9 +1099,11 @@ private:
 	template<typename AllocatorType>
 	bool OverlapTestForBodiesImpl(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*, AllocatorType>& Bodies) const;
 
+	friend class UPhysicsAsset;
 	friend class UCollisionProfile;
 	friend class FBodyInstanceCustomization;
 	friend struct FUpdateCollisionResponseHelper;
+	friend class FBodySetupDetails;
 	
 	friend struct FInitBodiesHelper<true>;
 	friend struct FInitBodiesHelper<false>;
@@ -1214,12 +1209,12 @@ FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBody(const FVector& Pos
 	return OverlapTestForBodiesImpl(Position, Rotation, InlineArray);
 }
 
-FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics()
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics() const
 {
 	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
 }
 
-FORCEINLINE_DEBUGGABLE bool FBodyInstance::ShouldInstanceSimulatingPhysics()
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::ShouldInstanceSimulatingPhysics() const
 {
 	return bSimulatePhysics;
 }

@@ -4,6 +4,7 @@
 LandscapeEditInterface.cpp: Landscape editing interface
 =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 
 #if WITH_EDITOR
@@ -15,7 +16,7 @@ LandscapeEditInterface.cpp: Landscape editing interface
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "ComponentReregisterContext.h"
-#include "FixedSizeArrayView.h"
+#include "Containers/ArrayView.h"
 
 // Channel remapping
 extern const size_t ChannelOffsets[4] = {STRUCT_OFFSET(FColor,R), STRUCT_OFFSET(FColor,G), STRUCT_OFFSET(FColor,B), STRUCT_OFFSET(FColor,A)};
@@ -35,12 +36,12 @@ FLandscapeEditDataInterface::FLandscapeEditDataInterface(ULandscapeInfo* InLands
 	}
 }
 
-FLandscapeEditDataInterface::~FLandscapeEditDataInterface()
+FLandscapeTextureDataInterface::~FLandscapeTextureDataInterface()
 {
 	Flush();
 }
 
-void FLandscapeEditDataInterface::Flush()
+void FLandscapeTextureDataInterface::Flush()
 {
 	bool bNeedToWaitForUpdate = false;
 
@@ -2251,7 +2252,7 @@ bool DeleteLayerIfAllZero(ULandscapeComponent* const Component, const uint8* con
 			const int32 TexDataIndex = 4 * (TexX + TexY * TexSize);
 
 			// Stop the first time we see any non-zero data
-			const uint8& Weight = TexDataPtr[TexDataIndex];
+			uint8 Weight = TexDataPtr[TexDataIndex];
 			if (Weight != 0)
 			{
 				return false;
@@ -2369,7 +2370,7 @@ inline bool FLandscapeEditDataInterface::IsWhitelisted(const ULandscapeLayerInfo
 	return true;
 }
 
-inline TMap<const ULandscapeLayerInfoObject*, uint32> FLandscapeEditDataInterface::CountWeightBlendedLayerInfluence(const int32 ComponentIndexX, const int32 ComponentIndexY, TOptional<TFixedSizeArrayView<const uint8* const>> InOptionalLayerDataPtrs)
+inline TMap<const ULandscapeLayerInfoObject*, uint32> FLandscapeEditDataInterface::CountWeightBlendedLayerInfluence(const int32 ComponentIndexX, const int32 ComponentIndexY, TOptional<TArrayView<const uint8* const>> InOptionalLayerDataPtrs)
 {
 	// the counts should easily fit in a uint32, a 255x255 x2x2 Component with weights of all 255 only totals 26 bits
 	checkSlow(FMath::CeilLogTwo(ComponentSizeQuads + 1) * 2 + 8 /*ceillog2(255)*/ <= 32);
@@ -2380,7 +2381,7 @@ inline TMap<const ULandscapeLayerInfoObject*, uint32> FLandscapeEditDataInterfac
 	// used if InOptionalLayerDataPtrs is null
 	TArray<FLandscapeTextureDataInfo*, TInlineAllocator<2>> InternalTexDataInfos;
 	TArray<const uint8*, TInlineAllocator<8>> InternalLayerDataPtrs;
-	TFixedSizeArrayView<const uint8* const> LayerDataPtrs;
+	TArrayView<const uint8* const> LayerDataPtrs;
 	if (InOptionalLayerDataPtrs)
 	{
 		check(InOptionalLayerDataPtrs->Num() == Component->WeightmapLayerAllocations.Num());
@@ -2440,7 +2441,7 @@ inline TMap<const ULandscapeLayerInfoObject*, uint32> FLandscapeEditDataInterfac
 	return LayerInfluenceMap;
 }
 
-const ULandscapeLayerInfoObject* FLandscapeEditDataInterface::ChooseReplacementLayer(const ULandscapeLayerInfoObject* const LayerInfo, const int32 ComponentIndexX, const int32 SubIndexX, const int32 SubX, const int32 ComponentIndexY, const int32 SubIndexY, const int32 SubY, TMap<FIntPoint, TMap<const ULandscapeLayerInfoObject*, uint32>>& LayerInfluenceCache, TFixedSizeArrayView<const uint8* const> LayerDataPtrs)
+const ULandscapeLayerInfoObject* FLandscapeEditDataInterface::ChooseReplacementLayer(const ULandscapeLayerInfoObject* const LayerInfo, const int32 ComponentIndexX, const int32 SubIndexX, const int32 SubX, const int32 ComponentIndexY, const int32 SubIndexY, const int32 SubY, TMap<FIntPoint, TMap<const ULandscapeLayerInfoObject*, uint32>>& LayerInfluenceCache, TArrayView<const uint8* const> LayerDataPtrs)
 {
 	const TMap<const ULandscapeLayerInfoObject*, uint32>* LayerInfluenceMapCacheEntry = LayerInfluenceCache.Find(FIntPoint(ComponentIndexX, ComponentIndexY));
 	if (!LayerInfluenceMapCacheEntry)
@@ -3966,7 +3967,7 @@ void FLandscapeEditDataInterface::GetWeightDataFast(ULandscapeLayerInfoObject* L
 	GetWeightDataTemplFast(LayerInfo, X1, Y1, X2, Y2, SparseStoreData);
 }
 
-FLandscapeTextureDataInfo* FLandscapeEditDataInterface::GetTextureDataInfo(UTexture2D* Texture)
+FLandscapeTextureDataInfo* FLandscapeTextureDataInterface::GetTextureDataInfo(UTexture2D* Texture)
 {
 	FLandscapeTextureDataInfo* Result = TextureDataMap.FindRef(Texture);
 	if( !Result )
@@ -3976,7 +3977,7 @@ FLandscapeTextureDataInfo* FLandscapeEditDataInterface::GetTextureDataInfo(UText
 	return Result;
 }
 
-void FLandscapeEditDataInterface::CopyTextureChannel(UTexture2D* Dest, int32 DestChannel, UTexture2D* Src, int32 SrcChannel)
+void FLandscapeTextureDataInterface::CopyTextureChannel(UTexture2D* Dest, int32 DestChannel, UTexture2D* Src, int32 SrcChannel)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	FLandscapeTextureDataInfo* SrcDataInfo = GetTextureDataInfo(Src);
@@ -3998,7 +3999,7 @@ void FLandscapeEditDataInterface::CopyTextureChannel(UTexture2D* Dest, int32 Des
 	}
 }
 
-void FLandscapeEditDataInterface::CopyTextureFromHeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, int32 SrcChannel)
+void FLandscapeTextureDataInterface::CopyTextureFromHeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, int32 SrcChannel)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
@@ -4023,7 +4024,7 @@ void FLandscapeEditDataInterface::CopyTextureFromHeightmap(UTexture2D* Dest, int
 	}
 }
 
-void FLandscapeEditDataInterface::CopyTextureFromWeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, ULandscapeLayerInfoObject* LayerInfo)
+void FLandscapeTextureDataInterface::CopyTextureFromWeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, ULandscapeLayerInfoObject* LayerInfo)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
@@ -4047,7 +4048,7 @@ void FLandscapeEditDataInterface::CopyTextureFromWeightmap(UTexture2D* Dest, int
 	}
 }
 
-void FLandscapeEditDataInterface::ZeroTextureChannel(UTexture2D* Dest, int32 DestChannel)
+void FLandscapeTextureDataInterface::ZeroTextureChannel(UTexture2D* Dest, int32 DestChannel)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
@@ -4068,7 +4069,7 @@ void FLandscapeEditDataInterface::ZeroTextureChannel(UTexture2D* Dest, int32 Des
 }
 
 template<typename TData>
-void FLandscapeEditDataInterface::SetTextureValueTempl(UTexture2D* Dest, TData Value)
+void FLandscapeTextureDataInterface::SetTextureValueTempl(UTexture2D* Dest, TData Value)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
 	int32 MipSize = Dest->Source.GetSizeX();
@@ -4088,18 +4089,18 @@ void FLandscapeEditDataInterface::SetTextureValueTempl(UTexture2D* Dest, TData V
 	}
 }
 
-void FLandscapeEditDataInterface::ZeroTexture(UTexture2D* Dest)
+void FLandscapeTextureDataInterface::ZeroTexture(UTexture2D* Dest)
 {
 	SetTextureValueTempl<uint8>(Dest, 0);
 }
 
-void FLandscapeEditDataInterface::SetTextureValue(UTexture2D* Dest, FColor Value)
+void FLandscapeTextureDataInterface::SetTextureValue(UTexture2D* Dest, FColor Value)
 {
 	SetTextureValueTempl<FColor>(Dest, Value);
 }
 
 template<typename TData>
-bool FLandscapeEditDataInterface::EqualTextureValueTempl(UTexture2D* Src, TData Value)
+bool FLandscapeTextureDataInterface::EqualTextureValueTempl(UTexture2D* Src, TData Value)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Src);
 	TData* DestTextureData = (TData*)DestDataInfo->GetMipData(0);
@@ -4116,7 +4117,7 @@ bool FLandscapeEditDataInterface::EqualTextureValueTempl(UTexture2D* Src, TData 
 	return true;
 }
 
-bool FLandscapeEditDataInterface::EqualTextureValue(UTexture2D* Src, FColor Value)
+bool FLandscapeTextureDataInterface::EqualTextureValue(UTexture2D* Src, FColor Value)
 {
 	return EqualTextureValueTempl<FColor>(Src, Value);
 }

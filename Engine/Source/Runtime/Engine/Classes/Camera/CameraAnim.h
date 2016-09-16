@@ -47,8 +47,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = CameraAnim)
 	uint8 bRelativeToInitialFOV : 1;
 
-	/** The FOV  */
-	UPROPERTY()
+	/** The base FOV that all FOV keys are relative to. */
+	UPROPERTY(EditDefaultsOnly, Category = CameraAnim)
 	float BaseFOV;
 
 	/** Default PP settings to put on the animated camera. For modifying PP without keyframes. */

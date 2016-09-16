@@ -93,6 +93,17 @@
 		_Pragma("clang diagnostic pop")
 #endif // PRAGMA_POP
 
+// Disable common CA warnings around SDK includes
+#ifndef THIRD_PARTY_INCLUDES_START
+	#define THIRD_PARTY_INCLUDES_START \
+		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+#endif
+
+#ifndef THIRD_PARTY_INCLUDES_END
+	#define THIRD_PARTY_INCLUDES_END \
+		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+#endif
+
 #ifndef EMIT_CUSTOM_WARNING_AT_LINE
 #define EMIT_CUSTOM_WARNING_AT_LINE(Line, Warning) \
 	_Pragma(PREPROCESSOR_TO_STRING(message(WARNING_LOCATION(Line) Warning)))
@@ -103,4 +114,10 @@
 // since they cannot be caught by all compilers that we support. They are deemed to be relatively safe to be ignored, at least until all SDKs/toolchains start supporting them.
 #pragma clang diagnostic warning "-Wreorder"
 #pragma clang diagnostic warning "-Wparentheses-equality"
-#pragma clang diagnostic warning "-Wdelete-non-virtual-dtor"
+#pragma clang diagnostic ignored "-Wdelete-non-virtual-dtor"
+
+// We can pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
+#if __clang_major__ >= 7 && __clang_minor__ >= 3
+#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
+#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
+#endif

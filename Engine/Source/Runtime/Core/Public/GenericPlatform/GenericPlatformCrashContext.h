@@ -80,6 +80,11 @@ public:
 	static const ANSICHAR* CrashContextRuntimeXMLNameA;
 	static const TCHAR* CrashContextRuntimeXMLNameW;
 
+	static const ANSICHAR* CrashConfigFileNameA;
+	static const TCHAR* CrashConfigFileNameW;
+	static const FString CrashConfigExtension;
+	static const FString ConfigSectionName;
+
 	static const FString CrashContextExtension;
 	static const FString RuntimePropertiesTag;
 	static const FString PlatformPropertiesTag;
@@ -153,6 +158,9 @@ public:
 	/** Helper to get the standard string for the crash type based on crash event bool values. */
 	static const TCHAR* GetCrashTypeString(bool InIsEnsure, bool InIsAssert);
 
+	/** Helper to get the crash report client config filepath saved by this instance and copied to each crash report folder. */
+	static const TCHAR* GetCrashConfigFilePath();
+
 	/**
 	 * @return whether this crash is a non-crash event
 	 */
@@ -173,6 +181,9 @@ private:
 
 	void BeginSection( const TCHAR* SectionName );
 	void EndSection( const TCHAR* SectionName );
+
+	/** Called once when GConfig is initialized. Opportunity to cache values from config. */
+	static void InitializeFromConfig();
 
 	/**	Whether the Initialize() has been called */
 	static bool bIsInitialized;

@@ -4,6 +4,23 @@
 #include "RHI.h"
 #include "SceneUtils.h"
 
+#if HAS_GPU_STATS
+
+static TAutoConsoleVariable<int> CVarGPUStatsEnabled(
+	TEXT("r.GPUStatsEnabled"),
+	0,
+	TEXT("Enables or disables GPU stat recording"));
+
+// If this is enabled, the child stat timings will be included in their parents' times.
+// This presents problems for non-hierarchical stats if we're expecting them to add up
+// to the total GPU time, so we probably want this disabled
+#define GPU_STATS_CHILD_TIMES_INCLUDED 0
+
+DECLARE_FLOAT_COUNTER_STAT(TEXT("[TOTAL SCENE]"), Stat_GPU_Total, STATGROUP_GPU);
+
+#endif //HAS_GPU_STATS
+
+
 #if WANTS_DRAW_MESH_EVENTS
 
 template<typename TRHICmdList>
@@ -81,5 +98,440 @@ bool IsMobileHDRMosaic()
 			return false;
 		default:
 			return !(GSupportsHDR32bppEncodeModeIntrinsic && GSupportsShaderFramebufferFetch);
+	}
+}
+
+#if HAS_GPU_STATS
+static const int32 NumGPUProfilerBufferedFrames = 4;
+
+/*-----------------------------------------------------------------------------
+FRealTimeGPUProfilerEvent class
+-----------------------------------------------------------------------------*/
+class FRealtimeGPUProfilerEvent
+{
+public:
+	static const uint64 InvalidQueryResult = 0xFFFFFFFFFFFFFFFFull;
+
+public:
+	FRealtimeGPUProfilerEvent(const TStatId& InStatId, FRenderQueryPool* RenderQueryPool)
+		: StartResultMicroseconds(InvalidQueryResult)
+		, EndResultMicroseconds(InvalidQueryResult)
+		, FrameNumber(-1)
+		, bInsideQuery(false)
+		, bBeginQueryInFlight(false)
+		, bEndQueryInFlight(false)
+	{
+		StatName = InStatId.GetName();
+		StartQuery = RenderQueryPool->AllocateQuery();
+		EndQuery = RenderQueryPool->AllocateQuery();
+	}
+
+	void ReleaseQueries(FRenderQueryPool* RenderQueryPool, FRHICommandListImmediate* RHICmdListPtr)
+	{
+		if (RHICmdListPtr)
+		{
+			// If we have queries in flight then get results before releasing back to the pool to avoid an ensure fail in the gnm RHI
+			uint64 Temp;
+			if (bBeginQueryInFlight)
+			{
+				RHICmdListPtr->GetRenderQueryResult(StartQuery, Temp, false);
+			}
+
+			if (bEndQueryInFlight)
+			{
+				RHICmdListPtr->GetRenderQueryResult(EndQuery, Temp, false);
+			}
+		}
+		RenderQueryPool->ReleaseQuery(StartQuery);
+		RenderQueryPool->ReleaseQuery(EndQuery);
+	}
+
+	void Begin(FRHICommandListImmediate& RHICmdList)
+	{
+		check(IsInRenderingThread());
+		check(!bInsideQuery);
+		bInsideQuery = true;
+
+		RHICmdList.EndRenderQuery(StartQuery);
+		StartResultMicroseconds = InvalidQueryResult;
+		EndResultMicroseconds = InvalidQueryResult;
+		FrameNumber = GFrameNumberRenderThread;
+
+		bBeginQueryInFlight = true;
+	}
+
+	void End(FRHICommandListImmediate& RHICmdList)
+	{
+		check(IsInRenderingThread());
+		check(bInsideQuery);
+		bInsideQuery = false;
+		RHICmdList.EndRenderQuery(EndQuery);
+
+		bEndQueryInFlight = true;
+	}
+
+	bool GatherQueryResults(FRHICommandListImmediate& RHICmdList)
+	{
+		// Get the query results which are still outstanding
+		if (StartResultMicroseconds == InvalidQueryResult)
+		{
+			if (!RHICmdList.GetRenderQueryResult(StartQuery, StartResultMicroseconds, true))
+			{
+				StartResultMicroseconds = InvalidQueryResult;
+			}
+			bBeginQueryInFlight = false;
+		}
+		if (EndResultMicroseconds == InvalidQueryResult)
+		{
+			if (!RHICmdList.GetRenderQueryResult(EndQuery, EndResultMicroseconds, true))
+			{
+				EndResultMicroseconds = InvalidQueryResult;
+			}
+			bEndQueryInFlight = false;
+		}
+		return HasValidResult();
+	}
+
+	float GetResultMS() const
+	{
+		check(HasValidResult());
+		if (EndResultMicroseconds < StartResultMicroseconds)
+		{
+			// This should never happen...
+			return 0.0f;
+		}
+		return float(EndResultMicroseconds - StartResultMicroseconds) / 1000.0f;
+	}
+
+	bool HasValidResult() const
+	{
+		return StartResultMicroseconds != FRealtimeGPUProfilerEvent::InvalidQueryResult && EndResultMicroseconds != FRealtimeGPUProfilerEvent::InvalidQueryResult;
+	}
+
+	const FName& GetStatName() const
+	{
+		return StatName;
+	}
+
+private:
+	FRenderQueryRHIRef StartQuery;
+	FRenderQueryRHIRef EndQuery;
+	FName StatName;
+	uint64 StartResultMicroseconds;
+	uint64 EndResultMicroseconds;
+	uint32 FrameNumber;
+
+	bool bInsideQuery;
+	bool bBeginQueryInFlight;
+	bool bEndQueryInFlight;
+};
+
+/*-----------------------------------------------------------------------------
+FRealtimeGPUProfilerFrame class
+Container for a single frame's GPU stats
+-----------------------------------------------------------------------------*/
+class FRealtimeGPUProfilerFrame
+{
+public:
+	FRealtimeGPUProfilerFrame(FRenderQueryPool* InRenderQueryPool)
+		: FrameNumber(-1)
+		, RenderQueryPool(InRenderQueryPool)
+	{}
+
+	~FRealtimeGPUProfilerFrame()
+	{
+		Clear(nullptr);
+	}
+
+	void PushEvent(FRHICommandListImmediate& RHICmdList, TStatId StatId)
+	{
+#if GPU_STATS_CHILD_TIMES_INCLUDED == 0
+		if (EventStack.Num() > 0)
+		{
+			// GPU Stats are not hierarchical. If we already have an event in the stack, 
+			// we need end it and resume it once the child event completes 
+			FRealtimeGPUProfilerEvent* ParentEvent = EventStack.Last();
+			ParentEvent->End(RHICmdList);
+		}
+#endif
+		FRealtimeGPUProfilerEvent* Event = CreateNewEvent(StatId);
+		EventStack.Push(Event);
+		StatStack.Push(StatId);
+		Event->Begin(RHICmdList);
+	}
+
+	void PopEvent(FRHICommandListImmediate& RHICmdList)
+	{
+		FRealtimeGPUProfilerEvent* Event = EventStack.Pop();
+		StatStack.Pop();
+		Event->End(RHICmdList);
+
+#if GPU_STATS_CHILD_TIMES_INCLUDED == 0
+		if (EventStack.Num() > 0)
+		{
+			// Resume the parent event (requires creation of a new FRealtimeGPUProfilerEvent)
+			TStatId PrevStatId = StatStack.Last();
+			FRealtimeGPUProfilerEvent* ResumedEvent = CreateNewEvent(PrevStatId);
+			EventStack.Last() = ResumedEvent;
+			ResumedEvent->Begin(RHICmdList);
+		}
+#endif
+
+	}
+
+	void Clear(FRHICommandListImmediate* RHICommandListPtr )
+	{
+		EventStack.Empty();
+		StatStack.Empty();
+
+		for (int Index = 0; Index < GpuProfilerEvents.Num(); Index++)
+		{
+			if (GpuProfilerEvents[Index])
+			{
+				GpuProfilerEvents[Index]->ReleaseQueries(RenderQueryPool, RHICommandListPtr);
+				delete GpuProfilerEvents[Index];
+			}
+		}
+		GpuProfilerEvents.Empty();
+	}
+
+	bool UpdateStats(FRHICommandListImmediate& RHICmdList)
+	{
+		// Gather any remaining results and check all the results are ready
+		for (int Index = 0; Index < GpuProfilerEvents.Num(); Index++)
+		{
+			FRealtimeGPUProfilerEvent* Event = GpuProfilerEvents[Index];
+			check(Event != nullptr);
+			if (!Event->HasValidResult())
+			{
+				Event->GatherQueryResults(RHICmdList);
+			}
+			if (!Event->HasValidResult())
+			{
+				// The frame isn't ready yet. Don't update stats - we'll try again next frame. 
+				return false;
+			}
+		}
+
+		float TotalMS = 0.0f;
+		// Update the stats
+		TMap<FName, bool> StatSeenMap;
+		for (int Index = 0; Index < GpuProfilerEvents.Num(); Index++)
+		{
+			FRealtimeGPUProfilerEvent* Event = GpuProfilerEvents[Index];
+			check(Event != nullptr);
+			check(Event->HasValidResult());
+			EStatOperation::Type StatOp;
+			const FName& StatName = Event->GetStatName();
+
+			// Check if we've seen this stat yet 
+			if (StatSeenMap.Find(StatName) == nullptr)
+			{
+				StatSeenMap.Add(StatName, true);
+				StatOp = EStatOperation::Set;
+			}
+			else
+			{
+				// Stat was seen before, so accumulate 
+				StatOp = EStatOperation::Add;
+			}
+			float ResultMS = Event->GetResultMS();
+			FThreadStats::AddMessage(StatName, StatOp, double(ResultMS));
+			TotalMS += ResultMS;
+		}
+
+		FThreadStats::AddMessage( GET_STATFNAME(Stat_GPU_Total), EStatOperation::Set, double(TotalMS) );
+		return true;
+	}
+
+private:
+	FRealtimeGPUProfilerEvent* CreateNewEvent(const TStatId& StatId)
+	{
+		FRealtimeGPUProfilerEvent* NewEvent = new FRealtimeGPUProfilerEvent(StatId, RenderQueryPool);
+		GpuProfilerEvents.Add(NewEvent);
+		return NewEvent;
+	}
+
+	TArray<FRealtimeGPUProfilerEvent*> GpuProfilerEvents;
+	TArray<FRealtimeGPUProfilerEvent*> EventStack;
+	TArray<TStatId> StatStack;
+	uint32 FrameNumber;
+	FRenderQueryPool* RenderQueryPool;
+};
+
+/*-----------------------------------------------------------------------------
+FRealtimeGPUProfiler
+-----------------------------------------------------------------------------*/
+FRealtimeGPUProfiler* FRealtimeGPUProfiler::Instance = nullptr;
+
+FRealtimeGPUProfiler* FRealtimeGPUProfiler::Get()
+{
+	if (Instance == nullptr)
+	{
+		Instance = new FRealtimeGPUProfiler;
+	}
+	return Instance;
+}
+
+FRealtimeGPUProfiler::FRealtimeGPUProfiler()
+	: WriteBufferIndex(-1)
+	, ReadBufferIndex(-1)
+	, WriteFrameNumber(-1)
+{
+	RenderQueryPool = new FRenderQueryPool(RQT_AbsoluteTime);
+	for (int Index = 0; Index < NumGPUProfilerBufferedFrames; Index++)
+	{
+		Frames.Add(new FRealtimeGPUProfilerFrame(RenderQueryPool));
+	}
+}
+
+void FRealtimeGPUProfiler::Release()
+{
+	for (int Index = 0; Index < Frames.Num(); Index++)
+	{
+		delete Frames[Index];
+	}
+	Frames.Empty();
+	delete RenderQueryPool;
+	RenderQueryPool = nullptr;
+}
+
+void FRealtimeGPUProfiler::Update(FRHICommandListImmediate& RHICmdList)
+{
+	check(Frames.Num() > 0);
+	if (WriteFrameNumber == GFrameNumberRenderThread)
+	{
+		// Multiple views: only update if this is a new frame. Otherwise we just concatenate the stats
+		return;
+	}
+	WriteFrameNumber = GFrameNumberRenderThread;
+	WriteBufferIndex = (WriteBufferIndex + 1) % Frames.Num();
+	Frames[WriteBufferIndex]->Clear(&RHICmdList);
+
+	// If the write buffer catches the read buffer, we need to advance the read buffer before we write over it 
+	if (WriteBufferIndex == ReadBufferIndex)
+	{
+		ReadBufferIndex = (ReadBufferIndex - 1) % Frames.Num();
+	}
+	UpdateStats(RHICmdList);
+}
+
+void FRealtimeGPUProfiler::PushEvent(FRHICommandListImmediate& RHICmdList, TStatId StatId)
+{
+	check(Frames.Num() > 0);
+	if (WriteBufferIndex >= 0)
+	{
+		Frames[WriteBufferIndex]->PushEvent(RHICmdList, StatId);
+	}
+}
+
+void FRealtimeGPUProfiler::PopEvent(FRHICommandListImmediate& RHICmdList)
+{
+	check(Frames.Num() > 0);
+	if (WriteBufferIndex >= 0)
+	{
+		Frames[WriteBufferIndex]->PopEvent(RHICmdList);
+	}
+}
+
+void FRealtimeGPUProfiler::UpdateStats(FRHICommandListImmediate& RHICmdList)
+{
+	check(IsInRenderingThread());
+	if (GSupportsTimestampRenderQueries == false || !CVarGPUStatsEnabled.GetValueOnRenderThread() )
+	{
+		return;
+	}
+	check(Frames.Num() > 0);
+	bool bAdvanceReadIndex = false;
+	if (ReadBufferIndex == -1)
+	{
+		bAdvanceReadIndex = true;
+	}
+	else
+	{
+		// If the read frame is valid, update the stats
+		if (Frames[ReadBufferIndex]->UpdateStats(RHICmdList))
+		{
+			// On a successful read, advance the ReadBufferIndex
+			bAdvanceReadIndex = true;
+		}
+	}
+	if (bAdvanceReadIndex)
+	{
+		ReadBufferIndex = (ReadBufferIndex + 1) % Frames.Num();
+	}
+}
+
+/*-----------------------------------------------------------------------------
+FScopedGPUStatEvent
+-----------------------------------------------------------------------------*/
+void FScopedGPUStatEvent::Begin(FRHICommandList& InRHICmdList, TStatId InStatID)
+{
+	check(IsInRenderingThread());
+	if ( GSupportsTimestampRenderQueries == false || !CVarGPUStatsEnabled.GetValueOnRenderThread() )
+	{
+		return;
+	}
+
+	// Non-immediate commandlists are not supported (silently fail)
+	if (InRHICmdList.IsImmediate())
+	{
+		RHICmdList = (FRHICommandListImmediate*)&InRHICmdList;
+		FRealtimeGPUProfiler::Get()->PushEvent(*RHICmdList, InStatID);
+	}
+}
+
+void FScopedGPUStatEvent::End()
+{
+	check(IsInRenderingThread());
+	if ( GSupportsTimestampRenderQueries == false || !CVarGPUStatsEnabled.GetValueOnRenderThread() )
+	{
+		return;
+	}
+	if (RHICmdList != nullptr)
+	{
+		FRealtimeGPUProfiler::Get()->PopEvent(*RHICmdList);
+	}
+}
+#endif // HAS_GPU_STATS
+
+/*-----------------------------------------------------------------------------
+FRenderQueryPool
+-----------------------------------------------------------------------------*/
+FRenderQueryPool::~FRenderQueryPool()
+{
+	Release();
+}
+
+void FRenderQueryPool::Release()
+{
+	Queries.Empty();
+}
+
+FRenderQueryRHIRef FRenderQueryPool::AllocateQuery()
+{
+	// Are we out of available render queries?
+	if (Queries.Num() == 0)
+	{
+		// Create a new render query.
+		return RHICreateRenderQuery(QueryType);
+	}
+
+	return Queries.Pop(/*bAllowShrinking=*/ false);
+}
+
+void FRenderQueryPool::ReleaseQuery(FRenderQueryRHIRef &Query)
+{
+	if (IsValidRef(Query))
+	{
+		// Is no one else keeping a refcount to the query?
+		if (Query.GetRefCount() == 1)
+		{
+			// Return it to the pool.
+			Queries.Add(Query);
+		}
+
+		// De-ref without deleting.
+		Query = NULL;
 	}
 }

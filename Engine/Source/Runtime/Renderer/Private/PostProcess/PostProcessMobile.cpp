@@ -21,6 +21,12 @@ static EPixelFormat GetHDRPixelFormat()
 	return IsMobileHDR32bpp() ? PF_B8G8R8A8 : PF_FloatRGBA;
 }
 
+// return Depth of Field Scale if Gaussian DoF mode is active. 0.0f otherwise.
+float GetMobileDepthOfFieldScale(const FViewInfo& View)
+{
+	return View.FinalPostProcessSettings.DepthOfFieldMethod == DOFM_Gaussian ? View.FinalPostProcessSettings.DepthOfFieldScale : 0.0f;
+}
+
 //
 // BLOOM SETUP
 //
@@ -160,7 +166,7 @@ void FRCPassPostProcessBloomSetupES2::SetShader(const FRenderingCompositePassCon
 {
 	const FSceneView& View = Context.View;
 	uint32 UseSun = Context.View.bLightShaftUse ? 1 : 0;
-	uint32 UseDof =  (Context.View.FinalPostProcessSettings.DepthOfFieldScale > 0.0f) ? 1 : 0;
+	uint32 UseDof = (GetMobileDepthOfFieldScale(Context.View) > 0.0f) ? 1 : 0;
 	uint32 UseSunDof = (UseSun << 1) + UseDof;
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
@@ -853,7 +859,7 @@ public:
 		SunColorApertureDiv2.X = Context.View.LightShaftColorMask.R;
 		SunColorApertureDiv2.Y = Context.View.LightShaftColorMask.G;
 		SunColorApertureDiv2.Z = Context.View.LightShaftColorMask.B;
-		SunColorApertureDiv2.W = Context.View.FinalPostProcessSettings.DepthOfFieldScale * 0.5f;
+		SunColorApertureDiv2.W = GetMobileDepthOfFieldScale(Context.View) * 0.5f;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, SunColorApertureDiv2Parameter, SunColorApertureDiv2);
 
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
@@ -935,7 +941,7 @@ void FRCPassPostProcessSunMaskES2::SetShader(const FRenderingCompositePassContex
 {
 	const FSceneView& View = Context.View;
 	uint32 UseSun = Context.View.bLightShaftUse ? 1 : 0;
-	uint32 UseDof = (Context.View.FinalPostProcessSettings.DepthOfFieldScale > 0.0f) ? 1 : 0;
+	uint32 UseDof = (GetMobileDepthOfFieldScale(Context.View) > 0.0f) ? 1 : 0;
 	uint32 UseFetch = GSupportsShaderFramebufferFetch ? 1 : 0;
 	uint32 UseFetchSunDof = (UseFetch << 2) + (UseSun << 1) + UseDof;
 
@@ -1190,7 +1196,7 @@ static void SunAlpha_SetShader(const FRenderingCompositePassContext& Context)
 
 void FRCPassPostProcessSunAlphaES2::SetShader(const FRenderingCompositePassContext& Context)
 {
-	if(Context.View.FinalPostProcessSettings.DepthOfFieldScale > 0.0f)
+	if(GetMobileDepthOfFieldScale(Context.View))
 	{
 		SunAlpha_SetShader<1>(Context);
 	}
@@ -1628,7 +1634,7 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Double buffer sun+bloom+vignette composite.
-	if(Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+	if(Context.View.AntiAliasingMethod == AAM_TemporalAA)
 	{
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState) 
@@ -1822,7 +1828,7 @@ void FRCPassPostProcessSunMergeSmallES2::Process(FRenderingCompositePassContext&
 
 	// Double buffer sun+bloom+vignette composite.
 
-	if (Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+	if (Context.View.AntiAliasingMethod == AAM_TemporalAA)
 	{
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState) 
@@ -2828,7 +2834,7 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 		NonConstView.ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * NonConstView.ViewMatrices.ProjMatrix;
 		NonConstView.ViewMatrices.InvTranslatedViewProjectionMatrix = NonConstView.ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
 
-		NonConstView.InitRHIResources(nullptr);
+		NonConstView.InitRHIResources();
 	}
 }
 

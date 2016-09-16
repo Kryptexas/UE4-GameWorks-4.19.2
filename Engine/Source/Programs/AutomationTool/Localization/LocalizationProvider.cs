@@ -43,7 +43,7 @@ public struct ProjectStepInfo
 	/** The name of this localization step */
 	public string Name;
 
-	/** Path to this steps localization config file (relative to the root working directory for the commandlet) */
+	/** Absolute path to this steps localization config file */
 	public string LocalizationConfigFile;
 };
 
@@ -67,12 +67,14 @@ public abstract class LocalizationProvider
 	public struct LocalizationProviderArgs
 	{
 		public string RootWorkingDirectory;
+		public string RemoteFilenamePrefix;
 		public CommandUtils CommandUtils;
 	};
 
 	public LocalizationProvider(LocalizationProviderArgs InArgs)
 	{
 		RootWorkingDirectory = InArgs.RootWorkingDirectory;
+		RemoteFilenamePrefix = InArgs.RemoteFilenamePrefix;
 		CommandUtils = InArgs.CommandUtils;
 
 		LocalizationBranchName = CommandUtils.ParseParamValue("LocalizationBranch");
@@ -154,6 +156,7 @@ public abstract class LocalizationProvider
 
 	protected string RootWorkingDirectory;
 	protected string LocalizationBranchName;
+	protected string RemoteFilenamePrefix;
 	protected bool bUploadAllCultures;
 	protected CommandUtils CommandUtils;
 

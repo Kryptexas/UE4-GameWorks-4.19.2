@@ -493,7 +493,7 @@ typedef enum ovrStatusBits_
 
 ///  Specifies the description of a single sensor.
 ///
-/// \see ovrGetTrackerDesc
+/// \see ovr_GetTrackerDesc
 ///
 typedef struct OVR_ALIGNAS(OVR_PTR_SIZE) ovrTrackerDesc_
 {
@@ -665,6 +665,18 @@ typedef enum ovrTextureFormat_
     OVR_FORMAT_D32_FLOAT,
     OVR_FORMAT_D32_FLOAT_S8X24_UINT,
 
+    // Added in 1.5 compressed formats can be used for static layers
+    OVR_FORMAT_BC1_UNORM,
+    OVR_FORMAT_BC1_UNORM_SRGB,
+    OVR_FORMAT_BC2_UNORM,
+    OVR_FORMAT_BC2_UNORM_SRGB,
+    OVR_FORMAT_BC3_UNORM,
+    OVR_FORMAT_BC3_UNORM_SRGB,
+    OVR_FORMAT_BC6H_UF16,
+    OVR_FORMAT_BC6H_SF16,
+    OVR_FORMAT_BC7_UNORM,
+    OVR_FORMAT_BC7_UNORM_SRGB,
+
     OVR_FORMAT_ENUMSIZE = 0x7fffffff  ///< \internal Force type int32_t.
 } ovrTextureFormat;
 
@@ -744,16 +756,10 @@ typedef enum ovrButton_
     ovrButton_RThumb    = 0x00000004,
     ovrButton_RShoulder = 0x00000008,
 
-    // Bit mask of all buttons on the right Touch controller
-    ovrButton_RMask     = ovrButton_A | ovrButton_B | ovrButton_RThumb | ovrButton_RShoulder,
-
     ovrButton_X         = 0x00000100,
     ovrButton_Y         = 0x00000200,
     ovrButton_LThumb    = 0x00000400,  
     ovrButton_LShoulder = 0x00000800,
-
-    // Bit mask of all buttons on the left Touch controller
-    ovrButton_LMask     = ovrButton_X | ovrButton_Y | ovrButton_LThumb | ovrButton_LShoulder,
 
     // Navigation through DPad.
     ovrButton_Up        = 0x00010000,
@@ -767,6 +773,13 @@ typedef enum ovrButton_
     ovrButton_Home      = 0x01000000,  
     ovrButton_Private   = ovrButton_VolUp | ovrButton_VolDown | ovrButton_Home,
 
+    // Bit mask of all buttons on the right Touch controller
+    ovrButton_RMask = ovrButton_A | ovrButton_B | ovrButton_RThumb | ovrButton_RShoulder,
+
+    // Bit mask of all buttons on the left Touch controller
+    ovrButton_LMask = ovrButton_X | ovrButton_Y | ovrButton_LThumb | ovrButton_LShoulder |
+                      ovrButton_Enter,
+
 
     ovrButton_EnumSize  = 0x7fffffff ///< \internal Force type int32_t.
 } ovrButton;
@@ -779,18 +792,20 @@ typedef enum ovrTouch_
     ovrTouch_A              = ovrButton_A,
     ovrTouch_B              = ovrButton_B,
     ovrTouch_RThumb         = ovrButton_RThumb,
+    ovrTouch_RThumbRest     = 0x00000008,
     ovrTouch_RIndexTrigger  = 0x00000010,
 
     // Bit mask of all the button touches on the right controller
-    ovrTouch_RButtonMask    = ovrTouch_A | ovrTouch_B | ovrTouch_RThumb | ovrTouch_RIndexTrigger,
+    ovrTouch_RButtonMask    = ovrTouch_A | ovrTouch_B | ovrTouch_RThumb | ovrTouch_RThumbRest | ovrTouch_RIndexTrigger,
 
     ovrTouch_X              = ovrButton_X,
     ovrTouch_Y              = ovrButton_Y,
     ovrTouch_LThumb         = ovrButton_LThumb,
+    ovrTouch_LThumbRest     = 0x00000800,
     ovrTouch_LIndexTrigger  = 0x00001000,
 
     // Bit mask of all the button touches on the left controller
-    ovrTouch_LButtonMask    = ovrTouch_X | ovrTouch_Y | ovrTouch_LThumb | ovrTouch_LIndexTrigger,
+    ovrTouch_LButtonMask    = ovrTouch_X | ovrTouch_Y | ovrTouch_LThumb | ovrTouch_LThumbRest | ovrTouch_LIndexTrigger,
 
     // Finger pose state 
     // Derived internally based on distance, proximity to sensors and filtering.
@@ -809,6 +824,25 @@ typedef enum ovrTouch_
     ovrTouch_EnumSize       = 0x7fffffff ///< \internal Force type int32_t.
 } ovrTouch;
 
+/// Describes the Touch Haptics engine.
+/// Currently, those values will NOT change during a session.
+typedef struct OVR_ALIGNAS(OVR_PTR_SIZE) ovrTouchHapticsDesc_
+{
+    // Haptics engine frequency/sample-rate, sample time in seconds equals 1.0/sampleRateHz
+    int SampleRateHz;
+    // Size of each Haptics sample, sample value range is [0, 2^(Bytes*8)-1]
+    int SampleSizeInBytes;
+
+    // Queue size that would guarantee Haptics engine would not starve for data
+    // Make sure size doesn't drop below it for best results
+    int QueueMinSizeToAvoidStarvation;
+
+    // Minimum, Maximum and Optimal number of samples that can be sent to Haptics through ovr_SubmitControllerVibration
+    int SubmitMinSamples;
+    int SubmitMaxSamples;
+    int SubmitOptimalSamples;
+} ovrTouchHapticsDesc;
+
 /// Specifies which controller is connected; multiple can be connected at once.
 typedef enum ovrControllerType_
 {
@@ -823,6 +857,31 @@ typedef enum ovrControllerType_
 
     ovrControllerType_EnumSize  = 0x7fffffff ///< \internal Force type int32_t.
 } ovrControllerType;
+
+/// Haptics buffer submit mode
+typedef enum ovrHapticsBufferSubmitMode_
+{
+    // Enqueue buffer for later playback
+    ovrHapticsBufferSubmit_Enqueue
+} ovrHapticsBufferSubmitMode;
+
+/// Haptics buffer descriptor, contains amplitude samples used for Touch vibration
+typedef struct ovrHapticsBuffer_
+{
+    const void* Samples;
+    int SamplesCount;
+    ovrHapticsBufferSubmitMode SubmitMode;
+} ovrHapticsBuffer;
+
+/// State of the Haptics playback for Touch vibration
+typedef struct ovrHapticsPlaybackState_
+{
+    // Remaining space available to queue more samples
+    int RemainingQueueSpace;
+
+    // Number of samples currently queued
+    int SamplesQueued;
+} ovrHapticsPlaybackState;
 
 
 /// Provides names for the left and right hand array indexes.
@@ -959,36 +1018,6 @@ extern "C" {
 // -----------------------------------------------------------------------------------
 // ***** API Interfaces
 
-// Overview of the API
-//
-// Setup:
-//  - ovr_Initialize().
-//  - ovr_Create(&hmd, &graphicsId).
-//  - Use hmd members and ovr_GetFovTextureSize() to determine graphics configuration
-//    and ovr_GetRenderDesc() to get per-eye rendering parameters.
-//  - Allocate texture swap chains with ovr_CreateTextureSwapChainDX() or
-//    ovr_CreateTextureSwapChainGL(). Create any associated render target views or
-//    frame buffer objects.
-//
-// Application Loop:
-//  - Call ovr_GetPredictedDisplayTime() to get the current frame timing information.
-//  - Call ovr_GetTrackingState() and ovr_CalcEyePoses() to obtain the predicted
-//    rendering pose for each eye based on timing.
-//  - Render the scene content into the current buffer of the texture swapchains
-//    for each eye and layer you plan to update this frame. If you render into a
-//    texture swap chain, you must call ovr_CommitTextureSwapChain() on it to commit
-//    the changes before you reference the chain this frame (otherwise, your latest
-//    changes won't be picked up).
-//  - Call ovr_SubmitFrame() to render the distorted layers to and present them on the HMD.
-//    If ovr_SubmitFrame returns ovrSuccess_NotVisible, there is no need to render the scene
-//    for the next loop iteration. Instead, just call ovr_SubmitFrame again until it returns
-//    ovrSuccess. 
-//
-// Shutdown:
-//  - ovr_Destroy().
-//  - ovr_Shutdown().
-
-
 /// Initializes LibOVR
 ///
 /// Initialize LibOVR for application usage. This includes finding and loading the LibOVRRT
@@ -1097,6 +1126,35 @@ OVR_PUBLIC_FUNCTION(const char*) ovr_GetVersionString();
 OVR_PUBLIC_FUNCTION(int) ovr_TraceMessage(int level, const char* message);
 
 
+/// Identify client application info.
+///
+/// The string is one or more newline-delimited lines of optional info
+/// indicating engine name, engine version, engine plugin name, engine plugin
+/// version, engine editor. The order of the lines is not relevant. Individual
+/// lines are optional. A newline is not necessary at the end of the last line.
+/// Call after ovr_Initialize and before the first call to ovr_Create.
+/// Each value is limited to 20 characters. Key names such as 'EngineName:'
+/// 'EngineVersion:' do not count towards this limit.
+///
+/// \param[in] identity Specifies one or more newline-delimited lines of optional info:
+///             EngineName: %s\n
+///             EngineVersion: %s\n
+///             EnginePluginName: %s\n
+///             EnginePluginVersion: %s\n
+///             EngineEditor: <boolean> ('true' or 'false')\n
+///
+/// <b>Example code</b>
+///     \code{.cpp}
+///     ovr_IdentifyClient("EngineName: Unity\n"
+///                        "EngineVersion: 5.3.3\n"
+///                        "EnginePluginName: OVRPlugin\n"
+///                        "EnginePluginVersion: 1.2.0\n"
+///                        "EngineEditor: true");
+///     \endcode
+///
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_IdentifyClient(const char* identity);
+
+
 //-------------------------------------------------------------------------------------
 /// @name HMD Management
 ///
@@ -1153,7 +1211,7 @@ OVR_PUBLIC_FUNCTION(ovrTrackerDesc) ovr_GetTrackerDesc(ovrSession session, unsig
 /// Creates a handle to a VR session.
 ///
 /// Upon success the returned ovrSession must be eventually freed with ovr_Destroy when it is no longer needed.
-/// A second call to ovr_Create will result in an error return value if the previous Hmd has not been destroyed.
+/// A second call to ovr_Create will result in an error return value if the previous session has not been destroyed.
 ///
 /// \param[out] pSession Provides a pointer to an ovrSession which will be written to upon success.
 /// \param[out] luid Provides a system specific graphics adapter identifier that locates which
@@ -1161,7 +1219,7 @@ OVR_PUBLIC_FUNCTION(ovrTrackerDesc) ovr_GetTrackerDesc(ovrSession session, unsig
 /// or no rendering output will be possible. This is important for stability on multi-adapter systems. An
 /// application that simply chooses the default adapter will not run reliably on multi-adapter systems.
 /// \return Returns an ovrResult indicating success or failure. Upon failure
-///         the returned pHmd will be NULL.
+///         the returned ovrSession will be NULL.
 ///
 /// <b>Example code</b>
 ///     \code{.cpp}
@@ -1177,7 +1235,7 @@ OVR_PUBLIC_FUNCTION(ovrTrackerDesc) ovr_GetTrackerDesc(ovrSession session, unsig
 OVR_PUBLIC_FUNCTION(ovrResult) ovr_Create(ovrSession* pSession, ovrGraphicsLuid* pLuid);
 
 
-/// Destroys the HMD.
+/// Destroys the session.
 ///
 /// \param[in] session Specifies an ovrSession previously returned by ovr_Create.
 /// \see ovr_Create
@@ -1304,7 +1362,7 @@ OVR_PUBLIC_FUNCTION(void) ovr_ClearShouldRecenterFlag(ovrSession session);
 ///            ovrTrackingState value. Use 0 to request the most recent tracking state.
 /// \param[in] latencyMarker Specifies that this call is the point in time where
 ///            the "App-to-Mid-Photon" latency timer starts from. If a given ovrLayer
-///            provides "SensorSampleTimestamp", that will override the value stored here.
+///            provides "SensorSampleTime", that will override the value stored here.
 /// \return Returns the ovrTrackingState that is predicted for the given absTime.
 ///
 /// \see ovrTrackingState, ovr_GetEyePoses, ovr_GetTimeInSeconds
@@ -1345,29 +1403,52 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetInputState(ovrSession session, ovrControll
 ///
 OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetConnectedControllerTypes(ovrSession session);
 
-
-/// Turns on vibration of the given controller.
-///
-/// To disable vibration, call ovr_SetControllerVibration with an amplitude of 0.
-/// Vibration automatically stops after a nominal amount of time, so if you want vibration 
-/// to be continuous over multiple seconds then you need to call this function periodically.
+/// Gets information about Haptics engine for the specified Touch controller.
 ///
 /// \param[in] session Specifies an ovrSession previously returned by ovr_Create.
-/// \param[in] controllerType Specifies the controller to apply the vibration to.
-/// \param[in] frequency Specifies a vibration frequency in the range of 0.0 to 1.0. 
-///            Currently the only valid values are 0.0, 0.5, and 1.0 and other values will
-///            be clamped to one of these.
-/// \param[in] amplitude Specifies a vibration amplitude in the range of 0.0 to 1.0.
+/// \param[in] controllerType The controller to retrieve the information from.
 ///
+/// \return Returns an ovrTouchHapticsDesc.
+///
+OVR_PUBLIC_FUNCTION(ovrTouchHapticsDesc) ovr_GetTouchHapticsDesc(ovrSession session, ovrControllerType controllerType);
+
+/// Sets constant vibration (with specified frequency and amplitude) to a controller.
+/// Note: ovr_SetControllerVibration cannot be used interchangeably with ovr_SubmitControllerVibration.
+///
+/// This method should be called periodically, vibration lasts for a maximum of 2.5 seconds.
+/// It's recommended to call this method once a second, calls will be rejected if called too frequently (over 30hz).
+///
+/// \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+/// \param[in] controllerType The controller to set the vibration to.
+/// \param[in] frequency Vibration frequency. Supported values are: 0.0 (disabled), 0.5 and 1.0. Non valid values will be clamped.
+/// \param[in] amplitude Vibration amplitude in the [0.0, 1.0] range.
 /// \return Returns ovrSuccess upon success.
 ///
-/// \see ovrControllerType
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetControllerVibration(ovrSession session, ovrControllerType controllerType, float frequency, float amplitude);
+
+/// Submits a Haptics buffer (used for vibration) to Touch (only) controllers.
+/// Note: ovr_SubmitControllerVibration cannot be used interchangeably with ovr_SetControllerVibration.
+///
+/// \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+/// \param[in] controllerType Controller where the Haptics buffer will be played.
+/// \param[in] buffer Haptics buffer containing amplitude samples to be played.
+/// \return Returns ovrSuccess upon success.
+/// \see ovrHapticsBuffer
+///
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_SubmitControllerVibration(ovrSession session, ovrControllerType controllerType, const ovrHapticsBuffer* buffer);
+
+/// Gets the Haptics engine playback state of a specific Touch controller.
+///
+/// \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+/// \param[in] controllerType Controller where the Haptics buffer wil be played.
+/// \param[in] outState State of the haptics engine.
+/// \return Returns ovrSuccess upon success.
+/// \see ovrHapticsPlaybackState
 /// 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetControllerVibration(ovrSession session, ovrControllerType controllerType,
-                                                            float frequency, float amplitude);
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetControllerVibrationState(ovrSession session, ovrControllerType controllerType, ovrHapticsPlaybackState* outState);
+
 
 ///@}
-
 
 //-------------------------------------------------------------------------------------
 // @name Layers
@@ -1768,7 +1849,7 @@ OVR_PUBLIC_FUNCTION(ovrEyeRenderDesc) ovr_GetRenderDesc(ovrSession session,
 ///         ovrLayerQuad    layer1;
 ///           ...
 ///         ovrLayerHeader* layers[2] = { &layer0.Header, &layer1.Header };
-///         ovrResult result = ovr_SubmitFrame(hmd, frameIndex, nullptr, layers, 2);
+///         ovrResult result = ovr_SubmitFrame(session, frameIndex, nullptr, layers, 2);
 ///     \endcode
 ///
 /// \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
@@ -1844,7 +1925,7 @@ OVR_PUBLIC_FUNCTION(double) ovr_GetTimeInSeconds();
 ///     App can toggle performance HUD modes as such:
 ///     \code{.cpp}
 ///         ovrPerfHudMode PerfHudMode = ovrPerfHud_LatencyTiming;
-///         ovr_SetInt(Hmd, OVR_PERF_HUD_MODE, (int)PerfHudMode);
+///         ovr_SetInt(session, OVR_PERF_HUD_MODE, (int)PerfHudMode);
 ///     \endcode
 ///
 typedef enum ovrPerfHudMode_
@@ -1864,7 +1945,7 @@ typedef enum ovrPerfHudMode_
 ///     App can toggle layer HUD modes as such:
 ///     \code{.cpp}
 ///         ovrLayerHudMode LayerHudMode = ovrLayerHud_Info;
-///         ovr_SetInt(Hmd, OVR_LAYER_HUD_MODE, (int)LayerHudMode);
+///         ovr_SetInt(session, OVR_LAYER_HUD_MODE, (int)LayerHudMode);
 ///     \endcode
 ///
 typedef enum ovrLayerHudMode_
@@ -1885,7 +1966,7 @@ typedef enum ovrLayerHudMode_
 ///     App can toggle the debug HUD modes as such:
 ///     \code{.cpp}
 ///         ovrDebugHudStereoMode DebugHudMode = ovrDebugHudStereo_QuadWithCrosshair;
-///         ovr_SetInt(Hmd, OVR_DEBUG_HUD_STEREO_MODE, (int)DebugHudMode);
+///         ovr_SetInt(session, OVR_DEBUG_HUD_STEREO_MODE, (int)DebugHudMode);
 ///     \endcode
 ///
 /// The app can modify the visual properties of the stereo guide (i.e. quad, crosshair)
@@ -2004,7 +2085,7 @@ OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetFloatArray(ovrSession session, const char* p
 /// \param[in] defaultVal Specifes the value to return if the property couldn't be read.
 /// \return Returns the string property if it exists. Otherwise returns defaultVal, which can be specified as NULL.
 ///         The return memory is guaranteed to be valid until next call to ovr_GetString or
-///         until the HMD is destroyed, whichever occurs first.
+///         until the session is destroyed, whichever occurs first.
 OVR_PUBLIC_FUNCTION(const char*) ovr_GetString(ovrSession session, const char* propertyName,
                                                   const char* defaultVal);
 

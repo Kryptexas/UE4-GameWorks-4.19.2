@@ -36,6 +36,10 @@ public:
 
 private:
 
+
+	void HandleForDistributionCheckBoxCheckStateChanged(ECheckBoxState NewState);
+	ECheckBoxState HandleForDistributionCheckBoxIsChecked() const;
+
 	// Callback for getting the content text of the 'Directory' label.
 	FText HandleDirectoryTitleText() const;
 	FText HandleDirectoryPathText() const;

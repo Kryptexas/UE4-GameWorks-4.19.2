@@ -601,7 +601,7 @@ void FAnimPhys::ConstrainPositionPrismatic(float DeltaTime, TArray<FAnimPhysLine
 	}
 }
 
-void FAnimPhys::ConstrainAngularRangeInternal(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody *FirstBody, const FQuat& JointFrame0, FAnimPhysRigidBody *SecondBody, const FQuat& JointFrame1, AnimPhysTwistAxis TwistAxis, const FVector& InJointLimitMin, const FVector& InJointLimitMax)
+void FAnimPhys::ConstrainAngularRangeInternal(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody *FirstBody, const FQuat& JointFrame0, FAnimPhysRigidBody *SecondBody, const FQuat& JointFrame1, AnimPhysTwistAxis TwistAxis, const FVector& InJointLimitMin, const FVector& InJointLimitMax, float InJointBias)
 {
 	FVector JointMinAngles = FMath::DegreesToRadians<FVector>(InJointLimitMin);
 	FVector JointMaxAngles = FMath::DegreesToRadians<FVector>(InJointLimitMax);
@@ -716,7 +716,7 @@ void FAnimPhys::ConstrainAngularRangeInternal(float DeltaTime, TArray<FAnimPhysA
 
 	if (MinAngle1 == MaxAngle1)
 	{
-		float TargetSwing = AnimPhysicsConstants::JointBiasFactor * 2.0f * (-Swing1 + MinAngle1) / DeltaTime;
+		float TargetSwing = InJointBias * 2.0f * (-Swing1 + MinAngle1) / DeltaTime;
 		LimitContainer.Add(FAnimPhysAngularLimit(FirstBody, SecondBody, FrameAxis1, TargetSwing));
 	}
 	else if (MaxAngle1 - MinAngle1 < FMath::DegreesToRadians(360.0f))
@@ -727,20 +727,20 @@ void FAnimPhys::ConstrainAngularRangeInternal(float DeltaTime, TArray<FAnimPhysA
 		LimitContainer.Add(FAnimPhysAngularLimit(FirstBody, SecondBody, -FrameAxis1, TargetSwing2, 0));
 	}
 
-	float TargetTwist = AnimPhysicsConstants::JointBiasFactor * 2.0f * -TwistAmount / DeltaTime;
+	float TargetTwist = InJointBias * 2.0f * -TwistAmount / DeltaTime;
 	LimitContainer.Add(FAnimPhysAngularLimit(FirstBody, SecondBody, FrameTwistAxis, TargetTwist));
 }
 
-void FAnimPhys::ConstrainAngularRange(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody *FirstBody, FAnimPhysRigidBody *SecondBody, const FQuat& JointFrame, AnimPhysTwistAxis TwistAxis, const FVector& JointLimitMin, const FVector& JointLimitMax)
+void FAnimPhys::ConstrainAngularRange(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody *FirstBody, FAnimPhysRigidBody *SecondBody, const FQuat& JointFrame, AnimPhysTwistAxis TwistAxis, const FVector& JointLimitMin, const FVector& JointLimitMax, float InJointBias)
 {
 	// a generic configurable 6dof style way to specify angular limits.  used for hard limits such as joint ranges.
 	FQuat FirstBodyLocalFrame = (FirstBody) ? FirstBody->Pose.Orientation * JointFrame : JointFrame;
 	FQuat SecondBodyOrientation = (SecondBody) ? SecondBody->Pose.Orientation : FQuat::Identity;
 
-	return ConstrainAngularRangeInternal(DeltaTime, LimitContainer, FirstBody, FirstBodyLocalFrame, SecondBody, SecondBodyOrientation, TwistAxis, JointLimitMin, JointLimitMax);
+	return ConstrainAngularRangeInternal(DeltaTime, LimitContainer, FirstBody, FirstBodyLocalFrame, SecondBody, SecondBodyOrientation, TwistAxis, JointLimitMin, JointLimitMax, InJointBias);
 }
 
-void FAnimPhys::ConstrainConeAngle(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody* FirstBody, const FVector& Normal0, FAnimPhysRigidBody* SecondBody, const FVector& Normal1, float LimitAngle) // a hinge is a cone with 0 limitangle
+void FAnimPhys::ConstrainConeAngle(float DeltaTime, TArray<FAnimPhysAngularLimit>& LimitContainer, FAnimPhysRigidBody* FirstBody, const FVector& Normal0, FAnimPhysRigidBody* SecondBody, const FVector& Normal1, float LimitAngle, float InJointBias) // a hinge is a cone with 0 limitangle
 {
 	check(SecondBody);
 
@@ -754,7 +754,7 @@ void FAnimPhys::ConstrainConeAngle(float DeltaTime, TArray<FAnimPhysAngularLimit
 
 	float BodyAngle = FMath::Acos(FMath::Clamp(FVector::DotProduct(WorldSpaceNormal0, WorldSpaceNormal1), 0.0f, 1.0f));
 	float CurrentAngleDelta = BodyAngle - FMath::DegreesToRadians(LimitAngle);
-	float TargetSpin = ZeroLimit ? AnimPhysicsConstants::JointBiasFactor : 1.0f * CurrentAngleDelta / DeltaTime;
+	float TargetSpin = ZeroLimit ? InJointBias : 1.0f * CurrentAngleDelta / DeltaTime;
 
 	LimitContainer.Add(FAnimPhysAngularLimit(FirstBody, SecondBody, Axis, TargetSpin, LimitAngle > 0.0f ? 0.0f : -MAX_flt, MAX_flt));
 }

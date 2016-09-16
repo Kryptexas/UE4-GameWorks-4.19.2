@@ -1,9 +1,10 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #if !UE_ENABLE_ICU
 
 #include "Culture.h"
+#include "Internationalization/Internationalization.h"
 #include "FastDecimalFormat.h"
 
 #define LOCTEXT_NAMESPACE "Internationalization"

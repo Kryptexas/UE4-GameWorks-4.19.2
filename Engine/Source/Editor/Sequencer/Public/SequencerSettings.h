@@ -65,8 +65,10 @@ class SEQUENCER_API USequencerSettings
 public:
 	GENERATED_UCLASS_BODY()
 
-	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
 	DECLARE_MULTICAST_DELEGATE( FOnTimeSnapIntervalChanged );
+	DECLARE_MULTICAST_DELEGATE_OneParam( FOnLockPlaybackToAudioClockChanged, bool );
+
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	/** Gets the current auto-key mode. */
 	EAutoKeyMode GetAutoKeyMode() const;
@@ -183,11 +185,6 @@ public:
 	/** Sets whether or not auto-scroll is enabled. */
 	void SetAutoScrollEnabled(bool bInAutoScrollEnabled);
 
-	/** Gets whether or not the curve editor should be shown. */
-	bool GetShowCurveEditor() const;
-	/** Sets whether or not the curve editor should be shown. */
-	void SetShowCurveEditor(bool InbShowCurveEditor);
-
 	/** Gets whether or not to show curve tool tips in the curve editor. */
 	bool GetShowCurveEditorCurveToolTips() const;
 	/** Sets whether or not to show curve tool tips in the curve editor. */
@@ -243,20 +240,30 @@ public:
 	/** Toggle whether to allow possession of PIE viewports */
 	void SetAllowPossessionOfPIEViewports(bool bInAllowPossessionOfPIEViewports);
 
+	/** Gets whether or not track defaults will be automatically set when modifying tracks. */
+	bool GetAutoSetTrackDefaults() const;
+	/** Sets whether or not track defaults will be automatically set when modifying tracks. */
+	void SetAutoSetTrackDefaults(bool bInAutoSetTrackDefaults);
+
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
-	/** Gets the multicast delegate which is run whenever the curve editor is shown/hidden. */
-	FOnShowCurveEditorChanged& GetOnShowCurveEditorChanged();
-
 	/** Gets the multicast delegate which is run whenever the time snap interval is changed. */
 	FOnTimeSnapIntervalChanged& GetOnTimeSnapIntervalChanged();
+
+	/** @return true we're locking playback to the audio clock */
+	bool ShouldLockPlaybackToAudioClock() const;
+	/** Toggle whether to lock playback to the audio clock */
+	void SetLockPlaybackToAudioClock(bool bInLockPlaybackToAudioClock);
+
+	/** Gets the multicast delegate which is invoked whenevcer the bLockPlaybackToAudioClock setting is changed. */
+	FOnLockPlaybackToAudioClockChanged& GetOnLockPlaybackToAudioClockChanged() { return OnLockPlaybackToAudioClockChanged; }
 
 protected:
 
 	/** Enable or disable autokeying. */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
-	TEnumAsByte<EAutoKeyMode> AutoKeyMode;
+	EAutoKeyMode AutoKeyMode;
 
 	/** Enable or disable keying all channels when any are keyed. */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
@@ -268,7 +275,11 @@ protected:
 
 	/** The interpolation type for newly created keyframes */
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
-	TEnumAsByte<EMovieSceneKeyInterpolation> KeyInterpolation;
+	EMovieSceneKeyInterpolation KeyInterpolation;
+
+	/** Whether or not track defaults will be automatically set when modifying tracks. */
+	UPROPERTY( config, EditAnywhere, Category=Keyframing, meta = (ToolTip = "When setting keys on properties and transforms automatically update the track default values used when there are no keys."))
+	bool bAutoSetTrackDefaults;
 
 	/** The default location of a spawnable when it is first dragged into the viewport from the content browser. */
 	UPROPERTY( config, EditAnywhere, Category=General )
@@ -345,10 +356,6 @@ protected:
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bAutoScrollEnabled;
 
-	/** Enable or disable the curve editor. */
-	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
-	bool bShowCurveEditor;
-
 	/** Enable or disable curve editor tooltips. */
 	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
 	bool bShowCurveEditorCurveToolTips;
@@ -389,11 +396,15 @@ protected:
 	UPROPERTY( config )
 	bool bShowViewportTransportControls;
 
+	/** When enabled, sequencer playback will be locked to the engine's audio clock */
+	UPROPERTY(config, EditAnywhere, Category=Playback)
+	bool bLockPlaybackToAudioClock;
+
 	/** When enabled, sequencer is able to possess viewports that represent PIE worlds */
 	UPROPERTY(config, EditAnywhere, Category=General)
 	bool bAllowPossessionOfPIEViewports;
 
-	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
+	FOnLockPlaybackToAudioClockChanged OnLockPlaybackToAudioClockChanged;
 
 	FOnTimeSnapIntervalChanged OnTimeSnapIntervalChanged;
 };

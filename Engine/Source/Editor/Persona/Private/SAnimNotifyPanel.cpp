@@ -741,6 +741,7 @@ protected:
 	// "Replace with... " commands
 	void ReplaceSelectedWithBlueprintNotify(FString NewNotifyName, FString BlueprintPath);
 	void ReplaceSelectedWithNotify(FString NewNotifyName, UClass* NotifyClass);
+	bool IsValidToPlace(UClass* NotifyClass) const;
 	void OnSetNodeTimeClicked(int32 NodeIndex);
 	void SetNodeTime(const FText& NodeTimeText, ETextCommit::Type CommitInfo, int32 NodeIndex);
 	void OnSetNodeFrameClicked(int32 NodeIndex);
@@ -821,6 +822,7 @@ private:
 	{
 		FString NotifyName;
 		FString BlueprintPath;
+		UClass* BaseClass;
 	};
 
 	// Format notify asset data into the information needed for menu display
@@ -2294,6 +2296,9 @@ void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder, bool bI
 				this, &SAnimNotifyTrack::CreateNewBlueprintNotifyAtCursor,
 				NotifyData.NotifyName,
 				NotifyData.BlueprintPath);
+			UIAction.CanExecuteAction.BindRaw(
+				this, &SAnimNotifyTrack::IsValidToPlace,
+				NotifyData.BaseClass);
 		}
 		else
 		{
@@ -2302,6 +2307,9 @@ void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder, bool bI
 				this, &SAnimNotifyTrack::ReplaceSelectedWithBlueprintNotify,
 				NotifyData.NotifyName,
 				NotifyData.BlueprintPath);
+			UIAction.CanExecuteAction.BindRaw(
+				this, &SAnimNotifyTrack::IsValidToPlace,
+				NotifyData.BaseClass);
 		}
 
 		MenuBuilder.AddMenuEntry(LabelText, Description, FSlateIcon(), UIAction);
@@ -2311,6 +2319,11 @@ void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder, bool bI
 	{
 		for(UClass* Class : NotifyStateClasses)
 		{
+			if (Class->HasAllClassFlags(CLASS_Abstract))
+			{
+				continue; // skip abstract classes
+			}
+
 			const FText Description = LOCTEXT("NewNotifyStateSubMenu_NativeToolTip", "Add an existing native notify state");
 			const FText LabelText = Class->GetDisplayNameText();
 			const FString Label = LabelText.ToString();
@@ -2322,12 +2335,18 @@ void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder, bool bI
 					this, &SAnimNotifyTrack::CreateNewNotifyAtCursor,
 					Label,
 					Class);
+				UIAction.CanExecuteAction.BindRaw(
+					this, &SAnimNotifyTrack::IsValidToPlace,
+					Class);
 			}
 			else
 			{
 				UIAction.ExecuteAction.BindRaw(
 					this, &SAnimNotifyTrack::ReplaceSelectedWithNotify,
 					Label,
+					Class);
+				UIAction.CanExecuteAction.BindRaw(
+					this, &SAnimNotifyTrack::IsValidToPlace,
 					Class);
 			}
 
@@ -2361,6 +2380,9 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder, bool bIsRepl
 				this, &SAnimNotifyTrack::CreateNewBlueprintNotifyAtCursor,
 				NotifyData.NotifyName,
 				NotifyData.BlueprintPath);
+			UIAction.CanExecuteAction.BindRaw(
+				this, &SAnimNotifyTrack::IsValidToPlace,
+				NotifyData.BaseClass);
 		}
 		else
 		{
@@ -2369,6 +2391,9 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder, bool bIsRepl
 				this, &SAnimNotifyTrack::ReplaceSelectedWithBlueprintNotify,
 				NotifyData.NotifyName,
 				NotifyData.BlueprintPath);
+			UIAction.CanExecuteAction.BindRaw(
+				this, &SAnimNotifyTrack::IsValidToPlace,
+				NotifyData.BaseClass);
 		}
 		
 		MenuBuilder.AddMenuEntry(LabelText, Description, FSlateIcon(), UIAction);
@@ -2395,6 +2420,9 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder, bool bIsRepl
 					this, &SAnimNotifyTrack::CreateNewNotifyAtCursor,
 					Label,
 					Class);
+				UIAction.CanExecuteAction.BindRaw(
+					this, &SAnimNotifyTrack::IsValidToPlace,
+					Class);
 			}
 			else
 			{
@@ -2402,6 +2430,9 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder, bool bIsRepl
 				UIAction.ExecuteAction.BindRaw(
 					this, &SAnimNotifyTrack::ReplaceSelectedWithNotify,
 					Label,
+					Class);
+				UIAction.CanExecuteAction.BindRaw(
+					this, &SAnimNotifyTrack::IsValidToPlace,
 					Class);
 			}
 
@@ -2595,6 +2626,22 @@ void SAnimNotifyTrack::ReplaceSelectedWithNotify(FString NewNotifyName, UClass* 
 	OnReplaceSelectedWithNotify.ExecuteIfBound(NewNotifyName, NotifyClass);
 }
 
+bool SAnimNotifyTrack::IsValidToPlace(UClass* NotifyClass) const
+{
+	if (NotifyClass && NotifyClass->IsChildOf(UAnimNotify::StaticClass()))
+	{
+		UAnimNotify* DefaultNotify = NotifyClass->GetDefaultObject<UAnimNotify>();
+		return DefaultNotify->CanBePlaced(Sequence);
+	}
+
+	if (NotifyClass && NotifyClass->IsChildOf(UAnimNotifyState::StaticClass()))
+	{
+		UAnimNotifyState* DefaultNotifyState = NotifyClass->GetDefaultObject<UAnimNotifyState>();
+		return DefaultNotifyState->CanBePlaced(Sequence);
+	}
+
+	return true;
+}
 
 TSubclassOf<UObject> SAnimNotifyTrack::GetBlueprintClassFromPath(FString BlueprintPath)
 {
@@ -3488,10 +3535,12 @@ void SAnimNotifyTrack::PasteSingleNotify(FString& NotifyString, float PasteTime)
 		NewNotify.TriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.GetTime()));
 		NewNotify.TrackIndex = TrackIndex;
 
+		bool bValidNotify = true;
 		if(NewNotify.Notify)
 		{
 			UAnimNotify* NewNotifyObject = Cast<UAnimNotify>(StaticDuplicateObject(NewNotify.Notify, Sequence));
 			check(NewNotifyObject);
+			bValidNotify = NewNotifyObject->CanBePlaced(Sequence);
 			NewNotify.Notify = NewNotifyObject;
 		}
 		else if(NewNotify.NotifyStateClass)
@@ -3499,10 +3548,19 @@ void SAnimNotifyTrack::PasteSingleNotify(FString& NotifyString, float PasteTime)
 			UAnimNotifyState* NewNotifyStateObject = Cast<UAnimNotifyState>(StaticDuplicateObject(NewNotify.NotifyStateClass, Sequence));
 			check(NewNotifyStateObject);
 			NewNotify.NotifyStateClass = NewNotifyStateObject;
-
+			bValidNotify = NewNotifyStateObject->CanBePlaced(Sequence);
 			// Clamp duration into the sequence
 			NewNotify.SetDuration(FMath::Clamp(NewNotify.GetDuration(), 1 / 30.0f, Sequence->SequenceLength - NewNotify.GetTime()));
 			NewNotify.EndTriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.GetTime() + NewNotify.GetDuration()));
+			NewNotify.EndLink.Link(Sequence, NewNotify.EndLink.GetTime());
+		}
+
+		if (!bValidNotify)
+		{
+			// Paste failed, remove the notify
+			Sequence->Notifies.RemoveAt(NewIdx);
+
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("FailedToPaste", "The notify is not allowed to be in this asset."));
 		}
 	}
 	else
@@ -3623,6 +3681,15 @@ void SAnimNotifyTrack::GetNotifyMenuData(TArray<FAssetData>& NotifyAssetData, TA
 
 		MenuInfo.BlueprintPath = NotifyData.ObjectPath.ToString();
 		MenuInfo.NotifyName = MakeBlueprintNotifyName(NotifyData);
+		// this functionality is only available in native class
+		// so we don't have to call BP function but just call native on the check of validity
+		FString NativeParentClassName;
+		if (NotifyData.GetTagValue("NativeParentClass", NativeParentClassName))
+		{
+			UObject* Outer = nullptr;
+			ResolveName(Outer, NativeParentClassName, false, false);
+			MenuInfo.BaseClass = FindObject<UClass>(ANY_PACKAGE, *NativeParentClassName);
+		}
 	}
 
 	OutNotifyMenuData.Sort([](const BlueprintNotifyMenuInfo& A, const BlueprintNotifyMenuInfo& B)

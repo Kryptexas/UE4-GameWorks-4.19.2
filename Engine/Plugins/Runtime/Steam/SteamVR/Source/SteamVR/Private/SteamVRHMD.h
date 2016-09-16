@@ -23,21 +23,23 @@ struct FBoundingQuad
 };
 
 //@todo steamvr: remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
-typedef vr::IVRSystem*(VR_CALLTYPE *pVRInit)(vr::HmdError* peError, vr::EVRApplicationType eApplicationType);
-typedef void(VR_CALLTYPE *pVRShutdown)();
 typedef bool(VR_CALLTYPE *pVRIsHmdPresent)();
-typedef const char*(VR_CALLTYPE *pVRGetStringForHmdError)(vr::HmdError error);
 typedef void*(VR_CALLTYPE *pVRGetGenericInterface)(const char* pchInterfaceVersion, vr::HmdError* peError);
-typedef vr::IVRExtendedDisplay *(VR_CALLTYPE *pVRExtendedDisplay)();
 
 
 /**
  * SteamVR Head Mounted Display
  */
-class FSteamVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, public TSharedFromThis<FSteamVRHMD, ESPMode::ThreadSafe>
+class FSteamVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, public TSharedFromThis<FSteamVRHMD, ESPMode::ThreadSafe>, public IStereoLayers
 {
 public:
 	/** IHeadMountedDisplay interface */
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("SteamVR"));
+		return DefaultName;
+	}
+
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 
 	virtual bool IsHMDConnected() override { return true; }
@@ -109,6 +111,7 @@ public:
 	virtual FMatrix GetStereoProjectionMatrix(const EStereoscopicPass StereoPassType, const float FOV) const override;
 	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
 	virtual void RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const override;
+	virtual void GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const override;
 	virtual void GetEyeRenderParams_RenderThread(const FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
 	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
 	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) override;
@@ -118,6 +121,7 @@ public:
 		return IsStereoEnabled();
 	}
 	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport, SViewport*) override;
+	virtual IStereoLayers* GetStereoLayers () override;
 
 	/** ISceneViewExtension interface */
 	virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) override;
@@ -125,6 +129,13 @@ public:
 	virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) override {}
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
+
+	// IStereoLayers interface
+	virtual uint32 CreateLayer(const FLayerDesc& InLayerDesc) override;
+	virtual void DestroyLayer(uint32 LayerId) override;
+	virtual void SetLayerDesc(uint32 LayerId, const FLayerDesc& InLayerDesc) override;
+	virtual bool GetLayerDesc(uint32 LayerId, FLayerDesc& OutLayerDesc) override;
+	virtual void MarkTextureForUpdate(uint32 LayerId) override;
 
 	class BridgeBaseImpl : public FRHICustomPresent
 	{
@@ -209,6 +220,8 @@ public:
 	/** @return	True if the API was initialized OK */
 	bool IsInitialized() const;
 
+	vr::IVRSystem* GetVRSystem() const { return VRSystem; }
+
 private:
 
 	enum class EPoseRefreshMode
@@ -240,7 +253,8 @@ private:
 
 	void GetWindowBounds(int32* X, int32* Y, uint32* Width, uint32* Height);
 
-	FORCEINLINE FMatrix ToFMatrix(const vr::HmdMatrix34_t& tm) const
+public:
+	static FORCEINLINE FMatrix ToFMatrix(const vr::HmdMatrix34_t& tm)
 	{
 		// Rows and columns are swapped between vr::HmdMatrix34_t and FMatrix
 		return FMatrix(
@@ -250,7 +264,7 @@ private:
 			FPlane(tm.m[0][3], tm.m[1][3], tm.m[2][3], 1.0f));
 	}
 
-	FORCEINLINE FMatrix ToFMatrix(const vr::HmdMatrix44_t& tm) const
+	static FORCEINLINE FMatrix ToFMatrix(const vr::HmdMatrix44_t& tm)
 	{
 		// Rows and columns are swapped between vr::HmdMatrix44_t and FMatrix
 		return FMatrix(
@@ -260,12 +274,36 @@ private:
 			FPlane(tm.m[0][3], tm.m[1][3], tm.m[2][3], tm.m[3][3]));
 	}
 
+	static FORCEINLINE vr::HmdMatrix34_t ToHmdMatrix34(const FMatrix& tm)
+	{
+		// Rows and columns are swapped between vr::HmdMatrix34_t and FMatrix
+		vr::HmdMatrix34_t out;
+	
+		out.m[0][0] = tm.M[0][0];
+		out.m[1][0] = tm.M[0][1];
+		out.m[2][0] = tm.M[0][2];
+
+		out.m[0][1] = tm.M[1][0];
+		out.m[1][1] = tm.M[1][1];
+		out.m[2][1] = tm.M[1][2];
+
+		out.m[0][2] = tm.M[2][0];
+		out.m[1][2] = tm.M[2][1];
+		out.m[2][2] = tm.M[2][2];
+
+		out.m[0][3] = tm.M[3][0];
+		out.m[1][3] = tm.M[3][1];
+		out.m[2][3] = tm.M[3][2];
+
+		return out;
+	}
 private:
 
 	void SetupOcclusionMeshes();
 
 	bool bHmdEnabled;
 	EHMDWornState::Type HmdWornState;
+	bool bStereoDesired;
 	bool bStereoEnabled;
 	bool bHmdPosTracking;
 	mutable bool bHaveVisionTracking;
@@ -347,10 +385,26 @@ private:
 	};
 	FChaperoneBounds ChaperoneBounds;
 	
+	struct FLayer
+	{
+		uint32						LayerId;
+		IStereoLayers::FLayerDesc	LayerDesc;
+		vr::VROverlayHandle_t		OverlayHandle;
+		bool						bUpdateTexture;
+	};
+	void UpdateLayer(struct FLayer& Layer) const;
+	void UpdateLayerTextures() const;
+
+	TArray<uint32>	LayerFreeIndices;
+	TArray<FLayer>	Layers;
+	mutable FCriticalSection LayerCritSect;
+
 	float IPD;
 	int32 WindowMirrorMode;		// how to mirror the display contents to the desktop window: 0 - no mirroring, 1 - single eye, 2 - stereo pair
 	uint32 WindowMirrorBoundsWidth;
 	uint32 WindowMirrorBoundsHeight;
+	/** How far the HMD has to move before it's considered to be worn */
+	float HMDWornMovementThreshold;
 
 	/** Player's orientation tracking */
 	mutable FQuat			CurHmdOrientation;
@@ -360,6 +414,9 @@ private:
 
 	mutable FVector			CurHmdPosition;
 
+	/** used to check how much the HMD has moved for changing the Worn status */
+	FVector					HMDStartLocation; 
+
 	mutable FQuat			LastHmdOrientation; // contains last APPLIED ON GT HMD orientation
 	FVector					LastHmdPosition;	// contains last APPLIED ON GT HMD position
 
@@ -368,8 +425,10 @@ private:
 	FVector					BaseOffset;
 
 	// State for tracking quit operation
-	bool					bIsQuitting;
-	float					QuitTimeElapsed;
+	static bool				bIsQuitting;
+
+	/**  True if the HMD sends an event that the HMD is being interacted with */
+	bool					bShouldCheckHMDPosition;
 
 	/** Mapping from Unreal Controller Id and Hand to a tracked device id.  Passed in from the controller plugin */
 	int32 UnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][2];
@@ -379,6 +438,7 @@ private:
 
 	vr::IVRSystem* VRSystem;
 	vr::IVRCompositor* VRCompositor;
+	vr::IVROverlay* VROverlay;
 	vr::IVRChaperone* VRChaperone;
 
 	FString DisplayId;
@@ -389,12 +449,8 @@ private:
 
 //@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
 public:
-	static pVRInit VRInitFn;
-	static pVRShutdown VRShutdownFn;
 	static pVRIsHmdPresent VRIsHmdPresentFn;
-	static pVRGetStringForHmdError VRGetStringForHmdErrorFn;
 	static pVRGetGenericInterface VRGetGenericInterfaceFn;
-	static pVRExtendedDisplay VRExtendedDisplayFn;
 };
 
 

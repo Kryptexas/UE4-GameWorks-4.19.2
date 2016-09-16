@@ -20,7 +20,6 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "ParticleBeamTrailVertexFactory.h"
 #include "MeshBatch.h"
-#include "Particles/SubUVAnimation.h"
 #include "../../Renderer/Private/ScenePrivate.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleSystemSceneProxy GetMeshElements"), STAT_FParticleSystemSceneProxy_GetMeshElements, STATGROUP_Particles);
@@ -500,7 +499,6 @@ void FDynamicSpriteEmitterDataBase::BuildViewFillData(
 
 	int32 NumIndices, IndexStride;
 	GetIndexAllocInfo(NumIndices, IndexStride);
-	check((uint32)NumIndices <= 65535);
 	check(IndexStride > 0);
 
 	DynamicIndexAllocation = FGlobalDynamicIndexBuffer::Get().Allocate( NumIndices, IndexStride );
@@ -545,7 +543,7 @@ FVector2D GetParticleSize(const FBaseParticle& Particle, const FDynamicSpriteEmi
 	FVector2D Size;
 	Size.X = FMath::Abs(Particle.Size.X * Source.Scale.X);
 	Size.Y = FMath::Abs(Particle.Size.Y * Source.Scale.Y);
-	if (Source.ScreenAlignment == PSA_Square || Source.ScreenAlignment == PSA_FacingCameraPosition)
+	if (Source.ScreenAlignment == PSA_Square || Source.ScreenAlignment == PSA_FacingCameraPosition || Source.ScreenAlignment == PSA_FacingCameraDistanceBlend)
 	{
 		Size.Y = Size.X;
 	}
@@ -764,45 +762,47 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexDa
 
 		FillVertex = (FParticleSpriteVertexNonInstanced*)TempVert;
 
-		const FVector2D* SubUVVertexData = NULL;
+		const FVector2D* SubUVVertexData = nullptr;
 
-		if (Source.SubUVAnimation)
+		if (Source.RequiredModule->IsBoundingGeometryValid())
 		{
 			const int32 SubImageIndexInt = FMath::TruncToInt(SubImageIndex);
-			int32 FrameIndex = SubImageIndexInt % Source.SubUVAnimation->GetNumFrames();
+			int32 FrameIndex = SubImageIndexInt % Source.RequiredModule->GetNumFrames();
 
 			if (SubImageIndexInt < 0)
 			{
 				// Mod operator returns remainder toward zero, not toward negative which is what we want
-				FrameIndex = Source.SubUVAnimation->GetNumFrames() - SubImageIndexInt;
+				FrameIndex = Source.RequiredModule->GetNumFrames() - SubImageIndexInt;
 			}
 
-			SubUVVertexData = Source.SubUVAnimation->GetFrameData(FrameIndex);
+			SubUVVertexData = Source.RequiredModule->GetFrameData(FrameIndex);
 		}
+
+		const bool bHasUVVertexData = SubUVVertexData && Source.RequiredModule->IsBoundingGeometryValid();
 
 		for (int32 VertexIndex = 0; VertexIndex < NumVerticesPerParticle; ++VertexIndex)
 		{
-			if (Source.SubUVAnimation)
+			if (bHasUVVertexData)
 			{
 				// Warning: not supporting UV flipping with cutout geometry in the non-instanced path
 				FillVertex[VertexIndex].UV = SubUVVertexData[VertexIndex];
 			}
 			else
-		{
+			{
 				if(VertexIndex == 0)
-			{
+				{
 					FillVertex[VertexIndex].UV = FVector2D(0.0f, 0.0f);
-			}
+				}
 				if(VertexIndex == 1)
-			{
+				{
 					FillVertex[VertexIndex].UV = FVector2D(0.0f, 1.0f);
-			}
+				}
 				if(VertexIndex == 2)
-			{
+				{
 					FillVertex[VertexIndex].UV = FVector2D(1.0f, 1.0f);
-			}
+				}
 				if(VertexIndex == 3)
-			{
+				{
 					FillVertex[VertexIndex].UV = FVector2D(1.0f, 0.0f);
 				}
 			}
@@ -989,10 +989,10 @@ public:
 FParticleVertexFactoryBase *FDynamicSpriteEmitterData::CreateVertexFactory()
 {
 	FParticleSpriteVertexFactory *VertexFactory = new FParticleSpriteVertexFactory();
-		VertexFactory->SetParticleFactoryType(PVFT_Sprite);
-		const USubUVAnimation* SubUVAnimation = GetSourceData()->SubUVAnimation;
-		VertexFactory->SetNumVertsInInstanceBuffer(SubUVAnimation ? SubUVAnimation->GetNumBoundingVertices() : 4);
-		VertexFactory->InitResource();
+	VertexFactory->SetParticleFactoryType(PVFT_Sprite);
+	const UParticleModuleRequired* RequiredModule = GetSourceData()->RequiredModule;
+	VertexFactory->SetNumVertsInInstanceBuffer(RequiredModule->IsBoundingGeometryValid() && RequiredModule->AlphaThreshold ? RequiredModule->GetNumBoundingVertices() : 4);
+	VertexFactory->InitResource();
 	return VertexFactory;
 }
 
@@ -1019,10 +1019,10 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 			int32 NumTrianglesPerParticle = 2;
 			const FVertexBuffer* TexCoordBuffer = &GParticleTexCoordVertexBuffer;
 
-			if (SourceData->SubUVAnimation)
+			if (SourceData->RequiredModule->IsBoundingGeometryValid())
 			{
-				NumVerticesPerParticle = SourceData->SubUVAnimation->GetNumBoundingVertices();
-				NumTrianglesPerParticle = SourceData->SubUVAnimation->GetNumBoundingTriangles();
+				NumVerticesPerParticle = SourceData->RequiredModule->GetNumBoundingVertices();
+				NumTrianglesPerParticle = SourceData->RequiredModule->GetNumBoundingTriangles();
 				check(NumVerticesPerParticle == 4 || NumVerticesPerParticle == 8);
 				TexCoordBuffer = (NumVerticesPerParticle == 4) ? (const FVertexBuffer*)&GParticleTexCoordVertexBuffer : (const FVertexBuffer*)&GParticleEightTexCoordVertexBuffer;
 			}
@@ -1060,7 +1060,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					const FMaterial* Material = MaterialResource[bSelected]->GetMaterial(FeatureLevel);
 
 					if (Material && 
-						(Material->GetBlendMode() == BLEND_Translucent ||
+						(Material->GetBlendMode() == BLEND_Translucent || Material->GetBlendMode() == BLEND_AlphaComposite ||
 						((SourceData->SortMode == PSORTMODE_Age_OldestFirst) || (SourceData->SortMode == PSORTMODE_Age_NewestFirst)))
 						)
 					{
@@ -1146,9 +1146,9 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 				SpriteVertexFactory->SetInstanceBuffer( Allocation.VertexBuffer, Allocation.VertexOffset, VertexSize, bInstanced );
 				SpriteVertexFactory->SetDynamicParameterBuffer( DynamicParameterAllocation.VertexBuffer, DynamicParameterAllocation.VertexOffset, GetDynamicParameterVertexStride(), bInstanced );
 
-				if (SourceData->SubUVAnimation)
+				if (SourceData->RequiredModule->IsBoundingGeometryValid() && SourceData->RequiredModule->AlphaThreshold)
 				{
-					SpriteVertexFactory->SetCutoutParameters( SourceData->SubUVAnimation->GetNumBoundingVertices(), SourceData->SubUVAnimation->GetBoundingGeometrySRV() );
+					SpriteVertexFactory->SetCutoutParameters( SourceData->RequiredModule->GetNumBoundingVertices(), SourceData->RequiredModule->GetBoundingGeometrySRV() );
 				}
 
 				if (bInstanced)
@@ -1283,6 +1283,30 @@ void FDynamicSpriteEmitterData::UpdateRenderThreadResourcesEmitter(const FPartic
 			UniformParameters.RotationBias = (LockAxisFlag == EPAL_ROTATE_Z) ? (0.5f * PI) : 0.0f;
 		}
 
+		// Alignment overrides
+		UniformParameters.RemoveHMDRoll = SourceData->bRemoveHMDRoll ? 1.f : 0.f;
+
+		if (SourceData->ScreenAlignment == PSA_FacingCameraDistanceBlend)
+		{
+			float DistanceBlendMinSq = SourceData->MinFacingCameraBlendDistance * SourceData->MinFacingCameraBlendDistance;
+			float DistanceBlendMaxSq = SourceData->MaxFacingCameraBlendDistance * SourceData->MaxFacingCameraBlendDistance;
+			float InvBlendRange = 1.f / FMath::Max(DistanceBlendMaxSq - DistanceBlendMinSq, 1.f);
+			float BlendScaledMinDistace = DistanceBlendMinSq * InvBlendRange;
+
+			UniformParameters.CameraFacingBlend.X = 1.f;
+			UniformParameters.CameraFacingBlend.Y = InvBlendRange;
+			UniformParameters.CameraFacingBlend.Z = BlendScaledMinDistace;
+
+			// Treat as camera facing if needed
+			UniformParameters.TangentSelector.W = 1.f;
+		}
+		else
+		{
+			UniformParameters.CameraFacingBlend.X = 0.f;
+			UniformParameters.CameraFacingBlend.Y = 0.f;
+			UniformParameters.CameraFacingBlend.Z = 0.f;
+		}	
+
 		// SubUV information.
 		UniformParameters.SubImageSize = FVector4(
 			SourceData->SubImages_Horizontal,
@@ -1369,10 +1393,18 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 	// Find the offset to the mesh type data 
 	if (InEmitterInstance->MeshTypeData != NULL)
 	{
+#if WITH_EDITOR
+		// there are some cases in the editor that invalidate the vertex factories, so
+		// in-editor, we simply go back to the old way of allocating them freshly every frame
+		if (GIsEditor && InEmitterInstance->Component->SceneProxy)
+		{
+			static_cast<FParticleSystemSceneProxy*>(InEmitterInstance->Component->SceneProxy)->MarkVertexFactoriesDirty();
+		}
+#endif
+
 		UParticleModuleTypeDataMesh* MeshTD = InEmitterInstance->MeshTypeData;
 		// offset to the mesh emitter type data
 		MeshTypeDataOffset = InEmitterInstance->TypeDataOffset;
-
 
 		FVector Mins, Maxs;
 		MeshTD->RollPitchYawRange.GetRange(Mins, Maxs);
@@ -3194,6 +3226,11 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 	TIndexType	VertexIndex = 0;
 	TIndexType	StartVertexIndex = 0;
 
+	TIndexType *BaseIndex = OutIndex;
+
+	// Signed as we are comparing against pointer arithmetic
+	const int32 MaxIndexCount = 65535;
+
 	for (int32 Beam = 0; Beam < Source.ActiveParticleCount; Beam++)
 	{
 		DECLARE_PARTICLE_PTR(Particle, Source.DataContainer.ParticleData + Source.ParticleStride * Beam);
@@ -3209,17 +3246,22 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 
 		if (VertexIndex == 0)//First Beam
 		{
-			*(OutIndex++) = VertexIndex++;	// SheetIndex + 0
-			*(OutIndex++) = VertexIndex++;	// SheetIndex + 1
+			if ((OutIndex - BaseIndex <= MaxIndexCount - 2))
+			{
+				*(OutIndex++) = VertexIndex++;	// SheetIndex + 0
+				*(OutIndex++) = VertexIndex++;	// SheetIndex + 1
+			}
 		}
 		else//Degenerate tris between beams
 		{
-			*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
-			*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
-			*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
-			*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
-
-			TrianglesToRender += 4;
+			if ((OutIndex - BaseIndex <= MaxIndexCount - 4))
+			{
+				*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
+				*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
+				*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
+				*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
+				TrianglesToRender += 4;
+			}
 		}
 
 		for (int32 SheetIndex = 0; SheetIndex < Source.Sheets; SheetIndex++)
@@ -3231,10 +3273,16 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 			for (int32 i = 0; i < BeamPayloadData->TriangleCount; i++)
 			{
 				*(OutIndex++) = VertexIndex++;
+
+				if (OutIndex - BaseIndex > MaxIndexCount)
+				{
+					break;
+				}
 			}
 
 			// Degenerate tris
-			if ((SheetIndex + 1) < Source.Sheets)
+			if ((SheetIndex + 1) < Source.Sheets
+				&& (OutIndex - BaseIndex <= MaxIndexCount-4))
 			{
 				*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
 				*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
@@ -3243,6 +3291,12 @@ static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynam
 
 				TrianglesToRender += 4;
 			}
+
+			if (OutIndex - BaseIndex > MaxIndexCount)
+			{
+				break;
+			}
+
 		}
 	}
 
@@ -6819,6 +6873,7 @@ void FParticleSystemSceneProxy::CreateRenderThreadResourcesForEmitterData()
 			}
 		}
 	}
+
 	ClearVertexFactoriesIfDirty();
 	UpdateVertexFactories();
 }
@@ -7014,11 +7069,6 @@ FPrimitiveViewRelevance FParticleSystemSceneProxy::GetViewRelevance(const FScene
 	}
 
 	return Result;
-}
-
-void FParticleSystemSceneProxy::OnActorPositionChanged()
-{
-	WorldSpacePrimitiveUniformBuffer.ReleaseResource();
 }
 
 void FParticleSystemSceneProxy::OnTransformChanged()

@@ -201,6 +201,9 @@ static TScopedPointer<FOutputDeviceTestExit> GScopedTestExit;
 #if WITH_ENGINE
 static void RHIExitAndStopRHIThread()
 {
+#if HAS_GPU_STATS
+	FRealtimeGPUProfiler::Get()->Release();
+#endif
 	RHIExit();
 
 	// Stop the RHI Thread
@@ -820,6 +823,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 		}
 	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("emitdrawevents")))
+	{
+		GEmitDrawEvents = true;
+	}	
 #endif // !UE_BUILD_SHIPPING
 
 	// Switch into executable's directory (may be required by some of the platform file overrides)
@@ -2190,7 +2198,8 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// Load runtime client modules (which are also needed at cook-time)
 	if( !IsRunningDedicatedServer() )
 	{
-		FModuleManager::Get().LoadModule( TEXT( "GameLiveStreaming" ) );
+		FModuleManager::Get().LoadModule(TEXT("GameLiveStreaming"));
+		FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
 	}
 #endif
 
@@ -2518,22 +2527,24 @@ void FEngineLoop::ProcessLocalPlayerSlateOperations() const
 
 			if ( ViewportWidget.IsValid() )
 			{
-				for( FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
+				FWidgetPath PathToWidget;
+				SlateApp.GeneratePathToWidgetUnchecked(ViewportWidget.ToSharedRef(), PathToWidget);
+
+				if (PathToWidget.IsValid())
 				{
-					APlayerController* PlayerController = *Iterator;
-					if( PlayerController )
+					for (FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 					{
-						ULocalPlayer* LocalPlayer = Cast< ULocalPlayer >( PlayerController->Player );
-						if( LocalPlayer )
+						APlayerController* PlayerController = *Iterator;
+						if (PlayerController)
 						{
-							FReply& TheReply = LocalPlayer->GetSlateOperations();
+							ULocalPlayer* LocalPlayer = Cast< ULocalPlayer >(PlayerController->Player);
+							if (LocalPlayer)
+							{
+								FReply& TheReply = LocalPlayer->GetSlateOperations();
+								SlateApp.ProcessReply(PathToWidget, TheReply, nullptr, nullptr, LocalPlayer->GetControllerId());
 
-							FWidgetPath PathToWidget;
-							SlateApp.GeneratePathToWidgetUnchecked( ViewportWidget.ToSharedRef(), PathToWidget );
-
-							SlateApp.ProcessReply( PathToWidget, TheReply, nullptr, nullptr, LocalPlayer->GetControllerId() );
-
-							TheReply = FReply::Unhandled();
+								TheReply = FReply::Unhandled();
+							}
 						}
 					}
 				}
@@ -2751,7 +2762,7 @@ void FEngineLoop::Tick()
 
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_TickFPSChart);
-			GEngine->TickFPSChart( FApp::GetDeltaTime() );
+			GEngine->TickPerformanceMonitoring( FApp::GetDeltaTime() );
 		}
 
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Malloc_UpdateStats);
@@ -2813,6 +2824,7 @@ void FEngineLoop::Tick()
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
+			SCOPE_TIME_GUARD(TEXT("SlateInput"));
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_SlateInput);
 
 			FSlateApplication& SlateApp = FSlateApplication::Get();
@@ -3100,6 +3112,11 @@ bool FEngineLoop::AppInit( )
 		FMemory::EnablePurgatoryTests();
 	}
 
+	if (FParse::Param(FCommandLine::Get(), TEXT("poisonmallocproxy")))
+	{
+		FMemory::EnablePoisonTests();
+	}
+
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("BUILDMACHINE")))
 	{
@@ -3240,6 +3257,12 @@ bool FEngineLoop::AppInit( )
 		return false;
 	}
 
+	// Register the callback that allows the text localization manager to load data for plugins
+	FTextLocalizationManager::Get().GatherAdditionalLocResPathsCallback.AddLambda([](TArray<FString>& OutLocResPaths)
+	{
+		IPluginManager::Get().GetLocalizationPathsForEnabledPlugins(OutLocResPaths);
+	});
+
 	PreInitHMDDevice();
 
 	// Put the command line and config info into the suppression system
@@ -3304,6 +3327,8 @@ bool FEngineLoop::AppInit( )
 	// Print compiler version info
 #if defined(__clang__)
 	UE_LOG(LogInit, Log, TEXT("Compiled with Clang: %s"), ANSI_TO_TCHAR( __clang_version__ ) );
+#elif defined(__INTEL_COMPILER)
+	UE_LOG(LogInit, Log, TEXT("Compiled with ICL: %d"), __INTEL_COMPILER);
 #elif defined( _MSC_VER )
 	#ifndef __INTELLISENSE__	// Intellisense compiler doesn't support _MSC_FULL_VER
 	{

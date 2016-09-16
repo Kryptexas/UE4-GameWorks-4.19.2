@@ -39,17 +39,8 @@
 #if !defined(PLATFORM_ANDROID_VULKAN)
 	#define PLATFORM_ANDROID_VULKAN 0
 #endif
-#if !defined(PLATFORM_ANDROIDGL4)
-	#define PLATFORM_ANDROIDGL4 0
-#endif
-#if !defined(PLATFORM_ANDROIDES31)
-	#define PLATFORM_ANDROIDES31 0
-#endif
-#if !defined(PLATFORM_WINRT)
-	#define PLATFORM_WINRT 0
-#endif
-#if !defined(PLATFORM_WINRT_ARM)
-	#define PLATFORM_WINRT_ARM	0
+#if !defined(PLATFORM_ANDROIDESDEFERRED)
+	#define PLATFORM_ANDROIDESDEFERRED 0
 #endif
 #if !defined(PLATFORM_APPLE)
 	#define PLATFORM_APPLE 0
@@ -74,8 +65,6 @@
 	#include "IOS/IOSPlatformCompilerPreSetup.h"
 #elif PLATFORM_ANDROID
 	#include "Android/AndroidPlatformCompilerPreSetup.h"
-#elif PLATFORM_WINRT_ARM || PLATFORM_WINRT
-	#include "WinRT/WinRTPlatformCompilerPreSetup.h"
 #elif PLATFORM_HTML5
 	#include "HTML5/HTML5PlatformCompilerPreSetup.h"
 #elif PLATFORM_LINUX
@@ -110,10 +99,6 @@
 	#include "IOS/IOSPlatform.h"
 #elif PLATFORM_ANDROID
 	#include "Android/AndroidPlatform.h"
-#elif PLATFORM_WINRT_ARM
-	#include "WinRT/WinRTARMPlatform.h"
-#elif PLATFORM_WINRT
-	#include "WinRT/WinRTPlatform.h"
 #elif PLATFORM_HTML5
 	#include "HTML5/HTML5Platform.h"
 #elif PLATFORM_LINUX
@@ -348,6 +333,14 @@
 #endif
 #ifndef FUNCTION_NO_RETURN_END
 	#define FUNCTION_NO_RETURN_END
+#endif
+
+/* Wrap a function signature in these to indicate that the function never returns nullptr */
+#ifndef FUNCTION_NON_NULL_RETURN_START
+	#define FUNCTION_NON_NULL_RETURN_START
+#endif
+#ifndef FUNCTION_NON_NULL_RETURN_END
+	#define FUNCTION_NON_NULL_RETURN_END
 #endif
 
 #ifndef FUNCTION_CHECK_RETURN
@@ -739,8 +732,6 @@ namespace TypeTests
 	#include "IOS/IOSPlatformCompilerSetup.h"
 #elif PLATFORM_ANDROID
 	#include "Android/AndroidCompilerSetup.h"
-#elif PLATFORM_WINRT_ARM || PLATFORM_WINRT
-	#include "WinRT/WinRTCompilerSetup.h"
 #elif PLATFORM_HTML5
 	#include "HTML5/HTML5PlatformCompilerSetup.h"
 #elif PLATFORM_LINUX
@@ -749,6 +740,13 @@ namespace TypeTests
 	#error Unknown Compiler
 #endif
 
+// If we don't have a platform-specific define for the TEXT macro, define it now.
+#if !defined(TEXT) && !UE_BUILD_DOCS
+	#define TEXT_PASTE(x) L ## x
+	#define TEXT(x) TEXT_PASTE(x)
+#endif
+
 // Include defaults for defines that aren't explicitly set by the platform
 #include "UMemoryDefines.h"
 #include "../Misc/CoreMiscDefines.h"
+#include "../Misc/CoreDefines.h"

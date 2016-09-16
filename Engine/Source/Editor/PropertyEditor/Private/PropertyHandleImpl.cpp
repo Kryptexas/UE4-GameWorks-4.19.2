@@ -227,25 +227,30 @@ FString FPropertyValueImpl::GetPropertyValueArray() const
 	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
 	if( PropertyNodePin.IsValid() )
 	{
-		uint8* Addr = nullptr;
 		FReadAddressList ReadAddresses;
-		UProperty* NodeProperty = PropertyNodePin->GetProperty();
 
 		bool bSingleValue = PropertyNodePin->GetReadAddress( !!PropertyNodePin->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly), ReadAddresses, false );
 
-		Addr = ReadAddresses.GetAddress(0);
-		if( bSingleValue && Addr )
+		if( bSingleValue )
 		{
-			if ( NodeProperty != nullptr && Cast<UArrayProperty>(NodeProperty) != nullptr )
+			UProperty* NodeProperty = PropertyNodePin->GetProperty();
+			if( NodeProperty != nullptr )
 			{
-				String = FString::Printf( TEXT("%(%d)"), FScriptArrayHelper::Num(Addr) );
-			}
-			else
-			{
-				String = FString::Printf( TEXT("%[%d]"), NodeProperty->ArrayDim );
+				uint8* Addr = ReadAddresses.GetAddress(0);
+				if( Addr )
+				{
+					if ( NodeProperty->IsA<UArrayProperty>() )
+					{
+						String = FString::Printf( TEXT("%(%d)"), FScriptArrayHelper::Num(Addr) );
+					}
+					else
+					{
+						String = FString::Printf( TEXT("%[%d]"), NodeProperty->ArrayDim );
+					}
+				}
 			}
 		}
-		else if( !bSingleValue )
+		else
 		{
 			String = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString();
 		}
@@ -369,6 +374,10 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 		const bool bTransactable = (Flags & EPropertyValueSetFlags::NotTransactable) == 0;
 		const bool bFinished = ( Flags & EPropertyValueSetFlags::InteractiveChange) == 0;
 		
+		// List of top level objects sent to the PropertyChangedEvent
+		TArray<const UObject*> TopLevelObjects;
+		TopLevelObjects.Reserve(InObjects.Num());
+
 		for ( int32 ObjectIndex = 0 ; ObjectIndex < InObjects.Num() ; ++ObjectIndex )
 		{	
 			const FObjectBaseAddress& Cur = InObjects[ ObjectIndex ];
@@ -445,6 +454,8 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 				{
 					Cur.Object->MarkPackageDirty();
 				}
+
+				TopLevelObjects.Add(Cur.Object);
 			}
 
 			//add on array index so we can tell which entry just changed
@@ -452,13 +463,13 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 			FPropertyValueImpl::GenerateArrayIndexMapToObjectNode( ArrayIndicesPerObject[ObjectIndex], InPropertyNode );
 		}
 
+		FPropertyChangedEvent ChangeEvent(NodeProperty, bFinished ? EPropertyChangeType::ValueSet : EPropertyChangeType::Interactive, &TopLevelObjects);
+		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+
 		// If PreEditChange was called, so should PostEditChange.
-		if ( bNotifiedPreChange )
+		if (bNotifiedPreChange)
 		{
 			// Call PostEditChange on all objects.
-			FPropertyChangedEvent ChangeEvent(NodeProperty, bFinished ? EPropertyChangeType::ValueSet : EPropertyChangeType::Interactive );
-			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
-
 			InPropertyNode->NotifyPostChange( ChangeEvent, NotifyHook );
 
 			if (bFinished)
@@ -481,7 +492,6 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 
 		if (PropertyUtilities.IsValid() && !bInteractiveChangeInProgress)
 		{
-			FPropertyChangedEvent ChangeEvent(NodeProperty, bFinished ? EPropertyChangeType::ValueSet : EPropertyChangeType::Interactive);
 			InPropertyNode->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -1082,6 +1092,10 @@ void FPropertyValueImpl::AddChild()
 
 			TArray< TMap<FString,int32> > ArrayIndicesPerObject;
 
+			// List of top level objects sent to the PropertyChangedEvent
+			TArray<const UObject*> TopLevelObjects;
+			TopLevelObjects.Reserve(ReadAddresses.Num());
+
 			// Begin a property edit transaction.
 			FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddChild", "Add Child") );
 			FObjectPropertyNode* ObjectNode = PropertyNodePin->FindObjectItemParent();
@@ -1115,6 +1129,8 @@ void FPropertyValueImpl::AddChild()
 
 							PropertyNodePin->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Add, -1);
 						}
+
+						TopLevelObjects.Add(Obj);
 					}
 
 					FScriptArrayHelper	ArrayHelper(Array,Addr);
@@ -1125,17 +1141,17 @@ void FPropertyValueImpl::AddChild()
 				}
 			}
 
+			FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ArrayAdd, &TopLevelObjects);
+			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+
 			if ( bNotifiedPreChange )
 			{
 				// send the PostEditChange notification; it will be propagated to all selected objects
-				FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ArrayAdd);
-				ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
-				PropertyNodePin->NotifyPostChange( ChangeEvent, NotifyHook );
+				PropertyNodePin->NotifyPostChange( ChangeEvent, NotifyHook);
 			}
 
 			if (PropertyUtilities.IsValid())
 			{
-				FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ArrayAdd);
 				PropertyNodePin->FixPropertiesInEvent(ChangeEvent);
 				PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 			}
@@ -1161,6 +1177,10 @@ void FPropertyValueImpl::ClearChildren()
 			// determines whether we actually changed any values (if the user clicks the "emtpy" button when the array is already empty,
 			// we don't want the objects to be marked dirty)
 			bool bNotifiedPreChange = false;
+
+			// List of top level objects sent to the PropertyChangedEvent
+			TArray<const UObject*> TopLevelObjects;
+			TopLevelObjects.Reserve(ReadAddresses.Num());
 
 			// Begin a property edit transaction.
 			FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "ClearChildren", "Clear Children") );
@@ -1191,6 +1211,8 @@ void FPropertyValueImpl::ClearChildren()
 
 							PropertyNodePin->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Clear, -1);
 						}
+
+						TopLevelObjects.Add(Obj);
 					}
 
 					FScriptArrayHelper	ArrayHelper(Array,Addr);
@@ -1198,19 +1220,19 @@ void FPropertyValueImpl::ClearChildren()
 				}
 			}
 
+			FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ValueSet, &TopLevelObjects);
+
 			if ( bNotifiedPreChange )
 			{
 				// send the PostEditChange notification; it will be propagated to all selected objects
-				FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ValueSet);
-				PropertyNodePin->NotifyPostChange( ChangeEvent, NotifyHook );
+				PropertyNodePin->NotifyPostChange( ChangeEvent, NotifyHook);
 			}
-		}
 
-		if (PropertyUtilities.IsValid())
-		{
-			FPropertyChangedEvent ChangeEvent(NodeProperty, EPropertyChangeType::ValueSet);
-			PropertyNodePin->FixPropertiesInEvent(ChangeEvent);
-			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
+			if(PropertyUtilities.IsValid())
+			{
+				PropertyNodePin->FixPropertiesInEvent(ChangeEvent);
+				PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
+			}
 		}
 	}
 }
@@ -1251,6 +1273,9 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 		FScriptArrayHelper	ArrayHelper(ArrayProperty,Addr);
 		int32 Index = ChildNodePtr->GetArrayIndex();
 
+		// List of top level objects sent to the PropertyChangedEvent
+		TArray<const UObject*> TopLevelObjects;
+
 		UObject* Obj = ObjectNode ? ObjectNode->GetUObject(0) : nullptr;
 		if (Obj)
 		{
@@ -1263,6 +1288,8 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 
 				ChildNodePtr->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Insert, Index);
 			}
+
+			TopLevelObjects.Add(Obj);
 		}
 
 		ArrayHelper.InsertValues(Index, 1 );
@@ -1278,15 +1305,12 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 			FPropertyValueImpl::GenerateArrayIndexMapToObjectNode(ArrayIndicesPerObject[ObjectIndex], ChildNodePtr );
 		}
 
-		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ArrayAdd);
-			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
-			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
-		}
+		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ArrayAdd, &TopLevelObjects);
+		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+		ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
 
 		if (PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ArrayAdd);
 			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -1321,6 +1345,10 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 
 		ChildNodePtr->NotifyPreChange( NodeProperty, NotifyHook );
 
+		// List of top level objects sent to the PropertyChangedEvent
+		TArray<const UObject*> TopLevelObjects;
+		TopLevelObjects.Reserve(ReadAddresses.Num());
+
 		// perform the operation on the array for all selected objects
 		for ( int32 i = 0 ; i < ReadAddresses.Num() ; ++i )
 		{
@@ -1343,20 +1371,19 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 
 						ChildNodePtr->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Delete, Index);
 					}
+
+					TopLevelObjects.Add(Obj);
 				}
 
 				ArrayHelper.RemoveValues(ChildNodePtr->GetArrayIndex());
 			}
 		}
 
-		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty());
-			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
-		}
+		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::Unspecified, &TopLevelObjects);
+		ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
 
 		if (PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty());
 			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -1392,6 +1419,9 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 
 	if( Addr )
 	{
+		// List of top level objects sent to the PropertyChangedEvent
+		TArray<const UObject*> TopLevelObjects;
+
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "DuplicateChild", "Duplicate Child") );
 
 		ChildNodePtr->NotifyPreChange( ParentNode->GetProperty(), NotifyHook );
@@ -1400,6 +1430,8 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 
 		int32 Index = ChildNodePtr->GetArrayIndex();
 		UObject* Obj = ObjectNode ? ObjectNode->GetUObject(0) : nullptr;
+
+		TArray< TMap<FString, int32> > ArrayIndicesPerObject;
 		if (Obj)
 		{
 			if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
@@ -1411,6 +1443,8 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 
 				ChildNodePtr->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Duplicate, Index);
 			}
+
+			TopLevelObjects.Add(Obj);
 		}
 
 		ArrayHelper.InsertValues(Index);
@@ -1445,20 +1479,20 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 			}
 		}
 
-
-
-		//@todo Slate Property Window
-		// 		const bool bExpand = true;
-		// 		const bool bRecurse = false;
-		// 		ParentNode->SetExpanded(bExpand, bRecurse);
-
+		if(Obj)
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ValueSet);
-			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
+
+			ArrayIndicesPerObject.Add(TMap<FString, int32>());
+			FPropertyValueImpl::GenerateArrayIndexMapToObjectNode(ArrayIndicesPerObject[0], ChildNodePtr);
 		}
+
+		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::Duplicate, &TopLevelObjects);
+		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+
+		ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
+
 		if (PropertyUtilities.IsValid())
 		{
-			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::ValueSet);
 			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
@@ -1496,6 +1530,7 @@ IMPLEMENT_PROPERTY_ACCESSOR( uint32 )
 IMPLEMENT_PROPERTY_ACCESSOR( uint64 )
 IMPLEMENT_PROPERTY_ACCESSOR( float )
 IMPLEMENT_PROPERTY_ACCESSOR( FString )
+IMPLEMENT_PROPERTY_ACCESSOR( FText )
 IMPLEMENT_PROPERTY_ACCESSOR( FName )
 IMPLEMENT_PROPERTY_ACCESSOR( FVector )
 IMPLEMENT_PROPERTY_ACCESSOR( FVector2D )
@@ -2021,25 +2056,6 @@ FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValue( const int32 Obje
 	return Result;
 }
 
-TArray<FName> GetValidEnumEntries(UProperty* Property, const UEnum* InEnum)
-{
-	TArray<FName> ValidEnumValues;
-
-	static const FName ValidEnumValuesName("ValidEnumValues");
-	if (Property->HasMetaData(ValidEnumValuesName))
-	{
-		TArray<FString> ValidEnumValuesAsString;
-
-		Property->GetMetaData(ValidEnumValuesName).ParseIntoArray(ValidEnumValuesAsString, TEXT(","));
-		for (auto& Value : ValidEnumValuesAsString)
-		{
-			Value.Trim();
-			ValidEnumValues.Add(*UEnum::GenerateFullEnumName(InEnum, *Value));
-		}
-	}
-
-	return ValidEnumValues;
-}
 
 bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& OutOptionStrings, TArray< FText >& OutToolTips, TArray<bool>& OutRestrictedItems)
 {
@@ -2064,14 +2080,12 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 
 		check( Enum );
 
-		const TArray<FName> ValidEnumValues = GetValidEnumEntries(Property, Enum);
+		const TArray<FName> ValidEnumValues = PropertyEditorHelpers::GetValidEnumsFromPropertyOverride(Property, Enum);
 
 		//NumEnums() - 1, because the last item in an enum is the _MAX item
 		for( int32 EnumIndex = 0; EnumIndex < Enum->NumEnums() - 1; ++EnumIndex )
 		{
 			FString EnumValueName;
-
-			static const FName Hidden("Hidden");
 
 			// Ignore hidden enums
 			bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIndex ) || Enum->HasMetaData(TEXT("Spacer"), EnumIndex );
@@ -2154,8 +2168,19 @@ void FPropertyHandleBase::NotifyPostChange()
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
 	if( PropertyNode.IsValid() )
 	{
-		FPropertyChangedEvent PropertyChangedEvent( PropertyNode->GetProperty() );
-		PropertyNode->NotifyPostChange( PropertyChangedEvent, Implementation->GetNotifyHook() );
+		TArray<const UObject*> ObjectsBeingChanged;
+		FObjectPropertyNode* ObjectNode = PropertyNode->FindObjectItemParent();
+		if(ObjectNode)
+		{
+			ObjectsBeingChanged.Reserve(ObjectNode->GetNumObjects());
+			for(int32 ObjectIndex = 0; ObjectIndex < ObjectNode->GetNumObjects(); ++ObjectIndex)
+			{
+				ObjectsBeingChanged.Add(ObjectNode->GetUObject(ObjectIndex));
+			}
+		}
+
+		FPropertyChangedEvent PropertyChangedEvent( PropertyNode->GetProperty(), EPropertyChangeType::Unspecified, &ObjectsBeingChanged );
+		PropertyNode->NotifyPostChange( PropertyChangedEvent, Implementation->GetNotifyHook());
 	}
 }
 
@@ -2236,6 +2261,7 @@ IMPLEMENT_PROPERTY_VALUE( FPropertyHandleByte )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleString )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleObject )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleArray )
+IMPLEMENT_PROPERTY_VALUE( FPropertyHandleText )
 
 // int32 
 bool FPropertyHandleInt::Supports( TSharedRef<FPropertyNode> PropertyNode )
@@ -3139,4 +3165,35 @@ bool FPropertyHandleArray::IsEditable() const
 {
 	// Property is editable if its a non-const dynamic array
 	return Implementation->HasValidPropertyNode() && !Implementation->IsEditConst() && Implementation->IsPropertyTypeOf(UArrayProperty::StaticClass());
+}
+
+// Localized Text
+bool FPropertyHandleText::Supports(TSharedRef<FPropertyNode> PropertyNode)
+{
+	UProperty* Property = PropertyNode->GetProperty();
+
+	if ( Property == nullptr )
+	{
+		return false;
+	}
+
+	// Supported if the property is a text property only
+	return Property->IsA(UTextProperty::StaticClass());
+}
+
+FPropertyAccess::Result FPropertyHandleText::GetValue(FText& OutValue) const
+{
+	return Implementation->GetValueAsText(OutValue);
+}
+
+FPropertyAccess::Result FPropertyHandleText::SetValue(const FText& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	FString StringValue;
+	FTextStringHelper::WriteToString(StringValue, NewValue);
+	return Implementation->ImportText(StringValue, Flags);
+}
+
+FPropertyAccess::Result FPropertyHandleText::SetValue(const FString& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	return SetValue(FText::FromString(NewValue), Flags);
 }

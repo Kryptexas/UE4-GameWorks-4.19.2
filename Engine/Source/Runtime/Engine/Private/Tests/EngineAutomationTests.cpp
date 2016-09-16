@@ -472,11 +472,11 @@ bool FAutomationLogAddError::RunTest(const FString& Parameters)
 	AddError(TEXT("Test error message"));
 	
 	//** VERIFY **//
-	FString CurrentErrorMessage = ExecutionInfo.Errors.Last();
+	FAutomationEvent CurrentErrorMessage = ExecutionInfo.Errors.Last();
 	// The errors array is emptied so that this doesn't cause a false positive failure for this test.
 	ExecutionInfo.Errors.Empty();
 
-	TestEqual<FString>(TEXT("Test error message was not added to the ExecutionInfo.Error array."), CurrentErrorMessage, TEXT("Test error message"));
+	TestEqual<FString>(TEXT("Test error message was not added to the ExecutionInfo.Error array."), CurrentErrorMessage.Message, TEXT("Test error message"));
 	
 	return true;
 }

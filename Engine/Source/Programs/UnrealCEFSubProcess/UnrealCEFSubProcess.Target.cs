@@ -45,10 +45,7 @@ public class UnrealCEFSubProcessTarget : TargetRules
     {
         if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
         {
-            if (Target.Configuration != UnrealTargetConfiguration.Debug)
-            {
-                WindowsPlatform.Compiler = WindowsCompiler.VisualStudio2013;
-            }
+            WindowsPlatform.Compiler = WindowsCompiler.VisualStudio2013;
         }
         return true;
     }

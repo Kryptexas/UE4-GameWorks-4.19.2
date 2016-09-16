@@ -31,6 +31,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "FeaturedClasses.inl"
 
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"

@@ -21,6 +21,22 @@ public:
 
 	void UpdateWidgetProperties();
 
+	/** If this safe zone should pad for the left side of the screen's safe zone */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SafeZone")
+	bool PadLeft;
+
+	/** If this safe zone should pad for the right side of the screen's safe zone */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SafeZone")
+	bool PadRight;
+
+	/** If this safe zone should pad for the top side of the screen's safe zone */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SafeZone")
+	bool PadTop;
+
+	/** If this safe zone should pad for the bottom side of the screen's safe zone */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SafeZone")
+	bool PadBottom;
+
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;

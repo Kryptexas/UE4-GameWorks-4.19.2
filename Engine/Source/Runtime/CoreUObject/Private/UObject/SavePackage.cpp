@@ -1,7 +1,7 @@
 ﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
-#include "UObject/UTextProperty.h"
+#include "UObject/TextProperty.h"
 #include "TextPackageNamespaceUtil.h"
 #include "Interface.h"
 #include "TargetPlatform.h"
@@ -588,12 +588,12 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, FArchive& Ar)
 	UObject* Search = Obj;
 	do
 	{
-		if (!Search->NeedsLoadForClient())
+		if (!Obj->HasAnyMarks(OBJECTMARK_NotForClient) && !Search->NeedsLoadForClient())
 		{
 			Obj->Mark(OBJECTMARK_NotForClient);
 		}
 
-		if (!Search->NeedsLoadForServer())
+		if (!Obj->HasAnyMarks(OBJECTMARK_NotForServer) && !Search->NeedsLoadForServer())
 		{
 			Obj->Mark(OBJECTMARK_NotForServer);
 		}
@@ -4359,7 +4359,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							// Check if we have a redirect to original.
 							if (DependencyIndex.IsNull() && DuplicateRedirects.Contains(DependentObject))
 							{
-								DependencyIndex = ExportToIndexMap.FindRef(DuplicateRedirects[DependentObject]);
+								UObject** const RedirectObj = DuplicateRedirects.Find(DependentObject);
+								if (RedirectObj)
+								{
+									DependencyIndex = ExportToIndexMap.FindRef(*RedirectObj);
+								}
 							}
 #endif
 							// if we didn't find it (FindRef returns 0 on failure, which is good in this case), then we are in trouble, something went wrong somewhere
@@ -4755,8 +4759,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						// Restore BulkData flags to before serialization started
 						BulkDataStorageInfo.BulkData->ClearBulkDataFlags(0xFFFFFFFF);
 						BulkDataStorageInfo.BulkData->SetBulkDataFlags(OldBulkDataFlags);
-
 						BulkDataStorageInfo.BulkData->Unlock();
+						BulkDataStorageInfo.BulkData->RemoveBulkData();
 					}
 
 					if (BulkArchive)
@@ -5071,7 +5075,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					// Delete the temporary file.
 					IFileManager::Get().Delete( *TempFilename );
 				}
-				COOK_STAT(SavePackageStats::MBWritten += TotalPackageSizeUncompressed);
+				COOK_STAT(SavePackageStats::MBWritten += ((double)TotalPackageSizeUncompressed) / 1024.0 / 1024.0);
 
 				SlowTask.EnterProgressFrame();
 			}

@@ -172,6 +172,10 @@ public:
 	// Whether or not to add support for OpenGL ES2 (if this is false, then your game should specify minimum IOS8 version)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering)
 	bool bSupportsOpenGLES2;
+	
+	// Remotely compile shaders offline
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
+	bool EnableRemoteShaderCompile;
 
 	// Enable generation of dSYM file
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Generate dSYM file for code debugging and profiling"))
@@ -292,14 +296,14 @@ public:
 	// Specifies the version for the application.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = BundleInformation)
 	FString VersionInfo;
-    
-    /** Set the maximum frame rate to save on power consumption */
+
+	/** Set the maximum frame rate to save on power consumption */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = PowerUsage, meta = (ConfigHierarchyEditable))
-    TEnumAsByte<EPowerUsageFrameRateLock> FrameRateLock;
+	EPowerUsageFrameRateLock FrameRateLock;
 
 	// Minimum iOS version this game supports
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = OSInfo)
-	TEnumAsByte<EIOSVersion> MinimumiOSVersion;
+	EIOSVersion MinimumiOSVersion;
 
 	// Whether or not to add support for iPad devices
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceUsage)

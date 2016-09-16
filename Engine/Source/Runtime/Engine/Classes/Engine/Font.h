@@ -10,7 +10,7 @@
 
 /** Enumerates supported font caching types. */
 UENUM()
-enum class EFontCacheType
+enum class EFontCacheType : uint8
 {
 	/** The font is using offline caching (this is how UFont traditionally worked). */
 	Offline,
@@ -101,7 +101,7 @@ class UFont : public UObject, public IFontProviderInterface
 
 	/** What kind of font caching should we use? This controls which options we see */
 	UPROPERTY(EditAnywhere, Category=Font)
-	TEnumAsByte<EFontCacheType> FontCacheType;
+	EFontCacheType FontCacheType;
 
 	/** List of characters in the font.  For a MultiFont, this will include all characters in all sub-fonts!  Thus,
 		the number of characters in this array isn't necessary the number of characters available in the font */
@@ -284,4 +284,10 @@ public:
 	/** Determines the height and width for the passed in string. */
 	ENGINE_API void GetStringHeightAndWidth( const FString& InString, int32& Height, int32& Width ) const;
 	ENGINE_API void GetStringHeightAndWidth( const TCHAR *Text, int32& Height, int32& Width ) const;
+
+	/**
+	 * Loads any bulk data associated with this font, and flags it to be loaded for the lifespan of this font.
+	 * Typically this is handled automatically as fonts are used, however you'll want to call this for any fonts used by the rendering thread (as we can't load the bulk data on that thread).
+	 */
+	ENGINE_API void ForceLoadFontData();
 };

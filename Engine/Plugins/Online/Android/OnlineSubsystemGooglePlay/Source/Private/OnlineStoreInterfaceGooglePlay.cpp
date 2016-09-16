@@ -59,11 +59,13 @@ bool FOnlineStoreGooglePlay::QueryForAvailablePurchases(const TArray<FString>& P
 }
 
 
-extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jobjectArray productIDs, jobjectArray titles, jobjectArray descriptions, jobjectArray prices, jfloatArray pricesRaw, jobjectArray currencyCodes)
+extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete(JNIEnv* jenv, jobject thiz, jsize responseCode, jobjectArray productIDs, jobjectArray titles, jobjectArray descriptions, jobjectArray prices, jfloatArray pricesRaw, jobjectArray currencyCodes)
 {
 	TArray<FInAppPurchaseProductInfo> ProvidedProductInformation;
+	EGooglePlayBillingResponseCode EGPResponse = (EGooglePlayBillingResponseCode)responseCode;
+	bool bWasSuccessful = (EGPResponse == EGooglePlayBillingResponseCode::Ok);
 
-	if (jenv && bSuccess)
+	if (jenv && bWasSuccessful)
 	{
 		jsize NumProducts = jenv->GetArrayLength(productIDs);
 		jsize NumTitles = jenv->GetArrayLength(titles);
@@ -126,7 +128,6 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete
 		}
 	}
 
-
 	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessQueryIapResult"), STAT_FSimpleDelegateGraphTask_ProcessQueryIapResult, STATGROUP_TaskGraphTasks);
 
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
@@ -136,10 +137,10 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete
 				// call store implementation to process query results.
 				if (FOnlineStoreGooglePlay* StoreInterface = (FOnlineStoreGooglePlay*)OnlineSub->GetStoreInterface().Get())
 				{
-					StoreInterface->ProcessQueryAvailablePurchasesResults(bSuccess, ProvidedProductInformation);
+					StoreInterface->ProcessQueryAvailablePurchasesResults(EGPResponse, ProvidedProductInformation);
 				}
 			}
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("In-App Purchase query was completed  %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"));
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("In-App Purchase query was completed  %s\n"), bWasSuccessful ? TEXT("successfully") : TEXT("unsuccessfully"));
 		}),
 		GET_STATID(STAT_FSimpleDelegateGraphTask_ProcessQueryIapResult), 
 		nullptr, 
@@ -149,17 +150,17 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeQueryComplete
 }
 
 
-void FOnlineStoreGooglePlay::ProcessQueryAvailablePurchasesResults(bool bInSuccessful, const TArray<FInAppPurchaseProductInfo>& AvailablePurchases)
+void FOnlineStoreGooglePlay::ProcessQueryAvailablePurchasesResults(EGooglePlayBillingResponseCode InResponseCode, const TArray<FInAppPurchaseProductInfo>& AvailablePurchases)
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineStoreGooglePlay::ProcessQueryAvailablePurchasesResults"));
 
 	if (ReadObject.IsValid())
 	{
-		ReadObject->ReadState = bInSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
+		ReadObject->ReadState = (InResponseCode == EGooglePlayBillingResponseCode::Ok) ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
 		ReadObject->ProvidedProductInformation.Insert(AvailablePurchases, 0);
 	}
 
-	CurrentQueryTask->ProcessQueryAvailablePurchasesResults(bInSuccessful);
+	CurrentQueryTask->ProcessQueryAvailablePurchasesResults(InResponseCode == EGooglePlayBillingResponseCode::Ok);
 }
 
 
@@ -202,10 +203,13 @@ bool FOnlineStoreGooglePlay::BeginPurchase(const FInAppPurchaseProductRequest& P
 }
 
 
-extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jstring productId, jstring receiptData, jstring signature)
+extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseComplete(JNIEnv* jenv, jobject thiz, jsize responseCode, jstring productId, jstring receiptData, jstring signature)
 {
 	FString ProductId, ReceiptData, Signature;
-	if (bSuccess)
+	EGooglePlayBillingResponseCode EGPResponse = (EGooglePlayBillingResponseCode)responseCode;
+	bool bWasSuccessful = (EGPResponse == EGooglePlayBillingResponseCode::Ok);
+
+	if (bWasSuccessful)
 	{
 		const char* charsId = jenv->GetStringUTFChars(productId, 0);
 		ProductId = FString(UTF8_TO_TCHAR(charsId));
@@ -225,14 +229,14 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseCompl
 
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 		FSimpleDelegateGraphTask::FDelegate::CreateLambda([=](){
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("In-App Purchase was completed  %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"));
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("In-App Purchase was completed  %s\n"), bWasSuccessful ? TEXT("successfully") : TEXT("unsuccessfully"));
 			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
 			{
 				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("2... ProductId: %s, ReceiptData: %s, Signature: %s\n"), *ProductId, *ReceiptData, *Signature);
 				// call store implementation to process query results.
 				if (FOnlineStoreGooglePlay* StoreInterface = (FOnlineStoreGooglePlay*)OnlineSub->GetStoreInterface().Get())
 				{
-					StoreInterface->ProcessPurchaseResult(bSuccess, ProductId, ReceiptData, Signature);
+					StoreInterface->ProcessPurchaseResult(EGPResponse, ProductId, ReceiptData, Signature);
 				}
 			}
 		}),
@@ -244,7 +248,7 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativePurchaseCompl
 }
 
 
-void FOnlineStoreGooglePlay::ProcessPurchaseResult(bool bInSuccessful, const FString& ProductId, const FString& InReceiptData, const FString& Signature)
+void FOnlineStoreGooglePlay::ProcessPurchaseResult(EGooglePlayBillingResponseCode InResponseCode, const FString& ProductId, const FString& InReceiptData, const FString& Signature)
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineStoreGooglePlay::ProcessPurchaseResult"));
 	UE_LOG(LogOnline, Display, TEXT("3... ProductId: %s, ReceiptData: %s, Signature: %s\n"), *ProductId, *InReceiptData, *Signature);
@@ -263,7 +267,7 @@ void FOnlineStoreGooglePlay::ProcessPurchaseResult(bool bInSuccessful, const FSt
 		CachedPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Done;
 	}
 
-	TriggerOnInAppPurchaseCompleteDelegates(bInSuccessful ? EInAppPurchaseState::Success : EInAppPurchaseState::Failed);
+	TriggerOnInAppPurchaseCompleteDelegates(ConvertGPResponseCodeToIAPState(InResponseCode));
 }
 
 
@@ -290,17 +294,20 @@ bool FOnlineStoreGooglePlay::RestorePurchases(const TArray<FInAppPurchaseProduct
 	else
 	{
 		UE_LOG(LogOnline, Display, TEXT("This device is not able to make purchases."));
-		TriggerOnInAppPurchaseRestoreCompleteDelegates(EInAppPurchaseState::Failed);
+		TriggerOnInAppPurchaseRestoreCompleteDelegates(EInAppPurchaseState::NotAllowed);
 	}
 
 	return bSentAQueryRequest;
 }
 
-extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeRestorePurchasesComplete(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jobjectArray ProductIDs, jobjectArray ReceiptsData, jobjectArray Signatures)
+extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeRestorePurchasesComplete(JNIEnv* jenv, jobject thiz, jsize responseCode, jobjectArray ProductIDs, jobjectArray ReceiptsData, jobjectArray Signatures)
 {
 	TArray<FInAppPurchaseRestoreInfo> RestoredPurchaseInfo;
 
-	if (jenv && bSuccess)
+	EGooglePlayBillingResponseCode EGPResponse = (EGooglePlayBillingResponseCode)responseCode;
+	bool bWasSuccessful = (EGPResponse == EGooglePlayBillingResponseCode::Ok);
+
+	if (jenv && bWasSuccessful)
 	{
 		jsize NumProducts = jenv->GetArrayLength(ProductIDs);
 		jsize NumReceipts = jenv->GetArrayLength(ReceiptsData);
@@ -342,7 +349,8 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeRestorePurcha
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 		FSimpleDelegateGraphTask::FDelegate::CreateLambda([=]()
 		{
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Restoring In-App Purchases was completed  %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"));
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Restoring In-App Purchases was completed  %s\n"), bWasSuccessful ? TEXT("successfully") : TEXT("unsuccessfully"));
+
 			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
 			{
 				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Sending result back to OnlineSubsystem.\n"));
@@ -352,9 +360,12 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeRestorePurcha
 					if (StoreInterface->CachedPurchaseRestoreObject.IsValid())
 					{
 						StoreInterface->CachedPurchaseRestoreObject->ProvidedRestoreInformation = RestoredPurchaseInfo;
-						StoreInterface->CachedPurchaseRestoreObject->ReadState = bSuccess ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
+						StoreInterface->CachedPurchaseRestoreObject->ReadState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
 					}
-					StoreInterface->TriggerOnInAppPurchaseRestoreCompleteDelegates(bSuccess ? EInAppPurchaseState::Restored : EInAppPurchaseState::Failed);
+
+					EInAppPurchaseState::Type IAPState = bWasSuccessful ? EInAppPurchaseState::Restored : StoreInterface->ConvertGPResponseCodeToIAPState(EGPResponse);
+
+					StoreInterface->TriggerOnInAppPurchaseRestoreCompleteDelegates(IAPState);
 				}
 			}
 		}),
@@ -362,4 +373,26 @@ extern "C" void Java_com_epicgames_ue4_GooglePlayStoreHelper_nativeRestorePurcha
 		nullptr,
 		ENamedThreads::GameThread
 	);
+}
+
+EInAppPurchaseState::Type FOnlineStoreGooglePlay::ConvertGPResponseCodeToIAPState(const EGooglePlayBillingResponseCode InResponseCode)
+{
+	switch (InResponseCode)
+	{
+	case EGooglePlayBillingResponseCode::Ok:
+		return EInAppPurchaseState::Success;
+	case EGooglePlayBillingResponseCode::UserCancelled:
+		return EInAppPurchaseState::Cancelled;
+	case EGooglePlayBillingResponseCode::ItemAlreadyOwned:
+		return EInAppPurchaseState::AlreadyOwned;
+	case EGooglePlayBillingResponseCode::ItemNotOwned:
+		return EInAppPurchaseState::NotAllowed;
+	case EGooglePlayBillingResponseCode::ServiceUnavailable:
+	case EGooglePlayBillingResponseCode::BillingUnavailable:
+	case EGooglePlayBillingResponseCode::ItemUnavailable:
+	case EGooglePlayBillingResponseCode::DeveloperError:
+	case EGooglePlayBillingResponseCode::Error:
+	default:
+		return EInAppPurchaseState::Failed;
+	}
 }

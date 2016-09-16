@@ -301,6 +301,14 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 		SpawnBlueprint = Cast<UBlueprint>(SpawnBlueprintPin->DefaultObject);
 	}
 
+	if(NULL == SpawnBlueprint)
+	{
+		CompilerContext.MessageLog.Error(*LOCTEXT("SpawnActorNodeMissingBlueprint_Error", "Spawn node @@ must have a blueprint specified.").ToString(), this);
+		// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
+		BreakAllNodeLinks();
+		return;
+	}
+
 	if(0 == SpawnBlueprintPin->LinkedTo.Num())	
 	{
 		if(NULL == SpawnBlueprint)

@@ -518,6 +518,9 @@ namespace SceneOutliner
 
 		/** Display a checkbox next to the world we are viewing */
 		bool IsWorldChecked(TWeakObjectPtr<UWorld> InWorld);
+
+		/** Handler for recursively expanding/collapsing items */
+		void SetItemExpansionRecursive(FTreeItemPtr Model, bool bInExpansionState);
 	};
 
 }		// namespace SceneOutliner

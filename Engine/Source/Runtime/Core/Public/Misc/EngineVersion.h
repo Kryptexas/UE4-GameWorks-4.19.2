@@ -28,9 +28,6 @@ public:
 	/** Generates a version string */
 	FString ToString(EVersionComponent LastComponent = EVersionComponent::Branch) const;
 
-    /** Generates a version string appropriate for the build info system */
-	FString ToBuildInfoString() const;
-
 	/** Parses a version object from a string. Returns true on success. */
 	static bool Parse(const FString &Text, FEngineVersion &OutVersion);
 

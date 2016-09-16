@@ -3,7 +3,7 @@
 #pragma once
 
 #if HAS_OODLE_SDK
-#include "ArchiveBase.h"
+#include "ArchiveProxy.h"
 
 #define CAPTURE_HEADER_MAGIC		0x41091CC4
 #define CAPTURE_FILE_VERSION		0x00000002

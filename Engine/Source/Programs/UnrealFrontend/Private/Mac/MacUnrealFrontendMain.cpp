@@ -3,7 +3,7 @@
 #include "UnrealFrontendPrivatePCH.h"
 #include "UnrealFrontendMain.h"
 #include "ExceptionHandling.h"
-#include "RequiredProgramMainCPPInclude.h"
+#include "LaunchEngineLoop.h"
 #include "CocoaThread.h"
 
 

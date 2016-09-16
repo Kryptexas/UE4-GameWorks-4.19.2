@@ -9,7 +9,7 @@
 
 /** Enum *must* be zero-indexed and sequential. Must be grouped by relevance and ordered by magnitude. */
 /** Enum *must* match the mirrored enum that exists in CoreUObject/Classes/Object.h for the purposes of UObject reflection */
-enum class EUnit
+enum class EUnit : uint8
 {
 	/** Scalar distance/length units */
 	Micrometers, Millimeters, Centimeters, Meters, Kilometers,

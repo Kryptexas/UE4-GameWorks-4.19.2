@@ -168,3 +168,10 @@ void UMovieSceneMarginSection::SetDefault( const FMarginKey& Key )
 	SetCurveDefault( *KeyCurve, Key.Value );
 }
 
+void UMovieSceneMarginSection::ClearDefaults()
+{
+	LeftCurve.ClearDefaultValue();
+	TopCurve.ClearDefaultValue();
+	RightCurve.ClearDefaultValue();
+	BottomCurve.ClearDefaultValue();
+}

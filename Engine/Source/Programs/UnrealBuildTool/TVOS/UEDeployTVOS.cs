@@ -14,7 +14,7 @@ namespace UnrealBuildTool
 	public class UEDeployTVOS : UEDeployIOS
 	{
 
-		public UEDeployTVOS(FileReference InProjectFile) : base(InProjectFile)
+		public UEDeployTVOS(FileReference InProjectFile, IOSPlatformContext inIOSPlatformContext) : base(InProjectFile, inIOSPlatformContext)
 		{
 		}
 
@@ -110,7 +110,7 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t<key>CFBundleDisplayName</key>");
 			Text.AppendLine(string.Format("\t<string>{0}</string>", EncodeBundleName(BundleDisplayName, ProjectName)));
 			Text.AppendLine("\t<key>CFBundleExecutable</key>");
-			Text.AppendLine(string.Format("\t<string>{0}</string>", bIsUE4Game ? "UE4Game" : GameName.Replace("_", "")));
+			Text.AppendLine(string.Format("\t<string>{0}</string>", bIsUE4Game ? "UE4Game" : GameName));
 			Text.AppendLine("\t<key>CFBundleIdentifier</key>");
 			Text.AppendLine(string.Format("\t<string>{0}</string>", BundleIdentifier.Replace("[PROJECT_NAME]", ProjectName).Replace("_","")));
 			Text.AppendLine("\t<key>CFBundleInfoDictionaryVersion</key>");
@@ -307,8 +307,8 @@ namespace UnrealBuildTool
 
 				XDoc.DocumentType.InternalSubset = "";
 				InThis.UPL.ProcessPluginNode("None", "iosPListUpdates", "", ref XDoc);
-				string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString();
-				File.WriteAllText(PListFile, result);
+                string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString().Replace("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\"[]>", "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
+                File.WriteAllText(PListFile, result);
 			}
 			else
 			{

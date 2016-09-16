@@ -334,6 +334,14 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				ConditionalUpdateBackBuffer(Surface);
 	
 				BoundTargets |= 1 << RenderTargetIndex;
+            
+#if !PLATFORM_MAC
+                if (Surface.Texture == nil)
+                {
+                    PipelineDesc.SampleCount = OldCount;
+                    return;
+                }
+#endif
 				
 				// The surface cannot be nil - we have to have a valid render-target array after this call.
 				check (Surface.Texture != nil);
@@ -653,29 +661,39 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			}
 		}
 		
-		// Retain and/or release the depth-stencil surface in case it is a temporary surface for a draw call that writes to depth without a depth/stencil buffer bound.
-		DepthStencilSurface = RenderTargetsInfo.DepthStencilRenderTarget.Texture;
-		
-		// Assert that the render target state is valid because there appears to be a bug where it isn't.
-		check(bHasValidRenderTarget);
-	
-		// update hash for the depth/stencil buffer & sample count
-		PipelineDesc.SetHashValue(Offset_DepthFormat, NumBits_DepthFormat, DepthFormatKey);
-		PipelineDesc.SetHashValue(Offset_StencilFormat, NumBits_StencilFormat, StencilFormatKey);
-		PipelineDesc.SetHashValue(Offset_SampleCount, NumBits_SampleCount, PipelineDesc.SampleCount);
-	
 		// commit pending commands on the old render target
 		if(CommandEncoder.IsRenderCommandEncoderActive() || CommandEncoder.IsBlitCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive())
 		{
 			CommandEncoder.EndEncoding();
 		}
 	
-		// Set render to the framebuffer
-		CommandEncoder.SetRenderPassDescriptor(RenderPass, bReset);
-		
-		if (bNeedsClear || !PLATFORM_MAC || IsRHIDeviceNVIDIA() || IsRHIDeviceIntel())
+		// Assert that the render target state is valid because there appears to be a bug where it isn't.
+		if (bHasValidRenderTarget)
 		{
-			CommandEncoder.BeginRenderCommandEncoding();
+			// Retain and/or release the depth-stencil surface in case it is a temporary surface for a draw call that writes to depth without a depth/stencil buffer bound.
+			DepthStencilSurface = RenderTargetsInfo.DepthStencilRenderTarget.Texture;
+			
+			// update hash for the depth/stencil buffer & sample count
+			PipelineDesc.SetHashValue(Offset_DepthFormat, NumBits_DepthFormat, DepthFormatKey);
+			PipelineDesc.SetHashValue(Offset_StencilFormat, NumBits_StencilFormat, StencilFormatKey);
+			PipelineDesc.SetHashValue(Offset_SampleCount, NumBits_SampleCount, PipelineDesc.SampleCount);
+			
+			// Set render to the framebuffer
+			CommandEncoder.SetRenderPassDescriptor(RenderPass, bReset);
+			
+			if (bNeedsClear || !PLATFORM_MAC || IsRHIDeviceNVIDIA() || IsRHIDeviceIntel())
+			{
+				CommandEncoder.BeginRenderCommandEncoding();
+			}
+		}
+		else
+		{
+			// update hash for the depth/stencil buffer & sample count
+			PipelineDesc.SetHashValue(Offset_DepthFormat, NumBits_DepthFormat, 0);
+			PipelineDesc.SetHashValue(Offset_StencilFormat, NumBits_StencilFormat, 0);
+			PipelineDesc.SetHashValue(Offset_SampleCount, NumBits_SampleCount, 0);
+			
+			DepthStencilSurface.SafeRelease();
 		}
 		
 		if (bReset)
@@ -688,8 +706,10 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		}
 	}
 	
+#if PLATFORM_MAC
 	// Ensure that the RenderPassDesc is valid in the CommandEncoder.
-	check(CommandEncoder.IsRenderPassDescriptorValid());
+	check(!bHasValidRenderTarget || CommandEncoder.IsRenderPassDescriptorValid());
+#endif
 }
 
 void FMetalStateCache::SetHasValidRenderTarget(bool InHasValidRenderTarget)
@@ -810,7 +830,9 @@ void FMetalStateCache::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
 			// set the texture into the backbuffer
 			Surface.GetDrawableTexture();
 		}
+#if PLATFORM_MAC
 		check (Surface.Texture);
+#endif
 	}
 }
 
@@ -846,38 +868,34 @@ bool FMetalStateCache::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& In
 			//    If we switch to Clear, we have to always switch to a new RT to force the clear
 			//    If we switch to DontCare, there's definitely no need to switch
 			//    If we switch *from* Clear then we must change target as we *don't* want to clear again.
-			if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear || PreviousRenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
-			{
-				bAllChecksPassed = false;
-				break;
-			}
-			// StoreAction - this matters what the previous one was **In Spirit**
-			//    If we come from Store, we need to switch to a new RT to force the store
-			//    If we come from DontCare, then there's no need to switch
-			//    @todo metal: However, we basically only use Store now, and don't
-			//        care about intermediate results, only final, so we don't currently check the value
-//			if (PreviousRenderTargetView.StoreAction == ERenderTTargetStoreAction::EStore)
-//			{
-//				bAllChecksPassed = false;
-//				break;
-//			}
-		}
-		
-		if (InRenderTargetsInfo.DepthStencilRenderTarget.Texture)
-		{
-			if ((InRenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear || RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear)
-				|| (InRenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear || RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear))
-			{
-				bAllChecksPassed = false;
-			}
-
+            if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
+            {
+                bAllChecksPassed = false;
+                break;
+            }
+            // StoreAction - this matters what the previous one was **In Spirit**
+            //    If we come from Store, we need to switch to a new RT to force the store
+            //    If we come from DontCare, then there's no need to switch
+            //    @todo metal: However, we basically only use Store now, and don't
+            //        care about intermediate results, only final, so we don't currently check the value
+            //			if (PreviousRenderTargetView.StoreAction == ERenderTTargetStoreAction::EStore)
+            //			{
+            //				bAllChecksPassed = false;
+            //				break;
+            //			}
+        }
+        
+        if (InRenderTargetsInfo.DepthStencilRenderTarget.Texture && (InRenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear || InRenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear))
+        {
+            bAllChecksPassed = false;
+        }
+        
 #if PLATFORM_MAC
-			if (!(InRenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess() == RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess()))
-			{
-				bAllChecksPassed = false;
-			}
+        if (!(InRenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess() == RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess()))
+        {
+            bAllChecksPassed = false;
+        }
 #endif
-		}
 	}
 
 	// if we are setting them to nothing, then this is probably end of frame, and we can't make a framebuffer

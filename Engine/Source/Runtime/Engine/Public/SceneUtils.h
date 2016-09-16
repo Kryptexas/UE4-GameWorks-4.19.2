@@ -147,6 +147,97 @@
 
 #endif
 
+// GPU stats
+#if STATS
+#define HAS_GPU_STATS 1
+#else
+#define HAS_GPU_STATS 0
+#endif
+
+#if HAS_GPU_STATS
+#define SCOPED_GPU_STAT(RHICmdList, Stat) FScopedGPUStatEvent PREPROCESSOR_JOIN(GPUStatEvent_##Stat,__LINE__); PREPROCESSOR_JOIN(GPUStatEvent_##Stat,__LINE__).Begin(RHICmdList, GET_STATID( Stat ) );
+#define GPU_STATS_UPDATE(RHICmdList) FRealtimeGPUProfiler::Get()->Update(RHICmdList);
+#else
+#define SCOPED_GPU_STAT(RHICmdList, Stat) 
+#define GPU_STATS_UPDATE(RHICmdList) 
+#endif
+
+#if HAS_GPU_STATS
+
+class FRealtimeGPUProfilerEvent;
+class FRealtimeGPUProfilerFrame;
+class FRenderQueryPool;
+
+/**
+* FRealtimeGPUProfiler class. This manages recording and reporting all for GPU stats
+*/
+class FRealtimeGPUProfiler
+{
+	static FRealtimeGPUProfiler* Instance;
+public:
+	// Singleton interface
+	static ENGINE_API FRealtimeGPUProfiler* Get();
+
+	/** Per-frame update */
+	ENGINE_API void Update(FRHICommandListImmediate& RHICmdList);
+
+	/** Final cleanup */
+	ENGINE_API void Release();
+
+	/** Push/pop events */
+	void PushEvent(FRHICommandListImmediate& RHICmdList, TStatId StatId);
+	void PopEvent(FRHICommandListImmediate& RHICmdList);
+
+private:
+	FRealtimeGPUProfiler();
+	void UpdateStats(FRHICommandListImmediate& RHICmdList);
+
+	/** Ringbuffer of profiler frames */
+	TArray<FRealtimeGPUProfilerFrame*> Frames;
+
+	int32 WriteBufferIndex;
+	int32 ReadBufferIndex;
+	uint32 WriteFrameNumber;
+	FRenderQueryPool* RenderQueryPool;
+};
+
+/**
+* Class that logs GPU Stat events for the realtime GPU profiler
+*/
+class FScopedGPUStatEvent
+{
+	/** Cmdlist to push onto. */
+	FRHICommandListImmediate* RHICmdList;
+
+	/** The stat event used to record timings */
+	FRealtimeGPUProfilerEvent* RealtimeGPUProfilerEvent;
+
+public:
+	/** Default constructor, initializing all member variables. */
+	FORCEINLINE FScopedGPUStatEvent()
+		: RHICmdList(nullptr)
+		, RealtimeGPUProfilerEvent(nullptr)
+	{}
+
+	/**
+	* Terminate the event based upon scope
+	*/
+	FORCEINLINE ~FScopedGPUStatEvent()
+	{
+		if (RHICmdList)
+		{
+			End();
+		}
+	}
+
+	/**
+	* Start/Stop functions for timer stats
+	*/
+	ENGINE_API void Begin(FRHICommandList& InRHICmdList, TStatId StatID);
+	ENGINE_API void End();
+};
+#endif // HAS_GPU_STATS
+
 /** True if HDR is enabled for the mobile renderer. */
 ENGINE_API bool IsMobileHDR();
 
@@ -155,3 +246,28 @@ ENGINE_API bool IsMobileHDR32bpp();
 
 /** True if the mobile renderer is emulating HDR with mosaic. */
 ENGINE_API bool IsMobileHDRMosaic();
+
+/**
+* A pool of render (e.g. occlusion/timer) queries which are allocated individually, and returned to the pool as a group.
+*/
+class ENGINE_API FRenderQueryPool
+{
+public:
+	FRenderQueryPool(ERenderQueryType InQueryType) :QueryType(InQueryType) { }
+	virtual ~FRenderQueryPool();
+
+	/** Releases all the render queries in the pool. */
+	void Release();
+
+	/** Allocates an render query from the pool. */
+	FRenderQueryRHIRef AllocateQuery();
+
+	/** De-reference an render query, returning it to the pool instead of deleting it when the refcount reaches 0. */
+	void ReleaseQuery(FRenderQueryRHIRef &Query);
+
+private:
+	/** Container for available render queries. */
+	TArray<FRenderQueryRHIRef> Queries;
+
+	ERenderQueryType QueryType;
+};

@@ -267,22 +267,31 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 	if (RepathRequests.Num() > 0)
 	{
 		float TimeStamp = GetWorldTimeStamp();
-		TArray<FNavPathRecalculationRequest> PostponedRequests;
 		const UWorld* World = GetWorld();
 
 		// @todo batch-process it!
-		
-		const int32 MaxProcessedRequests = 10000;
-		for (int32 Idx = 0; Idx < RepathRequests.Num(); Idx++)
-		{
-			// check in the middle of loop, since observers can spawn new requests
-			if (Idx > MaxProcessedRequests)
-			{
-				UE_VLOG(this, LogNavigation, Error, TEXT("Too many repath requests!"));
-				break;
-			}
 
-			FNavPathRecalculationRequest& RecalcRequest = RepathRequests[Idx];
+		const int32 MaxProcessedRequests = 1000;
+
+		// make a copy of path requests and reset (remove up to MaxProcessedRequests) from navdata's array
+		// this allows storing new requests in the middle of loop (e.g. used by meta path corrections)
+
+		TArray<FNavPathRecalculationRequest> WorkQueue(RepathRequests);
+		if (WorkQueue.Num() > MaxProcessedRequests)
+		{
+			UE_VLOG(this, LogNavigation, Error, TEXT("Too many repath requests! (%d/%d)"), WorkQueue.Num(), MaxProcessedRequests);
+
+			WorkQueue.RemoveAt(MaxProcessedRequests, WorkQueue.Num() - MaxProcessedRequests);
+			RepathRequests.RemoveAt(0, MaxProcessedRequests);
+		}
+		else
+		{
+			RepathRequests.Reset();
+		}
+
+		for (int32 Idx = 0; Idx < WorkQueue.Num(); Idx++)
+		{
+			FNavPathRecalculationRequest& RecalcRequest = WorkQueue[Idx];
 
 			// check if it can be updated right now
 			FNavPathSharedPtr PinnedPath = RecalcRequest.Path.Pin();
@@ -295,7 +304,7 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 			const INavAgentInterface* PathNavAgent = Cast<const INavAgentInterface>(PathQuerier);
 			if (PathNavAgent && PathNavAgent->ShouldPostponePathUpdates())
 			{
-				PostponedRequests.Add(RecalcRequest);
+				RepathRequests.Add(RecalcRequest);
 				continue;
 			}
 
@@ -321,9 +330,6 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 				PinnedPath->RePathFailed();
 			}
 		}
-
-		RepathRequests.Reset();
-		RepathRequests.Append(PostponedRequests);
 	}
 }
 

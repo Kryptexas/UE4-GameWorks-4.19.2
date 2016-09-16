@@ -1154,9 +1154,25 @@ FReply FIOSTargetSettingsCustomization::OnGenerateSSHKey()
 {
 	// see if the key is already generated
 	const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
+
+	FString RemoteServerAddress;
+	FString RemoteServerPort;
+	int32	colonIndex;
+
+	if(Settings.RemoteServerName.FindChar(':', colonIndex))
+	{
+		RemoteServerAddress = Settings.RemoteServerName.Left(colonIndex);
+		RemoteServerPort = Settings.RemoteServerName.RightChop(colonIndex + 1);
+	}
+	else
+	{
+		RemoteServerAddress = Settings.RemoteServerName;
+		RemoteServerPort = "22";
+	}
+
 	TCHAR Path[4096];
 	FPlatformMisc::GetEnvironmentVariable(TEXT("APPDATA"), Path, ARRAY_COUNT(Path));
-	FString Destination = FString::Printf(TEXT("%s\\Unreal Engine\\UnrealBuildTool\\SSHKeys\\%s\\%s\\RemoteToolChainPrivate.key"), Path, *(Settings.RemoteServerName), *(Settings.RSyncUsername));
+	FString Destination = FString::Printf(TEXT("%s\\Unreal Engine\\UnrealBuildTool\\SSHKeys\\%s\\%s\\RemoteToolChainPrivate.key"), Path, *RemoteServerAddress, *(Settings.RSyncUsername));
 	if (FPaths::FileExists(Destination))
 	{
 		FString MessagePrompt = FString::Printf(TEXT("An SSH Key already exists.  Do you want to replace this key?"));
@@ -1189,11 +1205,12 @@ FReply FIOSTargetSettingsCustomization::OnGenerateSSHKey()
 
 	FString CygwinPath = TEXT("/cygdrive/") + FString(Path).Replace(TEXT(":"), TEXT("")).Replace(TEXT("\\"), TEXT("/"));
 	FString EnginePath = FPaths::EngineDir();
-	FString CommandLine = FString::Printf(TEXT("\"%s\\ssh.exe\" \"%s\\rsync.exe\" %s %s \"%s\" \"%s\" \"%s\""),
+	FString CommandLine = FString::Printf(TEXT("\"%s/ssh.exe\" %s \"%s\\rsync.exe\" %s %s \"%s\" \"%s\" \"%s\""),
 		*DeltaCopyPath,
+		*RemoteServerPort,
 		*DeltaCopyPath,
 		*(Settings.RSyncUsername),
-		*(Settings.RemoteServerName),
+		*RemoteServerAddress,
 		Path,
 		*CygwinPath,
 		*EnginePath);

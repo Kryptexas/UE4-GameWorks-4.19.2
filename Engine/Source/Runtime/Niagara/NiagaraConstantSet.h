@@ -7,56 +7,6 @@
 
 struct FNiagaraConstants;
 
-/** Runtime storage for emitter overridden constants. Only now a USTRUCT still to support BC */
-USTRUCT()
-struct FNiagaraConstantMap
-{
-	GENERATED_USTRUCT_BODY()
-private:
-	TMap<FNiagaraVariableInfo, float> ScalarConstants;
-	TMap<FNiagaraVariableInfo, FVector4> VectorConstants;
-	TMap<FNiagaraVariableInfo, FMatrix> MatrixConstants;
-
-public:
-	FNiagaraConstantMap()
-	{
-	}
-
-	void Empty();
-
-	void SetOrAdd(FNiagaraVariableInfo ID, float Sc);
-	void SetOrAdd(FNiagaraVariableInfo ID, const FVector4& Vc);
-	void SetOrAdd(FNiagaraVariableInfo ID, const FMatrix& Mc);
-	void SetOrAdd(FName Name, float Sc);
-	void SetOrAdd(FName Name, const FVector4& Vc);
-	void SetOrAdd(FName Name, const FMatrix& Mc);
-
-	float* FindScalar(FNiagaraVariableInfo ID);
-	FVector4* FindVector(FNiagaraVariableInfo ID);
-	FMatrix* FindMatrix(FNiagaraVariableInfo ID);
-	const float* FindScalar(FNiagaraVariableInfo ID)const;
-	const FVector4* FindVector(FNiagaraVariableInfo ID)const;
-	const FMatrix* FindMatrix(FNiagaraVariableInfo ID)const;
-	float* FindScalar(FName Name);
-	FVector4* FindVector(FName Name);
-	FMatrix* FindMatrix(FName Name);
-	const float* FindScalar(FName Name)const;
-	const FVector4* FindVector(FName Name)const;
-	const FMatrix* FindMatrix(FName Name)const;
-
-	void Merge(FNiagaraConstants &InConstants);
-	void Merge(FNiagaraConstantMap &InMap);
-
-	const TMap<FNiagaraVariableInfo, float> &GetScalarConstants()	const;
-	const TMap<FNiagaraVariableInfo, FVector4> &GetVectorConstants()	const;
-	const TMap<FNiagaraVariableInfo, FMatrix> &GetMatrixConstants()	const;
-
-
-	virtual bool Serialize(FArchive &Ar)
-	{
-		return true;
-	}
-};
 
 USTRUCT()
 struct FNiagaraConstantBase
@@ -76,15 +26,15 @@ struct FNiagaraConstantBase
 };
 
 USTRUCT()
-struct FNiagaraConstants_Float : public FNiagaraConstantBase
+struct FNiagaraConstant_Float : public FNiagaraConstantBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	FNiagaraConstants_Float()
+	FNiagaraConstant_Float()
 	: Value(0.0f)
 	{}
 
-	FNiagaraConstants_Float(FName InName, float InValue)
+	FNiagaraConstant_Float(FName InName, float InValue)
 	: FNiagaraConstantBase(InName)
 	, Value(InValue)
 	{}
@@ -94,15 +44,15 @@ struct FNiagaraConstants_Float : public FNiagaraConstantBase
 };
 
 USTRUCT()
-struct FNiagaraConstants_Vector : public FNiagaraConstantBase
+struct FNiagaraConstant_Vector : public FNiagaraConstantBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	FNiagaraConstants_Vector()
+	FNiagaraConstant_Vector()
 	: Value(FVector4(1.0f, 1.0f, 1.0f, 1.0f))
 	{}
 
-	FNiagaraConstants_Vector(FName InName, const FVector4& InValue)
+	FNiagaraConstant_Vector(FName InName, const FVector4& InValue)
 	: FNiagaraConstantBase(InName)
 	, Value(InValue)
 	{}
@@ -112,43 +62,21 @@ struct FNiagaraConstants_Vector : public FNiagaraConstantBase
 };
 
 USTRUCT()
-struct FNiagaraConstants_Matrix : public FNiagaraConstantBase
+struct FNiagaraConstant_Matrix : public FNiagaraConstantBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	FNiagaraConstants_Matrix()
+	FNiagaraConstant_Matrix()
 	: Value(FMatrix::Identity)
 	{}
 
-	FNiagaraConstants_Matrix(FName InName, const FMatrix& InValue)
+	FNiagaraConstant_Matrix(FName InName, const FMatrix& InValue)
 	: FNiagaraConstantBase(InName)
 	, Value(InValue)
 	{}
 
 	UPROPERTY(EditAnywhere, Category = "Constant")
 	FMatrix Value;
-};
-
-//Dummy struct used to serialize in the old layout of FNiagaraConstants
-//This should be removed once everyone has recompiled and saved their scripts.
-USTRUCT()
-struct FDeprecatedNiagaraConstants
-{
-	GENERATED_USTRUCT_BODY()
-
-	//DEPRECATED PROPERTIES. REMOVE SOON!
-	UPROPERTY()
-	TArray<FNiagaraVariableInfo> ScalarConstantsInfo_DEPRECATED;
-	UPROPERTY()
-	TArray<FNiagaraVariableInfo> VectorConstantsInfo_DEPRECATED;
-	UPROPERTY()
-	TArray<FNiagaraVariableInfo> MatrixConstantsInfo_DEPRECATED;
-	UPROPERTY()
-	TArray<float> ScalarConstants_DEPRECATED;
-	UPROPERTY()
-	TArray<FVector4> VectorConstants_DEPRECATED;
-	UPROPERTY()
-	TArray<FMatrix> MatrixConstants_DEPRECATED;
 };
 
 USTRUCT()
@@ -159,11 +87,11 @@ struct FNiagaraConstants
 public:
 
 	UPROPERTY(EditAnywhere, EditFixedSize, Category = "Constant")
-	TArray<FNiagaraConstants_Float> ScalarConstants;
+	TArray<FNiagaraConstant_Float> ScalarConstants;
 	UPROPERTY(EditAnywhere, EditFixedSize, Category = "Constant")
-	TArray<FNiagaraConstants_Vector> VectorConstants;
+	TArray<FNiagaraConstant_Vector> VectorConstants;
 	UPROPERTY(EditAnywhere, EditFixedSize, Category = "Constant")
-	TArray<FNiagaraConstants_Matrix> MatrixConstants;
+	TArray<FNiagaraConstant_Matrix> MatrixConstants;
 
 	NIAGARA_API void Empty();
 	NIAGARA_API void GetScalarConstant(int32 Index, float& OutValue, FNiagaraVariableInfo& OutInfo);
@@ -176,20 +104,15 @@ public:
 
 	NIAGARA_API void Init(class UNiagaraEmitterProperties* EmitterProps, struct FNiagaraEmitterScriptProperties* ScriptProps);
 
-	/**
-	Copies constants in from the script as usual but allows overrides from old data in an FNiagaraConstantMap.
-	Only used for BC. DO NOT USE.
-	*/
-	NIAGARA_API void InitFromOldMap(FNiagaraConstantMap& OldMap);
-
 	/** Fills the entire constants set into the constant table. */
 	void AppendToConstantsTable(TArray<FVector4>& ConstantsTable)const;
 
 	/** 
 	Fills only selected constants into the table. In the order they appear in the array of passed names not the order they appear in the set. 
-	Checks the passed map for entires to superceed the default values in the set.
+	Checks the passed map for entries to supersede the default values in the set.
 	*/
-	void AppendToConstantsTable(TArray<FVector4>& ConstantsTable, const FNiagaraConstantMap& Externals)const;
+	void AppendToConstantsTable(TArray<FVector4>& ConstantsTable, const FNiagaraConstants& Externals)const;
+
 
 	NIAGARA_API void SetOrAdd(const FNiagaraVariableInfo& Constant, float Value);
 	NIAGARA_API void SetOrAdd(const FNiagaraVariableInfo& Constant, const FVector4& Value);
@@ -212,10 +135,15 @@ public:
 	NIAGARA_API FVector4* FindVector(FName Name);
 	NIAGARA_API FMatrix* FindMatrix(FName Name);
 
+	NIAGARA_API const float* FindScalar(FName Name) const;
+	NIAGARA_API const FVector4* FindVector(FName Name) const;
+	NIAGARA_API const FMatrix* FindMatrix(FName Name) const;
+
+
 	/** Return the first constant used for this constant in a table. */
 	FORCEINLINE int32 GetTableIndex_Scalar(const FNiagaraVariableInfo& Constant)const
 	{ 
-		int Idx = ScalarConstants.IndexOfByPredicate([&](const FNiagaraConstants_Float& V){ return Constant.Name == V.Name; });
+		int Idx = ScalarConstants.IndexOfByPredicate([&](const FNiagaraConstant_Float& V){ return Constant.Name == V.Name; });
 		if (Idx != INDEX_NONE)
 		{
 			return Idx;
@@ -225,7 +153,7 @@ public:
 
 	FORCEINLINE int32 GetTableIndex_Vector(const FNiagaraVariableInfo& Constant)const
 	{ 
-		int Idx = VectorConstants.IndexOfByPredicate([&](const FNiagaraConstants_Vector& V){ return Constant.Name == V.Name; });
+		int Idx = VectorConstants.IndexOfByPredicate([&](const FNiagaraConstant_Vector& V){ return Constant.Name == V.Name; });
 		if (Idx != INDEX_NONE)
 		{
 			return ScalarTableSize() + Idx;
@@ -235,11 +163,28 @@ public:
 
 	FORCEINLINE int32 GetTableIndex_Matrix(const FNiagaraVariableInfo& Constant)const
 	{ 
-		int Idx = MatrixConstants.IndexOfByPredicate([&](const FNiagaraConstants_Matrix& V){ return Constant.Name == V.Name; });
+		int Idx = MatrixConstants.IndexOfByPredicate([&](const FNiagaraConstant_Matrix& V){ return Constant.Name == V.Name; });
 		if (Idx != INDEX_NONE)
 		{
 			return ScalarTableSize() + VectorTableSize() + Idx * 4;
 		}
 		return INDEX_NONE;
+	}
+
+
+	void Merge(FNiagaraConstants &InConstants)
+	{
+		for (FNiagaraConstant_Float& C : InConstants.ScalarConstants)
+		{
+			SetOrAdd(FNiagaraVariableInfo(C.Name, ENiagaraDataType::Scalar), C.Value);
+		}
+		for (FNiagaraConstant_Vector& C : InConstants.VectorConstants)
+		{
+			SetOrAdd(FNiagaraVariableInfo(C.Name, ENiagaraDataType::Vector), C.Value);
+		}
+		for (FNiagaraConstant_Matrix& C : InConstants.MatrixConstants)
+		{
+			SetOrAdd(FNiagaraVariableInfo(C.Name, ENiagaraDataType::Matrix), C.Value);
+		}
 	}
 };

@@ -41,14 +41,29 @@ namespace AutomationTool
 		TagList,
 
 		/// <summary>
-		/// A standard name or tag name
+		/// A standard node/aggregate/agent name or tag name
 		/// </summary>
-		NameOrTag,
+		Target,
 
 		/// <summary>
 		/// A list of standard name or tag names separated by semicolons
 		/// </summary>
-		NameOrTagList,
+		TargetList,
+
+		/// <summary>
+		/// A file specification, which may contain tags and wildcards.
+		/// </summary>
+		FileSpec,
+
+		/// <summary>
+		/// A single file name
+		/// </summary>
+		FileName,
+
+		/// <summary>
+		/// A single directory name
+		/// </summary>
+		DirectoryName,
 	}
 
 	/// <summary>
@@ -134,8 +149,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Writes this task to an XML writer, using the given parameters object.
 		/// </summary>
-		/// <param name="Writer"></param>
-		/// <param name="Task"></param>
+		/// <param name="Writer">Writer for the XML schema</param>
+		/// <param name="Parameters">Parameters object that this task is constructed with</param>
 		protected void Write(XmlWriter Writer, object Parameters)
 		{
 			TaskElementAttribute Element = GetType().GetCustomAttribute<TaskElementAttribute>();
@@ -198,7 +213,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Enumerates tag names from a list
 		/// </summary>
-		/// <param name="Filespec">A filespec, as can be passed to ResolveFilespec</param>
+		/// <param name="TagList">List of tags separated by semicolons</param>
 		/// <returns>Tag names from this filespec</returns>
 		protected IEnumerable<string> FindTagNamesFromList(string TagList)
 		{
@@ -252,14 +267,21 @@ namespace AutomationTool
 		/// <summary>
 		/// Finds or adds a set containing files with the given tag
 		/// </summary>
-		/// <param name="Name">The tag name to return a set for. An leading '#' character is optional.</param>
+		/// <param name="TagNameToFileSet">Map of tag names to the set of files they contain</param>
+		/// <param name="TagName">The tag name to return a set for. A leading '#' character is required.</param>
 		/// <returns>Set of files</returns>
 		public static HashSet<FileReference> FindOrAddTagSet(Dictionary<string, HashSet<FileReference>> TagNameToFileSet, string TagName)
 		{
-			// Make sure the tag name contains a leading hash
-			if(!TagName.StartsWith("#"))
+			// Make sure the tag name contains a single leading hash
+			if (TagName.LastIndexOf('#') != 0)
 			{
-				throw new AutomationException("Tag name does not start with a '#' character");
+				throw new AutomationException("Tag name '{0}' is not valid - should contain a single leading '#' character", TagName);
+			}
+
+			// Any spaces should be later than the second char - most likely to be a typo if directly after the # character
+			if (TagName.IndexOf(' ') == 1)
+			{
+				throw new AutomationException("Tag name '{0}' is not valid - spaces should only be used to separate words", TagName);
 			}
 
 			// Find the files which match this tag
@@ -317,7 +339,7 @@ namespace AutomationTool
 		/// Resolve a list of files, tag names or file specifications as above, but preserves any directory references for further processing.
 		/// </summary>
 		/// <param name="DefaultDirectory">The default directory to resolve relative paths to</param>
-		/// <param name="DelimitedPatterns">List of files, tag names, or file specifications to include separated by semicolons.</param>
+		/// <param name="FilePatterns">List of files, tag names, or file specifications to include separated by semicolons.</param>
 		/// <param name="ExcludePatterns">Set of patterns to apply to directory searches. This can greatly speed up enumeration by earlying out of recursive directory searches if large directories are excluded (eg. .../Intermediate/...).</param>
 		/// <param name="TagNameToFileSet">Mapping of tag name to fileset, as passed to the Execute() method</param>
 		/// <returns>Set of matching files.</returns>

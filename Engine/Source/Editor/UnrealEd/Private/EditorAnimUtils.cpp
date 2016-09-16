@@ -13,7 +13,7 @@
 #include "ObjectEditorUtils.h"
 #include "SNotificationList.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Serialization/ArchiveUObjectBase.h"
+#include "Serialization/ArchiveUObject.h"
 
 #define LOCTEXT_NAMESPACE "EditorAnimUtils"
 
@@ -112,7 +112,7 @@ namespace EditorAnimUtils
 			while (AssetIndex < AnimationAssetsToRetarget.Num())
 			{
 				UAnimationAsset* AnimAsset = AnimationAssetsToRetarget[AssetIndex++];
-				AnimAsset->HandleAnimReferenceCollection(AnimationAssetsToRetarget);
+				AnimAsset->HandleAnimReferenceCollection(AnimationAssetsToRetarget, true);
 			}
 		}
 	}
@@ -436,7 +436,26 @@ namespace EditorAnimUtils
 	void GetAllAnimationSequencesReferredInBlueprint(UAnimBlueprint* AnimBlueprint, TArray<UAnimationAsset*>& AnimationAssets)
 	{
 		UObject* DefaultObject = AnimBlueprint->GetAnimBlueprintGeneratedClass()->GetDefaultObject();
-		FFindAnimAssetRefs AnimRefFinder(DefaultObject, AnimationAssets);
+		FFindAnimAssetRefs AnimRefFinderObject(DefaultObject, AnimationAssets);
+		
+		// For assets referenced in the event graph (either pin default values or variable-get nodes)
+		// we need to serialize the nodes in that graph
+		for(UEdGraph* GraphPage : AnimBlueprint->UbergraphPages)
+		{
+			for(UEdGraphNode* Node : GraphPage->Nodes)
+			{
+				FFindAnimAssetRefs AnimRefFinderBlueprint(Node, AnimationAssets);
+			}
+		}
+
+		// Gather references in functions
+		for(UEdGraph* GraphPage : AnimBlueprint->FunctionGraphs)
+		{
+			for(UEdGraphNode* Node : GraphPage->Nodes)
+			{
+				FFindAnimAssetRefs AnimRefFinderBlueprint(Node, AnimationAssets);
+			}
+		}
 	}
 
 	void ReplaceReferredAnimationsInBlueprint(UAnimBlueprint* AnimBlueprint, const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap)
@@ -445,6 +464,24 @@ namespace EditorAnimUtils
 
 		FArchiveReplaceObjectRef<UAnimationAsset> ReplaceAr(DefaultObject, AnimAssetReplacementMap, false, false, false);//bNullPrivateRefs, bIgnoreOuterRef, bIgnoreArchetypeRef);
 		FArchiveReplaceObjectRef<UAnimationAsset> ReplaceAr2(AnimBlueprint, AnimAssetReplacementMap, false, false, false);//bNullPrivateRefs, bIgnoreOuterRef, bIgnoreArchetypeRef);
+
+		// Replace event graph references
+		for(UEdGraph* GraphPage : AnimBlueprint->UbergraphPages)
+		{
+			for(UEdGraphNode* Node : GraphPage->Nodes)
+			{
+				FArchiveReplaceObjectRef<UAnimationAsset> ReplaceGraphAr(Node, AnimAssetReplacementMap, false, false, false);
+			}
+		}
+
+		// Replace references in functions
+		for(UEdGraph* GraphPage : AnimBlueprint->FunctionGraphs)
+		{
+			for(UEdGraphNode* Node : GraphPage->Nodes)
+			{
+				FArchiveReplaceObjectRef<UAnimationAsset> ReplaceGraphAr(Node, AnimAssetReplacementMap, false, false, false);
+			}
+		}
 	}
 
 	void CopyAnimCurves(USkeleton* OldSkeleton, USkeleton* NewSkeleton, UAnimSequenceBase *SequenceBase, const FName ContainerName, FRawCurveTracks::ESupportedCurveType CurveType )

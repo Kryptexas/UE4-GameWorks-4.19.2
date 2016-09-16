@@ -206,6 +206,7 @@ public:
 // FFlipbookEditor
 
 FFlipbookEditor::FFlipbookEditor()
+	: FlipbookBeingEdited(nullptr)
 {
 }
 
@@ -416,7 +417,7 @@ FText FFlipbookEditor::GetToolkitName() const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("FlipbookName"), FText::FromString(FlipbookBeingEdited->GetName()));
 	Args.Add(TEXT("DirtyState"), bDirtyState ? FText::FromString( TEXT( "*" ) ) : FText::GetEmpty());
-	return FText::Format(LOCTEXT("FlipbookEditorAppLabel", "{FlipbookName}{DirtyState}"), Args);
+	return FText::Format(LOCTEXT("FlipbookEditorToolkitName", "{FlipbookName}{DirtyState}"), Args);
 }
 
 FText FFlipbookEditor::GetToolkitToolTipText() const

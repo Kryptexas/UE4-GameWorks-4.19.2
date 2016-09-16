@@ -8,6 +8,9 @@
 ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 	: Super(Init)
 {
+	USceneComponent* SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComp"));
+	RootComponent = SceneComponent;
+
 #if WITH_EDITORONLY_DATA
 	UBillboardComponent* SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 
@@ -29,15 +32,15 @@ ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 			SpriteComponent->bAbsoluteScale = true;
 			SpriteComponent->bReceivesDecals = false;
 			SpriteComponent->bHiddenInGame = true;
-			SetRootComponent(SpriteComponent);
 		}
 	}
-#endif // WITH_EDITORONLY_DATA
+#endif //WITH_EDITORONLY_DATA
 
 	BurnInOptions = Init.CreateDefaultSubobject<ULevelSequenceBurnInOptions>(this, "BurnInOptions");
 	PrimaryActorTick.bCanEverTick = true;
 	bAutoPlay = false;
 }
+
 
 void ALevelSequenceActor::BeginPlay()
 {
@@ -45,11 +48,13 @@ void ALevelSequenceActor::BeginPlay()
 	InitializePlayer();
 }
 
+
 #if WITH_EDITOR
 
 bool ALevelSequenceActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
-	ULevelSequence* LevelSequenceAsset = Cast<ULevelSequence>(LevelSequence.TryLoad());
+	ULevelSequence* LevelSequenceAsset = GetSequence(true);
+
 	if (LevelSequenceAsset)
 	{
 		Objects.Add(LevelSequenceAsset);
@@ -60,7 +65,8 @@ bool ALevelSequenceActor::GetReferencedContentObjects(TArray<UObject*>& Objects)
 	return true;
 }
 
-#endif // WITH_EDITOR
+#endif //WITH_EDITOR
+
 
 void ALevelSequenceActor::Tick(float DeltaSeconds)
 {
@@ -69,6 +75,27 @@ void ALevelSequenceActor::Tick(float DeltaSeconds)
 		SequencePlayer->Update(DeltaSeconds);
 	}
 }
+
+void ALevelSequenceActor::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_EDITORONLY_DATA
+	// Fix sprite component so that it's attached to the root component. In the past, the sprite component was the root component.
+	UBillboardComponent* SpriteComponent = FindComponentByClass<UBillboardComponent>();
+	if (SpriteComponent && SpriteComponent->GetAttachParent() != RootComponent)
+	{
+		SpriteComponent->SetupAttachment(RootComponent);
+	}
+#endif
+}
+
+
+ULevelSequence* ALevelSequenceActor::GetSequence(bool Load) const
+{
+	return Cast<ULevelSequence>(Load ? LevelSequence.TryLoad() : LevelSequence.ResolveObject());
+}
+
 
 void ALevelSequenceActor::SetSequence(ULevelSequence* InSequence)
 {
@@ -79,10 +106,12 @@ void ALevelSequenceActor::SetSequence(ULevelSequence* InSequence)
 	}
 }
 
+
 void ALevelSequenceActor::InitializePlayer()
 {
-	ULevelSequence* LevelSequenceAsset = Cast<ULevelSequence>(LevelSequence.TryLoad());
-	if (GetWorld()->IsGameWorld() && LevelSequenceAsset)
+	ULevelSequence* LevelSequenceAsset = GetSequence(true);
+
+	if (GetWorld()->IsGameWorld() && (LevelSequenceAsset != nullptr))
 	{
 		SequencePlayer = NewObject<ULevelSequencePlayer>(this, "AnimationPlayer");
 		SequencePlayer->Initialize(LevelSequenceAsset, GetWorld(), PlaybackSettings);

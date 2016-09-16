@@ -7,6 +7,8 @@
 #include "EngineTypes.h"
 #include "TextureStreamingTypes.generated.h"
 
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(TextureStreamingBuild, Log, All);
+
 class UTexture;
 class UTexture2D;
 struct FStreamingTextureBuildInfo;
@@ -224,8 +226,17 @@ public:
  */
 typedef TMap<UMaterialInterface*, TArray<FMaterialTexCoordBuildInfo> > FTexCoordScaleMap;
 
+/** A mapping between used material and levels for refering primitives. */
+typedef TMap<UMaterialInterface*, TArray<ULevel*> > FMaterialToLevelsMap;
+
 /** Build the shaders required for the texture streaming build. Returns whether or not the action was successful. */
-ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, OUT FTexCoordScaleMap& TexCoordScales, bool bIncremental, FSlowTask& BuildTextureStreamingTask);
+ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, OUT FTexCoordScaleMap& TexCoordScales, OUT FMaterialToLevelsMap& MaterialToLevels, bool bIncremental, FSlowTask& BuildTextureStreamingTask);
 ENGINE_API bool UpdateComponentStreamingSectionData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, bool bIncremental, FSlowTask& BuildTextureStreamingTask);
 ENGINE_API bool BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FSlowTask& BuildTextureStreamingTask);
+
+/** Check if the lighting build is dirty. Updates the needs rebuild status of the level. */
+ENGINE_API void CheckTextureStreamingBuild(ULevel* InLevel);
+/** Check if the lighting build is dirty. Updates the needs rebuild status of the level and world. */
+ENGINE_API void CheckTextureStreamingBuild(UWorld* InWorld);
+
 extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics;

@@ -269,7 +269,7 @@ FDistanceFieldAsyncQueue* GDistanceFieldAsyncQueue = NULL;
 
 #if WITH_EDITORONLY_DATA
 
-void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, bool bGenerateDistanceFieldAsIfTwoSided)
+void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, float DistanceFieldBias, bool bGenerateDistanceFieldAsIfTwoSided)
 {
 	TArray<uint8> DerivedData;
 
@@ -289,6 +289,7 @@ void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStatic
 		NewTask->StaticMesh = Mesh;
 		NewTask->GenerateSource = GenerateSource;
 		NewTask->DistanceFieldResolutionScale = DistanceFieldResolutionScale;
+		NewTask->DistanceFieldBias = FMath::Max<float>(DistanceFieldBias, 0.0f);
 		NewTask->bGenerateDistanceFieldAsIfTwoSided = bGenerateDistanceFieldAsIfTwoSided;
 		NewTask->GeneratedVolumeData = new FDistanceFieldVolumeData();
 
@@ -408,6 +409,16 @@ uint32 FBuildDistanceFieldThreadRunnable::Run()
 	return 0;
 }
 
+FAsyncDistanceFieldTask::FAsyncDistanceFieldTask()
+	: StaticMesh(nullptr)
+	, GenerateSource(nullptr)
+	, DistanceFieldResolutionScale(0.0f)
+	, bGenerateDistanceFieldAsIfTwoSided(false)
+	, GeneratedVolumeData(nullptr)
+{
+}
+
+
 FDistanceFieldAsyncQueue::FDistanceFieldAsyncQueue() 
 {
 #if WITH_EDITOR
@@ -515,6 +526,7 @@ void FDistanceFieldAsyncQueue::Build(FAsyncDistanceFieldTask* Task, FQueuedThrea
 		Task->MaterialBlendModes,
 		Task->GenerateSource->RenderData->Bounds,
 		Task->DistanceFieldResolutionScale,
+		Task->DistanceFieldBias,
 		Task->bGenerateDistanceFieldAsIfTwoSided,
 		*Task->GeneratedVolumeData);
 

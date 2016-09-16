@@ -320,6 +320,11 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 			var OneSkyFileNameWithSuffix = Path.GetFileNameWithoutExtension(OneSkyFileName) + "_" + LocalizationBranchName + Path.GetExtension(OneSkyFileName);
 			OneSkyFileName = OneSkyFileNameWithSuffix;
 		}
+		if (!String.IsNullOrEmpty(RemoteFilenamePrefix))
+		{
+			// Apply the prefix (this is used to avoid collisions with plugins that use the same name for their PO files)
+			OneSkyFileName = RemoteFilenamePrefix + "_" + OneSkyFileName;
+		}
 		return OneSkyFileName;
 	}
 

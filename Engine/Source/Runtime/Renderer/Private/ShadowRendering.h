@@ -4,8 +4,7 @@
 	ShadowRendering.h: Shadow rendering definitions.
 =============================================================================*/
 
-#ifndef __ShadowRendering_H__
-#define __ShadowRendering_H__
+#pragma once
 
 #include "ShaderParameterUtils.h"
 #include "SceneCore.h"
@@ -29,8 +28,9 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,LightingChannelMask)
 END_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct)
 
-extern float GMinScreenRadiusForLights;
 extern uint32 GetShadowQuality();
+
+extern float GetLightFadeFactor(const FSceneView& View, const FLightSceneProxy* Proxy);
 
 template<typename ShaderRHIParamRef>
 void SetDeferredLightParameters(
@@ -108,15 +108,10 @@ void SetDeferredLightParameters(
 
 	const ELightComponentType LightType = (ELightComponentType)LightSceneInfo->Proxy->GetLightType();
 
-	if (LightType == LightType_Point || LightType == LightType_Spot)
-	{
-		// Distance fade
-		FSphere Bounds = LightSceneInfo->Proxy->GetBoundingSphere();
 
-		const float DistanceSquared = ( Bounds.Center - View.ViewMatrices.ViewOrigin ).SizeSquared();
-		float Fade = FMath::Square( FMath::Min( 0.0002f, GMinScreenRadiusForLights / Bounds.W ) * View.LODDistanceFactor ) * DistanceSquared;
-		Fade = FMath::Clamp( 6.0f - 6.0f * Fade, 0.0f, 1.0f );
-		DeferredLightUniformsValue.LightColor *= Fade;
+	if ((LightType == LightType_Point || LightType == LightType_Spot) && View.IsPerspectiveProjection())
+	{
+		DeferredLightUniformsValue.LightColor *= GetLightFadeFactor(View, LightSceneInfo->Proxy);
 	}
 
 	DeferredLightUniformsValue.LightingChannelMask = LightSceneInfo->Proxy->GetLightingChannelMask();
@@ -863,7 +858,7 @@ public:
 	/**
 	 * Adds a primitive to the shadow's subject list.
 	 */
-	void AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, TArray<FViewInfo>* ViewArray);
+	void AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, TArray<FViewInfo>* ViewArray, bool bRecordShadowSubjectForMobileShading);
 
 	/**
 	* @return TRUE if this shadow info has any casting subject prims to render
@@ -1671,8 +1666,12 @@ public:
 	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FProjectedShadowInfo* ShadowInfo) const
 	{
 		FTextureRHIParamRef ShadowDepthTextureValue = ShadowInfo 
-			? ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference()
+			? ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture->GetTextureCube()
 			: GBlackTextureCube->TextureRHI.GetReference();
+        if (!ShadowDepthTextureValue)
+        {
+            ShadowDepthTextureValue = GBlackTextureCube->TextureRHI.GetReference();
+        }
 
 		SetTextureParameter(
 			RHICmdList, 
@@ -1876,4 +1875,3 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 	}
 };
 
-#endif

@@ -315,24 +315,19 @@ public:
 
 	/**
 	 * Checks whether this application can render anything.
+	 * Certain application types never render, while for others this behavior may be controlled by switching to NullRHI.
+	 * This can be used for decisions like omitting code paths that make no sense on servers or games running in headless mode (e.g. automated tests).
 	 *
 	 * @return true if the application can render, false otherwise.
 	 */
 	FORCEINLINE static bool CanEverRender()
 	{
-		return (!IsRunningCommandlet() || IsAllowCommandletRendering()) && !IsRunningDedicatedServer();
-	}
-
-	/**
-	 * Checks whether this application should run with the null RHI.
-	 *
-	 * Distinct from GUsingNullRHI which tells you whether the engine has actually initialized and is running a null RHI.
-	 *
-	 * @return true if the application should use null RHI.
-	 */
-	FORCEINLINE static bool ShouldUseNullRHI()
-	{
-		return (USE_NULL_RHI || FParse::Param(FCommandLine::Get(), TEXT("nullrhi")) || !CanEverRender());
+#if UE_SERVER
+		return false;
+#else
+		static bool bHasNullRHIOnCommandline = FParse::Param(FCommandLine::Get(), TEXT("nullrhi"));
+		return (!IsRunningCommandlet() || IsAllowCommandletRendering()) && !IsRunningDedicatedServer() && !(USE_NULL_RHI || bHasNullRHIOnCommandline);
+#endif // UE_SERVER
 	}
 
 	/**

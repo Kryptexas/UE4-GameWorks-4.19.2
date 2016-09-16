@@ -1029,6 +1029,25 @@ public:
 			Writer << EX_VirtualFunction;
 			Writer << FunctionName;
 		}
+		
+		TArray<FName> WildcardParams;
+		const bool bIsCustomThunk = FunctionToCall->HasMetaData(TEXT("CustomThunk"));
+		if (bIsCustomThunk)
+		{
+			// collect all parameters that (should) have wildcard type.
+			auto CollectWildcards = [&](FName MetaDataName)
+			{
+				const FString DependentPinMetaData = FunctionToCall->GetMetaData(MetaDataName);
+				TArray<FString> TypeDependentPinNames;
+				DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
+				for (FString& Iter : TypeDependentPinNames)
+				{
+					WildcardParams.Add(FName(*Iter));
+				}
+			};
+			CollectWildcards(FBlueprintMetadata::MD_ArrayDependentParam);
+			CollectWildcards(FName(TEXT("CustomStructureParam")));
+		}
 
 		// Emit function parameters
 		int32 NumParams = 0;
@@ -1042,18 +1061,17 @@ public:
 				check(Term != NULL);
 
 				// Latent function handling:  Need to emit a fixup request into the FLatentInfo struct
-				static const FName NAME_LatentInfo = TEXT("LatentInfo");
  				if (bIsUbergraph && FuncParamProperty->GetName() == FunctionToCall->GetMetaData("LatentInfo"))
  				{
 					EmitLatentInfoTerm(Term, FuncParamProperty, Statement.TargetLabel);
  				}
 				else
 				{
-					// Emit parameter term normally
-					EmitTerm(Term, FuncParamProperty);
+					const bool bWildcard = WildcardParams.Contains(FuncParamProperty->GetFName());
+					// Native type of a wildcard parameter should be ignored.
+					// When no coerce property is passed, a type of literal will be retrieved from the term.
+					EmitTerm(Term, bWildcard ? nullptr : FuncParamProperty);
 				}
-
-
 				NumParams++;
 			}
 		}
@@ -1132,7 +1150,7 @@ public:
 				}
 
  				FContextEmitter CallContextWriter(*this);
-				UProperty* RValueProperty = RValueTerm ? RValueTerm->AssociatedVarProperty : nullptr;
+				UProperty* RValueProperty = RValueTerm->AssociatedVarProperty;
 				CallContextWriter.TryStartContext(Term->Context, /*@TODO: bUnsafeToSkip*/ true, /*bIsInterfaceContext*/ false, RValueProperty);
 
 				EmitTermExpr(Term, CoerceProperty);
@@ -1548,17 +1566,25 @@ public:
 			uint8 EventType = 0;
 			switch (Statement.Type)
 			{
-			case KCST_InstrumentedWireExit:			EventType = EScriptInstrumentation::NodeExit; break;
-			case KCST_InstrumentedWireEntry:		EventType = EScriptInstrumentation::NodeEntry; break;
-			case KCST_InstrumentedPureNodeEntry:	EventType = EScriptInstrumentation::PureNodeEntry; break;
-			case KCST_InstrumentedStatePush:		EventType = EScriptInstrumentation::PushState; break;
-			case KCST_InstrumentedStateRestore:		EventType = EScriptInstrumentation::RestoreState; break;
-			case KCST_InstrumentedStateReset:		EventType = EScriptInstrumentation::ResetState; break;
-			case KCST_InstrumentedStateSuspend:		EventType = EScriptInstrumentation::SuspendState; break;
-			case KCST_InstrumentedStatePop:			EventType = EScriptInstrumentation::PopState; break;
+			case KCST_InstrumentedEvent:				EventType = EScriptInstrumentation::InlineEvent; break;
+			case KCST_InstrumentedEventStop:			EventType = EScriptInstrumentation::Stop; break;
+			case KCST_InstrumentedWireExit:				EventType = EScriptInstrumentation::NodeExit; break;
+			case KCST_InstrumentedWireEntry:			EventType = EScriptInstrumentation::NodeEntry; break;
+			case KCST_InstrumentedPureNodeEntry:		EventType = EScriptInstrumentation::PureNodeEntry; break;
+			case KCST_InstrumentedStatePush:			EventType = EScriptInstrumentation::PushState; break;
+			case KCST_InstrumentedStateRestore:			EventType = EScriptInstrumentation::RestoreState; break;
+			case KCST_InstrumentedStateReset:			EventType = EScriptInstrumentation::ResetState; break;
+			case KCST_InstrumentedStateSuspend:			EventType = EScriptInstrumentation::SuspendState; break;
+			case KCST_InstrumentedStatePop:				EventType = EScriptInstrumentation::PopState; break;
+			case KCST_InstrumentedTunnelEndOfThread:	EventType = EScriptInstrumentation::TunnelEndOfThread; break;
 			}
 			Writer << EX_InstrumentationEvent;
 			Writer << EventType;
+			if (EventType == EScriptInstrumentation::InlineEvent)
+			{
+				FName EventName(*Statement.Comment);
+				Writer << EventName;
+			}
 		}
 
 		TArray<UEdGraphPin*> PinContextArray(Statement.PureOutputContextArray);
@@ -1614,7 +1640,33 @@ public:
 					CompilerContext.MessageLog.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
 				}
 
-				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
+				// Register source tunnels for instrumentation.
+				if (FunctionContext.IsInstrumentationRequired())
+				{
+					// After blueprint profiler MVP these changes will be refactored and rolled back into normal compilation.
+
+					// Locate the source tunnel instance
+					if (TWeakObjectPtr<UEdGraphNode>* SourceTunnelInstance = CompilerContext.MessageLog.SourceNodeToTunnelInstanceNodeMap.Find(SourceNode))
+					{
+						if (SourceTunnelInstance->IsValid())
+						{
+							TrueSourceNode = SourceTunnelInstance->Get();
+						}
+					}
+					// Locate the real source node, as the code above fails with nested tunnels
+					if (TWeakObjectPtr<UEdGraphNode>* NewSourceNode = CompilerContext.MessageLog.IntermediateTunnelNodeToSourceNodeMap.Find(SourceNode))
+					{
+						if (NewSourceNode->IsValid())
+						{
+							MacroSourceNode = NewSourceNode->Get();
+						}
+					}
+					ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
+				}
+				else
+				{
+					ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
+				}
 
 				// Track pure node script code range for the current impure (exec) node
 				if (Statement.Type == KCST_InstrumentedPureNodeEntry)
@@ -1630,7 +1682,7 @@ public:
 				else if (Statement.Type == KCST_InstrumentedWireEntry && PureNodeEntryCount > 0)
 				{
 					// Map script code range for the full set of pure node inputs feeding in to the current impure (exec) node at the current offset
-					ClassBeingBuilt->GetDebugData().RegisterPureNodeScriptCodeRange(TrueSourceNode, FunctionContext.Function, FInt32Range(PureNodeEntryStart, Offset));
+					ClassBeingBuilt->GetDebugData().RegisterPureNodeScriptCodeRange(MacroSourceNode ? MacroSourceNode : TrueSourceNode, FunctionContext.Function, FInt32Range(PureNodeEntryStart, Offset));
 
 					// Reset pure node code range tracking.
 					PureNodeEntryCount = 0;
@@ -1753,6 +1805,8 @@ public:
 			break;
 		case KCST_DebugSite:
 		case KCST_WireTraceSite:
+		case KCST_InstrumentedEvent:
+		case KCST_InstrumentedEventStop:
 		case KCST_InstrumentedWireEntry:
 		case KCST_InstrumentedWireExit:
 		case KCST_InstrumentedStatePush:
@@ -1761,6 +1815,7 @@ public:
 		case KCST_InstrumentedStatePop:
 		case KCST_InstrumentedStateRestore:
 		case KCST_InstrumentedPureNodeEntry:
+		case KCST_InstrumentedTunnelEndOfThread:
 			EmitInstrumentation(CompilerContext, FunctionContext, Statement, SourceNode);
 			break;
 		case KCST_ArrayGetByRef:

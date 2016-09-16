@@ -1084,7 +1084,7 @@ public:
 	 * @param	Transform		The world-space transform to spawn the actor with.
 	 * @param	bSilent			If true, suppress logging (optional, defaults to false).
 	 * @param	ObjectFlags		The object flags to place on the spawned actor.
-	 * @result					A pointer to the newly added actor, or NULL if add failed.
+	 * @return					A pointer to the newly added actor, or NULL if add failed.
 	 */
 	virtual AActor* AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent = false, EObjectFlags ObjectFlags = RF_Transactional);
 
@@ -1094,7 +1094,7 @@ public:
 	 * @param	ExportText		A T3D representation of the actor to create.
 	 * @param	bSilent			If true, suppress logging
 	 * @param	ObjectFlags		The object flags to place on the spawned actor.
-	 * @result					A pointer to the newly added actor, or NULL if add failed.
+	 * @return					A pointer to the newly added actor, or NULL if add failed.
 	 */
 	virtual TArray<AActor*> AddExportTextActors(const FString& ExportText, bool bSilent, EObjectFlags ObjectFlags = RF_Transactional);
 
@@ -1661,11 +1661,11 @@ public:
 	/** Called when the debugger has resumed the active PIE or SIE session */
 	void PlaySessionResumed();
 
-	/** Called when the debugger has resumed the active PIE or SIE session when viewport client receives focus */
-	void PlaySessionResumedOnViewportClientFocusReceived();
-
 	/** Called when the debugger has single-stepped the active PIE or SIE session */
 	void PlaySessionSingleStepped();
+
+	/** Called when game client received input key */
+	bool ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState);
 
 	/**
 	 * Kicks off a "Play From Here" request that was most likely made during a transaction

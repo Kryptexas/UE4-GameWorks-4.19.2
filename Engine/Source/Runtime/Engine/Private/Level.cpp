@@ -18,7 +18,9 @@ Level.cpp: Level-related functions
 #include "BlueprintUtilities.h"
 #include "DynamicMeshBuilder.h"
 #include "Engine/LevelBounds.h"
+#include "ReleaseObjectVersion.h"
 #include "RenderingObjectVersion.h"
+#include "PhysicsEngine/BodySetup.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -256,7 +258,7 @@ TMap<FName, TWeakObjectPtr<UWorld> > ULevel::StreamedLevelsOwningWorld;
 
 ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
 	:	UObject( ObjectInitializer )
-	,	Actors(this)
+	,	Actors()
 	,	OwningWorld(NULL)
 	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 	,	PrecomputedLightVolume(new FPrecomputedLightVolume())
@@ -289,7 +291,7 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	{
 		Collector.AddReferencedObject(Actor, This);
 	}
-	UObject* ActorsOwner = This->Actors.GetOwner();
+	UObject* ActorsOwner = This;
 	Collector.AddReferencedObject(ActorsOwner, This);
 
 	Super::AddReferencedObjects( This, Collector );
@@ -301,7 +303,23 @@ void ULevel::Serialize( FArchive& Ar )
 
 	Super::Serialize( Ar );
 
-	Ar << Actors;
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+
+	if (Ar.IsLoading() && Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::LevelTransArrayConvertedToTArray)
+	{
+		TTransArray<AActor*> OldActors(this);
+		Ar << OldActors;
+		Actors.Reserve(OldActors.Num());
+		for (AActor* Actor : OldActors)
+		{
+			Actors.Push(Actor);
+		}
+	}
+	else
+	{
+		Ar << Actors;
+	}
+
 	Ar << URL;
 
 	Ar << Model;
@@ -420,34 +438,37 @@ void ULevel::SortActorList()
 	}
 
 	TArray<AActor*> NewActors;
+	TArray<AActor*> NewNetActors;
 	NewActors.Reserve(Actors.Num());
+	NewNetActors.Reserve(Actors.Num());
 
 	check(WorldSettings);
 
 	// The WorldSettings tries to stay at index 0
 	NewActors.Add(WorldSettings);
 
-	// Static not net relevant actors.
+	// Add non-net actors to the NewActors immediately, cache off the net actors to Append after
 	for (AActor* Actor : Actors)
 	{
-		if (Actor != nullptr && Actor != WorldSettings && !Actor->IsPendingKill() && !IsNetActor(Actor))
+		if (Actor != nullptr && Actor != WorldSettings && !Actor->IsPendingKill())
 		{
-			NewActors.Add(Actor);
+			if (IsNetActor(Actor))
+			{
+				NewNetActors.Add(Actor);
+			}
+			else
+			{
+				NewActors.Add(Actor);
+			}
 		}
+
 	}
 	iFirstNetRelevantActor = NewActors.Num();
 
-	// Static net relevant actors.
-	for (AActor* Actor : Actors)
-	{
-		if (Actor != nullptr && !Actor->IsPendingKill() && IsNetActor(Actor))
-		{
-			NewActors.Add(Actor);
-		}
-	}
+	NewActors.Append(MoveTemp(NewNetActors));
 
 	// Replace with sorted list.
-	Actors.AssignButKeepOwner(MoveTemp(NewActors));
+	Actors = MoveTemp(NewActors);
 
 	// Add all network actors to the owning world
 	if ( OwningWorld != nullptr )
@@ -461,7 +482,7 @@ void ULevel::SortActorList()
 
 		for ( int32 i = iFirstNetRelevantActor; i < Actors.Num(); i++ )
 		{
-			if ( Actors[ i ] != NULL )
+			if ( Actors[ i ] != nullptr )
 			{
 				OwningWorld->AddNetworkActor( Actors[ i ] );
 			}
@@ -505,6 +526,8 @@ void ULevel::PreSave(const class ITargetPlatform* TargetPlatform)
 				Actor->ClearCrossLevelReferences();
 			}
 		}
+
+		CheckTextureStreamingBuild(this);
 	}
 #endif // WITH_EDITOR
 }
@@ -638,9 +661,8 @@ void ULevel::BeginDestroy()
 	{
 		OwningWorld->Scene->SetPrecomputedVisibility(NULL);
 		OwningWorld->Scene->SetPrecomputedVolumeDistanceField(NULL);
-
-		RemoveFromSceneFence.BeginFence();
 	}
+	RemoveFromSceneFence.BeginFence();
 }
 
 bool ULevel::IsReadyForFinishDestroy()
@@ -765,7 +787,7 @@ namespace FLevelSortUtils
 *	Sorts actors such that parent actors will appear before children actors in the list
 *	Stable sort
 */
-static void SortActorsHierarchy(TTransArray<AActor*>& Actors, UObject* Level)
+static void SortActorsHierarchy(TArray<AActor*>& Actors, UObject* Level)
 {
 	const double StartTime = FPlatformTime::Seconds();
 
@@ -1555,7 +1577,7 @@ void ULevel::InitializeNetworkActors()
 				{
 					if (!Actor->bNetLoadOnClient)
 					{
-						Actor->Destroy();
+						Actor->Destroy(true);
 					}
 					else
 					{
@@ -1626,7 +1648,7 @@ void ULevel::RouteActorInitialize()
 					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *Actor->GetFullName() );
 				}
 
-				if (bCallBeginPlay)
+				if (bCallBeginPlay && !Actor->IsChildActor())
 				{
 					ActorsToBeginPlay.Add(Actor);
 				}
@@ -1635,7 +1657,7 @@ void ULevel::RouteActorInitialize()
 			// Components are all set up, init touching state.
 			// Note: Not doing notifies here since loading or streaming in isn't actually conceptually beginning a touch.
 			//	     Rather, it was always touching and the mechanics of loading is just an implementation detail.
-			Actor->UpdateOverlaps(false);
+			Actor->UpdateOverlaps(Actor->bGenerateOverlapEventsDuringLevelStreaming);
 		}
 	}
 

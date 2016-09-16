@@ -530,6 +530,12 @@ void UPaperTileMap::SetCollisionThickness(float Thickness)
 void UPaperTileMap::SetCollisionDomain(ESpriteCollisionMode::Type Domain)
 {
 	SpriteCollisionDomain = Domain;
+	UpdateBodySetup();
+}
+
+void UPaperTileMap::RebuildCollision()
+{
+	UpdateBodySetup();
 }
 
 FBoxSphereBounds UPaperTileMap::GetRenderBounds() const

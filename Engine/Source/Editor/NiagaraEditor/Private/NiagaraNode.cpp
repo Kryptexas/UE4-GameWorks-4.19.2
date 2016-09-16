@@ -24,10 +24,10 @@ void UNiagaraNode::ReallocatePins()
 	for (int32 OldPinIndex = 0; OldPinIndex < OldPins.Num(); ++OldPinIndex)
 	{
 		UEdGraphPin* OldPin = OldPins[OldPinIndex];
-		if (UEdGraphPin** MatchingNewPin = Pins.FindByPredicate([&](UEdGraphPin* Pin){ return Pin->Direction == OldPin->Direction && Pin->PinName == OldPin->PinName; }))
+		UEdGraphPin** MatchingNewPin = Pins.FindByPredicate([&](UEdGraphPin* Pin){ return Pin->Direction == OldPin->Direction && Pin->PinName == OldPin->PinName; });
+		if (MatchingNewPin && *MatchingNewPin && OldPin)
 		{
-			if (*MatchingNewPin && OldPin)
-				(*MatchingNewPin)->CopyPersistentDataFromOldPin(*OldPin);
+			(*MatchingNewPin)->CopyPersistentDataFromOldPin(*OldPin);
 		}
 		OldPin->Modify();
 		OldPin->BreakAllPinLinks();

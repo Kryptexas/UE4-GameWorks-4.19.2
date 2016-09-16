@@ -15,26 +15,26 @@ namespace BuildGraph.Tasks
 	public class UnzipTaskParameters
 	{
 		/// <summary>
-		/// The directory to copy from
+		/// Path to the zip file to extract
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileName)]
 		public string ZipFile;
 
 		/// <summary>
 		/// Output directory for the extracted files
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string ToDir;
 
 		/// <summary>
-		/// Tag to be applied to build products of this task
+		/// Tag to be applied to the extracted files
 		/// </summary>
 		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
 		public string Tag;
 	}
 
 	/// <summary>
-	/// Task which creates a zip archive
+	/// Extract files from a zip archive.
 	/// </summary>
 	[TaskElement("Unzip", typeof(UnzipTaskParameters))]
 	public class UnzipTask : CustomTask

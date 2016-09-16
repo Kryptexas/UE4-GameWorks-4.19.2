@@ -11,6 +11,7 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
+#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "AudioEffect.h"
 #include "OpusAudioInfo.h"
@@ -41,6 +42,7 @@ public:
 
 IMPLEMENT_MODULE(FXAudio2DeviceModule, XAudio2);
 
+
 /*------------------------------------------------------------------------------------
 Static variables from the early init
 ------------------------------------------------------------------------------------*/
@@ -51,6 +53,10 @@ const float* FXAudioDeviceProperties::OutputMixMatrix = NULL;
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
+
+#if PLATFORM_WINDOWS
+FMMNotificationClient* FXAudioDeviceProperties::NotificationClient = nullptr;
+#endif
 
 /*------------------------------------------------------------------------------------
 	FAudioDevice Interface.
@@ -65,6 +71,10 @@ void FXAudio2Device::GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) co
 
 bool FXAudio2Device::InitializeHardware()
 {
+	bIsAudioDeviceHardwareInitialized = false;
+
+	bHardwareChanged = false;
+
 	if (IsRunningDedicatedServer())
 	{
 		return false;
@@ -159,7 +169,6 @@ bool FXAudio2Device::InitializeHardware()
 			}
 		}
 	}
-#endif
 
 	// Get the details of the desired device index (0 is default)
 	if (!ValidateAPICall(TEXT("GetDeviceDetails"),
@@ -169,6 +178,7 @@ bool FXAudio2Device::InitializeHardware()
 		DeviceProperties->XAudio2 = nullptr;
 		return(false);
 	}
+#endif
 
 #if DEBUG_XAUDIO2
 	XAUDIO2_DEBUG_CONFIGURATION DebugConfig = {0};
@@ -187,12 +197,14 @@ bool FXAudio2Device::InitializeHardware()
 		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nSamplesPerSec = SampleRate;
 	}
 
+#if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	UE_LOG(LogInit, Log, TEXT( "XAudio2 using '%s' : %d channels at %g kHz using %d bits per sample (channel mask 0x%x)" ), 
 		FXAudioDeviceProperties::DeviceDetails.DisplayName,
 		FXAudioDeviceProperties::NumSpeakers, 
 		( float )SampleRate / 1000.0f, 
 		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.wBitsPerSample,
 		(uint32)UE4_XAUDIO2_CHANNELMASK );
+#endif
 
 	if( !GetOutputMatrix( UE4_XAUDIO2_CHANNELMASK, FXAudioDeviceProperties::NumSpeakers ) )
 	{
@@ -222,6 +234,9 @@ bool FXAudio2Device::InitializeHardware()
 
 	DeviceProperties->SpatializationHelper.Init();
 
+	// Set that we initialized our hardware audio device ok so we should use real voices.
+	bIsAudioDeviceHardwareInitialized = true;
+
 	// Initialize permanent memory stack for initial & always loaded sound allocations.
 	if( CommonAudioPoolSize )
 	{
@@ -235,6 +250,9 @@ bool FXAudio2Device::InitializeHardware()
 		CommonAudioPoolFreeBytes = 0;
 	}
 
+	// Now initialize the audio clock voice after xaudio2 is initialized
+	DeviceProperties->InitAudioClockVoice();
+
 	return true;
 }
 
@@ -242,9 +260,6 @@ void FXAudio2Device::TeardownHardware()
 {
 	if (DeviceProperties)
 	{
-		// Make sure we clean up any pending decoding tasks before deleting the device properties
-		DeviceProperties->ProcessPendingTasksToCleanup(true);
-
 		delete DeviceProperties;
 		DeviceProperties = nullptr;
 	}
@@ -259,7 +274,32 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
-	DeviceProperties->ProcessPendingTasksToCleanup();
+}
+
+void FXAudio2Device::CheckDeviceStateChange()
+{
+#if PLATFORM_WINDOWS
+	if (DeviceProperties)
+	{
+		if (DeviceProperties->DidAudioDeviceChange())
+		{
+			// Stop any sounds that are playing
+			StopAllSounds(true);
+
+			// Set all sound sources to virtual mode so they don't play audio
+			for (FSoundSource* Source : Sources)
+			{
+				Source->SetVirtual();
+			}
+
+			// And switch to no-audio mode.
+			bIsAudioDeviceHardwareInitialized = false;
+		}
+	}
+#endif
+
+	// Update the audio clock time
+	AudioClock = DeviceProperties->GetAudioClockTime();
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()
@@ -293,22 +333,23 @@ class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave
 	}
 
 #if WITH_OGGVORBIS
-	if (SoundWave->CompressionName.IsNone() || SoundWave->CompressionName == TEXT("OGG"))
+	static const FName NAME_OGG(TEXT("OGG"));
+	if (FPlatformProperties::RequiresCookedData() ? SoundWave->HasCompressedData(NAME_OGG) : (SoundWave->GetCompressedData(NAME_OGG) != nullptr))
 	{
 		ICompressedAudioInfo* CompressedInfo = new FVorbisAudioInfo();
 		if (!CompressedInfo)
 		{
 			UE_LOG(LogAudio, Error, TEXT("Failed to create new FVorbisAudioInfo for SoundWave %s: out of memory."), *SoundWave->GetName());
-			return NULL;
+			return nullptr;
 		}
 		return CompressedInfo;
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 #else
-	return NULL;
+	return nullptr;
 #endif
 	
 }

@@ -129,12 +129,13 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	// cant fire arbitrary delegates here off the game thread
 	if (IsInGameThread())
 	{
+#if DO_BLUEPRINT_GUARD
 		// If nothing is bound, show warnings so something is left in the log.
 		if (bShouldLogWarning && (OnScriptException.IsBound() == false))
 		{
 			UE_LOG(LogScript, Warning, TEXT("%s"), *StackFrame.GetStackTrace());
 		}
-
+#endif
 		OnScriptException.Broadcast(ActiveObject, StackFrame, Info);
 	}
 
@@ -144,7 +145,7 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	}
 }
 
-void FBlueprintCoreDelegates::InstrumentScriptEvent(const EScriptInstrumentationEvent& Info)
+void FBlueprintCoreDelegates::InstrumentScriptEvent(const FScriptInstrumentationSignal& Info)
 {
 	OnScriptProfilingEvent.Broadcast(Info);
 }
@@ -366,12 +367,14 @@ void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Ve
 	// Tracking down some places that display warnings but no message..
 	ensure(Verbosity > ELogVerbosity::Warning || FCString::Strlen(Message) > 0);
 
+#if DO_BLUEPRINT_GUARD
 	// Show the stackfor fatal/error, and on warning if that option is enabled
 	if (Verbosity <= ELogVerbosity::Error || (ShowKismetScriptStackOnWarnings() && Verbosity == ELogVerbosity::Warning))
 	{
 		ScriptStack = TEXT("Script call stack:\n");
 		ScriptStack += GetScriptCallstack();
 	}
+#endif
 
 	if (Verbosity == ELogVerbosity::Fatal)
 	{
@@ -382,7 +385,10 @@ void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Ve
 	{
 		// Call directly so we can pass verbosity through
 		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("Script Msg: %s"), Message);
-		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s"), *ScriptStack);
+		if (!ScriptStack.IsEmpty())
+		{
+			FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s"), *ScriptStack);
+		}
 	}	
 #endif
 }
@@ -449,6 +455,48 @@ FString FFrame::GetStackTrace() const
 	return Result;
 }
 
+//////////////////////////////////////////////////////////////////////////
+// FScriptInstrumentationSignal
+
+FScriptInstrumentationSignal::FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame, const FName EventNameIn)
+	: EventType(InEventType)
+	, ContextObject(InContextObject)
+	, Function(InStackFrame.Node)
+	, EventName(EventNameIn)
+	, StackFramePtr(&InStackFrame)
+	, LatentLinkId(INDEX_NONE)
+{
+}
+
+const UClass* FScriptInstrumentationSignal::GetClass() const
+{
+	return ContextObject ? ContextObject->GetClass() : nullptr;
+}
+
+const UClass* FScriptInstrumentationSignal::GetFunctionClassScope() const
+{
+	return Function->GetOuterUClass();
+}
+
+FName FScriptInstrumentationSignal::GetFunctionName() const
+{
+	return EventName.IsNone() ? Function->GetFName() : EventName;
+}
+
+int32 FScriptInstrumentationSignal::GetScriptCodeOffset() const
+{
+	int32 CodeOffset = INDEX_NONE;
+	if (EventType == EScriptInstrumentation::ResumeEvent)
+	{
+		// Resume events require the link id rather than script code offset
+		CodeOffset = LatentLinkId;
+	}
+	else if (StackFramePtr != nullptr)
+	{
+		CodeOffset = StackFramePtr->Code - StackFramePtr->Node->Script.GetData() - 1;
+	}
+	return CodeOffset;
+}
 
 /*-----------------------------------------------------------------------------
 	Global script execution functions.
@@ -953,7 +1001,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		return false;
 	}
 	UFunction* Function = FindFunction(Message);
-	if(NULL == Function)
+	if(nullptr == Function)
 	{
 		UE_LOG(LogScriptCore, Verbose, TEXT("CallFunctionByNameWithArguments: Function not found '%s'"), Str);
 		return false;
@@ -964,7 +1012,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		return false;
 	}
 
-	UProperty* LastParameter=NULL;
+	UProperty* LastParameter = nullptr;
 
 	// find the last parameter
 	for ( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags&(CPF_Parm|CPF_ReturnParm)) == CPF_Parm; ++It )
@@ -972,18 +1020,17 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 		LastParameter = *It;
 	}
 
-	UStrProperty* LastStringParameter = dynamic_cast<UStrProperty*>(LastParameter);
-
-
 	// Parse all function parameters.
 	uint8* Parms = (uint8*)FMemory_Alloca(Function->ParmsSize);
 	FMemory::Memzero( Parms, Function->ParmsSize );
 
+	const uint32 ExportFlags = PPF_Localized;
 	bool Failed = 0;
 	int32 NumParamsEvaluated = 0;
 	for( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm|CPF_ReturnParm))==CPF_Parm; ++It, NumParamsEvaluated++ )
 	{
-		UProperty* propertyParam = *It;
+		UProperty* PropertyParam = *It;
+		checkSlow(PropertyParam); // Fix static analysis warning
 		if (NumParamsEvaluated == 0 && Executor)
 		{
 			UObjectPropertyBase* Op = dynamic_cast<UObjectPropertyBase*>(*It);
@@ -995,14 +1042,19 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 			}
 		}
 
-		FParse::Next( &Str );
+		// Keep old string around in case we need to pass the whole remaining string
+		const TCHAR* RemainingStr = Str;
 
-		// if Str is empty but we have more params to read parse the function to see if these have defaults, if so set them
+		// Parse a new argument out of Str
+		FString ArgStr;
+		FParse::Token(Str, ArgStr, true);
+
+		// if ArgStr is empty but we have more params to read parse the function to see if these have defaults, if so set them
 		bool bFoundDefault = false;
 		bool bFailedImport = true;
-		if (!FCString::Strcmp(Str, TEXT("")))
+		if (!FCString::Strcmp(*ArgStr, TEXT("")))
 		{
-			const FName DefaultPropertyKey(*(FString(TEXT("CPP_Default_")) + propertyParam->GetName()));
+			const FName DefaultPropertyKey(*(FString(TEXT("CPP_Default_")) + PropertyParam->GetName()));
 #if WITH_EDITOR
 			const FString PropertyDefaultValue = Function->GetMetaData(DefaultPropertyKey);
 #else
@@ -1011,33 +1063,24 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 			if (!PropertyDefaultValue.IsEmpty()) 
 			{
 				bFoundDefault = true;
-				uint32 ExportFlags = PPF_Localized;
 
-				// if this is the last parameter of the exec function and it's a string, make sure that it accepts the remainder of the passed in value
-				if ( LastStringParameter != *It )
-				{
-					ExportFlags |= PPF_Delimited;
-				}
 				const TCHAR* Result = It->ImportText( *PropertyDefaultValue, It->ContainerPtrToValuePtr<uint8>(Parms), ExportFlags, NULL );
-				bFailedImport = Result == NULL;
+				bFailedImport = (Result == nullptr);
 			}
 		}
 
 		if (!bFoundDefault)
 		{
-			uint32 ExportFlags = PPF_Localized;
-
-			// if this is the last parameter of the exec function and it's a string, make sure that it accepts the remainder of the passed in value
-			if ( LastStringParameter != *It )
+			// if this is the last string property and we have remaining arguments to process, we have to assume that this
+			// is a sub-command that will be passed to another exec (like "cheat giveall weapons", for example). Therefore
+			// we need to use the whole remaining string as an argument, regardless of quotes, spaces etc.
+			if (PropertyParam == LastParameter && PropertyParam->IsA<UStrProperty>() && FCString::Strcmp(Str, TEXT("")) != 0)
 			{
-				ExportFlags |= PPF_Delimited;
+				ArgStr = RemainingStr;
 			}
-			const TCHAR* PreviousStr = Str;
-			const TCHAR* Result = It->ImportText( Str, It->ContainerPtrToValuePtr<uint8>(Parms), ExportFlags, NULL );
-			bFailedImport = (Result == NULL || Result == PreviousStr);
-			
-			// move to the next parameter
-			Str = Result;
+
+			const TCHAR* Result = It->ImportText(*ArgStr, It->ContainerPtrToValuePtr<uint8>(Parms), ExportFlags, NULL );
+			bFailedImport = (Result == nullptr);
 		}
 		
 		if( bFailedImport )
@@ -1150,7 +1193,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 			if (Function->HasAnyFunctionFlags(FUNC_Event|FUNC_BlueprintEvent))
 			{
 				// Don't handle latent actions here, let the latent action manager handle them.
-				EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Event, this, Function->GetFName());
+				FScriptInstrumentationSignal EventInstrumentationInfo(EScriptInstrumentation::Event, this, Function);
 				FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
 				bInstrumentScriptEvent = true;
 			}
@@ -1287,7 +1330,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (bInstrumentScriptEvent)
 	{
-		EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Stop, this, NAME_None);
+		FScriptInstrumentationSignal EventInstrumentationInfo(EScriptInstrumentation::Stop, this, Function);
 		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
 	}
 #if WITH_EDITORONLY_DATA
@@ -1579,9 +1622,19 @@ void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 		}
 	}
 #endif
-	EScriptInstrumentationEvent InstrumentationEventInfo(EventType, this, Stack);
-	FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
-	Stack.SkipCode(1);
+	if (EventType == EScriptInstrumentation::InlineEvent)
+	{
+		const FName& EventName = *reinterpret_cast<FName*>(&Stack.Code[1]);
+		FScriptInstrumentationSignal InstrumentationEventInfo(EScriptInstrumentation::Event, this, Stack, EventName);
+		FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
+		Stack.SkipCode(sizeof(FName) + 1);
+	}
+	else
+	{
+		FScriptInstrumentationSignal InstrumentationEventInfo(EventType, this, Stack);
+		FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
+		Stack.SkipCode(1);
+	}
 #endif
 }
 IMPLEMENT_VM_FUNCTION( EX_InstrumentationEvent, execInstrumentation );

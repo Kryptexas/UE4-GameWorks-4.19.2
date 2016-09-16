@@ -75,7 +75,7 @@ public:
 
 	static FOpenGLTexture2DSet* CreateTexture2DSet(
 		FOpenGLDynamicRHI* InGLRHI,
-		FOvrSessionSharedParamRef OvrSession,
+		const FOvrSessionSharedPtr& OvrSession,
 		ovrTextureSwapChain InTextureSet,
 		const ovrTextureSwapChainDesc& InDesc,
 		uint32 InNumSamples,
@@ -96,7 +96,7 @@ protected:
 class FOpenGLTexture2DSetProxy : public FTexture2DSetProxy
 {
 public:
-	FOpenGLTexture2DSetProxy(FOvrSessionSharedParamRef InOvrSession, FTextureRHIRef InTexture, uint32 SrcSizeX, uint32 SrcSizeY, EPixelFormat SrcFormat, uint32 SrcNumMips) 
+	FOpenGLTexture2DSetProxy(const FOvrSessionSharedPtr& InOvrSession, FTextureRHIRef InTexture, uint32 SrcSizeX, uint32 SrcSizeY, EPixelFormat SrcFormat, uint32 SrcNumMips) 
 		: FTexture2DSetProxy(InOvrSession, InTexture, SrcSizeX, SrcSizeY, SrcFormat, SrcNumMips) {}
 
 	virtual ovrTextureSwapChain GetSwapTextureSet() const override
@@ -188,7 +188,7 @@ void FOpenGLTexture2DSet::ReleaseResources(ovrSession InOvrSession)
 
 FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 	FOpenGLDynamicRHI* InGLRHI,
-	FOvrSessionSharedParamRef Session,
+	const FOvrSessionSharedPtr& Session,
 	ovrTextureSwapChain InTextureSet,
 	const ovrTextureSwapChainDesc& InDesc,
 	uint32 InNumSamples,
@@ -291,7 +291,7 @@ static FOpenGLTexture2D* OpenGLCreateTexture2DAlias(
 }
 
 //////////////////////////////////////////////////////////////////////////
-FOculusRiftHMD::OGLBridge::OGLBridge(FOvrSessionSharedRef InOvrSession) :
+FOculusRiftHMD::OGLBridge::OGLBridge(const FOvrSessionSharedPtr& InOvrSession) :
 	FCustomPresent(InOvrSession)
 {
 }
@@ -302,7 +302,7 @@ bool FOculusRiftHMD::OGLBridge::IsUsingGraphicsAdapter(const ovrGraphicsLuid& lu
 	return true;
 }
 
-FTexture2DSetProxyRef FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips, uint32 InCreateTexFlags)
+FTexture2DSetProxyPtr FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips, uint32 InCreateTexFlags)
 {
 	check(InSizeX != 0 && InSizeY != 0);
 
@@ -310,7 +310,7 @@ FTexture2DSetProxyRef FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 I
 	FResourceBulkDataInterface* BulkData = nullptr;
 
 	const bool bSRGB = true; //(InFlags & TexCreate_SRGB) != 0;
-	const EPixelFormat Format = PF_B8G8R8A8;
+	const EPixelFormat Format = PF_R8G8B8A8;
 	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
 	if (GLFormat.InternalFormat[bSRGB] == GL_NONE)
 	{
@@ -331,7 +331,7 @@ FTexture2DSetProxyRef FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 I
 	desc.Height = InSizeY;
 	// Override the format to be sRGB so that the compositor always treats eye buffers
 	// as if they're sRGB even if we are sending in linear formatted textures
-	desc.Format = (InCreateTexFlags & LinearSpace) ? OVR_FORMAT_B8G8R8A8_UNORM : OVR_FORMAT_B8G8R8A8_UNORM_SRGB;
+	desc.Format = (InCreateTexFlags & LinearSpace) ? OVR_FORMAT_R8G8B8A8_UNORM : OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
 	desc.MiscFlags = 0;
 	desc.BindFlags = 0;
 	if (desc.MipLevels != 1)
@@ -376,15 +376,15 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 
 	SetRenderContext(&InRenderContext);
 
-	FGameFrame* CurrentRenderFrame = GetRenderFrame();
-	check(CurrentRenderFrame);
-	FSettings* FrameSettings = CurrentRenderFrame->GetSettings();
+	FGameFrame* ThisFrame = GetRenderFrame();
+	check(ThisFrame);
+	FSettings* FrameSettings = ThisFrame->GetSettings();
 	check(FrameSettings);
 
 	const uint32 RTSizeX = RT->GetSizeX();
 	const uint32 RTSizeY = RT->GetSizeY();
 
-	const FVector2D ActualMirrorWindowSize = CurrentRenderFrame->WindowSize;
+	const FVector2D ActualMirrorWindowSize = ThisFrame->WindowSize;
 	// detect if mirror texture needs to be re-allocated or freed
 	FOvrSessionShared::AutoSession OvrSession(Session);
 	if (Session->IsActive() && MirrorTextureRHI && (bNeedReAllocateMirrorTexture || 
@@ -441,11 +441,6 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 			TexCreate_RenderTargetable);
 		bNeedReAllocateMirrorTexture = false;
 	}
-}
-
-void FOculusRiftHMD::OGLBridge::Shutdown()
-{
-	Reset();
 }
 
 #endif // #ifdef OVR_GL

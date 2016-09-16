@@ -584,7 +584,7 @@ TSharedPtr< FSurvey > FEpicSurvey::GetBranchSurvey( const FString& Filename )
 			}
 		}
 	}
-	return *Survey;
+	return Survey ? *Survey : nullptr;
 }
 
 void FEpicSurvey::LoadSurveyIndexFile()

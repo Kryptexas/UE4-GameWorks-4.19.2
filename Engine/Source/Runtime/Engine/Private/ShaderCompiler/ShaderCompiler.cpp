@@ -27,6 +27,21 @@ const int32 ShaderCompileWorkerSingleJobHeader = 'S';
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerPipelineJobHeader = 'P';
 
+static void ModalErrorOrLog(const FString& Text)
+{
+	if (FPlatformProperties::SupportsWindowedMode())
+	{
+		UE_LOG(LogShaderCompilers, Error, TEXT("%s"), *Text);
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Text));
+		FPlatformMisc::RequestExit(false);
+		return;
+	}
+	else
+	{
+		UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), *Text);
+	}
+}
+
 // Set to 1 to debug ShaderCompilerWorker.exe. Set a breakpoint in LaunchWorker() to get the cmd-line.
 #define DEBUG_SHADERCOMPILEWORKER 0
 
@@ -99,7 +114,7 @@ static TAutoConsoleVariable<int32> CVarShaderBoundsChecking(
 
 static TAutoConsoleVariable<int32> CVarD3DRemoveUnusedInterpolators(
 	TEXT("r.D3D.RemoveUnusedInterpolators"),
-	0,
+	1,
 	TEXT("Enables removing unused interpolators mode when compiling pipelines for D3D.\n")
 	TEXT(" -1: Do not actually remove, but make the app think it did (for debugging)\n")
 	TEXT(" 0: Disable (default)\n")
@@ -175,6 +190,69 @@ namespace ShaderCompilerCookStats
 	});
 }
 #endif
+
+// Make functions so the crash reporter can disambiguate the actual error because of the different callstacks
+namespace SCWErrorCode
+{
+	enum EErrors
+	{
+		Success,
+		GeneralCrash,
+		BadShaderFormatVersion,
+		BadInputVersion,
+		BadSingleJobHeader,
+		BadPipelineJobHeader,
+		CantDeleteInputFile,
+		CantSaveOutputFile,
+		NoTargetShaderFormatsFound,
+		CantCompileForSpecificFormat,
+	};
+
+	void HandleGeneralCrash(const TCHAR* ExceptionInfo, const TCHAR* Callstack)
+	{
+		UE_LOG(LogShaderCompilers, Fatal, TEXT("ShaderCompileWorker crashed!\n%s\n\t%s"), ExceptionInfo, Callstack);
+	}
+
+	void HandleBadShaderFormatVersion(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleBadInputVersion(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleBadSingleJobHeader(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleBadPipelineJobHeader(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleCantDeleteInputFile(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleCantSaveOutputFile(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleNoTargetShaderFormatsFound(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+
+	void HandleCantCompileForSpecificFormat(const TCHAR* Data)
+	{
+		ModalErrorOrLog(FString::Printf(TEXT("ShaderCompileWorker failed:\n%s\n"), Data));
+	}
+}
 
 static const TArray<const IShaderFormat*>& GetShaderFormats()
 {
@@ -395,21 +473,6 @@ static void ProcessErrors(const FShaderCompileJob& CurrentJob, TArray<FString>& 
 	}
 }
 
-static void ModalErrorOrLog(const FString& Text)
-{
-	if (FPlatformProperties::SupportsWindowedMode())
-	{
-		UE_LOG(LogShaderCompilers, Error, TEXT("%s"), *Text);
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Text));
-		FPlatformMisc::RequestExit(false);
-		return;
-	}
-	else
-	{
-		UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), *Text);
-	}
-}
-
 static void ReadSingleJob(FShaderCompileJob* CurrentJob, FArchive& OutputFile)
 {
 	check(!CurrentJob->bFinalized);
@@ -446,7 +509,7 @@ static void DoReadTaskResults(const TArray<FShaderCommonCompileJob*>& QueuedJobs
 	OutputFile << ExceptionInfoLength;
 
 	// Worker crashed
-	if (ErrorCode == 1 || ErrorCode == 2)
+	if (ErrorCode != SCWErrorCode::Success)
 	{
 		TArray<TCHAR> Callstack;
 		Callstack.AddUninitialized(CallstackLength + 1);
@@ -458,21 +521,41 @@ static void DoReadTaskResults(const TArray<FShaderCommonCompileJob*>& QueuedJobs
 		OutputFile.Serialize(ExceptionInfo.GetData(), ExceptionInfoLength * sizeof(TCHAR));
 		ExceptionInfo[ExceptionInfoLength] = 0;
 
-		if (ErrorCode == 2)
+		// One entry per error code as we want to have different callstacks for crash reporter...
+		switch (ErrorCode)
 		{
-			if (FPlatformProperties::SupportsWindowedMode())
-			{
-				UE_LOG(LogShaderCompilers, Error, TEXT("%s\n%s"), ExceptionInfo.GetData(), Callstack.GetData());
-				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(ExceptionInfo.GetData()));
-				FPlatformMisc::RequestExit(false);
-			}
-			else
-			{
-				UE_LOG(LogShaderCompilers, Fatal, TEXT("%s"), Callstack.GetData());
-			}
+		default:
+		case SCWErrorCode::GeneralCrash:
+			SCWErrorCode::HandleGeneralCrash(ExceptionInfo.GetData(), Callstack.GetData());
+			break;
+		case SCWErrorCode::BadShaderFormatVersion:
+			SCWErrorCode::HandleBadShaderFormatVersion(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::BadInputVersion:
+			SCWErrorCode::HandleBadInputVersion(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::BadSingleJobHeader:
+			SCWErrorCode::HandleBadSingleJobHeader(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::BadPipelineJobHeader:
+			SCWErrorCode::HandleBadPipelineJobHeader(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::CantDeleteInputFile:
+			SCWErrorCode::HandleCantDeleteInputFile(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::CantSaveOutputFile:
+			SCWErrorCode::HandleCantSaveOutputFile(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::NoTargetShaderFormatsFound:
+			SCWErrorCode::HandleNoTargetShaderFormatsFound(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::CantCompileForSpecificFormat:
+			SCWErrorCode::HandleCantCompileForSpecificFormat(ExceptionInfo.GetData());
+			break;
+		case SCWErrorCode::Success:
+			// Can't get here...
+			break;
 		}
-
-		UE_LOG(LogShaderCompilers, Fatal, TEXT("ShaderCompileWorker crashed! \n %s \n %s"), ExceptionInfo.GetData(), Callstack.GetData());
 	}
 
 	TArray<FShaderCompileJob*> QueuedSingleJobs;
@@ -1238,11 +1321,7 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	FPaths::NormalizeDirectoryName(AbsoluteDebugInfoDirectory);
 	AbsoluteShaderDebugInfoDirectory = AbsoluteDebugInfoDirectory;
 
-#if PLATFORM_MAC // @todo marksatt 1/14/16 Temporary emergency hack for Mac builders - 24 * SCW consumes 72GB of RAM (~3GB each) which prevents successful Mac cooking.
-    const int32 NumVirtualCores = FPlatformMisc::NumberOfCores();
-#else
-    const int32 NumVirtualCores = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
-#endif
+	const int32 NumVirtualCores = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
 
 	NumShaderCompilingThreads = bAllowCompilingThroughWorkers ? (NumVirtualCores - NumUnusedShaderCompilingThreads) : 1;
 
@@ -1355,7 +1434,8 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 		// Note: Set breakpoint here and launch the ShaderCompileWorker with WorkerParameters a cmd-line
 		const TCHAR* WorkerParametersText = *WorkerParameters;
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Launching shader compile worker w/ WorkerParameters\n\t%s\n"), WorkerParametersText);
-		return FProcHandle();
+		FProcHandle DummyHandle;
+		return DummyHandle;
 	}
 	else
 	{
@@ -2308,95 +2388,96 @@ void GlobalBeginCompileShader(
 	// asset material name or "Global"
 	Input.DebugGroupName = DebugGroupName;
 
+	if (ShaderPipelineType)
+	{
+		Input.DebugGroupName = Input.DebugGroupName / ShaderPipelineType->GetName();
+	}
+	
+	if (VFType)
+	{
+		FString VFName = VFType->GetName();
+		if (GDumpShaderDebugInfoShort)
+		{
+			// Shorten vertex factory name
+			if (VFName[0] == TCHAR('F') || VFName[0] == TCHAR('T'))
+			{
+				VFName.RemoveAt(0);
+			}
+			VFName.ReplaceInline(TEXT("VertexFactory"), TEXT("VF"));
+			VFName.ReplaceInline(TEXT("GPUSkinAPEXCloth"), TEXT("APEX"));
+			VFName.ReplaceInline(TEXT("true"), TEXT("_1"));
+			VFName.ReplaceInline(TEXT("false"), TEXT("_0"));
+		}
+		Input.DebugGroupName = Input.DebugGroupName / VFName;
+	}
+	
+	{
+		FString ShaderTypeName = ShaderType->GetName();
+		if (GDumpShaderDebugInfoShort)
+		{
+			// Shorten known types
+			if (ShaderTypeName[0] == TCHAR('F') || ShaderTypeName[0] == TCHAR('T'))
+			{
+				ShaderTypeName.RemoveAt(0);
+			}
+		}
+		Input.DebugGroupName = Input.DebugGroupName / ShaderTypeName;
+		
+		if (GDumpShaderDebugInfoShort)
+		{
+			Input.DebugGroupName.ReplaceInline(TEXT("BasePass"), TEXT("BP"));
+			Input.DebugGroupName.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
+			Input.DebugGroupName.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
+			Input.DebugGroupName.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
+			Input.DebugGroupName.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Ambient"), TEXT("Amb"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Occlusion"), TEXT("Occ"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Position"), TEXT("Pos"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Skylight"), TEXT("Sky"));
+			Input.DebugGroupName.ReplaceInline(TEXT("LightingPolicy"), TEXT("LP"));
+			Input.DebugGroupName.ReplaceInline(TEXT("TranslucentLighting"), TEXT("TranslLight"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Translucency"), TEXT("Transl"));
+			Input.DebugGroupName.ReplaceInline(TEXT("DistanceField"), TEXT("DistFiel"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Indirect"), TEXT("Ind"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Cached"), TEXT("Cach"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Inject"), TEXT("Inj"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Visualization"), TEXT("Viz"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Instanced"), TEXT("Inst"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Evaluate"), TEXT("Eval"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Landscape"), TEXT("Land"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Dynamic"), TEXT("Dyn"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Vertex"), TEXT("Vtx"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Output"), TEXT("Out"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Directional"), TEXT("Dir"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Irradiance"), TEXT("Irr"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Deferred"), TEXT("Def"));
+			Input.DebugGroupName.ReplaceInline(TEXT("true"), TEXT("_1"));
+			Input.DebugGroupName.ReplaceInline(TEXT("false"), TEXT("_0"));
+			Input.DebugGroupName.ReplaceInline(TEXT("PROPAGATE_AO"), TEXT("AO"));
+			Input.DebugGroupName.ReplaceInline(TEXT("PROPAGATE_SECONDARY_OCCLUSION"), TEXT("SEC_OCC"));
+			Input.DebugGroupName.ReplaceInline(TEXT("PROPAGATE_MULTIPLE_BOUNCES"), TEXT("MULT_BOUNC"));
+			Input.DebugGroupName.ReplaceInline(TEXT("PostProcess"), TEXT("Post"));
+			Input.DebugGroupName.ReplaceInline(TEXT("AntiAliasing"), TEXT("AA"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Mobile"), TEXT("Mob"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Linear"), TEXT("Lin"));
+			Input.DebugGroupName.ReplaceInline(TEXT("INT32_MAX"), TEXT("IMAX"));
+			Input.DebugGroupName.ReplaceInline(TEXT("Policy"), TEXT("Pol"));
+		}
+	}
+	
 	if (GDumpShaderDebugInfo != 0)
 	{
-		Input.DumpDebugInfoPath = Input.DumpDebugInfoRootPath / DebugGroupName;
-
-		if (ShaderPipelineType)
-		{
-			Input.DumpDebugInfoPath = Input.DumpDebugInfoPath / ShaderPipelineType->GetName();
-		}
-
-		if (VFType)
-		{
-			FString VFName = VFType->GetName();
-			if (GDumpShaderDebugInfoShort)
-			{
-				// Shorten vertex factory name
-				if (VFName[0] == TCHAR('F') || VFName[0] == TCHAR('T'))
-				{
-					VFName.RemoveAt(0);
-				}
-				VFName.ReplaceInline(TEXT("VertexFactory"), TEXT("VF"));
-				VFName.ReplaceInline(TEXT("GPUSkinAPEXCloth"), TEXT("APEX"));
-				VFName.ReplaceInline(TEXT("true"), TEXT("_1"));
-				VFName.ReplaceInline(TEXT("false"), TEXT("_0"));
-			}
-			Input.DumpDebugInfoPath = Input.DumpDebugInfoPath / VFName;
-		}
-
-		{
-			FString ShaderTypeName = ShaderType->GetName();
-			if (GDumpShaderDebugInfoShort)
-			{
-				// Shorten known types
-				if (ShaderTypeName[0] == TCHAR('F') || ShaderTypeName[0] == TCHAR('T'))
-				{
-					ShaderTypeName.RemoveAt(0);
-				}
-			}
-			Input.DumpDebugInfoPath = Input.DumpDebugInfoPath / ShaderTypeName;
-
-			if (GDumpShaderDebugInfoShort)
-			{
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("BasePass"), TEXT("BP"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Ambient"), TEXT("Amb"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Occlusion"), TEXT("Occ"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Position"), TEXT("Pos"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Skylight"), TEXT("Sky"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightingPolicy"), TEXT("LP"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("TranslucentLighting"), TEXT("TranslLight"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Translucency"), TEXT("Transl"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("DistanceField"), TEXT("DistFiel"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Indirect"), TEXT("Ind"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Cached"), TEXT("Cach"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Inject"), TEXT("Inj"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Visualization"), TEXT("Viz"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Instanced"), TEXT("Inst"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Evaluate"), TEXT("Eval"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Landscape"), TEXT("Land"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Dynamic"), TEXT("Dyn"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Vertex"), TEXT("Vtx"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Output"), TEXT("Out"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Directional"), TEXT("Dir"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Irradiance"), TEXT("Irr"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Deferred"), TEXT("Def"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("true"), TEXT("_1"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("false"), TEXT("_0"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_AO"), TEXT("AO"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_SECONDARY_OCCLUSION"), TEXT("SEC_OCC"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_MULTIPLE_BOUNCES"), TEXT("MULT_BOUNC"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PostProcess"), TEXT("Post"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("AntiAliasing"), TEXT("AA"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Mobile"), TEXT("Mob"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Linear"), TEXT("Lin"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("INT32_MAX"), TEXT("IMAX"));
-				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Policy"), TEXT("Pol"));
-			}
-		}
+		Input.DumpDebugInfoPath = Input.DumpDebugInfoRootPath / Input.DebugGroupName;
+		
 		// Sanitize the name to be used as a path
 		// List mostly comes from set of characters not allowed by windows in a path.  Just try to rename a file and type one of these for the list.
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT("<"), TEXT("("));
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT(">"), TEXT(")"));
-		Input.DumpDebugInfoPath.ReplaceInline(TEXT("::"), TEXT("=="));		
-		Input.DumpDebugInfoPath.ReplaceInline(TEXT("|"), TEXT("_"));		
+		Input.DumpDebugInfoPath.ReplaceInline(TEXT("::"), TEXT("=="));
+		Input.DumpDebugInfoPath.ReplaceInline(TEXT("|"), TEXT("_"));
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT("*"), TEXT("-"));
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT("?"), TEXT("!"));
 		Input.DumpDebugInfoPath.ReplaceInline(TEXT("\""), TEXT("\'"));
@@ -2409,21 +2490,30 @@ void GlobalBeginCompileShader(
 
 	// Add the appropriate definitions for the shader frequency.
 	{
-		Input.Environment.SetDefine(TEXT("PIXELSHADER"),	Target.Frequency == SF_Pixel);
-		Input.Environment.SetDefine(TEXT("DOMAINSHADER"),	Target.Frequency == SF_Domain);
-		Input.Environment.SetDefine(TEXT("HULLSHADER"),		Target.Frequency == SF_Hull);
-		Input.Environment.SetDefine(TEXT("VERTEXSHADER"),	Target.Frequency == SF_Vertex);
-		Input.Environment.SetDefine(TEXT("GEOMETRYSHADER"),	Target.Frequency == SF_Geometry);
-		Input.Environment.SetDefine(TEXT("COMPUTESHADER"),	Target.Frequency == SF_Compute);
+		Input.Environment.SetDefine(TEXT("PIXELSHADER"), Target.Frequency == SF_Pixel);
+		Input.Environment.SetDefine(TEXT("DOMAINSHADER"), Target.Frequency == SF_Domain);
+		Input.Environment.SetDefine(TEXT("HULLSHADER"), Target.Frequency == SF_Hull);
+		Input.Environment.SetDefine(TEXT("VERTEXSHADER"), Target.Frequency == SF_Vertex);
+		Input.Environment.SetDefine(TEXT("GEOMETRYSHADER"), Target.Frequency == SF_Geometry);
+		Input.Environment.SetDefine(TEXT("COMPUTESHADER"), Target.Frequency == SF_Compute);
 	}
 
 	// Set instanced stereo define
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
+		static const auto CVarInstancedStereo = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
+		static const auto CVarMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
+
+		const bool bIsInstancedStereoCVar = CVarInstancedStereo ? (CVarInstancedStereo->GetValueOnGameThread() != false) : false;
+		const bool bIsMultiViewCVar = CVarMultiView ? (CVarMultiView->GetValueOnGameThread() != false) : false;
+
 		const EShaderPlatform ShaderPlatform = static_cast<EShaderPlatform>(Target.Platform);
-		const bool bIsInstancedStereoCVar = CVar ? (CVar->GetValueOnGameThread() != false) : false;
+		
 		const bool bIsInstancedStereo = bIsInstancedStereoCVar && (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4);
 		Input.Environment.SetDefine(TEXT("INSTANCED_STEREO"), bIsInstancedStereo);
+
+		// Currently only supported by PS4, look into mobile and pc support
+		// GL_OVR_multiview2 for mobile, VPAndRTArrayIndexFromAnyShaderFeedingRasterizer (d3d11) and VPAndRTArrayIndexFromAnyShaderFeedingRasterizerSupportedWithoutGSEmulation (d3d12)
+		Input.Environment.SetDefine(TEXT("MULTI_VIEW"), bIsInstancedStereo && bIsMultiViewCVar && ShaderPlatform == EShaderPlatform::SP_PS4);
 
 		// Throw a warning if we are silently disabling ISR due to missing platform support.
 		if (bIsInstancedStereoCVar && !bIsInstancedStereo && !GShaderCompilingManager->AreWarningsSuppressed(ShaderPlatform))
@@ -2454,7 +2544,7 @@ void GlobalBeginCompileShader(
 			Input.Environment.CompilerFlags.Add(CFLAG_Debug);
 		}
 	}
-	
+
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.KeepDebugInfo"));
 
@@ -2463,6 +2553,23 @@ void GlobalBeginCompileShader(
 			Input.Environment.CompilerFlags.Add(CFLAG_KeepDebugInfo);
 		}
 	}
+
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.FastMath"));
+		if (CVar && CVar->GetInt() == 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_NoFastMath);
+		}
+	}
+
+	if (IsD3DPlatform((EShaderPlatform)Target.Platform, false))
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.D3D.RemoveUnusedInterpolators"));
+		if (CVar && CVar->GetInt() != 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_ForceRemoveUnusedInterpolators);
+		}
+	} 
 	
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.ZeroInitialise"));
@@ -2487,7 +2594,7 @@ void GlobalBeginCompileShader(
 	{
 		FString ShaderPDBRoot;
 		GConfig->GetString(TEXT("DevOptions.Shaders"), TEXT("ShaderPDBRoot"), ShaderPDBRoot, GEngineIni);
-		if ( !ShaderPDBRoot.IsEmpty() )
+		if (!ShaderPDBRoot.IsEmpty())
 		{
 			Input.Environment.SetDefine(TEXT("SHADER_PDB_ROOT"), *ShaderPDBRoot);
 		}
@@ -2503,7 +2610,7 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("DXT5_NORMALMAPS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
 	}
 
-	if(bAllowDevelopmentShaderCompile)
+	if (bAllowDevelopmentShaderCompile)
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompileShadersForDevelopment"));
 		Input.Environment.SetDefine(TEXT("COMPILE_SHADERS_FOR_DEVELOPMENT"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
@@ -2537,6 +2644,20 @@ void GlobalBeginCompileShader(
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
 		Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), CVar ? (CVar->GetInt() != 0) : 0);
+	}
+
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VertexFoggingForOpaque"));
+		Input.Environment.SetDefine(TEXT("VERTEX_FOGGING_FOR_OPAQUE"), CVar ? (CVar->GetInt() != 0) : 0);
+	}
+
+	if (GSupportsRenderTargetWriteMask)
+	{
+		Input.Environment.SetDefine(TEXT("PLATFORM_SUPPORTS_RENDERTARGET_WRITE_MASK"), 1);
+	}
+	else
+	{
+		Input.Environment.SetDefine(TEXT("PLATFORM_SUPPORTS_RENDERTARGET_WRITE_MASK"), 0);
 	}
 
 	NewJobs.Add(NewJob);
@@ -2684,6 +2805,12 @@ public:
 			// fixup uniform expressions
 			UMaterialInterface::RecacheAllMaterialUniformExpressions();
 		}
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND(
+			FRecreateBoundShaderStates,
+		{
+			RHIRecreateRecursiveBoundShaderStates();
+		});
 	}
 
 private:

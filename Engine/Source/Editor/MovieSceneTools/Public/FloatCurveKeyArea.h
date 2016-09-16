@@ -6,35 +6,51 @@
 #include "ClipboardTypes.h"
 
 
+struct FRichCurve;
+class UMovieSceneSection;
+
+
 /**
- * A key area for float keys
+ * A key area for float keys.
  */
 class MOVIESCENETOOLS_API FFloatCurveKeyArea
 	: public FNamedKeyArea
 {
 public:
 
+	/**
+	* Creates a new key area for editing float curves.
+	*
+	* @param InCurve The rich curve which has the float keys.
+	* @param InOwningSection The section which owns the curve which is being displayed and edited by this area.
+	* @param InColor An optional color which should be used to draw the background of this key area.
+	*/
 	FFloatCurveKeyArea(FRichCurve* InCurve, UMovieSceneSection* InOwningSection, TOptional<FLinearColor> InColor = TOptional<FLinearColor>())
 		: Color(InColor)
 		, Curve(InCurve)
 		, OwningSection(InOwningSection)
 	{ }
 
+	/**
+	* Creates a new key area for editing float curves whose value can be overridden externally.
+	*
+	* @param InCurve The rich curve which has the float keys.
+	* @param InExternalValue An attribute which can provide an external value for this key area.  External values are
+	*        useful for things like property tracks where the property value can change without changing the animation
+	*        and we want to be able to key and update using the new property value.
+	* @param InOwningSection The section which owns the curve which is being displayed and edited by this area.
+	* @param InColor An optional color which should be used to draw the background of this key area.
+	*/
+	FFloatCurveKeyArea(FRichCurve* InCurve, TAttribute<TOptional<float>> InExternalValue, UMovieSceneSection* InOwningSection, TOptional<FLinearColor> InColor = TOptional<FLinearColor>())
+		: Color(InColor)
+		, Curve(InCurve)
+		, OwningSection(InOwningSection)
+		, ExternalValue(InExternalValue)
+	{ }
+
 public:
 
-	void ClearIntermediateValue()
-	{
-		IntermediateValue.Reset();
-	}
-
-	void SetIntermediateValue(float InIntermediateValue)
-	{
-		IntermediateValue = InIntermediateValue;
-	}
-
-public:
-
-	// IKeyArea interface
+	//` IKeyArea interface
 
 	virtual TArray<FKeyHandle> AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX) override;
 	virtual TOptional<FKeyHandle> DuplicateKey(FKeyHandle KeyToDuplicate) override;
@@ -74,5 +90,6 @@ private:
 	/** The section that owns this key area. */
 	UMovieSceneSection* OwningSection;
 
-	TOptional<float> IntermediateValue;
+	/** The value displayed by this key area supplied externally. */
+	TAttribute<TOptional<float>> ExternalValue;
 };

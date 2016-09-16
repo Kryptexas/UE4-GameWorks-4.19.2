@@ -51,6 +51,33 @@ static AssetType* MakeNewAsset(const FString& BaseAssetPath, const FString& Base
 	return nullptr;
 }
 
+template<typename AssetType>
+static FString MakeNewAssetName(const FString& BaseAssetPath, const FString& BaseAssetName)
+{
+	const FString Dot(TEXT("."));
+	FString AssetPath = BaseAssetPath;
+	FString AssetName = BaseAssetName;
+
+	AssetPath /= AssetName;
+	AssetPath += Dot + AssetName;
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*AssetPath);
+
+	// if object with same name exists, try a different name until we don't find one
+	int32 ExtensionIndex = 0;
+	while (AssetData.IsValid())
+	{
+		AssetName = FString::Printf(TEXT("%s_%d"), *BaseAssetName, ExtensionIndex);
+		AssetPath = (BaseAssetPath / AssetName) + Dot + AssetName;
+		AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*AssetPath);
+
+		ExtensionIndex++;
+	}
+
+	return AssetName;
+}
+
 /** Helper function - check whether our component hierarchy has some attachment outside of its owned components */
 SEQUENCERECORDER_API AActor* GetAttachment(AActor* InActor, FName& SocketName, FName& ComponentName);
 

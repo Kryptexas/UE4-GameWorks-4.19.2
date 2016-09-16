@@ -8,7 +8,7 @@
 #include "Platform.h"
 #include "UnrealTemplate.h"
 #include "UnrealTypeTraits.h"
-#include "AndOr.h"
+#include "AndOrNot.h"
 #include "IsTriviallyCopyAssignable.h"
 #include "IsTriviallyCopyConstructible.h"
 #include "IsTriviallyDestructible.h"

@@ -545,6 +545,12 @@ namespace UnrealBuildTool
 		public static bool bUseFastPDBLinking;
 
 		/// <summary>
+		/// Whether to specify the PCH File to be used for each source file to improve Intellisense performance
+		/// </summary>
+		[XmlConfig]
+		public static bool bUsePerFileIntellisense;
+
+		/// <summary>
 		/// Whether to request the linker create a map file as part of the build
 		/// </summary>
 		[XmlConfig]
@@ -571,9 +577,9 @@ namespace UnrealBuildTool
 			bDisableDebugInfo = false;
 			bEnableCodeAnalysis = false;
 			bFlushBuildDirOnRemoteMac = false;
-			bGeneratedSYMFile = false;
+			bGeneratedSYMFile = true;
 			bGeneratedSYMBundle = false;
-			bStripSymbolsOnIOS = bGeneratedSYMFile;
+			bStripSymbolsOnIOS = false;
 
 			// By default we don't bother relinking targets if only a dependent .lib has changed, as chances are that
 			// the import library wasn't actually different unless a dependent header file of this target was also changed,
@@ -654,7 +660,7 @@ namespace UnrealBuildTool
 
 			// Switch for fast semantics D3D contexts
 			// Try disabling this if you see rendering issues or crashes in the Xbox One RHI
-			bUseFastSemanticsRenderContexts = false;
+			bUseFastSemanticsRenderContexts = true;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
@@ -716,6 +722,9 @@ namespace UnrealBuildTool
 			// Use Fast PDB linking by default in projects but not all builds
 			bAddFastPDBToProjects = false;
 			bUseFastPDBLinking = false;
+
+			// Don't use per file Intellisense by default
+			bUsePerFileIntellisense = false;
 
 			// Don't create a map file by default
 			bCreateMapFile = false;

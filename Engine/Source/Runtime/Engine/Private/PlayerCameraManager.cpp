@@ -399,6 +399,7 @@ void APlayerCameraManager::InitTempCameraActor(ACameraActor* CamActor, UCameraAn
 			if (DefaultCamActor)
 			{
 				CamActor->GetCameraComponent()->AspectRatio = DefaultCamActor->GetCameraComponent()->AspectRatio;
+				CamActor->GetCameraComponent()->FieldOfView = AnimInstToInitFor->CamAnim->BaseFOV;
 				CamActor->GetCameraComponent()->PostProcessSettings = AnimInstToInitFor->CamAnim->BasePostProcessSettings;
 				CamActor->GetCameraComponent()->PostProcessBlendWeight = AnimInstToInitFor->CamAnim->BasePostProcessBlendWeight;
 			}
@@ -961,6 +962,9 @@ FPOV APlayerCameraManager::BlendViewTargets(const FTViewTarget& A,const FTViewTa
 
 void APlayerCameraManager::FillCameraCache(const FMinimalViewInfo& NewInfo)
 {
+	NewInfo.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::FillCameraCache: NewInfo.Location"));
+	NewInfo.Rotation.DiagnosticCheckNaN(TEXT("APlayerCameraManager::FillCameraCache: NewInfo.Rotation"));
+
 	// Backup last frame results.
 	if (CameraCache.TimeStamp != GetWorld()->TimeSeconds)
 	{
@@ -1042,6 +1046,11 @@ void APlayerCameraManager::ApplyWorldOffset(const FVector& InOffset, bool bWorld
 	
 	ViewTarget.POV.Location+= InOffset;
 	PendingViewTarget.POV.Location+= InOffset;
+
+	CameraCache.POV.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::ApplyWorldOffset: CameraCache.POV.Location"));
+	LastFrameCameraCache.POV.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::ApplyWorldOffset: LastFrameCameraCache.POV.Location"));
+	ViewTarget.POV.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::ApplyWorldOffset: ViewTarget.POV.Location"));
+	PendingViewTarget.POV.Location.DiagnosticCheckNaN(TEXT("APlayerCameraManager::ApplyWorldOffset: PendingViewTarget.POV.Location"));
 }
 
 AEmitterCameraLensEffectBase* APlayerCameraManager::FindCameraLensEffect(TSubclassOf<AEmitterCameraLensEffectBase> LensEffectEmitterClass)
@@ -1085,15 +1094,17 @@ AEmitterCameraLensEffectBase* APlayerCameraManager::AddCameraLensEffect(TSubclas
 			SpawnInfo.Instigator = Instigator;
 			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save these into a map
-			LensEffect = GetWorld()->SpawnActor<AEmitterCameraLensEffectBase>(LensEffectEmitterClass, SpawnInfo);
+			
+			AEmitterCameraLensEffectBase const* const EmitterCDO = LensEffectEmitterClass->GetDefaultObject<AEmitterCameraLensEffectBase>();
+			FVector CamLoc;
+			FRotator CamRot;
+			GetCameraViewPoint(CamLoc, CamRot);
+			FTransform SpawnTransform = AEmitterCameraLensEffectBase::GetAttachedEmitterTransform(EmitterCDO, CamLoc, CamRot, GetFOVAngle());
+			
+			LensEffect = GetWorld()->SpawnActor<AEmitterCameraLensEffectBase>(LensEffectEmitterClass, SpawnTransform, SpawnInfo);
 			if (LensEffect != NULL)
 			{
-				FVector CamLoc;
-				FRotator CamRot;
-				GetCameraViewPoint(CamLoc, CamRot);
 				LensEffect->RegisterCamera(this);
-				LensEffect->UpdateLocation(CamLoc, CamRot, GetFOVAngle());
-
 				CameraLensEffects.Add(LensEffect);
 			}
 		}

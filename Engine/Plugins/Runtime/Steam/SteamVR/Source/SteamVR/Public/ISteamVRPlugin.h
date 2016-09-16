@@ -53,6 +53,11 @@ public:
 	virtual vr::IVRSystem* GetVRSystem() const=0;
 
 	/**
+	 * Resets the plugin, in case of early VR system shutdown
+	 */
+	virtual void Reset() = 0;
+
+	/**
 	 * Update the Controller to Device mapping.
 	 * The controller passes this to the HMD.
 	 */

@@ -161,6 +161,8 @@ float					GNearClippingPlane				= 10.0f;				/* Near clipping plane */
 
 bool					GExitPurge						= false;
 
+FFixedUObjectArray* GCoreObjectArrayForDebugVisualizers = nullptr;
+
 /** Game name, used for base game directory and ini among other things										*/
 #if (!IS_MONOLITHIC && !IS_PROGRAM)
 // In modular game builds, the game name will be set when the application launches
@@ -320,6 +322,7 @@ DEFINE_LOG_CATEGORY(LogLinux);
 DEFINE_LOG_CATEGORY(LogIOS);
 DEFINE_LOG_CATEGORY(LogAndroid);
 DEFINE_LOG_CATEGORY(LogWindows);
+DEFINE_LOG_CATEGORY(LogXboxOne);
 DEFINE_LOG_CATEGORY(LogSerialization);
 DEFINE_LOG_CATEGORY(LogContentComparisonCommandlet);
 DEFINE_LOG_CATEGORY(LogNetPackageMap);

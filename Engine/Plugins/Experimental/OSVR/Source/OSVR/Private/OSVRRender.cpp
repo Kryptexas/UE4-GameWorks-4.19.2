@@ -85,15 +85,10 @@ void FOSVRHMD::GetEyeRenderParams_RenderThread(const struct FRenderingCompositeP
 	}
 }
 
-void FOSVRHMD::GetTimewarpMatrices_RenderThread(const struct FRenderingCompositePassContext& Context, FMatrix& EyeRotationStart, FMatrix& EyeRotationEnd) const
-{
-	// intentionally left blank
-}
-
 void FOSVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
     check(IsInRenderingThread());
-    if (mCustomPresent)
+    if (mCustomPresent && !mCustomPresent->IsInitialized())
     {
         mCustomPresent->Initialize();
     }
@@ -173,7 +168,7 @@ void FOSVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& In
     check(IsInGameThread());
 
     auto viewportRHI = InViewport.GetViewportRHI().GetReference();
-    if ((GIsEditor && !bPlaying) || (!IsStereoEnabled() && !bUseSeparateRenderTarget))
+    if (!mCustomPresent || (GIsEditor && !bPlaying) || (!IsStereoEnabled() && !bUseSeparateRenderTarget))
     {
         viewportRHI->SetCustomPresent(nullptr);
         return;

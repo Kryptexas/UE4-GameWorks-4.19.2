@@ -1230,7 +1230,7 @@ protected:
 	void ClearDynamicData();
 
 	// @todo document
-	virtual void UpdateDynamicData(FParticleSystemSceneProxy* Proxy);
+	virtual void UpdateDynamicData();
 
 public:
 	FORCEINLINE int32 GetCurrentLODIndex() const

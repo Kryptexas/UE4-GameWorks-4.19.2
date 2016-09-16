@@ -130,7 +130,7 @@
 * Whether we support hot-reload. Currently requires a non-monolithic build and non-shipping configuration.
 */
 #ifndef WITH_HOT_RELOAD
-	#define WITH_HOT_RELOAD (!IS_MONOLITHIC && !UE_BUILD_SHIPPING && !UE_BUILD_TEST && !UE_GAME)
+	#define WITH_HOT_RELOAD (!IS_MONOLITHIC && !UE_BUILD_SHIPPING && !UE_BUILD_TEST && !UE_GAME && !UE_SERVER)
 #endif
 
 /**
@@ -147,7 +147,7 @@
  * Checks to see if pure virtual has actually been implemented, this is normally run as a CIS process and is set (indirectly) by UBT
  *
  * @see Core.h
- * @see ObjectBase.h
+ * @see ObjectMacros.h
  **/
 #ifndef CHECK_PUREVIRTUALS
 	#define CHECK_PUREVIRTUALS 0

@@ -4,6 +4,7 @@
 	GPUProfiler.h: Hierarchical GPU Profiler Implementation.
 =============================================================================*/
 
+#include "RHIPrivatePCH.h"
 #include "RHI.h"
 #include "GPUProfiler.h"
 

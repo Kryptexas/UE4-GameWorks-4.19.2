@@ -172,22 +172,8 @@ struct FMacApplicationInfo
 		
 		// Use the log file specified on the commandline if there is one
 		CommandLine = FCommandLine::Get();
-		if (FParse::Value(*CommandLine, TEXT("LOG="), CommandlineLogFile, ARRAY_COUNT(CommandlineLogFile)))
-		{
-			LogDirectory += CommandlineLogFile;
-		}
-		else if (AppName.Len() != 0)
-		{
-			// If the app name is defined, use it as the log filename
-			LogDirectory += FString::Printf(TEXT("%s.Log"), *AppName);
-		}
-		else
-		{
-			// Revert to hardcoded UE4.log
-			LogDirectory += TEXT("UE4.Log");
-		}
-		FString LogPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*LogDirectory);
-		FCStringAnsi::Strcpy(AppLogPath, PATH_MAX+1, TCHAR_TO_UTF8(*LogPath));
+		FString LogPath = FGenericPlatformOutputDevices::GetAbsoluteLogFilename();
+		FCStringAnsi::Strcpy(AppLogPath, PATH_MAX + 1, TCHAR_TO_UTF8(*LogPath));
 
 		FString UserCrashVideoPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CrashVideoPath);
 		FCStringAnsi::Strcpy(CrashReportVideo, PATH_MAX+1, TCHAR_TO_UTF8(*UserCrashVideoPath));
@@ -533,6 +519,7 @@ void FMacPlatformMisc::PlatformTearDown()
 		{
 			StdErrFile.readabilityHandler = nil;
 		}
+		
 		[GMacAppInfo.StdErrPipe release];
 	}
 }
@@ -809,8 +796,8 @@ void FMacPlatformMisc::RequestExit( bool Force )
 	
 	if( Force )
 	{
-		// Abort allows signal handler to know we aborted.
-		abort();
+		// Exit immediately, by request.
+		_Exit(GIsCriticalError ? 3 : 0);
 	}
 	else
 	{
@@ -1450,10 +1437,19 @@ FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescripti
 	SCOPED_AUTORELEASE_POOL;
 
 	FGPUDriverInfo Info;
+	TArray<FString> NameComponents;
 	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = GetGPUDescriptors();
+	
 	for(FMacPlatformMisc::FGPUDescriptor const& GPU : GPUs)
 	{
-		if (DeviceDescription.Contains(FString(GPU.GPUName).Trim()))
+		NameComponents.Empty();
+		bool bMatchesName = FString(GPU.GPUName).Trim().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
+		for (FString& Component : NameComponents)
+		{
+			bMatchesName &= DeviceDescription.Contains(Component);
+		}
+		
+		if (bMatchesName)
 		{
 			Info.VendorId = GPU.GPUVendorId;
 			Info.DeviceDescription = FString(GPU.GPUName);
@@ -2092,6 +2088,7 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsE
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bIsEnsure ? TEXT("1") : TEXT("0")));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted)));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<BuildVersion>%s</BuildVersion>"), FApp::GetBuildVersion()));
 
 		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
 		
@@ -2228,6 +2225,21 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 			write(LogDst, Data, Bytes);
 		}
 		
+		// If present, include the crash report config file to pass config values to the CRC
+		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
+		FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashConfigFileNameA);
+		int ConfigSrc = open(TCHAR_TO_ANSI(GetCrashConfigFilePath()), O_RDONLY);
+		int ConfigDst = open(FilePath, O_CREAT | O_WRONLY, 0766);
+
+		while ((Bytes = read(ConfigSrc, Data, PATH_MAX)) > 0)
+		{
+			write(ConfigDst, Data, Bytes);
+		}
+
+		close(ConfigDst);
+		close(ConfigSrc);
+
 		// Copy the system log to capture GPU restarts and other nasties not reported by our application
 		if ( !GMacAppInfo.bIsSandboxed && GMacAppInfo.SystemLogSize >= 0 && access("/var/log/system.log", R_OK|F_OK) == 0 )
 		{

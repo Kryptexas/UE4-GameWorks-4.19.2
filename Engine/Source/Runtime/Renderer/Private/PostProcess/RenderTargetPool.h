@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #pragma once
+
 #include "RendererInterface.h"
+#include "VisualizeTexture.h"
 
 /** The reference to a pooled render target, use like this: TRefCountPtr<IPooledRenderTarget> */
 struct FPooledRenderTarget : public IPooledRenderTarget
@@ -177,7 +179,6 @@ private:
 };
 
 
-#include "VisualizeTexture.h"
 
 
 /**

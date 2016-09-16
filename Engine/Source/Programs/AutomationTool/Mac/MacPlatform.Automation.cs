@@ -14,7 +14,7 @@ public class MacPlatform : Platform
 	{
 	}
 
-	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		const string NoEditorCookPlatform = "MacNoEditor";
 		const string ServerCookPlatform = "MacServer";
@@ -74,6 +74,32 @@ public class MacPlatform : Platform
 		{
 			string CrashReportClientPath = CombinePaths("Engine/Binaries", SC.PlatformDir, "CrashReportClient.app");
 			StageAppBundle(SC, StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir, "CrashReportClient.app"), CrashReportClientPath);
+		}
+
+		// Find the app bundle path
+		List<string> Exes = GetExecutableNames(SC);
+		foreach (var Exe in Exes)
+		{
+			string AppBundlePath = "";
+			if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
+			{
+				AppBundlePath = CombinePaths(SC.ShortProjectName, "Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
+			}
+			else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
+			{
+				AppBundlePath = CombinePaths("Engine/Binaries", SC.PlatformDir, Path.GetFileNameWithoutExtension(Exe) + ".app");
+			}
+
+			// Copy the custom icon and Steam dylib, if needed
+			if (!string.IsNullOrEmpty(AppBundlePath))
+			{
+				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Build/Mac"), "Application.icns", false, null, CombinePaths(AppBundlePath, "Contents/Resources"), true);
+
+				if (Params.bUsesSteam)
+				{
+					SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Source/ThirdParty/Steamworks/Steamv132/sdk/redistributable_bin/osx32"), "libsteam_api.dylib", false, null, CombinePaths(AppBundlePath, "Contents/MacOS"), true);
+				}
+			}
 		}
 
 		// Copy the splash screen, Mac specific
@@ -297,10 +323,18 @@ public class MacPlatform : Platform
 				if (File.Exists(CustomIconSrcPath))
 				{
 					File.Delete(DefaultIconPath);
+					if (File.Exists(CustomIconDestPath))
+					{
+						File.Delete(CustomIconDestPath);
+					}
 					File.Move(CustomIconSrcPath, CustomIconDestPath);
 				}
 				else if (File.Exists(DefaultIconPath))
 				{
+					if (File.Exists(CustomIconDestPath))
+					{
+						File.Delete(CustomIconDestPath);
+					}
 					File.Move(DefaultIconPath, CustomIconDestPath);
 				}
 
@@ -322,7 +356,7 @@ public class MacPlatform : Platform
 		}
 	}
 
-	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
+	public override IProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		if (!File.Exists(ClientApp))
 		{
@@ -340,7 +374,7 @@ public class MacPlatform : Platform
 
 		PushDir(Path.GetDirectoryName(ClientApp));
 		// Always start client process and don't wait for exit.
-		ProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+		IProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
 		PopDir();
 
 		return ClientProcess;

@@ -296,7 +296,6 @@ namespace UnrealBuildTool
 				(InPlatform == UnrealTargetPlatform.Win64) ||
 				(InPlatform == UnrealTargetPlatform.Win32) ||
 				(InPlatform == UnrealTargetPlatform.Mac) ||
-				(InPlatform == UnrealTargetPlatform.WinRT) ||
 				(InPlatform == UnrealTargetPlatform.Linux)
 				);
 		}
@@ -310,7 +309,6 @@ namespace UnrealBuildTool
 		static public bool PlatformSupportsCrashReporter(UnrealTargetPlatform InPlatform)
 		{
 			return (
-				(InPlatform == UnrealTargetPlatform.UWP) ||
 				(InPlatform == UnrealTargetPlatform.Win64) ||
 				(InPlatform == UnrealTargetPlatform.Win32) ||
 				(InPlatform == UnrealTargetPlatform.Linux) ||
@@ -448,7 +446,7 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-		public static void RegisterAllUBTClasses(bool bSkipBuildPlatforms = false)
+		public static void RegisterAllUBTClasses(bool bSkipBuildPlatforms = false, bool bValidatingPlatforms = false)
 		{
 			// Find and register all tool chains and build platforms that are present
 			Assembly UBTAssembly = Assembly.GetExecutingAssembly();
@@ -469,7 +467,7 @@ namespace UnrealBuildTool
 							{
 								Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
 								UEBuildPlatformFactory TempInst = (UEBuildPlatformFactory)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-								TempInst.TryRegisterBuildPlatforms();
+								TempInst.TryRegisterBuildPlatforms(bValidatingPlatforms);
 							}
 						}
 					}
@@ -1259,7 +1257,7 @@ namespace UnrealBuildTool
 					}
 
 					// Find and register all tool chains, build platforms, etc. that are present
-					RegisterAllUBTClasses();
+					RegisterAllUBTClasses(bValidatingPlatforms:bValidatePlatforms);
 					ProjectFileGenerator.bGenerateProjectFiles = false;
 
 					if (BuildConfiguration.bPrintPerformanceInfo)
@@ -1423,9 +1421,12 @@ namespace UnrealBuildTool
 		public static int ExtendedErrorCode = 0;
 		private static int Main(string[] Arguments)
 		{
-			// make sure we catch any exceptions and return an appropriate error code.
-			// Some inner code already does this (to ensure the Mutex is released),
-			// but we need something to cover all outer code as well.
+            // make sure we catch any exceptions and return an appropriate error code.
+            // Some inner code already does this (to ensure the Mutex is released),
+            // but we need something to cover all outer code as well.
+
+            // Console.WriteLine("UBT Cmd Line: " + string.Join(" ", Arguments));
+
 			try
 			{
 				// Make it more explicit what startup code should not be accessing config data.
@@ -1583,7 +1584,6 @@ namespace UnrealBuildTool
 
 			UEToolChain ToolChain = BuildPlatformContext.CreateToolChainForDefaultCppPlatform();
 
-			string EULAViolationWarning = null;
 			Thread CPPIncludesThread = null;
 
 			try
@@ -1843,7 +1843,7 @@ namespace UnrealBuildTool
 					{
 						List<FileItem> TargetOutputItems;
 						List<UHTModuleInfo> TargetUObjectModules;
-						BuildResult = Target.Build(ToolChain, out TargetOutputItems, out TargetUObjectModules, out EULAViolationWarning);
+						BuildResult = Target.Build(ToolChain, out TargetOutputItems, out TargetUObjectModules);
 						if (BuildResult != ECompilationResult.Succeeded)
 						{
 							break;
@@ -1978,17 +1978,6 @@ namespace UnrealBuildTool
 							// Make sure any old DLL files from in-engine recompiles aren't lying around.  Must be called after the action graph is finalized.
 							ActionGraph.DeleteStaleHotReloadDLLs();
 
-							// Plan the actions to execute for the build.
-							Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap;
-							List<Action> ActionsToExecute = ActionGraph.GetActionsToExecute(UBTMakefile.PrerequisiteActions, Targets, out TargetToOutdatedPrerequisitesMap);
-
-							// Display some stats to the user.
-							Log.TraceVerbose(
-									"{0} actions, {1} outdated and requested actions",
-									ActionGraph.AllActions.Count,
-									ActionsToExecute.Count
-									);
-
 							if (!bIsHotReload && String.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile))
 							{
 								// clean up any stale modules
@@ -2003,6 +1992,16 @@ namespace UnrealBuildTool
 
 							ToolChain.PreBuildSync();
 
+                            // Plan the actions to execute for the build.
+                            Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap;
+                            List<Action> ActionsToExecute = ActionGraph.GetActionsToExecute(UBTMakefile.PrerequisiteActions, Targets, out TargetToOutdatedPrerequisitesMap);
+
+                            // Display some stats to the user.
+                            Log.TraceVerbose(
+                                    "{0} actions, {1} outdated and requested actions",
+                                    ActionGraph.AllActions.Count,
+                                    ActionsToExecute.Count
+                                    );
 
 							// Cache indirect includes for all outdated C++ files.  We kick this off as a background thread so that it can
 							// perform the scan while we're compiling.  It usually only takes up to a few seconds, but we don't want to hurt
@@ -2022,7 +2021,7 @@ namespace UnrealBuildTool
 
 							// Execute the actions.
 							string TargetInfoForTelemetry = String.Join("|", Targets.Select(x => String.Format("{0} {1} {2}{3}", x.TargetName, x.Platform, x.Configuration, BuildConfiguration.bUseUnityBuild? "" : " NonUnity")));
-							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName, TargetInfoForTelemetry);
+							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName, TargetInfoForTelemetry, bIsHotReload);
 
 							// if the build succeeded, write the receipts and do any needed syncing
 							if (bSuccess)
@@ -2094,11 +2093,6 @@ namespace UnrealBuildTool
 					FlatCPPIncludeDependencyCache.Save();
 				}
 				CPPEnvironment.FlatCPPIncludeDependencyCache.Clear();
-			}
-
-			if (EULAViolationWarning != null)
-			{
-				Log.TraceWarning("WARNING: {0}", EULAViolationWarning);
 			}
 
 			// Figure out how long we took to execute.
@@ -2585,6 +2579,18 @@ namespace UnrealBuildTool
 
 				// Get all H files in all modules processed in the last makefile build
 				HashSet<string> AllUHTHeaders = new HashSet<string>(Target.FlatModuleCsData.Select(x => x.Value).SelectMany(x => x.UHTHeaderNames));
+
+				// Check whether any headers have been deleted. If they have, we need to regenerate the makefile since the module might now be empty. If we don't,
+				// and the file has been moved to a different module, we may include stale generated headers.
+				foreach (string FileName in AllUHTHeaders)
+				{
+					if (!File.Exists(FileName))
+					{
+						Log.TraceVerbose("File processed by UHT was deleted ({0}); invalidating makefile", FileName);
+						ReasonNotLoaded = string.Format("UHT file was deleted");
+						return null;
+					}
+				}
 
 				// Makefile is invalid if:
 				// * There are any newer files which contain no UHT data, but were previously in the makefile

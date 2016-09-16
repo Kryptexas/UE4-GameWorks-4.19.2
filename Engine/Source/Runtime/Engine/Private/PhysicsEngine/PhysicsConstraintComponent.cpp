@@ -89,6 +89,33 @@ UPrimitiveComponent* UPhysicsConstraintComponent::GetComponentInternal(EConstrai
 	return PrimComp;
 }
 
+//Helps to find bone index if bone specified, otherwise find bone index of root body
+int32 GetBoneIndexHelper(FName InBoneName, const USkeletalMeshComponent& SkelComp, int32* BodyIndex = nullptr)
+{
+	FName BoneName = InBoneName;
+	const UPhysicsAsset* PhysAsset = SkelComp.GetPhysicsAsset();
+	
+	if(BoneName == NAME_None)
+	{
+		//Didn't specify bone name so just use root body
+		if (PhysAsset)
+		{			
+			const int32 RootBodyIndex = SkelComp.FindRootBodyIndex();
+			if (PhysAsset->SkeletalBodySetups.IsValidIndex(RootBodyIndex))
+			{
+				BoneName = PhysAsset->SkeletalBodySetups[RootBodyIndex]->BoneName;
+			}
+		}
+	}
+
+	if(BodyIndex)
+	{
+		*BodyIndex = PhysAsset ? PhysAsset->FindBodyIndex(BoneName) : INDEX_NONE;
+	}
+
+	return SkelComp.GetBoneIndex(BoneName);
+}
+
 FTransform UPhysicsConstraintComponent::GetBodyTransformInternal(EConstraintFrame::Type Frame, FName InBoneName) const
 {
 	UPrimitiveComponent* PrimComp = GetComponentInternal(Frame);
@@ -101,14 +128,20 @@ FTransform UPhysicsConstraintComponent::GetBodyTransformInternal(EConstraintFram
 	FTransform ResultTM = PrimComp->ComponentToWorld;
 		
 	// Skeletal case
-	USkeletalMeshComponent* SkelComp = Cast<USkeletalMeshComponent>(PrimComp);
-	if(SkelComp != NULL)
+	if(const USkeletalMeshComponent* SkelComp = Cast<USkeletalMeshComponent>(PrimComp))
 	{
-		int32 BoneIndex = SkelComp->GetBoneIndex(InBoneName);
-		if(BoneIndex != INDEX_NONE)
-		{	
+		const int32 BoneIndex = GetBoneIndexHelper(InBoneName, *SkelComp);
+		if (BoneIndex != INDEX_NONE)
+		{
 			ResultTM = SkelComp->GetBoneTransform(BoneIndex);
 		}
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		else
+		{
+			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("BadBoneNameToConstraint", "Couldn't find bone {0} for ConstraintComponent {1}."),
+				FText::FromName(InBoneName), FText::FromString(GetPathNameSafe(this))));
+		}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	}
 
 	return ResultTM;
@@ -121,19 +154,24 @@ FBox UPhysicsConstraintComponent::GetBodyBoxInternal(EConstraintFrame::Type Fram
 	UPrimitiveComponent* PrimComp  = GetComponentInternal(Frame);
 
 	// Skeletal case
-	USkeletalMeshComponent* SkelComp = Cast<USkeletalMeshComponent>(PrimComp);
-	if(SkelComp != NULL)
+	if(const USkeletalMeshComponent* SkelComp = Cast<USkeletalMeshComponent>(PrimComp))
 	{
-		UPhysicsAsset * const PhysicsAsset = SkelComp->GetPhysicsAsset();
-		if (PhysicsAsset)
+		if (const UPhysicsAsset* PhysicsAsset = SkelComp->GetPhysicsAsset())
 		{
-			int32 BoneIndex = SkelComp->GetBoneIndex(InBoneName);
-			int32 BodyIndex = PhysicsAsset->FindBodyIndex(InBoneName);
+			int32 BodyIndex;
+			const int32 BoneIndex = GetBoneIndexHelper(InBoneName, *SkelComp, &BodyIndex);
 			if(BoneIndex != INDEX_NONE && BodyIndex != INDEX_NONE)
 			{	
 				const FTransform BoneTransform = SkelComp->GetBoneTransform(BoneIndex);
 				ResultBox = PhysicsAsset->SkeletalBodySetups[BodyIndex]->AggGeom.CalcAABB(BoneTransform);
 			}
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			else
+			{
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("BadBoneNameToConstraint2", "Couldn't find bone {0} for ConstraintComponent {1}."),
+					FText::FromName(InBoneName), FText::FromString(GetPathNameSafe(this))));
+			}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		}
 	}
 	else if(PrimComp != NULL)

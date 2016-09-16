@@ -14,7 +14,9 @@ struct FVulkanPipelineState
 {
 	FVulkanPipelineState()
 		: RenderPass(nullptr)
+#if !VULKAN_USE_NEW_RENDERPASSES
 		, FrameBuffer(nullptr)
+#endif
 	{
 		Reset();
 	}
@@ -27,7 +29,9 @@ struct FVulkanPipelineState
 
 	TRefCountPtr<FVulkanBoundShaderState> Shader;
 	FVulkanRenderPass* RenderPass;
+#if !VULKAN_USE_NEW_RENDERPASSES
 	FVulkanFramebuffer* FrameBuffer;
+#endif
 
 	VkPipelineDynamicStateCreateInfo DynamicState;
 	VkPipelineInputAssemblyStateCreateInfo InputAssembly;
@@ -35,9 +39,10 @@ struct FVulkanPipelineState
 	TRefCountPtr<FVulkanBlendState> BlendState;
 	TRefCountPtr<FVulkanDepthStencilState> DepthStencilState;
 
-	VkRect2D Scissor, PrevScissor;
-	VkViewport Viewport, PrevViewport;
-	bool bNeedsScissorUpdate, bNeedsViewportUpdate;
+	VkRect2D Scissor;
+	VkViewport Viewport;
+	uint32 StencilRef, PrevStencilRef;
+	bool bNeedsScissorUpdate, bNeedsViewportUpdate, bNeedsStencilRefUpdate;
 
 private:
 	void InitializeDefaultStates();
@@ -98,14 +103,14 @@ public:
 
 	inline void UpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanPipelineState& State)
 	{
-		if (State.bNeedsViewportUpdate || State.bNeedsScissorUpdate)
+		if (State.bNeedsViewportUpdate || State.bNeedsScissorUpdate || State.bNeedsStencilRefUpdate)
 		{
-			InternalUpdateDynamicStates(Cmd, State, State.bNeedsViewportUpdate, State.bNeedsScissorUpdate);
+			InternalUpdateDynamicStates(Cmd, State, State.bNeedsViewportUpdate, State.bNeedsScissorUpdate, State.bNeedsStencilRefUpdate);
 		}
 	}
 
 private:
-	void InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate);
+	void InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate, bool bNeedsStencilRefUpdate);
 
 	FVulkanDevice* Device;
 	VkPipeline Pipeline;
@@ -154,8 +159,11 @@ public:
 	FVulkanPipelineStateCache(FVulkanDevice* InParent);
 	~FVulkanPipelineStateCache();
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	void CreateAndAdd(FVulkanRenderPass* RenderPass, const FVulkanPipelineStateKey& CreateInfo, FVulkanPipeline* Pipeline, const FVulkanPipelineState& State, const FVulkanBoundShaderState& BSS);
+#else
 	void CreateAndAdd(const FVulkanPipelineStateKey& CreateInfo, FVulkanPipeline* Pipeline, const FVulkanPipelineState& State, const FVulkanBoundShaderState& BSS);
-
+#endif
 	void RebuildCache();
 
 	static TLinkedList<FVulkanBoundShaderState*>*& GetBSSList();
@@ -282,12 +290,14 @@ public:
 			uint8 FrontPassOp;
 			uint8 FrontDepthFailOp;
 			uint8 FrontCompareOp;
+			uint32 FrontCompareMask;
 			uint32 FrontWriteMask;
 			uint32 FrontReference;
 			uint8 BackFailOp;
 			uint8 BackPassOp;
 			uint8 BackDepthFailOp;
 			uint8 BackCompareOp;
+			uint32 BackCompareMask;
 			uint32 BackWriteMask;
 			uint32 BackReference;
 
@@ -304,12 +314,14 @@ public:
 					FrontPassOp == In.FrontPassOp &&
 					FrontDepthFailOp == In.FrontDepthFailOp &&
 					FrontCompareOp == In.FrontCompareOp &&
+					FrontCompareMask == In.FrontCompareMask &&
 					FrontWriteMask == In.FrontWriteMask &&
 					FrontReference == In.FrontReference &&
 					BackFailOp == In.BackFailOp &&
 					BackPassOp == In.BackPassOp &&
 					BackDepthFailOp == In.BackDepthFailOp &&
 					BackCompareOp == In.BackCompareOp &&
+					BackCompareMask == In.BackCompareMask &&
 					BackWriteMask == In.BackWriteMask &&
 					BackReference == In.BackReference;
 			}
@@ -397,7 +409,7 @@ public:
 		enum
 		{
 			// Bump every time serialization changes
-			VERSION = 3,
+			VERSION = 4,
 		};
 
 		FDiskEntry()

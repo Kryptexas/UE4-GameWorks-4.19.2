@@ -13,11 +13,6 @@ TMap<FName, UEnum*> UEnum::AllEnumNames;
 TMap<FName,TMap<FName,FName> > UEnum::EnumRedirects;
 TMap<FName,TMap<FString,FString> > UEnum::EnumSubstringRedirects;
 
-UEnum::~UEnum()
-{
-	RemoveNamesFromMasterList();
-}
-
 void UEnum::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
@@ -61,6 +56,13 @@ void UEnum::Serialize( FArchive& Ar )
 		}
 		AddNamesToMasterList();
 	}
+}
+
+void UEnum::BeginDestroy()
+{
+	RemoveNamesFromMasterList();
+
+	Super::BeginDestroy();
 }
 
 FString UEnum::GetBaseEnumNameOnDuplication() const

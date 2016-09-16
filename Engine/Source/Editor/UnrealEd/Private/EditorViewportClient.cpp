@@ -32,6 +32,7 @@
 #include "SceneViewExtension.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "EditorBuildUtils.h"
+#include "AudioDevice.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -231,6 +232,28 @@ int32 FEditorViewportClient::GetCameraSpeedSetting() const
 
 float const FEditorViewportClient::SafePadding = 0.075f;
 
+static int32 ViewOptionIndex = 0;
+static TArray<ELevelViewportType> ViewOptions;
+
+void InitViewOptionsArray()
+{
+	ViewOptions.Empty();
+
+	ELevelViewportType Front = ELevelViewportType::LVT_OrthoXZ;
+	ELevelViewportType Back = ELevelViewportType::LVT_OrthoNegativeXZ;
+	ELevelViewportType Top = ELevelViewportType::LVT_OrthoXY;
+	ELevelViewportType Bottom = ELevelViewportType::LVT_OrthoNegativeXY;
+	ELevelViewportType Left = ELevelViewportType::LVT_OrthoYZ;
+	ELevelViewportType Right = ELevelViewportType::LVT_OrthoNegativeYZ;
+
+	ViewOptions.Add(Front);
+	ViewOptions.Add(Back);
+	ViewOptions.Add(Top);
+	ViewOptions.Add(Bottom);
+	ViewOptions.Add(Left);
+	ViewOptions.Add(Right);
+}
+
 FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene, const TWeakPtr<SEditorViewport>& InEditorViewportWidget)
 	: bAllowCinematicPreview(false)
 	, CameraSpeedSetting(4)
@@ -304,6 +327,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, bInGameViewMode(false)
 	, bShouldInvalidateViewportWidget(false)
 {
+	InitViewOptionsArray();
 	if (ModeTools == nullptr)
 	{
 		ModeTools = new FAssetEditorModeManager();
@@ -563,7 +587,7 @@ void FEditorViewportClient::ToggleOrbitCamera( bool bEnableOrbitCamera )
 void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bInstant /* = false */ )
 {
 	const FVector Position = BoundingBox.GetCenter();
-	float Radius = BoundingBox.GetExtent().Size();
+	float Radius = FMath::Max(BoundingBox.GetExtent().Size(), 10.f);
 
 	float AspectToUse = AspectRatio;
 	FIntPoint ViewportSize = Viewport->GetSizeXY();
@@ -1426,6 +1450,33 @@ void FEditorViewportClient::SetViewportType( ELevelViewportType InViewportType )
 	Invalidate();
 }
 
+void FEditorViewportClient::RotateViewportType()
+{	
+	ViewportType = ViewOptions[ViewOptionIndex];
+
+	// Changing the type may also change the active view mode; re-apply that now
+	ApplyViewMode(GetViewMode(), IsPerspective(), EngineShowFlags);
+
+	// We might have changed to an orthographic viewport; if so, update any viewport links
+	UpdateLinkedOrthoViewports(true);
+
+	Invalidate();
+
+	if (ViewOptionIndex == 5)
+	{
+		ViewOptionIndex = 0;
+	}
+	else
+	{
+		ViewOptionIndex++;
+	}
+}
+
+bool FEditorViewportClient::IsActiveViewportTypeInRotation() const
+{
+	return GetViewportType() == ViewOptions[ViewOptionIndex];
+}
+
 bool FEditorViewportClient::IsActiveViewportType(ELevelViewportType InViewportType) const
 {
 	return GetViewportType() == InViewportType;
@@ -1589,7 +1640,6 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		// (considering there will be further hitching trying to get back to where you were)
 		EditorMovementDeltaUpperBound = .15f;
 #endif
-
 		// Check whether the camera is being moved by the mouse or keyboard
 		bool bHasMovement = bIsTracking;
 
@@ -1618,7 +1668,6 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 			NewViewLocation,
 			NewViewEuler,
 			NewViewFOV );
-
 
 		// We'll zero out rotation velocity modifier after updating the simulation since these actions
 		// are always momentary -- that is, when the user mouse looks some number of pixels,
@@ -2351,13 +2400,6 @@ void FEditorViewportClient::StopTracking()
 {
 	if( bIsTracking )
 	{
-		//cache the axis of any widget we might be moving
-		EAxisList::Type DraggingAxis = EAxisList::None;
-		if( Widget != NULL )
-		{
-			DraggingAxis = Widget->GetCurrentAxis();
-		}
-
 		MouseDeltaTracker->EndTracking( this );
 
 		Widget->SetCurrentAxis( EAxisList::None );
@@ -3216,11 +3258,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		DebugCanvas->SetScaledToRenderTarget(bStereoRendering);
 		DebugCanvas->SetStereoRendering(bStereoRendering);
 	}
-	if (Canvas)
-	{
-		Canvas->SetScaledToRenderTarget(bStereoRendering);
-		Canvas->SetStereoRendering(bStereoRendering);
-	}
+	Canvas->SetScaledToRenderTarget(bStereoRendering);
+	Canvas->SetStereoRendering(bStereoRendering);
 
 	// Setup a FSceneViewFamily/FSceneView for the viewport.
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -5145,6 +5184,16 @@ const TArray<FString>* FEditorViewportClient::GetEnabledStats() const
 void FEditorViewportClient::SetEnabledStats(const TArray<FString>& InEnabledStats)
 {
 	EnabledStats = InEnabledStats;
+
+#if !UE_BUILD_SHIPPING
+	if (UWorld* MyWorld = GetWorld())
+	{
+		if (FAudioDevice* AudioDevice = MyWorld->GetAudioDevice())
+		{
+			AudioDevice->ResolveDesiredStats(this);
+		}
+	}
+#endif
 }
 
 bool FEditorViewportClient::IsStatEnabled(const FString& InName) const

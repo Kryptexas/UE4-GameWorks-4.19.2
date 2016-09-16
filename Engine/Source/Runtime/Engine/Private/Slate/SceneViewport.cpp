@@ -193,8 +193,8 @@ void FSceneViewport::UpdateCachedGeometry( const FGeometry& InGeometry )
 
 void FSceneViewport::UpdateModifierKeys( const FPointerEvent& InMouseEvent )
 {
-	KeyStateMap.Add( EKeys::LeftAlt, InMouseEvent.IsLeftAltDown() );
-	KeyStateMap.Add( EKeys::RightAlt, InMouseEvent.IsRightAltDown() );
+	KeyStateMap.Add(EKeys::LeftAlt, InMouseEvent.IsLeftAltDown());
+	KeyStateMap.Add(EKeys::RightAlt, InMouseEvent.IsRightAltDown());
 	KeyStateMap.Add(EKeys::LeftControl, InMouseEvent.IsLeftControlDown());
 	KeyStateMap.Add(EKeys::RightControl, InMouseEvent.IsRightControlDown());
 	KeyStateMap.Add(EKeys::LeftShift, InMouseEvent.IsLeftShiftDown());
@@ -259,7 +259,6 @@ void FSceneViewport::ProcessAccumulatedPointerInput()
 	MouseDelta = FIntPoint::ZeroValue;
 	NumMouseSamplesX = 0;
 	NumMouseSamplesY = 0;
-
 }
 
 FVector2D FSceneViewport::VirtualDesktopPixelToViewport(FIntPoint VirtualDesktopPointPx) const
@@ -349,6 +348,20 @@ FCursorReply FSceneViewport::OnCursorQuery( const FGeometry& MyGeometry, const F
 	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
 	{
 		MouseCursorToUse = ViewportClient->GetCursor( this, GetMouseX(), GetMouseY() );
+	}
+
+	// In game mode we may be using a borderless window, which needs OnCursorQuery call to handle window resize cursors
+	if (IsRunningGame() && GEngine && GEngine->GameViewport && MouseCursorToUse != EMouseCursor::None)
+	{
+		TSharedPtr<SWindow> Window = GEngine->GameViewport->GetWindow();
+		if (Window.IsValid())
+		{
+			FCursorReply Reply = Window->OnCursorQuery(MyGeometry, CursorEvent);
+			if (Reply.IsEventHandled())
+			{
+				return Reply;
+			}
+		}
 	}
 
 	// Use the default cursor if there is no viewport client or we dont have focus
@@ -441,32 +454,6 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 	return CurrentReplyState;
 }
 
-bool FSceneViewport::RestoreCaptureState(uint32 UserIndex)
-{
-	if (IsCurrentlyGameViewport())
-	{
-		FSlateApplication& SlateApp = FSlateApplication::Get();
-
-		const bool bPermanentCapture =
-			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently) ||
-			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
-
-		if (SlateApp.IsActive() && !ViewportClient->IgnoreInput() && bPermanentCapture)
-		{
-			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
-
-			FWidgetPath PathToWidget;
-			SlateApp.GeneratePathToWidgetUnchecked(ViewportWidgetRef, PathToWidget);
-
-			FReply Reply = AcquireFocusAndCapture(GetSizeXY() / 2);
-			SlateApp.ProcessReply(PathToWidget, Reply, nullptr, nullptr, UserIndex);
-
-			return true;
-		}
-	}
-	return false;
-}
-
 FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 {
 	bShouldCaptureMouseOnActivate = false;
@@ -481,6 +468,13 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 	UWorld* World = ViewportClient->GetWorld();
 	if (World && World->IsGameWorld() && World->GetGameInstance() && (World->GetGameInstance()->GetFirstLocalPlayerController() || World->IsPlayInEditor()))
 	{
+		ReplyState.CaptureMouse(ViewportWidgetRef);
+
+		if (ViewportClient->LockDuringCapture())
+		{
+			ReplyState.LockMouseToWidget(ViewportWidgetRef);
+		}
+
 		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
 		bool bShouldShowMouseCursor = PC && PC->ShouldShowMouseCursor();
 		if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
@@ -490,11 +484,6 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 		}
 		if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
 		{
-			ReplyState.CaptureMouse(ViewportWidgetRef);
-			if (ViewportClient->LockDuringCapture())
-			{
-				ReplyState.LockMouseToWidget(ViewportWidgetRef);
-			}
 			ReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 		}
 	}
@@ -1084,6 +1073,48 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 		{
 			NewWindowMode = GetWindowModeType(NewWindowMode);
 
+			const FVector2D WindowPos = WindowToResize->GetPositionInScreen();
+			const FVector2D WindowSize = WindowToResize->GetClientSizeInScreen();
+
+			TOptional<FVector2D> NewWindowPos;
+			FVector2D NewWindowSize(NewWindowSizeX, NewWindowSizeY);
+
+			const FSlateRect BestWorkArea = FSlateApplication::Get().GetWorkArea(FSlateRect::FromPointAndExtent(WindowPos, WindowSize));
+
+			// A switch to window mode should position the window to be in the center of the work-area (we don't do this if we were already in window mode to allow the user to move the window)
+			// Fullscreen modes should position the window to the top-left of the work-area
+			if (NewWindowMode == EWindowMode::Windowed)
+			{
+				if (WindowMode == EWindowMode::Windowed && NewWindowSize == WindowSize)
+				{
+					// Leave the window position alone!
+					NewWindowPos.Reset();
+				}
+				else
+				{
+					const FVector2D BestWorkAreaTopLeft = BestWorkArea.GetTopLeft();
+					const FVector2D BestWorkAreaSize = BestWorkArea.GetSize();
+
+					FVector2D CenteredWindowPos = BestWorkAreaTopLeft;
+
+					if (NewWindowSize.X < BestWorkAreaSize.X)
+					{
+						CenteredWindowPos.X += FMath::Max(0.0f, (BestWorkAreaSize.X - NewWindowSize.X) * 0.5f);
+					}
+
+					if (NewWindowSize.Y < BestWorkAreaSize.Y)
+					{
+						CenteredWindowPos.Y += FMath::Max(0.0f, (BestWorkAreaSize.Y - NewWindowSize.Y) * 0.5f);
+					}
+
+					NewWindowPos = CenteredWindowPos;
+				}
+			}
+			else
+			{
+				NewWindowPos = BestWorkArea.GetTopLeft();
+			}
+
 			// If we're going into windowed fullscreen mode, we always want the window to fill the entire screen.
 			// When we calculate the scene view, we'll check the fullscreen mode and configure the screen percentage
 			// scaling so we actual render to the resolution we've been asked for.
@@ -1091,15 +1122,14 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 			{
 				FDisplayMetrics DisplayMetrics;
 				FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
-				NewWindowSizeX = DisplayMetrics.PrimaryDisplayWidth;
-				NewWindowSizeY = DisplayMetrics.PrimaryDisplayHeight;
-			}
 
-			// Resize window
-			FVector2D WindowPos = WindowToResize->GetPositionInScreen();
-			FVector2D WindowSize = WindowToResize->GetClientSizeInScreen();
-			FVector2D NewWindowSize(NewWindowSizeX, NewWindowSizeY);
-			TOptional<FVector2D> NewWindowPos;
+				// todo: this assumes that all your displays have the same resolution as your primary display
+				// we need a way to query the display size for a rect (the work area size isn't the same thing), but for now we force the window to be on the primary display
+				NewWindowPos = FVector2D(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+
+				NewWindowSize.X = DisplayMetrics.PrimaryDisplayWidth;
+				NewWindowSize.Y = DisplayMetrics.PrimaryDisplayHeight;
+			}
 
 			IHeadMountedDisplay::MonitorInfo MonitorInfo;
 			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
@@ -1112,6 +1142,7 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 				}
 			}
 
+			// Resize window
 			if (NewWindowSize != WindowSize || (NewWindowPos.IsSet() && NewWindowPos != WindowPos) || NewWindowMode != WindowMode)
 			{
 				WindowToResize->SetWindowMode(NewWindowMode);
@@ -1191,8 +1222,6 @@ void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMod
 		bIsResizing = true;
 
 		UpdateViewportRHI(false, NewSizeX, NewSizeY, NewWindowMode);
-
-		FSystemResolution::RequestResolutionChange(NewSizeX, NewSizeY, NewWindowMode);
 
 		if (ViewportClient)
 		{

@@ -63,6 +63,10 @@ class ENGINE_API UAudioSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category="Quality")
 	TArray<FAudioQualitySettings> QualityLevels;
 
+	/** Allows sounds to play at 0 volume. */
+	UPROPERTY(config, EditAnywhere, Category = "Quality")
+	uint32 bAllowVirtualizedSounds:1;
+
 	/**
 	 * The format string to use when generating the filename for contexts within dialogue waves. This must generate unique names for your project.
 	 * Available format markers:

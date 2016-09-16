@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 FOnShowDebugInfo AHUD::OnShowDebugInfo;
 
-// How opaque should the safe zone visualization be?
+// Should we visualize the safe zone? (and if so, title or action?)
 TAutoConsoleVariable<int32> GSafeZoneVisualizationModeCVar(
 	TEXT("r.DebugSafeZone.Mode"),
 	0,
@@ -150,7 +150,7 @@ void AHUD::PostRender()
 			ShowDebugInfo(DebugCanvas->DisplayDebugManager.GetMaxCharHeightRef(), DebugCanvas->DisplayDebugManager.GetYPosRef());
 		}
 	}
-	else if ( bShowHUD )
+	else if ( bShowHUD && FApp::CanEverRender() )
 	{
 		DrawHUD();
 		

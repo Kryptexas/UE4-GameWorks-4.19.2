@@ -118,6 +118,10 @@ public:
 	TSharedPtr< FUICommandInfo > ConvertToBSEvaluator;
 	TSharedPtr< FUICommandInfo > ConvertToBSPlayer;
 
+	// options for aimoffset converter
+	TSharedPtr< FUICommandInfo > ConvertToAimOffsetLookAt;
+	TSharedPtr< FUICommandInfo > ConvertToAimOffsetSimple;
+
 	// options for sequence/evaluator converter
 	TSharedPtr< FUICommandInfo > ConvertToPoseBlender;
 	TSharedPtr< FUICommandInfo > ConvertToPoseByName;

@@ -2,6 +2,9 @@
 
 #pragma once
 
+class ISequencer;
+class FMovieSceneSequenceInstance;
+class IMovieScenePlayer;
 class UMovieSceneSection;
 class UMovieScene;
 
@@ -94,7 +97,7 @@ public:
 	 * @param OnSelectionChanged Delegate fired when selection is changed
 	 * @return The new widget
 	 */
-	static TSharedRef<SWidget> MakeEnumComboBox(const UEnum* Enum, TAttribute<int32> CurrentValue, FOnEnumSelectionChanged OnSelectionChanged, TAttribute<TOptional<uint8>> InIntermediateValue);
+	static TSharedRef<SWidget> MakeEnumComboBox(const UEnum* Enum, TAttribute<int32> CurrentValue, FOnEnumSelectionChanged OnSelectionChanged);
 
 
 	/**
@@ -121,8 +124,8 @@ public:
 	 * Import FBX
 	 *
 	 * @param InMovieScene The movie scene to import the fbx into
-	 * @param InObjectBinding The object to import fbx animation onto
+	 * @param InObjectBindingNameMap The object binding to name map to map import fbx animation onto
 	 * @return Whether the import was successful
 	 */
-	static bool ImportFBX(UMovieScene* InMovieScene, FGuid InObjectBinding);
+	static bool ImportFBX(UMovieScene* InMovieScene, FMovieSceneSequenceInstance& InSequence, ISequencer& InSequencer, const TMap<FGuid, FString>& InObjectBindingNameMap);
 };

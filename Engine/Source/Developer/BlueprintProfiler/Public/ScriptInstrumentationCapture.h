@@ -13,18 +13,18 @@ public:
 
 	FScriptInstrumentedEvent() {}
 
-	bool operator == (const FScriptInstrumentedEvent& OtherIn) const;
-
-	FScriptInstrumentedEvent(EScriptInstrumentation::Type InEventType, const FString& InPathData)
+	FScriptInstrumentedEvent(EScriptInstrumentation::Type InEventType, const FName InFunctionClassScopeName, const FString& InPathData)
 		: EventType(InEventType)
+		, FunctionClassScopeName(InFunctionClassScopeName)
 		, PathData(InPathData)
 		, CodeOffset(-1)
 		, Time(FPlatformTime::Seconds())
 	{
 	}
 
-	FScriptInstrumentedEvent(EScriptInstrumentation::Type InEventType, const FName InFunctionName, const int32 InCodeOffset)
+	FScriptInstrumentedEvent(EScriptInstrumentation::Type InEventType, const FName InFunctionClassScopeName, const FName InFunctionName, const int32 InCodeOffset = INDEX_NONE)
 		: EventType(InEventType)
+		, FunctionClassScopeName(InFunctionClassScopeName)
 		, FunctionName(InFunctionName)
 		, CodeOffset(InCodeOffset)
 		, Time(FPlatformTime::Seconds())
@@ -41,10 +41,19 @@ public:
 	void OverrideType(const EScriptInstrumentation::Type NewType) { EventType = NewType; }
 
 	/** Returns the object path for the object that triggered this event */
-	const FString& GetObjectPath() const { return PathData; }
+	const FString& GetBlueprintClassPath() const { return PathData; }
 
-	/** Returns the function name the event occurred in */
+	/** Returns the object path for the object that triggered this event */
+	const FString& GetInstancePath() const { return PathData; }
+
+	/** Returns the function name the signal was emitted from */
 	FName GetFunctionName() const { return FunctionName; }
+
+	/** Returns the scoped function name signal was emitted from */
+	FName GetScopedFunctionName() const;
+
+	/** Returns the function scope name the signal was emitted from */
+	FName GetFunctionClassScopeName() const { return FunctionClassScopeName; }
 
 	/** Returns the script offset at the time this event was generated */
 	int32 GetScriptCodeOffset() const { return CodeOffset; }
@@ -80,9 +89,11 @@ protected:
 	
 	/** The event type */
 	EScriptInstrumentation::Type EventType;
+	/** The function class scope name, this indicates the owning class of the current function */
+	FName FunctionClassScopeName;
 	/** The owning function name */
 	FName FunctionName;
-	/** The object path for the object emitting the event */
+	/** The object / blueprint class path for the object emitting the event */
 	FString PathData;
 	/** The script code offset when this event was emitted */
 	int32 CodeOffset;
@@ -98,7 +109,7 @@ class FInstrumentationCaptureContext
 public:
 
 	/** Update the current execution context, and emit events to signal changes */
-	void UpdateContext(const UObject* InContextObject, TArray<FScriptInstrumentedEvent>& InstrumentationQueue);
+	void UpdateContext(const FScriptInstrumentationSignal& InstrumentSignal, TArray<FScriptInstrumentedEvent>& InstrumentationQueue);
 
 	/** Reset the current event context */
 	void ResetContext();
@@ -107,6 +118,10 @@ private:
 
 	/** The current class/blueprint context */
 	TWeakObjectPtr<const UClass> ContextClass;
+	/** The current function class scope */
+	TWeakObjectPtr<const UClass> ContextFunctionClassScope;
 	/** The current instance context */
 	TWeakObjectPtr<const UObject> ContextObject;
+	/** The current event context */
+	FName ActiveEvent;
 };

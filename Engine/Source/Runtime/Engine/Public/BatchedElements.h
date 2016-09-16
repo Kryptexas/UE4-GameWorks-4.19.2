@@ -4,8 +4,7 @@
 	BatchedElements.h: Batched element rendering.
 =============================================================================*/
 
-#ifndef _INC_BATCHEDELEMENTS
-#define _INC_BATCHEDELEMENTS
+#pragma once
 
 #include "HitProxies.h"
 #include "StaticBoundShaderState.h"
@@ -360,4 +359,3 @@ private:
 		) const;
 };
 
-#endif

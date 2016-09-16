@@ -5,7 +5,7 @@
 =============================================================================*/
 
 // #todo-rco: Fix in the cross-compiler
-#if COMPILER_GLSL || COMPILER_GLSL_ES2 || COMPILER_METAL || VULKAN_PROFILE || COMPILER_HLSLCC
+#if COMPILER_GLSL || COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1 || COMPILER_METAL || VULKAN_PROFILE || COMPILER_HLSLCC
 #define log10(x)  log(x) / log(10.0)
 #endif
 
@@ -244,20 +244,36 @@ float3 InverseACESOutputTransformsRGBD65( float3 OutputReferredLinearsRGBColor )
 }
 
 //
-// ACES P3 D60 PQ 2000 nit Output Transform - Forward and Inverse
+// ACES D65 1000 nit Output Transform - Forward
 //  Input is scene-referred linear values in the sRGB gamut
 //  Output is output-referred linear values in the AP1 gamut
 //
-float3 ACESOutputTransformsP3D60PQ2000( float3 SceneReferredLinearsRGBColor )
+float3 ACESOutputTransforms1000( float3 SceneReferredLinearsRGBColor )
 {
 	const float3x3 sRGB_2_AP0 = mul( XYZ_2_AP0_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
 
-	// Bring values up two stops as the ACES Output Transforms tend to be dark
-	float3 aces = mul( sRGB_2_AP0, SceneReferredLinearsRGBColor * 4 );
+	float3 aces = mul( sRGB_2_AP0, SceneReferredLinearsRGBColor * 1.5 );
 	float3 oces = RRT( aces );
-	float3 OutputReferredLinearAP1Color =  ODT_Academy_P3D60_PQ_2000nits( oces );
+	float3 OutputReferredLinearAP1Color = ODT_1000nits( oces );
 	return OutputReferredLinearAP1Color;
 }
+
+//
+// ACES D65 2000 nit Output Transform - Forward
+//  Input is scene-referred linear values in the sRGB gamut
+//  Output is output-referred linear values in the AP1 gamut
+//
+float3 ACESOutputTransforms2000( float3 SceneReferredLinearsRGBColor )
+{
+	const float3x3 sRGB_2_AP0 = mul( XYZ_2_AP0_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
+
+	float3 aces = mul( sRGB_2_AP0, SceneReferredLinearsRGBColor * 1.5 );
+	float3 oces = RRT( aces );
+	float3 OutputReferredLinearAP1Color = ODT_2000nits( oces );
+	return OutputReferredLinearAP1Color;
+}
+
+static const float3x3 GamutMappingIdentityMatrix = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 };
 
 //
 // Gamut conversion matrices
@@ -276,17 +292,16 @@ float3x3 OuputGamutMappingMatrix( uint OutputGamut )
 	// 3 = ACES AP0 - D60
 	// 4 = ACES AP1 - D60
 
-	float3x3 GamutMappingMatrix = AP1_2_sRGB;
 	if( OutputGamut == 1 )
-		GamutMappingMatrix = AP1_2_DCI_D65;
+		return AP1_2_DCI_D65;
 	else if( OutputGamut == 2 )
-		GamutMappingMatrix = AP1_2_Rec2020;
+		return AP1_2_Rec2020;
 	else if( OutputGamut == 3 )
-		GamutMappingMatrix = AP1_2_AP0_MAT;
+		return AP1_2_AP0_MAT;
 	else if( OutputGamut == 4 )
-		GamutMappingMatrix = float3x3(1,0,0,0,1,0,0,0,1);
-
-	return GamutMappingMatrix;
+		return GamutMappingIdentityMatrix;
+	else
+		return AP1_2_sRGB;
 }
 
 float3x3 OuputInverseGamutMappingMatrix( uint OutputGamut )

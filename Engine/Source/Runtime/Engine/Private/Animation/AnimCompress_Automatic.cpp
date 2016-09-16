@@ -21,7 +21,7 @@ UAnimCompress_Automatic::UAnimCompress_Automatic(const FObjectInitializer& Objec
 	bRaiseMaxErrorToExisting = AnimationSettings->bRaiseMaxErrorToExisting;
 }
 
-
+#if WITH_EDITOR
 void UAnimCompress_Automatic::DoReduction(UAnimSequence* AnimSeq, const TArray<FBoneData>& BoneData)
 {
 	FAnimCompressContext CompressContext(MaxEndEffectorError > 0.0f, false);
@@ -56,3 +56,5 @@ void UAnimCompress_Automatic::PopulateDDCKey(FArchive& Ar)
 					MakeBitForFlag(bRaiseMaxErrorToExisting, 6);
 	Ar << Flags;
 }
+
+#endif // WITH_EDITOR

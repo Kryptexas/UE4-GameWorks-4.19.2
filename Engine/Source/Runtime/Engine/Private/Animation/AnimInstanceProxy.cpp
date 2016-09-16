@@ -221,6 +221,12 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	if (UAnimBlueprint* AnimBlueprint = GetAnimBlueprint())
 	{
 		bIsBeingDebugged = (InAnimInstance && (AnimBlueprint->GetObjectBeingDebugged() == InAnimInstance));
+		if(bIsBeingDebugged)
+		{
+			UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());
+			FAnimBlueprintDebugData& DebugData = AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData();
+			PoseWatchEntriesForThisFrame = DebugData.AnimNodePoseWatch;
+		}
 	}
 #endif
 
@@ -234,8 +240,13 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 {
 #if WITH_EDITORONLY_DATA
-	UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());
-	AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData().RecordNodeVisitArray(UpdatedNodesThisFrame);
+	if(bIsBeingDebugged)
+	{
+		UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());
+		FAnimBlueprintDebugData& DebugData = AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData();
+		DebugData.RecordNodeVisitArray(UpdatedNodesThisFrame);
+		DebugData.AnimNodePoseWatch = MoveTemp(PoseWatchEntriesForThisFrame);
+	}
 #endif
 	InAnimInstance->NotifyQueue.Append(NotifyQueue);
 	InAnimInstance->NotifyQueue.ApplyMontageNotifies(*this);
@@ -353,7 +364,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 			// Tick the group leader
 			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, bOnlyOneAnimationInGroup, SyncGroup.ValidMarkers);
 			// initialize to invalidate first
-			check(SyncGroup.GroupLeaderIndex == INDEX_NONE);
+			ensureMsgf(SyncGroup.GroupLeaderIndex == INDEX_NONE, TEXT("SyncGroup with GroupIndex=%d had a non -1 group leader index of %d in asset %s"), GroupIndex, SyncGroup.GroupLeaderIndex, *GetNameSafe(SkeletalMeshComponent));
 			int32 GroupLeaderIndex = 0;
 			for (; GroupLeaderIndex < SyncGroup.ActivePlayers.Num(); ++GroupLeaderIndex)
 			{
@@ -365,7 +376,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 
 				if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 				{
-					ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
+					ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, GroupLeader.GetRootMotionWeight());
 				}
 
 				// if we're not using marker based sync, we don't care, get out
@@ -424,7 +435,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 					}
 					if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 					{
-						ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayer.EffectiveBlendWeight);
+						ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, AssetPlayer.GetRootMotionWeight());
 					}
 				}
 			}
@@ -448,7 +459,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 		}
 		if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 		{
-			ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, AssetPlayerToTick.EffectiveBlendWeight);
+			ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams, AssetPlayerToTick.GetRootMotionWeight());
 		}
 	}
 }
@@ -762,16 +773,21 @@ void FAnimInstanceProxy::EvaluateAnimation(FPoseContext& Output)
 	// Evaluate native code if implemented, otherwise evaluate the node graph
 	if (!Evaluate(Output))
 	{
-		if (RootNode != NULL)
-		{
-			ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimGraph, !IsInGameThread());
-			EvaluationCounter.Increment();
-			RootNode->Evaluate(Output);
-		}
-		else
-		{
-			Output.ResetToRefPose();
-		}
+		EvaluateAnimationNode(Output);
+	}
+}
+
+void FAnimInstanceProxy::EvaluateAnimationNode(FPoseContext& Output)
+{
+	if (RootNode != NULL)
+	{
+		ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimGraph, !IsInGameThread());
+		EvaluationCounter.Increment();
+		RootNode->Evaluate(Output);
+	}
+	else
+	{
+		Output.ResetToRefPose();
 	}
 }
 
@@ -1130,7 +1146,21 @@ float FAnimInstanceProxy::GetInstanceTransitionCrossfadeDuration(int32 MachineIn
 float FAnimInstanceProxy::GetInstanceTransitionTimeElapsed(int32 MachineIndex, int32 TransitionIndex)
 {
 	// Just an alias for readability in the anim graph
-	return GetInstanceCurrentStateElapsedTime(MachineIndex);
+	if(FAnimNode_StateMachine* MachineInstance = GetStateMachineInstance(MachineIndex))
+	{
+		if(MachineInstance->IsValidTransitionIndex(TransitionIndex))
+		{
+			for(FAnimationActiveTransitionEntry& ActiveTransition : MachineInstance->ActiveTransitionArray)
+			{
+				if(ActiveTransition.SourceTransitionIndices.Contains(TransitionIndex))
+				{
+					return ActiveTransition.ElapsedTime;
+				}
+			}
+		}
+	}
+
+	return 0.0f;
 }
 
 float FAnimInstanceProxy::GetInstanceTransitionTimeElapsedFraction(int32 MachineIndex, int32 TransitionIndex)
@@ -1139,7 +1169,13 @@ float FAnimInstanceProxy::GetInstanceTransitionTimeElapsedFraction(int32 Machine
 	{
 		if(MachineInstance->IsValidTransitionIndex(TransitionIndex))
 		{
-			return MachineInstance->GetCurrentStateElapsedTime() / MachineInstance->GetTransitionInfo(TransitionIndex).CrossfadeDuration;
+			for(FAnimationActiveTransitionEntry& ActiveTransition : MachineInstance->ActiveTransitionArray)
+			{
+				if(ActiveTransition.SourceTransitionIndices.Contains(TransitionIndex))
+				{
+					return ActiveTransition.ElapsedTime / ActiveTransition.CrossfadeDuration;
+				}
+			}
 		}
 	}
 
@@ -1619,5 +1655,39 @@ void FAnimInstanceProxy::ResetDynamics()
 		Node->ResetDynamics();
 	}
 }
+
+#if WITH_EDITOR
+void FAnimInstanceProxy::RegisterWatchedPose(const FCompactPose& Pose, int32 LinkID)
+{
+	if(bIsBeingDebugged)
+	{
+		for (FAnimNodePoseWatch& PoseWatch : PoseWatchEntriesForThisFrame)
+		{
+			if (PoseWatch.NodeID == LinkID)
+			{
+				PoseWatch.PoseInfo->CopyBonesFrom(Pose);
+				break;
+			}
+		}
+	}
+}
+
+void FAnimInstanceProxy::RegisterWatchedPose(const FCSPose<FCompactPose>& Pose, int32 LinkID)
+{
+	if (bIsBeingDebugged)
+	{
+		for (FAnimNodePoseWatch& PoseWatch : PoseWatchEntriesForThisFrame)
+		{
+			if (PoseWatch.NodeID == LinkID)
+			{
+				FCompactPose TempPose;
+				Pose.ConvertToLocalPoses(TempPose);
+				PoseWatch.PoseInfo->CopyBonesFrom(TempPose);
+				break;
+			}
+		}
+	}
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

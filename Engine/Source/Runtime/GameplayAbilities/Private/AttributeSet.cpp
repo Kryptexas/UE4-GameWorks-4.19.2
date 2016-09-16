@@ -64,6 +64,8 @@ FGameplayAttribute::FGameplayAttribute(UProperty *NewProperty)
 
 void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttributeSet* Dest) const
 {
+	check(Dest);
+
 	UNumericProperty* NumericProperty = Cast<UNumericProperty>(Attribute);
 	float OldValue = 0.f;
 	if (NumericProperty)
@@ -92,7 +94,7 @@ void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttribute
 	// draw a graph of the changes to the attribute in the visual logger
 	if (bDoAttributeGraphVLogging && FVisualLogger::IsRecording())
 	{
-		AActor* OwnerActor = Dest->GetOwningAbilitySystemComponent()->OwnerActor;
+		AActor* OwnerActor = Dest->GetOwningActor();
 		if (OwnerActor)
 		{
 			ABILITY_VLOG_ATTRIBUTE_GRAPH(OwnerActor, Log, GetName(), OldValue, NewValue);
@@ -194,19 +196,22 @@ bool FGameplayAttribute::IsGameplayAttributeDataProperty(const UProperty* Proper
 // Fill in missing attribute information
 void FGameplayAttribute::PostSerialize(const FArchive& Ar)
 {
-	if (AttributeName.IsEmpty() || AttributeOwner == nullptr)
+	if (Ar.IsLoading() && Ar.IsPersistent() && !Ar.HasAnyPortFlags(PPF_Duplicate | PPF_DuplicateForPIE))
 	{
 		if (Attribute)
 		{
 			AttributeOwner = Attribute->GetOwnerStruct();
 			Attribute->GetName(AttributeName);
 		}
-	}
-	else
-	{
-		if (!Attribute)
+		else if (!AttributeName.IsEmpty() && AttributeOwner != nullptr)
 		{
 			Attribute = FindField<UProperty>(AttributeOwner, *AttributeName);
+
+			if (!Attribute)
+			{
+				FString OwnerName = AttributeOwner ? AttributeOwner->GetName() : TEXT("NONE");
+				ABILITY_LOG(Warning, TEXT("FGameplayAttribute::PostSerialize called on an invalid attribute with owner %s and name %s."), *OwnerName, *AttributeName);
+			}
 		}
 	}
 }
@@ -262,7 +267,7 @@ void UAttributeSet::InitFromMetaDataTable(const UDataTable* DataTable)
 
 UAbilitySystemComponent* UAttributeSet::GetOwningAbilitySystemComponent() const
 {
-	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(CastChecked<AActor>(GetOuter()));
+	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwningActor());
 }
 
 FGameplayAbilityActorInfo* UAttributeSet::GetActorInfo() const
@@ -592,6 +597,7 @@ void FAttributeSetInitterDiscreteLevels::PreloadAttributeSetData(const TArray<UC
 void FAttributeSetInitterDiscreteLevels::InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level, bool bInitialInit) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_InitAttributeSetDefaults);
+	check(AbilitySystemComponent != nullptr);
 	
 	const FAttributeSetDefaultsCollection* Collection = Defaults.Find(GroupName);
 	if (!Collection)
@@ -717,36 +723,39 @@ static bool CheckForBadScalableFloats_Prop_r(void* Data, UProperty* Prop, UClass
 		if (StructProperty->Struct == FScalableFloat::StaticStruct())
 		{
 			FScalableFloat* ThisScalableFloat = static_cast<FScalableFloat*>(InnerData);
-			if (ThisScalableFloat && ThisScalableFloat->IsValid() == false)
+			if (ThisScalableFloat)
 			{
-				if (ThisScalableFloat->Curve.RowName == NAME_None)
+				if (ThisScalableFloat->IsValid() == false)
 				{
-					// Just fix this case up here
-					ThisScalableFloat->Curve.CurveTable = nullptr;
-					GCurrentBadScalableFloat.Asset->MarkPackageDirty();
-				}
-				else if (ThisScalableFloat->Curve.CurveTable == nullptr)
-				{
-					// Just fix this case up here
-					ThisScalableFloat->Curve.RowName = NAME_None;
-					GCurrentBadScalableFloat.Asset->MarkPackageDirty();
-				}
-				else
-				{
-					GCurrentBadScalableFloat.Property = Prop;
-					GCurrentBadScalableFloat.String = ThisScalableFloat->ToSimpleString();
+					if (ThisScalableFloat->Curve.RowName == NAME_None)
+					{
+						// Just fix this case up here
+						ThisScalableFloat->Curve.CurveTable = nullptr;
+						GCurrentBadScalableFloat.Asset->MarkPackageDirty();
+					}
+					else if (ThisScalableFloat->Curve.CurveTable == nullptr)
+					{
+						// Just fix this case up here
+						ThisScalableFloat->Curve.RowName = NAME_None;
+						GCurrentBadScalableFloat.Asset->MarkPackageDirty();
+					}
+					else
+					{
+						GCurrentBadScalableFloat.Property = Prop;
+						GCurrentBadScalableFloat.String = ThisScalableFloat->ToSimpleString();
 
-					GCurrentBadScalableFloatList.Add(GCurrentBadScalableFloat);
+						GCurrentBadScalableFloatList.Add(GCurrentBadScalableFloat);
+					}
 				}
-			}
-			else 
-			{
-				if (ThisScalableFloat->Curve.CurveTable != nullptr && ThisScalableFloat->Value != 1.f)
+				else 
 				{
-					GCurrentBadScalableFloat.Property = Prop;
-					GCurrentBadScalableFloat.String = ThisScalableFloat->ToSimpleString();
+					if (ThisScalableFloat->Curve.CurveTable != nullptr && ThisScalableFloat->Value != 1.f)
+					{
+						GCurrentBadScalableFloat.Property = Prop;
+						GCurrentBadScalableFloat.String = ThisScalableFloat->ToSimpleString();
 
-					GCurrentNaughtyScalableFloatList.Add(GCurrentBadScalableFloat);
+						GCurrentNaughtyScalableFloatList.Add(GCurrentBadScalableFloat);
+					}
 				}
 			}
 		}

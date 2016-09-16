@@ -13,6 +13,7 @@
 #include "DerivedDataCacheInterface.h"
 #include "EditorFramework/AssetImportData.h"
 #include "CookStats.h"
+#include "FrameworkObjectVersion.h"
 
 #if ENABLE_COOK_STATS
 namespace SoundWaveCookStats
@@ -187,14 +188,12 @@ void USoundWave::Serialize( FArchive& Ar )
 		UE_LOG(LogAudio, Fatal, TEXT("This platform requires cooked packages, and audio data was not cooked into %s."), *GetFullName());
 	}
 
-	if (Ar.IsCooking())
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.IsLoading() && (Ar.UE4Ver() >= VER_UE4_SOUND_COMPRESSION_TYPE_ADDED) && (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::RemoveSoundWaveCompressionName))
 	{
-		CompressionName = Ar.CookingTarget()->GetWaveFormat(this);
-	}
-	
-	if (Ar.UE4Ver() >= VER_UE4_SOUND_COMPRESSION_TYPE_ADDED)
-	{
-		Ar << CompressionName;
+		FName DummyCompressionName;
+		Ar << DummyCompressionName;
 	}
 
 	bool bSupportsStreaming = false;
@@ -311,11 +310,21 @@ void USoundWave::PostInitProperties()
 #endif
 }
 
+bool USoundWave::HasCompressedData(FName Format) const
+{
+	if (IsTemplate() || IsRunningDedicatedServer())
+	{
+		return false;
+	}
+
+	return CompressedFormatData.Contains(Format);
+}
+
 FByteBulkData* USoundWave::GetCompressedData(FName Format)
 {
 	if (IsTemplate() || IsRunningDedicatedServer())
 	{
-		return NULL;
+		return nullptr;
 	}
 	bool bContainedData = CompressedFormatData.Contains(Format);
 	FByteBulkData* Result = &CompressedFormatData.GetFormat(Format);
@@ -550,13 +559,16 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 	if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
 	{
 		FQueueSubtitleParams QueueSubtitleParams(Subtitles);
-		QueueSubtitleParams.AudioComponentID = ActiveSound.GetAudioComponentID();
-		QueueSubtitleParams.WorldPtr = ActiveSound.GetWeakWorld();
-		QueueSubtitleParams.WaveInstance = (PTRINT)WaveInstance;
-		QueueSubtitleParams.SubtitlePriority = ActiveSound.SubtitlePriority;
-		QueueSubtitleParams.Duration = Duration;
-		QueueSubtitleParams.bManualWordWrap = bManualWordWrap;
-		QueueSubtitleParams.bSingleLine = bSingleLine;
+		{
+			QueueSubtitleParams.AudioComponentID = ActiveSound.GetAudioComponentID();
+			QueueSubtitleParams.WorldPtr = ActiveSound.GetWeakWorld();
+			QueueSubtitleParams.WaveInstance = (PTRINT)WaveInstance;
+			QueueSubtitleParams.SubtitlePriority = ActiveSound.SubtitlePriority;
+			QueueSubtitleParams.Duration = Duration;
+			QueueSubtitleParams.bManualWordWrap = bManualWordWrap;
+			QueueSubtitleParams.bSingleLine = bSingleLine;
+			QueueSubtitleParams.RequestedStartTime = ActiveSound.RequestedStartTime;
+		}
 
 		FSubtitleManager::QueueSubtitles(QueueSubtitleParams);
 	}
@@ -634,6 +646,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		// Propagate properties and add WaveInstance to outgoing array of FWaveInstances.
 		WaveInstance->Volume = ParseParams.Volume * Volume;
 		WaveInstance->VolumeMultiplier = ParseParams.VolumeMultiplier;
+		WaveInstance->VolumeApp = ParseParams.VolumeApp;
 		WaveInstance->Pitch = ParseParams.Pitch * Pitch;
 		WaveInstance->bEnableLowPassFilter = ParseParams.bEnableLowPassFilter;
 		WaveInstance->bIsOccluded = ParseParams.bIsOccluded;
@@ -724,7 +737,11 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 			WaveInstance->SpatializationAlgorithm = ParseParams.SpatializationAlgorithm;
 		}
 
-		WaveInstances.Add(WaveInstance);
+		// Only append to the wave instances list if we're virtual (always append) or we're audible (non-zero volume)
+		if (WaveInstance->GetVolume() > KINDA_SMALL_NUMBER || (bVirtualizeWhenSilent && AudioDevice->VirtualSoundsEnabled()))
+		{
+			WaveInstances.Add(WaveInstance);
+		}
 
 		// We're still alive.
 		ActiveSound.bFinished = false;

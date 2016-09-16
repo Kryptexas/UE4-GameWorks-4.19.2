@@ -17,7 +17,7 @@ namespace AutomationTool
 	{
 		#region Intialization
 
-		private static Dictionary<UnrealTargetPlatform, Platform> AllPlatforms = new Dictionary<UnrealTargetPlatform, Platform>();
+		private static Dictionary<TargetPlatformDescriptor, Platform> AllPlatforms = new Dictionary<TargetPlatformDescriptor, Platform>();
 		internal static void InitializePlatforms(Assembly[] AssembliesWithPlatforms = null)
 		{
 			LogVerbose("Creating platforms.");
@@ -30,12 +30,12 @@ namespace AutomationTool
 			// Create dummy platforms for platforms we don't support
 			foreach (var PlatformType in Enum.GetValues(typeof(UnrealTargetPlatform)))
 			{
-				var TargetType = (UnrealTargetPlatform)PlatformType;
+				var TargetDesc = new TargetPlatformDescriptor((UnrealTargetPlatform)PlatformType);
 				Platform ExistingInstance;
-				if (AllPlatforms.TryGetValue(TargetType, out ExistingInstance) == false)
+				if (AllPlatforms.TryGetValue(TargetDesc, out ExistingInstance) == false)
 				{
-					LogVerbose("Creating placeholder platform for target: {0}", TargetType);
-					AllPlatforms.Add(TargetType, new Platform(TargetType));
+					LogVerbose("Creating placeholder platform for target: {0}", TargetDesc.Type);
+					AllPlatforms.Add(TargetDesc, new Platform(TargetDesc.Type));
 				}
 			}
 		}
@@ -76,10 +76,12 @@ namespace AutomationTool
 				{
 					LogVerbose("Creating platform {0} from {1}.", PotentialPlatformType.Name, ScriptAssembly.Location);
 					var PlatformInstance = Activator.CreateInstance(PotentialPlatformType) as Platform;
-					Platform ExistingInstance;
-					if (!AllPlatforms.TryGetValue(PlatformInstance.PlatformType, out ExistingInstance))
+                    var PlatformDesc = PlatformInstance.GetTargetPlatformDescriptor();
+
+                    Platform ExistingInstance;
+                    if (!AllPlatforms.TryGetValue(PlatformDesc, out ExistingInstance))
 					{
-						AllPlatforms.Add(PlatformInstance.PlatformType, PlatformInstance);
+						AllPlatforms.Add(PlatformDesc, PlatformInstance);
 					}
 					else
 					{
@@ -109,12 +111,17 @@ namespace AutomationTool
 
 		}
 
-		/// <summary>
-		/// Package files for the current platform.
-		/// </summary>
-		/// <param name="ProjectPath"></param>
-		/// <param name="ProjectExeFilename"></param>
-		public virtual void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
+        public virtual TargetPlatformDescriptor GetTargetPlatformDescriptor()
+        {
+            return new TargetPlatformDescriptor(TargetPlatformType, "");
+        }
+
+        /// <summary>
+        /// Package files for the current platform.
+        /// </summary>
+        /// <param name="ProjectPath"></param>
+        /// <param name="ProjectExeFilename"></param>
+        public virtual void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 		{
 			throw new AutomationException("{0} does not yet implement Packaging.", PlatformType);
 		}
@@ -167,11 +174,11 @@ namespace AutomationTool
 		/// <param name="ClientRunFlags"></param>
 		/// <param name="ClientApp"></param>
 		/// <param name="ClientCmdLine"></param>
-		public virtual ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
+		public virtual IProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 		{
 			PushDir(Path.GetDirectoryName(ClientApp));
 			// Always start client process and don't wait for exit.
-			ProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+			IProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
 			PopDir();
 
 			return ClientProcess;
@@ -181,14 +188,9 @@ namespace AutomationTool
 		/// Allow platform specific clean-up or detection after client has run
 		/// </summary>
 		/// <param name="ClientRunFlags"></param>
-		public virtual void PostRunClient(ProcessResult Result, ProjectParams Params)
+		public virtual void PostRunClient(IProcessResult Result, ProjectParams Params)
 		{
 			// do nothing in the default case
-		}
-
-		public virtual void UploadSymbols(ProjectParams Params, DeploymentContext SC)
-		{
-			Log("{0} does not implement UploadSymbols...", PlatformType);
 		}
 
 		/// <summary>
@@ -300,9 +302,8 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="bDedicatedServer">True if cooking for dedicated server</param>
 		/// <param name="bIsClientOnly">True if cooking for client only</param>
-		/// <param name="CookFlavor">Additional parameter used to indicate special sub-target platform</param>
 		/// <returns>Cook platform string.</returns>
-		public virtual string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
+		public virtual string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 		{
 			throw new AutomationException("{0} does not yet implement GetCookPlatform.", PlatformType);
 		}
@@ -337,11 +338,11 @@ namespace AutomationTool
         {
             if (Params.IsGeneratingPatch)
             {
-                return CombinePaths(Params.GetBasedOnReleaseVersionPath(SC), PakName);
+                return CombinePaths(Params.GetBasedOnReleaseVersionPath(SC, Params.Client), PakName);
             }
             else
             {
-                return CombinePaths(Params.GetCreateReleaseVersionPath(SC), PakName);
+                return CombinePaths(Params.GetCreateReleaseVersionPath(SC, Params.Client), PakName);
             }        
         }
 
@@ -351,7 +352,7 @@ namespace AutomationTool
         /// <returns>Cook platform string.</returns>
         public virtual string GetEditorCookPlatform()
         {
-            return GetCookPlatform(false, false, "");
+            return GetCookPlatform(false, false);
         }
 
 		/// <summary>
@@ -474,11 +475,19 @@ namespace AutomationTool
             return "";
         }
 
-		/// <summary>
-		/// Returns true if the platform wants patches to generate a small .pak file containing the difference
-		/// of current data against a shipped pak file.
-		/// </summary>
-		/// <returns></returns>
+        /// <summary>
+        /// True if this platform is supported.
+        /// </summary>
+        public virtual bool SupportsMultiDeviceDeploy
+        {
+            get { return false; }
+        }
+
+        /// <summary>
+        /// Returns true if the platform wants patches to generate a small .pak file containing the difference
+        /// of current data against a shipped pak file.
+        /// </summary>
+        /// <returns></returns>
         public virtual bool GetPlatformPatchesWithDiffPak(ProjectParams Params, DeploymentContext SC)
 		{
 			return true;
@@ -553,7 +562,7 @@ namespace AutomationTool
 			return true;
 		}
 
-		public virtual bool RetrieveDeployedManifests(ProjectParams Params, DeploymentContext SC, out List<string> UFSManifests, out List<string> NonUFSManifests)
+		public virtual bool RetrieveDeployedManifests(ProjectParams Params, DeploymentContext SC, string DeviceName, out List<string> UFSManifests, out List<string> NonUFSManifests)
 		{
 			UFSManifests = null;
 			NonUFSManifests = null;
@@ -580,8 +589,6 @@ namespace AutomationTool
 			{
 				case UnrealTargetPlatform.Win32:
 				case UnrealTargetPlatform.Win64:
-				case UnrealTargetPlatform.WinRT:
-				case UnrealTargetPlatform.WinRT_ARM:
 				case UnrealTargetPlatform.XboxOne:
 					return ".exe";
 				case UnrealTargetPlatform.PS4:
@@ -596,10 +603,55 @@ namespace AutomationTool
 			return String.Empty;
 		}
 
-		public static Dictionary<UnrealTargetPlatform, Platform> Platforms
+		public static Dictionary<TargetPlatformDescriptor, Platform> Platforms
 		{
 			get { return AllPlatforms; }
 		}
+
+        public static Platform GetPlatform(UnrealTargetPlatform PlatformType)
+        {
+            TargetPlatformDescriptor Desc = new TargetPlatformDescriptor(PlatformType);
+            return AllPlatforms[Desc];
+        }
+
+        public static Platform GetPlatform(UnrealTargetPlatform PlatformType, string CookFlavor)
+        {
+            TargetPlatformDescriptor Desc = new TargetPlatformDescriptor(PlatformType, CookFlavor);
+            return AllPlatforms[Desc];
+        }
+
+        public static bool IsValidTargetPlatform(TargetPlatformDescriptor PlatformDesc)
+        {
+            return AllPlatforms.ContainsKey(PlatformDesc);
+        }
+
+        public static List<TargetPlatformDescriptor> GetValidTargetPlatforms(UnrealTargetPlatform PlatformType, List<string> CookFlavors)
+        {
+            List<TargetPlatformDescriptor> ValidPlatforms = new List<TargetPlatformDescriptor>();
+            if (!CommandUtils.IsNullOrEmpty(CookFlavors))
+            {
+                foreach (string CookFlavor in CookFlavors)
+                {
+                    TargetPlatformDescriptor TargetDesc = new TargetPlatformDescriptor(PlatformType, CookFlavor);
+                    if (IsValidTargetPlatform(TargetDesc))
+                    {
+                        ValidPlatforms.Add(TargetDesc);
+                    }
+                }
+            }
+
+            // In case there are no flavors specified or this platform type does not care/support flavors add it as generic platform 
+            if (ValidPlatforms.Count == 0)
+            {
+                TargetPlatformDescriptor TargetDesc = new TargetPlatformDescriptor(PlatformType);
+                if (IsValidTargetPlatform(TargetDesc))
+                {
+                    ValidPlatforms.Add(TargetDesc);
+                }
+            }
+
+            return ValidPlatforms;
+        }
 
 		#endregion
 	}

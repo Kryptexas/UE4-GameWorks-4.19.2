@@ -982,8 +982,8 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 	ConditionalUpdateComponentToWorld();
 	
 #if ENABLE_NAN_DIAGNOSTIC
-	bool NaN = NewRotation.ContainsNaN();
-	if (NaN)
+	const bool bNaN = NewRotation.ContainsNaN();
+	if (bNaN)
 	{
 		logOrEnsureNanError(TEXT("USceneComponent::SetRelativeLocationAndRotation contains NaN is NewRotation. %s "), *GetNameSafe(GetOwner()));
 	}
@@ -996,10 +996,10 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 		}
 	}
 #else
-	bool NaN = false;
+	const bool bNaN = false;
 #endif
 
-	const FTransform DesiredRelTransform(NaN ? FQuat::Identity :NewRotation, NewLocation);
+	const FTransform DesiredRelTransform((bNaN ? FQuat::Identity : NewRotation), NewLocation);
 	const FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
 	const FVector DesiredDelta = FTransform::SubtractTranslations(DesiredWorldTransform, ComponentToWorld);
 
@@ -1590,9 +1590,10 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 			//We must fixup the relative location,rotation,scale as the attachment is no longer valid. Blueprint uses simple construction to try and attach before ComponentToWorld has ever been updated, so we cannot rely on it.
 			//As such we must calculate the proper Relative information
 			//Also physics state may not be created yet so we use bSimulatePhysics to determine if the object has any intention of being physically simulated
-			UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this);
+			UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(this);
+			FBodyInstance* BI = PrimitiveComponent ? PrimitiveComponent->GetBodyInstance() : nullptr;
 
-			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !AttachmentRules.bWeldSimulatedBodies)
+			if (BI && BI->bSimulatePhysics && !AttachmentRules.bWeldSimulatedBodies)
 			{
 				UWorld* MyWorld = GetWorld();
 				if (MyWorld && MyWorld->IsGameWorld())
@@ -2061,6 +2062,7 @@ FTransform USceneComponent::GetSocketTransform(FName SocketName, ERelativeTransf
 			break;
 		}
 		case RTS_Component:
+		case RTS_ParentBoneSpace:
 		{
 			return FTransform::Identity;
 		}

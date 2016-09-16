@@ -39,7 +39,7 @@ public:
 
 	virtual ~FPersona();
 
-	TSharedPtr<SDockTab> OpenNewDocumentTab(class UAnimationAsset* InAnimAsset);
+	TSharedPtr<SDockTab> OpenNewDocumentTab(class UAnimationAsset* InAnimAsset, bool bAddToHistory = true);
 
 	void ExtendDefaultPersonaToolbar();
 
@@ -94,6 +94,9 @@ public:
 
 	// Sets the selected bone to preview
 	void SetSelectedBone(class USkeleton* Skeleton, const FName& BoneName, bool bRebroadcast = true );
+
+	// Sets the selected morph target
+	void SetSelectedMorphTargets(class USkeletalMesh *SkeletonMesh, const TArray<FName>& SelectedMorphTargetNames);
 
 	/** Helper method to clear out any selected bones */
 	void ClearSelectedBones();
@@ -187,6 +190,9 @@ public:
 	/** Get the currently recording animation time */
 	float GetCurrentRecordingTime() const;
 
+	/** Toggle playback of the current animation */
+	void TogglePlayback();
+
 public:
 	//~ Begin IToolkit Interface
 	virtual FName GetToolkitContextFName() const override;
@@ -244,6 +250,7 @@ protected:
 	//~ Begin FBlueprintEditor Interface
 	//virtual void CreateDefaultToolbar() override;
 	virtual void CreateDefaultCommands() override;
+	virtual void OnCreateGraphEditorCommands(TSharedPtr<FUICommandList> GraphEditorCommandsList);
 	virtual void OnSelectBone() override;
 	virtual bool CanSelectBone() const override;
 	virtual void OnAddPosePin() override;
@@ -255,6 +262,8 @@ protected:
 	virtual void OnConvertToSequenceEvaluator() override;
 	virtual void OnConvertToSequencePlayer() override;
 	virtual void OnConvertToBlendSpaceEvaluator() override;
+	virtual void OnConvertToAimOffsetLookAt() override;
+	virtual void OnConvertToAimOffsetSimple() override;
 	virtual void OnConvertToBlendSpacePlayer() override;
 	virtual void OnConvertToPoseBlender() override;
 	virtual void OnConvertToPoseByName() override;
@@ -284,6 +293,8 @@ protected:
 	// Generic Command handlers
 	void OnCommandGenericDelete();
 
+	// Pose watch handler
+	void OnTogglePoseWatch();
 protected:
 	// 
 	TSharedPtr<SDockTab> OpenNewAnimationDocumentTab(UObject* InAnimAsset);

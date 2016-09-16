@@ -101,17 +101,22 @@ namespace BuildGraph.Tasks
 			}
 
 			// Find all the cooked files
-			DirectoryReference CookedDirectory = DirectoryReference.Combine(ProjectFile.Directory, "Saved", "Cooked", Parameters.Platform);
-			if(!CookedDirectory.Exists())
+			List<FileReference> CookedFiles = new List<FileReference>();
+			foreach(string Platform in Parameters.Platform.Split('+'))
 			{
-				CommandUtils.LogError("Cook output directory not found ({0})", CookedDirectory.FullName);
-				return false;
-			}
-			List<FileReference> CookedFiles = CookedDirectory.EnumerateFileReferences("*", System.IO.SearchOption.AllDirectories).ToList();
-			if(CookedFiles.Count == 0)
-			{
-				CommandUtils.LogError("Cooking did not produce any files in {0}", CookedDirectory.FullName);
-				return false;
+				DirectoryReference PlatformCookedDirectory = DirectoryReference.Combine(ProjectFile.Directory, "Saved", "Cooked", Platform);
+				if(!PlatformCookedDirectory.Exists())
+				{
+					CommandUtils.LogError("Cook output directory not found ({0})", PlatformCookedDirectory.FullName);
+					return false;
+				}
+				List<FileReference> PlatformCookedFiles = PlatformCookedDirectory.EnumerateFileReferences("*", System.IO.SearchOption.AllDirectories).ToList();
+				if(PlatformCookedFiles.Count == 0)
+				{
+					CommandUtils.LogError("Cooking did not produce any files in {0}", PlatformCookedDirectory.FullName);
+					return false;
+				}
+				CookedFiles.AddRange(PlatformCookedFiles);
 			}
 
 			// Apply the optional tag to the build products

@@ -7,6 +7,7 @@
 #include "Engine/CollisionProfile.h"
 #include "SNumericEntryBox.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 #include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "BodyInstanceCustomization"
@@ -111,6 +112,7 @@ void FBodyInstanceCustomization::AddCollisionCategory(TSharedRef<class IProperty
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
 	]
 	.ValueContent()
+	.MinDesiredWidth(131.0f)
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
@@ -127,7 +129,6 @@ void FBodyInstanceCustomization::AddCollisionCategory(TSharedRef<class IProperty
 				.OnSelectionChanged(this, &FBodyInstanceCustomization::OnCollisionProfileChanged, &CollisionGroup)
 				.OnComboBoxOpening(this, &FBodyInstanceCustomization::OnCollisionProfileComboOpening)
 				.InitiallySelectedItem(DisplayName)
-				.ContentPadding(2)
 				.Content()
 				[
 					SNew(STextBlock)
@@ -1308,7 +1309,11 @@ void FBodyInstanceCustomizationHelper::CustomizeDetails( IDetailLayoutBuilder& D
 		AddMaxAngularVelocity(PhysicsCategory, BodyInstanceHandler);
 
 		TSharedRef<IPropertyHandle> AsyncEnabled = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, bUseAsyncScene)).ToSharedRef();
-		PhysicsCategory.AddProperty(AsyncEnabled).EditCondition(TAttribute<bool>(this, &FBodyInstanceCustomizationHelper::IsUseAsyncEditable), NULL);
+		if(AsyncEnabled->IsCustomized() == false)	//outer customization already handles it so don't bother adding
+		{
+			PhysicsCategory.AddProperty(AsyncEnabled).EditCondition(TAttribute<bool>(this, &FBodyInstanceCustomizationHelper::IsUseAsyncEditable), NULL);
+		}
+		
 
 		//Add the rest
 		uint32 NumChildren = 0;

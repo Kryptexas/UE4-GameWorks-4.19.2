@@ -25,10 +25,10 @@ namespace EEasingFunc
 		/** Sinusoidal in/out interpolation. */
 		SinusoidalInOut,
 
-		/** Immediately accelerates, but smoothly decelerates into the target.  Ease amount controlled by BlendExp. */
+		/** Smoothly accelerates, but does not decelerate into the target.  Ease amount controlled by BlendExp. */
 		EaseIn,
 
-		/** Smoothly accelerates, but does not decelerate into the target.  Ease amount controlled by BlendExp. */
+		/** Immediately accelerates, but smoothly decelerates into the target.  Ease amount controlled by BlendExp. */
 		EaseOut,
 
 		/** Smoothly accelerates and decelerates.  Ease amount controlled by BlendExp. */
@@ -71,6 +71,48 @@ namespace ELerpInterpolationMode
 		DualQuatInterp
 	};
 }
+
+USTRUCT(BlueprintType)
+struct ENGINE_API FFloatSpringState
+{
+	GENERATED_BODY()
+
+	float PrevError;
+	float Velocity;
+
+	FFloatSpringState()
+	: PrevError(0.f)
+	, Velocity(0.f)
+	{
+
+	}
+
+	void Reset()
+	{
+		PrevError = Velocity = 0.f;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct ENGINE_API FVectorSpringState
+{
+	GENERATED_BODY()
+
+	FVector PrevError;
+	FVector Velocity;
+
+	FVectorSpringState()
+	: PrevError(FVector::ZeroVector)
+	, Velocity(FVector::ZeroVector)
+	{
+
+	}
+
+	void Reset()
+	{
+		PrevError = Velocity = FVector::ZeroVector;
+	}
+};
 
 UCLASS()
 class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
@@ -795,15 +837,62 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector ProjectVectorOnToVector(FVector V, FVector Target);
 
 	/**
-	* Projects a point onto a plane defined by a point on the plane and a plane normal.
-	*
-	* @param  A1 Start of first line segment
-	* @param  PlaneBase A point on the plane.
-	* @param  PlaneNormal Normal of the plane.
+	 * Find closest points between 2 segments.
+	 *
+	 * @param	Segment1Start	Start of the 1st segment.
+	 * @param	Segment1End		End of the 1st segment.
+	 * @param	Segment2Start	Start of the 2nd segment.
+	 * @param	Segment2End		End of the 2nd segment.
+	 * @param	Segment1Point	Closest point on segment 1 to segment 2.
+	 * @param	Segment2Point	Closest point on segment 2 to segment 1.
 	*/
 	UFUNCTION(BlueprintPure, Category = "Math|Vector")
 	static void FindNearestPointsOnLineSegments(FVector Segment1Start, FVector Segment1End, FVector Segment2Start, FVector Segment2End, FVector& Segment1Point, FVector& Segment2Point);
 	
+	/**
+	 * Find the closest point on a segment to a given point.
+	 *
+	 * @param Point			Point for which we find the closest point on the segment.
+	 * @param SegmentStart	Start of the segment.
+	 * @param SegmentEnd	End of the segment.
+	 * @return The closest point on the segment to the given point.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static FVector FindClosestPointOnSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd);
+
+	/**
+	 * Find the closest point on an infinite line to a given point.
+	 *
+	 * @param Point			Point for which we find the closest point on the line.
+	 * @param LineOrigin	Point of reference on the line.
+	 * @param LineDirection Direction of the line. Not required to be normalized.
+	 * @return The closest point on the line to the given point.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static FVector FindClosestPointOnLine(FVector Point, FVector LineOrigin, FVector LineDirection);
+
+	/**
+	* Find the distance from a point to the closest point on a segment.
+	*
+	* @param Point			Point for which we find the distance to the closest point on the segment.
+	* @param SegmentStart	Start of the segment.
+	* @param SegmentEnd		End of the segment.
+	* @return The distance from the given point to the closest point on the segment.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static float GetPointDistanceToSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd);
+
+	/**
+	* Find the distance from a point to the closest point on an infinite line.
+	*
+	* @param Point			Point for which we find the distance to the closest point on the line.
+	* @param LineOrigin		Point of reference on the line.
+	* @param LineDirection	Direction of the line. Not required to be normalized.
+	* @return The distance from the given point to the closest point on the line.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static float GetPointDistanceToLine(FVector Point, FVector LineOrigin, FVector LineDirection);
+
 	/**
 	 * Projects a point onto a plane defined by a point on the plane and a plane normal.
 	 *
@@ -1789,6 +1878,40 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, Category = "Math|Interpolation", meta = (Keywords = "color"))
 	static FLinearColor CInterpTo(FLinearColor Current, FLinearColor Target, float DeltaTime, float InterpSpeed);
+
+	/** 
+	 * Uses a simple spring model to interpolate a float from Current to Target.
+	 *
+	 * @param Current				Current value
+	 * @param Target				Target value
+	 * @param SpringState			Data related to spring model (velocity, error, etc..) - Create a unique variable per spring
+	 * @param Stiffness				How stiff the spring model is (more stiffness means more oscillation around the target value)
+	 * @param CriticalDampingFactor	How much damping to apply to the spring (0 means no damping, 1 means critically damped which means no oscillation)
+	 * @param Mass					Multiplier that acts like mass on a spring
+	 */
+	UFUNCTION(BlueprintCallable, Category = Spring)
+	static float FloatSpringInterp(float Current, float Target, UPARAM(ref) FFloatSpringState& SpringState, float Stiffness, float CriticalDampingFactor, float DeltaTime, float Mass = 1.f);
+
+	/**
+	* Uses a simple spring model to interpolate a vector from Current to Target.
+	*
+	* @param Current				Current value
+	* @param Target					Target value
+	* @param SpringState			Data related to spring model (velocity, error, etc..) - Create a unique variable per spring
+	* @param Stiffness				How stiff the spring model is (more stiffness means more oscillation around the target value)
+	* @param CriticalDampingFactor	How much damping to apply to the spring (0 means no damping, 1 means critically damped which means no oscillation)
+	* @param Mass					Multiplier that acts like mass on a spring
+	*/
+	UFUNCTION(BlueprintCallable, Category = Spring)
+	static FVector VectorSpringInterp(FVector Current, FVector Target, UPARAM(ref) FVectorSpringState& SpringState, float Stiffness, float CriticalDampingFactor, float DeltaTime, float Mass = 1.f);
+
+	/** Resets the state of a given spring */
+	UFUNCTION(BlueprintCallable, Category = Spring)
+	static void ResetFloatSpringState(UPARAM(ref) FFloatSpringState& SpringState);
+
+	/** Resets the state of a given spring */
+	UFUNCTION(BlueprintCallable, Category = Spring)
+	static void ResetVectorSpringState(UPARAM(ref) FVectorSpringState& SpringState);
 
 	//
 	// Random stream functions

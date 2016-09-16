@@ -4,6 +4,7 @@
 #include "MovieSceneCapture.h"
 
 #include "UnrealEdMisc.h"
+#include "GameFramework/GameMode.h"
 
 #include "SlateBasics.h"
 #include "SlateExtras.h"
@@ -85,6 +86,8 @@ class SRenderMovieSceneSettings : public SCompoundWidget, public FGCObject
 			]
 			
 		];
+
+		MovieSceneCapture = nullptr;
 
 		if (InArgs._InitialObject)
 		{
@@ -336,11 +339,38 @@ private:
 	FOnCaptureFinished OnCaptureFinished;
 };
 
-struct FInEditorCapture
+struct FInEditorCapture : TSharedFromThis<FInEditorCapture>
 {
-	FInEditorCapture(UMovieSceneCapture* InCaptureObject, TFunction<void()> InOnStarted)
-		: CaptureObject(InCaptureObject)
+
+	static TWeakPtr<FInEditorCapture> CreateInEditorCapture(UMovieSceneCapture* InCaptureObject, const TFunction<void()>& InOnStarted)
 	{
+		// FInEditorCapture owns itself, so should only be kept alive by itself, or a pinned (=> temporary) weakptr
+		FInEditorCapture* Capture = new FInEditorCapture;
+		Capture->Start(InCaptureObject, InOnStarted);
+		return Capture->AsShared();
+	}
+
+	UWorld* GetWorld() const
+	{
+		return CapturingFromWorld;
+	}
+
+private:
+	FInEditorCapture()
+	{
+		CapturingFromWorld = nullptr;
+		CaptureObject = nullptr;
+	}
+
+	void Start(UMovieSceneCapture* InCaptureObject, const TFunction<void()>& InOnStarted)
+	{
+		check(InCaptureObject);
+
+		CapturingFromWorld = nullptr;
+		OnlyStrongReference = MakeShareable(this);
+
+		CaptureObject = InCaptureObject;
+
 		ULevelEditorPlaySettings* PlayInEditorSettings = GetMutableDefault<ULevelEditorPlaySettings>();
 
 		bScreenMessagesWereEnabled = GAreScreenMessagesEnabled;
@@ -437,6 +467,8 @@ struct FInEditorCapture
 				FSlatePlayInEditorInfo* SlatePlayInEditorSession = GEditor->SlatePlayInEditorMap.Find(Context.ContextHandle);
 				if (SlatePlayInEditorSession)
 				{
+					CapturingFromWorld = Context.World();
+
 					TSharedPtr<SWindow> Window = SlatePlayInEditorSession->SlatePlayInEditorWindow.Pin();
 
 					const FMovieSceneCaptureSettings& Settings = CaptureObject->GetSettings();
@@ -457,6 +489,12 @@ struct FInEditorCapture
 					}
 					
 					Window->Resize(PreviewWindowSize);
+
+					if (CaptureObject->Settings.GameModeOverride != nullptr)
+					{
+						CachedGameMode = CapturingFromWorld->GetWorldSettings()->DefaultGameMode;
+						CapturingFromWorld->GetWorldSettings()->DefaultGameMode = CaptureObject->Settings.GameModeOverride;
+					}
 
 					CaptureObject->Initialize(SlatePlayInEditorSession->SlatePlayInEditorWindowViewport, Context.PIEInstance);
 					OnStarted();
@@ -491,6 +529,11 @@ struct FInEditorCapture
 			}
 		}
 
+		if (CaptureObject->Settings.GameModeOverride != nullptr)
+		{
+			CapturingFromWorld->GetWorldSettings()->DefaultGameMode = CachedGameMode;
+		}
+
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
 
 		FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
@@ -506,16 +549,19 @@ struct FInEditorCapture
 	void OnEndPIE(bool bIsSimulating)
 	{
 		Shutdown();
-		delete this;
+		OnlyStrongReference = nullptr;
 	}
 
 	void OnEnd()
 	{
 		Shutdown();
-		delete this;
+		OnlyStrongReference = nullptr;
 
 		GEditor->RequestEndPlayMap();
 	}
+
+	TSharedPtr<FInEditorCapture> OnlyStrongReference;
+	UWorld* CapturingFromWorld;
 
 	TFunction<void()> OnStarted;
 	bool bScreenMessagesWereEnabled;
@@ -524,10 +570,20 @@ struct FInEditorCapture
 	int32 BackedUpUseFixedPoolSize;
 	TArray<uint8> BackedUpPlaySettings;
 	UMovieSceneCapture* CaptureObject;
+
+	TSubclassOf<AGameMode> CachedGameMode;
 };
 
 class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 {
+	TWeakPtr<FInEditorCapture> CurrentInEditorCapture;
+
+	virtual UWorld* GetCurrentlyRecordingWorld() override
+	{
+		TSharedPtr<FInEditorCapture> Pinned = CurrentInEditorCapture.Pin();
+		return Pinned.IsValid() ? Pinned->GetWorld() : nullptr;
+	}
+
 	virtual void OpenDialog(const TSharedRef<FTabManager>& TabManager, UMovieSceneCapture* CaptureObject) override
 	{
 		// Ensure the session services module is loaded otherwise we won't necessarily receive status updates from the movie capture session
@@ -662,8 +718,7 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			InProgressCaptureNotification->SetCompletionState(SNotificationItem::CS_Pending);
 		};
 
-		// deliberately 'leak' the object, since it owns itself
-		new FInEditorCapture(CaptureObject, OnCaptureStarted);
+		CurrentInEditorCapture = FInEditorCapture::CreateInEditorCapture(CaptureObject, OnCaptureStarted);
 
 		return FText();
 	}

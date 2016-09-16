@@ -3,7 +3,7 @@
 #pragma once
 
 
-enum class EMessageScope;
+enum class EMessageScope : uint8;
 struct FMessageAddress;
 class IMessageAttachment;
 class IMessageContext;

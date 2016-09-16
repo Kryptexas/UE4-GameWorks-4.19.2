@@ -236,8 +236,6 @@ public:
 
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() override;
 
-	bool RestoreCaptureState(uint32 UserIndex);
-
 private:
 	/**
 	 * Called when this viewport is destroyed

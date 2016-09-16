@@ -19,6 +19,7 @@ void SVirtualWindow::Construct(const FArguments& InArgs)
 	bIsPopupWindow = true;
 	bVirtualWindow = true;
 	bIsFocusable = false;
+	bShouldResolveDeferred = true;
 	SetCachedSize(InArgs._Size);
 	SetNativeWindow(MakeShareable(new FGenericWindow()));
 
@@ -48,6 +49,11 @@ bool SVirtualWindow::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipConten
 	return true;
 }
 
+void SVirtualWindow::SetShouldResolveDeferred(bool bResolve)
+{
+	bShouldResolveDeferred = bResolve;
+}
+
 void SVirtualWindow::SetIsFocusable(bool bFocusable)
 {
 	bIsFocusable = bFocusable;
@@ -56,6 +62,24 @@ void SVirtualWindow::SetIsFocusable(bool bFocusable)
 bool SVirtualWindow::SupportsKeyboardFocus() const
 {
 	return bIsFocusable;
+}
+
+int32 SVirtualWindow::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	if ( bShouldResolveDeferred )
+	{
+		OutDrawElements.BeginDeferredGroup();
+	}
+	
+	// We intentionally skip SWindow's OnPaint, since we are going to do our own handling of deferred groups.
+	int32 MaxLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	if ( bShouldResolveDeferred )
+	{
+		OutDrawElements.EndDeferredGroup();
+	}
+
+	return MaxLayer;
 }
 
 void SVirtualWindow::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
@@ -82,7 +106,7 @@ FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection, bool bInClearTarget)
 	, ViewOffset(0.0f, 0.0f)
 {
 #if !UE_SERVER
-	if (!IsRunningDedicatedServer())
+	if ( LIKELY(FApp::CanEverRender()) )
 	{
 		Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer(bUseGammaSpace);
 	}
@@ -100,7 +124,7 @@ ISlate3DRenderer* FWidgetRenderer::GetSlateRenderer()
 
 UTextureRenderTarget2D* FWidgetRenderer::DrawWidget(const TSharedRef<SWidget>& Widget, FVector2D DrawSize)
 {
-	if ( !IsRunningDedicatedServer() )
+	if ( LIKELY(FApp::CanEverRender()) )
 	{
 		UTextureRenderTarget2D* RenderTarget = FWidgetRenderer::CreateTargetFor(DrawSize, TF_Bilinear, bUseGammaSpace);
 
@@ -114,7 +138,7 @@ UTextureRenderTarget2D* FWidgetRenderer::DrawWidget(const TSharedRef<SWidget>& W
 
 UTextureRenderTarget2D* FWidgetRenderer::CreateTargetFor(FVector2D DrawSize, TextureFilter InFilter, bool bUseGammaCorrection)
 {
-	if ( !IsRunningDedicatedServer() )
+	if ( LIKELY(FApp::CanEverRender()) )
 	{
 		const bool bIsLinearSpace = !bUseGammaCorrection;
 
@@ -172,13 +196,8 @@ void FWidgetRenderer::DrawWindow(
 	float DeltaTime)
 {
 #if !UE_SERVER
-	if (!IsRunningDedicatedServer())
+	if ( LIKELY(FApp::CanEverRender()) )
 	{
-		if ( GUsingNullRHI )
-		{
-			return;
-		}
-
 	    if ( !bFoldTick )
 	    {
 		    Window->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);

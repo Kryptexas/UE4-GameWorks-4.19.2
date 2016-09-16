@@ -118,6 +118,17 @@ void ACameraRig_Rail::UpdatePreviewMeshes()
 					SplineMeshComp->SetStartAndEnd(StartLoc, StartTangent, EndLoc, EndTangent, true);
 				}
 			}
+
+			// Unregister any owned components that aren't in PreviewRailMeshSegments
+			TArray<USplineMeshComponent*> OwnedSplineMeshComponents;
+			GetComponents(OwnedSplineMeshComponents);
+			for (auto OwnedComponent : OwnedSplineMeshComponents)
+			{
+				if (!PreviewRailMeshSegments.Contains(OwnedComponent))
+				{
+					OwnedComponent->UnregisterComponent();
+				}
+			}
 		}
 
 		// make visualization of the mount follow the contour of the rail
@@ -157,6 +168,12 @@ USceneComponent* ACameraRig_Rail::GetDefaultAttachComponent() const
 void ACameraRig_Rail::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+	UpdateRailComponents();
+}
+
+void ACameraRig_Rail::PostEditUndo()
+{
+	Super::PostEditUndo();
 	UpdateRailComponents();
 }
 #endif

@@ -391,18 +391,25 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 		// When regenerating on load, we may need to import text on certain properties to force load the assets
 		TSharedPtr<FStructOnScope> LocalVarData;
-		if (CompilerContext.Blueprint->bIsRegeneratingOnLoad)
+		if (Function && CompilerContext.Blueprint->bIsRegeneratingOnLoad)
 		{
-			LocalVarData = MakeShareable(new FStructOnScope(Function));
+			if (Function->GetStructureSize() > 0 || !ensure(Function->PropertyLink == nullptr))
+			{
+				LocalVarData = MakeShareable(new FStructOnScope(Function));
+			}
 		}
 
 		for (TFieldIterator<UProperty> It(Function); It; ++It)
 		{
 			if (const UProperty* Property = *It)
 			{
+				const UStructProperty* PotentialUDSProperty = Cast<const UStructProperty>(Property);
+				//UDS requires default data even when the LocalVariable value is empty
+				const bool bUDSProperty = PotentialUDSProperty && Cast<const UUserDefinedStruct>(PotentialUDSProperty->Struct);
+
 				for (auto& LocalVar : LocalVariables)
 				{
-					if (LocalVar.VarName == Property->GetFName() && !LocalVar.DefaultValue.IsEmpty())
+					if (LocalVar.VarName == Property->GetFName() && (bUDSProperty || !LocalVar.DefaultValue.IsEmpty()))
 					{
 						// Add a variable set node for the local variable and hook it up immediately following the entry node or the last added local variable
 						UK2Node_VariableSet* VariableSetNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableSet>(this, SourceGraph);
@@ -493,5 +500,41 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 		}
 	}
 }
+
+static void RefreshUDSValuesStoredAsString(const FEdGraphPinType& VarType, FString& Value)
+{
+	if (!Value.IsEmpty() && VarType.PinCategory == UEdGraphSchema_K2::PC_Struct)
+	{
+		UUserDefinedStruct* UDS = Cast<UUserDefinedStruct>(VarType.PinSubCategoryObject.Get());
+		if (UDS)
+		{
+			FStructOnScope StructInstance(UDS);
+			UDS->InitializeDefaultValue(StructInstance.GetStructMemory());
+			UStructProperty::ImportText_Static(UDS, FString(), *Value, StructInstance.GetStructMemory(), 0, nullptr, GLog);
+
+			Value.Reset();
+			FStructOnScope DefaultStructInstance(UDS);
+			UDS->InitializeDefaultValue(DefaultStructInstance.GetStructMemory());
+			UStructProperty::ExportTextItem_Static(UDS, Value, StructInstance.GetStructMemory(), DefaultStructInstance.GetStructMemory(), nullptr, 0, nullptr);
+		}
+	}
+}
+
+void UK2Node_FunctionEntry::PostReconstructNode()
+{
+	Super::PostReconstructNode();
+
+	UBlueprint* Blueprint = GetBlueprint();
+
+	// We want to refresh old UDS default values of local variables. It's enough to do this once.
+	if (Blueprint && Blueprint->bIsRegeneratingOnLoad)
+	{
+		for (FBPVariableDescription& LocalVariable : LocalVariables)
+		{
+			RefreshUDSValuesStoredAsString(LocalVariable.VarType, LocalVariable.DefaultValue);
+		}
+	}
+}
+
 
 #undef LOCTEXT_NAMESPACE

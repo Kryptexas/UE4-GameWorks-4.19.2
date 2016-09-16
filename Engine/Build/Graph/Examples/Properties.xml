@@ -1,16 +1,19 @@
 <?xml version='1.0' ?>
 <BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../Schema.xsd" >
+
+	<!-- Import some environment variables as properties -->
+	<EnvVar Name="SystemRoot"/>
+	<EnvVar Name="ComSpec"/>
+
+	<!-- Expose a command-line option which takes a c-style identifier. Use -set:CommandLineProperty=XYZ to override it. -->
+	<Option Name="CommandLineProperty" Restrict="[a-zA-Z_][a-zA-Z0-9_]+" DefaultValue="ThisIsTheDefaultValue" Description="This is a property that can be set on the command line. This help text appears when running with -listonly."/>
+	
 	<Agent Name="Properties Agent" Type="CompileWin64">
 		<Node Name="Property Examples">
-			<!-- Set some default properties if they aren't already set -->
-			<Property Name="PreflightChange" Default=""/>
-			<Property Name="COMMANDER_JOBSTEPID" Default=""/>
-			
 			<!-- Some predefined properties -->
 			<Log Message="Property: Branch=$(Branch)"/>
 			<Log Message="Property: EscapedBranch=$(EscapedBranch)"/>
 			<Log Message="Property: Change=$(Change)"/>
-			<Log Message="Property: PreflightChange=$(PreflightChange)"/>
 			<Log Message="Property: RootDir=$(RootDir)"/>
 			<Log Message="Property: IsBuildMachine=$(IsBuildMachine)"/>
 			<Log Message="Property: HostPlatform=$(HostPlatform)"/>
@@ -67,7 +70,6 @@
 			<!-- Test environment variables -->
 			<Log Message="SystemRoot = $(SystemRoot)"/>
 			<Log Message="ComSpec = $(ComSpec)"/>
-			<Log Message="COMMANDER_JOBSTEPID is $(COMMANDER_JOBSTEPID)"/>
 
 			<!-- Conditional blocks -->
 			<Property Name="EnterConditionalBlock" Value="true"/>
@@ -81,17 +83,17 @@
 			<Log Message="The property changed inside the conditional block is now set to $(LocalPropertyOutsideConditional)"/>
 
 			<!-- Choose blocks -->
-			<Choose>
-				<Option If="0 == 1">
+			<Switch>
+				<Case If="0 == 1">
 					<Log Message="0 equals 1"/>
-				</Option>
-				<Option If="0 == 2">
+				</Case>
+				<Case If="0 == 2">
 					<Log Message="0 equals 2"/>
-				</Option>
-				<Otherwise>
+				</Case>
+				<Default>
 					<Log Message="0 does not equal 1 or 2"/>
-				</Otherwise>
-			</Choose>
+				</Default>
+			</Switch>
 
 			<!-- Loops based on properties -->
 			<Property Name="FirstTwo" Value="1;2"/>
@@ -99,8 +101,7 @@
 				<Log Message="ForEach Test: SomeProperty is $(SomeProperty)"/>
 			</ForEach>
 			
-			<!-- Validating properties passed from the command-line -->
-			<Property Name="CommandLineProperty" Restrict="1;2;3" Default="2"/>
+			<!-- Show the value passed in on the command line -->
 			<Log Message="Value of CommandLineProperty is $(CommandLineProperty)"/>
 		</Node>
 	</Agent>

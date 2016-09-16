@@ -223,7 +223,7 @@ void GetLandscapeOpacityData(const FLandscapeStaticLightingMesh* LandscapeMesh, 
 	const int32 LightingLOD = LandscapeComponent->GetLandscapeProxy()->StaticLightingLOD;
 	const float LightMapRatio = ::GetTerrainExpandPatchCount(LightMapRes, PatchExpandCountX, PatchExpandCountY, ComponentSizeQuads, (NumSubsections * (SubsectionSizeQuads + 1)), DesiredSize, LightingLOD);
 
-	ULandscapeInfo* const LandscapeInfo = LandscapeComponent->GetLandscapeInfo(false);
+	ULandscapeInfo* const LandscapeInfo = LandscapeComponent->GetLandscapeInfo();
 	check(LandscapeInfo);
 
 	FLandscapeEditDataInterface DataInterface = FLandscapeEditDataInterface(LandscapeInfo);

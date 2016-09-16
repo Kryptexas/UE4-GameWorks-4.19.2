@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
-#include "MovieSceneBoolSection.h"
 #include "SBoolCurveKeyEditor.h"
 
 #define LOCTEXT_NAMESPACE "BoolCurveKeyEditor"
@@ -11,9 +10,8 @@ void SBoolCurveKeyEditor::Construct(const FArguments& InArgs)
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
-	OnValueChangedEvent = InArgs._OnValueChanged;
-	IntermediateValue = InArgs._IntermediateValue;
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	ExternalValue = InArgs._ExternalValue;
+
 	ChildSlot
 	[
 		SNew(SCheckBox)
@@ -24,17 +22,19 @@ void SBoolCurveKeyEditor::Construct(const FArguments& InArgs)
 
 ECheckBoxState SBoolCurveKeyEditor::IsChecked() const
 {
-	if ( IntermediateValue.IsSet() && IntermediateValue.Get().IsSet() )
+	bool bCurrentValue;
+	if (ExternalValue.IsSet() && ExternalValue.Get().IsSet())
 	{
-		return IntermediateValue.Get().GetValue() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		bCurrentValue = ExternalValue.Get().GetValue();
 	}
-
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
-
-	UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>(OwningSection);
-	bool bChecked = BoolSection ? BoolSection->Eval(CurrentTime) : Curve->Evaluate(CurrentTime) != 0;
+	else
+	{
+		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		bool DefaultValue = false;
+		bCurrentValue = Curve->Evaluate(CurrentTime, DefaultValue) != 0;
+	}
 	
-	return bChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	return bCurrentValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)
@@ -44,10 +44,23 @@ void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)
 	if (OwningSection->TryModify())
 	{
 		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
+		int32 NewValue = NewCheckboxState == ECheckBoxState::Checked ? 1 : 0;
 
-		bool bKeyWillBeAdded = Curve->IsKeyHandleValid(Curve->FindKey(CurrentTime)) == false;
-		if (bKeyWillBeAdded)
+		FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
+		if (Curve->IsKeyHandleValid(CurrentKeyHandle))
 		{
+			Curve->SetKeyValue(CurrentKeyHandle, NewValue);
+		}
+		else
+		{
+			if (Curve->GetNumKeys() != 0 || bAutoSetTrackDefaults == false)
+			{
+				// When auto setting track defaults are disabled, add a key even when it's empty so that the changed
+				// value is saved and is propagated to the property.
+				Curve->AddKey(CurrentTime, NewValue, CurrentKeyHandle);
+			}
+
 			if (OwningSection->GetStartTime() > CurrentTime)
 			{
 				OwningSection->SetStartTime(CurrentTime);
@@ -57,20 +70,15 @@ void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)
 				OwningSection->SetEndTime(CurrentTime);
 			}
 		}
-		
-		int32 NewValue = NewCheckboxState == ECheckBoxState::Checked ? 1 : 0;
-		if (Curve->GetNumKeys() == 0)
+
+		// Always update the default value when auto-set default values is enabled so that the last changes
+		// are always saved to the track.
+		if (bAutoSetTrackDefaults)
 		{
 			Curve->SetDefaultValue(NewValue);
 		}
-		else
-		{
-			Curve->UpdateOrAddKey(CurrentTime, NewValue);
-		}
 
-		OnValueChangedEvent.ExecuteIfBound(NewCheckboxState == ECheckBoxState::Checked);
-
-		Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
+		Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChangedRefreshImmediately );
 	}
 }
 

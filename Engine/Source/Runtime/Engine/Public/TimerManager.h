@@ -143,12 +143,8 @@ class ENGINE_API FTimerManager : public FNoncopyable
 {
 public:
 
-	// ----------------------------------
-	// FTickableGameObject interface
-
 	void Tick(float DeltaTime);
 	TStatId GetStatId() const;
-
 
 	// ----------------------------------
 	// Timer API
@@ -395,7 +391,7 @@ public:
 	void ListTimers() const;
 
 	/** Get the current last assigned handle */
-	void ValidateHandle(FTimerHandle& InOutHandle);
+	static void ValidateHandle(FTimerHandle& InOutHandle);
 
 private:
 	void InternalSetTimer( FTimerHandle& InOutHandle, FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay );
@@ -435,6 +431,6 @@ private:
 	uint64 LastTickedFrame;
 
 	/** The last handle we assigned from this timer manager */
-	uint64 LastAssignedHandle;
+	static uint64 LastAssignedHandle;
 };
 

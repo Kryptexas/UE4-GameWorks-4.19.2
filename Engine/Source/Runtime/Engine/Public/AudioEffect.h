@@ -198,6 +198,7 @@ protected:
 
 	FAudioReverbEffect		SourceReverbEffect;
 	FAudioReverbEffect		CurrentReverbEffect;
+	FAudioReverbEffect		PrevReverbEffect;
 	FAudioReverbEffect		DestinationReverbEffect;
 
 	USoundMix*				CurrentEQMix;

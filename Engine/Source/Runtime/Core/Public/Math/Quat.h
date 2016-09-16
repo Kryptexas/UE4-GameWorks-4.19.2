@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UnrealMathUtility.h"
 
 /**
  * Floating point quaternion that can represent a rotation about an axis in 3-D space.
@@ -1105,3 +1106,33 @@ FORCEINLINE bool FQuat::ContainsNaN() const
 
 
 template<> struct TIsPODType<FQuat> { enum { Value = true }; };
+
+/* FMath inline functions
+ *****************************************************************************/
+
+template<class U>
+FORCEINLINE_DEBUGGABLE FQuat FMath::Lerp( const FQuat& A, const FQuat& B, const U& Alpha)
+{
+	return FQuat::Slerp(A, B, Alpha);
+}
+
+template<class U>
+FORCEINLINE_DEBUGGABLE FQuat FMath::BiLerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY)
+{
+	FQuat Result;
+
+	Result = Lerp(
+		FQuat::Slerp_NotNormalized(P00,P10,FracX),
+		FQuat::Slerp_NotNormalized(P01,P11,FracX),
+		FracY
+		);
+
+	return Result;
+}
+
+template<class U>
+FORCEINLINE_DEBUGGABLE FQuat FMath::CubicInterp( const FQuat& P0, const FQuat& T0, const FQuat& P1, const FQuat& T1, const U& A)
+{
+	return FQuat::Squad(P0, T0, P1, T1, A);
+}
+

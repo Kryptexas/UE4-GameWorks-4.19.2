@@ -1718,7 +1718,8 @@ void UTexture2D::WillNeverCacheCookedPlatformDataAgain()
 		}
 	}
 
-	if ( Source.IsBulkDataLoaded() )
+	// Daniel: I think we should call the release source memory function all the time because this will prevent it being force loaded when the linker is destroyed
+	//if ( Source.IsBulkDataLoaded() ) 
 	{
 		Source.ReleaseSourceMemory();
 	}
@@ -1782,7 +1783,7 @@ void UTexture::FinishCachePlatformData()
 				GetBuildSettingsForRunningPlatform(*this, BuildSettings);
 				GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
 
-				check(RunningPlatformData->DerivedDataKey == DerivedDataKey);
+				check(!RunningPlatformData || RunningPlatformData->DerivedDataKey == DerivedDataKey);
 			}
 #endif
 		}

@@ -51,7 +51,7 @@ struct TDefaultNumericTypeInterface : INumericTypeInterface<NumericType>
 };
 
 /** Forward declaration of types defined in UnitConversion.h */
-enum class EUnit;
+enum class EUnit : uint8;
 template<typename> struct FNumericUnit;
 
 /**

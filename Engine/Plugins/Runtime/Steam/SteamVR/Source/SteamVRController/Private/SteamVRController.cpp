@@ -37,7 +37,7 @@ namespace SteamVRControllerKeyNames
 
 
 
-class FSteamVRController : public IInputDevice, public IMotionController
+class FSteamVRController : public IInputDevice, public IMotionController, public IHapticDevice
 {
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
 	FSteamVRHMD* GetSteamVRHMD() const
@@ -355,6 +355,41 @@ public:
 			UpdateVibration( RightControllerIndex );
 		}
 #endif // STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
+	}
+
+	virtual IHapticDevice* GetHapticDevice() override
+	{
+		return this;
+	}	
+
+	virtual void SetHapticFeedbackValues(int32 UnrealControllerId, int32 Hand, const FHapticFeedbackValues& Values) override
+	{
+#if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS
+		if (Hand != (int32)EControllerHand::Left && Hand != (int32)EControllerHand::Right)
+		{
+			return;
+		}
+
+		const int32 ControllerIndex = UnrealControllerIdToControllerIndex(UnrealControllerId, (EControllerHand)Hand);
+		if (ControllerIndex >= 0 && ControllerIndex < MaxControllers)
+		{
+			FControllerState& ControllerState = ControllerStates[ControllerIndex];
+			ControllerState.ForceFeedbackValue = (Values.Frequency > 0.0f) ? Values.Amplitude : 0.0f;
+
+			UpdateVibration(ControllerIndex);
+		}
+#endif
+	}
+
+	virtual void GetHapticFrequencyRange(float& MinFrequency, float& MaxFrequency) const override
+	{
+		MinFrequency = 0.0f;
+		MaxFrequency = 1.0f;
+	}
+	
+	virtual float GetHapticAmplitudeScale() const override
+	{
+		return 1.0f;
 	}
 
 #if STEAMVRCONTROLLER_SUPPORTED_PLATFORMS

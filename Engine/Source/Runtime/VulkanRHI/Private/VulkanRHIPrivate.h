@@ -27,20 +27,46 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 #endif
 
 #if PLATFORM_ANDROID
-#include "VulkanLoader.h"
-#define VULKAN_COMMANDWRAPPERS_ENABLE 0
+	#define VULKAN_COMMANDWRAPPERS_ENABLE VULKAN_ENABLE_API_DUMP
+	#define VULKAN_DYNAMICALLYLOADED 1
 #else
-#include <vulkan/vulkan.h>
-#define VULKAN_COMMANDWRAPPERS_ENABLE 1
+	#define VULKAN_COMMANDWRAPPERS_ENABLE 1
+	#define VULKAN_DYNAMICALLYLOADED 0
 #endif
+
+#if VULKAN_DYNAMICALLYLOADED
+	#include "VulkanLoader.h"
+#else
+	#include <vulkan.h>
+#endif
+
+#if VULKAN_COMMANDWRAPPERS_ENABLE
+	#if VULKAN_DYNAMICALLYLOADED
+		// Vulkan API is defined in VulkanDynamicAPI namespace.
+		#define VULKANAPINAMESPACE VulkanDynamicAPI
+	#else
+		// Vulkan API is in the global namespace.
+		#define VULKANAPINAMESPACE
+	#endif
+	#include "VulkanCommandWrappers.h"
+#else
+	#if VULKAN_DYNAMICALLYLOADED
+		// Bring functions from VulkanDynamicAPI to VulkanRHI
+		#define VK_DYNAMICAPI_TO_VULKANRHI(Type,Func) using VulkanDynamicAPI::Func;
+		namespace VulkanRHI
+		{
+			ENUM_VK_ENTRYPOINTS_ALL(VK_DYNAMICAPI_TO_VULKANRHI);
+		}
+	#else
+		#error "Statically linked vulkan api must be wrapped!"
+	#endif
+#endif
+
 
 #include "VulkanRHI.h"
 #include "VulkanGlobalUniformBuffer.h"
 #include "RHI.h"
 
-#if VULKAN_COMMANDWRAPPERS_ENABLE
-#include "VulkanCommandWrappers.h"
-#endif
 using namespace VulkanRHI;
 
 // Default is 1 (which is aniso off), the number is adjusted after the limits are queried.
@@ -178,7 +204,7 @@ private:
 class FVulkanFramebuffer
 {
 public:
-	FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRenderTargetsInfo& RTInfo, const FVulkanRenderTargetLayout& RTLayout, const FVulkanRenderPass& RenderPass);
+	FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRenderTargetsInfo& InRTInfo, const FVulkanRenderTargetLayout& RTLayout, const FVulkanRenderPass& RenderPass);
 
 	bool Matches(const FRHISetRenderTargetsInfo& RTInfo) const;
 
@@ -192,37 +218,58 @@ public:
 		return Framebuffer;
 	}
 
-	TArray<VkImageView> Attachments;
+	TArray<VkImageView> AttachmentViews;
+#if VULKAN_USE_NEW_RENDERPASSES
+	TArray<VkImageView> AttachmentViewsToDelete;
+#endif
 	TArray<VkImageSubresourceRange> SubresourceRanges;
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
-
+#endif
 	// Returns the backbuffer render target if used by this framebuffer
 	FVulkanBackBuffer* GetBackBuffer()
 	{
 		return BackBuffer;
 	}
 
-	inline bool ContainsRenderTarget(const FVulkanTextureBase* Texture) const
+	inline bool ContainsRenderTarget(VkImage Image) const
 	{
-		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
+		ensure(Image != VK_NULL_HANDLE);
+		for (int32 Index = 0; Index < FMath::Min((int32)NumColorAttachments, RTInfo.NumColorRenderTargets); ++Index)
 		{
 			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
-			if (RHITexture->GetTexture2D() && Texture == (FVulkanTextureBase*)(FVulkanTexture2D*)RHITexture)
+			if (auto* Texture2D = RHITexture->GetTexture2D())
 			{
-				return true;
+				if (Image == ((FVulkanTexture2D*)Texture2D)->Surface.Image)
+				{
+					return true;
+				}
 			}
-			else if (RHITexture->GetTextureCube() && Texture == (FVulkanTextureBase*)(FVulkanTextureCube*)RHITexture)
+			else if (auto* TextureCube = RHITexture->GetTextureCube())
 			{
-				return true;
+				if (Image == ((FVulkanTextureCube*)TextureCube)->Surface.Image)
+				{
+					return true;
+				}
 			}
-			else if (RHITexture->GetTexture3D() && Texture == (FVulkanTextureBase*)(FVulkanTexture3D*)RHITexture)
+			else if (auto* Texture3D = RHITexture->GetTexture3D())
 			{
-				return true;
+				if (Image == ((FVulkanTexture3D*)Texture3D)->Surface.Image)
+				{
+					return true;
+				}
 			}
 		}
 
-		return Texture == (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
+		FVulkanTexture2D* Depth = (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
+		if (Depth)
+		{
+			ensure(RTInfo.DepthStencilRenderTarget.Texture->GetTexture2D());
+			return Depth && Depth->Surface.Image == Image;
+		}
+
+		return false;
 	}
 
 	inline uint32 GetWidth() const
@@ -241,7 +288,7 @@ private:
 
 	// We do not adjust RTInfo, since it used for hashing and is what the UE provides,
 	// it's up to VulkanRHI to handle this correctly.
-	FRHISetRenderTargetsInfo RTInfo;
+	const FRHISetRenderTargetsInfo RTInfo;
 	uint32 NumColorAttachments;
 
 	FVulkanBackBuffer* BackBuffer;
@@ -258,6 +305,7 @@ public:
 
 private:
 	friend class FVulkanPendingState;
+	friend class FVulkanCommandListContext;
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	friend class FVulkanPipelineStateCache;
@@ -295,15 +343,12 @@ public:
 
 	struct FSetLayout
 	{
-		FSetLayout() : DescriptorSetIndex(-1) {}
-
 		TArray<VkDescriptorSetLayoutBinding> LayoutBindings;
-		int32 DescriptorSetIndex;
 	};
 
 	const TArray<FSetLayout>& GetLayouts() const
 	{
-		return Layouts;
+		return SetLayouts;
 	}
 
 private:
@@ -311,7 +356,7 @@ private:
 
 	uint32 LayoutTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
 
-	TArray<FSetLayout> Layouts;
+	TArray<FSetLayout> SetLayouts;
 	TArray<VkDescriptorSetLayout> LayoutHandles;
 };
 
@@ -323,13 +368,18 @@ public:
 	FVulkanDescriptorPool(FVulkanDevice* InDevice);
 	~FVulkanDescriptorPool();
 
-	VkDescriptorPool GetHandle() const
+	inline VkDescriptorPool GetHandle() const
 	{
 		return DescriptorPool;
 	}
 
 	void TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout);
 	void TrackRemoveUsage(const FVulkanDescriptorSetsLayout& Layout);
+
+	inline bool IsEmpty() const
+	{
+		return NumAllocatedDescriptorSets == 0;
+	}
 
 private:
 	FVulkanDevice* Device;
@@ -359,7 +409,7 @@ private:
 	friend class FVulkanDescriptorPool;
 	friend class FVulkanPendingState;
 
-	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanDescriptorPool* InPool);
+	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanCommandListContext* InContext);
 	~FVulkanDescriptorSets();
 
 	FVulkanDevice* Device;
@@ -370,6 +420,49 @@ private:
 	friend class FVulkanBoundShaderState;
 	friend class FVulkanCommandListContext;
 };
+
+
+namespace VulkanRHI
+{
+	inline void SetupImageBarrier(VkImageMemoryBarrier& Barrier, const FVulkanSurface& Surface, VkAccessFlags SrcMask, VkImageLayout SrcLayout, VkAccessFlags DstMask, VkImageLayout DstLayout, uint32 NumLayers = 1)
+	{
+		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		Barrier.srcAccessMask = SrcMask;
+		Barrier.dstAccessMask = DstMask;
+		Barrier.oldLayout = SrcLayout;
+		Barrier.newLayout = DstLayout;
+		Barrier.image = Surface.Image;
+		Barrier.subresourceRange.aspectMask = Surface.GetFullAspectMask();
+		Barrier.subresourceRange.levelCount = Surface.GetNumMips();
+		//#todo-rco: Cubemaps?
+		//Barriers[Index].subresourceRange.baseArrayLayer = 0;
+		Barrier.subresourceRange.layerCount = NumLayers;
+		Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	}
+
+	inline void SetupBufferBarrier(VkBufferMemoryBarrier& Barrier, VkAccessFlags SrcAccess, VkAccessFlags DstAccess, VkBuffer Buffer, uint32 Offset, uint32 Size)
+	{
+		Barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		Barrier.srcAccessMask = SrcAccess;
+		Barrier.dstAccessMask = DstAccess;
+		Barrier.buffer = Buffer;
+		Barrier.offset = Offset;
+		Barrier.size = Size;
+	}
+
+	inline void SetupAndZeroImageBarrier(VkImageMemoryBarrier& Barrier, const FVulkanSurface& Surface, VkAccessFlags SrcMask, VkImageLayout SrcLayout, VkAccessFlags DstMask, VkImageLayout DstLayout)
+	{
+		FMemory::Memzero(Barrier);
+		SetupImageBarrier(Barrier, Surface, SrcMask, SrcLayout, DstMask, DstLayout);
+	}
+
+	inline void SetupAndZeroBufferBarrier(VkBufferMemoryBarrier& Barrier, VkAccessFlags SrcAccess, VkAccessFlags DstAccess, VkBuffer Buffer, uint32 Offset, uint32 Size)
+	{
+		FMemory::Memzero(Barrier);
+		SetupBufferBarrier(Barrier, SrcAccess, DstAccess, Buffer, Offset, Size);
+	}
+}
 
 void VulkanSetImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, const VkImageSubresourceRange& SubresourceRange);
 
@@ -412,6 +505,8 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Uniform Buffer Creation Time"), STAT_VulkanUnifo
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Apply DS Uniform Buffers"), STAT_VulkanApplyDSUniformBuffers, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("SRV Update Time"), STAT_VulkanSRVUpdateTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Deletion Queue"), STAT_VulkanDeletionQueue, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Submit"), STAT_VulkanQueueSubmit, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Queue Present"), STAT_VulkanQueuePresent, STATGROUP_VulkanRHI, );
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Apply DS Shader Resources"), STAT_VulkanApplyDSResources, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update DescriptorSets"), STAT_VulkanUpdateDescriptorSets, STATGROUP_VulkanRHI, );
@@ -432,6 +527,58 @@ namespace VulkanRHI
 		uint32 Offset;
 		uint32 Size;
 		EResourceLockMode LockMode;
+	};
+
+	static VkImageAspectFlags GetAspectMaskFromUEFormat(EPixelFormat Format, bool bIncludeStencil, bool bIncludeDepth = true)
+	{
+		switch (Format)
+		{
+		case PF_X24_G8:
+			return VK_IMAGE_ASPECT_STENCIL_BIT;
+		case PF_DepthStencil:
+			return (bIncludeDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : 0) | (bIncludeStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+		case PF_ShadowDepth:
+		case PF_D24:
+			return VK_IMAGE_ASPECT_DEPTH_BIT;
+		default:
+			return VK_IMAGE_ASPECT_COLOR_BIT;
+		}
+	}
+
+	inline VkAccessFlags GetAccessMask(VkImageLayout Layout)
+	{
+		VkAccessFlags Flags = 0;
+		switch (Layout)
+		{
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			Flags = VK_ACCESS_TRANSFER_READ_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			Flags = VK_ACCESS_TRANSFER_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			Flags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			Flags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+		case VK_IMAGE_LAYOUT_GENERAL:
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			Flags = 0;
+			break;
+			break;
+		default:
+			check(0);
+			break;
+		}
+		return Flags;
 	};
 }
 
@@ -472,6 +619,26 @@ static inline VkAttachmentStoreOp RenderTargetStoreActionToVulkan(ERenderTargetS
 	return OutStoreAction;
 }
 
+inline VkFormat UEToVkFormat(EPixelFormat UEFormat, const bool bIsSRGB)
+{
+	VkFormat Format = (VkFormat)GPixelFormats[UEFormat].PlatformFormat;
+	if (bIsSRGB && GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
+	{
+		switch (Format)
+		{
+		case VK_FORMAT_B8G8R8A8_UNORM:			Format = VK_FORMAT_B8G8R8A8_SRGB; break;
+		case VK_FORMAT_R8G8B8A8_UNORM:			Format = VK_FORMAT_R8G8B8A8_SRGB; break;
+		case VK_FORMAT_BC1_RGB_UNORM_BLOCK:		Format = VK_FORMAT_BC1_RGB_SRGB_BLOCK; break;
+		case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:	Format = VK_FORMAT_BC1_RGBA_SRGB_BLOCK; break;
+		case VK_FORMAT_BC2_UNORM_BLOCK:			Format = VK_FORMAT_BC2_SRGB_BLOCK; break;
+		case VK_FORMAT_BC3_UNORM_BLOCK:			Format = VK_FORMAT_BC3_SRGB_BLOCK; break;
+		case VK_FORMAT_BC7_UNORM_BLOCK:			Format = VK_FORMAT_BC7_SRGB_BLOCK; break;
+		default:	break;
+		}
+	}
+
+	return Format;
+}
 
 #if 0
 namespace FRCLog

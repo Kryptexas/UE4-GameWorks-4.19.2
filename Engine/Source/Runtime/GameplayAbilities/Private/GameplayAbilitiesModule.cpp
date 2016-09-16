@@ -24,9 +24,8 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 		{
 			FStringClassReference AbilitySystemClassName = (UAbilitySystemGlobals::StaticClass()->GetDefaultObject<UAbilitySystemGlobals>())->AbilitySystemGlobalsClassName;
 
-			UClass* SingletonClass = LoadClass<UObject>(NULL, *AbilitySystemClassName.ToString(), NULL, LOAD_None, NULL);
-
-			checkf(SingletonClass != NULL, TEXT("Ability config value AbilitySystemGlobalsClassName is not a valid class name."));
+			UClass* SingletonClass = AbilitySystemClassName.TryLoadClass<UObject>();
+			checkf(SingletonClass != nullptr, TEXT("Ability config value AbilitySystemGlobalsClassName is not a valid class name."));
 
 			AbilitySystemGlobals = NewObject<UAbilitySystemGlobals>(GetTransientPackage(), SingletonClass, NAME_None);
 			AbilitySystemGlobals->AddToRoot();
@@ -42,9 +41,7 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 		return AbilitySystemGlobals != nullptr;
 	}
 
-	UAbilitySystemGlobals *AbilitySystemGlobals;
-
-private:
+	UAbilitySystemGlobals* AbilitySystemGlobals;
 	
 };
 
@@ -53,13 +50,18 @@ IMPLEMENT_MODULE(FGameplayAbilitiesModule, GameplayAbilities)
 void FGameplayAbilitiesModule::StartupModule()
 {	
 	// This is loaded upon first request
-	AbilitySystemGlobals = NULL;
+	AbilitySystemGlobals = nullptr;
 
 #if WITH_GAMEPLAY_DEBUGGER
 	IGameplayDebugger& GameplayDebuggerModule = IGameplayDebugger::Get();
 	GameplayDebuggerModule.RegisterCategory("Abilities", IGameplayDebugger::FOnGetCategory::CreateStatic(&FGameplayDebuggerCategory_Abilities::MakeInstance));
 	GameplayDebuggerModule.NotifyCategoriesChanged();
 #endif // WITH_GAMEPLAY_DEBUGGER
+
+	if (!IsRunningDedicatedServer())
+	{
+		AHUD::OnShowDebugInfo.AddStatic(&UAbilitySystemComponent::OnShowDebugInfo);
+	}
 }
 
 void FGameplayAbilitiesModule::ShutdownModule()

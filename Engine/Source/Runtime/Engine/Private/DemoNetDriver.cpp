@@ -45,6 +45,8 @@ static TAutoConsoleVariable<int32> CVarDemoQueueCheckpointChannels( TEXT( "demo.
 static TAutoConsoleVariable<int32> CVarUseAdaptiveReplayUpdateFrequency( TEXT( "demo.UseAdaptiveReplayUpdateFrequency" ), 0, TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually write something when recording to a replay" ) );
 static TAutoConsoleVariable<int32> CVarDemoAsyncLoadWorld( TEXT( "demo.AsyncLoadWorld" ), 0, TEXT( "If 1, we will use seamless server travel to load the replay world asynchronously" ) );
 static TAutoConsoleVariable<float> CVarCheckpointUploadDelayInSeconds( TEXT( "demo.CheckpointUploadDelayInSeconds" ), 30.0f, TEXT( "" ) );
+static TAutoConsoleVariable<int32> CVarDemoLoadCheckpointGarbageCollect( TEXT( "demo.LoadCheckpointGarbageCollect" ), 1, TEXT("If nonzero, CollectGarbage will be called during LoadCheckpoint after the old actors and connection are cleaned up." ) );
+static TAutoConsoleVariable<float> CVarCheckpointSaveMaxMSPerFrame( TEXT( "demo.CheckpointSaveMaxMSPerFrame" ), 0.0f, TEXT( "Maximum time allowed each frame to spend on saving a checkpoint. If 0, it will save the checkpoint in a single frame, regardless of how long it takes." ) );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarDemoForceFailure( TEXT( "demo.ForceFailure" ), 0, TEXT( "" ) );
@@ -61,14 +63,13 @@ public:
 	FScopedActorRoleSwap(AActor* InActor)
 		: Actor(InActor)
 	{
-		// We need to swap roles if:
-		//  1. the actor's remote role is authority - which is the case when recording a replay on a client that's connected to a live server, and
-		//  2. the actor isn't bTearOff.
-		// This is to ensure the roles appear correct when playing back this demo.
-		const bool bShouldSwapRoles =
-			Actor != nullptr &&
-			Actor->GetRemoteRole() == ROLE_Authority &&
-			!Actor->bTearOff;
+		// If recording a replay on a client that's connected to a live server, we need to act as a
+		// server while replicating actors to the replay stream. To do this, we need to ensure the
+		// actor's Role and RemoteRole properties are set as they would be on a server.
+		// Therefore, if an actor's RemoteRole is ROLE_Authority, we temporarily swap the values
+		// of Role and RemoteRole within the scope of replicating the actor to the replay.
+		// This will cause the Role properties to be correct when the replay is played back.
+		const bool bShouldSwapRoles = Actor != nullptr && Actor->GetRemoteRole() == ROLE_Authority;
 
 		if (bShouldSwapRoles)
 		{
@@ -1009,100 +1010,175 @@ void UDemoNetDriver::SaveCheckpoint()
 
 	check( CheckpointArchive->TotalSize() == 0 );
 
-	const double StartCheckpointTime = FPlatformTime::Seconds();
-
-	// Save the replicated server time so we can restore it after the checkpoint has been serialized.
-	// This preserves the existing behavior and prevents clients from receiving updated server time
-	// more often than the normal update rate.
-	float SavedReplicatedServerTimeSeconds = -1.0f;
-
-	AGameState* const GameState = World != nullptr ? World->GetGameState() : nullptr;
-
-	// Normally AGameState::ReplicatedWorldTimeSeconds is only updated periodically,
-	// but we want to make sure it's accurate for the checkpoint.
-	if (GameState != nullptr)
-	{
-		SavedReplicatedServerTimeSeconds = GameState->ReplicatedWorldTimeSeconds;
-		GameState->UpdateServerTimeSeconds();
-	}
-
-	// First, save the current guid cache
-	SerializeGuidCache( GuidCache, CheckpointArchive );
-
-	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
-
-	// Save the compatible rep layout map
-	PackageMapClient->SerializeNetFieldExportGroupMap( *CheckpointArchive );
-
-	const uint32 GuidCacheSize = CheckpointArchive->TotalSize();
-
-	FURL CheckpointURL;
-	CheckpointURL.Map = TEXT( "Checkpoint" );
-
-	const double SerializeCacheTime = FPlatformTime::Seconds();
-
 	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
 
-	// Re-use the existing connection to record all properties that have changed since channels were first opened
-	// Set bResendAllDataSinceOpen to true to signify that we want to do this
-	ClientConnections[0]->bResendAllDataSinceOpen = true;
-	bSavingCheckpoint = true;
+	check( PendingCheckpointActors.Num() == 0 );
 
-	FPackageMapAckState SavedAckState;
-
-	// Save package map ack status in case we export stuff during the checkpoint (so we can restore the connection back to what it was before we saved the checkpoint)
-	PackageMapClient->SavePackageMapExportAckStatus( SavedAckState );
-
+	// Add any actor with a valid channel to the PendingCheckpointActors list
 	for ( TSharedPtr<FNetworkObjectInfo>& ObjectInfo : GetNetworkObjectList().GetObjects() )
 	{
 		AActor* Actor = ObjectInfo.Get()->Actor;
 
-		if ( ClientConnections[0]->ActorChannels.Contains( Actor ) )
+		FullyDormantActors.Remove( Actor );		// Make sure this actor isn't on the dormant list
+
+		if ( ClientConnections[0]->ActorChannels.FindRef( Actor ) )
 		{
-			Actor->CallPreReplication( this );
-			DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, true );
+			PendingCheckpointActors.Add( Actor );
 		}
 	}
 
-	const double AfterReplicationTime = FPlatformTime::Seconds();
+	// Make sure to catch replay actors that are dormant (and aren't on the network object list above)
+	for ( auto ActorIt = FullyDormantActors.CreateIterator(); ActorIt; ++ActorIt )
+	{
+		if ( !( *ActorIt ).Get() )	// Take this chance to remove invalid entries
+		{
+			ActorIt.RemoveCurrent();
+			continue;
+		}
+
+		if ( ClientConnections[0]->ActorChannels.FindRef( *ActorIt ) )
+		{
+			PendingCheckpointActors.Add( *ActorIt );
+		}
+	}
+
+	if ( !PendingCheckpointActors.Num() )
+	{
+		return;
+	}
+
+	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
+
+	PackageMapClient->SavePackageMapExportAckStatus( CheckpointAckState );
+
+	TotalCheckpointSaveTimeSeconds = 0;
+	TotalCheckpointSaveFrames = 0;
+
+	UE_LOG( LogDemo, Log, TEXT( "Starting checkpoint. Actors: %i" ), GetNetworkObjectList().GetObjects().Num() );
+
+	// Do the first checkpoint tick now
+	TickCheckpoint();
+}
+
+void UDemoNetDriver::TickCheckpoint()
+{
+	if ( !PendingCheckpointActors.Num() )
+	{
+		return;
+	}
+
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "SaveCheckpoint time" ), STAT_ReplayCheckpointSaveTime, STATGROUP_Net );
+
+	FArchive* CheckpointArchive = ReplayStreamer->GetCheckpointArchive();
+
+	if ( !ensure( CheckpointArchive != nullptr ) )
+	{
+		return;
+	}
+
+	const double StartCheckpointTime = FPlatformTime::Seconds();
+
+	TotalCheckpointSaveFrames++;
 
 	ClientConnections[0]->FlushNet();
 	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
 
-	WriteDemoFrameFromQueuedDemoPackets( *CheckpointArchive, CastChecked< UDemoNetConnection>( ClientConnections[0] ) );
+	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
 
-	const double AfterWritePacketsTime = FPlatformTime::Seconds();
+	// Save package map ack status in case we export stuff during the checkpoint (so we can restore the connection back to what it was before we saved the checkpoint)
+	PackageMapClient->OverridePackageMapExportAckStatus( &CheckpointAckState );
 
-	// Restore the connection back to what it was before we saved the checkpoint
-	PackageMapClient->RestorePackageMapExportAckStatus( SavedAckState );
+	// Save the replicated server time so we can restore it after the checkpoint has been serialized.
+	// This preserves the existing behavior and prevents clients from receiving updated server time
+	// more often than the normal update rate.
+	AGameState* const GameState = World != nullptr ? World->GetGameState() : nullptr;
 
-	ClientConnections[0]->bResendAllDataSinceOpen = false;
-	bSavingCheckpoint = false;
+	const float SavedReplicatedServerTimeSeconds = GameState ? GameState->ReplicatedWorldTimeSeconds : -1.0f;
 
-	const uint32 CheckpointSize = CheckpointArchive->TotalSize() - GuidCacheSize;
-
-	const int32 TotalSize = CheckpointArchive->TotalSize();
-
-	if ( CheckpointArchive->TotalSize() > 0 )
+	// Normally AGameState::ReplicatedWorldTimeSeconds is only updated periodically,
+	// but we want to make sure it's accurate for the checkpoint.
+	if ( GameState )
 	{
-		ReplayStreamer->FlushCheckpoint( GetDemoCurrentTimeInMS() );
+		GameState->UpdateServerTimeSeconds();
 	}
 
-	// Restore the game state's replicated world time
-	if (GameState != nullptr)
+	// Re-use the existing connection to record all properties that have changed since channels were first opened
+	// Set bResendAllDataSinceOpen to true to signify that we want to do this
+	ClientConnections[0]->bResendAllDataSinceOpen = true;
+
+	const double CheckpointMaxUploadTimePerFrame = ( double )CVarCheckpointSaveMaxMSPerFrame.GetValueOnGameThread() / 1000;
+
+	for ( auto ActorIt = PendingCheckpointActors.CreateIterator(); ActorIt; ++ActorIt )
 	{
+		AActor* Actor = ( *ActorIt ).Get();
+
+		ActorIt.RemoveCurrent();	// We're done with this now
+
+		UActorChannel* ActorChannel = ClientConnections[0]->ActorChannels.FindRef( Actor );
+
+		if ( ActorChannel )
+		{
+			Actor->CallPreReplication( this );
+			DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, true );
+
+			const double CheckpointTime = FPlatformTime::Seconds();
+
+			if ( CheckpointMaxUploadTimePerFrame > 0 && CheckpointTime - StartCheckpointTime > CheckpointMaxUploadTimePerFrame )
+			{
+				break;
+			}
+		}
+	}
+
+	if ( GameState )
+	{
+		// Restore the game state's replicated world time
 		GameState->ReplicatedWorldTimeSeconds = SavedReplicatedServerTimeSeconds;
 	}
 
+	// Make sure to flush the connection (fill up QueuedCheckpointPackets)
+	// This also frees up the connection to be used for normal streaming again
+	ClientConnections[0]->FlushNet();
+	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
+
+	PackageMapClient->OverridePackageMapExportAckStatus( nullptr );
+
+	ClientConnections[0]->bResendAllDataSinceOpen = false;
+
 	const double EndCheckpointTime = FPlatformTime::Seconds();
 
-	const float CheckpointTimeInMS			= ( EndCheckpointTime - StartCheckpointTime ) * 1000.0;
-	const float SerializeCacheTimeMS		= ( SerializeCacheTime - StartCheckpointTime ) * 1000.0;
-	const float AfterReplicationTimeMS		= ( AfterReplicationTime - SerializeCacheTime ) * 1000.0;
-	const float AfterWritePacketsTimeMS		= ( AfterWritePacketsTime - AfterReplicationTime ) * 1000.0;
-	const float MiscTimeMS					= ( EndCheckpointTime - AfterWritePacketsTime ) * 1000.0;
+	TotalCheckpointSaveTimeSeconds += ( EndCheckpointTime - StartCheckpointTime );
 
-	UE_LOG( LogDemo, Log, TEXT( "Checkpoint. Actors: %i, TotalSize: %i, RepSize: %i, PackageMap: %u, TotalTime: %2.2f, SerializeCacheTimeMS: %2.2f, AfterReplicationTimeMS: %2.2f, AfterWritePacketsTimeMS: %2.2f, Misc: %2.2f" ), GetNetworkObjectList().GetObjects().Num(), TotalSize, CheckpointSize, GuidCacheSize, CheckpointTimeInMS, SerializeCacheTimeMS, AfterReplicationTimeMS, AfterWritePacketsTimeMS, MiscTimeMS );
+	if ( PendingCheckpointActors.Num() == 0 )
+	{
+		//
+		// We're done saving this checkpoint
+		//
+
+		// First, save the current guid cache
+		SerializeGuidCache( GuidCache, CheckpointArchive );
+
+		// Save the compatible rep layout map
+		PackageMapClient->SerializeNetFieldExportGroupMap( *CheckpointArchive );
+
+		// Get the size of the guid data saved
+		const uint32 GuidCacheSize = CheckpointArchive->TotalSize();
+
+		// Write out all of the queued up packets generated while saving the checkpoint
+		WriteDemoFrameFromQueuedDemoPackets( *CheckpointArchive, CastChecked< UDemoNetConnection>( ClientConnections[0] )->QueuedCheckpointPackets );
+
+		// Get the total checkpoint size
+		const int32 TotalCheckpointSize = CheckpointArchive->TotalSize();
+
+		if ( CheckpointArchive->TotalSize() > 0 )
+		{
+			ReplayStreamer->FlushCheckpoint( GetDemoCurrentTimeInMS() );
+		}
+
+		const float TotalCheckpointTimeInMS = TotalCheckpointSaveTimeSeconds * 1000.0;
+
+		UE_LOG( LogDemo, Log, TEXT( "Finished checkpoint. Actors: %i, GuidCacheSize: %i, TotalSize: %i, TotalCheckpointSaveFrames: %i, TotalCheckpointTimeInMS: %2.2f" ), GetNetworkObjectList().GetObjects().Num(), GuidCacheSize, TotalCheckpointSize, TotalCheckpointSaveFrames, TotalCheckpointTimeInMS );
+	}
 }
 
 void UDemoNetDriver::SaveExternalData( FArchive& Ar )
@@ -1202,6 +1278,13 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		return;
 	}
 
+	if ( PendingCheckpointActors.Num() )
+	{
+		// If we're in the middle of saving a checkpoint, then update that now and return
+		TickCheckpoint();
+		return;
+	}
+
 	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
 
 	if ( FileAr == NULL )
@@ -1283,10 +1366,11 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		for ( auto ActorIt = GetNetworkObjectList().GetObjects().CreateIterator(); ActorIt; ++ActorIt)
 		{
 			FNetworkObjectInfo* ActorInfo = (*ActorIt).Get();
-			AActor* Actor = ActorInfo->Actor;
-		
+
 			if ( DemoCurrentTime > ActorInfo->NextUpdateTime )
 			{
+				AActor* Actor = ActorInfo->Actor;
+
 				if ( Actor->IsPendingKill() )
 				{
 					ActorIt.RemoveCurrent();
@@ -1383,6 +1467,13 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 		const bool bDidReplicateActor = DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, false );
 
+		if ( bDidReplicateActor && Actor->NetDormancy == DORM_DormantAll )
+		{
+			// If we've replicated this object at least once, and it wants to go dormant, make it dormant now
+			GetNetworkObjectList().GetObjects().Remove( Actor );
+			FullyDormantActors.Add( Actor );
+		}
+
 		TSharedPtr<FRepChangedPropertyTracker> PropertyTracker = FindOrCreateRepChangedPropertyTracker( Actor );
 
 		if ( !GuidCache->NetGUIDLookup.Contains( Actor ) )
@@ -1426,11 +1517,13 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	ClientConnections[0]->FlushNet();
 	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
 
-	WriteDemoFrameFromQueuedDemoPackets( *FileAr, CastChecked< UDemoNetConnection >( ClientConnections[0] ) );
+	WriteDemoFrameFromQueuedDemoPackets( *FileAr, CastChecked< UDemoNetConnection >( ClientConnections[0] )->QueuedDemoPackets );
 
 	// Save a checkpoint if it's time
 	if ( CVarEnableCheckpoints.GetValueOnGameThread() == 1 )
 	{
+		check( !PendingCheckpointActors.Num() );		// We early out above, so this shouldn't be possible
+
 		const double CHECKPOINT_DELAY = CVarCheckpointUploadDelayInSeconds.GetValueOnGameThread();
 
 		if ( DemoCurrentTime - LastCheckpointTime > CHECKPOINT_DELAY )
@@ -1749,10 +1842,8 @@ bool UDemoNetDriver::ProcessPacket( uint8* Data, int32 Count )
 	return true;
 }
 
-void UDemoNetDriver::WriteDemoFrameFromQueuedDemoPackets( FArchive& Ar, UDemoNetConnection* Connection )
+void UDemoNetDriver::WriteDemoFrameFromQueuedDemoPackets( FArchive& Ar, TArray<FQueuedDemoPacket>& QueuedPackets )
 {
-	check( Connection->SendBuffer.GetNumBits() == 0 );
-
 	// Save total absolute demo time in seconds
 	Ar << DemoCurrentTime;
 
@@ -1777,12 +1868,12 @@ void UDemoNetDriver::WriteDemoFrameFromQueuedDemoPackets( FArchive& Ar, UDemoNet
 	// Save external data
 	SaveExternalData( Ar );
 
-	for ( int32 i = 0; i < Connection->QueuedDemoPackets.Num(); i++ )
+	for ( int32 i = 0; i < QueuedPackets.Num(); i++ )
 	{
-		WritePacket( Ar, Connection->QueuedDemoPackets[i].Data.GetData(), Connection->QueuedDemoPackets[i].Data.Num() );
+		WritePacket( Ar, QueuedPackets[i].Data.GetData(), QueuedPackets[i].Data.Num() );
 	}
 
-	Connection->QueuedDemoPackets.Empty();
+	QueuedPackets.Empty();
 
 	// Write a count of 0 to signal the end of the frame
 	int32 EndCount = 0;
@@ -1888,16 +1979,16 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		CVarDemoSkipTime.AsVariable()->Set(TEXT("0"), ECVF_SetByConsole);
 	}
 
-	if ( !ProcessReplayTasks() )
-	{
-		// We're busy processing tasks, return
-		return;
-	}
-
 	// Update total demo time
 	if ( ReplayStreamer->GetTotalDemoTime() > 0 )
 	{
 		DemoTotalTime = ( float )ReplayStreamer->GetTotalDemoTime() / 1000.0f;
+	}
+
+	if ( !ProcessReplayTasks() )
+	{
+		// We're busy processing tasks, return
+		return;
 	}
 
 	// Make sure there is data available to read
@@ -2057,6 +2148,9 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 		return;
 	}
 
+	// Streaming volumes logic must not be affected by replay spectator camera
+	SpectatorController->bIsUsingStreamingVolumes = false;
+
 	// Make sure SpectatorController->GetNetDriver returns this driver. Ensures functions that depend on it,
 	// such as IsLocalController, work as expected.
 	SpectatorController->SetNetDriverName(NetDriverName);
@@ -2066,6 +2160,12 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 	if ( SpectatorController->PlayerState == nullptr && GetWorld() != nullptr && GetWorld()->IsRecordingClientReplay())
 	{
 		SpectatorController->InitPlayerState();
+	}
+
+	// Tell the game that we're spectator and not a normal player
+	if (SpectatorController->PlayerState)
+	{
+		SpectatorController->PlayerState->bOnlySpectator = true;
 	}
 
 	for ( FActorIterator It( World ); It; ++It)
@@ -2255,6 +2355,17 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 
 	ServerConnection->Close();
 	ServerConnection->CleanUp();
+
+	// Optionally collect garbage after the old actors and connection are cleaned up - there could be a lot of pending-kill objects at this point.
+	if (CVarDemoLoadCheckpointGarbageCollect.GetValueOnGameThread() != 0)
+	{
+		const double GCStartTimeSeconds = FPlatformTime::Seconds();
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+		const double GCEndTimeSeconds = FPlatformTime::Seconds();
+
+		UE_LOG(LogDemo, Verbose, TEXT("UDemoNetDriver::LoadCheckpoint: garbage collection for scrub took %.3fms."),
+			(GCEndTimeSeconds - GCStartTimeSeconds) * 1000.0);
+	}
 
 	FURL ConnectURL;
 	ConnectURL.Map = DemoURL.Map;
@@ -2524,6 +2635,13 @@ void UDemoNetConnection::LowLevelSend(void* Data, int32 CountBytes, int32 CountB
 
 	TrackSendForProfiler( Data, CountBytes );
 
+	if ( bResendAllDataSinceOpen )
+	{
+		// This path is only active for a checkpoint saving out, we need to queue in separate list
+		new( QueuedCheckpointPackets )FQueuedDemoPacket( ( uint8* )Data, CountBytes, CountBits );
+		return;
+	}
+
 	new(QueuedDemoPackets)FQueuedDemoPacket((uint8*)Data, CountBytes, CountBits);
 }
 
@@ -2621,6 +2739,14 @@ TSharedPtr<FObjectReplicator> UDemoNetConnection::CreateReplicatorForNewActorCha
 	}
 
 	return NewReplicator;
+}
+
+void UDemoNetConnection::FlushDormancy( class AActor* Actor )
+{
+	UDemoNetDriver* NetDriver = GetDriver();
+
+	NetDriver->FullyDormantActors.Remove( Actor );
+	NetDriver->GetNetworkObjectList().Add( Actor, NetDriver->NetDriverName );
 }
 
 bool UDemoNetDriver::IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const

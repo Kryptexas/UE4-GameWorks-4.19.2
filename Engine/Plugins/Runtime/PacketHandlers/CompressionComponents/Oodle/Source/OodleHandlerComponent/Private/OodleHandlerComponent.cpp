@@ -340,12 +340,12 @@ void OodleHandlerComponent::Initialize()
 
 		if (bCaptureMode)
 		{
-			UE_LOG(OodleHandlerComponentLog, Log, TEXT("Enabling Oodle capture mode."));
-
 			int32 CapturePercentage = 100;
 			FParse::Value(FCommandLine::Get(), TEXT("CapturePercentage="), CapturePercentage);
-			
-			if (FMath::RandRange(0, 100) <= CapturePercentage)
+
+			int32 RandNum = FMath::RandRange(0, 100);
+			UE_LOG(OodleHandlerComponentLog, Log, TEXT("Enabling Oodle capture mode. Random number is: %d, Capture Percentage is: %d, random number must be less than capture percentage to capture."), RandNum, CapturePercentage);
+			if (RandNum <= CapturePercentage)
 			{
 				InitializePacketLogs();
 			}

@@ -307,7 +307,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	if (Property->HasAnyPropertyFlags(CPF_Parm))
 	{
 		// Parameters are directional
-		const bool bOutParam = (Property->HasAnyPropertyFlags(CPF_OutParm | CPF_ReturnParm) && !(Property->HasAnyPropertyFlags(CPF_ReferenceParm)));
+		const bool bOutParam = Property->HasAllPropertyFlags(CPF_ReturnParm) || (Property->HasAllPropertyFlags(CPF_OutParm) && !Property->HasAnyPropertyFlags(CPF_ReferenceParm));
 
 		if ( ((SourcePin->Direction == EGPD_Input) && bOutParam) || ((SourcePin->Direction == EGPD_Output) && !bOutParam))
 		{
@@ -724,7 +724,7 @@ void FKismetCompilerUtilities::CreateObjectAssignmentStatement(FKismetFunctionCo
 	{
 		// Create a literal term from the class specified in the node
 		FBPTerminal* ClassTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);
-		ClassTerm->Name = OutputObjClass->GetName();
+		ClassTerm->Name = GetNameSafe(OutputObjClass);
 		ClassTerm->bIsLiteral = true;
 		ClassTerm->Source = DstTerm->Source;
 		ClassTerm->ObjectLiteral = OutputObjClass;
@@ -1835,14 +1835,23 @@ struct FEventGraphUtils
 			return true;
 		}
 
+		// Local term must be created by return value. 
+		// If the term is from output- by-reference parameter, then it must be persistent between calls.
+		// Fix for UE - 23629
+		const UK2Node* OwnerNode = Cast<const UK2Node>(Net.GetOwningNodeUnchecked());
+		ensure(OwnerNode);
+		const UK2Node_CallFunction* CallFunction = Cast<const UK2Node_CallFunction>(OwnerNode);
+		if (!CallFunction || (&Net != CallFunction->GetReturnValuePin()))
+		{
+			return true;
+		}
+
 		// NOT CONNECTED, so it doesn't have to be shared
 		if (!Net.LinkedTo.Num())
 		{
 			return false;
 		}
 
-		auto OwnerNode = Cast<const UK2Node>(Net.GetOwningNodeUnchecked());
-		ensure(OwnerNode);
 		// Terminals from pure nodes will be recreated anyway, so they can be always local
 		if (OwnerNode && OwnerNode->IsNodePure())
 		{

@@ -11,6 +11,7 @@
 #include "ShadowMap.h"
 #include "Components/ModelComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 FModelElement::FModelElement(UModelComponent* InComponent,UMaterialInterface* InMaterial):
 	Component(InComponent),
@@ -271,6 +272,12 @@ SIZE_T UModelComponent::GetResourceSize(EResourceSizeMode::Type Mode)
 	return ResSize;
 }
 
+
+bool UModelComponent::IsNameStableForNetworking() const
+{
+	// UModelComponent is always persistent for the duration of a game session, and so can be considered to have a stable name
+	return true;
+}
 
 void UModelComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
 {

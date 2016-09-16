@@ -10,14 +10,31 @@ UGameplayTask_WaitDelay::UGameplayTask_WaitDelay(const FObjectInitializer& Objec
 	TimeStarted = 0.f;
 }
 
-UGameplayTask_WaitDelay* UGameplayTask_WaitDelay::TaskWaitDelay(TScriptInterface<IGameplayTaskOwnerInterface> TaskOwner, float Time)
+UGameplayTask_WaitDelay* UGameplayTask_WaitDelay::TaskWaitDelay(TScriptInterface<IGameplayTaskOwnerInterface> TaskOwner, float Time, const uint8 Priority)
 {
-	auto MyObj = NewTask<UGameplayTask_WaitDelay>(TaskOwner);
-	if (MyObj)
+	UGameplayTask_WaitDelay* MyTask = NewTaskUninitialized<UGameplayTask_WaitDelay>();
+	if (MyTask && TaskOwner.GetInterface() != nullptr)
 	{
-		MyObj->Time = Time;
+		MyTask->InitTask(*TaskOwner, Priority);
+		MyTask->Time = Time;
 	}
-	return MyObj;
+	return MyTask;
+}
+
+UGameplayTask_WaitDelay* UGameplayTask_WaitDelay::TaskWaitDelay(IGameplayTaskOwnerInterface& InTaskOwner, float Time, const uint8 Priority)
+{
+	if (Time <= 0.f)
+	{
+		return nullptr;
+	}
+
+	UGameplayTask_WaitDelay* MyTask = NewTaskUninitialized<UGameplayTask_WaitDelay>();
+	if (MyTask)
+	{
+		MyTask->InitTask(InTaskOwner, Priority);
+		MyTask->Time = Time;
+	}
+	return MyTask;
 }
 
 void UGameplayTask_WaitDelay::Activate()

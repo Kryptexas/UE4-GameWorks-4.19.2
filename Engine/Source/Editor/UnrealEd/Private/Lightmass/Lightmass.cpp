@@ -466,21 +466,6 @@ void FLightmassExporter::AddMaterial(UMaterialInterface* InMaterialInterface, co
 		//@TODO: Add package to warning list if it needs to be resaved (perf warning)
 		InMaterialInterface->UpdateLightmassTextureTracking();
 
-		// Check material instance parent...
-		UMaterialInstance* MaterialInst = Cast<UMaterialInstance>(InMaterialInterface);
-		if (MaterialInst)
-		{
-			if (MaterialInst->Parent)
-			{
-				if (MaterialInst->ParentLightingGuid != MaterialInst->Parent->GetLightingGuid())
-				{
-					//@TODO: Add package to warning list if it needs to be resaved (perf warning)
-					MaterialInst->ParentLightingGuid = MaterialInst->Parent->GetLightingGuid();
-					MaterialInst->SetLightingGuid();
-				}
-			}
-		}
-
 		Materials.Add(InMaterialInterface);
 		MaterialExportSettings.Add(InMaterialInterface, ExportSettings);
 	}
@@ -1135,14 +1120,36 @@ void FLightmassExporter::WriteStaticMeshes()
 	}
 }
 
+void FLightmassExporter::GetMaterialHash(const UMaterialInterface* Material, FSHAHash& OutHash)
+{
+	FSHA1 HashState;
+
+	TArray<FGuid> MaterialGuids;
+	Material->GetLightingGuidChain(true, MaterialGuids);
+	MaterialGuids.Sort();
+
+	FGuid LastGuid;
+	for (const FGuid& MaterialGuid : MaterialGuids)
+	{
+		if (MaterialGuid != LastGuid)
+		{
+			HashState.Update((const uint8*)&MaterialGuid, sizeof(MaterialGuid));
+			LastGuid = MaterialGuid;
+		}
+	}
+	HashState.Final();
+	HashState.GetHash(&OutHash.Hash[0]);
+}
+
 void FLightmassExporter::BuildMaterialMap(UMaterialInterface* Material)
 {
 	if (ensure(Material))
 	{
-		FGuid LightingGuid = Material->GetLightingGuid();
+		FSHAHash MaterialHash;
+		GetMaterialHash(Material, MaterialHash);
 
 		// create a channel name to write the material out to
-		FString NewChannelName = Lightmass::CreateChannelName(LightingGuid, Lightmass::LM_MATERIAL_VERSION, Lightmass::LM_MATERIAL_EXTENSION);
+		FString NewChannelName = Lightmass::CreateChannelName(MaterialHash, Lightmass::LM_MATERIAL_VERSION, Lightmass::LM_MATERIAL_EXTENSION);
 
 		// only export the material if it's not currently in the cache
 		int32 ErrorCode;
@@ -1169,7 +1176,7 @@ void FLightmassExporter::BuildMaterialMap(UMaterialInterface* Material)
 			}
 			else
 			{
-				UE_LOG(LogLightmassSolver, Warning, TEXT("Error in TestChannel() for %s: %s"), *(Material->GetLightingGuid().ToString()), *(Material->GetPathName()));
+				UE_LOG(LogLightmassSolver, Warning, TEXT("Error in TestChannel() for %s: %s"), *(MaterialHash.ToString()), *(Material->GetPathName()));
 			}
 		}
 	}
@@ -1341,7 +1348,7 @@ void FLightmassExporter::WriteBaseMeshInstanceData( int32 Channel, int32 MeshInd
 	if (MaterialElementData.Num() == 0)
 	{
 		Lightmass::FMaterialElementData DefaultData;
-		DefaultData.MaterialId = UMaterial::GetDefaultMaterial(MD_Surface)->GetLightingGuid();
+		GetMaterialHash(UMaterial::GetDefaultMaterial(MD_Surface), DefaultData.MaterialHash);
 		MaterialElementData.Add(DefaultData);
 	}
 
@@ -1470,40 +1477,38 @@ void FLightmassExporter::WriteMeshInstances( int32 Channel )
 		// Collect the material guids for each element
 		TArray<Lightmass::FMaterialElementData> MaterialElementData;
 		const UStaticMesh* StaticMesh = SMLightingMesh->StaticMesh;
+		check(StaticMesh);
 
-		if (StaticMesh)
+		const UStaticMeshComponent* Primitive = SMLightingMesh->Primitive;
+		if (Primitive)
 		{
-			const UStaticMeshComponent* Primitive = SMLightingMesh->Primitive;
-			if (Primitive)
-			{	
-				// get the meshindex from the component
-				MeshId = ComponentToIDMap.Find(Primitive);
+			// get the meshindex from the component
+			MeshId = ComponentToIDMap.Find(Primitive);
 
-				if (StaticMesh->RenderData && SMLightingMesh->LODIndex < StaticMesh->RenderData->LODResources.Num())
+			if (StaticMesh->RenderData && SMLightingMesh->LODIndex < StaticMesh->RenderData->LODResources.Num())
+			{
+				const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[SMLightingMesh->LODIndex];
+				for (int32 SectionIndex = 0; SectionIndex < LODRenderData.Sections.Num(); SectionIndex++)
 				{
-					const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[SMLightingMesh->LODIndex];
-					for (int32 SectionIndex = 0; SectionIndex < LODRenderData.Sections.Num(); SectionIndex++)
+					const FStaticMeshSection& Section = LODRenderData.Sections[ SectionIndex ];
+					UMaterialInterface* Material = Primitive->GetMaterial(Section.MaterialIndex);
+					if (Material == NULL)
 					{
-						const FStaticMeshSection& Section = LODRenderData.Sections[ SectionIndex ];
-						UMaterialInterface* Material = Primitive->GetMaterial(Section.MaterialIndex);
-						if (Material == NULL)
-						{
-							Material = UMaterial::GetDefaultMaterial(MD_Surface);
-						}
-						Lightmass::FMaterialElementData NewElementData;
-						NewElementData.MaterialId = Material->GetLightingGuid();
-						NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
-						NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
-						NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;
-						NewElementData.bUseVertexNormalForHemisphereGather = Primitive->LightmassSettings.bUseVertexNormalForHemisphereGather;
-						// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
-						NewElementData.EmissiveLightFalloffExponent = Primitive->LightmassSettings.EmissiveLightFalloffExponent;
-						NewElementData.EmissiveLightExplicitInfluenceRadius = Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius;
-						NewElementData.EmissiveBoost = Primitive->GetEmissiveBoost(SectionIndex) * LevelSettings.EmissiveBoost;
-						NewElementData.DiffuseBoost = Primitive->GetDiffuseBoost(SectionIndex) * LevelSettings.DiffuseBoost;
-						NewElementData.FullyOccludedSamplesFraction = Primitive->LightmassSettings.FullyOccludedSamplesFraction;
-						MaterialElementData.Add(NewElementData);
+						Material = UMaterial::GetDefaultMaterial(MD_Surface);
 					}
+					Lightmass::FMaterialElementData NewElementData;
+					GetMaterialHash(Material, NewElementData.MaterialHash);
+					NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
+					NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
+					NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;
+					NewElementData.bUseVertexNormalForHemisphereGather = Primitive->LightmassSettings.bUseVertexNormalForHemisphereGather;
+					// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
+					NewElementData.EmissiveLightFalloffExponent = Primitive->LightmassSettings.EmissiveLightFalloffExponent;
+					NewElementData.EmissiveLightExplicitInfluenceRadius = Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius;
+					NewElementData.EmissiveBoost = Primitive->GetEmissiveBoost(SectionIndex) * LevelSettings.EmissiveBoost;
+					NewElementData.DiffuseBoost = Primitive->GetDiffuseBoost(SectionIndex) * LevelSettings.DiffuseBoost;
+					NewElementData.FullyOccludedSamplesFraction = Primitive->LightmassSettings.FullyOccludedSamplesFraction;
+					MaterialElementData.Add(NewElementData);
 				}
 			}
 		}
@@ -1572,13 +1577,13 @@ void FLightmassExporter::WriteLandscapeInstances( int32 Channel )
 		const ULandscapeComponent* LandscapeComp = LandscapeLightingMesh->LandscapeComponent;
 		if (LandscapeComp && LandscapeComp->GetLandscapeProxy())
 		{
-			UMaterialInterface* Material = LandscapeComp->MaterialInstance;
-			if (Material == NULL)
+			UMaterialInterface* Material = LandscapeComp->MaterialInstances[0];
+			if (!Material)
 			{
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
 			}
 			Lightmass::FMaterialElementData NewElementData;
-			NewElementData.MaterialId = Material->GetLightingGuid();
+			GetMaterialHash(Material, NewElementData.MaterialHash);
 			FLightmassPrimitiveSettings& LMSetting = LandscapeComp->GetLandscapeProxy()->LightmassSettings;
 			NewElementData.bUseTwoSidedLighting = LMSetting.bUseTwoSidedLighting;
 			NewElementData.bShadowIndirectOnly = LMSetting.bShadowIndirectOnly;
@@ -1684,7 +1689,7 @@ void FLightmassExporter::WriteMappings( int32 Channel )
 			const FLightmassPrimitiveSettings& PrimitiveSettings = Model->LightmassSettings[Pair.LightmassSettingsIndex];
 
 			Lightmass::FMaterialElementData TempData;
-			TempData.MaterialId = Material->GetLightingGuid();
+			GetMaterialHash(Material, TempData.MaterialHash);
 			TempData.bUseTwoSidedLighting = PrimitiveSettings.bUseTwoSidedLighting;
 			TempData.bShadowIndirectOnly = PrimitiveSettings.bShadowIndirectOnly;
 			TempData.bUseEmissiveForStaticLighting = PrimitiveSettings.bUseEmissiveForStaticLighting;
@@ -2381,18 +2386,18 @@ FString FLightmassProcessor::GetMappingFileExtension(const FStaticLightingMappin
 	return FileExtension;
 }
 
-FGuid FLightmassProcessor_GetMappingFileVersion(const FStaticLightingMapping* InMapping)
+int32 FLightmassProcessor_GetMappingFileVersion(const FStaticLightingMapping* InMapping)
 {
 	// Determine the input file name
-	FGuid ReturnGuid = FGuid(0,0,0,0);
+	int32 ReturnVersion = 0;
 	if (InMapping)
 	{
 		if (InMapping->IsTextureMapping() == true)
 		{
-			ReturnGuid = Lightmass::LM_TEXTUREMAPPING_VERSION;
+			ReturnVersion = Lightmass::LM_TEXTUREMAPPING_VERSION;
 		}
 	}
-	return ReturnGuid;
+	return ReturnVersion;
 }
 
 bool FLightmassProcessor::OpenJob()

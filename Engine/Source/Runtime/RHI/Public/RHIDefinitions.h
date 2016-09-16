@@ -56,8 +56,9 @@ enum EShaderPlatform
 	SP_VULKAN_ES3_1_ANDROID = 22,
 	SP_METAL_MACES3_1 	= 23,
 	SP_METAL_MACES2		= 24,
+	SP_OPENGL_ES3_1_ANDROID = 25,
 
-	SP_NumPlatforms		= 25,
+	SP_NumPlatforms		= 26,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -542,6 +543,8 @@ enum ETextureCreateFlags
 	TexCreate_NoFastClear = 1 << 25,
 	// Texture is a depth stencil resolve target
 	TexCreate_DepthStencilResolveTarget = 1 << 26,
+	// Render target will not FinalizeFastClear; Caches and meta data will be flushed, but clearing will be skipped (avoids potentially trashing metadata)
+	TexCreate_NoFastClearFinalize = 1 << 28,
 };
 
 enum EAsyncComputePriority
@@ -592,6 +595,8 @@ enum class ESimpleRenderTargetMode
 	EClearColorExistingDepth,						// Clear Color = whatever was bound to the rendertarget at creation time. Depth = Existing
 	EClearColorAndDepth,							// Clear color and depth to bound clear values.
 	EExistingContents_NoDepthStore,					// Load existing contents, but don't store depth out.  depth can be written.
+	EExistingColorAndClearDepth,					// Color = Existing, Depth = clear value
+	EExistingColorAndDepthAndClearStencil,			// Color = Existing, Depth = Existing, Stencil = clear
 
 	// If you add an item here, make sure to add it to DecodeRenderTargetMode() as well!
 };
@@ -625,13 +630,16 @@ inline bool IsES2Platform(const EShaderPlatform Platform)
 /** Whether the shader platform corresponds to the ES2/ES3.1 feature level. */
 inline bool IsMobilePlatform(const EShaderPlatform Platform)
 {
-	return IsES2Platform(Platform) || Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID || Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1;
+	return IsES2Platform(Platform)
+		|| Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID
+		|| Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1 || Platform == SP_OPENGL_ES3_1_ANDROID;
 }
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1
-		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT;
+		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT
+		|| Platform == SP_OPENGL_ES3_1_ANDROID;
 }
 
 inline bool IsMetalPlatform(const EShaderPlatform Platform)
@@ -704,6 +712,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_PCES3_1:
 	case SP_VULKAN_PCES3_1:
 	case SP_VULKAN_ES3_1_ANDROID:
+	case SP_OPENGL_ES3_1_ANDROID:
 		return ERHIFeatureLevel::ES3_1;
 	default:
 		checkf(0, TEXT("Unknown ShaderPlatform %d"), (int32)InShaderPlatform);
@@ -763,6 +772,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	case SP_METAL_MACES2:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
+	case SP_OPENGL_ES3_1_ANDROID:
+		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	default:
 		return false;
 	}
@@ -779,14 +790,21 @@ inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 
 inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 {
-	// ES2 needs to flip when rendering to an RT that will be post processed
-	return IsES2Platform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL && !IsVulkanPlatform(Platform);
+	// ES2 & ES3.1 need to flip when rendering to an RT that will be post processed
+	return IsOpenGLPlatform(Platform) && IsMobilePlatform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL && !IsVulkanPlatform(Platform);
 }
 
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
 {
-	// Metal needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
-	return !IsMetalPlatform(Platform) && IsVulkanPlatform(Platform);
+	// Metal and Vulkan needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
+	return !IsMetalPlatform(Platform) && !IsVulkanPlatform(Platform);
+}
+
+inline bool RHISupportsMSAA(EShaderPlatform Platform)
+{
+	return Platform != SP_PS4
+		//@todo-rco: Fix when iOS OpenGL supports MSAA
+		&& Platform != SP_OPENGL_ES2_IOS;
 }
 
 inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)
@@ -805,9 +823,14 @@ inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsMetalPlatform(Platform) && Platform != SP_VULKAN_PCES3_1 && Platform != SP_VULKAN_ES3_1_ANDROID;
 }
 
+inline bool RHISupportsShaderCompression(const EShaderPlatform Platform)
+{
+	return Platform != SP_XBOXONE; // Handled automatically with hardware decompress
+}
+
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 {
-	return (Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID;
+	return (Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES3_1_ANDROID;
 }
 
 inline bool RHISupportsVertexShaderLayer(const EShaderPlatform Platform)

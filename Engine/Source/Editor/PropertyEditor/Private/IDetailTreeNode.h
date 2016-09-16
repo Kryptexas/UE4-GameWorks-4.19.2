@@ -2,17 +2,14 @@
 
 #pragma once
 
-namespace ENodeVisibility
+enum class ENodeVisibility : uint8
 {
-	enum Type
-	{
-		// Hidden but can be visible if parent is visible due to filtering
-		HiddenDueToFiltering,
-		// Never visible no matter what
-		ForcedHidden,
-		// Always visible
-		Visible,
-	};
+	// Hidden but can be visible if parent is visible due to filtering
+	HiddenDueToFiltering,
+	// Never visible no matter what
+	ForcedHidden,
+	// Always visible
+	Visible,
 };
 
 /**
@@ -60,7 +57,7 @@ public:
 	/**
 	 * @return the visibility of this node in the tree
 	 */
-	virtual ENodeVisibility::Type GetVisibility() const = 0;
+	virtual ENodeVisibility GetVisibility() const = 0;
 
 	/**
 	 * Called each frame if the node requests that it should be ticked                                                              

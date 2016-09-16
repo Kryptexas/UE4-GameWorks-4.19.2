@@ -4,9 +4,9 @@
 	UObjectIterator.h: High level iterators for uobject
 =============================================================================*/
 
-#ifndef __UOBJECTITERATOR_H__
-#define __UOBJECTITERATOR_H__
+#pragma once
 
+#include "Class.h"
 
 /**
  * Class for iterating through all objects, including class default objects, unreachable objects...all UObjects
@@ -197,7 +197,9 @@ public:
 	 * Iterator dereference
 	 * @return	the object pointer pointed at by the iterator
 	 */
-	FORCEINLINE T* operator* () const
+	FUNCTION_NON_NULL_RETURN_START
+		FORCEINLINE T* operator* () const
+	FUNCTION_NON_NULL_RETURN_END
 	{
 		return (T*)GetObject();
 	}
@@ -205,7 +207,9 @@ public:
 	 * Iterator dereference
 	 * @return	the object pointer pointed at by the iterator
 	 */
-	FORCEINLINE T* operator-> () const
+	FUNCTION_NON_NULL_RETURN_START
+		FORCEINLINE T* operator-> () const
+	FUNCTION_NON_NULL_RETURN_END
 	{
 		return (T*)GetObject();
 	}
@@ -327,5 +331,3 @@ struct TObjectRange<UObject>
 	TObjectIterator<UObject> Begin;
 };
 
-
-#endif	// __UOBJECTITERATOR_H__

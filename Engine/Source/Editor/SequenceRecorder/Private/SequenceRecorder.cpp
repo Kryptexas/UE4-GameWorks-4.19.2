@@ -15,12 +15,16 @@
 #include "DrawDebugHelpers.h"
 #include "LevelSequenceActor.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "Tracks/MovieSceneAudioTrack.h"
+#include "Sections/MovieSceneAudioSection.h"
+#include "ILevelViewport.h"
 #include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 
 FSequenceRecorder::FSequenceRecorder()
 	: bQueuedRecordingsDirty(false)
+	, bWasImmersive(false)
 	, CurrentDelay(0.0f)
 	, CurrentTime(0.0f)
 {
@@ -38,6 +42,8 @@ void FSequenceRecorder::Initialize()
 	IModularFeatures::Get().RegisterModularFeature("MovieSceneSectionRecorderFactory", &AnimationSectionRecorderFactory);
 	IModularFeatures::Get().RegisterModularFeature("MovieSceneSectionRecorderFactory", &TransformSectionRecorderFactory);
 	IModularFeatures::Get().RegisterModularFeature("MovieSceneSectionRecorderFactory", &MultiPropertySectionRecorder);
+
+	RefreshNextSequence();
 }
 
 void FSequenceRecorder::Shutdown()
@@ -298,7 +304,7 @@ void FSequenceRecorder::Tick(float DeltaSeconds)
 
 void FSequenceRecorder::DrawDebug(UCanvas* InCanvas, APlayerController* InPlayerController)
 {
-	const float NumFrames = 4.0f;
+	const float NumFrames = 9.0f;
 	const bool bCountingDown = CurrentDelay > 0.0f && CurrentDelay < NumFrames;
 
 	if(bCountingDown)
@@ -310,6 +316,8 @@ void FSequenceRecorder::DrawDebug(UCanvas* InCanvas, APlayerController* InPlayer
 		FVector2D Center;
 		InCanvas->GetCenter(Center.X, Center.Y);
 		FVector2D IconPosition = Center - HalfIconSize;
+
+		InCanvas->SetDrawColor(FColor::White);
 
 		FCanvasIcon Icon = UCanvas::MakeIcon(CountdownTexture.Get(), FMath::FloorToFloat(NumFrames - CurrentDelay) * IconSize.X, 0.0f, IconSize.X, IconSize.Y);
 		InCanvas->DrawIcon(Icon, IconPosition.X, IconPosition.Y);
@@ -336,28 +344,70 @@ void FSequenceRecorder::DrawDebug(UCanvas* InCanvas, APlayerController* InPlayer
 
 	if(bCountingDown || IsRecording())
 	{
-		FText Text;
+		FText LabelText;
 		if(IsRecording())
 		{
-			Text = FText::Format(LOCTEXT("RecordingIndicator", "Recording Sequence: {0}\nTime: {1}"), FText::FromName(CurrentSequence.Get()->GetFName()), FText::AsNumber(CurrentTime));
+			LabelText = FText::Format(LOCTEXT("RecordingIndicatorFormat", "{0}"), FText::FromName(CurrentSequence.Get()->GetFName()));
 		}
 		else
 		{
-			Text = LOCTEXT("RecordingIndicatorPending", "Sequence Recording Pending");
+			LabelText = FText::Format(LOCTEXT("RecordingIndicatorPending", "Pending recording: {0}"), FText::FromString(NextSequenceName));
 		}
 
+
+		float TimeAccumulator = CurrentTime;
+		float Hours = FMath::FloorToFloat(TimeAccumulator / (60.0f * 60.0f));
+		TimeAccumulator -= Hours * 60.0f * 60.0f;
+		float Minutes = FMath::FloorToFloat(TimeAccumulator / 60.0f);
+		TimeAccumulator -= Minutes * 60.0f;
+		float Seconds = FMath::FloorToFloat(TimeAccumulator);
+		TimeAccumulator -= Seconds;
+		float Frames = FMath::FloorToFloat(TimeAccumulator * GetDefault<USequenceRecorderSettings>()->DefaultAnimationSettings.SampleRate);
+
+		FNumberFormattingOptions Options;
+		Options.MinimumIntegralDigits = 2;
+		Options.MaximumIntegralDigits = 2;
+
+		FFormatNamedArguments NamedArgs;
+		NamedArgs.Add(TEXT("Hours"), FText::AsNumber((int32)Hours, &Options));
+		NamedArgs.Add(TEXT("Minutes"), FText::AsNumber((int32)Minutes, &Options));
+		NamedArgs.Add(TEXT("Seconds"), FText::AsNumber((int32)Seconds, &Options));
+		NamedArgs.Add(TEXT("Frames"), FText::AsNumber((int32)Frames, &Options));
+		FText TimeText = FText::Format(LOCTEXT("RecordingTimerFormat", "{Hours}:{Minutes}:{Seconds}:{Frames}"), NamedArgs);
+
 		const FVector2D IconSize(32.0f, 32.0f);
-		const FVector2D Offset(32.0f, 64.0f);
+		const FVector2D Offset(8.0f, 32.0f);
 
 		InCanvas->SetDrawColor(FColor::White);
 
-		FVector2D IconPosition(Offset.X, Offset.Y * 2.0f);
+		FVector2D IconPosition(Offset.X, InCanvas->SizeY - (Offset.Y + IconSize.Y));
 		FCanvasIcon Icon = UCanvas::MakeIcon(RecordingIndicatorTexture.Get(), FMath::FloorToFloat(NumFrames - CurrentDelay) * IconSize.X, 0.0f, IconSize.X, IconSize.Y);
 		InCanvas->DrawIcon(Icon, IconPosition.X, IconPosition.Y);
 
-		FFontRenderInfo Info;
-		Info.bEnableShadow = true;
-		InCanvas->DrawText(GEngine->GetMediumFont(), Text, IconPosition.X + IconSize.X + 4.0f, IconPosition.Y + 2.0f, 1.0f, 1.0f, Info);
+		const float TextScale = 1.2f;
+		float TextPositionY = 0.0f;
+		// draw label
+		{
+			float XSize, YSize;
+			InCanvas->TextSize(GEngine->GetLargeFont(), LabelText.ToString(), XSize, YSize, TextScale, TextScale);
+
+			TextPositionY = (IconPosition.Y + (IconSize.Y * 0.5f)) - (YSize * 0.5f);
+
+			FFontRenderInfo Info;
+			Info.bEnableShadow = true;
+			InCanvas->DrawText(GEngine->GetLargeFont(), LabelText, IconPosition.X + IconSize.X + 4.0f, TextPositionY, TextScale, TextScale, Info);
+		}
+		// draw time
+		{
+			float XSize, YSize;
+			InCanvas->TextSize(GEngine->GetLargeFont(), TimeText.ToString(), XSize, YSize, TextScale, TextScale);
+
+			FVector2D TimePosition(InCanvas->SizeX - (Offset.X + XSize), TextPositionY);
+
+			FFontRenderInfo Info;
+			Info.bEnableShadow = true;
+			InCanvas->DrawText(GEngine->GetLargeFont(), TimeText, TimePosition.X, TimePosition.Y, TextScale, TextScale, Info);
+		}
 	}
 }
 
@@ -388,10 +438,30 @@ bool FSequenceRecorder::StartRecording(const FOnRecordingStarted& OnRecordingSta
 
 	CurrentTime = 0.0f;
 
+	if (Settings->bImmersiveMode)
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+		TSharedPtr< ILevelViewport > ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
+
+		if( ActiveLevelViewport.IsValid() )
+		{
+			bWasImmersive = ActiveLevelViewport->IsImmersive();
+
+			if (!ActiveLevelViewport->IsImmersive())
+			{
+				const bool bWantImmersive = true;
+				const bool bAllowAnimation = false;
+				ActiveLevelViewport->MakeImmersive( bWantImmersive, bAllowAnimation );
+			}
+		}
+	}
+
+	RefreshNextSequence();
+
 	if(Settings->RecordingDelay > 0.0f)
 	{
 		CurrentDelay = Settings->RecordingDelay;
-		
+
 		UE_LOG(LogAnimation, Display, TEXT("Starting sequence recording with delay of %f seconds"), CurrentDelay);
 
 		return QueuedRecordings.Num() > 0;
@@ -470,6 +540,8 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 				CurrentSequence = LevelSequence;
 
 				FAssetRegistryModule::AssetCreated(LevelSequence);
+
+				RefreshNextSequence();
 			}
 		}
 
@@ -531,7 +603,44 @@ bool FSequenceRecorder::StartRecordingInternal(UWorld* World)
 		}
 #endif
 
-		UE_LOG(LogAnimation, Display, TEXT("Started recording sequence %s"), *LevelSequence->GetPathName());
+		if (LevelSequence)
+		{
+			UE_LOG(LogAnimation, Display, TEXT("Started recording sequence %s"), *LevelSequence->GetPathName());
+		}
+
+		// If we created an audio recorder at the start of the count down, then start recording
+		// Create the audio recorder now before the count down finishes
+		if (Settings->RecordAudio != EAudioRecordingMode::None)
+		{
+			if (LevelSequence)
+			{
+				FDirectoryPath AudioDirectory;
+				AudioDirectory.Path = Settings->SequenceRecordingBasePath.Path;
+				if (Settings->AudioSubDirectory.Len())
+				{
+					AudioDirectory.Path /= Settings->AudioSubDirectory;
+				}
+
+				ISequenceRecorder& Recorder = FModuleManager::Get().LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
+
+				FAudioRecorderSettings AudioSettings;
+				AudioSettings.Directory = AudioDirectory;
+				AudioSettings.AssetName = FText::Format(LOCTEXT("AudioFormatStr", "{0}_Audio"), FText::FromString(LevelSequence->GetName())).ToString();
+				AudioSettings.RecordingDurationSec = Settings->SequenceLength;
+				AudioSettings.GainDB = Settings->AudioGain;
+				AudioSettings.InputBufferSize = Settings->AudioInputBufferSize;
+
+				AudioRecorder = Recorder.CreateAudioRecorder();
+				if (AudioRecorder)
+				{
+					AudioRecorder->Start(AudioSettings);
+				}
+			}
+			else
+			{
+				UE_LOG(LogAnimation, Display, TEXT("'Create Level Sequence' needs to be enabled for audio recording"));
+			}
+		}
 
 		OnRecordingStartedDelegate.ExecuteIfBound(CurrentSequence.Get());
 		return true;
@@ -555,8 +664,69 @@ void FSequenceRecorder::HandleEndPIE(bool bSimulating)
 
 bool FSequenceRecorder::StopRecording()
 {
-	FScopedSlowTask SlowTask((float)(QueuedRecordings.Num() + DeadRecordings.Num()), LOCTEXT("ProcessingRecording", "Processing Recording"));
+	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
+
+	if (Settings->bImmersiveMode)
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+		TSharedPtr< ILevelViewport > ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
+
+		if( ActiveLevelViewport.IsValid() )
+		{
+			if (ActiveLevelViewport->IsImmersive() != bWasImmersive)
+			{
+				const bool bAllowAnimation = false;
+				ActiveLevelViewport->MakeImmersive(bWasImmersive, bAllowAnimation);
+			}
+		}
+	}
+
+	// 1 step for the audio processing
+	static const uint8 NumAdditionalSteps = 1;
+
+	FScopedSlowTask SlowTask((float)(QueuedRecordings.Num() + DeadRecordings.Num() + NumAdditionalSteps), LOCTEXT("ProcessingRecording", "Processing Recording"));
 	SlowTask.MakeDialog(false, true);
+
+	// Process audio first so it doesn't record while we're processing the other captured state
+	ULevelSequence* LevelSequence = CurrentSequence.Get();
+
+	SlowTask.EnterProgressFrame(1.f, LOCTEXT("ProcessingAudio", "Processing Audio"));
+	if (AudioRecorder && LevelSequence)
+	{
+		USoundWave* RecordedAudio = AudioRecorder->Stop();
+		AudioRecorder.Reset();
+
+		if (RecordedAudio)
+		{
+			// Add a new master audio track to the level sequence
+			
+			UMovieScene* MovieScene = LevelSequence->GetMovieScene();
+
+			UMovieSceneAudioTrack* AudioTrack = MovieScene->FindMasterTrack<UMovieSceneAudioTrack>();
+			if (!AudioTrack)
+			{
+				AudioTrack = MovieScene->AddMasterTrack<UMovieSceneAudioTrack>();
+				AudioTrack->SetDisplayName(LOCTEXT("DefaultAudioTrackName", "Recorded Audio"));
+			}
+
+			int32 RowIndex = -1;
+			for (UMovieSceneSection* Section : AudioTrack->GetAllSections())
+			{
+				RowIndex = FMath::Max(RowIndex, Section->GetRowIndex());
+			}
+
+			UMovieSceneAudioSection* NewAudioSection = NewObject<UMovieSceneAudioSection>(AudioTrack, UMovieSceneAudioSection::StaticClass());
+
+			NewAudioSection->SetRowIndex(RowIndex + 1);
+			NewAudioSection->SetSound(RecordedAudio);
+			NewAudioSection->SetStartTime(0);
+			NewAudioSection->SetEndTime(RecordedAudio->GetDuration());
+
+			AudioTrack->AddSection(*NewAudioSection);
+		}
+	}
+
+
 
 	CurrentDelay = 0.0f;
 
@@ -592,13 +762,10 @@ bool FSequenceRecorder::StopRecording()
 
 	DeadRecordings.Empty();
 
-	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 	if(Settings->bCreateLevelSequence)
 	{
-		if(CurrentSequence.IsValid())
+		if(LevelSequence)
 		{
-			ULevelSequence* LevelSequence = CurrentSequence.Get();
-
 			// Stop referencing the sequence so we are listed as 'not recording'
 			CurrentSequence = nullptr;
 
@@ -689,6 +856,8 @@ float FSequenceRecorder::GetCurrentDelay() const
 
 bool FSequenceRecorder::IsActorValidForRecording(AActor* Actor)
 {
+	check(Actor);
+
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 
 	float Distance = Settings->NearbyActorRecordingProximity;
@@ -720,7 +889,7 @@ bool FSequenceRecorder::IsActorValidForRecording(AActor* Actor)
 	// check class if any
 	for(const TSubclassOf<AActor>& ActorClass : Settings->ActorFilter.ActorClassesToRecord)
 	{
-		if(Actor->IsA(*ActorClass))
+		if(*ActorClass != nullptr && Actor->IsA(*ActorClass))
 		{
 			return true;
 		}
@@ -756,6 +925,14 @@ void FSequenceRecorder::HandleActorDespawned(AActor* Actor)
 			}
 		}
 	}
+}
+
+void FSequenceRecorder::RefreshNextSequence()
+{
+	// Cache the name of the next sequence we will try to record to
+	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
+	SequenceName = Settings->SequenceName.Len() > 0 ? Settings->SequenceName : TEXT("RecordedSequence");
+	NextSequenceName = SequenceRecorderUtils::MakeNewAssetName<ULevelSequence>(Settings->SequenceRecordingBasePath.Path, SequenceName);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -215,6 +215,9 @@ public:
 	SHADERCORE_API static bool ArePlatformsCompatible(EShaderPlatform CurrentPlatform, EShaderPlatform TargetPlatform);
 	
 private:
+	// compression functions
+	void UncompressCode(TArray<uint8>& UncompressedCode) const;
+	void CompressCode(const TArray<uint8>& UncompressedCode);
 
 	/** Reference to the RHI shader.  Only one of these is ever valid, and it is the one corresponding to Target.Frequency. */
 	FVertexShaderRHIRef VertexShader;
@@ -229,6 +232,9 @@ private:
 
 	/** Compiled bytecode. */
 	TArray<uint8> Code;
+
+	/** Original bytecode size, before compression */
+	uint32 UncompressedCodeSize = 0;
 
 	/**
 	 * Hash of the compiled bytecode and the generated parameter map.
@@ -252,7 +258,7 @@ private:
 	uint32 Canary;
 
 	/** Initialize the shader RHI resources. */
-	void InitializeShaderRHI();
+	SHADERCORE_API void InitializeShaderRHI();
 
 	/** Tracks loaded shader resources by id. */
 	static TMap<FShaderResourceId, FShaderResource*> ShaderResourceIdMap;

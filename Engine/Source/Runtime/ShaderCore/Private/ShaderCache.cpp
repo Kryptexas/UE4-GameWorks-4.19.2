@@ -4,6 +4,7 @@
 	ShaderCache.cpp: Bound shader state cache implementation.
 =============================================================================*/
 
+#include "ShaderCorePrivatePCH.h"
 #include "ShaderCore.h"
 #include "ShaderCache.h"
 #include "Shader.h"
@@ -160,6 +161,7 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_OPENGL_ES2_WEBGL:
 		case SP_OPENGL_ES2_IOS:
 		case SP_OPENGL_ES31_EXT:
+		case SP_OPENGL_ES3_1_ANDROID:
 		default:
 		{
 			return false;

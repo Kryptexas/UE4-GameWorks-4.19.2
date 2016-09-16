@@ -1,23 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-/*============================================================================
-	Karma Integration Support
-    
-    - MeMemory/MeMessage glue
-    - Debug line drawing
- ===========================================================================*/
+// Physics engine integration utilities
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "Model.h"
 #include "PhysXSupport.h"
-
-/* *********************************************************************** */
-/* *********************************************************************** */
-/* *********************** MODELTOHULLS  ********************************* */
-/* *********************************************************************** */
-/* *********************************************************************** */
-
+#include "PhysicsEngine/BodySetup.h"
 
 /** Returns false if ModelToHulls operation should halt because of vertex count overflow. */
 static bool AddConvexPrim(FKAggregateGeom* OutGeom, TArray<FPlane> &Planes, UModel* InModel)

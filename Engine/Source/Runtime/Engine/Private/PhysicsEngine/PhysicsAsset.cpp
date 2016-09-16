@@ -7,13 +7,15 @@
 #include "EnginePrivate.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "FrameworkObjectVersion.h"
-
+#include "ReleaseObjectVersion.h"
+#include "MessageLog.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
 #endif // WITH_PHYSX
 #include "PhysicsEngine/PhysicsAsset.h"
 
+#define LOCTEXT_NAMESPACE "PhysicsAsset"
 
 ///////////////////////////////////////	
 //////////// UPhysicsAsset ////////////
@@ -85,7 +87,6 @@ void USkeletalBodySetup::RemovePhysicalAnimationProfile(FName ProfileName)
 
 void USkeletalBodySetup::UpdatePhysicalAnimationProfiles(const TArray<FName>& Profiles)
 {
-	//TODO: rename code. At the moment just deletes
 	for(int32 ProfileIdx = 0; ProfileIdx < PhysicalAnimationData.Num(); ++ProfileIdx)
 	{
 		if(Profiles.Contains(PhysicalAnimationData[ProfileIdx].ProfileName) == false)
@@ -94,6 +95,31 @@ void USkeletalBodySetup::UpdatePhysicalAnimationProfiles(const TArray<FName>& Pr
 		}
 	}
 }
+
+void USkeletalBodySetup::DuplicatePhysicalAnimationProfile(FName DuplicateFromName, FName DuplicateToName)
+{
+	for (FPhysicalAnimationProfile& ProfileHandle : PhysicalAnimationData)
+	{
+		if (ProfileHandle.ProfileName == DuplicateFromName)
+		{
+			FPhysicalAnimationProfile* Duplicate = new (PhysicalAnimationData) FPhysicalAnimationProfile(ProfileHandle);
+			Duplicate->ProfileName = DuplicateToName;
+			break;
+		}
+	}
+}
+
+void USkeletalBodySetup::RenamePhysicalAnimationProfile(FName CurrentName, FName NewName)
+{
+	for(FPhysicalAnimationProfile& ProfileHandle : PhysicalAnimationData)
+	{
+		if(ProfileHandle.ProfileName == CurrentName)
+		{
+			ProfileHandle.ProfileName = NewName;
+		}
+	}
+}
+
 #endif
 
 void UPhysicsAsset::UpdateBodySetupIndexMap()
@@ -138,6 +164,46 @@ void UPhysicsAsset::PostLoad()
 	{
 		UpdateBodySetupIndexMap();
 	}
+
+	if (GetLinkerCustomVersion(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::NoSyncAsyncPhysAsset)
+	{
+		bool bCurrentUseAsync = false;
+		bool bAnyConflicts = false;
+		for (int32 BodySetupIdx = 0; BodySetupIdx < SkeletalBodySetups.Num(); ++BodySetupIdx)
+		{
+			if(UBodySetup* BS = SkeletalBodySetups[BodySetupIdx])
+			{
+				if(BodySetupIdx == 0)
+				{
+					bCurrentUseAsync = BS->DefaultInstance.bUseAsyncScene;
+				}
+				else if(BS->DefaultInstance.bUseAsyncScene != bCurrentUseAsync)
+				{
+					bAnyConflicts = true;
+					break;
+				}
+			}
+		}
+
+		bUseAsyncScene = bAnyConflicts ? false : bCurrentUseAsync;	//If there's any conflict just use the sync scene
+
+		for (UBodySetup* BS : SkeletalBodySetups)
+		{
+			if (BS)
+			{
+				BS->DefaultInstance.bUseAsyncScene = bUseAsyncScene;
+			}
+		}
+
+		
+#if WITH_EDITOR
+		if(bAnyConflicts)
+		{
+			FMessageLog("LoadErrors").Warning(FText::Format(LOCTEXT("ConflictSyncAsync", "Physics Asset had both sync and async bodies. Defaulting to sync scene only. If you'd like to use async change UseAsyncScene on the PhysicsAsset:{0}"),
+				FText::FromString(GetName())));
+		}
+#endif
+	}
 }
 
 void UPhysicsAsset::Serialize(FArchive& Ar)
@@ -152,6 +218,9 @@ void UPhysicsAsset::Serialize(FArchive& Ar)
 		DefaultSkelMesh_DEPRECATED = NULL;
 	}
 #endif
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 }
 
 
@@ -458,18 +527,131 @@ void UPhysicsAsset::PostEditUndo()
 	UpdateBoundsBodiesArray();
 }
 
-void UPhysicsAsset::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UPhysicsAsset::PreEditChange(UProperty* PropertyThatWillChange)
+{
+	Super::PreEditChange(PropertyThatWillChange);
+
+	PreConstraintProfiles = ConstraintProfiles;
+	PrePhysicalAnimationProfiles = PhysicalAnimationProfiles;
+}
+
+template <typename T>
+void SanitizeProfilesHelper(const TArray<T*>& SetupInstances, const TArray<FName>& PreProfiles, TArray<FName>& PostProfiles, FPropertyChangedEvent& PropertyChangedEvent, const FName PropertyName, FName& CurrentProfileName, TFunctionRef<void (T*, FName, FName)> RenameFunc, TFunctionRef<void(T*, FName, FName)> DuplicateFunc, TFunctionRef<void(T*, const TArray<FName>& )> UpdateFunc)
+{
+	const int32 ArrayIdx = PropertyChangedEvent.GetArrayIndex(PropertyName.ToString());
+	const FName OldName = PreProfiles.IsValidIndex(ArrayIdx) ? PreProfiles[ArrayIdx] : NAME_None;
+
+	if (ArrayIdx != INDEX_NONE)
+	{
+		if(PropertyChangedEvent.ChangeType != EPropertyChangeType::Unspecified)
+		{
+			int32 CollisionCount = 0;
+			FName NewName = PostProfiles[ArrayIdx] == NAME_None ? FName(TEXT("New")) : PostProfiles[ArrayIdx];
+			const FString NewNameNoNumber = NewName.ToString();
+			while(PreProfiles.Contains(NewName))
+			{
+				FString NewNameStr = NewNameNoNumber;
+				NewNameStr.Append("_").AppendInt(++CollisionCount);
+				NewName = FName(*NewNameStr);
+			}
+
+			PostProfiles[ArrayIdx] = NewName;
+		}
+	}
+	
+
+	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet)
+	{
+		if (ArrayIdx != INDEX_NONE)	//INDEX_NONE can come when emptying the array, so just ignore it
+		{
+			for (T* SetupInstance : SetupInstances)
+			{
+				SetupInstance->Modify();
+				RenameFunc(SetupInstance, PreProfiles[ArrayIdx], PostProfiles[ArrayIdx]);
+			}
+
+			if (CurrentProfileName == PreProfiles[ArrayIdx])
+			{
+				CurrentProfileName = PostProfiles[ArrayIdx];
+			}
+		}
+	}
+
+	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
+	{
+		for (T* SetupInstance : SetupInstances)
+		{
+			SetupInstance->Modify();
+			DuplicateFunc(SetupInstance, OldName, PostProfiles[ArrayIdx]);
+		}
+	}
+
+	//array events like empty currently do not get an Empty type so we need to do this final sanitization every time something changes just in case
+	{
+		//delete requires removing old profiles
+		for (T* SetupInstance : SetupInstances)
+		{
+			SetupInstance->Modify();
+			UpdateFunc(SetupInstance, PostProfiles);
+		}
+
+		if (PostProfiles.Find(CurrentProfileName) == INDEX_NONE)
+		{
+			CurrentProfileName = NAME_None;
+		}
+	}
+}
+
+void UPhysicsAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if(UProperty* Property = PropertyChangedEvent.Property)
 	{
-		if(Profiles.Find(CurrentPhysicalAnimationProfileName) == INDEX_NONE)
+		const FName PropertyName = Property->GetFName();
+		if(PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsAsset, PhysicalAnimationProfiles))
 		{
-			CurrentPhysicalAnimationProfileName = NAME_None;
-		}
+			auto RenameFunc = [](USkeletalBodySetup* BS, FName PreName, FName NewName)
+			{
+				BS->RenamePhysicalAnimationProfile(PreName, NewName);
+			};
 
-		for(USkeletalBodySetup* BS : SkeletalBodySetups)
+			auto DuplicateFunc = [](USkeletalBodySetup* BS, FName DuplicateFromName, FName DuplicateToName)
+			{
+				BS->DuplicatePhysicalAnimationProfile(DuplicateFromName, DuplicateToName);
+			};
+
+			auto UpdateFunc = [](USkeletalBodySetup* BS, const TArray<FName>& NewProfiles)
+			{
+				BS->UpdatePhysicalAnimationProfiles(NewProfiles);
+			};
+
+			SanitizeProfilesHelper<USkeletalBodySetup>(SkeletalBodySetups, PrePhysicalAnimationProfiles, PhysicalAnimationProfiles, PropertyChangedEvent, PropertyName, CurrentPhysicalAnimationProfileName, RenameFunc, DuplicateFunc, UpdateFunc);
+		}
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsAsset, ConstraintProfiles))
 		{
-			BS->UpdatePhysicalAnimationProfiles(Profiles);
+			auto RenameFunc = [](UPhysicsConstraintTemplate* CS, FName PreName, FName NewName)
+			{
+				CS->RenameConstraintProfile(PreName, NewName);
+			};
+
+			auto DuplicateFunc = [](UPhysicsConstraintTemplate* CS, FName DuplicateFromName, FName DuplicateToName)
+			{
+				CS->DuplicateConstraintProfile(DuplicateFromName, DuplicateToName);
+			};
+
+			auto UpdateFunc = [](UPhysicsConstraintTemplate* CS, const TArray<FName>& NewProfiles)
+			{
+				CS->UpdateConstraintProfiles(NewProfiles);
+			};
+
+			SanitizeProfilesHelper<UPhysicsConstraintTemplate>(ConstraintSetup, PreConstraintProfiles, ConstraintProfiles, PropertyChangedEvent, PropertyName, CurrentConstraintProfileName, RenameFunc, DuplicateFunc, UpdateFunc);
+		}
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(UPhysicsAsset, bUseAsyncScene))
+		{
+			for(USkeletalBodySetup* BS : SkeletalBodySetups)
+			{
+				BS->Modify();
+				BS->DefaultInstance.bUseAsyncScene = bUseAsyncScene;
+			}
 		}
 	}
 
@@ -526,3 +708,5 @@ SIZE_T UPhysicsAsset::GetResourceSize(EResourceSizeMode::Type Mode)
 	// @todo implement inclusive mode
 	return ResourceSize;
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -26,6 +26,7 @@ public:
 public:
 	SLATE_BEGIN_ARGS( SMenuAnchor )
 		: _Content()
+		, _Padding(FMargin(0.f))
 		, _MenuContent( SNew(STextBlock) .Text( NSLOCTEXT("SMenuAnchor", "NoMenuContent", "No Menu Content Assigned; use .MenuContent") ) )
 		, _OnGetMenuContent()
 		, _Placement( MenuPlacement_BelowAnchor )
@@ -36,6 +37,8 @@ public:
 		{}
 		
 		SLATE_DEFAULT_SLOT( FArguments, Content )
+
+		SLATE_ARGUMENT( FMargin, Padding )
 		
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, MenuContent )
 
@@ -104,6 +107,7 @@ public:
 protected:
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual bool ComputeVolatility() const override;
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override;
@@ -128,13 +132,6 @@ protected:
 	 * Pointer is null when a popup is not visible.
 	 */
 	TWeakPtr<SWindow> PopupWindowPtr;
-
-	/**
-	 * A pointer to the window presenting this popup.
-	 * Can be the window created to hold a menu or the window containing this anchor if the menu is drawn as a child of the this anchor.
-	 * Pointer is null when a popup is not visible.
-	 */
-	mutable TWeakPtr<SWindow> DrawnWindowPtr;
 
 	/**
 	 * An interface pointer to the menu object presenting this popup.

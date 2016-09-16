@@ -462,7 +462,7 @@ namespace APIDocTool
 			}
 
 			// Derive all the tool paths
-			string DoxygenPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\Doxygen\\bin\\Release64\\doxygen.exe");
+			string DoxygenPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\doxygen-1.8.11\\Doxygen\\Releasex64\\doxygen.exe");
 			string EditorPath = Path.Combine(EngineDir, "Binaries\\Win64\\UE4Editor-Cmd.exe");
 			string DocToolPath = Path.Combine(EngineDir, "Binaries\\DotNET\\UnrealDocTool.exe");
 			string ChmCompilerPath = Path.Combine(EngineDir, "Extras\\NotForLicensees\\HTML Help Workshop\\hhc.exe");
@@ -497,7 +497,7 @@ namespace APIDocTool
 			// Establish snippet directory so we can look things up later
 			APISnippets.SetSnippetTextDirectory(SnippetsDir);
 
-			// Build all the code docs
+            // Build all the code docs
 			if (!BuildCodeSnippetsTxt(SamplesDir, CodeSnippetsActions))
 			{
 				return 1;
@@ -630,7 +630,7 @@ namespace APIDocTool
 				Console.WriteLine("Building target info...");
 				Utility.SafeCreateDirectory(Path.GetDirectoryName(TargetInfoPath));
 
-				string Arguments = String.Format("DocumentationEditor Win64 Debug -noxge -project=\"{0}\"", Path.Combine(EngineDir, "Documentation\\Extras\\API\\Build\\Documentation.uproject"));
+				string Arguments = String.Format("DocumentationEditor Win64 Debug -ignorejunk -noxge -project=\"{0}\"", Path.Combine(EngineDir, "Documentation\\Extras\\API\\Build\\Documentation.uproject"));
 				if (!RunUnrealBuildTool(EngineDir, Arguments + " -clean"))
 				{
 					return false;
@@ -681,6 +681,7 @@ namespace APIDocTool
 				NewProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
 				NewProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
 
+				Console.WriteLine("Running {0} {1}", NewProcess.StartInfo.FileName, NewProcess.StartInfo.Arguments);
 				try
 				{
 					NewProcess.Start();
@@ -1075,7 +1076,7 @@ namespace APIDocTool
                     // Run Doxygen
                     if (!Doxygen.Run(DoxygenPath, Path.Combine(EngineDir, "Source"), Config, true))
                     {
-                        Console.WriteLine("  Doxygen crashed. Skipping.");
+                        Console.WriteLine("  error: Doxygen crashed. Skipping.");
                         return false;
                     }
                 }
@@ -1540,7 +1541,8 @@ namespace APIDocTool
 
 		static private void CreateChm(string ChmCompilerPath, string ChmFileName, string Title, string DefaultTopicPath, string ContentsFileName, string IndexFileName, string SourceDir, List<string> FileNames)
 		{
-			string ProjectName = Path.GetFileNameWithoutExtension(ChmFileName);
+            Console.WriteLine("CreateChm {0}", ChmFileName);
+            string ProjectName = Path.GetFileNameWithoutExtension(ChmFileName);
 
 			// Create an intermediate directory
 			string IntermediateDir = Path.Combine(Path.GetDirectoryName(ChmFileName), ProjectName);

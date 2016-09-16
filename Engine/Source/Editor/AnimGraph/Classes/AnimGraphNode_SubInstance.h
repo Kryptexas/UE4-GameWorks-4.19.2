@@ -57,6 +57,15 @@ private:
 	// Given a new class, rebuild the known property list (for tracking class changes and moving pins)
 	void RebuildExposedProperties(UClass* InNewClass);
 
+	// Finds out whether there is a loop in the graph formed by sub instances from this node
+	bool HasInstanceLoop();
+
+	// Finds out whether there is a loop in the graph formed by sub instances from CurrNode, used by HasInstanceLoop. VisitedNodes and NodeStack are required
+	// to track the graph links
+	// VisitedNodes - Node we have searched the links of, so we don't do it twice
+	// NodeStack - The currently considered chain of nodes. If a loop is detected this will contain the chain that causes the loop
+	static bool HasInstanceLoop_Recursive(UAnimGraphNode_SubInstance* CurrNode, TArray<FGuid>& VisitedNodes, TArray<FGuid>& NodeStack);
+
 	// ----- UI CALLBACKS ----- //
 	// If given property exposed on this node
 	ECheckBoxState IsPropertyExposed(FName PropertyName) const;

@@ -341,8 +341,7 @@ void FMetalComputeFence::Wait()
 {
 	if (GSupportsEfficientAsyncCompute)
 	{
-		check(CommandBuffer);
-		check(CommandBuffer.status > MTLCommandBufferStatusEnqueued);
+		check(!CommandBuffer || CommandBuffer.status > MTLCommandBufferStatusEnqueued);
 	}
 }
 
@@ -351,10 +350,17 @@ void FMetalRHICommandContext::RHITransitionResources(EResourceTransitionAccess T
 	if (WriteComputeFence)
 	{
 		FMetalComputeFence* Fence = ResourceCast(WriteComputeFence);
-		Fence->Write(Context->GetCurrentCommandBuffer());
-		if (GSupportsEfficientAsyncCompute)
+		if (Context->GetCurrentCommandBuffer())
 		{
-			RHISubmitCommandsHint();
+			Fence->Write(Context->GetCurrentCommandBuffer());
+			if (GSupportsEfficientAsyncCompute)
+			{
+				RHISubmitCommandsHint();
+			}
+		}
+		else
+		{
+			Fence->WriteFence();
 		}
 	}
 }

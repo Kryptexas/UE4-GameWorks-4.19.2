@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// 
 
-#include "MetalShaderFormat.h"
 #include "Core.h"
+#include "MetalShaderFormat.h"
 #include "hlslcc.h"
 #include "hlslcc_private.h"
 #include "MetalBackend.h"
@@ -640,6 +639,37 @@ protected:
 	{
 		check(0 && "ir_rvalue not handled for GLSL export.");
 	}
+	
+
+	void print_zero_initialiser(const glsl_type * type)
+	{
+		check(type->base_type != GLSL_TYPE_STRUCT);
+		{
+			if (type->base_type != GLSL_TYPE_ARRAY)
+			{
+				ir_constant* zero = ir_constant::zero(mem_ctx, type);
+				if (zero)
+				{
+					zero->accept(this);
+				}
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, "{");
+				
+				for (uint32 i = 0; i < type->length; i++)
+				{
+					if (i > 0)
+					{
+						ralloc_asprintf_append(buffer, ", ");
+					}
+					print_zero_initialiser(type->element_type());
+				}
+				
+				ralloc_asprintf_append(buffer, "}");
+			}
+		}
+	}
 
 	virtual void visit(ir_variable *var) override
 	{
@@ -922,13 +952,13 @@ protected:
 				var->constant_value->accept(this);
 			}
 		}
-		else if ((Backend && Backend->bZeroInitialise) && (var->type->base_type != GLSL_TYPE_STRUCT && var->type->base_type != GLSL_TYPE_ARRAY) && (var->mode == ir_var_auto || var->mode == ir_var_temporary))
+		else if ((Backend && Backend->bZeroInitialise) && (var->type->base_type != GLSL_TYPE_STRUCT) && (var->mode == ir_var_auto || var->mode == ir_var_temporary || var->mode == ir_var_shared) && (Buffers.AtomicVariables.find(var) == Buffers.AtomicVariables.end()))
 		{
-			ir_constant* zero = ir_constant::zero(mem_ctx, var->type);
-			if (zero)
+			// @todo UE-34355 temporary workaround for 10.12 shader compiler error - really all arrays should be zero'd but only threadgroup shared initialisation works on the Beta drivers.
+			if (var->type->base_type != GLSL_TYPE_ARRAY || var->mode == ir_var_shared)
 			{
 				ralloc_asprintf_append(buffer, " = ");
-				zero->accept(this);
+				print_zero_initialiser(var->type);
 			}
 		}
 	}
@@ -1124,7 +1154,7 @@ protected:
 			ralloc_asprintf_append(buffer, "ERRROR_MulMatrix()");
 			check(0);
 		}
-		else if (op == ir_ternop_clamp && expr->type->base_type == GLSL_TYPE_FLOAT)
+		else if ((op == ir_ternop_clamp || op == ir_unop_sqrt || op == ir_unop_rsq) && expr->type->base_type == GLSL_TYPE_FLOAT)
 		{
 			ralloc_asprintf_append(buffer, "precise::%s", MetalExpressionTable[op][0]);
 			for (int i = 0; i < numOps; ++i)
@@ -1133,16 +1163,47 @@ protected:
 				ralloc_asprintf_append(buffer, MetalExpressionTable[op][i+1]);
 			}
 		}
-		else if (numOps == 2 && (op == ir_binop_max || op == ir_binop_min) && expr->type->is_integer())
+		else if (numOps == 2 && (op == ir_binop_max || op == ir_binop_min))
 		{
 			// Convert fmax/fmin to max/min when dealing with integers
 			auto* OpString = MetalExpressionTable[op][0];
 			check(OpString[0] == 'f');
-			ralloc_asprintf_append(buffer, OpString + 1);
+			
+			if(expr->type->is_integer())
+			{
+				OpString = (OpString + 1);
+			}
+			else if(expr->type->base_type == GLSL_TYPE_FLOAT)
+			{
+				ralloc_asprintf_append(buffer, "precise::");
+			}
+			
+			ralloc_asprintf_append(buffer, OpString);
 			expr->operands[0]->accept(this);
 			ralloc_asprintf_append(buffer, MetalExpressionTable[op][1]);
 			expr->operands[1]->accept(this);
 			ralloc_asprintf_append(buffer, MetalExpressionTable[op][2]);
+		}
+		else if (numOps == 2 && op == ir_binop_dot)
+		{
+			auto* OpString = MetalExpressionTable[op][0];
+			
+			if (expr->operands[0]->type->is_scalar() && expr->operands[1]->type->is_scalar())
+			{
+				ralloc_asprintf_append(buffer, "(");
+				expr->operands[0]->accept(this);
+				ralloc_asprintf_append(buffer, "*");
+				expr->operands[1]->accept(this);
+				ralloc_asprintf_append(buffer, ")");
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, OpString);
+				expr->operands[0]->accept(this);
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][1]);
+				expr->operands[1]->accept(this);
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][2]);
+			}
 		}
 		else if (op == ir_unop_lsb && numOps == 1)
 		{
@@ -1866,7 +1927,18 @@ protected:
 			if (constant->is_component_finite(index))
 			{
 				float value = constant->value.f[index];
-				const char *format = (fabsf(fmodf(value,1.0f)) < 1.e-8f) ? "%.1f" : "%.8f";
+				float absval = fabsf(value);
+				
+				const char *format = "%e";
+				if (absval >= 1.0f)
+				{
+					format = (fmodf(absval,1.0f) < 1.e-8f) ? "%.1f" : "%.8f";
+				}
+				else if (absval < 1.e-18f)
+				{
+					format = "%.1f";
+				}
+				
 				ralloc_asprintf_append(buffer, format, value);
 			}
 			else
@@ -2033,6 +2105,35 @@ protected:
 			}
 		}
 
+        if (call->return_deref && call->return_deref->type && call->return_deref->type->is_scalar())
+        {
+            if (!strcmp(call->callee_name(), "length"))
+            {
+                bool bIsVector = true;
+                foreach_iter(exec_list_iterator, iter, *call)
+                {
+                    ir_instruction *const inst = (ir_instruction *) iter.get();
+                    ir_rvalue* const val = inst->as_rvalue();
+                    if (val && val->type->is_scalar())
+                    {
+                        bIsVector &= val->type->is_vector();
+                    }
+                }
+                
+                if (!bIsVector)
+                {
+                    ralloc_asprintf_append(buffer, "(");
+                    foreach_iter(exec_list_iterator, iter, *call)
+                    {
+                        ir_instruction *const inst = (ir_instruction *) iter.get();
+                        inst->accept(this);
+                    }
+                    ralloc_asprintf_append(buffer, ")");
+                    return;
+                }
+            }
+        }
+        
 		if (!strcmp(call->callee_name(), "packHalf2x16"))
 		{
 			ralloc_asprintf_append(buffer, "as_type<uint>(half2(");

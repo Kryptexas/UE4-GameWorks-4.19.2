@@ -298,21 +298,12 @@ const TCHAR* GetUATCompilationFlags()
 FString GetCookingOptionalParams()
 {
 	FString OptionalParams;
-	/*const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
-	if (PackagingSettings->bCookAll)
-	{
-		OptionalParams += TEXT(" -CookAll");
-		// maps only flag only affects cook all
-		if (PackagingSettings->bCookMapsOnly)
-		{
-			OptionalParams += TEXT(" -CookMapsOnly");
-		}
-	}
-
+	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+	
 	if (PackagingSettings->bSkipEditorContent)
 	{
 		OptionalParams += TEXT(" -SKIPEDITORCONTENT");
-	}*/
+	}
 	return OptionalParams;
 }
 
@@ -407,8 +398,9 @@ bool FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked( EProjectPack
 void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 {
 	GUnrealEd->CancelPlayingViaLauncher();
-	TArray<FString> Packages;
-	GUnrealEd->SaveWorldForPlay(Packages);
+	/*TArray<FString> Packages;
+	GUnrealEd->SaveWorldForPlay(Packages);*/
+	SaveAll();
 	
 	// does the project have any code?
 	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
@@ -436,6 +428,8 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		return;
 	}
 
+	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
+
 	{
 		const ITargetPlatform* const Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformInfo->TargetPlatformName.ToString());
 		if (Platform)
@@ -447,6 +441,9 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			// report to analytics
 			FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.Package.Failed"), PlatformInfo->TargetPlatformName.ToString(), bProjectHasCode, Result);
 
+			// report to main frame
+			bool UnrecoverableError = false;
+
 			// report to message log
 			if ((Result & ETargetPlatformReadyStatus::SDKNotFound) != 0)
 			{
@@ -455,6 +452,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 					FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
 					NotInstalledTutorialLink
 				);
+				UnrecoverableError = true;
 			}
 
 			if ((Result & ETargetPlatformReadyStatus::ProvisionNotFound) != 0)
@@ -464,6 +462,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 					LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
 					NotInstalledTutorialLink
 				);
+				UnrecoverableError = true;
 			}
 
 			if ((Result & ETargetPlatformReadyStatus::SigningKeyNotFound) != 0)
@@ -473,6 +472,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 					LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
 					NotInstalledTutorialLink
 				);
+				UnrecoverableError = true;
 			}
 
 			if ((Result & ETargetPlatformReadyStatus::ManifestNotFound) != 0)
@@ -482,10 +482,18 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 					LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found."),
 					NotInstalledTutorialLink
 					);
+				UnrecoverableError = true;
 			}
 
-			// report to main frame
-			bool UnrecoverableError = false;
+			if ((Result & ETargetPlatformReadyStatus::RemoveServerNameEmpty) != 0 && (bProjectHasCode || (!FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled()) || PackagingSettings->bNativizeBlueprintAssets))
+			{
+				AddMessageLog(
+					LOCTEXT("RemoveServerNameNotFound", "Remote compiling requires a server name. "),
+					LOCTEXT("RemoveServerNameNotFoundDetail", "Please specify one in the Remote Server Name settings field."),
+					NotInstalledTutorialLink
+					);
+				UnrecoverableError = true;
+			}
 
 			if ((Result & ETargetPlatformReadyStatus::CodeUnsupported) != 0)
 			{
@@ -509,8 +517,6 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	{
 		return;
 	}
-
-	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
 
 	// let the user pick a target directory
 	if (PackagingSettings->StagingDirectory.Path.IsEmpty())
@@ -566,7 +572,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 	if (!PackagingSettings->ApplocalPrerequisitesDirectory.Path.IsEmpty())
 	{
-		OptionalParams += FString::Printf(TEXT(" -applocaldir=\"%s\""), *(PackagingSettings->ApplocalPrerequisitesDirectory.Path));
+		OptionalParams += FString::Printf(TEXT(" -applocaldirectory=\"%s\""), *(PackagingSettings->ApplocalPrerequisitesDirectory.Path));
 	}
 
 	if (PackagingSettings->ForDistribution)

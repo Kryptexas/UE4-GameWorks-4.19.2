@@ -1030,13 +1030,11 @@ void FBlueprintActionDatabase::AddReferencedObjects(FReferenceCollector& Collect
 		for (auto& UnloadedActionListIt : UnloadedActionRegistry)
 		{
 			UnloadedActions.Append(UnloadedActionListIt.Value);
+			Collector.AddReferencedObjects(UnloadedActionListIt.Value);
 		}
 
 		auto OrphanedUnloadedActions = UnloadedActions.Difference(AllActions.Intersect(UnloadedActions));
-		if (!ensureMsgf(OrphanedUnloadedActions.Num() == 0, TEXT("Found %d unloaded actions that were not also present in the Action Registry. This should be 0."), UnloadedActions.Num()))
-		{
-			Collector.AddReferencedObjects(OrphanedUnloadedActions);
-		}
+		ensureMsgf(OrphanedUnloadedActions.Num() == 0, TEXT("Found %d unloaded actions that were not also present in the Action Registry. This should be 0."), UnloadedActions.Num());
 	}
 }
 

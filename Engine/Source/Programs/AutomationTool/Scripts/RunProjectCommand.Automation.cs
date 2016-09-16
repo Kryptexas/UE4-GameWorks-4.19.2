@@ -35,7 +35,7 @@ public partial class Project : CommandUtils
 	/// <summary>
 	/// Process for the server, can be set by the cook command when a cook on the fly server is used
 	/// </summary>
-	public static ProcessResult ServerProcess;
+	public static IProcessResult ServerProcess;
 
 	#endregion
 
@@ -128,10 +128,10 @@ public partial class Project : CommandUtils
 		{
 			if (Params.ServerTargetPlatforms.Count > 0)
 			{
-				UnrealTargetPlatform ServerPlatform = Params.ServerTargetPlatforms[0];
+				TargetPlatformDescriptor ServerPlatformDesc = Params.ServerTargetPlatforms[0];
 				ServerProcess = RunDedicatedServer(Params, ServerLogFile, Params.RunCommandline);
 				// With dedicated server, the client connects to local host to load a map.
-				if (ServerPlatform == UnrealTargetPlatform.Linux)
+				if (ServerPlatformDesc.Type == UnrealTargetPlatform.Linux)
 				{
 					Params.MapToRun = Params.ServerDeviceAddress;
 				}
@@ -213,7 +213,7 @@ public partial class Project : CommandUtils
 
 				string AllClientOutput = "";
 				int LastAutoFailIndex = -1;
-				ProcessResult ClientProcess = null;
+				IProcessResult ClientProcess = null;
 				FileStream ClientProcessLog = null;
 				StreamReader ClientLogReader = null;
 				Log("Starting Client for unattended test....");
@@ -351,7 +351,7 @@ public partial class Project : CommandUtils
 		else
 		{
 			var SC = DeployContextList[0];
-			ProcessResult ClientProcess = SC.StageTargetPlatform.RunClient(ClientRunFlags, ClientApp, ClientCmdLine, Params);
+			IProcessResult ClientProcess = SC.StageTargetPlatform.RunClient(ClientRunFlags, ClientApp, ClientCmdLine, Params);
 			if (ClientProcess != null)
 			{
 				// If the client runs without StdOut redirect we're going to read the log output directly from log file on
@@ -380,10 +380,10 @@ public partial class Project : CommandUtils
 		}
 	}
 
-	private static void RunClientWithServer(List<DeploymentContext> DeployContextList, string ServerLogFile, ProcessResult ServerProcess, string ClientApp, string ClientCmdLine, ERunOptions ClientRunFlags, string ClientLogFile, ProjectParams Params)
+	private static void RunClientWithServer(List<DeploymentContext> DeployContextList, string ServerLogFile, IProcessResult ServerProcess, string ClientApp, string ClientCmdLine, ERunOptions ClientRunFlags, string ClientLogFile, ProjectParams Params)
 	{
-		ProcessResult ClientProcess = null;
-		var OtherClients = new List<ProcessResult>();
+		IProcessResult ClientProcess = null;
+		var OtherClients = new List<IProcessResult>();
 
 		bool WelcomedCorrectly = false;
 		int NumClients = Params.NumClients;
@@ -548,7 +548,7 @@ public partial class Project : CommandUtils
 							for (int i = 1; i < NumClients; i++)
 							{
 								Log("Starting Extra Client....");
-								ProcessResult NewClient = SC.StageTargetPlatform.RunClient(ClientRunFlags | ERunOptions.NoWaitForExit, ClientApp, ClientCmdLine, Params);
+								IProcessResult NewClient = SC.StageTargetPlatform.RunClient(ClientRunFlags | ERunOptions.NoWaitForExit, ClientApp, ClientCmdLine, Params);
 								OtherClients.Add(NewClient);
 							}
 						}
@@ -886,7 +886,12 @@ public partial class Project : CommandUtils
 		if (SC.StageTargetPlatform.LaunchViaUFE)
 		{
 			ClientCmdLine = "-run=Launch ";
-			ClientCmdLine += "-Device=" + Params.Device + " ";
+            ClientCmdLine += "-Device=" + Params.Devices[0];
+            for (int DeviceIndex = 1; DeviceIndex < Params.Devices.Count; DeviceIndex++)
+            {
+                ClientCmdLine += "+" + Params.Devices[DeviceIndex];
+            }
+            ClientCmdLine += " ";
 			ClientCmdLine += "-Exe=\"" + ClientApp + "\" ";
 			ClientCmdLine += "-Targetplatform=" + Params.ClientTargetPlatforms[0].ToString() + " ";
 			ClientCmdLine += "-Params=\"" + TempCmdLine + "\"";
@@ -909,7 +914,7 @@ public partial class Project : CommandUtils
 	{
 		var Args = ArgsContainer as object[];
 		var ClientLogFile = (string)Args[0];
-		var ClientProcess = (ProcessResult)Args[1];
+		var ClientProcess = (IProcessResult)Args[1];
 		LogFileReaderProcess(ClientLogFile, ClientProcess, (string Output) =>
 		{
 			if (String.IsNullOrEmpty(Output) == false)
@@ -924,10 +929,10 @@ public partial class Project : CommandUtils
 
 	#region Servers
 
-	private static ProcessResult RunDedicatedServer(ProjectParams Params, string ServerLogFile, string AdditionalCommandLine)
+	private static IProcessResult RunDedicatedServer(ProjectParams Params, string ServerLogFile, string AdditionalCommandLine)
 	{
 		ProjectParams ServerParams = new ProjectParams(Params);
-		ServerParams.Device = Params.ServerDevice;
+		ServerParams.Devices = new ParamList<string>(Params.ServerDevice);
 
 		if (ServerParams.ServerTargetPlatforms.Count == 0)
 		{
@@ -951,16 +956,16 @@ public partial class Project : CommandUtils
 		}
 		var Args = ServerParams.Cook ? "" : (SC.ProjectArgForCommandLines + " ");
 		Console.WriteLine(Params.ServerDeviceAddress);
-		UnrealTargetPlatform ServerPlatform = ServerParams.ServerTargetPlatforms[0];
-		if (ServerParams.Cook && ServerPlatform == UnrealTargetPlatform.Linux && !String.IsNullOrEmpty(ServerParams.ServerDeviceAddress))
+		TargetPlatformDescriptor ServerPlatformDesc = ServerParams.ServerTargetPlatforms[0];
+		if (ServerParams.Cook && ServerPlatformDesc.Type == UnrealTargetPlatform.Linux && !String.IsNullOrEmpty(ServerParams.ServerDeviceAddress))
 		{
 			ServerApp = @"C:\Windows\system32\cmd.exe";
 
 			string plinkPath = CombinePaths(Environment.GetEnvironmentVariable("LINUX_ROOT"), "bin/PLINK.exe ");
-			string exePath = CombinePaths(SC.ShortProjectName, "Binaries", ServerPlatform.ToString(), SC.ShortProjectName + "Server");
+			string exePath = CombinePaths(SC.ShortProjectName, "Binaries", ServerPlatformDesc.Type.ToString(), SC.ShortProjectName + "Server");
 			if (ServerParams.ServerConfigsToBuild[0] != UnrealTargetConfiguration.Development)
 			{
-				exePath += "-" + ServerPlatform.ToString() + "-" + ServerParams.ServerConfigsToBuild[0].ToString();
+				exePath += "-" + ServerPlatformDesc.Type.ToString() + "-" + ServerParams.ServerConfigsToBuild[0].ToString();
 			}
 			exePath = CombinePaths("LinuxServer", exePath.ToLower()).Replace("\\", "/");
 			Args = String.Format("/k {0} -batch -ssh -t -i {1} {2}@{3} {4} {5} {6} -server -Messaging", plinkPath, ServerParams.DevicePassword, ServerParams.DeviceUsername, ServerParams.ServerDeviceAddress, exePath, Args, ServerParams.MapToRun);
@@ -976,7 +981,19 @@ public partial class Project : CommandUtils
 			{
 				Map += "?fake";
 			}
-			Args += String.Format("{0} -server -abslog={1}  -unattended -FORCELOGFLUSH -log -Messaging -nomcp", Map, CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile));
+
+			Args += String.Format("{0} -server -abslog={1}  -unattended -FORCELOGFLUSH -log -Messaging", Map, CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile));
+
+			// Do not blindly add -nomcp, only do so if the client is using it
+			if (Params.RunCommandline.Contains("-nomcp"))
+			{
+				Args += " -nomcp";
+			}
+
+			if (Params.ServerCommandline.Length > 0)
+			{
+				Args += " " + Params.ServerCommandline;
+			}
 		}
 
 		if (ServerParams.UsePak(SC.StageTargetPlatform))
@@ -998,7 +1015,7 @@ public partial class Project : CommandUtils
 		Args += " " + AdditionalCommandLine;
 
 
-		if (ServerParams.Cook && ServerPlatform == UnrealTargetPlatform.Linux && !String.IsNullOrEmpty(ServerParams.ServerDeviceAddress))
+		if (ServerParams.Cook && ServerPlatformDesc.Type == UnrealTargetPlatform.Linux && !String.IsNullOrEmpty(ServerParams.ServerDeviceAddress))
 		{
 			Args += String.Format(" 2>&1 > {0}", ServerLogFile);
 		}
@@ -1010,7 +1027,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	private static ProcessResult RunCookOnTheFlyServer(FileReference ProjectName, string ServerLogFile, string TargetPlatform, string AdditionalCommandLine)
+	private static IProcessResult RunCookOnTheFlyServer(FileReference ProjectName, string ServerLogFile, string TargetPlatform, string AdditionalCommandLine)
 	{
 		var ServerApp = HostPlatform.Current.GetUE4ExePath("UE4Editor.exe");
 		var Args = String.Format("{0} -run=cook -cookonthefly -unattended -CrashForUAT -FORCELOGFLUSH -log",
@@ -1032,7 +1049,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	private static ProcessResult RunFileServer(ProjectParams Params, string ServerLogFile, string AdditionalCommandLine)
+	private static IProcessResult RunFileServer(ProjectParams Params, string ServerLogFile, string AdditionalCommandLine)
 	{
 #if false
 		// this section of code would provide UFS with a more accurate file mapping

@@ -10,6 +10,8 @@
 #include "SInlineEditableTextBlock.h"
 #include "STextEntryPopup.h"
 #include "Animation/AnimSingleNodeInstance.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SAnimCurveViewer"
 
@@ -54,7 +56,7 @@ TSharedRef< SWidget > SAnimCurveListRow::GenerateWidgetForColumn( const FName& C
 					.ColorAndOpacity(this, &SAnimCurveListRow::GetItemTextColor)
 					.IsSelected(this, &SAnimCurveListRow::IsSelected)
 					.Text(this, &SAnimCurveListRow::GetItemName)
-					.HighlightText(AnimCurveViewer->GetFilterText())
+					.HighlightText(this, &SAnimCurveListRow::GetFilterText)
 				];
 		}
 		else
@@ -188,6 +190,20 @@ FText SAnimCurveListRow::GetItemName() const
 
 	return FText::FromName(ItemName);
 }
+
+FText SAnimCurveListRow::GetFilterText() const
+{
+	TSharedPtr<SAnimCurveViewer> AnimCurveViewer = AnimCurveViewerPtr.Pin();
+	if (AnimCurveViewer.IsValid())
+	{
+		return AnimCurveViewer->GetFilterText();
+	}
+	else
+	{
+		return FText::GetEmpty();
+	}
+}
+
 
 bool SAnimCurveListRow::GetActiveWeight(float& OutWeight) const
 {
@@ -858,6 +874,23 @@ void SAnimCurveViewer::OnNameCommitted(const FText& InNewName, ETextCommit::Type
 		{
 			FScopedTransaction Transaction(LOCTEXT("TransactionRename", "Rename Element"));
 			CurrentSkeleton->RenameSmartnameAndModify(ContainerName, Item->SmartName.UID, NewName);
+			// remove it, so that it can readd it. 
+			AnimCurveList.Remove(Item);
+		}
+		else
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("InvalidName"), FText::FromName(NewName) );
+			FNotificationInfo Info(FText::Format(LOCTEXT("AnimCurveRenamed", "The name \"{InvalidName}\" is already used."), Args));
+
+			Info.bUseLargeFont = false;
+			Info.ExpireDuration = 5.0f;
+
+			TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+			if (Notification.IsValid())
+			{
+				Notification->SetCompletionState(SNotificationItem::CS_Fail);
+			}
 		}
 	}
 }
@@ -940,7 +973,11 @@ void SAnimCurveViewer::OnDeleteNameClicked()
 
 		FText Title = LOCTEXT("DeleteCurveDialogTitle", "Confirm Deletion");
 		FText Message = FText::FromString(ConfirmMessage);
-		if (FMessageDialog::Open(EAppMsgType::YesNo, Message, &Title) == EAppReturnType::Yes)
+		if (FMessageDialog::Open(EAppMsgType::YesNo, Message, &Title) == EAppReturnType::No)
+		{
+			return;
+		}
+		else
 		{
 			// Proceed to delete the curves
 			GWarn->BeginSlowTask(FText::Format(LOCTEXT("DeleteCurvesTaskDesc", "Deleting curve from skeleton {0}"), FText::FromString(CurrentSkeleton->GetName())), true);
@@ -982,6 +1019,10 @@ void SAnimCurveViewer::OnDeleteNameClicked()
 	{
 		// Remove names from skeleton
 		CurrentSkeleton->RemoveSmartnamesAndModify(ContainerName, SelectedUids);
+		for (int32 ListIndex = SelectedItems.Num() - 1; ListIndex >= 0 ; --ListIndex)
+		{
+			AnimCurveList.Remove(SelectedItems[ListIndex]);
+		}
 	}
 
 	RefreshCurveList();

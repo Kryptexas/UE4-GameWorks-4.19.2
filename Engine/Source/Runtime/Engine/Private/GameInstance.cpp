@@ -309,11 +309,12 @@ void UGameInstance::StartGameInstance()
 	
 	const TCHAR* Tmp = FCommandLine::Get();
 
-#if UE_BUILD_SHIPPING
-	// In shipping don't allow an override
+#if UE_BUILD_SHIPPING && !UE_SERVER
+	// In shipping don't allow a map override unless on server
 	Tmp = TEXT("");
-#endif // UE_BUILD_SHIPPING
+#endif // UE_BUILD_SHIPPING && !UE_SERVER
 
+#if !UE_SERVER
 	// Parse replay name if specified on cmdline
 	FString ReplayCommand;
 	if ( FParse::Value( Tmp, TEXT( "-REPLAY=" ), ReplayCommand ) )
@@ -321,6 +322,7 @@ void UGameInstance::StartGameInstance()
 		PlayReplay( ReplayCommand );
 		return;
 	}
+#endif // !UE_SERVER
 
 	const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
 	const FString& DefaultMap = GameMapsSettings->GetGameDefaultMap();

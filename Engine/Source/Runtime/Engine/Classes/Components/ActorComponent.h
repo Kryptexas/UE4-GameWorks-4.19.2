@@ -56,6 +56,13 @@ CONSTEXPR inline EUpdateTransformFlags operator ~(EUpdateTransformFlags Value)
 
 FORCEINLINE EUpdateTransformFlags SkipPhysicsToEnum(bool bSkipPhysics){ return bSkipPhysics ? EUpdateTransformFlags::SkipPhysicsUpdate : EUpdateTransformFlags::None; }
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentActivatedSignature, bool, bReset);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActorComponentDeactivateSignature);
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentCreatePhysicsSignature, UActorComponent*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentDestroyPhysicsSignature, UActorComponent*);
+
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
  * ActorComponents that have a transform are known as SceneComponents and those that can be rendered are PrimitiveComponents.
@@ -69,6 +76,11 @@ class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserDa
 {
 	GENERATED_BODY()
 public:
+
+	/** Create component physics state global delegate.*/
+	static FActorComponentCreatePhysicsSignature CreatePhysicsDelegate;
+	/** Destroy component physics state global delegate.*/
+	static FActorComponentDestroyPhysicsSignature DestroyPhysicsDelegate;
 
 	/**
 	 * Default UObject constructor that takes an optional ObjectInitializer.
@@ -129,6 +141,10 @@ public:
 	/** Does this component automatically register with its owner */
 	uint32 bAutoRegister:1;
 
+protected:
+	uint32 bAllowReregistration:1;
+
+public:
 	/** Should this component be ticked in the editor */
 	uint32 bTickInEditor:1;
 
@@ -219,6 +235,7 @@ public:
 
 	void DetermineUCSModifiedProperties();
 	void GetUCSModifiedProperties(TSet<const UProperty*>& ModifiedProperties) const;
+	void RemoveUCSModifiedProperties(const TArray<UProperty*>& Properties);
 
 	bool IsEditableWhenInherited() const;
 
@@ -251,6 +268,12 @@ public:
 	bool ComponentHasTag(FName Tag) const;
 
 	//~ Begin Trigger/Activation Interface
+
+	UPROPERTY(BlueprintAssignable, Category = "Components|Activation")
+	FActorComponentActivatedSignature OnComponentActivated;
+
+	UPROPERTY(BlueprintAssignable, Category = "Components|Activation")
+	FActorComponentDeactivateSignature OnComponentDeactivated;
 
 	/**
 	 * Activates the SceneComponent
@@ -288,6 +311,12 @@ public:
 	/** Sets whether this component can tick when paused. */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	void SetTickableWhenPaused(bool bTickableWhenPaused);
+
+	/** Create any physics engine information for this component */
+	void CreatePhysicsState();
+
+	/** Shut down any physics engine structure for this component */
+	void DestroyPhysicsState();
 
 	// Networking
 
@@ -361,10 +390,10 @@ protected:
 	virtual bool ShouldActivate() const;
 
 private:
-	/** Calls OnUnregister, DestroyRenderState_Concurrent and DestroyPhysicsState. */
+	/** Calls OnUnregister, DestroyRenderState_Concurrent and OnDestroyPhysicsState. */
 	void ExecuteUnregisterEvents();
 
-	/** Calls OnRegister, CreateRenderState_Concurrent and CreatePhysicsState. */
+	/** Calls OnRegister, CreateRenderState_Concurrent and OnCreatePhysicsState. */
 	void ExecuteRegisterEvents();
 
 	/* Utility function for each of the PostEditChange variations to call for the same behavior */
@@ -375,12 +404,12 @@ protected:
 	friend class FComponentRecreateRenderStateContext;
 
 	/**
-	 * Called when a component is registered, after Scene is set, but before CreateRenderState_Concurrent or CreatePhysicsState are called.
+	 * Called when a component is registered, after Scene is set, but before CreateRenderState_Concurrent or OnCreatePhysicsState are called.
 	 */
 	virtual void OnRegister();
 
 	/**
-	 * Called when a component is unregistered. Called after DestroyRenderState_Concurrent and DestroyPhysicsState are called.
+	 * Called when a component is unregistered. Called after DestroyRenderState_Concurrent and OnDestroyPhysicsState are called.
 	 */
 	virtual void OnUnregister();
 
@@ -412,9 +441,10 @@ protected:
 	virtual void DestroyRenderState_Concurrent();
 
 	/** Used to create any physics engine information for this component */
-	virtual void CreatePhysicsState();
+	virtual void OnCreatePhysicsState();
+
 	/** Used to shut down and physics engine structure for this component */
-	virtual void DestroyPhysicsState();
+	virtual void OnDestroyPhysicsState();
 
 	/** Return true if CreatePhysicsState() should be called.
 	    Ideally CreatePhysicsState() should always succeed if this returns true, but this isn't currently the case */
@@ -685,10 +715,11 @@ public:
 	bool IsOwnerRunningUserConstructionScript() const;
 
 	/** See if this component is currently registered */
-	FORCEINLINE bool IsRegistered() const
-	{
-		return bRegistered;
-	}
+	FORCEINLINE bool IsRegistered() const { return bRegistered; }
+
+	/** Checked whether the component class allows reregistration */
+	FORCEINLINE bool AllowReregistration() const { return bAllowReregistration; }
+
 	/** Register this component, creating any rendering/physics state. Will also adds to outer Actor's Components array, if not already present. */
 	void RegisterComponent();
 
@@ -777,25 +808,6 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 // UActorComponent inlines
-
-FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
-{
-#if WITH_EDITOR
-	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
-	if (bCanUseCachedOwner)
-	{
-		checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-		return OwnerPrivate;
-	}
-	else
-	{
-		return GetTypedOuter<AActor>();
-	}
-#else
-	checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-	return OwnerPrivate;
-#endif
-}
 
 FORCEINLINE bool UActorComponent::CanEverAffectNavigation() const
 {

@@ -8,7 +8,33 @@
 class UPrimitiveComponent;
 class AActor;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnHoveredWidgetChanged);
+/**
+ * The interaction source for the widget interaction component, e.g. where do we try and
+ * trace from to try to find a widget under a virtual pointer device.
+ */
+UENUM(BlueprintType)
+enum class EWidgetInteractionSource : uint8
+{
+	/** Sends traces from the world location and orientation of the interaction component. */
+	World,
+	/** Sends traces from the mouse location of the first local player controller. */
+	Mouse,
+	/** Sends trace from the center of the first local player's screen. */
+	CenterScreen,
+	/**
+	 * Sends traces from a custom location determined by the user.  Will use whatever 
+	 * FHitResult is set by the call to SetCustomHitResult.
+	 */
+	Custom
+};
+
+// TODO CenterScreen needs to be able to work with multiple player controllers, perhaps finding
+// the PC via the outer/owner chain?  Maybe you need to set the PC that owns this guy?  Maybe we should
+// key off the Virtual User Index?
+
+// TODO Expose modifier key state.
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHoveredWidgetChanged, UWidgetComponent*, WidgetComponent, UWidgetComponent*, PreviousWidgetComponent);
 
 /**
  * This is a highly experimental component to allow interaction with the Widget Component.  Not
@@ -18,12 +44,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnHoveredWidgetChanged);
  * Left Mouse, down and up, to simulate a mouse click.
  */
 UCLASS(ClassGroup=Experimental, meta=(BlueprintSpawnableComponent, DevelopmentStatus=Experimental) )
-class UMG_API UWidgetInteractionComponent : public UArrowComponent
+class UMG_API UWidgetInteractionComponent : public USceneComponent
 {
 	GENERATED_BODY()
 
 public:
-	/**  */
+	/**
+	 * Called when the hovered Widget Component changes.  The interaction component functions at the Slate
+	 * level - so it's unable to report anything about what UWidget is under the hit result.
+	 */
 	UPROPERTY(BlueprintAssignable, Category="Interaction|Event")
 	FOnHoveredWidgetChanged OnHoveredWidgetChanged;
 
@@ -31,67 +60,101 @@ public:
 	UWidgetInteractionComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin ActorComponent interface
+	virtual void OnComponentCreated() override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	// End UActorComponent
 	
 	/**
-	 * 
+	 * Presses a key as if the mouse/pointer were the source of it.  Normally you would just use
+	 * Left/Right mouse button for the Key.  However - advanced uses could also be imagined where you
+	 * send other keys to signal widgets to take special actions if they're under the cursor.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
 	virtual void PressPointerKey(FKey Key);
 	
 	/**
-	 * 
+	 * Releases a key as if the mouse/pointer were the source of it.  Normally you would just use
+	 * Left/Right mouse button for the Key.  However - advanced uses could also be imagined where you
+	 * send other keys to signal widgets to take special actions if they're under the cursor.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
 	virtual void ReleasePointerKey(FKey Key);
 
 	/**
-	 * 
+	 * Press a key as if it had come from the keyboard.  Avoid using this for 'a-z|A-Z', things like
+	 * the Editable Textbox in Slate expect OnKeyChar to be called to signal a specific character being
+	 * send to the widget.  So for those cases you should use SendKeyChar.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
 	virtual bool PressKey(FKey Key, bool bRepeat = false);
 	
 	/**
-	 * 
+	 * Releases a key as if it had been released by the keyboard.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
 	virtual bool ReleaseKey(FKey Key);
 
 	/**
-	 * 
+	 * Does both the press and release of a simulated keyboard key.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
 	virtual bool PressAndReleaseKey(FKey Key);
 
 	/**
-	 * 
+	 * Transmits a list of characters to a widget by simulating a OnKeyChar event for each key listed in
+	 * the string.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
-	virtual bool SendKeyChar(FString Character, bool bRepeat = false);
+	virtual bool SendKeyChar(FString Characters, bool bRepeat = false);
 	
 	/**
-	 * 
+	 * Sends a scroll wheel event to the widget under the last hit result.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
 	virtual void ScrollWheel(float ScrollDelta);
 	
 	/**
-	 * 
+	 * Get the currently hovered widget component.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
-	UWidgetComponent* GetHoveredWidget();
+	UWidgetComponent* GetHoveredWidgetComponent() const;
 
 	/**
-	 * Gets the last position in world space that the interaction component successfully hit a widget component.
+	 * Returns true if a widget under the hit result is interactive.  e.g. Slate widgets 
+	 * that return true for IsInteractable().
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
-	FVector GetLastImpactPoint();
+	bool IsOverInteractableWidget() const;
 
 	/**
-	 * 
+	 * Returns true if a widget under the hit result is focusable.  e.g. Slate widgets that 
+	 * return true for SupportsKeyboardFocus().
+	 */
+	UFUNCTION(BlueprintCallable, Category="Interaction")
+	bool IsOverFocusableWidget() const;
+
+	/**
+	 * Returns true if a widget under the hit result is has a visibility that makes it hit test 
+	 * visible.  e.g. Slate widgets that return true for GetVisibility().IsHitTestVisible().
+	 */
+	UFUNCTION(BlueprintCallable, Category="Interaction")
+	bool IsOverHitTestVisibleWidget() const;
+
+	/**
+	 * Gets the widget path for the slate widgets under the last hit result.
+	 */
+	const FWeakWidgetPath& GetHoveredWidgetPath() const;
+
+	/**
+	 * Gets the last hit result generated by the component.  Returns the custom hit result if that was set.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Interaction")
+	const FHitResult& GetLastHitResult() const;
+
+	/**
+	 * Set custom hit result.  This is only taken into account if InteractionSource is set to EWidgetInteractionSource::Custom.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")
 	void SetCustomHitResult(const FHitResult& HitResult);
@@ -120,7 +183,7 @@ public:
 	/**
 	 * Each user virtual controller or virtual finger tips being simulated should use a different pointer index.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction", meta=( UIMin = "0", UIMax = "9", ClampMin = "0", ExposeOnSpawn = true ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction", meta=( ClampMin = "0", UIMin = "0", UIMax = "9", ExposeOnSpawn = true ))
 	float PointerIndex;
 
 public:
@@ -137,14 +200,18 @@ public:
 	 * location you wish.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction")
-	bool bAutomaticHitTesting;
+	EWidgetInteractionSource InteractionSource;
 
 	/**
-	 * Should the interaction component perform hit testing (automatic or custom) and attempt to simulate hover - if you were going
-	 * to emulate a keyboard you would want to turn this option off.
+	 * Should the interaction component perform hit testing (Automatic or Custom) and attempt to 
+	 * simulate hover - if you were going to emulate a keyboard you would want to turn this option off
+	 * if the virtual keyboard was separate from the virtual pointer device and used a second interaction
+	 * component.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interaction")
-	bool bSimulatePointerMovement;
+	bool bEnableHitTesting;
+
+public:
 
 	/**
 	 * Shows some debugging lines and a hit sphere to help you debug interactions.
@@ -160,45 +227,71 @@ public:
 
 protected:
 
-	/**  */
+	/** Is it safe for this interaction component to run?  Might not be in a server situation with no slate application. */
 	bool CanSendInput();
 
-	/**  */
+	/** Performs the simulation of pointer movement.  Does not run if bEnableHitTesting is set to false. */
 	void SimulatePointerMovement();
 
-	/**  */
+	/** Performs the trace and gets the hit result under the specified InteractionSource */
 	virtual bool PerformTrace(FHitResult& HitResult);
 	
-	/**  */
+	/**
+	 * Gets the list of components to ignore during hit testing.  Which is everything that is a parent/sibling of this 
+	 * component that's not a Widget Component.  This is so traces don't get blocked by capsules and such around the player.
+	 */
 	void GetRelatedComponentsToIgnoreInAutomaticHitTesting(TArray<UPrimitiveComponent*>& IgnorePrimitives);
 
 protected:
 
-	/** */
-	FHitResult CustomHitResult;
-
-	/**  */
+	/** The last widget path under the hit result. */
 	FWeakWidgetPath LastWigetPath;
 
-	/** */
+	/** The modifier keys to simulate during key presses. */
 	FModifierKeysState ModifierKeys;
 	
-	/**  */
+	/** The current set of pressed keys we maintain the state of. */
 	TSet<FKey> PressedKeys;
+
+	/** Stores the custom hit result set by the player. */
+	UPROPERTY(Transient)
+	FHitResult CustomHitResult;
 	
-	/**  */
-	UPROPERTY()
+	/** The 2D location on the widget component that was hit. */
+	UPROPERTY(Transient)
 	FVector2D LocalHitLocation;
 	
-	/**  */
-	UPROPERTY()
+	/** The last 2D location on the widget component that was hit. */
+	UPROPERTY(Transient)
 	FVector2D LastLocalHitLocation;
 
-	/**  */
+	/** The widget component we're currently hovering over. */
 	UPROPERTY(Transient)
-	UWidgetComponent* HoveredWidget;
+	UWidgetComponent* HoveredWidgetComponent;
 
-	/**  */
+	/** The last hit result we used. */
 	UPROPERTY(Transient)
-	FVector LastImpactPoint;
+	FHitResult LastHitResult;
+
+	/** Are we hovering over any interactive widgets. */
+	UPROPERTY(Transient)
+	bool bIsHoveredWidgetInteractable;
+
+	/** Are we hovering over any focusable widget? */
+	UPROPERTY(Transient)
+	bool bIsHoveredWidgetFocusable;
+
+	/** Are we hovered over a widget that is hit test visible? */
+	UPROPERTY(Transient)
+	bool bIsHoveredWidgetHitTestVisible;
+
+private_subobject:
+#if WITH_EDITORONLY_DATA
+
+	/** The arrow component we show at editor time. */
+	UPROPERTY()
+	class UArrowComponent* ArrowComponent;
+
+#endif
+
 };

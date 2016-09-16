@@ -143,6 +143,9 @@ public:
 
 	/** Can we use gizmos? */
 	bool CanUseGizmos() const;
+
+	/** Function to check whether floor is auto aligned or not */
+	bool IsAutoAlignFloor() const;
 	
 	/** Clears our reference to Persona, also cleaning up anything that depends on Persona first */
 	void CleanupPersonaReferences();
@@ -225,10 +228,22 @@ private:
 	bool IsShowingBoneNames() const;
 	
 	/** Function to show/hide selected bone weight */
-	void OnShowBoneWeight();
+	void OnShowOverlayNone();
 
 	/** Function to check whether bone weights are displayed or not*/
-	bool IsShowingBoneWeight() const;
+	bool IsShowingOverlayNone() const;
+
+	/** Function to show/hide selected bone weight */
+	void OnShowOverlayBoneWeight();
+
+	/** Function to check whether bone weights are displayed or not*/
+	bool IsShowingOverlayBoneWeight() const;
+
+	/** Function to show/hide selected morphtarget overlay*/
+	void OnShowOverlayMorphTargetVert();
+
+	/** Function to check whether morphtarget overlay is displayed or not*/
+	bool IsShowingOverlayMorphTargetVerts() const;
 
 	/** Function to set Local axes mode of the specificed type */
 	void OnSetBoneDrawMode(int32 BoneDrawMode);
@@ -256,6 +271,9 @@ private:
 
 	/** Function to show/hide grid in the viewport */
 	void OnShowGrid();
+	
+	/** Toggles floor alignment in the preview scene */
+	void OnToggleAutoAlignFloor();
 
 	/** update reference pose with current preview mesh */
 	void UpdateReferencePose();

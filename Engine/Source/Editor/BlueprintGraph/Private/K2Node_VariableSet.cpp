@@ -164,12 +164,15 @@ FText UK2Node_VariableSet::GetPropertyTooltip(UProperty const* VariableProperty)
 				FText::FindText(*VariableProperty->GetFullGroupName(true), *TooltipName, SubTooltip);
 			}
 		}
-		else if (UBlueprint* VarBlueprint = Cast<UBlueprint>(SourceClass->ClassGeneratedBy))
+		else if (SourceClass)
 		{
-			FString UserTooltipData;
-			if (FBlueprintEditorUtils::GetBlueprintVariableMetaData(VarBlueprint, VarName, /*InLocalVarScope =*/nullptr, TooltipMetaKey, UserTooltipData))
+			if (UBlueprint* VarBlueprint = Cast<UBlueprint>(SourceClass->ClassGeneratedBy))
 			{
-				SubTooltip = FText::FromString(UserTooltipData);
+				FString UserTooltipData;
+				if (FBlueprintEditorUtils::GetBlueprintVariableMetaData(VarBlueprint, VarName, /*InLocalVarScope =*/nullptr, TooltipMetaKey, UserTooltipData))
+				{
+					SubTooltip = FText::FromString(UserTooltipData);
+				}
 			}
 		}
 

@@ -27,15 +27,15 @@ void FMovieScene3DRotationKeyStruct::PropagateChanges(const FPropertyChangedEven
 {
 	if(RotationKeys[0] != nullptr)
 	{
-		RotationKeys[0]->Value = Rotation.Pitch;
+		RotationKeys[0]->Value = Rotation.Roll;
 	}
 	if(RotationKeys[1] != nullptr)
 	{	
-		RotationKeys[1]->Value = Rotation.Yaw;
+		RotationKeys[1]->Value = Rotation.Pitch;
 	}
 	if(RotationKeys[2] != nullptr)
 	{
-		RotationKeys[2]->Value = Rotation.Roll;
+		RotationKeys[2]->Value = Rotation.Yaw;
 	}
 }
 
@@ -74,15 +74,15 @@ void FMovieScene3DTransformKeyStruct::PropagateChanges(const FPropertyChangedEve
 
 	if(RotationKeys[0] != nullptr)
 	{
-		RotationKeys[0]->Value = Rotation.Pitch;
+		RotationKeys[0]->Value = Rotation.Roll;
 	}
 	if(RotationKeys[1] != nullptr)
 	{	
-		RotationKeys[1]->Value = Rotation.Yaw;
+		RotationKeys[1]->Value = Rotation.Pitch;
 	}
 	if(RotationKeys[2] != nullptr)
 	{
-		RotationKeys[2]->Value = Rotation.Roll;
+		RotationKeys[2]->Value = Rotation.Yaw;
 	}
 }
 
@@ -100,27 +100,27 @@ UMovieScene3DTransformSection::UMovieScene3DTransformSection(const FObjectInitia
 
 /* UMovieScene3DTransformSection interface
  *****************************************************************************/
-void UMovieScene3DTransformSection::EvalTranslation(float Time, FVector& OutTranslation) const
+void UMovieScene3DTransformSection::EvalTranslation(float Time, FVector& InOutTranslation) const
 {
-	OutTranslation.X = Translation[0].Eval(Time);
-	OutTranslation.Y = Translation[1].Eval(Time);
-	OutTranslation.Z = Translation[2].Eval(Time);
+	InOutTranslation.X = Translation[0].Eval(Time, InOutTranslation.X);
+	InOutTranslation.Y = Translation[1].Eval(Time, InOutTranslation.Y);
+	InOutTranslation.Z = Translation[2].Eval(Time, InOutTranslation.Z);
 }
 
 
-void UMovieScene3DTransformSection::EvalRotation(float Time, FRotator& OutRotation) const
+void UMovieScene3DTransformSection::EvalRotation(float Time, FRotator& InOutRotation) const
 {
-	OutRotation.Roll = Rotation[0].Eval(Time);
-	OutRotation.Pitch = Rotation[1].Eval(Time);
-	OutRotation.Yaw = Rotation[2].Eval(Time);
+	InOutRotation.Roll = Rotation[0].Eval(Time, InOutRotation.Roll);
+	InOutRotation.Pitch = Rotation[1].Eval(Time, InOutRotation.Pitch);
+	InOutRotation.Yaw = Rotation[2].Eval(Time, InOutRotation.Yaw);
 }
 
 
-void UMovieScene3DTransformSection::EvalScale(float Time, FVector& OutScale) const
+void UMovieScene3DTransformSection::EvalScale(float Time, FVector& InOutScale) const
 {
-	OutScale.X = Scale[0].Eval(Time);
-	OutScale.Y = Scale[1].Eval(Time);
-	OutScale.Z = Scale[2].Eval(Time);
+	InOutScale.X = Scale[0].Eval(Time, InOutScale.X);
+	InOutScale.Y = Scale[1].Eval(Time, InOutScale.Y);
+	InOutScale.Z = Scale[2].Eval(Time, InOutScale.Z);
 }
 
 
@@ -305,15 +305,15 @@ TSharedPtr<FStructOnScope> UMovieScene3DTransformSection::GetKeyStruct(const TAr
 
 			if(RotationKeys[0] != nullptr)
 			{
-				Struct->Rotation.Pitch = RotationKeys[0]->Value;
+				Struct->Rotation.Roll = RotationKeys[0]->Value;
 			}
 			if(RotationKeys[1] != nullptr)
 			{
-				Struct->Rotation.Yaw = RotationKeys[1]->Value;
+				Struct->Rotation.Pitch = RotationKeys[1]->Value;
 			}
 			if(RotationKeys[2] != nullptr)
 			{
-				Struct->Rotation.Roll = RotationKeys[2]->Value;
+				Struct->Rotation.Yaw = RotationKeys[2]->Value;
 			}
 		}
 
@@ -351,9 +351,20 @@ TSharedPtr<FStructOnScope> UMovieScene3DTransformSection::GetKeyStruct(const TAr
 				}
 			}
 
-			Struct->Rotation.Pitch = Struct->RotationKeys[0]->Value;
-			Struct->Rotation.Yaw = Struct->RotationKeys[1]->Value;
-			Struct->Rotation.Roll = Struct->RotationKeys[2]->Value;
+			if (Struct->RotationKeys[0] != nullptr)
+			{
+				Struct->Rotation.Roll = Struct->RotationKeys[0]->Value;
+			}
+
+			if (Struct->RotationKeys[1] != nullptr)
+			{
+				Struct->Rotation.Pitch = Struct->RotationKeys[1]->Value;
+			}
+			
+			if (Struct->RotationKeys[2] != nullptr)
+			{
+				Struct->Rotation.Yaw = Struct->RotationKeys[2]->Value;
+			}
 		}
 
 		return KeyStruct;
@@ -537,4 +548,18 @@ void UMovieScene3DTransformSection::SetDefault(const FTransformKey& TransformKey
 {
 	FRichCurve* KeyCurve = GetCurveForChannelAndAxis(TransformKey.Channel, TransformKey.Axis, Translation, Rotation, Scale);
 	SetCurveDefault(*KeyCurve, TransformKey.Value);
+}
+
+
+void UMovieScene3DTransformSection::ClearDefaults()
+{
+	Translation[0].ClearDefaultValue();
+	Translation[1].ClearDefaultValue();
+	Translation[2].ClearDefaultValue();
+	Rotation[0].ClearDefaultValue();
+	Rotation[1].ClearDefaultValue();
+	Rotation[2].ClearDefaultValue();
+	Scale[0].ClearDefaultValue();
+	Scale[1].ClearDefaultValue();
+	Scale[2].ClearDefaultValue();
 }

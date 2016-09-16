@@ -781,9 +781,9 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 				int32 Result = FMessageDialog::Open( MessageType, ConfirmDelete );
 				if ( Result == EAppReturnType::YesAll )
 				{
-					bRequestedDeleteAllByLevel = bReferencedByLevelScript;
-					bRequestedDeleteAllByActor = bReferencedByActor;
-					bRequestedDeleteAllByLODActor = bReferencedByLODActor;
+					bRequestedDeleteAllByLevel |= bReferencedByLevelScript;
+					bRequestedDeleteAllByActor |= bReferencedByActor;
+					bRequestedDeleteAllByLODActor |= bReferencedByLODActor;
 				}
 				else if ( Result == EAppReturnType::NoAll )
 				{

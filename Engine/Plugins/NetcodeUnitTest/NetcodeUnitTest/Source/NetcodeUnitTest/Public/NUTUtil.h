@@ -312,7 +312,7 @@ struct NUTUtil
 	static bool ParseValue(const TCHAR* Stream, const TCHAR* Match, TCHAR* Value, int32 MaxLen, bool bShouldStopOnComma=true)
 	{
 		bool bReturnVal = false;
-		const TCHAR* Found = FCString::Strfind(Stream, Match);
+		const TCHAR* Found = FCString::Strifind(Stream, Match);
 
 		if (Found != NULL)
 		{

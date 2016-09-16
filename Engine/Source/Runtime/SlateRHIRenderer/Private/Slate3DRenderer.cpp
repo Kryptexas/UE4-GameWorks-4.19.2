@@ -4,6 +4,8 @@
 #include "Slate3DRenderer.h"
 #include "ElementBatcher.h"
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Slate 3D"), Slate3D, STATGROUP_GPU);
+
 FSlate3DRenderer::FSlate3DRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager, bool bUseGammaCorrection )
 	: SlateFontServices( InSlateFontServices )
 	, ResourceManager( InResourceManager )
@@ -95,6 +97,7 @@ struct TKeepAliveCommand : public FRHICommand < TKeepAliveCommand<TKeepAliveType
 void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate& InRHICmdList, FTextureRenderTarget2DResource* RenderTargetResource, FSlateDrawBuffer& WindowDrawBuffer, bool bInClearTarget)
 {
 	SCOPED_DRAW_EVENT( InRHICmdList, SlateRenderToTarget );
+	SCOPED_GPU_STAT(InRHICmdList, Slate3D);
 
 	checkSlow( RenderTargetResource );
 

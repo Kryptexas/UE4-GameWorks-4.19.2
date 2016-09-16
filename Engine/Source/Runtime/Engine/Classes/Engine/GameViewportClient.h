@@ -476,12 +476,6 @@ public:
 	/** Make sure all navigation objects have appropriate path rendering components set.  Called when EngineShowFlags.Navigation is set. */
 	virtual void VerifyPathRenderingComponents();
 
-	/** Accessor for delegate called when a viewport received focus */
-	FOnFocusReceived& OnFocusReceived()
-	{
-		return FocusReceivedDelegate;
-	}
-
 	/** Accessor for delegate called when a screenshot is captured */
 	static FOnScreenshotCaptured& OnScreenshotCaptured()
 	{
@@ -591,10 +585,7 @@ public:
 	 *
 	 * @param InEnabledStats	Stats to enable
 	 */
-	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override
-	{
-		EnabledStats = InEnabledStats;
-	}
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override;
 
 	/**
 	 * Check whether a specific stat is enabled for this viewport
@@ -713,6 +704,14 @@ public:
 
 	virtual FPopupMethodReply OnQueryPopupMethod() const override;
 
+#if WITH_EDITOR
+	/** Accessor for delegate called when a game viewport received input key */
+	FOnGameViewportInputKey& OnGameViewportInputKey()
+	{
+		return GameViewportInputKeyDelegate;
+	}
+#endif
+
 private:
 	/**
 	 * Set a specific stat to either enabled or disabled (returns the number of remaining enabled stats)
@@ -788,8 +787,10 @@ private:
 	 */
 	bool SetDisplayConfiguration( const FIntPoint* Dimensions, EWindowMode::Type WindowMode);
 
-	/** Delegate called when received focus */
-	FOnFocusReceived FocusReceivedDelegate;
+#if WITH_EDITOR
+	/** Delegate called when game viewport client received input key */
+	FOnGameViewportInputKey GameViewportInputKeyDelegate;
+#endif
 
 	/** Delegate called at the end of the frame when a screenshot is captured */
 	static FOnScreenshotCaptured ScreenshotCapturedDelegate;

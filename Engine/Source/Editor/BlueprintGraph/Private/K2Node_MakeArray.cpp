@@ -241,6 +241,7 @@ void UK2Node_MakeArray::PropagatePinType()
 		for (TArray<UEdGraphPin*>::TIterator it(Pins); it; ++it)
 		{
 			UEdGraphPin* CurrentPin = *it;
+			check(CurrentPin);
 
 			if (CurrentPin != OutputPin)
 			{

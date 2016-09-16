@@ -533,8 +533,9 @@ bool UOnlineHotfixManager::ApplyHotfixProcessing(const FCloudFileHeader& FileHea
 		{
 			// Convert to a FString
 			FileData.Add(0);
-			const FString IniData = (ANSICHAR*)FileData.GetData();
-			bSuccess = HotfixIniFile(FileHeader.FileName, IniData);
+			FString HotfixStr;
+			FFileHelper::BufferToString(HotfixStr, FileData.GetData(), FileData.Num());
+			bSuccess = HotfixIniFile(FileHeader.FileName, HotfixStr);
 		}
 	}
 	else if (Extension == TEXT("LOCRES"))

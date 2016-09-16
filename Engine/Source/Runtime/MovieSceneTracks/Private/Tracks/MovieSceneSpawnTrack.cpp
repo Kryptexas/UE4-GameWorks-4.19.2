@@ -16,7 +16,7 @@ UMovieSceneSpawnTrack::UMovieSceneSpawnTrack(const FObjectInitializer& Obj)
 	: Super(Obj)
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(255, 0, 93, 65);
+	TrackTint = FColor(43, 43, 155, 65);
 #endif
 }
 
@@ -37,7 +37,7 @@ bool UMovieSceneSpawnTrack::Eval(float Position, float LastPostion, bool& bOutSp
 		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
 	}
 
-	bOutSpawned = Section->Eval(Position);
+	bOutSpawned = Section->Eval(Position, bOutSpawned);
 	return true;
 }
 

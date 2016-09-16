@@ -382,6 +382,11 @@ public abstract class XLocLocalizationProvider : LocalizationProvider
 			var XLocFilenameWithSuffix = Path.GetFileNameWithoutExtension(XLocFilename) + "_" + LocalizationBranchName + Path.GetExtension(XLocFilename);
 			XLocFilename = XLocFilenameWithSuffix;
 		}
+		if (!String.IsNullOrEmpty(RemoteFilenamePrefix))
+		{
+			// Apply the prefix (this is used to avoid collisions with plugins that use the same name for their PO files)
+			XLocFilename = RemoteFilenamePrefix + "_" + XLocFilename;
+		}
 		return XLocFilename;
 	}
 

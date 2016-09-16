@@ -94,6 +94,8 @@ FActorPositionTraceResult FActorPositioning::TraceWorldForPosition(const UWorld&
 	TArray<FHitResult> Hits;
 
 	FCollisionQueryParams Param(TEXT("DragDropTrace"), true);
+	Param.bTraceAsyncScene = true;
+	
 	if (IgnoreActors)
 	{
 		Param.AddIgnoredActors(*IgnoreActors);

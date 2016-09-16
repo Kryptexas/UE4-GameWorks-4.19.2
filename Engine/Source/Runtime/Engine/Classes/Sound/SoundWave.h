@@ -153,6 +153,10 @@ class ENGINE_API USoundWave : public USoundBase
 	UPROPERTY(EditAnywhere, Category=Subtitles )
 	uint32 bSingleLine:1;
 
+	/** Allows sound to play at 0 volume, otherwise will stop the sound when the sound is silent. */
+	UPROPERTY(EditAnywhere, Category=Sound)
+	uint32 bVirtualizeWhenSilent:1;
+
 	/** Whether this SoundWave was decompressed from OGG. */
 	uint32 bDecompressedFromOgg:1;
 
@@ -269,9 +273,6 @@ public:
 	/** cooked streaming platform data for this sound */
 	TMap<FString, FStreamedAudioPlatformData*> CookedPlatformData;
 
-	/** Codec used to compress/encode this audio data */
-	FName CompressionName;
-
 	//~ Begin UObject Interface. 
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostInitProperties() override;
@@ -357,6 +358,8 @@ public:
 		FByteBulkData* Data = GetCompressedData(Format);
 		return Data ? Data->GetBulkDataSize() : 0;
 	}
+
+	virtual bool HasCompressedData(FName Format) const;
 
 	/** 
 	 * Gets the compressed data from derived data cache for the specified platform

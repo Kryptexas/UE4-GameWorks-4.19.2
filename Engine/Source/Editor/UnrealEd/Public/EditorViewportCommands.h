@@ -41,6 +41,9 @@ public:
 	/** Changes the viewport to back view */
 	TSharedPtr< FUICommandInfo > Back;
 
+	/** Rotate through viewport view options */
+	TSharedPtr< FUICommandInfo > Next;
+
 	/** Changes the viewport to wireframe */
 	TSharedPtr< FUICommandInfo > WireframeMode;
 

@@ -455,7 +455,7 @@ public:
 	 * @param YL - Height of the current font
 	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
 	 */
-	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
 	/** @return key state of the InKey */
 	FKeyState* GetKeyState(FKey InKey) { return KeyStateMap.Find(InKey); }
@@ -513,6 +513,7 @@ public:
 	const TArray<FInputActionKeyMapping>& GetKeysForAction(const FName ActionName);
 
 	static const TArray<FInputActionKeyMapping>& GetEngineDefinedActionMappings() { return EngineDefinedActionMappings; }
+	static const TArray<FInputAxisKeyMapping>& GetEngineDefinedAxisMappings() { return EngineDefinedAxisMappings; }
 
 private:
 	/** 

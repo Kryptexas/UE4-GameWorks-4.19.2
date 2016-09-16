@@ -17,10 +17,10 @@ FConnectionDrawingPolicy* FBlueprintProfilerPinConnectionFactory::CreateConnecti
 		UBlueprintGeneratedClass* BPGC = Blueprint ? Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass) : nullptr;
 		if (BPGC && BPGC->HasInstrumentation())
 		{
-			IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
-			EBlueprintProfilerHeatMapDisplayMode::Type WireHeatMode = ProfilerModule.GetWireHeatMapDisplayMode();
+			EBlueprintProfilerHeatMapDisplayMode WireHeatMode = GetDefault<UBlueprintProfilerSettings>()->WireHeatMapDisplayMode;
 			if (WireHeatMode != EBlueprintProfilerHeatMapDisplayMode::None)
 			{
+				IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
 				TSharedPtr<FBlueprintExecutionContext> BlueprintContext = ProfilerModule.GetBlueprintContext(BPGC->GetPathName());
 				if (BlueprintContext.IsValid())
 				{
@@ -35,7 +35,7 @@ FConnectionDrawingPolicy* FBlueprintProfilerPinConnectionFactory::CreateConnecti
 /////////////////////////////////////////////////////
 // FBlueprintProfilerConnectionDrawingPolicy
 
-FBlueprintProfilerConnectionDrawingPolicy::FBlueprintProfilerConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, EBlueprintProfilerHeatMapDisplayMode::Type InHeatmapType, UEdGraph* InGraphObj)
+FBlueprintProfilerConnectionDrawingPolicy::FBlueprintProfilerConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, EBlueprintProfilerHeatMapDisplayMode InHeatmapType, UEdGraph* InGraphObj)
 	: FKismetConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj)
 	, WireHeatMode(InHeatmapType)
 	, GraphReference(InGraphObj)
@@ -58,14 +58,16 @@ void FBlueprintProfilerConnectionDrawingPolicy::BuildExecutionRoadmap()
 
 	// Grab relevant profiler interfaces
 	UBlueprintGeneratedClass* TargetClass = Cast<UBlueprintGeneratedClass>(TargetBP->GeneratedClass);
-	FBlueprintDebugData& DebugData = TargetClass->GetDebugData();
 	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
 	TSharedPtr<FBlueprintExecutionContext> BlueprintContext = ProfilerModule.GetBlueprintContext(TargetClass->GetPathName());
 	const FName InstanceName = BlueprintContext->MapBlueprintInstance(ActiveObject->GetPathName());
-	const FName GraphName = GraphObj->GetFName();
-	TSharedPtr<FBlueprintFunctionContext> FunctionContext = BlueprintContext->GetFunctionContext(GraphName);
-	const FName FunctionName = FunctionContext->GetFunctionName();
-	UFunction* FunctionPtr = TargetClass->FindFunctionByName(FunctionName);
+	TSharedPtr<FBlueprintFunctionContext> FunctionContext = BlueprintContext->GetFunctionContextFromGraph(GraphObj);
+
+	if (!FunctionContext.IsValid())
+	{
+		// No point proceeding without a valid function context.
+		return;
+	}
 
 	// Redirect the target Blueprint when debugging with a macro graph visible
 	if (TargetBP->BlueprintType == BPTYPE_MacroLibrary)
@@ -73,36 +75,38 @@ void FBlueprintProfilerConnectionDrawingPolicy::BuildExecutionRoadmap()
 		TargetBP = Cast<UBlueprint>(ActiveObject->GetClass()->ClassGeneratedBy);
 	}
 
-	TArray<UEdGraphNode*> SequentialNodesInGraph;
 	TArray<double> SequentialNodeTimes;
 	TArray<UEdGraphPin*> SequentialExecPinsInGraph;
 	TArray<FTracePath> SequentialTracePathsInGraph;
+	TArray<TWeakPtr<FScriptExecutionNode>> SequentialProfilerNodesInGraph;
+	const FName ScopedFunctionName = FunctionContext->GetFunctionName();
 
 	const TSimpleRingBuffer<FBlueprintExecutionTrace>& TraceHistory = BlueprintContext->GetTraceHistory();
 	for (int32 i = 0; i < TraceHistory.Num(); ++i)
 	{
 		const FBlueprintExecutionTrace& Sample = TraceHistory(i);
-		if (InstanceName == Sample.InstanceName && FunctionName == Sample.FunctionName)
+		if (InstanceName == Sample.InstanceName && ScopedFunctionName == Sample.FunctionName)
 		{
-			TSharedPtr<FScriptExecutionNode> ProfilerNode = FunctionContext->GetProfilerDataForNode(Sample.NodeName);
-			check(ProfilerNode.IsValid());
-			UEdGraphPin* Pin = DebugData.FindSourcePinFromCodeLocation(FunctionPtr, Sample.Offset);
-
-			if (Pin && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+			if (Sample.ProfilerNode.IsValid())
 			{
-				if (const UEdGraphNode* Node = Cast<UEdGraphNode>(ProfilerNode->GetObservedObject()))
+				const UEdGraphPin* Pin = FunctionContext->GetPinFromCodeLocation(Sample.Offset);
+
+				if (Pin && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 				{
-					SequentialNodesInGraph.Add(const_cast<UEdGraphNode*>(Node));
-					SequentialNodeTimes.Add(Sample.ObservationTime);
-					SequentialExecPinsInGraph.Add(Pin);
-					SequentialTracePathsInGraph.Add(Sample.TracePath);
+					if (const UEdGraphNode* Node = Pin->GetOwningNode())
+					{
+						SequentialProfilerNodesInGraph.Add(Sample.ProfilerNode);
+						SequentialNodeTimes.Add(Sample.ObservationTime);
+						SequentialExecPinsInGraph.Add(const_cast<UEdGraphPin*>(Pin));
+						SequentialTracePathsInGraph.Add(Sample.TracePath);
+					}
 				}
 			}
 		}
 	}
 	// Run thru and apply bonus time
 	const float InvNumNodes = 1.0f / (float)SequentialNodeTimes.Num();
-	for (int32 i = 0; i < SequentialNodesInGraph.Num(); ++i)
+	for (int32 i = 0; i < SequentialProfilerNodesInGraph.Num(); ++i)
 	{
 		double& ObservationTime = SequentialNodeTimes[i];
 
@@ -136,76 +140,65 @@ void FBlueprintProfilerConnectionDrawingPolicy::BuildExecutionRoadmap()
 			}
 			if (bLinked)
 			{
-				UEdGraphNode* CurNode = OutputPin->GetOwningNode();
-				UEdGraphNode* NextNode = InputPin->GetOwningNode();
-				if (CurNode != NextNode)
+				TSharedPtr<FScriptExecutionNode> CurExecNode = SequentialProfilerNodesInGraph[OutputPinIndex].Pin();
+				TSharedPtr<FScriptExecutionNode> NextExecNode = SequentialProfilerNodesInGraph[i].Pin();
+
+				if (CurExecNode.IsValid() && NextExecNode.IsValid() && CurExecNode != NextExecNode)
 				{
-					TSharedPtr<FScriptExecutionNode> CurExecNode = BlueprintContext->GetProfilerDataForPin(OutputPin);
-					TSharedPtr<FScriptExecutionNode> NextExecNode = BlueprintContext->GetProfilerDataForNode(NextNode);
-
-					if (CurExecNode.IsValid() && NextExecNode.IsValid())
+					double NextNodeTime = SequentialNodeTimes[i];
+					UEdGraphNode* NextNode = const_cast<UEdGraphNode*>(NextExecNode->GetTypedObservedObject<UEdGraphNode>());
+					FExecPairingMap& ExecPaths			= PredecessorPins.FindOrAdd(NextNode);
+					FTimePair& ExecTiming				= ExecPaths.FindOrAdd(OutputPin);
+					FProfilerPairingMap& ProfilerPaths	= ProfilerPins.FindOrAdd(NextNode);
+					FProfilerPair& ProfilerData			= ProfilerPaths.FindOrAdd(OutputPin);
+					// make sure that if we've already visited this exec-pin (like 
+					// in a for-loop or something), that we're replacing it with a 
+					// more recent execution time
+					//
+					// @TODO I don't see when this wouldn't be the case
+					if (ExecTiming.ThisExecTime < NextNodeTime)
 					{
-						double NextNodeTime = SequentialNodeTimes[i];
-
-						FExecPairingMap& ExecPaths			= PredecessorPins.FindOrAdd(NextNode);
-						FTimePair& ExecTiming				= ExecPaths.FindOrAdd(OutputPin);
-						FProfilerPairingMap& ProfilerPaths	= ProfilerPins.FindOrAdd(NextNode);
-						FProfilerPair& ProfilerData			= ProfilerPaths.FindOrAdd(OutputPin);
-						// make sure that if we've already visited this exec-pin (like 
-						// in a for-loop or something), that we're replacing it with a 
-						// more recent execution time
-						//
-						// @TODO I don't see when this wouldn't be the case
-						if (ExecTiming.ThisExecTime < NextNodeTime)
+						double CurNodeTime = SequentialNodeTimes[OutputPinIndex];
+						ExecTiming.ThisExecTime = NextNodeTime;
+						ExecTiming.PredExecTime = CurNodeTime;
+						const bool bExecPin = CurExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin);
+						const FTracePath& CurTracePath = bExecPin ? SequentialTracePathsInGraph[i] : SequentialTracePathsInGraph[OutputPinIndex];
+						const FTracePath& NextTracePath = SequentialTracePathsInGraph[i];
+						TSharedPtr<FScriptPerfData> CurPerfData = CurExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, CurTracePath);
+						TSharedPtr<FScriptPerfData> NextPerfData = NextExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, NextTracePath);
+						ProfilerData.bPureNode = CurExecNode->IsPureNode();
+						switch(WireHeatMode)
 						{
-							double CurNodeTime = SequentialNodeTimes[OutputPinIndex];
-							ExecTiming.ThisExecTime = NextNodeTime;
-							ExecTiming.PredExecTime = CurNodeTime;
-							const bool bExecPin = CurExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin);
-							const FTracePath& CurTracePath = bExecPin ? SequentialTracePathsInGraph[i] : SequentialTracePathsInGraph[OutputPinIndex];
-							const FTracePath& NextTracePath = SequentialTracePathsInGraph[i];
-							TSharedPtr<FScriptPerfData> CurPerfData = CurExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, CurTracePath);
-							TSharedPtr<FScriptPerfData> NextPerfData = NextExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, NextTracePath);
-							ProfilerData.bPureNode = CurExecNode->IsPureNode();
-							switch(WireHeatMode)
+							case EBlueprintProfilerHeatMapDisplayMode::Average:
 							{
-								case EBlueprintProfilerHeatMapDisplayMode::Exclusive:
-								{
-									ProfilerData.PredPerfData = CurPerfData->GetNodeHeatLevel();
-									ProfilerData.ThisPerfData = NextPerfData->GetNodeHeatLevel();
-									break;
-								}
-								case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
-								case EBlueprintProfilerHeatMapDisplayMode::PinToPin:
-								{
-									ProfilerData.PredPerfData = CurPerfData->GetInclusiveHeatLevel();
-									ProfilerData.ThisPerfData = NextPerfData->GetInclusiveHeatLevel();
-									break;
-								}
-								case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
-								{
-									ProfilerData.PredPerfData = CurPerfData->GetMaxTimeHeatLevel();
-									ProfilerData.ThisPerfData = NextPerfData->GetMaxTimeHeatLevel();
-									break;
-								}
-								case EBlueprintProfilerHeatMapDisplayMode::Total:
-								{
-									ProfilerData.PredPerfData = CurPerfData->GetTotalHeatLevel();
-									ProfilerData.ThisPerfData = NextPerfData->GetTotalHeatLevel();
-									break;
-								}
-								case EBlueprintProfilerHeatMapDisplayMode::HottestPath:
-								{
-									ProfilerData.PredPerfData = CurPerfData->GetHottestPathHeatLevel();
-									ProfilerData.ThisPerfData = NextPerfData->GetHottestPathHeatLevel();
-									break;
-								}
-								case EBlueprintProfilerHeatMapDisplayMode::HottestEndpoint:
-								{
-									ProfilerData.PredPerfData = CurPerfData->GetHottestEndpointHeatLevel();
-									ProfilerData.ThisPerfData = NextPerfData->GetHottestEndpointHeatLevel();
-									break;
-								}
+								ProfilerData.PredPerfData = CurPerfData->GetAverageHeatLevel();
+								ProfilerData.ThisPerfData = NextPerfData->GetAverageHeatLevel();
+								break;
+							}
+							case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
+							case EBlueprintProfilerHeatMapDisplayMode::PinToPin:
+							{
+								ProfilerData.PredPerfData = CurPerfData->GetInclusiveHeatLevel();
+								ProfilerData.ThisPerfData = NextPerfData->GetInclusiveHeatLevel();
+								break;
+							}
+							case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
+							{
+								ProfilerData.PredPerfData = CurPerfData->GetMaxTimeHeatLevel();
+								ProfilerData.ThisPerfData = NextPerfData->GetMaxTimeHeatLevel();
+								break;
+							}
+							case EBlueprintProfilerHeatMapDisplayMode::Total:
+							{
+								ProfilerData.PredPerfData = CurPerfData->GetTotalHeatLevel();
+								ProfilerData.ThisPerfData = NextPerfData->GetTotalHeatLevel();
+								break;
+							}
+							case EBlueprintProfilerHeatMapDisplayMode::HottestPath:
+							{
+								ProfilerData.PredPerfData = CurPerfData->GetHottestPathHeatLevel();
+								ProfilerData.ThisPerfData = NextPerfData->GetHottestPathHeatLevel();
+								break;
 							}
 						}
 					}

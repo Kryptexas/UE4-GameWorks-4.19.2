@@ -314,18 +314,6 @@ protected:
 	bool RequireSemi();
 
 	//--------------------------------------
-	// Character queries
-	//--------------------------------------
-
-	/**
-	 * Tests if a character is an end-of-line character.
-	 * 
-	 * @param  c	The character to test.
-	 * @return True if c is an end-of-line character, false otherwise.
-	 */
-	static bool IsEOL(TCHAR c);
-
-	//--------------------------------------
 	// Error state 
 	//--------------------------------------
 

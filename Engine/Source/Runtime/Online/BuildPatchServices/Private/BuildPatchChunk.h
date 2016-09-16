@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreUObject.h"
+
 #include "Generation/StatsCollector.h"
 
 #include "BuildPatchChunk.generated.h"

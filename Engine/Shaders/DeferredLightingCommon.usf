@@ -149,7 +149,7 @@ float3 SphereLightingMIS( FGBufferData GBuffer, FDeferredLightData LightData, fl
 				}
 				float Weight = rcp( InvWeight );
 
-				float3 Shading = SurfaceShading( GBuffer, LobeRoughness, 1, L, V, N, 1, Random ) * NoL;
+				float3 Shading = SurfaceShading( GBuffer, LobeRoughness, 1, L, V, N, Random ) * NoL;
 				Shading += SubsurfaceShading( GBuffer, L, V, N, 1, Random );
 			
 				Lighting += SampleColor * Shading * Weight;
@@ -492,6 +492,8 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferDat
 
 		LightAccumulator.EstimatedCost += 0.3f;		// add the cost of getting the shadow terms
 
+		const bool bNeedsSeparateSubsurfaceLightAccumulation = GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE;
+
 		{
 			const float3 LightColor = LightData.LightColorAndFalloffExponent.rgb;
 
@@ -501,30 +503,21 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferDat
 			
 #if REFERENCE_QUALITY
 			float LightMask = LightRadiusMask * SpotFalloff * SurfaceShadow;
-			LightAccumulator_Add( LightAccumulator, SphereLightingMIS( GBuffer, LightData, LobeRoughness, ToLight, V, N, Random ), 0, LightColor * LightMask );
+			LightAccumulator_Add( LightAccumulator, SphereLightingMIS( GBuffer, LightData, LobeRoughness, ToLight, V, N, Random ), 0, LightColor * LightMask, bNeedsSeparateSubsurfaceLightAccumulation);
 #else
 			float3 LobeEnergy = AreaLightSpecular(LightData, LobeRoughness, ToLight, L, V, N);
 
-			// accumulate diffuse and specular
+			// accumulate surface
 			{
-#if 1	// for testing if there is a perf impact
-				// correct screen space subsurface scattering
-				float3 SurfaceLightingDiff = SurfaceShading(GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(1, 0), Random);
-				float3 SurfaceLightingSpec = SurfaceShading(GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(0, 1), Random);
-				LightAccumulator_Add(LightAccumulator, SurfaceLightingDiff, SurfaceLightingSpec, LightColor * (NoL * SurfaceAttenuation));
-				//LightAccumulator_Add(LightAccumulator, SurfaceLightingDiff, SurfaceLightingSpec, LightColor * (SurfaceAttenuation));
-#else
-				// wrong screen space subsurface scattering but potentially faster
-				float3 SurfaceLighting = SurfaceShading(GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(1, 1), Random);
-				LightAccumulator_Add(LightAccumulator, SurfaceLighting, 0, LightColor * (NoL * SurfaceAttenuation));
-#endif
+				float3 SurfaceLighting = SurfaceShading(GBuffer, LobeRoughness, LobeEnergy, L, V, N, Random);
+				LightAccumulator_Add(LightAccumulator, SurfaceLighting, (1.0/PI), LightColor * (NoL * SurfaceAttenuation), bNeedsSeparateSubsurfaceLightAccumulation);
 			}
 
 			// accumulate subsurface
 			{
 				float3 SubsurfaceLighting = SubsurfaceShading(GBuffer, L, V, N, SubsurfaceShadow, Random);
 
-				LightAccumulator_Add(LightAccumulator, SubsurfaceLighting, 0, LightColor * SubsurfaceAttenuation);
+				LightAccumulator_Add(LightAccumulator, SubsurfaceLighting, 0, LightColor * SubsurfaceAttenuation, false);
 
 				LightAccumulator.EstimatedCost += 0.4f;		// add the cost of the lighting computations (should sum up to 1 form one light)
 			}
@@ -574,7 +567,7 @@ float3 GetSimpleDynamicLighting(float3 WorldPosition, float3 CameraVector, FScre
 		// Apply SSAO to the direct lighting since we're not going to have any other shadowing
 		float Attenuation = DistanceAttenuation * ScreenSpaceData.AmbientOcclusion;
 
-		OutLighting += LightColor * (NoL * Attenuation) * SimpleShading( ScreenSpaceData.GBuffer.DiffuseColor, ScreenSpaceData.GBuffer.SpecularColor, ScreenSpaceData.GBuffer.Roughness, L, V, N );
+		OutLighting += LightColor * (NoL * Attenuation) * SimpleShading( ScreenSpaceData.GBuffer.DiffuseColor, ScreenSpaceData.GBuffer.SpecularColor, max(ScreenSpaceData.GBuffer.Roughness, .04f), L, V, N );
 	}
 
 	return OutLighting;

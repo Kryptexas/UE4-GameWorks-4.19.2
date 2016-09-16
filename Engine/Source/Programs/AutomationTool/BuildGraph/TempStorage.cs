@@ -352,7 +352,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="InFiles">List of full file paths</param>
 		/// <param name="RootDir">Root folder for all the files. All files must be relative to this RootDir.</param>
-		/// <param name="InStorageBlocks">Referenced storage blocks required for these files</param>
+		/// <param name="InBlocks">Referenced storage blocks required for these files</param>
 		public TempStorageFileList(IEnumerable<FileReference> InFiles, DirectoryReference RootDir, IEnumerable<TempStorageBlock> InBlocks)
 		{
 			List<string> NewLocalFiles = new List<string>();
@@ -450,6 +450,7 @@ namespace AutomationTool
 		/// <param name="InRootDir">Root directory for this branch</param>
 		/// <param name="InLocalDir">The local temp storage directory.</param>
 		/// <param name="InSharedDir">The shared temp storage directory. May be null.</param>
+		/// <param name="bInWriteToSharedStorage">Whether to write to shared storage, or only permit reads from it</param>
 		public TempStorage(DirectoryReference InRootDir, DirectoryReference InLocalDir, DirectoryReference InSharedDir, bool bInWriteToSharedStorage)
 		{
 			RootDir = InRootDir;
@@ -665,6 +666,8 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="NodeName">Name of the node which produced the tag set</param>
 		/// <param name="TagName">Name of the tag, with a '#' prefix</param>
+		/// <param name="Files">List of files in this set</param>
+		/// <param name="Blocks">List of referenced storage blocks</param>
 		/// <returns>The set of files</returns>
 		public void WriteFileList(string NodeName, string TagName, IEnumerable<FileReference> Files, IEnumerable<TempStorageBlock> Blocks)
 		{
@@ -744,7 +747,7 @@ namespace AutomationTool
 		/// Retrieve an output of the given node. Fetches and decompresses the files from shared storage if necessary, or validates the local files.
 		/// </summary>
 		/// <param name="NodeName">The node which created the storage block</param>
-		/// <param name="BlockName">Name of the block to retrieve. May be null or empty.</param>
+		/// <param name="OutputName">Name of the block to retrieve. May be null or empty.</param>
 		/// <returns>Manifest of the files retrieved</returns>
 		public TempStorageManifest Retreive(string NodeName, string OutputName)
 		{
@@ -823,7 +826,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Zips a set of files (that must be rooted at the given RootDir) to a set of zip files in the given OutputDir. The files will be prefixed with the given basename.
 		/// </summary>
-		/// <param name="Files">Fully qualified list of files to zip (must be rooted at RootDir).</param>
+		/// <param name="InputFiles">Fully qualified list of files to zip (must be rooted at RootDir).</param>
 		/// <param name="RootDir">Root Directory where all files will be extracted.</param>
 		/// <param name="OutputDir">Location to place the set of zip files created.</param>
 		/// <param name="StagingDir">Location to create zip files before copying them to the OutputDir. If the OutputDir is on a remote file share, staging may be more efficient. Use null to avoid using a staging copy.</param>
@@ -946,9 +949,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Unzips a set of zip files with a given basename in a given folder to a given RootDir.
 		/// </summary>
+		/// <param name="ZipFiles">Files to extract</param>
 		/// <param name="RootDir">Root Directory where all files will be extracted.</param>
-		/// <param name="FolderWithZipFiles">Folder containing the zip files to unzip. None of the zips should have the same file path in them.</param>
-		/// <param name="ZipBasename">The basename of the set of zip files to unzip.</param>
 		/// <returns>Some metrics about the unzip process.</returns>
 		/// <remarks>
 		/// The code is expected to be the used as the symmetrical inverse of <see cref="ParallelZipFiles"/>, but could be used independently, as long as the files in the zip do not overlap.
@@ -1021,7 +1023,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="BaseDir">A local or shared temp storage root directory.</param>
 		/// <param name="NodeName">Name of the node to get the file for</param>
-		/// <param name="OutputName">Name of the output to get the manifest for</param>
+		/// <param name="BlockName">Name of the output block to get the manifest for</param>
 		static FileReference GetManifestLocation(DirectoryReference BaseDir, string NodeName, string BlockName)
 		{
 			return FileReference.Combine(BaseDir, NodeName, String.IsNullOrEmpty(BlockName)? "Manifest.xml" : String.Format("Manifest-{0}.xml", BlockName));
@@ -1032,7 +1034,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="BaseDir">A local or shared temp storage root directory.</param>
 		/// <param name="NodeName">Name of the node to get the file for</param>
-		/// <param name="OutputName">Name of the output to get the manifest for</param>
+		/// <param name="TagName">Name of the tag to get the manifest for</param>
 		static FileReference GetTaggedFileListLocation(DirectoryReference BaseDir, string NodeName, string TagName)
 		{
 			Debug.Assert(TagName.StartsWith("#"));

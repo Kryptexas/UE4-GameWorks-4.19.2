@@ -11,12 +11,14 @@ UInAppPurchaseCallbackProxy::UInAppPurchaseCallbackProxy(const FObjectInitialize
 {
 	PurchaseRequest = nullptr;
 	WorldPtr = nullptr;
+	SavedPurchaseState = EInAppPurchaseState::Unknown;
 }
 
 
 void UInAppPurchaseCallbackProxy::Trigger(APlayerController* PlayerController, const FInAppPurchaseProductRequest& ProductRequest)
 {
 	bFailedToEvenSubmit = true;
+	EInAppPurchaseState::Type TempState = EInAppPurchaseState::Unknown;
 
 	WorldPtr = (PlayerController != nullptr) ? PlayerController->GetWorld() : nullptr;
 	if (APlayerState* PlayerState = (PlayerController != nullptr) ? PlayerController->PlayerState : nullptr)
@@ -39,22 +41,25 @@ void UInAppPurchaseCallbackProxy::Trigger(APlayerController* PlayerController, c
 			}
 			else
 			{
+				TempState = EInAppPurchaseState::NotAllowed;
 				FFrame::KismetExecutionMessage(TEXT("UInAppPurchaseCallbackProxy::Trigger - In-App Purchases are not supported by Online Subsystem"), ELogVerbosity::Warning);
 			}
 		}
 		else
 		{
+			TempState = EInAppPurchaseState::Invalid;
 			FFrame::KismetExecutionMessage(TEXT("UInAppPurchaseCallbackProxy::Trigger - Invalid or uninitialized OnlineSubsystem"), ELogVerbosity::Warning);
 		}
 	}
 	else
 	{
+		TempState = EInAppPurchaseState::Invalid;
 		FFrame::KismetExecutionMessage(TEXT("UInAppPurchaseCallbackProxy::Trigger - Invalid player state"), ELogVerbosity::Warning);
 	}
 
 	if (bFailedToEvenSubmit && (PlayerController != NULL))
 	{
-		OnInAppPurchaseComplete(EInAppPurchaseState::Failed);
+		OnInAppPurchaseComplete(TempState);
 	}
 }
 

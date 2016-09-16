@@ -372,6 +372,11 @@ void AddNodeRecursively(FbxArray<FbxNode*>& pNodeArray, FbxNode* pNode)
  */
 void FFbxExporter::CreateBindPose(FbxNode* MeshRootNode)
 {
+	if (!MeshRootNode)
+	{
+		return;
+	}
+
 	// In the bind pose, we must store all the link's global matrix at the time of the bind.
 	// Plus, we must store all the parent(s) global matrix of a link, even if they are not
 	// themselves deforming any model.
@@ -381,7 +386,7 @@ void FFbxExporter::CreateBindPose(FbxNode* MeshRootNode)
 	FbxArray<FbxNode*> lClusteredFbxNodes;
 	int                       i, j;
 
-	if (MeshRootNode && MeshRootNode->GetNodeAttribute())
+	if (MeshRootNode->GetNodeAttribute())
 	{
 		int lSkinCount=0;
 		int lClusterCount=0;

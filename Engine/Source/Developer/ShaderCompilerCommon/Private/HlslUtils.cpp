@@ -4,6 +4,7 @@
 	HlslUtils.cpp - Utils for HLSL.
 =============================================================================*/
 
+#include "ShaderCompilerCommonPrivatePCH.h"
 #include "ShaderCompilerCommon.h"
 #include "HlslUtils.h"
 #include "HlslAST.h"

@@ -38,7 +38,7 @@ public:
 	//~ Begin UAnimSequence Interface
 #if WITH_EDITOR
 	virtual class UAnimSequence* GetAdditiveBasePose() const override;
-	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) override;
+	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive = true) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap) override;
 #endif
 	//~ End UAnimSequence Interface

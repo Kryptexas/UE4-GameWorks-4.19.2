@@ -583,7 +583,7 @@ public:
 	TSharedPtr<STextBlock> GetSearchTextWidget(); 
 
 	/**
-	* Get the block widget holding the search text
+	* Set the block widget holding the search text
 	*
 	* @param	BlockWidget		The widget to set
 	*/

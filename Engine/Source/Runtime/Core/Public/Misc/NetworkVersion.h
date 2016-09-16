@@ -53,7 +53,7 @@ struct CORE_API FNetworkVersion
 	static bool IsNetworkCompatible( const uint32 LocalNetworkVersion, const uint32 RemoteNetworkVersion );
 
 	/**
-	* Generates a spexial struct that contains information to send to replay server
+	* Generates a special struct that contains information to send to replay server
 	*/
 	static FNetworkReplayVersion GetReplayVersion();
 

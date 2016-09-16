@@ -15,6 +15,8 @@
 	#include "Android/AndroidPlatformTextField.h"
 #elif PLATFORM_PS4
 	#include "PS4/PS4PlatformTextField.h"
+#elif PLATFORM_XBOXONE
+	#include "XboxOne/XboxOnePlatformTextField.h"
 #else
 	#include "GenericPlatformTextField.h"
 #endif
@@ -38,11 +40,6 @@
 #include "UICommandList.h"
 
 // Legacy
-class SMissingWidget;
-class FSlateStyleRegistry;
-class FUICommandDragDropOp;
-class FInertialScrollManager;
-class FGenericCommands;
 #include "SWeakWidget.h"
 #include "TextLayoutEngine.h"
 #include "SPanel.h"
@@ -75,7 +72,6 @@ class FGenericCommands;
 #include "SMultiLineEditableTextBox.h"
 #include "SEditableText.h"
 #include "SEditableTextBox.h"
-class SSearchBox;
 #include "SButton.h"
 #include "SToolTip.h"
 #include "SScrollBar.h"
@@ -99,50 +95,13 @@ class SSearchBox;
 #include "SCheckBox.h"
 #include "SSpinBox.h"
 #include "SSlider.h"
-class SVolumeControl;
-class SColorSpectrum;
-class SColorWheel;
 
-class FToolBarButtonBlock;
-class SToolBarButtonBlock;
-class FToolBarComboButtonBlock;
-class SToolBarComboButtonBlock;
-class SPopup;
 ///
 #include "SComboButton.h"
 #include "SComboBox.h"
-class SHyperlink;
-class SRichTextHyperlink;
-class SThrobber;
-class SCircularThrobber;
-class STextEntryPopup;
-class STextComboPopup;
-class SExpandableButton;
-class SExpandableArea;
-class SNotificationItem;
-class SNotificationList;
-class SWidgetSwitcher;
-class SSuggestionTextBox;
-template <typename ItemType> class SBreadcrumbTrail;
-class STextComboBox;
-template<typename NumericType> class SNumericEntryBox;
-template<typename OptionType> class SEditableComboBox;
-class FSlateNotificationManager;
-class SDPIScaler;
-class SInlineEditableTextBlock;
-class SVirtualKeyboardEntry;
-class SSafeZone;
-struct FMarqueeRect;
-class SRotatorInputBox;
-class SVectorInputBox;
-class SVirtualJoystick;
-class SSearchBox;
 
 // Docking Framework
 #include "WorkspaceItem.h"
 #include "TabManager.h"
 #include "LayoutService.h"
 
-enum ETabActivationCause : uint8;
-enum ETabRole : uint8;
-class SDockTab;

@@ -97,4 +97,9 @@ FReply FWidgetTemplateBlueprintClass::OnDoubleClicked()
 	return FReply::Handled();
 }
 
+FAssetData FWidgetTemplateBlueprintClass::GetWidgetAssetData()
+{
+	return WidgetAssetData;
+}
+
 #undef LOCTEXT_NAMESPACE

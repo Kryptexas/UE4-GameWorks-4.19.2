@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "Core.h"
 #include "ModuleManager.h"
 
 #include "WorkspaceMenuStructureModule.h"
@@ -61,6 +62,11 @@ public:
 		return DeveloperToolsMiscCategory.ToSharedRef();
 	}
 
+	virtual TSharedRef<FWorkspaceItem> GetAutomationCategory() const override
+	{
+		return AutomationCategory.ToSharedRef();
+	}
+
 	virtual TSharedRef<FWorkspaceItem> GetAutomationToolsCategory() const override
 	{
 		return AutomationToolsCategory.ToSharedRef();
@@ -91,7 +97,8 @@ public:
 		DeveloperToolsLogCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsLogCategory", "Log"), FSlateIcon(), true);
 		DeveloperToolsMiscCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsMiscCategory", "Miscellaneous"), FSlateIcon(), true);
 
-		AutomationToolsCategory = ToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_AutomationToolsCategory", "Automation Tools"), FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationTools.MenuIcon"));
+		AutomationCategory = ToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_AutomationCategory", "Automation"), FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationTools.MenuIcon"));
+		AutomationToolsCategory = AutomationCategory->AddGroup(LOCTEXT("WorkspaceMenu_AutomationToolsCategory", "Automation Tools"), FSlateIcon(), true);
 	}
 
 public:
@@ -120,6 +127,8 @@ private:
 	TSharedPtr<FWorkspaceItem> DeveloperToolsDebugCategory;
 	TSharedPtr<FWorkspaceItem> DeveloperToolsLogCategory;
 	TSharedPtr<FWorkspaceItem> DeveloperToolsMiscCategory;
+	
+	TSharedPtr<FWorkspaceItem> AutomationCategory;
 	TSharedPtr<FWorkspaceItem> AutomationToolsCategory;
 	
 	TSharedPtr<FWorkspaceItem> EditOptions;

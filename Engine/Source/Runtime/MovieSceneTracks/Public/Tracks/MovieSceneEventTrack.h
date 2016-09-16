@@ -23,7 +23,7 @@ public:
 		, bFireEventsWhenBackwards(true)
 	{
 #if WITH_EDITORONLY_DATA
-		TrackTint = FColor(0, 255, 128);
+		TrackTint = FColor(41, 98, 41, 150);
 #endif
 	}
 
@@ -38,7 +38,7 @@ public:
 	 * @param EventName The name of the event to be triggered.
 	 * @param KeyParams The keying parameters
 	 */
-	bool AddKeyToSection(float Time, FName EventName, FKeyParams KeyParams);
+	bool AddKeyToSection(float Time, FName EventName);
 
 	/**
 	 * Trigger the events that fall into the given time range.

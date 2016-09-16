@@ -260,6 +260,10 @@
 		}
 		case EX_InstrumentationEvent:
 		{
+			if (Script[iCode] == EScriptInstrumentation::InlineEvent)
+			{
+				iCode += sizeof(FScriptName);
+			}
 			iCode += sizeof(uint8);
 			break;
 		}

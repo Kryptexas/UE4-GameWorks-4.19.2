@@ -76,6 +76,18 @@ public class JiraConnection
 		return NameToPlatform;
 	}
 
+    /// <summary>
+    /// Maps the name to the version
+    /// </summary>
+    Dictionary<string, Dictionary<string, object>> NameToBranch = new Dictionary<string, Dictionary<string, object>>();
+    /// <summary>
+    /// Maps the name to the branch.
+    /// </summary>
+    public Dictionary<string, Dictionary<string, object>> GetNameToBranch()
+    {
+        return NameToBranch;
+    }
+
 	/// <summary>
 	/// Singleton
 	/// </summary>

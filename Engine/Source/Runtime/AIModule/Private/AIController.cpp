@@ -423,8 +423,7 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 	APawn* const MyPawn = GetPawn();
 	if (MyPawn)
 	{
-		const FRotator InitialControlRotation = GetControlRotation();		
-		FRotator NewControlRotation = InitialControlRotation;
+		FRotator NewControlRotation = GetControlRotation();
 
 		// Look toward focus
 		const FVector FocalPoint = GetFocalPoint();
@@ -443,11 +442,13 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 			NewControlRotation.Pitch = 0.f;
 		}
 
-		if (InitialControlRotation.Equals(NewControlRotation, 1e-3f) == false)
-		{
-			SetControlRotation(NewControlRotation);
+		SetControlRotation(NewControlRotation);
 
-			if (bUpdatePawn)
+		if (bUpdatePawn)
+		{
+			const FRotator CurrentPawnRotation = MyPawn->GetActorRotation();
+
+			if (CurrentPawnRotation.Equals(NewControlRotation, 1e-3f) == false)
 			{
 				MyPawn->FaceRotation(NewControlRotation, DeltaTime);
 			}
@@ -575,7 +576,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(AActor* Goal, float
 	MoveReq.SetAllowPartialPath(bAllowPartialPaths);
 	MoveReq.SetNavigationFilter(*FilterClass ? FilterClass : DefaultNavigationFilterClass);
 	MoveReq.SetAcceptanceRadius(AcceptanceRadius);
-	MoveReq.SetStopOnOverlap(bStopOnOverlap);
+	MoveReq.SetReachTestIncludesAgentRadius(bStopOnOverlap);
 	MoveReq.SetCanStrafe(bCanStrafe);
 
 	return MoveTo(MoveReq);
@@ -595,7 +596,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	MoveReq.SetProjectGoalLocation(bProjectDestinationToNavigation);
 	MoveReq.SetNavigationFilter(*FilterClass ? FilterClass : DefaultNavigationFilterClass);
 	MoveReq.SetAcceptanceRadius(AcceptanceRadius);
-	MoveReq.SetStopOnOverlap(bStopOnOverlap);
+	MoveReq.SetReachTestIncludesAgentRadius(bStopOnOverlap);
 	MoveReq.SetCanStrafe(bCanStrafe);
 
 	return MoveTo(MoveReq);
@@ -628,7 +629,7 @@ FPathFollowingRequestResult AAIController::MoveTo(const FAIMoveRequest& MoveRequ
 
 	bool bCanRequestMove = true;
 	bool bAlreadyAtGoal = false;
-
+	
 	if (!MoveRequest.IsMoveToActorRequest())
 	{
 		if (MoveRequest.GetGoalLocation().ContainsNaN() || FAISystem::IsValidLocation(MoveRequest.GetGoalLocation()) == false)
@@ -653,11 +654,11 @@ FPathFollowingRequestResult AAIController::MoveTo(const FAIMoveRequest& MoveRequ
 			MoveRequest.UpdateGoalLocation(ProjectedLocation.Location);
 		}
 
-		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent->HasReached(MoveRequest.GetGoalLocation(), MoveRequest.GetAcceptanceRadius(), !MoveRequest.CanStopOnOverlap());
+		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent->HasReached(MoveRequest);
 	}
 	else 
 	{
-		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent->HasReached(*MoveRequest.GetGoalActor(), MoveRequest.GetAcceptanceRadius(), !MoveRequest.CanStopOnOverlap());
+		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent->HasReached(MoveRequest);
 	}
 
 	if (bAlreadyAtGoal)
@@ -1028,7 +1029,7 @@ bool AAIController::SuggestTossVelocity(FVector& OutTossVelocity, FVector Start,
 	// pawn's physics volume gets 2nd priority
 	APhysicsVolume const* const PhysicsVolume = GetPawn() ? GetPawn()->GetPawnPhysicsVolume() : NULL;
 	float const GravityOverride = PhysicsVolume ? PhysicsVolume->GetGravityZ() : 0.f;
-	ESuggestProjVelocityTraceOption::Type const TraceOption = bOnlyTraceUp ? ESuggestProjVelocityTraceOption::OnlyTraceWhileAsceding : ESuggestProjVelocityTraceOption::TraceFullPath;
+	ESuggestProjVelocityTraceOption::Type const TraceOption = bOnlyTraceUp ? ESuggestProjVelocityTraceOption::OnlyTraceWhileAscending : ESuggestProjVelocityTraceOption::TraceFullPath;
 
 	return UGameplayStatics::SuggestProjectileVelocity(this, OutTossVelocity, Start, End, TossSpeed, bPreferHighArc, CollisionRadius, GravityOverride, TraceOption);
 }

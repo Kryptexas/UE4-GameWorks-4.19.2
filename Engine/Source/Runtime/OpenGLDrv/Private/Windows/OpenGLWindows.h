@@ -588,7 +588,7 @@ struct FWindowsOpenGL : public FOpenGL4
 
 #include "OpenGLES31.h"
 
-struct FWindowsOpenGL : public FOpenGLES31
+struct FWindowsOpenGL : public FOpenGLESDeferred
 {
 	static FORCEINLINE EShaderPlatform GetShaderPlatform()
 	{

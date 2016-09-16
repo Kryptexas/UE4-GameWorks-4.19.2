@@ -34,10 +34,6 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const FObjectInitializer& Obj
 	PathOptimizationRange = 1000.0f;	// approx: radius * 30.0f
 	AvoidanceQuality = ECrowdAvoidanceQuality::Low;
 	AvoidanceRangeMultiplier = 1.0f;
-
-	AvoidanceGroup.SetFlagsDirectly(1);
-	GroupsToAvoid.SetFlagsDirectly(MAX_uint32);
-	GroupsToIgnore.SetFlagsDirectly(0);
 }
 
 FVector UCrowdFollowingComponent::GetCrowdAgentLocation() const
@@ -248,9 +244,9 @@ void UCrowdFollowingComponent::SetCrowdRotateToVelocity(bool bEnable)
 
 void UCrowdFollowingComponent::SetAvoidanceGroup(int32 GroupFlags, bool bUpdateAgent)
 {
-	if (AvoidanceGroup.Packed != GroupFlags)
+	if (CharacterMovement && CharacterMovement->GetAvoidanceGroupMask() != GroupFlags)
 	{
-		AvoidanceGroup.SetFlagsDirectly(GroupFlags);
+		CharacterMovement->SetAvoidanceGroup(GroupFlags);
 
 		if (bUpdateAgent)
 		{
@@ -261,9 +257,9 @@ void UCrowdFollowingComponent::SetAvoidanceGroup(int32 GroupFlags, bool bUpdateA
 
 void UCrowdFollowingComponent::SetGroupsToAvoid(int32 GroupFlags, bool bUpdateAgent)
 {
-	if (GroupsToAvoid.Packed != GroupFlags)
+	if (CharacterMovement && CharacterMovement->GetGroupsToAvoidMask() != GroupFlags)
 	{
-		GroupsToAvoid.SetFlagsDirectly(GroupFlags);
+		CharacterMovement->SetGroupsToAvoid(GroupFlags);
 
 		if (bUpdateAgent)
 		{
@@ -274,15 +270,30 @@ void UCrowdFollowingComponent::SetGroupsToAvoid(int32 GroupFlags, bool bUpdateAg
 
 void UCrowdFollowingComponent::SetGroupsToIgnore(int32 GroupFlags, bool bUpdateAgent)
 {
-	if (GroupsToIgnore.Packed != GroupFlags)
+	if (CharacterMovement && CharacterMovement->GetGroupsToIgnoreMask() != GroupFlags)
 	{
-		GroupsToIgnore.SetFlagsDirectly(GroupFlags);
+		CharacterMovement->SetGroupsToIgnore(GroupFlags);
 
 		if (bUpdateAgent)
 		{
 			UpdateCrowdAgentParams();
 		}
 	}
+}
+
+int32 UCrowdFollowingComponent::GetAvoidanceGroup() const
+{
+	return CharacterMovement ? CharacterMovement->GetAvoidanceGroupMask() : 0;
+}
+
+int32 UCrowdFollowingComponent::GetGroupsToAvoid() const
+{
+	return CharacterMovement ? CharacterMovement->GetGroupsToAvoidMask() : 0;
+}
+
+int32 UCrowdFollowingComponent::GetGroupsToIgnore() const
+{
+	return CharacterMovement ? CharacterMovement->GetGroupsToIgnoreMask() : 0;
 }
 
 void UCrowdFollowingComponent::SuspendCrowdSteering(bool bSuspend)
@@ -323,6 +334,15 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 
 bool UCrowdFollowingComponent::ShouldTrackMovingGoal(FVector& OutGoalLocation) const
 {
+	if (bIsUsingMetaPath)
+	{
+		FMetaNavMeshPath* MetaPath = Path.IsValid() ? Path->CastPath<FMetaNavMeshPath>() : nullptr;
+		if (MetaPath && !MetaPath->IsLastSection())
+		{
+			return false;
+		}
+	}
+
 	if (bFinalPathPart && !bUpdateDirectMoveVelocity &&
 		Path.IsValid() && !Path->IsPartial() && Path->GetGoalActor())
 	{
@@ -753,7 +773,13 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		// which means, that PathPoints contains only start and end position 
 		// full path is available through PathCorridor array (poly refs)
 
-		ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(MyNavData);
+		ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(NavMeshPath->GetNavigationDataUsed());
+		if (RecastNavData == nullptr)
+		{
+			UE_VLOG(GetOwner(), LogCrowdFollowing, Error, TEXT("Invalid navigation data in UCrowdFollowingComponent::SetMoveSegment, expected ARecastNavMesh class, got: %s"), *GetNameSafe(NavMeshPath->GetNavigationDataUsed()));
+			OnPathFinished(FPathFollowingResult(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath));
+			return;
+		}
 
 		const int32 PathPartSize = 15;
 		const int32 LastPolyIdx = NavMeshPath->PathCorridor.Num() - 1;
@@ -873,7 +899,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 
 			// can't use HasReachedDestination here, because it will use last path point
 			// which is not set correctly for partial paths without string pulling
-			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bStopOnOverlap ? MinAgentRadiusPct : 0.0f))
+			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bReachTestIncludesAgentRadius ? MinAgentRadiusPct : 0.0f))
 			{
 				UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Last path segment finished due to \'%s\'"), bMovedTooFar ? TEXT("Missing Last Point") : TEXT("Reaching Destination"));
 				OnPathFinished(FPathFollowingResult(EPathFollowingResult::Success, FPathFollowingResultFlags::None));

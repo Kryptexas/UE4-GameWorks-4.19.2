@@ -426,7 +426,7 @@ public:
 			}
 
 			// Move the Entry pointer forward so that we can find more children
-			Entry = FCString::Strfind( Entry, InnerMatch );
+			Entry = FCString::Strifind( Entry, InnerMatch );
 			Entry += InnerMatchLength;
 		}
 

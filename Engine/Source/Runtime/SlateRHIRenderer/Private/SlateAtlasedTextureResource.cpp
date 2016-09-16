@@ -2,7 +2,7 @@
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "SlateAtlasedTextureResource.h"
-#include "Interfaces/SlateTextureAtlasInterface.h"
+#include "Slate/SlateTextureAtlasInterface.h"
 
 TSharedPtr<FSlateAtlasedTextureResource> FSlateAtlasedTextureResource::NullResource = MakeShareable( new FSlateAtlasedTextureResource(nullptr) );
 
@@ -30,8 +30,8 @@ FSlateShaderResourceProxy* FSlateAtlasedTextureResource::FindOrCreateAtlasedProx
 		Proxy = new FSlateShaderResourceProxy();
 		Proxy->Resource = this;
 		Proxy->ActualSize = ActualSize.IntPoint();
-		Proxy->StartUV = AtlasData.RegionPosition / ActualSize;
-		Proxy->SizeUV = AtlasData.RegionSize / ActualSize;
+		Proxy->StartUV = AtlasData.StartUV;
+		Proxy->SizeUV = AtlasData.SizeUV;
 
 		ProxyMap.Add(InAtlasedObject, Proxy);
 	}

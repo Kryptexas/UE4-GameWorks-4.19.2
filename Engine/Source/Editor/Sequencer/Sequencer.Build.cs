@@ -45,6 +45,7 @@ public class Sequencer : ModuleRules
 				"Kismet",
 				"SceneOutliner",
 				"SequenceRecorder",
+                "LevelEditor",
 				"MainFrame",
 				"DesktopPlatform"
 			}

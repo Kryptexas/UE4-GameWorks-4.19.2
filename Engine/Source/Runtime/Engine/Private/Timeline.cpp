@@ -363,7 +363,7 @@ void FTimeline::TickTimeline(float DeltaTime)
 	if(bPlaying)
 	{
 		const float TimelineLength = GetTimelineLength();
-		const float EffectiveDeltaTime = DeltaTime * (bReversePlayback ? (-PlayRate) : (PlayRate));
+		float EffectiveDeltaTime = DeltaTime * (bReversePlayback ? (-PlayRate) : (PlayRate));
 
 		float NewPosition = Position + EffectiveDeltaTime;
 
@@ -573,6 +573,24 @@ void UTimelineComponent::TickComponent(float DeltaTime, enum ELevelTick TickType
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (bIgnoreTimeDilation)
+	{
+		AActor* const OwnerActor = GetOwner();
+		if (OwnerActor)
+		{
+			DeltaTime /= OwnerActor->GetActorTimeDilation();
+		}
+		else
+		{
+			// no Actor for some reason, use the world time dilation as fallback
+			UWorld* const W = GetWorld();
+			if (W)
+			{
+				DeltaTime /= W->GetWorldSettings()->GetEffectiveTimeDilation();
+			}
+		}
+	}
+
 	TheTimeline.TickTimeline(DeltaTime);
 
 	if (!IsNetSimulating())
@@ -705,6 +723,16 @@ void UTimelineComponent::SetTimelineLength(float NewLength)
 void UTimelineComponent::SetTimelineLengthMode(ETimelineLengthMode NewLengthMode)
 {
 	TheTimeline.SetTimelineLengthMode(NewLengthMode);
+}
+
+void UTimelineComponent::SetIgnoreTimeDilation(bool bNewIgnoreTimeDilation)
+{
+	bIgnoreTimeDilation = bNewIgnoreTimeDilation;
+}
+
+bool UTimelineComponent::GetIgnoreTimeDilation() const
+{
+	return bIgnoreTimeDilation;
 }
 
 void UTimelineComponent::SetPropertySetObject(UObject* NewPropertySetObject)

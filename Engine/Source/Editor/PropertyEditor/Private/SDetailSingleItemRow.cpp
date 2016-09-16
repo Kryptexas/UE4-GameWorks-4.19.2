@@ -114,7 +114,14 @@ FReply SDetailSingleItemRow::OnFavoriteToggle()
 			FName CatFavName = *CategoryFavoritesName;
 			int32 SimplePropertiesNum = 0;
 			int32 AdvancePropertiesNum = 0;
-			bool HasCategoryFavorite = OwnerTreeNode.Pin()->GetDetailsView().GetCategoryInfo(CatFavName, SimplePropertiesNum, AdvancePropertiesNum);
+
+			FDetailLayoutBuilderImpl& DetailLayout = OwnerTreeNode.Pin()->GetParentCategory()->GetParentLayoutImpl();
+
+			bool HasCategoryFavorite = DetailLayout.HasCategory(CatFavName);
+			if(HasCategoryFavorite)
+			{
+				DetailLayout.DefaultCategory(CatFavName).GetCategoryInformation(SimplePropertiesNum, AdvancePropertiesNum);
+			}
 
 			//Check if the property we toggle is an advance property
 			bool IsAdvanceProperty = Customization->GetPropertyNode()->HasNodeFlags(EPropertyNodeFlags::IsAdvanced) == 0 ? false : true;
@@ -162,7 +169,7 @@ const FSlateBrush* SDetailSingleItemRow::GetFavoriteButtonBrush() const
 {
 	if (Customization->GetPropertyNode().IsValid() && Customization->GetPropertyNode()->CanDisplayFavorite())
 	{
-		return FEditorStyle::GetBrush(Customization->GetPropertyNode()->IsFavorite() ? TEXT("DetailsView.PropertyIsFavorite") : bMouseHoverWidget ? TEXT("DetailsView.PropertyIsNotFavorite") : TEXT("DetailsView.NoFavoritesSystem"));
+		return FEditorStyle::GetBrush(Customization->GetPropertyNode()->IsFavorite() ? TEXT("DetailsView.PropertyIsFavorite") : IsHovered() ? TEXT("DetailsView.PropertyIsNotFavorite") : TEXT("DetailsView.NoFavoritesSystem"));
 	}
 	//Adding a transparent brush make sure all property are left align correctly
 	return FEditorStyle::GetBrush(TEXT("DetailsView.NoFavoritesSystem"));
@@ -170,7 +177,6 @@ const FSlateBrush* SDetailSingleItemRow::GetFavoriteButtonBrush() const
 
 void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCustomization* InCustomization, bool bHasMultipleColumns, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView )
 {
-	bMouseHoverWidget = false;
 	OwnerTreeNode = InOwnerTreeNode;
 	bAllowFavoriteSystem = InArgs._AllowFavoriteSystem;
 
@@ -342,41 +348,40 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	);
 }
 
-void SDetailSingleItemRow::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	bMouseHoverWidget = true;
-}
-
-void SDetailSingleItemRow::OnMouseLeave(const FPointerEvent& MouseEvent)
-{
-	bMouseHoverWidget = false;
-}
 
 bool SDetailSingleItemRow::OnContextMenuOpening( FMenuBuilder& MenuBuilder )
 {
-	if( Customization->HasPropertyNode() || Customization->GetWidgetRow().IsCopyPasteBound() )
+	const bool bIsCopyPasteBound = Customization->GetWidgetRow().IsCopyPasteBound();
+
+	FUIAction CopyAction;
+	FUIAction PasteAction;
+
+	if(bIsCopyPasteBound)
 	{
-		FUIAction CopyAction  = Customization->GetWidgetRow().CopyMenuAction;
-		FUIAction PasteAction = Customization->GetWidgetRow().PasteMenuAction;
+		CopyAction = Customization->GetWidgetRow().CopyMenuAction;
+		PasteAction = Customization->GetWidgetRow().PasteMenuAction;
+	}
+	else if(Customization->HasPropertyNode())
+	{
+		static const FName DisableCopyPasteMetaDataName("DisableCopyPaste");
 
-		if( !CopyAction.ExecuteAction.IsBound() && Customization->HasPropertyNode() )
+		if(!Customization->GetPropertyNode()->ParentOrSelfHasMetaData(DisableCopyPasteMetaDataName))
 		{
-			CopyAction.ExecuteAction = FExecuteAction::CreateSP( this, &SDetailSingleItemRow::OnCopyProperty );
+			CopyAction.ExecuteAction = FExecuteAction::CreateSP(this, &SDetailSingleItemRow::OnCopyProperty);
+			PasteAction.ExecuteAction = FExecuteAction::CreateSP(this, &SDetailSingleItemRow::OnPasteProperty);
+			PasteAction.CanExecuteAction = FCanExecuteAction::CreateSP(this, &SDetailSingleItemRow::CanPasteProperty);
 		}
+	}
 
-		if( !PasteAction.ExecuteAction.IsBound() && Customization->HasPropertyNode() )
-		{
-			PasteAction.ExecuteAction = FExecuteAction::CreateSP( this, &SDetailSingleItemRow::OnPasteProperty );
-			PasteAction.CanExecuteAction = FCanExecuteAction::CreateSP( this, &SDetailSingleItemRow::CanPasteProperty );
-		}
-
+	if (CopyAction.IsBound() && PasteAction.IsBound())
+	{
 		MenuBuilder.AddMenuSeparator();
 
-		MenuBuilder.AddMenuEntry(	
+		MenuBuilder.AddMenuEntry(
 			NSLOCTEXT("PropertyView", "CopyProperty", "Copy"),
 			NSLOCTEXT("PropertyView", "CopyProperty_ToolTip", "Copy this property value"),
 			FSlateIcon(),
-			CopyAction );
+			CopyAction);
 
 		MenuBuilder.AddMenuEntry(
 			NSLOCTEXT("PropertyView", "PasteProperty", "Paste"),

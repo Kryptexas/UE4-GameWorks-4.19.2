@@ -38,6 +38,8 @@ FString const FAndroidDeviceProfileSelectorModule::GetRuntimeDeviceProfileName()
 
 		FString GPUFamily = FAndroidMisc::GetGPUFamily();
 		FString GLVersion = FAndroidMisc::GetGLVersion();
+
+		FString VulkanVersion = FAndroidMisc::GetVulkanVersion();
 		FString AndroidVersion = FAndroidMisc::GetAndroidVersion();
 		FString DeviceMake = FAndroidMisc::GetDeviceMake();
 		FString DeviceModel = FAndroidMisc::GetDeviceModel();
@@ -54,6 +56,7 @@ FString const FAndroidDeviceProfileSelectorModule::GetRuntimeDeviceProfileName()
 		UE_LOG(LogAndroid, Log, TEXT("  Default profile: %s"), *ProfileName);
 		UE_LOG(LogAndroid, Log, TEXT("  GpuFamily: %s"), *GPUFamily);
 		UE_LOG(LogAndroid, Log, TEXT("  GlVersion: %s"), *GLVersion);
+		UE_LOG(LogAndroid, Log, TEXT("  VulkanVersion: %s"), *VulkanVersion);
 		UE_LOG(LogAndroid, Log, TEXT("  AndroidVersion: %s"), *AndroidVersion);
 		UE_LOG(LogAndroid, Log, TEXT("  DeviceMake: %s"), *DeviceMake);
 		UE_LOG(LogAndroid, Log, TEXT("  DeviceModel: %s"), *DeviceModel);
@@ -86,6 +89,9 @@ FString const FAndroidDeviceProfileSelectorModule::GetRuntimeDeviceProfileName()
 					break;
 				case SRC_DeviceModel:
 					SourceString = &DeviceModel;
+					break;
+				case SRC_VulkanVersion:
+					SourceString = &VulkanVersion;
 					break;
 				default:
 					continue;

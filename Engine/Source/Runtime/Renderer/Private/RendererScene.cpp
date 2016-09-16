@@ -498,18 +498,19 @@ FScene::FReadOnlyCVARCache::FReadOnlyCVARCache()
 	static const auto CVarSupportLowQualityLightmaps = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
 	static const auto CVarSupportPointLightWholeSceneShadows = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportPointLightWholeSceneShadows"));
 	static const auto CVarSupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));	
+	static const auto CVarVertexFoggingForOpaque = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VertexFoggingForOpaque"));	
 	const bool bForceAllPermutations = CVarSupportAllShaderPermutations && CVarSupportAllShaderPermutations->GetValueOnAnyThread() != 0;
 
 	bEnableAtmosphericFog = !CVarSupportAtmosphericFog || CVarSupportAtmosphericFog->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 	bEnableStationarySkylight = !CVarSupportStationarySkylight || CVarSupportStationarySkylight->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 	bEnablePointLightShadows = !CVarSupportPointLightWholeSceneShadows || CVarSupportPointLightWholeSceneShadows->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 	bEnableLowQualityLightmaps = !CVarSupportLowQualityLightmaps || CVarSupportLowQualityLightmaps->GetValueOnAnyThread() != 0 || bForceAllPermutations;
+	bEnableVertexFoggingForOpaque = !CVarVertexFoggingForOpaque || CVarVertexFoggingForOpaque->GetValueOnAnyThread() != 0;
 
-
-	const bool bShowMissmatchedLowQualityLightmapsWarning = (bEnableLowQualityLightmaps) != (GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED);
+	const bool bShowMissmatchedLowQualityLightmapsWarning = (!bEnableLowQualityLightmaps) && (GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED);
 	if ( bShowMissmatchedLowQualityLightmapsWarning )
 	{
-		UE_LOG(LogRenderer, Warning, TEXT("Missmatch between bShouldGenerateLowQualityLightmaps(%d) and r.SupportLowQualityLightmaps(%d), UEngine::bShouldGenerateLowQualityLightmaps has been depricated please use r.SupportLowQualityLightmaps instead"), GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED, bEnableLowQualityLightmaps);
+		UE_LOG(LogRenderer, Warning, TEXT("Mismatch between bShouldGenerateLowQualityLightmaps(%d) and r.SupportLowQualityLightmaps(%d), UEngine::bShouldGenerateLowQualityLightmaps has been deprecated please use r.SupportLowQualityLightmaps instead"), GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED, bEnableLowQualityLightmaps);
 	}
 }
 
@@ -542,6 +543,8 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 {
+	FMemory::Memzero(MobileDirectionalLights);
+
 	check(World);
 	World->Scene = this;
 
@@ -638,12 +641,12 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 	// Cache the primitive's initial transform.
 	FMatrix RenderMatrix = Primitive->GetRenderMatrix();
-	FVector OwnerPosition(0);
+	FVector AttachmentRootPosition(0);
 
-	AActor* Owner = Primitive->GetOwner();
-	if (Owner)
+	AActor* AttachmentRoot = Primitive->GetAttachmentRootActor();
+	if (AttachmentRoot)
 	{
-		OwnerPosition = Owner->GetActorLocation();
+		AttachmentRootPosition = AttachmentRoot->GetActorLocation();
 	}
 
 	struct FCreateRenderThreadParameters
@@ -651,7 +654,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		FPrimitiveSceneProxy* PrimitiveSceneProxy;
 		FMatrix RenderMatrix;
 		FBoxSphereBounds WorldBounds;
-		FVector OwnerPosition;
+		FVector AttachmentRootPosition;
 		FBoxSphereBounds LocalBounds;
 	};
 	FCreateRenderThreadParameters Params =
@@ -659,7 +662,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		PrimitiveSceneProxy,
 		RenderMatrix,
 		Primitive->Bounds,
-		OwnerPosition,
+		AttachmentRootPosition,
 		Primitive->CalcBounds(FTransform::Identity)
 	};
 
@@ -674,7 +677,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 	{
 		FPrimitiveSceneProxy* SceneProxy = Params.PrimitiveSceneProxy;
 		FScopeCycleCounter Context(SceneProxy->GetStatId());
-		SceneProxy->SetTransform(Params.RenderMatrix, Params.WorldBounds, Params.LocalBounds, Params.OwnerPosition);
+		SceneProxy->SetTransform(Params.RenderMatrix, Params.WorldBounds, Params.LocalBounds, Params.AttachmentRootPosition);
 
 		// Create any RenderThreadResources required.
 		SceneProxy->CreateRenderThreadResources();
@@ -704,7 +707,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 }
 
-void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition)
+void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& AttachmentRootPosition)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePrimitiveTransformRenderThreadTime);
 
@@ -721,7 +724,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	Scene->MotionBlurInfoData.UpdatePrimitiveMotionBlur(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 	
 	// Update the primitive transform.
-	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, OwnerPosition);
+	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition);
 
 	DistanceFieldSceneData.UpdatePrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 
@@ -749,30 +752,6 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
 	}
 
-	AActor* Owner = Primitive->GetOwner();
-
-	// If the root component of an actor is being moved, update all the actor position of the other components sharing that actor
-	if (Owner && Owner->GetRootComponent() == Primitive)
-	{
-		TInlineComponentArray<UPrimitiveComponent*> Components;
-		Owner->GetComponents(Components);
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			UPrimitiveComponent* PrimitiveComponent = Components[ComponentIndex];
-
-			// Only update components that are already attached
-			if (PrimitiveComponent 
-				&& PrimitiveComponent->SceneProxy 
-				&& PrimitiveComponent != Primitive
-				// Don't bother if it is going to have its transform updated anyway
-				&& !PrimitiveComponent->IsRenderTransformDirty()
-				&& !PrimitiveComponent->IsRenderStateDirty())
-			{
-				PrimitiveComponent->SceneProxy->UpdateActorPosition(Owner->GetActorLocation());
-			}
-		}
-	}
-
 	if(Primitive->SceneProxy)
 	{
 		// Check if the primitive needs to recreate its proxy for the transform update.
@@ -784,12 +763,12 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 		}
 		else
 		{
-			FVector OwnerPosition(0);
+			FVector AttachmentRootPosition(0);
 
-			AActor* Actor = Primitive->GetOwner();
+			AActor* Actor = Primitive->GetAttachmentRootActor();
 			if (Actor != NULL)
 			{
-				OwnerPosition = Actor->GetActorLocation();
+				AttachmentRootPosition = Actor->GetActorLocation();
 			}
 
 			struct FPrimitiveUpdateParams
@@ -799,7 +778,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 				FBoxSphereBounds WorldBounds;
 				FBoxSphereBounds LocalBounds;
 				FMatrix LocalToWorld;
-				FVector OwnerPosition;
+				FVector AttachmentRootPosition;
 			};
 
 			FPrimitiveUpdateParams UpdateParams;
@@ -807,7 +786,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 			UpdateParams.PrimitiveSceneProxy = Primitive->SceneProxy;
 			UpdateParams.WorldBounds = Primitive->Bounds;
 			UpdateParams.LocalToWorld = Primitive->GetRenderMatrix();
-			UpdateParams.OwnerPosition = OwnerPosition;
+			UpdateParams.AttachmentRootPosition = AttachmentRootPosition;
 			UpdateParams.LocalBounds = Primitive->CalcBounds(FTransform::Identity);
 
 			// Help track down primitive with bad bounds way before the it gets to the Renderer
@@ -819,7 +798,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 				FPrimitiveUpdateParams,UpdateParams,UpdateParams,
 				{
 					FScopeCycleCounter Context(UpdateParams.PrimitiveSceneProxy->GetStatId());
-					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(RHICmdList, UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.OwnerPosition);
+					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(RHICmdList, UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.AttachmentRootPosition);
 				});
 		}
 	}
@@ -990,23 +969,31 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 	LightSceneInfo->Id = Lights.Add(FLightSceneInfoCompact(LightSceneInfo));
 	const FLightSceneInfoCompact& LightSceneInfoCompact = Lights[LightSceneInfo->Id];
 
-	if (!SimpleDirectionalLight && 
-		LightSceneInfo->Proxy->GetLightType() == LightType_Directional &&
+	if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional &&
 		// Only use a stationary or movable light
 		!LightSceneInfo->Proxy->HasStaticLighting())
 	{
-		SimpleDirectionalLight = LightSceneInfo;
+		// Set SimpleDirectionalLight
+		if(!SimpleDirectionalLight)
+		{
+			SimpleDirectionalLight = LightSceneInfo;
+		}
 
-		// if we are mobile rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
-		bool bMobileRendererRequiresLightPolicyChange = GetShadingPath() == EShadingPath::Mobile &&
-			(
-			// this light is a dynamic shadowcast 
-			!SimpleDirectionalLight->Proxy->HasStaticShadowing() || 
-			// this light casts both static and dynamic shadows.
-			SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()
-			);
-
-		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (bMobileRendererRequiresLightPolicyChange);
+		if(GetShadingPath() == EShadingPath::Mobile)
+		{
+		    // Set MobileDirectionalLights entry
+		    int32 FirstLightingChannel = GetFirstLightingChannelFromMask(LightSceneInfo->Proxy->GetLightingChannelMask());
+		    if (FirstLightingChannel >= 0 && MobileDirectionalLights[FirstLightingChannel] == nullptr)
+		    {
+			    MobileDirectionalLights[FirstLightingChannel] = LightSceneInfo;
+    
+			    // if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
+			    if (!LightSceneInfo->Proxy->HasStaticShadowing() || LightSceneInfo->Proxy->UseCSMForDynamicObjects())
+				{
+		    		bScenesPrimitivesNeedStaticMeshElementUpdate = true;
+				}
+		    }
+		}
 	}
 
 	if (LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight() &&
@@ -1276,14 +1263,16 @@ void FScene::UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Compo
 {
 	if (Component->SceneProxy)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			UpdateTransformCommand,
 			FReflectionCaptureProxy*,Proxy,Component->SceneProxy,
 			FMatrix,Transform,Component->ComponentToWorld.ToMatrixWithScale(),
+			const float*,AverageBrightness,Component->GetAverageBrightnessPtr(),
 			FScene*,Scene,this,
 		{
 			Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;
 			Proxy->SetTransform(Transform);
+			Proxy->InitializeAverageBrightness(*AverageBrightness);
 		});
 	}
 }
@@ -1598,11 +1587,28 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 
 	if (LightSceneInfo->bVisible)
 	{
+		// check SimpleDirectionalLight
 		if (LightSceneInfo == SimpleDirectionalLight)
 		{
-			// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-			bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate  || (GetShadingPath() == EShadingPath::Mobile && (!SimpleDirectionalLight->Proxy->HasStaticShadowing() || SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()));
-			SimpleDirectionalLight = NULL;
+			SimpleDirectionalLight = nullptr;
+		}
+
+		if(GetShadingPath() == EShadingPath::Mobile)
+		{
+		    // check MobileDirectionalLights
+		    for (int32 LightChannelIdx = 0; LightChannelIdx < ARRAY_COUNT(MobileDirectionalLights); LightChannelIdx++)
+		    {
+			    if (LightSceneInfo == MobileDirectionalLights[LightChannelIdx])
+			    {
+				    MobileDirectionalLights[LightChannelIdx] = nullptr;
+				    // if this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
+					if (!LightSceneInfo->Proxy->HasStaticShadowing() || LightSceneInfo->Proxy->UseCSMForDynamicObjects())
+					{
+						bScenesPrimitivesNeedStaticMeshElementUpdate = true;
+					}
+				    break;
+			    }
+		    }
 		}
 
 		if (LightSceneInfo == SunLight)
@@ -2120,6 +2126,7 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
 			MobileBasePassUniformLightMapPolicyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 		}
 	}
 
@@ -2128,6 +2135,9 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 	MaskedDepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 	HitProxyDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 	HitProxyDrawList_OpaqueOnly.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+#if WITH_EDITOR
+	EditorSelectionDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+#endif
 	VelocityDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 	WholeSceneShadowDepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 	WholeSceneReflectiveShadowMapDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
@@ -2354,8 +2364,13 @@ void FScene::DumpStaticMeshDrawListStats() const
 	DUMP_DRAW_LIST(BasePassUniformLightMapPolicyDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default]);
 	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked]);
+	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Default]);
+	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked]);
 	DUMP_DRAW_LIST(HitProxyDrawList);
 	DUMP_DRAW_LIST(HitProxyDrawList_OpaqueOnly);
+#if WITH_EDITOR
+	DUMP_DRAW_LIST(EditorSelectionDrawList);
+#endif
 	DUMP_DRAW_LIST(VelocityDrawList);
 	DUMP_DRAW_LIST(WholeSceneShadowDepthDrawList);
 #undef DUMP_DRAW_LIST
@@ -2448,7 +2463,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	IndirectLightingCache.SetLightingCacheDirty();
 
 	// Primitives octree
-	PrimitiveOctree.ApplyOffset(InOffset);
+	PrimitiveOctree.ApplyOffset(InOffset, /*bGlobalOctee*/ true);
 
 	// Primitive bounds
 	for (auto It = PrimitiveBounds.CreateIterator(); It; ++It)
@@ -2471,7 +2486,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	}
 
 	// Lights octree
-	LightOctree.ApplyOffset(InOffset);
+	LightOctree.ApplyOffset(InOffset, /*bGlobalOctee*/ true);
 
 	// Cached preshadows
 	for (auto It = CachedPreshadows.CreateIterator(); It; ++It)
@@ -2511,6 +2526,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	StaticMeshDrawListApplyWorldOffset(VelocityDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(WholeSceneShadowDepthDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(MobileBasePassUniformLightMapPolicyDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(MobileBasePassUniformLightMapPolicyDrawListWithCSM, InOffset);
 
 	// Motion blur 
 	MotionBlurInfoData.ApplyOffset(InOffset);
@@ -2742,6 +2758,12 @@ template<>
 TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, 0> >& FScene::GetMobileBasePassDrawList<FUniformLightMapPolicy>(EBasePassDrawListType DrawType)
 {
 	return MobileBasePassUniformLightMapPolicyDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, 0> >& FScene::GetMobileBasePassCSMDrawList<FUniformLightMapPolicy>(EBasePassDrawListType DrawType)
+{
+	return MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawType];
 }
 
 /*-----------------------------------------------------------------------------

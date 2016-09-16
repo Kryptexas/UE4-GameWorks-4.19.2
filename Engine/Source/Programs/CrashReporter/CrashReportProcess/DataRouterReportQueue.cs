@@ -27,8 +27,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <summary>
 		/// Constructor taking the landing zone
 		/// </summary>
-		public DataRouterReportQueue(string InQueueName, string InLandingZoneTempPath)
-			: base(InQueueName, InLandingZoneTempPath)
+		public DataRouterReportQueue(string InQueueName, string InLandingZoneTempPath, int InDecimateWaitingCountStart, int InDecimateWaitingCountEnd)
+			: base(InQueueName, InLandingZoneTempPath, InDecimateWaitingCountStart, InDecimateWaitingCountEnd)
 		{
 			AWSCredentials Credentials = new StoredProfileAWSCredentials(Config.Default.AWSProfileName, Config.Default.AWSCredentialsFilepath);
 

@@ -102,6 +102,9 @@ void FBatchedElements::AddTriangle(int32 V0,int32 V1,int32 V2,const FTexture* Te
 	case BLEND_Modulate:
 		SimpleElementBlendMode = SE_BLEND_Modulate; 
 		break;
+	case BLEND_AlphaComposite:
+		SimpleElementBlendMode = SE_BLEND_AlphaComposite;
+		break;
 	};	
 	AddTriangle(V0,V1,V2,Texture,SimpleElementBlendMode);
 }
@@ -114,12 +117,14 @@ void FBatchedElements::AddTriangle(int32 V0, int32 V1, int32 V2, const FTexture*
 	
 void FBatchedElements::AddTriangle(int32 V0,int32 V1,int32 V2,FBatchedElementParameters* BatchedElementParameters,ESimpleElementBlendMode BlendMode)
 {
-	AddTriangleExtensive( V0, V1, V2, BatchedElementParameters, NULL, BlendMode );
+	AddTriangleExtensive( V0, V1, V2, BatchedElementParameters, GWhiteTexture, BlendMode );
 }
 
 
 void FBatchedElements::AddTriangleExtensive(int32 V0,int32 V1,int32 V2,FBatchedElementParameters* BatchedElementParameters,const FTexture* Texture,ESimpleElementBlendMode BlendMode, const FDepthFieldGlowInfo& GlowInfo)
 {
+	check(Texture);
+
 	// Find an existing mesh element for the given texture and blend mode
 	FBatchedMeshElement* MeshElement = NULL;
 	for(int32 MeshIndex = 0;MeshIndex < MeshElements.Num();MeshIndex++)
@@ -759,6 +764,11 @@ void FBatchedElements::DrawPointElements(FRHICommandList& RHICmdList, const FMat
 
 bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
 {
+	if (UNLIKELY(!FApp::CanEverRender()))
+	{
+		return false;
+	}
+
 	if( HasPrimsToDraw() )
 	{
 		FMatrix InvTransform = Transform.Inverse();

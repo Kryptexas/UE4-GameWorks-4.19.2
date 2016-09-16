@@ -306,12 +306,6 @@ void FSlateGameResources::AddReferencedObjects( FReferenceCollector& Collector )
 
 	if ( !GIsEditor )
 	{
-		TArray< UObject* > Objects;
-		UIResources.GenerateValueArray( Objects );
-
-		for (int Index = 0; Index < Objects.Num(); Index++)
-		{
-			Collector.AddReferencedObject( Objects[Index] );
-		}
+		Collector.AddReferencedObjects( UIResources );
 	}
 }

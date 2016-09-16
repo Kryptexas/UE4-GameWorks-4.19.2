@@ -132,6 +132,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_LINUX=1");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("LINUX=1");
 
+		    InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_SUPPORTS_JEMALLOC=1");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo linux: valid?
 
 			if (GetActiveArchitecture().StartsWith("arm"))
@@ -236,8 +237,7 @@ namespace UnrealBuildTool
 
 		public override bool CanUseXGE()
 		{
-			// [RCL] 2015-08-04 FIXME: we have seen XGE builds fail on Windows
-			return BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux;
+			return true;
 		}
 
 		/// <summary>

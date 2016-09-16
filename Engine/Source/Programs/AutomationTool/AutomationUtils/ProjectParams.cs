@@ -114,9 +114,9 @@ namespace AutomationTool
 		/// <param name="AllowPlatformParams">Allow raw -platform options</param>
 		/// <param name="PlatformParamNames">Possible -parameters to check for</param>
 		/// <returns>List of platforms parsed from the command line</returns>
-		private List<UnrealTargetPlatform> SetupTargetPlatforms(ref Dictionary<UnrealTargetPlatform,UnrealTargetPlatform> DependentPlatformMap, CommandUtils Command, List<UnrealTargetPlatform> OverrideTargetPlatforms, List<UnrealTargetPlatform> DefaultTargetPlatforms, bool AllowPlatformParams, params string[] PlatformParamNames)
+		private List<TargetPlatformDescriptor> SetupTargetPlatforms(ref Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor> DependentPlatformMap, CommandUtils Command, List<TargetPlatformDescriptor> OverrideTargetPlatforms, List<TargetPlatformDescriptor> DefaultTargetPlatforms, bool AllowPlatformParams, params string[] PlatformParamNames)
 		{
-			List<UnrealTargetPlatform> TargetPlatforms = null;
+			List<TargetPlatformDescriptor> TargetPlatforms = null;
 			if (CommandUtils.IsNullOrEmpty(OverrideTargetPlatforms))
 			{
 				if (Command != null)
@@ -135,25 +135,43 @@ namespace AutomationTool
 						}
 					}
 
-					if (!String.IsNullOrEmpty(CmdLinePlatform))
+                    List<string> CookFlavors = null;
+                    {
+                        string CmdLineCookFlavor = Command.ParseParamValue("cookflavor");
+                        if (!String.IsNullOrEmpty(CmdLineCookFlavor))
+                        {
+                            CookFlavors = new List<string>(CmdLineCookFlavor.Split('+'));
+                        }
+                    }
+
+                    if (!String.IsNullOrEmpty(CmdLinePlatform))
 					{
 						// Get all platforms from the param value: Platform_1+Platform_2+...+Platform_k
-						TargetPlatforms = new List<UnrealTargetPlatform>();
-						var Platforms = new List<string>(CmdLinePlatform.Split('+'));
-						foreach (var PlatformName in Platforms)
+						TargetPlatforms = new List<TargetPlatformDescriptor>();
+						var PlatformNames = new List<string>(CmdLinePlatform.Split('+'));
+						foreach (var PlatformName in PlatformNames)
 						{
                             // Look for dependent platforms, Source_1.Dependent_1+Source_2.Dependent_2+Standalone_3
-                            var SubPlatforms = new List<string>(PlatformName.Split('.'));
+                            var SubPlatformNames = new List<string>(PlatformName.Split('.'));
 
-                            foreach (var SubPlatformName in SubPlatforms)
+                            foreach (var SubPlatformName in SubPlatformNames)
                             {
-                                UnrealTargetPlatform NewPlatform = (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatformName, true);
-                                TargetPlatforms.Add(NewPlatform);
-
-                                if (SubPlatformName != SubPlatforms[0])
+                                UnrealTargetPlatform NewPlatformType = (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatformName, true);
+                                // generate all valid platform descriptions for this platform type + cook flavors
+                                List<TargetPlatformDescriptor> PlatformDescriptors = Platform.GetValidTargetPlatforms(NewPlatformType, CookFlavors);
+                                TargetPlatforms.AddRange(PlatformDescriptors);
+                                                              
+                                if (SubPlatformName != SubPlatformNames[0])
                                 {
+                                    // This is not supported with cook flavors
+                                    if (!CommandUtils.IsNullOrEmpty(CookFlavors))
+                                    {
+                                        throw new AutomationException("Cook flavors are not supported for dependent platforms!");
+                                    }
+
                                     // We're a dependent platform so add ourselves to the map, pointing to the first element in the list
-                                    DependentPlatformMap.Add(NewPlatform, (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatforms[0], true));
+                                    UnrealTargetPlatform FirstPlatformType = (UnrealTargetPlatform)Enum.Parse(typeof(UnrealTargetPlatform), SubPlatformNames[0], true);
+                                    DependentPlatformMap.Add(new TargetPlatformDescriptor(NewPlatformType), new TargetPlatformDescriptor(FirstPlatformType));
                                 }
                             }
 						}
@@ -161,14 +179,15 @@ namespace AutomationTool
 					else if (AllowPlatformParams)
 					{
 						// Look up platform names in the command line: -Platform_1 -Platform_2 ... -Platform_k
-						TargetPlatforms = new List<UnrealTargetPlatform>();
-						foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
+						TargetPlatforms = new List<TargetPlatformDescriptor>();
+						foreach (UnrealTargetPlatform PlatType in Enum.GetValues(typeof(UnrealTargetPlatform)))
 						{
-							if (Plat != UnrealTargetPlatform.Unknown)
+							if (PlatType != UnrealTargetPlatform.Unknown)
 							{
-								if (Command.ParseParam(Plat.ToString()))
+								if (Command.ParseParam(PlatType.ToString()))
 								{
-									TargetPlatforms.Add(Plat);
+                                    List<TargetPlatformDescriptor> PlatformDescriptors = Platform.GetValidTargetPlatforms(PlatType, CookFlavors);
+                                    TargetPlatforms.AddRange(PlatformDescriptors);
 								}
 							}
 						}
@@ -220,8 +239,8 @@ namespace AutomationTool
 			this.Cook = InParams.Cook;
 			this.IterativeCooking = InParams.IterativeCooking;
             this.CookAll = InParams.CookAll;
+			this.CookPartialGC = InParams.CookPartialGC;
             this.CookMapsOnly = InParams.CookMapsOnly;
-			this.CookFlavor = InParams.CookFlavor;
 			this.SkipCook = InParams.SkipCook;
 			this.SkipCookOnTheFly = InParams.SkipCookOnTheFly;
             this.Prebuilt = InParams.Prebuilt;
@@ -235,6 +254,7 @@ namespace AutomationTool
 			this.CookOnTheFly = InParams.CookOnTheFly;
             this.CookOnTheFlyStreaming = InParams.CookOnTheFlyStreaming;
             this.UnversionedCookedContent = InParams.UnversionedCookedContent;
+			this.EncryptIniFiles = InParams.EncryptIniFiles;
             this.SkipCookingEditorContent = InParams.SkipCookingEditorContent;
             this.NumCookersToSpawn = InParams.NumCookersToSpawn;
 			this.FileServer = InParams.FileServer;
@@ -257,13 +277,14 @@ namespace AutomationTool
 			this.StageCommandline = InParams.StageCommandline;
             this.BundleName = InParams.BundleName;
 			this.RunCommandline = InParams.RunCommandline;
-			this.Package = InParams.Package;
+			this.ServerCommandline = InParams.ServerCommandline;
+            this.Package = InParams.Package;
 			this.Deploy = InParams.Deploy;
 			this.IterativeDeploy = InParams.IterativeDeploy;
 			this.IgnoreCookErrors = InParams.IgnoreCookErrors;
 			this.FastCook = InParams.FastCook;
-			this.Device = InParams.Device;
-			this.DeviceName = InParams.DeviceName;
+			this.Devices = InParams.Devices;
+			this.DeviceNames = InParams.DeviceNames;
 			this.ServerDevice = InParams.ServerDevice;
             this.NullRHI = InParams.NullRHI;
             this.FakeClient = InParams.FakeClient;
@@ -300,7 +321,6 @@ namespace AutomationTool
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
 			this.bIsCodeBasedProject = InParams.bIsCodeBasedProject;
 			this.bCodeSign = InParams.bCodeSign;
-			this.UploadSymbols = InParams.UploadSymbols;
 			this.TitleID = InParams.TitleID;
 			this.bTreatNonShippingBinariesAsDebugFiles = InParams.bTreatNonShippingBinariesAsDebugFiles;
 			this.RunAssetNativization = InParams.RunAssetNativization;
@@ -334,13 +354,12 @@ namespace AutomationTool
 			ParamList<string> ClientCookedTargets = null,
 			ParamList<string> EditorTargets = null,
 			ParamList<string> ServerCookedTargets = null,
-			List<UnrealTargetPlatform> ClientTargetPlatforms = null,
-            Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ClientDependentPlatformMap = null,
-			List<UnrealTargetPlatform> ServerTargetPlatforms = null,
-            Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ServerDependentPlatformMap = null,
+			List<TargetPlatformDescriptor> ClientTargetPlatforms = null,
+            Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor> ClientDependentPlatformMap = null,
+			List<TargetPlatformDescriptor> ServerTargetPlatforms = null,
+            Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor> ServerDependentPlatformMap = null,
 			bool? Build = null,
 			bool? Cook = null,
-			string CookFlavor = null,
 			bool? Run = null,
 			bool? SkipServer = null,
 			bool? Clean = null,
@@ -348,10 +367,12 @@ namespace AutomationTool
             bool? UseDebugParamForEditorExe = null,
             bool? IterativeCooking = null,
             bool? CookAll = null,
+			bool? CookPartialGC = null,
             bool? CookMapsOnly = null,
             bool? CookOnTheFly = null,
             bool? CookOnTheFlyStreaming = null,
             bool? UnversionedCookedContent = null,
+			bool? EncryptIniFiles = null,
             bool? SkipCookingEditorContent = null,
             int? NumCookersToSpawn = null,
             string AdditionalCookerOptions = null,
@@ -413,7 +434,6 @@ namespace AutomationTool
             bool? RunAssetNativization = null,
 			bool? CodeSign = null,
 			bool? TreatNonShippingBinariesAsDebugFiles = null,
-			bool? UploadSymbols = null,
 			string Provision = null,
 			string Certificate = null,
 			ParamList<string> InMapsToRebuildLightMaps = null,
@@ -471,7 +491,8 @@ namespace AutomationTool
                 this.ClientDependentPlatformMap = ClientDependentPlatformMap;
             }
 
-			this.ClientTargetPlatforms = SetupTargetPlatforms(ref this.ClientDependentPlatformMap, Command, ClientTargetPlatforms, new ParamList<UnrealTargetPlatform>() { HostPlatform.Current.HostEditorPlatform }, true, "TargetPlatform", "Platform");
+            List<TargetPlatformDescriptor> DefaultTargetPlatforms = new ParamList<TargetPlatformDescriptor>(new TargetPlatformDescriptor(HostPlatform.Current.HostEditorPlatform));
+            this.ClientTargetPlatforms = SetupTargetPlatforms(ref this.ClientDependentPlatformMap, Command, ClientTargetPlatforms, DefaultTargetPlatforms, true, "TargetPlatform", "Platform");
 
             // Parse command line params for server platforms "-ServerTargetPlatform=Win64+Mac", "-ServerPlatform=Win64+Mac". "-Win64" etc is not allowed here
             if (ServerDependentPlatformMap != null)
@@ -483,7 +504,6 @@ namespace AutomationTool
 			this.Build = GetParamValueIfNotSpecified(Command, Build, this.Build, "build");
 			this.Run = GetParamValueIfNotSpecified(Command, Run, this.Run, "run");
 			this.Cook = GetParamValueIfNotSpecified(Command, Cook, this.Cook, "cook");
-			this.CookFlavor = ParseParamValueIfNotSpecified(Command, CookFlavor, "cookflavor", String.Empty);
             this.NewCook = GetParamValueIfNotSpecified(Command, NewCook, this.NewCook, "NewCook");
             this.OldCook = GetParamValueIfNotSpecified(Command, OldCook, this.OldCook, "OldCook");
 			this.CreateReleaseVersionBasePath = ParseParamValueIfNotSpecified(Command, CreateReleaseVersionBasePath, "createreleaseversionroot", String.Empty);
@@ -525,7 +545,8 @@ namespace AutomationTool
             }
             this.CookOnTheFlyStreaming = GetParamValueIfNotSpecified(Command, CookOnTheFlyStreaming, this.CookOnTheFlyStreaming, "cookontheflystreaming");
             this.UnversionedCookedContent = GetParamValueIfNotSpecified(Command, UnversionedCookedContent, this.UnversionedCookedContent, "UnversionedCookedContent");
-            this.SkipCookingEditorContent = GetParamValueIfNotSpecified(Command, SkipCookingEditorContent, this.SkipCookingEditorContent, "SkipCookingEditorContent");
+			this.EncryptIniFiles = GetParamValueIfNotSpecified(Command, EncryptIniFiles, this.EncryptIniFiles, "EncryptIniFiles");
+			this.SkipCookingEditorContent = GetParamValueIfNotSpecified(Command, SkipCookingEditorContent, this.SkipCookingEditorContent, "SkipCookingEditorContent");
             if (NumCookersToSpawn.HasValue)
             {
                 this.NumCookersToSpawn = NumCookersToSpawn.Value;
@@ -538,7 +559,8 @@ namespace AutomationTool
             this.UseDebugParamForEditorExe = GetParamValueIfNotSpecified(Command, UseDebugParamForEditorExe, this.UseDebugParamForEditorExe, "UseDebugParamForEditorExe");
             this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, new string[] { "iterativecooking", "iterate" } );
 			this.SkipCookOnTheFly = GetParamValueIfNotSpecified(Command, SkipCookOnTheFly, this.SkipCookOnTheFly, "skipcookonthefly");
-            this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
+			this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
+			this.CookPartialGC = GetParamValueIfNotSpecified(Command, CookPartialGC, this.CookPartialGC, "CookPartialGC");
             this.CookMapsOnly = GetParamValueIfNotSpecified(Command, CookMapsOnly, this.CookMapsOnly, "CookMapsOnly");
 			this.FileServer = GetParamValueIfNotSpecified(Command, FileServer, this.FileServer, "fileserver");
 			this.DedicatedServer = GetParamValueIfNotSpecified(Command, DedicatedServer, this.DedicatedServer, "dedicatedserver", "server");
@@ -568,7 +590,7 @@ namespace AutomationTool
 			this.CreateAppBundle = GetParamValueIfNotSpecified(Command, CreateAppBundle, true, "createappbundle");
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
 			this.Prereqs = GetParamValueIfNotSpecified(Command, Prereqs, this.Prereqs, "prereqs");
-			this.AppLocalDirectory = ParseParamValueIfNotSpecified(Command, AppLocalDirectory, "applocaldir", String.Empty, true);
+			this.AppLocalDirectory = ParseParamValueIfNotSpecified(Command, AppLocalDirectory, "applocaldirectory", String.Empty, true);
 			this.NoBootstrapExe = GetParamValueIfNotSpecified(Command, NoBootstrapExe, this.NoBootstrapExe, "nobootstrapexe");
             this.Prebuilt = GetParamValueIfNotSpecified(Command, Prebuilt, this.Prebuilt, "prebuilt");
             if (this.Prebuilt)
@@ -595,29 +617,43 @@ namespace AutomationTool
 			this.BundleName = ParseParamValueIfNotSpecified(Command, BundleName, "bundlename");
 			this.RunCommandline = ParseParamValueIfNotSpecified(Command, RunCommandline, "addcmdline");
 			this.RunCommandline = this.RunCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
-			this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
+			this.ServerCommandline = ParseParamValueIfNotSpecified(Command, ServerCommandline, "servercmdline");
+			this.ServerCommandline = this.ServerCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
+            this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
 			this.IterativeDeploy = GetParamValueIfNotSpecified(Command, IterativeDeploy, this.IterativeDeploy, new string[] {"iterativedeploy", "iterate" } );
 			this.FastCook = GetParamValueIfNotSpecified(Command, FastCook, this.FastCook, "FastCook");
 			this.IgnoreCookErrors = GetParamValueIfNotSpecified(Command, IgnoreCookErrors, this.IgnoreCookErrors, "IgnoreCookErrors");
             this.RunAssetNativization = GetParamValueIfNotSpecified(Command, RunAssetNativization, this.RunAssetNativization, "nativizeAssets");
-			this.UploadSymbols = GetParamValueIfNotSpecified(Command, UploadSymbols, this.UploadSymbols, "uploadsymbols");
-			this.Device = ParseParamValueIfNotSpecified(Command, Device, "device", String.Empty).Trim(new char[] { '\"' });
 
-			// strip the platform prefix the specified device.
-			if (this.Device.Contains("@"))
-			{
-				this.DeviceName = this.Device.Substring(this.Device.IndexOf("@") + 1);
-			}
-			else
-			{
-				this.DeviceName = this.Device;
-			}
+            string DeviceString = ParseParamValueIfNotSpecified(Command, Device, "device", String.Empty).Trim(new char[] { '\"' });
+            if(DeviceString == "")
+            {
+                this.Devices = new ParamList<string>("");
+                this.DeviceNames = new ParamList<string>("");
+            }
+            else
+            {
+                this.Devices = new ParamList<string>(DeviceString.Split('+'));
+                this.DeviceNames = new ParamList<string>();
+                foreach (var d in this.Devices)
+                {
+                    // strip the platform prefix the specified device.
+                    if (d.Contains("@"))
+                    {
+                        this.DeviceNames.Add(d.Substring(d.IndexOf("@") + 1));
+                    }
+                    else
+                    {
+                        this.DeviceNames.Add(d);
+                    }
+                }
+            }
 
 			this.Provision = ParseParamValueIfNotSpecified(Command, Provision, "provision", String.Empty, true);
 			this.Certificate = ParseParamValueIfNotSpecified(Command, Certificate, "certificate", String.Empty, true);
 
-			this.ServerDevice = ParseParamValueIfNotSpecified(Command, ServerDevice, "serverdevice", this.Device);
+			this.ServerDevice = ParseParamValueIfNotSpecified(Command, ServerDevice, "serverdevice", this.Devices.Count > 0 ? this.Devices[0] : "");
 			this.NullRHI = GetParamValueIfNotSpecified(Command, NullRHI, this.NullRHI, "nullrhi");
 			this.FakeClient = GetParamValueIfNotSpecified(Command, FakeClient, this.FakeClient, "fakeclient");
 			this.EditorTest = GetParamValueIfNotSpecified(Command, EditorTest, this.EditorTest, "editortest");
@@ -837,12 +873,6 @@ namespace AutomationTool
 		public bool Cook { private set; get; }
 
 		/// <summary>
-		/// Shared: Determines if the build is going to use special sub-target platform, commandline: -cookflavor=ATC
-		/// </summary>	
-		[Help( "cookflavor", "Determines if the build is going to use special sub-target platform" )]
-		public string CookFlavor { private set; get; }
-
-		/// <summary>
 		/// Shared: Determines if the build is going to use cooked data, commandline: -cook, -cookonthefly
 		/// </summary>	
 		[Help("skipcook", "use a cooked build, but we assume the cooked data is up to date and where it belongs, implies -cook")]
@@ -869,22 +899,22 @@ namespace AutomationTool
 		/// <summary>
         /// Shared: Sets platforms to build for non-dedicated servers. commandline: -TargetPlatform
 		/// </summary>
-		public List<UnrealTargetPlatform> ClientTargetPlatforms = new List<UnrealTargetPlatform>();
+		public List<TargetPlatformDescriptor> ClientTargetPlatforms = new List<TargetPlatformDescriptor>();
 
         /// <summary>
         /// Shared: Dictionary that maps client dependent platforms to "source" platforms that it should copy data from. commandline: -TargetPlatform=source.dependent
         /// </summary>
-        public Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ClientDependentPlatformMap = new Dictionary<UnrealTargetPlatform, UnrealTargetPlatform>();
+        public Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor> ClientDependentPlatformMap = new Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor>();
 
 		/// <summary>
         /// Shared: Sets platforms to build for dedicated servers. commandline: -ServerTargetPlatform
 		/// </summary>
-		public List<UnrealTargetPlatform> ServerTargetPlatforms = new List<UnrealTargetPlatform>();
+		public List<TargetPlatformDescriptor> ServerTargetPlatforms = new List<TargetPlatformDescriptor>();
 
         /// <summary>
         /// Shared: Dictionary that maps server dependent platforms to "source" platforms that it should copy data from: -ServerTargetPlatform=source.dependent
         /// </summary>
-        public Dictionary<UnrealTargetPlatform, UnrealTargetPlatform> ServerDependentPlatformMap = new Dictionary<UnrealTargetPlatform, UnrealTargetPlatform>();
+        public Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor> ServerDependentPlatformMap = new Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor>();
 
 		/// <summary>
 		/// Shared: True if pak file should be generated.
@@ -1231,10 +1261,15 @@ namespace AutomationTool
         /// </summary>
         public bool Compressed;
 
-        /// <summary>
-        /// put -debug on the editorexe commandline
-        /// </summary>
-        public bool UseDebugParamForEditorExe;
+		/// <summary>
+		/// Encrypt ini files which are packaged into the pak file.  Only valid when encryption keys and building pak file specified. 
+		/// </summary>
+		public bool EncryptIniFiles;
+
+		/// <summary>
+		/// put -debug on the editorexe commandline
+		/// </summary>
+		public bool UseDebugParamForEditorExe;
 
         /// <summary>
         /// Cook: Do not include a version number in the cooked content
@@ -1400,6 +1435,13 @@ namespace AutomationTool
         public bool CookOnTheFlyStreaming { private set; get; }
 
 		/// <summary>
+		/// Run: The client should run in streaming mode when connecting to cook on the fly server
+		/// </summary>
+		[Help("CookPartialgc", "while cooking clean up packages as we are done with them rather then cleaning everything up when we run out of space")]
+		public bool CookPartialGC { private set; get; }
+
+
+		/// <summary>
 		/// Run: The client runs with cooked data provided by UnrealFileServer, command line: -fileserver
 		/// </summary>
 		[Help("fileserver", "run the client with cooked data provided by UnrealFileServer")]
@@ -1444,14 +1486,14 @@ namespace AutomationTool
 		/// <summary>
 		/// Run: The target device to run the game on.  Comes in the form platform@devicename.
 		/// </summary>
-		[Help("device", "Device to run the game on")]
-		public string Device;
+		[Help("device", "Devices to run the game on")]
+		public ParamList<string> Devices;
 
 		/// <summary>
 		/// Run: The target device to run the game on.  No platform prefix.
 		/// </summary>
-		[Help("device", "Device name without the platform prefix to run the game on")]
-		public string DeviceName;
+		[Help("device", "Device names without the platform prefix to run the game on")]
+		public ParamList<string> DeviceNames;
 
 		/// <summary>
 		/// Run: the target device to run the server on
@@ -1476,6 +1518,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("addcmdline", "Additional command line arguments for the program")]
 		public string RunCommandline;
+
+        /// <summary>
+		/// Run: Additional command line arguments to pass to the server
+		/// </summary>
+		[Help("servercmdline", "Additional command line arguments for the program")]
+		public string ServerCommandline;
 
         /// <summary>
         /// Run:adds -nullrhi to the client commandline
@@ -1557,9 +1605,6 @@ namespace AutomationTool
 		[Help("SpecifiedArchitecture", "Determine a specific Minimum OS")]
 		public string SpecifiedArchitecture;
 
-		[Help("UploadSymbols", "upload symbols while packaging")]
-		public bool UploadSymbols { get; set; }
-
 		#endregion
 
 		#region Deploy
@@ -1597,7 +1642,8 @@ namespace AutomationTool
 				ProjectGameExePath = null;
 			}
 
-            var Properties = ProjectUtils.GetProjectProperties(RawProjectPath, ClientTargetPlatforms, RunAssetNativization);
+            List<UnrealTargetPlatform> ClientTargetPlatformTypes = ClientTargetPlatforms.ConvertAll(x => x.Type).Distinct().ToList();
+            var Properties = ProjectUtils.GetProjectProperties(RawProjectPath, ClientTargetPlatformTypes, RunAssetNativization);
 
 			bUsesSteam = Properties.bUsesSteam;
 			bUsesCEF3 = Properties.bUsesCEF3;
@@ -1782,21 +1828,8 @@ namespace AutomationTool
 				if ( ClientTargetPlatforms.Count > 0 )
 				{
 					var ProjectClientBinariesPath = ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, ProjectType, Properties.bIsCodeBasedProject);
-					ProjectBinariesPath = ProjectUtils.GetProjectClientBinariesFolder(ProjectClientBinariesPath, ClientTargetPlatforms[0]);
-					ProjectGameExePath = CommandUtils.CombinePaths(ProjectBinariesPath, GameTarget + Platform.GetExeExtension(ClientTargetPlatforms[0]));
-				}
-			}
-
-			// for the moment, allow the commandline to override the ini if set.  This will keep us from breaking licensee packaging scripts until we have
-			// the full solution for per-platform packaging settings.
-			if (!Manifests)
-			{				
-				ConfigCacheIni GameIni = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Game", RawProjectPath.Directory);
-				String IniPath = "/Script/UnrealEd.ProjectPackagingSettings";
-				bool bSetting = false;
-				if (!GameIni.GetBool(IniPath, "bGenerateChunks", out bSetting))
-				{
-					Manifests = bSetting;
+					ProjectBinariesPath = ProjectUtils.GetProjectClientBinariesFolder(ProjectClientBinariesPath, ClientTargetPlatforms[0].Type);
+					ProjectGameExePath = CommandUtils.CombinePaths(ProjectBinariesPath, GameTarget + Platform.GetExeExtension(ClientTargetPlatforms[0].Type));
 				}
 			}
 		}
@@ -1939,10 +1972,10 @@ namespace AutomationTool
 		/// <summary>
 		/// Get the path to the directory of the version we are basing a diff or a patch on.  
 		/// </summary>				
-		public String GetBasedOnReleaseVersionPath(DeploymentContext SC)
+		public String GetBasedOnReleaseVersionPath(DeploymentContext SC, bool bIsClientOnly)
 		{
 			String BasePath = BasedOnReleaseVersionBasePath;
-			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, CookFlavor);
+			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
                 BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
@@ -1965,10 +1998,10 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="SC"></param>
 		/// <returns></returns>
-		public String GetCreateReleaseVersionPath(DeploymentContext SC)
+		public String GetCreateReleaseVersionPath(DeploymentContext SC, bool bIsClientOnly)
 		{
 			String BasePath = CreateReleaseVersionBasePath;
-			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, CookFlavor);
+			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
 				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", CreateReleaseVersion, Platform);
@@ -2010,11 +2043,6 @@ namespace AutomationTool
 		}
 		private string ProjectGameExePath;
 
-		public Platform GetTargetPlatformInstance(UnrealTargetPlatform TargetPlatformType)
-		{
-			return Platform.Platforms[TargetPlatformType];
-		}
-
 		public List<Platform> ClientTargetPlatformInstances
 		{
 			get
@@ -2028,13 +2056,13 @@ namespace AutomationTool
 			}
 		}
 
-        public UnrealTargetPlatform GetCookedDataPlatformForClientTarget(UnrealTargetPlatform TargetPlatformType)
+        public TargetPlatformDescriptor GetCookedDataPlatformForClientTarget(TargetPlatformDescriptor TargetPlatformDesc)
         {
-            if (ClientDependentPlatformMap.ContainsKey(TargetPlatformType))
+            if (ClientDependentPlatformMap.ContainsKey(TargetPlatformDesc))
             {
-                return ClientDependentPlatformMap[TargetPlatformType];
+                return ClientDependentPlatformMap[TargetPlatformDesc];
             }
-            return TargetPlatformType;
+            return TargetPlatformDesc;
         }
 
 		public List<Platform> ServerTargetPlatformInstances
@@ -2050,7 +2078,7 @@ namespace AutomationTool
 			}
 		}
 
-        public UnrealTargetPlatform GetCookedDataPlatformForServerTarget(UnrealTargetPlatform TargetPlatformType)
+        public TargetPlatformDescriptor GetCookedDataPlatformForServerTarget(TargetPlatformDescriptor TargetPlatformType)
         {
             if (ServerDependentPlatformMap.ContainsKey(TargetPlatformType))
             {
@@ -2204,7 +2232,7 @@ namespace AutomationTool
                 throw new AutomationException("-compressed can only be used with -pak");
             }*/
 
-            if (CreateChunkInstall && (!Manifests || !Stage))
+            if (CreateChunkInstall && (!(Manifests || HasDLCName) || !Stage))
             {
                 throw new AutomationException("-createchunkinstall can only be used with -manifests & -stage"); 
             }
@@ -2244,10 +2272,10 @@ namespace AutomationTool
 				CommandUtils.LogLog("ClientTargetPlatform={0}", string.Join(",", ClientTargetPlatforms));
 				CommandUtils.LogLog("Compressed={0}", Compressed);
 				CommandUtils.LogLog("UseDebugParamForEditorExe={0}", UseDebugParamForEditorExe);
-				CommandUtils.LogLog("CookFlavor={0}", CookFlavor);
 				CommandUtils.LogLog("CookOnTheFly={0}", CookOnTheFly);
 				CommandUtils.LogLog("CookOnTheFlyStreaming={0}", CookOnTheFlyStreaming);
 				CommandUtils.LogLog("UnversionedCookedContent={0}", UnversionedCookedContent);
+				CommandUtils.LogLog("EncryptIniFiles={0}", EncryptIniFiles);
 				CommandUtils.LogLog("SkipCookingEditorContent={0}", SkipCookingEditorContent);
                 CommandUtils.LogLog("NumCookersToSpawn={0}", NumCookersToSpawn);
                 CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);
@@ -2266,6 +2294,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("IsProgramTarget={0}", IsProgramTarget.ToString());
 				CommandUtils.LogLog("IterativeCooking={0}", IterativeCooking);
                 CommandUtils.LogLog("CookAll={0}", CookAll);
+				CommandUtils.LogLog("CookPartialGC={0}", CookPartialGC);
                 CommandUtils.LogLog("CookMapsOnly={0}", CookMapsOnly);
                 CommandUtils.LogLog("Deploy={0}", Deploy);
 				CommandUtils.LogLog("IterativeDeploy={0}", IterativeDeploy);
@@ -2316,7 +2345,6 @@ namespace AutomationTool
 				CommandUtils.LogLog("bUsesSlate={0}", bUsesSlate);
                 CommandUtils.LogLog("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
 				CommandUtils.LogLog("bTreatNonShippingBinariesAsDebugFiles={0}", bTreatNonShippingBinariesAsDebugFiles);
-				CommandUtils.LogLog("UploadSymbols={0}", UploadSymbols);
                 CommandUtils.LogLog("NativizeAssets={0}", RunAssetNativization);
 				CommandUtils.LogLog("Project Params **************");
 			}

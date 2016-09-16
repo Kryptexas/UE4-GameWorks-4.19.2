@@ -439,12 +439,12 @@ void UProcessUnitTest::PollProcessOutput()
 
 				if (bPartialRead)
 				{
-					UE_LOG(None, Log, TEXT("%s"), PartialLog);
+					UE_LOG(NetCodeTestNone, Log, TEXT("%s"), PartialLog);
 				}
 
 				for (int LineIdx=0; LineIdx<LogLines.Num(); LineIdx++)
 				{
-					UE_LOG(None, Log, TEXT("%s%s"), *CurHandle->LogPrefix, *(LogLines[LineIdx]));
+					UE_LOG(NetCodeTestNone, Log, TEXT("%s%s"), *CurHandle->LogPrefix, *(LogLines[LineIdx]));
 				}
 
 				// Restore the engine-event log hook

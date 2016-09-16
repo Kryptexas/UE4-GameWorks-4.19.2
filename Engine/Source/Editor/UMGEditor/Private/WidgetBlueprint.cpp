@@ -650,9 +650,4 @@ void UWidgetBlueprint::GetReparentingRules(TSet< const UClass* >& AllowedChildre
 	AllowedChildrenOfClasses.Add( UUserWidget::StaticClass() );
 }
 
-bool UWidgetBlueprint::NeedsLoadForClient() const
-{
-	return false;
-}
-
 #undef LOCTEXT_NAMESPACE 

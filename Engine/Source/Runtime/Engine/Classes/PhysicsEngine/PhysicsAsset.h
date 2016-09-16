@@ -35,11 +35,17 @@ class UPhysicsAsset : public UObject
 	UPROPERTY()
 	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
 
-	UPROPERTY(EditAnywhere, Category = PhysicalAnimation)
-	TArray<FName> Profiles;
+	UPROPERTY(EditAnywhere, Category = Profiles, meta=(DisableCopyPaste))
+	TArray<FName> PhysicalAnimationProfiles;
+
+	UPROPERTY(EditAnywhere, Category = Profiles, meta=(DisableCopyPaste))
+	TArray<FName> ConstraintProfiles;
 
 	UPROPERTY(transient)
 	FName CurrentPhysicalAnimationProfileName;
+
+	UPROPERTY(transient)
+	FName CurrentConstraintProfileName;
 
 #endif // WITH_EDITORONLY_DATA
 
@@ -62,6 +68,13 @@ class UPhysicsAsset : public UObject
 	TArray<class UPhysicsConstraintTemplate*> ConstraintSetup;
 
 public:
+
+	/**
+	* If true, bodies of the physics asset will be put into the asynchronous physics scene. If false, they will be put into the synchronous physics scene.
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Physics)
+	uint8 bUseAsyncScene:1;
+
 	/** This caches the BodySetup Index by BodyName to speed up FindBodyIndex */
 	TMap<FName, int32>					BodySetupIndexMap;
 
@@ -80,12 +93,19 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 
-	ENGINE_API const TArray<FName>& GetPhysicalAnimationProfileNames(TArray<FName>& OutProfileNames) const
+	ENGINE_API const TArray<FName>& GetPhysicalAnimationProfileNames() const
 	{
-		return Profiles;
+		return PhysicalAnimationProfiles;
 	}
 
+	ENGINE_API const TArray<FName>& GetConstraintProfileNames() const
+	{
+		return ConstraintProfiles;
+	}
+
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
 #endif
 	//~ End UObject Interface
 
@@ -142,6 +162,14 @@ public:
 	ENGINE_API void BodyFindConstraints(int32 BodyIndex, TArray<int32>& Constraints);
 
 private:
+
+#if WITH_EDITORONLY_DATA
+	/** Editor only arrays that are used for rename operations in pre/post edit change*/
+	TArray<FName> PrePhysicalAnimationProfiles;
+	TArray<FName> PreConstraintProfiles;
+#endif
+
+
 	UPROPERTY(instanced)
 	TArray<class UBodySetup*> BodySetup_DEPRECATED;
 };
@@ -191,6 +219,10 @@ public:
 	ENGINE_API void RemovePhysicalAnimationProfile(FName ProfileName);
 
 	ENGINE_API void UpdatePhysicalAnimationProfiles(const TArray<FName>& Profiles);
+
+	ENGINE_API void DuplicatePhysicalAnimationProfile(FName DuplicateFromName, FName DuplicateToName);
+
+	ENGINE_API void RenamePhysicalAnimationProfile(FName CurrentName, FName NewName);
 #endif
 
 #if WITH_EDITORONLY_DATA

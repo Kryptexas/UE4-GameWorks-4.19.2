@@ -11,7 +11,7 @@
 #include <signal.h>
 #include "HAL/ThreadHeartBeat.h"
 
-FString DescribeSignal(int32 Signal, siginfo_t* Info)
+FString DescribeSignal(int32 Signal, siginfo_t* Info, ucontext_t *Context)
 {
 	FString ErrorString;
 
@@ -23,12 +23,15 @@ FString DescribeSignal(int32 Signal, siginfo_t* Info)
 		// No signal - used for initialization stacktrace on non-fatal errors (ex: ensure)
 		break;
 	case SIGSEGV:
-		ErrorString += TEXT("SIGSEGV: invalid attempt to access memory at address ");
-		ErrorString += FString::Printf(TEXT("0x%08x"), (uint32*)Info->si_addr);
+#ifdef __x86_64__	// architecture-specific
+		ErrorString += FString::Printf(TEXT("SIGSEGV: invalid attempt to %s memory at address 0x%016x"),
+			(Context != nullptr) ? ((Context->uc_mcontext.gregs[REG_ERR] & 0x2) ? TEXT("write") : TEXT("read")) : TEXT("access"), (uint64)Info->si_addr);
+#else
+		ErrorString += TEXT("SIGSEGV: invalid attempt to access memory at address 0x%016x", (uint64)Info->si_addr);
+#endif // __x86_64__
 		break;
 	case SIGBUS:
-		ErrorString += TEXT("SIGBUS: invalid attempt to access memory at address ");
-		ErrorString += FString::Printf(TEXT("0x%08x"), (uint32*)Info->si_addr);
+		ErrorString += FString::Printf(TEXT("SIGBUS: invalid attempt to access memory at address 0x%016x"), (uint64)Info->si_addr);
 		break;
 
 		HANDLE_CASE(SIGINT, "program interrupted")
@@ -69,7 +72,7 @@ void FLinuxCrashContext::InitFromSignal(int32 InSignal, siginfo_t* InInfo, void*
 	Info = InInfo;
 	Context = reinterpret_cast< ucontext_t* >( InContext );
 
-	FCString::Strcat(SignalDescription, ARRAY_COUNT( SignalDescription ) - 1, *DescribeSignal(Signal, Info));
+	FCString::Strcat(SignalDescription, ARRAY_COUNT( SignalDescription ) - 1, *DescribeSignal(Signal, Info, Context));
 }
 
 void FLinuxCrashContext::InitFromEnsureHandler(const TCHAR* EnsureMessage, const void* CrashAddress)
@@ -113,10 +116,10 @@ void GracefulTerminationHandler(int32 Signal, siginfo_t* Info, void* Context)
 	}
 }
 
-void CreateExceptionInfoString(int32 Signal, siginfo_t* Info)
+void CreateExceptionInfoString(int32 Signal, siginfo_t* Info, ucontext_t *Context)
 {
 	FString ErrorString = TEXT("Unhandled Exception: ");
-	ErrorString += DescribeSignal(Signal, Info);
+	ErrorString += DescribeSignal(Signal, Info, Context);
 	FCString::Strncpy(GErrorExceptionDescription, *ErrorString, FMath::Min(ErrorString.Len() + 1, (int32)ARRAY_COUNT(GErrorExceptionDescription)));
 }
 
@@ -280,6 +283,7 @@ void GenerateWindowsErrorReport(const FString & WERPath, bool bReportingNonCrash
 		WriteLine(ReportFile, TEXT("\t\t<Parameter1>6.1.7601.2.1.0.256.48</Parameter1>"));
 		WriteLine(ReportFile, TEXT("\t\t<Parameter2>1033</Parameter2>"));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<BuildVersion>%s</BuildVersion>"), FApp::GetBuildVersion()));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bReportingNonCrash ? TEXT("1") : TEXT("0")));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bReportingNonCrash, FDebug::bHasAsserted)));
@@ -330,7 +334,7 @@ void FLinuxCrashContext::CaptureStackTrace()
 		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, this);
 
 		FCString::Strncat( GErrorHist, UTF8_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) - 1 );
-		CreateExceptionInfoString(Signal, Info);
+		CreateExceptionInfoString(Signal, Info, Context);
 
 		FMemory::Free( StackTrace );
 		bCapturedBacktrace = true;
@@ -419,8 +423,8 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 
 		// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
 		//FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
-		//FCStringAnsi::Strcat(FilePath, PATH_MAX, "/" );
-		//FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashContextRuntimeXMLNameA );
+		//FCStringAnsi::Strncat(FilePath, "/", PATH_MAX);
+		//FCStringAnsi::Strncat(FilePath, FGenericCrashContext::CrashContextRuntimeXMLNameA, PATH_MAX);
 		//SerializeAsXML( FilePath ); @todo uncomment after verification
 
 		// copy log
@@ -433,6 +437,15 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 		FPaths::NormalizeDirectoryName(LogDstAbsolute);
 		static_cast<void>(IFileManager::Get().Copy(*LogDstAbsolute, *LogSrcAbsolute));	// best effort, so don't care about result: couldn't copy -> tough, no log
 
+		// If present, include the crash report config file to pass config values to the CRC
+		const TCHAR* CrashConfigFilePath = GetCrashConfigFilePath();
+		if (IFileManager::Get().FileExists(CrashConfigFilePath))
+		{
+			FString CrashConfigFilename = FPaths::GetCleanFilename(CrashConfigFilePath);
+			FString CrashConfigDstAbsolute = FPaths::Combine(*CrashInfoAbsolute, *CrashConfigFilename);
+			static_cast<void>(IFileManager::Get().Copy(*CrashConfigDstAbsolute, CrashConfigFilePath));	// best effort, so don't care about result
+		}
+
 		// try launching the tool and wait for its exit, if at all
 		const TCHAR * RelativePathToCrashReporter = TEXT("../../../Engine/Binaries/Linux/CrashReportClient");	// FIXME: painfully hard-coded
 		if (!FPaths::FileExists(RelativePathToCrashReporter))
@@ -440,12 +453,11 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 			RelativePathToCrashReporter = TEXT("../../../engine/binaries/linux/crashreportclient");	// FIXME: even more painfully hard-coded
 		}
 
-		FString CrashReportClientArguments;
-
 		FString CrashReportLogFilename = LogBaseFilename + TEXT("-CRC") + LogExtension;
 		FString CrashReportLogFilepath = FPaths::Combine(*LogFolder, *CrashReportLogFilename);
-		CrashReportClientArguments += TEXT("-Abslog=");
+		FString CrashReportClientArguments = TEXT(" -Abslog=");
 		CrashReportClientArguments += *CrashReportLogFilepath;
+		CrashReportClientArguments += TEXT(" ");
 
 		// Suppress the user input dialog if we're running in unattended mode
 		bool bNoDialog = FApp::IsUnattended() || IsRunningDedicatedServer();
@@ -549,6 +561,9 @@ void PlatformCrashHandler(int32 Signal, siginfo_t* Info, void* Context)
 {
 	fprintf(stderr, "Signal %d caught.\n", Signal);
 
+	// Stop the heartbeat thread
+	FThreadHeartBeat::Get().Stop();
+
 	// Switch to malloc crash.
 	FPlatformMallocCrash::Get().SetAsGMalloc();
 
@@ -591,7 +606,8 @@ void FLinuxPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCra
 	int HandledSignals[] = 
 	{
 		// signals we consider crashes
-		SIGQUIT, 
+		SIGQUIT,
+		SIGABRT,
 		SIGILL, 
 		SIGFPE, 
 		SIGBUS, 
@@ -647,19 +663,7 @@ void FLinuxPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCra
 		}
 	}
 
-	checkf(IsInGameThread(), TEXT("Crash handler should be set from the main thread only."));
-	stack_t SignalHandlerStack;
-	
-	FMemory::Memzero(SignalHandlerStack);
-	SignalHandlerStack.ss_sp = FRunnableThreadLinux::MainThreadSignalHandlerStack;
-	SignalHandlerStack.ss_size = sizeof(FRunnableThreadLinux::MainThreadSignalHandlerStack);
+	checkf(IsInGameThread(), TEXT("Crash handler for the game thread should be set from the game thread only."));
 
-	if (sigaltstack(&SignalHandlerStack, nullptr) < 0)
-	{
-		int ErrNo = errno;
-		UE_LOG(LogLinux, Warning, TEXT("Unable to set alternate stack for crash handler, sigaltstack() failed with errno=%d (%s)"),
-			ErrNo,
-			UTF8_TO_TCHAR(strerror(ErrNo))
-			);
-	}
+	FRunnableThreadLinux::SetupSignalHandlerStack(FRunnableThreadLinux::MainThreadSignalHandlerStack, sizeof(FRunnableThreadLinux::MainThreadSignalHandlerStack), nullptr);
 }

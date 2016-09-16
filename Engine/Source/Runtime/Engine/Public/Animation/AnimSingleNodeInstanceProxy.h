@@ -114,6 +114,11 @@ public:
 		return bCanProcessAdditiveAnimations;
 	}
 #endif
+
+#if WITH_EDITORONLY_DATA
+	void PropagatePreviewCurve(FPoseContext& Output);
+#endif // WITH_EDITORONLY_DATA
+
 	void SetPreviewCurveOverride(const FName& PoseName, float Value, bool bRemoveIfZero);
 
 private:
@@ -156,10 +161,7 @@ private:
 	FMarkerTickRecord MarkerTickRecord;
 
 	float PlayRate;
-
-	uint32 bLooping:1;
-
-	uint32 bPlaying:1;
-
-	uint32 bReverse:1;
+	bool bLooping;
+	bool bPlaying;
+	bool bReverse;
 };

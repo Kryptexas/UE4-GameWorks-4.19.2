@@ -94,7 +94,7 @@ uint32 FSharedPoolPolicyData::GetPoolBucketSize(uint32 Bucket)
 uint32 FSharedPoolPolicyData::BucketSizes[NumPoolBucketSizes] = {
 	16, 48, 96, 192, 384, 768, 1536, 
 	3072, 4608, 6144, 7680, 9216, 12288, 
-	65536, 131072, 262144 // these 3 numbers are added for large cloth simulation vertices, supports up to 16,384 verts
+	65536, 131072, 262144, 1048576 // these 4 numbers are added for large cloth simulation vertices, supports up to 65,536 verts
 };
 
 /*-----------------------------------------------------------------------------

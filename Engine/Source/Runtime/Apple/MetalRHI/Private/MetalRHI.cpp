@@ -25,7 +25,7 @@ bool FMetalDynamicRHIModule::IsSupported()
 	return true;
 }
 
-FDynamicRHI* FMetalDynamicRHIModule::CreateRHI()
+FDynamicRHI* FMetalDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 {
 	return new FMetalDynamicRHI();
 }
@@ -68,15 +68,11 @@ FMetalDynamicRHI::FMetalDynamicRHI()
     {
         GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
         GMaxRHIShaderPlatform = SP_METAL_MRT;
-		GSupportsMultipleRenderTargets = true;
     }
     else
     {
         GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
         GMaxRHIShaderPlatform = SP_METAL;
-		// disable MRTs completely, because there is code in the engine that assumes the ability to use
-		// 32 bytes of pixel storage (like the 2 VERY WIDE ones in GPU particles)
-		GSupportsMultipleRenderTargets = false;
 	}
 	
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL;
@@ -126,28 +122,33 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	bool bSupportsPointLights = false;
 	bool bSupportsTiledReflections = false;
 	bool bSupportsDistanceFields = false;
+	bool bSupportsRHIThread = false;
 	if(GRHIAdapterName.Contains("Nvidia"))
 	{
 		bSupportsPointLights = true;
 		GRHIVendorId = 0x10DE;
 		bSupportsTiledReflections = true;
 		bSupportsDistanceFields = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
+		bSupportsRHIThread = (FPlatformMisc::MacOSXVersionCompare(10,12,0) >= 0);
 	}
 	else if(GRHIAdapterName.Contains("ATi") || GRHIAdapterName.Contains("AMD"))
 	{
 		bSupportsPointLights = true;
 		GRHIVendorId = 0x1002;
-		if(GPUDesc.GPUVendorId == GRHIVendorId)
+		if((FPlatformMisc::MacOSXVersionCompare(10,12,0) < 0) && GPUDesc.GPUVendorId == GRHIVendorId)
 		{
 			GRHIAdapterName = FString(GPUDesc.GPUName);
 		}
 		bSupportsTiledReflections = true;
 		bSupportsDistanceFields = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
+		bSupportsRHIThread = true;
 	}
 	else if(GRHIAdapterName.Contains("Intel"))
 	{
+		bSupportsTiledReflections = (FPlatformMisc::MacOSXVersionCompare(10,12,0) >= 0);
 		bSupportsPointLights = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
 		GRHIVendorId = 0x8086;
+		bSupportsRHIThread = true;
 	}
 	
 	// Make sure the vendors match - the assumption that order in IORegistry is the order in Metal may not hold up forever.
@@ -221,9 +222,9 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	{
 #if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
 #if WITH_EDITORONLY_DATA
-		GRHISupportsRHIThread = !GIsEditor;
+		GRHISupportsRHIThread = (!GIsEditor && bSupportsRHIThread);
 #else
-		GRHISupportsRHIThread = true;
+		GRHISupportsRHIThread = bSupportsRHIThread;
 #endif
 		GRHISupportsParallelRHIExecute = GRHISupportsRHIThread;
 #endif
@@ -415,7 +416,8 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GPixelFormats[PF_R8G8				].PlatformFormat	= MTLPixelFormatRG8Unorm;
 	GPixelFormats[PF_R16_SINT			].PlatformFormat	= MTLPixelFormatR16Sint;
 	GPixelFormats[PF_R16_UINT			].PlatformFormat	= MTLPixelFormatR16Uint;
-	
+	GPixelFormats[PF_R8_UINT			].PlatformFormat	= MTLPixelFormatR8Uint;
+
 	// get driver version (todo: share with other RHIs)
 	{
 		FGPUDriverInfo GPUDriverInfo = FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName);

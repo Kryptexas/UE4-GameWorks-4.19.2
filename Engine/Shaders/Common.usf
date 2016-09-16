@@ -30,7 +30,7 @@
 #define FORCE_FLOATS 0
 #endif
 
-#if (!COMPILER_GLSL_ES2 && !METAL_PROFILE) || FORCE_FLOATS
+#if (!(COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1) && !METAL_PROFILE) || FORCE_FLOATS
 	// Always use floats when not using the ES2 compiler, because low precision modifiers are currently only tweaked for ES2, 
 	// And we don't want potential side effects on other platforms
 	#define half float
@@ -172,7 +172,7 @@
 		#define FEATURE_LEVEL FEATURE_LEVEL_ES2
 	#endif
 
-	#if COMPILER_GLSL_ES2 
+	#if COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1
 		// Swizzle as we only support GL_BGRA on non-ES2 platforms that have that extension
 		#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 	#else 
@@ -192,11 +192,11 @@
 #endif
 
 // non-editor platforms generally never want development/editor features.
-#define PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ES31_AEP_PROFILE)
+#define PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE)
 #define USE_DEVELOPMENT_SHADERS (COMPILE_SHADERS_FOR_DEVELOPMENT && PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS)
 
 #ifndef MOBILE_EMULATION
-#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!COMPILER_GLSL_ES2 && USE_DEVELOPMENT_SHADERS && !(METAL_PROFILE && MAC) && !VULKAN_PROFILE))
+#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!(COMPILER_GLSL_ES3_1 || COMPILER_GLSL_ES2) && USE_DEVELOPMENT_SHADERS && !(METAL_PROFILE && MAC) && !VULKAN_PROFILE))
 #endif
 
 // If we didn't request color component swizzling, just make it empty
@@ -331,7 +331,7 @@ MaterialFloat4 TextureCubeSampleGrad(TextureCube Tex, SamplerState Sampler, floa
 	#define TANGENTTOWORLD2					TEXCOORD11
 
 	// TangentToWorld0 is float4 only to match D3D11
-#if METAL_PROFILE
+#if METAL_PROFILE || COMPILER_GLSL_ES3_1
 		//@todo-rco: FIXME!
 		#define TANGENTTOWORLD_INTERPOLATOR_BLOCK	float4 TangentToWorld0 : TANGENTTOWORLD0; float4	TangentToWorld2	: TANGENTTOWORLD2;
 #else
@@ -812,7 +812,7 @@ MaterialFloat3 HdrDemosaic(MaterialFloat3 Pixel, MaterialFloat3 OtherPixel, Mate
 	B = B * DEMOSAIC_MUL + DEMOSAIC_ADD;
 
 	// On ES2 devices we demosaic during the tonemapping pass which renders upside down, account for that here.
-	#if COMPILER_GLSL_ES2
+	#if COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1
 		return max((Pixel * B), (OtherPixel * A)); 
 	#else
 		return max((Pixel * A), (OtherPixel * B)); 
@@ -937,22 +937,57 @@ MaterialFloat4 Encode32BPPHDR(MaterialFloat4 Color, MaterialFloat2 SvPosition)
 	}
 }
 
-MaterialFloat3 Decode32BPPHDR(MaterialFloat4 Encoded, MaterialFloat3 OtherEncoded = MaterialFloat3(0, 0, 0), MaterialFloat2 SvPosition = MaterialFloat2(0, 0))
+MaterialFloat4 Decode32BPPHDR(MaterialFloat4 Encoded, MaterialFloat3 OtherEncoded = MaterialFloat3(0, 0, 0), MaterialFloat2 SvPosition = MaterialFloat2(0, 0))
 {
 	float Mode = GetHDR32bppEncodeMode();
 	if (Mode == HDR_ENCODE_MOSAIC)
 	{
-		return HdrDemosaic(Encoded.rgb, OtherEncoded, SvPosition);
+		return MaterialFloat4(HdrDemosaic(Encoded.rgb, OtherEncoded, SvPosition), 0.0f);
 	}
 	if (Mode == HDR_ENCODE_RGBA)
 	{ 
-		return RGBTDecode8BPC(Encoded, DEFAULT_32BPPHDR_ENCODED_RANGE);
+		return MaterialFloat4(RGBTDecode8BPC(Encoded, DEFAULT_32BPPHDR_ENCODED_RANGE), 0.0f);
 	}
 	else 
 	{
-		return Encoded.rgb; 
+		return Encoded; 
 	}
 }
+
+// Demosaic capable 32bpp hdr decode.
+float4 Decode32BPPHDR(float4 Pixel, float2 SvPosition, Texture2D SourceTexture, SamplerState SourceSampler, float2 InTexCoords[4])
+{
+	half3 PixelColorN = SourceTexture.Sample(SourceSampler, InTexCoords[0].xy).rgb;
+	half3 PixelColorE = SourceTexture.Sample(SourceSampler, InTexCoords[1].xy).rgb;
+	half3 PixelColorW = SourceTexture.Sample(SourceSampler, InTexCoords[2].xy).rgb;
+	half3 PixelColorS = SourceTexture.Sample(SourceSampler, InTexCoords[3].xy).rgb;
+	half3 PixelColorV = PixelColorN * 0.5 + PixelColorS * 0.5;
+	half3 PixelColorH = PixelColorW * 0.5 + PixelColorE * 0.5;
+	if(abs(PixelColorN.g - PixelColorS.g) < abs(PixelColorW.g - PixelColorE.g)) 
+	{
+		PixelColorH = PixelColorV;
+	}
+	Pixel.rgb = Decode32BPPHDR(Pixel, PixelColorH, SvPosition.xy).rgb;
+	Pixel.a = 0.0;
+	return Pixel;
+}
+
+/** Get render target write mask value
+  * This gets a bit from a write mask texture created with FRTWriteMaskDecodeCS. Only supprted on some platforms.
+  */
+#if PLATFORM_SUPPORTS_RENDERTARGET_WRITE_MASK
+uint DecodeRTWriteMaskTexture(in float2 ScreenPosition, in Texture2D<uint> RTWriteMaskTexture)
+{
+	int2 IntPosition = int2(ScreenPosition.xy);
+	uint RTWriteMaskValue = RTWriteMaskTexture.Load( int3(IntPosition.x/8, IntPosition.y/8, 0) );
+
+	int2 BitCoord = ((IntPosition / int2(4, 4)) % int2(2, 2));
+	uint BitIdx = BitCoord.x + (BitCoord.y*2);
+	uint RTWriteMaskBit = RTWriteMaskValue & (1<<BitIdx);
+
+	return RTWriteMaskBit;
+}
+#endif
 
 /** Calculates the ScreenUV given the screen position and an offset fraction. */
 float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFraction)
@@ -1278,7 +1313,7 @@ float AntialiasedTextureMask( Texture2D Tex, SamplerState Sampler, float2 UV, fl
 	return Result;
 }
 
-float Noise3D_Multiplexer(int Function, float3 Position, bool bTiling, uint RepeatSize)
+float Noise3D_Multiplexer(int Function, float3 Position, int Quality, bool bTiling, uint RepeatSize)
 {
 	// verified, HLSL compiled out the switch if Function is a constant
 	switch(Function)
@@ -1291,15 +1326,17 @@ float Noise3D_Multiplexer(int Function, float3 Position, bool bTiling, uint Repe
 			return FastGradientPerlinNoise3D_TEX(Position);
 		case 3:
 			return GradientNoise3D_ALU(Position, bTiling, RepeatSize);
-		default:
+		case 4:
 			return ValueNoise3D_ALU(Position, bTiling, RepeatSize);
+		default:
+			return VoronoiNoise3D_ALU(Position, Quality, bTiling, RepeatSize, true).w * 2. - 1.;
 	}
 	return 0;
 }
 
 // @param LevelScale usually 2 but higher values allow efficient use of few levels
 // @return in user defined range (OutputMin..OutputMax)
-float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Function, bool bTurbulence, uint Levels, float OutputMin, float OutputMax, float LevelScale, float FilterWidth, bool bTiling, float RepeatSize)
+MaterialFloat MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Function, bool bTurbulence, uint Levels, float OutputMin, float OutputMax, float LevelScale, float FilterWidth, bool bTiling, float RepeatSize)
 {
 	Position *= Scale;
 	FilterWidth *= Scale;
@@ -1315,11 +1352,11 @@ float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Fun
 
 		if(bTurbulence)
 		{
-			Out += abs(Noise3D_Multiplexer(Function, Position, bTiling, RepeatSize)) * OutScale;
+			Out += abs(Noise3D_Multiplexer(Function, Position, Quality, bTiling, RepeatSize)) * OutScale;
 		}
 		else
 		{
-			Out += Noise3D_Multiplexer(Function, Position, bTiling, RepeatSize) * OutScale;
+			Out += Noise3D_Multiplexer(Function, Position, Quality, bTiling, RepeatSize) * OutScale;
 		}
 
 		Position *= LevelScale;
@@ -1336,6 +1373,37 @@ float MaterialExpressionNoise(float3 Position, float Scale, int Quality, int Fun
 
 	// Out is in 0..1 range
 	return lerp(OutputMin, OutputMax, Out);
+}
+
+
+// Material node for noise functions returning a vector value
+// @param LevelScale usually 2 but higher values allow efficient use of few levels
+// @return in user defined range (OutputMin..OutputMax)
+MaterialFloat4 MaterialExpressionVectorNoise(MaterialFloat3 Position, int Quality, int Function, bool bTiling, float TileSize)
+{
+	float4 result = float4(0,0,0,1);
+	float3x4 Jacobian = JacobianSimplex_ALU(Position, bTiling, TileSize);	// compiled out if not used
+
+	// verified, HLSL compiled out the switch if Function is a constant
+	switch (Function)
+	{
+	case 0:	// Cellnoise
+		result.xyz = float3(Rand3DPCG16(int3(floor(NoiseTileWrap(Position, bTiling, TileSize))))) / 0xffff;
+		break;
+	case 1: // Color noise
+		result.xyz = float3(Jacobian[0].w, Jacobian[1].w, Jacobian[2].w);
+		break;
+	case 2: // Gradient
+		result = Jacobian[0];
+		break;
+	case 3: // Curl
+		result.xyz = float3(Jacobian[2][1] - Jacobian[1][2], Jacobian[0][2] - Jacobian[2][0], Jacobian[1][0] - Jacobian[0][1]);
+		break;
+	default: // Voronoi
+		result = VoronoiNoise3D_ALU(Position, Quality, bTiling, TileSize, false);
+		break;
+	}
+	return result;
 }
 
 
@@ -1473,7 +1541,12 @@ void GenerateCoordinateSystem(float3 ZAxis, out float3 XAxis, out float3 YAxis)
 /** Output of the screen vertex shader. */
 struct FScreenVertexOutput
 {
+#if METAL_PROFILE || COMPILER_GLSL_ES3_1
+	//@todo-rco: FIXME!
+	noperspective float2 UV : TEXCOORD0;
+#else
 	noperspective MaterialFloat2 UV : TEXCOORD0;
+#endif
 	float4 Position : SV_POSITION;
 };
 

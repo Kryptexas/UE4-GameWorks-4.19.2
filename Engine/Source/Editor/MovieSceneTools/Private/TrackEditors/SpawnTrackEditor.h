@@ -13,6 +13,8 @@ class UMovieSceneSpawnTrack;
  * A property track editor for controlling the lifetime of a sapwnable object
  */
 class FSpawnTrackEditor
+	// TODO: Don't derive from bool property track editor here since it doesn't actually edit
+	// bool property tracks.
 	: public FBoolPropertyTrackEditor
 {
 public:
@@ -43,6 +45,7 @@ public:
 	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override  { return TSharedPtr<SWidget>(); }
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) override { return false; }
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> Type) const override;
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding) override;
 
 private:
 

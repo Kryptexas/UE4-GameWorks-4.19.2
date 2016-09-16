@@ -109,8 +109,9 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 		}
 		else
 		{
-			ReregisterAllComponents();
+			UnregisterAllComponents();
 			RerunConstructionScripts();
+			ReregisterAllComponents();
 		}
 	}
 
@@ -451,7 +452,9 @@ void AActor::EditorApplyTranslation(const FVector& DeltaTranslation, bool bAltDo
 {
 	if( RootComponent != NULL )
 	{
-		GetRootComponent()->SetWorldLocation( GetRootComponent()->GetComponentLocation() + DeltaTranslation );
+		FTransform NewTransform = GetRootComponent()->GetComponentTransform();
+		NewTransform.SetTranslation(NewTransform.GetTranslation() + DeltaTranslation);
+		GetRootComponent()->SetWorldTransform(NewTransform);
 	}
 	else
 	{
@@ -518,11 +521,13 @@ void AActor::EditorApplyScale( const FVector& DeltaScale, const FVector* PivotLo
 										   CurrentScale.Y ? CurrentScale.Y : 1.0f,
 										   CurrentScale.Z ? CurrentScale.Z : 1.0f);
 
-			FVector Loc = GetActorLocation();
-			Loc -= *PivotLocation;
-			Loc *= (ScaleToApply / CurrentScaleSafe);
-			Loc += *PivotLocation;
-			GetRootComponent()->SetWorldLocation(Loc);
+			const FRotator ActorRotation = GetActorRotation();
+			const FVector WorldDelta = GetActorLocation() - (*PivotLocation);
+			const FVector LocalDelta = (ActorRotation.GetInverse()).RotateVector(WorldDelta);
+			const FVector LocalScaledDelta = LocalDelta * (ScaleToApply / CurrentScaleSafe);
+			const FVector WorldScaledDelta = ActorRotation.RotateVector(LocalScaledDelta);
+
+			GetRootComponent()->SetWorldLocation(WorldScaledDelta + (*PivotLocation));
 		}
 	}
 	else

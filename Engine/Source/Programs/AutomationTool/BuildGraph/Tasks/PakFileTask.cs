@@ -18,31 +18,31 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// List of files, wildcards and tag sets to add to the pak file, separated by ';' characters.
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>
 		/// PAK file to output
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileName)]
 		public string Output;
 
 		/// <summary>
 		/// Path to a Response File that contains a list of files to add to the pak file, instead of specifying them individually
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.FileName)]
 		public string ResponseFile;
 
 		/// <summary>
 		/// Directories to rebase the files relative to. If specified, the shortest path under a listed directory will be used for each file.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string RebaseDir;
 
 		/// <summary>
 		/// Script which gives the order of files
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.FileName)]
 		public string Order;
 
 		/// <summary>
@@ -71,7 +71,7 @@ namespace BuildGraph.Tasks
 	}
 
 	/// <summary>
-	/// Cook a selection of maps for a certain platform
+	/// Creates a PAK file from a given set of files.
 	/// </summary>
 	[TaskElement("PakFile", typeof(PakFileTaskParameters))]
 	public class PakFileTask : CustomTask

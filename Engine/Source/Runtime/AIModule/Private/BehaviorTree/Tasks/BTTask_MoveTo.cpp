@@ -80,7 +80,7 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 		MoveReq.SetAllowPartialPath(bAllowPartialPath);
 		MoveReq.SetAcceptanceRadius(AcceptableRadius);
 		MoveReq.SetCanStrafe(bAllowStrafe);
-		MoveReq.SetStopOnOverlap(bStopOnOverlap);
+		MoveReq.SetReachTestIncludesAgentRadius(bStopOnOverlap);
 		MoveReq.SetProjectGoalLocation(bProjectGoalLocation);
 		MoveReq.SetUsePathfinding(bUsePathfinding);
 

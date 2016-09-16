@@ -75,7 +75,7 @@ private:
 };
 
 UENUM()
-enum class EReflectionSourceType
+enum class EReflectionSourceType : uint8
 {
 	/** Construct the reflection source from the captured scene*/
 	CapturedScene,
@@ -93,15 +93,15 @@ class UReflectionCaptureComponent : public USceneComponent
 	UBillboardComponent* CaptureOffsetComponent;
 
 	/** Indicates where to get the reflection source from. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ReflectionCapture)
-	TEnumAsByte<EReflectionSourceType> ReflectionSourceType;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ReflectionCapture)
+	EReflectionSourceType ReflectionSourceType;
 
 	/** Cubemap to use for reflection if ReflectionSourceType is set to RS_SpecifiedCubemap. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ReflectionCapture)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ReflectionCapture)
 	class UTextureCube* Cubemap;
 
 	/** Angle to rotate the source cubemap when SourceType is set to SLS_SpecifiedCubemap. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ReflectionCapture, meta = (UIMin = "0", UIMax = "360"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ReflectionCapture, meta = (UIMin = "0", UIMax = "360"))
 	float SourceCubemapAngle;
 
 	/** A brightness control to scale the captured scene's reflection intensity. */
@@ -144,6 +144,14 @@ class UReflectionCaptureComponent : public USceneComponent
 		return FullHDRData;
 	}
 
+	inline float GetAverageBrightness() const 
+	{ 
+		return AverageBrightness; 
+	}
+
+	inline float* GetAverageBrightnessPtr() { return &AverageBrightness; }
+	inline const float* GetAverageBrightnessPtr() const { return &AverageBrightness; }
+
 	ENGINE_API static int32 GetReflectionCaptureSize_GameThread();
 	ENGINE_API static int32 GetReflectionCaptureSize_RenderThread();
 
@@ -180,6 +188,9 @@ private:
 
 	UPROPERTY()
 	FGuid StateId;
+
+	/** Average brightness of the captured data, read back to the CPU after the capture. */
+	float AverageBrightness;
 
 	/**
 	 * The full HDR capture data to use for rendering.

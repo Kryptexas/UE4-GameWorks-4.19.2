@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "AndOr.h"
+#include "AndOrNot.h"
 #include "IsArithmetic.h"
 #include "IsPointer.h"
 

@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "PhysicsPublic.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "LevelUtils.h"
 #if WITH_EDITOR
 #include "ShowFlags.h"
@@ -31,7 +32,6 @@
 #include "Streaming/TextureStreamingHelpers.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
-
 
 //////////////////////////////////////////////////////////////////////////
 // Globals
@@ -173,6 +173,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	AlwaysLoadOnServer = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	bAlwaysCreatePhysicsState = false;
+	bVisibleInReflectionCaptures = true;
 	bRenderInMainPass = true;
 	VisibilityId = -1;
 	CanBeCharacterBase_DEPRECATED = ECB_Yes;
@@ -525,9 +526,9 @@ void UPrimitiveComponent::DestroyRenderState_Concurrent()
 //////////////////////////////////////////////////////////////////////////
 // Physics
 
-void UPrimitiveComponent::CreatePhysicsState()
+void UPrimitiveComponent::OnCreatePhysicsState()
 {
-	Super::CreatePhysicsState();
+	Super::OnCreatePhysicsState();
 
 	// if we have a scene, we don't want to disable all physics and we have no bodyinstance already
 	if(!BodyInstance.IsValidBodyInstance())
@@ -585,7 +586,7 @@ void UPrimitiveComponent::EnsurePhysicsStateCreated()
 
 bool UPrimitiveComponent::IsWelded() const
 {
-	return GetBodyInstance() != GetBodyInstance(NAME_None, false);
+	return BodyInstance.WeldParent != nullptr;
 }
 
 void UPrimitiveComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
@@ -612,7 +613,7 @@ void UPrimitiveComponent::SendPhysicsTransform(ETeleportType Teleport)
 	BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D());
 }
 
-void UPrimitiveComponent::DestroyPhysicsState()
+void UPrimitiveComponent::OnDestroyPhysicsState()
 {
 	// we remove welding related to this component
 	UnWeldFromParent();
@@ -625,7 +626,7 @@ void UPrimitiveComponent::DestroyPhysicsState()
 		BodyInstance.TermBody();
 	}
 
-	Super::DestroyPhysicsState();
+	Super::OnDestroyPhysicsState();
 }
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const
@@ -718,35 +719,42 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 	{
 		const FName PropertyName = InProperty->GetFName();
 
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bLightAsIfStatic))
+		static FName LightAsIfStaticName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bLightAsIfStatic);
+		static FName LightmassSettingsName = TEXT("LightmassSettings");
+		static FName LightingChannelsName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, LightingChannels);
+		static FName SingleSampleShadowFromStationaryLightsName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bSingleSampleShadowFromStationaryLights);
+		static FName IndirectLightingCacheQualityName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, IndirectLightingCacheQuality);
+		static FName CastCinematicShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastCinematicShadow);
+		static FName CastInsetShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastInsetShadow);
+		static FName CastShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, CastShadow);
+
+		if (PropertyName == LightAsIfStaticName)
 		{
 			// Disable editing bLightAsIfStatic on static components, since it has no effect
 			return Mobility != EComponentMobility::Static;
 		}
 
-		if (PropertyName == TEXT("LightmassSettings"))
+		if (PropertyName == LightmassSettingsName)
 		{
 			return Mobility != EComponentMobility::Movable || bLightAsIfStatic;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, LightingChannels)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, bSingleSampleShadowFromStationaryLights))
+		if (PropertyName == SingleSampleShadowFromStationaryLightsName)
 		{
 			return Mobility != EComponentMobility::Static;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, IndirectLightingCacheQuality)
-			|| PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastCinematicShadow))
+		if (PropertyName == IndirectLightingCacheQualityName || PropertyName == CastCinematicShadowName)
 		{
 			return Mobility == EComponentMobility::Movable;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastInsetShadow))
+		if (PropertyName == CastInsetShadowName)
 		{
 			return !bSelfShadowOnly;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, CastShadow))
+		if (PropertyName == CastShadowName)
 		{
 			// Look for any lit materials
 			bool bHasAnyLitMaterials = false;
@@ -1064,9 +1072,9 @@ bool UPrimitiveComponent::ShouldRenderSelected() const
 			{
 				return true;
 			}
-			else if (UChildActorComponent* ParentComponent = Owner->GetParentComponent())
+			else if (AActor* ParentActor = Owner->GetParentActor())
 			{
-				return ParentComponent->GetOwner()->IsSelected();
+				return ParentActor->IsSelected();
 			}
 		}
 	}
@@ -1590,11 +1598,11 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			{
 				if (Actor)
 				{
-					UE_LOG(LogPrimitiveComponent, Fatal,TEXT("%s MovedComponent %s not initialized deleteme %d"),*Actor->GetName(), *GetName(), Actor->IsPendingKill());
+					ensureMsgf(IsRegistered(), TEXT("%s MovedComponent %s not initialized deleteme %d"),*Actor->GetName(), *GetName(), Actor->IsPendingKill());
 				}
 				else
 				{
-					UE_LOG(LogPrimitiveComponent, Fatal,TEXT("MovedComponent %s not initialized"), *GetFullName());
+					ensureMsgf(IsRegistered(), TEXT("MovedComponent %s not initialized"), *GetFullName());
 				}
 			}
 #endif
@@ -1825,8 +1833,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	{
 		if (bFilledHitResult)
 		{
-		*OutHit = BlockingHit;
-	}
+			*OutHit = BlockingHit;
+		}
 		else
 		{
 			OutHit->Init(TraceStart, TraceEnd);
@@ -2383,15 +2391,18 @@ bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCached
 void UPrimitiveComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (BodyInstance.bSimulatePhysics && !BodyInstance.WeldParent)
+	if(FBodyInstance* BI = GetBodyInstance(NAME_None, /*bGetWelded=*/ false))
 	{
-		//Since the object is physically simulated it can't be attached
-		const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
-		bDisableDetachmentUpdateOverlaps = true;
-		DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
+		if (BI->bSimulatePhysics && !BI->WeldParent)
+		{
+			//Since the object is physically simulated it can't be attached
+			const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
+			bDisableDetachmentUpdateOverlaps = true;
+			DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+			bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
+		}
 	}
+	
 }
 
 void UPrimitiveComponent::IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore)

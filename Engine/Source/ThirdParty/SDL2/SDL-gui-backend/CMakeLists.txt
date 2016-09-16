@@ -291,6 +291,7 @@ set_option(RENDER_D3D          "Enable the Direct3D render driver" ${WINDOWS})
 set_option(VIDEO_VIVANTE       "Use Vivante EGL video driver" ${UNIX_SYS})
 # EG BEGIN
 set_option(EPIC_EXTENSIONS     "Enable Epic extensions for Unreal Engine" ON)
+set_option(VIDEO_OFFSCREEN     "Use offscreen video driver" ${EPIC_EXTENSIONS})
 # EG END
 
 # TODO: We should (should we?) respect cmake's ${BUILD_SHARED_LIBS} flag here
@@ -692,6 +693,15 @@ if(SDL_VIDEO)
     set(HAVE_VIDEO_DUMMY TRUE)
     set(HAVE_SDL_VIDEO TRUE)
   endif()
+  # EG BEGIN
+  if(VIDEO_OFFSCREEN)
+    set(SDL_VIDEO_DRIVER_OFFSCREEN 1)
+    file(GLOB VIDEO_OFFSCREEN_SOURCES ${SDL2_SOURCE_DIR}/src/video/offscreen/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${VIDEO_OFFSCREEN_SOURCES})
+    set(HAVE_VIDEO_OFFSCREEN TRUE)
+    set(HAVE_SDL_VIDEO TRUE)
+  endif()
+  # EG END
 endif()
 
 # Platform-specific options and settings

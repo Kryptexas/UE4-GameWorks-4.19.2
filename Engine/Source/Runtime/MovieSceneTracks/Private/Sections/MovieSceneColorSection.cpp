@@ -250,5 +250,14 @@ bool UMovieSceneColorSection::HasKeys(const FColorKey& Key) const
 void UMovieSceneColorSection::SetDefault(const FColorKey& Key)
 {
 	FRichCurve* ChannelCurve = GetCurveForChannel(Key.Channel, &RedCurve, &GreenCurve, &BlueCurve, &AlphaCurve);
-	return SetCurveDefault(*ChannelCurve, Key.ChannelValue);
+	SetCurveDefault(*ChannelCurve, Key.ChannelValue);
+}
+
+
+void UMovieSceneColorSection::ClearDefaults()
+{
+	RedCurve.ClearDefaultValue();
+	GreenCurve.ClearDefaultValue();
+	BlueCurve.ClearDefaultValue();
+	AlphaCurve.ClearDefaultValue();
 }

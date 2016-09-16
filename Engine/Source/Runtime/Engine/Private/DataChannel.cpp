@@ -513,6 +513,7 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 					InPartialBunch->bPartialFinal			= true;
 					InPartialBunch->bClose					= Bunch.bClose;
 					InPartialBunch->bDormant				= Bunch.bDormant;
+					InPartialBunch->bIsReplicationPaused	= Bunch.bIsReplicationPaused;
 					InPartialBunch->bHasMustBeMappedGUIDs	= Bunch.bHasMustBeMappedGUIDs;
 				}
 				else
@@ -673,32 +674,40 @@ void UActorChannel::AppendExportBunches( TArray<FOutBunch *>& OutExportBunches )
 {
 	Super::AppendExportBunches( OutExportBunches );
 
-	// Let the profiler know about exported GUID bunches
-	for (const FOutBunch* ExportBunch : QueuedExportBunches )
+	// We don't want to append QueuedExportBunches to these bunches, since these were for queued RPC's, and we don't want to record RPC's during bResendAllDataSinceOpen
+	if ( !Connection->bResendAllDataSinceOpen )
 	{
-		if (ExportBunch != nullptr)
+		// Let the profiler know about exported GUID bunches
+		for ( const FOutBunch* ExportBunch : QueuedExportBunches )
 		{
-			NETWORK_PROFILER(GNetworkProfiler.TrackExportBunch(ExportBunch->GetNumBits(), Connection));
+			if ( ExportBunch != nullptr )
+			{
+				NETWORK_PROFILER( GNetworkProfiler.TrackExportBunch( ExportBunch->GetNumBits(), Connection ) );
+			}
 		}
-	}
 
-	if ( QueuedExportBunches.Num() )
-	{
-		OutExportBunches.Append( QueuedExportBunches );
-		QueuedExportBunches.Empty();
+		if ( QueuedExportBunches.Num() )
+		{
+			OutExportBunches.Append( QueuedExportBunches );
+			QueuedExportBunches.Empty();
+		}
 	}
 }
 
 void UActorChannel::AppendMustBeMappedGuids( FOutBunch* Bunch )
 {
-	if ( QueuedMustBeMappedGuidsInLastBunch.Num() > 0 )
+	// We don't want to append QueuedMustBeMappedGuidsInLastBunch to these bunches, since these were for queued RPC's, and we don't want to record RPC's during bResendAllDataSinceOpen
+	if ( !Connection->bResendAllDataSinceOpen )
 	{
-		// Just add our list to the main list on package map so we can re-use the code in UChannel to add them all together
-		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+		if ( QueuedMustBeMappedGuidsInLastBunch.Num() > 0 )
+		{
+			// Just add our list to the main list on package map so we can re-use the code in UChannel to add them all together
+			UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
 
-		PackageMapClient->GetMustBeMappedGuidsInLastBunch().Append( QueuedMustBeMappedGuidsInLastBunch );
+			PackageMapClient->GetMustBeMappedGuidsInLastBunch().Append( QueuedMustBeMappedGuidsInLastBunch );
 
-		QueuedMustBeMappedGuidsInLastBunch.Empty();
+			QueuedMustBeMappedGuidsInLastBunch.Empty();
+		}
 	}
 
 	// Actually add them to the bunch
@@ -846,6 +855,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		NextBunch->bOpen = Bunch->bOpen;
 		NextBunch->bClose = Bunch->bClose;
 		NextBunch->bDormant = Bunch->bDormant;
+		NextBunch->bIsReplicationPaused = Bunch->bIsReplicationPaused;
 		NextBunch->ChIndex = Bunch->ChIndex;
 		NextBunch->ChType = Bunch->ChType;
 
@@ -1522,6 +1532,52 @@ void UActorChannel::CleanupReplicators( const bool bKeepReplicators )
 	ActorReplicator = NULL;
 }
 
+static TAutoConsoleVariable<int32> CVarRelinkMappedReferences( TEXT( "net.RelinkMappedReferences" ), 1, TEXT( "" ) );
+
+void UActorChannel::MoveMappedObjectToUnmapped( const UObject* Object )
+{
+	if ( !Object )
+	{
+		return;
+	}
+
+	if ( !CVarRelinkMappedReferences.GetValueOnGameThread() )
+	{
+		return;
+	}
+
+	UNetDriver* Driver = Connection ? Connection->Driver : nullptr;
+
+	if ( !Driver || Driver->IsServer() )
+	{
+		return;
+	}
+
+	// Find all replicators that are referencing this object, and make sure to mark the references as unmapped
+	// This is so when/if this object is instantiated again (using same network guid), we can re-establish the old references
+	FNetworkGUID NetGuid = Driver->GuidCache->NetGUIDLookup.FindRef( Object );
+
+	if ( NetGuid.IsValid() )
+	{
+		TSet< FObjectReplicator* >* Replicators = Driver->GuidToReplicatorMap.Find( NetGuid );
+
+		if ( Replicators != nullptr )
+		{
+			for ( FObjectReplicator* Replicator : *Replicators )
+			{
+				if ( Replicator->MoveMappedObjectToUnmapped( NetGuid ) )
+				{
+					Driver->UnmappedReplicators.Add( Replicator );
+				}
+				else if ( !Driver->UnmappedReplicators.Contains( Replicator ) )
+				{
+					UE_LOG( LogNet, Warning, TEXT( "UActorChannel::MoveMappedObjectToUnmapped: MoveMappedObjectToUnmapped didn't find object: %s" ), *GetPathNameSafe( Replicator->GetObject() ) );
+				}
+			}
+		}
+	}
+}
+
 void UActorChannel::DestroyActorAndComponents()
 {
 	// Destroy any sub-objects we created
@@ -1530,6 +1586,9 @@ void UActorChannel::DestroyActorAndComponents()
 		if ( CreateSubObjects[i].IsValid() )
 		{
 			UObject *SubObject = CreateSubObjects[i].Get();
+
+			// Unmap this object so we can remap it if it becomes relevant again in the future
+			MoveMappedObjectToUnmapped( SubObject );
 
 			if ( Connection != nullptr && Connection->Driver != nullptr )
 			{
@@ -1547,6 +1606,9 @@ void UActorChannel::DestroyActorAndComponents()
 	// Destroy the actor
 	if ( Actor != NULL )
 	{
+		// Unmap this object so we can remap it if it becomes relevant again in the future
+		MoveMappedObjectToUnmapped( Actor );
+
 		Actor->PreDestroyFromReplication();
 		Actor->Destroy( true );
 	}
@@ -1964,8 +2026,6 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 		return;
 	}
 
-	const bool bIsServer = Connection->Driver->IsServer();
-
 	FReplicationFlags RepFlags;
 
 	// ------------------------------------------------------------
@@ -2009,6 +2069,13 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 	else
 	{
 		UE_LOG(LogNetTraffic, Log, TEXT("      Actor %s:"), *Actor->GetFullName() );
+	}
+
+	bool bLatestIsReplicationPaused = Bunch.bIsReplicationPaused != 0;
+	if (bLatestIsReplicationPaused != IsReplicationPaused())
+	{
+		Actor->OnReplicationPausedChanged(bLatestIsReplicationPaused);
+		SetReplicationPaused(bLatestIsReplicationPaused);
 	}
 
 	// Owned by connection's player?
@@ -2097,7 +2164,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 
 		if ( bHasUnmapped )
 		{
-			Connection->Driver->UnmappedReplicators.Add( Replicator );
+			Connection->Driver->UnmappedReplicators.Add( &Replicator.Get() );
 		}
 	}
 
@@ -2161,6 +2228,28 @@ bool UActorChannel::ReplicateActor()
 	check(Connection);
 	check(Connection->PackageMap);
 
+	const UWorld* const ActorWorld = Actor->GetWorld();
+
+	bool bIsNewlyReplicationPaused = false;
+	bool bIsNewlyReplicationUnpaused = false;
+	if (OpenPacketId.First != INDEX_NONE)
+	{
+		const TArray<FNetViewer>& NetViewers = ActorWorld->GetWorldSettings()->ReplicationViewers;
+
+		for (int32 viewerIdx = 0; viewerIdx < NetViewers.Num(); viewerIdx++)
+		{
+			bool bIsReplicationPausedForConnection = Actor->IsReplicationPausedForConnection(NetViewers[viewerIdx]);
+			bool bOldIsReplicationPaused = IsReplicationPaused();
+			bIsNewlyReplicationPaused = bIsReplicationPausedForConnection && !bOldIsReplicationPaused;
+			bIsNewlyReplicationUnpaused = !bIsReplicationPausedForConnection && bOldIsReplicationPaused;
+			SetReplicationPaused(bIsReplicationPausedForConnection);
+			if (bIsReplicationPausedForConnection && bOldIsReplicationPaused)
+			{
+				return false;
+			}
+		}
+	}
+
 	// The package map shouldn't have any carry over guids
 	if ( CastChecked< UPackageMapClient >( Connection->PackageMap )->GetMustBeMappedGuidsInLastBunch().Num() != 0 )
 	{
@@ -2170,7 +2259,7 @@ bool UActorChannel::ReplicateActor()
 	// Time how long it takes to replicate this particular actor
 	STAT( FScopeCycleCounterUObject FunctionScope(Actor) );
 
-	bool WroteSomethingImportant = false;
+	bool WroteSomethingImportant = bIsNewlyReplicationUnpaused || bIsNewlyReplicationPaused;
 
 	// triggering replication of an Actor while already in the middle of replication can result in invalid data being sent and is therefore illegal
 	if (bIsReplicatingActor)
@@ -2186,6 +2275,13 @@ bool UActorChannel::ReplicateActor()
 	if( Bunch.IsError() )
 	{
 		return false;
+	}
+
+	if (bIsNewlyReplicationPaused)
+	{
+		Bunch.bReliable = true;
+		Bunch.bIsReplicationPaused = true;
+
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -2248,7 +2344,6 @@ bool UActorChannel::ReplicateActor()
 	RepFlags.bNetSimulated	= ( Actor->GetRemoteRole() == ROLE_SimulatedProxy );
 	RepFlags.bRepPhysics	= Actor->ReplicatedMovement.bRepPhysics;
 
-	const UWorld* const ActorWorld	= Actor->GetWorld();
 	RepFlags.bReplay				= ActorWorld && (ActorWorld->DemoNetDriver == Connection->GetDriver());
 
 	RepFlags.bNetInitial = RepFlags.bNetInitial || bActorStillInitial; // for replication purposes, bNetInitial stays true until all properties sent
@@ -2267,39 +2362,42 @@ bool UActorChannel::ReplicateActor()
 	const uint32 ActorReplicateStartTime = GNetworkProfiler.IsTrackingEnabled() ? FPlatformTime::Cycles() : 0;
 #endif
 
-	// The Actor
-	WroteSomethingImportant |= ActorReplicator->ReplicateProperties( Bunch, RepFlags );
-
-	// The SubObjects
-	WroteSomethingImportant |= Actor->ReplicateSubobjects(this, &Bunch, &RepFlags);
-
-	if ( Connection->bResendAllDataSinceOpen )
+	if (!bIsNewlyReplicationPaused)
 	{
-		if ( WroteSomethingImportant )
+		// The Actor
+		WroteSomethingImportant |= ActorReplicator->ReplicateProperties(Bunch, RepFlags);
+
+		// The SubObjects
+		WroteSomethingImportant |= Actor->ReplicateSubobjects(this, &Bunch, &RepFlags);
+
+		if (Connection->bResendAllDataSinceOpen)
 		{
-			SendBunch( &Bunch, 1 );
+			if (WroteSomethingImportant)
+			{
+				SendBunch(&Bunch, 1);
+			}
+
+			MemMark.Pop();
+
+			bIsReplicatingActor = false;
+
+			return WroteSomethingImportant;
 		}
 
-		MemMark.Pop();
-
-		bIsReplicatingActor = false;
-
-		return WroteSomethingImportant;
-	}
-
-	// Look for deleted subobjects
-	for (auto RepComp = ReplicationMap.CreateIterator(); RepComp; ++RepComp)
-	{
-		if (!RepComp.Key().IsValid())
+		// Look for deleted subobjects
+		for (auto RepComp = ReplicationMap.CreateIterator(); RepComp; ++RepComp)
 		{
-			// Write a deletion content header:
-			WriteContentBlockForSubObjectDelete( Bunch, RepComp.Value()->ObjectNetGUID );
+			if (!RepComp.Key().IsValid())
+			{
+				// Write a deletion content header:
+				WriteContentBlockForSubObjectDelete(Bunch, RepComp.Value()->ObjectNetGUID);
 
-			WroteSomethingImportant = true;
-			Bunch.bReliable = true;
+				WroteSomethingImportant = true;
+				Bunch.bReliable = true;
 
-			RepComp.Value()->CleanUp();
-			RepComp.RemoveCurrent();			
+				RepComp.Value()->CleanUp();
+				RepComp.RemoveCurrent();
+			}
 		}
 	}
 
@@ -2313,42 +2411,46 @@ bool UActorChannel::ReplicateActor()
 	if( WroteSomethingImportant )
 	{
 		FPacketIdRange PacketRange = SendBunch( &Bunch, 1 );
-		for (auto RepComp = ReplicationMap.CreateIterator(); RepComp; ++RepComp)
-		{
-			RepComp.Value()->PostSendBunch( PacketRange, Bunch.bReliable );
-		}
 
-		// If there were any subobject keys pending, add them to the NakMap
-		if (PendingObjKeys.Num() >0)
+		if (!bIsNewlyReplicationPaused)
 		{
-			// For the packet range we just sent over
-			for(int32 PacketId = PacketRange.First; PacketId <= PacketRange.Last; ++PacketId)
+			for (auto RepComp = ReplicationMap.CreateIterator(); RepComp; ++RepComp)
 			{
-				// Get the existing set (its possible we send multiple bunches back to back and they end up on the same packet)
-				FPacketRepKeyInfo &Info = SubobjectNakMap.FindOrAdd(PacketId % SubobjectRepKeyBufferSize);
-				if (Info.PacketID != PacketId)
-				{
-					UE_LOG(LogNetTraffic, Verbose, TEXT("ActorChannel[%d]: Clearing out PacketRepKeyInfo for new packet: %d"), ChIndex, PacketId);
-					Info.ObjKeys.Empty(Info.ObjKeys.Num());
-				}
-				Info.PacketID = PacketId;
-				Info.ObjKeys.Append(PendingObjKeys);
+				RepComp.Value()->PostSendBunch(PacketRange, Bunch.bReliable);
+			}
 
-				FString VerboseString;
-				for (auto KeyIt = PendingObjKeys.CreateIterator(); KeyIt; ++KeyIt)
+			// If there were any subobject keys pending, add them to the NakMap
+			if (PendingObjKeys.Num() > 0)
+			{
+				// For the packet range we just sent over
+				for (int32 PacketId = PacketRange.First; PacketId <= PacketRange.Last; ++PacketId)
 				{
-					VerboseString += FString::Printf(TEXT(" %d"), *KeyIt);
+					// Get the existing set (its possible we send multiple bunches back to back and they end up on the same packet)
+					FPacketRepKeyInfo &Info = SubobjectNakMap.FindOrAdd(PacketId % SubobjectRepKeyBufferSize);
+					if (Info.PacketID != PacketId)
+					{
+						UE_LOG(LogNetTraffic, Verbose, TEXT("ActorChannel[%d]: Clearing out PacketRepKeyInfo for new packet: %d"), ChIndex, PacketId);
+						Info.ObjKeys.Empty(Info.ObjKeys.Num());
+					}
+					Info.PacketID = PacketId;
+					Info.ObjKeys.Append(PendingObjKeys);
+
+					FString VerboseString;
+					for (auto KeyIt = PendingObjKeys.CreateIterator(); KeyIt; ++KeyIt)
+					{
+						VerboseString += FString::Printf(TEXT(" %d"), *KeyIt);
+					}
+
+					UE_LOG(LogNetTraffic, Verbose, TEXT("ActorChannel[%d]: Sending ObjKeys: %s"), ChIndex, *VerboseString);
 				}
-				
-				UE_LOG(LogNetTraffic, Verbose, TEXT("ActorChannel[%d]: Sending ObjKeys: %s"), ChIndex, *VerboseString);
+			}
+
+			if (Actor->bNetTemporary)
+			{
+				Connection->SentTemporaries.Add(Actor);
 			}
 		}
-		
 		SentBunch = true;
-		if( Actor->bNetTemporary )
-		{
-			Connection->SentTemporaries.Add( Actor );
-		}
 	}
 
 	PendingObjKeys.Empty();
@@ -2669,6 +2771,9 @@ UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch, bool& bObjectD
 	{
 		if ( SubObj )
 		{
+			// Unmap this object so we can remap it if it becomes relevant again in the future
+			MoveMappedObjectToUnmapped( SubObj );
+
 			// Stop tracking this sub-object
 			CreateSubObjects.Remove( SubObj );
 
@@ -2924,12 +3029,19 @@ static FORCEINLINE FString GenerateClassNetCacheNetFieldExportGroupName( const U
 	return ObjectClass->GetName() + FString( TEXT( "_ClassNetCache" ) );
 }
 
-FNetFieldExportGroup* UActorChannel::GetOrCreateNetFieldExportGroupForClassNetCache( const UClass* ObjectClass )
+FNetFieldExportGroup* UActorChannel::GetOrCreateNetFieldExportGroupForClassNetCache( const UObject* Object )
 {
 	if ( !Connection->InternalAck )
 	{
 		return nullptr;
 	}
+
+	check( Object );
+
+	const UClass* ObjectClass = Object->GetClass();
+
+	checkf( ObjectClass, TEXT( "ObjectClass is null. ObjectName: %s" ), *GetNameSafe( Object ) );
+	checkf( ObjectClass->IsValidLowLevelFast(), TEXT( "ObjectClass is invalid. ObjectName: %s" ), *GetNameSafe( Object ) );
 
 	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )Connection->PackageMap );
 

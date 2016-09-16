@@ -241,7 +241,8 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 	SetPreviewAssetByName(*InstanceConstant->PreviewMesh.ToString());
 }
 FMaterialInstanceEditor::FMaterialInstanceEditor()
-: MenuExtensibilityManager(new FExtensibilityManager)
+: MaterialEditorInstance(nullptr)
+, MenuExtensibilityManager(new FExtensibilityManager)
 , ToolBarExtensibilityManager(new FExtensibilityManager)
 {
 }

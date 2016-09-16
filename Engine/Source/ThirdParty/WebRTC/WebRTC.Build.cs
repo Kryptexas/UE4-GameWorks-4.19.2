@@ -19,6 +19,10 @@ public class WebRTC : ModuleRules
 		{
 			WebRtcSdkPlatform = "mac";
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			WebRtcSdkPlatform = "linux";
+		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
 			WebRtcSdkPlatform = "ps4";
@@ -62,6 +66,20 @@ public class WebRTC : ModuleRules
 				PublicAdditionalLibraries.Add(LibPath + "/librtc_xmllite.a");
 				PublicAdditionalLibraries.Add(LibPath + "/librtc_xmpp.a");
 				PublicAdditionalLibraries.Add(LibPath + "/libboringssl.a");
+				PublicAdditionalLibraries.Add(LibPath + "/libexpat.a");
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				Definitions.Add("WEBRTC_LINUX=1");
+				Definitions.Add("WEBRTC_POSIX=1");
+
+				string ConfigPath = ((Target.Configuration == UnrealTargetConfiguration.Debug) ? "/Debug" : "/Release");
+				string LibPath = WebRtcSdkPath + "/lib/" + Target.Architecture + "/" + ConfigPath;
+
+				PublicAdditionalLibraries.Add(LibPath + "/librtc_base.a");
+				PublicAdditionalLibraries.Add(LibPath + "/librtc_base_approved.a");
+				PublicAdditionalLibraries.Add(LibPath + "/librtc_xmllite.a");
+				PublicAdditionalLibraries.Add(LibPath + "/librtc_xmpp.a");
 				PublicAdditionalLibraries.Add(LibPath + "/libexpat.a");
 			}
 			else if (Target.Platform == UnrealTargetPlatform.PS4)

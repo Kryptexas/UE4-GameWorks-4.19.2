@@ -6,18 +6,47 @@
 #include "SequenceRecorderActorFilter.h"
 #include "SequenceRecorderSettings.generated.h"
 
+/** Enum denoting if (and how) to record audio */
+UENUM()
+enum class EAudioRecordingMode : uint8
+{
+	None 			UMETA(DisplayName="Don't Record Audio"),
+	AudioTrack		UMETA(DisplayName="Into Audio Track"),
+};
+
 USTRUCT()
 struct FPropertiesToRecordForClass
 {
 	GENERATED_BODY()
 
+	FPropertiesToRecordForClass()
+	{}
+
+	FPropertiesToRecordForClass(TSubclassOf<USceneComponent> InClass)
+		: Class(InClass)
+	{}
+
 	/** The class of the object we can record */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
-	TSubclassOf<UObject> Class;
+	TSubclassOf<USceneComponent> Class;
 
 	/** List of properties we want to record for this class */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
 	TArray<FName> Properties;
+};
+
+USTRUCT()
+struct FSettingsForActorClass
+{
+	GENERATED_BODY()
+
+	/** The class of the actor we want to record */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	TSubclassOf<AActor> Class;
+
+	/** Whether to record to 'possessable' (i.e. level-owned) or 'spawnable' (i.e. sequence-owned) actors. */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	bool bRecordToPossessable;
 };
 
 UCLASS(config=Editor)
@@ -32,12 +61,16 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	bool bCreateLevelSequence;
 
+	/** Whether to maximize the viewport when recording */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	bool bImmersiveMode;
+
 	/** The length of the recorded sequence */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	float SequenceLength;
 
 	/** Delay that we will use before starting recording */
-	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMax="9.0", UIMax = "9.0"))
 	float RecordingDelay;
 
 	/** The base name of the sequence to record to. This name will also be used to auto-generate any assets created by this recording. */
@@ -51,6 +84,22 @@ public:
 	/** The name of the subdirectory animations will be placed in. Leave this empty to place into the same directory as the sequence base path */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
 	FString AnimationSubDirectory;
+
+	/** The name of the subdirectory audio will be placed in. Leave this empty to place into the same directory as the sequence base path */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	FString AudioSubDirectory;
+
+	/** Whether to record audio alongside animation or not */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	EAudioRecordingMode RecordAudio;
+
+	/** Gain in decibels to apply to recorded audio */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	float AudioGain;
+
+	/** The buffer size to use on mic input callbacks. Larger sizes increase latency but reduce chances of buffer overruns (pops and discontinuities). */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	int32 AudioInputBufferSize;
 
 	/** Whether to record nearby spawned actors. */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
@@ -76,15 +125,15 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	FAnimationRecordingSettings DefaultAnimationSettings;
 
-	/** Component classes we record by default. If an actor does not contain one of these classes it will be ignored. */
-	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
-	TArray<TSubclassOf<USceneComponent>> ComponentClassesToRecord;
-
 	/** Whether to record actors that are spawned by sequencer itself (this is usually disabled as results can be unexpected) */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
 	bool bRecordSequencerSpawnedActors;
 
-	/** The properties to record for specified classes */
-	UPROPERTY(Config, EditAnywhere, Category = "General Property Recording")
-	TArray<FPropertiesToRecordForClass> PropertiesToRecord;
+	/** The properties to record for specified classes. Component classes specified here will be recorded. If an actor does not contain one of these classes it will be ignored. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	TArray<FPropertiesToRecordForClass> ClassesAndPropertiesToRecord;
+
+	/** Settings applied to actors of a specified class */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	TArray<FSettingsForActorClass> PerActorSettings;
 };

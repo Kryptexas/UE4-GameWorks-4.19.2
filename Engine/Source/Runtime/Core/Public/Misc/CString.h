@@ -203,9 +203,14 @@ struct TCString
 	static const CharType* Tab( int32 NumTabs );
 
 	/**
-	 * Find string in string, case insensitive, requires non-alphanumeric lead-in.
+	 * Find string in string, case sensitive, requires non-alphanumeric lead-in.
 	 */
 	static const CharType* Strfind( const CharType* Str, const CharType* Find );
+
+	/**
+	 * Find string in string, case insensitive, requires non-alphanumeric lead-in.
+	 */
+	static const CharType* Strifind( const CharType* Str, const CharType* Find );
 
 	/**
 	 * Finds string in string, case insensitive, requires the string be surrounded by one the specified
@@ -372,10 +377,39 @@ const typename TCString<T>::CharType* TCString<T>::Tab( int32 NumTabs )
 }
 
 //
+// Find string in string, case sensitive, requires non-alphanumeric lead-in.
+//
+template <typename T>
+const typename TCString<T>::CharType* TCString<T>::Strfind(const CharType* Str, const CharType* Find)
+{
+	if (Find == NULL || Str == NULL)
+	{
+		return NULL;
+	}
+
+	bool Alnum = 0;
+	CharType f = *Find;
+	int32 Length = Strlen(Find++) - 1;
+	CharType c = *Str++;
+	while (c)
+	{
+		if (!Alnum && c == f && !Strncmp(Str, Find, Length))
+		{
+			return Str - 1;
+		}
+		Alnum = (c >= LITERAL(CharType, 'A') && c <= LITERAL(CharType, 'Z')) ||
+			(c >= LITERAL(CharType, 'a') && c <= LITERAL(CharType, 'z')) ||
+			(c >= LITERAL(CharType, '0') && c <= LITERAL(CharType, '9'));
+		c = *Str++;
+	}
+	return NULL;
+}
+
+//
 // Find string in string, case insensitive, requires non-alphanumeric lead-in.
 //
 template <typename T>
-const typename TCString<T>::CharType* TCString<T>::Strfind( const CharType* Str, const CharType* Find )
+const typename TCString<T>::CharType* TCString<T>::Strifind( const CharType* Str, const CharType* Find )
 {
 	if( Find == NULL || Str == NULL )
 	{

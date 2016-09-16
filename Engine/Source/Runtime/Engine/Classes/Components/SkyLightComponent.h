@@ -205,7 +205,7 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	/** Indicates that the capture needs to recapture the scene, adds it to the recapture queue. */
 	void SetCaptureIsDirty();
 	void SetBlendDestinationCaptureIsDirty();
-	void SanatizeCubemapSize();
+	void SanitizeCubemapSize();
 
 	/** 
 	 * Recaptures the scene for the skylight. 
@@ -229,6 +229,7 @@ protected:
 
 	TRefCountPtr<FSkyTextureCubeResource> ProcessedSkyTexture;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
+	float AverageBrightness;
 
 	/** If 0, no blend is present.  If > 0, BlendDestinationProcessedSkyTexture and BlendDestinationIrradianceEnvironmentMap must be generated and used for rendering. */
 	float BlendFraction;
@@ -237,6 +238,7 @@ protected:
 	class UTextureCube* BlendDestinationCubemap;
 	TRefCountPtr<FSkyTextureCubeResource> BlendDestinationProcessedSkyTexture;
 	FSHVectorRGB3 BlendDestinationIrradianceEnvironmentMap;
+	float BlendDestinationAverageBrightness;
 
 	/** Tracks when the rendering thread has completed its writes to IrradianceEnvironmentMap. */
 	FRenderCommandFence IrradianceMapFence;

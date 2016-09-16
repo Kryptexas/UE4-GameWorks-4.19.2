@@ -76,4 +76,4 @@ TSharedRef<SWidget> FHierarchicalLODOutlinerModule::CreateHLODOutlinerWidget()
 	return HLODWindow->AsShared();
 }
 
-IMPLEMENT_MODULE(FHierarchicalLODOutlinerModule, HLODPluginModule);
+IMPLEMENT_MODULE(FHierarchicalLODOutlinerModule, HierarchicalLODOutliner);

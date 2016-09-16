@@ -25,6 +25,7 @@ public:
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) final override;
 	virtual void RHISetRasterizerState(FRasterizerStateRHIParamRef NewState) final override;
 	virtual void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ) final override;
+	virtual void RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ) final override;
 	virtual void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY) final override;
 	virtual void RHISetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState) final override;
 	virtual void RHISetShaderTexture(FVertexShaderRHIParamRef VertexShader, uint32 TextureIndex, FTextureRHIParamRef NewTexture) final override;
@@ -88,6 +89,7 @@ public:
 	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
 	virtual void RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture, FTextureRHIParamRef DestTexture, bool bKeepOriginalSurface, const FResolveParams& ResolveParams) final override;
 	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InRenderTargets, int32 NumTextures) final override;
+	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFence) final override;
 
 	// Render time measurement
 	virtual void RHIBeginRenderQuery(FRenderQueryRHIParamRef RenderQuery) final override;
@@ -123,11 +125,15 @@ public:
 		return *PendingState;
 	}
 
-	inline FVulkanDescriptorPool* GetDescriptorPool()
-	{
-		return &DescriptorPool;
-	}
+	// OutSets must have been previously pre-allocated
+	FVulkanDescriptorPool* AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& DescriptorSetAllocateInfo, VkDescriptorSet* OutSets);
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	inline FVulkanRenderPass* GetCurrentRenderPass()
+	{
+		return RenderPassState.CurrentRenderPass;
+	}
+#endif
 protected:
 	FVulkanDynamicRHI* RHI;
 	FVulkanDevice* Device;
@@ -153,8 +159,28 @@ protected:
 
 	FVulkanCommandBufferManager* CommandBufferManager;
 
-	FVulkanDescriptorPool DescriptorPool;
+	TArray<FVulkanDescriptorPool*> DescriptorPools;
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	struct FRenderPassState
+	{
+		FRenderPassState()
+			: CurrentRenderPass(nullptr)
+			, CurrentFramebuffer(nullptr)
+		{
+		}
+
+		void BeginRenderPass(FVulkanCommandListContext& Context, FVulkanDevice& InDevice, FVulkanCmdBuffer* CmdBuffer, const FRHISetRenderTargetsInfo& RenderTargetsInfo);
+		void EndRenderPass(FVulkanCmdBuffer* CmdBuffer);
+
+		FVulkanRenderPass* CurrentRenderPass;
+		FVulkanFramebuffer* CurrentFramebuffer;
+
+		TMap<VkImage, VkImageLayout> CurrentLayout;
+
+	};
+	FRenderPassState RenderPassState;
+#endif
 	//#todo-rco: Temp!
 	FVulkanPendingState* PendingState;
 

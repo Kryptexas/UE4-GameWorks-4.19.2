@@ -40,6 +40,7 @@ UPhysicalAnimationComponent::UPhysicalAnimationComponent(const FObjectInitialize
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 
 	SceneIndex = INDEX_NONE;
+	StrengthMultiplyer = 1.f;
 }
 
 void UPhysicalAnimationComponent::InitializeComponent()
@@ -165,7 +166,7 @@ FTransform ComputeWorldSpaceTargetTM(const USkeletalMeshComponent& SkeletalMeshC
 FTransform ComputeLocalSpaceTargetTM(const USkeletalMeshComponent& SkeletalMeshComponent, const UPhysicsAsset& PhysAsset, int32 BoneIndex)
 {
 	const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent.SkeletalMesh->RefSkeleton;
-	FTransform AccumulatedDelta = SkeletalMeshComponent.LocalAtoms[BoneIndex];
+	FTransform AccumulatedDelta = SkeletalMeshComponent.BoneSpaceTransforms[BoneIndex];
 	int32 CurBoneIdx = BoneIndex;
 	while ((CurBoneIdx = RefSkeleton.GetParentIndex(CurBoneIdx)) != INDEX_NONE)
 	{
@@ -185,7 +186,7 @@ FTransform ComputeLocalSpaceTargetTM(const USkeletalMeshComponent& SkeletalMeshC
 			return NewWorldTM;
 		}
 
-		AccumulatedDelta = AccumulatedDelta * SkeletalMeshComponent.LocalAtoms[CurBoneIdx];
+		AccumulatedDelta = AccumulatedDelta * SkeletalMeshComponent.BoneSpaceTransforms[CurBoneIdx];
 	}
 
 	return FTransform::Identity;
@@ -202,7 +203,7 @@ void UPhysicalAnimationComponent::TickComponent(float DeltaTime, enum ELevelTick
 	if (PhysAsset && SkeletalMeshComponent->SkeletalMesh)
 	{
 		const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->SkeletalMesh->RefSkeleton;
-		const TArray<FTransform>& SpaceBases = SkeletalMeshComponent->GetEditableSpaceBases();
+		const TArray<FTransform>& SpaceBases = SkeletalMeshComponent->GetEditableComponentSpaceTransforms();
 
 #if WITH_PHYSX
 		if (PxScene* Scene = GetPhysXSceneFromIndex(SceneIndex))
@@ -237,6 +238,18 @@ int32 FindSceneIndexForSkeletalMeshComponent(const USkeletalMeshComponent* Skele
 	return INDEX_NONE;
 }
 
+void SetMotorStrength(FConstraintInstance& ConstraintInstance, const FPhysicalAnimationData& PhysAnimData, float StrengthMultiplyer)
+{
+	ConstraintInstance.SetAngularDriveParams(PhysAnimData.OrientationStrength * StrengthMultiplyer, PhysAnimData.AngularVelocityStrength * StrengthMultiplyer, PhysAnimData.MaxAngularForce * StrengthMultiplyer);
+	if (PhysAnimData.bIsLocalSimulation)	//linear only works for world space simulation
+	{
+		ConstraintInstance.SetLinearDriveParams(0.f, 0.f, 0.f);
+	}
+	else
+	{
+		ConstraintInstance.SetLinearDriveParams(PhysAnimData.PositionStrength * StrengthMultiplyer, PhysAnimData.VelocityStrength * StrengthMultiplyer, PhysAnimData.MaxLinearForce * StrengthMultiplyer);
+	}
+}
 
 void UPhysicalAnimationComponent::UpdatePhysicsEngine()
 {
@@ -250,7 +263,7 @@ void UPhysicalAnimationComponent::UpdatePhysicsEngine()
 		RuntimeInstanceData.AddZeroed(NumData - NumInstances);
 		SceneIndex = FindSceneIndexForSkeletalMeshComponent(SkeletalMeshComponent);
 
-		const TArray<FTransform>& SpaceBases = SkeletalMeshComponent->GetEditableSpaceBases();
+		const TArray<FTransform>& SpaceBases = SkeletalMeshComponent->GetEditableComponentSpaceTransforms();
 		const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->SkeletalMesh->RefSkeleton;
 #if WITH_PHYSX
 		if(PxScene* Scene = GetPhysXSceneFromIndex(SceneIndex))
@@ -270,16 +283,8 @@ void UPhysicalAnimationComponent::UpdatePhysicsEngine()
 				}
 
 				//Apply drive forces
-				ConstraintInstance->SetAngularDriveParams(PhysAnimData.OrientationStrength, PhysAnimData.AngularVelocityStrength, PhysAnimData.MaxAngularForce);
-				if(PhysAnimData.bIsLocalSimulation)	//linear only works for world space simulation
-				{
-					ConstraintInstance->SetLinearDriveParams(0.f, 0.f, 0.f);
-				}
-				else
-				{
-					ConstraintInstance->SetLinearDriveParams(PhysAnimData.PositionStrength, PhysAnimData.VelocityStrength, PhysAnimData.MaxLinearForce);
-				}
-
+				SetMotorStrength(*ConstraintInstance, PhysAnimData, StrengthMultiplyer);
+				
 				if(bNewConstraint)
 				{
 					//Find body instances
@@ -311,6 +316,32 @@ void UPhysicalAnimationComponent::UpdatePhysicsEngine()
 							ConstraintInstance->InitConstraintPhysX_AssumesLocked(PRigidActor, InstanceData.TargetActor, Scene, 1.f);
 						}
 					}
+				}
+			}
+		}
+#endif
+	}
+}
+
+void UPhysicalAnimationComponent::SetStrengthMultiplyer(float InStrengthMultiplyer)
+{
+	if(InStrengthMultiplyer >= 0.f)
+	{
+		StrengthMultiplyer = InStrengthMultiplyer;
+
+#if WITH_PHYSX
+		if (PxScene* Scene = GetPhysXSceneFromIndex(SceneIndex))
+		{
+			SCOPED_SCENE_WRITE_LOCK(Scene);
+			for (int32 DataIdx = 0; DataIdx < DriveData.Num(); ++DataIdx)
+			{
+				bool bNewConstraint = false;
+				const FPhysicalAnimationData& PhysAnimData = DriveData[DataIdx];
+				FPhysicalAnimationInstanceData& InstanceData = RuntimeInstanceData[DataIdx];
+				if(FConstraintInstance* ConstraintInstance = InstanceData.ConstraintInstance)
+				{
+					//Apply drive forces
+					SetMotorStrength(*ConstraintInstance, PhysAnimData, StrengthMultiplyer);
 				}
 			}
 		}

@@ -154,7 +154,6 @@ void SSequencerTreeView::Construct(const FArguments& InArgs, const TSharedRef<FS
 	// We 'leak' these delegates (they'll get cleaned up automatically when the invocation list changes)
 	// It's not safe to attempt their removal in ~SSequencerTreeView because SequencerNodeTree->GetSequencer() may not be valid
 	FSequencer& Sequencer = InNodeTree->GetSequencer();
-	Sequencer.GetSettings()->GetOnShowCurveEditorChanged().AddSP(this, &SSequencerTreeView::UpdateTrackArea);
 	Sequencer.GetSelection().GetOnOutlinerNodeSelectionChanged().AddSP(this, &SSequencerTreeView::SynchronizeTreeSelectionWithSequencerSelection);
 
 	HeaderRow = SNew(SHeaderRow).Visibility(EVisibility::Collapsed);
@@ -411,7 +410,7 @@ void SSequencerTreeView::SetupColumns(const FArguments& InArgs)
 	// Now populate the header row with the columns
 	for (auto& Pair : Columns)
 	{
-		if (Pair.Key != TrackAreaName || !Sequencer.GetSettings()->GetShowCurveEditor())
+		if (Pair.Key != TrackAreaName || !Sequencer.GetShowCurveEditor())
 		{
 			HeaderRow->AddColumn(
 				SHeaderRow::Column(Pair.Key)
@@ -426,7 +425,7 @@ void SSequencerTreeView::UpdateTrackArea()
 	FSequencer& Sequencer = SequencerNodeTree->GetSequencer();
 
 	// Add or remove the column
-	if (Sequencer.GetSettings()->GetShowCurveEditor())
+	if (Sequencer.GetShowCurveEditor())
 	{
 		HeaderRow->RemoveColumn(TrackAreaName);
 	}

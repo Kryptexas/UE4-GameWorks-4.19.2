@@ -136,7 +136,7 @@ struct FFoliageMeshUIInfo
 	UFoliageType*	Settings;
 	int32			InstanceCountCurrentLevel;
 	int32			InstanceCountTotal;
-	
+
 	FFoliageMeshUIInfo(UFoliageType* InSettings);
 
 	bool operator == (const FFoliageMeshUIInfo& Other) const
@@ -218,8 +218,8 @@ struct FFoliagePaintingGeometryFilter
 #define NUM_INSTANCE_BUCKETS 10
 
 /**
- * Foliage editor mode
- */
+* Foliage editor mode
+*/
 class FEdModeFoliage : public FEdMode
 {
 public:
@@ -253,29 +253,29 @@ public:
 
 	/** Called when asset is removed */
 	void NotifyAssetRemoved(const FAssetData& AssetInfo);
-	
+
 	/**
-	 * Called when the mouse is moved over the viewport
-	 *
-	 * @param	InViewportClient	Level editor viewport client that captured the mouse input
-	 * @param	InViewport			Viewport that captured the mouse input
-	 * @param	InMouseX			New mouse cursor X coordinate
-	 * @param	InMouseY			New mouse cursor Y coordinate
-	 *
-	 * @return	true if input was handled
-	 */
+	* Called when the mouse is moved over the viewport
+	*
+	* @param	InViewportClient	Level editor viewport client that captured the mouse input
+	* @param	InViewport			Viewport that captured the mouse input
+	* @param	InMouseX			New mouse cursor X coordinate
+	* @param	InMouseY			New mouse cursor Y coordinate
+	*
+	* @return	true if input was handled
+	*/
 	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
 
 	/**
-	 * FEdMode: Called when the mouse is moved while a window input capture is in effect
-	 *
-	 * @param	InViewportClient	Level editor viewport client that captured the mouse input
-	 * @param	InViewport			Viewport that captured the mouse input
-	 * @param	InMouseX			New mouse cursor X coordinate
-	 * @param	InMouseY			New mouse cursor Y coordinate
-	 *
-	 * @return	true if input was handled
-	 */
+	* FEdMode: Called when the mouse is moved while a window input capture is in effect
+	*
+	* @param	InViewportClient	Level editor viewport client that captured the mouse input
+	* @param	InViewport			Viewport that captured the mouse input
+	* @param	InMouseX			New mouse cursor X coordinate
+	* @param	InMouseY			New mouse cursor Y coordinate
+	*
+	* @return	true if input was handled
+	*/
 	virtual bool CapturedMouseMove(FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY) override;
 
 	/** FEdMode: Called when a mouse button is pressed */
@@ -336,7 +336,7 @@ public:
 	void FoliageBrushTrace(FEditorViewportClient* ViewportClient, const FVector& InRayOrigin, const FVector& InRayDirection);
 
 	/** Generate start/end points for a random trace inside the sphere brush.
-	    returns a line segment inside the sphere parallel to the view direction */
+	returns a line segment inside the sphere parallel to the view direction */
 	void GetRandomVectorInBrush(FVector& OutStart, FVector& OutEnd);
 
 	/** Setup before call to ApplyBrush */
@@ -365,7 +365,7 @@ public:
 
 	/** Whether any of the selected foliage types can be painted into level */
 	bool CanPaint(const ULevel* InLevel);
-		
+
 	/** Whether specified FoliageType can be painted into level */
 	static bool CanPaint(const UFoliageType* FoliageType, const ULevel* InLevel);
 
@@ -374,7 +374,7 @@ public:
 
 	/** Add a new asset (FoliageType or StaticMesh) */
 	UFoliageType* AddFoliageAsset(UObject* InAsset);
-	
+
 	/** Remove a list of Foliage types */
 	bool RemoveFoliageType(UFoliageType** FoliageTypes, int32 Num);
 
@@ -385,12 +385,12 @@ public:
 	void BakeFoliage(UFoliageType* Settings, bool bSelectedOnly);
 
 	/**
-	 * Copy the settings object for this static mesh
-	 *
-	 * @param StaticMesh	The static mesh to copy the settings of.
-	 *
-	 * @return The duplicated settings now assigned to the static mesh.
-	 */
+	* Copy the settings object for this static mesh
+	*
+	* @param StaticMesh	The static mesh to copy the settings of.
+	*
+	* @return The duplicated settings now assigned to the static mesh.
+	*/
 	UFoliageType* CopySettingsObject(UFoliageType* Settings);
 
 	/** Replace the settings object for this static mesh with the one specified */
@@ -448,7 +448,7 @@ private:
 
 	/** Add instances inside the brush to match DesiredInstanceCount */
 	void AddInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, int32 DesiredInstanceCount, float Pressure);
-	
+
 	/** Remove instances inside the brush to match DesiredInstanceCount. */
 	void RemoveInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, int32 DesiredInstanceCount, float Pressure);
 
@@ -463,13 +463,13 @@ private:
 
 	/** Select instances inside the brush. */
 	void SelectInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, bool bSelect);
-	
+
 	/** Select instance closest to the brush. */
 	void SelectInstanceAtLocation(UWorld* InWorld, const UFoliageType* Settings, const FVector& BrushLocation, bool bSelect);
 
 	/** Set/Clear selection for all foliage instances */
 	void SelectInstances(UWorld* InWorld, bool bSelect);
-	
+
 	/** Set/Clear selection for foliage instances of specific type  */
 	void SelectInstances(UWorld* InWorld, const UFoliageType* Settings, bool bSelect);
 
@@ -506,7 +506,7 @@ private:
 
 	/** Similar to CalculatePotentialInstances, but it doesn't do any overlap checks which are much harder to thread. Meant to be run in parallel for placing lots of instances */
 	static void CalculatePotentialInstances_ThreadSafe(const UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>* DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], const FFoliageUISettings* UISettings, const int32 StartIdx, const int32 LastIdx, const FFoliagePaintingGeometryFilter* OverrideGeometryFilter = nullptr);
-	
+
 	/** Lookup the vertex color corresponding to a location traced on a static mesh */
 	static bool GetStaticMeshVertexColorForHit(const UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor);
 
@@ -532,12 +532,9 @@ private:
 	bool bAdjustBrushRadius;
 
 	TArray<FFoliageMeshUIInfoPtr>	FoliageMeshList;
-	EColumnSortMode::Type			FoliageMeshListSortMode; 
+	EColumnSortMode::Type			FoliageMeshListSortMode;
 
 	FDelegateHandle OnActorSpawnedHandle;
-
-	/** Whether we're currently painting */
-	bool bIsPainting;
 
 	/** When painting in VR, this is the hand index that we're painting with.  Otherwise INDEX_NONE. */
 	class UViewportInteractor* FoliageInteractor;

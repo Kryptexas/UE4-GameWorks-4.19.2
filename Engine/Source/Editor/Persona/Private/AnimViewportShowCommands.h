@@ -24,12 +24,6 @@ public:
 	/** Option to show grid */
 	TSharedPtr< FUICommandInfo > ToggleGrid;
 
-	/** Option to show floor */
-	TSharedPtr< FUICommandInfo > ToggleFloor;
-
-	/** Option to show floor */
-	TSharedPtr< FUICommandInfo > ToggleSky;
-
 	/** Option to align floor to Mesh */
 	TSharedPtr< FUICommandInfo > AutoAlignFloorToMesh;
 
@@ -87,8 +81,10 @@ public:
 	TSharedPtr< FUICommandInfo > ShowDisplayInfoSkelControls;
 	TSharedPtr< FUICommandInfo > HideDisplayInfo;
 
-	/** Show selected bone weight */
+	/** Show overlay material option */
+	TSharedPtr< FUICommandInfo > ShowOverlayNone;
 	TSharedPtr< FUICommandInfo > ShowBoneWeight;
+	TSharedPtr< FUICommandInfo > ShowMorphTargetVerts;
 
 	/** Show socket hit point diamonds */
 	TSharedPtr< FUICommandInfo > ShowSockets;

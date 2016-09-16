@@ -577,7 +577,7 @@ void FPhysXSimEventCallback::onSleep(PxActor** Actors, PxU32 Count)
 //////////////////////////////////////////////////////////////////////////
 // FPhysXFormatDataReader
 
-FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData )
+FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData, FBodySetupUVInfo* UVInfo )
 {
 	// Read cooked physics data
 	uint8* DataPtr = (uint8*)InBulkData.Lock( LOCK_READ_ONLY );
@@ -614,6 +614,10 @@ FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData )
 		PxTriangleMesh* TriMesh = ReadTriMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
 		TriMeshes.Add(TriMesh);
 	}
+
+	// Init UVInfo pointer
+	check(UVInfo);
+	Ar << *UVInfo;
 
 	InBulkData.Unlock();
 }

@@ -984,24 +984,6 @@ void UEdGraphSchema_K2::MarkFunctionEntryAsEditable(const UEdGraph* CurrentGraph
 	}
 }
 
-void UEdGraphSchema_K2::ListFunctionsMatchingSignatureAsDelegates(FGraphContextMenuBuilder& ContextMenuBuilder, const UClass* Class, const UFunction* SignatureToMatch) const
-{
-	check(Class);
-
-	for (TFieldIterator<UFunction> FunctionIt(Class, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
-	{
-		const UFunction* TrialFunction = *FunctionIt;
-		if (CanUserKismetCallFunction(TrialFunction) && TrialFunction->IsSignatureCompatibleWith(SignatureToMatch))
-		{
-			FString Description(TrialFunction->GetName());
-			FString Tooltip = FString::Printf(TEXT("Existing function '%s' as delegate"), *(TrialFunction->GetName())); //@TODO: Need a better tooltip
-
-			// @TODO
-		}
-	}
-
-}
-
 bool UEdGraphSchema_K2::IsActorValidForLevelScriptRefs(const AActor* TestActor, const UBlueprint* Blueprint) const
 {
 	check(Blueprint);
@@ -1293,6 +1275,35 @@ bool UEdGraphSchema_K2::PinDefaultValueIsEditable(const UEdGraphPin& InGraphPin)
 	return true;
 }
 
+void UEdGraphSchema_K2::SelectAllInputNodes(UEdGraph* Graph, UEdGraphPin* InGraphPin)
+{
+	TArray<UEdGraphPin*> AllPins = InGraphPin->LinkedTo;
+
+	if (AllPins.Num() == 0)
+	{
+		return;
+	}
+
+	for (UEdGraphPin* Pin : AllPins)
+	{
+		UEdGraphNode* OwningNode = Pin->GetOwningNode();
+		FKismetEditorUtilities::AddToSelection(Graph, OwningNode);
+
+		TArray<UEdGraphPin*> LinkedPins = Pin->GetOwningNode()->GetAllPins();
+		for (UEdGraphPin* InputPin : LinkedPins)
+		{
+			if (InputPin->Direction == EEdGraphPinDirection::EGPD_Output)
+			{
+				continue;
+			}
+			else
+			{
+				SelectAllInputNodes(Graph, InputPin);
+			}
+		}
+	}
+}
+
 void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, FMenuBuilder* MenuBuilder, bool bIsDebugging) const
 {
 	check(CurrentGraph);
@@ -1319,6 +1330,12 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 				// add sub menu for break link to
 				if (InGraphPin->LinkedTo.Num() > 0)
 				{
+					MenuBuilder->AddMenuEntry(
+						LOCTEXT("SelectAllInputNodes", "Select All Input Nodes"),
+						LOCTEXT("SelectAllInputNodesTooltip", "Adds all input Nodes linked to this Pin to selection"),
+						FSlateIcon(),
+						FUIAction(FExecuteAction::CreateUObject((UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::SelectAllInputNodes, const_cast<UEdGraph*>(CurrentGraph), const_cast<UEdGraphPin*>(InGraphPin))));
+
 					if(InGraphPin->LinkedTo.Num() > 1)
 					{
 						MenuBuilder->AddSubMenu(
@@ -1366,7 +1383,7 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					}
 				}
 	
-				if (InGraphPin->PinType.PinCategory == PC_Struct && InGraphNode->AllowSplitPins())
+				if (InGraphPin->PinType.PinCategory == PC_Struct && InGraphNode->CanSplitPin(InGraphPin))
 				{
 					// If the pin cannot be split, create an error tooltip to use
 					FText Tooltip;
@@ -3520,6 +3537,9 @@ void UEdGraphSchema_K2::GetVariableTypeTree(TArray< TSharedPtr<FPinTypeTreeInfo>
 		else
 		{
 			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Object, true), PC_Object, this, LOCTEXT("ObjectType", "Object pointer."), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Class, true), PC_Class, this, LOCTEXT("ClassType", "Class pointer."), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_AssetClass, true), PC_AssetClass, this, LOCTEXT("AssetClassType", "Class ID."), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Asset, true), PC_Asset, this, LOCTEXT("AssetType", "Asset ID."), true, TypesDatabasePtr)));
 		}
 	}
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Enum, true), PC_Enum, this, LOCTEXT("EnumType", "Enumeration types."), true, TypesDatabasePtr) ) );
@@ -4648,7 +4668,7 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 
 bool UEdGraphSchema_K2::CanSplitStructPin( const UEdGraphPin& Pin ) const
 {
-	return (!Pin.bNotConnectable && Pin.LinkedTo.Num() == 0 && PinHasSplittableStructType(&Pin) && Pin.GetOwningNode()->AllowSplitPins());
+	return Pin.GetOwningNode()->CanSplitPin(&Pin) && PinHasSplittableStructType(&Pin);
 }
 
 bool UEdGraphSchema_K2::CanRecombineStructPin( const UEdGraphPin& Pin ) const
@@ -5618,13 +5638,19 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				{
 					PreExistingNode = FBlueprintEditorUtils::FindCustomEventNode(Blueprint, EventNode->CustomFunctionName);
 				}
-				else if (ensure(EventNode->FindEventSignatureFunction() != nullptr))
+				else
 				{
-					// EventNode::FindEventSignatureFunction will return null if it is deleted (for instance, someone declared a 
-					// BlueprintImplementableEvent, and some blueprint implements it, but then the declaration is deleted)
-					UClass* ClassOwner = EventNode->FindEventSignatureFunction()->GetOwnerClass()->GetAuthoritativeClass();
-
-					PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventNode->FindEventSignatureFunction()->GetFName());
+					UFunction* EventSignature = EventNode->FindEventSignatureFunction();
+					if (ensure(EventSignature))
+					{
+						// EventNode::FindEventSignatureFunction will return null if it is deleted (for instance, someone declared a 
+						// BlueprintImplementableEvent, and some blueprint implements it, but then the declaration is deleted)
+						UClass* ClassOwner = EventSignature->GetOwnerClass();
+						if (ensureMsgf(ClassOwner, TEXT("Wrong class owner of signature %s in node %s"), *GetPathNameSafe(EventSignature), *GetPathNameSafe(EventNode)))
+						{
+							PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner->GetAuthoritativeClass(), EventSignature->GetFName());
+						}
+					}
 				}
 			}
 
@@ -6148,6 +6174,14 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 			{
 				OriginalDefaults.Add(TEXT("0.0"));
 			}
+			
+			// Rotator OriginalDefaults are in the form of Y,Z,X but our pins are in the form of X,Y,Z
+			// so we have to change the OriginalDefaults order here to match our pins
+			if (StructType == TBaseStructure<FRotator>::Get())
+			{
+				OriginalDefaults.Swap(0, 2);
+				OriginalDefaults.Swap(1, 2);
+			}
 		}
 		else if (StructType == TBaseStructure<FVector2D>::Get())
 		{
@@ -6216,12 +6250,19 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		UScriptStruct* StructType = CastChecked<UScriptStruct>(ParentPin->PinType.PinSubCategoryObject.Get());
 
 		TArray<FString> OriginalDefaults;
-		if (   StructType == TBaseStructure<FVector>::Get()
-			|| StructType == TBaseStructure<FRotator>::Get())
+		if (StructType == TBaseStructure<FVector>::Get())
 		{
 			ParentPin->DefaultValue = ParentPin->SubPins[0]->DefaultValue + TEXT(",") 
 									+ ParentPin->SubPins[1]->DefaultValue + TEXT(",")
 									+ ParentPin->SubPins[2]->DefaultValue;
+		}
+		else if (StructType == TBaseStructure<FRotator>::Get())
+		{
+			// Our pins are in the form X,Y,Z but the Rotator pin type expects the form Y,Z,X
+			// so we need to make sure they are added in that order here
+			ParentPin->DefaultValue = ParentPin->SubPins[1]->DefaultValue + TEXT(",")
+									+ ParentPin->SubPins[2]->DefaultValue + TEXT(",")
+									+ ParentPin->SubPins[0]->DefaultValue;
 		}
 		else if (StructType == TBaseStructure<FVector2D>::Get())
 		{

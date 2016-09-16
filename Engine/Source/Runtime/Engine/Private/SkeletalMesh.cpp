@@ -28,9 +28,15 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/AssetUserData.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimInstance.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
+
+#if WITH_APEX_CLOTHING
+#include "ApexClothingUtils.h"
+#endif
+
 #endif // #if WITH_EDITOR
 
 #include "Net/UnrealNetwork.h"
@@ -48,7 +54,6 @@
 #define LOCTEXT_NAMESPACE "SkeltalMesh"
 
 DEFINE_LOG_CATEGORY(LogSkeletalMesh);
-
 DECLARE_CYCLE_STAT(TEXT("GetShadowShapes"), STAT_GetShadowShapes, STATGROUP_Anim);
 
 // Custom serialization version for RecomputeTangent
@@ -64,6 +69,8 @@ struct FSkeletalMeshCustomVersion
 		CombineSoftAndRigidVerts = 2,
 		// Need to recalc max bone influences
 		RecalcMaxBoneInfluences = 3,
+		// Add NumVertices that can be accessed when stripping editor data
+		SaveNumVertices = 4,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -1048,6 +1055,12 @@ void FMultiSizeIndexContainer::CopyIndexBuffer(const TArray<uint32>& NewArray)
 		IndexBuffer->Empty();
 		for (int32 i = 0; i < NewArray.Num(); ++i)
 		{
+#if WITH_EDITOR
+			if(DataTypeSize == sizeof(uint16) && NewArray[i] > MAX_uint16)
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Attempting to copy %u into a uint16 index buffer - this value will overflow to %u, use RebuildIndexBuffer to create a uint32 index buffer!"), NewArray[i], (uint16)NewArray[i]);
+			}
+#endif
 			IndexBuffer->AddItem(NewArray[i]);
 		}
 	}
@@ -1277,9 +1290,28 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 			}
 		}
 
+		// If loading content newer than CombineSectionWithChunk but older than SaveNumVertices, update NumVertices here
+		if (Ar.IsLoading() && Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::SaveNumVertices)
+		{
+			if (!StripFlags.IsDataStrippedForServer())
+			{
+				S.NumVertices = S.SoftVertices.Num();
+			}
+			else
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Cannot set FSkelMeshSection::NumVertices for older content, loading in non-editor build."));
+				S.NumVertices = 0;
+			}
+		}
+
 		Ar << S.BoneMap;
 
-		// Removed NumRigidVertices and NumSoftVertices, just use array size
+		if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) >= FSkeletalMeshCustomVersion::SaveNumVertices)
+		{
+			Ar << S.NumVertices;
+		}
+
+		// Removed NumRigidVertices and NumSoftVertices
 		if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::CombineSoftAndRigidVerts)
 		{
 			int32 DummyNumRigidVerts, DummyNumSoftVerts;
@@ -1461,13 +1493,27 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		bKeepBuffersInCPUMemory = !CVar->GetValueOnAnyThread();
 	}
 
-	Ar << Sections;
-	MultiSizeIndexContainer.Serialize(Ar, bKeepBuffersInCPUMemory);
-	Ar << ActiveBoneIndices;
+	if (StripFlags.IsDataStrippedForServer())
+	{
+		TArray<FSkelMeshSection> TempSections;
+		Ar << TempSections;
+
+		FMultiSizeIndexContainer	TempMultiSizeIndexContainer;
+		TempMultiSizeIndexContainer.Serialize(Ar, bKeepBuffersInCPUMemory);
+
+		TArray<FBoneIndexType> TempActiveBoneIndices;
+		Ar << TempActiveBoneIndices;
+	}
+	else
+	{
+		Ar << Sections;
+		MultiSizeIndexContainer.Serialize(Ar, bKeepBuffersInCPUMemory);
+		Ar << ActiveBoneIndices;
+	}
 
 	// Array of Sections for backwards compat
 	Ar.UsingCustomVersion(FSkeletalMeshCustomVersion::GUID);
-	if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::CombineSectionWithChunk)
+	if (Ar.IsLoading() && Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::CombineSectionWithChunk)
 	{
 		TArray<FLegacySkelMeshChunk> LegacyChunks;
 
@@ -1476,7 +1522,20 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		check(LegacyChunks.Num() == Sections.Num());
 		for (int32 ChunkIdx = 0; ChunkIdx < LegacyChunks.Num(); ChunkIdx++)
 		{
-			LegacyChunks[ChunkIdx].CopyToSection(Sections[ChunkIdx]);
+			FSkelMeshSection& Section = Sections[ChunkIdx];
+
+			LegacyChunks[ChunkIdx].CopyToSection(Section);
+
+			// Set NumVertices for older content on load
+			if (!StripFlags.IsDataStrippedForServer())
+			{
+				Section.NumVertices = Section.SoftVertices.Num();
+			}
+			else
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Cannot set FSkelMeshSection::NumVertices for older content, loading in non-editor build."));
+				Section.NumVertices = 0;
+			}
 		}
 	}
 	
@@ -1497,8 +1556,19 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		RawPointIndices.Serialize( Ar, Owner );
 	}
 
-	Ar << MeshToImportVertexMap;
-	Ar << MaxImportVertex;
+	if (StripFlags.IsDataStrippedForServer())
+	{
+		TArray<int32> TempMeshToImportVertexMap;
+		Ar << TempMeshToImportVertexMap;
+
+		int32 TempMaxImportVertex;
+		Ar << TempMaxImportVertex;
+	}
+	else
+	{
+		Ar << MeshToImportVertexMap;
+		Ar << MaxImportVertex;
+	}
 
 	if( !StripFlags.IsDataStrippedForServer() )
 	{
@@ -2851,6 +2921,8 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
 	FStripDataFlags StripFlags( Ar );
 
 	Ar << ImportedBounds;
@@ -2969,6 +3041,14 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	{
 		Ar << BodySetup;
 	}
+
+#if WITH_APEX_CLOTHING && WITH_EDITORONLY_DATA
+	if(GIsEditor && Ar.IsLoading() && Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::AddInternalClothingGraphicalSkinning)
+	{
+		ApexClothingUtils::BackupClothingDataFromSkeletalMesh(this);
+		ApexClothingUtils::ReapplyClothingDataToSkeletalMesh(this);
+	}
+#endif
 }
 
 void USkeletalMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -4480,7 +4560,7 @@ void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelInd
 	if(CanPlayAnimation(InAnimSequence))
 	{
 		TWeakObjectPtr<class UAnimMontage>& CurrentlyPlayingMontage = CurrentlyPlayingMontages.FindOrAdd(SlotName);
-		FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping, bFireNotifies, DeltaTime);
+		CurrentlyPlayingMontage = FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, InPosition, bLooping, bFireNotifies, DeltaTime);
 	}
 }
 
@@ -4627,7 +4707,7 @@ void ASkeletalMeshActor::SetAnimPosition(FName SlotName, int32 ChannelIndex, UAn
 	if (CanPlayAnimation(InAnimSequence))
 	{
 		TWeakObjectPtr<class UAnimMontage>& CurrentlyPlayingMontage = CurrentlyPlayingMontages.FindOrAdd(SlotName);
-		FAnimMontageInstance::SetMatineeAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping);
+		CurrentlyPlayingMontage = FAnimMontageInstance::SetMatineeAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, InPosition, bLooping);
 	}
 }
 
@@ -4956,8 +5036,19 @@ public:
 	FORCEINLINE bool NotValidPreviewSection()
 	{
 #if WITH_EDITORONLY_DATA
+
+		int32 ActualPreviewSectionIdx = SectionIndexPreview;
+		if(ActualPreviewSectionIdx != INDEX_NONE && Sections.IsValidIndex(ActualPreviewSectionIdx))
+		{
+			const FSkelMeshSection& PreviewSection = Sections[ActualPreviewSectionIdx];
+			if(PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
+			{
+				ActualPreviewSectionIdx = PreviewSection.CorrespondClothSectionIndex;
+			}
+		}
+
 		return	(SectionIndex < Sections.Num()) && 
-				((SectionIndexPreview >= 0) && (SectionIndexPreview != SectionIndex));
+				((ActualPreviewSectionIdx >= 0) && (ActualPreviewSectionIdx != SectionIndex));
 #else
 		return false;
 #endif
@@ -5052,14 +5143,16 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 
 		for (FSkeletalMeshSectionIter Iter(LODIndex, *MeshObject, LODModel, LODSection); Iter; ++Iter)
 		{
-			FSkelMeshSection Section = Iter.GetSection();
+			const FSkelMeshSection& Section = Iter.GetSection();
 			const int32 SectionIndex = Iter.GetSectionElementIndex();
 			const FSectionElementInfo& SectionElementInfo = Iter.GetSectionElementInfo();
 			const FTwoVectors& CustomLeftRightVectors = Iter.GetCustomLeftRightVectors();
 
+			bool bSectionSelected = false;
+
 #if WITH_EDITORONLY_DATA
 			// TODO: This is not threadsafe! A render command should be used to propagate SelectedEditorSection to the scene proxy.
-			Section.bSelected = (SkeletalMeshForDebug->SelectedEditorSection == Iter.GetSectionElementIndex());
+			bSectionSelected = (SkeletalMeshForDebug->SelectedEditorSection == Iter.GetSectionElementIndex());
 #endif
 			// If hidden skip the draw
 			if (MeshObject->IsMaterialHidden(LODIndex, SectionElementInfo.UseMaterialIndex))
@@ -5073,7 +5166,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 				continue;
 			}
 
-			GetDynamicElementsSection(Views, ViewFamily, VisibilityMap, LODModel, LODIndex, SectionIndex, SectionElementInfo, CustomLeftRightVectors, bInSelectable, Collector);
+			GetDynamicElementsSection(Views, ViewFamily, VisibilityMap, LODModel, LODIndex, SectionIndex, bSectionSelected, SectionElementInfo, CustomLeftRightVectors, bInSelectable, Collector);
 		}
 	}
 
@@ -5097,7 +5190,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 }
 
 void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
-	const FStaticLODModel& LODModel, const int32 LODIndex, const int32 SectionIndex, 
+	const FStaticLODModel& LODModel, const int32 LODIndex, const int32 SectionIndex, bool bSectionSelected,
 	const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector ) const
 {
 	const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
@@ -5114,7 +5207,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 	bool bIsSelected = IsSelected();
 
 	// if the mesh isn't selected but the mesh section is selected in the AnimSetViewer, find the mesh component and make sure that it can be highlighted (ie. are we rendering for the AnimSetViewer or not?)
-	if( !bIsSelected && Section.bSelected && bCanHighlightSelectedSections )
+	if( !bIsSelected && bSectionSelected && bCanHighlightSelectedSections )
 	{
 		bIsSelected = true;
 	}
@@ -5172,7 +5265,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 
 			Mesh.BatchHitProxyId = SectionElementInfo.HitProxy ? SectionElementInfo.HitProxy->Id : FHitProxyId();
 
-			if (Section.bSelected)
+			if (bSectionSelected)
 			{
 				auto SelectionOverrideProxy = new FOverrideSelectionColorMaterialRenderProxy(
 					SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered()),
@@ -5320,11 +5413,13 @@ FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneVi
 	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
 	Result.bUsesLightingChannels = GetLightingChannelMask() != GetDefaultLightingChannelMask();
+	
 	MaterialRelevance.SetPrimitiveViewRelevance(Result);
 
 #if !UE_BUILD_SHIPPING
 	Result.bSeparateTranslucencyRelevance |= View->Family->EngineShowFlags.Constraints;
 #endif
+
 	return Result;
 }
 
@@ -5366,7 +5461,7 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElemen
 	{
 		FTransform LocalToWorldTransform(ProxyLocalToWorld);
 
-		TArray<FTransform>* BoneSpaceBases = MeshObject->GetSpaceBases();
+		TArray<FTransform>* BoneSpaceBases = MeshObject->GetComponentSpaceTransforms();
 		if(BoneSpaceBases)
 		{
 			//TODO: These data structures are not double buffered. This is not thread safe!
@@ -5483,9 +5578,9 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	bCastCapsuleDirectShadow = false;
 	bCastCapsuleIndirectShadow = false;
 
-	bDoubleBufferedBlendSpaces = true;
-	CurrentEditableSpaceBases = 0;
-	CurrentReadSpaceBases = 1;
+	bDoubleBufferedComponentSpaceTransforms = true;
+	CurrentEditableComponentTransforms = 0;
+	CurrentReadComponentTransforms = 1;
 	bNeedToFlipSpaceBaseBuffers = false;
 
 	bCanEverAffectNavigation = false;
@@ -5512,8 +5607,8 @@ void USkinnedMeshComponent::Serialize(FArchive& Ar)
 	if(Ar.IsCountingMemory())
 	{
 		// add all native variables - mostly bigger chunks 
-		SpaceBasesArray[0].CountBytes(Ar);
-		SpaceBasesArray[1].CountBytes(Ar);
+		ComponentSpaceTransformsArray[0].CountBytes(Ar);
+		ComponentSpaceTransformsArray[1].CountBytes(Ar);
 		MasterBoneMap.CountBytes(Ar);
 	}
 }
@@ -5536,7 +5631,7 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	// to count memory : TODO: REMOVE?
 	if(Ar.IsCountingMemory())
 	{
-		LocalAtoms.CountBytes(Ar);
+		BoneSpaceTransforms.CountBytes(Ar);
 		RequiredBones.CountBytes(Ar);
 	}
 

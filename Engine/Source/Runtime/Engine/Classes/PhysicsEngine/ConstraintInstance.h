@@ -176,7 +176,7 @@ struct ENGINE_API FConstraintInstance
 
 public:
 	/** Copies behavior properties from the given profile. Automatically updates the physx representation if it's been created */
-	void CopyProfilePropertiesFrom(FConstraintProfileProperties& FromProperties);
+	void CopyProfilePropertiesFrom(const FConstraintProfileProperties& FromProperties);
 
 #if WITH_PHYSX
 	FPhysxUserData PhysxUserData;

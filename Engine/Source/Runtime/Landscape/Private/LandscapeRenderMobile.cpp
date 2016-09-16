@@ -4,6 +4,7 @@
 LandscapeRenderMobile.cpp: Landscape Rendering without using vertex texture fetch
 =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
@@ -215,15 +216,13 @@ void FLandscapeVertexBufferMobile::InitRHI()
 }
 
 FLandscapeComponentSceneProxyMobile::FLandscapeComponentSceneProxyMobile(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData)
-	:	FLandscapeComponentSceneProxy(InComponent, InEditToolRenderData)
+	: FLandscapeComponentSceneProxy(InComponent, {InComponent->MobileMaterialInterface}, InEditToolRenderData)
 {
 	check(InComponent && InComponent->PlatformData.HasValidPlatformData());
 	InComponent->PlatformData.GetUncompressedData(PlatformData);
 
 	check(InComponent->MobileMaterialInterface);
 	check(InComponent->MobileWeightNormalmapTexture);
-	
-	MaterialInterface = InComponent->MobileMaterialInterface;
 
 	WeightmapTextures.Empty(1);
 	WeightmapTextures.Add(InComponent->MobileWeightNormalmapTexture);

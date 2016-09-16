@@ -982,6 +982,7 @@ UAnimCompress_PerTrackCompression::UAnimCompress_PerTrackCompression(const FObje
 	AllowedScaleFormats.Add(ACF_Fixed48NoW);
 }
 
+#if WITH_EDITOR
 void UAnimCompress_PerTrackCompression::CompressUsingUnderlyingCompressor(
 	UAnimSequence* AnimSeq, 
 	const TArray<FBoneData>& BoneData, 
@@ -1578,3 +1579,4 @@ void UAnimCompress_PerTrackCompression::PopulateDDCKey(FArchive& Ar)
 					MakeBitForFlag(bUseAdaptiveError2, 3);
 	Ar << Flags;
 }
+#endif // WITH_EDITOR

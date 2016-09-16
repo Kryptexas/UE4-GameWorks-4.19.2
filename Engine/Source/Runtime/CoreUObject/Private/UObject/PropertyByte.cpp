@@ -91,8 +91,8 @@ FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 		const bool bNonNativeEnum = Enum->GetClass() != UEnum::StaticClass(); // cannot use RF_Native flag, because in UHT the flag is not set
 		const bool bRawParam = (CPPExportFlags & CPPF_ArgumentOrReturnValue)
 			&& (((PropertyFlags & CPF_ReturnParm) || !(PropertyFlags & CPF_OutParm))
-				|| bEnumClassForm || bNonNativeEnum);
-		const bool bConvertedCode = (CPPExportFlags & CPPF_BlueprintCppBackend) && (bEnumClassForm || bNonNativeEnum);
+				|| bNonNativeEnum);
+		const bool bConvertedCode = (CPPExportFlags & CPPF_BlueprintCppBackend) && bNonNativeEnum;
 
 		FString FullyQualifiedEnumName;
 		if (!Enum->CppType.IsEmpty())
@@ -114,7 +114,7 @@ FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 			}
 		}
 		 
-		if (bRawParam || bConvertedCode)
+		if (bEnumClassForm || bRawParam || bConvertedCode)
 		{
 			return FullyQualifiedEnumName;
 		}

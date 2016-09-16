@@ -567,7 +567,7 @@ public:
 	FORCEINLINE FVector		GetScaledAxis(EAxis::Type InAxis) const;
 	FORCEINLINE FVector		GetUnitAxis(EAxis::Type InAxis) const;
 	FORCEINLINE void		Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis);
-	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale, float Tolerance=SMALL_NUMBER) const;
+	FORCEINLINE static FVector	GetSafeScaleReciprocal(const FVector& InScale, float Tolerance=SMALL_NUMBER);
 
 
 	FORCEINLINE FVector GetLocation() const
@@ -743,19 +743,6 @@ public:
 	}
 
 	FORCEINLINE static void Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B);
-
-	/**
-	* Create a new transform: OutTransform = A * B using the matrix while keeping the scale that's given by A and B
-	* Please note that this operation is a lot more expensive than normal Multiply
-	*
-	* Order matters when composing transforms : A * B will yield a transform that logically first applies A then B to any subsequent transformation.
-	*
-	* @param  OutTransform pointer to transform that will store the result of A * B.
-	* @param  A Transform A.
-	* @param  B Transform B.
-	*/
-	FORCEINLINE static void MultiplyUsingMatrixWithScale(FTransform* OutTransform, const FTransform* A, const FTransform* B);
-
 	/**
 	 * Sets the components
 	 * @param InRotation The new value for the Rotation component
@@ -1413,6 +1400,37 @@ private:
 		return FTransform(InvRotation, InvTranslation, InvScale);
 	}
 
+	/**
+	* Create a new transform: OutTransform = A * B using the matrix while keeping the scale that's given by A and B
+	* Please note that this operation is a lot more expensive than normal Multiply
+	*
+	* Order matters when composing transforms : A * B will yield a transform that logically first applies A then B to any subsequent transformation.
+	*
+	* @param  OutTransform pointer to transform that will store the result of A * B.
+	* @param  A Transform A.
+	* @param  B Transform B.
+	*/
+	FORCEINLINE static void MultiplyUsingMatrixWithScale(FTransform* OutTransform, const FTransform* A, const FTransform* B);
+	/**
+	* Create a new transform from multiplications of given to matrices (AMatrix*BMatrix) using desired scale
+	* This is used by MultiplyUsingMatrixWithScale and GetRelativeTransformUsingMatrixWithScale
+	* This is only used to handle negative scale
+	*
+	* @param	AMatrix first Matrix of operation
+	* @param	BMatrix second Matrix of operation
+	* @param	DesiredScale - there is no check on if the magnitude is correct here. It assumes that is correct. 
+	* @param	OutTransform the constructed transform 
+	*/
+	FORCEINLINE static void ConstructTransformFromMatrixWithDesiredScale(const FMatrix& AMatrix, const FMatrix& BMatrix, const VectorRegister& DesiredScale, FTransform& OutTransform);
+	/**
+	* Create a new transform: OutTransform = Base * Relative(-1) using the matrix while keeping the scale that's given by Base and Relative
+	* Please note that this operation is a lot more expensive than normal GetRelativeTrnasform
+	*
+	* @param  OutTransform pointer to transform that will store the result of Base * Relative(-1).
+	* @param  BAse Transform Base.
+	* @param  Relative Transform Relative.
+	*/
+	static void GetRelativeTransformUsingMatrixWithScale(FTransform* OutTransform, const FTransform* Base, const FTransform* Relative);
 }  GCC_ALIGN(16);
 
 template <> struct TIsPODType<FTransform> { enum { Value = true }; };
@@ -1443,17 +1461,19 @@ FORCEINLINE void FTransform::RemoveScaling(float Tolerance/*=SMALL_NUMBER*/)
 
 FORCEINLINE void FTransform::MultiplyUsingMatrixWithScale(FTransform* OutTransform, const FTransform* A, const FTransform* B)
 {
+	ConstructTransformFromMatrixWithDesiredScale(A->ToMatrixWithScale(), B->ToMatrixWithScale(), VectorMultiply(A->Scale3D, B->Scale3D), *OutTransform);
+}
+
+FORCEINLINE void FTransform::ConstructTransformFromMatrixWithDesiredScale(const FMatrix& AMatrix, const FMatrix& BMatrix, const VectorRegister& DesiredScale, FTransform& OutTransform)
+{
 	// the goal of using M is to get the correct orientation
 	// but for translation, we still need scale
-	FMatrix M = A->ToMatrixWithScale() * B->ToMatrixWithScale();
+	FMatrix M = AMatrix * BMatrix;
 	M.RemoveScaling();
-
-	// get combined scale
-	const VectorRegister Scale3D = VectorMultiply(A->Scale3D, B->Scale3D);
 
 	// apply negative scale back to axes
 	FVector SignedScale;
-	VectorStoreFloat3(VectorSign(Scale3D), &SignedScale);
+	VectorStoreFloat3(VectorSign(DesiredScale), &SignedScale);
 
 	M.SetAxis(0, SignedScale.X * M.GetScaledAxis(EAxis::X));
 	M.SetAxis(1, SignedScale.Y * M.GetScaledAxis(EAxis::Y));
@@ -1465,14 +1485,14 @@ FORCEINLINE void FTransform::MultiplyUsingMatrixWithScale(FTransform* OutTransfo
 	Rotation.Normalize();
 
 	// set values back to output
-	OutTransform->Scale3D = Scale3D;
-	OutTransform->Rotation = VectorLoadAligned(&Rotation);
-	
+	OutTransform.Scale3D = DesiredScale;
+	OutTransform.Rotation = VectorLoadAligned(&Rotation);
+
 	// technically I could calculate this using FTransform but then it does more quat multiplication 
 	// instead of using Scale in matrix multiplication
 	// it's a question of between RemoveScaling vs using FTransform to move translation
 	FVector Translation = M.GetOrigin();
-	OutTransform->Translation = VectorLoadFloat3_W0(&Translation);
+	OutTransform.Translation = VectorLoadFloat3_W0(&Translation);
 }
 
 /** Returns Multiplied Transform of 2 FTransforms **/
@@ -1873,7 +1893,7 @@ inline float FTransform::GetMinimumAxisScale() const
  * also returning BIG_NUMBER causes sequential NaN issues by multiplying 
  * so we hardcode as 0
  */
-FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, float Tolerance) const
+FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, float Tolerance)
 {
 	FVector SafeReciprocalScale;
 	if (FMath::Abs(InScale.X) <= Tolerance)

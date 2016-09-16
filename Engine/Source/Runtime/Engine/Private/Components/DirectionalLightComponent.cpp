@@ -171,7 +171,8 @@ public:
 		SpotAngles = FVector2D(0, 0);
 		LightSourceRadius = 0.0f;
 		LightSourceLength = 0.0f;
-		LightMinRoughness = MinRoughness;
+		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
+		LightMinRoughness = FMath::Max(MinRoughness, .04f);
 	}
 
 	virtual float GetLightSourceAngle() const override
@@ -209,7 +210,7 @@ public:
 			&& bUseInsetShadowsForMovableObjects;
 	}
 
-	/** Whether this light should create CSM for dynamic objects only (forward renderer) */
+	/** Whether this light should create CSM for dynamic objects only (mobile renderer) */
 	virtual bool UseCSMForDynamicObjects() const override
 	{
 		return	FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects()

@@ -167,10 +167,14 @@ bool FSocketBSD::RecvFrom(uint8* Data, int32 BufferSize, int32& BytesRead, FInte
 	BytesRead = recvfrom(Socket, (char*)Data, BufferSize, TranslatedFlags, &Addr, &Size);
 //	NETWORK_PROFILER(FSocket::RecvFrom(Data,BufferSize,BytesRead,Source));
 
-	if (BytesRead < 0)
+	if (BytesRead < 0 && SocketSubsystem->TranslateErrorCode(BytesRead) == SE_EWOULDBLOCK)
+	{
+		// EWOULDBLOCK is not an error condition
+		BytesRead = 0;
+	}
+	else if (BytesRead <= 0) // 0 means gracefully closed
 	{
 		BytesRead = 0;
-
 		return false;
 	}
 
@@ -187,12 +191,20 @@ bool FSocketBSD::Recv(uint8* Data, int32 BufferSize, int32& BytesRead, ESocketRe
 
 //	NETWORK_PROFILER(FSocket::Recv(Data,BufferSize,BytesRead));
 
-	bool Result = BytesRead >= 0;
-	if (Result)
+	if (BytesRead < 0 && SocketSubsystem->TranslateErrorCode(BytesRead) == SE_EWOULDBLOCK)
 	{
-		LastActivityTime = FDateTime::UtcNow();
+		// EWOULDBLOCK is not an error condition
+		BytesRead = 0;
 	}
-	return Result;
+	else if (BytesRead <= 0) // 0 means gracefully closed
+	{
+		BytesRead = 0;
+		return false;
+	}
+
+	LastActivityTime = FDateTime::UtcNow();
+
+	return true;
 }
 
 

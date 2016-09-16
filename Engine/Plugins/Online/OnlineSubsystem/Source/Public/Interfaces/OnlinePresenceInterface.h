@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OnlineDelegateMacros.h"
+#include "OnlineSubsystemTypes.h"
 
 /** Type of presence keys */
 typedef FString FPresenceKey;

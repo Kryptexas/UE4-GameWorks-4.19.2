@@ -8,6 +8,10 @@
 #include "Material.usf"
 #include "VertexFactory.usf"
 
+#if OUTPUT_PIXEL_DEPTH_OFFSET
+bool bApplyDepthOffset;
+#endif
+
 void Main(
 #if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants,
@@ -32,9 +36,14 @@ void Main(
 
 	#if OUTPUT_PIXEL_DEPTH_OFFSET
 	ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, PixelMaterialInputs, OutDepth);
+	OutDepth = bApplyDepthOffset ? OutDepth : SvPosition.z;
 	#endif
 
-	GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
+	#if MATERIALBLENDING_TRANSLUCENT
+		clip(GetMaterialOpacity(PixelMaterialInputs) - GetMaterialOpacityMaskClipValue());
+	#else
+		GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
+	#endif
 #endif
 
 	OutColor = 0;

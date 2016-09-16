@@ -172,6 +172,8 @@ void FEngineAnalytics::Shutdown(bool bIsEngineShutdown)
 
 void FEngineAnalytics::Tick(float DeltaTime)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineAnalytics_Tick);
+
 	if (SessionManager.IsValid())
 	{
 		SessionManager->Tick(DeltaTime);

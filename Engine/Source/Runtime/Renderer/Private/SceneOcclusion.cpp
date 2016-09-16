@@ -63,44 +63,6 @@ int32 FOcclusionQueryHelpers::GetNumBufferedFrames()
 // default, non-instanced shader implementation
 IMPLEMENT_SHADER_TYPE(,FOcclusionQueryVS,TEXT("OcclusionQueryVertexShader"),TEXT("Main"),SF_Vertex);
 
-FRenderQueryPool::~FRenderQueryPool()
-{
-	Release();
-}
-
-void FRenderQueryPool::Release()
-{
-	Queries.Empty();
-}
-
-FRenderQueryRHIRef FRenderQueryPool::AllocateQuery()
-{
-	// Are we out of available render queries?
-	if ( Queries.Num() == 0 )
-	{
-		// Create a new render query.
-		return RHICreateRenderQuery(QueryType);
-	}
-
-	return Queries.Pop(/*bAllowShrinking=*/ false);
-}
-
-void FRenderQueryPool::ReleaseQuery(FRenderQueryRHIRef &Query)
-{
-	if ( IsValidRef(Query) )
-	{
-		// Is no one else keeping a refcount to the query?
-		if ( Query.GetRefCount() == 1 )
-		{
-			// Return it to the pool.
-			Queries.Add( Query );
-		}
-
-		// De-ref without deleting.
-		Query = NULL;
-	}
-}
-
 FGlobalBoundShaderState FDeferredShadingSceneRenderer::OcclusionTestBoundShaderState;
 
 /** 

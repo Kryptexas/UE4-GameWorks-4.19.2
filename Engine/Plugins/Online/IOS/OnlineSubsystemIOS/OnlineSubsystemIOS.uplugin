@@ -9,7 +9,7 @@
 	"Category" : "Online Platform",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"EnabledByDefault" : false,
+	"EnabledByDefault" : true,
 
     "Modules": [
         {

@@ -193,35 +193,33 @@ void DrawDebugMesh(const UWorld* InWorld, TArray<FVector> const& Verts, TArray<i
 	}
 }
 
-void DrawDebugSolidBox(const UWorld* InWorld, FVector const& Center, FVector const& Extent, FColor const& Color, bool bPersistent, float LifeTime, uint8 DepthPriority)
+void DrawDebugSolidBox(const UWorld* InWorld, FBox const& Box, FColor const& Color, const FTransform& Transform, bool bPersistent, float LifeTime, uint8 DepthPriority)
 {
 	// no debug line drawing on dedicated server
 	if (GEngine->GetNetMode(InWorld) != NM_DedicatedServer)
 	{
 		ULineBatchComponent* const LineBatcher = GetDebugLineBatcher( InWorld, bPersistent, LifeTime, false );
-		if(LineBatcher != NULL)
+		if(LineBatcher != nullptr)
 		{
 			float const ActualLifetime = (LifeTime > 0.f) ? LifeTime : LineBatcher->DefaultLifeTime;
-			FBox const Box = FBox::BuildAABB(Center, Extent);
-			LineBatcher->DrawSolidBox(Box, FTransform::Identity, Color, DepthPriority, ActualLifetime);
+			LineBatcher->DrawSolidBox(Box, Transform, Color, DepthPriority, ActualLifetime);
 		}
 	}
 }
 
+void DrawDebugSolidBox(const UWorld* InWorld, FVector const& Center, FVector const& Extent, FColor const& Color, bool bPersistent, float LifeTime, uint8 DepthPriority)
+{	// No Rotation, so just use identity transform and build the box in the right place!
+	FBox Box = FBox::BuildAABB(Center, Extent);
+
+	DrawDebugSolidBox(InWorld, Box, Color, FTransform::Identity, bPersistent, LifeTime, DepthPriority);
+}
+
 void DrawDebugSolidBox(const UWorld* InWorld, FVector const& Center, FVector const& Extent, FQuat const& Rotation, FColor const& Color, bool bPersistent, float LifeTime, uint8 DepthPriority)
 {
-	// no debug line drawing on dedicated server
-	if (GEngine->GetNetMode(InWorld) != NM_DedicatedServer)
-	{
-		FTransform Transform(Rotation, Center, FVector(1.0f, 1.0f, 1.0f));
-		ULineBatchComponent* const LineBatcher = GetDebugLineBatcher( InWorld, bPersistent, LifeTime, false );
-		if(LineBatcher != NULL)
-		{
-			float const ActualLifetime = (LifeTime > 0.f) ? LifeTime : LineBatcher->DefaultLifeTime;
-			FBox Box = FBox::BuildAABB(FVector::ZeroVector, Extent);
-			LineBatcher->DrawSolidBox(Box, Transform, Color, DepthPriority, ActualLifetime);
-		}
-	}
+	FTransform Transform(Rotation, Center, FVector(1.0f, 1.0f, 1.0f));	// Build transform from Rotation, Center with uniform scale of 1.0.
+	FBox Box = FBox::BuildAABB(FVector::ZeroVector, Extent);	// The Transform handles the Center location, so this box needs to be centered on origin.
+
+	DrawDebugSolidBox(InWorld, Box, Color, Transform, bPersistent, LifeTime, DepthPriority);
 }
 
 /** Loc is an anchor point in the world to guide which part of the infinite plane to draw. */

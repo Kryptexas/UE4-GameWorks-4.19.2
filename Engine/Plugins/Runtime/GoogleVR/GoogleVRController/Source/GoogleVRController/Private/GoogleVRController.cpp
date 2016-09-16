@@ -25,11 +25,66 @@ extern gvr_context *GVRAPI;
 
 class FGoogleVRControllerPlugin : public IGoogleVRControllerPlugin
 {
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	gvr::ControllerApi* CreateAndInitGoogleVRControllerAPI()
+	{
+		// Get controller API
+		ControllerApiPtr pController = new gvr::ControllerApi();
+		check(pController);
+
+		gvr::ControllerApiOptions options;
+		gvr::ControllerApi::InitDefaultOptions(&options);
+
+		// by default we turn on everything
+		options.enable_gestures = true;
+		options.enable_accel = true;
+		options.enable_gyro = true;
+		options.enable_touch = true;
+		options.enable_orientation = true;
+
+		bool success = false;
+#if GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
+		// Have to get the application context and class loader for initializing the controller Api
+		JNIEnv* jenv = FAndroidApplication::GetJavaEnv();
+		static jmethodID Method = FJavaWrapper::FindMethod(jenv, FJavaWrapper::GameActivityClassID, "getApplicationContext", "()Landroid/content/Context;", false);
+		static jobject ApplicationContext = FJavaWrapper::CallObjectMethod(jenv, FJavaWrapper::GameActivityThis, Method);
+		jclass MainClass = FAndroidApplication::FindJavaClass("com/epicgames/ue4/GameActivity");
+		jclass classClass = jenv->FindClass("java/lang/Class");
+		jmethodID getClassLoaderMethod = jenv->GetMethodID(classClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
+		jobject classLoader = jenv->CallObjectMethod(MainClass, getClassLoaderMethod);
+
+		success = pController->Init(jenv, ApplicationContext, classLoader, options, GVRAPI);
+#endif //GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
+
+		if (!success)
+		{
+			UE_LOG(LogGoogleVRController, Log, TEXT("Failed to initialize GoogleVR Controller."));
+			delete pController;
+			return nullptr;
+		}
+		else
+		{
+			UE_LOG(LogGoogleVRController, Log, TEXT("Successfully initialized GoogleVR Controller."));
+			return pController;
+		}
+	}
+#endif //GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+
 	virtual TSharedPtr< class IInputDevice > CreateInputDevice(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler) override
 	{
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
-		return TSharedPtr< class IInputDevice >(new FGoogleVRController(InMessageHandler));
+		UE_LOG(LogTemp, Warning, TEXT("Creating Input Device: GoogleVRController -- Supported"));
+		ControllerApi* pControllerAPI = CreateAndInitGoogleVRControllerAPI();
+		if(pControllerAPI)
+		{
+			return TSharedPtr< class IInputDevice >(new FGoogleVRController(pControllerAPI, InMessageHandler));
+		}
+		else
+		{
+			return nullptr;
+		}
 #else
+		UE_LOG(LogTemp, Warning, TEXT("Creating Input Device: GoogleVRController -- Not Supported"));
 		return nullptr;
 #endif
 	}
@@ -37,49 +92,22 @@ class FGoogleVRControllerPlugin : public IGoogleVRControllerPlugin
 
 IMPLEMENT_MODULE( FGoogleVRControllerPlugin, GoogleVRController)
 
-FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
-	: MessageHandler(InMessageHandler)
+FGoogleVRController::FGoogleVRController(ControllerApiPtr pControllerAPI, const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
+	:
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
-	, pController(nullptr)
+	pController(pControllerAPI),
 #endif
+	bControllerReadyToPollState(false),
+	MessageHandler(InMessageHandler)
 {
+	UE_LOG(LogTemp, Warning, TEXT("GoogleVR Controller Created"));
+
 #if GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
+	// For android platform, controller should be able to sync controller state once it is created.
+	bControllerReadyToPollState = true;
+#endif
 
-	// Get controller API
-	pController = new gvr::ControllerApi();
-	check(pController);
-
-	gvr::ControllerApiOptions options;
-	gvr::ControllerApi::InitDefaultOptions(&options);
-
-	// by default we turn on everything
-	options.enable_gestures = true;
-	options.enable_accel = true;
-	options.enable_gyro = true;
-	options.enable_touch = true;
-	options.enable_orientation = true;
-
-	// Have to get the application context and class loader for initializing the controller Api
-	JNIEnv* jenv = FAndroidApplication::GetJavaEnv();
-	static jmethodID Method = FJavaWrapper::FindMethod(jenv, FJavaWrapper::GameActivityClassID, "getApplicationContext", "()Landroid/content/Context;", false);
-	static jobject ApplicationContext = FJavaWrapper::CallObjectMethod(jenv, FJavaWrapper::GameActivityThis, Method);
-	jclass MainClass = FAndroidApplication::FindJavaClass("com/epicgames/ue4/GameActivity");
-	jclass classClass = jenv->FindClass("java/lang/Class");
-	jmethodID getClassLoaderMethod = jenv->GetMethodID(classClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
-	jobject classLoader = jenv->CallObjectMethod(MainClass, getClassLoaderMethod);
-
-	bool success = pController->Init(jenv, ApplicationContext, classLoader, options, GVRAPI);
-
-	if (!success)
-	{
-		UE_LOG(LogGoogleVRController, Log, TEXT("Failed to initialize GoogleVR Controller."));
-		return;
-	}
-	else
-	{
-		UE_LOG(LogGoogleVRController, Log, TEXT("Successfully initialized GoogleVR Controller."));
-	}
-
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	// Register motion controller!
 	IModularFeatures::Get().RegisterModularFeature( GetModularFeatureName(), this );
 
@@ -96,9 +124,8 @@ FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMe
 	Buttons[(int32)EControllerHand::Left][EGoogleVRControllerButton::TouchPadDown] = FGamepadKeyNames::MotionController_Left_FaceButton3;
 	Buttons[(int32)EControllerHand::Right][EGoogleVRControllerButton::TouchPadDown] = FGamepadKeyNames::MotionController_Right_FaceButton3;
 
-	// unmapped SYSTEM button(s)
-	//Buttons[EControllerHand::Left][EGoogleVRControllerButton::System] = FGamepadKeyNames:: ;
-	//Buttons[EControllerHand::Right][EGoogleVRControllerButton::System] = FGamepadKeyNames:: ;
+	Buttons[(int32)EControllerHand::Left][EGoogleVRControllerButton::System] = FGamepadKeyNames::FGamepadKeyNames::SpecialLeft;
+	Buttons[(int32)EControllerHand::Right][EGoogleVRControllerButton::System] = FGamepadKeyNames::FGamepadKeyNames::SpecialRight;
 
 	Buttons[(int32)EControllerHand::Left][EGoogleVRControllerButton::TriggerPress] = FGamepadKeyNames::MotionController_Left_Trigger;
 	Buttons[(int32)EControllerHand::Right][EGoogleVRControllerButton::TriggerPress] = FGamepadKeyNames::MotionController_Right_Trigger;
@@ -116,9 +143,11 @@ FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMe
 	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddRaw(this, &FGoogleVRController::ApplicationPauseDelegate);
 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddRaw(this, &FGoogleVRController::ApplicationResumeDelegate);
 
-	// Go ahead and resume to be safe
-	ApplicationResumeDelegate();
-
+	if(bControllerReadyToPollState)
+	{
+		// Go ahead and resume to be safe
+		ApplicationResumeDelegate();
+	}
 #endif
 }
 
@@ -126,6 +155,7 @@ FGoogleVRController::~FGoogleVRController()
 {
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	IModularFeatures::Get().UnregisterModularFeature(GetModularFeatureName(), this);
+	delete pController;
 	pController = nullptr;
 #endif
 }
@@ -151,11 +181,14 @@ void FGoogleVRController::ApplicationResumeDelegate()
 void FGoogleVRController::PollController()
 {
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
-
 	// read the controller state into our cache
-	pController->ReadState(&CachedControllerState);
-	
+	if(bControllerReadyToPollState)
+	{
+		pController->ReadState(&CachedControllerState);
+	}
 #endif
+
+	
 }
 
 void FGoogleVRController::ProcessControllerButtons()

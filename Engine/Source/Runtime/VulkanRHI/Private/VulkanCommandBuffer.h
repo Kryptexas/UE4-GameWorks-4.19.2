@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "VulkanRHIPrivate.h"
+#include "VulkanConfiguration.h"
 
 class FVulkanDevice;
 class FVulkanCommandBufferManager;
@@ -39,6 +39,11 @@ public:
 	inline bool IsOutsideRenderPass() const
 	{
 		return State == EState::IsInsideBegin;
+	}
+
+	inline bool HasBegun() const
+	{
+		return State == EState::IsInsideBegin || State == EState::IsInsideRenderPass;
 	}
 
 	inline bool HasEnded() const
@@ -110,9 +115,19 @@ public:
 
 	~FVulkanCommandBufferManager();
 
-	FVulkanCmdBuffer* GetActiveCmdBuffer();
+	inline FVulkanCmdBuffer* GetActiveCmdBuffer()
+	{
+		if (UploadCmdBuffer)
+		{
+			SubmitUploadCmdBuffer(false);
+		}
+
+		return ActiveCmdBuffer;
+	}
 
 	FVulkanCmdBuffer* GetUploadCmdBuffer();
+
+	void SubmitUploadCmdBuffer(bool bWaitForFence);
 
 	void RefreshFenceStatus();
 	void PrepareForNewActiveCommandBuffer();

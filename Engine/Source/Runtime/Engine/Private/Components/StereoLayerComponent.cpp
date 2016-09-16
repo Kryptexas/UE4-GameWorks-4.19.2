@@ -96,8 +96,8 @@ void UStereoLayerComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			case SLT_WorldLocked:
 				LayerDsec.Type = IStereoLayers::WorldLocked;
 				break;
-			case SLT_TorseLocked:
-				LayerDsec.Type = IStereoLayers::TorsoLocked;
+			case SLT_TrackerLocked:
+				LayerDsec.Type = IStereoLayers::TrackerLocked;
 				break;
 			case SLT_FaceLocked:
 				LayerDsec.Type = IStereoLayers::FaceLocked;

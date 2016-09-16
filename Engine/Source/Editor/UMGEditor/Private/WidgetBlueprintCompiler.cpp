@@ -217,10 +217,10 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			WidgetClass = BPWidgetClass->GetAuthoritativeClass();
 		}
 
-		UProperty* ExistingProperty = ParentClass->FindPropertyByName( Widget->GetFName() );
-		if ( ExistingProperty && ExistingProperty->HasMetaData( "BindWidget" ) )
+		UObjectPropertyBase* ExistingProperty = Cast<UObjectPropertyBase>(ParentClass->FindPropertyByName(Widget->GetFName()));
+		if (ExistingProperty && ExistingProperty->HasMetaData("BindWidget") && Widget->IsA(ExistingProperty->PropertyClass))
 		{
-			WidgetToMemberVariableMap.Add( Widget, ExistingProperty );
+			WidgetToMemberVariableMap.Add(Widget, ExistingProperty);
 			continue;
 		}
 

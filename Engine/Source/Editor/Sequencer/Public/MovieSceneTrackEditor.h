@@ -221,7 +221,6 @@ public:
 		return Sequencer.Pin()->IsRecordingLive() || Sequencer.Pin()->GetAutoKeyMode() != EAutoKeyMode::KeyNone;
 	}
 
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface(class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) = 0;
 	virtual void OnInitialize() override { };
 	virtual void OnRelease() override { };
 
@@ -238,7 +237,7 @@ protected:
 	/**
 	 * Gets the currently focused movie scene, if any.
 	 *
-	 * @result Focused movie scene, or nullptr if no movie scene is focused.
+	 * @return Focused movie scene, or nullptr if no movie scene is focused.
 	 */
 	UMovieScene* GetFocusedMovieScene() const
 	{

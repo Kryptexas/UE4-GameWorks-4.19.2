@@ -9,7 +9,7 @@
 #include "IDetailsView.h"
 #include "LevelEditor.h"
 
-#include "FbxAutomationTests.h"
+#include "FbxAutomationCommon.h"
 
 #define PIXEL_INSPECTOR_REQUEST_TIMEOUT 10
 #define MINIMUM_TICK_BETWEEN_CREATE_REQUEST 10

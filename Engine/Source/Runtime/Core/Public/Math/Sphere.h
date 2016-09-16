@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UnrealMathUtility.h"
 
 /**
  * Implements a basic sphere.
@@ -172,3 +173,16 @@ public:
 		return Ar;
 	}
 };
+
+/* FMath inline functions
+ *****************************************************************************/
+
+/**
+ * Converts a sphere into a point plus radius squared for the test above
+ */
+FORCEINLINE bool FMath::SphereAABBIntersection(const FSphere& Sphere,const FBox& AABB)
+{
+	float RadiusSquared = FMath::Square(Sphere.W);
+	// If the distance is less than or equal to the radius, they intersect
+	return SphereAABBIntersection(Sphere.Center,RadiusSquared,AABB);
+}

@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "RHIPrivatePCH.h"
 #include "RHI.h"
 #include "ModuleManager.h"
 
@@ -23,17 +24,34 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 #endif
 
 	// command line overrides
-	const bool bForceSM5  = FParse::Param(FCommandLine::Get(),TEXT("sm5"));
-	const bool bForceSM4  = FParse::Param(FCommandLine::Get(), TEXT("sm4"));
-	const bool bForceVulkan = FParse::Param(FCommandLine::Get(), TEXT("vulkan"));
-	const bool bForceD3D10 = FParse::Param(FCommandLine::Get(),TEXT("d3d10")) || FParse::Param(FCommandLine::Get(),TEXT("dx10")) || (bForceSM4 && !bForceVulkan);
-	const bool bForceD3D11 = FParse::Param(FCommandLine::Get(),TEXT("d3d11")) || FParse::Param(FCommandLine::Get(),TEXT("dx11")) || (bForceSM5 && !bForceVulkan);
-	const bool bForceD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
-	const bool bForceOpenGL = FWindowsPlatformMisc::VerifyWindowsVersion(6, 0) == false || FParse::Param(FCommandLine::Get(), TEXT("opengl")) || FParse::Param(FCommandLine::Get(), TEXT("opengl3")) || FParse::Param(FCommandLine::Get(), TEXT("opengl4"));
-
-	if (((bForceD3D12 ? 1 : 0) + (bForceD3D11 ? 1 : 0) + (bForceD3D10 ? 1 : 0) + (bForceOpenGL ? 1 : 0) + (bForceVulkan ? 1 : 0)) > 1)
+	bool bForceSM5  = FParse::Param(FCommandLine::Get(),TEXT("sm5"));
+	bool bForceSM4  = FParse::Param(FCommandLine::Get(), TEXT("sm4"));
+	bool bForceVulkan = FParse::Param(FCommandLine::Get(), TEXT("vulkan"));
+	bool bForceD3D10 = FParse::Param(FCommandLine::Get(),TEXT("d3d10")) || FParse::Param(FCommandLine::Get(),TEXT("dx10")) || (bForceSM4 && !bForceVulkan);
+	bool bForceD3D11 = FParse::Param(FCommandLine::Get(),TEXT("d3d11")) || FParse::Param(FCommandLine::Get(),TEXT("dx11")) || (bForceSM5 && !bForceVulkan);
+	bool bForceD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
+	bool bForceOpenGL = FWindowsPlatformMisc::VerifyWindowsVersion(6, 0) == false || FParse::Param(FCommandLine::Get(), TEXT("opengl")) || FParse::Param(FCommandLine::Get(), TEXT("opengl3")) || FParse::Param(FCommandLine::Get(), TEXT("opengl4"));
+	ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::Num;
+	int32 Sum = ((bForceD3D12 ? 1 : 0) + (bForceD3D11 ? 1 : 0) + (bForceD3D10 ? 1 : 0) + (bForceOpenGL ? 1 : 0) + (bForceVulkan ? 1 : 0));
+	if (Sum > 1)
 	{
 		UE_LOG(LogRHI, Fatal,TEXT("-d3d12, -d3d11, -d3d10, -vulkan, and -opengl[3|4] mutually exclusive options, but more than one was specified on the command-line."));
+	}
+	else if (Sum == 0)
+	{
+		// Check the list of targeted shader platforms and decide an RHI based off them
+		TArray<FString> TargetedShaderFormats;
+		GConfig->GetArray(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+		if (TargetedShaderFormats.Num() > 0)
+		{
+			// Pick the first one
+			FName ShaderFormatName(*TargetedShaderFormats[0]);
+			EShaderPlatform TargetedPlatform = ShaderFormatToLegacyShaderPlatform(ShaderFormatName);
+			bForceVulkan = IsVulkanPlatform(TargetedPlatform);
+			bForceD3D11 = IsD3DPlatform(TargetedPlatform, false);
+			bForceOpenGL = IsOpenGLPlatform(TargetedPlatform);
+			RequestedFeatureLevel = GetMaxSupportedFeatureLevel(TargetedPlatform);
+		}
 	}
 
 	// Load the dynamic RHI module.
@@ -93,7 +111,7 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 	if (DynamicRHIModule)
 	{
 		// Create the dynamic RHI.
-		DynamicRHI = DynamicRHIModule->CreateRHI();
+		DynamicRHI = DynamicRHIModule->CreateRHI(RequestedFeatureLevel);
 	}
 
 	return DynamicRHI;

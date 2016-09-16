@@ -44,6 +44,8 @@ void FTicker::RemoveTicker(FDelegateHandle Handle)
 
 void FTicker::Tick(float DeltaTime)
 {
+	SCOPE_TIME_GUARD(TEXT("FTicker::Tick"));
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FTicker_Tick);
 	if (!Elements.Num())
 	{

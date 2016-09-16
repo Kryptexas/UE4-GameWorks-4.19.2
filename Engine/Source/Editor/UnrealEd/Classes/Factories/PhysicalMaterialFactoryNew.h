@@ -7,7 +7,7 @@
 #pragma once
 #include "PhysicalMaterialFactoryNew.generated.h"
 
-UCLASS(HideCategories=Object)
+UCLASS(MinimalAPI, HideCategories=Object)
 class UPhysicalMaterialFactoryNew : public UFactory
 {
 	GENERATED_UCLASS_BODY()
@@ -20,6 +20,3 @@ class UPhysicalMaterialFactoryNew : public UFactory
 	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
 	//~ Begin UFactory Interface	
 };
-
-
-

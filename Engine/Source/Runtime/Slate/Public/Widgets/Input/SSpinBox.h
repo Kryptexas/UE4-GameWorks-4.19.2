@@ -311,10 +311,6 @@ public:
 				{
 					ExitTextMode();
 					bDragging = true;
-				}
-
-				if( bDragging )
-				{
 					OnBeginSliderMovement.ExecuteIfBound();
 				}
 

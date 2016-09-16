@@ -184,25 +184,13 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 		}
 
 #if WITH_EDITORONLY_DATA
-		USkeleton* MySkeleton = CurrentAsset->GetSkeleton();
-		for (auto Iter = PreviewCurveOverride.CreateConstIterator(); Iter; ++Iter)
-		{
-			const FName& Name = Iter.Key();
-			const float Value = Iter.Value();
-
-			FSmartName PreviewCurveName;
-
-			// @fixme : this is temporary
-			if (MySkeleton->GetSmartNameByName(USkeleton::AnimCurveMappingName, Name, PreviewCurveName))
-			{
-				Output.Curve.Set(PreviewCurveName.UID, Value, ACF_EditorPreviewCurves);
-
-			}
-		}
+		// have to propagate output curve before pose asset as it can use pose curve data
+		PropagatePreviewCurve(Output);
 
 		// if it has preview pose asset, we have to handle that after we do all animation
 		if (const UPoseAsset* PoseAsset = CurrentAsset->PreviewPoseAsset)
 		{
+			USkeleton* MySkeleton = CurrentAsset->GetSkeleton();
 			// if skeleton doesn't match it won't work
 			if (PoseAsset->GetSkeleton() == MySkeleton)
 			{
@@ -252,9 +240,36 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 		}
 #endif // WITH_EDITORONLY_DATA
 	}
+	else
+	{
+#if WITH_EDITORONLY_DATA
+		// even if you don't have any asset curve, we want to output this curve values
+		PropagatePreviewCurve(Output);
+#endif // WITH_EDITORONLY_DATA
+	}
 
 	return true;
 }
+
+#if WITH_EDITORONLY_DATA
+void FAnimSingleNodeInstanceProxy::PropagatePreviewCurve(FPoseContext& Output) 
+{
+	USkeleton* MySkeleton = GetSkeleton();
+	for (auto Iter = PreviewCurveOverride.CreateConstIterator(); Iter; ++Iter)
+	{
+		const FName& Name = Iter.Key();
+		const float Value = Iter.Value();
+
+		FSmartName PreviewCurveName;
+
+		if (MySkeleton->GetSmartNameByName(USkeleton::AnimCurveMappingName, Name, PreviewCurveName))
+		{
+			Output.Curve.Set(PreviewCurveName.UID, Value, ACF_EditorPreviewCurves);
+
+		}
+	}
+}
+#endif // WITH_EDITORONLY_DATA
 
 void FAnimSingleNodeInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 {

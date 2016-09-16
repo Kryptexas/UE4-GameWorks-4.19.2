@@ -232,6 +232,10 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 #if ENABLE_ANIMNODE_POSE_DEBUG
 		CurrentPose.CopyBonesFrom(Output.Pose);
 #endif
+
+#if WITH_EDITOR
+		Output.AnimInstanceProxy->RegisterWatchedPose(Output.Pose, LinkID);
+#endif
 	}
 	else
 	{
@@ -290,6 +294,10 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 	if (LinkedNode != NULL)
 	{
 		LinkedNode->EvaluateComponentSpace(Output);
+
+#if WITH_EDITOR
+		Output.AnimInstanceProxy->RegisterWatchedPose(Output.Pose, LinkID);
+#endif
 	}
 	else
 	{
@@ -492,6 +500,7 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			}
 
 			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
+			CopyRecord.CachedStructDestProperty = Cast<UStructProperty>(CopyRecord.DestProperty);
 		}
 	}
 
@@ -521,6 +530,10 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 				{
 					bool bValue = CopyRecord.CachedBoolSourceProperty->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
 					CopyRecord.CachedBoolDestProperty->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, bValue, CopyRecord.DestArrayIndex);
+				}
+				else if(CopyRecord.CachedStructDestProperty != nullptr)
+				{
+					CopyRecord.CachedStructDestProperty->Struct->CopyScriptStruct(CopyRecord.Dest, CopyRecord.Source);
 				}
 				else
 				{

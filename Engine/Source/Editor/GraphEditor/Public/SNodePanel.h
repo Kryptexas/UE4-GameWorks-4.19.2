@@ -485,6 +485,18 @@ public:
 		{
 		}
 
+		/** @return The profiler heat intensity */
+		virtual FLinearColor GetProfilerHeatmapIntensity() const
+		{
+			return FLinearColor(1.f, 1.f, 1.f, 0.f);
+		}
+
+		/** @return The brush to use for drawing the profiler heatmap with the heat intensity */
+		virtual const FSlateBrush* GetProfilerHeatmapBrush() const
+		{
+			return FEditorStyle::GetBrush(TEXT("BlueprintProfiler.RegularNode.HeatDisplay"));
+		}
+
 		/** Populate the widgets array with any overlay widgets to render */
 		virtual TArray<FOverlayWidgetInfo> GetOverlayWidgets(bool bSelected, const FVector2D& WidgetSize) const
 		{

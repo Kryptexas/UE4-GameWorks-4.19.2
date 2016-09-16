@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// ..
+// .
 
-#include "ShaderFormatOpenGL.h"
 #include "Core.h"
+#include "ShaderFormatOpenGL.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -871,6 +871,7 @@ static void OpenGLVersionFromGLSLVersion(GLSLVersion InVersion, int& OutMajorVer
 		case GLSL_ES2_IOS:
 		case GLSL_ES2_WEBGL: 
 		case GLSL_ES2:
+		case GLSL_ES3_1_ANDROID:
 			OutMajorVersion = 0;
 			OutMinorVersion = 0;
 			break;
@@ -952,7 +953,7 @@ static void PrecompileGLSLES2(FShaderCompilerOutput& ShaderOutput, const FShader
 				bSavedSuccessfully = true;
 
 				// @todo: Patch the code so that textureCubeLodEXT gets converted to textureCubeLod to workaround PowerVR issues
-				const ANSICHAR* VersionString = FCStringAnsi::Strfind(ShaderSource, "#version 100");
+				const ANSICHAR* VersionString = FCStringAnsi::Strifind(ShaderSource, "#version 100");
 				check(VersionString);
 				VersionString += 12;	// strlen("# version 100");
 				Ar->Serialize((void*)ShaderSource, (VersionString - ShaderSource) * sizeof(ANSICHAR));
@@ -1144,6 +1145,9 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 			VersionSwitch = TEXT(" -gl3 -mac");
 			break;
 
+		case GLSL_ES3_1_ANDROID:
+			VersionSwitch = TEXT(" -es31");
+			break;
 		case GLSL_310_ES_EXT:
 			VersionSwitch = TEXT(" -es31ext");
 			break;
@@ -1186,9 +1190,15 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
 	switch (Version)
 	{
+		case GLSL_ES3_1_ANDROID:
+			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL_ES3_1"), 1);
+			AdditionalDefines.SetDefine(TEXT("ES3_1_PROFILE"), 1);
+			HlslCompilerTarget = HCT_FeatureLevelES3_1;
+			break;
+
 		case GLSL_310_ES_EXT:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
-			AdditionalDefines.SetDefine(TEXT("ES31_AEP_PROFILE"), 1);
+			AdditionalDefines.SetDefine(TEXT("ESDEFERRED_PROFILE"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL4_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 			break;

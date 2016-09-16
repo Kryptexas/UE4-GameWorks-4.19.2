@@ -480,6 +480,11 @@ void ADebugCameraController::ApplySpeedScale()
 		}
 	}
 }
+void ADebugCameraController::SetPawnMovementSpeedScale(const float NewSpeedScale)
+{ 
+	SpeedScale = NewSpeedScale;
+	ApplySpeedScale();
+}
 
 void ADebugCameraController::IncreaseFOV()
 {

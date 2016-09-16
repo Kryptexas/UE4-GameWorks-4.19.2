@@ -303,18 +303,18 @@ bool ANUTActor::VerifyEventWatcher()
 {
 	bool bVerified = false;
 
-	if (EventWatcher != NULL)
+	if (EventWatcher != nullptr)
 	{
 		UWorld* CurWorld = NUTUtil::GetPrimaryWorld();
-		UNetDriver* CurDriver = (CurWorld != NULL ? NUTUtil::GetActiveNetDriver(CurWorld) : NULL);
+		UNetDriver* CurDriver = (CurWorld != nullptr ? NUTUtil::GetActiveNetDriver(CurWorld) : nullptr);
 
-		if (CurDriver->ClientConnections.Contains(EventWatcher))
+		if (CurDriver != nullptr && CurDriver->ClientConnections.Contains(EventWatcher))
 		{
 			bVerified = true;
 		}
 		else
 		{
-			EventWatcher = NULL;
+			EventWatcher = nullptr;
 			bVerified = false;
 		}
 	}
@@ -623,24 +623,27 @@ void ANUTActor::ServerClientPing_Implementation()
 	bool bNotLoaded = false;
 
 	UWorld* CurWorld = GetWorld();
-	UNetDriver* CurNetDriver = (CurWorld != NULL ? NUTUtil::GetActiveNetDriver(CurWorld) : NULL);
+	UNetDriver* CurNetDriver = (CurWorld != nullptr ? NUTUtil::GetActiveNetDriver(CurWorld) : nullptr);
 
-	for (auto CurConn : CurNetDriver->ClientConnections)
+	if (CurNetDriver != nullptr)
 	{
-		// Based on UNetDriver::IsLevelInitializeForActor
-		bNotLoaded = !(CurConn->ClientWorldPackageName == CurWorld->GetOutermost()->GetFName() &&
-									CurConn->ClientHasInitializedLevelFor(this));
-
-		// Also trigger if there is no PlayerController yet set for the connection
-		if (CurConn->OwningActor == NULL)
+		for (UNetConnection* CurConn : CurNetDriver->ClientConnections)
 		{
-			bNotLoaded = true;
-		}
+			// Based on UNetDriver::IsLevelInitializeForActor
+			bNotLoaded = !(CurConn->ClientWorldPackageName == CurWorld->GetOutermost()->GetFName() &&
+										CurConn->ClientHasInitializedLevelFor(this));
+
+			// Also trigger if there is no PlayerController yet set for the connection
+			if (CurConn->OwningActor == nullptr)
+			{
+				bNotLoaded = true;
+			}
 
 
-		if (bNotLoaded)
-		{
-			break;
+			if (bNotLoaded)
+			{
+				break;
+			}
 		}
 	}
 

@@ -81,9 +81,9 @@ namespace AutomationTool
 		public ManualTrigger ControllingTrigger;
 
 		/// <summary>
-		/// Tickets which must be acquired for this node to run
+		/// Tokens which must be acquired for this node to run
 		/// </summary>
-		public FileReference[] RequiredTickets;
+		public FileReference[] RequiredTokens;
 
 		/// <summary>
 		/// List of tasks to execute
@@ -114,8 +114,8 @@ namespace AutomationTool
 		/// <param name="InInputDependencies">Nodes which this node is dependent on for its inputs</param>
 		/// <param name="InOrderDependencies">Nodes which this node needs to run after. Should include all input dependencies.</param>
 		/// <param name="InControllingTrigger">The trigger which this node is behind</param>
-		/// <param name="InTicket">Optional ticket which must be required for this node to run</param>
-		public Node(string InName, NodeOutput[] InInputs, string[] InOutputNames, Node[] InInputDependencies, Node[] InOrderDependencies, ManualTrigger InControllingTrigger, FileReference[] InRequiredTickets)
+		/// <param name="InRequiredTokens">Optional tokens which must be required for this node to run</param>
+		public Node(string InName, NodeOutput[] InInputs, string[] InOutputNames, Node[] InInputDependencies, Node[] InOrderDependencies, ManualTrigger InControllingTrigger, FileReference[] InRequiredTokens)
 		{
 			Name = InName;
 			Inputs = InInputs;
@@ -128,7 +128,7 @@ namespace AutomationTool
 			InputDependencies = InInputDependencies;
 			OrderDependencies = InOrderDependencies;
 			ControllingTrigger = InControllingTrigger;
-			RequiredTickets = InRequiredTickets;
+			RequiredTokens = InRequiredTokens;
 		}
 
 		/// <summary>
@@ -143,7 +143,6 @@ namespace AutomationTool
 		/// Build all the tasks for this node
 		/// </summary>
 		/// <param name="Job">Information about the current job</param>
-		/// <param name="BuildProducts">Set of build products produced by this node.</param>
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include. Should be set to contain the node inputs on entry.</param>
 		/// <returns>Whether the task succeeded or not. Exiting with an exception will be caught and treated as a failure.</returns>
 		public bool Build(JobContext Job, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
@@ -212,13 +211,20 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Checks whether this node is downstream of the given trigger
+		/// Checks whether this node is behind the given trigger
 		/// </summary>
 		/// <param name="Trigger">The trigger to check</param>
-		/// <returns>True if the node is downstream of the trigger, false otherwise</returns>
-		public bool IsControlledBy(ManualTrigger Trigger)
+		/// <returns>True if the node is directly or indirectly behind the given trigger, false otherwise</returns>
+		public bool IsBehind(ManualTrigger Trigger)
 		{
-			return Trigger == null || ControllingTrigger == Trigger || (ControllingTrigger != null && ControllingTrigger.IsDownstreamFrom(Trigger));
+			for(ManualTrigger OtherTrigger = ControllingTrigger; OtherTrigger != Trigger; OtherTrigger = OtherTrigger.Parent)
+			{
+				if(OtherTrigger == null)
+				{
+					return false;
+				}
+			}
+			return true;
 		}
 
 		/// <summary>

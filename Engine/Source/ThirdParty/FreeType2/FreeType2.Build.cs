@@ -128,5 +128,10 @@ public class FreeType2 : ModuleRules
             }
             PublicAdditionalLibraries.Add(FreeType2Path + "Lib/HTML5/libfreetype260" + OpimizationSuffix + ".bc");
         } 
+        else if (Target.Platform == UnrealTargetPlatform.PS4)
+        {
+            PublicLibraryPaths.Add(FreeType2LibPath + "PS4");
+            PublicAdditionalLibraries.Add("freetype2412");
+        }
 	}
 }

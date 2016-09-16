@@ -96,7 +96,7 @@ void UK2Node_FunctionTerminator::PromoteFromInterfaceOverride(bool bIsPrimaryTer
 	{
 		if (Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec)
 		{
-			CreateUserDefinedPin(Pin->PinName, Pin->PinType, (Pin->Direction == EGPD_Input)? EGPD_Output : EGPD_Input, false);
+			CreateUserDefinedPin(Pin->PinName, Pin->PinType, Pin->Direction, false);
 		}
 	}
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();

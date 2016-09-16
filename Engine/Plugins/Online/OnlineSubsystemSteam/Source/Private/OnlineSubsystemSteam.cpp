@@ -552,7 +552,11 @@ bool FOnlineSubsystemSteam::InitSteamworksServer()
 		}
 	}
 
-	GConfig->GetInt(TEXT("URL"), TEXT("Port"), GameServerGamePort, GEngineIni);
+	if (FParse::Value(FCommandLine::Get(), TEXT("Port="), GameServerGamePort) == false)
+	{
+		GConfig->GetInt(TEXT("URL"), TEXT("Port"), GameServerGamePort, GEngineIni);
+	}
+	
 	GameServerSteamPort = GameServerGamePort + 1;
 
 	// Allow the command line to override the default query port

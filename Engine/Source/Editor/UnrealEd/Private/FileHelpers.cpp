@@ -19,7 +19,6 @@
 #include "MessageLog.h"
 
 #include "LevelUtils.h"
-#include "MessageLog.h"
 
 #include "Dialogs/DlgPickAssetPath.h"
 #include "Dialogs/DlgPickPath.h"
@@ -250,7 +249,7 @@ void FEditorFileUtils::RegisterLevelFilename(UObject* Object, const FString& New
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static FString GetFilename(const FName& PackageName)
+FString FEditorFileUtils::GetFilename(const FName& PackageName)
 {
 	// First see if it is an in-memory package that already has an associated filename
 	const FString PackageNameString = PackageName.ToString();
@@ -282,7 +281,7 @@ static FString GetFilename(const FName& PackageName)
 	return *Result;
 }
 
-static FString GetFilename(UObject* LevelObject)
+FString FEditorFileUtils::GetFilename(UObject* LevelObject)
 {
 	return GetFilename( LevelObject->GetOutermost()->GetFName() );
 }
@@ -881,10 +880,6 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 						}
 					}
 
-#if USE_STABLE_LOCALIZATION_KEYS
-					TextNamespaceUtil::ClearPackageNamespace(InWorld);
-#endif // USE_STABLE_LOCALIZATION_KEYS
-
 					// Save the level!
 					bStatus = FEditorFileUtils::SaveMap( InWorld, SaveFilename );
 				}
@@ -895,10 +890,6 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 			}
 			else
 			{
-#if USE_STABLE_LOCALIZATION_KEYS
-				TextNamespaceUtil::ClearPackageNamespace(InWorld);
-#endif // USE_STABLE_LOCALIZATION_KEYS
-
 				// Save the level
 				bStatus = FEditorFileUtils::SaveMap( InWorld, SaveFilename );
 			}
@@ -920,17 +911,6 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	if (bStatus && OutSavedFilename)
 	{
 		*OutSavedFilename = SaveFilename;
-	}
-
-	if (bStatus)
-	{
-		FSelectionStateOfLevel SelectionStateOfLevel;
-		GEditor->GetSelectionStateOfLevel(SelectionStateOfLevel);
-
-		// Reload the world now as "Save As..." may have updated some IDs
-		FEditorFileUtils::LoadMap(SaveFilename, /*bLoadAsTemplate*/false, /*bShowProgress*/true);
-
-		GEditor->SetSelectionStateOfLevel(SelectionStateOfLevel);
 	}
 
 	return bStatus;
@@ -2131,6 +2111,81 @@ void FEditorFileUtils::LoadMap()
 	}
 }
 
+static void NotifyBSPNeedsRebuild(const FString& PackageName)
+{
+	static TWeakPtr<SNotificationItem> NotificationPtr;
+
+	auto RemoveNotification = []
+	{
+		TSharedPtr<SNotificationItem> Notification = NotificationPtr.Pin();
+		if (Notification.IsValid())
+		{
+			Notification->SetEnabled(false);
+			Notification->SetExpireDuration(0.0f);
+			Notification->SetFadeOutDuration(0.5f);
+			Notification->ExpireAndFadeout();
+			NotificationPtr.Reset();
+		}
+	};
+
+	// If there's still a notification present from the last time a map was loaded, get rid of it now.
+	RemoveNotification();
+
+	FNotificationInfo Info(LOCTEXT("BSPIssues", "Some issues were detected with BSP/Volume geometry in the loaded level or one of its sub-levels.\nThis is due to a fault in previous versions of the editor which has now been fixed, not user error.\nYou can choose to correct these issues by rebuilding the geometry now if you wish."));
+	Info.bFireAndForget = true;
+	Info.bUseLargeFont = false;
+	Info.ExpireDuration = 25.0f;
+	Info.FadeOutDuration = 0.5f;
+
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		LOCTEXT("RebuildGeometry", "Rebuild Geometry"),
+		FText(),
+		FSimpleDelegate::CreateLambda([&RemoveNotification]{
+			TArray<TWeakObjectPtr<ULevel>> LevelsToRebuild;
+			ABrush::NeedsRebuild(&LevelsToRebuild);
+			for (const TWeakObjectPtr<ULevel>& Level : LevelsToRebuild)
+			{
+				if (Level.IsValid())
+				{
+					GUnrealEd->RebuildLevel(*Level.Get());
+				}
+			}
+			ABrush::OnRebuildDone();
+			RemoveNotification();
+		}),
+		SNotificationItem::CS_None)
+	);
+
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		LOCTEXT("DontRebuild", "Don't Rebuild"),
+		FText(),
+		FSimpleDelegate::CreateLambda([&RemoveNotification]{
+			RemoveNotification();
+		}),
+		SNotificationItem::CS_None)
+	);
+
+	Info.Hyperlink = FSimpleDelegate::CreateLambda([PackageName]{
+		FMessageLog MessageLog("LoadErrors");
+		MessageLog.NewPage(FText::Format(LOCTEXT("GeometryErrors", "Geometry errors from loading map '{0}'"), FText::FromString(PackageName)));
+
+		TArray<TWeakObjectPtr<ULevel>> LevelsToRebuild;
+		ABrush::NeedsRebuild(&LevelsToRebuild);
+		for (const auto& Level : LevelsToRebuild)
+		{
+			if (Level.IsValid())
+			{
+				MessageLog.Message(EMessageSeverity::Info, FText::Format(LOCTEXT("GeometryErrorMap", "Level '{0}' has geometry with invalid normals."), FText::FromString(Level->GetOuter()->GetName())));
+			}
+		}
+
+		MessageLog.Open();
+	});
+	Info.HyperlinkText = LOCTEXT("WhichLevels", "Which levels need a geometry rebuild?");
+
+	NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+}
+
 /**
  * Loads the specified map.  Does not prompt the user to save the current map.
  *
@@ -2250,6 +2305,12 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 
 	// If there are any old mirrored brushes in the map with inverted polys, fix them here
 	GUnrealEd->FixAnyInvertedBrushes(World);
+
+	// Request to rebuild BSP if the loading process flagged it as not up-to-date
+	if (ABrush::NeedsRebuild())
+	{
+		NotifyBSPNeedsRebuild(LongMapPackageName);
+	}
 
 	// Fire delegate when a new map is opened, with name of map
 	FEditorDelegates::OnMapOpened.Broadcast(InFilename, LoadAsTemplate);
@@ -2839,11 +2900,17 @@ static bool InternalSavePackages(TArray<UPackage*>& PackagesToSave, int32 NumPac
 						bool bPackageLocallyWritable;
 						const int32 SaveStatus = InternalSavePackage(CurPackage, bPackageLocallyWritable, SaveErrors);
 
+						if ( SaveStatus == EAppReturnType::Cancel)
+						{
+							// we don't want to pop up a message box about failing to save packages if they cancel
+							// instead warn here so there is some trace in the log and also unattended builds can find it
+							UE_LOG(LogFileHelpers, Warning, TEXT("Cancelled saving package %s"), *CurPackage->GetName());
+						}
+
 						if (SaveStatus == EAppReturnType::No)
 						{
 							// The package could not be saved so add it to the failed array 
 							FailedPackages.Add(CurPackage);
-
 						}
 					}
 				}

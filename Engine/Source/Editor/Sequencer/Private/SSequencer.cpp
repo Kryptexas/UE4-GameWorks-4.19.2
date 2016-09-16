@@ -108,7 +108,6 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	CachedViewRange = TRange<float>::Empty();
 
 	Settings = InSequencer->GetSettings();
-	Settings->GetOnShowCurveEditorChanged().AddSP(this, &SSequencer::OnCurveEditorVisibilityChanged);
 	Settings->GetOnTimeSnapIntervalChanged().AddSP(this, &SSequencer::OnTimeSnapIntervalChanged);
 	if ( InSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval() > 0 )
 	{
@@ -210,7 +209,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 		.OnViewRangeChanged(InArgs._OnViewRangeChanged)
 		.ViewRange(InArgs._ViewRange);
 
-	CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
+	CurveEditor->SetAllowAutoFrame(SequencerPtr.Pin()->GetShowCurveEditor());
 	TrackArea->SetTreeView(TreeView);
 
 	const int32 Column0 = 0, Column1 = 1;
@@ -514,7 +513,7 @@ PRAGMA_ENABLE_OPTIMIZATION
 
 void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings)
 {
-	auto CanPaste = [this]{
+	auto CanPasteFromHistory = [this]{
 		if (!HasFocusedDescendants() && !HasKeyboardFocus())
 		{
 			return false;
@@ -525,14 +524,14 @@ void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBinding
 	
 	SequencerCommandBindings->MapAction(
 		FGenericCommands::Get().Paste,
-		FExecuteAction::CreateSP(this, &SSequencer::Paste),
-		FCanExecuteAction::CreateLambda(CanPaste)
+		FExecuteAction::CreateSP(this, &SSequencer::OnPaste),
+		FCanExecuteAction::CreateSP(this, &SSequencer::CanPaste)
 	);
 
 	SequencerCommandBindings->MapAction(
 		FSequencerCommands::Get().PasteFromHistory,
 		FExecuteAction::CreateSP(this, &SSequencer::PasteFromHistory),
-		FCanExecuteAction::CreateLambda(CanPaste)
+		FCanExecuteAction::CreateLambda(CanPasteFromHistory)
 	);
 
 	SequencerCommandBindings->MapAction(
@@ -986,7 +985,8 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 
 	if ( SequencerPtr.Pin()->IsLevelEditorSequencer() )
 	{
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ExportSceneAndSequence );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ImportFBX );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ExportFBX );
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -1080,7 +1080,6 @@ TSharedRef<SWidget> SSequencer::MakeTimeRange(const TSharedRef<SWidget>& InnerCo
 SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
-	Settings->GetOnShowCurveEditorChanged().RemoveAll(this);
 	Settings->GetOnTimeSnapIntervalChanged().RemoveAll(this);
 }
 
@@ -1119,10 +1118,8 @@ void RestoreSelectionState(const TArray<TSharedRef<FSequencerDisplayNode>>& Disp
 		{
 			SequencerSelection.AddToSelection(DisplayNode);
 		}
-		for (TSharedRef<FSequencerDisplayNode> ChildDisplayNode : DisplayNode->GetChildNodes())
-		{
-			RestoreSelectionState(DisplayNode->GetChildNodes(), SelectedPathNames, SequencerSelection);
-		}
+
+		RestoreSelectionState(DisplayNode->GetChildNodes(), SelectedPathNames, SequencerSelection);
 	}
 }
 
@@ -1463,9 +1460,9 @@ void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)
 		}
 		else
 		{
-			if (Settings->GetShowCurveEditor())
+			if (SequencerPtr.Pin()->GetShowCurveEditor())
 			{
-				Settings->SetShowCurveEditor(false);
+				SequencerPtr.Pin()->SetShowCurveEditor(false);
 			}
 
 			SequencerPtr.Pin()->PopToSequenceInstance( Item.MovieSceneInstance.Pin().ToSharedRef() );
@@ -1672,7 +1669,7 @@ EVisibility SSequencer::GetBreadcrumbTrailVisibility() const
 
 EVisibility SSequencer::GetCurveEditorToolBarVisibility() const
 {
-	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 
@@ -1697,7 +1694,7 @@ bool SSequencer::ShowFrameNumbers() const
 float SSequencer::GetOutlinerSpacerFill() const
 {
 	const float Column1Coeff = GetColumnFillCoefficient(1);
-	return Settings->GetShowCurveEditor() ? Column1Coeff / (1 - Column1Coeff) : 0.f;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? Column1Coeff / (1 - Column1Coeff) : 0.f;
 }
 
 
@@ -1709,13 +1706,13 @@ void SSequencer::OnColumnFillCoefficientChanged(float FillCoefficient, int32 Col
 
 EVisibility SSequencer::GetTrackAreaVisibility() const
 {
-	return Settings->GetShowCurveEditor() ? EVisibility::Collapsed : EVisibility::Visible;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 
 EVisibility SSequencer::GetCurveEditorVisibility() const
 {
-	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+	return SequencerPtr.Pin()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 
@@ -1743,13 +1740,15 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 		}
 
 		// Only zoom horizontally if the editor is visible
-		CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
+		CurveEditor->SetAllowAutoFrame(SequencerPtr.Pin()->GetShowCurveEditor());
 
 		if (CurveEditor->GetAutoFrame())
 		{
 			CurveEditor->ZoomToFit();
 		}
 	}
+
+	TreeView->UpdateTrackArea();
 }
 
 
@@ -1830,7 +1829,83 @@ FPasteContextMenuArgs SSequencer::GeneratePasteArgs(float PasteAtTime, TSharedPt
 	return FPasteContextMenuArgs::PasteInto(MoveTemp(PasteIntoNodes), PasteAtTime, Clipboard);
 }
 
-void SSequencer::Paste()
+void SSequencer::OnPaste()
+{
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetSelectedOutlinerNodes();
+	if (SelectedNodes.Num() == 0)
+	{
+		OpenPasteMenu();
+	}
+	else
+	{
+		PasteTracks();
+	}
+}
+
+bool SSequencer::CanPaste()
+{
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetSelectedOutlinerNodes();
+	if (SelectedNodes.Num() != 0)
+	{
+		FString TexttoImport;
+		FPlatformMisc::ClipboardPaste(TexttoImport);
+
+		TArray<UMovieSceneTrack*> ImportedTrack;
+		Sequencer->ImportTracksFromText(TexttoImport, ImportedTrack);
+		if (ImportedTrack.Num() == 0)
+		{
+			return false;
+		}
+
+		for (TSharedRef<FSequencerDisplayNode> Node : SelectedNodes)
+		{
+			if (Node->GetType() == ESequencerNode::Object)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	else
+	{
+		if (!HasFocusedDescendants() && !HasKeyboardFocus())
+		{
+			return false;
+		}
+		return SequencerPtr.Pin()->GetClipboardStack().Num() != 0;
+	}
+}
+
+void SSequencer::PasteTracks()
+{
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+
+	TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetSelectedOutlinerNodes();
+	if (SelectedNodes.Num() == 0)
+	{
+		return;
+	}
+
+	TArray<TSharedPtr<FSequencerObjectBindingNode>> ObjectNodes;
+	for (TSharedRef<FSequencerDisplayNode> Node : SelectedNodes)
+	{
+		if (Node->GetType() != ESequencerNode::Object)
+		{
+			continue;
+		}
+
+		TSharedPtr<FSequencerObjectBindingNode> ObjectNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
+		if (ObjectNode.IsValid())
+		{
+			ObjectNodes.Add(ObjectNode);
+		}
+	}
+	Sequencer->PasteCopiedTracks(ObjectNodes);
+}
+
+void SSequencer::OpenPasteMenu()
 {
 	TSharedPtr<FPasteContextMenu> ContextMenu;
 

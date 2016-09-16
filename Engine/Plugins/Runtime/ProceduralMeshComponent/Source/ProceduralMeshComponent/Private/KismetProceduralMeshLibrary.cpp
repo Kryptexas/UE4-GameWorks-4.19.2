@@ -5,7 +5,12 @@
 #include "StaticMeshResources.h"
 #include "GeomTools.h"
 
+#include "MessageLog.h"
+#include "UObjectToken.h"
+
 DECLARE_CYCLE_STAT(TEXT("Update Collision"), STAT_ProcMesh_CalcTangents, STATGROUP_ProceduralMesh);
+
+#define LOCTEXT_NAMESPACE "KismetProcMeshLibrary"
 
 
 UKismetProceduralMeshLibrary::UKismetProceduralMeshLibrary(const FObjectInitializer& ObjectInitializer)
@@ -363,37 +368,45 @@ static int32 GetNewIndexForOldVertIndex(int32 MeshVertIndex, TMap<int32, int32>&
 
 void UKismetProceduralMeshLibrary::GetSectionFromStaticMesh(UStaticMesh* InMesh, int32 LODIndex, int32 SectionIndex, TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents)
 {
-	if(	InMesh != nullptr && 
-		InMesh->RenderData != nullptr && 
-		InMesh->RenderData->LODResources.IsValidIndex(LODIndex) )
+	if(	InMesh != nullptr )
 	{
-		const FStaticMeshLODResources& LOD = InMesh->RenderData->LODResources[LODIndex];
-		if (LOD.Sections.IsValidIndex(SectionIndex))
+		if (!InMesh->bAllowCPUAccess)
 		{
-			// Empty output buffers
-			Vertices.Reset();
-			Triangles.Reset();
-			Normals.Reset();
-			UVs.Reset();
-			Tangents.Reset();
-
-			// Map from vert buffer for whole mesh to vert buffer for section of interest
-			TMap<int32, int32> MeshToSectionVertMap;
-
-			const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
-			const uint32 OnePastLastIndex = Section.FirstIndex + Section.NumTriangles * 3;
-			FIndexArrayView Indices = LOD.IndexBuffer.GetArrayView();
-
-			// Iterate over section index buffer, copying verts as needed
-			for (uint32 i = Section.FirstIndex; i < OnePastLastIndex; i++)
+			FMessageLog("PIE").Warning()
+				->AddToken(FTextToken::Create(LOCTEXT("GetSectionFromStaticMeshStart", "Calling GetSectionFromStaticMesh on")))
+				->AddToken(FUObjectToken::Create(InMesh))
+				->AddToken(FTextToken::Create(LOCTEXT("GetSectionFromStaticMeshEnd", "but 'Allow CPU Access' is not enabled. This is required for converting StaticMesh to ProceduralMeshComponent in cooked builds.")));
+		}
+		else if (InMesh->RenderData != nullptr && InMesh->RenderData->LODResources.IsValidIndex(LODIndex))
+		{
+			const FStaticMeshLODResources& LOD = InMesh->RenderData->LODResources[LODIndex];
+			if (LOD.Sections.IsValidIndex(SectionIndex))
 			{
-				uint32 MeshVertIndex = Indices[i];
+				// Empty output buffers
+				Vertices.Reset();
+				Triangles.Reset();
+				Normals.Reset();
+				UVs.Reset();
+				Tangents.Reset();
 
-				// See if we have this vert already in our section vert buffer, and copy vert in if not 
-				int32 SectionVertIndex = GetNewIndexForOldVertIndex(MeshVertIndex, MeshToSectionVertMap, &LOD.PositionVertexBuffer, &LOD.VertexBuffer, Vertices, Normals, UVs, Tangents);
+				// Map from vert buffer for whole mesh to vert buffer for section of interest
+				TMap<int32, int32> MeshToSectionVertMap;
 
-				// Add to index buffer
-				Triangles.Add(SectionVertIndex);
+				const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
+				const uint32 OnePastLastIndex = Section.FirstIndex + Section.NumTriangles * 3;
+				FIndexArrayView Indices = LOD.IndexBuffer.GetArrayView();
+
+				// Iterate over section index buffer, copying verts as needed
+				for (uint32 i = Section.FirstIndex; i < OnePastLastIndex; i++)
+				{
+					uint32 MeshVertIndex = Indices[i];
+
+					// See if we have this vert already in our section vert buffer, and copy vert in if not 
+					int32 SectionVertIndex = GetNewIndexForOldVertIndex(MeshVertIndex, MeshToSectionVertMap, &LOD.PositionVertexBuffer, &LOD.VertexBuffer, Vertices, Normals, UVs, Tangents);
+
+					// Add to index buffer
+					Triangles.Add(SectionVertIndex);
+				}
 			}
 		}
 	}
@@ -513,7 +526,7 @@ FProcMeshVertex InterpolateVert(const FProcMeshVertex& V0, const FProcMeshVertex
 /** Transform triangle from 2D to 3D static-mesh triangle. */
 void Transform2DPolygonTo3D(const FUtilPoly2D& InPoly, const FMatrix& InMatrix, TArray<FProcMeshVertex>& OutVerts, FBox& OutBox)
 {
-	FVector PolyNormal = InMatrix.GetUnitAxis(EAxis::Z);
+	FVector PolyNormal = -InMatrix.GetUnitAxis(EAxis::Z);
 	FProcMeshTangent PolyTangent(InMatrix.GetUnitAxis(EAxis::X), false);
 
 	for (int32 VertexIndex = 0; VertexIndex < InPoly.Verts.Num(); VertexIndex++)
@@ -631,11 +644,11 @@ bool TriangulatePoly(TArray<int32>& OutTris, const TArray<FProcMeshVertex>& Poly
 /** Util to slice a convex hull with a plane */
 void SliceConvexElem(const FKConvexElem& InConvex, const FPlane& SlicePlane, TArray<FVector>& OutConvexVerts)
 {
-	// Get set of planes taht make up hull
+	// Get set of planes that make up hull
 	TArray<FPlane> ConvexPlanes;
 	InConvex.GetPlanes(ConvexPlanes);
 
-	if (ConvexPlanes.Num() > 4)
+	if (ConvexPlanes.Num() >= 4)
 	{
 		// Add on the slicing plane (need to flip as it culls geom in the opposite sense to our geom culling code)
 		ConvexPlanes.Add(SlicePlane.Flip());
@@ -1047,7 +1060,7 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 				TArray<FVector> SlicedConvexVerts;
 				SliceConvexElem(BaseConvex, SlicePlane, SlicedConvexVerts);
 				// If we got something valid, add it
-				if (SlicedConvexVerts.Num() > 0)
+				if (SlicedConvexVerts.Num() >= 4)
 				{
 					SlicedCollision.Add(SlicedConvexVerts);
 				}
@@ -1057,7 +1070,7 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 				{
 					TArray<FVector> OtherSlicedConvexVerts;
 					SliceConvexElem(BaseConvex, SlicePlane.Flip(), OtherSlicedConvexVerts);
-					if (OtherSlicedConvexVerts.Num() > 0)
+					if (OtherSlicedConvexVerts.Num() >= 4)
 					{
 						OtherSlicedCollision.Add(OtherSlicedConvexVerts);
 					}
@@ -1097,3 +1110,5 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

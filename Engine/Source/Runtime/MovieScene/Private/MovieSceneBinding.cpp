@@ -20,12 +20,10 @@ TRange<float> FMovieSceneBinding::GetTimeRange() const
 	return TRange<float>::Hull(Bounds);
 }
 
-
 void FMovieSceneBinding::AddTrack(UMovieSceneTrack& NewTrack)
 {
-	Tracks.Add( &NewTrack );
+	Tracks.Add(&NewTrack);
 }
-
 
 bool FMovieSceneBinding::RemoveTrack(UMovieSceneTrack& Track)
 {

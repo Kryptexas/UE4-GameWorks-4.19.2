@@ -8,7 +8,9 @@
 #include "MeshBoneReduction.h"
 #include "ComponentReregisterContext.h"
 #include "ImageUtils.h"
+THIRD_PARTY_INCLUDES_START
 #include "ssf.h"
+THIRD_PARTY_INCLUDES_END
 #include "ImageWrapper.h"
 #include "SimplygonRESTClient.h"
 #include "Engine.h"

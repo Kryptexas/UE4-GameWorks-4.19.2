@@ -91,3 +91,20 @@ FArchive& FDuplicateDataReader::operator<<( FAssetPtr& AssetPtr)
 	AssetPtr = ID;
 	return Ar;
 }
+
+FArchive& FDuplicateDataReader::operator<<( FStringAssetReference& StringAssetReference)
+{
+	FArchiveUObject::operator<<(StringAssetReference);
+			
+	// Remap asset reference if necessary
+	{
+		UObject* SourceObject = StringAssetReference.ResolveObject();
+		FDuplicatedObject ObjectInfo = SourceObject ? DuplicatedObjectAnnotation.GetAnnotation(SourceObject) : FDuplicatedObject();
+		if (!ObjectInfo.IsDefault())
+		{
+			StringAssetReference = FStringAssetReference::GetOrCreateIDForObject(ObjectInfo.DuplicatedObject);
+		}
+	}
+	
+	return *this;
+}

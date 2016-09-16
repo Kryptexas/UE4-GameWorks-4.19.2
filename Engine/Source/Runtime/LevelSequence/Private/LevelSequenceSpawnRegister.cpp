@@ -41,9 +41,6 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 
 	const FName ActorName = NAME_None;
 
-	// Override the object flags so that RF_Transactional is not set.  Puppet actors are never transactional
-	// @todo sequencer: These actors need to avoid any transaction history.  However, RF_Transactional can currently be set on objects on the fly!
-	// NOTE: We are omitting RF_Transactional intentionally
 	const EObjectFlags ObjectFlags = RF_Transient;
 
 	// @todo sequencer livecapture: Consider using SetPlayInEditorWorld() and RestoreEditorWorld() here instead
@@ -58,6 +55,8 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		// @todo: Spawning with a non-CDO template is fraught with issues
 		//SpawnInfo.Template = ObjectTemplate;
+		// allow pre-construction variables to be set.
+		SpawnInfo.bDeferConstruction = true;
 	}
 
 	FTransform SpawnTransform;
@@ -90,12 +89,28 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 	}
 	
 	UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
+	CopyParams.bNotifyObjectReplacement = false;
 	SpawnedActor->UnregisterAllComponents();
 	UEngine::CopyPropertiesForUnrelatedObjects(ObjectTemplate, SpawnedActor, CopyParams);
 	SpawnedActor->RegisterAllComponents();
 
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		// Explicitly set RF_Transactional on spawned actors so we can undo/redo properties on them. We don't add this as a spawn flag since we don't want to transact spawn/destroy events.
+		SpawnedActor->SetFlags(RF_Transactional);
+
+		for (UActorComponent* Component : TInlineComponentArray<UActorComponent*>(SpawnedActor))
+		{
+			Component->SetFlags(RF_Transactional);
+		}
+	}
+#endif
+
 	// tag this actor so we know it was spawned by sequencer
 	SpawnedActor->Tags.Add(SequencerActorTag);
+
+	SpawnedActor->FinishSpawning(SpawnTransform);
 
 	Register.Add(Key, FSpawnedObject(BindingId, *SpawnedActor, Spawnable->GetSpawnOwnership()));
 
@@ -130,6 +145,18 @@ void FLevelSequenceSpawnRegister::DestroySpawnedObject(UObject& Object)
 	{
 		return;
 	}
+
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		// Explicitly remove RF_Transactional on spawned actors since we don't want to trasact spawn/destroy events
+		Actor->ClearFlags(RF_Transactional);
+		for (UActorComponent* Component : TInlineComponentArray<UActorComponent*>(Actor))
+		{
+			Component->ClearFlags(RF_Transactional);
+		}
+	}
+#endif
 
 	UWorld* World = Actor->GetWorld();
 	if (ensure(World))

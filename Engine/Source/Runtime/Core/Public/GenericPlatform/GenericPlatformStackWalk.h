@@ -70,7 +70,6 @@ struct FProgramCounterSymbolInfo final
 
 struct FProgramCounterSymbolInfoEx;
 
-
 /**
  * Generic implementation for most platforms
  */
@@ -181,6 +180,17 @@ struct CORE_API FGenericPlatformStackWalk
 	 * @param	Context				Optional thread context information
 	 */ 
 	static void StackWalkAndDump( ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, void* Context = nullptr );
+	
+	/**
+	 * Walks the stack and updates the Stack array with the symbol information for each line in the stack.
+	 *
+	 * @param	IgnoreCount			Number of stack entries to ignore (some are guaranteed to be in the stack walking code)
+	 * @param	MaxDepth			The maximum depth to trace, can't be more than 100, offset from IgnoreCount.
+	 * @param	Context				Optional thread context information
+	 * 
+	 * @return	The stack of symbols to return.
+	 */ 
+	static TArray<FProgramCounterSymbolInfo> GetStack(int32 IgnoreCount, int32 MaxDepth = 100, void* Context = nullptr);
 
 	/**
 	* Walks the stack for the specified thread and appends the human readable string to the passed in one.

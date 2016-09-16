@@ -361,64 +361,22 @@ namespace BlueprintSearchMetaDataHelpers
 			this->PreviousTokenWritten = EJsonToken::SquareOpen;
 		}
 
-		void WriteValue( const FText& Identifier, const bool Value )
-		{
-			check( this->Stack.Top() == EJson::Object );
-			WriteIdentifier( Identifier );
+		using TJsonStringWriter<PrintPolicy>::WriteValueOnly;
 
-			PrintPolicy::WriteSpace(this->Stream);
-			this->WriteBoolValue( Value );
-			this->PreviousTokenWritten = Value ? EJsonToken::True : EJsonToken::False;
+		EJsonToken WriteValueOnly(const FText& Value)
+		{
+			WriteTextValue(Value);
+			return EJsonToken::String;
 		}
 
-		void WriteValue( const FText& Identifier, const double Value )
+		template <class FValue>
+		void WriteValue( const FText& Identifier, FValue Value )
 		{
 			check( this->Stack.Top() == EJson::Object );
 			WriteIdentifier( Identifier );
 
 			PrintPolicy::WriteSpace(this->Stream);
-			this->WriteNumberValue( Value );
-			this->PreviousTokenWritten = EJsonToken::Number;
-		}
-
-		void WriteValue( const FText& Identifier, const int32 Value )
-		{
-			check( this->Stack.Top() == EJson::Object );
-			WriteIdentifier( Identifier );
-
-			PrintPolicy::WriteSpace(this->Stream);
-			this->WriteIntegerValue( Value );
-			this->PreviousTokenWritten = EJsonToken::Number;
-		}
-
-		void WriteValue( const FText& Identifier, const int64 Value )
-		{
-			check( this->Stack.Top() == EJson::Object );
-			WriteIdentifier( Identifier );
-
-			PrintPolicy::WriteSpace(this->Stream);
-			this->WriteIntegerValue( Value );
-			this->PreviousTokenWritten = EJsonToken::Number;
-		}
-
-		void WriteValue( const FText& Identifier, const FString& Value )
-		{
-			check( this->Stack.Top() == EJson::Object );
-			WriteIdentifier( Identifier );
-
-			PrintPolicy::WriteSpace(this->Stream);
-			WriteStringValue( Value );
-			this->PreviousTokenWritten = EJsonToken::String;
-		}
-
-		void WriteValue( const FText& Identifier, const FText& Value )
-		{
-			check( this->Stack.Top() == EJson::Object );
-			WriteIdentifier( Identifier );
-
-			PrintPolicy::WriteSpace(this->Stream);
-			WriteTextValue( Value );
-			this->PreviousTokenWritten = EJsonToken::String;
+			this->PreviousTokenWritten = this->WriteValueOnly( Value );
 		}
 
 		/** Converts the lookup table of ints (which are stored as identifiers and string values in the Json) and the FText's they represent to an FString. */

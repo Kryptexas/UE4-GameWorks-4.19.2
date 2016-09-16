@@ -23,6 +23,7 @@
 #include "AnimGraphNode_SequencePlayer.h"
 #include "AnimGraphNode_PoseBlendNode.h"
 #include "AnimGraphNode_PoseByName.h"
+#include "AnimGraphCommands.h"
 
 #define LOCTEXT_NAMESPACE "AnimationGraphSchema"
 
@@ -450,6 +451,16 @@ void UAnimationGraphSchema::GetAssetsGraphHoverMessage(const TArray<FAssetData>&
 void UAnimationGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, FMenuBuilder* MenuBuilder, bool bIsDebugging) const
 {
 	Super::GetContextMenuActions(CurrentGraph, InGraphNode, InGraphPin, MenuBuilder, bIsDebugging);
+
+	if (const UAnimGraphNode_Base* AnimGraphNode = Cast<const UAnimGraphNode_Base>(InGraphNode))
+	{
+		MenuBuilder->BeginSection("AnimGraphSchemaNodeActions", LOCTEXT("AnimNodeActionsMenuHeader", "Anim Node Actions"));
+		{
+			// Node contextual actions
+			MenuBuilder->AddMenuEntry(FAnimGraphCommands::Get().TogglePoseWatch);
+		}
+		MenuBuilder->EndSection();
+	}
 }
 
 FText UAnimationGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const 

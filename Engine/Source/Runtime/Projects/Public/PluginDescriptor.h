@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ModuleDescriptor.h"
+#include "LocalizationDescriptor.h"
 #include "CustomBuildSteps.h"
 
 /**
@@ -67,6 +68,9 @@ struct PROJECTS_API FPluginDescriptor
 
 	/** List of all modules associated with this plugin */
 	TArray<FModuleDescriptor> Modules;
+
+	/** List of all localization targets associated with this plugin */
+	TArray<FLocalizationTargetDescriptor> LocalizationTargets;
 
 	/** Whether this plugin should be enabled by default for all projects */
 	bool bEnabledByDefault;

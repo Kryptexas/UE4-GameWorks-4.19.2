@@ -44,7 +44,6 @@ EnginePrivate.h: Unreal engine private header file.
 #include "Engine/Blueprint.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/BlueprintGeneratedClass.h"
-#include "PhysicsEngine/BodySetup.h"
 #include "Engine/CollisionProfile.h"
 #include "Engine/CurveTable.h"
 #include "Engine/DataTable.h"

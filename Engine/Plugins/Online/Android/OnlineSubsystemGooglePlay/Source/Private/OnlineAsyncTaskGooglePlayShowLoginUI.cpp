@@ -60,6 +60,22 @@ void FOnlineAsyncTaskGooglePlayShowLoginUI::TriggerDelegates()
 	Delegate.ExecuteIfBound(UserId, PlayerId);
 }
 
+void FOnlineAsyncTaskGooglePlayShowLoginUI::ProcessGoogleClientConnectResult(bool bInSuccessful, FString AccessToken)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineAsyncTaskGooglePlayShowLoginUI::ProcessGoogleClientConnectResult"));
+
+	if (bInSuccessful)
+	{
+		Subsystem->GetIdentityGooglePlay()->SetAuthTokenFromGoogleConnectResponse(AccessToken);
+	}
+	else
+	{
+		Subsystem->GetIdentityGooglePlay()->SetAuthTokenFromGoogleConnectResponse(TEXT("NONE"));
+	}
+
+	bIsComplete = true;
+}
+
 void FOnlineAsyncTaskGooglePlayShowLoginUI::OnAuthActionFinished(gpg::AuthOperation InOp, gpg::AuthStatus InStatus)
 {
 	if (InOp == gpg::AuthOperation::SIGN_IN)
@@ -81,10 +97,14 @@ void FOnlineAsyncTaskGooglePlayShowLoginUI::OnFetchSelfResponse(const gpg::Playe
 	if(gpg::IsSuccess(SelfResponse.status))
 	{
 		Subsystem->GetIdentityGooglePlay()->SetPlayerDataFromFetchSelfResponse(SelfResponse.data);
+
+		extern void AndroidThunkCpp_GoogleClientConnect();
+		AndroidThunkCpp_GoogleClientConnect();
+		// bIsComplete set by response from googleClientConnect in ProcessGoogleClientConnectResult
 	}
 	else
 	{
 		UE_LOG(LogOnline, Warning, TEXT("FetchSelf Response Status Not Successful"));
+		bIsComplete = true;
 	}
-	bIsComplete = true;
 }

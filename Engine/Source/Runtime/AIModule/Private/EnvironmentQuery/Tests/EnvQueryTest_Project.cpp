@@ -8,7 +8,7 @@
 UEnvQueryTest_Project::UEnvQueryTest_Project(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Cost = EEnvTestCost::Medium;
-	ValidItemType = UEnvQueryItemType_Point::StaticClass();
+	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
 	SetWorkOnFloatValues(false);
 
 	ProjectionData.TraceMode = EEnvQueryTrace::Navigation;
@@ -20,14 +20,19 @@ UEnvQueryTest_Project::UEnvQueryTest_Project(const FObjectInitializer& ObjectIni
 void UEnvQueryTest_Project::RunTest(FEnvQueryInstance& QueryInstance) const
 {
 	UObject* QueryOwner = QueryInstance.Owner.Get();
-	BoolValue.BindData(QueryOwner, QueryInstance.QueryID);
-	bool bWantsProjected = BoolValue.GetValue();
-
-	UEnvQueryItemType_Point* ItemTypeCDO = QueryInstance.ItemType->GetDefaultObject<UEnvQueryItemType_Point>();
-	if (ItemTypeCDO == nullptr || QueryOwner == nullptr)
+	if (QueryOwner == nullptr)
 	{
 		return;
 	}
+
+	BoolValue.BindData(QueryOwner, QueryInstance.QueryID);
+	bool bWantsProjected = BoolValue.GetValue();
+
+	// item type: Point = can test, can modify
+	// item type: Actor/VectorBase = can only test
+
+	UEnvQueryItemType_Point* ItemTypeCDO = QueryInstance.ItemType && QueryInstance.ItemType->IsChildOf(UEnvQueryItemType_Point::StaticClass()) ?
+		QueryInstance.ItemType->GetDefaultObject<UEnvQueryItemType_Point>() : nullptr;
 
 	if (ProjectionData.TraceMode == EEnvQueryTrace::Navigation)
 	{
@@ -57,7 +62,7 @@ void UEnvQueryTest_Project::RunTest(FEnvQueryInstance& QueryInstance) const
 			for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It, Idx++)
 			{
 				const bool bProjected = Workload[Idx].bResult;
-				if (bProjected)
+				if (bProjected && ItemTypeCDO)
 				{
 					ItemTypeCDO->SetItemNavLocation(It.GetItemData(), Workload[Idx].OutLocation);
 				}
@@ -87,7 +92,7 @@ void UEnvQueryTest_Project::RunTest(FEnvQueryInstance& QueryInstance) const
 		for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It, Idx++)
 		{
 			const bool bProjected = TraceHits.IsValidIndex(Idx) && TraceHits[Idx];
-			if (bProjected)
+			if (bProjected && ItemTypeCDO)
 			{
 				ItemTypeCDO->SetItemNavLocation(It.GetItemData(), Workload[Idx]);
 			}

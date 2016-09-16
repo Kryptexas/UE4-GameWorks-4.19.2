@@ -23,6 +23,7 @@
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\limits.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\linkValidate.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\parseConst.cpp" />
+    <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\ParseContextBase.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\ParseHelper.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\PoolAlloc.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\MachineIndependent\preprocessor\Pp.cpp" />
@@ -45,6 +46,7 @@
     <ClCompile Include="..\..\..\src\glslang_lib\glslang\OSDependent\Windows\ossource.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslGrammar.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslOpMap.cpp" />
+    <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslParseables.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslParseHelper.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslScanContext.cpp" />
     <ClCompile Include="..\..\..\src\glslang_lib\hlsl\hlslTokenStream.cpp" />
@@ -91,6 +93,7 @@
     <ClInclude Include="..\..\..\src\glslang_lib\glslang\Public\ShaderLang.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslGrammar.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslOpMap.h" />
+    <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslParseables.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslParseHelper.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslScanContext.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\hlsl\hlslTokens.h" />
@@ -98,6 +101,7 @@
     <ClInclude Include="..\..\..\src\glslang_lib\OGLCompilersDLL\InitializeDll.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\SPIRV\disassemble.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\SPIRV\doc.h" />
+    <ClInclude Include="..\..\..\src\glslang_lib\SPIRV\GLSL.ext.AMD.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\SPIRV\GLSL.std.450.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\SPIRV\GlslangToSpv.h" />
     <ClInclude Include="..\..\..\src\glslang_lib\SPIRV\Logger.h" />

@@ -56,4 +56,11 @@ public:
 		// make a copy of the array if it's not an rvalue reference
 		RecordEventJson(MoveTemp(EventName), TArray<FAnalyticsEventAttribute>(AttributesJson));
 	}
+
+	/**
+	* When set, all events recorded will have these attributes appended to them.
+	*
+	* @param Attributes array of attributes that should be appended to every event.
+	*/
+	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) = 0;
 };

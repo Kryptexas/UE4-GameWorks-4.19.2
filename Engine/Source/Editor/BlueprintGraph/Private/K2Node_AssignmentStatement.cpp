@@ -29,6 +29,7 @@ public:
 		if ((VariablePin == NULL) || (ValuePin == NULL))
 		{
 			CompilerContext.MessageLog.Error(*LOCTEXT("MissingPins_Error", "Missing pin(s) on @@; expected a pin named Variable and a pin named Value").ToString(), Node);
+			return;
 		}
 
 		if (VariablePin->LinkedTo.Num() == 0)

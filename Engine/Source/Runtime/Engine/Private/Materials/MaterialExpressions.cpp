@@ -131,6 +131,7 @@
 #include "Materials/MaterialExpressionTransform.h"
 #include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionTwoSidedSign.h"
+#include "Materials/MaterialExpressionVectorNoise.h"
 #include "Materials/MaterialExpressionVertexColor.h"
 #include "Materials/MaterialExpressionVertexNormalWS.h"
 #include "Materials/MaterialExpressionViewProperty.h"
@@ -141,6 +142,8 @@
 #include "Materials/MaterialFunction.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Materials/MaterialExpressionClearCoatNormalCustomOutput.h"
+#include "Materials/MaterialExpressionAtmosphericLightVector.h"
+#include "Materials/MaterialExpressionAtmosphericLightColor.h"
 
 #include "EditorSupportDelegates.h"
 #include "MaterialCompiler.h"
@@ -157,6 +160,7 @@
 #include "Engine/TextureRenderTargetCube.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/TextureCube.h"
+#include "RenderingObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"
 
@@ -1191,8 +1195,6 @@ bool UMaterialExpressionTextureSample::CanEditChange(const UProperty* InProperty
 
 void UMaterialExpressionTextureSample::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeProperty( PropertyChangedEvent );
-
 	if ( PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("Texture") )
 	{
 		if ( Texture )
@@ -1213,6 +1215,9 @@ void UMaterialExpressionTextureSample::PostEditChangeProperty(FPropertyChangedEv
 			}
 		}
 	}
+	
+	// Need to update expression properties before super call (which triggers recompile)
+	Super::PostEditChangeProperty( PropertyChangedEvent );	
 }
 #endif // WITH_EDITOR
 
@@ -6582,6 +6587,8 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 	// Make a copy of the current code before we change it
 	const FString PreFixUp = Code;
 
@@ -6595,7 +6602,6 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 			bDidUpdate = true;
 		}
 	}
-
 	// Fix up uniform references that were moved from View to Frame as part of the instanced stereo implementation
 	else if (Ar.UE4Ver() < VER_UE4_INSTANCED_STEREO_UNIFORM_REFACTOR)
 	{
@@ -6686,6 +6692,14 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 			{
 				bDidUpdate = true;
 			}
+		}
+	}
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::RemovedRenderTargetSize)
+	{
+		if (Code.ReplaceInline(TEXT("View.RenderTargetSize"), TEXT("View.BufferSizeAndInvSize.xy"), ESearchCase::CaseSensitive) > 0)
+		{
+			bDidUpdate = true;
 		}
 	}
 
@@ -8022,12 +8036,7 @@ void UMaterialExpressionFunctionInput::ValidateName()
 #if WITH_EDITOR
 bool UMaterialExpressionFunctionInput::IsResultMaterialAttributes(int32 OutputIndex)
 {
-	// If there is a loop anywhere in this expression's inputs then we can't risk checking them
-	if( Preview.Expression && !Preview.Expression->ContainsInputLoop() )
-	{
-		return Preview.Expression->IsResultMaterialAttributes(Preview.OutputIndex);
-	}
-	else if( FunctionInput_MaterialAttributes == InputType )
+	if( FunctionInput_MaterialAttributes == InputType )
 	{
 		return true;
 	}
@@ -8807,7 +8816,7 @@ UMaterialExpressionNoise::UMaterialExpressionNoise(const FObjectInitializer& Obj
 
 	Scale = 1.0f;
 	Levels = 6;
-	Quality = 0;
+	Quality = 1;
 	OutputMin = -1.0f;
 	OutputMax = 1.0f;
 	LevelScale = 2.0f;
@@ -8829,7 +8838,9 @@ bool UMaterialExpressionNoise::CanEditChange(const UProperty* InProperty) const
 		FName PropertyFName = InProperty->GetFName();
 
 		bool bTilableNoiseType = NoiseFunction == NOISEFUNCTION_GradientALU || NoiseFunction == NOISEFUNCTION_ValueALU 
-			|| NoiseFunction == NOISEFUNCTION_GradientTex;
+			|| NoiseFunction == NOISEFUNCTION_GradientTex || NoiseFunction == NOISEFUNCTION_VoronoiALU;
+
+		bool bSupportsQuality = (NoiseFunction == NOISEFUNCTION_VoronoiALU);
 
 		if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionNoise, bTiling))
 		{
@@ -8838,6 +8849,11 @@ bool UMaterialExpressionNoise::CanEditChange(const UProperty* InProperty) const
 		else if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionNoise, RepeatSize))
 		{
 			bIsEditable = bTilableNoiseType && bTiling;
+		}
+
+		if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionNoise, Quality))
+		{
+			bIsEditable = bSupportsQuality;
 		}
 	}
 
@@ -8874,6 +8890,77 @@ int32 UMaterialExpressionNoise::Compile(class FMaterialCompiler* Compiler, int32
 void UMaterialExpressionNoise::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Noise"));
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionVectorNoise
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionVectorNoise::UMaterialExpressionVectorNoise(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	Quality = 1;
+	NoiseFunction = VNF_CellnoiseALU;
+	bTiling = false;
+	TileSize = 300;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+}
+
+#if WITH_EDITOR
+bool UMaterialExpressionVectorNoise::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+	if (bIsEditable && InProperty != NULL)
+	{
+		FName PropertyFName = InProperty->GetFName();
+
+		bool bSupportsQuality = (NoiseFunction == VNF_VoronoiALU);
+
+		if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionVectorNoise, TileSize))
+		{
+			bIsEditable = bTiling;
+		}
+
+		else if (PropertyFName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionVectorNoise, Quality))
+		{
+			bIsEditable = bSupportsQuality;
+		}
+	}
+
+	return bIsEditable;
+}
+
+int32 UMaterialExpressionVectorNoise::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	int32 PositionInput;
+
+	if (Position.Expression)
+	{
+		PositionInput = Position.Compile(Compiler);
+	}
+	else
+	{
+		PositionInput = Compiler->WorldPosition(WPT_Default);
+	}
+
+	return Compiler->VectorNoise(PositionInput, Quality, NoiseFunction, bTiling, TileSize);
+}
+
+void UMaterialExpressionVectorNoise::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Vector Noise"));
 }
 #endif // WITH_EDITOR
 
@@ -10145,5 +10232,71 @@ FExpressionInput* UMaterialExpressionClearCoatNormalCustomOutput::GetInput(int32
 {
 	return &Input;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionrAtmosphericLightVector
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionAtmosphericLightVector::UMaterialExpressionAtmosphericLightVector(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionAtmosphericLightVector::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+
+	return Compiler->AtmosphericLightVector();
+}
+
+void UMaterialExpressionAtmosphericLightVector::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("AtmosphericLightVector"));
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionrAtmosphericLightVector
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionAtmosphericLightColor ::UMaterialExpressionAtmosphericLightColor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionAtmosphericLightColor::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+
+	return Compiler->AtmosphericLightColor();
+}
+
+void UMaterialExpressionAtmosphericLightColor::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("AtmosphericLightColor"));
+}
+#endif // WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE

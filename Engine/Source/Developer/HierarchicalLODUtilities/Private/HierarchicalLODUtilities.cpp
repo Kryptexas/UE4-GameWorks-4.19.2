@@ -236,6 +236,11 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 					}
 				}
 
+				if (!MainMesh)
+				{
+					return false;
+				}
+
 				LODActor->SetStaticMesh(MainMesh);
 				LODActor->SetActorLocation(OutProxyLocation);
 				LODActor->SubObjects = OutAssets;
@@ -257,6 +262,7 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
 				FBoxSphereBounds Bounds = LODActor->GetStaticMeshComponent()->CalcBounds(FTransform());
 				LODActor->LODDrawDistance = CalculateDrawDistanceFromScreenSize(Bounds.SphereRadius, LODSetup.TransitionScreenSize, ProjectionMatrix);
+				LODActor->StaticMeshComponent->MinDrawDistance = LODActor->LODDrawDistance;
 				LODActor->UpdateSubActorLODParents();
 
 				// Freshly build so mark not dirty

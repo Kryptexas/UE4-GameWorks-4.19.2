@@ -100,6 +100,11 @@ bool FMetaNavMeshPath::ConditionalMoveToNextSection(const FVector& AgentLocation
 	return false;
 }
 
+bool FMetaNavMeshPath::ForceMoveToNextSection(const FVector& AgentLocation)
+{
+	return MoveToNextSection(AgentLocation);
+}
+
 bool FMetaNavMeshPath::MoveToNextSection(const FVector& AgentLocation)
 {
 	if (Waypoints.IsValidIndex(TargetWaypointIdx + 1))
@@ -146,12 +151,12 @@ bool FMetaNavMeshPath::UpdatePath(const FVector& AgentLocation)
 
 void FMetaNavMeshPath::CopyFrom(const FMetaNavMeshPath& Other)
 {
-	new(this) FMetaNavMeshPath(Other.Waypoints, *GetNavigationDataUsed());
+	ResetForRepath();
+
+	TargetWaypointIdx = 0;
+	SetWaypoints(Other.Waypoints);
 
 	WaypointSwitchRadius = Other.WaypointSwitchRadius;
-	// always start with uninitialized path
-	TargetWaypointIdx = 0;
-
 	PathGoal = Other.PathGoal;
 	PathGoalTetherDistance = Other.PathGoalTetherDistance;
 	ApproximateLength = Other.ApproximateLength;

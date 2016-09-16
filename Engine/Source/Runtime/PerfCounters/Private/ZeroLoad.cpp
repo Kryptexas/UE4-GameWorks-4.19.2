@@ -57,7 +57,7 @@ void FZeroLoad::Stop()
 
 void FZeroLoad::AddHitchMessage(double HitchDurationInMs)
 {
-	FString Message = FString::Printf(TEXT("HITCHHUNTER: Zero-load thread experienced hitch of %f ms at %s"),
+	FString Message = FString::Printf(TEXT("Zero-load thread experienced hitch of %f ms at %s"),
 		HitchDurationInMs,
 		*FDateTime::UtcNow().ToString()
 		);

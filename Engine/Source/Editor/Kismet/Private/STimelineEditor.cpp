@@ -1001,6 +1001,19 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.Replicated"))
 				]
 			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.f)
+			[
+				// Ignore Time Dilation check box
+				SAssignNew(IgnoreTimeDilationCheckBox, SCheckBox)
+				.IsChecked( this, &STimelineEditor::IsIgnoreTimeDilationChecked )
+				.OnCheckStateChanged( this, &STimelineEditor::OnIgnoreTimeDilationChanged )
+				[
+					SNew(STextBlock) .Text( LOCTEXT( "IgnoreTimeDilation", "Ignore Time Dilation" ) )
+					.AddMetaData<FTagMetaData>(TEXT("TimelineEditor.IgnoreTimeDilation"))
+				]
+			]
 		]
 		+SVerticalBox::Slot()
 		.FillHeight(1)
@@ -1396,7 +1409,7 @@ void STimelineEditor::OnReplicatedChanged(ECheckBoxState NewType)
 	{
 		TimelineObj->bReplicated = (NewType == ECheckBoxState::Checked) ? true : false;
 
-		// Refresh the node that owns this timeline template to cache play status
+		// Refresh the node that owns this timeline template to cache replicated status
 		TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
 		UBlueprint* Blueprint = Kismet2->GetBlueprintObj();
 		UK2Node_Timeline* TimelineNode = FBlueprintEditorUtils::FindNodeForTimeline(Blueprint, TimelineObj);
@@ -1417,6 +1430,29 @@ void STimelineEditor::OnUseLastKeyframeChanged(ECheckBoxState NewType)
 	if(TimelineObj)
 	{
 		TimelineObj->LengthMode = (NewType == ECheckBoxState::Checked) ? ETimelineLengthMode::TL_LastKeyFrame : ETimelineLengthMode::TL_TimelineLength;
+	}
+}
+
+
+ECheckBoxState STimelineEditor::IsIgnoreTimeDilationChecked() const
+{
+	return (TimelineObj && TimelineObj->bIgnoreTimeDilation) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void STimelineEditor::OnIgnoreTimeDilationChanged(ECheckBoxState NewType)
+{
+	if (TimelineObj)
+	{
+		TimelineObj->bIgnoreTimeDilation = (NewType == ECheckBoxState::Checked) ? true : false;
+
+		// Refresh the node that owns this timeline template to cache play status
+		TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
+		UBlueprint* Blueprint = Kismet2->GetBlueprintObj();
+		UK2Node_Timeline* TimelineNode = FBlueprintEditorUtils::FindNodeForTimeline(Blueprint, TimelineObj);
+		if (TimelineNode)
+		{
+			TimelineNode->bIgnoreTimeDilation = TimelineObj->bIgnoreTimeDilation;
+		}
 	}
 }
 

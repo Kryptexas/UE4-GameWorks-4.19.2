@@ -25,22 +25,30 @@ static const ANSICHAR* GRequiredLayersInstance[] =
 	"VK_LAYER_LUNARG_swapchain",
 };
 
+#define VULKAN_ENABLE_STANDARD_VALIDATION	1
+
 // List of validation layers which we want to activate for the instance
 static const ANSICHAR* GValidationLayersInstance[] =
 {
 #if VULKAN_ENABLE_API_DUMP
 	"VK_LAYER_LUNARG_api_dump",
 #endif
-	"VK_LAYER_LUNARG_core_validation",
-	"VK_LAYER_LUNARG_device_limits",
-	"VK_LAYER_LUNARG_image",
-	"VK_LAYER_LUNARG_object_tracker",	// The framebuffer is not registered for some reason by the object tracker... the steps are exactly the same as in the demo. For now ObjectTracker is disabled...
-	"VK_LAYER_LUNARG_parameter_validation",
-	//"VK_LAYER_LUNARG_screenshot",
-	"VK_LAYER_GOOGLE_threading",
-	"VK_LAYER_GOOGLE_unique_objects",
-	//"VK_LAYER_NV_optimus",
+
+#if VULKAN_ENABLE_STANDARD_VALIDATION
 	"VK_LAYER_LUNARG_standard_validation",
+#else
+	"VK_LAYER_GOOGLE_threading",
+	"VK_LAYER_LUNARG_parameter_validation",
+	"VK_LAYER_LUNARG_object_tracker",
+	"VK_LAYER_LUNARG_image",
+	"VK_LAYER_LUNARG_core_validation",
+	"VK_LAYER_LUNARG_swapchain",
+	"VK_LAYER_GOOGLE_unique_objects",
+#endif
+
+	"VK_LAYER_LUNARG_device_limits",
+	//"VK_LAYER_LUNARG_screenshot",
+	//"VK_LAYER_NV_optimus",
 	//"VK_LAYER_LUNARG_vktrace",		// Useful for future
 };
 
@@ -56,16 +64,28 @@ static const ANSICHAR* GValidationLayersDevice[] =
 #if VULKAN_ENABLE_API_DUMP
 	"VK_LAYER_LUNARG_api_dump",
 #endif
-	"VK_LAYER_LUNARG_core_validation",
-	"VK_LAYER_LUNARG_device_limits",
-	"VK_LAYER_LUNARG_image",
-	"VK_LAYER_LUNARG_object_tracker",	// The framebuffer is not registered for some reason by the object tracker... the steps are exactly the same as in the demo. For now ObjectTracker is disabled...
-	"VK_LAYER_LUNARG_parameter_validation",
-	//"VK_LAYER_LUNARG_screenshot",
-	"VK_LAYER_GOOGLE_threading",
-	"VK_LAYER_GOOGLE_unique_objects",
-	//"VK_LAYER_NV_optimus",
+
+#if VULKAN_ENABLE_STANDARD_VALIDATION
 	"VK_LAYER_LUNARG_standard_validation",
+#else
+	"VK_LAYER_GOOGLE_threading",
+	"VK_LAYER_LUNARG_parameter_validation",
+	"VK_LAYER_LUNARG_object_tracker",
+	"VK_LAYER_LUNARG_image",
+	"VK_LAYER_LUNARG_core_validation",
+	"VK_LAYER_LUNARG_swapchain",
+	"VK_LAYER_GOOGLE_unique_objects",
+#endif
+#if VK_HEADER_VERSION >= 24
+	"VK_LAYER_LUNARG_core_validation",
+#endif
+
+#if VK_HEADER_VERSION < 17
+	"VK_LAYER_LUNARG_device_limits",
+#endif
+	//"VK_LAYER_LUNARG_screenshot",
+	//"VK_LAYER_NV_optimus",
+	//"VK_LAYER_NV_nsight",
 	//"VK_LAYER_LUNARG_vktrace",		// Useful for future
 };
 #endif // VULKAN_HAS_DEBUGGING_ENABLED
@@ -89,6 +109,7 @@ static const ANSICHAR* GDeviceExtensions[] =
 {
 	//	VK_KHR_SURFACE_EXTENSION_NAME,			// Not supported, even if it's reported as a valid extension... (SDK/driver bug?)
 #if PLATFORM_ANDROID
+	VK_KHR_SURFACE_EXTENSION_NAME,
 	VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
 #else
 	//	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,	// Not supported, even if it's reported as a valid extension... (SDK/driver bug?)

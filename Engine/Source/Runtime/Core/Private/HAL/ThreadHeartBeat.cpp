@@ -8,9 +8,9 @@
 #endif
 
 FThreadHeartBeat::FThreadHeartBeat()
-: Thread(nullptr)
-, bReadyToCheckHeartbeat(false)
-, HangDuration(25.0)
+	: Thread(nullptr)
+	, bReadyToCheckHeartbeat(false)
+	, HangDuration(25.0)
 {
 	if (GConfig)
 	{
@@ -46,9 +46,38 @@ FThreadHeartBeat::~FThreadHeartBeat()
 	Thread = nullptr;
 }
 
+FThreadHeartBeat* FThreadHeartBeat::Singleton = nullptr;
+
 FThreadHeartBeat& FThreadHeartBeat::Get()
 {
-	static FThreadHeartBeat Singleton;
+	struct FInitHelper
+	{
+		FThreadHeartBeat* Instance;
+
+		FInitHelper()
+		{
+			check(!Singleton);
+			Instance = new FThreadHeartBeat();
+			Singleton = Instance;
+		}
+
+		~FInitHelper()
+		{
+			Singleton = nullptr;
+
+			delete Instance;
+			Instance = nullptr;
+		}
+	};
+
+	// Use a function static helper to ensure creation
+	// of the FThreadHeartBeat instance is thread safe.
+	static FInitHelper Helper;
+	return *Helper.Instance;
+}
+
+FThreadHeartBeat* FThreadHeartBeat::GetNoInit()
+{
 	return Singleton;
 }
 

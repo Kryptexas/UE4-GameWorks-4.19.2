@@ -14,8 +14,10 @@ void Main(
 {
 #if SOURCE_MODE_SCENE_COLOR_AND_OPACITY
 	float4 SceneColorValue = CalcFullSceneColor(Input.UV);
-	// Convert scene color alpha to opacity that that a translucent blend mode expects (0: no foreground content, 1: full foreground content)
-	OutColor = float4(SceneColorValue.rgb, saturate(1.0f - SceneColorValue.a));
+	// Note: intentionally keeping alpha inverted, so we can scene capture to the same texture repeatedly with correct compositing
+	// Also to be consistent with DrawMaterialToRenderTarget, which doesn't have this full texture copy in which to invert
+	// Artists will have to invert the alpha to get foreground opacity
+	OutColor = float4(SceneColorValue.rgb, saturate(SceneColorValue.a));
 #elif SOURCE_MODE_SCENE_COLOR_SCENE_DEPTH
 	OutColor = float4(CalcSceneColor(Input.UV), CalcSceneDepth(Input.UV));
 #elif SOURCE_MODE_SCENE_DEPTH 

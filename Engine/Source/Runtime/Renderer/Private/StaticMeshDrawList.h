@@ -4,8 +4,7 @@
 	StaticMeshDrawList.h: Static mesh draw list definition.
 =============================================================================*/
 
-#ifndef __STATICMESHDRAWLIST_H__
-#define __STATICMESHDRAWLIST_H__
+#pragma once
 
 extern ENGINE_API bool GDrawListsLocked;
 /** View state for instanced stereo rendering. */
@@ -499,4 +498,3 @@ public:
 
 #include "StaticMeshDrawList.inl"
 
-#endif

@@ -566,9 +566,13 @@ bool ContentBrowserUtils::DeleteFolders(const TArray<FString>& PathsToDelete)
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
-		for ( auto PathIt = PathsToDelete.CreateConstIterator(); PathIt; ++PathIt )
+		for (const FString& PathToDelete : PathsToDelete)
 		{
-			AssetRegistryModule.Get().RemovePath(*PathIt);
+			FString PathToDeleteOnDisk;
+			if (FPackageName::TryConvertLongPackageNameToFilename(PathToDelete, PathToDeleteOnDisk) && IFileManager::Get().DeleteDirectory(*PathToDeleteOnDisk))
+			{
+				AssetRegistryModule.Get().RemovePath(PathToDelete);
+			}
 		}
 
 		return true;

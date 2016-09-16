@@ -57,6 +57,11 @@ HRESULT FXAudio2HRTFEffect::LockForProcess(UINT32 InputLockedParameterCount, con
 
 void FXAudio2HRTFEffect::Process(UINT32 InputProcessParameterCount, const XAPO_PROCESS_BUFFER_PARAMETERS *pInputProcessParameters, UINT32 OutputProcessParameterCount, XAPO_PROCESS_BUFFER_PARAMETERS *pOutputProcessParameters, BOOL IsEnabled)
 {
+	if (!pInputProcessParameters || !pOutputProcessParameters)
+	{
+		return;
+	}
+
 	// Verify several condition based on the registration 
 	// properties we used to create the class. 
 	if (!IsLocked())

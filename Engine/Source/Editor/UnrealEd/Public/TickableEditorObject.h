@@ -37,16 +37,44 @@ public:
 	 */
 	virtual ~FTickableEditorObject()
 	{
-		const int32 Pos = GetTickableObjects().Find(this);
-		check(Pos!=INDEX_NONE);
-		GetTickableObjects().RemoveAt(Pos);
+		UnregisterTickableObject(this);
 	}
 
 private:
+
+	/**
+	 * Class that avoids crashes when unregistering a tickable editor object too late.
+	 * Some tickable objects can outlive the collection (global/static destructor order is unpredictable).
+	 */
+	class TTickableObjectsCollection : public TArray<FTickableEditorObject*>
+	{
+	public:
+		~TTickableObjectsCollection()
+		{
+			FTickableEditorObject::bCollectionIntact = false;
+		}
+	};
+
+	friend class TTickableObjectsCollection;
+
+	/** True if collection of tickable objects is still intact. */
+	static bool bCollectionIntact;
+
+	/** Avoids removal if the object outlived the collection. */
+	UNREALED_API static void UnregisterTickableObject(FTickableEditorObject* Obj)
+	{
+		if (bCollectionIntact)
+		{
+			const int32 Pos = GetTickableObjects().Find(Obj);
+			check(Pos!=INDEX_NONE);
+			GetTickableObjects().RemoveAt(Pos);
+		}
+	}
+
 	/** Returns the array of tickable editor objects */
 	UNREALED_API static TArray<FTickableEditorObject*>& GetTickableObjects()
 	{
-		static TArray<FTickableEditorObject*> TickableObjects;
+		static TTickableObjectsCollection TickableObjects;
 		return TickableObjects;
 	}
 };

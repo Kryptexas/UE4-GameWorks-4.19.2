@@ -50,7 +50,7 @@ const UPackage* FObjectPropertyNode::GetUPackage(int32 InIndex) const
 // Adds a new object to the list.
 void FObjectPropertyNode::AddObject( UObject* InObject )
 {
-	Objects.AddUnique( InObject );
+	Objects.Add( InObject );
 }
 
 // Removes an object from the list.
@@ -115,7 +115,7 @@ void FObjectPropertyNode::Finalize()
 
 bool FObjectPropertyNode::GetReadAddressUncached(FPropertyNode& InNode,
 											   bool InRequiresSingleSelection,
-											   FReadAddressListData& OutAddresses,
+											   FReadAddressListData* OutAddresses,
 											   bool bComparePropertyContents,
 											   bool bObjectForceCompare,
 											   bool bArrayPropertiesCanDifferInSize) const
@@ -238,13 +238,16 @@ bool FObjectPropertyNode::GetReadAddressUncached(FPropertyNode& InNode,
 		}
 	}
 
-	// Write addresses to the output.
-	for ( int32 ObjIndex = 0 ; ObjIndex < GetNumObjects(); ++ObjIndex )
+	if(OutAddresses != nullptr)
 	{
-		const UObject* TempObject = GetUObject(ObjIndex);
-		if( TempObject )
+		// Write addresses to the output.
+		for(int32 ObjIndex = 0; ObjIndex < GetNumObjects(); ++ObjIndex)
 		{
-			OutAddresses.Add( TempObject, InNode.GetValueBaseAddress( (uint8*)(TempObject) ) );
+			const UObject* TempObject = GetUObject(ObjIndex);
+			if(TempObject)
+			{
+				OutAddresses->Add(TempObject, InNode.GetValueBaseAddress((uint8*)(TempObject)));
+			}
 		}
 	}
 

@@ -4,8 +4,7 @@
 	AudioThread.h: Rendering thread definitions.
 =============================================================================*/
 
-#ifndef __AudioThread_H__
-#define __AudioThread_H__
+#pragma once
 
 #include "TaskGraphInterfaces.h"
 
@@ -140,4 +139,3 @@ private:
 	mutable FGraphEventRef CompletionEvent;
 };
 
-#endif

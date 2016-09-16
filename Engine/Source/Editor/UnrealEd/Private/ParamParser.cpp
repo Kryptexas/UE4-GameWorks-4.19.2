@@ -113,7 +113,7 @@ bool GetSUBSTRING
 	int32				MaxLen
 )
 {
-	const TCHAR* Found = FCString::Strfind(Stream,Match);
+	const TCHAR* Found = FCString::Strifind(Stream,Match);
 	const TCHAR* Start;
 
 	if( Found == NULL ) return false; // didn't match.

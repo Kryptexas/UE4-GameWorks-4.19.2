@@ -29,7 +29,7 @@ public partial class Project : CommandUtils
 				if (SC.StageTargetPlatform.DeployViaUFE)
 				{
 					string ClientCmdLine = "-run=Deploy ";
-					ClientCmdLine += "-Device=" + Params.Device + " ";
+					ClientCmdLine += "-Device=" + string.Join("+", Params.Devices) + " ";
 					ClientCmdLine += "-Targetplatform=" + SC.StageTargetPlatform.PlatformType.ToString() + " ";
 					ClientCmdLine += "-SourceDir=\"" + CombinePaths(Params.BaseStageDirectory, SC.StageTargetPlatform.PlatformType.ToString()) + "\" ";
 					string ClientApp = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealFrontend.exe");
@@ -40,7 +40,7 @@ public partial class Project : CommandUtils
 					//@todo UAT: Consolidate running of external applications like UFE (See 'RunProjectCommand' for other instances)
 					PushDir(Path.GetDirectoryName(ClientApp));
 					// Always start client process and don't wait for exit.
-					ProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ERunOptions.NoWaitForExit);
+					IProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ERunOptions.NoWaitForExit);
 					PopDir();
 					if (ClientProcess != null)
 					{
@@ -60,7 +60,7 @@ public partial class Project : CommandUtils
 		if (Params.DedicatedServer)
 		{
 			ProjectParams ServerParams = new ProjectParams(Params);
-			ServerParams.Device = ServerParams.ServerDevice;
+			ServerParams.Devices = new ParamList<string>(ServerParams.ServerDevice);
 			var DeployContextList = CreateDeploymentContext(ServerParams, true, false);
 			foreach ( var SC in DeployContextList )
 			{

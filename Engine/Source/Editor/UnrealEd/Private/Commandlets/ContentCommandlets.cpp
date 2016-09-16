@@ -643,6 +643,10 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	bShouldBuildLighting = Switches.Contains(TEXT("buildlighting"));
 	/** determine if we can skip the version changelist check */
 	bIgnoreChangelist = Switches.Contains(TEXT("IgnoreChangelist"));
+	if ( bShouldBuildLighting )
+	{
+		check( Switches.Contains(TEXT("AllowCommandletRendering")) );
+	}
 
 	TArray<FString> PackageNames;
 	int32 ResultCode = InitializeResaveParameters(Tokens, PackageNames);
@@ -848,6 +852,17 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 {
 	check(World);
 
+	TArray<TWeakObjectPtr<ULevel>> LevelsToRebuild;
+	ABrush::NeedsRebuild(&LevelsToRebuild);
+	for (const TWeakObjectPtr<ULevel>& Level : LevelsToRebuild)
+	{
+		if (Level.IsValid())
+		{
+			GEditor->RebuildLevel(*Level.Get());
+		}
+	}
+	ABrush::OnRebuildDone();
+
 	if (bShouldBuildLighting)
 	{
 		bool bShouldProceedWithLightmapRebuild = true;
@@ -930,7 +945,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			}
 		}
 
-
+	
 		// If nothing came up that stops us from continuing, then start building lightmass
 		if (bShouldProceedWithLightmapRebuild)
 		{
@@ -945,27 +960,35 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			// Always build on production
 			LightingOptions.QualityLevel = Quality_Production;
 
+			auto BuildFailedDelegate = [&bShouldProceedWithLightmapRebuild,&World]() {
+				UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());
+				bShouldProceedWithLightmapRebuild = false;
+			};
+
+			FDelegateHandle BuildFailedDelegateHandle = FEditorDelegates::OnLightingBuildFailed.AddLambda(BuildFailedDelegate);
+
 			GEditor->BuildLighting(LightingOptions);
 			while (GEditor->IsLightingBuildCurrentlyRunning())
 			{
 				GEditor->UpdateBuildLighting();
 			}
 
-			for (ULevelStreaming* NextStreamingLevel : World->StreamingLevels)
+			FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
+
+			if( bShouldProceedWithLightmapRebuild )
 			{
-				FString StreamingLevelPackageFilename;
-				const FString StreamingLevelWorldAssetPackageName = NextStreamingLevel->GetWorldAssetPackageName();
-				if (FPackageName::DoesPackageExist(StreamingLevelWorldAssetPackageName, NULL, &StreamingLevelPackageFilename))
+				for (ULevelStreaming* NextStreamingLevel : World->StreamingLevels)
 				{
-					UPackage* SubLevelPackage = NextStreamingLevel->GetLoadedLevel()->GetOutermost();
-					if (!SavePackageHelper(SubLevelPackage, StreamingLevelPackageFilename))
+					FString StreamingLevelPackageFilename;
+					const FString StreamingLevelWorldAssetPackageName = NextStreamingLevel->GetWorldAssetPackageName();
+					if (FPackageName::DoesPackageExist(StreamingLevelWorldAssetPackageName, NULL, &StreamingLevelPackageFilename))
 					{
-						UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to save sub level: %s"), *StreamingLevelPackageFilename);
+						UPackage* SubLevelPackage = NextStreamingLevel->GetLoadedLevel()->GetOutermost();
+						if (!SavePackageHelper(SubLevelPackage, StreamingLevelPackageFilename))
+						{
+							UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to save sub level: %s"), *StreamingLevelPackageFilename);
+						}
 					}
-					/*if (GEditor->SavePackage(SubLevelPackage, NULL, , *StreamingLevelPackageFilename, GWarn))
-					{
-							
-					}*/
 				}
 			}
 		}

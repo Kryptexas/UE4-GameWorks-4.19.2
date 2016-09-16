@@ -61,13 +61,14 @@ static EComponentMobility::Type GetInheritedMobility(USceneComponent const* cons
 			{
 				for (USCS_Node const* Node : BlueprintClass->SimpleConstructionScript->GetAllNodes())
 				{
+					check(Node); // fix for this bug: https://connect.microsoft.com/VisualStudio/feedback/details/3081898
 					if (Node->VariableName == ComponentNode->ParentComponentOrVariableName)
 					{
 						ParentNode = Node;
 						break;
 					}
 				}
-			}			
+			}
 
 			if (ParentNode != NULL)
 			{
@@ -208,6 +209,16 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 
 	MobilityCustomization = MakeShareable(new FMobilityCustomization);
 	MobilityCustomization->CreateMobilityCustomization(TransformCategory, MobilityHandle, RestrictedMobilityBits, bAnySelectedIsLight);
+
+	// Only display bHiddenInGame if the property is being flattened in to an Actor.
+	// Details panel for BP component will have the base class be the Actor due to how the SKismetInspector works, but in that case we
+	// have a class default object selected, so use that to infer that this is the component directly selected and since BPs do not do
+	// property flattening it all kind of works
+	if (DetailBuilder.GetBaseClass()->IsChildOf<AActor>() && !DetailBuilder.GetDetailsView().HasClassDefaultObject())
+	{
+		TSharedPtr<IPropertyHandle> ComponentHiddenInGameProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USceneComponent, bHiddenInGame));
+		ComponentHiddenInGameProperty->MarkHiddenByCustomization();
+	}
 }
 
 void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailBuilder )
@@ -252,7 +263,12 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 		for (int32 ComponentIndex = 0; bShouldShowTransform && ComponentIndex < SceneComponentObjects.Num(); ++ComponentIndex)
 		{
 			USceneComponent* SceneComponent = Cast<USceneComponent>(SceneComponentObjects[ComponentIndex].Get());
-			if (SceneComponent && SceneComponent->GetAttachParent() == NULL && SceneComponent->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
+			if (SceneComponent == nullptr)
+			{
+				continue;
+			}
+
+			if (SceneComponent->GetAttachParent() == NULL && SceneComponent->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
 			{
 				bShouldShowTransform = false;
 			}
@@ -271,7 +287,7 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 				}
 			}
 
-			if (bShouldShowTransform && SceneComponent && SceneComponent->HasAnyFlags(RF_InheritableComponentTemplate))
+			if (bShouldShowTransform && SceneComponent->HasAnyFlags(RF_InheritableComponentTemplate))
 			{
 				auto OwnerClass = Cast<UClass>(SceneComponent->GetOuter());
 				auto Bluepirnt = UBlueprint::GetBlueprintFromClass(OwnerClass);

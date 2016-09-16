@@ -31,6 +31,11 @@ FLinuxApplication* LinuxApplication = NULL;
 
 FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 {
+	if (!FApp::CanEverRender())	// this assumes that we're running in "headless" mode, and we don't need any kind of multimedia
+	{
+		return new FLinuxApplication();
+	}
+
 	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
 	{
 		UE_LOG(LogInit, Fatal, TEXT("FLinuxApplication::CreateLinuxApplication() : PlatformInitMultimedia() failed, cannot create application instance."));
@@ -990,6 +995,9 @@ EWindowZone::Type FLinuxApplication::WindowHitTest(const TSharedPtr< FLinuxWindo
 
 void FLinuxApplication::ProcessDeferredEvents( const float TimeDelta )
 {
+	// delete pending destroy windows before, and not after processing events, to prolong their lifetime
+	DestroyPendingWindows();
+
 	// This function can be reentered when entering a modal tick loop.
 	// We need to make a copy of the events that need to be processed or we may end up processing the same messages twice
 	SDL_HWindow NativeWindow = NULL;
@@ -1000,6 +1008,25 @@ void FLinuxApplication::ProcessDeferredEvents( const float TimeDelta )
 	for( int32 Index = 0; Index < Events.Num(); ++Index )
 	{
 		ProcessDeferredMessage( Events[Index] );
+	}
+}
+
+void FLinuxApplication::DestroyPendingWindows()
+{
+	if (UNLIKELY(PendingDestroyWindows.Num()))
+	{
+		// destroy native windows that we deferred
+		const double Now = FPlatformTime::Seconds();
+		for(TMap<SDL_HWindow, double>::TIterator It(PendingDestroyWindows); It; ++It)
+		{
+			if (Now > It.Value())
+			{
+				SDL_HWindow Window = It.Key();
+				UE_LOG(LogLinuxWindow, Verbose, TEXT("Destroying SDL window %p"), Window);
+				SDL_DestroyWindow(Window);
+				It.RemoveCurrent();
+			}
+		}
 	}
 }
 
@@ -1342,6 +1369,11 @@ FPlatformRect FLinuxApplication::GetWorkArea( const FPlatformRect& CurrentWindow
 
 void FLinuxApplication::OnMouseCursorLock( bool bLockEnabled )
 {
+	if (UNLIKELY(!FApp::CanEverRender()))
+	{
+		return;
+	}
+
 	bIsMouseCursorLocked = bLockEnabled;
 	UpdateMouseCaptureWindow( NULL );
 	if(bLockEnabled)
@@ -1364,13 +1396,16 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
 	int NumDisplays = 0;
 
-	if (FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	if (LIKELY(FApp::CanEverRender()))
 	{
-		NumDisplays = SDL_GetNumVideoDisplays();
-	}
-	else
-	{
-		UE_LOG(LogInit, Warning, TEXT("FDisplayMetrics::GetDisplayMetrics: PlatformInitMultimedia() failed, cannot get display metrics"));
+		if (FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+		{
+			NumDisplays = SDL_GetNumVideoDisplays();
+		}
+		else
+		{
+			UE_LOG(LogInit, Warning, TEXT("FDisplayMetrics::GetDisplayMetrics: PlatformInitMultimedia() failed, cannot get display metrics"));
+		}
 	}
 
 	// loop over all monitors to determine which one is the best
@@ -1687,12 +1722,28 @@ void FLinuxApplication::GetWindowPositionInEventLoop(SDL_HWindow NativeWindow, i
 	}
 }
 
+void FLinuxApplication::DestroyNativeWindow(SDL_HWindow NativeWindow)
+{
+	UE_LOG(LogLinuxWindow, Verbose, TEXT("Asked to destroy SDL window %p"), NativeWindow);
+
+	if (PendingDestroyWindows.Find(NativeWindow) != nullptr)
+	{
+		UE_LOG(LogLinuxWindow, Verbose, TEXT("  SDL window %p is already pending deletion!"), NativeWindow);
+		return;	// use the original 'deadline', do not renew it.
+	}
+
+	// Set deadline to make sure the window survives at least one tick.
+	PendingDestroyWindows.Add(NativeWindow, FPlatformTime::Seconds() + 0.1);
+
+	UE_LOG(LogLinuxWindow, Verbose, TEXT("  Deferring destroying of SDL window %p"), NativeWindow);
+}
+
 bool FLinuxApplication::IsMouseAttached() const
 {
 	int rc;
 	char Mouse[64] = "/sys/class/input/mouse0";
 	int MouseIdx = strlen(Mouse) - 1;
-	strcat(Mouse, "/device/name");
+	FCStringAnsi::Strncat(Mouse, "/device/name", sizeof(Mouse) - 1);
 
 	for (int i=0; i<9; i++)
 	{

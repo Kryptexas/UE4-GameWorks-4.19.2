@@ -1,5 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 #include "CoreUObject.h"
 #include "Engine.h"
 
@@ -9,3 +11,7 @@
 
 #include "CableComponent.h"
 #include "CableActor.h"
+
+#pragma once
+
+DECLARE_STATS_GROUP(TEXT("Cable"), STATGROUP_CableComponent, STATCAT_Advanced);

@@ -53,6 +53,11 @@ private:
 	void FillShowBoneDrawMenu(FMenuBuilder& MenuBuilder) const;
 
 	/**
+	* Generates the Show -> Overlay sub menu content
+	*/
+	void FillShowOverlayDrawMenu(FMenuBuilder& MenuBuilder) const;
+
+	/**
 	* Generates the Show -> Clothing sub menu content
 	*/
 	void FillShowClothingMenu(FMenuBuilder& MenuBuilder) const;

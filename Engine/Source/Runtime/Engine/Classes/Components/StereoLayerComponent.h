@@ -13,10 +13,10 @@ enum EStereoLayerType
 	SLT_WorldLocked UMETA(DisplayName = "World Locked"),
 
 	/** Location within the HMD tracking space */
-	SLT_TorseLocked	UMETA(DisplayName = "Torso Locked"),
+	SLT_TrackerLocked UMETA(DisplayName = "Tracker Locked"),
 
 	/** Location within the view space */
-	SLT_FaceLocked	UMETA(DisplayName = "Face Locked"),
+	SLT_FaceLocked UMETA(DisplayName = "Face Locked"),
 
 	SLT_MAX,
 };

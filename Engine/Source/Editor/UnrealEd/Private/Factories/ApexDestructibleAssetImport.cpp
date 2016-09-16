@@ -698,10 +698,10 @@ NxDestructibleAsset* CreateApexDestructibleAssetFromBuffer(const uint8* Buffer, 
 	if (Stream != NULL)
 	{
 		ApexDestructibleAsset = CreateApexDestructibleAssetFromPxStream(*Stream);
-	}
 
-	// Release our stream
-	GApexSDK->releaseMemoryReadStream(*Stream);
+		// Release our stream
+		GApexSDK->releaseMemoryReadStream(*Stream);
+	}
 
 	return ApexDestructibleAsset;
 }
@@ -716,10 +716,10 @@ NxDestructibleAsset* CreateApexDestructibleAssetFromFile(const FString& Filename
 	if (Stream != NULL)
 	{
 		ApexDestructibleAsset = CreateApexDestructibleAssetFromPxStream(*Stream);
-	}
 
-	// Release our stream
-	Stream->release();
+		// Release our stream
+		Stream->release();
+	}
 
 	return ApexDestructibleAsset;
 }

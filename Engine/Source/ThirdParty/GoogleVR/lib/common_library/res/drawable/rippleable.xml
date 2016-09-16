@@ -9,4 +9,4 @@
         android:state_pressed="true"/>
     <item android:drawable="@android:color/transparent"/>
 </selector>
-<!-- From: file:/tmp/tmp-deduplicated8162628151885761277/vr/gvr/platform/common/android/res/drawable/rippleable.xml -->
+<!-- From: file:/tmp/aar_gen_tmp9184061690264887159/tmp-deduplicated/vr/gvr/platform/common/android/res/drawable/rippleable.xml -->

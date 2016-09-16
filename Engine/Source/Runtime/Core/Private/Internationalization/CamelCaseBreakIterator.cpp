@@ -33,7 +33,7 @@ void FCamelCaseBreakIterator::SetString(const TCHAR* const InString, const int32
 
 void FCamelCaseBreakIterator::ClearString()
 {
-	String = FString();
+	String.Reset();
 	BreakPoints.Empty(1);
 	BreakPoints.Add(0);
 	ResetToBeginning();

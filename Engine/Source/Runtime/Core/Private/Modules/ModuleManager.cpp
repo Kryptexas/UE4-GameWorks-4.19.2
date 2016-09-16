@@ -331,7 +331,7 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModule( const FName InModuleNam
 TSharedPtr<IModuleInterface> FModuleManager::LoadModuleChecked( const FName InModuleName, const bool bWasReloaded )
 {
 	TSharedPtr<IModuleInterface> Module = LoadModule(InModuleName, bWasReloaded);
-	check(Module.IsValid());
+	checkf(Module.IsValid(), *InModuleName.ToString());
 
 	return Module;
 }

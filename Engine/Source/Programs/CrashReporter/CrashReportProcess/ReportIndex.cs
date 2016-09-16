@@ -37,7 +37,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			catch (Exception ex)
 			{
 				CrashReporterProcessServicer.WriteException(string.Format("Failed to write ReportIndex to {0}. Exception was: {1}", Filepath, ex));
-				CrashReporterProcessServicer.StatusReporter.Alert(string.Format("Failed to write ReportIndex to {0}", Filepath));
+				CrashReporterProcessServicer.StatusReporter.Alert("ReportIndex.WriteToFile", string.Format("Failed to write ReportIndex to {0}", Filepath), Config.Default.SlackAlertRepeatMinimumMinutes);
 			}
 		}
 
@@ -52,7 +52,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 					if (File.Exists(Filepath + ".backup"))
 					{
 						CrashReporterProcessServicer.WriteFailure(string.Format("Failed to read ReportIndex from {0}. Attempting to read from {1}", Filepath, Filepath + ".backup"));
-						CrashReporterProcessServicer.StatusReporter.Alert(string.Format("Failed to read ReportIndex from {0}. Using backup.", Filepath));
+						CrashReporterProcessServicer.StatusReporter.Alert("ReportIndex.ReadFromFile.UsingBackup", string.Format("Failed to read ReportIndex from {0}. Using backup.", Filepath), Config.Default.SlackAlertRepeatMinimumMinutes);
 						File.Move(Filepath + ".backup", Filepath);
 					}
 					else
@@ -86,7 +86,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			catch (Exception ex)
 			{
 				CrashReporterProcessServicer.WriteException(string.Format("Failed to read ReportIndex from {0}. Exception was: {1}", Filepath, ex));
-				CrashReporterProcessServicer.StatusReporter.Alert(string.Format("Failed to read ReportIndex from {0}", Filepath));
+				CrashReporterProcessServicer.StatusReporter.Alert("ReportIndex.ReadFromFile", string.Format("Failed to read ReportIndex from {0}", Filepath), Config.Default.SlackAlertRepeatMinimumMinutes);
 			}
 		}
 

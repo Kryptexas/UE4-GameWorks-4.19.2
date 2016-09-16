@@ -2,9 +2,6 @@
 
 #include "CorePrivatePCH.h"
 #include "Misc/App.h"
-#include "InternationalizationManifest.h"
-#include "TextLocalizationResourceGenerator.h"
-
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextLocalizationManager, Log, All);
 
@@ -54,7 +51,7 @@ void EndInitTextLocalization()
 		else
 #if WITH_EDITOR
 			// See if we've been provided a culture override in the editor
-			if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEditorSettingsIni ))
+			if(GIsEditor && GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEditorSettingsIni ))
 			{
 				UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *RequestedCultureName);
 			}
@@ -525,146 +522,6 @@ bool FTextLocalizationManager::UpdateDisplayString(const FTextDisplayStringRef& 
 	return true;
 }
 
-void FTextLocalizationManager::LoadFromManifestAndArchives( const FString& ConfigFilePath, IInternationalizationArchiveSerializer& ArchiveSerializer, IInternationalizationManifestSerializer& ManifestSerializer )
-{
-	FScopeLock ScopeLock( &SynchronizationObject );
-
-	FInternationalization& I18N = FInternationalization::Get();
-
-	FString SectionName = TEXT("RegenerateResources");
-
-	// Get native culture.
-	FString NativeCulture;
-	if( !( GConfig->GetString( *SectionName, TEXT("NativeCulture"), NativeCulture, ConfigFilePath ) ) )
-	{
-		UE_LOG(LogTextLocalizationManager, Error, TEXT("No native culture specified."));
-		return;
-	}
-
-	// Get source path.
-	FString SourcePath;
-	if( !( GConfig->GetString( *SectionName, TEXT("SourcePath"), SourcePath, ConfigFilePath ) ) )
-	{
-		UE_LOG(LogTextLocalizationManager, Error, TEXT("No source path specified."));
-		return;
-	}
-
-	// Get destination path.
-	FString DestinationPath;
-	if( !( GConfig->GetString( *SectionName, TEXT("DestinationPath"), DestinationPath, ConfigFilePath ) ) )
-	{
-		UE_LOG(LogTextLocalizationManager, Error, TEXT("No destination path specified."));
-		return;
-	}
-
-	// Get manifest name.
-	FString ManifestName;
-	if( !( GConfig->GetString( *SectionName, TEXT("ManifestName"), ManifestName, ConfigFilePath ) ) )
-	{
-		UE_LOG(LogTextLocalizationManager, Error, TEXT("No manifest name specified."));
-		return;
-	}
-
-	// Get resource name.
-	FString ResourceName;
-	if( !( GConfig->GetString( *SectionName, TEXT("ResourceName"), ResourceName, ConfigFilePath ) ) )
-	{
-		UE_LOG(LogTextLocalizationManager, Error, TEXT("No resource name specified."));
-		return;
-	}
-
-	TArray<FString> LocaleNames;
-	{
-		const FString CultureName = I18N.GetCurrentCulture()->GetName();
-		LocaleNames.Add(CultureName);
-		const FString BaseLanguageName = I18N.GetCurrentCulture()->GetTwoLetterISOLanguageName();
-		if(BaseLanguageName != CultureName)
-		{
-			LocaleNames.Add(BaseLanguageName);
-		}
-	}
-
-	// Source path needs to be relative to Engine or Game directory
-	FString ConfigFullPath = FPaths::ConvertRelativePathToFull(ConfigFilePath);
-	FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineConfigDir());
-	bool IsEngineManifest = false;
-
-	if (ConfigFullPath.StartsWith(EngineFullPath))
-	{
-		IsEngineManifest = true;
-	}
-
-	if (IsEngineManifest)
-	{
-		SourcePath = FPaths::Combine(*(FPaths::EngineDir()), *SourcePath);
-		DestinationPath = FPaths::Combine(*(FPaths::EngineDir()), *DestinationPath);
-	}
-	else
-	{
-		SourcePath = FPaths::Combine(*(FPaths::GameDir()), *SourcePath);
-		DestinationPath = FPaths::Combine(*(FPaths::GameDir()), *DestinationPath);
-	}
-
-	TArray<TArray<uint8>> BackingBuffers;
-	BackingBuffers.SetNum(LocaleNames.Num());
-
-	for(int32 i = 0; i < BackingBuffers.Num(); ++i)
-	{
-		TArray<uint8>& BackingBuffer = BackingBuffers[i];
-		FMemoryWriter MemoryWriter(BackingBuffer, true);
-
-		// Read the manifest file from the source path.
-		FString ManifestFilePath = (SourcePath / ManifestName);
-		ManifestFilePath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
-		TSharedRef<FInternationalizationManifest> InternationalizationManifest = MakeShareable(new FInternationalizationManifest);
-
-#if 0 // @todo Json: Serializing from FArchive is currently broken
-		FArchive* ManifestFile = IFileManager::Get().CreateFileReader(*ManifestFilePath);
-
-		if (ManifestFile == nullptr)
-		{
-			UE_LOG(LogTextLocalizationManager, Error, TEXT("No manifest found at %s."), *ManifestFilePath);
-			return;
-		}
-
-		ManifestSerializer.DeserializeManifest(*ManifestFile, InternationalizationManifest);
-#else
-		FString ManifestContent;
-
-		if (!FFileHelper::LoadFileToString(ManifestContent, *ManifestFilePath))
-		{
-			UE_LOG(LogTextLocalizationManager, Error, TEXT("Failed to load file %s."), *ManifestFilePath);
-			continue;
-		}
-
-		ManifestSerializer.DeserializeManifest(ManifestContent, InternationalizationManifest);
-#endif
-
-		// Write resource.
-		FTextLocalizationResourceGenerator::Generate(SourcePath, InternationalizationManifest, NativeCulture, LocaleNames[i], &(MemoryWriter), ArchiveSerializer);
-
-		MemoryWriter.Close();
-	}
-
-	// Prioritized array of localization entry trackers.
-	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
-	for(int32 i = 0; i < BackingBuffers.Num(); ++i)
-	{
-		TArray<uint8>& BackingBuffer = BackingBuffers[i];
-		FMemoryReader MemoryReader(BackingBuffer, true);
-		const FString CulturePath = DestinationPath / LocaleNames[i];
-		const FString ResourceFilePath = FPaths::ConvertRelativePathToFull(CulturePath / ResourceName);
-
-		FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
-		CultureTracker.LoadFromLocalizationResource(MemoryReader, ResourceFilePath);
-		CultureTracker.DetectAndLogConflicts();
-
-		MemoryReader.Close();
-	}
-
-	UpdateFromLocalizations(LocalizationEntryTrackers);
-}
-
 void FTextLocalizationManager::UpdateFromLocalizationResource(const FString& LocalizationResourceFilePath)
 {
 	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
@@ -672,6 +529,17 @@ void FTextLocalizationManager::UpdateFromLocalizationResource(const FString& Loc
 	FLocalizationEntryTracker& LocalizationEntryTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
 	LocalizationEntryTracker.LoadFromFile(LocalizationResourceFilePath);
 	LocalizationEntryTracker.DetectAndLogConflicts();
+
+	UpdateFromLocalizations(LocalizationEntryTrackers);
+}
+
+void FTextLocalizationManager::UpdateFromLocalizationResource(FArchive& LocResArchive, const FString& LocResID)
+{
+	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
+
+	FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
+	CultureTracker.LoadFromLocalizationResource(LocResArchive, LocResID);
+	CultureTracker.DetectAndLogConflicts();
 
 	UpdateFromLocalizations(LocalizationEntryTrackers);
 }
@@ -750,6 +618,10 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	TArray<FString> EngineLocalizationPaths;
 	EngineLocalizationPaths += FPaths::GetEngineLocalizationPaths();
 
+	// Gather any additional paths that are unknown to the UE4 core (such as plugins)
+	TArray<FString> AdditionalLocalizationPaths;
+	GatherAdditionalLocResPathsCallback.Broadcast(AdditionalLocalizationPaths);
+
 	// Prioritized array of localization entry trackers.
 	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
 
@@ -803,6 +675,10 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	{
 		LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
 	}
+	for (const FString& LocalizationPath : AdditionalLocalizationPaths)
+	{
+		LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
+	}
 
 	TArray<FString> PrioritizedLocalizationPaths;
 	if (!GIsEditor)
@@ -811,6 +687,7 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	}
 	PrioritizedLocalizationPaths += EditorLocalizationPaths;
 	PrioritizedLocalizationPaths += EngineLocalizationPaths;
+	PrioritizedLocalizationPaths += AdditionalLocalizationPaths;
 
 	// The editor cheats and loads the native culture's localizations.
 	if (GIsEditor)
@@ -834,7 +711,6 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 			CultureTracker.DetectAndLogConflicts();
 		}
 	}
-
 
 	// Read culture localization resources.
 	const TArray<FString> PrioritizedCultureNames = FInternationalization::Get().GetPrioritizedCultureNames(CultureName);

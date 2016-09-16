@@ -71,6 +71,7 @@ void SSCSEditorDragDropTree::Construct( const FArguments& InArgs )
 	BaseArgs.OnGenerateRow( InArgs._OnGenerateRow )
 			.OnItemScrolledIntoView( InArgs._OnItemScrolledIntoView )
 			.OnGetChildren( InArgs._OnGetChildren )
+			.OnSetExpansionRecursive( InArgs._OnSetExpansionRecursive )
 			.TreeItemsSource( InArgs._TreeItemsSource )
 			.ItemHeight( InArgs._ItemHeight )
 			.OnContextMenuOpening( InArgs._OnContextMenuOpening )
@@ -132,6 +133,7 @@ FReply SSCSEditor::TryHandleAssetDragDropOperation(const FDragDropEvent& DragDro
 		if (NumAssets > 0)
 		{
 			GWarn->BeginSlowTask(LOCTEXT("LoadingAssets", "Loading Asset(s)"), true);
+			bool bMarkBlueprintAsModified = false;
 
 			for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < NumAssets; ++DroppedAssetIdx)
 			{
@@ -176,19 +178,35 @@ FReply SSCSEditor::TryHandleAssetDragDropOperation(const FDragDropEvent& DragDro
 				TSubclassOf<UActorComponent> MatchingComponentClassForAsset = FComponentAssetBrokerage::GetPrimaryComponentForAsset(AssetClass);
 				if (MatchingComponentClassForAsset != nullptr)
 				{
-					AddNewComponent(MatchingComponentClassForAsset, Asset);
+					AddNewComponent(MatchingComponentClassForAsset, Asset, true );
+					bMarkBlueprintAsModified = true;
 				}
 				else if ((PotentialComponentClass != nullptr) && !PotentialComponentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NewerVersionExists))
 				{
 					if (PotentialComponentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
 					{
-						AddNewComponent(PotentialComponentClass, nullptr);
+						AddNewComponent(PotentialComponentClass, nullptr, true );
+						bMarkBlueprintAsModified = true;
 					}
 				}
 				else if ((PotentialActorClass != nullptr) && !PotentialActorClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NewerVersionExists))
 				{
-					AddNewComponent(UChildActorComponent::StaticClass(), PotentialActorClass);
+					AddNewComponent(UChildActorComponent::StaticClass(), PotentialActorClass, true );
+					bMarkBlueprintAsModified = true;
 				}
+			}
+
+			// Optimization: Only mark the blueprint as modified at the end
+			if (bMarkBlueprintAsModified && EditorMode == EComponentEditorMode::BlueprintSCS)
+			{
+				UBlueprint* Blueprint = GetBlueprint();
+				check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
+
+				Blueprint->Modify();
+				SaveSCSCurrentState(Blueprint->SimpleConstructionScript);
+
+				bAllowTreeUpdates = true;
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}
 
 			GWarn->EndSlowTask();
@@ -3305,6 +3323,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		.SelectionMode(ESelectionMode::Multi)
 		.OnGenerateRow(this, &SSCSEditor::MakeTableRowWidget)
 		.OnGetChildren(this, &SSCSEditor::OnGetChildrenForTree)
+		.OnSetExpansionRecursive(this, &SSCSEditor::SetItemExpansionRecursive)
 		.OnSelectionChanged(this, &SSCSEditor::OnTreeSelectionChanged)
 		.OnContextMenuOpening(this, &SSCSEditor::CreateContextMenu)
 		.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView)
@@ -4573,7 +4592,7 @@ bool SSCSEditor::IsEditingAllowed() const
 	return AllowEditing.Get() && nullptr == GEditor->PlayWorld;
 }
 
-UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset  )
+UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset, const bool bSkipMarkBlueprintModified )
 {
 	if (NewComponentClass->ClassWithin && NewComponentClass->ClassWithin != UObject::StaticClass())
 	{
@@ -4606,7 +4625,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		SaveSCSCurrentState(Blueprint->SimpleConstructionScript);
 
 		// Defer Blueprint class regeneration and tree updates if we need to copy object properties from a source template.
-		const bool bMarkBlueprintModified = !ComponentTemplate;
+		const bool bMarkBlueprintModified = !ComponentTemplate && !bSkipMarkBlueprintModified;
 		if(!bMarkBlueprintModified)
 		{
 			bAllowTreeUpdates = false;
@@ -4624,8 +4643,11 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 			NewComponent->UpdateComponentToWorld();
 
 			// Wait until here to mark as structurally modified because we don't want any RerunConstructionScript() calls to happen until AFTER we've serialized properties from the source object.
-			bAllowTreeUpdates = true;
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			if (!bSkipMarkBlueprintModified)
+			{
+				bAllowTreeUpdates = true;
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			}
 		}
 	}
 	else    // EComponentEditorMode::ActorInstance
@@ -5896,6 +5918,18 @@ const TArray<FSCSEditorTreeNodePtrType>& SSCSEditor::GetRootComponentNodes()
 AActor* SSCSEditor::GetActorContext() const
 {
 	return ActorContext.Get(nullptr);
+}
+
+void SSCSEditor::SetItemExpansionRecursive(FSCSEditorTreeNodePtrType Model, bool bInExpansionState)
+{
+	SetNodeExpansionState(Model, bInExpansionState);
+	for (auto& Child : Model->GetChildren())
+	{
+		if (Child.IsValid())
+		{
+			SetItemExpansionRecursive(Child, bInExpansionState);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

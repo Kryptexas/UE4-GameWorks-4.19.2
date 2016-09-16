@@ -164,7 +164,7 @@ namespace UnrealBuildTool
 //				process.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => Console.WriteLine("error>>" + e.Data);
 //				process.BeginErrorReadLine();
 				process.WaitForExit();
-//				Console.WriteLine("ExitCode: {0}", process.ExitCode);
+				Console.WriteLine("emcc ExitCode: {0}", process.ExitCode);
 				process.Close();
 				// uncomment OPTIMIZER (GUBP on build machines needs this)
 				// and PYTHON (reduce warnings on EMCC_DEBUG=1)

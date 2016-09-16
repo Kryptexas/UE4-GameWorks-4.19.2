@@ -32,10 +32,12 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaA
 
 	FEdGraphSchemaAction_K2Struct() 
 		: FEdGraphSchemaAction()
+		, Struct(nullptr)
 	{}
 
 	FEdGraphSchemaAction_K2Struct (const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+		, Struct(nullptr)
 	{}
 };
 
@@ -406,6 +408,8 @@ public:
 	};
 
 public:
+	void SelectAllInputNodes(UEdGraph* Graph, UEdGraphPin* InGraphPin);
+
 	//~ Begin EdGraphSchema Interface
 	virtual void GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const override;
 	virtual const FPinConnectionResponse CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const override;
@@ -692,15 +696,6 @@ public:
 	 *	@param Reference to new reference object
 	 */
 	void ReplaceSelectedNode(UEdGraphNode* SourceNode, AActor* TargetActor);
-
-	/**
-	 * Looks at all member functions of a specified class and creates 'as delegate' getters for ones matching a given signature.
-	 *
-	 * @param	Class  				The calling context to scan.
-	 * @param	SignatureToMatch	The signature function/delegate to match.
-	 * @param [in,out]	OutTypes	Array to append 'as delegate' getters to.
-	 */
-	void ListFunctionsMatchingSignatureAsDelegates(FGraphContextMenuBuilder& ContextMenuBuilder, const UClass* Class, const UFunction* SignatureToMatch) const;
 
 	/** Returns whether a function is marked 'override' and doesn't have any out parameters */
 	static bool FunctionCanBePlacedAsEvent(const UFunction* InFunction);

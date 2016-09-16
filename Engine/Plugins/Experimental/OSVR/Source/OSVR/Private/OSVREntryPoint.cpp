@@ -31,7 +31,7 @@ OSVREntryPoint::OSVREntryPoint()
 {
     osvrClientAttemptServerAutoStart();
 
-	osvrClientContext = osvrClientInit("com.osvr.unreal.plugin");
+    osvrClientContext = osvrClientInit("com.osvr.unreal.plugin");
 
     {
         bool bClientContextOK = false;
@@ -39,7 +39,7 @@ OSVREntryPoint::OSVREntryPoint()
         auto begin = FDateTime::Now().GetSecond();
         auto end = begin + 3;
         while (FDateTime::Now().GetSecond() < end && !bClientContextOK && !bFailure)
-        {            
+        {
             bClientContextOK = osvrClientCheckStatus(osvrClientContext) == OSVR_RETURN_SUCCESS;
             if (!bClientContextOK)
             {
@@ -59,7 +59,7 @@ OSVREntryPoint::OSVREntryPoint()
     }
 
 #if OSVR_DEPRECATED_BLUEPRINT_API_ENABLED
-	InterfaceCollection = MakeShareable(new OSVRInterfaceCollection(osvrClientContext));
+    InterfaceCollection = MakeShareable(new OSVRInterfaceCollection(osvrClientContext));
 #endif
 }
 
@@ -68,17 +68,17 @@ OSVREntryPoint::~OSVREntryPoint()
     FScopeLock lock(this->GetClientContextMutex());
 
 #if OSVR_DEPRECATED_BLUEPRINT_API_ENABLED
-	InterfaceCollection = nullptr;
+    InterfaceCollection = nullptr;
 #endif
 
-	osvrClientShutdown(osvrClientContext);
+    osvrClientShutdown(osvrClientContext);
     osvrClientReleaseAutoStartedServer();
 }
 
 void OSVREntryPoint::Tick(float DeltaTime)
 {
     FScopeLock lock(this->GetClientContextMutex());
-	osvrClientUpdate(osvrClientContext);
+    osvrClientUpdate(osvrClientContext);
 }
 
 bool OSVREntryPoint::IsOSVRConnected()
@@ -89,6 +89,6 @@ bool OSVREntryPoint::IsOSVRConnected()
 #if OSVR_DEPRECATED_BLUEPRINT_API_ENABLED
 OSVRInterfaceCollection* OSVREntryPoint::GetInterfaceCollection()
 {
-	return InterfaceCollection.Get();
+    return InterfaceCollection.Get();
 }
 #endif

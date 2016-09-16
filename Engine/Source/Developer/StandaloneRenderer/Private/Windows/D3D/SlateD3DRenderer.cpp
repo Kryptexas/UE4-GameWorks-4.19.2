@@ -159,7 +159,7 @@ FSlateUpdatableTexture* FSlateD3DRenderer::CreateUpdatableTexture(uint32 Width, 
 
 void FSlateD3DRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 {
-	delete Texture;
+	Texture->Cleanup();
 }
 
 ISlateAtlasProvider* FSlateD3DRenderer::GetTextureAtlasProvider()

@@ -26,7 +26,7 @@ struct FBTCompositeMemory
 };
 
 UENUM()
-enum class EBTChildIndex
+enum class EBTChildIndex : uint8
 {
 	FirstNode,
 	TaskNode,

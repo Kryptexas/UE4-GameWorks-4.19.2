@@ -458,10 +458,12 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 			uint8* Data = (uint8*)BulkData->GetResourceBulkData();
 			uint32 MipOffset = 0;
 
+			const uint32 BlockSizeX = GPixelFormats[Format].BlockSizeX;
+			const uint32 BlockSizeY = GPixelFormats[Format].BlockSizeY;
 			for(uint32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
 			{
-				uint32 NumBlocksX = FMath::Max<uint32>(1,(SizeX >> MipIndex) / GPixelFormats[Format].BlockSizeX);
-				uint32 NumBlocksY = FMath::Max<uint32>(1,(SizeY >> MipIndex) / GPixelFormats[Format].BlockSizeY);
+				uint32 NumBlocksX = AlignArbitrary(FMath::Max<uint32>(1,(SizeX >> MipIndex)), BlockSizeX) / BlockSizeX;
+				uint32 NumBlocksY = AlignArbitrary(FMath::Max<uint32>(1,(SizeY >> MipIndex)), BlockSizeY) / BlockSizeY;
 				uint32 NumLayers = FMath::Max<uint32>(1,ArraySize);
 				
 				if(bArrayTexture )
@@ -589,7 +591,7 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 	return Texture;
 }
 
-#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // Flithy hack to workaround radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // Flithy hack to workaround radr://16011763
 GLuint FOpenGLTextureBase::GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 MipmapLevels)
 {
 	GLuint FBO = 0;
@@ -678,7 +680,7 @@ void TOpenGLTexture<RHIResourceType>::Resolve(uint32 MipIndex,uint32 ArrayIndex)
 	
 	glBindBuffer( GL_PIXEL_PACK_BUFFER, PixelBuffer->Resource );
 
-#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
 	if(Attachment == GL_COLOR_ATTACHMENT0 && !GLFormat.bCompressed)
 	{
 		GLuint SourceFBO = GetOpenGLFramebuffer(ArrayIndex, MipIndex);
@@ -1291,7 +1293,7 @@ void TOpenGLTexture<RHIResourceType>::CloneViaPBO( TOpenGLTexture<RHIResourceTyp
 				
 				glBindBuffer( GL_PIXEL_PACK_BUFFER, PixelBuffer->Resource );
 				
-#if PLATFORM_MAC || PLATFORM_ANDROIDES31 // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
+#if PLATFORM_MAC || PLATFORM_ANDROIDESDEFERRED // glReadPixels is async with PBOs - glGetTexImage is not: radr://16011763
 				if(Attachment == GL_COLOR_ATTACHMENT0 && !GLFormat.bCompressed)
 				{
 					GLuint SourceFBO = Src->GetOpenGLFramebuffer(ArrayIndex, SrcMipIndex);
@@ -1769,7 +1771,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 		FTexture2DRHIParamRef DepthStencilTex = nullptr;
 		
 		// For stencil sampling we have to use a separate single channel texture to blit stencil data into
-#if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
+#if PLATFORM_DESKTOP || PLATFORM_ANDROIDESDEFERRED
 		if (FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4 && Format == PF_X24_G8 && FOpenGL::SupportsPixelBuffers())
 		{
 			check(NumMipLevels == 1 && MipLevel == 0);
@@ -2023,7 +2025,9 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPar
 		{
 			const uint32 MipSizeX = FMath::Max<uint32>(1,NewSizeX >> (MipIndex+DestMipOffset));
 			const uint32 MipSizeY = FMath::Max<uint32>(1,NewSizeY >> (MipIndex+DestMipOffset));
-			const uint32 NumMipBlocks = Align(MipSizeX,BlockSizeX) / BlockSizeX * Align(MipSizeY,BlockSizeY) / BlockSizeY;
+			const uint32 NumBlocksX = AlignArbitrary(MipSizeX, BlockSizeX) / BlockSizeX;
+			const uint32 NumBlocksY = AlignArbitrary(MipSizeY, BlockSizeY) / BlockSizeY;
+			const uint32 NumMipBlocks = NumBlocksX * NumBlocksY;
 
 			// Lock old and new texture.
 			uint32 SrcStride;

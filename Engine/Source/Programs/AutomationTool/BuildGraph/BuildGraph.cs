@@ -8,11 +8,12 @@ using BuildGraph;
 using System.Reflection;
 using System.Collections;
 using System.IO;
+using System.Xml;
 
 namespace AutomationTool
 {
 	/// <summary>
-	/// Tool to execute build processes for UE4 projects, which can be run locally or in parallel across a build farm (assuming synchronization and resource allocation implemented by a separate system).
+	/// Tool to execute build automation scripts for UE4 projects, which can be run locally or in parallel across a build farm (assuming synchronization and resource allocation implemented by a separate system).
 	///
 	/// Build graphs are declared using an XML script using syntax similar to MSBuild, ANT or NAnt, and consist of the following components:
 	///
@@ -23,14 +24,11 @@ namespace AutomationTool
 	/// - Triggers:     Container for agents which should only be executed when explicitly triggered (using the -Trigger=... or -SkipTriggers command line argument). Declared with the 'Trigger' element.
 	/// - Notifiers:    Specifies email recipients for failures in one or more nodes, whether they should receive notifications on warnings, and so on.
 	/// 
-	/// Properties can be passed in to a script on the command line, or set procedurally with the &ltProperty Name="Foo" Value="Bar"/&gt; syntax. Properties referenced with the $(Property Name) notation are valid within 
-	/// all strings, and will be expanded as macros when the script is read. If a property name is not set explicitly, it defaults to the contents of an environment variable with the same name. 
-	/// Local properties, which only affect the scope of the containing XML element (node, agent, etc...) are declared with the &lt;Local Name="Foo" Value="Bar"/&gt; element, and will override a similarly named global 
-	/// property for the local property's scope.
+	/// Scripts may set properties with the &lt;Property Name="Foo" Value="Bar"/&gt; syntax. Properties referenced with the $(Property Name) notation are valid within all strings, and will be expanded as macros when the 
+	/// script is read. If a property name is not set explicitly, it defaults to the contents of an environment variable with the same name. Properties may be sourced from environment variables or the command line using
+	/// the &lt;EnvVar&gt; and &lt;Option&gt; elements respectively.
 	///
-	/// Any elements can be conditionally defined via the "If" attribute, which follows a syntax similar to MSBuild. Literals in conditions may be quoted with single (') or double (") quotes, or an unquoted sequence of 
-	/// letters, digits and underscore characters. All literals are considered identical regardless of how they are declared, and are considered case-insensitive for comparisons (so true equals 'True', equals "TRUE"). 
-	/// Available operators are "==", "!=", "And", "Or", "!", "(...)", "Exists(...)" and "HasTrailingSlash(...)". A full grammar is written up in Condition.cs.
+	/// Any elements can be conditionally defined via the "If" attribute. A full grammar for conditions is written up in Condition.cs.
 	/// 
 	/// File manipulation is done using wildcards and tags. Any attribute that accepts a list of files may consist of: a Perforce-style wildcard (matching any number of "...", "*" and "?" patterns in any location), a 
 	/// full path name, or a reference to a tagged collection of files, denoted by prefixing with a '#' character. Files may be added to a tag set using the &lt;Tag&gt; Task, which also allows performing set union/difference 
@@ -54,10 +52,11 @@ namespace AutomationTool
 	[Help("ListOnly", "Shows the contents of the preprocessed graph, but does not execute it")]
 	[Help("ShowDeps", "Show node dependencies in the graph output")]
 	[Help("ShowNotifications", "Show notifications that will be sent for each node in the output")]
-	[Help("Trigger=<Name>[+<Name>...]", "Activates the given triggers, including all the nodes behind them in the graph")]
-	[Help("SkipTriggers", "Activate all triggers")]
-	[Help("TicketSignature=<Name>", "Specifies the signature identifying the current job, to be written to tickets for nodes that require them. Tickets are ignored if this parameter is not specified.")]
-	[Help("SkipTargetsWithoutTickets", "Excludes targets which we can't acquire tickets for, rather than failing")]
+	[Help("Trigger=<Name>", "Executes only nodes behind the given trigger")]
+	[Help("SkipTrigger=<Name>[+<Name>...]", "Skips the given triggers, including all the nodes behind them in the graph")]
+	[Help("SkipTriggers", "Skips all triggers")]
+	[Help("TokenSignature=<Name>", "Specifies the signature identifying the current job, to be written to tokens for nodes that require them. Tokens are ignored if this parameter is not specified.")]
+	[Help("SkipTargetsWithoutTokens", "Excludes targets which we can't acquire tokens for, rather than failing")]
 	[Help("Preprocess=<FileName>", "Writes the preprocessed graph to the given file")]
 	[Help("Export=<FileName>", "Exports a JSON file containing the preprocessed build graph, for use as part of a build system")]
 	[Help("PublicTasksOnly", "Only include built-in tasks in the schema, excluding any other UAT modules")]
@@ -73,35 +72,25 @@ namespace AutomationTool
 		{
 			// Parse the command line parameters
 			string ScriptFileName = ParseParamValue("Script", null);
-			if(ScriptFileName == null)
-			{
-				LogError("Missing -Script= parameter for BuildGraph");
-				return ExitCode.Error_Unknown;
-			}
-
 			string TargetNames = ParseParamValue("Target", null);
-			if(TargetNames == null)
-			{
-				LogError("Missing -Target= parameter for BuildGraph");
-				return ExitCode.Error_Unknown;
-			}
-
+			string DocumentationFileName = ParseParamValue("Documentation", null);
 			string SchemaFileName = ParseParamValue("Schema", null);
 			string ExportFileName = ParseParamValue("Export", null);
 			string PreprocessedFileName = ParseParamValue("Preprocess", null);
 			string SharedStorageDir = ParseParamValue("SharedStorageDir", null);
 			string SingleNodeName = ParseParamValue("SingleNode", null);
-			string[] TriggerNames = ParseParamValue("Trigger", "").Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+			string TriggerName = ParseParamValue("Trigger", null);
+			string[] SkipTriggerNames = ParseParamValue("SkipTrigger", "").Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
 			bool bSkipTriggers = ParseParam("SkipTriggers");
-			string TicketSignature = ParseParamValue("TicketSignature", null);
-			bool bSkipTargetsWithoutTickets = ParseParam("SkipTargetsWithoutTickets");
+			string TokenSignature = ParseParamValue("TokenSignature", null);
+			bool bSkipTargetsWithoutTokens = ParseParam("SkipTargetsWithoutTokens");
 			bool bClearHistory = ParseParam("Clean") || ParseParam("ClearHistory");
 			bool bListOnly = ParseParam("ListOnly");
 			bool bWriteToSharedStorage = ParseParam("WriteToSharedStorage") || CommandUtils.IsBuildMachine;
 			bool bPublicTasksOnly = ParseParam("PublicTasksOnly");
 			string ReportName = ParseParamValue("ReportName", null); 
 
-			GraphPrintOptions PrintOptions = 0;
+			GraphPrintOptions PrintOptions = GraphPrintOptions.ShowCommandLineOptions;
 			if(ParseParam("ShowDeps"))
 			{
 				PrintOptions |= GraphPrintOptions.ShowDependencies;
@@ -121,17 +110,12 @@ namespace AutomationTool
 				}
 			}
 
-			// Read any environment variables
-			Dictionary<string, string> DefaultProperties = new Dictionary<string,string>(StringComparer.InvariantCultureIgnoreCase);
-			foreach(DictionaryEntry Entry in Environment.GetEnvironmentVariables())
-			{
-				DefaultProperties[Entry.Key.ToString()] = Entry.Value.ToString();
-			}
-
 			// Set up the standard properties which build scripts might need
+			Dictionary<string, string> DefaultProperties = new Dictionary<string,string>(StringComparer.InvariantCultureIgnoreCase);
 			DefaultProperties["Branch"] = P4Enabled ? P4Env.BuildRootP4 : "Unknown";
 			DefaultProperties["EscapedBranch"] = P4Enabled ? P4Env.BuildRootEscaped : "Unknown";
 			DefaultProperties["Change"] = P4Enabled ? P4Env.Changelist.ToString() : "0";
+			DefaultProperties["CodeChange"] = P4Enabled ? P4Env.CodeChangelist.ToString() : "0";
 			DefaultProperties["RootDir"] = CommandUtils.RootDirectory.FullName;
 			DefaultProperties["IsBuildMachine"] = IsBuildMachine ? "true" : "false";
 			DefaultProperties["HostPlatform"] = HostPlatform.Current.HostEditorPlatform.ToString();
@@ -145,7 +129,8 @@ namespace AutomationTool
 				DefaultProperties["EnginePatchVersion"] = Version.PatchVersion.ToString();
 			}
 
-			// Add any additional custom parameters from the command line (of the form -Set:X=Y)
+			// Add any additional custom arguments from the command line (of the form -Set:X=Y)
+			Dictionary<string, string> Arguments = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
 			foreach (string Param in Params)
 			{
 				const string Prefix = "set:";
@@ -154,7 +139,7 @@ namespace AutomationTool
 					int EqualsIdx = Param.IndexOf('=');
 					if(EqualsIdx >= 0)
 					{
-						DefaultProperties[Param.Substring(Prefix.Length, EqualsIdx - Prefix.Length)] = Param.Substring(EqualsIdx + 1);
+						Arguments[Param.Substring(Prefix.Length, EqualsIdx - Prefix.Length)] = Param.Substring(EqualsIdx + 1);
 					}
 					else
 					{
@@ -170,16 +155,36 @@ namespace AutomationTool
 				return ExitCode.Error_Unknown;
 			}
 
+			// Generate documentation
+			if(DocumentationFileName != null)
+			{
+				GenerateDocumentation(NameToTask, new FileReference(DocumentationFileName));
+				return ExitCode.Success;
+			}
+
 			// Create a schema for the given tasks
 			ScriptSchema Schema = new ScriptSchema(NameToTask);
 			if(SchemaFileName != null)
 			{
-				Schema.Export(new FileReference(SchemaFileName));
+				FileReference FullSchemaFileName = new FileReference(SchemaFileName);
+				Log("Writing schema to {0}...", FullSchemaFileName.FullName);
+				Schema.Export(FullSchemaFileName);
+				if(ScriptFileName == null)
+				{
+					return ExitCode.Success;
+				}
+			}
+
+			// Check there was a script specified
+			if(ScriptFileName == null)
+			{
+				LogError("Missing -Script= parameter for BuildGraph");
+				return ExitCode.Error_Unknown;
 			}
 
 			// Read the script from disk
 			Graph Graph;
-			if(!ScriptReader.TryRead(new FileReference(ScriptFileName), DefaultProperties, Schema, out Graph))
+			if(!ScriptReader.TryRead(new FileReference(ScriptFileName), Arguments, DefaultProperties, Schema, out Graph))
 			{
 				return ExitCode.Error_Unknown;
 			}
@@ -198,63 +203,110 @@ namespace AutomationTool
 
 			// Convert the supplied target references into nodes 
 			HashSet<Node> TargetNodes = new HashSet<Node>();
-			foreach(string TargetName in TargetNames.Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()))
+			if(TargetNames == null)
 			{
-				Node[] Nodes;
-				if(!Graph.TryResolveReference(TargetName, out Nodes))
-				{
-					LogError("Target '{0}' is not in graph", TargetName);
-					return ExitCode.Error_Unknown;
-				}
-				TargetNodes.UnionWith(Nodes);
-			}
-
-			// Try to acquire tickets for all the target nodes we want to build
-			if(TicketSignature != null)
-			{
-				// Find all the lock files
-				HashSet<FileReference> RequiredTickets = new HashSet<FileReference>(TargetNodes.SelectMany(x => x.RequiredTickets));
-
-				// Try to create all the lock files
-				List<FileReference> CreatedTickets = new List<FileReference>();
 				if(!bListOnly)
 				{
-					CreatedTickets.AddRange(RequiredTickets.Where(x => WriteTicket(x, TicketSignature)));
+					LogError("Missing -Target= parameter for BuildGraph");
+					return ExitCode.Error_Unknown;
+				}
+				TargetNodes.UnionWith(Graph.Agents.SelectMany(x => x.Nodes));
+			}
+			else
+			{
+				foreach(string TargetName in TargetNames.Split(new char[]{ '+', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()))
+				{
+					Node[] Nodes;
+					if(!Graph.TryResolveReference(TargetName, out Nodes))
+					{
+						LogError("Target '{0}' is not in graph", TargetName);
+						return ExitCode.Error_Unknown;
+					}
+					TargetNodes.UnionWith(Nodes);
+				}
+			}
+
+			// Try to acquire tokens for all the target nodes we want to build
+			if(TokenSignature != null)
+			{
+				// Find all the lock files
+				HashSet<FileReference> RequiredTokens = new HashSet<FileReference>(TargetNodes.SelectMany(x => x.RequiredTokens));
+
+				// List out all the required tokens
+				if(SingleNodeName == null)
+				{
+					CommandUtils.Log("Required tokens:");
+					foreach(Node Node in TargetNodes)
+					{
+						foreach(FileReference RequiredToken in Node.RequiredTokens)
+						{
+							CommandUtils.Log("  '{0}' requires {1}", Node, RequiredToken);
+						}
+					}
 				}
 
-				// Find all the tickets that we don't have
-				Dictionary<FileReference, string> MissingTickets = new Dictionary<FileReference, string>();
-				foreach(FileReference RequiredTicket in RequiredTickets)
+				// Try to create all the lock files
+				List<FileReference> CreatedTokens = new List<FileReference>();
+				if(!bListOnly)
 				{
-					string CurrentOwner = ReadTicket(RequiredTicket);
-					if(CurrentOwner != null && CurrentOwner != TicketSignature)
+					CreatedTokens.AddRange(RequiredTokens.Where(x => WriteTokenFile(x, TokenSignature)));
+				}
+
+				// Find all the tokens that we don't have
+				Dictionary<FileReference, string> MissingTokens = new Dictionary<FileReference, string>();
+				foreach(FileReference RequiredToken in RequiredTokens)
+				{
+					string CurrentOwner = ReadTokenFile(RequiredToken);
+					if(CurrentOwner != null && CurrentOwner != TokenSignature)
 					{
-						MissingTickets.Add(RequiredTicket, CurrentOwner);
+						MissingTokens.Add(RequiredToken, CurrentOwner);
 					}
 				}
 
 				// If we want to skip all the nodes with missing locks, adjust the target nodes to account for it
-				if(MissingTickets.Count > 0)
+				if(MissingTokens.Count > 0)
 				{
-					if(bSkipTargetsWithoutTickets)
+					if(bSkipTargetsWithoutTokens)
 					{
-						foreach(KeyValuePair<FileReference, string> Pair in MissingTickets)
+						// Find all the nodes we're going to skip
+						HashSet<Node> SkipNodes = new HashSet<Node>();
+						foreach(IGrouping<string, FileReference> MissingTokensForBuild in MissingTokens.GroupBy(x => x.Value, x => x.Key))
 						{
-							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTickets.Contains(Pair.Key)).ToList();
-							Log("Skipping {0} due to previous build: {1}", String.Join(", ", SkipNodes), Pair.Value);
+							Log("Skipping the following nodes due to {0}:", MissingTokensForBuild.Key);
+							foreach(FileReference MissingToken in MissingTokensForBuild)
+							{
+								foreach(Node SkipNode in TargetNodes.Where(x => x.RequiredTokens.Contains(MissingToken) && SkipNodes.Add(x)))
+								{
+									Log("    {0}", SkipNode);
+								}
+							}
+						}
+
+						// Write a list of everything left over
+						if(SkipNodes.Count > 0)
+						{
 							TargetNodes.ExceptWith(SkipNodes);
+							Log("Remaining target nodes:");
+							foreach(Node TargetNode in TargetNodes)
+							{
+								Log("    {0}", TargetNode);
+							}
+							if(TargetNodes.Count == 0)
+							{
+								Log("    None.");
+							}
 						}
 					}
 					else
 					{
-						foreach(KeyValuePair<FileReference, string> Pair in MissingTickets)
+						foreach(KeyValuePair<FileReference, string> Pair in MissingTokens)
 						{
-							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTickets.Contains(Pair.Key)).ToList();
+							List<Node> SkipNodes = TargetNodes.Where(x => x.RequiredTokens.Contains(Pair.Key)).ToList();
 							LogError("Cannot run {0} due to previous build: {1}", String.Join(", ", SkipNodes), Pair.Value);
 						}
-						foreach(FileReference CreatedTicket in CreatedTickets)
+						foreach(FileReference CreatedToken in CreatedTokens)
 						{
-							CreatedTicket.Delete();
+							CreatedToken.Delete();
 						}
 						return ExitCode.Error_Unknown;
 					}
@@ -263,6 +315,27 @@ namespace AutomationTool
 
 			// Cull the graph to include only those nodes
 			Graph.Select(TargetNodes);
+
+			// Collapse any triggers in the graph which are marked to be skipped
+			HashSet<ManualTrigger> SkipTriggers = new HashSet<ManualTrigger>();
+			if(bSkipTriggers)
+			{
+				SkipTriggers.UnionWith(Graph.NameToTrigger.Values);
+			}
+			else
+			{
+				foreach(string SkipTriggerName in SkipTriggerNames)
+				{
+					ManualTrigger SkipTrigger;
+					if(!Graph.NameToTrigger.TryGetValue(TriggerName, out SkipTrigger))
+					{
+						LogError("Couldn't find trigger '{0}'", TriggerName);
+						return ExitCode.Error_Unknown;
+					}
+					SkipTriggers.Add(SkipTrigger);
+				}
+			}
+			Graph.SkipTriggers(SkipTriggers);
 
 			// If a report for the whole build was requested, insert it into the graph
 			if (ReportName != null)
@@ -278,26 +351,13 @@ namespace AutomationTool
 				Graph.Write(new FileReference(PreprocessedFileName), (SchemaFileName != null)? new FileReference(SchemaFileName) : null);
 			}
 
-			// Find the triggers which are explicitly activated, and all of its upstream triggers.
-			HashSet<ManualTrigger> Triggers = new HashSet<ManualTrigger>();
-			foreach(string TriggerName in TriggerNames)
-			{
-				ManualTrigger Trigger;
-				if(!Graph.NameToTrigger.TryGetValue(TriggerName, out Trigger))
+			// Find the triggers which we are explicitly running.
+			ManualTrigger Trigger = null;
+			if(TriggerName != null && !Graph.NameToTrigger.TryGetValue(TriggerName, out Trigger))
 				{
 					LogError("Couldn't find trigger '{0}'", TriggerName);
 					return ExitCode.Error_Unknown;
 				}
-				while(Trigger != null)
-				{
-					Triggers.Add(Trigger);
-					Trigger = Trigger.Parent;
-				}
-			}
-			if(bSkipTriggers)
-			{
-				Triggers.UnionWith(Graph.NameToTrigger.Values);
-			}
 
 			// If we're just building a single node, find it 
 			Node SingleNode = null;
@@ -307,10 +367,18 @@ namespace AutomationTool
 				return ExitCode.Error_Unknown;
 			}
 
-			// Print out all the diagnostic messages which still apply, unless we're running a step as part of a build system. 
+			// If we just want to show the contents of the graph, do so and exit.
+			if(bListOnly)
+			{ 
+				HashSet<Node> CompletedNodes = FindCompletedNodes(Graph, Storage);
+				Graph.Print(CompletedNodes, PrintOptions);
+				return ExitCode.Success;
+			}
+
+			// Print out all the diagnostic messages which still apply, unless we're running a step as part of a build system or just listing the contents of the file. 
 			if(SingleNode == null)
 			{
-				IEnumerable<GraphDiagnostic> Diagnostics = Graph.Diagnostics.Where(x => x.EnclosingTrigger == null || Triggers.Contains(x.EnclosingTrigger));
+				IEnumerable<GraphDiagnostic> Diagnostics = Graph.Diagnostics.Where(x => x.EnclosingTrigger == Trigger);
 				foreach(GraphDiagnostic Diagnostic in Diagnostics)
 				{
 					if(Diagnostic.EventType == LogEventType.Warning)
@@ -329,16 +397,11 @@ namespace AutomationTool
 			}
 
 			// Execute the command
-			if(bListOnly)
-			{ 
-				HashSet<Node> CompletedNodes = FindCompletedNodes(Graph, Storage);
-				Graph.Print(CompletedNodes, PrintOptions);
-			}
-			else if(ExportFileName != null)
+			if(ExportFileName != null)
 			{
 				HashSet<Node> CompletedNodes = FindCompletedNodes(Graph, Storage);
 				Graph.Print(CompletedNodes, PrintOptions);
-				Graph.Export(new FileReference(ExportFileName), Triggers, CompletedNodes);
+				Graph.Export(new FileReference(ExportFileName), Trigger, CompletedNodes);
 			}
 			else if(SingleNode != null)
 			{
@@ -360,7 +423,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Find all the tasks which are available from the loaded assemblies
 		/// </summary>
-		/// <param name="TaskNameToReflectionInfo">Mapping from task name to information about how to serialize it</param>
+		/// <param name="NameToTask">Mapping from task name to information about how to serialize it</param>
 		/// <param name="bPublicTasksOnly">Whether to include just public tasks, or all the tasks in any loaded assemblies</param>
 		static bool FindAvailableTasks(Dictionary<string, ScriptTask> NameToTask, bool bPublicTasksOnly)
 		{
@@ -394,19 +457,19 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Reads the contents of the given ticket
+		/// Reads the contents of the given token
 		/// </summary>
-		/// <returns>Contents of the ticket, or null if it does not exist</returns>
-		public string ReadTicket(FileReference Location)
+		/// <returns>Contents of the token, or null if it does not exist</returns>
+		public string ReadTokenFile(FileReference Location)
 		{
 			return Location.Exists()? File.ReadAllText(Location.FullName) : null;
 		}
 
 		/// <summary>
-		/// Attempts to write an owner to a ticket file transactionally
+		/// Attempts to write an owner to a token file transactionally
 		/// </summary>
 		/// <returns>True if the lock was acquired, false otherwise</returns>
-		public bool WriteTicket(FileReference Location, string Signature)
+		public bool WriteTokenFile(FileReference Location, string Signature)
 		{
 			// Check it doesn't already exist
 			if(Location.Exists())
@@ -498,6 +561,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="Graph">The graph instance</param>
+		/// <param name="Storage">The temp storage backend which stores the shared state</param>
 		/// <returns>True if everything built successfully</returns>
 		bool BuildAllNodes(JobContext Job, Graph Graph, TempStorage Storage)
 		{
@@ -540,6 +604,8 @@ namespace AutomationTool
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="Graph">The graph to which the node belongs. Used to determine which outputs need to be transferred to temp storage.</param>
 		/// <param name="Node">The node to build</param>
+		/// <param name="Storage">The temp storage backend which stores the shared state</param>
+		/// <param name="bWithBanner">Whether to write a banner before and after this node's log output</param>
 		/// <returns>True if the node built successfully, false otherwise.</returns>
 		bool BuildNode(JobContext Job, Graph Graph, Node Node, TempStorage Storage, bool bWithBanner)
 		{
@@ -567,7 +633,7 @@ namespace AutomationTool
 					TempStorageBlock CurrentStorageBlock;
 					if(FileToStorageBlock.TryGetValue(File, out CurrentStorageBlock))
 					{
-						LogError("File '{0}' was produced by {1} and {2}", InputStorageBlock, CurrentStorageBlock);
+						LogError("File '{0}' was produced by {1} and {2}", File, InputStorageBlock, CurrentStorageBlock);
 					}
 					FileToStorageBlock[File] = InputStorageBlock;
 				}
@@ -689,6 +755,165 @@ namespace AutomationTool
 			// Mark the node as succeeded
 			Storage.MarkAsComplete(Node.Name);
 			return true;
+		}
+
+		/// <summary>
+		/// Generate HTML documentation for all the tasks
+		/// </summary>
+		/// <param name="NameToTask">Map of task name to implementation</param>
+		/// <param name="OutputFile">Output file</param>
+		static void GenerateDocumentation(Dictionary<string, ScriptTask> NameToTask, FileReference OutputFile)
+		{
+			// Find all the assemblies containing tasks
+			Assembly[] TaskAssemblies = NameToTask.Values.Select(x => x.ParametersClass.Assembly).Distinct().ToArray();
+
+			// Read documentation for each of them
+			Dictionary<string, XmlElement> MemberNameToElement = new Dictionary<string, XmlElement>();
+			foreach(Assembly TaskAssembly in TaskAssemblies)
+			{
+				string XmlFileName = Path.ChangeExtension(TaskAssembly.Location, ".xml");
+				if(File.Exists(XmlFileName))
+				{
+					// Read the document
+					XmlDocument Document = new XmlDocument();
+					Document.Load(XmlFileName);
+
+					// Parse all the members, and add them to the map
+					foreach(XmlElement Element in Document.SelectNodes("/doc/members/member"))
+					{
+						string Name = Element.GetAttribute("name");
+						MemberNameToElement.Add(Name, Element);
+					}
+				}
+			}
+
+			// Create the output directory
+			OutputFile.Directory.CreateDirectory();
+			Log("Writing {0}...", OutputFile);
+
+			// Parse the engine version
+			BuildVersion Version;
+			if(!BuildVersion.TryRead(out Version))
+			{
+				throw new AutomationException("Couldn't read Build.version");
+			}
+
+			// Write the output file
+			using (StreamWriter Writer = new StreamWriter(OutputFile.FullName))
+			{
+				Writer.WriteLine("Availability: NoPublish");
+				Writer.WriteLine("Title: BuildGraph Predefined Tasks");
+				Writer.WriteLine("Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/BuildGraphScriptTasks");
+				Writer.WriteLine("Description: This is a procedurally generated markdown page.");
+				Writer.WriteLine("version: {0}.{1}", Version.MajorVersion, Version.MinorVersion);
+				Writer.WriteLine("parent:Programming/Development/BuildGraph/BuildGraphScriptTasks");
+				Writer.WriteLine();
+				foreach(string TaskName in NameToTask.Keys.OrderBy(x => x))
+				{
+					// Get the task object
+					ScriptTask Task = NameToTask[TaskName];
+
+					// Get the documentation for this task
+					XmlElement TaskElement;
+					if(MemberNameToElement.TryGetValue("T:" + Task.TaskClass.FullName, out TaskElement))
+					{
+						// Write the task heading
+						Writer.WriteLine("### {0}", TaskName);
+						Writer.WriteLine();
+						Writer.WriteLine(ConvertToMarkdown(TaskElement.SelectSingleNode("summary")));
+						Writer.WriteLine();
+
+						// Document the parameters
+						List<string[]> Rows = new List<string[]>();
+						foreach(string ParameterName in Task.NameToParameter.Keys)
+						{
+							// Get the parameter data
+							ScriptTaskParameter Parameter = Task.NameToParameter[ParameterName];
+
+							// Get the documentation for this parameter
+							XmlElement ParameterElement;
+							if(MemberNameToElement.TryGetValue("F:" + Parameter.FieldInfo.DeclaringType.FullName + "." + Parameter.Name, out ParameterElement))
+							{
+								string TypeName = Parameter.FieldInfo.FieldType.Name;
+								if(Parameter.ValidationType != TaskParameterValidationType.Default)
+								{
+									StringBuilder NewTypeName = new StringBuilder(Parameter.ValidationType.ToString());
+									for(int Idx = 1; Idx < NewTypeName.Length; Idx++)
+									{
+										if(Char.IsLower(NewTypeName[Idx - 1]) && Char.IsUpper(NewTypeName[Idx]))
+										{
+											NewTypeName.Insert(Idx, ' ');
+										}
+									}
+									TypeName = NewTypeName.ToString();
+								}
+
+								string[] Columns = new string[4];
+								Columns[0] = ParameterName;
+								Columns[1] = TypeName;
+								Columns[2] = Parameter.bOptional? "Optional" : "Required";
+								Columns[3] = ConvertToMarkdown(ParameterElement.SelectSingleNode("summary"));
+								Rows.Add(Columns);
+							}
+						}
+
+						// Always include the "If" attribute
+						string[] IfColumns = new string[4];
+						IfColumns[0] = "If";
+						IfColumns[1] = "Condition";
+						IfColumns[2] = "Optional";
+						IfColumns[3] = "Whether to execute this task. It is ignored if this condition evaluates to false.";
+						Rows.Add(IfColumns);
+
+						// Get the width of each column
+						int[] Widths = new int[4];
+						for(int Idx = 0; Idx < 4; Idx++)
+						{
+							Widths[Idx] = Rows.Max(x => x[Idx].Length);
+						}
+
+						// Format the markdown table
+						string Format = String.Format("| {{0,-{0}}} | {{1,-{1}}} | {{2,-{2}}} | {{3,-{3}}} |", Widths[0], Widths[1], Widths[2], Widths[3]);
+						Writer.WriteLine(Format, "", "", "", "");
+						Writer.WriteLine(Format, new string('-', Widths[0]), new string('-', Widths[1]), new string('-', Widths[2]), new string('-', Widths[3]));
+						for(int Idx = 0; Idx < Rows.Count; Idx++)
+						{
+							Writer.WriteLine(Format, Rows[Idx][0], Rows[Idx][1], Rows[Idx][2], Rows[Idx][3]);
+						}
+
+						// Blank line before next task
+						Writer.WriteLine();
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Converts an XML documentation node to markdown
+		/// </summary>
+		/// <param name="Node">The node to read</param>
+		/// <returns>Text in markdown format</returns>
+		static string ConvertToMarkdown(XmlNode Node)
+		{
+			string Text = Node.InnerXml;
+
+			StringBuilder Result = new StringBuilder();
+			for(int Idx = 0; Idx < Text.Length; Idx++)
+			{
+				if(Char.IsWhiteSpace(Text[Idx]))
+				{
+					Result.Append(' ');
+					while(Idx + 1 < Text.Length && Char.IsWhiteSpace(Text[Idx + 1]))
+					{
+						Idx++;
+					}
+				}
+				else
+				{
+					Result.Append(Text[Idx]);
+				}
+			}
+			return Result.ToString().Trim();
 		}
 	}
 

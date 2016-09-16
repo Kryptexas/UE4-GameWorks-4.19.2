@@ -90,7 +90,7 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 
 #if METHOD == 0
 	// Nearest sampling (not blurry but blocky, more for testing)
-	#if ES2_PROFILE
+	#if ES2_PROFILE || ES3_1_PROFILE
 		OutColor = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UVAndScreenPos.xy);
 	#else
 		OutColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVAndScreenPos.xy, 0, int2(0, 0));

@@ -313,6 +313,9 @@ namespace UnrealGameSync
 					ConfigFile NewProjectConfigFile = null;
 					if(Context.Options.HasFlag(WorkspaceUpdateOptions.Sync))
 					{
+						// Read the new config file
+						NewProjectConfigFile = ReadProjectConfigFile(LocalRootPath, SelectedLocalFileName, Log);
+
 						// Get the branch name
 						string BranchOrStreamName;
 						if(!Perforce.GetActiveStream(out BranchOrStreamName, Log))
@@ -340,10 +343,17 @@ namespace UnrealGameSync
 						}
 
 						// Get the last code change
-						int VersionChangeNumber = CodeChanges.Max(x => x.Number);
+						int VersionChangeNumber;
+						if(NewProjectConfigFile.GetValue("Options.VersionToLastCodeChange", true))
+						{
+							VersionChangeNumber = CodeChanges.Max(x => x.Number);
+						}
+						else
+						{
+							VersionChangeNumber = PendingChangeNumber;
+						}
 
 						// Update the version files
-						NewProjectConfigFile = ReadProjectConfigFile(LocalRootPath, SelectedLocalFileName, Log);
 						if(NewProjectConfigFile.GetValue("Options.UseFastModularVersioning", false))
 						{
 							Dictionary<string, string> BuildVersionStrings = new Dictionary<string,string>();

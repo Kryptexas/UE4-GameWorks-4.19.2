@@ -112,6 +112,110 @@ int32 GetPortFromNetDriver(FName InstanceName)
 	return Port;
 }
 
+bool HandleSessionCommands(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	bool bWasHandled = true;
+
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(InWorld);
+	if (SessionInt.IsValid())
+	{
+		if (FParse::Command(&Cmd, TEXT("DUMP")))
+		{
+			SessionInt->DumpSessionState();
+		}
+	}
+
+	return bWasHandled;
+}
+
+bool HandleVoiceCommands(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	bool bWasHandled = true;
+
+	if (FParse::Command(&Cmd, TEXT("DUMP")))
+	{
+		LOG_SCOPE_VERBOSITY_OVERRIDE(LogVoice, ELogVerbosity::Display);
+		bool bVoiceModule = FVoiceModule::IsAvailable();
+		bool bVoiceModuleEnabled = false;
+		if (bVoiceModule)
+		{
+			bVoiceModuleEnabled = FVoiceModule::Get().IsVoiceEnabled();
+		}
+
+		bool bRequiresPushToTalk = false;
+		if (!GConfig->GetBool(TEXT("/Script/Engine.GameSession"), TEXT("bRequiresPushToTalk"), bRequiresPushToTalk, GGameIni))
+		{
+			UE_LOG(LogVoice, Warning, TEXT("Missing bRequiresPushToTalk key in [/Script/Engine.GameSession] of DefaultGame.ini"));
+		}
+
+		int32 MaxLocalTalkers = 0;
+		if (!GConfig->GetInt(TEXT("OnlineSubsystem"), TEXT("MaxLocalTalkers"), MaxLocalTalkers, GEngineIni))
+		{
+			UE_LOG(LogVoice, Warning, TEXT("Missing MaxLocalTalkers key in OnlineSubsystem of DefaultEngine.ini"));
+		}
+
+		int32 MaxRemoteTalkers = 0;
+		if (!GConfig->GetInt(TEXT("OnlineSubsystem"), TEXT("MaxRemoteTalkers"), MaxRemoteTalkers, GEngineIni))
+		{
+			UE_LOG(LogVoice, Warning, TEXT("Missing MaxRemoteTalkers key in OnlineSubsystem of DefaultEngine.ini"));
+		}
+		
+		float VoiceNotificationDelta = 0.0f;
+		if (!GConfig->GetFloat(TEXT("OnlineSubsystem"), TEXT("VoiceNotificationDelta"), VoiceNotificationDelta, GEngineIni))
+		{
+			UE_LOG(LogVoice, Warning, TEXT("Missing VoiceNotificationDelta key in OnlineSubsystem of DefaultEngine.ini"));
+		}
+
+		bool bHasVoiceInterfaceEnabled = false;
+		if (!GConfig->GetBool(TEXT("OnlineSubsystem"), TEXT("bHasVoiceEnabled"), bHasVoiceInterfaceEnabled, GEngineIni))
+		{
+			UE_LOG(LogVoice, Log, TEXT("Voice interface disabled by config [OnlineSubsystem].bHasVoiceEnabled"));
+		}
+
+		bool bDuckingOptOut = false;
+		if (!GConfig->GetBool(TEXT("OnlineSubsystem"), TEXT("bDuckingOptOut"), bDuckingOptOut, GEngineIni))
+		{
+			UE_LOG(LogVoice, Log, TEXT("Voice ducking not set by config [OnlineSubsystem].bDuckingOptOut"));
+		}
+
+		FString VoiceDump;
+
+		bool bVoiceInterface = false;
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(InWorld);
+		if (VoiceInt.IsValid())
+		{
+			bVoiceInterface = true;
+			VoiceDump = VoiceInt->GetVoiceDebugState();
+		}
+
+		UE_LOG(LogVoice, Display, TEXT("Voice Module Available: %s"), bVoiceModule ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogVoice, Display, TEXT("Voice Module Enabled: %s"), bVoiceModuleEnabled ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogVoice, Display, TEXT("Voice Interface Available: %s"), bVoiceInterface ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogVoice, Display, TEXT("Voice Interface Enabled: %s"), bHasVoiceInterfaceEnabled ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogVoice, Display, TEXT("Ducking Opt Out Enabled: %s"), bDuckingOptOut ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogVoice, Display, TEXT("Max Local Talkers: %d"), MaxLocalTalkers);
+		UE_LOG(LogVoice, Display, TEXT("Max Remote Talkers: %d"), MaxRemoteTalkers);
+		UE_LOG(LogVoice, Display, TEXT("Notification Delta: %0.2f"), VoiceNotificationDelta);
+		UE_LOG(LogVoice, Display, TEXT("Voice Requires Push To Talk: %s"), bRequiresPushToTalk ? TEXT("true") : TEXT("false"));
+
+		TArray<FString> OutArray;
+		VoiceDump.ParseIntoArray(OutArray, TEXT("\n"), false);
+		for (const FString& Str : OutArray)
+		{
+			UE_LOG(LogVoice, Display, TEXT("%s"), *Str);
+		}
+	}
+	else
+	{
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(InWorld);
+		if (VoiceInt.IsValid())
+		{
+		}
+	}
+
+	return bWasHandled;
+}
+
 /**
  * Exec handler that routes online specific execs to the proper subsystem
  *
@@ -143,6 +247,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 				Cmd += FCString::Strlen(TEXT("Subsystem=")) + SubName.Len();
 			}
 		}
+
 		IOnlineSubsystem* OnlineSub = NULL;
 		// If the exec requested a specific subsystem, the grab that one for routing
 		if (SubName.Len())
@@ -154,6 +259,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		{
 			OnlineSub = Online::GetSubsystem(InWorld);
 		}
+
 		if (OnlineSub != NULL)
 		{
 			bWasHandled = OnlineSub->Exec(InWorld, Cmd, Ar);
@@ -307,6 +413,14 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						bWasHandled = true;
 					}
 #endif //WITH_DEV_AUTOMATION_TESTS
+				}
+				else if (FParse::Command(&Cmd, TEXT("SESSION")))
+				{
+					bWasHandled = HandleSessionCommands(InWorld, Cmd, Ar);
+				}
+				else if (FParse::Command(&Cmd, TEXT("VOICE")))
+				{
+					bWasHandled = HandleVoiceCommands(InWorld, Cmd, Ar);
 				}
 			}
 		}

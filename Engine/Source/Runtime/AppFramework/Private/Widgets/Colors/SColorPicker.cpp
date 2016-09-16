@@ -433,6 +433,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 											.OnBegin(this, &SColorPicker::HandleInteractiveChangeBegin)
 											.OnComplete(this, &SColorPicker::HandleEyeDropperButtonComplete)
 											.DisplayGamma(DisplayGamma)
+											.Visibility(bValidCreationOverrideExists ? EVisibility::Collapsed : EVisibility::Visible)
 									]
 							]
 					]
@@ -583,7 +584,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 					.MinDesiredSlotHeight(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotHeight"))
 					.MinDesiredSlotWidth(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotWidth"))
 					.SlotPadding(FCoreStyle::Get().GetMargin("StandardDialog.SlotPadding"))
-					.Visibility((ParentWindowPtr.IsValid() || bValidCreationOverrideExists ) ? EVisibility::Visible : EVisibility::Collapsed)
+					.Visibility((ParentWindowPtr.IsValid() || bValidCreationOverrideExists) ? EVisibility::Visible : EVisibility::Collapsed)
 
 				+ SUniformGridPanel::Slot(0, 0)
 					[
@@ -1191,8 +1192,6 @@ FReply SColorPicker::HandleCancelButtonClicked()
 	bClosedViaOkOrCancel = true;
 
 	DiscardColor();
-	
-
 	if (SColorPicker::OnColorPickerDestroyOverride.IsBound())
 	{
 		SColorPicker::OnColorPickerDestroyOverride.Execute();
@@ -1456,9 +1455,6 @@ FReply SColorPicker::HandleOkButtonClicked()
 	{
 		ParentWindowPtr.Pin()->RequestDestroyWindow();
 	}
-
-	
-
 	return FReply::Handled();
 }
 
@@ -1653,7 +1649,7 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 
 	TSharedPtr<SWindow> Window = nullptr;
 	
-	if(!bOverrideNonModalCreation)
+	if (!bOverrideNonModalCreation)
 	{
 		Window = SNew(SWindow)
 			.AutoCenter(EAutoCenter::None)
@@ -1683,9 +1679,7 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 		.DisplayGamma(Args.DisplayGamma)
 		.sRGBOverride(Args.sRGBOverride)
 		.OverrideColorPickerCreation(bOverrideNonModalCreation);
-
-
-
+	
 	// If the color picker requested is modal, don't override the behavior even if the delegate is bound
 	if (bOverrideNonModalCreation)
 	{

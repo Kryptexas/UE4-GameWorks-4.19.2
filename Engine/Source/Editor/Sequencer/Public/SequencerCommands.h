@@ -213,6 +213,9 @@ public:
 	/** Convert the selected possessed objects to spawnables. These will be spawned and destroyed by sequencer as per object's the spawn track. */
 	TSharedPtr< FUICommandInfo > ConvertToSpawnable;
 
+	/** Convert the selected spawnable objects to possessables. The newly created possessables will be created in the current level. */
+	TSharedPtr< FUICommandInfo > ConvertToPossessable;
+
 	/** Discard all changes to the current movie scene. */
 	TSharedPtr< FUICommandInfo > DiscardChanges;
 
@@ -225,8 +228,11 @@ public:
 	/** Record the selected actors into a sub sequence of the currently active sequence */
 	TSharedPtr< FUICommandInfo > RecordSelectedActors;
 
-	/** Exports the current scene and sequence to fbx. */
-	TSharedPtr< FUICommandInfo > ExportSceneAndSequence;
+	/** Imports animation from fbx. */
+	TSharedPtr< FUICommandInfo > ImportFBX;
+
+	/** Exports animation to fbx. */
+	TSharedPtr< FUICommandInfo > ExportFBX;
 
 	/**
 	 * Initialize commands

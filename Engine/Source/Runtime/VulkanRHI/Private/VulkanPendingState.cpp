@@ -242,8 +242,10 @@ static_assert(sizeof(GDebugPipelineKey) == 2 * sizeof(uint64), "Debug struct not
 
 FVulkanPendingState::FVulkanPendingState(FVulkanDevice* InDevice)
 	: Device(InDevice)
+#if !VULKAN_USE_NEW_RENDERPASSES
 	, bBeginRenderPass(false)
 	, bChangeRenderTarget(false)
+#endif
 	, GlobalUniformPool(nullptr)
 	, bScissorEnable(false)
 {
@@ -265,11 +267,13 @@ FVulkanPendingState::~FVulkanPendingState()
 
 	DestroyFrameBuffers(false);
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 	for (auto& Pair : RenderPassMap)
 	{
 		delete Pair.Value;
 	}
 	RenderPassMap.Empty(0);
+#endif
 }
 
 void FVulkanPendingState::DestroyFrameBuffers(bool bResetMap)
@@ -300,6 +304,7 @@ FVulkanGlobalUniformPool& FVulkanPendingState::GetGlobalUniformPool()
     return *GlobalUniformPool;
 }
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 bool FVulkanPendingState::RenderPassBegin(FVulkanCmdBuffer* CmdBuffer)
 {
 	check(!bBeginRenderPass);
@@ -370,7 +375,17 @@ bool FVulkanPendingState::RenderPassBegin(FVulkanCmdBuffer* CmdBuffer)
 	if (RTInfo.DepthStencilRenderTarget.Texture)
 	{
 		VkClearValue& DstColor = ClearValues[Index];
-		RTInfo.DepthStencilRenderTarget.Texture->GetClearBinding().GetDepthStencil(DstColor.depthStencil.depth, DstColor.depthStencil.stencil);
+		const FClearValueBinding& ClearBinding = RTInfo.DepthStencilRenderTarget.Texture->GetClearBinding();
+		if (ClearBinding.ColorBinding == EClearBinding::EDepthStencilBound)
+		{
+			ClearBinding.GetDepthStencil(DstColor.depthStencil.depth, DstColor.depthStencil.stencil);
+		}
+		else
+		{
+			ensure(!RTInfo.bClearDepth && !RTInfo.bClearStencil);
+			DstColor.depthStencil.depth = 1.0f;
+			DstColor.depthStencil.stencil = 0;
+		}
 		// @todo vulkan - we don't track the format of the depth buffer in the key, only if depth is enabled (write/test) - should be enough, but worth checking that
 		// if either bit is set that we have a depth buffer attached
 	}
@@ -392,13 +407,15 @@ void FVulkanPendingState::RenderPassEnd(FVulkanCmdBuffer* CmdBuffer)
 	CmdBuffer->EndRenderPass();
 	bBeginRenderPass = false;
 }
+#endif
 
 // Expected to be called after render pass has been ended
 // and only from "FVulkanDynamicRHI::RHIEndDrawingViewport()"
 void FVulkanPendingState::Reset()
 {
+#if !VULKAN_USE_NEW_RENDERPASSES
 	check(!bBeginRenderPass);
-
+#endif
 	CurrentState.Reset();
 
 	FMemory::Memzero(PendingStreams);
@@ -411,30 +428,17 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	, NumAllocatedDescriptorSets(0)
 	, PeakAllocatedDescriptorSets(0)
 {
-	check(Device != nullptr);
-
-	//#todo-rco: Get a proper/dynamic numbers
-	MaxDescriptorSets = 32 * 1024;
+	MaxDescriptorSets = 8192;
 	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
 	FMemory::Memzero(MaxAllocatedTypes);
 	FMemory::Memzero(NumAllocatedTypes);
 	FMemory::Memzero(PeakAllocatedTypes);
 
 	//#todo-rco: Get some initial values
-	uint32 LimitMaxUniformBuffers = 512 * 1024;
-	uint32 LimitMaxSamplers = FMath::Min(Limits.maxSamplerAllocationCount, (uint32)64 * 1024);
-	uint32 LimitMaxCombinedImageSamplers = 256 * 1024;
-	uint32 LimitMaxUniformTexelBuffers = 64 * 1024;
-
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	if (GValidationCvar.GetValueOnAnyThread() != 0)
-	{
-		LimitMaxUniformBuffers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxUniformBuffers);
-		LimitMaxSamplers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxSamplers);
-		LimitMaxCombinedImageSamplers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxCombinedImageSamplers);
-		LimitMaxUniformTexelBuffers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxUniformTexelBuffers);
-	}
-#endif
+	uint32 LimitMaxUniformBuffers = 2048;
+	uint32 LimitMaxSamplers = 1024;
+	uint32 LimitMaxCombinedImageSamplers = 4096;
+	uint32 LimitMaxUniformTexelBuffers = 512;
 
 	TArray<VkDescriptorPoolSize> Types;
 	VkDescriptorPoolSize* Type = new(Types) VkDescriptorPoolSize;
@@ -462,24 +466,20 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	Type->type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 	Type->descriptorCount = LimitMaxUniformTexelBuffers;
 
+	for (const VkDescriptorPoolSize& PoolSize : Types)
+	{
+		MaxAllocatedTypes[PoolSize.type] = PoolSize.descriptorCount;
+	}
+
 	VkDescriptorPoolCreateInfo PoolInfo;
 	FMemory::Memzero(PoolInfo);
 	PoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-
-	//@TODO: Android don't support descriptor pools on device, so this doesn't matter for us yet. might for the PC IDC though.
 	PoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-
 	PoolInfo.poolSizeCount = Types.Num();
 	PoolInfo.pPoolSizes = Types.GetData();
 	PoolInfo.maxSets = MaxDescriptorSets;
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateDescriptorPool(Device->GetInstanceHandle(), &PoolInfo, nullptr, &DescriptorPool));
-
-	for (int32 Index = 0; Index < Types.Num(); ++Index)
-	{
-		auto& Type2 = Types[Index];
-		MaxAllocatedTypes[Type2.type] = Type2.descriptorCount;
-	}
 }
 
 FVulkanDescriptorPool::~FVulkanDescriptorPool()
@@ -493,43 +493,15 @@ FVulkanDescriptorPool::~FVulkanDescriptorPool()
 
 void FVulkanDescriptorPool::TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout)
 {
-	// Check if we can allocate new DescriptorSet
-	checkf(NumAllocatedDescriptorSets < MaxDescriptorSets, TEXT("DescriptorSet allocation overflow %u"), MaxDescriptorSets);
-
 	// Check and increment our current type usage
 	for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex < VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
 	{
 		NumAllocatedTypes[TypeIndex] +=	(int32)Layout.GetTypesUsed((VkDescriptorType)TypeIndex);
 		PeakAllocatedTypes[TypeIndex] = FMath::Max(PeakAllocatedTypes[TypeIndex], NumAllocatedTypes[TypeIndex]);
-
-		check(NumAllocatedTypes[TypeIndex] <= MaxAllocatedTypes[TypeIndex]);
 	}
 
 	NumAllocatedDescriptorSets += Layout.GetLayouts().Num();
 	PeakAllocatedDescriptorSets = FMath::Max(NumAllocatedDescriptorSets, PeakAllocatedDescriptorSets);
-
-	check(NumAllocatedDescriptorSets <= MaxDescriptorSets);
-/*
-	// Notify number of descriptor sets usage
-	// A notification is triggered on each ~10%.
-	if ((NumAllocatedDescriptorSets % (MaxDescriptorSets/10)) == 0)
-	{
-		const float CapacityPercent = (float)NumAllocatedDescriptorSets/MaxDescriptorSets*100;
-
-		if (CapacityPercent < 70.0f)
-		{
-			UE_LOG(LogVulkanRHI, Display, TEXT("DescriptorPool usage is at %2.2f%% capacity (%u/%u)"),
-				CapacityPercent,
-				NumAllocatedDescriptorSets, MaxDescriptorSets);
-		}
-		else
-		{
-			UE_LOG(LogVulkanRHI, Warning, TEXT("DescriptorPool usage is at %2.2f%% capacity (%u/%u)"),
-				CapacityPercent,
-				NumAllocatedDescriptorSets, MaxDescriptorSets);
-		}
-	}
-*/
 }
 
 void FVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& Layout)
@@ -541,7 +513,6 @@ void FVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& 
 	}
 
 	NumAllocatedDescriptorSets -= Layout.GetLayouts().Num();
-	check(NumAllocatedDescriptorSets >= 0);
 }
 
 
@@ -568,15 +539,21 @@ void FVulkanPendingState::PrepareDraw(FVulkanCommandListContext* CmdListContext,
 	checkf(Topology < (1 << NUMBITS_POLYTYPE), TEXT("PolygonMode was too high a value for the PSO key [%d]"), Topology);
 	SetKeyBits(CurrentKey, OFFSET_POLYTYPE, NUMBITS_POLYTYPE, Topology);
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 	//@TODO: let's try not to do this per draw call?
 	UpdateRenderPass(Cmd);
+#endif
 
 	check(CurrentState.Shader);
-    CurrentState.Shader->UpdateDescriptorSets(CmdListContext, Cmd, GlobalUniformPool);
+    bool bHasDescriptorSets = CurrentState.Shader->UpdateDescriptorSets(CmdListContext, Cmd, GlobalUniformPool);
 
 	// let the BoundShaderState return a pipeline object for the full current state of things
 	CurrentState.InputAssembly.topology = Topology;
+#if VULKAN_USE_NEW_RENDERPASSES
+	FVulkanPipeline* Pipeline = CurrentState.Shader->PrepareForDraw(CmdListContext->GetCurrentRenderPass(), CurrentKey, CurrentState.Shader->GetVertexInputStateInfo().GetHash(), CurrentState);
+#else
 	FVulkanPipeline* Pipeline = CurrentState.Shader->PrepareForDraw(CurrentKey, CurrentState.Shader->GetVertexInputStateInfo().GetHash(), CurrentState);
+#endif
 
 	check(Pipeline);
 
@@ -586,12 +563,15 @@ void FVulkanPendingState::PrepareDraw(FVulkanCommandListContext* CmdListContext,
 
 		VkPipeline NewPipeline = Pipeline->GetHandle();
 		CurrentState.Shader->BindPipeline(Cmd->GetHandle(), NewPipeline);
-
-		CurrentState.Shader->BindDescriptorSets(Cmd);
+		if (bHasDescriptorSets)
+		{
+			CurrentState.Shader->BindDescriptorSets(Cmd);
+		}
 		CurrentState.Shader->BindVertexStreams(Cmd, PendingStreams);
 	}
 }
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 void FVulkanPendingState::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& InRTInfo)
 {
 	//#todo-rco: Check perf
@@ -691,13 +671,17 @@ bool FVulkanPendingState::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo&
 
 	return bAllChecksPassed == false;
 }
+#endif
 
 void FVulkanPendingState::InitFrame()
 {
 	// make sure the first SetRenderTarget goes through
+#if !VULKAN_USE_NEW_RENDERPASSES
 	PrevRenderTargetsInfo.NumColorRenderTargets = -1;
+#endif
 }
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 FVulkanRenderPass* FVulkanPendingState::GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout)
 {
 	uint32 Hash = RTLayout.GetHash();
@@ -712,6 +696,7 @@ FVulkanRenderPass* FVulkanPendingState::GetOrCreateRenderPass(const FVulkanRende
 	RenderPassMap.Add(Hash, OutRenderPass);
 	return OutRenderPass;
 }
+#endif
 
 FVulkanFramebuffer* FVulkanPendingState::GetOrCreateFramebuffer(const FRHISetRenderTargetsInfo& RHIRTInfo, const FVulkanRenderTargetLayout& InRTInfo, const FVulkanRenderPass& inRenderPass)
 {
@@ -818,10 +803,12 @@ void FVulkanPendingState::SetBlendState(FVulkanBlendState* NewState)
 }
 
 
-void FVulkanPendingState::SetDepthStencilState(FVulkanDepthStencilState* NewState)
+void FVulkanPendingState::SetDepthStencilState(FVulkanDepthStencilState* NewState, uint32 StencilRef)
 {
 	check(NewState);
 	CurrentState.DepthStencilState = NewState;
+	CurrentState.StencilRef = StencilRef;
+	CurrentState.bNeedsStencilRefUpdate = true;
 
 	SetKeyBits(CurrentKey, OFFSET_DEPTH_TEST_ENABLED, NUMBITS_DEPTH_TEST_ENABLED, NewState->DepthStencilState.depthTestEnable);
 	SetKeyBits(CurrentKey, OFFSET_DEPTH_WRITE_ENABLED, NUMBITS_DEPTH_WRITE_ENABLED, NewState->DepthStencilState.depthWriteEnable);
@@ -853,11 +840,19 @@ void FVulkanPendingState::NotifyDeletedRenderTarget(const FVulkanTextureBase* Te
 		for (int32 Index = FrameBuffers.Num() - 1; Index >= 0; --Index)
 		{
 			FVulkanFramebuffer* FB = FrameBuffers[Index];
-			if (FB->ContainsRenderTarget(Texture))
+			if (FB->ContainsRenderTarget(Texture->Surface.Image))
 			{
 				//FramebuffersToDelete.Add(FB->GetHandle());
 				FrameBuffers.RemoveAtSwap(Index, 1, false);
 				FB->Destroy(*Device);
+#if VULKAN_USE_NEW_RENDERPASSES
+				ensure(0);
+#else
+				if (FB == CurrentState.FrameBuffer)
+				{
+					CurrentState.FrameBuffer = nullptr;
+				}
+#endif
 				delete FB;
 			}
 		}

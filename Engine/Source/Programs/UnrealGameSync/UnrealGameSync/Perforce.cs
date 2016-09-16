@@ -417,6 +417,22 @@ namespace UnrealGameSync
 			return true;
 		}
 
+		public bool TryGetStreamSpec(string StreamName, out PerforceSpec Spec, TextWriter Log)
+		{
+			List<string> Lines;
+			if(!RunCommand(String.Format("stream -o {0}", StreamName), out Lines, CommandOptions.None, Log))
+			{
+				Spec = null;
+				return false;
+			}
+			if(!PerforceSpec.TryParse(Lines, out Spec, Log))
+			{
+				Spec = null;
+				return false;
+			}
+			return true;
+		}
+
 		public bool FindFiles(string Filter, out List<PerforceFileRecord> FileRecords, TextWriter Log)
 		{
 			return RunCommand(String.Format("fstat \"{0}\"", Filter), out FileRecords, CommandOptions.None, Log);

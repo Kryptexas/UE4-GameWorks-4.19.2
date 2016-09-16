@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 #include "PhysicsPublic.h"
 #include "LandscapeDataAccess.h"
@@ -157,9 +158,9 @@ const FCollisionResponseContainer& ULandscapeHeightfieldCollisionComponent::GetC
 	return Proxy->BodyInstance.GetResponseToChannels();
 }
 
-void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
+void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 {
-	USceneComponent::CreatePhysicsState(); // route CreatePhysicsState, skip PrimitiveComponent implementation
+	USceneComponent::OnCreatePhysicsState(); // route OnCreatePhysicsState, skip PrimitiveComponent implementation
 
 	if (!BodyInstance.IsValidBodyInstance())
 	{
@@ -928,9 +929,9 @@ void ULandscapeMeshCollisionComponent::CreateCollisionObject()
 #endif //WITH_PHYSX
 }
 
-void ULandscapeMeshCollisionComponent::CreatePhysicsState()
+void ULandscapeMeshCollisionComponent::OnCreatePhysicsState()
 {
-	USceneComponent::CreatePhysicsState(); // route CreatePhysicsState, skip PrimitiveComponent implementation
+	USceneComponent::OnCreatePhysicsState(); // route OnCreatePhysicsState, skip PrimitiveComponent implementation
 
 	if (!BodyInstance.IsValidBodyInstance())
 	{
@@ -1058,7 +1059,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 			}
 			else
 			{
-				UE_LOG(LogLandscape, Log, TEXT("ULandscapeMeshCollisionComponent::CreatePhysicsState(): TriMesh invalid"));
+				UE_LOG(LogLandscape, Log, TEXT("ULandscapeMeshCollisionComponent::OnCreatePhysicsState(): TriMesh invalid"));
 			}
 		}
 #endif // WITH_PHYSX
@@ -1383,7 +1384,7 @@ void ULandscapeHeightfieldCollisionComponent::Serialize(FArchive& Ar)
 
 		if (bCooked)
 		{
-			Ar << CookedCollisionData;
+			CookedCollisionData.BulkSerialize(Ar);
 		}
 		else
 		{
@@ -1630,7 +1631,7 @@ void ULandscapeHeightfieldCollisionComponent::PreSave(const class ITargetPlatfor
 			{
 				if (!RenderComponent->CanRenderGrassMap())
 				{
-					RenderComponent->MaterialInstance->GetMaterialResource(GetWorld()->FeatureLevel)->FinishCompilation();
+					RenderComponent->MaterialInstances[0]->GetMaterialResource(GetWorld()->FeatureLevel)->FinishCompilation();
 				}
 				RenderComponent->RenderGrassMap();
 			}
@@ -2035,26 +2036,12 @@ void ULandscapeMeshCollisionComponent::ImportCustomProperties(const TCHAR* Sourc
 	}
 }
 
-ULandscapeInfo* ULandscapeHeightfieldCollisionComponent::GetLandscapeInfo(bool bSpawnNewActor /*= true*/) const
+ULandscapeInfo* ULandscapeHeightfieldCollisionComponent::GetLandscapeInfo() const
 {
-	if (GetLandscapeProxy())
-	{
-		return GetLandscapeProxy()->GetLandscapeInfo(bSpawnNewActor);
-	}
-	return NULL;
+	return GetLandscapeProxy()->GetLandscapeInfo();
 }
 
 #endif // WITH_EDITOR
-
-ALandscape* ULandscapeHeightfieldCollisionComponent::GetLandscapeActor() const
-{
-	ALandscapeProxy* Landscape = GetLandscapeProxy();
-	if (Landscape)
-	{
-		return Landscape->GetLandscapeActor();
-	}
-	return NULL;
-}
 
 ALandscapeProxy* ULandscapeHeightfieldCollisionComponent::GetLandscapeProxy() const
 {

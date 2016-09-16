@@ -7,6 +7,17 @@
 #include "OnlineSessionInterface.h"
 #include "OnlineFriendsInterface.h"
 
+namespace OSSConsoleVariables
+{
+	// CVars
+	TAutoConsoleVariable<int32> CVarVoiceLoopback(
+		TEXT("OSS.VoiceLoopback"),
+		0,
+		TEXT("Enables voice loopback\n")
+		TEXT("1 Enabled. 0 Disabled."),
+		ECVF_Default);
+}
+
 const FName FOnlineSubsystemImpl::DefaultInstanceName(TEXT("DefaultInstance"));
 
 FOnlineSubsystemImpl::FOnlineSubsystemImpl() :

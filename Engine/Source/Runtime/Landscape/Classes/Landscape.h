@@ -39,12 +39,6 @@ public:
 	static FIntPoint MakeKey( int32 X, int32 Y ) { return FIntPoint(X, Y); }
 	static void UnpackKey( FIntPoint Key, int32& OutX, int32& OutY ) { OutX = Key.X; OutY = Key.Y; }
 
-	//~ Begin AActor Interface
-#if WITH_EDITOR
-	virtual void CheckForErrors() override;
-#endif
-	//~ End AActor Interface
-
 	//~ Begin ALandscapeProxy Interface
 	LANDSCAPE_API virtual ALandscape* GetLandscapeActor() override;
 #if WITH_EDITOR

@@ -1456,11 +1456,11 @@ private:
 struct FDynamicSpriteEmitterReplayDataBase
 	: public FDynamicEmitterReplayDataBase
 {
-	UMaterialInterface*			MaterialInterface;
-	class USubUVAnimation*		SubUVAnimation;
-	FVector						NormalsSphereCenter;
-	FVector						NormalsCylinderDirection;
-	float						InvDeltaSeconds;
+	UMaterialInterface*				MaterialInterface;
+	class UParticleModuleRequired*	RequiredModule;
+	FVector							NormalsSphereCenter;
+	FVector							NormalsCylinderDirection;
+	float							InvDeltaSeconds;
 	int32							MaxDrawCount;
 	int32							OrbitModuleOffset;
 	int32							DynamicParameterDataOffset;
@@ -1476,6 +1476,9 @@ struct FDynamicSpriteEmitterReplayDataBase
 	uint8						EmitterRenderMode;
 	uint8						EmitterNormalsMode;
 	FVector2D					PivotOffset;
+	bool						bRemoveHMDRoll;
+	float						MinFacingCameraBlendDistance;
+	float						MaxFacingCameraBlendDistance;
 	
 	/** Constructor */
 	FDynamicSpriteEmitterReplayDataBase();
@@ -2443,7 +2446,6 @@ public:
 	}
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
-	virtual void OnActorPositionChanged() override;
 	virtual void OnTransformChanged() override;
 
 	/** Gathers simple lights for this emitter. */

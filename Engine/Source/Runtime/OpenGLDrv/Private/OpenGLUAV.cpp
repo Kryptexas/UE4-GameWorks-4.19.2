@@ -106,7 +106,14 @@ FOpenGLVertexBufferUnorderedAccessView::FOpenGLVertexBufferUnorderedAccessView(	
 	// next operation that needs the stage will switch something else in on it.
 
 	this->Resource = TextureID;
+	this->BufferResource = InVertexBuffer->Resource;
 	this->Format = GLFormat.InternalFormat[0];
+}
+
+uint32 FOpenGLVertexBufferUnorderedAccessView::GetBufferSize()
+{
+	FOpenGLVertexBuffer* VertexBuffer = FOpenGLDynamicRHI::ResourceCast(VertexBufferRHI.GetReference());
+	return VertexBufferRHI->GetSize();
 }
 
 FOpenGLVertexBufferUnorderedAccessView::~FOpenGLVertexBufferUnorderedAccessView()
@@ -134,8 +141,27 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FStruct
 
 void FOpenGLDynamicRHI::RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
 {
-	UE_LOG(LogRHI, Fatal,TEXT("OpenGL RHI doesn't support RHIClearUAV."));
+	FOpenGLUnorderedAccessView* Texture = ResourceCast(UnorderedAccessViewRHI);
+
+#if OPENGL_GL4
+	glBindBuffer(GL_TEXTURE_BUFFER, Texture->BufferResource);
+	FOpenGL::ClearBufferData(GL_TEXTURE_BUFFER, Texture->Format, GL_RED_INTEGER, GL_UNSIGNED_INT, Values);
 	GPUProfilingData.RegisterGPUWork(1);
+
+#elif OPENGL_ESDEFERRED
+	glBindBuffer(GL_TEXTURE_BUFFER, Texture->BufferResource);
+	uint32 BufferSize = Texture->GetBufferSize();
+	if (BufferSize > 0)
+	{
+		void* BufferData = FOpenGL::MapBufferRange(GL_TEXTURE_BUFFER, 0, BufferSize, FOpenGLBase::RLM_WriteOnly);
+		uint8 ClearValue = uint8(Values[0] & 0xff);
+		FPlatformMemory::Memset(BufferData, ClearValue, BufferSize);
+		FOpenGL::UnmapBufferRange(GL_TEXTURE_BUFFER, 0, BufferSize);
+		GPUProfilingData.RegisterGPUWork(1);
+	}
+#else
+	UE_LOG(LogRHI, Fatal, TEXT("Only OpenGL4 supports RHIClearUAV."));
+#endif
 }
 
 

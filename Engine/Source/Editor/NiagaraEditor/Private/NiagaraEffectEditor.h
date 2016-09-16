@@ -16,6 +16,7 @@ class FNiagaraEffectEditor : public INiagaraEffectEditor, public FNotifyHook, pu
 {
 
 public:
+	FNiagaraEffectEditor();
 
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;

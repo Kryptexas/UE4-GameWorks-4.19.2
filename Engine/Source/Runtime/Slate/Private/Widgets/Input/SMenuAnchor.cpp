@@ -101,7 +101,7 @@ void SMenuAnchor::Construct( const FArguments& InArgs )
 	
 
 	Children[0]
-		.Padding(0)
+		.Padding(InArgs._Padding)
 		[
 			InArgs._Content.Widget
 		];
@@ -185,6 +185,11 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 	bDismissedThisTick = false;
 }
 
+bool SMenuAnchor::ComputeVolatility() const
+{
+	return IsOpen();
+}
+
 void SMenuAnchor::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	ArrangeSingleChild( AllottedGeometry, ArrangedChildren, Children[0], FVector2D::UnitVector );
@@ -213,8 +218,6 @@ FChildren* SMenuAnchor::GetChildren()
 
 int32 SMenuAnchor::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	DrawnWindowPtr = OutDrawElements.GetWindow();
-
 	FArrangedChildren ArrangedChildren( EVisibility::Visible );
 	ArrangeChildren( AllottedGeometry, ArrangedChildren );
 	
@@ -398,15 +401,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 							// We are re-using the current window instead of creating a new one.
 							// The popup will be presented as a child of this widget.
 							ensure(MethodInUse.GetPopupMethod() == EPopupMethod::UseCurrentWindow);
-							//TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
-							if ( DrawnWindowPtr.IsValid() )
-							{
-								PopupWindowPtr = DrawnWindowPtr;
-							}
-							else
-							{
-								PopupWindowPtr = MyWidgetPath.GetWindow();
-							}
+							PopupWindowPtr = MyWidgetPath.GetWindow();
 
 							if (bFocusMenu)
 							{
@@ -497,15 +492,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 							// We are re-using the current window instead of creating a new one.
 							// The popup will be presented as a child of this widget.
 							ensure(MethodInUse.GetPopupMethod() == EPopupMethod::UseCurrentWindow);
-							//TSharedRef<SWindow> PopupWindow = MyWidgetPath.GetWindow();
-							if ( DrawnWindowPtr.IsValid() )
-							{
-								PopupWindowPtr = DrawnWindowPtr;
-							}
-							else
-							{
-								PopupWindowPtr = MyWidgetPath.GetWindow();
-							}
+							PopupWindowPtr = MyWidgetPath.GetWindow();
 
 							if (bFocusMenu)
 							{
@@ -556,6 +543,8 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 				SNullWidget::NullWidget
 			];
 		}
+
+		Invalidate(EInvalidateWidget::LayoutAndVolatility);
 	}
 }
 

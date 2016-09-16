@@ -51,6 +51,7 @@ void FAnimGraphConnectionDrawingPolicy::BuildExecutionRoadmap()
 					for (int32 PinIndex = 0; PinIndex < TargetNode->Pins.Num(); ++PinIndex)
 					{
 						UEdGraphPin* Pin = TargetNode->Pins[PinIndex];
+						check(Pin);
 						if (AnimSchema->IsPosePin(Pin->PinType) && (Pin->Direction == EGPD_Output))
 						{
 							PoseNet = Pin;

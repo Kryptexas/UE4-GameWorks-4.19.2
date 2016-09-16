@@ -360,7 +360,7 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 			Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value,SourceMode);
 
 			// gmartin: Trying to locate UE-23902
-			checkf(!Value || Value->IsValidLowLevel(), TEXT("Texture not valid! UE-23902! Parameter (%s)"),
+			ensureMsgf(!Value || Value->IsValidLowLevel(), TEXT("Texture not valid! UE-23902! Parameter (%s)"),
 				   Uniform2DTextureExpressions[ExpressionIndex]->GetType() == &FMaterialUniformExpressionTextureParameter::StaticType ?
 				   	*((FMaterialUniformExpressionTextureParameter&)*Uniform2DTextureExpressions[ExpressionIndex]).GetParameterName().ToString() : TEXT("non-parameter"));
 

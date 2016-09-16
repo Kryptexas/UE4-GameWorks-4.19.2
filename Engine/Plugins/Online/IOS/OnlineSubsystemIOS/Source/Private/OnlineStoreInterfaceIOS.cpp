@@ -232,9 +232,11 @@
 	case SKErrorPaymentCancelled:
 		CompletionState = EInAppPurchaseState::Cancelled;
 		break;
-        case SKErrorClientInvalid:
-        case SKErrorStoreProductNotAvailable:
-        case SKErrorPaymentInvalid:
+    case SKErrorClientInvalid:
+		CompletionState = EInAppPurchaseState::AlreadyOwned;
+		break;
+	case SKErrorStoreProductNotAvailable:
+	case SKErrorPaymentInvalid:
 		CompletionState = EInAppPurchaseState::Invalid;
 		break;
 	case SKErrorPaymentNotAllowed:

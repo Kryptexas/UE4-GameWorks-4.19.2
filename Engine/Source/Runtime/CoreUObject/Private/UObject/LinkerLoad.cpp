@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "CoreUObjectPrivate.h"
+#include "UObject/LinkerLoad.h"
 #include "SecureHash.h"
 #include "DebuggingDefines.h"
 #include "MessageLog.h"
@@ -1651,6 +1652,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeExportMap()
 		FObjectExport* Export = new(ExportMap)FObjectExport;
 		*this << *Export;
 		Export->ThisIndex = FPackageIndex::FromExport(ExportMapIndex);
+		Export->bWasFiltered = FilterExport(*Export);
 		ExportMapIndex++;
 	}
 
@@ -3839,6 +3841,14 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			return Export.Object;
 		}
 
+		// If we should have an outer but it doesn't exist because it was filtered out, we should silently be filtered out too
+		if (Export.OuterIndex.IsExport() && ThisParent == nullptr && ExportMap[Export.OuterIndex.ToExport()].bWasFiltered)
+		{
+			Export.bWasFiltered = true;
+			return nullptr;
+		}
+
+		// If outer was a redirector or an object that doesn't exist (but wasn't filtered) then log a warning
 		UObjectRedirector* ParentRedirector = dynamic_cast<UObjectRedirector*>(ThisParent);
 		if( ThisParent == NULL || ParentRedirector)
 		{
@@ -4857,6 +4867,11 @@ FName FLinkerLoad::FindNewNameForClass(FName OldClassName, bool bIsInstance)
 	}
 
 	return NAME_None;
+}
+
+bool  FLinkerLoad::IsKnownMissingPackage(FName PackageName)
+{
+	return KnownMissingPackages.Contains(PackageName);
 }
 
 #if WITH_EDITOR

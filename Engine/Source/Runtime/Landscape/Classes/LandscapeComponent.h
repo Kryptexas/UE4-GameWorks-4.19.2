@@ -24,7 +24,6 @@ struct FEngineShowFlags;
 struct FConvexVolume;
 struct FLandscapeEditDataInterface;
 struct FLandscapeEditToolRenderData;
-struct FLandscapeWeightmapUsage;
 struct FLandscapeTextureDataInfo;
 struct FLandscapeComponentGrassData;
 
@@ -189,8 +188,13 @@ class ULandscapeComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LandscapeComponent, AdvancedDisplay)
 	UMaterialInterface* OverrideHoleMaterial;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
+	UMaterialInstanceConstant* MaterialInstance_DEPRECATED;
+#endif
+
 	UPROPERTY(TextExportTransient)
-	UMaterialInstanceConstant* MaterialInstance;
+	TArray<UMaterialInstanceConstant*> MaterialInstances;
 
 	/** List of layers, and the weightmap and channel they are stored */
 	UPROPERTY()
@@ -378,20 +382,24 @@ public:
 	//~ Begin UActorComponent Interface.
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
+#if WITH_EDITOR
+	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
+#endif
 	//~ End UActorComponent Interface.
 
 
 #if WITH_EDITOR
-	/** @todo document */
-	LANDSCAPE_API ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true) const;
+	/** Gets the landscape info object for this landscape */
+	LANDSCAPE_API ULandscapeInfo* GetLandscapeInfo() const;
 
-	/** @todo document */
+	/** Deletes a layer from this component, removing all its data */
 	LANDSCAPE_API void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
-	LANDSCAPE_API void FillLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
-	LANDSCAPE_API void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
 
-	void GeneratePlatformVertexData();
-	void GeneratePlatformPixelData();
+	/** Fills a layer to 100% on this component, adding it if needed and removing other layers that get painted away */
+	LANDSCAPE_API void FillLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
+
+	/** Replaces one layerinfo on this component with another */
+	LANDSCAPE_API void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo, FLandscapeEditDataInterface& LandscapeEdit);
 
 	// true if the component's landscape material supports grass
 	bool MaterialHasGrass() const;
@@ -415,13 +423,13 @@ public:
 	/* Serialize all hashes/guids that record the current state of this component */
 	void SerializeStateHashes(FArchive& Ar);
 
+	// Generates mobile platform data for this component
+	void GeneratePlatformVertexData();
+	void GeneratePlatformPixelData();
+
 	/** Generate mobile data if it's missing or outdated */
 	void CheckGenerateLandscapePlatformData(bool bIsCooking);
 #endif
-
-	/** @todo document */
-	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
-
 
 	/** Get the landscape actor associated with this component. */
 	ALandscape* GetLandscapeActor() const;
@@ -429,10 +437,12 @@ public:
 	/** Get the level in which the owning actor resides */
 	ULevel* GetLevel() const;
 
+#if WITH_EDITOR
 	/** Returns all generated textures and material instances used by this component. */
 	LANDSCAPE_API void GetGeneratedTexturesAndMaterialInstances(TArray<UObject*>& OutTexturesAndMaterials) const;
+#endif
 
-	/** @todo document */
+	/** Gets the landscape proxy actor which owns this component */
 	LANDSCAPE_API ALandscapeProxy* GetLandscapeProxy() const;
 
 	/** @return Component section base as FIntPoint */
@@ -440,9 +450,6 @@ public:
 
 	/** @param InSectionBase new section base for a component */
 	LANDSCAPE_API void SetSectionBase(FIntPoint InSectionBase);
-
-	/** @todo document */
-	TMap<UTexture2D*, FLandscapeWeightmapUsage>& GetWeightmapUsageMap();
 
 	/** @todo document */
 	const FGuid& GetLightingGuid() const
@@ -463,9 +470,8 @@ public:
 #endif // WITH_EDITORONLY_DATA
 	}
 
+
 #if WITH_EDITOR
-
-
 	/** Initialize the landscape component */
 	LANDSCAPE_API void Init(int32 InBaseX,int32 InBaseY,int32 InComponentSizeQuads, int32 InNumSubsections,int32 InSubsectionSizeQuads);
 
@@ -613,6 +619,4 @@ protected:
 		return true;
 	}
 };
-
-
 

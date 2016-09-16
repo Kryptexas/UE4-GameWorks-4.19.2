@@ -4,7 +4,7 @@
 
 #include "Core.h"
 #include "CoreUObject.h"
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
 
 const FName GameSessionName(TEXT("Game"));
 const FName PartySessionName(TEXT("Party"));

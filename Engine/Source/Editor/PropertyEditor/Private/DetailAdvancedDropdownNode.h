@@ -30,7 +30,7 @@ private:
 	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren )  override {}
 	virtual void OnItemExpansionChanged( bool bIsExpanded ) override {}
 	virtual bool ShouldBeExpanded() const override { return false; }
-	virtual ENodeVisibility::Type GetVisibility() const override { return ENodeVisibility::Visible; }
+	virtual ENodeVisibility GetVisibility() const override { return ENodeVisibility::Visible; }
 	virtual void FilterNode( const FDetailFilter& InFilter ) override {}
 	virtual void Tick( float DeltaTime ) override {}
 	virtual bool ShouldShowOnlyChildren() const override { return false; }

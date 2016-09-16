@@ -43,7 +43,7 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 	// First check if the asset already exists.
 	{
 		FString ObjectPath = BasePackageName + TEXT(".") + TextureName;
-		ExistingTexture = LoadObject<UTexture>(NULL, *ObjectPath);
+		ExistingTexture = LoadObject<UTexture>(NULL, *ObjectPath, nullptr, LOAD_Quiet | LOAD_NoWarn);
 	}
 
 
@@ -444,7 +444,7 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 	}
 	else
 	{
-		UMaterialInterface* FoundMaterial = LoadObject<UMaterialInterface>(NULL, *ObjectPath.ToString(), NULL, LOAD_Quiet);
+		UMaterialInterface* FoundMaterial = LoadObject<UMaterialInterface>(NULL, *ObjectPath.ToString(), NULL, LOAD_Quiet | LOAD_NoWarn);
 		// do not override existing materials
 		if (FoundMaterial)
 		{
@@ -468,14 +468,13 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(
 		UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone|RF_Public, NULL, GWarn );
 
-	if ( UnrealMaterial != NULL )
-	{
-		// Notify the asset registry
-		FAssetRegistryModule::AssetCreated(UnrealMaterial);
+	check( UnrealMaterial != NULL );
 
-		// Set the dirty flag so this package will get saved later
-		Package->SetDirtyFlag(true);
-	}
+	// Notify the asset registry
+	FAssetRegistryModule::AssetCreated(UnrealMaterial);
+
+	// Set the dirty flag so this package will get saved later
+	Package->SetDirtyFlag(true);
 
 	// textures and properties
 #if DEBUG_LOG_FBX_MATERIAL_PROPERTIES

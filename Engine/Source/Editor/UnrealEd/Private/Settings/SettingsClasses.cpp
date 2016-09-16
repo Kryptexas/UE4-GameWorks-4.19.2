@@ -67,17 +67,9 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const FObjectI
 
 UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-	, bUnifiedBlueprintEditor(true)
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
-	, bEnableBlueprintProfilerRecentSampleBias(false)
-	, BlueprintProfilerRecentSampleBias(0.2f)
-	, BlueprintProfilerEventThreshold(1.f)
-	, BlueprintProfilerExclNodeThreshold(0.2f)
-	, BlueprintProfilerInclNodeThreshold(0.25f)
-	, BlueprintProfilerMaxNodeThreshold(0.5f)
 	, bUseOpenCLForConvexHullDecomp(false)
-	, bEnableAutoVREditMode(true)
 	, bAllowPotentiallyUnsafePropertyEditing(false)
 {
 }
@@ -112,30 +104,6 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 				ProfilerInterface->ToggleProfilingCapture();
 			}
 		}
-	}
-	else if (Name == FName(TEXT("bEnableBlueprintProfilerRecentSampleBias")))
-	{
-		FScriptPerfData::EnableRecentSampleBias(bEnableBlueprintProfilerRecentSampleBias);
-	}
-	else if (Name == FName(TEXT("BlueprintProfilerRecentSampleBias")))
-	{
-		FScriptPerfData::SetRecentSampleBias(BlueprintProfilerRecentSampleBias);
-	}
-	else if (Name == FName(TEXT("BlueprintProfilerEventThreshold")))
-	{
-		FScriptPerfData::SetEventPerformanceThreshold(BlueprintProfilerEventThreshold);
-	}
-	else if (Name == FName(TEXT("BlueprintProfilerExclNodeThreshold")))
-	{
-		FScriptPerfData::SetExclusivePerformanceThreshold(BlueprintProfilerExclNodeThreshold);
-	}
-	else if (Name == FName(TEXT("BlueprintProfilerInclNodeThreshold")))
-	{
-		FScriptPerfData::SetInclusivePerformanceThreshold(BlueprintProfilerInclNodeThreshold);
-	}
-	else if (Name == FName(TEXT("BlueprintProfilerMaxNodeThreshold")))
-	{
-		FScriptPerfData::SetMaxPerformanceThreshold(BlueprintProfilerMaxNodeThreshold);
 	}
 
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
@@ -428,18 +396,21 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 			IndexRef = &(CurrentScalingGridSize);
 		}
 
-		// Don't allow an empty array of grid sizes
-		if (ArrayRef->Num() == 0)
+		if (ArrayRef && IndexRef)
 		{
-			ArrayRef->Add(MinGridSize);
-		}
-
-		// Don't allow negative numbers
-		for (int32 SizeIdx = 0; SizeIdx < ArrayRef->Num(); ++SizeIdx)
-		{
-			if ((*ArrayRef)[SizeIdx] < MinGridSize)
+			// Don't allow an empty array of grid sizes
+			if (ArrayRef->Num() == 0)
 			{
-				(*ArrayRef)[SizeIdx] = MinGridSize;
+				ArrayRef->Add(MinGridSize);
+			}
+
+			// Don't allow negative numbers
+			for (int32 SizeIdx = 0; SizeIdx < ArrayRef->Num(); ++SizeIdx)
+			{
+				if ((*ArrayRef)[SizeIdx] < MinGridSize)
+				{
+					(*ArrayRef)[SizeIdx] = MinGridSize;
+				}
 			}
 		}
 	}
@@ -548,11 +519,28 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 	}
 	else if (Name == FName((TEXT("ApplocalPrerequisitesDirectory"))))
 	{
-		// fix up path
-		FString Path = ApplocalPrerequisitesDirectory.Path;
-		FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::GetProjectFilePath())) + "/";
-		FPaths::MakePathRelativeTo(Path, *ProjectPath);
-		ApplocalPrerequisitesDirectory.Path = Path;
+		// If a variable is already in use, assume the user knows what they are doing and don't modify the path
+		if(!ApplocalPrerequisitesDirectory.Path.Contains("$("))
+		{
+			// Try making the path local to either project or engine directories.
+			FString EngineRootedPath = ApplocalPrerequisitesDirectory.Path;
+			FString EnginePath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::EngineDir())) + "/";
+			FPaths::MakePathRelativeTo(EngineRootedPath, *EnginePath);
+			if (FPaths::IsRelative(EngineRootedPath))
+			{
+				ApplocalPrerequisitesDirectory.Path = "$(EngineDir)/" + EngineRootedPath;
+				return;
+			}
+
+			FString ProjectRootedPath = ApplocalPrerequisitesDirectory.Path;
+			FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::GetProjectFilePath())) + "/";
+			FPaths::MakePathRelativeTo(ProjectRootedPath, *ProjectPath);
+			if (FPaths::IsRelative(EngineRootedPath))
+			{
+				ApplocalPrerequisitesDirectory.Path = "$(ProjectDir)/" + ProjectRootedPath;
+				return;
+			}
+		}
 	}
 }
 

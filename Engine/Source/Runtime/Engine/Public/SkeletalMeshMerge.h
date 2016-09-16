@@ -230,7 +230,7 @@ private:
 	* Creates a new LOD model and adds the new merged sections to it. Modifies the MergedMesh.
 	* @param LODIdx - current LOD to process
 	*/
-	template<typename VertexDataType, bool bExtraBoneInfluencesT>
+	template<typename VertexDataType>
 	void GenerateLODModel( int32 LODIdx );
 
 	/**
@@ -304,4 +304,10 @@ private:
 	 * Overrides the sockets of overridden bones.
 	 */
 	void OverrideMergedSockets(const TArray<FRefPoseOverride>& PoseOverrides);
+
+	/*
+	 * Copy Vertex Buffer from Source LOD Model - templatized per SourceLODModel extra bone influence
+	 */
+	template<typename VertexDataType, bool bHasExtraBoneInfluences>
+	void CopyVertexFromSource(VertexDataType& DestVert, const FStaticLODModel& SrcLODModel, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo);
 };

@@ -381,11 +381,8 @@ ovrResult FLayerManager::SubmitFrame_RenderThread(ovrSession OvrSession, const F
 	}
 
 	LastSubmitFrameResult.Set(int32(res));
-	if (OVR_SUCCESS(res))
-	{
-		LastVisibilityState.AtomicSet(res != ovrSuccess_NotVisible);
-	}
-	else
+
+	if (OVR_FAILURE(res))
 	{
 		UE_LOG(LogHMD, Warning, TEXT("Error at SubmitFrame, err = %d"), int(res));
 

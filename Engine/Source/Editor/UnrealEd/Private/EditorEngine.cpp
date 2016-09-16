@@ -718,7 +718,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("TreeMap"),
 			TEXT("SizeMap"),
 			TEXT("MergeActors"),
-			TEXT("NiagaraEditor")
+			TEXT("NiagaraEditor"),
+			TEXT("EditorAutomation"),
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));
@@ -1198,23 +1199,20 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		DirectoryWatcherModule.Get()->Tick(DeltaSeconds);
 	}
 
+	bool bAWorldTicked = false;
+	ELevelTick TickType = IsRealtime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly;
+
 	if( bShouldTickEditorWorld )
 	{ 
-		// Tick level.
-		ELevelTick TickType = IsRealtime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly;
-
 		//EditorContext.World()->FXSystem->Resume();
 		// Note: Still allowing the FX system to tick so particle systems dont restart after entering/leaving responsive mode
 		if( FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
 		{
 			FKismetDebugUtilities::NotifyDebuggerOfStartOfGameFrame(EditorContext.World());
 			EditorContext.World()->Tick(TickType, DeltaSeconds);
+			bAWorldTicked = true;
 			FKismetDebugUtilities::NotifyDebuggerOfEndOfGameFrame(EditorContext.World());
 		}
-	}
-	else 
-	{
-		//EditorContext.World()->FXSystem->Suspend();
 	}
 
 
@@ -1413,6 +1411,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 				// tick the level
 				PieContext.World()->Tick( LEVELTICK_All, DeltaSeconds );
+				bAWorldTicked = true;
+				TickType = LEVELTICK_All;
 
 				if( bIsRecordingActive )
 				{
@@ -1440,6 +1440,11 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			// Pop the world
 			RestoreEditorWorld( OldGWorld );
 		}
+	}
+
+	if (bAWorldTicked)
+	{
+		FTickableGameObject::TickObjects(nullptr, TickType, false, DeltaSeconds);
 	}
 
 	if (bFirstTick)
@@ -3443,7 +3448,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 				SpawnInfo.OverrideLevel = Info.SourceLevel;
 				SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 				if( bToStaticMesh )
-				{					
+				{
 					AStaticMeshActor* SMActor = CastChecked<AStaticMeshActor>( World->SpawnActor( ToClass, &Info.Location, &Info.Rotation, SpawnInfo ) );
 					SMActor->UnregisterAllComponents();
 					Info.SetToActor(SMActor, SMActor->GetStaticMeshComponent());
@@ -3452,8 +3457,9 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					Actor = SMActor;
 				}
 				else if(bToInteractiveFoliage)
-				{					
+				{
 					AInteractiveFoliageActor* FoliageActor = World->SpawnActor<AInteractiveFoliageActor>( Info.Location, Info.Rotation, SpawnInfo );
+					check(FoliageActor);
 					FoliageActor->UnregisterAllComponents();
 					Info.SetToActor(FoliageActor, FoliageActor->GetStaticMeshComponent());
 					FoliageActor->RegisterAllComponents();
@@ -6736,7 +6742,8 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 	//should really be wait until the map is properly loaded....in PIE or gameplay....
 	if (bNeedPieStart)
 	{
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+		//TODO NICKD We need a better way to determine when to start the map.
+		//ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
 	}
 #endif
 	return;

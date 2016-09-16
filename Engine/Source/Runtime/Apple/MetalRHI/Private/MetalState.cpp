@@ -268,7 +268,7 @@ FMetalDepthStencilState::~FMetalDepthStencilState()
 // statics
 TMap<uint32, uint8> FMetalBlendState::BlendSettingsToUniqueKeyMap;
 uint8 FMetalBlendState::NextKey = 0;
-
+FCriticalSection FMetalBlendState::Mutex;
 
 FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 {
@@ -303,6 +303,12 @@ FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 			(BlendState.sourceRGBBlendFactor << 0) | (BlendState.destinationRGBBlendFactor << 4) | (BlendState.rgbBlendOperation << 8) |
 			(BlendState.sourceAlphaBlendFactor << 11) | (BlendState.destinationAlphaBlendFactor << 15) | (BlendState.alphaBlendOperation << 19) |
 			(BlendState.writeMask << 22);
+		
+		
+		if(GUseRHIThread)
+		{
+			Mutex.Lock();
+		}
 		uint8* Key = BlendSettingsToUniqueKeyMap.Find(BlendBitMask);
 		if (Key == NULL)
 		{
@@ -313,6 +319,10 @@ FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 		}
 		// set the key
 		RenderTargetStates[RenderTargetIndex].BlendStateKey = *Key;
+		if(GUseRHIThread)
+		{
+			Mutex.Unlock();
+		}
 	}
 }
 

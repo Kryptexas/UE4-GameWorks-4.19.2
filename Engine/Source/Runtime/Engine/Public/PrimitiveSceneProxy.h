@@ -279,12 +279,6 @@ public:
 	}
 
 	/**
-	 * Called to notify the proxy when its actor position has been updated.
-	 * Called in the thread that owns the proxy; game or rendering.
-	 */
-	virtual void OnActorPositionChanged() {}
-
-	/**
 	 * Called to notify the proxy that the level has been fully added to
 	 * the world and the primitive will now be rendered.
 	 * Only called if bNeedsLevelAddedToWorldNotification is set to true.
@@ -401,6 +395,7 @@ public:
 		// Flip the default channel bit so that the default value is 0, to align with the default stencil clear value and GBlackTexture value
 		return (LightingChannelMask & 0x6) | (~LightingChannelMask & 0x1); 
 	}
+	inline bool IsVisibleInReflectionCaptures() const { return bVisibleInReflectionCaptures; }
 	inline bool ShouldRenderInMainPass() const { return bRenderInMainPass; }
 	inline bool IsCollisionEnabled() const { return bCollisionEnabled; }
 	inline bool IsHovered() const { return bHovered; }
@@ -591,6 +586,9 @@ private:
 
 	/** True if the primitive will cache static lighting. */
 	uint32 bStaticLighting : 1;
+
+	/** True if the primitive should be visible in reflection captures. */
+	uint32 bVisibleInReflectionCaptures : 1;
 
 	/** If true this primitive Renders in the mainPass */
 	uint32 bRenderInMainPass : 1;
@@ -822,9 +820,6 @@ private:
 	*/
 	int32 NumUncachedStaticLightingInteractions;
 #endif
-
-	/** Updates the proxy's actor position, called from the game thread. */
-	ENGINE_API void UpdateActorPosition(FVector InActorPosition);
 
 	/**
 	 * Updates the primitive proxy's cached transforms, and calls OnUpdateTransform to notify it of the change.

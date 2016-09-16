@@ -7,15 +7,21 @@
 #include "RenderCore.h"
 #include "RHIStaticStates.h"
 #include "RendererInterface.h"
+#include "TrackEditorThumbnail.h"
+#include "TrackEditorThumbnailPool.h"
+
 
 namespace TrackEditorThumbnailConstants
 {
 	const double ThumbnailFadeInDuration = 0.25f;
 }
 
-class FThumbnailViewportClient : public FLevelEditorViewportClient
+
+class FThumbnailViewportClient
+	: public FLevelEditorViewportClient
 {
 public:
+
 	FThumbnailViewportClient() : FLevelEditorViewportClient(nullptr) {}
 
 	float CurrentWorldTime, DeltaWorldTime;
@@ -60,6 +66,7 @@ FTrackEditorThumbnail::~FTrackEditorThumbnail()
 	DestroyTexture();
 }
 
+
 void FTrackEditorThumbnail::DestroyTexture()
 {
 	if (Texture)
@@ -74,6 +81,7 @@ void FTrackEditorThumbnail::DestroyTexture()
 		Texture = nullptr;
 	}
 }
+
 
 /* FTrackEditorThumbnail interface
  *****************************************************************************/
@@ -190,16 +198,19 @@ void FTrackEditorThumbnail::DrawThumbnail()
 	OnDraw.ExecuteIfBound(*this);
 }
 
+
 void FTrackEditorThumbnail::SetupFade(const TSharedRef<SWidget>& InWidget)
 {
 	FadeInCurve.PlayReverse(InWidget);
 	FadeInCurve.Pause();
 }
 
+
 void FTrackEditorThumbnail::PlayFade()
 {
 	FadeInCurve.Resume();
 }
+
 
 float FTrackEditorThumbnail::GetFadeInCurve() const 
 {
@@ -253,6 +264,7 @@ FTrackEditorThumbnailCache::~FTrackEditorThumbnailCache()
 	}
 }
 
+
 void FTrackEditorThumbnailCache::SetSingleReferenceFrame(TOptional<float> InReferenceFrame)
 {
 	CurrentCache.SingleReferenceFrame = InReferenceFrame;
@@ -277,6 +289,7 @@ void FTrackEditorThumbnailCache::Update(const TRange<float>& NewRange, const TRa
 	// Only update the single reference frame value once we've updated, since that can get set at any time, but Update() may be throttled
 	PreviousCache.SingleReferenceFrame = CurrentCache.SingleReferenceFrame;
 }
+
 
 FIntPoint FTrackEditorThumbnailCache::CalculateTextureSize() const
 {
@@ -310,7 +323,7 @@ FIntPoint FTrackEditorThumbnailCache::CalculateTextureSize() const
 		case EThumbnailQuality::Draft: 	Scale = 0.5f; 	break;
 		case EThumbnailQuality::Best: 	Scale = 2.f; 	break;
 		default: 						Scale = 1.f; 	break;
-	}
+}
 
 	return FIntPoint(
 		FMath::RoundToInt(X * Scale),
@@ -331,6 +344,7 @@ bool FTrackEditorThumbnailCache::ShouldRegenerateEverything() const
 
 	return PreviousCache.DesiredSize != CurrentCache.DesiredSize || !FMath::IsNearlyEqual(PreviousScale, CurrentScale, Threshold);
 }
+
 
 void FTrackEditorThumbnailCache::DrawViewportThumbnail(FTrackEditorThumbnail& TrackEditorThumbnail)
 {
@@ -375,6 +389,7 @@ void FTrackEditorThumbnailCache::DrawViewportThumbnail(FTrackEditorThumbnail& Tr
 	}
 }
 
+
 void FTrackEditorThumbnailCache::Revalidate(double InCurrentTime)
 {
 	if (CurrentCache == PreviousCache && !bForceRedraw && !bNeedsNewThumbnails)
@@ -404,7 +419,7 @@ void FTrackEditorThumbnailCache::Revalidate(double InCurrentTime)
 		ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(Thumbnails);
 		Thumbnails.Reset();
 	}
-
+	
 	if (InCurrentTime - LastComputationTime > 0.25f)
 	{
 		ComputeNewThumbnails();
@@ -441,6 +456,7 @@ void FTrackEditorThumbnailCache::ComputeNewThumbnails()
 	bNeedsNewThumbnails = false;
 }
 
+
 void FTrackEditorThumbnailCache::UpdateSingleThumbnail()
 {
 	Thumbnails.Reset();
@@ -459,6 +475,7 @@ void FTrackEditorThumbnailCache::UpdateSingleThumbnail()
 	Thumbnails.Add(NewThumbnail);
 	ThumbnailsNeedingRedraw.Add(NewThumbnail);
 }
+
 
 void FTrackEditorThumbnailCache::UpdateFilledThumbnails()
 {
@@ -525,6 +542,7 @@ void FTrackEditorThumbnailCache::UpdateFilledThumbnails()
 	}
 }
 
+
 void FTrackEditorThumbnailCache::GenerateFront(const TRange<float>& Boundary)
 {
 	if (!Thumbnails.Num())
@@ -559,6 +577,7 @@ void FTrackEditorThumbnailCache::GenerateFront(const TRange<float>& Boundary)
 		EndTime = TimeRange.GetLowerBoundValue();
 	}
 }
+
 
 void FTrackEditorThumbnailCache::GenerateBack(const TRange<float>& Boundary)
 {
@@ -599,6 +618,7 @@ void FTrackEditorThumbnailCache::GenerateBack(const TRange<float>& Boundary)
 		StartTime = TimeRange.GetUpperBoundValue();
 	}
 }
+
 
 void FTrackEditorThumbnailCache::Setup()
 {

@@ -23,6 +23,8 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	UFUNCTION()
 	virtual void OnOwnerDestroyed(AActor* DestroyedActor);
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	virtual void BeginPlay() override;
 
 	virtual void SetOwner( AActor* NewOwner ) override;

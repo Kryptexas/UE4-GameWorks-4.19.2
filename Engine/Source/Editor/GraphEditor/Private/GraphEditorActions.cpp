@@ -87,6 +87,9 @@ void FGraphEditorCommandsImpl::RegisterCommands()
 	UI_COMMAND( ConvertToBSEvaluator, "Convert To Single Frame BlendSpace", "Convert to one frame BlendSpace that requires position", EUserInterfaceActionType::Button, FInputChord() )
 	UI_COMMAND( ConvertToBSPlayer, "Convert to BlendSpace Player", "Convert back to BlendSpace player without manual position set up", EUserInterfaceActionType::Button, FInputChord() )
 
+	UI_COMMAND( ConvertToAimOffsetLookAt, "Convert To LookAt AimOffset", "Convert to one AimOffset that automatically tracks a Target", EUserInterfaceActionType::Button, FInputChord())
+	UI_COMMAND( ConvertToAimOffsetSimple, "Convert to Simple AimOffset", "Convert to a manual AimOffets", EUserInterfaceActionType::Button, FInputChord())
+
 	UI_COMMAND(ConvertToPoseBlender, "Convert To Pose Blender", "Convert to pose blender that can blend by source curves", EUserInterfaceActionType::Button, FInputChord())
 	UI_COMMAND(ConvertToPoseByName, "Convert to Pose By Name", "Convert to pose node that returns by name", EUserInterfaceActionType::Button, FInputChord())
 

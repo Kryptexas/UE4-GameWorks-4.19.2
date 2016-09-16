@@ -54,7 +54,7 @@ public:
 	 * Blocks the calling thread until the future result is available.
 	 *
 	 * @param Duration The maximum time span to wait for the future result.
-	 * @result true if the result is available, false otherwise.
+	 * @return true if the result is available, false otherwise.
 	 * @see IsComplete
 	 */
 	bool WaitFor(const FTimespan& Duration) const
@@ -217,7 +217,7 @@ public:
 	 * Blocks the calling thread until the future result is available or the specified duration is exceeded.
 	 *
 	 * @param Duration The maximum time span to wait for the future result.
-	 * @result true if the result is available, false otherwise.
+	 * @return true if the result is available, false otherwise.
 	 * @see Wait, WaitUntil
 	 */
 	bool WaitFor(const FTimespan& Duration) const
@@ -229,7 +229,7 @@ public:
 	 * Blocks the calling thread until the future result is available or the specified time is hit.
 	 *
 	 * @param Time The time until to wait for the future result (in UTC).
-	 * @result true if the result is available, false otherwise.
+	 * @return true if the result is available, false otherwise.
 	 * @see Wait, WaitUntil
 	 */
 	bool WaitUntil(const FDateTime& Time) const

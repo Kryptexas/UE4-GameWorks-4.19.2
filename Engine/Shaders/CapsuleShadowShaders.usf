@@ -566,7 +566,7 @@ Texture2D ReceiverBentNormalTexture;
 RWTexture2D<float4> RWBentNormalTexture;
 #endif
 
-float ReduceSelfShadowingIntensity;
+float IndirectCapsuleSelfShadowingIntensity;
 uint DownsampleFactor;
 RWTexture2D<float2> RWShadowFactors;
 float MaxOcclusionDistance;
@@ -686,11 +686,11 @@ void CapsuleShadowingCS(
 
 #if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_CAPSULE && !FORWARD_SHADING
 	BRANCH
-	if (ReduceSelfShadowingIntensity > 0)
+	if (IndirectCapsuleSelfShadowingIntensity < 1)
 	{
 		FGBufferData GBufferData = GetGBufferData(ScreenUV);
 		// Reduce self shadowing intensity
-		Visibility = lerp(Visibility, 1, HasDistanceFieldRepresentation(GBufferData) ? .8f : 0);
+		Visibility = lerp(1, Visibility, HasDistanceFieldRepresentation(GBufferData) ? IndirectCapsuleSelfShadowingIntensity : 1);
 	}
 #endif
 
@@ -762,7 +762,7 @@ void CapsuleShadowingUpsamplePS(
 
 #define BILATERAL_UPSAMPLE 1
 #if BILATERAL_UPSAMPLE && UPSAMPLE_REQUIRED
-	float2 LowResBufferSize = floor(View.RenderTargetSize / DOWNSAMPLE_FACTOR);
+	float2 LowResBufferSize = floor(View.BufferSizeAndInvSize.xy / DOWNSAMPLE_FACTOR);
 	float2 LowResTexelSize = 1.0f / LowResBufferSize;
 	float2 Corner00UV = floor(DistanceFieldUVs * LowResBufferSize - .5f) / LowResBufferSize + .5f * LowResTexelSize;
 	float2 BilinearWeights = (DistanceFieldUVs - Corner00UV) * LowResBufferSize;

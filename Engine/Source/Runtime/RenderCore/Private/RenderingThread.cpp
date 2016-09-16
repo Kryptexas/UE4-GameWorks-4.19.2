@@ -4,6 +4,7 @@
 	RenderingThread.cpp: Rendering thread implementation.
 =============================================================================*/
 
+#include "RenderCorePrivatePCH.h"
 #include "RenderCore.h"
 #include "RenderingThread.h"
 #include "RHI.h"
@@ -640,6 +641,7 @@ void StopRenderingThread()
 		GRunRenderingThreadHeartbeat = false;
 		// Wait for the rendering thread heartbeat to return.
 		GRenderingThreadHeartbeat->WaitForCompletion();
+		delete GRenderingThreadHeartbeat;
 		GRenderingThreadHeartbeat = NULL;
 		delete GRenderingThreadRunnableHeartbeat;
 		GRenderingThreadRunnableHeartbeat = NULL;
@@ -724,7 +726,10 @@ void CheckRenderingThreadHealth()
 
 	if (IsInGameThread())
 	{
-		GLog->FlushThreadedLogs();
+		if (!GIsCriticalError)
+		{
+			GLog->FlushThreadedLogs();
+		}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		TGuardValue<bool> GuardMainThreadBlockedOnRenderThread(GMainThreadBlockedOnRenderThread,true);
 #endif
@@ -789,8 +794,10 @@ static FAutoConsoleVariableRef CVarTimeToBlockOnRenderFence(
  */
 static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThreadTasks = false)
 {
+	SCOPE_TIME_GUARD(TEXT("GameThreadWaitForTask"));
+
 	check(IsInGameThread());
-	check(IsValidRef(Task));
+	check(IsValidRef(Task));	
 
 	if (!Task->IsComplete())
 	{

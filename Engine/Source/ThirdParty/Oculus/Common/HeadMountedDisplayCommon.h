@@ -7,6 +7,17 @@
 
 class FHeadMountedDisplay;
 
+#if UE_BUILD_SHIPPING
+	#define OCULUS_STRESS_TESTS_ENABLED	0
+#else
+	#if PLATFORM_ANDROID
+		#define OCULUS_STRESS_TESTS_ENABLED	0
+	#else
+		#define OCULUS_STRESS_TESTS_ENABLED	1
+	#endif
+#endif	// #if UE_BUILD_SHIPPING
+
+
 /** Converts vector from meters to UU (Unreal Units) */
 FORCEINLINE FVector MetersToUU(const FVector& InVec, float WorldToMetersScale)
 {
@@ -194,6 +205,9 @@ public:
 	/** Viewports for each eye, in render target texture coordinates */
 	FIntRect				EyeRenderViewport[2];
 
+	/** Maximum adaptive resolution viewports for each eye, in render target texture coordinates */
+	FIntRect				EyeMaxRenderViewport[2];
+
 	/** Deprecated position offset */
 	FVector					PositionOffset;
 
@@ -218,7 +232,6 @@ public:
 	TSharedPtr<FHMDSettings, ESPMode::ThreadSafe>	Settings;
 
 	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
-	float					WorldToMetersScale;
 	FVector					CameraScale3D;
 
 	FRotator				CachedViewRotation[2]; // cached view rotations
@@ -276,7 +289,7 @@ private:
 
 };
 
-typedef TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> FHMDGameFrameRef;
+typedef TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> FHMDGameFramePtr;
 
 class FHMDViewExtension : public ISceneViewExtension, public TSharedFromThis<FHMDViewExtension, ESPMode::ThreadSafe>
 {
@@ -337,8 +350,7 @@ protected:
 	uint32			SourceSizeX, SourceSizeY, SourceNumMips;
 	EPixelFormat	SourceFormat;
 };
-typedef TSharedPtr<FTextureSetProxy, ESPMode::ThreadSafe>	FTextureSetProxyParamRef;
-typedef TSharedPtr<FTextureSetProxy, ESPMode::ThreadSafe>	FTextureSetProxyRef;
+typedef TSharedPtr<FTextureSetProxy, ESPMode::ThreadSafe>	FTextureSetProxyPtr;
 
 /**
  * Base implementation for a layer descriptor.
@@ -376,8 +388,8 @@ public:
 	FTextureRHIRef GetTexture() const { return (HasTexture()) ? Texture : nullptr; }
 	bool HasTexture() const { return Texture.IsValid(); }
 
-	void SetTextureSet(FTextureSetProxyParamRef InTextureSet);
-	FTextureSetProxyRef GetTextureSet() const { return TextureSet; }
+	void SetTextureSet(const FTextureSetProxyPtr& InTextureSet);
+	const FTextureSetProxyPtr& GetTextureSet() const { return TextureSet; }
 	bool HasTextureSet() const { return TextureSet.IsValid(); }
 
 	void SetTextureViewport(const FBox2D&);
@@ -413,7 +425,7 @@ protected:
 	class FHMDLayerManager& LayerManager;
 	uint32			Id;		// ELayerTypeMask | Id
 	mutable FTextureRHIRef Texture;// Source texture (for quads) (mutable for GC)
-	FTextureSetProxyRef TextureSet;	// TextureSet (for eye buffers)
+	FTextureSetProxyPtr TextureSet;	// TextureSet (for eye buffers)
 	uint32			Flags;
 	FBox2D			TextureUV;
 	FTransform		Transform; // layer world or HMD transform (Rotation, Translation, Scale), see bHeadLocked.
@@ -467,7 +479,7 @@ public:
 
 protected:
 	FHMDLayerDesc		LayerInfo;
-	FTextureSetProxyRef	TextureSet;
+	FTextureSetProxyPtr	TextureSet;
 	bool				bOwnsTextureSet; // indicate that the TextureSet is owned by this instance; otherwise, should be false
 };
 
@@ -562,6 +574,7 @@ class FHeadMountedDisplay : public IHeadMountedDisplay, public IStereoLayers
 {
 public:
 	FHeadMountedDisplay();
+	~FHeadMountedDisplay();
 
 	/** @return	True if the HMD was initialized OK */
 	virtual bool IsInitialized() const;
@@ -601,7 +614,6 @@ public:
 
 	virtual bool DoesSupportPositionalTracking() const override;
 	virtual bool HasValidTrackingPosition() override;
-	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
 	virtual void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const override;
 
 	virtual bool IsInLowPersistenceMode() const override;
@@ -727,6 +739,8 @@ public:
 
 	virtual class FAsyncLoadingSplash* GetAsyncLoadingSplash() const { return nullptr; }
 
+	virtual void SetPixelDensity(float NewPD) {}
+
 	uint32 GetCurrentFrameNumber() const { return CurrentFrameNumber.GetValue(); }
 
 protected:
@@ -792,6 +806,10 @@ protected:
 		uint64 Raw;
 	} Flags;
 
+#if OCULUS_STRESS_TESTS_ENABLED
+	// Stress testing
+	class FOculusStressTester* StressTester;
+#endif // #if OCULUS_STRESS_TESTS_ENABLED
 
 	FHMDGameFrame* GetGameFrame()
 	{

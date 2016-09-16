@@ -1070,7 +1070,7 @@ void USkeleton::RenameSlotName(const FName& OldName, const FName& NewName)
 	SetSlotGroupName(NewName, GroupName);
 }
 
-
+#if WITH_EDITOR
 
 bool USkeleton::AddSmartNameAndModify(FName ContainerName, FName NewDisplayName, FSmartName& NewName)
 {
@@ -1133,13 +1133,14 @@ void USkeleton::RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSma
 			}
 		}
 
-if (bModified)
-{
-	Modify();
-	CacheAnimCurveMappingNameUids();
-}
+		if (bModified)
+		{
+			Modify();
+			CacheAnimCurveMappingNameUids();
+		}
 	}
 }
+#endif // WITH_EDITOR
 
 bool USkeleton::GetSmartNameByUID(const FName& ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName)
 {
@@ -1200,6 +1201,7 @@ bool USkeleton::FillSmartNameByDisplayName(FSmartNameMapping* Mapping, const FNa
 	{
 		OutSmartName.DisplayName = DisplayName;
 
+#if WITH_EDITORONLY_DATA
 		// if same guid, this is same
 		if (SkeletonName.Guid == OutSmartName.Guid)
 		{
@@ -1213,6 +1215,11 @@ bool USkeleton::FillSmartNameByDisplayName(FSmartNameMapping* Mapping, const FNa
 			OutSmartName.UID = SkeletonName.UID;
 			return true;
 		}
+#else
+		// if not editor, we assume name is always correct
+		OutSmartName.UID = SkeletonName.UID;
+		return true;
+#endif // WITH_EDITORONLY_DATA
 	}
 
 	return false;
@@ -1227,13 +1234,26 @@ bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName&
 		// make a copy just in case we change by accident
 		FName DisplayName = InOutSmartName.DisplayName;
 
+#if WITH_EDITOR
 		// if I find the name, fill up the data
-		if (FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName) == false)
+		// look for same guid, the name might have been changed
+		if (Mapping->GetNameByGuid(InOutSmartName.Guid, DisplayName))
+		{
+			ensureAlways(FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName));
+		}
+		else if (FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName) == false)
 		{
 			// look for same guid, the name might have been changed
 			if (Mapping->GetNameByGuid(InOutSmartName.Guid, DisplayName))
 			{
 				ensureAlways(FillSmartNameByDisplayName(Mapping, DisplayName, InOutSmartName));
+			}
+			else if (InOutSmartName.IsValid())
+			{
+				// this is only case where we add new one
+				ensureAlways(Mapping->AddSmartName(InOutSmartName));
+				Modify();
+				return true;
 			}
 			else
 			{
@@ -1242,6 +1262,13 @@ bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName&
 				return true;
 			}
 		}
+#else
+		// if cooking didn't save the skeleton package properly
+		// meaning it can be loaded by animations but not saved together
+		// then later on, it gets loaded, and it's saved with empty array
+		// so it can fail to load the name, so we'll have to add it manually
+		Mapping->FindOrAddSmartName(DisplayName, InOutSmartName.UID);
+#endif // WITH_EDITOR
 	}
 
 	return false;

@@ -12,6 +12,29 @@ namespace physx
 	class PxRigidActor;
 }
 
+/** UV information for BodySetup, only created if UPhysicsSettings::bSupportUVFromHitResults */
+struct FBodySetupUVInfo
+{
+	/** Index buffer, required to go from face index to UVs */
+	TArray<int32> IndexBuffer;
+	/** Vertex positions, used to determine barycentric co-ords */
+	TArray<FVector> VertPositions;
+	/** UV channels for each vertex */
+	TArray< TArray<FVector2D> > VertUVs;
+
+	friend FArchive& operator<<(FArchive& Ar, FBodySetupUVInfo& UVInfo)
+	{
+		Ar << UVInfo.IndexBuffer;
+		Ar << UVInfo.VertPositions;
+		Ar << UVInfo.VertUVs;
+
+		return Ar;
+	}
+
+	/** Get resource size of UV info */
+	SIZE_T GetResourceSize();
+};
+
 /**
  * BodySetup contains all collision information that is associated with a single asset.
  * A single BodySetup instance is shared among many BodyInstances so that geometry data is not duplicated.
@@ -135,6 +158,9 @@ public:
 	TArray<physx::PxTriangleMesh*> TriMeshes;
 #endif
 
+	/** Additional UV info, if available. Used for determining UV for a line trace impact. */
+	FBodySetupUVInfo UVInfo;
+
 	/** Flag used to know if we have created the physics convex and tri meshes from the cooked data yet */
 	bool bCreatedPhysicsMeshes;
 
@@ -246,6 +272,13 @@ public:
 	 * @return Cooked data or NULL of the data was not found.
 	 */
 	FByteBulkData* GetCookedData(FName Format, bool bRuntimeOnlyOptimizedVersion = false);
+
+	/** 
+	 *	Given a location in body space, and face index, find the UV of the desired UV channel.
+	 *	Note this ONLY works if 'Support UV From Hit Results' is enabled in Physics Settings.
+	 */
+	bool CalcUVAtLocation(const FVector& BodySpaceLocation, int32 FaceIndex, int32 UVChannel, FVector2D& UV) const;
+
 
 #if WITH_EDITOR
 	ENGINE_API virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform* TargetPlatform ) override;

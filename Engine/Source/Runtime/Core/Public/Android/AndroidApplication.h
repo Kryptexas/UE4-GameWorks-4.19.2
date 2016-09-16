@@ -10,6 +10,7 @@ namespace FAndroidAppEntry
 	void PlatformInit();
 	void ReInitWindow();
 	void DestroyWindow();
+	void ReleaseEGL();
 }
 
 struct FPlatformOpenGLContext;
@@ -68,6 +69,8 @@ public:
 	void InitializeWindow( const TSharedRef< FGenericWindow >& InWindow, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately );
 
 	static void OnWindowSizeChanged();
+
+	virtual bool IsGamepadAttached() const override;
 
 private:
 

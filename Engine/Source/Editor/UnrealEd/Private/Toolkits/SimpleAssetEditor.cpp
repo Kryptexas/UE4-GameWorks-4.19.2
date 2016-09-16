@@ -164,6 +164,8 @@ FText FSimpleAssetEditor::GetToolkitName() const
 			bDirtyState |= Obj->GetOutermost()->IsDirty();
 		}
 
+		check(SharedBaseClass);
+
 		Args.Add( TEXT("NumberOfObjects"), EditingObjs.Num() );
 		Args.Add( TEXT("ClassName"), FText::FromString( SharedBaseClass->GetName() ) );
 		Args.Add( TEXT("DirtyState"), bDirtyState ? FText::FromString( TEXT( "*" ) ) : FText::GetEmpty() );
@@ -213,6 +215,8 @@ FText FSimpleAssetEditor::GetToolkitToolTipText() const
 				SharedBaseClass = SharedBaseClass->GetSuperClass();
 			}
 		}
+
+		check(SharedBaseClass);
 
 		Args.Add( TEXT("NumberOfObjects"), EditingObjs.Num() );
 		Args.Add( TEXT("ClassName"), FText::FromString( SharedBaseClass->GetName() ) );

@@ -74,6 +74,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	void SetFullscreenMode(EWindowMode::Type InFullscreenMode);
 
+	/** Returns the user setting for game window fullscreen mode. */
+	UFUNCTION(BlueprintPure, Category = Settings)
+	EWindowMode::Type GetPreferredFullscreenMode() const;
+
 	/** Sets the user setting for vsync. See UGameUserSettings::bUseVSync. */
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	void SetVSyncEnabled(bool bEnable);

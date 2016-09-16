@@ -198,6 +198,8 @@ struct ENGINE_API FWaveInstance
 	float				Volume;
 	/** Current volume multiplier - used to zero the volume without stopping the source */
 	float				VolumeMultiplier;
+	/** The volume of the wave instance due to application volume or tab-state */
+	float				VolumeApp;
 	/** An audio component priority value that scales with volume (post all gain stages) and is used to determine voice playback priority. */
 	float				Priority;
 	/** Voice center channel volume */
@@ -302,8 +304,11 @@ struct ENGINE_API FWaveInstance
 	/** Returns the actual volume the wave instance will play at */
 	bool ShouldStopDueToMaxConcurrency() const;
 
-	/** Returns the actual volume the wave instance will play at */
+	/** Returns the actual volume the wave instance will play at, including all gain stages. */
 	float GetActualVolume() const;
+
+	/** Returns the volume of the wave instance (ignoring application muting) */
+	float GetVolume() const;
 
 	/** Returns the weighted priority of the wave instance. */
 	float GetVolumeWeightedPriority() const;
@@ -374,6 +379,9 @@ public:
 	/** Returns whether or not a real-time decoding buffer is ready for playback */
 	virtual bool IsRealTimeSourceReady() { return true; }
 
+	/** Forces any pending async realtime source tasks to finish for the buffer */
+	virtual void EnsureRealtimeTaskCompletion() { }
+
 	/** Unique ID that ties this buffer to a USoundWave */
 	int32	ResourceID;
 	/** Cumulative channels from all streams */
@@ -392,6 +400,11 @@ public:
 */
 struct FSpatializationParams
 {
+	FSpatializationParams()
+	{
+		FMemory::Memzero(this, sizeof(*this));
+	}
+
 	FVector ListenerPosition;
 	FVector ListenerOrientation;
 	FVector EmitterPosition;
@@ -418,6 +431,7 @@ public:
 		, bInitialized(true) // Note: this is defaulted to true since not all platforms need to deal with async initialization.
 		, bReverbApplied(false)
 		, bIsPreviewSound(false)
+		, bIsVirtual(false)
 		, StereoBleed(0.0f)
 		, LFEBleed(0.5f)
 		, LPFFrequency(MAX_FILTER_FREQUENCY)
@@ -553,7 +567,16 @@ public:
 	{
 	}
 
+	/** Sets if this voice is virtual. */
+	void SetVirtual()
+	{
+		bIsVirtual = true;
+	}
+
 protected:
+
+	/** Returns the volume of the sound source after evaluating debug commands */
+	ENGINE_API float GetDebugVolume(const float InVolume);
 
 	// Variables.	
 	class FAudioDevice*		AudioDevice;
@@ -572,6 +595,8 @@ protected:
 	uint32				bReverbApplied:1;
 	/** Whether or not the sound is a preview sound */
 	uint32				bIsPreviewSound:1;
+	/** True if this isn't a real hardware voice */
+	uint32				bIsVirtual : 1;
 	/** The amount of stereo sounds to bleed to the rear speakers */
 	float				StereoBleed;
 	/** The amount of a sound to bleed to the LFE speaker */

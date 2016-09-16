@@ -4,7 +4,7 @@
 	VulkanConfiguration.h: Vulkan resource RHI definitions.
 =============================================================================*/
 
-// Compiled with 1.0.17.0
+// Compiled with 1.0.24.0
 
 #pragma once
 
@@ -31,17 +31,20 @@
 
 enum class EDescriptorSetStage
 {
-	// Adjusting these requires a full shader rebuild
+	// Adjusting these requires a full shader rebuild (ie modify the guid on VulkanCommon.usf)
 	Vertex		= 0,
 	Pixel		= 1,
-	Compute		= 2,
-	Geometry	= 3,
+	Geometry	= 2,
+	Hull		= 3,
 
+	// Some devices only have 4 descriptor sets max
 	MaxMobileSets	= 4,
 
-	//#todo-rco: Some devices only have 4 descriptor sets max...
-	Hull		= 4,
-	Domain		= 5,
+	// This will make Tessellation not available on mobile
+	Domain		= 4,
+
+	// Compute is its own pipeline, so it can all live as set 0
+	Compute		= 0,
 
 	Invalid		= -1,
 };
@@ -94,7 +97,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
 
-#define VULKAN_IGNORE_EXTENSIONS								(PLATFORM_ANDROID && 1)
+#define VULKAN_USE_NEW_RENDERPASSES								0
 
 //#todo-rco: While validation is not fixed...
 #define VULKAN_REUSE_FENCES										(VK_HEADER_VERSION < 17)

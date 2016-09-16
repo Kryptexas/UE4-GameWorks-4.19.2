@@ -23,7 +23,7 @@ enum class EMapChangeType : uint8;
  * Defines auto-key modes.
  */
 UENUM()
-enum class EAutoKeyMode
+enum class EAutoKeyMode : uint8
 {
 	/** Key all properties that change. */
 	KeyAll,
@@ -75,6 +75,8 @@ enum class EMovieSceneDataChangeType
 {
 	/** Data owned by a track has been modified such as adding or removing keys, or changing their values. */
 	TrackValueChanged,
+	/** Data owned by a track has been modified such as adding or removing keys, or changing their values. Refresh immediately. */
+	TrackValueChangedRefreshImmediately,
 	/** The structure of the movie scene has changed by adding folders, object bindings, tracks, or sections. */
 	MovieSceneStructureItemAdded,
 	/** The structure of the movie scene has changed by removing folders, object bindings, tracks, or sections. */
@@ -99,6 +101,8 @@ public:
 	
 	DECLARE_MULTICAST_DELEGATE(FOnGlobalTimeChanged);
 	DECLARE_MULTICAST_DELEGATE(FOnMovieSceneDataChanged);
+	
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedObjectGuids, TArray<FGuid> /*Object*/)
 
 public:
 
@@ -198,6 +202,9 @@ public:
 
 	/** Set infinite key area default */
 	virtual void SetInfiniteKeyAreas(bool bInfiniteKeyAreas) = 0;
+
+	/** Gets whether or not property track defaults will be automatically set when adding tracks. */
+	virtual bool GetAutoSetTrackDefaults() const = 0;
 
 	/** @return Returns whether sequencer is currently recording live data from simulated actors */
 	virtual bool IsRecordingLive() const = 0;
@@ -352,6 +359,9 @@ public:
 
 	/** Gets a multicast delegate which is executed whenever the movie scene data is changed. */
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() = 0;
+
+	/** Gets a multicast delegate with an array of FGuid of bound objects which is called when the outliner node selection changes. */
+	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() = 0;
 
 	/** @return a numeric type interface that will parse and display numbers as frames and times correctly */
 	virtual TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface() = 0;

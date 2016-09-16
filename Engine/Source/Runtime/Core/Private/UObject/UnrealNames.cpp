@@ -242,12 +242,6 @@ TNameEntryArray& FName::GetNames()
 	return *Names;
 }
 
-//@todo, delete this in 2013, and clean up the visualizers
-TArray<FNameEntry const*>* FName::GetNameTableForDebuggerVisualizers_ST()
-{
-	return NULL;
-}
-
 FNameEntry*** FName::GetNameTableForDebuggerVisualizers_MT()
 {
 	return GetNames().GetRootBlockForDebuggerVisualizers();

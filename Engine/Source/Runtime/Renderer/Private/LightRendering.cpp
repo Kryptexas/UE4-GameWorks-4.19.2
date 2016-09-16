@@ -13,6 +13,7 @@
 #include "LightPropagationVolume.h"
 #include "SceneUtils.h"
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Lights"), Stat_GPU_Lights, STATGROUP_GPU);
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,TEXT("DeferredLightUniforms"));
 
@@ -323,6 +324,8 @@ uint32 GetShadowQuality();
 void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Lights);
+
 
 	bool bStencilBufferDirty = false;	// The stencil buffer should've been cleared to 0 already
 
@@ -587,9 +590,6 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				GetLightNameForDrawEvent(LightSceneInfo.Proxy, LightNameWithLevel);
 				SCOPED_DRAW_EVENTF(RHICmdList, EventLightPass, *LightNameWithLevel);
 
-				// Do not resolve to scene color texture, this is done lazily
-				SceneContext.FinishRenderingSceneColor(RHICmdList, false);
-
 				if (bDrawShadows)
 				{
 					INC_DWORD_STAT(STAT_NumShadowedLights);
@@ -657,9 +657,6 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				}
 			}
 
-			// Do not resolve to scene color texture, this is done lazily
-			SceneContext.FinishRenderingSceneColor(RHICmdList, false);
-
 			// Restore the default mode
 			SceneContext.SetLightAttenuationMode(true);
 
@@ -719,7 +716,11 @@ void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandList
 /** Sets up rasterizer and depth state for rendering bounding geometry in a deferred pass. */
 void SetBoundingGeometryRasterizerAndDepthState(FRHICommandList& RHICmdList, const FViewInfo& View, const FSphere& LightBounds)
 {
-	const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.ViewOrigin - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f);
+	const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.ViewOrigin - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f)
+		// Always draw backfaces in ortho
+		//@todo - accurate ortho camera / light intersection
+		|| !View.IsPerspectiveProjection();
+
 	if (bCameraInsideLightGeometry)
 	{
 		// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light geometry

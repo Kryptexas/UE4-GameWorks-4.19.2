@@ -72,6 +72,7 @@
 #include "IPortalServiceLocator.h"
 #include "MaterialShaderQualitySettings.h"
 #include "IVREditorModule.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -506,9 +507,24 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetPreviewPlatform(FName MaterialQualityPlatform)
 {
-	UMaterialShaderQualitySettings::Get()->SetPreviewPlatform(MaterialQualityPlatform);
+	UMaterialShaderQualitySettings* MaterialShaderQualitySettings = UMaterialShaderQualitySettings::Get();
+	const FName InitialPreviewPlatform = MaterialShaderQualitySettings->GetPreviewPlatform();
 
+	const ERHIFeatureLevel::Type InitialFeatureLevel = GetWorld()->FeatureLevel;
+	MaterialShaderQualitySettings->SetPreviewPlatform(MaterialQualityPlatform);
 	SetFeatureLevelPreview(ERHIFeatureLevel::ES2);
+
+	if (
+		// Rebuild materials if the preview platform has changed. 
+		InitialPreviewPlatform != MaterialQualityPlatform
+		// If the feature level changed then materials have been rebuilt already.
+		&& InitialFeatureLevel == ERHIFeatureLevel::ES2 )
+	{
+		FGlobalComponentRecreateRenderStateContext Recreate;
+		FlushRenderingCommands();
+		UMaterial::AllMaterialsCacheResourceShadersForRendering();
+		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
+	}
 }
 
 bool FLevelEditorActionCallbacks::IsPreviewPlatformChecked(FName MaterialQualityPlatform)
@@ -896,6 +912,21 @@ void FLevelEditorActionCallbacks::MapCheck_Execute()
 
 bool FLevelEditorActionCallbacks::CanShowSourceCodeActions()
 {
+	if (GEditor)
+	{
+		// Don't allow hot reloading if we're running networked PIE instances
+		// The reason, is it's fairly complicated to handle the re-wiring that needs to happen when we re-instance objects like player controllers, possessed pawns, etc...
+		const TIndirectArray<FWorldContext>& WorldContextList = GEditor->GetWorldContexts();
+
+		for (const FWorldContext& WorldContext : WorldContextList)
+		{
+			if (WorldContext.World() && WorldContext.World()->WorldType == EWorldType::PIE && WorldContext.World()->NetDriver)
+			{
+				return false;
+			}
+		}
+	}
+
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	// If there is at least one loaded game module, source code actions should be available.
 	return HotReloadSupport.IsAnyGameModuleLoaded();
@@ -2627,7 +2658,7 @@ void FLevelEditorActionCallbacks::MoveActorTo_Clicked( const bool InAlign, const
 	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 	{
 		AActor* Actor = Cast<AActor>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
+		checkSlow( Actor );
 		if ( Actor == InDestination )	// Early out
 		{
 			continue;

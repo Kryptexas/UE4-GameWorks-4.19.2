@@ -64,5 +64,10 @@ public class zlib : ModuleRules
                 PublicAdditionalLibraries.Add(zlibPath + "Lib/Linux/" + Target.Architecture + "/libz_fPIC.a");
             }
         }
+        else if (Target.Platform == UnrealTargetPlatform.PS4)
+        {
+            PublicLibraryPaths.Add(zlibPath + "Lib/PS4");
+            PublicAdditionalLibraries.Add("z");
+        }
     }
 }

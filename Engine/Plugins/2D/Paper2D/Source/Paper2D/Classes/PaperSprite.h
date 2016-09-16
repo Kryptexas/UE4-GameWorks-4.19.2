@@ -5,7 +5,7 @@
 #include "SpriteEditorOnlyTypes.h"
 #include "Engine/EngineTypes.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
-#include "Interfaces/SlateTextureAtlasInterface.h"
+#include "Slate/SlateTextureAtlasInterface.h"
 #include "PaperSprite.generated.h"
 
 //@TODO: Should have some nice UI and enforce unique names, etc...

@@ -981,16 +981,19 @@ FFeedbackContext*	Warn
 	for (auto ItAsset = AllNewAssets.CreateIterator(); ItAsset; ++ItAsset)
 	{
 		UObject *AssetObject = ItAsset.Value();
-		if (AssetObject && ReturnObject == nullptr)
+		if (AssetObject)
 		{
-			//Set the first import object as the return object to prevent false error from the caller of this factory
-			ReturnObject = AssetObject;
-		}
-		if (AssetObject->IsA(UStaticMesh::StaticClass()) || AssetObject->IsA(USkeletalMesh::StaticClass()))
-		{
-			//Mark the mesh as modified so the render will draw the mesh correctly
-			AssetObject->Modify();
-			AssetObject->PostEditChange();
+			if (ReturnObject == nullptr)
+			{
+				//Set the first import object as the return object to prevent false error from the caller of this factory
+				ReturnObject = AssetObject;
+			}
+			if (AssetObject->IsA(UStaticMesh::StaticClass()) || AssetObject->IsA(USkeletalMesh::StaticClass()))
+			{
+				//Mark the mesh as modified so the render will draw the mesh correctly
+				AssetObject->Modify();
+				AssetObject->PostEditChange();
+			}
 		}
 	}
 

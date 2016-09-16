@@ -182,6 +182,18 @@ namespace CCT
 					OutBackEnd = BE_OpenGL;
 				}
 			}
+			else if (Switch == "es31")
+			{
+				if (Target != HCT_InvalidTarget)
+				{
+					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -es31!"));
+				}
+				else
+				{
+					Target = HCT_FeatureLevelES3_1;
+					OutBackEnd = BE_OpenGL;
+				}
+			}
 			else if (Switch == "es31ext")
 			{
 				if (Target != HCT_InvalidTarget)

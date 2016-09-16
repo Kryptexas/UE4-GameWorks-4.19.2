@@ -6,28 +6,20 @@
 #include "Text.h"
 #include "TextData.h"
 
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(push)
-	#pragma warning(disable:28251)
-	#pragma warning(disable:28252)
-	#pragma warning(disable:28253)
-#endif
-    #include <unicode/utypes.h>
+THIRD_PARTY_INCLUDES_START
+	#include <unicode/utypes.h>
 	#include <unicode/unistr.h>
-	PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#include <unicode/coll.h>
 	#include <unicode/sortkey.h>
 	#include <unicode/numfmt.h>
 	#include <unicode/msgfmt.h>
-	PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 	#include <unicode/uniset.h>
 	#include <unicode/ubidi.h>
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(pop)
-#endif
+THIRD_PARTY_INCLUDES_END
 
 #include "ICUUtilities.h"
 #include "ICUCulture.h"
+#include "ICUInternationalization.h"
 #include "ICUTextCharacterIterator.h"
 
 bool FText::IsWhitespace( const TCHAR Char )
@@ -44,8 +36,7 @@ FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateSt
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FCulturePtr Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
-	int64 UNIXTimestamp = DateTime.ToUnixTimestamp();
-	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
+	const UDate ICUDate = I18N.Implementation->UEDateTimeToICUDate(DateTime);
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	const TSharedRef<const icu::DateFormat> ICUDateFormat( Culture->Implementation->GetDateFormatter(DateStyle, TimeZone) );
@@ -64,8 +55,7 @@ FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeSt
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FCulturePtr Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
-	int64 UNIXTimestamp = DateTime.ToUnixTimestamp();
-	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
+	const UDate ICUDate = I18N.Implementation->UEDateTimeToICUDate(DateTime);
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	const TSharedRef<const icu::DateFormat> ICUDateFormat( Culture->Implementation->GetTimeFormatter(TimeStyle, TimeZone) );
@@ -118,8 +108,7 @@ FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type Da
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FCulturePtr Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
-	int64 UNIXTimestamp = DateTime.ToUnixTimestamp();
-	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
+	const UDate ICUDate = I18N.Implementation->UEDateTimeToICUDate(DateTime);
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	const TSharedRef<const icu::DateFormat> ICUDateFormat( Culture->Implementation->GetDateTimeFormatter(DateStyle, TimeStyle, TimeZone) );

@@ -25,6 +25,8 @@ public:
 		glDeleteTextures( 1, &ShaderResource );
 	}
 
+	virtual void Cleanup() override { delete this; }
+
 	uint32 GetWidth() const { return SizeX; }
 	uint32 GetHeight() const { return SizeY; }
 

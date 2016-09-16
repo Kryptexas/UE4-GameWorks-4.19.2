@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Widget.h"
+
 #include "NativeWidgetHost.generated.h"
 
 /**

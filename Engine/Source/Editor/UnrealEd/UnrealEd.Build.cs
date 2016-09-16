@@ -88,8 +88,10 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
                 "Http",
 				"UnrealAudio",
-                "FunctionalTesting"
-            }
+                "FunctionalTesting",
+				"AutomationController",
+				"Internationalization",
+			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
@@ -99,12 +101,12 @@ public class UnrealEd : ModuleRules
 				"AnimGraph",
                 "AppFramework",
 				"BlueprintGraph",
-				"DesktopPlatform",
+                "CinematicCamera",
+                "DesktopPlatform",
 				"EditorStyle",
 				"EngineSettings",
 				"InputCore",
 				"InputBindingEditor",
-				"Internationalization",
 				"LauncherServices",
 				"MaterialEditor",
 				"MessageLog",
@@ -219,6 +221,7 @@ public class UnrealEd : ModuleRules
                 "PortalServices",
                 "GeometryCacheEd",
                 "BlueprintNativeCodeGen",
+                "EditorAutomation",
 			}
 		);
 
@@ -244,9 +247,6 @@ public class UnrealEd : ModuleRules
 				"UserFeedback",
              	"CollectionManager",
 				"BlueprintGraph",
-				"NiagaraEditor",
-                "Niagara",
-                "VectorVM",
 				"AddContentDialog",                
                 "MeshUtilities"
 			}

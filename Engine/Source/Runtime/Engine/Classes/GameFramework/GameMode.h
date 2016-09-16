@@ -711,5 +711,22 @@ private:
 	HIDE_ACTOR_TRANSFORM_FUNCTIONS();
 };
 
+/** GameMode events, particularly for use by plugins */
+class ENGINE_API FGameModeEvents
+{
+public:
+	// Post login event, triggered when a player joins the game as well as after non-seamless ServerTravel
+	DECLARE_EVENT_TwoParams(AGameMode, FGameModePostLoginEvent, AGameMode* /*GameMode*/, APlayerController* /*NewPlayer*/);
 
+	/**
+	* Logout event, triggered when a player leaves the game as well as during non-seamless ServerTravel
+	*
+	* Note that this is called before performing any cleanup of the specified AController
+	*/
+	DECLARE_EVENT_TwoParams(AGameMode, FGameModeLogoutEvent, AGameMode* /*GameMode*/, AController* /*Exiting*/);
+	
+
+	static FGameModePostLoginEvent GameModePostLoginEvent;
+	static FGameModeLogoutEvent GameModeLogoutEvent;
+};
 

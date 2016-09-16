@@ -722,8 +722,11 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 				{
 					const int ax = x + getDirOffsetX(dir);
 					const int ay = y + getDirOffsetY(dir);
-					const int aidx = ax+ay*w;
-					r = layer.regs[aidx];
+					if (ax >= 0 && ay >= 0 && ax < w && ay < h)
+					{
+						const int aidx = ax + ay*w;
+						r = layer.regs[aidx];
+					}
 				}
 
 				if (r == ri)
@@ -1715,7 +1718,7 @@ static dtStatus removeVertex(dtTileCacheLogContext* ctx, dtTileCachePolyMesh& me
 	}
 	
 	// Remove vertex.
-	for (int i = (int)rem; i < mesh.nverts; ++i)
+	for (int i = (int)rem; i < (mesh.nverts - 1); ++i)
 	{
 		mesh.verts[i*3+0] = mesh.verts[(i+1)*3+0];
 		mesh.verts[i*3+1] = mesh.verts[(i+1)*3+1];

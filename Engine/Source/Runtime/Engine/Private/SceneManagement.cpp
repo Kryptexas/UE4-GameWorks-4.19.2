@@ -240,6 +240,11 @@ void FMeshElementCollector::AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch)
 			*this);
 	}
 
+	for (int32 Index = 0; Index < MeshBatch.Elements.Num(); ++Index)
+	{
+		checkf(MeshBatch.Elements[Index].PrimitiveUniformBuffer || MeshBatch.Elements[Index].PrimitiveUniformBufferResource, TEXT("Missing PrimitiveUniformBuffer on MeshBatchElement %d, Material '%s'"), Index, *MeshBatch.MaterialRenderProxy->GetFriendlyName());
+	}
+
 	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& ViewMeshBatches = *MeshBatches[ViewIndex];
 	new (ViewMeshBatches) FMeshBatchAndRelevance(MeshBatch, PrimitiveSceneProxy, FeatureLevel);	
 }
@@ -306,30 +311,28 @@ FLightMapInteraction FLightMapInteraction::Texture(
 
 float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius, const FSceneView& View )
 {
-	// Only need one component from a view transformation; just calculate the one we're interested in. Ignore view direction when rendering in stereo
-	const float Divisor = (View.StereoPass == eSSP_FULL) ? Dot3(Origin - View.ViewMatrices.ViewOrigin, View.ViewMatrices.ViewMatrix.GetColumn(2)) : FVector::Dist(Origin, View.ViewMatrices.ViewOrigin);
+	const float DistSqr = FVector::DistSquared( Origin, View.ViewMatrices.ViewOrigin );
 
 	// Get projection multiple accounting for view scaling.
 	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
 		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
 
-	const float ScreenRadius = ScreenMultiple * SphereRadius / FMath::Max(Divisor, 1.0f);
-	const float ScreenArea = PI * ScreenRadius * ScreenRadius;
-	return FMath::Clamp(ScreenArea / View.ViewRect.Area(), 0.0f, 1.0f);
+	// Approximate number of pixels the sphere covers
+	const float ScreenArea = PI * FMath::Square( ScreenMultiple * SphereRadius ) / FMath::Max( DistSqr, 1.0f );
+	return ScreenArea / View.ViewRect.Area();
 }
 
 float ComputeTemporalLODBoundsScreenSize( const FVector& Origin, const float SphereRadius, const FSceneView& View, int32 SampleIndex )
 {
-	// This is radial LOD, not the view parallel computation used in ComputeBoundsScreenSize
-	const float Divisor =  (Origin - View.GetTemporalLODOrigin(SampleIndex)).Size();
+	const float DistSqr =  (Origin - View.GetTemporalLODOrigin(SampleIndex)).SizeSquared();
 
 	// Get projection multiple accounting for view scaling.
 	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
 		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
 
-	const float ScreenRadius = ScreenMultiple * SphereRadius / FMath::Max(Divisor, 1.0f);
-	const float ScreenArea = PI * ScreenRadius * ScreenRadius;
-	return FMath::Clamp(ScreenArea / View.ViewRect.Area(), 0.0f, 1.0f);
+	// Approximate number of pixels the sphere covers
+	const float ScreenArea = PI * FMath::Square( ScreenMultiple * SphereRadius ) / FMath::Max( DistSqr, 1.0f );
+	return ScreenArea / View.ViewRect.Area();
 }
 
 int8 ComputeTemporalStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale, int32 SampleIndex )
@@ -452,6 +455,25 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	return LODToRender;
 }
 
+FMobileDirectionalLightShaderParameters::FMobileDirectionalLightShaderParameters()
+{
+	FMemory::Memzero(*this);
+
+	// light, default to black
+	DirectionalLightColor = FLinearColor::Black;
+	DirectionalLightDirection = FVector::ZeroVector;
+
+	// white texture should act like a shadowmap cleared to the farplane.
+	DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
+	DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	DirectionalLightShadowTransition = 0.0f;
+	DirectionalLightShadowSize = FVector::ZeroVector;
+	for (int32 i = 0; i < MAX_MOBILE_SHADOWCASCADES; ++i)
+	{
+		DirectionalLightScreenToShadow[i].SetIdentity();
+		DirectionalLightShadowDistances[i] = 0.0f;
+	}
+}
 
 FViewUniformShaderParameters::FViewUniformShaderParameters()
 {
@@ -459,8 +481,6 @@ FViewUniformShaderParameters::FViewUniformShaderParameters()
 
 	FTextureRHIParamRef BlackVolume = (GBlackVolumeTexture &&  GBlackVolumeTexture->TextureRHI) ? GBlackVolumeTexture->TextureRHI : GBlackTexture->TextureRHI; // for es2, this might need to be 2d
 	check(GBlackVolumeTexture);
-	DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
-	DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 
 	AtmosphereTransmittanceTexture_UB = GWhiteTexture->TextureRHI;
 	AtmosphereTransmittanceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();

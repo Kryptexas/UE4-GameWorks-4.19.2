@@ -58,8 +58,6 @@ public:
 	/** Draw green lines to indicate what the selected actor(s) are based on. */
 	void DrawBaseInfo(const FSceneView* View,FPrimitiveDrawInterface* PDI);
 
-	void AddReferencedObjects( FReferenceCollector& Collector );
-
 private:
 
 	/** Types of axis lines we can draw for orthographic views */

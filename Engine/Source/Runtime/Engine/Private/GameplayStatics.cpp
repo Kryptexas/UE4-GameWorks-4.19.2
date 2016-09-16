@@ -20,7 +20,11 @@
 #include "Components/DecalComponent.h"
 #include "LandscapeProxy.h"
 #include "MessageLog.h"
+#include "UObjectToken.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Components/LineBatchComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 
@@ -507,7 +511,12 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 	{
 		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
 		{
-			const FString SearchPackageName = FStreamLevelAction::MakeSafeLevelName(InPackageName, World);
+			FString SearchPackageName = FStreamLevelAction::MakeSafeLevelName(InPackageName, World);
+			if (FPackageName::IsShortPackageName(SearchPackageName))
+			{
+				// Make sure MyMap1 and Map1 names do not resolve to a same streaming level
+				SearchPackageName = TEXT("/") + SearchPackageName;
+			}
 
 			for (ULevelStreaming* LevelStreaming : World->StreamingLevels)
 			{
@@ -819,7 +828,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 	return PSC;
 }
 
-void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit, bool& bInitialOverlap, float& Time, FVector& Location, FVector& ImpactPoint, FVector& Normal, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem, FVector& TraceStart, FVector& TraceEnd)
+void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit, bool& bInitialOverlap, float& Time, FVector& Location, FVector& ImpactPoint, FVector& Normal, FVector& ImpactNormal, UPhysicalMaterial*& PhysMat, AActor*& HitActor, UPrimitiveComponent*& HitComponent, FName& HitBoneName, int32& HitItem, int32& FaceIndex, FVector& TraceStart, FVector& TraceEnd)
 {
 	bBlockingHit = Hit.bBlockingHit;
 	bInitialOverlap = Hit.bStartPenetrating;
@@ -835,9 +844,10 @@ void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit,
 	HitItem = Hit.Item;
 	TraceStart = Hit.TraceStart;
 	TraceEnd = Hit.TraceEnd;
+	FaceIndex = Hit.FaceIndex;
 }
 
-FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, FVector TraceStart, FVector TraceEnd)
+FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, int32 FaceIndex, FVector TraceStart, FVector TraceEnd)
 {
 	FHitResult Hit;
 	Hit.bBlockingHit = bBlockingHit;
@@ -854,6 +864,7 @@ FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverl
 	Hit.Item = HitItem;
 	Hit.TraceStart = TraceStart;
 	Hit.TraceEnd = TraceEnd;
+	Hit.FaceIndex = FaceIndex;
 	return Hit;
 }
 
@@ -861,6 +872,32 @@ EPhysicalSurface UGameplayStatics::GetSurfaceType(const struct FHitResult& Hit)
 {
 	UPhysicalMaterial* const HitPhysMat = Hit.PhysMaterial.Get();
 	return UPhysicalMaterial::DetermineSurfaceType( HitPhysMat );
+}
+
+bool UGameplayStatics::FindCollisionUV(const struct FHitResult& Hit, int32 UVChannel, FVector2D& UV)
+{
+	bool bSuccess = false;
+
+	if (!UPhysicsSettings::Get()->bSupportUVFromHitResults)
+	{
+		FMessageLog("PIE").Warning(LOCTEXT("CollisionUVNoSupport", "Calling FindCollisionUV but 'Support UV From Hit Results' is not enabled in project settings. This is required for finding UV for collision results."));
+	}
+	else
+	{
+		UPrimitiveComponent* HitPrimComp = Hit.Component.Get();
+		if (HitPrimComp)
+		{
+			UBodySetup* BodySetup = HitPrimComp->GetBodySetup();
+			if (BodySetup)
+			{
+				const FVector LocalHitPos = HitPrimComp->GetComponentToWorld().InverseTransformPosition(Hit.Location);
+
+				bSuccess = BodySetup->CalcUVAtLocation(LocalHitPos, Hit.FaceIndex, UVChannel, UV);
+			}
+		}
+	}
+
+	return bSuccess;
 }
 
 bool UGameplayStatics::AreAnyListenersWithinRange(UObject* WorldContextObject, FVector Location, float MaximumRange)
@@ -1062,7 +1099,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 
 	if (!AttachToComponent)
 	{
-		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::PlaySoundAttached: NULL AttachComponent specified! Trying to spawn sound [%s],"), *Sound->GetName());
+		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnSoundAttached: NULL AttachComponent specified! Trying to spawn sound [%s],"), *Sound->GetName());
 		return nullptr;
 	}
 
@@ -1618,6 +1655,9 @@ bool UGameplayStatics::BlueprintSuggestProjectileVelocity(UObject* WorldContextO
 	return UGameplayStatics::SuggestProjectileVelocity(WorldContextObject, OutTossVelocity, StartLocation, EndLocation, LaunchSpeed, bFavorHighArc, CollisionRadius, OverrideGravityZ, TraceOption, FCollisionResponseParams::DefaultResponseParam, TArray<AActor*>(), bDrawDebug);
 }
 
+// note: this will automatically fall back to line test if radius is small enough
+static const FName NAME_SuggestProjVelTrace = FName(TEXT("SuggestProjVelTrace"));
+
 // Based on analytic solution to ballistic angle of launch http://en.wikipedia.org/wiki/Trajectory_of_a_projectile#Angle_required_to_hit_coordinate_.28x.2Cy.29
 bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bFavorHighArc, float CollisionRadius, float OverrideGravityZ, ESuggestProjVelocityTraceOption::Type TraceOption, const FCollisionResponseParams& ResponseParam, const TArray<AActor*>& ActorsToIgnore, bool bDrawDebug)
 {
@@ -1631,7 +1671,7 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 
 	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
 
-	const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? -OverrideGravityZ : -World->GetGravityZ();
+	const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? -World->GetGravityZ() : -OverrideGravityZ;
 
 	// v^4 - g*(g*x^2 + 2*y*v^2)
 	const float InsideTheSqrt = FMath::Square(TossSpeedSq) - GravityZ * ( (GravityZ * FMath::Square(DeltaXY)) + (2.f * DeltaZ * TossSpeedSq) );
@@ -1729,7 +1769,7 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 				// d = vt + .5 a t^2
 				const FVector TraceEnd = Start + PrioritizedProjVelocities[CurrentSolutionIdx]*TimeInFlight + FVector(0.f, 0.f, 0.5f * -GravityZ * FMath::Square(TimeInFlight) - CollisionRadius);
 
-				if ( (TraceOption == ESuggestProjVelocityTraceOption::OnlyTraceWhileAsceding) && (TraceEnd.Z < TraceStart.Z) )
+				if ( (TraceOption == ESuggestProjVelocityTraceOption::OnlyTraceWhileAscending) && (TraceEnd.Z < TraceStart.Z) )
 				{
 					// falling, we are done tracing
 					if (!bDrawDebug)
@@ -1741,9 +1781,6 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 				}
 				else
 				{
-					// note: this will automatically fall back to line test if radius is small enough
-					static const FName NAME_SuggestProjVelTrace = FName(TEXT("SuggestProjVelTrace"));
-
 					FCollisionQueryParams QueryParams(NAME_SuggestProjVelTrace, true);
 					QueryParams.AddIgnoredActors(ActorsToIgnore);
 					if (World->SweepTestByChannel(TraceStart, TraceEnd, FQuat::Identity, ECC_WorldDynamic, FCollisionShape::MakeSphere(CollisionRadius), QueryParams, ResponseParam))
@@ -1803,7 +1840,7 @@ bool UGameplayStatics::PredictProjectilePath(UObject* WorldContextObject, FHitRe
 		float const SubstepDeltaTime = 1.f / SimFrequency;
 		int32 const StepLimit = FMath::CeilToInt(SimFrequency * MaxSimTime);
 
-		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? OverrideGravityZ : World->GetGravityZ();
+		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? World->GetGravityZ() : OverrideGravityZ;
 
 		OutPathPositions.Add(StartPos);
 
@@ -1873,7 +1910,7 @@ bool UGameplayStatics::PredictProjectilePath(UObject* WorldContextObject, FHitRe
 	return bBlockingHit;
 }
 
-bool UGameplayStatics::SuggestProjectileVelocity_MediumArc(UObject* WorldContextObject, FVector& OutLaunchVelocity, FVector StartPos, FVector EndPos, float OverrideGravityZ /*= 0*/)
+bool UGameplayStatics::SuggestProjectileVelocity_CustomArc(UObject* WorldContextObject, FVector& OutLaunchVelocity, FVector StartPos, FVector EndPos, float OverrideGravityZ /*= 0*/, float ArcParam /*= 0.5f */)
 {
 	/* Make sure the start and end aren't the same location */
 	FVector const StartToEnd = EndPos - StartPos;
@@ -1882,12 +1919,11 @@ bool UGameplayStatics::SuggestProjectileVelocity_MediumArc(UObject* WorldContext
 	UWorld const* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World && StartToEndDist > KINDA_SMALL_NUMBER)
 	{
-		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? OverrideGravityZ : World->GetGravityZ();
+		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? World->GetGravityZ() : OverrideGravityZ;
 
-		// choose arc halfway between up and direct line
-
+		// choose arc according to the arc param
 		FVector const StartToEndDir = StartToEnd / StartToEndDist;
-		FVector LaunchDir = (StartToEndDir + FVector::UpVector) * 0.5f;
+		FVector LaunchDir = FMath::Lerp(FVector::UpVector, StartToEndDir, ArcParam).GetSafeNormal();
 
 		// v = sqrt ( g * dx^2 / ( (dx tan(angle) + dz) * 2 * cos(angle))^2 ) )
 
@@ -1902,11 +1938,8 @@ bool UGameplayStatics::SuggestProjectileVelocity_MediumArc(UObject* WorldContext
 		if (InsideSqrt >= 0.f)
 		{
 			// there exists a solution
-			float const SpeedY = FMath::Sqrt(InsideSqrt);	// this is the mag of the vertical component
-			float VelMag = SpeedY / FMath::Sin(Angle);			// find speed in direction of the launch dir
-
-			OutLaunchVelocity = LaunchDir * VelMag;
-
+			float const Speed = FMath::Sqrt(InsideSqrt);	// this is the mag of the vertical component
+			OutLaunchVelocity = LaunchDir * Speed;
 			return true;
 		}
 	}

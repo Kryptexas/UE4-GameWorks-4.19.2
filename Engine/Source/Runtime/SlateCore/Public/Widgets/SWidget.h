@@ -860,9 +860,10 @@ protected:
 	 */
 	FORCEINLINE void Advanced_ForceInvalidateLayout()
 	{
-		if ( LayoutCache )
+		TSharedPtr<ILayoutCache> SharedLayoutCache = LayoutCache.Pin();
+		if (SharedLayoutCache.IsValid() )
 		{
-			LayoutCache->InvalidateWidget(this);
+			SharedLayoutCache->InvalidateWidget(this);
 		}
 	}
 
@@ -1118,7 +1119,7 @@ protected:
 	 * on invisible children that never get the opportunity to paint and receive the layout cache through the normal
 	 * means.  That way if an invisible widget becomes visible, we still properly invalidate the hierarchy.
 	 */
-	void CachePrepass(ILayoutCache* LayoutCache);
+	void CachePrepass(const TWeakPtr<ILayoutCache>& LayoutCache);
 
 protected:
 	/**
@@ -1203,7 +1204,7 @@ private:
 	TSharedPtr<IToolTip> ToolTip;
 
 	/** The current layout cache that may need to invalidated by changes to this widget. */
-	mutable ILayoutCache* LayoutCache;
+	mutable TWeakPtr<ILayoutCache> LayoutCache;
 
 protected:
 	/** Is this widget hovered? */

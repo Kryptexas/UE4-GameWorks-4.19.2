@@ -9,6 +9,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bKeyAllEnabled = false;
 	bKeyInterpPropertiesOnly = false;
 	KeyInterpolation = EMovieSceneKeyInterpolation::Auto;
+	bAutoSetTrackDefaults = false;
 	SpawnPosition = SSP_Origin;
 	bCreateSpawnableCameras = true;
 	bShowFrameNumbers = true;
@@ -28,7 +29,6 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bRewindOnRecord = true;
 	ZoomPosition = ESequencerZoomPosition::SZP_CurrentTime;
 	bAutoScrollEnabled = false;
-	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
 	bLinkCurveEditorTimeRange = false;
 	bLooping = false;
@@ -39,7 +39,19 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bInfiniteKeyAreas = false;
 	bShowChannelColors = false;
 	bShowViewportTransportControls = true;
+	bLockPlaybackToAudioClock = false;
 	bAllowPossessionOfPIEViewports = false;
+}
+
+void USequencerSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(USequencerSettings, bLockPlaybackToAudioClock))
+	{
+		OnLockPlaybackToAudioClockChanged.Broadcast(bLockPlaybackToAudioClock);
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 EAutoKeyMode USequencerSettings::GetAutoKeyMode() const
@@ -365,22 +377,6 @@ void USequencerSettings::SetAutoScrollEnabled(bool bInAutoScrollEnabled)
 	}
 }
 
-
-bool USequencerSettings::GetShowCurveEditor() const
-{
-	return bShowCurveEditor;
-}
-
-void USequencerSettings::SetShowCurveEditor(bool InbShowCurveEditor)
-{
-	if (bShowCurveEditor != InbShowCurveEditor)
-	{
-		bShowCurveEditor = InbShowCurveEditor;
-		OnShowCurveEditorChanged.Broadcast();
-		SaveConfig();
-	}
-}
-
 bool USequencerSettings::IsLooping() const
 {
 	return bLooping;
@@ -546,9 +542,33 @@ void USequencerSettings::SetAllowPossessionOfPIEViewports(bool bInAllowPossessio
 	}
 }
 
-USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()
+bool USequencerSettings::ShouldLockPlaybackToAudioClock() const
 {
-	return OnShowCurveEditorChanged;
+	return bLockPlaybackToAudioClock;
+}
+
+void USequencerSettings::SetLockPlaybackToAudioClock(bool bInLockPlaybackToAudioClock)
+{
+	if (bLockPlaybackToAudioClock != bInLockPlaybackToAudioClock)
+	{
+		bLockPlaybackToAudioClock = bInLockPlaybackToAudioClock;
+		OnLockPlaybackToAudioClockChanged.Broadcast(bLockPlaybackToAudioClock);
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetAutoSetTrackDefaults() const
+{
+	return bAutoSetTrackDefaults;
+}
+
+void USequencerSettings::SetAutoSetTrackDefaults(bool bInAutoSetTrackDefaults)
+{
+	if (bInAutoSetTrackDefaults != bAutoSetTrackDefaults)
+	{
+		bAutoSetTrackDefaults = bInAutoSetTrackDefaults;
+		SaveConfig();
+	}
 }
 
 USequencerSettings::FOnTimeSnapIntervalChanged& USequencerSettings::GetOnTimeSnapIntervalChanged()

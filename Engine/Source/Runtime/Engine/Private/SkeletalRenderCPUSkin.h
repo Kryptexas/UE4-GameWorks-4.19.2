@@ -112,7 +112,7 @@ public:
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) 
 	/** component space bone transforms*/
-	TArray<FTransform> MeshSpaceBases;
+	TArray<FTransform> MeshComponentSpaceTransforms;
 #endif
 	/** currently LOD for bones being updated */
 	int32 LODIndex;
@@ -152,11 +152,11 @@ public:
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetsWeights) override;
 	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare);
 	virtual void UpdateRecomputeTangent(int32 MaterialIndex, bool bRecomputeTangent) override;
-	virtual void EnableBlendWeightRendering(bool bEnabled, const TArray<int32>& InBonesOfInterest) override;
+	virtual void EnableOverlayRendering(bool bEnabled, const TArray<int32>* InBonesOfInterest, const TArray<UMorphTarget*>* InMorphTargetOfInterest) override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override;
 	virtual bool IsCPUSkinned() const override { return true; }
 	virtual const FVertexFactory* GetSkinVertexFactory(const FSceneView* View, int32 LODIndex, int32 ChunkIdx) const override;
-	virtual TArray<FTransform>* GetSpaceBases() const override;
+	virtual TArray<FTransform>* GetComponentSpaceTransforms() const override;
 	virtual const TArray<FMatrix>& GetReferenceToLocalMatrices() const override;
 	virtual int32 GetLOD() const override
 	{
@@ -255,8 +255,9 @@ private:
 
 	/** Array of bone's to render bone weights for */
 	TArray<int32> BonesOfInterest;
+	TArray<UMorphTarget*> MorphTargetOfInterest;
 
 	/** Bone weight viewing in editor */
-	bool bRenderBoneWeight;
+	bool bRenderOverlayMaterial;
 };
 

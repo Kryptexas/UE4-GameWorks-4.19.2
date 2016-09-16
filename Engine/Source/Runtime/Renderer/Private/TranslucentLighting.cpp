@@ -17,6 +17,8 @@ class FMaterial;
 
 /** Whether to allow rendering translucency shadow depths. */
 bool GUseTranslucencyShadowDepths = true;
+
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Translucent Lighting"), Stat_GPU_TranslucentLighting, STATGROUP_GPU);
  
 int32 GUseTranslucentLightingVolumes = 1;
 FAutoConsoleVariableRef CVarUseTranslucentLightingVolumes(
@@ -180,7 +182,7 @@ public:
 		const FProjectedShadowInfo* ShadowInfo
 		)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, ESceneRenderTargetsMode::DontSet);
 		ShadowParameters.SetVertexShader(RHICmdList, this, View, ShadowInfo, MaterialRenderProxy);
 	}
 
@@ -258,7 +260,7 @@ public:
 		//@todo - scene depth can be bound by the material for use in depth fades
 		// This is incorrect when rendering a shadowmap as it's not from the camera's POV
 		// Set the scene depth texture to something safe when rendering shadow depths
-		FMeshMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), View, ESceneRenderTargetsMode::DontSet);
+		FMeshMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), View, View.ViewUniformBuffer, ESceneRenderTargetsMode::DontSet);
 
 		SetShaderValue(RHICmdList, ShaderRHI, TranslInvMaxSubjectDepth, ShadowInfo->InvMaxSubjectDepth);
 
@@ -599,34 +601,21 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, TexelSize, 1.0f / GTranslucencyLightingVolumeDim);
 
-		const IPooledRenderTarget* RT0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
-		const IPooledRenderTarget* RT1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];
-
-		//Checks to detect/prevent UE-31578
-		ensure(RT0);
-		ensure(RT1);
-
-		if (RT0)
-		{
 		SetTextureParameter(
 			RHICmdList,
 			ShaderRHI, 
 			TranslucencyLightingVolumeAmbient, 
 			TranslucencyLightingVolumeAmbientSampler, 
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-				RT0->GetRenderTargetItem().ShaderResourceTexture);
-		}
+			SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture);
 
-		if (RT1)
-		{
 		SetTextureParameter(
 			RHICmdList,
 			ShaderRHI, 
 			TranslucencyLightingVolumeDirectional, 
 			TranslucencyLightingVolumeDirectionalSampler, 
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-				RT1->GetRenderTargetItem().ShaderResourceTexture);
-		}
+			SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -814,7 +803,7 @@ public:
 		
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, false, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, false, ESceneRenderTargetsMode::SetTextures);
 		
 		FSphere ShadowBounds = ShadowMap ? ShadowMap->ShadowBounds : FSphere(FVector(0,0,0), HALF_WORLD_MAX);
 		SetShaderValue(RHICmdList, ShaderRHI, CascadeBounds, ShadowBounds);
@@ -1075,37 +1064,25 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLighting(FRHICommandLi
 	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ClearTranslucentVolumeLighting);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
+
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-		// to track down Jira UE-22073
-		ensure(SceneContext.GetCurrentFeatureLevel() >= ERHIFeatureLevel::SM4);
-		ensure(SceneContext.TranslucencyLightingVolumeAmbient[0]);
-		ensure(SceneContext.TranslucencyLightingVolumeDirectional[0]);
-		ensure(SceneContext.TranslucencyLightingVolumeAmbient[1]);
-		ensure(SceneContext.TranslucencyLightingVolumeDirectional[1]);
-		// if to prevent crash (Jira UE-22073) but it happen later
-		if( SceneContext.TranslucencyLightingVolumeAmbient[0] &&
-			SceneContext.TranslucencyLightingVolumeDirectional[0] &&
-			SceneContext.TranslucencyLightingVolumeAmbient[1] &&
-			SceneContext.TranslucencyLightingVolumeDirectional[1])
-		{
-			// Clear all volume textures in the same draw with MRT, which is faster than individually
+		// Clear all volume textures in the same draw with MRT, which is faster than individually
+		static_assert(TVC_MAX == 2, "Only expecting two translucency lighting cascades.");
+		FTextureRHIParamRef RenderTargets[4];
+		RenderTargets[0] = SceneContext.TranslucencyLightingVolumeAmbient[0]->GetRenderTargetItem().TargetableTexture;
+		RenderTargets[1] = SceneContext.TranslucencyLightingVolumeDirectional[0]->GetRenderTargetItem().TargetableTexture;
+		RenderTargets[2] = SceneContext.TranslucencyLightingVolumeAmbient[1]->GetRenderTargetItem().TargetableTexture;
+		RenderTargets[3] = SceneContext.TranslucencyLightingVolumeDirectional[1]->GetRenderTargetItem().TargetableTexture;
 
-			static_assert(TVC_MAX == 2, "Only expecting two translucency lighting cascades.");
-			FTextureRHIParamRef RenderTargets[4];
-			RenderTargets[0] = SceneContext.TranslucencyLightingVolumeAmbient[0]->GetRenderTargetItem().TargetableTexture;
-			RenderTargets[1] = SceneContext.TranslucencyLightingVolumeDirectional[0]->GetRenderTargetItem().TargetableTexture;
-			RenderTargets[2] = SceneContext.TranslucencyLightingVolumeAmbient[1]->GetRenderTargetItem().TargetableTexture;
-			RenderTargets[3] = SceneContext.TranslucencyLightingVolumeDirectional[1]->GetRenderTargetItem().TargetableTexture;
+		FLinearColor ClearColors[4];
+		ClearColors[0] = FLinearColor(0, 0, 0, 0);
+		ClearColors[1] = FLinearColor(0, 0, 0, 0);
+		ClearColors[2] = FLinearColor(0, 0, 0, 0);
+		ClearColors[3] = FLinearColor(0, 0, 0, 0);
 
-			FLinearColor ClearColors[4];
-			ClearColors[0] = FLinearColor(0, 0, 0, 0);
-			ClearColors[1] = FLinearColor(0, 0, 0, 0);
-			ClearColors[2] = FLinearColor(0, 0, 0, 0);
-			ClearColors[3] = FLinearColor(0, 0, 0, 0);
-
-			ClearVolumeTextures<ARRAY_COUNT(RenderTargets)>(RHICmdList, FeatureLevel, RenderTargets, ClearColors);
-		}
+		ClearVolumeTextures<ARRAY_COUNT(RenderTargets)>(RHICmdList, FeatureLevel, RenderTargets, ClearColors);
 	}
 }
 
@@ -1187,12 +1164,6 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLightingAsyncCompute(F
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	ensure(FeatureLevel >= ERHIFeatureLevel::SM5);
-	ensure(SceneContext.TranslucencyLightingVolumeAmbient[0]);
-	ensure(SceneContext.TranslucencyLightingVolumeDirectional[0]);
-	ensure(SceneContext.TranslucencyLightingVolumeAmbient[1]);
-	ensure(SceneContext.TranslucencyLightingVolumeDirectional[1]);
-
 	FUnorderedAccessViewRHIParamRef VolumeUAVs[4] = {
 	SceneContext.TranslucencyLightingVolumeAmbient[0]->GetRenderTargetItem().UAV,
 	SceneContext.TranslucencyLightingVolumeDirectional[0]->GetRenderTargetItem().UAV,
@@ -1207,12 +1178,13 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLightingAsyncCompute(F
 	static const FName BeginComputeFenceName(TEXT("TranslucencyLightingVolumeClearBeginComputeFence"));
 	FComputeFenceRHIRef ClearBeginFence = RHICmdList.CreateComputeFence(BeginComputeFenceName);
 
+	//write fence on the Gfx pipe so the async clear compute shader won't clear until the Gfx pipe is caught up.
+	RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, VolumeUAVs, 4, ClearBeginFence);
+
 	//Grab the async compute commandlist.
 	FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
 	{
-		SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ClearTranslucencyLightingVolume, TEXT("Translucency lighting volume clear compute shader. %d"), GTranslucencyLightingVolumeDim);
-
-		RHICmdListComputeImmediate.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, VolumeUAVs, 4, ClearBeginFence);
+		SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ClearTranslucencyLightingVolume, TEXT("ClearTranslucencyLightingVolumeCompute %d"), GTranslucencyLightingVolumeDim);
 
 		//we must wait on the fence written from the Gfx pipe to let us know all our dependencies are ready.
 		RHICmdListComputeImmediate.WaitComputeFence(ClearBeginFence);
@@ -1288,10 +1260,8 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-		// to track down Jira UE-22073
-		ensure(SceneContext.GetCurrentFeatureLevel() >= ERHIFeatureLevel::SM4);
-
 		SCOPED_DRAW_EVENT(RHICmdList, InjectAmbientCubemapTranslucentVolumeLighting);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
 
 		const FVolumeBounds VolumeBounds(GTranslucencyLightingVolumeDim);
 
@@ -1301,12 +1271,6 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 		{
 			//Checks to detect/prevent UE-31578
 			const IPooledRenderTarget* RT0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
-			ensure(RT0);
-
-			if (!RT0)
-			{
-				continue;
-			}
 
 			// we don't update the directional volume (could be a HQ option)
 			SetRenderTarget(RHICmdList, RT0->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), true);
@@ -1351,6 +1315,7 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumePerObjectShadowing(FRH
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 		SCOPED_DRAW_EVENT(RHICmdList, ClearTranslucentVolumePerLightShadowing);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
 
 		static_assert(TVC_MAX == 2, "Only expecting two translucency lighting cascades.");
 		FTextureRHIParamRef RenderTargets[2];
@@ -1406,6 +1371,7 @@ void FDeferredShadingSceneRenderer::AccumulateTranslucentVolumeObjectShadowing(F
 	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, AccumulateTranslucentVolumeShadowing);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
 
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
@@ -1629,24 +1595,12 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	INC_DWORD_STAT_BY(STAT_NumLightsInjectedIntoTranslucency, LightInjectionData.Num());
 
-	// to track down Jira UE-22073
-	ensure(SceneContext.GetCurrentFeatureLevel() >= ERHIFeatureLevel::SM4);
-
 	// Inject into each volume cascade
 	// Operate on one cascade at a time to reduce render target switches
 	for (uint32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
 	{
 		const IPooledRenderTarget* RT0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
 		const IPooledRenderTarget* RT1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];
-
-		//Checks to detect/prevent UE-31578
-		ensure(RT0);
-		ensure(RT1);
-
-		if (!RT0 || !RT1)
-		{
-			continue;
-		}
 
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT0);
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT1);
@@ -1862,15 +1816,6 @@ void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(F
 			const IPooledRenderTarget* RT0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
 			const IPooledRenderTarget* RT1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];
 
-			//Checks to detect/prevent UE-31578
-			ensure(RT0);
-			ensure(RT1);
-
-			if (!RT0 || !RT1)
-			{
-				continue;
-			}
-
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT0);
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT1);
 
@@ -1952,6 +1897,8 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 			SCOPED_DRAW_EVENTF(RHICmdList, FilterTranslucentVolume, TEXT("FilterTranslucentVolume %dx%dx%d Cascades:%d"),
 				GTranslucencyLightingVolumeDim, GTranslucencyLightingVolumeDim, GTranslucencyLightingVolumeDim, TVC_MAX);
 
+			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_TranslucentLighting);
+
 			// Filter each cascade
 			for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
 			{
@@ -1959,18 +1906,7 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 				const IPooledRenderTarget* RT1 = SceneContext.GetTranslucencyVolumeDirectional((ETranslucencyVolumeCascade)VolumeCascadeIndex);
 
 				const IPooledRenderTarget* Input0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
-				const IPooledRenderTarget* Input1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];								
-
-				//Checks to detect/prevent UE-31578
-				ensure(RT0);
-				ensure(RT1);
-				ensure(Input0);
-				ensure(Input1);
-
-				if (!RT0 || !RT1 || !Input0 || !Input1)
-				{
-					continue;
-				}
+				const IPooledRenderTarget* Input1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];					
 
 				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT0);
 				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT1);

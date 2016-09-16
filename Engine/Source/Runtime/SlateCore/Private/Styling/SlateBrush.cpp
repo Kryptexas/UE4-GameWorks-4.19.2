@@ -75,6 +75,12 @@ FSlateBrush::FSlateBrush( ESlateBrushDrawType::Type InDrawType, const FName InRe
 }
 
 
+void FSlateBrush::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	Collector.AddReferencedObject(ResourceObject);
+}
+
+
 /* FSlateBrush static functions
  *****************************************************************************/
 

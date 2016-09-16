@@ -178,6 +178,7 @@ public:
 		FRawMesh& OutReducedMesh,
 		float& OutMaxDeviation,
 		const FRawMesh& InMesh,
+		const TMultiMap<int32, int32>& InOverlappingCorners,
 		const FMeshReductionSettings& InSettings
 		) override
 	{
@@ -895,6 +896,7 @@ public:
 			if (!GeometryData)
 			{
 				UE_LOG(LogSimplygon, Warning, TEXT("Geometry data is NULL"));
+				FailedDelegate.ExecuteIfBound(InJobGUID, TEXT("Simplygon failed to generate Geometry Data"));
 				continue;
 			}
 
@@ -902,9 +904,7 @@ public:
 
 			//Validate the geometry
 			ValidateGeometry(GeometryValidator, GeometryData);
-
-			check(GeometryData)
-
+			
 #ifdef DEBUG_PROXY_MESH
 				SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
 			objexp->SetExportFilePath("d:/BeforeProxyMesh.obj");
@@ -974,27 +974,32 @@ public:
 			}
 		}
 
-		checkf(ProxyMesh != nullptr, TEXT("Unable to find resulting proxy mesh in SimplygonScene"));
-
+		if (ProxyMesh == nullptr)
+		{
+			FailedDelegate.ExecuteIfBound(InJobGUID, TEXT("Simplygon failed to generate a proxy mesh"));
+		}
+		else
+		{
 #ifdef DEBUG_PROXY_MESH
-		SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
-		objexp->SetExportFilePath("d:/AfterProxyMesh.obj");
-		objexp->SetSingleGeometry(ProxyMesh->GetGeometry());
-		objexp->RunExport();
+			SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
+			objexp->SetExportFilePath("d:/AfterProxyMesh.obj");
+			objexp->SetSingleGeometry(ProxyMesh->GetGeometry());
+			objexp->RunExport();
 #endif
 
-		//Convert geometry data to raw mesh data
-		SimplygonSDK::spGeometryData outGeom = ProxyMesh->GetGeometry();
-		CreateRawMeshFromGeometry(OutProxyMesh, ProxyMesh->GetGeometry(), WINDING_Keep);
+			//Convert geometry data to raw mesh data
+			SimplygonSDK::spGeometryData outGeom = ProxyMesh->GetGeometry();
+			CreateRawMeshFromGeometry(OutProxyMesh, ProxyMesh->GetGeometry(), WINDING_Keep);
 		
-		// Default smoothing
-		OutProxyMesh.FaceSmoothingMasks.SetNum(OutProxyMesh.FaceMaterialIndices.Num());
-		for (uint32& SmoothingMask : OutProxyMesh.FaceSmoothingMasks)
-		{
-			SmoothingMask = 1;
-		}
+			// Default smoothing
+			OutProxyMesh.FaceSmoothingMasks.SetNum(OutProxyMesh.FaceMaterialIndices.Num());
+			for (uint32& SmoothingMask : OutProxyMesh.FaceSmoothingMasks)
+			{
+				SmoothingMask = 1;
+			}
 				
-		CompleteDelegate.ExecuteIfBound(OutProxyMesh, OutMaterial, InJobGUID);
+			CompleteDelegate.ExecuteIfBound(OutProxyMesh, OutMaterial, InJobGUID);
+		}
 	}
 
 private:
@@ -1449,9 +1454,9 @@ private:
 
 	/**
 	 * Creates a Simplygon scene representation of the skeletal hierarchy.
-	 * @param InScene - The Simplygon scene.
-	 * @param InSkeleton - The skeletal hierarchy from which to create the Simplygon representation.
-	 * @param OutBoneTableIDs - A mapping of Bone IDs from RefSkeleton to Simplygon Bone Table IDs
+	 * @param InScene The Simplygon scene.
+	 * @param InSkeleton The skeletal hierarchy from which to create the Simplygon representation.
+	 * @param OutBoneTableIDs A mapping of Bone IDs from RefSkeleton to Simplygon Bone Table IDs
 	 */
 	void CreateSkeletalHierarchy( SimplygonSDK::spScene& InScene, const FReferenceSkeleton& InSkeleton, TArray<SimplygonSDK::rid>& OutBoneTableIDs ) 
 	{
@@ -1500,9 +1505,9 @@ private:
 
 	/**
 	 * Creates a Simplygon geometry representation from a skeletal mesh LOD model.
-	 * @param Scene - The Simplygon scene.
-	 * @param LODModel - The skeletal mesh LOD model from which to create the geometry data.
-	 * @param BoneIDs - A maps of Bone IDs from RefSkeleton to Simplygon BoneTable IDs
+	 * @param Scene The Simplygon scene.
+	 * @param LODModel The skeletal mesh LOD model from which to create the geometry data.
+	 * @param BoneIDs A maps of Bone IDs from RefSkeleton to Simplygon BoneTable IDs
 	 * @returns a Simplygon geometry data representation of the skeletal mesh LOD.
 	 */
 	SimplygonSDK::spGeometryData CreateGeometryFromSkeletalLODModel( SimplygonSDK::spScene& Scene, const FStaticLODModel& LODModel, const TArray<SimplygonSDK::rid>& BoneIDs )
@@ -1694,8 +1699,8 @@ private:
 
 	/**
 	 * Extracts mesh data from the Simplygon geometry representation in to a set of data usable by skeletal meshes.
-	 * @param GeometryData - the Simplygon geometry.
-	 * @param MeshData - the skeletal mesh output data.
+	 * @param GeometryData the Simplygon geometry.
+	 * @param MeshData the skeletal mesh output data.
 	 */
 	void ExtractSkeletalDataFromGeometry( const SimplygonSDK::spGeometryData& GeometryData, FSkeletalMeshData& MeshData )
 	{
@@ -1925,9 +1930,9 @@ private:
 
 	/**
 	 * Creates a skeletal mesh LOD model from the Simplygon geometry representation.
-	 * @param GeometryData - the Simplygon geometry representation from which to create a skeletal mesh LOD.
-	 * @param SkeletalMesh - the skeletal mesh in to which the LOD model will be added.
-	 * @param NewModel - the LOD model in to which the geometry will be stored.
+	 * @param GeometryData the Simplygon geometry representation from which to create a skeletal mesh LOD.
+	 * @param SkeletalMesh the skeletal mesh in to which the LOD model will be added.
+	 * @param NewModel the LOD model in to which the geometry will be stored.
 	 */
 	void CreateSkeletalLODModelFromGeometry( const SimplygonSDK::spGeometryData& GeometryData, const FReferenceSkeleton& RefSkeleton, FStaticLODModel* NewModel )
 	{
@@ -1984,8 +1989,8 @@ private:
 
 	/**
 	 * Sets reduction settings for Simplygon.
-	 * @param Settings - The skeletal mesh optimization settings.
-	 * @param ReductionSettings - The reduction settings to set for Simplygon.
+	 * @param Settings The skeletal mesh optimization settings.
+	 * @param ReductionSettings The reduction settings to set for Simplygon.
 	 */
 	void SetReductionSettings( const FSkeletalMeshOptimizationSettings& Settings, float BoundsRadius, int32 SourceTriCount, SimplygonSDK::spReductionSettings ReductionSettings )
 	{
@@ -2028,8 +2033,8 @@ private:
 	
 	/**
 	 * Sets vertex normal settings for Simplygon.
-	 * @param Settings - The skeletal mesh optimization settings.
-	 * @param NormalSettings - The normal settings to set for Simplygon.
+	 * @param Settings The skeletal mesh optimization settings.
+	 * @param NormalSettings The normal settings to set for Simplygon.
 	 */
 	void SetNormalSettings( const FSkeletalMeshOptimizationSettings& Settings, SimplygonSDK::spNormalCalculationSettings NormalSettings )
 	{
@@ -2041,40 +2046,14 @@ private:
 
 	/**
 	 * Sets Bone Lod settings for Simplygon.
-	 * @param Settings - The skeletal mesh optimization settings.
-	 * @param NormalSettings - The Bone LOD to set for Simplygon.
+	 * @param Settings The skeletal mesh optimization settings.
+	 * @param NormalSettings The Bone LOD to set for Simplygon.
 	 */
 	void SetBoneSettings( const FSkeletalMeshOptimizationSettings& Settings, SimplygonSDK::spBoneSettings BoneSettings)
 	{
 		BoneSettings->SetBoneReductionTargets( SimplygonSDK::SG_BONEREDUCTIONTARGET_BONERATIO );
 		BoneSettings->SetBoneRatio ( Settings.BoneReductionRatio );
 		BoneSettings->SetMaxBonePerVertex( Settings.MaxBonesPerVertex );
-	}
-
-	/**
-	 * Calculates the view distance that a mesh should be displayed at.
-	 * @param MaxDeviation - The maximum surface-deviation between the reduced geometry and the original. This value should be acquired from Simplygon
-	 * @returns The calculated view distance	 
-	 */
-	float CalculateViewDistance( float MaxDeviation )
-	{
-		// We want to solve for the depth in world space given the screen space distance between two pixels
-		//
-		// Assumptions:
-		//   1. There is no scaling in the view matrix.
-		//   2. The horizontal FOV is 90 degrees.
-		//   3. The backbuffer is 1920x1080.
-		//
-		// If we project two points at (X,Y,Z) and (X',Y,Z) from view space, we get their screen
-		// space positions: (X/Z, Y'/Z) and (X'/Z, Y'/Z) where Y' = Y * AspectRatio.
-		//
-		// The distance in screen space is then sqrt( (X'-X)^2/Z^2 + (Y'-Y')^2/Z^2 )
-		// or (X'-X)/Z. This is in clip space, so PixelDist = 1280 * 0.5 * (X'-X)/Z.
-		//
-		// Solving for Z: ViewDist = (X'-X * 640) / PixelDist
-
-		const float ViewDistance = (MaxDeviation * 960.0f);
-		return ViewDistance;
 	}
 
 	/**
@@ -2339,9 +2318,9 @@ private:
 
 	/**
 	 * The method converts ESimplygonTextureSamplingQuality
-	 * @param InSamplingQuality - The Caster Settings used to setup the Simplygon Caster.
-	 * @param InMappingImage - Simplygon MappingImage.
-	 * @result 
+	 * @param InSamplingQuality The Caster Settings used to setup the Simplygon Caster.
+	 * @param InMappingImage Simplygon MappingImage.
+	 * @return 
 	 */
 	uint8 GetSamples(ESimplygonTextureSamplingQuality::Type InSamplingQuality)
 	{
@@ -2376,11 +2355,11 @@ private:
 
 	/**
 	 * Use Simplygon Color Caster to Cast a Color Channel
-	 * @param InCasterSettings - The Caster Settings used to setup the Simplygon Caster.
-	 * @param InMappingImage - Simplygon MappingImage.
-	 * @param InMaterialTable - Input MaterialTable used by the Simplygon Caster.
-	 * @param InTextureTable - Simplygon TextureTable used by the Simplyogn Caster.
-	 * @param OutColorData - The Simplygon Output ImageData.
+	 * @param InCasterSettings The Caster Settings used to setup the Simplygon Caster.
+	 * @param InMappingImage Simplygon MappingImage.
+	 * @param InMaterialTable Input MaterialTable used by the Simplygon Caster.
+	 * @param InTextureTable Simplygon TextureTable used by the Simplyogn Caster.
+	 * @param OutColorData The Simplygon Output ImageData.
 	 */
 	void CastColorChannel(const FSimplygonChannelCastingSettings& InCasterSettings, 
 		SimplygonSDK::spMappingImage& InMappingImage,
@@ -2406,11 +2385,11 @@ private:
 
 	/**
 	 * Use Simplygon Normal Caster to Cast a Normals Channel
-	 * @param InCasterSettings - The Caster Settings used to setup the Simplygon Caster.
-	 * @param InMappingImage - Simplygon MappingImage.
-	 * @param InMaterialTable - Input MaterialTable used by the Simplygon Caster.
-	 * @param InTextureTable - Simplygon TextureTable used by the Simplyogn Caster.
-	 * @param OutColorData - The Simplygon Output ImageData.
+	 * @param InCasterSettings The Caster Settings used to setup the Simplygon Caster.
+	 * @param InMappingImage Simplygon MappingImage.
+	 * @param InMaterialTable Input MaterialTable used by the Simplygon Caster.
+	 * @param InTextureTable Simplygon TextureTable used by the Simplyogn Caster.
+	 * @param OutColorData The Simplygon Output ImageData.
 	 */
 	void CastNormalsChannel(FSimplygonChannelCastingSettings InCasterSettings, 
 		SimplygonSDK::spMappingImage& InMappingImage,
@@ -2437,11 +2416,11 @@ private:
 
 	/**
 	 * Use Simplygon Opacity Caster to Cast an Opacity Channel
-	 * @param InCasterSettings - The Caster Settings used to setup the Simplygon Caster.
-	 * @param InMappingImage - Simplygon MappingImage.
-	 * @param InMaterialTable - Input MaterialTable used by the Simplygon Caster.
-	 * @param InTextureTable - Simplygon TextureTable used by the Simplyogn Caster.
-	 * @param OutColorData - The Simplygon Output ImageData.
+	 * @param InCasterSettings The Caster Settings used to setup the Simplygon Caster.
+	 * @param InMappingImage Simplygon MappingImage.
+	 * @param InMaterialTable Input MaterialTable used by the Simplygon Caster.
+	 * @param InTextureTable Simplygon TextureTable used by the Simplyogn Caster.
+	 * @param OutColorData The Simplygon Output ImageData.
 	 */
 	void CastOpacityChannel(FSimplygonChannelCastingSettings InCasterSettings, 
 		SimplygonSDK::spMappingImage& InMappingImage,
@@ -2462,8 +2441,8 @@ private:
 
 	/**
 	* Sets Mapping Image Setting for Simplygon.
-	* @param InMaterialLODSettings - The MaterialLOD Settings used for setting up Simplygon MappingImageSetting.
-	* @param InMappingImageSettings - The Simplygon MappingImage Settings that is being setup.
+	* @param InMaterialLODSettings The MaterialLOD Settings used for setting up Simplygon MappingImageSetting.
+	* @param InMappingImageSettings The Simplygon MappingImage Settings that is being setup.
 	*/
 	void SetupMappingImage(const FSimplygonMaterialLODSettings& InMaterialLODSettings,
 		SimplygonSDK::spMappingImageSettings InMappingImageSettings,

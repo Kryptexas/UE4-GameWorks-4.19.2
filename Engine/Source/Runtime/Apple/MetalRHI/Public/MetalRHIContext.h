@@ -108,6 +108,8 @@ public:
 	// @param MaxX excluding like Win32 RECT
 	// @param MaxY excluding like Win32 RECT
 	virtual void RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ) final override;
+
+	virtual void RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ) final override;
 	
 	// @param MinX including like Win32 RECT
 	// @param MinY including like Win32 RECT

@@ -431,7 +431,14 @@ public:
 	 * @param	ObjectPath		The path to the package to test
 	 * @return					The package name from the string
 	 */
-	UNREALED_API static FString ExtractPackageName(const FString& ObjectPath);
+	UNREALED_API static FString ExtractPackageName(const FString& ObjectPath);\
+
+	////////////////////////////////////////////////////////////////////////////
+	// File
+
+	UNREALED_API static FString GetFilename(const FName& PackageName);
+
+	UNREALED_API static FString GetFilename(UObject* LevelObject);
 
 private:
 

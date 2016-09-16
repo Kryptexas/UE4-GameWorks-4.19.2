@@ -710,6 +710,7 @@ UMaterialInterface* FParticleTrailsEmitterInstance_Base::GetCurrentMaterial()
 	{
 		RenderMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
+	CurrentMaterial = RenderMaterial;
 	return RenderMaterial;
 }
 
@@ -2185,7 +2186,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					ResolveSource();
 				}
 
-				if (SourceEmitter && SourceEmitter->ParticleIndices)
+				if (SourceEmitter && SourceEmitter->ParticleIndices && SourceEmitter->ActiveParticles > 0)
 				{
 					if (SourceIndices[InTrailIdx] != -1)
 					{
@@ -2227,6 +2228,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 								if (SourceIndices[TrailCheckIdx] == SourceEmitter->ParticleIndices[Index])
 								{
 									Index = -1;
+									break;
 								}
 							}
 						}

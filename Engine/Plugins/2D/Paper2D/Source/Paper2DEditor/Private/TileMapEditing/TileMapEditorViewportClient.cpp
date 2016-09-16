@@ -189,6 +189,7 @@ void FTileMapEditorViewportClient::DrawCanvas(FViewport& InViewport, FSceneView&
 					case EBlendMode::BLEND_Translucent:
 					case EBlendMode::BLEND_Additive:
 					case EBlendMode::BLEND_Modulate:
+					case EBlendMode::BLEND_AlphaComposite:
 						MaterialType = Translucent;
 						break;
 					case EBlendMode::BLEND_Masked:

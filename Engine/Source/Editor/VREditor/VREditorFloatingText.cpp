@@ -6,6 +6,11 @@
 
 AFloatingText::AFloatingText()
 {
+	if (UNLIKELY(IsRunningDedicatedServer()))
+	{
+		return;
+	}
+
 	// Create root default scene component
 	{
 		SceneComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "SceneComponent" ) );

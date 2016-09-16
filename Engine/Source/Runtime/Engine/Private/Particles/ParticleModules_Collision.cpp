@@ -476,7 +476,7 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance* Owner, int32 Off
 					{
 						Size = OwnerTM.TransformVector(Size);
 					}
-					Particle.Location = Hit.Location + (Size / 2.0f);
+					Particle.Location = Hit.Location;
 					if (LODLevel->RequiredModule->bUseLocalSpace == true)
 					{
 						// We need to transform the location back relative to the PSys.
@@ -644,8 +644,10 @@ void UParticleModuleCollisionGPU::CompileModule(struct FParticleEmitterBuildInfo
 #if WITH_EDITOR
 bool UParticleModuleCollisionGPU::IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString)
 {
+	check(LODLevel);
+
 	UMaterialInterface* Material = NULL;
-	if (LODLevel && LODLevel->RequiredModule)
+	if (LODLevel->RequiredModule)
 	{
 		Material = LODLevel->RequiredModule->Material;
 	}

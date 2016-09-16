@@ -189,7 +189,7 @@ void FDetailItemNode::GetChildren( FDetailNodeList& OutChildren )
 	{
 		TSharedRef<IDetailTreeNode>& Child = Children[ChildIndex];
 
-		ENodeVisibility::Type ChildVisibility = Child->GetVisibility();
+		ENodeVisibility ChildVisibility = Child->GetVisibility();
 
 		// Report the child if the child is visible or we are visible due to filtering and there were no filtered children.  
 		// If we are visible due to filtering and so is a child, we only show that child.  
@@ -264,7 +264,7 @@ bool FDetailItemNode::ShouldBeExpanded() const
 	return bShouldBeExpanded;
 }
 
-ENodeVisibility::Type FDetailItemNode::GetVisibility() const
+ENodeVisibility FDetailItemNode::GetVisibility() const
 {
 	const bool bHasAnythingToShow = Customization.IsValidCustomization();
 
@@ -273,7 +273,7 @@ ENodeVisibility::Type FDetailItemNode::GetVisibility() const
 		|| (Customization.HasCustomWidget() && Customization.WidgetDecl->VisibilityAttr.Get() != EVisibility::Visible )
 		|| (Customization.HasPropertyNode() && Customization.PropertyRow->GetPropertyVisibility() != EVisibility::Visible );
 
-	ENodeVisibility::Type Visibility;
+	ENodeVisibility Visibility;
 	if( bIsForcedHidden )
 	{
 		Visibility = ENodeVisibility::ForcedHidden;
@@ -329,7 +329,7 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 
 			const bool bPassesSearchFilter = bSearchFilterIsEmpty || ( bIsNotBeingFiltered || bIsSeenDueToFiltering || bIsParentSeenDueToFiltering );
 			const bool bPassesModifiedFilter = bPassesSearchFilter && ( InFilter.bShowOnlyModifiedProperties == false || PropertyNodePin->GetDiffersFromDefault() == true );
-			const bool bPassesDifferingFilter = InFilter.bShowOnlyDiffering ? InFilter.WhitelistedProperties.Find(*FPropertyNode::CreatePropertyPath(PropertyNodePin.ToSharedRef())) != NULL : true;
+			const bool bPassesDifferingFilter = InFilter.bShowOnlyDiffering ? InFilter.WhitelistedProperties.Find(*FPropertyNode::CreatePropertyPath(PropertyNodePin.ToSharedRef())) != nullptr : true;
 
 			// The property node is visible (note categories are never visible unless they have a child that is visible )
 			bPassesAllFilters = (bPassesSearchFilter && bPassesModifiedFilter && bPassesDifferingFilter) || bPassesCategoryFilter;

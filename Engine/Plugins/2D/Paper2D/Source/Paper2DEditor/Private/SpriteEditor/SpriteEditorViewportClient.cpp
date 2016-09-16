@@ -362,6 +362,7 @@ void FSpriteEditorViewportClient::AnalyzeSpriteMaterialType(UPaperSprite* Sprite
 				case EBlendMode::BLEND_Translucent:
 				case EBlendMode::BLEND_Additive:
 				case EBlendMode::BLEND_Modulate:
+				case EBlendMode::BLEND_AlphaComposite:
 					NumTranslucentTriangles += NumTriangles;
 					break;
 				case EBlendMode::BLEND_Masked:

@@ -18,7 +18,10 @@ import android.os.Vibrator;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.widget.EditText;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
+import android.view.inputmethod.EditorInfo;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -29,6 +32,7 @@ import android.content.IntentSender.SendIntentException;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.FeatureInfo;
 
 import android.media.AudioManager;
 import android.util.DisplayMetrics;
@@ -53,11 +57,14 @@ import android.media.AudioManager;
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.games.Games;
 
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.InterstitialAd;
 
 import com.google.android.gms.plus.Plus;
 
@@ -89,7 +96,9 @@ import com.epicgames.ue4.DownloadShim;
 //  Java libraries at the startup of the program and store references 
 //  to them in this class.
 
-public class GameActivity extends NativeActivity implements SurfaceHolder.Callback2
+public class GameActivity extends NativeActivity implements SurfaceHolder.Callback2,
+															GoogleApiClient.ConnectionCallbacks,
+															GoogleApiClient.OnConnectionFailedListener
 {
 	public static Logger Log = new Logger("UE4");
 	
@@ -120,6 +129,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	// Virtual keyboard
 	AlertDialog virtualKeyboardAlert;
 	EditText virtualKeyboardInputBox;
+	String virtualKeyboardPreviousContents;
 
 	// Console commands receiver
 	ConsoleCmdReceiver consoleCmdReceiver;
@@ -142,6 +152,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private boolean adInit = false;
 	private LinearLayout adLayout;
 	private int adGravity = Gravity.TOP;
+	private InterstitialAd interstitialAd;
+	private boolean isInterstitialAdLoaded = false;
+	private boolean isInterstitialAdRequested = false;
+	private AdRequest interstitialAdRequest;
 
 	// layout required by popups, e.g ads, native controls
 	LinearLayout activityLayout;
@@ -185,6 +199,18 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private SurfaceView MySurfaceView;
 	private int DesiredHolderWidth = 0;
 	private int DesiredHolderHeight = 0;
+
+	/** Discovered Vulkan Version and Level from getSystemAvailableFeatures() */
+	private int VulkanVersion = 0;
+	private int VulkanLevel = 0;
+
+	enum EAlertDialogType
+	{
+		None,
+		Console,
+		Keyboard
+	}
+	private EAlertDialogType CurrentDialogType = EAlertDialogType.None;
 	
 	/** Access singleton activity for game. **/
 	public static GameActivity Get()
@@ -360,7 +386,54 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		// tell Android that we want volume controls to change the media volume, aka music
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
-		
+
+		// Look for Vulkan support if Nougat or later
+		if (ANDROID_BUILD_VERSION >= 24)
+		{
+			FeatureInfo[] features = getPackageManager().getSystemAvailableFeatures();
+			for (FeatureInfo feature : features) {
+				if (feature.name != null)
+				{
+					if (feature.name.equals("android.hardware.vulkan.level"))
+					{
+						// since we may not be compiled against android-24 or higher, use .toString to get the version field
+						String dump = feature.toString();
+						int index = dump.indexOf("v=");
+						if (index >= 0)
+						{
+							dump = dump.substring(index+2);
+							index = dump.indexOf(" ");
+							if (index >= 0)
+							{
+								VulkanLevel = Integer.parseInt(dump.substring(0, index));
+								Log.debug("Vulkan level: " + VulkanLevel);
+							}
+						}
+					}
+					else
+					if (feature.name.equals("android.hardware.vulkan.version"))
+					{
+						// since we may not be compiled against android-24 or higher, use .toString to get the version field
+						String dump = feature.toString();
+						int index = dump.indexOf("v=");
+						if (index >= 0)
+						{
+							dump = dump.substring(index+2);
+							index = dump.indexOf(" ");
+							if (index >= 0)
+							{
+								VulkanVersion = Integer.parseInt(dump.substring(0, index));
+								int VersionMajor = (VulkanVersion >> 22) & 0x03ff;
+								int VersionMinor = (VulkanVersion >> 12) & 0x03ff;
+								int VersionPatch = VulkanVersion & 0x0fff;
+								Log.debug("Vulkan version: " + VersionMajor + "." + VersionMinor + "." + VersionPatch);
+							}
+						}
+					}
+				}
+			}
+		}
+
 		// is this a native landscape device (tablet, tv)?
 		if ( getDeviceDefaultOrientation() == Configuration.ORIENTATION_LANDSCAPE )
 		{
@@ -613,17 +686,42 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				nativeConsoleCommand(message);
 				consoleInputBox.setText(" ");
 				dialog.dismiss();
+				CurrentDialogType = EAlertDialogType.None;
 			}
 		})
 		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
 				consoleInputBox.setText(" ");
 				dialog.dismiss();
+				CurrentDialogType = EAlertDialogType.None;
 			}
 		});
 		consoleAlert = builder.create();
 
 		virtualKeyboardInputBox = new EditText(this);
+		if (ANDROID_BUILD_VERSION < 11)
+		{
+			virtualKeyboardInputBox.setImeOptions(EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+		}
+		else
+		{
+			virtualKeyboardInputBox.setImeOptions(EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN);
+		}
+		virtualKeyboardInputBox.addTextChangedListener(new TextWatcher() {
+			@Override
+			public void beforeTextChanged(CharSequence charSequence, int start, int count, int after) {
+			}
+
+			@Override
+			public void afterTextChanged(Editable s) {
+				String message = virtualKeyboardInputBox.getText().toString();
+				nativeVirtualKeyboardChanged(message);
+			}
+
+			@Override
+			public void onTextChanged(CharSequence charSequence, int start, int before, int count) {
+			}
+		});
 
 		builder = new AlertDialog.Builder(this);
 		builder.setTitle("")
@@ -634,20 +732,31 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				nativeVirtualKeyboardResult(true, message);
 				virtualKeyboardInputBox.setText(" ");
 				dialog.dismiss();
+				CurrentDialogType = EAlertDialogType.None;
 			}
 		})
 		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
+				nativeVirtualKeyboardChanged(virtualKeyboardPreviousContents);
 				nativeVirtualKeyboardResult(false, " ");
 				virtualKeyboardInputBox.setText(" ");
 				dialog.dismiss();
+				CurrentDialogType = EAlertDialogType.None;
 			}
 		});
 		virtualKeyboardAlert = builder.create();
 
 		GooglePlayLicensing.GoogleLicensing = new GooglePlayLicensing();
 		GooglePlayLicensing.GoogleLicensing.Init(this, Log);
-	
+
+		// Build Google Play API Client
+		googleClient = new GoogleApiClient.Builder(this)
+			.addConnectionCallbacks(this)
+			.addOnConnectionFailedListener(this)
+			.addApi(Games.API).addScope(Games.SCOPE_GAMES)
+			.addApi(Plus.API).addScope(Plus.SCOPE_PLUS_LOGIN)
+			.build();
+
 		// Now okay for event handler to be set up on native side
 		//	nativeResumeMainInit();
 				
@@ -754,6 +863,29 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	protected void onPause()
 	{
 		super.onPause();
+		if(CurrentDialogType != EAlertDialogType.None)
+		{
+			//	If an AlertDialog is showing when the application is paused, it can cause our main window to be terminated
+			//	Hide the dialog here. It will be shown again via AndroidThunkJava_ShowHiddenAlertDialog called from native code
+			_activity.runOnUiThread(new Runnable()
+			{
+				public void run()
+				{
+					switch(CurrentDialogType)
+					{
+						case Keyboard:
+							virtualKeyboardAlert.hide(); 
+							break;
+						case Console:
+							consoleAlert.hide(); 
+							break;
+						default:
+							Log.debug("ERROR: Unknown EAlertDialogType!");
+							break;
+					}
+				}
+			});
+		}
 //$${gameActivityOnPauseAdditions}$$
 		Log.debug("==============> GameActive.onPause complete!");
 	}
@@ -800,6 +932,34 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		else
 		{
 			super.surfaceChanged(holder, format, width, height);
+		}
+	}
+
+	public void AndroidThunkJava_ShowHiddenAlertDialog()
+	{
+		if(CurrentDialogType != EAlertDialogType.None)
+		{
+			Log.debug("==============> [JAVA] AndroidThunkJava_ShowHiddenAlertDialog() - Showing " + CurrentDialogType);
+		
+			//	If an AlertDialog was showing onPause and we hid it, show it again
+			_activity.runOnUiThread(new Runnable()
+			{
+				public void run()
+				{
+					switch(CurrentDialogType)
+					{
+						case Keyboard:
+							virtualKeyboardAlert.show(); 
+							break;
+						case Console:
+							consoleAlert.show(); 
+							break;
+						default:
+							Log.debug("ERROR: Unknown EAlertDialogType!");
+							break;
+					}
+				}
+			});
 		}
 	}
 
@@ -918,6 +1078,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				{
 					Log.debug("Console not showing yet");
 					consoleAlert.show(); 
+					CurrentDialogType = EAlertDialogType.Console;
 				}
 			}
 		});
@@ -935,6 +1096,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		virtualKeyboardAlert.setTitle(Label);
 		virtualKeyboardInputBox.setText("");
 		virtualKeyboardInputBox.append(Contents);
+		virtualKeyboardPreviousContents = Contents;
 
 		// configure for type of input
 		virtualKeyboardInputBox.setInputType(InputType);
@@ -947,6 +1109,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				{
 					Log.debug("Virtual keyboard not showing yet");
 					virtualKeyboardAlert.show(); 
+					CurrentDialogType = EAlertDialogType.Keyboard;
 				}
 			}
 		});
@@ -1129,6 +1292,136 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				updateAdVisibility(true);
 			}
 		});
+	}
+	
+	public void AndroidThunkJava_LoadInterstitialAd(String AdMobAdUnitID)
+	{
+		interstitialAdRequest = new AdRequest.Builder().build();
+
+		interstitialAd = new InterstitialAd(this);
+		isInterstitialAdLoaded = false;
+		isInterstitialAdRequested = true;
+		interstitialAd.setAdUnitId(AdMobAdUnitID);
+
+		_activity.runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				interstitialAd.loadAd(interstitialAdRequest);				
+			}
+		});
+		
+		interstitialAd.setAdListener(new AdListener()
+		{
+			@Override
+			public void onAdFailedToLoad(int errorCode) 
+			{
+				Log.debug("Interstitial Ad failed to load, errocode: " + errorCode);
+				isInterstitialAdLoaded = false;
+				isInterstitialAdRequested = false;
+			}
+			@Override
+			public void onAdLoaded() 
+			{
+				//track if the ad is loaded since we can only called interstitialAd.isLoaded() from the uiThread				
+				isInterstitialAdLoaded = true;
+				isInterstitialAdRequested = false;
+			}    
+		});
+	}
+
+	public boolean AndroidThunkJava_IsInterstitialAdAvailable()
+	{
+		return interstitialAd != null && isInterstitialAdLoaded;
+	}
+
+	public boolean AndroidThunkJava_IsInterstitialAdRequested()
+	{
+		return interstitialAd != null && isInterstitialAdRequested;
+	}
+
+	public void AndroidThunkJava_ShowInterstitialAd()
+	{
+		if(isInterstitialAdLoaded)
+		{
+			_activity.runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{					
+					interstitialAd.show();
+				}
+			});
+		}
+		else
+		{
+			Log.debug("Interstitial Ad is not available to show - call LoadInterstitialAd or wait for it to finish loading");
+		}
+	}
+
+	public void AndroidThunkJava_GoogleClientConnect()
+	{
+		if (googleClient != null)
+		{
+			googleClient.connect();
+		}
+	}
+
+	public void AndroidThunkJava_GoogleClientDisconnect()
+	{
+		if (googleClient != null)
+		{
+			googleClient.disconnect();
+		}
+	}
+
+	// Google Client connected successfully
+	@Override
+	public void onConnected(Bundle connectionHint)
+	{
+		if (googleClient != null && googleClient.isConnected())
+		{
+			new Thread(new Runnable()
+			{
+				public void run()
+				{
+					try
+					{
+						String email = Plus.AccountApi.getAccountName(googleClient);
+						Log.debug("Google Client Connect using email " + email);
+
+						String accesstoken = GoogleAuthUtil.getToken(GameActivity.Get(), email, "oauth2:https://www.googleapis.com/auth/games");
+						Log.debug("Google Client Connect using Access Token " + accesstoken);
+
+						nativeGoogleClientConnectCompleted(true, accesstoken);
+					}
+					catch (Exception e)
+					{
+						Log.debug("Google Client Connect failed: " + e.getMessage());
+
+						nativeGoogleClientConnectCompleted(false, "");
+					}
+				}
+			}).start();
+		}
+		else
+		{
+			nativeGoogleClientConnectCompleted(false, "");
+		}
+	}
+
+	// Google Client connection failed
+	@Override
+	public void onConnectionFailed(ConnectionResult connectionResult)
+	{
+		nativeGoogleClientConnectCompleted(false, "");
+	}
+
+	// Google Client connection suspended
+	@Override
+	public void onConnectionSuspended(int cause)
+	{
 	}
 
 	public AssetManager AndroidThunkJava_GetAssetManager()
@@ -1529,6 +1822,24 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 	}
 
+	public boolean AndroidThunkJava_IsGamepadAttached()
+	{
+		int[] deviceIds = InputDevice.getDeviceIds();
+		for (int deviceIndex=0; deviceIndex < deviceIds.length; deviceIndex++)
+		{
+			InputDevice inputDevice = InputDevice.getDevice(deviceIds[deviceIndex]);
+			// is it a joystick, dpad, or gamepad?
+			if (((inputDevice.getSources() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD)
+                || ((inputDevice.getSources() & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK)
+				|| ((inputDevice.getSources() & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	public boolean AndroidThunkJava_HasMetaDataKey(String key)
 	{
 		if (_bundle == null || key == null)
@@ -1549,6 +1860,15 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public int AndroidThunkJava_GetMetaDataInt(String key)
 	{
+		if (key.equals("android.hardware.vulkan.version"))
+		{
+			return VulkanVersion;
+		}
+		else
+		if (key.equals("android.hardware.vulkan.level"))
+		{
+			return VulkanLevel;
+		}
 		if (_bundle == null || key == null)
 		{
 			return 0;
@@ -1574,6 +1894,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeSetSurfaceViewInfo(int width, int height);
 
 	public native void nativeConsoleCommand(String commandString);
+	public native void nativeVirtualKeyboardChanged(String contents);
 	public native void nativeVirtualKeyboardResult(boolean update, String contents);
 
 	public native void nativeInitHMDs();
@@ -1581,6 +1902,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeResumeMainInit();
 
 	public native void nativeOnActivityResult(GameActivity activity, int requestCode, int resultCode, Intent data);
+
+	public native void nativeGoogleClientConnectCompleted(boolean bSuccess, String accessToken);
 		
 	static
 	{

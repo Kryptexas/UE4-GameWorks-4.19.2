@@ -296,7 +296,7 @@ void FSCSEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 
 bool FSCSEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
-	bool bHandled = false;
+	bool bHandled = GUnrealEd->ComponentVisManager.HandleInputKey(this, InViewport, Key, Event);;
 
 	if( !bHandled )
 	{
@@ -308,28 +308,66 @@ bool FSCSEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerI
 
 void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
 {
-	if(HitProxy)
+	const FViewportClick Click(&View, this, Key, Event, HitX, HitY);
+
+	if (HitProxy)
 	{
-		if(HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
+		if (HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
 		{
-			HInstancedStaticMeshInstance* InstancedStaticMeshInstanceProxy = ( ( HInstancedStaticMeshInstance* )HitProxy );
+			HInstancedStaticMeshInstance* InstancedStaticMeshInstanceProxy = ((HInstancedStaticMeshInstance*)HitProxy);
 
 			TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(InstancedStaticMeshInstanceProxy->Component);
-			if(Customization.IsValid() && Customization->HandleViewportClick(AsShared(), View, HitProxy, Key, Event, HitX, HitY))
+			if (Customization.IsValid() && Customization->HandleViewportClick(AsShared(), View, HitProxy, Key, Event, HitX, HitY))
 			{
 				Invalidate();
 			}
+
+			return;
 		}
-		else if(HitProxy->IsA(HActor::StaticGetType()))
+		else if (HitProxy->IsA(HWidgetAxis::StaticGetType()))
+		{
+			const bool bOldModeWidgets1 = EngineShowFlags.ModeWidgets;
+			const bool bOldModeWidgets2 = View.Family->EngineShowFlags.ModeWidgets;
+
+			EngineShowFlags.SetModeWidgets(false);
+			FSceneViewFamily* SceneViewFamily = const_cast<FSceneViewFamily*>(View.Family);
+			SceneViewFamily->EngineShowFlags.SetModeWidgets(false);
+			bool bWasWidgetDragging = Widget->IsDragging();
+			Widget->SetDragging(false);
+
+			// Invalidate the hit proxy map so it will be rendered out again when GetHitProxy
+			// is called
+			Viewport->InvalidateHitProxy();
+
+			// This will actually re-render the viewport's hit proxies!
+			HHitProxy* HitProxyWithoutAxisWidgets = Viewport->GetHitProxy(HitX, HitY);
+			if (HitProxyWithoutAxisWidgets != NULL && !HitProxyWithoutAxisWidgets->IsA(HWidgetAxis::StaticGetType()))
+			{
+				// Try this again, but without the widget this time!
+				ProcessClick(View, HitProxyWithoutAxisWidgets, Key, Event, HitX, HitY);
+			}
+
+			// Undo the evil
+			EngineShowFlags.SetModeWidgets(bOldModeWidgets1);
+			SceneViewFamily->EngineShowFlags.SetModeWidgets(bOldModeWidgets2);
+
+			Widget->SetDragging(bWasWidgetDragging);
+
+			// Invalidate the hit proxy map again so that it'll be refreshed with the original
+			// scene contents if we need it again later.
+			Viewport->InvalidateHitProxy();
+			return;
+		}
+		else if (HitProxy->IsA(HActor::StaticGetType()))
 		{
 			HActor* ActorProxy = (HActor*)HitProxy;
 			AActor* PreviewActor = GetPreviewActor();
-			if(ActorProxy && ActorProxy->Actor && ActorProxy->Actor == PreviewActor && ActorProxy->PrimComponent != NULL)
+			if (ActorProxy && ActorProxy->Actor && ActorProxy->Actor == PreviewActor && ActorProxy->PrimComponent != NULL)
 			{
 				TInlineComponentArray<USceneComponent*> SceneComponents;
 				ActorProxy->Actor->GetComponents(SceneComponents);
-	
-				for(auto CompIt = SceneComponents.CreateConstIterator(); CompIt; ++CompIt)
+
+				for (auto CompIt = SceneComponents.CreateConstIterator(); CompIt; ++CompIt)
 				{
 					USceneComponent* CompInstance = *CompIt;
 					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(CompInstance);
@@ -352,11 +390,11 @@ void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 			}
 
 			Invalidate();
+			return;
 		}
-
-		// Pass to component vis manager
-		//GUnrealEd->ComponentVisManager.HandleProxyForComponentVis(HitProxy);
 	}
+	
+	GUnrealEd->ComponentVisManager.HandleClick(this, HitProxy, Click);
 }
 
 bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
@@ -387,13 +425,12 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* InViewport, EAxisLis
 					ModifiedScale = FVector::ZeroVector;
 				}
 
-				TSet<USceneComponent*> UpdatedComponents;
-
 				for(auto It(SelectedNodes.CreateIterator());It;++It)
 				{
 					FSCSEditorTreeNodePtrType SelectedNodePtr = *It;
 					// Don't allow editing of a root node, inherited SCS node or child node that also has a movable (non-root) parent node selected
-					const bool bCanEdit = !SelectedNodePtr->IsRootComponent() && !IsMovableParentNodeSelected(SelectedNodePtr, SelectedNodes);
+					const bool bCanEdit = GUnrealEd->ComponentVisManager.IsActive() ||
+						(!SelectedNodePtr->IsRootComponent() && !IsMovableParentNodeSelected(SelectedNodePtr, SelectedNodes));
 
 					if(bCanEdit)
 					{
@@ -401,6 +438,13 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* InViewport, EAxisLis
 						USceneComponent* SelectedTemplate = Cast<USceneComponent>(SelectedNodePtr->GetEditableComponentTemplate(BlueprintEditor->GetBlueprintObj()));
 						if(SceneComp != NULL && SelectedTemplate != NULL)
 						{
+							if (GUnrealEd->ComponentVisManager.HandleInputDelta(this, InViewport, Drag, Rot, Scale))
+							{
+								GUnrealEd->RedrawLevelEditingViewports();
+								Invalidate();
+								return true;
+							}
+
 							// Cache the current default values for propagation
 							FVector OldRelativeLocation = SelectedTemplate->RelativeLocation;
 							FRotator OldRelativeRotation = SelectedTemplate->RelativeRotation;
@@ -412,8 +456,7 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* InViewport, EAxisLis
 							TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditor->CustomizeSCSEditor(SceneComp);
 							if(Customization.IsValid() && Customization->HandleViewportDrag(SceneComp, SelectedTemplate, Drag, Rot, ModifiedScale, GetWidgetLocation()))
 							{
-								UpdatedComponents.Add(SceneComp);
-								UpdatedComponents.Add(SelectedTemplate);
+								// Handled by SCS Editor customization
 							}
 							else
 							{
@@ -426,7 +469,6 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* InViewport, EAxisLis
 										&Rot,
 										&ModifiedScale,
 										SelectedTemplate->RelativeLocation );
-								UpdatedComponents.Add(SelectedTemplate);
 							}
 
 							UBlueprint* PreviewBlueprint = UBlueprint::GetBlueprintFromClass(PreviewActor->GetClass());
@@ -543,16 +585,29 @@ FWidget::EWidgetMode FSCSEditorViewportClient::GetWidgetMode() const
 			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BluePrintEditor->GetSelectedSCSEditorTreeNodes();
 			const TArray<FSCSEditorTreeNodePtrType>& RootNodes = BluePrintEditor->GetSCSEditor()->GetRootComponentNodes();
 
-			// if the selected nodes array is empty, or only contains entries from the
-			// root nodes array, or isn't visible in the preview actor, then don't display a transform widget
-			for ( int32 CurrentNodeIndex=0; CurrentNodeIndex < SelectedNodes.Num(); CurrentNodeIndex++ )
+			if (GUnrealEd->ComponentVisManager.IsActive() &&
+				GUnrealEd->ComponentVisManager.IsVisualizingArchetype())
 			{
-				FSCSEditorTreeNodePtrType CurrentNodePtr = SelectedNodes[CurrentNodeIndex];
-				if (CurrentNodePtr.IsValid() && !RootNodes.Contains(CurrentNodePtr) && !CurrentNodePtr->IsRootComponent() && CurrentNodePtr->CanEditDefaults() && CurrentNodePtr->FindComponentInstanceInActor(PreviewActor))
+				// Component visualizer is active and editing the archetype
+				ReturnWidgetMode = WidgetMode;
+			}
+			else
+			{
+				// if the selected nodes array is empty, or only contains entries from the
+				// root nodes array, or isn't visible in the preview actor, then don't display a transform widget
+				for (int32 CurrentNodeIndex = 0; CurrentNodeIndex < SelectedNodes.Num(); CurrentNodeIndex++)
 				{
-					// a non-NULL, non-root item is selected, draw the widget
-					ReturnWidgetMode = WidgetMode;
-					break;
+					FSCSEditorTreeNodePtrType CurrentNodePtr = SelectedNodes[CurrentNodeIndex];
+					if ((CurrentNodePtr.IsValid() &&
+						 !RootNodes.Contains(CurrentNodePtr) &&
+						 !CurrentNodePtr->IsRootComponent() &&
+						 CurrentNodePtr->CanEditDefaults() &&
+						 CurrentNodePtr->FindComponentInstanceInActor(PreviewActor)))
+					{
+						// a non-NULL, non-root item is selected, draw the widget
+						ReturnWidgetMode = WidgetMode;
+						break;
+					}
 				}
 			}
 		}
@@ -574,6 +629,13 @@ void FSCSEditorViewportClient::SetWidgetCoordSystemSpace( ECoordSystem NewCoordS
 
 FVector FSCSEditorViewportClient::GetWidgetLocation() const
 {
+	FVector ComponentVisWidgetLocation;
+	if (GUnrealEd->ComponentVisManager.IsVisualizingArchetype() &&
+		GUnrealEd->ComponentVisManager.GetWidgetLocation(this, ComponentVisWidgetLocation))
+	{
+		return ComponentVisWidgetLocation;
+	}
+
 	FVector Location = FVector::ZeroVector;
 
 	AActor* PreviewActor = GetPreviewActor();
@@ -605,6 +667,13 @@ FVector FSCSEditorViewportClient::GetWidgetLocation() const
 
 FMatrix FSCSEditorViewportClient::GetWidgetCoordSystem() const
 {
+	FMatrix ComponentVisWidgetCoordSystem;
+	if (GUnrealEd->ComponentVisManager.IsVisualizingArchetype() &&
+		GUnrealEd->ComponentVisManager.GetCustomInputCoordinateSystem(this, ComponentVisWidgetCoordSystem))
+	{
+		return ComponentVisWidgetCoordSystem;
+	}
+
 	FMatrix Matrix = FMatrix::Identity;
 	if( GetWidgetCoordSystemSpace() == COORD_Local )
 	{
@@ -843,7 +912,12 @@ void FSCSEditorViewportClient::BeginTransaction(const FText& Description)
 				{
 					if(USCS_Node* SCS_Node = Node->GetSCSNode())
 					{
-						SCS_Node->Modify();
+						USimpleConstructionScript* SCS = SCS_Node->GetSCS();
+						UBlueprint* Blueprint = SCS ? SCS->GetBlueprint() : nullptr;
+						if (Blueprint == PreviewBlueprint)
+						{
+							SCS_Node->Modify();
+						}
 					}
 
 					// Modify both the component template and the instance in the preview actor (provided there is one)

@@ -94,6 +94,9 @@ class FXAudio2Device : public FAudioDevice
 	/** Lets the platform any tick actions */
 	virtual void UpdateHardware() override;
 
+	/** Checks the device state change */
+	virtual void CheckDeviceStateChange() override;
+
 	/** Creates a new platform specific sound source */
 	virtual FAudioEffectsManager* CreateEffectsManager() override;
 
@@ -108,18 +111,13 @@ class FXAudio2Device : public FAudioDevice
 		{
 			return NAME_OPUS;
 		}
-		if (SoundWave->CompressionName.IsNone())
-		{
 #if WITH_OGGVORBIS
-			static FName NAME_OGG(TEXT("OGG"));
-			return NAME_OGG;
+		static FName NAME_OGG(TEXT("OGG"));
+		return NAME_OGG;
 #else //WITH_OGGVORBIS
-			static FName NAME_XMA(TEXT("XMA"));
-			return NAME_XMA;
+		static FName NAME_XMA(TEXT("XMA"));
+		return NAME_XMA;
 #endif //WITH_OGGVORBIS
-		}
-
-		return SoundWave->CompressionName;
 	}
 
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
@@ -146,6 +144,9 @@ class FXAudio2Device : public FAudioDevice
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
 protected:
+
+	/** Creates a mastering voice. Returns false if fails. */
+	struct IXAudio2MasteringVoice* CreateMasteringVoice();
 
 	/**
      * Allocates memory from permanent pool. This memory will NEVER be freed.
@@ -174,6 +175,9 @@ protected:
 
 private:
 	struct FXAudioDeviceProperties* DeviceProperties;
+
+	/** Whether or not audio hardware changed. */
+	bool bHardwareChanged;
 
 #if PLATFORM_WINDOWS
 	// We need to keep track whether com was successfully initialized so we can clean 

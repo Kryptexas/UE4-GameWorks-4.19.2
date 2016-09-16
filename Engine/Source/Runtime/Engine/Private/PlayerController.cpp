@@ -31,10 +31,10 @@
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/InputSettings.h"
-#include "GameFramework/HapticFeedbackEffect.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/GameMode.h"
+#include "Haptics/HapticFeedbackEffect_Base.h"
 #include "Engine/ChildConnection.h"
 #include "Engine/GameEngine.h"
 #include "Engine/GameInstance.h"
@@ -148,16 +148,11 @@ bool APlayerController::DestroyNetworkActorHandled()
 
 bool APlayerController::IsLocalController() const
 {
-	// Never local on dedicated server, always local on clients. IsServerOnly() and IsClientOnly() are checked at compile time and optimized out appropriately.
+	// Never local on dedicated server. IsServerOnly() is checked at compile time and optimized out appropriately.
 	if (FPlatformProperties::IsServerOnly())
 	{
 		checkSlow(!bIsLocalPlayerController);
 		return false;
-	}
-	else if (FPlatformProperties::IsClientOnly())
-	{
-		bIsLocalPlayerController = true;
-		return true;
 	}
 	
 	// Fast path if we have this bool set.
@@ -886,6 +881,9 @@ void APlayerController::GetPlayerViewPoint( FVector& out_Location, FRotator& out
 		{
 			Super::GetPlayerViewPoint(out_Location,out_Rotation);
 		}
+
+		out_Location.DiagnosticCheckNaN(*FString::Printf(TEXT("APlayerController::GetPlayerViewPoint: out_Location, ViewTarget=%s"), *GetNameSafe(TheViewTarget)));
+		out_Rotation.DiagnosticCheckNaN(*FString::Printf(TEXT("APlayerController::GetPlayerViewPoint: out_Rotation, ViewTarget=%s"), *GetNameSafe(TheViewTarget)));
 	}
 }
 
@@ -1389,6 +1387,11 @@ void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 
+	if (CheatManager)
+	{
+		CheatManager->ReceiveEndPlay();
+	}
+	
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -1978,6 +1981,23 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 	}
 
 	return false;
+}
+
+void APlayerController::SetMouseLocation(const int X, const int Y)
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>( Player );
+	if (LocalPlayer)
+	{
+		UGameViewportClient* ViewportClient = LocalPlayer->ViewportClient;
+		if (ViewportClient)
+		{
+			FViewport* Viewport = ViewportClient->Viewport;
+			if (Viewport)
+			{
+				Viewport->SetMouse( X, Y );
+			}
+		}
+	}
 }
 
 /* PlayerTick is only called if the PlayerController has a PlayerInput object.  Therefore, it will not be called on servers for non-locally controlled playercontrollers. */
@@ -2835,6 +2855,40 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 	{
 		DisplayDebugManager.SetDrawColor(FColor::White);
 		DisplayDebugManager.DrawString(FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall));
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("Pawn: %s"), *this->AcknowledgedPawn->GetFName().ToString()));
+		
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+		DisplayDebugManager.DrawString(TEXT("Last Played Force Feedback"));
+		const float CurrentTime = GetWorld()->GetTimeSeconds();
+		for (int32 i = ForceFeedbackEffectHistoryEntries.Num() - 1; i >= 0; --i)
+		{
+			if (CurrentTime > ForceFeedbackEffectHistoryEntries[i].TimeShown + 5.0f)
+			{
+				ForceFeedbackEffectHistoryEntries.RemoveAtSwap(i, 1, /*bAllowShrinking=*/ false);
+				continue;
+			}
+			const FActiveForceFeedbackEffect& LastActiveEffect = ForceFeedbackEffectHistoryEntries[i].LastActiveForceFeedbackEffect;
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Object Name: %s"), *LastActiveEffect.ForceFeedbackEffect->GetFName().ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Tag: %s"), *LastActiveEffect.Tag.ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Looping: %s"), (LastActiveEffect.bLooping ? TEXT("true") : TEXT("false"))));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Duration: %f"), LastActiveEffect.ForceFeedbackEffect->GetDuration()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Start Time: %f"), ForceFeedbackEffectHistoryEntries[i].TimeShown));
+		}
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+		DisplayDebugManager.DrawString(TEXT("Current Playing Force Feedback"));
+		for (int32 Index = ActiveForceFeedbackEffects.Num() - 1; Index >= 0; --Index)
+		{
+			FActiveForceFeedbackEffect ActiveEffect = ActiveForceFeedbackEffects[Index];
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Object Name: %s"), *ActiveEffect.ForceFeedbackEffect->GetFName().ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Tag: %s"), *ActiveEffect.Tag.ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Looping: %s"), (ActiveEffect.bLooping ? TEXT("true") : TEXT("false"))));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Play Time: %f"), ActiveEffect.PlayTime));
+		}
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+#endif
 	}
 
 	YPos = DisplayDebugManager.GetYPos();
@@ -3385,6 +3439,10 @@ void APlayerController::ClientPlayForceFeedback_Implementation( UForceFeedbackEf
 
 		FActiveForceFeedbackEffect ActiveEffect(ForceFeedbackEffect, bLooping, Tag);
 		ActiveForceFeedbackEffects.Add(ActiveEffect);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		ForceFeedbackEffectHistoryEntries.Emplace(ActiveEffect, GetWorld()->GetTimeSeconds());
+#endif
 	}
 }
 
@@ -3509,7 +3567,7 @@ void APlayerController::PlayDynamicForceFeedback(float Intensity, float Duration
 	}
 }
 
-void APlayerController::PlayHapticEffect(UHapticFeedbackEffect* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale)
+void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffect, EControllerHand Hand, float Scale, bool bLoop)
 {
 	if (HapticEffect)
 	{
@@ -3517,25 +3575,25 @@ void APlayerController::PlayHapticEffect(UHapticFeedbackEffect* HapticEffect, TE
 		{
 		case EControllerHand::Left:
 			ActiveHapticEffect_Left.Reset();
-			ActiveHapticEffect_Left = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale));
+			ActiveHapticEffect_Left = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 			break;
 		case EControllerHand::Right:
 			ActiveHapticEffect_Right.Reset();
-			ActiveHapticEffect_Right = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale));
+			ActiveHapticEffect_Right = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 			break;
 		default:
-			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand.GetValue(), *HapticEffect->GetName());
+			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand, *HapticEffect->GetName());
 			break;
 		}
 	}
 }
 
-void APlayerController::StopHapticEffect(TEnumAsByte<EControllerHand> Hand)
+void APlayerController::StopHapticEffect(EControllerHand Hand)
 {
 	SetHapticsByValue(0.f, 0.f, Hand);
 }
 
-void APlayerController::SetHapticsByValue(const float Frequency, const float Amplitude, TEnumAsByte<EControllerHand> Hand)
+void APlayerController::SetHapticsByValue(const float Frequency, const float Amplitude, EControllerHand Hand)
 {
 	if (Hand == EControllerHand::Left)
 	{
@@ -3547,7 +3605,7 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 	}
 	else
 	{
-		UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for setting haptic feedback values (F: %f A: %f)"), (int32)Hand.GetValue(), Frequency, Amplitude);
+		UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for setting haptic feedback values (F: %f A: %f)"), (int32)Hand, Frequency, Amplitude);
 		return;
 	}
 
@@ -3562,7 +3620,7 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 		const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
 
 		FHapticFeedbackValues Values(Frequency, Amplitude);
-		InputInterface->SetHapticFeedbackValues(ControllerId, (int32)Hand.GetValue(), Values);
+		InputInterface->SetHapticFeedbackValues(ControllerId, (int32)Hand, Values);
 	}
 }
 
@@ -3616,7 +3674,7 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			const bool bPlaying = ActiveHapticEffect_Left->Update(DeltaTime, LeftHaptics);
 			if (!bPlaying)
 			{
-				ActiveHapticEffect_Left.Reset();
+				ActiveHapticEffect_Left->bLoop ? ActiveHapticEffect_Left->Restart() : ActiveHapticEffect_Left.Reset();
 			}
 
 			bLeftHapticsNeedUpdate = true;
@@ -3627,11 +3685,12 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			const bool bPlaying = ActiveHapticEffect_Right->Update(DeltaTime, RightHaptics);
 			if (!bPlaying)
 			{
-				ActiveHapticEffect_Right.Reset();
+				ActiveHapticEffect_Right->bLoop ? ActiveHapticEffect_Right->Restart() : ActiveHapticEffect_Right.Reset();
 			}
 
 			bRightHapticsNeedUpdate = true;
 		}
+
 	}
 
 	if (FSlateApplication::IsInitialized())
@@ -3653,6 +3712,7 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			{
 				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Right, RightHaptics);
 			}
+
 		}
 	}
 }
@@ -4506,6 +4566,8 @@ void APlayerController::ActivateTouchInterface(UTouchInterface* NewTouchInterfac
 		{
 			LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
 		}
+		//clear any input before clearing the VirtualJoystick
+		FlushPressedKeys();
 		VirtualJoystick = NULL;
 	}
 }

@@ -594,7 +594,7 @@ bool UProperty::ShouldSerializeValue( FArchive& Ar ) const
 		return false;
 	}
 
-	const uint64 SkipFlags = CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient | CPF_NonTransactional | CPF_Deprecated | CPF_DevelopmentAssets;
+	const uint64 SkipFlags = CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient | CPF_NonTransactional | CPF_Deprecated | CPF_DevelopmentAssets | CPF_SkipSerialization;
 	if (!(PropertyFlags & SkipFlags))
 	{
 		return true;
@@ -606,6 +606,7 @@ bool UProperty::ShouldSerializeValue( FArchive& Ar ) const
 		||	((PropertyFlags & CPF_NonPIEDuplicateTransient) && !(Ar.GetPortFlags() & PPF_DuplicateForPIE) && (Ar.GetPortFlags() & PPF_Duplicate))
 		||	((PropertyFlags & CPF_NonTransactional) && Ar.IsTransacting())
 		||	((PropertyFlags & CPF_Deprecated) && !Ar.HasAllPortFlags(PPF_UseDeprecatedProperties) && (Ar.IsSaving() || Ar.IsTransacting() || Ar.WantBinaryPropertySerialization()))
+		||  ((PropertyFlags & CPF_SkipSerialization))
 		||  (IsEditorOnlyProperty() && Ar.IsFilterEditorOnly());
 
 	return !Skip;
@@ -815,8 +816,8 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 			--l;
 		}
 
-
-		UProperty* Property = FindField<UProperty>(ObjectStruct, Token);
+		const FName PropertyName(Token);
+		UProperty* Property = FindField<UProperty>(ObjectStruct, PropertyName);
 
 		if (Property == NULL)
 		{
@@ -824,12 +825,18 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 			const TMap<FName, FName>* const ClassTaggedPropertyRedirects = UStruct::TaggedPropertyRedirects.Find(ObjectStruct->GetFName());
 			if (ClassTaggedPropertyRedirects)
 			{
-				const FName* const NewPropertyName = ClassTaggedPropertyRedirects->Find(FName(Token));
+				const FName* const NewPropertyName = ClassTaggedPropertyRedirects->Find(PropertyName);
 				if (NewPropertyName)
 				{
 					Property = FindField<UProperty>(ObjectStruct, *NewPropertyName);
 				}
 			}
+#if WITH_EDITOR
+			if (!Property)
+			{
+				Property = ObjectStruct->CustomFindProperty(PropertyName);
+			}
+#endif	// WITH_EDITOR
 		}		
 
 		delete[] Token;

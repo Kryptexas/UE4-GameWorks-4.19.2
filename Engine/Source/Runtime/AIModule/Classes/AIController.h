@@ -142,7 +142,7 @@ protected:
 	UPROPERTY()
 	UGameplayTasksComponent* CachedGameplayTasksComponent;
 	
-	UPROPERTY(BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
 	TSubclassOf<UNavigationQueryFilter> DefaultNavigationFilterClass;
 
 public:

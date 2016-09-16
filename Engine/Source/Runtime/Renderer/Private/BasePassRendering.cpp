@@ -24,6 +24,13 @@ static TAutoConsoleVariable<int32> CVarGlobalClipPlane(
 	TEXT("Enables mesh shaders to support a global clip plane, needed for planar reflections, which adds about 15% BasePass GPU cost on PS4."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarVertexFoggingForOpaque(
+	TEXT("r.VertexFoggingForOpaque"),
+	1,
+	TEXT("Causes opaque materials to use per-vertex fogging, which costs less and integrates properly with MSAA.  Only supported with forward shading."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarParallelBasePass(
 	TEXT("r.ParallelBasePass"),
 	1,
@@ -123,6 +130,8 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_LQ_LIGHTM
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_HQ_LIGHTMAP>, TLightMapPolicyHQ );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP>, TDistanceFieldShadowsAndLightMapPolicyHQ  );
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Basepass"), Stat_GPU_Basepass, STATGROUP_GPU);
+
 void FSkyLightReflectionParameters::GetSkyParametersFromScene(
 	const FScene* Scene, 
 	bool bApplySkyLight, 
@@ -131,13 +140,15 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(
 	float& OutApplySkyLightMask, 
 	float& OutSkyMipCount, 
 	bool& bOutSkyLightIsDynamic, 
-	float& OutBlendFraction)
+	float& OutBlendFraction,
+	float& OutSkyAverageBrightness)
 {
 	OutSkyLightTextureResource = GBlackTextureCube;
 	OutSkyLightBlendDestinationTextureResource = GBlackTextureCube;
 	OutApplySkyLightMask = 0;
 	bOutSkyLightIsDynamic = false;
 	OutBlendFraction = 0;
+	OutSkyAverageBrightness = 1.0f;
 
 	if (Scene
 		&& Scene->SkyLight 
@@ -163,6 +174,7 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(
 		
 		OutApplySkyLightMask = 1;
 		bOutSkyLightIsDynamic = !SkyLight.bHasStaticLighting && !SkyLight.bWantsStaticShadowing;
+		OutSkyAverageBrightness = SkyLight.AverageBrightness;
 	}
 
 	OutSkyMipCount = 1;
@@ -197,21 +209,14 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 	FTextureRHIParamRef CubeArrayTexture = FeatureLevel >= ERHIFeatureLevel::SM5 ? GBlackCubeArrayTexture->TextureRHI : GBlackTextureCube->TextureRHI;
 	int32 ArrayIndex = 0;
 	const FReflectionCaptureProxy* ReflectionProxy = PrimitiveSceneInfo ? PrimitiveSceneInfo->CachedReflectionCaptureProxy : nullptr;
+	FVector4 CaptureOffsetAndAverageBrightnessValue(0, 0, 0, 1);
+	FVector4 PositionAndRadius = FVector4(0, 0, 0, 1);
 
-	FMatrix BoxTransformVal = FMatrix::Identity;
-	FVector4 PositionAndRadius = FVector::ZeroVector;
-	FVector4 BoxScalesVal(0, 0, 0, 0);
-	FVector CaptureOffsetVal = FVector::ZeroVector;
-	EReflectionCaptureShape::Type CaptureShape = EReflectionCaptureShape::Box;
-	
 	if (PrimitiveSceneInfo && ReflectionProxy)
 	{
 		PrimitiveSceneInfo->Scene->GetCaptureParameters(ReflectionProxy, CubeArrayTexture, ArrayIndex);
+		CaptureOffsetAndAverageBrightnessValue = FVector4(ReflectionProxy->CaptureOffset, ReflectionProxy->AverageBrightness);
 		PositionAndRadius = FVector4(ReflectionProxy->Position, ReflectionProxy->InfluenceRadius);
-		CaptureShape = ReflectionProxy->Shape;
-		BoxTransformVal = ReflectionProxy->BoxTransform;
-		BoxScalesVal = FVector4(ReflectionProxy->BoxScales, ReflectionProxy->BoxTransitionDistance);
-		CaptureOffsetVal = ReflectionProxy->CaptureOffset;
 	}
 
 	SetTextureParameter(
@@ -222,13 +227,9 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 		TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 		CubeArrayTexture);
 
-	SetShaderValue(RHICmdList, PixelShaderRHI, CubemapArrayIndex, ArrayIndex);
-	SetShaderValue(RHICmdList, PixelShaderRHI, ReflectionPositionAndRadius, PositionAndRadius);
-	SetShaderValue(RHICmdList, PixelShaderRHI, ReflectionShape, (float)CaptureShape);
-	SetShaderValue(RHICmdList, PixelShaderRHI, BoxTransform, BoxTransformVal);
-	SetShaderValue(RHICmdList, PixelShaderRHI, BoxScales, BoxScalesVal);
-	SetShaderValue(RHICmdList, PixelShaderRHI, CaptureOffset, CaptureOffsetVal);
-	
+	SetShaderValue(RHICmdList, PixelShaderRHI, SingleCubemapArrayIndex, ArrayIndex);
+	SetShaderValue(RHICmdList, PixelShaderRHI, SingleCaptureOffsetAndAverageBrightness, CaptureOffsetAndAverageBrightnessValue);
+	SetShaderValue(RHICmdList, PixelShaderRHI, SingleCapturePositionAndRadius, PositionAndRadius);
 }
 
 void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View)
@@ -365,8 +366,8 @@ public:
 					Parameters.TextureMode,
 					bRenderSkylight,
 					bRenderAtmosphericFog,
-					/* DebugViewShaderMode = */ DVSM_None,
-					/* bInAllowGlobalFog = */ false,
+					DVSM_None,
+					Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque,
 					/* bInEnableEditorPrimitiveDepthTest = */ false,
 					/* bInEnableReceiveDecalOutput = */ true
 				),
@@ -488,7 +489,7 @@ public:
 			bRenderSkylight,
 			bRenderAtmosphericFog,
 			View.Family->GetDebugViewShaderMode(),
-			false,
+			Scene ? Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque : false,
 			Parameters.bEditorCompositeDepthTest,
 			/* bInEnableReceiveDecalOutput = */ Scene != nullptr
 			);
@@ -729,6 +730,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, BasePass);
 		SCOPE_CYCLE_COUNTER(STAT_BasePassDrawTime);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Basepass );
 
 		if (GRHICommandList.UseParallelAlgorithms() && CVarParallelBasePass.GetValueOnRenderThread())
 		{
@@ -999,9 +1001,9 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View
 	if (bShaderComplexity)
 	{
 		// Additive blending when shader complexity viewmode is enabled.
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_One>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 		// Disable depth writes as we have a full depth prepass.
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 	}
 	else
 	{
@@ -1016,18 +1018,28 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View
 			RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA, CW_RGBA, CW_RGBA>::GetRHI());
 		}
 
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_DepthNearOrEqual>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 	}
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 
 	if (!View.IsInstancedStereoPass() || bIsEditorPrimitivePass)
 	{
-		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
+		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 	}
 	else
 	{
-		// When rendering with instanced stereo, render the full frame.
-		RHICmdList.SetViewport(0, 0, 0, View.Family->FamilySizeX, View.ViewRect.Max.Y, 1);
+		if (View.bIsMultiViewEnabled)
+		{
+			const uint32 LeftMinX = View.Family->Views[0]->ViewRect.Min.X;
+			const uint32 LeftMaxX = View.Family->Views[0]->ViewRect.Max.X;
+			const uint32 RightMinX = View.Family->Views[1]->ViewRect.Min.X;
+			const uint32 RightMaxX = View.Family->Views[1]->ViewRect.Max.X;
+			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0.0f, LeftMaxX, RightMaxX, View.ViewRect.Max.Y, 1.0f);
+		}
+		else
+		{
+			RHICmdList.SetViewport(0, 0, 0, View.Family->InstancedStereoWidth, View.ViewRect.Max.Y, 1);
+		}
 	}
 
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());

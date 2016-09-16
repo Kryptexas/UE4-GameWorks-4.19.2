@@ -5,14 +5,7 @@
 
 void FEditorObjectTracker::AddReferencedObjects( FReferenceCollector& Collector )
 {
-	for (TMap<UClass*, UObject*>::TIterator It(EditorObjMap); It; ++It)
-	{
-		UObject *Obj = It.Value();
-		if(ensure(Obj))
-		{
-			Collector.AddReferencedObject(Obj);
-		}
-	}	
+	Collector.AddReferencedObjects(EditorObjMap);
 }
 
 UObject* FEditorObjectTracker::GetEditorObjectForClass( UClass* EdClass )

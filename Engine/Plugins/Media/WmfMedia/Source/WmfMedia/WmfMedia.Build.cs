@@ -15,7 +15,9 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"Core",
-                    "RenderCore",
+					"CoreUObject",
+					"RenderCore",
+					"WmfMediaFactory",
 				}
 			);
 
@@ -29,18 +31,23 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"WmfMedia/Private",
                     "WmfMedia/Private/Player",
-                    "WmfMedia/Private/Tracks",
-                    "WmfMedia/Private/Wmf",
+					"WmfMedia/Private/Wmf",
 				}
 			);
 
-            if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
+			if (UEBuildConfiguration.bCompileAgainstEngine)
+			{
+				PrivateDependencyModuleNames.Add("HeadMountedDisplay");
+			}
+
+			if ((Target.Platform == UnrealTargetPlatform.Win64) ||
+				(Target.Platform == UnrealTargetPlatform.Win32))
             {
-                PublicDelayLoadDLLs.Add("shlwapi.dll");
                 PublicDelayLoadDLLs.Add("mf.dll");
                 PublicDelayLoadDLLs.Add("mfplat.dll");
                 PublicDelayLoadDLLs.Add("mfplay.dll");
                 PublicDelayLoadDLLs.Add("mfuuid.dll");
+                PublicDelayLoadDLLs.Add("shlwapi.dll");
             }
 		}
 	}

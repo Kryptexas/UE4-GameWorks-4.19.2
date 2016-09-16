@@ -39,7 +39,7 @@ public:
 	 * @param input		input data
 	 * @param inputLen	length of the input data in bytes
 	 **/
-	void Update(uint8* input, int32 inputLen);
+	void Update(const uint8* input, int32 inputLen);
 
 	/**
 	 * MD5 finalization. Ends an MD5 message-digest operation, writing the
@@ -79,9 +79,9 @@ private:
 		uint8 buffer[64];
 	};
 
-	void Transform( uint32* state, uint8* block );
-	void Encode( uint8* output, uint32* input, int32 len );
-	void Decode( uint32* output, uint8* input, int32 len );
+	void Transform( uint32* state, const uint8* block );
+	void Encode( uint8* output, const uint32* input, int32 len );
+	void Decode( uint32* output, const uint8* input, int32 len );
 
 	FContext Context;
 };

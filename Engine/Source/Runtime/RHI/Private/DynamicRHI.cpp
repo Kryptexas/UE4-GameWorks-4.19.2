@@ -4,6 +4,7 @@
 	DynamicRHI.cpp: Dynamically bound Render Hardware Interface implementation.
 =============================================================================*/
 
+#include "RHIPrivatePCH.h"
 #include "RHI.h"
 #include "ModuleManager.h"
 #include "GenericPlatformDriver.h" // FGPUDriverInfo
@@ -163,7 +164,7 @@ void RHIInit(bool bHasEditorToken)
 	{
 		GRHICommandList.LatchBypass(); // read commandline for bypass flag
 
-		if (FApp::ShouldUseNullRHI())
+		if (!FApp::CanEverRender())
 		{
 			InitNullRHI();
 		}

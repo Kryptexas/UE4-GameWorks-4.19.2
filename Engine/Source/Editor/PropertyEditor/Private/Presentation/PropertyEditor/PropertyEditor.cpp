@@ -767,16 +767,21 @@ void FPropertyEditor::SyncToObjectsInNode( const TWeakPtr< FPropertyNode >& Weak
 		}
 
 		// If a single actor is selected, sync to its location in the level editor viewport instead of the content browser.
-		if( Objects.Num() == 1 && Objects[0]->IsA(AActor::StaticClass()) )
+		if( Objects.Num() == 1 && Objects[0]->IsA<AActor>() )
 		{
-			TArray<AActor*> Actors;
-			Actors.Add(Cast<AActor>(Objects[0]));
+			AActor* Actor = CastChecked<AActor>(Objects[0]);
 
-			GEditor->SelectNone(/*bNoteSelectionChange=*/false, /*bDeselectBSPSurfs=*/true);
-			GEditor->SelectActor(Actors[0], /*InSelected=*/true, /*bNotify=*/true, /*bSelectEvenIfHidden=*/true);
+			if (Actor->GetLevel())
+			{
+				TArray<AActor*> Actors;
+				Actors.Add(Actor);
 
-			// Jump to the location of the actor
-			GEditor->MoveViewportCamerasToActor( Actors, /*bActiveViewportOnly=*/false );
+				GEditor->SelectNone(/*bNoteSelectionChange=*/false, /*bDeselectBSPSurfs=*/true);
+				GEditor->SelectActor(Actor, /*InSelected=*/true, /*bNotify=*/true, /*bSelectEvenIfHidden=*/true);
+
+				// Jump to the location of the actor
+				GEditor->MoveViewportCamerasToActor(Actors, /*bActiveViewportOnly=*/false);
+			}
 		}
 		else if ( Objects.Num() > 0 )
 		{

@@ -12,6 +12,10 @@ public:
 	virtual void ShowAdBanner( bool bShowOnBottomOfScreen, int32 adID ) = 0;
 	virtual void HideAdBanner() = 0;
 	virtual void CloseAdBanner() = 0;
+	virtual void LoadInterstitialAd(int32 adID) = 0;
+	virtual bool IsInterstitialAdAvailable() = 0;
+	virtual bool IsInterstitialAdRequested() = 0;
+	virtual void ShowInterstitialAd() = 0;
 	virtual int32 GetAdIDCount() = 0;
 };
 

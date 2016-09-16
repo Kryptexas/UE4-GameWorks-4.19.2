@@ -99,6 +99,14 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 
 			// Check if the Inner property can successfully serialize, the type may have changed
 			UStructProperty* StructProperty = CastChecked<UStructProperty>(Inner);
+			// if check redirector to make sure if the name has changed
+			FName* NewName = FLinkerLoad::StructNameRedirects.Find(InnerTag.StructName);
+			FName StructName = CastChecked<UStructProperty>(StructProperty)->Struct->GetFName();
+			if (NewName != nullptr && *NewName == StructName)
+			{
+				InnerTag.StructName = *NewName;
+			}
+
 			if (InnerTag.StructName != StructProperty->Struct->GetFName()
 				&& !CanSerializeFromStructWithDifferentName(Ar, InnerTag, StructProperty))
 			{

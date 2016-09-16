@@ -25,10 +25,36 @@ static const uint32 MaxArrayPinTooltipLineCount = 10;
 UK2Node::UK2Node(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bAllowSplitPins_DEPRECATED = true;
 }
 
 void UK2Node::PostLoad()
 {
+#if WITH_EDITORONLY_DATA
+	// Clean up win watches for any deprecated pins we are about to remove in Super::PostLoad
+	if (DeprecatedPins.Num() && HasValidBlueprint())
+	{
+		UBlueprint* BP = GetBlueprint();
+		check(BP);
+
+		// patch DeprecatedPinWatches to WatchedPins:
+		for (int32 WatchIdx = BP->DeprecatedPinWatches.Num() - 1; WatchIdx >= 0; --WatchIdx)
+		{
+			UEdGraphPin_Deprecated* WatchedPin = BP->DeprecatedPinWatches[WatchIdx];
+			if (DeprecatedPins.Contains(WatchedPin))
+			{
+				if (UEdGraphPin* NewPin = UEdGraphPin::FindPinCreatedFromDeprecatedPin(WatchedPin))
+				{
+					BP->WatchedPins.Add(NewPin);
+				}
+
+				BP->DeprecatedPinWatches.RemoveAt(WatchIdx);
+			}
+		}
+		
+	}
+#endif // WITH_EDITORONLY_DATA
+
 	Super::PostLoad();
 
 	// fix up pin default values
@@ -667,16 +693,24 @@ void UK2Node::RewireOldPinsToNewPins(TArray<UEdGraphPin*>& InOldPins, TArray<UEd
 	}
 
 	// Rewire any connection to pins that are matched by name (O(N^2) right now)
-	//@TODO: Can do moderately smart things here if only one pin changes name by looking at it's relative position, etc...,
-	// rather than just failing to map it and breaking the links
-	for (int32 OldPinIndex = 0; OldPinIndex < InOldPins.Num(); ++OldPinIndex)
+	// @TODO: Can do moderately smart things here if only one pin changes name 
+	//        by looking at it's relative position, etc..., rather than just 
+	//        failing to map it and breaking the links
+	//
+	// NOTE: we iterate backwards through the list because ReconstructSinglePin()
+	//       destroys pins as we go along (clearing out parent pointers, etc.); 
+	//       we need the parent pin chain intact for DoPinsMatchForReconstruction();              
+	//       we want to destroy old pins from the split children (leafs) up, so 
+	//       we do this since split child pins are ordered later in the list 
+	//       (after their parents) 
+	for (int32 OldPinIndex = InOldPins.Num()-1; OldPinIndex >= 0; --OldPinIndex)
 	{
 		UEdGraphPin* OldPin = InOldPins[OldPinIndex];
 
 		// common case is for InOldPins and InNewPins to match, so we start searching from the current index:
 		const int32 NumNewPins = InNewPins.Num();
 		int32 NewPinIndex = OldPinIndex % InNewPins.Num();
-		for (int32 NewPinCount = 0; NewPinCount < InNewPins.Num(); ++NewPinCount)
+		for (int32 NewPinCount = InNewPins.Num()-1; NewPinCount >= 0; --NewPinCount)
 		{
 			// if InNewPins grows in this loop then we may skip entries and fail to find a match:
 			check(NumNewPins == InNewPins.Num());
@@ -707,9 +741,16 @@ void UK2Node::DestroyPinList(TArray<UEdGraphPin*>& InPins)
 	}
 }
 
-bool UK2Node::AllowSplitPins() const
+bool UK2Node::CanSplitPin(const UEdGraphPin* Pin) const
 {
-	return true;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	// AllowSplitPins is deprecated. Remove this block when that function is eventually removed.
+	if (AllowSplitPins())
+	{
+		return (Pin->GetOwningNode() == this && !Pin->bNotConnectable && Pin->LinkedTo.Num() == 0 && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct);
+	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	return false;
 }
 
 void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin)
@@ -730,7 +771,10 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 			{
 				if (Pin->SubPins.Num() == SubPinIndex)
 				{
-					CompilerContext->MessageLog.Error(*LOCTEXT("PinExpansionError", "Failed to expand pin @@, likely due to bad logic in node @@").ToString(), Pin, Pin->GetOwningNode());
+					if (CompilerContext)
+					{
+						CompilerContext->MessageLog.Error(*LOCTEXT("PinExpansionError", "Failed to expand pin @@, likely due to bad logic in node @@").ToString(), Pin, Pin->GetOwningNode());
+					}
 					break;
 				}
 

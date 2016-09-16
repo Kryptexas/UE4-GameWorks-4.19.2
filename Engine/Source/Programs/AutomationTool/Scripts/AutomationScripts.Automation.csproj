@@ -2,7 +2,7 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Configuration Condition=" '$(Configuration)' == '' ">Development</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{8AA00D65-0954-4A27-AC0D-FB8B1106120F}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -38,7 +38,7 @@
       <HintPath>..\..\..\..\Binaries\DotNET\Ionic.Zip.Reduced.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="OneSky, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="OneSky">
       <HintPath>..\..\..\..\Binaries\DotNET\OneSky.dll</HintPath>
       <SpecificVersion>False</SpecificVersion>
       <Private>False</Private>
@@ -53,6 +53,18 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="OneSkyLocalization.Automation">
+      <HintPath>..\..\..\..\Binaries\DotNET\AutomationScripts\OneSkyLocalization.Automation.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Localization.Automation">
+      <HintPath>..\..\..\..\Binaries\DotNET\AutomationScripts\Localization.Automation.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="GUBP.Automation">
+      <HintPath>..\..\..\..\Binaries\DotNET\AutomationScripts\GUBP.Automation.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\DotNETCommon\MetaData.cs">
@@ -70,6 +82,7 @@
     <Compile Include="BuildProjectCommand.Automation.cs" />
     <Compile Include="BuildTargetCommand.Automation.cs" />
     <Compile Include="BuildThirdPartyLibs.Automation.cs" />
+    <Compile Include="CleanFormalBuilds.Automation.cs" />
     <Compile Include="CodeSurgery.Automation.cs" />
     <Compile Include="CookCommand.Automation.cs" />
     <Compile Include="CookTargetCommand.Automation.cs" />
@@ -122,6 +135,10 @@
     </ProjectReference>
     <ProjectReference Include="..\OneSkyLocalization\OneSkyLocalization.Automation.csproj">
       <Project>{39369368-5603-46da-baae-766bb3cb2b51}</Project>
+      <Name>OneSkyLocalization.Automation</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GUBP\GUBP.Automation.csproj">
+      <Project>{9A1A118B-37FC-4F33-BBF4-B431B6E3B3AC}</Project>
       <Name>OneSkyLocalization.Automation</Name>
     </ProjectReference>
   </ItemGroup>

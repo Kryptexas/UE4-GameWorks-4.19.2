@@ -55,7 +55,7 @@ void UMovieScene::OptimizeObjectArray(TArray<T>& ObjectArray)
 		// @todo: ObjectBindings mapped by ID to avoid linear search
 		for (int32 BindingIndex = 0; BindingIndex < ObjectBindings.Num(); ++BindingIndex)
 		{
-			FMovieSceneBinding& Binding =ObjectBindings[BindingIndex];
+			FMovieSceneBinding& Binding = ObjectBindings[BindingIndex];
 			if (Binding.GetObjectGuid() != ObjectGuid)
 			{
 				continue;
@@ -436,6 +436,30 @@ UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> TrackClas
 	return CreatedType;
 }
 
+bool UMovieScene::AddGivenTrack(UMovieSceneTrack* InTrack, const FGuid& ObjectGuid)
+{
+	check(ObjectGuid.IsValid());
+
+	Modify();
+	for (auto& Binding : ObjectBindings)
+	{
+		if (Binding.GetObjectGuid() == ObjectGuid)
+		{
+			for (auto& Track : Binding.GetTracks())
+			{
+				if (Track->GetTrackName() == InTrack->GetTrackName())
+				{
+					return false;
+				}
+			}
+			InTrack->Rename(nullptr, this);
+			check(InTrack);
+			Binding.AddTrack(*InTrack);
+			return true;
+		}
+	}
+	return false;
+}
 
 bool UMovieScene::RemoveTrack(UMovieSceneTrack& Track)
 {

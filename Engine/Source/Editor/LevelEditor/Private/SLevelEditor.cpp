@@ -1372,6 +1372,11 @@ void SLevelEditor::SummonLevelViewportContextMenu()
 	FLevelEditorContextMenu::SummonMenu( SharedThis( this ), LevelEditorMenuContext::Viewport );
 }
 
+void SLevelEditor::SummonLevelViewportViewOptionMenu(const ELevelViewportType ViewOption)
+{
+	FLevelEditorContextMenu::SummonViewOptionMenu( SharedThis( this ), ViewOption);
+}
+
 const TArray< TSharedPtr< IToolkit > >& SLevelEditor::GetHostedToolkits() const
 {
 	return HostedToolkits;

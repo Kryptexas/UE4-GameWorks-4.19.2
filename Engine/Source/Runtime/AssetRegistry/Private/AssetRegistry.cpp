@@ -763,13 +763,16 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 	return true;
 }
 
-FAssetData FAssetRegistry::GetAssetByObjectPath( const FName ObjectPath ) const 
+FAssetData FAssetRegistry::GetAssetByObjectPath( const FName ObjectPath, bool bIncludeOnlyOnDiskAssets ) const
 {
-	UObject* Asset = FindObject<UObject>( nullptr, *ObjectPath.ToString() );
-
-	if ( Asset != nullptr )
+	if (!bIncludeOnlyOnDiskAssets)
 	{
-		return FAssetData( Asset );
+		UObject* Asset = FindObject<UObject>( nullptr, *ObjectPath.ToString() );
+
+		if ( Asset != nullptr )
+		{
+			return FAssetData( Asset );
+		}
 	}
 
 	const FAssetData* const * AssetData = CachedAssetsByObjectPath.Find( ObjectPath );
@@ -787,7 +790,7 @@ bool FAssetRegistry::GetAllAssets(TArray<FAssetData>& OutAssetData, bool bInclud
 	double GetAllAssetsStartTime = FPlatformTime::Seconds();
 
 	// All in memory assets
-	if (bIncludeOnlyOnDiskAssets)
+	if (!bIncludeOnlyOnDiskAssets)
 	{
 		for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
 		{
@@ -863,10 +866,12 @@ bool FAssetRegistry::GetDependencies(FName PackageName, TArray<FName>& OutDepend
 	}
 }
 
-bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferencers) const
+bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType) const
 {
 	const FDependsNode*const* NodePtr = CachedDependsNodes.Find(PackageName);
 	const FDependsNode* Node = nullptr;
+	bool bShowingAllReferences = InReferenceType == EAssetRegistryDependencyType::All;
+
 	if (NodePtr != nullptr )
 	{
 		Node = *NodePtr;
@@ -879,7 +884,24 @@ bool FAssetRegistry::GetReferencers(FName PackageName, TArray<FName>& OutReferen
 
 		for ( auto NodeIt = DependencyNodes.CreateConstIterator(); NodeIt; ++NodeIt )
 		{
-			OutReferencers.Add((*NodeIt)->GetPackageName());
+			if (!bShowingAllReferences)
+			{
+				TArray<FDependsNode*> DependenciesFromReferencer;
+				(*NodeIt)->GetDependencies(DependenciesFromReferencer, InReferenceType);
+				
+				for (FDependsNode* Dependency : DependenciesFromReferencer)
+				{
+					if (Dependency == Node)
+					{
+						OutReferencers.Add((*NodeIt)->GetPackageName());
+						break;
+					}
+				}
+			}
+			else
+			{
+				OutReferencers.Add((*NodeIt)->GetPackageName());
+			}
 		}
 
 		return true;

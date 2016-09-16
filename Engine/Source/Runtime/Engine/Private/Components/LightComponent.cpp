@@ -29,7 +29,7 @@ FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMapData& ShadowMapData)
 
 void FStaticShadowDepthMap::InitRHI()
 {
-	if (!FApp::ShouldUseNullRHI() && Data.ShadowMapSizeX > 0 && Data.ShadowMapSizeY > 0 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (FApp::CanEverRender() && Data.ShadowMapSizeX > 0 && Data.ShadowMapSizeY > 0 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		FRHIResourceCreateInfo CreateInfo;
 		FTexture2DRHIRef Texture2DRHI = RHICreateTexture2D(Data.ShadowMapSizeX, Data.ShadowMapSizeY, PF_R16F, 1, 1, 0, CreateInfo);
@@ -286,7 +286,7 @@ bool FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects() const
 	return HasStaticShadowing() && !HasStaticLighting();
 }
 
-/** Whether this light should create CSM for dynamic objects only (forward renderer) */
+/** Whether this light should create CSM for dynamic objects only (mobile renderer) */
 bool FLightSceneProxy::UseCSMForDynamicObjects() const
 {
 	return false;

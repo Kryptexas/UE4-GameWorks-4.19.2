@@ -6,6 +6,10 @@
 #include "NiagaraEffectRenderer.h"
 #include "StaticMeshResources.h"
 
+DECLARE_CYCLE_STAT(TEXT("Generate Sprite Vertex Data"), STAT_NiagaraGenSpriteVertexData, STATGROUP_Niagara);
+DECLARE_CYCLE_STAT(TEXT("Generate Ribbon Vertex Data"), STAT_NiagaraGenRibbonVertexData, STATGROUP_Niagara);
+DECLARE_CYCLE_STAT(TEXT("Generate Mesh Vertex Data"), STAT_NiagaraGenMeshVertexData, STATGROUP_Niagara);
+
 DECLARE_CYCLE_STAT(TEXT("Render Total"), STAT_NiagaraRender, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Sprites"), STAT_NiagaraRenderSprites, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Ribbons"), STAT_NiagaraRenderRibbons, STATGROUP_Niagara);
@@ -166,9 +170,13 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 				PerViewUniformParameters.RotationBias = 0.0f;
 				PerViewUniformParameters.RotationScale = 1.0f;
 				PerViewUniformParameters.TangentSelector = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
-
-
 				PerViewUniformParameters.InvDeltaSeconds = 30.0f;
+				PerViewUniformParameters.NormalsType = 0.0f;
+				PerViewUniformParameters.NormalsSphereCenter = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
+				PerViewUniformParameters.NormalsCylinderUnitDirection = FVector4(0.0f, 0.0f, 1.0f, 0.0f);
+				PerViewUniformParameters.PivotOffset = FVector2D(-0.5f, -0.5f);
+				PerViewUniformParameters.MacroUVParameters = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+
 				if (Properties)
 				{
 					PerViewUniformParameters.SubImageSize = FVector4(Properties->SubImageInfo.X, Properties->SubImageInfo.Y, 1.0f / Properties->SubImageInfo.X, 1.0f / Properties->SubImageInfo.Y);
@@ -180,11 +188,6 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 						PerViewUniformParameters.TangentSelector = FVector4(0.0f, 1.0f, 0.0f, 0.0f);
 					}
 				}
-				PerViewUniformParameters.NormalsType = 0.0f;
-				PerViewUniformParameters.NormalsSphereCenter = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
-				PerViewUniformParameters.NormalsCylinderUnitDirection = FVector4(0.0f, 0.0f, 1.0f, 0.0f);
-				PerViewUniformParameters.PivotOffset = FVector2D(-0.5f, -0.5f);
-				PerViewUniformParameters.MacroUVParameters = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
 
 				// Collector.AllocateOneFrameResource uses default ctor, initialize the vertex factory
 				CollectorResources.VertexFactory.SetFeatureLevel(ViewFamily.GetFeatureLevel());
@@ -388,8 +391,7 @@ void NiagaraEffectRendererRibbon::GetDynamicMeshElements(const TArray<const FSce
 
 	SimpleTimer MeshElementsTimer;
 
-	check(DynamicDataRender)
-	if (DynamicDataRender->VertexData.Num() == 0)
+	if (!DynamicDataRender || DynamicDataRender->VertexData.Num() == 0)
 	{
 		return;
 	}
@@ -542,7 +544,7 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const F
 	TArray<FParticleBeamTrailVertex>& RenderData = DynamicData->VertexData;
 
 	RenderData.Reset(Data.GetNumInstances() * 2);
-	//CachedBounds.Init();
+	CachedBounds.Init();
 
 	// build a sorted list by age, so we always get particles in order 
 	// regardless of them being moved around due to dieing and spawning
@@ -607,6 +609,9 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const F
 		PrevPos = ParticlePos - ParticleRightRot + ParticleDir;
 		PrevPos2 = ParticlePos + ParticleRightRot + ParticleDir;
 		PrevDir = ParticleDir;
+
+		CachedBounds += ParticlePos + ParticleRightRot;
+		CachedBounds += ParticlePos - ParticleRightRot;
 	}
 
 	CPUTimeMS = VertexDataTimer.GetElapsedMilliseconds();

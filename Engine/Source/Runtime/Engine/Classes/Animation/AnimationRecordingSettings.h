@@ -6,21 +6,22 @@
 
 /** Settings describing how to record an animation */
 USTRUCT()
-struct FAnimationRecordingSettings
+struct ENGINE_API FAnimationRecordingSettings
 {
 	GENERATED_BODY()
 
 	/** 30Hz default sample rate */
-	static const int32 DefaultSampleRate = DEFAULT_SAMPLERATE;
+	static const float DefaultSampleRate;
 
 	/** 1 minute default length */
-	static const int32 DefaultMaximumLength = 1.0f * 60.0f;
+	static const float DefaultMaximumLength;
 
 	/** Length used to specify unbounded */
-	static const int32 UnboundedMaximumLength = 0.0f;
+	static const float UnboundedMaximumLength;
 
 	FAnimationRecordingSettings()
 		: bRecordInWorldSpace(true)
+		, bRemoveRootAnimation(true)
 		, bAutoSaveAsset(false)
 		, SampleRate((float)DefaultSampleRate)
 		, Length((float)DefaultMaximumLength)
@@ -29,6 +30,10 @@ struct FAnimationRecordingSettings
 	/** Whether to record animation in world space, defaults to true */
 	UPROPERTY(EditAnywhere, Category = "Settings")
 	bool bRecordInWorldSpace;
+
+	/** Whether to remove the root bone transform from the animation */
+	UPROPERTY(EditAnywhere, Category = "Settings")
+	bool bRemoveRootAnimation;
 
 	/** Whether to auto-save asset when recording is completed. Defaults to false */
 	UPROPERTY(EditAnywhere, Category = "Settings")

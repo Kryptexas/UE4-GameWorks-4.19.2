@@ -60,7 +60,7 @@ struct FAndroidPlatformProperties
 
 	static FORCEINLINE bool SupportsHighQualityLightmaps()
 	{
-#if PLATFORM_ANDROIDES31 || PLATFORM_ANDROIDGL4
+#if PLATFORM_ANDROIDESDEFERRED
 		return true;
 #else
 		return false;
@@ -69,7 +69,7 @@ struct FAndroidPlatformProperties
 
 	static FORCEINLINE bool SupportsLowQualityLightmaps()
 	{
-#if PLATFORM_ANDROIDGL4
+#if PLATFORM_ANDROIDESDEFERRED
 		return false;
 #else
 		return true;

@@ -21,7 +21,7 @@ public:
 		bool bSceneColorCopyIsUpToDate;
 		bool bPostAA;
 
-		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, ETranslucencyPass::Type InTranslucenyPassType = ETranslucencyPass::TPT_NonSeparateTransluceny, bool bPostAAIn = false)
+		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, ETranslucencyPass::Type InTranslucenyPassType = ETranslucencyPass::TPT_StandardTranslucency, bool bPostAAIn = false)
 			: TranslucentSelfShadow(InTranslucentSelfShadow)
 			, TranslucenyPassType(InTranslucenyPassType)
 			, bSceneColorCopyIsUpToDate(false)
@@ -41,8 +41,7 @@ public:
 		bool bBackFace,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = false
+		FHitProxyId HitProxyId
 		);
 
 	/**
@@ -57,8 +56,7 @@ public:
 		const uint64& BatchElementMask,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = true
+		FHitProxyId HitProxyId
 		);
 
 	/**
@@ -81,8 +79,7 @@ private:
 		const FMeshDrawingRenderState& DrawRenderState,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = false
+		FHitProxyId HitProxyId
 		);
 
 };

@@ -21,6 +21,11 @@ public:
 	 */
 	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) = 0;
 
+	/**
+	* Called when creating the viewpoint, before culling, in case an external tracking device needs to modify the base location of the view
+	*/
+	virtual void SetupViewPoint(APlayerController* Player, FMinimalViewInfo& InViewInfo) {}
+
     /**
      * Called on game thread when view family is about to be rendered.
      */

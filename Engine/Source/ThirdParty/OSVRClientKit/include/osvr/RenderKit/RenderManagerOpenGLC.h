@@ -40,11 +40,13 @@ typedef void* OSVR_RenderManagerOpenGL;
 
 typedef struct OSVR_GraphicsLibraryOpenGL {
     // intentionally left blank
+    int unused;  // C does not allow empty structures
 } OSVR_GraphicsLibraryOpenGL;
 
 typedef struct OSVR_RenderBufferOpenGL {
     // GLuint colorBufferName;
     // GLuint depthStencilBufferName;
+    int unused;  // C does not allow empty structures
 } OSVR_RenderBufferOpenGL;
 
 typedef struct OSVR_RenderInfoOpenGL {
@@ -85,6 +87,12 @@ OSVR_RENDERMANAGER_EXPORT OSVR_ReturnCode
 osvrRenderManagerRegisterRenderBufferOpenGL(
     OSVR_RenderManagerRegisterBufferState registerBufferState,
     OSVR_RenderBufferOpenGL renderBuffer);
+
+/// Gets a given OSVR_RenderInfoOpenGL from an OSVR_RenderInfoCollection.
+OSVR_RENDERMANAGER_EXPORT OSVR_ReturnCode osvrRenderManagerGetRenderInfoFromCollectionOpenGL(
+    OSVR_RenderInfoCollection renderInfoCollection,
+    OSVR_RenderInfoCount index,
+    OSVR_RenderInfoOpenGL* renderInfoOut);
 
 OSVR_EXTERN_C_END
 

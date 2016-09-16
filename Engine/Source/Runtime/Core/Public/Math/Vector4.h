@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Vector.h"
 
 /**
  * A 4D homogeneous vector, 4x1 FLOATs, 16-byte aligned.
@@ -317,7 +318,7 @@ public:
 	 * @return FRotator from the Vector's direction.
 	 * @see ToOrientationRotator()
 	 */
-	FRotator Rotation() const;
+	CORE_API FRotator Rotation() const;
 
 	/**
 	 * Set all of the vectors coordinates.
@@ -704,3 +705,13 @@ FORCEINLINE FVector4 FVector4::operator/(const FVector4& V) const
 }
 
 template <> struct TIsPODType<FVector4> { enum { Value = true }; };
+
+
+/* FVector inline functions
+ *****************************************************************************/
+
+FORCEINLINE FVector::FVector( const FVector4& V )
+	: X(V.X), Y(V.Y), Z(V.Z)
+{
+	DiagnosticCheckNaN();
+}

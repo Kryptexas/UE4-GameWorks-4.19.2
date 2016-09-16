@@ -11,7 +11,8 @@ public class VulkanRHI : ModuleRules
 		PrivateIncludePaths.Add("Runtime/Vulkan/Private");
 
 		PrivateDependencyModuleNames.AddRange(
-			new string[] {
+			new string[]
+            {
 				"Core", 
 				"CoreUObject", 
 				"Engine", 
@@ -30,6 +31,8 @@ public class VulkanRHI : ModuleRules
 			{
 				// If the user has an installed SDK, use that instead
 				PrivateIncludePaths.Add(VulkanSDKPath + "/Include");
+				// Older SDKs have an extra subfolder
+				PrivateIncludePaths.Add(VulkanSDKPath + "/Include/vulkan");
 
 				if (Target.Platform == UnrealTargetPlatform.Win32)
 				{
@@ -57,7 +60,7 @@ public class VulkanRHI : ModuleRules
 			{
 				// Note: header is the same for all architectures so just use arch-arm
 				string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
-				string NDKVulkanIncludePath = NDKPath + "/android-24/arch-arm/usr/include/vulkan";
+				string NDKVulkanIncludePath = NDKPath + "/platforms/android-24/arch-arm/usr/include/vulkan";
 
 				// Use NDK Vulkan header if discovered, or VulkanSDK if available
 				if (File.Exists(NDKVulkanIncludePath + "/vulkan.h"))
@@ -84,7 +87,6 @@ public class VulkanRHI : ModuleRules
 				bHaveVulkan = true;
 				PrivateIncludePaths.Add(VulkanSDKPath + "/Include");
 
-				//#todo-rco: Using /Source/lib instead of /bin as we want pdb's for now
 				if (Target.Platform == UnrealTargetPlatform.Win32)
 				{
 					PublicLibraryPaths.Add(VulkanSDKPath + "/Bin32");
@@ -105,7 +107,7 @@ public class VulkanRHI : ModuleRules
 					PrivateIncludePathModuleNames.AddRange(
 						new string[]
 						{
-						"TaskGraph",
+                            "TaskGraph",
 						}
 					);
 				}

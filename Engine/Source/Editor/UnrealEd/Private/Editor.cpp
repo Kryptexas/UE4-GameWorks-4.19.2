@@ -153,6 +153,8 @@ FEditorDelegates::FOnNewActorsDropped					FEditorDelegates::OnNewActorsDropped;
 FEditorDelegates::FOnGridSnappingChanged				FEditorDelegates::OnGridSnappingChanged;
 FSimpleMulticastDelegate								FEditorDelegates::OnLightingBuildStarted;
 FSimpleMulticastDelegate								FEditorDelegates::OnLightingBuildKept;
+FSimpleMulticastDelegate								FEditorDelegates::OnLightingBuildFailed;
+FSimpleMulticastDelegate								FEditorDelegates::OnLightingBuildSucceeded;
 FEditorDelegates::FOnApplyObjectToActor					FEditorDelegates::OnApplyObjectToActor;
 FEditorDelegates::FOnFocusViewportOnActors				FEditorDelegates::OnFocusViewportOnActors;
 FEditorDelegates::FOnMapOpened							FEditorDelegates::OnMapOpened;
@@ -588,7 +590,7 @@ namespace EditorUtilities
 	AActor* GetEditorWorldCounterpartActor( AActor* Actor )
 	{
 		const bool bIsSimActor = Actor->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
-		if( bIsSimActor && GEditor->PlayWorld != NULL )
+		if( bIsSimActor && GEditor && GEditor->PlayWorld != NULL )
 		{
 			// Do we have a counterpart in the editor world?
 			auto* SimWorldActor = Actor;
@@ -619,7 +621,7 @@ namespace EditorUtilities
 	AActor* GetSimWorldCounterpartActor( AActor* Actor )
 	{
 		const bool bIsSimActor = Actor->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor);
-		if( !bIsSimActor && GEditor->EditorWorld != NULL )
+		if( !bIsSimActor && GEditor && GEditor->EditorWorld != NULL )
 		{
 			// Do we have a counterpart in the sim world?
 			auto* EditorWorldActor = Actor;
@@ -1056,16 +1058,15 @@ namespace EditorUtilities
 
 
 		int32 TargetComponentIndex = 0;
-		for( auto SourceComponentIter( SourceComponents.CreateConstIterator() ); SourceComponentIter; ++SourceComponentIter )
+		for( UActorComponent* SourceComponent : SourceComponents )
 		{
-			UActorComponent* SourceComponent = *SourceComponentIter;
 			if (SourceComponent->CreationMethod == EComponentCreationMethod::UserConstructionScript)
 			{
 				continue;
 			}
 			UActorComponent* TargetComponent = FindMatchingComponentInstance( SourceComponent, TargetActor, TargetComponents, TargetComponentIndex );
 
-			if( SourceComponent != nullptr && TargetComponent != nullptr )
+			if( TargetComponent != nullptr )
 			{
 				UClass* ComponentClass = SourceComponent->GetClass();
 				check( ComponentClass == TargetComponent->GetClass() );

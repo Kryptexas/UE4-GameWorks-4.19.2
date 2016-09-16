@@ -59,6 +59,20 @@ static const FName Cascade_CurveEditorTab("Cascade_CurveEditor");
 
 DEFINE_LOG_CATEGORY(LogCascade);
 
+FCascade::FCascade()
+	: ParticleSystem(nullptr)
+	, ParticleSystemComponent(nullptr)
+	, LocalVectorFieldPreviewComponent(nullptr)
+	, EditorOptions(nullptr)
+	, EditorConfig(nullptr)
+	, SelectedModule(nullptr)
+	, SelectedEmitter(nullptr)
+	, CopyModule(nullptr)
+	, CopyEmitter(nullptr)
+	, CurveToReplace(nullptr)
+{
+}
+
 void FCascade::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(NSLOCTEXT("Cascade", "WorkspaceMenu_Cascade", "Cascade"));
@@ -1481,8 +1495,16 @@ void FCascade::AddReferencedObjects(FReferenceCollector& Collector)
 		PreviewViewport->GetViewportClient()->GetPreviewScene().AddReferencedObjects(Collector);
 	}
 
+	Collector.AddReferencedObject(ParticleSystem);
+	Collector.AddReferencedObject(ParticleSystemComponent);
+	Collector.AddReferencedObject(LocalVectorFieldPreviewComponent);
 	Collector.AddReferencedObject(EditorOptions);
 	Collector.AddReferencedObject(EditorConfig);
+	Collector.AddReferencedObject(SelectedModule);
+	Collector.AddReferencedObject(SelectedEmitter);
+	Collector.AddReferencedObject(CopyModule);
+	Collector.AddReferencedObject(CopyEmitter);
+	Collector.AddReferencedObject(CurveToReplace);
 }
 
 void FCascade::Tick(float DeltaTime)

@@ -32,10 +32,15 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		private static SlackWriter Slack = null;
 
-		public static StatusReporting StatusReporter = null;
+		public static StatusReporting StatusReporter { get; private set; }
+
+		public static Symbolicator Symbolicator { get; private set; }
 
 		/// <summary>Folder in which to store log files</summary>
 		static private string LogFolder = null;
+
+		/// <summary>Folder in which to store symbolication log files</summary>
+		static public string SymbolicatorLogFolder { get; private set; }
 
 		/// <summary>
 		/// Write a status update to the event log.
@@ -112,7 +117,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 			InitializeComponent();
 
 			var StartupPath = Path.GetDirectoryName( Assembly.GetExecutingAssembly().Location );
-			LogFolder = Path.Combine( StartupPath, "Logs" );
+			LogFolder = Path.Combine(StartupPath, "Logs");
+			SymbolicatorLogFolder = Path.Combine(StartupPath, "MDDLogs");
 		}
 
 		/// <summary>
@@ -134,18 +140,48 @@ namespace Tools.CrashReporter.CrashReportProcess
 				IconEmoji = Config.Default.SlackEmoji
 			};
 
+			Symbolicator = new Symbolicator();
+
 			StatusReporter = new StatusReporting();
 
 			// Add directory watchers
+			WriteEvent("Creating ReportWatcher");
 			Watcher = new ReportWatcher();
 
+			WriteEvent("Creating ReportProcessors");
 			for (int ProcessorIndex = 0; ProcessorIndex < Config.Default.ProcessorThreadCount; ProcessorIndex++)
 			{
 				var Processor = new ReportProcessor(Watcher, ProcessorIndex);
 				Processors.Add(Processor);
 			}
 
+			// Init events by enumerating event names
+			WriteEvent("Initializing Event Counters");
+			FieldInfo[] EventNameFields = typeof(StatusReportingEventNames).GetFields(BindingFlags.Static | BindingFlags.Public);
+			StatusReporter.InitCounters(EventNameFields.Select(EventNameField => (string)EventNameField.GetValue(null)));
+
+			WriteEvent("Initializing Folder Monitors");
+			Dictionary<string, string> FoldersToMonitor = new Dictionary<string, string>();
+			FoldersToMonitor.Add(Config.Default.ProcessedReports, "Processed Reports");
+			FoldersToMonitor.Add(Config.Default.ProcessedVideos, "Processed Videos");
+			FoldersToMonitor.Add(Config.Default.DepotRoot, "P4 Workspace");
+			FoldersToMonitor.Add(Config.Default.InternalLandingZone, "CRR Landing Zone");
+			FoldersToMonitor.Add(Config.Default.DataRouterLandingZone, "Data Router Landing Zone");
+			FoldersToMonitor.Add(Config.Default.InvalidReportsDirectory, "Invalid Reports");
+			FoldersToMonitor.Add(Assembly.GetExecutingAssembly().Location, "CRP Binaries and Logs");
+			FoldersToMonitor.Add(Config.Default.MDDPDBCachePath, "MDD PDB Cache");
+			StatusReporter.InitFolderMonitors(FoldersToMonitor);
+
+			WriteEvent("Starting StatusReporter");
 			StatusReporter.Start();
+
+			// Start the threads now
+			Watcher.Start();
+			foreach (var Processor in Processors)
+			{
+				Processor.Start();
+			}
+
 			DateTime StartupTime = DateTime.UtcNow;
 			WriteEvent("Successfully started at " + StartupTime);
 		}
@@ -158,6 +194,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 			StatusReporter.OnPreStopping();
 
 			// Clean up the directory watcher and crash processor threads
+			foreach (var Processor in Processors)
+			{
+				Processor.RequestStop();
+			}
 			foreach (var Processor in Processors)
 			{
 				Processor.Dispose();

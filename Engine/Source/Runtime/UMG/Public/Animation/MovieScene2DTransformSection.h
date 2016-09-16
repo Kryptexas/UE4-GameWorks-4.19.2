@@ -74,6 +74,7 @@ public:
 	virtual bool HasKeys( const struct F2DTransformKey& TransformKey ) const override;
 	virtual void AddKey( float Time, const struct F2DTransformKey& TransformKey, EMovieSceneKeyInterpolation KeyInterpolation ) override;
 	virtual void SetDefault( const struct F2DTransformKey& TransformKey ) override;
+	virtual void ClearDefaults() override;
 
 private:
 

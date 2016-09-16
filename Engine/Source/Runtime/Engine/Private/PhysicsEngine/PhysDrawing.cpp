@@ -868,6 +868,7 @@ void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollecto
 	return;
 #endif
 
+	const ESceneDepthPriorityGroup Layer = ESceneDepthPriorityGroup::SDPG_Foreground;
 	FPrimitiveDrawInterface* PDI = PDIOrCollector.GetPDI();
 
 	check((GEngine->ConstraintLimitMaterialX != nullptr) && (GEngine->ConstraintLimitMaterialY != nullptr) && (GEngine->ConstraintLimitMaterialZ != nullptr));
@@ -890,13 +891,13 @@ void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollecto
 	{
 		if(bDrawSelected)
 		{
-			PDI->DrawPoint( Con1Frame.GetTranslation(), JointRed, 3.f, SDPG_World );
-			PDI->DrawPoint( Con2Frame.GetTranslation(), JointBlue, 3.f, SDPG_World );
+			PDI->DrawPoint( Con1Frame.GetTranslation(), JointRed, 3.f, Layer );
+			PDI->DrawPoint( Con2Frame.GetTranslation(), JointBlue, 3.f, Layer );
 		}
 		else
 		{
-			PDI->DrawPoint( Con1Frame.GetTranslation(), JointUnselectedColor, 3.f, SDPG_World );
-			PDI->DrawPoint( Con2Frame.GetTranslation(), JointUnselectedColor, 3.f, SDPG_World );
+			PDI->DrawPoint( Con1Frame.GetTranslation(), JointUnselectedColor, 3.f, Layer );
+			PDI->DrawPoint( Con2Frame.GetTranslation(), JointUnselectedColor, 3.f, Layer );
 		}
 
 		// do nothing else in this mode.
@@ -921,11 +922,11 @@ void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollecto
 			{
 				if (PDIOrCollector.HasCollector())
 				{
-					GetSphereMesh(Con1Pos, FVector(Length*0.9f), DrawConeLimitSides, DrawConeLimitSides, LimitMaterialX->GetRenderProxy(false), SDPG_World, false, PDIOrCollector.ViewIndex, *PDIOrCollector.Collector);
+					GetSphereMesh(Con1Pos, FVector(Length*0.9f), DrawConeLimitSides, DrawConeLimitSides, LimitMaterialX->GetRenderProxy(false), Layer, false, PDIOrCollector.ViewIndex, *PDIOrCollector.Collector);
 				}
 				else
 				{
-					DrawSphere(PDI, Con1Pos, FVector(Length * 0.9f), DrawConeLimitSides, DrawConeLimitSides, LimitMaterialX->GetRenderProxy(false), SDPG_World);
+					DrawSphere(PDI, Con1Pos, FVector(Length * 0.9f), DrawConeLimitSides, DrawConeLimitSides, LimitMaterialX->GetRenderProxy(false), Layer);
 				}
 			}
 			else
@@ -939,11 +940,11 @@ void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollecto
 
 				if (PDIOrCollector.HasCollector())
 				{
-					GetConeMesh(ConeToWorld, FMath::RadiansToDegrees(Swing1Ang), FMath::RadiansToDegrees(Swing2Ang), DrawConeLimitSides, LimitMaterialX->GetRenderProxy(false), SDPG_World, PDIOrCollector.ViewIndex, *PDIOrCollector.Collector);
+					GetConeMesh(ConeToWorld, FMath::RadiansToDegrees(Swing1Ang), FMath::RadiansToDegrees(Swing2Ang), DrawConeLimitSides, LimitMaterialX->GetRenderProxy(false), Layer, PDIOrCollector.ViewIndex, *PDIOrCollector.Collector);
 				}
 				else
 				{
-					DrawCone(PDI, ConeToWorld, Swing1Ang, Swing2Ang, DrawConeLimitSides, false, JointLimitColor, LimitMaterialX->GetRenderProxy(false), SDPG_World);
+					DrawCone(PDI, ConeToWorld, Swing1Ang, Swing2Ang, DrawConeLimitSides, false, JointLimitColor, LimitMaterialX->GetRenderProxy(false), Layer);
 				}
 			}
 		}
@@ -955,11 +956,11 @@ void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollecto
 			float Limit = HelpBuildAngle(GetAngularTwistLimit(), GetAngularTwistMotion());
 			if (PDIOrCollector.HasCollector())
 			{
-				GetConeMesh(ConeToWorld, FMath::RadiansToDegrees(Limit), 0, DrawConeLimitSides, LimitMaterialY->GetRenderProxy(false), SDPG_World, PDIOrCollector.ViewIndex, *PDIOrCollector.Collector);
+				GetConeMesh(ConeToWorld, FMath::RadiansToDegrees(Limit), 0, DrawConeLimitSides, LimitMaterialY->GetRenderProxy(false), Layer, PDIOrCollector.ViewIndex, *PDIOrCollector.Collector);
 			}
 			else
 			{
-				DrawCone(PDI, ConeToWorld, Limit, 0, DrawConeLimitSides, false, JointLimitColor, LimitMaterialY->GetRenderProxy(false), SDPG_World);
+				DrawCone(PDI, ConeToWorld, Limit, 0, DrawConeLimitSides, false, JointLimitColor, LimitMaterialY->GetRenderProxy(false), Layer);
 			}
 		}
 	}
@@ -969,13 +970,13 @@ void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollecto
 	// COORDINATE AXES
 	FVector Position = Con1Frame.GetTranslation();
 
-	PDIOrCollector.DrawCylinder(Position, Position + Length * Con1Frame.GetScaledAxis(EAxis::X), Thickness, LimitMaterialXAxis->GetRenderProxy(false), SDPG_World);
-	PDIOrCollector.DrawCylinder(Position, Position + Length * Con1Frame.GetScaledAxis(EAxis::Y), Thickness, LimitMaterialYAxis->GetRenderProxy(false), SDPG_World);
-	PDIOrCollector.DrawCylinder(Position, Position + Length * Con1Frame.GetScaledAxis(EAxis::Z), Thickness, LimitMaterialZAxis->GetRenderProxy(false), SDPG_World);
+	PDIOrCollector.DrawCylinder(Position, Position + Length * Con1Frame.GetScaledAxis(EAxis::X), Thickness, LimitMaterialXAxis->GetRenderProxy(false), Layer);
+	PDIOrCollector.DrawCylinder(Position, Position + Length * Con1Frame.GetScaledAxis(EAxis::Y), Thickness, LimitMaterialYAxis->GetRenderProxy(false), Layer);
+	PDIOrCollector.DrawCylinder(Position, Position + Length * Con1Frame.GetScaledAxis(EAxis::Z), Thickness, LimitMaterialZAxis->GetRenderProxy(false), Layer);
 
-	PDIOrCollector.DrawCylinder(Position, Position + Length * Con2Frame.GetScaledAxis(EAxis::X), Thickness, LimitMaterialXAxis->GetRenderProxy(false), SDPG_World);
-	PDIOrCollector.DrawCylinder(Position, Position + Length * Con2Frame.GetScaledAxis(EAxis::Y), Thickness, LimitMaterialYAxis->GetRenderProxy(false), SDPG_World);
-	PDIOrCollector.DrawCylinder(Position, Position + Length * Con2Frame.GetScaledAxis(EAxis::Z), Thickness, LimitMaterialZAxis->GetRenderProxy(false), SDPG_World);
+	PDIOrCollector.DrawCylinder(Position, Position + Length * Con2Frame.GetScaledAxis(EAxis::X), Thickness, LimitMaterialXAxis->GetRenderProxy(false), Layer);
+	PDIOrCollector.DrawCylinder(Position, Position + Length * Con2Frame.GetScaledAxis(EAxis::Y), Thickness, LimitMaterialYAxis->GetRenderProxy(false), Layer);
+	PDIOrCollector.DrawCylinder(Position, Position + Length * Con2Frame.GetScaledAxis(EAxis::Z), Thickness, LimitMaterialZAxis->GetRenderProxy(false), Layer);
 
 
 	//Draw arrow on twist axist
@@ -989,11 +990,11 @@ void FConstraintInstance::DrawConstraintImp(const FPDIOrCollector& PDIOrCollecto
 
 		if (PDIOrCollector.HasCollector())
 		{
-			GetConeMesh(ConeToWorld, FMath::RadiansToDegrees(Swing1Ang), FMath::RadiansToDegrees(Swing2Ang), DrawConeLimitSides, LimitMaterialXAxis->GetRenderProxy(false), SDPG_World, PDIOrCollector.ViewIndex, *PDIOrCollector.Collector);
+			GetConeMesh(ConeToWorld, FMath::RadiansToDegrees(Swing1Ang), FMath::RadiansToDegrees(Swing2Ang), DrawConeLimitSides, LimitMaterialXAxis->GetRenderProxy(false), Layer, PDIOrCollector.ViewIndex, *PDIOrCollector.Collector);
 		}
 		else
 		{
-			DrawCone(PDI, ConeToWorld, Swing1Ang, Swing2Ang, DrawConeLimitSides, false, JointLimitColor, LimitMaterialXAxis->GetRenderProxy(false), SDPG_World);
+			DrawCone(PDI, ConeToWorld, Swing1Ang, Swing2Ang, DrawConeLimitSides, false, JointLimitColor, LimitMaterialXAxis->GetRenderProxy(false), Layer);
 		}
 	}
 

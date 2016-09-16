@@ -1214,7 +1214,8 @@ void FAsyncPackage::ResetLoader()
 	{
 		check(Linker->AsyncRoot == this || Linker->AsyncRoot == nullptr);
 		Linker->AsyncRoot = nullptr;
-		Linker->Detach();
+		// Flush cache and queue for delete, the linker will be detached later when it or its root is destroyed.
+		Linker->FlushCache();
 		FLinkerManager::Get().RemoveLinker(Linker);
 		Linker = nullptr;
 	}
@@ -1488,12 +1489,8 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 
 		if (!Linker)
 		{
-			// The editor must not redirect packages for localization.
-			FString NameToLoad = Desc.NameToLoad.ToString();
-			if (!GIsEditor)
-			{
-				NameToLoad = FPackageName::GetLocalizedPackagePath(NameToLoad);
-			}
+			// Allow delegates to resolve this path
+			FString NameToLoad = FPackageName::GetDelegateResolvedPackagePath(Desc.NameToLoad.ToString());
 
 			const FGuid* const Guid = Desc.Guid.IsValid() ? &Desc.Guid : nullptr;
 
@@ -1707,7 +1704,7 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 			
 
 		// Don't try to import a package that is in an import table that we know is an invalid entry
-		if (FLinkerLoad::KnownMissingPackages.Contains(Import->ObjectName))
+		if (FLinkerLoad::IsKnownMissingPackage(Import->ObjectName))
 		{
 			continue;
 		}
@@ -2357,6 +2354,8 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 				FIOSystem::Get().HintDoneWithFile(Linker->Filename);
 			}
 		}
+
+		FStringAssetReference::InvalidateTag();
 	}
 
 	return Result;
@@ -2411,9 +2410,12 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 	{
 		check(LinkerToClose);
 		check(LinkerToClose->LinkerRoot);
-		FLinkerManager::Get().ResetLoaders(LinkerToClose->LinkerRoot);
-		check(LinkerToClose->LinkerRoot == nullptr);
-		check(LinkerToClose->AsyncRoot == nullptr);
+		if (!LinkerToClose->AsyncRoot)
+		{
+			FLinkerManager::Get().ResetLoaders(LinkerToClose->LinkerRoot);
+			check(LinkerToClose->LinkerRoot == nullptr);
+			check(LinkerToClose->AsyncRoot == nullptr);
+		}
 	}
 
 	// If we successfully loaded

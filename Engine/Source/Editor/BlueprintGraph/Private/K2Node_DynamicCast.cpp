@@ -399,9 +399,14 @@ void UK2Node_DynamicCast::ValidateNodeDuringCompilation(FCompilerResultsLog& Mes
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
 	UEdGraphPin* SourcePin = GetCastSourcePin();
-	if ((SourcePin->LinkedTo.Num() > 0) && (TargetType != nullptr))
+	if (SourcePin->LinkedTo.Num() > 0)
 	{
 		const UClass* SourceType = *TargetType;
+		if (SourceType == nullptr)
+		{
+			return;
+		}
+
 		for (UEdGraphPin* CastInput : SourcePin->LinkedTo)
 		{
 			const FEdGraphPinType& SourcePinType = CastInput->PinType;

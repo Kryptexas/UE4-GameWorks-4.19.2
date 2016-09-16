@@ -157,7 +157,7 @@ namespace Rocket
 				string PublishedEngineDir;
 				if (ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP(BranchConfig))
 				{
-					PublishedEngineDir = CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), "Rocket", "Automated", GetBuildLabel(), CommandUtils.GetGenericPlatformName(HostPlatform));
+					PublishedEngineDir = CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), "Rocket", "Automated", "Engine", GetBuildLabel(), CommandUtils.GetGenericPlatformName(HostPlatform));
 				}
 				else
 				{
@@ -250,18 +250,18 @@ namespace Rocket
 		{
 			// Always include the editor platform for cooking
 			List<string> CookPlatforms = new List<string>();
-			CookPlatforms.Add(Platform.Platforms[HostPlatform].GetEditorCookPlatform());
+            CookPlatforms.Add(Platform.GetPlatform(HostPlatform).GetEditorCookPlatform());
 
 			// Add all the target platforms
 			foreach(UnrealTargetPlatform TargetPlatform in TargetPlatforms)
 			{
 				if(TargetPlatform == UnrealTargetPlatform.Android)
 				{
-					CookPlatforms.Add(Platform.Platforms[TargetPlatform].GetCookPlatform(false, false, "ATC"));
+                    CookPlatforms.Add(Platform.GetPlatform(TargetPlatform, "ATC").GetCookPlatform(false, false));
 				}
 				else
 				{
-					CookPlatforms.Add(Platform.Platforms[TargetPlatform].GetCookPlatform(false, false, ""));
+                    CookPlatforms.Add(Platform.GetPlatform(TargetPlatform).GetCookPlatform(false, false));
 				}
 			}
 			return CommandUtils.CombineCommandletParams(CookPlatforms.Distinct().ToArray());

@@ -16,6 +16,62 @@
 class FPostprocessContext;
 struct FILCUpdatePrimTaskData;
 
+/** Mobile only. Information used to determine whether static meshes will be rendered with CSM shaders or not. */
+class FMobileCSMVisibilityInfo
+{
+public:
+	/** true if there are any primitives affected by CSM subjects */
+	uint32 bMobileDynamicCSMInUse : 1;
+
+	/** Visibility lists for static meshes that will use expensive CSM shaders. */
+	FSceneBitArray MobilePrimitiveCSMReceiverVisibilityMap;
+	FSceneBitArray MobileCSMStaticMeshVisibilityMap;
+	TArray<uint64, SceneRenderingAllocator> MobileCSMStaticBatchVisibility;
+
+	/** Visibility lists for static meshes that will use the non CSM shaders. */
+	FSceneBitArray MobileNonCSMStaticMeshVisibilityMap;
+	TArray<uint64, SceneRenderingAllocator> MobileNonCSMStaticBatchVisibility;
+
+	/** Initialization constructor. */
+	FMobileCSMVisibilityInfo() : bMobileDynamicCSMInUse(false)
+	{}
+};
+
+/** Stores a list of CSM shadow casters. Used by mobile renderer for culling primitives receiving static + CSM shadows. */
+class FMobileCSMSubjectPrimitives
+{
+public:
+	/** Adds a subject primitive */
+	void AddSubjectPrimitive(const FPrimitiveSceneInfo* PrimitiveSceneInfo, int32 PrimitiveId)
+	{
+		checkSlow(PrimitiveSceneInfo->GetIndex() == PrimitiveId);
+		const int32 PrimitiveIndex = PrimitiveSceneInfo->GetIndex();
+		if (!ShadowSubjectPrimitivesEncountered[PrimitiveId])
+		{
+			ShadowSubjectPrimitives.Add(PrimitiveSceneInfo);
+			ShadowSubjectPrimitivesEncountered[PrimitiveId] = true;
+		}
+	}
+
+	/** Returns the list of subject primitives */
+	const TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator>& GetShadowSubjectPrimitives() const
+	{
+		return ShadowSubjectPrimitives;
+	}
+
+	/** Used to initialize the ShadowSubjectPrimitivesEncountered bit array
+	  * to prevent shadow primitives being added more than once. */
+	void InitShadowSubjectPrimitives(int32 PrimitiveCount)
+	{
+		ShadowSubjectPrimitivesEncountered.Init(false, PrimitiveCount);
+	}
+
+protected:
+	/** List of this light's shadow subject primitives. */
+	FSceneBitArray ShadowSubjectPrimitivesEncountered;
+	TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator> ShadowSubjectPrimitives;
+};
+
 /** Information about a visible light which is specific to the view it's visible in. */
 class FVisibleLightViewInfo
 {
@@ -32,6 +88,9 @@ public:
 
 	/** true if this light in the view frustum (dir/sky lights always are). */
 	uint32 bInViewFrustum : 1;
+
+	/** List of CSM shadow casters. Used by mobile renderer for culling primitives receiving static + CSM shadows */
+	FMobileCSMSubjectPrimitives MobileCSMSubjectPrimitives;
 
 	/** Initialization constructor. */
 	FVisibleLightViewInfo()
@@ -67,9 +126,11 @@ namespace ETranslucencyPass
 {
 	enum Type
 	{
-		TPT_NonSeparateTransluceny,
-		TPT_SeparateTransluceny,
+		TPT_StandardTranslucency,
+		TPT_SeparateTranslucency,
 
+		/** Drawing all translucency, regardless of separate or standard.  Used when drawing translucency outside of the main renderer, eg FRendererModule::DrawTile. */
+		TPT_AllTranslucency,
 		TPT_MAX
 	};
 };
@@ -506,15 +567,22 @@ class FGlobalDistanceFieldInfo
 {
 public:
 
+	bool bInitialized;
 	TArray<FGlobalDistanceFieldClipmap> Clipmaps;
 	FGlobalDistanceFieldParameterData ParameterData;
 
 	void UpdateParameterData(float MaxOcclusionDistance);
+
+	FGlobalDistanceFieldInfo() :
+		bInitialized(false)
+	{}
 };
 
 BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FForwardGlobalLightData,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumLocalLights)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumReflectionCaptures)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,HasDirectionalLight)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumGridCells)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntVector,CulledGridSize)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,MaxCulledLightsPerCell)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,LightGridPixelSizeShift)
@@ -550,6 +618,24 @@ public:
 	}
 };
 
+/** 
+ * Number of reflection captures to allocate uniform buffer space for. 
+ * This is currently limited by the array texture max size of 2048 for d3d11 (each cubemap is 6 slices).
+ * Must touch the reflection shaders to propagate changes.
+ */
+static const int32 GMaxNumReflectionCaptures = 341;
+
+/** Per-reflection capture data needed by the shader. */
+BEGIN_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,PositionAndRadius,[GMaxNumReflectionCaptures])
+	// R is brightness, G is array index, B is shape
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureProperties,[GMaxNumReflectionCaptures])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureOffsetAndAverageBrightness,[GMaxNumReflectionCaptures])
+	// Stores the box transform for a box shape, other data is packed for other shapes
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix,BoxTransform,[GMaxNumReflectionCaptures])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,BoxScales,[GMaxNumReflectionCaptures])
+END_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData)
+
 /** A FSceneView with additional state used by the scene renderer. */
 class FViewInfo : public FSceneView
 {
@@ -560,6 +646,9 @@ public:
 	 * This should be used internally to the renderer module to avoid having to cast View.State to an FSceneViewState*
 	 */
 	FSceneViewState* ViewState;
+
+	/** Cached view uniform shader parameters, to allow recreating the view uniform buffer without having to fill out the entire struct. */
+	TScopedPointer<FViewUniformShaderParameters> CachedViewUniformShaderParameters;
 
 	/** A map from primitive ID to a boolean visibility value. */
 	FSceneBitArray PrimitiveVisibilityMap;
@@ -593,6 +682,11 @@ public:
 
 	/** A map from static mesh ID to a boolean dithered LOD fade in value. */
 	FSceneBitArray StaticMeshFadeInDitheredLODMap;
+
+#if WITH_EDITOR
+	/** A map from static mesh ID to editor selection visibility (whether or not it is selected AND should be drawn).  */
+	FSceneBitArray StaticMeshEditorSelectionMap;
+#endif
 
 	/** An array of batch element visibility masks, valid only for meshes
 	 set visible in either StaticMeshVisibilityMap or StaticMeshShadowDepthMap. */
@@ -651,6 +745,9 @@ public:
 	FSimpleElementCollector SimpleElementCollector;
 
 	FSimpleElementCollector EditorSimpleElementCollector;
+
+	// Used by mobile renderer to determine whether static meshes will be rendered with CSM shaders or not.
+	FMobileCSMVisibilityInfo MobileCSMVisibilityInfo;
 
 	/** Parameters for exponential height fog. */
 	FVector4 ExponentialFogParameters;
@@ -712,6 +809,11 @@ public:
 	// Hierarchical Z Buffer
 	TRefCountPtr<IPooledRenderTarget> HZB;
 
+	int32 NumBoxReflectionCaptures;
+	int32 NumSphereReflectionCaptures;
+	float FurthestReflectionCaptureDistance;
+	TUniformBufferRef<FReflectionCaptureData> ReflectionCaptureUniformBuffer;
+
 	/** Points to the view state's resources if a view state exists. */
 	FForwardLightingViewResources* ForwardLightingResources;
 
@@ -761,18 +863,21 @@ public:
 	*/
 	~FViewInfo();
 
-	/** Creates the view's uniform buffers given a set of view transforms. */
-	void CreateUniformBuffer(
-		TUniformBufferRef<FViewUniformShaderParameters>& OutViewUniformBuffer, 
-		FRHICommandList& RHICmdList,
-		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,
+	/** Creates ViewUniformShaderParameters given a set of view transforms. */
+	void SetupUniformBufferParameters(
+		FSceneRenderTargets& SceneContext,
 		const FMatrix& EffectiveTranslatedViewMatrix, 
 		const FMatrix& EffectiveViewToTranslatedWorld, 
 		FBox* OutTranslucentCascadeBoundsArray, 
-		int32 NumTranslucentCascades) const;
+		int32 NumTranslucentCascades,
+		FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+
+
+	void SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+	void SetupGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
 
 	/** Initializes the RHI resources used by this view. */
-	void InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo);
+	void InitRHIResources();
 
 	/** Determines distance culling and fades if the state changes */
 	bool IsDistanceCulled(float DistanceSquared, float MaxDrawDistance, float MinDrawDistance, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
@@ -1267,6 +1372,11 @@ public:
 	virtual void RenderHitProxies(FRHICommandListImmediate& RHICmdList) override;
 
 protected:
+	/** Finds the visible dynamic shadows for each view. */
+	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
+
+	/** Build visibility lists on CSM receivers and non-csm receivers. */
+	void BuildCombinedStaticAndCSMVisibilityState(FLightSceneInfo* LightSceneInfo);
 
 	void InitViews(FRHICommandListImmediate& RHICmdList);
 
@@ -1291,10 +1401,44 @@ protected:
 	/** Perform upscaling when post process is not used. */
 	void BasicPostProcess(FRHICommandListImmediate& RHICmdList, FViewInfo &View, bool bDoUpscale, bool bDoEditorPrimitives);
 
+	/** Creates uniform buffers with the mobile directional light parameters, for each lighting channel. Called by InitViews */
+	void CreateDirectionalLightUniformBuffers(FSceneView& SceneView);
+
 private:
 	bool bModulatedShadowsInUse;
-	bool bCSMShadowsInUse;
 };
 
 // The noise textures need to be set in Slate too.
 RENDERER_API void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShaderParameters);
+
+inline FTextureRHIParamRef OrBlack2DIfNull(FTextureRHIParamRef Tex)
+{
+	FTextureRHIParamRef Result = Tex ? Tex : GBlackTexture->TextureRHI.GetReference();
+	check(Result);
+	return Result;
+}
+
+inline FTextureRHIParamRef OrBlack3DIfNull(FTextureRHIParamRef Tex)
+{
+	// we fall back to 2D which are unbound es2 parameters
+	return OrBlack2DIfNull(Tex ? Tex : GBlackVolumeTexture->TextureRHI.GetReference());
+}
+
+inline void SetBlack2DIfNull(FTextureRHIParamRef& Tex)
+{
+	if (!Tex)
+	{
+		Tex = GBlackTexture->TextureRHI.GetReference();
+		check(Tex);
+	}
+}
+
+inline void SetBlack3DIfNull(FTextureRHIParamRef& Tex)
+{
+	if (!Tex)
+	{
+		Tex = GBlackVolumeTexture->TextureRHI.GetReference();
+		// we fall back to 2D which are unbound es2 parameters
+		SetBlack2DIfNull(Tex);
+	}
+}

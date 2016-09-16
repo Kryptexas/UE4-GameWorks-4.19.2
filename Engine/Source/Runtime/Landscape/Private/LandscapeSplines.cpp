@@ -4,6 +4,7 @@
 	LandscapeSpline.cpp
 =============================================================================*/
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 #include "Components/SplineMeshComponent.h"
 #include "LandscapeStreamingProxy.h"
@@ -573,6 +574,7 @@ void ULandscapeSplinesComponent::CheckForErrors()
 	Super::CheckForErrors();
 
 	UWorld* ThisOuterWorld = GetTypedOuter<UWorld>();
+	check(ThisOuterWorld->WorldType == EWorldType::Editor);
 
 	TSet<UWorld*> OutdatedWorlds;
 	TMap<UWorld*, FForeignWorldSplineData*> ForeignWorldSplineDataMapCache;
@@ -682,7 +684,7 @@ void ULandscapeSplinesComponent::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	if (GIsEditor)
+	if (GIsEditor && GetWorld()->WorldType == EWorldType::Editor)
 	{
 		// Build MeshComponentForeignOwnersMap (Component->Spline) from ForeignWorldSplineDataMap (World->Spline->Component)
 		for (auto& ForeignWorldSplineDataPair : ForeignWorldSplineDataMap)
@@ -714,7 +716,7 @@ void ULandscapeSplinesComponent::PostLoad()
 	CheckSplinesValid();
 
 #if WITH_EDITOR
-	if (GIsEditor)
+	if (GIsEditor && GetWorld()->WorldType == EWorldType::Editor)
 	{
 		CheckForErrors();
 	}
@@ -778,7 +780,10 @@ bool FForeignWorldSplineData::IsEmpty()
 ULandscapeSplinesComponent* ULandscapeSplinesComponent::GetStreamingSplinesComponentByLocation(const FVector& LocalLocation, bool bCreate /* = true*/)
 {
 	ALandscapeProxy* OuterLandscape = Cast<ALandscapeProxy>(GetOwner());
-	if (OuterLandscape)
+	if (OuterLandscape &&
+		// when copy/pasting this can get called with a null guid on the parent landscape
+		// this is fine, we won't have any cross-level meshes in this case anyway
+		OuterLandscape->GetLandscapeGuid().IsValid())
 	{
 		FVector LandscapeLocalLocation = ComponentToWorld.GetRelativeTransform(OuterLandscape->LandscapeActorToWorld()).TransformPosition(LocalLocation);
 		const int32 ComponentIndexX = (LandscapeLocalLocation.X >= 0.0f) ? FMath::FloorToInt(LandscapeLocalLocation.X / OuterLandscape->ComponentSizeQuads) : FMath::CeilToInt(LandscapeLocalLocation.X / OuterLandscape->ComponentSizeQuads);
@@ -832,28 +837,33 @@ ULandscapeSplinesComponent* ULandscapeSplinesComponent::GetStreamingSplinesCompo
 TArray<ULandscapeSplinesComponent*> ULandscapeSplinesComponent::GetAllStreamingSplinesComponents()
 {
 	ALandscapeProxy* OuterLandscape = Cast<ALandscapeProxy>(GetOwner());
-	if (OuterLandscape)
+	if (OuterLandscape &&
+		// when copy/pasting this can get called with a null guid on the parent landscape
+		// this is fine, we won't have any cross-level meshes in this case anyway
+		OuterLandscape->GetLandscapeGuid().IsValid())
 	{
 		ULandscapeInfo* LandscapeInfo = OuterLandscape->GetLandscapeInfo();
-		check(LandscapeInfo);
 
-		TArray<ULandscapeSplinesComponent*> SplinesComponents;
-		SplinesComponents.Reserve(LandscapeInfo->Proxies.Num() + 1);
+		if (LandscapeInfo)
+		{
+			TArray<ULandscapeSplinesComponent*> SplinesComponents;
+			SplinesComponents.Reserve(LandscapeInfo->Proxies.Num() + 1);
 
-		ALandscape* RootLandscape = LandscapeInfo->LandscapeActor.Get();
-		if (RootLandscape && RootLandscape->SplineComponent)
-		{
-			SplinesComponents.Add(RootLandscape->SplineComponent);
-		}
-		for (ALandscapeProxy* LandscapeProxy : LandscapeInfo->Proxies)
-		{
-			if (LandscapeProxy && LandscapeProxy->SplineComponent)
+			ALandscape* RootLandscape = LandscapeInfo->LandscapeActor.Get();
+			if (RootLandscape && RootLandscape->SplineComponent)
 			{
-				SplinesComponents.Add(LandscapeProxy->SplineComponent);
+				SplinesComponents.Add(RootLandscape->SplineComponent);
 			}
-		}
+			for (ALandscapeProxy* LandscapeProxy : LandscapeInfo->Proxies)
+			{
+				if (LandscapeProxy && LandscapeProxy->SplineComponent)
+				{
+					SplinesComponents.Add(LandscapeProxy->SplineComponent);
+				}
+			}
 
-		return SplinesComponents;
+			return SplinesComponents;
+		}
 	}
 
 	return {};
@@ -891,14 +901,14 @@ void ULandscapeSplinesComponent::UpdateModificationKey(ULandscapeSplineControlPo
 
 void ULandscapeSplinesComponent::AddForeignMeshComponent(ULandscapeSplineSegment* Owner, USplineMeshComponent* Component)
 {
+	UWorld* OwnerWorld = Owner->GetTypedOuter<UWorld>();
+
 #if DO_GUARD_SLOW
 	UWorld* ThisOuterWorld = GetTypedOuter<UWorld>();
 	UWorld* ComponentOuterWorld = Component->GetTypedOuter<UWorld>();
 	checkSlow(ComponentOuterWorld == ThisOuterWorld);
-#endif
-
-	UWorld* OwnerWorld = Owner->GetTypedOuter<UWorld>();
 	checkSlow(OwnerWorld != ThisOuterWorld);
+#endif
 
 	auto& ForeignWorldSplineData = ForeignWorldSplineDataMap.FindOrAdd(OwnerWorld);
 	auto& ForeignSplineSegmentData = ForeignWorldSplineData.ForeignSplineSegmentDataMap.FindOrAdd(Owner);
@@ -910,14 +920,14 @@ void ULandscapeSplinesComponent::AddForeignMeshComponent(ULandscapeSplineSegment
 
 void ULandscapeSplinesComponent::RemoveForeignMeshComponent(ULandscapeSplineSegment* Owner, USplineMeshComponent* Component)
 {
+	UWorld* OwnerWorld = Owner->GetTypedOuter<UWorld>();
+
 #if DO_GUARD_SLOW
 	UWorld* ThisOuterWorld = GetTypedOuter<UWorld>();
 	UWorld* ComponentOuterWorld = Component->GetTypedOuter<UWorld>();
 	checkSlow(ComponentOuterWorld == ThisOuterWorld);
-#endif
-
-	UWorld* OwnerWorld = Owner->GetTypedOuter<UWorld>();
 	checkSlow(OwnerWorld != ThisOuterWorld);
+#endif
 
 	auto* ForeignWorldSplineData = ForeignWorldSplineDataMap.Find(OwnerWorld);
 	checkSlow(ForeignWorldSplineData);
@@ -971,14 +981,14 @@ void ULandscapeSplinesComponent::RemoveAllForeignMeshComponents(ULandscapeSpline
 
 void ULandscapeSplinesComponent::AddForeignMeshComponent(ULandscapeSplineControlPoint* Owner, UControlPointMeshComponent* Component)
 {
+	UWorld* OwnerWorld = Owner->GetTypedOuter<UWorld>();
+
 #if DO_GUARD_SLOW
 	UWorld* ThisOuterWorld = GetTypedOuter<UWorld>();
 	UWorld* ComponentOuterWorld = Component->GetTypedOuter<UWorld>();
 	checkSlow(ComponentOuterWorld == ThisOuterWorld);
-#endif
-
-	UWorld* OwnerWorld = Owner->GetTypedOuter<UWorld>();
 	checkSlow(OwnerWorld != ThisOuterWorld);
+#endif
 
 	auto& ForeignWorldSplineData = ForeignWorldSplineDataMap.FindOrAdd(OwnerWorld);
 	checkSlow(!ForeignWorldSplineData.ForeignControlPointDataMap.Find(Owner));
@@ -992,14 +1002,14 @@ void ULandscapeSplinesComponent::AddForeignMeshComponent(ULandscapeSplineControl
 
 void ULandscapeSplinesComponent::RemoveForeignMeshComponent(ULandscapeSplineControlPoint* Owner, UControlPointMeshComponent* Component)
 {
+	UWorld* OwnerWorld = Owner->GetTypedOuter<UWorld>();
+
 #if DO_GUARD_SLOW
 	UWorld* ThisOuterWorld = GetTypedOuter<UWorld>();
 	UWorld* ComponentOuterWorld = Component->GetTypedOuter<UWorld>();
 	checkSlow(ComponentOuterWorld == ThisOuterWorld);
-#endif
-
-	UWorld* OwnerWorld = Owner->GetTypedOuter<UWorld>();
 	checkSlow(OwnerWorld != ThisOuterWorld);
+#endif
 
 	auto* ForeignWorldSplineData = ForeignWorldSplineDataMap.Find(OwnerWorld);
 	checkSlow(ForeignWorldSplineData);

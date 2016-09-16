@@ -16,7 +16,7 @@ DECLARE_CYCLE_STAT( TEXT( "FillAlpha" ),       STAT_SPFillAlpha,       STATGROUP
 
 
 UENUM()
-enum class ECaptureStep
+enum class ECaptureStep : uint8
 {
 	Reset,
     SetStartPosition,

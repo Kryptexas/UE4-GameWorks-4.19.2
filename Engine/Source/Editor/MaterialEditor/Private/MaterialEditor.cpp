@@ -1003,7 +1003,7 @@ void FMaterialEditor::DrawMessages( FViewport* InViewport, FCanvas* Canvas )
 {
 	if( PreviewExpression != NULL )
 	{
-		Canvas->PushAbsoluteTransform( FMatrix::Identity );
+		Canvas->PushAbsoluteTransform( FTranslationMatrix(FVector(0.0f, 30.0f,0.0f) ) );
 
 		// The message to display in the viewport.
 		FString Name = FString::Printf( TEXT("Previewing: %s"), *PreviewExpression->GetName() );
@@ -1278,6 +1278,8 @@ void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 
 	if(PreviewExpression)
 	{
+		check(ExpressionPreviewMaterial);
+
 		// The preview material's expressions array must stay up to date before recompiling 
 		// So that RebuildMaterialFunctionInfo will see all the nested material functions that may need to be updated
 		ExpressionPreviewMaterial->Expressions = Material->Expressions;
@@ -1779,6 +1781,8 @@ void FMaterialEditor::UpdateGraphNodeStates()
 
 			if (MaterialNode->bIsErrorExpression && !MaterialNode->bHasCompilerMessage)
 			{
+				check(MaterialNode->MaterialExpression);
+
 				bUpdatedErrorState = true;
 				MaterialNode->bHasCompilerMessage = true;
 				MaterialNode->ErrorMsg = MaterialNode->MaterialExpression->LastErrorText;
@@ -2153,6 +2157,13 @@ void FMaterialEditor::OnConvertObjects()
 						NewGraphNode->ReplaceNode(GraphNode);
 
 						bool bNeedsRefresh = false;
+
+						// Copy over any common values
+						if (GraphNode->NodeComment.Len() > 0)
+						{
+							bNeedsRefresh = true; 
+							NewGraphNode->NodeComment = GraphNode->NodeComment;
+						}
 
 						// Copy over expression-specific values
 						if (Constant1Expression)

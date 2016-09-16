@@ -4,26 +4,6 @@
 
 #include "ModuleManager.h"
 
-#if WITH_EDITOR
-
-/** Profiler heat map display mode */
-namespace EBlueprintProfilerHeatMapDisplayMode
-{
-	enum Type
-	{
-		None = 0,
-		Inclusive,
-		Exclusive,
-		MaxTiming,
-		Total,
-		HottestPath,
-		HottestEndpoint,
-		PinToPin
-	};
-}
-
-#endif
-
 /** Delegate to broadcast structural stats changes */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBPStatGraphLayoutChanged, TWeakObjectPtr<UBlueprint>);
 
@@ -44,9 +24,12 @@ public:
 	virtual void ToggleProfilingCapture() {}
 
 	/** Instruments and add a profiling event to the data */
-	virtual void InstrumentEvent(const EScriptInstrumentationEvent& Event) {}
+	virtual void InstrumentEvent(const FScriptInstrumentationSignal& Event) {}
 
 #if WITH_EDITOR
+
+	/** Adds an instrumented blueprint directly */
+	virtual void AddInstrumentedBlueprint(UBlueprint* InstrumentedBlueprint) = 0;
 
 	/** Returns the multicast delegate to signal blueprint layout changes to stats */
 	virtual FOnBPStatGraphLayoutChanged& GetGraphLayoutChangedDelegate() = 0;
@@ -57,23 +40,14 @@ public:
 	/** Returns the current profiling event data for node */
 	virtual TSharedPtr<class FScriptExecutionNode> GetProfilerDataForNode(const UEdGraphNode* GraphNode) = 0;
 
+	/** Returns the current profiling event data for the given Blueprint */
+	virtual TSharedPtr<class FScriptExecutionBlueprint> GetProfilerDataForBlueprint(const UBlueprint* Blueprint) = 0;
+
 	/** Returns if the profiler currently retains any data for the specified instance */
 	virtual bool HasDataForInstance(const UObject* Instance) const { return false; }
 
 	/** Process profiling event data */
 	virtual void ProcessEventProfilingData() {}
-
-	/** Returns the current graph node heat map display mode setting */
-	virtual EBlueprintProfilerHeatMapDisplayMode::Type GetGraphNodeHeatMapDisplayMode() const = 0;
-
-	/** Sets the current graph node heat map display mode setting */
-	virtual void SetGraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) {}
-
-	/** Returns the current wire heat map display mode setting */
-	virtual EBlueprintProfilerHeatMapDisplayMode::Type GetWireHeatMapDisplayMode() const = 0;
-
-	/** Sets the current wire heat map display mode setting */
-	virtual void SetWireHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) {}
 
 #endif // WITH_EDITOR
 

@@ -80,7 +80,8 @@ void SGraphNodeAnimState::Construct(const FArguments& InArgs, UAnimStateNodeBase
 void SGraphNodeAnimState::GetStateInfoPopup(UEdGraphNode* GraphNode, TArray<FGraphInformationPopupInfo>& Popups)
 {
 	UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(FBlueprintEditorUtils::FindBlueprintForNodeChecked(GraphNode));
-	UAnimInstance* ActiveObject = (AnimBlueprint != NULL) ? Cast<UAnimInstance>(AnimBlueprint->GetObjectBeingDebugged()) : NULL;
+	check(AnimBlueprint);
+	UAnimInstance* ActiveObject = Cast<UAnimInstance>(AnimBlueprint->GetObjectBeingDebugged());
 	UAnimBlueprintGeneratedClass* Class = AnimBlueprint->GetAnimBlueprintGeneratedClass();
 
 	//FKismetNodeInfoContext* K2Context = (FKismetNodeInfoContext*)Context;
@@ -125,7 +126,8 @@ void SGraphNodeAnimState::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FG
 FSlateColor SGraphNodeAnimState::GetBorderBackgroundColor() const
 {
 	UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(FBlueprintEditorUtils::FindBlueprintForNodeChecked(GraphNode));
-	UAnimInstance* ActiveObject = (AnimBlueprint != NULL) ? Cast<UAnimInstance>(AnimBlueprint->GetObjectBeingDebugged()) : NULL;
+	check(AnimBlueprint);
+	UAnimInstance* ActiveObject = Cast<UAnimInstance>(AnimBlueprint->GetObjectBeingDebugged());
 	UAnimBlueprintGeneratedClass* Class = AnimBlueprint->GetAnimBlueprintGeneratedClass();
 
 	//FKismetNodeInfoContext* K2Context = (FKismetNodeInfoContext*)Context;

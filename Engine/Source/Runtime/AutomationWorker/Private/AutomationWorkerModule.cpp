@@ -210,7 +210,10 @@ void FAutomationWorkerModule::ReportTestComplete()
 			Message->ExecutionCount = ExecutionCount;
 			Message->Success = bSuccess;
 			Message->Duration = ExecutionInfo.Duration;
-			Message->Errors = ExecutionInfo.Errors;
+			for ( auto& Error : ExecutionInfo.Errors )
+			{
+				Message->Errors.Add(FAutomationWorkerEvent(Error));
+			}
 			Message->Warnings = ExecutionInfo.Warnings;
 			Message->Logs = ExecutionInfo.LogItems;
 

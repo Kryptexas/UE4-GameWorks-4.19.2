@@ -101,8 +101,9 @@ public:
 	 *
 	 * @param SectionObject The section to make UI for.
 	 * @param Track The track that owns the section.
+	 * @param ObjectBinding the object binding for the track that owns the section, if there is one.
 	 */
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) = 0;
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding) = 0;
 
 	/** Gets an icon brush for this track editor */
 	virtual const FSlateBrush* GetIconBrush() const { return nullptr; }

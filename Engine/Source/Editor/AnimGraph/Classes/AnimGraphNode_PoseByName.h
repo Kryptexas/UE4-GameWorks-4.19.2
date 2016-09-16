@@ -38,6 +38,10 @@ class UAnimGraphNode_PoseByName : public UAnimGraphNode_AssetPlayerBase
 	// End of UK2Node interface
 
 	virtual void SetAnimationAsset(UAnimationAsset* Asset) override;
+
+private:
+	FText GetNodeTitleForPoseAsset(ENodeTitleType::Type TitleType, UPoseAsset* InPoseAsset) const;
+
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedNodeTitle;

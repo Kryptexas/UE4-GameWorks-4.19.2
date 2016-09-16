@@ -368,6 +368,9 @@ struct FSkelMeshSection
 	/** The bones which are used by the vertices of this section. Indices of bones in the USkeletalMesh::RefSkeleton array */
 	TArray<FBoneIndexType> BoneMap;
 
+	/** Number of vertices in this section (size of SoftVertices array). Available in non-editor builds. */
+	int32 NumVertices;
+
 	/** max # of bones used to skin the vertices in this section */
 	int32 MaxBoneInfluences;
 
@@ -387,6 +390,7 @@ struct FSkelMeshSection
 		, bDisabled(false)
 		, CorrespondClothSectionIndex(-1)
 		, BaseVertexIndex(0)
+		, NumVertices(0)
 		, MaxBoneInfluences(4)
 		, CorrespondClothAssetIndex(INDEX_NONE)
 		, ClothAssetSubmeshIndex(INDEX_NONE)
@@ -398,7 +402,9 @@ struct FSkelMeshSection
 	*/
 	FORCEINLINE int32 GetNumVertices() const
 	{
-		return SoftVertices.Num();
+		// Either SoftVertices should be empty, or size should match NumVertices
+		check(SoftVertices.Num() == 0 || SoftVertices.Num() == NumVertices);
+		return NumVertices;
 	}
 
 	/**
@@ -1875,9 +1881,9 @@ protected:
 	float StreamingTexelFactor;
 #endif
 
-	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
-		const FStaticLODModel& LODModel, const int32 LODIndex, const int32 SectionIndex, 
-		const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector ) const;
+	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap,
+								   const FStaticLODModel& LODModel, const int32 LODIndex, const int32 SectionIndex, bool bSectionSelected,
+								   const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector) const;
 
 	void GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bInSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const;
 };

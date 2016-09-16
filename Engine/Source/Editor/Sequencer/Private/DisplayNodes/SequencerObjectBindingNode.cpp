@@ -112,6 +112,8 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 				LOCTEXT("OwnerTooltip", "Specifies how the spawned object is to be owned"),
 				FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::AddSpawnOwnershipMenu)
 			);
+
+			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ConvertToPossessable );
 		}
 		else
 		{
@@ -130,15 +132,21 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ConvertToSpawnable );
 		}
 
-		/*
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("Import FBX", "Import FBX..."),
+			LOCTEXT("Import FBX", "Import..."),
 			LOCTEXT("ImportFBXTooltip", "Import FBX animation to this object"),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateLambda([=]{ GetSequencer().ImportFBX(ObjectBinding); })
+				FExecuteAction::CreateLambda([=]{ GetSequencer().ImportFBX(); })
 			));
-			*/
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("Export FBX", "Export..."),
+			LOCTEXT("ExportFBXTooltip", "Export FBX animation from this object"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda([=]{ GetSequencer().ExportFBX(); })
+			));
 
 		MenuBuilder.BeginSection("Organize", LOCTEXT("OrganizeContextMenuSectionName", "Organize"));
 		{
@@ -625,13 +633,7 @@ void FSequencerObjectBindingNode::HandlePropertyMenuItemExecute(TArray<UProperty
 		}
 	}
 
-	FKeyPropertyParams KeyPropertyParams(KeyableBoundObjects, PropertyPath);
-	{
-		KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
-		KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
-		KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = true;
-		KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = true;
-	}
+	FKeyPropertyParams KeyPropertyParams(KeyableBoundObjects, PropertyPath, ESequencerKeyMode::ManualKeyForced);
 
 	Sequencer.KeyProperty(KeyPropertyParams);
 }

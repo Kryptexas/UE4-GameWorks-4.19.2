@@ -152,11 +152,13 @@ protected:
 	/** Sets the main windows to their default transform */
 	void SetDefaultWindowLayout();
 
+
 	/** Creates a VR-specific color picker. Gets bound to SColorPicker's creation override delegate */
 	void CreateVRColorPicker(const TSharedRef<SColorPicker>& ColorPicker);
 
 	/** Hides the VR-specific color picker. Gets bound to SColorPicker's destruction override delegate */
 	void DestroyVRColorPicker();
+
 
 protected:
 

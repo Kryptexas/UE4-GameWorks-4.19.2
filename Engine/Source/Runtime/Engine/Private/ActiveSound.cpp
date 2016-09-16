@@ -22,7 +22,6 @@ FActiveSound::FActiveSound()
 	, ConcurrencySettings(nullptr)
 	, SoundClassOverride(nullptr)
 	, bHasCheckedOcclusion(false)
-	, bIsTraceDelegateBound(false)
 	, bAllowSpatialization(true)
 	, bHasAttenuationSettings(false)
 	, bShouldRemainActiveIfDropped(false)
@@ -47,8 +46,6 @@ FActiveSound::FActiveSound()
 	, bWarnedAboutOrphanedLooping(false)
 #endif
 	, bEnableLowPassFilter(false)
-	, bOcclusionAsyncTrace(true)
-	, bIsAudible(true)
 	, UserIndex(0)
 	, bIsOccluded(false)
 	, bAsyncOcclusionPending(false)
@@ -70,7 +67,7 @@ FActiveSound::FActiveSound()
 	, FocusDistanceScale(1.0f)
 	, VolumeConcurrency(0.0f)
 	, OcclusionCheckInterval(0.f)
-	, LastOcclusionCheckTime(0.f)
+	, LastOcclusionCheckTime(TNumericLimits<float>::Lowest())
 	, MaxDistance(WORLD_MAX)
 	, LastLocation(FVector::ZeroVector)
 	, AudioVolumeID(0)
@@ -114,6 +111,15 @@ void FActiveSound::AddReferencedObjects( FReferenceCollector& Collector)
 
 	Collector.AddReferencedObject(Sound);
 	Collector.AddReferencedObject(SoundClassOverride);
+	Collector.AddReferencedObject(ConcurrencySettings);
+
+	for (FAudioComponentParam& Param : InstanceParameters)
+	{
+		if (Param.SoundWaveParam)
+		{
+			Collector.AddReferencedObject(Param.SoundWaveParam);
+		}
+	}
 }
 
 void FActiveSound::SetWorld(UWorld* InWorld)
@@ -253,9 +259,6 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	// The apparent max distance factors the actual max distance of the sound scaled with the distance scale due to focus effects
 	float ApparentMaxDistance = MaxDistance * FocusDistanceScale;
 
-	// Update whether or not his sound is out of range
-	bIsAudible = AudioDevice->LocationIsAudible(Transform.GetTranslation(), ClosestListenerPtr->Transform, ApparentMaxDistance);
-
 	FSoundParseParameters ParseParams;
 	ParseParams.Transform = Transform;
 	ParseParams.StartTime = RequestedStartTime;
@@ -267,15 +270,12 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	UpdateAdjustVolumeMultiplier(DeltaTime);
 
 	// If the sound is a preview sound, then ignore the transient master volume and application volume
-	float MasterVolume = AudioDevice->GetTransientMasterVolume(); 
-	float ApplicationVolume = FApp::GetVolumeMultiplier();
-	if (bIsPreviewSound)
+	if (!bIsPreviewSound)
 	{
-		MasterVolume = 1.0f;
-		ApplicationVolume = 1.0f;
+		ParseParams.VolumeApp = AudioDevice->GetTransientMasterVolume() * FApp::GetVolumeMultiplier();
 	}
 
-	ParseParams.VolumeMultiplier = VolumeMultiplier * Sound->GetVolumeMultiplier() * CurrentAdjustVolumeMultiplier * MasterVolume * ApplicationVolume * ConcurrencyVolumeScale;
+	ParseParams.VolumeMultiplier = VolumeMultiplier * Sound->GetVolumeMultiplier() * CurrentAdjustVolumeMultiplier * ConcurrencyVolumeScale;
 
 	ParseParams.Priority = Priority;
 	ParseParams.Pitch *= PitchMultiplier * Sound->GetPitchMultiplier();
@@ -333,7 +333,7 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 			VolumeConcurrency = 0.0f;
 			for (const FWaveInstance* WaveInstance : ThisSoundsWaveInstances)
 			{
-				const float WaveInstanceVolume = WaveInstance->GetActualVolume();
+				const float WaveInstanceVolume = WaveInstance->GetVolume();
 				if (WaveInstanceVolume > VolumeConcurrency)
 				{
 					VolumeConcurrency = WaveInstanceVolume;
@@ -425,25 +425,31 @@ void FActiveSound::UpdateOcclusion(const FAttenuationSettings* AttenuationSettin
 		CurrentOcclusionVolumeAttenuation.Set(1.0f, InterpolationTime);
 	}
 
-	UWorld* WorldPtr = World.Get();
-	CurrentOcclusionFilterFrequency.Update(WorldPtr->DeltaTimeSeconds);
-	CurrentOcclusionVolumeAttenuation.Update(WorldPtr->DeltaTimeSeconds);
+	const float DeltaTime = FApp::GetDeltaTime();
+	CurrentOcclusionFilterFrequency.Update(DeltaTime);
+	CurrentOcclusionVolumeAttenuation.Update(DeltaTime);
 }
 
 void FActiveSound::OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDatum& TraceDatum)
 {
 	// Look for any results that resulted in a blocking hit
-	bIsOccluded = false;
+	bool bFoundBlockingHit = false;
 	for (const FHitResult& HitResult : TraceDatum.OutHits)
 	{
 		if (HitResult.bBlockingHit)
 		{
-			bIsOccluded = true;
+			bFoundBlockingHit = true;
 			break;
 		}
 	}
 
-	bAsyncOcclusionPending = false;
+	FActiveSound* ActiveSound = this;
+
+	FAudioThread::RunCommandOnAudioThread([ActiveSound, bFoundBlockingHit]()
+	{
+		ActiveSound->bIsOccluded = bFoundBlockingHit;
+		ActiveSound->bAsyncOcclusionPending = false;
+	});
 }
 
 void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FAttenuationSettings* AttenuationSettingsPtr)
@@ -451,41 +457,52 @@ void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector 
 	check(AttenuationSettingsPtr);
 	check(AttenuationSettingsPtr->bEnableOcclusion);
 
-	UWorld* WorldPtr = World.Get();
-	float WorldTime = WorldPtr->GetTimeSeconds();
-
-	if ((WorldTime - LastOcclusionCheckTime) > OcclusionCheckInterval)
+	if (!bAsyncOcclusionPending && (PlaybackTime - LastOcclusionCheckTime) > OcclusionCheckInterval)
 	{
-		LastOcclusionCheckTime = WorldTime;
+		LastOcclusionCheckTime = PlaybackTime;
 		static FName NAME_SoundOcclusion = FName(TEXT("SoundOcclusion"));
 
-		FCollisionQueryParams Params(NAME_SoundOcclusion, AttenuationSettingsPtr->bUseComplexCollisionForOcclusion);
-		if (OwnerID > 0)
-		{
-			Params.AddIgnoredActor(OwnerID);
-		}
+		const bool bUseComplexCollisionForOcclusion = AttenuationSettingsPtr->bUseComplexCollisionForOcclusion;
+		const ECollisionChannel OcclusionTraceChannel = AttenuationSettingsPtr->OcclusionTraceChannel;
 
-		if (bOcclusionAsyncTrace)
+		if (!OcclusionTraceDelegate.IsBound())
 		{
-			ECollisionChannel OcclusionTraceChannel = AttenuationSettingsPtr->OcclusionTraceChannel;
+			OcclusionTraceDelegate.BindRaw(this, &FActiveSound::OcclusionTraceDone);
 
-			// Check if we've not already bound our trace delegate
-			if (!bIsTraceDelegateBound)
+			FCollisionQueryParams Params(NAME_SoundOcclusion, bUseComplexCollisionForOcclusion);
+			if (OwnerID > 0)
 			{
-				bIsTraceDelegateBound = true;
+				Params.AddIgnoredActor(OwnerID);
+			}
 
-				// Bind our async occlusion trace delegate (so next update we'll have it bound)
-				OcclusionTraceDelegate.BindRaw(this, &FActiveSound::OcclusionTraceDone);
-
-				// Only do async occlusion trace if we've already made one. The first trace must be synchronous to avoid issues with sounds starting playing as occluded
+			if (UWorld* WorldPtr = World.Get())
+			{
+				// LineTraceTestByChannel is generally threadsafe, but there is a very narrow race condition here 
+				// if World goes invalid before the scene lock and queries begin.
 				bIsOccluded = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, OcclusionTraceChannel, Params);
 			}
-			// don't need to do another async trace if we've already got one pending
-			else if (!bAsyncOcclusionPending)
+		}
+		else
+		{
+			bAsyncOcclusionPending = true;
+
+			const uint32 SoundOwnerID = OwnerID;
+			FTraceDelegate* TraceDelegate = &OcclusionTraceDelegate;
+			TWeakObjectPtr<UWorld> SoundWorld = World;
+
+			FAudioThread::RunCommandOnGameThread([SoundWorld, SoundLocation, ListenerLocation, OcclusionTraceChannel, SoundOwnerID, bUseComplexCollisionForOcclusion, TraceDelegate]
 			{
-				bAsyncOcclusionPending = true;
-				WorldPtr->AsyncLineTraceByChannel(EAsyncTraceType::Test, SoundLocation, ListenerLocation, OcclusionTraceChannel, Params, FCollisionResponseParams::DefaultResponseParam, &OcclusionTraceDelegate);
-			}
+				if (UWorld* WorldPtr = SoundWorld.Get())
+				{
+					FCollisionQueryParams Params(NAME_SoundOcclusion, bUseComplexCollisionForOcclusion);
+					if (SoundOwnerID > 0)
+					{
+						Params.AddIgnoredActor(SoundOwnerID);
+					}
+
+					WorldPtr->AsyncLineTraceByChannel(EAsyncTraceType::Test, SoundLocation, ListenerLocation, OcclusionTraceChannel, Params, FCollisionResponseParams::DefaultResponseParam, TraceDelegate);
+				}
+			});
 		}
 	}
 
@@ -594,9 +611,8 @@ bool FActiveSound::GetFloatParameter( const FName InName, float& OutFloat ) cons
 	// Always fail if we pass in no name.
 	if( InName != NAME_None )
 	{
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( const FAudioComponentParam& P : InstanceParameters )
 		{
-			const FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				OutFloat = P.FloatParam;
@@ -613,9 +629,8 @@ void FActiveSound::SetFloatParameter( const FName InName, const float InFloat )
 	if( InName != NAME_None )
 	{
 		// First see if an entry for this name already exists
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				P.FloatParam = InFloat;
@@ -624,7 +639,7 @@ void FActiveSound::SetFloatParameter( const FName InName, const float InFloat )
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
+		const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 		InstanceParameters[ NewParamIndex ].ParamName = InName;
 		InstanceParameters[ NewParamIndex ].FloatParam = InFloat;
 	}
@@ -635,9 +650,8 @@ bool FActiveSound::GetWaveParameter( const FName InName, USoundWave*& OutWave ) 
 	// Always fail if we pass in no name.
 	if( InName != NAME_None )
 	{
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( const FAudioComponentParam& P : InstanceParameters )
 		{
-			const FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				OutWave = P.SoundWaveParam;
@@ -649,14 +663,13 @@ bool FActiveSound::GetWaveParameter( const FName InName, USoundWave*& OutWave ) 
 	return false;
 }
 
-void FActiveSound::SetWaveParameter( FName InName, USoundWave* InWave )
+void FActiveSound::SetWaveParameter( const FName InName, USoundWave* InWave )
 {
 	if( InName != NAME_None )
 	{
 		// First see if an entry for this name already exists
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				P.SoundWaveParam = InWave;
@@ -665,7 +678,7 @@ void FActiveSound::SetWaveParameter( FName InName, USoundWave* InWave )
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
+		const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 		InstanceParameters[ NewParamIndex ].ParamName = InName;
 		InstanceParameters[ NewParamIndex ].SoundWaveParam = InWave;
 	}
@@ -676,9 +689,8 @@ bool FActiveSound::GetBoolParameter( const FName InName, bool& OutBool ) const
 	// Always fail if we pass in no name.
 	if( InName != NAME_None )
 	{
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( const FAudioComponentParam& P : InstanceParameters )
 		{
-			const FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				OutBool = P.BoolParam;
@@ -690,14 +702,13 @@ bool FActiveSound::GetBoolParameter( const FName InName, bool& OutBool ) const
 	return false;
 }
 
-void FActiveSound::SetBoolParameter( FName InName, const bool InBool )
+void FActiveSound::SetBoolParameter( const FName InName, const bool InBool )
 {
 	if( InName != NAME_None )
 	{
 		// First see if an entry for this name already exists
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				P.BoolParam = InBool;
@@ -706,7 +717,7 @@ void FActiveSound::SetBoolParameter( FName InName, const bool InBool )
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
+		const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 		InstanceParameters[ NewParamIndex ].ParamName = InName;
 		InstanceParameters[ NewParamIndex ].BoolParam = InBool;
 	}
@@ -717,9 +728,8 @@ int32 FActiveSound::GetIntParameter( const FName InName, int32& OutInt ) const
 	// Always fail if we pass in no name.
 	if( InName != NAME_None )
 	{
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( const FAudioComponentParam& P : InstanceParameters )
 		{
-			const FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				OutInt = P.IntParam;
@@ -731,14 +741,13 @@ int32 FActiveSound::GetIntParameter( const FName InName, int32& OutInt ) const
 	return false;
 }
 
-void FActiveSound::SetIntParameter( FName InName, const int32 InInt )
+void FActiveSound::SetIntParameter( const FName InName, const int32 InInt )
 {
 	if( InName != NAME_None )
 	{
 		// First see if an entry for this name already exists
-		for( int32 Index = 0; Index < InstanceParameters.Num(); ++Index )
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if( P.ParamName == InName )
 			{
 				P.IntParam = InInt;
@@ -747,7 +756,7 @@ void FActiveSound::SetIntParameter( FName InName, const int32 InInt )
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
+		const int32 NewParamIndex = InstanceParameters.AddDefaulted();
 		InstanceParameters[ NewParamIndex ].ParamName = InName;
 		InstanceParameters[ NewParamIndex ].IntParam = InInt;
 	}
@@ -758,9 +767,8 @@ void FActiveSound::SetSoundParameter(const FAudioComponentParam& Param)
 	if (Param.ParamName != NAME_None)
 	{
 		// First see if an entry for this name already exists
-		for (int32 Index = 0; Index < InstanceParameters.Num(); ++Index)
+		for( FAudioComponentParam& P : InstanceParameters )
 		{
-			FAudioComponentParam& P = InstanceParameters[Index];
 			if (P.ParamName == Param.ParamName)
 			{
 				P = Param;
@@ -769,8 +777,7 @@ void FActiveSound::SetSoundParameter(const FAudioComponentParam& Param)
 		}
 
 		// We didn't find one, so create a new one.
-		const int32 NewParamIndex = InstanceParameters.AddZeroed();
-		InstanceParameters[NewParamIndex] = Param;
+		const int32 NewParamIndex = InstanceParameters.Add(Param);
 	}
 }
 

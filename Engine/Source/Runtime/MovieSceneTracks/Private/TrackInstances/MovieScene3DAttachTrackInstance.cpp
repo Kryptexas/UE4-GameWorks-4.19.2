@@ -13,23 +13,37 @@ FMovieScene3DAttachTrackInstance::FMovieScene3DAttachTrackInstance( UMovieScene3
 { }
 
 
-void FMovieScene3DAttachTrackInstance::UpdateConstraint( float Position, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection ) 
+void FMovieScene3DAttachTrackInstance::UpdateConstraint(EMovieSceneUpdatePass UpdatePass, float Position, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection )
 {
-	FVector Translation;
-	FRotator Rotation;
-
-	UMovieScene3DAttachSection* AttachSection = CastChecked<UMovieScene3DAttachSection>(ConstraintSection);
-
-	for( int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex )
+	if (UpdatePass == MSUP_PreUpdate)
 	{
-		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex].Get());
-
-		if (SceneComponent != nullptr)
+		for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
 		{
-			AttachSection->Eval(SceneComponent, Position, Actor, Translation, Rotation);
+			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex].Get());
+			if (SceneComponent != nullptr)
+			{
+				SceneComponent->ResetRelativeTransform();
+			}
+		}
+	}
+	else if (UpdatePass == MSUP_PostUpdate)
+	{
+		FVector Translation;
+		FRotator Rotation;
 
-			// Set the relative translation and rotation.  Note they are set once instead of individually to avoid a redundant component transform update.
-			SceneComponent->SetRelativeLocationAndRotation(Translation, Rotation);
+		UMovieScene3DAttachSection* AttachSection = CastChecked<UMovieScene3DAttachSection>(ConstraintSection);
+
+		for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
+		{
+			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex].Get());
+
+			if (SceneComponent != nullptr)
+			{
+				AttachSection->Eval(SceneComponent, Position, Actor, Translation, Rotation);
+
+				// Set the relative translation and rotation.  Note they are set once instead of individually to avoid a redundant component transform update.
+				SceneComponent->SetRelativeLocationAndRotation(Translation, Rotation);
+			}
 		}
 	}
 }

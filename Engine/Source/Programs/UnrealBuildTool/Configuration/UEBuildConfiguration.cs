@@ -99,7 +99,14 @@ namespace UnrealBuildTool
         [XmlConfig]
         public static bool bCompileSimplygonSSF;
 
-		/// <summary>
+        /// <summary>
+        /// Whether we should compile in support for Steam OnlineSubsystem or not.
+        /// </summary>
+        [Obsolete("To use OnlineSubsystemSteam, include the OnlineSubsystemSteam uplugin in your uproject", true)]
+        [XmlConfig]
+        public static bool bCompileSteamOSS;
+
+        /// <summary>
 		/// Whether to compile lean and mean version of UE.
 		/// </summary>
 		[XmlConfig]
@@ -241,10 +248,16 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUseLoggingInShipping;
 
-        /// <summary>
-        /// Whether to check that the process was launched through an external launcher
-        /// </summary>
-        [XmlConfig]
+		/// <summary>
+		/// Whether to turn on logging to memory for test/shipping builds
+		/// </summary>
+		[XmlConfig]
+		public static bool bLoggingToMemoryEnabled;
+
+		/// <summary>
+		/// Whether to check that the process was launched through an external launcher
+		/// </summary>
+		[XmlConfig]
         public static bool bUseLauncherChecks;
 
 		/// <summary>

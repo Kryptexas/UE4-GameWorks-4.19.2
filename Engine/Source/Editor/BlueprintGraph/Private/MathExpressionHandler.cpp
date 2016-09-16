@@ -73,6 +73,8 @@ FBlueprintCompiledStatement* FKCHandler_MathExpression::GenerateFunctionRPN(UEdG
 	Statement.Type = KCST_CallFunction;
 	Statement.LHS = ResultTerm; // required only for the first node
 
+	check(CallFunctionNode);
+
 	TArray<FBPTerminal*> RHSTerms;
 	for (TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & CPF_Parm); ++It)
 	{

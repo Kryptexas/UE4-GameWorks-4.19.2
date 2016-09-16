@@ -374,7 +374,9 @@ void FLinuxWindow::Destroy()
 	OwningApplication->RemoveEventWindow( HWnd );
 	OwningApplication->RemoveNotificationWindow( HWnd );
 
-	SDL_DestroyWindow( HWnd );
+	// We cannot destroy the window right now as it may be accessed by render thread, since Slate queued it for drawing earlier.
+	// To make sure no window gets destroyed while we're blitting into it, defer destroying the window to the app.
+	OwningApplication->DestroyNativeWindow(HWnd);
 }
 
 /** Native window should implement this function by performing the equivalent of the Win32 minimize-to-taskbar operation */
@@ -453,8 +455,8 @@ void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 
 	{
 		// Fullscreen and WindowedFullscreen both use SDL_WINDOW_FULLSCREEN_DESKTOP now
 		//  and code elsewhere handles the backbufer blit properly. This solves several
-		//  problems that actual mode switches cause, and a GPU scales better than your
-		//  cheap LCD display anyhow.
+		//  problems that actual mode switches cause, and a GPU scales better than LCD display.
+		// If this is changed, change SetWindowMode() and FSystemResolution::RequestResolutionChange() as well.
 		case EWindowMode::Fullscreen:
 		case EWindowMode::WindowedFullscreen:
 		{
@@ -462,7 +464,8 @@ void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 
 			SDL_SetWindowSize( HWnd, NewWidth, NewHeight );
 			SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN_DESKTOP );
 			bWasFullscreen = true;
-		}	break;
+		}
+		break;
 
 		case EWindowMode::Windowed:
 		{
@@ -478,7 +481,8 @@ void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 
 
 			bWasFullscreen = false;
 
-		}	break;
+		}
+		break;
 	}
 
 	RegionWidth   = NewWidth;
@@ -496,8 +500,8 @@ void FLinuxWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		{
 			// Fullscreen and WindowedFullscreen both use SDL_WINDOW_FULLSCREEN_DESKTOP now
 			//  and code elsewhere handles the backbufer blit properly. This solves several
-			//  problems that actual mode switches cause, and a GPU scales better than your
-			//  cheap LCD display anyhow.
+			//  problems that actual mode switches cause, and a GPU scales better than LCD display.
+			// If this is changed, change ReshapeWindow() and FSystemResolution::RequestResolutionChange() as well.
 			case EWindowMode::Fullscreen:
 			case EWindowMode::WindowedFullscreen:
 			{
@@ -507,7 +511,8 @@ void FLinuxWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 					SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN_DESKTOP );
 					bWasFullscreen = true;
 				}
-			}	break;
+			}
+			break;
 
 			case EWindowMode::Windowed:
 			{
@@ -524,7 +529,8 @@ void FLinuxWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 				SDL_SetWindowGrab( HWnd, SDL_FALSE );
 
 				bWasFullscreen = false;
-			}	break;
+			}
+			break;
 		}
 
 

@@ -343,6 +343,13 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 					WerReportAddFile(ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA);
 				}
 
+				// If present, include the crash report config file to pass config values to the CRC
+				const TCHAR* CrashConfigFilePath = FWindowsPlatformCrashContext::GetCrashConfigFilePath();
+				if (IFileManager::Get().FileExists(CrashConfigFilePath))
+				{
+					WerReportAddFile(ReportHandle, CrashConfigFilePath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA);
+				}
+
 				const FString CrashVideoPath = FPaths::GameLogDir() / TEXT( "CrashVideo.avi" );
 				WerReportAddFile( ReportHandle, *CrashVideoPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );		
 			}
@@ -367,7 +374,7 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 		// Suppress the user input dialog if we're running in unattended mode
 		bool bNoDialog = FApp::IsUnattended() || ReportUI == EErrorReportUI::ReportInUnattendedMode || IsRunningDedicatedServer();
 		// Pass nullrhi to CRC when the engine is in this mode to stop the CRC attempting to initialize RHI when the capability isn't available
-		bool bNullRHI = FApp::ShouldUseNullRHI();
+		bool bNullRHI = !FApp::CanEverRender();
 
 		if (bNoDialog || bNullRHI)
 		{

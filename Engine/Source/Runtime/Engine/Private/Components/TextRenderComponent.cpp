@@ -858,7 +858,7 @@ FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform& LocalToWorld
 	}
 	else
 	{
-		return FBoxSphereBounds(ForceInit);
+		return FBoxSphereBounds(ForceInit).TransformBy(LocalToWorld);
 	}
 }
 

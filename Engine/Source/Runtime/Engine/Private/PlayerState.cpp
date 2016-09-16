@@ -75,6 +75,17 @@ void APlayerState::RecalculateAvgPing()
 	Ping = FMath::Min(255, (int32)(ExactPing * 0.25f));
 }
 
+void APlayerState::DispatchOverrideWith(APlayerState* PlayerState)
+{
+	OverrideWith(PlayerState);
+	ReceiveOverrideWith(PlayerState);
+}
+
+void APlayerState::DispatchCopyProperties(APlayerState* PlayerState)
+{
+	CopyProperties(PlayerState);
+	ReceiveCopyProperties(PlayerState);
+}
 
 void APlayerState::OverrideWith(APlayerState* PlayerState)
 {
@@ -302,14 +313,14 @@ APlayerState* APlayerState::Duplicate()
 	// Can fail in case of multiplayer PIE teardown
 	if (NewPlayerState)
 	{
-		CopyProperties(NewPlayerState);
+		DispatchCopyProperties(NewPlayerState);
 	}
 	return NewPlayerState;
 }
 
 void APlayerState::SeamlessTravelTo(APlayerState* NewPlayerState)
 {
-	CopyProperties(NewPlayerState);
+	DispatchCopyProperties(NewPlayerState);
 	NewPlayerState->bOnlySpectator = bOnlySpectator;
 }
 
@@ -319,7 +330,7 @@ bool APlayerState::IsPrimaryPlayer() const
 	return true;
 }
 
-void APlayerState::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
+void APlayerState::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 

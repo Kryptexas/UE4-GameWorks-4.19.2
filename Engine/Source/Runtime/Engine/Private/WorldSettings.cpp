@@ -40,6 +40,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 
 	bEnableWorldBoundsChecks = true;
 	bEnableNavigationSystem = true;
+	bEnableAISystem = true;
 	bEnableWorldComposition = false;
 	bEnableWorldOriginRebasing = false;
 #if WITH_EDITORONLY_DATA	
@@ -254,11 +255,10 @@ void AWorldSettings::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	FHierarchicalSimplification DefaultObject;
-
-	for (FHierarchicalSimplification Entry : HierarchicalLODSetup)
+	for (FHierarchicalSimplification& Entry : HierarchicalLODSetup)
 	{
-		Entry.ProxySetting.PostLoadDeprecated();	
+		Entry.ProxySetting.PostLoadDeprecated();
+		Entry.MergeSetting.LODSelectionType = EMeshLODSelectionType::CalculateLOD;
 	}
 #endif// WITH_EDITOR
 }

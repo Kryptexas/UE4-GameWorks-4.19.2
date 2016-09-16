@@ -4,9 +4,12 @@
 
 #include "MovieSceneLevelVisibilitySection.generated.h"
 
-/** Visibility options for the level visibility section. */
+
+/**
+ * Visibility options for the level visibility section.
+ */
 UENUM()
-enum class ELevelVisibility
+enum class ELevelVisibility : uint8
 {
 	/** The streamed levels should be visible. */
 	Visible,
@@ -14,6 +17,7 @@ enum class ELevelVisibility
 	/** The streamed levels should be hidden. */
 	Hidden
 };
+
 
 /**
  * A section for use with the movie scene level visibility track, which controls streamed level visibility.
@@ -23,6 +27,7 @@ class MOVIESCENETRACKS_API UMovieSceneLevelVisibilitySection
 	: public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
+
 public:
 
 	ELevelVisibility GetVisibility() const;
@@ -30,16 +35,20 @@ public:
 
 	TArray<FName>* GetLevelNames();
 
-	// UMovieSceneSection interface
-	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
-	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
+public:
+
+	//~ UMovieSceneSection interface
+
+	virtual TOptional<float> GetKeyTime(FKeyHandle KeyHandle) const override;
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float Time) override;
 
 private:
+
 	/** Whether or not the levels in this section should be visible or hidden. */
-	UPROPERTY( EditAnywhere, Category = LevelVisibility )
-	TEnumAsByte<ELevelVisibility> Visibility;
+	UPROPERTY(EditAnywhere, Category = LevelVisibility)
+	ELevelVisibility Visibility;
 
 	/** The short names of the levels who's visibility is controlled by this section. */
-	UPROPERTY( EditAnywhere, Category = LevelVisibility )
+	UPROPERTY(EditAnywhere, Category = LevelVisibility)
 	TArray<FName> LevelNames;
 };

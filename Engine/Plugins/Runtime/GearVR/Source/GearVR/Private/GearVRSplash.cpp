@@ -321,20 +321,20 @@ void FGearVRSplash::PushFrame()
 			struct FSplashRenParams
 			{
 				FCustomPresent*	pCustomPresent;
-				FHMDGameFrameRef		CurrentFrame;
-				FHMDGameFrameRef*		RenderFrameRef;
+				FHMDGameFramePtr		CurrentFrame;
+				FHMDGameFramePtr*		RenderFramePtr;
 			};
 
 			FSplashRenParams params;
 			params.pCustomPresent = pCustomPresent;
 			params.CurrentFrame = _CurrentFrame;
-			params.RenderFrameRef = &RenderFrame;
+			params.RenderFramePtr = &RenderFrame;
 
 			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(SubmitSplash,
 			const FSplashRenParams&, Params, params,
 			FLayerManager*, LayerMgr, (FLayerManager*)(LayerMgr.Get()),
 			{
-				*Params.RenderFrameRef = Params.CurrentFrame;
+				*Params.RenderFramePtr = Params.CurrentFrame;
 
 				auto pCurrentFrame = static_cast<FGameFrame*>(Params.CurrentFrame.Get());
 				FOvrMobileSynced OvrMobile(Params.pCustomPresent->GetMobileSynced());

@@ -26,6 +26,11 @@
 /** The global center for all deferred lighting activities. */
 FCompositionLighting GCompositionLighting;
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition BeforeBasePass"), Stat_GPU_CompositionBeforeBasePass, STATGROUP_GPU);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition PreLighting"), Stat_GPU_CompositionPreLighting, STATGROUP_GPU);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition LpvIndirect"), Stat_GPU_CompositionLpvIndirect, STATGROUP_GPU);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Composition PostLighting"), Stat_GPU_CompositionPostLighting, STATGROUP_GPU);
+
 // -------------------------------------------------------
 
 static TAutoConsoleVariable<float> CVarSSSScale(
@@ -109,22 +114,30 @@ static bool IsSkylightActive(const FViewInfo& View)
 		&& View.Family->EngineShowFlags.SkyLighting;
 }
 
+bool ShouldRenderScreenSpaceAmbientOcclusion(const FViewInfo& View)
+{
+	bool bEnabled = true;
+
+	if (!IsLpvIndirectPassRequired(View))
+	{
+		bEnabled = View.FinalPostProcessSettings.AmbientOcclusionIntensity > 0
+			&& View.Family->EngineShowFlags.Lighting
+			&& View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f
+			&& !View.Family->UseDebugViewPS()
+			&& (FSSAOHelper::IsBasePassAmbientOcclusionRequired(View) || IsAmbientCubemapPassRequired(View) || IsReflectionEnvironmentActive(View) || IsSkylightActive(View) || View.Family->EngineShowFlags.VisualizeBuffer)
+			&& !IsAnyForwardShadingEnabled(View.GetShaderPlatform());
+	}
+
+	return bEnabled;
+}
+
 // @return 0:off, 0..3
 uint32 ComputeAmbientOcclusionPassCount(const FViewInfo& View)
 {
 	// 0:off / 1 / 2 / 3
 	uint32 Ret = 0;
 
-	bool bEnabled = true;
-
-	if (!IsLpvIndirectPassRequired(View))
-	{
-		bEnabled = View.FinalPostProcessSettings.AmbientOcclusionIntensity > 0
-			&& View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f
-			&& !View.Family->UseDebugViewPS()
-			&& (FSSAOHelper::IsBasePassAmbientOcclusionRequired(View) || IsAmbientCubemapPassRequired(View) || IsReflectionEnvironmentActive(View) || IsSkylightActive(View) || View.Family->EngineShowFlags.VisualizeBuffer)
-			&& !IsAnyForwardShadingEnabled(View.GetShaderPlatform());
-	}
+	const bool bEnabled = ShouldRenderScreenSpaceAmbientOcclusion(View);
 
 	if (bEnabled)
 	{
@@ -281,6 +294,7 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(RHICmdList, CompositionBeforeBasePass);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionBeforeBasePass);
 
 		CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("Composition_BeforeBasePass"));
 	}
@@ -360,6 +374,7 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(RHICmdList, LightCompositionTasks_PreLighting);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionPreLighting);
 
 		TRefCountPtr<IPooledRenderTarget>& SceneColor = SceneContext.GetSceneColor();
 
@@ -394,6 +409,7 @@ void FCompositionLighting::ProcessLpvIndirect(FRHICommandListImmediate& RHICmdLi
 	// The graph setup should be finished before this line ----------------------------------------
 
 	SCOPED_DRAW_EVENT(RHICmdList, CompositionLpvIndirect);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionLpvIndirect);
 
 	// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 
@@ -415,7 +431,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 		{
 			float Radius = CVarSSSScale.GetValueOnRenderThread();
 			bool bSimpleDynamicLighting = IsAnyForwardShadingEnabled(View.GetShaderPlatform());
-			bool bScreenSpaceSubsurfacePassNeeded = (View.ShadingModelMaskInView & (1 << MSM_SubsurfaceProfile)) != 0;
+			bool bScreenSpaceSubsurfacePassNeeded = ((View.ShadingModelMaskInView & (1 << MSM_SubsurfaceProfile)) != 0) && IsSubsurfacePostprocessRequired();
 			bool bSubsurfaceAllowed = CVarSubsurfaceScattering.GetValueOnRenderThread() == 1;
 
 			if (bScreenSpaceSubsurfacePassNeeded 
@@ -457,6 +473,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 		// The graph setup should be finished before this line ----------------------------------------
 
 		SCOPED_DRAW_EVENT(RHICmdList, CompositionAfterLighting);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CompositionPostLighting);
 
 		// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 
@@ -548,4 +565,11 @@ void FCompositionLighting::GfxWaitForAsyncSSAO(FRHICommandListImmediate& RHICmdL
 		RHICmdList.WaitComputeFence(AsyncSSAOFence);
 		AsyncSSAOFence = nullptr;
 	}
+}
+
+bool FCompositionLighting::IsSubsurfacePostprocessRequired() const
+{
+	const bool bSSSEnabled = CVarSubsurfaceScattering->GetInt() != 0;
+	const bool bSSSScaleEnabled = CVarSSSScale.GetValueOnAnyThread() > 0.0f;
+	return (bSSSEnabled && bSSSScaleEnabled);	
 }

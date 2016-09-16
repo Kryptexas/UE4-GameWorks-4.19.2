@@ -81,6 +81,9 @@ public:
 	/** Refresh list */
 	void SelectAsset(UAnimationAsset * AnimAsset);
 
+	/** public reference to add to history */
+	void AddToHistory(UAnimationAsset * AnimAsset);
+
 protected:
 	bool CanShowColumnForAssetRegistryTag(FName AssetType, FName TagName) const;
 	

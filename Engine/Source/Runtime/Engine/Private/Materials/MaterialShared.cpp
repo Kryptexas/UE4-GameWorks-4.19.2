@@ -126,7 +126,7 @@ static bool SerializeExpressionInput(FArchive& Ar, FExpressionInput& Input)
 	}
 
 #if WITH_EDITORONLY_DATA
-	if (!Ar.IsCooking())
+	if (!Ar.IsFilterEditorOnly())
 	{
 		Ar << Input.Expression;
 	}
@@ -141,7 +141,7 @@ static bool SerializeExpressionInput(FArchive& Ar, FExpressionInput& Input)
 
 	// Some expressions may have been stripped when cooking and Expression can be null after loading
 	// so make sure we keep the information about the connected node in cooked packages
-	if (FPlatformProperties::RequiresCookedData() || (Ar.IsSaving() && Ar.IsCooking()))
+	if ( Ar.IsFilterEditorOnly() )
 	{
 #if WITH_EDITORONLY_DATA
 		if (Ar.IsSaving())
@@ -573,7 +573,8 @@ bool FMaterial::NeedsGBuffer() const
 {
 	check(IsInParallelRenderingThread());
 
-	if (IsOpenGLPlatform(GMaxRHIShaderPlatform)) // @todo: TTP #341211
+	if (IsOpenGLPlatform(GMaxRHIShaderPlatform) // @todo: TTP #341211
+		&& !IsMobilePlatform(GMaxRHIShaderPlatform)) 
 	{
 		return true;
 	}
@@ -920,6 +921,11 @@ bool FMaterialResource::IsFullyRough() const
 	return Material->bFullyRough;
 }
 
+bool FMaterialResource::UseNormalCurvatureToRoughness() const
+{
+	return Material->bNormalCurvatureToRoughness;
+}
+
 bool FMaterialResource::IsUsingFullPrecision() const
 {
 	return Material->bUseFullPrecision;
@@ -994,6 +1000,11 @@ bool FMaterialResource::IsDitheredLODTransition() const
 	return MaterialInstance ? MaterialInstance->IsDitheredLODTransition() : Material->IsDitheredLODTransition();
 }
 
+bool FMaterialResource::IsTranslucencyWritingCustomDepth() const
+{
+	return Material->IsTranslucencyWritingCustomDepth();
+}
+
 bool FMaterialResource::IsMasked() const 
 {
 	return MaterialInstance ? MaterialInstance->IsMasked() : Material->IsMasked();
@@ -1053,9 +1064,14 @@ int32 FMaterialResource::GetNumCustomizedUVs() const
 	return Material->NumCustomizedUVs;
 }
 
+int32 FMaterialResource::GetBlendableLocation() const
+{
+	return Material->BlendableLocation;
+}
+
 void FMaterialResource::NotifyCompilationFinished()
 {
-	Material->NotifyCompilationFinished(this);
+	UMaterial::NotifyCompilationFinished(MaterialInstance ? (UMaterialInterface*)MaterialInstance : (UMaterialInterface*)Material);
 }
 
 /**
@@ -1377,6 +1393,11 @@ void FMaterial::SetupMaterialEnvironment(
 			}
 			break;
 		}
+	case BLEND_AlphaComposite: 
+		{
+			// Fall through the case, blend mode will reuse MATERIALBLENDING_TRANSLUCENT
+			OutEnvironment.SetDefine(TEXT("MATERIALBLENDING_ALPHACOMPOSITE"), TEXT("1"));
+		}
 	case BLEND_Translucent: OutEnvironment.SetDefine(TEXT("MATERIALBLENDING_TRANSLUCENT"),TEXT("1")); break;
 	case BLEND_Additive: OutEnvironment.SetDefine(TEXT("MATERIALBLENDING_ADDITIVE"),TEXT("1")); break;
 	case BLEND_Modulate: OutEnvironment.SetDefine(TEXT("MATERIALBLENDING_MODULATE"),TEXT("1")); break;
@@ -1431,6 +1452,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_SSR"), ShouldDoSSR());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_BLOCK_GI"), ShouldBlockGI());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_DITHER_OPACITY_MASK"), IsDitherMasked());
+	OutEnvironment.SetDefine(TEXT("MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS"), UseNormalCurvatureToRoughness() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_ALLOW_NEGATIVE_EMISSIVECOLOR"), AllowNegativeEmissiveColor());
 
 	if (IsUsingFullPrecision())
@@ -1584,7 +1606,7 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 
 	if (GameThreadShaderMap && GameThreadShaderMap->TryToAddToExistingCompilationTask(this))
 	{
-		OutstandingCompileShaderMapIds.Add(GameThreadShaderMap->GetCompilingId());
+		OutstandingCompileShaderMapIds.AddUnique(GameThreadShaderMap->GetCompilingId());
 		// Reset the shader map so the default material will be used until the compile finishes.
 		GameThreadShaderMap = nullptr;
 		bSucceeded = true;
@@ -1702,7 +1724,7 @@ bool FMaterial::BeginCompileShaderMap(
 		}
 		else
 		{
-			OutstandingCompileShaderMapIds.Add( NewShaderMap->GetCompilingId() );
+			OutstandingCompileShaderMapIds.AddUnique( NewShaderMap->GetCompilingId() );
 			// Async compile, use NULL so that rendering will fall back to the default material.
 			OutShaderMap = nullptr;
 		}
@@ -2246,13 +2268,10 @@ void FMaterial::GetReferencedTexturesHash(EShaderPlatform Platform, FSHAHash& Ou
 		HashState.UpdateWithString(*TextureName, TextureName.Len());
 	}
 
-	// TODO:
-	// Appending the quality settings for this platform,
-	// this is being done here to avoid bumping EUnrealEngineObjectUE4Version for 4.10
-	// must be fixed for 4.11.
-	if (bHasQualityLevelUsage)
+	UMaterialShaderQualitySettings* MaterialShaderQualitySettings = UMaterialShaderQualitySettings::Get();
+	if(MaterialShaderQualitySettings->HasPlatformQualitySettings(Platform, QualityLevel))
 	{
-		UMaterialShaderQualitySettings::Get()->GetShaderPlatformQualitySettings(Platform)->AppendToHashState(GetQualityLevelForShaderMapId(), HashState);
+		MaterialShaderQualitySettings->GetShaderPlatformQualitySettings(Platform)->AppendToHashState(QualityLevel, HashState);
 	}
 
 	HashState.Final();
@@ -2596,7 +2615,18 @@ int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMate
 		case MP_DiffuseColor:			return Compiler->Constant3(0, 0, 0);
 		case MP_SpecularColor:			return Compiler->Constant3(0, 0, 0);
 		case MP_BaseColor:				return Compiler->Constant3(0, 0, 0);
-		case MP_SubsurfaceColor:		return Compiler->Constant3(1, 1, 1);
+		case MP_SubsurfaceColor:		
+		{
+			// Two-sided foliage should default to black
+			if (Compiler->GetMaterialShadingModel() == MSM_TwoSidedFoliage)
+			{
+				return Compiler->Constant3(0, 0, 0);
+			}
+			else
+			{
+				return Compiler->Constant3(1, 1, 1);
+			}
+		}
 		case MP_Normal:					return Compiler->Constant3(0, 0, 1);
 		case MP_WorldPositionOffset:	return Compiler->Constant3(0, 0, 0);
 		case MP_WorldDisplacement:		return Compiler->Constant3(0, 0, 0);

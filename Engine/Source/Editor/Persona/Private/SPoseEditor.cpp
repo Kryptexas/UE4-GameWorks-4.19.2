@@ -307,6 +307,7 @@ void SPoseViewer::Construct(const FArguments& InArgs)
 	{
 		PersonaPtr.Pin()->RegisterOnPreviewMeshChanged(FPersona::FOnPreviewMeshChanged::CreateSP(this, &SPoseViewer::OnPreviewMeshChanged));
 		PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP(this, &SPoseViewer::RefreshList));
+		PersonaPtr.Pin()->RegisterOnAnimChanged(FPersona::FOnAnimChanged::CreateSP(this, &SPoseViewer::OnAssestChanged));
 	}
 
 	if (PoseAssetPtr.IsValid())
@@ -395,6 +396,15 @@ void SPoseViewer::Construct(const FArguments& InArgs)
 
 	CreatePoseList();
 	CreateCurveList();
+}
+
+void SPoseViewer::OnAssestChanged(UAnimationAsset* NewAsset) 
+{
+	// this is odd that we're adding delegate
+	// this is because we're caching anim instance here
+	// and that change won't make it when this is constructed
+	// but so this is to refresh cached anim instance
+	RefreshCachePreviewInstance();
 }
 
 void SPoseViewer::RefreshCachePreviewInstance()
@@ -674,7 +684,7 @@ void SPoseViewer::CreatePoseList(const FString& SearchText)
 		{
 			bool bDoFiltering = !SearchText.IsEmpty();
 
-			for (const auto& PoseSmartName : PoseNames)
+			for (const FSmartName& PoseSmartName : PoseNames)
 			{
 				FName PoseName = PoseSmartName.DisplayName;
 				if (bDoFiltering && !PoseName.ToString().Contains(SearchText))
@@ -682,7 +692,13 @@ void SPoseViewer::CreatePoseList(const FString& SearchText)
 					continue; // Skip items that don't match our filter
 				}
 
-				TSharedRef<FDisplayedPoseInfo> Info = FDisplayedPoseInfo::Make(PoseName);
+				const TSharedRef<FDisplayedPoseInfo> Info = FDisplayedPoseInfo::Make(PoseName);
+				float* Weight = OverrideCurves.Find(PoseName);
+				if (Weight)
+				{
+					Info->Weight = *Weight;
+				}
+
 				PoseList.Add(Info);
 			}
 		}
@@ -702,11 +718,11 @@ void SPoseViewer::CreateCurveList(const FString& SearchText)
 		TArray<FSmartName> CurveNames = PoseAsset->GetCurveNames();
 		if (CurveNames.Num() > 0)
 		{
-			for (const auto& CurveSmartName : CurveNames)
+			for (const FSmartName& CurveSmartName : CurveNames)
 			{
 				FName CurveName = CurveSmartName.DisplayName;
 
-				TSharedRef<FDisplayedCurveInfo> Info = FDisplayedCurveInfo::Make(CurveName);
+				const TSharedRef<FDisplayedCurveInfo> Info = FDisplayedCurveInfo::Make(CurveName);
 				CurveList.Add(Info);
 			}
 		}
@@ -750,6 +766,7 @@ SPoseViewer::~SPoseViewer()
 
 		PersonaPtr.Pin()->UnregisterOnPreviewMeshChanged(this);
 		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
+		PersonaPtr.Pin()->UnregisterOnAnimChanged(this);
 	}
 
 	if (PoseAssetPtr.IsValid())

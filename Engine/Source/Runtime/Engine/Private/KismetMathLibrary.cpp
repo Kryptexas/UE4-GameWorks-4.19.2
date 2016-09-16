@@ -948,6 +948,56 @@ FVector2D UKismetMathLibrary::Vector2DInterpTo_Constant(FVector2D Current, FVect
 	return FMath::Vector2DInterpConstantTo( Current, Target, DeltaTime, InterpSpeed );
 }
 
+float ComputeDamping(float Mass, float Stiffness,float CriticalDampingFactor)
+{
+	return 2 * FMath::Sqrt(Mass * Stiffness) * CriticalDampingFactor;
+}
+
+template <typename T>
+T GenericSpringInterp(T Current, T Target, T& PrevError, T& Velocity, float Stiffness, float CriticalDamping, float DeltaTime, float Mass)
+{
+	if (DeltaTime > SMALL_NUMBER)
+	{
+		if(!FMath::IsNearlyZero(Mass))
+		{
+			const float Damping = ComputeDamping(Mass, Stiffness, CriticalDamping);
+			const T Error = Target - Current;
+			const T ErrorDeriv = (Error - PrevError);	//ignore divide by delta time since we multiply later anyway
+			Velocity += (Error * Stiffness * DeltaTime + ErrorDeriv * Damping) / Mass;
+			PrevError = Error;
+
+			const T NewValue = Current + Velocity * DeltaTime;
+			return NewValue;
+		}
+		else
+		{
+			return Target;
+		}
+	}
+
+	return Current;
+}
+
+float UKismetMathLibrary::FloatSpringInterp(float Current, float Target, FFloatSpringState& SpringState, float Stiffness, float CriticalDamping, float DeltaTime, float Mass)
+{
+	return GenericSpringInterp(Current, Target, SpringState.PrevError, SpringState.Velocity, Stiffness, CriticalDamping, DeltaTime, Mass);
+}
+
+FVector UKismetMathLibrary::VectorSpringInterp(FVector Current, FVector Target, FVectorSpringState& SpringState, float Stiffness, float CriticalDamping, float DeltaTime, float Mass)
+{
+	return GenericSpringInterp(Current, Target, SpringState.PrevError, SpringState.Velocity, Stiffness, CriticalDamping, DeltaTime, Mass);
+}
+
+void UKismetMathLibrary::ResetFloatSpringState(FFloatSpringState& SpringState)
+{
+	SpringState.Reset();
+}
+
+void UKismetMathLibrary::ResetVectorSpringState(FVectorSpringState& SpringState)
+{
+	SpringState.Reset();
+}
+
 FVector UKismetMathLibrary::RandomUnitVector()
 {
 	return FMath::VRand();
@@ -1009,6 +1059,28 @@ FVector UKismetMathLibrary::ProjectVectorOnToVector(FVector V, FVector Target)
 void UKismetMathLibrary::FindNearestPointsOnLineSegments(FVector Segment1Start, FVector Segment1End, FVector Segment2Start, FVector Segment2End, FVector& Segment1Point, FVector& Segment2Point)
 {
 	FMath::SegmentDistToSegmentSafe(Segment1Start, Segment1End, Segment2Start, Segment2End, Segment1Point, Segment2Point);
+}
+
+FVector UKismetMathLibrary::FindClosestPointOnSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd)
+{
+	return FMath::ClosestPointOnSegment(Point, SegmentStart, SegmentEnd);
+}
+
+FVector UKismetMathLibrary::FindClosestPointOnLine(FVector Point, FVector LineOrigin, FVector LineDirection)
+{
+	const FVector SafeDir = LineDirection.GetSafeNormal();
+	const FVector ClosestPoint = LineOrigin + (SafeDir * ((Point-LineOrigin) | SafeDir));
+	return ClosestPoint;
+}
+
+float UKismetMathLibrary::GetPointDistanceToSegment(FVector Point, FVector SegmentStart, FVector SegmentEnd)
+{
+	return FMath::PointDistToSegment(Point, SegmentStart, SegmentEnd);
+}
+
+float UKismetMathLibrary::GetPointDistanceToLine(FVector Point, FVector LineOrigin, FVector LineDirection)
+{
+	return FMath::PointDistToLine(Point, LineDirection, LineOrigin);
 }
 
 FVector UKismetMathLibrary::ProjectPointOnToPlane(FVector Point, FVector PlaneBase, FVector PlaneNormal)

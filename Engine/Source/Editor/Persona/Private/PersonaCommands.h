@@ -71,4 +71,7 @@ public:
 	// Toggle Reference Pose
 	TSharedPtr<FUICommandInfo> ToggleReferencePose;
 	TSharedPtr<FUICommandInfo> TogglePreviewAsset;
+
+	/** Toggle playback */
+	TSharedPtr<FUICommandInfo> TogglePlay;
 };

@@ -17,6 +17,8 @@
 #include "SceneUtils.h"
 #include "LightPropagationVolumeBlendable.h"
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("LPV"), Stat_GPU_LPV, STATGROUP_GPU);
+
 static TAutoConsoleVariable<int32> CVarLightPropagationVolume(
 	TEXT("r.LightPropagationVolume"),
 	0,
@@ -1570,6 +1572,7 @@ void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandListImmediate& RHICmdLi
 
 				if(LightPropagationVolume)
 				{
+					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_LPV);
 					LightPropagationVolume->InitSettings(RHICmdList, Views[ViewIndex]);
 					LightPropagationVolume->Clear(RHICmdList, View);
 				}
@@ -1598,7 +1601,8 @@ void FDeferredShadingSceneRenderer::UpdateLPVs(FRHICommandListImmediate& RHICmdL
 			{
 //				SCOPED_DRAW_EVENT(RHICmdList, UpdateLPVs);
 //				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
-				
+				SCOPED_GPU_STAT(RHICmdList, Stat_GPU_LPV);
+
 				LightPropagationVolume->Update(RHICmdList, View);
 			}
 		}

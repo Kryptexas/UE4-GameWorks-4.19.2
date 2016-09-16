@@ -18,6 +18,7 @@
 #include "VectorPropertyTrackEditor.h"
 #include "VisibilityPropertyTrackEditor.h"
 #include "ActorReferencePropertyTrackEditor.h"
+#include "StringPropertyTrackEditor.h"
 
 #include "TransformTrackEditor.h"
 #include "CameraCutTrackEditor.h"
@@ -44,8 +45,12 @@
 #include "Curves/CurveBase.h"
 #include "ISettingsModule.h"
 #include "PropertyEditorModule.h"
+#include "IMovieSceneTools.h"
+#include "MovieSceneToolsProjectSettings.h"
+
 
 #define LOCTEXT_NAMESPACE "FMovieSceneToolsModule"
+
 
 /**
  * Implements the MovieSceneTools module.
@@ -78,6 +83,7 @@ public:
 		VectorPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FVectorPropertyTrackEditor::CreateTrackEditor ) );
 		VisibilityPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FVisibilityPropertyTrackEditor::CreateTrackEditor ) );
 		ActorReferencePropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic( &FActorReferencePropertyTrackEditor::CreateTrackEditor ) );
+		StringPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic( &FStringPropertyTrackEditor::CreateTrackEditor ) );
 
 		// register specialty track editors
 		AnimationTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSkeletalAnimationTrackEditor::CreateTrackEditor ) );
@@ -128,6 +134,7 @@ public:
 		SequencerModule.UnRegisterTrackEditor_Handle( VectorPropertyTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( VisibilityPropertyTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( ActorReferencePropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor_Handle( StringPropertyTrackCreateEditorHandle );
 
 		// unregister specialty track editors
 		SequencerModule.UnRegisterTrackEditor_Handle( AnimationTrackCreateEditorHandle );
@@ -199,6 +206,7 @@ private:
 	FDelegateHandle VectorPropertyTrackCreateEditorHandle;
 	FDelegateHandle VisibilityPropertyTrackCreateEditorHandle;
 	FDelegateHandle ActorReferencePropertyTrackCreateEditorHandle;
+	FDelegateHandle StringPropertyTrackCreateEditorHandle;
 
 	FDelegateHandle AnimationTrackCreateEditorHandle;
 	FDelegateHandle AttachTrackCreateEditorHandle;

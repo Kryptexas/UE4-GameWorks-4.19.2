@@ -5,6 +5,7 @@
 #include "Animation/AnimationRecordingSettings.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "ActorRecordingSettings.h"
+#include "ObjectKey.h"
 
 #include "ActorRecording.generated.h"
 
@@ -42,7 +43,7 @@ public:
 	AActor* GetActorToRecord() const;
 
 	/** Set the actor to record */
-	void SetActorToRecord(AActor* InActor) { ActorToRecord = InActor; }
+	void SetActorToRecord(AActor* InActor);
 
 private:
 	/** Check component validity for recording */
@@ -55,7 +56,7 @@ private:
 	void StartRecordingActorProperties(ULevelSequence* CurrentSequence, float CurrentSequenceTime);
 
 	/** Start recording component properties to a sequence */
-	TSharedPtr<class FMovieSceneAnimationSectionRecorder> StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime);
+	TSharedPtr<class FMovieSceneAnimationSectionRecorder> StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime, const FAnimationRecordingSettings& InAnimationSettings);
 
 	/** Start recording components that are added at runtime */
 	void StartRecordingNewComponents(ULevelSequence* CurrentSequence, float CurrentSequenceTime);
@@ -66,6 +67,11 @@ private:
 	/** Sync up tracked components with the actor */
 	void SyncTrackedComponents(bool bIncludeNonCDO = true);
 
+	/** Ensure that we are recording any parents required for the specified component, and sort the specified array */
+	void ProcessNewComponentArray(TInlineComponentArray<USceneComponent*>& ProspectiveComponents) const;
+
+	/** UObject interface */
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Actor Recording")
@@ -83,6 +89,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Animation Recording")
 	FAnimationRecordingSettings AnimationSettings;
 
+	/** Whether to record to 'possessable' (i.e. level-owned) or 'spawnable' (i.e. sequence-owned) actors. Defaults to the global setting. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Animation Recording")
+	bool bRecordToPossessable;
+
 	/** Whether this actor recording was triggered from an actor spawn */
 	bool bWasSpawnedPostRecord;
 
@@ -96,6 +106,8 @@ private:
 
 	/** Track components to check if any have changed */
 	TArray<TWeakObjectPtr<USceneComponent>> TrackedComponents;
+
+	TMap<FObjectKey, TWeakObjectPtr<USceneComponent>> DuplicatedDynamicComponents;
 
 	/** Flag to track whether we created new components */
 	bool bNewComponentAddedWhileRecording;

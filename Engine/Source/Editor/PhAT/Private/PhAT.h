@@ -158,6 +158,7 @@ private:
 	bool IsEditBodyMode() const;
 	bool IsSelectedEditBodyMode() const;
 	bool IsEditConstraintMode() const;
+	bool CanEditConstraintProperties() const;
 	bool IsSelectedEditConstraintMode() const;
 	bool CanStartSimulation() const;
 	void OnChangeDefaultMesh();

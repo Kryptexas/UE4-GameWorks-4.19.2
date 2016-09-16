@@ -19,7 +19,7 @@ FPaintArgs::FPaintArgs(const SWidget& Parent, FHittestGrid& InHittestGrid, FVect
 {
 }
 
-FPaintArgs FPaintArgs::EnableCaching(ILayoutCache* InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatile) const
+FPaintArgs FPaintArgs::EnableCaching(const TWeakPtr<ILayoutCache>& InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatile) const
 {
 	FPaintArgs UpdatedArgs(*this);
 	UpdatedArgs.LayoutCache = InLayoutCache;
@@ -38,11 +38,15 @@ FPaintArgs FPaintArgs::RecordHittestGeometry(const SWidget* Widget, const FGeome
 	{
 		if ( bIsCaching )
 		{
-			FCachedWidgetNode* CacheNode = LayoutCache->CreateCacheNode();
-			CacheNode->Initialize(*this, const_cast<SWidget*>( Widget )->AsShared(), WidgetGeometry, InClippingRect);
-			UpdatedArgs.ParentCacheNode->Children.Add(CacheNode);
+			TSharedPtr<ILayoutCache> SharedLayoutCache = LayoutCache.Pin();
+			if (SharedLayoutCache.IsValid())
+			{
+				FCachedWidgetNode* CacheNode = SharedLayoutCache->CreateCacheNode();
+				CacheNode->Initialize(*this, const_cast<SWidget*>( Widget )->AsShared(), WidgetGeometry, InClippingRect);
+				UpdatedArgs.ParentCacheNode->Children.Add(CacheNode);
 
-			UpdatedArgs.ParentCacheNode = CacheNode;
+				UpdatedArgs.ParentCacheNode = CacheNode;
+			}
 		}
 
 		int32 RealLastHitTestIndex = LastHittestIndex;

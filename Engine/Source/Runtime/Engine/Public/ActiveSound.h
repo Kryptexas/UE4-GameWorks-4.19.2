@@ -28,6 +28,9 @@ struct FSoundParseParameters
 	
 	float Volume;
 	float VolumeMultiplier;
+	
+	// Volume due to application-level volume scaling (tabbing, master volume)
+	float VolumeApp;
 
 	// The multiplier to apply if the sound class desires
 	float InteriorVolumeMultiplier;
@@ -78,6 +81,7 @@ struct FSoundParseParameters
 		, Velocity(ForceInit)
 		, Volume(1.f)
 		, VolumeMultiplier(1.f)
+		, VolumeApp(1.f)
 		, InteriorVolumeMultiplier(1.f)
 		, Pitch(1.f)
 		, StartTime(-1.f)
@@ -164,9 +168,6 @@ public:
 	/** Whether or not the sound has checked if it was occluded already. Used to initialize a sound as occluded and bypassing occlusion interpolation. */
 	uint8 bHasCheckedOcclusion:1;
 
-	/** Flag to trigger binding our trace delegate for async trace calls */
-	uint8 bIsTraceDelegateBound:1;
-
 	/** Is this sound allowed to be spatialized? */
 	uint8 bAllowSpatialization:1;
 
@@ -234,13 +235,6 @@ public:
 
 	/** Whether or not we have a low-pass filter enabled on this active sound. */
 	uint8 bEnableLowPassFilter : 1;
-
-	/** Whether or not to use an async trace for occlusion */
-	uint8 bOcclusionAsyncTrace : 1;
-
-private:
-	/** Whether or not this sound is audible */
-	uint8 bIsAudible : 1;
 
 public:
 	uint8 UserIndex;

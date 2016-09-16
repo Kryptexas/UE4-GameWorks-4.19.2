@@ -35,8 +35,6 @@
 #include "LandscapeComponent.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "ComponentReregisterContext.h"
-#include "JsonInternationalizationArchiveSerializer.h"
-#include "JsonInternationalizationManifestSerializer.h"
 #include "Engine/DestructibleMesh.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
@@ -59,8 +57,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 #define LOCTEXT_NAMESPACE "UnrealEdSrv"
 
 //@hack: this needs to be cleaned up!
-static TCHAR TempStr[MAX_EDCMD], TempName[MAX_EDCMD], Temp[MAX_EDCMD];
-static uint16 Word1, Word4;
+static TCHAR TempStr[MAX_EDCMD];
+static uint16 Word1;
 
 
 /**
@@ -513,126 +511,6 @@ bool UUnrealEdEngine::HandleBuildPathsCommand( const TCHAR* Str, FOutputDevice& 
 	return FEditorBuildUtils::EditorBuild(InWorld, FBuildOptions::BuildAIPaths);
 }
 
-bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
-{
-	const bool bShowWarnings = (FString(Str) == TEXT("-warnings"));
-	
-	if (InWorld->GetWorldSettings())
-	{
-		ULandscapeInfo::RecreateLandscapeInfo(InWorld, bShowWarnings);
-				
-		// for removing 
-		TMap<ULandscapeInfo*, ALandscapeGizmoActiveActor*> GizmoMap;
-		for (TActorIterator<ALandscapeGizmoActiveActor> It(InWorld); It; ++It)
-		{
-			ALandscapeGizmoActiveActor* Gizmo = *It;
-			if (Gizmo->TargetLandscapeInfo)
-			{
-				if (!GizmoMap.FindRef(Gizmo->TargetLandscapeInfo))
-				{
-					GizmoMap.Add(Gizmo->TargetLandscapeInfo, Gizmo);
-				}
-				else
-				{
-					Gizmo->Destroy(); 
-				}
-			}
-		}
-
-		// Fixed up for Landscape fix match case
-		auto& LandscapeInfoMap = GetLandscapeInfoMap(InWorld);
-
-		for (auto It = LandscapeInfoMap.Map.CreateIterator(); It; ++It)
-		{
-			ULandscapeInfo* LandscapeInfo = It.Value();
-			if (LandscapeInfo)
-			{
-				bool bHasPhysicalMaterial = false;
-				for (int32 i = 0; i < LandscapeInfo->Layers.Num(); ++i)
-				{
-					if (LandscapeInfo->Layers[i].LayerInfoObj && LandscapeInfo->Layers[i].LayerInfoObj->PhysMaterial)
-					{
-						bHasPhysicalMaterial = true;
-						break;
-					}
-				}
-				TSet<ALandscapeProxy*> SelectProxies;
-				for (auto LandscapeComponentIt = LandscapeInfo->XYtoComponentMap.CreateIterator(); LandscapeComponentIt; ++LandscapeComponentIt )
-				{
-					ULandscapeComponent* Comp = LandscapeComponentIt.Value();
-					if (Comp)
-					{
-						// Fix level inconsistency for landscape component and collision component
-						ULandscapeHeightfieldCollisionComponent* Collision = Comp->CollisionComponent.Get();
-						if (Collision != nullptr)
-						{
-							if (Comp->GetLandscapeProxy()->GetLevel() != Collision->GetLandscapeProxy()->GetLevel())
-							{
-								ALandscapeProxy* FromProxy = Collision->GetLandscapeProxy();
-								ALandscapeProxy* DestProxy = Comp->GetLandscapeProxy();
-								// From MoveToLevelTool
-								FromProxy->CollisionComponents.Remove(Collision);
-								Collision->UnregisterComponent();
-								Collision->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-								Collision->Rename(NULL, DestProxy);
-								DestProxy->CollisionComponents.Add(Collision);
-								Collision->AttachToComponent(DestProxy->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
-								SelectProxies.Add(FromProxy);
-								SelectProxies.Add(DestProxy);
-							}
-
-							// Fix Dominant Layer Data
-							if (bHasPhysicalMaterial && Collision->DominantLayerData.GetBulkDataSize() == 0)
-							{
-								Comp->UpdateCollisionLayerData();
-							}
-						}
-					}
-				}
-
-				for(TSet<ALandscapeProxy*>::TIterator ProxyIt(SelectProxies);ProxyIt;++ProxyIt)
-				{
-					(*ProxyIt)->MarkPackageDirty();
-				}
-			}
-		}
-
-		// Fix proxies relative transformations to LandscapeActor
-		for (auto It = LandscapeInfoMap.Map.CreateIterator(); It; ++It)
-		{
-			ULandscapeInfo* Info = It.Value();
-			Info->FixupProxiesWeightmaps();
-			// make sure relative proxy transformations are correct	
-			Info->FixupProxiesTransform();
-		}
-	}
-	return true;
-}
-
-bool UUnrealEdEngine::HandleUpdateLandscapeMICCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
-{
-	UWorld* World = GetEditorWorldContext().World();
-
-	if (World && World->GetWorldSettings())
-	{
-		for (auto It = GetLandscapeInfoMap(World).Map.CreateIterator(); It; ++It)
-		{
-			ULandscapeInfo* Info = It.Value();
-			for (auto LandscapeComponentIt = Info->XYtoComponentMap.CreateIterator(); LandscapeComponentIt; ++LandscapeComponentIt )
-			{
-				ULandscapeComponent* Comp = LandscapeComponentIt.Value();
-				if( Comp )
-				{
-					Comp->UpdateMaterialInstances();
-
-					FComponentReregisterContext ReregisterContext(Comp);
-				}
-			}
-		}
-	}
-	return true;
-}
-
 bool UUnrealEdEngine::HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld)
 {
 	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
@@ -824,18 +702,6 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		HandleBuildPathsCommand( Str, Ar, InWorld );
 	}
 #if WITH_EDITOR
-	else if (FParse::Command(&Str, TEXT("UpdateLandscapeEditorData")))
-	{
-		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
-		UWorld* World = GetEditorWorldContext().World();
-		return HandleUpdateLandscapeEditorDataCommand(Str, Ar, World);
-	}
-	else if (FParse::Command(&Str, TEXT("UpdateLandscapeMIC")))
-	{
-		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
-		UWorld* World = GetEditorWorldContext().World();
-		return HandleUpdateLandscapeMICCommand(Str, Ar, World);
-	}
 	else if (FParse::Command(&Str, TEXT("RecreateLandscapeCollision")))
 	{
 		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
@@ -2895,6 +2761,8 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 				// Get the filename from dialog
 				FString FileName = SaveFilenames[0];
 				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, FPaths::GetPath(FileName)); // Save path as default for next time.
+
+				INodeNameAdapter NodeNameAdapter;
 				UnFbx::FFbxExporter* Exporter = UnFbx::FFbxExporter::GetInstance();
 				Exporter->CreateDocument();
 				for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
@@ -2904,15 +2772,15 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 					{
 						if (Actor->IsA(AStaticMeshActor::StaticClass()))
 						{
-							Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NULL);
+							Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NodeNameAdapter);
 						}
 						else if (Actor->IsA(ASkeletalMeshActor::StaticClass()))
 						{
-							Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->GetSkeletalMeshComponent());
+							Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->GetSkeletalMeshComponent(), NodeNameAdapter);
 						}
 						else if (Actor->IsA(ABrush::StaticClass()))
 						{
-							Exporter->ExportBrush( CastChecked<ABrush>(Actor), NULL, true );
+							Exporter->ExportBrush( CastChecked<ABrush>(Actor), NULL, true, NodeNameAdapter );
 						}
 					}
 				}

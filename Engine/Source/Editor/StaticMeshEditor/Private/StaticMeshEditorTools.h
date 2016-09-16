@@ -146,6 +146,7 @@ private:
 	TOptional<float> GetBuildScaleY() const;
 	TOptional<float> GetBuildScaleZ() const;
 	float GetDistanceFieldResolutionScale() const;
+	float GetDistanceFieldBias() const;
 
 	void OnRecomputeNormalsChanged(ECheckBoxState NewState);
 	void OnRecomputeTangentsChanged(ECheckBoxState NewState);
@@ -166,6 +167,8 @@ private:
 
 	void OnDistanceFieldResolutionScaleChanged(float NewValue);
 	void OnDistanceFieldResolutionScaleCommitted(float NewValue, ETextCommit::Type TextCommitType);
+	void OnDistanceFieldBiasChanged(float NewValue);
+	void OnDistanceFieldBiasCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	FString GetCurrentDistanceFieldReplacementMeshPath() const;
 	void OnDistanceFieldReplacementMeshSelected(const FAssetData& AssetData);
 
@@ -195,6 +198,7 @@ private:
 	FReply OnApplyChanges();
 	float GetPercentTriangles() const;
 	float GetMaxDeviation() const;
+	float GetPixelError() const;
 	float GetWeldingThreshold() const;
 	ECheckBoxState ShouldRecalculateNormals() const;
 	float GetHardAngleThreshold() const;
@@ -203,6 +207,8 @@ private:
 	void OnPercentTrianglesCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	void OnMaxDeviationChanged(float NewValue);
 	void OnMaxDeviationCommitted(float NewValue, ETextCommit::Type TextCommitType);
+	void OnPixelErrorChanged(float NewValue);
+	void OnPixelErrorCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	void OnReductionAmountChanged(float NewValue);
 	void OnRecalculateNormalsChanged(ECheckBoxState NewValue);
 	void OnWeldingThresholdChanged(float NewValue);
@@ -303,8 +309,6 @@ private:
 	bool IsAutoLODEnabled() const;
 	ECheckBoxState IsAutoLODChecked() const;
 	void OnAutoLODChanged(ECheckBoxState NewState);
-	float GetPixelError() const;
-	void OnPixelErrorChanged(float NewValue);
 	void OnImportLOD(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 	void UpdateLODNames();
 	FText GetLODCountTooltip() const;

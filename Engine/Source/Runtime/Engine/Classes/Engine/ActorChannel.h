@@ -168,7 +168,7 @@ public:
 	FNetFieldExportGroup* GetNetFieldExportGroupForClassNetCache( const UClass* ObjectClass );
 		
 	/** Finds (or creates) the net field export group for a class net cache, if not found, creates one */
-	FNetFieldExportGroup* GetOrCreateNetFieldExportGroupForClassNetCache( const UClass* ObjectClass );
+	FNetFieldExportGroup* GetOrCreateNetFieldExportGroupForClassNetCache( const UObject* Object );
 
 	/** Returns the replicator for the actor associated with this channel. Guaranteed to exist. */
 	FObjectReplicator & GetActorReplicationData();
@@ -266,6 +266,9 @@ protected:
 	
 	TSharedRef< FObjectReplicator > & FindOrCreateReplicator(UObject *Obj);
 	bool ObjectHasReplicator(UObject *Obj);	// returns whether we have already created a replicator for this object or not
+
+	/** Unmap all references to this object, so that if later we receive this object again, we can remap the original references */
+	void MoveMappedObjectToUnmapped( const UObject* Object );
 
 	void DestroyActorAndComponents();
 

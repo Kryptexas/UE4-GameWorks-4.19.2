@@ -22,15 +22,40 @@ const int32 ShaderCompileWorkerSingleJobHeader = 'S';
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerPipelineJobHeader = 'P';
 
+enum class ESCWErrorCode
+{
+	Success,
+	GeneralCrash,
+	BadShaderFormatVersion,
+	BadInputVersion,
+	BadSingleJobHeader,
+	BadPipelineJobHeader,
+	CantDeleteInputFile,
+	CantSaveOutputFile,
+	NoTargetShaderFormatsFound,
+	CantCompileForSpecificFormat,
+};
+
 double LastCompileTime = 0.0;
 
 static bool GShaderCompileUseXGE = false;
-static bool GFailedDueToShaderFormatVersion = false;
+static ESCWErrorCode GFailedErrorCode = ESCWErrorCode::Success;
 
 static void WriteXGESuccessFile(const TCHAR* WorkingDirectory)
 {
 	// To signal compilation completion, create a zero length file in the working directory.
 	delete IFileManager::Get().CreateFileWriter(*FString::Printf(TEXT("%s/Success"), WorkingDirectory), FILEWRITE_EvenIfReadOnly);
+}
+
+#if USING_CODE_ANALYSIS
+	FUNCTION_NO_RETURN_START static inline void ExitWithoutCrash(ESCWErrorCode ErrorCode, const FString& Message) FUNCTION_NO_RETURN_END;
+#endif
+
+static inline void ExitWithoutCrash(ESCWErrorCode ErrorCode, const FString& Message)
+{
+	GFailedErrorCode = ErrorCode;
+	FCString::Snprintf(GErrorExceptionDescription, sizeof(GErrorExceptionDescription), TEXT("%s"), *Message);
+	UE_LOG(LogShaders, Fatal, TEXT("%s"), *Message);
 }
 
 static const TArray<const IShaderFormat*>& GetShaderFormats()
@@ -48,7 +73,7 @@ static const TArray<const IShaderFormat*>& GetShaderFormats()
 
 		if (!Modules.Num())
 		{
-			UE_LOG(LogShaders, Error, TEXT("No target shader formats found!"));
+			ExitWithoutCrash(ESCWErrorCode::NoTargetShaderFormatsFound, TEXT("No target shader formats found!"));
 		}
 
 		for (int32 Index = 0; Index < Modules.Num(); Index++)
@@ -89,7 +114,7 @@ static void ProcessCompilationJob(const FShaderCompilerInput& Input,FShaderCompi
 	const IShaderFormat* Compiler = FindShaderFormat(Input.ShaderFormat);
 	if (!Compiler)
 	{
-		UE_LOG(LogShaders, Fatal, TEXT("Can't compile shaders for format %s"), *Input.ShaderFormat.ToString());
+		ExitWithoutCrash(ESCWErrorCode::CantCompileForSpecificFormat, FString::Printf(TEXT("Can't compile shaders for format %s"), *Input.ShaderFormat.ToString()));
 	}
 
 	// Compile the shader directly through the platform dll (directly from the shader dir as the working directory)
@@ -212,12 +237,9 @@ private:
 			auto* Found = FormatVersionMap.Find(Pair.Key);
 			if (Found)
 			{
-				GFailedDueToShaderFormatVersion = true;
 				if (Pair.Value != *Found)
 				{
-					FCString::Snprintf(GErrorExceptionDescription, sizeof(GErrorExceptionDescription), TEXT("Mismatched shader version for format %s; did you forget to build ShaderCompilerWorker?"), *Pair.Key, *Found, Pair.Value);
-
-					checkf(Pair.Value == *Found, TEXT("Exiting due to mismatched shader version for format %s, version %d from ShaderCompilerWorker, received %d! Did you forget to build ShaderCompilerWorker?"), *Pair.Key, *Found, Pair.Value);
+					ExitWithoutCrash(ESCWErrorCode::BadShaderFormatVersion, FString::Printf(TEXT("Mismatched shader version for format %s; did you forget to build ShaderCompilerWorker?"), *Pair.Key, *Found, Pair.Value));
 				}
 			}
 		}
@@ -228,7 +250,10 @@ private:
 		FArchive& InputFile = *InputFilePtr;
 		int32 InputVersion;
 		InputFile << InputVersion;
-		checkf(ShaderCompileWorkerInputVersion == InputVersion, TEXT("Exiting due to ShaderCompilerWorker expecting input version %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerInputVersion, InputVersion);
+		if (ShaderCompileWorkerInputVersion != InputVersion)
+		{
+			ExitWithoutCrash(ESCWErrorCode::BadInputVersion, FString::Printf(TEXT("Exiting due to ShaderCompilerWorker expecting input version %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerInputVersion, InputVersion));
+		}
 
 		TMap<FString, uint16> ReceivedFormatVersionMap;
 		InputFile << ReceivedFormatVersionMap;
@@ -239,7 +264,10 @@ private:
 		{
 			int32 SingleJobHeader = ShaderCompileWorkerSingleJobHeader;
 			InputFile << SingleJobHeader;
-			checkf(ShaderCompileWorkerSingleJobHeader == SingleJobHeader, TEXT("Exiting due to ShaderCompilerWorker expecting job header %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerSingleJobHeader, SingleJobHeader);
+			if (ShaderCompileWorkerSingleJobHeader != SingleJobHeader)
+			{
+				ExitWithoutCrash(ESCWErrorCode::BadSingleJobHeader, FString::Printf(TEXT("Exiting due to ShaderCompilerWorker expecting job header %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerSingleJobHeader, SingleJobHeader));
+			}
 
 			int32 NumBatches = 0;
 			InputFile << NumBatches;
@@ -274,7 +302,10 @@ private:
 		{
 			int32 PipelineJobHeader = ShaderCompileWorkerPipelineJobHeader;
 			InputFile << PipelineJobHeader;
-			checkf(ShaderCompileWorkerPipelineJobHeader == PipelineJobHeader, TEXT("Exiting due to ShaderCompilerWorker expecting pipeline job header %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerSingleJobHeader, PipelineJobHeader);
+			if (ShaderCompileWorkerPipelineJobHeader != PipelineJobHeader)
+			{
+				ExitWithoutCrash(ESCWErrorCode::BadPipelineJobHeader, FString::Printf(TEXT("Exiting due to ShaderCompilerWorker expecting pipeline job header %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerSingleJobHeader, PipelineJobHeader));
+			}
 
 			int32 NumPipelines = 0;
 			InputFile << NumPipelines;
@@ -375,7 +406,7 @@ private:
 
 			if (!bResult)
 			{
-				UE_LOG(LogShaders, Fatal,TEXT("Couldn't delete input file %s, is it readonly?"), *InputFilePath);
+				ExitWithoutCrash(ESCWErrorCode::CantDeleteInputFile, FString::Printf(TEXT("Couldn't delete input file %s, is it readonly?"), *InputFilePath));
 			}
 		}
 
@@ -399,7 +430,7 @@ private:
 			
 		if (!OutputFilePtr)
 		{
-			UE_LOG(LogShaders, Fatal,TEXT("Couldn't save output file %s"), *TempFilePath);
+			ExitWithoutCrash(ESCWErrorCode::CantSaveOutputFile, FString::Printf(TEXT("Couldn't save output file %s"), *TempFilePath));
 		}
 
 		return OutputFilePtr;
@@ -412,7 +443,7 @@ private:
 		int32 OutputVersion = ShaderCompileWorkerOutputVersion;
 		OutputFile << OutputVersion;
 
-		int32 ErrorCode = 0;
+		int32 ErrorCode = (int32)ESCWErrorCode::Success;
 		OutputFile << ErrorCode;
 
 		int32 ErrorStringLength = 0;
@@ -555,6 +586,7 @@ static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
 static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
+static FName NAME_GLSL_ES3_1_ANDROID(TEXT("GLSL_ES3_1_ANDROID"));
 
 static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 {
@@ -584,6 +616,7 @@ static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 	if (ShaderFormat == NAME_VULKAN_ES3_1_UB)		return SP_VULKAN_PCES3_1;
 	if (ShaderFormat == NAME_SF_METAL_SM4)		return SP_METAL_SM4;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)	return SP_METAL_MACES3_1;
+	if (ShaderFormat == NAME_GLSL_ES3_1_ANDROID) return SP_OPENGL_ES3_1_ANDROID;
 	return SP_NumPlatforms;
 }
 
@@ -796,7 +829,11 @@ static int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOut
 			int32 OutputVersion = ShaderCompileWorkerOutputVersion;
 			OutputFile << OutputVersion;
 
-			int32 ErrorCode = GFailedDueToShaderFormatVersion ? 2 : 1;
+			if (GFailedErrorCode == ESCWErrorCode::Success)
+			{
+				GFailedErrorCode = ESCWErrorCode::GeneralCrash;
+			}
+			int32 ErrorCode = (int32)GFailedErrorCode;
 			OutputFile << ErrorCode;
 
 			// Note: Can't use FStrings here as SEH can't be used with destructors

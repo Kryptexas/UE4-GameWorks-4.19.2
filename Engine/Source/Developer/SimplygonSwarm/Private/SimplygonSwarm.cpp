@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SimplygonSwarmPrivatePCH.h"
-#include <algorithm>
+THIRD_PARTY_INCLUDES_START
+	#include <algorithm>
+THIRD_PARTY_INCLUDES_END
 #define LOCTEXT_NAMESPACE "SimplygonSwarm"
 
 #include "MeshMergeData.h"
@@ -263,6 +265,7 @@ public:
 			if (!FPaths::FileExists(*FPaths::ConvertRelativePathToFull(ZipFileName)))
 			{
 				UE_LOG(LogSimplygonSwarm, Error , TEXT("Could not find zip file for uploading %s"), *ZipFileName);
+				FailedDelegate.ExecuteIfBound(InJobGUID, TEXT("Could not find zip file for uploading"));
 				return;
 			}
 
@@ -346,6 +349,7 @@ public:
 			if (!FPaths::FileExists(SsfFullPath))
 			{
 				UE_LOG(LogSimplygonSwarm, Log, TEXT("Ssf file not found %s"), *SsfFullPath);
+				FailedDelegate.ExecuteIfBound(InSwarmTask.TaskData.ProcessorJobID, TEXT("Ssf file not found"));
 				return;
 			}
 
@@ -356,7 +360,10 @@ public:
 			OutMaterial.bDitheredLODTransition = InSwarmTask.TaskData.bDitheredTransition;
 
 			if (!OutProxyMesh.IsValid())
+			{
 				UE_LOG(LogSimplygonSwarm, Log, TEXT("RawMesh is invalid."));
+				FailedDelegate.ExecuteIfBound(InSwarmTask.TaskData.ProcessorJobID, TEXT("Invalid FRawMesh data"));
+			}
 
 			 
 			bool bDebuggingEnabled = GetDefault<UEditorPerProjectUserSettings>()->bEnableSwarmDebugging;

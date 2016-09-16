@@ -420,6 +420,8 @@ void FSLESSoundSource::Update( void )
 	Volume *= AudioDevice->GetPlatformAudioHeadroom();
 	Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
 	
+	Volume = FSoundSource::GetDebugVolume(Volume);
+
 	const float Pitch = FMath::Clamp<float>(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH);
 
 	// Set whether to apply reverb

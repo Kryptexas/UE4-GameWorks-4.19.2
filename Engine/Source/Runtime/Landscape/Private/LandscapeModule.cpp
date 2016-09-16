@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
 #include "LandscapeModule.h"
 #include "LandscapeComponent.h"
@@ -30,7 +31,7 @@ void AddPerWorldLandscapeData(UWorld* World)
 {
 	if (!World->PerModuleDataObjects.FindItemByClass<ULandscapeInfoMap>())
 	{
-		World->PerModuleDataObjects.Add(NewObject<ULandscapeInfoMap>(GetTransientPackage()));
+		World->PerModuleDataObjects.Add(NewObject<ULandscapeInfoMap>(GetTransientPackage(), NAME_None, RF_Transactional));
 	}
 }
 
@@ -68,6 +69,7 @@ void WorldCreationEventFunction(UWorld* World)
  */
 void WorldDestroyEventFunction(UWorld* World);
 
+#if WITH_EDITOR
 /**
  * Gets array of Landscape-specific textures and materials connected with given
  * level.
@@ -117,6 +119,7 @@ void WorldRenameEventFunction(UWorld* World, const TCHAR* InName, UObject* NewOu
 		}
 	}
 }
+#endif
 
 /**
  * A function that fires everytime a world is duplicated.

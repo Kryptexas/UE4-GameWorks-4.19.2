@@ -164,11 +164,14 @@ bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )
 											CompressContext.Get()->MaxAnimations,
 											AAC,
 											OutputStr);
+
+		AnimToOperateOn->TemporaryAdditiveBaseAnimationData.Empty();
 	}
 
 	//Our compression scheme may change so copy the new one back
 	if (OriginalAnimSequence != AnimToOperateOn)
 	{
+		CA_SUPPRESS(6011); // See https://connect.microsoft.com/VisualStudio/feedback/details/3007725
 		OriginalAnimSequence->CompressionScheme = static_cast<UAnimCompress*>(StaticDuplicateObject(AnimToOperateOn->CompressionScheme, OriginalAnimSequence));
 	}
 

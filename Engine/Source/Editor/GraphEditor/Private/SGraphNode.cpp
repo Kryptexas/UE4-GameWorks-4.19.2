@@ -418,6 +418,18 @@ void SGraphNode::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	CachedUnscaledPosition = AllottedGeometry.AbsolutePosition/AllottedGeometry.Scale;
 
 	SNodePanel::SNode::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if (IsHovered())
+	{
+		if (FNodeSlot* CommentSlot = GetSlot(ENodeZone::TopCenter))
+		{
+			TSharedPtr<SCommentBubble> CommentBubble = StaticCastSharedRef<SCommentBubble>(CommentSlot->GetWidget());
+			if (CommentBubble.IsValid())
+			{
+				CommentBubble->TickVisibility(InCurrentTime, InDeltaTime);
+			}
+		}
+	}
 }
 
 bool SGraphNode::IsSelectedExclusively() const
@@ -838,19 +850,7 @@ void SGraphNode::UpdateGraphNode()
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Top)
 					[
-						SNew(SOverlay)
-						+SOverlay::Slot()
-						.VAlign(VAlign_Fill)
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("Graph.Node.IndicatorOverlay"))
-							.Visibility(this, &SGraphNode::GetNodeIndicatorOverlayVisibility)
-							.ColorAndOpacity(this, &SGraphNode::GetNodeIndicatorOverlayColor)
-						]
-						+SOverlay::Slot()
-						[
-							CreateNodeContentArea()
-						]
+						CreateNodeContentArea()
 					]
 
 					+SVerticalBox::Slot()

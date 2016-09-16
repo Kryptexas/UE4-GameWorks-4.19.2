@@ -143,14 +143,26 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 	, OriginalCDO(NULL)
 	, bHasReinstanced(false)
 	, bSkipGarbageCollection(bSkipGC)
+	, ReinstClassType(RCT_Unknown)
 	, ClassToReinstanceDefaultValuesCRC(0)
 	, bIsRootReinstancer(false)
 	, bAllowResaveAtTheEndIfRequested(false)
 {
 	if( InClassToReinstance != NULL )
 	{
-		bIsReinstancingSkeleton = FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToReinstance);
-		bAllowResaveAtTheEndIfRequested = bAutoInferSaveOnCompile && !bIsBytecodeOnly && !bIsReinstancingSkeleton;
+		if (FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToReinstance))
+		{
+			ReinstClassType = RCT_BpSkeleton;
+		}
+		else if (ClassToReinstance->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			ReinstClassType = RCT_BpGenerated;
+		}
+		else if (ClassToReinstance->HasAnyClassFlags(CLASS_Native))
+		{
+			ReinstClassType = RCT_Native;
+		}
+		bAllowResaveAtTheEndIfRequested = bAutoInferSaveOnCompile && !bIsBytecodeOnly && (ReinstClassType != RCT_BpSkeleton);
 
 		SaveClassFieldMapping(InClassToReinstance);
 
@@ -260,14 +272,14 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Pull the blueprint that generated this reinstance target, and gather the blueprints that are dependent on it
 		UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassToReinstance->ClassGeneratedBy);
 		check(GeneratingBP || GIsAutomationTesting);
-		if(!bIsReinstancingSkeleton && GeneratingBP)
+		if(!IsReinstancingSkeleton() && GeneratingBP)
 		{
 			ClassToReinstanceDefaultValuesCRC = GeneratingBP->CrcLastCompiledCDO;
 			Dependencies.Empty();
 			FBlueprintEditorUtils::GetDependentBlueprints(GeneratingBP, Dependencies);
 
 			// Never queue for saving when regenerating on load
-			if (!GeneratingBP->bIsRegeneratingOnLoad && !bIsReinstancingSkeleton)
+			if (!GeneratingBP->bIsRegeneratingOnLoad && !IsReinstancingSkeleton())
 			{
 				bool const bIsLevelPackage = (UWorld::FindWorldInPackage(GeneratingBP->GetOutermost()) != nullptr);
 				// we don't want to save the entire level (especially if this 
@@ -325,6 +337,15 @@ void FBlueprintCompileReinstancer::AddReferencedObjects(FReferenceCollector& Col
 	Collector.AddReferencedObject(OriginalCDO);
 	Collector.AddReferencedObject(DuplicatedClass);
 	Collector.AllowEliminatingReferences(true);
+
+	// it's ok for these to get GC'd, but it is not ok for the memory to be reused (after a GC), 
+	// for that reason we cannot allow these to be freed during the life of this reinstancer
+	// 
+	// for example, we saw this as a problem in UpdateBytecodeReferences() - if the GC'd function 
+	// memory was used for a new (unrelated) function, then we were replacing references to the 
+	// new function (bad), as well as any old stale references (both were using the same memory address)
+	Collector.AddReferencedObjects(FunctionMap);
+	Collector.AddReferencedObjects(PropertyMap);
 }
 
 void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
@@ -411,6 +432,15 @@ public:
 					// cached LinkInfo data may now be invalid. This could happen in the fast path, since the original
 					// Actor instance will not be replaced in that case, and thus might still have latent actions pending.
 					World->GetLatentActionManager().RemoveActionsForObject(Actor);
+
+					// Drop any references to anim script components for skeletal mesh components, depending on how
+					// the blueprints have changed during compile this could contain invalid data so we need to do
+					// a full initialisation to ensure everything is set up correctly.
+					TInlineComponentArray<USkeletalMeshComponent*> SkelComponents(Actor);
+					for(USkeletalMeshComponent* SkelComponent : SkelComponents)
+					{
+						SkelComponent->AnimScriptInstance = nullptr;
+					}
 
 					Actor->ReregisterAllComponents();
 					Actor->RerunConstructionScripts();
@@ -527,11 +557,15 @@ void FBlueprintCompileReinstancer::CompileChildren()
 		{
 			ReparentChild(BP);
 
-			// Full compiles first recompile all skeleton classes, so they are up-to-date
-			const bool bSkeletonUpToDate = true;
+			// avoid the skeleton compile if we don't need it - if the class 
+			// we're reinstancing is a Blueprint class, then we assume sub-class
+			// skeletons were kept in-sync (updated/reinstanced when the parent 
+			// was updated); however, if this is a native class (like when hot-
+			// reloading), then we want to make sure to update the skel as well
+			const bool bSkeletonUpToDate = !ClassToReinstance->HasAnyClassFlags(CLASS_Native);
 			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, false, nullptr, bSkeletonUpToDate, false);
 		}
-		else if (bIsReinstancingSkeleton)
+		else if (IsReinstancingSkeleton())
 		{
 			const bool bForceRegeneration = true;
 			FKismetEditorUtilities::GenerateBlueprintSkeleton(BP, bForceRegeneration);
@@ -647,15 +681,28 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 			bIsRootReinstancer = true;
 
 			TSet<TWeakObjectPtr<UBlueprint>> CompiledBlueprints;
+			// Blueprints will enqueue dirty and erroring dependents, in case those states would be 
+			// fixed up by having this dependency compiled first. However, this can result in an 
+			// infinite loop where two Blueprints with errors (unrelated to each other) keep 
+			// perpetually queuing the other. 
+			//
+			// To guard against this, we track the recompiled dependents (in order) and break the 
+			// cycle when we see that we've already compiled a dependent after its dependency
+			TArray<UBlueprint*> OrderedRecompiledDependents;
 
-			while (DependentBlueprintsToRecompile.Num())
+			TSet<TWeakObjectPtr<UBlueprint>> RecompilationQueue = DependentBlueprintsToRecompile;
+			// empty the public facing queue so we can discern between old and new elements (added 
+			// as the result of subsequent recompiles) 
+			DependentBlueprintsToRecompile.Empty();
+
+			while (RecompilationQueue.Num()) 
 			{
-				auto Iter = DependentBlueprintsToRecompile.CreateIterator();
+				auto Iter = RecompilationQueue.CreateIterator();
 				TWeakObjectPtr<UBlueprint> BPPtr = *Iter;
 				Iter.RemoveCurrent();
-				if (auto BP = BPPtr.Get())
+				if (UBlueprint* BP = BPPtr.Get())
 				{
-					if (bIsReinstancingSkeleton)
+					if (IsReinstancingSkeleton())
 					{
 						const bool bForceRegeneration = true;
 						FKismetEditorUtilities::GenerateBlueprintSkeleton(BP, bForceRegeneration);
@@ -663,13 +710,62 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 					else
 					{
 						// it's unsafe to GC in the middle of reinstancing because there may be other reinstancers still alive with references to 
-											// otherwise unreferenced classes:
+						// otherwise unreferenced classes:
 						const bool bSkipGC = true;
 						// Full compiles first recompile all skeleton classes, so they are up-to-date
 						const bool bSkeletonUpToDate = true;
 						FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGC, false, nullptr, bSkeletonUpToDate, true);
 						CompiledBlueprints.Add(BP);
 					}
+
+					OrderedRecompiledDependents.Add(BP);
+
+					// if this BP compiled with an error, then I don't see any reason why we 
+					// should attempt to recompile its dependencies; if a subsequent recompile 
+					// would fix this up, then it'll get re-injected into the queue when that happens
+					if (BP->Status != EBlueprintStatus::BS_Error)
+					{
+						for (TWeakObjectPtr<UBlueprint>& DependentPtr : DependentBlueprintsToRecompile)
+						{
+							if (!DependentPtr.IsValid())
+							{
+								continue;
+							}
+							UBlueprint* NewDependent = DependentPtr.Get();
+
+							int32 DependentIndex = OrderedRecompiledDependents.FindLast(NewDependent);
+							if (DependentIndex != INDEX_NONE)
+							{
+								// even though we just pushed BP into the list and know that it
+								// exists as the last entry, we want to see if it was compiled 
+								// earlier (once before 'NewDependent'); so we use Find() to search 
+								// out the first entry
+								int32 RecompilingBpIndex = OrderedRecompiledDependents.Find(BP);
+								if (RecompilingBpIndex != INDEX_NONE && RecompilingBpIndex < DependentIndex)
+								{
+									// we've already recompiled this Blueprint once before (here in 
+									// this loop), already after its dependency has been compiled too;
+									// so, to avoid a potential infinite loop we cannot keep trying 
+									// to compile this
+									//
+									// NOTE: this may result in some a compiler error that would have 
+									//       been resolved in another subsequent compile (for example: 
+									//       B depends on A, A is compiled, A has an error, B compiles 
+									//       with an error as a result, C compiles and enqueues A as a 
+									//       dependent, A is recompiled without error now, B is not 
+									//       enqueued again because its already recompiled after A)
+									// 
+									// the true fix is to restructure the compiler so that these sort 
+									// of scenarios don't happen - until then, this is a fair trade 
+									// off... fallback to a byte code compile instead
+									DependentBlueprintsToByteRecompile.Add(DependentPtr);
+									continue;
+								}
+							}
+							RecompilationQueue.Add(DependentPtr);
+						}
+					}
+					DependentBlueprintsToRecompile.Empty();
 				}
 			}
 
@@ -724,7 +820,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 			}
 
 
-			if (!bIsReinstancingSkeleton)
+			if (!IsReinstancingSkeleton())
 			{
 				TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
 
@@ -847,6 +943,84 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 	}
 }
 
+/** Lots of redundancy with ReattachActorsHelper */
+struct FAttachedActorInfo
+{
+	FAttachedActorInfo()
+		: AttachedActor(nullptr)
+		, AttachedToSocket()
+	{
+	}
+
+	AActor* AttachedActor;
+	FName   AttachedToSocket;
+};
+
+struct FActorAttachmentData
+{
+	FActorAttachmentData();
+	FActorAttachmentData(AActor* OldActor);
+	FActorAttachmentData(const FActorAttachmentData&) = default;
+	FActorAttachmentData& operator=(const FActorAttachmentData&) = default;
+	FActorAttachmentData(FActorAttachmentData&&) = default;
+	FActorAttachmentData& operator=(FActorAttachmentData&&) = default;
+	~FActorAttachmentData() = default;
+
+	AActor*          TargetAttachParent;
+	USceneComponent* TargetParentComponent;
+	FName            TargetAttachSocket;
+
+	TArray<FAttachedActorInfo> PendingChildAttachments;
+};
+
+FActorAttachmentData::FActorAttachmentData()
+	: TargetAttachParent(nullptr)
+	, TargetParentComponent(nullptr)
+	, TargetAttachSocket()
+	, PendingChildAttachments()
+{
+}
+
+FActorAttachmentData::FActorAttachmentData(AActor* OldActor)
+{
+	TargetAttachParent = nullptr;
+	TargetParentComponent = nullptr;
+
+	TArray<AActor*> AttachedActors;
+	OldActor->GetAttachedActors(AttachedActors);
+
+	// if there are attached objects detach them and store the socket names
+	for (AActor* AttachedActor : AttachedActors)
+	{
+		USceneComponent* AttachedActorRoot = AttachedActor->GetRootComponent();
+		if (AttachedActorRoot && AttachedActorRoot->GetAttachParent())
+		{
+			// Save info about actor to reattach
+			FAttachedActorInfo Info;
+			Info.AttachedActor = AttachedActor;
+			Info.AttachedToSocket = AttachedActorRoot->GetAttachSocketName();
+			PendingChildAttachments.Add(Info);
+		}
+	}
+
+	if (USceneComponent* OldRootComponent = OldActor->GetRootComponent())
+	{
+		if (OldRootComponent->GetAttachParent() != nullptr)
+		{
+			TargetAttachParent = OldRootComponent->GetAttachParent()->GetOwner();
+			// Root component should never be attached to another component in the same actor!
+			if (TargetAttachParent == OldActor)
+			{
+				UE_LOG(LogBlueprint, Warning, TEXT("ReplaceInstancesOfClass: RootComponent (%s) attached to another component in this Actor (%s)."), *OldRootComponent->GetPathName(), *TargetAttachParent->GetPathName());
+				TargetAttachParent = nullptr;
+			}
+
+			TargetAttachSocket = OldRootComponent->GetAttachSocketName();
+			TargetParentComponent = OldRootComponent->GetAttachParent();
+		}
+	}
+}
+
 /** 
  * Utility struct that represents a single replacement actor. Used to cache off
  * attachment info for the old actor (the one being replaced), that will be
@@ -855,15 +1029,38 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 struct FActorReplacementHelper
 {
 	/** NOTE: this detaches OldActor from all child/parent attachments. */
-	FActorReplacementHelper(AActor* InNewActor, AActor* OldActor)
+	FActorReplacementHelper(AActor* InNewActor, AActor* OldActor, FActorAttachmentData&& InAttachmentData)
 		: NewActor(InNewActor)
 		, TargetWorldTransform(FTransform::Identity)
-		, TargetAttachParent(nullptr)
-		, TargetParentComponent(nullptr)
+		, AttachmentData( MoveTemp(InAttachmentData) )
 		, bSelectNewActor(OldActor->IsSelected())
 	{
 		CachedActorData = StaticCastSharedPtr<AActor::FActorTransactionAnnotation>(OldActor->GetTransactionAnnotation());
-		CacheAttachInfo(OldActor);
+		TArray<AActor*> AttachedActors;
+		OldActor->GetAttachedActors(AttachedActors);
+
+		// if there are attached objects detach them and store the socket names
+		for (AActor* AttachedActor : AttachedActors)
+		{
+			USceneComponent* AttachedActorRoot = AttachedActor->GetRootComponent();
+			if (AttachedActorRoot && AttachedActorRoot->GetAttachParent())
+			{
+				AttachedActorRoot->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+			}
+		}
+
+		if (USceneComponent* OldRootComponent = OldActor->GetRootComponent())
+		{
+			if (OldRootComponent->GetAttachParent() != nullptr)
+			{
+				// detach it to remove any scaling
+				OldRootComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+			}
+
+			// Save off transform
+			TargetWorldTransform = OldRootComponent->ComponentToWorld;
+			TargetWorldTransform.SetTranslation(OldRootComponent->GetComponentLocation()); // take into account any custom location
+		}
 
 		for (UActorComponent* OldActorComponent : OldActor->GetComponents())
 		{
@@ -880,35 +1077,16 @@ struct FActorReplacementHelper
 	 */
 	void Finalize(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap);
 
+	/**
+	* Takes the cached child actors, as well as the old AttachParent, and sets
+	* up the new actor so that its attachment hierarchy reflects the old actor
+	* that it is replacing. Must be called after *all* instances have been Finalized.
+	*
+	* @param OldToNewInstanceMap Mapping of reinstanced objects.
+	*/
+	void ApplyAttachments(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap);
 
 private:
-	/**
-	 * Stores off the old actor's children, and its AttachParent; so that we can
-	 * apply them to the new actor in Finalize().
-	 *
-	 * NOTE: this detaches OldActor from all child/parent attachments.
-	 *
-	 * @param  OldActor		The actor whose attachment setup you want reproduced.
-	 */
-	void CacheAttachInfo(const AActor* OldActor);
-
-	/**
-	 * Stores off the old actor's children; so that in Finalize(), we may 
-	 * reattach them under the new actor.
-	 *
-	 * @param  OldActor		The actor whose child actors you want moved.
-	 */
-	void CacheChildAttachments(const AActor* OldActor);
-
-	/**
-	 * Takes the cached child actors, as well as the old AttachParent, and sets
-	 * up the new actor so that its attachment hierarchy reflects the old actor
-	 * that it is replacing.
-	 *
-	 * @param OldToNewInstanceMap Mapping of reinstanced objects.
-	 */
-	void ApplyAttachments(const TMap<UObject*, UObject*>& OldToNewInstanceMap);
-	
 	/**
 	 * Takes the cached child actors, and attaches them under the new actor.
 	 *
@@ -917,21 +1095,10 @@ private:
 	 */
 	void AttachChildActors(USceneComponent* RootComponent, const TMap<UObject*, UObject*>& OldToNewInstanceMap);
 
-private:
 	AActor*          NewActor;
 	FTransform       TargetWorldTransform;
-	AActor*          TargetAttachParent;
-	USceneComponent* TargetParentComponent; // should belong to TargetAttachParent
-	FName            TargetAttachSocket;
+	FActorAttachmentData AttachmentData;
 	bool             bSelectNewActor;
-
-	/** Info store about attached actors */
-	struct FAttachedActorInfo
-	{
-		AActor* AttachedActor;
-		FName   AttachedToSocket;
-	};
-	TArray<FAttachedActorInfo> PendingChildAttachments;
 
 	/** Holds actor component data, etc. that we use to apply */
 	TSharedPtr<AActor::FActorTransactionAnnotation> CachedActorData;
@@ -980,25 +1147,6 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 		NewActor->MarkComponentsRenderStateDirty();
 	}
 
-	if (TargetAttachParent)
-	{
-		UObject* const* NewTargetAttachParent = OldToNewInstanceMap.Find(TargetAttachParent);
-		if (NewTargetAttachParent)
-		{
-			TargetAttachParent = CastChecked<AActor>(*NewTargetAttachParent);
-		}
-	}
-	if (TargetParentComponent)
-	{
-		UObject* const* NewTargetParentComponent = OldToNewInstanceMap.Find(TargetParentComponent);
-		if (NewTargetParentComponent && *NewTargetParentComponent)
-		{
-			TargetParentComponent = CastChecked<USceneComponent>(*NewTargetParentComponent);
-		}
-	}
-
-	ApplyAttachments(OldToNewInstanceMap);
-
 	if (bSelectNewActor)
 	{
 		GEditor->SelectActor(NewActor, /*bInSelected =*/true, /*bNotify =*/true);
@@ -1033,75 +1181,41 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 	}
 }
 
-void FActorReplacementHelper::CacheAttachInfo(const AActor* OldActor)
-{
-	CacheChildAttachments(OldActor);
-
-	if (USceneComponent* OldRootComponent = OldActor->GetRootComponent())
-	{
-		if (OldRootComponent->GetAttachParent() != nullptr)
-		{
-			TargetAttachParent = OldRootComponent->GetAttachParent()->GetOwner();
-			// Root component should never be attached to another component in the same actor!
-			if (TargetAttachParent == OldActor)
-			{
-				UE_LOG(LogBlueprint, Warning, TEXT("ReplaceInstancesOfClass: RootComponent (%s) attached to another component in this Actor (%s)."), *OldRootComponent->GetPathName(), *TargetAttachParent->GetPathName());
-				TargetAttachParent = nullptr;
-			}
-
-			TargetAttachSocket    = OldRootComponent->GetAttachSocketName();
-			TargetParentComponent = OldRootComponent->GetAttachParent();
-			
-			// detach it to remove any scaling
-			OldRootComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		}
-
-		// Save off transform
-		TargetWorldTransform = OldRootComponent->ComponentToWorld;
-		TargetWorldTransform.SetTranslation(OldRootComponent->GetComponentLocation()); // take into account any custom location
-	}
-}
-
-void FActorReplacementHelper::CacheChildAttachments(const AActor* OldActor)
-{
-	TArray<AActor*> AttachedActors;
-	OldActor->GetAttachedActors(AttachedActors);
-
-	// if there are attached objects detach them and store the socket names
-	for (AActor* AttachedActor : AttachedActors)
-	{
-		USceneComponent* AttachedActorRoot = AttachedActor->GetRootComponent();
-		if (AttachedActorRoot && AttachedActorRoot->GetAttachParent())
-		{
-			// Save info about actor to reattach
-			FAttachedActorInfo Info;
-			Info.AttachedActor = AttachedActor;
-			Info.AttachedToSocket = AttachedActorRoot->GetAttachSocketName();
-			PendingChildAttachments.Add(Info);
-
-			// Now detach it
-			AttachedActorRoot->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		}
-	}
-}
-
-void FActorReplacementHelper::ApplyAttachments(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
+void FActorReplacementHelper::ApplyAttachments(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap)
 {
 	USceneComponent* NewRootComponent = NewActor->GetRootComponent();
 	if (NewRootComponent == nullptr)
 	{
 		return;
 	}
-	// attach the new instance to original parent
-	if (TargetAttachParent != nullptr)
+
+	if (AttachmentData.TargetAttachParent)
 	{
-		if (TargetParentComponent == nullptr)
+		UObject* const* NewTargetAttachParent = OldToNewInstanceMap.Find(AttachmentData.TargetAttachParent);
+		if (NewTargetAttachParent)
 		{
-			TargetParentComponent = TargetAttachParent->GetRootComponent();
+			AttachmentData.TargetAttachParent = CastChecked<AActor>(*NewTargetAttachParent);
 		}
-		else
+	}
+	if (AttachmentData.TargetParentComponent)
+	{
+		UObject* const* NewTargetParentComponent = OldToNewInstanceMap.Find(AttachmentData.TargetParentComponent);
+		if (NewTargetParentComponent && *NewTargetParentComponent)
 		{
-			NewRootComponent->AttachToComponent(TargetParentComponent, FAttachmentTransformRules::KeepWorldTransform, TargetAttachSocket);
+			AttachmentData.TargetParentComponent = CastChecked<USceneComponent>(*NewTargetParentComponent);
+		}
+	}
+
+	// attach the new instance to original parent
+	if (AttachmentData.TargetAttachParent != nullptr)
+	{
+		if (AttachmentData.TargetParentComponent == nullptr)
+		{
+			AttachmentData.TargetParentComponent = AttachmentData.TargetAttachParent->GetRootComponent();
+		}
+		else if(!AttachmentData.TargetParentComponent->IsPendingKill())
+		{
+			NewRootComponent->AttachToComponent(AttachmentData.TargetParentComponent, FAttachmentTransformRules::KeepWorldTransform, AttachmentData.TargetAttachSocket);
 		}
 	}
 
@@ -1111,7 +1225,7 @@ void FActorReplacementHelper::ApplyAttachments(const TMap<UObject*, UObject*>& O
 void FActorReplacementHelper::AttachChildActors(USceneComponent* RootComponent, const TMap<UObject*, UObject*>& OldToNewInstanceMap)
 {
 	// if we had attached children reattach them now - unless they are already attached
-	for (FAttachedActorInfo& Info : PendingChildAttachments)
+	for (FAttachedActorInfo& Info : AttachmentData.PendingChildAttachments)
 	{
 		// Check for a reinstanced attachment, and redirect to the new instance if found
 		AActor* NewAttachedActor = Cast<AActor>(OldToNewInstanceMap.FindRef(Info.AttachedActor));
@@ -1343,16 +1457,36 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 			UClass* OldClass = OldToNewClass.Key;
 			UClass* NewClass = OldToNewClass.Value;
 			check(OldClass && NewClass);
+#if WITH_HOT_RELOAD
 			check(OldClass != NewClass || GIsHotReload);
+#else
+			check(OldClass != NewClass);
+#endif
 
 			{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_ReplaceInstancesOfClass);
 
 				const bool bIncludeDerivedClasses = false;
 				GetObjectsOfClass(OldClass, ObjectsToReplace, bIncludeDerivedClasses);
 
-				// Then fix 'real' (non archetype) instances of the class
-				for (UObject* OldObject : ObjectsToReplace)
+				// store old attachment data before we mess with components, etc:
+				TMap<UObject*, FActorAttachmentData> ActorAttachmentData;
+				for (int32 OldObjIndex = 0; OldObjIndex < ObjectsToReplace.Num(); ++OldObjIndex)
 				{
+					UObject* OldObject = ObjectsToReplace[OldObjIndex];
+					AActor*  OldActor = Cast<AActor>(OldObject);
+					// Skip non-archetype instances, EXCEPT for component templates
+					if (!OldActor || OldObject->IsPendingKill())
+					{
+						continue;
+					}
+
+					ActorAttachmentData.Add(OldObject, FActorAttachmentData(OldActor));
+				}
+
+				// Then fix 'real' (non archetype) instances of the class
+				for (int32 OldObjIndex = 0; OldObjIndex < ObjectsToReplace.Num(); ++OldObjIndex)
+				{
+					UObject* OldObject = ObjectsToReplace[OldObjIndex];
 					// Skip non-archetype instances, EXCEPT for component templates
 					const bool bIsComponent = NewClass->IsChildOf(UActorComponent::StaticClass());
 					if ((!bIsComponent && OldObject->IsTemplate()) || OldObject->IsPendingKill())
@@ -1361,18 +1495,32 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 						continue;
 					}
 
-					UBlueprint* CorrespondingBlueprint = Cast<UBlueprint>(OldObject->GetClass()->ClassGeneratedBy);
-					UObject*    OldBlueprintDebugObject = nullptr;
-					// If this object is being debugged, cache it off so we can preserve the 'object being debugged' association
-					if ((CorrespondingBlueprint != nullptr) && (CorrespondingBlueprint->GetObjectBeingDebugged() == OldObject))
+					UBlueprint* DebuggingBlueprint = nullptr;
+					// ObjectsToReplace is not in any garunteed order; so below there may be a 
+					// scenario where one object in ObjectsToReplace needs to come before another; 
+					// in that scenario we swap the two in ObjectsToReplace and finish the loop 
+					// with a new OldObject - to support that we need to re-cache info about the 
+					// (new) old object before it is destroyed (hence why this is all in a lambda,  
+					// for reuse).
+					auto CacheOldObjectState = [&DebuggingBlueprint](UObject* Replacee)
 					{
-						OldBlueprintDebugObject = OldObject;
-					}
+						// clear in case it has already been set, and we're re-executing this
+						DebuggingBlueprint = nullptr;
+
+						if (UBlueprint* OldObjBlueprint = Cast<UBlueprint>(Replacee->GetClass()->ClassGeneratedBy))
+						{
+							if (OldObjBlueprint->GetObjectBeingDebugged() == Replacee)
+							{
+								DebuggingBlueprint = OldObjBlueprint;
+							}
+						}
+					};
+					CacheOldObjectState(OldObject);
 
 					AActor*  OldActor = Cast<AActor>(OldObject);
 					UObject* NewUObject = nullptr;
 					// if the object to replace is an actor...
-					if (OldActor != nullptr)
+					if (OldActor != nullptr && OldActor->GetLevel())
 					{
 						FVector  Location = FVector::ZeroVector;
 						FRotator Rotation = FRotator::ZeroRotator;
@@ -1437,7 +1585,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 						// running the NewActor's construction-script is saved for that 
 						// second pass (because the construction-script may reference 
 						// another instance that hasn't been replaced yet).
-						ReplacementActors.Add(FActorReplacementHelper(NewActor, OldActor));
+						FActorAttachmentData& CurrentAttachmentData = ActorAttachmentData.FindChecked(OldObject);
+						ReplacementActors.Add(FActorReplacementHelper(NewActor, OldActor, MoveTemp(CurrentAttachmentData)));
+						ActorAttachmentData.Remove(OldObject);
 
 						ReinstancedObjectsWeakReferenceMap.Add(OldObject, NewUObject);
 
@@ -1475,14 +1625,47 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 					}
 					else
 					{
-						auto OldFlags = OldObject->GetFlags();
-
 						// If the old object was spawned from an archetype (i.e. not the CDO), we must use the new version of that archetype as the template object when constructing the new instance.
 						UObject* OldArchetype = OldObject->GetArchetype();
 						UObject* NewArchetype = OldToNewInstanceMap.FindRef(OldArchetype);
 
+						bool bArchetypeReinstanced = (OldArchetype == OldClass->GetDefaultObject()) || (NewArchetype != nullptr);
+						// if we don't have a updated archetype to spawn from, we need to update/reinstance it
+						while (!bArchetypeReinstanced)
+						{
+							int32 ArchetypeIndex = ObjectsToReplace.Find(OldArchetype);
+							if (ArchetypeIndex != INDEX_NONE)
+							{
+								if (ensure(ArchetypeIndex > OldObjIndex))
+								{
+									// if this object has an archetype, but it hasn't been 
+									// reinstanced yet (but is queued to) then we need to swap out 
+									// the two, and reinstance the archetype first
+									ObjectsToReplace.Swap(ArchetypeIndex, OldObjIndex);
+									OldObject = ObjectsToReplace[OldObjIndex];
+									check(OldObject == OldArchetype);
+
+									// update any info that we stored regarding the previous OldObject
+									CacheOldObjectState(OldObject);
+									
+									OldArchetype = OldObject->GetArchetype();
+									NewArchetype = OldToNewInstanceMap.FindRef(OldArchetype);
+									bArchetypeReinstanced = (OldArchetype == OldClass->GetDefaultObject()) || (NewArchetype != nullptr);
+								}
+								else
+								{
+									break;
+								}
+							}
+							else
+							{
+								break;
+							}
+						}
 						// Check that either this was an instance of the class directly, or we found a new archetype for it
-						check(OldArchetype == OldClass->GetDefaultObject() || NewArchetype);
+						ensureMsgf(bArchetypeReinstanced, TEXT("Reinstancing non-actor (%s); failed to resolve archetype object - property values may be lost."), *OldObject->GetPathName());
+
+						EObjectFlags OldFlags = OldObject->GetFlags();
 
 						FName OldName(OldObject->GetFName());
 						OldObject->Rename(NULL, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
@@ -1579,9 +1762,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 					}
 
 					// If this original object came from a blueprint and it was in the selected debug set, change the debugging to the new object.
-					if ((CorrespondingBlueprint) && (OldBlueprintDebugObject) && (NewUObject))
+					if (DebuggingBlueprint && NewUObject)
 					{
-						CorrespondingBlueprint->SetObjectBeingDebugged(NewUObject);
+						DebuggingBlueprint->SetObjectBeingDebugged(NewUObject);
 					}
 
 					if (bLogConversions)
@@ -1611,7 +1794,11 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 			UClass* OldClass = OldToNewClass.Key;
 			UClass* NewClass = OldToNewClass.Value;
 			check(OldClass && NewClass);
+#if WITH_HOT_RELOAD
 			check(OldClass != NewClass || GIsHotReload);
+#else
+			check(OldClass != NewClass);
+#endif
 
 			FReplaceReferenceHelper::IncludeCDO(OldClass, NewClass, OldToNewInstanceMap, SourceObjects, InOriginalCDO);
 
@@ -1641,6 +1828,11 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 		for (FActorReplacementHelper& ReplacementActor : ReplacementActors)
 		{
 			ReplacementActor.Finalize(ObjectRemappingHelper.ReplacedObjects, ObjectsThatShouldUseOldStuff, ObjectsToReplace, ReinstancedObjectsWeakReferenceMap);
+		}
+
+		for (FActorReplacementHelper& ReplacementActor : ReplacementActors)
+		{
+			ReplacementActor.ApplyAttachments(ObjectRemappingHelper.ReplacedObjects, ObjectsThatShouldUseOldStuff, ObjectsToReplace, ReinstancedObjectsWeakReferenceMap);
 		}
 	}
 
@@ -1736,12 +1928,14 @@ void FBlueprintCompileReinstancer::ReparentChild(UBlueprint* ChildBP)
 	UClass* SkeletonClass = ChildBP->SkeletonGeneratedClass;
 	UClass* GeneratedClass = ChildBP->GeneratedClass;
 
-	if( bIsReinstancingSkeleton && SkeletonClass )
+	const bool ReparentGeneratedOnly = (ReinstClassType == RCT_BpGenerated);
+	if( !ReparentGeneratedOnly && SkeletonClass )
 	{
 		ReparentChild(SkeletonClass);
 	}
 
-	if( !bIsReinstancingSkeleton && GeneratedClass )
+	const bool ReparentSkelOnly = (ReinstClassType == RCT_BpSkeleton);
+	if( !ReparentSkelOnly && GeneratedClass )
 	{
 		ReparentChild(GeneratedClass);
 	}

@@ -176,6 +176,12 @@ void FRHICommandSetViewport::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(RHISetViewport)(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 }
 
+void FRHICommandSetStereoViewport::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SetStereoViewport);
+	INTERNAL_DECORATOR(RHISetStereoViewport)(LeftMinX, RightMinX, MinY, MinZ, LeftMaxX, RightMaxX, MaxY, MaxZ);
+}
+
 void FRHICommandSetScissorRect::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(SetScissorRect);

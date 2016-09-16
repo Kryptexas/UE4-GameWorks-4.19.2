@@ -48,6 +48,16 @@ uint ACESInversion;
 
 uint OutputDevice;
 
+uint GetOutputDevice()
+{
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
+	return OutputDevice;
+#else
+	// Only sRGB output for Mobile
+	return 0;
+#endif 
+}
+
 // LUT for color grading
 #if USE_VOLUME_LUT == 1
 	Texture3D		ColorGradingLUT;
@@ -60,7 +70,7 @@ half3 ColorLookupTable( half3 LinearColor )
 {
 	float3 LUTEncodedColor;
 	// Encode as ST-2084 (Dolby PQ) values
-	if( OutputDevice >= 3 )
+	if( GetOutputDevice() >= 3 )
 		LUTEncodedColor = LinearToST2084( LinearColor );
 	// Encode as log values
 	else
@@ -87,14 +97,14 @@ float PseudoRandomTex(float2 xy)
 
 float SwitchVerticalAxis;
 
-
+#define NEEDTOSWITCHVERTICLEAXIS (ES2_PROFILE && COMPILER_GLSL_ES2) || (ES3_1_PROFILE && COMPILER_GLSL_ES3_1)
 
 // can be optimized
 float2 ScreenPosToUV(float2 ScreenPos)
 {
 	float2 UV = (ScreenPos * ScreenPosToPixel.xy + ScreenPosToPixel.zw) * PostprocessInput0Size.zw;
 
-#if ES2_PROFILE && COMPILER_GLSL_ES2
+#if NEEDTOSWITCHVERTICLEAXIS
 	UV.y = 1.0 - UV.y;
 #endif
 
@@ -103,7 +113,7 @@ float2 ScreenPosToUV(float2 ScreenPos)
 
 float2 UVToScreenPos(float2 UV)
 {
-#if ES2_PROFILE && COMPILER_GLSL_ES2
+#if NEEDTOSWITCHVERTICLEAXIS
 	UV.y = 1.0 - UV.y;
 #endif
 
@@ -124,7 +134,7 @@ void MainVS(
 	out 				float4 OutPosition 				: SV_POSITION
 	)
 {
-#if ES2_PROFILE && COMPILER_GLSL_ES2
+#if NEEDTOSWITCHVERTICLEAXIS
 	// This is currently the last pass, so flip the texture on V to match D3D
 	InTexCoord.y = 1.0 - InTexCoord.y;
 #endif
@@ -135,7 +145,7 @@ void MainVS(
 	// TODO: Looks to be Ronin specific.. check this:
 	OutFullViewUV.xy = OutPosition.xy * float2(0.5,-0.5) + 0.5;
 
-#if ES2_PROFILE && COMPILER_GLSL_ES2
+#if NEEDTOSWITCHVERTICLEAXIS
 	OutFullViewUV.y = 1.0 - OutFullViewUV.y;
 #endif
 
@@ -296,7 +306,7 @@ float2 ComputeCounterStepForTileDebugging(float4 SvPosition, int2 TileSize, out 
 
 half3 LookupSceneColor(float2 SceneUV, int2 PixelOffset)
 {
-#if ES2_PROFILE && COMPILER_GLSL_ES2
+#if (ES2_PROFILE && COMPILER_GLSL_ES2) || (ES3_1_PROFILE && COMPILER_GLSL_ES3_1)
 	// slower but always works
 	// to prevent "error: Texture offset not supported on GLSL ES"
 	return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV + PixelOffset * PostprocessInput0Size.zw).rgb;
@@ -535,7 +545,6 @@ void MainPS(
 
 
 // ES2 version
-
 // TODO: Convert float to half.
 
 float FringeIntensity;
@@ -553,7 +562,7 @@ void MainVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-#if ES2_PROFILE && COMPILER_GLSL_ES2
+#if NEEDTOSWITCHVERTICLEAXIS
 	// This is currently the last pass, so flip the texture on V to match D3D
 	InTexCoord.y = 1.0-InTexCoord.y;
 #endif
@@ -565,7 +574,7 @@ void MainVS_ES2(
 	OutFineDofGrain.xy = OutTexCoord.xy + PostprocessInput0Size.zw * float2(-0.5,0.5);
 	// Want grain and a second UV based on the knowledge that the source texture has a full viewport.
 	OutFullViewUV.xy = OutPosition.xy * float2(0.5,-0.5) + 0.5;
-	#if ES2_PROFILE && COMPILER_GLSL_ES2
+	#if NEEDTOSWITCHVERTICLEAXIS
 		// This is currently the last pass, so flip the texture on V to match D3D
 		OutFullViewUV.y = 1.0 - OutFullViewUV.y;
 	#endif
@@ -713,26 +722,7 @@ void MainPS_ES2(
 
 		#if USE_32BPP_HDR
 		{
-			// TODO: Support odd frame inversion of mosaic pattern?
-			#if 0
-				half3 SceneColorE = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[1].xy).rgb;
-				SceneColor.rgb = HdrDemosaic(SceneColor.rgb, SceneColorE, SvPosition.xy);
-			#endif
-			#if 1
-				// Higher quality path.
-				half3 SceneColorN = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[0].xy).rgb;
-				half3 SceneColorE = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[1].xy).rgb;
-				half3 SceneColorW = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[2].xy).rgb;
-				half3 SceneColorS = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[3].xy).rgb;
-				half3 SceneColorV = SceneColorN * 0.5 + SceneColorS * 0.5;
-				half3 SceneColorH = SceneColorW * 0.5 + SceneColorE * 0.5;
-				if(abs(SceneColorN.g - SceneColorS.g) < abs(SceneColorW.g - SceneColorE.g)) 
-				{
-					SceneColorH = SceneColorV;
-				}
-				SceneColor.rgb = Decode32BPPHDR(SceneColor, SceneColorH, SvPosition.xy);
-				SceneColor.a = 0.0;
-			#endif
+			SceneColor = Decode32BPPHDR(SceneColor, SvPosition, PostprocessInput0, PostprocessInput0Sampler, InTexCoords);
 		}
 		#endif
 
@@ -756,7 +746,7 @@ void MainPS_ES2(
 			if (GetHDR32bppEncodeMode() != HDR_ENCODE_MOSAIC)
 			{
 				#if USE_32BPP_HDR
-					CombinedBloomSunVignette.rgb = Decode32BPPHDR(CombinedBloomSunVignette);
+					CombinedBloomSunVignette.rgb = Decode32BPPHDR(CombinedBloomSunVignette).rgb;
 					LinearColor.rgb = LinearColor.rgb + CombinedBloomSunVignette.rgb;
 				#else
 					LinearColor.rgb = LinearColor.rgb * CombinedBloomSunVignette.a + CombinedBloomSunVignette.rgb;

@@ -16,6 +16,8 @@ DECLARE_CYCLE_STAT(TEXT("Slate RT: Create Batches"), STAT_SlateRTCreateBatches, 
 DECLARE_CYCLE_STAT(TEXT("Slate RT: Fill Vertex & Index Buffers"), STAT_SlateRTFillVertexIndexBuffers, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("Slate RT: Draw Batches"), STAT_SlateRTDrawBatches, STATGROUP_Slate);
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Slate UI"), Stat_GPU_SlateUI, STATGROUP_GPU); 
+
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
 
@@ -197,7 +199,7 @@ void FSlateRHIRenderer::Destroy()
 	if (CrashTrackerResource != nullptr)
 	{
 		delete CrashTrackerResource;
-		CrashTrackerResource = NULL;
+		CrashTrackerResource = nullptr;
 	}
 
 	WindowToViewportInfo.Empty();
@@ -401,6 +403,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	check(IsInRenderingThread());
 	
 	{
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_SlateUI);
 		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
 
 		FSlateBatchData& BatchData = WindowElementList.GetBatchData();
@@ -467,11 +470,9 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		}
 	}
 
-	bool bNeedCallFinishFrameForStereo = false;
 	if (GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
 	{
 		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
-		bNeedCallFinishFrameForStereo = true;
 	}
 
 	// Calculate renderthread time (excluding idle time).	
@@ -479,10 +480,6 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 	RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
 
-	if (bNeedCallFinishFrameForStereo)
-	{
-		GEngine->StereoRenderingDevice->FinishRenderingFrame_RenderThread(RHICmdList);
-	}
 	uint32 EndTime		= FPlatformTime::Cycles();
 
 	GSwapBufferTime		= EndTime - StartTime;
@@ -593,11 +590,19 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 
 				bLockToVsync = ElementBatcher->RequiresVsync();
 
-				if( !GIsEditor )
+				bool bForceVsyncFromCVar = false;
+				if(GIsEditor)
+				{
+					static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSyncEditor"));
+					bForceVsyncFromCVar = (CVar->GetInt() != 0);
+				}
+				else
 				{
 					static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-					bLockToVsync = bLockToVsync || (CVar->GetInt() != 0);
+					bForceVsyncFromCVar = (CVar->GetInt() != 0);
 				}
+
+				bLockToVsync |= bForceVsyncFromCVar;
 
 				// All elements for this window have been batched and rendering data updated
 				ElementBatcher->ResetBatches();
@@ -1185,13 +1190,12 @@ void FSlateRHIRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 	if (IsInRenderingThread())
 	{
 		Texture->GetRenderResource()->ReleaseResource();
+		delete Texture;
 	}
 	else
 	{
-		BeginReleaseResource(Texture->GetRenderResource());
-		FlushRenderingCommands();
+		Texture->Cleanup();
 	}
-	delete Texture;
 }
 
 ISlateAtlasProvider* FSlateRHIRenderer::GetTextureAtlasProvider()

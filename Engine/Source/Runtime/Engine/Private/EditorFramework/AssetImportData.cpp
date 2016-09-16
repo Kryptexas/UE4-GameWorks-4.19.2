@@ -103,7 +103,7 @@ void UAssetImportData::UpdateFilenameOnly(const FString& InPath, int32 Index)
 	}
 }
 
-void UAssetImportData::Update(const FString& InPath)
+void UAssetImportData::Update(const FString& InPath, FMD5Hash *Md5Hash/* = nullptr*/)
 {
 	FAssetImportInfo Old = SourceData;
 
@@ -112,7 +112,7 @@ void UAssetImportData::Update(const FString& InPath)
 	SourceData.SourceFiles.Emplace(
 		SanitizeImportFilename(InPath),
 		IFileManager::Get().GetTimeStamp(*InPath),
-		FMD5Hash::HashFile(*InPath)
+		(Md5Hash != nullptr) ? *Md5Hash : FMD5Hash::HashFile(*InPath)
 		);
 	
 	OnImportDataChanged.Broadcast(Old, this);

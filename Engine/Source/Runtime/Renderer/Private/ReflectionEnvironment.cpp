@@ -20,18 +20,13 @@
 #include "SceneUtils.h"
 #include "LightPropagationVolumeBlendable.h"
 
-/** Tile size for the reflection environment compute shader, tweaked for 680 GTX. */
-const int32 GReflectionEnvironmentTileSizeX = 16;
-const int32 GReflectionEnvironmentTileSizeY = 16;
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Reflection Environment"), Stat_GPU_ReflectionEnvironment, STATGROUP_GPU);
+
+/** Tile size for the reflection environment compute shader, tweaked for PS4. */
+const int32 GReflectionEnvironmentTileSizeX = 8;
+const int32 GReflectionEnvironmentTileSizeY = 8;
 
 extern TAutoConsoleVariable<int32> CVarLPVMixing;
-
-static TAutoConsoleVariable<int32> CVarDiffuseFromCaptures(
-	TEXT("r.DiffuseFromCaptures"),
-	0,
-	TEXT("Apply indirect diffuse lighting from captures instead of lightmaps.\n")
-	TEXT(" 0 is off (default), 1 is on"),
-	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarReflectionEnvironment(
 	TEXT("r.ReflectionEnvironment"),
@@ -42,6 +37,29 @@ static TAutoConsoleVariable<int32> CVarReflectionEnvironment(
 	TEXT(" 2: on and overwrite scene (only in non-shipping builds)"),
 	ECVF_RenderThreadSafe | ECVF_Scalability);
 
+int32 GReflectionEnvironmentLightmapMixing = 1;
+FAutoConsoleVariableRef CVarReflectionEnvironmentLightmapMixing(
+	TEXT("r.ReflectionEnvironmentLightmapMixing"),
+	GReflectionEnvironmentLightmapMixing,
+	TEXT("Whether to mix indirect specular from reflection captures with indirect diffuse from lightmaps for rough surfaces."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
+float GReflectionEnvironmentBeginMixingRoughness = .1f;
+FAutoConsoleVariableRef CVarReflectionEnvironmentBeginMixingRoughness(
+	TEXT("r.ReflectionEnvironmentBeginMixingRoughness"),
+	GReflectionEnvironmentBeginMixingRoughness,
+	TEXT("Min roughness value at which to begin mixing reflection captures with lightmap indirect diffuse."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
+float GReflectionEnvironmentEndMixingRoughness = .3f;
+FAutoConsoleVariableRef CVarReflectionEnvironmentEndMixingRoughness(
+	TEXT("r.ReflectionEnvironmentEndMixingRoughness"),
+	GReflectionEnvironmentEndMixingRoughness,
+	TEXT("Min roughness value at which to end mixing reflection captures with lightmap indirect diffuse."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
 
 static TAutoConsoleVariable<int32> CVarDoTiledReflections(
 	TEXT("r.DoTiledReflections"),
@@ -71,6 +89,24 @@ static int GetReflectionEnvironmentCVar()
 #endif
 
 	return RetVal;
+}
+
+FVector2D GetReflectionEnvironmentRoughnessMixingScaleBias()
+{
+	float RoughnessMixingRange = 1.0f / FMath::Max(GReflectionEnvironmentEndMixingRoughness - GReflectionEnvironmentBeginMixingRoughness, .001f);
+
+	if (GReflectionEnvironmentLightmapMixing == 0)
+	{
+		return FVector2D(0, 0);
+	}
+
+	if (GReflectionEnvironmentEndMixingRoughness == 0.0f && GReflectionEnvironmentBeginMixingRoughness == 0.0f)
+	{
+		// Make sure a Roughness of 0 results in full mixing when disabling roughness-based mixing
+		return FVector2D(0, 1);
+	}
+
+	return FVector2D(RoughnessMixingRange, -GReflectionEnvironmentBeginMixingRoughness * RoughnessMixingRange);
 }
 
 bool IsReflectionEnvironmentAvailable(ERHIFeatureLevel::Type InFeatureLevel)
@@ -196,7 +232,7 @@ struct FReflectionCaptureSortData
 	FVector4 CaptureProperties;
 	FMatrix BoxTransform;
 	FVector4 BoxScales;
-	FVector4 CaptureOffset;
+	FVector4 CaptureOffsetAndAverageBrightness;
 	FTexture* SM4FullHDRCubemap;
 
 	bool operator < (const FReflectionCaptureSortData& Other) const
@@ -211,17 +247,6 @@ struct FReflectionCaptureSortData
 		}
 	}
 };
-
-/** Per-reflection capture data needed by the shader. */
-BEGIN_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,PositionAndRadius,[GMaxNumReflectionCaptures])
-	// R is brightness, G is array index, B is shape
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureProperties,[GMaxNumReflectionCaptures])
-	// Stores the box transform for a box shape, other data is packed for other shapes
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix,BoxTransform,[GMaxNumReflectionCaptures])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureOffset,[GMaxNumReflectionCaptures])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,BoxScales,[GMaxNumReflectionCaptures])
-END_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData)
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,TEXT("ReflectionCapture"));
 
@@ -242,16 +267,16 @@ public:
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GReflectionEnvironmentTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GReflectionEnvironmentTileSizeY);
 		OutEnvironment.SetDefine(TEXT("MAX_CAPTURES"), GMaxNumReflectionCaptures);
-		OutEnvironment.SetDefine(TEXT("TILED_DEFERRED_CULL_SHADER"), 1);
 		OutEnvironment.CompilerFlags.Add(CFLAG_StandardOptimization);
+		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
 	FReflectionEnvironmentTiledDeferredCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
 		DeferredParameters.Bind(Initializer.ParameterMap);
-		ReflectionEnvironmentColorTexture.Bind(Initializer.ParameterMap,TEXT("ReflectionEnvironmentColorTexture"));
-		ReflectionEnvironmentColorSampler.Bind(Initializer.ParameterMap,TEXT("ReflectionEnvironmentColorSampler"));
+		ReflectionCubemap.Bind(Initializer.ParameterMap,TEXT("ReflectionCubemap"));
+		ReflectionCubemapSampler.Bind(Initializer.ParameterMap,TEXT("ReflectionCubemapSampler"));
 		ScreenSpaceReflections.Bind(Initializer.ParameterMap, TEXT("ScreenSpaceReflections"));
 		InSceneColor.Bind(Initializer.ParameterMap, TEXT("InSceneColor"));
 		OutSceneColor.Bind(Initializer.ParameterMap, TEXT("OutSceneColor"));
@@ -261,6 +286,7 @@ public:
 		PreIntegratedGFSampler.Bind(Initializer.ParameterMap, TEXT("PreIntegratedGFSampler"));
 		SkyLightParameters.Bind(Initializer.ParameterMap);
 		SpecularOcclusionParameters.Bind(Initializer.ParameterMap);
+		ForwardLightingParameters.Bind(Initializer.ParameterMap);
 	}
 
 	FReflectionEnvironmentTiledDeferredCS()
@@ -269,9 +295,8 @@ public:
 
 	void SetParameters(
 		FRHIAsyncComputeCommandListImmediate& RHICmdList, 
-		const FSceneView& View,
+		const FViewInfo& View,
 		FTextureRHIParamRef SSRTexture,
-		TArray<FReflectionCaptureSortData>& SortData,
 		FUnorderedAccessViewRHIParamRef OutSceneColorUAV, 
 		const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO
 		)
@@ -291,8 +316,8 @@ public:
 		SetTextureParameter(
 			RHICmdList, 
 			ShaderRHI, 
-			ReflectionEnvironmentColorTexture, 
-			ReflectionEnvironmentColorSampler, 
+			ReflectionCubemap, 
+			ReflectionCubemapSampler, 
 			TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 			CubemapArray.ShaderResourceTexture);
 
@@ -305,19 +330,8 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, ViewDimensionsParameter, View.ViewRect);
 
-		FReflectionCaptureData SamplePositionsBuffer;
-
-		for (int32 CaptureIndex = 0; CaptureIndex < SortData.Num(); CaptureIndex++)
-		{
-			SamplePositionsBuffer.PositionAndRadius[CaptureIndex] = SortData[CaptureIndex].PositionAndRadius;
-			SamplePositionsBuffer.CaptureProperties[CaptureIndex] = SortData[CaptureIndex].CaptureProperties;
-			SamplePositionsBuffer.BoxTransform[CaptureIndex] = SortData[CaptureIndex].BoxTransform;
-			SamplePositionsBuffer.CaptureOffset[CaptureIndex] = SortData[CaptureIndex].CaptureOffset;
-			SamplePositionsBuffer.BoxScales[CaptureIndex] = SortData[CaptureIndex].BoxScales;
-		}
-
-		SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI, GetUniformBufferParameter<FReflectionCaptureData>(), SamplePositionsBuffer);
-		SetShaderValue(RHICmdList, ShaderRHI, NumCaptures, SortData.Num());
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FReflectionCaptureData>(), View.ReflectionCaptureUniformBuffer);
+		SetShaderValue(RHICmdList, ShaderRHI, NumCaptures, View.NumBoxReflectionCaptures + View.NumSphereReflectionCaptures);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
 	
@@ -326,6 +340,8 @@ public:
 		const float MinOcclusion = Scene->SkyLight ? Scene->SkyLight->MinOcclusion : 0;
 		const FVector OcclusionTint = Scene->SkyLight ? (const FVector&)Scene->SkyLight->OcclusionTint : FVector::ZeroVector;
 		SpecularOcclusionParameters.SetParameters(RHICmdList, ShaderRHI, DynamicBentNormalAO, CVarSkySpecularOcclusionStrength.GetValueOnRenderThread(), FVector4(OcclusionTint, MinOcclusion));
+
+		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, View);
 	}
 
 	void UnsetParameters(FRHIAsyncComputeCommandListImmediate& RHICmdList, FUnorderedAccessViewRHIParamRef OutSceneColorUAV)
@@ -338,8 +354,8 @@ public:
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << DeferredParameters;
-		Ar << ReflectionEnvironmentColorTexture;
-		Ar << ReflectionEnvironmentColorSampler;
+		Ar << ReflectionCubemap;
+		Ar << ReflectionCubemapSampler;
 		Ar << ScreenSpaceReflections;
 		Ar << InSceneColor;
 		Ar << OutSceneColor;
@@ -349,14 +365,15 @@ public:
 		Ar << PreIntegratedGFSampler;
 		Ar << SkyLightParameters;
 		Ar << SpecularOcclusionParameters;
+		Ar << ForwardLightingParameters;
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 
 	FDeferredPixelShaderParameters DeferredParameters;
-	FShaderResourceParameter ReflectionEnvironmentColorTexture;
-	FShaderResourceParameter ReflectionEnvironmentColorSampler;
+	FShaderResourceParameter ReflectionCubemap;
+	FShaderResourceParameter ReflectionCubemapSampler;
 	FShaderResourceParameter ScreenSpaceReflections;
 	FShaderResourceParameter InSceneColor;
 	FRWShaderParameter OutSceneColor;
@@ -366,6 +383,7 @@ private:
 	FShaderResourceParameter PreIntegratedGFSampler;
 	FSkyLightReflectionParameters SkyLightParameters;
 	FDistanceFieldAOSpecularOcclusionParameters SpecularOcclusionParameters;
+	FForwardLightingParameters ForwardLightingParameters;
 };
 
 template< uint32 bUseLightmaps, uint32 bHasSkyLight, uint32 bBoxCapturesOnly, uint32 bSphereCapturesOnly, uint32 bSupportDFAOIndirectOcclusion >
@@ -384,9 +402,9 @@ public:
 	{
 		FReflectionEnvironmentTiledDeferredCS::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_LIGHTMAPS"), bUseLightmaps);
-		OutEnvironment.SetDefine(TEXT("HAS_SKYLIGHT"), bHasSkyLight);
-		OutEnvironment.SetDefine(TEXT("HAS_BOX_CAPTURES"), bBoxCapturesOnly);
-		OutEnvironment.SetDefine(TEXT("HAS_SPHERE_CAPTURES"), bSphereCapturesOnly);
+		OutEnvironment.SetDefine(TEXT("ENABLE_SKY_LIGHT"), bHasSkyLight);
+		OutEnvironment.SetDefine(TEXT("REFLECTION_COMPOSITE_HAS_BOX_CAPTURES"), bBoxCapturesOnly);
+		OutEnvironment.SetDefine(TEXT("REFLECTION_COMPOSITE_HAS_SPHERE_CAPTURES"), bSphereCapturesOnly);
 		OutEnvironment.SetDefine(TEXT("SUPPORT_DFAO_INDIRECT_OCCLUSION"), bSupportDFAOIndirectOcclusion);
 	}
 };
@@ -620,7 +638,7 @@ public:
 		CaptureProperties.Bind(Initializer.ParameterMap, TEXT("CaptureProperties"));
 		CaptureBoxTransform.Bind(Initializer.ParameterMap, TEXT("CaptureBoxTransform"));
 		CaptureBoxScales.Bind(Initializer.ParameterMap, TEXT("CaptureBoxScales"));
-		CaptureOffset.Bind(Initializer.ParameterMap, TEXT("CaptureOffset"));
+		CaptureOffsetAndAverageBrightness.Bind(Initializer.ParameterMap, TEXT("CaptureOffsetAndAverageBrightness"));
 		CaptureArrayIndex.Bind(Initializer.ParameterMap, TEXT("CaptureArrayIndex"));
 		ReflectionEnvironmentColorTexture.Bind(Initializer.ParameterMap, TEXT("ReflectionEnvironmentColorTexture"));
 		ReflectionEnvironmentColorTextureArray.Bind(Initializer.ParameterMap, TEXT("ReflectionEnvironmentColorTextureArray"));
@@ -655,7 +673,7 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, CaptureProperties, SortData.CaptureProperties);
 		SetShaderValue(RHICmdList, ShaderRHI, CaptureBoxTransform, SortData.BoxTransform);
 		SetShaderValue(RHICmdList, ShaderRHI, CaptureBoxScales, SortData.BoxScales);
-		SetShaderValue(RHICmdList, ShaderRHI, CaptureOffset, FVector(SortData.CaptureOffset));
+		SetShaderValue(RHICmdList, ShaderRHI, CaptureOffsetAndAverageBrightness, SortData.CaptureOffsetAndAverageBrightness);
 	}
 
 	// FShader interface.
@@ -666,7 +684,7 @@ public:
 		Ar << CaptureProperties;
 		Ar << CaptureBoxTransform;
 		Ar << CaptureBoxScales;
-		Ar << CaptureOffset;
+		Ar << CaptureOffsetAndAverageBrightness;
 		Ar << CaptureArrayIndex;
 		Ar << ReflectionEnvironmentColorTexture;
 		Ar << ReflectionEnvironmentColorTextureArray;
@@ -681,7 +699,7 @@ private:
 	FShaderParameter CaptureProperties;
 	FShaderParameter CaptureBoxTransform;
 	FShaderParameter CaptureBoxScales;
-	FShaderParameter CaptureOffset;
+	FShaderParameter CaptureOffsetAndAverageBrightness;
 	FShaderParameter CaptureArrayIndex;
 	FShaderResourceParameter ReflectionEnvironmentColorTexture;
 	FShaderResourceParameter ReflectionEnvironmentColorTextureArray;
@@ -742,15 +760,17 @@ bool FDeferredShadingSceneRenderer::ShouldDoReflectionEnvironment() const
 		&& (SceneFeatureLevel == ERHIFeatureLevel::SM4 || Scene->ReflectionSceneData.CubemapArray.IsValid());
 }
 
-void GatherAndSortReflectionCaptures(const FScene* Scene, TArray<FReflectionCaptureSortData>& OutSortData, int32& OutNumBoxCaptures, int32& OutNumSphereCaptures)
+void GatherAndSortReflectionCaptures(const FViewInfo& View, const FScene* Scene, TArray<FReflectionCaptureSortData>& OutSortData, int32& OutNumBoxCaptures, int32& OutNumSphereCaptures, float& OutFurthestReflectionCaptureDistance)
 {	
 	OutSortData.Reset(Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num());
 	OutNumBoxCaptures = 0;
 	OutNumSphereCaptures = 0;
+	OutFurthestReflectionCaptureDistance = 1000;
 
 	const int32 MaxCubemaps = Scene->ReflectionSceneData.CubemapArray.GetMaxCubemaps();
 
 	// Pack only visible reflection captures into the uniform buffer, each with an index to its cubemap array entry
+	//@todo - view frustum culling
 	for (int32 ReflectionProxyIndex = 0; ReflectionProxyIndex < Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num() && OutSortData.Num() < GMaxNumReflectionCaptures; ReflectionProxyIndex++)
 	{
 		FReflectionCaptureProxy* CurrentCapture = Scene->ReflectionSceneData.RegisteredReflectionCaptures[ReflectionProxyIndex];
@@ -770,7 +790,7 @@ void GatherAndSortReflectionCaptures(const FScene* Scene, TArray<FReflectionCapt
 			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
 			float ShapeTypeValue = (float)CurrentCapture->Shape;
 			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, CubemapIndex, ShapeTypeValue, 0);
-			NewSortEntry.CaptureOffset = FVector4(CurrentCapture->CaptureOffset, 0);
+			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, CurrentCapture->AverageBrightness);
 
 			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
 			{
@@ -795,11 +815,37 @@ void GatherAndSortReflectionCaptures(const FScene* Scene, TArray<FReflectionCapt
 				NewSortEntry.BoxScales = FVector4(CurrentCapture->BoxScales, CurrentCapture->BoxTransitionDistance);
 			}
 
+			const FSphere BoundingSphere(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
+			const float Distance = View.ViewMatrices.ViewMatrix.TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
+			OutFurthestReflectionCaptureDistance = FMath::Max(OutFurthestReflectionCaptureDistance, Distance);
+
 			OutSortData.Add(NewSortEntry);
 		}
 	}
 
 	OutSortData.Sort();	
+}
+
+void FDeferredShadingSceneRenderer::SetupReflectionCaptureBuffers(FViewInfo& View, FRHICommandListImmediate& RHICmdList)
+{
+	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM5)
+	{
+		TArray<FReflectionCaptureSortData> SortData;
+		GatherAndSortReflectionCaptures(View, Scene, SortData, View.NumBoxReflectionCaptures, View.NumSphereReflectionCaptures, View.FurthestReflectionCaptureDistance);
+
+		FReflectionCaptureData SamplePositionsBuffer;
+
+		for (int32 CaptureIndex = 0; CaptureIndex < SortData.Num(); CaptureIndex++)
+		{
+			SamplePositionsBuffer.PositionAndRadius[CaptureIndex] = SortData[CaptureIndex].PositionAndRadius;
+			SamplePositionsBuffer.CaptureProperties[CaptureIndex] = SortData[CaptureIndex].CaptureProperties;
+			SamplePositionsBuffer.CaptureOffsetAndAverageBrightness[CaptureIndex] = SortData[CaptureIndex].CaptureOffsetAndAverageBrightness;
+			SamplePositionsBuffer.BoxTransform[CaptureIndex] = SortData[CaptureIndex].BoxTransform;
+			SamplePositionsBuffer.BoxScales[CaptureIndex] = SortData[CaptureIndex].BoxScales;
+		}
+
+		View.ReflectionCaptureUniformBuffer = TUniformBufferRef<FReflectionCaptureData>::CreateUniformBufferImmediate(SamplePositionsBuffer, UniformBuffer_SingleFrame);
+	}
 }
 
 template<bool bSuportDFAOIndirectOcclusion>
@@ -904,11 +950,11 @@ FReflectionEnvironmentTiledDeferredCS* SelectReflectionEnvironmentTiledDeferredC
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
+void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-	const bool bUseLightmaps = (AllowStaticLightingVar->GetValueOnRenderThread() == 1) && (CVarDiffuseFromCaptures.GetValueOnRenderThread() == 0);
+	const bool bUseLightmaps = (AllowStaticLightingVar->GetValueOnRenderThread() == 1);
 
 	TRefCountPtr<IPooledRenderTarget> NewSceneColor;
 	{
@@ -933,9 +979,10 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 		TRefCountPtr<IPooledRenderTarget> SSROutput = GSystemTextures.BlackDummy;
 		if( bSSR )
 		{
-			RenderScreenSpaceReflections(RHICmdList, View, SSROutput);
+			RenderScreenSpaceReflections(RHICmdList, View, SSROutput, VelocityRT);
 		}
 
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
 		RenderDeferredPlanarReflections(RHICmdList, false, SSROutput);
 
 		// ReflectionEnv is assumed to be on when going into this method
@@ -944,13 +991,8 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 			FReflectionEnvironmentTiledDeferredCS* ComputeShader = NULL;
 			// Render the reflection environment with tiled deferred culling
-			TArray<FReflectionCaptureSortData> SortData;
-			int32 NumBoxCaptures = 0;
-			int32 NumSphereCaptures = 0;
-			GatherAndSortReflectionCaptures(Scene, SortData, NumBoxCaptures, NumSphereCaptures);
-
-			bool bHasBoxCaptures = (NumBoxCaptures > 0);
-			bool bHasSphereCaptures = (NumSphereCaptures > 0);
+			bool bHasBoxCaptures = (View.NumBoxReflectionCaptures > 0);
+			bool bHasSphereCaptures = (View.NumSphereReflectionCaptures > 0);
 			bool bHasSkyLight = Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting;
 
 			static const FName TiledReflBeginComputeName(TEXT("ReflectionEnvBeginComputeFence"));
@@ -963,7 +1005,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 			{
 				SCOPED_COMPUTE_EVENTF(RHICmdListComputeImmediate, ReflectionEnvironment, TEXT("ReflectionEnvironment ComputeShader %dx%d Tile:%dx%d Box:%d Sphere:%d SkyLight:%d"),
 					View.ViewRect.Width(), View.ViewRect.Height(), GReflectionEnvironmentTileSizeX, GReflectionEnvironmentTileSizeY,
-					NumBoxCaptures, NumSphereCaptures, bHasSkyLight);
+					View.NumBoxReflectionCaptures, View.NumSphereReflectionCaptures, bHasSkyLight);
 
 				ComputeShader = SelectReflectionEnvironmentTiledDeferredCS(View.ShaderMap, bUseLightmaps, bHasSkyLight, bHasBoxCaptures, bHasSphereCaptures, DynamicBentNormalAO != NULL);
 
@@ -978,7 +1020,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 				RHICmdListComputeImmediate.SetComputeShader(ComputeShader->GetComputeShader());
 
 				FUnorderedAccessViewRHIParamRef OutUAV = NewSceneColor->GetRenderTargetItem().UAV;
-				ComputeShader->SetParameters(RHICmdListComputeImmediate, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, SortData, OutUAV, DynamicBentNormalAO);
+				ComputeShader->SetParameters(RHICmdListComputeImmediate, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, OutUAV, DynamicBentNormalAO);
 			
 				uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
 				uint32 GroupSizeY = (View.ViewRect.Size().Y + GReflectionEnvironmentTileSizeY - 1) / GReflectionEnvironmentTileSizeY;
@@ -1003,7 +1045,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 	check(SceneContext.GetSceneColor());
 }
 
-void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
+void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	if(!ViewFamily.EngineShowFlags.Lighting)
 	{
@@ -1042,7 +1084,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
 			float ShapeTypeValue = (float)CurrentCapture->Shape;
 			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, 0, ShapeTypeValue, 0);
-			NewSortEntry.CaptureOffset = FVector4(CurrentCapture->CaptureOffset);
+			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, CurrentCapture->AverageBrightness);
 
 			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
 			{
@@ -1097,9 +1139,10 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		{
 			bRequiresApply = true;
 
-			RenderScreenSpaceReflections(RHICmdList, View, SSROutput);
+			RenderScreenSpaceReflections(RHICmdList, View, SSROutput, VelocityRT);
 		}
 
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
 		bool bApplyFromSSRTexture = bSSR;
 
 		if (RenderDeferredPlanarReflections(RHICmdList, true, SSROutput))
@@ -1188,6 +1231,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		{
 			// Apply reflections to screen
 			SCOPED_DRAW_EVENT(RHICmdList, ReflectionApply);
+			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment);
 
 			SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 
@@ -1260,7 +1304,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
+void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	if (ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
@@ -1288,11 +1332,11 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 		
 		if (bReflectionsWithCompute)
 		{
-			RenderTiledDeferredImageBasedReflections(RHICmdList, DynamicBentNormalAO);
+			RenderTiledDeferredImageBasedReflections(RHICmdList, DynamicBentNormalAO, VelocityRT);
 		}
 		else
 		{
-			RenderStandardDeferredImageBasedReflections(RHICmdList, bReflectionEnvironment, DynamicBentNormalAO);
+			RenderStandardDeferredImageBasedReflections(RHICmdList, bReflectionEnvironment, DynamicBentNormalAO, VelocityRT);
 		}
 	}
 }

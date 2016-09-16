@@ -7435,8 +7435,8 @@ void UInterpTrackAnimControl::UpdateTrack(float NewPosition, UInterpTrackInst* T
 	if(AnimSeqs.Num() == 0 || NewPosition <= AnimInst->LastUpdatePosition || bJump)
 	{
 		UAnimSequence* NewAnimSequence = NULL;
-		float NewAnimPosition;
-		bool bNewLooping;
+		float NewAnimPosition = 0.0f;
+		bool bNewLooping = false;
 		GetAnimForTime(NewPosition, &NewAnimSequence, NewAnimPosition, bNewLooping);
 
 		if( NewAnimSequence != NULL )
@@ -8051,12 +8051,8 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 	// play the sound, then stop any already playing sounds
 	else if( SoundInst->PlayAudioComp && SoundInst->PlayAudioComp->IsPlaying() )
 	{
-		FSoundTrackKey& SoundTrackKey = GetSoundTrackKeyAtPosition(NewPosition);
-		if (SoundTrackKey.Sound != SoundInst->PlayAudioComp->Sound)
-		{
-			SoundInst->PlayAudioComp->Stop();
-			bPlaying = false;
-		}
+		SoundInst->PlayAudioComp->Stop();
+		bPlaying = false;
 	}
 
 

@@ -11,6 +11,7 @@
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 #include "ActorRecordingDetailsCustomization.h"
+#include "SequenceRecorderDetailsCustomization.h"
 #include "PropertiesToRecordForClassDetailsCustomization.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
@@ -97,6 +98,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			// register details customization
 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 			PropertyModule.RegisterCustomClassLayout(UActorRecording::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FActorRecordingDetailsCustomization::MakeInstance));
+			PropertyModule.RegisterCustomClassLayout(USequenceRecorderSettings::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FSequenceRecorderDetailsCustomization::MakeInstance));
 			PropertyModule.RegisterCustomPropertyTypeLayout(FPropertiesToRecordForClass::StaticStruct()->GetFName(), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FPropertiesToRecordForClassDetailsCustomization::MakeInstance));
 		}
 #endif
@@ -177,6 +179,28 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		return false;
 	}
 
+	static AActor* FindActorByName(const FString& ActorNameStr, UWorld* InWorld)
+	{
+		for (ULevel const* Level : InWorld->GetLevels())
+		{
+			if (Level)
+			{
+				for (AActor* Actor : Level->Actors)
+				{
+					if (Actor)
+					{
+						if (Actor->GetName() == ActorNameStr)
+						{
+							return Actor;
+						}
+					}
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
 	static bool HandleRecordAnimationCommand(UWorld* InWorld, const TCHAR* InStr, FOutputDevice& Ar)
 	{
 #if WITH_EDITOR
@@ -186,24 +210,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		AActor* FoundActor = nullptr;
 		if (FParse::Token(Str, ActorName, ARRAY_COUNT(ActorName), 0))
 		{
-			FString const ActorNameStr = FString(ActorName);
-			for (ULevel const* Level : InWorld->GetLevels())
-			{
-				if (Level)
-				{
-					for (AActor* Actor : Level->Actors)
-					{
-						if (Actor)
-						{
-							if (Actor->GetName() == ActorNameStr)
-							{
-								FoundActor = Actor;
-								break;
-							}
-						}
-					}
-				}
-			}
+			FoundActor = FindActorByName(FString(ActorName), InWorld);
 		}
 
 		if (FoundActor)
@@ -221,7 +228,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		return false;
 	}
 
-	static AActor* FindActor(const FString& ActorNameStr, UWorld* InWorld, bool bFuzzy = false)
+	static AActor* FindActorByLabel(const FString& ActorNameStr, UWorld* InWorld, bool bFuzzy = false)
 	{
 		// search for the actor by name
 		for (ULevel* Level : InWorld->GetLevels())
@@ -287,7 +294,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			}
 			else if (InWorld)
 			{
-				FoundActor = FindActor(ActorNameStr, InWorld);
+				FoundActor = FindActorByName(ActorNameStr, InWorld);
 			}
 		}
 
@@ -372,7 +379,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 				FString const SpecifierStr = FString(Specifier).Trim();
 				if(FilterType == EFilterType::Actor)
 				{
-					AActor* FoundActor = FindActor(SpecifierStr, InWorld, true);
+					AActor* FoundActor = FindActorByLabel(SpecifierStr, InWorld, true);
 					if(FoundActor)
 					{
 						Settings->ActorFilter.ActorClassesToRecord.Empty();
@@ -481,7 +488,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		return CurrentSequence.IsValid() ? CurrentSequence->GetMovieScene()->GetPlaybackRange().Size<float>() : 0.0f;
 	}
 
-	virtual bool StartRecording(TFixedSizeArrayView<AActor*> ActorsToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo, const FString& SequenceName) override
+	virtual bool StartRecording(TArrayView<AActor* const> ActorsToRecord, const FOnRecordingStarted& OnRecordingStarted, const FOnRecordingFinished& OnRecordingFinished, const FString& PathToRecordTo, const FString& SequenceName) override
 	{
 		if(ActorsToRecord.Num() != 0)
 		{
@@ -526,6 +533,34 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		}
 
 		return FGuid();
+	}
+
+	virtual FDelegateHandle RegisterAudioRecorder(const TFunction<TUniquePtr<ISequenceAudioRecorder>()>& FactoryFunction) override
+	{
+		ensureMsgf(!AudioFactory, TEXT("Audio recorder already registered."));
+
+		AudioFactory = FactoryFunction;
+		AudioFactoryHandle = FDelegateHandle(FDelegateHandle::GenerateNewHandle);
+		return AudioFactoryHandle;
+	}
+
+	virtual void UnregisterAudioRecorder(FDelegateHandle Handle) override
+	{
+		if (Handle == AudioFactoryHandle)
+		{
+			AudioFactory.Unset();
+			AudioFactoryHandle = FDelegateHandle();
+		}
+	}
+
+	virtual bool HasAudioRecorder() const override
+	{
+		return AudioFactoryHandle.IsValid();
+	}
+
+	virtual TUniquePtr<ISequenceAudioRecorder> CreateAudioRecorder() const
+	{
+		return AudioFactory ? AudioFactory() : TUniquePtr<ISequenceAudioRecorder>();
 	}
 
 	static void TickSequenceRecorder(float DeltaSeconds)
@@ -603,6 +638,10 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 	FDelegateHandle PostEditorTickHandle;
 
 	FDelegateHandle DrawDebugDelegateHandle;
+
+	TFunction<TUniquePtr<ISequenceAudioRecorder>()> AudioFactory;
+
+	FDelegateHandle AudioFactoryHandle;
 };
 
 IMPLEMENT_MODULE( FSequenceRecorderModule, SequenceRecorder )

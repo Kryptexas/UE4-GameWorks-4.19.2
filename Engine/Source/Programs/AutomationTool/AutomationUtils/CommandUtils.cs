@@ -17,7 +17,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Tools.DotNETCommon;
 using Tools.DotNETCommon.CaselessDictionary;
-using Tools.DotNETCommon.HarvestEnvVars;
 
 namespace AutomationTool
 {
@@ -948,6 +947,23 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Determines whether the given file is read-only
+		/// </summary>
+		/// <param name="Filename">Filename</param>
+		/// <returns>True if the file is read-only</returns>
+		public static bool IsReadOnly(string Filename)
+		{
+			Filename = ConvertSeparators(PathSeparator.Default, Filename);
+			if (!File.Exists(Filename))
+			{
+				throw new AutomationException(new FileNotFoundException("File not found.", Filename), "Unable to set attributes for a non-existing file.");
+			}
+
+			FileAttributes Attributes = File.GetAttributes(Filename);
+			return (Attributes & FileAttributes.ReadOnly) != 0;
+		}
+
+		/// <summary>
 		/// Sets file attributes. Will not change attributes that have not been specified.
 		/// </summary>
 		/// <param name="Filename">Filename</param>
@@ -1707,21 +1723,44 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Args">Arguments</param>
 		/// <returns>Single string containing all arguments separated with a space.</returns>
-		public static string ArgsToCommandLine(params object[] Args)
+		public static string FormatCommandLine(IEnumerable<string> Arguments)
 		{
-			string Arguments = "";
-			if (Args != null)
+			StringBuilder Result = new StringBuilder();
+			foreach(string Argument in Arguments)
 			{
-				for (int Index = 0; Index < Args.Length; ++Index)
+				if(Result.Length > 0)
 				{
-					Arguments += Args[Index].ToString();
-					if (Index < (Args.Length - 1))
-					{
-						Arguments += " ";
-					}
+					Result.Append(" ");
 				}
+				Result.Append(FormatArgumentForCommandLine(Argument));
 			}
-			return Arguments;
+			return Result.ToString();
+		}
+
+		/// <summary>
+		/// Format a single argument for passing on the command line, inserting quotes as necessary.
+		/// </summary>
+		/// <param name="Argument">The argument to quote</param>
+		/// <returns>The argument, with quotes if necessary</returns>
+		public static string FormatArgumentForCommandLine(string Argument)
+		{
+			// Check if the argument contains a space. If not, we can just pass it directly.
+			int SpaceIdx = Argument.IndexOf(' ');
+			if(SpaceIdx == -1)
+			{
+				return Argument;
+			}
+
+			// If it does have a space, and it's formatted as an option (ie. -Something=), try to insert quotes after the equals character
+			int EqualsIdx = Argument.IndexOf('=');
+			if(Argument.StartsWith("-") && EqualsIdx != -1 && EqualsIdx < SpaceIdx)
+			{
+				return String.Format("{0}=\"{1}\"", Argument.Substring(0, EqualsIdx), Argument.Substring(EqualsIdx + 1));
+			}
+			else
+			{
+				return String.Format("\"{0}\"", Argument);
+			}
 		}
 
 		/// <summary>
@@ -1835,6 +1874,25 @@ namespace AutomationTool
 		{
 			string num = ParseParamValue(Params, Param, Default.ToString());
 			return int.Parse(num);
+		}
+
+		/// <summary>
+		/// Parses the command's Params list for a parameter and reads its value. 
+		/// Ex. ParseParamValue(Args, "map=")
+		/// </summary>
+		/// <param name="Param">Param to read its value.</param>
+		/// <returns>Returns the value or Default if the parameter was not found.</returns>
+		public int? ParseParamNullableInt(string Param)
+		{
+			string Value = ParseParamValue(Params, Param, null);
+			if(Value == null)
+			{
+				return null;
+			}
+			else
+			{
+				return int.Parse(Value);
+			}
 		}
 
 		/// <summary>
@@ -2121,12 +2179,12 @@ namespace AutomationTool
 		/// <returns>List of files written</returns>
 		public static IEnumerable<string> UnzipFiles(string ZipFileName, string BaseDirectory)
 		{
-            // manually extract the files. There was a problem with the Ionic.Zip library that required this on non-PC at one point,
-            // but that problem is now fixed. Leaving this code as is as we need to return the list of created files and fix up their permissions anyway.
-            using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
+			// manually extract the files. There was a problem with the Ionic.Zip library that required this on non-PC at one point,
+			// but that problem is now fixed. Leaving this code as is as we need to return the list of created files and fix up their permissions anyway.
+			using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
 			{
 				List<string> OutputFileNames = new List<string>();
-				foreach(Ionic.Zip.ZipEntry Entry in Zip.Entries)
+				foreach(Ionic.Zip.ZipEntry Entry in Zip.Entries.Where(x => !x.IsDirectory))
 				{
 					string OutputFileName = Path.Combine(BaseDirectory, Entry.FileName);
 					Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
@@ -2542,7 +2600,7 @@ namespace AutomationTool
 			}
 
 			string SignToolName = null;
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015)
 			{
 				//@todo: Get these paths from the registry
 				if (WindowsPlatform.bUseWindowsSDK10)
@@ -2586,7 +2644,7 @@ namespace AutomationTool
 				//  /q does nothing on success and minimal output on failure
 				string CodeSignArgs = String.Format("sign{0} /a /n \"{1}\" /t {2} /d \"{3}\" /v \"{4}\"", SpecificStoreArg, SigningIdentity, TimestampServer[TimestampServerIndex], TargetFileInfo.Name, TargetFileInfo.FullName);
 
-				ProcessResult Result = CommandUtils.Run(SignToolName, CodeSignArgs, null, CommandUtils.ERunOptions.AllowSpew);
+				IProcessResult Result = CommandUtils.Run(SignToolName, CodeSignArgs, null, CommandUtils.ERunOptions.AllowSpew);
 				++NumTrials;
 
 				if (Result.ExitCode != 1)
@@ -2660,7 +2718,7 @@ namespace AutomationTool
 			int NumTrials = 0;
 			for (; ; )
 			{
-				ProcessResult Result = CommandUtils.Run(SignToolName, CodeSignArgs, null, CommandUtils.ERunOptions.AllowSpew);
+				IProcessResult Result = CommandUtils.Run(SignToolName, CodeSignArgs, null, CommandUtils.ERunOptions.AllowSpew);
 				int ExitCode = Result.ExitCode;
 				++NumTrials;
 
@@ -2755,11 +2813,10 @@ namespace AutomationTool
 										 "http://timestamp.comodoca.com/authenticode",
 										 "http://www.startssl.com/timestamp"
 									   };
-			int TimestampServerIndex = 0;
 
 			string SpecificStoreArg = bUseMachineStoreInsteadOfUserStore ? " /sm" : "";	
 			
-			DateTime StartTime = DateTime.Now;
+			Stopwatch Stopwatch = Stopwatch.StartNew();
 
 			int NumTrials = 0;
 			for (; ; )
@@ -2767,9 +2824,9 @@ namespace AutomationTool
 				//@TODO: Verbosity choosing
 				//  /v will spew lots of info
 				//  /q does nothing on success and minimal output on failure
-				string CodeSignArgs = String.Format("sign{0} /a /n \"{1}\" /t {2} /v {3}", SpecificStoreArg, SigningIdentity, TimestampServer[TimestampServerIndex], FilesToSign);
+				string CodeSignArgs = String.Format("sign{0} /a /n \"{1}\" /t {2} /v {3}", SpecificStoreArg, SigningIdentity, TimestampServer[NumTrials % TimestampServer.Length], FilesToSign);
 
-				ProcessResult Result = CommandUtils.Run(SignToolName, CodeSignArgs, null, CommandUtils.ERunOptions.AllowSpew);
+				IProcessResult Result = CommandUtils.Run(SignToolName, CodeSignArgs, null, CommandUtils.ERunOptions.AllowSpew);
 				++NumTrials;
 
 				if (Result.ExitCode != 1)
@@ -2783,17 +2840,9 @@ namespace AutomationTool
 				}
 				else
 				{
-					// try another timestamp server on the next iteration
-					TimestampServerIndex++;
-					if (TimestampServerIndex >= TimestampServer.Count())
-					{
-						// loop back to the first timestamp server
-						TimestampServerIndex = 0;
-					}
-					
 					// Keep retrying until we run out of time
-					TimeSpan RunTime = DateTime.Now - StartTime;
-					if (RunTime > CodeSignTimeOut)
+					TimeSpan RunTime = Stopwatch.Elapsed;
+					if (RunTime > CodeSignTimeOut && NumTrials >= TimestampServer.Length)
 					{
 						throw new AutomationException("Failed to sign executables {0} times over a period of {1}", NumTrials, RunTime);
 					}

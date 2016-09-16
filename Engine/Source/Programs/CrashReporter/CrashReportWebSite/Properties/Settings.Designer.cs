@@ -106,86 +106,194 @@ namespace Tools.CrashReporter.CrashReportWebSite.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("<CrashDescription>\r\n\t<CrashType />\r\n\t<BranchName>//UE4/Release-4.11</BranchName>\r" +
-            "\n\t<GameName>UE4-AKnightsQuest</GameName>\r\n\t<Platform>Win64 [Windows 10  64b]</Pl" +
-            "atform>\r\n\t<EngineMode>Editor</EngineMode>\r\n\t<BuildVersion>4.11.2</BuildVersion>\r" +
-            "\n\t<BuiltFromCL>2946394</BuiltFromCL>\r\n\t<CommandLine>\"D:\\Unreal Projects\\AKnights" +
-            "Quest\\AKnightsQuest.uproject\"</CommandLine>\r\n\t<BaseDir>C:/Program Files/Epic Gam" +
-            "es/4.11/Engine/Binaries/Win64/</BaseDir>\r\n\t<Language>en_US</Language>\r\n\t<SystemL" +
-            "anguage />\r\n\t<UserName>Dude</UserName>\r\n\t<MachineGuid>356F267248376B358771468010" +
-            "AD4930</MachineGuid>\r\n\t<EpicAccountId>8b7f350472024d30a8249934068bc9f8</EpicAcco" +
-            "untId>\r\n\t<CallStack>UE4Editor_Engine!UEngine::AddOnScreenDebugMessage() [d:\\buil" +
-            "dfarm\\buildmachine_++ue4+release-4.11\\engine\\source\\runtime\\engine\\private\\unrea" +
-            "lengine.cpp:6867]</CallStack>\r\n\t<CallStack>UE4Editor_AKnightsQuest_5438!UT::Pop(" +
-            ") [d:\\unreal projects\\aknightsquest\\source\\aknightsquest\\ut.cpp:25]</CallStack>\r" +
-            "\n\t<CallStack>UE4Editor_AKnightsQuest_5438!UHudInv::UHudInv() [d:\\unreal projects" +
-            "\\aknightsquest\\source\\aknightsquest\\hudinv.cpp:24]</CallStack>\r\n\t<CallStack>UE4E" +
-            "ditor_CoreUObject!UClass::CreateDefaultObject() [d:\\buildfarm\\buildmachine_++ue4" +
-            "+release-4.11\\engine\\source\\runtime\\coreuobject\\private\\uobject\\class.cpp:2763]<" +
-            "/CallStack>\r\n\t<CallStack>UE4Editor_CoreUObject!UObjectLoadAllCompiledInDefaultPr" +
-            "operties() [d:\\buildfarm\\buildmachine_++ue4+release-4.11\\engine\\source\\runtime\\c" +
-            "oreuobject\\private\\uobject\\uobjectbase.cpp:724]</CallStack>\r\n\t<CallStack>UE4Edit" +
-            "or_CoreUObject!ProcessNewlyLoadedUObjects() [d:\\buildfarm\\buildmachine_++ue4+rel" +
-            "ease-4.11\\engine\\source\\runtime\\coreuobject\\private\\uobject\\uobjectbase.cpp:818]" +
-            "</CallStack>\r\n\t<CallStack>UE4Editor_CoreUObject!TBaseStaticDelegateInstance&lt;v" +
-            "oid __cdecl(void)&gt;::ExecuteIfSafe() [d:\\buildfarm\\buildmachine_++ue4+release-" +
-            "4.11\\engine\\source\\runtime\\core\\public\\delegates\\delegateinstancesimpl_variadics" +
-            ".inl:1021]</CallStack>\r\n\t<CallStack>UE4Editor_Core!TBaseMulticastDelegate&lt;voi" +
-            "d&gt;::Broadcast() [d:\\buildfarm\\buildmachine_++ue4+release-4.11\\engine\\source\\r" +
-            "untime\\core\\public\\delegates\\delegatesignatureimpl_variadics.inl:921]</CallStack" +
-            ">\r\n\t<CallStack>UE4Editor_Core!FModuleManager::LoadModuleWithFailureReason() [d:\\" +
-            "buildfarm\\buildmachine_++ue4+release-4.11\\engine\\source\\runtime\\core\\private\\mod" +
-            "ules\\modulemanager.cpp:427]</CallStack>\r\n\t<CallStack>UE4Editor_Projects!FModuleD" +
-            "escriptor::LoadModulesForPhase() [d:\\buildfarm\\buildmachine_++ue4+release-4.11\\e" +
-            "ngine\\source\\runtime\\projects\\private\\moduledescriptor.cpp:398]</CallStack>\r\n\t<C" +
-            "allStack>UE4Editor_Projects!FProjectManager::LoadModulesForProject() [d:\\buildfa" +
-            "rm\\buildmachine_++ue4+release-4.11\\engine\\source\\runtime\\projects\\private\\projec" +
-            "tmanager.cpp:53]</CallStack>\r\n\t<CallStack>UE4Editor!FEngineLoop::LoadStartupModu" +
-            "les() [d:\\buildfarm\\buildmachine_++ue4+release-4.11\\engine\\source\\runtime\\launch" +
-            "\\private\\launchengineloop.cpp:2081]</CallStack>\r\n\t<CallStack>UE4Editor!FEngineLo" +
-            "op::PreInit() [d:\\buildfarm\\buildmachine_++ue4+release-4.11\\engine\\source\\runtim" +
-            "e\\launch\\private\\launchengineloop.cpp:1544]</CallStack>\r\n\t<CallStack>UE4Editor!G" +
-            "uardedMain() [d:\\buildfarm\\buildmachine_++ue4+release-4.11\\engine\\source\\runtime" +
-            "\\launch\\private\\launch.cpp:110]</CallStack>\r\n\t<CallStack>UE4Editor!GuardedMainWr" +
-            "apper() [d:\\buildfarm\\buildmachine_++ue4+release-4.11\\engine\\source\\runtime\\laun" +
-            "ch\\private\\windows\\launchwindows.cpp:126]</CallStack>\r\n\t<CallStack>UE4Editor!Win" +
-            "Main() [d:\\buildfarm\\buildmachine_++ue4+release-4.11\\engine\\source\\runtime\\launc" +
-            "h\\private\\windows\\launchwindows.cpp:200]</CallStack>\r\n\t<CallStack>UE4Editor!__sc" +
-            "rt_common_main_seh() [f:\\dd\\vctools\\crt\\vcstartup\\src\\startup\\exe_common.inl:264" +
-            "]</CallStack>\r\n\t<CallStack>kernel32</CallStack>\r\n\t<CallStack>ntdll</CallStack>\r\n" +
-            "\t<SourceContext> 6852       Message-&gt;ScreenMessage = DebugMessage;</SourceCon" +
-            "text>\r\n\t<SourceContext> 6853       Message-&gt;DisplayColor = DisplayColor;</Sou" +
-            "rceContext>\r\n\t<SourceContext> 6854       Message-&gt;TimeToDisplay = TimeToDispl" +
-            "ay;</SourceContext>\r\n\t<SourceContext> 6855       Message-&gt;CurrentTimeDisplaye" +
-            "d = 0.0f;</SourceContext>\r\n\t<SourceContext> 6856       Message-&gt;TextScale = T" +
-            "extScale;</SourceContext>\r\n\t<SourceContext> 6857       }</SourceContext>\r\n\t<Sour" +
-            "ceContext> 6858       }</SourceContext>\r\n\t<SourceContext> 6859       }</SourceCo" +
-            "ntext>\r\n\t<SourceContext> 6860       #endif</SourceContext>\r\n\t<SourceContext> 686" +
-            "1       }</SourceContext>\r\n\t<SourceContext> 6862       </SourceContext>\r\n\t<Sourc" +
-            "eContext> 6863       /** Wrapper from int32 to uint64 */</SourceContext>\r\n\t<Sour" +
-            "ceContext> 6864       void UEngine::AddOnScreenDebugMessage(int32 Key, float Tim" +
-            "eToDisplay, FColor DisplayColor, const FString&amp; DebugMessage, bool bNewerOnT" +
-            "op, const FVector2D&amp; TextScale)</SourceContext>\r\n\t<SourceContext> 6865      " +
-            " {</SourceContext>\r\n\t<SourceContext> 6866 ***** if (bEnableOnScreenDebugMessages" +
-            " == true)</SourceContext>\r\n\t<SourceContext> 6867       {</SourceContext>\r\n\t<Sour" +
-            "ceContext> 6868       AddOnScreenDebugMessage((uint64)Key, TimeToDisplay, Displa" +
-            "yColor, DebugMessage, bNewerOnTop, TextScale);</SourceContext>\r\n\t<SourceContext>" +
-            " 6869       }</SourceContext>\r\n\t<SourceContext> 6870       }</SourceContext>\r\n\t<" +
-            "SourceContext> 6871       </SourceContext>\r\n\t<SourceContext> 6872       bool UEn" +
-            "gine::OnScreenDebugMessageExists(uint64 Key)</SourceContext>\r\n\t<SourceContext> 6" +
-            "873       {</SourceContext>\r\n\t<SourceContext> 6874       if (bEnableOnScreenDebu" +
-            "gMessages == true)</SourceContext>\r\n\t<SourceContext> 6875       {</SourceContext" +
-            ">\r\n\t<SourceContext> 6876       if (Key == (uint64)-1)</SourceContext>\r\n\t<SourceC" +
-            "ontext> 6877       {</SourceContext>\r\n\t<SourceContext> 6878       // Priority me" +
-            "ssages assumed to always exist...</SourceContext>\r\n\t<SourceContext> 6879       /" +
-            "/ May want to check for there being none.</SourceContext>\r\n\t<SourceContext> 6880" +
-            "       return true;</SourceContext>\r\n\t<SourceContext> 6881       }</SourceContex" +
-            "t>\r\n\t<ErrorMessage>Access violation - code c0000005 (first/second chance not ava" +
-            "ilable)</ErrorMessage>\r\n\t<CrashGUID>UE4CC-Windows-BF1F2AC945FA74B7E6385FB7DC4BF8" +
-            "D1</CrashGUID>\r\n\t<TimeofCrash>2016-07-11T21:44:52.9866712Z</TimeofCrash>\r\n\t<bHas" +
-            "MiniDump>true</bHasMiniDump>\r\n\t<bHasLog>true</bHasLog>\r\n\t<bHasDiags>false</bHasD" +
-            "iags>\r\n\t<bHasWERData>false</bHasWERData>\r\n\t<bHasVideo>false</bHasVideo>\r\n\t<bAllo" +
-            "wToBeContacted>true</bAllowToBeContacted>\r\n</CrashDescription>")]
+        [global::System.Configuration.DefaultSettingValueAttribute("<CrashDescription>\r\n\t<CrashType />\r\n\t<BranchName>//UE4/Release-4.12</BranchName>\r" +
+            "\n\t<GameName>UE4-Lenar_3</GameName>\r\n\t<Platform>Win64 [Windows 7 Service Pack 1 6" +
+            "4b]</Platform>\r\n\t<EngineMode>Editor</EngineMode>\r\n\t<BuildVersion>4.12.5</BuildVe" +
+            "rsion>\r\n\t<BuiltFromCL>3039270</BuiltFromCL>\r\n\t<CommandLine />\r\n\t<BaseDir>C:/Prog" +
+            "ram Files (x86)/Epic Games/4.12/Engine/Binaries/Win64/</BaseDir>\r\n\t<Language>zh_" +
+            "CN</Language>\r\n\t<SystemLanguage />\r\n\t<UserName>ohmimi</UserName>\r\n\t<MachineGuid>" +
+            "A24BAFFA41A33062DF1BCB9A31DDE162</MachineGuid>\r\n\t<EpicAccountId>cc732bdf5c4443f4" +
+            "a966a15bd4869c1e</EpicAccountId>\r\n\t<CallStack>UE4Editor_Core!FDebug::OptionallyL" +
+            "ogFormattedEnsureMessageReturningFalse() [d:\\build\\++ue4+release-4.12+compile\\sy" +
+            "nc\\engine\\source\\runtime\\core\\private\\misc\\outputdevice.cpp:451]</CallStack>\r\n\t<" +
+            "CallStack>UE4Editor_Engine!UBlueprint::SetObjectBeingDebugged() [d:\\build\\++ue4+" +
+            "release-4.12+compile\\sync\\engine\\source\\runtime\\engine\\private\\blueprint.cpp:685" +
+            "]</CallStack>\r\n\t<CallStack>UE4Editor_Engine!UWorld::TransferBlueprintDebugRefere" +
+            "nces() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\source\\runtime\\engine\\pr" +
+            "ivate\\world.cpp:1618]</CallStack>\r\n\t<CallStack>UE4Editor_UnrealEd!UEditorEngine:" +
+            ":TeardownPlaySession() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\source\\e" +
+            "ditor\\unrealed\\private\\playlevel.cpp:642]</CallStack>\r\n\t<CallStack>UE4Editor_Unr" +
+            "ealEd!UEditorEngine::EndPlayMap() [d:\\build\\++ue4+release-4.12+compile\\sync\\engi" +
+            "ne\\source\\editor\\unrealed\\private\\playlevel.cpp:255]</CallStack>\r\n\t<CallStack>UE" +
+            "4Editor_LevelEditor!FLevelViewportLayout::~FLevelViewportLayout() [d:\\build\\++ue" +
+            "4+release-4.12+compile\\sync\\engine\\source\\editor\\leveleditor\\private\\levelviewpo" +
+            "rtlayout.cpp:145]</CallStack>\r\n\t<CallStack>UE4Editor_LevelEditor!FLevelViewportL" +
+            "ayout2x2::`scalar deleting destructor\'()</CallStack>\r\n\t<CallStack>UE4Editor_Leve" +
+            "lEditor!FLevelViewportTabContent::~FLevelViewportTabContent()</CallStack>\r\n\t<Cal" +
+            "lStack>UE4Editor_LevelEditor!SharedPointerInternals::TReferenceControllerWithDel" +
+            "eter&lt;FLevelViewportTabContent,SharedPointerInternals::DefaultDeleter&lt;FLeve" +
+            "lViewportTabContent&gt; &gt;::DestroyObject() [d:\\build\\++ue4+release-4.12+compi" +
+            "le\\sync\\engine\\source\\runtime\\core\\public\\templates\\sharedpointerinternals.h:104" +
+            "]</CallStack>\r\n\t<CallStack>UE4Editor_LevelEditor!SViewportsOverlay::~SViewportsO" +
+            "verlay()</CallStack>\r\n\t<CallStack>UE4Editor_LevelEditor!SViewportsOverlay::`scal" +
+            "ar deleting destructor\'()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!FSimpleSl" +
+            "ot::~FSimpleSlot()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!SCompoundWidget:" +
+            ":~SCompoundWidget()</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SBorder::`vector de" +
+            "leting destructor\'()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!TIndirectArray" +
+            "&lt;SOverlay::FOverlaySlot,FDefaultAllocator&gt;::DestructAndFreeItems() [d:\\bui" +
+            "ld\\++ue4+release-4.12+compile\\sync\\engine\\source\\runtime\\core\\public\\containers\\" +
+            "array.h:3410]</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!SOverlay::~SOverlay()" +
+            "</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SOverlay::`scalar deleting destructor\'" +
+            "()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!TIndirectArray&lt;SBoxPanel::FSl" +
+            "ot,FDefaultAllocator&gt;::DestructAndFreeItems() [d:\\build\\++ue4+release-4.12+co" +
+            "mpile\\sync\\engine\\source\\runtime\\core\\public\\containers\\array.h:3410]</CallStack" +
+            ">\r\n\t<CallStack>UE4Editor_SlateCore!SBoxPanel::~SBoxPanel()</CallStack>\r\n\t<CallSt" +
+            "ack>UE4Editor_Slate!SVerticalBox::`scalar deleting destructor\'()</CallStack>\r\n\t<" +
+            "CallStack>UE4Editor_SlateCore!FSimpleSlot::~FSimpleSlot()</CallStack>\r\n\t<CallSta" +
+            "ck>UE4Editor_SlateCore!SCompoundWidget::~SCompoundWidget()</CallStack>\r\n\t<CallSt" +
+            "ack>UE4Editor_Slate!SDockingTabStack::`vector deleting destructor\'()</CallStack>" +
+            "\r\n\t<CallStack>UE4Editor_SlateCore!FSlotBase::~FSlotBase() [d:\\build\\++ue4+releas" +
+            "e-4.12+compile\\sync\\engine\\source\\runtime\\slatecore\\private\\slotbase.cpp:34]</Ca" +
+            "llStack>\r\n\t<CallStack>UE4Editor_Slate!TIndirectArray&lt;SSplitter::FSlot,FDefaul" +
+            "tAllocator&gt;::DestructAndFreeItems() [d:\\build\\++ue4+release-4.12+compile\\sync" +
+            "\\engine\\source\\runtime\\core\\public\\containers\\array.h:3410]</CallStack>\r\n\t<CallS" +
+            "tack>UE4Editor_Slate!SSplitter::~SSplitter()</CallStack>\r\n\t<CallStack>UE4Editor_" +
+            "Slate!SSplitter::`vector deleting destructor\'()</CallStack>\r\n\t<CallStack>UE4Edit" +
+            "or_SlateCore!FSimpleSlot::~FSimpleSlot()</CallStack>\r\n\t<CallStack>UE4Editor_Slat" +
+            "eCore!SCompoundWidget::~SCompoundWidget()</CallStack>\r\n\t<CallStack>UE4Editor_Sla" +
+            "te!SDockingSplitter::`vector deleting destructor\'()</CallStack>\r\n\t<CallStack>UE4" +
+            "Editor_SlateCore!FSlotBase::~FSlotBase() [d:\\build\\++ue4+release-4.12+compile\\sy" +
+            "nc\\engine\\source\\runtime\\slatecore\\private\\slotbase.cpp:34]</CallStack>\r\n\t<CallS" +
+            "tack>UE4Editor_Slate!TIndirectArray&lt;SSplitter::FSlot,FDefaultAllocator&gt;::D" +
+            "estructAndFreeItems() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\source\\ru" +
+            "ntime\\core\\public\\containers\\array.h:3410]</CallStack>\r\n\t<CallStack>UE4Editor_Sl" +
+            "ate!SSplitter::~SSplitter()</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SSplitter::" +
+            "`vector deleting destructor\'()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!FSim" +
+            "pleSlot::~FSimpleSlot()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!SCompoundWi" +
+            "dget::~SCompoundWidget()</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SDockingSplitt" +
+            "er::`vector deleting destructor\'()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!" +
+            "FSlotBase::~FSlotBase() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\source\\" +
+            "runtime\\slatecore\\private\\slotbase.cpp:34]</CallStack>\r\n\t<CallStack>UE4Editor_Sl" +
+            "ate!TIndirectArray&lt;SSplitter::FSlot,FDefaultAllocator&gt;::DestructAndFreeIte" +
+            "ms() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\source\\runtime\\core\\public" +
+            "\\containers\\array.h:3410]</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SSplitter::~S" +
+            "Splitter()</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SSplitter::`vector deleting " +
+            "destructor\'()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!TIndirectArray&lt;SOv" +
+            "erlay::FOverlaySlot,FDefaultAllocator&gt;::DestructAndFreeItems() [d:\\build\\++ue" +
+            "4+release-4.12+compile\\sync\\engine\\source\\runtime\\core\\public\\containers\\array.h" +
+            ":3410]</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!SOverlay::~SOverlay()</CallS" +
+            "tack>\r\n\t<CallStack>UE4Editor_Slate!SOverlay::`scalar deleting destructor\'()</Cal" +
+            "lStack>\r\n\t<CallStack>UE4Editor_SlateCore!FSimpleSlot::~FSimpleSlot()</CallStack>" +
+            "\r\n\t<CallStack>UE4Editor_SlateCore!SCompoundWidget::~SCompoundWidget()</CallStack" +
+            ">\r\n\t<CallStack>UE4Editor_Slate!SDockingArea::`vector deleting destructor\'()</Cal" +
+            "lStack>\r\n\t<CallStack>UE4Editor_SlateCore!TIndirectArray&lt;SBoxPanel::FSlot,FDef" +
+            "aultAllocator&gt;::DestructAndFreeItems() [d:\\build\\++ue4+release-4.12+compile\\s" +
+            "ync\\engine\\source\\runtime\\core\\public\\containers\\array.h:3410]</CallStack>\r\n\t<Ca" +
+            "llStack>UE4Editor_SlateCore!SBoxPanel::~SBoxPanel()</CallStack>\r\n\t<CallStack>UE4" +
+            "Editor_LevelEditor!SVerticalBox::`scalar deleting destructor\'()</CallStack>\r\n\t<C" +
+            "allStack>UE4Editor_SlateCore!FSimpleSlot::~FSimpleSlot()</CallStack>\r\n\t<CallStac" +
+            "k>UE4Editor_SlateCore!SCompoundWidget::~SCompoundWidget()</CallStack>\r\n\t<CallSta" +
+            "ck>UE4Editor_LevelEditor!SLevelEditor::`scalar deleting destructor\'()</CallStack" +
+            ">\r\n\t<CallStack>UE4Editor_SlateCore!FSimpleSlot::~FSimpleSlot()</CallStack>\r\n\t<Ca" +
+            "llStack>UE4Editor_SlateCore!SCompoundWidget::~SCompoundWidget()</CallStack>\r\n\t<C" +
+            "allStack>UE4Editor_Slate!SBorder::`vector deleting destructor\'()</CallStack>\r\n\t<" +
+            "CallStack>UE4Editor_SlateCore!TIndirectArray&lt;SOverlay::FOverlaySlot,FDefaultA" +
+            "llocator&gt;::DestructAndFreeItems() [d:\\build\\++ue4+release-4.12+compile\\sync\\e" +
+            "ngine\\source\\runtime\\core\\public\\containers\\array.h:3410]</CallStack>\r\n\t<CallSta" +
+            "ck>UE4Editor_SlateCore!SOverlay::~SOverlay()</CallStack>\r\n\t<CallStack>UE4Editor_" +
+            "Slate!SOverlay::`scalar deleting destructor\'()</CallStack>\r\n\t<CallStack>UE4Edito" +
+            "r_SlateCore!TIndirectArray&lt;SBoxPanel::FSlot,FDefaultAllocator&gt;::DestructAn" +
+            "dFreeItems() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\source\\runtime\\cor" +
+            "e\\public\\containers\\array.h:3410]</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!S" +
+            "BoxPanel::~SBoxPanel()</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SVerticalBox::`s" +
+            "calar deleting destructor\'()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!FSimpl" +
+            "eSlot::~FSimpleSlot()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!SCompoundWidg" +
+            "et::~SCompoundWidget()</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SDockingTabStack" +
+            "::`vector deleting destructor\'()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!FS" +
+            "lotBase::~FSlotBase() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\source\\ru" +
+            "ntime\\slatecore\\private\\slotbase.cpp:34]</CallStack>\r\n\t<CallStack>UE4Editor_Slat" +
+            "e!TIndirectArray&lt;SSplitter::FSlot,FDefaultAllocator&gt;::DestructAndFreeItems" +
+            "() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\source\\runtime\\core\\public\\c" +
+            "ontainers\\array.h:3410]</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SSplitter::~SSp" +
+            "litter()</CallStack>\r\n\t<CallStack>UE4Editor_Slate!SSplitter::`vector deleting de" +
+            "structor\'()</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!TIndirectArray&lt;SOver" +
+            "lay::FOverlaySlot,FDefaultAllocator&gt;::DestructAndFreeItems() [d:\\build\\++ue4+" +
+            "release-4.12+compile\\sync\\engine\\source\\runtime\\core\\public\\containers\\array.h:3" +
+            "410]</CallStack>\r\n\t<CallStack>UE4Editor_SlateCore!SOverlay::~SOverlay()</CallSta" +
+            "ck>\r\n\t<CallStack>UE4Editor_Slate!SOverlay::`scalar deleting destructor\'()</CallS" +
+            "tack>\r\n\t<CallStack>UE4Editor_SlateCore!TArray&lt;FArrangedWidget,TInlineAllocato" +
+            "r&lt;16,FDefaultAllocator&gt; &gt;::~TArray&lt;FArrangedWidget,TInlineAllocator&" +
+            "lt;16,FDefaultAllocator&gt; &gt;() [d:\\build\\++ue4+release-4.12+compile\\sync\\eng" +
+            "ine\\source\\runtime\\core\\public\\containers\\array.h:723]</CallStack>\r\n\t<CallStack>" +
+            "UE4Editor_Slate!FSlateApplication::RoutePointerUpEvent() [d:\\build\\++ue4+release" +
+            "-4.12+compile\\sync\\engine\\source\\runtime\\slate\\private\\framework\\application\\sla" +
+            "teapplication.cpp:4667]</CallStack>\r\n\t<CallStack>UE4Editor_Slate!FSlateApplicati" +
+            "on::ProcessMouseButtonUpEvent() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine" +
+            "\\source\\runtime\\slate\\private\\framework\\application\\slateapplication.cpp:5041]</" +
+            "CallStack>\r\n\t<CallStack>UE4Editor_Slate!FSlateApplication::OnMouseUp() [d:\\build" +
+            "\\++ue4+release-4.12+compile\\sync\\engine\\source\\runtime\\slate\\private\\framework\\a" +
+            "pplication\\slateapplication.cpp:5021]</CallStack>\r\n\t<CallStack>UE4Editor_Core!FW" +
+            "indowsApplication::ProcessDeferredMessage() [d:\\build\\++ue4+release-4.12+compile" +
+            "\\sync\\engine\\source\\runtime\\core\\private\\windows\\windowsapplication.cpp:1510]</C" +
+            "allStack>\r\n\t<CallStack>UE4Editor_Core!FWindowsApplication::DeferMessage() [d:\\bu" +
+            "ild\\++ue4+release-4.12+compile\\sync\\engine\\source\\runtime\\core\\private\\windows\\w" +
+            "indowsapplication.cpp:1850]</CallStack>\r\n\t<CallStack>UE4Editor_Core!FWindowsAppl" +
+            "ication::ProcessMessage() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\sourc" +
+            "e\\runtime\\core\\private\\windows\\windowsapplication.cpp:745]</CallStack>\r\n\t<CallSt" +
+            "ack>UE4Editor_Core!FWindowsApplication::AppWndProc() [d:\\build\\++ue4+release-4.1" +
+            "2+compile\\sync\\engine\\source\\runtime\\core\\private\\windows\\windowsapplication.cpp" +
+            ":667]</CallStack>\r\n\t<CallStack>user32!UserCallWinProcCheckWow()</CallStack>\r\n\t<C" +
+            "allStack>user32!DispatchMessageWorker()</CallStack>\r\n\t<CallStack>UE4Editor_Core!" +
+            "FWindowsPlatformMisc::PumpMessages() [d:\\build\\++ue4+release-4.12+compile\\sync\\e" +
+            "ngine\\source\\runtime\\core\\private\\windows\\windowsplatformmisc.cpp:903]</CallStac" +
+            "k>\r\n\t<CallStack>UE4Editor!FEngineLoop::Tick() [d:\\build\\++ue4+release-4.12+compi" +
+            "le\\sync\\engine\\source\\runtime\\launch\\private\\launchengineloop.cpp:2729]</CallSta" +
+            "ck>\r\n\t<CallStack>UE4Editor!GuardedMain() [d:\\build\\++ue4+release-4.12+compile\\sy" +
+            "nc\\engine\\source\\runtime\\launch\\private\\launch.cpp:148]</CallStack>\r\n\t<CallStack" +
+            ">UE4Editor!GuardedMainWrapper() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine" +
+            "\\source\\runtime\\launch\\private\\windows\\launchwindows.cpp:126]</CallStack>\r\n\t<Cal" +
+            "lStack>UE4Editor!WinMain() [d:\\build\\++ue4+release-4.12+compile\\sync\\engine\\sour" +
+            "ce\\runtime\\launch\\private\\windows\\launchwindows.cpp:200]</CallStack>\r\n\t<CallStac" +
+            "k>UE4Editor!__scrt_common_main_seh() [f:\\dd\\vctools\\crt\\vcstartup\\src\\startup\\ex" +
+            "e_common.inl:264]</CallStack>\r\n\t<CallStack>kernel32!BaseThreadInitThunk()</CallS" +
+            "tack>\r\n\t<CallStack>ntdll!RtlUserThreadStart()</CallStack>\r\n\t<SourceContext>  670" +
+            "       \t{</SourceContext>\r\n\t<SourceContext>  671       \t\tif (OldObject == NewObj" +
+            "ect)</SourceContext>\r\n\t<SourceContext>  672       \t\t{</SourceContext>\r\n\t<SourceC" +
+            "ontext>  673       \t\t\t// Nothing changed</SourceContext>\r\n\t<SourceContext>  674 " +
+            "      \t\t\treturn;</SourceContext>\r\n\t<SourceContext>  675       \t\t}</SourceContext" +
+            ">\r\n\t<SourceContext>  676       </SourceContext>\r\n\t<SourceContext>  677       \t\tD" +
+            "ebuggingWorldRegistrationHelper(OldObject, NULL);</SourceContext>\r\n\t<SourceConte" +
+            "xt>  678       \t}</SourceContext>\r\n\t<SourceContext>  679       </SourceContext>\r" +
+            "\n\t<SourceContext>  680       \t// Note that we allow macro Blueprints to bypass t" +
+            "his check</SourceContext>\r\n\t<SourceContext>  681       \tif ((NewObject != NULL) " +
+            "&amp;&amp; !GCompilingBlueprint &amp;&amp; BlueprintType != BPTYPE_MacroLibrary)" +
+            "</SourceContext>\r\n\t<SourceContext>  682       \t{</SourceContext>\r\n\t<SourceContex" +
+            "t>  683       \t\t// You can only debug instances of this!</SourceContext>\r\n\t<Sour" +
+            "ceContext>  684 ***** \t\tif (!ensureMsgf(</SourceContext>\r\n\t<SourceContext>  685 " +
+            "      \t\t\t\tNewObject-&gt;IsA(this-&gt;GeneratedClass), </SourceContext>\r\n\t<Source" +
+            "Context>  686       \t\t\t\tTEXT(\"Type mismatch: Expected %s, Found %s\"), </SourceCo" +
+            "ntext>\r\n\t<SourceContext>  687       \t\t\t\tthis-&gt;GeneratedClass ? *(this-&gt;Gen" +
+            "eratedClass-&gt;GetName()) : TEXT(\"NULL\"), </SourceContext>\r\n\t<SourceContext>  6" +
+            "88       \t\t\t\tNewObject-&gt;GetClass() ? *(this-&gt;GetClass()-&gt;GetName()) : T" +
+            "EXT(\"NULL\")))</SourceContext>\r\n\t<SourceContext>  689       \t\t{</SourceContext>\r\n" +
+            "\t<SourceContext>  690       \t\t\tNewObject = NULL;</SourceContext>\r\n\t<SourceContex" +
+            "t>  691       \t\t}</SourceContext>\r\n\t<SourceContext>  692       \t}</SourceContext" +
+            ">\r\n\t<SourceContext>  693       </SourceContext>\r\n\t<SourceContext>  694       \t//" +
+            " Update the current object being debugged</SourceContext>\r\n\t<SourceContext>  695" +
+            "       \tCurrentObjectBeingDebugged = NewObject;</SourceContext>\r\n\t<SourceContext" +
+            ">  696       </SourceContext>\r\n\t<SourceContext>  697       \t// Register the new " +
+            "object</SourceContext>\r\n\t<SourceContext>  698       \tif (NewObject != NULL)</Sou" +
+            "rceContext>\r\n\t<SourceContext>  699       \t{</SourceContext>\r\n\t<UserDescription>S" +
+            "ent in the unattended mode</UserDescription>\r\n\t<UserActivityHint />\r\n\t<ErrorMess" +
+            "age>Ensure condition failed: NewObject-&gt;IsA(this-&gt;GeneratedClass) [File:D:" +
+            "\\Build\\++UE4+Release-4.12+Compile\\Sync\\Engine\\Source\\Runtime\\Engine\\Private\\Blue" +
+            "print.cpp] [Line: 689] </ErrorMessage>\r\n\t<ErrorMessage>Type mismatch: Expected U" +
+            "ntitled_C, Found LevelScriptBlueprint</ErrorMessage>\r\n\t<CrashGUID>UE4CC-Windows-" +
+            "7188BC094DE45EE1A7D39EBF6FB434F5_0000</CrashGUID>\r\n\t<TimeofCrash>2016-07-13T14:5" +
+            "8:43.402875Z</TimeofCrash>\r\n\t<bHasMiniDump>true</bHasMiniDump>\r\n\t<bHasLog>true</" +
+            "bHasLog>\r\n\t<bHasDiags>false</bHasDiags>\r\n\t<bHasWERData>false</bHasWERData>\r\n\t<bH" +
+            "asVideo>false</bHasVideo>\r\n\t<bAllowToBeContacted>true</bAllowToBeContacted>\r\n</C" +
+            "rashDescription>")]
         public string TestXML {
             get {
                 return ((string)(this["TestXML"]));

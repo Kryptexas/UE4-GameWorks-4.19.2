@@ -634,7 +634,8 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 		return;
 	}
 
-	if ( DrawSize.X == 0 || DrawSize.Y == 0 )
+	const int32 MaxAllowedDrawSize = GetMax2DTextureDimension();
+	if ( DrawSize.X <= 0 || DrawSize.Y <= 0 || DrawSize.X > MaxAllowedDrawSize || DrawSize.Y > MaxAllowedDrawSize )
 	{
 		return;
 	}
@@ -1086,6 +1087,16 @@ void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& 
 UUserWidget* UWidgetComponent::GetUserWidgetObject() const
 {
 	return Widget;
+}
+
+UTextureRenderTarget2D* UWidgetComponent::GetRenderTarget() const
+{
+	return RenderTarget;
+}
+
+UMaterialInstanceDynamic* UWidgetComponent::GetMaterialInstance() const
+{
+	return MaterialInstance;
 }
 
 const TSharedPtr<SWidget>& UWidgetComponent::GetSlateWidget() const

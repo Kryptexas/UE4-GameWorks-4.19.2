@@ -12,7 +12,7 @@
 
 static TAutoConsoleVariable<int32> CVarEQSDetailsOnHUD(
 	TEXT("ai.debug.EQSOnHUD"),
-	0,
+	1,
 	TEXT("Enable or disable EQS details table on screen.\n")
 	TEXT(" 0: Disable details\n")
 	TEXT(" 1: Enable details (default)"),

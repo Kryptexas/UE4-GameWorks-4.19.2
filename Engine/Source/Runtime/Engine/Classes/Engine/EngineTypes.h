@@ -210,6 +210,7 @@ enum EBlendMode
 	BLEND_Translucent UMETA(DisplayName="Translucent"),
 	BLEND_Additive UMETA(DisplayName="Additive"),
 	BLEND_Modulate UMETA(DisplayName="Modulate"),
+	BLEND_AlphaComposite UMETA(DisplayName ="AlphaComposite (Premultiplied Alpha)"),
 	BLEND_MAX,
 };
 
@@ -312,13 +313,23 @@ namespace ETranslucentSortPolicy
 UENUM()
 enum ESceneCaptureSource 
 { 
-	SCS_SceneColorHDR UMETA(DisplayName="SceneColor (HDR) in RGB, Opacity in A"),
+	SCS_SceneColorHDR UMETA(DisplayName="SceneColor (HDR) in RGB, Inv Opacity in A"),
 	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
 	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
 	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
 	SCS_Normal UMETA(DisplayName="Normal in RGB"),
 	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB")
 };
+
+UENUM()
+enum ESceneCaptureCompositeMode
+{ 
+	SCCM_Overwrite UMETA(DisplayName="Overwrite"),
+	SCCM_Additive UMETA(DisplayName="Additive"),
+	SCCM_Composite UMETA(DisplayName="Composite")
+};
+
+#define NUM_LIGHTING_CHANNELS 3
 
 USTRUCT()
 struct FLightingChannels
@@ -351,6 +362,12 @@ inline uint8 GetLightingChannelMaskForStruct(FLightingChannels Value)
 inline uint8 GetDefaultLightingChannelMask()
 {
 	return 1;
+}
+
+// Returns the index of the first lighting channel set, or -1 if no channels are set.
+inline int32 GetFirstLightingChannelFromMask(uint8 Mask)
+{
+	return Mask ? FPlatformMath::CountTrailingZeros(Mask) : -1;
 }
 
 /*
@@ -400,7 +417,7 @@ enum EMaterialShadingModel
 	MSM_PreintegratedSkin	UMETA(DisplayName="Preintegrated Skin"),
 	MSM_ClearCoat			UMETA(DisplayName="Clear Coat"),
 	MSM_SubsurfaceProfile	UMETA(DisplayName="Subsurface Profile"),
-	MSM_TwoSidedFoliage		UMETA(DisplayName="Two Sided"),
+	MSM_TwoSidedFoliage		UMETA(DisplayName="Two Sided Foliage"),
 	MSM_Hair				UMETA(DisplayName="Hair"),
 	MSM_Cloth				UMETA(DisplayName="Cloth"),
 	MSM_Eye					UMETA(DisplayName="Eye"),
@@ -2027,6 +2044,7 @@ enum class ETeleportType
 };
 
 FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
+FORCEINLINE bool TeleportEnumToFlag(ETeleportType Teleport) { return ETeleportType::TeleportPhysics == Teleport; }
 
 
 /** Structure containing information about one hit of an overlap test */
@@ -2425,6 +2443,14 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bGenerateDistanceFieldAsIfTwoSided;
 
+	/** 
+	 * Adding a constant distance effectively shrinks the distance field representation.  
+	 * This is useful for preventing self shadowing aritfacts when doing some minor ambient animation.
+	 * Thin walls will be affected more severely than large hollow objects, because thin walls don't have a large negative region.
+	 */
+	UPROPERTY(EditAnywhere, Category = BuildSettings)
+	float DistanceFieldBias;
+
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	class UStaticMesh* DistanceFieldReplacementMesh;
 
@@ -2446,6 +2472,7 @@ struct FMeshBuildSettings
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 		, DistanceFieldResolutionScale(1.0f)
 		, bGenerateDistanceFieldAsIfTwoSided(false)
+		, DistanceFieldBias(0.0f)
 		, DistanceFieldReplacementMesh(NULL)
 	{ }
 
@@ -2467,6 +2494,7 @@ struct FMeshBuildSettings
 			&& BuildScale3D == Other.BuildScale3D
 			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale
 			&& bGenerateDistanceFieldAsIfTwoSided == Other.bGenerateDistanceFieldAsIfTwoSided
+			&& DistanceFieldBias == Other.DistanceFieldBias
 			&& DistanceFieldReplacementMesh == Other.DistanceFieldReplacementMesh;
 	}
 

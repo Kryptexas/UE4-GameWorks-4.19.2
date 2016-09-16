@@ -125,6 +125,11 @@ void FMetalRHICommandContext::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,
 	FShaderCache::SetViewport(MinX,MinY, MinZ, MaxX, MaxY, MaxZ);
 }
 
+void FMetalRHICommandContext::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
+{
+	NOT_SUPPORTED("RHISetStereoViewport");
+}
+
 void FMetalRHICommandContext::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)
 { 
 	NOT_SUPPORTED("RHISetMultipleViewports");
@@ -489,7 +494,10 @@ void FMetalRHICommandContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Base
 	uint32 NumVertices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
 
 	// finalize any pending state
-	Context->PrepareToDraw(PrimitiveType);
+	if(!Context->PrepareToDraw(PrimitiveType))
+	{
+		return;
+	}
 
 	uint32 VertexCount = GetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
 	RHI_PROFILE_DRAW_CALL_STATS(EMTLSamplePointBeforeDraw, EMTLSamplePointAfterDraw, NumPrimitives * NumInstances, VertexCount * NumInstances);
@@ -519,7 +527,10 @@ void FMetalRHICommandContext::RHIDrawPrimitiveIndirect(uint32 PrimitiveType, FVe
 	FMetalVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 	
 	// finalize any pending state
-	Context->PrepareToDraw(PrimitiveType);
+	if(!Context->PrepareToDraw(PrimitiveType))
+	{
+		return;
+	}
 	
 	METAL_DEBUG_COMMAND_BUFFER_DRAW_LOG(Context, @"RHIDrawPrimitiveIndirect(PrimitiveType %d, VertexBufferRHI %p, ArgumentOffset %d)", PrimitiveType, VertexBufferRHI, ArgumentOffset);
 	
@@ -554,7 +565,10 @@ void FMetalRHICommandContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef In
 	FMetalIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 
 	// finalize any pending state
-	Context->PrepareToDraw(PrimitiveType);
+	if(!Context->PrepareToDraw(PrimitiveType))
+	{
+		return;
+	}
 	
 	uint32 NumIndices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
 	if (NumInstances == 0)
@@ -608,7 +622,10 @@ void FMetalRHICommandContext::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef Ind
 		FMetalStructuredBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 		
 		// finalize any pending state
-		Context->PrepareToDraw(PrimitiveType);
+		if(!Context->PrepareToDraw(PrimitiveType))
+		{
+			return;
+		}
 		
 		METAL_DEBUG_COMMAND_BUFFER_DRAW_LOG(Context, @"RHIDrawIndexedIndirect(IndexBufferRHI %p, PrimitiveType %d, VertexBufferRHI %p, DrawArgumentsIndex %d, NumInstances %d)", IndexBufferRHI, PrimitiveType, VertexBufferRHI, DrawArgumentsIndex, NumInstances);
 		
@@ -645,7 +662,10 @@ void FMetalRHICommandContext::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveTy
 		FMetalVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 		
 		// finalize any pending state
-		Context->PrepareToDraw(PrimitiveType);
+		if(!Context->PrepareToDraw(PrimitiveType))
+		{
+			return;
+		}
 		
 		METAL_DEBUG_COMMAND_BUFFER_DRAW_LOG(Context, @"RHIDrawIndexedPrimitiveIndirect(PrimitiveType %d, IndexBufferRHI %p, VertexBufferRHI %p, ArgumentOffset %d)", PrimitiveType, IndexBufferRHI, VertexBufferRHI, ArgumentOffset);
 		
@@ -706,7 +726,10 @@ void FMetalRHICommandContext::RHIEndDrawPrimitiveUP()
 	uint32 NumVertices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
 
 	// last minute draw setup
-	Context->PrepareToDraw(PendingPrimitiveType);
+	if(!Context->PrepareToDraw(PendingPrimitiveType))
+	{
+		return;
+	}
 	
 	METAL_DEBUG_COMMAND_BUFFER_DRAW_LOG(Context, @"%@", @"RHIEndDrawPrimitiveUP()");
 
@@ -763,7 +786,10 @@ void FMetalRHICommandContext::RHIEndDrawIndexedPrimitiveUP()
 	uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
 
 	// last minute draw setup
-	Context->PrepareToDraw(PendingPrimitiveType);
+	if(!Context->PrepareToDraw(PendingPrimitiveType))
+	{
+		return;
+	}
 	
 	METAL_DEBUG_COMMAND_BUFFER_DRAW_LOG(Context, @"%@", @"RHIEndDrawIndexedPrimitiveUP()");
 	
@@ -813,7 +839,10 @@ void FMetalRHICommandContext::RHIDrawInstancedPrimitiveUP( FRHICommandList& RHIC
 	Context->GetCurrentState().SetVertexBuffer(UNREAL_TO_METAL_BUFFER_INDEX(0), Context->GetRingBuffer(), VertexDataStride, PendingVertexBufferOffset);
 	
 	// last minute draw setup
-	Context->PrepareToDraw(PrimitiveType);
+	if(!Context->PrepareToDraw(PrimitiveType))
+	{
+		return;
+	}
 	
 	METAL_DEBUG_COMMAND_BUFFER_DRAW_LOG(Context, @"RHIDrawInstancedPrimitiveUP( PrimitiveType %d, NumPrimitives %d, VertexData %p, VertexDataStride %d, InstanceCount %d)", PrimitiveType, NumPrimitives, VertexData, VertexDataStride, InstanceCount);
 	

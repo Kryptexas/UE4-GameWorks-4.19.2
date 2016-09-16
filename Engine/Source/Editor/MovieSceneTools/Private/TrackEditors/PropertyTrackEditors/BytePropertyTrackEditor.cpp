@@ -13,9 +13,12 @@ TSharedRef<ISequencerTrackEditor> FBytePropertyTrackEditor::CreateTrackEditor( T
 }
 
 
-TSharedRef<FPropertySection> FBytePropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<ISequencerSection> FBytePropertyTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding)
 {
-	return MakeShareable( new FBytePropertySection( SectionObject, Track.GetDisplayName(), Cast<UMovieSceneByteTrack>( SectionObject.GetOuter() )->GetEnum() ) );
+	UMovieSceneByteTrack* ByteTrack = Cast<UMovieSceneByteTrack>(&Track);
+	checkf(ByteTrack != nullptr, TEXT("Incompatible track in FBoolPropertyTrackEditor"));
+	return MakeShareable(new FBytePropertySection(GetSequencer().Get(), ObjectBinding, ByteTrack->GetPropertyName(), ByteTrack->GetPropertyPath(),
+		SectionObject, Track.GetDisplayName(), ByteTrack->GetEnum()));
 }
 
 

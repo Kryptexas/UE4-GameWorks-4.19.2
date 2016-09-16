@@ -20,6 +20,7 @@
 #include "IntegralKeyDetailsCustomization.h"
 #include "MovieSceneSubSection.h"
 #include "MovieSceneCinematicShotSection.h"
+#include "Curves/IntegralCurve.h"
 
 #define LOCTEXT_NAMESPACE "SequencerContextMenus"
 
@@ -327,6 +328,13 @@ void FSectionContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateLambda([=]{ return Shared->SelectAllKeys(); }))
 			);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("CopyAllKeys", "Copy All Keys"),
+				LOCTEXT("CopyAllKeysTooltip", "Copy all keys in section"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateLambda([=] { return Shared->CopyAllKeys(); }))
+			);
 		}
 
 		MenuBuilder.AddSubMenu(
@@ -576,6 +584,11 @@ void FSectionContextMenu::SelectAllKeys()
 	}
 }
 
+void FSectionContextMenu::CopyAllKeys()
+{
+	SelectAllKeys();
+	Sequencer->CopySelectedKeys();
+}
 
 void FSectionContextMenu::TogglePrimeForRecording() const
 {

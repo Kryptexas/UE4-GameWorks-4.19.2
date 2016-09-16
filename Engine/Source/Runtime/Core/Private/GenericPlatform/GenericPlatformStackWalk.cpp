@@ -156,3 +156,34 @@ void FGenericPlatformStackWalk::StackWalkAndDumpEx(ANSICHAR* HumanReadableString
 	// generic implementation ignores extra flags
 	return FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, Context);
 }
+
+TArray<FProgramCounterSymbolInfo> FGenericPlatformStackWalk::GetStack(int32 IgnoreCount, int32 MaxDepth, void* Context)
+{
+	TArray<FProgramCounterSymbolInfo> Stack;
+
+	// Temporary memory holding the stack trace.
+	static const int MAX_DEPTH = 100;
+	uint64 StackTrace[MAX_DEPTH];
+	FMemory::Memzero(StackTrace);
+
+	// Add 2 to account for CaptureStackBackTrace and GetStack.
+	IgnoreCount += 2;
+
+	MaxDepth = FMath::Min(MAX_DEPTH, IgnoreCount + MaxDepth);
+
+	// Capture stack backtrace.
+	FPlatformStackWalk::CaptureStackBackTrace(StackTrace, MaxDepth, Context);
+
+	// Skip the first two entries as they are inside the stack walking code.
+	int32 CurrentDepth = IgnoreCount;
+	// Allow the first entry to be NULL as the crash could have been caused by a call to a NULL function pointer,
+	// which would mean the top of the callstack is NULL.
+	while ( CurrentDepth < MaxDepth && ( StackTrace[CurrentDepth] || ( CurrentDepth == IgnoreCount ) ) )
+	{
+		int32 NewIndex = Stack.AddDefaulted();
+		FPlatformStackWalk::ProgramCounterToSymbolInfo(StackTrace[CurrentDepth], Stack[NewIndex]);
+		CurrentDepth++;
+	}
+
+	return Stack;
+}

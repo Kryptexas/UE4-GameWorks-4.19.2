@@ -441,6 +441,7 @@ private:
 	/** Is true if the color picker creation behavior can be overridden */
 	bool bValidCreationOverrideExists;
 
+
 private:
 
 	/** Invoked when a new value is selected on the color wheel */

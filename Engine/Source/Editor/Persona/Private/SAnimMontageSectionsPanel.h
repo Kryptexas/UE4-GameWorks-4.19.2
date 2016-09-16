@@ -18,10 +18,12 @@ public:
 	SLATE_BEGIN_ARGS( SAnimMontageSectionsPanel )
 		: _Montage()
 		, _MontageEditor()
+		, _bChildAnimMontage(false)
 	{}
 
 		SLATE_ARGUMENT( UAnimMontage*, Montage)						// The montage asset being edited
 		SLATE_ARGUMENT( TWeakPtr<SMontageEditor>, MontageEditor )	// The montage editor that owns this widget
+		SLATE_ARGUMENT( bool, bChildAnimMontage)
 
 	SLATE_END_ARGS()
 
@@ -80,4 +82,11 @@ private:
 
 	// Currently selected section index
 	int32						SelectedCompositeSection;
+
+	/*
+	* Child Anim Montage: Child Anim Montage only can replace name of animations, and no other meaningful edits
+	* as it will derive every data from Parent. There might be some other data that will allow to be replaced, but for now, it is
+	* not.
+	*/
+	bool						bChildAnimMontage;
 };

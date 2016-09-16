@@ -170,7 +170,7 @@ extern NETCODEUNITTEST_API ELogType GActiveLogTypeFlags;
 NETCODEUNITTEST_API DECLARE_LOG_CATEGORY_EXTERN(LogUnitTest, Log, All);
 
 // Hack to allow log entries to print without the category (specify log type of 'none')
-DECLARE_LOG_CATEGORY_EXTERN(None, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(NetCodeTestNone, Log, All);
 
 
 /**
@@ -205,6 +205,7 @@ inline ELogType OptionalFlags(ELogType InFlags=ELogType::None)
 				TEXT(":")); \
 		UE_LOG(LogUnitTest, Error, TEXT("Condition '(") TEXT(PREPROCESSOR_TO_STRING(Condition)) TEXT(")' failed")); \
 		FPlatformMisc::RequestExit(true); \
+		CA_ASSUME(false); \
 	}
 
 

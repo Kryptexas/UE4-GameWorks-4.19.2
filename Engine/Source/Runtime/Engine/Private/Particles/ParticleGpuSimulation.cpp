@@ -33,6 +33,7 @@
 #include "GlobalDistanceFieldParameters.h"
 
 DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Particle Simulation"), Stat_GPU_ParticleSimulation, STATGROUP_GPU);
 
 /*------------------------------------------------------------------------------
 	Constants to tune memory and performance for GPU particle simulation.
@@ -469,6 +470,8 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FGPUSpriteEmitterUniformParameters,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SizeBySpeed)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SubImageSize)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, TangentSelector)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, CameraFacingBlend)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, RemoveHMDRoll)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, RotationRateScale)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, RotationBias)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CameraMotionBlurAmount)
@@ -1390,6 +1393,8 @@ void ExecuteSimulationCommands(
 	}
 
 	SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
+
 
 	const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnRenderThread();
 	const FParticleStateTextures& TextureResources = (FixDeltaSeconds <= 0 || bUseFixDT) ? ParticleSimulationResources->GetPreviousStateTextures() : ParticleSimulationResources->GetCurrentStateTextures();
@@ -1500,6 +1505,7 @@ void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel
 	}
 
 	SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
 
 	const int32 MaxTilesPerDrawCallUnaligned = GParticleScratchVertexBufferSize / sizeof(FVector2D);
 	const int32 MaxTilesPerDrawCall = MaxTilesPerDrawCallUnaligned & (~(TILES_PER_INSTANCE-1));
@@ -3183,7 +3189,8 @@ public:
 		FVector ComponentScale = Component->ComponentToWorld.GetScale3D();
 		// Figure out if we need to replicate the X channel of size to Y.
 		const bool bSquare = (EmitterInfo.ScreenAlignment == PSA_Square)
-			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition);
+			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition)
+			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraDistanceBlend);
 
 		DynamicData->EmitterDynamicParameters.LocalToWorldScale.X = ComponentScale.X;
 		DynamicData->EmitterDynamicParameters.LocalToWorldScale.Y = (bSquare) ? ComponentScale.X : ComponentScale.Y;
@@ -3994,7 +4001,8 @@ private:
 
 		// Figure out if we need to replicate the X channel of size to Y.
 		const bool bSquare = (EmitterInfo.ScreenAlignment == PSA_Square)
-			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition);
+			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition)
+			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraDistanceBlend);
 
 		// Compute the distance covered by the emitter during this time period.
 		const FVector EmitterLocation = (RequiredModule->bUseLocalSpace) ? FVector::ZeroVector : Location;
@@ -4657,6 +4665,7 @@ void FFXSystem::SimulateGPUParticles(
 	if (NewParticles.Num())
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
 
 		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
 
@@ -4816,6 +4825,30 @@ static void SetGPUSpriteResourceData( FGPUSpriteResources* Resources, const FGPU
 
 		// For locked rotation about Z the particle should be rotated by 90 degrees.
 		Resources->UniformParameters.RotationBias = (LockAxisFlag == EPAL_ROTATE_Z) ? (0.5f * PI) : 0.0f;
+	}
+
+	// Alignment overrides
+	Resources->UniformParameters.RemoveHMDRoll = InResourceData.bRemoveHMDRoll ? 1.f : 0.f;
+
+	if (InResourceData.ScreenAlignment == PSA_FacingCameraDistanceBlend)
+	{
+		float DistanceBlendMinSq = InResourceData.MinFacingCameraBlendDistance * InResourceData.MinFacingCameraBlendDistance;
+		float DistanceBlendMaxSq = InResourceData.MaxFacingCameraBlendDistance * InResourceData.MaxFacingCameraBlendDistance;
+		float InvBlendRange = 1.f / FMath::Max(DistanceBlendMaxSq - DistanceBlendMinSq, 1.f);
+		float BlendScaledMinDistace = DistanceBlendMinSq * InvBlendRange;
+
+		Resources->UniformParameters.CameraFacingBlend.X = 1.f;
+		Resources->UniformParameters.CameraFacingBlend.Y = InvBlendRange;
+		Resources->UniformParameters.CameraFacingBlend.Z = BlendScaledMinDistace;
+
+		// Treat as camera facing if needed
+		Resources->UniformParameters.TangentSelector.W = 1.0f;
+	}
+	else
+	{
+		Resources->UniformParameters.CameraFacingBlend.X = 0.f;
+		Resources->UniformParameters.CameraFacingBlend.Y = 0.f;
+		Resources->UniformParameters.CameraFacingBlend.Z = 0.f;
 	}
 
 	Resources->UniformParameters.RotationRateScale = InResourceData.RotationRateScale;

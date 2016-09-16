@@ -23,6 +23,9 @@
 #include "AnimationGraphSchema.h"
 #include "AnimationStateMachineSchema.h"
 
+// Blueprint Profiler
+#include "Editor/Kismet/Public/Profiler/BlueprintProfilerSettings.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 
 //////////////////////////////////////////////////////////////////////////
@@ -141,6 +144,9 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	// Determine some 'global' settings based on current LOD
 	const bool bDrawShadowsThisFrame = GetCurrentLOD() > EGraphRenderingLOD::LowestDetail;
 
+	// Enable the profiler heatmap displays.
+	const bool bDisplayProfilerHeatmap = GetDefault<UBlueprintProfilerSettings>()->GraphNodeHeatMapDisplayMode != EBlueprintProfilerHeatMapDisplayMode::None;
+
 	// Because we paint multiple children, we must track the maximum layer id that they produced in case one of our parents
 	// wants to an overlay for all of its contents.
 
@@ -211,6 +217,22 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					{
 						ChildNode->ApplyRename();
 					}
+				}
+
+				// Draw the profiler heatmap if active
+				if (bDisplayProfilerHeatmap)
+				{
+					const FSlateBrush* ProfilerBrush = ChildNode->GetProfilerHeatmapBrush();
+					const FLinearColor ProfilerHeatIntensity = ChildNode->GetProfilerHeatmapIntensity();
+					FSlateDrawElement::MakeBox(
+						OutDrawElements,
+						ShadowLayerId,
+						CurWidget.Geometry.ToInflatedPaintGeometry(NodeShadowSize),
+						ProfilerBrush,
+						MyClippingRect,
+						ESlateDrawEffect::None,
+						ProfilerHeatIntensity
+						);
 				}
 
 				// Draw the node's shadow.
@@ -1039,13 +1061,18 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 
 		TSharedRef<SWidget> MenuContent = FocusedContent.Content;
 		
-		FSlateApplication::Get().PushMenu(
+		TSharedPtr<IMenu> Menu = FSlateApplication::Get().PushMenu(
 			AsShared(),
 			FWidgetPath(),
 			MenuContent,
 			WhereToSummon,
 			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
 			);
+
+		if (Menu.IsValid() && Menu->GetOwnedWindow().IsValid())
+		{
+			Menu->GetOwnedWindow()->SetWidgetToFocusOnActivate(FocusedContent.WidgetToFocus);
+		}
 
 		return FocusedContent.WidgetToFocus;
 	}

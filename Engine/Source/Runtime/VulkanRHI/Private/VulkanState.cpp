@@ -317,19 +317,25 @@ FVulkanDepthStencilState::FVulkanDepthStencilState(const FDepthStencilStateIniti
 	DepthStencilState.front.passOp = StencilOpToVulkan(Initializer.FrontFacePassStencilOp);
 	DepthStencilState.front.depthFailOp = StencilOpToVulkan(Initializer.FrontFaceDepthFailStencilOp);
 	DepthStencilState.front.compareOp = CompareOpToVulkan(Initializer.FrontFaceStencilTest);
-	DepthStencilState.front.compareMask = 0xFF;
+	DepthStencilState.front.compareMask = Initializer.StencilReadMask;
 	DepthStencilState.front.writeMask = Initializer.StencilWriteMask;
-	DepthStencilState.front.reference = Initializer.StencilReadMask;
+	DepthStencilState.front.reference = 0;
 
-
-	// Back
-	DepthStencilState.back.failOp = StencilOpToVulkan(Initializer.BackFaceStencilFailStencilOp);
-	DepthStencilState.back.passOp = StencilOpToVulkan(Initializer.BackFacePassStencilOp);
-	DepthStencilState.back.depthFailOp = StencilOpToVulkan(Initializer.BackFaceDepthFailStencilOp);
-	DepthStencilState.back.compareOp = CompareOpToVulkan(Initializer.BackFaceStencilTest);
-	DepthStencilState.back.compareMask = 0xFF;
-	DepthStencilState.back.writeMask = Initializer.StencilWriteMask;
-	DepthStencilState.back.reference = Initializer.StencilReadMask;
+	if (Initializer.bEnableBackFaceStencil)
+	{
+		// Back
+		DepthStencilState.back.failOp = StencilOpToVulkan(Initializer.BackFaceStencilFailStencilOp);
+		DepthStencilState.back.passOp = StencilOpToVulkan(Initializer.BackFacePassStencilOp);
+		DepthStencilState.back.depthFailOp = StencilOpToVulkan(Initializer.BackFaceDepthFailStencilOp);
+		DepthStencilState.back.compareOp = CompareOpToVulkan(Initializer.BackFaceStencilTest);
+		DepthStencilState.back.compareMask = Initializer.StencilReadMask;
+		DepthStencilState.back.writeMask = Initializer.StencilWriteMask;
+		DepthStencilState.back.reference = 0;
+	}
+	else
+	{
+		DepthStencilState.back = DepthStencilState.front;
+	}
 
 
 	// set the keys

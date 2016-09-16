@@ -79,38 +79,56 @@ FText UAnimGraphNode_SequencePlayer::GetTooltipText() const
 	return GetTitleGivenAssetInfo(FText::FromString(Node.Sequence->GetPathName()), bAdditive);
 }
 
+FText UAnimGraphNode_SequencePlayer::GetNodeTitleForSequence(ENodeTitleType::Type TitleType, UAnimSequenceBase* InSequence) const
+{
+	const bool bAdditive = InSequence->IsValidAdditive();
+	const FText BasicTitle = GetTitleGivenAssetInfo(FText::FromName(InSequence->GetFName()), bAdditive);
+
+	if (SyncGroup.GroupName == NAME_None)
+	{
+		return BasicTitle;
+	}
+	else
+	{
+		const FText SyncGroupName = FText::FromName(SyncGroup.GroupName);
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Title"), BasicTitle);
+		Args.Add(TEXT("SyncGroup"), SyncGroupName);
+
+		if (TitleType == ENodeTitleType::FullTitle)
+		{
+			return FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitleFull", "{Title}\nSync group {SyncGroup}"), Args);
+		}
+		else
+		{
+			return FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitleList", "{Title} (Sync group {SyncGroup})"), Args);
+		}
+	}
+}
+
 FText UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (Node.Sequence == nullptr)
 	{
-		return LOCTEXT("SequenceNullTitle", "Play (None)");
-	}
-	else
-	{
-		const bool bAdditive = Node.Sequence->IsValidAdditive();
-		const FText BasicTitle = GetTitleGivenAssetInfo(FText::FromName(Node.Sequence->GetFName()), bAdditive);
-
-		if (SyncGroup.GroupName == NAME_None)
+		// we may have a valid variable connected or default pin value
+		UEdGraphPin* SequencePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_SequencePlayer, Sequence));
+		if (SequencePin && SequencePin->LinkedTo.Num() > 0)
 		{
-			return BasicTitle;
+			return LOCTEXT("SequenceNodeTitleVariable", "Play Animation Sequence");
+		}
+		else if (SequencePin && SequencePin->DefaultObject != nullptr)
+		{
+			return GetNodeTitleForSequence(TitleType, CastChecked<UAnimSequenceBase>(SequencePin->DefaultObject));
 		}
 		else
 		{
-			const FText SyncGroupName = FText::FromName(SyncGroup.GroupName);
-
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("Title"), BasicTitle);
-			Args.Add(TEXT("SyncGroup"), SyncGroupName);
-
-			if (TitleType == ENodeTitleType::FullTitle)
-			{
-				return FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitleFull", "{Title}\nSync group {SyncGroup}"), Args);
-			}
-			else
-			{
-				return FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitleList", "{Title} (Sync group {SyncGroup})"), Args);
-			}
+			return LOCTEXT("SequenceNullTitle", "Play (None)");
 		}
+	}
+	else
+	{
+		return GetNodeTitleForSequence(TitleType, Node.Sequence);
 	}
 }
 
@@ -265,13 +283,24 @@ bool UAnimGraphNode_SequencePlayer::IsActionFilteredOut(class FBlueprintActionFi
 
 void UAnimGraphNode_SequencePlayer::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
-	if (Node.Sequence == NULL)
+	UAnimSequenceBase* SequenceToCheck = Node.Sequence;
+	UEdGraphPin* SequencePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_SequencePlayer, Sequence));
+	if (SequencePin != nullptr && SequenceToCheck == nullptr)
 	{
-		MessageLog.Error(TEXT("@@ references an unknown sequence"), this);
+		SequenceToCheck = Cast<UAnimSequenceBase>(SequencePin->DefaultObject);
+	}
+
+	if (SequenceToCheck == nullptr)
+	{
+		// we may have a connected node
+		if (SequencePin == nullptr || SequencePin->LinkedTo.Num() == 0)
+		{
+			MessageLog.Error(TEXT("@@ references an unknown sequence"), this);
+		}
 	}
 	else
 	{
-		USkeleton* SeqSkeleton = Node.Sequence->GetSkeleton();
+		USkeleton* SeqSkeleton = SequenceToCheck->GetSkeleton();
 		if (SeqSkeleton&& // if anim sequence doesn't have skeleton, it might be due to anim sequence not loaded yet, @todo: wait with anim blueprint compilation until all assets are loaded?
 			!SeqSkeleton->IsCompatible(ForSkeleton))
 		{
@@ -330,7 +359,14 @@ bool UAnimGraphNode_SequencePlayer::DoesSupportTimeForTransitionGetter() const
 
 UAnimationAsset* UAnimGraphNode_SequencePlayer::GetAnimationAsset() const 
 {
-	return Node.Sequence;
+	UAnimSequenceBase* Sequence = Node.Sequence;
+	UEdGraphPin* SequencePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_SequencePlayer, Sequence));
+	if (SequencePin != nullptr && Sequence == nullptr)
+	{
+		Sequence = Cast<UAnimSequenceBase>(SequencePin->DefaultObject);
+	}
+
+	return Sequence;
 }
 
 const TCHAR* UAnimGraphNode_SequencePlayer::GetTimePropertyName() const 

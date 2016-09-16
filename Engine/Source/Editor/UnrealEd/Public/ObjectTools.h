@@ -154,18 +154,9 @@ namespace ObjectTools
 		/** FGCObject interface; Serialize any object references */
 		virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 		{
-			for( int32 Index = 0; Index < DirtiedPackages.Num(); Index++ )
-			{
-				Collector.AddReferencedObject( DirtiedPackages[ Index ] );
-			}
-			for( int32 Index = 0; Index < InvalidConsolidationObjs.Num(); Index++ )
-			{
-				Collector.AddReferencedObject( InvalidConsolidationObjs[ Index ] );
-			}
-			for( int32 Index = 0; Index < FailedConsolidationObjs.Num(); Index++ )
-			{
-				Collector.AddReferencedObject( FailedConsolidationObjs[ Index ] );
-			}
+			Collector.AddReferencedObjects( DirtiedPackages );
+			Collector.AddReferencedObjects( InvalidConsolidationObjs );
+			Collector.AddReferencedObjects( FailedConsolidationObjs );
 		}
 
 		/** Packages dirtied by a consolidation operation */

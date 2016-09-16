@@ -61,7 +61,7 @@ void FMeshMergingSettings::PostLoadDeprecated()
 	FMeshMergingSettings DefaultObject;
 	if (bImportVertexColors_DEPRECATED != DefaultObject.bImportVertexColors_DEPRECATED)
 	{
-		bBakeVertexData = bImportVertexColors_DEPRECATED;
+		bBakeVertexDataToMesh = bImportVertexColors_DEPRECATED;
 	}
 
 	if (bExportNormalMap_DEPRECATED != DefaultObject.bExportNormalMap_DEPRECATED)
@@ -85,6 +85,16 @@ void FMeshMergingSettings::PostLoadDeprecated()
 	{
 		MaterialSettings.TextureSize.X = MergedMaterialAtlasResolution_DEPRECATED;
 		MaterialSettings.TextureSize.Y = MergedMaterialAtlasResolution_DEPRECATED;
+	}
+	if (bCalculateCorrectLODModel_DEPRECATED != DefaultObject.bCalculateCorrectLODModel_DEPRECATED)
+	{
+		LODSelectionType = EMeshLODSelectionType::CalculateLOD;
+	}
+
+	if (ExportSpecificLOD_DEPRECATED != DefaultObject.ExportSpecificLOD_DEPRECATED)
+	{
+		SpecificLOD = ExportSpecificLOD_DEPRECATED;
+		LODSelectionType = EMeshLODSelectionType::SpecificLOD;
 	}
 }
 

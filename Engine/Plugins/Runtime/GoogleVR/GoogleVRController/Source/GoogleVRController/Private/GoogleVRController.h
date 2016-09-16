@@ -21,6 +21,9 @@
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 using namespace gvr;
+typedef gvr::ControllerApi* ControllerApiPtr;
+#else
+typedef void* ControllerApiPtr;
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRController, Log, All);
@@ -48,7 +51,7 @@ class FGoogleVRController : public IInputDevice, public IMotionController
 {
 public:
 
-	FGoogleVRController(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler);
+	FGoogleVRController(ControllerApiPtr pControllerAPI, const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler);
 	virtual ~FGoogleVRController();
 
 public:
@@ -133,7 +136,7 @@ private:
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	/** GVR Controller client reference */
-	gvr::ControllerApi *pController;
+	ControllerApiPtr pController;
 
 	/** Cached controller info */
 	gvr::ControllerState CachedControllerState;
@@ -144,6 +147,7 @@ private:
 	/** Button mappings */
 	FGamepadKeyNames::Type Buttons[CONTROLLERS_PER_PLAYER][EGoogleVRControllerButton::TotalButtonCount];
 #endif
+	bool bControllerReadyToPollState;
 
 	/** handler to send all messages to */
 	TSharedRef<FGenericApplicationMessageHandler> MessageHandler;

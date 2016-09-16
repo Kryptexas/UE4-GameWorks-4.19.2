@@ -14,6 +14,12 @@ class FSimpleHMD : public IHeadMountedDisplay, public ISceneViewExtension, publi
 {
 public:
 	/** IHeadMountedDisplay interface */
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("SimpleHMD"));
+		return DefaultName;
+	}
+
 	virtual bool IsHMDConnected() override { return true; }
 	virtual bool IsHMDEnabled() const override;
 	virtual void EnableHMD(bool allow = true) override;

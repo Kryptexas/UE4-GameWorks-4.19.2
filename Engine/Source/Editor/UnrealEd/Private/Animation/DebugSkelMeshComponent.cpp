@@ -105,7 +105,7 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 	{
 		// extend bounds by bones but without root bone
 		FBox BoundingBox(0);
-		const int32 NumBones = GetNumSpaceBases();
+		const int32 NumBones = GetNumComponentSpaceTransforms();
 		for (int32 BoneIndex = 1; BoneIndex < NumBones; ++BoneIndex)
 		{
 			BoundingBox += GetBoneMatrix(BoneIndex).GetOrigin();
@@ -181,7 +181,7 @@ void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const F
 	{
 		if (ExtractedRootMotion.bHasRootMotion)
 		{
-			AddLocalTransform(ExtractedRootMotion.RootMotionTransform);
+			AddLocalTransform(ExtractedRootMotion.GetRootMotionTransform());
 
 			//Handle moving component so that it stays within the editor floor
 			FTransform CurrentTransform = GetRelativeTransform();
@@ -346,7 +346,7 @@ void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* Previ
 
 bool UDebugSkelMeshComponent::ShouldCPUSkin()
 {
-	return 	bCPUSkinning || bDrawBoneInfluences || bDrawNormals || bDrawTangents || bDrawBinormals;
+	return 	bCPUSkinning || bDrawBoneInfluences || bDrawNormals || bDrawTangents || bDrawBinormals || bDrawMorphTargetVerts;
 }
 
 
@@ -358,7 +358,11 @@ void UDebugSkelMeshComponent::PostInitMeshObject(FSkeletalMeshObject* InMeshObje
 	{
 		if(bDrawBoneInfluences)
 		{
-			InMeshObject->EnableBlendWeightRendering(true, BonesOfInterest);
+			InMeshObject->EnableOverlayRendering(true, &BonesOfInterest, nullptr);
+		}
+		else if (bDrawMorphTargetVerts)
+		{
+			InMeshObject->EnableOverlayRendering(true, nullptr, &MorphTargetOfInterests);
 		}
 	}
 }
@@ -371,12 +375,24 @@ void UDebugSkelMeshComponent::SetShowBoneWeight(bool bNewShowBoneWeight)
 		return;
 	}
 
+	if (bDrawMorphTargetVerts)
+	{
+		SetShowMorphTargetVerts(false);
+	}
+
 	// if turning on this mode
-	if(bNewShowBoneWeight)
+	EnableOverlayMaterial(bNewShowBoneWeight);
+
+	bDrawBoneInfluences = bNewShowBoneWeight;
+}
+
+void UDebugSkelMeshComponent::EnableOverlayMaterial(bool bEnable)
+{
+	if (bEnable)
 	{
 		SkelMaterials.Empty();
 		int32 NumMaterials = GetNumMaterials();
-		for (int32 i=0; i<NumMaterials; i++)
+		for (int32 i = 0; i < NumMaterials; i++)
 		{
 			// Back up old material
 			SkelMaterials.Add(GetMaterial(i));
@@ -389,24 +405,40 @@ void UDebugSkelMeshComponent::SetShowBoneWeight(bool bNewShowBoneWeight)
 	{
 		int32 NumMaterials = GetNumMaterials();
 		check(NumMaterials == SkelMaterials.Num());
-		for (int32 i=0; i<NumMaterials; i++)
+		for (int32 i = 0; i < NumMaterials; i++)
 		{
 			// restore original material
 			SetMaterial(i, SkelMaterials[i]);
 		}
 	}
+}
+void UDebugSkelMeshComponent::SetShowMorphTargetVerts(bool bNewShowMorphTargetVerts)
+{
+	// Check we are actually changing it!
+	if (bNewShowMorphTargetVerts == bDrawMorphTargetVerts)
+	{
+		return;
+	}
 
-	bDrawBoneInfluences = bNewShowBoneWeight;
+	if (bDrawBoneInfluences)
+	{
+		SetShowBoneWeight(false);
+	}
+
+	// if turning on this mode
+	EnableOverlayMaterial(bNewShowMorphTargetVerts);
+
+	bDrawMorphTargetVerts = bNewShowMorphTargetVerts;
 }
 
 void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
 {
-	TArray<FTransform> TempLocalAtoms;
-	TempLocalAtoms.AddUninitialized(OutSpaceBases.Num());
+	TArray<FTransform> TempBoneSpaceTransforms;
+	TempBoneSpaceTransforms.AddUninitialized(OutSpaceBases.Num());
 	FVector TempRootBoneTranslation;
 	FBlendedHeapCurve TempCurve;
 	PreviewInstance->PrePerformAnimationEvaluation();
-	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, TempLocalAtoms, TempRootBoneTranslation, TempCurve);
+	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, TempBoneSpaceTransforms, TempRootBoneTranslation, TempCurve);
 	PreviewInstance->PostPerformAnimationEvaluation();
 }
 

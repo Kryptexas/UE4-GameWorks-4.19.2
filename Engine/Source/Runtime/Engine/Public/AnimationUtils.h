@@ -115,7 +115,7 @@ public:
 	*/
 	static void BuildComponentSpaceTransform(FTransform& OutTransform,
 												int32 BoneIndex,
-												const TArray<FTransform>& LocalAtoms,
+												const TArray<FTransform>& BoneSpaceTransforms,
 												const TArray<FBoneData>& BoneData);
 
 	static void BuildSkeletonMetaData(USkeleton* Skeleton, TArray<FBoneData>& OutBoneData);

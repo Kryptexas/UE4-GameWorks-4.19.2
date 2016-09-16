@@ -24,7 +24,7 @@ class ENGINE_API UAnimationSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Compression)
 	TArray<FString> KeyEndEffectorsMatchNameArray;
 
-	UPROPERTY(config, EditAnywhere, Category = Compression)
+	UPROPERTY(config, EditAnywhere, Category = Compression, NoClear)
 	TSubclassOf<class UAnimCompress>  DefaultCompressionAlgorithm; 
 
 	UPROPERTY(config, EditAnywhere, Category = Compression)
@@ -81,6 +81,10 @@ class ENGINE_API UAnimationSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category = Performance)
 	bool bEnablePerformanceLog;
+
+	/** If true, animation track data will be stripped from dedicated server cooked data */
+	UPROPERTY(config, EditAnywhere, Category = Performance)
+	bool bStripAnimationDataOnDedicatedServer;
 
 public:
 	static UAnimationSettings * Get() { return CastChecked<UAnimationSettings>(UAnimationSettings::StaticClass()->GetDefaultObject()); }

@@ -50,6 +50,13 @@ bool VerifyAnimationRename( UWidgetBlueprint* Blueprint, UWidgetAnimation* Anima
 		return false;
 	}
 
+	FName FunctionName(*NewAnimationName);
+	if (Animation->GetPreviewWidget().IsValid() && Animation->GetPreviewWidget().Get()->FindFunction(FunctionName))
+	{
+		OutErrorMessage = LOCTEXT("NameInUseByFunction", "A function with this name already exists");
+		return false;
+	}
+
 	FKismetNameValidator Validator( Blueprint );
 	EValidatorResult ValidationResult = Validator.IsValid( NewAnimationName );
 

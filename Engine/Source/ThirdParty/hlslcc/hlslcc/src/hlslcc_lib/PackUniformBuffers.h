@@ -6,9 +6,12 @@
 #define PACKUNIFORMBUFFERS_H
 
 //@todo-rco: Remove STL!
-#include <map>
-#include <string>
-#include <set>
+THIRD_PARTY_INCLUDES_START
+	#include <map>
+	#include <string>
+	#include <set>
+THIRD_PARTY_INCLUDES_END
+
 #include "CustomStdAllocator.h"
 
 typedef std::map<FCustomStdString, ir_variable*> TStringIRVarMap;

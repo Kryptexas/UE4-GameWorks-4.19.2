@@ -34,6 +34,12 @@ ULevelStreaming* GetStreamingLevel( FName LevelName )
 	if ( LevelName != NAME_None )
 	{
 		FString SafeLevelName = MakeSafeLevelName( LevelName );
+		if (FPackageName::IsShortPackageName(SafeLevelName))
+		{
+			// Make sure MyMap1 and Map1 names do not resolve to a same streaming level
+			SafeLevelName = TEXT("/") + SafeLevelName;
+		}
+
 		for ( ULevelStreaming* LevelStreaming : GWorld->StreamingLevels )
 		{
 			if ( LevelStreaming && LevelStreaming->GetWorldAssetPackageName().EndsWith( SafeLevelName, ESearchCase::IgnoreCase ) )
@@ -92,7 +98,7 @@ void SetLevelVisibility( ULevelStreaming* Level, bool bVisible )
 		Level->GetWorld()->FlushLevelStreaming();
 
 		// Iterate over the level's actors
-		TTransArray<AActor*>& Actors = Level->GetLoadedLevel()->Actors;
+		TArray<AActor*>& Actors = Level->GetLoadedLevel()->Actors;
 		for ( int32 ActorIndex = 0; ActorIndex < Actors.Num(); ++ActorIndex )
 		{
 			AActor* Actor = Actors[ActorIndex];

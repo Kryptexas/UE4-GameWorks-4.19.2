@@ -144,6 +144,7 @@ void FStaticLightingManager::CancelLightingBuild()
 	{
 		GEditor->SetMapBuildCancelled( true );
 		FStaticLightingManager::Get()->ClearCurrentNotification();
+		FEditorDelegates::OnLightingBuildFailed.Broadcast();
 	}
 	else
 	{
@@ -206,6 +207,8 @@ void FStaticLightingManager::SendBuildDoneNotification( bool AutoApplyFailed )
 
 	Info.ButtonDetails.Add( ApplyNow );
 	Info.ButtonDetails.Add( Discard );
+
+	FEditorDelegates::OnLightingBuildSucceeded.Broadcast();
 
 	LightBuildNotification = FSlateNotificationManager::Get().AddNotification( Info );
 	if ( LightBuildNotification.IsValid() )
@@ -272,11 +275,15 @@ void FStaticLightingManager::FailLightingBuild( FText ErrorText)
 	FNotificationInfo Info( ErrorText );
 	Info.ExpireDuration = 4.f;
 	
+	FEditorDelegates::OnLightingBuildFailed.Broadcast();
+
 	LightBuildNotification = FSlateNotificationManager::Get().AddNotification(Info);
 	if (LightBuildNotification.IsValid())
 	{
 		LightBuildNotification.Pin()->SetCompletionState(SNotificationItem::CS_Fail);
 	}
+
+	UE_LOG(LogStaticLightingSystem, Warning, TEXT("Failed to build lighting!!! %s"),*ErrorText.ToString());
 
 	FMessageLog("LightingResults").Open();
 

@@ -28,6 +28,7 @@
 #include "LevelSequencePlayer.h"
 #include "SequencerSettings.h"
 #include "SequencerSpawnRegister.h"
+#include "MovieSceneCaptureDialogModule.h"
 
 // @todo sequencer: hack: setting defaults for transform tracks
 #include "MovieScene3DTransformSection.h"
@@ -79,6 +80,35 @@ TArray<UObject*> GetLevelSequenceEditorEventContexts()
 	return Contexts;
 }
 
+UObject* GetLevelSequenceEditorPlaybackContext()
+{
+	UWorld* PIEWorld = nullptr;
+	UWorld* EditorWorld = nullptr;
+
+	IMovieSceneCaptureDialogModule* CaptureDialogModule = FModuleManager::GetModulePtr<IMovieSceneCaptureDialogModule>("MovieSceneCaptureDialog");
+	UWorld* RecordingWorld = CaptureDialogModule ? CaptureDialogModule->GetCurrentlyRecordingWorld() : nullptr;
+
+	// Return PIE worlds if there are any
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::PIE)
+		{
+			UWorld* ThisWorld = Context.World();
+			if (RecordingWorld != ThisWorld)
+			{
+				PIEWorld = ThisWorld;
+			}
+		}
+		else if (Context.WorldType == EWorldType::Editor)
+		{
+			// We can always animate PIE worlds
+			EditorWorld = Context.World();
+		}
+	}
+
+	return PIEWorld ? PIEWorld : EditorWorld;
+}
+
 static TArray<FLevelSequenceEditorToolkit*> OpenToolkits;
 
 void FLevelSequenceEditorToolkit::IterateOpenToolkits(TFunctionRef<bool(FLevelSequenceEditorToolkit&)> Iter)
@@ -102,7 +132,8 @@ FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkitOpened& FLevelSequenceEd
  *****************************************************************************/
 
 FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkit(const TSharedRef<ISlateStyle>& InStyle)
-	: Style(InStyle)
+	: LevelSequence(nullptr)
+	, Style(InStyle)
 {
 	// register sequencer menu extenders
 	ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
@@ -174,6 +205,7 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
 		SequencerInitParams.SpawnRegister = SpawnRegister;
 		SequencerInitParams.EventContexts.BindStatic(GetLevelSequenceEditorEventContexts);
+		SequencerInitParams.PlaybackContext.BindStatic(GetLevelSequenceEditorPlaybackContext);
 
 		TSharedRef<FExtender> AddMenuExtender = MakeShareable(new FExtender);
 
@@ -369,7 +401,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 					}
 
 					// @todo sequencer: hack: setting defaults for transform tracks
-					if (NewTrack->IsA(UMovieScene3DTransformTrack::StaticClass()))
+					if (NewTrack->IsA(UMovieScene3DTransformTrack::StaticClass()) && Sequencer->GetAutoSetTrackDefaults())
 					{
 						auto TransformSection = Cast<UMovieScene3DTransformSection>(NewSection);
 
@@ -513,14 +545,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 			}
 
 			// key property
-			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), PropertyPath);
-			{
-				KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
-				KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
-				KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = false;
-				KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = false;
-				KeyPropertyParams.KeyParams.bCreateKeyOnlyWhenAutoKeying = false;
-			}
+			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), PropertyPath, ESequencerKeyMode::ManualKey);
 
 			Sequencer->KeyProperty(KeyPropertyParams);
 

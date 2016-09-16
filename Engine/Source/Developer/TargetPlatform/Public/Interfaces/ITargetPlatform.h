@@ -84,6 +84,9 @@ namespace ETargetPlatformReadyStatus
 
 	/** Manifest Not Found */
 	const int32 ManifestNotFound = 32;
+
+	/** Remote Server Name Empty */
+	const int32 RemoveServerNameEmpty = 64;
 };
 
 

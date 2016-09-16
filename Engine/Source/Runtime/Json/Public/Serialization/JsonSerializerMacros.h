@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Json.h"
 
 /**
  * Macros used to generate a serialization function for a class derived from FJsonSerializable
@@ -594,6 +593,11 @@ public:
  */
 struct FJsonSerializable
 {
+	/**
+		Virtualize destructor as we provide overridable functions
+	*/
+	virtual ~FJsonSerializable() {}
+
 	/**
 	 * Used to allow serialization of a const ref
 	 *

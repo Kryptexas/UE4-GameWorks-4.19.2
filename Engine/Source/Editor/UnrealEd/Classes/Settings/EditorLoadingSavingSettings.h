@@ -173,8 +173,8 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=SourceControl, meta=(DisplayName="Use Global Settings"))
 	uint32 bSCCUseGlobalSettings:1;
 
-	/** Specifies the file path to the tool to be used for diff'ing text files */
-	UPROPERTY(EditAnywhere, config, Category=SourceControl, meta=(DisplayName="Tool for diff'ing text", FilePathFilter = "exe"))
+	/** Specifies the file path to the tool to be used for diffing text files */
+	UPROPERTY(EditAnywhere, config, Category=SourceControl, meta=(DisplayName="Tool for diffing text", FilePathFilter = "exe"))
 	FFilePath TextDiffToolPath;
 
 public:

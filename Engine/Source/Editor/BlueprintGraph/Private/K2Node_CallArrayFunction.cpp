@@ -221,6 +221,7 @@ void UK2Node_CallArrayFunction::PropagateArrayTypeInfo(const UEdGraphPin* Source
 		{
 			if (CurrentPin != SourcePin)
 			{
+				CA_SUPPRESS(6011); // warning C6011: Dereferencing NULL pointer 'CurrentPin'.
 				FEdGraphPinType& CurrentPinType = CurrentPin->PinType;
 
 				bool const bHasTypeMismatch = (CurrentPinType.PinCategory != SourcePinType.PinCategory) ||

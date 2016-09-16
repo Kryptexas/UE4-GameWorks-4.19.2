@@ -81,6 +81,7 @@ public:
 	// IHapticDevice overrides
 	IHapticDevice* GetHapticDevice() override { return (IHapticDevice*)this; }
 	virtual void SetHapticFeedbackValues(int32 ControllerId, int32 Hand, const FHapticFeedbackValues& Values) override;
+
 	virtual void GetHapticFrequencyRange(float& MinFrequency, float& MaxFrequency) const override;
 	virtual float GetHapticAmplitudeScale() const override;
 
@@ -104,6 +105,8 @@ private:
 
 	/** Are Remote keys mapped to gamepad or not. */
 	static bool bRemoteKeysMappedToGamepad;
+
+	ovrTouchHapticsDesc HapticsDesc;
 };
 
 DEFINE_LOG_CATEGORY_STATIC(LogOcInput, Log, All);

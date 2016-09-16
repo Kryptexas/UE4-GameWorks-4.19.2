@@ -13,7 +13,7 @@
 #include "NiagaraNodeWriteDataSet.h"
 #include "NiagaraNodeReadDataSet.h"
 
-#include "EdgraphSchema_Niagara.h"
+#include "EdGraphSchema_Niagara.h"
 
 //////////////////////////////////////////////////////////////////////////
 // NiagaraGraph
@@ -228,7 +228,7 @@ void UNiagaraScriptSource::GetEmitterAttributes(TArray<FName>& VectorInputs, TAr
 {
 	for (uint32 i=0; i < NiagaraConstants::NumBuiltinConstants; i++)
 	{
-		VectorInputs.Add(NiagaraConstants::ConstantNames[i]);
+		VectorInputs.Add(NiagaraConstants::GConstantNames[i]);
 	}
 
 	MatrixInputs.Empty();

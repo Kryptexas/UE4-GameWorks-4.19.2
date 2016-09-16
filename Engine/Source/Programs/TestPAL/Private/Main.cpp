@@ -9,6 +9,18 @@ DEFINE_LOG_CATEGORY(LogTestPAL);
 
 IMPLEMENT_APPLICATION(TestPAL, "TestPAL");
 
+#define ARG_PROC_TEST						"proc"
+#define ARG_PROC_TEST_CHILD					"proc-child"
+#define ARG_CASE_SENSITIVITY_TEST			"case"
+#define ARG_MESSAGEBOX_TEST					"messagebox"
+#define ARG_DIRECTORY_WATCHER_TEST			"dirwatcher"
+#define ARG_THREAD_SINGLETON_TEST			"threadsingleton"
+#define ARG_SYSINFO_TEST					"sysinfo"
+#define ARG_CRASH_TEST						"crash"
+#define ARG_STRINGPRECISION_TEST			"stringprecision"
+#define ARG_DSO_TEST						"dso"
+#define ARG_OFFSCREEN_GL_TEST				"offscreen-gl"
+
 namespace TestPAL
 {
 	FString CommandLine;
@@ -336,6 +348,84 @@ int32 StringPrecisionTest(const TCHAR* CommandLine)
 }
 
 /**
+ * Test Push/PopDll
+ */
+int32 DynamicLibraryTest(const TCHAR* CommandLine)
+{
+	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	GEngineLoop.PreInit(CommandLine);
+	UE_LOG(LogTestPAL, Display, TEXT("Attempting to load Steam library"));
+
+	FString RootSteamPath;
+	FString LibraryName;
+
+	if (PLATFORM_LINUX)
+	{
+		RootSteamPath = FPaths::EngineDir() / FString(TEXT("Binaries/ThirdParty/Steamworks/Steamv132/Linux/"));
+		LibraryName = TEXT("libsteam_api.so");
+	}
+	else
+	{
+		UE_LOG(LogTestPAL, Fatal, TEXT("This test is not implemented for this platform."))
+	}
+
+	FPlatformProcess::PushDllDirectory(*RootSteamPath);
+	void* SteamDLLHandle = FPlatformProcess::GetDllHandle(*LibraryName);
+	FPlatformProcess::PopDllDirectory(*RootSteamPath);
+
+	if (SteamDLLHandle == nullptr)
+	{
+		// try bundled one
+		UE_LOG(LogTestPAL, Error, TEXT("Could not load via Push/PopDll, loading directly."));
+		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + LibraryName));
+
+		if (SteamDLLHandle == nullptr)
+		{
+			UE_LOG(LogTestPAL, Fatal, TEXT("Could not load Steam library!"))
+		}
+	}
+
+	if (SteamDLLHandle)
+	{
+		UE_LOG(LogTestPAL, Log, TEXT("Loaded Steam library at %p"), SteamDLLHandle);
+		FPlatformProcess::FreeDllHandle(SteamDLLHandle);
+		SteamDLLHandle = nullptr;
+	}
+
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+	return 0;
+}
+
+
+
+/**
+ * Offscreen GL
+ */
+int32 OffscreenGLTest(const TCHAR* CommandLine)
+{
+	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	GEngineLoop.PreInit(CommandLine);
+	UE_LOG(LogTestPAL, Display, TEXT("Running offscreen GL test."));
+
+#if PLATFORM_LINUX
+	void DrawOffscreenGL();
+	DrawOffscreenGL();
+#else
+	UE_LOG(LogTestPAL, Fatal, TEXT("Test has not been implemented on this platform."));
+#endif // PLATFORM_LINUX
+
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+	return 0;
+}
+
+
+/**
  * Selects and runs one of test cases.
  *
  * @param ArgC Number of commandline arguments.
@@ -382,6 +472,14 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		{
 			return StringPrecisionTest(*TestPAL::CommandLine);
 		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_DSO_TEST))
+		{
+			return DynamicLibraryTest(*TestPAL::CommandLine);
+		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_OFFSCREEN_GL_TEST))
+		{
+			return OffscreenGLTest(*TestPAL::CommandLine);
+		}
 	}
 
 	FPlatformMisc::SetCrashHandler(NULL);
@@ -397,9 +495,11 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test message box bug (too long strings)"), ANSI_TO_TCHAR( ARG_MESSAGEBOX_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test directory watcher"), ANSI_TO_TCHAR( ARG_DIRECTORY_WATCHER_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test per-thread singletons"), ANSI_TO_TCHAR( ARG_THREAD_SINGLETON_TEST ));
-	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test (some) system information"), ANSI_TO_TCHAR( ARG_SYSINFO_TEST ))
-	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test crash handling (pass '-logfatal' for testing Fatal logs)"), ANSI_TO_TCHAR( ARG_CRASH_TEST ))
-	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test passing %%*s in a format string"), ANSI_TO_TCHAR( ARG_STRINGPRECISION_TEST ))
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test (some) system information"), ANSI_TO_TCHAR( ARG_SYSINFO_TEST ));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test crash handling (pass '-logfatal' for testing Fatal logs)"), ANSI_TO_TCHAR( ARG_CRASH_TEST ));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test passing %%*s in a format string"), ANSI_TO_TCHAR( ARG_STRINGPRECISION_TEST ));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test APIs for dealing with dynamic libraries"), ANSI_TO_TCHAR( ARG_DSO_TEST ));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test rendering GL offscreen"), UTF8_TO_TCHAR(ARG_OFFSCREEN_GL_TEST));
 	UE_LOG(LogTestPAL, Warning, TEXT(""));
 	UE_LOG(LogTestPAL, Warning, TEXT("Pass one of those to run an appropriate test."));
 

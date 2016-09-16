@@ -137,7 +137,7 @@ void UK2Node_CustomEvent::Serialize(FArchive& Ar)
 					&& !K2Schema->IsExecPin(*Pin)
 					&& !K2Schema->IsDelegateCategory(Pin->PinType.PinCategory))
 				{
-					for (auto PinInfo : UserDefinedPins)
+					for (TSharedPtr<FUserPinInfo>& PinInfo : UserDefinedPins)
 					{
 						if (PinInfo->PinName == Pin->PinName)
 						{

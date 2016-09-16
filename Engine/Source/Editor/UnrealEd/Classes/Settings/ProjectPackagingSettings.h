@@ -25,7 +25,7 @@ enum EProjectPackagingBuildConfigurations
  * Enumerates the the available internationalization data presets for project packaging.
  */
 UENUM()
-enum class EProjectPackagingInternationalizationPresets
+enum class EProjectPackagingInternationalizationPresets : uint8
 {
 	/** English only. */
 	English,
@@ -126,7 +126,7 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool IncludePrerequisites;
 
-	/** A directory containing prerequisite packages that should be staged in the executable directory. Relative to the project path. */
+	/** A directory containing prerequisite packages that should be staged in the executable directory. Can be relative to $(EngineDir) or $(ProjectDir) */
 	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay)
 	FDirectoryPath ApplocalPrerequisitesDirectory;
 
@@ -139,7 +139,7 @@ public:
 
 	/** Predefined sets of culture whose internationalization data should be packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Internationalization Support"))
-	TEnumAsByte<EProjectPackagingInternationalizationPresets> InternationalizationPreset;
+	EProjectPackagingInternationalizationPresets InternationalizationPreset;
 
 	/** Cultures whose data should be cooked, staged, and packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Localizations to Package"))
@@ -167,6 +167,13 @@ public:
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Create compressed cooked packages"))
 	bool bCompressed;
+
+	/**
+	* Encrypt ini files inside of the pak file
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Encrypt ini files inside pak files"))
+	bool bEncryptIniFiles;
+
 	
 	/**
 	* Skip editor content

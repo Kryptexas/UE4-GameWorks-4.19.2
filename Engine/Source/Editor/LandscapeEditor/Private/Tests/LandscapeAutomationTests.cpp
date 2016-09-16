@@ -123,7 +123,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLandscapeEditorTest, "System.Promotion.Editor.
 bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 {
 	//New level
-	UWorld* NewMap = AutomationEditorCommonUtils::CreateNewMap();
+	UWorld* NewMap = FAutomationEditorCommonUtils::CreateNewMap();
 	if (NewMap)
 	{
 		UE_LOG(LogLandscapeAutomationTests, Display, TEXT("Created an empty level"));

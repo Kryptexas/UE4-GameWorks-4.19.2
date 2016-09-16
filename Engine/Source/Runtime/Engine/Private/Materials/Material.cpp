@@ -2725,7 +2725,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DitherOpacityMask)
 			)
 		{
-			return BlendMode == BLEND_Masked;
+			return BlendMode == BLEND_Masked || IsTranslucencyWritingCustomDepth();
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DecalBlendMode))
@@ -2754,6 +2754,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bFullyRough) ||
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bNormalCurvatureToRoughness) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TwoSided) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseLightmapDirectionality) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseHQForwardReflections) ||
@@ -3628,12 +3629,6 @@ bool UMaterial::UpdateLightmassTextureTracking()
 	}
 #endif // WITH_EDITORONLY_DATA
 
-	if ( bTexturesHaveChanged )
-	{
-		// This will invalidate any cached Lightmass material exports
-		SetLightingGuid();
-	}
-
 	return bTexturesHaveChanged;
 }
 
@@ -4005,10 +4000,9 @@ int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProper
 }
 #endif // WITH_EDITOR
 
-void UMaterial::NotifyCompilationFinished(FMaterialResource* CompiledResource)
+void UMaterial::NotifyCompilationFinished(UMaterialInterface* Material)
 {
-	// we don't know if it was actually us or one of our MaterialInstances (with StaticPermutationResources)...
-	UMaterial::OnMaterialCompilationFinished().Broadcast(this);
+	UMaterial::OnMaterialCompilationFinished().Broadcast(Material);
 }
 
 void UMaterial::ForceRecompileForRendering()
@@ -4124,6 +4118,10 @@ bool UMaterial::IsDitheredLODTransition() const
 	return DitheredLODTransition != 0;
 }
 
+bool UMaterial::IsTranslucencyWritingCustomDepth() const
+{
+	return AllowTranslucentCustomDepthWrites != 0 && IsTranslucentBlendMode(GetBlendMode());
+}
 
 bool UMaterial::IsMasked() const
 {
@@ -4396,5 +4394,19 @@ bool UMaterial::HasFlippedCoordinates()
 	return ReversedInputCount > StandardInputCount;
 }
 #endif //WITH_EDITORONLY_DATA
+
+void UMaterial::GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGuids) const
+{
+#if WITH_EDITORONLY_DATA
+	if (bIncludeTextures)
+	{
+		OutGuids.Append(ReferencedTextureGuids);
+	}
+	GetReferencedFunctionIds(OutGuids);
+	GetReferencedParameterCollectionIds(OutGuids);
+	OutGuids.Add(StateId);
+	Super::GetLightingGuidChain(bIncludeTextures, OutGuids);
+#endif
+}
 
 #undef LOCTEXT_NAMESPACE

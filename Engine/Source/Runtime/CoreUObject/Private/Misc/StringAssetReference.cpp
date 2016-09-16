@@ -68,6 +68,7 @@ bool FStringAssetReference::Serialize(FArchive& Ar)
 	if (Ar.IsLoading() && (Ar.GetPortFlags()&PPF_DuplicateForPIE))
 	{
 		// Remap unique ID if necessary
+		// only for fixing up cross-level references, inter-level references handled in FDuplicateDataReader
 		FixupForPIE();
 	}
 

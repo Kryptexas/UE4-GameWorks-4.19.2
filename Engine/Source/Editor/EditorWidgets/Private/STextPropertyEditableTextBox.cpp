@@ -143,6 +143,7 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 			.ContentPadding(FMargin(4, 0))
 			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 			.ForegroundColor(FSlateColor::UseForeground())
+			.ToolTipText(LOCTEXT("AdvancedTextSettingsComboToolTip", "Edit advanced text settings."))
 			.MenuContent()
 			[
 				SNew(SBox)
@@ -152,16 +153,68 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 					SNew(SGridPanel)
 					.FillColumn(1, 1.0f)
 
+					// Localizable?
+					+SGridPanel::Slot(0, 0)
+					.Padding(2)
+					.HAlign(HAlign_Right)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("TextLocalizableLabel", "Localizable:"))
+					]
+					+SGridPanel::Slot(1, 0)
+					.Padding(2)
+					[
+						SNew(SHorizontalBox)
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(0)
+						[
+							SNew(SUniformGridPanel)
+							.SlotPadding(FMargin(0, 0, 4, 0))
+
+							+SUniformGridPanel::Slot(0, 0)
+							[
+								SNew(SCheckBox)
+								.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+								.ToolTipText(LOCTEXT("TextLocalizableToggleYesToolTip", "Assign this text a key and allow it to be gathered for localization."))
+								.Padding(FMargin(4, 2))
+								.HAlign(HAlign_Center)
+								.IsChecked(this, &STextPropertyEditableTextBox::GetLocalizableCheckState, true/*bActiveState*/)
+								.OnCheckStateChanged(this, &STextPropertyEditableTextBox::HandleLocalizableCheckStateChanged, true/*bActiveState*/)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("TextLocalizableToggleYes", "Yes"))
+								]
+							]
+
+							+SUniformGridPanel::Slot(1, 0)
+							[
+								SNew(SCheckBox)
+								.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+								.ToolTipText(LOCTEXT("TextLocalizableToggleNoToolTip", "Mark this text as 'culture invariant' to prevent it being gathered for localization."))
+								.Padding(FMargin(4, 2))
+								.HAlign(HAlign_Center)
+								.IsChecked(this, &STextPropertyEditableTextBox::GetLocalizableCheckState, false/*bActiveState*/)
+								.OnCheckStateChanged(this, &STextPropertyEditableTextBox::HandleLocalizableCheckStateChanged, false/*bActiveState*/)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("TextLocalizableToggleNo", "No"))
+								]
+							]
+						]
+					]
+
 #if USE_STABLE_LOCALIZATION_KEYS
 					// Package
-					+SGridPanel::Slot(0, 0)
+					+SGridPanel::Slot(0, 1)
 					.Padding(2)
 					.HAlign(HAlign_Right)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TextPackageLabel", "Package:"))
 					]
-					+SGridPanel::Slot(1, 0)
+					+SGridPanel::Slot(1, 1)
 					.Padding(2)
 					[
 						SNew(SEditableTextBox)
@@ -171,14 +224,14 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 #endif // USE_STABLE_LOCALIZATION_KEYS
 
 					// Namespace
-					+SGridPanel::Slot(0, 1)
+					+SGridPanel::Slot(0, 2)
 					.Padding(2)
 					.HAlign(HAlign_Right)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TextNamespaceLabel", "Namespace:"))
 					]
-					+SGridPanel::Slot(1, 1)
+					+SGridPanel::Slot(1, 2)
 					.Padding(2)
 					[
 						SAssignNew(NamespaceEditableTextBox, SEditableTextBox)
@@ -188,18 +241,18 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 						.OnTextChanged(this, &STextPropertyEditableTextBox::OnNamespaceChanged)
 						.OnTextCommitted(this, &STextPropertyEditableTextBox::OnNamespaceCommitted)
 						.SelectAllTextOnCommit(true)
-						.IsReadOnly(this, &STextPropertyEditableTextBox::IsReadOnly)
+						.IsReadOnly(this, &STextPropertyEditableTextBox::IsIdentityReadOnly)
 					]
 
 					// Key
-					+SGridPanel::Slot(0, 2)
+					+SGridPanel::Slot(0, 3)
 					.Padding(2)
 					.HAlign(HAlign_Right)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TextKeyLabel", "Key:"))
 					]
-					+SGridPanel::Slot(1, 2)
+					+SGridPanel::Slot(1, 3)
 					.Padding(2)
 					[
 						SAssignNew(KeyEditableTextBox, SEditableTextBox)
@@ -210,13 +263,24 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 						.OnTextChanged(this, &STextPropertyEditableTextBox::OnKeyChanged)
 						.OnTextCommitted(this, &STextPropertyEditableTextBox::OnKeyCommitted)
 						.SelectAllTextOnCommit(true)
-						.IsReadOnly(this, &STextPropertyEditableTextBox::IsReadOnly)
+						.IsReadOnly(this, &STextPropertyEditableTextBox::IsIdentityReadOnly)
 #else	// USE_STABLE_LOCALIZATION_KEYS
 						.IsReadOnly(true)
 #endif	// USE_STABLE_LOCALIZATION_KEYS
 					]
 				]
 			]
+		];
+
+	HorizontalBox->AddSlot()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SImage)
+			.Image(FCoreStyle::Get().GetBrush("Icons.Warning"))
+			.Visibility(this, &STextPropertyEditableTextBox::GetTextWarningImageVisibility)
+			.ToolTipText(LOCTEXT("TextNotLocalizedWarningToolTip", "This text is marked as 'culture invariant' and won't be gathered for localization.\nYou can change this by editing the advanced text settings."))
 		];
 
 	SetEnabled(TAttribute<bool>(this, &STextPropertyEditableTextBox::CanEdit));
@@ -265,6 +329,27 @@ bool STextPropertyEditableTextBox::CanEdit() const
 bool STextPropertyEditableTextBox::IsReadOnly() const
 {
 	return EditableTextProperty->IsReadOnly();
+}
+
+bool STextPropertyEditableTextBox::IsIdentityReadOnly() const
+{
+	if (EditableTextProperty->IsReadOnly())
+	{
+		return true;
+	}
+
+	// We can't edit the identity of culture invariant texts
+	const int32 NumTexts = EditableTextProperty->GetNumTexts();
+	if (NumTexts == 1)
+	{
+		const FText TextValue = EditableTextProperty->GetText(0);
+		if (TextValue.IsCultureInvariant())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 FText STextPropertyEditableTextBox::GetToolTipText() const
@@ -336,6 +421,13 @@ void STextPropertyEditableTextBox::OnTextCommitted(const FText& NewText, ETextCo
 			// Only apply the change if the new text is different
 			if (PropertyValue.ToString().Equals(NewText.ToString(), ESearchCase::CaseSensitive))
 			{
+				continue;
+			}
+
+			// Maintain culture invariance when editing the text
+			if (PropertyValue.IsCultureInvariant())
+			{
+				EditableTextProperty->SetText(TextIndex, FText::AsCultureInvariant(NewText.ToString()));
 				continue;
 			}
 
@@ -605,6 +697,79 @@ FText STextPropertyEditableTextBox::GetPackageValue() const
 }
 
 #endif // USE_STABLE_LOCALIZATION_KEYS
+
+ECheckBoxState STextPropertyEditableTextBox::GetLocalizableCheckState(bool bActiveState) const
+{
+	const int32 NumTexts = EditableTextProperty->GetNumTexts();
+	if (NumTexts == 1)
+	{
+		const FText PropertyValue = EditableTextProperty->GetText(0);
+
+		const bool bIsLocalized = !PropertyValue.IsCultureInvariant();
+		return bIsLocalized == bActiveState ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+
+	return ECheckBoxState::Undetermined;
+}
+
+void STextPropertyEditableTextBox::HandleLocalizableCheckStateChanged(ECheckBoxState InCheckboxState, bool bActiveState)
+{
+	const int32 NumTexts = EditableTextProperty->GetNumTexts();
+
+	if (bActiveState)
+	{
+		for (int32 TextIndex = 0; TextIndex < NumTexts; ++TextIndex)
+		{
+			const FText PropertyValue = EditableTextProperty->GetText(TextIndex);
+
+			// Assign a key to any currently culture invariant texts
+			if (PropertyValue.IsCultureInvariant())
+			{
+				// Get the stable namespace and key that we should use for this property
+				FString NewNamespace;
+				FString NewKey;
+				EditableTextProperty->GetStableTextId(
+					TextIndex,
+					IEditableTextProperty::ETextPropertyEditAction::EditedKey,
+					PropertyValue.ToString(),
+					FString(),
+					FString(),
+					NewNamespace,
+					NewKey
+					);
+
+				EditableTextProperty->SetText(TextIndex, FInternationalization::Get().ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*PropertyValue.ToString(), *NewNamespace, *NewKey));
+			}
+		}
+	}
+	else
+	{
+		for (int32 TextIndex = 0; TextIndex < NumTexts; ++TextIndex)
+		{
+			const FText PropertyValue = EditableTextProperty->GetText(TextIndex);
+
+			// Clear the identity from any non-culture invariant texts
+			if (!PropertyValue.IsCultureInvariant())
+			{
+				const FString* TextSource = FTextInspector::GetSourceString(PropertyValue);
+				EditableTextProperty->SetText(TextIndex, FText::AsCultureInvariant(PropertyValue.ToString()));
+			}
+		}
+	}
+}
+
+EVisibility STextPropertyEditableTextBox::GetTextWarningImageVisibility() const
+{
+	const int32 NumTexts = EditableTextProperty->GetNumTexts();
+	
+	if (NumTexts == 1)
+	{
+		const FText PropertyValue = EditableTextProperty->GetText(0);
+		return PropertyValue.IsCultureInvariant() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	return EVisibility::Collapsed;
+}
 
 bool STextPropertyEditableTextBox::IsValidIdentity(const FText& InIdentity, FText* OutReason, const FText* InErrorCtx) const
 {

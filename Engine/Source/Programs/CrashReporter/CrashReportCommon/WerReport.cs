@@ -102,6 +102,9 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary>Was the "crash" a non-fatal event?</summary>
 		public bool IsEnsure = false;
 
+		/// <summary>Is the build version string</summary>
+		public string BuildVersion = "";
+
 		/// <summary>Was the "crash" an assert or check that failed?</summary>
 		public bool IsAssert = false;
 

@@ -16,15 +16,9 @@
 #import "IOS/IOSPlatformString.h"
 #elif PLATFORM_ANDROID
 #include "Android/AndroidString.h"
-#elif PLATFORM_WINRT
-#include "WinRT/WinRTString.h"
 #elif PLATFORM_HTML5
 #include "HTML5/HTML5PlatformString.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformString.h"
 #endif
 
-//TEXT macro, may or may not have come from OS includes
-#if !defined(TEXT) && !UE_BUILD_DOCS
-#define TEXT(s) L##s
-#endif

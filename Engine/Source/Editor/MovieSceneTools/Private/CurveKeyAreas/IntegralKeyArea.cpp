@@ -29,7 +29,7 @@ TArray<FKeyHandle> FIntegralCurveKeyAreaBase::AddKeyUnique(float Time, EMovieSce
 	}
 	else
 	{
-		SetKeyValue(Time);
+		UpdateKeyWithExternalValue(Time);
 	}
 
 	return AddedKeyHandles;

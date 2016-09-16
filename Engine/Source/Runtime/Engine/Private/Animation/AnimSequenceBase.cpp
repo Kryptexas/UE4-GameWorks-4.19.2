@@ -4,13 +4,14 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimInstance.h"
-
+#include "MessageLog.h"
 
 DEFINE_LOG_CATEGORY(LogAnimMarkerSync);
 
-
+#define LOCTEXT_NAMESPACE "AnimSequenceBase"
 /////////////////////////////////////////////////////
 
 UAnimSequenceBase::UAnimSequenceBase(const FObjectInitializer& ObjectInitializer)
@@ -38,9 +39,6 @@ void UAnimSequenceBase::PostLoad()
 			}
 		}
 	}
-
-	// Ensure notifies are sorted.
-	SortNotifies();
 
 #if WITH_EDITOR
 	InitializeNotifyTrack();
@@ -286,9 +284,9 @@ void UAnimSequenceBase::TickByMarkerAsLeader(FMarkerTickRecord& Instance, FMarke
 
 void UAnimSequenceBase::RefreshCacheData()
 {
-#if WITH_EDITOR
 	SortNotifies();
 
+#if WITH_EDITOR
 	for (int32 TrackIndex=0; TrackIndex<AnimNotifyTracks.Num(); ++TrackIndex)
 	{
 		AnimNotifyTracks[TrackIndex].Notifies.Empty();
@@ -310,6 +308,43 @@ void UAnimSequenceBase::RefreshCacheData()
 		}
 	}
 
+	// this is a separate loop of checkin if they contains valid notifies
+	for (int32 NotifyIndex = 0; NotifyIndex < Notifies.Num(); ++NotifyIndex)
+	{
+		const FAnimNotifyEvent& Notify = Notifies[NotifyIndex];
+		// make sure if they can be placed in editor
+		if (Notify.Notify)
+		{
+			if (Notify.Notify->CanBePlaced(this) == false)
+			{
+				static FName NAME_LoadErrors("LoadErrors");
+				FMessageLog LoadErrors(NAME_LoadErrors);
+
+				TSharedRef<FTokenizedMessage> Message = LoadErrors.Error();
+				Message->AddToken(FTextToken::Create(LOCTEXT("InvalidAnimNotify1", "The Animation ")));
+				Message->AddToken(FAssetNameToken::Create(GetPathName(), FText::FromString(GetNameSafe(this))));
+				Message->AddToken(FTextToken::Create(LOCTEXT("InvalidAnimNotify2", " contains invalid notify ")));
+				Message->AddToken(FAssetNameToken::Create(Notify.Notify->GetPathName(), FText::FromString(GetNameSafe(Notify.Notify))));
+				LoadErrors.Open();
+			}
+		}
+
+		if (Notify.NotifyStateClass)
+		{
+			if (Notify.NotifyStateClass->CanBePlaced(this) == false)
+			{
+				static FName NAME_LoadErrors("LoadErrors");
+				FMessageLog LoadErrors(NAME_LoadErrors);
+
+				TSharedRef<FTokenizedMessage> Message = LoadErrors.Error();
+				Message->AddToken(FTextToken::Create(LOCTEXT("InvalidAnimNotify1", "The Animation ")));
+				Message->AddToken(FAssetNameToken::Create(GetPathName(), FText::FromString(GetNameSafe(this))));
+				Message->AddToken(FTextToken::Create(LOCTEXT("InvalidAnimNotify2", " contains invalid notify ")));
+				Message->AddToken(FAssetNameToken::Create(Notify.NotifyStateClass->GetPathName(), FText::FromString(GetNameSafe(Notify.NotifyStateClass))));
+				LoadErrors.Open();
+			}
+		}
+	}
 	// notification broadcast
 	OnNotifyChanged.Broadcast();
 #endif //WITH_EDITOR
@@ -447,6 +482,63 @@ uint8* UAnimSequenceBase::FindArrayProperty(const TCHAR* PropName, UArrayPropert
 	}
 	return NULL;
 }
+
+void UAnimSequenceBase::RefreshParentAssetData()
+{
+	Super::RefreshParentAssetData();
+
+	check(ParentAsset);
+
+	UAnimSequenceBase* ParentSeqBase = CastChecked<UAnimSequenceBase>(ParentAsset);
+
+	// should do deep copy because notify contains outer
+	Notifies = ParentSeqBase->Notifies;
+
+	// update notify
+	for (int32 NotifyIdx = 0; NotifyIdx < Notifies.Num(); ++NotifyIdx)
+	{
+		FAnimNotifyEvent& NotifyEvent = Notifies[NotifyIdx];
+		if (NotifyEvent.Notify)
+		{
+			class UAnimNotify* NewNotifyClass = DuplicateObject(NotifyEvent.Notify, this);
+			NotifyEvent.Notify = NewNotifyClass;
+		}
+		if (NotifyEvent.NotifyStateClass)
+		{
+			class UAnimNotifyState* NewNotifyStateClass = DuplicateObject(NotifyEvent.NotifyStateClass, this);
+			NotifyEvent.NotifyStateClass = (NewNotifyStateClass);
+		}
+
+		NotifyEvent.Link(this, NotifyEvent.GetTime(), NotifyEvent.GetSlotIndex());
+		NotifyEvent.EndLink.Link(this, NotifyEvent.GetTime() + NotifyEvent.Duration, NotifyEvent.GetSlotIndex());
+	}
+
+	SequenceLength = ParentSeqBase->SequenceLength;
+	RateScale = ParentSeqBase->RateScale;
+	RawCurveData = ParentSeqBase->RawCurveData;
+
+#if WITH_EDITORONLY_DATA
+	// if you change Notifies array, this will need to be rebuilt
+	AnimNotifyTracks = ParentSeqBase->AnimNotifyTracks;
+
+	// fix up notify links, brute force and ugly code
+	for (FAnimNotifyTrack& Track : AnimNotifyTracks)
+	{
+		for (FAnimNotifyEvent*& Notify : Track.Notifies)
+		{
+			for (int32 ParentNotifyIdx = 0; ParentNotifyIdx < ParentSeqBase->Notifies.Num(); ++ParentNotifyIdx)
+			{
+				if (Notify == &ParentSeqBase->Notifies[ParentNotifyIdx])
+				{
+					Notify = &Notifies[ParentNotifyIdx];
+					break;
+				}
+			}
+		}
+	}
+#endif // WITH_EDITORONLY_DATA
+
+}
 #endif	//WITH_EDITOR
 
 
@@ -481,3 +573,4 @@ void UAnimSequenceBase::HandleAssetPlayerTickedInternal(FAnimAssetTickContext &C
 		NotifyQueue.AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
 	}
 }
+#undef LOCTEXT_NAMESPACE 

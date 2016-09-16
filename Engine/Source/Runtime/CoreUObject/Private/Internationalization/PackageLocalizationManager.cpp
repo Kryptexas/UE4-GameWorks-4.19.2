@@ -48,7 +48,31 @@ void FPackageLocalizationManager::PerformLazyInitialization()
 		{
 			UE_LOG(LogPackageLocalizationManager, Warning, TEXT("InitializeFromLazyCallback was bound to a callback that didn't initialize the active cache."));
 		}
+
+		if (!PackageResolutionDelegate.IsBound())
+		{
+			PackageResolutionDelegate.BindRaw(this, &FPackageLocalizationManager::LinkerResolutionCallback);
+			FCoreDelegates::PackageNameResolvers.Add(PackageResolutionDelegate);
+		}
 	}
+}
+
+bool FPackageLocalizationManager::LinkerResolutionCallback(const FString& InRequestedPackage, FString& OutResolvedPackage)
+{
+	// The editor must not redirect packages for localization. We also shouldn't redirect script or in-memory packages.
+	if (GIsEditor || FPackageName::IsScriptPackage(InRequestedPackage))
+	{
+		return false;
+	}
+
+	const FName LocalizedPackageName = FPackageLocalizationManager::Get().FindLocalizedPackageName(*InRequestedPackage);
+
+	if (!LocalizedPackageName.IsNone())
+	{
+		OutResolvedPackage = LocalizedPackageName.ToString();
+	}
+
+	return !LocalizedPackageName.IsNone();
 }
 
 void FPackageLocalizationManager::InitializeFromLazyCallback(FLazyInitFunc InLazyInitFunc)

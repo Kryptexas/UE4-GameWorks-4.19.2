@@ -198,7 +198,7 @@ void FAnimNode_RandomPlayer::Evaluate(FPoseContext& Output)
 					CurrentSequence->GetAnimationPose(Poses[0], Curves[0], FAnimExtractContext(CurrentData.InternalTimeAccumulator, AnimProxy->ShouldExtractRootMotion()));
 					NextSequence->GetAnimationPose(Poses[1], Curves[1], FAnimExtractContext(NextData.InternalTimeAccumulator, AnimProxy->ShouldExtractRootMotion()));
 
-					FAnimationRuntime::BlendPosesTogether(TFixedSizeArrayView<FCompactPose>(Poses, 2), TFixedSizeArrayView<FBlendedCurve>(Curves, 2), TFixedSizeArrayView<float>(Weights, 2), Output.Pose, Output.Curve);
+					FAnimationRuntime::BlendPosesTogether(Poses, Curves, Weights, Output.Pose, Output.Curve);
 				}
 				else
 				{

@@ -30,6 +30,11 @@ namespace UnrealBuildTool
 		public readonly FileReference ProjectFile;
 
 		/// <summary>
+		/// The current overall target configuration being worked on
+		/// </summary>
+		public UnrealTargetConfiguration	TargetConfiguration;
+
+		/// <summary>
 		/// Constructor.
 		/// </summary>
 		/// <param name="InPlatform">The platform that this context is for</param>
@@ -172,10 +177,12 @@ namespace UnrealBuildTool
 		/// Setup the project environment for building
 		/// </summary>
 		/// <param name="InBuildTarget"> The target being built</param>
-		public virtual void SetUpProjectEnvironment()
+		public virtual void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
 		{
 			if (!bInitializedProject)
 			{
+				TargetConfiguration = Configuration;
+				
 				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
 				bool bValue = UEBuildConfiguration.bCompileAPEX;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
@@ -262,6 +269,13 @@ namespace UnrealBuildTool
 				}
 
 				bInitializedProject = true;
+			}
+			else
+			{
+				if(TargetConfiguration != Configuration)
+				{
+					throw new BuildException("SetUpProjectEnvironment: Can not setup a project for a different target configuration");
+				}
 			}
 		}
 
@@ -494,7 +508,6 @@ namespace UnrealBuildTool
 					return ":";
 				case UnrealTargetPlatform.Win32:
 				case UnrealTargetPlatform.Win64:
-				case UnrealTargetPlatform.UWP:
 					return ";";
 				default:
 					Log.TraceWarning("PATH var delimiter unknown for platform " + BuildHostPlatform.Current.Platform.ToString() + " using ';'");
@@ -1009,7 +1022,11 @@ namespace UnrealBuildTool
 			{
 				String InstalledSDKVersionString = GetRequiredSDKString();
 				String PlatformSDKRoot = GetPathToPlatformAutoSDKs();
-				if (Directory.Exists(PlatformSDKRoot))
+                if (!Directory.Exists(PlatformSDKRoot))
+                {
+                    Directory.CreateDirectory(PlatformSDKRoot);
+                }
+
 				{
 					string VersionFilename = Path.Combine(PlatformSDKRoot, CurrentlyInstalledSDKStringManifest);
 					if (File.Exists(VersionFilename))
@@ -1612,9 +1629,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Attempt to register a build platform, checking whether it is a valid platform in installed builds
 		/// </summary>
-		public void TryRegisterBuildPlatforms()
+		public void TryRegisterBuildPlatforms(bool bValidatingPlatforms)
 		{
-			if (InstalledPlatformInfo.Current.IsValidPlatform(TargetPlatform))
+			// We need all platforms to be registered when we run -validateplatform command to check SDK status of each
+			if (bValidatingPlatforms || InstalledPlatformInfo.Current.IsValidPlatform(TargetPlatform))
 			{
 				RegisterBuildPlatforms();
 			}

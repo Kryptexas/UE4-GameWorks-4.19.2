@@ -113,7 +113,7 @@ public:
 		}
 
 		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
-		check (Cast<UK2Node_Event>(Result) == nullptr);
+		//check (Cast<UK2Node_Event>(Result) == nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
 
@@ -132,7 +132,7 @@ public:
 		}
 
 		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
-		check (Cast<UK2Node_Event>(Result) != nullptr);
+		//check (Cast<UK2Node_Event>(Result) != nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
 		// Track all expansion step generated events.
@@ -274,7 +274,7 @@ protected:
 	void CreatePropertiesFromList(UStruct* Scope, UField**& PropertyStorageLocation, TIndirectArray<FBPTerminal>& Terms, uint64 PropertyFlags, bool bPropertiesAreLocal, bool bPropertiesAreParameters = false);
 
 	/** Creates the properties on a function that store the function parameters, results, and local variables */
-	void CreateLocalVariablesForFunction(FKismetFunctionContext& Context);
+	void CreateLocalVariablesForFunction(FKismetFunctionContext& Context, UFunction* ParameterSignature);
 
 	/** Creates user defined local variables for function */
 	void CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& PropertyStorageLocation);

@@ -69,7 +69,7 @@ public class HarfBuzz : ModuleRules
 			PublicAdditionalLibraries.Add(HarfBuzzRootPath + "HTML5/libharfbuzz" + OpimizationSuffix + ".a");
         }
 
-		else if (Target.Platform == UnrealTargetPlatform.Mac)
+		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			Definitions.Add("WITH_HARFBUZZ=1");
 

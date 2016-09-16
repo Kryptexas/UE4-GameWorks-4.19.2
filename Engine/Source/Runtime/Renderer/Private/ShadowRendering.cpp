@@ -20,8 +20,9 @@ static TAutoConsoleVariable<float> CVarCSMShadowDepthBias(
 
 static TAutoConsoleVariable<float> CVarPerObjectDirectionalShadowDepthBias(
 	TEXT("r.Shadow.PerObjectDirectionalDepthBias"),
-	4.0f,
-	TEXT("Constant depth bias used by per-object shadows from directional lights"),
+	20.0f,
+	TEXT("Constant depth bias used by per-object shadows from directional lights\n")
+	TEXT("Lower values give better self-shadowing, but increase self-shadowing artifacts"),
 	ECVF_RenderThreadSafe);
 
 
@@ -67,6 +68,8 @@ static TAutoConsoleVariable<int32> CVarEnableModulatedSelfShadow(
 	TEXT("Allows modulated shadows to affect the shadow caster. (mobile only)"),
 	ECVF_RenderThreadSafe);
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("ShadowProjection"), Stat_GPU_ShadowProjection, STATGROUP_GPU);
+
 // 0:off, 1:low, 2:med, 3:high, 4:very high, 5:max
 uint32 GetShadowQuality()
 {
@@ -95,6 +98,23 @@ static TAutoConsoleVariable<int32> CVarSupportPointLightWholeSceneShadows(
 	1,
 	TEXT("Enables shadowcasting point lights."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+float GetLightFadeFactor(const FSceneView& View, const FLightSceneProxy* Proxy)
+{
+	// Distance fade
+	FSphere Bounds = Proxy->GetBoundingSphere();
+
+	const float DistanceSquared = (Bounds.Center - View.ViewMatrices.ViewOrigin).SizeSquared();
+	extern float GMinScreenRadiusForLights;
+	float SizeFade = FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared;
+	SizeFade = FMath::Clamp(6.0f - 6.0f * SizeFade, 0.0f, 1.0f);
+
+	float MaxDist = Proxy->GetMaxDrawDistance();
+	float Range = Proxy->GetFadeRange();
+	float DistanceFade = MaxDist ? (MaxDist - FMath::Sqrt(DistanceSquared)) / Range : 1.0f;
+	DistanceFade = FMath::Clamp(DistanceFade, 0.0f, 1.0f);
+	return SizeFade * DistanceFade;
+}
 
 /** The stencil sphere vertex buffer. */
 TGlobalResource<StencilingGeometry::TStencilSphereVertexBuffer<18, 12, FVector4> > StencilingGeometry::GStencilSphereVertexBuffer;
@@ -471,7 +491,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		const FPlane Front(FrontTopRight, FrontTopLeft, FrontBottomLeft);
 		const float FrontDistance = Front.PlaneDot(View->ViewMatrices.ViewOrigin);
 
-		const FPlane Right(BackTopRight, FrontTopRight, FrontBottomRight);
+        const FPlane Right(BackBottomRight, BackTopRight, FrontTopRight);
 		const float RightDistance = Right.PlaneDot(View->ViewMatrices.ViewOrigin);
 
 		const FPlane Back(BackTopLeft, BackTopRight, BackBottomRight);
@@ -511,10 +531,10 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		SCOPED_DRAW_EVENTF(RHICmdList, EventMaskSubjects, TEXT("Stencil Mask Subjects"));
 
 		// If instanced stereo is enabled, we need to render each view of the stereo pair using the instanced stereo transform to avoid bias issues.
-		const bool bIsInstancedStereoEmulated = View->bIsInstancedStereoEnabled && View->StereoPass != eSSP_FULL;
+		const bool bIsInstancedStereoEmulated = View->bIsInstancedStereoEnabled && !View->bIsMultiViewEnabled && View->StereoPass != eSSP_FULL;
 		if (bIsInstancedStereoEmulated)
 		{
-			RHICmdList.SetViewport(0, 0, 0, View->Family->FamilySizeX, View->ViewRect.Max.Y, 1);
+			RHICmdList.SetViewport(0, 0, 0, View->Family->InstancedStereoWidth, View->ViewRect.Max.Y, 1);
 		}
 
 		// Set stencil to one.
@@ -564,7 +584,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 								*View,
 								FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
 								StaticMesh,
-								StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
+								StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num() )- 1),
 								true,
 								DrawRenderState,
 								ReceiverPrimitiveSceneInfo->Proxy,
@@ -589,7 +609,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 					*View,
 					FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
 					StaticMesh,
-					StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
+					StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num() )- 1),
 					true,
 					DrawRenderState,
 					StaticMesh.PrimitiveSceneInfo->Proxy,
@@ -1278,6 +1298,7 @@ bool FDeferredShadingSceneRenderer::RenderShadowProjections(FRHICommandListImmed
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
 	SCOPED_DRAW_EVENT(RHICmdList, ShadowProjectionOnOpaque);
+	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ShadowProjection);
 
 	FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 
@@ -1337,8 +1358,11 @@ void FMobileSceneRenderer::RenderModulatedShadowProjections(FRHICommandListImmed
 	{
 		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 		FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
-		TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
-		SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
-		FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, false, true);
+		if(LightSceneInfo->ShouldRenderLightViewIndependent() && LightSceneInfo->Proxy && LightSceneInfo->Proxy->CastsModulatedShadows())
+		{
+			TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
+			SCOPE_CYCLE_COUNTER(STAT_ProjectedShadowDrawTime);
+			FSceneRenderer::RenderShadowProjections(RHICmdList, LightSceneInfo, false, true);
+		}
 	}
 }

@@ -2,7 +2,7 @@
 
 #pragma once
 
-
+#define DEBUG_TAB_MANAGEMENT 0
 
 /**
  * A node in the Docking/Tabbing hierarchy.

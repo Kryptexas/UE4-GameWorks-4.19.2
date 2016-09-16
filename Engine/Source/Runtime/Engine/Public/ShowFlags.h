@@ -196,6 +196,32 @@ struct FEngineShowFlags
 		SetSkinCache(true);
 	}
 
+	void EnableAdvancedFeatures()
+	{
+		SetLensFlares(true);
+		SetEyeAdaptation(true);
+		SetColorGrading(true);
+		SetCameraImperfections(true);
+		SetDepthOfField(true);
+		SetVignette(true);
+		SetGrain(true);
+		SetSeparateTranslucency(true);
+		SetScreenSpaceReflections(true);
+		SetTemporalAA(true);
+
+		// might cause reallocation if we render rarely to it - for now off
+		SetAmbientOcclusion(true);
+
+		// Requires resources in the FScene, which get reallocated for every temporary scene if enabled
+		SetIndirectLightingCache(true);
+
+		SetLightShafts(true);
+		SetPostProcessMaterial(true);
+		SetDistanceFieldAO(true);
+		SetDistanceFieldGI(true);
+	}
+
+
 	// ---------------------------------------------------------
 	// The following methods are there for serialization, localization and in general to iterate and manipulate flags.
 	// ---------------------------------------------------------

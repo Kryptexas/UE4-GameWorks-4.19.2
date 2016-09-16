@@ -325,7 +325,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 	TSharedRef<FCheckIn, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCheckIn>(InCommand.Operation);
 	{
 		// make a temp file to place our message in
-		FScopedTempFile DescriptionFile(Operation->GetDescription());
+		FSVNScopedTempFile DescriptionFile(Operation->GetDescription());
 		if(DescriptionFile.GetFilename().Len() > 0)
 		{
 			TArray<FString> Parameters;
@@ -346,7 +346,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 				Targets += *It + LINE_TERMINATOR;
 			}
 
-			FScopedTempFile TargetsFile(Targets);
+			FSVNScopedTempFile TargetsFile(Targets);
 			if(TargetsFile.GetFilename().Len() > 0)
 			{
 				// we first need to release locks if we have any copy (branch) operations in our changes

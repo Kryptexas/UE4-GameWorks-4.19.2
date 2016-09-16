@@ -43,7 +43,7 @@ public:
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
 		// return it here. Ex.
-		return TEXT("F0CAEDBE5C164D9A8DC1079DC4954CFB");
+		return TEXT("D7E87A0797034F40A71FE28071BAAE3E");
 	}
 
 	virtual FString GetPluginSpecificCacheKeySuffix() const override;

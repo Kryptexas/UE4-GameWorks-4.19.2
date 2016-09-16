@@ -2454,7 +2454,7 @@ void UViewportWorldInteraction::PollInputIfNeeded()
 
 void UViewportWorldInteraction::OnActorSelectionChanged( UObject* ChangedObject )
 {
-	if ( EditorViewportClient.IsSet() )
+	if ( EditorViewportClient != nullptr )
 	{
 		const bool bNewObjectsSelected = true;
 		const bool bAllHandlesVisible = true;
@@ -2850,7 +2850,7 @@ void UViewportWorldInteraction::DestroyActors()
 
 void UViewportWorldInteraction::DestroyTransientActor( AActor* Actor ) const
 {
-	if (Actor != nullptr && World != nullptr)
+	if ( Actor != nullptr )
 	{
 		const bool bWasWorldPackageDirty = World->GetOutermost()->IsDirty();
 

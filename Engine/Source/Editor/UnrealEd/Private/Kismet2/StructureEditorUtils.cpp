@@ -55,6 +55,26 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 	return Struct;
 }
 
+namespace 
+{
+	static bool IsObjPropertyValid(const UProperty* Property)
+	{
+		if (const UInterfaceProperty* InterfaceProperty = Cast<const UInterfaceProperty>(Property))
+		{
+			return InterfaceProperty->InterfaceClass != nullptr;
+		}
+		else if (const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property))
+		{
+			return ArrayProperty->Inner && IsObjPropertyValid(ArrayProperty->Inner);
+		}
+		else if (const UObjectProperty* ObjectProperty = Cast<const UObjectProperty>(Property))
+		{
+			return ObjectProperty->PropertyClass != nullptr;
+		}
+		return true;
+	}
+}
+
 FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(const UScriptStruct* Struct, const UStruct* RecursionParent, FString* OutMsg)
 {
 	check(Struct);
@@ -135,6 +155,17 @@ FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(c
 					}
 					return Result;
 				}
+			}
+
+			// The structure is loaded (from .uasset) without recompilation. All properties should be verified.
+			if (!IsObjPropertyValid(P))
+			{
+				if (OutMsg)
+				{
+					*OutMsg = FString::Printf(*LOCTEXT("StructureUnknownObjectProperty", "Invalid object property. Structure '%s' Property: '%s'").ToString(),
+						*Struct->GetFullName(), *P->GetName());
+				}
+				return EStructureError::NotCompiled;
 			}
 		}
 	}
@@ -776,15 +807,20 @@ bool FStructureEditorUtils::CanEnable3dWidget(const UUserDefinedStruct* Struct, 
 
 bool FStructureEditorUtils::Change3dWidgetEnabled(UUserDefinedStruct* Struct, FGuid VarGuid, bool bIsEnabled)
 {
-	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
-	const auto PropertyStruct = VarDesc ? Cast<const UStruct>(VarDesc->SubCategoryObject.Get()) : NULL;
+	FStructVariableDescription* VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	if (!VarDesc)
+	{
+		return false;
+	}
+
+	const UStruct* PropertyStruct = Cast<const UStruct>(VarDesc->SubCategoryObject.Get());
 	if (FEdMode::CanCreateWidgetForStructure(PropertyStruct) && (VarDesc->bEnable3dWidget != bIsEnabled))
 	{
 		const FScopedTransaction Transaction(LOCTEXT("Change3dWidgetEnabled", "Change 3d Widget Enabled"));
 		ModifyStructData(Struct);
 
 		VarDesc->bEnable3dWidget = bIsEnabled;
-		auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
+		UProperty* Property = FindField<UProperty>(Struct, VarDesc->VarName);
 		if (Property)
 		{
 			if (VarDesc->bEnable3dWidget)

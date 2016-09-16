@@ -1144,6 +1144,7 @@ public:
 	/** @return the substring from Start position for Count characters. */
 	FORCEINLINE FString Mid( int32 Start, int32 Count=MAX_int32 ) const
 	{
+		check(Count >= 0);
 		uint32 End = Start+Count;
 		Start    = FMath::Clamp( (uint32)Start, (uint32)0,     (uint32)Len() );
 		End      = FMath::Clamp( (uint32)End,   (uint32)Start, (uint32)Len() );
@@ -1509,7 +1510,7 @@ public:
 	/**
 	 * Returns a copy of this string, with the characters in reverse order
 	 */
-	FORCEINLINE FString Reverse() const;
+	FString Reverse() const;
 
 	/**
 	 * Reverses the order of characters in this string

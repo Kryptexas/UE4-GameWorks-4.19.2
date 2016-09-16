@@ -10,6 +10,8 @@
 // FUMGDragDropOp
 
 FUMGDragDropOp::FUMGDragDropOp()
+	: DragOperation(nullptr)
+	, GameViewport(nullptr)
 {
 	StartTime = FSlateApplicationBase::Get().GetCurrentTime();
 }

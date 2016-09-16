@@ -426,8 +426,9 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 				FString ShotName = CinematicShotSection->GetShotDisplayName().ToString();
 				FString ShotPath = CinematicShotSection->GetSequence()->GetMovieScene()->GetOuter()->GetPathName();
 
-				float SourceInTime = CinematicShotSection->StartOffset;
-				float SourceOutTime = CinematicShotSection->StartOffset + CinematicShotSection->GetTimeSize();
+				//@todo until shot handles are rendered out, the source in time will always be 0
+				float SourceInTime = 0.f; //CinematicShotSection->StartOffset;
+				float SourceOutTime = SourceInTime + CinematicShotSection->GetTimeSize();
 				float EditInTime = CinematicShotSection->GetStartTime();
 				float EditOutTime = CinematicShotSection->GetEndTime();
 

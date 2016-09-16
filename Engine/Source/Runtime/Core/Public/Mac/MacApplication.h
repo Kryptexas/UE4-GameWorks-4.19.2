@@ -165,6 +165,8 @@ public:
 
 	virtual bool IsUsingTrackpad() const override { return bUsingTrackpad; }
 
+	virtual bool IsGamepadAttached() const override;
+
 	virtual FPlatformRect GetWorkArea(const FPlatformRect& CurrentWindow) const override;
 
 	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const override { return EWindowTitleAlignment::Center; }

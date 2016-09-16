@@ -804,7 +804,12 @@ public:
 	/** Initialization constructor. */
 	FSkyLightSceneProxy(const class USkyLightComponent* InLightComponent);
 
-	void Initialize(float InBlendFraction, const FSHVectorRGB3* InIrradianceEnvironmentMap, const FSHVectorRGB3* BlendDestinationIrradianceEnvironmentMap);
+	void Initialize(
+		float InBlendFraction, 
+		const FSHVectorRGB3* InIrradianceEnvironmentMap, 
+		const FSHVectorRGB3* BlendDestinationIrradianceEnvironmentMap,
+		const float* InAverageBrightness,
+		const float* BlendDestinationAverageBrightness);
 
 	const USkyLightComponent* LightComponent;
 	FTexture* ProcessedTexture;
@@ -817,6 +822,7 @@ public:
 	bool bHasStaticLighting;
 	FLinearColor LightColor;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
+	float AverageBrightness;
 	float IndirectLightingIntensity;
 	float OcclusionMaxDistance;
 	float Contrast;
@@ -982,6 +988,7 @@ public:
 	inline FGuid GetLightGuid() const { return LightGuid; }
 	inline float GetShadowSharpen() const { return ShadowSharpen; }
 	inline float GetContactShadowLength() const { return ContactShadowLength; }
+	inline float GetMinRoughness() const { return MinRoughness; }
 	inline FVector GetLightFunctionScale() const { return LightFunctionScale; }
 	inline float GetLightFunctionFadeDistance() const { return LightFunctionFadeDistance; }
 	inline float GetLightFunctionDisabledBrightness() const { return LightFunctionDisabledBrightness; }
@@ -1022,6 +1029,9 @@ public:
 	 * @param InOffset - The delta to shift by
 	 */
 	virtual void ApplyWorldOffset(FVector InOffset);
+
+	virtual float GetMaxDrawDistance() const { return 0.0f; }
+	virtual float GetFadeRange() const { return 0.0f; }
 
 protected:
 
@@ -1243,6 +1253,8 @@ public:
 	/** Used in Feature level SM4 */
 	FTexture* SM4FullHDRCubemap;
 
+	float AverageBrightness;
+
 	/** Used in Feature level ES2 */
 	FTexture* EncodedHDRCubemap;
 
@@ -1265,6 +1277,8 @@ public:
 	FVector4 ReflectionXAxisAndYScale;
 
 	FReflectionCaptureProxy(const class UReflectionCaptureComponent* InComponent);
+
+	void InitializeAverageBrightness(const float& AverageBrightness);
 
 	void SetTransform(const FMatrix& InTransform);
 };
@@ -1872,6 +1886,7 @@ extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI,const FVe
 
 extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI, const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
 	float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority);
+
 //Draws a cylinder along the axis from Start to End
 extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI, const FVector& Start, const FVector& End, float Radius, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority);
 
@@ -1889,6 +1904,7 @@ extern ENGINE_API void GetCylinderMesh(const FMatrix& CylToWorld, const FVector&
 									float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
 //Draws a cylinder along the axis from Start to End
 extern ENGINE_API void GetCylinderMesh(const FVector& Start, const FVector& End, float Radius, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
+
 
 extern ENGINE_API void GetConeMesh(const FMatrix& LocalToWorld, float AngleWidth, float AngleHeight, int32 NumSides,
 									const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);

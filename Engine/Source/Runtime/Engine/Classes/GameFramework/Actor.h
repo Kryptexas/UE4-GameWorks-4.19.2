@@ -11,12 +11,13 @@
 #include "TimerManager.h"
 #include "Engine/Level.h"
 
+#include "Actor.generated.h"
+
 struct FHitResult;
 class AActor;
 class FTimerManager; 
 class UNetDriver;
-
-#include "Actor.generated.h"
+struct FNetViewer;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
  
@@ -296,6 +297,12 @@ public:
 	/** Dormancy setting for actor to take itself off of the replication list without being destroyed on clients. */
 	TEnumAsByte<enum ENetDormancy> NetDormancy;
 
+	/** Gives the actor a chance to pause replication to a player represented by the passed in actor - only called on server */
+	virtual bool IsReplicationPausedForConnection(const FNetViewer& ConnectionOwnerNetViewer);
+
+	/** Called on the client when the replication paused value is changed */
+	virtual void OnReplicationPausedChanged(bool bIsReplicationPaused);
+
 	/** Automatically registers this actor to receive input from a player. */
 	UPROPERTY(EditAnywhere, Category=Input)
 	TEnumAsByte<EAutoReceiveInput::Type> AutoReceiveInput;
@@ -397,6 +404,10 @@ public:
 	/** If true, this actor will be replicated to network replays (default is true) */
 	UPROPERTY()
 	uint8 bRelevantForNetworkReplays:1;
+	
+    /** If true, this actor will generate overlap events when spawned as part of level streaming. You might enable this is in the case where a streaming level loads around an actor and you want overlaps to trigger. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Actor)
+	uint8 bGenerateOverlapEventsDuringLevelStreaming:1;
 
 	/** Controls how to handle spawning this actor in a situation where it's colliding with something else. "Default" means AlwaysSpawn here. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Actor)
@@ -1303,6 +1314,9 @@ public:
 
 	/** Event when this actor takes POINT damage */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(DisplayName = "PointDamage"), Category="Game|Damage")
+	void ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser, const FHitResult& HitInfo);
+
+	DEPRECATED(4.14, "Call the updated version of ReceivePointDamage that takes a FHitResult.")
 	void ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser);
 
 	/** Event called every frame */
@@ -2176,6 +2190,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Actor")
 	UChildActorComponent* GetParentComponent() const;
 
+	UFUNCTION(BlueprintCallable, Category="Actor")
+	AActor* GetParentActor() const;
+
 	/** Ensure that all the components in the Components array are registered */
 	virtual void RegisterAllComponents();
 
@@ -2186,7 +2203,7 @@ public:
 	bool HasValidRootComponent();
 
 	/** Unregister all currently registered components */
-	virtual void UnregisterAllComponents();
+	virtual void UnregisterAllComponents(bool bForReregister = false);
 
 	/** Called after all currently registered components are cleared */
 	virtual void PostUnregisterAllComponents() {}
@@ -2639,12 +2656,12 @@ public:
 	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const;
 	
 	/** Script exposed version of FindComponentByClass */
-	UFUNCTION()
-	UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass);
+	UFUNCTION(BlueprintCallable, Category = "Actor", meta = (ComponentClass = "ActorComponent"), meta = (DeterminesOutputType = "ComponentClass"))
+	UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass) const;
 
 	/* Gets all the components that inherit from the given class.
-		Currently returns an array of UActorComponent which must be cast to the correct type. */
-	UFUNCTION(BlueprintCallable, Category = "Actor", meta = (ComponentClass = "ActorComponent"), meta=(DeterminesOutputType="ComponentClass"))
+	Currently returns an array of UActorComponent which must be cast to the correct type. */
+	UFUNCTION(BlueprintCallable, Category = "Actor", meta = (ComponentClass = "ActorComponent"), meta = (DeterminesOutputType = "ComponentClass"))
 	TArray<UActorComponent*> GetComponentsByClass(TSubclassOf<UActorComponent> ComponentClass) const;
 
 	/* Gets all the components that inherit from the given class with a given tag. */
@@ -3011,6 +3028,28 @@ FORCEINLINE_DEBUGGABLE bool AActor::IsNetMode(ENetMode Mode) const
 FORCEINLINE_DEBUGGABLE void AActor::SetNetUpdateTime(float NewUpdateTime)
 {
 	NetUpdateTime = NewUpdateTime;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// UActorComponent inlines
+
+FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
+{
+#if WITH_EDITOR
+	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
+	if (bCanUseCachedOwner)
+	{
+		checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
+		return OwnerPrivate;
+	}
+	else
+	{
+		return GetTypedOuter<AActor>();
+	}
+#else
+	checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
+	return OwnerPrivate;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

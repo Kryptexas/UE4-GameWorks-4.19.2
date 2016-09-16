@@ -15,6 +15,8 @@
 #include "SpeedTreeWind.h"
 #include "DistanceFieldAtlas.h"
 #include "UObject/DevObjectVersion.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"
@@ -22,11 +24,11 @@
 #include "DerivedDataCacheInterface.h"
 #include "UObjectAnnotation.h"
 #endif // #if WITH_EDITOR
+
 #include "Engine/StaticMeshSocket.h"
 #include "EditorFramework/AssetImportData.h"
 #include "AI/Navigation/NavCollision.h"
 #include "CookStats.h"
-
 #include "ReleaseObjectVersion.h"
 
 DEFINE_LOG_CATEGORY(LogStaticMesh);	
@@ -283,11 +285,15 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("FStaticMeshLODResources::Serialize"), STAT_StaticMeshLODResources_Serialize, STATGROUP_LoadTime );
 
+	// See if the mesh wants to keep resources CPU accessible
+	UStaticMesh* OwnerStaticMesh = Cast<UStaticMesh>(Owner);
+	bool bMeshCPUAcces = OwnerStaticMesh ? OwnerStaticMesh->bAllowCPUAccess : false;
+
 	// Note: this is all derived data, native versioning is not needed, but be sure to bump STATICMESH_DERIVEDDATA_VER when modifying!
 
 	// On cooked platforms we never need the resource data.
 	// TODO: Not needed in uncooked games either after PostLoad!
-	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData();
+	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData() || bMeshCPUAcces;
 
 	bHasAdjacencyInfo = false;
 	bHasDepthOnlyIndices = false;
@@ -825,8 +831,8 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			}
 			else
 			{
-				const float ViewDistance = CalculateViewDistance(LOD.MaxDeviation, Owner->AutoLODPixelError);
-				ScreenSize[LODIndex] = 2.0f * Bounds.SphereRadius / ViewDistance;
+				const float ViewDistance = CalculateViewDistance(LOD.MaxDeviation, Owner->SourceModels[LODIndex].ReductionSettings.PixelError);
+				ScreenSize[LODIndex] = PI * FMath::Square( 0.5f * Bounds.SphereRadius / ( Bounds.SphereRadius + ViewDistance ) );
 			}
 		}
 		else if (Owner->SourceModels.IsValidIndex(LODIndex))
@@ -933,6 +939,11 @@ void FStaticMeshLODSettings::ReadEntry(FStaticMeshLODGroup& Group, FString Entry
 		Settings.MaxDeviation = FMath::Clamp<float>(Settings.MaxDeviation, 0.0f, 1000.0f);
 	}
 
+	if (FParse::Value(*Entry, TEXT("PixelError="), Settings.PixelError))
+	{
+		Settings.PixelError = FMath::Clamp<float>(Settings.PixelError, 1.0f, 1000.0f);
+	}
+
 	if (FParse::Value(*Entry, TEXT("WeldingThreshold="), Settings.WeldingThreshold))
 	{
 		Settings.WeldingThreshold = FMath::Clamp<float>(Settings.WeldingThreshold, 0.0f, 10.0f);
@@ -975,6 +986,11 @@ void FStaticMeshLODSettings::ReadEntry(FStaticMeshLODGroup& Group, FString Entry
 	if (FParse::Value(*Entry, TEXT("MaxDeviationBias="), Bias.MaxDeviation))
 	{
 		Bias.MaxDeviation = FMath::Clamp<float>(Bias.MaxDeviation, -1000.0f, 1000.0f);
+	}
+
+	if (FParse::Value(*Entry, TEXT("PixelErrorBias="), Bias.PixelError))
+	{
+		Bias.PixelError = FMath::Clamp<float>(Bias.PixelError, 1.0f, 1000.0f);
 	}
 
 	if (FParse::Value(*Entry, TEXT("WeldingThresholdBias="), Bias.WeldingThreshold))
@@ -1031,6 +1047,7 @@ FMeshReductionSettings FStaticMeshLODGroup::GetSettings(const FMeshReductionSett
 
 	// Bias the remaining settings.
 	FinalSettings.MaxDeviation = FMath::Max(InSettings.MaxDeviation + SettingsBias.MaxDeviation, 0.0f);
+	FinalSettings.PixelError = FMath::Max(InSettings.PixelError + SettingsBias.PixelError, 1.0f);
 	FinalSettings.WeldingThreshold = FMath::Max(InSettings.WeldingThreshold + SettingsBias.WeldingThreshold, 0.0f);
 	FinalSettings.HardAngleThreshold = FMath::Clamp(InSettings.HardAngleThreshold + SettingsBias.HardAngleThreshold, 0.0f, 180.0f);
 	FinalSettings.SilhouetteImportance = (EMeshFeatureImportance::Type)FMath::Clamp<int32>(InSettings.SilhouetteImportance + SettingsBias.SilhouetteImportance, EMeshFeatureImportance::Off, EMeshFeatureImportance::Highest);
@@ -1061,6 +1078,7 @@ FArchive& operator<<(FArchive& Ar, FMeshReductionSettings& ReductionSettings)
 {
 	Ar << ReductionSettings.PercentTriangles;
 	Ar << ReductionSettings.MaxDeviation;
+	Ar << ReductionSettings.PixelError;
 	Ar << ReductionSettings.WeldingThreshold;
 	Ar << ReductionSettings.HardAngleThreshold;
 	Ar << ReductionSettings.SilhouetteImportance;
@@ -1100,12 +1118,10 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	
 	Ar << BuildSettings.DistanceFieldResolutionScale;
 	Ar << BuildSettings.bGenerateDistanceFieldAsIfTwoSided;
+	Ar << BuildSettings.DistanceFieldBias;
 
-	if (BuildSettings.DistanceFieldReplacementMesh)
-	{
-		FString ReplacementMeshName = BuildSettings.DistanceFieldReplacementMesh->GetPathName();
-		Ar << ReplacementMeshName;
-	}
+	FString ReplacementMeshName = BuildSettings.DistanceFieldReplacementMesh->GetPathName();
+	Ar << ReplacementMeshName;
 
 	return Ar;
 }
@@ -1291,7 +1307,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			BuildSettings.DistanceFieldReplacementMesh->ConditionalPostLoad();
 		}
 
-		LODResources[0].DistanceFieldData->CacheDerivedData(DistanceFieldKey, Owner, MeshToGenerateFrom, BuildSettings.DistanceFieldResolutionScale, BuildSettings.bGenerateDistanceFieldAsIfTwoSided);
+		LODResources[0].DistanceFieldData->CacheDerivedData(DistanceFieldKey, Owner, MeshToGenerateFrom, BuildSettings.DistanceFieldResolutionScale, BuildSettings.DistanceFieldBias, BuildSettings.bGenerateDistanceFieldAsIfTwoSided);
 	}
 }
 #endif // #if WITH_EDITOR
@@ -1307,7 +1323,6 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	StreamingDistanceMultiplier=1.0f;
 	bHasNavigationData=true;
 #if WITH_EDITORONLY_DATA
-	AutoLODPixelError = 1.0f;
 	bAutoComputeLODScreenSize=true;
 #endif // #if WITH_EDITORONLY_DATA
 	LightMapResolution = 4;
@@ -1664,7 +1679,6 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		// Update the extended bounds
 		CalculateExtendedBounds();
 	}
-	AutoLODPixelError = FMath::Max(AutoLODPixelError, 1.0f);
 
 	if (!bAutoComputeLODScreenSize
 		&& RenderData
@@ -1698,7 +1712,11 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 void UStaticMesh::BeginDestroy()
 {
 	Super::BeginDestroy();
-	ReleaseResources();
+
+	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject))
+	{
+		ReleaseResources();
+	}
 }
 
 bool UStaticMesh::IsReadyForFinishDestroy()
@@ -2359,6 +2377,32 @@ FString UStaticMesh::GetDesc()
 }
 
 
+static int32 GetCollisionVertIndexForMeshVertIndex(int32 MeshVertIndex, TMap<int32, int32>& MeshToCollisionVertMap, TArray<FVector>& OutPositions, TArray< TArray<FVector2D> >& OutUVs, FPositionVertexBuffer& InPosVertBuffer, FStaticMeshVertexBuffer& InVertBuffer)
+{
+	int32* CollisionIndexPtr = MeshToCollisionVertMap.Find(MeshVertIndex);
+	if (CollisionIndexPtr != nullptr)
+	{
+		return *CollisionIndexPtr;
+	}
+	else
+	{
+		// Copy UVs for vert if desired
+		for (int32 ChannelIdx = 0; ChannelIdx < OutUVs.Num(); ChannelIdx++)
+		{
+			check(OutPositions.Num() == OutUVs[ChannelIdx].Num());
+			OutUVs[ChannelIdx].Add(InVertBuffer.GetVertexUV(MeshVertIndex, ChannelIdx));
+		}
+
+		// Copy position
+		int32 CollisionVertIndex = OutPositions.Add(InPosVertBuffer.VertexPosition(MeshVertIndex));
+
+		// Add indices to map
+		MeshToCollisionVertMap.Add(MeshVertIndex, CollisionVertIndex);
+
+		return CollisionVertIndex;
+	}
+}
+
 bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool bInUseAllTriData)
 {
 #if WITH_EDITORONLY_DATA
@@ -2369,22 +2413,18 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 	const int32 UseLODIndex = bInUseAllTriData ? 0 : FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num()-1);
 
 	FStaticMeshLODResources& LOD = RenderData->LODResources[UseLODIndex];
+	FIndexArrayView Indices = LOD.IndexBuffer.GetArrayView();
 
-	// Scale all verts into temporary vertex buffer.
-	const uint32 NumVerts = LOD.PositionVertexBuffer.GetNumVertices();
-	CollisionData->Vertices.Empty();
-	CollisionData->Vertices.AddUninitialized(NumVerts);
-	for(uint32 i=0; i<NumVerts; i++)
+	TMap<int32, int32> MeshToCollisionVertMap; // map of static mesh verts to collision verts
+
+	bool bCopyUVs = UPhysicsSettings::Get()->bSupportUVFromHitResults; // See if we should copy UVs
+
+	// If copying UVs, allocate array for storing them
+	if (bCopyUVs)
 	{
-		CollisionData->Vertices[i] = LOD.PositionVertexBuffer.VertexPosition(i);
+		CollisionData->UVs.AddZeroed(LOD.GetNumTexCoords());
 	}
 
-	FIndexArrayView Indices = LOD.IndexBuffer.GetArrayView();
-	const uint32 NumTris = Indices.Num() / 3;
-	CollisionData->Indices.Empty();
-	CollisionData->Indices.Reserve(NumTris);
-
-	FTriIndices TriIndex;
 	for(int32 SectionIndex = 0; SectionIndex < LOD.Sections.Num(); ++SectionIndex)
 	{
 		const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
@@ -2393,11 +2433,12 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 		{
 			const uint32 OnePastLastIndex  = Section.FirstIndex + Section.NumTriangles*3;
 
-			for(uint32 i=Section.FirstIndex; i<OnePastLastIndex; i+=3)
+			for (uint32 TriIdx = Section.FirstIndex; TriIdx < OnePastLastIndex; TriIdx += 3)
 			{
-				TriIndex.v0 = Indices[i];
-				TriIndex.v1 = Indices[i+1];
-				TriIndex.v2 = Indices[i+2];
+				FTriIndices TriIndex;
+				TriIndex.v0 = GetCollisionVertIndexForMeshVertIndex(Indices[TriIdx +0], MeshToCollisionVertMap, CollisionData->Vertices, CollisionData->UVs, LOD.PositionVertexBuffer, LOD.VertexBuffer);
+				TriIndex.v1 = GetCollisionVertIndexForMeshVertIndex(Indices[TriIdx +1], MeshToCollisionVertMap, CollisionData->Vertices, CollisionData->UVs, LOD.PositionVertexBuffer, LOD.VertexBuffer);
+				TriIndex.v2 = GetCollisionVertIndexForMeshVertIndex(Indices[TriIdx +2], MeshToCollisionVertMap, CollisionData->Vertices, CollisionData->UVs, LOD.PositionVertexBuffer, LOD.VertexBuffer);
 
 				CollisionData->Indices.Add(TriIndex);
 				CollisionData->MaterialIndices.Add(Section.MaterialIndex);

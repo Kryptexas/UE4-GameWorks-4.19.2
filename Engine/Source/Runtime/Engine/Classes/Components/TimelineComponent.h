@@ -368,6 +368,10 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_Timeline)
 	FTimeline	TheTimeline;
 
+	/** True if global time dilation should be ignored by this timeline, false otherwise. */
+	UPROPERTY()
+	uint32 bIgnoreTimeDilation : 1;
+
 public:
 
 	/** Start playback of timeline */
@@ -409,7 +413,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Timeline")
 	ENGINE_API float GetPlaybackPosition() const;
 
-	/** true means we whould loop, false means we should not. */
+	/** true means we would loop, false means we should not. */
 	UFUNCTION(BlueprintCallable, Category="Components|Timeline")
 	ENGINE_API void SetLooping(bool bNewLooping);
 
@@ -440,6 +444,15 @@ public:
 	/** Sets the length mode of the timeline */
 	UFUNCTION(BlueprintCallable, Category="Components|Timeline")
 	ENGINE_API void SetTimelineLengthMode(ETimelineLengthMode NewLengthMode);
+
+	/** Set whether to ignore time dilation. */
+	UFUNCTION(BlueprintCallable, Category = "Components|Timeline")
+	ENGINE_API void SetIgnoreTimeDilation(bool bNewIgnoreTimeDilation);
+
+	/** Get whether to ignore time dilation. */
+	UFUNCTION(BlueprintCallable, Category = "Components|Timeline")
+	ENGINE_API bool GetIgnoreTimeDilation() const;
+
 
 	UFUNCTION()
 	void OnRep_Timeline();

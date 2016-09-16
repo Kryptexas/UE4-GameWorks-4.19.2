@@ -147,9 +147,9 @@ const TCHAR* FLinuxPlatformProcess::BaseDir()
 		}
 		SelfPath[ARRAY_COUNT(SelfPath) - 1] = 0;
 
-		FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, UTF8_TO_TCHAR(dirname(SelfPath)));
+		FCString::Strncpy(CachedResult, UTF8_TO_TCHAR(dirname(SelfPath)), ARRAY_COUNT(CachedResult) - 1);
 		CachedResult[ARRAY_COUNT(CachedResult) - 1] = 0;
-		FCString::Strcat(CachedResult, ARRAY_COUNT(CachedResult) - 1, TEXT("/"));
+		FCString::Strncat(CachedResult, TEXT("/"), ARRAY_COUNT(CachedResult) - 1);
 		bHaveResult = true;
 	}
 	return CachedResult;
@@ -499,7 +499,7 @@ bool FLinuxPlatformProcess::WritePipe(void* WritePipe, const FString& Message, F
 	Buffer[BytesAvailable] = '\n';
 
 	// write to pipe
-	uint32 BytesWritten = write(*(int*)WritePipe, Buffer, BytesAvailable);
+	uint32 BytesWritten = write(*(int*)WritePipe, Buffer, BytesAvailable + 1);
 
 	// Get written message
 	if (OutWritten)
@@ -1462,55 +1462,4 @@ void FLinuxPlatformProcess::CeaseBeingFirstInstance()
 		GFileLockDescriptor = -1;
 	}
 #endif
-}
-
-FLinuxSystemWideCriticalSection::FLinuxSystemWideCriticalSection(const FString& InName, FTimespan InTimeout)
-{
-	check(InName.Len() > 0)
-	check(InTimeout >= FTimespan::Zero())
-	check(InTimeout.GetTotalSeconds() < (double)FLT_MAX)
-
-	const FString LockPath = FString(FLinuxPlatformProcess::ApplicationSettingsDir()) / InName;
-	FString NormalizedFilepath(LockPath);
-	NormalizedFilepath.ReplaceInline(TEXT("\\"), TEXT("/"));
-
-	// Attempt to open a file and then lock with flock (NOTE: not an atomic operation, but best we can do)
-	FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-
-	if (FileHandle == -1 && InTimeout != FTimespan::Zero())
-	{
-		FDateTime ExpireTime = FDateTime::UtcNow() + InTimeout;
-		const float RetrySeconds = FMath::Min((float)InTimeout.GetTotalSeconds(), 0.25f);
-
-		do
-		{
-			// retry until timeout
-			FLinuxPlatformProcess::Sleep(RetrySeconds);
-			FileHandle = open(TCHAR_TO_UTF8(*NormalizedFilepath), O_CREAT | O_WRONLY | O_NONBLOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		} while (FileHandle == -1 && FDateTime::UtcNow() < ExpireTime);
-	}
-	if (FileHandle != -1)
-	{
-		flock(FileHandle, LOCK_EX);
-	}
-}
-
-FLinuxSystemWideCriticalSection::~FLinuxSystemWideCriticalSection()
-{
-	Release();
-}
-
-bool FLinuxSystemWideCriticalSection::IsValid() const
-{
-	return FileHandle != -1;
-}
-
-void FLinuxSystemWideCriticalSection::Release()
-{
-	if (IsValid())
-	{
-		flock(FileHandle, LOCK_UN);
-		close(FileHandle);
-		FileHandle = -1;
-	}
 }

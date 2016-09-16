@@ -147,6 +147,7 @@ public:
 	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) override;
 	virtual void TrackingStopped() override;
 	virtual void AbortTracking() override;
+	virtual FWidget::EWidgetMode GetWidgetMode() const override;
 	virtual FVector GetWidgetLocation() const override;
 	virtual FMatrix GetWidgetCoordSystem() const override;
 	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
@@ -161,13 +162,11 @@ public:
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
-	void SetIsCameraCut( bool bInIsCameraCut )
+	/** Sets a flag for this frame indicating that the camera has been cut, and temporal effects (such as motion blur) should be reset */
+	void SetIsCameraCut()
 	{
-		bEditorCameraCut = bInIsCameraCut;
-		if (bEditorCameraCut)
-		{
-			bWasEditorCameraCut = false;
-		}
+		bEditorCameraCut = true;
+		bWasEditorCameraCut = false;
 	}
 
 	/** 
@@ -486,18 +485,12 @@ public:
 	/** 
 	 * Set the actor lock. This is the actor locked to the viewport via the viewport menus.
 	 */
-	void SetActorLock(AActor* Actor)
-	{
-		return ActorLockedToCamera = Actor;
-	}
+	void SetActorLock(AActor* Actor);
 
 	/** 
 	 * Set the actor locked to the viewport by Matinee.
 	 */
-	void SetMatineeActorLock(AActor* Actor)
-	{
-		return ActorLockedByMatinee = Actor;
-	}
+	void SetMatineeActorLock(AActor* Actor);
 
 	/** 
 	 * Check whether this viewport is locked to the specified actor
@@ -532,6 +525,11 @@ public:
 	}
 
 	void UpdateHoveredObjects( const TSet<FViewportHoverTarget>& NewHoveredObjects );
+
+	/**
+	 * Calling SetViewportType from Dragtool_ViewportChange
+	 */
+	void SetViewportTypeFromTool(ELevelViewportType InViewportType);
 
 	/**
 	 * Static: Attempts to place the specified object in the level, returning one or more newly-created actors if successful.
@@ -583,6 +581,7 @@ protected:
 	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) override;
 	virtual ELevelViewportType GetViewportType() const override;
 	virtual void SetViewportType( ELevelViewportType InViewportType ) override;
+	virtual void RotateViewportType() override;
 	virtual void OverridePostProcessSettings( FSceneView& View ) override;
 	virtual void PerspectiveCameraMoved() override;
 	virtual bool ShouldLockPitch() const override;

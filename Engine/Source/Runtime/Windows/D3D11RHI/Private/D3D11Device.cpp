@@ -36,7 +36,6 @@ TAutoConsoleVariable<int32> CVarD3D11ZeroBufferSizeInMB(
 
 FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEVEL InFeatureLevel, int32 InChosenAdapter, const DXGI_ADAPTER_DESC& InChosenDescription) :
 	DXGIFactory1(InDXGIFactory1),
-	bDeviceRemoved(false),
 	FeatureLevel(InFeatureLevel),
 	CurrentDepthTexture(NULL),
 	NumSimultaneousRenderTargets(0),
@@ -167,6 +166,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 
 	GPixelFormats[ PF_BC6H			].PlatformFormat	= DXGI_FORMAT_BC6H_UF16;
 	GPixelFormats[ PF_BC7			].PlatformFormat	= DXGI_FORMAT_BC7_TYPELESS;
+	GPixelFormats[ PF_R8_UINT		].PlatformFormat	= DXGI_FORMAT_R8_UINT;
 
 	if (FeatureLevel >= D3D_FEATURE_LEVEL_11_0)
 	{
@@ -379,6 +379,19 @@ void FD3D11DynamicRHI::SetupAfterDeviceCreation()
 		UE_LOG(LogD3D11RHI,Log,TEXT("Async texture creation disabled: %s"),
 			D3D11RHI_ShouldAllowAsyncResourceCreation() ? TEXT("no driver support") : TEXT("disabled by user"));
 	}
+
+#if PLATFORM_WINDOWS
+	IUnknown* RenderDoc;
+	IID RenderDocID;
+	if (SUCCEEDED(IIDFromString(L"{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}", &RenderDocID)))
+	{
+		if (SUCCEEDED(Direct3DDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)(&RenderDoc))))
+		{
+			// Running under RenderDoc, so enable capturing mode
+			GDynamicRHI->EnableIdealGPUCaptureOptions(true);
+		}
+	}
+#endif
 }
 
 void FD3D11DynamicRHI::UpdateMSAASettings()
@@ -469,8 +482,17 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 		{
 			Direct3DDeviceIMContext->ClearState();
 			Direct3DDeviceIMContext->Flush();
+
+			// Perform a detailed live object report (with resource types)
+			ID3D11Debug* D3D11Debug;
+			Direct3DDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)(&D3D11Debug));
+			if (D3D11Debug)
+			{
+				D3D11Debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+			}
 		}
 
+		// Perform a detailed live object report (with resource types)
 		Direct3DDeviceIMContext = nullptr;
 
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED

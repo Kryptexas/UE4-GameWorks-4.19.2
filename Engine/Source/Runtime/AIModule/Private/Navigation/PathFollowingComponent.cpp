@@ -126,6 +126,9 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	DecelerationSegmentIndex = INDEX_NONE;
 
 	bStopOnOverlap = true;
+	bReachTestIncludesAgentRadius = true;
+	bReachTestIncludesGoalRadius = true;
+
 	Status = EPathFollowingStatus::Idle;
 
 	CurrentMoveInput = FVector::ZeroVector;
@@ -261,16 +264,6 @@ bool UPathFollowingComponent::HandlePathUpdateEvent()
 	}
 
 	return true;
-
-	if (Status == EPathFollowingStatus::Waiting || Status == EPathFollowingStatus::Moving)
-	{
-		Status = EPathFollowingStatus::Moving;
-
-		const int32 CurrentSegment = DetermineStartingPathPoint(Path.Get());
-		SetMoveSegment(CurrentSegment);
-	}
-
-	return true;
 }
 
 FAIRequestID UPathFollowingComponent::RequestMove(const FAIMoveRequest& RequestData, FNavPathSharedPtr InPath)
@@ -344,7 +337,8 @@ FAIRequestID UPathFollowingComponent::RequestMove(const FAIMoveRequest& RequestD
 		if (CurrentRequestId == MoveId)
 		{
 			AcceptanceRadius = UseAcceptanceRadius;
-			bStopOnOverlap = RequestData.CanStopOnOverlap();
+			bStopOnOverlap = bReachTestIncludesAgentRadius = RequestData.IsReachTestIncludingAgentRadius();
+			bReachTestIncludesGoalRadius = RequestData.IsReachTestIncludingGoalRadius();
 			GameData = RequestData.GetUserData();
 			SetDestinationActor(RequestData.GetGoalActor());
 			UpdateDecelerationData();
@@ -635,6 +629,8 @@ void UPathFollowingComponent::Reset()
 	CurrentDestination.Clear();
 	AcceptanceRadius = MyDefaultAcceptanceRadius;
 	bStopOnOverlap = true;
+	bReachTestIncludesAgentRadius = true;
+	bReachTestIncludesGoalRadius = true;
 	bCollidedWithGoal = false;
 	bIsUsingMetaPath = false;
 	bWalkingNavLinkStart = false;
@@ -905,7 +901,7 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 	}
 }
 
-bool UPathFollowingComponent::HasReached(const FVector& TestPoint, float InAcceptanceRadius, bool bExactSpot) const
+bool UPathFollowingComponent::HasReached(const FVector& TestPoint, EPathFollowingReachMode ReachMode, float InAcceptanceRadius) const
 {
 	// simple test for stationary agent, used as early finish condition
 	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
@@ -916,10 +912,11 @@ bool UPathFollowingComponent::HasReached(const FVector& TestPoint, float InAccep
 		InAcceptanceRadius = MyDefaultAcceptanceRadius;
 	}
 
-	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, bExactSpot ? 0.0f : MinAgentRadiusPct);
+	const float AgentRadiusMod = (ReachMode == EPathFollowingReachMode::ExactLocation) || (ReachMode == EPathFollowingReachMode::OverlapGoal) ? 0.0f : MinAgentRadiusPct;
+	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, AgentRadiusMod);
 }
 
-bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAcceptanceRadius, bool bExactSpot, bool bUseNavAgentGoalLocation) const
+bool UPathFollowingComponent::HasReached(const AActor& TestGoal, EPathFollowingReachMode ReachMode, float InAcceptanceRadius, bool bUseNavAgentGoalLocation) const
 {
 	// simple test for stationary agent, used as early finish condition
 	float GoalRadius = 0.0f;
@@ -931,20 +928,43 @@ bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAccepta
 		InAcceptanceRadius = MyDefaultAcceptanceRadius;
 	}
 
-	if (bUseNavAgentGoalLocation)
+	const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(&TestGoal);
+	if (NavAgent)
 	{
-		const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(&TestGoal);
-		if (NavAgent)
+		const AActor* OwnerActor = GetOwner();
+		const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(OwnerActor);
+		NavAgent->GetMoveGoalReachTest(OwnerActor, GoalMoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
+
+		if (bUseNavAgentGoalLocation)
 		{
-			const AActor* OwnerActor = GetOwner();
-			const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(OwnerActor);
-			NavAgent->GetMoveGoalReachTest(OwnerActor, GoalMoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
 			TestPoint = FQuatRotationTranslationMatrix(TestGoal.GetActorQuat(), NavAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
+
+			if ((ReachMode == EPathFollowingReachMode::ExactLocation) || (ReachMode == EPathFollowingReachMode::OverlapAgent))
+			{
+				GoalRadius = 0.0f;
+			}
+		}
+
+		if ((ReachMode == EPathFollowingReachMode::ExactLocation) || (ReachMode == EPathFollowingReachMode::OverlapAgent))
+		{
+			GoalRadius = 0.0f;
 		}
 	}
 
 	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
-	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, bExactSpot ? 0.0f : MinAgentRadiusPct);
+	const float AgentRadiusMod = (ReachMode == EPathFollowingReachMode::ExactLocation) || (ReachMode == EPathFollowingReachMode::OverlapGoal) ? 0.0f : MinAgentRadiusPct;
+	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, AgentRadiusMod);
+}
+
+bool UPathFollowingComponent::HasReached(const FAIMoveRequest& MoveRequest) const
+{
+	const EPathFollowingReachMode ReachMode = MoveRequest.IsReachTestIncludingAgentRadius() ?
+		(MoveRequest.IsReachTestIncludingGoalRadius() ? EPathFollowingReachMode::OverlapAgentAndGoal : EPathFollowingReachMode::OverlapAgent) :
+		(MoveRequest.IsReachTestIncludingGoalRadius() ? EPathFollowingReachMode::OverlapGoal : EPathFollowingReachMode::ExactLocation);
+
+	return MoveRequest.IsMoveToActorRequest() ?
+		(MoveRequest.GetGoalActor() ? HasReached(*MoveRequest.GetGoalActor(), ReachMode, MoveRequest.GetAcceptanceRadius()) : false) :
+		HasReached(MoveRequest.GetGoalLocation(), ReachMode, MoveRequest.GetAcceptanceRadius());
 }
 
 bool UPathFollowingComponent::HasReachedDestination(const FVector& CurrentLocation) const
@@ -971,7 +991,7 @@ bool UPathFollowingComponent::HasReachedDestination(const FVector& CurrentLocati
 		}
 	}
 
-	return HasReachedInternal(GoalLocation, GoalRadius, GoalHalfHeight, CurrentLocation, AcceptanceRadius, bStopOnOverlap ? MinAgentRadiusPct : 0.0f);
+	return HasReachedInternal(GoalLocation, bReachTestIncludesGoalRadius ? GoalRadius : 0.0f, GoalHalfHeight, CurrentLocation, AcceptanceRadius, bReachTestIncludesAgentRadius ? MinAgentRadiusPct : 0.0f);
 }
 
 bool UPathFollowingComponent::HasReachedCurrentTarget(const FVector& CurrentLocation) const
@@ -1124,13 +1144,16 @@ void UPathFollowingComponent::StartUsingCustomLink(INavLinkCustomInterface* Cust
 
 void UPathFollowingComponent::FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink)
 {
-	UObject* NavLinkOb = Cast<UObject>(CustomNavLink);
-	if (CurrentCustomLinkOb == NavLinkOb)
+	if (CustomNavLink)
 	{
-		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Finish custom move using navlink: %s"), *GetPathNameSafe(NavLinkOb));
+		UObject* NavLinkOb = Cast<UObject>(CustomNavLink);
+		if (CurrentCustomLinkOb == NavLinkOb)
+		{
+			UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Finish custom move using navlink: %s"), *GetPathNameSafe(NavLinkOb));
 
-		CustomNavLink->OnLinkMoveFinished(this);
-		CurrentCustomLinkOb.Reset();
+			CustomNavLink->OnLinkMoveFinished(this);
+			CurrentCustomLinkOb.Reset();
+		}
 	}
 }
 
@@ -1314,7 +1337,7 @@ void UPathFollowingComponent::UpdateMoveFocus()
 			const FVector MoveFocus = GetMoveFocus(AIOwner->bAllowStrafe);
 			AIOwner->SetFocalPoint(MoveFocus, EAIFocusPriority::Move);
 		}
-		else
+		else if (Status == EPathFollowingStatus::Idle)
 		{
 			AIOwner->ClearFocus(EAIFocusPriority::Move);
 		}
@@ -1621,7 +1644,7 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 	}
 
 	MoveReq.SetAcceptanceRadius(InAcceptanceRadius);
-	MoveReq.SetStopOnOverlap(bInStopOnOverlap);
+	MoveReq.SetReachTestIncludesAgentRadius(bInStopOnOverlap);
 	MoveReq.SetUserData(InGameData);
 
 	return RequestMove(MoveReq, InPath);
@@ -1640,7 +1663,7 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, cons
 	}
 
 	MoveReq.SetAcceptanceRadius(InAcceptanceRadius);
-	MoveReq.SetStopOnOverlap(bInStopOnOverlap);
+	MoveReq.SetReachTestIncludesAgentRadius(bInStopOnOverlap);
 	MoveReq.SetUserData(InGameData);
 
 	return RequestMove(MoveReq, InPath);
@@ -1691,6 +1714,16 @@ FVector UPathFollowingComponent::GetPathDestination() const
 void UPathFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
 {
 	OnPathFinished(Result, FPathFollowingResultFlags::None);
+}
+
+bool UPathFollowingComponent::HasReached(const FVector& TestPoint, float InAcceptanceRadius, bool bExactSpot) const
+{
+	return HasReached(TestPoint, bExactSpot ? EPathFollowingReachMode::ExactLocation : EPathFollowingReachMode::OverlapAgent, InAcceptanceRadius);
+}
+
+bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAcceptanceRadius, bool bExactSpot, bool bUseNavAgentGoalLocation) const
+{
+	return HasReached(TestGoal, bExactSpot ? EPathFollowingReachMode::ExactLocation : EPathFollowingReachMode::OverlapAgentAndGoal, InAcceptanceRadius, bUseNavAgentGoalLocation);
 }
 
 #undef SHIPPING_STATIC

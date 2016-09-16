@@ -44,7 +44,11 @@ void SBlueprintProfilerView::Construct(const FArguments& InArgs)
 	StatisticNumberFormat.MinimumFractionalDigits = 4;
 	StatisticNumberFormat.MaximumFractionalDigits = 4;
 	StatisticNumberFormat.UseGrouping = false;
-	FScriptPerfData::SetNumberFormattingForStats(StatisticNumberFormat);
+	FNumberFormattingOptions TimeNumberFormat;
+	TimeNumberFormat.MinimumFractionalDigits = 1;
+	TimeNumberFormat.MaximumFractionalDigits = 1;
+	TimeNumberFormat.UseGrouping = false;
+	FScriptPerfData::SetNumberFormattingForStats(StatisticNumberFormat, TimeNumberFormat);
 	// Create the display text for the user
 	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
 	{
@@ -130,7 +134,7 @@ void SBlueprintProfilerView::UpdateActiveProfilerWidget()
 		[
 			SNew(SBorder)
 			.Padding(FMargin(0,2,0,0))
-			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+			.BorderImage(FEditorStyle::GetBrush("BlueprintProfiler.ViewContent"))
 			[
 				CreateActiveStatisticWidget()
 			]
@@ -191,7 +195,7 @@ TSharedRef<SWidget> SBlueprintProfilerView::CreateActiveStatisticWidget()
 					[
 						SNew(SBorder)
 						.Padding(0)
-						.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+						.BorderImage(FEditorStyle::GetBrush("BlueprintProfiler.ViewContent"))
 						.HAlign(HAlign_Center)
 						.VAlign(VAlign_Center)
 						[

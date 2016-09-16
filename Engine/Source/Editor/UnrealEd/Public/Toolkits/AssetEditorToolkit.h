@@ -279,7 +279,7 @@ private:
 	 * so that we don't break compatibility with all the asset editors out there that individually 
 	 * implement FGCObject.
 	 */
-	class FGCEditingObjects : public FGCObject
+	class UNREALED_API FGCEditingObjects : public FGCObject
 	{
 	public:
 		FGCEditingObjects(FAssetEditorToolkit& InOwnerToolkit) : OwnerToolkit(InOwnerToolkit) {}

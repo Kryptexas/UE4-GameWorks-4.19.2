@@ -181,15 +181,6 @@ public class DeploymentContext //: ProjectParams
 	static public readonly string NonUFSDeployObsoleteFileName = "Manifest_ObsoleteNonUFSFiles.txt";
 
 	/// <summary>
-	/// Filename for the manifest of files currently deployed on a device.
-	/// </summary>
-	static public readonly string sUFSDeployedManifestFileName		= "Manifest_UFSFiles.txt";
-	static public readonly string sNonUFSDeployedManifestFileName	= "Manifest_NonUFSFiles.txt";
-
-	
-	
-
-	/// <summary>
 	/// The client connects to dedicated server to get data
 	/// </summary>
 	public bool DedicatedServer;
@@ -224,12 +215,16 @@ public class DeploymentContext //: ProjectParams
 	/// </summary>
 	public bool bIsCombiningMultiplePlatforms = false;
 
-	public DeploymentContext(
+    /// <summary>
+    /// If true if this platform is using streaming install chunk manifests
+    /// </summary>
+    public bool PlatformUsesChunkManifests = false;
+
+    public DeploymentContext(
 		FileReference RawProjectPathOrName,
 		string InLocalRoot,
 		string BaseStageDirectory,
 		string BaseArchiveDirectory,
-		string CookFlavor,
 		Platform InSourcePlatform,
         Platform InTargetPlatform,
 		List<UnrealTargetConfiguration> InTargetConfigurations,
@@ -243,6 +238,7 @@ public class DeploymentContext //: ProjectParams
 		bool InArchive,
 		bool InProgram,
 		bool IsClientInsteadOfNoEditor,
+        bool InForceChunkManifests,
 		bool bInUseWebsocketNetDriver = false
 		)
 	{
@@ -263,11 +259,11 @@ public class DeploymentContext //: ProjectParams
 
         if (CookSourcePlatform != null && InCooked)
         {
-			CookPlatform = CookSourcePlatform.GetCookPlatform(DedicatedServer, IsClientInsteadOfNoEditor, CookFlavor);
+			CookPlatform = CookSourcePlatform.GetCookPlatform(DedicatedServer, IsClientInsteadOfNoEditor);
         }
         else if (CookSourcePlatform != null && InProgram)
         {
-            CookPlatform = CookSourcePlatform.GetCookPlatform(false, false, "");
+            CookPlatform = CookSourcePlatform.GetCookPlatform(false, false);
         }
         else
         {
@@ -276,11 +272,11 @@ public class DeploymentContext //: ProjectParams
 
 		if (StageTargetPlatform != null && InCooked)
 		{
-			FinalCookPlatform = StageTargetPlatform.GetCookPlatform(DedicatedServer, IsClientInsteadOfNoEditor, CookFlavor);
+			FinalCookPlatform = StageTargetPlatform.GetCookPlatform(DedicatedServer, IsClientInsteadOfNoEditor);
 		}
 		else if (StageTargetPlatform != null && InProgram)
 		{
-            FinalCookPlatform = StageTargetPlatform.GetCookPlatform(false, false, "");
+            FinalCookPlatform = StageTargetPlatform.GetCookPlatform(false, false);
 		}
 		else
 		{
@@ -343,7 +339,24 @@ public class DeploymentContext //: ProjectParams
 		}
 		ProjectArgForCommandLines = ProjectArgForCommandLines.Replace("\\", "/");
 		ProjectBinariesFolder = CommandUtils.CombinePaths(ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, TargetRules.TargetType.Game, IsCodeBasedProject), PlatformDir);
-	}
+
+        // If we were configured to use manifests across the whole project, then this platform should use manifests.
+        // Otherwise, read whether we are generating chunks from the ProjectPackagingSettings ini.
+        if (InForceChunkManifests)
+        {
+            PlatformUsesChunkManifests = true;
+        }
+        else
+        {
+            ConfigCacheIni GameIni = ConfigCacheIni.CreateConfigCacheIni(InTargetPlatform.PlatformType, "Game", RawProjectPath.Directory);
+            String IniPath = "/Script/UnrealEd.ProjectPackagingSettings";
+            bool bSetting = false;
+            if (GameIni.GetBool(IniPath, "bGenerateChunks", out bSetting))
+            {
+                PlatformUsesChunkManifests = bSetting;
+            }
+        }
+    }
 
 	public void StageFile(StagedFileType FileType, string InputPath, string OutputPath = null, bool bRemap = true)
 	{
@@ -405,9 +418,13 @@ public class DeploymentContext //: ProjectParams
 
 				StageFile(FileTypeToUse, BuildProduct.Path);
 			}
-			else if(BuildProduct.Type == BuildProductType.SymbolFile)
+			else if(BuildProduct.Type == BuildProductType.SymbolFile || BuildProduct.Type == BuildProductType.MapFile)
 			{
-				StageFile(StagedFileType.DebugNonUFS, BuildProduct.Path);
+				// Symbol files aren't true dependencies so we can skip if they don't exist
+				if (File.Exists(BuildProduct.Path))
+				{
+					StageFile(StagedFileType.DebugNonUFS, BuildProduct.Path);
+				}
 			}
 		}
 	}
@@ -434,7 +451,7 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-    public void StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true)
+    public void StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true, bool bConvertToLower = false)
 	{
 		int FilesAdded = 0;
 		// make sure any ..'s are removed
@@ -583,6 +600,11 @@ public class DeploymentContext //: ProjectParams
 				{
 					Dest = StageTargetPlatform.Remap(Dest);
 				}
+
+                if (bConvertToLower)
+                {
+                    Dest = Dest.ToLowerInvariant();
+                }
 
 				if (FileType == StagedFileType.UFS)
 				{
@@ -758,24 +780,24 @@ public class DeploymentContext //: ProjectParams
 		return FilesAdded;
 	}
 
-	public String GetUFSDeploymentDeltaPath()
+	public String GetUFSDeploymentDeltaPath(string DeviceName)
 	{
-		return Path.Combine(StageDirectory, UFSDeployDeltaFileName);
+		return Path.Combine(StageDirectory, UFSDeployDeltaFileName + DeviceName);
 	}
 
-	public String GetNonUFSDeploymentDeltaPath()
+	public String GetNonUFSDeploymentDeltaPath(string DeviceName)
 	{
-		return Path.Combine(StageDirectory, NonUFSDeployDeltaFileName);
+		return Path.Combine(StageDirectory, NonUFSDeployDeltaFileName + DeviceName);
 	}
 
-	public String GetUFSDeploymentObsoletePath()
+	public String GetUFSDeploymentObsoletePath(string DeviceName)
 	{
-		return Path.Combine(StageDirectory, UFSDeployObsoleteFileName);
+		return Path.Combine(StageDirectory, UFSDeployObsoleteFileName + DeviceName);
 	}
 
-	public String GetNonUFSDeploymentObsoletePath()
+	public String GetNonUFSDeploymentObsoletePath(string DeviceName)
 	{
-		return Path.Combine(StageDirectory, NonUFSDeployObsoleteFileName);
+		return Path.Combine(StageDirectory, NonUFSDeployObsoleteFileName + DeviceName);
 	}
 
 	public string UFSDeployedManifestFileName

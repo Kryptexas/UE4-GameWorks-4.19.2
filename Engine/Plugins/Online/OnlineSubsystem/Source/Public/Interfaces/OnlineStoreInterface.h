@@ -12,13 +12,14 @@ namespace EInAppPurchaseState
 {
 	enum Type
 	{
-		Success = 0 UMETA(DisplayName = "Success"),
+		Unknown = 0 UMETA(DisplayName = "Unknown"),
+		Success UMETA(DisplayName = "Success"),
 		Failed UMETA(DisplayName = "Failed"),
 		Cancelled UMETA(DisplayName = "Cancelled"),
 		Invalid UMETA(DisplayName = "Invalid"),
 		NotAllowed UMETA(DisplayName = "NotAllowed"),
 		Restored UMETA(DisplayName = "Restored"),
-		Unknown  UMETA(DisplayName = "Unknown")
+		AlreadyOwned UMETA(DisplayName = "AlreadyOwned"),
 	};
 }
 

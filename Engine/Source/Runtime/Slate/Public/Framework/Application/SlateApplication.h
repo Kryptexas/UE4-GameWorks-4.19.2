@@ -28,6 +28,9 @@ DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);
 DECLARE_DELEGATE(FModalWindowStackStarted)
 DECLARE_DELEGATE(FModalWindowStackEnded)
 
+/** Delegate for when window action occurs (ClickedNonClientArea, Maximize, Restore, WindowMenu). Return true if the OS layer should stop processing the action. */
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnWindowAction, const TSharedRef<FGenericWindow>&, EWindowAction::Type);
+
 extern SLATE_API const FName NAME_UnrealOS;
 
 
@@ -1189,6 +1192,10 @@ public:
 	/** @return the last time a user interacted with a keyboard, mouse, touch device, or controller */
 	double GetLastUserInteractionTime() const { return LastUserInteractionTime; }
 
+	DECLARE_EVENT_OneParam(FSlateApplication, FSlateLastUserInteractionTimeUpdateEvent, double);
+	/** @return Gets the event for LasterUserInteractionTime update */
+	FSlateLastUserInteractionTimeUpdateEvent& GetLastUserInteractionTimeUpdateEvent() { return LastUserInteractionTimeUpdateEvent; }
+
 	/** @return the deadzone size for dragging in screen pixels (aka virtual desktop pixels) */
 	float GetDragTriggerDistance() const;
 
@@ -1397,6 +1404,22 @@ public:
 	 */
 	int32 GetUserIndexForController(int32 ControllerId) const;
 
+	/**
+	* Register for a notification when the window action occurs.
+	*
+	* @param Notification          The notification to invoke.
+	*
+	* @return Handle to the registered delegate.
+	*/
+	FDelegateHandle RegisterOnWindowActionNotification(const FOnWindowAction& Notification);
+
+	/**
+	* Unregister the notification because it is no longer desired.
+	*
+	* @param Handle                Hanlde to the delegate to unregister.
+	*/
+	void UnregisterOnWindowActionNotification(FDelegateHandle Handle);
+
 private:
 
 	TSharedRef< FGenericWindow > MakeWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately );
@@ -1441,6 +1464,11 @@ private:
 		/** Desktop Space Rect that bounds the cursor. */
 		FSlateRect LastComputedBounds;
 	} CursorLock;
+
+private:
+
+	/** Sets the LastUserInteractionTime and fires off the LastUserInteractionTimeUpdateEvent */
+	void SetLastUserInteractionTime(const double InCurrentTime);
 
 private:
 
@@ -1656,6 +1684,9 @@ private:
 	/** Subset of LastUserInteractionTime that is used only when considering when to throttle */
 	double LastUserInteractionTimeForThrottling;
 
+	/** Delegate that gets called for LastUserInteractionTime Update */
+	FSlateLastUserInteractionTimeUpdateEvent LastUserInteractionTimeUpdateEvent;
+
 	/** Used when considering whether to put Slate to sleep */
 	double LastMouseMoveTime;
 
@@ -1721,6 +1752,8 @@ private:
 	/** Allows us to track the number of non-slate modal windows active. */
 	int32 NumExternalModalWindowsActive;
 
+	/** List of delegates that need to be called when the window action occurs. */
+	TArray<FOnWindowAction> OnWindowActionNotifications;
 
 	/**
 	 * Tool-tips

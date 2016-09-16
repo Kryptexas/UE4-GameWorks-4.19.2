@@ -80,8 +80,10 @@ SRetainerWidget::~SRetainerWidget()
 {
 	if( FSlateApplication::IsInitialized() )
 	{
-		FSlateApplication::Get().OnPreTick().RemoveAll( this );
-
+		if (FApp::CanEverRender())
+		{
+			FSlateApplication::Get().OnPreTick().RemoveAll( this );
+		}
 
 #if !UE_BUILD_SHIPPING
 		OnRetainerModeChangedDelegate.RemoveAll( this );
@@ -96,7 +98,10 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 
 	if( FSlateApplication::IsInitialized() )
 	{
-		FSlateApplication::Get().OnPreTick().AddRaw(this, &SRetainerWidget::OnTickRetainers);
+		if (FApp::CanEverRender())
+		{
+			FSlateApplication::Get().OnPreTick().AddRaw(this, &SRetainerWidget::OnTickRetainers);
+		}
 
 #if !UE_BUILD_SHIPPING
 		OnRetainerModeChangedDelegate.AddRaw( this, &SRetainerWidget::OnRetainerModeChanged );
@@ -119,6 +124,7 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 	SurfaceBrush.SetResourceObject(RenderTarget);
 
 	Window = SNew(SVirtualWindow);
+	Window->SetShouldResolveDeferred(false);
 	HitTestGrid = MakeShareable(new FHittestGrid());
 
 	WidgetRenderer.SetIsPrepassNeeded(false);
@@ -263,7 +269,10 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 {
 	STAT(FScopeCycleCounter TickCycleCounter(MyStatId);)
 
-	bool bShouldRenderAtAnything = GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible(); 
+	// we should not be added to tick if we're not rendering
+	checkSlow(FApp::CanEverRender());
+
+	bool bShouldRenderAtAnything = GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible();
 	if ( bRenderingOffscreen && bShouldRenderAtAnything )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetTick );

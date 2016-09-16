@@ -258,6 +258,17 @@ void FOnlineSubsystemGooglePlay::StartLogoutTask(int32 LocalUserNum)
 	QueueAsyncTask(CurrentLogoutTask);
 }
 
+void FOnlineSubsystemGooglePlay::ProcessGoogleClientConnectResult(bool bInSuccessful, FString AccessToken)
+{
+	if (CurrentShowLoginUITask != nullptr)
+	{
+		// Only one login task should be active at a time
+		check(CurrentLoginTask == nullptr);
+
+		CurrentShowLoginUITask->ProcessGoogleClientConnectResult(bInSuccessful, AccessToken);
+	}
+}
+
 void FOnlineSubsystemGooglePlay::StartShowLoginUITask_Internal(int PlayerId, const FOnLoginUIClosedDelegate& Delegate)
 {
 	check(!AreAnyAsyncLoginTasksRunning());
@@ -316,4 +327,31 @@ void FOnlineSubsystemGooglePlay::OnActivityResult(JNIEnv *env, jobject thiz, job
 {
 	// Pass the result on to google play - otherwise, some callbacks for the turn based system do not get called.
 	AndroidSupport::OnActivityResult(env, activity, requestCode, resultCode, data);
+}
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeGoogleClientConnectCompleted(JNIEnv* jenv, jobject thiz, jboolean bSuccess, jstring accessToken)
+{
+	FString AccessToken;
+	if (bSuccess)
+	{
+		const char* charsToken = jenv->GetStringUTFChars(accessToken, 0);
+		AccessToken = FString(UTF8_TO_TCHAR(charsToken));
+		jenv->ReleaseStringUTFChars(accessToken, charsToken);
+	}
+
+	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessGoogleClientConnectResult"), STAT_FSimpleDelegateGraphTask_ProcessGoogleClientConnectResult, STATGROUP_TaskGraphTasks);
+
+	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+		FSimpleDelegateGraphTask::FDelegate::CreateLambda([=]()
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Google Client connected %s, Access Token: %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"), *AccessToken);
+			if (FOnlineSubsystemGooglePlay* const OnlineSub = (FOnlineSubsystemGooglePlay*)IOnlineSubsystem::Get())
+			{
+				OnlineSub->ProcessGoogleClientConnectResult(bSuccess, AccessToken);
+			}
+		}),
+		GET_STATID(STAT_FSimpleDelegateGraphTask_ProcessGoogleClientConnectResult),
+		nullptr,
+		ENamedThreads::GameThread
+	);
 }

@@ -523,11 +523,13 @@ FLinkerLoad* GetPackageLinker
 			return nullptr;
 		}
 	
-		// The editor must not redirect packages for localization. We also shouldn't redirect script or in-memory packages.
+		// Allow delegates to resolve this package
 		FString PackageName = InOuter->GetName();
-		if (!(GIsEditor || InOuter->HasAnyPackageFlags(PKG_InMemoryOnly) || FPackageName::IsScriptPackage(PackageName)))
+
+		// Do not resolve packages that are in memory
+		if (!InOuter->HasAnyPackageFlags(PKG_InMemoryOnly))
 		{
-			PackageName = FPackageName::GetLocalizedPackagePath(PackageName);
+			PackageName = FPackageName::GetDelegateResolvedPackagePath(InOuter->GetName());
 		}
 
 		// Verify that the file exists.
@@ -535,7 +537,7 @@ FLinkerLoad* GetPackageLinker
 		if ( !DoesPackageExist )
 		{
 			// In memory-only packages have no linker and this is ok.
-			if (!(LoadFlags & LOAD_AllowDll) && !InOuter->HasAnyPackageFlags(PKG_InMemoryOnly) && !FLinkerLoad::KnownMissingPackages.Contains(InOuter->GetFName()))
+			if (!(LoadFlags & LOAD_AllowDll) && !InOuter->HasAnyPackageFlags(PKG_InMemoryOnly) && !FLinkerLoad::IsKnownMissingPackage(InOuter->GetFName()))
 			{
 				FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 				FFormatNamedArguments Arguments;
@@ -562,11 +564,8 @@ FLinkerLoad* GetPackageLinker
 			return nullptr;
 		}
 
-		// The editor must not redirect packages for localization. We also shouldn't redirect script packages.
-		if (!(GIsEditor || FPackageName::IsScriptPackage(PackageName)))
-		{
-			PackageName = FPackageName::GetLocalizedPackagePath(PackageName);
-		}
+		// Allow delegates to resolve this path
+		PackageName = FPackageName::GetDelegateResolvedPackagePath(PackageName);
 
 		UPackage* ExistingPackage = FindObject<UPackage>(nullptr, *PackageName);
 		if (ExistingPackage)
@@ -582,7 +581,7 @@ FLinkerLoad* GetPackageLinker
 		const bool DoesPackageExist = DoesPackageExistForGetPackageLinker(PackageName, CompatibleGuid, NewFilename);
 		if( !DoesPackageExist )
 		{
-			if (!FLinkerLoad::KnownMissingPackages.Contains(InLongPackageName))
+			if (!FLinkerLoad::IsKnownMissingPackage(InLongPackageName))
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));

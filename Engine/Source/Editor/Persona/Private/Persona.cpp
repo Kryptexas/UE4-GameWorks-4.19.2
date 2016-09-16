@@ -51,6 +51,8 @@
 #include "AnimGraphNode_PoseBlendNode.h"
 #include "AnimGraphNode_Slot.h"
 #include "Customization/AnimGraphNodeSlotDetails.h"
+#include "AnimGraphNode_AimOffsetLookAt.h"
+#include "AnimGraphNode_RotationOffsetBlendSpace.h"
 
 #include "AnimPreviewInstance.h"
 
@@ -80,6 +82,8 @@
 #include "MessageLog.h"
 #include "SAdvancedPreviewDetailsTab.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+
+#include "Editor/AnimGraph/Public/AnimGraphCommands.h"
 
 #define LOCTEXT_NAMESPACE "FPersona"
 
@@ -220,6 +224,7 @@ public:
 						->Split
 						(
 							FTabManager::NewStack()
+							->AddTab(FPersonaTabs::AdvancedPreviewSceneSettingsID, ETabState::OpenedTab)
 							->AddTab( FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab )	//@TODO: FPersonaTabs::AnimPropertiesID
 						)
 					)
@@ -451,7 +456,7 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 	return OpenedTab;
 }
 
-TSharedPtr<SDockTab> FPersona::OpenNewDocumentTab(class UAnimationAsset* InAnimAsset)
+TSharedPtr<SDockTab> FPersona::OpenNewDocumentTab(class UAnimationAsset* InAnimAsset, bool bAddToHistory/* = true*/)
 {
 	/// before opening new asset, clear the currently selected object
 	SetDetailObject(NULL);
@@ -459,6 +464,12 @@ TSharedPtr<SDockTab> FPersona::OpenNewDocumentTab(class UAnimationAsset* InAnimA
 	TSharedPtr<SDockTab> NewTab;
 	if (InAnimAsset)
 	{
+		// add to history
+		if (bAddToHistory && SequenceBrowser.IsValid())
+		{
+			SequenceBrowser.Pin()->AddToHistory(InAnimAsset);
+		}
+
 		// Are we allowed to open animation documents right now?
 		//@TODO: Super-hacky check
 		FName CurrentMode = GetCurrentMode();
@@ -1355,6 +1366,10 @@ void FPersona::CreateDefaultCommands()
 	FIsActionChecked::CreateSP(this, &FPersona::IsPreviewAssetEnabled)
 	);
 
+	ToolkitCommands->MapAction(FPersonaCommands::Get().TogglePlay,
+		FExecuteAction::CreateSP(this, &FPersona::TogglePlayback)
+	);
+
 	ToolkitCommands->MapAction( FPersonaCommands::Get().RemoveUnusedBones,
 		FExecuteAction::CreateSP( this, &FPersona::RemoveUnusedBones ),
 		FCanExecuteAction::CreateSP( this, &FPersona::CanRemoveBones )
@@ -1425,6 +1440,12 @@ void FPersona::CreateDefaultCommands()
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::AnimationEditMode)
 		);
+}
+
+void FPersona::OnCreateGraphEditorCommands(TSharedPtr<FUICommandList> GraphEditorCommandsList)
+{
+	GraphEditorCommandsList->MapAction(FAnimGraphCommands::Get().TogglePoseWatch,
+		FExecuteAction::CreateSP(this, &FPersona::OnTogglePoseWatch));
 }
 
 bool FPersona::CanSelectBone() const
@@ -1771,6 +1792,131 @@ void FPersona::OnConvertToBlendSpacePlayer()
 	}
 }
 
+void FPersona::OnConvertToAimOffsetLookAt()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_RotationOffsetBlendSpace* OldNode = Cast<UAnimGraphNode_RotationOffsetBlendSpace>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.BlendSpace)
+			{
+				//const FScopedTransaction Transaction( LOCTEXT("ConvertToSequenceEvaluator", "Convert to Single Frame Animation") );
+
+				// convert to sequence evaluator
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new evaluator
+				FGraphNodeCreator<UAnimGraphNode_AimOffsetLookAt> NodeCreator(*TargetGraph);
+				UAnimGraphNode_AimOffsetLookAt* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.BlendSpace = OldNode->Node.BlendSpace;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				OldPosePin = OldNode->FindPin(TEXT("BasePose"));
+				NewPosePin = NewNode->FindPin(TEXT("BasePose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FPersona::OnConvertToAimOffsetSimple()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_AimOffsetLookAt* OldNode = Cast<UAnimGraphNode_AimOffsetLookAt>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.BlendSpace)
+			{
+				//const FScopedTransaction Transaction( LOCTEXT("ConvertToSequenceEvaluator", "Convert to Single Frame Animation") );
+				// convert to sequence player
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new player
+				FGraphNodeCreator<UAnimGraphNode_RotationOffsetBlendSpace> NodeCreator(*TargetGraph);
+				UAnimGraphNode_RotationOffsetBlendSpace* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.BlendSpace = OldNode->Node.BlendSpace;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				OldPosePin = OldNode->FindPin(TEXT("BasePose"));
+				NewPosePin = NewNode->FindPin(TEXT("BasePose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
 void FPersona::OnConvertToPoseBlender()
 {
 	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
@@ -1875,6 +2021,28 @@ void FPersona::OnConvertToPoseByName()
 		FocusedGraphEd->ClearSelectionSet();
 
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FPersona::OnTogglePoseWatch()
+{
+	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	UAnimBlueprint* AnimBP = GetAnimBlueprint();
+
+	for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
+	{
+		if (UAnimGraphNode_Base* SelectedNode = Cast<UAnimGraphNode_Base>(*NodeIt))
+		{
+			UPoseWatch* PoseWatch = AnimationEditorUtils::FindPoseWatchForNode(SelectedNode, AnimBP);
+			if (PoseWatch)
+			{
+				AnimationEditorUtils::RemovePoseWatch(PoseWatch, AnimBP);
+			}
+			else
+			{
+				AnimationEditorUtils::MakePoseWatchForNode(AnimBP, SelectedNode, FColor::Red);
+			}
+		}
 	}
 }
 
@@ -2192,6 +2360,12 @@ void FPersona::PostUndo(bool bSuccess)
 	// PostUndo broadcast
 	OnPostUndo.Broadcast();	
 
+	// Re-init preview instance
+	if (PreviewComponent && PreviewComponent->AnimScriptInstance)
+	{
+		PreviewComponent->AnimScriptInstance->InitializeAnimation();
+	}
+
 	RefreshPreviewInstanceTrackCurves();
 
 	// clear up preview anim notify states
@@ -2323,6 +2497,34 @@ void FPersona::SetSelectedBone(USkeleton* InTargetSkeleton, const FName& BoneNam
 					Viewport.Pin()->GetLevelViewportClient().Invalidate();
 				}
 			}
+		}
+	}
+}
+
+void FPersona::SetSelectedMorphTargets(USkeletalMesh *SkeletalMesh, const TArray<FName>& SelectedMorphTargetNames)
+{
+	UDebugSkelMeshComponent* Preview = GetPreviewMeshComponent();
+	if (Preview)
+	{
+		Preview->MorphTargetOfInterests.Reset();
+
+		if (SelectedMorphTargetNames.Num() > 0)
+		{
+			for (const FName& MorphTargetName : SelectedMorphTargetNames)
+			{
+				int32 MorphtargetIdx;
+				UMorphTarget* MorphTarget = SkeletalMesh->FindMorphTargetAndIndex(MorphTargetName, MorphtargetIdx);
+				if (MorphTarget != nullptr)
+				{
+					Preview->MorphTargetOfInterests.AddUnique(MorphTarget);
+				}
+			}
+
+			if (Viewport.IsValid())
+			{
+				Viewport.Pin()->GetLevelViewportClient().Invalidate();
+			}
+			Preview->PostInitMeshObject(PreviewComponent->MeshObject);
 		}
 	}
 }
@@ -2741,6 +2943,11 @@ void FPersona::PostRedo(bool bSuccess)
 
 	// PostUndo broadcast, OnPostRedo
 	OnPostUndo.Broadcast();
+
+	if (PreviewComponent && PreviewComponent->AnimScriptInstance)
+	{
+		PreviewComponent->AnimScriptInstance->InitializeAnimation();
+	}
 
 	// clear up preview anim notify states
 	// animnotify states are saved in AnimInstance
@@ -3734,6 +3941,14 @@ float FPersona::GetCurrentRecordingTime() const
 	float RecordingTime = 0.0f;
 	PersonaModule.OnGetCurrentRecordingTime().ExecuteIfBound(PreviewComponent, RecordingTime);
 	return RecordingTime;
+}
+
+void FPersona::TogglePlayback()
+{
+	if (PreviewComponent && PreviewComponent->PreviewInstance)
+	{
+		PreviewComponent->PreviewInstance->SetPlaying(!PreviewComponent->PreviewInstance->IsPlaying());
+	}
 }
 
 static class FMeshHierarchyCmd : private FSelfRegisteringExec

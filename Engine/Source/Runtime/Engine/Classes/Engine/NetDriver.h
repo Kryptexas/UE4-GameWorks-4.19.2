@@ -341,7 +341,9 @@ public:
 	/** Creates if necessary, and returns a FRepLayout that maps to the passed in UStruct */
 	TSharedPtr<FRepLayout>		GetStructRepLayout( UStruct * Struct );
 
-	TSet< TWeakPtr< FObjectReplicator > > UnmappedReplicators;
+	TMap< FNetworkGUID, TSet< FObjectReplicator* > >	GuidToReplicatorMap;
+	int32												TotalTrackedGuidMemoryBytes;
+	TSet< FObjectReplicator* >							UnmappedReplicators;
 
 	/** Handles to various registered delegates */
 	FDelegateHandle TickDispatchDelegateHandle;

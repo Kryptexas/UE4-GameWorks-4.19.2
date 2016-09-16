@@ -43,6 +43,8 @@ void UAbilitySystemComponent::UninitializeComponent()
 {
 	Super::UninitializeComponent();
 	
+	ActiveGameplayEffects.Uninitialize();
+
 	for (UAttributeSet* Set : SpawnedAttributes)
 	{
 		if (Set)
@@ -346,7 +348,7 @@ void UAbilitySystemComponent::OnGiveAbility(FGameplayAbilitySpec& Spec)
 
 			if (!CountChangedEvent.IsBoundToObject(this))
 			{
-				MonitoredTagChangedDelegatHandle = CountChangedEvent.AddUObject(this, &UAbilitySystemComponent::MonitoredTagChanged);
+				MonitoredTagChangedDelegateHandle = CountChangedEvent.AddUObject(this, &UAbilitySystemComponent::MonitoredTagChanged);
 			}
 		}
 	}
@@ -439,7 +441,7 @@ void UAbilitySystemComponent::CheckForClearedAbilities()
 		
 			if (CountChangedEvent.IsBoundToObject(this))
 			{
-				CountChangedEvent.Remove(MonitoredTagChangedDelegatHandle);
+				CountChangedEvent.Remove(MonitoredTagChangedDelegateHandle);
 			}
 		}
 
@@ -743,7 +745,14 @@ void UAbilitySystemComponent::DestroyActiveState()
 	if ((GetFlags() & RF_BeginDestroyed) == 0)
 	{
 		// Cancel all abilities before we are destroyed.
-		CancelAbilities();
+		FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
+		
+		// condition needed since in edge cases canceling abilities
+		// while not having valid owner/ability component can crash
+		if (ActorInfo && ActorInfo->OwnerActor.IsValid(true) && ActorInfo->AbilitySystemComponent.IsValid(true))
+		{
+			CancelAbilities();
+		}
 
 		// Mark pending kill any remaining instanced abilities
 		// (CancelAbilities() will only MarkPending kill InstancePerExecution abilities).
@@ -1506,7 +1515,6 @@ void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(FGamepl
 	{
 		if (Ability->CurrentActivationInfo.GetActivationPredictionKey().Current == PredictionKey)
 		{
-			ABILITY_LOG(Warning, TEXT("Ending Ability %s"), *Ability->GetName());
 			Ability->K2_EndAbility();
 		}
 	}
@@ -2219,11 +2227,18 @@ void UAbilitySystemComponent::AnimMontage_UpdateReplicatedData()
 
 		if (RepAnimMontageInfo.IsStopped != bIsStopped)
 		{
+			// Set this prior to calling UpdateShouldTick, so we start ticking if we are playing a Montage
+			RepAnimMontageInfo.IsStopped = bIsStopped;
+
+			// When we start or stop an animation, update the clients right away for the Avatar Actor
+			if (AbilityActorInfo->AvatarActor != nullptr)
+			{
+				AbilityActorInfo->AvatarActor->ForceNetUpdate();
+			}
+
 			// When this changes, we should update whether or not we should be ticking
 			UpdateShouldTick();
 		}
-			
-		RepAnimMontageInfo.IsStopped = bIsStopped;
 
 		// Replicate NextSectionID to keep it in sync.
 		// We actually replicate NextSectionID+1 on a BYTE to put INDEX_NONE in there.
@@ -2308,6 +2323,12 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 			{
 				LocalAnimMontageInfo.PlayBit = ReplicatedPlayBit;
 				PlayMontageSimulated(RepAnimMontageInfo.AnimMontage, RepAnimMontageInfo.PlayRate);
+			}
+
+			if (LocalAnimMontageInfo.AnimMontage == nullptr)
+			{ 
+				ABILITY_LOG(Warning, TEXT("OnRep_ReplicatedAnimMontage: PlayMontageSimulated failed. Name: %s, AnimMontage: %s"), *GetNameSafe(this), *GetNameSafe(RepAnimMontageInfo.AnimMontage));
+				return;
 			}
 
 			// Play Rate has changed

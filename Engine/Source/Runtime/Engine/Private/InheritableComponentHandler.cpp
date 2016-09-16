@@ -170,7 +170,10 @@ bool UInheritableComponentHandler::IsValid() const
 bool UInheritableComponentHandler::IsRecordValid(const FComponentOverrideRecord& Record) const
 {
 	UClass* OwnerClass = Cast<UClass>(GetOuter());
-	ensure(OwnerClass);
+	if (!ensure(OwnerClass))
+	{
+		return false;
+	}
 
 	if (!Record.ComponentTemplate)
 	{

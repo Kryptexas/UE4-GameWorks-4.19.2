@@ -23,6 +23,7 @@
 #include "SCSDiff.h"
 #include "WorkflowOrientedApp/SModeWidget.h"
 #include "GenericCommands.h"
+#include "WidgetBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintDif"
 
@@ -411,6 +412,7 @@ FListItemGraphToDiff::~FListItemGraphToDiff()
 TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget() 
 {
 	auto Graph = GraphOld ? GraphOld : GraphNew;
+	check(Graph);
 	
 	FLinearColor Color = (GraphOld && GraphNew) ? FLinearColor::White : FLinearColor(0.3f,0.3f,1.f);
 
@@ -513,6 +515,7 @@ FText FListItemGraphToDiff::GetToolTip()
 	else
 	{
 		auto GoodGraph = GraphOld ? GraphOld : GraphNew;
+		check(GoodGraph);
 		const FRevisionInfo& Revision = GraphNew ? RevisionOld : RevisionNew;
 		FText RevisionText = LOCTEXT("CurrentRevision", "Current Revision");
 
@@ -660,7 +663,6 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 	check(InArgs._BlueprintOld && InArgs._BlueprintNew);
 	PanelOld.Blueprint = InArgs._BlueprintOld;
 	PanelNew.Blueprint = InArgs._BlueprintNew;
-
 	PanelOld.RevisionInfo = InArgs._OldRevision;
 	PanelNew.RevisionInfo = InArgs._NewRevision;
 
@@ -1177,11 +1179,25 @@ void SBlueprintDiff::GenerateDifferencesList()
 		}
 	}
 
+	bool bHasComponents = true;
+	if (const UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(PanelOld.Blueprint))
+	{
+		MasterDifferencesList.Push(FBlueprintDifferenceTreeEntry::AnimBlueprintEntry());
+		bHasComponents = false;
+	}
+	else if (const UWidgetBlueprint* WidgetBP = Cast<UWidgetBlueprint>(PanelOld.Blueprint))
+	{
+		MasterDifferencesList.Push(FBlueprintDifferenceTreeEntry::WidgetBlueprintEntry());
+		bHasComponents = false;
+	}
+
 	// Unfortunately we can't perform the diff until the UI is generated, the primary reason for this is that
 	// details customizations determine what is actually editable:
 	DefaultsPanel = GenerateDefaultsPanel();
-	ComponentsPanel = GenerateComponentsPanel();
-
+	if (bHasComponents)
+	{
+		ComponentsPanel = GenerateComponentsPanel();
+	}
 
 	for (const auto& Graph : Graphs)
 	{

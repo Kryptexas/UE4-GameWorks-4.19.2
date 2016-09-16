@@ -291,7 +291,7 @@ void URig::CreateFromSkeleton(const USkeleton* Skeleton, const TMap<int32, int32
 		SourceSkeleton = RefSkeleton;
 		TArray<FTransform> SpaceBaseRefPose;
 
-		FAnimationRuntime::FillUpSpaceBasesRefPose(Skeleton, SpaceBaseRefPose);
+		FAnimationRuntime::FillUpComponentSpaceTransformsRefPose(Skeleton, SpaceBaseRefPose);
 
 		// once selected, add node to the rig
 		for (auto It = RequiredBones.CreateConstIterator(); It; ++It)

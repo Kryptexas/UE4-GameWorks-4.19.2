@@ -832,7 +832,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 
 		if (Input.Target.Platform == SP_PCD3D_ES2)
 		{
-			if (Output.NumTextureSamplers > 16)
+			if (Output.NumTextureSamplers > 8)
 			{
 				FilteredErrors.Add(FString::Printf(TEXT("Shader uses more than 8 texture samplers which is not supported by ES2!  Used: %u"), Output.NumTextureSamplers));
 				Result = E_FAIL;
@@ -906,8 +906,25 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		//@todo - there are a bunch of tessellation ones as well
 		TArray<FString> Exceptions;
 		Exceptions.AddUnique(TEXT("SV_ClipDistance"));
-		Exceptions.AddUnique(TEXT("SV_CullDistance"));
+		Exceptions.AddUnique(TEXT("SV_ClipDistance0"));
+		Exceptions.AddUnique(TEXT("SV_ClipDistance1"));
+		Exceptions.AddUnique(TEXT("SV_ClipDistance2"));
+		Exceptions.AddUnique(TEXT("SV_ClipDistance3"));
+		Exceptions.AddUnique(TEXT("SV_ClipDistance4"));
+		Exceptions.AddUnique(TEXT("SV_ClipDistance5"));
+		Exceptions.AddUnique(TEXT("SV_ClipDistance6"));
+		Exceptions.AddUnique(TEXT("SV_ClipDistance7"));
 
+		Exceptions.AddUnique(TEXT("SV_CullDistance"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance0"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance1"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance2"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance3"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance4"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance5"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance6"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance7"));
+		
 		TArray<FString> Errors;
 		if (!RemoveUnusedOutputs(PreprocessedShaderSource, UsedOutputs, Exceptions, EntryPointName, Errors))
 		{

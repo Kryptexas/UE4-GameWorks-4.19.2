@@ -8,6 +8,8 @@
 class SWindow;
 class FSlateViewportInterface;
 
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Vertex/Index Buffer Pool Memory (CPU)"), STAT_SlateBufferPoolMemory, STATGROUP_SlateMemory, SLATECORE_API );
+
 
 struct FSlateGradientStop
 {
@@ -894,6 +896,60 @@ private:
 	uint32 MaxLayer;
 };
 
+#if STATS
+
+class FSlateStatTrackingMemoryAllocator : public FDefaultAllocator
+{
+public:
+	typedef FDefaultAllocator Super;
+
+	class ForAnyElementType : public FDefaultAllocator::ForAnyElementType
+	{
+	public:
+		typedef FDefaultAllocator::ForAnyElementType Super;
+
+		ForAnyElementType()
+			: AllocatedSize(0)
+		{
+
+		}
+
+		/** Destructor. */
+		~ForAnyElementType()
+		{
+			if(AllocatedSize)
+			{
+				DEC_DWORD_STAT_BY(STAT_SlateBufferPoolMemory, AllocatedSize);
+			}
+		}
+
+		void ResizeAllocation(int32 PreviousNumElements, int32 NumElements, int32 NumBytesPerElement)
+		{
+			const int32 NewSize = NumElements * NumBytesPerElement;
+			INC_DWORD_STAT_BY(STAT_SlateBufferPoolMemory, NewSize - AllocatedSize);
+			AllocatedSize = NewSize;
+
+			Super::ResizeAllocation(PreviousNumElements, NumElements, NumBytesPerElement);
+		}
+
+	private:
+		ForAnyElementType(const ForAnyElementType&);
+		ForAnyElementType& operator=(const ForAnyElementType&);
+	private:
+		int32 AllocatedSize;
+	};
+};
+
+typedef TArray<FSlateVertex, FSlateStatTrackingMemoryAllocator> FSlateVertexArray;
+typedef TArray<SlateIndex, FSlateStatTrackingMemoryAllocator> FSlateIndexArray;
+
+#else
+
+typedef TArray<FSlateVertex> FSlateVertexArray;
+typedef TArray<SlateIndex> FSlateIndexArray;
+
+#endif
+
 
 class FSlateBatchData
 {
@@ -923,10 +979,10 @@ public:
 	void AssignIndexArrayToBatch( FSlateElementBatch& Batch );
 
 	/** @return the list of vertices for a batch */
-	TArray<FSlateVertex>& GetBatchVertexList( FSlateElementBatch& Batch ) { return BatchVertexArrays[Batch.VertexArrayIndex]; }
+	FSlateVertexArray& GetBatchVertexList( FSlateElementBatch& Batch ) { return BatchVertexArrays[Batch.VertexArrayIndex]; }
 
 	/** @return the list of indices for a batch */
-	TArray<SlateIndex>& GetBatchIndexList( FSlateElementBatch& Batch ) { return BatchIndexArrays[Batch.IndexArrayIndex]; }
+	FSlateIndexArray& GetBatchIndexList( FSlateElementBatch& Batch ) { return BatchIndexArrays[Batch.IndexArrayIndex]; }
 
 	/** @return The total number of batched vertices */
 	int32 GetNumBatchedVertices() const { return NumBatchedVertices; }
@@ -958,6 +1014,18 @@ private:
 
 	void AddRenderBatch(uint32 InLayer, const FSlateElementBatch& InElementBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset);
 
+	/**
+	 * Resets an array from the pool of vertex arrays
+	 * This will empty the array and give it a reasonable starting memory amount for when it is reused
+	 */
+	void ResetVertexArray(FSlateVertexArray& InOutVertexArray);
+
+	/**
+	* Resets an array from the pool of index arrays
+	* This will empty the array and give it a reasonable starting memory amount for when it is reused
+	*/
+	void ResetIndexArray(FSlateIndexArray& InOutIndexArray);
+
 private:
 
 	// The associated render data handle if these render batches are not in the default vertex/index buffer
@@ -970,10 +1038,10 @@ private:
 	TArray<uint32> IndexArrayFreeList;
 
 	// Array of vertex lists for batching vertices. We use this method for quickly resetting the arrays without deleting memory.
-	TArray<TArray<FSlateVertex>> BatchVertexArrays;
+	TArray<FSlateVertexArray> BatchVertexArrays;
 
 	// Array of vertex lists for batching indices. We use this method for quickly resetting the arrays without deleting memory.
-	TArray<TArray<SlateIndex>> BatchIndexArrays;
+	TArray<FSlateIndexArray> BatchIndexArrays;
 
 	/** List of element batches sorted by later for use in rendering (for threaded renderers, can only be accessed from the render thread)*/
 	TArray<FSlateRenderBatch> RenderBatches;
@@ -1147,8 +1215,8 @@ public:
 
 	bool ShouldResolveDeferred() const { return bNeedsDeferredResolve; }
 
-	void BeginDeferredGroup();
-	void EndDeferredGroup();
+	SLATECORE_API void BeginDeferredGroup();
+	SLATECORE_API void EndDeferredGroup();
 
 	TArray< TSharedPtr<FDeferredPaint> > GetDeferredPaintList() const { return DeferredPaintList; }
 

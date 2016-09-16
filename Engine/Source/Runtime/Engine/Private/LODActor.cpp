@@ -110,6 +110,29 @@ static FAutoConsoleCommandWithWorldAndArgs GHLODCmd(
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(HLODConsoleCommand)
 	);
 
+static void ListUnbuiltHLODActors(const TArray<FString>& Args, UWorld* World)
+{
+	int32 NumUnbuilt = 0;
+	for (TActorIterator<ALODActor> HLODIt(World); HLODIt; ++HLODIt)
+	{
+		ALODActor* Actor = *HLODIt;
+		if (!Actor->IsBuilt())
+		{
+			++NumUnbuilt;
+			FString ActorPathName = Actor->GetPathName(World);
+			UE_LOG(LogInit, Warning, TEXT("HLOD %s is unbuilt"), *ActorPathName);
+		}
+	}
+
+	UE_LOG(LogInit, Warning, TEXT("%d HLOD actor(s) were unbuilt"), NumUnbuilt);
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GHLODListUnbuiltCmd(
+	TEXT("r.HLOD.ListUnbuilt"),
+	TEXT("Lists all unbuilt HLOD actors in the world"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(ListUnbuiltHLODActors)
+);
+
 #endif // !(UE_BUILD_SHIPPING)
 
 //////////////////////////////////////////////////////////////////////////
@@ -138,52 +161,6 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 
 	NumTrianglesInSubActors = 0;
 	NumTrianglesInMergedMesh = 0;
-
-	if (SubActors.Num() != 0)
-	{
-		check(false);//@TODO: All of this code is dead since it's in the wrong place (see UE-31753)
-		for (AActor* Actor : SubActors)
-		{
-			// Adding number of triangles
-			if (!Actor->IsA<ALODActor>())
-			{
-				TArray<UStaticMeshComponent*> StaticMeshComponents;
-				Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
-				for (UStaticMeshComponent* Component : StaticMeshComponents)
-				{
-					if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
-					{
-						NumTrianglesInSubActors += Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
-
-						bCastsShadow |= Component->CastShadow;
-						bCastsStaticShadow |= Component->bCastStaticShadow;
-						bCastsDynamicShadow |= Component->bCastDynamicShadow;
-					}
-
-					Component->MarkRenderStateDirty();
-				}
-			}
-			else
-			{
-				ALODActor* LODActor = Cast<ALODActor>(Actor);
-				NumTrianglesInSubActors += LODActor->GetNumTrianglesInSubActors();
-
-				if (UStaticMeshComponent* ActorMeshComponent = LODActor->StaticMeshComponent)
-				{
-					bCastsShadow |= ActorMeshComponent->CastShadow;
-					bCastsStaticShadow |= ActorMeshComponent->bCastStaticShadow;
-					bCastsDynamicShadow |= ActorMeshComponent->bCastDynamicShadow;
-				}
-			}
-		}
-	
-	}
-
-	if (StaticMeshComponent && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->RenderData)
-	{
-		NumTrianglesInMergedMesh = StaticMeshComponent->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
-	}
-
 	
 #endif // WITH_EDITORONLY_DATA
 
@@ -399,11 +376,6 @@ void ALODActor::AddSubActor(AActor* InActor)
 	InActor->SetLODParent(StaticMeshComponent, LODDrawDistance);
 	SetIsDirty(true);
 
-	// Cast shadows if any sub-actors do
-	bool bCastsShadow = false;
-	bool bCastsStaticShadow = false;
-	bool bCastsDynamicShadow = false;
-
 	// Adding number of triangles
 	if (!InActor->IsA<ALODActor>())
 	{
@@ -414,12 +386,7 @@ void ALODActor::AddSubActor(AActor* InActor)
 			if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
 			{
 				NumTrianglesInSubActors += Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
-
-				StaticMeshComponent->CastShadow |= Component->CastShadow;
-				StaticMeshComponent->bCastStaticShadow |= Component->bCastStaticShadow;
-				StaticMeshComponent->bCastDynamicShadow |= Component->bCastDynamicShadow;
 			}
-
 			Component->MarkRenderStateDirty();
 		}
 	}
@@ -428,15 +395,10 @@ void ALODActor::AddSubActor(AActor* InActor)
 		ALODActor* LODActor = Cast<ALODActor>(InActor);
 		NumTrianglesInSubActors += LODActor->GetNumTrianglesInSubActors();
 		
-		if (UStaticMeshComponent* ActorMeshComponent = LODActor->StaticMeshComponent)
-		{
-			StaticMeshComponent->CastShadow |= ActorMeshComponent->CastShadow;
-			StaticMeshComponent->bCastStaticShadow |= ActorMeshComponent->bCastStaticShadow;
-			StaticMeshComponent->bCastDynamicShadow |= ActorMeshComponent->bCastDynamicShadow;
-		}
 	}
-
-	StaticMeshComponent->MarkRenderStateDirty();
+	
+	// Reset the shadowing flags and determine them according to our current sub actors
+	DetermineShadowingFlags();
 }
 
 const bool ALODActor::RemoveSubActor(AActor* InActor)
@@ -475,11 +437,38 @@ const bool ALODActor::RemoveSubActor(AActor* InActor)
 				
 		// In case the user removes an actor while the HLOD system is force viewing one LOD level
 		InActor->SetIsTemporarilyHiddenInEditor(false);
+
+		// Reset the shadowing flags and determine them according to our current sub actors
+		DetermineShadowingFlags();
 				
 		return true;
 	}
 
 	return false;
+}
+
+void ALODActor::DetermineShadowingFlags()
+{
+	// Cast shadows if any sub-actors do
+	bool bCastsShadow = false;
+	bool bCastsStaticShadow = false;
+	bool bCastsDynamicShadow = false;
+	for (AActor* Actor : SubActors)
+	{
+		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+		for (UStaticMeshComponent* Component : StaticMeshComponents)
+		{
+			bCastsShadow |= Component->CastShadow;
+			bCastsStaticShadow |= Component->bCastStaticShadow;
+			bCastsDynamicShadow |= Component->bCastDynamicShadow;
+		}
+	}
+
+	StaticMeshComponent->CastShadow = bCastsShadow;
+	StaticMeshComponent->bCastStaticShadow = bCastsStaticShadow;
+	StaticMeshComponent->bCastDynamicShadow = bCastsDynamicShadow;
+	StaticMeshComponent->MarkRenderStateDirty();
 }
 
 void ALODActor::SetIsDirty(const bool bNewState)
@@ -515,11 +504,7 @@ void ALODActor::SetIsDirty(const bool bNewState)
 	}	
 	else
 	{
-		// Update SubActor's LOD parent component
-		for (AActor* SubActor : SubActors)
-		{
-			SubActor->SetLODParent(StaticMeshComponent, LODDrawDistance);
-		}
+		UpdateSubActorLODParents();
 	}
 }
 
@@ -613,7 +598,7 @@ void ALODActor::UpdateSubActorLODParents()
 {
 	for (AActor* Actor : SubActors)
 	{	
-		Actor->SetLODParent(StaticMeshComponent, LODDrawDistance);	
+		Actor->SetLODParent(StaticMeshComponent, StaticMeshComponent->MinDrawDistance);
 	}
 }
 

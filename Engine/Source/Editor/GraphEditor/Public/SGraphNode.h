@@ -126,12 +126,6 @@ public:
 	/** @return the tint for the node's title text */
 	FLinearColor GetNodeTitleTextColor() const;
 
-	/** @return the tint for the node's indicator overlay */
-	virtual FSlateColor GetNodeIndicatorOverlayColor() const { return FLinearColor::Transparent; }
-
-	/** @return visibility state of the indicator overlay */
-	virtual EVisibility GetNodeIndicatorOverlayVisibility() const { return EVisibility::Collapsed; }
-
 	/** @return the tooltip to display when over the node */
 	FText GetNodeTooltip() const;
 	

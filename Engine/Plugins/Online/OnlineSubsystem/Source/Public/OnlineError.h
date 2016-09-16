@@ -2,7 +2,9 @@
 
 #pragma once
 
-namespace EOnlineServerConnectionStatus { enum Type; }
+namespace EOnlineServerConnectionStatus {
+	enum Type : unsigned int;
+}
 
 /** Generic Error response for OSS calls */
 struct ONLINESUBSYSTEM_API FOnlineError

@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
+#include "UObject/ObjectResource.h"
 
 /*-----------------------------------------------------------------------------
 	Helper functions.
@@ -45,6 +46,7 @@ FObjectExport::FObjectExport()
 , bIsAsset(false)
 , bExportLoadFailed(false)
 , bDynamicClass(false)
+, bWasFiltered(false)
 , PackageGuid(FGuid(0, 0, 0, 0))
 , PackageFlags(0)
 {}
@@ -65,6 +67,7 @@ FObjectExport::FObjectExport( UObject* InObject )
 , bIsAsset(false)
 , bExportLoadFailed(false)
 , bDynamicClass(false)
+, bWasFiltered(false)
 , PackageGuid(FGuid(0, 0, 0, 0))
 , PackageFlags(0)
 {

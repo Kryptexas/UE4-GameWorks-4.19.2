@@ -46,7 +46,7 @@ void FKismetBytecodeDisassembler::DisassembleAllFunctionsInClasses(FOutputDevice
 		UClass* Class = *ClassIter;
 
 		FString ClassName = Class->GetName();
-		if (FCString::Strfind(*ClassName, *ClassnameSubstring))
+		if (FCString::Strifind(*ClassName, *ClassnameSubstring))
 		{
 			Ar.Logf(TEXT("Processing class %s"), *ClassName);
 
@@ -872,6 +872,12 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			const uint8 EventType = ReadBYTE(ScriptIndex);
 			switch (EventType)
 			{
+				case EScriptInstrumentation::InlineEvent:
+					Ar.Logf(TEXT("%s $%X: .. instrumented inline event .."), *Indents, (int32)Opcode);
+					break;
+				case EScriptInstrumentation::Stop:
+					Ar.Logf(TEXT("%s $%X: .. instrumented event stop .."), *Indents, (int32)Opcode);
+					break;
 				case EScriptInstrumentation::PureNodeEntry:
 					Ar.Logf(TEXT("%s $%X: .. instrumented pure node entry site .."), *Indents, (int32)Opcode);
 					break;
@@ -898,6 +904,9 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 					break;
 				case EScriptInstrumentation::PopState:
 					Ar.Logf(TEXT("%s $%X: .. pop execution state .."), *Indents, (int32)Opcode);
+					break;
+				case EScriptInstrumentation::TunnelEndOfThread:
+					Ar.Logf(TEXT("%s $%X: .. tunnel end of thread .."), *Indents, (int32)Opcode);
 					break;
 			}
 			break;

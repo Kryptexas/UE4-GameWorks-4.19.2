@@ -2,8 +2,6 @@
 
 #pragma once
 
-class UGameplayCueSet;
-
 #include "GameplayTags.h"
 #include "GameplayEffect.h"
 #include "GameplayCueNotify_Actor.h"
@@ -12,6 +10,8 @@ class UGameplayCueSet;
 #include "Engine/DataAsset.h"
 #include "Engine/StreamableManager.h"
 #include "GameplayCueManager.generated.h"
+
+class UGameplayCueSet;
 
 /**
  *	
@@ -102,13 +102,14 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	/** Notify that this actor is finished and should be destroyed or recycled */
 	virtual void NotifyGameplayCueActorFinished(AGameplayCueNotify_Actor* Actor);
 
+	/** Notify to say the actor is about to be destroyed and the GC manager needs to remove references to it. This should not happen in normal play with recycling enabled, but could happen in replays. */
+	virtual void NotifyGameplayCueActorEndPlay(AGameplayCueNotify_Actor* Actor);
+
 	/** Resets preallocation for a given world */
 	void ResetPreallocation(UWorld* World);
 
 	/** Prespawns a single actor for gameplaycue notify actor classes that need prespawning (should be called by outside gamecode, such as gamestate) */
 	void UpdatePreallocation(UWorld* World);
-
-	void OnWorldCreated(UWorld* NewWorld, const UWorld::InitializationValues);
 
 	void OnWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 
@@ -234,7 +235,4 @@ protected:
 
 	UPROPERTY(transient)
 	TArray<FPreallocationInfo>	PreallocationInfoList_Internal;
-
-	UPROPERTY(transient)
-	FPreallocationInfo	PreallocationInfo_Internal;
 };

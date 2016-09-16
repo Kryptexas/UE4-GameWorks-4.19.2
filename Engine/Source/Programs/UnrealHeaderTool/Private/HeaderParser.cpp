@@ -1194,9 +1194,11 @@ UEnum* FHeaderParser::CompileEnum()
 	// Validate the metadata for the enum
 	ValidateMetaDataFormat(Enum, EnumToken.MetaData);
 
-	// Read optional base for enum class
-	if (CppForm == UEnum::ECppForm::EnumClass && MatchSymbol(TEXT(":")))
+	// Read base for enum class
+	if (CppForm == UEnum::ECppForm::EnumClass)
 	{
+		RequireSymbol(TEXT(":"), TEXT("'Enum'"));
+
 		FToken BaseToken;
 		if (!GetIdentifier(BaseToken))
 		{
@@ -2629,7 +2631,8 @@ void FHeaderParser::CompileDirective(FClasses& AllClasses)
 		bool bNotDefined = MatchSymbol(TEXT("!"));
 
 		int32 TempInt;
-		if (GetConstInt(TempInt) && TempInt == 0 || TempInt == 1)
+		const bool bParsedInt = GetConstInt(TempInt);
+		if (bParsedInt && (TempInt == 0 || TempInt == 1))
 		{
 			PushCompilerDirective(ECompilerDirective::Insignificant);
 		}
@@ -3069,6 +3072,12 @@ FIndexRange*                    ParsedVarIndexRange
 				case EVariableSpecifier::SaveGame:
 				{
 					Flags |= CPF_SaveGame;
+				}
+				break;
+
+				case EVariableSpecifier::SkipSerialization:
+				{
+					Flags |= CPF_SkipSerialization;
 				}
 				break;
 
@@ -4101,8 +4110,11 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	// Check to see if the variable is deprecated, and if so set the flag
 	{
 		FString VarName(VarProperty.Identifier);
-		int32 DeprecatedIndex = VarName.Find(TEXT("_DEPRECATED"));
-		if (DeprecatedIndex != INDEX_NONE)
+
+		const int32 DeprecatedIndex = VarName.Find(TEXT("_DEPRECATED"));
+		const int32 NativizedPropertyPostfixIndex = VarName.Find(TEXT("__pf")); //TODO: check OverrideNativeName in Meta Data, to be sure it's not a random occurrence of the "__pf" string.
+		bool bIgnoreDeprecatedWord = (NativizedPropertyPostfixIndex != INDEX_NONE) && (NativizedPropertyPostfixIndex > DeprecatedIndex);
+		if ((DeprecatedIndex != INDEX_NONE) && !bIgnoreDeprecatedWord)
 		{
 			if (DeprecatedIndex != VarName.Len() - 11)
 			{
@@ -6896,7 +6908,7 @@ ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHead
 
 	TArray<FUnrealSourceFile*> SourceFilesRequired;
 
-	static const FString ObjectHeader = FString(TEXT("Object.h"));
+	static const FString ObjectHeader = FString(TEXT("NoExportTypes.h"));
 	for (auto& Include : SourceFile->GetIncludes())
 	{
 		if (Include.GetId() == ObjectHeader)

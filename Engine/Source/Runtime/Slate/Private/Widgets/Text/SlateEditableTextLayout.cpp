@@ -223,14 +223,14 @@ void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)
 	const bool bForceRefresh = !EditableText.ToString().Equals(NewText.ToString(), ESearchCase::CaseSensitive);
 
 	// Only emit the "text changed" event if the text has actually been changed
-	const bool bHasTextChanged = OwnerWidget->GetSlateWidget()->HasKeyboardFocus() 
+	const bool bHasTextChanged = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet()
 		? !NewText.ToString().Equals(EditableText.ToString(), ESearchCase::CaseSensitive)
 		: !NewText.ToString().Equals(PreviousText.ToString(), ESearchCase::CaseSensitive);
 
 	if (RefreshImpl(&NewText, bForceRefresh))
 	{
 		// Make sure we move the cursor to the end of the new text if we had keyboard focus
-		if (OwnerWidget->GetSlateWidget()->HasKeyboardFocus())
+		if (OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet())
 		{
 			JumpTo(ETextLocation::EndOfDocument, ECursorAction::MoveCursor);
 		}
@@ -327,6 +327,9 @@ bool FSlateEditableTextLayout::SetEditableText(const FText& TextToSet, const boo
 
 		ClearSelection();
 		TextLayout->ClearLines();
+
+		TextLayout->ClearLineHighlights();
+		TextLayout->ClearRunRenderers();
 
 		Marshaller->SetText(TextToSetString, *TextLayout);
 
@@ -907,7 +910,7 @@ FReply FSlateEditableTextLayout::HandleMouseButtonDown(const FGeometry& MyGeomet
 			InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 		{
 			// Am I getting focus right now?
-			const bool bIsGettingFocus = !OwnerWidget->GetSlateWidget()->HasKeyboardFocus();
+			const bool bIsGettingFocus = !OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet();
 			if (bIsGettingFocus)
 			{
 				// We might be receiving keyboard focus due to this event.  Because the keyboard focus received callback
@@ -2248,14 +2251,14 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 
 	RemoveCursorHighlight();
 
-	static const int32 SelectionHighlightZOrder = -1; // draw below the text
-	static const int32 CompositionRangeZOrder = 1; // draw above the text
-	static const int32 CursorZOrder = 2; // draw above the text and the composition
+	static const int32 SelectionHighlightZOrder = -10; // draw below the text
+	static const int32 CompositionRangeZOrder = 10; // draw above the text
+	static const int32 CursorZOrder = 11; // draw above the text and the composition
 
 	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 	const FTextLocation SelectionLocation = SelectionStart.Get(CursorInteractionPosition);
 
-	const bool bHasKeyboardFocus = OwnerWidget->GetSlateWidget()->HasKeyboardFocus();
+	const bool bHasKeyboardFocus = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet();
 	const bool bIsComposing = TextInputMethodContext->IsComposing();
 	const bool bHasSelection = SelectionLocation != CursorInteractionPosition;
 
@@ -2277,7 +2280,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 			const bool bCursorInRange = (CompositionBeginLocation.GetLineIndex() == CursorInteractionPosition.GetLineIndex() && Range.InclusiveContains(CursorInteractionPosition.GetOffset()));
 			if (!Range.IsEmpty() && bCursorInRange)
 			{
-				TextLayout->AddLineHighlight(FTextLineHighlight(CompositionBeginLocation.GetLineIndex(), Range, CompositionRangeZOrder, TextCompositionHighlighter.ToSharedRef()));
+				ActiveLineHighlights.Add(FTextLineHighlight(CompositionBeginLocation.GetLineIndex(), Range, CompositionRangeZOrder, TextCompositionHighlighter.ToSharedRef()));
 			}
 		}
 	}
@@ -2296,7 +2299,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 		if (SelectionBeginningLineIndex == SelectionEndLineIndex)
 		{
 			const FTextRange Range(SelectionBeginningLineOffset, SelectionEndLineOffset);
-			TextLayout->AddLineHighlight(FTextLineHighlight(SelectionBeginningLineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
+			ActiveLineHighlights.Add(FTextLineHighlight(SelectionBeginningLineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
 		}
 		else
 		{
@@ -2307,17 +2310,17 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 				if (LineIndex == SelectionBeginningLineIndex)
 				{
 					const FTextRange Range(SelectionBeginningLineOffset, Lines[LineIndex].Text->Len());
-					TextLayout->AddLineHighlight(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
+					ActiveLineHighlights.Add(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
 				}
 				else if (LineIndex == SelectionEndLineIndex)
 				{
 					const FTextRange Range(0, SelectionEndLineOffset);
-					TextLayout->AddLineHighlight(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
+					ActiveLineHighlights.Add(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
 				}
 				else
 				{
 					const FTextRange Range(0, Lines[LineIndex].Text->Len());
-					TextLayout->AddLineHighlight(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
+					ActiveLineHighlights.Add(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
 				}
 			}
 		}
@@ -2333,23 +2336,38 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 
 		if (LineTextLength == 0)
 		{
-			TextLayout->AddLineHighlight(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
 		}
 		else if (CursorPosition.GetOffset() == LineTextLength)
 		{
-			TextLayout->AddLineHighlight(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
 		}
 		else
 		{
-			TextLayout->AddLineHighlight(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
 		}
+	}
+
+	// We don't use SetLineHighlights here as we don't want to remove any line highlights that other code might have added (eg, underlines)
+	for (const FTextLineHighlight& LineHighlight : ActiveLineHighlights)
+	{
+		TextLayout->AddLineHighlight(LineHighlight);
 	}
 }
 
 void FSlateEditableTextLayout::RemoveCursorHighlight()
 {
-	TextLayout->ClearRunRenderers();
-	TextLayout->ClearLineHighlights();
+	const TArray<FTextLayout::FLineModel>& Lines = TextLayout->GetLineModels();
+
+	for (const FTextLineHighlight& LineHighlight : ActiveLineHighlights)
+	{
+		if (Lines.IsValidIndex(LineHighlight.LineIndex))
+		{
+			TextLayout->RemoveLineHighlight(LineHighlight);
+		}
+	}
+
+	ActiveLineHighlights.Empty();
 }
 
 void FSlateEditableTextLayout::UpdatePreferredCursorScreenOffsetInLine()
@@ -2907,12 +2925,16 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 {
 	if (bTextCommittedByVirtualKeyboard)
 	{
-		// Let outsiders know that the text content has been changed
-		OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
-		bTextCommittedByVirtualKeyboard = false;
+		if (SetEditableText(VirtualKeyboardText))
+		{
+			// Let outsiders know that the text content has been changed
+			OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
+			bTextCommittedByVirtualKeyboard = false;
+		}
 	}
 	else if (bTextChangedByVirtualKeyboard)
 	{
+		SetEditableText(VirtualKeyboardText);
 		// Let outsiders know that the text content has been changed
 		OwnerWidget->OnTextChanged(GetEditableText());
 		bTextChangedByVirtualKeyboard = false;
@@ -2923,7 +2945,7 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 		TextInputMethodChangeNotifier->NotifyLayoutChanged(ITextInputMethodChangeNotifier::ELayoutChangeType::Changed);
 	}
 
-	const bool bShouldAppearFocused = OwnerWidget->GetSlateWidget()->HasKeyboardFocus() || HasActiveContextMenu();
+	const bool bShouldAppearFocused = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet() || HasActiveContextMenu();
 	if (bShouldAppearFocused)
 	{
 		// If we have focus then we don't allow the editable text itself to update, but we do still need to refresh the password and marshaller state
@@ -3208,15 +3230,13 @@ void FSlateEditableTextLayout::FVirtualKeyboardEntry::SetTextFromVirtualKeyboard
 	}
 
 	// Update the internal editable text
-	if (OwnerLayout->SetEditableText(InNewText))
+	// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
+	// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
+	// fired on the game thread in Tick.		
+	OwnerLayout->VirtualKeyboardText = InNewText;
+	if (SetTextType == ESetTextType::Changed)
 	{
-		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
-		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
-		// fired on the game thread in Tick.		
-		if (SetTextType == ESetTextType::Changed)
-		{
-			OwnerLayout->bTextChangedByVirtualKeyboard = true;
-		}
+		OwnerLayout->bTextChangedByVirtualKeyboard = true;
 	}
 	if (SetTextType == ESetTextType::Commited)
 	{

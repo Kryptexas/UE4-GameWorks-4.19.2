@@ -173,6 +173,10 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 		}
 	}
 
+	TArray<FString> AdditionalPublicDependencyModuleNames;
+	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("AdditionalPublicDependencyModuleNames"), AdditionalPublicDependencyModuleNames, GEditorIni);
+	PublicDependencies.Append(AdditionalPublicDependencyModuleNames);
+
 	TArray<FString> PrivateDependencies;
 
 	const TArray<UPackage*>& ModulePackages = Manifest.GetModuleDependencies();
@@ -183,7 +187,10 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 		const FString PkgModuleName = FPackageName::GetLongPackageAssetName(ModulePkg->GetName());
 		if (ModuleManager.ModuleExists(*PkgModuleName))
 		{
-			PrivateDependencies.Add(PkgModuleName);
+			if (!PublicDependencies.Contains(PkgModuleName))
+			{
+				PrivateDependencies.Add(PkgModuleName);
+			}
 		}
 		else
 		{
@@ -245,7 +252,7 @@ bool FBlueprintNativeCodeGenUtils::FinalizePlugin(const FBlueprintNativeCodeGenM
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource)
+void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource, TSharedPtr<FNativizationSummary> NativizationSummary)
 {
 	auto UDEnum = Cast<UUserDefinedEnum>(Obj);
 	auto UDStruct = Cast<UUserDefinedStruct>(Obj);
@@ -299,6 +306,7 @@ void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FStr
 
 		IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 		CodeGenBackend.GetOriginalClassMap().Add(*DuplicateBP->GeneratedClass, *InBlueprintObj->GeneratedClass);
+		CodeGenBackend.NativizationSummary() = NativizationSummary;
 
 		{
 			TSharedPtr<FBlueprintCompileReinstancer> Reinstancer = FBlueprintCompileReinstancer::Create(DuplicateBP->GeneratedClass);

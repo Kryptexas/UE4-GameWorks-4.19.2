@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
+#include "Object.h"
+#include "GarbageCollection.h"
 
 /*-----------------------------------------------------------------------------
 	Mirrors of mirror structures in Object.h. These are used by generated code 
@@ -18,6 +20,7 @@ COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogClass, Log, All);
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 
 struct FPropertyTag;
+struct FNetDeltaSerializeInfo;
 
 /*-----------------------------------------------------------------------------
 	FRepRecord.
@@ -337,7 +340,7 @@ public:
 	virtual void DestroyStruct(void* Dest, int32 ArrayDim = 1) const;
 
 #if WITH_EDITOR
-private:
+public:
 	virtual UProperty* CustomFindProperty(const FName InName) const { return NULL; };
 #endif // WITH_EDITOR
 public:
@@ -1023,8 +1026,6 @@ public:
 #endif
 
 private:
-	/** true if these cpp ops are not for me, but rather this is an incomplete cpp ops from my base class. **/
-	bool bCppStructOpsFromBaseClass;
 	/** true if we have performed PrepareCppStructOps **/
 	bool bPrepareCppStructOpsCompleted;
 	/** Holds the Cpp ctors and dtors, sizeof, etc. Is not owned by this and is not released. **/
@@ -1056,18 +1057,10 @@ public:
 		return CppStructOps;
 	}
 
-	/** return true if these cpp ops are not for me, but rather this is an incomplete cpp ops from my base class **/
-	FORCEINLINE bool InheritedCppStructOps() const
-	{
-		check(bPrepareCppStructOpsCompleted);
-		return bCppStructOpsFromBaseClass;
-	}
-
 	void ClearCppStructOps()
 	{
 		StructFlags = EStructFlags(StructFlags & ~STRUCT_ComputedFlags);
 		bPrepareCppStructOpsCompleted = false;
-		bCppStructOpsFromBaseClass = false;
 		CppStructOps = NULL;
 	}
 	/** 
@@ -1162,119 +1155,6 @@ public:
 #endif // WITH_EDITOR
 };
 
-class FStructOnScope
-{
-protected:
-	TWeakObjectPtr<const UStruct> ScriptStruct;
-	uint8* SampleStructMemory;
-	TWeakObjectPtr<UPackage> Package;
-
-	FStructOnScope()
-		: SampleStructMemory(nullptr)
-		, OwnsMemory(false)
-	{
-	}
-
-	void Initialize()
-	{
-		if (ScriptStruct.IsValid())
-		{
-			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
-			ScriptStruct.Get()->InitializeStruct(SampleStructMemory);
-			OwnsMemory = true;
-		}
-	}
-
-public:
-
-	FStructOnScope(const UStruct* InScriptStruct)
-		: ScriptStruct(InScriptStruct)
-		, SampleStructMemory(nullptr)
-		, OwnsMemory(false)
-	{
-		Initialize();
-	}
-
-	FStructOnScope(const UStruct* InScriptStruct, uint8* InData)
-		: ScriptStruct(InScriptStruct)
-		, SampleStructMemory(InData)
-		, OwnsMemory(false)
-	{
-	}
-
-	virtual uint8* GetStructMemory()
-	{
-		return SampleStructMemory;
-	}
-
-	virtual const uint8* GetStructMemory() const
-	{
-		return SampleStructMemory;
-	}
-
-	virtual const UStruct* GetStruct() const
-	{
-		return ScriptStruct.Get();
-	}
-
-	virtual UPackage* GetPackage() const
-	{
-		return Package.Get();
-	}
-
-	virtual void SetPackage(UPackage* InPackage)
-	{
-		Package = InPackage;
-	}
-
-	virtual bool IsValid() const
-	{
-		return ScriptStruct.IsValid() && SampleStructMemory;
-	}
-
-	virtual void Destroy()
-	{
-		if (!OwnsMemory)
-		{
-			return;
-		}
-
-		if (ScriptStruct.IsValid() && SampleStructMemory)
-		{
-			ScriptStruct.Get()->DestroyStruct(SampleStructMemory);
-			ScriptStruct = NULL;
-		}
-
-		if (SampleStructMemory)
-		{
-			FMemory::Free(SampleStructMemory);
-			SampleStructMemory = NULL;
-		}
-	}
-
-	virtual ~FStructOnScope()
-	{
-		Destroy();
-	}
-
-	/** Re-initializes the scope with a specified UStruct */
-	void Initialize(TWeakObjectPtr<const UStruct> InScriptStruct)
-	{
-		ScriptStruct = InScriptStruct;
-		Initialize();
-	}
-
-private:
-
-	FStructOnScope(const FStructOnScope&);
-	FStructOnScope& operator=(const FStructOnScope&);
-
-private:
-
-	/** Whether the struct memory is owned by this instance. */
-	bool OwnsMemory;
-};
-
 /*-----------------------------------------------------------------------------
 	UFunction.
 -----------------------------------------------------------------------------*/
@@ -1361,12 +1241,7 @@ public:
 	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 
 	// UFunction interface.
-	UFunction* GetSuperFunction() const
-	{
-		UStruct* Result = GetSuperStruct();
-		checkSlow(!Result || Result->IsA<UFunction>());
-		return (UFunction*)Result;
-	}
+	UFunction* GetSuperFunction() const;
 
 	UProperty* GetReturnProperty() const;
 
@@ -1508,9 +1383,8 @@ public:
 
 	// UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
 	// End of UObject interface.
-
-	~UEnum();
 
 	/*
 	 *	Try to update an out-of-date enum index after an enum's change
@@ -1898,21 +1772,21 @@ namespace EIncludeSuperFlag
 	class FFastIndexingClassTreeRegistrar
 	{
 	public:
-		FFastIndexingClassTreeRegistrar();
-		FFastIndexingClassTreeRegistrar(const FFastIndexingClassTreeRegistrar&);
-		~FFastIndexingClassTreeRegistrar();
+		COREUOBJECT_API FFastIndexingClassTreeRegistrar();
+		COREUOBJECT_API FFastIndexingClassTreeRegistrar(const FFastIndexingClassTreeRegistrar&);
+		COREUOBJECT_API ~FFastIndexingClassTreeRegistrar();
 
 	private:
 		friend class UClass;
 		friend class UObjectBaseUtility;
 		friend class FFastIndexingClassTree;
 
-		bool IsAUsingFastTree(const FFastIndexingClassTreeRegistrar& Parent) const
+		FORCEINLINE bool IsAUsingFastTree(const FFastIndexingClassTreeRegistrar& Parent) const
 		{
 			return ClassTreeIndex - Parent.ClassTreeIndex <= Parent.ClassTreeNumChildren;
 		}
 
-		FFastIndexingClassTreeRegistrar& operator=(const FFastIndexingClassTreeRegistrar&);
+		FFastIndexingClassTreeRegistrar& operator=(const FFastIndexingClassTreeRegistrar&) = delete;
 
 		uint32 ClassTreeIndex;
 		uint32 ClassTreeNumChildren;
@@ -2543,6 +2417,8 @@ public:
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
 
+	UStructProperty* FindStructPropertyChecked(const TCHAR* PropertyName) const;
+
 	/** Misc objects owned by the class. */
 	TArray<UObject*> MiscConvertedSubobjects;
 
@@ -2816,28 +2692,15 @@ private:
 	TMap<class UObject*,class UObject*>			SourceToDestinationMap;
 };
 
+// UFunction interface.
 
-// ObjectBase.h
-
-/**
- * Dereference back into a UClass
- * @return	the embedded UClass
- */
-template<class TClass>
-FORCEINLINE UClass* TSubclassOf<TClass>::operator*() const
+inline UFunction* UFunction::GetSuperFunction() const
 {
-	if (!Class || !Class->IsChildOf(TClass::StaticClass()))
-{
-		return NULL;
-	}
-	return Class;
+	UStruct* Result = GetSuperStruct();
+	checkSlow(!Result || Result->IsA<UFunction>());
+	return (UFunction*)Result;
 }
 
-template<class TClass>
-FORCEINLINE TClass* TSubclassOf<TClass>::GetDefaultObject() const
-{
-	return Class ? Class->GetDefaultObject<TClass>() : NULL;
-}
 
 // UObject.h
 
@@ -2893,7 +2756,7 @@ T* ConstructObject(UClass* Class, UObject* Outer, FName Name, EObjectFlags SetFl
 template< class T > 
 inline const T* GetDefault(UClass *Class)
 {
-	checkSlow(Class->GetDefaultObject()->IsA(T::StaticClass()));
+	check(Class->GetDefaultObject()->IsA(T::StaticClass()));
 	return (const T*)Class->GetDefaultObject();
 }
 
@@ -2909,7 +2772,7 @@ inline const T* GetDefault(UClass *Class)
 template< class T > 
 inline T* GetMutableDefault(UClass *Class)
 {
-	checkSlow(Class->GetDefaultObject()->IsA(T::StaticClass()));
+	check(Class->GetDefaultObject()->IsA(T::StaticClass()));
 	return (T*)Class->GetDefaultObject();
 }
 
@@ -3005,3 +2868,4 @@ template<> struct TBaseStructure<FInt32Interval>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };
+

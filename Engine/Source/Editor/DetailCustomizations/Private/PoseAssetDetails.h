@@ -19,9 +19,10 @@ private:
  	TWeakObjectPtr<UPoseAsset> PoseAsset;
 	TWeakObjectPtr<USkeleton> TargetSkeleton;
 
-	// retarget source handler
+	// property handler
 	TSharedPtr<IPropertyHandle> RetargetSourceNameHandler;
 
+	// retarget source related
 	TSharedPtr<class SComboBox< TSharedPtr<FString> > > RetargetSourceComboBox;
 	TArray< TSharedPtr< FString > >						RetargetSourceComboList;
 
@@ -65,6 +66,9 @@ private:
 	FReply OnApplyAdditiveSettings();
 
 	TSharedPtr<IPropertyHandle> SourceAnimationPropertyHandle;
+	// replacing source animation
+	void OnSourceAnimationChanged(const FAssetData& AssetData);
+	bool ShouldFilterAsset(const FAssetData& AssetData);
 	FReply OnUpdatePoseSourceAnimation();
 
 	FText GetButtonText() const;

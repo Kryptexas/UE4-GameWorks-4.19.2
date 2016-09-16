@@ -156,7 +156,7 @@ FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Conten
 					Desc.MiscFlags = 0;
 					Desc.StructureByteStride = 0;
 
-					VERIFYD3D11RESULT(Direct3DDevice->CreateBuffer(&Desc, NULL, UniformBufferResource.GetInitReference()));
+					VERIFYD3D11RESULT_EX(Direct3DDevice->CreateBuffer(&Desc, NULL, UniformBufferResource.GetInitReference()), Direct3DDevice);
 
 					UpdateBufferStats(UniformBufferResource, true);
 				}
@@ -165,7 +165,7 @@ FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Conten
 
 				D3D11_MAPPED_SUBRESOURCE MappedSubresource;
 				// Discard previous results since we always do a full update
-				VERIFYD3D11RESULT(Direct3DDeviceIMContext->Map(UniformBufferResource, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedSubresource));
+				VERIFYD3D11RESULT_EX(Direct3DDeviceIMContext->Map(UniformBufferResource, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedSubresource), Direct3DDevice);
 				check(MappedSubresource.RowPitch >= NumBytes);
 				FMemory::Memcpy(MappedSubresource.pData, Contents, NumBytes);
 				Direct3DDeviceIMContext->Unmap(UniformBufferResource, 0);
@@ -189,7 +189,7 @@ FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Conten
 			ImmutableData.SysMemPitch = ImmutableData.SysMemSlicePitch = 0;
 
 			TRefCountPtr<ID3D11Buffer> UniformBufferResource;
-			VERIFYD3D11RESULT(Direct3DDevice->CreateBuffer(&Desc,&ImmutableData,UniformBufferResource.GetInitReference()));
+			VERIFYD3D11RESULT_EX(Direct3DDevice->CreateBuffer(&Desc,&ImmutableData,UniformBufferResource.GetInitReference()), Direct3DDevice);
 
 			NewUniformBuffer = new FD3D11UniformBuffer(this, Layout, UniformBufferResource, FRingAllocation());
 		}

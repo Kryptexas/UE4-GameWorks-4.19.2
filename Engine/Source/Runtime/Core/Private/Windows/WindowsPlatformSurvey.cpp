@@ -15,14 +15,9 @@
 	#pragma comment( lib, "PowrProf.lib" )
 #endif
 
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(push)
-	#pragma warning(disable:28251)
-#endif
-#include <subauth.h>
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(pop)
-#endif
+THIRD_PARTY_INCLUDES_START
+	#include <subauth.h>
+THIRD_PARTY_INCLUDES_END
 
 #include "UnrealString.h"
 #include "SynthBenchmark.h"
@@ -545,7 +540,7 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 						break;
 
 					case WINSAT_ASSESSMENT_STATE_INCOHERENT_WITH_HARDWARE:
-						UE_LOG(LogWindows, Warning, TEXT("FWindowsPlatformSurvey::TickSurveyHardware() WinSAT assessment state is out-of-date. Unable to examine some hardware metrics. Run the Windows Experience Index Assessment.") );
+						UE_LOG(LogWindows, Log, TEXT("FWindowsPlatformSurvey::TickSurveyHardware() WinSAT assessment state is out-of-date. Unable to examine some hardware metrics. Run the Windows Experience Index Assessment.") );
 						OutResults.ErrorCount++;
 						WriteFStringToResults(OutResults.LastSurveyError, TEXT("WinSAT assessment out-of-date. Using old results."));
 						WriteFStringToResults(OutResults.LastSurveyErrorDetail, TEXT(""));
@@ -553,7 +548,7 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 						break;
 
 					case WINSAT_ASSESSMENT_STATE_NOT_AVAILABLE:
-						UE_LOG(LogWindows, Warning, TEXT("FWindowsPlatformSurvey::TickSurveyHardware() WinSAT assessment unavailable. Unable to examine some hardware metrics. Run the Windows Experience Index Assessment.") );
+						UE_LOG(LogWindows, Log, TEXT("FWindowsPlatformSurvey::TickSurveyHardware() WinSAT assessment unavailable. Unable to examine some hardware metrics. Run the Windows Experience Index Assessment.") );
 						OutResults.ErrorCount++;
 						WriteFStringToResults(OutResults.LastSurveyError, TEXT("WinSAT assessment unavailable. User hasn't run Windows Experience Index Assessment."));
 						WriteFStringToResults(OutResults.LastSurveyErrorDetail, TEXT(""));

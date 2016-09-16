@@ -138,7 +138,17 @@ void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InVie
 
 	if (Actor)
 	{
-		Actor->BurnInOptions = BurnInOptions;
+		if (BurnInOptions)
+		{
+			Actor->BurnInOptions = BurnInOptions;
+
+			bool bUseBurnIn = false;
+			if( FParse::Bool( FCommandLine::Get(), TEXT( "-UseBurnIn=" ), bUseBurnIn ) )
+			{
+				Actor->BurnInOptions->bUseBurnIn = bUseBurnIn;
+			}
+		}
+
 		Actor->RefreshBurnIn();
 
 		// Make sure we're not playing yet (in case AutoPlay was called from BeginPlay)
@@ -278,7 +288,6 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 	if( bCapturing && !Actor->SequencePlayer->IsPlaying() )
 	{
 		Actor->SequencePlayer->OnSequenceUpdated().Remove( OnPlayerUpdatedBinding );
-		ExportEDL();
 		FinalizeWhenReady();
 	}
 }
@@ -323,6 +332,13 @@ void UAutomatedLevelSequenceCapture::SaveToConfig()
 	}
 
 	UMovieSceneCapture::SaveToConfig();
+}
+
+void UAutomatedLevelSequenceCapture::Close()
+{
+	Super::Close();
+
+	ExportEDL();
 }
 
 void UAutomatedLevelSequenceCapture::SerializeAdditionalJson(FJsonObject& Object)
@@ -390,7 +406,9 @@ void UAutomatedLevelSequenceCapture::ExportEDL()
 		return;
 	}
 
-	MovieSceneCaptureHelpers::ExportEDL(MovieScene, Settings.FrameRate, Settings.OutputDirectory.Path);
+	FString SaveFilename = 	Settings.OutputDirectory.Path / MovieScene->GetOuter()->GetName();
+
+	MovieSceneCaptureHelpers::ExportEDL(MovieScene, Settings.FrameRate, SaveFilename);
 }
 
 

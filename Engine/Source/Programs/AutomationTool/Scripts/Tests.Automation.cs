@@ -24,7 +24,7 @@ class TestP4_Info : BuildCommand
 		Log("P4PORT={0}", GetEnvVar("P4PORT"));
 
 		var Result = P4.P4("info");
-		if (Result != 0)
+		if (Result.ExitCode != 0)
 		{
 			throw new AutomationException("p4 info failed: {0}", Result.Output);
 		}
@@ -76,8 +76,8 @@ class GitPullRequest : BuildCommand
 
 		Log("Running {0} {1}", GitExePath, GitCommandLine);
 
-		ProcessResult Result = Run(App: GitExePath, CommandLine: GitCommandLine, Options: (ERunOptions.NoLoggingOfRunCommand | ERunOptions.AllowSpew | ERunOptions.AppMustExist));
-		if (Result > 0 || Result < 0)
+		IProcessResult Result = Run(App: GitExePath, CommandLine: GitCommandLine, Options: (ERunOptions.NoLoggingOfRunCommand | ERunOptions.AllowSpew | ERunOptions.AppMustExist));
+		if (Result.ExitCode != 0)
 		{
 			throw new AutomationException(String.Format("Command failed (Result:{2}): {0} {1}", GitExePath, GitCommandLine, Result.ExitCode));
 		}
@@ -687,7 +687,7 @@ class TestTestFarm : BuildCommand
 		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
 		string CmdLine = " ../../../Samples/HoverShip/HoverShip.uproject -game -forcelogflush -log -abslog=" + ClientLogFile;
 
-		ProcessResult App = Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
+		IProcessResult App = Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
 
 		LogFileReaderProcess(ClientLogFile, App, (string Output) =>
 		{
@@ -803,7 +803,7 @@ class TestLog : BuildCommand
 
 		string ServerCmdLine = StartArgs + OtherArgs;
 
-		ProcessResult ServerProcess = Run(ServerApp, ServerCmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
+		IProcessResult ServerProcess = Run(ServerApp, ServerCmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
 
 		LogFileReaderProcess(ServerLogFile, ServerProcess, (string Output) =>
 		{
@@ -1312,58 +1312,6 @@ public class UBT : BuildCommand
 		Build.Build(Agenda, InUpdateVersionFiles: false);
 
 		Log("UBT Completed");
-	}
-}
-[Help("Zeroes engine versions in ObjectVersion.cpp and Version.h and checks them in.")]
-[RequireP4]
-public class ZeroEngineVersions : BuildCommand
-{
-	public override void ExecuteBuild()
-	{
-		string VersionFilename = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/Launch/Resources/Version.h";
-		if (P4Env.Changelist > 0)
-		{
-			var Stat = P4.FStat(VersionFilename);
-			if (Stat.IsValid && Stat.Action != P4Action.None)
-			{
-				Log("Reverting {0}", VersionFilename);
-				P4.Revert(VersionFilename);
-			}
-
-			Log("Gettting engine version files @{0}", P4Env.Changelist);
-			P4.Sync(String.Format("-f {0}@{1}", VersionFilename, P4Env.Changelist));
-		}
-
-		Log("Checking if engine version files need to be reset...");
-		List<string> FilesToSubmit = new List<string>();
-		{
-			VersionFileUpdater VersionH = new VersionFileUpdater(VersionFilename);
-			if (VersionH.Contains("#define ENGINE_VERSION 0") == false)
-			{
-				Log("Zeroing out engine versions in {0}", VersionFilename);
-				VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", "0");
-
-				VersionH.Commit();
-				FilesToSubmit.Add(VersionFilename);
-			}
-		}
-
-		if (FilesToSubmit.Count > 0)
-		{
-			int CL = P4.CreateChange(null, "Zero engine versions");
-			foreach (var Filename in FilesToSubmit)
-			{
-				P4.Edit(CL, Filename);
-			}
-			Log("Submitting CL #{0}...", CL);
-			int SubmittedCL;
-			P4.Submit(CL, out SubmittedCL, false, true);
-			Log("CL #{0} submitted as {1}", CL, SubmittedCL);
-		}
-		else
-		{
-			Log("Engine version files are set to 0.");
-		}
 	}
 }
 

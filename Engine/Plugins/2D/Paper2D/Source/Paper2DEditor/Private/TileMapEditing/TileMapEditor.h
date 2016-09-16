@@ -11,6 +11,8 @@
 class FTileMapEditor : public FAssetEditorToolkit, public FGCObject
 {
 public:
+	FTileMapEditor();
+
 	// IToolkit interface
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;

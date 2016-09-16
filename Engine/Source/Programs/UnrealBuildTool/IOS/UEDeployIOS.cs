@@ -15,10 +15,12 @@ namespace UnrealBuildTool
 	public class UEDeployIOS : UEBuildDeploy
 	{
 		FileReference ProjectFile;
+		IOSPlatformContext	IOSPlatformContext;
 
-		public UEDeployIOS(FileReference InProjectFile)
+		public UEDeployIOS(FileReference InProjectFile, IOSPlatformContext inIOSPlatformContext)
 		{
 			ProjectFile = InProjectFile;
+			IOSPlatformContext = inIOSPlatformContext;
 		}
 
 		protected UnrealPluginLanguage UPL = null;
@@ -237,9 +239,15 @@ namespace UnrealBuildTool
 			// short version string
 			string BundleShortVersion;
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "VersionInfo", out BundleShortVersion);
+			
+			string RequiredCaps = "";
+			
+			if(InThis != null)
+			{
+				// required capabilities
+	            RequiredCaps += InThis.IOSPlatformContext.GetRequiredCapabilities();
+			}
 
-			// required capabilities
-			string RequiredCaps = "\t\t<string>armv7</string>\n";
 			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsOpenGLES2", out bSupported);
 			RequiredCaps += bSupported ? "\t\t<string>opengles-2</string>\n" : "";
 			if (!bSupported)
@@ -518,7 +526,7 @@ namespace UnrealBuildTool
 				XDoc.DocumentType.InternalSubset = "";
 				InThis.UPL.ProcessPluginNode("None", "iosPListUpdates", "", ref XDoc);
                 string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString().Replace("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\"[]>", "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
-                File.WriteAllText(PListFile, result);
+				File.WriteAllText(PListFile, result);
 			}
 			else
 			{
@@ -780,7 +788,7 @@ namespace UnrealBuildTool
 
 			// Run through iOS APL file
 			IOSPlatformContext PlatformContext = new IOSPlatformContext(InTarget.ProjectFile);
-			PlatformContext.SetUpProjectEnvironment();
+			PlatformContext.SetUpProjectEnvironment(InTarget.Configuration);
 
 			string BaseSoName = InTarget.OutputPaths[0].FullName;
 

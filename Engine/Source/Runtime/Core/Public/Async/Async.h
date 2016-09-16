@@ -289,7 +289,7 @@ struct FAsyncThreadIndex
  * @param Execution The execution method to use, i.e. on Task Graph or in a separate thread.
  * @param Function The function to execute.
  * @param CompletionCallback An optional callback function that is executed when the function completed execution.
- * @result A TFuture object that will receive the return value from the function.
+ * @return A TFuture object that will receive the return value from the function.
  */
 template<typename ResultType>
 TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Function, TFunction<void()> CompletionCallback = TFunction<void()>())
@@ -332,6 +332,34 @@ TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Fun
 	return MoveTemp(Future);
 }
 
+
+/**
+ * Executes a given function asynchronously using a separate thread.
+ * @param ResultType The type of the function's return value.
+ * @param Function The function to execute.
+ * @param StackSize stack space to allocate for the new thread
+ * @param ThreadPri thread priority
+ * @param CompletionCallback An optional callback function that is executed when the function completed execution.
+ * @result A TFuture object that will receive the return value from the function.
+ */
+template<typename ResultType>
+TFuture<ResultType> AsyncThread(TFunction<ResultType()> Function, uint32 StackSize = 0, EThreadPriority ThreadPri = TPri_Normal, TFunction<void()> CompletionCallback = TFunction<void()>())
+{
+	TPromise<ResultType> Promise(MoveTemp(CompletionCallback));
+	TFuture<ResultType> Future = Promise.GetFuture();
+
+	TPromise<FRunnableThread*> ThreadPromise;
+	TAsyncRunnable<ResultType>* Runnable = new TAsyncRunnable<ResultType>(MoveTemp(Function), MoveTemp(Promise), ThreadPromise.GetFuture());
+
+	const FString TAsyncThreadName = FString::Printf(TEXT("TAsyncThread %d"), FAsyncThreadIndex::GetNext());
+	FRunnableThread* RunnableThread = FRunnableThread::Create(Runnable, *TAsyncThreadName, StackSize, ThreadPri);
+
+	check(RunnableThread != nullptr);
+
+	ThreadPromise.SetValue(RunnableThread);
+
+	return MoveTemp(Future);
+}
 
 /**
  * Convenience function for executing code asynchronously on the Task Graph.

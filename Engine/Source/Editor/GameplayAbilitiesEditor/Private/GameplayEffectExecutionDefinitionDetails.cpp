@@ -102,17 +102,20 @@ void FGameplayEffectExecutionDefinitionDetails::UpdateCalculationModifiers()
 	// Need to prune out any modifiers that are specified for definitions that aren't specified by the execution class
 	if (CalculationModifiersArrayPropHandle.IsValid())
 	{
+		uint32 NumChildren = 0;
+		CalculationModifiersArrayPropHandle->GetNumElements(NumChildren);
+
 		// If there aren't any valid definitions, just dump the whole array
 		if (ValidCaptureDefinitions.Num() == 0)
 		{
-			CalculationModifiersArrayPropHandle->EmptyArray();
+			if (NumChildren > 0)
+			{
+				CalculationModifiersArrayPropHandle->EmptyArray();
+			}
 		}
 		// There are some valid definitions, so verify any existing ones to make sure they are in the valid array
 		else
 		{
-			uint32 NumChildren = 0;
-			CalculationModifiersArrayPropHandle->GetNumElements(NumChildren);
-
 			for (int32 ChildIdx = NumChildren - 1; ChildIdx >= 0; --ChildIdx)
 			{
 				TSharedRef<IPropertyHandle> ChildPropHandle = CalculationModifiersArrayPropHandle->GetElement(ChildIdx);

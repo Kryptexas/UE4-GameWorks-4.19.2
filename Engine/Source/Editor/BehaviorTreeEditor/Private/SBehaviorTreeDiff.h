@@ -93,7 +93,7 @@ private:
 	};
 
 	// Type def for our Table item
-	typedef TSharedPtr<struct FDiffResultItem> FSharedDiffOnGraph;
+	typedef TSharedPtr<struct FTreeDiffResultItem> FSharedDiffOnGraph;
 
 	// Type def of our Table Type
 	typedef SListView<FSharedDiffOnGraph > SListViewType;

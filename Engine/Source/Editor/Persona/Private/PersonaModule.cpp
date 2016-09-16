@@ -26,6 +26,9 @@ void FPersonaModule::StartupModule()
 	MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 	ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 
+	//Call this to make sure AnimGraph module is setup
+	FModuleManager::Get().LoadModuleChecked(TEXT("AnimGraph"));
+
 	// Load all blueprint animnotifies from asset registry so they are available from drop downs in anim segment detail views
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));

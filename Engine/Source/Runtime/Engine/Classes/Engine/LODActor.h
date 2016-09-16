@@ -58,6 +58,7 @@ public:
 	/** Sets StaticMesh and IsPreviewActor to true if InStaticMesh equals nullptr */
 	void SetStaticMesh(UStaticMesh* InStaticMesh);
 
+	const bool IsBuilt() { return StaticMeshComponent->StaticMesh != nullptr;  }
 
 #if WITH_EDITOR
 	/**
@@ -182,6 +183,9 @@ private:
 
 	// Called to make sure autoregistration/manual registration state matches based on the LOD override cvar and this actor's lod level
 	void UpdateRegistrationToMatchMaximumLODLevel();
+
+	// This will determine the shadowing flags for the static mesh component according to all sub actors
+	void DetermineShadowingFlags();
 
 private:
  	// Have we already tried to register components? (a cache to avoid having to query the owning world when the global HLOD max level setting is changed)

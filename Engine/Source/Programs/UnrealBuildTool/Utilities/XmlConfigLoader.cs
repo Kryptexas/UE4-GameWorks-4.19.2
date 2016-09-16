@@ -115,7 +115,7 @@ namespace UnrealBuildTool
 				"		a. UE4/Engine/Programs/UnrealBuildTool",
 				"		b. UE4/Engine/Programs/NotForLicensees/UnrealBuildTool",
 				"		c. UE4/Engine/Saved/UnrealBuildTool",
-				"		d. AppData/Unreal Engine/UnrealBuildTool",
+				"		d. AppData/Roaming/Unreal Engine/UnrealBuildTool",
 				"		e. My Documents/Unreal Engine/UnrealBuildTool",
 				"",
 				"	UBT looks in each location in the order above, overriding previously read settings with data from subsequent files (hence e. has the highest priority).",

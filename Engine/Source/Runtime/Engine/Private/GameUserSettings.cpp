@@ -95,6 +95,11 @@ void UGameUserSettings::SetFullscreenMode( EWindowMode::Type InFullscreenMode )
 	UpdateResolutionQuality();
 }
 
+EWindowMode::Type UGameUserSettings::GetPreferredFullscreenMode() const
+{
+	return PreferredFullscreenMode == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
+}
+
 void UGameUserSettings::SetVSyncEnabled( bool bEnable )
 {
 	bUseVSync = bEnable;
@@ -182,7 +187,7 @@ void UGameUserSettings::SetToDefaults()
 
 	ScalabilityQuality.SetDefaults();
 
-	if (!FApp::ShouldUseNullRHI())
+	if (FApp::CanEverRender())
 	{
 		UpdateResolutionQuality();
 	}
@@ -330,6 +335,8 @@ void UGameUserSettings::ValidateSettings()
 
 void UGameUserSettings::ApplyNonResolutionSettings()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(GameUserSettings_ApplyNonResolutionSettings);
+
 	ValidateSettings();
 
 	// Update vsync cvar
@@ -372,6 +379,7 @@ void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrid
 #if UE_SERVER
 	return;
 #endif
+	QUICK_SCOPE_CYCLE_COUNTER(GameUserSettings_ApplyResolutionSettings);
 
 	ValidateSettings();
 
@@ -399,6 +407,8 @@ void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
 
 void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
 {
+	QUICK_SCOPE_CYCLE_COUNTER(GameUserSettings_LoadSettings);
+
 	if ( bForceReload )
 	{
 		LoadConfigIni( bForceReload );
@@ -432,6 +442,8 @@ void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InRes
 
 void UGameUserSettings::SaveSettings()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(GameUserSettings_SaveSettings);
+
 	// Save the Scalability state to the same ini file as it was loaded from in FEngineLoop::Preinit
 	Scalability::SaveState(GIsEditor ? GEditorSettingsIni : GGameUserSettingsIni);
 	SaveConfig(CPF_Config, *GGameUserSettingsIni);

@@ -223,7 +223,7 @@ void FItemPropertyNode::InitChildNodes()
 			}
 		}
 	}
-	else if( ObjectProperty || MyProperty->IsA(UInterfaceProperty::StaticClass()))
+	else if( ObjectProperty )
 	{
 		uint8* ReadValue = NULL;
 

@@ -174,7 +174,7 @@ FString FSoundSource::Describe(bool bUseLongName)
 {
 	return FString::Printf(TEXT("Wave: %s, Volume: %6.2f, Owner: %s"), 
 		bUseLongName ? *WaveInstance->WaveData->GetPathName() : *WaveInstance->WaveData->GetName(),
-		WaveInstance->GetActualVolume(), 
+		WaveInstance->GetVolume(), 
 		WaveInstance->ActiveSound ? *WaveInstance->ActiveSound->GetOwnerName() : TEXT("None"));
 }
 
@@ -359,6 +359,82 @@ void FSoundSource::DrawDebugInfo()
 		}
 	}
 }
+ 
+float FSoundSource::GetDebugVolume(const float InVolume)
+{
+	float OutVolume = InVolume;
+
+#if !UE_BUILD_SHIPPING
+
+	if (OutVolume != 0.0f)
+	{
+
+		// Check for solo sound class debuging. Mute all sounds that don't substring match their sound class name to the debug solo'd sound class
+		const FString& DebugSoloSoundName = GEngine->GetAudioDeviceManager()->GetDebugSoloSoundWave();
+		if (DebugSoloSoundName != TEXT(""))
+		{
+			bool bMute = true;
+			FString WaveInstanceName = WaveInstance->GetName();
+			if (WaveInstanceName.Contains(DebugSoloSoundName))
+			{
+				bMute = false;
+			}
+			if (bMute)
+			{
+				OutVolume = 0.0f;
+			}
+		}
+	}
+
+	if (OutVolume != 0.0f)
+	{
+		// Check for solo sound class debuging. Mute all sounds that don't substring match their sound class name to the debug solo'd sound class
+		const FString& DebugSoloSoundCue = GEngine->GetAudioDeviceManager()->GetDebugSoloSoundCue();
+		if (DebugSoloSoundCue != TEXT(""))
+		{
+			bool bMute = true;
+			USoundBase* Sound = WaveInstance->ActiveSound->GetSound();
+			if (Sound->IsA<USoundCue>())
+			{
+				FString SoundCueName = Sound->GetName();
+				if (SoundCueName.Contains(DebugSoloSoundCue))
+				{
+					bMute = false;
+				}
+			}
+
+			if (bMute)
+			{
+				OutVolume = 0.0f;
+			}
+		}
+	}
+
+	if (OutVolume != 0.0f)
+	{
+		const FString& DebugSoloSoundClassName = GEngine->GetAudioDeviceManager()->GetDebugSoloSoundClass();
+		if (DebugSoloSoundClassName != TEXT(""))
+		{
+			bool bMute = true;
+			if (WaveInstance->SoundClass)
+			{
+				FString SoundClassName;
+				WaveInstance->SoundClass->GetName(SoundClassName);
+				if (SoundClassName.Contains(DebugSoloSoundClassName))
+				{
+					bMute = false;
+				}
+			}
+			if (bMute)
+			{
+				OutVolume = 0.0f;
+			}
+		}
+	}
+#endif
+
+	return OutVolume;
+}
 
 FSpatializationParams FSoundSource::GetSpatializationParams()
 {
@@ -485,6 +561,7 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 ,	ActiveSound( InActiveSound )
 ,	Volume( 0.0f )
 ,	VolumeMultiplier( 1.0f )
+,	VolumeApp( 1.0f )
 ,	Priority( 1.0f )
 ,	VoiceCenterChannelVolume( 0.0f )
 ,	RadioFilterVolume( 0.0f )
@@ -583,9 +660,15 @@ void FWaveInstance::AddReferencedObjects( FReferenceCollector& Collector )
 
 float FWaveInstance::GetActualVolume() const
 {
-	return Volume * VolumeMultiplier;
+	// Include all volumes 
+	return GetVolume() * VolumeApp;
 }
 
+float FWaveInstance::GetVolume() const
+{
+	// Include all volumes 
+	return Volume * VolumeMultiplier;
+}
 
 bool FWaveInstance::ShouldStopDueToMaxConcurrency() const
 {
@@ -595,7 +678,7 @@ bool FWaveInstance::ShouldStopDueToMaxConcurrency() const
 float FWaveInstance::GetVolumeWeightedPriority() const
 {
 	// This will result in zero-volume sounds still able to be sorted due to priority but give non-zero volumes higher priority than 0 volumes
-	float ActualVolume = GetActualVolume();
+	float ActualVolume = GetVolume();
 	if (ActualVolume > 0.0f)
 	{
 		return ActualVolume * Priority;

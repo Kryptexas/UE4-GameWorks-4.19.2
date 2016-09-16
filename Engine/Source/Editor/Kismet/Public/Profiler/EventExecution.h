@@ -15,8 +15,10 @@ namespace EScriptExecutionNodeFlags
 		Instance					= 0x00000002,	// Instance
 		Event						= 0x00000004,	// Event
 		CustomEvent					= 0x00000008,	// Custom Event
-		FunctionCall				= 0x00000010,	// Function Call
-		MacroCall					= 0x00000020,	// Macro Call
+		InheritedEvent				= 0x00000010,	// Inherited Event
+		FunctionCall				= 0x00000020,	// Function Call
+		ParentFunctionCall			= 0x00000040,	// Parent Function Call
+		MacroCall					= 0x00000080,	// Macro Call
 		MacroNode					= 0x00000100,	// Macro Node
 		ConditionalBranch			= 0x00000200,	// Node has multiple exit pins using a jump
 		SequentialBranch			= 0x00000400,	// Node has multiple exit pins ran in sequence
@@ -29,11 +31,11 @@ namespace EScriptExecutionNodeFlags
 		TunnelExitPin				= 0x00020000,	// Internal tunnel exit pin
 		TunnelEntryPinInstance		= 0x00040000,	// Tunnel entry pin instance
 		TunnelExitPinInstance		= 0x00080000,	// Tunnel exit pin instance
-		PureChain					= 0x00200000,	// Pure node call chain
-		CyclicLinkage				= 0x00400000,	// Marks execution path as cyclic.
-		InvalidTrace				= 0x00800000,	// Indicates that node doesn't contain a valid script trace.
+		PureChain					= 0x00100000,	// Pure node call chain
+		CyclicLinkage				= 0x00200000,	// Marks execution path as cyclic.
+		InvalidTrace				= 0x00400000,	// Indicates that node doesn't contain a valid script trace.
 		// Groups
-		CallSite					= FunctionCall|MacroCall|TunnelInstance,
+		CallSite					= FunctionCall|ParentFunctionCall|MacroCall|TunnelInstance,
 		BranchNode					= ConditionalBranch|SequentialBranch,
 		TunnelInstancePin			= TunnelEntryPinInstance|TunnelExitPinInstance,
 		TunnelPin					= TunnelEntryPin|TunnelExitPin,
@@ -55,7 +57,8 @@ namespace EScriptStatContainerType
 		Standard = 0,
 		Container,
 		SequentialBranch,
-		NewExecutionPath
+		NewExecutionPath,
+		PureNode
 	};
 }
 
@@ -119,6 +122,11 @@ class KISMET_API FScriptNodePerfData
 {
 public:
 
+	FScriptNodePerfData(const int32 SampleFreqIn = 1)
+		: SampleFrequency(SampleFreqIn)
+	{
+	}
+
 	/** Returns a TSet containing all valid instance names */
 	void GetValidInstanceNames(TSet<FName>& ValidInstances) const;
 
@@ -143,6 +151,9 @@ public:
 	/** Get global blueprint perf data for all trace paths */
 	virtual void GetBlueprintPerfDataForAllTracePaths(FScriptPerfData& OutPerfData);
 
+	/** Set the sample frequency */
+	void SetSampleFrequency(const int32 NewSampleFrequency) { SampleFrequency = NewSampleFrequency; }
+
 protected:
 
 	/** Returns performance data type */
@@ -150,6 +161,8 @@ protected:
 
 protected:
 	
+	/** Expected sample frequency for this perf data container */
+	int32 SampleFrequency;
 	/** FScriptExeutionPath hash to perf data */
 	TMap<FName, TMap<const uint32, TSharedPtr<FScriptPerfData>>> InstanceInputPinToPerfDataMap;
 
@@ -166,6 +179,8 @@ struct KISMET_API FScriptExecNodeParams
 	FName OwningGraphName;
 	/** Node flags to describe the source graph node type */
 	uint32 NodeFlags;
+	/** The expected sample frequency that constitutes a singles execution of this node */
+	int32 SampleFrequency;
 	/** Oberved object */
 	TWeakObjectPtr<const UObject> ObservedObject;
 	/** Observed pin */
@@ -244,9 +259,15 @@ public:
 
 	/** Returns if this exec event represents the start of a custon event execution path */
 	bool IsCustomEvent() const { return (NodeFlags & EScriptExecutionNodeFlags::CustomEvent) != 0U; }
-	
+
+	/** Returns if this exec event represents the start of a delegate pin event execution path */
+	bool IsEventPin() const { return (NodeFlags & EScriptExecutionNodeFlags::EventPin) != 0U; }
+
 	/** Returns if this event is a function callsite event */
 	bool IsFunctionCallSite() const { return (NodeFlags & EScriptExecutionNodeFlags::FunctionCall) != 0U; }
+
+	/** Returns if this event is a parent function callsite event */
+	bool IsParentFunctionCallSite() const { return (NodeFlags & EScriptExecutionNodeFlags::ParentFunctionCall) != 0U; }
 
 	/** Returns if this event is a macro callsite event */
 	bool IsMacroCallSite() const { return (NodeFlags & EScriptExecutionNodeFlags::MacroCall) != 0U; }
@@ -284,6 +305,9 @@ public:
 	/** Gets the observed object context */
 	const UObject* GetObservedObject() { return ObservedObject.Get(); }
 
+	/** Gets a typed observed object context */
+	template<typename CastType> const CastType* GetTypedObservedObject() { return Cast<CastType>(ObservedObject.Get()); }
+
 	/** Gets the observed object context */
 	const UEdGraphPin* GetObservedPin() const { return ObservedPin.Get(); }
 
@@ -315,7 +339,7 @@ public:
 	void SetExpanded(bool bIsExpanded) { bExpansionState = bIsExpanded; }
 
 	/** Returns the pure chain node associated with this exec node (if one exists) */
-	TSharedPtr<FScriptExecutionNode> GetPureChainNode();
+	virtual TSharedPtr<FScriptExecutionNode> GetPureChainNode();
 
 	/** Returns pure node script code range */
 	FInt32Range GetPureNodeScriptCodeRange() const { return PureNodeScriptCodeRange; }
@@ -332,6 +356,9 @@ public:
 	/** Refresh Stats */
 	virtual void RefreshStats(const FTracePath& TracePath);
 
+	/** Calculate heat level stats */
+	virtual void CalculateHeatLevelStats(TSharedPtr<FScriptHeatLevelMetrics> HeatLevelMetrics);
+
 	/** Calculate Hottest Path Stats */
 	virtual float CalculateHottestPathStats(FScriptExecutionHottestPathParams HotPathParams);
 
@@ -339,7 +366,7 @@ public:
 	virtual void GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecutionNode>>& ExecNodesOut);
 
 	/** Get all pure nodes associated with the given trace path */
-	virtual void GetAllPureNodes(TMap<int32, TSharedPtr<FScriptExecutionNode>>& PureNodesOut);
+	void GetAllPureNodes(TMap<int32, TSharedPtr<FScriptExecutionNode>>& PureNodesOut);
 
 	/** Creates and returns the slate icon widget */
 	virtual TSharedRef<SWidget> GetIconWidget(const uint32 TracePath = 0U);
@@ -434,6 +461,7 @@ public:
 
 	FScriptExecutionTunnelEntry(const FScriptExecNodeParams& InitParams)
 		: FScriptExecutionNode(InitParams)
+		, TunnelEntryCount(0)
 	{
 	}
 
@@ -454,20 +482,19 @@ public:
 	/** Sets the tunnel instance exec node */
 	void SetTunnelInstance(TSharedPtr<FScriptExecutionTunnelInstance> TunnelInstanceIn) { TunnelInstance = TunnelInstanceIn; }
 
-	/** Adds a valid exit script offset */
-	void AddExitSite(const int32 ExitScriptOffset, TSharedPtr<class FScriptExecutionTunnelExit> ExitSite);
-
 	/** Returns the exit point associated with the exit script offset */
 	TSharedPtr<FScriptExecutionTunnelExit> GetExitSite(const int32 ScriptOffset) const;
-
-	/** Returns the exit point associated with the entry script offset */
-	TMap<int32, TSharedPtr<FScriptExecutionNode>> GetExitSites() { return LinkedNodes; }
 
 	/** Returns true if the supplied node is inside this tunnel */
 	bool IsInternalBoundary(TSharedPtr<FScriptExecutionNode> PotentialBoundaryNode) const;
 
+	/** Increment tunnel entry count */
+	void IncrementTunnelEntryCount() { TunnelEntryCount++; }
+
 private:
 
+	/** The tunnel entry count */
+	int32 TunnelEntryCount;
 	/** The tunnel instance this node represents */
 	TSharedPtr<FScriptExecutionTunnelInstance> TunnelInstance;
 
@@ -533,20 +560,23 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// FScriptExecutionPureNode
+// FScriptExecutionPureChainNode
 
-class KISMET_API FScriptExecutionPureNode : public FScriptExecutionNode
+class KISMET_API FScriptExecutionPureChainNode : public FScriptExecutionNode
 {
 public:
 
-	FScriptExecutionPureNode(const FScriptExecNodeParams& InitParams)
+	FScriptExecutionPureChainNode(const FScriptExecNodeParams& InitParams)
 		: FScriptExecutionNode(InitParams)
 	{
 	}
 
 	// FScriptExecutionNode
+	virtual TSharedPtr<FScriptExecutionNode> GetPureChainNode() override { return AsShared(); }
 	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren = false) override;
 	virtual void RefreshStats(const FTracePath& TracePath) override;
+	virtual float CalculateHottestPathStats(FScriptExecutionHottestPathParams HotPathParams) override;
+	virtual void CalculateHeatLevelStats(TSharedPtr<FScriptHeatLevelMetrics> HeatLevelMetrics);
 	// ~FScriptExecutionNode
 
 };
@@ -601,10 +631,7 @@ class KISMET_API FScriptExecutionBlueprint : public FScriptExecutionNode
 {
 public:
 
-	FScriptExecutionBlueprint(const FScriptExecNodeParams& InitParams)
-		: FScriptExecutionNode(InitParams)
-	{
-	}
+	FScriptExecutionBlueprint(const FScriptExecNodeParams& InitParams);
 
 	/** Adds new blueprint instance node */
 	void AddInstance(TSharedPtr<FScriptExecutionNode> Instance) { Instances.Add(Instance); }
@@ -618,6 +645,12 @@ public:
 	/** Returns the instance that matches the supplied name if present */
 	TSharedPtr<FScriptExecutionNode> GetInstanceByName(FName InstanceName);
 
+	/** Sorts all contained events */
+	void SortEvents();
+	
+	/** Returns the heat level metrics object that's used for updating heat levels */
+	TSharedPtr<FScriptHeatLevelMetrics> GetHeatLevelMetrics() const { return HeatLevelMetrics; }
+
 	// FScriptExecutionNode
 	virtual EScriptStatContainerType::Type GetStatisticContainerType() const override { return EScriptStatContainerType::Container; }
 	virtual void RefreshStats(const FTracePath& TracePath) override;
@@ -625,10 +658,15 @@ public:
 	virtual void NavigateToObject() const override;
 	// ~FScriptExecutionNode
 
+protected:
+	/** Updates internal heat level metrics data */
+	void UpdateHeatLevelMetrics(TSharedPtr<FScriptPerfData> BlueprintData);
+
 private:
 
 	/** Exec nodes representing all instances based on this blueprint */
 	TArray<TSharedPtr<FScriptExecutionNode>> Instances;
-
+	/** Internal metrics data used for calculating perf data heat levels */
+	TSharedPtr<FScriptHeatLevelMetrics> HeatLevelMetrics;
 };
 

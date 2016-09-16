@@ -31,10 +31,6 @@ class AGroupActor : public AActor
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditUndo() override;
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
-	virtual bool NeedsLoadForClient() const override
-	{ 
-		return false; 
-	}
 	//~ End UObject Interface
 
 	//~ Begin AActor Interface

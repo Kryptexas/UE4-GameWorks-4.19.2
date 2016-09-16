@@ -562,6 +562,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 
 	ResolveName( InOuter, InName, true, false );
 
+
 	UPackage* Result = NULL;
 	if ( InName.Len() == 0 )
 	{
@@ -655,6 +656,8 @@ bool ResolveName(UObject*& InPackage, FString& InOutName, bool Create, bool Thro
 
 	// Strip off the object class.
 	ConstructorHelpers::StripObjectClass( InOutName );
+
+	InOutName = FPackageName::GetDelegateResolvedPackagePath(InOutName);
 
 	// if you're attempting to find an object in any package using a dotted name that isn't fully
 	// qualified (such as ObjectName.SubobjectName - notice no package name there), you normally call
@@ -797,7 +800,7 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 	const bool bContainsObjectName = !!FCString::Strstr(InName, TEXT("."));
 
 	// break up the name into packages, returning the innermost name and its outer
-	ResolveName(InOuter, StrName, true, true, LoadFlags & LOAD_EditorOnly);
+	ResolveName(InOuter, StrName, true, true, LoadFlags & (LOAD_EditorOnly | LOAD_Quiet | LOAD_NoWarn));
 	if (InOuter)
 	{
 		// If we have a full UObject name then attempt to find the object in memory first,
@@ -1178,8 +1181,7 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 		// The time tracker keeps track of time spent in LoadPackage.
 		FExclusiveLoadPackageTimeTracker::FScopedPackageTracker Tracker(Result);
 
-
-		// If we are loading a package for diff'ing, set the package flag
+		// If we are loading a package for diffing, set the package flag
 		if(LoadFlags & LOAD_ForDiff)
 		{
 			Result->SetPackageFlags(PKG_ForDiffing);
@@ -2890,7 +2892,7 @@ void FObjectInitializer::InstanceSubobjects(UClass* Class, bool bNeedInstancing,
 		for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
 		{
 			UObject* Subobject = ComponentInits.SubobjectInits[Index].Subobject;
-			UObject* Template = ComponentInits.SubobjectInits[Index].Template;
+			UObject* Template = ComponentInits	.SubobjectInits[Index].Template;
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 			if ( !Subobject->HasAnyFlags(RF_NeedLoad) || bIsDeferredInitializer )
@@ -3117,6 +3119,10 @@ UObject* StaticConstructObject_Internal
 	SCOPE_CYCLE_COUNTER(STAT_ConstructObject);
 	UObject* Result = NULL;
 
+#if WITH_EDITORONLY_DATA
+	UE_CLOG(GIsSavingPackage && InOuter != GetTransientPackage(), LogUObjectGlobals, Fatal, TEXT("Illegal call to StaticConstructObject() while serializing object data! (Object will not be saved!)"));
+#endif
+
 	checkf(!InTemplate || InTemplate->IsA(InClass) || (InFlags & RF_ClassDefaultObject), TEXT("StaticConstructObject %s is not an instance of class %s and it is not a CDO."), *GetFullNameSafe(InTemplate), *GetFullNameSafe(InClass)); // template must be an instance of the class we are creating, except CDOs
 
 	// Subobjects are always created in the constructor, no need to re-create them unless their archetype != CDO or they're blueprint generated.
@@ -3126,7 +3132,7 @@ UObject* StaticConstructObject_Internal
 		(
 			!InTemplate || 
 			(InName != NAME_None && InTemplate == UObject::GetArchetypeFromRequiredInfo(InClass, InOuter, InName, InFlags))
-		);	
+		);
 #if WITH_HOT_RELOAD
 	// Do not recycle subobjects when performing hot-reload as they may contain old property values.
 	const bool bCanRecycleSubobjects = bIsNativeFromCDO && !GIsHotReload;

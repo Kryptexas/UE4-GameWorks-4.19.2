@@ -83,7 +83,7 @@ EPathFollowingRequestResult::Type UPawnAction_Move::RequestMove(AAIController& C
 	MoveReq.SetProjectGoalLocation(bProjectGoalToNavigation);
 	MoveReq.SetNavigationFilter(FilterClass);
 	MoveReq.SetAcceptanceRadius(AcceptableRadius);
-	MoveReq.SetStopOnOverlap(bFinishOnOverlap);
+	MoveReq.SetReachTestIncludesAgentRadius(bFinishOnOverlap);
 	MoveReq.SetCanStrafe(bAllowStrafe);
 
 	if (GoalActor != NULL)
@@ -363,7 +363,7 @@ void UPawnAction_Move::ClearTimers()
 
 bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController& Controller, const FVector& TestLocation, float Radius)
 {
-	const bool bAlreadyAtGoal = Controller.GetPathFollowingComponent()->HasReached(TestLocation, Radius);
+	const bool bAlreadyAtGoal = Controller.GetPathFollowingComponent()->HasReached(TestLocation, EPathFollowingReachMode::OverlapAgentAndGoal, Radius);
 	if (bAlreadyAtGoal)
 	{
 		UE_VLOG(&Controller, LogPawnAction, Log, TEXT("New move request already at goal, aborting active movement"));
@@ -375,7 +375,7 @@ bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController& Controller, const FVect
 
 bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController& Controller, const AActor& TestGoal, float Radius)
 {
-	const bool bAlreadyAtGoal = Controller.GetPathFollowingComponent()->HasReached(TestGoal, Radius);
+	const bool bAlreadyAtGoal = Controller.GetPathFollowingComponent()->HasReached(TestGoal, EPathFollowingReachMode::OverlapAgentAndGoal, Radius);
 	if (bAlreadyAtGoal)
 	{
 		UE_VLOG(&Controller, LogPawnAction, Log, TEXT("New move request already at goal, aborting active movement"));

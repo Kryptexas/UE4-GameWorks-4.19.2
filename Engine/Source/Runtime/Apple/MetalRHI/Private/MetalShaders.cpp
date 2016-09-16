@@ -40,7 +40,44 @@ private:
 	uint32 CodeCRC;
 };
 
-typedef TMap<FMetalCompiledShaderKey, GLuint> FMetalCompiledShaderCache;
+struct FMetalCompiledShaderCache
+{
+public:
+	FMetalCompiledShaderCache()
+	{
+		int Err = pthread_rwlock_init(&Lock, nullptr);
+		checkf(Err == 0, TEXT("pthread_rwlock_init failed with error: %d"), errno);
+	}
+	
+	~FMetalCompiledShaderCache()
+	{
+		int Err = pthread_rwlock_destroy(&Lock);
+		checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with error: %d"), errno);
+	}
+	
+	id<MTLFunction> FindRef(FMetalCompiledShaderKey Key)
+	{
+		int Err = pthread_rwlock_rdlock(&Lock);
+		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), errno);
+		id<MTLFunction> Func = Cache.FindRef(Key);
+		Err = pthread_rwlock_unlock(&Lock);
+		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
+		return Func;
+	}
+	
+	void Add(FMetalCompiledShaderKey Key, id<MTLFunction> Function)
+	{
+		int Err = pthread_rwlock_wrlock(&Lock);
+		checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with error: %d"), errno);
+		Cache.Add(Key, Function);
+		Err = pthread_rwlock_unlock(&Lock);
+		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
+	}
+	
+private:
+	pthread_rwlock_t Lock;
+	TMap<FMetalCompiledShaderKey, id<MTLFunction>> Cache;
+};
 
 static FMetalCompiledShaderCache& GetMetalCompiledShaderCache()
 {
@@ -91,8 +128,8 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 	FMetalCompiledShaderKey Key(CodeLength, CodeCRC);
 
 	// Find the existing compiled shader in the cache.
-	auto Resource = GetMetalCompiledShaderCache().FindRef(Key);
-//	if (!Resource)
+	Function = GetMetalCompiledShaderCache().FindRef(Key);
+	if (!Function)
 	{
 		id<MTLLibrary> Library;
 		
@@ -204,22 +241,23 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 
 		// assume there's only one function called 'Main', and use that to get the function from the library
 		Function = [Library newFunctionWithName:@"Main"];
+		check(Function);
+		GetMetalCompiledShaderCache().Add(Key, Function);
 		[Library release];
 		TRACK_OBJECT(STAT_MetalFunctionCount, Function);
+	}
 
-//		Resource = Resource;
-		Bindings = Header.Bindings;
-		UniformBuffersCopyInfo = Header.UniformBuffersCopyInfo;
-		SideTableBinding = Header.SideTable;
+	Bindings = Header.Bindings;
+	UniformBuffersCopyInfo = Header.UniformBuffersCopyInfo;
+	SideTableBinding = Header.SideTable;
 
-		//@todo: Find better way...
-		if (ShaderType == SF_Compute)
-		{
-			auto* ComputeShader = (FMetalComputeShader*)this;
-			ComputeShader->NumThreadsX = FMath::Max((int32)Header.NumThreadsX, 1);
-			ComputeShader->NumThreadsY = FMath::Max((int32)Header.NumThreadsY, 1);
-			ComputeShader->NumThreadsZ = FMath::Max((int32)Header.NumThreadsZ, 1);
-		}
+	//@todo: Find better way...
+	if (ShaderType == SF_Compute)
+	{
+		auto* ComputeShader = (FMetalComputeShader*)this;
+		ComputeShader->NumThreadsX = FMath::Max((int32)Header.NumThreadsX, 1);
+		ComputeShader->NumThreadsY = FMath::Max((int32)Header.NumThreadsY, 1);
+		ComputeShader->NumThreadsZ = FMath::Max((int32)Header.NumThreadsZ, 1);
 	}
 }
 
@@ -358,6 +396,9 @@ FMetalBoundShaderState::FMetalBoundShaderState(
 #if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
 	CacheLink.AddToCache();
 #endif
+	
+	int Err = pthread_rwlock_init(&PipelineMutex, nullptr);
+	checkf(Err == 0, TEXT("pthread_rwlock_init failed with errno: %d"), errno);
 }
 
 FMetalBoundShaderState::~FMetalBoundShaderState()
@@ -366,63 +407,98 @@ FMetalBoundShaderState::~FMetalBoundShaderState()
 	CacheLink.RemoveFromCache();
 #endif
 	
-	// free all of the pipeline state objects we have made
-	for (auto It = PipelineStates.CreateIterator(); It; ++It)
-	{
-		UNTRACK_OBJECT(STAT_MetalRenderPipelineStateCount, It.Value());
-		[It.Value() release];
-	}
+	int Err = pthread_rwlock_destroy(&PipelineMutex);
+	checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with errno: %d"), errno);
 }
 
-void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, MTLVertexDescriptor* VertexDesc, const FMetalRenderPipelineDesc& RenderPipelineDesc)
+void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedVertexDescriptor const& VertexDesc, const FMetalRenderPipelineDesc& RenderPipelineDesc, MTLRenderPipelineReflection** Reflection)
 {
 	// generate a key for the current statez
-	FMetalPipelineHash Hash;
-	Hash.RenderPipelineHash = RenderPipelineDesc.GetHash();
-	Hash.VertexDescHash = [VertexDesc hash];
+	FMetalRenderPipelineHash PipelineHash = RenderPipelineDesc.GetHash();
 	
 	if(GUseRHIThread)
 	{
-		PipelineMutex.Lock();
+		int Err = pthread_rwlock_rdlock(&PipelineMutex);
+		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with errno: %d"), errno);
 	}
 	
 	// have we made a matching state object yet?
-	id<MTLRenderPipelineState> PipelineState = PipelineStates.FindRef(Hash);
+    id<MTLRenderPipelineState> PipelineState = nil;
+	TMap<FMetalHashedVertexDescriptor, id<MTLRenderPipelineState>>* Dict = PipelineStates.Find(PipelineHash);
+	if (Dict)
+	{
+		PipelineState = Dict->FindRef(VertexDesc);
+	}
 	
 	if(GUseRHIThread)
 	{
-		PipelineMutex.Unlock();
+		int Err = pthread_rwlock_unlock(&PipelineMutex);
+		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with errno: %d"), errno);
 	}
 	
 	// make one if not
 	if (PipelineState == nil)
 	{
-		PipelineState = RenderPipelineDesc.CreatePipelineStateForBoundShaderState(this, VertexDesc);
+		PipelineState = RenderPipelineDesc.CreatePipelineStateForBoundShaderState(this, VertexDesc, Reflection);
 		check(PipelineState);
+		check(!Reflection || *Reflection);
 		
 		if(GUseRHIThread)
 		{
-			PipelineMutex.Lock();
+			int Err = pthread_rwlock_wrlock(&PipelineMutex);
+			checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with errno: %d"), errno);
 		}
 		
-		PipelineStates.Add(Hash, PipelineState);
+		Dict = PipelineStates.Find(PipelineHash);
+		id<MTLRenderPipelineState> ExistingPipeline = Dict ? Dict->FindRef(VertexDesc) : nil;
+		if (!ExistingPipeline)
+		{
+			if (Dict)
+			{
+				Dict->Add(VertexDesc, PipelineState);
+			}
+			else
+			{
+				TMap<FMetalHashedVertexDescriptor, id<MTLRenderPipelineState>>& InnerDict = PipelineStates.Add(PipelineHash);
+				InnerDict.Add(VertexDesc, PipelineState);
+			}
+		}
+		else
+		{
+			PipelineState = ExistingPipeline;
+#if !UE_BUILD_SHIPPING
+			if(Reflection)
+			{
+				*Reflection = RenderPipelineDesc.GetReflectionData(this, VertexDesc);
+				check(*Reflection);
+			}
+#endif
+		}
 		
 		if(GUseRHIThread)
 		{
-			PipelineMutex.Unlock();
+			int Err = pthread_rwlock_unlock(&PipelineMutex);
+			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with errno: %d"), errno);
 		}
 		
 #if !UE_BUILD_SHIPPING
 		if (GFrameCounter > 3)
 		{
 #if PLATFORM_MAC
-			NSLog(@"Created a hitchy pipeline state for hash %llx%llx%llx (this = %p)", (uint64)Hash.RenderPipelineHash, (uint64)(Hash.RenderPipelineHash >> 64), (uint64)Hash.VertexDescHash, this);
+			NSLog(@"Created a hitchy pipeline state for hash %llx%llx vertex desc: %llx (this = %p)", (uint64)PipelineHash, (uint64)(PipelineHash >> 64), (uint64)VertexDesc.VertexDescHash, this);
 #else
-			NSLog(@"Created a hitchy pipeline state for hash %llx%llx (this = %p)", (uint64)Hash.RenderPipelineHash, (uint64)Hash.VertexDescHash, this);
+			NSLog(@"Created a hitchy pipeline state for hash %llx vertex desc: %llx (this = %p)", (uint64)PipelineHash, (uint64)VertexDesc.VertexDescHash, this);
 #endif
 		}
 #endif
 	}
+#if !UE_BUILD_SHIPPING
+	else if(Reflection)
+	{
+		*Reflection = RenderPipelineDesc.GetReflectionData(this, VertexDesc);
+		check(*Reflection);
+	}
+#endif
 	
 	// set it now
 	Context->GetCommandEncoder().SetRenderPipelineState(PipelineState);

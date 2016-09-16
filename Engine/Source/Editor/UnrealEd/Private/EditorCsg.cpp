@@ -1348,7 +1348,10 @@ void UEditorEngine::mapBrushPut()
 static void SendTo( UWorld* InWorld, int32 bSendToFirst )
 {
 	ULevel*	Level = InWorld->GetCurrentLevel();
-	Level->Actors.ModifyAllItems();
+	for (AActor* Actor : Level->Actors)
+	{
+		Actor->Modify();
+	}
 	
 	// Fire ULevel::LevelDirtiedEvent when falling out of scope.
 	FScopedLevelDirtied		LevelDirtyCallback;
@@ -1415,7 +1418,10 @@ void UEditorEngine::mapSendToSwap(UWorld* InWorld)
 
 	if( Count == 2 )
 	{
-		InWorld->GetCurrentLevel()->Actors.ModifyAllItems();
+		for (AActor* Actor : InWorld->GetCurrentLevel()->Actors)
+		{
+			Actor->Modify();
+		}
 		Exchange( *Actors[0], *Actors[1] );
 	}
 }

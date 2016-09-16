@@ -488,66 +488,79 @@ void UObject::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionA
 
 #endif // WITH_EDITOR
 
-class FCachedClassExclusionData
+
+/**
+	Helper class for tracking the list of classes excluded on a certain target system (client/server)
+*/
+struct FClassExclusionData
 {
-public:
+	TArray<FName> ExcludedClassNames;
+	TArray<FName> CachedExcludeList;
+	TArray<FName> CachedIncludeList;
 
-	FCachedClassExclusionData(const TCHAR* InSectionName)
+	bool IsExcluded(UClass* InClass)
 	{
-		check(GConfig != nullptr && GConfig->IsReadyForUse());
+		FName OriginalClassName = InClass->GetFName();
 
-		TArray<FString> ConfigData;
-		GConfig->GetArray(TEXT("Core.System"), InSectionName, ConfigData, GEngineIni);
-
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		if (CachedExcludeList.Contains(OriginalClassName))
 		{
-			UClass* Class = *ClassIt;
-			if (ConfigData.Contains(Class->GetName()))
-			{
-				ExcludedClasses.Add(Class);
-			}
+			return true;
 		}
 
-		// Now gather all the classes which are derived from the specified ones
-		TSet<UClass*> DerivedClasses;
-
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		if (CachedIncludeList.Contains(OriginalClassName))
 		{
-			UClass* Class = *ClassIt;
-
-			for (const UClass* SpecifiedClass : ExcludedClasses)
-			{
-				if (Class->IsChildOf(SpecifiedClass))
-				{
-					if (!ExcludedClasses.Contains(Class))
-					{
-						DerivedClasses.Add(Class);
-					}
-					
-					break;
-				}
-			}
+			return false;
 		}
 
-		// Add them together
-		ExcludedClasses.Append(DerivedClasses);
+		while (InClass != nullptr)
+		{
+			if (ExcludedClassNames.Contains(InClass->GetFName()))
+			{
+				CachedExcludeList.Add(OriginalClassName);
+				return true;
+			}
+
+			InClass = InClass->GetSuperClass();
+		}
+
+		CachedIncludeList.Add(OriginalClassName);
+		return false;
 	}
 
-	bool IsExcluded(UClass* InClass) const 
+	void UpdateExclusionList(const TArray<FString>& InClassNames)
 	{
-		return ExcludedClasses.Contains(InClass);
+		ExcludedClassNames.Empty(InClassNames.Num());
+		CachedIncludeList.Empty();
+		CachedExcludeList.Empty();
+
+		for (const FString& ClassName : InClassNames)
+		{
+			ExcludedClassNames.Add(FName(*ClassName));
+		}
 	}
-
-private:
-
-	TSet<UClass*> ExcludedClasses;
-
 };
+
+FClassExclusionData GDedicatedServerExclusionList;
+FClassExclusionData GDedicatedClientExclusionList;
 
 bool UObject::NeedsLoadForServer() const
 {
-	static const FCachedClassExclusionData CachedClassExclusionData(TEXT("ClassesExcludedForServer"));
-	return !CachedClassExclusionData.IsExcluded(GetClass());
+	return !GDedicatedServerExclusionList.IsExcluded(GetClass());
+}
+
+void UObject::UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames)
+{
+	GDedicatedServerExclusionList.UpdateExclusionList(InClassNames);
+}
+
+bool UObject::NeedsLoadForClient() const
+{
+	return !GDedicatedClientExclusionList.IsExcluded(GetClass());
+}
+
+void UObject::UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames)
+{
+	GDedicatedClientExclusionList.UpdateExclusionList(InClassNames);
 }
 
 bool UObject::CanCreateInCurrentContext(UObject* Template)
@@ -2813,7 +2826,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					int32 cnt = 0;
 					UObject* LimitOuter = NULL;
 
-					const bool bHasOuter = FCString::Strfind(Str,TEXT("OUTER=")) ? true : false;
+					const bool bHasOuter = FCString::Strifind(Str,TEXT("OUTER=")) ? true : false;
 					ParseObject<UObject>(Str,TEXT("OUTER="),LimitOuter,ANY_PACKAGE);
 
 					// Check for a specific object name
@@ -2826,7 +2839,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					
 					if( bHasOuter && !LimitOuter )
 					{
-						UE_SUPPRESS(LogExec, Warning, Ar.Logf(TEXT("Failed to find outer %s"), FCString::Strfind(Str,TEXT("OUTER=")) ));
+						UE_SUPPRESS(LogExec, Warning, Ar.Logf(TEXT("Failed to find outer %s"), FCString::Strifind(Str,TEXT("OUTER=")) ));
 					}
 					else
 					{

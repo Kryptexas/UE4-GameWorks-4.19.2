@@ -47,7 +47,6 @@ private:
 	void AddAngularLimits(IDetailLayoutBuilder& DetailBuilder, TSharedPtr<IPropertyHandle> ConstraintInstance, TSharedPtr<IPropertyHandle> ProfileInstance);
 	void AddLinearDrive(IDetailLayoutBuilder& DetailBuilder, TSharedPtr<IPropertyHandle> ConstraintInstance, TSharedPtr<IPropertyHandle> ProfileInstance);
 	void AddAngularDrive(IDetailLayoutBuilder& DetailBuilder, TSharedPtr<IPropertyHandle> ConstraintInstance, TSharedPtr<IPropertyHandle> ProfileInstance);
-	void AddProfiles(IDetailLayoutBuilder& DetailBuilder);
 private:
 
 	TSharedPtr<IPropertyHandle> LinearXPositionDriveProperty;
@@ -65,15 +64,4 @@ private:
 	TWeakObjectPtr<UObject> ConstraintComponent;
 	
 	bool bInPhat;
-};
-
-class FPhysicsConstraintProfileHandleCustomization : public IPropertyTypeCustomization
-{
-public:
-	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
-	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
-
-	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils ) override;
-
-	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils ) override;
 };

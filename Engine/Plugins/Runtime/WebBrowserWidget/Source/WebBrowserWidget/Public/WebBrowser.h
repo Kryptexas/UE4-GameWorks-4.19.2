@@ -35,6 +35,14 @@ public:
 	void LoadString(FString Contents, FString DummyURL);
 
 	/**
+	* Executes a JavaScript string in the context of the web page
+	*
+	* @param ScriptText JavaScript string to execute
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Web Browser")
+	void ExecuteJavascript(const FString& ScriptText);
+
+	/**
 	 * Get the current title of the web page
 	 */
 	UFUNCTION(BlueprintCallable, Category="Web Browser")

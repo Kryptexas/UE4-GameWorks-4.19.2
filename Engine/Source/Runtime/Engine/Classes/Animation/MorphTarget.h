@@ -1,9 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "PackedNormal.h"
 #include "MorphTarget.generated.h"
 
+
+class FStaticLODModel;
 class USkeletalMesh;
+class UStaticMesh;
+
 
 /**
 * Morph mesh vertex data used for comparisons and importing
@@ -11,8 +17,9 @@ class USkeletalMesh;
 struct FMorphMeshVertexRaw
 {
 	FVector Position;
-	FVector TanX,TanY,TanZ;
+	FVector TanX, TanY, TanZ;
 };
+
 
 /**
 * Converts a mesh to raw vertex data used to generate a morph target mesh
@@ -22,18 +29,17 @@ class FMorphMeshRawSource
 public:
 	/** vertex data used for comparisons */
 	TArray<FMorphMeshVertexRaw> Vertices;
+
 	/** index buffer used for comparison */
 	TArray<uint32> Indices;
+
 	/** indices to original imported wedge points */
 	TArray<uint32> WedgePointIndices;
 
 	/** Constructor (default) */
-	ENGINE_API FMorphMeshRawSource() 
-	{
-	}
-
-	ENGINE_API FMorphMeshRawSource( USkeletalMesh* SrcMesh, int32 LODIndex=0 );
-	ENGINE_API FMorphMeshRawSource( UStaticMesh* SrcMesh, int32 LODIndex=0 );
+	ENGINE_API FMorphMeshRawSource() { }
+	ENGINE_API FMorphMeshRawSource( USkeletalMesh* SrcMesh, int32 LODIndex = 0 );
+	ENGINE_API FMorphMeshRawSource( UStaticMesh* SrcMesh, int32 LODIndex = 0 );
 	ENGINE_API FMorphMeshRawSource( FStaticLODModel& LODModel );
 
 	ENGINE_API bool IsValidTarget( const FMorphMeshRawSource& Target ) const;
@@ -42,11 +48,13 @@ private:
 	void Initialize(FStaticLODModel& LODModel);
 };
 
+
 /** Morph mesh vertex data used for rendering */
 struct FMorphTargetDelta
 {
 	/** change in position */
 	FVector			PositionDelta;
+
 	/** Tangent basis normal */
 	FVector			TangentZDelta;
 
@@ -60,6 +68,7 @@ struct FMorphTargetDelta
 		{
 			/** old format of change in tangent basis normal */
 			FPackedNormal	TangentZDelta_DEPRECATED;
+
 			if (Ar.IsSaving())
 			{
 				TangentZDelta_DEPRECATED = FPackedNormal(V.TangentZDelta);
@@ -80,6 +89,7 @@ struct FMorphTargetDelta
 	}
 };
 
+
 /**
 * Mesh data for a single LOD model of a morph target
 */
@@ -87,14 +97,16 @@ struct FMorphTargetLODModel
 {
 	/** vertex data for a single LOD morph mesh */
 	TArray<FMorphTargetDelta> Vertices;
+
 	/** number of original verts in the base mesh */
 	int32 NumBaseMeshVerts;
+	
 	/** Get Resource Size */
 	SIZE_T GetResourceSize() const;
 
 	FMorphTargetLODModel()
 		: NumBaseMeshVerts(0)
-	{}
+	{ }
 
 	/** pipe operator */
 	friend FArchive& operator<<(FArchive& Ar, FMorphTargetLODModel& M)
@@ -104,12 +116,15 @@ struct FMorphTargetLODModel
 	}
 };
 
+
 UCLASS(hidecategories=Object, MinimalAPI)
-class UMorphTarget : public UObject
+class UMorphTarget
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 public:
+
 	/** USkeletalMesh that this vertex animation works on. */
 	UPROPERTY(AssetRegistrySearchable)
 	class USkeletalMesh* BaseSkelMesh;
@@ -117,10 +132,7 @@ public:
 	/** morph mesh vertex data for each LOD */
 	TArray<FMorphTargetLODModel>	MorphLODModels;
 
-	//~ Begin UObject Interface.
-	virtual void Serialize( FArchive& Ar ) override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	//~ Begin UObject Interface.
+public:
 
 	/** Post process after importing **/
 	ENGINE_API void PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal );
@@ -131,16 +143,26 @@ public:
 	FMorphTargetDelta* GetMorphTargetDelta(int32 LODIndex, int32& OutNumDeltas);
 	bool HasDataForLOD(int32 LODIndex);
 
+	/** Populates the given morph target LOD model with the provided deltas */
+	ENGINE_API void PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex);
+
+public:
+
+	//~ UObject interface
+
+	virtual void Serialize(FArchive& Ar) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+
 private:
+
 	/**
 	* Generate the streams for this morph target mesh using
 	* a base mesh and a target mesh to find the positon differences
 	* and other vertex attributes.
 	*
-	* @param	BaseSource - source mesh for comparing position differences
-	* @param	TargetSource - final target vertex positions/attributes 
-	* @param	LODIndex - level of detail to use for the geometry
+	* @param BaseSource Source mesh for comparing position differences
+	* @param TargetSource Final target vertex positions/attributes 
+	* @param LODIndex Level of detail to use for the geometry
 	*/
 	void CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal );
 };
-

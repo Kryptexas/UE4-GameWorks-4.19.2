@@ -17,5 +17,5 @@ public:
 	FMovieScene3DAttachTrackInstance( UMovieScene3DAttachTrack& InAttachTrack );
 
 	/** FMovieScene3DConstraintTrackInstance interface */
-	virtual void UpdateConstraint(float Position, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection) override;
+	virtual void UpdateConstraint(EMovieSceneUpdatePass UpdatePass, float Position, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection) override;
 };

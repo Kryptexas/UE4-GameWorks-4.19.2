@@ -14,6 +14,7 @@
 #include "RHIStaticStates.h"
 #include "GlobalDistanceFieldParameters.h"
 #include "DebugViewModeHelpers.h"
+#include "ShaderParameters.h"
 
 class FSceneViewStateInterface;
 class FViewUniformShaderParameters;
@@ -58,6 +59,11 @@ public:
 			(ConstrainedViewRect.Min.Y >= 0) &&
 			(ConstrainedViewRect.Width() > 0) &&
 			(ConstrainedViewRect.Height() > 0);
+	}
+
+	bool IsPerspectiveProjection() const
+	{
+		return ProjectionMatrix.M[3][3] < 1.0f;
 	}
 
 	const FIntRect& GetViewRect() const { return ViewRect; }
@@ -155,6 +161,7 @@ struct FViewMatrices
 	{
 		ProjMatrix.SetIdentity();
 		ViewMatrix.SetIdentity();
+		HMDViewMatrixNoRoll.SetIdentity();
 		TranslatedViewMatrix.SetIdentity();
 		TranslatedViewProjectionMatrix.SetIdentity();
 		InvTranslatedViewProjectionMatrix.SetIdentity();
@@ -171,6 +178,8 @@ struct FViewMatrices
 	FMatrix		ProjMatrix;
 	// WorldToView..
 	FMatrix		ViewMatrix;
+	// HMD WorldToView with roll removed
+	FMatrix		HMDViewMatrixNoRoll;
 	/** WorldToView with PreViewTranslation. */
 	FMatrix		TranslatedViewMatrix;
 	/** The view-projection transform, starting from world-space points translated by -ViewOrigin. */
@@ -319,11 +328,25 @@ private:
 	}
 };
 
-#include "ShaderParameters.h"
-
 //////////////////////////////////////////////////////////////////////////
 
 static const int MAX_MOBILE_SHADOWCASCADES = 2;
+
+/** The uniform shader parameters for a mobile directional light and its shadow.
+  * One uniform buffer will be created for the first directional light in each lighting channel.
+  */
+BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FMobileDirectionalLightShaderParameters, ENGINE_API)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FLinearColor, DirectionalLightColor, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector, DirectionalLightDirection, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, DirectionalLightShadowTransition, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowSize, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix, DirectionalLightScreenToShadow, [MAX_MOBILE_SHADOWCASCADES])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowDistances, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, DirectionalLightShadowTexture)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, DirectionalLightShadowSampler)
+END_UNIFORM_BUFFER_STRUCT(FMobileDirectionalLightShaderParameters)
+
+//////////////////////////////////////////////////////////////////////////
 
 /** 
  * Enumeration for currently used translucent lighting volume cascades 
@@ -353,6 +376,8 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, ViewForward, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, ViewUp, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, ViewRight, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, HMDViewNoRollUp, EShaderPrecisionModifier::Half) \
+	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, HMDViewNoRollRight, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, InvDeviceZToWorldZTransform) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, ScreenPositionScaleBias, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector, WorldCameraOrigin) \
@@ -399,14 +424,9 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, FrameNumber) \
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, StateFrameIndexMod8) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, CameraCut, EShaderPrecisionModifier::Half) \
-	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, UseLightmaps, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, UnlitViewmodeMask, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FLinearColor, DirectionalLightColor, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector, DirectionalLightDirection, EShaderPrecisionModifier::Half) \
-	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, DirectionalLightShadowTransition, EShaderPrecisionModifier::Half) \
-	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, DirectionalLightShadowSize, EShaderPrecisionModifier::Half) \
-	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FMatrix, DirectionalLightScreenToShadow, [MAX_MOBILE_SHADOWCASCADES]) \
-	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, DirectionalLightShadowDistances, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeMin, [TVC_MAX]) \
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeInvSize, [TVC_MAX]) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, TemporalAAParams) \
@@ -419,6 +439,7 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldNearTransitionRegion) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, DepthOfFieldFarTransitionRegion) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, MotionBlurNormalizedToPixel) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, bSubsurfacePostprocessEnabled) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GeneralPurposeTweak) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, DemosaicVposOffset, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector, IndirectLightingColorScale) \
@@ -438,9 +459,10 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, AtmosphericFogRenderMask) \
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, AtmosphericFogInscatterAltitudeSampleNum) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, AtmosphericFogSunColor) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, NormalCurvatureToRoughnessScaleBias) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, RenderingReflectionCaptureMask) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, AmbientCubemapTint) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, AmbientCubemapIntensity) \
-	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, RenderTargetSize) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, SkyLightParameters) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, SceneTextureMinMax) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, SkyLightColor) \
@@ -450,12 +472,15 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(float, ReflectionCubemapMaxMip, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, ShowDecalsMask) \
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, DistanceFieldAOSpecularOcclusionMode) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, IndirectCapsuleSelfShadowingIntensity) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, ReflectionEnvironmentRoughnessMixingScaleBias) \
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, StereoPassIndex) \
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, GlobalVolumeCenterAndExtent_UB, [GMaxGlobalDistanceFieldClipmaps]) \
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, GlobalVolumeWorldToUVAddAndMul_UB, [GMaxGlobalDistanceFieldClipmaps]) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeDimension_UB) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeTexelSize_UB) \
-	VIEW_UNIFORM_BUFFER_MEMBER(float, MaxGlobalDistance_UB)
+	VIEW_UNIFORM_BUFFER_MEMBER(float, MaxGlobalDistance_UB) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, bCheckerboardSubsurfaceProfileRendering)
 
 #define VIEW_UNIFORM_BUFFER_MEMBER(type, identifier) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(type, identifier)
@@ -480,8 +505,6 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters, ENGIN
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, GlobalDistanceFieldTexture3_UB)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, GlobalDistanceFieldSampler3_UB)
 
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, DirectionalLightShadowTexture)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, DirectionalLightShadowSampler)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, AtmosphereTransmittanceTexture_UB)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, AtmosphereTransmittanceTextureSampler_UB)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, AtmosphereIrradianceTexture_UB)
@@ -547,6 +570,13 @@ public:
 
 	/** The uniform buffer for the view's parameters. This is only initialized in the rendering thread's copies of the FSceneView. */
 	TUniformBufferRef<FViewUniformShaderParameters> ViewUniformBuffer;
+	TUniformBufferRef<FViewUniformShaderParameters> DownsampledTranslucencyViewUniformBuffer;
+
+	/** Mobile Directional Lighting uniform buffers, one for each lighting channel 
+	  * The first is used for primitives with no lighting channels set.
+	  * Only initialized in the rendering thread's copies of the FSceneView.
+	  */
+	TUniformBufferRef<FMobileDirectionalLightShaderParameters> MobileDirectionalLightUniformBuffers[NUM_LIGHTING_CHANNELS+1];
 
 	/** The actor which is being viewed from. */
 	const AActor* ViewActor;
@@ -561,7 +591,10 @@ public:
 	const FIntRect UnscaledViewRect;
 
 	/* Raw view size (in pixels), used for screen space calculations */
-	const FIntRect UnconstrainedViewRect;
+	FIntRect UnconstrainedViewRect;
+
+	/* If set, derive the family view size explicitly using this. */
+	FIntRect ResolutionOverrideRect;
 
 	/** Maximum number of shadow cascades to render with. */
 	int32 MaxShadowCascades;
@@ -693,6 +726,9 @@ public:
 	/** True if instanced stereo is enabled. */
 	bool bIsInstancedStereoEnabled;
 
+	/** True if multi-view is enabled. */
+	bool bIsMultiViewEnabled;
+
 	/** Global clipping plane being applied to the scene, or all 0's if disabled.  This is used when rendering the planar reflection pass. */
 	FPlane GlobalClippingPlane;
 
@@ -733,6 +769,7 @@ public:
 	 * Setup by the main thread, passed to the render thread and never touched again by the main thread.
 	 */
 	FFinalPostProcessSettings FinalPostProcessSettings;
+	EAntiAliasingMethod AntiAliasingMethod;
 
 	/** Parameters for atmospheric fog. */
 	FTextureRHIRef AtmosphereTransmittanceTexture;
@@ -851,6 +888,9 @@ public:
 	/** Allow things like HMD displays to update the view matrix at the last minute, to minimize perceived latency */
 	void UpdateViewMatrix();
 
+	/** If we late update a view, we need to also late update any planar reflection views derived from it */
+	void UpdatePlanarReflectionViewMatrix(const FSceneView& SourceView, const FMirrorMatrix& MirrorMatrix);
+
 	/** Setup defaults and depending on view position (postprocess volumes) */
 	void StartFinalPostprocessSettings(FVector InViewLocation);
 
@@ -863,6 +903,8 @@ public:
 	/** applied global restrictions from show flags */
 	void EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewInitOptions);
 
+	void SetupAntiAliasingMethod();
+
 	/** Configure post process settings for the buffer visualization system */
 	void ConfigureBufferVisualizationSettings();
 
@@ -874,6 +916,24 @@ public:
 
 	/** True if the view should render as an instanced stereo pass */
 	bool IsInstancedStereoPass() const { return bIsInstancedStereoEnabled && StereoPass == eSSP_LEFT_EYE; }
+
+	/** Sets up the view rect parameters in the view's uniform shader parameters */
+	void SetupViewRectUniformBufferParameters(const FIntPoint& BufferSize, const FIntRect& EffectiveViewRect, FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+
+	/** 
+	 * Populates the uniform buffer prameters common to all scene view use cases
+	 * View parameters should be set up in this method if they are required for the view to render properly.
+	 * This is to avoid code duplication and uninitialized parameters in other places that create view uniform parameters (e.g Slate) 
+	 */
+	void SetupCommonViewUniformBufferParameters(
+		FViewUniformShaderParameters& ViewUniformShaderParameters,
+		const FIntPoint& BufferSize,
+		const FIntRect& EffectiveViewRect,
+		const FMatrix& EffectiveTranslatedViewMatrix,
+		const FMatrix& EffectiveViewToTranslatedWorld,
+		const FViewMatrices& PrevViewMatrices,
+		const FMatrix& PrevViewProjMatrix,
+		const FMatrix& PrevViewRotationProjMatrix) const;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1010,6 +1070,13 @@ public:
 	/** The height in screen pixels of the view family being rendered (maximum y of all viewports). */
 	uint32 FamilySizeY;
 
+	/** 
+		The width in pixels of the stereo view family being rendered. This may be different than FamilySizeX if
+		we're using adaptive resolution stereo rendering. In that case, FamilySizeX represents the maximum size of 
+		the family to ensure the backing render targets don't change between frames as the view size varies.
+	*/
+	uint32 InstancedStereoWidth;
+
 	/** The render target which the views are being rendered to. */
 	const FRenderTarget* RenderTarget;
 
@@ -1048,6 +1115,10 @@ public:
 	 * If SCS_FinalColorLDR this indicates do nothing.
 	 */
 	ESceneCaptureSource SceneCaptureSource;
+	
+
+	/** When enabled, the scene capture will composite into the render target instead of overwriting its contents. */
+	ESceneCaptureCompositeMode SceneCaptureCompositeMode;
 
 	/**
 	 * GetWorld->IsPaused() && !Simulate

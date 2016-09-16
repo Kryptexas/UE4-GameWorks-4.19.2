@@ -38,18 +38,6 @@ namespace AutomationTool.Tasks
 		public string Arguments;
 
 		/// <summary>
-		/// Directory containing output files
-		/// </summary>
-		[TaskParameter(Optional = true)]
-		public string OutputDir;
-
-		/// <summary>
-		/// Patterns for output files
-		/// </summary>
-		[TaskParameter(Optional = true)]
-		public string OutputFiles;
-
-		/// <summary>
 		/// Only enumerate build products; do not actually compile the projects.
 		/// </summary>
 		[TaskParameter(Optional = true)]
@@ -70,7 +58,7 @@ namespace AutomationTool.Tasks
 	}
 
 	/// <summary>
-	/// Compile a C# project file
+	/// Compiles C# project files, and their dependencies.
 	/// </summary>
 	[TaskElement("CsCompile", typeof(CsCompileTaskParameters))]
 	public class CsCompileTask : CustomTask
@@ -250,10 +238,10 @@ namespace AutomationTool.Tasks
 						FileReference OutputFile = FileReference.Combine(OutputDir, OtherAssembly.GetFileName());
 						BuildProducts.Add(OutputFile);
 
-						FileReference SymbolFile = OtherAssembly.ChangeExtension(".pdb");
-						if(SymbolFile.Exists())
+						FileReference OutputSymbolFile = OutputFile.ChangeExtension(".pdb");
+						if(OutputSymbolFile.Exists())
 						{
-							BuildProducts.Add(OutputFile.ChangeExtension(".pdb"));
+							BuildProducts.Add(OutputSymbolFile);
 						}
 					}
 					else
@@ -290,7 +278,7 @@ namespace AutomationTool.Tasks
 		/// <returns>True if the projects were read correctly, false (and prints an error to the log) if not</returns>
 		static bool ReadProjectsRecursively(FileReference File, Dictionary<string, string> InitialProperties, Dictionary<FileReference, CsProjectInfo> FileToProjectInfo)
 		{
-			// Early out if we've already read this project, return succes
+			// Early out if we've already read this project, return success
 			if(FileToProjectInfo.ContainsKey(File))
 			{
 				return true;
@@ -306,7 +294,7 @@ namespace AutomationTool.Tasks
 
 			// Add it to the project lookup, and try to read all the projects it references
 			FileToProjectInfo.Add(File, ProjectInfo);
-			return ProjectInfo.ProjectReferences.Keys.All(x => ReadProjectsRecursively(x, new Dictionary<string, string>(), FileToProjectInfo));
+			return ProjectInfo.ProjectReferences.Keys.All(x => ReadProjectsRecursively(x, InitialProperties, FileToProjectInfo));
 		}
 	}
 
@@ -370,20 +358,34 @@ namespace AutomationTool.Tasks
 				switch(OutputType)
 				{
 					case "Exe":
+					case "WinExe":
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".exe"));
-						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".pdb"));
-                        FileReference ExeConfig = FileReference.Combine(OutputDir, AssemblyName + ".exe.config");
-						if (ExeConfig.Exists()) { BuildProducts.Add(ExeConfig); }
-						FileReference ExeMDB = FileReference.Combine(OutputDir, AssemblyName + "exe.mdb");
-						if (ExeMDB.Exists()) { BuildProducts.Add(ExeMDB); }
+						AddOptionalBuildProduct(FileReference.Combine(OutputDir, AssemblyName + ".pdb"), BuildProducts);
+						AddOptionalBuildProduct(FileReference.Combine(OutputDir, AssemblyName + ".exe.config"), BuildProducts);
+						AddOptionalBuildProduct(FileReference.Combine(OutputDir, AssemblyName + ".exe.mdb"), BuildProducts);
 						return true;
 					case "Library":
 						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".dll"));
-						BuildProducts.Add(FileReference.Combine(OutputDir, AssemblyName + ".pdb"));
+						AddOptionalBuildProduct(FileReference.Combine(OutputDir, AssemblyName + ".pdb"), BuildProducts);
+						AddOptionalBuildProduct(FileReference.Combine(OutputDir, AssemblyName + ".dll.config"), BuildProducts);
+						AddOptionalBuildProduct(FileReference.Combine(OutputDir, AssemblyName + ".dll.mdb"), BuildProducts);
 						return true;
 				}
 			}
 			return false;
+		}
+
+		/// <summary>
+		/// Adds a build product to the output list if it exists
+		/// </summary>
+		/// <param name="BuildProduct">The build product to add</param>
+		/// <param name="BuildProducts">List of output build products</param>
+		public static void AddOptionalBuildProduct(FileReference BuildProduct, HashSet<FileReference> BuildProducts)
+		{
+			if(BuildProduct.Exists())
+			{
+				BuildProducts.Add(BuildProduct);
+			}
 		}
 
 		/// <summary>
@@ -486,7 +488,7 @@ namespace AutomationTool.Tasks
 		/// </summary>
 		/// <param name="BaseDirectory">Directory to resolve relative paths against</param>
 		/// <param name="ParentElement">The parent 'Reference' element</param>
-		/// <param name="ProjectReferences">Dictionary of project files to a bool indicating whether the assembly should be copied locally to the referencing project.</param>
+		/// <param name="References">Dictionary of project files to a bool indicating whether the assembly should be copied locally to the referencing project.</param>
 		static void ParseReference(DirectoryReference BaseDirectory, XmlElement ParentElement, Dictionary<FileReference, bool> References)
 		{
 			string HintPath = GetChildElementString(ParentElement, "HintPath", null);

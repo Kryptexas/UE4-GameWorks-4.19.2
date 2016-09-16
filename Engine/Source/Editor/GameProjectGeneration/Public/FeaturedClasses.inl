@@ -1,5 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 /** Inline file to avoid introducing many UObject headers into the global namespace */
 
 #include "Kismet/BlueprintFunctionLibrary.h"
@@ -22,7 +24,7 @@
 
 
 /** Get a list of all featured native class types */
-TArray<FNewClassInfo> FFeaturedClasses::AllNativeClasses()
+FORCEINLINE TArray<FNewClassInfo> FFeaturedClasses::AllNativeClasses()
 {
 	TArray<FNewClassInfo> Array;
 	Array.Add(FNewClassInfo(FNewClassInfo::EClassType::EmptyCpp));
@@ -42,7 +44,7 @@ TArray<FNewClassInfo> FFeaturedClasses::AllNativeClasses()
 }
 
 /** Get a list of all featured Actor class types */
-TArray<FNewClassInfo> FFeaturedClasses::ActorClasses()
+FORCEINLINE TArray<FNewClassInfo> FFeaturedClasses::ActorClasses()
 {
 	TArray<FNewClassInfo> Array;
 	AddCommonActorClasses(Array);
@@ -51,7 +53,7 @@ TArray<FNewClassInfo> FFeaturedClasses::ActorClasses()
 }
 
 /** Get a list of all featured Component class types */
-TArray<FNewClassInfo> FFeaturedClasses::ComponentClasses()
+FORCEINLINE TArray<FNewClassInfo> FFeaturedClasses::ComponentClasses()
 {
 	TArray<FNewClassInfo> Array;
 	AddCommonComponentClasses(Array);
@@ -60,7 +62,7 @@ TArray<FNewClassInfo> FFeaturedClasses::ComponentClasses()
 }
 
 /** Append the featured Actor class types that are commonly used */
-void FFeaturedClasses::AddCommonActorClasses(TArray<FNewClassInfo>& Array)
+FORCEINLINE void FFeaturedClasses::AddCommonActorClasses(TArray<FNewClassInfo>& Array)
 {
 	Array.Add(FNewClassInfo(ACharacter::StaticClass()));
 	Array.Add(FNewClassInfo(APawn::StaticClass()));
@@ -68,7 +70,7 @@ void FFeaturedClasses::AddCommonActorClasses(TArray<FNewClassInfo>& Array)
 }
 
 /** Append the featured Actor class types that are less commonly used */
-void FFeaturedClasses::AddExtraActorClasses(TArray<FNewClassInfo>& Array)
+FORCEINLINE void FFeaturedClasses::AddExtraActorClasses(TArray<FNewClassInfo>& Array)
 {
 	Array.Add(FNewClassInfo(APlayerCameraManager::StaticClass()));
 	Array.Add(FNewClassInfo(APlayerController::StaticClass()));
@@ -80,14 +82,14 @@ void FFeaturedClasses::AddExtraActorClasses(TArray<FNewClassInfo>& Array)
 }
 
 /** Append the featured Component class types that are commonly used */
-void FFeaturedClasses::AddCommonComponentClasses(TArray<FNewClassInfo>& Array)
+FORCEINLINE void FFeaturedClasses::AddCommonComponentClasses(TArray<FNewClassInfo>& Array)
 {
 	Array.Add(FNewClassInfo(UActorComponent::StaticClass()));
 	Array.Add(FNewClassInfo(USceneComponent::StaticClass()));
 }
 
 /** Append the featured Component class types that are less commonly used */
-void FFeaturedClasses::AddExtraComponentClasses(TArray<FNewClassInfo>& Array)
+FORCEINLINE void FFeaturedClasses::AddExtraComponentClasses(TArray<FNewClassInfo>& Array)
 {
 	Array.Add(FNewClassInfo(UStaticMeshComponent::StaticClass()));
 	Array.Add(FNewClassInfo(USkeletalMeshComponent::StaticClass()));

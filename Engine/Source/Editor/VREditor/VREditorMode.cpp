@@ -48,7 +48,7 @@ UVREditorMode::UVREditorMode( const FObjectInitializer& ObjectInitializer ) :
 	bIsFullyInitialized( false ),
 	AppTimeModeEntered( FTimespan::Zero() ),
 	AvatarActor( nullptr ),
-    FlashlightComponent( nullptr ),
+    	FlashlightComponent( nullptr ),
 	bIsFlashlightOn( false ),
 	MotionControllerID( 0 ),	// @todo vreditor minor: We only support a single controller, and we assume the first controller are the motion controls
 	UISystem( nullptr ),

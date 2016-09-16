@@ -10,6 +10,9 @@
 FNullDynamicRHI::FNullDynamicRHI()
 {
 	GMaxRHIShaderPlatform = ShaderFormatToLegacyShaderPlatform(FName(FPlatformMisc::GetNullRHIShaderFormat()));
+	GMaxTextureDimensions = 16384;
+	GMaxTextureMipCount = FPlatformMath::CeilLogTwo(GMaxTextureDimensions) + 1;
+	GMaxTextureMipCount = FPlatformMath::Min<int32>( MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount );
 }
 
 
@@ -61,7 +64,15 @@ void FNullDynamicRHI::Shutdown()
  */
 void* FNullDynamicRHI::GetStaticBuffer()
 {
-	ensureMsgf(WITH_EDITOR || !IsRunningDedicatedServer(), TEXT("NullRHI should never allocate memory on the server. Change the caller to avoid doing allocs in when FApp::ShouldUseNullRHI() is true."));
+#if !WITH_EDITOR
+	static bool bLogOnce = false;
+
+	if (!bLogOnce && (IsRunningDedicatedServer()))
+	{
+		UE_LOG(LogRHI, Log, TEXT("NullRHI preferably does not allocate memory on the server. Try to change the caller to avoid doing allocs in when FApp::ShouldUseNullRHI() is true."));
+		bLogOnce = true;
+	}
+#endif
 
 	static void* Buffer = nullptr;
 	if (!Buffer)

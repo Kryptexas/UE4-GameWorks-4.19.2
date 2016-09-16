@@ -637,11 +637,17 @@ partial class GUBP
                 {
 					if (!BranchConfig.BranchOptions.ExcludeNodes.Contains(ProgramTarget.TargetName))
                     {
+						// Always compile CRC with VS2013 due to requiring the 2015 redist
+						string AddTargetArgs = AddArgs;
+						if(String.Compare(ProgramTarget.TargetName, "CrashReportClient", true) == 0 || String.Compare(ProgramTarget.TargetName, "UnrealCEFSubProcess", true) == 0)
+						{
+							AddTargetArgs += " -2013";
+						}
 						foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
 						{
 							foreach (var Config in ProgramTarget.Rules.GUBP_ToolConfigs(HostPlatform))
 							{
-								Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, Plat, Config, InAddArgs: AddArgs);
+								Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, Plat, Config, InAddArgs: AddTargetArgs);
 							}
 						}
 					}
@@ -1810,7 +1816,7 @@ partial class GUBP
                 }
 
                 // If the base cook platform fails, don't bother trying other ones
-                string BaseCookedPlatform = Platform.Platforms[HostPlatform].GetCookPlatform(false, false, "");
+                string BaseCookedPlatform = Platform.GetPlatform(HostPlatform).GetCookPlatform(false, false);
                 if (InGameProj.GameName == BranchConfig.Branch.BaseEngineProject.GameName && CookPlatform != BaseCookedPlatform &&
                     BranchConfig.HasNode(CookNode.StaticGetFullName(HostPlatform, BranchConfig.Branch.BaseEngineProject, BaseCookedPlatform)))
                 {
@@ -1945,7 +1951,7 @@ partial class GUBP
                         if (Platforms.Contains(TargetPlatform) && Target.Rules.SupportsPlatform(TargetPlatform))
                         {
                             //@todo how do we get the client target platform?
-                            string CookedPlatform = Platform.Platforms[TargetPlatform].GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client, "");
+                            string CookedPlatform = Platform.GetPlatform(TargetPlatform).GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client);
 							if (Target.Rules.GUBP_AlternateCookPlatform(HostPlatform, CookedPlatform) != "")
 							{
 								CookedPlatform = Target.Rules.GUBP_AlternateCookPlatform(HostPlatform, CookedPlatform);
@@ -1970,7 +1976,7 @@ partial class GUBP
                             if (Platforms.Contains(TargetPlatform) && Target.Rules.SupportsPlatform(TargetPlatform))
                             {
                                 //@todo how do we get the client target platform?
-                                string CookedPlatform = Platform.Platforms[TargetPlatform].GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client, "");
+                                string CookedPlatform = Platform.GetPlatform(TargetPlatform).GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client);
                                 AddDependency(CookNode.StaticGetFullName(HostPlatform, GameProj, CookedPlatform));
                                 AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, BranchConfig.Branch.BaseEngineProject, TargetPlatform));
                             }

@@ -65,6 +65,8 @@ void FAssetTypeActions_Class::GetActions(const TArray<UObject*>& InObjects, FMen
 	FText NewDerivedBlueprintClassToolTip;
 	if(InObjects.Num() == 1)
 	{
+		check(BaseClass);
+
 		const FText BaseClassName = FText::FromName(BaseClass->GetFName());
 
 		NewDerivedCppClassLabel = FText::Format(LOCTEXT("Class_NewDerivedCppClassLabel_CreateFrom", "Create C++ class derived from {0}"), BaseClassName);

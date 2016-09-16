@@ -310,6 +310,10 @@ public:
 			Source += ThisSize;
 			BytesToWrite -= ThisSize;
 		}
+		
+		// Update the cached file length
+		Length = FMath::Max(Length, CurrentOffset);
+
 		return true;
 	}
 
@@ -320,7 +324,7 @@ public:
 };
 
 
-class FManifestReader
+class FAndroidFileManifestReader
 {
 private:
 	bool bInitialized;
@@ -328,7 +332,7 @@ private:
 	TMap<FString, FDateTime> ManifestEntries;
 public:
 
-	FManifestReader( const FString& InManifestFileName ) : ManifestFileName(InManifestFileName), bInitialized(false)
+	FAndroidFileManifestReader( const FString& InManifestFileName ) : ManifestFileName(InManifestFileName), bInitialized(false)
 	{
 	}
 
@@ -491,8 +495,8 @@ public:
 	}
 };
 
-FManifestReader NonUFSManifest(TEXT("Manifest_NonUFSFiles_Android.txt"));
-FManifestReader UFSManifest(TEXT("Manifest_UFSFiles_Android.txt"));
+FAndroidFileManifestReader NonUFSManifest(TEXT("Manifest_NonUFSFiles_Android.txt"));
+FAndroidFileManifestReader UFSManifest(TEXT("Manifest_UFSFiles_Android.txt"));
 
 /*
 	Access to files in multiple ZIP archives.
@@ -632,7 +636,13 @@ public:
 			uint32 Signature;
 			verify( DirectoryMap.Seek(Offset) );
 			verify( DirectoryMap.Read((uint8*)&Signature, sizeof(Signature)) );
-			check( Signature == kCDESignature );
+
+			// NumEntries may be 65535 so also stop if signature invalid.
+			if (Signature != kCDESignature)
+			{
+				// Hit the end of the central directory, stop.
+				break;
+			}
 
 			// Entry information. Note, we try and read in incremental
 			// order to avoid missing read-aheads.

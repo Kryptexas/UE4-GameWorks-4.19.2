@@ -3608,7 +3608,7 @@ void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 		// or also for PSCs that are attached to a SkelComp which is being attached and reattached but the PSC itself is not active!
 		if (bIsActive)
 		{
-			UpdateDynamicData(PSysSceneProxy);
+			UpdateDynamicData();
 		}
 		else
 		{
@@ -4029,7 +4029,7 @@ void UParticleSystemComponent::ClearDynamicData()
 	}
 }
 
-void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Proxy)
+void UParticleSystemComponent::UpdateDynamicData()
 {
 	//SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_UpdateDynamicData);
 
@@ -4037,7 +4037,9 @@ void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Prox
 	if (SceneProxy)
 	{
 		// Create the dynamic data for rendering this particle system
-		FParticleDynamicData* ParticleDynamicData = CreateDynamicData(Proxy->GetScene().GetFeatureLevel());
+		FParticleDynamicData* ParticleDynamicData = CreateDynamicData(SceneProxy->GetScene().GetFeatureLevel());
+
+		FParticleSystemSceneProxy* Proxy = (FParticleSystemSceneProxy*)SceneProxy;
 		// Render the particles
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		//@todo.SAS. Remove thisline  - it is used for debugging purposes...
@@ -4884,15 +4886,15 @@ void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion
 		}
 
 		float ThisTime = float(FPlatformTime::Seconds() - StartTime) * 1000.0f;
-		if (Behavior != SILENT)
+		if (Behavior != SILENT && ThisTime >= KINDA_SMALL_NUMBER)
 		{
 			if (bDefinitelyGameThread || IsInGameThread())
 			{
-				UE_LOG(LogParticles, Warning, TEXT("Stalled gamethread waiting for particles %5.2fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
+				UE_LOG(LogParticles, Warning, TEXT("Stalled gamethread waiting for particles %5.6fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
 			}
 			else
 			{
-				UE_LOG(LogParticles, Warning, TEXT("Stalled worker thread waiting for particles %5.2fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
+				UE_LOG(LogParticles, Warning, TEXT("Stalled worker thread waiting for particles %5.6fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
 			}
 		}
 		const_cast<UParticleSystemComponent*>(this)->FinalizeTickComponent();
@@ -6543,7 +6545,7 @@ bool UParticleSystemComponent::GetAnyVectorParameter(const FName InName,FVector&
 			}
 			if (Param.ParamType == PSPT_VectorRand)
 			{
-				check(IsInGameThread());
+				//check(IsInGameThread());
 				FVector RandValue(FMath::SRand(), FMath::SRand(), FMath::SRand());
 				OutVector = Param.Vector + (Param.Vector_Low - Param.Vector) * RandValue;
 				return true;
@@ -7052,20 +7054,32 @@ AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const FObjectInitiali
 	DistFromCamera_DEPRECATED = TNumericLimits<float>::Max();
 }
 
+
+FTransform AEmitterCameraLensEffectBase::GetAttachedEmitterTransform(AEmitterCameraLensEffectBase const* Emitter, const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg)
+{
+	if (Emitter)
+	{
+		// adjust for FOV
+		// base dist uses BaseFOV which is set on the indiv camera lens effect class
+		FTransform RelativeTransformAdjustedForFOV = Emitter->RelativeTransform;
+		FVector AdjustedRelativeLoc = RelativeTransformAdjustedForFOV.GetLocation();
+		AdjustedRelativeLoc.X *= FMath::Tan(Emitter->BaseFOV*0.5f*PI / 180.f) / FMath::Tan(CamFOVDeg*0.5f*PI / 180.f);
+		RelativeTransformAdjustedForFOV.SetLocation(AdjustedRelativeLoc);
+
+		FTransform const CameraToWorld(CamRot, CamLoc);
+
+		// RelativeTransform is "effect to camera"
+		FTransform const EffectToWorld = RelativeTransformAdjustedForFOV * CameraToWorld;
+
+		return EffectToWorld;
+	}
+
+	return FTransform::Identity;
+}
+
 void AEmitterCameraLensEffectBase::UpdateLocation(const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg)
 {
-	// adjust for FOV
-	// base dist uses BaseFOV which is set on the indiv camera lens effect class
-	FTransform RelativeTransformAdjustedForFOV = RelativeTransform;
-	FVector AdjustedRelativeLoc = RelativeTransformAdjustedForFOV.GetLocation();
-	AdjustedRelativeLoc.X *= FMath::Tan(BaseFOV*0.5f*PI / 180.f) / FMath::Tan(CamFOVDeg*0.5f*PI / 180.f);
-	RelativeTransformAdjustedForFOV.SetLocation(AdjustedRelativeLoc);
-
-	FTransform const CameraToWorld(CamRot, CamLoc);
-
-	// RelativeTransform is "effect to camera"
-	FTransform const EffectToWorld = RelativeTransformAdjustedForFOV * CameraToWorld;
-
+	FTransform const EffectToWorld = GetAttachedEmitterTransform(this, CamLoc, CamRot, CamFOVDeg);
 	SetActorTransform(EffectToWorld);
 }
 

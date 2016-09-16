@@ -35,14 +35,6 @@ public:
 	{
 		bool operator()(IHeadMountedDisplayModule& A, IHeadMountedDisplayModule& B) const
 		{
-			bool IsHMDConnectedA = A.IsHMDConnected();
-			bool IsHMDConnectedB = B.IsHMDConnected();
-
-			if(IsHMDConnectedA && !IsHMDConnectedB)
-				return true;
-			if(!IsHMDConnectedA && IsHMDConnectedB)
-				return false;
-
 			return A.GetModulePriority() > B.GetModulePriority();
 		}
 	};

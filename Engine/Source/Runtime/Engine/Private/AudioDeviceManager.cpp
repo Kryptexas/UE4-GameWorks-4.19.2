@@ -279,6 +279,9 @@ class FAudioDevice* FAudioDeviceManager::GetActiveAudioDevice()
 
 void FAudioDeviceManager::UpdateActiveAudioDevices(bool bGameTicking)
 {
+	// Before we kick off the next update make sure that we've finished the previous frame's update (this should be extremely rare)
+	SyncFence.Wait();
+
 	for (FAudioDevice* AudioDevice : Devices)
 	{
 		if (AudioDevice)
@@ -286,6 +289,8 @@ void FAudioDeviceManager::UpdateActiveAudioDevices(bool bGameTicking)
 			AudioDevice->Update(bGameTicking);
 		}
 	}
+
+	SyncFence.BeginFence();
 }
 
 void FAudioDeviceManager::AddReferencedObjects(FReferenceCollector& Collector)
@@ -458,6 +463,9 @@ void FAudioDeviceManager::FreeBufferResource(FSoundBuffer* SoundBuffer)
 {
 	if (SoundBuffer)
 	{
+		// Make sure any realtime tasks are finished that are using this buffer
+		SoundBuffer->EnsureRealtimeTaskCompletion();
+
 		Buffers.Remove(SoundBuffer);
 
 		// Stop any sound sources on any audio device currently using this buffer before deleting
@@ -535,6 +543,70 @@ void FAudioDeviceManager::ToggleVisualize3dDebug()
 	}
 
 	bVisualize3dDebug = !bVisualize3dDebug;
+}
+
+void FAudioDeviceManager::SetDebugSoloSoundClass(const TCHAR* SoundClassName)
+{
+	if (!IsInAudioThread())
+	{
+		FAudioDeviceManager* AudioDeviceManager = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDeviceManager, SoundClassName]()
+		{
+			AudioDeviceManager->SetDebugSoloSoundClass(SoundClassName);
+
+		});
+		return;
+	}
+
+	DebugNames.DebugSoloSoundClass = SoundClassName;
+
+}
+
+const FString& FAudioDeviceManager::GetDebugSoloSoundClass() const
+{
+	return DebugNames.DebugSoloSoundClass;
+}
+
+void FAudioDeviceManager::SetDebugSoloSoundWave(const TCHAR* SoundWave)
+{
+	if (!IsInAudioThread())
+	{
+		FAudioDeviceManager* AudioDeviceManager = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDeviceManager, SoundWave]()
+		{
+			AudioDeviceManager->SetDebugSoloSoundWave(SoundWave);
+
+		});
+		return;
+	}
+
+	DebugNames.DebugSoloSoundWave = SoundWave;
+}
+
+const FString& FAudioDeviceManager::GetDebugSoloSoundWave() const
+{
+	return DebugNames.DebugSoloSoundWave;
+}
+
+void FAudioDeviceManager::SetDebugSoloSoundCue(const TCHAR* SoundCue)
+{
+	if (!IsInAudioThread())
+	{
+		FAudioDeviceManager* AudioDeviceManager = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDeviceManager, SoundCue]()
+		{
+			AudioDeviceManager->SetDebugSoloSoundCue(SoundCue);
+
+		});
+		return;
+	}
+
+	DebugNames.DebugSoloSoundCue = SoundCue;
+}
+
+const FString& FAudioDeviceManager::GetDebugSoloSoundCue() const
+{
+	return DebugNames.DebugSoloSoundCue;
 }
 
 

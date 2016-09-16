@@ -40,9 +40,19 @@ DECLARE_LOG_CATEGORY_EXTERN(OSVRHMDLog, Log, All);
 class FOSVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, public TSharedFromThis< FOSVRHMD, ESPMode::ThreadSafe >
 {
 public:
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("OSVR"));
+		return DefaultName;
+	}
 
+#if OSVR_UNREAL_4_12
     virtual void OnBeginPlay(FWorldContext& InWorldContext) override;
     virtual void OnEndPlay(FWorldContext& InWorldContext) override;
+#else
+    virtual void OnBeginPlay() override;
+    virtual void OnEndPlay() override;
+#endif
     virtual bool IsHMDConnected() override;
     virtual bool IsHMDEnabled() const override;
     virtual void EnableHMD(bool bEnable = true) override;
@@ -77,6 +87,9 @@ public:
     virtual bool IsChromaAbCorrectionEnabled() const override;
 
     virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+#if !OSVR_UNREAL_4_12
+    virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
+#endif
 
     virtual bool IsPositionalTrackingEnabled() const override;
     virtual bool EnablePositionalTracking(bool bEnable) override;
@@ -108,7 +121,6 @@ public:
     virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
     virtual void RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const override;
     virtual void GetEyeRenderParams_RenderThread(const struct FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
-    virtual void GetTimewarpMatrices_RenderThread(const struct FRenderingCompositePassContext& Context, FMatrix& EyeRotationStart, FMatrix& EyeRotationEnd) const override;
     virtual void CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
     virtual bool NeedReAllocateViewportRenderTarget(const FViewport &viewport) override;
     virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport, class SViewport*) override;
@@ -160,6 +172,8 @@ public:
 private:
     void UpdateHeadPose(FQuat& lastHmdOrientation, FVector& lastHmdPosition, FQuat& hmdOrientation, FVector& hmdPosition);
     void UpdateHeadPose();
+    void StartCustomPresent();
+    void StopCustomPresent();
 
     IRendererModule* RendererModule;
 

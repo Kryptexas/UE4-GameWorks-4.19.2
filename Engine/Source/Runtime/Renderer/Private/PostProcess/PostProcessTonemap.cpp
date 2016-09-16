@@ -12,6 +12,7 @@
 #include "PostProcessTonemap.h"
 #include "PostProcessing.h"
 #include "PostProcessCombineLUTs.h"
+#include "PostProcessMobile.h"
 #include "SceneUtils.h"
 
 static TAutoConsoleVariable<float> CVarTonemapperSharpen(
@@ -37,8 +38,8 @@ static TAutoConsoleVariable<int32> CVarTonemapper2084(
 	TEXT("r.Tonemapper2084"),
 	0,
 	TEXT("0: use sRGB on PC monitor output\n")
-	TEXT("1: use ACES 2000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
-	TEXT("2: use SMPTE ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
+	TEXT("1: use ACES 1000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
+	TEXT("2: use ACES 2000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
 	TEXT("3: use Unreal Filmic Tonemapping with for ST-2084 (Dolby PQ) for HDR displays"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
@@ -558,8 +559,6 @@ static uint32 TonemapperGenerateBitmask(const FViewInfo* RESTRICT View, bool bGa
 {
 	check(View);
 
-	bGammaOnly |= !IsMobileHDR();
-
 	const FSceneViewFamily* RESTRICT Family = View->Family;
 	if(
 		bGammaOnly ||
@@ -699,7 +698,7 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 		// add full mobile post if FP16 is supported.
 		Bitmask += TonemapperGenerateBitmaskPost(View);
 
-		bool bUseDof = View->FinalPostProcessSettings.DepthOfFieldScale > 0.0f && (!View->FinalPostProcessSettings.bMobileHQGaussian || (View->GetFeatureLevel() < ERHIFeatureLevel::ES3_1));
+		bool bUseDof = GetMobileDepthOfFieldScale(*View) > 0.0f && (!View->FinalPostProcessSettings.bMobileHQGaussian || (View->GetFeatureLevel() < ERHIFeatureLevel::ES3_1));
 
 		Bitmask += (bUseDof)					? TonemapperDOF : 0;
 		Bitmask += (View->bLightShaftUse)		? TonemapperLightShafts : 0;
@@ -1389,7 +1388,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	if (ViewFamily.Scene && ViewFamily.Scene->GetShadingPath() == EShadingPath::Mobile)
 	{
 		// Double buffer tonemapper output for temporal AA.
-		if(View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+		if(View.AntiAliasingMethod == AAM_TemporalAA)
 		{
 			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 			if(ViewState) 
@@ -1830,7 +1829,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Double buffer tonemapper output for temporal AA.
-	if(Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+	if(Context.View.AntiAliasingMethod == AAM_TemporalAA)
 	{
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState) 

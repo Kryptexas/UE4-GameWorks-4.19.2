@@ -67,6 +67,16 @@ if (!_this->egl_data->NAME) \
 { \
     return SDL_SetError("Could not retrieve EGL function " #NAME); \
 }
+
+/* EG BEGIN */
+#define LOAD_FUNC_EGLEXT(NAME) \
+_this->egl_data->NAME = _this->egl_data->eglGetProcAddress(#NAME); \
+if (!_this->egl_data->NAME) \
+{ \
+    return SDL_SetError("Could not retrieve EGL extension function " #NAME); \
+}
+/* EG END */
+    
     
 /* EGL implementation of SDL OpenGL ES support */
 #ifdef EGL_KHR_create_context        
@@ -151,8 +161,9 @@ SDL_EGL_UnloadLibrary(_THIS)
     }
 }
 
+/* EG BEGIN */
 int
-SDL_EGL_LoadLibrary(_THIS, const char *egl_path, NativeDisplayType native_display)
+SDL_EGL_LoadLibraryOnly(_THIS, const char *egl_path)
 {
     void *dll_handle = NULL, *egl_dll_handle = NULL; /* The naming is counter intuitive, but hey, I just work here -- Gabriel */
     char *path = NULL;
@@ -260,17 +271,13 @@ SDL_EGL_LoadLibrary(_THIS, const char *egl_path, NativeDisplayType native_displa
     LOAD_FUNC(eglWaitGL);
     LOAD_FUNC(eglBindAPI);
     LOAD_FUNC(eglQueryString);
-    
-#if !defined(__WINRT__)
-    _this->egl_data->egl_display = _this->egl_data->eglGetDisplay(native_display);
-    if (!_this->egl_data->egl_display) {
-        return SDL_SetError("Could not get EGL display");
-    }
-    
-    if (_this->egl_data->eglInitialize(_this->egl_data->egl_display, NULL, NULL) != EGL_TRUE) {
-        return SDL_SetError("Could not initialize EGL");
-    }
-#endif
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    LOAD_FUNC(eglCreatePbufferSurface);
+    LOAD_FUNC_EGLEXT(eglQueryDevicesEXT);
+    LOAD_FUNC_EGLEXT(eglGetPlatformDisplayEXT);
+#endif // SDL_WITH_EPIC_EXTENSIONS
+/* EG END */
 
     _this->gl_config.driver_loaded = 1;
 
@@ -282,6 +289,76 @@ SDL_EGL_LoadLibrary(_THIS, const char *egl_path, NativeDisplayType native_displa
     
     return 0;
 }
+
+
+/* Loads library and initializes EGL, assuming presence of a native display */
+int
+SDL_EGL_LoadLibrary(_THIS, const char *egl_path, NativeDisplayType native_display)
+{
+    int library_load_retcode = SDL_EGL_LoadLibraryOnly(_this, egl_path);
+    if (library_load_retcode != 0) {
+        return library_load_retcode;
+    } 
+
+#if !defined(__WINRT__)
+    _this->egl_data->egl_display = _this->egl_data->eglGetDisplay(native_display);
+    if (!_this->egl_data->egl_display) {
+        /* undoing what the LoadLibrary tentatively set */
+        _this->gl_config.driver_loaded = 0;
+        *_this->gl_config.driver_path = '\0';
+        return SDL_SetError("Could not get EGL display");
+    }
+    
+    if (_this->egl_data->eglInitialize(_this->egl_data->egl_display, NULL, NULL) != EGL_TRUE) {
+        /* undoing what the LoadLibrary tentatively set */
+        _this->gl_config.driver_loaded = 0;
+        *_this->gl_config.driver_path = '\0';
+        return SDL_SetError("Could not initialize EGL");
+    }
+#endif
+    
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    _this->egl_data->is_offscreen = 0;
+#endif // SDL_WITH_EPIC_EXTENSIONS
+
+    return 0;
+}
+
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+int
+SDL_EGL_InitializeOffscreen(_THIS, int device)
+{
+    if (_this->gl_config.driver_loaded != 1) {
+        return SDL_SetError("SDL_EGL_LoadLibraryOnly() has not been called or has failed.");
+    }
+
+    EGLDeviceEXT egl_devices[SDL_EGL_MAX_DEVICES];
+    EGLint num_egl_devices = 0;
+    if (_this->egl_data->eglQueryDevicesEXT(SDL_EGL_MAX_DEVICES, egl_devices, &num_egl_devices) != EGL_TRUE) {
+        return SDL_SetError("eglQueryDevicesEXT() failed");
+    }
+
+    if (device >= num_egl_devices) {
+        return SDL_SetError("Invalid EGL device is requested.");
+    }
+
+    _this->egl_data->egl_display = _this->egl_data->eglGetPlatformDisplayEXT(EGL_PLATFORM_DEVICE_EXT, egl_devices[device], NULL);
+
+    if (_this->egl_data->egl_display == EGL_NO_DISPLAY) {
+        return SDL_SetError("eglGetPlatformDisplayEXT() failed.");
+    }
+
+    if (_this->egl_data->eglInitialize(_this->egl_data->egl_display, NULL, NULL) != EGL_TRUE) {
+        return SDL_SetError("Could not initialize EGL");
+    }
+
+    _this->egl_data->is_offscreen = 1;
+
+    return 0;
+}
+
+#endif // SDL_WITH_EPIC_EXTENSIONS
+/* EG END */
 
 int
 SDL_EGL_ChooseConfig(_THIS) 
@@ -300,6 +377,12 @@ SDL_EGL_ChooseConfig(_THIS)
   
     /* Get a valid EGL configuration */
     i = 0;
+
+    if (_this->egl_data->is_offscreen) {
+        attribs[i++] = EGL_SURFACE_TYPE;
+        attribs[i++] = EGL_PBUFFER_BIT;
+    }
+
     attribs[i++] = EGL_RED_SIZE;
     attribs[i++] = _this->gl_config.red_size;
     attribs[i++] = EGL_GREEN_SIZE;
@@ -316,7 +399,7 @@ SDL_EGL_ChooseConfig(_THIS)
         attribs[i++] = EGL_BUFFER_SIZE;
         attribs[i++] = _this->gl_config.buffer_size;
     }
-    
+
     attribs[i++] = EGL_DEPTH_SIZE;
     attribs[i++] = _this->gl_config.depth_size;
     
@@ -577,6 +660,29 @@ SDL_EGL_CreateSurface(_THIS, NativeWindowType nw)
             _this->egl_data->egl_config,
             nw, NULL);
 }
+
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+EGLSurface
+SDL_EGL_CreateOffscreenSurface(_THIS, int width, int height)
+{
+    if (SDL_EGL_ChooseConfig(_this) != 0) {
+    	return EGL_NO_SURFACE;
+    }
+
+    EGLint attributes[] = {
+        EGL_WIDTH, width,
+        EGL_HEIGHT, height,
+        EGL_NONE
+    };
+
+    return _this->egl_data->eglCreatePbufferSurface(
+            _this->egl_data->egl_display,
+            _this->egl_data->egl_config,
+            attributes);
+}
+#endif // SDL_WITH_EPIC_EXTENSIONS
+/* EG BEGIN */
 
 void
 SDL_EGL_DestroySurface(_THIS, EGLSurface egl_surface) 

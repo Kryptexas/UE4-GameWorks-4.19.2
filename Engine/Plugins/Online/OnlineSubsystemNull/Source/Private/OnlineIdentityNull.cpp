@@ -41,11 +41,11 @@ bool FUserOnlineAccountNull::SetUserAttribute(const FString& AttrName, const FSt
 inline FString GenerateRandomUserId(int32 LocalUserNum)
 {
 	FString HostName;
-	if (!ISocketSubsystem::Get()->GetHostName(HostName))
+	if (!ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetHostName(HostName))
 	{
 		// could not get hostname, use address
 		bool bCanBindAll;
-		TSharedPtr<class FInternetAddr> Addr = ISocketSubsystem::Get()->GetLocalHostAddr(*GLog, bCanBindAll);
+		TSharedPtr<class FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLocalHostAddr(*GLog, bCanBindAll);
 		HostName = Addr->ToString(false);
 	}
 

@@ -3,6 +3,10 @@
 
 #pragma once
 
+#include "AI/Navigation/NavigationTypes.h"
+#include "Components/PrimitiveComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.generated.h"
+
 // Forward declarations
 class ULandscapeComponent;
 class ULandscapeLayerInfoObject;
@@ -10,10 +14,6 @@ class ULandscapeInfo;
 class ALandscape;
 class ALandscapeProxy;
 class AInstancedFoliageActor;
-
-#include "AI/Navigation/NavigationTypes.h"
-#include "Components/PrimitiveComponent.h"
-#include "LandscapeHeightfieldCollisionComponent.generated.h"
 
 #if WITH_PHYSX
 namespace physx
@@ -159,7 +159,9 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	};
 
 	//~ Begin UActorComponent Interface.
-	virtual void CreatePhysicsState() override;
+protected:
+	virtual void OnCreatePhysicsState() override;
+public:
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	//~ End UActorComponent Interface.
 
@@ -200,8 +202,8 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	virtual void PostEditUndo() override;
 	//~ End UObject Interface.
 
-	// @todo document
-	ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true) const;
+	/** Gets the landscape info object for this landscape */
+	ULandscapeInfo* GetLandscapeInfo() const;
 
 	/**  We speculatively async load collision object from DDC to remove hitch when streaming */
 	void SpeculativelyLoadAsyncDDCCollsionData();
@@ -213,13 +215,12 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 
 	/** Modify a sub-region of the PhysX heightfield. Note that this does not update the physical material */
 	void UpdateHeightfieldRegion(int32 ComponentX1, int32 ComponentY1, int32 ComponentX2, int32 ComponentY2);
-
 #endif
+
 	/** Creates collision object from a cooked collision data */
 	virtual void CreateCollisionObject();
 
 	/** Return the landscape actor associated with this component. */
-	ALandscape* GetLandscapeActor() const;
 	LANDSCAPE_API ALandscapeProxy* GetLandscapeProxy() const;
 
 	/** @return Component section base as FIntPoint */

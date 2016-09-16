@@ -780,14 +780,25 @@ void USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* Node)
 	else
 	{
 		USCS_Node* ParentNode = FindParentNode(Node);
-		checkSlow(ParentNode);
 
-		ParentNode->Modify();
+		if (!ensure(ParentNode))
+		{
+#if WITH_EDITOR
+			UE_LOG(LogBlueprint, Error, TEXT("RemoveNodeAndPromoteChildren(%s) failed to find a parent node in Blueprint %s, attaching children to the root"), *Node->GetName(), *GetBlueprint()->GetPathName());
+#endif
+			ParentNode = GetDefaultSceneRootNode();
+		}
 
-		// remove node and move children onto parent
-		const int32 Location = ParentNode->GetChildNodes().Find(Node);
-		ParentNode->RemoveChildNode(Node);
-		ParentNode->MoveChildNodes(Node, Location);
+		check(ParentNode);
+		if (ParentNode != nullptr)
+		{
+			ParentNode->Modify();
+
+			// remove node and move children onto parent
+			const int32 Location = ParentNode->GetChildNodes().Find(Node);
+			ParentNode->RemoveChildNode(Node);
+			ParentNode->MoveChildNodes(Node, Location);
+		}
 	}
 }
 

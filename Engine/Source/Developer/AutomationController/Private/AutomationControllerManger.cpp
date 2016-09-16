@@ -11,8 +11,7 @@ namespace AutomationControllerConstants
 	const FString HistoryConfigSectionName = TEXT("AutomationController.History");
 }
 
-
-void FAutomationControllerManager::RequestAvailableWorkers( const FGuid& SessionId )
+void FAutomationControllerManager::RequestAvailableWorkers(const FGuid& SessionId)
 {
 	//invalidate previous tests
 	++ExecutionCount;
@@ -28,7 +27,7 @@ void FAutomationControllerManager::RequestAvailableWorkers( const FGuid& Session
 
 	//TODO AUTOMATION - include change list, game, etc, or remove when launcher is integrated
 	int32 ChangelistNumber = 10000;
-	FString ProcessName = TEXT( "instance_name" );
+	FString ProcessName = TEXT("instance_name");
 
 	MessageEndpoint->Publish(new FAutomationWorkerFindWorkers(ChangelistNumber, FApp::GetGameName(), ProcessName, SessionId), EMessageScope::Network);
 
@@ -36,7 +35,6 @@ void FAutomationControllerManager::RequestAvailableWorkers( const FGuid& Session
 	LastTimeUpdateTicked = FPlatformTime::Seconds();
 	CheckTestTimer = 0.f;
 }
-
 
 void FAutomationControllerManager::RequestTests()
 {
@@ -690,7 +688,10 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 		verify(DeviceClusterManager.FindDevice(Context->GetSender(), ClusterIndex, DeviceIndex));
 
 		TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName(ClusterIndex, DeviceIndex);
-		TestResults.Errors = Message.Errors;
+		for ( auto& Error : Message.Errors )
+		{
+			TestResults.Errors.Add(Error.ToAutomationEvent());
+		}
 		TestResults.Logs = Message.Logs;
 		TestResults.Warnings = Message.Warnings;
 
@@ -705,11 +706,12 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 		AutomationTestingLog.Open();
 #endif
 
-		for (TArray<FString>::TConstIterator ErrorIter(Message.Errors); ErrorIter; ++ErrorIter)
+		for ( TArray<FAutomationEvent>::TConstIterator ErrorIter(TestResults.Errors); ErrorIter; ++ErrorIter )
 		{
-			GLog->Logf(ELogVerbosity::Error, TEXT("%s"), **ErrorIter);
+			// 	FAutomationTestFramework::GetInstance().LogTestMessage(**ErrorIter, ELogVerbosity::Error);
+			GLog->Logf(ELogVerbosity::Error, TEXT("%s"), *( *ErrorIter ).ToString());
 #if WITH_EDITOR
-			AutomationTestingLog.Error(FText::FromString(*ErrorIter));
+			AutomationTestingLog.Error(FText::FromString(( *ErrorIter ).ToString()));
 #endif
 		}
 		for (TArray<FString>::TConstIterator WarningIter(Message.Warnings); WarningIter; ++WarningIter)
@@ -742,7 +744,11 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 #if WITH_EDITOR
 			AutomationTestingLog.Error(FText::FromString(*FailureString));
 #endif
+			//FAutomationTestFramework::GetInstance().Lo
 		}
+
+		// const bool TestSucceeded = (TestResults.State == EAutomationState::Success);
+		//FAutomationTestFramework::GetInstance().LogEndTestMessage(Report->GetDisplayName(), TestSucceeded);
 
 		// Device is now good to go
 		DeviceClusterManager.SetTest(ClusterIndex, DeviceIndex, NULL);

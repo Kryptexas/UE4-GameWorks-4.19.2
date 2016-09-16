@@ -40,7 +40,7 @@ namespace MaterialShaderCookStats
 TMap<FMaterialShaderMapId,FMaterialShaderMap*> FMaterialShaderMap::GIdToMaterialShaderMap[SP_NumPlatforms];
 TArray<FMaterialShaderMap*> FMaterialShaderMap::AllMaterialShaderMaps;
 // The Id of 0 is reserved for global shaders
-uint32 FMaterialShaderMap::NextCompilingId = 1;
+uint32 FMaterialShaderMap::NextCompilingId = 2;
 /** 
  * Tracks material resources and their shader maps that are being compiled.
  * Uses a TRefCountPtr as this will be the only reference to a shader map while it is being compiled.
@@ -86,6 +86,7 @@ FString GetBlendModeString(EBlendMode BlendMode)
 		case BLEND_Translucent: BlendModeName = TEXT("BLEND_Translucent"); break;
 		case BLEND_Additive: BlendModeName = TEXT("BLEND_Additive"); break;
 		case BLEND_Modulate: BlendModeName = TEXT("BLEND_Modulate"); break;
+		case BLEND_AlphaComposite: BlendModeName = TEXT("BLEND_AlphaComposite"); break;
 		default: BlendModeName = TEXT("Unknown"); break;
 	}
 	return BlendModeName;
@@ -970,6 +971,19 @@ void FMaterialShaderMap::SaveForRemoteRecompile(FArchive& Ar, const TMap<FString
 				TMap<FShaderId, FShader*> ShaderList;
 				ShaderMap->GetShaderList(ShaderList);
 
+				// get shaders from shader pipelines
+				TArray<FShaderPipeline*> ShaderPipelineList;
+				ShaderMap->GetShaderPipelineList(ShaderPipelineList);
+
+				for (FShaderPipeline* ShaderPipeline : ShaderPipelineList)
+				{
+					for (FShader* Shader : ShaderPipeline->GetShaders())
+					{
+						FShaderId ShaderId = Shader->GetId();
+						ShaderList.Add(ShaderId, Shader);
+					}
+				}
+
 				// get the resources from the shaders
 				for (auto& KeyValue : ShaderList)
 				{
@@ -1125,6 +1139,7 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 							FMaterialResource* MaterialResource = MatchingMaterial->GetMaterialResource(GetMaxSupportedFeatureLevel(ShaderPlatform), (EMaterialQualityLevel::Type)QualityLevelIndex);
 
 							MaterialResource->SetGameThreadShaderMap(LoadedShaderMap);
+							MaterialResource->RegisterInlineShaderMap();
 
 							ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 								FSetShaderMapOnMaterialResources,

@@ -47,6 +47,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	StaticDepthPriorityGroup(InComponent->GetStaticDepthPriorityGroup())
 ,	ViewOwnerDepthPriorityGroup(InComponent->ViewOwnerDepthPriorityGroup)
 ,	bStaticLighting(InComponent->HasStaticLighting())
+,	bVisibleInReflectionCaptures(InComponent->bVisibleInReflectionCaptures)
 ,	bRenderInMainPass(InComponent->bRenderInMainPass)
 ,	bRequiresVisibleLevelToRender(false)
 ,	bIsComponentLevelVisible(false)
@@ -197,22 +198,6 @@ HHitProxy* FPrimitiveSceneProxy::CreateHitProxies(UPrimitiveComponent* Component
 FPrimitiveViewRelevance FPrimitiveSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	return FPrimitiveViewRelevance();
-}
-
-void FPrimitiveSceneProxy::UpdateActorPosition(FVector InActorPosition)
-{
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		UpdateActorPosition,
-		FPrimitiveSceneProxy*,PrimitiveSceneProxy,this,
-		FVector,InActorPosition,InActorPosition,
-	{
-		if (PrimitiveSceneProxy->ActorPosition != InActorPosition)
-		{
-			PrimitiveSceneProxy->ActorPosition = InActorPosition;
-			PrimitiveSceneProxy->UpdateUniformBufferMaybeLazy();
-			PrimitiveSceneProxy->OnActorPositionChanged();
-		}
-	});
 }
 
 static TAutoConsoleVariable<int32> CVarDeferUniformBufferUpdatesUntilVisible(
@@ -499,7 +484,7 @@ bool FPrimitiveSceneProxy::IsShadowCast(const FSceneView* View) const
 
 #if WITH_EDITOR
 		// For editor views, we use a show flag to determine whether shadows from editor-hidden actors are desired.
-		if(View->Family->EngineShowFlags.Editor && !View->Family->EngineShowFlags.ShadowsFromEditorHiddenActors)
+		if( View->Family->EngineShowFlags.Editor )
 		{
 			if(!DrawInEditor)
 			{

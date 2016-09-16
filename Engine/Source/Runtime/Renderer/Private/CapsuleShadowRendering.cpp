@@ -14,6 +14,9 @@
 #include "PostProcessing.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "DistanceFieldLightingPost.h"
+#include "CapsuleShadowRendering.h"
+
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Capsule Shadows"), Stat_GPU_CapsuleShadows, STATGROUP_GPU);
 
 int32 GCapsuleShadows = 1;
 FAutoConsoleVariableRef CVarCapsuleShadows(
@@ -87,6 +90,14 @@ FAutoConsoleVariableRef CVarCapsuleIndirectShadowMinVisibility(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
+float GCapsuleIndirectShadowSelfShadowIntensity = .2f;
+FAutoConsoleVariableRef CVarCapsuleIndirectShadowSelfShadowIntensity(
+	TEXT("r.CapsuleIndirectShadowSelfShadowIntensity"),
+	GCapsuleIndirectShadowSelfShadowIntensity,
+	TEXT("Strength of self-shadowing caused by capsule indirect shadows.  Self-shadowing from capsules is very approximate."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
 int32 GShadowShapeTileSize = 8;
 
 int32 GetCapsuleShadowDownsampleFactor()
@@ -97,12 +108,6 @@ int32 GetCapsuleShadowDownsampleFactor()
 FIntPoint GetBufferSizeForCapsuleShadows()
 {
 	return FIntPoint::DivideAndRoundDown(FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY(), GetCapsuleShadowDownsampleFactor());
-}
-
-bool DoesPlatformSupportCapsuleShadows(EShaderPlatform Platform)
-{
-	// Hasn't been tested elsewhere yet
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_METAL_SM5;
 }
 
 enum ECapsuleShadowingType
@@ -181,7 +186,7 @@ public:
 		MaxOcclusionDistance.Bind(Initializer.ParameterMap, TEXT("MaxOcclusionDistance"));
 		LightDirectionData.Bind(Initializer.ParameterMap, TEXT("LightDirectionData"));
 		MinVisibility.Bind(Initializer.ParameterMap, TEXT("MinVisibility"));
-		ReduceSelfShadowingIntensity.Bind(Initializer.ParameterMap, TEXT("ReduceSelfShadowingIntensity"));
+		IndirectCapsuleSelfShadowingIntensity.Bind(Initializer.ParameterMap, TEXT("IndirectCapsuleSelfShadowingIntensity"));
 	}
 
 	void SetParameters(
@@ -294,9 +299,9 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, MinVisibility, GCapsuleIndirectShadowMinVisibility);
 
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
-		// Self shadowing detection reuses the distance field GBuffer bit, so disable when distance field features are in use
-		float ReduceSelfShadowingIntensityValue = CVar->GetValueOnRenderThread() == 0 ? 1.0f : 0.0f;
-		SetShaderValue(RHICmdList, ShaderRHI, ReduceSelfShadowingIntensity, ReduceSelfShadowingIntensityValue);
+		// Self shadowing detection reuses the distance field GBuffer bit, so disable self-shadowing reduction when distance field features are in use
+		float IndirectCapsuleSelfShadowingIntensityValue = CVar->GetValueOnRenderThread() == 0 ? GCapsuleIndirectShadowSelfShadowIntensity : 1.0f;
+		SetShaderValue(RHICmdList, ShaderRHI, IndirectCapsuleSelfShadowingIntensity, IndirectCapsuleSelfShadowingIntensityValue);
 	}
 
 	void UnsetParameters(FRHICommandList& RHICmdList, FSceneRenderTargetItem& OutputTexture, const FRWBuffer* TileIntersectionCountsBuffer)
@@ -339,7 +344,7 @@ public:
 		Ar << MaxOcclusionDistance;
 		Ar << LightDirectionData;
 		Ar << MinVisibility;
-		Ar << ReduceSelfShadowingIntensity;
+		Ar << IndirectCapsuleSelfShadowingIntensity;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -364,7 +369,7 @@ private:
 	FShaderParameter MaxOcclusionDistance;
 	FShaderResourceParameter LightDirectionData;
 	FShaderParameter MinVisibility;
-	FShaderParameter ReduceSelfShadowingIntensity;
+	FShaderParameter IndirectCapsuleSelfShadowingIntensity;
 };
 
 IMPLEMENT_SHADER_TYPE(template<>,TCapsuleShadowingCS<ShapeShadow_DirectionalLightTiledCulling>,TEXT("CapsuleShadowShaders"),TEXT("CapsuleShadowingCS"),SF_Compute);
@@ -601,13 +606,6 @@ void AllocateCapsuleTileIntersectionCountsBuffer(FIntPoint GroupSize, FSceneView
 	}
 }
 
-bool SupportsCapsuleShadows(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatform ShaderPlatform)
-{
-	return GCapsuleShadows
-		&& FeatureLevel >= ERHIFeatureLevel::SM5
-		&& DoesPlatformSupportCapsuleShadows(ShaderPlatform);
-}
-
 bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 	const FLightSceneInfo& LightSceneInfo,
 	FRHICommandListImmediate& RHICmdList, 
@@ -645,6 +643,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 		{
 			const FViewInfo& View = Views[ViewIndex];
 			SCOPED_DRAW_EVENT(RHICmdList, CapsuleShadows);
+			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
 
 			static TArray<FCapsuleShape> CapsuleShapeData;
 			CapsuleShapeData.Reset();
@@ -1059,6 +1058,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 				if (View.IndirectShadowPrimitives.Num() > 0 && View.ViewState)
 				{
 					SCOPED_DRAW_EVENT(RHICmdList, IndirectCapsuleShadows);
+					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
 		
 					int32 NumCapsuleShapes = 0;
 					SetupIndirectCapsuleShadows(RHICmdList, View, true, NumCapsuleShapes);
@@ -1218,6 +1218,7 @@ void FDeferredShadingSceneRenderer::RenderCapsuleShadowsForMovableSkylight(FRHIC
 				if (View.IndirectShadowPrimitives.Num() > 0 && View.ViewState)
 				{
 					SCOPED_DRAW_EVENT(RHICmdList, IndirectCapsuleShadows);
+					SCOPED_GPU_STAT(RHICmdList, Stat_GPU_CapsuleShadows);
 		
 					int32 NumCapsuleShapes = 0;
 					SetupIndirectCapsuleShadows(RHICmdList, View, true, NumCapsuleShapes);

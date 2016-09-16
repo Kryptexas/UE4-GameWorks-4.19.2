@@ -553,6 +553,26 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldBias", "Distance Field Bias") )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("DistanceFieldBias", "Distance Field Bias"))
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<float>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(0.0f)
+			.MaxValue(1000.0f)
+			.Value(this, &FMeshBuildSettingsLayout::GetDistanceFieldBias)
+			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnDistanceFieldBiasChanged)
+			.OnValueCommitted(this, &FMeshBuildSettingsLayout::OnDistanceFieldBiasCommitted)
+		];
+	}
+
+	{
 		TSharedRef<SWidget> PropWidget = SNew(SObjectPropertyEntryBox)
 			.AllowedClass(UStaticMesh::StaticClass())
 			.AllowClear(true)
@@ -686,6 +706,11 @@ TOptional<float> FMeshBuildSettingsLayout::GetBuildScaleZ() const
 float FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale() const
 {
 	return BuildSettings.DistanceFieldResolutionScale;
+}
+
+float FMeshBuildSettingsLayout::GetDistanceFieldBias() const
+{
+	return BuildSettings.DistanceFieldBias;
 }
 
 void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ECheckBoxState NewState)
@@ -900,6 +925,16 @@ void FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleCommitted(float New
 	OnDistanceFieldResolutionScaleChanged(NewValue);
 }
 
+void FMeshBuildSettingsLayout::OnDistanceFieldBiasChanged(float NewValue)
+{
+	BuildSettings.DistanceFieldBias = NewValue;
+}
+
+void FMeshBuildSettingsLayout::OnDistanceFieldBiasCommitted(float NewValue, ETextCommit::Type TextCommitType)
+{
+	OnDistanceFieldBiasChanged(NewValue);
+}
+
 FMeshReductionSettingsLayout::FMeshReductionSettingsLayout( TSharedRef<FLevelOfDetailSettingsLayout> InParentLODSettings )
 	: ParentLODSettings( InParentLODSettings )
 {
@@ -962,6 +997,27 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 			.Value(this, &FMeshReductionSettingsLayout::GetMaxDeviation)
 			.OnValueChanged(this, &FMeshReductionSettingsLayout::OnMaxDeviationChanged)
 			.OnValueCommitted(this, &FMeshReductionSettingsLayout::OnMaxDeviationCommitted)
+		];
+
+	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("PixelError", "Pixel Error") )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("PixelError", "Pixel Error"))
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<float>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(1.0f)
+			.MaxValue(40.0f)
+			.Value(this, &FMeshReductionSettingsLayout::GetPixelError)
+			.OnValueChanged(this, &FMeshReductionSettingsLayout::OnPixelErrorChanged)
+			.OnValueCommitted(this, &FMeshReductionSettingsLayout::OnPixelErrorCommitted)
 		];
 
 	}
@@ -1136,6 +1192,11 @@ float FMeshReductionSettingsLayout::GetMaxDeviation() const
 	return ReductionSettings.MaxDeviation;
 }
 
+float FMeshReductionSettingsLayout::GetPixelError() const
+{
+	return ReductionSettings.PixelError;
+}
+
 float FMeshReductionSettingsLayout::GetWeldingThreshold() const
 {
 	return ReductionSettings.WeldingThreshold;
@@ -1178,6 +1239,20 @@ void FMeshReductionSettingsLayout::OnMaxDeviationCommitted(float NewValue, EText
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.ReductionSettings"), TEXT("MaxDeviation"), FString::Printf(TEXT("%.1f"), NewValue));
 	}
 	OnMaxDeviationChanged(NewValue);
+}
+
+void FMeshReductionSettingsLayout::OnPixelErrorChanged(float NewValue)
+{
+	ReductionSettings.PixelError = NewValue;
+}
+
+void FMeshReductionSettingsLayout::OnPixelErrorCommitted(float NewValue, ETextCommit::Type TextCommitType)
+{
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.ReductionSettings"), TEXT("PixelError"), FString::Printf(TEXT("%.1f"), NewValue));
+	}
+	OnPixelErrorChanged(NewValue);
 }
 
 void FMeshReductionSettingsLayout::OnWeldingThresholdChanged(float NewValue)
@@ -1626,7 +1701,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	.ValueContent()
 	[
 		SAssignNew(LODGroupComboBox, STextComboBox)
-		.ContentPadding(0)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
 		.OptionsSource(&LODGroupOptions)
 		.InitiallySelectedItem(LODGroupOptions[(LODGroupIndex == INDEX_NONE) ? 0 : LODGroupIndex])
 		.OnSelectionChanged(this, &FLevelOfDetailSettingsLayout::OnLODGroupChanged)
@@ -1642,7 +1717,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	.ValueContent()
 		[
 			SNew(STextComboBox)
-			.ContentPadding(0)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.OptionsSource(&LODNames)
 			.InitiallySelectedItem(LODNames[0])
 			.OnSelectionChanged(this, &FLevelOfDetailSettingsLayout::OnImportLOD)
@@ -1717,28 +1792,6 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 			.Text(LOCTEXT("ApplyChanges", "Apply Changes"))
 			.Font( DetailBuilder.GetDetailFont() )
 		]
-	];
-
-	bool bAdvanced = true;
-	// Allowed pixel error.
-	LODSettingsCategory.AddCustomRow( LOCTEXT("AllowedPixelError", "Auto Distance Error"), bAdvanced )
-	.NameContent()
-	[
-		SNew(STextBlock)
-		.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-		.Text(LOCTEXT("AllowedPixelError", "Auto Distance Error"))
-	]
-	.ValueContent()
-	[
-		SNew(SSpinBox<float>)
-		.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-		.MinValue(1.0f)
-		.MaxValue(100.0f)
-		.MinSliderValue(1.0f)
-		.MaxSliderValue(5.0f)
-		.Value(this, &FLevelOfDetailSettingsLayout::GetPixelError)
-		.OnValueChanged(this, &FLevelOfDetailSettingsLayout::OnPixelErrorChanged)
-		.IsEnabled(this, &FLevelOfDetailSettingsLayout::IsAutoLODEnabled)
 	];
 
 	AddLODLevelCategories( DetailBuilder );
@@ -2073,26 +2126,6 @@ void FLevelOfDetailSettingsLayout::OnAutoLODChanged(ECheckBoxState NewState)
 	}
 	StaticMesh->PostEditChange();
 	StaticMeshEditor.RefreshTool();
-}
-
-float FLevelOfDetailSettingsLayout::GetPixelError() const
-{
-	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	check(StaticMesh);
-	return StaticMesh->AutoLODPixelError;
-}
-
-void FLevelOfDetailSettingsLayout::OnPixelErrorChanged(float NewValue)
-{
-	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	check(StaticMesh);
-	{
-		FStaticMeshComponentRecreateRenderStateContext ReregisterContext(StaticMesh,false);
-		StaticMesh->AutoLODPixelError = NewValue;
-		StaticMesh->RenderData->ResolveSectionInfo(StaticMesh);
-		StaticMesh->Modify();
-	}
-	StaticMeshEditor.RefreshViewport();
 }
 
 void FLevelOfDetailSettingsLayout::OnImportLOD(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo)

@@ -112,10 +112,12 @@ public:
 	TArray<FWidgetAndPointer> GetHitWidgetPath(FVector WorldHitLocation, bool bIgnoreEnabledStatus, float CursorRadius = 0.0f);
 
 	/** @return The render target to which the user widget is rendered */
-	UTextureRenderTarget2D* GetRenderTarget() const { return RenderTarget; }
+	UFUNCTION(BlueprintCallable, Category=UserInterface)
+	UTextureRenderTarget2D* GetRenderTarget() const;
 
 	/** @return The dynamic material instance used to render the user widget */
-	UMaterialInstanceDynamic* GetMaterialInstance() const { return MaterialInstance; }
+	UFUNCTION(BlueprintCallable, Category=UserInterface)
+	UMaterialInstanceDynamic* GetMaterialInstance() const;
 
 	/** @return The window containing the user widget content */
 	TSharedPtr<SWindow> GetSlateWindow() const;
@@ -372,8 +374,6 @@ protected:
 
 protected:
 
-	//@HSL_BEGIN - Colin.Pyle - 6-9-2016 - Giving WiddgetComponents the ability to be on multiple layers.
-
 	/** Layer Name the widget will live on */
 	UPROPERTY(EditDefaultsOnly, Category = Layers)
 	FName SharedLayerName;
@@ -381,7 +381,6 @@ protected:
 	/** ZOrder the layer will be created on, note this only matters on the first time a new layer is created, subsequent additions to the same layer will use the initially defined ZOrder */
 	UPROPERTY(EditDefaultsOnly, Category = Layers)
 	int32 LayerZOrder;
-	//@HSL_END
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
 	TSharedPtr<class FHittestGrid> HitTestGrid;

@@ -10,6 +10,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Misc/ScopeExit.h"
+#include "PropertyHandleImpl.h"
 
 FPropertySettings& FPropertySettings::Get()
 {
@@ -124,9 +125,8 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 	}
 	else
 	{
-		FReadAddressListData ReadAddresses;
-		const bool GotReadAddresses = GetReadAddressUncached( *this, false, ReadAddresses, false );
-		const bool bSingleSelectOnly = GetReadAddressUncached( *this, true, ReadAddresses );
+		const bool GotReadAddresses = GetReadAddressUncached( *this, false, nullptr, false );
+		const bool bSingleSelectOnly = GetReadAddressUncached( *this, true, nullptr);
 		SetNodeFlags(EPropertyNodeFlags::SingleSelectOnly, bSingleSelectOnly);
 
 		UProperty* MyProperty = Property.Get();
@@ -328,7 +328,7 @@ FObjectPropertyNode* FPropertyNode::FindRootObjectItemParent()
 /** 
  * Used to see if any data has been destroyed from under the property tree.  Should only be called by PropertyWindow::OnIdle
  */
-FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
+EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 {
 	bool bValidateChildren = !HasNodeFlags(EPropertyNodeFlags::SkipChildValidation);
 
@@ -390,7 +390,7 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 			if (!bSuccess)
 			{
 				UE_LOG( LogPropertyNode, Verbose, TEXT("Object is invalid %s"), *Property->GetName() );
-				return ObjectInvalid;
+				return EPropertyDataValidationResult::ObjectInvalid;
 			}
 
 
@@ -402,7 +402,7 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 				if (Addr==NULL)
 				{
 					UE_LOG( LogPropertyNode, Verbose, TEXT("Object is invalid %s"), *Property->GetName() );
-					return ObjectInvalid;
+					return EPropertyDataValidationResult::ObjectInvalid;
 				}
 
 				if( ArrayProperty && !bIgnoreAllMismatch)
@@ -448,7 +448,7 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 					}
 				}
 
-				return ArraySizeChanged;
+				return EPropertyDataValidationResult::ArraySizeChanged;
 			}
 
 			const bool bHasChildren = (GetNumChildNodes() != 0);
@@ -457,7 +457,7 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 			if (ObjectProperty && ((!bObjectPropertyNull && !bHasChildren) || (bObjectPropertyNull && bHasChildren)))
 			{
 				RebuildChildren();
-				return PropertiesChanged;
+				return EPropertyDataValidationResult::PropertiesChanged;
 			}
 		}
 	}
@@ -466,10 +466,10 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 	{
 		RebuildChildren();
 		// If this property is editinline and not edit const then its editinline new and we can optimize some of the refreshing in some cases.  Otherwise we need to refresh all properties in the view
-		return HasNodeFlags(EPropertyNodeFlags::EditInline) && !IsEditConst() ? EditInlineNewValueChanged : PropertiesChanged;
+		return HasNodeFlags(EPropertyNodeFlags::EditInline) && !IsEditConst() ? EPropertyDataValidationResult::EditInlineNewValueChanged : EPropertyDataValidationResult::PropertiesChanged;
 	}
 	
-	FPropertyNode::DataValidationResult FinalResult = DataValid;
+	EPropertyDataValidationResult FinalResult = EPropertyDataValidationResult::DataValid;
 
 	//go through my children
 	if (bValidateChildren)
@@ -479,8 +479,8 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 			TSharedPtr<FPropertyNode>& ChildNode = ChildNodes[Scan];
 			check(ChildNode.IsValid());
 
-			FPropertyNode::DataValidationResult ChildDataResult = ChildNode->EnsureDataIsValid();
-			if (FinalResult == DataValid && ChildDataResult != DataValid)
+			EPropertyDataValidationResult ChildDataResult = ChildNode->EnsureDataIsValid();
+			if (FinalResult == EPropertyDataValidationResult::DataValid && ChildDataResult != EPropertyDataValidationResult::DataValid)
 			{
 				FinalResult = ChildDataResult;
 			}
@@ -624,7 +624,7 @@ bool FPropertyNode::GetQualifiedName( FString& PathPlusIndex, const bool bWithAr
 
 bool FPropertyNode::GetReadAddressUncached( FPropertyNode& InPropertyNode,
 									bool InRequiresSingleSelection,
-									FReadAddressListData& OutAddresses,
+									FReadAddressListData* OutAddresses,
 									bool bComparePropertyContents,
 									bool bObjectForceCompare,
 									bool bArrayPropertiesCanDifferInSize ) const
@@ -666,7 +666,7 @@ bool FPropertyNode::GetReadAddress(bool InRequiresSingleSelection,
 	bool bAllValuesTheSame = false;
 	if (ParentNodeWeakPtr.IsValid())
 	{
-		bAllValuesTheSame = GetReadAddressUncached( *this, InRequiresSingleSelection, CachedReadAddresses, bComparePropertyContents, bObjectForceCompare, bArrayPropertiesCanDifferInSize );
+		bAllValuesTheSame = GetReadAddressUncached( *this, InRequiresSingleSelection, &CachedReadAddresses, bComparePropertyContents, bObjectForceCompare, bArrayPropertiesCanDifferInSize );
 		OutAddresses.ReadAddressListData = &CachedReadAddresses;
 		CachedReadAddresses.bAllValuesTheSame = bAllValuesTheSame;
 		CachedReadAddresses.bRequiresCache = false;
@@ -1516,6 +1516,8 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 		// Whether or not an edit inline new was reset as a result of this reset to default
 		bool bEditInlineNewWasReset = false;
 
+		TArray< TMap<FString, int32> > ArrayIndicesPerObject;
+
 		for( int32 ObjIndex = 0; ObjIndex < ObjectNode->GetNumObjects(); ++ObjIndex )
 		{
 			TWeakObjectPtr<UObject> ObjectWeakPtr = ObjectNode->GetUObject( ObjIndex );
@@ -1659,6 +1661,9 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 						// restore the original (editor) GWorld
 						RestoreEditorWorld( OldGWorld );
 					}
+
+					ArrayIndicesPerObject.Add(TMap<FString, int32>());
+					FPropertyValueImpl::GenerateArrayIndexMapToObjectNode(ArrayIndicesPerObject[ObjIndex], this);
 				}
 			}
 		}
@@ -1668,6 +1673,8 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 			// Call PostEditchange on all the objects
 			// Assume reset to default, can change topology
 			FPropertyChangedEvent ChangeEvent( TheProperty, EPropertyChangeType::ValueSet );
+			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+
 			NotifyPostChange( ChangeEvent, InNotifyHook );
 		}
 
@@ -1953,6 +1960,8 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 	FObjectPropertyNode* ObjectNode = FindObjectItemParent();
 	if( ObjectNode )
 	{
+		ObjectNode->InvalidateCachedState();
+
 		UProperty* CurProperty = InPropertyChangedEvent.Property;
 
 		// Fire ULevel::LevelDirtiedEvent when falling out of scope.
@@ -2034,9 +2043,6 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 			}
 		}
 	}
-
-	bUpdateEditConstState = true;
-	bUpdateDiffersFromDefault = true;
 
 	// Broadcast the change to any listeners
 	BroadcastPropertyChangedDelegates();
@@ -2205,6 +2211,22 @@ void FPropertyNode::SetInstanceMetaData(const FName& Key, const FString& Value)
 const FString* FPropertyNode::GetInstanceMetaData(const FName& Key) const
 {
 	return InstanceMetaData.Find(Key);
+}
+
+bool FPropertyNode::ParentOrSelfHasMetaData(const FName& MetaDataKey) const
+{
+	return (Property.IsValid() && Property->HasMetaData(MetaDataKey)) || (ParentNode && ParentNode->ParentOrSelfHasMetaData(MetaDataKey));
+}
+
+void FPropertyNode::InvalidateCachedState()
+{
+	bUpdateDiffersFromDefault = true;
+	bUpdateEditConstState = true;
+
+	for( TSharedPtr<FPropertyNode>& ChildNode : ChildNodes )
+	{
+		ChildNode->InvalidateCachedState();
+	}
 }
 
 /**
@@ -2448,6 +2470,88 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 			uint8* Addr = GetValueBaseAddress( (uint8*)ActualObjToChange );
 			if (Addr != nullptr)
 			{
+				class FMemoryWriterWithObjects : public FArchive
+				{
+				public:
+					explicit FMemoryWriterWithObjects(TArray<uint8>& InArray)
+						: Array(InArray)
+						, Offset(0)
+					{
+						ArIsSaving = true;
+					}
+
+					virtual FArchive& operator<<(FName&                 Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(UObject*&              Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FLazyObjectPtr&        Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FAssetPtr&             Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FStringAssetReference& Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+
+					void Serialize(void* Data, int64 Num)
+					{
+						const int64 NumBytesToAdd = Offset + Num - Array.Num();
+						if( NumBytesToAdd > 0 )
+						{
+							const int64 NewArrayCount = Array.Num() + NumBytesToAdd;
+							if( NewArrayCount >= MAX_int32 )
+							{
+								UE_LOG( LogSerialization, Fatal, TEXT( "FMemoryWriterWithObjects does not support data larger than 2GB." ));
+							}
+
+							Array.AddUninitialized( (int32)NumBytesToAdd );
+						}
+
+						check((Offset + Num) <= Array.Num());
+
+						if( Num )
+						{
+							FMemory::Memcpy( &Array[Offset], Data, Num );
+							Offset+=Num;
+						}
+					}
+
+				protected:
+					TArray<uint8>& Array;
+					int64 Offset;
+				};
+
+				class FMemoryReaderWithObjects : public FArchive
+				{
+				public:
+					explicit FMemoryReaderWithObjects(const TArray<uint8>& InArray)
+						: Array(InArray)
+						, Offset(0)
+					{
+						ArIsLoading = true;
+					}
+
+					virtual FArchive& operator<<(FName&                 Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(UObject*&              Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FLazyObjectPtr&        Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FAssetPtr&             Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FStringAssetReference& Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+
+					void Serialize(void* Data, int64 Num)
+					{
+						if (Num && !ArIsError)
+						{
+							// Only serialize if we have the requested amount of data
+							if (Offset + Num <= TotalSize())
+							{
+								FMemory::Memcpy( Data, &Array[Offset], Num );
+								Offset += Num;
+							}
+							else
+							{
+								ArIsError = true;
+							}
+						}
+					}
+
+				protected:
+					const TArray<uint8>& Array;
+					int64 Offset;
+				};
+
 				if (MapProp != nullptr)
 				{
 					// Read previous value back into object
@@ -2467,18 +2571,16 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 
 					uint8* ModifiedObjectAddr = GetValueBaseAddress( (uint8*)ModifiedObject );
 
-					auto ModifiedObjectAddrPtr = (TMap<int32, FString>*)ModifiedObjectAddr;
-
 					// Serialize differences from the 'default' (the old object)
 					TArray<uint8> Data;
 					{
-						FMemoryWriter Ar(Data);
+						FMemoryWriterWithObjects Ar(Data);
 						MapProp->SerializeItem(Ar, Addr, PreviousMap);
 					}
 
 					// Deserialize differences back over the new object
 					{
-						FMemoryReader Ar(Data);
+						FMemoryReaderWithObjects Ar(Data);
 						MapProp->SerializeItem(Ar, Addr, ModifiedObjectAddr);
 					}
 				}
@@ -2501,20 +2603,18 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 
 					uint8* ModifiedObjectAddr = GetValueBaseAddress( (uint8*)ModifiedObject );
 
-					auto ModifiedObjectAddrPtr = (TMap<int32, FString>*)ModifiedObjectAddr;
-
 					// Serialize differences from the 'default' (the old object)
 					TArray<uint8> Data;
 					{
-						FMemoryWriter Ar(Data);
+						FMemoryWriterWithObjects Ar(Data);
 						SetProp->SerializeItem(Ar, Addr, PreviousSet);
 					}
 
 					// Deserialize differences back over the new object
 					{
-						FMemoryReader Ar(Data);
+						FMemoryReaderWithObjects Ar(Data);
 						SetProp->SerializeItem(Ar, Addr, ModifiedObjectAddr);
-					}				
+					}
 				}
 				else
 				{

@@ -66,9 +66,9 @@ namespace UnrealBuildTool
 			return " -arch " + (UBTArchitecture == "-simulator" ? "i386" : "arm64");
 		}
 
-		public override void SetUpProjectEnvironment()
+		public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
 		{
-			base.SetUpProjectEnvironment();
+			base.SetUpProjectEnvironment(Configuration);
 
 			// @todo tvos: Add ini settings and look them up when they matter - like when we get TVOS10.0 etc
 		}
@@ -113,7 +113,7 @@ namespace UnrealBuildTool
 		/// <returns>True if the platform requires a deployment handler, false otherwise</returns>
 		public override UEBuildDeploy CreateDeploymentHandler()
 		{
-			return new UEDeployTVOS(ProjectFile);
+			return new UEDeployTVOS(ProjectFile, this);
 		}
 
 	}

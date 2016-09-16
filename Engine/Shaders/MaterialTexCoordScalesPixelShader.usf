@@ -98,7 +98,7 @@ void Main(
 #endif
 
 	// This default value will make it dark grey when nothing updates the texSample.
-	float3 Result = float3(.02, .02, .02);
+	float3 Result = float3(UNDEFINED_ACCURACY, UNDEFINED_ACCURACY, UNDEFINED_ACCURACY);
 
 	FTexCoordScalesParams Params;
 

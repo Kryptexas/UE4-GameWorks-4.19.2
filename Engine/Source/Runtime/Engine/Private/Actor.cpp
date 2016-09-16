@@ -97,6 +97,7 @@ void AActor::InitializeDefaults()
 	bFindCameraComponentWhenViewTarget = true;
 	bAllowReceiveTickEventOnDedicatedServer = true;
 	bRelevantForNetworkReplays = true;
+	bGenerateOverlapEventsDuringLevelStreaming = false;
 #if WITH_EDITORONLY_DATA
 	PivotOffset = FVector::ZeroVector;
 #endif
@@ -1749,6 +1750,15 @@ void AActor::ForceNetUpdate()
 	SetNetUpdateTime(FMath::Min(NetUpdateTime, GetWorld()->TimeSeconds - 0.01f));
 }
 
+bool AActor::IsReplicationPausedForConnection(const FNetViewer& ConnectionOwnerNetViewer)
+{
+	return false;
+}
+
+void AActor::OnReplicationPausedChanged(bool bIsReplicationPaused)
+{
+}
+
 void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 {
 	if (IsNetMode(NM_Client))
@@ -1769,6 +1779,11 @@ void AActor::SetNetDormancy(ENetDormancy NewDormancy)
 			MyWorld->AddNetworkActor( this );
 
 			NetDriver->FlushActorDormancy(this);
+
+			if (MyWorld->DemoNetDriver && MyWorld->DemoNetDriver != NetDriver)
+			{
+				MyWorld->DemoNetDriver->FlushActorDormancy(this);
+			}
 		}
 	}
 }
@@ -1793,13 +1808,20 @@ void AActor::FlushNetDormancy()
 		return;
 	}
 
+	UWorld* MyWorld = GetWorld();
+
 	// Add to network actors list if needed
-	GetWorld()->AddNetworkActor( this );
+	MyWorld->AddNetworkActor( this );
 	
 	UNetDriver* NetDriver = GetNetDriver();
 	if (NetDriver)
 	{
 		NetDriver->FlushActorDormancy(this);
+
+		if (MyWorld->DemoNetDriver && MyWorld->DemoNetDriver!= NetDriver)
+		{
+			MyWorld->DemoNetDriver->FlushActorDormancy(this);
+		}
 	}
 }
 
@@ -1877,12 +1899,12 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 		bActorInitialized = false;
 		GetWorld()->RemoveNetworkActor(this);
+	}
 
-		// Clear any ticking lifespan timers
-		if (InitialLifeSpan > 0.f)
-		{
-			SetLifeSpan(0.f);
-		}
+	// Clear any ticking lifespan timers
+	if (TimerHandle_LifeSpanExpired.IsValid())
+	{
+		SetLifeSpan(0.f);
 	}
 
 	UNavigationSystem::OnActorUnregistered(this);
@@ -2004,7 +2026,7 @@ float AActor::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 		// K2 notification for this actor
 		if (ActualDamage != 0.f)
 		{
-			ReceivePointDamage(ActualDamage, DamageTypeCDO, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.ImpactNormal, PointDamageEvent->HitInfo.Component.Get(), PointDamageEvent->HitInfo.BoneName, PointDamageEvent->ShotDirection, EventInstigator, DamageCauser);
+			ReceivePointDamage(ActualDamage, DamageTypeCDO, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.ImpactNormal, PointDamageEvent->HitInfo.Component.Get(), PointDamageEvent->HitInfo.BoneName, PointDamageEvent->ShotDirection, EventInstigator, DamageCauser, PointDamageEvent->HitInfo);
 			OnTakePointDamage.Broadcast(this, ActualDamage, EventInstigator, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.Component.Get(), PointDamageEvent->HitInfo.BoneName, PointDamageEvent->ShotDirection, DamageTypeCDO, DamageCauser);
 
 			// Notify the component
@@ -2086,6 +2108,13 @@ float AActor::InternalTakeRadialDamage(float Damage, FRadialDamageEvent const& R
 float AActor::InternalTakePointDamage(float Damage, FPointDamageEvent const& PointDamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	return Damage;
+}
+
+// deprecated
+void AActor::ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser)
+{
+	// Call proper version with a default FHitResult.
+	ReceivePointDamage(Damage, DamageType, HitLocation, HitNormal, HitComponent, BoneName, ShotFromDirection, InstigatedBy, DamageCauser, FHitResult());
 }
 
 /** Util to check if prim comp pointer is valid and still alive */
@@ -2501,7 +2530,7 @@ UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent>
 	return FoundComponent;
 }
 
-UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass)
+UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass) const
 {
 	return FindComponentByClass(ComponentClass);
 }
@@ -2744,6 +2773,9 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 
 				if (OriginalSpawnTransform->Equals(UserTransform) == false)
 				{
+					UserTransform.GetLocation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: UserTransform.GetLocation()"));
+					UserTransform.GetRotation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: UserTransform.GetRotation()"));
+
 					// caller passed a different transform!
 					// undo the original spawn transform to get back to the template transform, so we can recompute a good
 					// final transform that takes into account the template's transform
@@ -2755,6 +2787,9 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 			// should be fast and relatively rare
 			ValidateDeferredTransformCache();
 		}
+
+		FinalRootComponentTransform.GetLocation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: FinalRootComponentTransform.GetLocation()"));
+		FinalRootComponentTransform.GetRotation().DiagnosticCheckNaN(TEXT("AActor::FinishSpawning: FinalRootComponentTransform.GetRotation()"));
 
 		ExecuteConstruction(FinalRootComponentTransform, InstanceDataCache, bIsDefaultTransform);
 
@@ -2842,10 +2877,13 @@ void AActor::PostActorConstruction()
 				}
 
 				bool bRunBeginPlay = !bDeferBeginPlayAndUpdateOverlaps && World->HasBegunPlay();
-				if (bRunBeginPlay && IsChildActor())
+				if (bRunBeginPlay)
 				{
-					// Child Actors cannot run begin play until their parent has run
-					bRunBeginPlay = GetParentComponent()->GetOwner()->HasActorBegunPlay();
+					if (AActor* ParentActor = GetParentActor())
+					{
+						// Child Actors cannot run begin play until their parent has run
+						bRunBeginPlay = ParentActor->HasActorBegunPlay();
+					}
 				}
 
 				if (bRunBeginPlay)
@@ -2968,7 +3006,7 @@ void AActor::SwapRolesForReplay()
 
 void AActor::BeginPlay()
 {
-	ensure(ActorHasBegunPlay == EActorBeginPlayState::HasNotBegunPlay);
+	ensureMsgf(ActorHasBegunPlay == EActorBeginPlayState::HasNotBegunPlay, TEXT("BeginPlay was called on actor %s which was in state %d"), *GetPathName(), ActorHasBegunPlay);
 	SetLifeSpan( InitialLifeSpan );
 	RegisterAllActorTickFunctions(true, false); // Components are done below.
 
@@ -3518,20 +3556,19 @@ UNetDriver* GetNetDriver_Internal(UWorld* World, FName NetDriverName)
 	return GEngine->FindNamedNetDriver(World, NetDriverName);
 }
 
+// Note: this is a private implementation that should no t be called directly except by the public wrappers (GetNetMode()) where some optimizations are inlined.
 ENetMode AActor::InternalGetNetMode() const
 {
-	const bool bIsClientOnly = IsRunningClientOnly();
-
 	UWorld* World = GetWorld();
 	UNetDriver* NetDriver = GetNetDriver_Internal(World, NetDriverName);
 	if (NetDriver != nullptr)
 	{
-		return bIsClientOnly ? NM_Client : NetDriver->GetNetMode();
+		return NetDriver->GetNetMode();
 	}
 
 	if (World != nullptr && World->DemoNetDriver != nullptr)
 	{
-		return bIsClientOnly ? NM_Client : World->DemoNetDriver->GetNetMode();
+		return World->DemoNetDriver->GetNetMode();
 	}
 
 	return NM_Standalone;
@@ -3838,6 +3875,17 @@ UChildActorComponent* AActor::GetParentComponent() const
 	return ParentComponent.Get();
 }
 
+AActor* AActor::GetParentActor() const
+{
+	AActor* ParentActor = nullptr;
+	if (UChildActorComponent* ParentComponentPtr = GetParentComponent())
+	{
+		ParentActor = ParentComponentPtr->GetOwner();
+	}
+
+	return ParentActor;
+}
+
 void AActor::GetAllChildActors(TArray<AActor*>& ChildActors, bool bIncludeDescendants) const
 {
 	TInlineComponentArray<UChildActorComponent*> ChildActorComponents(this);
@@ -3859,15 +3907,14 @@ void AActor::GetAllChildActors(TArray<AActor*>& ChildActors, bool bIncludeDescen
 
 // COMPONENTS
 
-void AActor::UnregisterAllComponents()
+void AActor::UnregisterAllComponents(const bool bForReregister)
 {
 	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
-	for(int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)
+	for(UActorComponent* Component : Components)
 	{
-		UActorComponent* Component = Components[CompIdx]; 
-		if( Component->IsRegistered()) // In some cases unregistering one component can unregister another, so we do a check here to avoid trying twice
+		if( Component->IsRegistered() && (!bForReregister || Component->AllowReregistration())) // In some cases unregistering one component can unregister another, so we do a check here to avoid trying twice
 		{
 			Component->UnregisterComponent();
 		}
@@ -4022,7 +4069,7 @@ void AActor::MarkComponentsAsPendingKill()
 
 void AActor::ReregisterAllComponents()
 {
-	UnregisterAllComponents();
+	UnregisterAllComponents(true);
 	RegisterAllComponents();
 }
 

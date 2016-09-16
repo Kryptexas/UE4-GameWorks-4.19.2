@@ -106,7 +106,7 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 
 	FString GetName() const
 	{
-		return *GetNameSafe(Attribute);
+		return AttributeName.IsEmpty() ? *GetNameSafe(Attribute) : AttributeName;
 	}
 
 	void PostSerialize(const FArchive& Ar);
@@ -189,6 +189,7 @@ public:
 
 	void InitFromMetaDataTable(const UDataTable* DataTable);
 
+	FORCEINLINE AActor* GetOwningActor() const { return CastChecked<AActor>(GetOuter()); }
 	UAbilitySystemComponent* GetOwningAbilitySystemComponent() const;
 	FGameplayAbilityActorInfo* GetActorInfo() const;
 

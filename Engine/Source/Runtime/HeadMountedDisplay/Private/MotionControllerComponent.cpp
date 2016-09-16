@@ -27,11 +27,13 @@ UMotionControllerComponent::UMotionControllerComponent(const FObjectInitializer&
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	PrimaryComponentTick.bTickEvenWhenPaused = true;
 
 	PlayerIndex = 0;
 	Hand = EControllerHand::Left;
 	bDisableLowLatencyUpdate = false;
 	bHasAuthority = false;
+	bAutoActivate = true;
 }
 
 //=============================================================================
@@ -59,19 +61,22 @@ void UMotionControllerComponent::TickComponent(float DeltaTime, enum ELevelTick 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	FVector Position;
-	FRotator Orientation;
-	bTracked = PollControllerState(Position, Orientation);
-	if (bTracked)
+	if (bIsActive)
 	{
-		SetRelativeLocationAndRotation(Position, Orientation);
-	}
+		FVector Position;
+		FRotator Orientation;
+		bTracked = PollControllerState(Position, Orientation);
+		if (bTracked)
+		{
+			SetRelativeLocationAndRotation(Position, Orientation);
+		}
 
-	if (!ViewExtension.IsValid() && GEngine)
-	{
-		TSharedPtr< FViewExtension, ESPMode::ThreadSafe > NewViewExtension( new FViewExtension(this) );
-		ViewExtension = NewViewExtension;
-		GEngine->ViewExtensions.Add(ViewExtension);
+		if (!ViewExtension.IsValid() && GEngine)
+		{
+			TSharedPtr< FViewExtension, ESPMode::ThreadSafe > NewViewExtension(new FViewExtension(this));
+			ViewExtension = NewViewExtension;
+			GEngine->ViewExtensions.Add(ViewExtension);
+		}
 	}
 }
 
@@ -81,8 +86,9 @@ bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator
 	if (IsInGameThread())
 	{
 		// Cache state from the game thread for use on the render thread
-		const APlayerController* Actor = Cast<APlayerController>(GetOwner());
-		bHasAuthority = !Actor || Actor->IsLocalPlayerController();
+		const AActor* MyOwner = GetOwner();
+		const APawn* MyPawn = Cast<APawn>(MyOwner);
+		bHasAuthority = MyPawn ? MyPawn->IsLocallyControlled() : (MyOwner->Role == ENetRole::ROLE_Authority);
 	}
 
 	if ((PlayerIndex != INDEX_NONE) && bHasAuthority)

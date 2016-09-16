@@ -29,6 +29,7 @@ void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<TWeakObjectPtr<U
 					InitHiddenInEditorMap.Add(Actor, Actor->IsTemporarilyHiddenInEditor());
 				}
 			}
+			/*
 			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(Actor);
 			if (SceneComponent != nullptr)
 			{
@@ -37,6 +38,7 @@ void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<TWeakObjectPtr<U
 					InitSceneComponentVisibleMap.Add(Actor, SceneComponent->IsVisibleInEditor());
 				}
 			}
+			*/
 #endif // WITH_EDITOR
 
 			if (InitHiddenInGameMap.Find(Actor) == nullptr)
@@ -81,6 +83,7 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<TWeakObjectPt
 					}
 				}
 
+				/*
 				bool *SceneComponentVisibleValue = InitSceneComponentVisibleMap.Find(Object);
 				if (SceneComponentVisibleValue != nullptr)
 				{
@@ -93,6 +96,7 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<TWeakObjectPt
 						}
 					}
 				}
+				*/
 			}
 #endif // WITH_EDITOR
 		}
@@ -128,6 +132,7 @@ void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateDa
 						Actor->SetIsTemporarilyHiddenInEditor(Visible);
 					}
 
+					/*
 					USceneComponent* RuntimeSceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(Actor);
 					if (RuntimeSceneComponent != nullptr)
 					{
@@ -136,9 +141,11 @@ void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateDa
 							RuntimeSceneComponent->SetVisibility(!Visible);
 						}
 					}
+					*/
 				}
 #endif // WITH_EDITOR
 			}
+			/*
 			else if(SceneComponent != nullptr)
 			{
 				if (SceneComponent->IsVisible() != !Visible)
@@ -146,6 +153,7 @@ void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateDa
 					SceneComponent->SetVisibility(!Visible);
 				}
 			}
+			*/
  		}
 	}
 }

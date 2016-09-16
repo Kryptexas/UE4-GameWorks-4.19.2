@@ -13,22 +13,7 @@ DEFINE_LOG_CATEGORY_STATIC(SideScrollerCharacter, Log, All);
 
 ATP_2DSideScrollerCharacter::ATP_2DSideScrollerCharacter()
 {
-	// Setup the assets
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UPaperFlipbook> RunningAnimationAsset;
-		ConstructorHelpers::FObjectFinderOptional<UPaperFlipbook> IdleAnimationAsset;
-		FConstructorStatics()
-			: RunningAnimationAsset(TEXT("/Game/2dSideScroller/Sprites/RunningAnimation.RunningAnimation"))
-			, IdleAnimationAsset(TEXT("/Game/2dSideScroller/Sprites/IdleAnimation.IdleAnimation"))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
 
-	RunningAnimation = ConstructorStatics.RunningAnimationAsset.Get();
-	IdleAnimation = ConstructorStatics.IdleAnimationAsset.Get();
-	GetSprite()->SetFlipbook(IdleAnimation);
 
 	// Use only Yaw from the controller and ignore the rest of the rotation.
 	bUseControllerRotationPitch = false;

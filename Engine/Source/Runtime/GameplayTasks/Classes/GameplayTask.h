@@ -196,6 +196,14 @@ public:
 	template <class T>
 	inline static T* NewTask(IGameplayTaskOwnerInterface& TaskOwner, FName InstanceName = FName());
 
+	/** Added for consistency with NewTask, but to indicate that a task requires manual call to InitTask 
+	 *	This path is used to manually configure some aspects of the task, like Priority */
+	template <class T>
+	FORCEINLINE static T* NewTaskUninitialized()
+	{
+		return NewObject<T>();
+	}
+
 	/** Called when task owner has "ended" (before the task ends) kills the task. Calls OnDestroy. */
 	void TaskOwnerEnded();
 

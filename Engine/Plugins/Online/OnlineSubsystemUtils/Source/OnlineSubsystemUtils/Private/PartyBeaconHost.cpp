@@ -7,7 +7,7 @@
 APartyBeaconHost::APartyBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	State(NULL),
-	bLogoutOnSessionTimeout(false)
+	bLogoutOnSessionTimeout(true)
 {
 	ClientBeaconActorClass = APartyBeaconClient::StaticClass();
 	BeaconTypeName = ClientBeaconActorClass->GetName();
@@ -22,7 +22,7 @@ void APartyBeaconHost::PostInitProperties()
 	Super::PostInitProperties();
 #if !UE_BUILD_SHIPPING
 	// This value is set on the CDO as well on purpose
-	bLogoutOnSessionTimeout = bLogoutOnSessionTimeout || FParse::Param(FCommandLine::Get(), TEXT("NoTimeouts")) ? true : false;
+	bLogoutOnSessionTimeout = FParse::Param(FCommandLine::Get(), TEXT("NoTimeouts")) ? false : true;
 #endif
 }
 

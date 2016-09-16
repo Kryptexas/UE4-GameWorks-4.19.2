@@ -119,14 +119,12 @@ void UParticleModuleLocation::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 void UParticleModuleLocation::Render3DPreview(FParticleEmitterInstance* Owner, const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {
 #if WITH_EDITOR
+	check(Owner);
+
 	// Draw the location as a wire star
 	FVector Position(0.0f);
 
-	FMatrix LocalToWorld = FMatrix::Identity;
-	if (Owner != NULL)
-	{
-		LocalToWorld = Owner->EmitterToSimulation * Owner->SimulationToWorld;
-	}
+	FMatrix LocalToWorld = Owner->EmitterToSimulation * Owner->SimulationToWorld;
 
 	if (StartLocation.Distribution)
 	{

@@ -38,6 +38,7 @@
 #include "Matinee/InterpGroupDirector.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/MatineeActorCameraAnim.h"
+#include "Matinee/InterpTrackMoveAxis.h"
 #include "MatineeUtils.h"
 
 #include "LevelEditor.h"

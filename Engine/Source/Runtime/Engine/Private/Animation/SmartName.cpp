@@ -22,7 +22,6 @@ bool FSmartNameMapping::AddOrFindName(FName Name, UID& OutUid, FGuid& OutGuid)
 
 	// make sure they both exists and same 
 	check(!!ExistingUid == !!ExistingGuid);
-
 	if(ExistingUid)
 	{
 		// Already present in the list
@@ -32,15 +31,28 @@ bool FSmartNameMapping::AddOrFindName(FName Name, UID& OutUid, FGuid& OutGuid)
 	}
 
 	// make sure we didn't reach till end
-	check(NextUid != MaxUID);
-
-	OutUid = NextUid;
 	OutGuid = FGuid::NewGuid();
-	UidMap.Add(OutUid, Name);
-	GuidMap.Add(Name, OutGuid);
+	return AddName(Name, OutUid, OutGuid);
+}
 
-	++NextUid;
-	return true;
+bool FSmartNameMapping::AddName(FName Name, UID& OutUid, const FGuid& InGuid)
+{
+	check(Name.IsValid());
+	if (GuidMap.Find(Name) == nullptr && GuidMap.FindKey(InGuid) == nullptr)
+	{
+		// make sure we didn't reach till end
+		check(NextUid != MaxUID);
+
+		OutUid = NextUid;
+		UidMap.Add(OutUid, Name);
+		GuidMap.Add(Name, InGuid);
+
+		++NextUid;
+
+		return true;
+	}
+
+	return false;
 }
 
 bool FSmartNameMapping::GetName(const UID& Uid, FName& OutName) const
@@ -111,6 +123,16 @@ void FSmartNameMapping::Serialize(FArchive& Ar)
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::SmartNameRefactor)
 	{
+		if (Ar.IsSaving() && Ar.IsCooking())
+		{
+			// stript out guid from the map
+			for (TPair<FName, FGuid>& GuidPair: GuidMap)
+			{
+				// clear guid, so that we don't use it once cooked
+				GuidPair.Value = FGuid();
+			}
+		}
+
 		Ar << GuidMap;
 
 		if (Ar.ArIsLoading)
@@ -181,6 +203,7 @@ FArchive& operator<<(FArchive& Ar, FSmartNameMapping& Elem)
 	return Ar;
 }
 
+#if WITH_EDITOR
 bool FSmartNameMapping::FindOrAddSmartName(FName Name, FSmartName& OutName)
 {
 	FSmartNameMapping::UID NewUID;
@@ -191,13 +214,42 @@ bool FSmartNameMapping::FindOrAddSmartName(FName Name, FSmartName& OutName)
 	return bNewlyAdded;
 }
 
+bool FSmartNameMapping::AddSmartName(FSmartName& OutName)
+{
+	return AddName(OutName.DisplayName, OutName.UID, OutName.Guid);
+}
+
+#else 
+
+// in cooked build, we don't have Guid, so just register with empty guid. 
+// you only should come here if it it hasn't found yet. 
+bool FSmartNameMapping::FindOrAddSmartName(FName Name, UID& OutUid)
+{
+	FSmartName FoundName;
+	if (FindSmartName(Name, FoundName))
+	{
+		OutUid = FoundName.UID;
+		return true;
+	}
+	else
+	{
+		// the guid is discarded, just we want to make sure it's not same
+		return AddName(Name, OutUid, FGuid::NewGuid());
+	}
+}
+#endif // WITH_EDITOR
+
 bool FSmartNameMapping::FindSmartName(FName Name, FSmartName& OutName) const
 {
 	const FSmartNameMapping::UID* ExistingUID = FindUID(Name);
 	if (ExistingUID)
 	{
+#if WITH_EDITOR
 		const FGuid* ExistingGuid = GuidMap.Find(Name);
 		OutName = FSmartName(Name, *ExistingUID, *ExistingGuid);
+#else
+		OutName = FSmartName(Name, *ExistingUID);
+#endif // WITH_EDITOR
 		return true;
 	}
 
@@ -210,7 +262,9 @@ bool FSmartNameMapping::FindSmartNameByUID(FSmartNameMapping::UID UID, FSmartNam
 	if (GetName(UID, ExistingName))
 	{
 		OutName.DisplayName = ExistingName;
+#if WITH_EDITORONLY_DATA
 		OutName.Guid = *GuidMap.Find(ExistingName);
+#endif // WITH_EDITORONLY_DATA
 		OutName.UID = UID;
 		return true;
 	}
@@ -254,7 +308,14 @@ bool FSmartName::Serialize(FArchive& Ar)
 {
 	Ar << DisplayName;
 	Ar << UID;
-	Ar << Guid;
+
+	// only save if it's editor build and not cooking
+#if WITH_EDITORONLY_DATA
+	if (!Ar.IsSaving() || !Ar.IsCooking())
+	{
+		Ar << Guid;
+	}
+#endif // WITH_EDITORONLY_DATA
 
 	return true;
 }

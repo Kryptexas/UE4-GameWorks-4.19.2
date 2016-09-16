@@ -2,16 +2,9 @@
 
 #pragma once
 
+#include "Vehicles/VehicleAnimInstance.h"
 #include "AnimNode_SkeletalControlBase.h"
 #include "AnimNode_WheelHandler.generated.h"
-
-struct FWheelSimulator
-{
-	int32					WheelIndex;
-	FBoneReference			BoneReference;
-	FRotator				RotOffset;
-	FVector					LocOffset;
-};
 
 /**
  *	Simple controller that replaces or adds to the translation/rotation of a single bone.
@@ -20,12 +13,6 @@ USTRUCT()
 struct ANIMGRAPHRUNTIME_API FAnimNode_WheelHandler : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
-
-	/** Current Asset being played **/
-	UPROPERTY(transient)
-	class UWheeledVehicleMovementComponent* VehicleSimComponent;
-
-	TArray<FWheelSimulator>			WheelSimulators;
 
 	FAnimNode_WheelHandler();
 
@@ -36,13 +23,20 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_WheelHandler : public FAnimNode_SkeletalCo
 	// FAnimNode_SkeletalControlBase interface
 	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) override;
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) override;
-	virtual void UpdateInternal(const FAnimationUpdateContext& Context) override;
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual bool CanUpdateInWorkerThread() const override { return false; }
 	// End of FAnimNode_SkeletalControlBase interface
 
 private:
 	// FAnimNode_SkeletalControlBase interface
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
+
+	struct FWheelLookupData
+	{
+		int32 WheelIndex;
+		FBoneReference BoneReference;
+	};
+
+	TArray<FWheelLookupData> Wheels;
+	const FVehicleAnimInstanceProxy* AnimInstanceProxy;	//TODO: we only cache this to use in eval where it's safe. Should change API to pass proxy into eval
 };

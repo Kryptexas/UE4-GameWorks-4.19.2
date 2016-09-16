@@ -160,6 +160,27 @@ public:
 		ColorGain.Bind(			Initializer.ParameterMap,TEXT("ColorGain") );
 		ColorOffset.Bind(		Initializer.ParameterMap,TEXT("ColorOffset") );
 
+		ColorSaturationShadows.Bind(Initializer.ParameterMap, TEXT("ColorSaturationShadows"));
+		ColorContrastShadows.Bind(Initializer.ParameterMap, TEXT("ColorContrastShadows"));
+		ColorGammaShadows.Bind(Initializer.ParameterMap, TEXT("ColorGammaShadows"));
+		ColorGainShadows.Bind(Initializer.ParameterMap, TEXT("ColorGainShadows"));
+		ColorOffsetShadows.Bind(Initializer.ParameterMap, TEXT("ColorOffsetShadows"));
+
+		ColorSaturationMidtones.Bind(Initializer.ParameterMap, TEXT("ColorSaturationMidtones"));
+		ColorContrastMidtones.Bind(Initializer.ParameterMap, TEXT("ColorContrastMidtones"));
+		ColorGammaMidtones.Bind(Initializer.ParameterMap, TEXT("ColorGammaMidtones"));
+		ColorGainMidtones.Bind(Initializer.ParameterMap, TEXT("ColorGainMidtones"));
+		ColorOffsetMidtones.Bind(Initializer.ParameterMap, TEXT("ColorOffsetMidtones"));
+
+		ColorSaturationHighlights.Bind(Initializer.ParameterMap, TEXT("ColorSaturationHighlights"));
+		ColorContrastHighlights.Bind(Initializer.ParameterMap, TEXT("ColorContrastHighlights"));
+		ColorGammaHighlights.Bind(Initializer.ParameterMap, TEXT("ColorGammaHighlights"));
+		ColorGainHighlights.Bind(Initializer.ParameterMap, TEXT("ColorGainHighlights"));
+		ColorOffsetHighlights.Bind(Initializer.ParameterMap, TEXT("ColorOffsetHighlights"));
+
+		ColorCorrectionShadowsMax.Bind(Initializer.ParameterMap, TEXT("ColorCorrectionShadowsMax"));
+		ColorCorrectionHighlightsMin.Bind(Initializer.ParameterMap, TEXT("ColorCorrectionHighlightsMin"));
+
 		FilmSlope.Bind(		Initializer.ParameterMap,TEXT("FilmSlope") );
 		FilmToe.Bind(		Initializer.ParameterMap,TEXT("FilmToe") );
 		FilmShoulder.Bind(	Initializer.ParameterMap,TEXT("FilmShoulder") );
@@ -217,6 +238,27 @@ public:
 		SetShaderValue( RHICmdList, ShaderRHI, ColorGain,		Settings.ColorGain );
 		SetShaderValue( RHICmdList, ShaderRHI, ColorOffset,		Settings.ColorOffset );
 
+		SetShaderValue(RHICmdList, ShaderRHI, ColorSaturationShadows, Settings.ColorSaturationShadows);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorContrastShadows, Settings.ColorContrastShadows);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorGammaShadows, Settings.ColorGammaShadows);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorGainShadows, Settings.ColorGainShadows);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorOffsetShadows, Settings.ColorOffsetShadows);
+
+		SetShaderValue(RHICmdList, ShaderRHI, ColorSaturationMidtones, Settings.ColorSaturationMidtones);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorContrastMidtones, Settings.ColorContrastMidtones);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorGammaMidtones, Settings.ColorGammaMidtones);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorGainMidtones, Settings.ColorGainMidtones);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorOffsetMidtones, Settings.ColorOffsetMidtones);
+
+		SetShaderValue(RHICmdList, ShaderRHI, ColorSaturationHighlights, Settings.ColorSaturationHighlights);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorContrastHighlights, Settings.ColorContrastHighlights);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorGammaHighlights, Settings.ColorGammaHighlights);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorGainHighlights, Settings.ColorGainHighlights);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorOffsetHighlights, Settings.ColorOffsetHighlights);
+
+		SetShaderValue(RHICmdList, ShaderRHI, ColorCorrectionShadowsMax, Settings.ColorCorrectionShadowsMax);
+		SetShaderValue(RHICmdList, ShaderRHI, ColorCorrectionHighlightsMin, Settings.ColorCorrectionHighlightsMin);
+
 		// Film
 		SetShaderValue( RHICmdList, ShaderRHI, FilmSlope,		Settings.FilmSlope );
 		SetShaderValue( RHICmdList, ShaderRHI, FilmToe,			Settings.FilmToe );
@@ -242,8 +284,8 @@ public:
 			Value = Rec709 ? 1 : Value;	// Rec709
 			Value = Gamma != 0.0f ? 2 : Value;	// Explicit gamma
 			// ST-2084 (Dolby PQ) options 
-			// 1 = ACES
-			// 2 = Vanilla PQ for 200 nit input
+			// 1 = ACES 1000 nit
+			// 2 = ACES 2000 nit
 			// 3 = Unreal FilmToneMap + Inverted ACES + PQ
 			Value = ST2084 >= 1 ? ST2084 + 2 : Value;
 
@@ -422,6 +464,27 @@ public:
 		Ar << ColorGain;
 		Ar << ColorOffset;
 
+		Ar << ColorSaturationShadows;
+		Ar << ColorContrastShadows;
+		Ar << ColorGammaShadows;
+		Ar << ColorGainShadows;
+		Ar << ColorOffsetShadows;
+
+		Ar << ColorSaturationMidtones;
+		Ar << ColorContrastMidtones;
+		Ar << ColorGammaMidtones;
+		Ar << ColorGainMidtones;
+		Ar << ColorOffsetMidtones;
+
+		Ar << ColorSaturationHighlights;
+		Ar << ColorContrastHighlights;
+		Ar << ColorGammaHighlights;
+		Ar << ColorGainHighlights;
+		Ar << ColorOffsetHighlights;
+
+		Ar << ColorCorrectionShadowsMax;
+		Ar << ColorCorrectionHighlightsMin;
+
 		Ar << OutputDevice;
 		Ar << OutputGamut;
 		Ar << ACESInversion;
@@ -457,6 +520,27 @@ private: // ---------------------------------------------------
 	FShaderParameter ColorGamma;
 	FShaderParameter ColorGain;
 	FShaderParameter ColorOffset;
+
+	FShaderParameter ColorSaturationShadows;
+	FShaderParameter ColorContrastShadows;
+	FShaderParameter ColorGammaShadows;
+	FShaderParameter ColorGainShadows;
+	FShaderParameter ColorOffsetShadows;
+
+	FShaderParameter ColorSaturationMidtones;
+	FShaderParameter ColorContrastMidtones;
+	FShaderParameter ColorGammaMidtones;
+	FShaderParameter ColorGainMidtones;
+	FShaderParameter ColorOffsetMidtones;
+
+	FShaderParameter ColorSaturationHighlights;
+	FShaderParameter ColorContrastHighlights;
+	FShaderParameter ColorGammaHighlights;
+	FShaderParameter ColorGainHighlights;
+	FShaderParameter ColorOffsetHighlights;
+
+	FShaderParameter ColorCorrectionShadowsMax;
+	FShaderParameter ColorCorrectionHighlightsMin;
 
 	FShaderParameter FilmSlope;
 	FShaderParameter FilmToe;

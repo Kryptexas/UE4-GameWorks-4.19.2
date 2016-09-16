@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <sal.h>
+
 
 /**
 * Windows specific types
@@ -81,6 +83,7 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #define FORCEINLINE __forceinline									/* Force code to be inline */
 #define FORCENOINLINE __declspec(noinline)							/* Force code to NOT be inline */
 #define FUNCTION_NO_RETURN_START __declspec(noreturn)				/* Indicate that the function never returns. */
+#define FUNCTION_NON_NULL_RETURN_START _Ret_notnull_				/* Indicate that the function never returns nullptr. */
 
 // Hints compiler that expression is true; generally restricted to comparisons against constants
 #if !defined(__clang__) || defined(_MSC_VER)	// Clang only supports __assume when using -fms-extensions

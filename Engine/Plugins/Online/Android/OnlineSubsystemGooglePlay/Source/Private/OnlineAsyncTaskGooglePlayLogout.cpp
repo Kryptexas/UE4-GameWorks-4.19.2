@@ -43,6 +43,9 @@ void FOnlineAsyncTaskGooglePlayLogout::OnAuthActionFinished(gpg::AuthOperation I
 {
 	if (InOp == gpg::AuthOperation::SIGN_OUT)
 	{
+		extern void AndroidThunkCpp_GoogleClientDisconnect();
+		AndroidThunkCpp_GoogleClientDisconnect();
+
 		Status = InStatus;
 		bWasSuccessful = true;
 		bIsComplete = true;

@@ -88,6 +88,8 @@ private:
 	float GetWeight() const;
 	/** Returns name of this curve */
 	FText GetItemName() const;
+	/** Get text we are filtering for */
+	FText GetFilterText() const;
 	/** Return color for text of item */
 	FSlateColor GetItemTextColor() const;
 

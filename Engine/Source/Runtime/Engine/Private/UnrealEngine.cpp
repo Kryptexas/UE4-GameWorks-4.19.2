@@ -52,6 +52,7 @@
 #include "GameFramework/HUD.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/GameMode.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
@@ -108,8 +109,7 @@
 #include "Engine/UserInterfaceSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "TextPackageNamespaceUtil.h"
-#include "JsonInternationalizationArchiveSerializer.h"
-#include "JsonInternationalizationManifestSerializer.h"
+#include "TextLocalizationResourceGenerator.h"
 
 #include "IMessagingRpcModule.h"
 #include "IMessageRpcClient.h"
@@ -128,6 +128,8 @@
 #include "Engine/EndUserSettings.h"
 #include "ABTesting.h"
 #include "Performance/EnginePerformanceTargets.h"
+
+#include "Classes/Engine/LODActor.h"
 
 #if !UE_BUILD_SHIPPING
 #include "AutomationTest.h"
@@ -303,6 +305,11 @@ void ScalabilityCVarsSinkCallback()
 	{
 		bool bRecreateRenderstate = false;
 		bool bCacheResourceShaders = false;
+
+		if (LocalScalabilityCVars.DetailMode != GCachedScalabilityCVars.DetailMode)
+		{
+			bRecreateRenderstate = true;
+		}
 
 		if (LocalScalabilityCVars.MaterialQualityLevel != GCachedScalabilityCVars.MaterialQualityLevel)
 		{
@@ -689,21 +696,12 @@ void FWorldContext::AddReferencedObjects(FReferenceCollector& Collector, const U
 	//	 hopefully a utility to push the WorldContext back in to the collector with property collection
 	//       will happen in the future
 	Collector.AddReferencedObject(PendingNetGame, ReferencingObject);
-	for (const FFullyLoadedPackagesInfo& PackageInfo : PackagesToFullyLoad)
+	for (FFullyLoadedPackagesInfo& PackageInfo : PackagesToFullyLoad)
 	{
-		for (UObject* LoadedObject : PackageInfo.LoadedObjects)
-		{
-			Collector.AddReferencedObject(LoadedObject, ReferencingObject);
-		}
+		Collector.AddReferencedObjects(PackageInfo.LoadedObjects, ReferencingObject);
 	}
-	for (ULevel* LoadedLevel : LoadedLevelsForPendingMapChange)
-	{
-		Collector.AddReferencedObject(LoadedLevel, ReferencingObject);
-	}
-	for (UObjectReferencer* ObjectReferencer : ObjectReferencers)
-	{
-		Collector.AddReferencedObject(ObjectReferencer, ReferencingObject);
-	}
+	Collector.AddReferencedObjects(LoadedLevelsForPendingMapChange, ReferencingObject);
+	Collector.AddReferencedObjects(ObjectReferencers, ReferencingObject);
 	Collector.AddReferencedObject(GameViewport, ReferencingObject);
 	Collector.AddReferencedObject(OwningGameInstance, ReferencingObject);
 	for (FNamedNetDriver& ActiveNetDriver : ActiveNetDrivers)
@@ -998,7 +996,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_ColorList"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatColorList, NULL));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Levels"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatLevels, NULL));
 #if !UE_BUILD_SHIPPING
-	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundMixes"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundMixes, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundMixes"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundMixes, &UEngine::ToggleStatSoundMixes));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Reverb"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatReverb, NULL));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundWaves"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundWaves, &UEngine::ToggleStatSoundWaves));
 	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundCues"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundCues, &UEngine::ToggleStatSoundCues));
@@ -1208,6 +1206,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 	// start at now minus a bit so we don't get a zero delta.
 	static double LastTime = FPlatformTime::Seconds() - 0.0001;
 	static bool bTimeWasManipulated = false;
+	bool bTimeWasManipulatedDebug = bTimeWasManipulated;	//Just used for logging of previous frame
 
 	// Figure out whether we want to use real or fixed time step.
 	const bool bUseFixedTimeStep = FApp::IsBenchmarking() || FApp::UseFixedTimeStep();
@@ -1244,7 +1243,8 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
 #else
 			// AMD dual-core systems are a known issue that require AMD CPU drivers to be installed. Installer will take care of this for shipping.
-			UE_LOG(LogEngine, Fatal,TEXT("Detected negative delta time - on AMD systems please install http://files.aoaforums.com/I3199-setup.zip.html"));
+			UE_LOG(LogEngine, Fatal,TEXT("Detected negative delta time - on AMD systems please install http://files.aoaforums.com/I3199-setup.zip.html - DeltaTime:%f, bUseFixedFrameRate:%d, bTimeWasManipulatedDebug:%d, FixedFrameRate:%f"), 
+				DeltaTime, bUseFixedFrameRate, bTimeWasManipulatedDebug, FixedFrameRate);
 #endif
 			DeltaTime = 0.01;
 		}
@@ -1254,7 +1254,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 
 		// Get max tick rate based on network settings and current delta time.
 		const float GivenMaxTickRate = GetMaxTickRate(DeltaTime);
-		const float MaxTickRate = FABTest::StaticIsActive() ? 0.0f : bUseFixedFrameRate ? FMath::Min(GivenMaxTickRate, FixedFrameRate) : GivenMaxTickRate;
+		const float MaxTickRate = FABTest::StaticIsActive() ? 0.0f : (bUseFixedFrameRate ? FixedFrameRate : GivenMaxTickRate);
 		float WaitTime		= 0;
 		// Convert from max FPS to wait time.
 		if( MaxTickRate > 0 )
@@ -1310,16 +1310,6 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 
 		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastTime);
 		FApp::SetIdleTime(ActualWaitTime);
-
-		if (IsRunningDedicatedServer())
-		{
-			// if we slept longer than intended, log this out
-			const double PermissibleDelayInMs = 10;	// server kernel may be configured to tick at 100 HZ, so forgive scheduler some imprecision
-			if (UNLIKELY(AdditionalWaitTimeInMs > PermissibleDelayInMs))
-			{
-				UE_LOG(LogEngine, Warning, TEXT("HITCHHUNTER: spent %f ms sleeping instead of %f ms intended (overshot by %f ms)"), ActualWaitTime * 1000.0, WaitTime * 1000.0f, AdditionalWaitTimeInMs);
-			}
-		}
 
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( FApp::GetDeltaTime() < 0 )
@@ -1598,38 +1588,32 @@ void UEngine::InitializeObjectReferences()
 	// set the font object pointers, unless on server
 	if (!IsRunningDedicatedServer())
 	{
-		if (TinyFont == NULL && TinyFontName.ToString().Len())
+		auto ConditionalLoadEngineFont = [](UFont*& FontPtr, const FString& FontName)
 		{
-			TinyFont = LoadObject<UFont>(NULL, *TinyFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (SmallFont == NULL && SmallFontName.ToString().Len())
-		{
-			SmallFont = LoadObject<UFont>(NULL, *SmallFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (MediumFont == NULL && MediumFontName.ToString().Len())
-		{
-			MediumFont = LoadObject<UFont>(NULL, *MediumFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (LargeFont == NULL && LargeFontName.ToString().Len())
-		{
-			LargeFont = LoadObject<UFont>(NULL, *LargeFontName.ToString(), NULL, LOAD_None, NULL);
-		}
-		if (SubtitleFont == NULL && SubtitleFontName.ToString().Len())
-		{
-			SubtitleFont = LoadObject<UFont>(NULL, *SubtitleFontName.ToString(), NULL, LOAD_None, NULL);
-		}
+			if (!FontPtr && FontName.Len() > 0)
+			{
+				FontPtr = LoadObject<UFont>(nullptr, *FontName, nullptr, LOAD_None, nullptr);
+			}
+			if (FontPtr)
+			{
+				FontPtr->ForceLoadFontData();
+			}
+		};
+
+		// Standard fonts.
+		ConditionalLoadEngineFont(TinyFont, TinyFontName.ToString());
+		ConditionalLoadEngineFont(SmallFont, SmallFontName.ToString());
+		ConditionalLoadEngineFont(MediumFont, MediumFontName.ToString());
+		ConditionalLoadEngineFont(LargeFont, LargeFontName.ToString());
+		ConditionalLoadEngineFont(SubtitleFont, SubtitleFontName.ToString());
 
 		// Additional fonts.
-		AdditionalFonts.Empty( AdditionalFontNames.Num() );
-		for ( int32 FontIndex = 0 ; FontIndex < AdditionalFontNames.Num() ; ++FontIndex )
+		AdditionalFonts.Empty(AdditionalFontNames.Num());
+		for (const FString& FontName : AdditionalFontNames)
 		{
-			const FString& FontName = AdditionalFontNames[FontIndex];
-			UFont* NewFont = NULL;
-			if( FontName.Len() )
-			{
-				NewFont = LoadObject<UFont>(NULL,*FontName,NULL,LOAD_None,NULL);
-			}
-			AdditionalFonts.Add( NewFont );
+			UFont* NewFont = nullptr;
+			ConditionalLoadEngineFont(NewFont, FontName);
+			AdditionalFonts.Add(NewFont);
 		}
 	}
 
@@ -2068,18 +2052,44 @@ bool UEngine::InitializeHMDDevice()
 			// Sort modules by priority
 			HMDModules.Sort(IHeadMountedDisplayModule::FCompareModulePriority());
 
-			// Select first module able to create an HMDDevice
+			// Select first module with a connected HMD able to create a device
 			IHeadMountedDisplayModule* HMDModuleSelected = nullptr;
+			TArray<IHeadMountedDisplayModule*> HMDModulesDisconnected;
 
 			for (auto HMDModuleIt = HMDModules.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
 			{
 				IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
-				HMDDevice = HMDModule->CreateHeadMountedDisplay();
 
-				if (HMDDevice.IsValid())
+				if(HMDModule->IsHMDConnected())
 				{
-					HMDModuleSelected = HMDModule;
-					break;
+					HMDDevice = HMDModule->CreateHeadMountedDisplay();
+
+					if (HMDDevice.IsValid())
+					{
+						HMDModuleSelected = HMDModule;
+						break;
+					}
+				}
+				else
+				{
+					HMDModulesDisconnected.Add(HMDModule);
+				}
+			}
+
+			// If no module selected yet, just select first module able to create a device, even if HMD is not connected.
+			if (!HMDModuleSelected)
+			{
+				for (auto HMDModuleIt = HMDModulesDisconnected.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
+				{
+					IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
+
+					HMDDevice = HMDModule->CreateHeadMountedDisplay();
+
+					if (HMDDevice.IsValid())
+					{
+						HMDModuleSelected = HMDModule;
+						break;
+					}
 				}
 			}
 
@@ -2098,7 +2108,8 @@ bool UEngine::InitializeHMDDevice()
 			if (HMDDevice.IsValid())
 			{
 				StereoRenderingDevice = HMDDevice;
-				if (FParse::Param(FCommandLine::Get(), TEXT("vr")))
+				const bool bShouldStartInVR = FParse::Param(FCommandLine::Get(), TEXT("vr")) || GetDefault<UGeneralProjectSettings>()->bStartInVR;
+				if (bShouldStartInVR)
 				{
 					HMDDevice->EnableStereo(true);
 				}
@@ -2108,6 +2119,7 @@ bool UEngine::InitializeHMDDevice()
  
 	return StereoRenderingDevice.IsValid();
 }
+
 
 void UEngine::RecordHMDAnalytics()
 {
@@ -2240,32 +2252,28 @@ void UEngine::GetAllLocalPlayerControllers(TArray<APlayerController*> & PlayerLi
  */
 struct FSortedTexture 
 {
-	int32		OrigSizeX;
-	int32		OrigSizeY;
-	int32		CookedSizeX;
-	int32		CookedSizeY;
+	int32		MaxAllowedSizeX;	// This is the disk size when cooked.
+	int32		MaxAllowedSizeY;
 	EPixelFormat Format;
 	int32		CurSizeX;
 	int32		CurSizeY;
 	int32		LODBias;
-	int32		MaxSize;
+	int32		MaxAllowedSize;
 	int32		CurrentSize;
-	FString Name;
+	FString		Name;
 	int32		LODGroup;
-	bool	bIsStreaming;
+	bool		bIsStreaming;
 	int32		UsageCount;
 
 	/** Constructor, initializing every member variable with passed in values. */
-	FSortedTexture(	int32 InOrigSizeX, int32 InOrigSizeY, int32 InCookedSizeX, int32 InCookedSizeY, EPixelFormat InFormat, int32 InCurSizeX, int32 InCurSizeY, int32 InLODBias, int32 InMaxSize, int32 InCurrentSize, const FString& InName, int32 InLODGroup, bool bInIsStreaming, int32 InUsageCount )
-	:	OrigSizeX( InOrigSizeX )
-	,	OrigSizeY( InOrigSizeY )
-	,	CookedSizeX( InCookedSizeX )
-	,	CookedSizeY( InCookedSizeY )
+	FSortedTexture(	int32 InMaxAllowedSizeX, int32 InMaxAllowedSizeY, EPixelFormat InFormat, int32 InCurSizeX, int32 InCurSizeY, int32 InLODBias, int32 InMaxAllowedSize, int32 InCurrentSize, const FString& InName, int32 InLODGroup, bool bInIsStreaming, int32 InUsageCount )
+	:	MaxAllowedSizeX( InMaxAllowedSizeX )
+	,	MaxAllowedSizeY( InMaxAllowedSizeY )
 	,	Format( InFormat )
 	,	CurSizeX( InCurSizeX )
 	,	CurSizeY( InCurSizeY )
 	,	LODBias( InLODBias )
-	,	MaxSize( InMaxSize )
+	,	MaxAllowedSize( InMaxAllowedSize )
 	,	CurrentSize( InCurrentSize )
 	,	Name( InName )
 	,	LODGroup( InLODGroup )
@@ -2561,10 +2569,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		FString ConfigFilePath;
 		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
 		{
-			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
-			FJsonInternationalizationManifestSerializer ManifestSerializer;
-
-			FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
+			FTextLocalizationResourceGenerator::GenerateAndUpdateLiveEntriesFromConfig(ConfigFilePath, /*bSkipSourceCheck*/false);
 		}
 	}
 #endif
@@ -3547,12 +3552,9 @@ bool UEngine::HandleStartFPSChartCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 bool UEngine::HandleStopFPSChartCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	// stop the chart data capture
-	StopFPSChart();
-
-	// save out to disk
+	// stop the chart data capture and log it
 	const FString MapName = InWorld ? InWorld->GetMapName() : TEXT("None");
-	DumpFPSChart( MapName, /*bForceDump=*/ true );
+	StopFPSChart( MapName );
 	return true;
 }
 
@@ -3666,17 +3668,15 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		int32				LODGroup			= Texture->LODGroup;
 		int32				LODBias				= Texture->GetCachedLODBias();
 		int32				NumMips				= Texture->GetNumMips();	
-		int32				MaxMips				= FMath::Max( 1, FMath::Min( NumMips - Texture->GetCachedLODBias(), GMaxTextureMipCount ) );
-		int32				OrigSizeX			= Texture->GetSizeX();
-		int32				OrigSizeY			= Texture->GetSizeY();
-		int32				CookedSizeX			= Texture->GetSizeX() >> LODBias;
-		int32				CookedSizeY			= Texture->GetSizeY() >> LODBias;
+		int32				MaxAllowedMips		= FMath::Max( 1, FMath::Min( NumMips - LODBias, GMaxTextureMipCount ) );
+		int32				MaxAllowedSizeX		= Texture->GetSizeX() >> LODBias;
+		int32				MaxAllowedSizeY		= Texture->GetSizeY() >> LODBias;
 		EPixelFormat		Format				= Texture->GetPixelFormat();
 		int32				DroppedMips			= Texture->GetNumMips() - Texture->ResidentMips;
 		int32				CurSizeX			= Texture->GetSizeX() >> DroppedMips;
 		int32				CurSizeY			= Texture->GetSizeY() >> DroppedMips;
 		bool			bIsStreamingTexture		= Texture->GetStreamingIndex() != INDEX_NONE;
-		int32				MaxSize				= Texture->CalcTextureMemorySizeEnum( TMC_AllMips );
+		int32				MaxAllowedSize		= Texture->CalcTextureMemorySizeEnum( TMC_AllMipsBiased );
 		int32				CurrentSize			= Texture->CalcTextureMemorySizeEnum( TMC_ResidentMips );
 		int32				UsageCount			= TextureToUsageMap.FindRef( Texture );
 		bool				bIsForced			= Texture->bForceMiplevelsToBeResident && bIsStreamingTexture;
@@ -3687,16 +3687,14 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			(!bShouldOnlyListStreaming && !bShouldOnlyListNonStreaming && !bShouldOnlyListForced) )
 		{
 			new(SortedTextures) FSortedTexture( 
-				OrigSizeX, 
-				OrigSizeY, 
-				CookedSizeX,
-				CookedSizeY,
+				MaxAllowedSizeX,
+				MaxAllowedSizeY,
 				Format,
 				CurSizeX,
 				CurSizeY,
 				LODBias, 
-				MaxSize / 1024, 
-				CurrentSize / 1024, 
+				MaxAllowedSize,
+				CurrentSize,
 				Texture->GetPathName(), 
 				LODGroup, 
 				bIsStreamingTexture,
@@ -3711,71 +3709,88 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	TArray<FString> TextureGroupNames = UTextureLODSettings::GetTextureGroupNames();
 
 	TArray<uint64> TextureGroupCurrentSizes;
-	TArray<uint64> TextureGroupMaxSizes;
+	TArray<uint64> TextureGroupMaxAllowedSizes;
 	
 	TArray<uint64> FormatCurrentSizes;
-	TArray<uint64> FormatMaxSizes;
+	TArray<uint64> FormatMaxAllowedSizes;
 
 	TextureGroupCurrentSizes.AddZeroed(TextureGroupNames.Num());
-	TextureGroupMaxSizes.AddZeroed(TextureGroupNames.Num());
+	TextureGroupMaxAllowedSizes.AddZeroed(TextureGroupNames.Num());
 
 	FormatCurrentSizes.AddZeroed(PF_MAX);
-	FormatMaxSizes.AddZeroed(PF_MAX);
+	FormatMaxAllowedSizes.AddZeroed(PF_MAX);
 
 	// Display.
-	int32 TotalMaxSize		= 0;
+	int32 TotalMaxAllowedSize = 0;
 	int32 TotalCurrentSize	= 0;
-	Ar.Logf( TEXT(",Authored Width,Authored Height,Cooked Width,Cooked Height,Format,Current Width,Current Height,Max Size,Current Size,LODBias,LODGroup,Name,Streaming,Usage Count") );
+
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		Ar.Logf(TEXT("MaxAllowedSize: Width x Height (Size in KB, Bias from Authored), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
+	}
+	else
+	{
+		Ar.Logf(TEXT("Cooked/OnDisk: Width x Height (Size in KB), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
+	}
+
 	for( int32 TextureIndex=0; TextureIndex<SortedTextures.Num(); TextureIndex++ )
 	{
 		const FSortedTexture& SortedTexture = SortedTextures[TextureIndex];
 		const bool bValidTextureGroup = TextureGroupNames.IsValidIndex(SortedTexture.LODGroup);
-		Ar.Logf( TEXT(",%i,%i,%i,%i,%s,%i,%i,%i,%i,%i,%s,%s,%s,%i"),
-			SortedTexture.OrigSizeX,
-			SortedTexture.OrigSizeY,
-			SortedTexture.CookedSizeX,
-			SortedTexture.CookedSizeY,
-			GetPixelFormatString(SortedTexture.Format),
-			SortedTexture.CurSizeX,
-			SortedTexture.CurSizeY,
-			SortedTexture.MaxSize,
-			SortedTexture.CurrentSize,
-			SortedTexture.LODBias,
-			bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
-			*SortedTexture.Name,
-			SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
-			SortedTexture.UsageCount );
+
+		if (!FPlatformProperties::RequiresCookedData())
+		{
+			Ar.Logf(TEXT("%ix%i (%i KB, %i), %ix%i (%i KB), %s, %s, %s, %s, %i"),
+				SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024, SortedTexture.LODBias,
+				SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
+				GetPixelFormatString(SortedTexture.Format),
+				bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
+				*SortedTexture.Name,
+				SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
+				SortedTexture.UsageCount);
+		}
+		else
+		{
+			Ar.Logf(TEXT("%ix%i (%i KB), %ix%i (%i KB), %s, %s, %s, %s, %i"),
+				SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024,
+				SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
+				GetPixelFormatString(SortedTexture.Format),
+				bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
+				*SortedTexture.Name,
+				SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
+				SortedTexture.UsageCount);
+		}
 
 		if (bValidTextureGroup)
 		{
 			TextureGroupCurrentSizes[SortedTexture.LODGroup] += SortedTexture.CurrentSize;
-			TextureGroupMaxSizes[SortedTexture.LODGroup] += SortedTexture.MaxSize;
+			TextureGroupMaxAllowedSizes[SortedTexture.LODGroup] += SortedTexture.MaxAllowedSize;
 		}
 
 		if (SortedTexture.Format >= 0 && SortedTexture.Format < PF_MAX)
 		{
 			FormatCurrentSizes[SortedTexture.Format] += SortedTexture.CurrentSize;
-			FormatMaxSizes[SortedTexture.Format] += SortedTexture.MaxSize;
+			FormatMaxAllowedSizes[SortedTexture.Format] += SortedTexture.MaxAllowedSize;
 		}
 
-		TotalMaxSize		+= SortedTexture.MaxSize;
+		TotalMaxAllowedSize	+= SortedTexture.MaxAllowedSize;
 		TotalCurrentSize	+= SortedTexture.CurrentSize;
 	}
 
-	Ar.Logf(TEXT("Total size: Current= %d KB  Max= %d KB  Count=%d"), TotalCurrentSize, TotalMaxSize, SortedTextures.Num() );
+	Ar.Logf(TEXT("Total size: InMem= %.2f MB  OnDisk= %.2f MB  Count=%d"), (double)TotalCurrentSize / 1024. / 1024., (double)TotalMaxAllowedSize / 1024. / 1024., SortedTextures.Num() );
 	for (int32 i = 0; i < PF_MAX; ++i)
 	{
-		if (FormatCurrentSizes[i] > 0 || FormatMaxSizes[i] > 0)
+		if (FormatCurrentSizes[i] > 0 || FormatMaxAllowedSizes[i] > 0)
 		{
-			Ar.Logf(TEXT("Total %s size: Current= %d MB  Max= %d MB "), GetPixelFormatString((EPixelFormat)i), FormatCurrentSizes[i] / 1024, FormatMaxSizes[i] / 1024);
+			Ar.Logf(TEXT("Total %s size: InMem= %.2f MB  OnDisk= %.2f MB "), GetPixelFormatString((EPixelFormat)i), (double)FormatCurrentSizes[i] / 1024. / 1024., (double)FormatMaxAllowedSizes[i] / 1024. / 1024.);
 		}
 	}
 
 	for (int32 i = 0; i < TextureGroupCurrentSizes.Num(); ++i)
 	{
-		if (TextureGroupCurrentSizes[i] > 0 || TextureGroupMaxSizes[i] > 0)
+		if (TextureGroupCurrentSizes[i] > 0 || TextureGroupMaxAllowedSizes[i] > 0)
 		{
-			Ar.Logf(TEXT("Total %s size: Current= %d MB  Max= %d MB "), *TextureGroupNames[i], TextureGroupCurrentSizes[i] / 1024, TextureGroupMaxSizes[i] / 1024);
+			Ar.Logf(TEXT("Total %s size: InMem= %.2f MB  OnDisk= %.2f MB "), *TextureGroupNames[i], (double)TextureGroupCurrentSizes[i] / 1024. / 1024., (double)TextureGroupMaxAllowedSizes[i] / 1024. / 1024.);
 		}
 	}
 	return true;
@@ -5237,11 +5252,11 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		// if we specified a parameter in the command, but no objects of that parameter were found,
 		// and they didn't specify "all", then don't list all objects
 		if ( bAll ||
-			((CheckType		||	!FCString::Strfind(Cmd,TEXT("CLASS=")))
-			&&	(MetaClass		||	!FCString::Strfind(Cmd,TEXT("TYPE=")))
-			&&	(CheckOuter		||	!FCString::Strfind(Cmd,TEXT("OUTER=")))
-			&&	(InsidePackage	||	!FCString::Strfind(Cmd,TEXT("PACKAGE="))) 
-			&&	(InsideObject	||	!FCString::Strfind(Cmd,TEXT("INSIDE=")))))
+			((CheckType		||	!FCString::Strifind(Cmd,TEXT("CLASS=")))
+			&&	(MetaClass		||	!FCString::Strifind(Cmd,TEXT("TYPE=")))
+			&&	(CheckOuter		||	!FCString::Strifind(Cmd,TEXT("OUTER=")))
+			&&	(InsidePackage	||	!FCString::Strifind(Cmd,TEXT("PACKAGE="))) 
+			&&	(InsideObject	||	!FCString::Strifind(Cmd,TEXT("INSIDE=")))))
 		{
 			const bool bTrackDetailedObjectInfo = bAll || (CheckType != NULL && CheckType != UObject::StaticClass()) || CheckOuter != NULL || InsideObject != NULL || InsidePackage != NULL || !ObjectName.IsEmpty();
 			const bool bOnlyListGCObjects = FParse::Param(Cmd, TEXT("GCONLY"));
@@ -7070,7 +7085,7 @@ void UEngine::PerformanceCapture(UWorld* World, const FString& MapName, const FS
 	// can be define by command line -BuildName="ByCustomBuildName" or "CL<changelist>"
 	FString BuildName = GetBuildNameForPerfTesting();
 
-	// e.g. XboxOne, AllDesktop, Android_.., PS4, HTML5, WinRT, 
+	// e.g. XboxOne, AllDesktop, Android_.., PS4, HTML5 
 	FString PlatformName = FPlatformProperties::PlatformName();
 	
 	// e.g. D3D11,OpenGL,Vulcan,D3D12
@@ -7592,6 +7607,240 @@ bool UEngine::ShouldThrottleCPUUsage() const
 }
 
 /**
+*	Renders warnings about the level that should be addressed prior to shipping
+*
+*	@param World			The World to render stats about
+*	@param Viewport			The viewport to render to
+*	@param Canvas			Canvas object to use for rendering
+*	@param CanvasObject		Optional canvas object for visualizing properties
+*	@param MessageX			X Pos to start drawing at on the Canvas
+*	@param MessageY			Y Pos to draw at on the Canvas
+*
+*	@return The Y position in the canvas after the last drawn string
+*/
+float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, float MessageX, float MessageY)
+{
+	FCanvasTextItem SmallTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
+	SmallTextItem.EnableShadow(FLinearColor::Black);
+
+	const int32 FontSizeY = 20;
+
+	if (GIsTextureMemoryCorrupted)
+	{
+		FCanvasTextItem TextItem(FVector2D(100, 200), LOCTEXT("OutOfTextureMemory", "RAN OUT OF TEXTURE MEMORY, EXPECT CORRUPTION AND GPU HANGS!"), GEngine->GetMediumFont(), FLinearColor::Red);
+		TextItem.EnableShadow(FLinearColor::Black);
+		Canvas->DrawItem(TextItem);
+	}
+
+
+	// Put the messages over fairly far to stay in the safe zone on consoles
+	if (World->NumLightingUnbuiltObjects > 0)
+	{
+		SmallTextItem.SetColor(FLinearColor::White);
+		// Color unbuilt lighting red if encountered within the last second
+		if (FApp::GetCurrentTime() - World->LastTimeUnbuiltLightingWasEncountered < 1)
+		{
+			SmallTextItem.SetColor(FLinearColor::Red);
+		}
+		// Use 'DumpUnbuiltLightInteractions' to investigate, if lighting is still unbuilt after a lighting build
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("LIGHTING NEEDS TO BE REBUILT (%u unbuilt object(s))"), World->NumLightingUnbuiltObjects));
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	// Check HLOD clusters and show warning if unbuilt
+#if WITH_EDITOR
+	if (World->GetWorldSettings()->bEnableHierarchicalLODSystem)
+#endif // WITH_EDITOR
+	{
+		// Cache so we don't iterate everything in non-editor builds
+		static TMap<FString, int32>  WorldUnbuiltHLODMap;
+
+		static double LastCheckTime = 0;
+		static int32 UnbuiltLODCount = 0;
+
+		double TimeNow = FPlatformTime::Seconds();
+
+		// Recheck every 20 secs to handle the case where levels may have been
+		// Streamed in/out
+		if ((TimeNow - LastCheckTime) > 20)
+		{
+			LastCheckTime = TimeNow;
+			UnbuiltLODCount = 0;
+			for (TActorIterator<ALODActor> HLODIt(World); HLODIt; ++HLODIt)
+			{
+				if (!HLODIt->IsBuilt())
+				{
+					++UnbuiltLODCount;
+				}
+			}
+		}
+
+		if (UnbuiltLODCount)
+		{
+			SmallTextItem.SetColor(FLinearColor::Red);
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("HLOD CLUSTER(S) NEED TO BE REBUILT (%u unbuilt object(s)"), UnbuiltLODCount));
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
+		}
+	}
+
+	if (World->NumTextureStreamingUnbuiltComponents > 0 || World->NumTextureStreamingDirtyResources > 0)
+	{
+		SmallTextItem.SetColor(FLinearColor::Red);
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING NEEDS TO BE REBUILT (%u Components, %u Resource Refs)"), World->NumTextureStreamingUnbuiltComponents, World->NumTextureStreamingDirtyResources));
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	if (FPlatformProperties::SupportsTextureStreaming() && IStreamingManager::Get().IsTextureStreamingEnabled())
+	{
+		auto MemOver = IStreamingManager::Get().GetTextureStreamingManager().GetMemoryOverBudget();
+		if (MemOver > 0)
+		{
+			SmallTextItem.SetColor(FLinearColor::Red);
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING POOL OVER %0.2f MB"), (float)MemOver / 1024.0f / 1024.0f));
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
+		}
+	
+	}
+
+	// check navmesh
+#if WITH_EDITOR
+	const bool bIsNavigationAutoUpdateEnabled = UNavigationSystem::GetIsNavigationAutoUpdateEnabled();
+#else
+	const bool bIsNavigationAutoUpdateEnabled = true;
+#endif
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+	if (NavSys && NavSys->IsNavigationDirty() &&
+		(!bIsNavigationAutoUpdateEnabled || !NavSys->SupportsNavigationGeneration() || !NavSys->CanRebuildDirtyNavigation()))
+	{
+		SmallTextItem.SetColor(FLinearColor::White);
+		SmallTextItem.Text = LOCTEXT("NAVMESHERROR", "NAVMESH NEEDS TO BE REBUILT");
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	if (World->bKismetScriptError)
+	{
+		SmallTextItem.Text = LOCTEXT("BlueprintInLevelHadCompileErrorMessage", "BLUEPRINT COMPILE ERROR");
+		SmallTextItem.SetColor(FLinearColor::Red);
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	SmallTextItem.SetColor(FLinearColor::White);
+
+	if (GShaderCompilingManager && GShaderCompilingManager->IsCompiling())
+	{
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("Shaders Compiling (%u)"), GShaderCompilingManager->GetNumRemainingJobs()));
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+	/* @todo ue4 temporarily disabled
+	AWorldSettings* WorldSettings = World->GetWorldSettings();
+	if( !WorldSettings->IsNavigationRebuilt() )
+	{
+	DrawShadowedString(Canvas,
+	MessageX,
+	MessageY,
+	TEXT("PATHS NEED TO BE REBUILT"),
+	GEngine->GetSmallFont(),
+	FColor(128,128,128)
+	);
+	MessageY += FontSizeY;
+	}
+	*/
+
+	if (World->bIsLevelStreamingFrozen)
+	{
+		SmallTextItem.Text = LOCTEXT("Levelstreamingfrozen", "Level streaming frozen...");
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	extern bool GIsPrepareMapChangeBroken;
+	if (GIsPrepareMapChangeBroken)
+	{
+		SmallTextItem.Text = LOCTEXT("PrepareMapChangeError", "PrepareMapChange had a bad level name! Check the log (tagged with PREPAREMAPCHANGE) for info");
+		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+		MessageY += FontSizeY;
+	}
+#endif
+
+	return MessageY;
+}
+
+/**
+*	Renders warnings about the level that should be addressed prior to shipping
+*
+*	@param World			The World to render stats about
+*	@param Viewport			The viewport to render to
+*	@param Canvas			Canvas object to use for rendering
+*	@param CanvasObject		Optional canvas object for visualizing properties
+*	@param MessageX			X Pos to start drawing at on the Canvas
+*	@param MessageY			Y Pos to draw at on the Canvas
+*
+*	@return The Y position in the canvas after the last drawn string
+*/
+float DrawOnscreenDebugMessages(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, float MessageX, float MessageY)
+{
+	int32 YPos = MessageY;
+	const int32 MaxYPos = CanvasObject ? CanvasObject->SizeY : 700;
+	if (GEngine->PriorityScreenMessages.Num() > 0)
+	{
+		FCanvasTextItem MessageTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
+		MessageTextItem.EnableShadow(FLinearColor::Black);
+		for (int32 PrioIndex = GEngine->PriorityScreenMessages.Num() - 1; PrioIndex >= 0; PrioIndex--)
+		{
+			FScreenMessageString& Message = GEngine->PriorityScreenMessages[PrioIndex];
+			if (YPos < MaxYPos)
+			{
+				MessageTextItem.Text = FText::FromString(Message.ScreenMessage);
+				MessageTextItem.SetColor(Message.DisplayColor);
+				MessageTextItem.Scale = Message.TextScale;
+				Canvas->DrawItem(MessageTextItem, FVector2D(MessageX, YPos));
+				YPos += MessageTextItem.DrawnSize.Y * 1.15f;
+			}
+			Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
+			if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)
+			{
+				GEngine->PriorityScreenMessages.RemoveAt(PrioIndex);
+			}
+		}
+	}
+
+	if (GEngine->ScreenMessages.Num() > 0)
+	{
+		FCanvasTextItem MessageTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
+		MessageTextItem.EnableShadow(FLinearColor::Black);
+		for (TMap<int32, FScreenMessageString>::TIterator MsgIt(GEngine->ScreenMessages); MsgIt; ++MsgIt)
+		{
+			FScreenMessageString& Message = MsgIt.Value();
+			if (YPos < MaxYPos)
+			{
+				MessageTextItem.Text = FText::FromString(Message.ScreenMessage);
+				MessageTextItem.SetColor(Message.DisplayColor);
+				MessageTextItem.Scale = Message.TextScale;
+				Canvas->DrawItem(MessageTextItem, FVector2D(MessageX, YPos));
+				YPos += MessageTextItem.DrawnSize.Y * 1.15f;
+			}
+			Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
+			if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)
+			{
+				MsgIt.RemoveCurrent();
+			}
+		}
+	}
+
+	return MessageY;
+}
+
+
+/**
  *	Renders stats
  *
  *  @param World			The World to render stats about
@@ -7617,225 +7866,87 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 	const int32 FPSXOffset	= (GEngine->IsStereoscopic3D(Viewport)) ? Viewport->GetSizeXY().X * 0.5f * 0.334f : (FPlatformProperties::SupportsWindowedMode() ? 110 : 250);
 	const int32 StatsXOffset = 100;// FPlatformProperties::SupportsWindowedMode() ? 4 : 100;
 
-	int32 MessageY = 35;
+	static const int32 MessageStartY = GIsEditor ? 35 : 100; // Account for safe frame
+	int32 MessageY = MessageStartY;
 	const int32 FontSizeY = 20;
 
-	if( !GIsEditor )
+#if !UE_BUILD_SHIPPING
+	if (!GIsHighResScreenshot && !GIsDumpingMovie && GAreScreenMessagesEnabled)
 	{
-		// Account for safe frame
-		MessageY = 100;
-	}
+		const int32 MessageX = (GEngine->IsStereoscopic3D(Viewport)) ? Viewport->GetSizeXY().X * 0.5f * 0.3f : 40;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if( !GIsHighResScreenshot && !GIsDumpingMovie && GAreScreenMessagesEnabled )
-	{
-		const int32 MessageX = ( GEngine->IsStereoscopic3D( Viewport ) ) ? Viewport->GetSizeXY().X * 0.5f * 0.3f : 40;
+		FCanvasTextItem SmallTextItem(FVector2D(0, 0), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White);
+		SmallTextItem.EnableShadow(FLinearColor::Black);
 
+		// Draw map warnings?
 		if (!GEngine->bSuppressMapWarnings)
 		{
-			FCanvasTextItem SmallTextItem( FVector2D( 0, 0 ), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
-			SmallTextItem.EnableShadow( FLinearColor::Black );
+			MessageY = DrawMapWarnings(World, Viewport, Canvas, CanvasObject, MessageX, MessageY);
+		}
 
-			if( GIsTextureMemoryCorrupted )
-			{
-				FCanvasTextItem TextItem( FVector2D( 100, 200 ), LOCTEXT("OutOfTextureMemory", "RAN OUT OF TEXTURE MEMORY, EXPECT CORRUPTION AND GPU HANGS!"), GEngine->GetMediumFont(), FLinearColor::Red );
-				TextItem.EnableShadow( FLinearColor::Black );	
-				Canvas->DrawItem( TextItem );
-			}
+#if ENABLE_VISUAL_LOG
+		if (FVisualLogger::Get().IsRecording() || FVisualLogger::Get().IsRecordingOnServer())
+		{
+			int32 XSize;
+			int32 YSize;
+			FString String = FString::Printf(TEXT("VisLog recording active"));
+			StringSize(GEngine->GetSmallFont(), XSize, YSize, *String);
 
-			// Put the messages over fairly far to stay in the safe zone on consoles
-			if( World->NumLightingUnbuiltObjects > 0 )
-			{
-				SmallTextItem.SetColor( FLinearColor::White );
-				// Color unbuilt lighting red if encountered within the last second
-				if( FApp::GetCurrentTime() - World->LastTimeUnbuiltLightingWasEncountered < 1 )
-				{
-					SmallTextItem.SetColor( FLinearColor::Red );
-				}
-				// Use 'DumpUnbuiltLightInteractions' to investigate, if lighting is still unbuilt after a lighting build
-				SmallTextItem.Text =  FText::FromString( FString::Printf(TEXT("LIGHTING NEEDS TO BE REBUILT (%u unbuilt object(s))"), World->NumLightingUnbuiltObjects) );				
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-
-				SmallTextItem.SetColor( FLinearColor(.05f, .05f, .05f, .2f) );
-				SmallTextItem.Text = FText::FromString(FString(TEXT("'DisableAllScreenMessages' to suppress")));				
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX + 50, MessageY + 16 ) );
-
-				MessageY += FontSizeY;
-			}
-			
-			if (FPlatformProperties::SupportsTextureStreaming() && IStreamingManager::Get().IsTextureStreamingEnabled())
-			{
-				auto MemOver = IStreamingManager::Get().GetTextureStreamingManager().GetMemoryOverBudget();
-				if (MemOver > 0)
-				{
-					SmallTextItem.SetColor(FLinearColor::Red);
-					SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("TEXTURE STREAMING POOL OVER %0.2f MB"), (float)MemOver / 1024.0f / 1024.0f));
-					Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
-					MessageY += FontSizeY;
-				}
-			}
-
-			// check navmesh
-#if WITH_EDITOR
-			const bool bIsNavigationAutoUpdateEnabled = UNavigationSystem::GetIsNavigationAutoUpdateEnabled();
-#else
-			const bool bIsNavigationAutoUpdateEnabled = true;
+			SmallTextItem.Position = FVector2D((int32)Viewport->GetSizeXY().X - XSize - 16, 36);
+			SmallTextItem.Text = FText::FromString(String);
+			SmallTextItem.SetColor(FLinearColor::Red);
+			SmallTextItem.EnableShadow(FLinearColor::Black);
+			Canvas->DrawItem(SmallTextItem);
+			SmallTextItem.SetColor(FLinearColor::White);
+		}
 #endif
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
-			if (NavSys && NavSys->IsNavigationDirty() &&
-				(!bIsNavigationAutoUpdateEnabled || !NavSys->SupportsNavigationGeneration() || !NavSys->CanRebuildDirtyNavigation()))
+
+#if STATS
+		if (FThreadStats::IsCollectingData())
+		{
+			SmallTextItem.SetColor(FLinearColor::Red);
+			if (!GEngine->bDisableAILogging)
 			{
-				SmallTextItem.SetColor( FLinearColor::White );
-				SmallTextItem.Text =  LOCTEXT("NAVMESHERROR", "NAVMESH NEEDS TO BE REBUILT");				
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
+				SmallTextItem.Text = LOCTEXT("AIPROFILINGWARNING", "PROFILING WITH AI LOGGING ON!");
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 				MessageY += FontSizeY;
 			}
-
-			if( World->bKismetScriptError )
+			if (GShouldVerifyGCAssumptions)
 			{
-				SmallTextItem.Text = LOCTEXT("BlueprintInLevelHadCompileErrorMessage", "BLUEPRINT COMPILE ERROR" );
-				SmallTextItem.SetColor( FLinearColor::Red );
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += FontSizeY;
-			}
-
-			SmallTextItem.SetColor( FLinearColor::White );
-
-			if (GShaderCompilingManager && GShaderCompilingManager->IsCompiling())
-			{
-				SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("Shaders Compiling (%u)"), GShaderCompilingManager->GetNumRemainingJobs()));
+				SmallTextItem.Text = LOCTEXT("GCPROFILINGWARNING", "PROFILING WITH GC VERIFY ON!");
 				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 				MessageY += FontSizeY;
 			}
 
-#if ENABLE_VISUAL_LOG
-			if (FVisualLogger::Get().IsRecording() || FVisualLogger::Get().IsRecordingOnServer() )
+			const bool bIsStatsFileActive = FCommandStatsFile::Get().IsStatFileActive();
+			if (bIsStatsFileActive)
 			{
-				int32 XSize;
-				int32 YSize;
-				FString String = FString::Printf(TEXT("VisLog recording active"));
-				StringSize(GEngine->GetSmallFont(), XSize, YSize, *String);
-
-				SmallTextItem.Position = FVector2D((int32)Viewport->GetSizeXY().X - XSize - 16, 36);
-				SmallTextItem.Text = FText::FromString(String);
-				SmallTextItem.SetColor(FLinearColor::Red);
-				SmallTextItem.EnableShadow(FLinearColor::Black);
-				Canvas->DrawItem(SmallTextItem);
 				SmallTextItem.SetColor(FLinearColor::White);
-			}
-#endif
-
-			/* @todo ue4 temporarily disabled
-			AWorldSettings* WorldSettings = World->GetWorldSettings();
-			if( !WorldSettings->IsNavigationRebuilt() )
-			{
-				DrawShadowedString(Canvas,
-					MessageX,
-					MessageY,
-					TEXT("PATHS NEED TO BE REBUILT"),
-					GEngine->GetSmallFont(),
-					FColor(128,128,128)
-					);
+				SmallTextItem.Text = FCommandStatsFile::Get().GetFileMetaDesc();
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 				MessageY += FontSizeY;
 			}
-			*/
+		}
+#endif // STATS
 
-			if (World->bIsLevelStreamingFrozen)
-			{
-				SmallTextItem.Text =  LOCTEXT("Levelstreamingfrozen", "Level streaming frozen..." );
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += FontSizeY;
-			}
-
-			if (GIsPrepareMapChangeBroken)
-			{
-				SmallTextItem.Text =  LOCTEXT("PrepareMapChangeError", "PrepareMapChange had a bad level name! Check the log (tagged with PREPAREMAPCHANGE) for info" );
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-				MessageY += FontSizeY;
-			}
-
-#if STATS
-			if (FThreadStats::IsCollectingData())
-			{
-				SmallTextItem.SetColor( FLinearColor::Red );
-				if (!GEngine->bDisableAILogging)
-				{				
-					SmallTextItem.Text =  LOCTEXT("AIPROFILINGWARNING", "PROFILING WITH AI LOGGING ON!" );
-					Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-					MessageY += FontSizeY;
-				}
-				if (GShouldVerifyGCAssumptions)
-				{
-					SmallTextItem.Text =  LOCTEXT("GCPROFILINGWARNING", "PROFILING WITH GC VERIFY ON!" );
-					Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );					
-					MessageY += FontSizeY;
-				}
-
-				const bool bIsStatsFileActive = FCommandStatsFile::Get().IsStatFileActive();
-				if (bIsStatsFileActive)
-				{
-					SmallTextItem.SetColor( FLinearColor::White );
-					SmallTextItem.Text = FCommandStatsFile::Get().GetFileMetaDesc();
-					Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
-					MessageY += FontSizeY;
-				}
-			}
-#endif
+		// Only output disable message if there actually were any
+		if (MessageY != MessageStartY)
+		{
+			SmallTextItem.SetColor(FLinearColor(.05f, .05f, .05f, .2f));
+			SmallTextItem.Text = FText::FromString(FString(TEXT("'DisableAllScreenMessages' to suppress")));
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX + 50, MessageY));
+			MessageY += 16;
 		}
 
-		int32 YPos = MessageY;
-
+#if !(UE_BUILD_TEST)
 		if (GEngine->bEnableOnScreenDebugMessagesDisplay && GEngine->bEnableOnScreenDebugMessages)
 		{
-			const int32 MaxYPos = CanvasObject ? CanvasObject->SizeY : 700;
-			if (GEngine->PriorityScreenMessages.Num() > 0)
-			{
-				FCanvasTextItem MessageTextItem( FVector2D( 0, 0 ), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
-				MessageTextItem.EnableShadow( FLinearColor::Black );
-				for (int32 PrioIndex = GEngine->PriorityScreenMessages.Num() - 1; PrioIndex >= 0; PrioIndex--)
-				{
-					FScreenMessageString& Message = GEngine->PriorityScreenMessages[PrioIndex];
-					if (YPos < MaxYPos)
-					{
-						MessageTextItem.Text =  FText::FromString( Message.ScreenMessage );
-						MessageTextItem.SetColor( Message.DisplayColor );
-						MessageTextItem.Scale = Message.TextScale;
-						Canvas->DrawItem( MessageTextItem, FVector2D( MessageX, YPos ) );
-						YPos += MessageTextItem.DrawnSize.Y * 1.15f;
-					}
-					Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
-					if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)
-					{
-						GEngine->PriorityScreenMessages.RemoveAt(PrioIndex);
-					}
-				}
-			}
-
-			if (GEngine->ScreenMessages.Num() > 0)
-			{
-				FCanvasTextItem MessageTextItem( FVector2D( 0, 0 ), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
-				MessageTextItem.EnableShadow( FLinearColor::Black );
-				for (TMap<int32, FScreenMessageString>::TIterator MsgIt(GEngine->ScreenMessages); MsgIt; ++MsgIt)
-				{
-					FScreenMessageString& Message = MsgIt.Value();
-					if (YPos < MaxYPos)
-					{
-						MessageTextItem.Text =  FText::FromString( Message.ScreenMessage );
-						MessageTextItem.SetColor( Message.DisplayColor );
-						MessageTextItem.Scale = Message.TextScale;
-						Canvas->DrawItem( MessageTextItem, FVector2D( MessageX, YPos ) );												
-						YPos += MessageTextItem.DrawnSize.Y * 1.15f;
-					}
-					Message.CurrentTimeDisplayed += World->GetDeltaSeconds();
-					if (Message.CurrentTimeDisplayed >= Message.TimeToDisplay)
-					{
-						MsgIt.RemoveCurrent();
-					}
-				}
-			}
+			MessageY = DrawOnscreenDebugMessages(World, Viewport, Canvas, CanvasObject, MessageX, MessageY);
 		}
+#endif // UE_BUILD_TEST
+
 	}
-#endif
+#endif // UE_BUILD_SHIPPING 
 
 	{
 		int32 X = (CanvasObject) ? CanvasObject->SizeX - FPSXOffset : Viewport->GetSizeXY().X - FPSXOffset; //??
@@ -7979,7 +8090,6 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 	}
 #endif
 }
-
 
 
 /**
@@ -8178,8 +8288,9 @@ UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, const bool bCh
 
 	check(Object);
 
+	// @note : GetWorldChecked is not thread safe, so we can't call if called by another thread
 	bool bSupported = true;
-	UWorld* World = (bChecked ? Object->GetWorldChecked(bSupported) : Object->GetWorld());
+	UWorld* World = ((bChecked && IsInGameThread() )? Object->GetWorldChecked(bSupported) : Object->GetWorld());
 	return (bSupported ? World : GWorld);
 }
 
@@ -9867,6 +9978,15 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			// need to create a PIE world by duplication instead
 			if (bPackageAlreadyLoaded)
 			{
+				if (WorldContext.PIEInstance == -1)
+				{
+					// Assume if we get here, that it's safe to just give a PIE instance so that we can duplicate the world 
+					//	If we won't duplicate the world, we'll refer to the existing world (most likely the editor version, and it can be modified under our feet, which is bad)
+					// So far, the only known way to get here is when we use the console "open" command while in a client PIE instance connected to non PIE server 
+					// (i.e. multi process PIE where client is in current editor process, and dedicated server was launched as separate process)
+					WorldContext.PIEInstance = 0;
+				}
+
 				NewWorld = CreatePIEWorldByDuplication(WorldContext, NewWorld, URL.Map);
 				// CreatePIEWorldByDuplication clears GIsPlayInEditorWorld so set it again
 				GIsPlayInEditorWorld = true;
@@ -10061,10 +10181,7 @@ void UEngine::BlockTillLevelStreamingCompleted(UWorld* InWorld)
 	check(InWorld);
 	
 	// Update streaming levels state using streaming volumes
-	if (InWorld->GetNetMode() != NM_Client)
-	{
-		InWorld->ProcessLevelStreamingVolumes();
-	}
+	InWorld->ProcessLevelStreamingVolumes();
 
 	if (InWorld->WorldComposition)
 	{
@@ -10821,10 +10938,7 @@ public:
 
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
-		for( int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++ )
-		{
-			Collector.AddReferencedObject( Levels[ LevelIndex ] ); 
-		}
+		Collector.AddReferencedObjects( Levels ); 
 	}
 };
 
@@ -11439,6 +11553,16 @@ bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel)
 // Helper function for changing system resolution via the r.setres console command
 void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWindowMode::Type InWindowMode)
 {
+	if (PLATFORM_LINUX)
+	{
+		// Fullscreen and WindowedFullscreen behave the same on Linux, see FLinuxWindow::ReshapeWindow()/SetWindowMode().
+		// Allowing Fullscreen window mode confuses higher level code (see UE-19996).
+		if (InWindowMode == EWindowMode::Fullscreen)
+		{
+			InWindowMode = EWindowMode::WindowedFullscreen;
+		}
+	}
+
 	FString WindowModeSuffix;
 	switch (InWindowMode)
 	{
@@ -12295,44 +12419,39 @@ void FAudioDevice::RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas*
 // SOUNDMIXES
 int32 UEngine::RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation)
 {
-#if 0
 	Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Mixes:"), GetSmallFont(), FColor::Green);
 	Y += 12;
 
+	bool bDisplayedSoundMixes = false;
+
 	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 	{
-		if (AudioDevice->SoundMixModifiers.Num() > 0)
-		{
-			USoundMix* CurrentEQMix = AudioDevice->Effects->GetCurrentEQMix();
+		const FAudioStats& AudioStats = AudioDevice->GetAudioStats();
 
-			for (TMap< USoundMix*, FSoundMixState >::TIterator It(AudioDevice->SoundMixModifiers); It; ++It)
+		if (!AudioStats.bStale)
+		{
+			if (AudioStats.StatSoundMixes.Num() > 0)
 			{
-				uint32 TotalRefCount = It.Value().ActiveRefCount + It.Value().PassiveRefCount;
-				FString TheString = FString::Printf(TEXT("%s - Fade Proportion: %1.2f - Total Ref Count: %i"), *It.Key()->GetName(), It.Value().InterpValue, TotalRefCount);
+				bDisplayedSoundMixes = true;
 
-				FColor TextColour = FColor::White;
-				if (It.Key() == CurrentEQMix)
+				for (const FAudioStats::FStatSoundMix& StatSoundMix : AudioStats.StatSoundMixes)
 				{
-					TextColour = FColor(255, 255, 0);
+					const FString TheString = FString::Printf(TEXT("%s - Fade Proportion: %1.2f - Total Ref Count: %i"), *StatSoundMix.MixName, StatSoundMix.InterpValue, StatSoundMix.RefCount);
+
+					const FColor& TextColour = (StatSoundMix.bIsCurrentEQ ? FColor::Yellow : FColor::White);
+
+					Canvas->DrawShadowedString(X + 12, Y, *TheString, GetSmallFont(), TextColour);
+					Y += 12;
 				}
-
-				Canvas->DrawShadowedString(X + 12, Y, *TheString, GetSmallFont(), TextColour);
-				Y += 12;
 			}
-
-		}
-		else
-		{
-			Canvas->DrawShadowedString(X + 12, Y, TEXT("None"), GetSmallFont(), FColor::White);
-			Y += 12;
 		}
 	}
-	else
+	
+	if (!bDisplayedSoundMixes)
 	{
 		Canvas->DrawShadowedString(X + 12, Y, TEXT("None"), GetSmallFont(), FColor::White);
 		Y += 12;
 	}
-#endif
 	return Y;
 }
 
@@ -12358,6 +12477,50 @@ void FAudioDevice::UpdateSoundShowFlags(const uint8 OldSoundShowFlags, const uin
 			UpdateRequestedStat(RequestedStatChange);
 		}
 	}
+}
+
+void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
+{
+	check(IsInGameThread());
+
+	uint8 SetStats = 0;
+	uint8 ClearStats = 0;
+
+	if (ViewportClient->IsStatEnabled(TEXT("SoundCues")))
+	{
+		SetStats |= ERequestedAudioStats::SoundCues;
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::SoundCues;
+	}
+
+	if (ViewportClient->IsStatEnabled(TEXT("SoundWaves")))
+	{
+		SetStats |= ERequestedAudioStats::SoundWaves;
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::SoundWaves;
+	}
+
+	if (ViewportClient->IsStatEnabled(TEXT("SoundMixes")))
+	{
+		SetStats |= ERequestedAudioStats::SoundMixes;
+	}
+	else
+	{
+		ClearStats |= ERequestedAudioStats::SoundMixes;
+	}
+
+	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.ResolveDesiredStats"), STAT_AudioResolveDesiredStats, STATGROUP_TaskGraphTasks);
+
+	FAudioDevice* AudioDevice = this;
+	FAudioThread::RunCommandOnAudioThread([AudioDevice, SetStats, ClearStats]()
+	{
+		AudioDevice->RequestedAudioStats |= SetStats;
+		AudioDevice->RequestedAudioStats &= ~ClearStats;
+	}, GET_STATID(STAT_AudioResolveDesiredStats));
 }
 
 void FAudioDevice::UpdateRequestedStat(const uint8 RequestedStat)
@@ -12387,6 +12550,15 @@ bool UEngine::ToggleStatSoundCues(UWorld* World, FCommonViewportClient* Viewport
 	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 	{
 		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundCues);
+	}
+	return true;
+}
+
+bool UEngine::ToggleStatSoundMixes(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
+{
+	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+	{
+		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundMixes);
 	}
 	return true;
 }
@@ -12482,9 +12654,16 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 
 		for (const FAudioStats::FStatSoundInfo& StatSoundInfo : AudioDevice->GetAudioStats().StatSoundInfos)
 		{
-			const FString TheString = FString::Printf(TEXT("%4i. %s %s"), ActiveSoundCount++, *StatSoundInfo.SoundName, *StatSoundInfo.SoundClassName.ToString());
-			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
-			Y += 12;
+			for (const FAudioStats::FStatWaveInstanceInfo& WaveInstanceInfo : StatSoundInfo.WaveInstanceInfos)
+			{
+				if (WaveInstanceInfo.ActualVolume >= 0.01f)
+				{
+					const FString TheString = FString::Printf(TEXT("%4i. %s %s"), ActiveSoundCount++, *StatSoundInfo.SoundName, *StatSoundInfo.SoundClassName.ToString());
+					Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
+					Y += 12;
+					break;
+				}
+			}
 		}
 	}
 

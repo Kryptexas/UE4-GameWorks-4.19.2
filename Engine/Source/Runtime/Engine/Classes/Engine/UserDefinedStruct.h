@@ -67,7 +67,7 @@ public:
 	// End of  UScriptStruct interface.
 
 #if WITH_EDITOR
-private:
+public:
 	// UStruct
 	virtual UProperty* CustomFindProperty(const FName Name) const override;
 #endif	// WITH_EDITOR

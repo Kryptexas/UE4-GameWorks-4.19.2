@@ -11,6 +11,7 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
+#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "XAudio2Effects.h"
 #include "Engine.h"
@@ -65,6 +66,11 @@ FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 
 	FMemory::Memzero( XAudio2Buffers, sizeof( XAudio2Buffers ) );
 	FMemory::Memzero( XAudio2BufferXWMA, sizeof( XAudio2BufferXWMA ) );
+
+	if (!InAudioDevice->bIsAudioDeviceHardwareInitialized)
+	{
+		bIsVirtual = true;
+}
 }
 
 /**
@@ -96,57 +102,24 @@ void FXAudio2SoundSource::FreeResources( void )
 		Source = nullptr;
 	}
 
-	bool bCanFreeNow = true;
-	
-	// If the async decoding tasks are not done, to avoid blocking, add them to a pending list and clean up later
-	FPendingAsyncTaskInfo PendingTaskInfo;
-
 	if (XAudio2Buffer && XAudio2Buffer->RealtimeAsyncHeaderParseTask)
 	{
 		check(bResourcesNeedFreeing);
 
-		if (XAudio2Buffer->RealtimeAsyncHeaderParseTask->IsDone())
-		{
-			delete XAudio2Buffer->RealtimeAsyncHeaderParseTask;
-		}
-		else
-		{
-			bCanFreeNow = false;
-			PendingTaskInfo.RealtimeAsyncHeaderParseTask = XAudio2Buffer->RealtimeAsyncHeaderParseTask;
-		}
-
+		XAudio2Buffer->RealtimeAsyncHeaderParseTask->EnsureCompletion();
+		delete XAudio2Buffer->RealtimeAsyncHeaderParseTask;
 		XAudio2Buffer->RealtimeAsyncHeaderParseTask = nullptr;
 	}
 
 	if (RealtimeAsyncTask)
 	{
-		check(bResourcesNeedFreeing);
-
-		if (RealtimeAsyncTask->IsDone())
-		{
-			delete RealtimeAsyncTask;
-		}
-		else
-		{
-			bCanFreeNow = false;
-			PendingTaskInfo.RealtimeAsyncTask = RealtimeAsyncTask;
-		}
-
+		RealtimeAsyncTask->EnsureCompletion();
+		delete RealtimeAsyncTask;
 		RealtimeAsyncTask = nullptr;
-	}
-
-	// If we're not able to free now
-	if (!bCanFreeNow)
-	{
 		check(bResourcesNeedFreeing);
-
-		// Add the info to the pending list of tasks to cleanup later
-		check(Buffer->ResourceID == 0);
-		PendingTaskInfo.Buffer = Buffer;
-
-		AudioDevice->DeviceProperties->AddPendingTaskToCleanup(PendingTaskInfo);
 	}
-	else if (bResourcesNeedFreeing && Buffer)
+
+	if (bResourcesNeedFreeing && Buffer)
 	{
 		check(Buffer->ResourceID == 0);
 		delete Buffer;
@@ -389,6 +362,12 @@ bool FXAudio2SoundSource::CreateSource( void )
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioSourceCreateTime );
 
+	// No need to create a hardware voice if we're virtual
+	if (bIsVirtual)
+	{
+		return true;
+	}
+
 	uint32 NumSends = 0;
 
 	// Create a source that goes to the spatialisation code and reverb effect
@@ -400,6 +379,7 @@ bool FXAudio2SoundSource::CreateSource( void )
 	{
 		Destinations[NumSends].pOutputVoice = Effects->EQPremasterVoice;
 	}
+
 	NumSends++;
 
 	if( bReverbApplied )
@@ -478,6 +458,14 @@ bool FXAudio2SoundSource::CreateSource( void )
 
 bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance)
 {
+	// If virtual only need wave instance data and no need to load source data
+	if (bIsVirtual)
+	{
+		WaveInstance = InWaveInstance;
+		bIsFinished = false;
+		return true;
+	}
+
 	// Reset so next instance will warn if algorithm changes inflight
 	bEditorWarnedChangedSpatialization = false;
 
@@ -531,11 +519,21 @@ bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance
 
 bool FXAudio2SoundSource::IsPreparedToInit()
 {
-	return (XAudio2Buffer && XAudio2Buffer->IsRealTimeSourceReady());
+	return bIsVirtual || (XAudio2Buffer && XAudio2Buffer->IsRealTimeSourceReady());
 }
 
 bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 {
+	if (bIsVirtual)
+	{
+		bInitialized = true;
+
+		// Setup our virtual duration/playback data
+		VirtualDuration = InWaveInstance->WaveData->GetDuration();
+		VirtualPlaybackTime = 0.0f;
+		return true;
+	}
+
 	check(XAudio2Buffer);
 	check(XAudio2Buffer->IsRealTimeSourceReady());
 	check(Buffer);
@@ -609,6 +607,8 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
  */
 void FXAudio2SoundSource::GetChannelVolumes(float ChannelVolumes[CHANNEL_MATRIX_COUNT], float AttenuatedVolume)
 {
+	check(!bIsVirtual);
+
 	if (AudioDevice->IsAudioDeviceMuted())
 	{
 		for( int32 i = 0; i < CHANNELOUT_COUNT; i++ )
@@ -1122,7 +1122,7 @@ void FXAudio2SoundSource::RouteToRadio(float ChannelVolumes[CHANNEL_MATRIX_COUNT
 
 			// Mono sounds map 1 channel to 6 speakers.
 			AudioDevice->ValidateAPICall( TEXT( "SetOutputMatrix (Mono radio)" ), 
-				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 1, SPEAKER_COUNT, OutputMatrix ) );
+				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 1, SPEAKER_COUNT, OutputMatrix) );
 		}
 		break;
 
@@ -1141,7 +1141,7 @@ void FXAudio2SoundSource::RouteToRadio(float ChannelVolumes[CHANNEL_MATRIX_COUNT
 
 			// Stereo sounds map 2 channels to 6 speakers.
 			AudioDevice->ValidateAPICall( TEXT( "SetOutputMatrix (Stereo radio)" ), 
-				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 2, SPEAKER_COUNT, OutputMatrix ) );
+				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 2, SPEAKER_COUNT, OutputMatrix) );
 		}
 		break;
 	}
@@ -1283,9 +1283,9 @@ FString FXAudio2SoundSource::Describe_Internal(bool bUseLongName, bool bIncludeC
 
 void FXAudio2SoundSource::Update()
 {
-	SCOPE_CYCLE_COUNTER( STAT_AudioUpdateSources );
+	SCOPE_CYCLE_COUNTER(STAT_AudioUpdateSources);
 
-	if (!WaveInstance || !Source || Paused || !bInitialized)
+	if (!WaveInstance || (!bIsVirtual && !Source) || Paused || !bInitialized)
 	{	
 		return;
 	}
@@ -1300,8 +1300,33 @@ void FXAudio2SoundSource::Update()
 
 	Pitch = FMath::Clamp<float>(Pitch, MIN_PITCH, MAX_PITCH);
 
+	// If this is a virtual source, then update it's duration and do any notification on completion based on duration
+	if (bIsVirtual)
+	{
+		// Get the game-thread update delta time
+		float DeviceDeltaTime = AudioDevice->GetUpdateDeltaTime();
+
+		// Scale the virtual playback time based on the pitch of the sound
+		VirtualPlaybackTime += DeviceDeltaTime * Pitch;
+
+		if (VirtualPlaybackTime >= VirtualDuration)
+		{
+			if (WaveInstance->LoopingMode == LOOP_Never)
+			{
+				bIsFinished = true;
+			}
+			else
+			{
+				// This will trigger a loop callback notification
+				bLoopCallback = true;
+			}
+		}
+	}
+	else
+	{
+		// Set the pitch on the xaudio2 source
 	AudioDevice->ValidateAPICall( TEXT( "SetFrequencyRatio" ), 
-		Source->SetFrequencyRatio( Pitch ) );
+		Source->SetFrequencyRatio( Pitch) );
 
 	// Set whether to bleed to the rear speakers
 	SetStereoBleed();
@@ -1332,7 +1357,9 @@ void FXAudio2SoundSource::Update()
 	// Initialize channel volumes
 	float ChannelVolumes[CHANNEL_MATRIX_COUNT] = { 0.0f };
 
-	GetChannelVolumes( ChannelVolumes, WaveInstance->GetActualVolume() );
+	const float Volume = FSoundSource::GetDebugVolume(WaveInstance->GetActualVolume());
+
+	GetChannelVolumes( ChannelVolumes, Volume );
 
 	// Send to the 5.1 channels
 	RouteDryToSpeakers( ChannelVolumes );
@@ -1349,6 +1376,7 @@ void FXAudio2SoundSource::Update()
 	{
 		RouteToRadio( ChannelVolumes );
 	}
+	}
 
 	FSoundSource::DrawDebugInfo();
 
@@ -1358,14 +1386,6 @@ void FXAudio2SoundSource::Play()
 {
 	if (WaveInstance)
 	{
-		if (!Playing)
-		{
-			if (Buffer->NumChannels >= SPEAKER_COUNT)
-			{
-				XMPHelper.CinematicAudioStarted();
-			}
-		}
-
 		// It's possible if Pause and Play are called while a sound is async initializing. In this case
 		// we'll just not actually play the source here. Instead we'll call play when the sound finishes loading.
 		if (Source && bInitialized)
@@ -1387,25 +1407,8 @@ void FXAudio2SoundSource::Stop()
 	
 	if( WaveInstance )
 	{	
-		if( Playing )
-		{
-			if( Buffer->NumChannels >= SPEAKER_COUNT )
-			{
-				XMPHelper.CinematicAudioStopped();
-			}
-		}
-
 		Paused = false;
 		Playing = false;
-
-		if (Source && Playing)
-		{
-			AudioDevice->ValidateAPICall(TEXT("FlushSourceBuffers"),
-										 Source->FlushSourceBuffers());
-
-			AudioDevice->ValidateAPICall(TEXT("Stop"),
-										 Source->Stop(0));
-		}
 
 		// Free resources
 		FreeResources();
@@ -1544,8 +1547,12 @@ bool FXAudio2SoundSource::IsFinished()
 		return(false);
 	}
 
-	if (WaveInstance && Source)
+
+	if (!WaveInstance || (!bIsVirtual && !Source))
 	{
+		return true;
+	}
+
 		if (bIsFinished)
 		{
 			WaveInstance->NotifyFinished();
@@ -1560,8 +1567,6 @@ bool FXAudio2SoundSource::IsFinished()
 
 		return false;
 	}
-	return true;
-}
 
 bool FXAudio2SoundSource::IsUsingHrtfSpatializer()
 {

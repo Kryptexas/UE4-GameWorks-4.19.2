@@ -48,6 +48,14 @@ private:
 	TSharedPtr<SAnimTimingPanel> AnimTimingPanel;
 
 	TWeakPtr<FPersona> WeakPersona;
+
+ 	/* 
+	 * Child Anim Montage: Child Anim Montage only can replace name of animations, and no other meaningful edits 
+	 * as it will derive every data from Parent. There might be some other data that will allow to be replaced, but for now, it is
+	 * not. 
+	 */	
+	bool bChildAnimMontage;
+
 protected:
 	//~ Begin SAnimEditorBase Interface
 	virtual TSharedRef<class SAnimationScrubPanel> ConstructAnimScrubPanel() override;
@@ -105,7 +113,7 @@ private:
 	EActiveTimerReturnType TriggerRebuildMontagePanel(double InCurrentTime, float InDeltaTime);
 
 	/** Rebuilds the montage panel */
-	void RebuildMontagePanel();
+	void RebuildMontagePanel(bool bNotifyAsset=true);
 
 protected:
 	virtual void InitDetailsViewEditorObject(class UEditorAnimBaseObj* EdObj) override;
@@ -141,8 +149,14 @@ public:
 	/** Delegete handlers for when the editor UI is changing the montage */
 	void			PreAnimUpdate();
 	void			PostAnimUpdate();
+	void			OnMontageModified();
+	void			ReplaceAnimationMapping(FName SlotName, int32 SegmentIdx, UAnimSequenceBase* OldSequenceBase, UAnimSequenceBase* NewSequenceBase);
+	bool			IsDiffererentFromParent(FName SlotName, int32 SegmentIdx, const FAnimSegment& Segment);
 
 	//~ Begin SAnimEditorBase Interface
 	virtual TSharedRef<SWidget> CreateDocumentAnchor() override;
 	//~ End SAnimEditorBase Interface
+
+	FReply	OnFindParentClassInContentBrowserClicked();
+	FReply	OnEditParentClassClicked();
 };

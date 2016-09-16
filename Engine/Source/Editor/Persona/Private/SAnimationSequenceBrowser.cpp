@@ -77,11 +77,7 @@ void SAnimationSequenceBrowser::OnRequestOpenAsset(const FAssetData& AssetData, 
 		{
 			if (UAnimationAsset* Asset = Cast<UAnimationAsset>(RawAsset))
 			{
-				if(!bFromHistory)
-				{
-					AddAssetToHistory(AssetData);
-				}
-				Persona->OpenNewDocumentTab(Asset);
+				Persona->OpenNewDocumentTab(Asset, !bFromHistory);
 				Persona->SetPreviewAnimationAsset(Asset);
 			}
 		}
@@ -726,6 +722,15 @@ void SAnimationSequenceBrowser::SelectAsset(UAnimationAsset * AnimAsset)
 
 			SyncToAssetsDelegate.Execute(AssetsToSelect);
 		}
+	}
+}
+
+void SAnimationSequenceBrowser::AddToHistory(UAnimationAsset * AnimAsset)
+{
+	if (AnimAsset)
+	{
+		FAssetData AssetData(AnimAsset);
+		AddAssetToHistory(AssetData);
 	}
 }
 

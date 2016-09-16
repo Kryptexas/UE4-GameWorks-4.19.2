@@ -87,7 +87,7 @@ public:
 
 	static FD3D11Texture2DSet* D3D11CreateTexture2DSet(
 		FD3D11DynamicRHI* InD3D11RHI,
-		FOvrSessionSharedParamRef OvrSession,
+		const FOvrSessionSharedPtr& OvrSession,
 		ovrTextureSwapChain InTextureSet,
 		const D3D11_TEXTURE2D_DESC& InDsDesc,
 		EPixelFormat InFormat,
@@ -110,7 +110,7 @@ protected:
 class FD3D11Texture2DSetProxy : public FTexture2DSetProxy
 {
 public:
-	FD3D11Texture2DSetProxy(FOvrSessionSharedParamRef InOvrSession, FTextureRHIRef InTexture, uint32 SrcSizeX, uint32 SrcSizeY, EPixelFormat SrcFormat, uint32 SrcNumMips)
+	FD3D11Texture2DSetProxy(const FOvrSessionSharedPtr& InOvrSession, FTextureRHIRef InTexture, uint32 SrcSizeX, uint32 SrcSizeY, EPixelFormat SrcFormat, uint32 SrcNumMips)
 		: FTexture2DSetProxy(InOvrSession, InTexture, SrcSizeX, SrcSizeY, SrcFormat, SrcNumMips) {}
 
 	virtual ovrTextureSwapChain GetSwapTextureSet() const override
@@ -201,7 +201,7 @@ void FD3D11Texture2DSet::ReleaseResources(ovrSession InOvrSession)
 
 FD3D11Texture2DSet* FD3D11Texture2DSet::D3D11CreateTexture2DSet(
 	FD3D11DynamicRHI* InD3D11RHI,
-	FOvrSessionSharedParamRef InOvrSession,
+	const FOvrSessionSharedPtr& InOvrSession,
 	ovrTextureSwapChain InTextureSet,
 	const D3D11_TEXTURE2D_DESC& InDsDesc,
 	EPixelFormat InFormat,
@@ -267,7 +267,7 @@ FD3D11Texture2DSet* FD3D11Texture2DSet::D3D11CreateTexture2DSet(
 				RTVDesc.Texture2D.MipSlice = MipIndex;
 
 				TRefCountPtr<ID3D11RenderTargetView> RenderTargetView;
-				VERIFYD3D11RESULT(InD3D11RHI->GetDevice()->CreateRenderTargetView(pD3DTexture, &RTVDesc, RenderTargetView.GetInitReference()));
+				VERIFYD3D11RESULT_EX(InD3D11RHI->GetDevice()->CreateRenderTargetView(pD3DTexture, &RTVDesc, RenderTargetView.GetInitReference()), InD3D11RHI->GetDevice());
 				RenderTargetViews.Add(RenderTargetView);
 			}
 		}
@@ -285,7 +285,7 @@ FD3D11Texture2DSet* FD3D11Texture2DSet::D3D11CreateTexture2DSet(
 			SRVDesc.Texture2D.MostDetailedMip = 0;
 			SRVDesc.Texture2D.MipLevels = InDsDesc.MipLevels;
 
-			VERIFYD3D11RESULT(InD3D11RHI->GetDevice()->CreateShaderResourceView(pD3DTexture, &SRVDesc, ShaderResourceView.GetInitReference()));
+			VERIFYD3D11RESULT_EX(InD3D11RHI->GetDevice()->CreateShaderResourceView(pD3DTexture, &SRVDesc, ShaderResourceView.GetInitReference()), InD3D11RHI->GetDevice());
 
 			check(IsValidRef(ShaderResourceView));
 		}
@@ -340,7 +340,7 @@ static FD3D11Texture2D* D3D11CreateTexture2DAlias(
 			RTVDesc.Texture2D.MipSlice = MipIndex;
 
 			TRefCountPtr<ID3D11RenderTargetView> RenderTargetView;
-			VERIFYD3D11RESULT(InD3D11RHI->GetDevice()->CreateRenderTargetView(InResource, &RTVDesc, RenderTargetView.GetInitReference()));
+			VERIFYD3D11RESULT_EX(InD3D11RHI->GetDevice()->CreateRenderTargetView(InResource, &RTVDesc, RenderTargetView.GetInitReference()), InD3D11RHI->GetDevice());
 			RenderTargetViews.Add(RenderTargetView);
 		}
 	}
@@ -358,7 +358,7 @@ static FD3D11Texture2D* D3D11CreateTexture2DAlias(
 		SRVDesc.Texture2D.MostDetailedMip = 0;
 		SRVDesc.Texture2D.MipLevels = InNumMips;
 
-		VERIFYD3D11RESULT(InD3D11RHI->GetDevice()->CreateShaderResourceView(InResource, &SRVDesc, ShaderResourceView.GetInitReference()));
+		VERIFYD3D11RESULT_EX(InD3D11RHI->GetDevice()->CreateShaderResourceView(InResource, &SRVDesc, ShaderResourceView.GetInitReference()), InD3D11RHI->GetDevice());
 
 		check(IsValidRef(ShaderResourceView));
 	}
@@ -438,7 +438,7 @@ void FOculusRiftPlugin::SetGraphicsAdapter(const ovrGraphicsLuid& luid)
 // FOculusRiftHMD::D3D11Bridge
 //-------------------------------------------------------------------------------------------------
 
-FOculusRiftHMD::D3D11Bridge::D3D11Bridge(FOvrSessionSharedParamRef InOvrSession)
+FOculusRiftHMD::D3D11Bridge::D3D11Bridge(const FOvrSessionSharedPtr& InOvrSession)
 	: FCustomPresent(InOvrSession)
 {
 }
@@ -553,7 +553,7 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 	}
 }
 
-FTexture2DSetProxyRef FOculusRiftHMD::D3D11Bridge::CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips, uint32 InCreateTexFlags)
+FTexture2DSetProxyPtr FOculusRiftHMD::D3D11Bridge::CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips, uint32 InCreateTexFlags)
 {
 	auto D3D11RHI = static_cast<FD3D11DynamicRHI*>(GDynamicRHI);
 	ID3D11Device* D3DDevice = D3D11RHI->GetDevice();

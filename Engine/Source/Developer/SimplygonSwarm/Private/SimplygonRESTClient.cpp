@@ -36,15 +36,10 @@ FSimplygonSwarmTask::FSimplygonSwarmTask(const FSwarmTaskkData& InTaskData)
 
 FSimplygonSwarmTask::~FSimplygonSwarmTask()
 {
-	UE_LOG(LogSimplygonRESTClient, Warning, TEXT("Destroying Task With Job Id %s"), *JobId);
-
 	//un register the delegates
 	OnAssetDownloaded().Unbind();
 	OnAssetUploaded().Unbind();
-
 }
-
-
 
 SimplygonRESTState FSimplygonSwarmTask::GetState() const
 {
@@ -757,8 +752,6 @@ void FSimplygonRESTClient::Stop()
 	StopTaskCounter.Increment();
 }
 
-
-
 void FSimplygonRESTClient::EnusureCompletion()
 {
 	Stop();
@@ -770,7 +763,6 @@ void FSimplygonRESTClient::AddSwarmTask(TSharedPtr<FSimplygonSwarmTask>& InTask)
 	//FScopeLock Lock(&CriticalSectionData);
 	InTask->SetHost(HostName);
 	PendingJobs.Enqueue(InTask);
-	
 }
 
 void FSimplygonRESTClient::Exit()

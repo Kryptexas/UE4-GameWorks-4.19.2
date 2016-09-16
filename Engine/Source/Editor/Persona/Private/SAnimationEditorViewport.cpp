@@ -557,12 +557,24 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo, (int32)EDisplayInfoMode::None));
 
-	//Bone weight
+	//Material overlay option
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowOverlayNone,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowOverlayNone),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingOverlayNone));
+
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ShowBoneWeight,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowBoneWeight),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowOverlayBoneWeight),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingBoneWeight));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingOverlayBoneWeight));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowMorphTargetVerts,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowOverlayMorphTargetVert),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingOverlayMorphTargetVerts));
 
 	// Show sockets
 	CommandList.MapAction( 
@@ -717,6 +729,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowGrid),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingGrid));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.AutoAlignFloorToMesh,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnToggleAutoAlignFloor),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsAutoAlignFloor));
 	
 	//Bind LOD preview menu commands
 	const FAnimViewportPlaybackCommands& ViewportPlaybackCommands = FAnimViewportPlaybackCommands::Get();
@@ -968,7 +986,26 @@ bool SAnimationEditorViewportTabBody::IsShowingMeshInfo(int32 DisplayInfoMode) c
 	return GetAnimationViewportClient()->GetShowMeshStats() == DisplayInfoMode;
 }
 
-void SAnimationEditorViewportTabBody::OnShowBoneWeight()
+void SAnimationEditorViewportTabBody::OnShowOverlayNone()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if (PreviewComponent)
+	{
+		PreviewComponent->SetShowBoneWeight(false);
+		PreviewComponent->SetShowMorphTargetVerts(false);
+		UpdateShowFlagForMeshEdges();
+		PreviewComponent->MarkRenderStateDirty();
+		RefreshViewport();
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingOverlayNone() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	return PreviewComponent != NULL && !PreviewComponent->bDrawBoneInfluences && !PreviewComponent->bDrawMorphTargetVerts;
+}
+
+void SAnimationEditorViewportTabBody::OnShowOverlayBoneWeight()
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 	if( PreviewComponent )
@@ -980,10 +1017,28 @@ void SAnimationEditorViewportTabBody::OnShowBoneWeight()
 	}
 }
 
-bool SAnimationEditorViewportTabBody::IsShowingBoneWeight() const
+bool SAnimationEditorViewportTabBody::IsShowingOverlayBoneWeight() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 	return PreviewComponent != NULL && PreviewComponent->bDrawBoneInfluences;
+}
+
+void SAnimationEditorViewportTabBody::OnShowOverlayMorphTargetVert()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if (PreviewComponent)
+	{
+		PreviewComponent->SetShowMorphTargetVerts(!PreviewComponent->bDrawMorphTargetVerts);
+		UpdateShowFlagForMeshEdges();
+		PreviewComponent->MarkRenderStateDirty();
+		RefreshViewport();
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingOverlayMorphTargetVerts() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	return PreviewComponent != NULL && PreviewComponent->bDrawMorphTargetVerts;
 }
 
 void SAnimationEditorViewportTabBody::OnSetBoneDrawMode(int32 BoneDrawMode)
@@ -1038,6 +1093,18 @@ bool SAnimationEditorViewportTabBody::IsShowingGrid() const
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 	return AnimViewportClient->IsShowingGrid();
+}
+
+void SAnimationEditorViewportTabBody::OnToggleAutoAlignFloor()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->OnToggleAutoAlignFloor();
+}
+
+bool SAnimationEditorViewportTabBody::IsAutoAlignFloor() const
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	return AnimViewportClient->IsAutoAlignFloor();
 }
 
 /** Function to set the current playback speed*/
@@ -1328,10 +1395,10 @@ float SAnimationEditorViewportTabBody::GetViewMaxInput() const
 
 void SAnimationEditorViewportTabBody::UpdateShowFlagForMeshEdges()
 {
-	bool bDrawBonesInfluence = false;
+	bool bUseOverlayMaterial = false;
 	if (UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent)
 	{
-		bDrawBonesInfluence = PreviewComponent->bDrawBoneInfluences;
+		bUseOverlayMaterial = PreviewComponent->bDrawBoneInfluences || PreviewComponent->bDrawMorphTargetVerts;
 	}
 
 	//@TODO: SNOWPOCALYPSE: broke UnlitWithMeshEdges
@@ -1340,7 +1407,7 @@ void SAnimationEditorViewportTabBody::UpdateShowFlagForMeshEdges()
 	bShowMeshEdgesViewMode = (CurrentViewMode == EAnimationEditorViewportMode::UnlitWithMeshEdges);
 #endif
 
-	LevelViewportClient->EngineShowFlags.SetMeshEdges(bDrawBonesInfluence || bShowMeshEdgesViewMode);
+	LevelViewportClient->EngineShowFlags.SetMeshEdges(bUseOverlayMaterial || bShowMeshEdgesViewMode);
 }
 
 bool SAnimationEditorViewportTabBody::IsLODModelSelected(int32 LODSelectionType) const

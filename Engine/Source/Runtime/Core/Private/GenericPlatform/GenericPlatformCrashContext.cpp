@@ -13,7 +13,12 @@
 const ANSICHAR* FGenericCrashContext::CrashContextRuntimeXMLNameA = "CrashContext.runtime-xml";
 const TCHAR* FGenericCrashContext::CrashContextRuntimeXMLNameW = TEXT( "CrashContext.runtime-xml" );
 
-const FString FGenericCrashContext::CrashContextExtension = TEXT( ".runtime-xml" );
+const ANSICHAR* FGenericCrashContext::CrashConfigFileNameA = "CrashReportClient.ini";
+const TCHAR* FGenericCrashContext::CrashConfigFileNameW = TEXT("CrashReportClient.ini");
+const FString FGenericCrashContext::CrashConfigExtension = TEXT(".ini");
+const FString FGenericCrashContext::ConfigSectionName = TEXT("CrashReportClient");
+
+const FString FGenericCrashContext::CrashContextExtension = TEXT(".runtime-xml");
 const FString FGenericCrashContext::RuntimePropertiesTag = TEXT( "RuntimeProperties" );
 const FString FGenericCrashContext::PlatformPropertiesTag = TEXT( "PlatformProperties" );
 const FString FGenericCrashContext::UE4MinidumpName = TEXT( "UE4Minidump.dmp" );
@@ -37,6 +42,7 @@ namespace NCachedCrashContextProperties
 	static FString ExecutableName;
 	static FString PlatformName;
 	static FString PlatformNameIni;
+	static FString DeploymentName;
 	static FString BaseDir;
 	static FString RootDir;
 	static FString EpicAccountId;
@@ -56,6 +62,7 @@ namespace NCachedCrashContextProperties
 	static FString UserActivityHint;
 	static FString GameSessionID;
 	static FString CommandLine;
+	static int32 LanguageLCID;
 	static FString CrashReportClientRichText;
 }
 
@@ -70,6 +77,7 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::ExecutableName = FPlatformProcess::ExecutableName();
 	NCachedCrashContextProperties::PlatformName = FPlatformProperties::PlatformName();
 	NCachedCrashContextProperties::PlatformNameIni = FPlatformProperties::IniPlatformName();
+	NCachedCrashContextProperties::DeploymentName = FApp::GetDeploymentName();
 	NCachedCrashContextProperties::BaseDir = FPlatformProcess::BaseDir();
 	NCachedCrashContextProperties::RootDir = FPlatformMisc::RootDir();
 	NCachedCrashContextProperties::EpicAccountId = FPlatformMisc::GetEpicAccountId();
@@ -83,11 +91,29 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::PrimaryGPUBrand = FPlatformMisc::GetPrimaryGPUBrand();
 	NCachedCrashContextProperties::UserName = FPlatformProcess::UserName();
 	NCachedCrashContextProperties::DefaultLocale = FPlatformMisc::GetDefaultLocale();
-	NCachedCrashContextProperties::CommandLine = FCommandLine::IsInitialized() ? FCommandLine::GetForLogging() : TEXT("");
+	NCachedCrashContextProperties::CommandLine = FCommandLine::IsInitialized() ? FCommandLine::GetOriginalForLogging() : TEXT(""); 
+
+	if (FInternationalization::IsAvailable())
+	{
+		NCachedCrashContextProperties::LanguageLCID = FInternationalization::Get().GetCurrentCulture()->GetLCID();
+	}
+	else
+	{
+		FCulturePtr DefaultCulture = FInternationalization::Get().GetCulture(TEXT("en"));
+		if (DefaultCulture.IsValid())
+		{
+			NCachedCrashContextProperties::LanguageLCID = DefaultCulture->GetLCID();
+		}
+		else
+		{
+			const int DefaultCultureLCID = 1033;
+			NCachedCrashContextProperties::LanguageLCID = DefaultCultureLCID;
+		}
+	}
 
 	// Using the -fullcrashdump parameter will cause full memory minidumps to be created for crashes
 	NCachedCrashContextProperties::CrashDumpMode = (int32)ECrashDumpMode::Default;
-	if (FCommandLine::IsInitialized())
+	if (FPlatformMisc::SupportsFullCrashDumps() && FCommandLine::IsInitialized())
 	{
 		const TCHAR* CmdLine = FCommandLine::Get();
 		if (FParse::Param( CmdLine, TEXT("fullcrashdumpalways") ))
@@ -126,7 +152,31 @@ void FGenericCrashContext::Initialize()
 		NCachedCrashContextProperties::CrashReportClientRichText = InParams.CrashReportClientMessageText;
 	});
 
+	FCoreDelegates::ConfigReadyForUse.AddStatic(FGenericCrashContext::InitializeFromConfig);
+
 	bIsInitialized = true;
+}
+
+void FGenericCrashContext::InitializeFromConfig()
+{
+#if !NO_LOGGING
+	const bool bForceGetSection = false;
+	const bool bConstSection = true;
+	FConfigSection* CRCConfigSection = GConfig->GetSectionPrivate(*ConfigSectionName, bForceGetSection, bConstSection, GEngineIni);
+
+	if (CRCConfigSection != nullptr)
+	{
+		// Create a config file and save to a temp location. This file will be copied to
+		// the crash folder for all crash reports create by this session.
+		FConfigFile CrashConfigFile;
+
+		FConfigSection CRCConfigSectionCopy(*CRCConfigSection);
+		CrashConfigFile.Add(ConfigSectionName, CRCConfigSectionCopy);
+
+		CrashConfigFile.Dirty = true;
+		CrashConfigFile.Write(GetCrashConfigFilePath());
+	}
+#endif
 }
 
 FGenericCrashContext::FGenericCrashContext()
@@ -167,27 +217,14 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "PlatformName" ), *NCachedCrashContextProperties::PlatformName );
 	AddCrashProperty( TEXT( "PlatformNameIni" ), *NCachedCrashContextProperties::PlatformNameIni );
 	AddCrashProperty( TEXT( "EngineMode" ), FPlatformMisc::GetEngineMode() );
-	AddCrashProperty( TEXT( "DeploymentName"), FApp::GetDeploymentName() );
+
+	AddCrashProperty( TEXT( "DeploymentName"), *NCachedCrashContextProperties::DeploymentName );
+
 	AddCrashProperty( TEXT( "EngineVersion" ), *FEngineVersion::Current().ToString() );
-	AddCrashProperty( TEXT("CommandLine"), *NCachedCrashContextProperties::CommandLine );
-	if (FInternationalization::IsAvailable())
-	{
-		AddCrashProperty(TEXT("LanguageLCID"), FInternationalization::Get().GetCurrentCulture()->GetLCID());
-	}
-	else
-	{
-		FCulturePtr DefaultCulture = FInternationalization::Get().GetCulture(TEXT("en"));
-		if (DefaultCulture.IsValid())
-		{
-			AddCrashProperty(TEXT("LanguageLCID"), DefaultCulture->GetLCID());
-		}
-		else
-		{
-			const int DefaultCultureLCID = 1033;
-			AddCrashProperty(TEXT("LanguageLCID"), DefaultCultureLCID);
-		}
-	}
+	AddCrashProperty( TEXT( "CommandLine" ), *NCachedCrashContextProperties::CommandLine );
+	AddCrashProperty( TEXT( "LanguageLCID" ), NCachedCrashContextProperties::LanguageLCID );
 	AddCrashProperty( TEXT( "AppDefaultLocale" ), *NCachedCrashContextProperties::DefaultLocale );
+	AddCrashProperty( TEXT( "BuildVersion" ), FApp::GetBuildVersion() );
 
 	AddCrashProperty( TEXT( "IsUE4Release" ), NCachedCrashContextProperties::bIsUE4Release );
 
@@ -335,7 +372,6 @@ void FGenericCrashContext::EndSection( const TCHAR* SectionName )
 	CommonBuffer += LINE_TERMINATOR;
 }
 
-
 FString FGenericCrashContext::EscapeXMLString( const FString& Text )
 {
 	return Text
@@ -373,6 +409,16 @@ const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIs
 	}
 
 	return *CrashTypeCrash;
+}
+
+const TCHAR* FGenericCrashContext::GetCrashConfigFilePath()
+{
+	static FString CrashConfigFilePath;
+	if (CrashConfigFilePath.IsEmpty())
+	{
+		CrashConfigFilePath = FPaths::Combine(*FPaths::GameLogDir(), *NCachedCrashContextProperties::CrashGUIDRoot, FGenericCrashContext::CrashConfigFileNameW);
+	}
+	return *CrashConfigFilePath;
 }
 
 FProgramCounterSymbolInfoEx::FProgramCounterSymbolInfoEx( FString InModuleName, FString InFunctionName, FString InFilename, uint32 InLineNumber, uint64 InSymbolDisplacement, uint64 InOffsetInModule, uint64 InProgramCounter ) :

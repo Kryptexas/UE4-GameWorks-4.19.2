@@ -114,7 +114,7 @@ public:
 	enum
 	{
 		NumSafeFrames = 3, /** Number of frames to leaves buffers before reclaiming/reusing */
-		NumPoolBucketSizes = 16, /** Number of pool buckets */
+		NumPoolBucketSizes = 17, /** Number of pool buckets */
 		NumToDrainPerFrame = 10, /** Max. number of resources to cull in a single frame */
 		CullAfterFramesNum = 30 /** Resources are culled if unused for more frames than this */
 	};

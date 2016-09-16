@@ -77,15 +77,17 @@ void UPaperGroupedSpriteComponent::OnUpdateTransform(EUpdateTransformFlags Updat
 	// Always send new transform to physics
 	if (bPhysicsStateCreated && !(EUpdateTransformFlags::SkipPhysicsUpdate & UpdateTransformFlags))
 	{
-		for (int i = 0; i < PerInstanceSpriteData.Num(); i++)
+		const bool bTeleport = TeleportEnumToFlag(Teleport);
+
+		for (int32 i = 0; i < PerInstanceSpriteData.Num(); i++)
 		{
 			const FTransform InstanceTransform(PerInstanceSpriteData[i].Transform);
-			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, true);
+			UpdateInstanceTransform(i, InstanceTransform * ComponentToWorld, /* bWorldSpace= */true, /* bMarkRenderStateDirty= */false, bTeleport);
 		}
 	}
 }
 
-bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty)
+bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty, bool bTeleport)
 {
 	if (!PerInstanceSpriteData.IsValidIndex(InstanceIndex))
 	{
@@ -108,7 +110,7 @@ bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, 
 		if (FBodyInstance* InstanceBodyInstance = InstanceBodies[InstanceIndex])
 		{
 			// Update transform.
-			InstanceBodyInstance->SetBodyTransform(WorldTransform, ETeleportType::None);
+			InstanceBodyInstance->SetBodyTransform(WorldTransform, TeleportFlagToEnum(bTeleport));
 			InstanceBodyInstance->UpdateBodyScale(WorldTransform.GetScale3D());
 		}
 	}
@@ -194,19 +196,19 @@ bool UPaperGroupedSpriteComponent::ShouldCreatePhysicsState() const
 	return IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
-void UPaperGroupedSpriteComponent::CreatePhysicsState()
+void UPaperGroupedSpriteComponent::OnCreatePhysicsState()
 {
 	check(InstanceBodies.Num() == 0);
 
 	// Create all the bodies.
 	CreateAllInstanceBodies();
 
-	USceneComponent::CreatePhysicsState();
+	USceneComponent::OnCreatePhysicsState();
 }
 
-void UPaperGroupedSpriteComponent::DestroyPhysicsState()
+void UPaperGroupedSpriteComponent::OnDestroyPhysicsState()
 {
-	USceneComponent::DestroyPhysicsState();
+	USceneComponent::OnDestroyPhysicsState();
 
 	// Release all physics representations
 	ClearAllInstanceBodies();
@@ -349,29 +351,12 @@ void UPaperGroupedSpriteComponent::CreateAllInstanceBodies()
 	check(InstanceBodies.Num() == 0);
 	InstanceBodies.SetNumUninitialized(NumBodies);
 
-	TArray<FTransform> Transforms;
-	Transforms.Reserve(NumBodies);
-
-	TArray<TWeakObjectPtr<UBodySetup>> BodySetups;
-	BodySetups.Reserve(NumBodies);
 
 	for (int32 InstanceIndex = 0; InstanceIndex < NumBodies; ++InstanceIndex)
 	{
 		const FSpriteInstanceData& InstanceData = PerInstanceSpriteData[InstanceIndex];
 		FBodyInstance* InstanceBody = InitInstanceBody(InstanceIndex, InstanceData, PhysScene);
 		InstanceBodies[InstanceIndex] = InstanceBody;
-		BodySetups.Add((InstanceBody != nullptr) ? InstanceBody->BodySetup : TWeakObjectPtr<UBodySetup>());
-	}
-
-	if (SceneProxy != nullptr)
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FSendPaperGroupBodySetups,
-			FGroupedSpriteSceneProxy*, InSceneProxy, (FGroupedSpriteSceneProxy*)SceneProxy,
-			TArray<TWeakObjectPtr<UBodySetup>>, InBodySetups, BodySetups,
-			{
-			InSceneProxy->SetAllBodySetups_RenderThread(InBodySetups);
-		});
 	}
 }
 

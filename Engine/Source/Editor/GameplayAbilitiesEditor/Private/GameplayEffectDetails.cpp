@@ -76,6 +76,20 @@ void FGameplayEffectDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout
 			DetailLayout.HideProperty(PeriodProperty);
 			DetailLayout.HideProperty(ExecutePeriodicEffectOnApplicationProperty);
 		}
+
+		// The modifier array needs to be told to specifically hide evaluation channel settings for instant effects, as they do not factor evaluation channels at all
+		// and instead only operate on base values. To that end, mark the instance metadata so that the customization for the evaluation channel is aware it has to hide
+		// (see FGameplayModEvaluationChannelSettingsDetails for handling)
+		TSharedPtr<IPropertyHandle> ModifierArrayProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UGameplayEffect, Modifiers), UGameplayEffect::StaticClass());
+		if (ModifierArrayProperty.IsValid() && ModifierArrayProperty->IsValidHandle())
+		{
+			FString ForceHideMetadataValue;
+			if (Obj->DurationPolicy == EGameplayEffectDurationType::Instant)
+			{
+				ForceHideMetadataValue = FGameplayModEvaluationChannelSettings::ForceHideMetadataEnabledValue;
+			}
+			ModifierArrayProperty->SetInstanceMetaData(FGameplayModEvaluationChannelSettings::ForceHideMetadataKey, ForceHideMetadataValue);
+		}
 	}
 }
 

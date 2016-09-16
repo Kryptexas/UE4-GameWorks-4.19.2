@@ -235,6 +235,13 @@ private:
 
 	// sync group index
 	int32 SyncGroupIndex;
+
+	/**
+	 * Optional position to force next update (ignoring the real delta time).
+	 * Used by external systems that are setting animation times directly. Will fire off notifies and other events provided the animation system is ticking.
+	 */
+	TOptional<float> ForcedNextPosition;
+
 public:
 	/** Montage to Montage Synchronization.
 	 *
@@ -260,6 +267,9 @@ public:
 	float GetDesiredWeight() const { return Blend.GetDesiredValue(); }
 	float GetBlendTime() const { return Blend.GetBlendTime(); }
 	int32 GetSyncGroupIndex() const { return SyncGroupIndex;  }
+
+	/** Set the weight */
+	void SetWeight(float InValue) { Blend.SetAlpha(InValue); }
 
 private:
 	/** Followers this Montage will synchronize */
@@ -321,6 +331,9 @@ public:
 	void SetPosition(float const & InPosition) { Position = InPosition; MarkerTickRecord.Reset(); }
 	void SetPlayRate(float const & InPlayRate) { PlayRate = InPlayRate; }
 
+	/** Set the position of this animation as part of the next animation update tick. Will trigger events and notifies for the delta time. */
+	void SetNextPositionWithEvents(float InPosition) { ForcedNextPosition = InPosition; }
+
 	/**
 	 * Montage Tick happens in 2 phases
 	 *
@@ -332,8 +345,8 @@ public:
 	 * to accumulate and update curve data/notifies/branching points
 	 */
 	void UpdateWeight(float DeltaTime);
-	/** Simulate is same as Advance, but without calling any events or touching any of the instance data. So it performs a simulation of advancing the timeline. 
-	 * @fixme laurent can we make Advance use that, so we don't have 2 code paths which risk getting out of sync? */
+	//~ @fixme laurent can we make Advance use that, so we don't have 2 code paths which risk getting out of sync?
+	/** Simulate is same as Advance, but without calling any events or touching any of the instance data. So it performs a simulation of advancing the timeline. */
 	bool SimulateAdvance(float DeltaTime, float& InOutPosition, struct FRootMotionMovementParams & OutRootMotionParams) const;
 	void Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams, bool bBlendRootMotion);
 
@@ -361,10 +374,21 @@ private:
 
 public:
 	/** static functions that are used by matinee functionality */
-	ENGINE_API static void SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping);
-	ENGINE_API static void PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
+	ENGINE_API static UAnimMontage* SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, float InPosition, bool bLooping);
+	ENGINE_API static UAnimMontage* PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
+private:
+	static UAnimMontage* InitializeMatineeControl(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequenceBase* InAnimSequence, bool bLooping);
 };
 
+/* 
+ * Any property you're adding to AnimMontage and parent class has to be considered for Child Asset
+ * 
+ * Child Asset is considered to be only asset mapping feature using everything else in the class
+ * For example, you can just use all parent's setting  for the montage, but only remap assets
+ * This isn't magic bullet unfortunately and it is consistent effort of keeping the data synced with parent
+ * If you add new property, please make sure those property has to be copied for children. 
+ * If it does, please add the copy in the function RefreshParentAssetData
+ */
 UCLASS(config=Engine, hidecategories=(UObject, Length), MinimalAPI, BlueprintType)
 class UAnimMontage : public UAnimCompositeBase
 {
@@ -427,7 +451,7 @@ class UAnimMontage : public UAnimCompositeBase
 
 #if WITH_EDITORONLY_DATA
 	/** Preview Base pose for additive BlendSpace **/
-	UPROPERTY(EditAnywhere, Category=AdditiveSettings)
+	UPROPERTY(EditAnywhere, Category = AdditiveSettings)
 	UAnimSequence* PreviewBasePose;
 #endif // WITH_EDITORONLY_DATA
 
@@ -461,7 +485,7 @@ public:
 
 #if WITH_EDITOR
 	//~ Begin UAnimationAsset Interface
-	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) override;
+	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive = true) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap) override;
 	//~ End UAnimationAsset Interface
 
@@ -583,6 +607,22 @@ private:
 	/** Sort CompositeSections in the order of StartPos */
 	void SortAnimCompositeSectionByPos();
 
+	/** Refresh Parent Asset Data to the child */
+	virtual void RefreshParentAssetData() override;
+	
+	/** Propagate the changes to children */
+	void PropagateChanges();
+
+private:
+	DECLARE_MULTICAST_DELEGATE(FOnMontageChangedMulticaster);
+	FOnMontageChangedMulticaster OnMontageChanged;
+
+public:
+	typedef FOnMontageChangedMulticaster::FDelegate FOnMontageChanged;
+
+	/** Registers a delegate to be called after notification has changed*/
+	ENGINE_API void RegisterOnMontageChanged(const FOnMontageChanged& Delegate);
+	ENGINE_API void UnregisterOnMontageChanged(void* Unregister);
 #endif	//WITH_EDITOR
 
 private:

@@ -1610,13 +1610,6 @@ void UMaterialInstance::CacheResourceShadersForRendering()
 {
 	check(IsInGameThread() || IsAsyncLoading());
 
-	// Fix-up the parent lighting guid if it has changed...
-	if (Parent && (Parent->GetLightingGuid() != ParentLightingGuid))
-	{
-		SetLightingGuid();
-		ParentLightingGuid = Parent ? Parent->GetLightingGuid() : FGuid(0,0,0,0);
-	}
-
 	UpdatePermutationAllocations();
 	UpdateOverridableBaseProperties();
 
@@ -2420,15 +2413,6 @@ void UMaterialInstance::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
-	if( PropertyThatChanged )
-	{
-		if(PropertyThatChanged->GetName()==TEXT("Parent"))
-		{
-			ParentLightingGuid = Parent ? Parent->GetLightingGuid() : FGuid(0,0,0,0);
-		}
-	}
-
 	// Ensure that the ReferencedTextureGuids array is up to date.
 	if (GIsEditor)
 	{
@@ -2487,12 +2471,6 @@ bool UMaterialInstance::UpdateLightmassTextureTracking()
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
-
-	if ( bTexturesHaveChanged )
-	{
-		// This will invalidate any cached Lightmass material exports
-		SetLightingGuid();
-	}
 
 	return bTexturesHaveChanged;
 }
@@ -2822,6 +2800,22 @@ const FStaticParameterSet& UMaterialInstance::GetStaticParameters() const
 {
 	return StaticParameters;
 }
+
+void UMaterialInstance::GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGuids) const
+{
+#if WITH_EDITORONLY_DATA
+	if (bIncludeTextures)
+	{
+		OutGuids.Append(ReferencedTextureGuids);
+	}
+	if (Parent)
+	{
+		Parent->GetLightingGuidChain(bIncludeTextures, OutGuids);
+	}
+	Super::GetLightingGuidChain(bIncludeTextures, OutGuids);
+#endif
+}
+
 
 UMaterialInstance::FCustomStaticParametersGetterDelegate UMaterialInstance::CustomStaticParametersGetters;
 TArray<UMaterialInstance::FCustomParameterSetUpdaterDelegate> UMaterialInstance::CustomParameterSetUpdaters;

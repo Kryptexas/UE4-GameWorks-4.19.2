@@ -688,7 +688,7 @@ partial class GUBP
                         }
                         foreach (var Plat in Platforms)
                         {
-                            if (!Platform.Platforms[HostPlatform].CanHostPlatform(Plat))
+                            if (!Platform.GetPlatform(HostPlatform).CanHostPlatform(Plat))
                             {
                                 throw new AutomationException("Project {0} asked for platform {1} with host {2}, but the host platform cannot build that platform.", Branch.BaseEngineProject.GameName, Plat.ToString(), HostPlatform.ToString());
                             }
@@ -744,7 +744,7 @@ partial class GUBP
                         var Platforms = Target.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
                         foreach (var Plat in Platforms)
                         {
-                            if (!Platform.Platforms[HostPlatform].CanHostPlatform(Plat))
+                            if (!Platform.GetPlatform(HostPlatform).CanHostPlatform(Plat))
                             {
                                 throw new AutomationException("Project {0} asked for platform {1} with host {2}, but the host platform cannot build that platform.", Branch.BaseEngineProject.GameName, Plat.ToString(), HostPlatform.ToString());
                             }
@@ -755,7 +755,7 @@ partial class GUBP
 
                             if (ActivePlatforms.Contains(Plat))
                             {
-                                string CookedPlatform = Platform.Platforms[Plat].GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client, "");								
+                                string CookedPlatform = Platform.GetPlatform(Plat).GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client);								
                                 if (!BranchConfig.HasNode(CookNode.StaticGetFullName(HostPlatform, Branch.BaseEngineProject, CookedPlatform)))
                                 {
 									GameCookNodes.Add(BranchConfig.AddNode(new CookNode(BranchConfig, HostPlatform, Branch.BaseEngineProject, Plat, CookedPlatform)));
@@ -976,7 +976,7 @@ partial class GUBP
 						var AllPlatforms = Platforms.Union(AdditionalPlatforms);
 						foreach (var Plat in AllPlatforms)
                         {
-                            if (!Platform.Platforms[HostPlatform].CanHostPlatform(Plat))
+                            if (!Platform.GetPlatform(HostPlatform).CanHostPlatform(Plat))
                             {
                                 throw new AutomationException("Project {0} asked for platform {1} with host {2}, but the host platform cannot build that platform.", CodeProj.GameName, Plat.ToString(), HostPlatform.ToString());
                             }
@@ -1012,7 +1012,7 @@ partial class GUBP
 								var FormalBuildConfigs = Target.Rules.GUBP_GetConfigsForFormalBuilds_MonolithicOnly(HostPlatform);
 								if (!AdditionalPlatforms.Contains(Plat) && (BranchOptions.ProjectsToCook.Contains(CodeProj.GameName) || BranchOptions.ProjectsToCook.Count == 0))
 								{
-									string CookedPlatform = Platform.Platforms[Plat].GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client, "");
+									string CookedPlatform = Platform.GetPlatform(Plat).GetCookPlatform(Kind == TargetRules.TargetType.Server, Kind == TargetRules.TargetType.Client);
 									if (Target.Rules.GUBP_AlternateCookPlatform(HostPlatform, CookedPlatform) != "")
 									{
 										CookedPlatform = Target.Rules.GUBP_AlternateCookPlatform(HostPlatform, CookedPlatform);

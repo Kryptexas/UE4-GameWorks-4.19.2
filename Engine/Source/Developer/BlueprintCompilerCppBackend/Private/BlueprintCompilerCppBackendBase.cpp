@@ -281,20 +281,30 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 
 	EmitStructProperties(EmitterContext, SourceClass);
 
+	TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies;
 	// Emit function declarations and definitions (writes to header and body simultaneously)
 	if (!bIsInterface)
 	{
+		UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(EmitterContext.GetCurrentlyGeneratedClass());
+		UBlueprintGeneratedClass* ParentBPGC = Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass());
+		ParentDependencies = TSharedPtr<FGatherConvertedClassDependencies>(ParentBPGC ? new FGatherConvertedClassDependencies(ParentBPGC) : nullptr);
+
+		//FEmitDefaultValueHelper::FillCommonUsedAssets(EmitterContext, ParentDependencies);
+
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("%s(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());"), *CppClassName));
 		EmitterContext.Header.AddLine(TEXT("virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;"));
-		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
 		EmitterContext.Header.AddLine(TEXT("static void __CustomDynamicClassInitialization(UDynamicClass* InDynamicClass);"));
-		EmitterContext.Header.AddLine(TEXT("static void __CustomDynamicClassInitializationUsedAssets(UDynamicClass* InDynamicClass);"));
+
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependencies_CommonAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+		EmitterContext.Header.AddLine(TEXT("static void __StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
 		if (bHasStaticSearchableValues)
 		{
 			FBackendHelperStaticSearchableValues::EmitFunctionDeclaration(EmitterContext);
 			FBackendHelperStaticSearchableValues::EmitFunctionDefinition(EmitterContext);
 		}
 		FEmitDefaultValueHelper::GenerateConstructor(EmitterContext);
+		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(EmitterContext, ParentDependencies);
 	}
 
 	// Create the state map
@@ -323,9 +333,10 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 
 	if (!bIsInterface)
 	{
-		// must be called after GenerateConstructor
+		// must be called after GenerateConstructor and other functions implementation
 		// now we knows which assets are directly used in source code
-		FEmitDefaultValueHelper::GenerateCustomDynamicClassInitializationUsedAssets(EmitterContext);
+		FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(EmitterContext, ParentDependencies);
+		FEmitDefaultValueHelper::AddRegisterHelper(EmitterContext);
 	}
 
 	FEmitHelper::EmitLifetimeReplicatedPropsImpl(EmitterContext);
@@ -340,14 +351,63 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	return EmitterContext.Header.Result;
 }
 
-void FBlueprintCompilerCppBackendBase::DeclareLocalVariables(FEmitterLocalContext& EmitterContext, TArray<UProperty*>& LocalVariables)
+static void PropertiesUsedByStatement(FBlueprintCompiledStatement* Statement, TSet<UProperty*>& Properties)
 {
+	if (Statement)
+	{
+		for (FBPTerminal* Terminal : Statement->RHS)
+		{
+			if (Terminal)
+			{
+				Properties.Add(Terminal->AssociatedVarProperty);
+				PropertiesUsedByStatement(Terminal->InlineGeneratedParameter, Properties);
+			}
+		}
+
+		if (Statement->FunctionContext)
+		{
+			Properties.Add(Statement->FunctionContext->AssociatedVarProperty);
+			PropertiesUsedByStatement(Statement->FunctionContext->InlineGeneratedParameter, Properties);
+		}
+
+		if (Statement->LHS)
+		{
+			Properties.Add(Statement->LHS->AssociatedVarProperty);
+			PropertiesUsedByStatement(Statement->LHS->InlineGeneratedParameter, Properties);
+		}
+	}
+}
+
+/** Emits local variable declarations for a function */
+static void DeclareLocalVariables(FEmitterLocalContext& EmitterContext, TArray<UProperty*>& LocalVariables, FKismetFunctionContext& FunctionContext, int32 ExecutionGroup)
+{
+	const bool bUseExecutionGroup = ExecutionGroup >= 0;
+	TSet<UProperty*> PropertiesUsedByCurrentExecutionGroup;
+	if (bUseExecutionGroup)
+	{
+		for (UEdGraphNode* Node : FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup])
+		{
+			TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(Node);
+			if (StatementList)
+			{
+				for (FBlueprintCompiledStatement* Statement : *StatementList)
+				{
+					PropertiesUsedByStatement(Statement, PropertiesUsedByCurrentExecutionGroup);
+				}
+			}
+		}
+	}
+
 	for (int32 i = 0; i < LocalVariables.Num(); ++i)
 	{
 		UProperty* LocalVariable = LocalVariables[i];
-
-		const FString CppDeclaration = EmitterContext.ExportCppDeclaration(LocalVariable, EExportedDeclaration::Local, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
-		EmitterContext.AddLine(CppDeclaration + TEXT("{};"));
+		if (!bUseExecutionGroup || PropertiesUsedByCurrentExecutionGroup.Contains(LocalVariable))
+		{
+			const FString CppDeclaration = EmitterContext.ExportCppDeclaration(LocalVariable, EExportedDeclaration::Local, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+			UStructProperty* StructProperty = Cast<UStructProperty>(LocalVariable);
+			const TCHAR* EmptyDefaultConstructor = FEmitHelper::EmptyDefaultConstructor(StructProperty ? StructProperty->Struct : nullptr);
+			EmitterContext.AddLine(CppDeclaration + EmptyDefaultConstructor + TEXT(";"));
+		}
 	}
 }
 
@@ -430,16 +490,18 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 			{
 				if (FEmitHelper::PropertyForConstCast(Property))
 				{
-					const uint32 ExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
-					const FString ActualArg = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, false);
-					const FString NoConstType = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, true);
+					const uint32 ExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef;
+					const FString NoConstNoRefType = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, true);
 					const FString TypeDefName = FString(TEXT("T")) + EmitterContext.GenerateUniqueLocalName();
-					EmitterContext.AddLine(FString::Printf(TEXT("typedef %s %s;"), *NoConstType, *TypeDefName));
-					EmitterContext.AddLine(FString::Printf(TEXT("%s = *const_cast<%s *>(&%s__const);"), *ActualArg, *TypeDefName, *FEmitHelper::GetCppName(Property)));
+					EmitterContext.AddLine(FString::Printf(TEXT("typedef %s %s;"), *NoConstNoRefType, *TypeDefName));
+
+					const FString ParamName = FEmitHelper::GetCppName(Property);
+					EmitterContext.AddLine(FString::Printf(TEXT("%s& %s = *const_cast<%s *>(&%s__const);"), *TypeDefName, *ParamName, *TypeDefName, *ParamName));
 				}
 			}
-			DeclareLocalVariables(EmitterContext, LocalVariables);
-			ConstructFunctionBody(EmitterContext, FunctionContext, bManyExecutionGroups ? ExecutionGroupIndex : -1);
+			const int32 ExecutionGroup = bManyExecutionGroups ? ExecutionGroupIndex : -1;
+			DeclareLocalVariables(EmitterContext, LocalVariables, FunctionContext, ExecutionGroup);
+			ConstructFunctionBody(EmitterContext, FunctionContext, ExecutionGroup);
 		}
 
 		if (UProperty* ReturnValue = FunctionContext.Function->GetReturnProperty())

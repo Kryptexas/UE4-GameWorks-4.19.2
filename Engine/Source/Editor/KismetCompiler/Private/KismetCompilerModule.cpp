@@ -101,6 +101,20 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 			}
 		}
 
+		// we need to add instrumentation to any inherited blueprints.
+		if (Reinstancer.IsValid() && CompileOptions.IsInstrumentationActive())
+		{
+			TArray<UBlueprint*> InheritedBlueprints;
+			Blueprint->GetBlueprintHierarchyFromClass(Cast<UClass>(Blueprint->GeneratedClass), InheritedBlueprints);
+			for (auto CurrentBP : InheritedBlueprints)
+			{
+				if (CurrentBP != Blueprint)
+				{
+					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, true);
+				}
+			}
+		}
+
 		if (bRecompileDependencies)
 		{
 			Reinstancer->BlueprintWasRecompiled(Blueprint, CompileOptions.CompileType == EKismetCompileType::BytecodeOnly);

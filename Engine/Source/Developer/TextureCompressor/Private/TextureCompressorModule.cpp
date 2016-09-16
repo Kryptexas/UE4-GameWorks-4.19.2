@@ -590,7 +590,7 @@ static void GenerateTopMip(const FImage& SrcImage, FImage& DestImage, const FTex
 	// /2 as input resolution is same as output resolution and the settings assumed the output is half resolution
 	KernelDownsample.BuildSeparatableGaussWithSharpen( FMath::Max( 2u, Settings.SharpenMipKernelSize / 2 ), Settings.MipSharpening );
 	
-	DestImage.Init(SrcImage.SizeX, SrcImage.SizeY, SrcImage.Format, SrcImage.GammaSpace);
+	DestImage.Init(SrcImage.SizeX, SrcImage.SizeY, SrcImage.NumSlices, SrcImage.Format, SrcImage.GammaSpace);
 
 	for (int32 SliceIndex = 0; SliceIndex < SrcImage.NumSlices; ++SliceIndex)
 	{

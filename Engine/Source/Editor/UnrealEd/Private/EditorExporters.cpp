@@ -921,10 +921,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 					UMaterialInterface* Material = 0;
 
 					// Get the material for this triangle by first looking at the material overrides array and if that is NULL by looking at the material array in the original static mesh
-					if (StaticMeshComponent)
-					{
-						Material = StaticMeshComponent->GetMaterial(Section.MaterialIndex);
-					}
+					Material = StaticMeshComponent->GetMaterial(Section.MaterialIndex);
 
 					// cache the set of needed materials if desired
 					if (Materials && Material)
@@ -1453,7 +1450,9 @@ bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 			Exporter->ExportBSP( World->GetModel(), true );
 		}
 
-		Exporter->ExportLevelMesh( Level, NULL, bSelectedOnly );
+		INodeNameAdapter NodeNameAdapter;
+
+		Exporter->ExportLevelMesh( Level, bSelectedOnly, NodeNameAdapter );
 
 		// Export streaming levels and actors
 		for( int32 CurLevelIndex = 0; CurLevelIndex < World->GetNumLevels(); ++CurLevelIndex )
@@ -1461,7 +1460,7 @@ bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 			ULevel* CurLevel = World->GetLevel( CurLevelIndex );
 			if( CurLevel != NULL && CurLevel != Level )
 			{
-				Exporter->ExportLevelMesh( CurLevel, NULL, bSelectedOnly );
+				Exporter->ExportLevelMesh( CurLevel, bSelectedOnly, NodeNameAdapter );
 			}
 		}
 	}

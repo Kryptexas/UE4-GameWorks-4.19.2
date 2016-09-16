@@ -62,10 +62,7 @@ void FBlueprintDragDropMenuItem::AddReferencedObjects(FReferenceCollector& Colle
 	
 	// these don't get saved to disk, but we want to make sure the objects don't
 	// get GC'd while the action array is around
-	for (UBlueprintNodeSpawner const* Action : ActionSet)
-	{
-		Collector.AddReferencedObject(Action);
-	}
+	Collector.AddReferencedObjects(ActionSet);
 }
 
 //------------------------------------------------------------------------------

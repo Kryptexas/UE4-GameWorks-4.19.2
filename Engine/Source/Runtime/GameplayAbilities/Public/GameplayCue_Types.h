@@ -2,13 +2,13 @@
 
 #pragma once
 
-class UGameplayCueSet;
-class AGameplayCueNotify_Actor;
-
 #include "GameplayTags.h"
 #include "GameplayEffect.h"
 #include "ObjectKey.h"
 #include "GameplayCue_Types.generated.h"
+
+class UGameplayCueSet;
+class AGameplayCueNotify_Actor;
 
 UENUM()
 enum class EGameplayCuePayloadType : uint8

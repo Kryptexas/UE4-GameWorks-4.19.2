@@ -949,8 +949,6 @@ bool FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchiv
 	if (!File)
 	{
 		ServerTimeStamp = FDateTime::MinValue(); // if this was a directory, this will make sure it is not confused with a zero byte file
-
-		UE_LOG(LogFileServer, Warning, TEXT("Request for missing file %s."), *Filename );
 	}
 	else
 	{

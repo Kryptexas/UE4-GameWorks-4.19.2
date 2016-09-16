@@ -7,6 +7,7 @@
 #pragma once
 
 #include "AutoPointer.h"
+#include "UObjectArray.h"
 
 /***
  * 

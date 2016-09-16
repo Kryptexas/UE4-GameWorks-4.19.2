@@ -2388,11 +2388,11 @@ void SAssetView::OnAssetLoaded(UObject* Asset)
 	}
 }
 
-void SAssetView::OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent)
+void SAssetView::OnObjectPropertyChanged(UObject* Object, FPropertyChangedEvent& PropertyChangedEvent)
 {
-	if ( Asset != NULL )
+	if (Object != nullptr && Object->IsAsset())
 	{
-		RecentlyLoadedOrChangedAssets.Add( FName(*Asset->GetPathName()), Asset );
+		RecentlyLoadedOrChangedAssets.Add( FName(*Object->GetPathName()), Object);
 	}
 }
 
@@ -4002,7 +4002,7 @@ EVisibility SAssetView::IsAssetShowWarningTextVisible() const
 
 FText SAssetView::GetAssetShowWarningText() const
 {
-	if (AssetShowWarningText.IsBound())
+	if (AssetShowWarningText.IsSet())
 	{
 		return AssetShowWarningText.Get();
 	}

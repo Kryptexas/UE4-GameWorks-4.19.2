@@ -5,11 +5,7 @@
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
-#if PLATFORM_WINRT
-#include "WinRT/D3D11RHIPrivateUtil.h"
-#else
 #include "Windows/D3D11RHIPrivateUtil.h"
-#endif
 #include "StaticBoundShaderState.h"
 #include "GlobalShader.h"
 #include "OneColorShader.h"
@@ -168,6 +164,11 @@ void FD3D11DynamicRHI::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,uint32 
 		StateCache.SetViewport(Viewport);
 		SetScissorRectIfRequiredWhenSettingViewport(MinX, MinY, MaxX, MaxY);
 	}
+}
+
+void FD3D11DynamicRHI::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
+{
+	UE_LOG(LogD3D11RHI, Fatal, TEXT("D3D11 RHI does not support set stereo viewport!"));
 }
 
 void FD3D11DynamicRHI::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 MinY,uint32 MaxX,uint32 MaxY)
