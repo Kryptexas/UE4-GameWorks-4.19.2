@@ -312,6 +312,7 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 	, bDuplicatingReadOnly(false)
 	, bCachedDependenciesUpToDate(false)
+	, bHasAnyNonReducibleFunction(EIsBPNonReducible::Unkown)
 #endif
 {
 }

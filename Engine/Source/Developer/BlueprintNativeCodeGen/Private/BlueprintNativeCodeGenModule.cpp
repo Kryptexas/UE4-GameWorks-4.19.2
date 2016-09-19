@@ -310,11 +310,27 @@ void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 	
 	if (NativizationSummary->InaccessiblePropertyStat.Num())
 	{
-		UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Nativization Summary - Inaccessible Properties:"));
+		UE_LOG(LogBlueprintCodeGen, Display, TEXT("Nativization Summary - Inaccessible Properties:"));
 		NativizationSummary->InaccessiblePropertyStat.ValueSort(TGreater<int32>());
 		for (auto& Iter : NativizationSummary->InaccessiblePropertyStat)
 		{
-			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("\t %s \t - %d"), *Iter.Key.ToString(), Iter.Value);
+			UE_LOG(LogBlueprintCodeGen, Display, TEXT("\t %s \t - %d"), *Iter.Key.ToString(), Iter.Value);
+		}
+	}
+	{
+		UE_LOG(LogBlueprintCodeGen, Display, TEXT("Nativization Summary - AnimBP:"));
+		UE_LOG(LogBlueprintCodeGen, Display, TEXT("Name, Children, Non-empty Functions (Empty Functions), Variables, FunctionUsage, VariableUsage"));
+		for (auto& Iter : NativizationSummary->AnimBlueprintStat)
+		{
+			UE_LOG(LogBlueprintCodeGen, Display
+				, TEXT("%s, %d, %d (%d), %d, %d, %d")
+				, *Iter.Key.ToString()
+				, Iter.Value.Children
+				, Iter.Value.Functions - Iter.Value.ReducibleFunctions
+				, Iter.Value.ReducibleFunctions
+				, Iter.Value.Variables
+				, Iter.Value.FunctionUsage
+				, Iter.Value.VariableUsage);
 		}
 	}
 }
@@ -411,7 +427,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 		ConversionRecord.GeneratedHeaderPath.Empty();
 	}
 
-	if (ensure(bSuccess))
+	if (bSuccess)
 	{
 		GetManifest(PlatformName).GatherModuleDependencies(ForConversion->GetOutermost());
 	}
@@ -654,6 +670,20 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 	{
 		if (UBlueprint* Blueprint = Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy))
 		{
+			static const FBoolConfigValueHelper NativizeAnimBPOnlyWhenNonReducibleFuncitons(TEXT("BlueprintNativizationSettings"), TEXT("bNativizeAnimBPOnlyWhenNonReducibleFuncitons"));
+			if (NativizeAnimBPOnlyWhenNonReducibleFuncitons)
+			{
+				if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
+				{
+					ensure(AnimBlueprint->bHasBeenRegenerated);
+					if (AnimBlueprint->bHasAnyNonReducibleFunction == UBlueprint::EIsBPNonReducible::No)
+					{
+						UE_LOG(LogBlueprintCodeGen, Log, TEXT("AnimBP %s without non-reducible functions is excluded from nativization"), *GetPathNameSafe(Blueprint));
+						Result = EReplacementResult::GenerateStub;
+					}
+				}
+			}
+
 			const EBlueprintType UnconvertableBlueprintTypes[] = {
 				//BPTYPE_Const,		// WTF is a "const" Blueprint?
 				BPTYPE_MacroLibrary,

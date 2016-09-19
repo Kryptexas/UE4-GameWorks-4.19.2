@@ -387,6 +387,13 @@ void USetProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 	Super::AddReferencedObjects(This, Collector);
 }
 
+FString USetProperty::GetCPPMacroType(FString& ExtendedTypeText) const
+{
+	checkSlow(ElementProp);
+	ExtendedTypeText = FString::Printf(TEXT("%s"), *ElementProp->GetCPPType());
+	return TEXT("TSET");
+}
+
 FString USetProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
 {
 	checkSlow(ElementProp);
@@ -402,11 +409,10 @@ FString USetProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlag
 	return TEXT("TSet");
 }
 
-FString USetProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
+FString USetProperty::GetCPPTypeForwardDeclaration() const
 {
 	checkSlow(ElementProp);
-	ExtendedTypeText = FString::Printf(TEXT("%s"), *ElementProp->GetCPPType());
-	return TEXT("TSET");
+	return ElementProp->GetCPPTypeForwardDeclaration();
 }
 
 void USetProperty::ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const

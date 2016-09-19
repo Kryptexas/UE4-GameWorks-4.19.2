@@ -88,6 +88,11 @@
 	#error UBT should always define WITH_PLUGIN_SUPPORT to be 0 or 1
 #endif
 
+ /** Enable perf counters */
+#ifndef WITH_PERFCOUNTERS
+	#define WITH_PERFCOUNTERS		0
+#endif
+
 /**
  * Unreal Header Tool requires extra data stored in the structure of a few core files. This enables some ifdef hacks to make this work. 
  * Set via UBT, do not modify directly

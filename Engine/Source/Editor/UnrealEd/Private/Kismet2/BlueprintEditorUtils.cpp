@@ -8402,6 +8402,14 @@ const FSlateBrush* FBlueprintEditorUtils::GetIconFromPin( const FEdGraphPinType&
 	{
 		IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon"));
 	}
+	else if (PinType.bIsMap && PinType.PinCategory != K2Schema->PC_Exec)
+	{
+		IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.MapKeyTypeIcon"));
+	}
+	else if (PinType.bIsSet && PinType.PinCategory != K2Schema->PC_Exec)
+	{
+		IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.SetTypeIcon"));
+	}
 	else if( PinSubObject )
 	{
 		UClass* VarClass = FindObject<UClass>(ANY_PACKAGE, *PinSubObject->GetName());
@@ -8411,6 +8419,16 @@ const FSlateBrush* FBlueprintEditorUtils::GetIconFromPin( const FEdGraphPinType&
 		}
 	}
 	return IconBrush;
+}
+
+const FSlateBrush* FBlueprintEditorUtils::GetSecondaryIconFromPin(const FEdGraphPinType& PinType)
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	if (PinType.bIsMap && PinType.PinCategory != K2Schema->PC_Exec)
+	{
+		return FEditorStyle::GetBrush(TEXT("Kismet.VariableList.MapValueTypeIcon"));
+	}
+	return nullptr;
 }
 
 FText FBlueprintEditorUtils::GetFriendlyClassDisplayName(const UClass* Class)
@@ -8511,14 +8529,16 @@ void FBlueprintEditorUtils::HandleDisableEditableWhenInherited(UObject* Modified
 	}
 }
 
-void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData)
+struct FComponentInstancingDataUtils
 {
 	// Recursively gathers properties that differ from class/struct defaults, and fills out the cooked property list structure.
-	TFunction<void(UStruct*, const uint8*, const uint8*)> RecursivePropertyGatherLambda = [&OutData, &RecursivePropertyGatherLambda](UStruct* InStruct, const uint8* DataPtr, const uint8* DefaultDataPtr)
+	static void RecursivePropertyGather(UStruct* InStruct, const uint8* DataPtr, const uint8* DefaultDataPtr, FBlueprintCookedComponentInstancingData& OutData)
 	{
 		for (UProperty* Property = InStruct->PropertyLink; Property; Property = Property->PropertyLinkNext)
 		{
-			if (!Property->IsEditorOnlyProperty())
+			// Skip editor-only properties since they won't be compiled in a non-editor configuration. Also skip transient properties since they won't be serialized. 
+			if (!Property->IsEditorOnlyProperty()
+				&& !Property->HasAnyPropertyFlags(CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient))
 			{
 				for (int32 Idx = 0; Idx < Property->ArrayDim; Idx++)
 				{
@@ -8534,7 +8554,7 @@ void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* Compon
 					{
 						int32 NumChangedProperties = OutData.ChangedPropertyList.Num();
 
-						RecursivePropertyGatherLambda(StructProperty->Struct, PropertyValue, DefaultPropertyValue);
+						RecursivePropertyGather(StructProperty->Struct, PropertyValue, DefaultPropertyValue, OutData);
 
 						// Prepend the struct property only if there is at least one changed sub-property.
 						if (NumChangedProperties < OutData.ChangedPropertyList.Num())
@@ -8563,7 +8583,7 @@ void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* Compon
 								{
 									int32 NumChangedArrayProperties = OutData.ChangedPropertyList.Num();
 
-									RecursivePropertyGatherLambda(InnerStructProperty->Struct, ArrayPropertyValue, DefaultArrayPropertyValue);
+									RecursivePropertyGather(InnerStructProperty->Struct, ArrayPropertyValue, DefaultArrayPropertyValue, OutData);
 
 									// Prepend the struct property only if there is at least one changed sub-property.
 									if (NumChangedArrayProperties < OutData.ChangedPropertyList.Num())
@@ -8571,7 +8591,7 @@ void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* Compon
 										OutData.ChangedPropertyList.Insert(ChangedArrayPropertyInfo, NumChangedArrayProperties);
 									}
 								}
-								else if(!ArrayProperty->Inner->Identical(ArrayPropertyValue, DefaultArrayPropertyValue, PPF_None))
+								else if (!ArrayProperty->Inner->Identical(ArrayPropertyValue, DefaultArrayPropertyValue, PPF_None))
 								{
 									// Emit the index of the individual array value that differs from the default value
 									OutData.ChangedPropertyList.Add(ChangedArrayPropertyInfo);
@@ -8601,19 +8621,28 @@ void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* Compon
 				}
 			}
 		}
-	};
+	}
+};
 
+void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData)
+{
 	if (ComponentTemplate)
 	{
 		UClass* ComponentTemplateClass = ComponentTemplate->GetClass();
 
 		// Gather the set of properties that differ from the template CDO.
 		OutData.ChangedPropertyList.Empty();
-		RecursivePropertyGatherLambda(ComponentTemplateClass, (uint8*)ComponentTemplate, (uint8*)ComponentTemplateClass->GetDefaultObject(false));
+		FComponentInstancingDataUtils::RecursivePropertyGather(ComponentTemplateClass, (uint8*)ComponentTemplate, (uint8*)ComponentTemplateClass->GetDefaultObject(false), OutData);
 
 		// Flag that cooked data has been built and is now considered to be valid.
 		OutData.bIsValid = true;
 	}
+}
+
+bool FBlueprintEditorUtils::ShouldEnableAdvancedContainers()
+{
+	UBlueprintEditorSettings const* Settings = GetDefault<UBlueprintEditorSettings>();
+	return Settings->bEnableAdvancedContainers;
 }
 
 #undef LOCTEXT_NAMESPACE

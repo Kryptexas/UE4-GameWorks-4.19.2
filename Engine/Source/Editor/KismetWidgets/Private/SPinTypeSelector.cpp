@@ -11,6 +11,43 @@
 
 #define LOCTEXT_NAMESPACE "PinTypeSelector"
 
+/** I need a widget that draws two images on top of each other. This is to represent a TMap (key type and value type): */
+class SDoubleImage : public SImage
+{
+public:
+	void Construct(const FArguments& InArgs, TAttribute<const FSlateBrush*> InSecondImage, TAttribute<FSlateColor> InSecondImageColor);
+
+private:
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+
+	TAttribute<const FSlateBrush*> SecondImage;
+	TAttribute<FSlateColor> SecondImageColor;
+};
+
+void SDoubleImage::Construct(const SDoubleImage::FArguments& InArgs, TAttribute<const FSlateBrush*> InSecondImage, TAttribute<FSlateColor> InSecondImageColor)
+{
+	SImage::Construct(InArgs);
+	SecondImage = InSecondImage;
+	SecondImageColor = InSecondImageColor;
+}
+
+int32 SDoubleImage::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	// this will draw Image[0]:
+	SImage::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
+	const uint32 DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	// draw rest of the images, we reuse the LayerId because images are assumed to note overlap:
+	const FSlateBrush* SecondImageResolved = SecondImage.Get();
+	if (SecondImageResolved && SecondImageResolved->DrawAs != ESlateBrushDrawType::NoDrawType)
+	{
+		const FLinearColor FinalColorAndOpacity(InWidgetStyle.GetColorAndOpacityTint() * SecondImageColor.Get().GetColor(InWidgetStyle) * SecondImageResolved->GetTint(InWidgetStyle));
+		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), SecondImageResolved, MyClippingRect, DrawEffects, FinalColorAndOpacity);
+	}
+	return LayerId;
+}
+
 static const FString BigTooltipDocLink = TEXT("Shared/Editor/Blueprint/VariableTypes");
 
 /** Manages items in the Object Reference Type list, the sub-menu of the PinTypeSelector */
@@ -86,8 +123,35 @@ private:
 	TWeakPtr<SSubMenuHandler> SubMenuHandler;
 };
 
+enum class EPinContainerType
+{
+	SingleValue,
+	Array,
+	Set,
+	Map,
+};
+
+TSharedRef<SWidget> SPinTypeSelector::ConstructPinTypeImage(const FSlateBrush* PrimaryIcon, const FSlateColor& PrimaryColor, const FSlateBrush* SecondaryIcon, const FSlateColor& SecondaryColor, TSharedPtr<SToolTip> InToolTip)
+{
+	return
+		SNew(SDoubleImage, SecondaryIcon, SecondaryColor)
+		.Image(PrimaryIcon)
+		.ToolTip(InToolTip)
+		.ColorAndOpacity(PrimaryColor);
+}
+
 void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPinTypeTreeFunc)
 {
+	// SComboBox is a bit restrictive:
+	static TArray<TSharedPtr<EPinContainerType>> PinTypes;
+	if (PinTypes.Num() == 0)
+	{
+		PinTypes.Add(MakeShareable(new EPinContainerType(EPinContainerType::SingleValue)));
+		PinTypes.Add(MakeShareable(new EPinContainerType(EPinContainerType::Array)));
+		PinTypes.Add(MakeShareable(new EPinContainerType(EPinContainerType::Set)));
+		PinTypes.Add(MakeShareable(new EPinContainerType(EPinContainerType::Map)));
+	}
+
 	SearchText = FText::GetEmpty();
 
 	OnTypeChanged = InArgs._OnPinTypeChanged;
@@ -113,13 +177,22 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 	{
 		// Only have a combo button with an icon
 		Widget = SAssignNew( TypeComboButton, SComboButton )
-			.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent)
+			.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent, false)
 			.ContentPadding(0)
 			.ToolTipText(this, &SPinTypeSelector::GetToolTipForComboBoxType)
 			.HasDownArrow(!InArgs._bCompactSelector)
 			.ButtonStyle(FEditorStyle::Get(),  "BlueprintEditor.CompactPinTypeSelector")
 			.ButtonContent()
 			[
+				FBlueprintEditorUtils::ShouldEnableAdvancedContainers() ?
+				SNew(
+					SDoubleImage,
+					TAttribute<const FSlateBrush*>(this, &SPinTypeSelector::GetSecondaryTypeIconImage),
+					TAttribute<FSlateColor>(this, &SPinTypeSelector::GetSecondaryTypeIconColor)
+				)
+				.Image(this, &SPinTypeSelector::GetTypeIconImage)
+				.ColorAndOpacity(this, &SPinTypeSelector::GetTypeIconColor)
+				:
 				SNew(SImage)
 				.Image( this, &SPinTypeSelector::GetTypeIconImage )
 				.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
@@ -128,54 +201,176 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 	else
 	{
 		// Traditional Pin Type Selector with a combo button, the icon, the current type name, and a toggle button for being an array
+		TSharedPtr<SWidget> ContainerControl;
+		if (FBlueprintEditorUtils::ShouldEnableAdvancedContainers())
+		{
+			auto GenerateContainerTypeEntry = [this](TSharedPtr<EPinContainerType> InPinContainerType)
+			{
+				EPinContainerType PinContainerType = *InPinContainerType;
+
+				static const FSlateBrush* Images[] = {
+					FEditorStyle::GetBrush(TEXT("Kismet.VariableList.TypeIcon")),
+					FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon")),
+					FEditorStyle::GetBrush(TEXT("Kismet.VariableList.SetTypeIcon")),
+					FEditorStyle::GetBrush(TEXT("Kismet.VariableList.MapKeyTypeIcon")),
+				};
+				check(sizeof(Images) / sizeof(*Images) > (int32)PinContainerType);
+				const FSlateBrush* SecondaryIcon = PinContainerType == EPinContainerType::Map ? FEditorStyle::GetBrush(TEXT("Kismet.VariableList.MapValueTypeIcon")) : nullptr;
+
+				static const FText Tooltips[] = {
+					LOCTEXT("SingleVariableTooltip", "Single Variable"),
+					LOCTEXT("ArrayTooltip", "Array"),
+					LOCTEXT("SetTooltip", "Set"),
+					LOCTEXT("MapTooltip", "Map (Dictionary)"),
+				};
+				check(sizeof(Tooltips) / sizeof(*Tooltips) > (int32)PinContainerType);
+
+
+				return SNew(
+							SDoubleImage,
+							SecondaryIcon,
+							TAttribute<FSlateColor>(this, &SPinTypeSelector::GetSecondaryTypeIconColor)
+						)
+					.Image(Images[(int32)PinContainerType])
+					.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltips[(int32)PinContainerType], nullptr, *BigTooltipDocLink, TEXT("Containers")))
+					.ColorAndOpacity(this, &SPinTypeSelector::GetTypeIconColor);
+			};
+
+			ContainerControl = SNew(SComboBox< TSharedPtr<EPinContainerType> >)
+			.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+			.HasDownArrow(false)
+			.OnGenerateWidget(
+				SComboBox< TSharedPtr<EPinContainerType> >::FOnGenerateWidget::CreateLambda(
+					GenerateContainerTypeEntry
+				)
+			)
+			.OptionsSource(&PinTypes)
+			.ContentPadding(0)
+			.ToolTip(IDocumentation::Get()->CreateToolTip( TAttribute<FText>(this, &SPinTypeSelector::GetToolTipForContainerWidget), NULL, *BigTooltipDocLink, TEXT("Containers")))
+			.IsEnabled( TargetPinType.Get().PinCategory != Schema->PC_Exec )
+			.Visibility(InArgs._bAllowArrays ? EVisibility::Visible : EVisibility::Collapsed)
+			.OnSelectionChanged(
+				SComboBox< TSharedPtr<EPinContainerType> >::FOnSelectionChanged::CreateLambda(
+					[this](TSharedPtr<EPinContainerType> InType, ESelectInfo::Type)
+					{
+						this->OnContainerTypeSelectionChanged(*InType);
+					}
+				)
+			)
+			.Content()
+			[
+				SNew(
+					SDoubleImage,
+					TAttribute<const FSlateBrush*>(this, &SPinTypeSelector::GetSecondaryTypeIconImage),
+					TAttribute<FSlateColor>(this, &SPinTypeSelector::GetSecondaryTypeIconColor)
+				)
+				.Image(this, &SPinTypeSelector::GetTypeIconImage)
+				.ColorAndOpacity(this, &SPinTypeSelector::GetTypeIconColor)
+			];
+		}
+		else
+		{
+			ContainerControl = SNew( SCheckBox )
+				.ToolTip(IDocumentation::Get()->CreateToolTip( TAttribute<FText>(this, &SPinTypeSelector::GetToolTipForArrayWidget), NULL, *BigTooltipDocLink, TEXT("Array")))
+				.Padding( 1 )
+				.OnCheckStateChanged( this, &SPinTypeSelector::OnArrayCheckStateChanged )
+				.IsChecked( this, &SPinTypeSelector::IsArrayChecked )
+				.IsEnabled( TargetPinType.Get().PinCategory != Schema->PC_Exec )
+				.Style( FEditorStyle::Get(), "ToggleButtonCheckbox" )
+				.Visibility(InArgs._bAllowArrays ? EVisibility::Visible : EVisibility::Collapsed)
+				[
+					SNew(SImage)
+					.Image( FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon")) )
+					.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
+				];
+		}
+
 		Widget = SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
 		[
-			SAssignNew( TypeComboButton, SComboButton )
-			.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent)
-			.ContentPadding(0)
-			.ToolTipText(this, &SPinTypeSelector::GetToolTipForComboBoxType)
-			.ButtonContent()
+			SNew(SBox)
+			.WidthOverride(100.f)
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				[
-					SNew(SImage)
-					.Image( this, &SPinTypeSelector::GetTypeIconImage )
-					.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
+					SAssignNew( TypeComboButton, SComboButton )
+					.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent, false)
+					.ContentPadding(0)
+					.ToolTipText(this, &SPinTypeSelector::GetToolTipForComboBoxType)
+					.ButtonContent()
+					[
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Left)
+						.AutoWidth()
+						[
+							SNew(SImage)
+							.Image( this, &SPinTypeSelector::GetTypeIconImage )
+							.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
+						]
+						+SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Left)
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.Text( this, &SPinTypeSelector::GetTypeDescription )
+							.Font(InArgs._Font)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SSpacer)
+						]
+					]
 				]
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Left)
-				[
-					SNew(STextBlock)
-					.Text( this, &SPinTypeSelector::GetTypeDescription )
-					.Font(InArgs._Font)
-				]
-			]
 		]
 
 		+SHorizontalBox::Slot()
 		.AutoWidth()
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
 		[
-			SNew( SCheckBox )
-			.ToolTip(IDocumentation::Get()->CreateToolTip( TAttribute<FText>(this, &SPinTypeSelector::GetToolTipForArrayWidget), NULL, *BigTooltipDocLink, TEXT("Array")))
-			.Padding( 1 )
-			.OnCheckStateChanged( this, &SPinTypeSelector::OnArrayCheckStateChanged )
-			.IsChecked( this, &SPinTypeSelector::IsArrayChecked )
-			.IsEnabled( TargetPinType.Get().PinCategory != Schema->PC_Exec )
-			.Style( FEditorStyle::Get(), "ToggleButtonCheckbox" )
-			.Visibility(InArgs._bAllowArrays ? EVisibility::Visible : EVisibility::Collapsed)
+			ContainerControl.ToSharedRef()
+		]
+
+		+SHorizontalBox::Slot()
+		[
+			SNew(SBox)
+			.WidthOverride(110.f)
+			.Visibility(
+				TAttribute<EVisibility>::Create(
+					TAttribute<EVisibility>::FGetter::CreateLambda(
+						[this]() {return this->TargetPinType.Get().bIsMap == true ? EVisibility::Visible : EVisibility::Hidden; }
+					)
+				)
+			)
 			[
-				SNew(SImage)
-				.Image( FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon")) )
-				.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
+				SNew( SComboButton )
+				.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent, true )
+				.ContentPadding(0)
+				.ToolTipText(this, &SPinTypeSelector::GetToolTipForComboBoxSecondaryType)
+				.ButtonContent()
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					[
+						SNew(SImage)
+						.Image( this, &SPinTypeSelector::GetSecondaryTypeIconImage )
+						.ColorAndOpacity( this, &SPinTypeSelector::GetSecondaryTypeIconColor )
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Left)
+					[
+						SNew(STextBlock)
+						.Text( this, &SPinTypeSelector::GetSecondaryTypeDescription )
+						.Font(InArgs._Font)
+					]
+				]
 			]
 		];
 	}
@@ -206,14 +401,43 @@ FText SPinTypeSelector::GetTypeDescription() const
 	}
 }
 
+FText SPinTypeSelector::GetSecondaryTypeDescription() const
+{
+	const FString& PinSubCategory = TargetPinType.Get().PinValueType.TerminalSubCategory;
+	const UObject* PinSubCategoryObject = TargetPinType.Get().PinValueType.TerminalSubCategoryObject.Get();
+	if (PinSubCategory != UEdGraphSchema_K2::PSC_Bitmask && PinSubCategoryObject)
+	{
+		if (auto Field = Cast<const UField>(PinSubCategoryObject))
+		{
+			return Field->GetDisplayNameText();
+		}
+		return FText::FromString(PinSubCategoryObject->GetName());
+	}
+	else
+	{
+		return UEdGraphSchema_K2::GetCategoryText(TargetPinType.Get().PinValueType.TerminalCategory, true);
+	}
+}
+
+
 const FSlateBrush* SPinTypeSelector::GetTypeIconImage() const
 {
 	return FBlueprintEditorUtils::GetIconFromPin( TargetPinType.Get() );
 }
 
+const FSlateBrush* SPinTypeSelector::GetSecondaryTypeIconImage() const
+{
+	return FBlueprintEditorUtils::GetSecondaryIconFromPin(TargetPinType.Get());
+}
+
 FSlateColor SPinTypeSelector::GetTypeIconColor() const
 {
 	return Schema->GetPinTypeColor(TargetPinType.Get());
+}
+
+FSlateColor SPinTypeSelector::GetSecondaryTypeIconColor() const
+{
+	return Schema->GetSecondaryPinTypeColor(TargetPinType.Get());
 }
 
 ECheckBoxState SPinTypeSelector::IsArrayChecked() const
@@ -224,7 +448,10 @@ ECheckBoxState SPinTypeSelector::IsArrayChecked() const
 void SPinTypeSelector::OnArrayCheckStateChanged(ECheckBoxState NewState)
 {
 	FEdGraphPinType NewTargetPinType = TargetPinType.Get();
-	NewTargetPinType.bIsArray = (NewState == ECheckBoxState::Checked)? true : false;
+	NewTargetPinType.bIsArray = (NewState == ECheckBoxState::Checked) ? true : false;
+	// just in case someone has been experimenting with experimental features:
+	NewTargetPinType.bIsMap = false;
+	NewTargetPinType.bIsSet = false;
 
 	OnTypeChanged.ExecuteIfBound(NewTargetPinType);
 }
@@ -234,9 +461,40 @@ void SPinTypeSelector::OnArrayStateToggled()
 	OnArrayCheckStateChanged((IsArrayChecked() == ECheckBoxState::Checked)? ECheckBoxState::Unchecked : ECheckBoxState::Checked);
 }
 
+void SPinTypeSelector::OnContainerTypeSelectionChanged( EPinContainerType PinContainerType)
+{
+	FEdGraphPinType NewTargetPinType = TargetPinType.Get();
+
+	switch (PinContainerType)
+	{
+	case EPinContainerType::SingleValue:
+		NewTargetPinType.bIsArray = false;
+		NewTargetPinType.bIsMap = false;
+		NewTargetPinType.bIsSet = false;
+		break;
+	case EPinContainerType::Array:
+		NewTargetPinType.bIsArray = true;
+		NewTargetPinType.bIsMap = false;
+		NewTargetPinType.bIsSet = false;
+		break;
+	case EPinContainerType::Set:
+		NewTargetPinType.bIsArray = false;
+		NewTargetPinType.bIsMap = false;
+		NewTargetPinType.bIsSet = true;
+		break;
+	case EPinContainerType::Map:
+		NewTargetPinType.bIsArray = false;
+		NewTargetPinType.bIsMap = true;
+		NewTargetPinType.bIsSet = false;
+		break;
+	}
+
+	OnTypeChanged.ExecuteIfBound(NewTargetPinType);
+}
+
 //=======================================================================
 // Type TreeView Support
-TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InItem, const TSharedRef<STableViewBase>& OwnerTree)
+TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InItem, const TSharedRef<STableViewBase>& OwnerTree, bool bForSecondaryType)
 {
 	const bool bHasChildren = (InItem->Children.Num() > 0);
 	const FText Description = InItem->GetDescription();
@@ -255,7 +513,7 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 	FOnGetContent OnGetContent;
 	if (InItem->GetPossibleObjectReferenceTypes() != static_cast<uint8>(EObjectReferenceType::NotAnObject))
 	{
-		OnGetContent.BindSP(this, &SPinTypeSelector::GetAllowedObjectTypes, InItem);
+		OnGetContent.BindSP(this, &SPinTypeSelector::GetAllowedObjectTypes, InItem, bForSecondaryType);
 	}
 
 	TSharedPtr< SHorizontalBox > HorizontalBox;
@@ -368,15 +626,15 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateObjectReferenceTreeRow(FObjectRe
 		];
 }
 
-void SPinTypeSelector::OnObjectReferenceSelectionChanged(FObjectReferenceListItem InItem, ESelectInfo::Type SelectInfo)
+void SPinTypeSelector::OnObjectReferenceSelectionChanged(FObjectReferenceListItem InItem, ESelectInfo::Type SelectInfo, bool bForSecondaryType)
 {
 	if (SelectInfo != ESelectInfo::OnNavigation)
 	{
-		OnSelectPinType(InItem->PinTypeItem, InItem->PinCategory);
+		OnSelectPinType(InItem->PinTypeItem, InItem->PinCategory, bForSecondaryType);
 	}
 }
 
-TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem InItem)
+TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem InItem, bool bForSecondaryType)
 {
 	AllowedObjectReferenceTypes.Reset();
 
@@ -432,7 +690,7 @@ TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem I
 		.ListItemsSource(&AllowedObjectReferenceTypes)
 		.SelectionMode(ESelectionMode::Single)
 		.OnGenerateRow(this, &SPinTypeSelector::GenerateObjectReferenceTreeRow)
-		.OnSelectionChanged(this, &SPinTypeSelector::OnObjectReferenceSelectionChanged);
+		.OnSelectionChanged(this, &SPinTypeSelector::OnObjectReferenceSelectionChanged, bForSecondaryType);
 
 	WeakListView = ListView;
 	if (AllowedObjectReferenceTypes.Num())
@@ -454,7 +712,7 @@ TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem I
 		];
 }
 
-void SPinTypeSelector::OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCategory)
+void SPinTypeSelector::OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCategory, bool bForSecondaryType)
 {
 	const FScopedTransaction Transaction( LOCTEXT("ChangeParam", "Change Parameter Type") );
 
@@ -465,21 +723,36 @@ void SPinTypeSelector::OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCat
 	const FEdGraphPinType& SelectionPinType = InItem->GetPinType(true);
 
 	// Change the pin's type
-	NewTargetPinType.PinCategory = InPinCategory;
-	NewTargetPinType.PinSubCategory = SelectionPinType.PinSubCategory;
-	NewTargetPinType.PinSubCategoryObject = SelectionPinType.PinSubCategoryObject;
+	if (bForSecondaryType)
+	{
+		NewTargetPinType.PinValueType.TerminalCategory = InPinCategory;
+		NewTargetPinType.PinValueType.TerminalSubCategory = SelectionPinType.PinSubCategory;
+		NewTargetPinType.PinValueType.TerminalSubCategoryObject = SelectionPinType.PinSubCategoryObject;
+	}
+	else
+	{
+		NewTargetPinType.PinCategory = InPinCategory;
+		NewTargetPinType.PinSubCategory = SelectionPinType.PinSubCategory;
+		NewTargetPinType.PinSubCategoryObject = SelectionPinType.PinSubCategoryObject;
+	}
+
 
 	TypeComboButton->SetIsOpen(false);
 
 	if( NewTargetPinType.PinCategory == Schema->PC_Exec )
 	{
+		NewTargetPinType.bIsMap = false;
+		NewTargetPinType.bIsSet = false;
 		NewTargetPinType.bIsArray = false;
+		NewTargetPinType.PinValueType.TerminalCategory = FString();
+		NewTargetPinType.PinValueType.TerminalSubCategory = FString();
+		NewTargetPinType.PinValueType.TerminalSubCategoryObject = nullptr;
 	}
 
 	OnTypeChanged.ExecuteIfBound(NewTargetPinType);
 }
 
-void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelectInfo::Type SelectInfo)
+void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelectInfo::Type SelectInfo, bool bForSecondaryType)
 {
 	// When the user is navigating, do not act upon the selection change
 	if(SelectInfo == ESelectInfo::OnNavigation)
@@ -507,7 +780,7 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 			}
 			else
 			{
-				OnSelectPinType(Selection, Selection->GetPossibleObjectReferenceTypes() == static_cast<uint8>(EObjectReferenceType::AllTypes)? Schema->PC_Object : Selection->GetPinType(false).PinCategory);
+				OnSelectPinType(Selection, Selection->GetPossibleObjectReferenceTypes() == static_cast<uint8>(EObjectReferenceType::AllTypes)? Schema->PC_Object : Selection->GetPinType(false).PinCategory, bForSecondaryType);
 			}
 		}
 		else
@@ -532,7 +805,7 @@ void SPinTypeSelector::GetTypeChildren(FPinTypeTreeItem InItem, TArray<FPinTypeT
 	OutChildren = InItem->Children;
 }
 
-TSharedRef<SWidget>	SPinTypeSelector::GetMenuContent()
+TSharedRef<SWidget>	SPinTypeSelector::GetMenuContent(bool bForSecondaryType)
 {
 	GetPinTypeTree.Execute(TypeTreeRoot, TypeTreeFilter);
 
@@ -561,8 +834,8 @@ TSharedRef<SWidget>	SPinTypeSelector::GetMenuContent()
 		SAssignNew(TypeTreeView, SPinTypeTreeView)
 			.TreeItemsSource(&FilteredTypeTreeRoot)
 			.SelectionMode(ESelectionMode::Single)
-			.OnGenerateRow(this, &SPinTypeSelector::GenerateTypeTreeRow)
-			.OnSelectionChanged(this, &SPinTypeSelector::OnTypeSelectionChanged)
+			.OnGenerateRow( this, &SPinTypeSelector::GenerateTypeTreeRow, bForSecondaryType )
+			.OnSelectionChanged( this, &SPinTypeSelector::OnTypeSelectionChanged, bForSecondaryType )
 			.OnGetChildren(this, &SPinTypeSelector::GetTypeChildren);
 
 		SAssignNew(FilterTextBox, SSearchBox)
@@ -727,6 +1000,16 @@ FText SPinTypeSelector::GetToolTipForComboBoxType() const
 	return LOCTEXT("PinTypeSelector_Disabled", "Cannot edit variable type when they are inherited from parent.");
 }
 
+FText SPinTypeSelector::GetToolTipForComboBoxSecondaryType() const
+{
+	if (IsEnabled())
+	{
+		return LOCTEXT("PinTypeSelector", "Select the map's value type.");
+	}
+
+	return LOCTEXT("PinTypeSelector_Disabled", "Cannot edit map value type when they are inherited from parent.");
+}
+
 FText SPinTypeSelector::GetToolTipForArrayWidget() const
 {
 	if(IsEnabled())
@@ -740,6 +1023,21 @@ FText SPinTypeSelector::GetToolTipForArrayWidget() const
 	}
 
 	return LOCTEXT("ArrayCheckBox_Disabled", "Cannot edit variable type while the variable is placed in a graph or inherited from parent.");
+}
+
+FText SPinTypeSelector::GetToolTipForContainerWidget() const
+{
+	if (IsEnabled())
+	{
+		// The entire widget may be enabled, but the container type button may be disabled because it is an "exec" pin.
+		if (TargetPinType.Get().PinCategory == Schema->PC_Exec)
+		{
+			return LOCTEXT("ContainerType_ExecDisabled", "Exec pins cannot be containers.");
+		}
+		return LOCTEXT("ContainerType", "Make this variable a container (array, set, or map) of selected type.");
+	}
+
+	return LOCTEXT("ContainerType_Disabled", "Cannot edit variable type while the variable is placed in a graph or inherited from parent.");
 }
 
 FReply SPinTypeSelector::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

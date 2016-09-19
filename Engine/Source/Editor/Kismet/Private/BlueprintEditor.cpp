@@ -495,12 +495,26 @@ const FSlateBrush* FBlueprintEditor::GetGlyphForGraph(const UEdGraph* Graph, boo
 	return ReturnValue;
 }
 
-FSlateBrush const* FBlueprintEditor::GetVarIconAndColor(const UStruct* VarScope, FName VarName, FSlateColor& IconColorOut)
+FSlateBrush const* FBlueprintEditor::GetVarIconAndColor(const UStruct* VarScope, FName VarName, FSlateColor& IconColorOut, FSlateBrush const*& SecondaryBrushOut, FSlateColor& SecondaryColorOut)
 {
-	FLinearColor ColorOut;
-	const FSlateBrush* IconBrush = UK2Node_Variable::GetVariableIconAndColor(VarScope, VarName, ColorOut).GetOptionalIcon();
-	IconColorOut = ColorOut;
-	return IconBrush;
+	if (VarScope != NULL)
+	{
+		UProperty* Property = FindField<UProperty>(VarScope, VarName);
+		if (Property != NULL)
+		{
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+			FEdGraphPinType PinType;
+			if (K2Schema->ConvertPropertyToPinType(Property, PinType)) // use schema to get the color
+			{
+				IconColorOut = K2Schema->GetPinTypeColor(PinType);
+				SecondaryBrushOut = FBlueprintEditorUtils::GetSecondaryIconFromPin(PinType);
+				SecondaryColorOut = K2Schema->GetSecondaryPinTypeColor(PinType);
+				return FBlueprintEditorUtils::GetIconFromPin(PinType);
+			}
+		}
+	}
+	return FEditorStyle::GetBrush(TEXT("Kismet.AllClasses.VariableIcon"));
 }
 
 bool FBlueprintEditor::IsInAScriptingMode() const

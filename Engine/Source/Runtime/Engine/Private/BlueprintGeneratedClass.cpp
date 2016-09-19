@@ -1250,6 +1250,12 @@ void FBlueprintCookedComponentInstancingData::LoadCachedPropertyDataForSerializa
 			ArCustomPropertyList = InPropertyList;
 			ArUseCustomPropertyList = true;
 			ArWantBinaryPropertySerialization = true;
+
+			// Set this flag to emulate things that would normally happen in the SDO case when this flag is set. This is needed to ensure consistency with serialization during instancing.
+			ArPortFlags |= PPF_Duplicate;
+
+			// Set this flag to ensure that we also serialize any deprecated properties.
+			ArPortFlags |= PPF_UseDeprecatedProperties;
 		}
 	};
 

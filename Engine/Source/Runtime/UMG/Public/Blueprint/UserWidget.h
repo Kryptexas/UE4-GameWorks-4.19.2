@@ -145,8 +145,12 @@ public:
 	//~ End UObject Interface
 
 	virtual bool Initialize();
-	virtual void CustomNativeInitilize() {}
 
+protected:
+	/** THe function is implemented only in nativized widgets (automatically converted from BP to c++) */
+	virtual void InitializeNativeClassData() {}
+
+public:
 	//UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	//~ End UVisual Interface

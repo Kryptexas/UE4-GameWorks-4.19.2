@@ -2642,6 +2642,7 @@ public:
 	// UProperty interface
 	virtual FString GetCPPMacroType(FString& ExtendedTypeText) const  override;
 	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const override;
+	virtual FString GetCPPTypeForwardDeclaration() const override;
 	virtual void LinkInternal(FArchive& Ar) override;
 	virtual bool Identical(const void* A, const void* B, uint32 PortFlags) const override;
 	virtual void SerializeItem(FArchive& Ar, void* Value, void const* Defaults) const override;
@@ -3637,6 +3638,55 @@ public:
 		return Result;
 	}
 
+	/** Finds element from hash, rather than linearly searching */
+	FORCEINLINE uint8* FindElementFromHash(const void* ElementToFind) const
+	{
+		UProperty* LocalElementPropForCapture = ElementProp;
+		return Set->Find(
+				ElementToFind, 
+				SetLayout, 
+				[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
+				[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
+			);
+	}
+
+	/** Adds the element to the set, returning true if the element was added, or false if the element was already present */
+	bool AddElement(const void* ElementToAdd)
+	{
+		UProperty* LocalElementPropForCapture = ElementProp;
+		FScriptSetLayout& LocalSetLayoutForCapture = SetLayout;
+		return Set->Add(
+			ElementToAdd,
+			SetLayout,
+			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
+			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); },
+			[LocalElementPropForCapture, ElementToAdd, LocalSetLayoutForCapture](void* NewElement)
+			{
+				if (LocalElementPropForCapture->PropertyFlags & CPF_ZeroConstructor)
+				{
+					FMemory::Memzero(NewElement, LocalSetLayoutForCapture.Size);
+				}
+				else
+				{
+					LocalElementPropForCapture->InitializeValue(NewElement);
+				}
+
+				LocalElementPropForCapture->CopySingleValueToScriptVM(NewElement, ElementToAdd);
+			}
+		);
+	}
+
+	/** Remoes the elemnt from the set */
+	void RemoveElement(const void* ElementToRemove)
+	{
+		UProperty* LocalElementPropForCapture = ElementProp;
+		Set->Remove(
+			ElementToRemove, 
+			SetLayout, 
+			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
+			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
+		);
+	}
 
 private:
 	/**

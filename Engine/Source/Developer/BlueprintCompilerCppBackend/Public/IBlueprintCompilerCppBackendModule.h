@@ -7,6 +7,22 @@
 struct FNativizationSummary
 {
 	TMap<FStringAssetReference, int32> InaccessiblePropertyStat;
+
+	struct FAnimBlueprintDetails
+	{
+		int32 Functions; //Number of functions or events
+		int32 ReducibleFunctions; //Number of empty functions
+		int32 Variables; // Number of new BlueprintReadWrite properties
+		int32 Children; // Number of nativized children
+		int32 FunctionUsage; //How many times a function (introduced in the BP) was used by unrelated nativized BP
+		int32 VariableUsage; //How many times a variable (introduced in the BP) was used by unrelated nativized BP
+
+		FAnimBlueprintDetails()
+			: Functions(0), ReducibleFunctions(0), Variables(0), Children(0), FunctionUsage(0), VariableUsage(0)
+		{}
+	};
+
+	TMap<FStringAssetReference, FAnimBlueprintDetails> AnimBlueprintStat;
 };
 
 /**

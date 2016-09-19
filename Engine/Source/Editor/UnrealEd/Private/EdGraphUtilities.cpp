@@ -461,6 +461,37 @@ void FEdGraphUtilities::CopyCommonState(UEdGraphNode* OldNode, UEdGraphNode* New
 	NewNode->NodeComment = OldNode->NodeComment;
 }
 
+bool FEdGraphUtilities::IsSetParam(const UFunction* Function, const FString& ParameterName)
+{
+	if (Function == nullptr)
+	{
+		return false;
+	}
+
+	const FString& RawMetaData = Function->GetMetaData(FBlueprintMetadata::MD_SetParam);
+	if (RawMetaData.IsEmpty())
+	{
+		return false;
+	}
+
+	TArray<FString> SetParamPinGroups;
+	{
+		RawMetaData.ParseIntoArray(SetParamPinGroups, TEXT(","), true);
+	}
+
+	for (FString& Entry : SetParamPinGroups)
+	{
+		TArray<FString> GroupEntries;
+		Entry.ParseIntoArray(GroupEntries, TEXT("|"), true);
+		if (GroupEntries.Contains(ParameterName))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FEdGraphUtilities::RegisterVisualNodeFactory(TSharedPtr<FGraphPanelNodeFactory> NewFactory)
 {
 	VisualNodeFactories.Add(NewFactory);

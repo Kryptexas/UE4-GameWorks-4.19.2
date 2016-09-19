@@ -93,7 +93,7 @@ public:
 		}
 
 		const UObjectProperty* TargetPropety = Cast<UObjectProperty>(CurrentProp);
-		if ( ensure(TargetPropety && TargetPropety->HasAnyPropertyFlags(CPF_InstancedReference)) )
+		if (TargetPropety && TargetPropety->HasAnyPropertyFlags(CPF_InstancedReference))
 		{ 
 			return TargetPropety->GetObjectPropertyValue(ValuePtr);
 		}

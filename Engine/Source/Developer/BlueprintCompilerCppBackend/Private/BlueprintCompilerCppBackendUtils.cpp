@@ -1027,9 +1027,10 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 				}
 
 				{
-					const FString StructOnScopeName = EmitterContext.GenerateUniqueLocalName();
-					EmitterContext.AddLine(FString::Printf(TEXT("FStructOnScope %s(%s::StaticStruct());"), *StructOnScopeName, *StructName));
-					EmitterContext.AddLine(FString::Printf(TEXT("%s& %s = *((%s*)%s.GetStructMemory());"), *StructName, *LocalStructNativeName, *StructName, *StructOnScopeName));  // TODO: ?? should "::GetDefaultValue()" be called here?
+					const FString StructMemoryVar = EmitterContext.GenerateUniqueLocalName();
+					EmitterContext.AddLine(FString::Printf(TEXT("uint8* %s = (uint8*)FMemory_Alloca(%s::StaticStruct()->GetStructureSize());"), *StructMemoryVar, *StructName));
+					EmitterContext.AddLine(FString::Printf(TEXT("%s::StaticStruct()->InitializeStruct(%s);"), *StructName, *StructMemoryVar));
+					EmitterContext.AddLine(FString::Printf(TEXT("%s& %s = *reinterpret_cast<%s*>(%s);"), *StructName, *LocalStructNativeName, *StructName, *StructMemoryVar));  // TODO: ?? should "::GetDefaultValue()" be called here?
 				}
 
 				{
@@ -1395,7 +1396,8 @@ FString FEmitHelper::GenerateGetPropertyByName(FEmitterLocalContext& EmitterCont
 	return PropertyPtrName;
 }
 
-static void UpdateNativizationSummary_InaccessibleProperty(const UProperty* Property)
+
+void FNativizationSummaryHelper::InaccessibleProperty(const UProperty* Property)
 {
 	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 	TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
@@ -1410,6 +1412,85 @@ static void UpdateNativizationSummary_InaccessibleProperty(const UProperty* Prop
 		else
 		{
 			NativizationSummary->InaccessiblePropertyStat.Add(Key, 1);
+		}
+	}
+}
+
+static void FNativizationSummaryHelper__MemberUsed(const UClass* Class, const UField* Field, int32 FNativizationSummary::FAnimBlueprintDetails::*CouterPtr)
+{
+	if (Field && Class)
+	{
+		IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+		TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
+		if (NativizationSummary.IsValid())
+		{
+			const UClass* Owner = Field->GetOwnerClass();
+			UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(UBlueprint::GetBlueprintFromClass(Owner));
+			const bool bUnrelatedClass = !Class->IsChildOf(Owner);
+			if (AnimBP && bUnrelatedClass)
+			{
+				FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FStringAssetReference(AnimBP));
+				(AnimBlueprintDetails.*CouterPtr)++;
+			}
+		}
+	}
+}
+
+void FNativizationSummaryHelper::PropertyUsed(const UClass* Class, const UProperty* Property)
+{
+	FNativizationSummaryHelper__MemberUsed(Class, Property, &FNativizationSummary::FAnimBlueprintDetails::VariableUsage);
+}
+
+void FNativizationSummaryHelper::FunctionUsed(const UClass* Class, const UFunction* Function)
+{
+	FNativizationSummaryHelper__MemberUsed(Class, Function, &FNativizationSummary::FAnimBlueprintDetails::FunctionUsage);
+}
+
+void FNativizationSummaryHelper::ReducibleFunciton(const UClass* OriginalClass)
+{
+	if (OriginalClass)
+	{
+		IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+		TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
+		UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(UBlueprint::GetBlueprintFromClass(OriginalClass));
+		if (NativizationSummary.IsValid() && OriginalClass && AnimBP)
+		{
+			FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FStringAssetReference(AnimBP));
+			AnimBlueprintDetails.ReducibleFunctions++;
+		}
+	}
+}
+
+void FNativizationSummaryHelper::RegisterClass(const UClass* OriginalClass)
+{
+	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
+	UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(UBlueprint::GetBlueprintFromClass(OriginalClass));
+	if (NativizationSummary.IsValid() && OriginalClass && AnimBP)
+	{
+		{
+			FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FStringAssetReference(AnimBP));
+
+			AnimBlueprintDetails.Variables = AnimBP->NewVariables.Num();
+
+			UFunction* UberGraphFunction = CastChecked<UBlueprintGeneratedClass>(OriginalClass)->UberGraphFunction;
+			for (auto FunctIter : TFieldRange<UFunction>(OriginalClass, EFieldIteratorFlags::ExcludeSuper))
+			{
+				if (UberGraphFunction != FunctIter)
+				{
+					AnimBlueprintDetails.Functions++;
+				}
+			}
+		}
+
+		for (UClass* SuperClass = OriginalClass->GetSuperClass(); SuperClass; SuperClass = SuperClass->GetSuperClass())
+		{
+			UAnimBlueprint* ParentAnimBP = Cast<UAnimBlueprint>(UBlueprint::GetBlueprintFromClass(SuperClass));
+			if (ParentAnimBP)
+			{
+				FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FStringAssetReference(ParentAnimBP));
+				AnimBlueprintDetails.Children++;
+			}
 		}
 	}
 }
@@ -1430,7 +1511,7 @@ FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterCon
 	{
 		if (TermUsage == ENativizedTermUsage::Getter)
 		{
-			UpdateNativizationSummary_InaccessibleProperty(Property);
+			FNativizationSummaryHelper::InaccessibleProperty(Property);
 			const FString PropertyLocalName = GenerateGetPropertyByName(EmitterContext, Property);
 			return  FString::Printf(TEXT("(((UBoolProperty*)%s)->%s(%s(%s), %d))")
 				, *PropertyLocalName
@@ -1442,7 +1523,7 @@ FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterCon
 
 		if (TermUsage == ENativizedTermUsage::Setter)
 		{
-			UpdateNativizationSummary_InaccessibleProperty(Property);
+			FNativizationSummaryHelper::InaccessibleProperty(Property);
 			const FString PropertyLocalName = GenerateGetPropertyByName(EmitterContext, Property);
 			if (ensure(CustomSetExpressionEnding))
 			{
@@ -1468,7 +1549,7 @@ FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterCon
 	{
 		//TODO: if property is inaccessible due to const specifier, use const_cast
 
-		UpdateNativizationSummary_InaccessibleProperty(Property);
+		FNativizationSummaryHelper::InaccessibleProperty(Property);
 		const FString PropertyLocalName = GenerateGetPropertyByName(EmitterContext, Property);
 		return FString::Printf(TEXT("(*(%s->ContainerPtrToValuePtr<%s>(%s(%s), %d)))")
 			, *PropertyLocalName
@@ -1583,7 +1664,7 @@ FString FEmitHelper::AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext&
 		UE_LOG(LogK2Compiler, Warning, TEXT("AccessInaccessiblePropertyUsingOffset - NOEXPORT structure should be handled in a custom way: %s"), *GetPathNameSafe(Property->GetOwnerStruct()));
 	}
 
-	UpdateNativizationSummary_InaccessibleProperty(Property);
+	FNativizationSummaryHelper::InaccessibleProperty(Property);
 
 	const int32 PropertyOffsetWithoutEditorOnlyMembers = HelperWithoutEditorOnlyMembers::OffsetWithoutEditorOnlyMembers(Property);
 	/*

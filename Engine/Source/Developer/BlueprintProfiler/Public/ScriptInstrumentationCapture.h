@@ -109,7 +109,7 @@ class FInstrumentationCaptureContext
 public:
 
 	/** Update the current execution context, and emit events to signal changes */
-	void UpdateContext(const FScriptInstrumentationSignal& InstrumentSignal, TArray<FScriptInstrumentedEvent>& InstrumentationQueue);
+	bool UpdateContext(const FScriptInstrumentationSignal& InstrumentSignal, TArray<FScriptInstrumentedEvent>& InstrumentationQueue);
 
 	/** Reset the current event context */
 	void ResetContext();
@@ -124,4 +124,8 @@ private:
 	TWeakObjectPtr<const UObject> ContextObject;
 	/** The current event context */
 	FName ActiveEvent;
+	/** The current pending inline Event. NAME_None if no event is pending */
+	FName PendingInlineEventName;
+	/** The Class Scope Stack for traversing through parent blueprint calls */
+	TArray<FName> ScopeStack;
 };

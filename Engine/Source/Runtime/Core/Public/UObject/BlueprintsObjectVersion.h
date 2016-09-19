@@ -13,6 +13,7 @@ struct CORE_API FBlueprintsObjectVersion
 		ArrayGetByRefUpgrade,
 		EdGraphPinOptimized,
 		AllowDeletionConformed,
+		AdvancedContainerSupport,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

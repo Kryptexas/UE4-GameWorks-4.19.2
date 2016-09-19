@@ -4021,6 +4021,15 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.Config.Definitions.Add("WITH_PLUGIN_SUPPORT=0");
 			}
 
+            if (UEBuildConfiguration.bWithPerfCounters)
+            {
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERFCOUNTERS=1");
+            }
+            else
+            {
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERFCOUNTERS=0");
+            }
+
 			if (UEBuildConfiguration.bUseLoggingInShipping)
 			{
 				GlobalCompileEnvironment.Config.Definitions.Add("USE_LOGGING_IN_SHIPPING=1");

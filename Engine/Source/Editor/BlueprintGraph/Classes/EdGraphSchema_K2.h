@@ -175,6 +175,8 @@ public:
 	static const FName MD_ArrayParam;
 	static const FName MD_ArrayDependentParam;
 
+	static const FName MD_SetParam;
+
 	/** Metadata that identifies an integral property as a bitmask. */
 	static const FName MD_Bitmask;
 	/** Metadata that associates a bitmask property with a bitflag enum. */
@@ -425,6 +427,7 @@ public:
 	virtual bool ShouldHidePinDefaultValue(UEdGraphPin* Pin) const override;
 	virtual bool ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const override;
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const override;
+	FLinearColor GetSecondaryPinTypeColor(const FEdGraphPinType& PinType) const;
 	virtual FText GetPinDisplayName(const UEdGraphPin* Pin) const override;
 	virtual void ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FText& PinDescription, FString& TooltipOut) const override;
 	virtual EGraphType GetGraphType(const UEdGraph* TestEdGraph) const override;
@@ -651,6 +654,13 @@ public:
 	/** Can Pin be recombined back to its original form */
 	bool CanRecombineStructPin(const UEdGraphPin& Pin) const;
 
+	/** 
+	 * Helper function for filling out Category, SubCategory, and SubCategoryObject based on a UProperty 
+	 * 
+	 * @return	true on success, false if the property is unsupported or invalid.
+	 */
+	static bool GetPropertyCategoryInfo(const UProperty* TestProperty, FString& OutCategory, FString& OutSubCategory, UObject*& OutSubCategoryObject, bool& bOutIsWeakPointer);
+
 	/**
 	 * Convert the type of a UProperty to the corresponding pin type.
 	 *
@@ -819,6 +829,19 @@ public:
 	 * @return	The converted type string.
 	 */
 	static FText TypeToText(UProperty* const Property);
+
+	/**
+	* Converts a terminal type into a fully qualified FText (e.g., object'ObjectName').
+	* Primarily used as a helper when converting containers to TypeToText.
+	*
+	* @param	Category					The category to convert into a FText.
+	* @param	SubCategory					The subcategory to convert into FText
+	* @param	SubCategoryObject			The SubcategoryObject to convert into FText
+	* @param	bIsWeakPtr					Whether the type is a WeakPtr
+	*
+	* @return	The converted type text.
+	*/
+	static FText TerminalTypeToText(const FString& Category, const FString& SubCategory, UObject* SubCategoryObject, bool bIsWeakPtr);
 
 	/**
 	 * Converts a pin type into a fully qualified FText (e.g., object'ObjectName').

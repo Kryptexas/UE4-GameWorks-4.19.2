@@ -13,7 +13,9 @@ struct FBlueprintExecutionTrace
 	FTracePath TracePath;
 	FName InstanceName;
 	FName FunctionName;
+	FName GraphName;
 	TWeakPtr<FScriptExecutionNode> ProfilerNode;
+	FEdGraphPinReference PinReference;
 	int32 Offset;
 	double ObservationTime;
 };
@@ -52,6 +54,9 @@ public:
 	/** Returns the blueprint exec node for this context */
 	TSharedPtr<class FScriptExecutionBlueprint> GetBlueprintExecNode() const { return BlueprintNode; }
 
+	/** Returns an array of class paths that represent dependent blueprint contexts for this blueprint context */
+	const TArray<FString>& GetUtilityContexts() const { return DependentUtilityContexts; }
+
 	/** Returns the blueprint trace history */
 	const TSimpleRingBuffer<FBlueprintExecutionTrace>& GetTraceHistory() const { return ExecutionTraceHistory; }
 
@@ -78,6 +83,9 @@ public:
 
 	/** Remaps PIE actor instance paths to editor actor instances */
 	BLUEPRINTPROFILER_API FName RemapInstancePath(const FName InstanceName) const;
+
+	/** Returns the active instance name for statistic scope */
+	BLUEPRINTPROFILER_API FName GetActiveInstanceName() const;
 
 	/** Returns the function context containing the event */
 	TSharedPtr<class FBlueprintFunctionContext> GetFunctionContextForEventChecked(const FName ScopedEventName) const;
@@ -140,6 +148,8 @@ private:
 	TWeakObjectPtr<UBlueprint> Blueprint;
 	/** Blueprint Generated class for the context */
 	TWeakObjectPtr<UBlueprintGeneratedClass> BlueprintClass;
+	/** Blueprint utility contexts (Macro's ect ) */
+	TArray<FString> DependentUtilityContexts;
 	/** Root level execution node for this blueprint */
 	TSharedPtr<FScriptExecutionBlueprint> BlueprintNode;
 	/** UFunction contexts for this blueprint */
@@ -330,6 +340,9 @@ protected:
 	virtual TSharedPtr<FScriptExecutionNode> MapTunnelBoundary(const UEdGraphPin* TunnelPin);
 
 	/** Get tunnel boundary node */
+	virtual TSharedPtr<FScriptExecutionNode> GetTunnelBoundaryNode(const UEdGraphPin* TunnelPin);
+
+	/** Get tunnel boundary node, asserting on fail */
 	virtual TSharedPtr<FScriptExecutionNode> GetTunnelBoundaryNodeChecked(const UEdGraphPin* TunnelPin);
 
 	/** Maps the tunnel point into the instanced graph, creating the instanced graph if not already existing. */
@@ -396,7 +409,7 @@ private:
 	virtual TSharedPtr<FScriptExecutionNode> MapNodeExecution(UEdGraphNode* NodeToMap) override;
 	virtual void MapInputPins(TSharedPtr<FScriptExecutionNode> ExecNode, const TArray<UEdGraphPin*>& Pins) override;
 	virtual TSharedPtr<FScriptExecutionNode> MapPureNodeExecution(const UEdGraphPin* LinkedPin) override;
-	virtual TSharedPtr<FScriptExecutionNode> GetTunnelBoundaryNodeChecked(const UEdGraphPin* TunnelPin) override;
+	virtual TSharedPtr<FScriptExecutionNode> GetTunnelBoundaryNode(const UEdGraphPin* TunnelPin) override;
 	virtual TSharedPtr<FScriptExecutionNode> MapTunnelBoundary(const UEdGraphPin* TunnelPin) override;
 	// ~FBlueprintFunctionContext End
 	
@@ -503,6 +516,10 @@ private:
 
 	/** Add to trace history */
 	void AddToTraceHistory(const TSharedPtr<FScriptExecutionNode> ProfilerNode, const FScriptInstrumentedEvent& TraceSignal);
+
+	/** Add tunnel trace history */
+	void AddTunnelTraceHistory(const TSharedPtr<FScriptExecutionNode> TunnelBoundary, const FScriptInstrumentedEvent& TraceSignal, const FTracePath& InternalPath, const FTracePath& ExternalPath);
+
 
 private:
 

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BlueprintProfilerSettings.h"
+#include "EventExecution.h"
 
 /** Blueprint performance view type */
 namespace EBlueprintPerfViewType
@@ -45,7 +46,8 @@ public:
 		GraphFilter					= 0x00000004,	// Filter to current graph
 		DisplayPure					= 0x00000008,	// Display pure stats
 		DisplayInheritedEvents		= 0x00000010,	// Display inherited events
-		AverageBlueprintStats		= 0x00000020,	// Average blueprint stats ( Rather than sum )
+		DisplayHottestPathStats		= 0x00000020,	// -- Debugging feature to show hottest path heat levels
+		DisplayNodeHeatStat			= 0x00000040,	// -- Debugging feature to show node heat levels
 		Modified					= 0x10000000,	// Display state was changed
 	};
 
@@ -74,7 +76,7 @@ public:
 	bool HasAllFlags(const uint32 FlagsIn) const { return (Flags & FlagsIn) == FlagsIn; }
 
 	/** Set active instance name */
-	FName GetActiveInstance() const { return HasFlags(DisplayByInstance) ? ActiveInstance : NAME_None; }
+	FName GetActiveInstance() const { return HasFlags(DisplayByInstance) ? ActiveInstance : SPDN_Blueprint; }
 
 	/** Set active instance name */
 	void SetActiveInstance(const FName InstanceName);

@@ -12,6 +12,7 @@
 #include "TutorialMetaData.h"
 #include "SGraphPanel.h"
 #include "SInlineEditableTextBlock.h"
+#include "BlueprintEditorSettings.h"
 
 /////////////////////////////////////////////////////
 // SNodeTitle
@@ -51,9 +52,16 @@ void SNodeTitle::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 
 FText SNodeTitle::GetNodeTitle() const
 {
-	return (GraphNode != NULL)
-		? GraphNode->GetNodeTitle(ENodeTitleType::FullTitle)
-		: NSLOCTEXT("GraphEditor", "NullNode", "Null Node");
+	if (GetDefault<UBlueprintEditorSettings>()->bBlueprintNodeUniqueNames && GraphNode)
+	{
+		return FText::FromName(GraphNode->GetFName());
+	}
+	else
+	{
+		return (GraphNode != NULL)
+			? GraphNode->GetNodeTitle(ENodeTitleType::FullTitle)
+			: NSLOCTEXT("GraphEditor", "NullNode", "Null Node");
+	}
 }
 
 FText SNodeTitle::GetHeadTitle() const

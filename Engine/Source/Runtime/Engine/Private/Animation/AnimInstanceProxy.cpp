@@ -1407,7 +1407,7 @@ void FAnimInstanceProxy::BindNativeDelegates()
 					{
 						if(TransitionExit.CanTakeDelegateIndex != INDEX_NONE)
 						{
-							// In case the state machine hasn't been initilized, we need to re-get the desc
+							// In case the state machine hasn't been initialized, we need to re-get the desc
 							const FBakedAnimationStateMachine* MachineDesc = GetMachineDescription(AnimClassInterface, StateMachine);
 							const FAnimationTransitionBetweenStates& Transition = MachineDesc->Transitions[TransitionExit.TransitionIndex];
 							const FBakedAnimationState& BakedState = MachineDesc->States[Transition.NextState];

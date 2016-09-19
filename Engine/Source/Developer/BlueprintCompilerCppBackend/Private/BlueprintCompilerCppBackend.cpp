@@ -739,6 +739,8 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	const bool bIsSpecialCase = HandleSpeciallyNativizedFunction();
 	if (!bIsSpecialCase)
 	{
+		FNativizationSummaryHelper::FunctionUsed(CurrentClass, Statement.FunctionToCall);
+
 		// Emit object to call the method on
 		if (bInterfaceCallExecute)
 		{
@@ -871,6 +873,31 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 	}
 	else
 	{
+		auto GenerateDefaultLocalVariable = [&](const FBPTerminal* InTerm) -> FString
+		{
+			const FString DefaultValueVariable = EmitterContext.GenerateUniqueLocalName();
+			const uint32 PropertyExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
+			const FString CppType = Term->AssociatedVarProperty
+				? EmitterContext.ExportCppDeclaration(Term->AssociatedVarProperty, EExportedDeclaration::Local, PropertyExportFlags, true)
+				: FEmitHelper::PinTypeToNativeType(Term->Type);
+
+			const FString DefaultValueConstructor = (!Term->Type.bIsArray)
+				? FEmitHelper::LiteralTerm(EmitterContext, Term->Type, FString(), nullptr, &FText::GetEmpty())
+				: FString::Printf(TEXT("%s{}"), *CppType);
+
+			EmitterContext.AddLine(*FString::Printf(TEXT("%s %s = %s;"), *CppType, *DefaultValueVariable, *DefaultValueConstructor));
+
+			return DefaultValueVariable;
+		};
+
+		if (Term->AssociatedVarProperty && Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_EditorOnly))
+		{
+			UE_LOG(LogK2Compiler, Warning, TEXT("C++ backend cannot cannot use EditorOnly property: %s"), *GetPathNameSafe(Term->AssociatedVarProperty));
+			EmitterContext.AddLine(*FString::Printf(TEXT("// EDITOR-ONLY Variable: %s"), *FEmitHelper::GetCppName(Term->AssociatedVarProperty)));
+			const FString DefaultValueVariable = GenerateDefaultLocalVariable(Term);
+			return DefaultValueVariable;
+		}
+
 		FString ContextStr;
 		if ((Term->Context != nullptr) && (Term->Context->Name != PSC_Self))
 		{
@@ -915,6 +942,8 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		}
 		else if (Term->AssociatedVarProperty)
 		{
+			FNativizationSummaryHelper::PropertyUsed(EmitterContext.GetCurrentlyGeneratedClass(), Term->AssociatedVarProperty);
+
 			const bool bSelfContext = (!Term->Context) || (Term->Context->Name == PSC_Self);
 			const bool bPropertyOfParent = EmitterContext.Dependencies.GetActualStruct()->IsChildOf(Term->AssociatedVarProperty->GetOwnerStruct());
 			bIsAccessible &= !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate)
@@ -1001,17 +1030,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 
 		if (!Conditions.IsEmpty())
 		{
-			const FString DefaultValueVariable = EmitterContext.GenerateUniqueLocalName();
-			const uint32 PropertyExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
-			const FString CppType = Term->AssociatedVarProperty 
-				? EmitterContext.ExportCppDeclaration(Term->AssociatedVarProperty, EExportedDeclaration::Local, PropertyExportFlags, true)
-				: FEmitHelper::PinTypeToNativeType(Term->Type);
-
-			const FString DefaultValueConstructor = (!Term->Type.bIsArray)
-				? FEmitHelper::LiteralTerm(EmitterContext, Term->Type, FString(), nullptr, &FText::GetEmpty())
-				: FString::Printf(TEXT("%s{}"), *CppType);
-
-			EmitterContext.AddLine(*FString::Printf(TEXT("%s %s = %s;"), *CppType, *DefaultValueVariable, *DefaultValueConstructor));
+			const FString DefaultValueVariable = GenerateDefaultLocalVariable(Term);
 			const FString DefaultExpression = bUseWeakPtrGetter ? (DefaultValueVariable + WeakPtrGetter) : DefaultValueVariable;
 			return FString::Printf(TEXT("((%s) ? (%s) : (%s))"), *Conditions, *ResultPath, *DefaultExpression);
 		}
@@ -1056,7 +1075,7 @@ FString FBlueprintCompilerCppBackend::LatentFunctionInfoTermToText(FEmitterLocal
 	return FEmitHelper::LiteralTerm(EmitterContext, Term->Type, StructValues, nullptr);
 }
 
-void FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, int32 ExecutionGroup)
+bool FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, int32 ExecutionGroup)
 {
 	EmitterContext.ResetPropertiesForInaccessibleStructs();
 
@@ -1136,7 +1155,7 @@ void FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 		}
 	}
 
-	EmitAllStatements(FunctionContext, ExecutionGroup, EmitterContext, *ActualLinearExecutionList);
+	const bool bIsNotReducible = EmitAllStatements(FunctionContext, ExecutionGroup, EmitterContext, *ActualLinearExecutionList);
 
 	if (bUseGotoState)
 	{
@@ -1155,6 +1174,8 @@ void FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 		EmitterContext.DecreaseIndent();
 		EmitterContext.AddLine(TEXT("} while( CurrentState != -1 );"));
 	}
+
+	return bIsNotReducible;
 }
 
 bool FBlueprintCompilerCppBackend::SortNodesInUberGraphExecutionGroup(FKismetFunctionContext &FunctionContext, UEdGraphNode* TheOnlyEntryPoint, int32 ExecutionGroup, TArray<UEdGraphNode*> &LocalLinearExecutionList)
@@ -1325,10 +1346,12 @@ void FBlueprintCompilerCppBackend::EmitStatement(FBlueprintCompiledStatement &St
 	};
 }
 
-void FBlueprintCompilerCppBackend::EmitAllStatements(FKismetFunctionContext &FunctionContext, int32 ExecutionGroup, FEmitterLocalContext &EmitterContext, const TArray<UEdGraphNode*>& LinearExecutionList)
+bool FBlueprintCompilerCppBackend::EmitAllStatements(FKismetFunctionContext &FunctionContext, int32 ExecutionGroup, FEmitterLocalContext &EmitterContext, const TArray<UEdGraphNode*>& LinearExecutionList)
 {
 	ensure(!bUseExecutionGroup || FunctionContext.UnsortedSeparateExecutionGroups.IsValidIndex(ExecutionGroup));
 	bool bFirsCase = true;
+
+	bool bAnyNonReducableStatement = false;
 	// Emit code in the order specified by the linear execution list (the first node is always the entry point for the function)
 	for (int32 NodeIndex = 0; NodeIndex < LinearExecutionList.Num(); ++NodeIndex)
 	{
@@ -1364,9 +1387,11 @@ void FBlueprintCompilerCppBackend::EmitAllStatements(FKismetFunctionContext &Fun
 					EmitterContext.IncreaseIndent();
 				}
 				EmitStatement(Statement, EmitterContext, FunctionContext);
+				bAnyNonReducableStatement |= !FKismetCompilerUtilities::IsStatementReducible(Statement.Type);
 			}
 		}
 	}
+	return bAnyNonReducableStatement;
 }
 
 bool FBlueprintCompilerCppBackend::PrepareToUseExecutionGroupWithoutGoto(FKismetFunctionContext &FunctionContext, int32 ExecutionGroup, UEdGraphNode* &TheOnlyEntryPoint)

@@ -79,7 +79,7 @@ bool UUserWidget::Initialize()
 		}
 		else
 		{
-			CustomNativeInitilize();
+			InitializeNativeClassData();
 		}
 
 		if ( WidgetTree == nullptr )

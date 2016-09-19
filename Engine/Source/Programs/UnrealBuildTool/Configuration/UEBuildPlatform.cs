@@ -244,7 +244,13 @@ namespace UnrealBuildTool
 					UEBuildConfiguration.bCompileWithPluginSupport = bValue;
 				}
 
-				bValue = UEBuildConfiguration.bCompilePhysXVehicle;
+                bValue = UEBuildConfiguration.bWithPerfCounters;
+                if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bWithPerfCounters", out bValue))
+                {
+                    UEBuildConfiguration.bWithPerfCounters = bValue;
+                }
+
+                bValue = UEBuildConfiguration.bCompilePhysXVehicle;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompilePhysXVehicle", out bValue))
 				{
 					UEBuildConfiguration.bCompilePhysXVehicle = bValue;

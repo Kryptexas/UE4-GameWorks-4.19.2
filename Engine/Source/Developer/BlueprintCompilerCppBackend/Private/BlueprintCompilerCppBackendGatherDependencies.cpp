@@ -81,8 +81,21 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 			return;
 		}
 
-		const bool bUseZConstructorInGeneratedCode = false;
+		if (Object->HasAnyFlags(RF_ClassDefaultObject))
+		{
+			// Static functions from libraries are called on CDO. (The functions is stored as a name not an object).
+			UClass* OwnerClass = Object->GetClass();
+			if (OwnerClass && (OwnerClass != CurrentlyConvertedStruct))
+			{
+				UBlueprintGeneratedClass* OwnerAsBPGC = Cast<UBlueprintGeneratedClass>(OwnerClass);
+				if (OwnerAsBPGC && !Dependencies.ConvertedClasses.Contains(OwnerAsBPGC) && Dependencies.WillClassBeConverted(OwnerAsBPGC))
+				{
+					Dependencies.ConvertedClasses.Add(OwnerAsBPGC);
+				}
+			}
+		}
 
+		const bool bUseZConstructorInGeneratedCode = false;
 		//TODO: What About Delegates?
 		auto ObjAsBPGC = Cast<UBlueprintGeneratedClass>(Object);
 		const bool bWillBeConvetedAsBPGC = ObjAsBPGC && Dependencies.WillClassBeConverted(ObjAsBPGC);

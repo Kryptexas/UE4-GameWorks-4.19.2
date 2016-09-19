@@ -94,7 +94,10 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 
 			auto CanSerializeFromStructWithDifferentName = [](const FArchive& InAr, const FPropertyTag& PropertyTag, const UStructProperty* StructProperty)
 			{
-				return PropertyTag.StructGuid.IsValid() && StructProperty && StructProperty->Struct && (PropertyTag.StructGuid == StructProperty->Struct->GetCustomGuid() && (StructProperty->Struct->StructFlags & STRUCT_SerializeFromMismatchedTag));
+				return PropertyTag.StructGuid.IsValid()
+					&& StructProperty 
+					&& StructProperty->Struct 
+					&& (PropertyTag.StructGuid == StructProperty->Struct->GetCustomGuid());
 			};
 
 			// Check if the Inner property can successfully serialize, the type may have changed
