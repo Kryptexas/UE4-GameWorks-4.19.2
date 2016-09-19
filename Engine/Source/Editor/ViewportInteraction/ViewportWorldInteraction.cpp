@@ -216,9 +216,11 @@ UViewportWorldInteraction::UViewportWorldInteraction( const FObjectInitializer& 
 	LastDragGizmoStartTransform( FTransform::Identity ),
 	TrackingTransaction( FTrackingTransaction() ),
 	AppTimeEntered( FTimespan::Zero() ),
+	EditorViewportClient( nullptr ),
 	LastFrameNumberInputWasPolled( 0 ),
 	MotionControllerID( 0 ),	// @todo ViewportInteraction: We only support a single controller, and we assume the first controller are the motion controls
 	LastWorldToMetersScale( 100.0f ),
+	bSkipInteractiveWorldMovementThisFrame( false ),
 	bIsInterpolatingTransformablesFromSnapshotTransform( false ),
 	TransformablesInterpolationStartTime( FTimespan::Zero() ),
 	TransformablesInterpolationDuration( 1.0f ),
@@ -307,7 +309,7 @@ void UViewportWorldInteraction::Exit()
 void UViewportWorldInteraction::Tick( const float DeltaTime )
 {
 	// Only if this is our viewport. Remember, editor modes get a chance to tick and receive input for each active viewport.
-	if ( !EditorViewportClient.IsSet() && !bActive )
+	if ( EditorViewportClient == nullptr && !bActive )
 	{
 		return;
 	}
@@ -380,7 +382,7 @@ bool UViewportWorldInteraction::HandleInputKey( const FKey Key, const EInputEven
 	bool bWasHandled = false;
 	if( bActive )
 	{
-		OnKeyInputEvent.Broadcast( *EditorViewportClient.GetValue(), Key, Event, bWasHandled );
+		OnKeyInputEvent.Broadcast( *EditorViewportClient, Key, Event, bWasHandled );
 		if( !bWasHandled || !bActive )
 		{
 			for( UViewportInteractor* Interactor : Interactors )
@@ -405,7 +407,7 @@ bool UViewportWorldInteraction::HandleInputAxis( const int32 ControllerId, const
 
 	if(bActive)
 	{
-		OnAxisInputEvent.Broadcast( *EditorViewportClient.GetValue(), ControllerId, Key, Delta, DeltaTime, bWasHandled );
+		OnAxisInputEvent.Broadcast( *EditorViewportClient, ControllerId, Key, Delta, DeltaTime, bWasHandled );
 
 		if( !bWasHandled || !bActive)
 		{
@@ -428,11 +430,11 @@ bool UViewportWorldInteraction::HandleInputAxis( const int32 ControllerId, const
 
 FTransform UViewportWorldInteraction::GetRoomTransform() const
 {
-	check( EditorViewportClient.GetValue() );
+	check( EditorViewportClient );
 
 	const FTransform RoomTransform(
-		EditorViewportClient.GetValue()->GetViewRotation().Quaternion(),
-		EditorViewportClient.GetValue()->GetViewLocation(),
+		EditorViewportClient->GetViewRotation().Quaternion(),
+		EditorViewportClient->GetViewLocation(),
 		FVector( 1.0f ) );
 	return RoomTransform;
 }
@@ -463,12 +465,12 @@ FTransform UViewportWorldInteraction::GetHeadTransform() const
 
 void UViewportWorldInteraction::SetRoomTransform( const FTransform& NewRoomTransform )
 {
-	EditorViewportClient.GetValue()->SetViewLocation( NewRoomTransform.GetLocation() );
-	EditorViewportClient.GetValue()->SetViewRotation( NewRoomTransform.GetRotation().Rotator() );
+	EditorViewportClient->SetViewLocation( NewRoomTransform.GetLocation() );
+	EditorViewportClient->SetViewRotation( NewRoomTransform.GetRotation().Rotator() );
 
 	// Forcibly dirty the viewport camera location
 	const bool bDollyCamera = false;
-	EditorViewportClient.GetValue()->MoveViewportCamera( FVector::ZeroVector, FRotator::ZeroRotator, bDollyCamera );
+	EditorViewportClient->MoveViewportCamera( FVector::ZeroVector, FRotator::ZeroRotator, bDollyCamera );
 }
 
 float UViewportWorldInteraction::GetWorldScaleFactor() const
@@ -484,9 +486,9 @@ UWorld* UViewportWorldInteraction::GetViewportWorld() const
 	{
 		ResultWorld = World;
 	}
-	else if ( EditorViewportClient.IsSet() )
+	else if ( EditorViewportClient != nullptr )
 	{
-		ResultWorld = EditorViewportClient.GetValue()->GetWorld();
+		ResultWorld = EditorViewportClient->GetWorld();
 	}
 
 	return ResultWorld;
@@ -494,7 +496,7 @@ UWorld* UViewportWorldInteraction::GetViewportWorld() const
 
 FEditorViewportClient* UViewportWorldInteraction::GetViewportClient() const
 {
-	return EditorViewportClient.GetValue();
+	return EditorViewportClient;
 }
 
 void UViewportWorldInteraction::Undo()
@@ -552,7 +554,7 @@ void UViewportWorldInteraction::HoverTick( const float DeltaTime )
 		Interactor->UpdateHoverResult( HitHoverResult );
 
 		FVector HoverImpactPoint = HitHoverResult.ImpactPoint;
-		OnHoverUpdateEvent.Broadcast( *EditorViewportClient.GetValue(), Interactor, /* In/Out */ HoverImpactPoint, /* In/Out */ bWasHandled);
+		OnHoverUpdateEvent.Broadcast( *EditorViewportClient, Interactor, /* In/Out */ HoverImpactPoint, /* In/Out */ bWasHandled);
 		
 		if ( bWasHandled )
 		{
@@ -633,16 +635,15 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 {
 	const FTimespan CurrentTime = FTimespan::FromSeconds( FPlatformTime::Seconds() );
 	const float WorldToMetersScale = GetViewportWorld()->GetWorldSettings()->WorldToMeters;
-	FEditorViewportClient* ViewportClient = EditorViewportClient.GetValue();
 
 	// Update viewport with any objects that are currently hovered over
 	{
 		const bool bUseEditorSelectionHoverFeedback = GEditor != NULL && GetDefault<ULevelEditorViewportSettings>()->bEnableViewportHoverFeedback;
 		if( bUseEditorSelectionHoverFeedback )
 		{
-			if( ViewportClient->IsLevelEditorClient() )
+			if( EditorViewportClient->IsLevelEditorClient() )
 			{
-				FLevelEditorViewportClient* LevelEditorViewportClient = static_cast<FLevelEditorViewportClient*>( ViewportClient );
+				FLevelEditorViewportClient* LevelEditorViewportClient = static_cast<FLevelEditorViewportClient*>( EditorViewportClient );
 				LevelEditorViewportClient->UpdateHoveredObjects( HoveredObjects );
 			}
 		}
@@ -892,7 +893,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 				}
 			}
 
-			const FVector OldViewLocation = ViewportClient->GetViewLocation();
+			const FVector OldViewLocation = EditorViewportClient->GetViewLocation();
 			// Dragging transform gizmo handle
 			const bool bWithTwoHands = ( OtherInteractor != nullptr || OtherInteractorThatWasAssistingDrag != nullptr );
 			const bool bIsLaserPointerValid = true;
@@ -903,7 +904,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 				InteractorData.DraggingMode, 
 				InteractorData.TransformGizmoInteractionType, 
 				bWithTwoHands,
-				*ViewportClient, 
+				*EditorViewportClient, 
 				InteractorData.OptionalHandlePlacement, 
 				DragDelta, 
 				OtherHandDragDelta,
@@ -942,7 +943,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 			// If we were dragging the world, then play some haptic feedback
 			if( InteractorData.DraggingMode == EViewportInteractionDraggingMode::World )
 			{
-				const FVector NewViewLocation = ViewportClient->GetViewLocation();
+				const FVector NewViewLocation = EditorViewportClient->GetViewLocation();
 
 				// @todo vreditor: Consider doing this for inertial moves too (we need to remember the last hand that invoked the move.)
 
@@ -1025,7 +1026,7 @@ void UViewportWorldInteraction::InteractionTick( const float DeltaTime )
 					InteractorData.LastDraggingMode, 
 					InteractorData.TransformGizmoInteractionType, 
 					bWithTwoHands, 
-					*ViewportClient, 
+					*EditorViewportClient, 
 					InteractorData.OptionalHandlePlacement, 
 					DragDelta, 
 					OtherHandDragDelta,
@@ -1857,7 +1858,7 @@ void UViewportWorldInteraction::UpdateDragging(
 				bShouldApplyVelocitiesFromDrag = true;
 			}
 		}
-		else if ( DraggingMode == EViewportInteractionDraggingMode::World )
+		else if ( DraggingMode == EViewportInteractionDraggingMode::World && !bSkipInteractiveWorldMovementThisFrame )
 		{
 			FTransform RoomTransform = GetRoomTransform();
 
@@ -1989,6 +1990,7 @@ void UViewportWorldInteraction::UpdateDragging(
 	}
 
 	bIsFirstDragUpdate = false;
+	bSkipInteractiveWorldMovementThisFrame = false;
 }
 
 FVector UViewportWorldInteraction::ComputeConstrainedDragDeltaFromStart( 

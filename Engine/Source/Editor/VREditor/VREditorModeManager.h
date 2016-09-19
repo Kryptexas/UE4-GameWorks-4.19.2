@@ -60,9 +60,6 @@ private:
 	/** Saved last world to meters scale from last VR Editor session so we can restore it when entering the VR Editor when PIE starter from VR Editor */
 	float LastWorldToMeters;
 
-	/** Saved world to meters scale from the editor when entering the VR Editor mode, to restore it when closing the editor */
-	float SavedWorldToMeters;
-
 	/** True when we detect that the user is wearing the HMD */
 	EHMDWornState::Type HMDWornState;
 

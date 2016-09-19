@@ -15,7 +15,6 @@ FVREditorModeManager::FVREditorModeManager() :
 	bEnableVRRequest( false ),
 	bPlayStartedFromVREditor( false ),
 	LastWorldToMeters( 100 ),
-	SavedWorldToMeters( 0 ),
 	HMDWornState( EHMDWornState::Unknown ),
 	TimeSinceHMDChecked( 0.0f )
 {
@@ -26,7 +25,12 @@ FVREditorModeManager::FVREditorModeManager() :
 
 FVREditorModeManager::~FVREditorModeManager()
 {
-	//FEditorDelegates::MapChange.RemoveAll( this );
+	FLevelEditorModule* LevelEditor = FModuleManager::GetModulePtr<FLevelEditorModule>( "LevelEditor" );
+	if( LevelEditor != nullptr )
+	{
+		LevelEditor->OnMapChanged().RemoveAll( this );
+	}
+
 	CurrentVREditorMode = nullptr;
 	PreviousVREditorMode = nullptr;
 }
@@ -154,8 +158,6 @@ void FVREditorModeManager::AddReferencedObjects( FReferenceCollector& Collector 
 
 void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 {
-	SavedWorldToMeters = GWorld->GetWorldSettings()->WorldToMeters; //@todo VREditor: Do not use GWorld
-
 	// Set the WorldToMeters scale when we stopped playing PIE that was started by the VR Editor to that VR Editor sessions latest WorldToMeters
 	if( bPlayStartedFromVREditor )
 	{
@@ -182,9 +184,6 @@ void FVREditorModeManager::CloseVREditor()
 		PreviousVREditorMode = CurrentVREditorMode;
 		CurrentVREditorMode = nullptr;
 	}
-
-	SetDirectWorldToMeters( SavedWorldToMeters );
-	SavedWorldToMeters = 0.0f;
 }
 
 void FVREditorModeManager::SetDirectWorldToMeters( const float NewWorldToMeters )

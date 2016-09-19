@@ -9,6 +9,7 @@
 #include "VREditorFloatingUI.h"
 #include "VREditorAvatarActor.h"
 #include "Teleporter/VREditorTeleporter.h"
+#include "Teleporter/VREditorAutoScaler.h"
 
 #include "CameraController.h"
 #include "DynamicMeshBuilder.h"
@@ -45,6 +46,7 @@ namespace VREd
 UVREditorMode::UVREditorMode( const FObjectInitializer& ObjectInitializer ) : 
 	Super( ObjectInitializer ),
 	bWantsToExitMode( false ),
+	ExitType( EVREditorExitType::Normal ),
 	bIsFullyInitialized( false ),
 	AppTimeModeEntered( FTimespan::Zero() ),
 	AvatarActor( nullptr ),
@@ -53,26 +55,21 @@ UVREditorMode::UVREditorMode( const FObjectInitializer& ObjectInitializer ) :
 	MotionControllerID( 0 ),	// @todo vreditor minor: We only support a single controller, and we assume the first controller are the motion controls
 	UISystem( nullptr ),
 	TeleporterSystem( nullptr ),
+	AutoScalerSystem( nullptr ),
 	WorldInteraction( nullptr ),
 	MouseCursorInteractor( nullptr ),
 	LeftHandInteractor( nullptr ),
 	RightHandInteractor( nullptr ),
 	bFirstTick( true ),
-	bWasInWorldSpaceBeforeScaleMode( false )
+	bWasInWorldSpaceBeforeScaleMode( false ),
+	bIsActive( false )
 {
 }
 
 
 UVREditorMode::~UVREditorMode()
 {
-	AvatarActor = nullptr;
-	FlashlightComponent = nullptr;
-	UISystem = nullptr;
-	TeleporterSystem = nullptr;
-	WorldInteraction = nullptr;
-	MouseCursorInteractor = nullptr;
-	LeftHandInteractor = nullptr;
-	RightHandInteractor = nullptr;
+	Shutdown();
 }
 
 void UVREditorMode::Init( UViewportWorldInteraction* InViewportWorldInteraction )
@@ -119,10 +116,16 @@ void UVREditorMode::Init( UViewportWorldInteraction* InViewportWorldInteraction 
 void UVREditorMode::Shutdown()
 {
 	bIsFullyInitialized = false;
-
-	//Exit();
-
+	
+	AvatarActor = nullptr;
+	FlashlightComponent = nullptr;
+	UISystem = nullptr;
+	TeleporterSystem = nullptr;
+	AutoScalerSystem = nullptr;
 	WorldInteraction = nullptr;
+	MouseCursorInteractor = nullptr;
+	LeftHandInteractor = nullptr;
+	RightHandInteractor = nullptr;
 
 	// @todo vreditor urgent: Disable global editor hacks for VR Editor mode
 	GEnableVREditorHacks = false;
@@ -279,6 +282,9 @@ void UVREditorMode::Enter()
 			SavedEditorState.bOnScreenMessages = GAreScreenMessagesEnabled;
 			GAreScreenMessagesEnabled = false;
 
+			// Save the world to meters scale
+			SavedEditorState.WorldToMetersScale = VRViewportClient.GetWorld()->GetWorldSettings()->WorldToMeters;
+
 			if(bActuallyUsingVR)
 			{
 				SavedEditorState.TrackingOrigin = GEngine->HMDDevice->GetTrackingOrigin();
@@ -340,7 +346,7 @@ void UVREditorMode::Enter()
 			RightHandInteractor->Init( this );
 			WorldInteraction->AddInteractor( RightHandInteractor );
 
-			WorldInteraction->PairInteractors(LeftHandInteractor, RightHandInteractor );
+			WorldInteraction->PairInteractors( LeftHandInteractor, RightHandInteractor );
 		}
 		else
 		{
@@ -360,7 +366,11 @@ void UVREditorMode::Enter()
 
 		// Setup teleporter
 		TeleporterSystem = NewObject<UVREditorTeleporter>();
-		TeleporterSystem->Init(this);
+		TeleporterSystem->Init( this );
+
+		// Setup autoscaler
+		AutoScalerSystem = NewObject<UVREditorAutoScaler>();
+		AutoScalerSystem->Init( this );
 	}
 
 	if(AvatarActor == nullptr)
@@ -379,7 +389,6 @@ void UVREditorMode::Exit()
 		{
 			DestroyTransientActor( AvatarActor );
 			AvatarActor = nullptr;
-
 			FlashlightComponent = nullptr;
 		}
 
@@ -431,6 +440,13 @@ void UVREditorMode::Exit()
 					{
 						GEngine->HMDDevice->SetTrackingOrigin( SavedEditorState.TrackingOrigin );
 					}
+
+					// Set the world to meters back to the saved one when entering the mode
+					{
+						VRViewportClient.GetWorld()->GetWorldSettings()->WorldToMeters = SavedEditorState.WorldToMetersScale;
+						ENGINE_API extern float GNewWorldToMetersScale;
+						GNewWorldToMetersScale = 0.0f;
+					}
 				}
 
 				if(bActuallyUsingVR)
@@ -469,25 +485,32 @@ void UVREditorMode::Exit()
 	}
 
 	// Kill subsystems
-	if(UISystem != nullptr)
+	if( UISystem != nullptr )
 	{
 		UISystem->Shutdown();
-		//UISystem->MarkPendingKill();
+		UISystem->MarkPendingKill();
 		UISystem = nullptr;
 	}
 
-	if(VRWorldInteractionExtension != nullptr)
+	if( VRWorldInteractionExtension != nullptr )
 	{
 		VRWorldInteractionExtension->Shutdown();
 		VRWorldInteractionExtension->MarkPendingKill();
 		VRWorldInteractionExtension = nullptr;
 	}
 
-	if(TeleporterSystem != nullptr)
+	if( TeleporterSystem != nullptr )
 	{
 		TeleporterSystem->Shutdown();
 		TeleporterSystem->MarkPendingKill();
 		TeleporterSystem = nullptr;
+	}
+
+	if( AutoScalerSystem != nullptr )
+	{
+		AutoScalerSystem->Shutdown();
+		AutoScalerSystem->MarkPendingKill();
+		AutoScalerSystem = nullptr;
 	}
 
 	{
@@ -573,6 +596,7 @@ void UVREditorMode::PreTick( const float DeltaTime )
 		FTransform ResultToWorld = ( HeadToRoomYaw.Inverse() * ViewportToRoomYaw ) * RoomToWorldYaw;
 		SetRoomTransform( ResultToWorld );
 	}
+
 }
 
 void UVREditorMode::Tick( float DeltaTime )
@@ -765,7 +789,7 @@ SLevelViewport& UVREditorMode::GetLevelViewportPossessedForVR()
 
 float UVREditorMode::GetWorldScaleFactor() const
 {
-	return WorldInteraction->GetViewportWorld()->GetWorldSettings()->WorldToMeters / 100.0f;
+	return WorldInteraction->GetWorldScaleFactor();
 }
 
 
@@ -937,11 +961,9 @@ void UVREditorMode::SnapSelectedActorsToGround()
 	VRWorldInteractionExtension->SnapSelectedActorsToGround();
 }
 
-void UVREditorMode::GoToDefaultScale()
+const UVREditorMode::FSavedEditorState& UVREditorMode::GetSavedEditorState() const
 {
-	LeftHandInteractor->SetDraggingMode( EViewportInteractionDraggingMode::Nothing );
-	RightHandInteractor->SetDraggingMode( EViewportInteractionDraggingMode::Nothing );
-	WorldInteraction->SetWorldToMetersScale( 100.0f );
+	return SavedEditorState;
 }
 
 #undef LOCTEXT_NAMESPACE

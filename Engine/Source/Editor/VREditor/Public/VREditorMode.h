@@ -233,8 +233,44 @@ public:
 
 	/** Snaps the current selected actor to the ground */
 	void SnapSelectedActorsToGround();
+	
+	/** Saved information about the editor and viewport we possessed, so we can restore it after exiting VR mode */
+	struct FSavedEditorState
+	{
+		ELevelViewportType ViewportType;
+		FVector ViewLocation;
+		FRotator ViewRotation;
+		FEngineShowFlags ShowFlags;
+		bool bLockedPitch;
+		bool bGameView;
+		bool bAlwaysShowModeWidgetAfterSelectionChanges;
+		float NearClipPlane;
+		bool bRealTime;
+		float DragTriggerDistance;
+		bool bOnScreenMessages;
+		EHMDTrackingOrigin::Type TrackingOrigin;
+		float WorldToMetersScale;
 
-	void GoToDefaultScale();
+		FSavedEditorState()
+			: ViewportType( LVT_Perspective ),
+			  ViewLocation( FVector::ZeroVector ),
+			  ViewRotation( FRotator::ZeroRotator ),
+			  ShowFlags( ESFIM_Editor ),
+			  bLockedPitch( false ),
+			  bGameView( false ),
+			  bAlwaysShowModeWidgetAfterSelectionChanges( false ),
+			  NearClipPlane( 0.0f ),
+			  bRealTime( false ),
+			  DragTriggerDistance( 0.0f ),
+			  bOnScreenMessages( false ),
+			  TrackingOrigin( EHMDTrackingOrigin::Eye ),
+			  WorldToMetersScale( 100.0f )
+		{
+		}
+	};
+
+	/** Gets the saved editor state from entering the mode */
+	const FSavedEditorState& GetSavedEditorState() const;
 
 private:
 	//Handles closing the VR mode by escape key
@@ -261,44 +297,16 @@ protected:
 	TWeakPtr< class SLevelViewport > VREditorLevelViewportWeakPtr;
 
 	/** Saved information about the editor and viewport we possessed, so we can restore it after exiting VR mode */
-	struct FSavedEditorState
-	{
-		ELevelViewportType ViewportType;
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		FEngineShowFlags ShowFlags;
-		bool bLockedPitch;
-		bool bGameView;
-		bool bAlwaysShowModeWidgetAfterSelectionChanges;
-		float NearClipPlane;
-		bool bRealTime;
-		float DragTriggerDistance;
-		bool bOnScreenMessages;
-		EHMDTrackingOrigin::Type TrackingOrigin;
-
-		FSavedEditorState()
-			: ViewportType( LVT_Perspective ),
-			  ViewLocation( FVector::ZeroVector ),
-			  ViewRotation( FRotator::ZeroRotator ),
-			  ShowFlags( ESFIM_Editor ),
-			  bLockedPitch( false ),
-			  bGameView( false ),
-			  bAlwaysShowModeWidgetAfterSelectionChanges( false ),
-			  NearClipPlane( 0.0f ),
-			  bRealTime( false ),
-			  DragTriggerDistance( 0.0f ),
-			  bOnScreenMessages( false ),
-			  TrackingOrigin( EHMDTrackingOrigin::Eye )
-		{
-		}
-		
-	} SavedEditorState;
+	FSavedEditorState SavedEditorState;
 
 	/** True if we're in using an actual HMD in this mode, or false if we're "faking" VR mode for testing */
 	bool bActuallyUsingVR;
 
 	/** True if we currently want to exit VR mode.  This is used to defer exiting until it is safe to do that */
 	bool bWantsToExitMode;
+
+	/** The reason for exiting the mode, so the module can close the mode and take further actions on what should happen next */
+	EVREditorExitType ExitType;
 
 	/** True if VR mode is fully initialized and ready to render */
 	bool bIsFullyInitialized;
@@ -350,6 +358,10 @@ protected:
 	/** Teleporter system */
 	UPROPERTY()
 	class UVREditorTeleporter* TeleporterSystem;
+
+	/** Automatic scale system */
+	UPROPERTY()
+	class UVREditorAutoScaler* AutoScalerSystem;
 
 	//
 	// World interaction
@@ -419,9 +431,6 @@ private:
 
 	/** If the coordinate system was in world space before entering (local) scale mode */
 	bool bWasInWorldSpaceBeforeScaleMode;
-
-	/** The reason for exiting the mode, so the module can close the mode and take further actions on what should happen next */
-	EVREditorExitType ExitType;
 
 	/** If this current mode is running */
 	bool bIsActive;

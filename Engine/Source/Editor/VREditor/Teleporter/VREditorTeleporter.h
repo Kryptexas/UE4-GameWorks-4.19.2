@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,20 +19,19 @@ public:
 
 	/** Shuts down the teleport system */
 	void Shutdown();
-
-	/** Ticks the current teleport */
-	void Tick( const float DeltaTime );
-
+	
 	/** Returns true if we're actively teleporting */
 	bool IsTeleporting() const
 	{
 		return bIsTeleporting;
 	}
 
+private:
+	/** Ticks the current teleport */
+	void Tick( const float DeltaTime );
+	
 	/** Start teleporting, does a ray trace with the hand passed and calculates the locations for lerp movement in Teleport */
 	void StartTeleport( class UViewportInteractor* Interactor );
-
-private:
 
 	/** Called when the user presses a button on their motion controller device */
 	void OnInteractorAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor,
