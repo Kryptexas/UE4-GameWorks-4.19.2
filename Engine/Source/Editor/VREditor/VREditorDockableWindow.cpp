@@ -64,10 +64,6 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		SelectionBarMeshComponent->SetupAttachment( RootComponent );
 
 		SelectionBarMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-		SelectionBarMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Ignore );
-		SelectionBarMeshComponent->SetCollisionResponseToChannel( COLLISION_GIZMO, ECollisionResponse::ECR_Block );
-		SelectionBarMeshComponent->SetCollisionObjectType( COLLISION_GIZMO );
-
 		SelectionBarMeshComponent->bGenerateOverlapEvents = false;
 		SelectionBarMeshComponent->SetCanEverAffectNavigation( false );
 		SelectionBarMeshComponent->bCastDynamicShadow = false;

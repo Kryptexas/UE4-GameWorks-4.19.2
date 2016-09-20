@@ -187,7 +187,9 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 	const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
 	UVREditorMotionControllerInteractor* VREditorInteractor = Cast<UVREditorMotionControllerInteractor>( Interactor );
-	if ( VREditorInteractor )
+	if( VREditorInteractor && 
+		!( VREditorInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::ActorsWithGizmo ||
+		  VREditorInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::Interactable ) )
 	{
 		if ( !bWasHandled )
 		{
