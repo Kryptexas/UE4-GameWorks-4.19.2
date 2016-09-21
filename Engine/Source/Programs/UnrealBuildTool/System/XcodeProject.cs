@@ -654,6 +654,8 @@ namespace UnrealBuildTool
                 string UUID_TVOS = "";
                 string TEAM_IOS = "";
                 string TEAM_TVOS = "";
+                string IOS_CERT = "iPhone Developer";
+                string TVOS_CERT = "iPhone Developer";
                 if (UnrealBuildTool.IsValidPlatform(UnrealTargetPlatform.IOS))
 				{
 					IOSPlatform IOSBuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
@@ -665,6 +667,7 @@ namespace UnrealBuildTool
 					SupportedPlatforms += " iphoneos";
                     UUID_IOS = PlatformContextIOS.MobileProvisionUUID;
                     TEAM_IOS = PlatformContextIOS.TeamUUID;
+                    IOS_CERT = PlatformContextIOS.SigningCertificate;
                 }
 
                 if (UnrealBuildTool.IsValidPlatform(UnrealTargetPlatform.TVOS))
@@ -681,6 +684,7 @@ namespace UnrealBuildTool
 					SupportedPlatforms += " appletvos";
                     UUID_TVOS = PlatformContextTVOS.MobileProvisionUUID;
                     TEAM_TVOS = PlatformContextTVOS.TeamUUID;
+                    TVOS_CERT = PlatformContextTVOS.SigningCertificate;
                 }
 
                 Content.Append("\t\t\t\tVALID_ARCHS = \"" + ValidArchs + "\";" + ProjectFileGenerator.NewLine);
@@ -691,7 +695,7 @@ namespace UnrealBuildTool
 					Content.Append("\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSRunTimeVersion + ";" + ProjectFileGenerator.NewLine);
 					Content.Append("\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"" + Config.BuildTarget + "\";" + ProjectFileGenerator.NewLine); // @todo: change to Path.GetFileName(Config.IOSExecutablePath) when we stop using payload
 					Content.Append("\t\t\t\t\"TARGETED_DEVICE_FAMILY[sdk=iphoneos*]\" = \"" + IOSRunTimeDevices + "\";" + ProjectFileGenerator.NewLine);
-					Content.Append("\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Developer\";" + ProjectFileGenerator.NewLine);
+					Content.Append("\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"" + IOS_CERT + "\";" + ProjectFileGenerator.NewLine);
 					Content.Append("\t\t\t\t\"SDKROOT[sdk=iphoneos]\" = iphoneos;" + ProjectFileGenerator.NewLine);
 					Content.Append("\t\t\t\t\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"" + UUID_IOS + "\";" + ProjectFileGenerator.NewLine);
                     Content.Append("\t\t\t\t\"DEVELOPMENT_TEAM[sdk=iphoneos*]\" = \"" + TEAM_IOS + "\";" + ProjectFileGenerator.NewLine);
@@ -701,7 +705,7 @@ namespace UnrealBuildTool
 					Content.Append("\t\t\t\tTVOS_DEPLOYMENT_TARGET = " + TVOSRunTimeVersion + ";" + ProjectFileGenerator.NewLine);
 					Content.Append("\t\t\t\t\"PRODUCT_NAME[sdk=appletvos*]\" = \"" + Config.BuildTarget + "\";" + ProjectFileGenerator.NewLine); // @todo: change to Path.GetFileName(Config.TVOSExecutablePath) when we stop using payload
 					Content.Append("\t\t\t\t\"TARGETED_DEVICE_FAMILY[sdk=appletvos*]\" = \"" + TVOSRunTimeDevices + "\";" + ProjectFileGenerator.NewLine);
-					Content.Append("\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=appletvos*]\" = \"iPhone Developer\";" + ProjectFileGenerator.NewLine);
+					Content.Append("\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=appletvos*]\" = \"" + TVOS_CERT + "\";" + ProjectFileGenerator.NewLine);
 					Content.Append("\t\t\t\t\"SDKROOT[sdk=appletvos]\" = appletvos;" + ProjectFileGenerator.NewLine);
 					Content.Append("\t\t\t\t\"PROVISIONING_PROFILE_SPECIFIER[sdk=appletvos*]\" = \"" + UUID_TVOS + "\";" + ProjectFileGenerator.NewLine);
                     Content.Append("\t\t\t\t\"DEVELOPMENT_TEAM[sdk=appletvos*]\" = \"" + TEAM_TVOS + "\";" + ProjectFileGenerator.NewLine);

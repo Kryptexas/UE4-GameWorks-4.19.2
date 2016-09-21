@@ -199,18 +199,29 @@ namespace UnrealBuildTool
 
         static string Provision = "";
         static string Certificate = "";
+        static bool bHaveCertificate = false;
         public static void IPPDataReceivedHandler(Object Sender, DataReceivedEventArgs Line)
         {
             if ((Line != null) && (Line.Data != null))
             {
-                int cindex = Line.Data.IndexOf("CERTIFICATE-");
-                int pindex = Line.Data.IndexOf("PROVISION-");
-                if (cindex > -1 && pindex > -1)
+                if (!string.IsNullOrEmpty(Certificate))
                 {
-                    cindex += "CERTIFICATE-".Length;
-                    Certificate = Line.Data.Substring(cindex, pindex - cindex - 1);
-                    pindex += "PROVISION-".Length;
-                    Provision = Line.Data.Substring(pindex);
+                    if (Line.Data.Contains("CERTIFICATE-") && Line.Data.Contains(Certificate))
+                    {
+                        bHaveCertificate = true;
+                    }
+                }
+                else
+                {
+                    int cindex = Line.Data.IndexOf("CERTIFICATE-");
+                    int pindex = Line.Data.IndexOf("PROVISION-");
+                    if (cindex > -1 && pindex > -1)
+                    {
+                        cindex += "CERTIFICATE-".Length;
+                        Certificate = Line.Data.Substring(cindex, pindex - cindex - 1);
+                        pindex += "PROVISION-".Length;
+                        Provision = Line.Data.Substring(pindex);
+                    }
                 }
             }
         }
@@ -223,6 +234,7 @@ namespace UnrealBuildTool
             public string TeamUUID;
         }
         static Dictionary<string, ProvisionData> ProvisionCache = new Dictionary<string, ProvisionData>();
+
         public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
 		{
 			if (!bInitializedProject)
@@ -346,8 +358,38 @@ namespace UnrealBuildTool
                 {
                     Certificate = SigningCertificate;
                     Provision = MobileProvision;
-                    if (string.IsNullOrEmpty(MobileProvision))
+                    if (!string.IsNullOrEmpty(SigningCertificate))
                     {
+                        // verify the certificate
+                        Process IPPProcess = new Process();
+                        if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+                        {
+                            string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" certificates " + ((ProjectFile != null) ? ProjectFile.ToString() : "Engine") + " -bundlename " + BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
+                            IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                            IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
+                            IPPProcess.StartInfo.Arguments = IPPCmd;
+                            IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                            IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                        }
+                        else
+                        {
+                            string IPPCmd = "certificates " + ((ProjectFile != null) ? ProjectFile.ToString() : "Engine") + " -bundlename " + BundleId;
+                            IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                            IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
+                            IPPProcess.StartInfo.Arguments = IPPCmd;
+                            IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                            IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                        }
+                        Utils.RunLocalProcess(IPPProcess);
+                    }
+
+                    if (string.IsNullOrEmpty(MobileProvision) // no provision specified
+                        || !File.Exists((BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac ? (Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/") : (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/")) + MobileProvision) // file doesn't exist
+                        || !bHaveCertificate) // certificate doesn't exist
+                    {
+                        Certificate = "";
+                        Provision = "";
+                        Log.TraceLog("Provision not specified or not found for " + ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game") + ", searching for compatible match...");
                         Process IPPProcess = new Process();
                         if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
                         {
@@ -368,6 +410,7 @@ namespace UnrealBuildTool
                             IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
                         }
                         Utils.RunLocalProcess(IPPProcess);
+                        Log.TraceLog("Provision found for " + ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game") + ", Provision: " + Provision +" Certificate: " + Certificate);
                     }
                     // add to the dictionary
                     Data.MobileProvision = Provision;
@@ -398,6 +441,10 @@ namespace UnrealBuildTool
                                 Data.TeamUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
                             }
                         }
+                    }
+                    else
+                    {
+                        Log.TraceWarning("No matching provision file was discovered. Please ensure you have a compatible provision installed.");
                     }
                     ProvisionCache.Add(BundleId, Data);
                 }
