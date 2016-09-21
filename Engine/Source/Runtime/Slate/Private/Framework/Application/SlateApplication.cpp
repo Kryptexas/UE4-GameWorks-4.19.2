@@ -5859,6 +5859,12 @@ void FSlateApplication::ProcessMotionDetectedEvent( FMotionEvent& MotionEvent )
 	
 	if ( FSlateUser* User = GetOrCreateUser(MotionEvent.GetUserIndex()) )
 	{
+
+		if (InputPreProcessor.IsValid() && InputPreProcessor->HandleMotionDetectedEvent(*this, MotionEvent))
+		{
+			return;
+		}
+
 		if ( User->Focus.WidgetPath.IsValid() )
 		{
 			/* Get the controller focus target for this user */

@@ -29,6 +29,7 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 
 			AbilitySystemGlobals = NewObject<UAbilitySystemGlobals>(GetTransientPackage(), SingletonClass, NAME_None);
 			AbilitySystemGlobals->AddToRoot();
+			AbilitySystemGlobalsReadyCallback.Broadcast();
 		}
 
 		check(AbilitySystemGlobals);
@@ -41,6 +42,19 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 		return AbilitySystemGlobals != nullptr;
 	}
 
+	void CallOrRegister_OnAbilitySystemGlobalsReady(FSimpleMulticastDelegate::FDelegate Delegate)
+	{
+		if (AbilitySystemGlobals)
+		{
+			Delegate.Execute();
+		}
+		else
+		{
+			AbilitySystemGlobalsReadyCallback.Add(Delegate);
+		}
+	}
+
+	FSimpleMulticastDelegate AbilitySystemGlobalsReadyCallback;
 	UAbilitySystemGlobals* AbilitySystemGlobals;
 	
 };

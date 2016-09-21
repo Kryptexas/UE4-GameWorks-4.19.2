@@ -90,7 +90,8 @@ public class WebRTC : ModuleRules
 // 				Definitions.Add("__native_client__=1");
 
 				string ConfigPath = "/Release";
-				if (Target.Configuration == UnrealTargetConfiguration.Debug)
+
+				if ((Target.Configuration == UnrealTargetConfiguration.Debug) && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 				{
 					Definitions.Add("_DEBUG");
 					Definitions.Add("DYNAMIC_ANNOTATIONS_ENABLED=1");

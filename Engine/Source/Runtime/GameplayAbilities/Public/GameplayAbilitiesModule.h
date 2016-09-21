@@ -40,5 +40,7 @@ public:
 	virtual class UAbilitySystemGlobals* GetAbilitySystemGlobals() = 0;
 
 	virtual bool IsAbilitySystemGlobalsAvailable() = 0;
+
+	virtual void CallOrRegister_OnAbilitySystemGlobalsReady(FSimpleMulticastDelegate::FDelegate Delegate) = 0;
 };
 

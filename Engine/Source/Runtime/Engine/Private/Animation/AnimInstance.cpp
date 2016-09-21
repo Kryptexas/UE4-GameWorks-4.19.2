@@ -1625,7 +1625,7 @@ void UAnimInstance::TriggerQueuedMontageEvents()
 	// Trigger Montage blending out before Ended events.
 	if (QueuedMontageBlendingOutEvents.Num() > 0)
 	{
-		for (auto MontageBlendingOutEvent : QueuedMontageBlendingOutEvents)
+		for (const FQueuedMontageBlendingOutEvent& MontageBlendingOutEvent : QueuedMontageBlendingOutEvents)
 		{
 			TriggerMontageBlendingOutEvent(MontageBlendingOutEvent);
 		}
@@ -1634,7 +1634,7 @@ void UAnimInstance::TriggerQueuedMontageEvents()
 
 	if (QueuedMontageEndedEvents.Num() > 0)
 	{
-		for (auto MontageEndedEvent : QueuedMontageEndedEvents)
+		for (const FQueuedMontageEndedEvent& MontageEndedEvent : QueuedMontageEndedEvents)
 		{
 			TriggerMontageEndedEvent(MontageEndedEvent);
 		}

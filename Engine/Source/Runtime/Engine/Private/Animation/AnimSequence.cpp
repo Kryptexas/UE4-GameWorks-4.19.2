@@ -4937,6 +4937,37 @@ float UAnimSequence::GetNextMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPo
 	return StartingPosition;
 }
 
+float UAnimSequence::GetPrevMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const
+{
+	if ((InMarkerSyncGroupPosition.PreviousMarkerName == NAME_None) || (InMarkerSyncGroupPosition.NextMarkerName == NAME_None) || (AuthoredSyncMarkers.Num() < 2))
+	{
+		return StartingPosition;
+	}
+
+	for (int32 PrevMarkerIdx = AuthoredSyncMarkers.Num() - 2; PrevMarkerIdx >= 0; PrevMarkerIdx--)
+	{
+		const FAnimSyncMarker& PrevMarker = AuthoredSyncMarkers[PrevMarkerIdx];
+		const FAnimSyncMarker& NextMarker = AuthoredSyncMarkers[PrevMarkerIdx + 1];
+
+		if (PrevMarker.Time > StartingPosition)
+		{
+			continue;
+		}
+
+		if ((PrevMarker.MarkerName == InMarkerSyncGroupPosition.PreviousMarkerName) && (NextMarker.MarkerName == InMarkerSyncGroupPosition.NextMarkerName))
+		{
+			const float FoundTime = FMath::Lerp(PrevMarker.Time, NextMarker.Time, InMarkerSyncGroupPosition.PositionBetweenMarkers);
+			if (FoundTime > StartingPosition)
+			{
+				continue;
+			}
+			return FoundTime;
+		}
+	}
+
+	return StartingPosition;
+}
+
 void UAnimSequence::EnableRootMotionSettingFromMontage(bool bInEnableRootMotion, const ERootMotionRootLock::Type InRootMotionRootLock)
 {
 	if (!bRootMotionSettingsCopiedFromMontage)

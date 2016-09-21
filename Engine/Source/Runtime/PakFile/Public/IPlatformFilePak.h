@@ -920,9 +920,10 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 	/**
 	 * When security is enabled, determine if this filename can be looked for in the lower level file system
 	 * 
-	 * @param InFilename Filename to check
+	 * @param InFilename			Filename to check
+	 * @param bAllowDirectories		Consider directories as valid filepaths?
 	 */
-	bool IsNonPakFilenameAllowed(const FString& InFilename);
+	bool IsNonPakFilenameAllowed(const FString& InFilename, bool bAllowDirectories = false);
 
 public:
 
@@ -1299,8 +1300,8 @@ public:
 
 		// Fall back to lower level.
 		FFileStatData FileStatData;
-
-		if (FileStatData.bIsDirectory || IsNonPakFilenameAllowed(FilenameOrDirectory))
+		const bool bAllowDirectories = true;
+		if (IsNonPakFilenameAllowed(FilenameOrDirectory, bAllowDirectories))
 		{
 			FileStatData = LowerLevel->GetStatData(FilenameOrDirectory);
 		}

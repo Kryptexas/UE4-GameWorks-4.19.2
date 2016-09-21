@@ -91,3 +91,13 @@ void FMenuInHostWidget::Dismiss()
 		OnMenuDismissed.Broadcast(AsShared());
 	}
 }
+
+bool FMenuInHostWidget::UsingApplicationMenuStack() const
+{
+	TSharedPtr<IMenuHost> HostPinned = MenuHost.Pin();
+	if (HostPinned.IsValid())
+	{
+		return HostPinned->UsingApplicationMenuStack();
+	}
+	return true;
+}

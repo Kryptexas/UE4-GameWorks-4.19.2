@@ -2719,7 +2719,7 @@ void FAudioDevice::StopSources(TArray<FWaveInstance*>& WaveInstances, int32 Firs
 	for (int32 InstanceIndex = 0; InstanceIndex < FirstActiveIndex; InstanceIndex++)
 	{
 		FWaveInstance* WaveInstance = WaveInstances[ InstanceIndex ];
-		if (WaveInstance->GetVolume() > 0.1f) 
+		if (WaveInstance->GetVolume() > 0.1f)
 		{
 			AudibleInactiveSounds++;
 		}

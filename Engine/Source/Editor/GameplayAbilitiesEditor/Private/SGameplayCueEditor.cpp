@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyri7ght 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemEditorPrivatePCH.h"
+#include "GameplayAbilitiesEditorModule.h"
 #include "SGameplayCueEditor.h"
 #include "GameplayCueSet.h"
 #include "GameplayCueManager.h"
@@ -19,348 +20,129 @@
 #include "AssetEditorManager.h"
 #include "AbilitySystemGlobals.h"
 #include "AssetToolsModule.h"
+#include "Editor/LevelEditor/Public/LevelEditor.h"
 
 #define LOCTEXT_NAMESPACE "SGameplayCueEditor"
-
-
-/** Widget for picking a new GameplayCue Notify class (similar to actor class picker)  */
-class SGameplayCuePickerDialog : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS( SGameplayCuePickerDialog )
-	{}
-
-		SLATE_ARGUMENT( TSharedPtr<SWindow>, ParentWindow )
-		SLATE_ARGUMENT( TArray<UClass*>, DefaultClasses )
-		SLATE_ARGUMENT( FString, GameplayCueTag )
-
-	SLATE_END_ARGS()
-
-	/** Constructs this widget with InArgs */
-	void Construct(const FArguments& InArgs);
-
-	static bool PickGameplayCue(const FText& TitleText, const TArray<UClass*>& DefaultClasses, UClass*& OutChosenClass, FString InGameplayCueTag);
-
-private:
-	/** Handler for when a class is picked in the class picker */
-	void OnClassPicked(UClass* InChosenClass);
-
-	/** Creates the default class widgets */
-	TSharedRef<ITableRow> GenerateListRow(UClass* InItem, const TSharedRef<STableViewBase>& OwnerTable);
-
-	/** Handler for when "Ok" we selected in the class viewer */
-	FReply OnClassPickerConfirmed();
-
-	FReply OnDefaultClassPicked(UClass* InChosenClass);
-
-	/** Handler for the custom button to hide/unhide the default class viewer */
-	void OnDefaultAreaExpansionChanged(bool bExpanded);
-
-	/** Handler for the custom button to hide/unhide the class viewer */
-	void OnCustomAreaExpansionChanged(bool bExpanded);	
-
-private:
-	/** A pointer to the window that is asking the user to select a parent class */
-	TWeakPtr<SWindow> WeakParentWindow;
-
-	/** The class that was last clicked on */
-	UClass* ChosenClass;
-
-	/** A flag indicating that Ok was selected */
-	bool bPressedOk;
-
-	/**  An array of default classes used in the dialog **/
-	TArray<UClass*> DefaultClasses;
-
-	FString GameplayCueTag;
-};
-
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SGameplayCuePickerDialog::Construct(const FArguments& InArgs)
-{
-	WeakParentWindow = InArgs._ParentWindow;
-	DefaultClasses = InArgs._DefaultClasses;
-	GameplayCueTag = InArgs._GameplayCueTag;
-
-	FLinearColor AssetColor = FLinearColor::White;
-
-	bPressedOk = false;
-	ChosenClass = NULL;
-
-	FString PathStr = SGameplayCueEditor::GetPathNameForGameplayCueTag(GameplayCueTag);
-	FGameplayCueEditorStrings Strings;
-	auto del = IGameplayAbilitiesEditorModule::Get().GetGameplayCueEditorStringsDelegate();
-	if (del.IsBound())
-	{
-		Strings = del.Execute();
-	}
-
-	ChildSlot
-	[
-		SNew(SBorder)
-		.Visibility(EVisibility::Visible)
-		.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-		[
-			SNew(SBox)
-			.Visibility(EVisibility::Visible)
-			.Padding(2.f)
-			.WidthOverride(520.0f)
-			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.Padding(2.f, 2.f)
-				.AutoHeight()
-				[
-					SNew(SBorder)
-					.Visibility(EVisibility::Visible)
-					.BorderImage( FEditorStyle::GetBrush("AssetThumbnail.AssetBackground") )
-					.BorderBackgroundColor(AssetColor.CopyWithNewOpacity(0.3f))
-					[
-						SNew(SExpandableArea)
-						.AreaTitle(NSLOCTEXT("SGameplayCuePickerDialog", "CommonClassesAreaTitle", "GameplayCue Notifies"))
-						.BodyContent()
-						[
-							SNew(SVerticalBox)
-							+SVerticalBox::Slot()
-							.Padding(2.f, 2.f)
-							.AutoHeight()
-							[
-								SNew(STextBlock)
-								
-								.Text(FText::FromString(Strings.GameplayCueNotifyDescription1))
-								.AutoWrapText(true)
-							]
-
-							+SVerticalBox::Slot()
-							.AutoHeight( )
-							[
-								SNew(SListView < UClass*  >)
-								.ItemHeight(48)
-								.SelectionMode(ESelectionMode::None)
-								.ListItemsSource(&DefaultClasses)
-								.OnGenerateRow(this, &SGameplayCuePickerDialog::GenerateListRow)
-							]
-
-							+SVerticalBox::Slot()
-							.Padding(2.f, 2.f)
-							.AutoHeight()
-							[
-								SNew(STextBlock)
-								.Text(FText::FromString(FString::Printf(TEXT("This will create a new GameplayCue Notify here:"))))
-								.AutoWrapText(true)
-							]
-							+SVerticalBox::Slot()
-							.Padding(2.f, 2.f)
-							.AutoHeight()
-							[
-								SNew(STextBlock)
-								.Text(FText::FromString(PathStr))
-								.HighlightText(FText::FromString(PathStr))
-								.AutoWrapText(true)
-							]
-							+SVerticalBox::Slot()
-							.Padding(2.f, 2.f)
-							.AutoHeight()
-							[
-								SNew(STextBlock)
-								.Text(FText::FromString(Strings.GameplayCueNotifyDescription2))
-								.AutoWrapText(true)
-							]
-						]
-					]
-				]
-
-				+SVerticalBox::Slot()
-				.Padding(2.f, 2.f)
-				.AutoHeight()
-				[
-					SNew(SBorder)
-					.Visibility(EVisibility::Visible)
-					.BorderImage( FEditorStyle::GetBrush("AssetThumbnail.AssetBackground") )
-					.BorderBackgroundColor(AssetColor.CopyWithNewOpacity(0.3f))
-					[
-						SNew(SExpandableArea)
-						.AreaTitle(NSLOCTEXT("SGameplayCuePickerDialogEvents", "CommonClassesAreaTitleEvents", "Custom BP Events"))
-						.BodyContent()
-						[
-							SNew(SVerticalBox)
-							+SVerticalBox::Slot()
-							.Padding(2.f, 2.f)
-							.AutoHeight()
-							[
-								SNew(STextBlock)
-								.Text(FText::FromString(Strings.GameplayCueEventDescription1))
-								.AutoWrapText(true)
-
-							]
-
-							+SVerticalBox::Slot()
-							.Padding(2.f, 2.f)
-							.AutoHeight()
-							[
-								SNew(STextBlock)
-								.Text(FText::FromString(Strings.GameplayCueEventDescription2))
-								.AutoWrapText(true)
-							]							
-						]
-					]
-				]
-			]
-		]
-	];
-}
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+#include "SGameplayCueEditor_Picker.h"
 
 static const FName CueTagColumnName("GameplayCueTags");
 static const FName CueHandlerColumnName("GameplayCueHandlers");
 
-/** Spawns window for picking new GameplayCue handler/notify */
-bool SGameplayCuePickerDialog::PickGameplayCue(const FText& TitleText, const TArray<UClass*>& DefaultClasses, UClass*& OutChosenClass, FString InGameplayCueName)
+// Whether to show the Hotreload button in the GC editor.
+#define GAMEPLAYCUEEDITOR_HOTRELOAD_BUTTON 1
+
+// Whether to enable the "show only leaf tags option", if 0, the option is enabled by default. (This is probably not a useful thing to have, in case it ever is, this can be reenabled)
+#define GAMEPLAYCUEEDITOR_SHOW_ONLY_LEAFTAGS_OPTION 0
+
+/** Base class for any item in the the Cue/Handler Tree. */
+struct FGCTreeItem : public TSharedFromThis<FGCTreeItem>
 {
-	// Create the window to pick the class
-	TSharedRef<SWindow> PickerWindow = SNew(SWindow)
-		.Title(TitleText)
-		.SizingRule( ESizingRule::Autosized )
-		.ClientSize( FVector2D( 0.f, 600.f ))
-		.SupportsMaximize(false)
-		.SupportsMinimize(false);
-
-	TSharedRef<SGameplayCuePickerDialog> ClassPickerDialog = SNew(SGameplayCuePickerDialog)
-		.ParentWindow(PickerWindow)
-		.DefaultClasses(DefaultClasses)
-		.GameplayCueTag(InGameplayCueName);
-
-	PickerWindow->SetContent(ClassPickerDialog);
-
-	GEditor->EditorAddModalWindow(PickerWindow);
-
-	if (ClassPickerDialog->bPressedOk)
+	FGCTreeItem()
 	{
-		OutChosenClass = ClassPickerDialog->ChosenClass;
-		return true;
+		TranslationUniqueID = 0;
 	}
-	else
-	{
-		// Ok was not selected, NULL the class
-		OutChosenClass = NULL;
-		return false;
-	}
-}
+	virtual ~FGCTreeItem(){}
 
-void SGameplayCuePickerDialog::OnClassPicked(UClass* InChosenClass)
+
+	FName GameplayCueTagName;
+	FGameplayTag GameplayCueTag;
+	FString Description;
+
+	FStringAssetReference GameplayCueNotifyObj;
+	FStringAssetReference ParentGameplayCueNotifyObj;
+	TWeakObjectPtr<UFunction> FunctionPtr;
+
+	int32 TranslationUniqueID;
+
+	TArray< TSharedPtr< FGCTreeItem > > Children;
+};
+
+typedef STreeView< TSharedPtr< FGCTreeItem > > SGameplayCueTreeView;
+
+// -----------------------------------------------------------------
+
+/** Base class for items in the filtering tree (for gameplay cue translator filtering) */
+struct FGCFilterTreeItem : public TSharedFromThis<FGCFilterTreeItem>
 {
-	ChosenClass = InChosenClass;
-}
+	virtual ~FGCFilterTreeItem() {}
+	
+	FGameplayCueTranslationEditorOnlyData Data;	
+	TArray<FName> ToNames;
+	TArray< TSharedPtr< FGCFilterTreeItem > > Children;
+};
 
-/** Generates rows in the list of GameplayCueNotify classes to pick from */
-TSharedRef<ITableRow> SGameplayCuePickerDialog::GenerateListRow(UClass* ItemClass, const TSharedRef<STableViewBase>& OwnerTable)
-{	
-	const FSlateBrush* ItemBrush = FSlateIconFinder::FindIconBrushForClass(ItemClass);
+typedef STreeView< TSharedPtr< FGCFilterTreeItem > > SFilterTreeView;
 
-	return 
-	SNew(STableRow< UClass* >, OwnerTable)
-	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.MaxHeight(60.0f)
-		.Padding(10.0f, 6.0f, 0.0f, 4.0f)
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.FillWidth(0.65f)
-			[
-				SNew(SButton)
-				.OnClicked(this, &SGameplayCuePickerDialog::OnDefaultClassPicked, ItemClass)
-				.Content()
-				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.FillWidth(0.12f)
-					[
-						SNew(SImage)
-						.Image(ItemBrush)
-					]
-					+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.Padding(4.0f, 0.0f)
-					.FillWidth(0.8f)
-					[
-						SNew(STextBlock)
-						.Text(ItemClass->GetDisplayNameText())
-					]
-
-				]
-			]
-			+SHorizontalBox::Slot()
-			.Padding(10.0f, 0.0f)
-			[
-				SNew(STextBlock)
-				.Text(ItemClass->GetToolTipText(true))
-				.AutoWrapText(true)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				FEditorClassUtils::GetDocumentationLinkWidget(ItemClass)
-			]
-		]
-	];
-}
-
-FReply SGameplayCuePickerDialog::OnDefaultClassPicked(UClass* InChosenClass)
-{
-	ChosenClass = InChosenClass;
-	bPressedOk = true;
-	if (WeakParentWindow.IsValid())
-	{
-		WeakParentWindow.Pin()->RequestDestroyWindow();
-	}
-	return FReply::Handled();
-}
-
-FReply SGameplayCuePickerDialog::OnClassPickerConfirmed()
-{
-	if (ChosenClass == NULL)
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("EditorFactories", "MustChooseClassWarning", "You must choose a class."));
-	}
-	else
-	{
-		bPressedOk = true;
-
-		if (WeakParentWindow.IsValid())
-		{
-			WeakParentWindow.Pin()->RequestDestroyWindow();
-		}
-	}
-	return FReply::Handled();
-}
-
-FString SGameplayCueEditor::GetPathNameForGameplayCueTag(FString GameplayCueTagName)
-{
-	FString NewDefaultPathName;
-	auto PathDel = IGameplayAbilitiesEditorModule::Get().GetGameplayCueNotifyPathDelegate();
-	if (PathDel.IsBound())
-	{
-		NewDefaultPathName = PathDel.Execute(GameplayCueTagName);
-	}
-	else
-	{
-		GameplayCueTagName = GameplayCueTagName.Replace(TEXT("GameplayCue."), TEXT(""), ESearchCase::IgnoreCase);
-		NewDefaultPathName = FString::Printf(TEXT("/Game/GC_%s"), *GameplayCueTagName);
-	}
-	NewDefaultPathName.ReplaceInline(TEXT("."), TEXT("_"));
-	return NewDefaultPathName;
-}
-
+// -----------------------------------------------------------------
 
 class SGameplayCueEditorImpl : public SGameplayCueEditor
 {
 public:
 
 	virtual void Construct(const FArguments& InArgs) override;
+
+private:
+
+	// ---------------------------------------------------------------------
+
+	/** Show all GC Tags, even ones without handlers */
+	bool bShowAll;
+
+	/** Show all possible overrides, even ones that don't exist */
+	bool bShowAllOverrides;
+
+	/** Show only GC Tags that explicitly exist. If a.b.c is in the dictionary, don't show a.b as a distinct tag */
+	bool bShowOnlyLeafTags;
+
+	/** Flag to avoid loading all gameplaycues multiple times (wasted time creating and checking object libraries that are up to date) */
+	bool bHasLoadedAllGameplayCues;
+
+	/** Track when filter state is dirty, so that we only rebuilt view when it has changed, once menu is closed. */
+	bool bFilterIDsDirty;
+
+	/** Global flag suppress rebuilding cue tree view. Needed when doing operations that would rebuld it multiple times */
+	static bool bSuppressCueViewUpdate;
+
+	/** Text box for creating new GC tag */
+	TSharedPtr<SEditableTextBox> NewGameplayCueTextBox;
+
+	/** Main widgets that shows the gameplay cue tree */
+	TSharedPtr<SGameplayCueTreeView> GameplayCueTreeView;
+
+	/** Source of GC tree view items */
+	TArray< TSharedPtr< FGCTreeItem > > GameplayCueListItems;
+
+	/** Widget for the override/transition filters */
+	TSharedPtr< SFilterTreeView > FilterTreeView;
+
+	/** Source of filter items */
+	TArray< TSharedPtr< FGCFilterTreeItem > > FilterListItems;
+
+	/** Tracking which filters are selected (by transition UniqueIDs) */
+	TArray<int32> FilterIds;
+
+	/** Map for viewing GC blueprint events (only built if user wants to) */
+	TMultiMap<FGameplayTag, UFunction*> EventMap;
+
+	/** Last selected tag. Used to keep tag selection in between recreation of GC view */
+	FName SelectedTag;
+
+	/** Last selected tag, uniqueID if it came from a translated tag. Used to get the right tag selected (nested vs root) */
+	int32 SelectedUniqueID;
+
+	/** Pointer to actual selected item */
+	TSharedPtr<FGCTreeItem> SelectedItem;
+
+	/** Search text for highlighting */
+	FText SearchText;
+
+	/** The search box widget */
+	TSharedPtr< class SSearchBox > SearchBoxPtr;
+
+	/** For tracking expanded tags in between recreation of GC view */
+	TSet<FName>	ExpandedTags;
+
+public:
 
 	virtual void OnNewGameplayCueTagCommited(const FText& InText, ETextCommit::Type InCommitType) override
 	{
@@ -380,8 +162,11 @@ public:
 	{
 		if (InCommitType == ETextCommit::OnEnter || InCommitType == ETextCommit::OnCleared || InCommitType == ETextCommit::OnUserMovedFocus)
 		{
-			SearchText = InText;
-			UpdateGameplayCueListItems();
+			if (SearchText.EqualTo(InText) == false)
+			{
+				SearchText = InText;
+				UpdateGameplayCueListItems();
+			}
 		}
 	}
 
@@ -398,13 +183,8 @@ public:
 		return FReply::Handled();
 	}
 
-private:
-
-	TSharedPtr<SEditableTextBox>	NewGameplayCueTextBox;
-
-	/**
-	*	Checks out config file, adds new tag, repopulates widget cue list
-	*/
+	
+	/** Checks out config file, adds new tag, repopulates widget cue list */
 	void CreateNewGameplayCueTag()
 	{
 		FScopedSlowTask SlowTask(0.f, LOCTEXT("AddingNewGameplaycue", "Adding new GameplayCue Tag"));
@@ -416,7 +196,8 @@ private:
 			return;
 		}
 
-		AutoSelectTag = str;
+		SelectedTag = FName(*str);
+		SelectedUniqueID = 0;
 
 		UGameplayTagsManager::AddNewGameplayTagToINI(str);
 
@@ -425,254 +206,376 @@ private:
 		NewGameplayCueTextBox->SetText(FText::GetEmpty());
 	}
 
+	void OnFilterMenuOpenChanged(bool bOpen)
+	{
+		if (bOpen == false && bFilterIDsDirty)
+		{
+			UpdateGameplayCueListItems();
+			bFilterIDsDirty = false;
+		}
+	}
+
 	void HandleShowAllCheckedStateChanged(ECheckBoxState NewValue)
 	{
 		bShowAll = (NewValue == ECheckBoxState::Unchecked);
 		UpdateGameplayCueListItems();
 	}
 
-	/** Callback for getting the checked state of the focus check box. */
+	void HandleShowAllOverridesCheckedStateChanged(ECheckBoxState NewValue)
+	{
+		bShowAllOverrides = (NewValue == ECheckBoxState::Checked);
+		UpdateGameplayCueListItems();
+	}
+
+	void HandleShowOnLeafTagsCheckedStateChanged(ECheckBoxState NewValue)
+	{
+		bShowOnlyLeafTags = (NewValue == ECheckBoxState::Checked);
+		UpdateGameplayCueListItems();
+	}
+
 	ECheckBoxState HandleShowAllCheckBoxIsChecked() const
 	{
 		return bShowAll ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
+	}	
+	
+	ECheckBoxState HandleShowAllOverridesCheckBoxIsChecked() const
+	{
+		return bShowAllOverrides ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	struct FCueItem;
-	struct FCueHandlerItem;
-	
-	/** Base class for any item in the the Cue/Handler Tree. */
-	struct FTreeItem : public TSharedFromThis<FTreeItem>
+	ECheckBoxState HandleShowOnlyLeafTagsCheckBoxIsChecked() const
 	{
-		virtual ~FTreeItem(){}
-		virtual TSharedPtr<FCueItem> AsCueItem(){ return TSharedPtr<FCueItem>(); }
-		virtual TSharedPtr<FCueHandlerItem> AsCueHandlerItem(){ return TSharedPtr<FCueHandlerItem>(); }
-	};
+		return bShowOnlyLeafTags ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
 
-	struct FCueHandlerItem : public FTreeItem
+	void HandleNotify_OpenAssetInEditor(FString AssetName, int AssetType)
 	{
-		FStringAssetReference GameplayCueNotifyObj;
-		TWeakObjectPtr<UFunction> FunctionPtr;
-
-		virtual TSharedPtr<FCueHandlerItem> AsCueHandlerItem() override
+		if (AssetType == 0)
 		{
-			return SharedThis(this);
-		}
-	};
-
-	typedef SListView< TSharedPtr< FCueHandlerItem > > SGameplayCueHandlerListView;
-
-	/** An item in the GameplayCue list */
-	struct FCueItem : public FTreeItem
-	{
-		virtual TSharedPtr<FCueItem> AsCueItem(){ return SharedThis(this); }
-
-		FGameplayTag GameplayCueTagName;
-
-		TArray< TSharedPtr< FCueHandlerItem > > HandlerItems;
-
-		TSharedPtr< SGameplayCueHandlerListView > GameplayCueHandlerListView;
-
-		
-		void OnNewClassPicked(FString SelectedPath)
-		{
-
-		}
-	};
-
-	typedef STreeView< TSharedPtr< FTreeItem > > SGameplayCueTreeView;
-
-	class SCueItemWidget : public SMultiColumnTableRow< TSharedPtr< FCueItem > >
-	{
-	public:
-		SLATE_BEGIN_ARGS(SCueItemWidget) {}
-		SLATE_END_ARGS()
-
-			void Construct(const FArguments& InArgs, const TSharedRef<SGameplayCueTreeView>& InOwnerTable, FSimpleDelegate InRefreshDelegate, TSharedPtr<FCueItem> InListItem, FText InSearchTerm)
-		{
-			Item = InListItem;
-			SearchTerm = InSearchTerm;
-			RefreshDelegate = InRefreshDelegate;
-			SMultiColumnTableRow< TSharedPtr< FCueItem > >::Construct(FSuperRowType::FArguments(), InOwnerTable);
-		}
-	private:
-
-		virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
-		{
-			if (ColumnName == CueTagColumnName)
+			if ( SearchBoxPtr.IsValid() )
 			{
-				return
+				SearchBoxPtr->SetText(FText::FromString(AssetName));
+			}
+
+			SearchText = FText::FromString(AssetName);
+			UpdateGameplayCueListItems();
+
+			if (GameplayCueListItems.Num() == 1)
+			{	//If there is only one element, open it.
+				if (GameplayCueListItems[0]->GameplayCueNotifyObj.IsValid())
+				{
+					SGameplayCueEditor::OpenEditorForNotify(GameplayCueListItems[0]->GameplayCueNotifyObj.ToString());
+				}
+				else if (GameplayCueListItems[0]->FunctionPtr.IsValid())
+				{
+					SGameplayCueEditor::OpenEditorForNotify(GameplayCueListItems[0]->FunctionPtr->GetOuter()->GetPathName());
+				}
+			}
+		}
+	}
+
+	void HandleNotify_FindAssetInEditor(FString AssetName, int AssetType)
+	{
+		if (AssetType == 0)
+		{
+			if ( SearchBoxPtr.IsValid() )
+			{
+				SearchBoxPtr->SetText(FText::FromString(AssetName));
+			}
+
+			SearchText = FText::FromString(AssetName);
+			UpdateGameplayCueListItems();
+		}
+	}
+
+
+	// -----------------------------------------------------------------
+
+	TSharedRef<SWidget> GetFilterListContent()
+	{
+		if (FilterTreeView.IsValid() == false)
+		{
+			SAssignNew(FilterTreeView, SFilterTreeView)
+			.ItemHeight(24)
+			.TreeItemsSource(&FilterListItems)
+			.OnGenerateRow(this, &SGameplayCueEditorImpl::OnGenerateWidgetForFilterListView)
+			.OnGetChildren( this, &SGameplayCueEditorImpl::OnGetFilterChildren )
+			.HeaderRow
+			(
+				SNew(SHeaderRow)
+				+ SHeaderRow::Column(CueTagColumnName)
+				.DefaultLabel(NSLOCTEXT("GameplayCueEditor", "GameplayCueTagTrans", "Translator"))
+			);
+		}
+
+		UpdateFilterListItems();
+		ExpandFilterItems();
+		bFilterIDsDirty = false;
+
+		return 
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+		[
+			FilterTreeView.ToSharedRef()
+		];
+	}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+	/** Builds widget for rows in the GameplayCue Editor tab */
+	TSharedRef<ITableRow> OnGenerateWidgetForGameplayCueListView(TSharedPtr< FGCTreeItem > InItem, const TSharedRef<STableViewBase>& OwnerTable)
+	{
+		class SCueItemWidget : public SMultiColumnTableRow< TSharedPtr< FGCTreeItem > >
+		{
+		public:
+			SLATE_BEGIN_ARGS(SCueItemWidget){}
+			SLATE_END_ARGS()
+
+			void Construct(const FArguments& InArgs, const TSharedRef<SGameplayCueTreeView>& InOwnerTable, TSharedPtr<FGCTreeItem> InListItem, SGameplayCueEditorImpl* InGameplayCueEditor )
+			{
+				Item = InListItem;
+				GameplayCueEditor = InGameplayCueEditor;
+				SMultiColumnTableRow< TSharedPtr< FGCTreeItem > >::Construct(
+					FSuperRowType::FArguments()
+				, InOwnerTable);
+			}
+		private:
+
+			virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
+			{
+				if (ColumnName == CueTagColumnName)
+				{
+					return
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					[
 						SNew(SExpanderArrow, SharedThis(this))
 					]
-				+ SHorizontalBox::Slot()
+					+ SHorizontalBox::Slot()
 					.FillWidth(1)
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.HighlightText(SearchTerm)
-					.Text(FText::FromString(Item->GameplayCueTagName.ToString()))
+						.ColorAndOpacity(Item->GameplayCueTag.IsValid() ? FSlateColor::UseForeground() : FSlateColor::UseSubduedForeground())
+						.Text(FText::FromString(Item->Description.IsEmpty() ? Item->GameplayCueTagName.ToString() : FString::Printf(TEXT("%s (%s)"), *Item->Description, *Item->GameplayCueTagName.ToString())))
 					];
-			}
-			else if (ColumnName == CueHandlerColumnName)
-			{
-				bool HasNotifies = false;
-				for (auto& HandlerItem : Item->HandlerItems)
-				{
-					if (HandlerItem->GameplayCueNotifyObj.IsValid())
-					{
-						HasNotifies = true;
-						break;
-					}
 				}
-
-				return
-					SNew(SBox)
-					.Padding(FMargin(2.0f, 0.0f))
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.Visibility(HasNotifies ? EVisibility::Collapsed : EVisibility::Visible)
-					[
-						SNew(SButton)
-						.Text(LOCTEXT("AddNew", "Add New"))
-					.OnClicked(this, &SCueItemWidget::OnAddNewClicked)
-					];
-			}
-			else
-			{
-				return SNew(STextBlock).Text(LOCTEXT("UnknownColumn", "Unknown Column"));
-			}
-
-		}
-
-		/** Create new GameplayCueNotify: brings up dialogue to pick class, then creates it via the content browser. */
-		FReply OnAddNewClicked()
-		{
-			SGameplayCueEditor::CreateNewGameplayCueNotifyDialogue(Item->GameplayCueTagName.ToString());
-			RefreshDelegate.ExecuteIfBound();
-			return FReply::Handled();
-		}
-
-		TSharedPtr< FCueItem > Item;
-		FText SearchTerm;
-		FSimpleDelegate RefreshDelegate;
-	};
-
-	class SCueHandlerItemWidget : public SMultiColumnTableRow < TSharedPtr< FCueHandlerItem > >
-	{
-	public:
-		SLATE_BEGIN_ARGS(SCueHandlerItemWidget) {}
-		SLATE_END_ARGS()
-
-			void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FCueHandlerItem> InListItem)
-		{
-			CueHandlerItem = InListItem;
-			SMultiColumnTableRow< TSharedPtr< FCueHandlerItem > >::Construct(FSuperRowType::FArguments(), InOwnerTable);
-		}
-	private:
-
-		virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
-		{
-			if (ColumnName == CueTagColumnName)
-			{
-				return SNew(SSpacer);
-			}
-			else if (ColumnName == CueHandlerColumnName)
-			{
-				if (CueHandlerItem->GameplayCueNotifyObj.ToString().IsEmpty() == false)
+				else if (ColumnName == CueHandlerColumnName)
 				{
-					FString ObjName = CueHandlerItem->GameplayCueNotifyObj.ToString();
-
-					int32 idx;
-					if (ObjName.FindLastChar(TEXT('.'), idx))
+					if (Item->GameplayCueNotifyObj.ToString().IsEmpty() == false)
 					{
-						ObjName = ObjName.RightChop(idx + 1);
-						if (ObjName.FindLastChar(TEXT('_'), idx))
-						{
-							ObjName = ObjName.Left(idx);
-						}
-					}
+						FString ObjName = Item->GameplayCueNotifyObj.ToString();
 
-					return
+						int32 idx;
+						if (ObjName.FindLastChar(TEXT('.'), idx))
+						{
+							ObjName = ObjName.RightChop(idx + 1);
+							if (ObjName.FindLastChar(TEXT('_'), idx))
+							{
+								ObjName = ObjName.Left(idx);
+							}
+						}
+
+						return
 						SNew(SBox)
 						.HAlign(HAlign_Left)
 						[
 							SNew(SHyperlink)
 							.Style(FEditorStyle::Get(), "Common.GotoBlueprintHyperlink")
-						.Text(FText::FromString(ObjName))
-						.OnNavigate(this, &SCueHandlerItemWidget::NavigateToHandler)
+							.Text(FText::FromString(ObjName))
+							.OnNavigate(this, &SCueItemWidget::NavigateToHandler)
 						];
-				}
-				else if (CueHandlerItem->FunctionPtr.IsValid())
-				{
-					FString ObjName;
-					UFunction* Func = CueHandlerItem->FunctionPtr.Get();
-					UClass* OuterClass = Cast<UClass>(Func->GetOuter());
-					if (OuterClass)
-					{
-						ObjName = OuterClass->GetName();
-						ObjName.RemoveFromEnd(TEXT("_c"));
 					}
+					else if (Item->FunctionPtr.IsValid())
+					{
+						FString ObjName;
+						UFunction* Func = Item->FunctionPtr.Get();
+						UClass* OuterClass = Cast<UClass>(Func->GetOuter());
+						if (OuterClass)
+						{
+							ObjName = OuterClass->GetName();
+							ObjName.RemoveFromEnd(TEXT("_c"));
+						}
 
-					return
+						return
 						SNew(SBox)
 						.HAlign(HAlign_Left)
 						[
 							SNew(SHyperlink)
 							.Text(FText::FromString(ObjName))
-						.OnNavigate(this, &SCueHandlerItemWidget::NavigateToHandler)
+							.OnNavigate(this, &SCueItemWidget::NavigateToHandler)
 						];
+					}
+					else
+					{
+						return
+						SNew(SBox)
+						.HAlign(HAlign_Left)
+						[
+							SNew(SHyperlink)
+							.Style(FEditorStyle::Get(), "Common.GotoNativeCodeHyperlink")
+							.Text(LOCTEXT("AddNew", "Add New"))
+							.OnNavigate(this, &SCueItemWidget::OnAddNewClicked)
+						];
+					}
 				}
 				else
 				{
-					return SNew(STextBlock).Text(LOCTEXT("UnknownHandler", "Unknown HandlerType"));
+					return SNew(STextBlock).Text(LOCTEXT("UnknownColumn", "Unknown Column"));
 				}
 			}
-			else
+
+			/** Create new GameplayCueNotify: brings up dialog to pick class, then creates it via the content browser. */
+			void OnAddNewClicked()
 			{
-				return SNew(STextBlock).Text(LOCTEXT("UnknownColumn", "Unknown Column"));
-			}
-		}
+				{
+					// Add the tag if its not already. Note that the FGameplayTag may be valid as an implicit tag, and calling this
+					// will create it as an explicit tag, which is what we want. If the tag already exists
 
-		void NavigateToHandler()
-		{
-			if (CueHandlerItem->GameplayCueNotifyObj.IsValid())
+					TGuardValue<bool> SupressUpdate(SGameplayCueEditorImpl::bSuppressCueViewUpdate, true);
+					
+					UGameplayTagsManager::AddNewGameplayTagToINI(Item->GameplayCueTagName.ToString());
+				}
+
+				UClass* ParentClass=nullptr;
+				
+				// If this is an override, use the parent GC notify class as the base class
+				if (Item->ParentGameplayCueNotifyObj.IsValid())
+				{
+					UObject* Obj = Item->ParentGameplayCueNotifyObj.ResolveObject();
+					if (!Obj)
+					{
+						Obj = Item->ParentGameplayCueNotifyObj.TryLoad();
+					}
+
+					ParentClass = Cast<UClass>(Obj);
+					if (ParentClass == nullptr)
+					{
+						ABILITY_LOG(Warning, TEXT("Unable to resolve object for parent GC notify: %s"), *Item->ParentGameplayCueNotifyObj.ToString());
+					}
+				}
+
+				GameplayCueEditor->OnSelectionChanged(Item, ESelectInfo::Direct);
+
+				SGameplayCueEditor::CreateNewGameplayCueNotifyDialogue(Item->GameplayCueTagName.ToString(), ParentClass);
+			}
+
+			void NavigateToHandler()
 			{
-				SGameplayCueEditor::OpenEditorForNotify(CueHandlerItem->GameplayCueNotifyObj.ToString());
-
+				if (Item->GameplayCueNotifyObj.IsValid())
+				{
+					SGameplayCueEditor::OpenEditorForNotify(Item->GameplayCueNotifyObj.ToString());
+					
+				}
+				else if (Item->FunctionPtr.IsValid())
+				{
+					SGameplayCueEditor::OpenEditorForNotify(Item->FunctionPtr->GetOuter()->GetPathName());
+				}
 			}
-			else if (CueHandlerItem->FunctionPtr.IsValid())
-			{
-				SGameplayCueEditor::OpenEditorForNotify(CueHandlerItem->FunctionPtr->GetOuter()->GetPathName());
-			}
-		}
 
-		TSharedPtr<FCueHandlerItem> CueHandlerItem;
-	};
+			TSharedPtr< FGCTreeItem > Item;
+			SGameplayCueEditorImpl* GameplayCueEditor;
+		};
 
-	/** Builds widget for rows in the GameplayCue Editor tab */
-	TSharedRef<ITableRow> OnGenerateWidgetForGameplayCueListView(TSharedPtr< FTreeItem > InItem, const TSharedRef<STableViewBase>& OwnerTable)
-	{
-		TSharedPtr<FCueItem> CueItem = InItem->AsCueItem();
-		TSharedPtr<FCueHandlerItem> CueHandlerItem = InItem->AsCueHandlerItem();
-
-		if ( CueItem.IsValid() )
+		if ( InItem.IsValid() )
 		{
-			return SNew(SCueItemWidget, GameplayCueTreeView.ToSharedRef(), FSimpleDelegate::CreateRaw(this, &SGameplayCueEditorImpl::UpdateGameplayCueListItems), CueItem, SearchText);
-		}
-		else if (CueHandlerItem.IsValid())
-		{
-			return SNew(SCueHandlerItemWidget, OwnerTable, CueHandlerItem);
+			return SNew(SCueItemWidget, GameplayCueTreeView.ToSharedRef(), InItem, this);
 		}
 		else
 		{
 			return
-			SNew(STableRow< TSharedPtr<FTreeItem> >, OwnerTable)
+			SNew(STableRow< TSharedPtr<FGCTreeItem> >, OwnerTable)
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("UnknownItemType", "Unknown Item Type"))
+			];
+		}
+	}
+
+	void OnFilterStateChanged(ECheckBoxState NewValue, TSharedPtr< FGCFilterTreeItem > Item)
+	{
+		if (NewValue == ECheckBoxState::Checked)
+		{
+			FilterIds.AddUnique(Item->Data.UniqueID);
+			bFilterIDsDirty = true;
+		}
+		else if (NewValue == ECheckBoxState::Unchecked)
+		{
+			FilterIds.Remove(Item->Data.UniqueID);
+			bFilterIDsDirty = true;
+		}
+	}
+
+	ECheckBoxState IsFilterChecked(TSharedPtr<FGCFilterTreeItem> Item) const
+	{
+		return FilterIds.Contains(Item->Data.UniqueID) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+
+	TSharedRef<ITableRow> OnGenerateWidgetForFilterListView(TSharedPtr< FGCFilterTreeItem > InItem, const TSharedRef<STableViewBase>& OwnerTable)
+	{
+		class SFilterItemWidget : public SMultiColumnTableRow< TSharedPtr< FGCFilterTreeItem > >
+		{
+		public:
+			SLATE_BEGIN_ARGS(SFilterItemWidget){}
+			SLATE_END_ARGS()
+
+			void Construct(const FArguments& InArgs, const TSharedRef<SFilterTreeView>& InOwnerTable, SGameplayCueEditorImpl* InGameplayCueEditor, TSharedPtr<FGCFilterTreeItem> InListItem )
+			{
+				Item = InListItem;
+				GameplayCueEditor = InGameplayCueEditor;
+				SMultiColumnTableRow< TSharedPtr< FGCFilterTreeItem > >::Construct(FSuperRowType::FArguments(), InOwnerTable);
+			}
+		private:
+
+			virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
+			{
+				if (ColumnName == CueTagColumnName)
+				{
+					return
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SExpanderArrow, SharedThis(this))
+					]
+					+ SHorizontalBox::Slot()
+					.FillWidth(1)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SCheckBox)
+						.OnCheckStateChanged(GameplayCueEditor, &SGameplayCueEditorImpl::OnFilterStateChanged, Item)
+						.IsChecked(GameplayCueEditor, &SGameplayCueEditorImpl::IsFilterChecked, Item)
+						.IsEnabled(Item->Data.Enabled)
+						.ToolTipText(FText::FromString(Item->Data.ToolTip))
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString(Item->Data.EditorDescription.ToString()))
+							.ToolTipText(FText::FromString(Item->Data.ToolTip))
+						]
+					];
+				}
+				else
+				{
+					return SNew(STextBlock).Text(LOCTEXT("UnknownColumn", "Unknown Column"));
+				}
+			}
+
+			TSharedPtr< FGCFilterTreeItem > Item;
+			SGameplayCueEditorImpl* GameplayCueEditor;
+		};
+
+		if ( InItem.IsValid() )
+		{
+			return SNew(SFilterItemWidget, FilterTreeView.ToSharedRef(), this, InItem);
+		}
+		else
+		{
+			return
+			SNew(STableRow< TSharedPtr<FGCTreeItem> >, OwnerTable)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("UnknownItemType", "Unknown Filter Type"))
 			];
 		}
 	}
@@ -682,23 +585,104 @@ private:
 		UpdateGameplayCueListItems();
 	}
 
-
-	void OnGetChildren(TSharedPtr<FTreeItem> Item, TArray< TSharedPtr<FTreeItem> >& Children)
+	void OnGetChildren(TSharedPtr<FGCTreeItem> Item, TArray< TSharedPtr<FGCTreeItem> >& Children)
 	{
-		TSharedPtr<FCueItem> CueItem = Item->AsCueItem();
-		if (CueItem.IsValid())
+		if (Item.IsValid())
 		{
-			Children.Append(CueItem->HandlerItems);
+			Children.Append(Item->Children);
+		}
+	}
+
+	void OnGetFilterChildren(TSharedPtr<FGCFilterTreeItem> Item, TArray< TSharedPtr<FGCFilterTreeItem> >& Children)
+	{
+		if (Item.IsValid())
+		{
+			Children.Append(Item->Children);
+		}
+	}
+
+	bool AddChildTranslatedTags_r(FName ThisGameplayCueTag, UGameplayCueManager* CueManager, TSharedPtr< FGCTreeItem > NewItem)
+	{
+		bool ChildPassedFilter = false;
+		TArray<FGameplayCueTranslationEditorInfo> ChildrenTranslatedTags;
+		if (CueManager->TranslationManager.GetTranslatedTags(ThisGameplayCueTag, ChildrenTranslatedTags)) 
+		{
+			for (FGameplayCueTranslationEditorInfo& ChildInfo : ChildrenTranslatedTags)
+			{
+				TSharedPtr< FGCTreeItem > NewHandlerItem(new FGCTreeItem());					
+				NewHandlerItem->GameplayCueTagName = ChildInfo.GameplayTagName;
+				NewHandlerItem->GameplayCueTag = ChildInfo.GameplayTag;
+				NewHandlerItem->ParentGameplayCueNotifyObj = NewItem->GameplayCueNotifyObj.IsValid() ?  NewItem->GameplayCueNotifyObj :  NewItem->ParentGameplayCueNotifyObj;
+
+				// Should this be filtered out?
+				bool PassedFilter = (FilterIds.Num() == 0 || FilterIds.Contains(ChildInfo.EditorData.UniqueID));
+				PassedFilter |= AddChildTranslatedTags_r(ChildInfo.GameplayTagName, CueManager, NewHandlerItem);
+				ChildPassedFilter |= PassedFilter;
+
+				if (PassedFilter)
+				{
+					FindGameplayCueNotifyObj(CueManager, NewHandlerItem);
+					NewHandlerItem->Description = ChildInfo.EditorData.EditorDescription.ToString();
+					NewHandlerItem->TranslationUniqueID = ChildInfo.EditorData.UniqueID;
+
+					NewItem->Children.Add(NewHandlerItem);
+
+					if (ExpandedTags.Contains(NewHandlerItem->GameplayCueTagName))
+					{
+						GameplayCueTreeView->SetItemExpansion(NewHandlerItem, true);
+					}
+
+					CheckSelectGCItem(NewHandlerItem);
+				}				
+			}
+		}
+
+		return ChildPassedFilter;
+	}
+
+	bool FindGameplayCueNotifyObj(UGameplayCueManager* CueManager, TSharedPtr< FGCTreeItem >& Item)
+	{
+		if (CueManager && CueManager->GlobalCueSet && Item->GameplayCueTag.IsValid())
+		{
+			if (int32* idxPtr = CueManager->GlobalCueSet->GameplayCueDataMap.Find(Item->GameplayCueTag))
+			{
+				int32 idx = *idxPtr;
+				if (CueManager->GlobalCueSet->GameplayCueData.IsValidIndex(idx))
+				{
+					FGameplayCueNotifyData& Data = CueManager->GlobalCueSet->GameplayCueData[idx];
+					Item->GameplayCueNotifyObj = Data.GameplayCueNotifyObj;
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	void CheckSelectGCItem(TSharedPtr< FGCTreeItem > NewItem)
+	{
+		if (SelectedTag != NAME_Name && !SelectedItem.IsValid() && (SelectedTag == NewItem->GameplayCueTagName && NewItem->TranslationUniqueID == SelectedUniqueID))
+		{
+			SelectedItem = NewItem;
 		}
 	}
 
 	/** Builds content of the list in the GameplayCue Editor */
 	void UpdateGameplayCueListItems()
 	{
+		if (bSuppressCueViewUpdate)
+		{
+			return;
+		}
+
 #if STATS
 		FString PerfMessage = FString::Printf(TEXT("SGameplayCueEditor::UpdateGameplayCueListItems"));
 		SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
 #endif
+		double FindGameplayCueNotifyObjTime = 0.f;
+		double AddTranslationTagsTime = 0.f;
+		double AddEventsTime = 0.f;
+
+
 		UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
 		if (!CueManager)
 		{
@@ -706,90 +690,215 @@ private:
 		}
 
 		GameplayCueListItems.Reset();
+		SelectedItem.Reset();
+
 		IGameplayTagsModule& GameplayTagModule = IGameplayTagsModule::Get();
-		
-		TSharedPtr<FCueItem> SelectItem;
+		FString FullSearchString = SearchText.ToString();
+		TArray<FString> SearchStrings;
+		FullSearchString.ParseIntoArrayWS(SearchStrings);
 
-		FString SearchString = SearchText.ToString();
+		if (bHasLoadedAllGameplayCues == false)
+		{
+			SCOPE_LOG_TIME_IN_SECONDS(TEXT(" LoadAllGameplayCueNotifiesForEditor"), nullptr)
+			bHasLoadedAllGameplayCues = true;
+			CueManager->LoadAllGameplayCueNotifiesForEditor();
+		}
 
-		CueManager->LoadAllGameplayCueNotifiesForEditor();
+		// ------------------------------------------------------
+		if (bShowAllOverrides)
+		{
+			// Compute all possible override tags via _Forward method
+			CueManager->TranslationManager.BuildTagTranslationTable_Forward();
+		}
+		else
+		{
+			// Compute only the existing override tags
+			CueManager->TranslationManager.BuildTagTranslationTable();
+		}
+		// ------------------------------------------------------
 
-		FGameplayTagContainer AllGameplayCueTags = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagChildren(UGameplayCueSet::BaseGameplayCueTag());
+		// Get all GC Tags
+		FGameplayTagContainer AllGameplayCueTags;
+		{
+			FString RequestGameplayTagChildrenPerfMessage = FString::Printf(TEXT(" RequestGameplayTagChildren"));
+			SCOPE_LOG_TIME_IN_SECONDS(*RequestGameplayTagChildrenPerfMessage, nullptr)
+			AllGameplayCueTags = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagChildren(UGameplayCueSet::BaseGameplayCueTag(), bShowOnlyLeafTags);
+		}
+
+		// Create data structs for widgets
 		for (FGameplayTag ThisGameplayCueTag : AllGameplayCueTags)
 		{
-			if (SearchString.IsEmpty() == false && ThisGameplayCueTag.ToString().Contains(SearchString) == false)
+			if (SearchStrings.Num() > 0)
 			{
-				continue;
+				FString GameplayCueString = ThisGameplayCueTag.ToString();
+				if (!SearchStrings.ContainsByPredicate([&](const FString& SStr) { return GameplayCueString.Contains(SStr); }))
+				{
+					continue;
+				}
 			}
+			
+			TSharedPtr< FGCTreeItem > NewItem = TSharedPtr<FGCTreeItem>(new FGCTreeItem());
+			NewItem->GameplayCueTag = ThisGameplayCueTag;
+			NewItem->GameplayCueTagName = ThisGameplayCueTag.GetTagName();
 
 			bool Handled = false;
-
-			TSharedRef< FCueItem > NewItem(new FCueItem());
-			NewItem->GameplayCueTagName = ThisGameplayCueTag;
-
-			if (AutoSelectTag.IsEmpty() == false && AutoSelectTag == ThisGameplayCueTag.ToString())
-			{
-				SelectItem = NewItem;
-			}
+			bool FilteredOut = false;
 
 			// Add notifies from the global set
-			if (CueManager && CueManager->GlobalCueSet)
 			{
-				int32* idxPtr = CueManager->GlobalCueSet->GameplayCueDataMap.Find(ThisGameplayCueTag);
-				if (idxPtr)
-				{
-					int32 idx = *idxPtr;
-					if (CueManager->GlobalCueSet->GameplayCueData.IsValidIndex(idx))
-					{
-						FGameplayCueNotifyData& Data = CueManager->GlobalCueSet->GameplayCueData[*idxPtr];
+				SCOPE_SECONDS_COUNTER(FindGameplayCueNotifyObjTime);
+				Handled = FindGameplayCueNotifyObj(CueManager, NewItem);
+			}
 
-						TSharedRef< FCueHandlerItem > NewHandlerItem(new FCueHandlerItem());
-						NewHandlerItem->GameplayCueNotifyObj = Data.GameplayCueNotifyObj;
-						NewItem->HandlerItems.Add(NewHandlerItem);
+			CheckSelectGCItem(NewItem);
+
+			// ----------------------------------------------------------------
+			// Add children translated tags
+			// ----------------------------------------------------------------
+
+			{
+				SCOPE_SECONDS_COUNTER(AddTranslationTagsTime);
+				AddChildTranslatedTags_r(ThisGameplayCueTag.GetTagName(), CueManager, NewItem);
+			}
+
+			FilteredOut = FilterIds.Num() > 0 && NewItem->Children.Num() == 0;
+
+			// ----------------------------------------------------------------
+			// Add events implemented by IGameplayCueInterface blueprints
+			// ----------------------------------------------------------------
+
+			{
+				SCOPE_SECONDS_COUNTER(AddEventsTime);
+
+				TArray<UFunction*> Funcs;
+				EventMap.MultiFind(ThisGameplayCueTag, Funcs);
+
+				for (UFunction* Func : Funcs)
+				{
+					TSharedRef< FGCTreeItem > NewHandlerItem(new FGCTreeItem());
+					NewHandlerItem->FunctionPtr = Func;
+					NewHandlerItem->GameplayCueTag = ThisGameplayCueTag;
+					NewHandlerItem->GameplayCueTagName = ThisGameplayCueTag.GetTagName();
+
+					if (ensure(NewItem.IsValid()))
+					{
+						NewItem->Children.Add(NewHandlerItem);
 						Handled = true;
 					}
 				}
 			}
 
-			// Add events implemented by IGameplayCueInterface blueprints
-			TArray<UFunction*> Funcs;
-			EventMap.MultiFind(ThisGameplayCueTag, Funcs);
+			// ----------------------------------------------------------------
 
-			for (UFunction* Func : Funcs)
-			{
-				TSharedRef< FCueHandlerItem > NewHandlerItem(new FCueHandlerItem());
-				NewHandlerItem->FunctionPtr = Func;
-				NewItem->HandlerItems.Add(NewHandlerItem);
-				Handled = true;
-			}
-
-			if (bShowAll || Handled)
+			if (!FilteredOut && (bShowAll || Handled))
 			{
 				GameplayCueListItems.Add(NewItem);
 			}
 
-			// If there are any handlers, automatically expand the item
-			if (NewItem->HandlerItems.Num() > 0)
+			if (ExpandedTags.Contains(NewItem->GameplayCueTagName))
 			{
 				GameplayCueTreeView->SetItemExpansion(NewItem, true);
 			}
-
-			// Todo: Add notifies from all GameplayCueSets?
 		}
 
-
-		if (GameplayCueTreeView.IsValid())
 		{
-			GameplayCueTreeView->RequestTreeRefresh();
-		}
+			FString RequestTreeRefreshMessage = FString::Printf(TEXT("  RequestTreeRefresh"));
+			SCOPE_LOG_TIME_IN_SECONDS(*RequestTreeRefreshMessage, nullptr)
 
-		if (SelectItem.IsValid())
+			if (GameplayCueTreeView.IsValid())
+			{
+				GameplayCueTreeView->RequestTreeRefresh();
+			}
+
+			if (SelectedItem.IsValid())
+			{
+				GameplayCueTreeView->SetItemSelection(SelectedItem, true);
+				GameplayCueTreeView->RequestScrollIntoView(SelectedItem);
+			}
+
+			//UE_LOG(LogTemp, Display, TEXT("Accumulated FindGameplayCueNotifyObjTime: %.4f"), FindGameplayCueNotifyObjTime);
+			//UE_LOG(LogTemp, Display, TEXT("Accumulated FindGameplayCueNotifyObjTime: %.4f"), AddTranslationTagsTime);
+			//UE_LOG(LogTemp, Display, TEXT("Accumulated FindGameplayCueNotifyObjTime: %.4f"), AddEventsTime);
+		}
+	}
+
+	void UpdateFilterListItems(bool UpdateView=true)
+	{
+		UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
+		if (!CueManager)
 		{
-			GameplayCueTreeView->SetItemSelection(SelectItem, true);
-			GameplayCueTreeView->RequestScrollIntoView(SelectItem);
-
+			return;
 		}
-		AutoSelectTag.Empty();
+
+		CueManager->TranslationManager.RefreshNameSwaps();
+
+		const TArray<FNameSwapData>& AllNameSwapData = CueManager->TranslationManager.GetNameSwapData();
+		FilterListItems.Reset();
+
+		// Make two passes. In the first pass only add filters to the root if ShouldShowInTopLevelFilterList is true.
+		// In the second pass, we only add filters as child nodes. This is to make a nice heirarchy of filters, rather than
+		// having "sub" filters appear in the root view.
+		for (int32 pass=0; pass < 2; ++pass)
+		{
+			for (const FNameSwapData& NameSwapGroup : AllNameSwapData)
+			{
+				for (const FGameplayCueTranslationNameSwap& NameSwapData : NameSwapGroup.NameSwaps)
+				{
+					bool Added = false;
+
+					TSharedPtr< FGCFilterTreeItem > NewItem = TSharedPtr<FGCFilterTreeItem>(new FGCFilterTreeItem());
+					NewItem->Data = NameSwapData.EditorData;
+					NewItem->ToNames = NameSwapData.ToNames;
+
+					// Look for existing entries
+					for (TSharedPtr<FGCFilterTreeItem>& FilterItem : FilterListItems)
+					{
+						if (FilterItem->ToNames.Num() == 1 && NameSwapData.FromName == FilterItem->ToNames[0])
+						{
+							FilterItem->Children.Add(NewItem);
+							Added = true;
+						}
+					}
+
+					// Add to root, otherwise
+					if (pass == 0 && NameSwapGroup.ClassCDO->ShouldShowInTopLevelFilterList())
+					{
+						FilterListItems.Add(NewItem);
+					}
+				}
+			}
+		}
+
+		if (UpdateView && FilterTreeView.IsValid())
+		{
+			FilterTreeView->RequestTreeRefresh();
+		}
+	}
+
+	void ExpandFilterItems()
+	{
+		// Expand filter items that are checked. This is to prevent people forgetting they have leaf nodes checked and enabled but not obvious in the UI
+		// (E.g., they enable a filter, then collapse its parent. Then close override menu. Everytime they open override menu, we want to show default expansion)
+		struct local
+		{
+			static bool ExpandFilterItems_r(TArray<TSharedPtr<FGCFilterTreeItem> >& Items, TArray<int32>& FilterIds, SFilterTreeView* FilterTreeView )
+			{
+				bool ShouldBeExpanded = false;
+				for (TSharedPtr<FGCFilterTreeItem>& FilterItem : Items)
+				{
+					ShouldBeExpanded |= FilterIds.Contains(FilterItem->Data.UniqueID);
+					if (ExpandFilterItems_r(FilterItem->Children, FilterIds, FilterTreeView))
+					{
+						FilterTreeView->SetItemExpansion(FilterItem, true);
+						ShouldBeExpanded = true;
+					}
+				}
+				return ShouldBeExpanded;
+			}
+
+		};
+
+		local::ExpandFilterItems_r(FilterListItems, FilterIds, FilterTreeView.Get());
 	}
 
 	/** Slow task: use asset registry to find blueprints, load an inspect them to see what GC events they implement. */
@@ -821,7 +930,7 @@ private:
 					SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
 #endif
 
-						UObjectLibrary* ObjLibrary = UObjectLibrary::CreateLibrary(InterfaceClass, true, true);
+					UObjectLibrary* ObjLibrary = UObjectLibrary::CreateLibrary(InterfaceClass, true, true);
 					ObjLibrary->LoadBlueprintAssetDataFromPath(TEXT("/Game/"));
 					ObjLibrary->GetAssetDataList(GameplayCueInterfaceActors);
 				}
@@ -862,18 +971,41 @@ private:
 		return FReply::Handled();
 	}
 
-	bool bShowAll;
+	void OnExpansionChanged( TSharedPtr<FGCTreeItem> InItem, bool bIsExpanded )
+	{
+		if (bIsExpanded)
+		{
+			ExpandedTags.Add(InItem->GameplayCueTagName);
+		}
+		else
+		{
+			ExpandedTags.Remove(InItem->GameplayCueTagName);
+		}
+	}
 
-	TSharedPtr< SGameplayCueTreeView > GameplayCueTreeView;
-	TArray< TSharedPtr< FTreeItem > > GameplayCueListItems;
-
-	TMultiMap<FGameplayTag, UFunction*> EventMap;
-
-	FString AutoSelectTag;
-	FText SearchText;
+	void OnSelectionChanged( TSharedPtr<FGCTreeItem> InItem, ESelectInfo::Type SelectInfo )
+	{
+		if (InItem.IsValid())
+		{
+			SelectedTag = InItem->GameplayCueTagName;
+			SelectedUniqueID = InItem->TranslationUniqueID;
+		}
+		else
+		{
+			SelectedTag = NAME_None;
+			SelectedUniqueID = INDEX_NONE;
+		}
+	}
 };
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+bool SGameplayCueEditorImpl::bSuppressCueViewUpdate = false;
+
+static FReply RecompileGameplayCueEditor_OnClicked()
+{	
+	GEngine->DeferredCommands.Add( TEXT( "GameplayAbilitiesEditor.HotReload" ) );
+	return FReply::Handled();
+}
+
 void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 {
 	UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
@@ -883,10 +1015,35 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 	}
 
 	bShowAll = true;
+	bShowAllOverrides = false;
+	bShowOnlyLeafTags = true;
+	bHasLoadedAllGameplayCues = false;
+	bFilterIDsDirty = false;
+
 	bool CanAddFromINI = UGameplayTagsManager::ShouldImportTagsFromINI(); // We only support adding new tags to the ini files.
+	
 	ChildSlot
 	[
 		SNew(SVerticalBox)
+
+		// -- Hot Reload -------------------------------------------------
+#if GAMEPLAYCUEEDITOR_HOTRELOAD_BUTTON
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(2.0f, 2.0f)
+			.AutoWidth()
+			[
+
+				SNew(SButton)
+				.Text(LOCTEXT("HotReload", "Hot Reload"))
+				.OnClicked(FOnClicked::CreateStatic(&RecompileGameplayCueEditor_OnClicked))
+			]
+		]
+#endif
+		// -------------------------------------------------------------
 
 		+ SVerticalBox::Slot()
 		.AutoHeight()
@@ -906,7 +1063,6 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 			.Padding(2.0f, 2.0f)
 			.AutoWidth()
 			[
-				// Check box that controls LIVE MODE
 				SNew(SCheckBox)
 				.IsChecked(this, &SGameplayCueEditorImpl::HandleShowAllCheckBoxIsChecked)
 				.OnCheckStateChanged(this, &SGameplayCueEditorImpl::HandleShowAllCheckedStateChanged)
@@ -950,7 +1106,7 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 			.Padding(2.0f)
 			.AutoWidth()
 			[
-				SNew(SSearchBox)
+				SAssignNew( SearchBoxPtr, SSearchBox )
 				.MinDesiredWidth(210.0f)
 				.OnTextCommitted(this, &SGameplayCueEditorImpl::OnSearchTagCommited)
 			]
@@ -964,6 +1120,61 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 			]
 		]
 
+		// ---------------------------------------------------------------
+		
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(2.0f)
+			.AutoWidth()
+			[
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &SGameplayCueEditorImpl::GetFilterListContent)
+				.OnMenuOpenChanged( this, &SGameplayCueEditorImpl::OnFilterMenuOpenChanged )
+				.ContentPadding(FMargin(2.0f, 2.0f))
+				//.Visibility(this, &FScalableFloatDetails::GetRowNameVisibility)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("GameplayCueOverrides", "Override Filter" ))//&FScalableFloatDetails::GetRowNameComboBoxContentText)
+				]
+			]
+			
+			+ SHorizontalBox::Slot()
+			.Padding(2.0f, 2.0f)
+			.AutoWidth()
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &SGameplayCueEditorImpl::HandleShowAllOverridesCheckBoxIsChecked)
+				.OnCheckStateChanged(this, &SGameplayCueEditorImpl::HandleShowAllOverridesCheckedStateChanged)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ShowAllOverrides", "Show all possible overrides"))
+				]
+			]
+
+#if GAMEPLAYCUEEDITOR_SHOW_ONLY_LEAFTAGS_OPTION
+			+ SHorizontalBox::Slot()
+			.Padding(2.0f, 2.0f)
+			.AutoWidth()
+			[
+				SNew(SCheckBox)
+				.IsChecked(this, &SGameplayCueEditorImpl::HandleShowOnlyLeafTagsCheckBoxIsChecked)
+				.OnCheckStateChanged(this, &SGameplayCueEditorImpl::HandleShowOnLeafTagsCheckedStateChanged)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ShowLeafTagsOnly", "Show leaf tags only"))
+				]
+			]
+#endif
+
+			
+		]
+		
+		// ---------------------------------------------------------------
+
 		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
@@ -974,13 +1185,16 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 				.ItemHeight(24)
 				.TreeItemsSource(&GameplayCueListItems)
 				.OnGenerateRow(this, &SGameplayCueEditorImpl::OnGenerateWidgetForGameplayCueListView)
-				.OnGetChildren( this, &SGameplayCueEditorImpl::OnGetChildren )
+				.OnGetChildren(this, &SGameplayCueEditorImpl::OnGetChildren )
+				.OnExpansionChanged(this, &SGameplayCueEditorImpl::OnExpansionChanged)
+				.OnSelectionChanged(this, &SGameplayCueEditorImpl::OnSelectionChanged)
 				.HeaderRow
 				(
 					SNew(SHeaderRow)
 					+ SHeaderRow::Column(CueTagColumnName)
 					.DefaultLabel(NSLOCTEXT("GameplayCueEditor", "GameplayCueTag", "Tag"))
-					.FillWidth(0.25)
+					.FillWidth(0.50)
+					
 
 					+ SHeaderRow::Column(CueHandlerColumnName)
 					.DefaultLabel(NSLOCTEXT("GameplayCueEditor", "GameplayCueHandlers", "Handlers"))
@@ -991,37 +1205,54 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 	];
 
 	UpdateGameplayCueListItems();
+	UpdateFilterListItems();
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+
+// -----------------------------------------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------------------------------------
 
 TSharedRef<SGameplayCueEditor> SGameplayCueEditor::New()
 {
 	return MakeShareable(new SGameplayCueEditorImpl());
 }
 
-void SGameplayCueEditor::CreateNewGameplayCueNotifyDialogue(FString GameplayCue)
+void SGameplayCueEditor::CreateNewGameplayCueNotifyDialogue(FString GameplayCue, UClass* ParentClass)
 {
 	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 
-	TArray<UClass*>	NotifyClasses;
-	auto del = IGameplayAbilitiesEditorModule::Get().GetGameplayCueNotifyClassesDelegate();
-	del.ExecuteIfBound(NotifyClasses);
-	if (NotifyClasses.Num() == 0)
+	// If there already is a parent class, use that. Otherwise the developer must select which class to use.
+	UClass* ChosenClass = ParentClass;
+	if (ChosenClass == nullptr)
 	{
-		NotifyClasses.Add(UGameplayCueNotify_Static::StaticClass());
-		NotifyClasses.Add(AGameplayCueNotify_Actor::StaticClass());
+
+		TArray<UClass*>	NotifyClasses;
+		auto del = IGameplayAbilitiesEditorModule::Get().GetGameplayCueNotifyClassesDelegate();
+		del.ExecuteIfBound(NotifyClasses);
+		if (NotifyClasses.Num() == 0)
+		{
+			NotifyClasses.Add(UGameplayCueNotify_Static::StaticClass());
+			NotifyClasses.Add(AGameplayCueNotify_Actor::StaticClass());
+		}
+
+		// --------------------------------------------------
+
+		// Null the parent class to ensure one is selected	
+
+		const FText TitleText = LOCTEXT("CreateBlueprintOptions", "New GameplayCue Handler");
+	
+		const bool bPressedOk = SGameplayCuePickerDialog::PickGameplayCue(TitleText, NotifyClasses, ChosenClass, GameplayCue);
+		if (!bPressedOk)
+		{
+			return;
+		}
 	}
 
-	// --------------------------------------------------
-
-	// Null the parent class to ensure one is selected	
-
-	const FText TitleText = LOCTEXT("CreateBlueprintOptions", "New GameplayCue Handler");
-	UClass* ChosenClass = nullptr;
-	const bool bPressedOk = SGameplayCuePickerDialog::PickGameplayCue(TitleText, NotifyClasses, ChosenClass, GameplayCue);
-	if (bPressedOk)
+	if (ensure(ChosenClass))
 	{
 		FString NewDefaultPathName = SGameplayCueEditor::GetPathNameForGameplayCueTag(GameplayCue);
 
@@ -1061,6 +1292,23 @@ void SGameplayCueEditor::OpenEditorForNotify(FString NotifyFullPath)
 			FAssetEditorManager::Get().OpenEditorForAsset(AssetObject);
 		}
 	}
+}
+
+FString SGameplayCueEditor::GetPathNameForGameplayCueTag(FString GameplayCueTagName)
+{
+	FString NewDefaultPathName;
+	auto PathDel = IGameplayAbilitiesEditorModule::Get().GetGameplayCueNotifyPathDelegate();
+	if (PathDel.IsBound())
+	{
+		NewDefaultPathName = PathDel.Execute(GameplayCueTagName);
+	}
+	else
+	{
+		GameplayCueTagName = GameplayCueTagName.Replace(TEXT("GameplayCue."), TEXT(""), ESearchCase::IgnoreCase);
+		NewDefaultPathName = FString::Printf(TEXT("/Game/GC_%s"), *GameplayCueTagName);
+	}
+	NewDefaultPathName.ReplaceInline(TEXT("."), TEXT("_"));
+	return NewDefaultPathName;
 }
 
 #undef LOCTEXT_NAMESPACE

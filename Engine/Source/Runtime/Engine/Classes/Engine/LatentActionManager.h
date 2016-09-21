@@ -134,6 +134,9 @@ public:
 		ProcessedThisFrame.Reset();
 	}
 
+	/** Returns the number of actions for a given object */
+	int32 GetNumActionsForObject(TWeakObjectPtr<UObject> InObject);
+
 #if WITH_EDITOR
 	/** 
 	 * Builds a set of the UUIDs of pending latent actions on a specific object.

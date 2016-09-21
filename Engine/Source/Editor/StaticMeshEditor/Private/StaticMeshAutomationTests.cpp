@@ -95,11 +95,13 @@ namespace EditorViewButtonHelper
 				{
 					AutomationParameters.ViewportClient->EngineShowFlags.SetVertexColors(true);
 					AutomationParameters.ViewportClient->EngineShowFlags.SetLighting(false);
+					AutomationParameters.ViewportClient->EngineShowFlags.SetIndirectLightingCache(false);
 				}
 				else
 				{
 					AutomationParameters.ViewportClient->EngineShowFlags.SetVertexColors(false);
 					AutomationParameters.ViewportClient->EngineShowFlags.SetLighting(true);
+					AutomationParameters.ViewportClient->EngineShowFlags.SetIndirectLightingCache(true);
 				}
 				break;
 			case EStaticMeshFlag::Grid:

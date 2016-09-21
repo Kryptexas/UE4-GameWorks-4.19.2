@@ -23,6 +23,11 @@ struct FGameplayEffectSpecForRPC;
 struct FGameplayCueParameters;
 struct FGameplayEffectContextHandle;
 
+/** Called when ability fails to activate, passes along the failed ability and a tag explaining why */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAbilitySystemAssetOpenedDelegate, FString , int );
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAbilitySystemAssetFoundDelegate, FString, int);
+
+
 /** Holds global data for the ability system. Can be configured per project via config file */
 UCLASS(config=Game)
 class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
@@ -80,8 +85,33 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Returns the gameplay tag response object, creating if necessary */
 	UGameplayTagReponseTable* GetGameplayTagResponseTable();
 
-	/** Sets a default gameplay cue tag using the asset's name */
-	static void DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName);
+	/** Sets a default gameplay cue tag using the asset's name. Returns true if it changed the tag. */
+	static bool DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName);
+
+	template<class T>
+	static void DeriveGameplayCueTagFromClass(T* CDO)
+	{
+#if WITH_EDITOR
+		UClass* ParentClass = CDO->GetClass()->GetSuperClass();
+		if (T* ParentCDO = ParentClass->GetDefaultObject<T>())
+		{
+			if (ParentCDO->GameplayCueTag.IsValid() && (ParentCDO->GameplayCueTag == CDO->GameplayCueTag))
+			{
+				// Parente has a valid tag. But maybe there is a better one for this class to use.
+				// Reset our GameplayCueTag and see if we find one.
+				FGameplayTag ParentTag = ParentCDO->GameplayCueTag;
+				CDO->GameplayCueTag = FGameplayTag();
+				if (UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(CDO->GetName(), CDO->GameplayCueTag, CDO->GameplayCueName) == false)
+				{
+					// We did not find one, so parent tag it is.
+					CDO->GameplayCueTag = ParentTag;
+				}
+				return;
+			}
+		}
+		UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(CDO->GetName(), CDO->GameplayCueTag, CDO->GameplayCueName);
+#endif
+	}
 
 	/** The class to instantiate as the globals object. Defaults to this class but can be overridden */
 	UPROPERTY(config)
@@ -298,4 +328,12 @@ protected:
 	bool RegisteredReimportCallback;
 #endif
 
+public:
+	//To add functionality for opening assets directly from the game.
+	void Notify_OpenAssetInEditor(FString AssetName, int AssetType);
+	FOnAbilitySystemAssetOpenedDelegate AbilityOpenAssetInEditorCallbacks;
+
+	//...for finding assets directly from the game.
+	void Notify_FindAssetInEditor(FString AssetName, int AssetType);
+	FOnAbilitySystemAssetFoundDelegate AbilityFindAssetInEditorCallbacks;
 };

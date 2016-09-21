@@ -549,17 +549,14 @@ bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, co
 	}
 	Descriptor.bCanContainContent = CanContainContent;
 
-	// Save the descriptor using JSon
 	FText FailReason;
-	if (Descriptor.Save(UPluginFilePath, FailReason))
-	{
-		return true;
-	}
-	else
+	if (!Descriptor.Save(UPluginFilePath, false, FailReason))
 	{
 		PopErrorNotification(FText::Format(LOCTEXT("FailedToWriteDescriptor", "Couldn't save plugin descriptor under %s"), FText::AsCultureInvariant(UPluginFilePath)));
 		return false;
 	}
+
+	return true;
 }
 
 void SNewPluginWizard::PopErrorNotification(const FText& ErrorMessage)

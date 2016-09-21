@@ -378,6 +378,9 @@ public:
 	 */
 	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) override;
 
+	/** Get the mesh texel factor and bounds for a given coord index, lod index and section index. */
+	virtual bool GetStreamingTextureFactors(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex) const;
+	/** Get the mesh global texel factor and lightmap factor. */
 	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const;
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 

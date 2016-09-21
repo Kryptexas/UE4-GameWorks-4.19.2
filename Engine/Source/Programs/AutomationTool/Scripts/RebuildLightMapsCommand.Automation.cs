@@ -156,7 +156,7 @@ namespace AutomationScripts.Automation
                             FinalLogLines = "Important log entries\n";
                             foreach (string LogLine in AllLogFile)
                             {
-                                if (LogLine.Contains("[REPORT]"))
+                                if (LogLine.Contains("[REPORT]") || LogLine.Contains("Error:"))
                                 {
                                     FinalLogLines += LogLine + "\n";
                                 }

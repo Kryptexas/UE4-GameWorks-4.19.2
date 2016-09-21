@@ -29,7 +29,7 @@ void UGameplayCueNotify_Static::PostEditChangeProperty(FPropertyChangedEvent& Pr
 
 void UGameplayCueNotify_Static::DeriveGameplayCueTagFromAssetName()
 {
-	UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(GetName(), GameplayCueTag, GameplayCueName);
+	UAbilitySystemGlobals::DeriveGameplayCueTagFromClass<UGameplayCueNotify_Static>(this);
 }
 
 void UGameplayCueNotify_Static::Serialize(FArchive& Ar)

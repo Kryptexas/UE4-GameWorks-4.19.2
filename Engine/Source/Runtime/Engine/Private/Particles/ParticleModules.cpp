@@ -860,20 +860,24 @@ private:
 	/** Serialize a reference **/
 	FArchive& operator<<( class UObject*& Obj )
 	{
-		if (Obj && Obj->IsA<UDistribution>() && Obj->GetOuter() != Outer )
+		if (Obj && Obj->IsA<UDistribution>())
 		{
-			UE_LOG(LogParticles, Verbose, TEXT("Bad Module Distribution %s not in %s (resave asset will fix this)"), *GetFullNameSafe(Obj), *GetFullNameSafe(Outer));
-			UObject *New = (UObject*)FindObjectWithOuter(Outer, Obj->GetClass(), Obj->GetFName());
-			if (New)
+			if (Obj->GetOuter() != Outer )
 			{
-				UE_LOG(LogParticles, Verbose, TEXT("      Replacing with Found %s"), *GetFullNameSafe(New));
+				UE_LOG(LogParticles, Verbose, TEXT("Bad Module Distribution %s not in %s (resave asset will fix this)"), *GetFullNameSafe(Obj), *GetFullNameSafe(Outer));
+				UObject *New = (UObject*)FindObjectWithOuter(Outer, Obj->GetClass(), Obj->GetFName());
+				if (New)
+				{
+					UE_LOG(LogParticles, Verbose, TEXT("      Replacing with Found %s"), *GetFullNameSafe(New));
+				}
+				else
+				{
+					New = NewObject<UObject>(Outer, Obj->GetClass(), Obj->GetFName(), RF_NoFlags, Obj);
+					UE_LOG(LogParticles, Verbose, TEXT("      Replacing with New %s"), *GetFullNameSafe(New));
+				}
+				Obj = New;
 			}
-			else
-			{
-				New = NewObject<UObject>(Outer, Obj->GetClass(), Obj->GetFName(), RF_NoFlags, Obj);
-				UE_LOG(LogParticles, Verbose, TEXT("      Replacing with New %s"), *GetFullNameSafe(New));
-			}
-			Obj = New;
+			Obj->ConditionalPostLoad();
 		}
 		return *this;
 	}

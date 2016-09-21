@@ -703,7 +703,7 @@ void UDemoNetDriver::TickFlush( float DeltaSeconds )
 
 		if ( AvgTimeMS > 8.0f )//|| MaxRecordTimeMS > 6.0f )
 		{
-			UE_LOG( LogDemo, Warning, TEXT( "UDemoNetDriver::TickFlush: SLOW FRAME. Avg: %2.2f, Max: %2.2f, Actors: %i" ), AvgTimeMS, MaxRecordTimeMS, GetNetworkObjectList().GetObjects().Num() );
+			UE_LOG( LogDemo, Verbose, TEXT( "UDemoNetDriver::TickFlush: SLOW FRAME. Avg: %2.2f, Max: %2.2f, Actors: %i" ), AvgTimeMS, MaxRecordTimeMS, GetNetworkObjectList().GetObjects().Num() );
 		}
 
 		LastRecordAvgFlush		= EndTime;

@@ -16,6 +16,8 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
+PRAGMA_DISABLE_OPTIMIZATION
+
 float UEnvQueryTypes::SkippedItemValue = -FLT_MAX;
 
 //----------------------------------------------------------------------//
@@ -218,6 +220,10 @@ FText FEnvTraceData::ToText(FEnvTraceData::EDescriptionMode DescMode) const
 				Desc = FText::Format(LOCTEXT("DescriptionWithNavigationFilter", "{Description} (filter: {NavigationFilter})"), NavFilterArgs);
 			}
 		}
+	}
+	else if (TraceMode == EEnvQueryTrace::NavigationOverLedges)
+	{
+		Desc = LOCTEXT("NavigationOverLedges", "Navmesh trace going over navmesh ledges");
 	}
 
 	return Desc;
@@ -539,3 +545,5 @@ namespace FEQSHelpers
 #endif // WITH_RECAST
 
 #undef LOCTEXT_NAMESPACE
+
+PRAGMA_ENABLE_OPTIMIZATION

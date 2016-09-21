@@ -166,6 +166,13 @@ TAutoConsoleVariable<int32> CVarStreamingCheckBuildStatus(
 	ECVF_Scalability);
 
 
+TAutoConsoleVariable<int32> CVarScaleTexturesByGlobalMyBias(
+	TEXT("r.Streaming.ScaleTexturesByGlobalMyBias"),
+	0,
+	TEXT("If non-zero, streaming textures wanted resolution will be scaled down by the global mip bias"),
+	ECVF_Default);
+
+
 void FTextureStreamingSettings::Update()
 {
 	MaxEffectiveScreenSize = CVarStreamingScreenSizeEffectiveMax.GetValueOnAnyThread();
@@ -180,6 +187,7 @@ void FTextureStreamingSettings::Update()
 	bLimitPoolSizeToVRAM = !GIsEditor && CVarStreamingLimitPoolSizeToVRAM.GetValueOnAnyThread() != 0;
 	bFullyLoadUsedTextures = CVarStreamingFullyLoadUsedTextures.GetValueOnAnyThread() != 0;
 	bUseAllMips = CVarStreamingUseAllMips.GetValueOnAnyThread() != 0;
+	bScaleTexturesByGlobalMyBias = CVarScaleTexturesByGlobalMyBias.GetValueOnAnyThread() != 0;
 
 	if (bUseAllMips)
 	{

@@ -100,6 +100,7 @@ public:
 	// IMenuHost interface
 	virtual TSharedPtr<SWindow> GetMenuWindow() const override;
 	virtual void OnMenuDismissed() override;
+	virtual bool UsingApplicationMenuStack() const override;
 	// End of IMenuHost interface
 
 	static void DismissAllApplicationMenus();

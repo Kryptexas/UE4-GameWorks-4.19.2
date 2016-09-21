@@ -529,6 +529,41 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void ClearMoveIgnoreActors();
 
+	/**
+	* Set of components to ignore during component sweeps in MoveComponent().
+	* These components will be ignored when this component moves or updates overlaps.
+	* The other components may also need to be told to do the same when they move.
+	* Does not affect movement of this component when simulating physics.
+	* @see IgnoreComponentWhenMoving()
+	*/
+	UPROPERTY(Transient, DuplicateTransient)
+	TArray<UPrimitiveComponent*> MoveIgnoreComponents;
+
+	/**
+	* Tells this component whether to ignore collision with another component when this component is moved.
+	* The other components may also need to be told to do the same when they move.
+	* Does not affect movement of this component when simulating physics.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(Keywords="Move MoveIgnore"))
+	void IgnoreComponentWhenMoving(UPrimitiveComponent* Component, bool bShouldIgnore);
+
+	/**
+	* Returns the list of actors we currently ignore when moving.
+	*/
+	UFUNCTION(BlueprintCallable, meta=(DisplayName="GetMoveIgnoreComponents"), Category = "Collision")
+	TArray<UPrimitiveComponent*> CopyArrayOfMoveIgnoreComponents();
+
+	/**
+	* Returns the list of components we currently ignore when moving.
+	*/
+	const TArray<UPrimitiveComponent*>& GetMoveIgnoreComponents() const { return MoveIgnoreComponents; }
+
+	/**
+	* Clear the list of components we ignore when moving.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	void ClearMoveIgnoreComponents() { MoveIgnoreComponents.Empty(); }
+
 	/** Set the mask filter we use when moving. */
 	void SetMoveIgnoreMask(FMaskFilter InMoveIgnoreMask);
 

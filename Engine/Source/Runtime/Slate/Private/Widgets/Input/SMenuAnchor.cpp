@@ -611,18 +611,22 @@ void SMenuAnchor::OnMenuDismissed()
 	}
 }
 
+bool SMenuAnchor::UsingApplicationMenuStack() const
+{
+	return bUseApplicationMenuStack;
+}
+
 /*static*/ void SMenuAnchor::DismissAllApplicationMenus()
 {
-	for (TWeakPtr<IMenu>& OpenMenu : OpenApplicationMenus)
+	for (int32 i = 0; i < OpenApplicationMenus.Num(); ++i)
 	{
-		TSharedPtr<IMenu> Iter = OpenMenu.IsValid() ? OpenMenu.Pin() : nullptr;
-		if (Iter.IsValid())
+		TSharedPtr<IMenu> Iter = OpenApplicationMenus[i].IsValid() ? OpenApplicationMenus[i].Pin() : nullptr;
+		if (Iter.IsValid() && Iter->UsingApplicationMenuStack())
 		{
 			Iter->Dismiss();
+			OpenApplicationMenus.RemoveAtSwap(i--);
 		}
 	}
-
-	OpenApplicationMenus.Empty();
 }
 
 SMenuAnchor::SMenuAnchor()

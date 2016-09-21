@@ -174,7 +174,7 @@ FString FSoundSource::Describe(bool bUseLongName)
 {
 	return FString::Printf(TEXT("Wave: %s, Volume: %6.2f, Owner: %s"), 
 		bUseLongName ? *WaveInstance->WaveData->GetPathName() : *WaveInstance->WaveData->GetName(),
-		WaveInstance->GetVolume(), 
+		WaveInstance->GetVolume(),
 		WaveInstance->ActiveSound ? *WaveInstance->ActiveSound->GetOwnerName() : TEXT("None"));
 }
 

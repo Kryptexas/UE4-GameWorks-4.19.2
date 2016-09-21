@@ -706,7 +706,7 @@ void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& T
 				// If the streaming factors are not valid, this section can be ignored. Could be related to 0 area size.
 				float LODElementTexelFactor;
 				FBoxSphereBounds LODElementBounds;
-				if (!StaticMesh->GetStreamingTextureFactor(LODElementTexelFactor, LODElementBounds, 0, LODIndex, ElementIndex, ComponentToWorld))
+				if (!GetStreamingTextureFactors(LODElementTexelFactor, LODElementBounds, 0, LODIndex, ElementIndex))
 					continue;
 
 				const FStaticMeshSection& Element = LOD.Sections[ElementIndex];
@@ -736,7 +736,7 @@ void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& T
 
 				for (int32 TexCoordIndex = 1; TexCoordIndex <= MaxTexCoordIndex; ++TexCoordIndex)
 				{
-					if (StaticMesh->GetStreamingTextureFactor(LODElementTexelFactor, LODElementBounds, TexCoordIndex, LODIndex, ElementIndex, ComponentToWorld))
+					if (GetStreamingTextureFactors(LODElementTexelFactor, LODElementBounds, TexCoordIndex, LODIndex, ElementIndex))
 					{
 						SectionData.TexelFactors[TexCoordIndex] = LODElementTexelFactor;
 					}
@@ -744,8 +744,14 @@ void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& T
 
 			}
 		}
+		MarkRenderStateDirty();
 	}
 #endif
+}
+
+bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex) const
+{
+	return StaticMesh && StaticMesh->GetStreamingTextureFactor(OutTexelFactor, OutBounds, CoordinateIndex, LODIndex, ElementIndex, ComponentToWorld);
 }
 
 bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const

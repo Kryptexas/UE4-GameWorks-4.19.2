@@ -215,7 +215,7 @@ bool AutomationOpenMap(const FString& MapName)
 
 bool FWaitLatentCommand::Update()
 {
-	float NewTime = FPlatformTime::Seconds();
+	const double NewTime = FPlatformTime::Seconds();
 	if (NewTime - StartTime >= Duration)
 	{
 		return true;

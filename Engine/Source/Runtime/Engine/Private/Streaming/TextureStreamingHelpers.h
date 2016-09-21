@@ -62,7 +62,7 @@ struct FTextureStreamingSettings
 
 	FORCEINLINE float GlobalMipBias() const { return !bUsePerTextureBias ? MipBias : 0; }
 	FORCEINLINE int32 GlobalMipBiasAsInt() const { return !bUsePerTextureBias ? FMath::FloorToInt(MipBias) : 0; }
-	FORCEINLINE float GlobalMipBiasAsScale() const { return !bUsePerTextureBias ? FMath::Exp2(-MipBias) : 1.f; }
+	FORCEINLINE float GlobalMipBiasAsScale() const { return (!bUsePerTextureBias && bScaleTexturesByGlobalMyBias) ? FMath::Exp2(-MipBias) : 1.f; }
 
 	FORCEINLINE int32 MaxExpectedPerTextureMipBias() const { return bUsePerTextureBias ? FMath::FloorToInt(MipBias) : 0; }
 
@@ -76,6 +76,7 @@ struct FTextureStreamingSettings
 	bool bUseNewMetrics;
 	bool bFullyLoadUsedTextures;
 	bool bUseAllMips;
+	bool bScaleTexturesByGlobalMyBias;
 	bool bUsePerTextureBias;
 
 protected:

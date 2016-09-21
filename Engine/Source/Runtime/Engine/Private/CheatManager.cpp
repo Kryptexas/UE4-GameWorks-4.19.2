@@ -1039,7 +1039,7 @@ void UCheatManager::BugItWorker( FVector TheLocation, FRotator TheRotation )
 	}
 	MyPlayerController->SetControlRotation(TheRotation);
 
-	// ghost again in case teleporting changed the movememt mode
+	// ghost again in case teleporting changed the movement mode
 	Ghost();
 	GetOuterAPlayerController()->ClientMessage(TEXT("BugItGo: Ghost mode is ON"));
 }

@@ -4116,6 +4116,8 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 #if ALLOW_DEBUG_FILES
 	const bool bPerformSlowCommands = FParse::Param( Cmd, TEXT("FULL") );
 	const bool bLogOutputToFile = !FParse::Param( Cmd, TEXT("LOG") );
+	FString InFileName;
+	FParse::Value(Cmd, TEXT("NAME="), InFileName);
 
 	// Turn off as it makes diffing hard
 	TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
@@ -4135,7 +4137,7 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 		const FString PathName = *(FPaths::ProfilingDir() + TEXT("MemReports/"));
 		IFileManager::Get().MakeDirectory( *PathName );
 
-		const FString Filename = CreateProfileFilename( TEXT(".memreport"), true );
+		const FString Filename = CreateProfileFilename(InFileName, TEXT(".memreport"), true );
 		FilenameFull = PathName + Filename;
 	
 		FileAr = IFileManager::Get().CreateDebugFileWriter(*FilenameFull);
@@ -7688,7 +7690,7 @@ float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanv
 		if (UnbuiltLODCount)
 		{
 			SmallTextItem.SetColor(FLinearColor::Red);
-			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("HLOD CLUSTER(S) NEED TO BE REBUILT (%u unbuilt object(s)"), UnbuiltLODCount));
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("HLOD CLUSTER(S) NEED TO BE REBUILT (%u unbuilt object(s))"), UnbuiltLODCount));
 			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 			MessageY += FontSizeY;
 		}

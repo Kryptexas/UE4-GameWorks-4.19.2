@@ -1175,6 +1175,9 @@ FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data)
 
 	if (Ar.IsLoading() && !GIsEditor && CVarGrassDiscardDataOnLoad.GetValueOnGameThread())
 	{
+		//Data = FLandscapeComponentGrassData();
+		Data.WeightData.Empty();
+		Data.HeightData.Empty();
 		Data = FLandscapeComponentGrassData();
 	}
 

@@ -61,7 +61,7 @@ const uint32 AggregateBodyShapesThreshold	   = 999999999;
 
 
 /** Perform any deferred cleanup of resources (GPhysXPendingKillConvex etc) */
-void DeferredPhysResourceCleanup();
+ENGINE_API void DeferredPhysResourceCleanup();
 
 /** Calculates correct impulse at the body's center of mass and adds the impulse to the body. */
 ENGINE_API void AddRadialImpulseToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange);

@@ -769,41 +769,32 @@ static void UObjectLoadAllCompiledInDefaultProperties()
  */
 static void UObjectLoadAllCompiledInStructs()
 {
-	TArray<FPendingEnumRegistrant>& DeferredCompiledInEnumRegistration = GetDeferredCompiledInEnumRegistration();
-	TArray<FPendingStructRegistrant>& DeferredCompiledInStructRegistration = GetDeferredCompiledInStructRegistration();
 
 	// Load Enums first
-	if( DeferredCompiledInEnumRegistration.Num() )
-	{
-		TArray<FPendingEnumRegistrant> PendingRegistrants = MoveTemp(DeferredCompiledInEnumRegistration);
+	TArray<FPendingEnumRegistrant> PendingEnumRegistrants = MoveTemp(GetDeferredCompiledInEnumRegistration());
 		
-		for (const FPendingEnumRegistrant& EnumRegistrant : PendingRegistrants)
+	for (const FPendingEnumRegistrant& EnumRegistrant : PendingEnumRegistrants)
 		{
 			// Make sure the package exists in case it does not contain any UObjects
 			CreatePackage(nullptr, EnumRegistrant.PackageName);
 		}
-
-		for (const FPendingEnumRegistrant& EnumRegistrant : PendingRegistrants)
+	TArray<FPendingStructRegistrant> PendingStructRegistrants = MoveTemp(GetDeferredCompiledInStructRegistration());
+	for (const FPendingStructRegistrant& StructRegistrant : PendingStructRegistrants)
 		{
-			EnumRegistrant.RegisterFn();
-		}
+		// Make sure the package exists in case it does not contain any UObjects or UEnums
+		CreatePackage(nullptr, StructRegistrant.PackageName);
 	}
 
 	// Load Structs
-	if( DeferredCompiledInStructRegistration.Num() )
-	{
-		TArray<FPendingStructRegistrant> PendingRegistrants = MoveTemp(DeferredCompiledInStructRegistration);
 
-		for (const FPendingStructRegistrant& StructRegistrant : PendingRegistrants)
+	for (const FPendingEnumRegistrant& EnumRegistrant : PendingEnumRegistrants)
 		{
-			// Make sure the package exists in case it does not contain any UObjects or UEnums
-			CreatePackage(nullptr, StructRegistrant.PackageName);
+		EnumRegistrant.RegisterFn();
 		}
 
-		for (const FPendingStructRegistrant& StructRegistrant : PendingRegistrants)
+	for (const FPendingStructRegistrant& StructRegistrant : PendingStructRegistrants)
 		{
 			StructRegistrant.RegisterFn();
-		}
 	}
 }
 

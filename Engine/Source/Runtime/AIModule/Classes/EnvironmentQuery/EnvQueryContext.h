@@ -6,7 +6,7 @@
 struct FEnvQueryContextData;
 struct FEnvQueryInstance;
 
-UCLASS(Abstract)
+UCLASS(Abstract, EditInlineNew)
 class AIMODULE_API UEnvQueryContext : public UObject
 {
 	GENERATED_UCLASS_BODY()

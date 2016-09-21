@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemEditorPrivatePCH.h"
+#include "GameplayAbilitiesEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "AttributeDetails.h"
 #include "AttributeSet.h"
@@ -27,6 +28,11 @@
 #include "SGameplayCueEditor.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "SDockTab.h"
+
+#include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "HotReloadInterface.h"
+
+#include "AbilitySystemGlobals.h"
 
 class FGameplayAbilitiesEditorModule : public IGameplayAbilitiesEditorModule
 {
@@ -87,6 +93,18 @@ private:
 	FGetGameplayCueInterfaceClasses GetGameplayCueInterfaceClasses;
 	
 	FGetGameplayCueEditorStrings GetGameplayCueEditorStrings;
+
+	TWeakPtr<SDockTab> GameplayCueEditorTab;
+
+	TWeakPtr<SGameplayCueEditor> GameplayCueEditor;
+
+public:
+	void HandleNotify_OpenAssetInEditor(FString AssetName, int AssetType);
+	void HandleNotify_FindAssetInEditor(FString AssetName, int AssetType);
+	static void RegisterDebuggingCallbacks();
+	
+
+
 };
 
 IMPLEMENT_MODULE(FGameplayAbilitiesEditorModule, GameplayAbilitiesEditor)
@@ -132,8 +150,68 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory())
 		//.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsDebugCategory());
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Profiler.EventGraph.ExpandHotPath16"));
-
+		
 	ApplyGameplayModEvaluationChannelAliasesToEnumMetadata();
+
+#if WITH_HOT_RELOAD
+	// This code attempts to relaunch the GameplayCueEditor tab when you hotreload this module
+	if (GIsHotReload && FSlateApplication::IsInitialized())
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
+		TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
+		LevelEditorTabManager->InvokeTab(FName("GameplayCueApp"));
+	}
+#endif // WITH_HOT_RELOAD
+
+	IGameplayAbilitiesModule::Get().CallOrRegister_OnAbilitySystemGlobalsReady(FSimpleMulticastDelegate::FDelegate::CreateLambda([] {
+		FGameplayAbilitiesEditorModule::RegisterDebuggingCallbacks();
+	}));
+}
+
+void FGameplayAbilitiesEditorModule::HandleNotify_OpenAssetInEditor(FString AssetName, int AssetType)
+{
+	//Open the GameplayCue editor if it hasn't been opened.
+	if (AssetType == 0)
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+		TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
+		LevelEditorTabManager->InvokeTab(FName("GameplayCueApp"));
+	}
+
+	//UE_LOG(LogTemp, Display, TEXT("HandleNotify_OpenAssetInEditor!!! %s %d"), *AssetName, AssetType);
+	if (GameplayCueEditor.IsValid())
+	{
+		GameplayCueEditor.Pin()->HandleNotify_OpenAssetInEditor(AssetName, AssetType);
+	}
+}
+
+void FGameplayAbilitiesEditorModule::HandleNotify_FindAssetInEditor(FString AssetName, int AssetType)
+{
+	//Find the GameplayCue editor if it hasn't been found.
+	if (AssetType == 0)
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+		TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
+		LevelEditorTabManager->InvokeTab(FName("GameplayCueApp"));
+	}
+
+	//UE_LOG(LogTemp, Display, TEXT("HandleNotify_FindAssetInEditor!!! %s %d"), *AssetName, AssetType);
+	if (GameplayCueEditor.IsValid())
+	{
+		GameplayCueEditor.Pin()->HandleNotify_FindAssetInEditor(AssetName, AssetType);
+	}
+}
+
+void FGameplayAbilitiesEditorModule::RegisterDebuggingCallbacks()
+{
+	//register callbacks when Assets are requested to open from the game.
+	UAbilitySystemGlobals::Get().AbilityOpenAssetInEditorCallbacks.AddLambda([](FString AssetName, int AssetType) {
+		((FGameplayAbilitiesEditorModule *)&IGameplayAbilitiesEditorModule::Get())->HandleNotify_OpenAssetInEditor(AssetName, AssetType);
+	});
+
+	UAbilitySystemGlobals::Get().AbilityFindAssetInEditorCallbacks.AddLambda([](FString AssetName, int AssetType) {
+		((FGameplayAbilitiesEditorModule *)&IGameplayAbilitiesEditorModule::Get())->HandleNotify_FindAssetInEditor(AssetName, AssetType);
+	});
 }
 
 void FGameplayAbilitiesEditorModule::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
@@ -154,8 +232,15 @@ void FGameplayAbilitiesEditorModule::GameplayTagTreeChanged()
 
 void FGameplayAbilitiesEditorModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
+	if (FSlateApplication::IsInitialized())
+	{
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner( FName(TEXT("GameplayCueApp")) );
+
+		if (GameplayCueEditorTab.IsValid())
+		{
+			GameplayCueEditorTab.Pin()->RequestCloseTab();
+		}
+	}
 
 	// Unregister customizations
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
@@ -211,7 +296,7 @@ void FGameplayAbilitiesEditorModule::ShutdownModule()
 
 TSharedRef<SDockTab> FGameplayAbilitiesEditorModule::SpawnGameplayCueEditorTab(const FSpawnTabArgs& Args)
 {
-	return SNew(SDockTab)
+	return SAssignNew(GameplayCueEditorTab, SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
 			SummonGameplayCueEditorUI().ToSharedRef()
@@ -224,12 +309,40 @@ TSharedPtr<SWidget> FGameplayAbilitiesEditorModule::SummonGameplayCueEditorUI()
 	TSharedPtr<SWidget> ReturnWidget;
 	if( IsInGameThread() )
 	{
-		ReturnWidget = SNew(SGameplayCueEditor);			
+		TSharedPtr<SGameplayCueEditor> SharedPtr = SNew(SGameplayCueEditor);
+		ReturnWidget = SharedPtr;
+		GameplayCueEditor = SharedPtr;
 	}
 	return ReturnWidget;
 
 }
 
+void RecompileGameplayAbilitiesEditor(const TArray<FString>& Args)
+{
+	GWarn->BeginSlowTask( NSLOCTEXT("GameplayAbilities", "BeginRecompileGameplayAbilitiesTask", "Recompiling GameplayAbilitiesEditor Module..."), true);
+	
+	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
+	if(HotReload != nullptr)
+	{
+		TArray< UPackage* > PackagesToRebind;
+		UPackage* Package = FindPackage( NULL, TEXT("/Script/GameplayAbilitiesEditor"));
+		if( Package != NULL )
+		{
+			PackagesToRebind.Add( Package );
+		}
+
+		HotReload->RebindPackages(PackagesToRebind, TArray<FName>(), true, *GLog);
+	}
+
+	GWarn->EndSlowTask();
+}
+
+FAutoConsoleCommand RecompileGameplayAbilitiesEditorCommand(
+	TEXT("GameplayAbilitiesEditor.HotReload"),
+	TEXT("Recompiles the gameplay abilities editor module"),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&RecompileGameplayAbilitiesEditor)
+	);
+	
 void FGameplayAbilitiesEditorModule::ApplyGameplayModEvaluationChannelAliasesToEnumMetadata()
 {
 	UAbilitySystemGlobals* AbilitySystemGlobalsCDO = UAbilitySystemGlobals::StaticClass()->GetDefaultObject<UAbilitySystemGlobals>();

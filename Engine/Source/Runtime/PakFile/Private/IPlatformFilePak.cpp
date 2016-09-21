@@ -2434,7 +2434,7 @@ bool FPakEntry::VerifyPakEntriesMatch(const FPakEntry& FileEntryA, const FPakEnt
 	return bResult;
 }
 
-bool FPakPlatformFile::IsNonPakFilenameAllowed(const FString& InFilename)
+bool FPakPlatformFile::IsNonPakFilenameAllowed(const FString& InFilename, bool bAllowDirectories)
 {
 	FFilenameSecurityDelegate& FilenameSecurityDelegate = GetFilenameSecurityDelegate();
 
@@ -2444,6 +2444,10 @@ bool FPakPlatformFile::IsNonPakFilenameAllowed(const FString& InFilename)
 	}
 
 	if (GetLowerLevel()->FileExists(*InFilename))
+	{
+		return FilenameSecurityDelegate.Execute(*InFilename);
+	}
+	else if (bAllowDirectories && GetLowerLevel()->DirectoryExists(*InFilename))
 	{
 		return FilenameSecurityDelegate.Execute(*InFilename);
 	}

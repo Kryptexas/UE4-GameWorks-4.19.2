@@ -65,6 +65,20 @@ static FTimeSample RunBenchmark(float WorkScale, float (*Function)())
 	return FTimeSample(Sum, Sum / RunCount);
 }
 
+template<int NumMethods>
+void PrintGPUStats(FSynthBenchmarkStat(&GPUStats)[NumMethods], const TCHAR* EndString)
+{
+	for (uint32 MethodId = 0; MethodId < NumMethods; ++MethodId)
+	{
+		UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f %s, Confidence=%.0f%% '%s'%s"),
+			1.0f / GPUStats[MethodId].GetNormalizedTime(),
+			GPUStats[MethodId].GetValueType(),
+			GPUStats[MethodId].GetConfidence(),
+			GPUStats[MethodId].GetDesc(),
+			EndString);
+	}
+}
+
 void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, float WorkScale) const
 {
 	check(WorkScale > 0);
@@ -167,12 +181,7 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 			if(GPUTime > 0.0f)
 			{
 				UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU first test: %.2fs"), GPUTime);
-
-				for (uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
-				{
-					UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s' (likely to be very inaccurate)"),
-						1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
-				}
+				PrintGPUStats(InOut.GPUStats, TEXT(" (likely to be very inaccurate)"));
 			}
 
 			if(GPUTime < 0.1f)
@@ -183,13 +192,7 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 				if(GPUTime > 0.0f)
 				{
 					UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU second test: %.2fs"), GPUTime);
-
-					// for testing
-					for(uint32 MethodId = 0; MethodId < sizeof(InOut.GPUStats) / sizeof(InOut.GPUStats[0]); ++MethodId)
-					{
-						UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s' (likely to be inaccurate)"),
-							1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
-					}
+					PrintGPUStats(InOut.GPUStats, TEXT(" (likely to be inaccurate)"));
 				}
 
 				if(GPUTime < 0.1f)
@@ -200,6 +203,7 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 					if(GPUTime > 0.0f)
 					{
 						UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU third test: %.2fs"), GPUTime);
+						PrintGPUStats(InOut.GPUStats, TEXT(""));
 					}
 				}
 			}
@@ -207,11 +211,8 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 
 		if(GPUTime > 0.0f)
 		{
-			for(uint32 MethodId = 0; MethodId < ARRAY_COUNT(InOut.GPUStats); ++MethodId)
-			{
-				UE_LOG(LogSynthBenchmark, Display, TEXT("         ... %.3f GigaPix/s, Confidence=%.0f%% '%s'"),
-					1.0f / InOut.GPUStats[MethodId].GetNormalizedTime(), InOut.GPUStats[MethodId].GetConfidence(), InOut.GPUStats[MethodId].GetDesc());
-			}
+			UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Final Results:"));
+			PrintGPUStats(InOut.GPUStats, TEXT(""));
 			UE_LOG(LogSynthBenchmark, Display, TEXT(""));
 
 			for(uint32 MethodId = 0; MethodId < ARRAY_COUNT(InOut.GPUStats); ++MethodId)

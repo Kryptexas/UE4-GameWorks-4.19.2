@@ -542,16 +542,23 @@ struct FNavigationProjectionWork
 	{}
 };
 
-struct FNavigationRaycastWork
+struct FRayStartEnd
 {
 	const FVector RayStart;
 	const FVector RayEnd;
+	explicit FRayStartEnd(const FVector& InRayStart = FNavigationSystem::InvalidLocation, const FVector& InRayEnd = FNavigationSystem::InvalidLocation)
+		: RayStart(InRayStart), RayEnd(InRayEnd)
+	{}
+};
+
+struct FNavigationRaycastWork : FRayStartEnd
+{
 	/** depending on bDidHit HitLocation contains either actual hit location or RayEnd*/
 	FNavLocation HitLocation;
 	bool bDidHit;
 
-	explicit FNavigationRaycastWork(const FVector& InRayStart, const FVector& InRayEnd)
-		: RayStart(InRayStart), RayEnd(InRayEnd), HitLocation(InRayEnd), bDidHit(false)
+	FNavigationRaycastWork(const FVector& InRayStart, const FVector& InRayEnd)
+		: FRayStartEnd(InRayStart, InRayEnd), HitLocation(InRayEnd), bDidHit(false)
 	{}
 };
 

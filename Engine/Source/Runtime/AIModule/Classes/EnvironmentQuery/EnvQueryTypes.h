@@ -206,6 +206,7 @@ namespace EEnvQueryTrace
 		None,
 		Navigation,
 		Geometry,
+		NavigationOverLedges
 	};
 }
 

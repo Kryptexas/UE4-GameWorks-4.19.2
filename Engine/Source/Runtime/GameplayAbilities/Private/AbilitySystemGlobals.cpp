@@ -65,8 +65,10 @@ UDataTable * UAbilitySystemGlobals::GetGlobalAttributeMetaDataTable()
 	return GlobalAttributeMetaDataTable;
 }
 
-void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName)
+bool UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName)
 {
+	FGameplayTag OriginalTag = GameplayCueTag;
+	
 	// In the editor, attempt to infer GameplayCueTag from our asset name (if there is no valid GameplayCueTag already).
 #if WITH_EDITOR
 	if (GIsEditor)
@@ -74,6 +76,8 @@ void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName,
 		if (GameplayCueTag.IsValid() == false)
 		{
 			AssetName.RemoveFromStart(TEXT("Default__"));
+			AssetName.RemoveFromStart(TEXT("REINST_"));
+			AssetName.RemoveFromStart(TEXT("SKEL_"));
 			AssetName.RemoveFromStart(TEXT("GC_"));		// allow GC_ prefix in asset name
 			AssetName.RemoveFromEnd(TEXT("_c"));
 
@@ -90,6 +94,7 @@ void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName,
 		GameplayCueName = GameplayCueTag.GetTagName();
 	}
 #endif
+	return (OriginalTag != GameplayCueTag);
 }
 
 bool UAbilitySystemGlobals::ShouldAllowGameplayModEvaluationChannels() const
@@ -438,3 +443,14 @@ void UAbilitySystemGlobals::HandlePreLoadMap(const FString& MapName)
 	IGameplayCueInterface::ClearTagToFunctionMap();
 	FActiveGameplayEffectHandle::ResetGlobalHandleMap();
 }
+
+void UAbilitySystemGlobals::Notify_OpenAssetInEditor(FString AssetName, int AssetType)
+{
+	AbilityOpenAssetInEditorCallbacks.Broadcast(AssetName, AssetType);
+}
+
+void UAbilitySystemGlobals::Notify_FindAssetInEditor(FString AssetName, int AssetType)
+{
+	AbilityFindAssetInEditorCallbacks.Broadcast(AssetName, AssetType);
+}
+
