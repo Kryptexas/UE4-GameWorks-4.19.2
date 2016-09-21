@@ -47,10 +47,20 @@ namespace UnrealBuildTool
 		/// </summary>
 		public string MobileProvision = "";
 
-		/// <summary>
-		/// signing certificate to use for code signing
-		/// </summary>
-		public string SigningCertificate = "";
+        /// <summary>
+        /// mobile provision UUID to use for code signing
+        /// </summary>
+        public string MobileProvisionUUID = "";
+
+        /// <summary>
+        /// mobile provision UUID to use for code signing
+        /// </summary>
+        public string TeamUUID = "";
+
+        /// <summary>
+        /// signing certificate to use for code signing
+        /// </summary>
+        public string SigningCertificate = "";
 
 		/// <summary>
 		/// The list of architectures
@@ -186,8 +196,34 @@ namespace UnrealBuildTool
 			
 			SetUpProjectEnvironment(unrealConfiguration);
 		}
-		
-		public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
+
+        static string Provision = "";
+        static string Certificate = "";
+        public static void IPPDataReceivedHandler(Object Sender, DataReceivedEventArgs Line)
+        {
+            if ((Line != null) && (Line.Data != null))
+            {
+                int cindex = Line.Data.IndexOf("CERTIFICATE-");
+                int pindex = Line.Data.IndexOf("PROVISION-");
+                if (cindex > -1 && pindex > -1)
+                {
+                    cindex += "CERTIFICATE-".Length;
+                    Certificate = Line.Data.Substring(cindex, pindex - cindex - 1);
+                    pindex += "PROVISION-".Length;
+                    Provision = Line.Data.Substring(pindex);
+                }
+            }
+        }
+
+        struct ProvisionData
+        {
+            public string MobileProvision;
+            public string Certificate;
+            public string UUID;
+            public string TeamUUID;
+        }
+        static Dictionary<string, ProvisionData> ProvisionCache = new Dictionary<string, ProvisionData>();
+        public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
 		{
 			if (!bInitializedProject)
 			{
@@ -300,7 +336,81 @@ namespace UnrealBuildTool
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MobileProvision", out MobileProvision);
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "SigningCertificate", out SigningCertificate);
 
-				bInitializedProject = true;
+                // bundle identifier
+                string BundleIdentifier;
+                Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "BundleIdentifier", out BundleIdentifier);
+
+                ProvisionData Data = new ProvisionData();
+                string BundleId = BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
+                if (!ProvisionCache.ContainsKey(BundleId))
+                {
+                    Certificate = SigningCertificate;
+                    Provision = MobileProvision;
+                    if (string.IsNullOrEmpty(MobileProvision))
+                    {
+                        Process IPPProcess = new Process();
+                        if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+                        {
+                            string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" signing_match " + ((ProjectFile != null) ? ProjectFile.ToString() : "Engine") + " -bundlename " + BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
+                            IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                            IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
+                            IPPProcess.StartInfo.Arguments = IPPCmd;
+                            IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                            IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                        }
+                        else
+                        {
+                            string IPPCmd = "signing_match " + ((ProjectFile != null) ? ProjectFile.ToString() : "Engine") + " -bundlename " + BundleId;
+                            IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                            IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
+                            IPPProcess.StartInfo.Arguments = IPPCmd;
+                            IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                            IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                        }
+                        Utils.RunLocalProcess(IPPProcess);
+                    }
+                    // add to the dictionary
+                    Data.MobileProvision = Provision;
+                    Data.Certificate = Certificate;
+
+                    // read the provision to get the UUID
+                    string filename = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac ? (Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/") : (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/")) + Data.MobileProvision;
+                    if (File.Exists(filename))
+                    {
+                        string AllText = File.ReadAllText(filename);
+                        int idx = AllText.IndexOf("<key>UUID</key>");
+                        if (idx > 0)
+                        {
+                            idx = AllText.IndexOf("<string>", idx);
+                            if (idx > 0)
+                            {
+                                idx += "<string>".Length;
+                                Data.UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+                            }
+                        }
+                        idx = AllText.IndexOf("<key>com.apple.developer.team-identifier</key>");
+                        if (idx > 0)
+                        {
+                            idx = AllText.IndexOf("<string>", idx);
+                            if (idx > 0)
+                            {
+                                idx += "<string>".Length;
+                                Data.TeamUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+                            }
+                        }
+                    }
+                    ProvisionCache.Add(BundleId, Data);
+                }
+                else
+                {
+                    Data = ProvisionCache[BundleId];
+                }
+                MobileProvision = Data.MobileProvision;
+                SigningCertificate = Data.Certificate;
+                MobileProvisionUUID = Data.UUID;
+                TeamUUID = Data.TeamUUID;
+
+                bInitializedProject = true;
 			}
 		}
 

@@ -30,6 +30,8 @@ namespace iPhonePackager
 		public Utilities.PListHelper Data;
 		public DateTime CreationDate;
 		public DateTime ExpirationDate;
+        public string FileName;
+        public string UUID;
 
 		public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true)
 		{
@@ -125,6 +127,9 @@ namespace iPhonePackager
 				{
 					string DebugName = Path.GetFileName(Pair.Key);
 					MobileProvision TestProvision = Pair.Value;
+
+                    if (TestProvision.FileName.Contains(TestProvision.UUID))
+                        continue;
 
 					Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
 
@@ -341,6 +346,11 @@ namespace iPhonePackager
 
 			// check for get-task-allow
 			bDebug = XCentPList.GetBool("get-task-allow");
+
+            if (!Data.GetString("UUID", out UUID))
+            {
+                UUID = "(unkown)";
+            }
 		}
 
 		/// <summary>
@@ -423,6 +433,7 @@ namespace iPhonePackager
 			FileStream InputStream = File.OpenRead(Filename);
 			MobileProvision Result = ParseFile(InputStream);
 			InputStream.Close();
+            Result.FileName = Filename;
 
 			return Result;
 		}

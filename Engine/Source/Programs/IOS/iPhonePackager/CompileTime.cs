@@ -90,8 +90,8 @@ namespace iPhonePackager
 				CmdLine += String.Format(" CODE_SIGN_IDENTITY=\\\"{0}\\\"", Config.CodeSigningIdentity);
 
 				CmdLine += String.Format(" IPHONEOS_DEPLOYMENT_TARGET=\\\"{0}\\\"", Config.MinOSVersion);
-			}
-			else
+            }
+            else
 			{
 				CmdLine += String.Format(" CODE_SIGN_IDENTITY=\"{0}\"", Config.CodeSigningIdentity);
 
@@ -266,9 +266,25 @@ namespace iPhonePackager
 			}
 			string FinalMobileProvisionFilename = Path.Combine(Config.PCXcodeStagingDir, MacMobileProvisionFilename);
 			FileOperations.CopyRequiredFile(ProvisionWithPrefix, FinalMobileProvisionFilename);
-			// make sure this .mobileprovision file is newer than any other .mobileprovision file on the Mac (this file gets multiple games named the same file, 
-			// so the time stamp checking can fail when moving between games, a la the buildmachines!)
-			File.SetLastWriteTime(FinalMobileProvisionFilename, DateTime.UtcNow);
+
+            // get the UUID
+            string AllText = File.ReadAllText(FinalMobileProvisionFilename);
+            string UUID = "";
+            int idx = AllText.IndexOf("<key>UUID</key>");
+            if (idx > 0)
+            {
+                idx = AllText.IndexOf("<string>", idx);
+                if (idx > 0)
+                {
+                    idx += "<string>".Length;
+                    UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+                }
+            }
+            CurrentBaseXCodeCommandLine += String.Format(" PROVISIONING_PROFILE="+UUID);
+
+            // make sure this .mobileprovision file is newer than any other .mobileprovision file on the Mac (this file gets multiple games named the same file, 
+            // so the time stamp checking can fail when moving between games, a la the buildmachines!)
+            File.SetLastWriteTime(FinalMobileProvisionFilename, DateTime.UtcNow);
 			string ProjectFile = Config.RootRelativePath + @"Engine\Intermediate\ProjectFiles\UE4.xcodeproj\project.pbxproj";
 			if (Program.GameName != "UE4Game")
 			{

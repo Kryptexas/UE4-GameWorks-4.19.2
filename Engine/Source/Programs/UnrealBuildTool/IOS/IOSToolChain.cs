@@ -1141,6 +1141,7 @@ namespace UnrealBuildTool
 
             return OutputFiles;
         }
+
         public override void PostBuildSync(UEBuildTarget Target)
 		{
 			base.PostBuildSync(Target);
@@ -1209,14 +1210,15 @@ namespace UnrealBuildTool
 							ConfigName += " " + Target.Rules.ConfigurationName;
 						}
 
-						// code sign the project
-						string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
+                        // code sign the project
+                        string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
 						                " -workspace \"" + Project + "\"" +
 										" -configuration \"" + ConfigName + "\"" +
 										" -scheme '" + SchemeName + "'" +
 										" -sdk " + PlatformContext.GetCodesignPlatformName() +
 										" -destination generic/platform=" + (CppPlatform == CPPTargetPlatform.IOS ? "iOS" : "tvOS") +
-										" CODE_SIGN_IDENTITY=\"iPhone Developer\"";
+										" CODE_SIGN_IDENTITY=\"" + (!string.IsNullOrEmpty(PlatformContext.SigningCertificate) ? PlatformContext.SigningCertificate : "IPhoneDeveloper") + "\"" +
+                                        (!string.IsNullOrEmpty(PlatformContext.MobileProvisionUUID) ? (" PROVISIONING_PROFILE=" + PlatformContext.MobileProvisionUUID) : "");
 
 						Console.WriteLine("Code signing with command line: " + CmdLine);
 
