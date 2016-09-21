@@ -3084,7 +3084,7 @@ void ULandscapeInfo::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo)
 
 	// Remove from layer settings array
 	{
-		int32 LayerIndex = Layers.IndexOfByPredicate([LayerInfo](const auto& LayerSettings) { return LayerSettings.LayerInfoObj == LayerInfo; });
+		int32 LayerIndex = Layers.IndexOfByPredicate([LayerInfo](const FLandscapeInfoLayerSettings& LayerSettings) { return LayerSettings.LayerInfoObj == LayerInfo; });
 		if (LayerIndex != INDEX_NONE)
 		{
 			Layers.RemoveAt(LayerIndex);
