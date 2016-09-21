@@ -21,6 +21,7 @@ public class ScreenShotComparison : ModuleRules
 				"SlateCore",
 				"ImageWrapper",
 				"CoreUObject",
+				"DesktopWidgets"
 			}
 		);
 

@@ -56,6 +56,15 @@
 #include "Sections/MovieScene3DTransformSection.h"
 #include "Sections/MovieSceneFloatSection.h"
 
+#if WITH_PHYSX
+#include "PhysicsEngine/AggregateGeom.h"
+#include "PhysicsPublic.h"
+#include "PhysXPublic.h"
+#include "PxConvexMesh.h"
+#include "PhysicsEngine/BodySetup.h"
+#endif // WITH_PHYSX
+
+
 namespace UnFbx
 {
 
@@ -337,11 +346,18 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, bool bSelectedOnly, INodeNa
 			// Check if we export the actor as a blueprint
 			bIsBlueprintClass = UBlueprint::GetBlueprintFromClass(ActorClass) != nullptr;
 		}
-		if (Actor->IsA(ALight::StaticClass()))
+
+		//Blueprint can be any type of actor so it must be done first
+		if (bIsBlueprintClass)
+		{
+			// Export blueprint actors and all their components.
+			ExportActor(Actor, true, NodeNameAdapter);
+		}
+		else if (Actor->IsA(ALight::StaticClass()))
 		{
 			ExportLight((ALight*) Actor, NodeNameAdapter );
 		}
-		else if (!bIsBlueprintClass && Actor->IsA(AStaticMeshActor::StaticClass()))
+		else if (Actor->IsA(AStaticMeshActor::StaticClass()))
 		{
 			ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NodeNameAdapter );
 		}
@@ -362,15 +378,10 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, bool bSelectedOnly, INodeNa
 		{
 			ExportCamera(CastChecked<ACameraActor>(Actor), false, NodeNameAdapter); // Just export the placement of the particle emitter.
 		}
-		else if(Actor->IsA(ASkeletalMeshActor::StaticClass()) ||  bIsBlueprintClass)
+		else
 		{
-			// Export blueprint and skeletal actors and all their components
-			ExportActor( Actor, true, NodeNameAdapter );
-		}
-		else if(Actor->IsA(AInstancedFoliageActor::StaticClass()))
-		{
-			// Export Foliage components
-			ExportActor( Actor, true, NodeNameAdapter );
+			// Export any other type of actors and all their components.
+			ExportActor(Actor, true, NodeNameAdapter);
 		}
 	}
 }
@@ -526,7 +537,7 @@ void FFbxExporter::ExportBrush(ABrush* Actor, UModel* InModel, bool bConvertToSt
 	else
 	{
 		FRawMesh Mesh;
-		TArray<UMaterialInterface*>	Materials;
+		TArray<FStaticMaterial>	Materials;
 		GetBrushMesh(Actor,Actor->Brush,Mesh,Materials);
 
 		if( Mesh.VertexPositions.Num() )
@@ -689,6 +700,22 @@ void FFbxExporter::ExportModel(UModel* Model, FbxNode* Node, const char* Name)
 	Node->SetNodeAttribute(Mesh);
 }
 
+FString FFbxExporter::GetFbxObjectName(const FString &FbxObjectNode, INodeNameAdapter& NodeNameAdapter)
+{
+	FString FbxTestName = FbxObjectNode;
+	int32 *NodeIndex = FbxNodeNameToIndexMap.Find(FbxTestName);
+	if (NodeIndex)
+	{
+		FbxTestName = FString::Printf(TEXT("%s%d"), *FbxTestName, *NodeIndex);
+		++(*NodeIndex);
+	}
+	else
+	{
+		FbxNodeNameToIndexMap.Add(FbxTestName, 1);
+	}
+	return FbxTestName;
+}
+
 void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticMeshComponent, INodeNameAdapter& NodeNameAdapter)
 {
 	if (Scene == NULL || Actor == NULL || StaticMeshComponent == NULL)
@@ -708,19 +735,57 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	FString FbxMeshName = StaticMesh->GetName().Replace(TEXT("-"), TEXT("_"));
 	FColorVertexBuffer* ColorBuffer = NULL;
 	
-	if (LODIndex != INDEX_NONE && LODIndex < StaticMeshComponent->LODData.Num())
+	if(LODIndex == INDEX_NONE && StaticMesh->GetNumLODs() > 1)
 	{
-		ColorBuffer = StaticMeshComponent->LODData[LODIndex].OverrideVertexColors;
+		//Create a fbx LOD Group node
+		FbxNode* FbxActor = ExportActor(Actor, false, NodeNameAdapter);
+		FString FbxLODGroupName = NodeNameAdapter.GetActorNodeName(Actor);
+		FbxLODGroupName += TEXT("_LodGroup");
+		FbxLODGroupName = GetFbxObjectName(FbxLODGroupName, NodeNameAdapter);
+		FbxLODGroup *FbxLodGroupAttribute = FbxLODGroup::Create(Scene, TCHAR_TO_UTF8(*FbxLODGroupName));
+		FbxActor->AddNodeAttribute(FbxLodGroupAttribute);
+		FbxLodGroupAttribute->ThresholdsUsedAsPercentage = true;
+		//Export an Fbx Mesh Node for every LOD and child them to the fbx node (LOD Group)
+		for (int CurrentLodIndex = 0; CurrentLodIndex < StaticMesh->GetNumLODs(); ++CurrentLodIndex)
+		{
+			if (CurrentLodIndex < StaticMeshComponent->LODData.Num())
+			{
+				ColorBuffer = StaticMeshComponent->LODData[CurrentLodIndex].OverrideVertexColors;
+			}
+			else
+			{
+				ColorBuffer = nullptr;
+			}
+			FString FbxLODNodeName = NodeNameAdapter.GetActorNodeName(Actor);
+			FbxLODNodeName += TEXT("_LOD") + FString::FromInt(CurrentLodIndex);
+			FbxLODNodeName = GetFbxObjectName(FbxLODNodeName, NodeNameAdapter);
+			FbxNode* FbxActorLOD = FbxNode::Create(Scene, TCHAR_TO_UTF8(*FbxLODNodeName));
+			FbxActor->AddChild(FbxActorLOD);
+			if (CurrentLodIndex + 1 < StaticMesh->GetNumLODs())
+			{
+				//Convert the screen size to a threshold, it is just to be sure that we set some threshold, there is no way to convert this precisely
+				double LodScreenSize = (double)(10.0f / StaticMesh->RenderData->ScreenSize[CurrentLodIndex]);
+				FbxLodGroupAttribute->AddThreshold(LodScreenSize);
+			}
+			ExportStaticMeshToFbx(StaticMesh, CurrentLodIndex, *FbxMeshName, FbxActorLOD, -1, ColorBuffer);
+		}
 	}
-
-	FbxNode* FbxActor = ExportActor(Actor, false, NodeNameAdapter);
-	ExportStaticMeshToFbx(StaticMesh, LODIndex, *FbxMeshName, FbxActor, -1, ColorBuffer);
+	else
+	{
+		if (LODIndex != INDEX_NONE && LODIndex < StaticMeshComponent->LODData.Num())
+		{
+			ColorBuffer = StaticMeshComponent->LODData[LODIndex].OverrideVertexColors;
+		}
+		//Export all LOD
+		FbxNode* FbxActor = ExportActor(Actor, false, NodeNameAdapter);
+		ExportStaticMeshToFbx(StaticMesh, LODIndex, *FbxMeshName, FbxActor, -1, ColorBuffer);
+	}
 }
 
 struct FBSPExportData
 {
 	FRawMesh Mesh;
-	TArray<UMaterialInterface*> Materials;
+	TArray<FStaticMaterial> Materials;
 	uint32 NumVerts;
 	uint32 NumFaces;
 	uint32 CurrentVertAddIndex;
@@ -741,7 +806,7 @@ struct FBSPExportData
 void FFbxExporter::ExportBSP( UModel* Model, bool bSelectedOnly )
 {
 	TMap< ABrush*, FBSPExportData > BrushToMeshMap;
-	TArray<UMaterialInterface*> AllMaterials;
+	TArray<FStaticMaterial> AllMaterials;
 
 	for(int32 NodeIndex = 0;NodeIndex < Model->Nodes.Num();NodeIndex++)
 	{
@@ -781,7 +846,7 @@ void FFbxExporter::ExportBSP( UModel* Model, bool bSelectedOnly )
 				return;
 			}
 
-			TArray<UMaterialInterface*>& Materials = ExportData->Materials;
+			TArray<FStaticMaterial>& Materials = ExportData->Materials;
 			FRawMesh& Mesh = ExportData->Mesh;
 
 			//Pre-allocate space for this mesh.
@@ -809,7 +874,7 @@ void FFbxExporter::ExportBSP( UModel* Model, bool bSelectedOnly )
 			
 			UMaterialInterface*	Material = Poly.Material;
 
-			AllMaterials.AddUnique(Material);
+			AllMaterials.AddUnique(FStaticMaterial(Material));
 
 			int32 MaterialIndex = ExportData->Materials.AddUnique(Material);
 
@@ -878,7 +943,7 @@ void FFbxExporter::ExportBSP( UModel* Model, bool bSelectedOnly )
 	}
 }
 
-void FFbxExporter::ExportStaticMesh( UStaticMesh* StaticMesh, const TArray<UMaterialInterface*>* MaterialOrder )
+void FFbxExporter::ExportStaticMesh( UStaticMesh* StaticMesh, const TArray<FStaticMaterial>* MaterialOrder )
 {
 	if (Scene == NULL || StaticMesh == NULL || !StaticMesh->HasValidRenderData()) return;
 	FString MeshName;
@@ -1375,22 +1440,8 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 	if (ActorNode == NULL)
 	{
 		FString FbxNodeName = NodeNameAdapter.GetActorNodeName(Actor);
-
-		// See if a node with this name was already found
-		// if so add and increment the number on the end of it
-		int32 *NodeIndex = FbxNodeNameToIndexMap.Find( FbxNodeName );
-		if( NodeIndex )
-		{
-			FbxNodeName = FString::Printf( TEXT("%s%d"), *FbxNodeName, *NodeIndex );
-			++(*NodeIndex);
-		}
-		else
-		{
-			FbxNodeNameToIndexMap.Add( FbxNodeName, 1 );	
-		}
-
+		FbxNodeName = GetFbxObjectName(FbxNodeName, NodeNameAdapter);
 		ActorNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*FbxNodeName));
-		
 
 		AActor* ParentActor = Actor->GetAttachParentActor();
 		// this doesn't work with skeletalmeshcomponent
@@ -2458,6 +2509,693 @@ void DetermineVertsToWeld(TArray<int32>& VertRemap, TArray<int32>& UniqueVerts, 
 	}
 }
 
+#if WITH_PHYSX
+
+class FCollisionFbxExporter
+{
+public:
+	FCollisionFbxExporter(const UStaticMesh *StaticMeshToExport, FbxMesh* ExportMesh, int32 ActualMatIndexToExport)
+	{
+		BoxPositions[0] = FVector(-1, -1, +1);
+		BoxPositions[1] = FVector(-1, +1, +1);
+		BoxPositions[2] = FVector(+1, +1, +1);
+		BoxPositions[3] = FVector(+1, -1, +1);
+
+		BoxFaceRotations[0] = FRotator(0, 0, 0);
+		BoxFaceRotations[1] = FRotator(90.f, 0, 0);
+		BoxFaceRotations[2] = FRotator(-90.f, 0, 0);
+		BoxFaceRotations[3] = FRotator(0, 0, 90.f);
+		BoxFaceRotations[4] = FRotator(0, 0, -90.f);
+		BoxFaceRotations[5] = FRotator(180.f, 0, 0);
+
+		DrawCollisionSides = 16;
+
+		SpherNumSides = DrawCollisionSides;
+		SphereNumRings = DrawCollisionSides / 2;
+		SphereNumVerts = (SpherNumSides + 1) * (SphereNumRings + 1);
+
+		CapsuleNumSides = DrawCollisionSides;
+		CapsuleNumRings = (DrawCollisionSides / 2) + 1;
+		CapsuleNumVerts = (CapsuleNumSides + 1) * (CapsuleNumRings + 1);
+
+		CurrentVertexOffset = 0;
+
+		StaticMesh = StaticMeshToExport;
+		Mesh = ExportMesh;
+		ActualMatIndex = ActualMatIndexToExport;
+	}
+	
+	void ExportCollisions()
+	{
+		const FKAggregateGeom& AggGeo = StaticMesh->BodySetup->AggGeom;
+
+		int32 VerticeNumber = 0;
+		for (const FKConvexElem &ConvexElem : AggGeo.ConvexElems)
+		{
+			VerticeNumber += GetConvexVerticeNumber(ConvexElem);
+		}
+		for (const FKBoxElem &BoxElem : AggGeo.BoxElems)
+		{
+			VerticeNumber += GetBoxVerticeNumber();
+		}
+		for (const FKSphereElem &SphereElem : AggGeo.SphereElems)
+		{
+			VerticeNumber += GetSphereVerticeNumber();
+		}
+		for (const FKSphylElem &CapsuleElem : AggGeo.SphylElems)
+		{
+			VerticeNumber += GetCapsuleVerticeNumber();
+		}
+
+		Mesh->InitControlPoints(VerticeNumber);
+		ControlPoints = Mesh->GetControlPoints();
+		CurrentVertexOffset = 0;
+		//////////////////////////////////////////////////////////////////////////
+		// Set all vertex
+		for (const FKConvexElem &ConvexElem : AggGeo.ConvexElems)
+		{
+			AddConvexVertex(ConvexElem);
+		}
+
+		for (const FKBoxElem &BoxElem : AggGeo.BoxElems)
+		{
+			AddBoxVertex(BoxElem);
+		}
+
+		for (const FKSphereElem &SphereElem : AggGeo.SphereElems)
+		{
+			AddSphereVertex(SphereElem);
+		}
+
+		for (const FKSphylElem &CapsuleElem : AggGeo.SphylElems)
+		{
+			AddCapsuleVertex(CapsuleElem);
+		}
+
+		// Set the normals on Layer 0.
+		FbxLayer* Layer = Mesh->GetLayer(0);
+		if (Layer == nullptr)
+		{
+			Mesh->CreateLayer();
+			Layer = Mesh->GetLayer(0);
+		}
+		// Create and fill in the per-face-vertex normal data source.
+		LayerElementNormal = FbxLayerElementNormal::Create(Mesh, "");
+		// Set the normals per polygon instead of storing normals on positional control points
+		LayerElementNormal->SetMappingMode(FbxLayerElement::eByPolygonVertex);
+		// Set the normal values for every polygon vertex.
+		LayerElementNormal->SetReferenceMode(FbxLayerElement::eDirect);
+
+		//////////////////////////////////////////////////////////////////////////
+		//Set the Normals
+		for (const FKConvexElem &ConvexElem : AggGeo.ConvexElems)
+		{
+			AddConvexNormals(ConvexElem);
+		}
+		for (const FKBoxElem &BoxElem : AggGeo.BoxElems)
+		{
+			AddBoxNormal(BoxElem);
+		}
+
+		int32 SphereIndex = 0;
+		for (const FKSphereElem &SphereElem : AggGeo.SphereElems)
+		{
+			AddSphereNormals(SphereElem, SphereIndex);
+			SphereIndex++;
+		}
+
+		int32 CapsuleIndex = 0;
+		for (const FKSphylElem &CapsuleElem : AggGeo.SphylElems)
+		{
+			AddCapsuleNormals(CapsuleElem, CapsuleIndex);
+			CapsuleIndex++;
+		}
+
+		Layer->SetNormals(LayerElementNormal);
+
+		//////////////////////////////////////////////////////////////////////////
+		// Set polygons
+		// Build list of polygon re-used multiple times to lookup Normals, UVs, other per face vertex information
+		CurrentVertexOffset = 0; //Reset the current VertexCount
+		for (const FKConvexElem &ConvexElem : AggGeo.ConvexElems)
+		{
+			AddConvexPolygon(ConvexElem);
+		}
+
+		for (const FKBoxElem &BoxElem : AggGeo.BoxElems)
+		{
+			AddBoxPolygons();
+		}
+
+		for (const FKSphereElem &SphereElem : AggGeo.SphereElems)
+		{
+			AddSpherePolygons();
+		}
+
+		for (const FKSphylElem &CapsuleElem : AggGeo.SphylElems)
+		{
+			AddCapsulePolygons();
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		//Free the sphere resources
+		for (FDynamicMeshVertex* DynamicMeshVertex : SpheresVerts)
+		{
+			FMemory::Free(DynamicMeshVertex);
+		}
+		SpheresVerts.Empty();
+
+		//////////////////////////////////////////////////////////////////////////
+		//Free the capsule resources
+		for (FDynamicMeshVertex* DynamicMeshVertex : CapsuleVerts)
+		{
+			FMemory::Free(DynamicMeshVertex);
+		}
+		CapsuleVerts.Empty();
+	}
+
+private:
+	uint32 GetConvexVerticeNumber(const FKConvexElem &ConvexElem)
+	{
+		return ConvexElem.ConvexMesh != nullptr ? ConvexElem.ConvexMesh->getNbVertices() : 0;
+	}
+
+	uint32 GetBoxVerticeNumber() { return 24; }
+
+	uint32 GetSphereVerticeNumber() { return SphereNumVerts; }
+
+	uint32 GetCapsuleVerticeNumber() { return CapsuleNumVerts; }
+
+	void AddConvexVertex(const FKConvexElem &ConvexElem)
+	{
+		const FTransform &ConvexTransform = ConvexElem.GetTransform();
+		const physx::PxConvexMesh* ConvexMesh = ConvexElem.ConvexMesh;
+		if (ConvexMesh == nullptr)
+		{
+			return;
+		}
+		const PxVec3 *VertexArray = ConvexMesh->getVertices();
+		for (uint32 PosIndex = 0; PosIndex < ConvexMesh->getNbVertices(); ++PosIndex)
+		{
+			FVector Position = P2UVector(VertexArray[PosIndex]);
+			Position = ConvexTransform.TransformPosition(Position);
+			ControlPoints[CurrentVertexOffset + PosIndex] = FbxVector4(Position.X, -Position.Y, Position.Z);
+		}
+		CurrentVertexOffset += ConvexMesh->getNbVertices();
+	}
+
+	void AddConvexNormals(const FKConvexElem &ConvexElem)
+	{
+		const FTransform &ConvexTransform = ConvexElem.GetTransform();
+		const physx::PxConvexMesh* ConvexMesh = ConvexElem.ConvexMesh;
+		if (ConvexMesh == nullptr)
+		{
+			return;
+		}
+		const PxU8* PIndexBuffer = ConvexMesh->getIndexBuffer();
+		int32 PolygonNumber = ConvexMesh->getNbPolygons();
+		for (int32 PolyIndex = 0; PolyIndex < PolygonNumber; ++PolyIndex)
+		{
+			PxHullPolygon PolyData;
+			if (!ConvexMesh->getPolygonData(PolyIndex, PolyData))
+			{
+				continue;
+			}
+			const PxVec3 PPlaneNormal(PolyData.mPlane[0], PolyData.mPlane[1], PolyData.mPlane[2]);
+			FVector Normal = P2UVector(PPlaneNormal.getNormalized());
+			Normal = ConvexTransform.TransformVector(Normal);
+			FbxVector4 FbxNormal = FbxVector4(Normal.X, -Normal.Y, Normal.Z);
+			// add vertices 
+			for (PxU32 j = 0; j < PolyData.mNbVerts; ++j)
+			{
+				LayerElementNormal->GetDirectArray().Add(FbxNormal);
+			}
+		}
+	}
+
+	void AddConvexPolygon(const FKConvexElem &ConvexElem)
+	{
+		const physx::PxConvexMesh* ConvexMesh = ConvexElem.ConvexMesh;
+		if (ConvexMesh == nullptr)
+		{
+			return;
+		}
+		const PxU8* PIndexBuffer = ConvexMesh->getIndexBuffer();
+		int32 PolygonNumber = ConvexMesh->getNbPolygons();
+		for (int32 PolyIndex = 0; PolyIndex < PolygonNumber; ++PolyIndex)
+		{
+			PxHullPolygon PolyData;
+			if (!ConvexMesh->getPolygonData(PolyIndex, PolyData))
+			{
+				continue;
+			}
+			Mesh->BeginPolygon(ActualMatIndex);
+			const PxU8* PolyIndices = PIndexBuffer + PolyData.mIndexBase;
+			// add vertices 
+			for (PxU32 j = 0; j < PolyData.mNbVerts; ++j)
+			{
+				const uint32 VertIndex = CurrentVertexOffset + PolyIndices[j];
+				Mesh->AddPolygon(VertIndex);
+			}
+			Mesh->EndPolygon();
+		}
+		CurrentVertexOffset += ConvexMesh->getNbVertices();
+	}
+
+	void AddBoxVertex(const FKBoxElem &BoxElem)
+	{
+		FScaleMatrix ExtendScale(0.5f * FVector(BoxElem.X, BoxElem.Y, BoxElem.Z));
+		// Calculate verts for a face pointing down Z
+		FMatrix BoxTransform = BoxElem.GetTransform().ToMatrixWithScale();
+		for (int32 f = 0; f < 6; f++)
+		{
+			FMatrix FaceTransform = FRotationMatrix(BoxFaceRotations[f])*ExtendScale*BoxTransform;
+
+			for (int32 VertexIndex = 0; VertexIndex < 4; VertexIndex++)
+			{
+				FVector4 VertexPosition = FaceTransform.TransformPosition(BoxPositions[VertexIndex]);
+				ControlPoints[CurrentVertexOffset + VertexIndex] = FbxVector4(VertexPosition.X, -VertexPosition.Y, VertexPosition.Z);
+			}
+			CurrentVertexOffset += 4;
+		}
+	}
+
+	void AddBoxNormal(const FKBoxElem &BoxElem)
+	{
+		FScaleMatrix ExtendScale(0.5f * FVector(BoxElem.X, BoxElem.Y, BoxElem.Z));
+		FMatrix BoxTransform = BoxElem.GetTransform().ToMatrixWithScale();
+		for (int32 f = 0; f < 6; f++)
+		{
+			FMatrix FaceTransform = FRotationMatrix(BoxFaceRotations[f])*ExtendScale*BoxTransform;
+			FVector4 TangentZ = FaceTransform.TransformVector(FVector(0, 0, 1));
+			FbxVector4 FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+			FbxNormal.Normalize();
+			for (int32 VertexIndex = 0; VertexIndex < 4; VertexIndex++)
+			{
+				LayerElementNormal->GetDirectArray().Add(FbxNormal);
+			}
+		}
+	}
+
+	void AddBoxPolygons()
+	{
+		for (int32 f = 0; f < 6; f++)
+		{
+			Mesh->BeginPolygon(ActualMatIndex);
+			for (int32 VertexIndex = 0; VertexIndex < 4; VertexIndex++)
+			{
+				const uint32 VertIndex = CurrentVertexOffset + VertexIndex;
+				Mesh->AddPolygon(VertIndex);
+			}
+			Mesh->EndPolygon();
+			CurrentVertexOffset += 4;
+		}
+	}
+
+	void AddSphereVertex(const FKSphereElem &SphereElem)
+	{
+		FMatrix SphereTransform = FScaleMatrix(SphereElem.Radius * FVector(1.0f)) * SphereElem.GetTransform().ToMatrixWithScale();
+		FDynamicMeshVertex* Verts = (FDynamicMeshVertex*)FMemory::Malloc(SphereNumVerts * sizeof(FDynamicMeshVertex));
+		// Calculate verts for one arc
+		FDynamicMeshVertex* ArcVerts = (FDynamicMeshVertex*)FMemory::Malloc((SphereNumRings + 1) * sizeof(FDynamicMeshVertex));
+
+		for (int32 i = 0; i < SphereNumRings + 1; i++)
+		{
+			FDynamicMeshVertex* ArcVert = &ArcVerts[i];
+
+			float angle = ((float)i / SphereNumRings) * PI;
+
+			// Note- unit sphere, so position always has mag of one. We can just use it for normal!			
+			ArcVert->Position.X = 0.0f;
+			ArcVert->Position.Y = FMath::Sin(angle);
+			ArcVert->Position.Z = FMath::Cos(angle);
+
+			ArcVert->SetTangents(
+				FVector(1, 0, 0),
+				FVector(0.0f, -ArcVert->Position.Z, ArcVert->Position.Y),
+				ArcVert->Position
+				);
+		}
+
+		// Then rotate this arc SpherNumSides+1 times.
+		for (int32 s = 0; s < SpherNumSides + 1; s++)
+		{
+			FRotator ArcRotator(0, 360.f * (float)s / SpherNumSides, 0);
+			FRotationMatrix ArcRot(ArcRotator);
+
+			for (int32 v = 0; v < SphereNumRings + 1; v++)
+			{
+				int32 VIx = (SphereNumRings + 1)*s + v;
+
+				Verts[VIx].Position = ArcRot.TransformPosition(ArcVerts[v].Position);
+
+				Verts[VIx].SetTangents(
+					ArcRot.TransformVector(ArcVerts[v].TangentX),
+					ArcRot.TransformVector(ArcVerts[v].GetTangentY()),
+					ArcRot.TransformVector(ArcVerts[v].TangentZ)
+					);
+			}
+		}
+
+		// Add all of the vertices we generated to the mesh builder.
+		for (int32 VertexIndex = 0; VertexIndex < SphereNumVerts; VertexIndex++)
+		{
+			FVector Position = SphereTransform.TransformPosition(Verts[VertexIndex].Position);
+			ControlPoints[CurrentVertexOffset + VertexIndex] = FbxVector4(Position.X, -Position.Y, Position.Z);
+		}
+		CurrentVertexOffset += SphereNumVerts;
+		// Free our local copy of arc verts
+		FMemory::Free(ArcVerts);
+		SpheresVerts.Add(Verts);
+	}
+
+	void AddSphereNormals(const FKSphereElem &SphereElem, int32 SphereIndex)
+	{
+		FMatrix SphereTransform = FScaleMatrix(SphereElem.Radius * FVector(1.0f)) * SphereElem.GetTransform().ToMatrixWithScale();
+		for (int32 s = 0; s < SpherNumSides; s++)
+		{
+			int32 a0start = (s + 0) * (SphereNumRings + 1);
+			int32 a1start = (s + 1) * (SphereNumRings + 1);
+
+			for (int32 r = 0; r < SphereNumRings; r++)
+			{
+				if (r != 0)
+				{
+					int32 indexV = a0start + r + 0;
+					FVector TangentZ = SphereTransform.TransformVector(SpheresVerts[SphereIndex][indexV].TangentZ);
+					FbxVector4 FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+
+					indexV = a1start + r + 0;
+					TangentZ = SphereTransform.TransformVector(SpheresVerts[SphereIndex][indexV].TangentZ);
+					FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+
+					indexV = a0start + r + 1;
+					TangentZ = SphereTransform.TransformVector(SpheresVerts[SphereIndex][indexV].TangentZ);
+					FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+				}
+				if (r != SphereNumRings - 1)
+				{
+					int32 indexV = a1start + r + 0;
+					FVector TangentZ = SphereTransform.TransformVector(SpheresVerts[SphereIndex][indexV].TangentZ);
+					FbxVector4 FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+
+					indexV = a1start + r + 1;
+					TangentZ = SphereTransform.TransformVector(SpheresVerts[SphereIndex][indexV].TangentZ);
+					FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+
+					indexV = a0start + r + 1;
+					TangentZ = SphereTransform.TransformVector(SpheresVerts[SphereIndex][indexV].TangentZ);
+					FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+				}
+			}
+		}
+	}
+
+	void AddSpherePolygons()
+	{
+		for (int32 s = 0; s < SpherNumSides; s++)
+		{
+			int32 a0start = (s + 0) * (SphereNumRings + 1);
+			int32 a1start = (s + 1) * (SphereNumRings + 1);
+
+			for (int32 r = 0; r < SphereNumRings; r++)
+			{
+				if (r != 0)
+				{
+					Mesh->BeginPolygon(ActualMatIndex);
+					Mesh->AddPolygon(CurrentVertexOffset + a0start + r + 0);
+					Mesh->AddPolygon(CurrentVertexOffset + a1start + r + 0);
+					Mesh->AddPolygon(CurrentVertexOffset + a0start + r + 1);
+					Mesh->EndPolygon();
+				}
+				if (r != SphereNumRings - 1)
+				{
+					Mesh->BeginPolygon(ActualMatIndex);
+					Mesh->AddPolygon(CurrentVertexOffset + a1start + r + 0);
+					Mesh->AddPolygon(CurrentVertexOffset + a1start + r + 1);
+					Mesh->AddPolygon(CurrentVertexOffset + a0start + r + 1);
+					Mesh->EndPolygon();
+				}
+			}
+		}
+		CurrentVertexOffset += SphereNumVerts;
+	}
+
+	void AddCapsuleVertex(const FKSphylElem &CapsuleElem)
+	{
+		FMatrix CapsuleTransform = CapsuleElem.GetTransform().ToMatrixWithScale();
+		float Length = CapsuleElem.Length;
+		float Radius = CapsuleElem.Radius;
+		FDynamicMeshVertex* Verts = (FDynamicMeshVertex*)FMemory::Malloc(CapsuleNumVerts * sizeof(FDynamicMeshVertex));
+
+		// Calculate verts for one arc
+		FDynamicMeshVertex* ArcVerts = (FDynamicMeshVertex*)FMemory::Malloc((CapsuleNumRings + 1) * sizeof(FDynamicMeshVertex));
+
+		for (int32 RingIdx = 0; RingIdx < CapsuleNumRings + 1; RingIdx++)
+		{
+			FDynamicMeshVertex* ArcVert = &ArcVerts[RingIdx];
+
+			float Angle;
+			float ZOffset;
+			if (RingIdx <= DrawCollisionSides / 4)
+			{
+				Angle = ((float)RingIdx / (CapsuleNumRings - 1)) * PI;
+				ZOffset = 0.5 * Length;
+			}
+			else
+			{
+				Angle = ((float)(RingIdx - 1) / (CapsuleNumRings - 1)) * PI;
+				ZOffset = -0.5 * Length;
+			}
+
+			// Note- unit sphere, so position always has mag of one. We can just use it for normal!		
+			FVector SpherePos;
+			SpherePos.X = 0.0f;
+			SpherePos.Y = Radius * FMath::Sin(Angle);
+			SpherePos.Z = Radius * FMath::Cos(Angle);
+
+			ArcVert->Position = SpherePos + FVector(0, 0, ZOffset);
+
+			ArcVert->SetTangents(
+				FVector(1, 0, 0),
+				FVector(0.0f, -SpherePos.Z, SpherePos.Y),
+				SpherePos
+				);
+		}
+
+		// Then rotate this arc NumSides+1 times.
+		for (int32 SideIdx = 0; SideIdx < CapsuleNumSides + 1; SideIdx++)
+		{
+			const FRotator ArcRotator(0, 360.f * ((float)SideIdx / CapsuleNumSides), 0);
+			const FRotationMatrix ArcRot(ArcRotator);
+
+			for (int32 VertIdx = 0; VertIdx < CapsuleNumRings + 1; VertIdx++)
+			{
+				int32 VIx = (CapsuleNumRings + 1)*SideIdx + VertIdx;
+
+				Verts[VIx].Position = ArcRot.TransformPosition(ArcVerts[VertIdx].Position);
+
+				Verts[VIx].SetTangents(
+					ArcRot.TransformVector(ArcVerts[VertIdx].TangentX),
+					ArcRot.TransformVector(ArcVerts[VertIdx].GetTangentY()),
+					ArcRot.TransformVector(ArcVerts[VertIdx].TangentZ)
+					);
+			}
+		}
+
+		// Add all of the vertices we generated to the mesh builder.
+		for (int32 VertexIndex = 0; VertexIndex < CapsuleNumVerts; VertexIndex++)
+		{
+			FVector Position = CapsuleTransform.TransformPosition(Verts[VertexIndex].Position);
+			ControlPoints[CurrentVertexOffset + VertexIndex] = FbxVector4(Position.X, -Position.Y, Position.Z);
+		}
+		CurrentVertexOffset += CapsuleNumVerts;
+		// Free our local copy of arc verts
+		FMemory::Free(ArcVerts);
+		CapsuleVerts.Add(Verts);
+	}
+	
+	void AddCapsuleNormals(const FKSphylElem &CapsuleElem, int32 CapsuleIndex)
+	{
+		FMatrix CapsuleTransform = CapsuleElem.GetTransform().ToMatrixWithScale();
+		// Add all of the triangles to the mesh.
+		for (int32 SideIdx = 0; SideIdx < CapsuleNumSides; SideIdx++)
+		{
+			const int32 a0start = (SideIdx + 0) * (CapsuleNumRings + 1);
+			const int32 a1start = (SideIdx + 1) * (CapsuleNumRings + 1);
+
+			for (int32 RingIdx = 0; RingIdx < CapsuleNumRings; RingIdx++)
+			{
+				if (RingIdx != 0)
+				{
+					int32 indexV = a0start + RingIdx + 0;
+					FVector TangentZ = CapsuleTransform.TransformVector(CapsuleVerts[CapsuleIndex][indexV].TangentZ);
+					FbxVector4 FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+
+					indexV = a1start + RingIdx + 0;
+					TangentZ = CapsuleTransform.TransformVector(CapsuleVerts[CapsuleIndex][indexV].TangentZ);
+					FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+
+					indexV = a0start + RingIdx + 1;
+					TangentZ = CapsuleTransform.TransformVector(CapsuleVerts[CapsuleIndex][indexV].TangentZ);
+					FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+				}
+				if (RingIdx != CapsuleNumRings - 1)
+				{
+					int32 indexV = a1start + RingIdx + 0;
+					FVector TangentZ = CapsuleTransform.TransformVector(CapsuleVerts[CapsuleIndex][indexV].TangentZ);
+					FbxVector4 FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+
+					indexV = a1start + RingIdx + 1;
+					TangentZ = CapsuleTransform.TransformVector(CapsuleVerts[CapsuleIndex][indexV].TangentZ);
+					FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+
+					indexV = a0start + RingIdx + 1;
+					TangentZ = CapsuleTransform.TransformVector(CapsuleVerts[CapsuleIndex][indexV].TangentZ);
+					FbxNormal = FbxVector4(TangentZ.X, -TangentZ.Y, TangentZ.Z);
+					FbxNormal.Normalize();
+					LayerElementNormal->GetDirectArray().Add(FbxNormal);
+				}
+			}
+		}
+	}
+
+	void AddCapsulePolygons()
+	{
+		// Add all of the triangles to the mesh.
+		for (int32 SideIdx = 0; SideIdx < CapsuleNumSides; SideIdx++)
+		{
+			const int32 a0start = (SideIdx + 0) * (CapsuleNumRings + 1);
+			const int32 a1start = (SideIdx + 1) * (CapsuleNumRings + 1);
+
+			for (int32 RingIdx = 0; RingIdx < CapsuleNumRings; RingIdx++)
+			{
+				if (RingIdx != 0)
+				{
+					Mesh->BeginPolygon(ActualMatIndex);
+					Mesh->AddPolygon(CurrentVertexOffset + a0start + RingIdx + 0);
+					Mesh->AddPolygon(CurrentVertexOffset + a1start + RingIdx + 0);
+					Mesh->AddPolygon(CurrentVertexOffset + a0start + RingIdx + 1);
+					Mesh->EndPolygon();
+				}
+				if (RingIdx != CapsuleNumRings - 1)
+				{
+					Mesh->BeginPolygon(ActualMatIndex);
+					Mesh->AddPolygon(CurrentVertexOffset + a1start + RingIdx + 0);
+					Mesh->AddPolygon(CurrentVertexOffset + a1start + RingIdx + 1);
+					Mesh->AddPolygon(CurrentVertexOffset + a0start + RingIdx + 1);
+					Mesh->EndPolygon();
+				}
+			}
+		}
+		CurrentVertexOffset += CapsuleNumVerts;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	//Box data
+	FVector BoxPositions[4];
+	FRotator BoxFaceRotations[6];
+	
+
+	int32 DrawCollisionSides;
+	//////////////////////////////////////////////////////////////////////////
+	//Sphere data
+	int32 SpherNumSides;
+	int32 SphereNumRings;
+	int32 SphereNumVerts;
+	TArray<FDynamicMeshVertex*> SpheresVerts;
+
+	//////////////////////////////////////////////////////////////////////////
+	//Capsule data
+	int32 CapsuleNumSides;
+	int32 CapsuleNumRings;
+	int32 CapsuleNumVerts;
+	TArray<FDynamicMeshVertex*> CapsuleVerts;
+
+	//////////////////////////////////////////////////////////////////////////
+	//Mesh Data
+	uint32 CurrentVertexOffset;
+
+	const UStaticMesh *StaticMesh;
+	FbxMesh* Mesh;
+	int32 ActualMatIndex;
+	FbxVector4* ControlPoints;
+	FbxLayerElementNormal* LayerElementNormal;
+};
+
+FbxNode* FFbxExporter::ExportCollisionMesh(const UStaticMesh* StaticMesh, const TCHAR* MeshName, FbxNode* ParentActor)
+{
+	const FKAggregateGeom& AggGeo = StaticMesh->BodySetup->AggGeom;
+	if (AggGeo.GetElementCount() <= 0)
+	{
+		return nullptr;
+	}
+	FbxMesh* Mesh = nullptr;
+	Mesh = FbxMeshes.FindRef(StaticMesh);
+	if (!Mesh)
+	{
+		//We export collision only if the mesh is already exported
+		return nullptr;
+	}
+	//Name the mesh attribute with the mesh name
+	FString MeshCollisionName = TEXT("UCX_");
+	MeshCollisionName += MeshName;
+	Mesh = FbxMesh::Create(Scene, TCHAR_TO_UTF8(*MeshCollisionName));
+	//Name the node with the actor name
+	MeshCollisionName = TEXT("UCX_");
+	MeshCollisionName += UTF8_TO_TCHAR(ParentActor->GetName());
+	FbxNode* FbxActor = FbxNode::Create(Scene, TCHAR_TO_UTF8(*MeshCollisionName));
+
+	FbxNode *ParentOfParentMesh = nullptr;
+	if (ParentActor != nullptr)
+	{
+		FbxActor->LclTranslation.Set(ParentActor->LclTranslation.Get());
+		FbxActor->LclRotation.Set(ParentActor->LclRotation.Get());
+		FbxActor->LclScaling.Set(ParentActor->LclScaling.Get());
+		ParentOfParentMesh = ParentActor->GetParent();
+	}
+
+	if (ParentOfParentMesh == nullptr)
+	{
+		ParentOfParentMesh = Scene->GetRootNode();
+	}
+	
+	Scene->GetRootNode()->AddChild(FbxActor);
+
+	//Export all collision elements in one mesh
+	FbxSurfaceMaterial* FbxMaterial = nullptr;
+	int32 ActualMatIndex = FbxActor->AddMaterial(FbxMaterial);
+	FCollisionFbxExporter CollisionFbxExporter(StaticMesh, Mesh, ActualMatIndex);
+	CollisionFbxExporter.ExportCollisions();
+
+	//Set the original meshes in case it was already existing
+	FbxActor->SetNodeAttribute(Mesh);
+	return FbxActor;
+}
+#endif
+
 /**
  * Exports a static mesh
  * @param StaticMesh	The static mesh to export
@@ -2468,7 +3206,7 @@ void DetermineVertsToWeld(TArray<int32>& VertRemap, TArray<int32>& UniqueVerts, 
  * @param ColorBuffer	Vertex color overrides to export
  * @param MaterialOrderOverride	Optional ordering of materials to set up correct material ID's across multiple meshes being export such as BSP surfaces which share common materials. Should be used sparingly
  */
-FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int32 ExportLOD, const TCHAR* MeshName, FbxNode* FbxActor, int32 LightmapUVChannel /*= -1*/, const FColorVertexBuffer* ColorBuffer /*= NULL*/, const TArray<UMaterialInterface*>* MaterialOrderOverride /*= NULL*/)
+FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int32 ExportLOD, const TCHAR* MeshName, FbxNode* FbxActor, int32 LightmapUVChannel /*= -1*/, const FColorVertexBuffer* ColorBuffer /*= NULL*/, const TArray<FStaticMaterial>* MaterialOrderOverride /*= NULL*/)
 {
 	FbxMesh* Mesh = nullptr;
 	if ((ExportLOD == 0 || ExportLOD == -1) && LightmapUVChannel == -1 && ColorBuffer == nullptr && MaterialOrderOverride == nullptr)
@@ -2755,6 +3493,13 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		{
 			FbxMeshes.Add(StaticMesh, Mesh);
 		}
+#if WITH_PHYSX
+		const bool FbxExportCollisionMesh = GetDefault<UEditorPerProjectUserSettings>()->bFbxExportCollisionMesh;
+		if ((ExportLOD == 0 || ExportLOD == -1) && FbxExportCollisionMesh)
+		{
+			ExportCollisionMesh(StaticMesh, MeshName, FbxActor);
+		}
+#endif
 	}
 	else
 	{

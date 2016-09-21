@@ -18,6 +18,12 @@ public:
 	 */
 	void Create( IDetailLayoutBuilder& DetailBuilder );
 private:
+
+	/**
+	* Called by the material list widget when we need to get the material slot name
+	*/
+	TSharedRef<SWidget> OnGetMaterialNameForView(UMaterialInterface* Material, int32 MaterialIndex);
+	
 	/**
 	 * Called by the material list widget when we need to get new materials for the list
 	 *

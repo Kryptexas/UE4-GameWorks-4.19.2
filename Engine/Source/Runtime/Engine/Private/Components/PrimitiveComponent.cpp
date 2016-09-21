@@ -1210,6 +1210,10 @@ void UPrimitiveComponent::SetMaterial(int32 Index, UMaterialInterface* InMateria
 {
 }
 
+void UPrimitiveComponent::SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material)
+{
+}
+
 int32 UPrimitiveComponent::GetNumMaterials() const
 {
 	return 0;

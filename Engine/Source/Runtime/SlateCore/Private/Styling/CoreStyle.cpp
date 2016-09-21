@@ -300,6 +300,12 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	{
 		Style->Set( "GenericCommands.Undo", new IMAGE_BRUSH( "Icons/icon_undo_16px", Icon16x16 ) );
 		Style->Set( "GenericCommands.Redo", new IMAGE_BRUSH( "Icons/icon_redo_16px", Icon16x16 ) );
+
+		Style->Set( "GenericCommands.Copy", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Copy_16x", Icon16x16) );
+		Style->Set( "GenericCommands.Cut", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Cut_16x", Icon16x16) );
+		Style->Set( "GenericCommands.Delete", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Delete_16x", Icon16x16) );
+		Style->Set( "GenericCommands.Paste", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Paste_16x", Icon16x16) );
+		Style->Set( "GenericCommands.Duplicate", new IMAGE_BRUSH("Icons/Edit/icon_Edit_Duplicate_16x", Icon16x16) );
 	}
 
 	// SScrollBar defaults...

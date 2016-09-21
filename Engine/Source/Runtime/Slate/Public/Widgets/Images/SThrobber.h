@@ -75,6 +75,8 @@ private:
 class SLATE_API SCircularThrobber : public SLeafWidget
 {
 public:
+	static const float MinimumPeriodValue;
+
 	SLATE_BEGIN_ARGS(SCircularThrobber)	
 		: _PieceImage( FCoreStyle::Get().GetBrush( "Throbber.CircleChunk" ) )
 		, _NumPieces( 6 )

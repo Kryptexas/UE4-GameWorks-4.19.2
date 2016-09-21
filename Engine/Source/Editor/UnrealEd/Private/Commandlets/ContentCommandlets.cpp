@@ -1960,11 +1960,11 @@ void UListMaterialsUsedWithMeshEmittersCommandlet::ProcessParticleSystem( UParti
 				{
 					if (MeshTypeData->Mesh)
 					{
-						for (int32 MaterialIdx = 0; MaterialIdx < MeshTypeData->Mesh->Materials.Num(); MaterialIdx++)
+						for (int32 MaterialIdx = 0; MaterialIdx < MeshTypeData->Mesh->StaticMaterials.Num(); MaterialIdx++)
 						{
-							if(MeshTypeData->Mesh->Materials[MaterialIdx])
+							if(MeshTypeData->Mesh->StaticMaterials[MaterialIdx].MaterialInterface)
 							{
-								UMaterial* Mat = MeshTypeData->Mesh->Materials[MaterialIdx]->GetMaterial();
+								UMaterial* Mat = MeshTypeData->Mesh->StaticMaterials[MaterialIdx].MaterialInterface->GetMaterial();
 								if(!Mat->bUsedWithMeshParticles)
 								{
 									OutMaterials.AddUnique(Mat->GetPathName());

@@ -152,13 +152,18 @@ bool FFoliagePaintingGeometryFilter::operator() (const UPrimitiveComponent* Comp
 {
 	if (Component)
 	{
-		bool bShallNotPass =
-			(!bAllowLandscape	&& Component->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||
-			(!bAllowStaticMesh	&& Component->IsA(UStaticMeshComponent::StaticClass())) ||
-			(!bAllowBSP			&& Component->IsA(UModelComponent::StaticClass())) ||
-			(!bAllowTranslucent	&& Component->GetMaterial(0) && IsTranslucentBlendMode(Component->GetMaterial(0)->GetBlendMode()));
+		// Whitelist
+		bool bAllowed =
+			(bAllowLandscape   && Component->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||
+			(bAllowStaticMesh  && Component->IsA(UStaticMeshComponent::StaticClass()) && !Component->IsA(UFoliageInstancedStaticMeshComponent::StaticClass())) ||
+			(bAllowBSP         && Component->IsA(UModelComponent::StaticClass())) ||
+			(bAllowFoliage     && Component->IsA(UFoliageInstancedStaticMeshComponent::StaticClass()));
 
-		return !bShallNotPass;
+		// Blacklist
+		bAllowed &=
+			(bAllowTranslucent || !(Component->GetMaterial(0) && IsTranslucentBlendMode(Component->GetMaterial(0)->GetBlendMode())));
+
+		return bAllowed;
 	}
 
 	return false;
@@ -1404,24 +1409,21 @@ void FEdModeFoliage::RemoveInstancesForBrush(UWorld* InWorld, const UFoliageType
 			}
 		}
 
-		if (!UISettings.bFilterLandscape || !UISettings.bFilterStaticMesh || !UISettings.bFilterBSP || !UISettings.bFilterTranslucent)
+		FFoliagePaintingGeometryFilter GeometryFilterFunc(UISettings);
+
+		// Filter PotentialInstancesToRemove
+		for (int32 Idx = 0; Idx < PotentialInstancesToRemove.Num(); Idx++)
 		{
-			FFoliagePaintingGeometryFilter GeometryFilterFunc(UISettings);
+			auto BaseId = MeshInfo->Instances[PotentialInstancesToRemove[Idx]].BaseId;
+			auto BasePtr = IFA->InstanceBaseCache.GetInstanceBasePtr(BaseId);
+			UPrimitiveComponent* Base = Cast<UPrimitiveComponent>(BasePtr.Get());
 
-			// Filter PotentialInstancesToRemove
-			for (int32 Idx = 0; Idx < PotentialInstancesToRemove.Num(); Idx++)
+			// Check if instance is candidate for removal based on filter settings
+			if (Base && !GeometryFilterFunc(Base))
 			{
-				auto BaseId = MeshInfo->Instances[PotentialInstancesToRemove[Idx]].BaseId;
-				auto BasePtr = IFA->InstanceBaseCache.GetInstanceBasePtr(BaseId);
-				UPrimitiveComponent* Base = Cast<UPrimitiveComponent>(BasePtr.Get());
-
-				// Check if instance is candidate for removal based on filter settings
-				if (Base && !GeometryFilterFunc(Base))
-				{
-					// Instance should not be removed, so remove it from the removal list.
-					PotentialInstancesToRemove.RemoveAtSwap(Idx);
-					Idx--;
-				}
+				// Instance should not be removed, so remove it from the removal list.
+				PotentialInstancesToRemove.RemoveAtSwap(Idx);
+				Idx--;
 			}
 		}
 
@@ -3385,6 +3387,7 @@ void FFoliageUISettings::Load()
 	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bFilterLandscape"), bFilterLandscape, GEditorPerProjectIni);
 	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bFilterStaticMesh"), bFilterStaticMesh, GEditorPerProjectIni);
 	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bFilterBSP"), bFilterBSP, GEditorPerProjectIni);
+	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bFilterFoliage"), bFilterFoliage, GEditorPerProjectIni);
 	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bFilterTranslucent"), bFilterTranslucent, GEditorPerProjectIni);
 
 	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bShowPaletteItemDetails"), bShowPaletteItemDetails, GEditorPerProjectIni);
@@ -3409,6 +3412,7 @@ void FFoliageUISettings::Save()
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterLandscape"), bFilterLandscape, GEditorPerProjectIni);
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterStaticMesh"), bFilterStaticMesh, GEditorPerProjectIni);
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterBSP"), bFilterBSP, GEditorPerProjectIni);
+	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterFoliage"), bFilterFoliage, GEditorPerProjectIni);
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterTranslucent"), bFilterTranslucent, GEditorPerProjectIni);
 
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bShowPaletteItemDetails"), bShowPaletteItemDetails, GEditorPerProjectIni);

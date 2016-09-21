@@ -244,8 +244,8 @@ void FHitProxyDrawingPolicy::SetMeshRenderState(
 
 #if WITH_EDITOR
 
-int32 FEditorSelectionDrawingPolicy::PrimitiveSelectionIndex;
-int32 FEditorSelectionDrawingPolicy::IndividuallySelectedProxyIndex;
+TMap<const FPrimitiveSceneProxy*,int32> FEditorSelectionDrawingPolicy::ProxyToStencilIndex;
+TMap<FName, int32> FEditorSelectionDrawingPolicy::ActorNameToStencilIndex;
 
 void FEditorSelectionDrawingPolicy::SetMeshRenderState( FRHICommandList& RHICmdList, const FSceneView& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FMeshBatch& Mesh, int32 BatchElementIndex, bool bBackFace, const FMeshDrawingRenderState& DrawRenderState, const FHitProxyId HitProxyId, const ContextDataType PolicyContext )
 {
@@ -264,19 +264,25 @@ int32 FEditorSelectionDrawingPolicy::GetStencilValue(const FSceneView& View, con
 {
 	const bool bActorSelectionColorIsSubdued = View.bHasSelectedComponents;
 
+	const int32* ExistingStencilValue = PrimitiveSceneProxy->IsIndividuallySelected() ? ProxyToStencilIndex.Find(PrimitiveSceneProxy) : ActorNameToStencilIndex.Find(PrimitiveSceneProxy->GetOwnerName());
+
 	int32 StencilValue = 0;
-	if(PrimitiveSceneProxy->IsIndividuallySelected())
+	if(ExistingStencilValue != nullptr )
+	{
+		StencilValue = *ExistingStencilValue;
+	}
+	else if(PrimitiveSceneProxy->IsIndividuallySelected())
 	{
 		// Any component that is individually selected should have a stencil value of < 128 so that it can have a unique color.  We offset the value by 2 because 0 means no selection and 1 is for bsp
-		StencilValue = IndividuallySelectedProxyIndex % 126 + 2;
-		++IndividuallySelectedProxyIndex;
+		StencilValue = ProxyToStencilIndex.Num() % 126 + 2;
+		ProxyToStencilIndex.Add(PrimitiveSceneProxy, StencilValue);
 	}
 	else
 	{
 			
 		// If we are subduing actor color highlight then use the top level bits to indicate that to the shader.  
-		StencilValue = bActorSelectionColorIsSubdued ? PrimitiveSelectionIndex % 128 + 128 : PrimitiveSelectionIndex % 126 + 2;
-		++PrimitiveSelectionIndex;
+		StencilValue = bActorSelectionColorIsSubdued ? ActorNameToStencilIndex.Num() % 128 + 128 : ActorNameToStencilIndex.Num() % 126 + 2;
+		ActorNameToStencilIndex.Add(PrimitiveSceneProxy->GetOwnerName(), StencilValue);
 	}
 
 	return StencilValue;
@@ -284,8 +290,9 @@ int32 FEditorSelectionDrawingPolicy::GetStencilValue(const FSceneView& View, con
 
 void FEditorSelectionDrawingPolicy::ResetStencilValues()
 {
-	PrimitiveSelectionIndex = 0;
-	IndividuallySelectedProxyIndex = 0;
+	ProxyToStencilIndex.Reset();
+	ActorNameToStencilIndex.Reset();
+	ActorNameToStencilIndex.Add(NAME_BSP,1);
 }
 
 #endif

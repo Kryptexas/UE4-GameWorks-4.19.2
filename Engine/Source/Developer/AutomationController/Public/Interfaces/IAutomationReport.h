@@ -25,6 +25,37 @@ namespace EAutomationState
 		Success,				// Automation test was run and succeeded
 		NotEnoughParticipants,	// Automation test was not run due to number of participants
 	};
+	inline const TCHAR* ToString(EAutomationState::Type InType)
+	{
+		switch (InType)
+		{
+			case (EAutomationState::NotRun) :
+			{
+				return TEXT("NotRun");
+			}
+			case (EAutomationState::Fail) :
+			{
+				return TEXT("Fail");
+			}
+			case (EAutomationState::Success) :
+			{
+				return TEXT("Pass");
+			}
+			case (EAutomationState::InProcess) :
+			{
+				return TEXT("InProgress");
+			}
+			case (EAutomationState::NotEnoughParticipants) :
+			{
+				return TEXT("NotEnoughParticipants");
+			}
+			default:
+			{
+				return TEXT("Invalid");
+			}
+		}
+		return TEXT("Invalid");
+	}
 };
 
 

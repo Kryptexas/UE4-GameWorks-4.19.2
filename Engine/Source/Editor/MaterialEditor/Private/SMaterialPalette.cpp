@@ -25,14 +25,18 @@ void SMaterialPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForA
 
 	// Get the Hotkey chord if one exists for this action
 	TSharedPtr<const FInputChord> HotkeyChord;
-	if (GraphAction->GetTypeId() == FMaterialGraphSchemaAction_NewNode::StaticGetTypeId())
+
+	if ( FMaterialEditorSpawnNodeCommands::IsRegistered() )
 	{
-		UClass* MaterialExpressionClass = StaticCastSharedPtr<FMaterialGraphSchemaAction_NewNode>(GraphAction)->MaterialExpressionClass;
-		HotkeyChord = FMaterialEditorSpawnNodeCommands::Get().GetChordByClass(MaterialExpressionClass);
-	}
-	else if (GraphAction->GetTypeId() == FMaterialGraphSchemaAction_NewComment::StaticGetTypeId())
-	{
-		HotkeyChord = FMaterialEditorSpawnNodeCommands::Get().GetChordByClass(UMaterialExpressionComment::StaticClass());
+		if ( GraphAction->GetTypeId() == FMaterialGraphSchemaAction_NewNode::StaticGetTypeId() )
+		{
+			UClass* MaterialExpressionClass = StaticCastSharedPtr<FMaterialGraphSchemaAction_NewNode>(GraphAction)->MaterialExpressionClass;
+			HotkeyChord = FMaterialEditorSpawnNodeCommands::Get().GetChordByClass(MaterialExpressionClass);
+		}
+		else if ( GraphAction->GetTypeId() == FMaterialGraphSchemaAction_NewComment::StaticGetTypeId() )
+		{
+			HotkeyChord = FMaterialEditorSpawnNodeCommands::Get().GetChordByClass(UMaterialExpressionComment::StaticClass());
+		}
 	}
 
 	// Find icons

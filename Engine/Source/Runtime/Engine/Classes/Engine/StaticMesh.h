@@ -286,6 +286,58 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreMeshBuild, class UStaticMesh*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnPostMeshBuild, class UStaticMesh*);
 #endif
 
+//~ Begin Material Interface for UStaticMesh - contains a material and other stuff
+USTRUCT()
+struct FStaticMaterial
+{
+	GENERATED_USTRUCT_BODY()
+
+		FStaticMaterial()
+		: MaterialInterface(NULL)
+		, MaterialSlotName(NAME_None)
+#if WITH_EDITORONLY_DATA
+		, ImportedMaterialSlotName(NAME_None)
+#endif //WITH_EDITORONLY_DATA
+	{
+
+	}
+
+	FStaticMaterial(class UMaterialInterface* InMaterialInterface
+		, FName InMaterialSlotName = NAME_None
+#if WITH_EDITORONLY_DATA
+		, FName InImportedMaterialSlotName = NAME_None)
+#else
+		)
+#endif
+		: MaterialInterface(InMaterialInterface)
+		, MaterialSlotName(InMaterialSlotName)
+#if WITH_EDITORONLY_DATA
+		, ImportedMaterialSlotName(InImportedMaterialSlotName)
+#endif //WITH_EDITORONLY_DATA
+	{
+
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FStaticMaterial& Elem);
+
+	ENGINE_API friend bool operator==(const FStaticMaterial& LHS, const FStaticMaterial& RHS);
+	ENGINE_API friend bool operator==(const FStaticMaterial& LHS, const UMaterialInterface& RHS);
+	ENGINE_API friend bool operator==(const UMaterialInterface& LHS, const FStaticMaterial& RHS);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, Category = StaticMesh)
+	class UMaterialInterface *	MaterialInterface;
+
+	/*This name should be use by the gameplay to avoid error if the skeletal mesh Materials array topology change*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = StaticMesh)
+		FName						MaterialSlotName;
+#if WITH_EDITORONLY_DATA
+	/*This name should be use when we re-import a skeletal mesh so we can order the Materials array like it should be*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = StaticMesh)
+		FName						ImportedMaterialSlotName;
+#endif //WITH_EDITORONLY_DATA
+};
+
+
 /**
  * A StaticMesh is a piece of geometry that consists of a static set of polygons.
  * Static Meshes can be translated, rotated, and scaled, but they cannot have their vertices animated in any way. As such, they are more efficient
@@ -303,6 +355,8 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	TScopedPointer<class FStaticMeshRenderData> RenderData;
 
 #if WITH_EDITORONLY_DATA
+	static const float MinimumAutoLODPixelError;
+
 	/** Imported raw mesh bulk data. */
 	UPROPERTY()
 	TArray<FStaticMeshSourceModel> SourceModels;
@@ -323,6 +377,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	* loaded LOD distances.
 	*/
 	bool bRequiresLODDistanceConversion : 1;
+
 #endif // #if WITH_EDITORONLY_DATA
 
 	/** Minimum LOD to use for rendering.  This is the default setting for the mesh and can be overridden by component settings. */
@@ -331,7 +386,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 
 	/** Materials used by this static mesh. Individual sections index in to this array. */
 	UPROPERTY()
-	TArray<UMaterialInterface*> Materials;
+	TArray<UMaterialInterface*> Materials_DEPRECATED;
+
+	UPROPERTY()
+	TArray<FStaticMaterial> StaticMaterials;
 
 	UPROPERTY(EditAnywhere, Category=StaticMesh, meta=(ToolTip="The light map resolution", FixedIncrement="4.0"))
 	int32 LightMapResolution;
@@ -561,6 +619,13 @@ public:
 	 * @return Requested material
 	 */
 	ENGINE_API UMaterialInterface* GetMaterial(int32 MaterialIndex) const;
+
+	/**
+	* Gets a Material index given a slot name
+	*
+	* @return Requested material
+	*/
+	ENGINE_API int32 GetMaterialIndex(FName MaterialSlotName) const;
 
 	/**
 	 * Returns the render data to use for exporting the specified LOD. This method should always

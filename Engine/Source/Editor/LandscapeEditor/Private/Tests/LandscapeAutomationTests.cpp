@@ -145,7 +145,7 @@ bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
 
 	//Update the screenshot name, then take a screenshot.
-	if (FAutomationTestFramework::GetInstance().IsScreenshotAllowed())
+	if (FAutomationTestFramework::Get().IsScreenshotAllowed())
 	{
 		WindowScreenshotParameters ScreenshotParameters;
 

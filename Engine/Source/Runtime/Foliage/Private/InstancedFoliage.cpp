@@ -2679,6 +2679,7 @@ void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCol
 	Super::AddReferencedObjects(This, Collector);
 }
 
+#if WITH_EDITOR
 bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex, const FFoliageTraceFilterFunc& FilterFunc)
 {
 	FCollisionQueryParams QueryParams(InTraceTag, true);
@@ -2717,18 +2718,11 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 			}
 		}
 
-		// Don't place foliage on foliage
-		if (HitActor && HitActor->IsA<AInstancedFoliageActor>())
-		{
-			return false;
-		}
-
 		const UPrimitiveComponent* HitComponent = Hit.GetComponent();
 		check(HitComponent);
 
 		// In the editor traces can hit "No Collision" type actors, so ugh. (ignore these)
-		const FBodyInstance* BodyInstance = HitComponent->GetBodyInstance();
-		if (BodyInstance->GetCollisionEnabled() != ECollisionEnabled::QueryAndPhysics || BodyInstance->GetResponseToChannel(ECC_WorldStatic) != ECR_Block)
+		if (!HitComponent->IsQueryCollisionEnabled() || HitComponent->GetCollisionResponseToChannel(ECC_WorldStatic) != ECR_Block)
 		{
 			continue;
 		}
@@ -2737,6 +2731,18 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 		if (HitComponent->IsA<UBrushComponent>())
 		{
 			continue;
+		}
+
+		// Don't place foliage on itself
+		if (const AInstancedFoliageActor* FoliageActor = Cast<AInstancedFoliageActor>(HitActor))
+		{
+			if (const FFoliageMeshInfo* FoundMeshInfo = FoliageActor->FindMesh(DesiredInstance.FoliageType))
+			{
+				if (FoundMeshInfo->Component == HitComponent)
+				{
+					continue;
+				}
+			}
 		}
 
 		if (FilterFunc && FilterFunc(HitComponent) == false)
@@ -2753,6 +2759,21 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 		}
 
 		OutHit = Hit;
+
+		// When placing foliage on other foliage, we need to return the base component of the other foliage, not the foliage component, so that it moves correctly
+		if (const AInstancedFoliageActor* FoliageActor = Cast<AInstancedFoliageActor>(HitActor))
+		{
+			for (auto& MeshPair : FoliageActor->FoliageMeshes)
+			{
+				const FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+				if (MeshInfo.Component == HitComponent)
+				{
+					OutHit.Component = CastChecked<UPrimitiveComponent>(FoliageActor->InstanceBaseCache.GetInstanceBasePtr(MeshInfo.Instances[Hit.Item].BaseId).Get(), ECastCheckedType::NullAllowed);
+					break;
+				}
+			}
+		}
+
 		return bInsideProceduralVolumeOrArentUsingOne;
 	}
 
@@ -2880,6 +2901,7 @@ bool FPotentialInstance::PlaceInstance(const UWorld* InWorld, const UFoliageType
 
 	return bSkipCollision || AInstancedFoliageActor::CheckCollisionWithWorld(InWorld, Settings, Inst, HitNormal, HitLocation);
 }
+#endif
 
 float AInstancedFoliageActor::InternalTakeRadialDamage(float Damage, struct FRadialDamageEvent const& RadialDamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {

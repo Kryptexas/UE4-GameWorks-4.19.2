@@ -312,6 +312,41 @@ void FEngineSessionManager::DeleteStoredRecord(const FSessionRecord& Record)
 	SessionRecords.RemoveAll([&SessionId](const FSessionRecord& X){ return X.SessionId == SessionId; });
 }
 
+/**
+ * @EventName Engine.AbnormalShutdown
+ *
+ * @Trigger Fired only by the engine during startup, once for each "abnormal shutdown" detected that has not already been sent.
+ *
+ * @Type Static
+ *
+ * @EventParam RunType - Editor or Game
+ * @EventParam ProjectName - Project for the session that abnormally terminated. 
+ * @EventParam Platform - Windows, Mac, Linux, PS4, XBoxOne or Unknown
+ * @EventParam SessionId - Analytics SessionID of the session that abnormally terminated.
+ * @EventParam EngineVersion - EngineVersion of the session that abnormally terminated.
+ * @EventParam ShutdownType - one of Crashed, Debugger, or AbormalShutdown
+ *               * Crashed - we definitely detected a crash (whether or not a debugger was attached)
+ *               * Debugger - the session crashed or shutdown abnormally, but we had a debugger attached at startup, so abnormal termination is much more likely because the user was debugging.
+ *               * AbnormalShutdown - this happens when we didn't detect a normal shutdown, but none of the above cases is the cause. A session record simply timed-out without being closed.
+ * @EventParam Timestamp - the UTC time of the last known time the abnormally terminated session was running, within 5 minutes.
+ * @EventParam CurrentUserActivity - If one was set when the session abnormally terminated, this is the activity taken from the FUserActivityTracking API.
+ *
+ * @TODO: Debugger should be a completely separate flag, since it's orthogonal to whether we detect a crash or shutdown.
+ *
+ * @Comments The engine will only try to check for abnormal terminations if it determines it is a "real" editor or game run (not a commandlet or PIE, or editor -game run), and the user has not disabled sending usage data to Epic via the settings.
+ * 
+ * The SessionId parameter should be used to find the actual session associated with this crash.
+ * 
+ * If multiple versions of the editor or launched, this code will properly track each one and its shutdown status. So during startup, an editor instance may need to fire off several events.
+ *
+ * When attributing abnormal terminations to engine versions, be sure to use the EngineVersion associated with this event, and not the AppVersion. AppVersion is for the session that is currently sending the event, not for the session that crashed. That is why EngineVersion is sent separately.
+ *
+ * The editor updates Timestamp every 5 minutes, so we should know the time of the crash within 5 minutes. It should technically correlate with the last heartbeat we receive in the data for that session.
+ *
+ * The main difference between an AbnormalShutdown and a Crash is that we KNOW a crash occurred, so we can send the event right away. If the engine did not shut down correctly, we don't KNOW that, so simply wait up to 30m (the engine updates the timestamp every 5 mins) to be sure that it's probably not running anymore.
+ *
+ * We have seen data in the wild that indicated editor freezing for up to 8 days but we're assuming that was likely stopped in a debugger. That's also why we added the ShutdownType of Debugger to the event. However, this code does not check IMMEDIATELY on crash if the debugger is present (that might be dangerous in a crash handler perhaps), we only check if a debugger is attached at startup. Then if an A.S. is detected, we just say "Debugger" because it's likely they just stopped the debugger and killed the process.
+ */
 void FEngineSessionManager::SendAbnormalShutdownReport(const FSessionRecord& Record)
 {
 #if PLATFORM_WINDOWS

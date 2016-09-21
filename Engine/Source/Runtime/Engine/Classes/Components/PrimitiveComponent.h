@@ -753,6 +753,14 @@ public:
 	virtual void SetMaterial(int32 ElementIndex, class UMaterialInterface* Material);
 
 	/**
+	* Changes the material applied to an element of the mesh.
+	* @param MaterialSlotName - The slot name to access the material of.
+	* @return the material used by the indexed element of this mesh.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
+	virtual void SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material);
+
+	/**
 	 * Creates a Dynamic Material Instance for the specified element index.  The parent of the instance is set to the material being replaced.
 	 * @param ElementIndex - The index of the skin to replace the material for.  If invalid, the material is unchanged and NULL is returned.
 	 */

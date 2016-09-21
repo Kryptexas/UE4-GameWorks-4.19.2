@@ -52,13 +52,13 @@ typedef int32 NAME_INDEX;
 #define INVALID_NAME_CHARACTERS			TEXT("\"' ,\n\r\t")
 
 /** These characters cannot be used in object names */
-#define INVALID_OBJECTNAME_CHARACTERS	TEXT("\"' ,/.:|&!\n\r\t@#(){}[]=;^%$`")
+#define INVALID_OBJECTNAME_CHARACTERS	TEXT("\"' ,/.:|&!~\n\r\t@#(){}[]=;^%$`")
 
 /** These characters cannot be used in textboxes which take group names (i.e. Group1.Group2) */
-#define INVALID_GROUPNAME_CHARACTERS	TEXT("\"' ,/:|&!\n\r\t@#")
+#define INVALID_GROUPNAME_CHARACTERS	TEXT("\"' ,/:|&!~\n\r\t@#")
 
 /** These characters cannot be used in long package names */
-#define INVALID_LONGPACKAGE_CHARACTERS	TEXT("\\:*?\"<>|' ,.&!\n\r\t@#")
+#define INVALID_LONGPACKAGE_CHARACTERS	TEXT("\\:*?\"<>|' ,.&!~\n\r\t@#")
 
 /** These characters can be used in relative directory names (lowercase versions as well) */
 #define VALID_SAVEDDIRSUFFIX_CHARACTERS	TEXT("_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")

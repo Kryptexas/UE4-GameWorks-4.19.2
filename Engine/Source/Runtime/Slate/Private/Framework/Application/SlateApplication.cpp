@@ -998,6 +998,11 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 	{ 
 		const TSharedRef<SWindow>& Window = Windows[WindowIndex];
 
+		if ( !Window->IsVisible() || Window->IsWindowMinimized())
+		{
+			continue;
+		}
+		
 		// Hittest the window's children first.
 		FWidgetPath ResultingPath = LocateWindowUnderMouse(ScreenspaceMouseCoordinate, Window->GetChildWindows(), bIgnoreEnabledStatus);
 		if (ResultingPath.IsValid())
@@ -2449,7 +2454,7 @@ void FSlateApplication::ActivateGameViewport()
 	}
 }
 
-void FSlateApplication::SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
+bool FSlateApplication::SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
 {
 	const bool bValidWidget = WidgetToFocus.IsValid();
 	ensureMsgf(bValidWidget, TEXT("Attempting to focus an invalid widget. If your intent is to clear focus use ClearUserFocus()"));
@@ -2459,14 +2464,14 @@ void FSlateApplication::SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>
 		const bool bFound = FSlateWindowHelper::FindPathToWidget(SlateWindows, WidgetToFocus.ToSharedRef(), /*OUT*/ PathToWidget);
 		if (bFound)
 		{
-			SetUserFocus(UserIndex, PathToWidget, ReasonFocusIsChanging);
+			return SetUserFocus(UserIndex, PathToWidget, ReasonFocusIsChanging);
 		}
 		else
 		{
 			const bool bFoundVirtual = FSlateWindowHelper::FindPathToWidget(SlateVirtualWindows, WidgetToFocus.ToSharedRef(), /*OUT*/ PathToWidget);
 			if ( bFoundVirtual )
 			{
-				SetUserFocus(UserIndex, PathToWidget, ReasonFocusIsChanging);
+				return SetUserFocus(UserIndex, PathToWidget, ReasonFocusIsChanging);
 			}
 			else
 			{
@@ -2474,6 +2479,8 @@ void FSlateApplication::SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>
 			}
 		}
 	}
+
+	return false;
 }
 
 void FSlateApplication::SetAllUserFocus(const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging /*= EFocusCause::SetDirectly*/)
@@ -2525,9 +2532,9 @@ void FSlateApplication::ReleaseJoystickCapture(uint32 UserIndex)
 	ClearUserFocus(UserIndex);
 }
 
-void FSlateApplication::SetKeyboardFocus(const TSharedPtr< SWidget >& OptionalWidgetToFocus, EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
+bool FSlateApplication::SetKeyboardFocus(const TSharedPtr< SWidget >& OptionalWidgetToFocus, EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
 {
-	SetUserFocus(GetUserIndexForKeyboard(), OptionalWidgetToFocus, ReasonFocusIsChanging);
+	return SetUserFocus(GetUserIndexForKeyboard(), OptionalWidgetToFocus, ReasonFocusIsChanging);
 }
 
 void FSlateApplication::ClearKeyboardFocus(const EFocusCause ReasonFocusIsChanging)
@@ -2591,6 +2598,49 @@ void FSlateApplication::UnregisterOnWindowActionNotification(FDelegateHandle Han
 			Index++;
 		}
 	}
+}
+
+TSharedPtr<SWindow> FSlateApplication::FindBestParentWindowForDialogs(const TSharedPtr<SWidget>& InWidget)
+{
+	TSharedPtr<SWindow> ParentWindow = ( InWidget.IsValid() ) ? FindWidgetWindow(InWidget.ToSharedRef()) : TSharedPtr<SWindow>();
+
+	if ( !ParentWindow.IsValid() )
+	{
+		// First check the active top level window.
+		TSharedPtr<SWindow> ActiveTopWindow = GetActiveTopLevelWindow();
+		if ( ActiveTopWindow.IsValid() && ActiveTopWindow->IsRegularWindow() )
+		{
+			ParentWindow = ActiveTopWindow;
+		}
+		else
+		{
+			// If the active top level window isn't a good host, lets just try and find the first
+			// reasonable window we can host new dialogs off of.
+			for ( TSharedPtr<SWindow> SlateWindow : SlateWindows )
+			{
+				if ( SlateWindow->IsVisible() && SlateWindow->IsRegularWindow() )
+				{
+					ParentWindow = SlateWindow;
+					break;
+				}
+			}
+		}
+	}
+
+	return ParentWindow;
+}
+
+const void* FSlateApplication::FindBestParentWindowHandleForDialogs(const TSharedPtr<SWidget>& InWidget)
+{
+	TSharedPtr<SWindow> ParentWindow = FindBestParentWindowForDialogs(InWidget);
+
+	const void* ParentWindowWindowHandle = nullptr;
+	if ( ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid() )
+	{
+		ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+	}
+
+	return ParentWindowWindowHandle;
 }
 
 TSharedPtr<SWindow> FSlateApplication::GetActiveTopLevelWindow() const
@@ -3047,6 +3097,7 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		DragDetector.DetectDragButton = TheReply.GetDetectDragRequestButton();
 		checkSlow(InMouseEvent);
 		DragDetector.DetectDragStartLocation = InMouseEvent->GetScreenSpacePosition();
+		DragDetector.DetectDragPointerIndex = InMouseEvent->GetPointerIndex();
 	}
 
 	// Set focus if requested.
@@ -3146,7 +3197,9 @@ void FSlateApplication::SetLastUserInteractionTime(double InCurrentTime)
 
 void FSlateApplication::QueryCursor()
 {
-	if ( PlatformApplication->Cursor.IsValid() )
+	// The slate loading widget thread is not allowed to execute this code 
+	// as it is unsafe to read the hittest grid in another thread
+	if ( PlatformApplication->Cursor.IsValid() && IsInGameThread() )
 	{
 		// drag-drop overrides cursor
 		FCursorReply CursorReply = FCursorReply::Unhandled();
@@ -3345,6 +3398,7 @@ void FSlateApplication::CloseToolTip()
 void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 {
 	const bool bCheckForToolTipChanges =
+		IsInGameThread() &&					// We should never allow the slate loading thread to create new windows or interact with the hittest grid
 		bAllowToolTips &&					// Tool-tips must be enabled
 		!IsUsingHighPrecisionMouseMovment() && // If we are using HighPrecision movement then we can't rely on the OS cursor to be accurate
 		!IsDragDropping();					// We must not currwently be in the middle of a drag-drop action
@@ -3726,7 +3780,9 @@ bool FSlateApplication::IsWindowInDestroyQueue(TSharedRef<SWindow> Window) const
 void FSlateApplication::SynthesizeMouseMove()
 {
 	SLATE_CYCLE_COUNTER_SCOPE(GSlateSynthesizeMouseMove);
-	if (PlatformApplication->Cursor.IsValid())
+	// The slate loading widget thread is not allowed to execute this code 
+	// as it is unsafe to read the hittest grid in another thread
+	if (PlatformApplication->Cursor.IsValid() && IsInGameThread())
 	{
 		// Synthetic mouse events accomplish two goals:
 		// 1) The UI can change even if the mosue doesn't move.
@@ -4968,6 +5024,10 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 
 		Reply = FEventRouter::Route<FReply>( this, FEventRouter::FBubblePolicy(LocalWidgetsUnderCursor), PointerEvent, [&](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
 		{
+			if (bIsDragDropping)
+			{
+				return CurWidget.Widget->OnDrop(CurWidget.Geometry, FDragDropEvent(Event, LocalDragDropContent));
+			}
 			FReply TempReply = FReply::Unhandled();
 			if (Event.IsTouchEvent())
 			{
@@ -4975,9 +5035,7 @@ FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, 
 			}
 			if (!Event.IsTouchEvent() || (!TempReply.IsEventHandled() && bTouchFallbackToMouse))
 			{
-				TempReply = (bIsDragDropping)
-					? CurWidget.Widget->OnDrop( CurWidget.Geometry, FDragDropEvent( Event, LocalDragDropContent ) )
-					: CurWidget.Widget->OnMouseButtonUp( CurWidget.Geometry, Event );
+				TempReply =  CurWidget.Widget->OnMouseButtonUp( CurWidget.Geometry, Event );
 			}
 			return TempReply;		
 		});
@@ -5382,13 +5440,16 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 	PressedMouseButtons.Remove( MouseEvent.GetEffectingButton() );
 
-	if (DragDetector.DetectDragForWidget.IsValid() && MouseEvent.GetEffectingButton() == DragDetector.DetectDragButton )
+	if ( DragDetector.DetectDragForWidget.IsValid() )
 	{
-		// The user has release the button that was supposed to start the drag; stop detecting it.
-		DragDetector = FDragDetector();
+		if ( MouseEvent.GetEffectingButton() == DragDetector.DetectDragButton && MouseEvent.GetPointerIndex() == DragDetector.DetectDragPointerIndex )
+		{
+			// The user has released the button (or finger) that was supposed to start the drag; stop detecting it.
+			DragDetector = FDragDetector();
+		}
 	}
 
-	// An empty widget path is passed in.  As an optimization, one will be generated only if a captured mouse event isnt routed
+	// An empty widget path is passed in.  As an optimization, one will be generated only if a captured mouse event isn't routed
 	FWidgetPath EmptyPath;
 	const bool bHandled = RoutePointerUpEvent( EmptyPath, MouseEvent ).IsEventHandled();
 
@@ -5825,8 +5886,7 @@ bool FSlateApplication::OnSizeChanged( const TSharedRef< FGenericWindow >& Platf
 
 		if ( !bWasMinimized && Window->IsRegularWindow() && !Window->HasOSWindowBorder() && Window->IsVisible() )
 		{
-//Hack to fix paragon crash when going from downres 'native' fullscreen to windowed mode.  Don't take back to main.
-			//PrivateDrawWindows( Window );
+			PrivateDrawWindows( Window );
 		}
 
 		if( !bWasMinimized && Window->IsVisible() && Window->IsRegularWindow() && Window->IsAutosized() )

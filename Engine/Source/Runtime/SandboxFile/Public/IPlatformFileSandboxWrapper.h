@@ -593,17 +593,17 @@ public:
 		return LowerLevel->CreateDirectoryTree( *ConvertToSandboxPath( Directory ) );
 	}
 
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags = EPlatformFileRead::None, EPlatformFileWrite WriteFlags = EPlatformFileWrite::None) override
 	{
 		// Files can be copied only to the sandbox directory
 		bool Result = false;
 		if( LowerLevel->FileExists( *ConvertToSandboxPath( From ) ) )
 		{
-			Result = LowerLevel->CopyFile( *ConvertToSandboxPath( To ), *ConvertToSandboxPath( From ) );
+			Result = LowerLevel->CopyFile( *ConvertToSandboxPath( To ), *ConvertToSandboxPath( From ), ReadFlags, WriteFlags);
 		}
 		else
 		{
-			Result = LowerLevel->CopyFile( *ConvertToSandboxPath( To ), From );
+			Result = LowerLevel->CopyFile( *ConvertToSandboxPath( To ), From, ReadFlags, WriteFlags);
 		}
 		return Result;
 	}

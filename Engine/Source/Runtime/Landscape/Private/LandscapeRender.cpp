@@ -5,8 +5,7 @@ LandscapeRender.cpp: New terrain rendering
 =============================================================================*/
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
-
+#include "LandscapeMeshProxyComponent.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionLandscapeLayerCoords.h"
 #include "ShaderParameters.h"
@@ -24,7 +23,6 @@ LandscapeRender.cpp: New terrain rendering
 #include "EngineGlobals.h"
 #include "UnrealEngine.h"
 #include "LandscapeLight.h"
-#include "LandscapeLayerInfoObject.h"
 #include "Algo/Find.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, TEXT("LandscapeParameters"));
@@ -1245,8 +1243,6 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 		int32 CombinedLOD = -1;
 		int32 bAllSameLOD = true;
 
-		// Components with positive LODBias don't generate batch elements for unused LODs.
-		int32 LODBiasOffset = FMath::Max<int32>(LODBias, 0);
 		int32 BatchLOD = ((FLandscapeBatchElementParams*)Batch->Elements[0].UserData)->CurrentLOD;
 
 		for (int32 SubY = 0; SubY < NumSubsections; SubY++)
@@ -1267,7 +1263,7 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 		if (bAllSameLOD && NumSubsections > 1 && !GLandscapeDebugOptions.bDisableCombine)
 		{
 			// choose the combined batch element
-			int32 BatchElementIndex = (CombinedLOD - LODBiasOffset - BatchLOD + 1) * BatchesPerLOD - 1;
+			int32 BatchElementIndex = (CombinedLOD - BatchLOD + 1) * BatchesPerLOD - 1;
 			if (Batch->Elements.IsValidIndex(BatchElementIndex))
 			{
 				BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
@@ -1281,7 +1277,7 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 			{
 				for (int32 SubX = 0; SubX < NumSubsections; SubX++)
 				{
-					int32 BatchElementIndex = (CalculatedLods[SubX][SubY] - LODBiasOffset - BatchLOD) * BatchesPerLOD + SubY * NumSubsections + SubX;
+					int32 BatchElementIndex = (CalculatedLods[SubX][SubY] - BatchLOD) * BatchesPerLOD + SubY * NumSubsections + SubX;
 					if (Batch->Elements.IsValidIndex(BatchElementIndex))
 					{
 						BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
@@ -2654,7 +2650,8 @@ public:
 						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse")),
 						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse")),
 						FName(TEXT("TDepthOnlyVS<false>")),
-						FName(TEXT("TDepthOnlyVS<true>"))
+						FName(TEXT("TDepthOnlyVS<true>")),
+						FName(TEXT("FDepthOnlyPS")),
 					};
 					if (Algo::Find(AllowedShaderTypes, ShaderType->GetFName()))
 					{

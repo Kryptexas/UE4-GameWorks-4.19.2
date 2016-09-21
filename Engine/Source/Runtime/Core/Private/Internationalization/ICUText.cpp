@@ -269,8 +269,14 @@ ETextDirection ComputeTextDirection(UBiDi* InICUBiDi, const icu::UnicodeString& 
 		for (int32 RunIndex = 0; RunIndex < RunCount; ++RunIndex)
 		{
 			FTextDirectionInfo& CurTextDirectionInfo = OutTextDirectionInfo[RunIndex];
-			CurTextDirectionInfo.TextDirection = Internal::ICUToUE(ubidi_getVisualRun(InICUBiDi, RunIndex, &CurTextDirectionInfo.StartIndex, &CurTextDirectionInfo.Length));
-			CurTextDirectionInfo.StartIndex += InStringOffset;
+
+			int32 InternalStartIndex = 0;
+			int32 InternalLength = 0;
+			CurTextDirectionInfo.TextDirection = Internal::ICUToUE(ubidi_getVisualRun(InICUBiDi, RunIndex, &InternalStartIndex, &InternalLength));
+			
+			// Adjust the index and length for what FString expects (ICU always uses UTF-16 indices internally, and FString might not be UTF-16)
+			CurTextDirectionInfo.StartIndex = InStringOffset + ICUUtilities::GetNativeStringLength(InICUString, 0, InternalStartIndex);
+			CurTextDirectionInfo.Length = ICUUtilities::GetNativeStringLength(InICUString, InternalStartIndex, InternalLength);
 		}
 
 		return ReturnDirection;

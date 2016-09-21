@@ -1553,7 +1553,7 @@ public:
 		return LowerLevel->CreateDirectoryTree(Directory);
 	}
 
-	virtual bool CopyFile(const TCHAR* To, const TCHAR* From) override;
+	virtual bool CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags = EPlatformFileRead::None, EPlatformFileWrite WriteFlags = EPlatformFileWrite::None) override;
 
 #if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override;

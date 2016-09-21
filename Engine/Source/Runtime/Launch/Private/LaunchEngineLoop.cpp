@@ -1812,7 +1812,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 			//run automation smoke tests now that the commandlet has had a chance to override the above flags and GEngine is available
 #if !PLATFORM_HTML5 && !PLATFORM_HTML5_WIN32 
-			FAutomationTestFramework::GetInstance().RunSmokeTests();
+			FAutomationTestFramework::Get().RunSmokeTests();
 #endif 
 	
 			UCommandlet* Commandlet = NewObject<UCommandlet>(GetTransientPackage(), CommandletClass);
@@ -2014,7 +2014,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif // WITH_ENGINE
 
 	//run automation smoke tests now that everything is setup to run
-	FAutomationTestFramework::GetInstance().RunSmokeTests();
+	FAutomationTestFramework::Get().RunSmokeTests();
 
 	// Note we still have 20% remaining on the slow task: this will be used by the Editor/Engine initialization next
 	return 0;
@@ -3389,7 +3389,7 @@ bool FEngineLoop::AppInit( )
 	bool bForceSmokeTests = false;
 	GConfig->GetBool(TEXT("AutomationTesting"), TEXT("bForceSmokeTests"), bForceSmokeTests, GEngineIni);
 	bForceSmokeTests |= FParse::Param(FCommandLine::Get(), TEXT("bForceSmokeTests"));
-	FAutomationTestFramework::GetInstance().SetForceSmokeTests(bForceSmokeTests);
+	FAutomationTestFramework::Get().SetForceSmokeTests(bForceSmokeTests);
 
 	// Init other systems.
 	FCoreDelegates::OnInit.Broadcast();

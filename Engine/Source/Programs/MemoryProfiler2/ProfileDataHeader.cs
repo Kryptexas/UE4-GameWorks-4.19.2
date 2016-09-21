@@ -19,13 +19,16 @@ namespace MemoryProfiler2
 		/** Version number to detect version mismatches.			*/
 		public UInt32 Version;
 		/** Platform that was captured.								*/
-		public EPlatformType Platform;
-		/** Platform that was captured.								*/
 		public string PlatformName;
 		/** Whether symbol information was serialized.				*/
 		public bool	bShouldSerializeSymbolInfo;
 		/** Name of executable this information was gathered with.	*/
 		public string ExecutableName;
+
+		/** Offset in file for meta-data table.						*/
+		public UInt64 MetaDataTableOffset;
+		/** Number of meta-data table entries.						*/
+		public UInt64 MetaDataTableEntries;
 
 		/** Offset in file for name table.							*/
 		public UInt64 NameTableOffset;
@@ -74,21 +77,31 @@ namespace MemoryProfiler2
 			{
 				// Version info for backward compatible serialization.
 				Version = BinaryStream.ReadUInt32();
-				
-				if( Version >= 4 )
+				FStreamToken.Version = Version;
+
+				// We can no longer load anything < version 4
+				if (Version < 4)
 				{
-					// Read platform name.
-					PlatformName = FStreamParser.ReadString( BinaryStream );
-					PlatformName = FixFixedSizeString( PlatformName );
+					throw new InvalidDataException(String.Format("File version is too old! File Version: {0}, but we can only load >= 4.", Version));
 				}
-				else
-				{
-					// Read platform type.
-					Platform = (EPlatformType)BinaryStream.ReadUInt32();
-				}
+
+				// Read platform name.
+				PlatformName = FStreamParser.ReadString( BinaryStream );
 
 				// Whether symbol information was serialized.
 				bShouldSerializeSymbolInfo = BinaryStream.ReadUInt32() == 0 ? false : true;
+
+				if (Version >= 6)
+				{
+					// Meta-data table offset in file and number of entries.
+					MetaDataTableOffset = BinaryStream.ReadUInt64();
+					MetaDataTableEntries = BinaryStream.ReadUInt64();
+				}
+				else
+				{
+					MetaDataTableOffset = 0;
+					MetaDataTableEntries = 0;
+				}
 
 				if( Version >= 5 )
 				{
@@ -129,71 +142,10 @@ namespace MemoryProfiler2
 					// Number of data files the stream spans.
 					NumDataFiles = BinaryStream.ReadUInt32();
 				}
-	
-
-				FStreamToken.Version = Version;
-				if( Version >= 4 )
-				{
-					// Just ignore
-				}
-				else if (Version > 2)
-				{
-					ScriptCallstackTableOffset = BinaryStream.ReadUInt32();
-					ScriptNameTableOffset = BinaryStream.ReadUInt32();
-				
-					bDecodeScriptCallstacks = ScriptCallstackTableOffset != UInt32.MaxValue;
-				}
 
 				// Name of executable.
 				ExecutableName = FStreamParser.ReadString( BinaryStream );
-				ExecutableName = FixFixedSizeString( ExecutableName );			
 			}
 		}
-
-		/// <summary> Trims the null characters that make it in by converting char[] to string. </summary>
-		static String FixFixedSizeString( string String )
-		{
-			int RealLength = 0;
-			while( String[RealLength++] != '\0' )
-			{
-			}
-			string Result = String.Remove( RealLength - 1 );
-			return Result;
-		}
-	}
-
-	// Mirrored in UnFile.h
-	[Flags]
-	public enum EPlatformType
-	{
-		Unknown = 0x00000000,
-		Windows = 0x00000001,
-		WindowsServer = 0x00000002,		// Windows platform dedicated server mode ("lean and mean" cooked as console without editor support)
-		Xbox360 = 0x00000004,
-		PS3 = 0x00000008,
-		Linux = 0x00000010,
-		MacOSX = 0x00000020,
-		WindowsConsole = 0x00000040,     // Windows platform cooked as console without editor support
-		IPhone = 0x00000080,
-		Android = 0x00000200,
-
-		// Combination Masks
-		/** PC platform types */
-		PC = Windows | WindowsServer | WindowsConsole | Linux | MacOSX,
-
-		/** Windows platform types */
-		AnyWindows = Windows | WindowsServer | WindowsConsole,
-
-		/** Console platform types */
-		Console = Xbox360 | PS3 | IPhone | Android,
-
-		/** Mobile platform types */
-		Mobile = IPhone | Android,
-
-		/** Platforms with data that has been stripped during cooking */
-		Stripped = Console | WindowsServer | WindowsConsole,
-
-		/** Platforms who's vertex data can't be packed into 16-bit floats */
-		OpenGLES2 = IPhone | Android,
 	}
 }

@@ -3301,6 +3301,11 @@ bool DecompressTGA_helper(
 	{
 		DecompressTGA_8bpp(TGA, (uint8*)TextureData);
 	}
+	// standard grayscale
+	else if(TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3 && TGA->BitsPerPixel == 8)
+	{
+		DecompressTGA_8bpp(TGA, (uint8*)TextureData);
+	}
 	else
 	{
 		Warn->Logf(ELogVerbosity::Error, TEXT("TGA is an unsupported type: %u"),TGA->ImageTypeCode);
@@ -3359,6 +3364,18 @@ UTexture2D* DecompressTGA(
 		//
 		// We store the image as PF_G8, where it will be used as alpha in the Glyph shader.
 
+		Texture->Source.Init(
+			TGA->Width,
+			TGA->Height,
+			/*NumSlices=*/ 1,
+			/*NumMips=*/ 1,
+			TSF_G8);
+
+		Texture->CompressionSettings = TC_Grayscale;
+	}
+	else if(TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3 && TGA->BitsPerPixel == 8)
+	{
+		// standard grayscale images
 		Texture->Source.Init(
 			TGA->Width,
 			TGA->Height,
@@ -4012,19 +4029,20 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	{
 		UTexture2D* Texture = 0;
 
-		if (TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3)
-		{
-			Warn->Logf(ELogVerbosity::Error, *NSLOCTEXT("UnrealEd", "Warning_TGAGreyscale", "TGA Greyscale import not supported, use RGB").ToString() );
-			return nullptr;
-		}
-
 		// Check the resolution of the imported texture to ensure validity
 		if ( !IsImportResolutionValid(TGA->Width, TGA->Height, bAllowNonPowerOfTwo, Warn) )
 		{
 			return nullptr;
 		}
 
-		return DecompressTGA(TGA, this, Class, InParent, Name, Flags, Warn);
+		Texture = DecompressTGA(TGA, this, Class, InParent, Name, Flags, Warn);
+		if(Texture && Texture->CompressionSettings == TC_Grayscale && TGA->ImageTypeCode == 3)
+		{
+			// default grayscales to linear as they wont get compression otherwise and are commonly used as masks
+			Texture->SRGB = false;
+		}
+
+		return Texture;
 	}
 	//
 	// PSD File
@@ -5652,6 +5670,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	{
 		//Set misc options
 		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 
 	if( ImportData )
@@ -5887,6 +5906,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	{
 		//Set misc options
 		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 
 	bool bSuccess = false;

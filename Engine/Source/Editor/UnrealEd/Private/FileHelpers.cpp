@@ -99,19 +99,6 @@ private:
 
 namespace FileDialogHelpers
 {
-	static void* ChooseParentWindowHandle()
-	{
-		void* ParentWindowWindowHandle = NULL;
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
-		return ParentWindowWindowHandle;
-	}
-	
 	/**
 	 * @param Title                  The title of the dialog
 	 * @param FileTypes              Filter for which file types are accepted and should be shown
@@ -130,10 +117,8 @@ namespace FileDialogHelpers
 		TArray<FString> OutFilenames;
 		if (DesktopPlatform)
 		{
-			void* ParentWindowWindowHandle = ChooseParentWindowHandle();
-			
 			bFileChosen = DesktopPlatform->SaveFileDialog(
-				ParentWindowWindowHandle,
+				FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 				Title,
 				InOutLastPath,
 				DefaultFile,
@@ -170,10 +155,8 @@ namespace FileDialogHelpers
 		bool bOpened = false;
 		if ( DesktopPlatform )
 		{
-			void* ParentWindowWindowHandle = ChooseParentWindowHandle();
-
 			bOpened = DesktopPlatform->OpenFileDialog(
-				ParentWindowWindowHandle,
+				FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 				Title,
 				InOutLastPath,
 				TEXT(""),
@@ -521,8 +504,9 @@ static bool SaveWorld(UWorld* World,
 					NewPGN.PackageName = NewPackageName;
 					NewPGN.ObjectName = NewWorldAssetName;
 
+					bool bPromptToOverwrite = false;
 					TSet<UPackage*> PackagesUserRefusedToFullyLoad;
-					DuplicatedWorld = Cast<UWorld>(ObjectTools::DuplicateSingleObject(World, NewPGN, PackagesUserRefusedToFullyLoad));
+					DuplicatedWorld = Cast<UWorld>(ObjectTools::DuplicateSingleObject(World, NewPGN, PackagesUserRefusedToFullyLoad, bPromptToOverwrite));
 					if (DuplicatedWorld)
 					{
 						Package = DuplicatedWorld->GetOutermost();

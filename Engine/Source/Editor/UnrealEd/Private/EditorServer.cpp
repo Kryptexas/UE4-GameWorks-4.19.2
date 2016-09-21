@@ -74,6 +74,7 @@
 #include "KismetReinstanceUtilities.h"
 #include "AnalyticsEventAttribute.h"
 #include "Developer/SlateReflector/Public/ISlateReflectorModule.h"
+#include "Editor/PropertyEditorTestObject.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 

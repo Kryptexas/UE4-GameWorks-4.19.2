@@ -591,6 +591,34 @@ UMaterialInterface* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) cons
 	return NULL;
 }
 
+int32 USkinnedMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
+{
+	for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+	{
+		const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
+		if (SkeletalMaterial.MaterialSlotName == MaterialSlotName)
+		{
+			return MaterialIndex;
+		}
+	}
+	return -1;
+}
+
+TArray<FName> USkinnedMeshComponent::GetMaterialSlotNames() const
+{
+	TArray<FName> MaterialNames;
+	for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+	{
+		const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
+		MaterialNames.Add(SkeletalMaterial.MaterialSlotName);
+	}
+	return MaterialNames;
+}
+
+bool USkinnedMeshComponent::IsMaterialSlotNameValid(FName MaterialSlotName) const
+{
+	return GetMaterialIndex(MaterialSlotName) >= 0;
+}
 
 bool USkinnedMeshComponent::ShouldCPUSkin()
 {
@@ -2009,11 +2037,11 @@ void USkinnedMeshComponent::SetComponentSpaceTransformsDoubleBuffering(bool bInD
 	}
 }
 
-void USkinnedMeshComponent::UpdateRecomputeTangent(int32 MaterialIndex)
+void USkinnedMeshComponent::UpdateRecomputeTangent(int32 MaterialIndex, int32 LodIndex, bool bRecomputeTangentValue)
 {
 	if (ensure(SkeletalMesh) && MeshObject)
 	{
-		MeshObject->UpdateRecomputeTangent(MaterialIndex, SkeletalMesh->Materials[MaterialIndex].bRecomputeTangent);
+		MeshObject->UpdateRecomputeTangent(MaterialIndex, LodIndex, bRecomputeTangentValue);
 	}
 }
 

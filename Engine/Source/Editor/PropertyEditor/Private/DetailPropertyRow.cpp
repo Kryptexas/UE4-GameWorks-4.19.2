@@ -25,10 +25,16 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 		UProperty* Property = PropertyNodeRef->GetProperty();
 
 		PropertyHandle = InParentCategory->GetParentLayoutImpl().GetPropertyHandle(PropertyNodeRef);
+		const TSharedRef<IPropertyUtilities> Utilities = InParentCategory->GetParentLayoutImpl().GetPropertyUtilities();
 
 		if (PropertyNode->AsCategoryNode() == NULL)
 		{
-			MakePropertyEditor(InParentCategory->GetParentLayoutImpl().GetPropertyUtilities());
+			MakePropertyEditor(PropertyNodeRef, Utilities, PropertyEditor);
+		}
+
+		if (PropertyNode->GetPropertyKeyNode().IsValid())
+		{
+			MakePropertyEditor(PropertyNode->GetPropertyKeyNode().ToSharedRef(), Utilities, PropertyKeyEditor);
 		}
 
 		// Check if the property is valid for type customization.  Note: Static arrays of types will be a UProperty with array elements as children
@@ -127,7 +133,7 @@ void FDetailPropertyRow::GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, 
 	}
 
 	const bool bAddWidgetDecoration = false;
-	MakeNameWidget(Row,CustomTypeRow);
+	MakeNameOrKeyWidget(Row,CustomTypeRow);
 	MakeValueWidget(Row,CustomTypeRow,bAddWidgetDecoration);
 
 	OutNameWidget = Row.NameWidget.Widget;
@@ -172,7 +178,7 @@ TSharedPtr<IPropertyUtilities> FDetailPropertyRow::GetPropertyUtilities() const
 		return ParentCategoryPinned->GetParentLayout().GetPropertyUtilities();
 	}
 	
-	return NULL;
+	return nullptr;
 }
 
 FDetailWidgetRow FDetailPropertyRow::GetWidgetRow()
@@ -181,7 +187,7 @@ FDetailWidgetRow FDetailPropertyRow::GetWidgetRow()
 	{
 		FDetailWidgetRow Row;
 	
-		MakeNameWidget( Row, CustomPropertyWidget );
+		MakeNameOrKeyWidget( Row, CustomPropertyWidget );
 		MakeValueWidget( Row, CustomPropertyWidget );
 
 		return Row;
@@ -287,14 +293,14 @@ void FDetailPropertyRow::GenerateChildrenForPropertyNode( TSharedPtr<FPropertyNo
 }
 
 
-TSharedRef<FPropertyEditor> FDetailPropertyRow::MakePropertyEditor( const TSharedRef<IPropertyUtilities>& PropertyUtilities )
+TSharedRef<FPropertyEditor> FDetailPropertyRow::MakePropertyEditor(const TSharedRef<FPropertyNode>& InPropertyNode, const TSharedRef<IPropertyUtilities>& PropertyUtilities, TSharedPtr<FPropertyEditor>& InEditor )
 {
-	if( !PropertyEditor.IsValid() )
+	if( !InEditor.IsValid() )
 	{
-		PropertyEditor = FPropertyEditor::Create( PropertyNode.ToSharedRef(), PropertyUtilities );
+		InEditor = FPropertyEditor::Create( InPropertyNode, PropertyUtilities );
 	}
 
-	return PropertyEditor.ToSharedRef();
+	return InEditor.ToSharedRef();
 }
 
 bool FDetailPropertyRow::HasEditCondition() const
@@ -328,12 +334,14 @@ bool FDetailPropertyRow::GetForceAutoExpansion() const
 	return bForceAutoExpansion;
 }
 
-void FDetailPropertyRow::MakeNameWidget( FDetailWidgetRow& Row, const TSharedPtr<FDetailWidgetRow> InCustomRow ) const
+void FDetailPropertyRow::MakeNameOrKeyWidget( FDetailWidgetRow& Row, const TSharedPtr<FDetailWidgetRow> InCustomRow ) const
 {
 	EVerticalAlignment VerticalAlignment = VAlign_Center;
 	EHorizontalAlignment HorizontalAlignment = HAlign_Fill;
 
-	if( InCustomRow.IsValid() )
+	bool bHasKeyNode = PropertyNode->GetPropertyKeyNode().IsValid();
+
+	if( !bHasKeyNode && InCustomRow.IsValid() )
 	{
 		VerticalAlignment = InCustomRow->NameWidget.VerticalAlignment;
 		HorizontalAlignment = InCustomRow->NameWidget.HorizontalAlignment;
@@ -358,7 +366,18 @@ void FDetailPropertyRow::MakeNameWidget( FDetailWidgetRow& Row, const TSharedPtr
 	}
 
 	TSharedPtr<SWidget> NameWidget;
-	if( InCustomRow.IsValid() )
+
+	// Key nodes will take precedence over custom rows.
+	if (bHasKeyNode)
+	{
+		const TSharedRef<IPropertyUtilities> PropertyUtilities = ParentCategory.Pin()->GetParentLayoutImpl().GetPropertyUtilities();
+
+		NameWidget =
+			SNew(SPropertyValueWidget, PropertyKeyEditor, PropertyUtilities)
+			.IsEnabled(IsEnabledAttrib)
+			.ShowPropertyButtons(false);
+	}
+	else if(InCustomRow.IsValid())
 	{
 		NameWidget = 
 			SNew( SBox )
@@ -375,11 +394,19 @@ void FDetailPropertyRow::MakeNameWidget( FDetailWidgetRow& Row, const TSharedPtr
 			.DisplayResetToDefault( false );
 	}
 
-	NameHorizontalBox->AddSlot()
-	.AutoWidth()
+	SHorizontalBox::FSlot& Slot = NameHorizontalBox->AddSlot()
 	[
 		NameWidget.ToSharedRef()
 	];
+
+	if (bHasKeyNode)
+	{
+		Slot.Padding(0.0f, 0.0f, 20.0f, 0.0f);
+	}
+	else
+	{
+		Slot.AutoWidth();
+	}
 
 	Row.NameContent()
 	.HAlign( HorizontalAlignment )
@@ -430,7 +457,7 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 		ValueWidget->AddSlot()
 		.Padding( 0.0f, 0.0f, 4.0f, 0.0f )
 		[
-			SAssignNew( PropertyValue, SPropertyValueWidget, PropertyEditor, ParentCategory.Pin()->GetParentLayoutImpl().GetPropertyUtilities() )
+			SAssignNew( PropertyValue, SPropertyValueWidget, PropertyEditor, GetPropertyUtilities() )
 			.ShowPropertyButtons( false ) // We handle this ourselves
 		];
 

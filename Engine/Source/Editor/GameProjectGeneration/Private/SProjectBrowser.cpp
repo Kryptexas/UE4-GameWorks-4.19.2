@@ -1245,17 +1245,8 @@ FReply SProjectBrowser::OnBrowseToProjectClicked()
 	bool bOpened = false;
 	if ( DesktopPlatform )
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 			LOCTEXT("OpenProjectBrowseTitle", "Open Project").ToString(),
 			DefaultFolder,
 			TEXT(""),

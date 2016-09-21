@@ -1783,7 +1783,17 @@ void UHierarchicalInstancedStaticMeshComponent::FlushAsyncBuildInstanceBufferTas
 
 void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 {
+	// On save, if we have a pending async build we should wait for it to complete rather than saving an incomplete tree
+	if (Ar.IsSaving())
+	{
+		if (bIsAsyncBuilding)
+		{
+			BuildTree();
+		}
+	}
+
 	Super::Serialize(Ar);
+
 	if (Ar.IsLoading())
 	{
 		ClusterTreePtr = MakeShareable(new TArray<FClusterNode>);

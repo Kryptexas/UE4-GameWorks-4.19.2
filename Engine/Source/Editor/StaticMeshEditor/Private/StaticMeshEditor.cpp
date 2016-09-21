@@ -1907,6 +1907,43 @@ void FStaticMeshEditor::OnObjectReimported(UObject* InObject)
 	}
 }
 
+void FStaticMeshEditor::SaveAsset_Execute()
+{
+	//Clean the unused Material entry before saving
+	if (StaticMesh)
+	{
+		for (int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex)
+		{
+			bool MaterialIsUsed = false;
+			for (int32 LODIndex = 0; LODIndex < StaticMesh->GetNumLODs(); ++LODIndex)
+			{
+				for (int32 SectionIndex = 0; SectionIndex < StaticMesh->GetNumSections(LODIndex); ++SectionIndex)
+				{
+					FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);
+					if (Info.MaterialIndex == MaterialIndex)
+					{
+						MaterialIsUsed = true;
+						break;
+					}
+				}
+			}
+
+			if (!MaterialIsUsed)
+			{
+				StaticMesh->StaticMaterials[MaterialIndex].MaterialInterface = nullptr;
+				StaticMesh->Modify();
+				StaticMesh->PostEditChange();
+				if (StaticMesh->BodySetup)
+				{
+					StaticMesh->BodySetup->CreatePhysicsMeshes();
+				}
+			}
+		}
+	}
+	FAssetEditorToolkit::SaveAsset_Execute();
+}
+
+
 void FStaticMeshEditor::OnConvexDecomposition()
 {
 	TabManager->InvokeTab(CollisionTabId);

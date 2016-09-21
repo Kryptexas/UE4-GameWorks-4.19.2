@@ -25,16 +25,16 @@ enum class EWidgetBlendMode : uint8
 
 
 /**
- * Beware! This feature is experimental and may be substantially changed or removed in future releases.
- * A 3D instance of a Widget Blueprint that can be interacted with in the world.
- *
+ * The widget component provides a surface in the 3D environment on which to render widgets normally rendered to the screen.
+ * Widgets are first rendered to a render target, then that render target is displayed in the world.
+ * 
+ * Material Properties set by this component on whatever material overrides the default.
  * SlateUI [Texture]
  * BackColor [Vector]
  * TintColorAndOpacity [Vector]
  * OpacityFromTexture [Scalar]
- * ParabolaDistortion [Scalar]
  */
-UCLASS(Blueprintable, ClassGroup=Experimental, hidecategories=(Object,Activation,"Components|Activation",Sockets,Base,Lighting,LOD,Mesh), editinlinenew, meta=(BlueprintSpawnableComponent, DevelopmentStatus=Experimental) )
+UCLASS(Blueprintable, ClassGroup="UserInterface", hidecategories=(Object,Activation,"Components|Activation",Sockets,Base,Lighting,LOD,Mesh), editinlinenew, meta=(BlueprintSpawnableComponent) )
 class UMG_API UWidgetComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -186,9 +186,6 @@ public:
 	/** Get the fake window we create for widgets displayed in the world. */
 	TSharedPtr< SWindow > GetVirtualWindow() const;
 	
-	/** Whether or not this component uses legacy default rotation */
-	bool IsUsingLegacyRotation() const { return bUseLegacyRotation; }
-	
 	/** Updates the dynamic parameters on the material instance, without re-creating it */
 	void UpdateMaterialInstanceParameters();
 
@@ -295,20 +292,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category=Rendering)
 	EWidgetBlendMode BlendMode;
 
-	UPROPERTY()
-	bool bIsOpaque_DEPRECATED;
-
 	/** Is the component visible from behind? */
 	UPROPERTY(EditAnywhere, Category=Rendering)
 	bool bIsTwoSided;
-	
-	/**
-	 * When enabled, distorts the UI along a parabola shape giving the UI the appearance 
-	 * that it's on a curved surface in front of the users face.  This only works for UI 
-	 * rendered to a render target.
-	 */
-	UPROPERTY(EditAnywhere, Category=Rendering)
-	float ParabolaDistortion;
 
 	/** Should the component tick the widget when it's off screen? */
 	UPROPERTY(EditAnywhere, Category=Animation)
@@ -359,9 +345,6 @@ protected:
 	/** The dynamic instance of the material that the render target is attached to */
 	UPROPERTY(Transient, DuplicateTransient)
 	UMaterialInstanceDynamic* MaterialInstance;
-
-	UPROPERTY()
-	bool bUseLegacyRotation;
 
 	UPROPERTY(Transient, DuplicateTransient)
 	bool bAddedToScreen;

@@ -125,6 +125,11 @@ struct SLATECORE_API FSlateRotatedRect
 	FSlateRect ToBoundingRect() const;
 	/** Point-in-rect test. */
 	bool IsUnderLocation(const FVector2D& Location) const;
+
+	/**
+	 * Used to construct a rotated rect from an aligned clip rect and a set of layout and render transforms from the geometry, snapped to pixel boundaries. Returns a float or float16 version of the rect based on the typedef.
+	 */
+	static FSlateRotatedRect MakeSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform);
 };
 
 /**

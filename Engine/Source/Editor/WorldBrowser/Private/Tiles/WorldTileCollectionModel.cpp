@@ -2101,7 +2101,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeRawMesh);
 
 				//Assign the proxy material to the static mesh
-				StaticMesh->Materials.Add(StaticLandscapeMaterial);
+				StaticMesh->StaticMaterials.Add(FStaticMaterial(StaticLandscapeMaterial));
 
 				StaticMesh->Build();
 				StaticMesh->PostEditChange();

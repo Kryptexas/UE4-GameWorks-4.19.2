@@ -913,7 +913,7 @@ void USubDSurfaceComponent::RecreateMeshData()
 //	uint32 NumMaterials = (NumFaceSets) ? NumFaceSets : 1;
 //	for (uint32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex )
 	{
-		GeneratedMesh->Materials.Add(DefaultMaterial);
+		GeneratedMesh->StaticMaterials.Add(FStaticMaterial(DefaultMaterial));
 	}	
 
 	// Add the first LOD ( QQQ change this )	

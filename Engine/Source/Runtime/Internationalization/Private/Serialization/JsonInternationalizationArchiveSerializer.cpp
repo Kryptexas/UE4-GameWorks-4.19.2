@@ -158,6 +158,12 @@ bool FJsonInternationalizationArchiveSerializer::DeserializeInternal(TSharedRef<
 	if (InJsonObj->HasField(TAG_FORMATVERSION))
 	{
 		const int32 FormatVersion = static_cast<int32>(InJsonObj->GetNumberField(TAG_FORMATVERSION));
+		if (FormatVersion > (int32)FInternationalizationArchive::EFormatVersion::Latest)
+		{
+			// Archive is too new to be loaded!
+			return false;
+		}
+
 		InArchive->SetFormatVersion(static_cast<FInternationalizationArchive::EFormatVersion>(FormatVersion));
 	}
 	else

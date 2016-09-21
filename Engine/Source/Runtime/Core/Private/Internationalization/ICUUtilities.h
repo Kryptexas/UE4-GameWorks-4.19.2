@@ -27,7 +27,9 @@ namespace ICUUtilities
 
 		/** Convert icu::UnicodeString -> FString */
 		void ConvertString(const icu::UnicodeString& Source, FString& Destination);
+		void ConvertString(const icu::UnicodeString& Source, const int32 SourceStartIndex, const int32 SourceLen, FString& Destination);
 		FString ConvertString(const icu::UnicodeString& Source);
+		FString ConvertString(const icu::UnicodeString& Source, const int32 SourceStartIndex, const int32 SourceLen);
 
 	private:
 		/** Non-copyable */
@@ -45,6 +47,16 @@ namespace ICUUtilities
 
 	/** Convert icu::UnicodeString -> FString */
 	void ConvertString(const icu::UnicodeString& Source, FString& Destination);
+	void ConvertString(const icu::UnicodeString& Source, const int32 SourceStartIndex, const int32 SourceLen, FString& Destination);
 	FString ConvertString(const icu::UnicodeString& Source);
+	FString ConvertString(const icu::UnicodeString& Source, const int32 SourceStartIndex, const int32 SourceLen);
+
+	/** Given an icu::UnicodeString, count how many characters it would be if converted into an FString (as FString may not always be UTF-16) */
+	int32 GetNativeStringLength(const icu::UnicodeString& Source);
+	int32 GetNativeStringLength(const icu::UnicodeString& Source, const int32 InSourceStartIndex, const int32 InSourceLength);
+
+	/** Given an FString, count how many characters it would be if converted to an icu::UnicodeString (as FString may not always be UTF-16) */
+	int32 GetUnicodeStringLength(const FString& Source);
+	int32 GetUnicodeStringLength(const TCHAR* Source, const int32 InSourceStartIndex, const int32 InSourceLength);
 }
 #endif

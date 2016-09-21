@@ -139,6 +139,9 @@ void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShader
 	FMaterial::GetShaderMapId(Platform, OutId);
 	Material->GetReferencedFunctionIds(OutId.ReferencedFunctions);
 	Material->GetReferencedParameterCollectionIds(OutId.ReferencedParameterCollections);
+
+	Material->GetForceRecompileTextureIdsHash(OutId.TextureReferencesHash);
+
 	if(MaterialInstance)
 	{
 		MaterialInstance->GetBasePropertyOverridesHash(OutId.BasePropertyOverridesHash);
@@ -1915,6 +1918,97 @@ static FAutoConsoleVariable GCompileMaterialsForShaderFormatCVar(
 	TEXT("When enabled, compile materials for this shader format in addition to those for the running platform.\n")
 	TEXT("Note that these shaders are compiled and immediately tossed. This is only useful when directly inspecting output via r.DebugDumpShaderInfo.")
 	);
+
+void UMaterial::GetForceRecompileTextureIdsHash(FSHAHash &TextureReferencesHash)
+{
+	TArray<UTexture*> ForceRecompileTextures;
+	for (const UMaterialExpression *MaterialExpression : Expressions)
+	{
+		if (MaterialExpression == nullptr)
+		{
+			continue;
+		}
+		TArray<UTexture*> ExpressionForceRecompileTextures;
+		MaterialExpression->GetTexturesForceMaterialRecompile(ExpressionForceRecompileTextures);
+		for (UTexture *ForceRecompileTexture : ExpressionForceRecompileTextures)
+		{
+			ForceRecompileTextures.AddUnique(ForceRecompileTexture);
+		}
+	}
+	if (ForceRecompileTextures.Num() <= 0)
+	{
+		//There is no Texture that trig a recompile of the material, nothing to add to the hash
+		return;
+	}
+
+	FSHA1 TextureCompileDependencies;
+	FString OriginalHash = TextureReferencesHash.ToString();
+	TextureCompileDependencies.UpdateWithString(*OriginalHash, OriginalHash.Len());
+
+	for (UTexture *ForceRecompileTexture : ForceRecompileTextures)
+	{
+		FString TextureGuidString = ForceRecompileTexture->GetLightingGuid().ToString();
+		TextureCompileDependencies.UpdateWithString(*TextureGuidString, TextureGuidString.Len());
+	}
+
+	TextureCompileDependencies.Final();
+	TextureCompileDependencies.GetHash(&TextureReferencesHash.Hash[0]);
+}
+
+bool UMaterial::IsTextureForceRecompileCacheRessource(UTexture *Texture)
+{
+	for (const UMaterialExpression *MaterialExpression : Expressions)
+	{
+		if (MaterialExpression == nullptr)
+		{
+			continue;
+		}
+		TArray<UTexture*> ExpressionForceRecompileTextures;
+		MaterialExpression->GetTexturesForceMaterialRecompile(ExpressionForceRecompileTextures);
+		for (UTexture *ForceRecompileTexture : ExpressionForceRecompileTextures)
+		{
+			if (Texture == ForceRecompileTexture)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+#if WITH_EDITOR
+
+void UMaterial::UpdateMaterialShaderCacheAndTextureReferences()
+{
+	// If the material changes, then the debug view material must reset to prevent parameters mismatch
+	void ClearAllDebugViewMaterials();
+	ClearAllDebugViewMaterials();
+
+	//Cancel any current compilation jobs that are in flight for this material.
+	CancelOutstandingCompilation();
+
+	//Force a recompute of the DDC key
+	CacheResourceShadersForRendering(true);
+	RecacheMaterialInstanceUniformExpressions(this);
+	
+	// Ensure that the ReferencedTextureGuids array is up to date.
+	if (GIsEditor)
+	{
+		UpdateLightmassTextureTracking();
+	}
+
+	// Ensure that any components with static elements using this material have their render state recreated
+	// so changes are propagated to them. The preview material is only applied to the preview mesh component,
+	// and that reregister is handled by the material editor.
+	if (!bIsPreviewMaterial && !bIsMaterialEditorStatsMaterial)
+	{
+		FGlobalComponentRecreateRenderStateContext RecreateComponentsRenderState;
+	}
+	// needed for UMaterial as it doesn't have the InitResources() override where this is called
+	PropagateDataToMaterialProxy();
+}
+
+#endif //WITH_EDITOR
 
 void UMaterial::CacheResourceShadersForRendering(bool bRegenerateId)
 {

@@ -3391,6 +3391,11 @@ FIndexRange*                    ParsedVarIndexRange
 			FError::Throwf(TEXT("USTRUCTs are not currently supported as key types."));
 		}
 
+		if (MapKeyType.Type == CPT_Interface)
+		{
+			FError::Throwf(TEXT("UINTERFACEs are not currently supported as key types."));
+		}
+
 		FToken CommaToken;
 		if (!GetToken(CommaToken, /*bNoConsts=*/ true) || CommaToken.TokenType != TOKEN_Symbol || FCString::Stricmp(CommaToken.Identifier, TEXT(",")))
 		{
@@ -3453,6 +3458,11 @@ FIndexRange*                    ParsedVarIndexRange
 		if (VarProperty.Type == CPT_Struct)
 		{
 			FError::Throwf(TEXT("USTRUCTs are not currently supported as element types."));
+		}
+
+		if (VarProperty.Type == CPT_Interface)
+		{
+			FError::Throwf(TEXT("UINTERFACEs are not currently supported as element types."));
 		}
 
 		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the set, we will fix them later

@@ -92,6 +92,7 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->ImportUniformScale = 1.0f;
 
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bConvertSceneUnit = true;
 
 	GlobalImportSettings->bBakePivotInVertex = SceneImportOptions->bBakePivotInVertex;
 	GlobalImportSettings->bInvertNormalMap = SceneImportOptions->bInvertNormalMaps;
@@ -393,9 +394,7 @@ void FetchFbxLightInScene(UnFbx::FFbxImporter *FbxImporter, FbxNode* ParentNode,
 				LightInfo->Type = 4;
 				break;
 			}
-			LightInfo->Color.R = (uint8)(LightAttribute->Color.Get()[0] * 255.0);
-			LightInfo->Color.G = (uint8)(LightAttribute->Color.Get()[1] * 255.0);
-			LightInfo->Color.B = (uint8)(LightAttribute->Color.Get()[2] * 255.0);
+			LightInfo->Color = FFbxDataConverter::ConvertColor(LightAttribute->Color);
 			LightInfo->Intensity = (float)(LightAttribute->Intensity.Get());
 			switch (LightAttribute->DecayType.Get())
 			{
@@ -414,9 +413,7 @@ void FetchFbxLightInScene(UnFbx::FFbxImporter *FbxImporter, FbxNode* ParentNode,
 			}
 			LightInfo->CastLight = LightAttribute->CastLight.Get();
 			LightInfo->CastShadow = LightAttribute->CastShadows.Get();
-			LightInfo->ShadowColor.R = (uint8)(LightAttribute->ShadowColor.Get()[0] * 255.0);
-			LightInfo->ShadowColor.G = (uint8)(LightAttribute->ShadowColor.Get()[1] * 255.0);
-			LightInfo->ShadowColor.B = (uint8)(LightAttribute->ShadowColor.Get()[2] * 255.0);
+			LightInfo->ShadowColor = FFbxDataConverter::ConvertColor(LightAttribute->ShadowColor);
 
 			LightInfo->InnerAngle = (float)(LightAttribute->InnerAngle.Get());
 			LightInfo->OuterAngle = (float)(LightAttribute->OuterAngle.Get());
@@ -854,6 +851,7 @@ FFeedbackContext*	Warn
 	
 	//Always convert the scene
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bConvertSceneUnit = true;
 
 	//Set the import option in importscene mode
 	GlobalImportSettings->bImportScene = true;
@@ -1062,7 +1060,7 @@ bool UFbxSceneImportFactory::SetStaticMeshComponentOverrideMaterial(UStaticMeshC
 {
 	bool bOverrideMaterial = false;
 	UStaticMesh *StaticMesh = StaticMeshComponent->StaticMesh;
-	if (StaticMesh->Materials.Num() == NodeInfo->Materials.Num())
+	if (StaticMesh->StaticMaterials.Num() == NodeInfo->Materials.Num())
 	{
 		for (int32 MaterialIndex = 0; MaterialIndex < NodeInfo->Materials.Num(); ++MaterialIndex)
 		{

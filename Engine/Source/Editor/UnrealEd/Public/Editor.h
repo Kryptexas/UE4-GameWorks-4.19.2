@@ -424,7 +424,7 @@ extern bool GBuildStaticMeshCollision;
 //
 // Creating a static mesh from an array of triangles.
 //
-UStaticMesh* CreateStaticMesh(struct FRawMesh& RawMesh,TArray<UMaterialInterface*>& Materials,UObject* Outer,FName Name);
+UStaticMesh* CreateStaticMesh(struct FRawMesh& RawMesh,TArray<FStaticMaterial>& Materials,UObject* Outer,FName Name);
 
 struct FMergeStaticMeshParams
 {
@@ -471,7 +471,7 @@ void MergeStaticMesh(UStaticMesh* DestMesh, UStaticMesh* SourceMesh, const FMerg
 //
 // Converting models to static meshes.
 //
-void GetBrushMesh(ABrush* Brush,UModel* Model,struct FRawMesh& OutMesh,TArray<UMaterialInterface*>& OutMaterials);
+void GetBrushMesh(ABrush* Brush,UModel* Model,struct FRawMesh& OutMesh,TArray<FStaticMaterial>& OutMaterials);
 UStaticMesh* CreateStaticMeshFromBrush(UObject* Outer,FName Name,ABrush* Brush,UModel* Model);
 
 /**

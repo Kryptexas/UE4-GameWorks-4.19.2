@@ -40,7 +40,7 @@ struct SLATECORE_API FFontOutlineSettings
 
 	/** Optional material to apply to the outline */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(AllowedClasses="MaterialInterface"))
-	const UObject* OutlineMaterial;
+	UObject* OutlineMaterial;
 
 	/** The color of the outline for any character in this font */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OutlineSettings)
@@ -95,7 +95,7 @@ struct SLATECORE_API FSlateFontInfo
 
 	/** The material to use when rendering this font */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(AllowedClasses="MaterialInterface"))
-	const UObject* FontMaterial;
+	UObject* FontMaterial;
 
 	/** Settings for applying an outline to a font */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules)

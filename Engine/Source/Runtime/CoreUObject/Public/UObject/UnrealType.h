@@ -842,6 +842,40 @@ struct COREUOBJECT_API FDefinedProperty
     }
 };
 
+/**
+ * Creates a temporary object that represents the default constructed value of a UProperty
+ */
+class COREUOBJECT_API FDefaultConstructedPropertyElement
+{
+public:
+	explicit FDefaultConstructedPropertyElement(UProperty* InProp)
+		: Prop(InProp)
+		, Obj(FMemory::Malloc(InProp->GetSize(), InProp->GetMinAlignment()))
+	{
+		InProp->InitializeValue(Obj);
+	}
+
+	~FDefaultConstructedPropertyElement()
+	{
+		Prop->DestroyValue(Obj);
+		FMemory::Free(Obj);
+	}
+
+	void* GetObjAddress() const
+	{
+		return Obj;
+	}
+
+private:
+	// Non-copyable
+	FDefaultConstructedPropertyElement(const FDefaultConstructedPropertyElement&) = delete;
+	FDefaultConstructedPropertyElement& operator=(const FDefaultConstructedPropertyElement&) = delete;
+
+private:
+	UProperty* Prop;
+	void* Obj;
+};
+
 
 /*-----------------------------------------------------------------------------
 	TProperty.
@@ -2611,10 +2645,12 @@ public:
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
+
+	bool HasKey(void* InMap, void* InBaseAddress, const FString& InValue) const;
 };
 
 // need to break this out a different type so that the DECLARE_CASTED_CLASS_INTRINSIC macro can digest the comma
-typedef TProperty<FScriptMap, UProperty> USetProperty_Super;
+typedef TProperty<FScriptSet, UProperty> USetProperty_Super;
 
 class COREUOBJECT_API USetProperty : public USetProperty_Super
 {
@@ -2659,6 +2695,8 @@ public:
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
+
+	bool HasElement(void* InSet, void* InBaseAddress, const FString& InValue) const;
 };
 
 /**

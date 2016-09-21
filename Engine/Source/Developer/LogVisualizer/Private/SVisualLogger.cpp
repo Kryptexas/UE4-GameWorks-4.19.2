@@ -545,19 +545,10 @@ void SVisualLogger::HandleLoadCommandExecute()
 	bool bOpened = false;
 	if (DesktopPlatform)
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		const FString DefaultBrowsePath = FString::Printf(TEXT("%slogs/"), *FPaths::GameSavedDir());
 
 		bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 			LOCTEXT("OpenProjectBrowseTitle", "Open Project").ToString(),
 			DefaultBrowsePath,
 			TEXT(""),
@@ -629,18 +620,9 @@ void SVisualLogger::HandleSaveCommand(bool bSaveAllData)
 		bool bSaved = false;
 		if (DesktopPlatform)
 		{
-			void* ParentWindowWindowHandle = NULL;
-
-			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-			if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-			{
-				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-			}
-
 			const FString DefaultBrowsePath = FString::Printf(TEXT("%slogs/"), *FPaths::GameSavedDir());
 			bSaved = DesktopPlatform->SaveFileDialog(
-				ParentWindowWindowHandle,
+				FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 				LOCTEXT("NewProjectBrowseTitle", "Choose a project location").ToString(),
 				DefaultBrowsePath,
 				TEXT(""),

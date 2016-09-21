@@ -1013,7 +1013,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(SSpinBox<float>)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.MinValue(1.0f)
+			.MinValue(0.0f)
 			.MaxValue(40.0f)
 			.Value(this, &FMeshReductionSettingsLayout::GetPixelError)
 			.OnValueChanged(this, &FMeshReductionSettingsLayout::OnPixelErrorChanged)
@@ -1348,82 +1348,93 @@ UStaticMesh& FMeshSectionSettingsLayout::GetStaticMesh() const
 
 void FMeshSectionSettingsLayout::AddToCategory( IDetailCategoryBuilder& CategoryBuilder )
 {
-	FMaterialListDelegates MaterialListDelegates; 
-	MaterialListDelegates.OnGetMaterials.BindSP(this, &FMeshSectionSettingsLayout::GetMaterials);
-	MaterialListDelegates.OnMaterialChanged.BindSP(this, &FMeshSectionSettingsLayout::OnMaterialChanged);
-	MaterialListDelegates.OnGenerateCustomNameWidgets.BindSP( this, &FMeshSectionSettingsLayout::OnGenerateNameWidgetsForMaterial);
-	MaterialListDelegates.OnGenerateCustomMaterialWidgets.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateWidgetsForMaterial);
-	MaterialListDelegates.OnResetMaterialToDefaultClicked.BindSP(this, &FMeshSectionSettingsLayout::OnResetMaterialToDefaultClicked);
+	FSectionListDelegates SectionListDelegates;
 
-	CategoryBuilder.AddCustomBuilder( MakeShareable( new FMaterialList( CategoryBuilder.GetParentLayout(), MaterialListDelegates ) ) );
+	SectionListDelegates.OnGetSections.BindSP(this, &FMeshSectionSettingsLayout::OnGetSectionsForView, LODIndex);
+	SectionListDelegates.OnSectionChanged.BindSP(this, &FMeshSectionSettingsLayout::OnSectionChanged);
+	SectionListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateCustomNameWidgetsForSection);
+	SectionListDelegates.OnGenerateCustomSectionWidgets.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateCustomSectionWidgetsForSection);
+	CategoryBuilder.AddCustomBuilder(MakeShareable(new FSectionList(CategoryBuilder.GetParentLayout(), SectionListDelegates, (LODIndex > 0))));
 }
 
-void FMeshSectionSettingsLayout::GetMaterials(IMaterialListBuilder& ListBuilder)
+void FMeshSectionSettingsLayout::OnGetSectionsForView(ISectionListBuilder& OutSections, int32 ForLODIndex)
 {
+	check(LODIndex == ForLODIndex);
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	FStaticMeshRenderData* RenderData = StaticMesh.RenderData;
 	if (RenderData && RenderData->LODResources.IsValidIndex(LODIndex))
 	{
 		FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
 		int32 NumSections = LOD.Sections.Num();
+		
 		for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
 		{
 			FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
-			UMaterialInterface* SectionMaterial = StaticMesh.GetMaterial(Info.MaterialIndex);
-			if (SectionMaterial == NULL)
+			int32 MaterialIndex = Info.MaterialIndex;
+			if (StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex))
 			{
-				SectionMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+				FName CurrentSectionMaterialSlotName = StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName;
+				FName CurrentSectionOriginalImportedMaterialName = StaticMesh.StaticMaterials[MaterialIndex].ImportedMaterialSlotName;
+				TMap<int32, FName> AvailableSectionName;
+				int32 CurrentIterMaterialIndex = 0;
+				for (const FStaticMaterial &SkeletalMaterial : StaticMesh.StaticMaterials)
+				{
+					if (MaterialIndex != CurrentIterMaterialIndex)
+						AvailableSectionName.Add(CurrentIterMaterialIndex, SkeletalMaterial.MaterialSlotName);
+					CurrentIterMaterialIndex++;
+				}
+				UMaterialInterface* SectionMaterial = StaticMesh.StaticMaterials[MaterialIndex].MaterialInterface;
+				if (SectionMaterial == NULL)
+				{
+					SectionMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+				}
+				OutSections.AddSection(LODIndex, SectionIndex, CurrentSectionMaterialSlotName, MaterialIndex, CurrentSectionOriginalImportedMaterialName, AvailableSectionName, StaticMesh.StaticMaterials[MaterialIndex].MaterialInterface, false);
 			}
-			ListBuilder.AddMaterial(SectionIndex, SectionMaterial, /*bCanBeReplaced=*/ true);
 		}
 	}
 }
 
-void FMeshSectionSettingsLayout::OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll)
+void FMeshSectionSettingsLayout::OnSectionChanged(int32 ForLODIndex, int32 SectionIndex, int32 NewMaterialSlotIndex, FName NewMaterialSlotName)
 {
+	check(LODIndex == ForLODIndex);
 	UStaticMesh& StaticMesh = GetStaticMesh();
 
-	// flag the property (Materials) we're modifying so that not all of the object is rebuilt.
-	UProperty* ChangedProperty = NULL;
-	ChangedProperty = FindField<UProperty>( UStaticMesh::StaticClass(), "Materials" );
-	check(ChangedProperty);
-	StaticMesh.PreEditChange(ChangedProperty);
-	
+	check(StaticMesh.StaticMaterials.IsValidIndex(NewMaterialSlotIndex));
+
+	int32 NewStaticMaterialIndex = INDEX_NONE;
+	for (int StaticMaterialIndex = 0; StaticMaterialIndex < StaticMesh.StaticMaterials.Num(); ++StaticMaterialIndex)
+	{
+		if (NewMaterialSlotIndex == StaticMaterialIndex && StaticMesh.StaticMaterials[StaticMaterialIndex].MaterialSlotName == NewMaterialSlotName)
+		{
+			NewStaticMaterialIndex = StaticMaterialIndex;
+			break;
+		}
+	}
+	check(NewStaticMaterialIndex != INDEX_NONE);
 	check(StaticMesh.RenderData);
-	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SlotIndex);
-	if (LODIndex == 0)
+	FStaticMeshRenderData* RenderData = StaticMesh.RenderData;
+	if (RenderData && RenderData->LODResources.IsValidIndex(LODIndex))
 	{
-		check(Info.MaterialIndex == SlotIndex);
-		check(StaticMesh.Materials.IsValidIndex(SlotIndex));
-		StaticMesh.Materials[SlotIndex] = NewMaterial;
-	}
-	else
-	{
-		int32 NumBaseSections = StaticMesh.RenderData->LODResources[0].Sections.Num();
-		if (Info.MaterialIndex < NumBaseSections)
+		FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
+		if (LOD.Sections.IsValidIndex(SectionIndex))
 		{
-			// The LOD's section was using the same material as in the base LOD (common case).
-			Info.MaterialIndex = StaticMesh.Materials.Add(NewMaterial);
-			StaticMesh.SectionInfoMap.Set(LODIndex, SlotIndex, Info);
-		}
-		else
-		{
-			// The LOD's section was already overriding the base LOD material.
-			StaticMesh.Materials[Info.MaterialIndex] = NewMaterial;
+			FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
+			Info.MaterialIndex = NewStaticMaterialIndex;
+			StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
 		}
 	}
-	CallPostEditChange(ChangedProperty);
+	CallPostEditChange();
 }
 
-TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex)
+TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateCustomNameWidgetsForSection(int32 ForLODIndex, int32 SectionIndex)
 {
 	return SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
 			SNew(SCheckBox)
-			.IsChecked(this, &FMeshSectionSettingsLayout::IsSectionHighlighted, SlotIndex)
-			.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionHighlightedChanged, SlotIndex)
+			.IsChecked(this, &FMeshSectionSettingsLayout::IsSectionHighlighted, SectionIndex)
+			.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionHighlightedChanged, SectionIndex)
 			.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport"))
 			[
 				SNew(STextBlock)
@@ -1438,8 +1449,8 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateNameWidgetsForMaterial
 		.Padding(0, 2, 0, 0)
 		[
 			SNew(SCheckBox)
-			.IsChecked(this, &FMeshSectionSettingsLayout::IsSectionIsolatedEnabled, SlotIndex)
-			.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionIsolatedChanged, SlotIndex)
+			.IsChecked(this, &FMeshSectionSettingsLayout::IsSectionIsolatedEnabled, SectionIndex)
+			.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionIsolatedChanged, SectionIndex)
 			.ToolTipText(LOCTEXT("Isolate_ToolTip", "Isolates this section in the viewport"))
 			[
 				SNew(STextBlock)
@@ -1451,15 +1462,15 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateNameWidgetsForMaterial
 		];
 }
 
-TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex)
+TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateCustomSectionWidgetsForSection(int32 ForLODIndex, int32 SectionIndex)
 {
 	return SNew(SVerticalBox)
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		[
 			SNew(SCheckBox)
-				.IsChecked(this, &FMeshSectionSettingsLayout::DoesSectionCastShadow, SlotIndex)
-				.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionCastShadowChanged, SlotIndex)
+				.IsChecked(this, &FMeshSectionSettingsLayout::DoesSectionCastShadow, SectionIndex)
+				.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionCastShadowChanged, SectionIndex)
 			[
 				SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
@@ -1473,35 +1484,14 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateWidgetsForMaterial(UMa
 			SNew(SCheckBox)
 				.IsEnabled(this, &FMeshSectionSettingsLayout::SectionCollisionEnabled)
 				.ToolTipText(this, &FMeshSectionSettingsLayout::GetCollisionEnabledToolTip)
-				.IsChecked(this, &FMeshSectionSettingsLayout::DoesSectionCollide, SlotIndex)
-				.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionCollisionChanged, SlotIndex)
+				.IsChecked(this, &FMeshSectionSettingsLayout::DoesSectionCollide, SectionIndex)
+				.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionCollisionChanged, SectionIndex)
 			[
 				SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
 					.Text(LOCTEXT("EnableCollision", "Enable Collision"))
 			]
 		];
-}
-
-void FMeshSectionSettingsLayout::OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 SlotIndex)
-{
-	UStaticMesh& StaticMesh = GetStaticMesh();
-	if (LODIndex == 0)
-	{
-		check(StaticMesh.Materials.IsValidIndex(SlotIndex));
-		StaticMesh.Materials[SlotIndex] = UMaterial::GetDefaultMaterial(MD_Surface);
-	}
-	else
-	{
-		//Use the LOD 0 with the pass Slot index to replace the material
-		FMeshSectionInfo Lod0Info = StaticMesh.SectionInfoMap.Get(0, SlotIndex);
-		FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SlotIndex);
-		if (StaticMesh.Materials.IsValidIndex(Info.MaterialIndex) && StaticMesh.Materials.IsValidIndex(Lod0Info.MaterialIndex))
-		{
-			StaticMesh.Materials[Info.MaterialIndex] = StaticMesh.Materials[Lod0Info.MaterialIndex];
-		}
-	}
-	CallPostEditChange();
 }
 
 ECheckBoxState FMeshSectionSettingsLayout::DoesSectionCastShadow(int32 SectionIndex) const
@@ -1645,6 +1635,506 @@ void FMeshSectionSettingsLayout::CallPostEditChange(UProperty* PropertyChanged/*
 	}
 	StaticMeshEditor.RefreshViewport();
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+// FMeshMaterialLayout
+//////////////////////////////////////////////////////////////////////////
+
+FMeshMaterialsLayout::~FMeshMaterialsLayout()
+{
+}
+
+UStaticMesh& FMeshMaterialsLayout::GetStaticMesh() const
+{
+	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
+	check(StaticMesh);
+	return *StaticMesh;
+}
+
+void FMeshMaterialsLayout::AddToCategory(IDetailCategoryBuilder& CategoryBuilder)
+{
+	CategoryBuilder.AddCustomRow(LOCTEXT("AddLODLevelCategories_MaterialArrayOperationAdd", "Materials Operation Add Material Slot"))
+		.NameContent()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("AddLODLevelCategories_MaterialArrayOperations", "Materials Operations"))
+		]
+		.ValueContent()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(this, &FMeshMaterialsLayout::GetMaterialArrayText)
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Padding(2.0f, 1.0f)
+				[
+					SNew(SButton)
+					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+					.Text(LOCTEXT("AddLODLevelCategories_MaterialArrayOpAdd", "Add Material Slot"))
+					.ToolTipText(LOCTEXT("AddLODLevelCategories_MaterialArrayOpAdd", "Add Material Slot at the end of the Material slot array. Those Material slots can be used to override a LODs section, (not the base LOD)"))
+					.ContentPadding(4.0f)
+					.ForegroundColor(FSlateColor::UseForeground())
+					.OnClicked(this, &FMeshMaterialsLayout::AddMaterialSlot)
+					.IsEnabled(true)
+					.IsFocusable(false)
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("PropertyWindow.Button_AddToArray"))
+						.ColorAndOpacity(FSlateColor::UseForeground())
+					]
+				]
+			]
+		];
+	FMaterialListDelegates MaterialListDelegates;
+	MaterialListDelegates.OnGetMaterials.BindSP(this, &FMeshMaterialsLayout::GetMaterials);
+	MaterialListDelegates.OnMaterialChanged.BindSP(this, &FMeshMaterialsLayout::OnMaterialChanged);
+	MaterialListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FMeshMaterialsLayout::OnGenerateNameWidgetsForMaterial);
+	MaterialListDelegates.OnGenerateCustomMaterialWidgets.BindSP(this, &FMeshMaterialsLayout::OnGenerateWidgetsForMaterial);
+	MaterialListDelegates.OnMaterialListDirty.BindSP(this, &FMeshMaterialsLayout::OnMaterialListDirty);
+	MaterialListDelegates.OnResetMaterialToDefaultClicked.BindSP(this, &FMeshMaterialsLayout::OnResetMaterialToDefaultClicked);
+
+	CategoryBuilder.AddCustomBuilder(MakeShareable(new FMaterialList(CategoryBuilder.GetParentLayout(), MaterialListDelegates)));
+}
+
+FReply FMeshMaterialsLayout::AddMaterialSlot()
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+
+	GEditor->BeginTransaction(LOCTEXT("FMeshMaterialsLayout_AddMaterialSlot", "Add a material slot"));
+	StaticMesh.Modify();
+	StaticMesh.StaticMaterials.Add(FStaticMaterial());
+
+	StaticMesh.PostEditChange();
+	// End the transation if we created one
+	GEditor->EndTransaction();
+	return FReply::Handled();
+}
+
+FText FMeshMaterialsLayout::GetMaterialArrayText() const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+
+	FString MaterialArrayText = TEXT(" Materials Slots");
+	int32 SlotNumber = 0;
+	SlotNumber = StaticMesh.StaticMaterials.Num();
+	MaterialArrayText = FString::FromInt(SlotNumber) + MaterialArrayText;
+	return FText::FromString(MaterialArrayText);
+}
+
+void FMeshMaterialsLayout::GetMaterials(IMaterialListBuilder& ListBuilder)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	for (int32 MaterialIndex = 0; MaterialIndex < StaticMesh.StaticMaterials.Num(); ++MaterialIndex)
+	{
+		UMaterialInterface* Material = StaticMesh.GetMaterial(MaterialIndex);
+		if (Material == NULL)
+		{
+			Material = UMaterial::GetDefaultMaterial(MD_Surface);
+		}
+		ListBuilder.AddMaterial(MaterialIndex, Material, /*bCanBeReplaced=*/ true);
+	}
+}
+
+void FMeshMaterialsLayout::OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 MaterialIndex, bool bReplaceAll)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+
+	// flag the property (Materials) we're modifying so that not all of the object is rebuilt.
+	UProperty* ChangedProperty = NULL;
+	ChangedProperty = FindField<UProperty>(UStaticMesh::StaticClass(), "StaticMaterials");
+	check(ChangedProperty);
+	StaticMesh.PreEditChange(ChangedProperty);
+
+	if (StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex))
+	{
+		StaticMesh.StaticMaterials[MaterialIndex].MaterialInterface = NewMaterial;
+	}
+
+	CallPostEditChange(ChangedProperty);
+}
+
+
+TSharedRef<SWidget> FMeshMaterialsLayout::OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 MaterialIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	bool MaterialIsUsed = false;
+	if (MaterialUsedMap.Contains(MaterialIndex))
+	{
+		MaterialIsUsed = MaterialUsedMap.Find(MaterialIndex)->Num() > 0;
+	}
+	TSharedRef<SVerticalBox> CustomNameWidget = SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+			.FillWidth(0.4f)
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("MaterialArrayNameLabelStringKey", "Name"))
+				.ToolTipText(this, &FMeshMaterialsLayout::GetOriginalImportMaterialNameText, MaterialIndex)
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(5.0f, 3.0f, 5.0f, 0.0f)
+			.VAlign(VAlign_Center)
+			.FillWidth(1.0f)
+			[
+				SNew(SEditableTextBox)
+				.Text(this, &FMeshMaterialsLayout::GetMaterialNameText, MaterialIndex)
+				.OnTextChanged(this, &FMeshMaterialsLayout::OnMaterialNameChanged, MaterialIndex)
+				.OnTextCommitted(this, &FMeshMaterialsLayout::OnMaterialNameCommitted, MaterialIndex)
+			]
+		];
+	if (!MaterialIsUsed)
+	{
+		CustomNameWidget->AddSlot()
+			.AutoHeight()
+			.Padding(0, 2, 0, 0)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				.FillWidth(0.4f)
+				[
+					SNew(STextBlock)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.Text(LOCTEXT("CustomNameMaterialNotUsed", "Unused"))
+					.ToolTipText(LOCTEXT("CustomNameMaterialNotUsedTooltip", "This material is not use by any LODs section! It will be set to None when the skeletal mesh will be saved."))
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(5.0f, 3.0f, 5.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				.FillWidth(1.0f)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("CustomNameMaterialNotUsedDelete", "Delete"))
+					.ToolTipText(LOCTEXT("CustomNameMaterialNotUsedDeleteTooltip", "Delete this material slot."))
+					.IsEnabled(this, &FMeshMaterialsLayout::CanDeleteMaterialSlot, MaterialIndex)
+					.OnClicked(this, &FMeshMaterialsLayout::OnDeleteMaterialSlot, MaterialIndex)
+				]
+			];
+	}
+	else
+	{
+		CustomNameWidget->AddSlot()
+			.AutoHeight()
+			.Padding(0, 2, 0, 0)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+				.FillWidth(0.4f)
+				[
+					SNew(STextBlock)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.Text(LOCTEXT("MaterialSlotUsedByLabel", "Used By"))
+					.ToolTipText(LOCTEXT("MaterialSlotUsedByLabelTooltip", "List all sections that use this material slot"))
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(5.0f, 3.0f, 5.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				.FillWidth(1.0f)
+				[
+					//Material Slot Name
+					SNew(SComboButton)
+					.OnGetMenuContent(this, &FMeshMaterialsLayout::OnGetMaterialSlotUsedByMenuContent, MaterialIndex)
+					.VAlign(VAlign_Center)
+					.ContentPadding(2)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.Font(IDetailLayoutBuilder::GetDetailFont())
+						.Text(this, &FMeshMaterialsLayout::GetFirstMaterialSlotUsedBySection, MaterialIndex)
+					]
+				]
+			];
+	}
+	return CustomNameWidget;
+}
+
+TSharedRef<SWidget> FMeshMaterialsLayout::OnGenerateWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex)
+{
+	return SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+				.IsChecked(this, &FMeshMaterialsLayout::IsShadowCastingEnabled, SlotIndex)
+				.OnCheckStateChanged(this, &FMeshMaterialsLayout::OnShadowCastingChanged, SlotIndex)
+			[
+				SNew(STextBlock)
+					.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
+					.Text(LOCTEXT("CastShadow", "Cast Shadow"))
+			]
+		];
+}
+
+void FMeshMaterialsLayout::OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 MaterialIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	check(StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex));
+	StaticMesh.StaticMaterials[MaterialIndex].MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+	CallPostEditChange();
+}
+
+FText FMeshMaterialsLayout::GetOriginalImportMaterialNameText(int32 MaterialIndex) const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex))
+	{
+		FString OriginalImportMaterialName;
+		StaticMesh.StaticMaterials[MaterialIndex].ImportedMaterialSlotName.ToString(OriginalImportMaterialName);
+		OriginalImportMaterialName = TEXT("Original Imported Material Name: ") + OriginalImportMaterialName;
+		return FText::FromString(OriginalImportMaterialName);
+	}
+	return FText::FromName(NAME_None);
+}
+
+FText FMeshMaterialsLayout::GetMaterialNameText(int32 MaterialIndex) const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex))
+	{
+		return FText::FromName(StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName);
+	}
+	return FText::FromName(NAME_None);
+}
+
+void FMeshMaterialsLayout::OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex)
+{
+	OnMaterialNameChanged(InValue, MaterialIndex);
+}
+
+void FMeshMaterialsLayout::OnMaterialNameChanged(const FText& InValue, int32 MaterialIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (StaticMesh.StaticMaterials.IsValidIndex(MaterialIndex))
+	{
+		StaticMesh.StaticMaterials[MaterialIndex].MaterialSlotName = FName(*(InValue.ToString()));
+	}
+}
+
+bool FMeshMaterialsLayout::CanDeleteMaterialSlot(int32 MaterialIndex) const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	return (MaterialIndex + 1) == StaticMesh.StaticMaterials.Num();
+}
+
+FReply FMeshMaterialsLayout::OnDeleteMaterialSlot(int32 MaterialIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (!CanDeleteMaterialSlot(MaterialIndex))
+		return FReply::Handled();
+
+	GEditor->BeginTransaction(LOCTEXT("PersonaDeletedMaterialSlot", "Deleted material slot on skeletal mesh"));
+	StaticMesh.Modify();
+	StaticMesh.StaticMaterials.RemoveAt(MaterialIndex);
+
+	StaticMesh.PostEditChange();
+	// End the transation if we created one
+	GEditor->EndTransaction();
+
+	return FReply::Handled();
+}
+
+TSharedRef<SWidget> FMeshMaterialsLayout::OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	FMenuBuilder MenuBuilder(true, NULL);
+	TArray<FSectionLocalizer> *SectionLocalizers;
+	if (MaterialUsedMap.Contains(MaterialIndex))
+	{
+		SectionLocalizers = MaterialUsedMap.Find(MaterialIndex);
+		FUIAction Action;
+		FText EmptyTooltip;
+		// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
+		for (const FSectionLocalizer& SectionUsingMaterial : (*SectionLocalizers))
+		{
+			FString ArrayItemName = TEXT("Lod ") + FString::FromInt(SectionUsingMaterial.LODIndex) + TEXT("  Index ") + FString::FromInt(SectionUsingMaterial.SectionIndex);
+			MenuBuilder.AddMenuEntry(FText::FromString(ArrayItemName), EmptyTooltip, FSlateIcon(), Action);
+		}
+	}
+	return MenuBuilder.MakeWidget();
+}
+
+FText FMeshMaterialsLayout::GetFirstMaterialSlotUsedBySection(int32 MaterialIndex) const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (MaterialUsedMap.Contains(MaterialIndex))
+	{
+		const TArray<FSectionLocalizer> *SectionLocalizers = MaterialUsedMap.Find(MaterialIndex);
+		if (SectionLocalizers->Num() > 0)
+		{
+			FString ArrayItemName = FString::FromInt(SectionLocalizers->Num()) + TEXT(" Sections");
+			return FText::FromString(ArrayItemName);
+		}
+	}
+	return FText();
+}
+
+bool FMeshMaterialsLayout::OnMaterialListDirty()
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	bool ForceMaterialListRefresh = false;
+	TMap<int32, TArray<FSectionLocalizer>> TempMaterialUsedMap;
+	for (int32 MaterialIndex = 0; MaterialIndex < StaticMesh.StaticMaterials.Num(); ++MaterialIndex)
+	{
+		TArray<FSectionLocalizer> SectionLocalizers;
+		for (int32 LODIndex = 0; LODIndex < StaticMesh.GetNumLODs(); ++LODIndex)
+		{
+			for (int32 SectionIndex = 0; SectionIndex < StaticMesh.GetNumSections(LODIndex); ++SectionIndex)
+			{
+				FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
+
+				if (Info.MaterialIndex == MaterialIndex)
+				{
+					SectionLocalizers.Add(FSectionLocalizer(LODIndex, SectionIndex));
+				}
+			}
+		}
+		TempMaterialUsedMap.Add(MaterialIndex, SectionLocalizers);
+	}
+	if (TempMaterialUsedMap.Num() != MaterialUsedMap.Num())
+	{
+		ForceMaterialListRefresh = true;
+	}
+	else if (!ForceMaterialListRefresh)
+	{
+		for (auto KvpOld : MaterialUsedMap)
+		{
+			if (!TempMaterialUsedMap.Contains(KvpOld.Key))
+			{
+				ForceMaterialListRefresh = true;
+				break;
+			}
+			const TArray<FSectionLocalizer> &TempSectionLocalizers = (*(TempMaterialUsedMap.Find(KvpOld.Key)));
+			const TArray<FSectionLocalizer> &OldSectionLocalizers = KvpOld.Value;
+			if (TempSectionLocalizers.Num() != OldSectionLocalizers.Num())
+			{
+				ForceMaterialListRefresh = true;
+				break;
+			}
+			for (int32 SectionLocalizerIndex = 0; SectionLocalizerIndex < OldSectionLocalizers.Num(); ++SectionLocalizerIndex)
+			{
+				if (OldSectionLocalizers[SectionLocalizerIndex] != TempSectionLocalizers[SectionLocalizerIndex])
+				{
+					ForceMaterialListRefresh = true;
+					break;
+				}
+			}
+			if (ForceMaterialListRefresh)
+			{
+				break;
+			}
+		}
+	}
+	MaterialUsedMap = TempMaterialUsedMap;
+
+	return ForceMaterialListRefresh;
+}
+
+ECheckBoxState FMeshMaterialsLayout::IsShadowCastingEnabled(int32 SlotIndex) const
+{
+	bool FirstEvalDone = false;
+	bool ShadowCastingValue = false;
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	for (int32 LODIndex = 0; LODIndex < StaticMesh.GetNumLODs(); ++LODIndex)
+	{
+		for (int32 SectionIndex = 0; SectionIndex < StaticMesh.GetNumSections(LODIndex); ++SectionIndex)
+		{
+			FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
+			if (Info.MaterialIndex == SlotIndex)
+			{
+				if (!FirstEvalDone)
+				{
+					ShadowCastingValue = Info.bCastShadow;
+					FirstEvalDone = true;
+				}
+				else if (ShadowCastingValue != Info.bCastShadow)
+				{
+					return ECheckBoxState::Undetermined;
+				}
+			}
+		}
+	}
+	if (FirstEvalDone)
+	{
+		return ShadowCastingValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return ECheckBoxState::Undetermined;
+}
+
+void FMeshMaterialsLayout::OnShadowCastingChanged(ECheckBoxState NewState, int32 SlotIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	
+	if (NewState == ECheckBoxState::Undetermined)
+		return;
+	
+	bool CastShadow = (NewState == ECheckBoxState::Checked) ? true : false;
+	bool SomethingChange = false;
+	for (int32 LODIndex = 0; LODIndex < StaticMesh.GetNumLODs(); ++LODIndex)
+	{
+		for (int32 SectionIndex = 0; SectionIndex < StaticMesh.GetNumSections(LODIndex); ++SectionIndex)
+		{
+			FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
+			if (Info.MaterialIndex == SlotIndex)
+			{
+				Info.bCastShadow = CastShadow;
+				StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
+				SomethingChange = true;
+			}
+		}
+	}
+
+	if (SomethingChange)
+	{
+		CallPostEditChange();
+	}
+}
+
+void FMeshMaterialsLayout::CallPostEditChange(UProperty* PropertyChanged/*=nullptr*/)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (PropertyChanged)
+	{
+		FPropertyChangedEvent PropertyUpdateStruct(PropertyChanged);
+		StaticMesh.PostEditChangeProperty(PropertyUpdateStruct);
+	}
+	else
+	{
+		StaticMesh.Modify();
+		StaticMesh.PostEditChange();
+	}
+	if (StaticMesh.BodySetup)
+	{
+		StaticMesh.BodySetup->CreatePhysicsMeshes();
+	}
+	StaticMeshEditor.RefreshViewport();
+}
+
 
 /////////////////////////////////
 // FLevelOfDetailSettingsLayout
@@ -1807,7 +2297,15 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 		const int32 StaticMeshLODCount = StaticMesh->GetNumLODs();
 		FStaticMeshRenderData* RenderData = StaticMesh->RenderData;
 
+		//Add the Materials array
+		{
+			FString CategoryName = FString(TEXT("StaticMeshMaterials"));
 
+			IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory(*CategoryName, LOCTEXT("StaticMeshMaterialsLabel", "Materials"), ECategoryPriority::Important);
+
+			MaterialsLayoutWidget = MakeShareable(new FMeshMaterialsLayout(StaticMeshEditor));
+			MaterialsLayoutWidget->AddToCategory(MaterialsCategory);
+		}
 		// Create information panel for each LOD level.
 		for(int32 LODIndex = 0; LODIndex < StaticMeshLODCount; ++LODIndex)
 		{
@@ -2073,6 +2571,13 @@ void FLevelOfDetailSettingsLayout::OnLODGroupChanged(TSharedPtr<FString> NewValu
 			{
 				new(StaticMesh->SourceModels) FStaticMeshSourceModel();
 			}
+
+			if (StaticMesh->SourceModels.Num() > DefaultLODCount)
+			{
+				int32 NumToRemove = StaticMesh->SourceModels.Num() - DefaultLODCount;
+				StaticMesh->SourceModels.RemoveAt(DefaultLODCount, NumToRemove);
+			}
+
 			LODCount = DefaultLODCount;
 
 			// Set reduction settings to the defaults.

@@ -747,8 +747,14 @@ public:
 	 */
 	int32 SwitchWorlds( int32 WorldId ) const;
 
+	/** Is this window active? */
+	bool IsActive() const;
+
 	/** Are any of our child windows active? */
 	bool HasActiveChildren() const;
+
+	/** Are any of our parent windows active? */
+	bool HasActiveParent() const;
 
 	/**
 	 * Sets whether or not the viewport size should be driven by the window's size.  If true, the two will be the same.  If false, an independent viewport size can be specified with SetIndependentViewportSize

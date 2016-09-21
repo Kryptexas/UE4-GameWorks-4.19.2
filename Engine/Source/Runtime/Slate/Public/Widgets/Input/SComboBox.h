@@ -91,6 +91,7 @@ public:
 		, _Method()
 		, _MaxListHeight(450.0f)
 		, _HasDownArrow( true )
+		, _EnableGamepadNavigationMode(false)
 		{}
 		
 		/** Slot for this button's content (optional) */
@@ -132,6 +133,12 @@ public:
 		 * to make their own visual hint that this is a drop down.
 		 */
 		SLATE_ARGUMENT( bool, HasDownArrow )
+
+		/** 
+		 *  When false, directional keys will change the selection. When true, ComboBox 
+		 *	must be activated and will only capture arrow input while activated.
+		*/
+		SLATE_ARGUMENT(bool, EnableGamepadNavigationMode)
 				
 	SLATE_END_ARGS()
 
@@ -155,18 +162,19 @@ public:
 		this->OnComboBoxOpening = InArgs._OnComboBoxOpening;
 		this->OnSelectionChanged = InArgs._OnSelectionChanged;
 		this->OnGenerateWidget = InArgs._OnGenerateWidget;
+		this->EnableGamepadNavigationMode = InArgs._EnableGamepadNavigationMode;
 
 		OptionsSource = InArgs._OptionsSource;
 
-		TSharedRef<SWidget> ComboBoxMenuContent = 
+		TSharedRef<SWidget> ComboBoxMenuContent =
 			SNew(SBox)
 			.MaxDesiredHeight(InArgs._MaxListHeight)
 			[
-				SAssignNew( this->ComboListView, SComboListType )
-				.ListItemsSource( InArgs._OptionsSource )
-				.OnGenerateRow( this, &SComboBox< OptionType >::GenerateMenuItemRow )
-				.OnSelectionChanged( this, &SComboBox< OptionType >::OnSelectionChanged_Internal )
-				.SelectionMode( ESelectionMode::Single )
+				SAssignNew(this->ComboListView, SComboListType)
+				.ListItemsSource(InArgs._OptionsSource)
+			.OnGenerateRow(this, &SComboBox< OptionType >::GenerateMenuItemRow)
+			.OnSelectionChanged(this, &SComboBox< OptionType >::OnSelectionChanged_Internal)
+			.SelectionMode(ESelectionMode::Single)
 			];
 
 		// Set up content
@@ -194,6 +202,8 @@ public:
 			.HasDownArrow( InArgs._HasDownArrow )
 			.ContentPadding( InArgs._ContentPadding )
 			.ForegroundColor( InArgs._ForegroundColor )
+			.OnMenuOpenChanged(this, &SComboBox< OptionType >::OnMenuOpenChanged)
+
 		);
 		SetMenuContentWidgetToFocus(ComboListView);
 
@@ -204,6 +214,7 @@ public:
 		{
 			ComboListView->Private_SetItemSelection( SelectedItem, true);
 		}
+
 	}
 
 	void ClearSelection( )
@@ -255,32 +266,85 @@ protected:
 
 	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
-		const FKey Key = InKeyEvent.GetKey();
 
-		if (Key == EKeys::Up || Key == EKeys::Gamepad_DPad_Up || Key == EKeys::Gamepad_LeftStick_Up)
+		const FKey KeyPressed = InKeyEvent.GetKey();
+
+		if (IsInteractable())
 		{
-			const int32 SelectionIndex = OptionsSource->Find( GetSelectedItem() );
-			if ( SelectionIndex >= 1 )
+
+			if (EnableGamepadNavigationMode)
 			{
-				// Select an item on the prev row
-				SetSelectedItem((*OptionsSource)[SelectionIndex - 1]);
-			}
+				// The controller's bottom face button must be pressed once to begin manipulating the combobox's value.
+				// Navigation away from the widget is prevented until the button has been pressed again or focus is lost.
+				if (KeyPressed == EKeys::Enter || KeyPressed == EKeys::SpaceBar || KeyPressed == EKeys::Gamepad_FaceButton_Bottom)
+				{
+					if (bControllerInputCaptured == false)
+					{
+						// Begin capturing controller input and open the ListView
+						bControllerInputCaptured = true;
+						PlayPressedSound();
+						OnComboBoxOpening.ExecuteIfBound();
+						return SComboButton::OnButtonClicked();
+					}
+					else
+					{
+						// Set selection to the selected item on the list and close
+						bControllerInputCaptured = false;
 
-			return FReply::Handled();
-		}
-		else if (Key == EKeys::Down || Key == EKeys::Gamepad_DPad_Down || Key == EKeys::Gamepad_LeftStick_Down)
-		{
-			const int32 SelectionIndex = OptionsSource->Find( GetSelectedItem() );
-			if ( SelectionIndex < OptionsSource->Num() - 1 )
+						// Re-select first selected item, just in case it was selected by navigation previously
+						TArray<OptionType> SelectedItems = ComboListView->GetSelectedItems();
+						if (SelectedItems.Num() > 0)
+						{
+							OnSelectionChanged_Internal(SelectedItems[0], ESelectInfo::Direct);
+						}
+
+						// Set focus back to ComboBox
+						FReply Reply = FReply::Handled();
+						Reply.SetUserFocus(this->AsShared(), EFocusCause::SetDirectly);
+						return Reply;
+					}
+
+				}
+				else if (KeyPressed == EKeys::Escape || KeyPressed == EKeys::Gamepad_FaceButton_Right || KeyPressed == EKeys::BackSpace)
+				{
+					OnMenuOpenChanged(false);
+				}
+				else
+				{
+					if (bControllerInputCaptured)
+					{
+						return FReply::Handled();
+					}
+				}
+			}
+			else
 			{
-				// Select an item on the next row
-				SetSelectedItem((*OptionsSource)[SelectionIndex + 1]);
+				if (KeyPressed == EKeys::Up || KeyPressed == EKeys::Gamepad_DPad_Up || KeyPressed == EKeys::Gamepad_LeftStick_Up)
+				{
+					const int32 SelectionIndex = OptionsSource->Find(GetSelectedItem());
+					if (SelectionIndex >= 1)
+					{
+						// Select an item on the prev row
+						SetSelectedItem((*OptionsSource)[SelectionIndex - 1]);
+					}
+
+					return FReply::Handled();
+				}
+				else if (KeyPressed == EKeys::Down || KeyPressed == EKeys::Gamepad_DPad_Down || KeyPressed == EKeys::Gamepad_LeftStick_Down)
+				{
+					const int32 SelectionIndex = OptionsSource->Find(GetSelectedItem());
+					if (SelectionIndex < OptionsSource->Num() - 1)
+					{
+						// Select an item on the next row
+						SetSelectedItem((*OptionsSource)[SelectionIndex + 1]);
+					}
+					return FReply::Handled();
+				}
+
+				return SComboButton::OnKeyDown(MyGeometry, InKeyEvent);
 			}
-
-			return FReply::Handled();
 		}
-
-		return SComboButton::OnKeyDown( MyGeometry, InKeyEvent );
+		return SWidget::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 
 	virtual bool SupportsKeyboardFocus() const override
@@ -315,6 +379,29 @@ private:
 
 		}
 	}
+
+	//** Called if the menu is closed
+	void OnMenuOpenChanged(bool bOpen)
+	{
+		if (bOpen == false)
+		{
+			
+			bControllerInputCaptured = false;
+			//Ensure the ListView selection is set back to the last committed selection
+			ComboListView->SetSelection(SelectedItem, ESelectInfo::OnNavigation);
+			ComboListView->RequestScrollIntoView(SelectedItem);
+
+			// Set focus back to ComboBox for users focusing the ListView that just closed
+			FSlateApplication::Get().ForEachUser([&](FSlateUser* User) {
+				if (FSlateApplication::Get().HasUserFocusedDescendants(AsShared(), User->GetUserIndex()))
+				{
+					FSlateApplication::Get().SetUserFocus(User->GetUserIndex(), AsShared(), EFocusCause::SetDirectly);
+				}
+			});
+
+		}	
+	}
+
 
 	/** Invoked when the selection in the list changes */
 	void OnSelectionChanged_Internal( OptionType ProposedSelection, ESelectInfo::Type SelectInfo )
@@ -388,6 +475,13 @@ private:
 	FOnComboBoxOpening OnComboBoxOpening;
 	/** Delegate to invoke when we need to visualize an option as a widget. */
 	FOnGenerateWidget OnGenerateWidget;
+	// Use activate button to toggle ListView when enabled
+	bool EnableGamepadNavigationMode;
+	// Holds a flag indicating whether a controller/keyboard is manipulating the combobox's value. 
+	// When true, navigation away from the widget is prevented until a new value has been accepted or canceled. 
+	bool bControllerInputCaptured;
+
+		
 
 	const TArray< OptionType >* OptionsSource;
 };

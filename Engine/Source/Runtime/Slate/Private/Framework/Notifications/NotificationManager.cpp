@@ -105,7 +105,10 @@ TSharedRef<SNotificationList> FSlateNotificationManager::CreateStackForArea(cons
 
 	if( !FSlateApplication::Get().GetActiveModalWindow().IsValid() )
 	{
-		NotificationWindow->BringToFront();
+		if ( NotificationWindow->IsActive() || NotificationWindow->HasActiveParent() )
+		{
+			NotificationWindow->BringToFront();
+		}
 	}
 
 	bool bFound = false;

@@ -69,7 +69,6 @@ static void FillEnumOptions(TArray<TSharedPtr<FString> >& OutStrings, UEnum& InE
 	}
 }
 
-
 FSkelMeshReductionSettingsLayout::FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty)
 : LODIndex(InLODIndex)
 , ParentLODSettings(InParentLODSettings)
@@ -474,6 +473,69 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			ReductionSettingsWidgets.AddZeroed(SkelMeshLODCount - ReductionSettingsWidgets.Num());
 		}
 
+		//Create material list panel to let users control the materials array
+		{
+			FString MaterialCategoryName = FString(TEXT("Materials"));
+			IDetailCategoryBuilder& MaterialCategory = DetailLayout.EditCategory(*MaterialCategoryName, FText::GetEmpty(), ECategoryPriority::Important);
+			MaterialCategory.AddCustomRow(LOCTEXT("AddLODLevelCategories_MaterialArrayOperationAdd", "Materials Operation Add Material Slot"))
+				.NameContent()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("AddLODLevelCategories_MaterialArrayOperations", "Materials Operations"))
+				]
+				.ValueContent()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.FillWidth(1.0f)
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(this, &FPersonaMeshDetails::GetMaterialArrayText)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.Padding(2.0f, 1.0f)
+						[
+							SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+							.Text(LOCTEXT("AddLODLevelCategories_MaterialArrayOpAdd", "Add Material Slot"))
+							.ToolTipText(LOCTEXT("AddLODLevelCategories_MaterialArrayOpAdd", "Add Material Slot at the end of the Material slot array. Those Material slots can be used to override a LODs section, (not the base LOD)"))
+							.ContentPadding(4.0f)
+							.ForegroundColor(FSlateColor::UseForeground())
+							.OnClicked(this, &FPersonaMeshDetails::AddMaterialSlot)
+							.IsEnabled(true)
+							.IsFocusable(false)
+							[
+								SNew(SImage)
+								.Image(FEditorStyle::GetBrush("PropertyWindow.Button_AddToArray"))
+								.ColorAndOpacity(FSlateColor::UseForeground())
+							]
+						]
+					]
+				];
+			{
+				FMaterialListDelegates MaterialListDelegates;
+
+				MaterialListDelegates.OnGetMaterials.BindSP(this, &FPersonaMeshDetails::OnGetMaterialsForArray, 0);
+				MaterialListDelegates.OnMaterialChanged.BindSP(this, &FPersonaMeshDetails::OnMaterialArrayChanged, 0);
+				MaterialListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterialArray, 0);
+				MaterialListDelegates.OnGenerateCustomMaterialWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMaterialArray, 0);
+				MaterialListDelegates.OnMaterialListDirty.BindSP(this, &FPersonaMeshDetails::OnMaterialListDirty);
+				MaterialCategory.AddCustomBuilder(MakeShareable(new FMaterialList(MaterialCategory.GetParentLayout(), MaterialListDelegates, false)));
+			}
+		}
+
 		// Create information panel for each LOD level.
 		for (int32 LODIndex = 0; LODIndex < SkelMeshLODCount; ++LODIndex)
 		{
@@ -519,14 +581,13 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			LODCategory.HeaderContent(LODCategoryWidget);
 
 			{
-				FMaterialListDelegates MaterialListDelegates;
+				FSectionListDelegates SectionListDelegates;
 
-				MaterialListDelegates.OnGetMaterials.BindSP(this, &FPersonaMeshDetails::OnGetMaterialsForView, LODIndex);
-				MaterialListDelegates.OnMaterialChanged.BindSP(this, &FPersonaMeshDetails::OnMaterialChanged, LODIndex);
-				MaterialListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterial, LODIndex);
-				MaterialListDelegates.OnGenerateCustomMaterialWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMaterial, LODIndex);
-
-				LODCategory.AddCustomBuilder(MakeShareable(new FMaterialList(LODCategory.GetParentLayout(), MaterialListDelegates, (LODIndex > 0))));
+				SectionListDelegates.OnGetSections.BindSP(this, &FPersonaMeshDetails::OnGetSectionsForView, LODIndex);
+				SectionListDelegates.OnSectionChanged.BindSP(this, &FPersonaMeshDetails::OnSectionChanged);
+				SectionListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomNameWidgetsForSection);
+				SectionListDelegates.OnGenerateCustomSectionWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSection);
+				LODCategory.AddCustomBuilder(MakeShareable(new FSectionList(LODCategory.GetParentLayout(), SectionListDelegates, (LODIndex > 0))));
 			}
 			// add each LOD Info to each LOD category
 			TSharedRef<IPropertyHandle> LODInfoProperty = DetailLayout.GetProperty(FName("LODInfo"), USkeletalMesh::StaticClass());
@@ -941,6 +1002,17 @@ FText FPersonaMeshDetails::GetLODImportedText(int32 LODIndex) const
 	return FText();
 }
 
+FText FPersonaMeshDetails::GetMaterialSlotNameText(int32 MaterialIndex) const
+{
+	USkeletalMesh* Mesh = GetMesh();
+	if (Mesh && Mesh->Materials.IsValidIndex(MaterialIndex))
+	{
+		return FText::FromName(Mesh->Materials[MaterialIndex].MaterialSlotName);
+	}
+
+	return LOCTEXT("SkeletalMeshMaterial_InvalidIndex", "Invalid Material Index");
+}
+
 void FPersonaMeshDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
@@ -1008,7 +1080,86 @@ void FPersonaMeshDetails::HideUnnecessaryProperties(IDetailLayoutBuilder& Detail
 
 }
 
-void FPersonaMeshDetails::OnGetMaterialsForView(IMaterialListBuilder& MaterialList, int32 LODIndex)
+void FPersonaMeshDetails::OnGetMaterialsForArray(class IMaterialListBuilder& OutMaterials, int32 LODIndex)
+{
+	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
+
+	if (!SkelMesh)
+		return;
+
+	for (int32 MaterialIndex = 0; MaterialIndex < SkelMesh->Materials.Num(); ++MaterialIndex)
+	{
+		OutMaterials.AddMaterial(MaterialIndex, SkelMesh->Materials[MaterialIndex].MaterialInterface, true);
+	}
+}
+
+void FPersonaMeshDetails::OnMaterialArrayChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll, int32 LODIndex)
+{
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (Mesh)
+	{
+		// Whether or not we made a transaction and need to end it
+		bool bMadeTransaction = false;
+
+		UProperty* MaterialProperty = FindField<UProperty>(USkeletalMesh::StaticClass(), "Materials");
+		check(MaterialProperty);
+		Mesh->PreEditChange(MaterialProperty);
+		check(Mesh->Materials.Num() > SlotIndex)
+
+		if (NewMaterial != PrevMaterial)
+		{
+			GEditor->BeginTransaction(LOCTEXT("PersonaReplaceMaterial", "Replace material on mesh"));
+			bMadeTransaction = true;
+			Mesh->Modify();
+			Mesh->Materials[SlotIndex].MaterialInterface = NewMaterial;
+
+			//Add a default name to the material slot if this slot was manually add and there is no name yet
+			if (NewMaterial != nullptr && Mesh->Materials[SlotIndex].ImportedMaterialSlotName == NAME_None && Mesh->Materials[SlotIndex].MaterialSlotName == NAME_None)
+			{
+				Mesh->Materials[SlotIndex].MaterialSlotName = FName(*(NewMaterial->GetName()));
+			}
+		}
+
+		FPropertyChangedEvent PropertyChangedEvent(MaterialProperty);
+		Mesh->PostEditChangeProperty(PropertyChangedEvent);
+
+		if (bMadeTransaction)
+		{
+			// End the transation if we created one
+			GEditor->EndTransaction();
+			// Redraw viewports to reflect the material changes 
+			GUnrealEd->RedrawLevelEditingViewports();
+		}
+	}
+}
+
+FReply FPersonaMeshDetails::AddMaterialSlot()
+{
+	if (!SkeletalMeshPtr.IsValid())
+		return FReply::Handled();
+	GEditor->BeginTransaction(LOCTEXT("PersonaChangedMaterialIndex", "Change material index on mesh"));
+	SkeletalMeshPtr->Modify();
+	SkeletalMeshPtr->Materials.Add(FSkeletalMaterial());
+
+	SkeletalMeshPtr->PostEditChange();
+	// End the transation if we created one
+	GEditor->EndTransaction();
+	return FReply::Handled();
+}
+
+FText FPersonaMeshDetails::GetMaterialArrayText() const
+{
+	FString MaterialArrayText = TEXT(" Materials Slots");
+	int32 SlotNumber = 0;
+	if (SkeletalMeshPtr.IsValid())
+	{
+		SlotNumber = SkeletalMeshPtr->Materials.Num();
+	}
+	MaterialArrayText = FString::FromInt(SlotNumber) + MaterialArrayText;
+	return FText::FromString(MaterialArrayText);
+}
+
+void FPersonaMeshDetails::OnGetSectionsForView(ISectionListBuilder& OutSections, int32 LODIndex)
 {
 	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
 
@@ -1029,7 +1180,18 @@ void FPersonaMeshDetails::OnGetMaterialsForView(IMaterialListBuilder& MaterialLi
 
 				if (SkelMesh->Materials.IsValidIndex(MaterialIndex))
 				{
-					MaterialList.AddMaterial(SectionIdx, SkelMesh->Materials[MaterialIndex].MaterialInterface, true);
+					FName CurrentSectionMaterialSlotName = SkelMesh->Materials[MaterialIndex].MaterialSlotName;
+					FName CurrentSectionOriginalImportedMaterialName = SkelMesh->Materials[MaterialIndex].ImportedMaterialSlotName;
+					TMap<int32, FName> AvailableSectionName;
+					int32 CurrentIterMaterialIndex = 0;
+					for (const FSkeletalMaterial &SkeletalMaterial : SkelMesh->Materials)
+					{
+						if (MaterialIndex != CurrentIterMaterialIndex)
+							AvailableSectionName.Add(CurrentIterMaterialIndex, SkeletalMaterial.MaterialSlotName);
+						CurrentIterMaterialIndex++;
+					}
+					bool bClothSection = Model.Sections[SectionIdx].CorrespondClothSectionIndex >= 0;
+					OutSections.AddSection(LODIndex, SectionIdx, CurrentSectionMaterialSlotName, MaterialIndex, CurrentSectionOriginalImportedMaterialName, AvailableSectionName, SkelMesh->Materials[MaterialIndex].MaterialInterface, bClothSection);
 				}
 			}
 		}
@@ -1045,23 +1207,342 @@ void FPersonaMeshDetails::OnGetMaterialsForView(IMaterialListBuilder& MaterialLi
 				{
 					MaterialMap[MapIdx] = MaterialIndex = SkelMesh->Materials.Add(FSkeletalMaterial());
 				}
-
-				MaterialList.AddMaterial(MapIdx, SkelMesh->Materials[MaterialIndex].MaterialInterface, true);
+				FName CurrentSectionMaterialSlotName = SkelMesh->Materials[MaterialIndex].MaterialSlotName;
+				FName CurrentSectionOriginalImportedMaterialName = SkelMesh->Materials[MaterialIndex].ImportedMaterialSlotName;
+				TMap<int32, FName> AvailableSectionName;
+				int32 CurrentIterMaterialIndex = 0;
+				for (const FSkeletalMaterial &SkeletalMaterial : SkelMesh->Materials)
+				{
+					if (MaterialIndex != CurrentIterMaterialIndex)
+						AvailableSectionName.Add(CurrentIterMaterialIndex, SkeletalMaterial.MaterialSlotName);
+					CurrentIterMaterialIndex++;
+				}
+				OutSections.AddSection(LODIndex, MapIdx, CurrentSectionMaterialSlotName, MaterialIndex, CurrentSectionOriginalImportedMaterialName, AvailableSectionName, SkelMesh->Materials[MaterialIndex].MaterialInterface, false);
 			}
 		}
 
 	}
 }
 
-TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex, int32 LODIndex)
+FText FPersonaMeshDetails::GetMaterialNameText(int32 MaterialIndex) const
+{
+	if (SkeletalMeshPtr.IsValid() && SkeletalMeshPtr->Materials.IsValidIndex(MaterialIndex))
+	{
+		return FText::FromName(SkeletalMeshPtr->Materials[MaterialIndex].MaterialSlotName);
+	}
+	return FText::FromName(NAME_None);
+}
+
+FText FPersonaMeshDetails::GetOriginalImportMaterialNameText(int32 MaterialIndex) const
+{
+	if (SkeletalMeshPtr.IsValid() && SkeletalMeshPtr->Materials.IsValidIndex(MaterialIndex))
+	{
+		FString OriginalImportMaterialName;
+		SkeletalMeshPtr->Materials[MaterialIndex].ImportedMaterialSlotName.ToString(OriginalImportMaterialName);
+		OriginalImportMaterialName = TEXT("Original Imported Material Name: ") + OriginalImportMaterialName;
+		return FText::FromString(OriginalImportMaterialName);
+	}
+	return FText::FromName(NAME_None);
+}
+
+void FPersonaMeshDetails::OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex)
+{
+	OnMaterialNameChanged(InValue, MaterialIndex);
+}
+
+void FPersonaMeshDetails::OnMaterialNameChanged(const FText& InValue, int32 MaterialIndex)
+{
+	if (SkeletalMeshPtr.IsValid() && SkeletalMeshPtr->Materials.IsValidIndex(MaterialIndex))
+	{
+		SkeletalMeshPtr->Materials[MaterialIndex].MaterialSlotName = FName(*(InValue.ToString()));
+	}
+}
+
+TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterialArray(UMaterialInterface* Material, int32 MaterialIndex, int32 LODIndexGarbage)
+{
+	bool MaterialIsUsed = false;
+	if (SkeletalMeshPtr.IsValid() && MaterialUsedMap.Contains(MaterialIndex))
+	{
+		MaterialIsUsed = MaterialUsedMap.Find(MaterialIndex)->Num() > 0;
+	}
+	TSharedRef<SVerticalBox> CustomNameWidget = SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+			.FillWidth(0.4f)
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("MaterialArrayNameLabelStringKey", "Name"))
+				.ToolTipText(this, &FPersonaMeshDetails::GetOriginalImportMaterialNameText, MaterialIndex)
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(5.0f, 3.0f, 5.0f, 0.0f)
+			.VAlign(VAlign_Center)
+			.FillWidth(1.0f)
+			[
+				SNew(SEditableTextBox)
+				.Text(this, &FPersonaMeshDetails::GetMaterialNameText, MaterialIndex)
+				.OnTextChanged(this, &FPersonaMeshDetails::OnMaterialNameChanged, MaterialIndex)
+				.OnTextCommitted(this, &FPersonaMeshDetails::OnMaterialNameCommitted, MaterialIndex)
+			]
+		];
+
+	if (!MaterialIsUsed)
+	{
+		CustomNameWidget->AddSlot()
+			.AutoHeight()
+			.Padding(0, 2, 0, 0)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				.FillWidth(0.4f)
+				[
+					SNew(STextBlock)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.Text(LOCTEXT("CustomNameMaterialNotUsed", "Unused"))
+					.ToolTipText(LOCTEXT("CustomNameMaterialNotUsedTooltip", "This material is not use by any LODs section! It will be set to None when the skeletal mesh will be saved."))
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(5.0f, 3.0f, 5.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				.FillWidth(1.0f)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("CustomNameMaterialNotUsedDelete", "Delete"))
+					.ToolTipText(LOCTEXT("CustomNameMaterialNotUsedDeleteTooltip", "Delete this material slot."))
+					.IsEnabled(this, &FPersonaMeshDetails::CanDeleteMaterialSlot, MaterialIndex)
+					.OnClicked(this, &FPersonaMeshDetails::OnDeleteMaterialSlot, MaterialIndex)
+				]
+			];
+	}
+	else
+	{
+		CustomNameWidget->AddSlot()
+			.AutoHeight()
+			.Padding(0, 2, 0, 0)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+				.FillWidth(0.4f)
+				[
+					SNew(STextBlock)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.Text(LOCTEXT("MaterialSlotUsedByLabel", "Used By"))
+					.ToolTipText(LOCTEXT("MaterialSlotUsedByLabelTooltip", "List all sections that use this material slot"))
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(5.0f, 3.0f, 5.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				.FillWidth(1.0f)
+				[
+					//Material Slot Name
+					SNew(SComboButton)
+					.OnGetMenuContent(this, &FPersonaMeshDetails::OnGetMaterialSlotUsedByMenuContent, MaterialIndex)
+					.VAlign(VAlign_Center)
+					.ContentPadding(2)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.Font(IDetailLayoutBuilder::GetDetailFont())
+						.Text(this, &FPersonaMeshDetails::GetFirstMaterialSlotUsedBySection, MaterialIndex)
+					]
+				]
+			];
+	}
+	return CustomNameWidget;
+}
+
+FText FPersonaMeshDetails::GetFirstMaterialSlotUsedBySection(int32 MaterialIndex) const
+{
+	if (SkeletalMeshPtr.IsValid() && MaterialUsedMap.Contains(MaterialIndex))
+	{
+		const TArray<FSectionLocalizer> *SectionLocalizers = MaterialUsedMap.Find(MaterialIndex);
+		if (SectionLocalizers->Num() > 0)
+		{
+			FString ArrayItemName = FString::FromInt(SectionLocalizers->Num()) + TEXT(" Sections");
+			return FText::FromString(ArrayItemName);
+		}
+	}
+	return FText();
+}
+
+TSharedRef<SWidget> FPersonaMeshDetails::OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex)
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	TArray<FSectionLocalizer> *SectionLocalizers;
+	if (SkeletalMeshPtr.IsValid() && MaterialUsedMap.Contains(MaterialIndex))
+	{
+		SectionLocalizers = MaterialUsedMap.Find(MaterialIndex);
+		FUIAction Action;
+		FText EmptyTooltip;
+		// Add a menu item for each texture.  Clicking on the texture will display it in the content browser
+		for (const FSectionLocalizer& SectionUsingMaterial : (*SectionLocalizers))
+		{
+			FString ArrayItemName = TEXT("Lod ") + FString::FromInt(SectionUsingMaterial.LODIndex) + TEXT("  Index ") + FString::FromInt(SectionUsingMaterial.SectionIndex);
+			MenuBuilder.AddMenuEntry(FText::FromString(ArrayItemName), EmptyTooltip, FSlateIcon(), Action);
+		}
+	}
+	
+
+	return MenuBuilder.MakeWidget();
+}
+
+bool FPersonaMeshDetails::CanDeleteMaterialSlot(int32 MaterialIndex) const
+{
+	if (!SkeletalMeshPtr.IsValid())
+		return false;
+	return (MaterialIndex + 1) == SkeletalMeshPtr->Materials.Num();
+}
+
+FReply FPersonaMeshDetails::OnDeleteMaterialSlot(int32 MaterialIndex)
+{
+	if (!SkeletalMeshPtr.IsValid() || !CanDeleteMaterialSlot(MaterialIndex))
+		return FReply::Handled();
+
+	GEditor->BeginTransaction(LOCTEXT("PersonaDeletedMaterialSlot", "Deleted material slot on skeletal mesh"));
+	SkeletalMeshPtr->Modify();
+	SkeletalMeshPtr->Materials.RemoveAt(MaterialIndex);
+
+	SkeletalMeshPtr->PostEditChange();
+	// End the transation if we created one
+	GEditor->EndTransaction();
+
+	return FReply::Handled();
+}
+
+bool FPersonaMeshDetails::OnMaterialListDirty()
+{
+	bool ForceMaterialListRefresh = false;
+	TMap<int32, TArray<FSectionLocalizer>> TempMaterialUsedMap;
+	if (SkeletalMeshPtr.IsValid())
+	{
+		for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMeshPtr->Materials.Num(); ++MaterialIndex)
+		{
+			TArray<FSectionLocalizer> SectionLocalizers;
+			FSkeletalMeshResource* ImportedResource = SkeletalMeshPtr->GetImportedResource();
+			check(ImportedResource);
+			for (int32 LODIndex = 0; LODIndex < ImportedResource->LODModels.Num(); ++LODIndex)
+			{
+				FSkeletalMeshLODInfo& Info = SkeletalMeshPtr->LODInfo[LODIndex];
+				if (LODIndex == 0 || SkeletalMeshPtr->LODInfo[LODIndex].LODMaterialMap.Num() == 0)
+				{
+					for (int32 SectionIndex = 0; SectionIndex < ImportedResource->LODModels[LODIndex].Sections.Num(); ++SectionIndex)
+					{
+						if (GetMaterialIndex(LODIndex, SectionIndex) == MaterialIndex)
+						{
+							SectionLocalizers.Add(FSectionLocalizer(LODIndex, SectionIndex));
+						}
+					}
+				}
+				else
+				{
+					for (int32 SectionIndex = 0; SectionIndex < SkeletalMeshPtr->LODInfo[LODIndex].LODMaterialMap.Num(); ++SectionIndex)
+					{
+						if (GetMaterialIndex(LODIndex, SectionIndex) == MaterialIndex)
+						{
+							SectionLocalizers.Add(FSectionLocalizer(LODIndex, SectionIndex));
+						}
+					}
+				}
+			}
+			TempMaterialUsedMap.Add(MaterialIndex, SectionLocalizers);
+		}
+	}
+	if (TempMaterialUsedMap.Num() != MaterialUsedMap.Num())
+	{
+		ForceMaterialListRefresh = true;
+	}
+	else if (!ForceMaterialListRefresh)
+	{
+		for (auto KvpOld : MaterialUsedMap)
+		{
+			if (!TempMaterialUsedMap.Contains(KvpOld.Key))
+			{
+				ForceMaterialListRefresh = true;
+				break;
+			}
+			const TArray<FSectionLocalizer> &TempSectionLocalizers = (*(TempMaterialUsedMap.Find(KvpOld.Key)));
+			const TArray<FSectionLocalizer> &OldSectionLocalizers = KvpOld.Value;
+			if (TempSectionLocalizers.Num() != OldSectionLocalizers.Num())
+			{
+				ForceMaterialListRefresh = true;
+				break;
+			}
+			for (int32 SectionLocalizerIndex = 0; SectionLocalizerIndex < OldSectionLocalizers.Num(); ++SectionLocalizerIndex)
+			{
+				if (OldSectionLocalizers[SectionLocalizerIndex] != TempSectionLocalizers[SectionLocalizerIndex])
+				{
+					ForceMaterialListRefresh = true;
+					break;
+				}
+			}
+			if (ForceMaterialListRefresh)
+			{
+				break;
+			}
+		}
+	}
+	MaterialUsedMap = TempMaterialUsedMap;
+
+	return ForceMaterialListRefresh;
+}
+
+TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMaterialArray(UMaterialInterface* Material, int32 MaterialIndex, int32 LODIndex)
+{
+	TSharedRef<SWidget> MaterialWidget
+		= SNew(SVerticalBox)
+
+		+ SVerticalBox::Slot()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FPersonaMeshDetails::IsShadowCastingEnabled, MaterialIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnShadowCastingChanged, MaterialIndex)
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
+				.Text(LOCTEXT("Cast Shadows", "Cast Shadows"))
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FPersonaMeshDetails::IsRecomputeTangentEnabled, MaterialIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnRecomputeTangentChanged, MaterialIndex)
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
+				.Text(LOCTEXT("RecomputeTangent_Title", "Recompute Tangent"))
+				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCache.Mode) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
+			]
+		];
+
+	return MaterialWidget;
+}
+
+
+TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForSection(int32 LodIndex, int32 SectionIndex)
 {
 	return SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
 			SNew(SCheckBox)
-			.IsChecked(this, &FPersonaMeshDetails::IsSectionSelected, SlotIndex)
-			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionSelectedChanged, SlotIndex)
+			.IsChecked(this, &FPersonaMeshDetails::IsSectionSelected, SectionIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionSelectedChanged, SectionIndex)
 			.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport"))
 			[
 				SNew(STextBlock)
@@ -1075,8 +1556,8 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterial(
 		.Padding(0, 2, 0, 0)
 		[
 			SNew(SCheckBox)
-			.IsChecked(this, &FPersonaMeshDetails::IsIsolateSectionEnabled, SlotIndex)
-			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionIsolatedChanged, SlotIndex)
+			.IsChecked(this, &FPersonaMeshDetails::IsIsolateSectionEnabled, SectionIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionIsolatedChanged, SectionIndex)
 			.ToolTipText(LOCTEXT("Isolate_ToolTip", "Isolates this section in the viewport"))
 			[
 				SNew(STextBlock)
@@ -1087,16 +1568,46 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterial(
 		];
 }
 
-TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex, int32 LODIndex)
+TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSection(int32 LODIndex, int32 SectionIndex)
 {
-	// currently a slot index means a section index
-	int32 SectionIndex = SlotIndex;
+	TSharedRef<SVerticalBox> SectionWidget
+		= SNew(SVerticalBox)
 
+		+ SVerticalBox::Slot()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FPersonaMeshDetails::IsSectionShadowCastingEnabled, LODIndex, SectionIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionShadowCastingChanged, LODIndex, SectionIndex)
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
+				.Text(LOCTEXT("Cast Shadows", "Cast Shadows"))
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FPersonaMeshDetails::IsSectionRecomputeTangentEnabled, LODIndex, SectionIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionRecomputeTangentChanged, LODIndex, SectionIndex)
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
+				.Text(LOCTEXT("RecomputeTangent_Title", "Recompute Tangent"))
+				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCache.Mode) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
+			]
+		];
 #if WITH_APEX_CLOTHING
 
 	if (LODIndex == 0 && SectionIndex == 0)
 	{
 		ClothingComboLODInfos.Empty();
+	}
+
+	if (ClothingComboLODInfos.Num() <= LODIndex)
+	{
 		// Generate strings for the combo boxes assets
 		UpdateComboBoxStrings();
 	}
@@ -1111,72 +1622,10 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 		ComboBoxes.AddZeroed();
 	}
 
-#endif // WITH_APEX_CLOTHING
 
 	int32 MaterialIndex = GetMaterialIndex(LODIndex, SectionIndex);
-	TSharedRef<SWidget> MaterialWidget
-	= SNew(SVerticalBox)
-
-		+SVerticalBox::Slot()
-		.Padding(0,2,0,0)
-		[
-			SNew(SCheckBox)
-			.IsChecked(this, &FPersonaMeshDetails::IsShadowCastingEnabled, MaterialIndex)
-			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnShadowCastingChanged, MaterialIndex)
-			[
-				SNew(STextBlock)
-				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-				.Text(LOCTEXT("Cast Shadows", "Cast Shadows"))
-			]
-		]
-
-		+SVerticalBox::Slot()
-		.Padding(0,2,0,0)
-		[
-			SNew(SCheckBox)
-			.IsChecked(this, &FPersonaMeshDetails::IsRecomputeTangentEnabled, MaterialIndex)
-			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnRecomputeTangentChanged, MaterialIndex)
-			[
-				SNew(STextBlock)
-				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-				.Text(LOCTEXT("RecomputeTangent_Title", "Recompute Tangent"))
-				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCache.Mode) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
-			]
-		]
-
-		+SVerticalBox::Slot()
-		.Padding(0,2,0,0)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.IsEnabled(this, &FPersonaMeshDetails::CanDeleteMaterialElement, LODIndex, SectionIndex)
-				.OnClicked(this, &FPersonaMeshDetails::OnDeleteButtonClicked, LODIndex, SectionIndex)
-				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Delete"))
-				]
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-				.Text(LOCTEXT("PersonaDeleteMaterialLabel", "Delete"))
-			]
-		]
-
-#if WITH_APEX_CLOTHING
-
+	SectionWidget->AddSlot()
 		// Add APEX clothing combo boxes
-		+SVerticalBox::Slot()
 		.AutoHeight()
 		.Padding(0,2,0,0)
 		[
@@ -1195,7 +1644,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 			.Padding(2,2,0,0)
 			.AutoWidth()
 			[
-				SAssignNew(ComboBoxes[SlotIndex], STextComboBox)
+				SAssignNew(ComboBoxes[SectionIndex], STextComboBox)
 				.ContentPadding(FMargin(6.0f, 2.0f))
 				.OptionsSource(&ComboStrings)
 				.ToolTipText(LOCTEXT("SectionsComboBoxToolTip", "Select the clothing asset and submesh to use as clothing for this section"))
@@ -1203,13 +1652,11 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 			]
 		];
 
-		int32 SelectedIndex = ComboSelectedIndices.IsValidIndex(SlotIndex) ? ComboSelectedIndices[SlotIndex] : -1;
-		ComboBoxes[SlotIndex]->SetSelectedItem(ComboStrings.IsValidIndex(SelectedIndex) ? ComboStrings[SelectedIndex] : ComboStrings[0]);
-#else
-	;
+		int32 SelectedIndex = ComboSelectedIndices.IsValidIndex(SectionIndex) ? ComboSelectedIndices[SectionIndex] : -1;
+		ComboBoxes[SectionIndex]->SetSelectedItem(ComboStrings.IsValidIndex(SelectedIndex) ? ComboStrings[SelectedIndex] : ComboStrings[0]);
+		
 #endif// #if WITH_APEX_CLOTHING
-
-	return MaterialWidget;
+	return SectionWidget;
 }
 
 ECheckBoxState FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
@@ -1288,11 +1735,40 @@ ECheckBoxState FPersonaMeshDetails::IsShadowCastingEnabled(int32 MaterialIndex) 
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
 	const USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
-	if (Mesh && MaterialIndex < Mesh->Materials.Num())
+	bool FirstValueSet = false;
+	bool AllValueState = false;
+	bool AllValueSame = true;
+	if (Mesh == nullptr)
+		return State;
+	check(Mesh->GetResourceForRendering());
+	for (int32 LODIdx = 0; LODIdx < Mesh->GetResourceForRendering()->LODModels.Num(); LODIdx++)
 	{
-		State = Mesh->Materials[MaterialIndex].bEnableShadowCasting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		const FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIdx];
+		for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
+		{
+			const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+
+			if (GetMaterialIndex(LODIdx, SectionIndex) != MaterialIndex)
+				continue;
+
+			if (!FirstValueSet)
+			{
+				FirstValueSet = true;
+				AllValueState = Section.bCastShadow;
+				AllValueSame = true;
+			}
+			else
+			{
+				if (AllValueState != Section.bCastShadow)
+				{
+					AllValueSame = false;
+					break;
+				}
+			}
+		}
 	}
 
+	State = AllValueSame ? (AllValueState ? ECheckBoxState::Checked : ECheckBoxState::Unchecked) : ECheckBoxState::Undetermined;
 	return State;
 }
 
@@ -1302,18 +1778,35 @@ void FPersonaMeshDetails::OnShadowCastingChanged(ECheckBoxState NewState, int32 
 
 	if (Mesh)
 	{
+		bool NewValue = false;
 		if (NewState == ECheckBoxState::Checked)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("SetShadowCastingFlag", "Set Shadow Casting For Material"));
 			Mesh->Modify();
-			Mesh->Materials[MaterialIndex].bEnableShadowCasting = true;
+			NewValue = true;
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("ClearShadowCastingFlag", "Clear Shadow Casting For Material"));
 			Mesh->Modify();
-			Mesh->Materials[MaterialIndex].bEnableShadowCasting = false;
+			NewValue = false;
 		}
+
+		check(Mesh->GetResourceForRendering());
+		for (int32 LODIdx = 0; LODIdx < Mesh->GetResourceForRendering()->LODModels.Num(); LODIdx++)
+		{
+			FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIdx];
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
+			{
+				FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+
+				if (Section.MaterialIndex != MaterialIndex)
+					continue;
+
+				Section.bCastShadow = NewValue;
+			}
+		}
+
 		for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
 		{
 			USkinnedMeshComponent* MeshComponent = *It;
@@ -1333,10 +1826,41 @@ ECheckBoxState FPersonaMeshDetails::IsRecomputeTangentEnabled(int32 MaterialInde
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
 	const USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
-	if (Mesh && MaterialIndex < Mesh->Materials.Num())
+	if (Mesh == nullptr)
+		return State;
+
+	bool FirstValueSet = false;
+	bool AllValueState = false;
+	bool AllValueSame = true;
+	check(Mesh->GetResourceForRendering());
+	for (int32 LODIdx = 0; LODIdx < Mesh->GetResourceForRendering()->LODModels.Num(); LODIdx++)
 	{
-		State = Mesh->Materials[MaterialIndex].bRecomputeTangent ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		const FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIdx];
+		for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
+		{
+			const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+			
+			if (Section.MaterialIndex != MaterialIndex)
+				continue;
+
+			if (!FirstValueSet)
+			{
+				FirstValueSet = true;
+				AllValueState = Section.bRecomputeTangent;
+				AllValueSame = true;
+			}
+			else
+			{
+				if (AllValueState != Section.bRecomputeTangent)
+				{
+					AllValueSame = false;
+					break;
+				}
+			}
+		}
 	}
+
+	State = AllValueSame ? (AllValueState ? ECheckBoxState::Checked : ECheckBoxState::Unchecked) : ECheckBoxState::Undetermined;
 
 	return State;
 }
@@ -1347,18 +1871,20 @@ void FPersonaMeshDetails::OnRecomputeTangentChanged(ECheckBoxState NewState, int
 
 	if (Mesh)
 	{
+		bool NewValue = false;
 		if (NewState == ECheckBoxState::Checked)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("SetRecomputeTangentFlag", "Set Recompute Tangent For Material"));
 			Mesh->Modify();
-			Mesh->Materials[MaterialIndex].bRecomputeTangent = true;
+			NewValue = true;
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("ClearRecomputeTangentFlag", "Clear Recompute Tangent For Material"));
 			Mesh->Modify();
-			Mesh->Materials[MaterialIndex].bRecomputeTangent = false;
+			NewValue = false;
 		}
+
 		for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
 		{
 			USkinnedMeshComponent* MeshComponent = *It;
@@ -1366,30 +1892,167 @@ void FPersonaMeshDetails::OnRecomputeTangentChanged(ECheckBoxState NewState, int
 				!MeshComponent->IsTemplate() &&
 				MeshComponent->SkeletalMesh == Mesh)
 			{
-				MeshComponent->UpdateRecomputeTangent(MaterialIndex);
+				MeshComponent->UpdateRecomputeTangent(MaterialIndex, INDEX_NONE, NewValue);
 				MeshComponent->MarkRenderStateDirty();
 			}
 		}
 		PersonaPtr->RefreshViewport();
 	}
 }
-int32 FPersonaMeshDetails::GetMaterialIndex(int32 LODIndex, int32 SectionIndex)
+
+ECheckBoxState FPersonaMeshDetails::IsSectionShadowCastingEnabled(int32 LODIndex, int32 SectionIndex) const
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	const USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (Mesh == nullptr)
+		return State;
+	
+	check(Mesh->GetResourceForRendering());
+
+	if (!Mesh->GetResourceForRendering()->LODModels.IsValidIndex(LODIndex))
+		return State;
+
+	const FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIndex];
+
+	if (!LODModel.Sections.IsValidIndex(SectionIndex))
+		return State;
+
+	const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+
+	State = Section.bCastShadow ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	return State;
+}
+
+void FPersonaMeshDetails::OnSectionShadowCastingChanged(ECheckBoxState NewState, int32 LODIndex, int32 SectionIndex)
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (Mesh == nullptr)
+		return;
+
+	check(Mesh->GetResourceForRendering());
+
+	if (!Mesh->GetResourceForRendering()->LODModels.IsValidIndex(LODIndex))
+		return;
+
+	FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIndex];
+
+	if (!LODModel.Sections.IsValidIndex(SectionIndex))
+		return;
+
+	FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+
+	if (NewState == ECheckBoxState::Checked)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("SetSectionShadowCastingFlag", "Set Shadow Casting For Section"));
+		Mesh->Modify();
+		Section.bCastShadow = true;
+	}
+	else if (NewState == ECheckBoxState::Unchecked)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ClearSectionShadowCastingFlag", "Clear Shadow Casting For Section"));
+		Mesh->Modify();
+		Section.bCastShadow = false;
+	}
+	
+	for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
+	{
+		USkinnedMeshComponent* MeshComponent = *It;
+		if (MeshComponent &&
+			!MeshComponent->IsTemplate() &&
+			MeshComponent->SkeletalMesh == Mesh)
+		{
+			MeshComponent->MarkRenderStateDirty();
+		}
+	}
+	PersonaPtr->RefreshViewport();
+}
+
+ECheckBoxState FPersonaMeshDetails::IsSectionRecomputeTangentEnabled(int32 LODIndex, int32 SectionIndex) const
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	const USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (Mesh == nullptr)
+		return State;
+
+	check(Mesh->GetResourceForRendering());
+
+	if (!Mesh->GetResourceForRendering()->LODModels.IsValidIndex(LODIndex))
+		return State;
+
+	const FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIndex];
+
+	if (!LODModel.Sections.IsValidIndex(SectionIndex))
+		return State;
+
+	const FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+
+	State = Section.bRecomputeTangent ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	return State;
+}
+
+void FPersonaMeshDetails::OnSectionRecomputeTangentChanged(ECheckBoxState NewState, int32 LODIndex, int32 SectionIndex)
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (Mesh == nullptr)
+		return;
+
+	check(Mesh->GetResourceForRendering());
+
+	if (!Mesh->GetResourceForRendering()->LODModels.IsValidIndex(LODIndex))
+		return;
+
+	FStaticLODModel& LODModel = Mesh->GetResourceForRendering()->LODModels[LODIndex];
+
+	if (!LODModel.Sections.IsValidIndex(SectionIndex))
+		return;
+
+	FSkelMeshSection& Section = LODModel.Sections[SectionIndex];
+
+	bool NewRecomputeTangentValue = false;
+	if (NewState == ECheckBoxState::Checked)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("SetSectionShadowCastingFlag", "Set Shadow Casting For Section"));
+		Mesh->Modify();
+		NewRecomputeTangentValue = true;
+	}
+	else if (NewState == ECheckBoxState::Unchecked)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ClearSectionShadowCastingFlag", "Clear Shadow Casting For Section"));
+		Mesh->Modify();
+		NewRecomputeTangentValue = false;
+	}
+
+	for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
+	{
+		USkinnedMeshComponent* MeshComponent = *It;
+		if (MeshComponent &&
+			!MeshComponent->IsTemplate() &&
+			MeshComponent->SkeletalMesh == Mesh)
+		{
+			MeshComponent->UpdateRecomputeTangent(SectionIndex, LODIndex, NewRecomputeTangentValue);
+			MeshComponent->MarkRenderStateDirty();
+		}
+	}
+	PersonaPtr->RefreshViewport();
+}
+
+int32 FPersonaMeshDetails::GetMaterialIndex(int32 LODIndex, int32 SectionIndex) const
 {
 	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
 
 	check(LODIndex < SkelMesh->LODInfo.Num());
 
 	FSkeletalMeshLODInfo& Info = SkelMesh->LODInfo[LODIndex];
-	if (LODIndex == 0 || Info.LODMaterialMap.Num() == 0)
+	if (LODIndex == 0 || Info.LODMaterialMap.Num() == 0 || SectionIndex >= Info.LODMaterialMap.Num())
 	{
 		FSkeletalMeshResource* ImportedResource = SkelMesh->GetImportedResource();
 		check(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODIndex));
-
 		return ImportedResource->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex;
 	}
 	else
 	{
-		check(SectionIndex < Info.LODMaterialMap.Num());
 		return Info.LODMaterialMap[SectionIndex];
 	}
 }
@@ -1434,106 +2097,49 @@ bool FPersonaMeshDetails::IsDuplicatedMaterialIndex(int32 LODIndex, int32 Materi
 	return false;
 }
 
-void FPersonaMeshDetails::OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll, int32 LODIndex)
+void FPersonaMeshDetails::OnSectionChanged(int32 LODIndex, int32 SectionIndex, int32 NewMaterialSlotIndex, FName NewMaterialSlotName)
 {
 	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
-	if(Mesh)
+	if (Mesh)
 	{
-		// Whether or not we made a transaction and need to end it
-		bool bMadeTransaction = false;
-
-		UProperty* MaterialProperty = FindField<UProperty>(USkeletalMesh::StaticClass(), "Materials");
-		check(MaterialProperty);
-		Mesh->PreEditChange(MaterialProperty);
-
 		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
 		check(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODIndex));
-		const int32 TotalSlotCount = ImportedResource->LODModels[LODIndex].Sections.Num();
+		const int32 TotalSectionCount = ImportedResource->LODModels[LODIndex].Sections.Num();
 
-		check(TotalSlotCount > SlotIndex);
-		if (LODIndex == 0)
+		check(TotalSectionCount > SectionIndex);
+
+		int32 NewSkeletalMaterialIndex = INDEX_NONE;
+		for (int SkeletalMaterialIndex = 0; SkeletalMaterialIndex < Mesh->Materials.Num(); ++SkeletalMaterialIndex)
 		{
-			int MaterialIndex = GetMaterialIndex(LODIndex, SlotIndex);
-			UMaterialInterface* Material = Mesh->Materials[MaterialIndex].MaterialInterface;
-			if (Material == PrevMaterial || bReplaceAll)
+			if (NewMaterialSlotIndex == SkeletalMaterialIndex && Mesh->Materials[SkeletalMaterialIndex].MaterialSlotName == NewMaterialSlotName)
 			{
-				// Begin a transaction for undo/redo the first time we encounter a material to replace.  
-				// There is only one transaction for all replacement
-				if (!bMadeTransaction)
-				{
-					GEditor->BeginTransaction(LOCTEXT("PersonaReplaceMaterial", "Replace material on mesh"));
-					bMadeTransaction = true;
-				}
-				Mesh->Modify();
-				Mesh->Materials[MaterialIndex].MaterialInterface = NewMaterial;
+				NewSkeletalMaterialIndex = SkeletalMaterialIndex;
+				break;
 			}
+		}
+
+		check(NewSkeletalMaterialIndex != INDEX_NONE);
+
+		// Begin a transaction for undo/redo the first time we encounter a material to replace.  
+		// There is only one transaction for all replacement
+		GEditor->BeginTransaction(LOCTEXT("PersonaChangedMaterialIndex", "Change material index on mesh"));
+		Mesh->Modify();
+
+		FSkeletalMeshLODInfo& Info = Mesh->LODInfo[LODIndex];
+		if (LODIndex == 0 || Info.LODMaterialMap.Num() == 0)
+		{
+			ImportedResource->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex = NewSkeletalMaterialIndex;
 		}
 		else
 		{
-			check(Mesh->LODInfo.IsValidIndex(LODIndex));
-
-			int32 MaterialIndex;
-			if (Mesh->LODInfo[LODIndex].LODMaterialMap.Num() > 0)
-			{
-				MaterialIndex = Mesh->LODInfo[LODIndex].LODMaterialMap[SlotIndex];
-			}
-			else
-			{
-				MaterialIndex = SlotIndex;
-			}
-
-			bool bIsUsedInParentLODs = IsDuplicatedMaterialIndex(LODIndex, MaterialIndex);
-
-			if (bIsUsedInParentLODs)
-			{
-				FSkeletalMaterial NewSkelMaterial = Mesh->Materials[MaterialIndex];
-				NewSkelMaterial.MaterialInterface = NewMaterial;
-				int32 NewMaterialIndex = Mesh->Materials.Add(NewSkelMaterial);
-
-				if (Mesh->LODInfo[LODIndex].LODMaterialMap.Num() > 0)
-				{
-					Mesh->LODInfo[LODIndex].LODMaterialMap[SlotIndex] = NewMaterialIndex;
-				}
-				else
-				{
-					// copy all old ones back
-					TArray<int32> LODMaterialMap;
-
-					LODMaterialMap.AddZeroed(TotalSlotCount);
-					for (int32 SlotId = 0; SlotId < TotalSlotCount; ++SlotId)
-					{
-						LODMaterialMap[SlotId] = GetMaterialIndex(LODIndex, SlotId);
-					}
-
-					LODMaterialMap[SlotIndex] = NewMaterialIndex;
-
-					Mesh->LODInfo[LODIndex].LODMaterialMap = LODMaterialMap;
-				}
-			}
-			else
-			{
-				// Begin a transaction for undo/redo the first time we encounter a material to replace.  
-				// There is only one transaction for all replacement
-				if (!bMadeTransaction)
-				{
-					GEditor->BeginTransaction(LOCTEXT("PersonaReplaceMaterial", "Replace material on mesh"));
-					bMadeTransaction = true;
-				}
-				Mesh->Modify();
-				Mesh->Materials[MaterialIndex].MaterialInterface = NewMaterial;
-			}
+			check(SectionIndex < Info.LODMaterialMap.Num());
+			Info.LODMaterialMap[SectionIndex] = NewSkeletalMaterialIndex;
 		}
-
-		FPropertyChangedEvent PropertyChangedEvent(MaterialProperty);
-		Mesh->PostEditChangeProperty(PropertyChangedEvent);
-
-		if (bMadeTransaction)
-		{
-			// End the transation if we created one
-			GEditor->EndTransaction();
-			// Redraw viewports to reflect the material changes 
-			GUnrealEd->RedrawLevelEditingViewports();
-		}
+		Mesh->PostEditChange();
+		// End the transation if we created one
+		GEditor->EndTransaction();
+		// Redraw viewports to reflect the material changes 
+		GUnrealEd->RedrawLevelEditingViewports();
 	}
 }
 
@@ -1949,13 +2555,7 @@ FReply FPersonaMeshDetails::OnOpenClothingFileClicked(IDetailLayoutBuilder* Deta
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if ( DesktopPlatform )
 		{
-			void* ParentWindowWindowHandle = NULL;
-			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-			if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-			{
-				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-			}
+			const void* ParentWindowWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
 
 			TArray<FString> OpenFilenames;	
 			FString OpenFilePath = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::MESH_IMPORT_EXPORT);

@@ -52,7 +52,7 @@ namespace
 			// Disregard filenames that don't have the map extension if we're in MAPSONLY mode.
 			if (FPaths::GetExtension(Filename, true) == FPackageName::GetMapPackageExtension())
 			{
-				if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+				if (FAutomationTestFramework::Get().ShouldTestContent(Filename))
 				{
 					OutBeautifiedNames.Add(FPaths::GetBaseFilename(Filename));
 					OutTestCommands.Add(Filename);
@@ -254,12 +254,12 @@ bool FLoadAllMapsInGameTest::RunTest(const FString& Parameters)
 	//Open the map
 	GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
 
-	if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
+	if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
 	{
 		//Generate the screen shot name and path
 		FString ScreenshotFileName;
 		const FString LoadAllMapsTestName = FString::Printf(TEXT("LoadAllMaps_Game/%s"), *FPaths::GetBaseFilename(MapName));
-		AutomationCommon::GetScreenshotPath(LoadAllMapsTestName, ScreenshotFileName, true);
+		AutomationCommon::GetScreenshotPath(LoadAllMapsTestName, ScreenshotFileName);
 
 		//Give the map some time to load
 		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.5f));
@@ -1141,11 +1141,8 @@ bool FRenderOutputValidation::RunTest(const FString& Parameters)
 //	const FString& MapName = GameMapsSettings->GetGameDefaultMap();
 	const FString MapName = TEXT("ScreenshotsTest");
 
-	// to make sure the state of the FAutomationTestFramework is reset before we call the test
-	check(!FAutomationTestFramework::GetInstance().ShouldUseFullSizeScreenshots());
-
 	// request full res screenshots
-	FAutomationTestFramework::GetInstance().SetScreenshotOptions(true, true);
+	FAutomationTestFramework::Get().SetScreenshotOptions(true);
 
 	if(bLoadMap)
 	{
@@ -1184,7 +1181,7 @@ bool FRenderOutputValidation::RunTest(const FString& Parameters)
 	// this needs to be improved: better thank hanging would be to render frames (showing the user that it waits on something)
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompilingInGame);
 
-	if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
+	if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
 	{
 		for (TObjectIterator<AMatineeActor> It; It; ++It)
 		{
@@ -1229,4 +1226,5 @@ bool FRenderOutputValidation::RunTest(const FString& Parameters)
 UAutomationTestSettings::UAutomationTestSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	DefaultScreenshotResolution = FIntPoint(1920, 1080);
 }

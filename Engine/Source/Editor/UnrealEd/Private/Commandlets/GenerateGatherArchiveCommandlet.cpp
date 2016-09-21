@@ -6,7 +6,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogGenerateArchiveCommandlet, Log, All);
 
 void ConditionTranslationMetadata(TSharedRef<FLocMetadataValue> MetadataValue)
 {
-	switch (MetadataValue->Type)
+	switch (MetadataValue->GetType())
 	{
 	case ELocMetadataType::String:
 	{
@@ -39,7 +39,7 @@ void ConditionTranslationMetadata(TSharedRef<FLocMetadataValue> MetadataValue)
 			TSharedPtr< FLocMetadataValue > Value = (*ValueIter).Value;
 			if (Value.IsValid())
 			{
-				if (Value->Type == ELocMetadataType::String)
+				if (Value->GetType() == ELocMetadataType::String)
 				{
 					MetadataObject->SetStringField(Name, TEXT(""));
 				}
@@ -70,7 +70,7 @@ void ConditionTranslation(FLocItem& LocItem)
 
 void ConditionSourceMetadata(TSharedRef<FLocMetadataValue> MetadataValue)
 {
-	switch (MetadataValue->Type)
+	switch (MetadataValue->GetType())
 	{
 	case ELocMetadataType::Object:
 	{

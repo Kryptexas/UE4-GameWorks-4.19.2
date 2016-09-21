@@ -297,16 +297,16 @@ bool IPlatformFile::DeleteDirectoryRecursively(const TCHAR* Directory)
 }
 
 
-bool IPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
+bool IPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags, EPlatformFileWrite WriteFlags)
 {
 	const int64 MaxBufferSize = 1024*1024;
 
-	TAutoPtr<IFileHandle> FromFile(OpenRead(From));
+	TAutoPtr<IFileHandle> FromFile(OpenRead(From, (ReadFlags & EPlatformFileRead::AllowWrite) != EPlatformFileRead::None));
 	if (!FromFile.IsValid())
 	{
 		return false;
 	}
-	TAutoPtr<IFileHandle> ToFile(OpenWrite(To));
+	TAutoPtr<IFileHandle> ToFile(OpenWrite(To, false, (WriteFlags & EPlatformFileWrite::AllowRead) != EPlatformFileWrite::None));
 	if (!ToFile.IsValid())
 	{
 		return false;

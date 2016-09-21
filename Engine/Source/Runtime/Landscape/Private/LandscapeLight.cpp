@@ -5,9 +5,9 @@ LandscapeLight.cpp: Static lighting for LandscapeComponents
 =============================================================================*/
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
+
+#if WITH_EDITOR
 #include "LandscapeLight.h"
-#include "LandscapeInfo.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeGrassType.h"
@@ -15,8 +15,6 @@ LandscapeLight.cpp: Static lighting for LandscapeComponents
 #include "UnrealEngine.h"
 #include "ComponentReregisterContext.h"
 #include "Materials/MaterialInstanceConstant.h"
-
-#if WITH_EDITOR
 
 #define LANDSCAPE_LIGHTMAP_UV_INDEX 1
 

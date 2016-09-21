@@ -425,6 +425,12 @@ private:
 	/** @return true when we are showing collections */
 	bool IsShowingCollections() const;
 
+	/** Toggle whether C++ content folders should be shown or not */
+	void ToggleShowCppFolders();
+
+	/** @return true when we are showing c++ content folders */
+	bool IsShowingCppFolders() const;
+
 	/** Sets the view type and updates lists accordingly */
 	void SetCurrentViewType(EAssetViewType::Type NewType);
 

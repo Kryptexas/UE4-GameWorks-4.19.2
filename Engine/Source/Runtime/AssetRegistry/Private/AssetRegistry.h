@@ -52,6 +52,8 @@ public:
 	virtual void AssetDeleted(UObject* DeletedAsset) override;
 	virtual void AssetRenamed(const UObject* RenamedAsset, const FString& OldObjectPath) override;
 
+	virtual void PackageDeleted(UPackage* DeletedPackage) override;
+
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FAssetAddedEvent, FAssetAddedEvent);
 	virtual FAssetAddedEvent& OnAssetAdded() override { return AssetAddedEvent; }
 
@@ -84,6 +86,7 @@ private:
 
 	/** Internal handler for ScanPathsSynchronous */
 	void ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode);
+	void ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode, TArray<FName>* OutFoundAssets, TArray<FName>* OutFoundPaths);
 
 	/** Called every tick to when data is retrieved by the background asset search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
 	void AssetSearchDataGathered(const double TickStartTime, TArray<FAssetData*>& AssetResults);
@@ -129,6 +132,9 @@ private:
 
 	/** Removes the asset data from the lookup maps */
 	bool RemoveAssetData(FAssetData* AssetData);
+
+	/** Removes the asset data associated with this package from the look-up maps */
+	void RemovePackageData(const FName PackageName);
 
 	/** Find the first non-redirector dependency node starting from InDependency. */
 	FDependsNode* ResolveRedirector(FDependsNode* InDependency, TMap<FName, FAssetData*>& InAllowedAssets, TMap<FDependsNode*, FDependsNode*>& InCache);

@@ -609,7 +609,7 @@ UStaticMesh* FAbcImporter::CreateStaticMeshFromRawMesh(UObject* InParent, const 
 		check(DefaultMaterial);
 
 		// Material list
-		StaticMesh->Materials.Empty();
+	StaticMesh->StaticMaterials.Empty();
 		// If there were FaceSets available in the Alembic file use the number of unique face sets as num material entries, otherwise default to one material for the whole mesh
 		const uint32 FrameIndex = 0;
 		uint32 NumFaceSets = FaceSetNames.Num();
@@ -623,7 +623,7 @@ UStaticMesh* FAbcImporter::CreateStaticMeshFromRawMesh(UObject* InParent, const 
 				Material = RetrieveMaterial(FaceSetNames[MaterialIndex], InParent, Flags);
 			}
 
-			StaticMesh->Materials.Add((Material != nullptr) ? Material : DefaultMaterial);
+		StaticMesh->StaticMaterials.Add(( Material != nullptr) ? Material : DefaultMaterial);
 		}
 
 		// Get the first LOD for filling it up with geometry, only support one LOD

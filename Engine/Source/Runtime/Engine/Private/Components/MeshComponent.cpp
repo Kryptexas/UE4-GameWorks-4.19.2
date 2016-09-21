@@ -73,6 +73,15 @@ void UMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Materia
 	}
 }
 
+void UMeshComponent::SetMaterialByName(FName MaterialSlotName, UMaterialInterface* Material)
+{
+	int32 MaterialIndex = GetMaterialIndex(MaterialSlotName);
+	if (MaterialIndex < 0)
+		return;
+
+	SetMaterial(MaterialIndex, Material);
+}
+
 FMaterialRelevance UMeshComponent::GetMaterialRelevance(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	// Combine the material relevance for all materials.
@@ -164,6 +173,24 @@ TArray<class UMaterialInterface*> UMeshComponent::GetMaterials() const
 	}
 
 	return OutMaterials;
+}
+
+int32 UMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
+{
+	//This function should be override
+	return -1;
+}
+
+TArray<FName> UMeshComponent::GetMaterialSlotNames() const
+{
+	//This function should be override
+	return TArray<FName>();
+}
+
+bool UMeshComponent::IsMaterialSlotNameValid(FName MaterialSlotName) const
+{
+	//This function should be override
+	return false;
 }
 
 void UMeshComponent::SetScalarParameterValueOnMaterials(const FName ParameterName, const float ParameterValue)

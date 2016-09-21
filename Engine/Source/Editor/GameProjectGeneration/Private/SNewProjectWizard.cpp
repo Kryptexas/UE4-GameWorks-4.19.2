@@ -984,19 +984,10 @@ FReply SNewProjectWizard::HandleBrowseButtonClicked()
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if ( DesktopPlatform )
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		FString FolderName;
 		const FString Title = LOCTEXT("NewProjectBrowseTitle", "Choose a project location").ToString();
 		const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 			Title,
 			LastBrowsePath,
 			FolderName

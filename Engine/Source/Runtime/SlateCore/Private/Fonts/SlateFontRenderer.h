@@ -122,11 +122,11 @@ public:
 	 * Creates render data for a specific character 
 	 * 
 	 * @param InFontData		Raw font data to render the character with
-	 * @param InSize		The size of the font to draw
+	 * @param InSize			The size of the font to draw
 	 * @param InOutlineSettings	Outline settings to apply when rendering the characer
-	 * @param Char			The character to render
+	 * @param Char				The character to render
 	 * @param OutRenderData		Will contain the created render data
-	 * @param InScale		The scale of the font
+	 * @param InScale			The scale of the font
 	 * @param OutFallbackLevel	Outputs the fallback level of the font
 	 */
 	bool GetRenderData(const FFontData& InFontData, const int32 InSize, const FFontOutlineSettings& InOutlineSettings, TCHAR Char, FCharacterRenderData& OutRenderData, const float InScale, EFontFallback* OutFallbackLevel = nullptr) const;
@@ -137,7 +137,7 @@ private:
 	/**
 	 * Internal, shared implementation of GetRenderData
 	 */
-	bool GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyphData, float InScale, const FFontOutlineSettings& InOutlineSettings, FCharacterRenderData& OutRenderData) const;
+	bool GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyphData, const float InScale, const FFontOutlineSettings& InOutlineSettings, FCharacterRenderData& OutRenderData) const;
 
 	/** 
 	 * Gets or loads a FreeType font face 

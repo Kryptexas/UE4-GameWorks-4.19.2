@@ -796,26 +796,26 @@ bool FAssetRegistry::GetAllAssets(TArray<FAssetData>& OutAssetData, bool bInclud
 		{
 			if (ObjIt->IsAsset())
 			{
-				FAssetData* AssetData = new (OutAssetData)FAssetData(*ObjIt);
-				InMemoryObjectPaths.Add(AssetData->ObjectPath);
+				const FAssetData& AssetData = OutAssetData[OutAssetData.Emplace(*ObjIt)];
+				InMemoryObjectPaths.Add(AssetData.ObjectPath);
 			}
 		}
 	}
 
 	// All unloaded disk assets
-	for (TMap<FName, FAssetData*>::TConstIterator AssetDataIt(CachedAssetsByObjectPath); AssetDataIt; ++AssetDataIt)
+	for (const TPair<FName, FAssetData*>& AssetDataPair : CachedAssetsByObjectPath)
 	{
-		const FAssetData* AssetData = AssetDataIt.Value();
+		const FAssetData* AssetData = AssetDataPair.Value;
 
 		if (AssetData != nullptr)
 		{
 			// Make sure the asset's package was not loaded then the object was deleted/renamed
-			if ( !CachedEmptyPackages.Contains(AssetData->PackageName) )
+			if (!CachedEmptyPackages.Contains(AssetData->PackageName))
 			{
 				// Make sure the asset is not in memory
-				if ( !InMemoryObjectPaths.Contains(AssetData->ObjectPath) )
+				if (!InMemoryObjectPaths.Contains(AssetData->ObjectPath))
 				{
-					OutAssetData.Add(*AssetData);
+					OutAssetData.Emplace(*AssetData);
 				}
 			}
 		}
@@ -1390,6 +1390,14 @@ void FAssetRegistry::AssetRenamed(const UObject* RenamedAsset, const FString& Ol
 	}
 }
 
+void FAssetRegistry::PackageDeleted(UPackage* DeletedPackage)
+{
+	if (ensure(DeletedPackage))
+	{
+		RemovePackageData(*DeletedPackage->GetName());
+	}
+}
+
 bool FAssetRegistry::IsLoadingAssets() const
 {
 	return !bInitialSearchCompleted;
@@ -1903,6 +1911,11 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 
 void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode)
 {
+	ScanPathsAndFilesSynchronous(InPaths, InSpecificFiles, bForceRescan, AssetDataCacheMode, nullptr, nullptr);
+}
+
+void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode, TArray<FName>* OutFoundAssets, TArray<FName>* OutFoundPaths)
+{
 	const double SearchStartTime = FPlatformTime::Seconds();
 
 	// Only scan paths that were not previously synchronously scanned, unless we were asked to force rescan.
@@ -1941,6 +1954,24 @@ void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths
 		int32 NumPathsToSearch = 0;
 		bool bIsDiscoveringFiles = false;
 		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, CookedPackageNamesWithoutAssetDataResults, SearchTimes, NumFilesToSearch, NumPathsToSearch, bIsDiscoveringFiles);
+
+		if (OutFoundAssets)
+		{
+			OutFoundAssets->Reserve(OutFoundAssets->Num() + AssetResults.Num());
+			for (const FAssetData* AssetData : AssetResults)
+			{
+				OutFoundAssets->Add(AssetData->ObjectPath);
+			}
+		}
+
+		if (OutFoundPaths)
+		{
+			OutFoundPaths->Reserve(OutFoundPaths->Num() + PathResults.Num());
+			for (const FString& Path : PathResults)
+			{
+				OutFoundPaths->Add(*Path);
+			}
+		}
 
 		// Cache the search results
 		const int32 NumResults = AssetResults.Num();
@@ -2464,6 +2495,20 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 	return bRemoved;
 }
 
+void FAssetRegistry::RemovePackageData(const FName PackageName)
+{
+	TArray<FAssetData*>* PackageAssetsPtr = CachedAssetsByPackageName.Find(PackageName);
+	if (PackageAssetsPtr && PackageAssetsPtr->Num() > 0)
+	{
+		// Copy the array since RemoveAssetData may re-allocate it!
+		TArray<FAssetData*> PackageAssets = *PackageAssetsPtr;
+		for (FAssetData* PackageAsset : PackageAssets)
+		{
+			RemoveAssetData(PackageAsset);
+		}
+	}
+}
+
 void FAssetRegistry::AddPathToSearch(const FString& Path)
 {
 	if ( BackgroundAssetSearch.IsValid() )
@@ -2511,7 +2556,9 @@ void FAssetRegistry::OnDirectoryChanged (const TArray<FFileChangeData>& FileChan
 		}
 	}
 
-	TArray<FString> FilteredFiles;
+	TArray<FString> NewFiles;
+	TArray<FString> ModifiedFiles;
+
 	for (int32 FileIdx = 0; FileIdx < FileChangesProcessed.Num(); ++FileIdx)
 	{
 		FString LongPackageName;
@@ -2526,43 +2573,71 @@ void FAssetRegistry::OnDirectoryChanged (const TArray<FFileChangeData>& FileChan
 			{
 				case FFileChangeData::FCA_Added:
 					// This is a package file that was created on disk. Mark it to be scanned for asset data.
-					FilteredFiles.AddUnique(File);
-
-					// Make sure this file is added to the package file cache since it is new.
+					NewFiles.AddUnique(File);
 					UE_LOG(LogAssetRegistry, Verbose, TEXT("File was added to content directory: %s"), *File);
 					break;
 
 				case FFileChangeData::FCA_Modified:
-					// This is a package file that changed on disk. Mark it to be scanned for asset data.
-					FilteredFiles.AddUnique(File);
+					// This is a package file that changed on disk. Mark it to be scanned immediately for new or removed asset data.
+					ModifiedFiles.AddUnique(File);
 					UE_LOG(LogAssetRegistry, Verbose, TEXT("File changed in content directory: %s"), *File);
 					break;
 
 				case FFileChangeData::FCA_Removed:
-					{
-						// This file was deleted. Remove all assets in the package from the registry.
-						const FName PackageName = FName(*LongPackageName);
-						TArray<FAssetData*>* PackageAssetsPtr = CachedAssetsByPackageName.Find(PackageName);
-
-						if (PackageAssetsPtr)
-						{
-							TArray<FAssetData*>& PackageAssets = *PackageAssetsPtr;
-							for ( int32 AssetIdx = PackageAssets.Num() - 1; AssetIdx >= 0; --AssetIdx )
-							{
-								RemoveAssetData(PackageAssets[AssetIdx]);
-							}
-						}
-
-						UE_LOG(LogAssetRegistry, Verbose, TEXT("File was removed from content directory: %s"), *File);
-					}
+					// This file was deleted. Remove all assets in the package from the registry.
+					RemovePackageData(*LongPackageName);
+					UE_LOG(LogAssetRegistry, Verbose, TEXT("File was removed from content directory: %s"), *File);
 					break;
 			}
 		}
 	}
 
-	if ( FilteredFiles.Num() )
+	if (NewFiles.Num())
 	{
-		AddFilesToSearch(FilteredFiles);
+		AddFilesToSearch(NewFiles);
+	}
+
+	if (ModifiedFiles.Num() > 0)
+	{
+		// Convert all the filenames to package names
+		TArray<FString> ModifiedPackageNames;
+		ModifiedPackageNames.Reserve(ModifiedFiles.Num());
+		for (const FString& File : ModifiedFiles)
+		{
+			ModifiedPackageNames.Add(FPackageName::FilenameToLongPackageName(File));
+		}
+
+		// Get the assets that are currently inside the package
+		TArray<TArray<FAssetData*>> ExistingFilesAssetData;
+		ExistingFilesAssetData.Reserve(ModifiedFiles.Num());
+		for (const FString& PackageName : ModifiedPackageNames)
+		{
+			TArray<FAssetData*>* PackageAssetsPtr = CachedAssetsByPackageName.Find(*PackageName);
+			if (PackageAssetsPtr && PackageAssetsPtr->Num() > 0)
+			{
+				ExistingFilesAssetData.Add(*PackageAssetsPtr);
+			}
+			else
+			{
+				ExistingFilesAssetData.AddDefaulted();
+			}
+		}
+
+		// Re-scan and update the asset registry with the new asset data
+		TArray<FName> FoundAssets;
+		ScanPathsAndFilesSynchronous(TArray<FString>(), ModifiedFiles, true, EAssetDataCacheMode::NoCache, &FoundAssets, nullptr);
+
+		// Remove any assets that are no longer present in the package
+		for (const TArray<FAssetData*>& OldPackageAssets : ExistingFilesAssetData)
+		{
+			for (FAssetData* OldPackageAsset : OldPackageAssets)
+			{
+				if (!FoundAssets.Contains(OldPackageAsset->ObjectPath))
+				{
+					RemoveAssetData(OldPackageAsset);
+				}
+			}
+		}
 	}
 }
 
@@ -2707,17 +2782,29 @@ void FAssetRegistry::GetSubClasses(const TArray<FName>& InClassNames, const TSet
 
 	// And add all in-memory classes at request time
 	TSet<FName> InMemoryClassNames;
+
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
-		if ( !ClassIt->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) )
+		UClass* Class = *ClassIt;
+
+		if ( !Class->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) )
 		{
-			if ( ClassIt->GetSuperClass() )
+			if ( Class->GetSuperClass() )
 			{
-				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd( ClassIt->GetSuperClass()->GetFName() );
-				ChildClasses.Add( ClassIt->GetFName() );
+				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd( Class->GetSuperClass()->GetFName() );
+				ChildClasses.Add( Class->GetFName() );
 			}
 
-			InMemoryClassNames.Add(ClassIt->GetFName());
+			// Add any implemented interfaces to the reverse inheritance map
+			for (int32 i = 0; i < Class->Interfaces.Num(); ++i)
+			{
+				UClass* InterfaceClass = Class->Interfaces[i].Class;
+
+				TSet<FName>& ChildClasses = ReverseInheritanceMap.FindOrAdd(InterfaceClass->GetFName());
+				ChildClasses.Add(Class->GetFName());
+			}
+
+			InMemoryClassNames.Add(Class->GetFName());
 		}
 	}
 

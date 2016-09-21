@@ -133,6 +133,10 @@ enum class ELandscapeMirrorOperation : uint8
 	PlusXToMinusX UMETA(DisplayName="+X to -X"),
 	MinusYToPlusY UMETA(DisplayName="-Y to +Y"),
 	PlusYToMinusY UMETA(DisplayName="+Y to -Y"),
+	RotateMinusXToPlusX UMETA(DisplayName="Rotate -X to +X"),
+	RotatePlusXToMinusX UMETA(DisplayName="Rotate +X to -X"),
+	RotateMinusYToPlusY UMETA(DisplayName="Rotate -Y to +Y"),
+	RotatePlusYToMinusY UMETA(DisplayName="Rotate +Y to -Y"),
 };
 
 USTRUCT()
@@ -415,6 +419,10 @@ class ULandscapeEditorObject : public UObject
 	// Type of mirroring operation to perform e.g. "Minus X To Plus X" copies and flips the -X half of the landscape onto the +X half
 	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Operation", ShowForTools="Mirror"))
 	ELandscapeMirrorOperation MirrorOp;
+
+	// Number of vertices either side of the mirror plane to smooth over
+	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Smoothing Width", ShowForTools="Mirror", ClampMin="0", UIMin="0", UIMax="20"))
+	int32 MirrorSmoothingWidth;
 
 	// Resize Landscape Tool
 

@@ -3012,6 +3012,51 @@ void FPersona::FindInContentBrowser_Execute()
 	}
 }
 
+void FPersona::SaveAsset_Execute()
+{
+	//Clean the unused Material entry before saving
+	if (GetMesh())
+	{
+		for (int32 MaterialIndex = 0; MaterialIndex < GetMesh()->Materials.Num(); ++MaterialIndex)
+		{
+			bool MaterialIsUsed = false;
+			FSkeletalMeshResource* ImportedResource = GetMesh()->GetImportedResource();
+			check(ImportedResource);
+			for (int32 LODIndex = 0; !MaterialIsUsed && LODIndex < ImportedResource->LODModels.Num(); ++LODIndex)
+			{
+				FSkeletalMeshLODInfo& Info = GetMesh()->LODInfo[LODIndex];
+				if (LODIndex == 0 || GetMesh()->LODInfo[LODIndex].LODMaterialMap.Num() == 0)
+				{
+					for (int32 SectionIndex = 0; SectionIndex < ImportedResource->LODModels[LODIndex].Sections.Num(); ++SectionIndex)
+					{
+						if (ImportedResource->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex == MaterialIndex)
+						{
+							MaterialIsUsed = true;
+							break;
+						}
+					}
+				}
+				else
+				{
+					for (int32 SectionIndex = 0; SectionIndex < GetMesh()->LODInfo[LODIndex].LODMaterialMap.Num(); ++SectionIndex)
+					{
+						if (Info.LODMaterialMap[SectionIndex] == MaterialIndex)
+						{
+							MaterialIsUsed = true;
+							break;
+						}
+					}
+				}
+			}
+			if (!MaterialIsUsed)
+			{
+				GetMesh()->Materials[MaterialIndex].MaterialInterface = nullptr;
+			}
+		}
+	}
+	FAssetEditorToolkit::SaveAsset_Execute();
+}
+
 void FPersona::OnCommandGenericDelete()
 {
 	OnGenericDelete.Broadcast();
@@ -3207,16 +3252,7 @@ void FPersona::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences)
 
 		if(AnimSequences.Num() > 0)
 		{
-			//Get parent window for dialogs
-			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-
-			void* ParentWindowWindowHandle = NULL;
-
-			if(MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-			{
-				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-			}
+			const void* ParentWindowWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
 
 			//Cache anim file names
 			TArray<FString> AnimFileNames;

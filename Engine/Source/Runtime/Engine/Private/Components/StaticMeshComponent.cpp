@@ -367,11 +367,11 @@ void UStaticMeshComponent::CheckForErrors()
 			}
 		}
 
-		if (OverrideMaterials.Num() > StaticMesh->Materials.Num())
+		if (OverrideMaterials.Num() > StaticMesh->StaticMaterials.Num())
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("OverridenCount"), OverrideMaterials.Num());
-			Arguments.Add(TEXT("ReferencedCount"), StaticMesh->Materials.Num());
+			Arguments.Add(TEXT("ReferencedCount"), StaticMesh->StaticMaterials.Num());
 			Arguments.Add(TEXT("MeshName"), FText::FromString(StaticMesh->GetName()));
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(Owner))
@@ -463,6 +463,7 @@ void UStaticMeshComponent::AddSpeedTreeWind()
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
 			GetScene()->AddSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
+			GetScene()->AddSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactoryOverrideColorVertexBuffer, StaticMesh);
 		}
 	}
 }
@@ -473,6 +474,7 @@ void UStaticMeshComponent::RemoveSpeedTreeWind()
 	{
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
+			GetScene()->RemoveSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactoryOverrideColorVertexBuffer, StaticMesh);
 			GetScene()->RemoveSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
 		}
 	}
@@ -1593,9 +1595,9 @@ void UStaticMeshComponent::PostLoad()
 			}
 		}
 
-		if (OverrideMaterials.Num() > StaticMesh->Materials.Num())
+		if (OverrideMaterials.Num() > StaticMesh->StaticMaterials.Num())
 		{
-			OverrideMaterials.RemoveAt(StaticMesh->Materials.Num(), OverrideMaterials.Num() - StaticMesh->Materials.Num());
+			OverrideMaterials.RemoveAt(StaticMesh->StaticMaterials.Num(), OverrideMaterials.Num() - StaticMesh->StaticMaterials.Num());
 		}
 	}
 #endif // #if WITH_EDITORONLY_DATA
@@ -1925,12 +1927,33 @@ int32 UStaticMeshComponent::GetNumMaterials() const
 	// that only counts if overridden and it can't be more than StaticMesh->Materials. 
 	if(StaticMesh)
 	{
-		return StaticMesh->Materials.Num();
+		return StaticMesh->StaticMaterials.Num();
 	}
 	else
 	{
 		return 0;
 	}
+}
+
+int32 UStaticMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
+{
+	return StaticMesh ? StaticMesh->GetMaterialIndex(MaterialSlotName) : -1;
+}
+
+TArray<FName> UStaticMeshComponent::GetMaterialSlotNames() const
+{
+	TArray<FName> MaterialNames;
+	for (int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex)
+	{
+		const FStaticMaterial &StaticMaterial = StaticMesh->StaticMaterials[MaterialIndex];
+		MaterialNames.Add(StaticMaterial.MaterialSlotName);
+	}
+	return MaterialNames;
+}
+
+bool UStaticMeshComponent::IsMaterialSlotNameValid(FName MaterialSlotName) const
+{
+	return GetMaterialIndex(MaterialSlotName) >= 0;
 }
 
 UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const

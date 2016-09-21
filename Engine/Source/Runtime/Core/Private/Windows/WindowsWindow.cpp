@@ -230,7 +230,15 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 		}
 
 		verify(SetWindowLong(HWnd, GWL_STYLE, WindowStyle));
-		::SetWindowPos(HWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+
+		uint32 SetWindowPositionFlags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED;
+
+		if ( !Definition->ActivateWhenFirstShown )
+		{
+			SetWindowPositionFlags |= SWP_NOACTIVATE;
+		}
+
+		::SetWindowPos(HWnd, nullptr, 0, 0, 0, 0, SetWindowPositionFlags);
 
 		AdjustWindowRegion( ClientWidth, ClientHeight );
 	}
@@ -553,7 +561,14 @@ void FWindowsWindow::Show()
 		// Do not activate windows that do not take input; e.g. tool-tips and cursor decorators
 		// Also dont activate if a window wants to appear but not activate itself
 		const bool bShouldActivate = Definition->AcceptsInput && Definition->ActivateWhenFirstShown;
-		::ShowWindow(HWnd, bShouldActivate ? SW_SHOW : SW_SHOWNA);
+		::ShowWindow(HWnd, bShouldActivate ? SW_SHOW : SW_SHOWNOACTIVATE);
+
+		// Turns out SW_SHOWNA doesn't work correctly if the window has never been shown before.  If the window
+		// was already maximized, (and hidden) and we're showing it again, SW_SHOWNA would be right.  But it's not right
+		// to use SW_SHOWNA when the window has never been shown before!
+		// 
+		// TODO Add in a more complicated path that involves SW_SHOWNA if we hide windows in their maximized/minimized state.
+		//::ShowWindow(HWnd, bShouldActivate ? SW_SHOW : SW_SHOWNA);
 	}
 }
 

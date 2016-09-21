@@ -65,8 +65,6 @@ void SScreenViewRow::Construct( const FArguments& InArgs, const TSharedRef<STabl
 						.VAlignCell(VAlign_Center)
  						.FixedWidth( 300.0f )
 						.DefaultLabel(LOCTEXT("CurrentViewName", "Current View"))
-					+ SHeaderRow::Column( "History View" )
-					.DefaultLabel(LOCTEXT("HistoryViewName", "History"))
 				)
 			]
 		]

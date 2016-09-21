@@ -10,6 +10,7 @@
 #include "CollectionManagerTypes.h"
 
 class UExporter;
+class UFactory;
 
 namespace ObjectTools
 {
@@ -143,10 +144,11 @@ namespace ObjectTools
 	 *
 	 * @param	Object									The objects to delete.
 	 * @param	PGN										The new package, group, and name of the object.
-	 * @param	InOutPackagesUserRefusedToFullyLoad		A set of packages the user opted out of fully loading. This is used internally to prevent asking multiple times.
+	 * @param	InOutPackagesUserRefusedToFullyLoad		A set of packages the user opted out of fully loading. This is used internally to prevent asking multiple times.\
+	 * @param	bPromptToOverwrite						If true the user will be prompted to overwrite if duplicating to an existing object.  If false, the duplication will always happen
 	 * @retun	The duplicated object or NULL if a failure occurred.
 	 */
-	UNREALED_API UObject* DuplicateSingleObject(UObject* Object, const FPackageGroupName& PGN, TSet<UPackage*>& InOutPackagesUserRefusedToFullyLoad);
+	UNREALED_API UObject* DuplicateSingleObject(UObject* Object, const FPackageGroupName& PGN, TSet<UPackage*>& InOutPackagesUserRefusedToFullyLoad, bool bPromptToOverwrite = true);
 	
 	/** Helper struct to detail the results of a consolidation operation */
 	struct UNREALED_API FConsolidationResults : public FGCObject

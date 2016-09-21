@@ -105,7 +105,7 @@ public:
 	 * @param StaticMesh	The static mesh to export
 	 * @param MaterialOrder	Optional ordering of materials to set up correct material ID's across multiple meshes being export such as BSP surfaces which share common materials. Should be used sparingly
 	 */
-	virtual void ExportStaticMesh( UStaticMesh* StaticMesh, const TArray<UMaterialInterface*>* MaterialOrder = NULL );
+	virtual void ExportStaticMesh( UStaticMesh* StaticMesh, const TArray<FStaticMaterial>* MaterialOrder = NULL );
 
 	/**
 	 * Exports BSP
@@ -164,6 +164,9 @@ public:
 		UMovieScene* MovieScene;
 		IMovieScenePlayer* MovieScenePlayer;
 	};
+
+	/* Get a valid unique name from a name */
+	FString GetFbxObjectName(const FString &FbxObjectNode, INodeNameAdapter& NodeNameAdapter);
 
 private:
 	FFbxExporter();
@@ -242,6 +245,11 @@ private:
 	 */
 	FbxNode* ExportActor(AActor* Actor, bool bExportComponents, INodeNameAdapter& NodeNameAdapter);
 	
+
+#if WITH_PHYSX
+	FbxNode* ExportCollisionMesh(const UStaticMesh* StaticMesh, const TCHAR* MeshName, FbxNode* ParentActor);
+#endif
+
 	/**
 	 * Exports a static mesh
 	 * @param StaticMesh	The static mesh to export
@@ -252,7 +260,7 @@ private:
 	 * @param ColorBuffer	Vertex color overrides to export
 	 * @param MaterialOrderOverride	Optional ordering of materials to set up correct material ID's across multiple meshes being export such as BSP surfaces which share common materials. Should be used sparingly
 	 */
-	FbxNode* ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int32 ExportLOD, const TCHAR* MeshName, FbxNode* FbxActor, int32 LightmapUVChannel = -1, const FColorVertexBuffer* ColorBuffer = NULL, const TArray<UMaterialInterface*>* MaterialOrderOverride = NULL);
+	FbxNode* ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int32 ExportLOD, const TCHAR* MeshName, FbxNode* FbxActor, int32 LightmapUVChannel = -1, const FColorVertexBuffer* ColorBuffer = NULL, const TArray<FStaticMaterial>* MaterialOrderOverride = NULL);
 
 	/**
 	 * Exports a spline mesh

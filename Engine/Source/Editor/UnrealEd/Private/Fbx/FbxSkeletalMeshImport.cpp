@@ -1073,7 +1073,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 	return true;
 }
 
-bool UnFbx::FFbxImporter::FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray, UFbxSkeletalMeshImportData* TemplateImportData, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData)
+bool UnFbx::FFbxImporter::FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray, UFbxSkeletalMeshImportData* TemplateImportData, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData, TArray<FName> &LastImportedMaterialNames)
 {
 	if (NodeArray.Num() == 0)
 	{
@@ -1169,8 +1169,15 @@ bool UnFbx::FFbxImporter::FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray
 		}
 	}
 
-	// reorder material according to "SKinXX" in material name
-	SetMaterialSkinXXOrder(*SkelMeshImportDataPtr);
+	if (LastImportedMaterialNames.Num() > 0)
+	{
+		SetMaterialOrderByName(*SkelMeshImportDataPtr, LastImportedMaterialNames);
+	}
+	else
+	{
+		// reorder material according to "SKinXX" in material name
+		SetMaterialSkinXXOrder(*SkelMeshImportDataPtr);
+	}
 
 	if (ImportOptions->bPreserveSmoothingGroups)
 	{
@@ -1189,7 +1196,61 @@ bool UnFbx::FFbxImporter::FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray
 	return true;
 }
 
-USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, int32 LodIndex, bool* bCancelOperation, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData, bool bCreateRenderData )
+void UnFbx::FFbxImporter::FillLastImportMaterialNames(TArray<FName> &LastImportedMaterialNames, USkeletalMesh* BaseSkelMesh, TArray<FName> *OrderedMaterialNames)
+{
+	if (OrderedMaterialNames == nullptr && BaseSkelMesh)
+	{
+		int32 NoneNameCount = 0;
+		for (const FSkeletalMaterial &Material : BaseSkelMesh->Materials)
+		{
+			if (Material.ImportedMaterialSlotName == NAME_None)
+			{
+				NoneNameCount++;
+			}
+			LastImportedMaterialNames.Add(Material.ImportedMaterialSlotName);
+		}
+		if (NoneNameCount >= LastImportedMaterialNames.Num())
+		{
+			LastImportedMaterialNames.Empty();
+		}
+	}
+	else if (OrderedMaterialNames)
+	{
+		//Copy the ordered material name parameter
+		LastImportedMaterialNames = (*OrderedMaterialNames);
+	}
+
+	//If the imported model is using skinxx workflow just empty LastImportedMaterialNames array
+	if (LastImportedMaterialNames.Num() > 0)
+	{
+		int32 SkinXXNameCount = 0;
+		for (FName MaterialName : LastImportedMaterialNames)
+		{
+			if (MaterialName == NAME_None)
+			{
+				continue;
+			}
+			FString ImportedMaterialName = MaterialName.ToString();
+			int32 Offset = ImportedMaterialName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+			if (Offset != INDEX_NONE)
+			{
+				FString SkinXXNumber = ImportedMaterialName.Right(ImportedMaterialName.Len() - (Offset + 1)).RightChop(4);
+
+				if (SkinXXNumber.IsNumeric())
+				{
+					SkinXXNameCount++;
+				}
+			}
+		}
+		//If we have some skinxx suffixe we don't use the name to reorder
+		if (SkinXXNameCount == LastImportedMaterialNames.Num())
+		{
+			LastImportedMaterialNames.Empty();
+		}
+	}
+}
+
+USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, int32 LodIndex, bool* bCancelOperation, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData, bool bCreateRenderData, TArray<FName> *OrderedMaterialNames)
 {
 	if (NodeArray.Num() == 0)
 	{
@@ -1240,12 +1301,15 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	{
 		SkelMeshImportDataPtr = OutData;
 	}
+	
+	TArray<FName> LastImportedMaterialNames;
+	FillLastImportMaterialNames(LastImportedMaterialNames, ExistingSkelMesh, OrderedMaterialNames);
 
 	//////////////////////////////////////////////////////////////////////////
 	// We must do a maximum of fail test before backing up the data since the backup is destructive on the existing skeletal mesh.
 	// See the comment later when we call the following function (SaveExistingSkelMeshData)
 
-	if (FillSkeletalMeshImportData(NodeArray, TemplateImportData, FbxShapeArray, SkelMeshImportDataPtr) == false)
+	if (FillSkeletalMeshImportData(NodeArray, TemplateImportData, FbxShapeArray, SkelMeshImportDataPtr, LastImportedMaterialNames) == false)
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_FillupImportData", "Get Import Data has failed.")), FFbxErrors::SkeletalMesh_FillImportDataFailed);
 		return nullptr;
@@ -1779,6 +1843,7 @@ void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& Import
 	TArray<int32> MaterialIndexToSkinIndex;
 	TMap<int32, int32> SkinIndexToMaterialIndex;
 	TArray<int32> MissingSkinSuffixMaterial;
+	TMap<int32, int32> SkinIndexGreaterThenMaterialArraySize;
 	{
 		int32 MaterialCount = ImportData.Materials.Num();
 
@@ -1799,12 +1864,16 @@ void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& Import
 					if (SkinXXNumber.IsNumeric())
 					{
 						bNeedsReorder = true;
-
 						int32 TmpIndex = FPlatformString::Atoi(*SkinXXNumber);
-						SkinIndexToMaterialIndex.Add(TmpIndex, MaterialIndex);
-
-						// remove the 'skinXX' suffix from the material name					
-						ImportData.Materials[MaterialIndex].MaterialImportName.LeftChop(Offset);
+						if (TmpIndex < MaterialCount)
+						{
+							SkinIndexToMaterialIndex.Add(TmpIndex, MaterialIndex);
+						}
+						else
+						{
+							SkinIndexGreaterThenMaterialArraySize.Add(TmpIndex, MaterialIndex);
+						}
+						
 					}
 				}
 				else
@@ -1822,6 +1891,39 @@ void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& Import
 		{
 			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FbxSkeletaLMeshimport_Skinxx_missing", "Cannot mix skinxx suffix materials with no skinxx material, mesh section order will not be right.")), FFbxErrors::Generic_Mesh_SkinxxNameError);
 			return;
+		}
+
+		//Add greater then material array skinxx at the end sorted by integer the index will be remap correctly in the case of a LOD import
+		if (SkinIndexGreaterThenMaterialArraySize.Num() > 0)
+		{
+			int32 MaxAvailableKey = SkinIndexToMaterialIndex.Num();
+			for (int32 AvailableKey = 0; AvailableKey < MaxAvailableKey; ++AvailableKey)
+			{
+				if (SkinIndexToMaterialIndex.Contains(AvailableKey))
+					continue;
+
+				TMap<int32, int32> TempSkinIndexToMaterialIndex;
+				for (auto KvpSkinToMat : SkinIndexToMaterialIndex)
+				{
+					if (KvpSkinToMat.Key > AvailableKey)
+					{
+						TempSkinIndexToMaterialIndex.Add(KvpSkinToMat.Key - 1, KvpSkinToMat.Value);
+					}
+					else
+					{
+						TempSkinIndexToMaterialIndex.Add(KvpSkinToMat.Key, KvpSkinToMat.Value);
+					}
+				}
+				//move all the later key of the array to fill the available index
+				SkinIndexToMaterialIndex = TempSkinIndexToMaterialIndex;
+				AvailableKey--; //We need to retest the same index it can be empty
+			}
+			//Reorder the array
+			SkinIndexGreaterThenMaterialArraySize.KeySort(TLess<int32>());
+			for (auto Kvp : SkinIndexGreaterThenMaterialArraySize)
+			{
+				SkinIndexToMaterialIndex.Add(SkinIndexToMaterialIndex.Num(), Kvp.Value);
+			}
 		}
 
 		//Fill the array MaterialIndexToSkinIndex so we order material by _skinXX order
@@ -1867,6 +1969,145 @@ void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& Import
 				if (Triangle.MatIndex < MaterialIndexToSkinIndex.Num())
 				{
 					Triangle.MatIndex = MaterialIndexToSkinIndex[Triangle.MatIndex];
+				}
+			}
+		}
+	}
+}
+
+void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& ImportData, TArray<FName> LastImportedMaterialNames)
+{
+	TArray<int32> MaterialIndexToNameIndex;
+	TMap<int32, int32> NameIndexToMaterialIndex;
+	TArray<int32> MissingNameSuffixMaterial;
+	TMap<int32, int32> NameIndexGreaterThenMaterialArraySize;
+	{
+		int32 MaterialCount = ImportData.Materials.Num();
+
+		bool bNeedsReorder = false;
+		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+		{
+			FName MatName = FName(*(ImportData.Materials[MaterialIndex].MaterialImportName));
+			bool bFoundValidName = false;
+			for (int32 OrderedIndex = 0; OrderedIndex < LastImportedMaterialNames.Num(); ++OrderedIndex)
+			{
+				FName OrderedMaterialName = LastImportedMaterialNames[OrderedIndex];
+				if (OrderedMaterialName == NAME_None)
+				{
+					continue;
+				}
+				if (OrderedMaterialName == MatName)
+				{
+					if (OrderedIndex < MaterialCount)
+					{
+						NameIndexToMaterialIndex.Add(OrderedIndex, MaterialIndex);
+					}
+					else
+					{
+						NameIndexGreaterThenMaterialArraySize.Add(OrderedIndex, MaterialIndex);
+					}
+					bFoundValidName = true;
+					bNeedsReorder = true;
+					break;
+				}
+			}
+			if (!bFoundValidName)
+			{
+				MissingNameSuffixMaterial.Add(MaterialIndex);
+			}
+		}
+
+		if (bNeedsReorder && MissingNameSuffixMaterial.Num() > 0)
+		{
+			//Add the missing name material at the end to not disturb the existing order
+			TArray<int32> OrderedListMissing;
+			OrderedListMissing.AddZeroed(NameIndexToMaterialIndex.Num() + MissingNameSuffixMaterial.Num());
+			for (auto Kvp : NameIndexToMaterialIndex)
+			{
+				OrderedListMissing[Kvp.Key] = -1;
+			}
+			for (int32 OrderedListMissingIndex = 0; OrderedListMissingIndex < OrderedListMissing.Num(); ++OrderedListMissingIndex)
+			{
+				if (OrderedListMissing[OrderedListMissingIndex] != 0)
+					continue;
+
+				NameIndexToMaterialIndex.Add(OrderedListMissingIndex, MissingNameSuffixMaterial.Pop());
+				
+			}
+		}
+
+		//Add greater then material array slot index at the end sorted by integer the index will be remap correctly in the case of a LOD import
+		if (NameIndexGreaterThenMaterialArraySize.Num() > 0)
+		{
+			int32 MaxAvailableKey = NameIndexToMaterialIndex.Num();
+			for (int32 AvailableKey = 0; AvailableKey < MaxAvailableKey; ++AvailableKey)
+			{
+				if (NameIndexToMaterialIndex.Contains(AvailableKey))
+					continue;
+
+				TMap<int32, int32> TempSkinIndexToMaterialIndex;
+				for (auto KvpSkinToMat : NameIndexToMaterialIndex)
+				{
+					if (KvpSkinToMat.Key > AvailableKey)
+					{
+						TempSkinIndexToMaterialIndex.Add(KvpSkinToMat.Key - 1, KvpSkinToMat.Value);
+					}
+					else
+					{
+						TempSkinIndexToMaterialIndex.Add(KvpSkinToMat.Key, KvpSkinToMat.Value);
+					}
+				}
+				//move all the later key of the array to fill the available index
+				NameIndexToMaterialIndex = TempSkinIndexToMaterialIndex;
+				AvailableKey--; //We need to retest the same index it can be empty
+			}
+			//Reorder the array
+			NameIndexGreaterThenMaterialArraySize.KeySort(TLess<int32>());
+			for (auto Kvp : NameIndexGreaterThenMaterialArraySize)
+			{
+				NameIndexToMaterialIndex.Add(NameIndexToMaterialIndex.Num(), Kvp.Value);
+			}
+		}
+
+		//Fill the array MaterialIndexToNameIndex so we order material by ordered index
+		for (auto kvp : NameIndexToMaterialIndex)
+		{
+			int32 MatIndexToInsert = 0;
+			for (MatIndexToInsert = 0; MatIndexToInsert < MaterialIndexToNameIndex.Num(); ++MatIndexToInsert)
+			{
+				if (*(NameIndexToMaterialIndex.Find(MaterialIndexToNameIndex[MatIndexToInsert])) >= kvp.Value)
+				{
+					break;
+				}
+			}
+			MaterialIndexToNameIndex.Insert(kvp.Key, MatIndexToInsert);
+		}
+
+		if (bNeedsReorder)
+		{
+			// re-order the materials
+			TArray< VMaterial > ExistingMatList = ImportData.Materials;
+			
+			for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+			{
+				if (MaterialIndex < MaterialIndexToNameIndex.Num())
+				{
+					int32 NewIndex = MaterialIndexToNameIndex[MaterialIndex];
+					if (ExistingMatList.IsValidIndex(NewIndex))
+					{
+						ImportData.Materials[NewIndex] = ExistingMatList[MaterialIndex];
+					}
+				}
+			}
+
+			// remapping the material index for each triangle
+			int32 FaceNum = ImportData.Faces.Num();
+			for (int32 TriangleIndex = 0; TriangleIndex < FaceNum; TriangleIndex++)
+			{
+				VTriangle& Triangle = ImportData.Faces[TriangleIndex];
+				if (Triangle.MatIndex < MaterialIndexToNameIndex.Num())
+				{
+					Triangle.MatIndex = MaterialIndexToNameIndex[Triangle.MatIndex];
 				}
 			}
 		}
@@ -2624,25 +2865,29 @@ void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkelet
 
 	// Set up LODMaterialMap to number of materials in new mesh.
 	FSkeletalMeshLODInfo& LODInfo = BaseSkeletalMesh->LODInfo[DesiredLOD];
+	
 	LODInfo.LODMaterialMap.Empty();
-
 	// Now set up the material mapping array.
 	for (int32 MatIdx = 0; MatIdx < InSkeletalMesh->Materials.Num(); MatIdx++)
 	{
 		// Try and find the auto-assigned material in the array.
 		int32 LODMatIndex = INDEX_NONE;
-		if (InSkeletalMesh->Materials[MatIdx].MaterialInterface != NULL)
+		//First try to match by name
+		for (int32 BaseMaterialIndex = 0; BaseMaterialIndex < BaseSkeletalMesh->Materials.Num(); ++BaseMaterialIndex)
+		{
+			const FSkeletalMaterial& SkeletalMaterial = BaseSkeletalMesh->Materials[BaseMaterialIndex];
+			if (SkeletalMaterial.ImportedMaterialSlotName != NAME_None && SkeletalMaterial.ImportedMaterialSlotName == InSkeletalMesh->Materials[MatIdx].ImportedMaterialSlotName)
+			{
+				LODMatIndex = BaseMaterialIndex;
+				break;
+			}
+		}
+
+		//Then try to match by material
+		if (LODMatIndex == INDEX_NONE && InSkeletalMesh->Materials[MatIdx].MaterialInterface != NULL)
 		{
 			LODMatIndex = BaseSkeletalMesh->Materials.Find(InSkeletalMesh->Materials[MatIdx]);
 		}
-
-		//TODO fix this to allow a workflow where people can import LOD with different material
-		// Add the missing materials to the USkeletalMesh
-/*		if (LODMatIndex == INDEX_NONE && InSkeletalMesh->Materials[MatIdx].MaterialInterface != NULL)
-		{
-			LODMatIndex = BaseSkeletalMesh->Materials.Add(InSkeletalMesh->Materials[MatIdx]);
-		}
-*/
 
 		// If we didn't just use the index - but make sure its within range of the Materials array.
 		if (LODMatIndex == INDEX_NONE)
@@ -3033,10 +3278,12 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 
 		if (Result)
 		{
+			TArray<FName> LastImportedMaterialNames;
+			FillLastImportMaterialNames(LastImportedMaterialNames, BaseSkelMesh, nullptr);
 			// now we get a shape for whole mesh, import to unreal as a morph target
 			// @todo AssetImportData do we need import data for this temp mesh?
 			UFbxSkeletalMeshImportData* TmpMeshImportData = NULL;
-			FillSkeletalMeshImportData(SkelMeshNodeArray, TmpMeshImportData, &ShapeArray, &ImportData);
+			FillSkeletalMeshImportData(SkelMeshNodeArray, TmpMeshImportData, &ShapeArray, &ImportData, LastImportedMaterialNames);
 			FStaticLODModel* NewLODModel = new FStaticLODModel;
 			LODModels.Add(NewLODModel);
 			MorphTargets.Add(Result);

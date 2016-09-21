@@ -394,6 +394,9 @@ public:
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
+	virtual int32 GetMaterialIndex(FName MaterialSlotName) const override;
+	virtual TArray<FName> GetMaterialSlotNames() const override;
+	virtual bool IsMaterialSlotNameValid(FName MaterialSlotName) const override;
 
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 #if WITH_EDITOR

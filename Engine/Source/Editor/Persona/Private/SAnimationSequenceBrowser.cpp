@@ -316,14 +316,15 @@ void SAnimationSequenceBrowser::OnReimportAnimation(TArray<FAssetData> SelectedA
 {
 	if (SelectedAssets.Num() > 0)
 	{
-		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		TArray<UObject *> CopyOfSelectedAssets;
 		for (auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
 		{
 			if (UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
 			{
-				FReimportManager::Instance()->Reimport(AnimSequence, true);
+				CopyOfSelectedAssets.Add(AnimSequence);
 			}
 		}
+		FReimportManager::Instance()->ValidateAllSourceFileAndReimport(CopyOfSelectedAssets);
 	}
 }
 

@@ -48,7 +48,7 @@ TSharedRef<SWidget> UNamedSlot::RebuildWidget()
 		}
 	}
 
-	return MyBox.ToSharedRef();
+	return BuildDesignTimeWidget( MyBox.ToSharedRef() );
 }
 
 void UNamedSlot::SynchronizeProperties()

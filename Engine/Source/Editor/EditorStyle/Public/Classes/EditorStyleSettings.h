@@ -140,6 +140,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Error Text Color"))
 	FLinearColor LogErrorColor;
 
+	/** When enabled, the Advanced Details will always auto expand. */
+	UPROPERTY(config)
+	uint32 bShowAllAdvancedDetails : 1;
+
 	/** The font size used in the output log */
 	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Log Font Size", ConfigRestartRequired=true))
 	int32 LogFontSize;

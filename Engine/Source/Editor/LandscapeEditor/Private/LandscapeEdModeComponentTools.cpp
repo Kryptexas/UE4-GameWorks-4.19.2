@@ -2,17 +2,13 @@
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "ObjectTools.h"
-#include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 #include "LandscapeEdit.h"
-#include "LandscapeLayerInfoObject.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeSplineProxies.h"
-#include "LandscapeEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "LandscapeEdMode.h"
 #include "LandscapeEdModeTools.h"
 #include "InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
@@ -181,7 +177,7 @@ public:
 
 				for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 				{
-					const FIntPoint Key = ALandscape::MakeKey(X, Y);
+					const FIntPoint Key = FIntPoint(X, Y);
 					const float BrushValue = BrushScanline[X];
 
 					if (BrushValue > 0.0f && LandscapeInfo->IsValidPosition(X, Y))
@@ -1242,7 +1238,7 @@ public:
 									}
 								}
 
-								FGizmoSelectData* GizmoSelectData = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
+								FGizmoSelectData* GizmoSelectData = Gizmo->SelectedData.Find(FIntPoint(X, Y));
 								if (GizmoSelectData)
 								{
 									if (bApplyToAll)
@@ -1294,7 +1290,7 @@ public:
 											NewData.WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
 										}
 									}
-									Gizmo->SelectedData.Add(ALandscape::MakeKey(X, Y), NewData);
+									Gizmo->SelectedData.Add(FIntPoint(X, Y), NewData);
 								}
 							}
 						}
@@ -1548,10 +1544,10 @@ public:
 						float FracX = GizmoLocal.X - LX;
 						float FracY = GizmoLocal.Y - LY;
 
-						FGizmoSelectData* Data00 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX, LY));
-						FGizmoSelectData* Data10 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY));
-						FGizmoSelectData* Data01 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX, LY + 1));
-						FGizmoSelectData* Data11 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY + 1));
+						FGizmoSelectData* Data00 = Gizmo->SelectedData.Find(FIntPoint(LX, LY));
+						FGizmoSelectData* Data10 = Gizmo->SelectedData.Find(FIntPoint(LX + 1, LY));
+						FGizmoSelectData* Data01 = Gizmo->SelectedData.Find(FIntPoint(LX, LY + 1));
+						FGizmoSelectData* Data11 = Gizmo->SelectedData.Find(FIntPoint(LX + 1, LY + 1));
 
 						for (int32 i = -1; (!bApplyToAll && i < 0) || i < LayerNum; ++i)
 						{

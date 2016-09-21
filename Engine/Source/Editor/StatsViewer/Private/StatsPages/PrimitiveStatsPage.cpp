@@ -394,13 +394,92 @@ void FPrimitiveStatsPage::Generate( TArray< TWeakObjectPtr<UObject> >& OutObject
 	PrimitiveStatsGenerator Generator;
 	Generator.Generate();
 
-	for( TObjectIterator<UPrimitiveComponent> It; It; ++It )
+	switch ((EPrimitiveObjectSets)ObjectSetIndex)
 	{
-		UPrimitiveStats* StatsEntry = Generator.Add( *It, (EPrimitiveObjectSets)ObjectSetIndex );
-		if(StatsEntry != NULL)
+		case PrimitiveObjectSets_CurrentLevel:
 		{
-			OutObjects.Add( StatsEntry );
+			for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
+			{
+				AActor* Owner = Cast<AActor>((*It)->GetOwner());
+
+				if (Owner != nullptr && !Owner->HasAnyFlags(RF_ClassDefaultObject) && Owner->IsInLevel(GWorld->GetCurrentLevel()))
+				{
+					UPrimitiveStats* StatsEntry = Generator.Add(*It, (EPrimitiveObjectSets)ObjectSetIndex);
+
+					if (StatsEntry != nullptr)
+					{
+						OutObjects.Add(StatsEntry);
+					}
+				}
+			}
 		}
+		break;
+
+		case PrimitiveObjectSets_AllObjects:
+		{
+			if (GWorld != NULL)
+			{
+				TArray<ULevel*> Levels;
+
+				// Add main level.
+				Levels.AddUnique(GWorld->PersistentLevel);
+
+				// Add secondary levels.
+				for (int32 LevelIndex = 0; LevelIndex < GWorld->StreamingLevels.Num(); ++LevelIndex)
+				{
+					ULevelStreaming* StreamingLevel = GWorld->StreamingLevels[LevelIndex];
+					if (StreamingLevel != nullptr)
+					{
+						ULevel* Level = StreamingLevel->GetLoadedLevel();
+						if (Level != nullptr)
+						{
+							Levels.AddUnique(Level);
+						}
+					}
+				}
+
+				for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
+				{
+					AActor* Owner = Cast<AActor>((*It)->GetOwner());
+
+					if (Owner != nullptr && !Owner->HasAnyFlags(RF_ClassDefaultObject))
+					{
+						ULevel* CheckLevel = Owner->GetLevel();
+
+						if (CheckLevel != nullptr && (Levels.Contains(CheckLevel)))
+						{
+							UPrimitiveStats* StatsEntry = Generator.Add(*It, (EPrimitiveObjectSets)ObjectSetIndex);
+
+							if (StatsEntry != nullptr)
+							{
+								OutObjects.Add(StatsEntry);
+							}
+						}
+					}
+				}
+			}
+		}
+		break;
+
+		case PrimitiveObjectSets_SelectedObjects:
+		{
+			TArray<UObject*> SelectedActors;
+			GEditor->GetSelectedActors()->GetSelectedObjects(AActor::StaticClass(), SelectedActors);
+
+			for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
+			{
+				AActor* Owner = Cast<AActor>((*It)->GetOwner());
+				if (Owner != nullptr && !Owner->HasAnyFlags(RF_ClassDefaultObject) && SelectedActors.Contains(Owner))
+				{
+					UPrimitiveStats* StatsEntry = Generator.Add(*It, (EPrimitiveObjectSets)ObjectSetIndex);
+					if (StatsEntry != nullptr)
+					{
+						OutObjects.Add(StatsEntry);
+					}
+				}
+			}
+		}
+		break;
 	}
 }
 

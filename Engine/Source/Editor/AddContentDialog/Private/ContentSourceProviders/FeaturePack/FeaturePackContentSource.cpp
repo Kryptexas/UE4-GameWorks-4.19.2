@@ -628,7 +628,7 @@ void FFeaturePackContentSource::ParseAndImportPacks()
 
 void FFeaturePackContentSource::RecordAndLogError(const FString& ErrorString)
 {
-	UE_LOG(LogFeaturePack, Warning, TEXT("%s"), *ErrorString);
+	UE_LOG(LogFeaturePack, Error, TEXT("%s"), *ErrorString);
 	ParseErrors.Add(ErrorString);
 }
 

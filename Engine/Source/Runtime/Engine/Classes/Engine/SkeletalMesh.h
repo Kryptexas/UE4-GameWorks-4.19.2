@@ -514,16 +514,28 @@ struct FSkeletalMaterial
 
 	FSkeletalMaterial()
 		: MaterialInterface( NULL )
-		, bEnableShadowCasting( true )
-		, bRecomputeTangent( false )
+		, bEnableShadowCasting_DEPRECATED( true )
+		, bRecomputeTangent_DEPRECATED( false )
+		, MaterialSlotName( NAME_None )
+#if WITH_EDITORONLY_DATA
+		, ImportedMaterialSlotName( NAME_None )
+#endif
 	{
 
 	}
 
-	FSkeletalMaterial( class UMaterialInterface* InMaterialInterface, bool bInEnableShadowCasting = true, bool bInRecomputeTangent = false )
+	FSkeletalMaterial( class UMaterialInterface* InMaterialInterface
+						, bool bInEnableShadowCasting = true
+						, bool bInRecomputeTangent = false
+						, FName InMaterialSlotName = NAME_None
+						, FName InImportedMaterialSlotName = NAME_None)
 		: MaterialInterface( InMaterialInterface )
-		, bEnableShadowCasting( bInEnableShadowCasting )
-		, bRecomputeTangent( bInRecomputeTangent )
+		, bEnableShadowCasting_DEPRECATED( bInEnableShadowCasting )
+		, bRecomputeTangent_DEPRECATED( bInRecomputeTangent )
+		, MaterialSlotName(InMaterialSlotName)
+#if WITH_EDITORONLY_DATA
+		, ImportedMaterialSlotName(InImportedMaterialSlotName)
+#endif //WITH_EDITORONLY_DATA
 	{
 
 	}
@@ -536,10 +548,19 @@ struct FSkeletalMaterial
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, Category=SkeletalMesh)
 	class UMaterialInterface *	MaterialInterface;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SkeletalMesh, Category=SkeletalMesh)
-	bool						bEnableShadowCasting;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh, Category = SkeletalMesh)
-	bool						bRecomputeTangent;
+	UPROPERTY()
+	bool						bEnableShadowCasting_DEPRECATED;
+	UPROPERTY()
+	bool						bRecomputeTangent_DEPRECATED;
+	
+	/*This name should be use by the gameplay to avoid error if the skeletal mesh Materials array topology change*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
+	FName						MaterialSlotName;
+#if WITH_EDITORONLY_DATA
+	/*This name should be use when we re-import a skeletal mesh so we can order the Materials array like it should be*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
+	FName						ImportedMaterialSlotName;
+#endif //WITH_EDITORONLY_DATA
 };
 
 class FSkeletalMeshResource;
@@ -700,6 +721,7 @@ public:
 	/* Attached assets component for this mesh */
 	UPROPERTY()
 	FPreviewAssetAttachContainer PreviewAttachedAssetContainer;
+
 #endif // WITH_EDITORONLY_DATA
 
 	/**
@@ -1014,6 +1036,14 @@ private:
 	* Ask the reference skeleton to rebuild the NameToIndexMap array. This is use to load old package before this array was created.
 	*/
 	void RebuildRefSkeletonNameToIndexMap();
+
+	/*
+	* In version prior to FEditorObjectVersion::RefactorMeshEditorMaterials
+	* The material slot is containing the "Cast Shadow" and the "Recompute Tangent" flag
+	* We move those flag to sections to allow artist to control those flag at section level
+	* since its a section flag.
+	*/
+	void MoveMaterialFlagsToSections();
 };
 
 

@@ -37,6 +37,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/LevelStreaming.h"
+#include "ContentBrowserCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
@@ -259,14 +260,10 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 				);
 
 			// Save
-			MenuBuilder.AddMenuEntry(
+			MenuBuilder.AddMenuEntry(FContentBrowserCommands::Get().SaveSelectedAsset, NAME_None,
 				LOCTEXT("SaveAsset", "Save"),
 				LOCTEXT("SaveAssetTooltip", "Saves the asset to file."),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), "Level.SaveIcon16x"),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSaveAsset ),
-					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSaveAsset )
-					)
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "Level.SaveIcon16x")
 				);
 
 			// Delete
@@ -1349,17 +1346,13 @@ bool FAssetContextMenu::CanExecuteImportedAssetActions(const TArray<FString> Res
 void FAssetContextMenu::ExecuteReimport()
 {
 	// Reimport all selected assets
-	//Copy the array to prevent iteration assert if a reimport factory change the selection
-	TArray<FAssetData> CopyOfSelectedAssets = SelectedAssets;
-
-	for (auto& SelectedAsset : CopyOfSelectedAssets)
+	TArray<UObject *> CopyOfSelectedAssets;
+	for (const FAssetData &SelectedAsset : SelectedAssets)
 	{
-		const auto Asset = SelectedAsset.GetAsset();
-		if (Asset)
-		{
-			FReimportManager::Instance()->Reimport(Asset, /*bAskForNewFileIfMissing=*/true);
-		}
+		UObject *Asset = SelectedAsset.GetAsset();
+		CopyOfSelectedAssets.Add(Asset);
 	}
+	FReimportManager::Instance()->ValidateAllSourceFileAndReimport(CopyOfSelectedAssets);
 }
 
 void FAssetContextMenu::ExecuteFindSourceInExplorer(const TArray<FString> ResolvedFilePaths)

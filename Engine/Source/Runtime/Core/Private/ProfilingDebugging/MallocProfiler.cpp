@@ -33,8 +33,10 @@ CORE_API FMallocProfiler* GMallocProfiler;
  * 
  *	5 - Changed uint32 to uint64 in the FProfilerHeader to support profiler files larger than 4.0GB
  *		Removed NumDataFiles, no longer used.
+ *
+ *	6 - Added meta-data table.
  */
-#define MEMORY_PROFILER_VERSION						5
+#define MEMORY_PROFILER_VERSION						6
 
 /*=============================================================================
 	Profiler header.
@@ -53,6 +55,11 @@ struct FProfilerHeader
 	/** Name of executable, used for finding symbols.	*/
 	FString ExecutableName;
 
+	/** Offset in file for meta-data table.				*/
+	uint64	MetaDataTableOffset;
+	/** Number of meta-data table entries.				*/
+	uint64	MetaDataTableEntries;
+
 	/** Offset in file for name table.					*/
 	uint64	NameTableOffset;
 	/** Number of name table entries.					*/
@@ -67,6 +74,7 @@ struct FProfilerHeader
 	uint64	CallStackTableOffset;
 	/** Number of callstack entries.					*/
 	uint64	CallStackTableEntries;
+
 	/** The file offset for module information.			*/
 	uint64	ModulesOffset;
 	/** The number of module entries.					*/
@@ -87,6 +95,8 @@ struct FProfilerHeader
 		Header.PlatformName.SerializeAsANSICharArray(Ar,255);
 
 		Ar	<< Header.bShouldSerializeSymbolInfo
+			<< Header.MetaDataTableOffset
+			<< Header.MetaDataTableEntries
 			<< Header.NameTableOffset
 			<< Header.NameTableEntries
 			<< Header.CallStackAddressTableOffset
@@ -507,6 +517,20 @@ void FMallocProfiler::EndProfiling()
 		Header.PlatformName			= FPlatformProperties::PlatformName();
 		Header.bShouldSerializeSymbolInfo = SERIALIZE_SYMBOL_INFO ? 1 : 0;
 		Header.ExecutableName		= FPlatformProcess::ExecutableName();
+
+		// Write out meta-data table and update header with offset and count.
+		{
+			TMap<FName, FString> SymbolMetaData = FPlatformStackWalk::GetSymbolMetaData();
+
+			Header.MetaDataTableOffset = SymbolFileWriter->Tell();
+			Header.MetaDataTableEntries = SymbolMetaData.Num();
+			for (auto MetaDataPair : SymbolMetaData)
+			{
+				FString KeyString = MetaDataPair.Key.ToString();
+				(*SymbolFileWriter) << KeyString;
+				(*SymbolFileWriter) << MetaDataPair.Value;
+			}
+		}
 
 		// Write out name table and update header with offset and count.
 		Header.NameTableOffset	= SymbolFileWriter->Tell();

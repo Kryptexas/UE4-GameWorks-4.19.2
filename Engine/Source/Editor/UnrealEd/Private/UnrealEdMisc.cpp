@@ -196,8 +196,8 @@ void FUnrealEdMisc::OnInit()
 	FEditorDelegates::PreSaveWorld.AddRaw(this, &FUnrealEdMisc::OnWorldSaved);
 
 #if USE_UNIT_TESTS
-	FAutomationTestFramework::GetInstance().PreTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PreAutomationTesting);
-	FAutomationTestFramework::GetInstance().PostTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PostAutomationTesting);
+	FAutomationTestFramework::Get().PreTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PreAutomationTesting);
+	FAutomationTestFramework::Get().PostTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PostAutomationTesting);
 #endif // USE_UNIT_TESTS
 
 	/** Delegate that gets called when a script exception occurs */
@@ -794,8 +794,8 @@ void FUnrealEdMisc::OnExit()
 	GEngine->OnLevelActorAdded().RemoveAll(this);
 
 #if USE_UNIT_TESTS
-	FAutomationTestFramework::GetInstance().PreTestingEvent.RemoveAll(this);
-	FAutomationTestFramework::GetInstance().PostTestingEvent.RemoveAll(this);
+	FAutomationTestFramework::Get().PreTestingEvent.RemoveAll(this);
+	FAutomationTestFramework::Get().PostTestingEvent.RemoveAll(this);
 #endif // USE_UNIT_TESTS
 
 	// FCoreDelegates::OnBreakpointTriggered.RemoveAll(this);
@@ -1031,11 +1031,29 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 	}
 
 	const TSharedRef<FUObjectToken> UObjectToken = StaticCastSharedRef<FUObjectToken>(Token);
+	UObject* Object = nullptr;
 
-	if(UObjectToken->GetObject().IsValid())
+	// Due to blueprint reconstruction, we can't directly use the Object as it will get trashed during the blueprint reconstruction and the message token will no longer point to the right UObject.
+	// Instead we will retrieve the object from the name which should always be good.
+	if (UObjectToken->GetObject().IsValid())
 	{
-		UObject* Object = const_cast<UObject*>(UObjectToken->GetObject().Get());
+		if (!UObjectToken->ToText().ToString().Equals(UObjectToken->GetObject().Get()->GetName()))
+		{
+			Object = FindObject<UObject>(nullptr, *UObjectToken->GetOriginalObjectPathName());
+		}
+		else
+		{
+			Object = const_cast<UObject*>(UObjectToken->GetObject().Get());
+		}
+	}
+	else
+	{
+		// We have no object (probably because is now stale), try finding the original object linked to this message token to see if it still exist
+		Object = FindObject<UObject>(nullptr, *UObjectToken->GetOriginalObjectPathName());
+	}
 
+	if(Object != nullptr)
+	{
 		ULightmappedSurfaceCollection* SurfaceCollection = Cast<ULightmappedSurfaceCollection>(Object);
 		if (SurfaceCollection)
 		{
@@ -1078,7 +1096,7 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 				}		
 			}
 
-			if (Actor)
+			if (Actor && Actor->GetLevel() != nullptr)
 			{
 				// Select the actor
 				GEditor->SelectNone(false, true);
@@ -1093,7 +1111,37 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 			else
 			{
 				TArray<UObject*> ObjectArray;
-				ObjectArray.Add(Object);
+
+				if (Object->IsInBlueprint())
+				{
+					// Determine if we are the root of our blueprint
+					UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(Object->GetClass());
+
+					if (Blueprint != nullptr)
+					{
+						ObjectArray.Add(Blueprint);
+					}
+					else // we are a sub object, so we need to find the root of our current blueprint(not the outermost as blueprint can contain other blueprint)
+					{
+						UObject* ParentObject = Object->GetOuter();
+
+						while (Blueprint == nullptr && ParentObject != nullptr)
+						{
+							Blueprint = UBlueprint::GetBlueprintFromClass(ParentObject->GetClass());
+							ParentObject = Object->GetOuter();
+						}
+
+						if (Blueprint != nullptr)
+						{
+							ObjectArray.Add(Blueprint);
+						}
+					}
+				}
+				else
+				{
+					ObjectArray.Add(Object);
+				}
+
 				GEditor->SyncBrowserToObjects(ObjectArray);
 			}
 		}

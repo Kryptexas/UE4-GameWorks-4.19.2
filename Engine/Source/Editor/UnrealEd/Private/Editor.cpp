@@ -193,7 +193,7 @@ void FReimportManager::UnregisterHandler( FReimportHandler& InHandler )
 	Handlers.Remove( &InHandler );
 }
 
-bool FReimportManager::CanReimport( UObject* Obj ) const
+bool FReimportManager::CanReimport( UObject* Obj, TArray<FString> *ReimportSourceFilenames) const
 {
 	if ( Obj )
 	{
@@ -203,10 +203,21 @@ bool FReimportManager::CanReimport( UObject* Obj ) const
 			SourceFilenames.Empty();
 			if ( Handlers[ HandlerIndex ]->CanReimport(Obj, SourceFilenames) )
 			{
+				if (ReimportSourceFilenames != nullptr)
+				{
+					(*ReimportSourceFilenames) = SourceFilenames;
+				}
+	
 				return true;
 			}
 		}
 	}
+	
+	if (ReimportSourceFilenames != nullptr)
+	{
+		ReimportSourceFilenames->Empty();
+	}
+	
 	return false;
 }
 
@@ -385,6 +396,102 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, boo
 	GEditor->RedrawAllViewports();
 
 	return bSuccess;
+}
+
+void FReimportManager::ValidateAllSourceFileAndReimport(TArray<UObject*> &ToImportObjects)
+{
+	//Copy the array to prevent iteration assert if a reimport factory change the selection
+	TArray<UObject*> CopyOfSelectedAssets;
+	TArray<UObject*> MissingFileSelectedAssets;
+	for (UObject *Asset : ToImportObjects)
+	{
+		TArray<FString> SourceFilenames;
+		if (this->CanReimport(Asset, &SourceFilenames))
+		{
+			bool bMissingFile = false;
+			for (FString SourceFilename : SourceFilenames)
+			{
+				if (SourceFilename.IsEmpty() || IFileManager::Get().FileSize(*SourceFilename) == INDEX_NONE)
+				{
+					MissingFileSelectedAssets.Add(Asset);
+					bMissingFile = true;
+					break;
+				}
+			}
+
+			if (!bMissingFile)
+			{
+				CopyOfSelectedAssets.Add(Asset);
+			}
+		}
+	}
+
+	if (MissingFileSelectedAssets.Num() > 0)
+	{
+		// Ask the user how to handle missing files before doing the re-import when there is more then one missing file
+		// 1. Ask for missing file location for every missing file
+		// 2. Ignore missing file asset when doing the re-import
+		// 3. Cancel the whole reimport
+		EAppReturnType::Type UserChoice = EAppReturnType::Type::Yes;
+		if (MissingFileSelectedAssets.Num() > 1)
+		{
+			//Pop the dialog box asking the question
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("MissingNumber"), FText::FromString(FString::FromInt(MissingFileSelectedAssets.Num())));
+			int MaxListFile = 100;
+			FString AssetToFileListString;
+			for (UObject *Asset : MissingFileSelectedAssets)
+			{
+				AssetToFileListString += TEXT("\n");
+				if (MaxListFile == 0)
+				{
+					AssetToFileListString += TEXT("...");
+					break;
+				}
+				TArray<FString> SourceFilenames;
+				if (this->CanReimport(Asset, &SourceFilenames))
+				{
+					MaxListFile--;
+					AssetToFileListString += FString::Printf(TEXT("Asset %s -> Missing file %s"), *(Asset->GetName()), *(SourceFilenames[0]));
+				}
+			}
+			Arguments.Add(TEXT("AssetToFileList"), FText::FromString(AssetToFileListString));
+			FText DialogText = FText::Format(LOCTEXT("ReimportMissingFileChoiceDialogMessage", "There is {MissingNumber} assets with missing source file path. Do you want to specify a new source file path for each asset?\n \"No\" will skip the reimport of all asset with a missing source file path.\n \"Cancel\" will cancel the whole reimport.\n{AssetToFileList}"), Arguments);
+
+			UserChoice = OpenMsgDlgInt(EAppMsgType::YesNoCancel, DialogText, LOCTEXT("ReimportMissingFileChoiceDialogMessageTitle", "Reimport missing files"));
+		}
+
+		//Ask missing file locations
+		if (UserChoice == EAppReturnType::Type::Yes)
+		{
+			//Ask the user for a new source reimport path for each asset
+			for (UObject *Asset : MissingFileSelectedAssets)
+			{
+				TArray<FString> SourceFilenames;
+				this->GetNewReimportPath(Asset, SourceFilenames);
+				if (SourceFilenames.Num() == 0)
+				{
+					continue;
+				}
+				this->UpdateReimportPaths(Asset, SourceFilenames);
+				CopyOfSelectedAssets.Add(Asset);
+			}
+		}
+		else if (UserChoice == EAppReturnType::Type::Cancel)
+		{
+			return;
+		}
+		//If user ignore those asset just not add them to CopyOfSelectedAssets
+	}
+
+	for (auto Asset : CopyOfSelectedAssets)
+	{
+		if (Asset)
+		{
+			//We already ask for new files
+			this->Reimport(Asset, /*bAskForNewFileIfMissing=*/false);
+		}
+	}
 }
 
 void FReimportManager::GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFilenames)

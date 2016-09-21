@@ -6,7 +6,10 @@
 #include "ISessionFrontendModule.h"
 #include "IPlacementModeModule.h"
 #include "FunctionalTest.h"
+#include "ScreenshotFunctionalTest.h"
 #include "AssetRegistryModule.h"
+#include "WorkspaceMenuStructureModule.h"
+#include "Framework/Docking/TabManager.h"
 
 #define LOCTEXT_NAMESPACE "EditorAutomation"
 
@@ -83,8 +86,8 @@ class FEditorAutomationModule : public IEditorAutomationModule
 		// make an extension to add the Orion function menu
 		Extender = MakeShareable(new FExtender());
 		Extender->AddMenuExtension(
-			"AutomationTools",
-			EExtensionHook::First,
+			"General",
+			EExtensionHook::After,
 			nullptr,
 			FMenuExtensionDelegate::CreateRaw(this, &FEditorAutomationModule::OnAutomationToolsMenuCreation));
 
@@ -118,13 +121,31 @@ class FEditorAutomationModule : public IEditorAutomationModule
 
 	void OnAutomationToolsMenuCreation(FMenuBuilder& MenuBuilder)
 	{
-		//MenuBuilder.BeginSection("Automation", LOCTEXT("Fortnite", "Fortnite"));
+		MenuBuilder.BeginSection("Testing", LOCTEXT("Testing", "Testing"));
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("AutomationLabel", "Automation Frontend"),
-			LOCTEXT("Tooltip", "Launch the Automation Frontend."),
+			LOCTEXT("AutomationLabel", "Test Automation"),
+			LOCTEXT("Tooltip", "Launch the Testing Automation Frontend."),
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationTools.MenuIcon"),
 			FUIAction(FExecuteAction::CreateStatic(&FEditorAutomationModule::OnShowAutomationFrontend)));
-		//MenuBuilder.EndSection();
+		MenuBuilder.EndSection();
+
+		// TODO Come up with a way to hide this if no tools are registered.
+		if (WorkspaceMenu::GetMenuStructure().GetAutomationToolsCategory()->GetChildItems().Num() > 0)
+		{
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("AutomationTools", "Automation Tools"),
+				LOCTEXT("AutomationToolsToolTip", "Assorted tools to help generate data for some of the automation tests."),
+				FNewMenuDelegate::CreateRaw(this, &FEditorAutomationModule::PopulateAutomationTools)
+			);
+		}
+	}
+
+	void PopulateAutomationTools(FMenuBuilder& MenuBuilder)
+	{
+		MenuBuilder.BeginSection("AutomationTools", LOCTEXT("AutomationTools", "Automation Tools"));
+		const bool bAutoAndOrphanedMenus = false;
+		FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, WorkspaceMenu::GetMenuStructure().GetAutomationToolsCategory(), bAutoAndOrphanedMenus);
+		MenuBuilder.EndSection();
 	}
 
 	static void OnShowAutomationFrontend()
@@ -146,6 +167,7 @@ class FEditorAutomationModule : public IEditorAutomationModule
 
 			IPlacementModeModule::Get().RegisterPlacementCategory(Info);
 			IPlacementModeModule::Get().RegisterPlaceableItem(Info.UniqueHandle, MakeShareable(new FPlaceableItem(nullptr, FAssetData(AFunctionalTest::StaticClass()))));
+			IPlacementModeModule::Get().RegisterPlaceableItem(Info.UniqueHandle, MakeShareable(new FPlaceableItem(nullptr, FAssetData(AScreenshotFunctionalTest::StaticClass()))));
 		}
 	}
 

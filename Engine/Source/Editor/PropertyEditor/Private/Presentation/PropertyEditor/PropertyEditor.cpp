@@ -195,13 +195,28 @@ void FPropertyEditor::AddItem()
 
 void FPropertyEditor::OnAddItem()
 {
+	// Check to make sure that the property is a valid container
 	TSharedPtr<IPropertyHandleArray> ArrayHandle = PropertyHandle->AsArray();
-	check( ArrayHandle.IsValid() );
+	TSharedPtr<IPropertyHandleSet> SetHandle = PropertyHandle->AsSet();
+	TSharedPtr<IPropertyHandleMap> MapHandle = PropertyHandle->AsMap();
 
-	// Expand arrays when an item is added to them
-	PropertyNode->SetNodeFlags( EPropertyNodeFlags::Expanded, true );
+	check(ArrayHandle.IsValid() || SetHandle.IsValid() || MapHandle.IsValid());
 
-	ArrayHandle->AddItem();
+	if (ArrayHandle.IsValid())
+	{
+		ArrayHandle->AddItem();
+	}
+	else if (SetHandle.IsValid())
+	{
+		SetHandle->AddItem();
+	}
+	else if (MapHandle.IsValid())
+	{
+		MapHandle->AddItem();
+	}
+
+	// Expand containers when an item is added to them
+	PropertyNode->SetNodeFlags(EPropertyNodeFlags::Expanded, true);
 
 	//In case the property is show in the favorite category refresh the whole tree
 	if (PropertyNode->IsFavorite())
@@ -258,10 +273,12 @@ void FPropertyEditor::InsertItem()
 void FPropertyEditor::OnInsertItem()
 {
 	TSharedPtr<IPropertyHandleArray> ArrayHandle = PropertyHandle->GetParentHandle()->AsArray();
-	check( ArrayHandle.IsValid() );
+	check(ArrayHandle.IsValid());
 
 	int32 Index = PropertyNode->GetArrayIndex();
-	ArrayHandle->Insert( Index );
+	
+	// Insert is only supported on arrays, not maps or sets
+	ArrayHandle->Insert(Index);
 
 	//In case the property is show in the favorite category refresh the whole tree
 	if (PropertyNode->IsFavorite() || (PropertyNode->GetParentNode() != nullptr && PropertyNode->GetParentNode()->IsFavorite()))
@@ -279,10 +296,25 @@ void FPropertyEditor::DeleteItem()
 void FPropertyEditor::OnDeleteItem()
 {
 	TSharedPtr<IPropertyHandleArray> ArrayHandle = PropertyHandle->GetParentHandle()->AsArray();
-	check( ArrayHandle.IsValid() );
+	TSharedPtr<IPropertyHandleSet> SetHandle = PropertyHandle->GetParentHandle()->AsSet();
+	TSharedPtr<IPropertyHandleMap> MapHandle = PropertyHandle->GetParentHandle()->AsMap();
+
+	check(ArrayHandle.IsValid() || SetHandle.IsValid() || MapHandle.IsValid());
 
 	int32 Index = PropertyNode->GetArrayIndex();
-	ArrayHandle->DeleteItem( Index );
+
+	if (ArrayHandle.IsValid())
+	{
+		ArrayHandle->DeleteItem(Index);
+	}
+	else if (SetHandle.IsValid())
+	{
+		SetHandle->DeleteItem(Index);
+	}
+	else if (MapHandle.IsValid())
+	{
+		MapHandle->DeleteItem(Index);
+	}
 
 	//In case the property is show in the favorite category refresh the whole tree
 	if (PropertyNode->IsFavorite() || (PropertyNode->GetParentNode() != nullptr && PropertyNode->GetParentNode()->IsFavorite()))
@@ -300,10 +332,11 @@ void FPropertyEditor::DuplicateItem()
 void FPropertyEditor::OnDuplicateItem()
 {
 	TSharedPtr<IPropertyHandleArray> ArrayHandle = PropertyHandle->GetParentHandle()->AsArray();
-	check( ArrayHandle.IsValid() );
+	check(ArrayHandle.IsValid());
 
 	int32 Index = PropertyNode->GetArrayIndex();
-	ArrayHandle->DuplicateItem( Index );
+	
+	ArrayHandle->DuplicateItem(Index);
 
 	//In case the property is show in the favorite category refresh the whole tree
 	if (PropertyNode->IsFavorite() || (PropertyNode->GetParentNode() != nullptr && PropertyNode->GetParentNode()->IsFavorite()))
@@ -332,9 +365,23 @@ void FPropertyEditor::EmptyArray()
 void FPropertyEditor::OnEmptyArray()
 {
 	TSharedPtr<IPropertyHandleArray> ArrayHandle = PropertyHandle->AsArray();
-	check( ArrayHandle.IsValid() );
+	TSharedPtr<IPropertyHandleSet> SetHandle = PropertyHandle->AsSet();
+	TSharedPtr<IPropertyHandleMap> MapHandle = PropertyHandle->AsMap();
 
-	ArrayHandle->EmptyArray();
+	check(ArrayHandle.IsValid() || SetHandle.IsValid() || MapHandle.IsValid());
+
+	if (ArrayHandle.IsValid())
+	{
+		ArrayHandle->EmptyArray();
+	}
+	else if (SetHandle.IsValid())
+	{
+		SetHandle->Empty();
+	}
+	else if (MapHandle.IsValid())
+	{
+		MapHandle->Empty();
+	}
 
 	//In case the property is show in the favorite category refresh the whole tree
 	if (PropertyNode->IsFavorite())

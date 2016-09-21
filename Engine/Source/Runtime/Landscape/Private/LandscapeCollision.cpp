@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
 #include "PhysicsPublic.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeRender.h"
@@ -13,8 +12,6 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMeshCollisionComponent.h"
-#include "LandscapeLayerInfoObject.h"
-#include "LandscapeInfo.h"
 #include "InstancedFoliage.h"
 #include "FoliageType.h"
 #include "Engine/StaticMesh.h"

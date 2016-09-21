@@ -81,7 +81,7 @@ public:
 	const TSharedPtr<FUICommandList>& GetCommandList() const { return CommandList; }
 
 	/** Saves this viewport's config to ULevelEditorViewportSettings */
-	void SaveConfig(const FString& ConfigName);
+	void SaveConfig(const FString& ConfigName) const;
 
 	/** ILevelViewport Interface */
 	virtual void StartPlayInEditorSession( UGameViewportClient* PlayClient, const bool bInSimulateInEditor ) override;

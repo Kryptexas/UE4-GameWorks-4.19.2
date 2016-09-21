@@ -22,6 +22,6 @@ class UMGEDITOR_API UWidgetDesignerSettings : public UObject
 	UPROPERTY(EditAnywhere, config, Category = Dragging)
 	bool bLockToPanelOnDragByDefault;
 
-	UPROPERTY(EditAnywhere, config, Category = Visuals)
+	UPROPERTY(EditAnywhere, config, Category = Visuals, meta = ( DisplayName = "Show Dashed Outlines By Default" ))
 	bool bShowOutlines;
 };

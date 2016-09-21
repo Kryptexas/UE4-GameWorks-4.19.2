@@ -293,14 +293,14 @@ void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStatic
 		NewTask->bGenerateDistanceFieldAsIfTwoSided = bGenerateDistanceFieldAsIfTwoSided;
 		NewTask->GeneratedVolumeData = new FDistanceFieldVolumeData();
 
-		for (int32 MaterialIndex = 0; MaterialIndex < Mesh->Materials.Num(); MaterialIndex++)
+		for (int32 MaterialIndex = 0; MaterialIndex < Mesh->StaticMaterials.Num(); MaterialIndex++)
 		{
 			// Default material blend mode
 			EBlendMode BlendMode = BLEND_Opaque;
 
-			if (Mesh->Materials[MaterialIndex])
+			if (Mesh->StaticMaterials[MaterialIndex].MaterialInterface)
 			{
-				BlendMode = Mesh->Materials[MaterialIndex]->GetBlendMode();
+				BlendMode = Mesh->StaticMaterials[MaterialIndex].MaterialInterface->GetBlendMode();
 			}
 
 			NewTask->MaterialBlendModes.Add(BlendMode);

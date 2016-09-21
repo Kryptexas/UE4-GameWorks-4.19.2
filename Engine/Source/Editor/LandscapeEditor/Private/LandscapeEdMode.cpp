@@ -26,8 +26,8 @@
 #include "SLandscapeEditor.h"
 
 // Classes
-#include "Landscape.h"
-#include "LandscapeLayerInfoObject.h"
+#include "LandscapeInfoMap.h"
+#include "LandscapeStreamingProxy.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMaterialInstanceConstant.h"
 #include "LandscapeSplinesComponent.h"
@@ -384,10 +384,10 @@ void FEdModeLandscape::Enter()
 						float FracX = TexX - LX;
 						float FracY = TexY - LY;
 
-						FGizmoSelectData* Data00 = CurrentGizmoActor->SelectedData.Find(ALandscape::MakeKey(LX, LY));
-						FGizmoSelectData* Data10 = CurrentGizmoActor->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY));
-						FGizmoSelectData* Data01 = CurrentGizmoActor->SelectedData.Find(ALandscape::MakeKey(LX, LY + 1));
-						FGizmoSelectData* Data11 = CurrentGizmoActor->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY + 1));
+						FGizmoSelectData* Data00 = CurrentGizmoActor->SelectedData.Find(FIntPoint(LX, LY));
+						FGizmoSelectData* Data10 = CurrentGizmoActor->SelectedData.Find(FIntPoint(LX + 1, LY));
+						FGizmoSelectData* Data01 = CurrentGizmoActor->SelectedData.Find(FIntPoint(LX, LY + 1));
+						FGizmoSelectData* Data11 = CurrentGizmoActor->SelectedData.Find(FIntPoint(LX + 1, LY + 1));
 
 						TexData[X + Y*ALandscapeGizmoActiveActor::DataTexSize] = FMath::Lerp(
 							FMath::Lerp(Data00 ? Data00->Ratio : 0, Data10 ? Data10->Ratio : 0, FracX),
@@ -1731,7 +1731,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 	if (World)
 	{
 		int32 Index = 0;
-		auto& LandscapeInfoMap = GetLandscapeInfoMap(World);
+		auto& LandscapeInfoMap = ULandscapeInfoMap::GetLandscapeInfoMap(World);
 
 		for (auto It = LandscapeInfoMap.Map.CreateIterator(); It; ++It)
 		{

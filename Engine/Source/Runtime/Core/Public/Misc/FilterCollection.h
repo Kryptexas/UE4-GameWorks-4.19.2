@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IFilter.h"
 
 /**
  *	A simple collection of Filters, with additional Filter specific functionality.

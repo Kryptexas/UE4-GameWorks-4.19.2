@@ -798,7 +798,7 @@ static float CalculateViewDistance(float MaxDeviation, float AllowedPixelError)
 	//
 	// Solving for Z: ViewDist = (X'-X * 640) / PixelDist
 
-	const float ViewDistance = (MaxDeviation * 960.0f) / AllowedPixelError;
+	const float ViewDistance = (MaxDeviation * 960.0f) / FMath::Max(AllowedPixelError, UStaticMesh::MinimumAutoLODPixelError);
 	return ViewDistance;
 }
 
@@ -1312,9 +1312,47 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 }
 #endif // #if WITH_EDITOR
 
+FArchive& operator<<(FArchive& Ar, FStaticMaterial& Elem)
+{
+	Ar << Elem.MaterialInterface;
+
+	Ar << Elem.MaterialSlotName;
+#if WITH_EDITORONLY_DATA
+	if(!Ar.IsCooking() || Ar.CookingTarget()->HasEditorOnlyData())
+	{
+		Ar << Elem.ImportedMaterialSlotName;
+	}
+#endif //#if WITH_EDITORONLY_DATA
+	return Ar;
+}
+
+bool operator== (const FStaticMaterial& LHS, const FStaticMaterial& RHS)
+{
+	return (LHS.MaterialInterface == RHS.MaterialInterface &&
+		LHS.MaterialSlotName == RHS.MaterialSlotName
+#if WITH_EDITORONLY_DATA
+		&& LHS.ImportedMaterialSlotName == RHS.ImportedMaterialSlotName
+#endif
+		);
+}
+
+bool operator== (const FStaticMaterial& LHS, const UMaterialInterface& RHS)
+{
+	return (LHS.MaterialInterface == &RHS);
+}
+
+bool operator== (const UMaterialInterface& LHS, const FStaticMaterial& RHS)
+{
+	return (RHS.MaterialInterface == &LHS);
+}
+
 /*-----------------------------------------------------------------------------
 UStaticMesh
 -----------------------------------------------------------------------------*/
+
+#if WITH_EDITORONLY_DATA
+const float UStaticMesh::MinimumAutoLODPixelError = SMALL_NUMBER;
+#endif	//#if WITH_EDITORONLY_DATA
 
 UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	: UObject(ObjectInitializer)
@@ -1378,14 +1416,14 @@ SIZE_T UStaticMesh::GetResourceSize(EResourceSizeMode::Type Mode)
 	if (Mode == EResourceSizeMode::Inclusive)
 	{
 		TSet<UMaterialInterface*> UniqueMaterials;
-		for (int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex)
+		for (int32 MaterialIndex = 0; MaterialIndex < StaticMaterials.Num(); ++MaterialIndex)
 		{
-			UMaterialInterface* Material = Materials[MaterialIndex];
+			const FStaticMaterial& StaticMaterial = StaticMaterials[MaterialIndex];
 			bool bAlreadyCounted = false;
-			UniqueMaterials.Add(Material,&bAlreadyCounted);
-			if (!bAlreadyCounted && Material)
+			UniqueMaterials.Add(StaticMaterial.MaterialInterface,&bAlreadyCounted);
+			if (!bAlreadyCounted && StaticMaterial.MaterialInterface)
 			{
-				ResourceSize += Material->GetResourceSize(Mode);
+				ResourceSize += StaticMaterial.MaterialInterface->GetResourceSize(Mode);
 			}
 		}
 
@@ -1790,7 +1828,7 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	OutTags.Add( FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("Vertices", FString::FromInt(NumVertices), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("UVChannels", FString::FromInt(NumUVChannels), FAssetRegistryTag::TT_Numerical) );
-	OutTags.Add( FAssetRegistryTag("Materials", FString::FromInt(Materials.Num()), FAssetRegistryTag::TT_Numerical) );
+	OutTags.Add( FAssetRegistryTag("Materials", FString::FromInt(StaticMaterials.Num()), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("ApproxSize", ApproxSizeStr, FAssetRegistryTag::TT_Dimensional) );
 	OutTags.Add( FAssetRegistryTag("CollisionPrims", FString::FromInt(NumCollisionPrims), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add( FAssetRegistryTag("LODs", FString::FromInt(NumLODs), FAssetRegistryTag::TT_Numerical));
@@ -2065,6 +2103,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
 
 	FStripDataFlags StripFlags( Ar );
 
@@ -2218,6 +2257,19 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		SourceFileTimestamp_DEPRECATED = TEXT("");
 	}
 #endif // WITH_EDITORONLY_DATA
+
+	if (Ar.CustomVer(FEditorObjectVersion::GUID) >= FEditorObjectVersion::RefactorMeshEditorMaterials)
+	{
+		Ar << StaticMaterials;
+	}
+	else if (Ar.IsLoading())
+	{
+		for (UMaterialInterface *MaterialInterface : Materials_DEPRECATED)
+		{
+			StaticMaterials.Add(FStaticMaterial(MaterialInterface, MaterialInterface != nullptr ? MaterialInterface->GetFName() : NAME_None));
+		}
+		Materials_DEPRECATED.Empty();
+	}
 }
 
 //
@@ -2931,12 +2983,25 @@ void UStaticMesh::CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >
 
 UMaterialInterface* UStaticMesh::GetMaterial(int32 MaterialIndex) const
 {
-	if (Materials.IsValidIndex(MaterialIndex))
+	if (StaticMaterials.IsValidIndex(MaterialIndex))
 	{
-		return Materials[MaterialIndex];
+		return StaticMaterials[MaterialIndex].MaterialInterface;
 	}
 
 	return NULL;
+}
+
+int32 UStaticMesh::GetMaterialIndex(FName MaterialSlotName) const
+{
+	for (int32 MaterialIndex = 0; MaterialIndex < StaticMaterials.Num(); ++MaterialIndex)
+	{
+		const FStaticMaterial &StaticMaterial = StaticMaterials[MaterialIndex];
+		if (StaticMaterial.MaterialSlotName == MaterialSlotName)
+		{
+			return MaterialIndex;
+		}
+	}
+	return -1;
 }
 
 /**

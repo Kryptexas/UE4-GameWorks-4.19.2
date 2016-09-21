@@ -389,14 +389,44 @@ public:
 									.HintText(LOCTEXT("SEditableTextBoxHint", "This is an editable text box"))
 							]
 
-						// SHeader
+						// SMultiLineEditableText
 						+ SGridPanel::Slot(0, 12)
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("SMultiLineEditableTextLabel", "SMultiLineEditableText"))
+							]
+
+						+ SGridPanel::Slot(1, 12)
+							.HAlign(HAlign_Left)
+							.Padding(0.0f, 5.0f)
+							[
+								SNew(SMultiLineEditableText)
+								.HintText(LOCTEXT("SMultiLineEditableTextHint", "This is multi-line editable text"))
+							]
+
+						// SMultiLineEditableTextBox
+						+ SGridPanel::Slot(0, 13)
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("SMultiLineEditableTextBoxLabel", "SMultiLineEditableTextBox"))
+							]
+
+						+ SGridPanel::Slot(1, 13)
+							.HAlign(HAlign_Left)
+							.Padding(0.0f, 5.0f)
+							[
+								SNew(SMultiLineEditableTextBox)
+								.HintText(LOCTEXT("SMultiLineEditableTextBoxHint", "This is a multi-line editable text box"))
+							]
+
+						// SHeader
+						+ SGridPanel::Slot(0, 14)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SHeaderLabel", "SHeader"))
 							]
 
-						+ SGridPanel::Slot(1, 12)
+						+ SGridPanel::Slot(1, 14)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SHeader)
@@ -408,13 +438,13 @@ public:
 							]
 
 						// SHyperlink
-						+ SGridPanel::Slot(0, 13)
+						+ SGridPanel::Slot(0, 15)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SHyperlinkLabel", "SHyperlink"))
 							]
 
-						+ SGridPanel::Slot(1, 13)
+						+ SGridPanel::Slot(1, 15)
 							.HAlign(HAlign_Left)
 							.Padding(0.0f, 5.0f)
 							[
@@ -424,13 +454,13 @@ public:
 							]
 
 						// SImage
-						+ SGridPanel::Slot(0, 14)
+						+ SGridPanel::Slot(0, 16)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SImageLabel", "SImage"))
 							]
 
-						+ SGridPanel::Slot(1, 14)
+						+ SGridPanel::Slot(1, 16)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SImage)
@@ -438,25 +468,25 @@ public:
 							]
 	/*
 						// SNumericEntryBox
-						+ SGridPanel::Slot(0, 15)
+						+ SGridPanel::Slot(0, 17)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SNumericEntryBoxLabel", "SNumericEntryBox"))
 							]
 
-						+ SGridPanel::Slot(1, 15)
+						+ SGridPanel::Slot(1, 17)
 							[
 								New(SNumericEntryBox<float>)
 							]
 	*/
 						// SProgressBar
-						+ SGridPanel::Slot(0, 16)
+						+ SGridPanel::Slot(0, 18)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SProgressBarLabel", "SProgressBar"))
 							]
 
-						+ SGridPanel::Slot(1, 16)
+						+ SGridPanel::Slot(1, 18)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SVerticalBox)
@@ -476,13 +506,13 @@ public:
 							]
 	/*
 						// SRotatorInputBox
-						+ SGridPanel::Slot(0, 17)
+						+ SGridPanel::Slot(0, 19)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SRotatorInputBoxLabel", "SRotatorInputBox"))
 							]
 
-						+ SGridPanel::Slot(1, 17)
+						+ SGridPanel::Slot(1, 19)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SRotatorInputBox)
@@ -492,13 +522,13 @@ public:
 							]
 	*/
 						// SSearchBox
-						+ SGridPanel::Slot(0, 18)
+						+ SGridPanel::Slot(0, 20)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SSearchBoxLabel", "SSearchBox"))
 							]
 
-						+ SGridPanel::Slot(1, 18)
+						+ SGridPanel::Slot(1, 20)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SVerticalBox)
@@ -522,13 +552,13 @@ public:
 							]
 
 						// SSeparator
-						+ SGridPanel::Slot(0, 19)
+						+ SGridPanel::Slot(0, 21)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SSeparatorLabel", "SSeparator"))
 							]
 
-						+ SGridPanel::Slot(1, 19)
+						+ SGridPanel::Slot(1, 21)
 							.HAlign(HAlign_Left)
 							.Padding(0.0f, 5.0f)
 							[
@@ -557,13 +587,13 @@ public:
 							]
 
 						// SSlider
-						+ SGridPanel::Slot(0, 20)
+						+ SGridPanel::Slot(0, 22)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SSliderLabel", "SSlider"))
 							]
 
-						+ SGridPanel::Slot(1, 20)
+						+ SGridPanel::Slot(1, 22)
 							.HAlign(HAlign_Left)
 							.Padding(0.0f, 5.0f)
 							[
@@ -594,13 +624,13 @@ public:
 							]
 
 						// SSlider (no indentation)
-						+ SGridPanel::Slot(0, 21)
+						+ SGridPanel::Slot(0, 23)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SSliderNoIndentLabel", "SSlider (no indentation)"))
 							]
 
-						+ SGridPanel::Slot(1, 21)
+						+ SGridPanel::Slot(1, 23)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SBox)
@@ -632,13 +662,13 @@ public:
 							]
 
 						// SSpacer
-						+ SGridPanel::Slot(0, 22)
+						+ SGridPanel::Slot(0, 24)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SSpacerLabel", "SSpacer"))
 							]
 
-						+ SGridPanel::Slot(1, 22)
+						+ SGridPanel::Slot(1, 24)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SSpacer)
@@ -646,13 +676,13 @@ public:
 							]
 
 						// SSpinningImage
-						+ SGridPanel::Slot(0, 23)
+						+ SGridPanel::Slot(0, 25)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SSpinningImageLabel", "SSpinningImage"))
 							]
 
-						+ SGridPanel::Slot(1, 23)
+						+ SGridPanel::Slot(1, 25)
 							.HAlign(HAlign_Left)
 							.Padding(0.0f, 5.0f)
 							[
@@ -661,13 +691,13 @@ public:
 							]
 
 						// SSpinBox
-						+ SGridPanel::Slot(0, 24)
+						+ SGridPanel::Slot(0, 26)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SSpinBoxLabel", "SSpinBox"))
 							]
 
-						+ SGridPanel::Slot(1, 24)
+						+ SGridPanel::Slot(1, 26)
 							.HAlign(HAlign_Left)
 							.Padding(0.0f, 5.0f)
 							[
@@ -680,13 +710,13 @@ public:
 							]
 
 						// STextBlock
-						+ SGridPanel::Slot(0, 25)
+						+ SGridPanel::Slot(0, 27)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("STextBlockLabel", "STextBlock"))
 							]
 
-						+ SGridPanel::Slot(1, 25)
+						+ SGridPanel::Slot(1, 27)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SVerticalBox)
@@ -725,13 +755,13 @@ public:
 							]
 
 						// STextComboBox
-						+ SGridPanel::Slot(0, 26)
+						+ SGridPanel::Slot(0, 28)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("STextComboBoxLabel", "STextComboBox"))
 							]
 
-						+ SGridPanel::Slot(1, 26)
+						+ SGridPanel::Slot(1, 28)
 							.Padding(0.0f, 5.0f)
 							.HAlign(HAlign_Left)
 							.VAlign(VAlign_Center)
@@ -744,13 +774,13 @@ public:
 							]
 
 						// STextComboPopup
-						+ SGridPanel::Slot(0, 27)
+						+ SGridPanel::Slot(0, 29)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("STextComboPopupLabel", "STextComboPopup"))
 							]
 
-						+ SGridPanel::Slot(1, 27)
+						+ SGridPanel::Slot(1, 29)
 							.Padding(0.0f, 5.0f)
 							.HAlign(HAlign_Left)
 							.VAlign(VAlign_Center)
@@ -761,13 +791,13 @@ public:
 							]
 		
 						// SThrobber
-						+ SGridPanel::Slot(0, 28)
+						+ SGridPanel::Slot(0, 30)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SThrobberLabel", "SThrobber"))
 							]
 
-						+ SGridPanel::Slot(1, 28)
+						+ SGridPanel::Slot(1, 30)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SVerticalBox)
@@ -795,13 +825,13 @@ public:
 							]
 	/*
 						// SVectorInputBox
-						+ SGridPanel::Slot(0, 29)
+						+ SGridPanel::Slot(0, 31)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SVectorInputBoxLabel", "SVectorInputBox"))
 							]
 
-						+ SGridPanel::Slot(1, 29)
+						+ SGridPanel::Slot(1, 31)
 							.Padding(0.0f, 5.0f)
 							[
 								SNew(SVectorInputBox)
@@ -811,13 +841,13 @@ public:
 							]
 	*/
 						// SVolumeControl
-						+ SGridPanel::Slot(0, 30)
+						+ SGridPanel::Slot(0, 32)
 							[
 								SNew(STextBlock)
 									.Text(LOCTEXT("SVolumeControlLabel", "SVolumeControl"))
 							]
 
-						+ SGridPanel::Slot(1, 30)
+						+ SGridPanel::Slot(1, 32)
 							.HAlign(HAlign_Left)
 							.Padding(0.0f, 5.0f)
 							[
@@ -829,13 +859,13 @@ public:
 									]
 							]
 
-						+ SGridPanel::Slot(0, 31)
+						+ SGridPanel::Slot(0, 33)
 						[
 							SNew(STextBlock)
 								.Text(LOCTEXT("SUserWidgetLabel", "SUserWidgetExample"))
 						]
 
-						+ SGridPanel::Slot(1, 31)
+						+ SGridPanel::Slot(1, 33)
 						.HAlign(HAlign_Left)
 						.Padding(0.0f, 5.0f)
 						[
@@ -844,12 +874,12 @@ public:
 						]
 
 						// Menu anchors that don't use the menu stack
-						+ SGridPanel::Slot(0, 32)
+						+ SGridPanel::Slot(0, 34)
 						[
 							SNew(STextBlock)
 							.Text(LOCTEXT("StacklessAnchorLabel", "SMenuAnchor with UseApplicationMenuStack=false"))
 						]
-						+ SGridPanel::Slot(1, 32)
+						+ SGridPanel::Slot(1, 34)
 						.HAlign(HAlign_Left)
 						.Padding(0.0f, 5.0f)
 						[
@@ -869,12 +899,12 @@ public:
 						]
 
 						// Menu anchors that don't use the menu stack
-						+ SGridPanel::Slot(0, 33)
+						+ SGridPanel::Slot(0, 35)
 						[
 							SNew(STextBlock)
 							.Text(LOCTEXT("StacklessAnchorLabel", "SMenuAnchor with UseApplicationMenuStack=false"))
 						]
-						+ SGridPanel::Slot(1, 33)
+						+ SGridPanel::Slot(1, 35)
 						.HAlign(HAlign_Left)
 						.Padding(0.0f, 5.0f)
 						[

@@ -37,7 +37,7 @@ public:
 	 *
 	 * @return	true if the object is capable of reimportatio
 	 */
-	UNREALED_API virtual bool CanReimport( UObject* Obj ) const;
+	UNREALED_API virtual bool CanReimport( UObject* Obj, TArray<FString> *ReimportSourceFilenames = nullptr) const;
 
 	/**
 	 * Attempt to reimport the specified object from its source by giving registered reimport
@@ -51,6 +51,18 @@ public:
 	 * @return	true if the object was handled by one of the reimport handlers; false otherwise
 	 */
 	UNREALED_API virtual bool Reimport( UObject* Obj, bool bAskForNewFileIfMissing = false, bool bShowNotification = true, FString PreferedReimportFile = TEXT(""), FReimportHandler* SpecifiedReimportHandler = nullptr );
+
+	/**
+	 * Attemp to reimport all specified objects. This function will verify that all source file exist and ask the user
+	 * to decide on how the system will handle asset with missing source file path.
+	 * Choice are:
+	 * 1. Browse every missing source file path before starting the import process
+	 * 2. Skip all asset that have a missing source file path
+	 * 3. Cancel the whole reimport command
+	 *
+	 * * @param	Objs	Objects to try reimporting
+	 */
+	UNREALED_API virtual void ValidateAllSourceFileAndReimport(TArray<UObject*> &ToImportObjects);
 
 	/**
 	 * Update the reimport paths for the specified object

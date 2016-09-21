@@ -441,6 +441,7 @@ bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSh
 
 		if ( ScrollOffset != 0.0f )
 		{
+			DesiredScrollOffset = ScrollPanel->PhysicalOffset;
 			ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
 		}
 		return true;
@@ -794,7 +795,7 @@ bool SScrollBox::ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount,
 		}
 		else
 		{
-			DesiredScrollOffset = FMath::Clamp(ScrollPanel->PhysicalOffset + ScrollAmount, ScrollMin, ScrollMax);
+			DesiredScrollOffset = FMath::Clamp(DesiredScrollOffset + ScrollAmount, ScrollMin, ScrollMax);
 		}
 	}
 

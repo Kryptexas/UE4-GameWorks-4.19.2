@@ -313,7 +313,7 @@ public:
 							if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != ELandscapeToolType::Mask
 								&& EdMode->UISettings->bUseSelectedRegion && LandscapeInfo->SelectedRegion.Num() > 0)
 							{
-								float MaskValue = LandscapeInfo->SelectedRegion.FindRef(ALandscape::MakeKey(X, Y));
+								float MaskValue = LandscapeInfo->SelectedRegion.FindRef(FIntPoint(X, Y));
 								if (EdMode->UISettings->bUseNegativeMask)
 								{
 									MaskValue = 1.0f - MaskValue;
@@ -515,7 +515,7 @@ public:
 				if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != ELandscapeToolType::Mask
 					&& EdMode->UISettings->bUseSelectedRegion && LandscapeInfo->SelectedRegion.Num() > 0)
 				{
-					float MaskValue = LandscapeInfo->SelectedRegion.FindRef(ALandscape::MakeKey(X, Y));
+					float MaskValue = LandscapeInfo->SelectedRegion.FindRef(FIntPoint(X, Y));
 					if (EdMode->UISettings->bUseNegativeMask)
 					{
 						MaskValue = 1.0f - MaskValue;
@@ -762,7 +762,7 @@ public:
 						if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != ELandscapeToolType::Mask
 							&& EdMode->UISettings->bUseSelectedRegion && LandscapeInfo->SelectedRegion.Num() > 0)
 						{
-							float MaskValue = LandscapeInfo->SelectedRegion.FindRef(ALandscape::MakeKey(X, Y));
+							float MaskValue = LandscapeInfo->SelectedRegion.FindRef(FIntPoint(X, Y));
 							if (EdMode->UISettings->bUseNegativeMask)
 							{
 								MaskValue = 1.0f - MaskValue;
@@ -1114,7 +1114,7 @@ public:
 					if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != ELandscapeToolType::Mask
 						&& EdMode->UISettings->bUseSelectedRegion && LandscapeInfo->SelectedRegion.Num() > 0)
 					{
-						float MaskValue = LandscapeInfo->SelectedRegion.FindRef(ALandscape::MakeKey(X, Y));
+						float MaskValue = LandscapeInfo->SelectedRegion.FindRef(FIntPoint(X, Y));
 						if (EdMode->UISettings->bUseNegativeMask)
 						{
 							MaskValue = 1.0f - MaskValue;
@@ -1282,12 +1282,12 @@ public:
 						if (Alpha > 0.0f)
 						{
 							// Set the brush value for this vertex
-							FIntPoint VertexKey = ALandscape::MakeKey(X, Y);
+							FIntPoint VertexKey = FIntPoint(X, Y);
 
 							if (EdMode->CurrentTool && EdMode->CurrentTool->GetToolType() != ELandscapeToolType::Mask
 								&& EdMode->UISettings->bUseSelectedRegion && LandscapeInfo->SelectedRegion.Num() > 0)
 							{
-								float MaskValue = LandscapeInfo->SelectedRegion.FindRef(ALandscape::MakeKey(X, Y));
+								float MaskValue = LandscapeInfo->SelectedRegion.FindRef(FIntPoint(X, Y));
 								if (EdMode->UISettings->bUseNegativeMask)
 								{
 									MaskValue = 1.0f - MaskValue;

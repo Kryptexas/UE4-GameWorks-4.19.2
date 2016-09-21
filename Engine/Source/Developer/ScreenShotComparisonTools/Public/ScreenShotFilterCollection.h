@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Misc/FilterCollection.h"
+
 /**
 * The screen shot filter collection - used for updating the screen shot list
 */

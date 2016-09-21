@@ -959,12 +959,19 @@ bool SPinTypeSelector::GetChildrenMatchingSearch(const FText& InSearchText, cons
 		// If children match the search filter or it's an empty search, let's not do any checks against the FilterTerms
 		if ( !bHasChildrenMatchingSearch && !bIsEmptySearch)
 		{
-			FString DescriptionString =  Item->GetDescription().ToString();
-			DescriptionString = DescriptionString.Replace( TEXT( " " ), TEXT( "" ) );
-			for (int32 FilterIndex = 0; (FilterIndex < FilterTerms.Num()) && bFilterTextMatches; ++FilterIndex)
+			const FText LocalizedDescription = Item->GetDescription();
+			const FString LocalizedDescriptionString = LocalizedDescription.ToString();
+			const FString* SourceDescriptionStringPtr = FTextInspector::GetSourceString(LocalizedDescription);
+
+			// Test both the localized and source strings for a match
+			const FString MangledLocalizedDescriptionString = LocalizedDescriptionString.Replace(TEXT(" "), TEXT(""));
+			const FString MangledSourceDescriptionString = (SourceDescriptionStringPtr && *SourceDescriptionStringPtr != LocalizedDescriptionString) ? SourceDescriptionStringPtr->Replace(TEXT(" "), TEXT("")) : FString();
+
+			for (int32 FilterIndex = 0; FilterIndex < FilterTerms.Num() && bFilterTextMatches; ++FilterIndex)
 			{
-				const bool bMatchesTerm = ( DescriptionString.Contains( FilterTerms[FilterIndex] ) || ( DescriptionString.Contains( SanitizedFilterTerms[FilterIndex] ) == true ) );
-				bFilterTextMatches = bFilterTextMatches && bMatchesTerm;
+				const bool bMatchesLocalizedTerm = MangledLocalizedDescriptionString.Contains(FilterTerms[FilterIndex]) || MangledLocalizedDescriptionString.Contains(SanitizedFilterTerms[FilterIndex]);
+				const bool bMatchesSourceTerm = !MangledSourceDescriptionString.IsEmpty() && (MangledSourceDescriptionString.Contains(FilterTerms[FilterIndex]) || MangledSourceDescriptionString.Contains(SanitizedFilterTerms[FilterIndex]));
+				bFilterTextMatches = bFilterTextMatches && (bMatchesLocalizedTerm || bMatchesSourceTerm);
 			}
 		}
 		if( bHasChildrenMatchingSearch

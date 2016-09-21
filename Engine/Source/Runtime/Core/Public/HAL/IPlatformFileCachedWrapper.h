@@ -353,9 +353,9 @@ public:
 	{
 		return LowerLevel->DeleteDirectoryRecursively(Directory);
 	}
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags = EPlatformFileRead::None, EPlatformFileWrite WriteFlags = EPlatformFileWrite::None) override
 	{
-		return LowerLevel->CopyFile(To, From);
+		return LowerLevel->CopyFile(To, From, ReadFlags, WriteFlags);
 	}
 	virtual bool		CreateDirectoryTree(const TCHAR* Directory) override
 	{

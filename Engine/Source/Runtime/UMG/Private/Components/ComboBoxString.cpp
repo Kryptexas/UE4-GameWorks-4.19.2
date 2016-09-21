@@ -33,7 +33,7 @@ UComboBoxString::UComboBoxString(const FObjectInitializer& ObjectInitializer)
 	ContentPadding = FMargin(4.0, 2.0);
 	MaxListHeight = 450.0f;
 	HasDownArrow = true;
-
+	EnableGamepadNavigationMode = true;
 	// We don't want to try and load fonts on the server.
 	if ( !IsRunningDedicatedServer() )
 	{
@@ -59,6 +59,13 @@ void UComboBoxString::PostLoad()
 	{
 		AddOption(DefaultOption);
 	}
+
+	if (GetLinkerCustomVersion(FEditorObjectVersion::GUID) < FEditorObjectVersion::ComboBoxControllerSupportUpdate)
+	{
+		EnableGamepadNavigationMode = false;
+	}
+
+
 }
 
 TSharedRef<SWidget> UComboBoxString::RebuildWidget()
@@ -79,6 +86,7 @@ TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 		.ContentPadding(ContentPadding)
 		.MaxListHeight(MaxListHeight)
 		.HasDownArrow(HasDownArrow)
+		.EnableGamepadNavigationMode(EnableGamepadNavigationMode)
 		.OnGenerateWidget(BIND_UOBJECT_DELEGATE(SComboBox< TSharedPtr<FString> >::FOnGenerateWidget, HandleGenerateWidget))
 		.OnSelectionChanged(BIND_UOBJECT_DELEGATE(SComboBox< TSharedPtr<FString> >::FOnSelectionChanged, HandleSelectionChanged))
 		.OnComboBoxOpening(BIND_UOBJECT_DELEGATE(FOnComboBoxOpening, HandleOpening))

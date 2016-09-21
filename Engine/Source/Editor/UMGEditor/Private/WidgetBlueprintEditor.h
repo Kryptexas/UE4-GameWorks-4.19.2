@@ -154,6 +154,9 @@ public:
 	/** Get the current designer flags that are in effect for the current user widget we're editing. */
 	EWidgetDesignFlags::Type GetCurrentDesignerFlags() const;
 
+	bool GetShowDashedOutlines() const;
+	void SetShowDashedOutlines(bool Value);
+
 public:
 	/** Fires whenever a new widget is being hovered over */
 	FOnHoveredWidgetSet OnHoveredWidgetSet;
@@ -298,6 +301,9 @@ private:
 
 	/**  */
 	bool bIsRealTime;
+
+	/** Should the designer show outlines when it creates widgets? */
+	bool bShowDashedOutlines;
 
 	TArray< TFunction<void()> > QueuedDesignerActions;
 

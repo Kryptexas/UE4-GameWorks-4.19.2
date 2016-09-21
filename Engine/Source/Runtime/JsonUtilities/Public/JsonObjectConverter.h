@@ -72,6 +72,25 @@ public: // UStruct -> JSON
 	static bool UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent = 0, const CustomExportCallback* ExportCb = nullptr, bool bPrettyPrint = true);
 
 	/**
+	 * Templated version; Converts from a UStruct to a json string containing an object, using exportText
+	 *
+	 * @param Struct The UStruct instance to copy out of
+	 * @param JsonObject Json Object to be filled in with data from the ustruct
+	 * @param CheckFlags Only convert properties that match at least one of these flags. If 0 check all properties.
+	 * @param SkipFlags Skip properties that match any of these flags
+	 * @param Indent How many tabs to add to the json serializer
+	 * @param ExportCb Optional callback for types we don't understand. This is called right before falling back to the generic ToString()
+	 * @param bPrettyPrint Option to use pretty print (e.g., adds line endings) or condensed print
+	 *
+	 * @return False if any properties failed to write
+	 */
+	template<typename InStructType>
+	static bool UStructToJsonObjectString(const InStructType& InStruct, FString& OutJsonString, int64 CheckFlags = 0, int64 SkipFlags = 0, int32 Indent = 0, const CustomExportCallback* ExportCb = nullptr, bool bPrettyPrint = true)
+	{
+		return UStructToJsonObjectString(InStructType::StaticStruct(), &InStruct, OutJsonString, CheckFlags, SkipFlags, Indent, ExportCb, bPrettyPrint);
+	}
+
+	/**
 	 * Wrapper to UStructToJsonObjectString that allows a print policy to be specified.
 	 */
 	template<typename CharType, template<typename> class PrintPolicy>

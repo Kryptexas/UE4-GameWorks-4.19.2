@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "UnrealEngine.h"
@@ -932,7 +931,9 @@ UMaterialExpressionLandscapeGrassOutput::UMaterialExpressionLandscapeGrassOutput
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.STRING_Landscape);
+#endif
 
 	// No outputs
 	Outputs.Reset();
@@ -2115,7 +2116,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										HierarchicalInstancedStaticMeshComponent->StaticMesh = GrassVariety.GrassMesh;
 										HierarchicalInstancedStaticMeshComponent->MinLOD = GrassVariety.MinLOD;
 										HierarchicalInstancedStaticMeshComponent->bSelectable = false;
-										HierarchicalInstancedStaticMeshComponent->bHasPerInstanceHitProxies = true;
+										HierarchicalInstancedStaticMeshComponent->bHasPerInstanceHitProxies = false;
 										HierarchicalInstancedStaticMeshComponent->bReceivesDecals = GrassVariety.bReceivesDecals;
 										static FName NoCollision(TEXT("NoCollision"));
 										HierarchicalInstancedStaticMeshComponent->SetCollisionProfileName(NoCollision);

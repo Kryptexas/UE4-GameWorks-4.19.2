@@ -721,6 +721,8 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 		TArray<AActor*> ReferencingActors;
 		TArray<UClass*> ClassTypesToIgnore;
 		ClassTypesToIgnore.Add( ALevelScriptActor::StaticClass() );
+		// The delete warning is meant for actor referneces that affect gameplay.  Group actors do not affect gameplay and should not show up as a warning.
+		ClassTypesToIgnore.Add( AGroupActor::StaticClass() );
 		FBlueprintEditorUtils::FindActorsThatReferenceActor( Actor, ClassTypesToIgnore, ReferencingActors );
 
 		bool bReferencedByLevelScript = (NULL != LSB && FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(LSB, Actor) > 0);

@@ -5965,6 +5965,8 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bSho
 #if WITH_EDITOR
 void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
+	Super::GetAssetRegistryTags(OutTags);
+
 	if(PersistentLevel && PersistentLevel->OwningWorld)
 	{
 		TArray<UBlueprint*> LevelBlueprints = PersistentLevel->GetLevelBlueprints();

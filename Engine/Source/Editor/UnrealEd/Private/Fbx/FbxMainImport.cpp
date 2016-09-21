@@ -67,6 +67,9 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 		ImportUI->bImportMesh = ImportUI->MeshTypeToImport != FBXIT_Animation;
 		ImportUI->bIsObjImport = bIsObjFormat;
 
+		//This option must always be the same value has the skeletalmesh one.
+		ImportUI->AnimSequenceImportData->bImportMeshesInBoneHierarchy = ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy;
+
 		TSharedPtr<SWindow> ParentWindow;
 
 		if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
@@ -100,6 +103,15 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			ImportOptions->bBakePivotInVertex = false;
 			ImportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
 			ImportOptions->bTransformVertexToAbsolute = true;
+			//when user import animation only we must get duplicate "bImportMeshesInBoneHierarchy" option from ImportUI anim sequence data
+			if (!ImportUI->bImportMesh && ImportUI->bImportAnimations)
+			{
+				ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy = ImportUI->AnimSequenceImportData->bImportMeshesInBoneHierarchy;
+			}
+			else
+			{
+				ImportUI->AnimSequenceImportData->bImportMeshesInBoneHierarchy = ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy;
+			}
 		}
 
 		ImportUI->SaveConfig();
@@ -162,9 +174,20 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	check(ImportUI);
 	InOutImportOptions.bImportMaterials = ImportUI->bImportMaterials;
 	InOutImportOptions.bInvertNormalMap = ImportUI->TextureImportData->bInvertNormalMaps;
+	UMaterialInterface* BaseMaterialInterface = Cast<UMaterialInterface>(ImportUI->TextureImportData->BaseMaterialName.TryLoad());
+	if (BaseMaterialInterface) {
+		InOutImportOptions.BaseMaterial = BaseMaterialInterface;
+		InOutImportOptions.BaseColorName = ImportUI->TextureImportData->BaseColorName;
+		InOutImportOptions.BaseDiffuseTextureName = ImportUI->TextureImportData->BaseDiffuseTextureName;
+		InOutImportOptions.BaseNormalTextureName = ImportUI->TextureImportData->BaseNormalTextureName;
+		InOutImportOptions.BaseEmmisiveTextureName = ImportUI->TextureImportData->BaseEmmisiveTextureName;
+		InOutImportOptions.BaseSpecularTextureName = ImportUI->TextureImportData->BaseSpecularTextureName;
+		InOutImportOptions.BaseEmissiveColorName = ImportUI->TextureImportData->BaseEmissiveColorName;
+	}
 	InOutImportOptions.bImportTextures = ImportUI->bImportTextures;
 	InOutImportOptions.bUsedAsFullName = ImportUI->bOverrideFullName;
 	InOutImportOptions.bConvertScene = ImportUI->bConvertScene;
+	InOutImportOptions.bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
 
@@ -970,6 +993,14 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 					}
 				}
 
+				// Convert the scene's units to what is used in this program, if needed.
+				// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
+				// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
+				if (GetImportOptions()->bConvertSceneUnit && Scene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::cm)
+				{
+					FbxSystemUnit::cm.ConvertScene(Scene);
+				}
+
 				// do analytics on getting Fbx data
 				FbxDocumentInfo* DocInfo = Scene->GetSceneInfo();
 				if (DocInfo)
@@ -999,14 +1030,6 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 					}
 				}
 			}
-
-			// Convert the scene's units to what is used in this program, if needed.
-			// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
-			// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
-			//if( FbxScene->GetGlobalSettings().GetSystemUnit().GetScaleFactor() != 1.0 )
-			//{
-			//	KFbxSystemUnit::cm.ConvertScene( FbxScene );
-			//}
 
 			//Warn the user if there is some geometry that cannot be imported because they are not reference by any scene node attribute
 			ValidateAllMeshesAreReferenceByNodeAttribute();
@@ -1553,6 +1576,8 @@ void FFbxImporter::ApplyTransformSettingsToFbxNode(FbxNode* Node, UFbxAssetImpor
 	Node->LclTranslation.Set(NewTranslation);
 	Node->LclRotation.Set(NewRotation);
 	Node->LclScaling.Set(NewScaling);
+	//Reset all the transform evaluation cache since we change some node transform
+	Scene->GetAnimationEvaluator()->Reset();
 }
 
 
@@ -1581,6 +1606,8 @@ void FFbxImporter::RemoveTransformSettingsFromFbxNode(FbxNode* Node, UFbxAssetIm
 	Node->LclTranslation.Set(NewTranslation);
 	Node->LclRotation.Set(NewRotation);
 	Node->LclScaling.Set(NewScaling);
+	//Reset all the transform evaluation cache since we change some node transform
+	Scene->GetAnimationEvaluator()->Reset();
 }
 
 

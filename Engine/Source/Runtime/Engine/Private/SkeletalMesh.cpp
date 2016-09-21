@@ -29,6 +29,7 @@
 #include "Engine/AssetUserData.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimInstance.h"
+#include "EditorObjectVersion.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
@@ -1212,7 +1213,9 @@ struct FLegacyRigidSkinVertex
 
 // Serialization.
 FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
-{		
+{
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+
 	// When data is cooked for server platform some of the
 	// variables are not serialized so that they're always
 	// set to their initial values (for safety)
@@ -1255,6 +1258,15 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 	if (Ar.CustomVer(FRecomputeTangentCustomVersion::GUID) >= FRecomputeTangentCustomVersion::RuntimeRecomputeTangent)
 	{
 		Ar << S.bRecomputeTangent;
+	}
+
+	if (Ar.CustomVer(FEditorObjectVersion::GUID) >= FEditorObjectVersion::RefactorMeshEditorMaterials)
+	{
+		Ar << S.bCastShadow;
+	}
+	else
+	{
+		S.bCastShadow = true;
 	}
 
 	if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) >= FSkeletalMeshCustomVersion::CombineSectionWithChunk)
@@ -2922,6 +2934,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
 
 	FStripDataFlags StripFlags( Ar );
 
@@ -3042,6 +3055,13 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		Ar << BodySetup;
 	}
 
+#if WITH_EDITORONLY_DATA
+	if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::RefactorMeshEditorMaterials)
+	{
+		MoveMaterialFlagsToSections();
+	}
+#endif
+
 #if WITH_APEX_CLOTHING && WITH_EDITORONLY_DATA
 	if(GIsEditor && Ar.IsLoading() && Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::AddInternalClothingGraphicalSkinning)
 	{
@@ -3049,6 +3069,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		ApexClothingUtils::ReapplyClothingDataToSkeletalMesh(this);
 	}
 #endif
+
 }
 
 void USkeletalMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -3719,7 +3740,7 @@ void USkeletalMesh::MoveDeprecatedShadowFlagToMaterials()
 	{
 		for ( auto Material = Materials.CreateIterator(); Material; ++Material )
 		{
-			Material->bEnableShadowCasting = true;
+			Material->bEnableShadowCasting_DEPRECATED = true;
 		}
 
 		return;
@@ -3755,7 +3776,7 @@ void USkeletalMesh::MoveDeprecatedShadowFlagToMaterials()
 		// All the same, so just copy the shadow casting flag to all materials
 		for ( auto Material = Materials.CreateIterator(); Material; ++Material )
 		{
-			Material->bEnableShadowCasting = PerLodShadowFlags.Num() ? PerLodShadowFlags[0] : true;
+			Material->bEnableShadowCasting_DEPRECATED = PerLodShadowFlags.Num() ? PerLodShadowFlags[0] : true;
 		}
 	}
 	else
@@ -3772,7 +3793,7 @@ void USkeletalMesh::MoveDeprecatedShadowFlagToMaterials()
 
 			for ( int32 i = 0; i < Resource->LODModels[LODIndex].Sections.Num(); ++i )
 			{
-				NewMaterialArray.Add( FSkeletalMaterial( Materials[ Resource->LODModels[LODIndex].Sections[i].MaterialIndex ].MaterialInterface, LODInfo[LODIndex].bEnableShadowCasting_DEPRECATED[i] ) );
+				NewMaterialArray.Add( FSkeletalMaterial( Materials[ Resource->LODModels[LODIndex].Sections[i].MaterialIndex ].MaterialInterface, LODInfo[LODIndex].bEnableShadowCasting_DEPRECATED[i], false, NAME_None, NAME_None ) );
 			}
 		}
 
@@ -3789,6 +3810,38 @@ void USkeletalMesh::MoveDeprecatedShadowFlagToMaterials()
 			{
 				Resource->LODModels[LODIndex].Sections[i].MaterialIndex = NewIndex;
 				++NewIndex;
+			}
+		}
+	}
+}
+
+void USkeletalMesh::MoveMaterialFlagsToSections()
+{
+	//No LOD we cant set the value
+	if (LODInfo.Num() == 0)
+	{
+		return;
+	}
+
+	for (FStaticLODModel &StaticLODModel : ImportedResource->LODModels)
+	{
+		for (int32 SectionIndex = 0; SectionIndex < StaticLODModel.Sections.Num(); ++SectionIndex)
+		{
+			FSkelMeshSection &Section = StaticLODModel.Sections[SectionIndex];
+			//Prior to FEditorObjectVersion::RefactorMeshEditorMaterials Material index match section index
+			if (Materials.IsValidIndex(SectionIndex))
+			{
+				Section.bCastShadow = Materials[SectionIndex].bEnableShadowCasting_DEPRECATED;
+
+				Section.bRecomputeTangent = Materials[SectionIndex].bRecomputeTangent_DEPRECATED;
+			}
+			else
+			{
+				//Default cast shadow to true this is a fail safe code path it should not go here if the data
+				//is valid
+				Section.bCastShadow = true;
+				//Recompute tangent is serialize prior to FEditorObjectVersion::RefactorMeshEditorMaterials
+				// We just keep the serialize value
 			}
 		}
 	}
@@ -3814,8 +3867,7 @@ bool USkeletalMesh::AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const
 
 bool operator== ( const FSkeletalMaterial& LHS, const FSkeletalMaterial& RHS )
 {
-	return ( LHS.MaterialInterface == RHS.MaterialInterface && 
-		LHS.bEnableShadowCasting == RHS.bEnableShadowCasting );
+	return ( LHS.MaterialInterface == RHS.MaterialInterface );
 }
 
 bool operator== ( const FSkeletalMaterial& LHS, const UMaterialInterface& RHS )
@@ -3828,20 +3880,38 @@ bool operator== ( const UMaterialInterface& LHS, const FSkeletalMaterial& RHS )
 	return ( RHS.MaterialInterface == &LHS );
 }
 
-FArchive& operator<<( FArchive& Ar, FSkeletalMaterial& Elem )
+FArchive& operator<<(FArchive& Ar, FSkeletalMaterial& Elem)
 {
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+
 	Ar << Elem.MaterialInterface;
 
-	if ( Ar.UE4Ver() >= VER_UE4_MOVE_SKELETALMESH_SHADOWCASTING )
+	//Use the automatic serialization instead of this custom operator
+	if (Ar.CustomVer(FEditorObjectVersion::GUID) >= FEditorObjectVersion::RefactorMeshEditorMaterials)
 	{
-		Ar << Elem.bEnableShadowCasting;
+		Ar << Elem.MaterialSlotName;
+#if WITH_EDITORONLY_DATA
+		if (!Ar.IsCooking() || Ar.CookingTarget()->HasEditorOnlyData())
+		{
+			Ar << Elem.ImportedMaterialSlotName;
+		}
+#endif //#if WITH_EDITORONLY_DATA
 	}
+	else
+	{
+		if (Ar.UE4Ver() >= VER_UE4_MOVE_SKELETALMESH_SHADOWCASTING)
+		{
+			Ar << Elem.bEnableShadowCasting_DEPRECATED;
+		}
 
-	Ar.UsingCustomVersion(FRecomputeTangentCustomVersion::GUID);
-	if (Ar.CustomVer(FRecomputeTangentCustomVersion::GUID) >= FRecomputeTangentCustomVersion::RuntimeRecomputeTangent)
-	{
-		Ar << Elem.bRecomputeTangent;
+		Ar.UsingCustomVersion(FRecomputeTangentCustomVersion::GUID);
+		if (Ar.CustomVer(FRecomputeTangentCustomVersion::GUID) >= FRecomputeTangentCustomVersion::RuntimeRecomputeTangent)
+		{
+			Ar << Elem.bRecomputeTangent_DEPRECATED;
+		}
 	}
+	
+	
 
 	return Ar;
 }
@@ -4902,7 +4972,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 			}
 
 			bool bSectionCastsShadow = !bSectionHidden && bCastShadow &&
-				(Component->SkeletalMesh->Materials.IsValidIndex(UseMaterialIndex) == false || Component->SkeletalMesh->Materials[UseMaterialIndex].bEnableShadowCasting);
+				(Component->SkeletalMesh->Materials.IsValidIndex(UseMaterialIndex) == false || Section.bCastShadow);
 
 			bAnySectionCastsShadow |= bSectionCastsShadow;
 			LODSection.SectionElements.Add(

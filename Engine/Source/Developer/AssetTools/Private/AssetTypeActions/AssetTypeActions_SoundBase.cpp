@@ -84,7 +84,7 @@ void FAssetTypeActions_SoundBase::AssetsActivated( const TArray<UObject*>& InObj
 	}
 }
 
-void FAssetTypeActions_SoundBase::ExecutePlaySound(TArray<TWeakObjectPtr<USoundBase>> Objects)
+void FAssetTypeActions_SoundBase::ExecutePlaySound(TArray<TWeakObjectPtr<USoundBase>> Objects) const
 {
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
@@ -98,12 +98,12 @@ void FAssetTypeActions_SoundBase::ExecutePlaySound(TArray<TWeakObjectPtr<USoundB
 	}
 }
 
-void FAssetTypeActions_SoundBase::ExecuteStopSound(TArray<TWeakObjectPtr<USoundBase>> Objects)
+void FAssetTypeActions_SoundBase::ExecuteStopSound(TArray<TWeakObjectPtr<USoundBase>> Objects) const
 {
 	StopSound();
 }
 
-void FAssetTypeActions_SoundBase::PlaySound(USoundBase* Sound)
+void FAssetTypeActions_SoundBase::PlaySound(USoundBase* Sound) const
 {
 	if ( Sound )
 	{
@@ -115,9 +115,26 @@ void FAssetTypeActions_SoundBase::PlaySound(USoundBase* Sound)
 	}
 }
 
-void FAssetTypeActions_SoundBase::StopSound()
+void FAssetTypeActions_SoundBase::StopSound() const
 {
 	GEditor->ResetPreviewAudioComponent();
+}
+
+bool FAssetTypeActions_SoundBase::IsSoundPlaying(TArray<TWeakObjectPtr<USoundBase>> Objects) const
+{
+	UAudioComponent* PreviewComp = GEditor->GetPreviewAudioComponent();
+	if (PreviewComp)
+	{
+		for (TWeakObjectPtr<USoundBase> SoundItem : Objects)
+		{
+			if (PreviewComp->Sound == SoundItem && PreviewComp->IsPlaying())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

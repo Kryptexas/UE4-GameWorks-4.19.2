@@ -37,6 +37,8 @@ const FName FSimpleAssetEditor::SimpleEditorAppIdentifier( TEXT( "GenericEditorA
 
 FSimpleAssetEditor::~FSimpleAssetEditor()
 {
+	FEditorDelegates::OnAssetPostImport.RemoveAll(this);
+
 	DetailsView.Reset();
 	PropertiesTab.Reset();
 }
@@ -47,6 +49,9 @@ void FSimpleAssetEditor::InitEditor( const EToolkitMode::Type Mode, const TShare
 	const bool bIsUpdatable = false;
 	const bool bAllowFavorites = true;
 	const bool bIsLockable = false;
+
+	EditingObjects = ObjectsToEdit;
+	FEditorDelegates::OnAssetPostImport.AddRaw(this, &FSimpleAssetEditor::HandleAssetPostImport);
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 	const FDetailsViewArgs DetailsViewArgs( bIsUpdatable, bIsLockable, true, FDetailsViewArgs::ObjectsUseNameArea, false );
@@ -245,6 +250,15 @@ TSharedRef<SDockTab> FSimpleAssetEditor::SpawnPropertiesTab( const FSpawnTabArgs
 		[
 			DetailsView.ToSharedRef()
 		];
+}
+
+void FSimpleAssetEditor::HandleAssetPostImport(UFactory* InFactory, UObject* InObject)
+{
+	if (EditingObjects.Contains(InObject))
+	{
+		// The details panel likely needs to be refreshed if an asset was imported again
+		DetailsView->SetObjects(EditingObjects);
+	}
 }
 
 FString FSimpleAssetEditor::GetWorldCentricTabPrefix() const

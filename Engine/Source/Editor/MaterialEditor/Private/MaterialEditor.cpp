@@ -3391,7 +3391,7 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 
 			UMaterialExpression* NewExpression = GraphNode->MaterialExpression;
 			NewExpression->Material = Material;
-			NewExpression->Function = NULL;
+			NewExpression->Function = MaterialFunction;
 			Material->Expressions.Add(NewExpression);
 
 			// There can be only one default mesh paint texture.
@@ -3441,6 +3441,7 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 		{
 			CommentNode->MaterialDirtyDelegate = Material->MaterialGraph->MaterialDirtyDelegate;
 			CommentNode->MaterialExpressionComment->Material = Material;
+			CommentNode->MaterialExpressionComment->Function = MaterialFunction;
 			Material->EditorComments.Add(CommentNode->MaterialExpressionComment);
 		}
 

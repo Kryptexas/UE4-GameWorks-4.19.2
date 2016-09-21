@@ -433,4 +433,9 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "umap"))
 	TArray<FLaunchOnTestSettings> LaunchOnSettings;
 
+	/**
+	 * The default resolution to take all automation screenshots at.
+	 */
+	UPROPERTY(EditAnywhere, config, Category=Screenshots)
+	FIntPoint DefaultScreenshotResolution;
 };

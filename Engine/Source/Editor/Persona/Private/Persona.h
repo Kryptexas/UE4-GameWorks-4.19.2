@@ -288,6 +288,7 @@ protected:
 
 	//~ Begin FAssetEditorToolkit Interface
 	virtual void FindInContentBrowser_Execute() override;
+	virtual void SaveAsset_Execute() override;
 	// End of FAssetEditorToolkit
 
 	// Generic Command handlers

@@ -41,6 +41,7 @@ void UFbxSceneImportOptionsSkeletalMesh::FillSkeletalMeshInmportData(UFbxSkeleta
 	
 	SkeletalMeshImportData->bImportAsScene = true;
 
+	AnimSequenceImportData->bImportMeshesInBoneHierarchy = bImportMeshesInBoneHierarchy;
 	AnimSequenceImportData->AnimationLength = AnimationLength;
 	AnimSequenceImportData->bDeleteExistingMorphTargetCurves = bDeleteExistingMorphTargetCurves;
 	AnimSequenceImportData->bImportCustomAttribute = bImportCustomAttribute;

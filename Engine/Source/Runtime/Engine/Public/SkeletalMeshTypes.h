@@ -337,6 +337,9 @@ struct FSkelMeshSection
 	/** This section will recompute tangent in runtime */
 	bool bRecomputeTangent;
 
+	/** This section will cast shadow */
+	bool bCastShadow;
+
 	/** This Section can be disabled for cloth simulation and corresponding Cloth Section will be enabled*/
 	bool bDisabled;
 	
@@ -387,6 +390,7 @@ struct FSkelMeshSection
 		, TriangleSorting(0)
 		, bSelected(false)
 		, bRecomputeTangent(false)
+		, bCastShadow(true)
 		, bDisabled(false)
 		, CorrespondClothSectionIndex(-1)
 		, BaseVertexIndex(0)

@@ -241,6 +241,8 @@ void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)
 			OwnerWidget->OnTextChanged(NewText);
 		}
 	}
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 FText FSlateEditableTextLayout::GetText() const
@@ -263,6 +265,8 @@ void FSlateEditableTextLayout::SetHintText(const TAttribute<FText>& InHintText)
 	{
 		HintTextLayout.Reset();
 	}
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 FText FSlateEditableTextLayout::GetHintText() const
@@ -361,6 +365,8 @@ bool FSlateEditableTextLayout::SetEditableText(const FText& TextToSet, const boo
 			}
 		}
 
+		OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::Layout);
+
 		return true;
 	}
 
@@ -406,36 +412,50 @@ void FSlateEditableTextLayout::SetTextWrapping(const TAttribute<float>& InWrapTe
 	WrapTextAt = InWrapTextAt;
 	AutoWrapText = InAutoWrapText;
 	WrappingPolicy = InWrappingPolicy;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
 {
 	WrapTextAt = InWrapTextAt;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 {
 	AutoWrapText = InAutoWrapText;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy)
 {
 	WrappingPolicy = InWrappingPolicy;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetMargin(const TAttribute<FMargin>& InMargin)
 {
 	Margin = InMargin;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
 {
 	Justification = InJustification;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
 {
 	LineHeightPercentage = InLineHeightPercentage;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo)
@@ -597,6 +617,9 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 	// of making sure that gets scrolled into view
 	PositionToScrollIntoView.Reset();
 
+	// Focus change affects volatility, so update that too
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+
 	return true;
 }
 
@@ -661,6 +684,9 @@ bool FSlateEditableTextLayout::HandleFocusLost(const FFocusEvent& InFocusEvent)
 	// UpdateCursorHighlight always tries to scroll to the cursor, but we don't want that to happen when we 
 	// lose focus since it can cause the scroll position to jump unexpectedly
 	PositionToScrollIntoView.Reset();
+
+	// Focus change affects volatility, so update that too
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 
 	return true;
 }
@@ -2919,6 +2945,18 @@ void FSlateEditableTextLayout::LoadText()
 		SetText(BoundText);
 		TextLayout->UpdateIfNeeded();
 	}
+}
+
+bool FSlateEditableTextLayout::ComputeVolatility() const
+{
+	return BoundText.IsBound()
+		|| HintText.IsBound()
+		|| WrapTextAt.IsBound()
+		|| AutoWrapText.IsBound()
+		|| WrappingPolicy.IsBound()
+		|| Margin.IsBound()
+		|| Justification.IsBound()
+		|| LineHeightPercentage.IsBound();
 }
 
 void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)

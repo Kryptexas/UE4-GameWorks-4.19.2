@@ -504,28 +504,36 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 
 	checkSlow( IsThreadSafeForSlateRendering() );
 
-	FSlateShaderResourceProxy* Texture = NULL;
-	if( !InBrush.IsDynamicallyLoaded() && !InBrush.HasUObject() )
+	UObject* ResourceObject = InBrush.GetResourceObject();
+	FSlateShaderResourceProxy* Resource = nullptr;
+	if( ResourceObject != nullptr && ResourceObject->HasAnyFlags(RF_BeginDestroyed))
 	{
-		Texture = ResourceMap.FindRef( InBrush.GetResourceName() );
+		UE_LOG(LogSlate, Warning, TEXT("Attempted to access resource for %s which is being destroyed"), *ResourceObject->GetName());
 	}
-	else if (InBrush.GetResourceObject() && InBrush.GetResourceObject()->IsA<UMaterialInterface>())
+	else
 	{
-		FSlateMaterialResource* Resource = GetMaterialResource(InBrush.GetResourceObject(), InBrush.ImageSize, nullptr, 0);
-		Texture = Resource->SlateProxy;
-	}
-	else if( InBrush.IsDynamicallyLoaded() || ( InBrush.HasUObject() ) )
-	{
-		if( InBrush.HasUObject() && InBrush.GetResourceObject() == nullptr )
+		if(!InBrush.IsDynamicallyLoaded() && !InBrush.HasUObject())
 		{
-			// Hack for loading via the deprecated path
-			LoadUObjectForBrush( InBrush );
+			Resource = ResourceMap.FindRef(InBrush.GetResourceName());
 		}
+		else if(ResourceObject && ResourceObject->IsA<UMaterialInterface>())
+		{
+			FSlateMaterialResource* MaterialResource = GetMaterialResource(ResourceObject, InBrush.ImageSize, nullptr, 0);
+			Resource = MaterialResource->SlateProxy;
+		}
+		else if(InBrush.IsDynamicallyLoaded() || (InBrush.HasUObject()))
+		{
+			if(InBrush.HasUObject() && ResourceObject == nullptr)
+			{
+				// Hack for loading via the deprecated path
+				LoadUObjectForBrush(InBrush);
+			}
 
-		Texture = FindOrCreateDynamicTextureResource( InBrush );
+			Resource = FindOrCreateDynamicTextureResource(InBrush);
+		}
 	}
 
-	return Texture;
+	return Resource;
 }
 
 FSlateShaderResource* FSlateRHIResourceManager::GetFontShaderResource( int32 InTextureAtlasIndex, FSlateShaderResource* FontTextureAtlas, const class UObject* FontMaterial )

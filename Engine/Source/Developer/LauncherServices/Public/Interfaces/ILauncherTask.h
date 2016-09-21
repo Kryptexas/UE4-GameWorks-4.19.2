@@ -119,4 +119,18 @@ public:
 	 * @return the delegate
 	 */
 	virtual FOnTaskCompletedDelegate& OnCompleted() = 0;
+
+	/**
+	 * Gets the amount of errors that were generated during this task
+	 *
+	 * @return the amount
+	 */
+	virtual uint32 GetErrorCount() const = 0;
+
+	/**
+	 * Gets the amount of warnings that were generated during this task
+	 *
+	 * @return the amount
+	 */
+	virtual uint32 GetWarningCount() const = 0;
 };

@@ -6099,21 +6099,13 @@ void FSequencer::ImportFBX()
 
 void FSequencer::ExportFBX()
 {
-	void* ParentWindowWindowHandle = nullptr;
-	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( TEXT( "MainFrame" ) );
-	const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-	if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-	{
-		ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-	}
-
 	TArray<FString> SaveFilenames;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	bool bExportFileNamePicked = false;
 	if ( DesktopPlatform != NULL )
 	{
 		bExportFileNamePicked = DesktopPlatform->SaveFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			LOCTEXT( "ExportLevelSequence", "Export Level Sequence" ).ToString(),
 			*( FEditorDirectories::Get().GetLastDirectory( ELastDirectory::FBX ) ),
 			TEXT( "" ),

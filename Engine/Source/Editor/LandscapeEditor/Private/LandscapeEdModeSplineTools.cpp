@@ -4,6 +4,7 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
+#include "LandscapeStreamingProxy.h"
 #include "LandscapeEdit.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"

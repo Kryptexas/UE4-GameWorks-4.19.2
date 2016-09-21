@@ -212,6 +212,7 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->ImportUniformScale = 1.0f;
 
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bConvertSceneUnit = true;
 
 
 	TSharedPtr<SWindow> ParentWindow;
@@ -352,6 +353,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 
 	//Always convert the scene
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bConvertSceneUnit = true;
 	GlobalImportSettings->bImportScene = ReimportData->bImportScene;
 	if (ReimportData->NameOptionsMap.Contains(DefaultOptionName))
 	{

@@ -238,6 +238,14 @@ struct CORE_API FGenericPlatformStackWalk
 		return 0;
 	}
 
+	/**
+	 * Gets the meta-data associated with all symbols of this target.
+	 * This may include things that are needed to perform further offline processing of symbol information (eg, the source binary).
+	 *
+	 * @return	A map containing the meta-data (if any).
+	 */
+	static TMap<FName, FString> GetSymbolMetaData();
+
 protected:
 
 	/** Returns true if non-monolithic builds should produce full callstacks in the log (and load all debug symbols) */

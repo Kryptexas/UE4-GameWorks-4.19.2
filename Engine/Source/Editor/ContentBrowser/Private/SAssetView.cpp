@@ -2659,6 +2659,19 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton
 			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowCppClassesOption", "Show C++ Classes"),
+			LOCTEXT("ShowCppClassesOptionToolTip", "Shows C++ Class folders in the folder browser."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::ToggleShowCppFolders ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsShowingCppFolders )
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
 	}
 	MenuBuilder.EndSection();
 
@@ -2844,6 +2857,18 @@ bool SAssetView::IsToggleShowCollectionsAllowed() const
 bool SAssetView::IsShowingCollections() const
 {
 	return GetDefault<UContentBrowserSettings>()->GetDisplayCollections();
+}
+
+void SAssetView::ToggleShowCppFolders()
+{
+	const bool bDisplayCppFolders = GetDefault<UContentBrowserSettings>()->GetDisplayCppFolders();
+	GetMutableDefault<UContentBrowserSettings>()->SetDisplayCppFolders(!bDisplayCppFolders);
+	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+}
+
+bool SAssetView::IsShowingCppFolders() const
+{
+	return GetDefault<UContentBrowserSettings>()->GetDisplayCppFolders();
 }
 
 void SAssetView::SetCurrentViewType(EAssetViewType::Type NewType)

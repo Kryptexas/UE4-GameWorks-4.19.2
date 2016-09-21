@@ -591,7 +591,7 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 	}
 
 	// Change GWorld to be the play in editor world during cleanup.
-	check( EditorWorld == GWorld );
+	ensureMsgf( EditorWorld == GWorld, TEXT("TearDownPlaySession current world: %s"), GWorld ? *GWorld->GetName() : TEXT("No World"));
 	GWorld = PlayWorld;
 	GIsPlayInEditorWorld = true;
 	
@@ -1337,7 +1337,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 		GameNameOrProjectFile = FApp::GetGameName();
 	}
 
-	FString AdditionalParameters(TEXT(" -windowed -messaging -SessionName=\"Play in Standalone Game\""));
+	FString AdditionalParameters(TEXT(" -messaging -SessionName=\"Play in Standalone Game\""));
 	bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
 	if (bRunningDebug)
 	{
@@ -1375,6 +1375,13 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	{
 		AdditionalParameters += TEXT(" ");
 		AdditionalParameters += PlayInSettings->AdditionalLaunchParameters;
+	}
+
+	// Decide if fullscreen or windowed based on what is specified in the params
+	if (!AdditionalParameters.Contains(TEXT("-fullscreen")) && !AdditionalParameters.Contains(TEXT("-windowed")))
+	{
+		// Nothing specified fallback to window otherwise keep what is specified
+		AdditionalParameters += TEXT(" -windowed");		
 	}
 
 	FIntPoint WinSize(0, 0);

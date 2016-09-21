@@ -2,7 +2,6 @@
 
 #pragma once
 
-
 /** Flags for specifying automation test requirements/behavior */
 namespace EAutomationTestFlags
 {
@@ -429,15 +428,86 @@ public:
 	virtual void Run() = 0;
 };
 
+struct FAutomationScreenshotData
+{
+	FString Name;
+	FString Context;
+
+	int32 Width;
+	int32 Height;
+
+	// RHI Details
+	FString Platform;
+	FString Rhi;
+	FString FeatureLevel;
+	bool bIsStereo;
+
+	// Hardware Details
+	FString Vendor;
+	FString AdapterName;
+	FString AdapterInternalDriverVersion;
+	FString AdapterUserDriverVersion;
+	FString UniqueDeviceId;
+
+	// Quality Levels
+	float ResolutionQuality;
+	int32 ViewDistanceQuality;
+	int32 AntiAliasingQuality;
+	int32 ShadowQuality;
+	int32 PostProcessQuality;
+	int32 TextureQuality;
+	int32 EffectsQuality;
+	int32 FoliageQuality;
+
+	// Comparison Requests
+	bool bHasComparisonRules;
+	uint8 ToleranceRed;
+	uint8 ToleranceGreen;
+	uint8 ToleranceBlue;
+	uint8 ToleranceAlpha;
+	uint8 ToleranceMinBrightness;
+	uint8 ToleranceMaxBrightness;
+	float MaximumAllowedError;
+	bool bIgnoreAntiAliasing;
+	bool bIgnoreColors;
+
+	FString Path;
+
+	FAutomationScreenshotData()
+		: Width(0)
+		, Height(0)
+		, bIsStereo(false)
+		, ResolutionQuality(1.0f)
+		, ViewDistanceQuality(0)
+		, AntiAliasingQuality(0)
+		, ShadowQuality(0)
+		, PostProcessQuality(0)
+		, TextureQuality(0)
+		, EffectsQuality(0)
+		, FoliageQuality(0)
+		, bHasComparisonRules(false)
+		, ToleranceRed(0)
+		, ToleranceGreen(0)
+		, ToleranceBlue(0)
+		, ToleranceAlpha(0)
+		, ToleranceMinBrightness(0)
+		, ToleranceMaxBrightness(255)
+		, MaximumAllowedError(0.0f)
+		, bIgnoreAntiAliasing(false)
+		, bIgnoreColors(false)
+	{
+	}
+};
+
+
+
 /**
  * Delegate type for when a test screenshot has been captured
  *
- * The first parameter is the width.
- * The second parameter is the height.
- * The third parameter is the array of bitmap data.
- * The fourth parameter is the screen shot filename.
+ * The first parameter is the array of the raw color data.
+ * The second parameter is the image metadata.
  */
-DECLARE_DELEGATE_FourParams(FOnTestScreenshotCaptured, int32, int32, const TArray<FColor>&, const FString&);
+DECLARE_DELEGATE_TwoParams(FOnTestScreenshotCaptured, const TArray<FColor>&, const FAutomationScreenshotData&);
 
 /** Class representing the main framework for running automation tests */
 class CORE_API FAutomationTestFramework
@@ -453,7 +523,8 @@ public:
 	 *
 	 * @return The singleton instance of the framework.
 	 */
-	static FAutomationTestFramework& GetInstance();
+	static FAutomationTestFramework& Get();
+	static FAutomationTestFramework& GetInstance() { return Get(); }
 
 	/**
 	 * Register a automation test into the framework. The automation test may or may not be necessarily valid
@@ -578,19 +649,13 @@ public:
 	/**
 	 * Sets screenshot options
 	 * @param bInScreenshotsEnabled - If screenshots are enabled
-	 * @param bInUseFullSizeScreenshots - If true, we won't resize the screenshots
 	 */
-	void SetScreenshotOptions( const bool bInScreenshotsEnabled, const bool bInUseFullSizeScreenshots );
+	void SetScreenshotOptions( const bool bInScreenshotsEnabled );
 
 	/**
 	 * Gets if screenshots are allowed
 	 */
 	bool IsScreenshotAllowed() const;
-
-	/**
-	 * Gets if we are using fulll size screenshots
-	 */
-	bool ShouldUseFullSizeScreenshots() const;
 
 	/**
 	 * Sets forcing smoke tests.
@@ -728,9 +793,6 @@ private:
 	/** Wheather screenshots are enabled */
 	bool bScreenshotsEnabled;
 
-	/** Wheather we should resize screenshots or not */
-	bool bUseFullSizeScreenShots;
-
 	/** Participation role as given by the automation controller */
 	uint32 NetworkRoleIndex;
 
@@ -757,14 +819,14 @@ public:
 		, TestName( InName )
 	{
 		// Register the newly created automation test into the automation testing framework
-		FAutomationTestFramework::GetInstance().RegisterAutomationTest( InName, this );
+		FAutomationTestFramework::Get().RegisterAutomationTest( InName, this );
 	}
 
 	/** Destructor */
 	virtual ~FAutomationTestBase() 
 	{ 
 		// Unregister the automation test from the automation testing framework
-		FAutomationTestFramework::GetInstance().UnregisterAutomationTest( TestName ); 
+		FAutomationTestFramework::Get().UnregisterAutomationTest( TestName );
 	}
 
 	/**
@@ -865,7 +927,7 @@ public:
 	FORCEINLINE void AddCommand(IAutomationLatentCommand* NewCommand)
 	{
 		TSharedRef<IAutomationLatentCommand> CommandPtr = MakeShareable(NewCommand);
-		FAutomationTestFramework::GetInstance().EnqueueLatentCommand(CommandPtr);
+		FAutomationTestFramework::Get().EnqueueLatentCommand(CommandPtr);
 	}
 
 	/**
@@ -874,7 +936,7 @@ public:
 	FORCEINLINE void AddCommand(IAutomationNetworkCommand* NewCommand)
 	{
 		TSharedRef<IAutomationNetworkCommand> CommandPtr = MakeShareable(NewCommand);
-		FAutomationTestFramework::GetInstance().EnqueueNetworkCommand(CommandPtr);
+		FAutomationTestFramework::Get().EnqueueNetworkCommand(CommandPtr);
 	}
 
 	/** Gets the filename where this test was defined. */
@@ -890,6 +952,22 @@ public:
 	virtual FString GetTestOpenCommand(const FString& Parameter) const { return TEXT(""); }
 
 public:
+
+	void TestEqual(const FString& What, const int32 Actual, const int32 Expected)
+	{
+		if ( Actual != Expected )
+		{
+			AddError(FString::Printf(TEXT("Expected '%s' to be %d, but it was %d."), *What, Actual, Expected), 1);
+		}
+	}
+
+	void TestEqual(const FString& What, const float Actual, const float Expected, float Tolerance = 1.e-4)
+	{
+		if ( !FMath::IsNearlyEqual(Actual, Expected, Tolerance) )
+		{
+			AddError(FString::Printf(TEXT("Expected '%s' to be %f, but it was %f within tolerance %f."), *What, Actual, Expected, Tolerance), 1);
+		}
+	}
 
 	/**
 	 * Logs an error if the two values are not equal.
@@ -1153,7 +1231,7 @@ class EXPORT_API CommandName : public IAutomationLatentCommand \
 	DEFINE_EXPORTED_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(ENGINE_API, CommandName, ParamType, ParamName)
 
 //macro to simply the syntax for enqueueing a latent command
-#define ADD_LATENT_AUTOMATION_COMMAND(ClassDeclaration) FAutomationTestFramework::GetInstance().EnqueueLatentCommand(MakeShareable(new ClassDeclaration));
+#define ADD_LATENT_AUTOMATION_COMMAND(ClassDeclaration) FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShareable(new ClassDeclaration));
 
 
 //declare the class
@@ -1170,7 +1248,7 @@ public: \
 
 //close the class and add to the framework
 #define END_NETWORK_AUTOMATION_COMMAND(ClassDeclaration,InRoleIndex) }; \
-	FAutomationTestFramework::GetInstance().EnqueueNetworkCommand(MakeShareable(new F##ClassDeclaration(InRoleIndex))); \
+	FAutomationTestFramework::Get().EnqueueNetworkCommand(MakeShareable(new F##ClassDeclaration(InRoleIndex))); \
 
 /**
  * Macros to simplify the creation of new automation tests. To create a new test one simply must put
@@ -1302,6 +1380,16 @@ public: \
 			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
 		}
 
+	//#define BEGIN_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
+	//	BEGIN_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
+	//
+	//#define END_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass ) \
+	//	BEGIN_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
+	//	namespace\
+	//	{\
+	//		TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
+	//	}
+
 #else
 	#define IMPLEMENT_SIMPLE_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
 		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, FAutomationTestBase, PrettyName, TFlags, __FILE__, __LINE__)
@@ -1314,6 +1402,12 @@ public: \
 		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
 	#define IMPLEMENT_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
 		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
+
+	//#define BEGIN_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
+	//	BEGIN_CUSTOM_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
+
+	//#define END_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass )
+	//	END_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
 #endif // #if WITH_AUTOMATION_WORKER
 
 

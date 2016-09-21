@@ -21,7 +21,8 @@ UProceduralFoliageComponent::UProceduralFoliageComponent(const FObjectInitialize
 	bAllowLandscape = true;
 	bAllowBSP = true;
 	bAllowStaticMesh = true;
-	bAllowTranslucent = true;
+	bAllowTranslucent = false;
+	bAllowFoliage = false;
 	bShowDebugTiles = false;
 #endif
 }

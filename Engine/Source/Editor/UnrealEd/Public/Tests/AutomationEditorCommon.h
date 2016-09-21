@@ -7,6 +7,8 @@
 #include "AutomationCommon.h"
 #include "Tests/AutomationTestSettings.h"
 
+class UFactory;
+
 //////////////////////////////////////////////////////////////////////////
 // FAutomationEditorCommonUtils
 class UNREALED_API FAutomationEditorCommonUtils

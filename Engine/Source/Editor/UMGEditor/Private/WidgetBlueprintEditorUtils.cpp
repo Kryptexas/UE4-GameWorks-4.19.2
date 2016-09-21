@@ -140,7 +140,7 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 	}
 
 	UProperty* Property = Blueprint->ParentClass->FindPropertyByName( NewNameSlug );
-	if ( Property && Property->HasMetaData( "BindWidget" ) )
+	if ( Property && FWidgetBlueprintEditorUtils::IsBindWidgetProperty(Property))
 	{
 		return true;
 	}
@@ -178,7 +178,7 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 	const FName NewFName = MakeObjectNameFromDisplayLabel(NewDisplayName, Widget->GetFName());
 
 	UProperty* ExistingProperty = ParentClass->FindPropertyByName( NewFName );
-	const bool bBindWidget = ExistingProperty && ExistingProperty->HasMetaData( "BindWidget" );
+	const bool bBindWidget = ExistingProperty && FWidgetBlueprintEditorUtils::IsBindWidgetProperty(ExistingProperty);
 
 	// NewName should be already validated. But one must make sure that NewTemplateName is also unique.
 	const bool bUniqueNameForTemplate = ( EValidatorResult::Ok == NameValidator->IsValid( NewFName ) || bBindWidget );
@@ -692,7 +692,8 @@ bool FWidgetBlueprintEditorUtils::CanBeReplacedWithTemplate(TSharedRef<FWidgetBl
 				return false;
 			}
 		}
-		return true;
+		UUserWidget* NewUserWidget = CastChecked<UUserWidget>(FWidgetTemplateBlueprintClass(SelectedUserWidget).Create(BP->WidgetTree));
+		return BP->IsWidgetFreeFromCircularReferences(NewUserWidget);
 	}
 
 	UClass* WidgetClass = BlueprintEditor->GetSelectedTemplate().Get();
@@ -1167,6 +1168,25 @@ void FWidgetBlueprintEditorUtils::ImportPropertiesFromText(UObject* Object, cons
 			}
 		}
 	}
+}
+
+bool FWidgetBlueprintEditorUtils::IsBindWidgetProperty(UProperty* InProperty)
+{
+	bool bIsOptional;
+	return IsBindWidgetProperty(InProperty, bIsOptional);
+}
+
+bool FWidgetBlueprintEditorUtils::IsBindWidgetProperty(UProperty* InProperty, bool& bIsOptional)
+{
+	if ( InProperty )
+	{
+		bool bIsBindWidget = InProperty->HasMetaData("BindWidget") || InProperty->HasMetaData("BindWidgetOptional");
+		bIsOptional = InProperty->HasMetaData("BindWidgetOptional") || ( InProperty->HasMetaData("OptionalWidget") || InProperty->GetBoolMetaData("OptionalWidget") );
+
+		return bIsBindWidget;
+	}
+
+	return false;
 }
 
 bool FWidgetBlueprintEditorUtils::IsUsableWidgetClass(UClass* WidgetClass)

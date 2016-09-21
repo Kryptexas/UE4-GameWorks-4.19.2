@@ -720,6 +720,15 @@ void SContentBrowser::BindCommands()
 	Commands->MapAction(FContentBrowserCommands::Get().DirectoryUp, FUIAction(
 		FExecuteAction::CreateSP(this, &SContentBrowser::HandleDirectoryUpCommandExecute)
 	));
+
+	Commands->MapAction(FContentBrowserCommands::Get().SaveSelectedAsset, FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::HandleSaveAssetCommand),
+		FCanExecuteAction::CreateSP(this, &SContentBrowser::HandleSaveAssetCommandCanExecute)
+	));
+
+	Commands->MapAction(FContentBrowserCommands::Get().SaveAllCurrentFolder, FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::HandleSaveAllCurrentFolderCommand)
+	));
 }
 
 EVisibility SContentBrowser::GetCollectionViewVisibility() const
@@ -1373,14 +1382,14 @@ FReply SContentBrowser::OnSaveSearchButtonClicked()
 	// We want to add any currently selected paths to the final saved query so that you get back roughly the same list of objects as what you're currently seeing
 	FString SelectedPathsQuery;
 	{
-		auto SelectedPaths = PathViewPtr->GetSelectedPaths();
-		for (int32 SelectedPathIndex = 0; SelectedPathIndex < SelectedPaths.Num(); ++SelectedPathIndex)
+		const FSourcesData& SourcesData = AssetViewPtr->GetSourcesData();
+		for (int32 SelectedPathIndex = 0; SelectedPathIndex < SourcesData.PackagePaths.Num(); ++SelectedPathIndex)
 		{
 			SelectedPathsQuery.Append(TEXT("Path:'"));
-			SelectedPathsQuery.Append(SelectedPaths[SelectedPathIndex]);
+			SelectedPathsQuery.Append(SourcesData.PackagePaths[SelectedPathIndex].ToString());
 			SelectedPathsQuery.Append(TEXT("'..."));
 
-			if (SelectedPathIndex + 1 < SelectedPaths.Num())
+			if (SelectedPathIndex + 1 < SourcesData.PackagePaths.Num())
 			{
 				SelectedPathsQuery.Append(TEXT(" OR "));
 			}
@@ -1927,6 +1936,22 @@ bool SContentBrowser::HandleRenameCommandCanExecute() const
 	return false;
 }
 
+bool SContentBrowser::HandleSaveAssetCommandCanExecute() const
+{
+	const TArray<TSharedPtr<FAssetViewItem>>& SelectedItems = AssetViewPtr->GetSelectedItems();
+	if (SelectedItems.Num() > 0)
+	{
+		return AssetContextMenu->CanExecuteSaveAsset();
+	}
+
+	return false;
+}
+
+void SContentBrowser::HandleSaveAllCurrentFolderCommand() const
+{
+	PathContextMenu->ExecuteSaveFolder();
+}
+
 void SContentBrowser::HandleRenameCommand()
 {
 	const TArray<TSharedPtr<FAssetViewItem>>& SelectedItems = AssetViewPtr->GetSelectedItems();
@@ -1941,6 +1966,15 @@ void SContentBrowser::HandleRenameCommand()
 		{
 			PathContextMenu->ExecuteRename();
 		}
+	}
+}
+
+void SContentBrowser::HandleSaveAssetCommand()
+{
+	const TArray<TSharedPtr<FAssetViewItem>>& SelectedItems = AssetViewPtr->GetSelectedItems();
+	if (SelectedItems.Num() > 0)
+	{
+		AssetContextMenu->ExecuteSaveAsset();
 	}
 }
 

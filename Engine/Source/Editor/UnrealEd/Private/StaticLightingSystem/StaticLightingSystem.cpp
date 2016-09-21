@@ -446,6 +446,10 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 			// Begin the static lighting progress bar.
 			GWarn->BeginSlowTask( LOCTEXT("BeginBuildingStaticLightingTaskStatus", "Building lighting"), false );
 		}
+		else
+		{
+			UE_LOG(LogStaticLightingSystem, Warning, TEXT("WorldSettings.bForceNoPrecomputedLighting is true, Skipping Lighting Build!"));
+		}
 		
 		FConfigCacheIni::LoadGlobalIniFile(GLightmassIni, TEXT("Lightmass"), NULL, true);
 		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseBilinearFilterLightmaps"), GUseBilinearLightmaps, GLightmassIni));

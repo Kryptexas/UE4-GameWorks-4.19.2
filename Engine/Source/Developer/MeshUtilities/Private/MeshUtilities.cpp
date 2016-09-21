@@ -435,7 +435,7 @@ protected:
 		SrcModel->RawMeshBulkData->SaveRawMesh(Data->RawMesh);
 
 		//Assign the proxy material to the static mesh
-		StaticMesh->Materials.Add(ProxyMaterial);
+		StaticMesh->StaticMaterials.Add(FStaticMaterial(ProxyMaterial));
 
 		StaticMesh->Build();
 		StaticMesh->PostEditChange();
@@ -7596,7 +7596,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 				Material = nullptr; // do not save non-asset materials
 			}
 
-			StaticMesh->Materials.Add(Material);
+			StaticMesh->StaticMaterials.Add(FStaticMaterial(Material));
 		}
 
 		if (InSettings.bMergePhysicsData)

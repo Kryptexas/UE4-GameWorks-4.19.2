@@ -1009,17 +1009,8 @@ FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 
 	if ( DesktopPlatform )
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			LOCTEXT("ImportProvisionDialogTitle", "Import Provision").ToString(),
 			FPaths::GetProjectFilePath(),
 			TEXT(""),
@@ -1095,17 +1086,8 @@ FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 
 	if ( DesktopPlatform )
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			LOCTEXT("ImportCertificateDialogTitle", "Import Certificate").ToString(),
 			FPaths::GetProjectFilePath(),
 			TEXT(""),

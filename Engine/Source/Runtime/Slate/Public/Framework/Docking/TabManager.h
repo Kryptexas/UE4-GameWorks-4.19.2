@@ -604,7 +604,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		void PopulateLocalTabSpawnerMenu( FMenuBuilder& PopulateMe );
 
-		void PopulateTabSpawnerMenu( FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure );
+		void PopulateTabSpawnerMenu(FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure);
+
+		void PopulateTabSpawnerMenu( FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure, bool bIncludeOrphanedMenus);
 
 		void PopulateTabSpawnerMenu( FMenuBuilder &PopulateMe, const FName& TabType );
 

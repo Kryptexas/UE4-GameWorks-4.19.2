@@ -26,6 +26,15 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	UFUNCTION(BlueprintCallable, Category="Components|Mesh")
 	virtual TArray<class UMaterialInterface*> GetMaterials() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Components|Mesh")
+	virtual int32 GetMaterialIndex(FName MaterialSlotName) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Components|Mesh")
+	virtual TArray<FName> GetMaterialSlotNames() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Components|Mesh")
+	virtual bool IsMaterialSlotNameValid(FName MaterialSlotName) const;
+
 	/** Returns override Materials count */
 	virtual int32 GetNumOverrideMaterials() const;
 
@@ -37,6 +46,7 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	virtual int32 GetNumMaterials() const override;
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
+	virtual void SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material) override;
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;	
 	//~ End UPrimitiveComponent Interface
 

@@ -107,7 +107,8 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 		ReimportUI->MeshTypeToImport = FBXIT_Animation;
 		ReimportUI->bOverrideFullName = false;
 		ReimportUI->AnimSequenceImportData = ImportData;
-
+		ReimportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy = ImportData->bImportMeshesInBoneHierarchy;
+		
 		ApplyImportUIToImportOptions(ReimportUI, *FbxImporter->ImportOptions);
 	}
 	else
@@ -513,11 +514,11 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 		}
 		
 		FString SequenceName = Name;
-
+		FString SourceAnimationName = UTF8_TO_TCHAR(CurAnimStack->GetName());
 		if (ValidTakeCount > 1)
 		{
 			SequenceName += "_";
-			SequenceName += UTF8_TO_TCHAR(CurAnimStack->GetName());
+			SequenceName += SourceAnimationName;
 		}
 
 		// See if this sequence already exists.
@@ -552,6 +553,7 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 		// since to know full path, reimport will need to do same
 		UFbxAnimSequenceImportData* ImportData = UFbxAnimSequenceImportData::GetImportDataForAnimSequence(DestSeq, TemplateImportData);
 		ImportData->Update(UFactory::GetCurrentFilename(), &Md5Hash);
+		ImportData->SourceAnimationName = SourceAnimationName;
 
 		ImportAnimation(Skeleton, DestSeq, Name, SortedLinks, NodeArray, CurAnimStack, ResampleRate, AnimTimeSpan);
 

@@ -597,7 +597,7 @@ void FAutomationEditorCommonUtils::CollectTestsByClass(UClass * Class, TArray<FS
 		FString Filename = Asset.ObjectPath.ToString();
 		//convert to full paths
 		Filename = FPackageName::LongPackageNameToFilename(Filename);
-		if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+		if (FAutomationTestFramework::Get().ShouldTestContent(Filename))
 		{
 			FString BeautifiedFilename = Asset.AssetName.ToString();
 			OutBeautifiedNames.Add(BeautifiedFilename);
@@ -639,7 +639,7 @@ void FAutomationEditorCommonUtils::CollectGameContentTestsByClass(UClass * Class
 		{
 			//convert to full paths
 			Filename = FPackageName::LongPackageNameToFilename(Filename);
-			if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+			if (FAutomationTestFramework::Get().ShouldTestContent(Filename))
 			{
 				FString BeautifiedFilename = Asset.AssetName.ToString();
 				OutBeautifiedNames.Add(BeautifiedFilename);
@@ -709,7 +709,7 @@ void FAutomationEditorCommonUtils::CollectGameContentTests(TArray<FString>& OutB
 			{
 				//convert to full paths
 				Filename = FPackageName::LongPackageNameToFilename(Filename);
-				if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+				if (FAutomationTestFramework::Get().ShouldTestContent(Filename))
 				{
 					FString BeautifiedFilename = FString::Printf(TEXT("%s.%s"), *Asset.GetClass()->GetFName().ToString(), *Asset.AssetName.ToString());
 					OutBeautifiedNames.Add(BeautifiedFilename);

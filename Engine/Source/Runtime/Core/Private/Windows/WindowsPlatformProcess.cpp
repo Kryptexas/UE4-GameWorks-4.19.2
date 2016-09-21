@@ -773,7 +773,12 @@ const TCHAR* FWindowsPlatformProcess::UserTempDir()
 
 		::GetTempPath(MAX_PATH, TempPath);
 
-		WindowsUserTempDir = FString(TempPath).Replace(TEXT("\\"), TEXT("/"));
+		// Always expand the temp path in case windows returns short directory names.
+		TCHAR FullTempPath[MAX_PATH];
+		ZeroMemory(FullTempPath, sizeof(TCHAR) * MAX_PATH);
+		::GetLongPathName(TempPath, FullTempPath, MAX_PATH);
+
+		WindowsUserTempDir = FString(FullTempPath).Replace(TEXT("\\"), TEXT("/"));
 	}
 	return *WindowsUserTempDir;
 }

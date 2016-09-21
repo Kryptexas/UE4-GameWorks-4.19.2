@@ -367,13 +367,13 @@ void FICUInternationalization::ConditionalInitializeCultureMappings()
 		FString DestCulture;
 		if (CultureMappingStr.Split(TEXT(";"), &SourceCulture, &DestCulture, ESearchCase::CaseSensitive))
 		{
-			if (AllAvailableCulturesMap.Contains(SourceCulture) && AllAvailableCulturesMap.Contains(DestCulture))
+			if (AllAvailableCulturesMap.Contains(DestCulture))
 			{
 				CultureMappings.Add(MoveTemp(SourceCulture), MoveTemp(DestCulture));
 			}
 			else
 			{
-				UE_LOG(LogICUInternationalization, Warning, TEXT("Culture mapping '%s' contains unknown cultures and has been ignored."), *CultureMappingStr);
+				UE_LOG(LogICUInternationalization, Warning, TEXT("Culture mapping '%s' contains an unknown culture and has been ignored."), *CultureMappingStr);
 			}
 		}
 	}
@@ -609,10 +609,12 @@ TArray<FString> FICUInternationalization::GetPrioritizedCultureNames(const FStri
 		}
 
 		// Sort the cultures by their priority
-		PrioritizedCultureData.Sort([](const FICUCultureData& DataOne, const FICUCultureData& DataTwo) -> bool
+		// Special case handling for the ambiguity of Hong Kong and Macau supporting both Traditional and Simplified Chinese (prefer Traditional)
+		const bool bPreferTraditionalChinese = GivenCultureData.CountryCode == TEXT("HK") || GivenCultureData.CountryCode == TEXT("MO");
+		PrioritizedCultureData.Sort([bPreferTraditionalChinese](const FICUCultureData& DataOne, const FICUCultureData& DataTwo) -> bool
 		{
-			const int32 DataOneSortWeight = (DataOne.CountryCode.IsEmpty() ? 0 : 2) + (DataOne.ScriptCode.IsEmpty() ? 0 : 1);
-			const int32 DataTwoSortWeight = (DataTwo.CountryCode.IsEmpty() ? 0 : 2) + (DataTwo.ScriptCode.IsEmpty() ? 0 : 1);
+			const int32 DataOneSortWeight = (DataOne.CountryCode.IsEmpty() ? 0 : 4) + (DataOne.ScriptCode.IsEmpty() ? 0 : 2) + (bPreferTraditionalChinese && DataOne.ScriptCode == TEXT("Hant") ? 1 : 0);
+			const int32 DataTwoSortWeight = (DataTwo.CountryCode.IsEmpty() ? 0 : 4) + (DataTwo.ScriptCode.IsEmpty() ? 0 : 2) + (bPreferTraditionalChinese && DataTwo.ScriptCode == TEXT("Hant") ? 1 : 0);
 			return DataOneSortWeight >= DataTwoSortWeight;
 		});
 

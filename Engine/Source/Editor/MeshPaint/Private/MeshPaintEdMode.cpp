@@ -4934,6 +4934,8 @@ void FEdModeMeshPaint::Tick(FEditorViewportClient* ViewportClient,float DeltaTim
 
 bool FEdModeMeshPaint::ProcessEditDelete()
 {
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "DeleteActors", "Delete Actors"));
+
 	RemoveAllGeometryAdapters();
 
 	if (GUnrealEd->CanDeleteSelectedActors(GetWorld(), true, false))

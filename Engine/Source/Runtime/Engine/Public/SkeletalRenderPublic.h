@@ -46,7 +46,7 @@ public:
 	* @param	MaterialIndex : Material Index for the update
 	* @param	bRecomputeTangent : the new flag
 	*/
-	virtual void UpdateRecomputeTangent(int32 MaterialIndex, bool bRecomputeTangent) = 0;
+	virtual void UpdateRecomputeTangent(int32 MaterialIndex, int32 LODIndex, bool bRecomputeTangent) = 0;
 
 	/**
 	 * Called by FSkeletalMeshObject prior to GDME. This allows the GPU skin version to update bones etc now that we know we are going to render

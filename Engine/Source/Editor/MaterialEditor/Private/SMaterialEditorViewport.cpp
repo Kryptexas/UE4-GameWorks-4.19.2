@@ -100,15 +100,8 @@ void FMaterialEditorViewportClient::Draw(FViewport* InViewport,FCanvas* Canvas)
 
 bool FMaterialEditorViewportClient::ShouldOrbitCamera() const
 {
+	// Should always orbit around the preview object to keep it in view.
 	return true;
-
-	/*if (GetDefault<ULevelEditorViewportSettings>()->bUseUE3OrbitControls)
-	{
-		// this editor orbits always if ue3 orbit controls are enabled
-		return true;
-	}
-
-	return FEditorViewportClient::ShouldOrbitCamera();*/
 }
 
 FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const

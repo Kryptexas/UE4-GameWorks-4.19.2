@@ -21,6 +21,8 @@ UWidgetInteractionComponent::UWidgetInteractionComponent(const FObjectInitialize
 	, DebugColor(FLinearColor::Red)
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	TraceChannel = ECC_Visibility;
+	bAutoActivate = true;
 
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
@@ -44,9 +46,9 @@ void UWidgetInteractionComponent::OnComponentCreated()
 #endif
 }
 
-void UWidgetInteractionComponent::BeginPlay()
+void UWidgetInteractionComponent::Activate(bool bReset)
 {
-	Super::BeginPlay();
+	Super::Activate(bReset);
 
 	if ( FSlateApplication::IsInitialized() )
 	{
@@ -57,9 +59,9 @@ void UWidgetInteractionComponent::BeginPlay()
 	}
 }
 
-void UWidgetInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UWidgetInteractionComponent::Deactivate()
 {
-	Super::EndPlay(EndPlayReason);
+	Super::Deactivate();
 
 	if ( FSlateApplication::IsInitialized() )
 	{
@@ -104,8 +106,7 @@ bool UWidgetInteractionComponent::PerformTrace(FHitResult& HitResult)
 			FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
 			Params.AddIgnoredComponents(PrimitiveChildren);
 
-			FCollisionObjectQueryParams Everything(FCollisionObjectQueryParams::AllObjects);
-			return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldLocation, WorldLocation + ( Direction * InteractionDistance ), Everything, Params);
+			return GetWorld()->LineTraceSingleByChannel(HitResult, WorldLocation, WorldLocation + ( Direction * InteractionDistance ), TraceChannel, Params);
 		}
 		case EWidgetInteractionSource::Mouse:
 		case EWidgetInteractionSource::CenterScreen:
@@ -127,7 +128,7 @@ bool UWidgetInteractionComponent::PerformTrace(FHitResult& HitResult)
 					FVector2D MousePosition;
 					if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
 					{
-						bHit = PlayerController->GetHitResultAtScreenPosition(MousePosition, ECC_Visibility, Params, HitResult);
+						bHit = PlayerController->GetHitResultAtScreenPosition(MousePosition, TraceChannel, Params, HitResult);
 					}
 				}
 				else if ( InteractionSource == EWidgetInteractionSource::CenterScreen )
@@ -135,7 +136,7 @@ bool UWidgetInteractionComponent::PerformTrace(FHitResult& HitResult)
 					FVector2D ViewportSize;
 					LocalPlayer->ViewportClient->GetViewportSize(ViewportSize);
 
-					bHit = PlayerController->GetHitResultAtScreenPosition(ViewportSize * 0.5f, ECC_Visibility, Params, HitResult);
+					bHit = PlayerController->GetHitResultAtScreenPosition(ViewportSize * 0.5f, TraceChannel, Params, HitResult);
 				}
 
 				// Don't allow infinite distance hit testing.
@@ -205,7 +206,7 @@ void UWidgetInteractionComponent::SimulatePointerMovement()
 		return;
 	}
 	
-	LocalHitLocation = FVector2D(0, 0);
+	LocalHitLocation = LastLocalHitLocation;
 	FWidgetPath WidgetPathUnderFinger;
 	
 	const bool bHit = PerformTrace(LastHitResult);

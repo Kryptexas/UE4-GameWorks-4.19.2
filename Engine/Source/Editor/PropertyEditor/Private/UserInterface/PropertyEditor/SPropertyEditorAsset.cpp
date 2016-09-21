@@ -28,16 +28,15 @@ bool SPropertyEditorAsset::ShouldDisplayThumbnail( const FArguments& InArgs )
 	if(PropertyEditor.IsValid())
 	{
 		UProperty* NodeProperty = PropertyEditor->GetPropertyNode()->GetProperty();
-		UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>( NodeProperty );
-		check(ObjectProperty);
+		UClass* Class = GetObjectPropertyClass(NodeProperty);
 
-		bDisplayThumbnailByDefault |= ObjectProperty->PropertyClass->IsChildOf(UMaterialInterface::StaticClass()) ||
-									  ObjectProperty->PropertyClass->IsChildOf(UTexture::StaticClass()) ||
-									  ObjectProperty->PropertyClass->IsChildOf(UStaticMesh::StaticClass()) ||
-									  ObjectProperty->PropertyClass->IsChildOf(UStaticMeshComponent::StaticClass()) ||
-									  ObjectProperty->PropertyClass->IsChildOf(USkeletalMesh::StaticClass()) ||
-									  ObjectProperty->PropertyClass->IsChildOf(USkeletalMeshComponent::StaticClass()) ||
-									  ObjectProperty->PropertyClass->IsChildOf(UParticleSystem::StaticClass());
+		bDisplayThumbnailByDefault |= Class->IsChildOf(UMaterialInterface::StaticClass()) ||
+									  Class->IsChildOf(UTexture::StaticClass()) ||
+									  Class->IsChildOf(UStaticMesh::StaticClass()) ||
+									  Class->IsChildOf(UStaticMeshComponent::StaticClass()) ||
+									  Class->IsChildOf(USkeletalMesh::StaticClass()) ||
+									  Class->IsChildOf(USkeletalMeshComponent::StaticClass()) ||
+									  Class->IsChildOf(UParticleSystem::StaticClass());
 	}
 
 	bool bDisplayThumbnail = ( bDisplayThumbnailByDefault || InArgs._DisplayThumbnail ) && InArgs._ThumbnailPool.IsValid();
@@ -48,12 +47,22 @@ bool SPropertyEditorAsset::ShouldDisplayThumbnail( const FArguments& InArgs )
 		if(InArgs._ThumbnailPool.IsValid())
 		{
 			const UProperty* ArrayParent = PropertyEditorHelpers::GetArrayParent( *PropertyEditor->GetPropertyNode() );
+			const UProperty* SetParent = PropertyEditorHelpers::GetSetParent( *PropertyEditor->GetPropertyNode() );
+			const UProperty* MapParent = PropertyEditorHelpers::GetMapParent( *PropertyEditor->GetPropertyNode() );
 
 			const UProperty* PropertyToCheck = PropertyEditor->GetProperty();
 			if( ArrayParent != NULL )
 			{
 				// If the property is a child of an array property, the parent will have the display thumbnail metadata
 				PropertyToCheck = ArrayParent;
+			}
+			else if ( SetParent != NULL )
+			{
+				PropertyToCheck = SetParent;
+			}
+			else if ( MapParent != NULL )
+			{
+				PropertyToCheck = MapParent;
 			}
 
 			FString DisplayThumbnailString = PropertyToCheck->GetMetaData(TEXT("DisplayThumbnail"));
@@ -78,12 +87,10 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	if(PropertyEditor.IsValid())
 	{
 		Property = PropertyEditor->GetPropertyNode()->GetProperty();
-		UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Property);
-		check(ObjectProperty);
-
+		
 		bAllowClear = !(Property->PropertyFlags & CPF_NoClear);
-		ObjectClass = ObjectProperty->PropertyClass;
-		bIsActor = ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() );
+		ObjectClass = GetObjectPropertyClass(Property);
+		bIsActor = ObjectClass->IsChildOf( AActor::StaticClass() );
 	}
 	else
 	{
@@ -211,6 +218,11 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			}
 		}
 	}
+	bool bOldEnableAttribute = IsEnabledAttribute.Get();
+	if (bOldEnableAttribute && !InArgs._EnableContentPicker)
+	{
+		IsEnabledAttribute.Set(false);
+	}
 
 	AssetComboButton = SNew(SComboButton)
 		.ToolTipText(TooltipAttribute)
@@ -229,7 +241,11 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			.Text(this,&SPropertyEditorAsset::OnGetAssetName)
 		];
 
-	
+	if (bOldEnableAttribute && !InArgs._EnableContentPicker)
+	{
+		IsEnabledAttribute.Set(true);
+	}
+
 	TSharedRef<SHorizontalBox> ButtonBox = SNew( SHorizontalBox );
 	
 	TSharedPtr<SVerticalBox> CustomContentBox;
@@ -352,7 +368,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		];
 	}
 
-	if( InArgs._ResetToDefaultSlot.Widget != SNullWidget::NullWidget )
+	if(InArgs._ResetToDefaultSlot.Widget != SNullWidget::NullWidget )
 	{
 		TSharedRef<SWidget> ResetToDefaultWidget  = InArgs._ResetToDefaultSlot.Widget;
 		ResetToDefaultWidget->SetEnabled( IsEnabledAttribute );
@@ -416,9 +432,11 @@ bool SPropertyEditorAsset::Supports( const TSharedRef< FPropertyEditor >& InProp
 bool SPropertyEditorAsset::Supports( const UProperty* NodeProperty )
 {
 	const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>( NodeProperty );
-	if (ObjectProperty != NULL 
-		&& !NodeProperty->IsA(UClassProperty::StaticClass()) 
-		&& !NodeProperty->IsA(UAssetClassProperty::StaticClass()))
+	const UInterfaceProperty* InterfaceProperty = Cast<const UInterfaceProperty>( NodeProperty );
+
+	if ( ( ObjectProperty != NULL || InterfaceProperty != NULL )
+		 && !NodeProperty->IsA(UClassProperty::StaticClass()) 
+		 && !NodeProperty->IsA(UAssetClassProperty::StaticClass()) )
 	{
 		return true;
 	}
@@ -914,7 +932,8 @@ bool SPropertyEditorAsset::CanSetBasedOnCustomClasses( const FAssetData& InAsset
 		UClass* AssetClass = InAssetData.GetClass();
 		for( const UClass* AllowedClass : CustomClassFilters )
 		{
-			if( AssetClass->IsChildOf( AllowedClass ) )
+			const bool bAllowedClassIsInterface = AllowedClass->HasAnyClassFlags(CLASS_Interface);
+			if( AssetClass->IsChildOf( AllowedClass ) || (bAllowedClassIsInterface && AssetClass->ImplementsInterface(AllowedClass)) )
 			{
 				bAllowedToSetBasedOnFilter = true;
 				break;
@@ -923,6 +942,23 @@ bool SPropertyEditorAsset::CanSetBasedOnCustomClasses( const FAssetData& InAsset
 	}
 
 	return bAllowedToSetBasedOnFilter;
+}
+
+UClass* SPropertyEditorAsset::GetObjectPropertyClass(const UProperty* Property)
+{
+	UClass* Class = NULL;
+
+	if (Cast<const UObjectPropertyBase>(Property) != NULL)
+	{
+		Class = Cast<const UObjectPropertyBase>(Property)->PropertyClass;
+	}
+	else if (Cast<const UInterfaceProperty>(Property) != NULL)
+	{
+		Class = Cast<const UInterfaceProperty>(Property)->InterfaceClass;
+	}
+
+	check(Class != NULL);
+	return Class;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -223,8 +223,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 	check(IsInRenderingThread());
 
 	float TimeSeconds = FApp::GetCurrentTime() - GStartTime;
-	float RealTimeSeconds =  FApp::GetCurrentTime() - GStartTime;
 	float DeltaTimeSeconds = FApp::GetDeltaTime();
+	float RealTimeSeconds =  FPlatformTime::Seconds() - GStartTime;
 
 	static const FEngineShowFlags DefaultShowFlags(ESFIM_Game);
 
@@ -451,11 +451,10 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
 					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, RenderBatch.InstanceCount);
 				}
-
 			}
 			else if (ShaderResource && ShaderResource->GetType() == ESlateShaderResource::Material && GEngine)
 			{
-				// Note: This code is only executed if the engine is loaded (in early loading screens attemping to use a material is unsupported
+				// Note: This code is only executed if the engine is loaded (in early loading screens attempting to use a material is unsupported
 				if (!SceneView)
 				{
 					SceneView = &CreateSceneView(SceneViewContext, BackBuffer, ViewProjectionMatrix);
@@ -500,13 +499,6 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 							PixelShader->SetAdditionalTexture(RHICmdList, TextureRHI, BilinearClamp);
 						}
-
-#if SLATE_PRE_MULTIPLY
-						if (RenderBatch.DrawFlags & ESlateBatchDrawFlag::PreMultipliedAlpha)
-						{
-							RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI());
-						}
-#endif
 
 						uint32 PrimitiveCount = RenderBatch.DrawPrimitiveType == ESlateDrawPrimitive::LineList ? RenderBatch.NumIndices / 2 : RenderBatch.NumIndices / 3;
 

@@ -535,10 +535,6 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnExportLayer(const TShared
 	if (LandscapeEdMode)
 	{
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		check(MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid());
-		void* ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
 
 		ULandscapeInfo* LandscapeInfo = Target->LandscapeInfo.Get();
 		ULandscapeLayerInfoObject* LayerInfoObj = Target->LayerInfoObj.Get(); // NULL for heightmaps
@@ -566,7 +562,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnExportLayer(const TShared
 		// Prompt the user for the filenames
 		TArray<FString> SaveFilenames;
 		bool bOpened = DesktopPlatform->SaveFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			*SaveDialogTitle,
 			*LandscapeEdMode->UISettings->LastImportPath,
 			*DefaultFileName,
@@ -601,10 +597,6 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnImportLayer(const TShared
 	if (LandscapeEdMode)
 	{
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		check(MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid());
-		void* ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
 
 		ULandscapeInfo* LandscapeInfo = Target->LandscapeInfo.Get();
 		ULandscapeLayerInfoObject* LayerInfoObj = Target->LayerInfoObj.Get(); // NULL for heightmaps
@@ -632,7 +624,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnImportLayer(const TShared
 		// Prompt the user for the filenames
 		TArray<FString> OpenFilenames;
 		bool bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			*OpenDialogTitle,
 			*LandscapeEdMode->UISettings->LastImportPath,
 			*DefaultFileName,

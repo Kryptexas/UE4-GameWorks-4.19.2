@@ -289,11 +289,6 @@ private:
 	/** Toggles whether we are tracking history of automation tests */
 	void OnToggleTrackHistory(ECheckBoxState InState);
 
-	/** Returns if full size screen shots are enabled */
-	ECheckBoxState IsFullSizeScreenshotsCheckBoxChecked() const;
-	/** Toggles if we are collecting full size screenshots */
-	void HandleFullSizeScreenshotsBoxCheckStateChanged(ECheckBoxState CheckBoxState);
-
 	/** Returns if analytics should be sent to the back end*/
 	ECheckBoxState IsSendAnalyticsCheckBoxChecked() const;
 	/** Toggles if we are sending analytics results from the tests*/

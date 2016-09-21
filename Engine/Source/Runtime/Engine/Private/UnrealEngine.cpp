@@ -70,6 +70,8 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+#include "Components/TextRenderComponent.h"
+
 #include "AudioThread.h"
 #include "Sound/ReverbEffect.h"
 #include "Sound/SoundWave.h"
@@ -864,6 +866,8 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	GNearClippingPlane = NearClipPlane;
 
+	UTextRenderComponent::InitializeMIDCache();
+
 	if (GIsEditor)
 	{
 		// Create a WorldContext for the editor to use and create an initially empty world.
@@ -1068,6 +1072,8 @@ void UEngine::PreExit()
 	{
 		Module->DestroyAllActiveCaptures();
 	}
+
+	UTextRenderComponent::ShutdownMIDCache();
 
 	ShutdownRenderingCVarsCaching();
 	const bool bIsEngineShutdown = true;
@@ -1571,8 +1577,11 @@ void UEngine::InitializeObjectReferences()
 	if ( DefaultPhysMaterial == NULL )
 	{
 		DefaultPhysMaterial = LoadObject<UPhysicalMaterial>(NULL, *DefaultPhysMaterialName.ToString(), NULL, LOAD_None, NULL);
-
-		checkf(DefaultPhysMaterial != NULL, TEXT("The default material (%s) is not found. Please make sure you have default material set up correctly."), *DefaultPhysMaterialName.ToString());
+		if(!DefaultPhysMaterial)
+		{
+			UE_LOG(LogEngine, Error, TEXT("The default physical material (%s) was not found. Please make sure you have your default physical material set up correctly."), *DefaultPhysMaterialName.ToString());
+			DefaultPhysMaterial = NewObject<UPhysicalMaterial>();
+		}
 	}
 
 	LoadEngineClass<UConsole>(ConsoleClassName, ConsoleClass);
@@ -7144,7 +7153,7 @@ void UEngine::LogPerformanceCapture(UWorld* World, const FString& MapName, const
 
 		const FString PerfSnapshotAsCommaDelimitedString = PerfSnapshot.ToCommaDelimetedString();
 
-		FAutomationTestFramework::GetInstance().AddAnalyticsItemToCurrentTest(
+		FAutomationTestFramework::Get().AddAnalyticsItemToCurrentTest(
 			FString::Printf(TEXT("%s,%s"), *PerfSnapshotAsCommaDelimitedString, *EventType));
 	}
 }

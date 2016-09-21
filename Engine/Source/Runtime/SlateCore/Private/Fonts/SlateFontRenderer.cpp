@@ -12,7 +12,7 @@
  * 1 = We override the freetype rasterizer.  Can help with some rendering anomalies on complicated fonts when freetype generates a wildly different stroke from the base glyph
  * Note: The font cache must be flushed if changing this in the middle of a running instance
  */ 
-static int32 OutlineFontRenderMethod = 1;
+static int32 OutlineFontRenderMethod = 0;
 FAutoConsoleVariableRef CVarOutlineFontRenderMethod(
 	TEXT("Slate.OutlineFontRenderMethod"),
 	OutlineFontRenderMethod,
@@ -337,18 +337,18 @@ struct FRasterizerSpanList
 
 
 /**
- * Rasterisizes a font glyph
+ * Rasterizes a font glyph
  */
 void RenderOutlineRows(FT_Library Library, FT_Outline* Outline, FRasterizerSpanList& OutSpansListOuter)
 {
 	auto RasterizerCallback = [](const int32 Y, const int32 Count, const FT_Span* const Spans, void* const UserData)
 	{
-		FRasterizerSpanList& OutSpanList = *static_cast<FRasterizerSpanList*>(UserData);
+		FRasterizerSpanList& UserDataSpanList = *static_cast<FRasterizerSpanList*>(UserData);
 
-		TArray<FRasterizerSpan>& OutSpans = OutSpanList.Spans;
-		FBox2D& BoundingBox = OutSpanList.BoundingBox;
+		TArray<FRasterizerSpan>& UserDataSpans = UserDataSpanList.Spans;
+		FBox2D& BoundingBox = UserDataSpanList.BoundingBox;
 
-		OutSpans.Reserve(OutSpans.Num() + Count);
+		UserDataSpans.Reserve(UserDataSpans.Num() + Count);
 		for(int32 SpanIndex = 0; SpanIndex < Count; ++SpanIndex)
 		{
 			const FT_Span& Span = Spans[SpanIndex];
@@ -356,7 +356,7 @@ void RenderOutlineRows(FT_Library Library, FT_Outline* Outline, FRasterizerSpanL
 			BoundingBox += FVector2D(Span.x, Y);
 			BoundingBox += FVector2D(Span.x + Span.len - 1, Y);
 
-			OutSpans.Add(FRasterizerSpan(Span.x, Y, Span.len, Span.coverage));
+			UserDataSpans.Add(FRasterizerSpan(Span.x, Y, Span.len, Span.coverage));
 		}
 	};
 
@@ -370,7 +370,7 @@ void RenderOutlineRows(FT_Library Library, FT_Outline* Outline, FRasterizerSpanL
 
 }
 
-bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyphData, float InScale, const FFontOutlineSettings& InOutlineSettings, FCharacterRenderData& OutRenderData) const
+bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyphData, const float InScale, const FFontOutlineSettings& InOutlineSettings, FCharacterRenderData& OutRenderData) const
 {
 	FT_Face Face = InFaceGlyphData.FaceAndMemory->GetFace();
 

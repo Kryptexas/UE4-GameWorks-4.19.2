@@ -299,6 +299,7 @@ static bool IsVisibleStandaloneProperty(const FPropertyNode& PropertyNode, const
 {
 	const UProperty* Property = PropertyNode.GetProperty();
 	const UArrayProperty* ParentArrayProperty = Cast<const UArrayProperty>(ParentNode.GetProperty());
+
 	bool bIsVisibleStandalone = false;
 	if(Property)
 	{
@@ -461,14 +462,14 @@ void SDetailsViewBase::UpdateSinglePropertyMapRecursive(FPropertyNode& InNode, F
 				// Is the property edit inline new 
 				const bool bIsEditInlineNew = SPropertyEditorEditInline::Supports(&ChildNode, ChildNode.GetArrayIndex());
 
-				// Is this a property of an array
-				bool bIsChildOfArray = PropertyEditorHelpers::IsChildOfArray(ChildNode);
+				// Is this a property of a container property
+				bool bIsChildOfContainer = PropertyEditorHelpers::IsChildOfArray(ChildNode) || PropertyEditorHelpers::IsChildOfSet(ChildNode) || PropertyEditorHelpers::IsChildOfMap(ChildNode);
 
 				// Edit inline new properties should be visible by default
 				bVisibleByDefault |= bIsEditInlineNew;
 
 				// Children of arrays are not visible directly,
-				bVisibleByDefault &= !bIsChildOfArray;
+				bVisibleByDefault &= !bIsChildOfContainer;
 
 				FPropertyAndParent PropertyAndParent(*Property, ParentProperty);
 				const bool bIsUserVisible = IsPropertyVisible(PropertyAndParent);
@@ -492,7 +493,7 @@ void SDetailsViewBase::UpdateSinglePropertyMapRecursive(FPropertyNode& InNode, F
 				}
 
 				// Do not add children of customized in struct properties or arrays
-				if(!bIsChildOfCustomizedStruct && !bIsChildOfArray && !LocalUpdateFavoriteSystemOnly)
+				if(!bIsChildOfCustomizedStruct && !bIsChildOfContainer && !LocalUpdateFavoriteSystemOnly)
 				{
 					// Get the class property map
 					FClassInstanceToPropertyMap& ClassInstanceMap = LayoutData.ClassToPropertyMap.FindOrAdd(Property->GetOwnerStruct()->GetFName());
@@ -595,7 +596,7 @@ void SDetailsViewBase::UpdateSinglePropertyMapRecursive(FPropertyNode& InNode, F
 				bool bRecurseIntoChildren =
 					!bIsChildOfCustomizedStruct // Don't recurse into built in struct children, we already know what they are and how to display them
 					&&  !bIsCustomizedStruct // Don't recurse into customized structs
-					&&	!bIsChildOfArray // Do not recurse into arrays, the children are drawn by the array property parent
+					&&	!bIsChildOfContainer // Do not recurse into containers, the children are drawn by the container property parent
 					&&	!bIsEditInlineNew // Edit inline new children are not supported for customization yet
 					&&	bIsUserVisible // Properties must be allowed to be visible by a user if they are not then their children are not visible either
 					&& (!bIsStruct || bPushOutStructProps); //  Only recurse into struct properties if they are going to be displayed as standalone properties in categories instead of inside an expandable area inside a category
@@ -758,6 +759,8 @@ void SDetailsViewBase::OnShowOnlyModifiedClicked()
 void SDetailsViewBase::OnShowAllAdvancedClicked()
 {
 	CurrentFilter.bShowAllAdvanced = !CurrentFilter.bShowAllAdvanced;
+	GetMutableDefault<UEditorStyleSettings>()->bShowAllAdvancedDetails = CurrentFilter.bShowAllAdvanced;
+	GConfig->SetBool(TEXT("/Script/EditorStyle.EditorStyleSettings"), TEXT("bShowAllAdvancedDetails"), GetMutableDefault<UEditorStyleSettings>()->bShowAllAdvancedDetails, GEditorPerProjectIni);
 
 	UpdateFilteredDetails();
 }
@@ -1325,6 +1328,8 @@ void SDetailsViewBase::UpdateFilteredDetails()
 	
 	NumVisbleTopLevelObjectNodes = 0;
 	FRootPropertyNodeList& RootPropertyNodes = GetRootNodes();
+
+	CurrentFilter.bShowAllAdvanced = GetDefault<UEditorStyleSettings>()->bShowAllAdvancedDetails;
 
 	for(int32 RootNodeIndex = 0; RootNodeIndex < RootPropertyNodes.Num(); ++RootNodeIndex)
 	{

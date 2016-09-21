@@ -3973,16 +3973,17 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					const FText Message = FText::Format( NSLOCTEXT("Core", "LinkedToObjectsInOtherMap_FindCulpritQ", "Can't save {FileName}: Graph is linked to object(s) in external map.\nExternal Object(s):\n{ObjectNames}  \nTry to find the chain of references to that object (may take some time)?"), Args );
 
 					FString CulpritString = TEXT( "Unknown" );
-					FMessageDialog::Open(EAppMsgType::Ok, Message);
-
-					FindMostLikelyCulprit( IllegalObjectsInOtherMaps, MostLikelyCulprit, PropertyRef );
-					if( MostLikelyCulprit != NULL && PropertyRef != NULL )
+					if (FMessageDialog::Open(EAppMsgType::YesNo, Message) == EAppReturnType::Yes)
 					{
-						CulpritString = FString::Printf(TEXT("%s (%s)"), *MostLikelyCulprit->GetFullName(), *PropertyRef->GetName());
-					}
-					else if (MostLikelyCulprit != NULL)
-					{
-						CulpritString = FString::Printf(TEXT("%s (Unknown property)"), *MostLikelyCulprit->GetFullName());
+						FindMostLikelyCulprit(IllegalObjectsInOtherMaps, MostLikelyCulprit, PropertyRef);
+						if (MostLikelyCulprit != NULL && PropertyRef != NULL)
+						{
+							CulpritString = FString::Printf(TEXT("%s (%s)"), *MostLikelyCulprit->GetFullName(), *PropertyRef->GetName());
+						}
+						else if (MostLikelyCulprit != NULL)
+						{
+							CulpritString = FString::Printf(TEXT("%s (Unknown property)"), *MostLikelyCulprit->GetFullName());
+						}
 					}
 
 					// Free the file handle and delete the temporary file
@@ -4030,12 +4031,13 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					const FText Message = FText::Format( NSLOCTEXT("Core", "LinkedToPrivateObjectsInOtherPackage_FindCulpritQ", "Can't save {FileName}: Graph is linked to private object(s) in an external package.\nExternal Object(s):\n{ObjectNames}  \nTry to find the chain of references to that object (may take some time)?"), Args );
 
 					FString CulpritString = TEXT( "Unknown" );
-					FMessageDialog::Open(EAppMsgType::Ok, Message);
-
-					FindMostLikelyCulprit( PrivateObjects, MostLikelyCulprit, PropertyRef );
-					CulpritString = FString::Printf(TEXT("%s (%s)"),
-						(MostLikelyCulprit != NULL) ? *MostLikelyCulprit->GetFullName() : TEXT("(unknown culprit)"),
-						(PropertyRef != NULL) ? *PropertyRef->GetName() : TEXT("unknown property ref"));
+					if (FMessageDialog::Open(EAppMsgType::YesNo, Message) == EAppReturnType::Yes)
+					{
+						FindMostLikelyCulprit(PrivateObjects, MostLikelyCulprit, PropertyRef);
+						CulpritString = FString::Printf(TEXT("%s (%s)"),
+							(MostLikelyCulprit != NULL) ? *MostLikelyCulprit->GetFullName() : TEXT("(unknown culprit)"),
+							(PropertyRef != NULL) ? *PropertyRef->GetName() : TEXT("unknown property ref"));
+					}
 
 					// free the file handle and delete the temporary file
 					Linker->Detach();

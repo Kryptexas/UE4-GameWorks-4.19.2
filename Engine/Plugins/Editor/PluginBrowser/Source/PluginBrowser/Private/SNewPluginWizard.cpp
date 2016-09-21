@@ -24,6 +24,7 @@ SNewPluginWizard::SNewPluginWizard()
 	, bIsEnginePlugin(false)
 {
 	const FText BlankTemplateName = LOCTEXT("BlankLabel", "Blank");
+	const FText ContentOnlyTemplateName = LOCTEXT("ContentOnlyLabel", "Content Only");
 	const FText BasicTemplateName = LOCTEXT("BasicTemplateTabLabel", "Toolbar Button");
 	const FText AdvancedTemplateName = LOCTEXT("AdvancedTemplateTabLabel", "Standalone Window");
 	const FText BlueprintLibTemplateName = LOCTEXT("BlueprintLibTemplateLabel", "Blueprint Library");
@@ -31,6 +32,7 @@ SNewPluginWizard::SNewPluginWizard()
 	const FText ThirdPartyTemplateName = LOCTEXT("ThirdPartyTemplateLabel", "Third Party Library");
 
 	const FText BlankDescription = LOCTEXT("BlankTemplateDesc", "Create a blank plugin with a minimal amount of code.\n\nChoose this if you want to set everything up from scratch or are making a non-visual plugin.\nA plugin created with this template will appear in the Editor's plugin list but will not register any buttons or menu entries.");
+	const FText ContentOnlyDescription = LOCTEXT("ContentOnlyTemplateDesc", "Create a blank plugin that can only contain content.");
 	const FText BasicDescription = LOCTEXT("BasicTemplateDesc", "Create a plugin that will add a button to the toolbar in the Level Editor.\n\nStart by implementing something in the created \"OnButtonClick\" event.");
 	const FText AdvancedDescription = LOCTEXT("AdvancedTemplateDesc", "Create a plugin that will add a button to the toolbar in the Level Editor that summons an empty standalone tab window when clicked.");
 	const FText BlueprintLibDescription = LOCTEXT("BPLibTemplateDesc", "Create a plugin that will contain Blueprint Function Library.\n\nChoose this if you want to create static blueprint nodes.");
@@ -38,6 +40,7 @@ SNewPluginWizard::SNewPluginWizard()
 	const FText ThirdPartyDescription = LOCTEXT("ThirdPartyDesc", "Create a plugin that uses an included third party library.\n\nThis can be used as an example of how to include, load and use a third party library yourself.");
 
 	Templates.Add(MakeShareable(new FPluginTemplateDescription(BlankTemplateName, BlankDescription, TEXT("Blank"))));
+	Templates.Add(MakeShareable(new FPluginTemplateDescription(ContentOnlyTemplateName, ContentOnlyDescription, TEXT("ContentOnly"), true)));
 	Templates.Add(MakeShareable(new FPluginTemplateDescription(BasicTemplateName, BasicDescription, TEXT("Basic"))));
 	Templates.Add(MakeShareable(new FPluginTemplateDescription(AdvancedTemplateName, AdvancedDescription, TEXT("Advanced"))));
 	Templates.Add(MakeShareable(new FPluginTemplateDescription(BlueprintLibTemplateName, BlueprintLibDescription, TEXT("BlueprintLibrary"))));
@@ -239,19 +242,10 @@ FReply SNewPluginWizard::OnBrowseButtonClicked()
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform)
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		FString FolderName;
 		const FString Title = LOCTEXT("NewPluginBrowseTitle", "Choose a plugin location").ToString();
 		const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 			Title,
 			LastBrowsePath,
 			FolderName
@@ -459,9 +453,17 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 
 	bool bSucceeded = true;
 
+	bool bHasModules = false;
+
+	FString PluginSourcePath = TemplateFolderName / TEXT("Source");
+	if ( FPaths::DirectoryExists(PluginSourcePath) )
+	{
+		bHasModules = true;
+	}
+
 	// Save descriptor file as .uplugin file
 	const FString UPluginFilePath = GetPluginFilenameWithPath();
-	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath);
+	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath, CurrentTemplate->CanContainContent, bHasModules);
 
 	// Main plugin dir
 	const FString PluginFolder = GetPluginDestinationPath().ToString() / AutoPluginName;
@@ -533,7 +535,7 @@ bool SNewPluginWizard::CopyFile(const FString& DestinationFile, const FString& S
 	}
 }
 
-bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath)
+bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool CanContainContent, bool HasModules)
 {
 	FPluginDescriptor Descriptor;
 
@@ -541,7 +543,11 @@ bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, co
 	Descriptor.Version = 1;
 	Descriptor.VersionName = TEXT("1.0");
 	Descriptor.Category = TEXT("Other");
-	Descriptor.Modules.Add(FModuleDescriptor(*PluginModuleName, EHostType::Developer));
+	if ( HasModules )
+	{
+		Descriptor.Modules.Add(FModuleDescriptor(*PluginModuleName, EHostType::Developer));
+	}
+	Descriptor.bCanContainContent = CanContainContent;
 
 	// Save the descriptor using JSon
 	FText FailReason;

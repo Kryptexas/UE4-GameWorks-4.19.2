@@ -19,10 +19,16 @@ FUObjectToken::FUObjectToken( const UObject* InObject,  const FText& InLabelOver
 		if ( DefaultGetObjectDisplayName.IsBound() )
 		{
 			CachedText = DefaultGetObjectDisplayName.Execute(InObject, false);
+
+			if (InObject)
+			{
+				OriginalObjectPathName = InObject->GetPathName();
+			}
 		}
 		else if ( InObject )
 		{
 			CachedText = FText::FromString( InObject->GetName() );
+			OriginalObjectPathName = InObject->GetPathName();
 		}
 		else
 		{

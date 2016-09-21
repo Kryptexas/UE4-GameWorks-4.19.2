@@ -566,14 +566,35 @@ void SWindow::ConstructWindowInternals()
 
 
 /** Are any of our child windows active? */
+bool SWindow::IsActive() const
+{
+	return FSlateApplicationBase::Get().GetActiveTopLevelWindow().Get() == this;
+}
+
 bool SWindow::HasActiveChildren() const
 {
 	for (int32 i = 0; i < ChildWindows.Num(); ++i)
 	{
-		if ( ChildWindows[i] == FSlateApplicationBase::Get().GetActiveTopLevelWindow() || ChildWindows[i]->HasActiveChildren() )
+		if ( ChildWindows[i]->IsActive() || ChildWindows[i]->HasActiveChildren() )
 		{
 			return true;
 		}
+	}
+
+	return false;
+}
+
+bool SWindow::HasActiveParent() const
+{
+	TSharedPtr<SWindow> ParentWindow = ParentWindowPtr.Pin();
+	if ( ParentWindow.IsValid() )
+	{
+		if ( ParentWindow->IsActive() )
+		{
+			return true;
+		}
+
+		return ParentWindow->HasActiveParent();
 	}
 
 	return false;

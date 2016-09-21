@@ -1119,6 +1119,26 @@ bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
 	return false;
 }
 
+bool ContentBrowserUtils::IsClassesFolder(const FString& InPath)
+{
+	// Strip off any leading or trailing forward slashes
+	// We just want the name without any path separators
+	FString CleanFolderPath = InPath;
+	while ( CleanFolderPath.StartsWith(TEXT("/")) )
+	{
+		CleanFolderPath = CleanFolderPath.Mid(1);
+	}
+	while ( CleanFolderPath.EndsWith(TEXT("/")) )
+	{
+		CleanFolderPath = CleanFolderPath.Mid(0, CleanFolderPath.Len() - 1);
+	}
+
+	static const FString ClassesPrefix = TEXT("Classes_");
+	const bool bIsClassDir = InPath.StartsWith(ClassesPrefix);
+
+	return bIsClassDir;
+}
+
 bool ContentBrowserUtils::IsLocalizationFolder( const FString& InPath )
 {
 	return FPackageName::IsLocalizedPackage(InPath);
@@ -1633,13 +1653,8 @@ bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath
 	return true;
 }
 
-bool ContentBrowserUtils::IsValidPackageForCooking(const FString& PackageName, FText& OutErrorMessage)
+int32 ContentBrowserUtils::GetPackageLengthForCooking(const FString& PackageName, bool IsInternalBuild)
 {
-	// We assume the game name is 20 characters (the maximum allowed) to make sure that content can be ported between projects
-	// 260 characters is the limit on Windows, which is the shortest max path of any platforms that support cooking
-	static const int32 MaxGameNameLen = 20;
-	static const int32 MaxPathLen = 260;
-
 	// Pad out the game name to the maximum allowed
 	const FString GameName = FApp::GetGameName();
 	FString GameNamePadded = GameName;
@@ -1660,28 +1675,9 @@ bool ContentBrowserUtils::IsValidPackageForCooking(const FString& PackageName, F
 	FPaths::RemoveDuplicateSlashes(AssetPathWithinCookDir);
 	AssetPathWithinCookDir.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
 
-	// Test that the package can be cooked based on the current project path
-	{
-		FString AbsoluteCookPathToAsset = AbsoluteCookPath / AssetPathWithinCookDir;
-		AbsoluteCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
+	int32 AbsoluteCookPathToAssetLength = 0;
 
-		if (AbsoluteCookPathToAsset.Len() > MaxPathLen)
-		{
-			// The projected length of the path for cooking is too long
-			OutErrorMessage = LOCTEXT("AssetCookingPathTooLong", "The path to the asset is too long for cooking\nPlease choose a shorter name for the asset or create it in a shallower folder structure with shorter folder names.");
-			// Return false to indicate that the user should enter a new name
-			return false;
-		}
-	}
-
-	// See TTP# 332328:
-	// The following checks are done mostly to prevent / alleviate the problems that "long" paths are causing with the BuildFarm and cooked builds.
-	// The BuildFarm uses a verbose path to encode extra information to provide more information when things fail, however this makes the path limitation a problem.
-	//	- We assume a base path of D:/BuildFarm/buildmachine_++depot+UE4-Releases+4.10/
-	//	- We assume the game name is 20 characters (the maximum allowed) to make sure that content can be ported between projects
-	//	- We calculate the cooked game path relative to the game root (eg, Showcases/Infiltrator/Saved/Cooked/WindowsNoEditor/Infiltrator)
-	//	- We calculate the asset path relative to (and including) the Content directory (eg, Content/Environment/Infil1/Infil1_Underground/Infrastructure/Model/SM_Infil1_Tunnel_Ceiling_Pipes_1xEntryCurveOuter_Double.uasset)
-	if (FEngineBuildSettings::IsInternalBuild())
+	if (IsInternalBuild)
 	{
 		// We assume a constant size for the build machine base path, so strip either the root or game path from the start
 		// (depending on whether the project is part of the main UE4 source tree or located elsewhere)
@@ -1698,13 +1694,46 @@ bool ContentBrowserUtils::IsValidPackageForCooking(const FString& PackageName, F
 		FString AbsoluteBuildMachineCookPathToAsset = FString(TEXT("D:/BuildFarm/buildmachine_++depot+UE4-Releases+4.10")) / CookDirWithoutBasePath / AssetPathWithinCookDir;
 		AbsoluteBuildMachineCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
 
-		if (AbsoluteBuildMachineCookPathToAsset.Len() > MaxPathLen)
+		AbsoluteCookPathToAssetLength = AbsoluteBuildMachineCookPathToAsset.Len();
+	}
+	else	
+	{ 
+		// Test that the package can be cooked based on the current project path
+		FString AbsoluteCookPathToAsset = AbsoluteCookPath / AssetPathWithinCookDir;
+		AbsoluteCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
+
+		AbsoluteCookPathToAssetLength = AbsoluteCookPathToAsset.Len();
+	}
+
+	return AbsoluteCookPathToAssetLength;
+}
+
+bool ContentBrowserUtils::IsValidPackageForCooking(const FString& PackageName, FText& OutErrorMessage)
+{
+	int32 AbsoluteCookPathToAssetLength = GetPackageLengthForCooking(PackageName, FEngineBuildSettings::IsInternalBuild());
+
+	if (AbsoluteCookPathToAssetLength > MaxCookPathLen)
+	{
+		// See TTP# 332328:
+		// The following checks are done mostly to prevent / alleviate the problems that "long" paths are causing with the BuildFarm and cooked builds.
+		// The BuildFarm uses a verbose path to encode extra information to provide more information when things fail, however this makes the path limitation a problem.
+		//	- We assume a base path of D:/BuildFarm/buildmachine_++depot+UE4-Releases+4.10/
+		//	- We assume the game name is 20 characters (the maximum allowed) to make sure that content can be ported between projects
+		//	- We calculate the cooked game path relative to the game root (eg, Showcases/Infiltrator/Saved/Cooked/WindowsNoEditor/Infiltrator)
+		//	- We calculate the asset path relative to (and including) the Content directory (eg, Content/Environment/Infil1/Infil1_Underground/Infrastructure/Model/SM_Infil1_Tunnel_Ceiling_Pipes_1xEntryCurveOuter_Double.uasset)
+		if (FEngineBuildSettings::IsInternalBuild())
 		{
 			// The projected length of the path for cooking is too long
-			OutErrorMessage = LOCTEXT("AssetCookingPathTooLongForBuildMachine", "The path to the asset is too long for cooking by the build machines\nPlease choose a shorter name for the asset or create it in a shallower folder structure with shorter folder names.");
-			// Return false to indicate that the user should enter a new name
-			return false;
+			OutErrorMessage = FText::Format(LOCTEXT("AssetCookingPathTooLongForBuildMachine", "The path to the asset is too long '{0}' for cooking by the build machines, the maximum is '{1}'\nPlease choose a shorter name for the asset or create it in a shallower folder structure with shorter folder names."), FText::AsNumber(AbsoluteCookPathToAssetLength), FText::AsNumber(MaxCookPathLen));
 		}
+		else
+		{
+			// The projected length of the path for cooking is too long
+			OutErrorMessage = FText::Format(LOCTEXT("AssetCookingPathTooLong", "The path to the asset is too long '{0}', the maximum for cooking is '{1}'\nPlease choose a shorter name for the asset or create it in a shallower folder structure with shorter folder names."), FText::AsNumber(AbsoluteCookPathToAssetLength), FText::AsNumber(MaxCookPathLen));
+		}
+
+		// Return false to indicate that the user should enter a new name
+		return false;
 	}
 
 	return true;

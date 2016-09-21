@@ -6704,7 +6704,10 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 								const UParticleModuleMeshMaterial* MaterialModule = Cast<UParticleModuleMeshMaterial>( LOD->Modules[ ModuleIdx ] );
 								if( TypeDataModule->Mesh )
 								{
-									OutMaterials.Append(TypeDataModule->Mesh->Materials);
+									for (const FStaticMaterial &StaticMaterial : TypeDataModule->Mesh->StaticMaterials)
+									{
+										OutMaterials.Add(StaticMaterial.MaterialInterface);
+									}
 								}
 							}
 						}

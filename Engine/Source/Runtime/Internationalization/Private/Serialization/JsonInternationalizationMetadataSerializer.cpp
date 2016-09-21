@@ -92,7 +92,7 @@ TSharedPtr<FLocMetadataValue> JSonValueToLocMetaDataValue( const TSharedRef< FJs
 
 TSharedPtr<FJsonValue> LocMetaDataValueToJsonValue( const TSharedRef< FLocMetadataValue > MetadataValue )
 {
-	switch( MetadataValue->Type )
+	switch( MetadataValue->GetType() )
 	{
 	case ELocMetadataType::Boolean:
 		{

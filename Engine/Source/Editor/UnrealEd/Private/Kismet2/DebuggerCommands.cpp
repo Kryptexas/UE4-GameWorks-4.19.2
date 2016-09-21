@@ -1245,7 +1245,9 @@ void SetLastExecutedLaunchMode( ELaunchModeType LaunchMode )
 
 void FInternalPlayWorldCommandCallbacks::RepeatLastPlay_Clicked()
 {
-	FPlayWorldCommands::GlobalPlayWorldActions->ExecuteAction( GetLastPlaySessionCommand() );
+	TSharedRef<FUICommandInfo> LastCommand = GetLastPlaySessionCommand();
+	UE_LOG(LogTemp, Log, TEXT("Repeting last play command: %s"), *LastCommand->GetLabel().ToString());
+	FPlayWorldCommands::GlobalPlayWorldActions->ExecuteAction(LastCommand);
 }
 
 

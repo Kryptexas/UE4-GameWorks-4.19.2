@@ -1115,21 +1115,12 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnImportHeightmapFilena
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform != nullptr)
 	{
-		void* ParentWindowWindowHandle = nullptr;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
 		const TCHAR* FileTypes = LandscapeEditorModule.GetHeightmapImportDialogTypeString();
 
 		TArray<FString> OpenFilenames;
 		bool bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			NSLOCTEXT("UnrealEd", "Import", "Import").ToString(),
 			LandscapeEdMode->UISettings->LastImportPath,
 			TEXT(""),
@@ -1437,21 +1428,12 @@ FReply FLandscapeEditorStructCustomization_FLandscapeImportLayer::OnLayerFilenam
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform != nullptr)
 	{
-		void* ParentWindowWindowHandle = nullptr;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
 		const TCHAR* FileTypes = LandscapeEditorModule.GetWeightmapImportDialogTypeString();
 
 		TArray<FString> OpenFilenames;
 		bool bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			NSLOCTEXT("UnrealEd", "Import", "Import").ToString(),
 			LandscapeEdMode->UISettings->LastImportPath,
 			TEXT(""),

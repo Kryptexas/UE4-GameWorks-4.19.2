@@ -1653,7 +1653,11 @@ void UPaperSprite::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) cons
 
 FSlateAtlasData UPaperSprite::GetSlateAtlasData() const
 {
-	if ( BakedSourceTexture == nullptr )
+	if ( SourceTexture == nullptr && BakedSourceTexture == nullptr )
+	{
+		return FSlateAtlasData(nullptr, FVector2D::ZeroVector, FVector2D::ZeroVector);
+	}
+	else if ( BakedSourceTexture == nullptr )
 	{
 		const FVector2D ImportedSize = FVector2D(SourceTexture->GetImportedSize());
 

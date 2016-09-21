@@ -1073,19 +1073,26 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 		{
 			NewWindowMode = GetWindowModeType(NewWindowMode);
 
-			const FVector2D WindowPos = WindowToResize->GetPositionInScreen();
-			const FVector2D WindowSize = WindowToResize->GetClientSizeInScreen();
+			const FVector2D OldWindowPos = WindowToResize->GetPositionInScreen();
+			const FVector2D OldWindowSize = WindowToResize->GetClientSizeInScreen();
+			const EWindowMode::Type OldWindowMode = WindowMode;
+
+			// Set the new window mode first to ensure that the work area size is correct (fullscreen windows can affect this)
+			if (NewWindowMode != OldWindowMode)
+			{
+				WindowToResize->SetWindowMode(NewWindowMode);
+			}
 
 			TOptional<FVector2D> NewWindowPos;
 			FVector2D NewWindowSize(NewWindowSizeX, NewWindowSizeY);
 
-			const FSlateRect BestWorkArea = FSlateApplication::Get().GetWorkArea(FSlateRect::FromPointAndExtent(WindowPos, WindowSize));
+			const FSlateRect BestWorkArea = FSlateApplication::Get().GetWorkArea(FSlateRect::FromPointAndExtent(OldWindowPos, OldWindowSize));
 
 			// A switch to window mode should position the window to be in the center of the work-area (we don't do this if we were already in window mode to allow the user to move the window)
 			// Fullscreen modes should position the window to the top-left of the work-area
 			if (NewWindowMode == EWindowMode::Windowed)
 			{
-				if (WindowMode == EWindowMode::Windowed && NewWindowSize == WindowSize)
+				if (OldWindowMode == EWindowMode::Windowed && NewWindowSize == OldWindowSize)
 				{
 					// Leave the window position alone!
 					NewWindowPos.Reset();
@@ -1143,9 +1150,8 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 			}
 
 			// Resize window
-			if (NewWindowSize != WindowSize || (NewWindowPos.IsSet() && NewWindowPos != WindowPos) || NewWindowMode != WindowMode)
+			if (NewWindowSize != OldWindowSize || (NewWindowPos.IsSet() && NewWindowPos != OldWindowPos) || NewWindowMode != OldWindowMode)
 			{
-				WindowToResize->SetWindowMode(NewWindowMode);
 				LockMouseToViewport(!CurrentReplyState.ShouldReleaseMouseLock());
 				if (NewWindowPos.IsSet())
 				{
@@ -1161,13 +1167,13 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 			FVector2D ViewportSize = WindowToResize->GetWindowSizeFromClientSize(FVector2D(SizeX, SizeY));
 			FVector2D NewViewportSize = WindowToResize->GetViewportSize();
 
-			if (NewViewportSize != ViewportSize || NewWindowMode != WindowMode)
+			if (NewViewportSize != ViewportSize || NewWindowMode != OldWindowMode)
 			{
 				ResizeViewport(NewViewportSize.X, NewViewportSize.Y, NewWindowMode);
 			}
 
 			// Resize backbuffer
-			FVector2D BackBufferSize = WindowToResize->IsMirrorWindow() ? WindowSize : ViewportSize;
+			FVector2D BackBufferSize = WindowToResize->IsMirrorWindow() ? OldWindowSize : ViewportSize;
 			FVector2D NewBackbufferSize = WindowToResize->IsMirrorWindow() ? NewWindowSize : NewViewportSize;
 			
 			if (NewBackbufferSize != BackBufferSize)

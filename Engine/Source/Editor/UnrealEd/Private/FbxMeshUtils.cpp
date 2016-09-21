@@ -145,8 +145,24 @@ namespace FbxMeshUtils
 			else
 			{
 				// Import mesh
+				TArray<FName> OrderedMaterialNames;
+				{
+					int32 NoneNameCount = 0;
+					for (const FStaticMaterial &Material : BaseStaticMesh->StaticMaterials)
+					{
+						if (Material.ImportedMaterialSlotName == NAME_None)
+							NoneNameCount++;
+
+						OrderedMaterialNames.Add(Material.ImportedMaterialSlotName);
+					}
+					if (NoneNameCount >= OrderedMaterialNames.Num())
+					{
+						OrderedMaterialNames.Empty();
+					}
+				}
+
 				UStaticMesh* TempStaticMesh = NULL;
-				TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(BaseStaticMesh->GetOutermost(), *(LODNodeList[bUseLODs? LODLevel: 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel);
+				TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(BaseStaticMesh->GetOutermost(), *(LODNodeList[bUseLODs? LODLevel: 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel, nullptr, OrderedMaterialNames.Num() > 0 ? &OrderedMaterialNames : nullptr);
 
 				// Add imported mesh to existing model
 				if( TempStaticMesh )
@@ -323,7 +339,23 @@ namespace FbxMeshUtils
 					USkeletalMesh* TempSkelMesh = NULL;
 					// @todo AssetImportData does this temp skeletal mesh need import data?
 					UFbxSkeletalMeshImportData* TempAssetImportData = NULL;
-					TempSkelMesh = (USkeletalMesh*)FFbxImporter->ImportSkeletalMesh(SelectedSkelMesh->GetOutermost(), bUseLODs? SkelMeshNodeArray: *MeshObject, NAME_None, RF_Transient, TempAssetImportData, LODLevel);
+					TArray<FName> OrderedMaterialNames;
+					{
+						int32 NoneNameCount = 0;
+						for (const FSkeletalMaterial &Material : SelectedSkelMesh->Materials)
+						{
+							if (Material.ImportedMaterialSlotName == NAME_None)
+								NoneNameCount++;
+
+							OrderedMaterialNames.Add(Material.ImportedMaterialSlotName);
+						}
+						if (NoneNameCount >= OrderedMaterialNames.Num())
+						{
+							OrderedMaterialNames.Empty();
+						}
+					}
+					
+					TempSkelMesh = (USkeletalMesh*)FFbxImporter->ImportSkeletalMesh(SelectedSkelMesh->GetOutermost(), bUseLODs? SkelMeshNodeArray: *MeshObject, NAME_None, RF_Transient, TempAssetImportData, LODLevel, nullptr, nullptr, nullptr, true, OrderedMaterialNames.Num() > 0 ? &OrderedMaterialNames : nullptr);
 
 					// Add imported mesh to existing model
 					bool bImportSucceeded = false;
@@ -407,17 +439,8 @@ namespace FbxMeshUtils
 		bool bOpen = false;
 		if ( DesktopPlatform )
 		{
-			void* ParentWindowWindowHandle = NULL;
-
-			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-			if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-			{
-				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-			}
-
 			bOpen = DesktopPlatform->OpenFileDialog(
-				ParentWindowWindowHandle,
+				FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 				FText::Format( NSLOCTEXT("UnrealEd", "ImportMeshLOD", "Failed to import mesh for LOD {0}!"), FText::AsNumber( LODLevel ) ).ToString(),
 				*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::FBX),
 				TEXT(""),

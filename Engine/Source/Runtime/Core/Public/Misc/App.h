@@ -262,7 +262,7 @@ public:
 	 */
 	FORCEINLINE static bool IsAuthorizedUser(const FString& UserName)
 	{
-		return ((FPlatformProcess::UserName(false) == UserName) || SessionUsers.Contains(UserName));
+		return ((FPlatformProcess::UserName(false) == UserName) || (SessionOwner == UserName) || SessionUsers.Contains(UserName));
 	}
 
 	/**

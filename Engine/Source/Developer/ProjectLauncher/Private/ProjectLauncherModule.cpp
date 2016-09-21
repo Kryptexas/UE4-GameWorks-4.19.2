@@ -16,19 +16,6 @@ class FProjectLauncherModule
 {
 public:
 
-	// IProjectLauncherModule interface
-
-	virtual TSharedRef<class SWidget> CreateSProjectLauncherProgressPanel( const ILauncherWorkerRef& LauncherWorker ) override
-	{
-		TSharedRef<SProjectLauncherProgress> Panel = SNew(SProjectLauncherProgress);
-
-		Panel->SetLauncherWorker(LauncherWorker);
-
-		return Panel;
-	}
-
-public:
-
 	// IModuleInterface interface
 	
 	virtual void StartupModule( ) override

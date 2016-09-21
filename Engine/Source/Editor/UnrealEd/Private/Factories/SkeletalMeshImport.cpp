@@ -147,7 +147,6 @@ void FSkeletalMeshImportData::CopyLODImportData(
 	// Copy mapping
 	LODPointToRawMap = PointToRawMap;
 }
-
 /**
 * Process and fill in the mesh Materials using the raw binary import data
 * 
@@ -174,10 +173,20 @@ void ProcessImportMeshMaterials(TArray<FSkeletalMaterial>& Materials, FSkeletalM
 		{
 			const FString& MaterialName = ImportedMaterial.MaterialImportName;
 			Material = FindObject<UMaterialInterface>(ANY_PACKAGE, *MaterialName);
+
+			if (Material == nullptr)
+			{
+				int32 SkinOffset = MaterialName.Find(TEXT("_skin"));
+				if (SkinOffset != INDEX_NONE)
+				{
+					const FString& MaterialNameNoSkin = MaterialName.LeftChop(MaterialName.Len() - SkinOffset);
+					Material = FindObject<UMaterialInterface>(ANY_PACKAGE, *MaterialNameNoSkin);
+				}
+			}
 		}
 
 		const bool bEnableShadowCasting = true;
-		Materials.Add( FSkeletalMaterial( Material, bEnableShadowCasting ) );
+		Materials.Add( FSkeletalMaterial( Material, bEnableShadowCasting, false, Material != nullptr ? Material->GetFName() : FName(*(ImportedMaterial.MaterialImportName)), FName(*(ImportedMaterial.MaterialImportName)) ) );
 	}
 
 	int32 NumMaterialsToAdd = FMath::Max<int32>( ImportedMaterials.Num(), ImportData.MaxMaterialIndex + 1 );
@@ -185,7 +194,7 @@ void ProcessImportMeshMaterials(TArray<FSkeletalMaterial>& Materials, FSkeletalM
 	// Pad the material pointers
 	while( NumMaterialsToAdd > Materials.Num() )
 	{
-		Materials.Add( FSkeletalMaterial( NULL, true ) );
+		Materials.Add( FSkeletalMaterial( NULL, true, false, NAME_None, NAME_None ) );
 	}
 }
 
@@ -858,14 +867,44 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 		{
 			if (MeshData->ExistingMaterials.Num() > SkeletalMesh->Materials.Num())
 			{
-				MeshData->ExistingMaterials.RemoveAt(SkeletalMesh->Materials.Num(), MeshData->ExistingMaterials.Num() - SkeletalMesh->Materials.Num());
+				for (int32 i = 0; i < MeshData->ExistingLODModels.Num(); i++)
+				{
+					FStaticLODModel& LODModel = MeshData->ExistingLODModels[i];
+					FSkeletalMeshLODInfo& LODInfo = MeshData->ExistingLODInfo[i];
+					for (int32 OldMaterialIndex : LODInfo.LODMaterialMap)
+					{
+						int32 MaterialNumber = SkeletalMesh->Materials.Num();
+						if (OldMaterialIndex >= MaterialNumber && OldMaterialIndex < MeshData->ExistingMaterials.Num())
+						{
+							SkeletalMesh->Materials.AddZeroed((OldMaterialIndex + 1) - MaterialNumber);
+						}
+					}
+				}
 			}
 			else if (SkeletalMesh->Materials.Num() > MeshData->ExistingMaterials.Num())
 			{
+				int32 ExistingMaterialsCount = MeshData->ExistingMaterials.Num();
 				MeshData->ExistingMaterials.AddZeroed(SkeletalMesh->Materials.Num() - MeshData->ExistingMaterials.Num());
+				//Set the ImportedMaterialSlotName on new material slot to allow next reimport to reorder the array correctly
+				for (int32 MaterialIndex = ExistingMaterialsCount; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+				{
+					MeshData->ExistingMaterials[MaterialIndex].ImportedMaterialSlotName = SkeletalMesh->Materials[MaterialIndex].ImportedMaterialSlotName;
+				}
 			}
 
-			SkeletalMesh->Materials = MeshData->ExistingMaterials;
+			for (int32 CopyIndex = 0; CopyIndex < SkeletalMesh->Materials.Num(); ++CopyIndex)
+			{
+				if (MeshData->ExistingMaterials[CopyIndex].ImportedMaterialSlotName == NAME_None)
+				{
+					MeshData->ExistingMaterials[CopyIndex].ImportedMaterialSlotName = SkeletalMesh->Materials[CopyIndex].ImportedMaterialSlotName;
+					//Set some default value for the MaterialSlotName
+					if (MeshData->ExistingMaterials[CopyIndex].MaterialSlotName == NAME_None)
+					{
+						MeshData->ExistingMaterials[CopyIndex].MaterialSlotName = SkeletalMesh->Materials[CopyIndex].MaterialSlotName;
+					}
+				}
+				SkeletalMesh->Materials[CopyIndex] = MeshData->ExistingMaterials[CopyIndex];
+			}
 		}
 
 		// this is not ideal. Ideally we'll have to save only diff with indicating which joints, 

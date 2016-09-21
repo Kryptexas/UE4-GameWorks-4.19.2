@@ -55,10 +55,15 @@ public:
 		}
 	}
 
+	FORCENOINLINE static bool IsRegistered()
+	{
+		return Instance.IsValid();
+	}
+
 	/** Get the singleton instance of this set of commands. */
 	FORCENOINLINE static const CommandContextType& Get()
 	{
-		return *(Instance.Pin());
+		return *( Instance.Pin() );
 	}
 
 	/** Use this method to clean up any resources used by the command set. Usually done in ShutdownModule() */
