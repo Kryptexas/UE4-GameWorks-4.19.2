@@ -41,7 +41,7 @@ LandscapeEdit.cpp: Landscape editing
 #include "NotificationManager.h"
 #include "LandscapeEditorModule.h"
 #endif
-#include "Algo/Count.h"
+#include "Algo/Accumulate.h"
 
 DEFINE_LOG_CATEGORY(LogLandscape);
 
@@ -3678,13 +3678,13 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	}
 
 	// Remove null layer infos
-	EditorLayerSettings.RemoveAll([](const auto& Entry) { return Entry.LayerInfoObj == nullptr; });
+	EditorLayerSettings.RemoveAll([](const FLandscapeEditorLayerSettings& Entry) { return Entry.LayerInfoObj == nullptr; });
 
 	ULandscapeInfo* Info = GetLandscapeInfo();
 	bool bRemovedAnyLayers = false;
 	for (ULandscapeComponent* Component : LandscapeComponents)
 	{
-		int32 NumNullLayers = Algo::CountIf(Component->WeightmapLayerAllocations, [](const auto& Allocation) { return Allocation.LayerInfo == nullptr; });
+		int32 NumNullLayers = Algo::TransformAccumulate(Component->WeightmapLayerAllocations, [](const FWeightmapLayerAllocationInfo& Allocation) { return Allocation.LayerInfo == nullptr ? 1 : 0; }, 0);
 		if (NumNullLayers > 0)
 		{
 			FLandscapeEditDataInterface LandscapeEdit(Info);
