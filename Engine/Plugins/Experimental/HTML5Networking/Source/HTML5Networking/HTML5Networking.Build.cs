@@ -6,10 +6,6 @@ namespace UnrealBuildTool.Rules
 	{
 		public HTML5Networking(TargetInfo Target)
 		{
-			Definitions.Add("ONLINESUBSYSTEMUTILS_PACKAGE=1");
-
-			PrivateIncludePaths.Add("OnlineSubsystemUtils/Private");
-
             PrivateDependencyModuleNames.AddRange(
                 new string[] { 
                     "Core", 
@@ -23,8 +19,6 @@ namespace UnrealBuildTool.Rules
                     "zlib"
                 }
             );
-
-	        PublicDependencyModuleNames.Add("OnlineSubsystem");
 		}
 	}
 }
