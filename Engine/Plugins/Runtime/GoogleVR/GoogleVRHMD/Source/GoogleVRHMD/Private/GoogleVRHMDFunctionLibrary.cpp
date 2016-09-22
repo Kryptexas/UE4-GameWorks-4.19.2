@@ -34,11 +34,6 @@ FGoogleVRHMD* GetHMD()
 
 void UGoogleVRHMDFunctionLibrary::SetChromaticAberrationCorrectionEnabled(bool bEnable)
 {
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		HMD->SetChromaticAberrationCorrectionEnabled(bEnable);
-	}
 }
 
 void UGoogleVRHMDFunctionLibrary::SetDistortionCorrectionEnabled(bool bEnable)

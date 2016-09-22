@@ -133,9 +133,9 @@ namespace EGoogleVRMode
 {
 	enum Type
 	{
-		Cardboard = 0 UMETA(DisplayName = "Cardboard", ToolTip = "Configure GoogleVR to run in Cardboard-only mode."),
-		Daydream = 1 UMETA(DisplayName = "Daydream", ToolTip = "Configure GoogleVR to run in Daydream-only mode. In this mode, app won't be able to run on Non Daydream-ready phone."),
-		DaydreamAndCardboard = 2 UMETA(DisplayName = "Daydream & Cardboard", ToolTip = "Configure GoogleVR to run in Daydream mode on Daydream-ready phone and fallback to Cardboard mode on Non Daydream-ready phone.")
+		Cardboard = 0 UMETA(DisplayName = "Cardboard", ToolTip = "Configure GoogleVR to run in Cardboard-only mode. App in this mode will not use async reprojection."),
+		Daydream = 1 UMETA(DisplayName = "Daydream", ToolTip = "Configure GoogleVR to run in Daydream-only mode. App in this mode will enable async reprojection and won't be able to run on Non Daydream-ready phone."),
+		DaydreamAndCardboard = 2 UMETA(DisplayName = "Daydream & Cardboard", ToolTip = "Configure GoogleVR to support both Daydream mode and cardboard mode. Async reprojection will be enabled on Daydream-ready phone.")
 	};
 }
 
@@ -237,7 +237,7 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Remove Oculus Signature Files from Distribution APK"))
 	bool bRemoveOSIG;
 
-	// Configure AndroidManifest.xml for Cardboard, Cardboard Advanced, or Daydream deployment. If running in Daydream-only mode, sustained performance and scanline racing are forced.
+	// Configure AndroidManifest.xml for Cardboard, Cardboard Advanced, or Daydream deployment. If running in Daydream-only mode, sustained performance and async reprojection are forced.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure GoogleVR Deployment Mode"))
 	TEnumAsByte<EGoogleVRMode::Type> GoogleVRMode;
 

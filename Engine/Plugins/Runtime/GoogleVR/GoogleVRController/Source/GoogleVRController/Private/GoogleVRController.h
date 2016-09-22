@@ -21,9 +21,6 @@
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 using namespace gvr;
-typedef gvr::ControllerApi* ControllerApiPtr;
-#else
-typedef void* ControllerApiPtr;
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRController, Log, All);
@@ -51,7 +48,7 @@ class FGoogleVRController : public IInputDevice, public IMotionController
 {
 public:
 
-	FGoogleVRController(ControllerApiPtr pControllerAPI, const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler);
+	FGoogleVRController(gvr::ControllerApi* pControllerAPI, const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler);
 	virtual ~FGoogleVRController();
 
 public:
@@ -93,6 +90,8 @@ public: // Helper Functions
 	/** Checks if the controller is available */
 	bool IsAvailable() const;
 
+	int GetGVRControllerHandedness() const;
+
 public:	// IInputDevice
 
 	/** Tick the interface (e.g. check for new controllers) */
@@ -132,14 +131,14 @@ public: // IMotionController
 	*/
 	virtual ETrackingStatus GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const;
 
+	/** Cached controller info */
+	gvr::ControllerState CachedControllerState;
+
 private:
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	/** GVR Controller client reference */
-	ControllerApiPtr pController;
-
-	/** Cached controller info */
-	gvr::ControllerState CachedControllerState;
+	gvr::ControllerApi *pController;
 
 	/** Capture Button Press states */
 	bool LastButtonStates[EGoogleVRControllerButton::TotalButtonCount];
