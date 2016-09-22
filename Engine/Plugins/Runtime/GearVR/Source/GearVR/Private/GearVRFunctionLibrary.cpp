@@ -12,7 +12,7 @@ UGearVRFunctionLibrary::UGearVRFunctionLibrary(const FObjectInitializer& ObjectI
 }
 #if GEARVR_SUPPORTED_PLATFORMS
 
-FGearVR* GetHMD()
+static FGearVR* GetHMD()
 {
 	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetVersionString().Contains(TEXT("GearVR")))
 	{
