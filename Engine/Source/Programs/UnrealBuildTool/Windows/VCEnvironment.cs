@@ -330,7 +330,7 @@ namespace UnrealBuildTool
 			}
 
 			// Otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
-			FileReference CrossCompilePath = FileReference.Combine(VCInstallDir, "bin", "x86_amd64");
+			FileReference CrossCompilePath = FileReference.Combine(VCInstallDir, "bin", "x86_amd64", "cl.exe");
 			if(CrossCompilePath.Exists())
 			{
 				return CrossCompilePath.Directory;
