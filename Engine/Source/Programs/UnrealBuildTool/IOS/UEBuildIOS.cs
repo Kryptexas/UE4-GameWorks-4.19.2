@@ -364,7 +364,7 @@ namespace UnrealBuildTool
                         Process IPPProcess = new Process();
                         if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
                         {
-                            string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" certificates " + ((ProjectFile != null) ? ProjectFile.ToString() : "Engine") + " -bundlename " + BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
+							string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" certificates " + ((ProjectFile != null) ? ("\""+ ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
                             IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
                             IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
                             IPPProcess.StartInfo.Arguments = IPPCmd;
@@ -373,7 +373,7 @@ namespace UnrealBuildTool
                         }
                         else
                         {
-                            string IPPCmd = "certificates " + ((ProjectFile != null) ? ProjectFile.ToString() : "Engine") + " -bundlename " + BundleId;
+							string IPPCmd = "certificates " + ((ProjectFile != null) ? ("\""+ ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId;
                             IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
                             IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
                             IPPProcess.StartInfo.Arguments = IPPCmd;
@@ -393,7 +393,7 @@ namespace UnrealBuildTool
                         Process IPPProcess = new Process();
                         if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
                         {
-                            string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" signing_match " + ((ProjectFile != null) ? ProjectFile.ToString() : "Engine") + " -bundlename " + BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
+							string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" signing_match " + ((ProjectFile != null) ? ("\""+ ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
                             IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
                             IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
                             IPPProcess.StartInfo.Arguments = IPPCmd;
@@ -402,7 +402,7 @@ namespace UnrealBuildTool
                         }
                         else
                         {
-                            string IPPCmd = "signing_match " + ((ProjectFile != null) ? ProjectFile.ToString() : "Engine") + " -bundlename " + BundleId;
+							string IPPCmd = "signing_match " + ((ProjectFile != null) ? ("\""+ ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId;
                             IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
                             IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
                             IPPProcess.StartInfo.Arguments = IPPCmd;
