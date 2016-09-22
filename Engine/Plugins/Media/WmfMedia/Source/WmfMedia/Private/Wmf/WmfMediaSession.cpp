@@ -422,11 +422,6 @@ STDMETHODIMP_(ULONG) FWmfMediaSession::Release()
 	
 	if (CurrentRefCount == 0)
 	{
-		if (MediaSession != NULL)
-		{
-			MediaSession->Shutdown();
-		}
-
 		delete this;
 	}
 
@@ -468,6 +463,7 @@ bool FWmfMediaSession::ChangeState()
 		{
 			UE_LOG(LogWmfMedia, Verbose, TEXT("Closing media session as requested"));
 			MediaSession->Close();
+			MediaSession->Shutdown();
 
 			return true;
 		}
