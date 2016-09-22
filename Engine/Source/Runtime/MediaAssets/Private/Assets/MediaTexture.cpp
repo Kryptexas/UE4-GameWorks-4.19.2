@@ -26,6 +26,11 @@ UMediaTexture::UMediaTexture(const FObjectInitializer& ObjectInitializer)
 
 bool UMediaTexture::Tick(float DeltaTime)
 {
+	if (HasAnyFlags(RF_BeginDestroyed))
+	{
+		return false;
+	}
+
 	// process deferred tasks
 	TFunction<void()> Task;
 
