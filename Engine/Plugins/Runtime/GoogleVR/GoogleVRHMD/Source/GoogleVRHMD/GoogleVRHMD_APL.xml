@@ -17,23 +17,22 @@
     </if>
     
     <!-- Check for GoogleVR Deployment Mode and Set Vars. -->
-    <setBoolFromProperty result="bPackageForDaydream" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="bPackageForDaydream" default="true"/>
-    <setStringFromProperty result="GoogleVRMode" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="GoogleVRMode" default="Cardboard"/>
-    <setBool result="bDaydreamMode" value="false"/>
-    <setBool result="bDaydreamAndCardboardMode" value="false"/>
-    <setBool result="bEnableGoogleVRAsyncReprojectionWhenPossible" value="false"/>
-    <setBoolIsEqual result="bDaydreamMode" arg1="$S(GoogleVRMode)" arg2="Daydream"/>
-    <setBoolIsEqual result="bDaydreamAndCardboardMode" arg1="$S(GoogleVRMode)" arg2="DaydreamAndCardboard"/>
-    <if condition="bDaydreamMode">
+    <setStringFromProperty result="GoogleVRMode" ini="Engine" section="/Script/AndroidRuntimeSettings.AndroidRuntimeSettings" property="GoogleVRMode" default="DaydreamAndCardboard"/>
+    <setBool result="bPackageForDaydream" value="false"/>
+    <setBool result="bPackageForDaydreamAndCardboard" value="false"/>
+    <setBool result="bEnableGoogleVRScanlineRacingWhenPossible" value="false"/>
+    <setBoolIsEqual result="bPackageForDaydream" arg1="$S(GoogleVRMode)" arg2="Daydream"/>
+    <setBoolIsEqual result="bPackageForDaydreamAndCardboard" arg1="$S(GoogleVRMode)" arg2="DaydreamAndCardboard"/>
+    <if condition="bPackageForDaydream">
       <true>
-        <log text="Packaging app for Daydream deployment. Async reprojection will be forced."/>
-        <setBool result="bEnableGoogleVRAsyncReprojectionWhenPossible" value="true"/>
+        <log text="Packaging app for Daydream deployment. Scanline racing and sustained-performance will be forced."/>
+        <setBool result="bEnableGoogleVRScanlineRacingWhenPossible" value="true"/>
       </true>
       <false>
-        <if condition="bDaydreamAndCardboardMode">
+        <if condition="bPackageForDaydreamAndCardboard">
           <true>
             <log text="Packaging app for Daydream and Cardboard deployment."/>
-            <setBool result="bEnableGoogleVRAsyncReprojectionWhenPossible" value="true"/>
+            <setBool result="bEnableGoogleVRScanlineRacingWhenPossible" value="true"/>
           </true>
           <false>
             <log text="Packaging app for Cardboard deployment."/>
@@ -81,74 +80,66 @@
   </proguardAdditions>
   
 	<!-- optional updates applied to AndroidManifest.xml -->
-  <androidManifestUpdates>
+	<androidManifestUpdates>
+    <!-- Add features -->
     <if condition="bPackageForDaydream">
       <true>
-        <!-- Add features -->
-        <addFeature android:name="android.hardware.sensor.accelerometer" android:required="true"/>
-        <addFeature android:name="android.hardware.sensor.gyroscope" android:required="true"/>
-        <if condition="bDaydreamMode">
-          <true>
-            <addFeature android:name="android.hardware.vr.high_performance" android:required="true"/>
-            <addFeature android:name="android.software.vr.mode" android:required="true"/>
-          </true>
-          <false>
-            <addFeature android:name="android.hardware.vr.high_performance" android:required="false"/>
-            <addFeature android:name="android.software.vr.mode" android:required="false"/>
-          </false>
-        </if>
-
-        <!-- Add intents -->
-        <loopElements tag="activity">
-          <setStringFromAttribute result="activityName" tag="$" name="android:name"/>
-          <setBoolIsEqual result="bGameActivity" arg1="$S(activityName)" arg2="com.epicgames.ue4.GameActivity"/>
-          <if condition="bGameActivity">
+        <addFeature android:name="android.software.vr.mode" android:required="true"/>
+        <addFeature android:name="android.hardware.vr.high_performance" android:required="true"/>
+      </true>
+      <false>
+        <addFeature android:name="android.software.vr.mode" android:required="false"/>
+        <addFeature android:name="android.hardware.vr.high_performance" android:required="false"/>
+      </false>
+    </if>
+    
+    <!-- Add intents -->
+    <loopElements tag="activity">
+      <setStringFromAttribute result="activityName" tag="$" name="android:name"/>
+      <setBoolIsEqual result="bSplashActivity" arg1="$S(activityName)" arg2="com.epicgames.ue4.SplashActivity"/>
+      <if condition="bSplashActivity">
+        <true>
+          <!-- Check for existing intent filter -->
+          <setBool result="bHasIntentFilter" value="false"/>
+          <loopElements tag="intent-filter">
+            <setBool result="bHasIntentFilter" value="true"/>
+          </loopElements>
+          
+          <!-- If no intent filter found, add a new one -->
+          <if condition="bHasIntentFilter">
+            <false>
+              <setElement result="newIntentFilter" value="intent-filter"/>
+              <addElement tag="$" name="newIntentFilter"/>
+            </false>
+          </if>
+          
+          <!-- Add intents for either Cardboard or Daydream -->
+          <if condition="bPackageForDaydream">
             <true>
-              <!-- Check for existing intent filter -->
-              <setBool result="bHasIntentFilter" value="false"/>
-              <loopElements tag="intent-filter">
-                <setBool result="bHasIntentFilter" value="true"/>
-              </loopElements>
-
-              <!-- If no intent filter found, add a new one -->
-              <if condition="bHasIntentFilter">
-                <false>
-                  <setElement result="newIntentFilter" value="intent-filter"/>
-                  <addElement tag="$" name="newIntentFilter"/>
-                </false>
-              </if>
-
-              <!-- Add intents for either Cardboard or Daydream -->
-              <if condition="bDaydreamMode">
+              <setElement result="intentInfo" value="category"/>
+              <addAttribute tag="$intentInfo" name="android:name" value="com.google.intent.category.DAYDREAM"/>
+              <addElement tag="intent-filter" name="intentInfo"/>
+            </true>
+            <false>
+              <if condition="bPackageForDaydreamAndCardboard">
                 <true>
                   <setElement result="intentInfo" value="category"/>
                   <addAttribute tag="$intentInfo" name="android:name" value="com.google.intent.category.DAYDREAM"/>
+                  <addAttribute tag="$intentInfo" name="android:name" value="com.google.intent.category.CARDBOARD"/>
                   <addElement tag="intent-filter" name="intentInfo"/>
                 </true>
                 <false>
-                  <if condition="bDaydreamAndCardboardMode">
-                    <true>
-                      <setElement result="intentInfo" value="category"/>
-                      <addAttribute tag="$intentInfo" name="android:name" value="com.google.intent.category.DAYDREAM"/>
-                      <addElement tag="intent-filter" name="intentInfo"/>
-                      <setElement result="intentInfo" value="category"/>
-                      <addAttribute tag="$intentInfo" name="android:name" value="com.google.intent.category.CARDBOARD"/>
-                      <addElement tag="intent-filter" name="intentInfo"/>
-                    </true>
-                    <false>
-                      <setElement result="intentInfo" value="category"/>
-                      <addAttribute tag="$intentInfo" name="android:name" value="com.google.intent.category.CARDBOARD"/>
-                      <addElement tag="intent-filter" name="intentInfo"/>
-                    </false>
-                  </if>
+                  <setElement result="intentInfo" value="category"/>
+                  <addAttribute tag="$intentInfo" name="android:name" value="com.google.intent.category.CARDBOARD"/>
+                  <addElement tag="intent-filter" name="intentInfo"/>
                 </false>
               </if>
-            </true>
+            </false>
           </if>
-        </loopElements>
-      </true>
-    </if>
-  </androidManifestUpdates>
+        </true>
+      </if>
+    </loopElements>
+	</androidManifestUpdates>
 
   <gameActivityImportAdditions>
     <insert>
@@ -160,25 +151,24 @@
       import android.content.pm.PackageManager;
       import android.content.pm.PackageManager.NameNotFoundException;
       import android.os.Build.VERSION;
-	  import android.view.KeyEvent;
     </insert>
   </gameActivityImportAdditions>
   
   <gameActivityClassAdditions>
     <insert>
       private GvrLayout gvrLayout;
-      private boolean bAsyncReprojectionEnabled;
+      private boolean bScanlineRacingEnabled;
       
       public native void nativeOnUiLayerBack();
         
       public void AndroidThunkJava_UiLayer_SetEnabled(boolean bEnable)
       {
-        _activity.gvrLayout.getUiLayout().getUiLayer().setEnabled(bEnable);
+			  _activity.gvrLayout.getUiLayout().getUiLayer().setEnabled(bEnable);
       }
       
       public void AndroidThunkJava_UiLayer_SetViewerName(String viewerName)
       {
-        _activity.gvrLayout.getUiLayout().getUiLayer().setViewerName(viewerName);
+			  _activity.gvrLayout.getUiLayout().getUiLayer().setViewerName(viewerName);
       }
       
       public long AndroidThunkJava_GetNativeGVRApi()
@@ -186,28 +176,21 @@
         return _activity.gvrLayout.getGvrApi().getNativeGvrContext();
       }
       
+      public boolean AndroidThunkJava_IsScanlineRacingEnabled()
+      {
+        return bScanlineRacingEnabled;
+      }
+      
       public void AndroidThunkJava_GvrLayout_SetFixedPresentationSurfaceSizeToCurrent()
       {
         // Setup hardware scaling
         gvrLayout.setFixedPresentationSurfaceSize(DesiredHolderWidth, DesiredHolderHeight);
       }
-
-      @Override
-      public boolean dispatchKeyEvent(KeyEvent event)
-      {
-        // Avoid accidental volume key presses while the phone is in the VR headset.
-        if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP
-            || event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN)
-        {
-          return true;
-        }
-        return super.dispatchKeyEvent(event);
-      }
     </insert>
-
+    
     <!-- If using Daydream, the transition view should not be brought up as it would be jarring when launching from VR -->
     <!-- If using Cardboard-only mode, the native code should be set up to use PPHMD distortion only. -->
-    <if condition="bDaydreamMode">
+    <if condition="bPackageForDaydream">
       <true>
         <insert>
           public boolean AndroidThunkJava_ProjectWantsCardboardOnlyMode()
@@ -217,7 +200,7 @@
         </insert>
       </true>
       <false>
-        <if condition="bDaydreamAndCardboardMode">
+        <if condition="bPackageForDaydreamAndCardboard">
           <true>
             <insert>
               public boolean AndroidThunkJava_ProjectWantsCardboardOnlyMode()
@@ -238,11 +221,11 @@
       </false>
     </if>
     
-    <!-- Function to support Async Reprojection -->
-    <if condition="bEnableGoogleVRAsyncReprojectionWhenPossible">
+    <!-- Function to support scanline racing -->
+    <if condition="bEnableGoogleVRScanlineRacingWhenPossible">
       <true>
         <insert>
-          public boolean ProjectWantsAsyncReprojection()
+          public boolean ProjectWantsScanlineRacing()
           {
             return true;
           }
@@ -250,7 +233,7 @@
       </true>
       <false>
         <insert>
-          public boolean ProjectWantsAsyncReprojection()
+          public boolean ProjectWantsScanlineRacing()
           {
             return false;
           }
@@ -303,43 +286,36 @@
       gvrLayout = new GvrLayout(this);
       ((ViewGroup)MySurfaceView.getParent()).removeView(MySurfaceView);
       gvrLayout.setPresentationView(MySurfaceView);
-      
+
+      gvrLayout.getUiLayout().setBackButtonListener(
+        new Runnable() {
+          @Override
+          public void run() {
+            nativeOnUiLayerBack();
+        }
+      });
       setContentView(gvrLayout);
 
-      // Attempt to enable AsyncReprojection. Only supported on some platforms.
-      if(ProjectWantsAsyncReprojection())
+      // Attempt to enable scan line racing. Only supported on some platforms.
+      if(ProjectWantsScanlineRacing())
       {
-        bAsyncReprojectionEnabled = gvrLayout.setAsyncReprojectionEnabled(true);
+        bScanlineRacingEnabled = gvrLayout.setScanlineRacingEnabled(true);
       }
       else
       {
-        bAsyncReprojectionEnabled = false;
-      }
-      
-      // If AsyncReprojection is not enabled, then this is
-      // Either a pure cardboard app, or a daydream+cardboard app running in
-      // cardboard mode on a non-daydream device.
-      // In this case, we override the close button listener so that it does the same
-      // thing as the back button (exposed as a key event in UE4).
-      // Otherwise, we just use the default daydream close button functionality.
-      if (!bAsyncReprojectionEnabled)
-      {
-        gvrLayout.getUiLayout().setCloseButtonListener(
-          new Runnable() {
-            @Override
-            public void run() {
-              nativeOnUiLayerBack();
-          }
-        });
+        bScanlineRacingEnabled = false;
       }
 
-      AndroidCompat.setVrModeEnabled(this, true);
       // Attempt to enable VR Mode. Only supported on some platforms. Check done internally.
-      if(!bAsyncReprojectionEnabled)
+      if(bScanlineRacingEnabled)
+      {
+        AndroidCompat.setVrModeEnabled(this, true);
+      }
+      else
       {
         gvrLayout.getUiLayout().setTransitionViewEnabled(true);
       }
-
+        
       // Attempt to enable sustained-performance mode
       if(ProjectWantsSustainedPerformance())
       {
