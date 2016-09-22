@@ -2,7 +2,7 @@ Availability:Public
 Title:GameMode
 Crumbs:%ROOT%, Gameplay/Framework
 Description:The GameMode is responsible for setting the rules of the game.
-Version: 4.9
+Version: 4.14
 type:reference
 parent:Gameplay/Framework
 order:5
@@ -17,24 +17,38 @@ Even the most open-ended game has an underpinning of rules, and these rules make
 
 While all gametypes have certain fundamentals in common, they have limitless variations depending on the genre of the game you are developing. Familiar gametypes from first-person shooters include Deathmatch, Capture the Flag, and Last Man Standing - selecting these gametypes is often a menu option during match setup so they are highly visible.  Other genres, like role-playing adventure games or platformers, may have less variable and less visible gametypes, but they are still there setting the conditions of the game.  For instance, there may be a time limit imposed on the player and the level is complete when the player reaches a certain point or defeats a "boss" character. A more complex case would be that of a dungeon crawler type game. In the main world, there would be an overarching gametype that would keep track of the game progress and conditions. Within each dungeon there could be a gametype specific to that dungeon, allowing each dungeon to be completely unique and have its own set of rules and objectives.
 
-There are two main classes which handle information about a gametype: GameMode and GameState. 
+There are two main classes which handle information about a gametype: Game Mode and Game State. 
 
-## GameMode
-
-
-The `AGameMode` class defines the game being played, and enforces the game rules. Some of the default functionality in `AGameMode` includes: 
+## Game Mode
 
 
-Any new functions or variables that set game rules should be added in a subclass of the `AGameMode` class.  Anything from what inventory items a player starts with or how many lives are available to time limits and the score needed to end the game belongs to GameMode. A subclass of the `AGameMode` class may be created for each gametype the game should include. A game may have any number of gametypes, and thus subclasses of the `AGameMode` class; however, only one gametype may be in use at any given time. A GameMode Actor is instantiated each time a level is initialized for play via the `UGameEngine::LoadMap()` function. The gametype this Actor defines will be used for the duration of the level.
+The Game Mode class defines the game being played, and enforces the game rules. `AGameModeBase` is the parent class of all Game Modes, and some of the default functionality in `AGameModeBase` includes: 
 
-<!--
-	[/Script/Engine.GameMode]
-	+GameModeClassAliases=(ShortName="DM",GameClassName="UTGame.UTDeathmatch")
--->
+$ InitGame : InitGame() event is called before any other scripts (including PreInitializeComponents() ), and is used by `AGameModeBase` to initialize parameters and spawn its helper classes. 
 
-### Match State
+	[REGION:note]
+	This is called before any Actors' PreInitializeComponents, including `AGameModeBase` itself
+	[/REGION:note]
 
-The GameMode contains a state machine that tracks the state of the Match, or the general gameplay flow. To query the current state, you can use GetMatchState, or wrappers like HasMatchStarted, IsMatchInProgress, and HasMatchEnded. Here are the possible Match states:
+$ PreLogin :  Accept or reject a player attempting to join the server.  Fails login if you set the ErrorMessage to a non-empty string. PreLogin is called before Login.  Significant game time may pass before Login is called, especially if content is downloaded.
+
+$ PostLogin : Called after a successful login.  This is the first place it is safe to call replicated functions on the PlayerController. OnPostLogin can be implemented in blueprint to add extra logic.
+
+$ HandleStartingNewPlayer : Called after PostLogin or after a seamless travel, this can be overridden in blueprint to change what happens to a new player, but by default it will spawn their pawn.
+
+$ RestartPlayer : This is called to start spawning a player's pawn, there are also RestartPlayerAtPlayerStart and RestartPlayerAtTransform if you want control over where they spawn. OnRestartPlayer can be implemented in blueprint to do more things after restart.
+
+$ SpawnDefaultPawnAtTransform : This is what actually spawns the player's pawn actor, and can be overridden in blueprints to change what actor is spawned
+
+$ Logout : Called when a player leaves the game or is destroyed. OnPostLogin can be implemented to do blueprint logic.
+
+Any new functions or variables that set game rules should be added in a subclass of the `AGameModeBase` class.  Anything from what inventory items a player starts with or how many lives are available to time limits and the score needed to end the game belongs to the game mode. A subclass of the `AGameModeBase` class may be created for each gametype the game should include. A game may have any number of gametypes, and thus subclasses of the `AGameModeBase` class; however, only one gametype may be in use at any given time. A `AGameModeBase` Actor is instantiated each time a level is initialized for play via the `UGameEngine::LoadMap()` function. The game mode is not replicated to any remove clients that join in a multiplayer game, but Game State is.
+
+### AGameMode
+
+`AGameMode` is a subclass of `AGameModeBase` that has some extra functionality to support multiplayer matches and legacy behavior. All newly created projects use `AGameModeBase` by default, but you can switch to inheriting from `AGameMode` if you need this extra behavior. If you inherit from `AGameMode`, you should also inherit your game state from `AGameState`, which also supports the match state machine.
+
+AGameMode contains a state machine that tracks the state of the Match, or the general gameplay flow. To query the current state, you can use GetMatchState, or wrappers like HasMatchStarted, IsMatchInProgress, and HasMatchEnded. Here are the possible Match states:
 
 * EnteringMap is the initial state. Actors are not yet ticking and the world has not been fully initialized. It will transition to the next state when things are fully loaded.
 * WaitingToStart is the next state, and HandleMatchIsWaitingToStart is called when entering. Actors are ticking, but players have not yet spawned in. It transitions to the next state if ReadyToStartMatch returns _true_, or if someone calls StartMatch.
@@ -45,26 +59,26 @@ The GameMode contains a state machine that tracks the state of the Match, or the
 
 By default, the Match state will almost always be InProgress. But, individual games can override this behavior to build a multiplayer game with more complicated rules.
 
-### GameMode-Derived Blueprints
+### AGameModeBase-Derived Blueprints
 
-GameMode is a Blueprintable class. It is possible to create _Blueprints_ derived from GameMode, and use these as the default game mode for your project or your level.
+AGameModeBase is a Blueprintable class. It is possible to create _Blueprints_ derived from AGameModeBase, and use these as the default game mode for your project or your level.
 
-Blueprints derived from GameMode can set the following defaults:
-* Default Pawn Class
+Blueprints derived from AGameModeBase can set the following defaults:
+* Default [](Gameplay/Framework/Pawn) Class
 * HUD Class
-* Player Controller Class
+* [](Gameplay/Framework/PlayerController) Class
 * Spectator Class
-* Game State Class
+* [](Gameplay/Framework/GameState) Class 
 * Player State Class 
 
 
-### Setting the GameMode
+### Setting the Game Mode
 
-There are several methods to set the GameMode for a level, ordered here from lowest priority to highest priority: 
+There are several methods to set the Game Mode for a level, ordered here from lowest priority to highest priority: 
 
-* Setting the `GlobalDefaultGameMode` entry in the `/Script/Engine.WorldSettings/` section of the `DefaultGame.ini` file will set the default game mode for all maps in the project. 
+* Setting the `GlobalDefaultGameMode` entry in the `/Script/EngineSettings.GameMapsSettings` section of the `DefaultEngine.ini` file will set the default game mode for all maps in the project. 
 
-		[/Script/Engine.WorldSettings]
+		[/Script/EngineSettings.GameMapsSettings]
 		GlobalDefaultGameMode="/Script/MyGame.MyGameGameMode"
 		GlobalDefaultServerGameMode="/Script/MyGame.MyGameGameMode"
 
@@ -76,10 +90,11 @@ There are several methods to set the GameMode for a level, ordered here from low
 
 		UE4Editor.exe /Game/Maps/MyMap?game=MyGameMode -game
 
-* Finally, map prefixes can be set in the `/Script/Engine.WorldSettings/` section of the `DefaultGame.ini` file. These prefixes set the default game mode for all maps that have a given prefix. 
+* Finally, map prefixes (and aliases for the URL method) can be set in the `/Script/Engine.WorldSettings/` section of the `DefaultGame.ini` file. These prefixes set the default game mode for all maps that have a given prefix. 
 
-		[/Script/Engine.WorldSettings]
-		+DefaultMapPrefixes=(Prefix="DM",GameMode="UTGame.UTDeathmatch")
+		[/Script/EngineSettings.GameMapsSettings]
+		+GameModeMapPrefixes=(Name="DM",GameMode="/Script/UnrealTournament.UTDMGameMode")
+		+GameModeClassAliases=(Name="DM",GameMode="/Script/UnrealTournament.UTDMGameMode")
 
 
 [REGION:note]

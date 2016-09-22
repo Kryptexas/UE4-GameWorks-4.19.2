@@ -2,7 +2,7 @@ Availability: Public
 Title:Setting Up a Game Mode in Blueprints
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SettingUpAGameMode
 Description:A How To Guide for Setting Up a Game Mode in Blueprints.
-Version: 4.9
+Version: 4.14
 SkillLevel: Advanced
 
 [TOC (start:2 end:2)]
@@ -17,7 +17,7 @@ _For this example, we are using the **Blueprint Third Person Template**; however
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation#CreateBP1]
 
-In the **Pick Parent Class** window, select the **Game Mode** Class. 
+In the **Pick Parent Class** window, select the **Game Mode Base** Class. This is the parent class for all Game Modes.
 
 ## Editing the Game Mode Defaults
 

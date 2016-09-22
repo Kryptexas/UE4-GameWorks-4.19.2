@@ -36,7 +36,7 @@ A great way to start adding code to our project is by adding a log message to `F
 1.	Your class declaration should look like the following:
 
 		UCLASS()
-		class FPSPROJECT_API AFPSGameMode : public AGameMode
+		class FPSPROJECT_API AFPSGameMode : public AGameModeBase
 		{
 			GENERATED_BODY()
 		};
@@ -53,14 +53,14 @@ A great way to start adding code to our project is by adding a log message to `F
 		
 		#pragma once
 		
-		#include "GameFramework/GameMode.h"
+		#include "GameFramework/GameModeBase.h"
 		#include "FPSGameMode.generated.h"
 		
 		/**
 		 * 
 		 */
 		UCLASS()
-		class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+		class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
 		{
 			GENERATED_BODY()
 
