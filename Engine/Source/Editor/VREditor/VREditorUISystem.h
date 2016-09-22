@@ -208,6 +208,10 @@ protected:
 	UPROPERTY()
 	class AVREditorDockableWindow* DraggingUI;
 
+	/** The color picker dockable window */
+	UPROPERTY()
+	class AVREditorDockableWindow* ColorPickerUI;
+
 	//
 	// Tab Manager UI
 	//
