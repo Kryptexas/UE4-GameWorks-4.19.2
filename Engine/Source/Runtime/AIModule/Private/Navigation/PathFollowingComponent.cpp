@@ -1293,9 +1293,15 @@ void UPathFollowingComponent::ForceBlockDetectionUpdate()
 
 void UPathFollowingComponent::UpdateDecelerationData()
 {
-	const float CurrentMaxSpeed = MovementComp ? MovementComp->GetMaxSpeed() : 0.0f;
+	// no point in updating if we don't have a MovementComp
+	if (MovementComp == nullptr)
+	{
+		return;
+	}
+
+	const float CurrentMaxSpeed = MovementComp->GetMaxSpeed();
 	bool bUpdatePathSegment = (DecelerationSegmentIndex == INDEX_NONE);
-	if (MovementComp && CurrentMaxSpeed != CachedBrakingMaxSpeed)
+	if (CurrentMaxSpeed != CachedBrakingMaxSpeed)
 	{
 		const float PrevBrakingDistance = CachedBrakingDistance;
 		CachedBrakingDistance = MovementComp->GetPathFollowingBrakingDistance(CurrentMaxSpeed);

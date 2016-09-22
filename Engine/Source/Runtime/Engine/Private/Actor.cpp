@@ -238,7 +238,7 @@ void AActor::ResetOwnedComponents()
 	for (UObject* Child : ActorChildren)
 	{
 		UActorComponent* Component = Cast<UActorComponent>(Child);
-		if (Component)
+		if (Component && Component->GetOwner() == this)
 		{
 			OwnedComponents.Add(Component);
 
@@ -333,8 +333,10 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 		return false;
 	}
 
+	UWorld* MyWorld = GetWorld();
+
 	// Can't move non-movable actors during play
-	if( (RootComponent->Mobility == EComponentMobility::Static) && GetWorld()->AreActorsInitialized() )
+	if( (RootComponent->Mobility == EComponentMobility::Static) && MyWorld->AreActorsInitialized() )
 	{
 		return false;
 	}
@@ -357,7 +359,7 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 			NewLocation = NewLocation + Offset;
 
 			// check if able to find an acceptable destination for this actor that doesn't embed it in world geometry
-			bTeleportSucceeded = GetWorld()->FindTeleportSpot(this, NewLocation, DestRotation);
+			bTeleportSucceeded = MyWorld->FindTeleportSpot(this, NewLocation, DestRotation);
 			NewLocation = NewLocation - Offset;
 		}
 
@@ -834,27 +836,30 @@ void AActor::Tick( float DeltaSeconds )
 {
 	// Blueprint code outside of the construction script should not run in the editor
 	// Allow tick if we are not a dedicated server, or we allow this tick on dedicated servers
-	if (GetWorldSettings() != NULL && (bAllowReceiveTickEventOnDedicatedServer || !IsRunningDedicatedServer()))
+	if (GetWorldSettings() != nullptr && (bAllowReceiveTickEventOnDedicatedServer || !IsRunningDedicatedServer()))
 	{
 		ReceiveTick(DeltaSeconds);
 	}
 
 
 	// Update any latent actions we have for this actor
-	GetWorld()->GetLatentActionManager().ProcessLatentActions(this, DeltaSeconds);
+
+	// If this tick is skipped on a frame because we've got a TickInterval, our latent actions will be ticked
+	// anyway by UWorld::Tick(). Given that, our latent actions don't need to be passed a larger
+	// DeltaSeconds to make up the frames that they missed (because they wouldn't have missed any).
+	// So pass in the world's DeltaSeconds value rather than our specific DeltaSeconds value.
+	UWorld* MyWorld = GetWorld();
+	MyWorld->GetLatentActionManager().ProcessLatentActions(this, MyWorld->GetDeltaSeconds());
 
 	if (bAutoDestroyWhenFinished)
 	{
 		bool bOKToDestroy = true;
 
 		// @todo: naive implementation, needs improved
-		TInlineComponentArray<UActorComponent*> Components;
-		GetComponents(Components);
+		TInlineComponentArray<UActorComponent*> Components(this);
 
-		for (int32 CompIdx=0; CompIdx<Components.Num(); ++CompIdx)
+		for (UActorComponent* const Comp : Components)
 		{
-			UActorComponent* const Comp = Components[CompIdx];
-
 			UParticleSystemComponent* const PSC = Cast<UParticleSystemComponent>(Comp);
 			if ( PSC && (PSC->bIsActive || !PSC->bWasCompleted) )
 			{
@@ -3020,10 +3025,7 @@ void AActor::BeginPlay()
 		if (Component->IsRegistered() && !Component->HasBegunPlay())
 		{
 			Component->RegisterAllComponentTickFunctions(true);
-			//if (Component->bWantsBeginPlay) // TODO: this should be enforced, but we need to address an upgrade path first to not quietly break code. Not checking this flag is the old behavior.
-			{
-				Component->BeginPlay();
-			}
+			Component->BeginPlay();
 		}
 		else
 		{
@@ -4471,9 +4473,9 @@ void AActor::K2_SetActorRelativeTransform(const FTransform& NewRelativeTransform
 
 float AActor::GetGameTimeSinceCreation()
 {
-	if(GetWorld() != nullptr)
+	if (UWorld* MyWorld = GetWorld())
 	{
-		return GetWorld()->GetTimeSeconds() - CreationTime;		
+		return MyWorld->GetTimeSeconds() - CreationTime;		
 	}
 	// return 0.f if GetWorld return's null
 	else

@@ -24,6 +24,7 @@ class UCanvas;
 class UWorld;
 struct FTransform;
 class FDebugDisplayInfo;
+struct FAnimNode_SubInput;
 struct FAnimNode_AssetPlayerBase;
 struct FAnimNode_Base;
 struct FAnimInstanceProxy;
@@ -503,7 +504,7 @@ public:
 
 	/** Play normal animation asset on the slot node by creating a dynamic UAnimMontage. You can only play one asset (whether montage or animsequence) at a time per SlotGroup. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	UAnimMontage* PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime = 0.25f, float BlendOutTime = 0.25f, float InPlayRate = 1.f, int32 LoopCount = 1, float BlendOutTriggerTime = -1.f);
+	UAnimMontage* PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime = 0.25f, float BlendOutTime = 0.25f, float InPlayRate = 1.f, int32 LoopCount = 1, float BlendOutTriggerTime = -1.f, float InTimeToStartMontageAt = 0.f);
 
 	/** Stops currently playing slot animation slot or all*/
 	UFUNCTION(BlueprintCallable, Category="Animation")
@@ -522,7 +523,7 @@ public:
 public:
 	/** Plays an animation montage. Returns the length of the animation montage in seconds. Returns 0.f if failed to play. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
-	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f, EMontagePlayReturnType ReturnValueType = EMontagePlayReturnType::MontageLength);
+	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f, EMontagePlayReturnType ReturnValueType = EMontagePlayReturnType::MontageLength, float InTimeToStartMontageAt=0.f);
 
 	/** Stops the animation montage. If reference is NULL, it will stop ALL active montages. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
@@ -650,6 +651,8 @@ public:
 
 	virtual void OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance);
 	void ClearMontageInstanceReferences(FAnimMontageInstance& InMontageInstance);
+
+	FAnimNode_SubInput* GetSubInputNode() const;
 
 protected:
 	/** Map between Active Montages and their FAnimMontageInstance */
@@ -1087,7 +1090,7 @@ public:
 	 * Retrieve animation curve list by Curve Flags, it will return list of {UID, value} 
 	 * It will clear the OutCurveList before adding
 	 */
-	void GetAnimationCurveList(int32 CurveFlags, TMap<FName, float>& OutCurveList) const;
+	void GetAnimationCurveList(EAnimCurveType Type, TMap<FName, float>& OutCurveList) const;
 
 #if WITH_EDITORONLY_DATA
 	// Maximum playback position ever reached (only used when debugging in Persona)
@@ -1120,6 +1123,11 @@ public:
 	 */
 	void RecalcRequiredBones();
 
+	/**
+	* Recalculate Required Curves based on Required Bones [RequiredBones]
+	*/
+	void RecalcRequiredCurves();
+
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
 	DEPRECATED(4.11, "This cannot be accessed directly, use FAnimInstanceProxy::bBoneCachesInvalidated")
 	bool bBoneCachesInvalidated;
@@ -1150,7 +1158,7 @@ public:
 	void TriggerSingleAnimNotify(const FAnimNotifyEvent* AnimNotifyEvent);
 
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
-	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);
+	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value);
 
 	/** Given a machine index, record a state machine weight for this frame */
 	void RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight);
@@ -1158,7 +1166,7 @@ public:
 	 * Add curve float data, using a curve name. External values should all be added using
 	 * The curve UID to the public version of this method
 	 */
-	void AddCurveValue(const FName& CurveName, float Value, int32 CurveTypeFlags);
+	void AddCurveValue(const FName& CurveName, float Value);
 
 	/** Given a machine and state index, record a state weight for this frame */
 	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);

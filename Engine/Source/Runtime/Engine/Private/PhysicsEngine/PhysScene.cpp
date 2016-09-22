@@ -35,6 +35,10 @@ DECLARE_CYCLE_STAT(TEXT("Fetch Results Time (cloth)"), STAT_PhysicsFetchDynamics
 DECLARE_CYCLE_STAT(TEXT("Start Physics Time (async)"), STAT_PhysicsKickOffDynamicsTime_Async, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Fetch Results Time (async)"), STAT_PhysicsFetchDynamicsTime_Async, STATGROUP_Physics);
 
+DECLARE_CYCLE_STAT(TEXT("Update Kinematics On Deferred SkelMeshes"), STAT_UpdateKinematicsOnDeferredSkelMeshes, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Update Vehicles"), STAT_UpdateVehicles, STATGROUP_Physics);
+DECLARE_CYCLE_STAT(TEXT("Pretick Vehicles"), STAT_PretickVehicles, STATGROUP_Physics);
+
 
 DECLARE_CYCLE_STAT(TEXT("Phys Events Time"), STAT_PhysicsEventTime, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("SyncComponentsToBodies (sync)"), STAT_SyncComponentsToBodies, STATGROUP_Physics);
@@ -827,6 +831,8 @@ void FPhysScene::ClearPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp)
 
 void FPhysScene::UpdateKinematicsOnDeferredSkelMeshes()
 {
+	SCOPE_CYCLE_COUNTER(STAT_UpdateKinematicsOnDeferredSkelMeshes);
+
 	for (TMap< USkeletalMeshComponent*, FDeferredKinematicUpdateInfo >::TIterator It(DeferredKinematicUpdateSkelMeshes); It; ++It)
 	{
 		USkeletalMeshComponent* SkelComp = (*It).Key;
@@ -917,10 +923,14 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 		{
 			TickTime = UseSyncTime(SceneType) ? SyncDeltaSeconds : DeltaSeconds;
 		}
-		VehicleManager->PreTick(TickTime);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_PretickVehicles);
+			VehicleManager->PreTick(TickTime);
+		}
 
 		if (IsSubstepping(SceneType) == false)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_UpdateVehicles);
 			VehicleManager->Update(AveragedFrameTime[SceneType]);
 		}
 	}

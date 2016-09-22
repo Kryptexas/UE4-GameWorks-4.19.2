@@ -648,6 +648,11 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 
 void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 {
+	SetAllPhysicsRotation(NewRot.Quaternion());
+}
+
+void USkeletalMeshComponent::SetAllPhysicsRotation(const FQuat& NewRot)
+{
 #if ENABLE_NAN_DIAGNOSTIC
 	if (NewRot.ContainsNaN())
 	{
@@ -662,10 +667,9 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 		if(RootBI->IsValidBodyInstance())
 		{
 			// move the root body
-			FQuat NewRotQuat = NewRot.Quaternion();
 			FTransform RootBodyTM = RootBI->GetUnrealWorldTransform();
-			FQuat DeltaQuat = RootBodyTM.GetRotation().Inverse() * NewRotQuat;
-			RootBodyTM.SetRotation(NewRotQuat);
+			FQuat DeltaQuat = RootBodyTM.GetRotation().Inverse() * NewRot;
+			RootBodyTM.SetRotation(NewRot);
 			RootBI->SetBodyTransform(RootBodyTM, ETeleportType::TeleportPhysics);
 
 			// apply the delta to all the other bodies

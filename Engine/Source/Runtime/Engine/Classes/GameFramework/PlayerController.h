@@ -315,7 +315,7 @@ class ENGINE_API APlayerController : public AController
 	/** this is set on the OLD PlayerController when performing a swap over a network connection
 	 * so we know what connection we're waiting on acknowledgment from to finish destroying this PC
 	 * (or when the connection is closed)
-	 * @see GameMode::SwapPlayerControllers()
+	 * @see GameModeBase::SwapPlayerControllers()
 	 */
 	UPROPERTY(DuplicateTransient)
 	class UNetConnection* PendingSwapConnection;
@@ -416,7 +416,7 @@ public:
 	virtual void ClientRepObjRef(UObject* Object);
 
 	/**
-	 * Locally try to pause game (call serverpause to pause network game); returns success indicator.  Calls GameMode's SetPause().
+	 * Locally try to pause game (call serverpause to pause network game); returns success indicator.  Calls GameModeBase's SetPause().
 	 * @return true if succeeded to pause
 	 */
 	virtual bool SetPause(bool bPause, FCanUnpause CanUnpauseDelegate = FCanUnpause());
@@ -542,7 +542,7 @@ public:
 	 * are all automatically moved regardless of whether they're included here
 	 * only dynamic actors in the PersistentLevel may be moved (this includes all actors spawned during gameplay)
 	 * this is called for both parts of the transition because actors might change while in the middle (e.g. players might join or leave the game)
-	 * @see also GameMode::GetSeamlessTravelActorList() (the function that's called on servers)
+	 * @see also GameModeBase::GetSeamlessTravelActorList() (the function that's called on servers)
 	 * @param bToEntry true if we are going from old level -> entry, false if we are going from entry -> new level
 	 * @param ActorList (out) list of actors to maintain
 	 */
@@ -550,15 +550,21 @@ public:
 
 	/** Called when seamless traveling and we are being replaced by the specified PC
 	 * clean up any persistent state (post process chains on LocalPlayers, for example)
-	 * (not called if PlayerControllerClass is the same for the from and to GameModes)
+	 * (not called if PlayerController is the same for the from and to GameModes)
 	 */
 	virtual void SeamlessTravelTo(class APlayerController* NewPC);
 
 	/** Called when seamless traveling and the specified PC is being replaced by this one
 	 * copy over data that should persist
-	 * (not called if PlayerControllerClass is the same for the from and to GameModes)
+	 * (not called if PlayerController is the same for the from and to GameModes)
 	 */
 	virtual void SeamlessTravelFrom(class APlayerController* OldPC);
+
+	/** 
+	 * Called after this player controller has transitioned through seamless travel, but before that player is initialized
+	 * This is called both when a new player controller is created, and when it is maintained
+	 */
+	virtual void PostSeamlessTravel();
 
 	/** 
 	 * Tell the client to enable or disable voice chat (not muting)
@@ -1433,7 +1439,7 @@ public:
 	 */
 	virtual void ViewAPlayer(int32 dir);
 
-	/** @return true if this controller thinks it's able to restart. Called from GameMode::PlayerCanRestart */
+	/** @return true if this controller thinks it's able to restart. Called from GameModeBase::PlayerCanRestart */
 	virtual bool CanRestartPlayer();
 
 	/**
@@ -1485,7 +1491,7 @@ public:
 	 *
 	 * @Param GameModeClass - The Class of the game that was replicated
 	 */
-	virtual void ReceivedGameModeClass(TSubclassOf<class AGameMode> GameModeClass);
+	virtual void ReceivedGameModeClass(TSubclassOf<class AGameModeBase> GameModeClass);
 
 	/** Notify the server that client data was received on the Pawn.
 	 * @return true if InPawn is acknowledged on the server, false otherwise. */
@@ -1630,7 +1636,7 @@ public:
 	virtual void SendClientAdjustment();
 
 	/**
-	 * Designate this player controller as local (public for GameMode to use, not expected to be called anywhere else)
+	 * Designate this player controller as local (public for GameModeBase to use, not expected to be called anywhere else)
 	 */
 	void SetAsLocalPlayerController() { bIsLocalPlayerController = true; }
 
@@ -1647,7 +1653,7 @@ public:
 	UPROPERTY()
 	uint16		SeamlessTravelCount;
 
-	/** The value of SeamlessTravelCount, upon the last call to GameMode::HandleSeamlessTravelPlayer; used to detect seamless travel */
+	/** The value of SeamlessTravelCount, upon the last call to GameModeBase::HandleSeamlessTravelPlayer; used to detect seamless travel */
 	UPROPERTY()
 	uint16		LastCompletedSeamlessTravelCount;
 

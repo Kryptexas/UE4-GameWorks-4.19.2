@@ -2156,54 +2156,83 @@ private:
 		SimplygonSDK::spMaterialTable& InSGMaterialTable,
 		FFlattenMaterial& OutMaterial)
 	{
+		FIntPoint Size;
 		SimplygonSDK::spMaterial SGMaterial = InSGMaterialTable->GetMaterial(0);
 
-		// Diffuse
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_DIFFUSE, OutMaterial.DiffuseSamples, OutMaterial.DiffuseSize);
+		// Diffuse		
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_DIFFUSE, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Diffuse, Size);
 
 		// Normal
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS, OutMaterial.NormalSamples, OutMaterial.NormalSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, Size);
 
 		// Metallic
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_METALLIC, OutMaterial.MetallicSamples, OutMaterial.MetallicSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_METALLIC, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Metallic, Size);
 
 		// Roughness
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_ROUGHNESS, OutMaterial.RoughnessSamples, OutMaterial.RoughnessSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_ROUGHNESS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Roughness, Size);
 
 		// Specular
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_SPECULAR, OutMaterial.SpecularSamples, OutMaterial.SpecularSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_SPECULAR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Specular, Size);
 	}
 
 	void CreateFlattenMaterialFromSGMaterial(
 		SimplygonSDK::spMaterial& SGMaterial,
 		FFlattenMaterial& OutMaterial)
 	{
+		FIntPoint Size;
+
 		// Diffuse
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR, OutMaterial.DiffuseSamples, OutMaterial.DiffuseSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Diffuse, Size);
 
 		// Normal
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS, OutMaterial.NormalSamples, OutMaterial.NormalSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, Size);
 
 		// Metallic
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_METALLIC, OutMaterial.MetallicSamples, OutMaterial.MetallicSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_METALLIC, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Metallic, Size);
 
 		// Roughness
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS, OutMaterial.RoughnessSamples, OutMaterial.RoughnessSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Roughness, Size);
 
 		// Specular
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_SPECULAR, OutMaterial.SpecularSamples, OutMaterial.SpecularSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_SPECULAR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Specular, Size);
 
 		// Opacity
+		Size = FIntPoint::ZeroValue;
 #if USE_USER_OPACITY_CHANNEL
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_OPACITY, OutMaterial.OpacitySamples, OutMaterial.OpacitySize);
+		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_OPACITY, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), Size);
 #else
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY, OutMaterial.OpacitySamples, OutMaterial.OpacitySize);
+		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), Size);		
 #endif
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
 
 		// Emissive
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE, OutMaterial.EmissiveSamples, OutMaterial.EmissiveSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Emissive, Size);
 		
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR, OutMaterial.SubSurfaceSamples, OutMaterial.SubSurfaceSize);
+		Size = FIntPoint::ZeroValue;
+		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::SubSurface), Size);
+		OutMaterial.SetPropertySize(EFlattenMaterialProperties::SubSurface, Size);
 	}
 
 	static FIntPoint ComputeMappingImageSize(const FMaterialSimplificationSettings& Settings)
@@ -2241,55 +2270,55 @@ private:
 			SGMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR);
 
 			SGMaterial->SetName(TCHAR_TO_ANSI(*FString::Printf(TEXT("Material%d"), MaterialIndex)));
-
+			
 			// Does current material have BaseColor?
-			if (FlattenMaterial.DiffuseSamples.Num())
+			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Diffuse))
 			{
 				if (InMaterialLODSettings.ChannelsToCast[0].bBakeVertexColors)
 				{
 					SGMaterial->SetVertexColorChannel(SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR, 0);
 				}
 
-				SetMaterialChannelData(FlattenMaterial.DiffuseSamples, FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR);
 			}
 
 			// Does current material have Metallic?
-			if (FlattenMaterial.MetallicSamples.Num())
+			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Metallic))
 			{
-				SetMaterialChannelData(FlattenMaterial.MetallicSamples, FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_METALLIC);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_METALLIC);
 			}
 
 			// Does current material have Specular?
-			if (FlattenMaterial.SpecularSamples.Num())
+			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Specular))
 			{
-				SetMaterialChannelData(FlattenMaterial.SpecularSamples, FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_SPECULAR);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_SPECULAR);
 			}
 
 			// Does current material have Roughness?
-			if (FlattenMaterial.RoughnessSamples.Num())
+			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Roughness))
 			{
-				SetMaterialChannelData(FlattenMaterial.RoughnessSamples, FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS);
 			}
 
 			//Does current material have a normalmap?
-			if (FlattenMaterial.NormalSamples.Num())
+			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Normal))
 			{
-				SetMaterialChannelData(FlattenMaterial.NormalSamples, FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS);
 			}
 
 			// Does current material have Opacity?
-			if (FlattenMaterial.OpacitySamples.Num())
+			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Opacity))
 			{
 #if USE_USER_OPACITY_CHANNEL
-				SetMaterialChannelData(FlattenMaterial.OpacitySamples, FlattenMaterial.RenderSize, SGMaterial, USER_MATERIAL_CHANNEL_OPACITY);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.RenderSize, SGMaterial, USER_MATERIAL_CHANNEL_OPACITY);
 #else
-				SetMaterialChannelData(FlattenMaterial.OpacitySamples, FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY);
 #endif
 			}
 
-			if (FlattenMaterial.EmissiveSamples.Num())
+			if (FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive).Num())
 			{
-				SetMaterialChannelData(FlattenMaterial.EmissiveSamples, FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE);
 			}
 			else
 			{
@@ -2298,9 +2327,9 @@ private:
 				SetMaterialChannelData(BlackEmissive, FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE);
 			}
 
-			if (FlattenMaterial.SubSurfaceSamples.Num())
+			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::SubSurface))
 			{
-				SetMaterialChannelData(FlattenMaterial.SubSurfaceSamples, FlattenMaterial.RenderSize, SGMaterial, USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), FlattenMaterial.RenderSize, SGMaterial, USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR);
 			}
 
 			OutSGMaterialTable->AddMaterial(SGMaterial);

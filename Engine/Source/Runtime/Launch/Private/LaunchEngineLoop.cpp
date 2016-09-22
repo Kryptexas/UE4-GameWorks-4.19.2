@@ -1344,8 +1344,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif	//WITH_EDITOR
 		PRIVATE_GIsRunningCommandlet = true;
 
-		// Allow commandlet rendering based on command line switch (too early to let the commandlet itself override this).
+		// Allow commandlet rendering and/or audio based on command line switch (too early to let the commandlet itself override this).
 		PRIVATE_GAllowCommandletRendering = FParse::Param(FCommandLine::Get(), TEXT("AllowCommandletRendering"));
+		PRIVATE_GAllowCommandletAudio = FParse::Param(FCommandLine::Get(), TEXT("AllowCommandletAudio"));
 
 		// We need to disregard the empty token as we try finding Token + "Commandlet" which would result in finding the
 		// UCommandlet class if Token is empty.

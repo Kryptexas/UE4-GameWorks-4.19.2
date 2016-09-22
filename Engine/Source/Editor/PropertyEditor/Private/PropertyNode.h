@@ -19,7 +19,7 @@ namespace EPropertyNodeFlags
 	const Type	Expanded						= 1 << 5;		/** true if this node should display its children*/
 	const Type	CanBeExpanded					= 1 << 6;		/** true if this node is able to be expanded */
 
-	const Type	EditInline						= 1 << 7;		/** true if the property can be expanded into the property window. */
+	const Type	EditInlineNew					= 1 << 7;		/** true if the property can be expanded into the property window. */
 
 	const Type	SingleSelectOnly				= 1 << 8;		/** true if only a single object is selected. */
 	const Type  ShowCategories					= 1 << 9;		/** true if this node should show categories.  Different*/
@@ -44,6 +44,8 @@ namespace EPropertyNodeFlags
 	const Type	IsReadOnly						= 1 << 20; /** true if this node is overridden to appear as read-only */
 
 	const Type	SkipChildValidation				= 1 << 21; /** true if this node should skip child validation */
+
+	const Type  ShowInnerObjectProperties		= 1 << 22;
 
 	const Type 	NoFlags							= 0;
 

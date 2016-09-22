@@ -372,11 +372,17 @@ public:
 
 	/** The active animation graph program instance. */
 	UPROPERTY(transient)
-	class UAnimInstance* AnimScriptInstance;
+	UAnimInstance* AnimScriptInstance;
 
 	/** Any running sub anim instances that need to be updates on the game thread */
 	UPROPERTY(transient)
 	TArray<UAnimInstance*> SubInstances;
+
+	/** An instance created from the PostPhysicsBlueprint property of the skeletal mesh we're using,
+	 *  Runs after physics has been blended
+	 */
+	UPROPERTY(transient)
+	UAnimInstance* PostProcessAnimInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(ShowOnlyInnerProperties))
 	struct FSingleAnimationPlayData AnimationData;
@@ -586,6 +592,10 @@ public:
 	UPROPERTY()
 	uint32 bEnableLineCheckWithBounds:1;
 
+	/** Cache AnimCurveUidVersion from Skeleton and this will be used to identify if it needs to be updated */
+	UPROPERTY(transient)
+	uint16 CachedAnimCurveUidVersion;
+	
 	/** If bEnableLineCheckWithBounds is true, scale the bounds by this value before doing line check. */
 	UPROPERTY()
 	FVector LineCheckBoundsScale;
@@ -608,6 +618,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(Keywords = "AnimBlueprint", UnsafeDuringActorConstruction = "true"))
 	class UAnimInstance * GetAnimInstance() const;
+
+	/**
+	 * Returns the active post process instance is one is available. This is set on the mesh that this
+	 * component is using, and is evaluated immediately after the main instance.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh", meta = (Keywords = "AnimBlueprint"))
+	UAnimInstance* GetPostProcessInstance() const;
 
 	/** Below are the interface to control animation when animation mode, not blueprint mode **/
 	UFUNCTION(BlueprintCallable, Category = "Components|Animation", meta = (Keywords = "Animation"))
@@ -982,6 +999,12 @@ public:
 	 */
 	void RecalcRequiredBones(int32 LODIndex);
 
+	/**
+	* Recalculates the AnimCurveUids array in RequiredBone of this SkeletalMeshComponent based on current required bone set
+	* Is called when Skeleton->IsRequiredCurvesUpToDate() = false
+	*/
+	void RecalcRequiredCurves();
+
 public:
 	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
@@ -1060,6 +1083,7 @@ public:
 	virtual void SetAllPhysicsAngularVelocity(FVector const& NewVel, bool bAddToCurrent = false) override;
 	virtual void SetAllPhysicsPosition(FVector NewPos) override;
 	virtual void SetAllPhysicsRotation(FRotator NewRot) override;
+	virtual void SetAllPhysicsRotation(const FQuat& NewRot) override;
 	virtual void WakeAllRigidBodies() override;
 	virtual void PutAllRigidBodiesToSleep() override;
 	virtual bool IsAnyRigidBodyAwake() override;
@@ -1220,7 +1244,13 @@ public:
 	* @param	OutCurves				Blended Curve
 	*/
 	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
-	void PostAnimEvaluation( FAnimationEvaluationContext& EvaluationContext );
+
+	/**
+	 * Evaluates the post process instance from the skeletal mesh this component is using.
+	 */
+	void EvaluatePostProcessMeshInstance(TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve, const USkeletalMesh* InSkeletalMesh, FVector& OutRootBoneTranslation) const;
+
+	void PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext);
 
 	/**
 	 * Blend of Physics Bones with PhysicsWeight and Animated Bones with (1-PhysicsWeight)
@@ -1515,7 +1545,8 @@ public:
 
 protected:
 	bool NeedToSpawnAnimScriptInstance() const;
-	
+	bool NeedToSpawnPostPhysicsInstance() const;
+
 private:
 
 	FSkeletalMeshComponentEndPhysicsTickFunction EndPhysicsTickFunction;
@@ -1573,13 +1604,13 @@ public:
 
 	friend class FSkeletalMeshComponentDetails;
 
-	/** Returns array containing cachec animation curve mapping UIDs (which are copied over from USkeleton) */
-	TArray<FSmartNameMapping::UID> const * GetCachedAnimCurveMappingNameUids();
-
 	/** Apply animation curves to this component */
 	void ApplyAnimationCurvesToComponent(const TMap<FName, float>* InMaterialParameterCurves, const TMap<FName, float>* InAnimationMorphCurves);
 	
 private:
+	/** Override USkinnedMeshComponent */
+	virtual void AddSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent) override;
+
 	// Returns whether we need to run the Pre Cloth Tick or not
 	bool ShouldRunEndPhysicsTick() const;
 
@@ -1643,11 +1674,6 @@ private:
 	UPROPERTY()
 	float DefaultPlayRate_DEPRECATED;
 	
-	/** Caches the anim curve mapping smart name UIDs, by copying cached data from the Skeleton */
-	void UpdateCachedAnimCurveMappingNameUids();
-
-	/** Cached animation curves smart name mapping UIDs, only at runtime, not serialized. (used for FBlendedCurve::InitFrom) */
-	TArray<FSmartNameMapping::UID> CachedAnimCurveMappingNameUids;
 
 	/*
 	 * Update MorphTargetCurves - these are not animation curves, but SetMorphTarget and similar functions that can set to this mesh component
@@ -1695,4 +1721,15 @@ private:
 
 	/** Multicaster fired when this component creates physics state (in case external objects rely on physics state)*/
 	FOnSkelMeshPhysicsCreatedMultiCast OnSkelMeshPhysicsCreated;
+
+	/** Mark current anim UID version to up-to-date. Called when it's recalcualted */
+	void MarkRequiredCurveUpToDate();
+	
+	/* This will check if the required curves are up-to-date by checking version number with skeleton. 
+	 * Skeleton's curve list changes whenever newer is added or deleted. 
+	 * This still has to happen in editor as well as in game as 
+	 * There is no guarantee of Skeleton having all curves as we've seen over and over again. 
+	 * Cooking does not guarantee skeleton containing all names
+	 */
+	bool AreRequiredCurvesUpToDate() const;
 };

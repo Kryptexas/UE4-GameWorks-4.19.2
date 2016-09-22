@@ -2,8 +2,10 @@
 
 #pragma once
 
+#include "AnimTypes.h"
 #include "BoneIndices.h"
 #include "CustomBoneIndexArray.h"
+#include "BoneContainer.generated.h"
 
 class USkeleton;
 
@@ -42,6 +44,9 @@ private:
 
 	// Look up from compact pose format to skeleton
 	TArray<FCompactPoseBoneIndex> SkeletonToCompactPose;
+
+	/** Animation Curve UID array that matters to this container. Recalculated everytime LOD changes. */
+	TArray<SmartName::UID_Type> AnimCurveNameUids;
 
 	// Compact pose format of Parent Bones (to save us converting to mesh space and back)
 	TArray<FCompactPoseBoneIndex> CompactPoseParentBones;
@@ -193,6 +198,12 @@ public:
 	/** Returns true if bone is child of for current asset. */
 	bool BoneIsChildOf(const FCompactPoseBoneIndex& BoneIndex, const FCompactPoseBoneIndex& ParentBoneIndex) const;
 
+	/** Get AnimCurveNameUids for curve evaluation */
+	TArray<SmartName::UID_Type> const& GetAnimCurveNameUids() const
+	{
+		return AnimCurveNameUids; 
+	} 
+
 	/**
 	* Serializes the bones
 	*
@@ -258,6 +269,9 @@ public:
 		return FCompactPoseBoneIndex(GetBoneIndicesArray().IndexOfByKey(BoneIndex.GetInt()));
 	}
 
+	/** Cache required Anim Curve Uids */
+	void CacheRequiredAnimCurveUids();
+
 private:
 	/** Initialize FBoneContainer. */
 	void Initialize();
@@ -267,4 +281,52 @@ private:
 
 	/** Cache remapping data if current Asset is a Skeleton, with all compatible Skeletons. */
 	void RemapFromSkeleton(USkeleton const & SourceSkeleton);
+};
+
+USTRUCT()
+struct FBoneReference
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Name of bone to control. This is the main bone chain to modify from. **/
+	UPROPERTY(EditAnywhere, Category = BoneReference)
+	FName BoneName;
+
+	/** Cached bone index for run time - right now bone index of skeleton **/
+	int32 BoneIndex;
+
+	FBoneReference()
+		: BoneIndex(INDEX_NONE)
+	{
+	}
+
+	bool operator==(const FBoneReference& Other) const
+	{
+		// faster to compare, and BoneName won't matter
+		return BoneIndex == Other.BoneIndex;
+	}
+	/** Initialize Bone Reference, return TRUE if success, otherwise, return false **/
+	ENGINE_API bool Initialize(const FBoneContainer& RequiredBones);
+
+	// @fixme laurent - only used by blendspace 'PerBoneBlend'. Fix this to support SkeletalMesh pose.
+	ENGINE_API bool Initialize(const USkeleton* Skeleton);
+
+	/** return true if valid. Otherwise return false **/
+	ENGINE_API bool IsValid(const FBoneContainer& RequiredBones) const;
+
+	FMeshPoseBoneIndex GetMeshPoseIndex() const { return FMeshPoseBoneIndex(BoneIndex); }
+	FCompactPoseBoneIndex GetCompactPoseIndex(const FBoneContainer& RequiredBones) const { return RequiredBones.MakeCompactPoseIndex(GetMeshPoseIndex()); }
+
+	// need this because of BoneReference being used in CurveMetaData and that is in SmartName
+	friend FArchive& operator<<(FArchive& Ar, FBoneReference& B)
+	{
+		Ar << B.BoneName;
+		return Ar;
+	}
+
+	bool Serialize(FArchive& Ar)
+	{
+		Ar << *this;
+		return true;
+	}
 };

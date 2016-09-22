@@ -884,33 +884,47 @@ private:
 
 			if (ChannelName.Compare(BASECOLOR_CHANNEL) == 0)
 			{
-				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.DiffuseSamples, OutMaterial.DiffuseSize);
+				FIntPoint Size = OutMaterial.GetPropertySize(EFlattenMaterialProperties::Diffuse);
+				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), Size);
+				OutMaterial.SetPropertySize(EFlattenMaterialProperties::Diffuse, Size);
 			}
 			else if (ChannelName.Compare(NORMAL_CHANNEL) == 0)
 			{
-				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.NormalSamples, OutMaterial.NormalSize);
+				FIntPoint Size = OutMaterial.GetPropertySize(EFlattenMaterialProperties::Normal);
+				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), Size);
+				OutMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, Size);
 			}
 			else if (ChannelName.Compare(SPECULAR_CHANNEL) == 0)
 			{
-				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.SpecularSamples, OutMaterial.SpecularSize);
+				FIntPoint Size = OutMaterial.GetPropertySize(EFlattenMaterialProperties::Specular);
+				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular),	Size);
+				OutMaterial.SetPropertySize(EFlattenMaterialProperties::Specular, Size);
 			}
 			else if (ChannelName.Compare(ROUGHNESS_CHANNEL) == 0)
 			{
-				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.RoughnessSamples, OutMaterial.RoughnessSize);
+				FIntPoint Size = OutMaterial.GetPropertySize(EFlattenMaterialProperties::Roughness);
+				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness),Size);
+				OutMaterial.SetPropertySize(EFlattenMaterialProperties::Roughness, Size);
 			}
 			else if (ChannelName.Compare(METALLIC_CHANNEL) == 0)
 			{
-				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.MetallicSamples, OutMaterial.MetallicSize);
+				FIntPoint Size = OutMaterial.GetPropertySize(EFlattenMaterialProperties::Metallic);
+				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), Size);
+				OutMaterial.SetPropertySize(EFlattenMaterialProperties::Metallic, Size);
 			}
 			else if (ChannelName.Compare(OPACITY_CHANNEL) == 0)
 			{
-				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.OpacitySamples, OutMaterial.OpacitySize);
+				FIntPoint Size = OutMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity);
+				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), Size);
 				bHasOpacity = true;
+				OutMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
 			}
 			else if (ChannelName.Compare(OPACITY_MASK_CHANNEL) == 0)
 			{
-				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.OpacitySamples, OutMaterial.OpacitySize);
+				FIntPoint Size = OutMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity);
+				ExtractTextureDescriptors(SceneGraph, Channel, OutputFolderPath, ChannelName, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), Size);
 				bHasOpacityMask = true;
+				OutMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
 			}
 		}
 
@@ -1654,10 +1668,10 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 
 
 		// Does current material have BaseColor?
-		if (FlattenMaterial.DiffuseSamples.Num())
+		if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Diffuse))
 		{
 			FString ChannelName(BASECOLOR_CHANNEL);
-			ssf::pssfMaterialChannel BaseColorChannel = SetMaterialChannelData(FlattenMaterial.DiffuseSamples, FlattenMaterial.DiffuseSize, SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
+			ssf::pssfMaterialChannel BaseColorChannel = SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Diffuse), SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
 				 
 		// if (InMaterialLODSettings.ChannelsToCast[0].bBakeVertexColors)
 			//{
@@ -1669,51 +1683,51 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 		}
 
 		// Does current material have Metallic?
-		if (FlattenMaterial.MetallicSamples.Num())
+		if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Metallic))
 		{
 			FString ChannelName(METALLIC_CHANNEL);
-			ssf::pssfMaterialChannel MetallicChannel = SetMaterialChannelData(FlattenMaterial.MetallicSamples, FlattenMaterial.MetallicSize, SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
+			ssf::pssfMaterialChannel MetallicChannel = SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Metallic), SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
 			SgMaterial->MaterialChannelList.push_back(MetallicChannel);
 		}
 
 		// Does current material have Specular?
-		if (FlattenMaterial.SpecularSamples.Num())
+		if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Specular))
 		{
 			FString ChannelName(SPECULAR_CHANNEL);
-			ssf::pssfMaterialChannel SpecularChannel = SetMaterialChannelData(FlattenMaterial.SpecularSamples, FlattenMaterial.SpecularSize, SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
+			ssf::pssfMaterialChannel SpecularChannel = SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Specular), SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
 			SgMaterial->MaterialChannelList.push_back(SpecularChannel);
 		}
 
 		// Does current material have Roughness?
-		if (FlattenMaterial.RoughnessSamples.Num())
+		if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Roughness))
 		{
 			FString ChannelName(ROUGHNESS_CHANNEL);
-			ssf::pssfMaterialChannel RoughnessChannel = SetMaterialChannelData(FlattenMaterial.RoughnessSamples, FlattenMaterial.RoughnessSize, SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
+			ssf::pssfMaterialChannel RoughnessChannel = SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Roughness), SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
 			SgMaterial->MaterialChannelList.push_back(RoughnessChannel);
 		}
 
 		//Does current material have a normalmap?
-		if (FlattenMaterial.NormalSamples.Num())
+		if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Normal))
 		{
 			FString ChannelName(NORMAL_CHANNEL);
 			SgMaterial->TangentSpaceNormals.Create();
 			SgMaterial->TangentSpaceNormals.Set(true);
-			ssf::pssfMaterialChannel NormalChannel = SetMaterialChannelData(FlattenMaterial.NormalSamples, FlattenMaterial.NormalSize, SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath, false);
+			ssf::pssfMaterialChannel NormalChannel = SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Normal), SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath, false);
 			SgMaterial->MaterialChannelList.push_back(NormalChannel);
 		}
 
 		// Does current material have Opacity?
-		if (FlattenMaterial.OpacitySamples.Num())
+		if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Opacity))
 		{
 			FString ChannelName(OPACITY_CHANNEL);
-			ssf::pssfMaterialChannel OpacityChannel = SetMaterialChannelData(FlattenMaterial.OpacitySamples, FlattenMaterial.OpacitySize, SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
+			ssf::pssfMaterialChannel OpacityChannel = SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity), SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
 			SgMaterial->MaterialChannelList.push_back(OpacityChannel);
 		}
 
-		if (FlattenMaterial.EmissiveSamples.Num())
+		if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Emissive))
 		{
 			FString ChannelName(EMISSIVE_CHANNEL);
-			ssf::pssfMaterialChannel EmissiveChannel = SetMaterialChannelData(FlattenMaterial.EmissiveSamples, FlattenMaterial.EmissiveSize, SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
+			ssf::pssfMaterialChannel EmissiveChannel = SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Emissive), SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
 			SgMaterial->MaterialChannelList.push_back(EmissiveChannel);
 		}
 		else
@@ -1721,7 +1735,7 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 			FString ChannelName(EMISSIVE_CHANNEL);
 			TArray<FColor> BlackEmissive;
 			BlackEmissive.AddZeroed(1);
-			ssf::pssfMaterialChannel EmissiveChannel = SetMaterialChannelData(FlattenMaterial.EmissiveSamples, FlattenMaterial.EmissiveSize, SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
+			ssf::pssfMaterialChannel EmissiveChannel = SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Emissive), SgTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), OutputFolderPath);
 			SgMaterial->MaterialChannelList.push_back(EmissiveChannel);
 		}
 			

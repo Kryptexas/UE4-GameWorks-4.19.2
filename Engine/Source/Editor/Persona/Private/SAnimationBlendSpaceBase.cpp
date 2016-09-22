@@ -3,7 +3,6 @@
 
 #include "PersonaPrivatePCH.h"
 #include "SAnimationBlendSpaceBase.h"
-#include "SAnimationSequenceBrowser.h"
 #include "Persona.h"
 #include "AssetData.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
@@ -15,6 +14,7 @@
 #include "Animation/BlendSpaceBase.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
+#include "IPersonaPreviewScene.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlendSpaceBase, Log, All);
 
@@ -1174,23 +1174,18 @@ FReply SBlendSpaceWidget::OpenAsset( int32 SampleIndex )
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-SBlendSpaceEditorBase::~SBlendSpaceEditorBase()
-{
-	if (PersonaPtr.IsValid())
-	{
-		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
-	}
-}
-
-void SBlendSpaceEditorBase::Construct(const FArguments& InArgs)
+void SBlendSpaceEditorBase::Construct(const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo)
 {
 	bIsActiveTimerRegistered = false;
 	BlendSpace = InArgs._BlendSpace;
-	PersonaPtr = InArgs._Persona;
-	PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SBlendSpaceEditorBase::PostUndo ) );
+	PreviewScenePtr = InPreviewScene;
+
+	OnPostUndo.Add(FSimpleDelegate::CreateSP( this, &SBlendSpaceEditorBase::PostUndo ) );
 
 	bIsActiveTimerRegistered = true;
 	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SBlendSpaceEditorBase::UpdatePreview));
+
+	SAnimEditorBase::Construct(SAnimEditorBase::FArguments().DisplayAnimInfoBar(false), InPreviewScene);
 }
 
 EActiveTimerReturnType SBlendSpaceEditorBase::UpdatePreview( double InCurrentTime, float InDeltaTime )
@@ -1210,42 +1205,6 @@ void SBlendSpaceEditorBase::PostUndo()
 {
 	BlendSpaceWidget->ResampleData();
 	RefreshSampleDataPanel();
-}
-
-TSharedRef<SWidget> SBlendSpaceEditorBase::MakeEditorHeader() const
-{
-	FString DocumentLink;
-
-	if (Cast<UAimOffsetBlendSpace>(BlendSpace) || Cast<UAimOffsetBlendSpace1D>(BlendSpace))
-	{
-		DocumentLink = TEXT("Engine/Animation/AimOffset");
-	}
-	else
-	{
-		DocumentLink = TEXT("Engine/Animation/Blendspaces");
-	}
-	
-	return SNew(SBorder)
-	. BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )
-	. HAlign(HAlign_Center)
-	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		. VAlign(VAlign_Center)
-		[
-			SNew(STextBlock)
-			.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14 ) )
-			.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
-			.Text( this, &SBlendSpaceEditorBase::GetBlendSpaceDisplayName )
-		]
-		+ SHorizontalBox::Slot()
-		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Center)
-		[
-			IDocumentation::Get()->CreateAnchor(DocumentLink)
-		]
-	];
 }
 
 TSharedRef<SWidget> SBlendSpaceEditorBase::MakeDisplayOptionsBox() const
@@ -1278,7 +1237,7 @@ TSharedRef<SWidget> SBlendSpaceEditorBase::MakeDisplayOptionsBox() const
 
 ECheckBoxState SBlendSpaceEditorBase::IsPreviewOn() const
 {
-	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->GetPreviewMeshComponent();
+	class UDebugSkelMeshComponent* Component = GetPreviewScene()->GetPreviewMeshComponent();
 
 	if (Component != NULL && Component->IsPreviewOn())
 	{
@@ -1293,7 +1252,7 @@ ECheckBoxState SBlendSpaceEditorBase::IsPreviewOn() const
 void SBlendSpaceEditorBase::ShowPreview_OnIsCheckedChanged( ECheckBoxState NewValue )
 {
 	bool bPreviewEnabled = (NewValue != ECheckBoxState::Unchecked);
-	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->GetPreviewMeshComponent();
+	class UDebugSkelMeshComponent* Component = GetPreviewScene()->GetPreviewMeshComponent();
 
 	if ( Component != NULL )
 	{
@@ -1319,7 +1278,7 @@ void SBlendSpaceEditorBase::ShowToolTip_OnIsCheckedChanged( ECheckBoxState NewVa
 
 void SBlendSpaceEditorBase::UpdatePreviewParameter() const
 {
-	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->GetPreviewMeshComponent();
+	class UDebugSkelMeshComponent* Component = GetPreviewScene()->GetPreviewMeshComponent();
 
 	if (Component != nullptr && Component->IsPreviewOn())
 	{
@@ -1328,10 +1287,7 @@ void SBlendSpaceEditorBase::UpdatePreviewParameter() const
 			FVector BlendInput = BlendSpaceWidget->LastValidMouseEditorPoint;
 			Component->PreviewInstance->SetBlendSpaceInput(BlendInput);
 
-			if (PersonaPtr.IsValid())
-			{
-				PersonaPtr.Pin()->RefreshViewport();
-			}
+			GetPreviewScene()->InvalidateViews();
 		}
 	}
 }
@@ -1348,18 +1304,15 @@ void SBlendSpaceEditorBase::OnBlendSpaceSamplesChanged()
 
 FVector SBlendSpaceEditorBase::GetPreviewBlendInput() const
 {
-	if (PersonaPtr.IsValid())
+	UDebugSkelMeshComponent * Mesh = GetPreviewScene()->GetPreviewMeshComponent();
+	if ( Mesh )
 	{
-		UDebugSkelMeshComponent * Mesh = PersonaPtr.Pin()->GetPreviewMeshComponent();
-		if ( Mesh )
+		UAnimSingleNodeInstance * SingleNodeInstance = Mesh->GetSingleNodeInstance();
+		if ( SingleNodeInstance )
 		{
-			UAnimSingleNodeInstance * SingleNodeInstance = Mesh->GetSingleNodeInstance();
-			if ( SingleNodeInstance )
-			{
-				return SingleNodeInstance->GetFilterLastOutput();
-			}
+			return SingleNodeInstance->GetFilterLastOutput();
 		}
-	}	
+	}
 
 	return FVector::ZeroVector;
 }

@@ -2832,6 +2832,20 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		}
 	}
 
+	if(PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(USkeletalMesh, PostProcessAnimBlueprint))
+	{
+		TArray<UActorComponent*> ComponentsToReregister;
+		for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+		{
+			USkeletalMeshComponent* MeshComponent = *It;
+			if(MeshComponent && !MeshComponent->IsTemplate() && MeshComponent->SkeletalMesh == this)
+			{
+				ComponentsToReregister.Add(*It);
+			}
+		}
+		FMultiComponentReregisterContext ReregisterContext(ComponentsToReregister);
+	}
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -3582,6 +3596,18 @@ void USkeletalMesh::InitMorphTargets()
 		if (MorphTargetIndexMap.Find(ShapeName) == nullptr)
 		{
 			MorphTargetIndexMap.Add(ShapeName, Index);
+
+			// register as morphtarget curves
+			if (Skeleton)
+			{
+				FSmartName CurveName;
+				CurveName.DisplayName = ShapeName;
+				
+				// verify will make sure it adds to the curve if not found
+				// the reason of using this is to make sure it works in editor/non-editor
+				Skeleton->VerifySmartName(USkeleton::AnimCurveMappingName, CurveName);
+				Skeleton->AccumulateCurveMetaData(ShapeName, false, true);
+			}
 		}
 	}
 }
@@ -3635,15 +3661,12 @@ USkeletalMeshSocket* USkeletalMesh::FindSocketAndIndex(FName InSocketName, int32
 	// If the socket isn't on the mesh, try to find it on the skeleton
 	if (Skeleton)
 	{
-		for (int32 i = 0; i < Skeleton->Sockets.Num(); ++i)
+		USkeletalMeshSocket* SkeletonSocket = Skeleton->FindSocketAndIndex(InSocketName, OutIndex);
+		if (SkeletonSocket != nullptr)
 		{
-			USkeletalMeshSocket* Socket = Skeleton->Sockets[i];
-			if (Socket && Socket->SocketName == InSocketName)
-			{
-				OutIndex = Sockets.Num() + i;
-				return Socket;
-			}
+			OutIndex += Sockets.Num();
 		}
+		return SkeletonSocket;
 	}
 
 	return NULL;
@@ -3729,6 +3752,11 @@ FMatrix USkeletalMesh::GetComposedRefPoseMatrix(int32 InBoneIndex) const
 }
 
 TArray<USkeletalMeshSocket*>& USkeletalMesh::GetMeshOnlySocketList()
+{
+	return Sockets;
+}
+
+const TArray<USkeletalMeshSocket*>& USkeletalMesh::GetMeshOnlySocketList() const
 {
 	return Sockets;
 }

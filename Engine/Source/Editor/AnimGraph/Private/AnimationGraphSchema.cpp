@@ -141,6 +141,43 @@ bool UAnimationGraphSchema::IsComponentSpacePosePin(const FEdGraphPinType& PinTy
 	return (PinType.PinCategory == Schema->PC_Struct) && (PinType.PinSubCategoryObject == ComponentSpacePoseLinkStruct);
 }
 
+bool UAnimationGraphSchema::TryCreateConnection(UEdGraphPin* A, UEdGraphPin* B) const
+{
+	UEdGraphPin* OutputPin = nullptr;
+	UEdGraphPin* InputPin = nullptr;
+
+	if(A->Direction == EEdGraphPinDirection::EGPD_Output)
+	{
+		OutputPin = A;
+		InputPin = B;
+	}
+	else
+	{
+		OutputPin = B;
+		InputPin = A;
+	}
+	check(OutputPin && InputPin);
+
+	UEdGraphNode* OutputNode = OutputPin->GetOwningNode();
+
+	if(UK2Node_Knot* RerouteNode = Cast<UK2Node_Knot>(OutputNode))
+	{
+		// Double check this is our "exec"-like line
+		bool bOutputIsPose = IsPosePin(OutputPin->PinType);
+		bool bInputIsPose = IsPosePin(InputPin->PinType);
+		bool bHavePosePin = bOutputIsPose || bInputIsPose;
+		bool bHaveWildPin = InputPin->PinType.PinCategory == PC_Wildcard || OutputPin->PinType.PinCategory == PC_Wildcard;
+
+		if(bOutputIsPose && bInputIsPose || (bHavePosePin && bHaveWildPin))
+		{
+			// Ok this is a valid exec-like line, we need to kill any connections already on the output pin
+			OutputPin->BreakAllPinLinks();
+		}
+	}
+
+	return Super::TryCreateConnection(A, B);
+}
+
 const FPinConnectionResponse UAnimationGraphSchema::DetermineConnectionResponseOfCompatibleTypedPins(const UEdGraphPin* PinA, const UEdGraphPin* PinB, const UEdGraphPin* InputPin, const UEdGraphPin* OutputPin) const
 {
 	// Enforce a tree hierarchy; where poses can only have one output (parent) connection

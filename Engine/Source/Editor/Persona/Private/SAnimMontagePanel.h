@@ -29,7 +29,6 @@ class SAnimMontagePanel : public SAnimTrackPanel
 public:
 	SLATE_BEGIN_ARGS( SAnimMontagePanel )
 		: _Montage()
-		, _Persona()
 		, _MontageEditor()
 		, _CurrentPosition()
 		, _ViewInputMin()
@@ -39,11 +38,11 @@ public:
 		, _OnSetInputViewRange()
 		, _OnGetScrubValue()
 		, _OnMontageChange()
+		, _OnInvokeTab()
 		, _bChildAnimMontage(false)
 	{}
 
 	SLATE_ARGUMENT( class UAnimMontage*, Montage)
-	SLATE_ARGUMENT( TWeakPtr<FPersona>, Persona)
 	SLATE_ARGUMENT( TWeakPtr<class SMontageEditor>, MontageEditor)
 	SLATE_ARGUMENT( float, WidgetWidth )
 	SLATE_ATTRIBUTE( float, CurrentPosition )
@@ -55,12 +54,11 @@ public:
 	SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
 	SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
 	SLATE_EVENT( FOnAnimObjectChange, OnMontageChange )
+	SLATE_EVENT( FOnInvokeTab, OnInvokeTab )
 	SLATE_ARGUMENT(bool, bChildAnimMontage)
 	SLATE_END_ARGS()
 
-	~SAnimMontagePanel();
-
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, FSimpleMulticastDelegate& OnAnimNotifiesChanged, FSimpleMulticastDelegate& OnSectionsChanged);
 	void SetMontage(class UAnimMontage * InMontage);
 
 	// SWidget interface
@@ -105,7 +103,6 @@ public:
 	void RefreshTimingNodes();
 
 private:
-	TWeakPtr<FPersona> Persona;
 	TWeakPtr<SMontageEditor>	MontageEditor;
 	TSharedPtr<SBorder> PanelArea;
 	class UAnimMontage* Montage;
@@ -158,4 +155,7 @@ private:
 	/** Gets the length of the montage we are currently editing
 	 */
 	virtual float GetSequenceLength() const override;
+
+	/** Delegate used to invoke a tab in the containing editor */
+	FOnInvokeTab OnInvokeTab;
 };

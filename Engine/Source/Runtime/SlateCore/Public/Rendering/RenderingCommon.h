@@ -526,14 +526,28 @@ public:
 	}
 
 	/**
-	 * Called when the viewports top level window is being closed
+	 * Called when the top level window associated with the viewport has been requested to close.
+	 * At this point, the viewport has not been closed and the operation may be canceled.
+	 * This may not called from PIE, Editor Windows, on consoles, or before the game ends
+ 	 * from other methods.
+	 * This is only when the platform specific window is closed.
+	 *
+	 * @return FReply::Handled if the close event was consumed (and the window should remain open).
+	 */
+	virtual FReply OnRequestWindowClose()
+	{
+		return FReply::Unhandled();
+	}
+
+	/**
+	 * Called when the viewport has been requested to close.
 	 */
 	virtual void OnViewportClosed()
 	{
 	}
 
 	/**
-	 * Called when the viewports top level window is being closed
+	 * Gets the SWidget associated with this viewport
 	 */
 	virtual TWeakPtr<SWidget> GetWidget()
 	{

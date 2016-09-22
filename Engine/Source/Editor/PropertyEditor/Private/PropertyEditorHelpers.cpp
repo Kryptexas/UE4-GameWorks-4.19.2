@@ -59,7 +59,7 @@ void SPropertyNameWidget::Construct( const FArguments& InArgs, TSharedPtr<FPrope
 	
 	];
 
-	if( InArgs._DisplayResetToDefault )
+	if( InArgs._DisplayResetToDefault && !PropertyEditor->GetPropertyHandle()->HasMetaData(TEXT("NoResetToDefault")) )
 	{
 		HorizontalBox->AddSlot()
 		.AutoWidth()
@@ -83,7 +83,7 @@ void SPropertyValueWidget::Construct( const FArguments& InArgs, TSharedPtr<FProp
 
 	if ( !ValueEditorWidget->GetToolTip().IsValid() )
 	{
-		ValueEditorWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
+	ValueEditorWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
 	}
 
 
@@ -650,12 +650,12 @@ namespace PropertyEditorHelpers
 		if( NodeProperty->IsA(UArrayProperty::StaticClass()) || NodeProperty->IsA(USetProperty::StaticClass()) || NodeProperty->IsA(UMapProperty::StaticClass()) )
 		{
 			if (!NodeProperty->IsA(UArrayProperty::StaticClass()))
-			{
+		{
 				// Only Sets and Maps get a Documentation widget
 				OutRequiredButtons.Add(EPropertyButton::Documentation);
 			}
 			
-			if (!(NodeProperty->PropertyFlags & CPF_EditFixedSize))
+			if( !(NodeProperty->PropertyFlags & CPF_EditFixedSize) )
 			{
 				OutRequiredButtons.Add( EPropertyButton::Add );
 				OutRequiredButtons.Add( EPropertyButton::Empty );
@@ -672,59 +672,59 @@ namespace PropertyEditorHelpers
 			bool bStaticSizedArray = (NodeProperty->ArrayDim > 1) && (PropertyNode->GetArrayIndex() == -1);
 			if (!bStaticSizedArray)
 			{
-				if( PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInline) )
-				{
-					// hmmm, seems like this code could be removed and the code inside the 'if <UClassProperty>' check
-					// below could be moved outside the else....but is there a reason to allow class properties to have the
-					// following buttons if the class property is marked 'editinline' (which is effectively what this logic is doing)
-					if( !(NodeProperty->PropertyFlags & CPF_NoClear) )
+					if( PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew) )
 					{
-						OutRequiredButtons.Add( EPropertyButton::Clear );
-					}
-				}
-				else
-				{
-					// ignore class properties
-					if( (Cast<const UClassProperty>( NodeProperty ) == NULL) && (Cast<const UAssetClassProperty>( NodeProperty ) == NULL) )
-					{
-						UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>( NodeProperty );
-
-						if( ObjectProperty && ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) )
-						{
-							// add button for picking the actor from the viewport
-							OutRequiredButtons.Add( EPropertyButton::PickActorInteractive );
-						}
-						else
-						{
-							// add button for filling the value of this item with the selected object from the GB
-							OutRequiredButtons.Add( EPropertyButton::Use );
-						}
-
-						// add button to display the generic browser
-						OutRequiredButtons.Add( EPropertyButton::Browse );
-
-						// reference to object resource that isn't dynamically created (i.e. some content package)
+						// hmmm, seems like this code could be removed and the code inside the 'if <UClassProperty>' check
+						// below could be moved outside the else....but is there a reason to allow class properties to have the
+						// following buttons if the class property is marked 'editinline' (which is effectively what this logic is doing)
 						if( !(NodeProperty->PropertyFlags & CPF_NoClear) )
 						{
-							// add button to clear the text
 							OutRequiredButtons.Add( EPropertyButton::Clear );
 						}
+					}
+					else
+					{
+						// ignore class properties
+						if( (Cast<const UClassProperty>( NodeProperty ) == NULL) && (Cast<const UAssetClassProperty>( NodeProperty ) == NULL) )
+						{
+							UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>( NodeProperty );
+
+							if( ObjectProperty && ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) )
+							{
+								// add button for picking the actor from the viewport
+								OutRequiredButtons.Add( EPropertyButton::PickActorInteractive );
+							}
+							else
+							{
+								// add button for filling the value of this item with the selected object from the GB
+								OutRequiredButtons.Add( EPropertyButton::Use );
+							}
+
+							// add button to display the generic browser
+							OutRequiredButtons.Add( EPropertyButton::Browse );
+
+							// reference to object resource that isn't dynamically created (i.e. some content package)
+							if( !(NodeProperty->PropertyFlags & CPF_NoClear) )
+							{
+								// add button to clear the text
+								OutRequiredButtons.Add( EPropertyButton::Clear );
+							}
 							
-						// Do not allow actor object properties to show the asset picker
-						if( ( ObjectProperty && !ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) ) || IsStringAssetReference(NodeProperty) )
-						{
-							// add button for picking the asset from an asset picker
-							OutRequiredButtons.Add( EPropertyButton::PickAsset );
-						}
-						else if( ObjectProperty && ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) )
-						{
-							// add button for picking the actor from the scene outliner
-							OutRequiredButtons.Add( EPropertyButton::PickActor );
+							// Do not allow actor object properties to show the asset picker
+							if( ( ObjectProperty && !ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) ) || IsStringAssetReference(NodeProperty) )
+							{
+								// add button for picking the asset from an asset picker
+								OutRequiredButtons.Add( EPropertyButton::PickAsset );
+							}
+							else if( ObjectProperty && ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) )
+							{
+								// add button for picking the actor from the scene outliner
+								OutRequiredButtons.Add( EPropertyButton::PickActor );
+							}
 						}
 					}
 				}
 			}
-		}
 
 		//////////////////////////////
 		// Handle a class property.
@@ -940,7 +940,7 @@ namespace PropertyEditorHelpers
 					InsertAction = FExecuteAction::CreateSP(PropertyEditor, &FPropertyEditor::InsertItem);
 				}
 
-				if (ButtonType == EPropertyButton::Insert_Delete_Duplicate )
+				if (ButtonType == EPropertyButton::Insert_Delete_Duplicate)
 				{
 					DuplicateAction = FExecuteAction::CreateSP( PropertyEditor, &FPropertyEditor::DuplicateItem );
 				}

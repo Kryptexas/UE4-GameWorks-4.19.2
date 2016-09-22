@@ -21,12 +21,14 @@ FActiveSound::FActiveSound()
 	, ConcurrencyGeneration(0)
 	, ConcurrencySettings(nullptr)
 	, SoundClassOverride(nullptr)
+	, SoundSubmixOverride(nullptr)
 	, bHasCheckedOcclusion(false)
 	, bAllowSpatialization(true)
 	, bHasAttenuationSettings(false)
 	, bShouldRemainActiveIfDropped(false)
 	, bFadingOut(false)
 	, bFinished(false)
+	, bIsPaused(false)
 	, bShouldStopDueToMaxConcurrency(false)
 	, bRadioFilterSelected(false)
 	, bApplyRadioFilter(false)
@@ -46,6 +48,7 @@ FActiveSound::FActiveSound()
 	, bWarnedAboutOrphanedLooping(false)
 #endif
 	, bEnableLowPassFilter(false)
+	, bUpdatePlayPercentage(false)
 	, UserIndex(0)
 	, bIsOccluded(false)
 	, bAsyncOcclusionPending(false)
@@ -69,6 +72,8 @@ FActiveSound::FActiveSound()
 	, OcclusionCheckInterval(0.f)
 	, LastOcclusionCheckTime(TNumericLimits<float>::Lowest())
 	, MaxDistance(WORLD_MAX)
+	, Azimuth(0.0f)
+	, AbsoluteAzimuth(0.0f)
 	, LastLocation(FVector::ZeroVector)
 	, AudioVolumeID(0)
 	, LastUpdateTime(0.f)
@@ -187,12 +192,25 @@ USoundClass* FActiveSound::GetSoundClass() const
 		return SoundClassOverride;
 	}
 	else if (Sound)
-		{
+	{
 		return Sound->GetSoundClass();
-		}
+	}
 
 	return nullptr;
+}
+
+USoundSubmix* FActiveSound::GetSoundSubmix() const
+{
+	if (SoundSubmixOverride)
+	{
+		return SoundSubmixOverride;
 	}
+	else if (Sound)
+	{
+		return Sound->GetSoundSubmix();
+	}
+	return nullptr;
+}
 
 int32 FActiveSound::FindClosestListener( const TArray<FListener>& InListeners ) const
 {
@@ -223,7 +241,6 @@ uint32 FActiveSound::GetSoundConcurrencyObjectID() const
 		return Sound->GetSoundConcurrencyObjectID();
 	}
 }
-
 
 void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances, const float DeltaTime )
 {
@@ -282,6 +299,8 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	ParseParams.bEnableLowPassFilter = bEnableLowPassFilter;
 	ParseParams.LowPassFilterFrequency = LowPassFilterFrequency;
 	ParseParams.SoundClass = GetSoundClass();
+	ParseParams.SoundSubmix = GetSoundSubmix();
+	ParseParams.bIsPaused = bIsPaused;
 
 	if (bApplyInteriorVolumes)
 	{
@@ -818,29 +837,39 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 
 	FAttenuationListenerData ListenerData;
 
-	// Get the current focus factor
-	const float FocusFactor = AudioDevice->GetFocusFactor(ListenerData, Sound, SoundTransform, *Settings, &Listener.Transform);
-
 	// Reset distance and priority scale to 1.0 in case changed in editor
 	FocusDistanceScale = 1.0f;
 	FocusPriorityScale = 1.0f;
-	
-	// Computer the focus factor if needed
+
 	check(Sound);
-	if (Settings->bSpatialize && Settings->bEnableListenerFocus && !Sound->bIgnoreFocus)
+
+	if (Settings->bSpatialize)
 	{
+		// Compute the azimuth of the active sound
 		const FGlobalFocusSettings& FocusSettings = AudioDevice->GetGlobalFocusSettings();
 
-		// Get the volume scale to apply the volume calculation based on the focus factor
-		const float FocusVolumeAttenuation = Settings->GetFocusAttenuation(FocusSettings, FocusFactor);
-		Volume *= FocusVolumeAttenuation;
+		AudioDevice->GetAzimuth(ListenerData, Sound, SoundTransform, *Settings, Listener.Transform, Azimuth, AbsoluteAzimuth);
 
-		// Scale the volume-weighted priority scale value we use for sorting this sound for voice-stealing
-		FocusPriorityScale = Settings->GetFocusPriorityScale(FocusSettings, FocusFactor);
-		ParseParams.Priority *= FocusPriorityScale;
+		ParseParams.AttenuationDistance = ListenerData.AttenuationDistance;
 
-		// Get the distance scale to use when computing distance-calculations for 3d attenuation
-		FocusDistanceScale = Settings->GetFocusDistanceScale(FocusSettings, FocusFactor);
+		ParseParams.AbsoluteAzimuth = AbsoluteAzimuth;
+
+		if (Settings->bEnableListenerFocus && !Sound->bIgnoreFocus)
+		{
+			// Get the current focus factor
+			const float FocusFactor = AudioDevice->GetFocusFactor(ListenerData, Sound, Azimuth, *Settings);
+
+			// Get the volume scale to apply the volume calculation based on the focus factor
+			const float FocusVolumeAttenuation = Settings->GetFocusAttenuation(FocusSettings, FocusFactor);
+			Volume *= FocusVolumeAttenuation;
+
+			// Scale the volume-weighted priority scale value we use for sorting this sound for voice-stealing
+			FocusPriorityScale = Settings->GetFocusPriorityScale(FocusSettings, FocusFactor);
+			ParseParams.Priority *= FocusPriorityScale;
+
+			// Get the distance scale to use when computing distance-calculations for 3d attenuation
+			FocusDistanceScale = Settings->GetFocusDistanceScale(FocusSettings, FocusFactor);
+		}
 	}
 
 	// Attenuate the volume based on the model

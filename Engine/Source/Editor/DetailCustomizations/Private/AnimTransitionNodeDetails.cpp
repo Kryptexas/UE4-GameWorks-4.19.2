@@ -14,9 +14,8 @@
 #include "STextEntryPopup.h"
 #include "SExpandableArea.h"
 #include "BlueprintEditorUtils.h"
-#include "SBlendProfilePicker.h"
 #include "Animation/BlendProfile.h"
-
+#include "ISkeletonEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "FAnimStateNodeDetails"
 
@@ -167,6 +166,13 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 			BlendProfileHandle->GetValue(BlendProfilePropertyValue);
 			UBlendProfile* CurrentProfile = Cast<UBlendProfile>(BlendProfilePropertyValue);
 
+			ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+
+			FBlendProfilePickerArgs Args;
+			Args.InitialProfile = CurrentProfile;
+			Args.OnBlendProfileSelected = FOnBlendProfileSelected::CreateSP(this, &FAnimTransitionNodeDetails::OnBlendProfileChanged, BlendProfileHandle);
+			Args.bAllowNew = false;
+
 			CrossfadeCategory.AddProperty(BlendProfileHandle).CustomWidget(true)
 				.NameContent()
 				[
@@ -174,11 +180,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 				]
 				.ValueContent()
 				[
-					SNew(SBlendProfilePicker)
-					.TargetSkeleton(TargetSkeleton)
-					.AllowNew(false)
-					.OnBlendProfileSelected(this, &FAnimTransitionNodeDetails::OnBlendProfileChanged, BlendProfileHandle)
-					.InitialProfile(CurrentProfile)
+					SkeletonEditorModule.CreateBlendProfilePicker(TargetSkeleton, Args)
 				];
 		}
 

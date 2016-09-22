@@ -15,6 +15,23 @@ class SAnimMontageSectionsPanel;
 class SAnimMontageScrubPanel;
 class SAnimTimingPanel;
 
+struct FMontageEditorRequiredArgs
+{
+	FMontageEditorRequiredArgs(const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnPostUndo, FSimpleMulticastDelegate& InOnAnimNotifiesChanged, FSimpleMulticastDelegate& InOnSectionsChanged)
+		: PreviewScene(InPreviewScene)
+		, EditableSkeleton(InEditableSkeleton)
+		, OnPostUndo(InOnPostUndo)
+		, OnAnimNotifiesChanged(InOnAnimNotifiesChanged)
+		, OnSectionsChanged(InOnSectionsChanged)
+	{}
+
+	TSharedRef<class IPersonaPreviewScene> PreviewScene;
+	TSharedRef<class IEditableSkeleton> EditableSkeleton;
+	FSimpleMulticastDelegate& OnPostUndo;
+	FSimpleMulticastDelegate& OnAnimNotifiesChanged;
+	FSimpleMulticastDelegate& OnSectionsChanged;
+};
+
 //////////////////////////////////////////////////////////////////////////
 // SMontageEditor
 
@@ -28,18 +45,20 @@ class SMontageEditor : public SAnimEditorBase
 {
 public:
 	SLATE_BEGIN_ARGS( SMontageEditor )
-		: _Persona()
-		, _Montage(NULL)
+		: _Montage(NULL)
 		{}
 
-		SLATE_ARGUMENT( TSharedPtr<FPersona>, Persona )
+		SLATE_EVENT(FOnInvokeTab, OnInvokeTab)
+		SLATE_EVENT(FSimpleDelegate, OnCurvesChanged)
+		SLATE_EVENT(FSimpleDelegate, OnSectionsChanged)
 		SLATE_ARGUMENT( UAnimMontage*, Montage )
+		SLATE_EVENT(FOnObjectsSelected, OnObjectsSelected)
+		SLATE_EVENT(FSimpleDelegate, OnAnimNotifiesChanged)
 	SLATE_END_ARGS()
 
 	~SMontageEditor();
 
 private:
-	/** Persona reference **/
 	TSharedPtr<SAnimMontagePanel> AnimMontagePanel;
 	TSharedPtr<SAnimNotifyPanel> AnimNotifyPanel;
 	TSharedPtr<SAnimCurvePanel>	AnimCurvePanel;
@@ -47,22 +66,14 @@ private:
 	TSharedPtr<SAnimMontageScrubPanel> AnimMontageScrubPanel;
 	TSharedPtr<SAnimTimingPanel> AnimTimingPanel;
 
-	TWeakPtr<FPersona> WeakPersona;
-
- 	/* 
-	 * Child Anim Montage: Child Anim Montage only can replace name of animations, and no other meaningful edits 
-	 * as it will derive every data from Parent. There might be some other data that will allow to be replaced, but for now, it is
-	 * not. 
-	 */	
-	bool bChildAnimMontage;
-
 protected:
 	//~ Begin SAnimEditorBase Interface
 	virtual TSharedRef<class SAnimationScrubPanel> ConstructAnimScrubPanel() override;
 	//~ End SAnimEditorBase Interface
 
 public:
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const FMontageEditorRequiredArgs& InRequiredArgs);
+
 	void SetMontageObj(UAnimMontage * NewMontage);
 	UAnimMontage * GetMontageObj() const { return MontageObj; }
 
@@ -74,7 +85,14 @@ public:
 
 private:
 	/** Pointer to the animation sequence being edited */
+	// @todo fix this
 	UAnimMontage* MontageObj;
+	/*
+	* Child Anim Montage: Child Anim Montage only can replace name of animations, and no other meaningful edits
+	* as it will derive every data from Parent. There might be some other data that will allow to be replaced, but for now, it is
+	* not.
+	*/
+	bool bChildAnimMontage;
 
 	/** If previewing section, it is section used to restart previewing when play button is pushed */
 	int32 PreviewingStartSectionIdx;
@@ -156,6 +174,9 @@ public:
 	//~ Begin SAnimEditorBase Interface
 	virtual TSharedRef<SWidget> CreateDocumentAnchor() override;
 	//~ End SAnimEditorBase Interface
+
+	/** Delegate fired when montage sections have changed */
+	FSimpleDelegate			OnSectionsChanged;
 
 	FReply	OnFindParentClassInContentBrowserClicked();
 	FReply	OnEditParentClassClicked();

@@ -285,6 +285,11 @@ void SAnimSegmentsPanel::SummonSegmentNodeContextMenu(FMenuBuilder& MenuBuilder,
 			UIAction.ExecuteAction.BindRaw(this, &SAnimSegmentsPanel::RevertToParent, AnimSegmentIndex);
 			MenuBuilder.AddMenuEntry(LOCTEXT("RevertToParentSegment", "Revert To Parent"), LOCTEXT("RevertToParentSegment_ToolTip", "Revert to Parent Animation"), FSlateIcon(), UIAction);
 			MenuBuilder.AddSubMenu(LOCTEXT("PickAnimationForTheSegment", "Replace animation with..."), LOCTEXT("PickAnimationForTheSegment_TooTip", "Replace the current animation with another animation."), FNewMenuDelegate::CreateSP(this, &SAnimSegmentsPanel::FillSubMenu, AnimSegmentIndex));
+
+			MenuBuilder.AddMenuSeparator();
+			// open asset option
+			UIAction.ExecuteAction.BindRaw(this, &SAnimSegmentsPanel::OpenAsset, AnimSegmentIndex);
+			MenuBuilder.AddMenuEntry(LOCTEXT("OpenAssetOfSegment", "Open Asset"), LOCTEXT("OpenAssetOfSegment_ToolTip", "Open Asset"), FSlateIcon(), UIAction);
 		}
 
 		MenuBuilder.EndSection();
@@ -295,6 +300,9 @@ void SAnimSegmentsPanel::SummonSegmentNodeContextMenu(FMenuBuilder& MenuBuilder,
 		{
 			UIAction.ExecuteAction.BindRaw(this, &SAnimSegmentsPanel::RemoveAnimSegment, AnimSegmentIndex);
 			MenuBuilder.AddMenuEntry(LOCTEXT("DeleteSegment", "Delete Segment"), LOCTEXT("DeleteSegmentHint", "Delete Segment"), FSlateIcon(), UIAction);
+			// open asset option
+			UIAction.ExecuteAction.BindRaw(this, &SAnimSegmentsPanel::OpenAsset, AnimSegmentIndex);
+			MenuBuilder.AddMenuEntry(LOCTEXT("OpenAssetOfSegment", "Open Asset"), LOCTEXT("OpenAssetOfSegment_ToolTip", "Open Asset"), FSlateIcon(), UIAction);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -330,6 +338,9 @@ void SAnimSegmentsPanel::ReplaceAnimSegment(int32 AnimSegmentIndex, UAnimSequenc
 			OnPostAnimUpdateDelegate.Execute();
 		}
 	}
+
+	// it doesn't work well if I leave the window open. The delegate goes weired or it stop showing the popups. 
+	FSlateApplication::Get().DismissAllMenus();
 }
 
 void SAnimSegmentsPanel::ReplaceAnimSegment(const FAssetData& NewSequenceData, int32 AnimSegmentIndex)
@@ -374,6 +385,18 @@ void SAnimSegmentsPanel::RemoveAnimSegment(int32 AnimSegmentIndex)
 void SAnimSegmentsPanel::RevertToParent(int32 AnimSegmentIndex)
 {
 	ReplaceAnimSegment(AnimSegmentIndex, nullptr);
+}
+
+void SAnimSegmentsPanel::OpenAsset(int32 AnimSegmentIndex)
+{
+	if (ValidIndex(AnimSegmentIndex))
+	{
+		UAnimSequenceBase* Asset = AnimTrack->AnimSegments[AnimSegmentIndex].AnimReference;
+		if (Asset)
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(Asset);
+		}
+	}
 }
 
 void SAnimSegmentsPanel::FillSubMenu(FMenuBuilder& MenuBuilder, int32 AnimSegmentIndex)

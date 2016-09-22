@@ -38,9 +38,9 @@
 #include "Engine/DemoNetDriver.h"
 #include "Engine/NetworkObjectList.h"
 #include "Layers/Layer.h"
-#include "GameFramework/GameMode.h"
-#include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/GameModeBase.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "NetworkVersion.h"
 
@@ -2978,104 +2978,7 @@ bool UWorld::SetGameMode(const FURL& InURL)
 {
 	if( IsServer() && !AuthorityGameMode )
 	{
-		// Init the game info.
-		FString Options(TEXT(""));
-		TCHAR GameParam[256]=TEXT("");
-		FString	Error=TEXT("");
-		AWorldSettings* Settings = GetWorldSettings();		
-		for( int32 i=0; i<InURL.Op.Num(); i++ )
-		{
-			Options += TEXT("?");
-			Options += InURL.Op[i];
-			FParse::Value( *InURL.Op[i], TEXT("GAME="), GameParam, ARRAY_COUNT(GameParam) );
-		}
-
-		UGameEngine* const GameEngine = Cast<UGameEngine>(GEngine);
-
-		// Get the GameMode class. Start by using the default game type specified in the map's worldsettings.  It may be overridden by settings below.
-		UClass* GameClass = Settings->DefaultGameMode;
-
-		// If there is a GameMode parameter in the URL, allow it to override the default game type
-		if ( GameParam[0] )
-		{
-			FString const GameClassName = AGameMode::StaticGetFullGameClassName(FString(GameParam));
-
-			// if the gamename was specified, we can use it to fully load the pergame PreLoadClass packages
-			if (GameEngine)
-			{
-				GameEngine->LoadPackagesFully(this, FULLYLOAD_Game_PreLoadClass, *GameClassName);
-			}
-
-			// Don't overwrite the map's world settings if we failed to load the value off the command line parameter
-			UClass* GameModeParamClass = StaticLoadClass(AGameMode::StaticClass(), NULL, *GameClassName, NULL, LOAD_None, NULL);
-			if (GameModeParamClass)
-			{
-				GameClass = GameModeParamClass;
-			}
-			else
-			{
-				UE_LOG(LogWorld, Warning, TEXT("Failed to load game mode '%s' specified by URL options."), *GameClassName);
-			}
-		}
-
-		if (!GameClass)
-		{
-			FString MapName = InURL.Map;
-			FString MapNameNoPath = FPaths::GetBaseFilename(MapName);
-			if (MapNameNoPath.StartsWith(PLAYWORLD_PACKAGE_PREFIX))
-			{
-				FWorldContext WorldContext = GEngine->GetWorldContextFromWorldChecked(this);
-
-				const int32 PrefixLen = BuildPIEPackagePrefix(WorldContext.PIEInstance).Len();
-				MapNameNoPath = MapNameNoPath.Mid(PrefixLen);
-			}
-			
-			// see if we have a per-prefix default specified
-			for ( int32 Idx=0; Idx<Settings->DefaultMapPrefixes.Num(); Idx++ )
-			{
-				const FGameModePrefix& GTPrefix = Settings->DefaultMapPrefixes[Idx];
-				if ( (GTPrefix.Prefix.Len() > 0) && MapNameNoPath.StartsWith(GTPrefix.Prefix) )
-				{
-					GameClass = StaticLoadClass(AGameMode::StaticClass(), NULL, *GTPrefix.GameMode, NULL, LOAD_None, NULL) ;
-					if (GameClass)
-					{
-						// found a good class for this prefix, done
-						break;
-					}
-				}
-			}
-		}
-
-		if ( !GameClass )
-		{
-			GameClass = StaticLoadClass(AGameMode::StaticClass(), NULL, *UGameMapsSettings::GetGlobalDefaultGameMode(), NULL, LOAD_None, NULL);
-		}
-
-		if ( !GameClass ) 
-		{
-			// fall back to raw GameMode
-			GameClass = AGameMode::StaticClass();
-		}
-		else
-		{
-			// Remove any directory path from the map for the purpose of setting the game type
-			GameClass = GameClass->GetDefaultObject<AGameMode>()->GetGameModeClass(FPaths::GetBaseFilename(InURL.Map), Options, *InURL.Portal);
-		}
-
-		// no matter how the game was specified, we can use it to load the PostLoadClass packages
-		if (GameEngine)
-		{
-			GameEngine->LoadPackagesFully(this, FULLYLOAD_Game_PostLoadClass, GameClass->GetPathName());
-			GameEngine->LoadPackagesFully(this, FULLYLOAD_Game_PostLoadClass, TEXT("LoadForAllGameModes"));
-		}
-
-		// Spawn the GameMode.
-		UE_LOG(LogWorld, Log,  TEXT("Game class is '%s'"), *GameClass->GetName() );
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save game modes into a map
-		AuthorityGameMode = SpawnActor<AGameMode>( GameClass, SpawnInfo );
-		
+		AuthorityGameMode = GetGameInstance()->CreateGameModeForURL(InURL);
 		if( AuthorityGameMode != NULL )
 		{
 			return true;
@@ -3099,6 +3002,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	if (bResetTime)
 	{
 		TimeSeconds = 0.0f;
+		UnpausedTimeSeconds = 0.0f;
 		RealTimeSeconds = 0.0f;
 		AudioTimeSeconds = 0.0f;
 	}
@@ -3260,7 +3164,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 
 void UWorld::BeginPlay()
 {
-	AGameMode* const GameMode = GetAuthGameMode();
+	AGameModeBase* const GameMode = GetAuthGameMode();
 	if (GameMode)
 	{
 		GameMode->StartPlay();
@@ -4031,7 +3935,12 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 
 				// ask the game code if this player can join
 				FString ErrorMsg;
-				AuthorityGameMode->PreLogin( Tmp, Connection->LowLevelGetRemoteAddress(), Connection->PlayerId, ErrorMsg);
+				AGameModeBase* GameMode = GetAuthGameMode();
+
+				if (GameMode)
+				{
+					GameMode->PreLogin(Tmp, Connection->LowLevelGetRemoteAddress(), Connection->PlayerId, ErrorMsg);
+				}
 				if (!ErrorMsg.IsEmpty())
 				{
 					UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
@@ -4146,7 +4055,11 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 
 				// go through the same full login process for the split player even though it's all in the same frame
 				FString ErrorMsg;
-				AuthorityGameMode->PreLogin(Tmp, Connection->LowLevelGetRemoteAddress(), Connection->PlayerId, ErrorMsg);
+				AGameModeBase* GameMode = GetAuthGameMode();
+				if (GameMode)
+				{
+					GameMode->PreLogin(Tmp, Connection->LowLevelGetRemoteAddress(), Connection->PlayerId, ErrorMsg);
+				}
 				if (!ErrorMsg.IsEmpty())
 				{
 					// if any splitscreen viewport fails to join, all viewports on that client also fail
@@ -4481,8 +4394,6 @@ void UWorld::GetMatineeActors(TArray<class AMatineeActor*>& OutMatineeActors)
 	Seamless world traveling
 -----------------------------------------------------------------------------*/
 
-extern void LoadGametypeContent(FWorldContext &Context, const FURL& URL);
-
 void FSeamlessTravelHandler::SetHandlerLoadedData(UObject* InLevelPackage, UWorld* InLoadedWorld)
 {
 	LoadedPackage = InLevelPackage;
@@ -4714,24 +4625,8 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 	if (bTransitionInProgress && bSwitchedToDefaultMap)
 	{
 		UE_LOG(LogWorld, Log, TEXT("StartLoadingDestination to: %s"), *PendingTravelURL.Map);
-		if (GUseSeekFreeLoading)
-		{
-			// load gametype specific resources
-			if (GEngine->bCookSeparateSharedMPGameContent)
-			{
-				UE_LOG(LogWorld, Log,  TEXT("LoadMap: %s: issuing load request for shared GameMode resources"), *PendingTravelURL.ToString());
-				LoadGametypeContent(GEngine->GetWorldContextFromHandleChecked(WorldContextHandle), PendingTravelURL);
-			}
 
-			// Only load localized package if it exists as async package loading doesn't handle errors gracefully.
-			FString LocalizedPackageName = PendingTravelURL.Map + LOCALIZED_SEEKFREE_SUFFIX;
-			if (FPackageName::DoesPackageExist(LocalizedPackageName))
-			{
-				// Load localized part of level first in case it exists. We don't need to worry about GC or completion 
-				// callback as we always kick off another async IO for the level below.
-				LoadPackageAsync(LocalizedPackageName);
-			}
-		}
+		CurrentWorld->GetGameInstance()->PreloadContentForURL(PendingTravelURL);
 
 		// Set the world type in the static map, so that UWorld::PostLoad can set the world type
 		const FName URLMapFName = FName(*PendingTravelURL.Map);
@@ -4800,6 +4695,7 @@ void FSeamlessTravelHandler::CopyWorldData()
 	LoadedWorld->SetGameInstance(CurrentWorld->GetGameInstance());
 
 	LoadedWorld->TimeSeconds = CurrentWorld->TimeSeconds;
+	LoadedWorld->UnpausedTimeSeconds = CurrentWorld->UnpausedTimeSeconds;
 	LoadedWorld->RealTimeSeconds = CurrentWorld->RealTimeSeconds;
 	LoadedWorld->AudioTimeSeconds = CurrentWorld->AudioTimeSeconds;
 
@@ -4863,9 +4759,9 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// Make sure there are no pending visibility requests.
 			CurrentWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 
-			if (CurrentWorld->GameState)
+			if (CurrentWorld->GetGameState())
 			{
-				CurrentWorld->GameState->SeamlessTravelTransitionCheckpoint(!bSwitchedToDefaultMap);
+				CurrentWorld->GetGameState()->SeamlessTravelTransitionCheckpoint(!bSwitchedToDefaultMap);
 			}
 			
 			// If it's not still playing, destroy the demo net driver before we start renaming actors.
@@ -4878,7 +4774,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 			FUObjectAnnotationSparseBool KeepAnnotation;
 			TArray<AActor*> KeepActors;
 
-			if (AGameMode* AuthGameMode = CurrentWorld->GetAuthGameMode())
+			if (AGameModeBase* AuthGameMode = CurrentWorld->GetAuthGameMode())
 			{
 				AuthGameMode->GetSeamlessTravelActorList(!bSwitchedToDefaultMap, KeepActors);
 			}
@@ -4967,8 +4863,8 @@ UWorld* FSeamlessTravelHandler::Tick()
  			bool bCreateNewGameMode = !bIsClient;
 			{
 				// scope because after GC the kept pointers will be bad
-				AGameMode* KeptGameMode = nullptr;
-				AGameState* KeptGameState = nullptr;
+				AGameModeBase* KeptGameMode = nullptr;
+				AGameStateBase* KeptGameState = nullptr;
 
 				// Second pass to rename and move actors that need to transition into the new world
 				// This is done after cleaning up actors that aren't transitioning in case those actors depend on these
@@ -4986,13 +4882,13 @@ UWorld* FSeamlessTravelHandler::Tick()
 					{
 						LoadedWorld->AddPawn(static_cast<APawn*>(TheActor));
 					}
-					else if (TheActor->IsA<AGameMode>())
+					else if (TheActor->IsA<AGameModeBase>())
 					{
-						KeptGameMode = static_cast<AGameMode*>(TheActor);
+						KeptGameMode = static_cast<AGameModeBase*>(TheActor);
 					}
-					else if (TheActor->IsA<AGameState>())
+					else if (TheActor->IsA<AGameStateBase>())
 					{
-						KeptGameState = static_cast<AGameState*>(TheActor);
+						KeptGameState = static_cast<AGameStateBase*>(TheActor);
 					}
 					// add to new world's actor list and remove from old
 					LoadedWorld->PersistentLevel->Actors.Add(TheActor);
@@ -5172,7 +5068,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				UE_LOG(LogWorld, Log, TEXT("----SeamlessTravel finished in %.2f seconds ------"), TotalSeamlessTravelTime );
 				FLoadTimeTracker::Get().DumpRawLoadTimes();
 
-				AGameMode* const GameMode = LoadedWorld->GetAuthGameMode();
+				AGameModeBase* const GameMode = LoadedWorld->GetAuthGameMode();
 				if (GameMode)
 				{
 					// inform the new GameMode so it can handle players that persisted
@@ -5584,50 +5480,10 @@ void UWorld::SetSelectedLevels( const TArray<class ULevel*>& InLevels )
  */
 bool UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipGameNotify)
 {
-	// NOTE - This is a temp check while we work on a long term fix
-	// There are a few issues with seamless travel using single process PIE, so we're disabling that for now while working on a fix
-	if ( WorldType == EWorldType::PIE && AuthorityGameMode && AuthorityGameMode->bUseSeamlessTravel && !FParse::Param( FCommandLine::Get(), TEXT( "MultiprocessOSS" ) ) )
+	AGameModeBase* GameMode = GetAuthGameMode();
+	
+	if (!GameMode->CanServerTravel(FURL, bAbsolute))
 	{
-		UE_LOG( LogWorld, Warning, TEXT( "UWorld::ServerTravel: Seamless travel currently NOT supported in single process PIE." ) );
-		return false;
-	}
-
-	if (FURL.Contains(TEXT("%")) )
-	{
-		UE_LOG(LogWorld, Error, TEXT("FURL %s Contains illegal character '%%'."), *FURL);
-		return false;
-	}
-
-	if (FURL.Contains(TEXT(":")) || FURL.Contains(TEXT("\\")) )
-	{
-		UE_LOG(LogWorld, Error, TEXT("FURL %s blocked"), *FURL);
-		// TODO - restore this once Fortnite URLs are clean
-		//return false;
-	}
-
-	FString MapName;
-	int32 OptionStart = FURL.Find(TEXT("?"));
-	if (OptionStart == INDEX_NONE)
-	{
-		MapName = FURL;
-	}
-	else
-	{
-		MapName = FURL.Left(OptionStart);
-	}
-
-	// Check for invalid package names.
-	FText InvalidPackageError;
-	if (MapName.StartsWith(TEXT("/")) && !FPackageName::IsValidLongPackageName(MapName, true, &InvalidPackageError))
-	{
-		UE_LOG(LogWorld, Log, TEXT("FURL %s blocked (%s)"), *FURL, *InvalidPackageError.ToString());
-		return false;
-	}
-
-	// Check for an error in the server's connection
-	if (AuthorityGameMode && AuthorityGameMode->GetMatchState() == MatchState::Aborted)
-	{
-		UE_LOG(LogWorld, Log, TEXT("Not traveling because of network error"));
 		return false;
 	}
 
@@ -5640,12 +5496,12 @@ bool UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipG
 	if (NextURL.IsEmpty() && (!IsInSeamlessTravel() || bShouldSkipGameNotify))
 	{
 		NextURL = FURL;
-		if (AuthorityGameMode != NULL)
+		if (GameMode != NULL)
 		{
 			// Skip notifying clients if requested
 			if (!bShouldSkipGameNotify)
 			{
-				AuthorityGameMode->ProcessServerTravel(FURL, bAbsolute);
+				GameMode->ProcessServerTravel(FURL, bAbsolute);
 			}
 		}
 		else
@@ -5816,8 +5672,17 @@ ENetMode UWorld::AttemptDeriveFromURL() const
 	return NM_Standalone;
 }
 
+void UWorld::SetGameState(AGameStateBase* NewGameState)
+{
+	if (NewGameState == GameState)
+	{
+		return;
+	}
 
-void UWorld::CopyGameState(AGameMode* FromGameMode, AGameState* FromGameState)
+	GameState = NewGameState;
+}
+
+void UWorld::CopyGameState(AGameModeBase* FromGameMode, AGameStateBase* FromGameState)
 {
 	AuthorityGameMode = FromGameMode;
 	GameState = FromGameState;

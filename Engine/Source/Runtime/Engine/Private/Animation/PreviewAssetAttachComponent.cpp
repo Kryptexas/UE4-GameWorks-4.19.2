@@ -11,6 +11,22 @@ void FPreviewAssetAttachContainer::AddAttachedObject( UObject* AttachObject, FNa
 	AttachedObjects.Add( Pair );
 }
 
+void FPreviewAssetAttachContainer::AddUniqueAttachedObject(UObject* AttachObject, FName AttachPointName)
+{
+	for (const FPreviewAttachedObjectPair& AttachedObject : AttachedObjects)
+	{
+		if (AttachedObject.AttachedTo == AttachPointName)
+		{
+			return;
+		}
+	}
+
+	FPreviewAttachedObjectPair Pair;
+	Pair.AttachedTo = AttachPointName;
+	Pair.SetAttachedObject(AttachObject);
+	AttachedObjects.Add(Pair);
+}
+
 void FPreviewAssetAttachContainer::RemoveAttachedObject( UObject* ObjectToRemove, FName AttachName )
 {
 	for( int i = AttachedObjects.Num() - 1; i >= 0; --i )
@@ -48,6 +64,11 @@ int32 FPreviewAssetAttachContainer::Num() const
 }
 
 FPreviewAttachedObjectPair& FPreviewAssetAttachContainer::operator []( int32 i )
+{
+	return AttachedObjects[i];
+}
+
+const FPreviewAttachedObjectPair& FPreviewAssetAttachContainer::operator [](int32 i) const
 {
 	return AttachedObjects[i];
 }

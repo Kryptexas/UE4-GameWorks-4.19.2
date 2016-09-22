@@ -307,9 +307,6 @@ public:
 	/** Tell client that the Pawn is begin restarted. Calls Restart(). */
 	virtual void PawnClientRestart();
 
-	/** Replicated function to set the pawn rotation, allowing the server to force. */
-	virtual void ClientSetRotation( FRotator NewRotation );
-
 	/** Updates Pawn's rotation to the given rotation, assumed to be the Controller's ControlRotation. Respects the bUseControllerRotation* settings. */
 	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f);
 
@@ -449,6 +446,10 @@ public:
 public:
 
 	// DEPRECATED FUNCTIONS
+
+	/** Deprecated, misleading name and redundant */
+	DEPRECATED(4.14, "ClientSetRotation is deprecated. Call ClientSetRotation on the PlayerController directly")
+	virtual void ClientSetRotation(FRotator NewRotation);
 
 	/** (Deprecated) Launch Character with LaunchVelocity  */
 	DEPRECATED(4.8, "LaunchPawn is deprecated. For Characters, use LaunchCharacter() instead.")

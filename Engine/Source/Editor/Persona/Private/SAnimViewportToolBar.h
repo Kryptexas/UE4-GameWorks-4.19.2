@@ -17,13 +17,6 @@ public:
 
 private:
 	/**
-	 * Returns the label for the "View" tool bar menu, which changes depending on the viewport type
-	 *
-	 * @return	Label to use for this menu label
-	 */
-	FText GetViewMenuLabel() const;
-
-	/**
 	 * Generates the toolbar view menu content 
 	 *
 	 * @return The widget containing the view menu content
@@ -95,8 +88,17 @@ private:
 	 */
 	TSharedRef<SWidget> GeneratePlaybackMenu() const;
 
-	TSharedRef<SWidget> GenerateTurnTableMenu() const;
-	FText GetTurnTableMenuLabel() const;
+	/** Generate the turntable menu entries */
+	void GenerateTurnTableMenu(FMenuBuilder& MenuBuilder) const;
+
+	/** Generate the scene setup menu */
+	void GenerateSceneSetupMenu(FMenuBuilder& MenuBuilder);
+
+	/** Customize the details of the scene setup object */
+	TSharedRef<class IDetailCustomization> CustomizePreviewSceneDescription();
+
+	/** Customize a preview mesh collection entry */
+	TSharedRef<class IPropertyTypeCustomization> CustomizePreviewMeshCollectionEntry();
 
 	/**
 	* Generate color of the text on the top

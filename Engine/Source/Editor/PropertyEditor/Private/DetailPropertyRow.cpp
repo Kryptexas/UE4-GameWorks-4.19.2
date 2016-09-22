@@ -497,17 +497,19 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 			];
 		}
 
-
-		ValueWidget->AddSlot()
-		.Padding( 2.0f, 0.0f )
-		.AutoWidth()
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Left)
-		[
-			SNew( SResetToDefaultPropertyEditor, PropertyEditor.ToSharedRef() )
-			.IsEnabled( IsEnabledAttrib )
-			.CustomResetToDefault(CustomResetToDefault)
-		];
+		if (!PropertyHandle->HasMetaData(TEXT("NoResetToDefault")))
+		{
+			ValueWidget->AddSlot()
+			.Padding( 2.0f, 0.0f )
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
+			[
+				SNew( SResetToDefaultPropertyEditor, PropertyEditor.ToSharedRef() )
+				.IsEnabled( IsEnabledAttrib )
+				.CustomResetToDefault(CustomResetToDefault)
+			];
+		}
 	}
 
 	Row.ValueContent()

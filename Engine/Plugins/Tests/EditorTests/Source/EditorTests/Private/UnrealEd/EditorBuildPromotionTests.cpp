@@ -872,7 +872,7 @@ namespace BuildPromotionTestHelper
 				AActor* PlacedActor = FActorFactoryAssetProxy::AddActorForAsset(CurrentAsset);
 				if (PlacedActor)
 				{
-					UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Placed %s in the level"), *CurrentAsset->GetName());
+					UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Placed %s in the level"), *GetNameSafe(CurrentAsset));
 					PlacedActor->SetActorLocation(PlaceLocation);
 				}
 				else
@@ -1125,16 +1125,18 @@ namespace BuildPromotionTestHelper
 			}
 
 			//This sub tests was a success if we had no new errors
-			if (LastErrorCount == TestExecutionInfo->Errors.Num())
+			if (TestExecutionInfo && (LastErrorCount == TestExecutionInfo->Errors.Num()))
 			{
 				SectionSuccessCount++;
 			}
 			SectionTestCount++;
 
-			LastErrorCount = TestExecutionInfo->Errors.Num();
-			LastWarningCount = TestExecutionInfo->Warnings.Num();
-			LastLogCount = TestExecutionInfo->LogItems.Num();
-			
+			if (TestExecutionInfo)
+			{
+				LastErrorCount = TestExecutionInfo->Errors.Num();
+				LastWarningCount = TestExecutionInfo->Warnings.Num();
+				LastLogCount = TestExecutionInfo->LogItems.Num();
+			}
 		}
 
 		/**

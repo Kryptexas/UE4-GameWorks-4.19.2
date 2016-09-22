@@ -139,7 +139,7 @@ void UBlackboardData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		if (PropertyChangedEvent.Property->GetFName() == NAME_Parent)
 		{
 			// look for cycles
-			if (Parent && Parent->HasParent(this))
+			if (Parent && Parent->IsChildOf(*this))
 			{
 				UE_LOG(LogBehaviorTree, Warning, TEXT("Blackboard asset (%s) has (%s) in parent chain! Clearing value to avoid cycle."),
 					*GetNameSafe(Parent), *GetNameSafe(this));
@@ -164,6 +164,7 @@ void UBlackboardData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		}
 	}
 }
+#endif // WITH_EDITOR
 
 void UBlackboardData::PropagateKeyChangesToDerivedBlackboardAssets()
 {
@@ -177,8 +178,6 @@ void UBlackboardData::PropagateKeyChangesToDerivedBlackboardAssets()
 		}
 	}
 }
-
-#endif // WITH_EDITOR
 
 static bool ContainsKeyName(FName KeyName, const TArray<FBlackboardEntry>& Keys, const TArray<FBlackboardEntry>& ParentKeys)
 {
@@ -199,16 +198,6 @@ static bool ContainsKeyName(FName KeyName, const TArray<FBlackboardEntry>& Keys,
 	}
 
 	return false;
-}
-
-bool UBlackboardData::HasParent(const UBlackboardData* TestParent) const
-{
-	if (Parent == TestParent)
-	{
-		return true;
-	}
-
-	return Parent ? Parent->HasParent(TestParent) : false;
 }
 
 void UBlackboardData::UpdateParentKeys()
@@ -258,4 +247,30 @@ void UBlackboardData::UpdateDeprecatedKeys()
 			}
 		}
 	}
+}
+
+bool UBlackboardData::IsChildOf(const UBlackboardData& OtherAsset) const
+{
+	const UBlackboardData* TmpParent = Parent;
+	
+	// rewind
+	while (TmpParent != nullptr && TmpParent != &OtherAsset)
+	{
+		TmpParent = TmpParent->Parent;
+	}
+
+	return (TmpParent == &OtherAsset);
+}
+
+//----------------------------------------------------------------------//
+// DEPRECATED
+//----------------------------------------------------------------------//
+bool UBlackboardData::HasParent(const UBlackboardData* TestParent) const
+{
+	if (Parent == TestParent)
+	{
+		return true;
+	}
+
+	return Parent ? Parent->HasParent(TestParent) : false;
 }

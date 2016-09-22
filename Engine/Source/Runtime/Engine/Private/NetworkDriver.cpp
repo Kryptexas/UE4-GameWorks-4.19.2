@@ -18,7 +18,7 @@
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
 #include "GameFramework/PlayerState.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "PerfCountersHelpers.h"
 
 
@@ -1499,7 +1499,6 @@ void UNetDriver::UpdateStandbyCheatStatus(void)
 			
 			if (FoundWorld)
 			{
-				AGameMode* const GameMode = FoundWorld->GetAuthGameMode();
 				AGameNetworkManager* const NetworkManager = FoundWorld->NetworkManager;
 				if (NetworkManager)
 				{
@@ -1507,21 +1506,17 @@ void UNetDriver::UpdateStandbyCheatStatus(void)
 					if (float(CountBadRx) / float(ClientConnections.Num()) > PercentMissingForRxStandby)
 					{
 						bHasStandbyCheatTriggered = true;
-						// Send to the GameMode for processing
 						NetworkManager->StandbyCheatDetected(STDBY_Rx);
 					}
 					else if (float(CountBadPing) / float(ClientConnections.Num()) > PercentForBadPing)
 					{
 						bHasStandbyCheatTriggered = true;
-						// Send to the GameMode for processing
 						NetworkManager->StandbyCheatDetected(STDBY_BadPing);
 					}
-					// Check for the host not sending to the clients, but only during a match
-					else if ( GameMode && GameMode->IsMatchInProgress() &&
-						float(CountBadTx) / float(ClientConnections.Num()) > PercentMissingForTxStandby)
+					// Check for the host not sending to the clients
+					else if (float(CountBadTx) / float(ClientConnections.Num()) > PercentMissingForTxStandby)
 					{
 						bHasStandbyCheatTriggered = true;
-						// Send to the GameMode for processing
 						NetworkManager->StandbyCheatDetected(STDBY_Tx);
 					}
 				}
@@ -2621,11 +2616,10 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 		OutPriorityList = new ( FMemStack::Get(), MaxSortedActors ) FActorPriority;
 		OutPriorityActors = new ( FMemStack::Get(), MaxSortedActors ) FActorPriority*;
 
-		// determine whether we should priority sort the list of relevant actors based on the saturation/bandwidth of the current connection
-		//@note - if the server is currently CPU saturated then do not sort until framerate improves
 		check( World == Connection->ViewTarget->GetWorld() );
-		AGameMode const* const GameMode = World->GetAuthGameMode();
-		const bool bLowNetBandwidth = !bCPUSaturated && ( Connection->CurrentNetSpeed / float( GameMode->NumPlayers + GameMode->NumBots ) < 500.f );
+
+		AGameNetworkManager* const NetworkManager = World->NetworkManager;
+		const bool bLowNetBandwidth = NetworkManager ? NetworkManager->IsInLowBandwidthMode() : false;
 
 		for ( FNetworkObjectInfo* ActorInfo : ConsiderList )
 		{

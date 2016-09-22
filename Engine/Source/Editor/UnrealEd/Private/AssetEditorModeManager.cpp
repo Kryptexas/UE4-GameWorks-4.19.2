@@ -59,3 +59,7 @@ void FAssetEditorModeManager::SetPreviewScene(class FPreviewScene* NewPreviewSce
 	PreviewScene = NewPreviewScene;
 }
 
+FPreviewScene* FAssetEditorModeManager::GetPreviewScene() const
+{
+	return PreviewScene;
+}

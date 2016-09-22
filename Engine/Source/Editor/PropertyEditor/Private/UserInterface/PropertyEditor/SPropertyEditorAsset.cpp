@@ -421,7 +421,7 @@ void SPropertyEditorAsset::Tick( const FGeometry& AllottedGeometry, const double
 bool SPropertyEditorAsset::Supports( const TSharedRef< FPropertyEditor >& InPropertyEditor )
 {
 	const TSharedRef< FPropertyNode > PropertyNode = InPropertyEditor->GetPropertyNode();
-	if(	PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInline) )
+	if(	PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew) )
 	{
 		return false;
 	}

@@ -136,6 +136,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 	TArray<UObject*> GlobalImportedObjects;
 	for (UFbxTestPlan* TestPlan : TestPlanArray)
 	{
+		checkSlow(TestPlan->ImportUI);
+
 		int32 WarningNum = ExecutionInfo.Warnings.Num();
 		int32 ErrorNum = ExecutionInfo.Errors.Num();
 		TArray<UObject*> ImportedObjects;

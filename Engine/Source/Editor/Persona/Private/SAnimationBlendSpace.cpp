@@ -3,7 +3,6 @@
 
 #include "PersonaPrivatePCH.h"
 #include "SAnimationBlendSpace.h"
-#include "SAnimationSequenceBrowser.h"
 #include "Persona.h"
 #include "AssetData.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
@@ -1285,21 +1284,16 @@ void SBlendSpaceEditor::OnBlendSpaceParamtersChanged()
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SBlendSpaceEditor::Construct(const FArguments& InArgs)
+void SBlendSpaceEditor::Construct(const FArguments& InArgs, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo)
 {
 	SBlendSpaceEditorBase::Construct(SBlendSpaceEditorBase::FArguments()
-									 .Persona(InArgs._Persona)
-									 .BlendSpace(InArgs._BlendSpace)
+									 .BlendSpace(InArgs._BlendSpace),
+									InPreviewScene,
+									OnPostUndo
 									);
-	this->ChildSlot
+	NonScrollEditorPanels->AddSlot()
 	[
 		SNew(SVerticalBox)
-
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			MakeEditorHeader()
-		]
 
 		+SVerticalBox::Slot()
 		.FillHeight(1.0f)

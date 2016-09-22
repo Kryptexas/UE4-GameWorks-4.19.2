@@ -79,7 +79,7 @@ void FXAudio2HRTFEffect::Process(UINT32 InputProcessParameterCount, const XAPO_P
 		return;
 	}
 
-	FAudioSpatializationParams CurrentParameters;
+	FSpatializationParams CurrentParameters;
 	AudioDevice->SpatializeProcessor->GetSpatializationParameters(VoiceId, CurrentParameters);
 
 	FVector& EmitterPosition = CurrentParameters.EmitterPosition;

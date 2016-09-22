@@ -568,7 +568,8 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(AActor* Goal, float
 	// abort active movement to keep only one request running
 	if (PathFollowingComponent && PathFollowingComponent->GetStatus() != EPathFollowingStatus::Idle)
 	{
-		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest);
+		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest
+			, FAIRequestID::CurrentRequest, EPathFollowingVelocityMode::Keep);
 	}
 
 	FAIMoveRequest MoveReq(Goal);
@@ -587,7 +588,8 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	// abort active movement to keep only one request running
 	if (PathFollowingComponent && PathFollowingComponent->GetStatus() != EPathFollowingStatus::Idle)
 	{
-		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest);
+		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest
+			, FAIRequestID::CurrentRequest, EPathFollowingVelocityMode::Keep);
 	}
 
 	FAIMoveRequest MoveReq(Dest);
@@ -1022,6 +1024,14 @@ bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset, UBlackboardC
 	BlackboardComponent = Blackboard;
 
 	return bSuccess;
+}
+
+bool AAIController::ShouldSyncBlackboardWith(const UBlackboardComponent& OtherBlackboardComponent) const 
+{ 
+	return Blackboard != nullptr
+		&& Blackboard->GetBlackboardAsset() != nullptr
+		&& OtherBlackboardComponent.GetBlackboardAsset() != nullptr
+		&& Blackboard->GetBlackboardAsset()->IsRelatedTo(*OtherBlackboardComponent.GetBlackboardAsset());
 }
 
 bool AAIController::SuggestTossVelocity(FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bPreferHighArc, float CollisionRadius, bool bOnlyTraceUp)

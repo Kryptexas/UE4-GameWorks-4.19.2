@@ -3607,7 +3607,6 @@ void FKismetCompilerContext::Compile()
 
 		CopyTermDefaultsToDefaultObject(NewCDO);
 		SetCanEverTick();
-		SetWantsBeginPlay();
 
 		// Note: The old->new CDO copy is deferred when regenerating, so we skip this step in that case.
 		if (!Blueprint->HasAnyFlags(RF_BeingRegenerated))
@@ -4020,38 +4019,6 @@ void FKismetCompilerContext::SetCanEverTick() const
 	{
 		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flag for class '%s': CanEverTick %s "), *NewClass->GetName(),
 			TickFunction->bCanEverTick ? *(GTrue.ToString()) : *(GFalse.ToString()) );
-	}
-}
-
-void FKismetCompilerContext::SetWantsBeginPlay() const
-{
-	UActorComponent* CDComponent = Cast<UActorComponent>(NewClass->GetDefaultObject());
-
-	if (CDComponent == nullptr)
-	{
-		return;
-	}
-
-	const bool bOldFlag = CDComponent->bWantsBeginPlay;
-
-	CDComponent->bWantsBeginPlay = NewClass->GetSuperClass()->GetDefaultObject<UActorComponent>()->bWantsBeginPlay;
-
-	if (!CDComponent->bWantsBeginPlay)
-	{
-		static FName ReceiveBeginPlayName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveBeginPlay));
-		static FName ReceiveEndPlayName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveEndPlay));
-		const UFunction* ReciveBeginPlayEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveBeginPlayName, NewClass);
-		const UFunction* ReciveEndPlayEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveEndPlayName, NewClass);
-		if (ReciveBeginPlayEvent || ReciveEndPlayEvent)
-		{
-			CDComponent->bWantsBeginPlay = true;
-		}
-	}
-
-	if(CDComponent->bWantsBeginPlay != bOldFlag)
-	{
-		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flag for class '%s': bWantsBeginPlay %s "), *NewClass->GetName(),
-			CDComponent->bWantsBeginPlay ? *(GTrue.ToString()) : *(GFalse.ToString()) );
 	}
 }
 

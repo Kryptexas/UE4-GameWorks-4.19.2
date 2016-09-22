@@ -10,7 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameSession.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameSession, Log, All);
 
@@ -129,7 +129,7 @@ void AGameSession::InitOptions( const FString& Options )
 {
 	UWorld* const World = GetWorld();
 	check(World);
-	AGameMode* const GameMode = World ? World->GetAuthGameMode() : nullptr;
+	AGameModeBase* const GameMode = World ? World->GetAuthGameMode() : nullptr;
 
 	MaxPlayers = UGameplayStatics::GetIntOption( Options, TEXT("MaxPlayers"), MaxPlayers );
 	MaxSpectators = UGameplayStatics::GetIntOption( Options, TEXT("MaxSpectators"), MaxSpectators );
@@ -191,7 +191,7 @@ FString AGameSession::ApproveLogin(const FString& Options)
 	UWorld* const World = GetWorld();
 	check(World);
 
-	AGameMode* const GameMode = World->GetAuthGameMode();
+	AGameModeBase* const GameMode = World->GetAuthGameMode();
 	check(GameMode);
 
 	int32 SpectatorOnly = 0;
@@ -268,16 +268,18 @@ bool AGameSession::AtCapacity(bool bSpectator)
 		return false;
 	}
 
+	AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+
 	if ( bSpectator )
 	{
-		return ( (GetWorld()->GetAuthGameMode()->NumSpectators >= MaxSpectators)
-		&& ((GetNetMode() != NM_ListenServer) || (GetWorld()->GetAuthGameMode()->NumPlayers > 0)) );
+		return ( (GameMode->GetNumSpectators() >= MaxSpectators)
+		&& ((GetNetMode() != NM_ListenServer) || (GameMode->GetNumPlayers() > 0)) );
 	}
 	else
 	{
 		const int32 MaxPlayersToUse = CVarMaxPlayersOverride.GetValueOnGameThread() > 0 ? CVarMaxPlayersOverride.GetValueOnGameThread() : MaxPlayers;
 
-		return ( (MaxPlayersToUse>0) && (GetWorld()->GetAuthGameMode()->GetNumPlayers() >= MaxPlayersToUse) );
+		return ( (MaxPlayersToUse>0) && (GameMode->GetNumPlayers() >= MaxPlayersToUse) );
 	}
 }
 

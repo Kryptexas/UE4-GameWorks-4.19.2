@@ -7,6 +7,7 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "PreviewScene.h"
 #include "EditorAnimUtils.h"
+#include "IAnimationSequenceBrowser.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FAnimationAssetViewportClient
@@ -24,23 +25,29 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // SAnimationSequenceBrowser
 
-class SAnimationSequenceBrowser : public SCompoundWidget
+class SAnimationSequenceBrowser : public IAnimationSequenceBrowser
 {
 public:
 	SLATE_BEGIN_ARGS(SAnimationSequenceBrowser)
-		: _Persona()
-		{}
+		: _ShowHistory(false)
+	{}
 
-		SLATE_ARGUMENT(TSharedPtr<class FPersona>, Persona)
+	SLATE_ARGUMENT(bool, ShowHistory)
+
+	SLATE_ARGUMENT(FOnOpenNewAsset, OnOpenNewAsset)
+
 	SLATE_END_ARGS()
 public:
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const TSharedRef<IPersonaToolkit>& InPersonaToolkit);
 
 	void OnRequestOpenAsset(const FAssetData& AssetData, bool bFromHistory);
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
 	virtual ~SAnimationSequenceBrowser();
+
+	/** IAnimationSequenceBrowser interface */
+	virtual void SelectAsset(UAnimationAsset * AnimAsset) override;
 
 	/** Delegate that handles creation of context menu */
 	TSharedPtr<SWidget> OnGetAssetContextMenu(const TArray<FAssetData>& SelectedAssets);
@@ -78,11 +85,8 @@ public:
 	 */
 	void OnCreateCopy(TArray<FAssetData> Selected);
 
-	/** Refresh list */
-	void SelectAsset(UAnimationAsset * AnimAsset);
-
 	/** public reference to add to history */
-	void AddToHistory(UAnimationAsset * AnimAsset);
+	virtual void AddToHistory(UAnimationAsset * AnimAsset) override;
 
 protected:
 	bool CanShowColumnForAssetRegistryTag(FName AssetType, FName TagName) const;
@@ -115,7 +119,7 @@ protected:
 	 *
 	 * @param InMenuAnchor		This is the anchor the menu will use for positioning
 	 */
-	FReply OnMouseDownHisory( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, TWeakPtr< SMenuAnchor > InMenuAnchor );
+	FReply OnMouseDownHistory( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, TWeakPtr< SMenuAnchor > InMenuAnchor );
 
 	/** 
 	 * Callback to create the history menu.
@@ -157,7 +161,7 @@ protected:
 	bool IsToolTipPreviewVisible();
 
 	/** Returns visible when not in a Blueprint mode (anim mode, etc...) */
-	EVisibility GetNonBlueprintModeVisibility() const;
+	EVisibility GetHistoryVisibility() const;
 protected:
 	/**
 	 * The actual viewport widget
@@ -189,8 +193,8 @@ protected:
 	 */
 	TSharedPtr<FUICommandList> Commands;
 
-	// Pointer back to persona tool that owns us
-	TWeakPtr<class FPersona> PersonaPtr;
+	/** The persona toolkit we are using */
+	TWeakPtr<class IPersonaToolkit> PersonaToolkitPtr;
 
 	// Set of tags to prevent creating details view columns for (infrequently used)
 	TSet<FName> AssetRegistryTagsToIgnore;
@@ -206,6 +210,12 @@ protected:
 
 	// Track if we have tried to cache the first asset we were playing
 	bool bTriedToCacheOrginalAsset;
+
+	/** Whether to show the history widgets */
+	bool bShowHistory;
+
+	/** Delegate called to open a new asset for editing */
+	FOnOpenNewAsset OnOpenNewAsset;
 
 	// delegate to sync the asset picker to selected assets
 	FSyncToAssetsDelegate SyncToAssetsDelegate;
@@ -225,4 +235,8 @@ private:
 
 	/** Whether the active timer should stop */
 	uint8 bToolTipVisualizedThisFrame : 1;
+
+public:
+	/** The section of EditorPerProjectUserSettings in which to save settings */
+	static const FString SettingsIniSection;
 };

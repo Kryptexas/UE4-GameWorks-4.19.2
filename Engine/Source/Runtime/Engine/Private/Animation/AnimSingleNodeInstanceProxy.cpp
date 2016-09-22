@@ -199,7 +199,7 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 
 				for (const auto& PoseName : PoseNames)
 				{
-					if (PoseName.UID != FSmartNameMapping::MaxUID)
+					if (PoseName.UID != SmartName::MaxUID)
 					{
 						int32 PoseIndex = PoseNames.Find(PoseName);
 						if (PoseIndex != INDEX_NONE)
@@ -261,8 +261,7 @@ void FAnimSingleNodeInstanceProxy::PropagatePreviewCurve(FPoseContext& Output)
 
 		if (MySkeleton->GetSmartNameByName(USkeleton::AnimCurveMappingName, Name, PreviewCurveName))
 		{
-			Output.Curve.Set(PreviewCurveName.UID, Value, ACF_EditorPreviewCurves);
-
+			Output.Curve.Set(PreviewCurveName.UID, Value);
 		}
 	}
 }

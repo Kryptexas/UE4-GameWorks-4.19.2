@@ -10,7 +10,7 @@
 #include "GameFramework/GameNetworkManager.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/GameState.h"
+#include "GameFramework/GameStateBase.h"
 #include "Components/PrimitiveComponent.h"
 #include "Animation/AnimMontage.h"
 #include "PhysicsEngine/DestructibleActor.h"
@@ -28,6 +28,7 @@
 
 #include "HAL/IConsoleManager.h"
 #include "PerfCountersHelpers.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacterMovement, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogNavMeshMovement, Log, All);
@@ -5881,12 +5882,6 @@ bool UCharacterMovementComponent::StepUp(const FVector& GravDir, const FVector& 
 		return false;
 	}
 
-	// Don't step up if the impact is below us
-	if (InitialImpactZ <= OldLocation.Z - PawnHalfHeight)
-	{
-		return false;
-	}
-
 	if (GravDir.IsZero())
 	{
 		return false;
@@ -5904,7 +5899,7 @@ bool UCharacterMovementComponent::StepUp(const FVector& GravDir, const FVector& 
 	if (IsMovingOnGround() && CurrentFloor.IsWalkableFloor())
 	{
 		// Since we float a variable amount off the floor, we need to enforce max step height off the actual point of impact with the floor.
-		const float FloorDist = FMath::Max(0.f, CurrentFloor.FloorDist);
+		const float FloorDist = FMath::Max(0.f, CurrentFloor.GetDistanceToFloor());
 		PawnInitialFloorBaseZ -= FloorDist;
 		StepTravelUpHeight = FMath::Max(StepTravelUpHeight - FloorDist, 0.f);
 		StepTravelDownHeight = (MaxStepHeight + MAX_FLOOR_DIST*2.f);
@@ -5919,6 +5914,12 @@ bool UCharacterMovementComponent::StepUp(const FVector& GravDir, const FVector& 
 			// Base floor point is the base of the capsule moved down by how far we are hovering over the surface we are hitting.
 			PawnFloorPointZ -= CurrentFloor.FloorDist;
 		}
+	}
+
+	// Don't step up if the impact is below us, accounting for distance from floor.
+	if (InitialImpactZ <= PawnInitialFloorBaseZ)
+	{
+		return false;
 	}
 
 	// Scope our movement updates, and do not apply them until all intermediate moves are completed.
@@ -7331,9 +7332,10 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 			// Decide whether to hold off on move
 			// send moves more frequently in small games where server isn't likely to be saturated
 			float NetMoveDelta;
-			UPlayer* Player = (PC ? PC->Player : NULL);
+			UPlayer* Player = (PC ? PC->Player : nullptr);
+			AGameStateBase const* const GameState = GetWorld()->GetGameState();
 
-			if (Player && (Player->CurrentNetSpeed > 10000) && (GetWorld()->GameState != NULL) && (GetWorld()->GameState->PlayerArray.Num() <= 10))
+			if (Player && (Player->CurrentNetSpeed > 10000) && (GameState != nullptr) && (GameState->PlayerArray.Num() <= 10))
 			{
 				NetMoveDelta = 0.011f;
 			}

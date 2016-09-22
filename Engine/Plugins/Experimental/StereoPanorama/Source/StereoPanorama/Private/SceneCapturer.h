@@ -108,7 +108,7 @@ public:
     int32 StripHeight;
 
 	class APlayerController* CapturePlayerController;
-	class AGameMode* CaptureGameMode;
+	class AGameModeBase* CaptureGameMode;
 
 	TArray<USceneCaptureComponent2D*> LeftEyeCaptureComponents;
 	TArray<USceneCaptureComponent2D*> RightEyeCaptureComponents;

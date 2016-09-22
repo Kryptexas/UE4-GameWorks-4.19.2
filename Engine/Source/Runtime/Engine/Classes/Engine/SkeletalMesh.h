@@ -19,6 +19,7 @@
 
 class UMorphTarget;
 class USkeleton;
+class UAnimInstance;
 
 #if WITH_APEX_CLOTHING
 struct FApexClothCollisionVolumeData;
@@ -120,42 +121,6 @@ struct FTriangleSortSettings
 	{
 	}
 
-};
-
-
-USTRUCT()
-struct FBoneReference
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Name of bone to control. This is the main bone chain to modify from. **/
-	UPROPERTY(EditAnywhere, Category = BoneReference)
-	FName BoneName;
-
-	/** Cached bone index for run time - right now bone index of skeleton **/
-	int32 BoneIndex;
-
-	FBoneReference()
-		: BoneIndex(INDEX_NONE)
-	{
-	}
-
-	bool operator==(const FBoneReference& Other) const
-	{
-		// faster to compare, and BoneName won't matter
-		return BoneIndex == Other.BoneIndex;
-	}
-	/** Initialize Bone Reference, return TRUE if success, otherwise, return false **/
-	ENGINE_API bool Initialize(const FBoneContainer& RequiredBones);
-
-	// @fixme laurent - only used by blendspace 'PerBoneBlend'. Fix this to support SkeletalMesh pose.
-	ENGINE_API bool Initialize(const USkeleton* Skeleton);
-
-	/** return true if valid. Otherwise return false **/
-	ENGINE_API bool IsValid(const FBoneContainer& RequiredBones) const;
-
-	FMeshPoseBoneIndex GetMeshPoseIndex() const { return FMeshPoseBoneIndex(BoneIndex); }
-	FCompactPoseBoneIndex GetCompactPoseIndex(const FBoneContainer& RequiredBones) const { return RequiredBones.MakeCompactPoseIndex(GetMeshPoseIndex()); }
 };
 
 /**
@@ -770,6 +735,13 @@ public:
 	UPROPERTY(EditAnywhere, editfixedsize, BlueprintReadOnly, Category=Clothing)
 	TArray<FClothingAssetData>		ClothingAssets;
 
+	/** Animation Blueprint class to run as a post process for this mesh.
+	 *  This blueprint will be ran before physics, but after the main
+	 *  anim instance for any skeletal mesh component using this mesh.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
+	TSubclassOf<UAnimInstance> PostProcessAnimBlueprint;
+
 protected:
 
 	/** Array of user data stored with the asset */
@@ -906,6 +878,13 @@ public:
 	 * Return value is a non-const reference so the socket list can be changed
 	 */
 	ENGINE_API TArray<USkeletalMeshSocket*>& GetMeshOnlySocketList();
+
+	/**
+	 * Const version
+	 * Returns the mesh only socket list - this ignores any sockets in the skeleton
+	 * Return value is a non-const reference so the socket list can be changed
+	 */
+	ENGINE_API const TArray<USkeletalMeshSocket*>& GetMeshOnlySocketList() const;
 
 	/**
 	* Returns the "active" socket list - all sockets from this mesh plus all non-duplicates from the skeleton

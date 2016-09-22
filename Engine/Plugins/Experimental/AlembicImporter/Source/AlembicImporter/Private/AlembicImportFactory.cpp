@@ -54,22 +54,25 @@ UClass* UAlembicImportFactory::ResolveSupportedClass()
 	return UStaticMesh::StaticClass();
 }
 
-UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled)
+UObject* UAlembicImportFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
-	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
+	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, TEXT("ABC"));
 
 	TSharedPtr<SAlembicImportOptions> Options;
 
 	FAbcImporter Importer;
-	EAbcImportError ErrorCode = Importer.OpenAbcFileForImport(UFactory::CurrentFilename);
+	EAbcImportError ErrorCode = Importer.OpenAbcFileForImport(Filename);
 	ImportSettings->bReimport = false;
 	
 	if (ErrorCode != AbcImportError_NoError)
 	{
 		// Failed to read the file info, fail the import
 		FEditorDelegates::OnAssetPostImport.Broadcast(this, nullptr);
+		return nullptr;
 	}
 
+	// Reset (possible) changed frame start value 
+	ImportSettings->SamplingSettings.FrameStart = 0;
 	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();	
 	ShowImportOptionsWindow(Options, UFactory::CurrentFilename, Importer);
 
@@ -82,7 +85,7 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 	TArray<UObject*> ResultAssets;
 	if (!bOutOperationCanceled)
 	{
-		FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
+		FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, TEXT("ABC"));
 		
 		if (Options->ShouldImport())
 		{

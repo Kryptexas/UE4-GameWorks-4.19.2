@@ -22,7 +22,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Engine/DebugCameraController.h"
 #include "GameFramework/PlayerState.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerInput.h"
 #include "GameFramework/InputSettings.h"
 #include "Components/BrushComponent.h"

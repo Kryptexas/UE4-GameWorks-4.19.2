@@ -1530,7 +1530,9 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 			if(bFirstMesh || (LastMergeBonesChoice != EAppReturnType::NoAll && LastMergeBonesChoice != EAppReturnType::YesAll))
 			{
 				LastMergeBonesChoice = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel,
-															LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical change has been made\n - i.e. inserting bone between nodes\n Would you like to regenerate Skeleton from this mesh? \n\n ***WARNING: THIS WILL REQUIRE RECOMPRESS ALL ANIMATION DATA AND POTENTIALLY INVALIDATE***\n"));
+															LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical change has been made\n"
+																"- i.e. inserting bone between nodes\n Would you like to regenerate Skeleton from this mesh? \n\n"
+																"***WARNING: THIS WILL REQUIRE RECOMPRESS ALL ANIMATION DATA AND POTENTIALLY INVALIDATE***\n"));
 				bToastSaveMessage = true;
 			}
 			
@@ -1549,6 +1551,41 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 			{
 				if ( Skeleton->RecreateBoneTree( SkeletalMesh ) && bToastSaveMessage)
 				{
+					// @todo: this is a lot of message box but this requires user input and it can be very annoying to miss
+					// make sure to go through all skeletalmesh and merge them also to recreate the issue. 
+					if (FMessageDialog::Open(EAppMsgType::YesNo,
+						LOCTEXT("Skeleton_ReAddAllMeshes", "Would you like to merge all SkeletalMeshes using this skeleton to ensure all bones are merged? This will require to load those SkeletalMeshes.")) == EAppReturnType::Yes)
+					{
+						FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+						TArray<FAssetData> SkeletalMeshAssetData;
+						
+						FARFilter ARFilter;
+						ARFilter.ClassNames.Add(*USkeletalMesh::StaticClass()->GetName());
+						FString& Value = ARFilter.TagsAndValues.Add(TEXT("Skeleton"));
+						Value = FAssetData(Skeleton).GetExportTextName();
+
+						IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+						if (AssetRegistry.GetAssets(ARFilter, SkeletalMeshAssetData))
+						{
+							// look through all skeletalmeshes that uses this skeleton
+							for (int32 AssetId = 0; AssetId < SkeletalMeshAssetData.Num(); ++AssetId)
+							{
+								FAssetData& CurAssetData = SkeletalMeshAssetData[AssetId];
+								const USkeletalMesh* ExtraSkeletalMesh = Cast<USkeletalMesh>(CurAssetData.GetAsset());
+								if (SkeletalMesh != ExtraSkeletalMesh && ExtraSkeletalMesh && ExtraSkeletalMesh->IsPendingKill() == false)
+								{
+									// merge still can fail, then print message box
+									if (Skeleton->MergeAllBonesToBoneTree(ExtraSkeletalMesh) == false)
+									{
+										// print warning
+										FMessageDialog::Open(EAppMsgType::Ok,
+											FText::Format(LOCTEXT("SkeletonRegenError_RemergingBones", "Failed to merge SkeletalMesh '{0}'."), FText::FromString(ExtraSkeletalMesh->GetName())));
+									}
+								}
+							}
+						}
+					}
+
 					FAssetNotifications::SkeletonNeedsToBeSaved(Skeleton);
 				}
 			}
@@ -1556,7 +1593,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		else
 		{
 			// ask if they'd like to update their position form this mesh
-			if ( ImportOptions->SkeletonForAnimation && ImportOptions->bUpdateSkeletonReferencePose ) 
+			if ( ImportOptions->SkeletonForAnimation && ImportOptions->bUpdateSkeletonReferencePose )
 			{
 				Skeleton->UpdateReferencePoseFromMesh(SkeletalMesh);
 				FAssetNotifications::SkeletonNeedsToBeSaved(Skeleton);

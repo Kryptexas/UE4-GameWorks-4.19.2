@@ -10,6 +10,8 @@
 #include "TaskGraphInterfaces.h"
 #include "EngineBaseTypes.generated.h"
 
+struct FTickContext;
+
 //
 //	EInputEvent
 //
@@ -250,6 +252,13 @@ private:
 	  * relative to the element ahead of it in the cooling down list, remaining until the next time this function will tick 
 	  */
 	float RelativeTickCooldown;
+
+	/** 
+	* The last world game time at which we were ticked. Game time used is dependent on bTickEvenWhenPaused
+	* Valid only if we've been ticked at least once since having a tick interval; otherwise set to -1.f
+	*/
+	float LastTickGameTimeSeconds;
+
 public:
 
 	/** The frequency in seconds at which this tick function will be executed.  If less than or equal to 0 then it will tick every frame */
@@ -345,14 +354,17 @@ private:
 	 * Queues a tick function for execution from the game thread
 	 * @param TickContext - context to tick in
 	 */
-	void QueueTickFunction(class FTickTaskSequencer& TTS, const struct FTickContext& TickContext);
+	void QueueTickFunction(class FTickTaskSequencer& TTS, const FTickContext& TickContext);
 
 	/**
 	 * Queues a tick function for execution from the game thread
 	 * @param TickContext - context to tick in
 	 * @param StackForCycleDetection - Stack For Cycle Detection
 	 */
-	void QueueTickFunctionParallel(const struct FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<8> >& StackForCycleDetection);
+	void QueueTickFunctionParallel(const FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<8> >& StackForCycleDetection);
+
+	/** Returns the delta time to use when ticking this function given the TickContext */
+	float CalculateDeltaTime(const FTickContext& TickContext);
 
 	/** 
 	 * Logs the prerequisites

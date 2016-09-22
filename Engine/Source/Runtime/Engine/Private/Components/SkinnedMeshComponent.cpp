@@ -622,7 +622,7 @@ bool USkinnedMeshComponent::IsMaterialSlotNameValid(FName MaterialSlotName) cons
 
 bool USkinnedMeshComponent::ShouldCPUSkin()
 {
-	return false;
+	return bCPUSkinning;
 }
 
 void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
@@ -1143,7 +1143,7 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 
 		if (bAddNew)
 		{
-			MasterPoseComponent->SlavePoseComponents.Add(this);
+			MasterPoseComponent->AddSlavePoseComponent(this);
 		}
 	}
 
@@ -1162,6 +1162,11 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 	AllocateTransformData();
 	RecreatePhysicsState();
 	UpdateMasterBoneMap();
+}
+
+void USkinnedMeshComponent::AddSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent)
+{
+	SlavePoseComponents.Add(SkinnedMeshComponent);
 }
 
 void USkinnedMeshComponent::InvalidateCachedBounds()
@@ -1997,6 +2002,16 @@ bool USkinnedMeshComponent::UpdateLODStatus()
 	{
 		MaxDistanceFactor = MeshObject->MaxDistanceFactor;
 	}
+	
+	// also update slave component LOD status, as we may need to recalc required bones if this changes
+	// independently of our LOD
+	for (TWeakObjectPtr<USkinnedMeshComponent> SlaveComponents : SlavePoseComponents)
+	{
+		if (SlaveComponents.IsValid())
+		{
+			bLODChanged |= SlaveComponents->UpdateLODStatus();
+		}
+	}
 
 	return bLODChanged;
 }
@@ -2043,6 +2058,40 @@ void USkinnedMeshComponent::UpdateRecomputeTangent(int32 MaterialIndex, int32 Lo
 	{
 		MeshObject->UpdateRecomputeTangent(MaterialIndex, LodIndex, bRecomputeTangentValue);
 	}
+}
+
+void USkinnedMeshComponent::GetCPUSkinnedVertices(TArray<FFinalSkinVertex>& OutVertices, int32 InLODIndex)
+{
+	// switch to CPU skinning
+	bool bCachedCPUSkinning = bCPUSkinning;
+	bCPUSkinning = true;
+
+	if (MasterPoseComponent.IsValid())
+	{
+		MasterPoseComponent->ForcedLodModel = InLODIndex + 1;
+		MasterPoseComponent->UpdateLODStatus();
+		MasterPoseComponent->RefreshBoneTransforms(nullptr);
+	}
+	else
+	{
+		ForcedLodModel = InLODIndex + 1;
+		UpdateLODStatus();
+		RefreshBoneTransforms(nullptr);
+	}
+
+	// Recreate render state and flush the renderer
+	RecreateRenderState_Concurrent();
+	FlushRenderingCommands();
+
+	check(MeshObject);
+
+	// Copy our vertices out. We know we are using CPU skinning now, so this cast is safe
+	OutVertices = static_cast<FSkeletalMeshObjectCPUSkin*>(MeshObject)->GetCachedFinalVertices();
+
+	// switch skinning mode, LOD etc. back
+	bCPUSkinning = bCachedCPUSkinning;
+	ForcedLodModel = 0;
+	RecreateRenderState_Concurrent();
 }
 
 void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateShift, int32 NewUpdateRate, int32 NewEvaluationRate, bool bNewInterpSkippedFrames)

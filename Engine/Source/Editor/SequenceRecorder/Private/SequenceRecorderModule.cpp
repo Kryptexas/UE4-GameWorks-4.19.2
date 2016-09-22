@@ -86,11 +86,15 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			LevelEditorModule.OnCaptureSingleFrameAnimSequence().BindStatic(&FSequenceRecorderModule::HandleCaptureSingleFrameAnimSequence);
 
 			// register standalone UI
-			FGlobalTabmanager::Get()->RegisterNomadTabSpawner(SequenceRecorderTabName, FOnSpawnTab::CreateStatic(&FSequenceRecorderModule::SpawnSequenceRecorderTab))
+			LevelEditorTabManagerChangedHandle = LevelEditorModule.OnTabManagerChanged().AddLambda([]()
+			{
+				FLevelEditorModule& LocalLevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+				LocalLevelEditorModule.GetLevelEditorTabManager()->RegisterTabSpawner(SequenceRecorderTabName, FOnSpawnTab::CreateStatic(&FSequenceRecorderModule::SpawnSequenceRecorderTab))
 				.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 				.SetDisplayName(LOCTEXT("SequenceRecorderTabTitle", "Sequence Recorder"))
 				.SetTooltipText(LOCTEXT("SequenceRecorderTooltipText", "Open the Sequence Recorder tab."))
 				.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "SequenceRecorder.TabIcon"));
+			});
 
 			// register for debug drawing
 			DrawDebugDelegateHandle = UDebugDrawService::Register(TEXT("Decals"), FDebugDrawDelegate::CreateStatic(&FSequenceRecorderModule::DrawDebug));
@@ -123,6 +127,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			{
 				FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 				LevelEditorModule.OnCaptureSingleFrameAnimSequence().Unbind();
+				LevelEditorModule.OnTabManagerChanged().Remove(LevelEditorTabManagerChangedHandle);
 			}
 
 			if (FModuleManager::Get().IsModuleLoaded(TEXT("Persona")))
@@ -638,6 +643,8 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 	FDelegateHandle PostEditorTickHandle;
 
 	FDelegateHandle DrawDebugDelegateHandle;
+
+	FDelegateHandle LevelEditorTabManagerChangedHandle;
 
 	TFunction<TUniquePtr<ISequenceAudioRecorder>()> AudioFactory;
 

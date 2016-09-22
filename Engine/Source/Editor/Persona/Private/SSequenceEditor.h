@@ -17,24 +17,24 @@ class SSequenceEditor : public SAnimEditorBase
 {
 public:
 	SLATE_BEGIN_ARGS( SSequenceEditor )
-		: _Persona()
-		, _Sequence(NULL)
+		: _Sequence(NULL)
 		{}
 
-		SLATE_ARGUMENT( TSharedPtr<FPersona>, Persona )
-		SLATE_ARGUMENT( UAnimSequenceBase*, Sequence )
+		SLATE_ARGUMENT(UAnimSequenceBase*, Sequence)
+		SLATE_EVENT(FOnObjectsSelected, OnObjectsSelected)
+		SLATE_EVENT(FSimpleDelegate, OnAnimNotifiesChanged)
+		SLATE_EVENT(FOnInvokeTab, OnInvokeTab)
+
 	SLATE_END_ARGS()
 
 private:
-	/** Persona reference **/
 	TSharedPtr<class SAnimNotifyPanel>	AnimNotifyPanel;
 	TSharedPtr<class SAnimCurvePanel>	AnimCurvePanel;
 	TSharedPtr<class SAnimTrackCurvePanel>	AnimTrackCurvePanel;
 	TSharedPtr<class SAnimationScrubPanel> AnimScrubPanel;
-
+	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
 public:
-	void Construct(const FArguments& InArgs);
-	virtual ~SSequenceEditor();
+	void Construct(const FArguments& InArgs, TSharedRef<class IPersonaPreviewScene> InPreviewScene, TSharedRef<class IEditableSkeleton> InEditableSkeleton, FSimpleMulticastDelegate& OnPostUndo, FSimpleMulticastDelegate& OnCurvesChanged);
 
 	virtual UAnimationAsset* GetEditorObject() const override { return SequenceObj; }
 
@@ -44,5 +44,5 @@ private:
 
 	/** Post undo **/
 	void PostUndo();
-	void OnTrackCurveChanged();
+	void HandleCurvesChanged();
 };

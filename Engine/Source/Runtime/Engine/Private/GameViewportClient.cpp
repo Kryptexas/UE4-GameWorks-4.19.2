@@ -1456,6 +1456,11 @@ void UGameViewportClient::Deactivated(FViewport* InViewport, const FWindowActiva
 	LostFocus(InViewport);
 }
 
+bool UGameViewportClient::WindowCloseRequested()
+{
+	return !WindowCloseRequestedDelegate.IsBound() || WindowCloseRequestedDelegate.Execute();
+}
+
 void UGameViewportClient::CloseRequested(FViewport* InViewport)
 {
 	check(InViewport == Viewport);

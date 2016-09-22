@@ -342,8 +342,7 @@ ULandscapeGizmoRenderComponent::ULandscapeGizmoRenderComponent(const FObjectInit
 	: Super(ObjectInitializer)
 {
 	bHiddenInGame = true;
-	AlwaysLoadOnClient = false;
-	AlwaysLoadOnServer = false;
+	bIsEditorOnly = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 }
 

@@ -629,6 +629,9 @@ namespace EditorUtilities
 		TFunction<bool(UProperty&, UObject&)> PropertyFilter;
 	};
 
+	/** Helper function for CopyActorProperties(). Copies a single property form a source object to a target object. */
+	UNREALED_API void CopySingleProperty(const UObject* const InSourceObject, UObject* const InTargetObject, UProperty* const InProperty);
+
 	/**
 	 * Copies properties from one actor to another.  Designed for propagating changes made to PIE actors back to their EditorWorld
 	 * counterpart, or pushing spawned actor changes back to a Blueprint CDO object.  You can pass the 'PreviewOnly' option to

@@ -119,10 +119,10 @@ private:
 class FPersonaMeshDetails : public IDetailCustomization
 {
 public:
-	FPersonaMeshDetails(TSharedPtr<FPersona> InPersona) : PersonaPtr(InPersona) {}
+	FPersonaMeshDetails(TSharedRef<class IPersonaToolkit> InPersonaToolkit) : PersonaToolkitPtr(InPersonaToolkit) {}
 
 	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
-	static TSharedRef<IDetailCustomization> MakeInstance(TSharedPtr<FPersona> InPersona);
+	static TSharedRef<IDetailCustomization> MakeInstance(TSharedRef<class IPersonaToolkit> InPersonaToolkit);
 
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
@@ -349,6 +349,15 @@ private:
 	/** hide properties which don't need to be showed to end users */
 	void HideUnnecessaryProperties(IDetailLayoutBuilder& DetailLayout);
 
+	// Handling functions for post process blueprint selection combo box
+	void OnPostProcessBlueprintChanged(IDetailLayoutBuilder* DetailBuilder);
+	FString GetCurrentPostProcessBlueprintPath() const;
+	bool OnShouldFilterPostProcessBlueprint(const FAssetData& AssetData) const;
+	void OnSetPostProcessBlueprint(const FAssetData& AssetData, TSharedRef<IPropertyHandle> BlueprintProperty);
+
+	/** Access the persona toolkit ptr. It should always be valid in the lifetime of this customization */
+	TSharedRef<IPersonaToolkit> GetPersonaToolkit() const { check(PersonaToolkitPtr.IsValid()); return PersonaToolkitPtr.Pin().ToSharedRef(); }
+
 public:
 
 	bool IsApplyNeeded() const;
@@ -357,23 +366,12 @@ public:
 	void ApplyChanges();
 	FText GetApplyButtonText() const;
 
-	USkeletalMesh* GetMesh() const
-	{ 
-		if (PersonaPtr.IsValid())
-		{
-			return PersonaPtr->GetMesh();
-		}
-		else
-		{
-			return NULL;
-		}
-	}
 private:
 	// Container for the objects to display
 	TWeakObjectPtr<USkeletalMesh> SkeletalMeshPtr;
 
-	// Pointer back to Persona
-	TSharedPtr<FPersona> PersonaPtr;
+	// Reference the persona toolkit
+	TWeakPtr<class IPersonaToolkit> PersonaToolkitPtr;
 
 	IDetailLayoutBuilder* MeshDetailLayout;
 

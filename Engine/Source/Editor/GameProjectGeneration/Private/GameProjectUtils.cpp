@@ -23,13 +23,16 @@
 #include "DesktopPlatformModule.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "HotReloadInterface.h"
 #include "SVerbChoiceDialog.h"
 #include "SourceCodeNavigation.h"
 #include "FeaturePackContentSource.h"
 
 #include "SOutputLogDialog.h"
+
+#include "Sound/SoundEffectSubmix.h"
+#include "Sound/SoundEffectSource.h"
 
 #include "PlatformInfo.h"
 
@@ -329,6 +332,19 @@ FString FNewClassInfo::GetHeaderTemplateFilename() const
 				{
 					return TEXT("CharacterClass.h.template");
 				}
+
+				// Only check audio-mixer module specific classes if audio mixer is loaded
+				if (FModuleManager::Get().IsModuleLoaded("AudioMixer"))
+				{
+					if (BaseClass == USoundEffectSource::StaticClass())
+					{
+						return TEXT("SoundEffectSourceClass.h.template");
+					}
+					else if (BaseClass == USoundEffectSubmix::StaticClass())
+					{
+						return TEXT("SoundEffectSubmixClass.h.template");
+					}
+				}
 			}
 			// Some other non-actor, non-component UObject class
 			return TEXT( "UObjectClass.h.template" );
@@ -374,6 +390,14 @@ FString FNewClassInfo::GetSourceTemplateFilename() const
 				else if (BaseClass == ACharacter::StaticClass())
 				{
 					return TEXT("CharacterClass.cpp.template");
+				}
+				else if (BaseClass == USoundEffectSubmix::StaticClass())
+				{
+					return TEXT("SoundEffectSubmixClass.cpp.template");
+				}
+				else if (BaseClass == USoundEffectSource::StaticClass())
+				{
+					return TEXT("SoundEffectSourceClass.cpp.template");
 				}
 			}
 			// Some other non-actor, non-component UObject class
@@ -1955,7 +1979,7 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 
 	// MyGameGameMode.h
 	{
-		const UClass* BaseClass = AGameMode::StaticClass();
+		const UClass* BaseClass = AGameModeBase::StaticClass();
 		const FString NewClassName = NewProjectName + BaseClass->GetName();
 		const FString NewHeaderFilename = GameModulePath / NewClassName + TEXT(".h");
 		FString UnusedSyncLocation;
@@ -1971,7 +1995,7 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 
 	// MyGameGameMode.cpp
 	{
-		const UClass* BaseClass = AGameMode::StaticClass();
+		const UClass* BaseClass = AGameModeBase::StaticClass();
 		const FString NewClassName = NewProjectName + BaseClass->GetName();
 		const FString NewCPPFilename = GameModulePath / NewClassName + TEXT(".cpp");
 		

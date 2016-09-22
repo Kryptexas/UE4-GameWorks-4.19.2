@@ -124,11 +124,18 @@ void FConcurrencyGroup::StopQuietSoundsDueToMaxConcurrency()
 
 	// Need to make a new list when stopping the sounds since the process of stopping an active sound
 	// will remove the sound from this concurrency group's ActiveSounds array.
-	for (int32 i = 0; i < NumSoundsToStop; ++i)
+	int32 i = 0;
+	for (; i < NumSoundsToStop; ++i)
 	{
 		// Flag this active sound as needing to be stopped due to volume-based max concurrency.
 		// This will actually be stopped in the audio device update function.
 		ActiveSounds[i]->bShouldStopDueToMaxConcurrency = true;
+	}
+
+	const int32 NumActiveSounds = ActiveSounds.Num();
+	for (; i < NumActiveSounds; ++i)
+	{
+		ActiveSounds[i]->bShouldStopDueToMaxConcurrency = false;
 	}
 
 }

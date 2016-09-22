@@ -976,7 +976,7 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	LODModel.MultiSizeIndexContainer.GetIndexBuffer(OutIndexBuffer);
 
 	ClothSection.BaseIndex = OutIndexBuffer.Num();
-	ClothSection.NumTriangles = TriangleCount;
+	ClothSection.NumTriangles = TempOrigSection.NumTriangles;
 
 	uint32 NumVertices = 0;
 	for(int32 SectionIdx = 0; SectionIdx < NewSectionIndex; SectionIdx++)

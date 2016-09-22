@@ -1004,6 +1004,11 @@ void FSceneViewport::OnViewportClosed()
 	}
 }
 
+FReply FSceneViewport::OnRequestWindowClose()
+{
+	return (ViewportClient && !ViewportClient->WindowCloseRequested()) ? FReply::Handled() : FReply::Unhandled();
+}
+
 TWeakPtr<SWidget> FSceneViewport::GetWidget()
 {
 	return GetViewportWidget();

@@ -900,3 +900,120 @@ void UGameInstance::NotifyPreClientTravel(const FString& PendingURL, ETravelType
 	OnNotifyPreClientTravel().Broadcast(PendingURL, TravelType, bIsSeamlessTravel);
 }
 
+void UGameInstance::PreloadContentForURL(FURL InURL)
+{
+	// Preload game mode and other content if needed here
+}
+
+AGameModeBase* UGameInstance::CreateGameModeForURL(FURL InURL)
+{
+	UWorld* World = GetWorld();
+	// Init the game info.
+	FString Options(TEXT(""));
+	TCHAR GameParam[256] = TEXT("");
+	FString	Error = TEXT("");
+	AWorldSettings* Settings = World->GetWorldSettings();
+	for (int32 i = 0; i < InURL.Op.Num(); i++)
+	{
+		Options += TEXT("?");
+		Options += InURL.Op[i];
+		FParse::Value(*InURL.Op[i], TEXT("GAME="), GameParam, ARRAY_COUNT(GameParam));
+	}
+
+	UGameEngine* const GameEngine = Cast<UGameEngine>(GEngine);
+
+	// Get the GameMode class. Start by using the default game type specified in the map's worldsettings.  It may be overridden by settings below.
+	TSubclassOf<AGameModeBase> GameClass = Settings->DefaultGameMode;
+
+	// If there is a GameMode parameter in the URL, allow it to override the default game type
+	if (GameParam[0])
+	{
+		FString const GameClassName = UGameMapsSettings::GetGameModeForName(FString(GameParam));
+
+		// If the gamename was specified, we can use it to fully load the pergame PreLoadClass packages
+		if (GameEngine)
+		{
+			GameEngine->LoadPackagesFully(World, FULLYLOAD_Game_PreLoadClass, *GameClassName);
+		}
+
+		// Don't overwrite the map's world settings if we failed to load the value off the command line parameter
+		TSubclassOf<AGameModeBase> GameModeParamClass = LoadClass<AGameModeBase>(nullptr, *GameClassName);
+		if (GameModeParamClass)
+		{
+			GameClass = GameModeParamClass;
+		}
+		else
+		{
+			UE_LOG(LogLoad, Warning, TEXT("Failed to load game mode '%s' specified by URL options."), *GameClassName);
+		}
+	}
+
+	// Next try to parse the map prefix
+	if (!GameClass)
+	{
+		FString MapName = InURL.Map;
+		FString MapNameNoPath = FPaths::GetBaseFilename(MapName);
+		if (MapNameNoPath.StartsWith(PLAYWORLD_PACKAGE_PREFIX))
+		{
+			const int32 PrefixLen = UWorld::BuildPIEPackagePrefix(WorldContext->PIEInstance).Len();
+			MapNameNoPath = MapNameNoPath.Mid(PrefixLen);
+		}
+
+		FString const GameClassName = UGameMapsSettings::GetGameModeForMapName(FString(MapNameNoPath));
+
+		if (!GameClassName.IsEmpty())
+		{
+			if (GameEngine)
+			{
+				GameEngine->LoadPackagesFully(World, FULLYLOAD_Game_PreLoadClass, *GameClassName);
+			}
+
+			TSubclassOf<AGameModeBase> GameModeParamClass = LoadClass<AGameModeBase>(nullptr, *GameClassName);
+			if (GameModeParamClass)
+			{
+				GameClass = GameModeParamClass;
+			}
+			else
+			{
+				UE_LOG(LogLoad, Warning, TEXT("Failed to load game mode '%s' specified by prefixed map name %s."), *GameClassName, *MapNameNoPath);
+			}
+		}
+	}
+
+	// Fall back to game default
+	if (!GameClass)
+	{
+		GameClass = LoadClass<AGameModeBase>(nullptr, *UGameMapsSettings::GetGlobalDefaultGameMode());
+	}
+
+	if (!GameClass)
+	{
+		// Fall back to raw GameMode
+		GameClass = AGameModeBase::StaticClass();
+	}
+	else
+	{
+		// See if game instance wants to override it
+		GameClass = OverrideGameModeClass(GameClass, FPaths::GetBaseFilename(InURL.Map), Options, *InURL.Portal);
+	}
+
+	// no matter how the game was specified, we can use it to load the PostLoadClass packages
+	if (GameEngine)
+	{
+		GameEngine->LoadPackagesFully(World, FULLYLOAD_Game_PostLoadClass, GameClass->GetPathName());
+		GameEngine->LoadPackagesFully(World, FULLYLOAD_Game_PostLoadClass, TEXT("LoadForAllGameModes"));
+	}
+
+	// Spawn the GameMode.
+	UE_LOG(LogLoad, Log, TEXT("Game class is '%s'"), *GameClass->GetName());
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save game modes into a map
+
+	return World->SpawnActor<AGameModeBase>(GameClass, SpawnInfo);
+}
+
+TSubclassOf<AGameModeBase> UGameInstance::OverrideGameModeClass(TSubclassOf<AGameModeBase> GameModeClass, const FString& MapName, const FString& Options, const FString& Portal) const
+{
+	 return GameModeClass;
+}

@@ -10,16 +10,6 @@
 #include "SkeletalRenderPublic.h"
 #include "LocalVertexFactory.h"
 
-/** data for a single skinned skeletal mesh vertex */
-struct FFinalSkinVertex
-{
-	FVector			Position;
-	FPackedNormal	TangentX;
-	FPackedNormal	TangentZ;
-	float			U;
-	float			V;
-};
-
 /**
  * Skeletal mesh vertices which have been skinned to their final positions 
  */
@@ -104,6 +94,9 @@ public:
 	{
 	}
 
+	/** Local to world transform, used for cloth as sim data is in world space */
+	FMatrix WorldToLocal;
+
 	/** ref pose to local space transforms */
 	TArray<FMatrix> ReferenceToLocal;
 
@@ -121,6 +114,12 @@ public:
 	/** Morph Weights to blend when skinning verts */
 	TArray<float> MorphTargetWeights;
 
+	/** data for updating cloth section */
+	TMap<int32, FClothSimulData> ClothSimulUpdateData;
+
+	/** a weight factor to blend between simulated positions and skinned positions */
+	float ClothBlendWeight;
+
 	/**
 	* Returns the size of memory allocated by render data
 	*/
@@ -133,6 +132,9 @@ public:
  		
 		return ResourceSize;
  	}
+
+	/** Update Simulated Positions & Normals from APEX Clothing actor */
+	bool UpdateClothSimulationData(USkinnedMeshComponent* InMeshComponent);
 };
 
 /**
@@ -202,6 +204,9 @@ public:
 	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FTransform& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const override;
 	//~ End FSkeletalMeshObject Interface
 
+	/** Access cached final vertices */
+	const TArray<FFinalSkinVertex>& GetCachedFinalVertices() const { return CachedFinalVertices; }
+
 private:
 	/** vertex data for rendering a single LOD */
 	struct FSkeletalMeshObjectLOD
@@ -250,7 +255,7 @@ private:
  	/** Index of LOD level's vertices that are currently stored in CachedFinalVertices */
  	mutable int32	CachedVertexLOD;
 
- 	/** Cached skinned vertices. Only updated/accessed by the rendering thread */
+ 	/** Cached skinned vertices. Only updated/accessed by the rendering thread and exporters */
  	mutable TArray<FFinalSkinVertex> CachedFinalVertices;
 
 	/** Array of bone's to render bone weights for */

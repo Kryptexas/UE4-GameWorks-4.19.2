@@ -1347,13 +1347,6 @@ public:
 	UPROPERTY(globalconfig)
 	uint32 bSuppressMapWarnings:1;
 
-	/** if set, cook game classes into standalone packages (as defined in [Cooker.MPGameContentCookStandalone]) and load the appropriate
-	 * one at game time depending on the gametype specified on the URL
-	 * (the game class should then not be referenced in the maps themselves)
-	 */
-	UPROPERTY(globalconfig)
-	uint32 bCookSeparateSharedMPGameContent:1;
-
 	/** determines whether AI logging should be processed or not */
 	UPROPERTY(globalconfig)
 	uint32 bDisableAILogging:1;
@@ -2471,6 +2464,7 @@ public:
 #if WITH_SERVER_CODE
 	virtual bool HandleServerTravelCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 
+	DEPRECATED(4.14, "Say Command moved to GameMode as an exec function")
 	virtual bool HandleSayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 #endif
 

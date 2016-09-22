@@ -17,6 +17,7 @@
 #include "IIntroTutorials.h"
 #include "SuperSearchModule.h"
 #include "SDockTab.h"
+#include "AssetEditorModeManager.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorToolkit"
 
@@ -28,6 +29,7 @@ const FName FAssetEditorToolkit::ToolbarTabId( TEXT( "AssetEditorToolkit_Toolbar
 FAssetEditorToolkit::FAssetEditorToolkit()
 	: GCEditingObjects(*this)
 	, bCheckDirtyOnAssetSave(false)
+	, AssetEditorModeManager(nullptr)
 	, bIsToolbarFocusable(false)
 {
 	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_BaseAssetEditor", "Asset Editor"));
@@ -615,6 +617,16 @@ const FSlateBrush* FAssetEditorToolkit::GetDefaultTabIcon() const
 	}
 
 	return IconBrush;
+}
+
+FAssetEditorModeManager* FAssetEditorToolkit::GetAssetEditorModeManager() const
+{
+	return AssetEditorModeManager;
+}
+
+void FAssetEditorToolkit::SetAssetEditorModeManager(FAssetEditorModeManager* InModeManager)
+{
+	AssetEditorModeManager = InModeManager;
 }
 
 void FAssetEditorToolkit::SwitchToStandaloneEditor_Execute( TWeakPtr< FAssetEditorToolkit > ThisToolkitWeakRef )

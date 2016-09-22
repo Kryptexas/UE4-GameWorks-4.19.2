@@ -42,14 +42,14 @@ When we setup our **Basic Code** project in the previous step, Unreal Engine cre
 
 		#pragma once
 		
-		#include "GameFramework/GameMode.h"
+		#include "GameFramework/GameModeBase.h"
 		#include "FPSProjectGameMode.generated.h"
 		
 		/**
 		 * 
 		 */
 		UCLASS()
-		class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+		class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
 		{
 			GENERATED_BODY()
 		};

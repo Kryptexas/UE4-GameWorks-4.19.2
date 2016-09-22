@@ -539,7 +539,7 @@ bool IsEditorOnlyObject(const UObject* InObject)
 		return false;
 	}
 	
-	if (InObject->HasAnyMarks(OBJECTMARK_EditorOnly))
+	if (InObject->HasAnyMarks(OBJECTMARK_EditorOnly) || InObject->IsEditorOnly())
 	{
 		return true;
 	}
@@ -548,19 +548,16 @@ bool IsEditorOnlyObject(const UObject* InObject)
 	check(InObject);
 	// If this is a package that is editor only or the object is in editor-only package,
 	// the object is editor-only too.
-	const UPackage* Package = Cast<const UPackage>(InObject);
-	if (!Package)
-	{
-		Package = InObject->GetOutermost();
-	}
+	const bool bIsAPackage = InObject->IsA<UPackage>();
+	const UPackage* Package = (bIsAPackage ? static_cast<const UPackage*>(InObject) : InObject->GetOutermost());
 	if (Package && Package->HasAnyPackageFlags(PKG_EditorOnly))
 	{
 		bResult = true;
 	}
-	if (!bResult && !InObject->IsA(UPackage::StaticClass()))
+	else if (!bIsAPackage)
 	{
 		// Otherwise the object is editor-only if its class is editor-only
-		const UStruct* Struct = InObject->IsA(UStruct::StaticClass()) ? CastChecked<const UStruct>(InObject) : InObject->GetClass();
+		const UStruct* Struct = InObject->IsA<UStruct>() ? static_cast<const UStruct*>(InObject) : InObject->GetClass();
 		bResult = IsEditorOnlyStruct(Struct);
 		if (!bResult && InObject->GetOuter())
 		{

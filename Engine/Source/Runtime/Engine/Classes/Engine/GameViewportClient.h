@@ -158,6 +158,7 @@ public:
 	virtual bool IsFocused(FViewport* Viewport) override;
 	virtual void Activated(FViewport* InViewport, const FWindowActivateEvent& InActivateEvent) override;
 	virtual void Deactivated(FViewport* InViewport, const FWindowActivateEvent& InActivateEvent) override;
+	virtual bool WindowCloseRequested() override;
 	virtual void CloseRequested(FViewport* Viewport) override;
 	virtual bool RequiresHitProxyStorage() override { return 0; }
 	virtual bool IsOrtho() const override;
@@ -488,6 +489,12 @@ public:
 		return CloseRequestedDelegate;
 	}
 
+	/** Accessor for the delegate called when the window owning the viewport is asked to close. */
+	FOnWindowCloseRequested& OnWindowCloseRequested()
+	{
+		return WindowCloseRequestedDelegate;
+	}
+
 	/** Accessor for the delegate called when the game viewport is created. */
 	static FSimpleMulticastDelegate& OnViewportCreated()
 	{
@@ -797,6 +804,9 @@ private:
 
 	/** Delegate called when a request to close the viewport is received */
 	FOnCloseRequested CloseRequestedDelegate;
+
+	/** Delegate called when the window owning the viewport is requested to close */
+	FOnWindowCloseRequested WindowCloseRequestedDelegate;
 
 	/** Delegate called when the game viewport is created. */
 	static FSimpleMulticastDelegate CreatedDelegate;

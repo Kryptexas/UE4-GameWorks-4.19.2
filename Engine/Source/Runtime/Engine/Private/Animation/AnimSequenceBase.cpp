@@ -8,6 +8,7 @@
 #include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimInstance.h"
 #include "MessageLog.h"
+#include "FrameworkObjectVersion.h"
 
 DEFINE_LOG_CATEGORY(LogAnimMarkerSync);
 
@@ -63,6 +64,25 @@ void UAnimSequenceBase::PostLoad()
 #if WITH_EDITOR
 		VerifyCurveNames<FTransformCurve>(MySkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
 #endif
+
+		// this should continue to add if skeleton hasn't been saved either 
+		// we don't wipe out data, so make sure you add back in if required
+		if (GetLinkerCustomVersion(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::MoveCurveTypesToSkeleton
+			|| MySkeleton->GetLinkerCustomVersion(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::MoveCurveTypesToSkeleton)
+		{
+			// fix up curve flags to skeleton
+			for (const FFloatCurve& Curve : RawCurveData.FloatCurves)
+			{
+				bool bMorphtargetSet = Curve.GetCurveTypeFlag(ACF_DriveMorphTarget_DEPRECATED);
+				bool bMaterialSet = Curve.GetCurveTypeFlag(ACF_DriveMaterial_DEPRECATED);
+
+				// only add this if that has to 
+				if (bMorphtargetSet || bMaterialSet)
+				{
+					MySkeleton->AccumulateCurveMetaData(Curve.Name.DisplayName, bMaterialSet, bMorphtargetSet);
+				}
+			}
+		}
 
 		RawCurveData.SortFloatCurvesByUID();
 	}
@@ -550,6 +570,8 @@ void UAnimSequenceBase::EvaluateCurveData(FBlendedCurve& OutCurve, float Current
 
 void UAnimSequenceBase::Serialize(FArchive& Ar)
 {
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
 	Super::Serialize(Ar);
 
 	// fix up version issue and so on

@@ -3088,7 +3088,7 @@ void FBlueprintEditor::OnGraphActionMenuClosed(bool bActionExecuted, bool bConte
 	HasOpenActionMenu = nullptr;
 }
 
-void FBlueprintEditor::OnSelectedNodesChanged(const FGraphPanelSelectionSet& NewSelection)
+void FBlueprintEditor::OnSelectedNodesChangedImpl(const FGraphPanelSelectionSet& NewSelection)
 {
 	if ( NewSelection.Num() > 0 )
 	{

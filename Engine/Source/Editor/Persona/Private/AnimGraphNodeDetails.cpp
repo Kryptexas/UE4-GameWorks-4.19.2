@@ -18,13 +18,13 @@
 #include "PropertyCustomizationHelpers.h"
 #include "AnimGraphNode_Base.h"
 #include "GraphEditor.h"
-#include "Persona.h"
 #include "BoneSelectionWidget.h"
 #include "SExpandableArea.h"
 #include "Animation/BlendProfile.h"
-#include "SBlendProfilePicker.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
 #include "Animation/AnimInstance.h"
+#include "ISkeletonEditorModule.h"
+#include "BlueprintEditor.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -226,11 +226,14 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 
 			UBlendProfile* CurrentProfile = Cast<UBlendProfile>(PropertyValue);
 
-			return SNew(SBlendProfilePicker)
-				.TargetSkeleton(this->TargetSkeleton)
-				.AllowNew(false)
-				.OnBlendProfileSelected(this, &FAnimGraphNodeDetails::OnBlendProfileChanged, PropertyPtr)
-				.InitialProfile(CurrentProfile);
+			FBlendProfilePickerArgs Args;
+			Args.bAllowNew = false;
+			Args.OnBlendProfileSelected = FOnBlendProfileSelected::CreateSP(this, &FAnimGraphNodeDetails::OnBlendProfileChanged, PropertyPtr);
+			Args.InitialProfile = CurrentProfile;
+
+			ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::Get().LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+			return SkeletonEditorModule.CreateBlendProfilePicker(this->TargetSkeleton, Args);
+
 		}
 	}
 
@@ -510,6 +513,9 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 
 	if (TargetSkeleton)
 	{
+		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+		TSharedRef<IEditableSkeleton> EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(TargetSkeleton);
+
 		HeaderRow.NameContent()
 		[
 			StructPropertyHandle->CreatePropertyNameWidget()
@@ -517,7 +523,7 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 
 		HeaderRow.ValueContent()
 		[
-			SNew(SBoneSelectionWidget, TargetSkeleton)
+			SNew(SBoneSelectionWidget, EditableSkeleton)
 			.Tooltip(StructPropertyHandle->GetToolTipText())
 			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
 			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
@@ -545,9 +551,9 @@ FName FBoneReferenceCustomization::GetSelectedBone() const
 	return FName(*OutText);
 }
 
-TSharedRef<IDetailCustomization> FAnimGraphParentPlayerDetails::MakeInstance(TWeakPtr<FPersona> InPersona)
+TSharedRef<IDetailCustomization> FAnimGraphParentPlayerDetails::MakeInstance(TSharedRef<FBlueprintEditor> InBlueprintEditor)
 {
-	return MakeShareable(new FAnimGraphParentPlayerDetails(InPersona));
+	return MakeShareable(new FAnimGraphParentPlayerDetails(InBlueprintEditor));
 }
 
 void FAnimGraphParentPlayerDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder)
@@ -628,7 +634,7 @@ void FAnimGraphParentPlayerDetails::CustomizeDetails(class IDetailLayoutBuilder&
 
 TSharedRef<ITableRow> FAnimGraphParentPlayerDetails::OnGenerateRow(TSharedPtr<FPlayerTreeViewEntry> EntryPtr, const TSharedRef< STableViewBase >& OwnerTable)
 {
-	return SNew(SParentPlayerTreeRow, OwnerTable).Item(EntryPtr).OverrideObject(EditorObject).Persona(PersonaPtr);
+	return SNew(SParentPlayerTreeRow, OwnerTable).Item(EntryPtr).OverrideObject(EditorObject).BlueprintEditor(BlueprintEditorPtr);
 }
 
 void FAnimGraphParentPlayerDetails::OnGetChildren(TSharedPtr<FPlayerTreeViewEntry> InParent, TArray< TSharedPtr<FPlayerTreeViewEntry> >& OutChildren)
@@ -640,7 +646,7 @@ void SParentPlayerTreeRow::Construct(const FArguments& InArgs, const TSharedRef<
 {
 	Item = InArgs._Item;
 	EditorObject = InArgs._OverrideObject;
-	Persona = InArgs._Persona;
+	BlueprintEditor = InArgs._BlueprintEditor;
 
 	if(Item->Override)
 	{
@@ -746,13 +752,13 @@ void SParentPlayerTreeRow::OnAssetSelected(const FAssetData& AssetData)
 
 FReply SParentPlayerTreeRow::OnFocusNodeButtonClicked()
 {
-	TSharedPtr<FPersona> SharedPersona = Persona.Pin();
-	if(SharedPersona.IsValid())
+	TSharedPtr<FBlueprintEditor> SharedBlueprintEditor = BlueprintEditor.Pin();
+	if(SharedBlueprintEditor.IsValid())
 	{
 		if(GraphNode)
 		{
 			UEdGraph* EdGraph = GraphNode->GetGraph();
-			TSharedPtr<SGraphEditor> GraphEditor = SharedPersona->OpenGraphAndBringToFront(EdGraph);
+			TSharedPtr<SGraphEditor> GraphEditor = SharedBlueprintEditor->OpenGraphAndBringToFront(EdGraph);
 			if (GraphEditor.IsValid())
 			{
 				GraphEditor->JumpToNode(GraphNode, false);

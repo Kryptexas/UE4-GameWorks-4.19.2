@@ -189,8 +189,12 @@ public:
 	uint32 bWantsInitializeComponent:1;
 
 	/** If true, we call the virtual BeginPlay */
-	UPROPERTY()
+	DEPRECATED(4.14, "bWantsBeginPlay was inconsistently enforced and is now unused")
 	uint32 bWantsBeginPlay:1;
+
+	/** If true, the component will be excluded from non-editor builds */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Cooking)
+	uint32 bIsEditorOnly:1;
 
 private:
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
@@ -266,6 +270,16 @@ public:
 	/** See if this component contains the supplied tag */
 	UFUNCTION(BlueprintCallable, Category="Components")
 	bool ComponentHasTag(FName Tag) const;
+
+	/**
+	* Called during saving to determine the load flags to save with the object.
+	*
+	* @return	true if this object should always be loaded for editor game
+	*/
+	virtual bool NeedsLoadForEditorGame() const override
+	{
+		return !IsEditorOnly() && Super::NeedsLoadForEditorGame();
+	}
 
 	//~ Begin Trigger/Activation Interface
 
@@ -348,7 +362,12 @@ public:
 	virtual bool GetComponentClassCanReplicate() const;
 
 	/** Returns whether this component is an editor-only object or not */
-	virtual bool IsEditorOnly() const { return false; }
+	virtual bool IsEditorOnly() const override { return bIsEditorOnly; }
+
+	virtual void MarkAsEditorOnlySubobject() override
+	{
+		bIsEditorOnly = true;
+	}
 
 	/** Returns net role of the owning actor */
 	/** Returns true if we are replicating and not authorative */
@@ -804,6 +823,11 @@ private:
 	virtual void Tick( float DeltaTime ) final { check(0); }
 
 #endif
+
+public:
+
+	/** Prefix used to identify template component instances */
+	static const FString ComponentTemplateNameSuffix;
 };
 
 //////////////////////////////////////////////////////////////////////////

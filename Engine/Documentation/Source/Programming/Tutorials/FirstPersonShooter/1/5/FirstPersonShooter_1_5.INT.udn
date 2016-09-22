@@ -54,14 +54,14 @@ Now that we've successfully extended our newly modified Game Mode to Blueprints,
 			
 			#pragma once
 			
-			#include "GameFramework/GameMode.h"
+			#include "GameFramework/GameModeBase.h"
 			#include "FPSGameMode.generated.h"
 			
 			/**
 			 * 
 			 */
 			UCLASS()
-			class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+			class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
 			{
 				GENERATED_BODY()
 

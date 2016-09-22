@@ -18,7 +18,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/MovementComponent.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 
 #define LOCTEXT_NAMESPACE "LevelActor"
 
@@ -684,7 +684,7 @@ APlayerController* UWorld::SpawnPlayActor(UPlayer* NewPlayer, ENetRole RemoteRol
 		Options += InURL.Op[i];
 	}
 
-	AGameMode* GameMode = GetAuthGameMode();
+	AGameModeBase* GameMode = GetAuthGameMode();
 
 	// Give the GameMode a chance to accept the login
 	APlayerController* const NewPlayerController = GameMode->Login(NewPlayer, RemoteRole, *InURL.Portal, Options, UniqueId, Error);

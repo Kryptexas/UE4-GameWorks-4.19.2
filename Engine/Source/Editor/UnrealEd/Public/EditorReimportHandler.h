@@ -65,6 +65,19 @@ public:
 	UNREALED_API virtual void ValidateAllSourceFileAndReimport(TArray<UObject*> &ToImportObjects);
 
 	/**
+	* Attempt to reimport multiple objects from its source by giving registered reimport
+	* handlers a chance to try to reimport the object
+	*
+	* @param	Objects	Objects to try reimporting
+	* @param	bAskForNewFileIfMissing If the file is missing, open a dialog to ask for a new one
+	* @param	bShowNotification True to show a notification when complete, false otherwise
+	* @param	PreferedReimportFile if not empty, will be use in case the original file is missing and bAskForNewFileIfMissing is set to false
+	*
+	* @return	true if the objects all imported successfully, for more granular success reporting use FReimportManager::Reimport
+	*/
+	UNREALED_API virtual bool ReimportMultiple( TArrayView<UObject*> Objects, bool bAskForNewFileIfMissing = false, bool bShowNotification = true, FString PreferedReimportFile = TEXT(""), FReimportHandler* SpecifiedReimportHandler = nullptr );
+
+	/**
 	 * Update the reimport paths for the specified object
 	 *
 	 * @param	Obj	Object to update

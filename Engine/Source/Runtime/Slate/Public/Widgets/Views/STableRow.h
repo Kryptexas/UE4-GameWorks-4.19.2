@@ -1056,53 +1056,54 @@ protected:
 		for( int32 ColumnIndex = 0; ColumnIndex < NumColumns; ++ColumnIndex )
 		{
 			const SHeaderRow::FColumn& Column = Columns[ColumnIndex];
-			const TSharedRef< SWidget >* const ExistingWidget = ColumnIdToSlotContents.Find( Column.ColumnId );
+			if (Column.ShouldGenerateWidget.Get(true))
+			{
+				TSharedRef< SWidget >* ExistingWidget = ColumnIdToSlotContents.Find(Column.ColumnId);
+				TSharedRef< SWidget > CellContents = SNullWidget::NullWidget;
+				if (ExistingWidget != nullptr)
+				{
+					CellContents = *ExistingWidget;
+				}
+				else
+				{
+					CellContents = GenerateWidgetForColumn(Column.ColumnId);
+				}
 
-			TSharedRef< SWidget > CellContents = SNullWidget::NullWidget;
-			if ( ExistingWidget != nullptr )
-			{
-				CellContents = *ExistingWidget;
-			}
-			else
-			{
-				CellContents = GenerateWidgetForColumn( Column.ColumnId );
-			}
-
-			switch(Column.SizeRule)
-			{
-			case EColumnSizeMode::Fill:
+				switch (Column.SizeRule)
+				{
+				case EColumnSizeMode::Fill:
 				{
 					TAttribute<float> WidthBinding;
-					WidthBinding.BindRaw( &Column, &SHeaderRow::FColumn::GetWidth );
+					WidthBinding.BindRaw(&Column, &SHeaderRow::FColumn::GetWidth);
 
 					SHorizontalBox::FSlot& NewSlot = Box->AddSlot()
-					.HAlign(Column.CellHAlignment)
-					.VAlign(Column.CellVAlignment)
-					.FillWidth( WidthBinding )
-					[
-						CellContents
-					];
+						.HAlign(Column.CellHAlignment)
+						.VAlign(Column.CellVAlignment)
+						.FillWidth(WidthBinding)
+						[
+							CellContents
+						];
 				}
 				break;
 
-			case EColumnSizeMode::Fixed:
+				case EColumnSizeMode::Fixed:
 				{
 					Box->AddSlot()
-					.AutoWidth()
-					[
-						SNew( SBox )
-						.WidthOverride( Column.Width.Get() )
+						.AutoWidth()
+						[
+							SNew(SBox)
+							.WidthOverride(Column.Width.Get())
 						.HAlign(Column.CellHAlignment)
 						.VAlign(Column.CellVAlignment)
 						.Content()
 						[
 							CellContents
 						]
-					];
+						];
 				}
 				break;
 
-			case EColumnSizeMode::Manual:
+				case EColumnSizeMode::Manual:
 				{
 					auto GetColumnWidthAsOptionalSize = [&Column]() -> FOptionalSize
 					{
@@ -1114,25 +1115,26 @@ protected:
 					WidthBinding.Bind(TAttribute<FOptionalSize>::FGetter::CreateLambda(GetColumnWidthAsOptionalSize));
 
 					Box->AddSlot()
-					.AutoWidth()
-					[
-						SNew( SBox )
-						.WidthOverride(WidthBinding)
+						.AutoWidth()
+						[
+							SNew(SBox)
+							.WidthOverride(WidthBinding)
 						.HAlign(Column.CellHAlignment)
 						.VAlign(Column.CellVAlignment)
 						.Content()
 						[
 							CellContents
 						]
-					];
+						];
 				}
 				break;
 
-			default:
-				break;
-			}
+				default:
+					break;
+				}
 
-			NewColumnIdToSlotContents.Add( Column.ColumnId, CellContents );
+				NewColumnIdToSlotContents.Add(Column.ColumnId, CellContents);
+			}
 		}
 
 		ColumnIdToSlotContents = NewColumnIdToSlotContents;

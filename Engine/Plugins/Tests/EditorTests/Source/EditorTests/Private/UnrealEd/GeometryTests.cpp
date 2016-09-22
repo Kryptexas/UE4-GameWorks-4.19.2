@@ -332,23 +332,41 @@ bool FBSPCubePlacement::RunTest(const FString& Parameters)
 	// Verify the BSP brushes that were created have been found.
 	TestEqual(TEXT("BSP Brushes Created"), BrushCount, 2);
 	TestNotNull<ABrush>(TEXT("Additive BSP is NULL.  Most likely it wasn't created."), AdditiveBSP);
-	TestNotNull<ABrush>(TEXT("Subtractive BSP is NULL.  Most likely it wasn't created."), AdditiveBSP);
+	TestNotNull<ABrush>(TEXT("Subtractive BSP is NULL.  Most likely it wasn't created."), SubtractiveBSP);
 
 	// Verify the location of the BSP.
-	TestEqual<FVector>(TEXT("Additive BSP is not located at the correct coordinates."), AdditiveBSP->GetActorLocation(), WORLD_ORIGIN_VECTOR_OFFSET);
-	TestEqual<FVector>(TEXT("Subtractive BSP is not located at the correct coordinates."), SubtractiveBSP->GetActorLocation(), WORLD_ORIGIN_VECTOR);
+	if (AdditiveBSP)
+	{
+		TestEqual<FVector>(TEXT("Additive BSP is not located at the correct coordinates."), AdditiveBSP->GetActorLocation(), WORLD_ORIGIN_VECTOR_OFFSET);
+	}
+	if (SubtractiveBSP)
+	{
+		TestEqual<FVector>(TEXT("Subtractive BSP is not located at the correct coordinates."), SubtractiveBSP->GetActorLocation(), WORLD_ORIGIN_VECTOR);
+	}
 
 	// Verify there are 8 vertices for the Additive and Subtractive BSP.
-	TestEqual(TEXT("Additive Brush Vertex Count"), AdditiveBSP->Brush->NumUniqueVertices, CUBE_VERTS_COUNT);
-	TestEqual(TEXT("Subtractive Brush Vertex Count"), SubtractiveBSP->Brush->NumUniqueVertices, CUBE_VERTS_COUNT);
+	if (AdditiveBSP)
+	{
+		TestEqual(TEXT("Additive Brush Vertex Count"), AdditiveBSP->Brush->NumUniqueVertices, CUBE_VERTS_COUNT);
+	}
+	if (SubtractiveBSP)
+	{
+		TestEqual(TEXT("Subtractive Brush Vertex Count"), SubtractiveBSP->Brush->NumUniqueVertices, CUBE_VERTS_COUNT);
+	}
 
 	// Verify there are the correct amount of BSP surfaces are visible in the level.
 	TestEqual(TEXT("Surfaces Reported"), BSPModel->Surfs.Num(), 10);
 
 #if WITH_EDITOR
 	// Check the BSP for any other errors.
-	SubtractiveBSP->CheckForErrors();
-	AdditiveBSP->CheckForErrors();
+	if (SubtractiveBSP)
+	{
+		SubtractiveBSP->CheckForErrors();
+	}
+	if (AdditiveBSP)
+	{
+		AdditiveBSP->CheckForErrors();
+	}
 #endif // WITH_EDITOR
 
 	//** TEARDOWN **//

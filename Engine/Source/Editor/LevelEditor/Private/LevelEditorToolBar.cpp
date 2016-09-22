@@ -28,8 +28,8 @@
 #include "ISourceControlModule.h"
 #include "SVolumeControl.h"
 #include "ModuleManager.h"
-#include "GameFramework/GameMode.h"
-#include "GameFramework/GameState.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -446,7 +446,7 @@ namespace LevelEditorActionHelpers
 		FText ResultText;
 
 		// Game modes can always be created and selected (providing the config is checked out, handled separately)
-		if(InRootClass != AGameMode::StaticClass() && InGameModeClass->HasAllClassFlags(CLASS_Native))
+		if(InRootClass != AGameModeBase::StaticClass() && InGameModeClass->HasAllClassFlags(CLASS_Native))
 		{
 			ResultText = LOCTEXT("CannotCreateClasses", "Cannot create classes when the game mode is a native class!");
 		}
@@ -473,7 +473,7 @@ namespace LevelEditorActionHelpers
 		FText ResultText;
 
 		// Game modes can always be created and selected (providing the config is checked out, handled separately)
-		if(InRootClass != AGameMode::StaticClass() && InGameModeClass->HasAllClassFlags(CLASS_Native))
+		if(InRootClass != AGameModeBase::StaticClass() && InGameModeClass->HasAllClassFlags(CLASS_Native))
 		{
 			ResultText = LOCTEXT("CannotSelectClasses", "Cannot select classes when the game mode is a native class!");
 		}
@@ -503,7 +503,7 @@ namespace LevelEditorActionHelpers
 		GameModeMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnCreateGameModeClassPicked, InLevelEditor, bInProjectSettings );
 		GameModeMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnSelectGameModeClassPicked, InLevelEditor, bInProjectSettings );
 		GameModeMenuSettings.CurrentClass = LevelEditorActionHelpers::GetGameModeClass(InLevelEditor, bInProjectSettings);
-		GameModeMenuSettings.RootClass = AGameMode::StaticClass();
+		GameModeMenuSettings.RootClass = AGameModeBase::StaticClass();
 		GameModeMenuSettings.LevelEditor = InLevelEditor;
 		GameModeMenuSettings.bIsProjectSettings = bInProjectSettings;
 
@@ -544,7 +544,7 @@ namespace LevelEditorActionHelpers
 		GameStateMenuSettings.OnCreateClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnCreateGameStateClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
 		GameStateMenuSettings.OnSelectClassPicked = FOnClassPicked::CreateStatic( &LevelEditorActionHelpers::OnSelectGameStateClassPicked, InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings );
 		GameStateMenuSettings.CurrentClass = LevelEditorActionHelpers::GetGameStateClass(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings);
-		GameStateMenuSettings.RootClass = AGameState::StaticClass();
+		GameStateMenuSettings.RootClass = AGameStateBase::StaticClass();
 		GameStateMenuSettings.LevelEditor = InSettingsData.LevelEditor;
 		GameStateMenuSettings.bIsProjectSettings = InSettingsData.bIsProjectSettings;
 
@@ -656,7 +656,7 @@ void LevelEditorActionHelpers::GetBlueprintSettingsSubMenu(FMenuBuilder& InMenuB
 		}
 	}
 
-	if(InSettingsData.bIsProjectSettings && InSettingsData.CurrentClass && InSettingsData.CurrentClass->IsChildOf(AGameMode::StaticClass()) && !FLevelEditorActionCallbacks::CanSelectGameModeBlueprint())
+	if(InSettingsData.bIsProjectSettings && InSettingsData.CurrentClass && InSettingsData.CurrentClass->IsChildOf(AGameModeBase::StaticClass()) && !FLevelEditorActionCallbacks::CanSelectGameModeBlueprint())
 	{
 		InMenuBuilder.BeginSection("CheckoutSection", LOCTEXT("CheckoutSection","Check Out Project Settings") );
 		TAttribute<FText> CheckOutLabel;
@@ -684,7 +684,7 @@ void LevelEditorActionHelpers::GetBlueprintSettingsSubMenu(FMenuBuilder& InMenuB
 		FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetCreateSettingsClassSubMenu, InSettingsData.RootClass, InSettingsData.OnCreateClassPicked ),
 		FUIAction(
 			FExecuteAction(), 
-			InSettingsData.RootClass == AGameMode::StaticClass()? 
+			InSettingsData.RootClass == AGameModeBase::StaticClass()?
 				FCanExecuteAction::CreateStatic(CannotCreateSelectNativeProjectGameMode, InSettingsData.bIsProjectSettings) 
 				: FCanExecuteAction::CreateStatic( &CanCreateSelectSubClass, GetGameModeClass(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings), InSettingsData.bIsProjectSettings )
 		),
@@ -697,7 +697,7 @@ void LevelEditorActionHelpers::GetBlueprintSettingsSubMenu(FMenuBuilder& InMenuB
 		FNewMenuDelegate::CreateStatic( &LevelEditorActionHelpers::GetSelectSettingsClassSubMenu, InSettingsData.RootClass, InSettingsData.OnSelectClassPicked ),
 		FUIAction(
 			FExecuteAction(), 
-			InSettingsData.RootClass == AGameMode::StaticClass()?
+			InSettingsData.RootClass == AGameModeBase::StaticClass()?
 				FCanExecuteAction::CreateStatic(CannotCreateSelectNativeProjectGameMode, InSettingsData.bIsProjectSettings) 
 				: FCanExecuteAction::CreateStatic( &CanCreateSelectSubClass, GetGameModeClass(InSettingsData.LevelEditor, InSettingsData.bIsProjectSettings), InSettingsData.bIsProjectSettings )
 		),
@@ -705,7 +705,7 @@ void LevelEditorActionHelpers::GetBlueprintSettingsSubMenu(FMenuBuilder& InMenuB
 	);
 
 	// For GameMode classes only, there are some sub-classes we need to add to the menu
-	if(InSettingsData.RootClass == AGameMode::StaticClass())
+	if(InSettingsData.RootClass == AGameModeBase::StaticClass())
 	{
 		InMenuBuilder.BeginSection(NAME_None, LOCTEXT("GameModeClasses", "Game Mode Classes"));
 
@@ -830,7 +830,7 @@ UClass* LevelEditorActionHelpers::GetGameStateClass(TWeakPtr< SLevelEditor > InL
 {
 	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
 	{
-		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
 		if(ActiveGameMode)
 		{
 			return ActiveGameMode->GameStateClass;
@@ -883,7 +883,7 @@ void LevelEditorActionHelpers::OnSelectGameStateClassPicked(UClass* InChosenClas
 	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("LevelEditorCommands", "SelectGameStateClassAction", "Set Game State Class") );
-		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
 		ActiveGameMode->Modify();
 		ActiveGameMode->GameStateClass = InChosenClass;
 	}
@@ -895,7 +895,7 @@ UClass* LevelEditorActionHelpers::GetPawnClass(TWeakPtr< SLevelEditor > InLevelE
 {
 	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
 	{
-		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
 
 		if(ActiveGameMode)
 		{
@@ -950,7 +950,7 @@ void LevelEditorActionHelpers::OnSelectPawnClassPicked(UClass* InChosenClass, TW
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("LevelEditorCommands", "SelectPawnClassAction", "Set Pawn Class") );
 
-		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
 		ActiveGameMode->Modify();
 		ActiveGameMode->DefaultPawnClass = InChosenClass;
 	}
@@ -962,7 +962,7 @@ UClass* LevelEditorActionHelpers::GetHUDClass(TWeakPtr< SLevelEditor > InLevelEd
 {
 	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
 	{
-		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
 		if(ActiveGameMode)
 		{
 			return ActiveGameMode->HUDClass;
@@ -1016,7 +1016,7 @@ void LevelEditorActionHelpers::OnSelectHUDClassPicked(UClass* InChosenClass, TWe
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("LevelEditorCommands", "SelectHUDClassAction", "Set HUD Class") );
 
-		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
 		ActiveGameMode->Modify();
 		ActiveGameMode->HUDClass = InChosenClass;
 	}
@@ -1028,7 +1028,7 @@ UClass* LevelEditorActionHelpers::GetPlayerControllerClass(TWeakPtr< SLevelEdito
 {
 	if(UClass* GameModeClass = GetGameModeClass(InLevelEditor, bInIsProjectSettings))
 	{
-		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
 		if(ActiveGameMode)
 		{
 			return ActiveGameMode->PlayerControllerClass;
@@ -1082,7 +1082,7 @@ void LevelEditorActionHelpers::OnSelectPlayerControllerClassPicked(UClass* InCho
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("LevelEditorCommands", "SelectPlayerControllerClassAction", "Set Player Controller Class") );
 
-		AGameMode* ActiveGameMode = Cast<AGameMode>(GameModeClass->GetDefaultObject());
+		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
 		ActiveGameMode->Modify();
 		ActiveGameMode->PlayerControllerClass = InChosenClass;
 	}

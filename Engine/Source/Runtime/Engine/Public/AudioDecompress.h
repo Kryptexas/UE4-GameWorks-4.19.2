@@ -186,7 +186,7 @@ public:
 		, bLoopingMode(false)
 		, bLooped(false)
 	{
-		check(AudioBuffer && AudioBuffer->DecompressionState);
+		check(AudioBuffer);
 		check(WaveData);
 	}
 
@@ -198,7 +198,7 @@ public:
 		, bLoopingMode(bInLoopingMode)
 		, bLooped(false)
 	{
-		check(AudioBuffer && AudioBuffer->DecompressionState);
+		check(AudioBuffer);
 		check(AudioData);
 	}
 

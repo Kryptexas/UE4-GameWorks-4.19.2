@@ -2182,6 +2182,7 @@ TSharedRef<SWidget> FSequencer::MakeTransportControls(bool bExtended)
 		TransportControlArgs.OnToggleLooping.BindSP( this, &FSequencer::OnToggleLooping );
 		TransportControlArgs.OnGetLooping.BindSP( this, &FSequencer::IsLooping );
 		TransportControlArgs.OnGetPlaybackMode.BindSP( this, &FSequencer::GetPlaybackMode );
+		TransportControlArgs.OnGetRecording.BindSP(this, &FSequencer::IsRecording);
 
 		if(bExtended)
 		{
@@ -2851,14 +2852,14 @@ EPlaybackMode::Type FSequencer::GetPlaybackMode() const
 			return EPlaybackMode::PlayingReverse;
 		}
 	}
-	else if (PlaybackState == EMovieScenePlayerStatus::Recording)
-	{
-		return EPlaybackMode::Recording;
-	}
 		
 	return EPlaybackMode::Stopped;
 }
 
+bool FSequencer::IsRecording() const
+{
+	return PlaybackState == EMovieScenePlayerStatus::Recording;
+}
 
 void FSequencer::UpdateTimeBoundsToFocusedMovieScene()
 {

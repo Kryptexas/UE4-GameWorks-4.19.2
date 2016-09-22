@@ -184,7 +184,7 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	bool bSuppressFaceRemapTable;
 
 	/** If true, store extra information to allow FindCollisionUV to derive UV info from a line trace hit result, using the FindCollisionUV utility */
-	UPROPERTY(config, EditAnywhere, Category = Optimization, meta = (DisplayName = "Support UV From Hit Results"))
+	UPROPERTY(config, EditAnywhere, Category = Optimization, meta = (DisplayName = "Support UV From Hit Results", ConfigRestartRequired = true))
 	bool bSupportUVFromHitResults;
 
 	/**

@@ -329,9 +329,6 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	Pivot = FVector2D(0.5, 0.5);
 
 	bAddedToScreen = false;
-
-	// We want this because we want EndPlay to be called!
-	bWantsBeginPlay = true;
 }
 
 void UWidgetComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

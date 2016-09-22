@@ -88,7 +88,7 @@ Next I added a new GameMode to represent the state of the player being at the ma
 
 	#pragma once
 
-	#include "GameFramework/GameMode.h"
+	#include "GameFramework/GameModeBase.h"
 	#include "MainMenuGameMode.generated.h"
 
 	class MainMenu;
@@ -97,7 +97,7 @@ Next I added a new GameMode to represent the state of the player being at the ma
 	 * 
 	 */
 	UCLASS()
-	class AMainMenuGameMode : public AGameMode
+	class AMainMenuGameMode : public AGameModeBase
 	{
 		GENERATED_UCLASS_BODY()
 

@@ -124,10 +124,12 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 	//needs to happen after the above SetNodeFlags calls so that ObjectPropertyNode can properly respond to CollapseCategories
 	InitBeforeNodeFlags();
 
+	bool bIsEditInlineNew = false;
+	bool bShowInnerObjectProperties = false;
 	if ( !Property.IsValid() )
 	{
 		// Disable all flags if no property is bound.
-		SetNodeFlags(EPropertyNodeFlags::SingleSelectOnly | EPropertyNodeFlags::EditInline , false);
+		SetNodeFlags(EPropertyNodeFlags::SingleSelectOnly | EPropertyNodeFlags::EditInlineNew | EPropertyNodeFlags::ShowInnerObjectProperties, false);
 	}
 	else
 	{
@@ -142,8 +144,19 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 		// true if the property can be expanded into the property window; that is, instead of seeing
 		// a pointer to the object, you see the object's properties.
 		static const FName Name_EditInline("EditInline");
-		const bool bEditInline = bIsObjectOrInterface && GotReadAddresses && MyProperty->HasMetaData(Name_EditInline);
-		SetNodeFlags(EPropertyNodeFlags::EditInline, bEditInline);
+		static const FName Name_ShowInnerProperties("ShowInnerProperties");
+
+		bIsEditInlineNew = bIsObjectOrInterface && GotReadAddresses && MyProperty->HasMetaData(Name_EditInline);
+		bShowInnerObjectProperties = bIsObjectOrInterface && GotReadAddresses && MyProperty->HasMetaData(Name_ShowInnerProperties);
+
+		if(bIsEditInlineNew)
+		{
+			SetNodeFlags(EPropertyNodeFlags::EditInlineNew, true);
+		}
+		else if(bShowInnerObjectProperties)
+		{
+			SetNodeFlags(EPropertyNodeFlags::ShowInnerObjectProperties, true);
+		}
 
 		//Get the property max child depth
 		static const FName Name_MaxPropertyDepth("MaxPropertyDepth");
@@ -171,9 +184,7 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 
 	UProperty* MyProperty = Property.Get();
 
-	bool bIsEditInlineNew = MyProperty && !( MyProperty->PropertyFlags & CPF_EditConst ) && HasNodeFlags( EPropertyNodeFlags::EditInline ) != 0;
-
-	bool bRequiresValidation = bIsEditInlineNew || ( MyProperty && (MyProperty->IsA<UArrayProperty>() || MyProperty->IsA<USetProperty>() || MyProperty->IsA<UMapProperty>() ));
+	bool bRequiresValidation = bIsEditInlineNew || bShowInnerObjectProperties || ( MyProperty && (MyProperty->IsA<UArrayProperty>() || MyProperty->IsA<USetProperty>() || MyProperty->IsA<UMapProperty>() ));
 
 	// We require validation if our parent also needs validation (if an array parent was resized all the addresses of children are invalid)
 	bRequiresValidation |= (GetParentNode() && GetParentNode()->HasNodeFlags( EPropertyNodeFlags::RequiresValidation ) != 0);
@@ -389,7 +400,7 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 			bool bObjectPropertyNull = true;
 
 			//Edit inline properties can change underneath the window
-			bool bIgnoreChangingChildren = !HasNodeFlags(EPropertyNodeFlags::EditInline);
+			bool bIgnoreChangingChildren = !(HasNodeFlags(EPropertyNodeFlags::EditInlineNew) || HasNodeFlags(EPropertyNodeFlags::ShowInnerObjectProperties)) ;
 			//ignore this node if the consistency check should happen for the children
 			bool bIgnoreStaticArray = (Property->ArrayDim > 1) && (ArrayIndex == -1);
 
@@ -409,6 +420,8 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 				return EPropertyDataValidationResult::ObjectInvalid;
 			}
 
+			// If an object property with ShowInnerProperties changed object values out from under the property
+			bool bShowInnerObjectPropertiesObjectChanged = false;
 
 			//check for null, if we find one, there is a problem.
 			for (int32 Scan = 0; Scan < ReadAddresses.Num(); ++Scan)
@@ -468,12 +481,33 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 
 				if (ObjectProperty && !bIgnoreAllMismatch)
 				{
-					UObject* obj = ObjectProperty->GetObjectPropertyValue(Addr);
-					if (obj != NULL)
+					UObject* Obj = ObjectProperty->GetObjectPropertyValue(Addr);
+
+					if (!bShowInnerObjectPropertiesObjectChanged && HasNodeFlags(EPropertyNodeFlags::ShowInnerObjectProperties) && ChildNodes.Num() == 1)
+					{
+						bool bChildObjectFound = false;
+						// should never have more than one node (0 is ok if the object property is null)
+						check(ChildNodes.Num() == 1);
+						bool bNeedRebuild = false;
+						FObjectPropertyNode* ChildObjectNode = ChildNodes[0]->AsObjectNode();
+						for(int32 ObjectIndex = 0; ObjectIndex < ChildObjectNode->GetNumObjects(); ++ObjectIndex)
+						{
+							if(Obj == ChildObjectNode->GetUObject(ObjectIndex))
+							{
+								bChildObjectFound = true;
+								break;
+							}
+						}
+						bShowInnerObjectPropertiesObjectChanged = !bChildObjectFound;
+					}
+
+					if (Obj != NULL)
 					{
 						bObjectPropertyNull = false;
 						break;
 					}
+
+					
 				}
 			}
 
@@ -496,6 +530,12 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 				return EPropertyDataValidationResult::ArraySizeChanged;
 			}
 
+			if(bShowInnerObjectPropertiesObjectChanged)
+			{
+				RebuildChildren();
+				return EPropertyDataValidationResult::EditInlineNewValueChanged;
+			}
+
 			const bool bHasChildren = (GetNumChildNodes() != 0);
 			// If the object property is not null and has no children, its children need to be rebuilt
 			// If the object property is null and this node has children, the node needs to be rebuilt
@@ -511,7 +551,7 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 	{
 		RebuildChildren();
 		// If this property is editinline and not edit const then its editinline new and we can optimize some of the refreshing in some cases.  Otherwise we need to refresh all properties in the view
-		return HasNodeFlags(EPropertyNodeFlags::EditInline) && !IsEditConst() ? EPropertyDataValidationResult::EditInlineNewValueChanged : EPropertyDataValidationResult::PropertiesChanged;
+		return HasNodeFlags(EPropertyNodeFlags::ShowInnerObjectProperties) || (HasNodeFlags(EPropertyNodeFlags::EditInlineNew) && !IsEditConst()) ? EPropertyDataValidationResult::EditInlineNewValueChanged : EPropertyDataValidationResult::PropertiesChanged;
 	}
 	
 	EPropertyDataValidationResult FinalResult = EPropertyDataValidationResult::DataValid;
@@ -1602,10 +1642,10 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 				{
 					if ( !OuterSetProperty && !OuterMapProperty )
 					{
-						// if either are NULL, we had a dynamic array somewhere in our parent chain and the array doesn't
-						// have enough elements in either the default or the object
-						DefaultValue = NSLOCTEXT("PropertyEditor", "DifferentArrayLength", "Array has different length than the default.").ToString();
-					}
+					// if either are NULL, we had a dynamic array somewhere in our parent chain and the array doesn't
+					// have enough elements in either the default or the object
+					DefaultValue = NSLOCTEXT("PropertyEditor", "DifferentArrayLength", "Array has different length than the default.").ToString();
+				}
 				}
 				else if ( GetArrayIndex() == INDEX_NONE && InProperty->ArrayDim > 1 )
 				{
@@ -1690,7 +1730,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 	UProperty* TheProperty = GetProperty();
 	check(TheProperty);
 
-	// Get an iterator for the enclosing objects.
+		// Get an iterator for the enclosing objects.
 	FObjectPropertyNode* ObjectNode = FindObjectItemParent();
 
 	if( ObjectNode )
@@ -2663,7 +2703,7 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 					case EPropertyArrayChangeType::Duplicate:
 						check(false);	// Duplicate not supported on sets
 						break;
-					}
+			}
 
 					if (ElementToInitialize >= 0)
 					{

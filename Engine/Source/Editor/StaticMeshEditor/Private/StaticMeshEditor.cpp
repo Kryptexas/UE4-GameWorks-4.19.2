@@ -568,8 +568,7 @@ void FStaticMeshEditor::BuildSubTools()
 		LODLevelCombo->SetSelectedItem(LODLevels[0]);
 	}
 
-	AdvancedPreviewSettingsWidget = SNew(SAdvancedPreviewDetailsTab)
-		.PreviewScenePtr(&Viewport->GetPreviewScene());
+	AdvancedPreviewSettingsWidget = SNew(SAdvancedPreviewDetailsTab, Viewport->GetPreviewScene());
 }
 
 FName FStaticMeshEditor::GetToolkitFName() const

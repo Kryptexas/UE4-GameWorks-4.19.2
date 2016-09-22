@@ -308,6 +308,16 @@ public:
 	 */
 	void ToAxisAndAngle(FVector& Axis, float& Angle) const;
 
+	/** 
+	 * Get the swing and twist decomposition for a specified axis
+	 *
+	 * @param InTwistAxis Axis to use for decomposition
+	 * @param OutSwing swing component quaternion
+	 * @param OutTwist Twist component quaternion
+	 * @warning assumes normalised quaternion and twist axis
+	 */
+	CORE_API void ToSwingTwist(const FVector& InTwistAxis, FQuat& OutSwing, FQuat& OutTwist) const;
+
 	/**
 	 * Rotate a vector by this quaternion.
 	 *
@@ -936,7 +946,6 @@ FORCEINLINE void FQuat::ToAxisAndAngle(FVector& Axis, float& Angle) const
 	Angle = 2.f * FMath::Acos(W);
 	Axis = GetRotationAxis();
 }
-
 
 FORCEINLINE FVector FQuat::GetRotationAxis() const
 {

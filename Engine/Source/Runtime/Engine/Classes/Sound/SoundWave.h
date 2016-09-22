@@ -121,7 +121,7 @@ class ENGINE_API USoundWave : public USoundBase
 	int32 CompressionQuality;
 
 	/** If set, when played directly (not through a sound cue) the wave will be played looping. */
-	UPROPERTY(EditAnywhere, Category=SoundWave )
+	UPROPERTY(EditAnywhere, Category=SoundWave, AssetRegistrySearchable)
 	uint32 bLooping:1;
 
 	/** Whether this sound can be streamed to avoid increased memory usage */

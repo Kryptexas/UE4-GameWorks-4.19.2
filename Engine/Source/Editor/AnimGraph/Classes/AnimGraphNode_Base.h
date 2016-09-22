@@ -129,6 +129,7 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 	virtual FString GetDocumentationLink() const override;
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	virtual bool ShowPaletteIconOnNode() const override{ return false; }
+	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
@@ -190,6 +191,35 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 	template<class AssetType>
 	void HandleAnimReferenceReplacement(AssetType*& OriginalAsset, const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap);
 
+	/**
+	 * Selection notification callback.
+	 * If a node needs to handle viewport input etc. then it should push an editor mode here.
+	 * @param	bInIsSelected	Whether we selected or deselected the node
+	 * @param	InModeTools		The mode tools. Use this to push the editor mode if required.
+	 * @param	InRuntimeNode	The runtime node to go with this skeletal control. This may be NULL in some cases when bInIsSelected is false.
+	 */
+	virtual void OnNodeSelected(bool bInIsSelected, class FEditorModeTools& InModeTools, struct FAnimNode_Base* InRuntimeNode);
+
+	/**
+	 * Override this function to push an editor mode when this node is selected
+	 * @return the editor mode to use when this node is selected
+	 */
+	virtual FEditorModeID GetEditorMode() const;
+
+	// Draw function for supporting visualization
+	virtual void Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent * PreviewSkelMeshComp) const {}
+	// Canvas draw function to draw to viewport
+	virtual void DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, USkeletalMeshComponent * PreviewSkelMeshComp) const {}
+	// Function to collect strings from nodes to display in the viewport.
+	// Use this rather than DrawCanvas when adding general text to the viewport.
+	virtual void GetOnScreenDebugInfo(TArray<FText>& DebugInfo, USkeletalMeshComponent* PreviewSkelMeshComp) const {}
+
+	/** Called after editing a default value to update internal node from pin defaults. This is needed for forwarding code to propagate values to preview. */
+	virtual void CopyPinDefaultsToNodeData(UEdGraphPin* InPin) {}
+
+	/** Called to propagate data from the internal node to the preview in Persona. */
+	virtual void CopyNodeDataToPreviewNode(FAnimNode_Base* InPreviewNode) {}
+
 	// BEGIN Interface to support transition getter
 	// if you return true for DoesSupportExposeTimeForTransitionGetter
 	// you should implement all below functions
@@ -201,6 +231,9 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 	// can customize details tab 
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder){ }
+
+	/** Try to find the preview node instance for this anim graph node */
+	FAnimNode_Base* FindDebugAnimNode(USkeletalMeshComponent * PreviewSkelMeshComp) const;
 
 	template<typename NodeType>
 	NodeType* GetActiveInstanceNode(UObject* AnimInstanceObject) const

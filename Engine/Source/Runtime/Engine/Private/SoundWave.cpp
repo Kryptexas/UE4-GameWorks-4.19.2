@@ -387,13 +387,13 @@ void USoundWave::PostLoad()
 	if( !GIsEditor && !IsTemplate( RF_ClassDefaultObject ) && GEngine )
 	{
 		FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
-		if( AudioDevice && AudioDevice->AreStartupSoundsPreCached())
+		if (AudioDevice && AudioDevice->AreStartupSoundsPreCached())
 		{
 			// Upload the data to the hardware, but only if we've precached startup sounds already
-			AudioDevice->Precache( this );
+			AudioDevice->Precache(this);
 		}
 		// remove bulk data if no AudioDevice is used and no sounds were initialized
-		else if( IsRunningGame() )
+		else if (IsRunningGame())
 		{
 			RawData.RemoveBulkData();
 		}
@@ -659,6 +659,9 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->UserIndex = ActiveSound.UserIndex;
 		WaveInstance->OmniRadius = ParseParams.OmniRadius;
 		WaveInstance->StereoSpread = ParseParams.StereoSpread;
+		WaveInstance->AttenuationDistance = ParseParams.AttenuationDistance;
+		WaveInstance->AbsoluteAzimuth = ParseParams.AbsoluteAzimuth;
+
 		bool bAlwaysPlay = false;
 
 		// Properties from the sound class
@@ -727,6 +730,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->WaveData = this;
 		WaveInstance->NotifyBufferFinishedHooks = ParseParams.NotifyBufferFinishedHooks;
 		WaveInstance->LoopingMode = ((bLooping || ParseParams.bLooping) ? LOOP_Forever : LOOP_Never);
+		WaveInstance->bIsPaused = ParseParams.bIsPaused;
 
 		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationAlgorithm == SPATIALIZATION_Default)
 		{

@@ -236,7 +236,7 @@ void UPrimitiveComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 
 bool UPrimitiveComponent::IsEditorOnly() const
 {
-	return (AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false);
+	return ((AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false)) || Super::IsEditorOnly();
 }
 
 bool UPrimitiveComponent::HasStaticLighting() const

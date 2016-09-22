@@ -643,7 +643,26 @@ private:
 	 * @return True if the quick-jump found a valid match, false otherwise
 	 */
 	bool PerformQuickJump(const bool bWasJumping);
+	
+	/** Generates the column filtering menu */
+	void FillToggleColumnsMenu(FMenuBuilder& MenuBuilder);
 
+	/** Resets the column filtering state to make them all visible */
+	void ResetColumns();
+
+	/** Toggle the column at ColumnIndex */
+	void ToggleColumn(const FString ColumnName);
+	/** Sets the column visibility by removing/inserting the column*/
+	void SetColumnVisibility(const FString ColumnName, const bool bShow);
+
+	/** Whether or not a column can be toggled, has to be valid column and mandatory minimum number of columns = 1*/
+	bool CanToggleColumn(const FString ColumnName) const;
+
+	/** Whether or not a column is visible to show it's state in the filtering menu */
+	bool IsColumnVisible(const FString ColumnName) const;
+
+	/** Creates the row header context menu allowing for hiding individually clicked columns*/
+	TSharedRef<SWidget> CreateRowHeaderMenuContent(const FString ColumnName);
 private:
 
 	/** The asset items being displayed in the view and the filtered list */
@@ -931,4 +950,10 @@ private:
 
 	/** Data for the asset quick-jump */
 	FQuickJumpData QuickJumpData;
+	
+	/** Column filtering state */
+	TArray<FString> HiddenColumnNames;
+	int32 NumVisibleColumns;
+public:
+	bool ShouldColumnGenerateWidget(const FString ColumnName) const;
 };

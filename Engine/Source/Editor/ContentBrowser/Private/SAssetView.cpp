@@ -224,6 +224,8 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bPendingFocusOnSync = false;
 	bWereItemsRecursivelyFiltered = false;
 
+	NumVisibleColumns = 0;
+
 	FEditorWidgetsModule& EditorWidgetsModule = FModuleManager::LoadModuleChecked<FEditorWidgetsModule>("EditorWidgets");
 	TSharedRef<SWidget> AssetDiscoveryIndicator = EditorWidgetsModule.CreateAssetDiscoveryIndicator(EAssetDiscoveryIndicatorScaleMode::Scale_Vertical);
 
@@ -712,6 +714,8 @@ void SAssetView::SaveSettings(const FString& IniFilename, const FString& IniSect
 {
 	GConfig->SetFloat(*IniSection, *GetThumbnailScaleSettingPath(SettingsString), ThumbnailScaleSliderValue.Get(), IniFilename);
 	GConfig->SetInt(*IniSection, *GetCurrentViewTypeSettingPath(SettingsString), CurrentViewType, IniFilename);
+	
+	GConfig->SetArray(*IniSection, *(SettingsString + TEXT(".HiddenColumns")), HiddenColumnNames, IniFilename);
 }
 
 void SAssetView::LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString)
@@ -734,6 +738,8 @@ void SAssetView::LoadSettings(const FString& IniFilename, const FString& IniSect
 		}
 		SetCurrentViewType( (EAssetViewType::Type)ViewType );
 	}
+	
+	GConfig->GetArray(*IniSection, *(SettingsString + TEXT(".HiddenColumns")), HiddenColumnNames, IniFilename);	
 }
 
 // Adjusts the selected asset by the selection delta, which should be +1 or -1)
@@ -1491,7 +1497,14 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 			.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.NameColumnId)))
 			.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
 			.DefaultLabel( LOCTEXT("Column_Name", "Name") )
+			.ShouldGenerateWidget(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SAssetView::ShouldColumnGenerateWidget, SortManager.NameColumnId.ToString())))
+			.MenuContent()
+			[
+				CreateRowHeaderMenuContent(SortManager.NameColumnId.ToString())
+			]
 		);
+
+	NumVisibleColumns = HiddenColumnNames.Contains(SortManager.NameColumnId.ToString()) ? 0 : 1;
 
 	if(bShowTypeInColumnView)
 	{
@@ -1502,7 +1515,14 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 				.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.ClassColumnId)))
 				.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
 				.DefaultLabel(LOCTEXT("Column_Class", "Type"))
+				.ShouldGenerateWidget(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SAssetView::ShouldColumnGenerateWidget, SortManager.ClassColumnId.ToString())))
+				.MenuContent()
+				[
+					CreateRowHeaderMenuContent(SortManager.ClassColumnId.ToString())
+				]
 			);
+
+		NumVisibleColumns += HiddenColumnNames.Contains(SortManager.ClassColumnId.ToString()) ? 0 : 1;
 	}
 
 
@@ -1515,7 +1535,15 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 				.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.PathColumnId)))
 				.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
 				.DefaultLabel(LOCTEXT("Column_Path", "Path"))
+				.ShouldGenerateWidget(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SAssetView::ShouldColumnGenerateWidget, SortManager.PathColumnId.ToString())))
+				.MenuContent()
+				[
+					CreateRowHeaderMenuContent(SortManager.PathColumnId.ToString())
+				]
 			);
+
+
+		NumVisibleColumns += HiddenColumnNames.Contains(SortManager.PathColumnId.ToString()) ? 0 : 1;
 	}
 
 	return NewColumnView.ToSharedRef();
@@ -2076,15 +2104,21 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 								}
 
 								ColumnView->GetHeaderRow()->AddColumn(
-										SHeaderRow::Column(TagName)
-										.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, TagName ) ) )
-										.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, TagName)))
-										.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
-										.DefaultLabel( DisplayName )
-										.DefaultTooltip( TooltipText )
-										.HAlignCell( (TagIt->Type == UObject::FAssetRegistryTag::TT_Numerical) ? HAlign_Right : HAlign_Left )
-										.FillWidth(180)
-									);
+									SHeaderRow::Column(TagName)
+									.SortMode(TAttribute< EColumnSortMode::Type >::Create(TAttribute< EColumnSortMode::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortMode, TagName)))
+									.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, TagName)))
+									.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
+									.DefaultLabel(DisplayName)
+									.DefaultTooltip(TooltipText)
+									.HAlignCell((TagIt->Type == UObject::FAssetRegistryTag::TT_Numerical) ? HAlign_Right : HAlign_Left)
+									.FillWidth(180)
+									.ShouldGenerateWidget(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SAssetView::ShouldColumnGenerateWidget, TagName.ToString())))
+									.MenuContent()
+									[
+										CreateRowHeaderMenuContent(TagName.ToString())
+									]);								
+								
+								NumVisibleColumns += HiddenColumnNames.Contains(TagName.ToString()) ? 0 : 1;
 
 								// If we found a tag the matches the column we are currently sorting on, there will be no need to change the column
 								for (int32 SortIdx = 0; SortIdx < CurrentSortOrder.Num(); SortIdx++)
@@ -2714,6 +2748,28 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			);
 	}
 	MenuBuilder.EndSection();
+
+	if (GetColumnViewVisibility() == EVisibility::Visible)
+	{
+		MenuBuilder.BeginSection("AssetColumns", LOCTEXT("ToggleColumnsHeading", "Columns"));
+		{
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("ToggleColumnsMenu", "Toggle columns"),
+				LOCTEXT("ToggleColumnsMenuTooltip", "Show or hide specific columns."),
+				FNewMenuDelegate::CreateSP(this, &SAssetView::FillToggleColumnsMenu)
+				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ResetColumns", "Reset Columns"),
+				LOCTEXT("ResetColumnsToolTip", "Reset all columns to be visible again."),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &SAssetView::ResetColumns)),
+				NAME_None,
+				EUserInterfaceActionType::Button
+				);
+		}
+		MenuBuilder.EndSection();
+	}
 
 	return MenuBuilder.MakeWidget();
 }
@@ -4277,6 +4333,91 @@ bool SAssetView::PerformQuickJump(const bool bWasJumping)
 	}
 
 	return ValidMatch;
+}
+
+void SAssetView::FillToggleColumnsMenu(FMenuBuilder& MenuBuilder)
+{
+	const TIndirectArray<SHeaderRow::FColumn> Columns = ColumnView->GetHeaderRow()->GetColumns();
+
+	for (int32 ColumnIndex = 0; ColumnIndex < Columns.Num(); ++ColumnIndex)
+	{
+		const FString ColumnName = Columns[ColumnIndex].ColumnId.ToString();
+
+		MenuBuilder.AddMenuEntry(
+			Columns[ColumnIndex].DefaultText,
+			LOCTEXT("ShowHideColumnTooltip", "Show or hide column"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SAssetView::ToggleColumn, ColumnName),
+				FCanExecuteAction::CreateSP(this, &SAssetView::CanToggleColumn, ColumnName),
+				FIsActionChecked::CreateSP(this, &SAssetView::IsColumnVisible, ColumnName),
+				EUIActionRepeatMode::RepeatEnabled
+				),
+			NAME_None,
+			EUserInterfaceActionType::Check
+			);
+	}
+}
+
+void SAssetView::ResetColumns()
+{
+	HiddenColumnNames.Empty();
+	NumVisibleColumns = ColumnView->GetHeaderRow()->GetColumns().Num();
+	ColumnView->GetHeaderRow()->RefreshColumns();
+	ColumnView->RebuildList();
+}
+
+void SAssetView::ToggleColumn(const FString ColumnName)
+{
+	SetColumnVisibility(ColumnName, HiddenColumnNames.Contains(ColumnName));
+}
+
+void SAssetView::SetColumnVisibility(const FString ColumnName, const bool bShow)
+{
+	if (!bShow)
+	{
+		--NumVisibleColumns;
+		HiddenColumnNames.Add(ColumnName);
+	}
+	else
+	{
+		++NumVisibleColumns;
+		check(HiddenColumnNames.Contains(ColumnName));
+		HiddenColumnNames.Remove(ColumnName);
+	}
+
+	ColumnView->GetHeaderRow()->RefreshColumns();
+	ColumnView->RebuildList();
+}
+
+bool SAssetView::CanToggleColumn(const FString ColumnName) const
+{
+	return (HiddenColumnNames.Contains(ColumnName) || NumVisibleColumns > 1);
+}
+
+bool SAssetView::IsColumnVisible(const FString ColumnName) const
+{
+	return !HiddenColumnNames.Contains(ColumnName);
+}
+
+bool SAssetView::ShouldColumnGenerateWidget(const FString ColumnName) const
+{
+	return !HiddenColumnNames.Contains(ColumnName);
+}
+
+TSharedRef<SWidget> SAssetView::CreateRowHeaderMenuContent(const FString ColumnName)
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("HideColumn", "Hide Column"),
+		LOCTEXT("HideColumnToolTip", "Hides this column."),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(this, &SAssetView::SetColumnVisibility, ColumnName, false), FCanExecuteAction::CreateSP(this, &SAssetView::CanToggleColumn, ColumnName)),
+		NAME_None,
+		EUserInterfaceActionType::Button);
+
+	return MenuBuilder.MakeWidget();
 }
 
 #undef LOCTEXT_NAMESPACE

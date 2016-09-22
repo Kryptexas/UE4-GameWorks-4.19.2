@@ -1219,6 +1219,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	DeltaSeconds = GameDeltaSeconds;
 	DeltaTimeSeconds = DeltaSeconds;
 
+	UnpausedTimeSeconds += DeltaSeconds;
+
 	if ( !bIsPaused )
 	{
 		TimeSeconds += DeltaSeconds;

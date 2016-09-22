@@ -58,6 +58,7 @@
 #include "Engine/ExponentialHeightFog.h"
 #include "GameFramework/GameSession.h"
 #include "GameFramework/GameState.h"
+#include "GameFramework/GameMode.h"
 #include "GameFramework/PlayerState.h"
 #include "Engine/SkyLight.h"
 #include "GameFramework/WorldSettings.h"

@@ -5535,6 +5535,43 @@ void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 				}
 			}
 		}
+
+
+		auto TemplatesVisible = [](const TArray<TWeakObjectPtr<UObject>>& WeakObjects)
+		{
+			bool bResult = true;
+			
+			return bResult;
+		};
+
+		TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized;
+		DetailBuilder.GetObjectsBeingCustomized(ObjectsBeingCustomized);
+
+		IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory(TEXT("ChildActorComponent"));
+				
+		// Ensure ordering is what we want by adding class in first
+		CategoryBuilder.AddProperty(GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass));
+
+		IDetailPropertyRow& CATRow = CategoryBuilder.AddProperty(GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorTemplate));
+		CATRow.Visibility(TAttribute<EVisibility>::Create([ObjectsBeingCustomized]()
+		{
+			for (const TWeakObjectPtr<UObject>& ObjectBeingCustomized : ObjectsBeingCustomized)
+			{
+				if (UChildActorComponent* CAC = Cast<UChildActorComponent>(ObjectBeingCustomized.Get()))
+				{
+					if (CAC->ChildActorTemplate == nullptr)
+					{
+						return EVisibility::Hidden;
+					}
+				}
+				else
+				{
+					return EVisibility::Hidden;
+				}
+			}
+
+			return EVisibility::Visible;
+		}));
 	}
 }
 

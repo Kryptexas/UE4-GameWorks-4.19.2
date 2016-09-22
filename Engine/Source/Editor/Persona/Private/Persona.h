@@ -4,10 +4,10 @@
 
 #include "Editor/Kismet/Public/BlueprintEditor.h"
 
-#include "AdvancedPreviewScene.h"
-
 #include "PersonaModule.h"
 #include "PersonaCommands.h"
+#include "AnimationEditorPreviewScene.h"
+#include "PersonaDelegates.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPersona
@@ -45,8 +45,6 @@ public:
 
 	/** Set the current preview viewport for Persona */
 	void SetViewport(TWeakPtr<class SAnimationEditorViewportTabBody> NewViewport);
-	/** Set Sequence browser */
-	void SetSequenceBrowser(class SAnimationSequenceBrowser* SequenceBrowser);
 
 	/** Refresh viewport */
 	void RefreshViewport();
@@ -57,64 +55,18 @@ public:
 	UObject* GetAnimationAssetBeingEdited() const;
 
 	/** Update the inspector that displays information about the current selection*/
-	void UpdateSelectionDetails(UObject* Object, const FText& ForcedTitle);
-
+	void SetDetailObjects(const TArray<UObject*>& InObjects);
 	void SetDetailObject(UObject* Obj);
 
+	/** FBlueprintEditor interface */
 	virtual void OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated) override;
-
-	/** Get the preview DebugSkelMeshComponent */
-	UDebugSkelMeshComponent* GetPreviewMeshComponent() const;
-	/** Get the AnimInstance associated with the preview DEbugSkelMeshComponent */
-	UAnimInstance* GetPreviewAnimInstance() const;
-
-	// Gets the skeleton being edited/viewed by this Persona instance
-	USkeleton* GetSkeleton() const;
-	UObject* GetSkeletonAsObject() const;
-
-	// Gets the skeletal mesh being edited/viewed by this Persona instance
-	USkeletalMesh* GetMesh() const;
-
-	// Gets the physics asset being edited/viewed by this Persona instance
-	UPhysicsAsset* GetPhysicsAsset() const;
+	virtual void OnSelectedNodesChangedImpl(const TSet<class UObject*>& NewSelection) override;
 
 	// Gets the Anim Blueprint being edited/viewed by this Persona instance
 	UAnimBlueprint* GetAnimBlueprint() const;
 
 	// Sets the current preview mesh
 	void SetPreviewMesh(USkeletalMesh* NewPreviewMesh);
-
-	// Validate preview attached assets on skeleton and supplied skeletal mesh, notifying user if any are removed
-	void ValidatePreviewAttachedAssets(USkeletalMesh* SkeletalMeshToUse);
-
-	// Thunks for SContentReference
-	UObject* GetMeshAsObject() const;
-	UObject* GetPhysicsAssetAsObject() const;
-	UObject* GetAnimBlueprintAsObject() const;
-
-	// Sets the selected bone to preview
-	void SetSelectedBone(class USkeleton* Skeleton, const FName& BoneName, bool bRebroadcast = true );
-
-	// Sets the selected morph target
-	void SetSelectedMorphTargets(class USkeletalMesh *SkeletonMesh, const TArray<FName>& SelectedMorphTargetNames);
-
-	/** Helper method to clear out any selected bones */
-	void ClearSelectedBones();
-
-	/** Sets the selected socket to preview */
-	void SetSelectedSocket( const FSelectedSocketInfo& SocketInfo, bool bRebroadcast = true );
-
-	/** Duplicates and selects the socket specified (used when Alt-Dragging in the viewport ) */
-	void DuplicateAndSelectSocket( const FSelectedSocketInfo& SocketInfoToDuplicate, const FName& NewParentBoneName = FName() );
-
-	/** Clears the selected socket (removes both the rotate/transform widget and clears the details panel) */
-	void ClearSelectedSocket();
-
-	/** Rename socket to new name */
-	void RenameSocket( USkeletalMeshSocket* Socket, const FName& NewSocketName );
-
-	/** Reparent socket to new parent */
-	void ChangeSocketParent( USkeletalMeshSocket* Socket, const FName& NewSocketParent );
 
 	/** Clears the selected wind actor */
 	void ClearSelectedWindActor();
@@ -128,46 +80,8 @@ public:
 	/* Open details panel for the skeletal preview mesh */
 	FReply OnClickEditMesh();
 
-	/** Generates a unique socket name from the input name, by changing the FName's number */
-	FName GenerateUniqueSocketName( FName InName );
-
-	/** Function to tell you if a socket name already exists in a given array of sockets */
-	bool DoesSocketAlreadyExist( const class USkeletalMeshSocket* InSocket, const FText& InSocketName, const TArray< USkeletalMeshSocket* >& InSocketArray ) const;
-
-	/** Creates a new skeletal mesh component with the right master pose component set */
-	USkeletalMeshComponent*	CreateNewSkeletalMeshComponent();
-
-	/** Handler for a user removing a mesh in the loaded meshes panel */
-	void RemoveAdditionalMesh(USkeletalMeshComponent* MeshToRemove);
-
-	/** Cleans up any additional meshes that have been loaded */
-	void ClearAllAdditionalMeshes();
-
-	/** Adds to the viewport all the attached preview objects that the current skeleton and mesh contains */
-	void AddPreviewAttachedObjects();
-
-	/** Attaches an object to the preview component using the supplied attach name, returning whether it was successfully attached or not */
-	bool AttachObjectToPreviewComponent( UObject* Object, FName AttachTo, FPreviewAssetAttachContainer* PreviewAssetContainer = NULL );
-
-	/**Removes a currently attached object from the preview component */
-	void RemoveAttachedObjectFromPreviewComponent(UObject* Object, FName AttachedTo);
-
-	/** Get the viewport scene component for the specified attached asset */
-	USceneComponent* GetComponentForAttachedObject(UObject* Asset, FName AttachedTo);
-
-	/** Removes attached components from the preview component. (WARNING: There is a possibility that this function will
-	 *  remove the wrong component if 2 of the same type (same UObject) are attached at the same location!
-	 *
-	 * @param bRemovePreviewAttached	Specifies whether all attached components are removed or just the ones
-	 *									that haven't come from the target skeleton.
-	 */
-	void RemoveAttachedComponent(bool bRemovePreviewAttached = true);
-
-	/** Destroy the supplied component (and its children) */
-	void CleanupComponent(USceneComponent* Component);
-
 	/** Returns the editors preview scene */
-	FAdvancedPreviewScene& GetPreviewScene() { return PreviewScene; }
+	TSharedRef<FAnimationEditorPreviewScene> GetPreviewScene() const;
 
 	/** Gets called when it's clicked via mode tab - Reinitialize the mode **/
 	void ReinitMode();
@@ -178,20 +92,33 @@ public:
 	/** Called when the blend profile tab selects a profile */
 	void SetSelectedBlendProfile(UBlendProfile* InBlendProfile);
 
-	/** Check whether this Persona instance is recording */
-	bool IsRecording() const;
+	/** Handle sections changing - broadcasts event */
+	void HandleSectionsChanged();
 
-	/** Stop recording in this Persona instance */
-	void StopRecording();
+	/** Handle curves changing - broadcasts event */
+	void HandleCurvesChanged();
 
-	/** Get the currently recording animation */
-	UAnimSequence* GetCurrentRecording() const;
+	/** Handle anim notifes changing - broadcast delegate */
+	void HandleAnimNotifiesChanged();
 
-	/** Get the currently recording animation time */
-	float GetCurrentRecordingTime() const;
+	/** Handle general object selection */
+	void HandleObjectsSelected(const TArray<UObject*>& InObjects);
+	void HandleObjectSelected(UObject* InObject);
+
+	/** Handle when a viewport widget is created */
+	void HandleViewportCreated(const TSharedRef<IPersonaViewport>& InViewport);
+
+	/** Handling opening a new asset from within the editor */
+	void HandleOpenNewAsset(UObject* InNewAsset);
+
+	/** Get the object to be displayed in the asset properties */
+	UObject* HandleGetObject();
 
 	/** Toggle playback of the current animation */
 	void TogglePlayback();
+
+	/** Store a ptr to the anim browser when it is created */
+	void HandleAnimationSequenceBrowserCreated(const TSharedRef<class IAnimationSequenceBrowser>& InSequenceBrowser);
 
 public:
 	//~ Begin IToolkit Interface
@@ -236,11 +163,14 @@ public:
 	bool CanShowReferencePose() const;
 	void ShowReferencePose(bool bReferencePose);
 
-	/* Handle error checking for additive base pose */
-	bool ShouldDisplayAdditiveScaleErrorMessage();
-
 	/** Validates curve use */
 	void TestSkeletonCurveNamesForUse() const;
+
+	/** Get the skeleton tree this Persona editor is hosting */
+	TSharedRef<class ISkeletonTree> GetSkeletonTree() const { return SkeletonTree.ToSharedRef(); }
+
+	/** Get the Persona toolkit embedded in this editor */
+	TSharedRef<IPersonaToolkit> GetPersonaToolkit() const { return PersonaToolkit.ToSharedRef(); }
 
 protected:
 	bool IsPreviewAssetEnabled() const;
@@ -259,6 +189,7 @@ protected:
 	virtual bool CanRemovePosePin() const override;
 	virtual void Compile() override;
 	virtual void OnGraphEditorFocused(const TSharedRef<class SGraphEditor>& InGraphEditor) override;
+	virtual void OnGraphEditorBackgrounded(const TSharedRef<SGraphEditor>& InGraphEditor) override;
 	virtual void OnConvertToSequenceEvaluator() override;
 	virtual void OnConvertToSequencePlayer() override;
 	virtual void OnConvertToBlendSpaceEvaluator() override;
@@ -291,14 +222,11 @@ protected:
 	virtual void SaveAsset_Execute() override;
 	// End of FAssetEditorToolkit
 
-	// Generic Command handlers
-	void OnCommandGenericDelete();
-
 	// Pose watch handler
 	void OnTogglePoseWatch();
 protected:
 	// 
-	TSharedPtr<SDockTab> OpenNewAnimationDocumentTab(UObject* InAnimAsset);
+	TSharedPtr<SDockTab> OpenNewAnimationDocumentTab(UAnimationAsset* InAnimAsset);
 
 	// Creates an editor widget for a specified animation document and returns the document link 
 	TSharedPtr<SWidget> CreateEditorWidgetForAnimDocument(UObject* InAnimAsset, FString& OutDocumentLink);
@@ -312,25 +240,15 @@ protected:
 	/** Clear up Preview Mesh's AnimNotifyStates. Called when undo or redo**/
 	void ClearupPreviewMeshAnimNotifyStates();
 
-	/** Handler connected to open skeleton so we get notified when it changes */
-	void OnSkeletonHierarchyChanged();
-
 protected:
 	//~ IToolkit interface
 	virtual void GetSaveableObjects(TArray<UObject*>& OutObjects) const override;
 
 protected:
 	USkeleton* TargetSkeleton;
-	TWeakObjectPtr<UObject> CachedPreviewAsset;
 
 public:
-	class UDebugSkelMeshComponent* PreviewComponent;
-
-	// Array of loaded additional meshes
-	TArray<USkeletalMeshComponent*> AdditionalMeshes;
-
 	// The animation document currently being edited
-	mutable TWeakObjectPtr<UObject> SharedAnimAssetBeingEdited;
 	TWeakPtr<SDockTab> SharedAnimDocumentTab;
 
 public:
@@ -342,53 +260,12 @@ public:
 	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
 	/** Shared data between modes - for now only used for viewport **/
-	FPersonaModeSharedData ModeSharedData;
+	TSharedPtr<IPersonaViewportState> ViewportState;
 
 	/** holding this pointer to refresh persona mesh detials tab when LOD is changed **/
 	class IDetailLayoutBuilder* PersonaMeshDetailLayout;
-private:
-	// called when animation asset has been changed
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnAnimChangedMulticaster, UAnimationAsset* )
-	// Called when the preview mesh has been changed
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnPreviewMeshChangedMulticaster, USkeletalMesh* )
-	// Called when a socket is selected
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectSocket, const struct FSelectedSocketInfo& )
-	// Called when a bone is selected
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectBone, const FName& )
-	// Called when a blend profile is selected in the blend profile tab
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectBlendProfile, UBlendProfile*)
-	// Called when the preview viewport is created
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnCreateViewport, TWeakPtr<SAnimationEditorViewportTabBody> )
+
 public:
-	// Called when Persona refreshes
-	typedef FSimpleMulticastDelegate::FDelegate FOnPersonaRefresh;
-
-	/** Registers a delegate to be called when Persona is Refreshed */
-	void RegisterOnPersonaRefresh(const FOnPersonaRefresh& Delegate)
-	{
-		OnPersonaRefresh.Add(Delegate);
-	}
-
-	/** Unregisters refresh delegate */
-	void UnregisterOnPersonaRefresh(SWidget* Widget)
-	{
-		OnPersonaRefresh.RemoveAll(Widget);
-	}
-
-	// anim changed 
-	typedef FOnAnimChangedMulticaster::FDelegate FOnAnimChanged;
-
-	/** Registers a delegate to be called after the preview animation has been changed */
-	void RegisterOnAnimChanged(const FOnAnimChanged& Delegate)
-	{
-		OnAnimChanged.Add(Delegate);
-	}
-
-	/** Unregisters a delegate to be called after the preview animation has been changed */
-	void UnregisterOnAnimChanged(SWidget* Widget)
-	{
-		OnAnimChanged.RemoveAll(Widget);
-	}
 
 	// Called after an undo is performed to give child widgets a chance to refresh
 	typedef FSimpleMulticastDelegate::FDelegate FOnPostUndo;
@@ -405,50 +282,8 @@ public:
 		OnPostUndo.RemoveAll(Widget);
 	}
 
-	// preview mesh changed 
-	typedef FOnPreviewMeshChangedMulticaster::FDelegate FOnPreviewMeshChanged;
-
-	/** Registers a delegate to be called when the preview mesh is changed */
-	void RegisterOnPreviewMeshChanged(const FOnPreviewMeshChanged& Delegate)
-	{
-		OnPreviewMeshChanged.Add(Delegate);
-	}
-
-	/** Unregisters a delegate to be called when the preview mesh is changed */
-	void UnregisterOnPreviewMeshChanged(SWidget* Widget)
-	{
-		OnPreviewMeshChanged.RemoveAll(Widget);
-	}
-
-	// Bone selected
-	typedef FOnSelectBone::FDelegate FOnBoneSelected;
-
-	/** Registers a delegate to be called when the selected bone is changed */
-	void RegisterOnBoneSelected( const FOnBoneSelected& Delegate )
-	{
-		OnBoneSelected.Add( Delegate );
-	}
-
-	/** Unregisters a delegate to be called when the selected bone is changed */
-	void UnregisterOnBoneSelected( SWidget* Widget )
-	{
-		OnBoneSelected.RemoveAll( Widget );
-	}
-
-	// Socket selected
-	typedef FOnSelectSocket::FDelegate FOnSocketSelected;
-
-	/** Registers a delegate to be called when the selected socket is changed */
-	void RegisterOnSocketSelected( const FOnSocketSelected& Delegate )
-	{
-		OnSocketSelected.Add( Delegate );
-	}
-
-	/** Unregisters a delegate to be called when the selected socket is changed */
-	void UnregisterOnSocketSelected(SWidget* Widget)
-	{
-		OnSocketSelected.RemoveAll( Widget );
-	}
+	/** Delegate called after an undo operation for child widgets to refresh */
+	FSimpleMulticastDelegate OnPostUndo;
 
 	typedef FOnSelectBlendProfile::FDelegate FOnBlendProfileSelected;
 
@@ -460,36 +295,6 @@ public:
 	void UnregisterOnBlendProfileSelected(SWidget* Widget)
 	{
 		OnBlendProfileSelected.RemoveAll(Widget);
-	}
-
-	// Called when selection is cleared
-	typedef FSimpleMulticastDelegate::FDelegate FOnAllDeselected;
-
-	/** Registers a delegate to be called when all bones/sockets are deselected */
-	void RegisterOnDeselectAll(const FOnAllDeselected& Delegate)
-	{
-		OnAllDeselected.Add( Delegate );
-	}
-
-	/** Unregisters a delegate to be called when all bones/sockets are deselected */
-	void UnregisterOnDeselectAll(SWidget* Widget)
-	{
-		OnAllDeselected.RemoveAll( Widget );
-	}
-
-	// Called when the skeleton tree has been changed (socket added/deleted/etc)
-	typedef FSimpleMulticastDelegate::FDelegate FOnSkeletonTreeChanged;
-
-	/** Registers a delegate to be called when the skeleton tree has changed */
-	void RegisterOnChangeSkeletonTree(const FOnSkeletonTreeChanged& Delegate)
-	{
-		OnSkeletonTreeChanged.Add( Delegate );
-	}
-
-	/** Unregisters a delegate to be called when all bones/sockets are deselected */
-	void UnregisterOnChangeSkeletonTree(SWidget* Widget)
-	{
-		OnSkeletonTreeChanged.RemoveAll( Widget );
 	}
 
 	// Called when the notifies of the current animation are changed
@@ -558,21 +363,6 @@ public:
 		OnViewportCreated.RemoveAll( Widget );
 	}
 
-	// Called when generic delete happens
-	typedef FSimpleMulticastDelegate::FDelegate FOnDeleteGeneric;
-
-	/** Registers a delegate to be called when Persona receives a generic delete command */
-	void RegisterOnGenericDelete(const FOnDeleteGeneric& Delegate)
-	{
-		OnGenericDelete.Add(Delegate);
-	}
-
-	/** Unregisters a delegate to be called when Persona receives a generic delete command */
-	void UnregisterOnGenericDelete(SWidget* Widget)
-	{
-		OnGenericDelete.RemoveAll(Widget);
-	}
-
 	/** Broadcasts section changes */
 	FSimpleMulticastDelegate OnSectionsChanged;
 
@@ -591,31 +381,6 @@ public:
 		OnSectionsChanged.RemoveAll(Widget);
 	}
 
-	// Called when the notifies of the current animation are changed
-	typedef FSimpleMulticastDelegate::FDelegate FOnLODChanged;
-
-	/** Registers a delegate to be called when the skeleton anim notifies have been changed */
-	void RegisterOnLODChanged(const FOnLODChanged& Delegate)
-	{
-		OnLODChanged.Add(Delegate);
-	}
-
-	/** Unregisters a delegate to be called when the skeleton anim notifies have been changed */
-	void UnregisterOnLODChanged(SWidget* Widget)
-	{
-		OnLODChanged.RemoveAll(Widget);
-	}
-
-	/** Delegate for when the skeletons animation notifies have been changed */
-	FSimpleMulticastDelegate OnLODChanged;
-
-	/** Apply Compression to list of animations */
-	void ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
-	/** Export to FBX files of the list of animations */
-	void ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
-	/** Add looping interpolation to the list of animations */
-	void AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
-
 protected:
 	/** Undo Action**/
 	void UndoAction();
@@ -624,32 +389,8 @@ protected:
 
 protected:
 
-	/** Called when persona is refreshed through an external action (reimport etc) */
-	FSimpleMulticastDelegate OnPersonaRefresh;
-
-	/** Delegate called after an undo operation for child widgets to refresh */
-	FSimpleMulticastDelegate OnPostUndo;	
-
-	/**	Broadcasts whenever the animation changes */
-	FOnAnimChangedMulticaster OnAnimChanged;
-
-	/** Broadcasts whenever the preview mesh changes */
-	FOnPreviewMeshChangedMulticaster OnPreviewMeshChanged;
-	
-	/** Delegate for when a socket is selected by clicking its hit point */
-	FOnSelectSocket OnSocketSelected;
-
-	/** Delegate for when a bone is selected by clicking its hit point */
-	FOnSelectBone OnBoneSelected;
-
 	/** Delegate for when a blend profile is selected in the blend profile tab */
 	FOnSelectBlendProfile OnBlendProfileSelected;
-
-	/** Delegate for clearing the current skeleton bone/socket selection */
-	FSimpleMulticastDelegate OnAllDeselected;
-
-	/** Delegate for when the skeleton tree has changed (e.g. a socket has been duplicated in the viewport) */
-	FSimpleMulticastDelegate OnSkeletonTreeChanged;
 
 	/** Delegate for when the preview viewport is created */
 	FOnCreateViewport OnViewportCreated;
@@ -657,26 +398,10 @@ protected:
 	/** Delegate for changing / updating of track curves panel */
 	FSimpleMulticastDelegate OnTrackCurvesChanged;
 
-	/**
-	 * Delegate for handling generic delete command
-	 * Register to this if you want the generic delete command (delete key) from the editor. Also
-	 * remember that the user may be using another part of the editor when you get the broadcast so
-	 * make sure not to delete unless the user intends it.
-	 */
-	FSimpleMulticastDelegate OnGenericDelete;
-
 	/** Persona toolbar builder class */
 	TSharedPtr<class FPersonaToolbar> PersonaToolbar;
 
 private:
-
-	/** Recording animation functions **/
-	void RecordAnimation();
-	bool IsRecordAvailable() const;
-	FSlateIcon GetRecordStatusImage() const;
-	FText GetRecordStatusTooltip() const;
-	FText GetRecordStatusLabel() const;
-	FText GetRecordMenuLabel() const;
 
 	/** Animation menu functions **/
 	void OnApplyCompression();
@@ -711,6 +436,8 @@ private:
 	TSharedRef< SWidget > GenerateCreateAssetMenu( USkeleton* Skeleton ) const;
 	void FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const;
 	void FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const;
+	void FillInsertPoseMenu(FMenuBuilder& MenuBuilder) const;
+	void InsertCurrentPoseToAsset(const FAssetData& NewPoseAssetData);
 	void CreateAnimation(const TArray<UObject*> NewAssets, int32 Option);
 	void CreatePoseAsset(const TArray<UObject*> NewAssets, int32 Option);
 
@@ -718,8 +445,6 @@ private:
 	void ExtendMenu();
 	/** update skeleton ref pose based on current preview mesh */
 	void UpdateSkeletonRefPose();
-	/** set preview mesh internal use only. The mesh should be verified by now.  */
-	void SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh);
 
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;
@@ -727,14 +452,20 @@ private:
 	/** Called immediately prior to a blueprint compilation */
 	void OnBlueprintPreCompile(UBlueprint* BlueprintToCompile);
 
+	/** Post compile we copy values between preview & defaults */
+	void OnPostCompile();
+
+	/** Helper function used to keep nodes in preview & instance in sync */
+	struct FAnimNode_Base* FindAnimNode(class UAnimGraphNode_Base* AnimGraphNode) const;
+
+	/** Handle a pin's default value changing be propagating it to the preview */
+	void HandlePinDefaultValueChanged(UEdGraphPin* InPinThatChanged);
+
 	/** The extender to pass to the level editor to extend it's window menu */
 	TSharedPtr<FExtender> MenuExtender;
 
 	/** Toolbar extender */
 	TSharedPtr<FExtender> ToolbarExtender;
-
-	/** Preview scene for the editor */
-	FAdvancedPreviewScene PreviewScene;
 
 	/** Brush to use as a dirty marker for assets */
 	const FSlateBrush* AssetDirtyBrush;
@@ -743,17 +474,22 @@ private:
 	TSharedPtr<class SWidget> PreviewEditor;
 
 	/** Sequence Browser **/
-	TWeakPtr<class SAnimationSequenceBrowser> SequenceBrowser;
+	TWeakPtr<class IAnimationSequenceBrowser> SequenceBrowser;
 
 	/** Handle to the registered OnPropertyChangedHandle delegate */
 	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
 
-	/** Last Cached LOD value of Preview Mesh Component */
-	int32 LastCachedLODForPreviewComponent;
+	/** Persona toolkit */
+	TSharedPtr<class IPersonaToolkit> PersonaToolkit;
 
-	/** Handle additive anim scale validation */
-	bool bDoesAdditiveRefPoseHaveZeroScale;
-	FGuid RefPoseGuid;
+	/** Skeleton tree */
+	TSharedPtr<class ISkeletonTree> SkeletonTree;
+
+	// selected skeletal control anim graph node 
+	TWeakObjectPtr<class UAnimGraphNode_Base> SelectedAnimGraphNode;
 
 	static const FName PreviewSceneSettingsTabId;
+
+	/** Delegate handle registered for when pin default values change */
+	FDelegateHandle OnPinDefaultValueChangedHandle;
 };

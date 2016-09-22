@@ -5,7 +5,7 @@
 #include "AutomationCommon.h"
 #include "ImageUtils.h"
 #include "ShaderCompiler.h"		// GShaderCompilingManager
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameStateBase.h"
 #include "Scalability.h"
 
 #if WITH_EDITOR
@@ -272,8 +272,8 @@ bool FWaitForMapToLoadCommand::Update()
 
 	if ( TestWorld && TestWorld->AreActorsInitialized() )
 	{
-		AGameMode* GameMode = TestWorld->GetAuthGameMode();
-		if ( GameMode && GameMode->HasMatchStarted() )
+		AGameStateBase* GameState = TestWorld->GetGameState();
+		if (GameState && GameState->HasMatchStarted() )
 		{
 			return true;
 		}

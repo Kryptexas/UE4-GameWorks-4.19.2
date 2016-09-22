@@ -6257,7 +6257,21 @@ void FSlateApplication::OnWindowClose( const TSharedRef< FGenericWindow >& Platf
 
 	if ( Window.IsValid() )
 	{
-		Window->RequestDestroyWindow();
+		bool bCanCloseWindow = true;
+		TSharedPtr< SViewport > CurrentGameViewportWidget = GameViewportWidget.Pin();
+		if (CurrentGameViewportWidget.IsValid())
+		{
+			TSharedPtr< ISlateViewport > SlateViewport = CurrentGameViewportWidget->GetViewportInterface().Pin();
+			if (SlateViewport.IsValid())
+			{
+				bCanCloseWindow = !SlateViewport->OnRequestWindowClose().bIsHandled;
+			}
+		}
+		
+		if (bCanCloseWindow)
+		{
+		    Window->RequestDestroyWindow();
+		}	 
 	}
 }
 

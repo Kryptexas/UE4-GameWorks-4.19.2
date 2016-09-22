@@ -7,6 +7,7 @@
 #include "SSearchBox.h"
 #include "STextEntryPopup.h"
 #include "ScopedTransaction.h"
+#include "IPersonaToolkit.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonBlendProfiles"
 
@@ -117,7 +118,7 @@ void SSkeletonBlendProfiles::Construct(const FArguments& InArgs)
 	TSharedPtr<FPersona> SharedPersona = WeakPersona.Pin();
 	if(SharedPersona.IsValid())
 	{
-		CurrentSkeleton = SharedPersona->GetSkeleton();
+		CurrentSkeleton = SharedPersona->GetPersonaToolkit()->GetSkeleton();
 
 		ChildSlot
 		[

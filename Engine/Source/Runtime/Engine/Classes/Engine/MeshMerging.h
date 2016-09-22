@@ -336,6 +336,10 @@ struct FMeshMergingSettings
 	/** Whether or not vertex data such as vertex colours should be used when baking out materials */
 	UPROPERTY(EditAnywhere, Category = MaterialSettings, meta = (editcondition = "bMergeMaterials"))
 	bool bUseVertexDataForBakingMaterial;
+
+	// Whether or not to calculate varying output texture sizes according to their importance in the final atlas texture
+	UPROPERTY(Category = MaterialSettings, EditAnywhere)
+	bool bUseTextureBinning;
 			
 	UPROPERTY()
 	bool bCalculateCorrectLODModel_DEPRECATED;
@@ -382,6 +386,8 @@ struct FMeshMergingSettings
 		, bMergePhysicsData(false)
 		, bMergeMaterials(false)
 		, bBakeVertexDataToMesh(false)
+		, bUseVertexDataForBakingMaterial(true)
+		, bUseTextureBinning(false)
 		, bCalculateCorrectLODModel_DEPRECATED(false)
 		, LODSelectionType(EMeshLODSelectionType::CalculateLOD)
 		, ExportSpecificLOD_DEPRECATED(0)

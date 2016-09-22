@@ -1348,7 +1348,7 @@ void FAssetContextMenu::ExecuteReimport()
 	// Reimport all selected assets
 	TArray<UObject *> CopyOfSelectedAssets;
 	for (const FAssetData &SelectedAsset : SelectedAssets)
-	{
+		{
 		UObject *Asset = SelectedAsset.GetAsset();
 		CopyOfSelectedAssets.Add(Asset);
 	}

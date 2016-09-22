@@ -7,6 +7,16 @@
 
 //#include "../Private/SkeletalRenderCPUSkin.h"
 
+/** data for a single skinned skeletal mesh vertex */
+struct FFinalSkinVertex
+{
+	FVector			Position;
+	FPackedNormal	TangentX;
+	FPackedNormal	TangentZ;
+	float			U;
+	float			V;
+};
+
 /**
 * Interface for mesh rendering data
 */

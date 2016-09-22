@@ -13,6 +13,12 @@
 
 DEFINE_LOG_CATEGORY(LogVehicles);
 
+DECLARE_STATS_GROUP(TEXT("PhsyXVehicleManager"), STATGROUP_PhsyXVehicleManager, STATCAT_Advanced);
+DECLARE_CYCLE_STAT(TEXT("PxVehicleSuspensionRaycasts"), STAT_PhysXVehicleManager_PxVehicleSuspensionRaycasts, STATGROUP_PhsyXVehicleManager);
+DECLARE_CYCLE_STAT(TEXT("PxUpdateVehicles"), STAT_PhysXVehicleManager_PxUpdateVehicles, STATGROUP_PhsyXVehicleManager);
+DECLARE_CYCLE_STAT(TEXT("UpdateTireFrictionTable"), STAT_PhysXVehicleManager_UpdateTireFrictionTable, STATGROUP_PhsyXVehicleManager);
+DECLARE_CYCLE_STAT(TEXT("TickVehicles"), STAT_PhysXVehicleManager_TickVehicles, STATGROUP_PhsyXVehicleManager);
+
 bool FPhysXVehicleManager::bUpdateTireFrictionTable = false;
 PxVehicleDrivableSurfaceToTireFrictionPairs* FPhysXVehicleManager::SurfaceTirePairs = NULL;
 uint32 FPhysXVehicleManager::VehicleSetupTag = 0;
@@ -266,21 +272,26 @@ void FPhysXVehicleManager::Update( float DeltaTime )
 
 	if ( bUpdateTireFrictionTable )
 	{
+		SCOPE_CYCLE_COUNTER(STAT_PhysXVehicleManager_UpdateTireFrictionTable);
 		bUpdateTireFrictionTable = false;
 		UpdateTireFrictionTableInternal();
 	}
 
 	// Suspension raycasts
 	{
+		SCOPE_CYCLE_COUNTER(STAT_PhysXVehicleManager_PxVehicleSuspensionRaycasts);
 		SCOPED_SCENE_READ_LOCK(Scene);
 		PxVehicleSuspensionRaycasts( WheelRaycastBatchQuery, PVehicles.Num(), PVehicles.GetData(), WheelQueryResults.Num(), WheelQueryResults.GetData() );
 	}
 	
 
 	// Tick vehicles
-	for ( int32 i = Vehicles.Num() - 1; i >= 0; --i )
 	{
-		Vehicles[i]->TickVehicle( DeltaTime );
+		SCOPE_CYCLE_COUNTER(STAT_PhysXVehicleManager_TickVehicles);
+		for (int32 i = Vehicles.Num() - 1; i >= 0; --i)
+		{
+			Vehicles[i]->TickVehicle(DeltaTime);
+		}
 	}
 
 #if PX_DEBUG_VEHICLE_ON
@@ -311,6 +322,7 @@ void FPhysXVehicleManager::PreTick( float DeltaTime )
 
 void FPhysXVehicleManager::UpdateVehicles( float DeltaTime )
 {
+	SCOPE_CYCLE_COUNTER(STAT_PhysXVehicleManager_PxUpdateVehicles);
 	SCOPED_SCENE_WRITE_LOCK(Scene);
 	PxVehicleUpdates( DeltaTime, GetSceneGravity_AssumesLocked(), *SurfaceTirePairs, PVehicles.Num(), PVehicles.GetData(), PVehiclesWheelsStates.GetData());
 }

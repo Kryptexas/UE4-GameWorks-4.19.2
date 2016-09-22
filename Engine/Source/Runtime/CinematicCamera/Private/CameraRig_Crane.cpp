@@ -43,8 +43,7 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 		if (PreviewMesh_CraneBase)
 		{
 			PreviewMesh_CraneBase->SetStaticMesh(CraneBaseMesh.Object);
-			PreviewMesh_CraneBase->AlwaysLoadOnClient = false;
-			PreviewMesh_CraneBase->AlwaysLoadOnServer = false;
+			PreviewMesh_CraneBase->bIsEditorOnly = true;
 			PreviewMesh_CraneBase->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 			PreviewMesh_CraneBase->bHiddenInGame = true;
 			PreviewMesh_CraneBase->CastShadow = false;
@@ -58,8 +57,7 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 		if (PreviewMesh_CraneArm)
 		{
 			PreviewMesh_CraneArm->SetStaticMesh(CraneArmMesh.Object);
-			PreviewMesh_CraneArm->AlwaysLoadOnClient = false;
-			PreviewMesh_CraneArm->AlwaysLoadOnServer = false;
+			PreviewMesh_CraneArm->bIsEditorOnly = true;
 			PreviewMesh_CraneArm->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 			PreviewMesh_CraneArm->bHiddenInGame = true;
 			PreviewMesh_CraneArm->CastShadow = false;
@@ -76,8 +74,7 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 		if (PreviewMesh_CraneMount)
 		{
 			PreviewMesh_CraneMount->SetStaticMesh(CraneArmMount.Object);
-			PreviewMesh_CraneMount->AlwaysLoadOnClient = false;
-			PreviewMesh_CraneMount->AlwaysLoadOnServer = false;
+			PreviewMesh_CraneMount->bIsEditorOnly = true;
 			PreviewMesh_CraneMount->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 			PreviewMesh_CraneMount->bHiddenInGame = true;
 			PreviewMesh_CraneMount->CastShadow = false;
@@ -94,8 +91,7 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 		if (PreviewMesh_CraneCounterWeight)
 		{
 			PreviewMesh_CraneCounterWeight->SetStaticMesh(CraneArmCW.Object);
-			PreviewMesh_CraneCounterWeight->AlwaysLoadOnClient = false;
-			PreviewMesh_CraneCounterWeight->AlwaysLoadOnServer = false;
+			PreviewMesh_CraneCounterWeight->bIsEditorOnly = true;
 			PreviewMesh_CraneCounterWeight->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 			PreviewMesh_CraneCounterWeight->bHiddenInGame = true;
 			PreviewMesh_CraneCounterWeight->CastShadow = false;

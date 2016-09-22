@@ -23,7 +23,6 @@ void SAnimCompositePanel::Construct(const FArguments& InArgs)
 		.InputMax(InArgs._InputMax)
 		.OnSetInputViewRange(InArgs._OnSetInputViewRange));
 
-	Persona = InArgs._Persona;
 	Composite = InArgs._Composite;
 	CompositeEditor = InArgs._CompositeEditor;
 

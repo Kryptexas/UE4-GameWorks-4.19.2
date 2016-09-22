@@ -129,6 +129,7 @@ private:
 	// Remove the specified anim segment
 	void RemoveAnimSegment(int32 AnimSegmentIndex);
 	void RevertToParent(int32 AnimSegmentIndex);
+	void OpenAsset(int32 AnimSegmentIndex);
 	void FillSubMenu(FMenuBuilder& MenuBuilder, int32 AnimSegmentIndex);
 
 	/** Bind UI commands for this widget */

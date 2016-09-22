@@ -43,12 +43,8 @@ class SMorphTargetViewer : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SMorphTargetViewer )
-		: _Persona()
 	{}
-		
-		/* The Persona that owns this table */
-		SLATE_ARGUMENT( TWeakPtr< FPersona >, Persona )
-
+	
 	SLATE_END_ARGS()
 
 	/**
@@ -57,7 +53,7 @@ public:
 	* @param InArgs - Arguments passed from Slate
 	*
 	*/
-	void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo );
 
 	/**
 	* Destructor - resets the morph targets
@@ -127,6 +123,9 @@ public:
 	*/
 	void OnDeleteMorphTargets();
 
+	/** Handler for copying morph taret names */
+	void OnCopyMorphTargetNames();
+
 	/**
 	* Accessor so our rows can grab the filtertext for highlighting
 	*
@@ -154,8 +153,11 @@ private:
 	*/
 	void CreateMorphTargetList( const FString& SearchText = FString() );
 
+	// Sets the selected morph target
+	void SetSelectedMorphTargets(const TArray<FName>& SelectedMorphTargetNames) const;
+
 	/** Pointer back to the Persona that owns us */
-	TWeakPtr<FPersona> PersonaPtr;
+	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
 
 	/** Box to filter to a specific morph target name */
 	TSharedPtr<SSearchBox>	NameFilterBox;

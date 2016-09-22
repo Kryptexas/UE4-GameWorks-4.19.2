@@ -3565,7 +3565,9 @@ void FBodyInstance::WakeInstance()
 #if WITH_PHYSX
 	ExecuteOnPxRigidDynamicReadWrite(this, [&](PxRigidDynamic* PRigidDynamic)
 	{
-		if (!IsRigidBodyKinematic_AssumesLocked(PRigidDynamic))
+		// Only do the wake if we are not kinematic and we have a scene. If a body is not in a
+		// scene yet (could have been defered) then it will wake when it is added to the scene
+		if (PRigidDynamic->getScene() && !IsRigidBodyKinematic_AssumesLocked(PRigidDynamic))
 		{
 			PRigidDynamic->wakeUp();
 		}

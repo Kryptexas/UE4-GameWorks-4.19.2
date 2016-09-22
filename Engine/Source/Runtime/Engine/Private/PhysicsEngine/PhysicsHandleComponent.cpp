@@ -241,6 +241,8 @@ void UPhysicsHandleComponent::ReleaseComponent()
 
 		bRotationConstrained = false;
 
+		GrabbedComponent->WakeRigidBody(GrabbedBoneName);
+
 		GrabbedComponent = NULL;
 		GrabbedBoneName = NAME_None;
 	}

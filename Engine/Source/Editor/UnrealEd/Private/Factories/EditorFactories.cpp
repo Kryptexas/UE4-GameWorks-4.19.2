@@ -115,6 +115,8 @@
 #include "Sound/SoundNodeDialoguePlayer.h"
 #include "Factories/CanvasRenderTarget2DFactoryNew.h"
 #include "ImageUtils.h"
+#include "Engine/PreviewMeshCollection.h"
+#include "Factories/PreviewMeshCollectionFactory.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -2500,7 +2502,6 @@ UObject* USoundConcurrencyFactory::FactoryCreateNew(UClass* Class, UObject* InPa
 {
 	return NewObject<USoundConcurrency>(InParent, Name, Flags);
 }
-
 
 /*------------------------------------------------------------------------------
 	UParticleSystemFactoryNew.
@@ -7510,6 +7511,55 @@ UObject* UDataTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 	return DataTable;
 }
 
+/*------------------------------------------------------------------------------
+ UPreviewMeshCollectionFactory implementation.
+------------------------------------------------------------------------------*/
+
+UPreviewMeshCollectionFactory::UPreviewMeshCollectionFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UPreviewMeshCollection::StaticClass();
+	bCreateNew = true;
+}
+
+FText UPreviewMeshCollectionFactory::GetDisplayName() const
+{
+	return LOCTEXT("PreviewMeshCollection", "Preview Mesh Collection");
+}
+
+FText UPreviewMeshCollectionFactory::GetToolTip() const
+{
+	return LOCTEXT("PreviewMeshCollection_Tooltip", "Preview Mesh Collections are used to build collections of related skeletal meshes that are animated together (such as components of a character)");
+}
+
+bool UPreviewMeshCollectionFactory::ConfigureProperties()
+{
+	if (CurrentSkeleton.IsValid())
+	{
+		return true;
+	}
+
+	USkeleton* Skeleton = ChooseSkeleton();
+	if (Skeleton != nullptr)
+	{
+		CurrentSkeleton = Skeleton;
+		return true;
+	}
+
+	return false;
+}
+
+UObject* UPreviewMeshCollectionFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	UPreviewMeshCollection* NewCollection = nullptr;
+	if (CurrentSkeleton.IsValid())
+	{
+		NewCollection = NewObject<UPreviewMeshCollection>(InParent, Name, Flags);
+		NewCollection->Skeleton = CurrentSkeleton.Get();
+	}
+
+	return NewCollection;
+}
 
 #undef LOCTEXT_NAMESPACE
 

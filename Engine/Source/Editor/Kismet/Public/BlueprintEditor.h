@@ -609,9 +609,12 @@ protected:
 
 	/** Whether or not we can redo an undone action */
 	bool CanRedoGraphAction() const;
+	
+	/** Called when the selection changes in the GraphEditor */
+	virtual void OnSelectedNodesChangedImpl(const TSet<class UObject*>& NewSelection);
 
 	/** Called when the selection changes in the GraphEditor */
-	void OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection);
+	void OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection) { OnSelectedNodesChangedImpl(NewSelection); }
 
 	/** Called when an actor is dropped onto the graph editor */
 	void OnGraphEditorDropActor(const TArray< TWeakObjectPtr<AActor> >& Actors, UEdGraph* Graph, const FVector2D& DropLocation);

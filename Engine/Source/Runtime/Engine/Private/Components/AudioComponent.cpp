@@ -31,6 +31,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	VolumeMultiplier = 1.f;
 	bOverridePriority = false;
 	bIsPreviewSound = false;
+	bIsPaused = false;
 	Priority = 1.f;
 	PitchMultiplier = 1.f;
 	VolumeModulationMin = 1.f;
@@ -42,6 +43,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	OcclusionCheckInterval = 0.1f;
 	ActiveCount = 0;
 
+	AudioDeviceHandle = INDEX_NONE;
 	AudioComponentID = ++AudioComponentIDCounter;
 
 	// TODO: Consider only putting played/active components in to the map
@@ -248,6 +250,8 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			NewActiveSound.bCenterChannelOnly = bCenterChannelOnly;
 			NewActiveSound.bIsPreviewSound = bIsPreviewSound;
 			NewActiveSound.bLocationDefined = !bPreviewComponent;
+			NewActiveSound.bIsPaused = bIsPaused;
+
 			if (NewActiveSound.bLocationDefined)
 			{
 				NewActiveSound.Transform = ComponentToWorld;
@@ -260,6 +264,8 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
 				NewActiveSound.FocusPriorityScale = AttenuationSettingsToApply->GetFocusPriorityScale(AudioDevice->GetGlobalFocusSettings(), FocusFactor);
 			}
+
+			NewActiveSound.bUpdatePlayPercentage = OnAudioPlaybackPercentNative.IsBound() || OnAudioPlaybackPercent.IsBound();
 
 			NewActiveSound.MaxDistance = MaxDistance;
 
@@ -291,8 +297,12 @@ FAudioDevice* UAudioComponent::GetAudioDevice() const
 
 	if (GEngine)
 	{
-		UWorld* World = GetWorld();
-		if (World)
+		if (AudioDeviceHandle != INDEX_NONE)
+		{
+			FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+			AudioDevice = (AudioDeviceManager ? AudioDeviceManager->GetAudioDevice(AudioDeviceHandle) : nullptr);
+		}
+		else if (UWorld* World = GetWorld())
 		{
 			AudioDevice = World->GetAudioDevice();
 		}
@@ -389,6 +399,30 @@ void UAudioComponent::Stop()
 			{
 				AudioDevice->StopActiveSound(MyAudioComponentID);
 			}, GET_STATID(STAT_AudioStopActiveSound));
+		}
+	}
+}
+
+void UAudioComponent::SetPaused(bool bPause)
+{
+	if (bIsPaused != bPause)
+	{
+		bIsPaused = bPause;
+
+		if (bIsActive)
+		{
+			UE_LOG(LogAudio, Verbose, TEXT("%g: Pausing AudioComponent : '%s' with Sound: '%s'"), GetWorld() ? GetWorld()->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT("nullptr"));
+
+			if (FAudioDevice* AudioDevice = GetAudioDevice())
+			{
+				DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.PauseActiveSound"), STAT_AudioPauseActiveSound, STATGROUP_AudioThreadCommands);
+
+				const uint64 MyAudioComponentID = AudioComponentID;
+				FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, bPause]()
+				{
+					AudioDevice->PauseActiveSound(MyAudioComponentID, bPause);
+				}, GET_STATID(STAT_AudioPauseActiveSound));
+			}
 		}
 	}
 }

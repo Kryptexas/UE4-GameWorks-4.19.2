@@ -12,6 +12,8 @@
 #include "Animation/Rig.h"
 #include "Animation/BlendProfile.h"
 #include "MessageLog.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "Engine/PreviewMeshCollection.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
 #define ROOT_BONE_PARENT	INDEX_NONE
@@ -52,6 +54,8 @@ USkeleton::USkeleton(const FObjectInitializer& ObjectInitializer)
 {
 	// Make sure we have somewhere for curve names.
 	SmartNames.AddContainer(AnimCurveMappingName);
+
+	AnimCurveUidVersion = 0;
 }
 
 void USkeleton::PostInitProperties()
@@ -80,7 +84,7 @@ void USkeleton::PostLoad()
 	check(Guid.IsValid());
 
 	// Cache smart name uids for animation curve names
-	CacheAnimCurveMappingNameUids();
+	IncreaseAnimCurveUidVersion();
 }
 
 void USkeleton::PostDuplicate(bool bDuplicateForPIE)
@@ -115,6 +119,7 @@ void USkeleton::Serialize( FArchive& Ar )
 
 			FName RetargetSourceName;
 			FReferencePose RetargetSource;
+			AnimRetargetSources.Empty();
 			for (int32 Index=0; Index<NumOfRetargetSources; ++Index)
 			{
 				Ar << RetargetSourceName;
@@ -454,13 +459,13 @@ void USkeleton::RebuildLinkup(const USkeletalMesh* InSkelMesh)
 
 void USkeleton::UpdateReferencePoseFromMesh(const USkeletalMesh* InSkelMesh)
 {
-	check (InSkelMesh);
+	check(InSkelMesh);
 
-	for (int32 BoneIndex=0; BoneIndex<ReferenceSkeleton.GetNum(); BoneIndex++)
+	for (int32 BoneIndex = 0; BoneIndex < ReferenceSkeleton.GetNum(); BoneIndex++)
 	{
 		// find index from ref pose array
 		const int32 MeshBoneIndex = InSkelMesh->RefSkeleton.FindBoneIndex(ReferenceSkeleton.GetBoneName(BoneIndex));
-		if( MeshBoneIndex != INDEX_NONE )
+		if (MeshBoneIndex != INDEX_NONE)
 		{
 			ReferenceSkeleton.UpdateRefPoseTransform(BoneIndex, InSkelMesh->RefSkeleton.GetRefBonePose()[MeshBoneIndex]);
 		}
@@ -848,6 +853,23 @@ void USkeleton::SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty/*=t
 	PreviewSkeletalMesh = PreviewMesh;
 }
 
+void USkeleton::LoadAdditionalPreviewSkeletalMeshes()
+{
+	AdditionalPreviewSkeletalMeshes.LoadSynchronous();
+}
+
+UPreviewMeshCollection* USkeleton::GetAdditionalPreviewSkeletalMeshes() const
+{
+	return AdditionalPreviewSkeletalMeshes.Get();
+}
+
+void USkeleton::SetAdditionalPreviewSkeletalMeshes(UPreviewMeshCollection* PreviewMeshCollection)
+{
+	Modify();
+
+	AdditionalPreviewSkeletalMeshes = PreviewMeshCollection;
+}
+
 int32 USkeleton::ValidatePreviewAttachedObjects()
 {
 	int32 NumBrokenAssets = PreviewAttachedAssetContainer.ValidatePreviewAttachedObjects();
@@ -959,7 +981,15 @@ FAnimSlotGroup* USkeleton::FindAnimSlotGroup(const FName& InGroupName)
 	});
 }
 
-bool USkeleton::ContainsSlotName(const FName& InSlotName) 
+const FAnimSlotGroup* USkeleton::FindAnimSlotGroup(const FName& InGroupName) const
+{
+	return SlotGroups.FindByPredicate([&InGroupName](const FAnimSlotGroup& Item)
+	{
+		return Item.GroupName == InGroupName;
+	});
+}
+
+bool USkeleton::ContainsSlotName(const FName& InSlotName) const
 {
 	return SlotToGroupNameMap.Contains(InSlotName);
 }
@@ -1082,12 +1112,12 @@ bool USkeleton::AddSmartNameAndModify(FName ContainerName, FName NewDisplayName,
 		{
 			Modify(true);
 			Successful = true;
-			CacheAnimCurveMappingNameUids();
+			IncreaseAnimCurveUidVersion();
 		}
 	}
 	return Successful;
 }
-bool USkeleton::RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName)
+bool USkeleton::RenameSmartnameAndModify(FName ContainerName, SmartName::UID_Type Uid, FName NewName)
 {
 	bool Successful = false;
 	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
@@ -1099,13 +1129,13 @@ bool USkeleton::RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping:
 		{
 			Modify();
 			Successful = RequestedMapping->Rename(Uid, NewName);
-			CacheAnimCurveMappingNameUids();
+			IncreaseAnimCurveUidVersion();
 		}
 	}
 	return Successful;
 }
 
-void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid)
+void USkeleton::RemoveSmartnameAndModify(FName ContainerName, SmartName::UID_Type Uid)
 {
 	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
@@ -1113,18 +1143,18 @@ void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping:
 		Modify();
 		if (RequestedMapping->Remove(Uid))
 		{
-			CacheAnimCurveMappingNameUids();
+			IncreaseAnimCurveUidVersion();
 		}
 	}
 }
 
-void USkeleton::RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSmartNameMapping::UID>& Uids)
+void USkeleton::RemoveSmartnamesAndModify(FName ContainerName, const TArray<SmartName::UID_Type>& Uids)
 {
 	FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
 	{
 		bool bModified = false;
-		for (const FSmartNameMapping::UID& UID : Uids)
+		for (const SmartName::UID_Type& UID : Uids)
 		{
 			if (RequestedMapping->Exists(UID))
 			{
@@ -1136,13 +1166,13 @@ void USkeleton::RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSma
 		if (bModified)
 		{
 			Modify();
-			CacheAnimCurveMappingNameUids();
+			IncreaseAnimCurveUidVersion();
 		}
 	}
 }
 #endif // WITH_EDITOR
 
-bool USkeleton::GetSmartNameByUID(const FName& ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName)
+bool USkeleton::GetSmartNameByUID(const FName& ContainerName, SmartName::UID_Type UID, FSmartName& OutSmartName)
 {
 	const FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
@@ -1164,12 +1194,12 @@ bool USkeleton::GetSmartNameByName(const FName& ContainerName, const FName& InNa
 	return false;
 }
 
-FSmartNameMapping::UID USkeleton::GetUIDByName(const FName& ContainerName, const FName& Name)
+SmartName::UID_Type USkeleton::GetUIDByName(const FName& ContainerName, const FName& Name) const
 {
 	const FSmartNameMapping* RequestedMapping = SmartNames.GetContainerInternal(ContainerName);
 	if (RequestedMapping)
 	{
-		if (const FSmartNameMapping::UID* UID = RequestedMapping->FindUID(Name))
+		if (const SmartName::UID_Type* UID = RequestedMapping->FindUID(Name))
 		{
 			if (UID)
 			{
@@ -1178,7 +1208,7 @@ FSmartNameMapping::UID USkeleton::GetUIDByName(const FName& ContainerName, const
 		}
 	}
 
-	return FSmartNameMapping::MaxUID;
+	return SmartName::MaxUID;
 }
 
 // this does very simple thing.
@@ -1189,7 +1219,7 @@ void USkeleton::VerifySmartName(const FName& ContainerName, FSmartName& InOutSma
 	VerifySmartNameInternal(ContainerName, InOutSmartName);
 	if (ContainerName == USkeleton::AnimCurveMappingName)
 	{
-		CacheAnimCurveMappingNameUids();
+		IncreaseAnimCurveUidVersion();
 	}
 }
 
@@ -1285,7 +1315,7 @@ void USkeleton::VerifySmartNames(const FName&  ContainerName, TArray<FSmartName>
 
 	if (ContainerName == USkeleton::AnimCurveMappingName)
 	{
-		CacheAnimCurveMappingNameUids();
+		IncreaseAnimCurveUidVersion();
 	}
 }
 
@@ -1295,7 +1325,7 @@ FSmartNameMapping* USkeleton::GetOrAddSmartNameContainer(const FName& ContainerN
 	if (Mapping == nullptr)
 	{
 		Modify();
-		CacheAnimCurveMappingNameUids();
+		IncreaseAnimCurveUidVersion();
 		SmartNames.AddContainer(ContainerName);
 		Mapping = SmartNames.GetContainerInternal(ContainerName);		
 	}
@@ -1314,13 +1344,13 @@ void USkeleton::RegenerateGuid()
 	check(Guid.IsValid());
 }
 
-bool USkeleton::RenameSmartName(FName ContainerName, const FSmartNameMapping::UID& Uid, FName NewName)
+bool USkeleton::RenameSmartName(FName ContainerName, const SmartName::UID_Type& Uid, FName NewName)
 {
 	FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(ContainerName);
 	if (Mapping->Exists(Uid))
 	{
 		Modify();
-		CacheAnimCurveMappingNameUids();
+		IncreaseAnimCurveUidVersion();
 		Mapping->Rename(Uid, NewName);
 		return true;
 	}
@@ -1328,18 +1358,81 @@ bool USkeleton::RenameSmartName(FName ContainerName, const FSmartNameMapping::UI
 	return false;
 }
 
-void USkeleton::CacheAnimCurveMappingNameUids()
+void USkeleton::IncreaseAnimCurveUidVersion()
 {
-	const FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(USkeleton::AnimCurveMappingName);
-	if (Mapping != nullptr)
-	{
-		Mapping->FillUidArray(CachedAnimCurveMappingNameUids);
-	}
+	// this will be checked by skeletalmeshcomponent and if it's same, it won't care. If it's different, it will rebuild UID list
+	++AnimCurveUidVersion;
 }
 
-const TArray<FSmartNameMapping::UID>& USkeleton::GetCachedAnimCurveMappingNameUids()
+FCurveMetaData* USkeleton::GetCurveMetaData(const FName& CurveName)
 {
-	return CachedAnimCurveMappingNameUids;
+	FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(USkeleton::AnimCurveMappingName);
+	if (ensureAlways(Mapping))
+	{
+		return Mapping->GetCurveMetaData(CurveName);
+	}
+
+	return nullptr;
+}
+
+const FCurveMetaData* USkeleton::GetCurveMetaData(const FName& CurveName) const
+{
+	const FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(USkeleton::AnimCurveMappingName);
+	if (ensureAlways(Mapping))
+	{
+		return Mapping->GetCurveMetaData(CurveName);
+	}
+
+	return nullptr;
+}
+
+FCurveMetaData* USkeleton::GetCurveMetaData(const FSmartName& CurveName)
+{
+	FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(USkeleton::AnimCurveMappingName);
+	if (ensureAlways(Mapping))
+	{
+		// the name might have changed, make sure it's up-to-date
+		FName DisplayName;
+		Mapping->GetName(CurveName.UID, DisplayName);
+		return Mapping->GetCurveMetaData(DisplayName);
+	}
+
+	return nullptr;
+}
+
+const FCurveMetaData* USkeleton::GetCurveMetaData(const FSmartName& CurveName) const
+{
+	const FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(USkeleton::AnimCurveMappingName);
+	if (ensureAlways(Mapping))
+	{
+		// the name might have changed, make sure it's up-to-date
+		FName DisplayName;
+		Mapping->GetName(CurveName.UID, DisplayName);
+		return Mapping->GetCurveMetaData(DisplayName);
+	}
+
+	return nullptr;
+}
+
+// this is called when you know both flags - called by post serialize
+void USkeleton::AccumulateCurveMetaData(FName CurveName, bool bMaterialSet, bool bMorphtargetSet)
+{
+	if (bMaterialSet || bMorphtargetSet)
+	{
+		const FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(USkeleton::AnimCurveMappingName);
+		if (ensureAlways(Mapping))
+		{
+			// if we don't have name, add one
+			if (Mapping->Exists(CurveName))
+			{
+				FCurveMetaData* CurveMetaData = GetCurveMetaData(CurveName);
+				// we don't want to undo previous flags, if it was true, we just alolw more to it. 
+				CurveMetaData->Type.bMaterial |= bMaterialSet;
+				CurveMetaData->Type.bMorphtarget |= bMorphtargetSet;
+				MarkPackageDirty();
+			}
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -1506,7 +1599,7 @@ void USkeleton::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 UBlendProfile* USkeleton::CreateNewBlendProfile(const FName& InProfileName)
 {
 	Modify();
-	UBlendProfile* NewProfile = NewObject<UBlendProfile>(this, InProfileName, RF_Public);
+	UBlendProfile* NewProfile = NewObject<UBlendProfile>(this, InProfileName, RF_Public | RF_Transactional);
 	BlendProfiles.Add(NewProfile);
 
 	return NewProfile;
@@ -1527,4 +1620,32 @@ UBlendProfile* USkeleton::GetBlendProfile(const FName& InProfileName)
 }
 
 #endif //WITH_EDITOR
+
+USkeletalMeshSocket* USkeleton::FindSocket(FName InSocketName) const
+{
+	int32 DummyIndex;
+	return FindSocketAndIndex(InSocketName, DummyIndex);
+}
+
+USkeletalMeshSocket* USkeleton::FindSocketAndIndex(FName InSocketName, int32& OutIndex) const
+{
+	OutIndex = INDEX_NONE;
+	if (InSocketName == NAME_None)
+	{
+		return nullptr;
+	}
+
+	for (int32 i = 0; i < Sockets.Num(); ++i)
+	{
+		USkeletalMeshSocket* Socket = Sockets[i];
+		if (Socket && Socket->SocketName == InSocketName)
+		{
+			OutIndex = i;
+			return Socket;
+		}
+	}
+
+	return nullptr;
+}
+
 #undef LOCTEXT_NAMESPACE 

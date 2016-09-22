@@ -51,7 +51,8 @@
 #include "Animation/SkeletalMeshActor.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/Character.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameDelegates.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/WorldComposition.h"
@@ -218,16 +219,6 @@ static TAutoConsoleVariable<float> CVarSetOverrideFPS(
 	TEXT("<=0:off, in frames per second, e.g. 60"),
 	ECVF_Cheat);
 #endif // !UE_BUILD_SHIPPING
-
-/** Enum entries represent index to global object referencer stored in UGameEngine */
-enum EGametypeContentReferencerTypes
-{
-	GametypeCommon_ReferencerIndex,
-	GametypeCommon_LocalizedReferencerIndex,
-	GametypeContent_ReferencerIndex,
-	GametypeContent_LocalizedReferencerIndex,
-	MAX_ReferencerIndex
-};
 
 /** Whether texture memory has been corrupted because we ran out of memory in the pool. */
 bool GIsTextureMemoryCorrupted = false;
@@ -1353,7 +1344,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 				// Not having a game info implies being a client.
 				&& ( ( World->GetAuthGameMode() != NULL
 				// NumPlayers and GamePlayer only match in standalone game types and handles the case of splitscreen.
-				&&	World->GetAuthGameMode()->NumPlayers == NumGamePlayers ) ) )
+				&&	World->GetAuthGameMode()->GetNumPlayers() == NumGamePlayers ) ) )
 			{
 				// Happy clamping!
 				FApp::SetDeltaTime(FMath::Min<double>(FApp::GetDeltaTime(), MaxDeltaTime));
@@ -1380,7 +1371,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 void UEngine::ParseCommandline()
 {
 	// If dedicated server, the -nosound, or -benchmark parameters are used, disable sound.
-	if(FParse::Param(FCommandLine::Get(),TEXT("nosound")) || FApp::IsBenchmarking() || IsRunningDedicatedServer() || IsRunningCommandlet())
+	if(FParse::Param(FCommandLine::Get(),TEXT("nosound")) || FApp::IsBenchmarking() || IsRunningDedicatedServer() || (IsRunningCommandlet() && !IsAllowCommandletAudio()))
 	{
 		bUseSound = false;
 	}
@@ -1884,10 +1875,29 @@ bool UEngine::InitializeAudioDeviceManager()
 		// Initialize the audio device.
 		if (bUseSound == true)
 		{
+			// Check if we're going to try to force loading the audio mixer from the command line
+			bool bForceAudioMixer = FParse::Param(FCommandLine::Get(), TEXT("AudioMixer"));
+
+			// If not using command line switch to use audio mixer, check the engine ini file
+			if (!bForceAudioMixer)
+			{
+				GConfig->GetBool(TEXT("Audio"), TEXT("EnableAudioMixer"), bForceAudioMixer, GEngineIni);
+			}
+
+			FString AudioDeviceModuleName;
+			if (bForceAudioMixer)
+			{
+			 	// Only implemented windows for now
+#if PLATFORM_WINDOWS
+				AudioDeviceModuleName = TEXT("AudioMixerXAudio2");
+#endif
+			}
 
 			// get the module name from the ini file
-			FString AudioDeviceModuleName;
-			GConfig->GetString(TEXT("Audio"), TEXT("AudioDeviceModuleName"), AudioDeviceModuleName, GEngineIni);
+			if (!bForceAudioMixer || AudioDeviceModuleName.IsEmpty())
+			{
+				GConfig->GetString(TEXT("Audio"), TEXT("AudioDeviceModuleName"), AudioDeviceModuleName, GEngineIni);
+			}
 
 			if (AudioDeviceModuleName.Len() > 0)
 			{
@@ -2631,10 +2641,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if (FParse::Command(&Cmd, TEXT("SERVERTRAVEL")) )
 	{
 		return HandleServerTravelCommand( Cmd, Ar, InWorld );
-	}
-	else if( FParse::Command( &Cmd, TEXT("SAY") ) )
-	{
-		return HandleSayCommand( Cmd, Ar, InWorld );
 	}
 #endif // WITH_SERVER_CODE
 	else if( FParse::Command( &Cmd, TEXT("DISCONNECT")) )
@@ -8702,15 +8708,9 @@ ENetMode UEngine::GetNetMode(const UWorld *World) const
 static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* NetDriver)
 {
 	// No world will be created yet if you fail to initialize network driver while trying to connect via cmd line arg.
-	if( InWorld )
-	{
-		AGameMode* const GameMode = InWorld->GetAuthGameMode();
-		if (GameMode)
-		{
-			// Mark the server as having a problem
-			GameMode->AbortMatch();
-		}
-	}
+
+	// Calls any global delegates listening, such as on game mode
+	FGameDelegates::Get().GetHandleDisconnectDelegate().Broadcast(InWorld, NetDriver);
 	
 	// A valid world or NetDriver is required to look up a GameInstance/ULocalPlayer.
 	if (InWorld)
@@ -9000,12 +9000,6 @@ bool UEngine::HandleServerTravelCommand( const TCHAR* Cmd, FOutputDevice& Ar, UW
 
 bool UEngine::HandleSayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	if(GIsServer && !GIsClient)
-	{
-		AGameMode* const GameMode = InWorld->GetAuthGameMode();
-		GameMode->Broadcast(NULL, Cmd, NAME_None);
-		return true;
-	}
 	return false;
 }
 #endif
@@ -9416,7 +9410,7 @@ void UEngine::TickWorldTravel(FWorldContext& Context, float DeltaSeconds)
 	// Handle client traveling.
 	if( !Context.TravelURL.IsEmpty() )
 	{	
-		AGameMode* const GameMode = Context.World()->GetAuthGameMode();
+		AGameModeBase* const GameMode = Context.World()->GetAuthGameMode();
 		if (GameMode)
 		{
 			GameMode->StartToLeaveMap();
@@ -9475,182 +9469,6 @@ void UEngine::TickWorldTravel(FWorldContext& Context, float DeltaSeconds)
 	}
 
 	return;
-}
-
-/**
-* Finds object referencer in the content package and sets it in the global referencer list
-*
-* @param MPContentPackage - content package which has an obj referencer
-* @param GameEngine - current game engine instance
-* @param ContentType - EMPContentReferencerTypes entry for global content package type
-*/
-static void SetGametypeContentObjectReferencers(UObject* GametypeContentPackage, FName ContextHandle, EGametypeContentReferencerTypes ContentType)
-{
-	FWorldContext &WorldContext = GEngine->GetWorldContextFromHandleChecked(ContextHandle);
-
-	// Make sure to allocate enough referencer entries
-	if ( WorldContext.ObjectReferencers.Num() < MAX_ReferencerIndex )
-	{
-		WorldContext.ObjectReferencers.AddZeroed( MAX_ReferencerIndex );
-	}
-	// Release any previous object referencer
-	WorldContext.ObjectReferencers[ContentType] = NULL;
-
-	if( GametypeContentPackage )
-	{	
-		// Find the object referencer in the content package. There should only be one
-		UObjectReferencer* ObjectReferencer = NULL;		
-		for( TObjectIterator<UObjectReferencer> It; It; ++It )
-		{
-			if( It->IsIn(GametypeContentPackage) )
-			{
-				ObjectReferencer = *It;
-				break;
-			}
-		}
-		// Keep a reference to it in the game engine
-		if( ObjectReferencer )
-		{
-			WorldContext.ObjectReferencers[ContentType] = ObjectReferencer;
-		}
-		else
-		{
-			UE_LOG(LogEngine, Warning, TEXT("MPContentObjectReferencers: Couldn't find object referencer in %s"), 
-				*GametypeContentPackage->GetPathName() );
-		}
-	}
-	else
-	{
-		UE_LOG(LogEngine, Warning, TEXT("MPContentObjectReferencers: package load failed") );
-	}
-}
-
-/**
- * Callback function for when the localized MP game package is loaded.
- *
- * @param	PackageName			The package name we were trying to load
- * @param	ContentPackage		The package that was loaded.
- * @param	GameEngine			The GameEngine.
- */
-static void AsyncLoadLocalizedMapGameTypeContentCallback(const FName& PackageName, UPackage* ContentPackage, EAsyncLoadingResult::Type Result, FName InContextHandle)
-{
-	SetGametypeContentObjectReferencers(ContentPackage, InContextHandle, GametypeContent_LocalizedReferencerIndex);
-}
-
-/**
- * Callback function for when the MP game package is loaded.
- *
- * @param	PackageName			The package name we were trying to load
- * @param	ContentPackage		The package that was loaded.
- * @param	GameEngine			The GameEngine.
- */
-static void AsyncLoadMapGameTypeContentCallback(const FName& PackageName, UPackage* ContentPackage, EAsyncLoadingResult::Type Result, FName InContextHandle)
-{
-	SetGametypeContentObjectReferencers(ContentPackage, InContextHandle, GametypeContent_ReferencerIndex);
-}
-
-/**
- * Remove object referencer entries for the game type common packages
- */
-void FreeGametypeCommonContent(FWorldContext &Context)
-{
-	UE_LOG(LogEngine, Log,  TEXT("Freeing Gametype Common Content") );
-	if (Context.ObjectReferencers.Num() > 0)
-	{
-		Context.ObjectReferencers[GametypeCommon_ReferencerIndex] = NULL;
-		Context.ObjectReferencers[GametypeCommon_LocalizedReferencerIndex] = NULL;
-	}
-}
-
-/**
- * Parse game type from URL and return standalone seek-free package name for it
- *
- * @param URL 		current URL containing map and game type we are browsing to
- */
-FString GetGameModeContentPackageStr(const FURL& URL )
-{
-	static const FString GAME_CONTENT_PKG_PREFIX(TEXT(""));
-
-	// get game from URL
-	FString GameModeClassName( URL.GetOption(TEXT("Game="), TEXT("")) );
-	if (GameModeClassName == TEXT(""))
-	{	
-		// ask the default GameMode what we should use
-		UClass* const DefaultGameClass = StaticLoadClass(AGameMode::StaticClass(), NULL, *UGameMapsSettings::GetGlobalDefaultGameMode(), NULL, LOAD_None, NULL);
-		if (DefaultGameClass != NULL)
-		{	
-			FString Options(TEXT(""));
-			for (int32 i = 0; i < URL.Op.Num(); i++)
-			{
-					Options += TEXT("?");
-					Options += URL.Op[i];
-			}
-			GameModeClassName = DefaultGameClass->GetDefaultObject<AGameMode>()->GetDefaultGameClassPath(URL.Map, Options, *URL.Portal);
-		}
-	}
-
-	// allow for remapping
-	GameModeClassName = AGameMode::StaticGetFullGameClassName(GameModeClassName);
-
-	// parse game class from full path
-	int32 FoundIdx = GameModeClassName.Find(TEXT("."), ESearchCase::IgnoreCase);
-	FString GameClassStr = GameModeClassName.Right(GameModeClassName.Len()-1 - FoundIdx);
-	
-	return GAME_CONTENT_PKG_PREFIX + GameClassStr + STANDALONE_SEEKFREE_SUFFIX;
-}
-
-/**
- * Remove object referencer entries for the game content packages
- */
-void FreeGametypeContent(FWorldContext &Context)
-{
-//	FreeGametypeCommonContent(Context);
-	UE_LOG(LogEngine, Log,  TEXT("Freeing Gametype Content") );
-	if ( Context.ObjectReferencers.Num() > 0 )
-	{
-		Context.ObjectReferencers[GametypeContent_ReferencerIndex] = NULL;
-		Context.ObjectReferencers[GametypeContent_LocalizedReferencerIndex] = NULL;
-	}
-}
-
-void LoadGametypeContent_Helper(const FString& ContentStr, 
-								FLoadPackageAsyncDelegate CompletionCallback, 
-								FLoadPackageAsyncDelegate LocalizedCompletionCallback)
-{
-	//const TCHAR* Language = *(FInternationalization::GetCurrentCulture()->Name);
-	//const FString LocalizedPreloadName(ContentStr + LOCALIZED_SEEKFREE_SUFFIX + TEXT("_") + Language);
-	//FString LocalizedPreloadFilename;
-	//if (FPackageName::DoesPackageExist(*LocalizedPreloadName, NULL, &LocalizedPreloadFilename))
-	//{
-	//	UE_LOG(LogEngine, Log, TEXT("Issuing preload for %s"), *LocalizedPreloadFilename);
-	//	LoadPackageAsync(LocalizedPreloadFilename, LocalizedCompletionCallback);
-	//}
-
-	//@todo-packageloc Load localized packages based on culture.
-
-	FString PreloadFilename;
-	if (FPackageName::DoesPackageExist(ContentStr, NULL, &PreloadFilename))
-	{
-		UE_LOG(LogEngine, Log, TEXT("Issuing preload for %s"), *PreloadFilename);
-		LoadPackageAsync(PreloadFilename, CompletionCallback);
-	}
-}
-
-/**
-* Async load the game content standalone seekfree packages for the current game 
-*
-* @param GameEngine - current game engine instance
-* @param URL - current URL containing map and game type we are browsing to
-*/
-void LoadGametypeContent(FWorldContext &Context, const FURL& URL)
-{
-	FreeGametypeContent(Context);
-
-	FString GameModeStr = GetGameModeContentPackageStr(URL);
-	LoadGametypeContent_Helper(GameModeStr,
-		FLoadPackageAsyncDelegate::CreateStatic(&AsyncLoadMapGameTypeContentCallback, Context.ContextHandle),
-		FLoadPackageAsyncDelegate::CreateStatic(&AsyncLoadLocalizedMapGameTypeContentCallback, Context.ContextHandle)
-		);
 }
 
 bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetGame* Pending, FString& Error )
@@ -9816,12 +9634,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		WorldContext.SetCurrentWorld(nullptr);
 	}
 
-	if (bCookSeparateSharedMPGameContent)
-	{
-		UE_LOG(LogLoad, Log,  TEXT("LoadMap: %s: freeing any shared GameMode resources"), *URL.ToString());
-		FreeGametypeContent(WorldContext);
-	}
-
 	// Clean up the previous level out of memory.
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, true );
 	
@@ -9860,23 +9672,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapMid( URL.Map ); )
 
-	if( GUseSeekFreeLoading )
-	{
-		// Load GameMode specific data
-		if (bCookSeparateSharedMPGameContent)
-		{
-			UE_LOG(LogLoad, Log,  TEXT("LoadMap: %s: issuing load request for shared GameMode resources"), *URL.ToString());
-			LoadGametypeContent(WorldContext, URL);
-		}
-
-		// Load localized part of level first in case it exists.
-		FString LocalizedMapPackageName	= URL.Map + LOCALIZED_SEEKFREE_SUFFIX;
-		FString LocalizedMapFilename;
-		if( FPackageName::DoesPackageExist( *LocalizedMapPackageName, NULL, &LocalizedMapFilename ) )
-		{
-			LoadPackage( NULL, *LocalizedMapPackageName, LOAD_NoWarn );
-		}
-	}
+	WorldContext.OwningGameInstance->PreloadContentForURL(URL);
 
 	UPackage* WorldPackage = NULL;
 	UWorld*	NewWorld = NULL;
@@ -10969,8 +10765,10 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 	{
 		check(Context.World());
 
+		AGameModeBase* GameMode = Context.World()->GetAuthGameMode();
+
 		// tell the game we are about to switch levels
-		if (Context.World()->GetAuthGameMode())
+		if (GameMode)
 		{
 			// get the actual persistent level's name
 			FString PreviousMapName = Context.World()->PersistentLevel->GetOutermost()->GetName();
@@ -10987,7 +10785,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 					break;
 				}
 			}
-			Context.World()->GetAuthGameMode()->PreCommitMapChange(PreviousMapName, NextMapName); 
+			FGameDelegates::Get().GetPreCommitMapChangeDelegate().Broadcast(PreviousMapName, NextMapName);
 		}
 
 		// on the client, check if we already loaded pending levels to be made visible due to e.g. the PackageMap
@@ -11167,10 +10965,9 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		IStreamingManager::Get().NotifyLevelChange();
 
 		// tell the game we are done switching levels
-		AGameMode* const GameMode = Context.World()->GetAuthGameMode();
 		if (GameMode)
 		{
-			GameMode->PostCommitMapChange(); 
+			FGameDelegates::Get().GetPostCommitMapChangeDelegate().Broadcast();
 		}
 
 		return true;

@@ -72,7 +72,7 @@ const EAbcImportError FAbcImporter::OpenAbcFileForImport(const FString InFilePat
 	Factory.setOgawaNumStreams(12);
 	
 	// Convert FString to const char*
-	const char* CharFilePath = TCHAR_TO_ANSI(*InFilePath);
+	const char* CharFilePath = TCHAR_TO_ANSI(*FPaths::ConvertRelativePathToFull(InFilePath));
 
 	// Extract Archive and compression type from file
 	Alembic::AbcCoreFactory::IFactory::CoreType CompressionType;
@@ -743,52 +743,55 @@ UGeometryCache* FAbcImporter::ImportAsGeometryCache(UObject* InParent, EObjectFl
 		{
 			UGeometryCacheTrack* Track = nullptr;
 			// Determine what kind of GeometryCacheTrack we must create
-			if (MeshObject->bConstant)
+			if (MeshObject->MeshSamples.Num() > 0)
 			{
-				// TransformAnimation
-				Track = CreateTransformAnimationTrack(MeshObject->Name, MeshObject, GeometryCache, MaterialOffset);
-			}
-			else
-			{
-				// FlibookAnimation
-				Track = CreateFlipbookAnimationTrack(MeshObject->Name, MeshObject, GeometryCache, MaterialOffset);
-			}
-
-			if (Track == nullptr)
-			{
-				// Import was cancelled
-				delete GeometryCache;
-				return nullptr;
-			}
-
-			// Add materials for this Mesh Object
-			const uint32 NumMaterials = (MeshObject->FaceSetNames.Num() > 0) ? MeshObject->FaceSetNames.Num() : 1;
-			for (uint32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
-			{
-				UMaterial* Material = nullptr;
-				if (MeshObject->FaceSetNames.IsValidIndex(MaterialIndex))
+				if (MeshObject->bConstant)
 				{
-					Material = RetrieveMaterial(MeshObject->FaceSetNames[MaterialIndex], InParent, Flags);
+					// TransformAnimation
+					Track = CreateTransformAnimationTrack(MeshObject->Name, MeshObject, GeometryCache, MaterialOffset);
+				}
+				else
+				{
+					// FlibookAnimation
+					Track = CreateFlipbookAnimationTrack(MeshObject->Name, MeshObject, GeometryCache, MaterialOffset);
 				}
 
-				GeometryCache->Materials.Add((Material != nullptr) ? Material : DefaultMaterial);
+				if (Track == nullptr)
+				{
+					// Import was cancelled
+					delete GeometryCache;
+					return nullptr;
+				}
+
+				// Add materials for this Mesh Object
+				const uint32 NumMaterials = (MeshObject->FaceSetNames.Num() > 0) ? MeshObject->FaceSetNames.Num() : 1;
+				for (uint32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+				{
+					UMaterial* Material = nullptr;
+					if (MeshObject->FaceSetNames.IsValidIndex(MaterialIndex))
+					{
+						Material = RetrieveMaterial(MeshObject->FaceSetNames[MaterialIndex], InParent, Flags);
+					}
+
+					GeometryCache->Materials.Add((Material != nullptr) ? Material : DefaultMaterial);
+				}
+				MaterialOffset += NumMaterials;
+
+				// Get Matrix samples 
+				TArray<FMatrix> Matrices;
+				TArray<float> SampleTimes;
+
+				// Retrieved cached matrix transformation for this object's hierarchy GUID
+				TSharedPtr<FCachedHierarchyTransforms> CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(MeshObject->HierarchyGuid);
+				// Store samples inside the track
+				Track->SetMatrixSamples(CachedHierarchyTransforms->MatrixSamples, CachedHierarchyTransforms->TimeSamples);
+
+				// Update Total material count
+				ImportData->NumTotalMaterials += Track->GetNumMaterials();
+
+				check(Track != nullptr && "Invalid track data");
+				GeometryCache->AddTrack(Track);
 			}
-			MaterialOffset += NumMaterials;
-
-			// Get Matrix samples 
-			TArray<FMatrix> Matrices;
-			TArray<float> SampleTimes;
-
-			// Retrieved cached matrix transformation for this object's hierarchy GUID
-			TSharedPtr<FCachedHierarchyTransforms> CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(MeshObject->HierarchyGuid);
-			// Store samples inside the track
-			Track->SetMatrixSamples(CachedHierarchyTransforms->MatrixSamples, CachedHierarchyTransforms->TimeSamples);
-
-			// Update Total material count
-			ImportData->NumTotalMaterials += Track->GetNumMaterials();
-
-			check(Track != nullptr && "Invalid track data");
-			GeometryCache->AddTrack(Track);
 		}
 
 		// Update all geometry cache components, TODO move render-data from component to GeometryCache and allow for DDC population
@@ -990,7 +993,7 @@ void FAbcImporter::SetupMorphTargetCurves(USkeleton* Skeleton, FName ConstCurveN
 	FSmartName NewName;
 	Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, ConstCurveName, NewName);
 
-	check(Sequence->RawCurveData.AddCurveData(NewName, ACF_MorphTargetCurve));
+	check(Sequence->RawCurveData.AddCurveData(NewName));
 	FFloatCurve * NewCurve = static_cast<FFloatCurve *> (Sequence->RawCurveData.GetCurveData(NewName.UID, FRawCurveTracks::FloatType));
 
 	for (int32 KeyIndex = 0; KeyIndex < CurveValues.Num(); ++KeyIndex)
@@ -1719,62 +1722,70 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 
 void FAbcImporter::GetMatrixSamplesForGUID(const FGuid& InGUID, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes, bool& OutConstantTransform)
 {
-	const TArray<TSharedPtr<FAbcTransformObject>>& TransformHierarchy = ImportData->Hierarchies.FindChecked(InGUID);
-	const uint32 HierarchyDepth = TransformHierarchy.Num();
-
 	bool bConstantTransforms = true;
-
-	if (HierarchyDepth > 1)
+	const TArray<TSharedPtr<FAbcTransformObject>>* TransformHierarchyPtr = ImportData->Hierarchies.Find(InGUID);
+	if (TransformHierarchyPtr)
 	{
-		const uint32 NumSamples = TransformHierarchy[0]->MatrixSamples.Num();
-		MatrixSamples.Empty(NumSamples);
-		MatrixSamples.AddZeroed(NumSamples);
-		SampleTimes.Append(TransformHierarchy[0]->TimeSamples);
-		for (int32 HierarchyIndex = HierarchyDepth - 1; HierarchyIndex >= 0; --HierarchyIndex)
+		const TArray<TSharedPtr<FAbcTransformObject>>& TransformHierarchy = *TransformHierarchyPtr;
+		const uint32 HierarchyDepth = TransformHierarchy.Num();
+		if (HierarchyDepth > 1)
 		{
-			TSharedPtr<FAbcTransformObject> Object = TransformHierarchy[HierarchyIndex];
-			bConstantTransforms &= Object->bConstant;
-			check(Object->MatrixSamples.Num() == NumSamples);
-
-			if (Object->bConstant)
+			const uint32 NumSamples = TransformHierarchy[0]->MatrixSamples.Num();
+			MatrixSamples.Empty(NumSamples);
+			MatrixSamples.AddZeroed(NumSamples);
+			SampleTimes.Append(TransformHierarchy[0]->TimeSamples);
+			for (int32 HierarchyIndex = HierarchyDepth - 1; HierarchyIndex >= 0; --HierarchyIndex)
 			{
-				if (HierarchyIndex == (HierarchyDepth - 1))
+				TSharedPtr<FAbcTransformObject> Object = TransformHierarchy[HierarchyIndex];
+				bConstantTransforms &= Object->bConstant;
+				check(Object->MatrixSamples.Num() == NumSamples);
+
+				if (Object->bConstant)
 				{
-					for (uint32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
+					if (HierarchyIndex == (HierarchyDepth - 1))
 					{
-						MatrixSamples[SampleIndex] = Object->MatrixSamples[0];
+						for (uint32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
+						{
+							MatrixSamples[SampleIndex] = Object->MatrixSamples[0];
+						}
 					}
 				}
-			}
-			else
-			{
-				ParallelFor(NumSamples, [&](const int32 SampleIndex)
+				else
 				{
-					if (HierarchyIndex != (HierarchyDepth - 1))
+					ParallelFor(NumSamples, [&](const int32 SampleIndex)
 					{
-						MatrixSamples[SampleIndex] *= Object->MatrixSamples[SampleIndex];
-					}
-					else
-					{
-						MatrixSamples[SampleIndex] = Object->MatrixSamples[SampleIndex];
-					}
-				});
+						if (HierarchyIndex != (HierarchyDepth - 1))
+						{
+							MatrixSamples[SampleIndex] *= Object->MatrixSamples[SampleIndex];
+						}
+						else
+						{
+							MatrixSamples[SampleIndex] = Object->MatrixSamples[SampleIndex];
+						}
+					});
+				}
 			}
+
+		}
+		else
+		{
+			const TSharedPtr<FAbcTransformObject> Object = TransformHierarchy[0];
+			bConstantTransforms &= Object->bConstant;
+			MatrixSamples.Append(Object->MatrixSamples);
+			SampleTimes.Append(Object->TimeSamples);
 		}
 
+		if (bConstantTransforms)
+		{
+			MatrixSamples.SetNum(1);
+			SampleTimes.SetNum(1);
+		}
 	}
 	else
 	{
-		const TSharedPtr<FAbcTransformObject> Object = TransformHierarchy[0];
-		bConstantTransforms &= Object->bConstant;
-		MatrixSamples.Append(Object->MatrixSamples);
-		SampleTimes.Append(Object->TimeSamples);
-	}
-
-	if (bConstantTransforms)
-	{
-		MatrixSamples.SetNum(1);
-		SampleTimes.SetNum(1);
+		// No entries in the hierarchy append constant identity matrix and sample time
+		MatrixSamples.Add(FMatrix::Identity);
+		SampleTimes.Add(0.0f);
 	}
 
 	OutConstantTransform = bConstantTransforms;

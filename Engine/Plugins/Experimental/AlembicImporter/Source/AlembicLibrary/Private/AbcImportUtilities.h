@@ -126,7 +126,7 @@ namespace AbcImporterUtilities
 	}
 	
 	/** Triangulates material indices according to the face counts (quads will have to be split up into two faces / material indices)*/
-	void TriangulateMateriaIndices(const TArray<uint32>& InFaceCounts, TArray<int32>& InOutData);
+	void TriangulateMaterialIndices(const TArray<uint32>& InFaceCounts, TArray<int32>& InOutData);
 
 	template<typename T>
 	Alembic::Abc::ISampleSelector GenerateAlembicSampleSelector(const T SelectionValue)
@@ -172,9 +172,9 @@ namespace AbcImporterUtilities
 	FAbcMeshSample* MergeMeshSamples(const TArray<FAbcMeshSample*>& Samples);
 
 	FAbcMeshSample* MergeMeshSamples(FAbcMeshSample* MeshSampleOne, FAbcMeshSample* MeshSampleTwo);
-
+			
 	void AppendMeshSample(FAbcMeshSample* MeshSampleOne, FAbcMeshSample* MeshSampleTwo);
-
+			
 	void GetHierarchyForObject(const Alembic::Abc::IObject& Object, TDoubleLinkedList<Alembic::AbcGeom::IXform>& Hierarchy);
 
 	void PropogateMatrixTransformationToSample(FAbcMeshSample* Sample, const FMatrix& Matrix);

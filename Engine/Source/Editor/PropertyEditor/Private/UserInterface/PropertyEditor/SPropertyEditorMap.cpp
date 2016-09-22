@@ -33,7 +33,7 @@ bool SPropertyEditorMap::Supports(const TSharedRef< FPropertyEditor >& InPropert
 	const TSharedRef< FPropertyNode > PropertyNode = InPropertyEditor->GetPropertyNode();
 	const UProperty* Property = InPropertyEditor->GetProperty();
 
-	if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInline)
+	if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew)
 		&& Property->IsA<UMapProperty>())
 	{
 		return true;

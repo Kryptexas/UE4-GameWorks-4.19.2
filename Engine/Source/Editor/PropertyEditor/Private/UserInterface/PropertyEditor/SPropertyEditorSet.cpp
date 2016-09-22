@@ -33,7 +33,7 @@ bool SPropertyEditorSet::Supports( const TSharedRef< FPropertyEditor >& InProper
 	const TSharedRef< FPropertyNode > PropertyNode = InPropertyEditor->GetPropertyNode();
 	const UProperty* Property = InPropertyEditor->GetProperty();
 
-	if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInline)
+	if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew)
 		&& Property->IsA<USetProperty>())
 	{
 		return true;

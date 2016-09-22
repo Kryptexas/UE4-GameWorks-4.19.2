@@ -938,6 +938,9 @@ namespace UP
 
 		/// Property shouldn't be serialized, can still be exported to text
 		SkipSerialization,
+
+		/// Property wont have a 'reset to default' button when displayed in property windows
+		NoResetToDefault,
 	};
 }
 

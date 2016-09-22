@@ -13,9 +13,6 @@
 #include "Animation/AnimCurveTypes.h"
 #include "AnimSequenceBase.generated.h"
 
-#define DEFAULT_SAMPLERATE			30.f
-#define MINIMUM_ANIMATION_LENGTH	(1/DEFAULT_SAMPLERATE)
-
 UENUM()
 enum ETypeAdvanceAnim
 {

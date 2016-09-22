@@ -187,6 +187,14 @@ public:
 	void UpdateRecomputeTangent(int32 MaterialIndex, int32 LodIndex, bool bRecomputeTangentValue);
 
 	/** 
+	 * Get CPU skinned vertices for the specified LOD level. Includes morph targets if they are enabled.
+	 * Note: This function is very SLOW as it needs to flush the render thread.
+	 * @param	OutVertices		The skinned vertices
+	 * @param	InLODIndex		The LOD we want to export
+	 */
+	void GetCPUSkinnedVertices(TArray<struct FFinalSkinVertex>& OutVertices, int32 InLODIndex);
+
+	/** 
 	 * When true, we will just using the bounds from our MasterPoseComponent.  This is useful for when we have a Mesh Parented
 	 * to the main SkelMesh (e.g. outline mesh or a full body overdraw effect that is toggled) that is always going to be the same
 	 * bounds as parent.  We want to do no calculations in that case.
@@ -361,6 +369,10 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Capsule Indirect Shadow"))
 	uint32 bCastCapsuleIndirectShadow:1;
+
+	/** CPU skinning rendering - only for previewing in Persona and conversion tools */
+	UPROPERTY(transient)
+	uint32 bCPUSkinning : 1;
 
 	/** 
 	 * Override the Physics Asset of the mesh. It uses SkeletalMesh.PhysicsAsset, but if you'd like to override use this function
@@ -729,6 +741,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void SetMasterPoseComponent(USkinnedMeshComponent* NewMasterBoneComponent);
 
+protected:
+	/** Add a slave component to the SlavePoseComponents array */
+	virtual void AddSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent);
+
+public:
 	/** 
 	 * Refresh Slave Components if exists
 	 * 

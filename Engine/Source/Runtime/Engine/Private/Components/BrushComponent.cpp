@@ -780,6 +780,11 @@ void UBrushComponent::BuildSimpleBrushCollision()
 	MarkPackageDirty();
 }
 
+bool UBrushComponent::IsEditorOnly() const
+{
+	// Default to actor component behavior instead of primitive component behavior as brush actors handle it themselves
+	return bIsEditorOnly;
+}
 
 #if WITH_EDITOR
 static FVector GetPolyCenter(const FPoly& Poly)

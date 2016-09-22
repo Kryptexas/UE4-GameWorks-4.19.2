@@ -718,6 +718,9 @@ void FPImplRecastNavMesh::SetRecastMesh(dtNavMesh* NavMesh)
 	{
 		NavMeshOwner->UpdateNavObject();
 	}
+
+	// reapply area sort order in new detour navmesh
+	OnAreaCostChanged();
 }
 
 void FPImplRecastNavMesh::Raycast(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, 

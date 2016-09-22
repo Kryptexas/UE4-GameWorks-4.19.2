@@ -145,6 +145,10 @@ public:
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
 	virtual void SetCollisionEnabled(ECollisionEnabled::Type NewType) override;
 	virtual void OnActorEnableCollisionChanged() override;
+
+	virtual void SetCollisionResponseToChannel(ECollisionChannel Channel, ECollisionResponse NewResponse) override;
+	virtual void SetCollisionResponseToAllChannels(ECollisionResponse NewResponse) override;
+	virtual void SetCollisionResponseToChannels(const FCollisionResponseContainer& NewReponses) override;
 	//~ End UPrimitiveComponent Interface.
 
 	//~ Begin SkinnedMeshComponent Interface.

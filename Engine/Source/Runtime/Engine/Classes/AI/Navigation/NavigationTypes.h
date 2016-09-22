@@ -314,6 +314,8 @@ struct FNavLocation
 
 	/** checks if location has associated navigation node ref */
 	FORCEINLINE bool HasNodeRef() const { return NodeRef != INVALID_NAVNODEREF; }
+
+	FORCEINLINE operator FVector() const { return Location; }
 };
 
 /** Describes node in navigation path */

@@ -1118,7 +1118,7 @@ bool FBlueprintInstancesTest::RunTest(const FString& InParameters)
 	for (auto BpIter = BlueprintInstances.CreateIterator(); BpIter; ++BpIter )
 	{
 		AActor* BPInstance = *BpIter;
-		UObject* BPInstanceOuter = BPInstance ? BPInstance->GetOuter() : NULL;
+		UObject* BPInstanceOuter = BPInstance->GetOuter();
 
 		TMap<FString,FString> BPNativePropertyValues;
 		BPInstance->GetNativePropertyValues(BPNativePropertyValues);
@@ -1291,7 +1291,7 @@ bool FBlueprintRenameAndCloneTest::RunTest(const FString& BlueprintAssetPath)
 		bTestFailed = true;
 		AddError(FString::Printf(TEXT("Failed to load '%s' (has it been renamed?)."), *BlueprintAssetPath));
 	}
-	if (!OriginalBlueprint->SkeletonGeneratedClass || !OriginalBlueprint->GeneratedClass)
+	else if (!OriginalBlueprint->SkeletonGeneratedClass || !OriginalBlueprint->GeneratedClass)
 	{
 		bTestFailed = true;
 		AddError(*FString::Printf(TEXT("Unable to load blueprint for: '%s'. Probably it derives from an invalid class."), *BlueprintAssetPath));

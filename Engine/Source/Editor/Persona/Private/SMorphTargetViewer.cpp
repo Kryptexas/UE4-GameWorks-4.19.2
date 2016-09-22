@@ -40,12 +40,9 @@ public:
 		/* Widget used to display the list of morph targets */
 		SLATE_ARGUMENT( TSharedPtr<SMorphTargetListType>, MorphTargetListView )
 
-		/* Persona used to update the viewport when a weight slider is dragged */
-		SLATE_ARGUMENT( TWeakPtr<FPersona>, Persona )
-
 		SLATE_END_ARGS()
 
-		void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView );
+		void Construct( const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, const TSharedRef<STableViewBase>& OwnerTableView );
 
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
@@ -88,16 +85,16 @@ private:
 	/** The name and weight of the morph target */
 	FDisplayedMorphTargetInfoPtr	Item;
 
-	/** Pointer back to the Persona that owns us */
-	TWeakPtr<FPersona> PersonaPtr;
+	/** Preview scene - we invalidate this etc. */
+	TWeakPtr<IPersonaPreviewScene> PreviewScenePtr;
 };
 
-void SMorphTargetListRow::Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
+void SMorphTargetListRow::Construct( const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, const TSharedRef<STableViewBase>& InOwnerTableView )
 {
 	Item = InArgs._Item;
 	MorphTargetViewer = InArgs._MorphTargetViewer;
 	MorphTargetListView = InArgs._MorphTargetListView;
-	PersonaPtr = InArgs._Persona;
+	PreviewScenePtr = InPreviewScene;
 
 	check( Item.IsValid() );
 
@@ -211,10 +208,7 @@ void SMorphTargetListRow::OnMorphTargetWeightChanged( float NewWeight )
 
 	MorphTargetViewer->AddMorphTargetOverride( Item->Name, Item->Weight, false );
 
-	if (PersonaPtr.IsValid())
-	{
-		PersonaPtr.Pin()->RefreshViewport();
-	}
+	PreviewScenePtr.Pin()->InvalidateViews();
 
 #if 0 
 	TArray< TSharedPtr< FDisplayedMorphTargetInfo > > SelectedRows = MorphTargetListView->GetSelectedItems();
@@ -259,24 +253,21 @@ void SMorphTargetListRow::OnMorphTargetWeightValueCommitted( float NewWeight, ET
 			}
 		}
 
-		if(PersonaPtr.IsValid())
-		{
-			PersonaPtr.Pin()->RefreshViewport();
-		}
+		PreviewScenePtr.Pin()->InvalidateViews();
 	}
 }
 
 float SMorphTargetListRow::GetWeight() const 
 { 
-	if (PersonaPtr.IsValid() && Item->bAutoFillData)
+	if (Item->bAutoFillData)
 	{
-		USkeletalMeshComponent* SkelComp = PersonaPtr.Pin()->GetPreviewMeshComponent();
+		USkeletalMeshComponent* SkelComp = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
 		UAnimInstance* AnimInstance = (SkelComp) ? SkelComp->GetAnimInstance() : nullptr;
 		if (AnimInstance)
 		{
 			// make sure if they have value that's not same as saved value
 			TMap<FName, float> MorphCurves;
-			AnimInstance->GetAnimationCurveList(ACF_DriveMorphTarget, MorphCurves);
+			AnimInstance->GetAnimationCurveList(EAnimCurveType::MorphTargetCurve, MorphCurves);
 			const float* CurrentValue = MorphCurves.Find(Item->Name);
 			if (CurrentValue && *CurrentValue != 0.f)
 			{
@@ -290,17 +281,13 @@ float SMorphTargetListRow::GetWeight() const
 //////////////////////////////////////////////////////////////////////////
 // SMorphTargetViewer
 
-void SMorphTargetViewer::Construct(const FArguments& InArgs)
+void SMorphTargetViewer::Construct(const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo)
 {
-	PersonaPtr = InArgs._Persona;
-	SkeletalMesh = NULL;
+	PreviewScenePtr = InPreviewScene;
 
-	if ( PersonaPtr.IsValid() )
-	{
-		SkeletalMesh = PersonaPtr.Pin()->GetMesh();
-		PersonaPtr.Pin()->RegisterOnPreviewMeshChanged( FPersona::FOnPreviewMeshChanged::CreateSP( this, &SMorphTargetViewer::OnPreviewMeshChanged ) );
-		PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP(this, &SMorphTargetViewer::OnPostUndo));
-	}
+	SkeletalMesh = InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh;
+	InPreviewScene->RegisterOnPreviewMeshChanged( FOnPreviewMeshChanged::CreateSP( this, &SMorphTargetViewer::OnPreviewMeshChanged ) );
+	OnPostUndo.Add(FSimpleDelegate::CreateSP(this, &SMorphTargetViewer::OnPostUndo));
 
 	const FText SkeletalMeshName = SkeletalMesh ? FText::FromString( SkeletalMesh->GetName() ) : LOCTEXT( "MorphTargetMeshNameLabel", "No Skeletal Mesh Present" );
 
@@ -385,8 +372,7 @@ TSharedRef<ITableRow> SMorphTargetViewer::GenerateMorphTargetRow(TSharedPtr<FDis
 	check( InInfo.IsValid() );
 
 	return
-		SNew( SMorphTargetListRow, OwnerTable )
-		.Persona( PersonaPtr )
+		SNew( SMorphTargetListRow, PreviewScenePtr.Pin().ToSharedRef(), OwnerTable )
 		.Item( InInfo )
 		.MorphTargetViewer( this )
 		.MorphTargetListView( MorphTargetListView );
@@ -399,11 +385,24 @@ TSharedPtr<SWidget> SMorphTargetViewer::OnGetContextMenuContent() const
 
 	MenuBuilder.BeginSection("MorphTargetAction", LOCTEXT( "MorphsAction", "Selected Item Actions" ) );
 	{
-		FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SMorphTargetViewer::OnDeleteMorphTargets ), 
-									  FCanExecuteAction::CreateSP( this, &SMorphTargetViewer::CanPerformDelete ) );
-		const FText Label = LOCTEXT("DeleteMorphTargetButtonLabel", "Delete");
-		const FText ToolTipText = LOCTEXT("DeleteMorphTargetButtonTooltip", "Deletes the selected morph targets.");
-		MenuBuilder.AddMenuEntry( Label, ToolTipText, FSlateIcon(), Action);
+		FUIAction Action;
+
+		{
+			Action.ExecuteAction = FExecuteAction::CreateSP(this, &SMorphTargetViewer::OnDeleteMorphTargets);
+			Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &SMorphTargetViewer::CanPerformDelete);
+			const FText Label = LOCTEXT("DeleteMorphTargetButtonLabel", "Delete");
+			const FText ToolTipText = LOCTEXT("DeleteMorphTargetButtonTooltip", "Deletes the selected morph targets.");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
+		}
+
+		{
+			Action.ExecuteAction = FExecuteAction::CreateSP(this, &SMorphTargetViewer::OnCopyMorphTargetNames);
+			Action.CanExecuteAction = nullptr;
+			const FText Label = LOCTEXT("CopyMorphTargetNamesButtonLabel", "Copy Names");
+			const FText ToolTipText = LOCTEXT("CopyMorphTargetNamesButtonTooltip", "Copy the names of selected morph targets to clipboard");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
+		}
+
 	}
 	MenuBuilder.EndSection();
 
@@ -416,7 +415,7 @@ void SMorphTargetViewer::CreateMorphTargetList( const FString& SearchText )
 
 	if ( SkeletalMesh )
 	{
-		UDebugSkelMeshComponent* MeshComponent = PersonaPtr.Pin()->GetPreviewMeshComponent();
+		UDebugSkelMeshComponent* MeshComponent = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
 		TArray<UMorphTarget*>& MorphTargets = SkeletalMesh->MorphTargets;
 
 		bool bDoFiltering = !SearchText.IsEmpty();
@@ -450,14 +449,11 @@ void SMorphTargetViewer::CreateMorphTargetList( const FString& SearchText )
 
 void SMorphTargetViewer::AddMorphTargetOverride( FName& Name, float Weight, bool bRemoveZeroWeight )
 {
-	if ( PersonaPtr.IsValid() )
-	{
-		UDebugSkelMeshComponent* Mesh = PersonaPtr.Pin()->GetPreviewMeshComponent();
+	UDebugSkelMeshComponent* Mesh = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
 
-		if ( Mesh )
-		{
-			Mesh->SetMorphTarget( Name, Weight, bRemoveZeroWeight );
-		}
+	if ( Mesh )
+	{
+		Mesh->SetMorphTarget( Name, Weight, bRemoveZeroWeight );
 	}
 }
 
@@ -493,16 +489,33 @@ void SMorphTargetViewer::OnDeleteMorphTargets()
 	CreateMorphTargetList( NameFilterBox->GetText().ToString() );
 }
 
+void SMorphTargetViewer::OnCopyMorphTargetNames()
+{
+	FString CopyText;
+
+	TArray< TSharedPtr< FDisplayedMorphTargetInfo > > SelectedRows = MorphTargetListView->GetSelectedItems();
+	for (int RowIndex = 0; RowIndex < SelectedRows.Num(); ++RowIndex)
+	{
+		UMorphTarget* MorphTarget = SkeletalMesh->FindMorphTarget(SelectedRows[RowIndex]->Name);
+		if (MorphTarget)
+		{
+			CopyText += FString::Printf(TEXT("%s\r\n"), *MorphTarget->GetName());
+		}
+	}
+
+	if(!CopyText.IsEmpty())
+	{
+		FPlatformMisc::ClipboardCopy(*CopyText);
+	}
+}
+
 SMorphTargetViewer::~SMorphTargetViewer()
 {
-	if ( PersonaPtr.IsValid() )
+	if (PreviewScenePtr.IsValid())
 	{
-		PersonaPtr.Pin()->UnregisterOnPreviewMeshChanged(this);
-		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
+		UDebugSkelMeshComponent* Mesh = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
 
-		UDebugSkelMeshComponent* Mesh = PersonaPtr.Pin()->GetPreviewMeshComponent();
-
-		if ( Mesh )
+		if (Mesh)
 		{
 			Mesh->ClearMorphTargets();
 		}
@@ -527,13 +540,39 @@ void SMorphTargetViewer::NotifySelectionChange() const
 	}
 
 	// stil have to call this even if empty, otherwise it won't clear it
-	PersonaPtr.Pin()->SetSelectedMorphTargets(SkeletalMesh, SelectedMorphtargetNames);
+	SetSelectedMorphTargets(SelectedMorphtargetNames);
 }
 
 void SMorphTargetViewer::OnRowsSelectedChanged(TSharedPtr<FDisplayedMorphTargetInfo> Item, ESelectInfo::Type SelectInfo)
 {
 	NotifySelectionChange();
 }
+
+void SMorphTargetViewer::SetSelectedMorphTargets(const TArray<FName>& SelectedMorphTargetNames) const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
+	if (PreviewComponent)
+	{
+		PreviewComponent->MorphTargetOfInterests.Reset();
+
+		if (SelectedMorphTargetNames.Num() > 0)
+		{
+			for (const FName& MorphTargetName : SelectedMorphTargetNames)
+			{
+				int32 MorphtargetIdx;
+				UMorphTarget* MorphTarget = SkeletalMesh->FindMorphTargetAndIndex(MorphTargetName, MorphtargetIdx);
+				if (MorphTarget != nullptr)
+				{
+					PreviewComponent->MorphTargetOfInterests.AddUnique(MorphTarget);
+				}
+			}
+
+			PreviewScenePtr.Pin()->InvalidateViews();
+			PreviewComponent->PostInitMeshObject(PreviewComponent->MeshObject);
+		}
+	}
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

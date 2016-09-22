@@ -1218,6 +1218,72 @@ void UDestructibleComponent::Deactivate()
 	}
 }
 
+void UDestructibleComponent::SetCollisionResponseToChannel(ECollisionChannel Channel, ECollisionResponse NewResponse)
+{
+#if WITH_APEX
+	PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
+
+	for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+	{
+		PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+		int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
+
+		SetupFakeBodyInstance(PxActor, BoneIndex);
+
+		BodyInstance.SetResponseToChannel(Channel, NewResponse);
+	}
+
+	if(NumChunks > 0)
+	{
+		OnComponentCollisionSettingsChanged();
+	}
+#endif
+}
+
+void UDestructibleComponent::SetCollisionResponseToAllChannels(ECollisionResponse NewResponse)
+{
+#if WITH_APEX
+	PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
+
+	for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+	{
+		PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+		int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
+
+		SetupFakeBodyInstance(PxActor, BoneIndex);
+
+		BodyInstance.SetResponseToAllChannels(NewResponse);
+	}
+
+	if(NumChunks > 0)
+	{
+		OnComponentCollisionSettingsChanged();
+	}
+#endif
+}
+
+void UDestructibleComponent::SetCollisionResponseToChannels(const FCollisionResponseContainer& NewReponses)
+{
+#if WITH_APEX
+	PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
+
+	for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+	{
+		PxRigidDynamic* PxActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+		int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIdx);
+
+		SetupFakeBodyInstance(PxActor, BoneIndex);
+
+		BodyInstance.SetResponseToChannels(NewReponses);
+	}
+
+	if(NumChunks > 0)
+	{
+		OnComponentCollisionSettingsChanged();
+	}
+#endif
+}
+
 bool UDestructibleComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
 	// We do not want to update bone transforms before physics has finished

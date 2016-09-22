@@ -267,7 +267,7 @@ public:
 	TMap< FName, FReferencePose > AnimRetargetSources;
 
 	// Typedefs for greater smartname UID readability, add one for each smartname category 
-	typedef FSmartNameMapping::UID AnimCurveUID;
+	typedef SmartName::UID_Type AnimCurveUID;
 
 	// Names for smartname mappings, if you're adding a new category of smartnames add a new name here
 	static ENGINE_API const FName AnimCurveMappingName;
@@ -275,19 +275,28 @@ public:
 	// Names for smartname mappings, if you're adding a new category of smartnames add a new name here
 	static ENGINE_API const FName AnimTrackCurveMappingName;
 
-	/** Caches the Animation curve mapping name UIds from SmartNames into CachedAnimCurveMappingNameUids (used in FBlendedCurve::InitFrom) */
-	void CacheAnimCurveMappingNameUids();
+	// these return container of curve meta data, if you modify this container, 
+	// you'll have to call REfreshCAchedAnimationCurveData to apply
+	ENGINE_API FCurveMetaData* GetCurveMetaData(const FName& CurveName);
+	ENGINE_API const FCurveMetaData* GetCurveMetaData(const FName& CurveName) const;
+	ENGINE_API FCurveMetaData* GetCurveMetaData(const FSmartName& CurveName);
+	ENGINE_API const FCurveMetaData* GetCurveMetaData(const FSmartName& CurveName) const;
+	// this is called when you know both flags - called by post serialize
+	ENGINE_API void AccumulateCurveMetaData(FName CurveName, bool bMaterialSet, bool bMorphtargetSet);
 
-	// Returns the cached animation curve mapping Uids, used for initializing FBlendedCurve 
-	const TArray<FSmartNameMapping::UID>& GetCachedAnimCurveMappingNameUids();
+	// return version of AnimCurveUidVersion
+	uint16 GetAnimCurveUidVersion() const { return AnimCurveUidVersion;  }
 
 protected:
 	// Container for smart name mappings
 	UPROPERTY()
 	FSmartNameContainer SmartNames;
 
-	/** Cached animation curves smart name mapping UIDs, only at runtime, not serialized. (accessed in FBlendedCurve::InitFrom) */
-	TArray<FSmartNameMapping::UID> CachedAnimCurveMappingNameUids;
+private:
+	/** Increase the AnimCurveUidVersion so that instances can get the latest information */
+	void IncreaseAnimCurveUidVersion();
+	/** Current  Anim Curve Uid Version. Increase whenever it has to be recalculated */
+	uint16 AnimCurveUidVersion;
 
 public:
 	//////////////////////////////////////////////////////////////////////////
@@ -320,8 +329,9 @@ private:
 
 public:
 	ENGINE_API FAnimSlotGroup* FindAnimSlotGroup(const FName& InGroupName);
+	ENGINE_API const FAnimSlotGroup* FindAnimSlotGroup(const FName& InGroupName) const;
 	ENGINE_API const TArray<FAnimSlotGroup>& GetSlotGroups() const;
-	ENGINE_API bool ContainsSlotName(const FName& InSlotName);
+	ENGINE_API bool ContainsSlotName(const FName& InSlotName) const;
 	ENGINE_API void RegisterSlotNode(const FName& InSlotName);
 	ENGINE_API void SetSlotGroupName(const FName& InSlotName, const FName& InGroupName);
 	/** Returns true if Group is added, false if it already exists */
@@ -345,23 +355,23 @@ public:
 
 	// Renames a smartname in the specified container and modifies the skeleton
 	// return bool - Whether the rename was sucessful
-	ENGINE_API bool RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName);
+	ENGINE_API bool RenameSmartnameAndModify(FName ContainerName, SmartName::UID_Type Uid, FName NewName);
 
 	// Removes a smartname from the specified container and modifies the skeleton
-	ENGINE_API void RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid);
+	ENGINE_API void RemoveSmartnameAndModify(FName ContainerName, SmartName::UID_Type Uid);
 
 	// Removes smartnames from the specified container and modifies the skeleton
-	ENGINE_API void RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSmartNameMapping::UID>& Uids);
+	ENGINE_API void RemoveSmartnamesAndModify(FName ContainerName, const TArray<SmartName::UID_Type>& Uids);
 #endif// WITH_EDITOR
 
-	// quick wrapper function for Find UID by name, if not found, it will return FSmartNameMapping::MaxUID
-	ENGINE_API FSmartNameMapping::UID GetUIDByName(const FName& ContainerName, const FName& Name);
-	ENGINE_API bool GetSmartNameByUID(const FName& ContainerName, FSmartNameMapping::UID UID, FSmartName& OutSmartName);
+	// quick wrapper function for Find UID by name, if not found, it will return SmartName::MaxUID
+	ENGINE_API SmartName::UID_Type GetUIDByName(const FName& ContainerName, const FName& Name) const;
+	ENGINE_API bool GetSmartNameByUID(const FName& ContainerName, SmartName::UID_Type UID, FSmartName& OutSmartName);
 	ENGINE_API bool GetSmartNameByName(const FName& ContainerName, const FName& InName, FSmartName& OutSmartName);
 
 	// Adds a new name to the smart name container and modifies the skeleton so it can be saved
 	// return bool - Whether a name was added (false if already present)
-	ENGINE_API bool RenameSmartName(FName ContainerName, const FSmartNameMapping::UID& Uid, FName NewName);
+	ENGINE_API bool RenameSmartName(FName ContainerName, const SmartName::UID_Type& Uid, FName NewName);
 
 	// Get or add a smartname container with the given name
 	ENGINE_API const FSmartNameMapping* GetSmartNameContainer(const FName& ContainerName) const;
@@ -379,6 +389,10 @@ private:
 	/** The default skeletal mesh to use when previewing this skeleton */
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
 	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
+
+	/** The additional skeletal meshes to use when previewing this skeleton */
+	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
+	TAssetPtr<class UPreviewMeshCollection> AdditionalPreviewSkeletalMeshes;
 
 	UPROPERTY()
 	FRigConfiguration RigConfig;
@@ -447,6 +461,15 @@ public:
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty=true);
+
+	/** Load any additional meshes we may have */
+	ENGINE_API void LoadAdditionalPreviewSkeletalMeshes();
+
+	/** Get the additional skeletal meshes we use when previewing this skeleton */
+	ENGINE_API UPreviewMeshCollection* GetAdditionalPreviewSkeletalMeshes() const;
+
+	/** Set the additional skeletal meshes we use when previewing this skeleton */
+	ENGINE_API void SetAdditionalPreviewSkeletalMeshes(UPreviewMeshCollection* PreviewMeshCollection);
 
 	/**
 	 * Makes sure all attached objects are valid and removes any that aren't.
@@ -544,6 +567,7 @@ public:
 	 *	Anybody modifying BoneTree will corrupt animation data, so will need to make sure it's not modifiable outside of Skeleton
 	 *	You can add new BoneNode but you can't modify current list. The index will be referenced by Animation data.
 	 */
+	DEPRECATED(4.14, "GetBoneTree should not be called. Please use GetBoneTranslationRetargetingMode()/SetBoneTranslationRetargetingMode() functions instead")
 	const TArray<FBoneNode>& GetBoneTree()	const
 	{ 
 		return BoneTree;	
@@ -612,7 +636,7 @@ public:
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	/** 
-	 * Create RefLocalPoses from InSkelMesh
+	 * Create RefLocalPoses from InSkelMesh. Note InSkelMesh cannot be null and this function will assert if it is.
 	 * 
 	 * If bClearAll is false, it will overwrite ref pose of bones that are found in InSkelMesh
 	 * If bClearAll is true, it will reset all Reference Poses 
@@ -705,9 +729,15 @@ public:
 	ENGINE_API void RefreshRigConfig();
 	int32 FindRigBoneMapping(const FName& NodeName) const;
 	ENGINE_API URig * GetRig() const;
+
 #endif
 
+public:
+	ENGINE_API USkeletalMeshSocket* FindSocketAndIndex(FName InSocketName, int32& OutIndex) const;
+	ENGINE_API USkeletalMeshSocket* FindSocket(FName InSocketName) const;
+
 private:
+	/** Regenerate new Guid */
 	void RegenerateGuid();	
 };
 

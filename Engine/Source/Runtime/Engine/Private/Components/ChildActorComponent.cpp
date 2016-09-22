@@ -9,7 +9,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 UChildActorComponent::UChildActorComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bWantsBeginPlay = true;
 	bAllowReregistration = false;
 }
 
@@ -48,14 +47,64 @@ void UChildActorComponent::OnRegister()
 	}
 }
 
+void UChildActorComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.HasAllPortFlags(PPF_DuplicateForPIE))
+	{
+		// PIE duplication should just work normally
+		Ar << ChildActorTemplate;
+	}
+	else if (Ar.HasAllPortFlags(PPF_Duplicate))
+	{
+		if (GIsEditor && Ar.IsLoading() && !IsTemplate())
+		{
+			// If we're not a template then we do not want the duplicate so serialize manually and destroy the template that was created for us
+			Ar.Serialize(&ChildActorTemplate, sizeof(UObject*));
+
+			if (AActor* UnwantedDuplicate = static_cast<AActor*>(FindObjectWithOuter(this, AActor::StaticClass())))
+			{
+				UnwantedDuplicate->MarkPendingKill();
+			}
+		}
+		else if (!GIsEditor && !Ar.IsLoading() && !GIsDuplicatingClassForReinstancing)
+		{
+			// Avoid the archiver in the duplicate writer case because we want to avoid the duplicate being created
+			Ar.Serialize(&ChildActorTemplate, sizeof(UObject*));
+		}
+		else
+		{
+			// When we're loading outside of the editor we won't have created the duplicate, so its fine to just use the normal path
+			// When we're loading a template then we want the duplicate, so it is fine to use normal archiver
+			// When we're saving in the editor we'll create the duplicate, but on loading decide whether to take it or not
+			Ar << ChildActorTemplate;
+		}
+	}
+
+#if WITH_EDITOR
+	// Since we sometimes serialize properties in instead of using duplication if we are a template
+	// and are not pointing at a component we own we'll need to fix that
+	if (ChildActorTemplate && ChildActorTemplate->GetOuter() != this && IsTemplate())
+	{
+		const FString TemplateName = FString::Printf(TEXT("%s_%s_CAT"), *GetName(), *ChildActorClass->GetName());
+		ChildActorTemplate = CastChecked<AActor>(StaticDuplicateObject(ChildActorTemplate, this, *TemplateName));
+	}
+#endif
+}
+
 #if WITH_EDITOR
 void UChildActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	static const FName NAME_ChildActorClass = GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass);
-
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == NAME_ChildActorClass)
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass))
 	{
 		ChildActorName = NAME_None;
+
+		if (!IsTemplate())
+		{
+			UChildActorComponent* Archetype = CastChecked<UChildActorComponent>(GetArchetype());
+			ChildActorTemplate = (Archetype->ChildActorClass == ChildActorClass ? Archetype->ChildActorTemplate : nullptr);
+		}
 
 		// If this was created by construction script, the post edit change super call will destroy it anyways
 		if (!IsCreatedByConstructionScript())
@@ -66,6 +115,55 @@ void UChildActorComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+void UChildActorComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass))
+	{
+		if (IsTemplate())
+		{
+			if (ChildActorClass)
+			{
+				if (ChildActorTemplate == nullptr || (ChildActorTemplate->GetClass() != ChildActorClass))
+				{
+					Modify();
+
+					AActor* NewChildActorTemplate = NewObject<AActor>(GetTransientPackage(), ChildActorClass, NAME_None, RF_ArchetypeObject | RF_Transactional | RF_Public);
+
+					if (ChildActorTemplate)
+					{
+						UEngine::CopyPropertiesForUnrelatedObjects(ChildActorTemplate, NewChildActorTemplate);
+
+						ChildActorTemplate->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+					}
+
+					ChildActorTemplate = NewChildActorTemplate;
+
+					// Record initial object state in case we're in a transaction context.
+					ChildActorTemplate->Modify();
+
+					// Now set the actual name and outer to the BPGC.
+					const FString TemplateName = FString::Printf(TEXT("%s_%s_CAT"), *GetName(), *ChildActorClass->GetName());
+
+					ChildActorTemplate->Rename(*TemplateName, this, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+				}
+			}
+			else if (ChildActorTemplate)
+			{
+				Modify();
+
+				ChildActorTemplate->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+				ChildActorTemplate = nullptr;
+			}
+		}
+		else
+		{
+			ChildActorTemplate = CastChecked<UChildActorComponent>(GetArchetype())->ChildActorTemplate;
+		}
+	}
+
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 }
 
 void UChildActorComponent::PostEditUndo()
@@ -306,6 +404,13 @@ void UChildActorComponent::PostLoad()
 	{
 		FActorParentComponentSetter::Set(ChildActor, this);
 	}
+
+	// Since the template could have been changed we need to respawn the child actor
+	// Don't do this if there is no linker which implies component was created via duplication
+	if (ChildActorTemplate && GetLinker())
+	{
+		DestroyChildActor();
+	}
 }
 #endif
 
@@ -353,6 +458,7 @@ void UChildActorComponent::CreateChildActor()
 				Params.bAllowDuringConstructionScript = true;
 				Params.OverrideLevel = (MyOwner ? MyOwner->GetLevel() : nullptr);
 				Params.Name = ChildActorName;
+				Params.Template = ChildActorTemplate;
 				if (!HasAllFlags(RF_Transactional))
 				{
 					Params.ObjectFlags &= ~RF_Transactional;

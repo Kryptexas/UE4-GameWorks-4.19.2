@@ -404,7 +404,7 @@ void ANUTActor::UpdateOwner()
 {
 	UWorld* CurWorld = GetWorld();
 	ENetMode CurNetMode = GEngine != NULL ? GEngine->GetNetMode(CurWorld) : NM_Standalone;
-	AGameState* GameState = CurWorld->GameState;
+	AGameStateBase* GameState = CurWorld->GetGameState();
 
 	if (GameState != NULL && GEngine != NULL && CurNetMode != NM_Client)
 	{
@@ -507,7 +507,7 @@ void ANUTActor::ServerAdmin_Implementation(const FString& Command)
 
 void ANUTActor::UnitSeamlessTravel(FString Dest/*=TEXT(" ")*/)
 {
-	AGameMode* GameMode = (GetWorld() != NULL ? GetWorld()->GetAuthGameMode() : NULL);
+	AGameMode* GameMode = (GetWorld() != NULL ? GetWorld()->GetAuthGameMode<AGameMode>() : NULL);
 
 	if (GameMode != NULL)
 	{
@@ -531,7 +531,7 @@ void ANUTActor::UnitSeamlessTravel(FString Dest/*=TEXT(" ")*/)
 
 void ANUTActor::UnitTravel(FString Dest/*=TEXT(" ")*/)
 {
-	AGameMode* GameMode = (GetWorld() != NULL ? GetWorld()->GetAuthGameMode() : NULL);
+	AGameMode* GameMode = (GetWorld() != NULL ? GetWorld()->GetAuthGameMode<AGameMode>() : NULL);
 
 	if (GameMode != NULL)
 	{

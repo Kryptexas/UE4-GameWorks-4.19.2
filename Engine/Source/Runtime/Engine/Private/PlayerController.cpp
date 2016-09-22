@@ -547,7 +547,7 @@ void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackag
 
 		// if both the server and this client have completed the transition, handle it
 		FSeamlessTravelHandler& SeamlessTravelHandler = GEngine->SeamlessTravelHandlerForWorld(CurWorld);
-		AGameMode* CurGameMode = CurWorld->GetAuthGameMode();
+		AGameModeBase* CurGameMode = CurWorld->GetAuthGameMode();
 
 		if (!SeamlessTravelHandler.IsInTransition() && WorldPackageName == CurWorld->GetOutermost()->GetFName() && CurGameMode != NULL)
 		{
@@ -977,7 +977,7 @@ void APlayerController::ServerShortTimeout_Implementation()
 		}
 		else 
 		{
-			float NetUpdateTimeOffset = (World->GetAuthGameMode()->NumPlayers < 8) ? 0.2f : 0.5f;
+			float NetUpdateTimeOffset = (World->GetAuthGameMode()->GetNumPlayers() < 8) ? 0.2f : 0.5f;
 			for (FActorIterator It(World); It; ++It)
 			{
 				AActor* A = *It;
@@ -1191,12 +1191,6 @@ void APlayerController::ClientSetHUD_Implementation(TSubclassOf<AHUD> NewHUDClas
 
 void APlayerController::CleanupPlayerState()
 {
-	AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
-	if (GameMode)
-	{
-		GameMode->AddInactivePlayer(PlayerState, this);
-	}
-
 	PlayerState = NULL;
 }
 
@@ -1266,7 +1260,7 @@ void APlayerController::OnNetCleanup(UNetConnection* Connection)
 void APlayerController::ClientReceiveLocalizedMessage_Implementation( TSubclassOf<ULocalMessage> Message, int32 Switch, APlayerState* RelatedPlayerState_1, APlayerState* RelatedPlayerState_2, UObject* OptionalObject )
 {
 	// Wait for player to be up to date with replication when joining a server, before stacking up messages
-	if (GetNetMode() == NM_DedicatedServer || GetWorld()->GameState == NULL || Message == NULL)
+	if (GetNetMode() == NM_DedicatedServer || GetWorld()->GetGameState() == nullptr || Message == nullptr)
 	{
 		return;
 	}
@@ -1294,7 +1288,7 @@ void APlayerController::ClientPlaySoundAtLocation_Implementation(USoundBase* Sou
 
 void APlayerController::ClientMessage_Implementation( const FString& S, FName Type, float MsgLifeTime )
 {
-	if ( GetNetMode() == NM_DedicatedServer || GetWorld()->GameState == NULL )
+	if ( GetNetMode() == NM_DedicatedServer || GetWorld()->GetGameState() == nullptr )
 	{
 		return;
 	}
@@ -1428,7 +1422,7 @@ void APlayerController::Destroyed()
 
 	// Tells the game info to forcibly remove this player's CanUnpause delegates from its list of Pausers.
 	// Prevents the game from being stuck in a paused state when a PC that paused the game is destroyed before the game is unpaused.
-	AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
+	AGameModeBase* const GameMode = GetWorld()->GetAuthGameMode();
 	if (GameMode)
 	{
 		GameMode->ForceClearUnpauseDelegates(this);
@@ -1652,7 +1646,7 @@ bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 	bool bResult = false;
 	if (GetNetMode() != NM_Client)
 	{
-		AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
+		AGameModeBase* const GameMode = GetWorld()->GetAuthGameMode();
 		if (GameMode != nullptr)
 		{
 			if (bPause)
@@ -1662,7 +1656,7 @@ bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 			}
 			else
 			{
-				GameMode->ClearPause();
+				bResult = GameMode->ClearPause();
 			}
 		}
 	}
@@ -1705,9 +1699,10 @@ void APlayerController::SetName(const FString& S)
 
 void APlayerController::ServerChangeName_Implementation( const FString& S )
 {
-	if (!S.IsEmpty())
+	AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+	if (!S.IsEmpty() && GameMode)
 	{
-		GetWorld()->GetAuthGameMode()->ChangeName( this, S, true );
+		GameMode->ChangeName( this, S, true );
 	}
 }
 
@@ -2647,13 +2642,16 @@ void APlayerController::ServerViewPrevPlayer_Implementation()
 APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 {
 	int32 CurrentIndex = -1;
-	UWorld* MyWorld = GetWorld();
+
+	AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+	AGameStateBase* GameState = GetWorld()->GetGameState();
+
 	if (PlayerCameraManager->ViewTarget.PlayerState )
 	{
 		// Find index of current viewtarget's PlayerState
-		for ( int32 i=0; i<MyWorld->GameState->PlayerArray.Num(); i++ )
+		for ( int32 i=0; i<GameState->PlayerArray.Num(); i++ )
 		{
-			if (PlayerCameraManager->ViewTarget.PlayerState == MyWorld->GameState->PlayerArray[i])
+			if (PlayerCameraManager->ViewTarget.PlayerState == GameState->PlayerArray[i])
 			{
 				CurrentIndex = i;
 				break;
@@ -2663,23 +2661,23 @@ APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 
 	// Find next valid viewtarget in appropriate direction
 	int32 NewIndex;
-	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<MyWorld->GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
+	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
 	{
-		APlayerState* const NextPlayerState = MyWorld->GameState->PlayerArray[NewIndex];
+		APlayerState* const NextPlayerState = GameState->PlayerArray[NewIndex];
 		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
-		if ( NextController && NextController->GetPawn() != nullptr && MyWorld->GetAuthGameMode()->CanSpectate(this, PlayerState) )
+		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, PlayerState) )
 		{
 			return PlayerState;
 		}
 	}
 
 	// wrap around
-	CurrentIndex = (NewIndex < 0) ? MyWorld->GameState->PlayerArray.Num() : -1;
-	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<GetWorld()->GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
+	CurrentIndex = (NewIndex < 0) ? GameState->PlayerArray.Num() : -1;
+	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
 	{
-		APlayerState* const NextPlayerState = MyWorld->GameState->PlayerArray[NewIndex];
+		APlayerState* const NextPlayerState = GameState->PlayerArray[NewIndex];
 		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
-		if ( NextController && NextController->GetPawn() != nullptr && MyWorld->GetAuthGameMode()->CanSpectate(this, PlayerState) )
+		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, PlayerState) )
 		{
 			return PlayerState;
 		}
@@ -2762,8 +2760,8 @@ void APlayerController::ServerRestartPlayer_Implementation()
 
 	if ( IsInState(NAME_Inactive) || (IsInState(NAME_Spectating) && bPlayerIsWaiting) )
 	{
-		AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
-		if ( !GetWorld()->GetAuthGameMode()->PlayerCanRestart(this) )
+		AGameModeBase* const GameMode = GetWorld()->GetAuthGameMode();
+		if ( !GameMode->PlayerCanRestart(this) )
 		{
 			return;
 		}
@@ -2774,7 +2772,7 @@ void APlayerController::ServerRestartPlayer_Implementation()
 			UnPossess();
 		}
 
-		GameMode->RestartPlayer( this );
+		GameMode->RestartPlayer(this);
 	}
 	else if ( GetPawn() != NULL )
 	{
@@ -3039,9 +3037,8 @@ void APlayerController::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*
 
 void APlayerController::SeamlessTravelTo(APlayerController* NewPC)
 {
-
+	CleanUpAudioComponents();
 }
-
 
 void APlayerController::SeamlessTravelFrom(APlayerController* OldPC)
 {
@@ -3055,6 +3052,20 @@ void APlayerController::SeamlessTravelFrom(APlayerController* OldPC)
 		OldPC->PlayerState->Destroy();
 		OldPC->PlayerState = NULL;
 	}
+}
+
+void APlayerController::PostSeamlessTravel()
+{
+	// Track the last completed seamless travel for the player
+	LastCompletedSeamlessTravelCount = SeamlessTravelCount;
+
+	CleanUpAudioComponents();
+
+	if (PlayerCameraManager == nullptr)
+	{
+		SpawnPlayerCameraManager();
+	}
+
 }
 
 void APlayerController::ClientEnableNetworkVoice_Implementation(bool bEnable)
@@ -3768,7 +3779,7 @@ void APlayerController::ClientClearCameraLensEffects_Implementation()
 	}
 }
 
-void APlayerController::ReceivedGameModeClass(TSubclassOf<AGameMode> GameModeClass)
+void APlayerController::ReceivedGameModeClass(TSubclassOf<AGameModeBase> GameModeClass)
 {
 }
 
@@ -4183,7 +4194,7 @@ ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 	if ((GetSpectatorPawn() == nullptr) && IsLocalController())
 	{
 		UWorld* World = GetWorld();
-		if (AGameState const* const GameState = World->GameState)
+		if (AGameStateBase const* const GameState = World->GetGameState())
 		{
 			if (UClass* SpectatorClass = GameState->SpectatorClass)
 			{
@@ -4329,8 +4340,13 @@ void APlayerController::BeginInactiveState()
 
 float APlayerController::GetMinRespawnDelay()
 {
-	AGameState const* const GameState = GetWorld()->GameState;
-	return ((GameState != NULL) && (GameState->GameModeClass != NULL)) ? GetDefault<AGameMode>(GameState->GameModeClass)->MinRespawnDelay : 1.0f;
+	AGameStateBase const* const GameState = GetWorld()->GetGameState();
+	
+	if (GameState)
+	{
+		return GameState->GetPlayerRespawnDelay(this);
+	}
+	return 1.0f;
 }
 
 void APlayerController::EndInactiveState()

@@ -484,14 +484,30 @@ void FReimportManager::ValidateAllSourceFileAndReimport(TArray<UObject*> &ToImpo
 		//If user ignore those asset just not add them to CopyOfSelectedAssets
 	}
 
-	for (auto Asset : CopyOfSelectedAssets)
+	FReimportManager::Instance()->ReimportMultiple(CopyOfSelectedAssets, /*bAskForNewFileIfMissing=*/false);
+}
+
+bool FReimportManager::ReimportMultiple(TArrayView<UObject*> Objects, bool bAskForNewFileIfMissing /*= false*/, bool bShowNotification /*= true*/, FString PreferedReimportFile /*= TEXT("")*/, FReimportHandler* SpecifiedReimportHandler /*= nullptr */)
+{
+	bool bBulkSuccess = true;
+
+	FScopedSlowTask BulkReimportTask((float)Objects.Num(), LOCTEXT("BulkReimport_Title", "Reimporting..."));
+
+	for(UObject* CurrentObject : Objects)
 	{
-		if (Asset)
+		if(CurrentObject)
 		{
-			//We already ask for new files
-			this->Reimport(Asset, /*bAskForNewFileIfMissing=*/false);
+			FText SingleTaskTest = FText::Format(LOCTEXT("BulkReimport_SingleItem", "Reimporting {0}"), FText::FromString(CurrentObject->GetName()));
+			FScopedSlowTask SingleObjectTask(1.0f, SingleTaskTest);
+			SingleObjectTask.EnterProgressFrame(1.0f);
+
+			bBulkSuccess = bBulkSuccess && Reimport(CurrentObject, bAskForNewFileIfMissing, bShowNotification, PreferedReimportFile, SpecifiedReimportHandler);
 		}
+
+		BulkReimportTask.EnterProgressFrame(1.0f);
 	}
+
+	return bBulkSuccess;
 }
 
 void FReimportManager::GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFilenames)

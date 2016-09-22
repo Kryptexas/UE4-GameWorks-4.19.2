@@ -824,6 +824,17 @@ public:
 	virtual void Activated(FViewport* Viewport, const FWindowActivateEvent& InActivateEvent) {}
 	virtual void Deactivated(FViewport* Viewport, const FWindowActivateEvent& InActivateEvent) {}
 
+	/**
+	 * Called when the top level window associated with the viewport has been requested to close.
+	 * At this point, the viewport has not been closed and the operation may be canceled.
+	 * This may not called from PIE, Editor Windows, on consoles, or before the game ends
+ 	 * from other methods.
+	 * This is only when the platform specific window is closed.
+	 *
+	 * @return True if the viewport may be closed, false otherwise.
+	 */
+	virtual bool WindowCloseRequested() { return true; }
+
 	virtual void CloseRequested(FViewport* Viewport) {}
 
 	virtual bool RequiresHitProxyStorage() { return true; }

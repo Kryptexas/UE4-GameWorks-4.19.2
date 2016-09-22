@@ -17,21 +17,6 @@ enum EVisibilityAggressiveness
 	VIS_Max,
 };
 
-/** Helper structure, used to associate GameModes for a map via its filename prefix. */
-USTRUCT()
-struct FGameModePrefix
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** map prefix, e.g. "DM" */
-	UPROPERTY()
-	FString Prefix;
-
-	/** GameMode used if none specified on the URL */
-	UPROPERTY()
-	FString GameMode;
-};
-
 USTRUCT()
 struct FLightmassWorldInfoSettings
 {
@@ -359,11 +344,7 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	
 	/** The default GameMode to use when starting this map in the game. If this value is NULL, the INI setting for default game type is used. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GameMode, meta=(DisplayName="GameMode Override"))
-	TSubclassOf<class AGameMode> DefaultGameMode;
-
-	/** Used for loading appropriate game type if non-specified in URL */
-	UPROPERTY(config)
-	TArray<struct FGameModePrefix> DefaultMapPrefixes;
+	TSubclassOf<class AGameModeBase> DefaultGameMode;
 
 	/** Class of GameNetworkManager to spawn for network games */
 	UPROPERTY()
@@ -590,12 +571,12 @@ public:
 	virtual float SetTimeDilation(float NewTimeDilation);
 
 	/**
-	 * Called by GameMode.HandleMatchIsWaitingToStart, calls BeginPlay on all actors
+	 * Called from GameStateBase, calls BeginPlay on all actors
 	 */
 	virtual void NotifyBeginPlay();
 
 	/** 
-	 * Called by GameMode.HandleMatchHasStarted, used to notify native classes of match startup (such as level scripting)
+	 * Called from GameStateBase, used to notify native classes of match startup (such as level scripting)
 	 */	
 	virtual void NotifyMatchStarted();
 

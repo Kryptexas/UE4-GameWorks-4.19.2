@@ -1833,7 +1833,10 @@ float UWheeledVehicleMovementComponent::GetRVOAvoidanceConsiderationRadius()
 
 FVector UWheeledVehicleMovementComponent::GetVelocityForRVOConsideration()
 {
-	return UpdatedComponent->GetComponentVelocity();
+	FVector Velocity2D = UpdatedComponent->GetComponentVelocity();
+	Velocity2D.Z = 0.f;
+
+	return Velocity2D;
 }
 
 int32 UWheeledVehicleMovementComponent::GetAvoidanceGroupMask()

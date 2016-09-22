@@ -15,24 +15,24 @@ class USkeletalMeshSocket : public UObject
 	 *	everything explicitly to AttachComponent in the SkeletalMeshComponent.
 	 *	The Outer of a SkeletalMeshSocket should always be the USkeletalMesh.
 	 */
-	UPROPERTY(Category=SkeletalMeshSocket, VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="Socket Parameters", VisibleAnywhere, BlueprintReadOnly)
 	FName SocketName;
 
-	UPROPERTY(Category=SkeletalMeshSocket, VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="Socket Parameters", VisibleAnywhere, BlueprintReadOnly)
 	FName BoneName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SkeletalMeshSocket)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Socket Parameters")
 	FVector RelativeLocation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SkeletalMeshSocket)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Socket Parameters")
 	FRotator RelativeRotation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SkeletalMeshSocket)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Socket Parameters")
 	FVector RelativeScale;
 
 	/** If true then the hierarchy of bones this socket is attached to will always be 
 	    evaluated, even if it had previously been removed due to the current lod setting */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SkeletalMeshSocket)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Socket Parameters")
 	bool bForceAlwaysAnimated;
 
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")

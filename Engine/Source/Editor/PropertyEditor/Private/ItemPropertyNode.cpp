@@ -138,7 +138,8 @@ void FItemPropertyNode::InitExpansionFlags (void)
 		|| ( ( Cast<UArrayProperty>(MyProperty) || Cast<USetProperty>(MyProperty) || Cast<UMapProperty>(MyProperty) ) && GetReadAddress(false,Addresses) );
 
 	if(	bExpandableType
-		||  HasNodeFlags(EPropertyNodeFlags::EditInline)
+		|| HasNodeFlags(EPropertyNodeFlags::EditInlineNew)
+		|| HasNodeFlags(EPropertyNodeFlags::ShowInnerObjectProperties)
 		||	( MyProperty->ArrayDim > 1 && ArrayIndex == -1 ) )
 	{
 		SetNodeFlags(EPropertyNodeFlags::CanBeExpanded, true);

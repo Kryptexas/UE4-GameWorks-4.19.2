@@ -16,7 +16,7 @@ FColorPropertyTableCellPresenter::FColorPropertyTableCellPresenter( const TShare
 
 TSharedRef< class SWidget > FColorPropertyTableCellPresenter::ConstructDisplayWidget()
 {
-	return SNew( SHorizontalBox )
+	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
 		.Padding( FMargin( 3.0, 0, 3.0, 0 ) )
 		.FillWidth( 1.0 )
@@ -30,8 +30,11 @@ TSharedRef< class SWidget > FColorPropertyTableCellPresenter::ConstructDisplayWi
 				SAssignNew( FocusWidget, SPropertyEditorColor, PropertyEditor, PropertyUtilities )
 				.ToolTipText( PropertyEditor->GetToolTipText() )
 			]
-		]
-		+SHorizontalBox::Slot()
+		];
+		
+	if (!PropertyEditor->GetPropertyHandle()->HasMetaData(TEXT("NoResetToDefault")))
+	{
+		HorizontalBox->AddSlot()
 		.AutoWidth()
 		.VAlign( VAlign_Center )
 		.HAlign( HAlign_Center )
@@ -39,6 +42,9 @@ TSharedRef< class SWidget > FColorPropertyTableCellPresenter::ConstructDisplayWi
 		[
 			SNew( SResetToDefaultPropertyEditor, PropertyEditor )
 		];
+	}
+
+	return HorizontalBox;
 }
 
 bool FColorPropertyTableCellPresenter::RequiresDropDown()

@@ -488,6 +488,12 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 		const NxVertexFormat& VBFormat = VB.getFormat();
 		const physx::PxU32 SubmeshVertexCount = VB.getVertexCount();
 
+		if(SubmeshVertexCount == 0)
+		{
+			// Empty submesh, but the mesh as a whole may be valid, keep looking for more submeshes.
+			continue;
+		}
+
 		// Get VB data semantic indices:
 
 		// Positions
@@ -643,6 +649,13 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 		}
 
 		VertexIndexBase += SubmeshVertexCount;
+	}
+
+	if(ImportData.Points.Num() == 0)
+	{
+		// No points were loaded, can't make a mesh.
+		UE_LOG(LogApexDestructibleAssetImport, Error, TEXT("Failed to import destructible mesh - No positions were found in any submeshes."));
+		return false;
 	}
 
 	// Create mapping from import to raw- @TODO trivial at the moment, do we need this info for destructibles?

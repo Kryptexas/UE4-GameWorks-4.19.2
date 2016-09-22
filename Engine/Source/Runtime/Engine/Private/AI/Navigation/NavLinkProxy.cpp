@@ -56,13 +56,10 @@ ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Supe
 	}
 #endif
 
-	if (HasAnyFlags(RF_ClassDefaultObject) == false)
-	{
-		SmartLinkComp = CreateDefaultSubobject<UNavLinkCustomComponent>(TEXT("SmartLinkComp"));
-		SmartLinkComp->SetNavigationRelevancy(false);
-		SmartLinkComp->SetMoveReachedLink(this, &ANavLinkProxy::NotifySmartLinkReached);
-		bSmartLinkIsRelevant = false;
-	}
+	SmartLinkComp = CreateDefaultSubobject<UNavLinkCustomComponent>(TEXT("SmartLinkComp"));
+	SmartLinkComp->SetNavigationRelevancy(false);
+	SmartLinkComp->SetMoveReachedLink(this, &ANavLinkProxy::NotifySmartLinkReached);
+	bSmartLinkIsRelevant = false;
 
 	PointLinks.Add(FNavigationLink());
 	SetActorEnableCollision(false);

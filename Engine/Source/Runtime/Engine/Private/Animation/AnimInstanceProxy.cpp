@@ -729,8 +729,19 @@ void FAnimInstanceProxy::RecalcRequiredBones(USkeletalMeshComponent* Component, 
 {
 	RequiredBones.InitializeTo(Component->RequiredBones, *Asset);
 
+	// If this instance can accept input poses, initialise the input pose container
+	if(SubInstanceInputNode)
+	{
+		SubInstanceInputNode->InputPose.SetBoneContainer(&RequiredBones);
+	}
+
 	// When RequiredBones mapping has changed, AnimNodes need to update their bones caches. 
 	bBoneCachesInvalidated = true;
+}
+
+void FAnimInstanceProxy::RecalcRequiredCurves()
+{
+	RequiredBones.CacheRequiredAnimCurveUids();
 }
 
 void FAnimInstanceProxy::UpdateAnimation()
@@ -833,7 +844,7 @@ void FAnimInstanceProxy::SlotEvaluatePose(FName SlotNodeName, const FCompactPose
 			
 			// Bone array has to be allocated prior to calling GetPoseFromAnimTrack
 			NewPose.Pose.SetBoneContainer(&RequiredBones);
-			NewPose.Curve.InitFrom(SkeletalMeshComponent->GetCachedAnimCurveMappingNameUids());
+			NewPose.Curve.InitFrom(RequiredBones);
 
 			// Extract pose from Track
 			FAnimExtractContext ExtractionContext(EvalState.MontagePosition, EvalState.Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
@@ -841,7 +852,7 @@ void FAnimInstanceProxy::SlotEvaluatePose(FName SlotNodeName, const FCompactPose
 
 			// add montage curves 
 			FBlendedCurve MontageCurve;
-			MontageCurve.InitFrom(SkeletalMeshComponent->GetCachedAnimCurveMappingNameUids());
+			MontageCurve.InitFrom(RequiredBones);
 			EvalState.Montage->EvaluateCurveData(MontageCurve, EvalState.MontagePosition);
 			NewPose.Curve.Combine(MontageCurve);
 

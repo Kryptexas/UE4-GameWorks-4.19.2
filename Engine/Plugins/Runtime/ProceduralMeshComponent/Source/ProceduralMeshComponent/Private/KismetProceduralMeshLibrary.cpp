@@ -686,7 +686,8 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 		for (int32 SectionIndex = 0; SectionIndex < InProcMesh->GetNumSections(); SectionIndex++)
 		{
 			FProcMeshSection* BaseSection = InProcMesh->GetProcMeshSection(SectionIndex);
-			if (BaseSection != nullptr)
+			// If we have a section, and it has some valid geom
+			if (BaseSection != nullptr && BaseSection->ProcIndexBuffer.Num() > 0 && BaseSection->ProcVertexBuffer.Num() > 0)
 			{
 				// Compare bounding box of section with slicing plane
 				int32 BoxCompare = BoxPlaneCompare(BaseSection->SectionLocalBox, SlicePlane);
@@ -910,13 +911,13 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 					}
 
 					// Remove 'other' section from array if no valid geometry for it
-					if (NewOtherSection != nullptr && NewOtherSection->ProcIndexBuffer.Num() == 0)
+					if (NewOtherSection != nullptr && (NewOtherSection->ProcIndexBuffer.Num() == 0 || NewOtherSection->ProcVertexBuffer.Num() == 0))
 					{
 						OtherSections.RemoveAt(OtherSections.Num() - 1);
 					}
 
 					// If we have some valid geometry, update section
-					if (NewSection.ProcIndexBuffer.Num() > 0)
+					if (NewSection.ProcIndexBuffer.Num() > 0 && NewOtherSection->ProcVertexBuffer.Num() > 0)
 					{
 						// Assign new geom to this section
 						InProcMesh->SetProcMeshSection(SectionIndex, NewSection);

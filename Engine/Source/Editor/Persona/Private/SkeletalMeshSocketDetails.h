@@ -25,7 +25,7 @@ private:
 	void OnSocketNameCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo);
 
 	/** Verifies the socket name and supplies and error message if it's invalid **/
-	bool VerifySocketName( FPersona* PersonaPtr, const USkeletalMeshSocket* Socket, const FText& InText, FText& OutErrorMessage ) const;
+	bool VerifySocketName(TSharedRef<class IEditableSkeleton> EditableSkeleton, const USkeletalMeshSocket* Socket, const FText& InText, FText& OutErrorMessage ) const;
 
 	/** Get the search suggestions */
 	TArray<FString> GetSearchSuggestions() const;
