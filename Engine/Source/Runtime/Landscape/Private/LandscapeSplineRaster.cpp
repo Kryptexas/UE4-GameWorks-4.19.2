@@ -7,6 +7,7 @@
 
 #include "LandscapePrivatePCH.h"
 #include "LandscapeSplineRaster.h"
+#include "Landscape.h"
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
