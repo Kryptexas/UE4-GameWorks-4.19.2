@@ -9,8 +9,8 @@
 
 
 /**
- * Represents an internet ip address, using the relatively standard sockaddr_in6 structure. All data is in network byte order
- */
+* Represents an internet ip address, using the relatively standard sockaddr_in6 structure. All data is in network byte order
+*/
 class FInternetAddrBSDIPv6 : public FInternetAddr
 {
 	/** The internet ip address structure */
@@ -21,26 +21,26 @@ class FInternetAddrBSDIPv6 : public FInternetAddr
 
 public:
 	/**
-	 * Constructor. Sets address to default state
-	 */
+	* Constructor. Sets address to default state
+	*/
 	FInternetAddrBSDIPv6()
 	{
-		FMemory::Memzero(&Addr,sizeof(Addr));
+		FMemory::Memzero(&Addr, sizeof(Addr));
 		Addr.sin6_family = AF_INET6;
 	}
 
 	/**
-	 * Sets the ip address from a host byte order uint32, convert the IPv4 address supplied to an IPv6 address
-	 *
-	 * @param InAddr the new address to use (must convert to network byte order)
-	 */
+	* Sets the ip address from a host byte order uint32, convert the IPv4 address supplied to an IPv6 address
+	*
+	* @param InAddr the new address to use (must convert to network byte order)
+	*/
 	virtual void SetIp(uint32 InAddr) override
 	{
-		if(InAddr == 0)
+		if (InAddr == 0)
 		{
-			FMemory::Memzero(&Addr.sin6_addr,sizeof(Addr.sin6_addr));
+			FMemory::Memzero(&Addr.sin6_addr, sizeof(Addr.sin6_addr));
 		}
-		else if(InAddr == IPv4MulitcastAddr)
+		else if (InAddr == IPv4MulitcastAddr)
 		{
 			// hack: if it's the hardcoded IPv4 multicasting address then translate into an IPv6 multicast address
 			bool isValid;
@@ -50,18 +50,18 @@ public:
 		else
 		{
 			in_addr InternetAddr;
-			InternetAddr.s_addr= htonl(InAddr);
+			InternetAddr.s_addr = htonl(InAddr);
 
 			SetIp(InternetAddr);
 		}
 	}
 
 	/**
-	 * Sets the ip address from a string ("[aaaa:bbbb:cccc:dddd:eeee:ffff:gggg:hhhh]:port" or "a.b.c.d:port")
-	 *
-	 * @param InAddr the string containing the new ip address to use
-	 * @param bIsValid will be set to true if InAddr was a valid IPv6 or IPv4 address, false if not.
-	 */
+	* Sets the ip address from a string ("[aaaa:bbbb:cccc:dddd:eeee:ffff:gggg:hhhh]:port" or "a.b.c.d:port")
+	*
+	* @param InAddr the string containing the new ip address to use
+	* @param bIsValid will be set to true if InAddr was a valid IPv6 or IPv4 address, false if not.
+	*/
 	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) override
 	{
 
@@ -69,9 +69,9 @@ public:
 		int NumColons = 0;
 		int LastColonIndex = 0;
 		int i = 0;
-		while(InAddr && InAddr[i] != '\0')
+		while (InAddr && InAddr[i] != '\0')
 		{
-			if(InAddr[i] == ':')
+			if (InAddr[i] == ':')
 			{
 				NumColons++;
 				LastColonIndex = i;
@@ -82,9 +82,9 @@ public:
 		// Break off port portion of string
 		FString AddressString(InAddr);
 		FString Port;
-		if(NumColons == 1 || NumColons == 8)
+		if (NumColons == 1 || NumColons == 8)
 		{
-			Port = AddressString.RightChop(LastColonIndex+1);
+			Port = AddressString.RightChop(LastColonIndex + 1);
 			AddressString = AddressString.Left(LastColonIndex);
 			SetPort(FCString::Atoi(*Port));
 		}
@@ -115,10 +115,10 @@ public:
 	}
 
 	/**
-	 * Sets the ip address using a network byte order ipv4 address
-	 *
-	 * @param IPv4Addr the new ip address to use
-	 */	
+	* Sets the ip address using a network byte order ipv4 address
+	*
+	* @param IPv4Addr the new ip address to use
+	*/
 	void SetIp(const in_addr& IPv4Addr)
 	{
 		FMemory::Memzero(&Addr.sin6_addr, sizeof(Addr.sin6_addr));
@@ -128,9 +128,9 @@ public:
 		Addr.sin6_addr.s6_addr[11] = 0xff;
 
 		uint8	IPv4b1 = (static_cast<uint32>(IPv4Addr.s_addr) & 0xFF),
-				IPv4b2 = ((static_cast<uint32>(IPv4Addr.s_addr) >> 8) & 0xFF),
-				IPv4b3 = ((static_cast<uint32>(IPv4Addr.s_addr) >> 16) & 0xFF),
-				IPv4b4 = ((static_cast<uint32>(IPv4Addr.s_addr) >> 24) & 0xFF);
+			IPv4b2 = ((static_cast<uint32>(IPv4Addr.s_addr) >> 8) & 0xFF),
+			IPv4b3 = ((static_cast<uint32>(IPv4Addr.s_addr) >> 16) & 0xFF),
+			IPv4b4 = ((static_cast<uint32>(IPv4Addr.s_addr) >> 24) & 0xFF);
 
 		Addr.sin6_addr.s6_addr[12] = IPv4b1;
 		Addr.sin6_addr.s6_addr[13] = IPv4b2;
@@ -142,24 +142,24 @@ public:
 			IPv4b2,
 			IPv4b3,
 			IPv4b4
-		);
+			);
 	}
 
 	/**
-	 * Sets the ip address using a network byte order ipv6 address
-	 *
-	 * @param IpAddr the new ip address to use
-	 */
+	* Sets the ip address using a network byte order ipv6 address
+	*
+	* @param IpAddr the new ip address to use
+	*/
 	void SetIp(const in6_addr& IpAddr)
- 	{
- 		Addr.sin6_addr = IpAddr;
- 	}
+	{
+		Addr.sin6_addr = IpAddr;
+	}
 
 	/**
-	 * Sets the ip address using a generic sockaddr_storage
-	 *
-	 * @param IpAddr the new ip address to use
-	 */
+	* Sets the ip address using a generic sockaddr_storage
+	*
+	* @param IpAddr the new ip address to use
+	*/
 	void SetIp(const sockaddr_storage& IpAddr)
 	{
 		if (IpAddr.ss_family == AF_INET)
@@ -175,10 +175,10 @@ public:
 	}
 
 	/**
-	 * Copies the network byte order ip address to a host byte order dword, doesn't exist with IPv6
-	 *
-	 * @param OutAddr the out param receiving the ip address
-	 */
+	* Copies the network byte order ip address to a host byte order dword, doesn't exist with IPv6
+	*
+	* @param OutAddr the out param receiving the ip address
+	*/
 	virtual void GetIp(uint32& OutAddr) const override
 	{
 		// grab the last 32-bits of the IPv6 address as this will correspond to the IPv4 address
@@ -191,32 +191,32 @@ public:
 		OutAddr = (Addr.sin6_addr.s6_addr[15] << 24) | (Addr.sin6_addr.s6_addr[14] << 16) | (Addr.sin6_addr.s6_addr[13] << 8) | (Addr.sin6_addr.s6_addr[12]);
 #endif
 	}
-#if 0
+
 	/**
-	 * Copies the network byte order ip address 
-	 *
-	 * @param OutAddr the out param receiving the ip address
-	 */
+	* Copies the network byte order ip address
+	*
+	* @param OutAddr the out param receiving the ip address
+	*/
 	void GetIp(in6_addr& OutAddr) const
- 	{
- 		OutAddr = Addr.sin6_addr;
- 	}
-#endif
+	{
+		OutAddr = Addr.sin6_addr;
+	}
+
 	/**
-	 * Sets the port number from a host byte order int
-	 *
-	 * @param InPort the new port to use (must convert to network byte order)
-	 */
+	* Sets the port number from a host byte order int
+	*
+	* @param InPort the new port to use (must convert to network byte order)
+	*/
 	virtual void SetPort(int32 InPort) override
 	{
 		Addr.sin6_port = htons(InPort);
 	}
 
 	/**
-	 * Copies the port number from this address and places it into a host byte order int
-	 *
-	 * @param OutPort the host byte order int that receives the port
-	 */
+	* Copies the port number from this address and places it into a host byte order int
+	*
+	* @param OutPort the host byte order int that receives the port
+	*/
 	virtual void GetPort(int32& OutPort) const override
 	{
 		OutPort = ntohs(Addr.sin6_port);
@@ -252,10 +252,10 @@ public:
 	}
 
 	/**
-	 * Converts this internet ip address to string form. String will be enclosed in square braces.
-	 *
-	 * @param bAppendPort whether to append the port information or not
-	 */
+	* Converts this internet ip address to string form. String will be enclosed in square braces.
+	*
+	* @param bAppendPort whether to append the port information or not
+	*/
 	virtual FString ToString(bool bAppendPort) const override
 	{
 		char IPStr[INET6_ADDRSTRLEN];
@@ -265,7 +265,7 @@ public:
 		FString Result("[");
 		Result += IPStr;
 		Result += "]";
-		
+
 		if (bAppendPort)
 		{
 			Result += ":";
@@ -276,23 +276,23 @@ public:
 	}
 
 	/**
-	 * Compares two internet ip addresses for equality
-	 *
-	 * @param Other the address to compare against
-	 */
+	* Compares two internet ip addresses for equality
+	*
+	* @param Other the address to compare against
+	*/
 	virtual bool operator==(const FInternetAddr& Other) const override
 	{
 		FInternetAddrBSDIPv6& OtherBSD = (FInternetAddrBSDIPv6&)Other;
-		return memcmp(&Addr.sin6_addr,&OtherBSD.Addr.sin6_addr,sizeof(in6_addr)) == 0 &&
+		return memcmp(&Addr.sin6_addr, &OtherBSD.Addr.sin6_addr, sizeof(in6_addr)) == 0 &&
 			Addr.sin6_port == OtherBSD.Addr.sin6_port &&
 			Addr.sin6_family == OtherBSD.Addr.sin6_family;
 	}
 
 	/**
-	 * Is this a well formed internet address, the only criteria being non-zero
-	 *
-	 * @return true if a valid IP, false otherwise
-	 */
+	* Is this a well formed internet address, the only criteria being non-zero
+	*
+	* @return true if a valid IP, false otherwise
+	*/
 	virtual bool IsValid() const override
 	{
 		FInternetAddrBSDIPv6 Temp;
@@ -300,16 +300,45 @@ public:
 		return memcmp(&Addr.sin6_addr, &Temp.Addr.sin6_addr, sizeof(in6_addr)) != 0;
 	}
 
- 	operator sockaddr*(void)
- 	{
- 		return (sockaddr*)&Addr;
- 	}
+	operator sockaddr*(void)
+	{
+		return (sockaddr*)&Addr;
+	}
 
- 	operator const sockaddr*(void) const
- 	{
- 		return (const sockaddr*)&Addr;
- 	}
+	operator const sockaddr*(void) const
+	{
+		return (const sockaddr*)&Addr;
+	}
 };
 
+
+class FResolveInfoCachedBSDIPv6 : public FResolveInfoCached
+{
+	FResolveInfoCachedBSDIPv6();
+
+public:
+	FResolveInfoCachedBSDIPv6(const FInternetAddr& InAddr)
+	{
+		const FInternetAddrBSDIPv6* InAddrAsIPv6 = static_cast<const FInternetAddrBSDIPv6*>(&InAddr);
+		if (InAddrAsIPv6)
+		{
+			Addr = ISocketSubsystem::Get()->CreateInternetAddr();
+			FInternetAddrBSDIPv6* AddrAsIPv6 = static_cast<FInternetAddrBSDIPv6*>(Addr.Get());
+			if (AddrAsIPv6)
+			{
+				AddrAsIPv6->SetPort(InAddr.GetPort());
+				in6_addr temp;
+				InAddrAsIPv6->GetIp(temp);
+				AddrAsIPv6->SetIp(temp);
+			}
+		}
+		else
+		{
+			uint32 IpAddr;
+			InAddr.GetIp(IpAddr);
+			Addr = ISocketSubsystem::Get()->CreateInternetAddr(IpAddr, InAddr.GetPort());
+		}
+	}
+};
 
 #endif
