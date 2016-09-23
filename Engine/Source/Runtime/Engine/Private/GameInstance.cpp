@@ -8,6 +8,7 @@
 #include "EnginePrivate.h"
 #include "Engine/GameInstance.h"
 #include "Engine/Engine.h"
+#include "Engine/GameEngine.h"
 #include "Engine/DemoNetDriver.h"
 #include "Engine/LatentActionManager.h"
 #include "Engine/NetworkObjectList.h"
