@@ -49,6 +49,7 @@ if [ -e /etc/os-release ]; then
        clang-3.5
        "
     elif [[ "$VERSION_ID" == 16.04 ]]; then
+     # mono-devel is needed for making the installed build (particularly installing resgen2 tool)
      DEPS="mono-xbuild \
        mono-dmcs \
        libmono-microsoft-build-tasks-v4.0-4.0-cil \
@@ -61,6 +62,7 @@ if [ -e /etc/os-release ]; then
        libmono-system-io-compression4.0-cil
        libmono-system-io-compression-filesystem4.0-cil
        libmono-system-runtime4.0-cil
+       mono-devel
        clang-3.8
        "
     fi
