@@ -325,7 +325,7 @@ FReply SSettingsSectionHeader::HandleSetAsDefaultButtonClicked()
 					{
 						if (!CheckOutOrAddDefaultConfigFile())
 						{
-							if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SaveAsDefaultsIsReadOnlyMessage", "The source control operation failed. Would you like to make it writable?")) == EAppReturnType::Yes)
+							if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SaveAsDefaultsSourceControlOperationFailed", "The source control operation failed. Would you like to make it writable?")) == EAppReturnType::Yes)
 							{
 								MakeDefaultConfigFileWritable();
 							}
@@ -365,7 +365,7 @@ FReply SSettingsSectionHeader::HandleSetAsDefaultButtonClicked()
 			{
 				if (!CheckOutOrAddDefaultConfigFile(true))
 				{
-					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SaveAsDefaultsIsReadOnlyMessage", "The source control operation failed. You will need to add it manually"));
+					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SaveAsDefaultsSourceControlFailedAddManually", "The source control operation failed. You will need to add it manually"));
 					return FReply::Handled();
 				}
 			}

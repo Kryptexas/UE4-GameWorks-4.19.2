@@ -4,8 +4,6 @@
 #include "PropertyEditor.h"
 #include "PropertyEditorConstants.h"
 
-#define LOCTEXT_NAMESPACE "PropertyEditor"
-
 class SPropertyEditorSet : public SCompoundWidget
 {
 public:

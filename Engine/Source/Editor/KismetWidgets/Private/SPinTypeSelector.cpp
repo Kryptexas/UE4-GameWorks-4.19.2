@@ -1011,10 +1011,10 @@ FText SPinTypeSelector::GetToolTipForComboBoxSecondaryType() const
 {
 	if (IsEnabled())
 	{
-		return LOCTEXT("PinTypeSelector", "Select the map's value type.");
+		return LOCTEXT("PinTypeValueSelector", "Select the map's value type.");
 	}
 
-	return LOCTEXT("PinTypeSelector_Disabled", "Cannot edit map value type when they are inherited from parent.");
+	return LOCTEXT("PinTypeSelector_ValueDisabled", "Cannot edit map value type when they are inherited from parent.");
 }
 
 FText SPinTypeSelector::GetToolTipForArrayWidget() const

@@ -62,3 +62,5 @@ bool SPropertyEditorSet::CanEdit() const
 {
 	return PropertyEditor.IsValid() ? !PropertyEditor->IsEditConst() : true;
 }
+
+#undef LOCTEXT_NAMESPACE
