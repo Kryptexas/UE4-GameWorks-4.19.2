@@ -494,30 +494,6 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private string LoadLauncherDisplayVersion()
-		{
-			string[] VersionHeader = Utils.ReadAllText("../../Portal/Source/Layers/DataAccess/Public/PortalVersion.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
-			string LauncherVersionMajor = "1";
-			string LauncherVersionMinor = "0";
-			string LauncherVersionPatch = "0";
-			foreach (string Line in VersionHeader)
-			{
-				if (Line.StartsWith("#define PORTAL_MAJOR_VERSION "))
-				{
-					LauncherVersionMajor = Line.Split(' ')[2];
-				}
-				else if (Line.StartsWith("#define PORTAL_MINOR_VERSION "))
-				{
-					LauncherVersionMinor = Line.Split(' ')[2];
-				}
-				else if (Line.StartsWith("#define PORTAL_PATCH_VERSION "))
-				{
-					LauncherVersionPatch = Line.Split(' ')[2];
-				}
-			}
-			return LauncherVersionMajor + "." + LauncherVersionMinor + "." + LauncherVersionPatch;
-		}
-
 		private int LoadBuiltFromChangelistValue()
 		{
 			return LoadEngineCL();
@@ -971,6 +947,20 @@ namespace UnrealBuildTool
 					BinariesPath = Path.GetDirectoryName(BinariesPath.Substring(0, BinariesPath.IndexOf(".app")));
 					AppendMacLine(FinalizeAppBundleScript, "cd \"{0}\"", ConvertPath(BinariesPath).Replace("$", "\\$"));
 
+					string BundleVersion = null;
+					foreach(string CmdLineArg in UnrealBuildTool.CmdLine)
+					{
+						const string BundleVersionPrefix = "-BundleVersion=";
+						if(CmdLineArg.StartsWith(BundleVersionPrefix, StringComparison.InvariantCultureIgnoreCase))
+						{
+							BundleVersion = CmdLineArg.Substring(BundleVersionPrefix.Length);
+						}
+					}
+					if(BundleVersion == null)
+					{
+						BundleVersion = LoadEngineDisplayVersion();
+					}
+
 					string ExeName = Path.GetFileName(OutputFile.AbsolutePath);
 					bool bIsLauncherProduct = ExeName.StartsWith("EpicGamesLauncher") || ExeName.StartsWith("EpicGamesBootstrapLauncher");
 					string[] ExeNameParts = ExeName.Split('-');
@@ -994,7 +984,6 @@ namespace UnrealBuildTool
 					AppendMacLine(FinalizeAppBundleScript, "sh \"{0}\" \"{1}\"", ConvertPath(DylibCopyScriptPath.FullName).Replace("$", "\\$"), ExeName);
 
 					string IconName = "UE4";
-					string BundleVersion = bIsLauncherProduct ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
 					string EngineSourcePath = ConvertPath(Directory.GetCurrentDirectory()).Replace("$", "\\$");
 					string CustomResourcesPath = "";
 					string CustomBuildPath = "";

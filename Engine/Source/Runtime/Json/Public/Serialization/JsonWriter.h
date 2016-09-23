@@ -191,6 +191,27 @@ public:
 		WriteValue(FString(Value));
 	}
 
+	// WARNING: THIS IS DANGEROUS. Use this only if you know for a fact that the Value is valid JSON!
+	// Use this to insert the results of a different JSON Writer in.
+	void WriteRawJSONValue( const FString& Value )
+	{
+		check(CanWriteValueWithoutIdentifier());
+		WriteCommaIfNeeded();
+
+		if ( PreviousTokenWritten != EJsonToken::True && PreviousTokenWritten != EJsonToken::False && PreviousTokenWritten != EJsonToken::SquareOpen )
+		{
+			PrintPolicy::WriteLineTerminator(Stream);
+			PrintPolicy::WriteTabs(Stream, IndentLevel);
+		}
+		else
+		{
+			PrintPolicy::WriteSpace( Stream );
+		}
+
+		PrintPolicy::WriteString(Stream, Value);
+		PreviousTokenWritten = EJsonToken::String;
+	}
+
 	void WriteNull()
 	{
 		WriteValue(nullptr);
@@ -198,9 +219,9 @@ public:
 
 	virtual bool Close()
 	{
-		return ( PreviousTokenWritten == EJsonToken::None || 
-				 PreviousTokenWritten == EJsonToken::CurlyClose  || 
-				 PreviousTokenWritten == EJsonToken::SquareClose ) 
+		return ( PreviousTokenWritten == EJsonToken::None ||
+				 PreviousTokenWritten == EJsonToken::CurlyClose  ||
+				 PreviousTokenWritten == EJsonToken::SquareClose )
 				&& Stack.Num() == 0;
 	}
 
@@ -232,8 +253,8 @@ protected:
 
 protected:
 
-	FORCEINLINE bool CanWriteValueWithoutIdentifier() const 
-	{ 
+	FORCEINLINE bool CanWriteValueWithoutIdentifier() const
+	{
 		return Stack.Num() <= 0 || Stack.Top() == EJson::Array || PreviousTokenWritten == EJsonToken::Identifier;
 	}
 

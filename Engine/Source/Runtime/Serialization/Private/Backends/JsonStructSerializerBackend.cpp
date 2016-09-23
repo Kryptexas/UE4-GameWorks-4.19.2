@@ -142,7 +142,7 @@ void FJsonStructSerializerBackend::WriteProperty(const FStructSerializerState& S
 		else
 		{
 			WritePropertyValue(JsonWriter, State, (double)Cast<UByteProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
-		}			
+		}
 	}
 
 	// floating point numbers
@@ -198,9 +198,7 @@ void FJsonStructSerializerBackend::WriteProperty(const FStructSerializerState& S
 	}
 	else if (State.ValueType == UTextProperty::StaticClass())
 	{
-		FString StringValue;
-		FTextStringHelper::WriteToString(StringValue, Cast<UTextProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
-		WritePropertyValue(JsonWriter, State, StringValue);
+		WritePropertyValue(JsonWriter, State, Cast<UTextProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex).ToString());
 	}
 
 	// classes & objects
@@ -212,7 +210,7 @@ void FJsonStructSerializerBackend::WriteProperty(const FStructSerializerState& S
 	{
 		WriteNull(JsonWriter, State);
 	}
-	
+
 	// unsupported property type
 	else
 	{

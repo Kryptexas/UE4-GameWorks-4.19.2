@@ -104,7 +104,7 @@ public:
 		BpsInterface->SetCloudDirectory(CloudDir);
 
 		// Setup and run
-		FBuildPatchSettings Settings;
+		BuildPatchServices::FGenerationConfiguration Settings;
 		Settings.RootDirectory = BuildRoot;
 		Settings.AppId = TCString<TCHAR>::Atoi64(*AppId);
 		Settings.AppName = AppName;

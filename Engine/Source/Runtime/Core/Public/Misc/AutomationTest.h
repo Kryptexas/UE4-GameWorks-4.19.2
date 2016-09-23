@@ -672,6 +672,13 @@ public:
 	 */
 	void AddAnalyticsItemToCurrentTest( const FString& AnalyticsItem );
 
+	/**
+	 * Returns the actively executing test or null if there isn't one
+	 */
+	FAutomationTestBase* GetCurrentTest() const
+	{
+		return CurrentTest;
+	}
 
 private:
 
@@ -851,28 +858,28 @@ public:
 	 *
 	 * @param	InError	Error message to add to this test
 	 */
-	void AddError( const FString& InError, int32 StackOffset = 0 );
+	virtual void AddError( const FString& InError, int32 StackOffset = 0 );
 
 	/**
 	 * Adds a warning to this test
 	 *
 	 * @param	InWarning	Warning message to add to this test
 	 */
-	void AddWarning( const FString& InWarning );
+	virtual void AddWarning( const FString& InWarning );
 
 	/**
 	 * Adds a log item to this test
 	 *
 	 * @param	InLogItem	Log item to add to this test
 	 */
-	void AddLogItem( const FString& InLogItem );
+	virtual void AddLogItem( const FString& InLogItem );
 
 	/**
 	* Adds a analytics string to parse later
 	*
 	* @param	InLogItem	Log item to add to this test
 	*/
-	void AddAnalyticsItem(const FString& InAnalyticsItem);
+	virtual void AddAnalyticsItem(const FString& InAnalyticsItem);
 
 	/**
 	 * Returns whether this test has any errors associated with it or not
@@ -1173,6 +1180,179 @@ protected:
 
 };
 
+class CORE_API FBDDAutomationTestBase : public FAutomationTestBase
+{ 
+public:
+	FBDDAutomationTestBase(const FString& InName, const bool bInComplexTask)
+		: FAutomationTestBase(InName, bInComplexTask) 
+		, bIsDiscoveryMode(false)
+		, bBaseRunTestRan(false)
+	{}
+
+	virtual bool RunTest(const FString& Parameters) override
+	{
+		bBaseRunTestRan = true;
+		TestIdToExecute = Parameters;
+
+		return true;
+	}
+
+	virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override
+	{
+		bIsDiscoveryMode = true;
+		const_cast<FBDDAutomationTestBase*>(this)->RunTest(FString());
+		bIsDiscoveryMode = false;
+
+		OutBeautifiedNames.Append(BeautifiedNames);
+		OutTestCommands.Append(TestCommands);
+		bBaseRunTestRan = false;
+	}
+
+	void xDescribe(const FString& InDescription, TFunction<void()> DoWork)
+	{
+		check(bBaseRunTestRan);
+		//disabled this suite
+	}
+
+	void Describe(const FString& InDescription, TFunction<void()> DoWork)
+	{
+		check(bBaseRunTestRan);
+
+		PushDescription(InDescription);
+
+		int32 OriginalBeforeEachCount = BeforeEachStack.Num();
+		int32 OriginalAfterEachCount = AfterEachStack.Num();
+
+		DoWork();
+
+		check(OriginalBeforeEachCount <= BeforeEachStack.Num());
+		if (OriginalBeforeEachCount != BeforeEachStack.Num())
+		{
+			BeforeEachStack.Pop();
+		}
+
+		check(OriginalAfterEachCount <= AfterEachStack.Num());
+		if (OriginalAfterEachCount != AfterEachStack.Num())
+		{
+			AfterEachStack.Pop();
+		}
+
+		PopDescription(InDescription);
+	}
+	
+	void xIt(const FString& InDescription, TFunction<void()> DoWork)
+	{
+		check(bBaseRunTestRan);
+		//disabled this spec
+	}
+
+	void It(const FString& InDescription, TFunction<void()> DoWork)
+	{
+		check(bBaseRunTestRan);
+
+		PushDescription(InDescription);
+
+		if (bIsDiscoveryMode)
+		{
+			BeautifiedNames.Add(GetDescription());
+
+			bIsDiscoveryMode = false;
+			TestCommands.Add(GetDescription());
+			bIsDiscoveryMode = true;
+		}
+		else if (TestIdToExecute.IsEmpty() || GetDescription() == TestIdToExecute)
+		{
+			for (int32 Index = 0; Index < BeforeEachStack.Num(); Index++)
+			{
+				BeforeEachStack[Index]();
+			}
+
+			DoWork();
+
+			for (int32 Index = AfterEachStack.Num() - 1; Index >= 0; Index--)
+			{
+				AfterEachStack[Index]();
+			}
+		}
+
+		PopDescription(InDescription);
+	}
+
+	void BeforeEach(TFunction<void()> DoWork)
+	{
+		BeforeEachStack.Push(DoWork);
+	}
+
+	void AfterEach(TFunction<void()> DoWork)
+	{
+		AfterEachStack.Push(DoWork);
+	}
+
+private:
+
+	void PushDescription(const FString& InDescription)
+	{
+		Description.Add(InDescription);
+	}
+
+	void PopDescription(const FString& InDescription)
+	{
+		Description.RemoveAt(Description.Num() - 1);
+	}
+
+	FString GetDescription() const
+	{
+		FString CompleteDescription;
+		for (int32 Index = 0; Index < Description.Num(); ++Index)
+		{
+			if (Description[Index].IsEmpty())
+			{
+				continue;
+			}
+
+			if (CompleteDescription.IsEmpty())
+			{
+				CompleteDescription = Description[Index];
+			}
+			else if (FChar::IsWhitespace(CompleteDescription[CompleteDescription.Len() - 1]) || FChar::IsWhitespace(Description[Index][0]))
+			{
+				if (bIsDiscoveryMode)
+				{
+					CompleteDescription = CompleteDescription + TEXT(".") + Description[Index];
+				}
+				else
+				{
+					CompleteDescription = CompleteDescription + Description[Index];
+				}
+			}
+			else
+			{
+				if (bIsDiscoveryMode)
+				{
+					CompleteDescription = FString::Printf(TEXT("%s.%s"), *CompleteDescription, *Description[Index]);
+				}
+				else
+				{
+					CompleteDescription = FString::Printf(TEXT("%s %s"), *CompleteDescription, *Description[Index]);
+				}
+			}
+		}
+
+		return CompleteDescription;
+	}
+
+private:
+
+	FString TestIdToExecute;
+	TArray<FString> Description;
+	TArray<TFunction<void()>> BeforeEachStack;
+	TArray<TFunction<void()>> AfterEachStack;
+
+	TArray<FString> BeautifiedNames;
+	TArray<FString> TestCommands;
+	mutable bool bIsDiscoveryMode;
+	mutable bool bBaseRunTestRan;
+};
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -1345,6 +1525,30 @@ public: \
 		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 	};
 
+#define IMPLEMENT_BDD_AUTOMATION_TEST_PRIVATE( TClass, PrettyName, TFlags, FileName, LineNumber ) \
+	class TClass : public FBDDAutomationTestBase \
+	{ \
+	public: \
+		TClass( const FString& InName ) \
+		:FBDDAutomationTestBase( InName, false ) {\
+			static_assert((TFlags)&EAutomationTestFlags::ApplicationContextMask, "AutomationTest has no application flag.  It shouldn't run.  See AutomationTest.h."); \
+			static_assert(	(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::SmokeFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::EngineFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::ProductFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::PerfFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::StressFilter), \
+							"All AutomationTests must have exactly 1 filter type specified.  See AutomationTest.h."); \
+		} \
+		virtual uint32 GetTestFlags() const override { return TFlags; } \
+		virtual bool IsStressTest() const { return false; } \
+		virtual uint32 GetRequiredDeviceNum() const override { return 1; } \
+		virtual FString GetFileName() const { return FileName; } \
+		virtual int32 GetFileLine() const { return LineNumber; } \
+	protected: \
+		virtual bool RunTest(const FString& Parameters) override; \
+		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
+	};
+
 
 #if WITH_AUTOMATION_WORKER
 	#define IMPLEMENT_SIMPLE_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
@@ -1380,6 +1584,13 @@ public: \
 			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
 		}
 
+	#define IMPLEMENT_BDD_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
+		IMPLEMENT_BDD_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__) \
+		namespace\
+		{\
+			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
+		}
+
 	//#define BEGIN_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
 	//	BEGIN_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
 	//
@@ -1402,6 +1613,8 @@ public: \
 		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
 	#define IMPLEMENT_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
 		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
+	#define IMPLEMENT_BDD_AUTOMATION_TEST(TClass, PrettyName, TFlags, NumParticipants) \
+		IMPLEMENT_BDD_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, NumParticipants, __FILE__, __LINE__)
 
 	//#define BEGIN_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
 	//	BEGIN_CUSTOM_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)

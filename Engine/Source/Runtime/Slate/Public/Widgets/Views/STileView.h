@@ -276,8 +276,14 @@ public:
 					WidthUsedSoFar = 0;
 					bNewRow = true;
 
+					// Hack: Added "+ ItemHeight". This unfixes a previous bug which caused TileViews to 
+					// work when placed in a SScrollBox.
+					// !!!!!! THIS IS A PORTAL ONLY CHANGE !!!!!! 
+					// If found outside of portal repositories please
+					// Contact: Barnabas.McManners or Justin.Sargent.
+
 					// Stop when we've generated a widget that's partially clipped by the bottom of the list.
-					if ( HeightUsedSoFar >= MyGeometry.Size.Y )
+					if ( HeightUsedSoFar >= MyGeometry.Size.Y /*<HACK>*/+ ItemHeight /*</HACK>*/)
 					{
 						bKeepGenerating = false;
 					}

@@ -12,6 +12,9 @@
 #endif
 #include "HttpManager.h"
 
+struct x509_st;
+typedef struct x509_st X509;
+
 class FCurlHttpManager : public FHttpManager
 {
 public:

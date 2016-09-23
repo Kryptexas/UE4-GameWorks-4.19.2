@@ -18,26 +18,15 @@
 #include <emscripten.h>
 #endif
 
-#if PLATFORM_WINDOWS
-#include "AllowWindowsPlatformTypes.h"
-#endif
-
-
 #if !PLATFORM_HTML5
+// Work around a conflict between a UI namespace defined by engine code and a typedef in OpenSSL
+#define UI UI_ST
 #include "libwebsockets.h"
-#include "private-libwebsockets.h"
+#undef UI
 #endif
-
-#if PLATFORM_WINDOWS
-#include "HideWindowsPlatformTypes.h"
-#endif
-
 
 #if !PLATFORM_HTML5
-uint8 PREPADDING[LWS_SEND_BUFFER_PRE_PADDING];
-uint8 POSTPADDING[LWS_SEND_BUFFER_POST_PADDING];
-
-static void libwebsocket_debugLogS(int level, const char *line)
+static void lws_debugLogS(int level, const char *line)
 {
 	UE_LOG(LogHTML5Networking, Log, TEXT("client: %s"), ANSI_TO_TCHAR(line));
 }
@@ -52,11 +41,11 @@ FWebSocket::FWebSocket(
 #if !PLATFORM_HTML5_BROWSER
 
 #if !UE_BUILD_SHIPPING
-	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_DEBUG | LLL_INFO, libwebsocket_debugLogS);
+	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_DEBUG | LLL_INFO, lws_debugLogS);
 #endif
 
-	Protocols = new libwebsocket_protocols[3];
-	FMemory::Memzero(Protocols, sizeof(libwebsocket_protocols) * 3);
+	Protocols = new lws_protocols[3];
+	FMemory::Memzero(Protocols, sizeof(lws_protocols) * 3);
 
 	Protocols[0].name = "binary";
 	Protocols[0].callback = FWebSocket::unreal_networking_client;
@@ -76,12 +65,12 @@ FWebSocket::FWebSocket(
 	Info.uid = -1;
 	Info.user = this;
 
-	Context = libwebsocket_create_context(&Info);
+	Context = lws_create_context(&Info);
 
 	check(Context);
 
 
-	Wsi = libwebsocket_client_connect_extended
+	Wsi = lws_client_connect_extended
 							(Context,
 							TCHAR_TO_ANSI(*ServerAddress.ToString(false)),
 							ServerAddress.GetPort(),
@@ -126,7 +115,7 @@ FWebSocket::FWebSocket(WebSocketInternalContext* InContext, WebSocketInternal* I
 	, IsServerSide(true)
 	, Protocols(nullptr)
 {
-	int sock = libwebsocket_get_socket_fd(Wsi);
+	int sock = lws_get_socket_fd(Wsi);
 	socklen_t len = sizeof RemoteAddr;
 	getpeername(sock, (struct sockaddr*)&RemoteAddr, &len);
 }
@@ -137,15 +126,11 @@ bool FWebSocket::Send(uint8* Data, uint32 Size)
 	TArray<uint8> Buffer;
 
 #if !PLATFORM_HTML5
-	Buffer.Append((uint8*)&PREPADDING, sizeof(PREPADDING));
+	Buffer.AddDefaulted(LWS_PRE); // Reserve space for WS header data
 #endif
 
 	Buffer.Append((uint8*)&Size, sizeof (uint32)); // insert size.
 	Buffer.Append((uint8*)Data, Size);
-
-#if !PLATFORM_HTML5
-	Buffer.Append((uint8*)&POSTPADDING, sizeof(POSTPADDING));
-#endif
 
 	OutgoingBuffer.Add(Buffer);
 
@@ -176,7 +161,7 @@ struct sockaddr_in* FWebSocket::GetRemoteAddr()
 FString FWebSocket::LocalEndPoint(bool bAppendPort)
 {
 #if !PLATFORM_HTML5
-	int sock = libwebsocket_get_socket_fd(Wsi);
+	int sock = lws_get_socket_fd(Wsi);
 	struct sockaddr_in addr;
 	socklen_t len = sizeof addr;
 	getsockname(sock, (struct sockaddr*)&addr, &len);
@@ -204,9 +189,9 @@ void FWebSocket::HandlePacket()
 {
 #if !PLATFORM_HTML5
 
-	libwebsocket_service(Context, 0);
+	lws_service(Context, 0);
 	if (!IsServerSide)
-		libwebsocket_callback_on_writable_all_protocol(&Protocols[0]);
+		lws_callback_on_writable_all_protocol(Context, &Protocols[0]);
 
 #else // PLATFORM_HTML5
 
@@ -246,9 +231,9 @@ void FWebSocket::Flush()
 	{
 #if !PLATFORM_HTML5
 		if (Protocols)
-			libwebsocket_callback_on_writable_all_protocol(&Protocols[0]);
+			lws_callback_on_writable_all_protocol(Context, &Protocols[0]);
 		else
-			libwebsocket_callback_on_writable(Context, Wsi);
+			lws_callback_on_writable(Wsi);
 #endif
 		HandlePacket();
 		if (PendingMesssages >= OutgoingBuffer.Num())
@@ -332,11 +317,11 @@ void FWebSocket::OnRawWebSocketWritable(WebSocketInternal* wsi)
 
 #if !PLATFORM_HTML5_BROWSER
 
-	uint32 TotalDataSize = Packet.Num() - LWS_SEND_BUFFER_PRE_PADDING - LWS_SEND_BUFFER_POST_PADDING;
+	uint32 TotalDataSize = Packet.Num() - LWS_PRE;
 	uint32 DataToSend = TotalDataSize;
 	while (DataToSend)
 	{
-		int Sent = libwebsocket_write(Wsi, Packet.GetData() + LWS_SEND_BUFFER_PRE_PADDING + (DataToSend-TotalDataSize), DataToSend, (libwebsocket_write_protocol)LWS_WRITE_BINARY);
+		int Sent = lws_write(Wsi, Packet.GetData() + LWS_PRE + (DataToSend-TotalDataSize), DataToSend, (lws_write_protocol)LWS_WRITE_BINARY);
 		if (Sent < 0)
 		{
 			ErrorCallBack.ExecuteIfBound();
@@ -387,7 +372,7 @@ FWebSocket::~FWebSocket()
 
 	if ( !IsServerSide)
 	{
-		libwebsocket_context_destroy(Context);
+		lws_context_destroy(Context);
 		Context = NULL;
 		delete Protocols;
 		Protocols = NULL;
@@ -403,20 +388,20 @@ FWebSocket::~FWebSocket()
 
 #if !PLATFORM_HTML5
 int FWebSocket::unreal_networking_client(
-		struct libwebsocket_context *Context,
-		struct libwebsocket *Wsi,
-		enum libwebsocket_callback_reasons Reason,
+		struct lws *Wsi,
+		enum lws_callback_reasons Reason,
 		void *User,
 		void *In,
 		size_t Len)
 {
-	FWebSocket* Socket = (FWebSocket*)libwebsocket_context_user(Context);;
+	struct lws_context *Context = lws_get_context(Wsi);
+	FWebSocket* Socket = (FWebSocket*)lws_context_user(Context);
 	switch (Reason)
 	{
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
 		{
 			Socket->ConnectedCallBack.ExecuteIfBound();
-			libwebsocket_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
+			lws_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
 			check(Socket->Wsi == Wsi);
 		}
 		break;
@@ -431,15 +416,15 @@ int FWebSocket::unreal_networking_client(
 			// push it on the socket.
 			Socket->OnRawRecieve(In, (uint32)Len);
 			check(Socket->Wsi == Wsi);
-			libwebsocket_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
+			lws_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
 			break;
 		}
 	case LWS_CALLBACK_CLIENT_WRITEABLE:
 		{
 			check(Socket->Wsi == Wsi);
 			Socket->OnRawWebSocketWritable(Wsi);
-			libwebsocket_callback_on_writable(Context, Wsi);
-			libwebsocket_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
+			lws_callback_on_writable(Wsi);
+			lws_set_timeout(Wsi, NO_PENDING_TIMEOUT, 0);
 			break;
 		}
 	case LWS_CALLBACK_CLOSED:
@@ -452,4 +437,3 @@ int FWebSocket::unreal_networking_client(
 	return 0;
 }
 #endif
-

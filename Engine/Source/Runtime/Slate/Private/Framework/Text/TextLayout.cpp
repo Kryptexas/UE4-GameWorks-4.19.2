@@ -886,11 +886,11 @@ void FTextLayout::FlowHighlights()
 							LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, IntersectedRange.BeginIndex, Scale, RunTextContext).X;
 						}
 						else
-						{
-							LineViewHighlight.OffsetX += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
-						}
+					{
+						LineViewHighlight.OffsetX += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
 					}
 				}
+			}
 			}
 
 			AppendLineViewHighlight(LineViewHighlight);

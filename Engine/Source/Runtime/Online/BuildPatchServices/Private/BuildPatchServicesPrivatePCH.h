@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "BuildPatchServices.h"
+#include "../Public/BuildPatchServices.h"
 
 /* Dependencies
 *****************************************************************************/
@@ -13,8 +13,8 @@
 
 /* Public includes
 *****************************************************************************/
-#include "IBuildManifest.h"
-#include "IBuildPatchServicesModule.h"
+#include "../Public/Interfaces/IBuildManifest.h"
+#include "../Public/Interfaces/IBuildPatchServicesModule.h"
 
 /* Private includes
 *****************************************************************************/
@@ -29,6 +29,7 @@
 #include "BuildPatchCompactifier.h"
 #include "BuildPatchDataEnumeration.h"
 #include "BuildPatchMergeManifests.h"
+#include "BuildPatchDiffManifests.h"
 #include "BuildPatchFileConstructor.h"
 #include "BuildPatchDownloader.h"
 #include "BuildPatchInstaller.h"

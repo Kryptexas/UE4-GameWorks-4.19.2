@@ -1280,12 +1280,11 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Copies a file.
+		/// Copies a file, throwing an exception on failure.
 		/// </summary>
 		/// <param name="Source"></param>
 		/// <param name="Dest"></param>
         /// <param name="bQuiet">When true, logging is suppressed.</param>
-        /// <returns>True if the operation was successful, false otherwise.</returns>
         public static void CopyFile(string Source, string Dest, bool bQuiet = false)
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);

@@ -2693,7 +2693,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
 
-#if WITH_EDITOR
+#if WITH_EDITOR || IS_PROGRAM
 	// Supersearch
 	FTextBlockStyle SuperSearchCategoryText = FTextBlockStyle(NormalText)
 		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 10))

@@ -11,17 +11,19 @@ namespace BuildPatchServices
 {
 	struct FFileBlock
 	{
-		FGuid ChunkGuid;
-		uint64 FileOffset;
-		uint64 ChunkOffset;
-		uint64 Size;
-
+	public:
 		FFileBlock(FGuid InChunkGuid, uint64 InFileOffset, uint64 InChunkOffset, uint64 InSize)
 			: ChunkGuid(InChunkGuid)
 			, FileOffset(InFileOffset)
 			, ChunkOffset(InChunkOffset)
 			, Size(InSize)
 		{}
+
+	public:
+		FGuid ChunkGuid;
+		uint64 FileOffset;
+		uint64 ChunkOffset;
+		uint64 Size;
 	};
 
 	class FManifestBuilder
@@ -89,13 +91,14 @@ namespace BuildPatchServices
 		BuildStructureAdded.Add(Structure);
 		// Add match to map. One chunk can have multiple matches.
 		AllMatches.FindOrAdd(ChunkGuid).Add(Structure);
+		UE_LOG(LogManifestBuilder, Verbose, TEXT("Match added for chunk %s."), *ChunkGuid.ToString());
 	}
 
 	bool FManifestBuilder::FinalizeData(const TArray<FFileSpan>& FileSpans, TArray<FChunkInfoData> ChunkInfo)
 	{
 		// Keep track of referenced chunks so we can trim the list down.
 		TSet<FGuid> ReferencedChunks;
-		// For each file create it's manifest.
+		// For each file create its manifest.
 		for (const FFileSpan& FileSpan : FileSpans)
 		{
 			FFileAttributes FileAttributes = FileAttributesMap.FindRef(FileSpan.Filename);

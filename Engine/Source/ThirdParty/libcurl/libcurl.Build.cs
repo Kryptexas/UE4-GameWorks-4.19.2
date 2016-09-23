@@ -10,6 +10,9 @@ public class libcurl : ModuleRules
 
 		Definitions.Add("WITH_LIBCURL=1");
 		string LibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/";
+		string LibCurl7_47_1Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/curl-7.47.1";
+		string PlatformSubdir = Target.Platform.ToString();
+		
 		if (Target.Platform == UnrealTargetPlatform.Linux)
         {
 			PublicIncludePaths.Add(LibCurlPath + "include/Linux/" + Target.Architecture);
@@ -36,8 +39,15 @@ public class libcurl : ModuleRules
 //            PublicAdditionalLibraries.Add("ssl");
 //            PublicAdditionalLibraries.Add("dl");
         }
-        else if (Target.Platform == UnrealTargetPlatform.Win32 ||
-				 Target.Platform == UnrealTargetPlatform.Win64 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+        else if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PublicIncludePaths.Add(LibCurl7_47_1Path + "/include/" + PlatformSubdir +  "/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
+			PublicLibraryPaths.Add(LibCurl7_47_1Path + "/lib/" + PlatformSubdir +  "/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName());
+
+			PublicAdditionalLibraries.Add("libcurl_a.lib");
+			Definitions.Add("CURL_STATICLIB=1");
+		}
+        else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{
             // @todo: If this pathing is changed, it must be updated to match in UEBuildWindows.cs so Windows XP can override.
 			PublicIncludePaths.Add(LibCurlPath + "include/Windows");

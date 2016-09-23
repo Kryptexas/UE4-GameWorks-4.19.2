@@ -171,17 +171,49 @@ public:
 	/**
 	 * @return Target tick rate of an http thread
 	 */
-	inline float GetHttpThreadTickRate() const
+	inline float GetHttpThreadProcessingClampInSeconds() const
 	{
-		return HttpThreadTickRate;
+		return HttpThreadProcessingClampInSeconds;
 	}
 
 	/**
 	 * Set the target tick rate of an http thread
 	 */
-	inline void SetHttpThreadTickRate(float InHttpThreadTickRate)
+	inline void SetHttpThreadProcessingClampInSeconds(float InHttpThreadProcessingClampInSeconds)
 	{
-		HttpThreadTickRate = InHttpThreadTickRate;
+		HttpThreadProcessingClampInSeconds = InHttpThreadProcessingClampInSeconds;
+	}
+
+	/**
+	* @return Target tick rate of an http thread
+	*/
+	inline float GetHttpThreadFrameTimeInSeconds() const
+	{
+		return HttpThreadFrameTimeInSeconds;
+	}
+
+	/**
+	* Set the target tick rate of an http thread
+	*/
+	inline void SetHttpThreadFrameTimeInSeconds(float InHttpThreadFrameTimeInSeconds)
+	{
+		HttpThreadFrameTimeInSeconds = InHttpThreadFrameTimeInSeconds;
+	}
+
+	/**
+	* @return Target tick rate of an http thread
+	*/
+	inline float GetHttpThreadMinimumSleepTimeInSeconds() const
+	{
+		return HttpThreadMinimumSleepTimeInSeconds;
+	}
+
+	/**
+	* Set the target tick rate of an http thread
+	*/
+	inline void SetHttpThreadMinimumSleepTimeInSeconds(float InHttpThreadMinimumSleepTimeInSeconds)
+	{
+		HttpThreadMinimumSleepTimeInSeconds = InHttpThreadMinimumSleepTimeInSeconds;
 	}
 
 private:
@@ -190,13 +222,24 @@ private:
 
 	/**
 	 * Called when Http module is loaded
-	 * Initialize platform specific parts of Http handling
+	 * load dependant modules
 	 */
 	virtual void StartupModule() override;
+
+	/**
+	 * Called after Http module is loaded
+	 * Initialize platform specific parts of Http handling
+	 */
+	virtual void PostLoadCallback() override;
 	
 	/**
-	 * Called when Http module is unloaded
+	 * Called before Http module is unloaded
 	 * Shutdown platform specific parts of Http handling
+	 */
+	virtual void PreUnloadCallback() override;
+
+	/**
+	 * Called when Http module is unloaded
 	 */
 	virtual void ShutdownModule() override;
 
@@ -213,8 +256,12 @@ private:
 	float HttpSendTimeout;
 	/** total time to delay the request */
 	float HttpDelayTime;
-	/** Target tick rate (Hz) of HTTP thread (if applicable to platform's HTTP manager) */
-	float HttpThreadTickRate;
+	/** Time in seconds to clamp the processing of HTTP requests on the HTTP thread to. 0 means unclamped */
+	float HttpThreadProcessingClampInSeconds;
+	/** Time in seconds to use as a frame time. 0 means no frame time. */
+	float HttpThreadFrameTimeInSeconds;
+	/** Time in seconds to sleep minimally */
+	float HttpThreadMinimumSleepTimeInSeconds;
 	/** Max number of simultaneous connections to a specific server */
 	int32 HttpMaxConnectionsPerServer;
 	/** Max buffer size for individual http reads */

@@ -8,6 +8,7 @@
 
 #if WITH_XMPP_JINGLE
 
+#include "webrtc/base/helpers.h"
 /**
  * Holds a message for send/receive via Xmpp task
  */
