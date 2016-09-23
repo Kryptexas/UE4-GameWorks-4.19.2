@@ -60,6 +60,7 @@ if [ -e /etc/os-release ]; then
        libmono-windowsbase4.0-cil
        libmono-system-io-compression4.0-cil
        libmono-system-io-compression-filesystem4.0-cil
+       libmono-system-runtime4.0-cil
        clang-3.8
        "
     fi

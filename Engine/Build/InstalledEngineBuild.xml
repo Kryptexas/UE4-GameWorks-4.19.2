@@ -67,6 +67,7 @@
 	<!-- The local output directory -->
 	<Property Name="LocalInstalledDir" Value="$(RootDir)/LocalBuilds/Engine/Windows"/>
 	<Property Name="LocalInstalledDirMac" Value="$(RootDir)/LocalBuilds/Engine/Mac"/>
+	<Property Name="LocalInstalledDirLinux" Value="$(RootDir)/LocalBuilds/Engine/Linux"/>
 
 	<!-- Directory for storing build products like the Compressed DDC, Stripped and Signed files -->
 	<Property Name="SavedOutput" Value="$(RootDir)/Saved"/>
@@ -347,6 +348,7 @@
 		</Node>
 		<Node Name="Build Tools Linux" Requires="Compile UnrealHeaderTool $(HostPlatform)">
 			<Compile Target="CrashReportClient" Platform="Linux" Configuration="Shipping"/>
+			<Compile Target="ShaderCompileWorker" Configuration="Development" Platform="Linux" Tag="#Build Tools Linux"/>
 		</Node>
 	</Agent>
 
@@ -751,7 +753,7 @@
 		<Node Name="Make Installed Build Linux" Requires="$(InstalledRequirements)" Produces="#Installed Build Linux Files">
 
 			<!-- Clear any existing files from the final location -->
-			<Delete Files="$(LocalInstalledDir)\..."/>
+			<Delete Files="$(LocalInstalledDirLinux)\..."/>
 
 			<!-- Define filter and exception properties for the installed build -->
 			<Property Name="CopyInstalledFilter" Value="$(CopyEditorFilter)"/>
@@ -790,18 +792,18 @@
 
 			<!-- Tag files that need to be copied directly -->
 			<Tag Files="#Installed Linux" Except="$(CopyInstalledExceptions);#Strip Tools for Installed Linux" With="#Copy for Installed Linux"/>
-			<Copy Files="#Copy for Installed Linux" FromDir="$(RootDir)" ToDir="$(LocalInstalledDir)" Tag="#Installed Build Linux Files"/>
+			<Copy Files="#Copy for Installed Linux" FromDir="$(RootDir)" ToDir="$(LocalInstalledDirLinux)" Tag="#Installed Build Linux Files"/>
 
 			<!-- Tag saved output that needs to be copied directly -->
 			<Tag BaseDir="$(SavedOutput)" Files="#Saved Output" Except="$(CopyInstalledExceptions)" With="#Copy Saved Output"/>
-			<Copy Files="#Copy Saved Output" FromDir="$(SavedOutput)" ToDir="$(LocalInstalledDir)" Tag="#Installed Build Linux Files"/>
+			<Copy Files="#Copy Saved Output" FromDir="$(SavedOutput)" ToDir="$(LocalInstalledDirLinux)" Tag="#Installed Build Linux Files"/>
 
 			<!-- Strip required files into their final location -->
-			<Strip Files="#Strip Tools for Installed Linux" BaseDir="$(RootDir)" OutputDir="$(LocalInstalledDir)" Platform="Linux" Tag="#Installed Build Linux Files"/>
+			<Strip Files="#Strip Tools for Installed Linux" BaseDir="$(RootDir)" OutputDir="$(LocalInstalledDirLinux)" Platform="Linux" Tag="#Installed Build Linux Files"/>
 
 			<!-- Copy the compressed DDC -->
 			<Property Name="SavedDir" Value="$(SavedOutput)\Installed\Linux"/>
-			<Copy Files="#CompressedDDCLinux" FromDir="$(SavedDir)" ToDir="$(LocalInstalledDir)" If="'$(WithDDC)' == true" Tag="#Installed Build Linux Files"/>
+			<Copy Files="#CompressedDDCLinux" FromDir="$(SavedDir)" ToDir="$(LocalInstalledDirLinux)" If="'$(WithDDC)' == true" Tag="#Installed Build Linux Files"/>
 
 			<!-- List all of the platforms that we only allow for content projects -->
 			<Property Name="ContentOnlyPlatforms" Value=""/>
@@ -811,8 +813,8 @@
 			<Property Name="ArchitectureCommands" Value="$(ArchitectureCommands) -AndroidArchitectures=$(AndroidArchitectures) -AndroidGPUArchitectures=$(AndroidGPUArchitectures)" If="'$(WithAndroid)' == true"/>
 
 			<!-- Finalize the build and then tag the text file that this process creates -->
-			<Command Name="FinalizeInstalledBuild" Arguments="-OutputDir=$(LocalInstalledDir) -ContentOnlyPlatforms=$(ContentOnlyPlatforms) $(ArchitectureCommands) -AnalyticsTypeOverride=$(AnalyticsTypeOverride)"/>
-			<Tag Files="$(LocalInstalledDir)/Engine/Build/InstalledBuild.txt" With="#Installed Build Linux Files"/>
+			<Command Name="FinalizeInstalledBuild" Arguments="-OutputDir=$(LocalInstalledDirLinux) -ContentOnlyPlatforms=$(ContentOnlyPlatforms) $(ArchitectureCommands) -AnalyticsTypeOverride=$(AnalyticsTypeOverride)"/>
+			<Tag Files="$(LocalInstalledDirLinux)/Engine/Build/InstalledBuild.txt" With="#Installed Build Linux Files"/>
 		</Node>
 	</Agent>
 
