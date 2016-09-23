@@ -7,7 +7,7 @@
 #include "VREditorMode.h"
 #include "VREditorFloatingText.h"
 
-#include "Interactables/VREditorButton.h"
+#include "VREditorButton.h"
 #include "VREditorDockableWindow.h"
 
 #define LOCTEXT_NAMESPACE "VREditor"
