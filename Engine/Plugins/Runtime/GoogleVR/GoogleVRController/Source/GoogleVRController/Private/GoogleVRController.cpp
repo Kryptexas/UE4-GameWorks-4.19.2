@@ -110,12 +110,14 @@ class FGoogleVRControllerPlugin : public IGoogleVRControllerPlugin
 
 IMPLEMENT_MODULE( FGoogleVRControllerPlugin, GoogleVRController)
 
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 FGoogleVRController::FGoogleVRController(gvr::ControllerApi* pControllerAPI, const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
 	:
-#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
-	pController(pControllerAPI)
+	pController(pControllerAPI),
+#else
+FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler) :
 #endif
-	,MessageHandler(InMessageHandler)
+	MessageHandler(InMessageHandler)
 {
 	UE_LOG(LogGoogleVRController, Log, TEXT("GoogleVR Controller Created"));
 
