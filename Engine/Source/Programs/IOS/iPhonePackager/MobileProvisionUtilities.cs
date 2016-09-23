@@ -30,8 +30,10 @@ namespace iPhonePackager
 		public Utilities.PListHelper Data;
 		public DateTime CreationDate;
 		public DateTime ExpirationDate;
+        public string FileName;
+        public string UUID;
 
-		public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true)
+        public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true)
 		{
 			bNameMatch = false;
 
@@ -126,7 +128,10 @@ namespace iPhonePackager
 					string DebugName = Path.GetFileName(Pair.Key);
 					MobileProvision TestProvision = Pair.Value;
 
-					Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
+                    if (TestProvision.FileName.Contains(TestProvision.UUID))
+                        continue;
+
+                    Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
 
 					// Validate the name
 					bool bPassesNameCheck = false;
@@ -341,12 +346,17 @@ namespace iPhonePackager
 
 			// check for get-task-allow
 			bDebug = XCentPList.GetBool("get-task-allow");
-		}
 
-		/// <summary>
-		/// Does this provision contain the specified UDID?
-		/// </summary>
-		public bool ContainsUDID(string UDID)
+            if (!Data.GetString("UUID", out UUID))
+            {
+                UUID = "(unkown)";
+            }
+        }
+
+        /// <summary>
+        /// Does this provision contain the specified UDID?
+        /// </summary>
+        public bool ContainsUDID(string UDID)
 		{
 			bool bFound = false;
 			foreach (string TestUDID in ProvisionedDeviceIDs)
@@ -423,8 +433,9 @@ namespace iPhonePackager
 			FileStream InputStream = File.OpenRead(Filename);
 			MobileProvision Result = ParseFile(InputStream);
 			InputStream.Close();
+            Result.FileName = Filename;
 
-			return Result;
+            return Result;
 		}
 
 		/// <summary>

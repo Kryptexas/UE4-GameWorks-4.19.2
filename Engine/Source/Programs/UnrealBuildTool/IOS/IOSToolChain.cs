@@ -1216,9 +1216,10 @@ namespace UnrealBuildTool
 										" -scheme '" + SchemeName + "'" +
 										" -sdk " + PlatformContext.GetCodesignPlatformName() +
 										" -destination generic/platform=" + (CppPlatform == CPPTargetPlatform.IOS ? "iOS" : "tvOS") +
-										" CODE_SIGN_IDENTITY=\"iPhone Developer\"";
+                                        " CODE_SIGN_IDENTITY=\"" + (!string.IsNullOrEmpty(PlatformContext.SigningCertificate) ? PlatformContext.SigningCertificate : "IPhoneDeveloper") + "\"" +
+                                        (!string.IsNullOrEmpty(PlatformContext.MobileProvisionUUID) ? (" PROVISIONING_PROFILE=" + PlatformContext.MobileProvisionUUID) : "");
 
-						Console.WriteLine("Code signing with command line: " + CmdLine);
+                        Console.WriteLine("Code signing with command line: " + CmdLine);
 
 						Process SignProcess = new Process();
 						SignProcess.StartInfo.WorkingDirectory = RemoteShadowDirectoryMac;
@@ -1271,9 +1272,9 @@ namespace UnrealBuildTool
 						Log.TraceInformation("Copying bundled asset... LocalSource: {0}, LocalDest: {1}", LocalSource, LocalDest);
 
 						string ResultsText;
-						RunExecutableAndWait("cp", String.Format("-R -L {0} {1}", LocalSource.Replace(" ", "\\ "), LocalDest.Replace(" ", "\\ ")), out ResultsText);
-					}
-				}
+                        RunExecutableAndWait("cp", String.Format("-R -L \"{0}\" \"{1}\"", LocalSource, LocalDest), out ResultsText);
+                    }
+                }
 			}
 			else
 			{
@@ -1492,9 +1493,9 @@ namespace UnrealBuildTool
 
 						Log.TraceInformation("Copying bundled asset... RemoteSource: {0}, RemoteDest: {1}, LocalDest: {2}", RemoteSource, RemoteDest, LocalDest);
 
-						Hashtable Results = RPCUtilHelper.Command("/", String.Format("cp -R -L {0} {1}", RemoteSource.Replace(" ", "\\ "), RemoteDest.Replace(" ", "\\ ")), "", null);
+                        Hashtable Results = RPCUtilHelper.Command("/", String.Format("cp -R -L \"{0}\" \"{1}\"", RemoteSource, RemoteDest), "", null);
 
-						foreach (DictionaryEntry Entry in Results)
+                        foreach (DictionaryEntry Entry in Results)
 						{
 							Log.TraceInformation("{0}", Entry.Value);
 						}
