@@ -6,6 +6,9 @@
 class IAssetFamily
 {
 public:
+	/** Virtual destructor */
+	virtual ~IAssetFamily() {}
+
 	/** Get all the asset classes this family supports (doesnt need to include derived classes) */
 	virtual void GetAssetTypes(TArray<UClass*>& OutAssetTypes) const = 0;
 

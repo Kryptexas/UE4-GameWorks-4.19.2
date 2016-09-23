@@ -168,7 +168,7 @@ bool UAnimationGraphSchema::TryCreateConnection(UEdGraphPin* A, UEdGraphPin* B) 
 		bool bHavePosePin = bOutputIsPose || bInputIsPose;
 		bool bHaveWildPin = InputPin->PinType.PinCategory == PC_Wildcard || OutputPin->PinType.PinCategory == PC_Wildcard;
 
-		if(bOutputIsPose && bInputIsPose || (bHavePosePin && bHaveWildPin))
+		if((bOutputIsPose && bInputIsPose) || (bHavePosePin && bHaveWildPin))
 		{
 			// Ok this is a valid exec-like line, we need to kill any connections already on the output pin
 			OutputPin->BreakAllPinLinks();

@@ -8,6 +8,9 @@
 class IPersonaToolkit
 {
 public:
+	/** Virtual destructor */
+	virtual ~IPersonaToolkit() {}
+
 	/** Get the skeleton that we are editing */
 	virtual class USkeleton* GetSkeleton() const = 0;
 
