@@ -71,13 +71,10 @@ FWebSocket::FWebSocket(
 
 	check(Context);
 
-
-	Wsi = lws_client_connect_extended
-							(Context,
-							TCHAR_TO_ANSI(*ServerAddress.ToString(false)),
-							ServerAddress.GetPort(),
-							false, "/", TCHAR_TO_ANSI(*ServerAddress.ToString(false)), TCHAR_TO_ANSI(*ServerAddress.ToString(false)), Protocols[1].name, -1,this);
-
+	struct lws_client_connect_info ConnectInfo = {
+			Context, TCHAR_TO_ANSI(*ServerAddress.ToString(false)), ServerAddress.GetPort(), false, "/", TCHAR_TO_ANSI(*ServerAddress.ToString(false)), TCHAR_TO_ANSI(*ServerAddress.ToString(false)), Protocols[1].name, -1, this
+	};
+	Wsi = lws_client_connect_via_info(&ConnectInfo);
 	check(Wsi);
 
 #else // PLATFORM_HTML5_BROWSER
