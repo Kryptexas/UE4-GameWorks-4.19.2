@@ -589,7 +589,14 @@ namespace UnrealBuildTool
 						string[] Tokens = Line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 						if (Tokens.Length >= 3 && Tokens[0] == "#define" && Tokens[1] == "MODULE_API_VERSION")
 						{
-							CL = int.Parse(Tokens[2]);
+							if (Tokens[2] == "BUILT_FROM_CHANGELIST")
+							{
+								CL = LoadEngineCL();
+							}
+							else
+							{
+								CL = int.Parse(Tokens[2]);
+							}
 							break;
 						}
 					}
