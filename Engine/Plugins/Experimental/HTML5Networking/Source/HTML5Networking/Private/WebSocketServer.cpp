@@ -20,15 +20,7 @@ struct PerSessionDataServer
 
 #if !PLATFORM_HTML5
 // real networking handler.
-static int unreal_networking_server(
-	struct libwebsocket_context *,
-	struct libwebsocket *wsi,
-	enum libwebsocket_callback_reasons reason,
-	void *user,
-	void *in,
-	size_t
-	len
-);
+static int unreal_networking_server(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
 
 #if !UE_BUILD_SHIPPING
 	void libwebsocket_debugLog(int level, const char *line)
@@ -50,7 +42,7 @@ bool FWebSocketServer::Init(uint32 Port, FWebsocketClientConnectedCallBack CallB
 	FMemory::Memzero(Protocols, sizeof(lws_protocols) * 3);
 
 	Protocols[0].name = "binary";
-	Protocols[0].callback = FWebSocket::unreal_networking_server;
+	Protocols[0].callback = unreal_networking_server;
 	Protocols[0].per_session_data_size = sizeof(PerSessionDataServer);
 	Protocols[0].rx_buffer_size = 10 * 1024 * 1024;
 
@@ -133,7 +125,7 @@ FString FWebSocketServer::Info()
 
 // callback.
 #if !PLATFORM_HTML5
-int FWebSocket::unreal_networking_server
+static int unreal_networking_server
 	(
 		struct lws *Wsi,
 		enum lws_callback_reasons Reason,

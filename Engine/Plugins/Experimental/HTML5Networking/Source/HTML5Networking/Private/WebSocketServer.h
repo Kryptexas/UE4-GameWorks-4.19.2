@@ -21,7 +21,8 @@ public:
 	/** Describe this libwebsocket server */
 	FString Info(); 
 
-private: 
+// this was made public because of cross-platform build issues
+public: 
 
 	/** Callback for a new websocket connection to the server */
 	FWebsocketClientConnectedCallBack  ConnectedCallBack;

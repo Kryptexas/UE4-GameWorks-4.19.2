@@ -26,6 +26,8 @@
 #endif
 
 #if !PLATFORM_HTML5
+static int unreal_networking_client(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
+
 static void lws_debugLogS(int level, const char *line)
 {
 	UE_LOG(LogHTML5Networking, Log, TEXT("client: %s"), ANSI_TO_TCHAR(line));
@@ -48,7 +50,7 @@ FWebSocket::FWebSocket(
 	FMemory::Memzero(Protocols, sizeof(lws_protocols) * 3);
 
 	Protocols[0].name = "binary";
-	Protocols[0].callback = FWebSocket::unreal_networking_client;
+	Protocols[0].callback = unreal_networking_client;
 	Protocols[0].per_session_data_size = 0;
 	Protocols[0].rx_buffer_size = 10 * 1024 * 1024;
 
@@ -112,8 +114,8 @@ FWebSocket::FWebSocket(
 FWebSocket::FWebSocket(WebSocketInternalContext* InContext, WebSocketInternal* InWsi)
 	: Context(InContext)
 	, Wsi(InWsi)
-	, IsServerSide(true)
 	, Protocols(nullptr)
+	, IsServerSide(true)
 {
 	int sock = lws_get_socket_fd(Wsi);
 	socklen_t len = sizeof RemoteAddr;
@@ -387,7 +389,7 @@ FWebSocket::~FWebSocket()
 }
 
 #if !PLATFORM_HTML5
-int FWebSocket::unreal_networking_client(
+static int unreal_networking_client(
 		struct lws *Wsi,
 		enum lws_callback_reasons Reason,
 		void *User,

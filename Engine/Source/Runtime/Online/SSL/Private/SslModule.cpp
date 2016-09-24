@@ -29,14 +29,18 @@ void FSslModule::StartupModule()
 {	
 	Singleton = this;
 
+#if WITH_SSL
 	CertificateManagerPtr = new FSslCertificateManager();
 	static_cast<FSslCertificateManager*>(CertificateManagerPtr)->BuildRootCertificateArray();
+#endif //#if WITH_SSL
 }
 
 void FSslModule::ShutdownModule()
 {
+#if WITH_SSL
 	static_cast<FSslCertificateManager*>(CertificateManagerPtr)->EmptyRootCertificateArray();
 	delete CertificateManagerPtr;
+#endif // #if WITH_SSL
 
 	Singleton = nullptr;
 }

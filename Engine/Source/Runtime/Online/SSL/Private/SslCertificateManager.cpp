@@ -1,5 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#if WITH_SSL
+
 #include "SslPrivatePCH.h"
 
 #include "SslCertificateManager.h"
@@ -119,3 +121,5 @@ void FSslCertificateManager::EmptyRootCertificateArray()
 	}
 	RootCertificateArray.Reset();
 }
+
+#endif // #if WITH_SSL
