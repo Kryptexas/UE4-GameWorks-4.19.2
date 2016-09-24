@@ -217,11 +217,11 @@ bool FEngineVersion::OverrideCurrentVersionChangelist(int32 NewChangelist)
 	CurrentVersion.Set(CurrentVersion.Major, CurrentVersion.Minor, CurrentVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CurrentVersion.Branch);
 	if(CompatibleWithVersion.GetChangelist() == 0)
 	{
-		int NewCompatibleChangelist = NewChangelist;
-		if(ENGINE_IS_LICENSEE_VERSION == 0 && MODULE_COMPATIBLE_API_VERSION != 0)
-		{
-			NewCompatibleChangelist = MODULE_COMPATIBLE_API_VERSION;
-		}
+		#if ENGINE_IS_LICENSEE_VERSION == 0 && MODULE_COMPATIBLE_API_VERSION != 0
+			int NewCompatibleChangelist = MODULE_COMPATIBLE_API_VERSION;
+		#else
+			int NewCompatibleChangelist = NewChangelist;
+		#endif
 		CompatibleWithVersion.Set(CompatibleWithVersion.Major, CompatibleWithVersion.Minor, CompatibleWithVersion.Patch, NewCompatibleChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CompatibleWithVersion.Branch);
 	}
 	return true;
