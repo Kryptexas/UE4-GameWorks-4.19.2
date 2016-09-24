@@ -562,13 +562,13 @@ namespace UnrealBuildTool
 			int BuiltFromChangelist = LoadBuiltFromChangelistValue();
 			if (BuiltFromChangelist > 0)
 			{
-				bool bFirstApiVersionDefine = true;
-				foreach (string Line in File.ReadAllLines("../Source/Runtime/Core/Public/Modules/ModuleVersion.h"))
+				string[] Lines = File.ReadAllLines("../Source/Runtime/Core/Public/Modules/ModuleVersion.h");
+				if(LoadIsLicenseeVersionValue() == 0)
 				{
-					string[] Tokens = Line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-					if (Tokens.Length >= 3 && Tokens[0] == "#define" && Tokens[1] == "MODULE_API_VERSION")
+					foreach (string Line in Lines)
 					{
-						if (!bFirstApiVersionDefine || LoadIsLicenseeVersionValue() != 0)
+						string[] Tokens = Line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+						if (Tokens.Length >= 3 && Tokens[0] == "#define" && Tokens[1] == "MODULE_COMPATIBLE_API_VERSION")
 						{
 							if (Tokens[2] == "BUILT_FROM_CHANGELIST")
 							{
@@ -580,7 +580,18 @@ namespace UnrealBuildTool
 							}
 							break;
 						}
-						bFirstApiVersionDefine = false;
+					}
+				}
+				else
+				{
+					foreach (string Line in Lines)
+					{
+						string[] Tokens = Line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+						if (Tokens.Length >= 3 && Tokens[0] == "#define" && Tokens[1] == "MODULE_API_VERSION")
+						{
+							CL = int.Parse(Tokens[2]);
+							break;
+						}
 					}
 				}
 			}
