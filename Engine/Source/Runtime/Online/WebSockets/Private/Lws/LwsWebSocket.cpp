@@ -1,3 +1,7 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+#if WITH_WEBSOCKETS
+
 #include "WebSocketsPrivatePCH.h"
 #include "LwsWebSocket.h"
 #include "Ssl.h"
@@ -380,5 +384,4 @@ int FLwsWebSocket::CallbackWrapper(struct lws *Instance, enum lws_callback_reaso
 	return 0;
 }
 
-
-
+#endif // #if WITH_WEBSOCKETS

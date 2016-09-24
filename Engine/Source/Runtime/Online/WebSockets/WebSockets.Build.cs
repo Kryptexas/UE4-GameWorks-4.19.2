@@ -8,25 +8,32 @@ public class WebSockets : ModuleRules
     {
         Definitions.Add("WEBSOCKETS_PACKAGE=1");
 
-        PrivateIncludePaths.AddRange(
-            new string[] 
-			{
-				"Runtime/Online/WebSockets/Private",
-			}
-        );
-
-        PrivateDependencyModuleNames.AddRange(
-			new string[] { 
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
 				"Core",
 			}
 		);
 
-        if (Target.Platform == UnrealTargetPlatform.Win32 ||
-            Target.Platform == UnrealTargetPlatform.Win64 ||
-            Target.Platform == UnrealTargetPlatform.Mac
+		bool bShouldUseModule = false;
+		if (Target.Platform == UnrealTargetPlatform.Win32 ||
+			Target.Platform == UnrealTargetPlatform.Win64 ||
+			Target.Platform == UnrealTargetPlatform.Mac
 			)
-        {
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
+		{
+			bShouldUseModule = true;
+		}
+
+		if (bShouldUseModule)
+		{
+			Definitions.Add("WITH_WEBSOCKETS=1");
+
+			PrivateIncludePaths.AddRange(
+				new string[] {
+					"Runtime/Online/WebSockets/Private",
+				}
+			);
+
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
 			PrivateDependencyModuleNames.Add("SSL");
 		}
 	}

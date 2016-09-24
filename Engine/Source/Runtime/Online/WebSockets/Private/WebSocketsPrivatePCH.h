@@ -2,8 +2,12 @@
 #pragma once
 
 #include "Core.h"
+
 #include "WebSocketsModule.h"
+
+#if WITH_WEBSOCKETS
 #include "IWebSocket.h"
+#endif // #if WITH_WEBSOCKETS
 
 DECLARE_LOG_CATEGORY_EXTERN(LogWebSockets, Warning, All);
 

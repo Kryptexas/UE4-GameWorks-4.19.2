@@ -16,6 +16,12 @@ public class SSL : ModuleRules
 			bShouldUseModule = true;
 		}
 
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+					"Core",
+			}
+			);
+
 		if (bShouldUseModule)
 		{
 			Definitions.Add("WITH_SSL=1");
@@ -23,12 +29,6 @@ public class SSL : ModuleRules
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"Runtime/Online/SSL/Private",
-				}
-				);
-
-			PrivateDependencyModuleNames.AddRange(
-				new string[] {
-					"Core",
 				}
 				);
 

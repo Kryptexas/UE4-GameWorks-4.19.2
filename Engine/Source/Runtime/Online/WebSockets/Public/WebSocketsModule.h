@@ -25,6 +25,7 @@ public:
 	 */
 	static FWebSocketsModule& Get();
 
+#if WITH_WEBSOCKETS
 	/**
 	 * Instantiates a new web socket for the current platform
 	 *
@@ -43,6 +44,7 @@ public:
 	 * @return new IWebSocket instance
 	 */
 	virtual TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const FString& Protocol = FString());
+#endif // #if WITH_WEBSOCKETS
 
 private:
 

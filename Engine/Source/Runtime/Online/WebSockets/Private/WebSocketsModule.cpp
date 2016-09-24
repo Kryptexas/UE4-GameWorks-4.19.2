@@ -2,7 +2,10 @@
 
 #include "WebSocketsPrivatePCH.h"
 #include "WebSocketsModule.h"
+
+#if WITH_WEBSOCKETS
 #include "PlatformWebSocket.h"
+#endif // #if WITH_WEBSOCKETS
 
 DEFINE_LOG_CATEGORY(LogWebSockets);
 
@@ -27,6 +30,7 @@ FWebSocketsModule& FWebSocketsModule::Get()
 	return *Singleton;
 }
 
+#if WITH_WEBSOCKETS
 TSharedRef<IWebSocket> FWebSocketsModule::CreateWebSocket(const FString& Url, const TArray<FString>& Protocols)
 {
 	return MakeShareable(new FPlatformWebSocket(Url, Protocols));
@@ -38,3 +42,4 @@ TSharedRef<IWebSocket> FWebSocketsModule::CreateWebSocket(const FString& Url, co
 	Protocols.Add(Protocol);
 	return MakeShareable(new FPlatformWebSocket(Url, Protocols));
 }
+#endif // #if WITH_WEBSOCKETS
