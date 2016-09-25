@@ -591,10 +591,6 @@ ABrush*	FBSPOps::csgAddOperation( ABrush* Actor, uint32 PolyFlags, EBrushType Br
 	check(Actor->Brush->Polys);
 	check(Actor->GetWorld());
 
-	// Can't do this if brush has no polys. 
-	if( !Actor->Brush->Polys->Element.Num() )
-		return NULL;
-
 	// Spawn a new actor for the brush.
 
 	ABrush* Result  = Actor->GetWorld()->SpawnBrush();
@@ -608,6 +604,7 @@ ABrush*	FBSPOps::csgAddOperation( ABrush* Actor, uint32 PolyFlags, EBrushType Br
 		PolyFlags,
 		RF_Transactional,
 		0,
+		true,
 		true
 	);
 	check(Result->Brush);
