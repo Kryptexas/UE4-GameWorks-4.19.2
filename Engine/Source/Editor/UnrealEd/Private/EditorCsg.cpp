@@ -1350,7 +1350,10 @@ static void SendTo( UWorld* InWorld, int32 bSendToFirst )
 	ULevel*	Level = InWorld->GetCurrentLevel();
 	for (AActor* Actor : Level->Actors)
 	{
-		Actor->Modify();
+		if (Actor)
+		{
+			Actor->Modify();
+		}
 	}
 	
 	// Fire ULevel::LevelDirtiedEvent when falling out of scope.
