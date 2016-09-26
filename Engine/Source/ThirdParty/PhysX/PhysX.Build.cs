@@ -235,7 +235,7 @@ public class PhysX : ModuleRules
 				PublicDelayLoadDLLs.Add(String.Format(DLL, LibrarySuffix));
 			}
 
-			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win32/VS{1}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
+			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win32/VS{0}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach (string DLL in RuntimeDependenciesX86)
 			{
 				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
