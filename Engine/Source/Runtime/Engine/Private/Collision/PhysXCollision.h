@@ -83,7 +83,7 @@ typedef FCollisionQueryParams::IgnoreActorsArrayType FilterIgnoreActorsArrayType
 
 
 /** Unreal PhysX scene query filter callback object */
-class FPxQueryFilterCallback : public PxSceneQueryFilterCallback
+class FPxQueryFilterCallback : public PxQueryFilterCallback
 {
 public:
 
@@ -94,7 +94,7 @@ public:
 	const FilterIgnoreActorsArrayType& IgnoreActors;
 	
 	/** Result of PreFilter callback. */
-	PxSceneQueryHitType::Enum PrefilterReturnValue;
+	PxQueryHitType::Enum PrefilterReturnValue;
 
 	/** Whether to ignore touches (convert an eTOUCH result to eNONE). */
 	bool bIgnoreTouches;
@@ -106,7 +106,7 @@ public:
 		: IgnoreComponents(InQueryParams.GetIgnoredComponents())
 		, IgnoreActors(InQueryParams.GetIgnoredActors())
 	{
-		PrefilterReturnValue = PxSceneQueryHitType::eNONE;		
+		PrefilterReturnValue = PxQueryHitType::eNONE;		
 		bIgnoreTouches = false;
 		bIgnoreBlocks = InQueryParams.bIgnoreBlocks;
 	}
@@ -117,17 +117,17 @@ public:
 	 * @param PQueryFilter	: Querier FilterData
 	 * @param PShapeFilter	: The Shape FilterData querier is testing against
 	 *
-	 * @return PxSceneQueryHitType from both FilterData
+	 * @return PxQueryHitType from both FilterData
 	 */
-	static PxSceneQueryHitType::Enum CalcQueryHitType(const PxFilterData &PQueryFilter, const PxFilterData &PShapeFilter, bool bPreFilter = false);
+	static PxQueryHitType::Enum CalcQueryHitType(const PxFilterData &PQueryFilter, const PxFilterData &PShapeFilter, bool bPreFilter = false);
 	
-	virtual PxSceneQueryHitType::Enum preFilter(const PxFilterData& filterData, const PxShape* shape, const PxRigidActor* actor, PxSceneQueryFlags& queryFlags) override;
+	virtual PxQueryHitType::Enum preFilter(const PxFilterData& filterData, const PxShape* shape, const PxRigidActor* actor, PxHitFlags& queryFlags) override;
 
 
-	virtual PxSceneQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxSceneQueryHit& hit) override
+	virtual PxQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxQueryHit& hit) override
 	{
 		// Currently not used
-		return PxSceneQueryHitType::eBLOCK;
+		return PxQueryHitType::eBLOCK;
 	}
 };
 
@@ -143,7 +143,7 @@ public:
 		DiscardInitialOverlaps = !QueryParams.bFindInitialOverlaps;
 	}
 
-	virtual PxSceneQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxSceneQueryHit& hit) override;
+	virtual PxQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxQueryHit& hit) override;
 };
 
 // MISC
@@ -220,12 +220,15 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 
 #if WITH_PHYSX
 
+//Find the face index for a given hit. This gives us a chance to modify face index based on things like most opposing normal
+PxU32 FindFaceIndex(const PxSweepHit& PHit, const PxVec3& UnitDirection);
+
 // Adapts a FCollisionShape to a PxGeometry type, used for various queries
 struct FPhysXShapeAdaptor
 {
 public:
 	FPhysXShapeAdaptor(const FQuat& Rot, const FCollisionShape& CollisionShape)
-		: Rotation(PxIdentity)
+		: Rotation(physx::PxIdentity)
 	{
 		// Perform other kinds of zero-extent queries as zero-extent sphere queries
 		if ((CollisionShape.ShapeType != ECollisionShape::Sphere) && CollisionShape.IsNearlyZero())

@@ -38,7 +38,7 @@ static PxQueryHitType::Enum WheelRaycastPreFilter(
 	// don't collide with owner chassis
 	if ( SuspensionData.word0 == HitData.word0 )
 	{
-		return PxSceneQueryHitType::eNONE;
+		return PxQueryHitType::eNONE;
 	}
 
 	// collision channels filter
@@ -60,10 +60,10 @@ static PxQueryHitType::Enum WheelRaycastPreFilter(
 			}
 		}
 
-		return PxSceneQueryHitType::eBLOCK;
+		return PxQueryHitType::eBLOCK;
 	}
 
-	return PxSceneQueryHitType::eNONE;
+	return PxQueryHitType::eNONE;
 }
 
 FPhysXVehicleManager::FPhysXVehicleManager(PxScene* PhysXScene)
@@ -376,9 +376,10 @@ void FPhysXVehicleManager::SetRecordTelemetry( TWeakObjectPtr<UWheeledVehicleMov
 void FPhysXVehicleManager::SetupTelemetryData()
 {
 	// set up telemetry for 4 wheels
-	SCOPED_SCENE_WRITE_LOCK(Scene);
 	if(TelemetryData4W == NULL)
 	{
+		SCOPED_SCENE_WRITE_LOCK(Scene);
+
 		float Empty[] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
 		TelemetryData4W = PxVehicleTelemetryData::allocate(4);

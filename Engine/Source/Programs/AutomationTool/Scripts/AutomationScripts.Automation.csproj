@@ -78,6 +78,7 @@
     <Compile Include="BuildDerivedDataCache.Automation.cs" />
     <Compile Include="BuildDocumentation.Automation.cs" />
     <Compile Include="BuildForUGS.Automation.cs" />
+    <Compile Include="BuildPhysX.Automation.cs" />
     <Compile Include="BuildPluginCommand.Automation.cs" />
     <Compile Include="BuildProjectCommand.Automation.cs" />
     <Compile Include="BuildTargetCommand.Automation.cs" />

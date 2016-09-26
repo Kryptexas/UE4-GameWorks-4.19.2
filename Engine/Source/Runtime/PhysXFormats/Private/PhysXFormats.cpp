@@ -117,12 +117,12 @@ public:
 			// Set the skin thickness as a proportion of the overall size of the mesh as PhysX's internal tolerances also use the overall size to calculate the epsilon used.
 			const FBox Bounds(SrcBuffer);
 			const float MaxExtent = (Bounds.Max - Bounds.Min).Size();
-			NewParams.skinWidth = MaxExtent / 512.0f;
+
 			NewParams.meshPreprocessParams = PxMeshPreprocessingFlags(PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH);
-			NewParams.areaTestEpsilon = 0.0f;
 			NewParams.meshWeldTolerance = 0.0f;
-			PhysXCooking->setParams(NewParams);
 		}
+
+		PhysXCooking->setParams(NewParams);
 
 		// Cook the convex mesh to a temp buffer
 		TArray<uint8> CookedMeshBuffer;
@@ -219,7 +219,7 @@ public:
 #endif		// WITH_PHYSX
 	}
 
-	virtual bool CookHeightField(FName Format, FIntPoint HFSize, float Thickness, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer) const override
+	virtual bool CookHeightField(FName Format, FIntPoint HFSize, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer) const override
 	{
 #if WITH_PHYSX
 		PxPlatform::Enum PhysXFormat = PxPlatform::ePC;
@@ -233,7 +233,6 @@ public:
 		HFDesc.samples.data = Samples;
 		HFDesc.samples.stride = SamplesStride;
 		HFDesc.flags = PxHeightFieldFlag::eNO_BOUNDARY_EDGES;
-		HFDesc.thickness = Thickness;
 
 		// Set up cooking
 		const PxCookingParams& Params = PhysXCooking->getParams();

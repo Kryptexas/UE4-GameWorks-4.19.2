@@ -169,7 +169,7 @@ void FPhysSubstepTask::ApplyCustomPhysics(const FPhysTarget& PhysTarget, FBodyIn
 #if WITH_PHYSX
 bool IsKinematicHelper(const PxRigidBody* PRigidBody)
 {
-	const bool bIsKinematic = PRigidBody->getRigidDynamicFlags() & PxRigidDynamicFlag::eKINEMATIC;
+	const bool bIsKinematic = PRigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC;
 	return bIsKinematic;
 }
 #endif
@@ -289,14 +289,14 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha, float DeltaTime)
 
 		if (!IsKinematicHelper(PRigidBody))
 		{
-		ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
-		ApplyForces_AssumesLocked(PhysTarget, BodyInstance);
-		ApplyTorques_AssumesLocked(PhysTarget, BodyInstance);
-		ApplyRadialForces_AssumesLocked(PhysTarget, BodyInstance);
+			ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
+			ApplyForces_AssumesLocked(PhysTarget, BodyInstance);
+			ApplyTorques_AssumesLocked(PhysTarget, BodyInstance);
+			ApplyRadialForces_AssumesLocked(PhysTarget, BodyInstance);
 		}else
 		{
-		InterpolateKinematicActor_AssumesLocked(PhysTarget, BodyInstance, InAlpha);
-	}
+			InterpolateKinematicActor_AssumesLocked(PhysTarget, BodyInstance, InAlpha);
+		}
 	}
 
 	/** Final substep */
@@ -399,6 +399,7 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	PAScene->simulate(DeltaTime, SubstepTask, FullSimulationTask->GetScratchBufferData(), FullSimulationTask->GetScratchBufferSize());
 	PAScene->unlockWrite();
 #endif
+
 	SubstepTask->removeReference();
 #endif
 }
@@ -421,7 +422,6 @@ void FPhysSubstepTask::SubstepSimulationEnd(ENamedThreads::Type CurrentThread, c
 			PAScene->fetchResults(true, &OutErrorCode);
 			PAScene->unlockWrite();
 #endif
-
 		}
 
 		if (OutErrorCode != 0)

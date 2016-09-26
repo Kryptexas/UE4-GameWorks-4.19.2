@@ -300,7 +300,7 @@ void UPhysicalAnimationComponent::UpdatePhysicsEngine()
 
 							// Create kinematic actor we are going to create joint with. This will be moved around with calls to SetLocation/SetRotation.
 							PxRigidDynamic* KineActor = Scene->getPhysics().createRigidDynamic(U2PTransform(TargetTM));
-							KineActor->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
+							KineActor->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 							KineActor->setMass(1.0f);
 							KineActor->setMassSpaceInertiaTensor(PxVec3(1.0f, 1.0f, 1.0f));
 

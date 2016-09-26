@@ -38,9 +38,9 @@ void WakeupJointedActors_AssumesLocked(PxD6Joint* Joint)
 
 	auto WakeupActorHelper = [](PxRigidActor* Actor)
 	{
-		if (PxRigidDynamic* DynamicActor = (Actor ? Actor->isRigidDynamic() : nullptr))
+		if (PxRigidDynamic* DynamicActor = (Actor ? Actor->is<PxRigidDynamic>() : nullptr))
 		{
-			if (DynamicActor->getScene())
+			if (DynamicActor->getScene() && !(DynamicActor->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC))
 			{
 				DynamicActor->wakeUp();
 			}

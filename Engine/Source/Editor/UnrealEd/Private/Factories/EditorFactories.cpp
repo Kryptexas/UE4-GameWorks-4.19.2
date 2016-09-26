@@ -6812,7 +6812,7 @@ UObject* UDestructibleMeshFactory::FactoryCreateBinary
 	UDestructibleMesh* DestructibleMesh = nullptr;
 
 	// Create an Apex NxDestructibleAsset from the binary blob
-	NxDestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
+	apex::DestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
 	if( ApexDestructibleAsset != nullptr )
 	{
 		// Succesfully created the NxDestructibleAsset, now create a UDestructibleMesh
@@ -6829,7 +6829,7 @@ UObject* UDestructibleMeshFactory::FactoryCreateBinary
 	else
 	{
 		// verify whether this is an Apex Clothing asset or not 
-		NxClothingAsset* ApexClothingAsset = ApexClothingUtils::CreateApexClothingAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
+		apex::ClothingAsset* ApexClothingAsset = ApexClothingUtils::CreateApexClothingAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
 		
 		if(ApexClothingAsset)
 		{
@@ -6927,7 +6927,7 @@ EReimportResult::Type UReimportDestructibleMeshFactory::Reimport( UObject* Obj )
 	CurrentFilename = Filename;
 
 	// Create an Apex NxDestructibleAsset from the binary blob
-	NxDestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromFile(Filename);
+	apex::DestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromFile(Filename);
 	if( ApexDestructibleAsset != nullptr )
 	{
 		// Succesfully created the NxDestructibleAsset, now create a UDestructibleMesh
@@ -6980,7 +6980,7 @@ UBlendSpaceFactoryNew::UBlendSpaceFactoryNew(const FObjectInitializer& ObjectIni
 
 	SupportedClass = UBlendSpace::StaticClass();
 	bCreateNew = true;
-		}
+}
 
 bool UBlendSpaceFactoryNew::ConfigureProperties()
 {
@@ -7013,7 +7013,7 @@ bool UBlendSpaceFactoryNew::ConfigureProperties()
 		[
 			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
 		]
-		];
+	];
 
 
 	GEditor->EditorAddModalWindow(PickerWindow.ToSharedRef());

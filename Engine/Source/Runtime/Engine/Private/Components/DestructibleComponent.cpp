@@ -249,20 +249,23 @@ void UDestructibleComponent::OnCreatePhysicsState()
 	// Find the PhysicalMaterial we need to apply to the physics bodies.
 	UPhysicalMaterial* PhysMat = BodyInstance.GetSimplePhysicalMaterial();
 
-	// Get the default actor descriptor NxParameterized data from the asset
-	NxParameterized::Interface* ActorParams = TheDestructibleMesh->GetDestructibleActorDesc(PhysMat);
+	// Get the default actor descriptor NvParameterized data from the asset
+	NvParameterized::Interface* ActorParams = TheDestructibleMesh->GetDestructibleActorDesc(PhysMat);
 
 	// Create PhysX transforms from ComponentToWorld
-	const PxMat44 GlobalPose(PxMat33(U2PQuat(ComponentToWorld.GetRotation())), U2PVector(ComponentToWorld.GetTranslation()));
+	const PxTransform GlobalPose(U2PVector(ComponentToWorld.GetTranslation()), U2PQuat(ComponentToWorld.GetRotation()));
 	const PxVec3 Scale = U2PVector(ComponentToWorld.GetScale3D());
 
 	// Set the transform in the actor descriptor
-	verify( NxParameterized::setParamMat44(*ActorParams,"globalPose",GlobalPose) );
-	verify( NxParameterized::setParamVec3(*ActorParams,"scale",Scale) );
+	verify( NvParameterized::setParamTransform(*ActorParams,"globalPose",GlobalPose) );
+	verify( NvParameterized::setParamVec3(*ActorParams,"scale",Scale) );
 
 	// Set the (initially) dynamic flag in the actor descriptor
 	// See if we are 'static'
-	verify( NxParameterized::setParamBool(*ActorParams,"dynamic", BodyInstance.bSimulatePhysics != false) );
+	verify( NvParameterized::setParamBool(*ActorParams,"dynamic", BodyInstance.bSimulatePhysics != false) );
+
+	// Set the sleep velocity frame decay constant (was sleepVelocitySmoothingFactor) - a new feature that should help sleeping in large piles
+	verify( NvParameterized::setParamF32(*ActorParams,"sleepVelocityFrameDecayConstant", 20.0f) );
 
 	// Set up the shape desc template
 
@@ -300,67 +303,66 @@ void UDestructibleComponent::OnCreatePhysicsState()
 	PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
 
 	// Set the filterData in the shape descriptor
-	verify( NxParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.simulationFilterData.word0", PSimFilterData.word0 ) );
-	verify( NxParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.simulationFilterData.word1", PSimFilterData.word1 ) );
-	verify( NxParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.simulationFilterData.word2", PSimFilterData.word2 ) );
-	verify( NxParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.simulationFilterData.word3", PSimFilterData.word3 ) );
-	verify( NxParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.queryFilterData.word0", PQueryFilterData.word0 ) );
-	verify( NxParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.queryFilterData.word1", PQueryFilterData.word1 ) );
-	verify( NxParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.queryFilterData.word2", PQueryFilterData.word2 ) );
-	verify( NxParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.queryFilterData.word3", PQueryFilterData.word3 ) );
+	verify( NvParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.simulationFilterData.word0", PSimFilterData.word0 ) );
+	verify( NvParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.simulationFilterData.word1", PSimFilterData.word1 ) );
+	verify( NvParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.simulationFilterData.word2", PSimFilterData.word2 ) );
+	verify( NvParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.simulationFilterData.word3", PSimFilterData.word3 ) );
+	verify( NvParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.queryFilterData.word0", PQueryFilterData.word0 ) );
+	verify( NvParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.queryFilterData.word1", PQueryFilterData.word1 ) );
+	verify( NvParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.queryFilterData.word2", PQueryFilterData.word2 ) );
+	verify( NvParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.queryFilterData.word3", PQueryFilterData.word3 ) );
 
 	// Set the PhysX material in the shape descriptor
 	if(PxMaterial* PMaterial = PhysMat->GetPhysXMaterial())
 	{
-		verify(NxParameterized::setParamU64(*ActorParams, "p3ShapeDescTemplate.material", (physx::PxU64)PMaterial));
+		verify(NvParameterized::setParamU64(*ActorParams, "p3ShapeDescTemplate.material", (physx::PxU64)PMaterial));
 	}
 
 
-	// Set the rest depth to match the skin width in the shape descriptor
-	const physx::PxCookingParams& CookingParams = GApexSDK->getCookingInterface()->getParams();
-	verify( NxParameterized::setParamF32(*ActorParams,"p3ShapeDescTemplate.restOffset", -CookingParams.skinWidth) );
+	// Set the rest off set to 0.0f since we do not inflate convexes anymore
+	verify( NvParameterized::setParamF32(*ActorParams,"p3ShapeDescTemplate.restOffset", 0.0f) );
 
 	// Set the PhysX material in the actor descriptor
-	verify( NxParameterized::setParamBool(*ActorParams,"p3ActorDescTemplate.flags.eDISABLE_GRAVITY",false) );
-	verify( NxParameterized::setParamBool(*ActorParams,"p3ActorDescTemplate.flags.eVISUALIZATION",true) );
+	verify( NvParameterized::setParamBool(*ActorParams,"p3ActorDescTemplate.flags.eDISABLE_GRAVITY",false) );
+	verify( NvParameterized::setParamBool(*ActorParams,"p3ActorDescTemplate.flags.eVISUALIZATION",true) );
 
 	// Set the PxActor's and PxShape's userData fields to this component's body instance
-	verify( NxParameterized::setParamU64(*ActorParams,"p3ActorDescTemplate.userData", 0 ) );
+	verify( NvParameterized::setParamU64(*ActorParams,"p3ActorDescTemplate.userData", 0 ) );
 
 	// All shapes created by this DestructibleActor will have the userdata of the owning component.
 	// We need this, as in some cases APEX is moving shapes accross actors ( ex. FormExtended structures )
-	verify( NxParameterized::setParamU64(*ActorParams,"p3ShapeDescTemplate.userData", (PxU64)&PhysxUserData ) );
+	verify( NvParameterized::setParamU64(*ActorParams,"p3ShapeDescTemplate.userData", (PxU64)&PhysxUserData ) );
 
 	// Set up the body desc template in the actor descriptor
-	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.angularDamping", BodyInstance.AngularDamping ) );
-	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.linearDamping", BodyInstance.LinearDamping ) );
+	verify( NvParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.angularDamping", BodyInstance.AngularDamping ) );
+	verify( NvParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.linearDamping", BodyInstance.LinearDamping ) );
 	const PxTolerancesScale& PScale = GPhysXSDK->getTolerancesScale();
 	
 	PxF32 SleepEnergyThreshold = 0.00005f*PScale.speed*PScale.speed;	// 1/1000 Default, since the speed scale is quite high
 	SleepEnergyThreshold *= BodyInstance.GetSleepThresholdMultiplier();
-	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.sleepThreshold", SleepEnergyThreshold) );
-//	NxParameterized::setParamF32(*ActorParams,"bodyDescTemplate.sleepDamping", SleepDamping );
+	verify( NvParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.sleepThreshold", SleepEnergyThreshold) );
+//	NvParameterized::setParamF32(*ActorParams,"bodyDescTemplate.sleepDamping", SleepDamping );
 	
 	float DensityPerCubicCM = 1.0f;
 	if(PhysMat)
 	{
 		DensityPerCubicCM = PhysMat->Density;
 	}
-	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.density", 0.001f * DensityPerCubicCM) );	// Convert from g/cm^3 to kg/cm^3
+	verify( NvParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.density", 0.001f * DensityPerCubicCM) );	// Convert from g/cm^3 to kg/cm^3
 
 	// Enable CCD if requested
-	verify( NxParameterized::setParamBool(*ActorParams,"p3BodyDescTemplate.flags.eENABLE_CCD", BodyInstance.bUseCCD != 0) );
+	verify( NvParameterized::setParamBool(*ActorParams,"p3BodyDescTemplate.flags.eENABLE_CCD", BodyInstance.bUseCCD != 0) );
 	// Ask the actor to create chunk events, for more efficient visibility updates
-	verify( NxParameterized::setParamBool(*ActorParams,"createChunkEvents", true) );
+	verify( NvParameterized::setParamBool(*ActorParams,"createChunkEvents", true) );
 
 	// Enable hard sleeping if requested
-	verify( NxParameterized::setParamBool(*ActorParams,"useHardSleeping", bEnableHardSleeping) );
+	verify( NvParameterized::setParamBool(*ActorParams,"useHardSleeping", bEnableHardSleeping) );
 
 	
 
 	// Destructibles are always dynamic or kinematic, and therefore only go into one of the scenes
 	const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
-	NxApexScene* ApexScene = PhysScene->GetApexScene(SceneType);
+	apex::Scene* ApexScene = PhysScene->GetApexScene(SceneType);
 	PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
 
 	BodyInstance.SceneIndexSync = SceneType == PST_Sync ? PhysScene->PhysXSceneIndex[PST_Sync] : 0;
@@ -378,7 +380,7 @@ void UDestructibleComponent::OnCreatePhysicsState()
 		GPhysCommandHandler->Flush();
 
 		// Create an APEX NxDestructibleActor from the Destructible asset and actor descriptor, has to be in a locked scope as it affects simulation state
-		ApexDestructibleActor = static_cast<NxDestructibleActor*>(TheDestructibleMesh->ApexDestructibleAsset->createApexActor(*ActorParams, *ApexScene));
+		ApexDestructibleActor = static_cast<apex::DestructibleActor*>(TheDestructibleMesh->ApexDestructibleAsset->createApexActor(*ActorParams, *ApexScene));
 		check(ApexDestructibleActor);
 	}
 	
@@ -525,7 +527,7 @@ void UDestructibleComponent::AddRadialImpulse(FVector Origin, float Radius, floa
 
 	PxRigidDynamic** PActorBuffer = NULL;
 	PxU32 PActorCount = 0;
-	if (ApexDestructibleActor->acquirePhysXActorBuffer(PActorBuffer, PActorCount, NxDestructiblePhysXActorQueryFlags::Dynamic))
+	if (ApexDestructibleActor->acquirePhysXActorBuffer(PActorBuffer, PActorCount, apex::DestructiblePhysXActorQueryFlags::Dynamic))
 	{
 		PxScene* LockedScene = NULL;
 
@@ -571,7 +573,7 @@ void UDestructibleComponent::AddRadialForce(FVector Origin, float Radius, float 
 
 	PxRigidDynamic** PActorBuffer = NULL;
 	PxU32 PActorCount = 0;
-	if (ApexDestructibleActor->acquirePhysXActorBuffer(PActorBuffer, PActorCount, NxDestructiblePhysXActorQueryFlags::Dynamic))
+	if (ApexDestructibleActor->acquirePhysXActorBuffer(PActorBuffer, PActorCount, apex::DestructiblePhysXActorQueryFlags::Dynamic))
 	{
 		PxScene* LockedScene = NULL;
 		
@@ -619,7 +621,7 @@ void UDestructibleComponent::ReceiveComponentDamage(float DamageAmount, FDamageE
 }
 
 #if WITH_APEX
-void UDestructibleComponent::SpawnFractureEffectsFromDamageEvent(const NxApexDamageEventReportData& InDamageEvent)
+void UDestructibleComponent::SpawnFractureEffectsFromDamageEvent(const apex::DamageEventReportData& InDamageEvent)
 {
 	// Use the component's fracture effects if the override is selected, otherwise use fracture effects from the asset
 	TArray<FFractureEffect>& UseFractureEffects = (bFractureEffectOverride || !SkeletalMesh) ? FractureEffects : CastChecked<UDestructibleMesh>(SkeletalMesh)->FractureEffects;
@@ -635,7 +637,7 @@ void UDestructibleComponent::SpawnFractureEffectsFromDamageEvent(const NxApexDam
 	TArray<int32> HandledParents;
 	for(physx::PxU32 eventN = 0; eventN < InDamageEvent.fractureEventListSize; ++eventN)
 	{
-		const NxApexChunkData& chunkData = InDamageEvent.fractureEventList[eventN];
+		const apex::ChunkData& chunkData = InDamageEvent.fractureEventList[eventN];
 		if( chunkData.depth < (physx::PxU32)UseFractureEffects.Num() )
 		{
 			// We can get the root chunk here as well, so make sure that the parent index is 0, even for the root chunk
@@ -644,7 +646,7 @@ void UDestructibleComponent::SpawnFractureEffectsFromDamageEvent(const NxApexDam
 			// We can test a number of flags - we'll play an effect if the chunk was destroyed
 			// As we only get the fractured event here for chunks that come free, we spawn fracture
 			// effects only once per unique parent
-			if((chunkData.flags & NxApexChunkFlag::FRACTURED) && !HandledParents.Contains(ParentIdx))
+			if((chunkData.flags & apex::ApexChunkFlag::FRACTURED) && !HandledParents.Contains(ParentIdx))
 			{
 				FVector Position = P2UVector(chunkData.worldBounds.getCenter());
 				FFractureEffect& FractureEffect = UseFractureEffects[chunkData.depth];
@@ -671,7 +673,7 @@ void UDestructibleComponent::SpawnFractureEffectsFromDamageEvent(const NxApexDam
 	}
 }
 
-void UDestructibleComponent::OnDamageEvent(const NxApexDamageEventReportData& InDamageEvent)
+void UDestructibleComponent::OnDamageEvent(const apex::DamageEventReportData& InDamageEvent)
 {
 	FVector HitPosition = P2UVector(InDamageEvent.hitPosition);
 	FVector HitDirection = P2UVector(InDamageEvent.hitDirection);
@@ -692,14 +694,14 @@ void UDestructibleComponent::OnDamageEvent(const NxApexDamageEventReportData& In
 	}
 }
 
-void UDestructibleComponent::OnVisibilityEvent(const NxApexChunkStateEventData & InVisibilityEvent)
+void UDestructibleComponent::OnVisibilityEvent(const apex::ChunkStateEventData & InVisibilityEvent)
 {
 	for (uint32 EventIndex = 0; EventIndex < InVisibilityEvent.stateEventListSize; ++EventIndex)
 	{
-		const NxDestructibleChunkEvent &  Event = InVisibilityEvent.stateEventList[EventIndex];
+		const apex::DestructibleChunkEvent &  Event = InVisibilityEvent.stateEventList[EventIndex];
 		// Right now the only events are visibility changes.  So as an optimization we won't check for the event type.
 		//				if (Event.event & physx::NxDestructibleChunkEvent::VisibilityChanged)
-		const bool bIsVisible = (Event.event & physx::NxDestructibleChunkEvent::ChunkVisible) != 0;
+		const bool bIsVisible = (Event.event & apex::DestructibleChunkEvent::ChunkVisible) != 0;
 		SetChunkVisible(Event.chunkIndex, bIsVisible);
 	}
 }
@@ -943,7 +945,7 @@ void UDestructibleComponent::UpdateDestructibleChunkTM(const TArray<const PxRigi
 				{
 					PxShape* Shape = Shapes[ShapeIdx];
 					int32 ChunkIndex;
-					if (NxDestructibleActor* DestructibleActor = GApexModuleDestructible->getDestructibleAndChunk(Shape, &ChunkIndex))
+					if (apex::DestructibleActor* DestructibleActor = GApexModuleDestructible->getDestructibleAndChunk(Shape, &ChunkIndex))
 					{
 						const physx::PxMat44 ChunkPoseRT = DestructibleActor->getChunkPose(ChunkIndex);
 						const physx::PxTransform Transform(ChunkPoseRT);
@@ -1108,7 +1110,7 @@ int32 ExportPxActorGeometry(const PxRigidDynamic* PActor, TArray<PxShape*>& Shap
 				if ((*ShapePtr)->getTriangleMeshGeometry(Geometry))
 				{
 					++ShapesExportedCount;
-					if ((Geometry.triangleMesh->getTriangleMeshFlags()) & PxTriangleMeshFlag::eHAS_16BIT_TRIANGLE_INDICES)
+					if ((Geometry.triangleMesh->getTriangleMeshFlags()) & PxTriangleMeshFlag::e16_BIT_INDICES)
 					{
 						GeomExport.ExportPxTriMesh16Bit(Geometry.triangleMesh, LocalToWorld);
 					}
@@ -1152,7 +1154,7 @@ bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 		return bExportFromBodySetup;
 	}
 
-	NxDestructibleActor* DestrActor = const_cast<NxDestructibleActor*>(ApexDestructibleActor);
+	apex::DestructibleActor* DestrActor = const_cast<apex::DestructibleActor*>(ApexDestructibleActor);
 
 	const FTransform ComponentToWorldNoScale(ComponentToWorld.GetRotation(), ComponentToWorld.GetTranslation(), FVector(1.f));
 	TArray<PxShape*> Shapes;
@@ -1160,9 +1162,9 @@ bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 	PxRigidDynamic** PActorBuffer = NULL;
 	PxU32 PActorCount = 0;
 	if (DestrActor->acquirePhysXActorBuffer(PActorBuffer, PActorCount
-		, NxDestructiblePhysXActorQueryFlags::Static 
-		| NxDestructiblePhysXActorQueryFlags::Dormant
-		| NxDestructiblePhysXActorQueryFlags::Dynamic))
+		, apex::DestructiblePhysXActorQueryFlags::Static
+		| apex::DestructiblePhysXActorQueryFlags::Dormant
+		| apex::DestructiblePhysXActorQueryFlags::Dynamic))
 	{
 		uint32 ShapesExportedCount = 0;
 
@@ -1299,9 +1301,9 @@ bool UDestructibleComponent::LineTraceComponent( FHitResult& OutHit, const FVect
 		PxF32 HitTime = 0.0f;
 		PxVec3 HitNormal;
 		
-		int32 ChunkIdx = ApexDestructibleActor->rayCast(HitTime, HitNormal, U2PVector(Start), U2PVector(End-Start), NxDestructibleActorRaycastFlags::AllChunks);
+		int32 ChunkIdx = ApexDestructibleActor->rayCast(HitTime, HitNormal, U2PVector(Start), U2PVector(End-Start), apex::DestructibleActorRaycastFlags::AllChunks);
 
-		if (ChunkIdx != NxModuleDestructibleConst::INVALID_CHUNK_INDEX && HitTime <= 1.0f)
+		if (ChunkIdx != apex::ModuleDestructibleConst::INVALID_CHUNK_INDEX && HitTime <= 1.0f)
 		{
 			PxRigidDynamic* PActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
 
@@ -1331,9 +1333,9 @@ bool UDestructibleComponent::SweepComponent(FHitResult& OutHit, const FVector St
 		PxF32 HitTime = 0.0f;
 		PxVec3 HitNormal;
 
-		int32 ChunkIdx = ApexDestructibleActor->obbSweep(HitTime, HitNormal, U2PVector(Start), U2PVector(CollisionShape.GetExtent()), PxMat33::createIdentity(), U2PVector(End - Start), NxDestructibleActorRaycastFlags::AllChunks);
+		int32 ChunkIdx = ApexDestructibleActor->obbSweep(HitTime, HitNormal, U2PVector(Start), U2PVector(CollisionShape.GetExtent()), PxMat33(physx::PxIdentity), U2PVector(End - Start), apex::DestructibleActorRaycastFlags::AllChunks);
 
-		if (ChunkIdx != NxModuleDestructibleConst::INVALID_CHUNK_INDEX && HitTime <= 1.0f)
+		if (ChunkIdx != apex::ModuleDestructibleConst::INVALID_CHUNK_INDEX && HitTime <= 1.0f)
 		{
 			PxRigidDynamic* PActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
 
@@ -1629,7 +1631,7 @@ void UDestructibleComponent::SetMaterial(int32 ElementIndex, UMaterialInterface*
 	// Set new template parameters for the apex actor, so they take effect before fracturing too.
 	if(ApexDestructibleActor)
 	{
-		physx::apex::NxPhysX3DescTemplate* Template = ApexDestructibleActor->createPhysX3DescTemplate();
+		nvidia::apex::PhysX3DescTemplate* Template = ApexDestructibleActor->createPhysX3DescTemplate();
 		if(ApexDestructibleActor->getPhysX3Template(*Template))
 		{
 			UPhysicalMaterial* SimpleMaterial = GetBodyInstance()->GetSimplePhysicalMaterial();

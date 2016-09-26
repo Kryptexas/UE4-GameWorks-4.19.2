@@ -190,7 +190,7 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	/**
 	* If true, physx will not update unreal with any bodies that have moved during the simulation. This should only be used if you have no physx simulation or you are manually updating the unreal data via polling physx.  */
 	UPROPERTY(config, EditAnywhere, Category = Optimization)
-	bool bDisableActiveTransforms;
+	bool bDisableActiveActors;
 
 	/**
 	*  If true CCD will be ignored. This is an optimization when CCD is never used which removes the need for physx to check it internally. */

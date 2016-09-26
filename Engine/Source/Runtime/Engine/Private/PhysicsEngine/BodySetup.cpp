@@ -275,7 +275,7 @@ void UBodySetup::ClearPhysicsMeshes()
 /** Util to determine whether to use NegX version of mesh, and what transform (rotation) to apply. */
 bool CalcMeshNegScaleCompensation(const FVector& InScale3D, PxTransform& POutTransform)
 {
-	POutTransform = PxTransform::createIdentity();
+	POutTransform = PxTransform(physx::PxIdentity);
 
 	if(InScale3D.Y > 0.f)
 	{
@@ -592,7 +592,7 @@ private:
 	PxShape* AttachShape_AssumesLocked(const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, const FPhysxUserData* ShapeElemUserData, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
 	{
 		const PxMaterial* PMaterial = GetDefaultPhysMaterial(); 
-		PxShape* PNewShape = bShapeSharing ? GPhysXSDK->createShape(PGeom, *PMaterial, /*isExclusive =*/ false, PShapeFlags) : PDestActor->createShape(PGeom, *PMaterial, PShapeFlags);
+		PxShape* PNewShape = GPhysXSDK->createShape(PGeom, *PMaterial, !bShapeSharing, PShapeFlags);
 
 		if (PNewShape)
 		{
@@ -615,11 +615,8 @@ private:
 			PNewShape->setSimulationFilterData(Filters.SimFilter);
 			FBodyInstance::ApplyMaterialToShape_AssumesLocked(PNewShape, SimpleMaterial, ComplexMaterials, bShapeSharing);
 
-			if(bShapeSharing)
-			{
-				PDestActor->attachShape(*PNewShape);
-				PNewShape->release();
-			}
+			PDestActor->attachShape(*PNewShape);
+			PNewShape->release();
 		}
 
 		return PNewShape;

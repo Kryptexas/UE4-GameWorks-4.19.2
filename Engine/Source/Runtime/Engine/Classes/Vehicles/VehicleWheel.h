@@ -137,9 +137,12 @@ class ENGINE_API UVehicleWheel : public UObject
 	UPROPERTY(transient)
 	float											DebugLatSlip;
 
-	// How much force the tire experiences at rest devided by how much force it is experiencing now
+	// How much force the tire experiences at rest divided by how much force it is experiencing now
 	UPROPERTY(transient)
 	float											DebugNormalizedTireLoad;
+
+	//How much force the tire is experiencing now
+	float											DebugTireLoad;
 
 	// Wheel torque
 	UPROPERTY(transient)

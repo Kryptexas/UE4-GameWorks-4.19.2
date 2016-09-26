@@ -268,8 +268,8 @@ void FDestructibleMeshEditorViewportClient::ProcessClick( class FSceneView& View
 	if (Key == EKeys::LeftMouseButton && Event == EInputEvent::IE_Released)
 	{
 		UDestructibleComponent* Comp = PreviewDestructibleComp.Get();
-		NxDestructibleAsset* Asset = Comp->DestructibleMesh->ApexDestructibleAsset;
-		const NxRenderMeshAsset* RenderMesh = Asset->getRenderMeshAsset();
+		apex::DestructibleAsset* Asset = Comp->DestructibleMesh->ApexDestructibleAsset;
+		const apex::RenderMeshAsset* RenderMesh = Asset->getRenderMeshAsset();
 
 		FVector2D ScreenPos(HitX, HitY);
 		FVector ClickOrigin, ViewDir;
@@ -364,8 +364,8 @@ void FDestructibleMeshEditorViewportClient::Draw( const FSceneView* View,FPrimit
 		{
 			if (Comp->DestructibleMesh->ApexDestructibleAsset != NULL)
 			{
-				NxDestructibleAsset* Asset = Comp->DestructibleMesh->ApexDestructibleAsset;
-				const NxRenderMeshAsset* RenderMesh = Asset->getRenderMeshAsset();
+				apex::DestructibleAsset* Asset = Comp->DestructibleMesh->ApexDestructibleAsset;
+				const apex::RenderMeshAsset* RenderMesh = Asset->getRenderMeshAsset();
 
 				for (uint32 i=0; i < Asset->getChunkCount(); ++i)
 				{
@@ -529,10 +529,10 @@ void SDestructibleMeshEditorViewport::RefreshViewport()
 #if WITH_EDITORONLY_DATA
 	if (DestructibleMesh != NULL && DestructibleMesh->FractureSettings != NULL && DestructibleMesh->ApexDestructibleAsset != NULL && PreviewComponent->IsRegistered())
 	{
-		const NxRenderMeshAsset* ApexRenderMeshAsset = DestructibleMesh->ApexDestructibleAsset->getRenderMeshAsset();
+		const apex::RenderMeshAsset* ApexRenderMeshAsset = DestructibleMesh->ApexDestructibleAsset->getRenderMeshAsset();
 		if (ApexRenderMeshAsset != NULL)
 		{
-			NxExplicitHierarchicalMesh& EHM =  DestructibleMesh->FractureSettings->ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
+			apex::ExplicitHierarchicalMesh& EHM =  DestructibleMesh->FractureSettings->ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
 			if (DestructibleMesh->ApexDestructibleAsset->getPartIndex(0) < ApexRenderMeshAsset->getPartCount())
 			{
 				const PxBounds3& Level0Bounds = ApexRenderMeshAsset->getBounds(DestructibleMesh->ApexDestructibleAsset->getPartIndex(0));

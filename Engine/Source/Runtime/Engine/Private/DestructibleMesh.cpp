@@ -153,12 +153,12 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 #if WITH_APEX
 			// Wrap this blob with the APEX read stream class
 			physx::PxFileBuf* Stream = GApexSDK->createMemoryReadStream( Buffer.GetData(), Size );
-			// Create an NxParameterized serializer
-			NxParameterized::Serializer* Serializer = GApexSDK->createSerializer(NxParameterized::Serializer::NST_BINARY);
+			// Create an NvParameterized serializer
+			NvParameterized::Serializer* Serializer = GApexSDK->createSerializer(NvParameterized::Serializer::NST_BINARY);
 			// Deserialize into a DeserializedData buffer
-			NxParameterized::Serializer::DeserializedData DeserializedData;
+			NvParameterized::Serializer::DeserializedData DeserializedData;
 			Serializer->deserialize( *Stream, DeserializedData );
-			NxApexAsset* ApexAsset = NULL;
+			apex::Asset* ApexAsset = NULL;
 			if( DeserializedData.size() > 0 )
 			{
 				// The DeserializedData has something in it, so create an APEX asset from it
@@ -170,7 +170,7 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 					ApexAsset = NULL;
 				}
 			}
-			ApexDestructibleAsset = (NxDestructibleAsset*)ApexAsset;
+			ApexDestructibleAsset = (apex::DestructibleAsset*)ApexAsset;
 			// Release our temporary objects
 			Serializer->release();
 			GApexSDK->releaseMemoryReadStream( *Stream );
@@ -199,14 +199,14 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 #if WITH_APEX
 		// Create an APEX write stream
 		physx::PxFileBuf* Stream = GApexSDK->createMemoryWriteStream();
-		// Create an NxParameterized serializer
-		NxParameterized::Serializer* Serializer = GApexSDK->createSerializer(NxParameterized::Serializer::NST_BINARY);
+		// Create an NvParameterized serializer
+		NvParameterized::Serializer* Serializer = GApexSDK->createSerializer(NvParameterized::Serializer::NST_BINARY);
 		uint32 Size = 0;
 		TArray<uint8> Buffer;
-		// Get the NxParameterized data for our Destructible asset
+		// Get the NvParameterized data for our Destructible asset
 		if( ApexDestructibleAsset != NULL )
 		{
-			const NxParameterized::Interface* AssetParameterized = ApexDestructibleAsset->getAssetNxParameterized();
+			const NvParameterized::Interface* AssetParameterized = ApexDestructibleAsset->getAssetNvParameterized();
 			if( AssetParameterized != NULL )
 			{
 				// Serialize the data into the stream
@@ -254,79 +254,79 @@ void UDestructibleMesh::FinishDestroy()
 
 #if WITH_APEX
 
-void FDestructibleDamageParameters::FillDestructibleActorDesc(NxParameterized::Interface* Params, UPhysicalMaterial* PhysMat) const
+void FDestructibleDamageParameters::FillDestructibleActorDesc(NvParameterized::Interface* Params, UPhysicalMaterial* PhysMat) const
 {
 	// Damage parameters
 	if(PhysMat)
 	{
-		verify(NxParameterized::setParamF32(*Params, "defaultBehaviorGroup.damageThreshold", DamageThreshold * PhysMat->DestructibleDamageThresholdScale));
+		verify(NvParameterized::setParamF32(*Params, "defaultBehaviorGroup.damageThreshold", DamageThreshold * PhysMat->DestructibleDamageThresholdScale));
 	}
 
-	verify(NxParameterized::setParamF32(*Params, "defaultBehaviorGroup.damageToRadius", DamageSpread));
-	verify(NxParameterized::setParamF32(*Params, "destructibleParameters.forceToDamage", ImpactDamage));
-	verify(NxParameterized::setParamF32(*Params, "defaultBehaviorGroup.materialStrength", ImpactResistanceToAPEX(bCustomImpactResistance, ImpactResistance)));
-	verify(NxParameterized::setParamI32(*Params, "destructibleParameters.impactDamageDefaultDepth", DefaultImpactDamageDepthToAPEX(bEnableImpactDamage, DefaultImpactDamageDepth)));
+	verify(NvParameterized::setParamF32(*Params, "defaultBehaviorGroup.damageToRadius", DamageSpread));
+	verify(NvParameterized::setParamF32(*Params, "destructibleParameters.forceToDamage", ImpactDamage));
+	verify(NvParameterized::setParamF32(*Params, "defaultBehaviorGroup.materialStrength", ImpactResistanceToAPEX(bCustomImpactResistance, ImpactResistance)));
+	verify(NvParameterized::setParamI32(*Params, "destructibleParameters.impactDamageDefaultDepth", DefaultImpactDamageDepthToAPEX(bEnableImpactDamage, DefaultImpactDamageDepth)));
 }
 
-void FDestructibleDamageParameters::LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params)
+void FDestructibleDamageParameters::LoadDefaultDestructibleParametersFromApexAsset(const NvParameterized::Interface* Params)
 {
 	// Damage parameters
-	verify(NxParameterized::getParamF32(*Params, "defaultBehaviorGroup.damageThreshold", DamageThreshold));
-	verify(NxParameterized::getParamF32(*Params, "defaultBehaviorGroup.damageToRadius", DamageSpread));
-	verify(NxParameterized::getParamF32(*Params, "destructibleParameters.forceToDamage", ImpactDamage));
-	verify(NxParameterized::getParamF32(*Params, "defaultBehaviorGroup.materialStrength",ImpactResistance));
-	verify(NxParameterized::getParamI32(*Params, "destructibleParameters.impactDamageDefaultDepth", DefaultImpactDamageDepth));
+	verify(NvParameterized::getParamF32(*Params, "defaultBehaviorGroup.damageThreshold", DamageThreshold));
+	verify(NvParameterized::getParamF32(*Params, "defaultBehaviorGroup.damageToRadius", DamageSpread));
+	verify(NvParameterized::getParamF32(*Params, "destructibleParameters.forceToDamage", ImpactDamage));
+	verify(NvParameterized::getParamF32(*Params, "defaultBehaviorGroup.materialStrength",ImpactResistance));
+	verify(NvParameterized::getParamI32(*Params, "destructibleParameters.impactDamageDefaultDepth", DefaultImpactDamageDepth));
 
 	APEXToImpactResistance(bCustomImpactResistance, ImpactResistance);
 	APEXToDefaultImpactDamageDepth(bEnableImpactDamage, DefaultImpactDamageDepth);
 }
 
-void FDestructibleSpecialHierarchyDepths::FillDestructibleActorDesc(NxParameterized::Interface* Params) const
+void FDestructibleSpecialHierarchyDepths::FillDestructibleActorDesc(NvParameterized::Interface* Params) const
 {
-	verify(NxParameterized::setParamU32(*Params, "supportDepth", SupportDepth));
-	verify(NxParameterized::setParamU32(*Params, "destructibleParameters.minimumFractureDepth", MinimumFractureDepth));
-	verify(NxParameterized::setParamI32(*Params, "destructibleParameters.debrisDepth", DebrisDepthToAPEX(bEnableDebris,DebrisDepth)) );
-	verify(NxParameterized::setParamU32(*Params, "destructibleParameters.essentialDepth", EssentialDepth));
+	verify(NvParameterized::setParamU32(*Params, "supportDepth", SupportDepth));
+	verify(NvParameterized::setParamU32(*Params, "destructibleParameters.minimumFractureDepth", MinimumFractureDepth));
+	verify(NvParameterized::setParamI32(*Params, "destructibleParameters.debrisDepth", DebrisDepthToAPEX(bEnableDebris,DebrisDepth)) );
+	verify(NvParameterized::setParamU32(*Params, "destructibleParameters.essentialDepth", EssentialDepth));
 }
 
-void FDestructibleSpecialHierarchyDepths::LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params)
+void FDestructibleSpecialHierarchyDepths::LoadDefaultDestructibleParametersFromApexAsset(const NvParameterized::Interface* Params)
 {
 	physx::PxU32 PSupportDepth;
-	verify(NxParameterized::getParamU32(*Params, "supportDepth", PSupportDepth));
+	verify(NvParameterized::getParamU32(*Params, "supportDepth", PSupportDepth));
 	SupportDepth = (int32)PSupportDepth;
 	physx::PxU32 PMinimumFractureDepth;
-	verify(NxParameterized::getParamU32(*Params, "destructibleParameters.minimumFractureDepth", PMinimumFractureDepth));
+	verify(NvParameterized::getParamU32(*Params, "destructibleParameters.minimumFractureDepth", PMinimumFractureDepth));
 	MinimumFractureDepth = (int32)PMinimumFractureDepth;
-	verify(NxParameterized::getParamI32(*Params, "destructibleParameters.debrisDepth", DebrisDepth));
+	verify(NvParameterized::getParamI32(*Params, "destructibleParameters.debrisDepth", DebrisDepth));
 	APEXToDebrisDepth(bEnableDebris, DebrisDepth);
 
 	physx::PxU32 PEssentialDepth;
-	verify(NxParameterized::getParamU32(*Params, "destructibleParameters.essentialDepth", PEssentialDepth));
+	verify(NvParameterized::getParamU32(*Params, "destructibleParameters.essentialDepth", PEssentialDepth));
 	EssentialDepth = (int32)PEssentialDepth;
 }
 
-void FDestructibleAdvancedParameters::FillDestructibleActorDesc(NxParameterized::Interface* Params) const
+void FDestructibleAdvancedParameters::FillDestructibleActorDesc(NvParameterized::Interface* Params) const
 {
-	verify(NxParameterized::setParamF32(*Params, "destructibleParameters.damageCap", DamageCap));
-	verify(NxParameterized::setParamF32(*Params, "destructibleParameters.impactVelocityThreshold", ImpactVelocityThreshold));
-	verify(NxParameterized::setParamF32(*Params, "destructibleParameters.maxChunkSpeed", MaxChunkSpeed));
-	verify(NxParameterized::setParamF32(*Params, "destructibleParameters.fractureImpulseScale", FractureImpulseScale));
+	verify(NvParameterized::setParamF32(*Params, "destructibleParameters.damageCap", DamageCap));
+	verify(NvParameterized::setParamF32(*Params, "destructibleParameters.impactVelocityThreshold", ImpactVelocityThreshold));
+	verify(NvParameterized::setParamF32(*Params, "destructibleParameters.maxChunkSpeed", MaxChunkSpeed));
+	verify(NvParameterized::setParamF32(*Params, "destructibleParameters.fractureImpulseScale", FractureImpulseScale));
 }
 
-void FDestructibleAdvancedParameters::LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params)
+void FDestructibleAdvancedParameters::LoadDefaultDestructibleParametersFromApexAsset(const NvParameterized::Interface* Params)
 {
-	verify(NxParameterized::getParamF32(*Params, "destructibleParameters.damageCap", DamageCap));
-	verify(NxParameterized::getParamF32(*Params, "destructibleParameters.impactVelocityThreshold", ImpactVelocityThreshold));
-	verify(NxParameterized::getParamF32(*Params, "destructibleParameters.maxChunkSpeed", MaxChunkSpeed));
-	verify(NxParameterized::getParamF32(*Params, "destructibleParameters.fractureImpulseScale", FractureImpulseScale));
+	verify(NvParameterized::getParamF32(*Params, "destructibleParameters.damageCap", DamageCap));
+	verify(NvParameterized::getParamF32(*Params, "destructibleParameters.impactVelocityThreshold", ImpactVelocityThreshold));
+	verify(NvParameterized::getParamF32(*Params, "destructibleParameters.maxChunkSpeed", MaxChunkSpeed));
+	verify(NvParameterized::getParamF32(*Params, "destructibleParameters.fractureImpulseScale", FractureImpulseScale));
 }
 
-void FDestructibleDebrisParameters::FillDestructibleActorDesc(NxParameterized::Interface* Params) const
+void FDestructibleDebrisParameters::FillDestructibleActorDesc(NvParameterized::Interface* Params) const
 {
-	verify(NxParameterized::setParamF32(*Params, "destructibleParameters.debrisLifetimeMin", DebrisLifetimeMin));
-	verify(NxParameterized::setParamF32(*Params, "destructibleParameters.debrisLifetimeMax", DebrisLifetimeMax));
-	verify(NxParameterized::setParamF32(*Params, "destructibleParameters.debrisMaxSeparationMin", DebrisMaxSeparationMin));
-	verify(NxParameterized::setParamF32(*Params, "destructibleParameters.debrisMaxSeparationMax", DebrisMaxSeparationMax));
+	verify(NvParameterized::setParamF32(*Params, "destructibleParameters.debrisLifetimeMin", DebrisLifetimeMin));
+	verify(NvParameterized::setParamF32(*Params, "destructibleParameters.debrisLifetimeMax", DebrisLifetimeMax));
+	verify(NvParameterized::setParamF32(*Params, "destructibleParameters.debrisMaxSeparationMin", DebrisMaxSeparationMin));
+	verify(NvParameterized::setParamF32(*Params, "destructibleParameters.debrisMaxSeparationMax", DebrisMaxSeparationMax));
 	physx::PxBounds3 PValidBounds;
 	PValidBounds.minimum.x = ValidBounds.Min.X;
 	PValidBounds.minimum.y = ValidBounds.Min.Y;
@@ -334,17 +334,17 @@ void FDestructibleDebrisParameters::FillDestructibleActorDesc(NxParameterized::I
 	PValidBounds.maximum.x = ValidBounds.Max.X;
 	PValidBounds.maximum.y = ValidBounds.Max.Y;
 	PValidBounds.maximum.z = ValidBounds.Max.Z;
-	verify(NxParameterized::setParamBounds3(*Params, "destructibleParameters.validBounds", PValidBounds));
+	verify(NvParameterized::setParamBounds3(*Params, "destructibleParameters.validBounds", PValidBounds));
 }
 
-void FDestructibleDebrisParameters::LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params)
+void FDestructibleDebrisParameters::LoadDefaultDestructibleParametersFromApexAsset(const NvParameterized::Interface* Params)
 {
-	verify(NxParameterized::getParamF32(*Params, "destructibleParameters.debrisLifetimeMin", DebrisLifetimeMin));
-	verify(NxParameterized::getParamF32(*Params, "destructibleParameters.debrisLifetimeMax", DebrisLifetimeMax));
-	verify(NxParameterized::getParamF32(*Params, "destructibleParameters.debrisMaxSeparationMin", DebrisMaxSeparationMin));
-	verify(NxParameterized::getParamF32(*Params, "destructibleParameters.debrisMaxSeparationMax", DebrisMaxSeparationMax));
+	verify(NvParameterized::getParamF32(*Params, "destructibleParameters.debrisLifetimeMin", DebrisLifetimeMin));
+	verify(NvParameterized::getParamF32(*Params, "destructibleParameters.debrisLifetimeMax", DebrisLifetimeMax));
+	verify(NvParameterized::getParamF32(*Params, "destructibleParameters.debrisMaxSeparationMin", DebrisMaxSeparationMin));
+	verify(NvParameterized::getParamF32(*Params, "destructibleParameters.debrisMaxSeparationMax", DebrisMaxSeparationMax));
 	physx::PxBounds3 PValidBounds;
-	verify(NxParameterized::getParamBounds3(*Params, "destructibleParameters.validBounds", PValidBounds));
+	verify(NvParameterized::getParamBounds3(*Params, "destructibleParameters.validBounds", PValidBounds));
 	ValidBounds.Min.X = PValidBounds.minimum.x;
 	ValidBounds.Min.Y = PValidBounds.minimum.y;
 	ValidBounds.Min.Z = PValidBounds.minimum.z;
@@ -354,68 +354,68 @@ void FDestructibleDebrisParameters::LoadDefaultDestructibleParametersFromApexAss
 
 }
 
-void FDestructibleParametersFlag::FillDestructibleActorDesc(NxParameterized::Interface* Params) const
+void FDestructibleParametersFlag::FillDestructibleActorDesc(NvParameterized::Interface* Params) const
 {
-	verify(NxParameterized::setParamBool(*Params, "destructibleParameters.flags.ACCUMULATE_DAMAGE", bAccumulateDamage));
-	verify(NxParameterized::setParamBool(*Params, "useAssetDefinedSupport", bAssetDefinedSupport));
-	verify(NxParameterized::setParamBool(*Params, "useWorldSupport", bWorldSupport));
-	verify(NxParameterized::setParamBool(*Params, "destructibleParameters.flags.DEBRIS_TIMEOUT", bDebrisTimeout));
-	verify(NxParameterized::setParamBool(*Params, "destructibleParameters.flags.DEBRIS_MAX_SEPARATION", bDebrisMaxSeparation));
-	verify(NxParameterized::setParamBool(*Params, "destructibleParameters.flags.CRUMBLE_SMALLEST_CHUNKS", bCrumbleSmallestChunks));
-	verify(NxParameterized::setParamBool(*Params, "destructibleParameters.flags.ACCURATE_RAYCASTS", bAccurateRaycasts));
-	verify(NxParameterized::setParamBool(*Params, "destructibleParameters.flags.USE_VALID_BOUNDS", bUseValidBounds));
-	verify(NxParameterized::setParamBool(*Params, "formExtendedStructures", bFormExtendedStructures));
+	verify(NvParameterized::setParamBool(*Params, "destructibleParameters.flags.ACCUMULATE_DAMAGE", bAccumulateDamage));
+	verify(NvParameterized::setParamBool(*Params, "useAssetDefinedSupport", bAssetDefinedSupport));
+	verify(NvParameterized::setParamBool(*Params, "useWorldSupport", bWorldSupport));
+	verify(NvParameterized::setParamBool(*Params, "destructibleParameters.flags.DEBRIS_TIMEOUT", bDebrisTimeout));
+	verify(NvParameterized::setParamBool(*Params, "destructibleParameters.flags.DEBRIS_MAX_SEPARATION", bDebrisMaxSeparation));
+	verify(NvParameterized::setParamBool(*Params, "destructibleParameters.flags.CRUMBLE_SMALLEST_CHUNKS", bCrumbleSmallestChunks));
+	verify(NvParameterized::setParamBool(*Params, "destructibleParameters.flags.ACCURATE_RAYCASTS", bAccurateRaycasts));
+	verify(NvParameterized::setParamBool(*Params, "destructibleParameters.flags.USE_VALID_BOUNDS", bUseValidBounds));
+	verify(NvParameterized::setParamBool(*Params, "formExtendedStructures", bFormExtendedStructures));
 }
 
-void FDestructibleParametersFlag::LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params)
+void FDestructibleParametersFlag::LoadDefaultDestructibleParametersFromApexAsset(const NvParameterized::Interface* Params)
 {
 	bool bFlag;
-	verify(NxParameterized::getParamBool(*Params, "destructibleParameters.flags.ACCUMULATE_DAMAGE", bFlag));
+	verify(NvParameterized::getParamBool(*Params, "destructibleParameters.flags.ACCUMULATE_DAMAGE", bFlag));
 	bAccumulateDamage = bFlag ? 1 : 0;
-	verify(NxParameterized::getParamBool(*Params, "useAssetDefinedSupport", bFlag));
+	verify(NvParameterized::getParamBool(*Params, "useAssetDefinedSupport", bFlag));
 	bAssetDefinedSupport = bFlag ? 1 : 0;
-	verify(NxParameterized::getParamBool(*Params, "useWorldSupport", bFlag));
+	verify(NvParameterized::getParamBool(*Params, "useWorldSupport", bFlag));
 	bWorldSupport = bFlag ? 1 : 0;
-	verify(NxParameterized::getParamBool(*Params, "destructibleParameters.flags.DEBRIS_TIMEOUT", bFlag));
+	verify(NvParameterized::getParamBool(*Params, "destructibleParameters.flags.DEBRIS_TIMEOUT", bFlag));
 	bDebrisTimeout = bFlag ? 1 : 0;
-	verify(NxParameterized::getParamBool(*Params, "destructibleParameters.flags.DEBRIS_MAX_SEPARATION", bFlag));
+	verify(NvParameterized::getParamBool(*Params, "destructibleParameters.flags.DEBRIS_MAX_SEPARATION", bFlag));
 	bDebrisMaxSeparation = bFlag ? 1 : 0;
-	verify(NxParameterized::getParamBool(*Params, "destructibleParameters.flags.CRUMBLE_SMALLEST_CHUNKS", bFlag));
+	verify(NvParameterized::getParamBool(*Params, "destructibleParameters.flags.CRUMBLE_SMALLEST_CHUNKS", bFlag));
 	bCrumbleSmallestChunks = bFlag ? 1 : 0;
-	verify(NxParameterized::getParamBool(*Params, "destructibleParameters.flags.ACCURATE_RAYCASTS", bFlag));
+	verify(NvParameterized::getParamBool(*Params, "destructibleParameters.flags.ACCURATE_RAYCASTS", bFlag));
 	bAccurateRaycasts = bFlag ? 1 : 0;
-	verify(NxParameterized::getParamBool(*Params, "destructibleParameters.flags.USE_VALID_BOUNDS", bFlag));
+	verify(NvParameterized::getParamBool(*Params, "destructibleParameters.flags.USE_VALID_BOUNDS", bFlag));
 	bUseValidBounds = bFlag ? 1 : 0;
-	verify(NxParameterized::getParamBool(*Params, "formExtendedStructures", bFlag));
+	verify(NvParameterized::getParamBool(*Params, "formExtendedStructures", bFlag));
 	bFormExtendedStructures = bFlag ? 1 : 0;
 }
 
-void FDestructibleDepthParameters::FillDestructibleActorDesc(NxParameterized::Interface* Params, const char* OverrideName, const char* OverrideValueName) const
+void FDestructibleDepthParameters::FillDestructibleActorDesc(NvParameterized::Interface* Params, const char* OverrideName, const char* OverrideValueName) const
 {
 	switch (ImpactDamageOverride)
 	{
 	case IDO_None:
-		verify(NxParameterized::setParamBool(*Params, OverrideName, false));
+		verify(NvParameterized::setParamBool(*Params, OverrideName, false));
 		break;
 	case IDO_On:
-		verify(NxParameterized::setParamBool(*Params, OverrideName, true));
-		verify(NxParameterized::setParamBool(*Params, OverrideValueName, true));
+		verify(NvParameterized::setParamBool(*Params, OverrideName, true));
+		verify(NvParameterized::setParamBool(*Params, OverrideValueName, true));
 		break;
 	case IDO_Off:
-		verify(NxParameterized::setParamBool(*Params, OverrideName, true));
-		verify(NxParameterized::setParamBool(*Params, OverrideValueName, false));
+		verify(NvParameterized::setParamBool(*Params, OverrideName, true));
+		verify(NvParameterized::setParamBool(*Params, OverrideValueName, false));
 		break;
 	default:
 		break;
 	}
 }
 
-void FDestructibleDepthParameters::LoadDefaultDestructibleParametersFromApexAsset(const NxParameterized::Interface* Params, const char* OverrideName, const char* OverrideValueName)
+void FDestructibleDepthParameters::LoadDefaultDestructibleParametersFromApexAsset(const NvParameterized::Interface* Params, const char* OverrideName, const char* OverrideValueName)
 {
 	bool bOverride;
 	bool bOverrideValue;
-	verify(NxParameterized::getParamBool(*Params, OverrideName, bOverride));
-	verify(NxParameterized::getParamBool(*Params, OverrideValueName, bOverrideValue));
+	verify(NvParameterized::getParamBool(*Params, OverrideName, bOverride));
+	verify(NvParameterized::getParamBool(*Params, OverrideValueName, bOverrideValue));
 
 	if (!bOverride)
 	{
@@ -427,9 +427,9 @@ void FDestructibleDepthParameters::LoadDefaultDestructibleParametersFromApexAsse
 	}
 }
 
-NxParameterized::Interface* UDestructibleMesh::GetDestructibleActorDesc(UPhysicalMaterial* PhysMat)
+NvParameterized::Interface* UDestructibleMesh::GetDestructibleActorDesc(UPhysicalMaterial* PhysMat)
 {
-	NxParameterized::Interface* Params = NULL;
+	NvParameterized::Interface* Params = NULL;
 
 	if (ApexDestructibleAsset != NULL)
 	{
@@ -462,7 +462,7 @@ NxParameterized::Interface* UDestructibleMesh::GetDestructibleActorDesc(UPhysica
 void UDestructibleMesh::LoadDefaultDestructibleParametersFromApexAsset()
 {
 #if WITH_APEX
-	const NxParameterized::Interface* Params = ApexDestructibleAsset->getAssetNxParameterized();
+	const NvParameterized::Interface* Params = ApexDestructibleAsset->getAssetNvParameterized();
 
 	if (Params != NULL)
 	{
@@ -499,14 +499,14 @@ void UDestructibleMesh::CreateFractureSettings()
 
 #if WITH_APEX && WITH_EDITORONLY_DATA
 
-bool CreateSubmeshFromSMSection(const FStaticMeshLODResources& RenderMesh, int32 SubmeshIdx, const FStaticMeshSection& Section, physx::NxExplicitSubmeshData& SubmeshData, TArray<physx::NxExplicitRenderTriangle>& Triangles)
+bool CreateSubmeshFromSMSection(const FStaticMeshLODResources& RenderMesh, int32 SubmeshIdx, const FStaticMeshSection& Section, apex::ExplicitSubmeshData& SubmeshData, TArray<apex::ExplicitRenderTriangle>& Triangles)
 {
 	// Create submesh descriptor, just a material name and a vertex format
-	FCStringAnsi::Strncpy(SubmeshData.mMaterialName, TCHAR_TO_ANSI(*FString::Printf(TEXT("Material%d"),Section.MaterialIndex)), physx::NxExplicitSubmeshData::MaterialNameBufferSize);
+	FCStringAnsi::Strncpy(SubmeshData.mMaterialName, TCHAR_TO_ANSI(*FString::Printf(TEXT("Material%d"),Section.MaterialIndex)), apex::ExplicitSubmeshData::MaterialNameBufferSize);
 	SubmeshData.mVertexFormat.mHasStaticPositions = SubmeshData.mVertexFormat.mHasStaticNormals = SubmeshData.mVertexFormat.mHasStaticTangents = true;
 	SubmeshData.mVertexFormat.mHasStaticBinormals = true;
 	SubmeshData.mVertexFormat.mBonesPerVertex = 1;
-	SubmeshData.mVertexFormat.mUVCount =  FMath::Min((physx::PxU32)RenderMesh.VertexBuffer.GetNumTexCoords(), (physx::PxU32)NxVertexFormat::MAX_UV_COUNT);
+	SubmeshData.mVertexFormat.mUVCount =  FMath::Min((physx::PxU32)RenderMesh.VertexBuffer.GetNumTexCoords(), (physx::PxU32)apex::VertexFormat::MAX_UV_COUNT);
 
 	const uint32 NumVertexColors = RenderMesh.ColorVertexBuffer.GetNumVertices();
 
@@ -516,10 +516,10 @@ bool CreateSubmeshFromSMSection(const FStaticMeshLODResources& RenderMesh, int32
 	const int32 TriangleCount = Section.NumTriangles;
 	for (int32 TriangleIndex = 0; TriangleIndex < TriangleCount; ++TriangleIndex)
 	{
-		physx::NxExplicitRenderTriangle Triangle;
+		apex::ExplicitRenderTriangle Triangle;
 		for (int32 PointIndex = 0; PointIndex < 3; PointIndex++)
 		{
-			physx::NxVertex& Vertex = Triangle.vertices[PointIndex];
+			apex::Vertex& Vertex = Triangle.vertices[PointIndex];
 			const uint32 UnrealVertIndex = StaticMeshIndices[Section.FirstIndex + ((TriangleIndex * 3) + PointIndex)];
 			Vertex.position = U2PVector(RenderMesh.PositionVertexBuffer.VertexPosition(UnrealVertIndex));	Vertex.position.y *= -1;
 			Vertex.normal = U2PVector((FVector)RenderMesh.VertexBuffer.VertexTangentZ(UnrealVertIndex));	Vertex.normal.y *= -1;
@@ -592,9 +592,9 @@ bool UDestructibleMesh::BuildFractureSettingsFromStaticMesh(UStaticMesh* StaticM
 	}
 
 	// Build an array of NxExplicitRenderTriangles and NxExplicitSubmeshData for authoring
-	TArray<physx::NxExplicitRenderTriangle> Triangles;
+	TArray<apex::ExplicitRenderTriangle> Triangles;
 	Triangles.Reserve(OverallTriangleCount);
-	TArray<physx::NxExplicitSubmeshData> Submeshes;	// Elements <-> Submeshes
+	TArray<apex::ExplicitSubmeshData> Submeshes;	// Elements <-> Submeshes
 	Submeshes.SetNum(OverallSubmeshCount);
 
 	// UE Materials
@@ -615,7 +615,7 @@ bool UDestructibleMesh::BuildFractureSettingsFromStaticMesh(UStaticMesh* StaticM
 		for (int32 SectionIndex = 0; SectionIndex < RenderMesh.Sections.Num(); ++SectionIndex, ++SubmeshIndexCounter)
 		{
 			const FStaticMeshSection& Section = RenderMesh.Sections[SectionIndex];
-			physx::NxExplicitSubmeshData& SubmeshData = Submeshes[SubmeshIndexCounter];
+			apex::ExplicitSubmeshData& SubmeshData = Submeshes[SubmeshIndexCounter];
 
 			// Parallel materials array
 			MeshMaterials.Add(CurrentStaticMesh->GetMaterial(Section.MaterialIndex));

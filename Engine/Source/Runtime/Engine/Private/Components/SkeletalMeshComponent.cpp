@@ -31,8 +31,8 @@
 
 #if WITH_APEX_CLOTHING
 #include "PhysicsEngine/PhysXSupport.h"
-#include "NxClothingActor.h"
-#include "NxClothingAsset.h"
+#include "ClothingActor.h"
+#include "ClothingAsset.h"
 #endif
 
 #include "MessageLog.h"
@@ -2596,8 +2596,8 @@ void USkeletalMeshComponent::BindClothToMasterPoseComponent()
 		{
 			FClothingActor& Actor = ClothingActors[ActorIdx];
 			FClothingActor& MasterActor = MasterComp->ClothingActors[ActorIdx];
-			NxClothingActor* ApexActor = Actor.ApexClothingActor;
-			NxClothingActor* MasterApexActor = MasterActor.ApexClothingActor;
+			apex::ClothingActor* ApexActor = Actor.ApexClothingActor;
+			apex::ClothingActor* MasterApexActor = MasterActor.ApexClothingActor;
 			if(ApexActor && MasterApexActor)
 			{
 				//TODO: wait on parallel animation if needed
@@ -2605,8 +2605,8 @@ void USkeletalMeshComponent::BindClothToMasterPoseComponent()
 				ApexActor->setFrozen(true);
 
 				// Force local space simulation
-				NxParameterized::Interface* MasterActorInterface = MasterApexActor->getActorDesc();
-				verify(NxParameterized::setParamBool(*MasterActorInterface, "localSpaceSim", true));
+				NvParameterized::Interface* MasterActorInterface = MasterApexActor->getActorDesc();
+				verify(NvParameterized::setParamBool(*MasterActorInterface, "localSpaceSim", true));
 
 				// Make sure the master component starts extracting in local space
 				bPrevMasterSimulateLocalSpace = MasterComp->bLocalSpaceSimulation;
@@ -2640,7 +2640,7 @@ void USkeletalMeshComponent::UnbindClothFromMasterPoseComponent(bool bRestoreSim
 		for(int32 ActorIdx = 0 ; ActorIdx < NumClothingActors ; ++ActorIdx)
 		{
 			FClothingActor& Actor = ClothingActors[ActorIdx];
-			NxClothingActor* ApexActor = Actor.ApexClothingActor;
+			apex::ClothingActor* ApexActor = Actor.ApexClothingActor;
 
 			if(ApexActor)
 			{
@@ -2652,11 +2652,11 @@ void USkeletalMeshComponent::UnbindClothFromMasterPoseComponent(bool bRestoreSim
 				{
 					// Need to undo local space
 					FClothingActor& MasterActor = MasterComp->ClothingActors[ActorIdx];
-					NxClothingActor* MasterApexActor = MasterActor.ApexClothingActor;
+					apex::ClothingActor* MasterApexActor = MasterActor.ApexClothingActor;
 					if(MasterApexActor)
 					{
-						NxParameterized::Interface* MasterActorInterface = MasterApexActor->getActorDesc();
-						verify(NxParameterized::setParamBool(*MasterActorInterface, "localSpaceSim", false));
+						NvParameterized::Interface* MasterActorInterface = MasterApexActor->getActorDesc();
+						verify(NvParameterized::setParamBool(*MasterActorInterface, "localSpaceSim", false));
 
 						MasterComp->bLocalSpaceSimulation = false;
 					}

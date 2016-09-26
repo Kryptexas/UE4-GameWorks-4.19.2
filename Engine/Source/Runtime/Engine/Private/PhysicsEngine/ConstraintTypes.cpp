@@ -106,7 +106,7 @@ FTwistConstraint::FTwistConstraint()
 #if WITH_PHYSX
 void FLinearConstraint::UpdatePhysXLinearLimit_AssumesLocked(PxD6Joint* Joint, float AverageMass, float Scale) const
 {
-	const float UseLimit = Limit * Scale;
+	const float UseLimit = FMath::Max(Limit * Scale, KINDA_SMALL_NUMBER);	//physx doesn't ever want limit of 0
 	const bool bLockLimitSize = (UseLimit < RB_MinSizeToLockDOF);
 		
 	SetLinearMovement_AssumesLocked<PxD6Axis::eX>(Joint, XMotion, bLockLimitSize);

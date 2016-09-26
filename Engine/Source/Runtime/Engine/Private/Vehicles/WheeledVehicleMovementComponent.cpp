@@ -82,6 +82,7 @@ void PTireShader(const void* shaderData, const PxF32 tireFriction,
 		Wheel->DebugLongSlip = longSlip;
 		Wheel->DebugLatSlip = latSlip;
 		Wheel->DebugNormalizedTireLoad = normalisedTireLoad;
+		Wheel->DebugTireLoad = tireLoad;
 		Wheel->DebugWheelTorque = wheelTorque;
 		Wheel->DebugLongForce = tireLongForceMag;
 		Wheel->DebugLatForce = tireLatForceMag;
@@ -259,27 +260,29 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 
 			if(WheelBodySetup)
 			{
-				PxMeshScale MeshScale(U2PVector(UpdatedComponent->RelativeScale3D * MeshScaleV), PxQuat::createIdentity());
+				PxMeshScale MeshScale(U2PVector(UpdatedComponent->RelativeScale3D * MeshScaleV), PxQuat(physx::PxIdentity));
 
 				if (WheelBodySetup->AggGeom.ConvexElems.Num() == 1)
 				{
 					PxConvexMesh* ConvexMesh = WheelBodySetup->AggGeom.ConvexElems[0].ConvexMesh;
-					PWheelShape = PVehicleActor->createShape(PxConvexMeshGeometry(ConvexMesh, MeshScale), *WheelMaterial, PLocalPose);
+					PWheelShape = GPhysXSDK->createShape(PxConvexMeshGeometry(ConvexMesh, MeshScale), *WheelMaterial, /*bIsExclusive=*/true);
+					PVehicleActor->attachShape(*PWheelShape);
 				}
 				else if (WheelBodySetup->TriMeshes.Num())
 				{
 					PxTriangleMesh* TriMesh = WheelBodySetup->TriMeshes[0];
 
 					// No eSIMULATION_SHAPE flag for wheels
-					PWheelShape = PVehicleActor->createShape(PxTriangleMeshGeometry(TriMesh, MeshScale), *WheelMaterial, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION);
+					PWheelShape = GPhysXSDK->createShape(PxTriangleMeshGeometry(TriMesh, MeshScale), *WheelMaterial, /*bIsExclusive=*/true, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION);
 					PWheelShape->setLocalPose(PLocalPose);
+					PVehicleActor->attachShape(*PWheelShape);
 				}
 			}
 			
 			if(!PWheelShape)
 			{
 				//fallback onto simple spheres
-				PWheelShape = PVehicleActor->createShape(PxSphereGeometry(Wheel->ShapeRadius), *WheelMaterial, PLocalPose);
+				PWheelShape = GPhysXSDK->createShape(PxSphereGeometry(Wheel->ShapeRadius), *WheelMaterial, /*bIsExclusive=*/true);
 			}
 
 			// Init filter data
@@ -317,7 +320,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleMass()
 		PVehicleActor->setMass(Mass);
 
 		const PxVec3 PCOMOffset = U2PVector(GetLocalCOM());
-		PVehicleActor->setCMassLocalPose(PxTransform(PCOMOffset, PxQuat::createIdentity()));
+		PVehicleActor->setCMassLocalPose(PxTransform(PCOMOffset, PxQuat(physx::PxIdentity)));
 	});
 }
 
@@ -407,18 +410,18 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		const int32 NumChassisShapes = NumShapes - NumWheels;
 		if(NumChassisShapes >= 1)
 		{
-			TArray<PxShape*> Shapes;
-			Shapes.AddZeroed(NumShapes);
+		TArray<PxShape*> Shapes;
+		Shapes.AddZeroed(NumShapes);
 
-			PVehicleActor->getShapes(Shapes.GetData(), NumShapes);
+		PVehicleActor->getShapes(Shapes.GetData(), NumShapes);
 
 			for (int32 WheelIdx = 0; WheelIdx < NumWheels; ++WheelIdx)
-			{
-				const int32 WheelShapeIndex = NumChassisShapes + WheelIdx;
+		{
+			const int32 WheelShapeIndex = NumChassisShapes + WheelIdx;
 
-				PWheelsSimData->setWheelShapeMapping(WheelIdx, WheelShapeIndex);
-				PWheelsSimData->setSceneQueryFilterData(WheelIdx, Shapes[WheelShapeIndex]->getQueryFilterData());
-			}
+			PWheelsSimData->setWheelShapeMapping(WheelIdx, WheelShapeIndex);
+			PWheelsSimData->setSceneQueryFilterData(WheelIdx, Shapes[WheelShapeIndex]->getQueryFilterData());
+		}
 		}
 		else
 		{
@@ -930,17 +933,17 @@ void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 		if(bReverseAsBrake)
 		{
 			//for reverse as state we want to automatically shift between reverse and first gear
-			if (FMath::Abs(GetForwardSpeed()) < WrongDirectionThreshold)	//we only shift between reverse and first if the car is slow enough. This isn't 100% correct since we really only care about engine speed, but good enough
+		if (FMath::Abs(GetForwardSpeed()) < WrongDirectionThreshold)	//we only shift between reverse and first if the car is slow enough. This isn't 100% correct since we really only care about engine speed, but good enough
+		{
+			if (RawThrottleInput < 0.f && GetCurrentGear() >= 0 && GetTargetGear() >= 0)
 			{
-				if (RawThrottleInput < 0.f && GetCurrentGear() >= 0 && GetTargetGear() >= 0)
-				{
-					SetTargetGear(-1, true);
-				}
-				else if (RawThrottleInput > 0.f && GetCurrentGear() <= 0 && GetTargetGear() <= 0)
-				{
-					SetTargetGear(1, true);
-				}
+				SetTargetGear(-1, true);
 			}
+			else if (RawThrottleInput > 0.f && GetCurrentGear() <= 0 && GetTargetGear() <= 0)
+			{
+				SetTargetGear(1, true);
+			}
+		}
 		}
 		
 		
@@ -1016,45 +1019,45 @@ float UWheeledVehicleMovementComponent::CalcBrakeInput()
 {	
 	if(bReverseAsBrake)
 	{
-		const float ForwardSpeed = GetForwardSpeed();
+	const float ForwardSpeed = GetForwardSpeed();
 
-		float NewBrakeInput = 0.0f;
+	float NewBrakeInput = 0.0f;
 
-		// if player wants to move forwards...
+	// if player wants to move forwards...
 		if (RawThrottleInput > 0.f)
-		{
-			// if vehicle is moving backwards, then press brake
+	{
+		// if vehicle is moving backwards, then press brake
 			if (ForwardSpeed < -WrongDirectionThreshold)
-			{
-				NewBrakeInput = 1.0f;
-			}
-
-		}
-
-		// if player wants to move backwards...
-		else if (RawThrottleInput < 0.f)
 		{
-			// if vehicle is moving forwards, then press brake
-			if (ForwardSpeed > WrongDirectionThreshold)
-			{
-				NewBrakeInput = 1.0f;			// Seems a bit severe to have 0 or 1 braking. Better control can be had by allowing continuous brake input values
-			}
+				NewBrakeInput = 1.0f;
 		}
 
-		// if player isn't pressing forward or backwards...
+	}
+
+	// if player wants to move backwards...
+		else if (RawThrottleInput < 0.f)
+	{
+		// if vehicle is moving forwards, then press brake
+		if (ForwardSpeed > WrongDirectionThreshold)
+		{
+			NewBrakeInput = 1.0f;			// Seems a bit severe to have 0 or 1 braking. Better control can be had by allowing continuous brake input values
+			}
+	}
+
+	// if player isn't pressing forward or backwards...
+	else
+	{
+		if (ForwardSpeed < StopThreshold && ForwardSpeed > -StopThreshold)	//auto break 
+		{
+			NewBrakeInput = 1.f;
+		}
 		else
 		{
-			if (ForwardSpeed < StopThreshold && ForwardSpeed > -StopThreshold)	//auto break 
-			{
-				NewBrakeInput = 1.f;
-			}
-			else
-			{
-				NewBrakeInput = IdleBrakeInput;
-			}
+			NewBrakeInput = IdleBrakeInput;
 		}
+	}
 
-		return FMath::Clamp<float>(NewBrakeInput, 0.0, 1.0);
+	return FMath::Clamp<float>(NewBrakeInput, 0.0, 1.0);
 	}
 	else
 	{
@@ -1087,11 +1090,11 @@ float UWheeledVehicleMovementComponent::CalcThrottleInput()
 
 	if(bReverseAsBrake)
 	{
-		//If the user is changing direction we should really be braking first and not applying any gas, so wait until they've changed gears
+	//If the user is changing direction we should really be braking first and not applying any gas, so wait until they've changed gears
 		if ((RawThrottleInput > 0.f && GetTargetGear() < 0) || (RawThrottleInput < 0.f && GetTargetGear() > 0))
-		{
-			return 0.f;
-		}
+	{
+		return 0.f;
+	}
 	}
 
 	return FMath::Abs(RawThrottleInput);
@@ -1417,14 +1420,14 @@ void UWheeledVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, flo
 	// draw drive data
 	{
 		Canvas->SetDrawColor(FColor::White);
-		float forwardSpeedKmH = GetForwardSpeed() * 3600.f / 100000.f;	//convert from cm/s to km/h
+		float forwardSpeedKmH = CmSToKmH(GetForwardSpeed());
 		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Speed (km/h): %d"), (int32)forwardSpeedKmH), 4, YPos);
-		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Steering: %f"), SteeringInput), 4, YPos);
-		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Throttle: %f"), ThrottleInput), 4, YPos);
-		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Brake: %f"), BrakeInput), 4, YPos);
-		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("RPM: %f"), GetEngineRotationSpeed()), 4, YPos);
+		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Steering: %.1f"), SteeringInput), 4, YPos);
+		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Throttle: %.1f"), ThrottleInput), 4, YPos);
+		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Brake: %.1f"), BrakeInput), 4, YPos);
+		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("RPM: %.1f"), GetEngineRotationSpeed()), 4, YPos);
 		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Gear: %d"), GetCurrentGear()), 4, YPos);
-		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Drag: %.3f"), DebugDragMagnitude), 4, YPos);
+		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Drag: %.1f"), DebugDragMagnitude), 4, YPos);
 
 	}
 
@@ -1432,41 +1435,51 @@ void UWheeledVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, flo
 	PxWheelQueryResult* WheelsStates = MyVehicleManager->GetWheelsStates_AssumesLocked(this);
 	check(WheelsStates);
 
+	float XPos = 4.f;
+	auto GetXPos = [&XPos](float Amount) -> float
+	{
+		float Ret = XPos;
+		XPos += Amount;
+		return Ret;
+	};
+
 	// draw wheel data
 	for (uint32 w = 0; w < PVehicle->mWheelsSimData.getNbWheels(); ++w)
 	{
-
+		XPos = 4.f;
 		const PxMaterial* ContactSurface = WheelsStates[w].tireSurfaceMaterial;
 		const PxReal TireFriction = WheelsStates[w].tireFriction;
 		const PxReal LatSlip = WheelsStates[w].lateralSlip;
 		const PxReal LongSlip = WheelsStates[w].longitudinalSlip;
-		const PxReal WheelSpeed = PVehicle->mWheelsDynData.getWheelRotationSpeed(w) * PVehicle->mWheelsSimData.getWheelData(w).mRadius;
+		const PxReal WheelRPM = OmegaToRPM(PVehicle->mWheelsDynData.getWheelRotationSpeed(w));
 
 		UPhysicalMaterial* ContactSurfaceMaterial = ContactSurface ? FPhysxUserData::Get<UPhysicalMaterial>(ContactSurface->userData) : NULL;
 		const FString ContactSurfaceString = ContactSurfaceMaterial ? ContactSurfaceMaterial->GetName() : FString(TEXT("NONE"));
 
 		Canvas->SetDrawColor(FColor::White);
 
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("[%d]"), w), 4, YPos);
+		Canvas->DrawText(RenderFont, FString::Printf(TEXT("[%d]"), w), GetXPos(20.f), YPos);
+		Canvas->DrawText(RenderFont, FString::Printf(TEXT("RPM: %.1f"), WheelRPM), GetXPos(80.f), YPos);
+		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Slip Ratio: %.2f"), LongSlip), GetXPos(100.f), YPos);
+		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Slip Angle (degrees): %.1f"), FMath::RadiansToDegrees(LatSlip)), GetXPos(180.f), YPos);
+		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Contact Surface: %s"), *ContactSurfaceString), GetXPos(200.f), YPos);
 
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("LatSlip: %.3f"), LatSlip), YL * 4, YPos);
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("LongSlip: %.3f"), LongSlip), YL * 12, YPos);
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Speed: %d"), (int32)WheelSpeed), YL * 22, YPos);
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Contact Surface: %s"), *ContactSurfaceString), YL * 74, YPos);
+		YPos += YL;
+		XPos = 24.f;
 		if ((int32)w < Wheels.Num())
 		{
 			UVehicleWheel* Wheel = Wheels[w];
-			Canvas->DrawText(RenderFont, FString::Printf(TEXT("Load: %.3f"), Wheel->DebugNormalizedTireLoad), YL * 30, YPos);
-			Canvas->DrawText(RenderFont, FString::Printf(TEXT("Torque: %d"), (int32)Wheel->DebugWheelTorque), YL * 40, YPos);
-			Canvas->DrawText(RenderFont, FString::Printf(TEXT("Long Force: %d"), (int32)Wheel->DebugLongForce), YL * 50, YPos);
-			Canvas->DrawText(RenderFont, FString::Printf(TEXT("Lat Force: %d"), (int32)Wheel->DebugLatForce), YL * 62, YPos);
+			Canvas->DrawText(RenderFont, FString::Printf(TEXT("Normalized Load: %.1f"), Wheel->DebugNormalizedTireLoad), GetXPos(150.f), YPos);
+			Canvas->DrawText(RenderFont, FString::Printf(TEXT("Torque (Nm): %.1f"), Cm2ToM2(Wheel->DebugWheelTorque)), GetXPos(150.f), YPos);
+			Canvas->DrawText(RenderFont, FString::Printf(TEXT("Long Force: %.1fN (%.1f%%)"), Wheel->DebugLongForce / 100.f, 100.f * Wheel->DebugLongForce / Wheel->DebugTireLoad), GetXPos(200.f), YPos);
+			Canvas->DrawText(RenderFont, FString::Printf(TEXT("Lat Force: %.1fN (%.1f%%)"), Wheel->DebugLatForce / 100.f, 100.f * Wheel->DebugLatForce / Wheel->DebugTireLoad), GetXPos(200.f), YPos);
 		}
 		else
 		{
 			Canvas->DrawText(RenderFont, TEXT("Wheels array insufficiently sized!"), YL * 50, YPos);
 		}
 
-		YPos += YL;
+		YPos += YL * 1.2f;
 	}
 
 	// draw wheel graphs
