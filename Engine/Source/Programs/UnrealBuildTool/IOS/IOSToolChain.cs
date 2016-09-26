@@ -1218,7 +1218,7 @@ namespace UnrealBuildTool
 										" -sdk " + PlatformContext.GetCodesignPlatformName() +
 										" -destination generic/platform=" + (CppPlatform == CPPTargetPlatform.IOS ? "iOS" : "tvOS") +
 										" CODE_SIGN_IDENTITY=\"" + (!string.IsNullOrEmpty(PlatformContext.SigningCertificate) ? PlatformContext.SigningCertificate : "IPhoneDeveloper") + "\"" +
-                                        (!string.IsNullOrEmpty(PlatformContext.MobileProvisionUUID) ? (" PROVISIONING_PROFILE=" + PlatformContext.MobileProvisionUUID) : "");
+                                        (!string.IsNullOrEmpty(PlatformContext.MobileProvisionUUID) ? (" PROVISIONING_PROFILE_SPECIFIER=" + PlatformContext.MobileProvisionUUID) : "");
 
 						Console.WriteLine("Code signing with command line: " + CmdLine);
 

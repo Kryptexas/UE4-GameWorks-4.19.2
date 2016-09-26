@@ -173,7 +173,7 @@ public class IOSPlatform : Platform
 		
 		var TargetConfiguration = SC.StageTargetConfigurations[0];
 
-		UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
+		UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath, Params.Distribution);
 		BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
 
 		//@TODO: We should be able to use this code on both platforms, when the following issues are sorted:
@@ -525,7 +525,7 @@ public class IOSPlatform : Platform
 					{
 						idx += "<string>".Length;
 						UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
-						Arguments += " PROVISIONING_PROFILE=" + UUID;
+						Arguments += " PROVISIONING_PROFILE_SPECIFIER=" + UUID;
 					}
 				}
 			}
@@ -711,7 +711,7 @@ public class IOSPlatform : Platform
 					
 					var TargetConfiguration = SC.StageTargetConfigurations[0];
 			
-					UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
+					UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath, Params.Distribution);
 					BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
 
 					GetDeployHandler(
