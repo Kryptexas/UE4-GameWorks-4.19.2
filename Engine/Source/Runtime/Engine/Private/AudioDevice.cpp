@@ -232,7 +232,7 @@ float FAudioDevice::GetLowPassFilterResonance() const
 void FAudioDevice::PrecacheStartupSounds()
 {
 	// Iterate over all already loaded sounds and precache them. This relies on Super::Init in derived classes to be called last.
-	if (!GIsEditor)
+	if (!GIsEditor && GEngine && GEngine->UseSound() )
 	{
 		for (TObjectIterator<USoundWave> It; It; ++It)
 		{

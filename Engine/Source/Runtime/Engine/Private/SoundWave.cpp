@@ -384,7 +384,7 @@ void USoundWave::PostLoad()
 
 	// We don't precache default objects and we don't precache in the Editor as the latter will
 	// most likely cause us to run out of memory.
-	if( !GIsEditor && !IsTemplate( RF_ClassDefaultObject ) && GEngine )
+	if (!GIsEditor && !IsTemplate( RF_ClassDefaultObject ) && GEngine)
 	{
 		FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
 		if (AudioDevice && AudioDevice->AreStartupSoundsPreCached())
@@ -393,7 +393,7 @@ void USoundWave::PostLoad()
 			AudioDevice->Precache(this);
 		}
 		// remove bulk data if no AudioDevice is used and no sounds were initialized
-		else if (IsRunningGame())
+		else if(IsRunningGame())
 		{
 			RawData.RemoveBulkData();
 		}

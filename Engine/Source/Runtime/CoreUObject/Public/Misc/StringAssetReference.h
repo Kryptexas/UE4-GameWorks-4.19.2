@@ -50,6 +50,13 @@ struct COREUOBJECT_API FStringAssetReference
 		return PackageName;
 	}
 
+	const FString GetAssetName() const
+	{
+		FString AssetName;
+		ToString().Split(TEXT("."), nullptr, &AssetName, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+		return AssetName;
+	}
+
 	/**
 	 * Sets asset path of this reference.
 	 *
