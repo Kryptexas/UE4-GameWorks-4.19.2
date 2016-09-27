@@ -14,6 +14,7 @@
 #include "Engine/NetworkObjectList.h"
 #include "GameFramework/OnlineSession.h"
 #include "GameFramework/PlayerState.h"
+#include "GameFramework/GameModeBase.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
