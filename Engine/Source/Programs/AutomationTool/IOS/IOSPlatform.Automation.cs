@@ -95,11 +95,16 @@ public class IOSPlatform : Platform
 		return 4;
 	}
 
-	public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, UnrealBuildTool.IOSPlatformContext inIOSPlatformContext)
+	public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, UnrealBuildTool.IOSPlatformContext inPlatformContext)
 	{
 		Console.WriteLine("Getting IOS Deploy()");
 	
-		return new UnrealBuildTool.UEDeployIOS(InProject, inIOSPlatformContext);
+		return new UnrealBuildTool.UEDeployIOS(InProject, inPlatformContext);
+	}
+
+	public virtual UnrealBuildTool.IOSPlatformContext CreatePlatformContext(FileReference InProject, bool Distribution)
+	{
+		return new UnrealBuildTool.IOSPlatformContext (InProject, Distribution);
 	}
 
 	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, ProjectParams Params )
@@ -173,7 +178,7 @@ public class IOSPlatform : Platform
 		
 		var TargetConfiguration = SC.StageTargetConfigurations[0];
 
-		UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath, Params.Distribution);
+		UnrealBuildTool.IOSPlatformContext BuildPlatContext = CreatePlatformContext (Params.RawProjectPath, Params.Distribution);
 		BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
 
 		//@TODO: We should be able to use this code on both platforms, when the following issues are sorted:
@@ -711,7 +716,7 @@ public class IOSPlatform : Platform
 					
 					var TargetConfiguration = SC.StageTargetConfigurations[0];
 			
-					UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath, Params.Distribution);
+					UnrealBuildTool.IOSPlatformContext BuildPlatContext = CreatePlatformContext (Params.RawProjectPath, Params.Distribution);
 					BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
 
 					GetDeployHandler(

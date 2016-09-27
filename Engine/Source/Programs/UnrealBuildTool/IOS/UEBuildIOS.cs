@@ -367,30 +367,29 @@ namespace UnrealBuildTool
             {
                 Certificate = SigningCertificate;
                 Provision = MobileProvision;
-                if (!string.IsNullOrEmpty(SigningCertificate))
-                {
-                    // verify the certificate
-                    Process IPPProcess = new Process();
-                    if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
-                    {
-						string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" certificates " + ((ProjectFile != null) ? ("\""+ ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
-                        IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
-                        IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
-                        IPPProcess.StartInfo.Arguments = IPPCmd;
-                        IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                        IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                    }
-                    else
-                    {
-						string IPPCmd = "certificates " + ((ProjectFile != null) ? ("\""+ ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
-                        IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
-                        IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
-                        IPPProcess.StartInfo.Arguments = IPPCmd;
-                        IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                        IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                    }
-                    Utils.RunLocalProcess(IPPProcess);
-                }
+				if (!string.IsNullOrEmpty (SigningCertificate)) {
+					// verify the certificate
+					Process IPPProcess = new Process ();
+					if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac) {
+						string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString () + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
+						IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString ();
+						IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
+						IPPProcess.StartInfo.Arguments = IPPCmd;
+						IPPProcess.OutputDataReceived += new DataReceivedEventHandler (IPPDataReceivedHandler);
+						IPPProcess.ErrorDataReceived += new DataReceivedEventHandler (IPPDataReceivedHandler);
+					} else {
+						string IPPCmd = "certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString () + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
+						IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString ();
+						IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
+						IPPProcess.StartInfo.Arguments = IPPCmd;
+						IPPProcess.OutputDataReceived += new DataReceivedEventHandler (IPPDataReceivedHandler);
+						IPPProcess.ErrorDataReceived += new DataReceivedEventHandler (IPPDataReceivedHandler);
+					}
+					Utils.RunLocalProcess (IPPProcess);
+				} else {
+					Certificate = bForDistribtion ? "iPhone Distribution" : "iPhone Developer";
+					bHaveCertificate = true;
+				}
 
                 if (string.IsNullOrEmpty(MobileProvision) // no provision specified
                     || !File.Exists((BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac ? (Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/") : (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/")) + MobileProvision) // file doesn't exist
