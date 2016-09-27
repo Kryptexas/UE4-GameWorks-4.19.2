@@ -2,6 +2,7 @@
 
 using UnrealBuildTool;
 using System;
+using System.IO;
 using System.Collections.Generic;
 
 public class APEX : ModuleRules
@@ -135,7 +136,7 @@ public class APEX : ModuleRules
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
 				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
-				RuntimeDependencies.Add(FileName + ".pdb", StagedFileType.DebugNonUFS);
+				RuntimeDependencies.Add(Path.ChangeExtension(FileName, ".pdb"), StagedFileType.DebugNonUFS);
 			}
             if(LibrarySuffix != "")
             {
@@ -164,7 +165,7 @@ public class APEX : ModuleRules
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
 				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
-				RuntimeDependencies.Add(FileName + ".pdb", StagedFileType.DebugNonUFS);
+				RuntimeDependencies.Add(Path.ChangeExtension(FileName, ".pdb"), StagedFileType.DebugNonUFS);
 			}
             if (LibrarySuffix != "")
             {
