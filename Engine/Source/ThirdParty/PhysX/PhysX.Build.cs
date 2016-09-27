@@ -460,7 +460,7 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					"PhysX3Cooking",
 					"PhysX3Extensions",
-					"PhysXVisualDebuggerSDK",
+					//"PhysXVisualDebuggerSDK",
 					"SceneQuery",
 					"SimulationController",
 					"PxFoundation{0}",
