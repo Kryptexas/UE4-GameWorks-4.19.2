@@ -136,7 +136,7 @@ namespace iPhonePackager
 					Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
 
                     // check to see if the platform is the same as what we are looking for
-                    if (TestProvision.Platform != Config.OSString && !string.IsNullOrEmpty(Config.OSString) && !Config.bForDistribution)
+                    if (!string.IsNullOrEmpty(TestProvision.Platform) && TestProvision.Platform != Config.OSString && !string.IsNullOrEmpty(Config.OSString))
                         continue;
 
 					// Validate the name
