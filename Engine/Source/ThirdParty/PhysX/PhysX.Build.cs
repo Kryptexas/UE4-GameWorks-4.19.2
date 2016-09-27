@@ -463,10 +463,10 @@ public class PhysX : ModuleRules
 					//"PhysXVisualDebuggerSDK",
 					"SceneQuery",
 					"SimulationController",
-					"PxFoundation{0}",
-					"PxTask{0}",
-					"PxPvdSDK{0}",
-					"PsFastXml{0}"
+					"PxFoundation",
+					"PxTask",
+					"PxPvdSDK",
+					"PsFastXml"
 				};
 
 			foreach (var lib in PhysXLibs)
