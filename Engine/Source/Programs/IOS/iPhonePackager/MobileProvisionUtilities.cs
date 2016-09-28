@@ -32,6 +32,7 @@ namespace iPhonePackager
 		public DateTime ExpirationDate;
         public string FileName;
         public string UUID;
+        public string Platform;
 
         public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true)
 		{
@@ -65,8 +66,8 @@ namespace iPhonePackager
 			// copy all of the provisions from the game directory to the library
 			if (!String.IsNullOrEmpty(Config.ProjectFile))
 			{
-				var ProjectFileBuildIOSPath = Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/";
-				if (Directory.Exists(ProjectFileBuildIOSPath))
+                var ProjectFileBuildIOSPath = Path.GetDirectoryName(Config.ProjectFile) + "/Build/" + Config.OSString + "/";
+                if (Directory.Exists(ProjectFileBuildIOSPath))
 				{
 					foreach (string Provision in Directory.EnumerateFiles(ProjectFileBuildIOSPath, "*.mobileprovision", SearchOption.AllDirectories))
 					{
@@ -128,7 +129,12 @@ namespace iPhonePackager
 					string DebugName = Path.GetFileName(Pair.Key);
 					MobileProvision TestProvision = Pair.Value;
 
+                    // make sure the file is not managed by Xcode
                     if (TestProvision.FileName.Contains(TestProvision.UUID))
+                        continue;
+
+                    // check to see if the platform is the same as what we are looking for
+                    if (!string.IsNullOrEmpty(TestProvision.Platform) && TestProvision.Platform != Config.OSString && !string.IsNullOrEmpty(Config.OSString))
                         continue;
 
                     Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
@@ -350,6 +356,20 @@ namespace iPhonePackager
             if (!Data.GetString("UUID", out UUID))
             {
                 UUID = "(unkown)";
+            }
+
+            List<string> Platforms = Data.GetArray("Platform", "string");
+            if (Platforms.Contains("iOS"))
+            {
+                Platform = "IOS";
+            }
+            else if (Platforms.Contains("tvOS"))
+            {
+                Platform = "TVOS";
+            }
+            else
+            {
+                Platform = "";
             }
         }
 

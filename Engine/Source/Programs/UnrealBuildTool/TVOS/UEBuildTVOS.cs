@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
-	class TVOSPlatformContext : IOSPlatformContext
+	public class TVOSPlatformContext : IOSPlatformContext
 	{
 		/** Which version of the iOS to allow at run time */
 		private const string RunTimeTVOSVersion = "9.0";
@@ -20,10 +20,10 @@ namespace UnrealBuildTool
 		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
 		public static string TVOSArchitecture = "";
 
-		public TVOSPlatformContext(FileReference InProjectFile)
-			: base(UnrealTargetPlatform.IOS, InProjectFile)
-		{
-		}
+        public TVOSPlatformContext(FileReference InProjectFile, bool ForDistribution = false)
+            : base(UnrealTargetPlatform.IOS, InProjectFile, ForDistribution)
+        {
+        }
 
 		// The current architecture - affects everything about how UBT operates on IOS
 		public override string GetActiveArchitecture()
