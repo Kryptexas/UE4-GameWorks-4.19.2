@@ -4145,7 +4145,7 @@ void APlayerController::EndPlayingState()
 
 void APlayerController::BeginSpectatingState()
 {
-	if ( GetPawn() != NULL )
+	if (GetPawn() != NULL && Role == ROLE_Authority)
 	{
 		UnPossess();
 	}

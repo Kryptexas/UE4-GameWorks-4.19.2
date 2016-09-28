@@ -2394,6 +2394,7 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	}
 
 	// Clean package map to prepare to restore it to the checkpoint state
+	FlushAsyncLoading();
 	GuidCache->ObjectLookup.Empty();
 	GuidCache->NetGUIDLookup.Empty();
 

@@ -63,6 +63,39 @@ void FBatchedElements::AddLine(const FVector& Start, const FVector& End, const F
 	}
 }
 
+void FBatchedElements::AddTranslucentLine(const FVector& Start, const FVector& End, const FLinearColor& Color, FHitProxyId HitProxyId, float Thickness, float DepthBias, bool bScreenSpace)
+{
+	if (Thickness == 0.0f)
+	{
+		if (DepthBias == 0.0f)
+		{
+			new(LineVertices) FSimpleElementVertex(Start, FVector2D::ZeroVector, Color, HitProxyId);
+			new(LineVertices) FSimpleElementVertex(End, FVector2D::ZeroVector, Color, HitProxyId);
+		}
+		else
+		{
+			// Draw degenerate triangles in wireframe mode to support depth bias (d3d11 and opengl3 don't support depth bias on line primitives, but do on wireframes)
+			FBatchedWireTris* WireTri = new(WireTris) FBatchedWireTris();
+			WireTri->DepthBias = DepthBias;
+			new(WireTriVerts) FSimpleElementVertex(Start, FVector2D::ZeroVector, Color, HitProxyId);
+			new(WireTriVerts) FSimpleElementVertex(End, FVector2D::ZeroVector, Color, HitProxyId);
+			new(WireTriVerts) FSimpleElementVertex(End, FVector2D::ZeroVector, Color, HitProxyId);
+		}
+	}
+	else
+	{
+		FBatchedThickLines* ThickLine = new(ThickLines) FBatchedThickLines;
+		ThickLine->Start = Start;
+		ThickLine->End = End;
+		ThickLine->Thickness = Thickness;
+		ThickLine->Color = Color;
+		ThickLine->HitProxyId = HitProxyId;
+		ThickLine->DepthBias = DepthBias;
+		ThickLine->bScreenSpace = bScreenSpace;
+
+	}
+}
+
 void FBatchedElements::AddPoint(const FVector& Position,float Size,const FLinearColor& Color,FHitProxyId HitProxyId)
 {
 	// Ensure the point isn't masked out.  Some legacy code relies on Color.A being ignored.
@@ -811,6 +844,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 
 			if ( ThickLines.Num() > 0 )
 			{
+				PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Translucent, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
 				float OrthoZoomFactor = 1.0f;
 
 				if( View )
