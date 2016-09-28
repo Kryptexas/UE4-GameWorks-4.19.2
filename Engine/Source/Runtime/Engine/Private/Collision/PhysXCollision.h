@@ -96,6 +96,9 @@ public:
 	/** Result of PreFilter callback. */
 	PxQueryHitType::Enum PrefilterReturnValue;
 
+	/** Whether we are doing an overlap query. This is needed to ensure physx results are never blocking (even if they are in terms of unreal)*/
+	bool bIsOverlapQuery;
+
 	/** Whether to ignore touches (convert an eTOUCH result to eNONE). */
 	bool bIgnoreTouches;
 
@@ -107,6 +110,7 @@ public:
 		, IgnoreActors(InQueryParams.GetIgnoredActors())
 	{
 		PrefilterReturnValue = PxQueryHitType::eNONE;		
+		bIsOverlapQuery = false;
 		bIgnoreTouches = false;
 		bIgnoreBlocks = InQueryParams.bIgnoreBlocks;
 	}

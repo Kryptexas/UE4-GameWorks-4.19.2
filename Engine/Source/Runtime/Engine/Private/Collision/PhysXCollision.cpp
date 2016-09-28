@@ -699,6 +699,11 @@ PxQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& filte
 	}
 #endif // ENABLE_PREFILTER_LOGGING
 
+	if(bIsOverlapQuery && Result == PxQueryHitType::eBLOCK)
+	{
+		Result = PxQueryHitType::eTOUCH;	//In the case of overlaps, physx only understands touches. We do this at the end to ensure all filtering logic based on block vs overlap is correct
+	}
+
 	return  (PrefilterReturnValue = Result);
 }
 
@@ -1760,6 +1765,7 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 		PxQueryFilterData PQueryFilterDataAny(PFilter, StaticDynamicQueryFlags(Params) | PxQueryFlag::ePREFILTER | PxQueryFlag::eANY_HIT);
 		FPxQueryFilterCallback PQueryCallback(Params);
 		PQueryCallback.bIgnoreTouches = (InfoType == EQueryInfo::IsBlocking); // pre-filter to ignore touches and only get blocking hits, if that's what we're after.
+		PQueryCallback.bIsOverlapQuery = true;
 
 		// Enable scene locks, in case they are required
 		FScopedMultiSceneReadLock SceneLocks;
