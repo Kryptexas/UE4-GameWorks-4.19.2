@@ -567,7 +567,8 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(AActor* Goal, float
 	// abort active movement to keep only one request running
 	if (PathFollowingComponent && PathFollowingComponent->GetStatus() != EPathFollowingStatus::Idle)
 	{
-		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest);
+		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest
+			, FAIRequestID::CurrentRequest, EPathFollowingVelocityMode::Keep);
 	}
 
 	FAIMoveRequest MoveReq(Goal);
@@ -586,7 +587,8 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	// abort active movement to keep only one request running
 	if (PathFollowingComponent && PathFollowingComponent->GetStatus() != EPathFollowingStatus::Idle)
 	{
-		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest);
+		PathFollowingComponent->AbortMove(*this, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest
+			, FAIRequestID::CurrentRequest, EPathFollowingVelocityMode::Keep);
 	}
 
 	FAIMoveRequest MoveReq(Dest);

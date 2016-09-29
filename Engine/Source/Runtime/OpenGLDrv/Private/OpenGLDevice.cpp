@@ -809,7 +809,7 @@ static void InitRHICapabilitiesForGL()
 	SetupTextureFormat( PF_A32B32G32R32F,		FOpenGLTextureFormat( GL_RGBA32F,				GL_NONE,				GL_RGBA,			GL_FLOAT,						false,			false));
 	SetupTextureFormat( PF_UYVY,				FOpenGLTextureFormat( ));
 	//@todo: ES2 requires GL_OES_depth_texture extension to support depth textures of any kind.
-	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat( ShadowDepthFormat,		GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
+	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat( ShadowDepthFormat,		GL_NONE,				GL_DEPTH_COMPONENT, GL_UNSIGNED_INT,				false,			false));
 	SetupTextureFormat( PF_D24,					FOpenGLTextureFormat( DepthFormat,				GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
 	SetupTextureFormat( PF_A16B16G16R16,		FOpenGLTextureFormat( GL_RGBA16,				GL_RGBA16,				GL_RGBA,			GL_UNSIGNED_SHORT,				false,			false));
 	SetupTextureFormat( PF_A1,					FOpenGLTextureFormat( ));
@@ -994,6 +994,14 @@ static void InitRHICapabilitiesForGL()
 	GPixelFormats[ PF_DepthStencil		].BlockBytes	 = 4;
 	GPixelFormats[ PF_FloatRGB			].BlockBytes	 = 4;
 	GPixelFormats[ PF_FloatRGBA			].BlockBytes	 = 8;
+
+	// Temporary fix for nvidia driver issue with non-power-of-two shadowmaps (9/8/2016) UE-35312
+	// @TODO revisit this with newer drivers
+	IConsoleVariable* CSMAtlassingCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.CSMAtlassing"));
+	if (CSMAtlassingCVar)
+	{
+		CSMAtlassingCVar->Set(0);
+	}
 }
 
 FOpenGLDynamicRHI::FOpenGLDynamicRHI()

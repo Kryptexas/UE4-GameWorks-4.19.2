@@ -197,7 +197,8 @@ bool PlatformInitOpenGL()
 
 	{
 		// determine ES version. PlatformInitOpenGL happens before ProcessExtensions and therefore FAndroidOpenGL::bES31Support.
-		const bool bES31Supported = FAndroidGPUInfo::Get().GLVersion.Contains(TEXT("OpenGL ES 3.1"));
+		FString SubVersion;
+		const bool bES31Supported = FAndroidGPUInfo::Get().GLVersion.Split(TEXT("OpenGL ES 3."), nullptr, &SubVersion) && FCString::Atoi(*SubVersion) >= 1;
 		static const auto CVarDisableES31 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableOpenGLES31Support"));
 
 		bool bBuildForES31 = false;
@@ -206,16 +207,22 @@ bool PlatformInitOpenGL()
 		if (bES31Supported && bBuildForES31 && CVarDisableES31->GetValueOnAnyThread() == 0)
 		{
 			// shut down existing ES2 egl.
+			UE_LOG(LogRHI, Log, TEXT("App is packaged for OpenGL ES 3.1 and an ES 3.1-capable device was detected. Reinitializing OpenGL ES with a 3.1 context."));
 			FAndroidAppEntry::ReleaseEGL();
 			// Re-init gles for 3.1
 			AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 3, 1, false);
 		}
 		else
 		{
+			if (bBuildForES31)
+			{
+				UE_LOG(LogRHI, Log, TEXT("App is packaged for OpenGL ES 3.1 but an ES 3.1-capable device was not detected."));
+			}
+
 			bool bBuildForES2 = false;
 			GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES2"), bBuildForES2, GEngineIni);
 			// If we're here and there's no ES2 data then we're in trouble.
-			check(bBuildForES2);
+			checkf(bBuildForES2, TEXT("This device only supports OpenGL ES 2 but the app was not packaged with ES2 support."));
 		}
 	}
 	return true;
@@ -381,8 +388,9 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 
 	FString VersionString = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION)));
 
-	bES30Support = VersionString.Contains(TEXT("OpenGL ES 3."));
-	bES31Support = VersionString.Contains(TEXT("OpenGL ES 3.1"));
+	FString SubVersion;
+	bES30Support = VersionString.Split(TEXT("OpenGL ES 3."), nullptr, &SubVersion);
+	bES31Support = bES30Support && FCString::Atoi(*SubVersion) >= 1;
 
 	// Get procedures
 	if (bSupportsOcclusionQueries || bSupportsDisjointTimeQueries)
@@ -587,13 +595,8 @@ void FAndroidMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
 
 void FAndroidAppEntry::PlatformInit()
 {
-	// Note: UE-33593,
-	// Creating & destroying EGL context breaks vulkan initialization on mali devices.
-	if (!FAndroidMisc::ShouldUseVulkan())
-	{
-		// Create an ES2 EGL here for gpu queries.
-		AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
-	}
+	// create an ES2 EGL here for gpu queries.
+	AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
 }
 
 void FAndroidAppEntry::ReleaseEGL()

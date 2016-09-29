@@ -172,6 +172,13 @@ static TAutoConsoleVariable<int32> CVarEnableCsmShaderCulling(
 	TEXT(""),
 	ECVF_RenderThreadSafe);
 
+
+static TAutoConsoleVariable<int32> CVarCSMAtlassing(
+	TEXT("r.Shadow.CSMAtlassing"),
+	1,
+	TEXT(""),
+	ECVF_RenderThreadSafe);
+
 #if !UE_BUILD_SHIPPING
 // read and written on the render thread
 bool GDumpShadowSetup = false;
@@ -409,6 +416,22 @@ static bool GetBestShadowTransform(const FVector& ZAxis,const FBoundingBoxVertex
 		return false;
 	}
 }
+
+/**
+* Helper function to get the name of a CSM rendertarget, keeping the pointers around (this is required by the rendertarget pool)
+* @param ShadowMapIndex - the index of the shadow map cascade
+*/
+const TCHAR* GetCSMRenderTargetName(int32 ShadowMapIndex)
+{
+	// Render target names require string pointers not to be released, so we cache them in a static array and grow as necessary
+	static TArray<FString*> ShadowmapNames;
+	while (ShadowmapNames.Num() < ShadowMapIndex + 1)
+	{
+		ShadowmapNames.Add(new FString(FString::Printf(TEXT("WholeSceneShadowmap%d"), ShadowmapNames.Num())));
+	}
+	return **ShadowmapNames[ShadowMapIndex];
+}
+
 
 FProjectedShadowInfo::FProjectedShadowInfo()
 	: ShadowDepthView(NULL)
@@ -2569,13 +2592,15 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 					// Create the projected shadow info.
 					FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(), 1, 16) FProjectedShadowInfo;
 
+					uint32 ShadowBorder = CVarCSMAtlassing.GetValueOnRenderThread() ? SHADOW_BORDER : 0;
+
 					ProjectedShadowInfo->SetupWholeSceneProjection(
 						&LightSceneInfo,
 						&View,
 						ProjectedShadowInitializer,
-						ShadowBufferResolution.X - SHADOW_BORDER * 2,
-						ShadowBufferResolution.Y - SHADOW_BORDER * 2,
-						SHADOW_BORDER,
+						ShadowBufferResolution.X - ShadowBorder * 2,
+						ShadowBufferResolution.Y - ShadowBorder * 2,
+						ShadowBorder,
 						false	// no RSM
 						);
 
@@ -2956,41 +2981,65 @@ void FSceneRenderer::AllocateCSMDepthTargets(FRHICommandListImmediate& RHICmdLis
 {
 	if (WholeSceneDirectionalShadows.Num() > 0)
 	{
-		const int32 MaxTextureSize = 1 << (GMaxTextureMipCount - 1);
-		FTextureLayout ShadowLayout(1, 1, MaxTextureSize, MaxTextureSize, false, false);
-
-		for (int32 ShadowIndex = 0; ShadowIndex < WholeSceneDirectionalShadows.Num(); ShadowIndex++)
+		if (CVarCSMAtlassing.GetValueOnRenderThread() == 1)
 		{
-			FProjectedShadowInfo* ProjectedShadowInfo = WholeSceneDirectionalShadows[ShadowIndex];
+			const int32 MaxTextureSize = 1 << (GMaxTextureMipCount - 1);
+			FTextureLayout ShadowLayout(1, 1, MaxTextureSize, MaxTextureSize, false, false);
 
-			// Atlased shadows need a border
-			check(ProjectedShadowInfo->BorderSize != 0);
-			check(!ProjectedShadowInfo->bAllocated);
-
-			if (ShadowLayout.AddElement(
-				ProjectedShadowInfo->X,
-				ProjectedShadowInfo->Y,
-				ProjectedShadowInfo->ResolutionX + ProjectedShadowInfo->BorderSize * 2,
-				ProjectedShadowInfo->ResolutionY + ProjectedShadowInfo->BorderSize * 2)
-				)
+			for (int32 ShadowIndex = 0; ShadowIndex < WholeSceneDirectionalShadows.Num(); ShadowIndex++)
 			{
-				ProjectedShadowInfo->bAllocated = true;
+				FProjectedShadowInfo* ProjectedShadowInfo = WholeSceneDirectionalShadows[ShadowIndex];
+
+				// Atlased shadows need a border
+				check(ProjectedShadowInfo->BorderSize != 0);
+				check(!ProjectedShadowInfo->bAllocated);
+
+				if (ShadowLayout.AddElement(
+					ProjectedShadowInfo->X,
+					ProjectedShadowInfo->Y,
+					ProjectedShadowInfo->ResolutionX + ProjectedShadowInfo->BorderSize * 2,
+					ProjectedShadowInfo->ResolutionY + ProjectedShadowInfo->BorderSize * 2)
+					)
+				{
+					ProjectedShadowInfo->bAllocated = true;
+				}
 			}
-		}
 
-		SortedShadowsForShadowDepthPass.ShadowMapAtlases.AddDefaulted();
-		FSortedShadowMapAtlas& ShadowMapAtlas = SortedShadowsForShadowDepthPass.ShadowMapAtlases.Last();
+			SortedShadowsForShadowDepthPass.ShadowMapAtlases.AddDefaulted();
+			FSortedShadowMapAtlas& ShadowMapAtlas = SortedShadowsForShadowDepthPass.ShadowMapAtlases.Last();
 
-		FIntPoint WholeSceneAtlasSize(ShadowLayout.GetSizeX(), ShadowLayout.GetSizeY());
-		FPooledRenderTargetDesc WholeSceneShadowMapDesc2D(FPooledRenderTargetDesc::Create2DDesc(WholeSceneAtlasSize, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-		GRenderTargetPool.FindFreeElement(RHICmdList, WholeSceneShadowMapDesc2D, ShadowMapAtlas.RenderTargets.DepthTarget, TEXT("WholeSceneShadowMap"));
+			FIntPoint WholeSceneAtlasSize(ShadowLayout.GetSizeX(), ShadowLayout.GetSizeY());
+			FPooledRenderTargetDesc WholeSceneShadowMapDesc2D(FPooledRenderTargetDesc::Create2DDesc(WholeSceneAtlasSize, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+			GRenderTargetPool.FindFreeElement(RHICmdList, WholeSceneShadowMapDesc2D, ShadowMapAtlas.RenderTargets.DepthTarget, TEXT("WholeSceneShadowMap"));
 
-		for (int32 ShadowIndex = 0; ShadowIndex < WholeSceneDirectionalShadows.Num(); ShadowIndex++)
-		{
-			FProjectedShadowInfo* ProjectedShadowInfo = WholeSceneDirectionalShadows[ShadowIndex];
-
-			if (ProjectedShadowInfo->bAllocated)
+			for (int32 ShadowIndex = 0; ShadowIndex < WholeSceneDirectionalShadows.Num(); ShadowIndex++)
 			{
+				FProjectedShadowInfo* ProjectedShadowInfo = WholeSceneDirectionalShadows[ShadowIndex];
+
+				if (ProjectedShadowInfo->bAllocated)
+				{
+					ProjectedShadowInfo->RenderTargets.DepthTarget = ShadowMapAtlas.RenderTargets.DepthTarget.GetReference();
+					ProjectedShadowInfo->SetupShadowDepthView(RHICmdList, this);
+					ShadowMapAtlas.Shadows.Add(ProjectedShadowInfo);
+				}
+			}
+		} // if (CVarCSMAtlassing.GetValueOnRenderThread() == 1)
+		else
+		{
+			// If atlassing is disabled then add each shadowmap as a separate "atlas" containing a single shadowmap
+			for (int32 ShadowIndex = 0; ShadowIndex < WholeSceneDirectionalShadows.Num(); ShadowIndex++)
+			{
+				FProjectedShadowInfo* ProjectedShadowInfo = WholeSceneDirectionalShadows[ShadowIndex];
+
+				SortedShadowsForShadowDepthPass.ShadowMapAtlases.AddDefaulted();
+				FSortedShadowMapAtlas& ShadowMapAtlas = SortedShadowsForShadowDepthPass.ShadowMapAtlases.Last();
+
+				FIntPoint CSMSize = FIntPoint(ProjectedShadowInfo->ResolutionX, ProjectedShadowInfo->ResolutionY);
+				FPooledRenderTargetDesc WholeSceneShadowMapDesc2D(FPooledRenderTargetDesc::Create2DDesc(CSMSize, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+				GRenderTargetPool.FindFreeElement(RHICmdList, WholeSceneShadowMapDesc2D, ShadowMapAtlas.RenderTargets.DepthTarget, GetCSMRenderTargetName(ShadowIndex) );
+
+				check(!ProjectedShadowInfo->bAllocated);
+				ProjectedShadowInfo->bAllocated = true;
 				ProjectedShadowInfo->RenderTargets.DepthTarget = ShadowMapAtlas.RenderTargets.DepthTarget.GetReference();
 				ProjectedShadowInfo->SetupShadowDepthView(RHICmdList, this);
 				ShadowMapAtlas.Shadows.Add(ProjectedShadowInfo);

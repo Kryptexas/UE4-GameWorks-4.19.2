@@ -96,6 +96,11 @@ public class UElibPNG : ModuleRules
                 }
             }
             PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng" + OpimizationSuffix + ".bc");
-        } 
-    }
+        }
+        else if (Target.Platform == UnrealTargetPlatform.PS4)
+        {
+            PublicLibraryPaths.Add(libPNGPath + "/lib/PS4");
+            PublicAdditionalLibraries.Add("png152");
+        }
+	}
 }

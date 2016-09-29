@@ -41,6 +41,7 @@ LandscapeEdit.cpp: Landscape editing
 #include "NotificationManager.h"
 #include "LandscapeEditorModule.h"
 #endif
+#include "Algo/Accumulate.h"
 
 DEFINE_LOG_CATEGORY(LogLandscape);
 
@@ -298,6 +299,7 @@ void ULandscapeComponent::UpdateMaterialInstances()
 			TessellationMaterialInstance->SetParentEditorOnly(MaterialInstance);
 			Context.AddMaterialInstance(TessellationMaterialInstance); // must be done after SetParent
 			TessellationMaterialInstance->bDisableTessellation = true;
+			TessellationMaterialInstance->PostEditChange();
 		}
 		else
 		{
@@ -3080,13 +3082,12 @@ void ULandscapeInfo::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo)
 	FLandscapeEditDataInterface LandscapeEdit(this);
 	LandscapeEdit.DeleteLayer(LayerInfo);
 
-	// Remove from array
-	for (int32 j = 0; j < Layers.Num(); j++)
+	// Remove from layer settings array
 	{
-		if (Layers[j].LayerInfoObj && Layers[j].LayerInfoObj == LayerInfo)
+		int32 LayerIndex = Layers.IndexOfByPredicate([LayerInfo](const FLandscapeInfoLayerSettings& LayerSettings) { return LayerSettings.LayerInfoObj == LayerInfo; });
+		if (LayerIndex != INDEX_NONE)
 		{
-			Layers.RemoveAt(j);
-			break;
+			Layers.RemoveAt(LayerIndex);
 		}
 	}
 
@@ -3122,7 +3123,7 @@ void ULandscapeInfo::ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULan
 		// Convert array
 		for (int32 j = 0; j < Layers.Num(); j++)
 		{
-			if (Layers[j].LayerInfoObj && Layers[j].LayerInfoObj == FromLayerInfo)
+			if (Layers[j].LayerInfoObj == FromLayerInfo)
 			{
 				Layers[j].LayerInfoObj = ToLayerInfo;
 			}
@@ -3288,7 +3289,11 @@ void ALandscape::PostEditMove(bool bFinished)
 	if (bFinished)
 	{
 		// align all proxies to landscape actor
-		GetLandscapeInfo()->FixupProxiesTransform();
+		auto* LandscapeInfo = GetLandscapeInfo();
+		if (LandscapeInfo)
+		{
+			LandscapeInfo->FixupProxiesTransform();
+		}
 	}
 
 	Super::PostEditMove(bFinished);
@@ -3670,6 +3675,33 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 				Comp->bCastFarShadow = bCastFarShadow;
 			}
 		}
+	}
+
+	// Remove null layer infos
+	EditorLayerSettings.RemoveAll([](const FLandscapeEditorLayerSettings& Entry) { return Entry.LayerInfoObj == nullptr; });
+
+	ULandscapeInfo* Info = GetLandscapeInfo();
+	bool bRemovedAnyLayers = false;
+	for (ULandscapeComponent* Component : LandscapeComponents)
+	{
+		int32 NumNullLayers = Algo::TransformAccumulate(Component->WeightmapLayerAllocations, [](const FWeightmapLayerAllocationInfo& Allocation) { return Allocation.LayerInfo == nullptr ? 1 : 0; }, 0);
+		if (NumNullLayers > 0)
+		{
+			FLandscapeEditDataInterface LandscapeEdit(Info);
+			for (int32 i = 0; i < NumNullLayers; ++i)
+			{
+				// DeleteLayer doesn't expect duplicates, so we need to call it once for each null
+				Component->DeleteLayer(nullptr, LandscapeEdit);
+			}
+			bRemovedAnyLayers = true;
+		}
+	}
+	if (bRemovedAnyLayers)
+	{
+		// Flush dynamic data (e.g. grass)
+		TSet<ULandscapeComponent*> Components;
+		Components.Append(LandscapeComponents);
+		ALandscapeProxy::InvalidateGeneratedComponentData(Components);
 	}
 
 	// Must do this *after* correcting the scale or reattaching the landscape components will crash!

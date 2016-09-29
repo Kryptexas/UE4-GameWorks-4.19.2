@@ -180,7 +180,7 @@ TSharedPtr<SWidget> SMediaPlayerEditorMedia::HandleAssetPickerGetAssetContextMen
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "SystemWideCommands.FindInContentBrowser"),
 					FUIAction(
 						FExecuteAction::CreateLambda([=]() {
-							FPlatformProcess::ExploreFolder(*FileMediaSource->FilePath);
+							FPlatformProcess::ExploreFolder(*FileMediaSource->GetFilePath());
 						}),
 						FCanExecuteAction::CreateLambda([=]() -> bool {
 							return FileMediaSource->Validate();

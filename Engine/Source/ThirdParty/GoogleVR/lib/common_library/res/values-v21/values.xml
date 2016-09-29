@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding='utf-8' standalone='no'?>
 <resources>
-    <!-- From: file:/tmp/aar_gen_tmp9184061690264887159/tmp-deduplicated/vr/gvr/platform/common/android/res/values-v21/style.xml -->
-    <eat-comment/>
-    <style name="CardboardDialogTheme" parent="@android:style/Theme.Material.Light.Dialog"/>
+<!-- vr/gvr/platform/common/android/res/values-v21/style.xml -->
+<eat-comment/>
+<style name="GvrDialogTheme" parent="@android:style/Theme.Material.Light.Dialog">
+</style>
 </resources>

@@ -169,6 +169,10 @@ struct FFBXUVs
 						{
 							const char* UVSetName = ElementUV->GetName();
 							FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
+							if (LocalUVSetName.IsEmpty())
+							{
+								LocalUVSetName = TEXT("UVmap_") + FString::FromInt(UVLayerIndex);
+							}
 							if (LocalUVSetName == UVSets[UVIndex])
 							{
 								LayerElementUV[UVIndex] = ElementUV;
@@ -195,8 +199,8 @@ struct FFBXUVs
 			}
 		}
 
-		// not found
-		return 0;
+		// not found so return the default lightmap index
+		return 1;
 	}
 	
 	// @param FaceCornerIndex usually TriangleIndex * 3 + CornerIndex but more complicated for mixed n-gons

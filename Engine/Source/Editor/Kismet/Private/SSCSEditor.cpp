@@ -2772,6 +2772,8 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 
 void SSCS_RowWidget::PostDragDropAction(bool bRegenerateTreeNodes)
 {
+	GUnrealEd->ComponentVisManager.ClearActiveComponentVis();
+
 	FSCSEditorTreeNodePtrType NodePtr = GetNode();
 
 	TSharedPtr<SSCSEditor> PinnedEditor = SCSEditor.Pin();

@@ -107,7 +107,10 @@ void FEngineAnalytics::Initialize()
 		{
 			Config.AppEnvironment = TEXT("datacollector-source");
 		}
-
+		if (Config.AppVersionET.IsEmpty())
+		{
+			Config.AppVersionET = FEngineVersion::Current().ToString();
+		}
 
 		// Connect the engine analytics provider (if there is a configuration delegate installed)
 		Analytics = FAnalyticsET::Get().CreateAnalyticsProvider(Config);

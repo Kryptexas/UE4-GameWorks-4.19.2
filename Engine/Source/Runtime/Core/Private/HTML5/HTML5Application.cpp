@@ -102,22 +102,34 @@ void FHTML5Application::PollGameDeviceState( const float TimeDelta )
 					case SDL_WINDOWEVENT_SIZE_CHANGED:
 						{
 							UE_LOG(LogHTML5Application, Verbose, TEXT("WindowSizeChanged: Width:%d, Height:%d"), WindowWidth, WindowHeight);
-							MessageHandler->OnSizeChanged(ApplicationWindow,WindowWidth,WindowHeight, false);
-							MessageHandler->OnResizingWindow(ApplicationWindow);
-
 							FDisplayMetrics DisplayMetrics;
 							FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
-							BroadcastDisplayMetricsChanged(DisplayMetrics);
+							if ( DisplayMetrics.PrimaryDisplayWidth != WindowWidth || DisplayMetrics.PrimaryDisplayHeight != WindowHeight )
+							{
+								int32 delta = FMath::Abs<int32>(DisplayMetrics.PrimaryDisplayHeight - WindowHeight);
+								if (delta > 2) // UE-35363: retina bug fix - otherwise, event does infinite loops
+								{
+									MessageHandler->OnSizeChanged(ApplicationWindow,WindowWidth,WindowHeight, false);
+									MessageHandler->OnResizingWindow(ApplicationWindow);
+									BroadcastDisplayMetricsChanged(DisplayMetrics);
+								}
+							}
 						}
 						break;
 					case SDL_WINDOWEVENT_RESIZED:
 						{
 							UE_LOG(LogHTML5Application, Verbose, TEXT("WindowResized: Width:%d, Height:%d"), WindowWidth, WindowHeight);
-							MessageHandler->OnResizingWindow(ApplicationWindow);
-
 							FDisplayMetrics DisplayMetrics;
 							FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
-							BroadcastDisplayMetricsChanged(DisplayMetrics);
+							if ( DisplayMetrics.PrimaryDisplayWidth != WindowWidth || DisplayMetrics.PrimaryDisplayHeight != WindowHeight )
+							{
+								int32 delta = FMath::Abs<int32>(DisplayMetrics.PrimaryDisplayHeight - WindowHeight);
+								if (delta > 2) // UE-35363: retina bug fix - otherwise, event does infinite loops
+								{
+									MessageHandler->OnResizingWindow(ApplicationWindow);
+									BroadcastDisplayMetricsChanged(DisplayMetrics);
+								}
+							}
 						}
 						break;
 					case SDL_WINDOWEVENT_ENTER:

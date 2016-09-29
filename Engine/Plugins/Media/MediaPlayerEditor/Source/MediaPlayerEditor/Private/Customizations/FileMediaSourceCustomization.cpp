@@ -119,7 +119,7 @@ FString FFileMediaSourceCustomization::HandleFilePathPickerFileTypeFilter() cons
 
 void FFileMediaSourceCustomization::HandleFilePathPickerPathPicked(const FString& PickedPath)
 {
-	if (PickedPath.IsEmpty() || PickedPath.StartsWith(TEXT("./")) || PickedPath.Contains(TEXT("://")))
+	if (PickedPath.IsEmpty() || PickedPath.StartsWith(TEXT("./")))
 	{
 		FilePathProperty->SetValue(PickedPath);
 	}

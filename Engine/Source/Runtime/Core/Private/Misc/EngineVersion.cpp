@@ -209,13 +209,21 @@ const FEngineVersion& FEngineVersion::CompatibleWith()
 
 bool FEngineVersion::OverrideCurrentVersionChangelist(int32 NewChangelist)
 {
-	if(CurrentVersion.GetChangelist() != 0 || CompatibleWithVersion.GetChangelist() != 0)
+	if(CurrentVersion.GetChangelist() != 0)
 	{
 		return false;
 	}
 
 	CurrentVersion.Set(CurrentVersion.Major, CurrentVersion.Minor, CurrentVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CurrentVersion.Branch);
-	CompatibleWithVersion.Set(CompatibleWithVersion.Major, CompatibleWithVersion.Minor, CompatibleWithVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CompatibleWithVersion.Branch);
+	if(CompatibleWithVersion.GetChangelist() == 0)
+	{
+		#if ENGINE_IS_LICENSEE_VERSION == 0 && MODULE_COMPATIBLE_API_VERSION != 0
+			int NewCompatibleChangelist = MODULE_COMPATIBLE_API_VERSION;
+		#else
+			int NewCompatibleChangelist = NewChangelist;
+		#endif
+		CompatibleWithVersion.Set(CompatibleWithVersion.Major, CompatibleWithVersion.Minor, CompatibleWithVersion.Patch, NewCompatibleChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CompatibleWithVersion.Branch);
+	}
 	return true;
 }
 

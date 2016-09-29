@@ -39,11 +39,14 @@ UWmfFileMediaSourceFactory::UWmfFileMediaSourceFactory(const FObjectInitializer&
 
 bool UWmfFileMediaSourceFactory::FactoryCanImport(const FString& Filename)
 {
+	// @todo gmp: temp hack until we support multiple factories per file extension
 	FString FileExtension = FPaths::GetExtension(Filename);
+
 	if (FileExtension.ToUpper() == FString("WAV"))
 	{
 		return false;
 	}
+
 	return true;
 }
 
@@ -51,7 +54,7 @@ bool UWmfFileMediaSourceFactory::FactoryCanImport(const FString& Filename)
 UObject* UWmfFileMediaSourceFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
 	UFileMediaSource* MediaSource = NewObject<UFileMediaSource>(InParent, InClass, InName, Flags);
-	MediaSource->FilePath = CurrentFilename;
+	MediaSource->SetFilePath(CurrentFilename);
 
 	return MediaSource;
 }

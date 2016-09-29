@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MobileDeviceInterface</RootNamespace>
     <AssemblyName>MobileDeviceInterface</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SccProjectName>
     </SccProjectName>
@@ -87,7 +87,7 @@
     <Compile Include="ConnectEventHandler.cs" />
     <Compile Include="CoreFoundation.cs" />
     <Compile Include="DeviceNotificationEventArgs.cs" />
-    <Compile Include="iPhoneFile.cs" />
+    <Compile Include="IPhoneFile.cs" />
     <Compile Include="MobileDevice.cs" />
     <Compile Include="MobileDeviceInstance.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

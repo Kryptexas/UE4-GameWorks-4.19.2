@@ -426,7 +426,17 @@ namespace AutomationTool
 			}
 			foreach (Assembly LoadedAssembly in LoadedAssemblies)
 			{
-				Type[] Types = LoadedAssembly.GetTypes();
+				Type[] Types;
+				try
+				{
+					Types = LoadedAssembly.GetTypes();
+				}
+				catch (ReflectionTypeLoadException ex)
+				{
+					LogWarning("Exception {0} while trying to get types from assembly {1}", ex, LoadedAssembly);
+					continue;
+				}
+
 				foreach(Type Type in Types)
 				{
 					foreach(TaskElementAttribute ElementAttribute in Type.GetCustomAttributes<TaskElementAttribute>())

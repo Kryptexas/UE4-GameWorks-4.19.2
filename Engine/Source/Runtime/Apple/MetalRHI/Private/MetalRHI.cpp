@@ -68,15 +68,11 @@ FMetalDynamicRHI::FMetalDynamicRHI()
     {
         GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
         GMaxRHIShaderPlatform = SP_METAL_MRT;
-		GSupportsMultipleRenderTargets = true;
     }
     else
     {
         GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
         GMaxRHIShaderPlatform = SP_METAL;
-		// disable MRTs completely, because there is code in the engine that assumes the ability to use
-		// 32 bytes of pixel storage (like the 2 VERY WIDE ones in GPU particles)
-		GSupportsMultipleRenderTargets = false;
 	}
 	
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL;

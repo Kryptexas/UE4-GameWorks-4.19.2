@@ -3144,6 +3144,9 @@ void FBlueprintEditor::OnBlueprintCompiled(UBlueprint* InBlueprint)
 {	
 	if( InBlueprint )
 	{
+		// Compiling will invalidate any cached components in the component visualizer, so clear out active components here
+		GUnrealEd->ComponentVisManager.ClearActiveComponentVis();
+
 		// This could be made more efficient by tracking which nodes change
 		// their bHasCompilerMessage flag, or immediately updating the error info
 		// when we assign the flag:

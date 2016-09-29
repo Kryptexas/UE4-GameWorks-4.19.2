@@ -421,7 +421,7 @@ void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile)
 			// TODO_OPENGL: Allow shaders to be compiled asynchronously.
 			// Metal also needs this when using RHI thread because it uses TOneColorVS very early in RHIPostInit()
 			!IsOpenGLPlatform(GMaxRHIShaderPlatform) && !IsVulkanPlatform(GMaxRHIShaderPlatform) &&
-			(!IsMetalPlatform(GMaxRHIShaderPlatform) || !GUseRHIThread) &&
+			!IsMetalPlatform(GMaxRHIShaderPlatform) &&
 			GShaderCompilingManager->AllowAsynchronousShaderCompiling();
 
 		if (!bAllowAsynchronousGlobalShaderCompiling)

@@ -467,7 +467,7 @@ protected:
 	void SetRenderContext(FHMDViewExtension* InRenderContext);
 	void DoRenderLoadingIcon_RenderThread(int CpuLevel, int GpuLevel, pid_t GameTid);
 	void SystemActivities_Update_RenderThread();
-	void PushBlackFinal(const FGameFrame* frame);
+	void PushBlack(const FGameFrame* frame, bool isFinal = false);
 
 protected: // data
 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
@@ -672,6 +672,7 @@ protected:
 	void HandleBackButtonAction();
 	void StartSystemActivity_RenderThread(const char * commandString);
 	void PushBlackFinal();
+	void PushBlack();
 
 	virtual FAsyncLoadingSplash* GetAsyncLoadingSplash() const override { return Splash.Get(); }
 

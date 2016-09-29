@@ -78,6 +78,15 @@ public:
 	virtual class FSocket* CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP = false) = 0;
 
 	/**
+	* Creates a resolve info cached struct to hold the resolved address
+	*
+	* @Param Addr address to resolve for the socket subsystem
+	*
+	* @return the new resolved address or NULL if failed
+	*/
+	virtual class FResolveInfoCached* CreateResolveInfoCached(TSharedPtr<FInternetAddr> Addr) const;
+
+	/**
 	 * Cleans up a socket class
 	 *
 	 * @param Socket the socket object to destroy

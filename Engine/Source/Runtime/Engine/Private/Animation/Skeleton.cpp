@@ -894,6 +894,18 @@ void USkeleton::HandleSkeletonHierarchyChange()
 		}
 	}
 
+	for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
+	{
+		USkinnedMeshComponent* MeshComponent = *It;
+		if (MeshComponent &&
+			!MeshComponent->IsTemplate() &&
+			MeshComponent->SkeletalMesh &&
+			MeshComponent->SkeletalMesh->Skeleton == this)
+		{
+			FComponentReregisterContext Context(MeshComponent);
+		}
+	}
+
 #if WITH_EDITORONLY_DATA
 	RefreshAllRetargetSources();
 #endif

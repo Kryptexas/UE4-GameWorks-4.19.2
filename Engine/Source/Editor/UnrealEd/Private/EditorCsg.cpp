@@ -203,7 +203,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 	// Repartition the structural BSP.
 	{
 		GWarn->StatusUpdate( 0, 4, NSLOCTEXT("UnrealEd", "RebuildBSPBuildingPolygons", "Rebuild BSP: Building polygons") );
-		bspBuildFPolys( InWorld->GetModel(), 1, 0 );
+		bspBuildFPolys( InWorld->GetModel(), 0, 0 );
 
 		GWarn->StatusUpdate( 1, 4, NSLOCTEXT("UnrealEd", "RebuildBSPMergingPlanars", "Rebuild BSP: Merging planars") );
 		bspMergeCoplanars( InWorld->GetModel(), 0, 0 );
@@ -1350,7 +1350,10 @@ static void SendTo( UWorld* InWorld, int32 bSendToFirst )
 	ULevel*	Level = InWorld->GetCurrentLevel();
 	for (AActor* Actor : Level->Actors)
 	{
-		Actor->Modify();
+		if (Actor)
+		{
+			Actor->Modify();
+		}
 	}
 	
 	// Fire ULevel::LevelDirtiedEvent when falling out of scope.

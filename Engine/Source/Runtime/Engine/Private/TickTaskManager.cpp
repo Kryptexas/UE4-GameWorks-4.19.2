@@ -896,10 +896,10 @@ public:
 			TickFunction->QueueTickFunction(TTS, Context);
 
 			if (TickFunction->TickInterval > 0.f)
-		{
+			{
 				It.RemoveCurrent();
 				TickFunctionsToReschedule.Add(FTickScheduleDetails(TickFunction, TickFunction->TickInterval));
-		}
+			}
 		}
 		int32 EnabledCooldownTicks = 0;
 		float CumulativeCooldown = 0.f;
@@ -985,7 +985,7 @@ public:
 			if (TickFunction->bTickEvenWhenPaused)
 			{
 				if (CumulativeCooldown < InContext.DeltaSeconds)
-		{
+				{
 					TickFunction->TickVisitedGFrameCounter = GFrameCounter;
 					TickFunction->TickQueuedGFrameCounter = GFrameCounter;
 					TickFunction->ExecuteTick(InContext.DeltaSeconds, InContext.TickType, ENamedThreads::GameThread, FGraphEventRef());
@@ -1012,7 +1012,10 @@ public:
 					CumulativeCooldown -= TickFunction->RelativeTickCooldown; // Since the next object in the list will have this cooldown included take it back out of the cumulative
 				}
 			}
-			PrevTickFunction = TickFunction;
+			else
+			{
+				PrevTickFunction = TickFunction;
+			}
 			TickFunction = TickFunction->Next;
 		}
 

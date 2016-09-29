@@ -143,6 +143,12 @@ UHapticFeedbackEffect_SoundWave::~UHapticFeedbackEffect_SoundWave()
 
 void UHapticFeedbackEffect_SoundWave::Initialize()
 {
+	if (!SoundWave)
+	{
+		bPrepared = false;
+		return;
+	}
+
 	if (!bPrepared)
 	{
 		PrepareSoundWaveBuffer();
@@ -162,7 +168,7 @@ void UHapticFeedbackEffect_SoundWave::GetValues(const float EvalTime, FHapticFee
 
 float UHapticFeedbackEffect_SoundWave::GetDuration() const
 {
-	return SoundWave->GetDuration();
+	return SoundWave ? SoundWave->GetDuration() : 0.f;
 }
 
 void UHapticFeedbackEffect_SoundWave::PrepareSoundWaveBuffer()
@@ -177,7 +183,7 @@ void UHapticFeedbackEffect_SoundWave::PrepareSoundWaveBuffer()
 	uint8* PCMData = SoundWave->RawPCMData;
 	int32 SampleRate = SoundWave->SampleRate;
 	int TargetFrequency = 320;
-	int TargetBufferSize = (SoundWave->RawPCMDataSize * TargetFrequency) / (SampleRate * 2); //2 because we're only using half of the 16bit source PCM buffer
+	int TargetBufferSize = (SoundWave->RawPCMDataSize * TargetFrequency) / (SampleRate * 2) + 1; //2 because we're only using half of the 16bit source PCM buffer
 	HapticBuffer.BufferLength = TargetBufferSize;
 	HapticBuffer.RawData.AddUninitialized(TargetBufferSize);
 	HapticBuffer.CurrentPtr = 0;
@@ -198,7 +204,7 @@ void UHapticFeedbackEffect_SoundWave::PrepareSoundWaveBuffer()
 		if (targetIndex != previousTargetIndex)
 		{
 
-			HapticBuffer.RawData[previousTargetIndex] = val * 2;// *Scale;
+			HapticBuffer.RawData[targetIndex] = val * 2;// *Scale;
 			previousTargetIndex = targetIndex;
 			currentMin = 0;
 		}

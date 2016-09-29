@@ -22,7 +22,7 @@ UGoogleVRHMDFunctionLibrary::UGoogleVRHMDFunctionLibrary(const FObjectInitialize
 {
 }
 
-FGoogleVRHMD* GetHMD()
+static FGoogleVRHMD* GetHMD()
 {
 	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetVersionString().Contains(TEXT("GoogleVR")) )
 	{
@@ -34,11 +34,6 @@ FGoogleVRHMD* GetHMD()
 
 void UGoogleVRHMDFunctionLibrary::SetChromaticAberrationCorrectionEnabled(bool bEnable)
 {
-	FGoogleVRHMD* HMD = GetHMD();
-	if(HMD)
-	{
-		HMD->SetChromaticAberrationCorrectionEnabled(bEnable);
-	}
 }
 
 void UGoogleVRHMDFunctionLibrary::SetDistortionCorrectionEnabled(bool bEnable)

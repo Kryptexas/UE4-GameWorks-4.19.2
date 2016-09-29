@@ -60,15 +60,18 @@ class SMasterSequenceSettings : public SCompoundWidget, public FGCObject
 			SNew(SVerticalBox)
 
 			+ SVerticalBox::Slot()
-			.AutoHeight()
+			.FillHeight(1.0f)
+			.Padding(4, 4, 4, 4)
 			[
-				Details1View.ToSharedRef()
-			]
-
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				Details2View.ToSharedRef()
+				SNew(SScrollBox)
+				+SScrollBox::Slot()
+				[
+					Details1View.ToSharedRef()
+				]
+				+SScrollBox::Slot()
+				[
+					Details2View.ToSharedRef()
+				]
 			]
 
 			+ SVerticalBox::Slot()
@@ -211,7 +214,7 @@ void LevelSequenceEditorHelpers::OpenMasterSequenceDialog(const TSharedRef<FTabM
 			.HasCloseButton(true)
 			.SupportsMaximize(false)
 			.SupportsMinimize(false)
-			.ClientSize(FVector2D(600, 540));
+			.ClientSize(FVector2D(600, 600));
 
 		TSharedPtr<SDockTab> OwnerTab = TabManager->GetOwnerTab();
 		TSharedPtr<SWindow> RootWindow = OwnerTab.IsValid() ? OwnerTab->GetParentWindow() : TSharedPtr<SWindow>();

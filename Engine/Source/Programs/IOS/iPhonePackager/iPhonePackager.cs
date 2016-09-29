@@ -189,11 +189,19 @@ namespace iPhonePackager
 			{
 				MainCommand = Arguments[0];
 				GamePath = Arguments[1];
+                if (GamePath.EndsWith(".uproject"))
+                {
+                    Config.ProjectFile = GamePath;
+                }
 			}
 			else if (Arguments.Length >= 2)
 			{
 				MainCommand = Arguments[0];
 				GamePath = Arguments[1];
+                if (GamePath.EndsWith(".uproject"))
+                {
+                    Config.ProjectFile = GamePath;
+                }
 
 				for (int ArgIndex = 2; ArgIndex < Arguments.Length; ArgIndex++)
 				{
@@ -861,6 +869,24 @@ namespace iPhonePackager
 					case "devices":
 						ListDevices();
 						break;
+
+                    case "signing_match":
+                        {
+                            MobileProvision Provision;
+                            X509Certificate2 Cert;
+                            bool bNameMatch;
+                            bool bHasOverrideFile;
+                            if (CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrideFile, out bNameMatch))
+                            {
+                                // print out the provision and cert name
+                                Program.LogVerbose("CERTIFICATE-{0},PROVISION-{1}", Cert.FriendlyName, Path.GetFileName(Provision.FileName));
+                            }
+                            else
+                            {
+                                Program.LogVerbose("No matching Signing Data found!");
+                            }
+                        }
+                        break;
 
 					default:
 						// Commands by themself default to packaging for the device

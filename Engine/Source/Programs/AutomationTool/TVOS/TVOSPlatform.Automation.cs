@@ -22,6 +22,11 @@ public class TVOSPlatform : IOSPlatform
 		return new UnrealBuildTool.UEDeployTVOS(InProject, inPlatformContext);
 	}
 
+	public override UnrealBuildTool.IOSPlatformContext CreatePlatformContext(FileReference InProject, bool Distribution)
+	{
+		return new UnrealBuildTool.TVOSPlatformContext (InProject, Distribution);
+	}
+
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		return "TVOS";

@@ -28,7 +28,10 @@ struct FPreviewSceneProfile
 		LightingRigRotation = 0.0f;
 		RotationSpeed = 2.0f;
 		// Set up default cube map texture from editor/engine textures
-		EnvironmentCubeMap = LoadObject<UTextureCube>(NULL, TEXT("/Engine/EngineSky/EpicQuadPanorama_CC+EV1.EpicQuadPanorama_CC+EV1"));		
+		EnvironmentCubeMap = nullptr;
+#if WITH_EDITORONLY_DATA
+		EnvironmentCubeMap = LoadObject<UTextureCube>(NULL, TEXT("/Engine/EditorMaterials/AssetViewer/EpicQuadPanorama_CC+EV1.EpicQuadPanorama_CC+EV1"));		
+#endif
 		bPostProcessingEnabled = true;
 		DirectionalLightRotation = FRotator(-40.f, -67.5f, 0.f);
 	}

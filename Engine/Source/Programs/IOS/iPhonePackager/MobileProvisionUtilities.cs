@@ -30,6 +30,9 @@ namespace iPhonePackager
 		public Utilities.PListHelper Data;
 		public DateTime CreationDate;
 		public DateTime ExpirationDate;
+        public string FileName;
+        public string UUID;
+        public string Platform;
 
 		public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true)
 		{
@@ -63,7 +66,7 @@ namespace iPhonePackager
 			// copy all of the provisions from the game directory to the library
 			if (!String.IsNullOrEmpty(Config.ProjectFile))
 			{
-				var ProjectFileBuildIOSPath = Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/";
+				var ProjectFileBuildIOSPath = Path.GetDirectoryName(Config.ProjectFile) + "/Build/" + Config.OSString + "/";
 				if (Directory.Exists(ProjectFileBuildIOSPath))
 				{
 					foreach (string Provision in Directory.EnumerateFiles(ProjectFileBuildIOSPath, "*.mobileprovision", SearchOption.AllDirectories))
@@ -126,7 +129,15 @@ namespace iPhonePackager
 					string DebugName = Path.GetFileName(Pair.Key);
 					MobileProvision TestProvision = Pair.Value;
 
+                    // make sure the file is not managed by Xcode
+                    if (TestProvision.FileName.Contains(TestProvision.UUID))
+                        continue;
+
 					Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
+
+                    // check to see if the platform is the same as what we are looking for
+                    if (!string.IsNullOrEmpty(TestProvision.Platform) && TestProvision.Platform != Config.OSString && !string.IsNullOrEmpty(Config.OSString))
+                        continue;
 
 					// Validate the name
 					bool bPassesNameCheck = false;
@@ -341,6 +352,25 @@ namespace iPhonePackager
 
 			// check for get-task-allow
 			bDebug = XCentPList.GetBool("get-task-allow");
+
+            if (!Data.GetString("UUID", out UUID))
+            {
+                UUID = "(unkown)";
+            }
+
+            List<string> Platforms = Data.GetArray("Platform", "string");
+            if (Platforms.Contains("iOS"))
+            {
+                Platform = "IOS";
+            }
+            else if (Platforms.Contains("tvOS"))
+            {
+                Platform = "TVOS";
+            }
+            else
+            {
+                Platform = "";
+            }
 		}
 
 		/// <summary>
@@ -423,6 +453,7 @@ namespace iPhonePackager
 			FileStream InputStream = File.OpenRead(Filename);
 			MobileProvision Result = ParseFile(InputStream);
 			InputStream.Close();
+            Result.FileName = Filename;
 
 			return Result;
 		}
