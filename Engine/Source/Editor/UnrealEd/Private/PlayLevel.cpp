@@ -3216,12 +3216,12 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 				ViewportClient->SetViewportOverlayWidget( PieWindow, ViewportOverlayWidgetRef );
 				ViewportClient->SetGameLayerManager(GameLayerManagerRef);
-
+				bool bShouldMinimizeRootWindow = bUseVRPreview && GEngine->HMDDevice.IsValid();
 				// Set up a notification when the window is closed so we can clean up PIE
 				{
 					struct FLocal
 					{
-						static void OnPIEWindowClosed( const TSharedRef< SWindow >& WindowBeingClosed, TWeakPtr< SViewport > PIEViewportWidget, int32 index )
+						static void OnPIEWindowClosed( const TSharedRef< SWindow >& WindowBeingClosed, TWeakPtr< SViewport > PIEViewportWidget, int32 index, bool bRestoreRootWindow )
 						{
 							// Save off the window position
 							const FVector2D PIEWindowPos = WindowBeingClosed->GetPositionInScreen();
@@ -3249,7 +3249,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 							// Route the callback
 							PIEViewportWidget.Pin()->OnWindowClosed( WindowBeingClosed );
 
-							if (PIEViewportWidget.Pin()->IsStereoRenderingAllowed() && GEngine->HMDDevice.IsValid())
+							if (bRestoreRootWindow)
 							{
 								// restore previously minimized root window.
 								TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
@@ -3263,7 +3263,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				
 					const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 					PieWindow->SetOnWindowClosed(FOnWindowClosed::CreateStatic(&FLocal::OnPIEWindowClosed, TWeakPtr<SViewport>(PieViewportWidget), 
-						(PlayNumberOfClients == 1) ? 0 : PieWorldContext->PIEInstance - (CanPlayNetDedicated ? 1 : 0)));
+						(PlayNumberOfClients == 1) ? 0 : PieWorldContext->PIEInstance - (CanPlayNetDedicated ? 1 : 0), bShouldMinimizeRootWindow));
 				}
 
 				// Create a new viewport that the viewport widget will use to render the game
@@ -3289,7 +3289,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				// Change the system resolution to match our window, to make sure game and slate window are kept syncronised
 				FSystemResolution::RequestResolutionChange(NewWindowWidth, NewWindowHeight, EWindowMode::Windowed);
 
-				if (bUseVRPreview && GEngine->HMDDevice.IsValid())
+				if (bShouldMinimizeRootWindow)
 				{
 					GEngine->HMDDevice->EnableStereo(true);
 

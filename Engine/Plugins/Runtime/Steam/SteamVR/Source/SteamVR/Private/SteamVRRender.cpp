@@ -20,6 +20,12 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 
 	UpdateLayerTextures();
 
+	if (bSplashIsShown)
+	{
+		SetRenderTarget(RHICmdList, SrcTexture, FTextureRHIRef());
+		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
+	}
+
 	if (WindowMirrorMode != 0)
 	{
 		const uint32 ViewportWidth = BackBuffer->GetSizeX();
@@ -186,7 +192,7 @@ bool FSteamVRHMD::D3D11Bridge::Present(int& SyncInterval)
 {
 	check(IsInRenderingThread());
 
-	if (bIsQuitting)
+	if (Plugin->VRCompositor == nullptr)
 	{
 		return false;
 	}

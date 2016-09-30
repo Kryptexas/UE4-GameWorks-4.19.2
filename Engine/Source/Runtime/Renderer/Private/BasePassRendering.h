@@ -38,6 +38,12 @@ public:
 		ForwardLocalLightBuffer.Bind(ParameterMap, TEXT("ForwardLocalLightBuffer"));
 		NumCulledLightsGrid.Bind(ParameterMap, TEXT("NumCulledLightsGrid"));
 		CulledLightDataGrid.Bind(ParameterMap, TEXT("CulledLightDataGrid"));
+		
+		InstancedForwardGlobalLightData.Bind(ParameterMap, TEXT("InstancedForwardGlobalLightData"));
+		InstancedForwardLocalLightBuffer.Bind(ParameterMap, TEXT("InstancedForwardLocalLightBuffer"));
+		InstancedNumCulledLightsGrid.Bind(ParameterMap, TEXT("InstancedNumCulledLightsGrid"));
+		InstancedCulledLightDataGrid.Bind(ParameterMap, TEXT("InstancedCulledLightDataGrid"));
+
 		LightAttenuationTexture.Bind(ParameterMap, TEXT("LightAttenuationTexture"));
 		LightAttenuationTextureSampler.Bind(ParameterMap, TEXT("LightAttenuationTextureSampler"));
 		IndirectOcclusionTexture.Bind(ParameterMap, TEXT("IndirectOcclusionTexture"));
@@ -46,13 +52,23 @@ public:
 	}
 
 	template<typename RHICommandListType, typename ShaderRHIParamRef>
-	void Set(RHICommandListType& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FViewInfo& View)
+	void Set(RHICommandListType& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FViewInfo& View, const bool bIsInstancedStereo = false)
 	{
 		//@todo - put all of these in a shader resource table
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, ForwardGlobalLightData, View.ForwardLightingResources->ForwardGlobalLightData);
 		SetSRVParameter(RHICmdList, ShaderRHI, ForwardLocalLightBuffer, View.ForwardLightingResources->ForwardLocalLightBuffer.SRV);
 		NumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->NumCulledLightsGrid);
 		CulledLightDataGrid.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->CulledLightDataGrid);
+
+		if (bIsInstancedStereo)
+		{
+			// Bind right eye uniforms to instanced parameters
+			const FSceneView& InstancedView = *View.Family->Views[1];
+			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedForwardGlobalLightData, InstancedView.ForwardLightingResources->ForwardGlobalLightData);
+			SetSRVParameter(RHICmdList, ShaderRHI, InstancedForwardLocalLightBuffer, InstancedView.ForwardLightingResources->ForwardLocalLightBuffer.SRV);
+			InstancedNumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->NumCulledLightsGrid);
+			InstancedCulledLightDataGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->CulledLightDataGrid);
+		}
 
 		if (LightAttenuationTexture.IsBound() || IndirectOcclusionTexture.IsBound())
 		{
@@ -92,7 +108,7 @@ public:
 	{
 		NumCulledLightsGrid.UnsetUAV(RHICmdList, ShaderRHI);
 		CulledLightDataGrid.UnsetUAV(RHICmdList, ShaderRHI);
-
+		
 		TArray<FUnorderedAccessViewRHIParamRef, TInlineAllocator<2>> OutUAVs;
 
 		if (NumCulledLightsGrid.IsBound())
@@ -127,6 +143,12 @@ public:
 		Ar << P.ForwardLocalLightBuffer;
 		Ar << P.NumCulledLightsGrid;
 		Ar << P.CulledLightDataGrid;
+
+		Ar << P.InstancedForwardGlobalLightData;
+		Ar << P.InstancedForwardLocalLightBuffer;
+		Ar << P.InstancedNumCulledLightsGrid;
+		Ar << P.InstancedCulledLightDataGrid;
+
 		Ar << P.LightAttenuationTexture;
 		Ar << P.LightAttenuationTextureSampler;
 		Ar << P.IndirectOcclusionTexture;
@@ -141,6 +163,12 @@ private:
 	FShaderResourceParameter ForwardLocalLightBuffer;
 	FRWShaderParameter NumCulledLightsGrid;
 	FRWShaderParameter CulledLightDataGrid;
+	
+	FShaderUniformBufferParameter InstancedForwardGlobalLightData;
+	FShaderResourceParameter InstancedForwardLocalLightBuffer;
+	FRWShaderParameter InstancedNumCulledLightsGrid;
+	FRWShaderParameter InstancedCulledLightDataGrid;
+
 	FShaderResourceParameter LightAttenuationTexture;
 	FShaderResourceParameter LightAttenuationTextureSampler;
 	FShaderResourceParameter IndirectOcclusionTexture;
@@ -668,6 +696,7 @@ public:
 		EBlendMode BlendMode, 
 		bool bEnableEditorPrimitveDepthTest,
 		ESceneRenderTargetsMode::Type TextureMode,
+		bool bIsInstancedStereo,
 		bool bUseDownsampledTranslucencyViewUniformBuffer)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
@@ -685,7 +714,7 @@ public:
 		
 		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 
-		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, *View);
+		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, *View, bIsInstancedStereo);
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode);
@@ -974,7 +1003,7 @@ public:
 		}
 		else
 		{
-			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, bEnableEditorPrimitiveDepthTest, SceneTextureMode, bUseDownsampledTranslucencyViewUniformBuffer);
+			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, bEnableEditorPrimitiveDepthTest, SceneTextureMode, PolicyContext.bIsInstancedStereo, bUseDownsampledTranslucencyViewUniformBuffer);
 
 			switch(BlendMode)
 			{
@@ -1223,6 +1252,7 @@ public:
 	ESceneRenderTargetsMode::Type TextureMode;
 	ERHIFeatureLevel::Type FeatureLevel;
 	const bool bIsInstancedStereo;
+	const bool bUseMobileMultiViewMask;
 
 	/** Initialization constructor. */
 	FProcessBasePassMeshParameters(
@@ -1232,8 +1262,9 @@ public:
 		bool InbAllowFog,
 		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
-		ERHIFeatureLevel::Type InFeatureLevel, 
-		const bool InbIsInstancedStereo = false
+		ERHIFeatureLevel::Type InFeatureLevel,
+		const bool InbIsInstancedStereo = false,
+		const bool InbUseMobileMultiViewMask = false
 		):
 		Mesh(InMesh),
 		BatchElementMask(Mesh.Elements.Num()==1 ? 1 : (1<<Mesh.Elements.Num())-1), // 1 bit set for each mesh element
@@ -1245,7 +1276,8 @@ public:
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
 		FeatureLevel(InFeatureLevel), 
-		bIsInstancedStereo(InbIsInstancedStereo)
+		bIsInstancedStereo(InbIsInstancedStereo), 
+		bUseMobileMultiViewMask(InbUseMobileMultiViewMask)
 	{
 	}
 
@@ -1259,7 +1291,8 @@ public:
 		bool bInEditorCompositeDepthTest,
 		ESceneRenderTargetsMode::Type InTextureMode,
 		ERHIFeatureLevel::Type InFeatureLevel, 
-		bool InbIsInstancedStereo = false
+		bool InbIsInstancedStereo = false, 
+		bool InbUseMobileMultiViewMask = false
 		) :
 		Mesh(InMesh),
 		BatchElementMask(InBatchElementMask),
@@ -1271,7 +1304,8 @@ public:
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode),
 		FeatureLevel(InFeatureLevel),
-		bIsInstancedStereo(InbIsInstancedStereo)
+		bIsInstancedStereo(InbIsInstancedStereo), 
+		bUseMobileMultiViewMask(InbUseMobileMultiViewMask)
 	{
 	}
 };

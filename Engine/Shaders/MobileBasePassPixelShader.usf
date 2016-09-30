@@ -182,7 +182,7 @@ half3 BlendReflectionCapture(FMaterialPixelParameters MaterialParameters, half R
 half3 BlendReflectionCaptures(FMaterialPixelParameters MaterialParameters, half Roughness)
 {
 	// Compute fractional mip from roughness
-	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, View.ReflectionCubemapMaxMip);
+	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, ResolvedView.ReflectionCubemapMaxMip);
 
 	half3 SpecularIBL = half3(0, 0, 0);
 	half BlendFactor = 1;
@@ -209,7 +209,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	half3 ProjectedCaptureVector = MaterialParameters.ReflectionVector;	
 
 	// Compute fractional mip from roughness
-	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, View.ReflectionCubemapMaxMip);
+	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, ResolvedView.ReflectionCubemapMaxMip);
 	// Fetch from cubemap and convert to linear HDR
 	half3 SpecularIBL = RGBMDecode(ReflectionCubemap.SampleLevel(ReflectionCubemapSampler, ProjectedCaptureVector, AbsoluteSpecularMip), 16.0f);
 	SpecularIBL = SpecularIBL * SpecularIBL * InvReflectionCubemapAverageBrightness.x;
@@ -242,10 +242,10 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 	BRANCH
 		if (bEnableEditorPrimitiveDepthTest)
 		{
-			bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
+			bool bIsPerspective = (ResolvedView.ViewToClip._m33 < 1.0f);
 
 			// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-			float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - View.TemporalAAParams.zw) * View.BufferSizeAndInvSize.zw, 0).r;
+			float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - ResolvedView.TemporalAAParams.zw) * ResolvedView.BufferSizeAndInvSize.zw, 0).r;
 
 			float PixelDeviceZ = MaterialParameters.SvPosition.z;
 
@@ -289,14 +289,21 @@ half3 FrameBufferBlendOp(half4 Source)
 }
 
 void Main( 
-	FVertexFactoryInterpolantsVSToPS Interpolants,
-	FMobileBasePassInterpolantsVSToPS BasePassInterpolants,
-	in float4 SvPosition : SV_Position
-	OPTIONAL_IsFrontFace,
-	out half4 OutColor	: SV_Target0
+	FVertexFactoryInterpolantsVSToPS Interpolants
+	, FMobileBasePassInterpolantsVSToPS BasePassInterpolants
+	, in float4 SvPosition : SV_Position
+	OPTIONAL_IsFrontFace
+	, out half4 OutColor	: SV_Target0
+#if MOBILE_MULTI_VIEW
+	, in uint ViewId : SV_ViewID
+#endif
 	)
 {
+#if MOBILE_MULTI_VIEW
+	ResolvedView = ResolveView(ViewId);
+#else
 	ResolvedView = ResolveView();
+#endif
 
 #if PACK_INTERPOLANTS
 	float4 PackedInterpolants[NUM_VF_PACKED_INTERPOLANTS];
@@ -305,13 +312,13 @@ void Main(
 
 #if ES2_PROFILE && OUTPUT_GAMMA_SPACE && !MOBILE_EMULATION
 	// LDR ES2 needs screen vertical flipped
-	SvPosition.y = View.BufferSizeAndInvSize.y - SvPosition.y - 1;
+	SvPosition.y = ResolvedView.BufferSizeAndInvSize.y - SvPosition.y - 1;
 #endif
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
 	FPixelMaterialInputs PixelMaterialInputs;
 	{
-		float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
+		float4 ScreenPosition = SvPositionToResolvedScreenPosition(SvPosition);
 		float3 WorldPosition = BasePassInterpolants.PixelPosition;
 		float3 WorldPositionExcludingWPO = BasePassInterpolants.PixelPosition;
 		#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
@@ -362,8 +369,8 @@ void Main(
 #if MOBILE_EMULATION
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		DiffuseColor = DiffuseColor * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
-		SpecularColor = SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
+		DiffuseColor = DiffuseColor * ResolvedView.DiffuseOverrideParameter.w + ResolvedView.DiffuseOverrideParameter.xyz;
+		SpecularColor = SpecularColor * ResolvedView.SpecularOverrideParameter.w + ResolvedView.SpecularOverrideParameter.xyz;
 	}
 #endif
 	
@@ -420,7 +427,8 @@ void Main(
 	#if !MATERIAL_SHADINGMODEL_UNLIT
 		half Shadow = GetPrimaryPrecomputedShadowMask(Interpolants).r;
 			
-		#if DIRECTIONAL_LIGHT_CSM
+		// TODO: This is broken with multi-view?
+		#if DIRECTIONAL_LIGHT_CSM && !MOBILE_MULTI_VIEW
 		// Cascaded Shadow Map
 		{
 			FPCFSamplerSettings Settings;
@@ -486,7 +494,7 @@ void Main(
 		#if ENABLE_SKY_LIGHT
 			//@mw todo
 			// TODO: Also need to do specular.
-			Color += GetSkySHDiffuseSimple(MaterialParameters.WorldNormal) * View.SkyLightColor.rgb * DiffuseColor;    
+			Color += GetSkySHDiffuseSimple(MaterialParameters.WorldNormal) * ResolvedView.SkyLightColor.rgb * DiffuseColor;    
 		#endif
 
 		#if MAX_DYNAMIC_POINT_LIGHTS > 0
@@ -555,7 +563,7 @@ void Main(
 #endif
 
 #if !MATERIAL_SHADINGMODEL_UNLIT && MOBILE_EMULATION
-	Color = lerp(Color, DiffuseColor + SpecularColor, View.UnlitViewmodeMask);
+	Color = lerp(Color, DiffuseColor + SpecularColor, ResolvedView.UnlitViewmodeMask);
 #endif
 
 	#if MATERIALBLENDING_TRANSLUCENT
@@ -583,7 +591,7 @@ void Main(
 	#if !MATERIALBLENDING_MODULATE
 		// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
 		// After 4.2 we can put the workaround in the cross compiler.
-		OutColor.rgba *= View.ExposureScale.xyzw;
+		OutColor.rgba *= ResolvedView.ExposureScale.xyzw;
 	#endif
 
 	#if OUTPUT_GAMMA_SPACE

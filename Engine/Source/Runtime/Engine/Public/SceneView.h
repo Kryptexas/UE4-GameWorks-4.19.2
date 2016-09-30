@@ -21,6 +21,7 @@ class FViewUniformShaderParameters;
 class FInstancedViewUniformShaderParameters;
 class FViewElementDrawer;
 class FSceneViewFamily;
+class FForwardLightingViewResources;
 
 // Projection data for a FSceneView
 struct FSceneViewProjectionData
@@ -474,7 +475,7 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, DistanceFieldAOSpecularOcclusionMode) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, IndirectCapsuleSelfShadowingIntensity) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, ReflectionEnvironmentRoughnessMixingScaleBias) \
-	VIEW_UNIFORM_BUFFER_MEMBER(uint32, StereoPassIndex) \
+	VIEW_UNIFORM_BUFFER_MEMBER(int32, StereoPassIndex) \
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, GlobalVolumeCenterAndExtent_UB, [GMaxGlobalDistanceFieldClipmaps]) \
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, GlobalVolumeWorldToUVAddAndMul_UB, [GMaxGlobalDistanceFieldClipmaps]) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeDimension_UB) \
@@ -729,6 +730,9 @@ public:
 	/** True if multi-view is enabled. */
 	bool bIsMultiViewEnabled;
 
+	/** True if mobile multi-view is enabled. */
+	bool bIsMobileMultiViewEnabled;
+
 	/** Global clipping plane being applied to the scene, or all 0's if disabled.  This is used when rendering the planar reflection pass. */
 	FPlane GlobalClippingPlane;
 
@@ -775,6 +779,9 @@ public:
 	FTextureRHIRef AtmosphereTransmittanceTexture;
 	FTextureRHIRef AtmosphereIrradianceTexture;
 	FTextureRHIRef AtmosphereInscatterTexture;
+
+	/** Points to the view state's resources if a view state exists. */
+	FForwardLightingViewResources* ForwardLightingResources;
 
 	/** Feature level for this scene */
 	ERHIFeatureLevel::Type FeatureLevel;

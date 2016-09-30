@@ -217,11 +217,11 @@ public:
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FStringAssetReferenceLoaded, const FName&);
 	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
 
-	/** Sent when the platform needs the user to fix headset tracking on startup */
+	/** Sent when the platform needs the user to fix headset tracking on startup (PS4 Morpheus only) */
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetTrackingInitializingAndNeedsHMDToBeTrackedDelegate);
 	static FVRHeadsetTrackingInitializingAndNeedsHMDToBeTrackedDelegate VRHeadsetTrackingInitializingAndNeedsHMDToBeTrackedDelegate;
 
-	/** Sent when the platform finds that needed headset tracking on startup has completed */
+	/** Sent when the platform finds that needed headset tracking on startup has completed (PS4 Morpheus only) */
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetTrackingInitializedDelegate);
 	static FVRHeadsetTrackingInitializedDelegate VRHeadsetTrackingInitializedDelegate;
 
@@ -236,6 +236,18 @@ public:
 	/** Sent when connection to VR HMD is restored */
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetReconnected);
 	static FVRHeadsetReconnected VRHeadsetReconnected;
+
+	/** Sent when connection to VR HMD connection is refused by the player */
+	DECLARE_MULTICAST_DELEGATE(FVRHeadsetConnectCanceled);
+	static FVRHeadsetConnectCanceled VRHeadsetConnectCanceled;
+
+	/** Sent when the VR HMD detects that it has been put on by the player. */
+	DECLARE_MULTICAST_DELEGATE(FVRHeadsetPutOnHead);
+	static FVRHeadsetPutOnHead VRHeadsetPutOnHead;
+
+	/** Sent when the VR HMD detects that it has been taken off by the player. */
+	DECLARE_MULTICAST_DELEGATE(FVRHeadsetRemovedFromHead);
+	static FVRHeadsetRemovedFromHead VRHeadsetRemovedFromHead;
 
 	/** Sent when application code changes the user activity hint string for analytics, crash reports, etc */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUserActivityStringChanged, const FString&);

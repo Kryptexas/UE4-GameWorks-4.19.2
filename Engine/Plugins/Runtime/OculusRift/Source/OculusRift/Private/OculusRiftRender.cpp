@@ -73,7 +73,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 	FOculusRiftHMD* OculusRiftHMD = static_cast<FOculusRiftHMD*>(RenderContext.Delegate);
 
 	OculusRiftHMD->PerformanceStats.Frames++;
-	OculusRiftHMD->PerformanceStats.Seconds += DisplayTime;
+	OculusRiftHMD->PerformanceStats.Seconds = DisplayTime;
 
 	if (RenderContext.ShowFlags.Rendering)
 	{
@@ -390,7 +390,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), DstViewRect, SrcViewRect, false, false);
 		}
 	}
-#if !UE_BUILD_SHIPPING
+#if OCULUS_STRESS_TESTS_ENABLED
 	if (StressTester)
 	{
 		StressTester->TickGPU_RenderThread(RHICmdList, BackBuffer, SrcTexture);

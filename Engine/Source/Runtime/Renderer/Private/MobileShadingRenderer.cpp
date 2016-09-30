@@ -16,6 +16,7 @@
 #include "PostProcessCompositeEditorPrimitives.h"
 #include "PostProcessHMD.h"
 #include "IHeadMountedDisplay.h"
+#include "ScreenRendering.h"
 
 uint32 GetShadowQuality();
 
@@ -132,7 +133,9 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (bGammaSpace && !bRenderToSceneColor)
 	{
-		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EClearColorAndDepth);
+		const FTextureRHIParamRef SceneColor = (View.bIsMobileMultiViewEnabled) ? SceneContext.MobileMultiViewSceneColor->GetRenderTargetItem().TargetableTexture : static_cast<FTextureRHIRef>(ViewFamily.RenderTarget->GetRenderTargetTexture());
+		const FTextureRHIParamRef SceneDepth = (View.bIsMobileMultiViewEnabled) ? SceneContext.MobileMultiViewSceneDepthZ->GetRenderTargetItem().TargetableTexture : static_cast<FTextureRHIRef>(SceneContext.GetSceneDepthTexture());
+		SetRenderTarget(RHICmdList, SceneColor, SceneDepth, ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
 	else
 	{
@@ -180,6 +183,8 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 		RenderTranslucency(RHICmdList);
 	}
+
+	CopyMobileMultiViewSceneColor(RHICmdList);
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 	bool bOnChipSunMask =
@@ -236,6 +241,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			BasicPostProcess(RHICmdList, Views[ViewIndex], bRequiresUpscale, FSceneRenderer::ShouldCompositeEditorPrimitives(Views[ViewIndex]));
 		}
 	}
+
 	RenderFinish(RHICmdList);
 }
 
@@ -387,5 +393,104 @@ void FMobileSceneRenderer::CreateDirectionalLightUniformBuffers(FSceneView& Scen
 		}
 
 		SceneView.MobileDirectionalLightUniformBuffers[ChannelIdx + 1] = TUniformBufferRef<FMobileDirectionalLightShaderParameters>::CreateUniformBufferImmediate(Params, UniformBuffer_SingleFrame);
+	}
+}
+
+class FCopyMobileMultiViewSceneColorPS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FCopyMobileMultiViewSceneColorPS, Global);
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return true;;
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+	}
+
+	FCopyMobileMultiViewSceneColorPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		MobileMultiViewSceneColorTexture.Bind(Initializer.ParameterMap, TEXT("MobileMultiViewSceneColorTexture"));
+		MobileMultiViewSceneColorTextureSampler.Bind(Initializer.ParameterMap, TEXT("MobileMultiViewSceneColorTextureSampler"));
+	}
+
+	FCopyMobileMultiViewSceneColorPS() {}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FTextureRHIRef InMobileMultiViewSceneColorTexture)
+	{
+		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
+			MobileMultiViewSceneColorTexture,
+			MobileMultiViewSceneColorTextureSampler,
+			TStaticSamplerState<SF_Bilinear>::GetRHI(),
+			InMobileMultiViewSceneColorTexture);
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		const bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << MobileMultiViewSceneColorTexture;
+		Ar << MobileMultiViewSceneColorTextureSampler;
+		return bShaderHasOutdatedParameters;
+	}
+
+	FShaderResourceParameter MobileMultiViewSceneColorTexture;
+	FShaderResourceParameter MobileMultiViewSceneColorTextureSampler;
+};
+
+IMPLEMENT_SHADER_TYPE(, FCopyMobileMultiViewSceneColorPS, TEXT("MobileMultiView"), TEXT("MainPS"), SF_Pixel);
+
+void FMobileSceneRenderer::CopyMobileMultiViewSceneColor(FRHICommandListImmediate& RHICmdList)
+{
+	if (!Views[0].bIsMobileMultiViewEnabled)
+	{
+		return;
+	}
+
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+	// Switching from the multi-view scene color render target array to side by side scene color
+	SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop, true);
+
+	const auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+	TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
+	TShaderMapRef<FCopyMobileMultiViewSceneColorPS> PixelShader(ShaderMap);
+
+	static FGlobalBoundShaderState BoundShaderState;
+	extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
+	{
+		const FViewInfo& View = Views[ViewIndex];
+
+		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
+		// Multi-view color target is our input texture array
+		PixelShader->SetParameters(RHICmdList, View, SceneContext.MobileMultiViewSceneColor->GetRenderTargetItem().ShaderResourceTexture);
+
+		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Min.X + View.ViewRect.Width(), View.ViewRect.Min.Y + View.ViewRect.Height(), 1.0f);
+		const FIntPoint TargetSize(View.ViewRect.Width(), View.ViewRect.Height());
+
+		DrawRectangle(
+			RHICmdList,
+			0, 0,
+			View.ViewRect.Width(), View.ViewRect.Height(),
+			0, 0,
+			View.ViewRect.Width(), View.ViewRect.Height(),
+			TargetSize,
+			TargetSize,
+			*VertexShader,
+			EDRF_UseTriangleOptimization);
 	}
 }

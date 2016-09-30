@@ -33,6 +33,7 @@ public:
 			, TransformInMeters(FVector(4.0f, 0.f, 0.f))
 			, QuadSizeInMeters(3.f, 3.f)
 			, DeltaRotation(FQuat::Identity)
+			, LoadedTexture(nullptr)
 		{
 		}
 		bool operator==(const FSplashDesc& d) const
@@ -41,6 +42,8 @@ public:
 				TransformInMeters.Equals(d.TransformInMeters) && 
 				QuadSizeInMeters == d.QuadSizeInMeters && DeltaRotation.Equals(d.DeltaRotation);
 		}
+
+		FTextureRHIRef LoadedTexture;
 	};
 
 	FAsyncLoadingSplash();

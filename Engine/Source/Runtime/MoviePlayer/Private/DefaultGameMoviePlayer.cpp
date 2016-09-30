@@ -15,6 +15,7 @@
 #include "DefaultGameMoviePlayer.h"
 #include "MoviePlayerSettings.h"
 #include "ShaderCompiler.h"
+#include "IHeadMountedDisplay.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
@@ -369,6 +370,12 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 
 		LoadingIsDone.Set(1);
 
+		IStereoLayers* StereoLayers;
+		if (GEngine && GEngine->HMDDevice.IsValid() && (StereoLayers = GEngine->HMDDevice->GetStereoLayers()) != nullptr && SyncMechanism == nullptr)
+		{
+			StereoLayers->SetSplashScreenMovie(FTextureRHIRef());
+		}
+
 		MovieStreamingIsDone.Set(1);
 
 		FlushRenderingCommands();
@@ -446,6 +453,18 @@ void FDefaultGameMoviePlayer::TickStreamer(float DeltaTime)
 		if (bMovieIsDone)
 		{
 			MovieStreamingIsDone.Set(1);
+		}
+
+		IStereoLayers* StereoLayers;
+		if (GEngine && GEngine->HMDDevice.IsValid() && (StereoLayers = GEngine->HMDDevice->GetStereoLayers()) != nullptr)
+		{
+			FTexture2DRHIRef Movie2DTexture = MovieStreamer->GetTexture();
+			FTextureRHIRef MovieTexture;
+			if (Movie2DTexture.IsValid() && !bMovieIsDone)
+			{
+				MovieTexture = (FRHITexture*)Movie2DTexture.GetReference();
+			}
+			StereoLayers->SetSplashScreenMovie(MovieTexture);
 		}
 	}
 }

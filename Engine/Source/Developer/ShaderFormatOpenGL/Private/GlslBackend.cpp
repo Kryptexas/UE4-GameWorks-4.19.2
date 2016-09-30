@@ -3454,6 +3454,7 @@ static FSystemValue VertexSystemValueTable[] =
 	{ "SV_VertexID", glsl_type::int_type, "gl_VertexID", ir_var_in, false, false, false, false },
 	{ "SV_InstanceID", glsl_type::int_type, "gl_InstanceID", ir_var_in, false, false, false, false },
 	{ "SV_Position", glsl_type::vec4_type, "gl_Position", ir_var_out, false, false, true, false },
+	{ "SV_ViewID", glsl_type::uint_type, "gl_ViewID_OVR", ir_var_in, false, false, false, true }, // Mobile multi-view support
 	{ NULL, NULL, NULL, ir_var_auto, false, false, false, false }
 };
 
@@ -3466,6 +3467,7 @@ static FSystemValue PixelSystemValueTable[] =
 	{ "SV_PrimitiveID", glsl_type::int_type, "gl_PrimitiveID", ir_var_in, false, false, false, false },
 	{ "SV_RenderTargetArrayIndex", glsl_type::int_type, "gl_Layer", ir_var_in, false, false, false, false },
 	{ "SV_Target0", glsl_type::half4_type, "gl_FragColor", ir_var_out, false, false, false, true },
+	{ "SV_ViewID", glsl_type::uint_type, "gl_ViewID_OVR", ir_var_in, false, false, false, true }, // Mobile multi-view support
 	{ NULL, NULL, NULL, ir_var_auto, false, false, false }
 };
 
@@ -3689,6 +3691,21 @@ static ir_rvalue* GenShaderInputSemantic(
 	}
 
 	ir_variable* Variable = NULL;
+
+	// Mobile multi-view support
+	if (Variable == NULL && (Frequency == HSF_VertexShader || Frequency == HSF_PixelShader))
+	{
+		const int PrefixLength = 9;
+		if (FCStringAnsi::Strnicmp(Semantic, "SV_ViewID", PrefixLength) == 0)
+		{
+			Variable = new(ParseState)ir_variable(
+				Type,
+				ralloc_asprintf(ParseState, "gl_ViewID_OVR"),
+				ir_var_in
+			);
+		}
+	}
+
 	if (Variable == NULL && Frequency == HSF_DomainShader)
 	{
 		const int PrefixLength = 13;

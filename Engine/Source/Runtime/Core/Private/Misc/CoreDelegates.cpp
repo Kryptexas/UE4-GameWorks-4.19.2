@@ -78,6 +78,9 @@ FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetTrackingInitializedD
 FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetRecenter;
 FCoreDelegates::FVRHeadsetLost FCoreDelegates::VRHeadsetLost;
 FCoreDelegates::FVRHeadsetReconnected FCoreDelegates::VRHeadsetReconnected;
+FCoreDelegates::FVRHeadsetConnectCanceled FCoreDelegates::VRHeadsetConnectCanceled;
+FCoreDelegates::FVRHeadsetPutOnHead FCoreDelegates::VRHeadsetPutOnHead;
+FCoreDelegates::FVRHeadsetRemovedFromHead FCoreDelegates::VRHeadsetRemovedFromHead;
 
 FCoreDelegates::FOnUserActivityStringChanged FCoreDelegates::UserActivityStringChanged;
 FCoreDelegates::FOnGameSessionIDChange FCoreDelegates::GameSessionIDChanged;

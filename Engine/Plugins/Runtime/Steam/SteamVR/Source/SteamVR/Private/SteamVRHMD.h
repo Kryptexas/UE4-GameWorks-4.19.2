@@ -5,6 +5,7 @@
 #include "HeadMountedDisplay.h"
 #include "IHeadMountedDisplay.h"
 #include "SteamVRFunctionLibrary.h"
+#include "SteamVRSplash.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -53,7 +54,8 @@ public:
 
 	virtual bool DoesSupportPositionalTracking() const override;
 	virtual bool HasValidTrackingPosition() override;
-	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
+	virtual uint32 GetNumOfTrackingSensors() const override;
+	virtual bool GetTrackingSensorProperties(uint8 InSensorIndex, FVector& OutOrigin, FQuat& OutOrientation, float& OutLeftFOV, float& OutRightFOV, float& OutTopFOV, float& OutBottomFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
 	virtual void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const override;
 
 	virtual void SetInterpupillaryDistance(float NewInterpupillaryDistance) override;
@@ -136,6 +138,7 @@ public:
 	virtual void SetLayerDesc(uint32 LayerId, const FLayerDesc& InLayerDesc) override;
 	virtual bool GetLayerDesc(uint32 LayerId, FLayerDesc& OutLayerDesc) override;
 	virtual void MarkTextureForUpdate(uint32 LayerId) override;
+	virtual void UpdateSplashScreen() override;
 
 	class BridgeBaseImpl : public FRHICustomPresent
 	{
@@ -190,7 +193,7 @@ public:
 
 	/** Motion Controllers */
 	ESteamVRTrackedDeviceType GetTrackedDeviceType(uint32 DeviceId) const;
-	void GetTrackedDeviceIds(ESteamVRTrackedDeviceType DeviceType, TArray<int32>& TrackedIds);
+	void GetTrackedDeviceIds(ESteamVRTrackedDeviceType DeviceType, TArray<int32>& TrackedIds) const;
 	bool GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat& CurrentOrientation, FVector& CurrentPosition);
 	ETrackingStatus GetControllerTrackingStatus(uint32 DeviceId) const;
 	STEAMVR_API bool GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation );
@@ -232,9 +235,9 @@ private:
 	};
 
 	/**
-	 * Starts up the OpenVR API
+	 * Starts up the OpenVR API. Returns true if initialization was successful, false if not.
 	 */
-	void Startup();
+	bool Startup();
 
 	/**
 	 * Shuts down the OpenVR API
@@ -399,6 +402,8 @@ private:
 	TArray<FLayer>	Layers;
 	mutable FCriticalSection LayerCritSect;
 
+	TSharedPtr<FSteamSplashTicker>	SplashTicker;
+	
 	float IPD;
 	int32 WindowMirrorMode;		// how to mirror the display contents to the desktop window: 0 - no mirroring, 1 - single eye, 2 - stereo pair
 	uint32 WindowMirrorBoundsWidth;
@@ -425,7 +430,8 @@ private:
 	FVector					BaseOffset;
 
 	// State for tracking quit operation
-	static bool				bIsQuitting;
+	bool					bIsQuitting;
+	double					QuitTimestamp;
 
 	/**  True if the HMD sends an event that the HMD is being interacted with */
 	bool					bShouldCheckHMDPosition;
@@ -451,6 +457,8 @@ private:
 public:
 	static pVRIsHmdPresent VRIsHmdPresentFn;
 	static pVRGetGenericInterface VRGetGenericInterfaceFn;
+
+	friend class FSteamSplashTicker;
 };
 
 

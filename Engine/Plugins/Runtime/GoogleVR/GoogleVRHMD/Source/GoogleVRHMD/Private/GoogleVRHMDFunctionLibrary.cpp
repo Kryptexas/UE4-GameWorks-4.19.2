@@ -22,7 +22,7 @@ UGoogleVRHMDFunctionLibrary::UGoogleVRHMDFunctionLibrary(const FObjectInitialize
 {
 }
 
-FGoogleVRHMD* GetHMD()
+static FGoogleVRHMD* GetHMD()
 {
 	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetVersionString().Contains(TEXT("GoogleVR")) )
 	{

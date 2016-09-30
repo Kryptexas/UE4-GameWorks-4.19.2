@@ -79,6 +79,9 @@ PFNGLBINDBUFFERBASEPROC					glBindBufferBase = NULL;
 PFNGLGETUNIFORMBLOCKINDEXPROC			glGetUniformBlockIndex = NULL;
 PFNGLUNIFORMBLOCKBINDINGPROC			glUniformBlockBinding = NULL;
 
+PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC glFramebufferTextureMultiviewOVR = NULL;
+PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC glFramebufferTextureMultisampleMultiviewOVR = NULL;
+
 struct FPlatformOpenGLDevice
 {
 
@@ -374,6 +377,7 @@ bool FAndroidOpenGL::bES30Support = false;
 bool FAndroidOpenGL::bES31Support = false;
 bool FAndroidOpenGL::bSupportsInstancing = false;
 bool FAndroidOpenGL::bHasHardwareHiddenSurfaceRemoval = false;
+bool FAndroidOpenGL::bSupportsMobileMultiView = false;
 
 void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
@@ -489,6 +493,27 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		
 		// According to https://www.khronos.org/registry/gles/extensions/EXT/EXT_color_buffer_float.txt
 		bSupportsColorBufferHalfFloat = (bSupportsColorBufferHalfFloat || bSupportsColorBufferFloat);
+	}
+
+	if (bES30Support)
+	{
+		// Mobile multi-view setup
+		const bool bMultiViewSupport = ExtensionsString.Contains(TEXT("GL_OVR_multiview"));
+		const bool bMultiView2Support = ExtensionsString.Contains(TEXT("GL_OVR_multiview2"));
+		const bool bMultiViewMultiSampleSupport = ExtensionsString.Contains(TEXT("GL_OVR_multiview_multisampled_render_to_texture"));
+		if (bMultiViewSupport && bMultiView2Support && bMultiViewMultiSampleSupport)
+		{
+			glFramebufferTextureMultiviewOVR = (PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC)((void*)eglGetProcAddress("glFramebufferTextureMultiviewOVR"));
+			glFramebufferTextureMultisampleMultiviewOVR = (PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC)((void*)eglGetProcAddress("glFramebufferTextureMultisampleMultiviewOVR"));
+
+			bSupportsMobileMultiView = (glFramebufferTextureMultiviewOVR != NULL) && (glFramebufferTextureMultisampleMultiviewOVR != NULL);
+
+			// Just because the driver declares multi-view support and hands us valid function pointers doesn't actually guarantee the feature works...
+			if (bSupportsMobileMultiView)
+			{
+				UE_LOG(LogRHI, Log, TEXT("Device supports mobile multi-view."));
+			}
+		}
 	}
 
 	if (bES31Support)

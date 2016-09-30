@@ -188,7 +188,7 @@ void FOculusRiftSplash::Show(EShowType InShowType)
 					// load temporary texture (if TexturePath was specified)
 					LoadTexture(SplashScreenDescs[i]);
 				}
-				if (SplashScreenDescs[i].LoadingTexture->IsValidLowLevel())
+				if (SplashScreenDescs[i].LoadingTexture && SplashScreenDescs[i].LoadingTexture->IsValidLowLevel())
 				{
 					SplashScreenDescs[i].LoadingTexture->UpdateResource();
 					bWaitForRT = true;
@@ -201,27 +201,27 @@ void FOculusRiftSplash::Show(EShowType InShowType)
 			for (int32 i = 0; i < SplashScreenDescs.Num(); ++i)
 			{
 				//@DBG BEGIN
-				if (!SplashScreenDescs[i].LoadingTexture->IsValidLowLevel())
+				if (SplashScreenDescs[i].LoadingTexture->IsValidLowLevel())
 				{
-					continue;
-				}
-				if (!SplashScreenDescs[i].LoadingTexture->Resource)
-				{
-					UE_LOG(LogHMD, Warning, TEXT("Splash, %s - no Resource"), *SplashScreenDescs[i].LoadingTexture->GetDesc());
-				}
-				else
-				{
-					UE_CLOG(!SplashScreenDescs[i].LoadingTexture->Resource->TextureRHI, LogHMD, Warning, TEXT("Splash, %s - no TextureRHI"), *SplashScreenDescs[i].LoadingTexture->GetDesc());
+					if (SplashScreenDescs[i].LoadingTexture->Resource && SplashScreenDescs[i].LoadingTexture->Resource->TextureRHI)
+					{
+						SplashScreenDescs[i].LoadedTexture = SplashScreenDescs[i].LoadingTexture->Resource->TextureRHI;
+					}
+					else
+					{
+						UE_LOG(LogHMD, Warning, TEXT("Splash, %s - no Resource"), *SplashScreenDescs[i].LoadingTexture->GetDesc());
+					}
 				}
 				//@DBG END
-				if (SplashScreenDescs[i].LoadingTexture->Resource && SplashScreenDescs[i].LoadingTexture->Resource->TextureRHI)
+
+				if (SplashScreenDescs[i].LoadedTexture)
 				{
 					FRenderSplashInfo RenSplash;
 					// use X (depth) as layers priority
 					const uint32 Prio = FHMDLayerDesc::MaxPriority - uint32(SplashScreenDescs[i].TransformInMeters.GetTranslation().X * 1000.f);
 					TSharedPtr<FHMDLayerDesc> layer = LayerMgr->AddLayer(FHMDLayerDesc::Quad, Prio, FHMDLayerManager::Layer_TorsoLocked, RenSplash.SplashLID);
 					check(layer.IsValid());
-					layer->SetTexture(SplashScreenDescs[i].LoadingTexture->Resource->TextureRHI);
+					layer->SetTexture(SplashScreenDescs[i].LoadedTexture);
 					layer->SetTransform(SplashScreenDescs[i].TransformInMeters);
 					layer->SetQuadSize(SplashScreenDescs[i].QuadSizeInMeters);
 

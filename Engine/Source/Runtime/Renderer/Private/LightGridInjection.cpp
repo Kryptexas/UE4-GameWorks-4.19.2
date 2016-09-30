@@ -41,6 +41,7 @@ FAutoConsoleVariableRef CVarLightLinkedListCulling(
 	);
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FForwardGlobalLightData,TEXT("ForwardGlobalLightData"));
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FInstancedForwardGlobalLightData, TEXT("InstancedForwardGlobalLightData"));
 
 FForwardGlobalLightData::FForwardGlobalLightData()
 {

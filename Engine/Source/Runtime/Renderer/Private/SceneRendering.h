@@ -578,20 +578,28 @@ public:
 	{}
 };
 
+#define FORWARD_GLOBAL_LIGHT_DATA_UNIFORM_BUFFER_MEMBER_TABLE \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumLocalLights) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, NumReflectionCaptures) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, HasDirectionalLight) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, NumGridCells) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntVector, CulledGridSize) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, MaxCulledLightsPerCell) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, LightGridPixelSizeShift) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, LightGridZParams) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, DirectionalLightDirection) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, DirectionalLightColor) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, DirectionalLightShadowMapChannelMask) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, DirectionalLightDistanceFadeMAD) \
+
 BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FForwardGlobalLightData,)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumLocalLights)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumReflectionCaptures)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,HasDirectionalLight)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumGridCells)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntVector,CulledGridSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,MaxCulledLightsPerCell)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,LightGridPixelSizeShift)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,LightGridZParams)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,DirectionalLightDirection)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,DirectionalLightColor)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,DirectionalLightShadowMapChannelMask)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,DirectionalLightDistanceFadeMAD)
+	FORWARD_GLOBAL_LIGHT_DATA_UNIFORM_BUFFER_MEMBER_TABLE
 END_UNIFORM_BUFFER_STRUCT(FForwardGlobalLightData)
+
+// Copy for instanced stereo
+BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FInstancedForwardGlobalLightData, )
+	FORWARD_GLOBAL_LIGHT_DATA_UNIFORM_BUFFER_MEMBER_TABLE
+END_UNIFORM_BUFFER_STRUCT(FInstancedForwardGlobalLightData)
 
 class FForwardLightingViewResources
 {
@@ -814,9 +822,6 @@ public:
 	float FurthestReflectionCaptureDistance;
 	TUniformBufferRef<FReflectionCaptureData> ReflectionCaptureUniformBuffer;
 
-	/** Points to the view state's resources if a view state exists. */
-	FForwardLightingViewResources* ForwardLightingResources;
-
 	/** Used when there is no view state, buffers reallocate every frame. */
 	FForwardLightingViewResources ForwardLightingResourcesStorage;
 
@@ -901,10 +906,10 @@ public:
 	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once */
 	void SetValidEyeAdaptation() const;
 
-	/** Instanced stereo only needs to render the left eye. */
+	/** Instanced stereo and multi-view only need to render the left eye. */
 	bool ShouldRenderView() const 
 	{
-		if (!bIsInstancedStereoEnabled)
+		if (!bIsInstancedStereoEnabled && !bIsMobileMultiViewEnabled)
 		{
 			return true;
 		}
@@ -1404,7 +1409,11 @@ protected:
 	/** Creates uniform buffers with the mobile directional light parameters, for each lighting channel. Called by InitViews */
 	void CreateDirectionalLightUniformBuffers(FSceneView& SceneView);
 
+	/** Copy scene color from the mobile multi-view render targat array to side by side stereo scene color */
+	void CopyMobileMultiViewSceneColor(FRHICommandListImmediate& RHICmdList);
+
 private:
+
 	bool bModulatedShadowsInUse;
 };
 

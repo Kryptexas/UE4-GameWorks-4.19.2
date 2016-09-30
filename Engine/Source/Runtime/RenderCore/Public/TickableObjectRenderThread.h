@@ -62,10 +62,11 @@ public:
 
 	void Unregister()
 	{
-		// make sure this tickable object was registered from the rendering thread
-		checkf(IsInRenderingThread(), TEXT("Game thread attempted to unregister an object in the RenderingThreadTickableObjects array."));
 		if (bRegistered)
 		{
+			// make sure this tickable object was registered from the rendering thread
+			checkf(IsInRenderingThread(), TEXT("Game thread attempted to unregister an object in the RenderingThreadTickableObjects array."));
+
 			FRenderingThreadTickableObjectsArray& TickableObjectArray = bHighFrequency ? RenderingThreadHighFrequencyTickableObjects : RenderingThreadTickableObjects;
 			const int32 Pos = TickableObjectArray.Find(this);
 			check(Pos!=INDEX_NONE);

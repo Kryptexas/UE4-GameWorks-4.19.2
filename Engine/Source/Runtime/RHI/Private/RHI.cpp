@@ -258,6 +258,7 @@ bool GSupportsVolumeTextureRendering = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
 bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
 bool GSupportsTexture3D = true;
+bool GSupportsMobileMultiView = false;
 bool GSupportsResourceView = true;
 bool GSupportsMultipleRenderTargets = true;
 bool GSupportsWideMRT = true;

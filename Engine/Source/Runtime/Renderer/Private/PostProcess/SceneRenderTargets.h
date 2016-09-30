@@ -215,7 +215,7 @@ public:
 	 * Sets the scene color target and restores its contents if necessary
 	 */
 	void BeginRenderingSceneColor(FRHICommandList& FRHICommandListImmediate, ESimpleRenderTargetMode RenderTargetMode = ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil DepthStencilAccess = FExclusiveDepthStencil::DepthWrite_StencilWrite, bool bTransitionWritable = true);
-	
+
 	/**
 	 * Called when finished rendering to the scene color surface
 	 */
@@ -551,6 +551,10 @@ public:
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeAmbient[NumTranslucentVolumeRenderTargetSets];
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeDirectional[NumTranslucentVolumeRenderTargetSets];
 
+	/** Color and depth texture arrays for mobile multi-view */
+	TRefCountPtr<IPooledRenderTarget> MobileMultiViewSceneColor;
+	TRefCountPtr<IPooledRenderTarget> MobileMultiViewSceneDepthZ;
+
 	/** Color and opacity for editor primitives (i.e editor gizmos). */
 	TRefCountPtr<IPooledRenderTarget> EditorPrimitivesColor;
 
@@ -610,6 +614,12 @@ private:
 	FIntPoint ComputeDesiredSize(const FSceneViewFamily& ViewFamily);
 
 	void AllocSceneColor(FRHICommandList& RHICmdList);
+
+	/** Allocates the mobile multi-view scene color texture array render target. */
+	void AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList);
+
+	/** Allocates the mobile multi-view depth (no stencil) texture array render target. */
+	void AllocMobileMultiViewDepth(FRHICommandList& RHICmdList);
 
 	// internal method, used by AdjustGBufferRefCount()
 	void ReleaseGBufferTargets();

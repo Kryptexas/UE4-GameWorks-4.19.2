@@ -300,26 +300,44 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 		{
 			if(Desc.Is2DTexture())
 			{
-				RHICreateTargetableShaderResource2D(
-					Desc.Extent.X,
-					Desc.Extent.Y,
-					Desc.Format,
-					Desc.NumMips,
-					Desc.Flags,
-					Desc.TargetableFlags,
-					Desc.bForceSeparateTargetAndShaderResource,
-					CreateInfo,
-					(FTexture2DRHIRef&)Found->RenderTargetItem.TargetableTexture,
-					(FTexture2DRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
-					Desc.NumSamples
+				if (!Desc.IsArray())
+				{
+					RHICreateTargetableShaderResource2D(
+						Desc.Extent.X,
+						Desc.Extent.Y,
+						Desc.Format,
+						Desc.NumMips,
+						Desc.Flags,
+						Desc.TargetableFlags,
+						Desc.bForceSeparateTargetAndShaderResource,
+						CreateInfo,
+						(FTexture2DRHIRef&)Found->RenderTargetItem.TargetableTexture,
+						(FTexture2DRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
+						Desc.NumSamples
 					);
+				}
+				else
+				{
+					RHICreateTargetableShaderResource2DArray(
+						Desc.Extent.X,
+						Desc.Extent.Y,
+						Desc.ArraySize,
+						Desc.Format,
+						Desc.NumMips,
+						Desc.Flags,
+						Desc.TargetableFlags,
+						CreateInfo,
+						(FTexture2DArrayRHIRef&)Found->RenderTargetItem.TargetableTexture,
+						(FTexture2DArrayRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
+						Desc.NumSamples
+					);
+				}
 
 				if (GSupportsRenderTargetWriteMask && Desc.bCreateRenderTargetWriteMask)
 				{
 					Found->RenderTargetItem.RTWriteMaskDataBufferRHI = RHICreateRTWriteMaskBuffer((FTexture2DRHIRef&)Found->RenderTargetItem.TargetableTexture);
 					Found->RenderTargetItem.RTWriteMaskBufferRHI_SRV = RHICreateShaderResourceView(Found->RenderTargetItem.RTWriteMaskDataBufferRHI);
 				}
-
 
 				if( Desc.NumMips > 1 )
 				{

@@ -1297,9 +1297,6 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 
 	if (DoPreprocess())
 	{
-		// Disable instanced stereo until supported for glsl
-		StripInstancedStereo(PreprocessedShader);
-
 		char* GlslShaderSource = NULL;
 		char* ErrorLog = NULL;
 

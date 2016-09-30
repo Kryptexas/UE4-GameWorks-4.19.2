@@ -22,15 +22,13 @@
 #include "IOSVR.h"
 #include "OSVRTypes.h"
 
-THIRD_PARTY_INCLUDES_START
-	#include <osvr/ClientKit/InterfaceC.h>
+#include <osvr/ClientKit/InterfaceC.h>
 
-	#include <string>
-	#include <vector>
-	#include <queue>
-	#include <map>
-	#include <functional>
-THIRD_PARTY_INCLUDES_END
+#include <string>
+#include <vector>
+#include <queue>
+#include <map>
+#include <functional>
 
 DECLARE_LOG_CATEGORY_EXTERN(LogOSVRInputDevice, Log, All);
 
@@ -42,7 +40,8 @@ class OSVRButton;
 class FOSVRInputDevice : public IInputDevice, public IMotionController
 {
 public:
-    FOSVRInputDevice(const TSharedRef< FGenericApplicationMessageHandler >& MessageHandler);
+    FOSVRInputDevice(const TSharedRef< FGenericApplicationMessageHandler >& MessageHandler,
+        TSharedPtr<OSVREntryPoint, ESPMode::ThreadSafe> osvrEntryPoint, TSharedPtr<FOSVRHMD, ESPMode::ThreadSafe> osvrHMD);
     virtual ~FOSVRInputDevice();
     static void RegisterNewKeys();
 
@@ -82,6 +81,8 @@ public:
     void EventReport(const FKey& Key, const FVector& Translation, const FQuat& Orientation);
 
 private:
+    TSharedPtr<OSVREntryPoint, ESPMode::ThreadSafe> mOSVREntryPoint;
+    TSharedPtr<FOSVRHMD, ESPMode::ThreadSafe> mOSVRHMD;
     TMap<FString, OSVR_ClientInterface> interfaces;
     TArray<TSharedPtr<OSVRButton> > osvrButtons;
     OSVR_ClientContext context;

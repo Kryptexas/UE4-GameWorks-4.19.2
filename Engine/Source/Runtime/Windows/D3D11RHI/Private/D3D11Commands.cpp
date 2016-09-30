@@ -2261,6 +2261,11 @@ void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess Transiti
 			{
 				Resource = SourceTexture2D;
 			}
+			FD3D11Texture2DArray* SourceTexture2DArray = static_cast<FD3D11Texture2DArray*>(RenderTarget->GetTexture2DArray());
+			if (SourceTexture2DArray)
+			{
+				Resource = SourceTexture2DArray;
+			}
 			FD3D11TextureCube* SourceTextureCube = static_cast<FD3D11TextureCube*>(RenderTarget->GetTextureCube());
 			if (SourceTextureCube)
 			{

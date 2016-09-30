@@ -443,6 +443,35 @@ inline void RHICreateTargetableShaderResource2D(
 	}
 }
 
+inline void RHICreateTargetableShaderResource2DArray(
+	uint32 SizeX,
+	uint32 SizeY,
+	uint32 SizeZ,
+	uint8 Format,
+	uint32 NumMips,
+	uint32 Flags,
+	uint32 TargetableTextureFlags,
+	FRHIResourceCreateInfo& CreateInfo,
+	FTexture2DArrayRHIRef& OutTargetableTexture,
+	FTexture2DArrayRHIRef& OutShaderResourceTexture,
+	uint32 NumSamples = 1
+)
+{
+	// Ensure none of the usage flags are passed in.
+	check(!(Flags & TexCreate_RenderTargetable));
+	check(!(Flags & TexCreate_ResolveTargetable));
+	check(!(Flags & TexCreate_ShaderResource));
+
+	// Ensure that all of the flags provided for the targetable texture are not already passed in Flags.
+	check(!(Flags & TargetableTextureFlags));
+
+	// Ensure that the targetable texture is either render or depth-stencil targetable.
+	check(TargetableTextureFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable));
+
+	// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
+	OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture2DArray(SizeX, SizeY, SizeZ, Format, NumMips, Flags | TargetableTextureFlags | TexCreate_ShaderResource, CreateInfo);
+}
+
 /**
  * Creates 1 or 2 textures with the same dimensions/format.
  * If the RHI supports textures that can be used as both shader resources and render targets,

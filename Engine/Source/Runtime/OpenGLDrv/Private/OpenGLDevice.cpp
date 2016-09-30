@@ -760,6 +760,7 @@ static void InitRHICapabilitiesForGL()
 	GSupportsMultipleRenderTargets = FOpenGL::SupportsMultipleRenderTargets();
 	GSupportsWideMRT = FOpenGL::SupportsWideMRT();
 	GSupportsTexture3D = FOpenGL::SupportsTexture3D();
+	GSupportsMobileMultiView = FOpenGL::SupportsMobileMultiView();
 	GSupportsResourceView = FOpenGL::SupportsResourceView();
 		
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();

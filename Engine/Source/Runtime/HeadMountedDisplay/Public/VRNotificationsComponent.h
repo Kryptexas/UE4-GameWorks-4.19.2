@@ -16,13 +16,13 @@ class HEADMOUNTEDDISPLAY_API UVRNotificationsComponent : public UActorComponent
 	// The HMD will stay in NOT_STARTED until it is successfully position tracked.  Until it exits NOT_STARTED orientation
 	// based reprojection does not happen.  Therefore we do not update rotation at all to avoid user discomfort.
 	// Instructions to get the hmd tracked should be shown to the user.
-	// Sony may fix this eventually.
+	// Sony may fix this eventually. (PS4 Only) 
 	UPROPERTY(BlueprintAssignable)
 	FVRNotificationsDelegate HMDTrackingInitializingAndNeedsHMDToBeTrackedDelegate;
 
 	// This will be called on Morpheus when the HMD is done initializing and therefore
 	// reprojection will start functioning.
-	// The app can continue now.
+	// The app can continue now. (PS4 Only) 
 	UPROPERTY(BlueprintAssignable)
 	FVRNotificationsDelegate HMDTrackingInitializedDelegate;
 
@@ -38,6 +38,18 @@ class HEADMOUNTEDDISPLAY_API UVRNotificationsComponent : public UActorComponent
 	UPROPERTY(BlueprintAssignable)
 	FVRNotificationsDelegate HMDReconnectedDelegate;
 
+	// This will be called when the user declines to connect the HMD when prompted to do so by a system dialog. (PS4 Only)  
+	UPROPERTY(BlueprintAssignable)
+	FVRNotificationsDelegate HMDConnectCanceledDelegate;
+
+	// This will be called when the HMD detects that it has been put on by a player.  
+	UPROPERTY(BlueprintAssignable)
+	FVRNotificationsDelegate HMDPutOnHeadDelegate;
+
+	// This will be called when the HMD detects that it has been taken off by a player (disconnecting the hmd also causes it to register as taken off).  
+	UPROPERTY(BlueprintAssignable)
+	FVRNotificationsDelegate HMDRemovedFromHeadDelegate;
+
 public:
 	void OnRegister() override;
 	void OnUnregister() override;
@@ -49,6 +61,9 @@ private:
 	void HMDRecenteredDelegate_Handler()	{ HMDRecenteredDelegate.Broadcast(); }
 	void HMDLostDelegate_Handler()			{ HMDLostDelegate.Broadcast(); }
 	void HMDReconnectedDelegate_Handler()	{ HMDReconnectedDelegate.Broadcast(); }
+	void HMDConnectCanceledDelegate_Handler() { HMDConnectCanceledDelegate.Broadcast(); }
+	void HMDPutOnHeadDelegate_Handler() { HMDPutOnHeadDelegate.Broadcast(); }
+	void HMDRemovedFromHeadDelegate_Handler() { HMDRemovedFromHeadDelegate.Broadcast(); }
 };
 
 

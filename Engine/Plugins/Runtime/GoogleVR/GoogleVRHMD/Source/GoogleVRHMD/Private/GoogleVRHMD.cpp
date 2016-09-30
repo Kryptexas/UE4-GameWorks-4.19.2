@@ -218,7 +218,7 @@ class FGoogleVRHMDPlugin : public IGoogleVRHMDPlugin
 public:
 
 	/** Returns the key into the HMDPluginPriority section of the config file for this module */
-	virtual FString GetModulePriorityKeyName() const override
+	virtual FString GetModuleKeyName() const override
 	{
 		return TEXT("GoogleVRHMD");
 	}

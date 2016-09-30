@@ -152,6 +152,12 @@ public:
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType());
 
+		if (Parameters.bUseMobileMultiViewMask)
+		{
+			// Mask opposite view
+			DrawingPolicy.SetMobileMultiViewMask(RHICmdList, (View.StereoPass == EStereoscopicPass::eSSP_LEFT_EYE) ? 1 : 0);
+		}
+
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
 		{
 			TDrawEvent<FRHICommandList> MeshEvent;
@@ -214,7 +220,9 @@ bool FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 				true,
 				false,
 				ESceneRenderTargetsMode::SetTextures,
-				FeatureLevel
+				FeatureLevel, 
+				false, // ISR disabled for mobile
+				View.bIsMobileMultiViewEnabled
 				),
 			FDrawMobileTranslucentMeshAction(
 				View,
@@ -360,7 +368,9 @@ void FMobileSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdLi
 			}
 			else
 			{
-				RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+				// Mobile multi-view is not side by side stereo
+				const FViewInfo& TranslucentViewport = (View.bIsMobileMultiViewEnabled) ? Views[0] : View;
+				RHICmdList.SetViewport(TranslucentViewport.ViewRect.Min.X, TranslucentViewport.ViewRect.Min.Y, 0.0f, TranslucentViewport.ViewRect.Max.X, TranslucentViewport.ViewRect.Max.Y, 1.0f);
 			}
 
 			// Enable depth test, disable depth writes.
