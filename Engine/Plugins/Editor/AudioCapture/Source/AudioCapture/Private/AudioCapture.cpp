@@ -49,4 +49,4 @@ class FAudioCaptureModule
 };
 
 
-IMPLEMENT_PRIMARY_GAME_MODULE( FAudioCaptureModule, AudioCapture, "AudioCapture" );
+IMPLEMENT_MODULE( FAudioCaptureModule, AudioCapture );

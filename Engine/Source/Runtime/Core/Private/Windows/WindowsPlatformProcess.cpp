@@ -44,13 +44,14 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* FileName )
 
 	// Combine the explicit DLL search directories with the contents of the directory stack 
 	TArray<FString> SearchPaths;
-	for(int32 Idx = DllDirectoryStack.Num() - 1; Idx >= 0; Idx--)
+	SearchPaths.Add(FPlatformProcess::GetModulesDirectory());
+	if(DllDirectoryStack.Num() > 0)
 	{
-		SearchPaths.AddUnique(DllDirectoryStack[Idx]);
+		SearchPaths.Add(DllDirectoryStack.Top());
 	}
 	for(int32 Idx = 0; Idx < DllDirectories.Num(); Idx++)
 	{
-		SearchPaths.AddUnique(DllDirectories[Idx]);
+		SearchPaths.Add(DllDirectories[Idx]);
 	}
 
 	::SetErrorMode(SEM_NOOPENFILEERRORBOX);
@@ -1382,7 +1383,7 @@ bool FWindowsPlatformProcess::ResolveImport(const FString& Name, const TArray<FS
 		FString FileName = SearchPaths[Idx] / Name;
 		if(FPaths::FileExists(FileName))
 		{
-			OutFileName = FileName;
+			OutFileName = FPaths::ConvertRelativePathToFull(FileName);
 			return true;
 		}
 	}

@@ -115,8 +115,6 @@ namespace UnrealBuildTool
 				UEBuildConfiguration.bCompileLeanAndMeanUE = false;
 			}
 
-			BuildConfiguration.bUseUnityBuild = true;
-
 			// Don't stop compilation at first error...
 			BuildConfiguration.bStopXGECompilationAfterErrors = true;
 

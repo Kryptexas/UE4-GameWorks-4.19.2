@@ -9,6 +9,8 @@ public class Simplygon : ModuleRules
 	{
 		Type = ModuleType.External;
 
+		bOutputPubliclyDistributable = true;
+
         Definitions.Add("SGDEPRECATED_OFF=1");
 
         //@third party code BEGIN SIMPLYGON

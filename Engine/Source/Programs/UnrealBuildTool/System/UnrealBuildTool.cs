@@ -772,6 +772,10 @@ namespace UnrealBuildTool
 				{
 					BuildConfiguration.bUsePDBFiles = false;
 				}
+				else if (LowercaseArg == "-nolink")
+				{
+					BuildConfiguration.bDisableLinking = true;
+				}
 				else if (LowercaseArg == "-deploy")
 				{
 					BuildConfiguration.bDeployAfterCompile = true;
@@ -1347,7 +1351,7 @@ namespace UnrealBuildTool
 							// If we build w/ bXGEExport true, we didn't REALLY build at this point, 
 							// so don't bother with doing the PrepTargetForDeployment call. 
 							if ((Result == ECompilationResult.Succeeded) && (BuildConfiguration.bDeployAfterCompile == true) && (BuildConfiguration.bXGEExport == false) && String.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile) && 
-								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false) && (UEBuildConfiguration.bListBuildFolders == false))
+								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false) && (UEBuildConfiguration.bListBuildFolders == false) && (BuildConfiguration.bDisableLinking == false))
 							{
 								List<TargetDescriptor> TargetDescs = UEBuildTarget.ParseTargetCommandLine(Arguments, ref ProjectFile);
 								if (TargetDescs[0].OnlyModules.Count == 0)
@@ -2014,10 +2018,13 @@ namespace UnrealBuildTool
 							}
 
 							// If we're not touching any shared files (ie. anything under Engine), allow the build ids to be recycled between applications.
-							bool bModifiedEngineFiles = ActionsToExecute.Any(x => x.ProducedItems.Any(y => y.Reference.IsUnderDirectory(EngineDirectory)));
+							HashSet<FileReference> OutputFiles = new HashSet<FileReference>(ActionsToExecute.SelectMany(x => x.ProducedItems.Select(y => y.Reference)));
 							foreach (UEBuildTarget Target in Targets)
 							{
-								Target.RecycleVersionManifests(bModifiedEngineFiles);
+								if(!Target.TryRecycleVersionManifests(OutputFiles))
+								{
+									Target.InvalidateVersionManifests();
+								}
 							}
 
 							// Execute the actions.
@@ -2027,10 +2034,13 @@ namespace UnrealBuildTool
 							// if the build succeeded, write the receipts and do any needed syncing
 							if (bSuccess)
 							{
-								foreach (UEBuildTarget Target in Targets)
+								if(!BuildConfiguration.bDisableLinking)
 								{
-									Target.WriteReceipts();
-									ToolChain.PostBuildSync(Target);
+									foreach (UEBuildTarget Target in Targets)
+									{
+										Target.WriteReceipts();
+										ToolChain.PostBuildSync(Target);
+									}
 								}
 								if (ActionsToExecute.Count == 0 && UEBuildConfiguration.bSkipLinkingWhenNothingToCompile)
 								{
@@ -2437,6 +2447,15 @@ namespace UnrealBuildTool
 			{
 				// UBTMakefile doesn't even exist, so we won't bother loading it
 				ReasonNotLoaded = "no existing makefile";
+				return null;
+			}
+
+			// Check the build version
+			FileInfo BuildVersionFileInfo = new FileInfo(BuildVersion.GetDefaultFileName());
+			if(BuildVersionFileInfo.Exists && UBTMakefileInfo.LastWriteTime.CompareTo(BuildVersionFileInfo.LastWriteTime) < 0)
+			{
+				Log.TraceVerbose("Existing makefile is older than Build.version, ignoring it");
+				ReasonNotLoaded = "Build.version is newer";
 				return null;
 			}
 

@@ -53,16 +53,8 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="OneSkyLocalization.Automation">
-      <HintPath>..\..\..\..\Binaries\DotNET\AutomationScripts\OneSkyLocalization.Automation.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Localization.Automation">
       <HintPath>..\..\..\..\Binaries\DotNET\AutomationScripts\Localization.Automation.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="GUBP.Automation">
-      <HintPath>..\..\..\..\Binaries\DotNET\AutomationScripts\GUBP.Automation.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -76,7 +68,6 @@
     <Compile Include="BuildCommonTools.Automation.cs" />
     <Compile Include="BuildCookRun.Automation.cs" />
     <Compile Include="BuildDerivedDataCache.Automation.cs" />
-    <Compile Include="BuildDocumentation.Automation.cs" />
     <Compile Include="BuildForUGS.Automation.cs" />
     <Compile Include="BuildPhysX.Automation.cs" />
     <Compile Include="BuildPluginCommand.Automation.cs" />
@@ -96,7 +87,6 @@
     <Compile Include="ListThirdPartySoftware.Automation.cs" />
     <Compile Include="RebuildLightMapsCommand.Automation.cs" />
     <Compile Include="ResavePackagesCommand.Automation.cs" />
-    <Compile Include="RocketBuild.Automation.cs" />
     <Compile Include="IPhonePackager.Automation.cs" />
     <Compile Include="LauncherLocalization.Automation.cs" />
     <Compile Include="ListMobileDevices.Automation.cs">
@@ -126,21 +116,12 @@
       <Name>AutomationUtils.Automation</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\GUBP\GUBP.Automation.csproj">
-      <Project>{9a1a118b-37fc-4f33-bbf4-b431b6e3b3ac}</Project>
-      <Name>GUBP.Automation</Name>
-      <Private>False</Private>
-    </ProjectReference>
     <ProjectReference Include="..\Localization\Localization.Automation.csproj">
       <Project>{c2f959b1-1727-4598-9c32-3d9acce72750}</Project>
       <Name>Localization.Automation</Name>
     </ProjectReference>
     <ProjectReference Include="..\OneSkyLocalization\OneSkyLocalization.Automation.csproj">
       <Project>{39369368-5603-46da-baae-766bb3cb2b51}</Project>
-      <Name>OneSkyLocalization.Automation</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GUBP\GUBP.Automation.csproj">
-      <Project>{9A1A118B-37FC-4F33-BBF4-B431B6E3B3AC}</Project>
       <Name>OneSkyLocalization.Automation</Name>
     </ProjectReference>
   </ItemGroup>

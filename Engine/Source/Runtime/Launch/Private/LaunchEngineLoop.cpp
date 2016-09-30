@@ -1133,7 +1133,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if(ModuleEnumerator.RegisterWithModuleManager())
 	{
 		const FVersionManifest& Manifest = ModuleEnumerator.GetInitialManifest();
-		if(Manifest.Changelist != 0 && !FEngineVersion::OverrideCurrentVersionChangelist(Manifest.Changelist))
+		if(Manifest.Changelist != 0 && !FEngineVersion::OverrideCurrentVersionChangelist(Manifest.Changelist, Manifest.CompatibleChangelist))
 		{
 			UE_LOG(LogInit, Fatal, TEXT("Couldn't update engine changelist to %d."), Manifest.Changelist);
 		}
@@ -3155,7 +3155,7 @@ bool FEngineLoop::AppInit( )
 	CheckForPrintTimesOverride();
 
 	// Check whether the project or any of its plugins are missing or are out of date
-#if UE_EDITOR
+#if UE_EDITOR && !IS_MONOLITHIC
 	if(!GIsBuildMachine && FPaths::IsProjectFilePathSet() && IPluginManager::Get().AreRequiredPluginsAvailable())
 	{
 		const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();

@@ -1960,7 +1960,7 @@ namespace UnrealBuildTool
 				Manifest = Utils.ReadClass<BuildManifest>(ManifestPath.FullName);
 			}
 
-			if(!BuildConfiguration.bEnableCodeAnalysis)
+			if(!BuildConfiguration.bEnableCodeAnalysis && !BuildConfiguration.bDisableLinking)
 			{
 				// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
 				TargetReceipt ReceiptWithFullPaths = new TargetReceipt(Receipt);
@@ -2142,7 +2142,7 @@ namespace UnrealBuildTool
 						VersionManifest Manifest;
 						if (!FileNameToVersionManifest.TryGetValue(ManifestFileName, out Manifest))
 						{
-							Manifest = new VersionManifest(Version.Changelist, BuildId);
+							Manifest = new VersionManifest(Version.Changelist, Version.CompatibleChangelist, BuildId);
 
 							VersionManifest ExistingManifest;
 							if (VersionManifest.TryRead(ManifestFileName.FullName, out ExistingManifest) && Version.Changelist == ExistingManifest.Changelist)
@@ -2173,40 +2173,101 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// We generate new version manifests with a unique build id for every build by default, which prevents the engine opportunistically trying to load stale modules
-		/// discovered through directory searches. If we're not updating any files in the engine folder, we can safely recycle the existing build id without requiring a 
-		/// new UBT invocation to update it when switching between projects.
+		/// Try to recycle the build id from existing version manifests in the engine directory rather than generating a new one, if no engine binaries are being modified.
+		/// This allows sharing engine binaries when switching between projects and switching between UE4 and a game-specific project. Note that different targets may require
+		/// additional engine modules to be built, so we don't prohibit files being added or removed.
 		/// </summary>
-		public void RecycleVersionManifests(bool bModifyingEngineFiles)
+		/// <param name="OutputFiles">List of files being modified by this build</param>
+		/// <returns>True if the existing version manifests will remain valid during this build, false if they are invalidated</returns>
+		public bool TryRecycleVersionManifests(HashSet<FileReference> OutputFiles)
 		{
-			if (FileReferenceToVersionManifestPairs != null)
+			// Make sure we've got a list of version manifests to check against
+			if(FileReferenceToVersionManifestPairs == null)
 			{
-				if (bModifyingEngineFiles)
+				return false;
+			}
+
+			// Check we're building a target with an executable in the engine directory. If not, we don't need to worry about sharing build ids between targets.
+			if(OutputPaths.Count != 1 || !OutputPaths[0].IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+			{
+				return false;
+			}
+
+			// Read any the existing version manifests under the engine directory
+			Dictionary<FileReference, VersionManifest> ExistingFileToManifest = new Dictionary<FileReference, VersionManifest>();
+			foreach(FileReference ExistingFile in FileReferenceToVersionManifestPairs.Select(x => x.Key))
+			{
+				VersionManifest ExistingManifest;
+				if(ExistingFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && VersionManifest.TryRead(ExistingFile.FullName, out ExistingManifest))
 				{
-					// Delete all the existing manifests, so we don't try to recycle partial builds in future (the current build may fail after modifying engine files, 
-					// causing bModifyingEngineFiles to be incorrect on the next invocation).
-					foreach (KeyValuePair<FileReference, VersionManifest> FileNameToVersionManifest in FileReferenceToVersionManifestPairs)
+					ExistingFileToManifest.Add(ExistingFile, ExistingManifest);
+				}
+			}
+
+			// Get the path to the manifest for the base executable
+			FileReference MainManifestFile = FileReference.Combine(OutputPaths[0].Directory, VersionManifest.GetStandardFileName(AppName, Platform, Configuration, PlatformContext.GetActiveArchitecture(), false));
+
+			// Read the manifest for the base executable. AppBinaries may have precompiled binaries removed, so we use the target's output path for the executable instead.
+			VersionManifest MainManifest;
+			if(!ExistingFileToManifest.TryGetValue(MainManifestFile, out MainManifest))
+			{
+				return false;
+			}
+
+			// Check if we're modifying any files in an existing valid manifest. If the build id for a manifest doesn't match, we can behave as if it doesn't exist.
+			foreach(KeyValuePair<FileReference, VersionManifest> ExistingPair in ExistingFileToManifest)
+			{
+				if(ExistingPair.Value.BuildId == MainManifest.BuildId)
+				{
+					DirectoryReference ExistingManifestDir = ExistingPair.Key.Directory;
+					foreach(FileReference ExistingFile in ExistingPair.Value.ModuleNameToFileName.Values.Select(x => FileReference.Combine(ExistingManifestDir, x)))
 					{
-						// Make sure the file (and directory) exists before trying to delete it
-						if(FileNameToVersionManifest.Key.Exists())
+						if(OutputFiles.Contains(ExistingFile))
 						{
-							FileNameToVersionManifest.Key.Delete();
+							return false;
 						}
 					}
 				}
-				else if(OutputPaths.Count == 1 && OutputPaths[0].IsUnderDirectory(UnrealBuildTool.EngineDirectory))
-				{
-					// Get the path to the manifest for the base executable. AppBinaries may have precompiled binaries removed, so we use the target's output path for the executable instead.
-					FileReference ManifestFileName = FileReference.Combine(OutputPaths[0].Directory, VersionManifest.GetStandardFileName(AppName, Platform, Configuration, PlatformContext.GetActiveArchitecture(), false));
+			}
 
-					// Try to read it and update all the other manifests with the same build id
-					VersionManifest BaseManifest;
-					if (VersionManifest.TryRead(ManifestFileName.FullName, out BaseManifest))
+			// Allow the existing build id to be reused. Merge the existing manifests with the manifests in memory.
+			foreach(KeyValuePair<FileReference, VersionManifest> NewPair in FileReferenceToVersionManifestPairs)
+			{
+				// Reuse the existing build id
+				VersionManifest NewManifest = NewPair.Value;
+				NewManifest.BuildId = MainManifest.BuildId;
+
+				// Merge in the files from the existing manifest
+				VersionManifest ExistingManifest;
+				if(ExistingFileToManifest.TryGetValue(NewPair.Key, out ExistingManifest) && ExistingManifest.BuildId == MainManifest.BuildId)
+				{
+					foreach(KeyValuePair<string, string> ModulePair in ExistingManifest.ModuleNameToFileName)
 					{
-						foreach (KeyValuePair<FileReference, VersionManifest> FileNameToVersionManifest in FileReferenceToVersionManifestPairs)
+						if(!NewManifest.ModuleNameToFileName.ContainsKey(ModulePair.Key))
 						{
-							FileNameToVersionManifest.Value.BuildId = BaseManifest.BuildId;
+							NewManifest.ModuleNameToFileName.Add(ModulePair.Key, ModulePair.Value);
 						}
+					}
+				}
+			}
+			return true;
+		}
+
+		/// <summary>
+		/// Delete all the existing version manifests
+		/// </summary>
+		public void InvalidateVersionManifests()
+		{
+			// Delete all the existing manifests, so we don't try to recycle partial builds in future (the current build may fail after modifying engine files, 
+			// causing bModifyingEngineFiles to be incorrect on the next invocation).
+			if(FileReferenceToVersionManifestPairs != null)
+			{
+				foreach (FileReference VersionManifestFile in FileReferenceToVersionManifestPairs.Select(x => x.Key))
+				{
+					// Make sure the file (and directory) exists before trying to delete it
+					if(VersionManifestFile.Exists())
+					{
+						VersionManifestFile.Delete();
 					}
 				}
 			}
@@ -2423,7 +2484,7 @@ namespace UnrealBuildTool
 					ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
 					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(TargetToolChain, this, GlobalCompileEnvironment, UObjectModules, ModuleInfoFileName, ref UHTResult))
 					{
-						Log.TraceInformation("UnrealHeaderTool failed for target '" + GetTargetName() + "' (platform: " + Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
+						Log.TraceInformation(String.Format("Error: UnrealHeaderTool failed for target '{0}' (platform: {1}, module info: {2}, exit code: {3} ({4})).", GetTargetName(), Platform.ToString(), ModuleInfoFileName, UHTResult.ToString(), (int)UHTResult));
 						return UHTResult;
 					}
 				}

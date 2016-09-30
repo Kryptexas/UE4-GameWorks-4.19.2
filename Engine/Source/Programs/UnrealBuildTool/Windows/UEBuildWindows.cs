@@ -144,9 +144,6 @@ namespace UnrealBuildTool
 					Rules.PublicDelayLoadDLLs.Add("dxgi.dll");
 				}
 			}
-
-			// For now let's always delay load the vulkan dll as not everyone has it installed
-			Rules.PublicDelayLoadDLLs.Add("vulkan-1.dll");
 		}
 
 		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)

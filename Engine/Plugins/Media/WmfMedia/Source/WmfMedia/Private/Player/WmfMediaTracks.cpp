@@ -756,4 +756,6 @@ void FWmfMediaTracks::HandleMediaSamplerSample(const uint8* Buffer, uint32 Size,
 
 #include "HideWindowsPlatformTypes.h"
 
+#undef LOCTEXT_NAMESPACE
+
 #endif //WMFMEDIA_SUPPORTED_PLATFORM

@@ -89,8 +89,11 @@
 	<!-- Exclude all the intermediate files in the Engine/Saved folder -->
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Saved/..."/>
 	
-	<!-- Exclude generated config files from Engine/Programs folder -->
+	<!-- Exclude generated config files/intermediates from Engine/Programs folder -->
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/AutomationTool/..."/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealBuildTool/..."/>
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealHeaderTool/Intermediate/..."/>
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealHeaderTool/Saved/..."/>
 
 	<!-- Starter content -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Samples/StarterContent/Content/..."/>
@@ -315,13 +318,16 @@
 	<Property Name="CopyPS4Exceptions" Value=""/>
 
 	<!-- Build Files -->
-	<Property Name="CopyPS4Filter" Value="$(CopyHTML5Filter);Engine/Build/PS4/..."/>
+	<Property Name="CopyPS4Filter" Value="$(CopyPS4Filter);Engine/Build/PS4/..."/>
 
 	<!-- XboxOne -->
 	<Property Name="CopyXboxOneFilter" Value=""/>
 	<Property Name="CopyXboxOneExceptions" Value=""/>
 
 	<!-- Build Files -->
-	<Property Name="CopyXboxOneFilter" Value="$(CopyHTML5Filter);Engine/Build/XboxOne/..."/>
+	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Build/XboxOne/..."/>
+
+	<!-- Additional Binaries -->
+	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Binaries/Win64/XboxOne/XboxOnePackageNameUtil.exe"/>
 
 </BuildGraph>

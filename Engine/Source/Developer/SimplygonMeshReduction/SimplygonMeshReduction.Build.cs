@@ -6,8 +6,6 @@ public class SimplygonMeshReduction : ModuleRules
 {
 	public SimplygonMeshReduction(TargetInfo Target)
 	{
-		BinariesSubFolder = "NotForLicensees";
-
         PublicIncludePaths.Add("Developer/SimplygonMeshReduction/Public");
 
         PrivateDependencyModuleNames.AddRange(
@@ -31,6 +29,13 @@ public class SimplygonMeshReduction : ModuleRules
         		
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "Simplygon");		
 
-		PrecompileForTargets = PrecompileTargetsType.None;
+		if(Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PrecompileForTargets = PrecompileTargetsType.Editor;
+		}
+		else
+		{
+			PrecompileForTargets = PrecompileTargetsType.None;
+		}
 	}
 }

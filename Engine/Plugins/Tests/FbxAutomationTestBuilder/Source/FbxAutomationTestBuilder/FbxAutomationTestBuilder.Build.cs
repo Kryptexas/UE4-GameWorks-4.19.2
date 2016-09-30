@@ -38,13 +38,6 @@ public class FbxAutomationTestBuilder : ModuleRules
     				"Slate",
                 }
             );
-
-            CircularlyReferencedDependentModules.AddRange(
-                new string[] {
-                    "UnrealEd",
-                    "LevelEditor"
-                }
-            );
         }
 	}
 }

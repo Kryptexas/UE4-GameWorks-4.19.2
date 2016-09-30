@@ -650,21 +650,6 @@ namespace AutomationTool
                     throw new AutomationException("Base UE4 project did not contain an editor target.");
                 }
             }
-            public TargetRules.GUBPProjectOptions Options(UnrealTargetPlatform HostPlatform)
-            {
-                var Options = new TargetRules.GUBPProjectOptions();
-                if (Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-                {
-                    var Target = Properties.Targets[TargetRules.TargetType.Editor];
-                    Options = Target.Rules.GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(HostPlatform);
-                }
-				else if(Properties.Targets.ContainsKey(TargetRules.TargetType.Game))
-				{
-					var Target = Properties.Targets[TargetRules.TargetType.Game];
-					Options = Target.Rules.GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(HostPlatform);
-				}
-                return Options;
-            }
             public void Dump(List<UnrealTargetPlatform> InHostPlatforms)
             {
                 CommandUtils.LogVerbose("    ShortName:    " + GameName);
@@ -676,12 +661,6 @@ namespace AutomationTool
                 foreach (var HostPlatform in InHostPlatforms)
                 {
 					CommandUtils.LogVerbose("      For Host : " + HostPlatform.ToString());
-                    if (Properties.bIsCodeBasedProject)
-                    {
-						CommandUtils.LogVerbose("          Promoted  : " + (Options(HostPlatform).bIsPromotable ? "YES" : "NO"));
-						CommandUtils.LogVerbose("          SeparatePromotable  : " + (Options(HostPlatform).bSeparateGamePromotion ? "YES" : "NO"));
-						CommandUtils.LogVerbose("          Test With Shared  : " + (Options(HostPlatform).bTestWithShared ? "YES" : "NO"));
-                    }
 					CommandUtils.LogVerbose("          Targets {0}:", Properties.Targets.Count);
                     foreach (var ThisTarget in Properties.Targets)
                     {
@@ -690,36 +669,11 @@ namespace AutomationTool
 						CommandUtils.LogVerbose("              bUsesSteam  : " + (ThisTarget.Value.Rules.bUsesSteam ? "YES" : "NO"));
 						CommandUtils.LogVerbose("              bUsesCEF3   : " + (ThisTarget.Value.Rules.bUsesCEF3 ? "YES" : "NO"));
 						CommandUtils.LogVerbose("              bUsesSlate  : " + (ThisTarget.Value.Rules.bUsesSlate ? "YES" : "NO"));
-                        if (MonolithicKinds.Contains(ThisTarget.Key))
-                        {
-                            var Platforms = ThisTarget.Value.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
-                            var AdditionalPlatforms = ThisTarget.Value.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform);
-                            var AllPlatforms = Platforms.Union(AdditionalPlatforms);
-                            foreach (var Plat in AllPlatforms)
-                            {
-                                var Configs = ThisTarget.Value.Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, Plat);
-                                foreach (var Config in Configs)
-                                {
-									CommandUtils.LogVerbose("                Config  : " + Plat.ToString() + " " + Config.ToString());
-                                }
-                            }
-
-                        }
                     }
 					CommandUtils.LogVerbose("      Programs {0}:", Properties.Programs.Count);
                     foreach (var ThisTarget in Properties.Programs)
                     {
-                        bool bInternalToolOnly;
-                        bool SeparateNode;
-						bool CrossCompile;
-                        bool Tool = ThisTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalToolOnly, out SeparateNode, out CrossCompile);
-
 						CommandUtils.LogVerbose("            TargetName                    : " + ThisTarget.TargetName);
-						CommandUtils.LogVerbose("              Build With Editor           : " + (ThisTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() ? "YES" : "NO"));
-						CommandUtils.LogVerbose("              Build With Tools            : " + (Tool && !bInternalToolOnly ? "YES" : "NO"));
-						CommandUtils.LogVerbose("              Build With Internal Tools   : " + (Tool && bInternalToolOnly ? "YES" : "NO"));
-						CommandUtils.LogVerbose("              Separate Node               : " + (Tool && SeparateNode ? "YES" : "NO"));
-						CommandUtils.LogVerbose("              Cross Compile               : " + (Tool && CrossCompile ? "YES" : "NO"));
                     }
                 }
             }

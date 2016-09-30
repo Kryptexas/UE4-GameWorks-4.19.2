@@ -57,12 +57,15 @@ CORE_API const FText GNone	= LOCTEXT("None",	"None");
 		bool GIsGameAgnosticExe = true;
 	#endif
 #else
-	// Otherwise only modular editors are game agnostic.
-	#if IS_PROGRAM || IS_MONOLITHIC
-		bool GIsGameAgnosticExe = false;
-	#else
-		bool GIsGameAgnosticExe = true;
-	#endif
+	// In monolithic Editor builds, implemented by the IMPLEMENT_GAME_MODULE macro or by UE4Game module.
+	#if !IS_MONOLITHIC || !UE_EDITOR
+		// Otherwise only modular editors are game agnostic.
+		#if IS_PROGRAM || IS_MONOLITHIC
+			bool GIsGameAgnosticExe = false;
+		#else
+			bool GIsGameAgnosticExe = true;
+		#endif
+	#endif //!IS_MONOLITHIC || !UE_EDITOR
 #endif
 
 /** When saving out of the game, this override allows the game to load editor only properties **/
