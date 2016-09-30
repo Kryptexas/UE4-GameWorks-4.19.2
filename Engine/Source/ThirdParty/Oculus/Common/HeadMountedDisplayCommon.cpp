@@ -2365,7 +2365,7 @@ static void DrawPokeAHoleCylinderMesh(FRHICommandList& RHICmdList, FVector Base,
 	DrawIndexedPrimitiveUP(RHICmdList, PT_TriangleList, 0, 2*(Sides+1), 2*Sides, Indices, sizeof(Indices[0]), Vertices, sizeof(Vertices[0]));
 }
 
-static void DrawPokeAHoleMesh(FRHICommandList& RHICmdList,const FHMDLayerDesc& LayerDesc, FMatrix matrix, float scale, bool invertCoords)
+static void DrawPokeAHoleMesh(FRHICommandList& RHICmdList,const FHMDLayerDesc& LayerDesc, FMatrix& matrix, float scale, bool invertCoords)
 {
 	if (LayerDesc.GetType() == FHMDLayerDesc::Quad)
 	{

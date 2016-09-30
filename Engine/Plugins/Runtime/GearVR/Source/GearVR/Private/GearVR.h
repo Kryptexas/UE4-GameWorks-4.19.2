@@ -107,7 +107,7 @@ FORCEINLINE FMatrix ToFMatrix(const OVR::Matrix4f& vtm)
 		FPlane(vtm.M[0][3], vtm.M[1][3], vtm.M[2][3], vtm.M[3][3]));
 }
 
-FORCEINLINE OVR::Matrix4f ToMatrix4f(const FMatrix mat)
+FORCEINLINE OVR::Matrix4f ToMatrix4f(const FMatrix& mat)
 {
 	return OVR::Matrix4f(mat.M[0][0],mat.M[1][0],mat.M[2][0],mat.M[3][0],
 						mat.M[0][1],mat.M[1][1],mat.M[2][1],mat.M[3][1],
