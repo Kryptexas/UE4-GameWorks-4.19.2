@@ -42,6 +42,10 @@ static TArray<FEvent*> ListeningEvents;
 
 @implementation FIOSFramePacer
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 -(void)run:(id)param
 {
 	NSRunLoop *runloop = [NSRunLoop currentRunLoop];
@@ -62,6 +66,9 @@ static TArray<FEvent*> ListeningEvents;
 	[displayLink addToRunLoop:runloop forMode:NSDefaultRunLoopMode];
 	[runloop run];
 }
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 
 -(void)signal:(id)param
