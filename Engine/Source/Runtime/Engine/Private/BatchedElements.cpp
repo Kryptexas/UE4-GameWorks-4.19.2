@@ -314,6 +314,8 @@ void FBatchedElements::AddSprite(
 	uint8 BlendMode
 	)
 {
+	check(Texture);
+
 	FBatchedSprite* Sprite = new(Sprites) FBatchedSprite;
 	Sprite->Position = Position;
 	Sprite->SizeX = SizeX;

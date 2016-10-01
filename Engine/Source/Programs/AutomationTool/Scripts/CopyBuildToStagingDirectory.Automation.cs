@@ -439,7 +439,7 @@ public partial class Project : CommandUtils
 			{
 				ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath.FullName);
 
-				List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine")), new FileReference(CombinePaths(SC.ProjectRoot, Params.ShortProjectName + ".uproject")));
+				List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine")), new FileReference(CombinePaths(SC.ProjectRoot, Params.ShortProjectName + ".uproject")), Project.AdditionalPluginDirectories);
 				foreach (var Plugin in AvailablePlugins)
 				{
 					if (!UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetRules.TargetType.Game) &&

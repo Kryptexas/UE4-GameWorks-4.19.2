@@ -27,6 +27,7 @@ namespace UnrealBuildTool
 		Linux,
 		AllDesktop,
 		TVOS,
+		WolfPlat,
 	}
 
 	public enum UnrealPlatformGroup
@@ -302,6 +303,7 @@ namespace UnrealBuildTool
 				case CPPTargetPlatform.HTML5:			return UnrealTargetPlatform.HTML5;
                 case CPPTargetPlatform.Linux:			return UnrealTargetPlatform.Linux;
 				case CPPTargetPlatform.TVOS:			return UnrealTargetPlatform.TVOS;
+				case CPPTargetPlatform.Wolf: 			return UnrealTargetPlatform.WolfPlat;
 			}
 			throw new BuildException("CPPTargetPlatformToUnrealTargetPlatform: Unknown CPPTargetPlatform {0}", InCPPPlatform.ToString());
 		}
@@ -4269,6 +4271,13 @@ namespace UnrealBuildTool
 					else
 					{
 						// Game module - do not optimize in Debug and DebugGame builds.
+						////////////////////////////////////////////////////////////////////////////////////////
+						// @todo jira UE-29925:
+						// See the Jira for why this does not always work properly
+						// The following commented out line WORKS AROUND THE ISSUE BUT DOESN'T FIX IT. 
+						// UnrealTournament may act weird without this code.
+						// RulesObject.OptimizeCode = ModuleRules.CodeOptimization.Always;
+						////////////////////////////////////////////////////////////////////////////////////////
 						RulesObject.OptimizeCode = ModuleRules.CodeOptimization.InNonDebugBuilds;
 					}
 				}
@@ -4276,7 +4285,14 @@ namespace UnrealBuildTool
 				// Disable shared PCHs for game modules by default (but not game plugins, since they won't depend on the game's PCH!)
 				if (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.Default)
 				{
-					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(ProjectFile.Directory, "Source")))
+					////////////////////////////////////////////////////////////////////////////////////////
+					// @todo jira UE-29925:
+					// The above comment is wrong. Plugins need SharedPCHs disabled as well. See the Jira. 
+					// The following line WORKS AROUND THE ISSUE BUT DOESN'T FIX IT. 
+					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(ProjectFile.Directory))
+					// This is the original code that matched the comment, but will cause at least Wolf to fail to compile UT
+					//if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(ProjectFile.Directory, "Source")))
+					////////////////////////////////////////////////////////////////////////////////////////
 					{
 						// Engine module or plugin module -- allow shared PCHs
 						RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;

@@ -122,6 +122,11 @@ void FIOSLocalNotificationService::ScheduleLocalNotificationAtTime(const FDateTi
 #endif
 }
 
+void FIOSLocalNotificationService::CancelLocalNotification(const FString& ActivationEvent)
+{
+	// TODO
+}
+
 void FIOSLocalNotificationService::GetLaunchNotification(bool& NotificationLaunchedApp, FString& ActivationEvent, int32& FireDate)
 {
 	NotificationLaunchedApp = AppLaunchedWithNotification;

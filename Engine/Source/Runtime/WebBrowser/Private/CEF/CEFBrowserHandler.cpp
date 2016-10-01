@@ -313,6 +313,22 @@ void FCEFBrowserHandler::OnPopupSize(CefRefPtr<CefBrowser> Browser, const CefRec
 	}
 }
 
+bool FCEFBrowserHandler::GetScreenInfo(CefRefPtr<CefBrowser> Browser, CefScreenInfo& ScreenInfo)
+{
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+
+	if (BrowserWindow.IsValid() && BrowserWindow->GetParentWindow().IsValid())
+	{
+		ScreenInfo.device_scale_factor = BrowserWindow->GetParentWindow()->GetNativeWindow()->GetDPIScaleFactor();
+	}
+	else
+	{
+		FDisplayMetrics DisplayMetrics;
+		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+		ScreenInfo.device_scale_factor = FPlatformMisc::GetDPIScaleFactorAtPoint(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+	}
+	return true;
+}
 
 CefRequestHandler::ReturnValue FCEFBrowserHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefRequest> Request, CefRefPtr<CefRequestCallback> Callback)
 {

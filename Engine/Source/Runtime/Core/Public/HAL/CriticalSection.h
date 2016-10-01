@@ -21,4 +21,6 @@
 	#include "HTML5/HTML5CriticalSection.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxCriticalSection.h"
+#elif PLATFORM_WOLF
+	#include "WolfPlat/WolfCriticalSection.h"
 #endif

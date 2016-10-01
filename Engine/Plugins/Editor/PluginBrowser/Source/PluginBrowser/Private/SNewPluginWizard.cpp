@@ -284,8 +284,7 @@ void SNewPluginWizard::ValidateFullPluginPath()
 			bFoundValidPath = true;
 			bIsEnginePlugin = false;
 		}
-
-		if (!bFoundValidPath && !FApp::IsEngineInstalled())
+		else if (!bFoundValidPath && !FApp::IsEngineInstalled())
 		{
 			if (AbsolutePath.StartsWith(AbsoluteEnginePluginPath))
 			{
@@ -293,18 +292,9 @@ void SNewPluginWizard::ValidateFullPluginPath()
 				bIsEnginePlugin = true;
 			}
 		}
-
-		bIsNewPathValid = bFoundValidPath;
-		if (!bFoundValidPath)
+		else
 		{
-			if (FApp::IsEngineInstalled())
-			{
-				FolderPathError = LOCTEXT("InstalledPluginFolderPathError", "Plugins can only be created within your Project's Plugins folder");
-			}
-			else
-			{
-				FolderPathError = LOCTEXT("PluginFolderPathError", "Plugins can only be created within the Engine Plugins folder or your Project's Plugins folder");
-			}
+			// This path will be added to the additional plugin directories for the project when created
 		}
 	}
 
@@ -466,7 +456,8 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath, CurrentTemplate->CanContainContent, bHasModules);
 
 	// Main plugin dir
-	const FString PluginFolder = GetPluginDestinationPath().ToString() / AutoPluginName;
+	const FString BasePluginFolder = GetPluginDestinationPath().ToString();
+	const FString PluginFolder = BasePluginFolder / AutoPluginName;
 
 	// Resource folder
 	const FString ResourcesFolder = PluginFolder / TEXT("Resources");
@@ -499,6 +490,12 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 		if (!bIsEnginePlugin)
 		{
 			PluginBrowserModule.SetPluginPendingEnableState(AutoPluginName, false, true);
+			// If this path isn't in the Engine/Plugins dir and isn't in Project/Plugins dir,
+			// add the directory to the list of ones we additionally scan
+			if (!BasePluginFolder.StartsWith(FPaths::GameDir()))
+			{
+				GameProjectUtils::UpdateAdditionalPluginDirectory(BasePluginFolder, true);
+			}
 		}
 
 		FText DialogTitle = LOCTEXT("PluginCreatedTitle", "New Plugin Created");

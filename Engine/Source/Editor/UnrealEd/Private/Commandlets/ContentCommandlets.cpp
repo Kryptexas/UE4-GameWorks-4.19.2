@@ -646,6 +646,7 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	if ( bShouldBuildLighting )
 	{
 		check( Switches.Contains(TEXT("AllowCommandletRendering")) );
+		GarbageCollectionFrequency = 1;
 	}
 
 	TArray<FString> PackageNames;
@@ -886,7 +887,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			IVS.CreateNavigation(false);
 			IVS.CreateAISystem(false);
 			IVS.AllowAudioPlayback(false);
-			IVS.CreatePhysicsScene(false);
+			IVS.CreatePhysicsScene(true);
 
 			World->InitWorld(IVS);
 			World->PersistentLevel->UpdateModelComponents();
@@ -1019,7 +1020,12 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			}
 		}
 
+		
 		World->RemoveFromRoot();
+
+		WorldContext.SetCurrentWorld(nullptr);
+		GWorld = nullptr;
+
 	}
 }
 

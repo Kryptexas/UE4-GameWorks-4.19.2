@@ -1424,6 +1424,11 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 	{
 		WorkerParameters += FString(TEXT(" -buildmachine "));
 	}
+	if (PLATFORM_LINUX && UE_BUILD_DEBUG)
+	{
+		// when running a debug build under Linux, make SCW crash with core for easier debugging
+		WorkerParameters += FString(TEXT(" -core "));
+	}
 	WorkerParameters += FCommandLine::GetSubprocessCommandline();
 
 	// Launch the worker process
@@ -1671,12 +1676,18 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 				// Pass off the reference of the shader map to LocalShaderMapReferences
 				LocalShaderMapReferences.Add(ShaderMap);
 				FMaterialShaderMap::ShaderMapsBeingCompiled.Remove(ShaderMap);
-
+#if DEBUG_INFINITESHADERCOMPILE
+				UE_LOG(LogTemp, Warning, TEXT("Finished compile of shader map 0x%08X%08X"), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())));
+#endif
 				for (int32 MaterialIndex = 0; MaterialIndex < MaterialsArray.Num(); MaterialIndex++)
 				{
 					FMaterial* Material = MaterialsArray[MaterialIndex];
 					FMaterialShaderMap* CompletedShaderMap = ShaderMap;
+#if DEBUG_INFINITESHADERCOMPILE
+					UE_LOG(LogTemp, Warning, TEXT("Shader map %s complete, GameThreadShaderMap 0x%08X%08X, marking material %s as finished"), *ShaderMap->GetFriendlyName(), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())), *Material->GetFriendlyName());
 
+					UE_LOG(LogTemp, Warning, TEXT("Marking material as finished 0x%08X%08X"), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+#endif
 					Material->RemoveOutstandingCompileId(ShaderMap->CompilingId);
 
 					// Only process results that still match the ID which requested a compile
@@ -2132,7 +2143,6 @@ void FShaderCompilingManager::FinishAllCompilation()
 	TMap<int32, FShaderMapFinalizeResults> CompiledShaderMaps;
 	CompiledShaderMaps.Append( PendingFinalizeShaderMaps );
 	PendingFinalizeShaderMaps.Empty();
-	
 	BlockOnAllShaderMapCompletion(CompiledShaderMaps);
 
 	bool bRetry = false;

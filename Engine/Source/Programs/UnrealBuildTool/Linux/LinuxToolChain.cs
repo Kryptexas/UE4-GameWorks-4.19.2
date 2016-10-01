@@ -77,10 +77,10 @@ namespace UnrealBuildTool
 				throw new BuildException("clang 3.4.x is known to miscompile the engine - refusing to register the Linux toolchain.");
 			}
 			// prevent unknown clangs since the build is likely to fail on too old or too new compilers
-			else if ((CompilerVersionMajor * 10 + CompilerVersionMinor) > 38 || (CompilerVersionMajor * 10 + CompilerVersionMinor) < 35)
+			else if ((CompilerVersionMajor * 10 + CompilerVersionMinor) > 39 || (CompilerVersionMajor * 10 + CompilerVersionMinor) < 35)
 			{
 				throw new BuildException(
-					string.Format("This version of the Unreal Engine can only be compiled with clang 3.8, 3.7, 3.6 and 3.5. clang {0} may not build it - please use a different version.",
+					string.Format("This version of the Unreal Engine can only be compiled with clang 3.9, 3.8, 3.7, 3.6 and 3.5. clang {0} may not build it - please use a different version.",
 						CompilerVersionString)
 					);
 			}
@@ -288,6 +288,19 @@ namespace UnrealBuildTool
 			return StripPath;
 		}
 
+		private static bool ShouldUseLibcxx(NativeBuildEnvironmentConfiguration.TargetInfo Target)
+		{
+			// set UE4_LINUX_USE_LIBCXX to either 0 or 1. If unset, defaults to 1.
+			string UseLibcxxEnvVarOverride = Environment.GetEnvironmentVariable("UE4_LINUX_USE_LIBCXX");
+			if (UseLibcxxEnvVarOverride != null && (UseLibcxxEnvVarOverride == "1"))
+			{
+				return true;
+			}
+
+			// at the moment only x86_64 is supported
+			return Target.Architecture.StartsWith("x86_64");
+        }
+
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
 		{
 			string Result = "";
@@ -296,9 +309,12 @@ namespace UnrealBuildTool
 			Result += " -c";
 			Result += " -pipe";
 
-			Result += " -nostdinc++";
-			Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/";
-			Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/c++/v1";
+			if (ShouldUseLibcxx(CompileEnvironment.Config.Target))
+			{
+				Result += " -nostdinc++";
+				Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/";
+				Result += " -I" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/include/c++/v1";
+			}
 
 			Result += " -Wall -Werror";
 			// test without this next line?
@@ -532,10 +548,20 @@ namespace UnrealBuildTool
 			// FIXME: really ugly temp solution. Modules need to be able to specify this
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu";
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/Steamworks/Steamv132/Linux";
+			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/Qualcomm/Linux";
 
 			// Some OS ship ld with new ELF dynamic tags, which use DT_RUNPATH vs DT_RPATH. Since DT_RUNPATH do not propagate to dlopen()ed DSOs,
 			// this breaks the editor on such systems. See https://kenai.com/projects/maxine/lists/users/archive/2011-01/message/12 for details
 			Result += " -Wl,--disable-new-dtags";
+
+			// This severely improves dynamic linker performance, but affects iteration times. Do not do it in Debug,
+			// because taking a hit of several tens of seconds on startup is better than linking for ~4 more minutes when iterating
+			if (LinkEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+			{
+				Result += " -Wl,--as-needed";
+			}
+			// Additionally speeds up editor startup by 1-2s
+			Result += " -Wl,--hash-style=gnu";
 
 			if (CrossCompiling())
 			{
@@ -630,12 +656,25 @@ namespace UnrealBuildTool
 		/// </summary>
 		private bool bHasWipedFixDepsScript = false;
 
+		/// <summary>
+		/// Tracks that information about used C++ library is only printed once
+		/// </summary>
+		private bool bHasPrintedLibcxxInformation = false;
+
 		private static List<FileItem> BundleDependencies = new List<FileItem>();
 
 		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
 			string Arguments = GetCLArguments_Global(CompileEnvironment);
 			string PCHArguments = "";
+
+			if (!bHasPrintedLibcxxInformation)
+			{
+				// inform the user which C++ library the engine is going to be compiled against - important for compatibility with third party code that uses STL
+				bool bUseLibCxx = ShouldUseLibcxx(CompileEnvironment.Config.Target);
+				Console.WriteLine("Using {0} standard C++ library.", bUseLibCxx ? "bundled libc++" : "compiler default (most likely libstdc++)");
+				bHasPrintedLibcxxInformation = true;
+			}
 
 			if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
 			{
@@ -993,16 +1032,23 @@ namespace UnrealBuildTool
 				LinkAction.CommandArguments += string.Format(" -L\"{0}\"", Path.GetFullPath(LibraryPath));
 			}
 
+			List<string> EngineAndGameLibraries = new List<string>();
+
+			// Pre-2.25 ld has symbol resolution problems when .so are mixed with .a in a single --start-group/--end-group
+			// when linking with --as-needed.
+			// Move external libraries to a separate --start-group/--end-group to fix it (and also make groups smaller and faster to link).
+			// See https://github.com/EpicGames/UnrealEngine/pull/2778 and https://github.com/EpicGames/UnrealEngine/pull/2793 for discussion
+			string ExternalLibraries = "";
+
 			// add libraries in a library group
 			LinkAction.CommandArguments += string.Format(" -Wl,--start-group");
 
-			List<string> EngineAndGameLibraries = new List<string>();
 			foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
 			{
 				if (String.IsNullOrEmpty(Path.GetDirectoryName(AdditionalLibrary)))
 				{
 					// library was passed just like "jemalloc", turn it into -ljemalloc
-					LinkAction.CommandArguments += string.Format(" -l{0}", AdditionalLibrary);
+					ExternalLibraries += string.Format(" -l{0}", AdditionalLibrary);
 				}
 				else if (Path.GetExtension(AdditionalLibrary) == ".a")
 				{
@@ -1043,23 +1089,31 @@ namespace UnrealBuildTool
 					else
 					{
 						LinkAction.PrerequisiteItems.Add(LibraryDependency);
-						LinkAction.CommandArguments += LibLinkFlag;
+						ExternalLibraries += LibLinkFlag;
 					}
 				}
 			}
+			LinkAction.CommandArguments += " -Wl,--end-group";
+
+			LinkAction.CommandArguments += " -Wl,--start-group";
+			LinkAction.CommandArguments += ExternalLibraries;
+			LinkAction.CommandArguments += " -Wl,--end-group";
+
 			LinkAction.CommandArguments += " -lrt"; // needed for clock_gettime()
 			LinkAction.CommandArguments += " -lm"; // math
 
-			// libc++ and its abi lib
-			LinkAction.CommandArguments += " -nodefaultlibs";
-			LinkAction.CommandArguments += " -L" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/";
-			LinkAction.CommandArguments += " " + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/libc++.a";
-			LinkAction.CommandArguments += " " + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/libc++abi.a";
-			LinkAction.CommandArguments += " -lm";
-			LinkAction.CommandArguments += " -lc";
-			LinkAction.CommandArguments += " -lgcc_s";
-			LinkAction.CommandArguments += " -lgcc";
-			LinkAction.CommandArguments += " -Wl,--end-group";
+			if (ShouldUseLibcxx(LinkEnvironment.Config.Target))
+			{
+				// libc++ and its abi lib
+				LinkAction.CommandArguments += " -nodefaultlibs";
+				LinkAction.CommandArguments += " -L" + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/";
+				LinkAction.CommandArguments += " " + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/libc++.a";
+				LinkAction.CommandArguments += " " + UEBuildConfiguration.UEThirdPartySourceDirectory + "Linux/LibCxx/lib/Linux/" + LinkEnvironment.Config.Target.Architecture + "/libc++abi.a";
+				LinkAction.CommandArguments += " -lm";
+				LinkAction.CommandArguments += " -lc";
+				LinkAction.CommandArguments += " -lgcc_s";
+				LinkAction.CommandArguments += " -lgcc";
+			}
 
 			// these can be helpful for understanding the order of libraries or library search directories
 			//LinkAction.CommandArguments += " -Wl,--verbose";

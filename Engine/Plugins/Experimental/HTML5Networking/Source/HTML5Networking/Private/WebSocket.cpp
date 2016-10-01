@@ -130,7 +130,6 @@ bool FWebSocket::Send(uint8* Data, uint32 Size)
 
 	Buffer.Append((uint8*)&Size, sizeof (uint32)); // insert size.
 	Buffer.Append((uint8*)Data, Size);
-
 	OutgoingBuffer.Add(Buffer);
 
 	return true;
@@ -230,9 +229,13 @@ void FWebSocket::Flush()
 	{
 #if !PLATFORM_HTML5
 		if (Protocols)
+		{
 			lws_callback_on_writable_all_protocol(Context, &Protocols[0]);
+		}
 		else
+		{
 			lws_callback_on_writable(Wsi);
+		}
 #endif
 		HandlePacket();
 		if (PendingMesssages >= OutgoingBuffer.Num())

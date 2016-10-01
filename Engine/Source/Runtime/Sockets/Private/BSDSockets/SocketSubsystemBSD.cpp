@@ -60,7 +60,7 @@ void FSocketSubsystemBSD::DestroySocket(FSocket* Socket)
 
 ESocketErrors FSocketSubsystemBSD::GetHostByName(const ANSICHAR* HostName, FInternetAddr& OutAddr)
 {
-#if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
+#if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETADDRINFO
 	FScopeLock ScopeLock(&HostByNameSynch);
 	addrinfo* AddrInfo = nullptr;
 
@@ -199,6 +199,7 @@ ESocketErrors FSocketSubsystemBSD::TranslateErrorCode(int32 Code)
 // 	case SYSNOTREADY: return SE_SYSNOTREADY;
 // 	case VERNOTSUPPORTED: return SE_VERNOTSUPPORTED;
 // 	case NOTINITIALISED: return SE_NOTINITIALISED;
+
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
 	case HOST_NOT_FOUND: return SE_HOST_NOT_FOUND;
 	case TRY_AGAIN: return SE_TRY_AGAIN;

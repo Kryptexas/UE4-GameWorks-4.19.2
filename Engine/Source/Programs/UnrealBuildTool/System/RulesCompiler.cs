@@ -1633,8 +1633,11 @@ namespace UnrealBuildTool
 				List<FileReference> TargetFiles = new List<FileReference>(FindAllRulesFiles(ProjectSourceDirectory, RulesFileType.Target));
 
 				// Find all the project plugins
-				IReadOnlyList<PluginInfo> ProjectPlugins = Plugins.ReadProjectPlugins(ProjectFileName.Directory);
-				Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();
+				List<PluginInfo> ProjectPlugins = new List<PluginInfo>(Plugins.ReadProjectPlugins(ProjectFileName.Directory));
+                ProjectDescriptor Project = ProjectDescriptor.FromFile(ProjectFileName.FullName);
+                // Add the project's additional plugin directories plugins too
+                ProjectPlugins.AddRange(Plugins.ReadAdditionalPlugins(Project.AdditionalPluginDirectories));
+                Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();
 				FindModuleRulesForPlugins(ProjectPlugins, ModuleFiles, ModuleFileToPluginInfo);
 
 				// Add the games project's intermediate source folder

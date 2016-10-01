@@ -343,7 +343,7 @@ namespace UnrealBuildTool
 		/// <param name="Target">The target being build</param>
 		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
-			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))
+			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac) || (Target.Platform == UnrealTargetPlatform.Linux))
 			{
 				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
 				if (!UEBuildConfiguration.bBuildRequiresCookedData)
@@ -497,6 +497,11 @@ namespace UnrealBuildTool
 				if (Utils.IsRunningOnMono && !EnvVarNames.All(s => AndroidEnv.ContainsKey(s.Key)))
 				{
 					string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
+					if (!File.Exists(BashProfilePath))
+					{
+						// Try .bashrc if didn't fine .bash_profile
+						BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bashrc");
+					}
 					if (File.Exists(BashProfilePath))
 					{
 						string[] BashProfileContents = File.ReadAllLines(BashProfilePath);

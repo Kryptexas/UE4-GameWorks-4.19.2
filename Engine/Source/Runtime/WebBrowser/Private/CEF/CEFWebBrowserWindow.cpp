@@ -1390,6 +1390,16 @@ void FCEFWebBrowserWindow::SetIsDisabled(bool bValue)
 	SetIsHidden(bIsDisabled);
 }
 
+TSharedPtr<SWindow> FCEFWebBrowserWindow::GetParentWindow() const
+{
+	return ParentWindow;
+}
+
+void FCEFWebBrowserWindow::SetParentWindow(TSharedPtr<SWindow> Window)
+{
+	ParentWindow = Window;
+}
+
 CefRefPtr<CefDictionaryValue> FCEFWebBrowserWindow::GetProcessInfo()
 {
 	CefRefPtr<CefDictionaryValue> Retval = nullptr;

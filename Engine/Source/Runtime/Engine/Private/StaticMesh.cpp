@@ -1745,6 +1745,42 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 	
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
+void UStaticMesh::SetLODGroup(FName NewGroup)
+{
+#if WITH_EDITORONLY_DATA
+	Modify();
+	LODGroup = NewGroup;
+
+	const ITargetPlatform* Platform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
+	check(Platform);
+	const FStaticMeshLODGroup& GroupSettings = Platform->GetStaticMeshLODSettings().GetLODGroup(NewGroup);
+
+	// Set the number of LODs to at least the default. If there are already LODs they will be preserved, with default settings of the new LOD group.
+	int32 DefaultLODCount = GroupSettings.GetDefaultNumLODs();
+
+	while (SourceModels.Num() < DefaultLODCount)
+	{
+		new(SourceModels) FStaticMeshSourceModel();
+	}
+	
+	if (SourceModels.Num() > DefaultLODCount)
+	{
+		int32 NumToRemove = SourceModels.Num() - DefaultLODCount;
+		SourceModels.RemoveAt(DefaultLODCount, NumToRemove);
+	}
+
+	// Set reduction settings to the defaults.
+	for (int32 LODIndex = 0; LODIndex < DefaultLODCount; ++LODIndex)
+	{
+		SourceModels[LODIndex].ReductionSettings = GroupSettings.GetDefaultSettings(LODIndex);
+	}
+	bAutoComputeLODScreenSize = true;
+	LightMapResolution = GroupSettings.GetDefaultLightMapResolution();
+	PostEditChange();
+#endif
+}
+
 #endif // WITH_EDITOR
 
 void UStaticMesh::BeginDestroy()

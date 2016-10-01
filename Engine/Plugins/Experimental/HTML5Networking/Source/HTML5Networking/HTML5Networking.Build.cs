@@ -15,6 +15,7 @@ namespace UnrealBuildTool.Rules
                     "ImageCore",
                     "Sockets",
 					"PacketHandler",
+                    "OpenSSL",
                     "libWebSockets",
                     "zlib"
                 }

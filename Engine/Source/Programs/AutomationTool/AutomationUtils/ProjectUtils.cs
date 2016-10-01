@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -217,7 +217,8 @@ namespace AutomationTool
 
 			// Read the project descriptor, and find all the plugins available to this project
 			ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath.FullName);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(BuildConfiguration.RelativeEnginePath), RawProjectPath);
+            DirectoryReference EngineDirectory = new DirectoryReference(BuildConfiguration.RelativeEnginePath);
+            List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(EngineDirectory, RawProjectPath, Project.AdditionalPluginDirectories);
 
 			// check the target platforms for any differences in build settings or additional plugins
 			bool RetVal = false;

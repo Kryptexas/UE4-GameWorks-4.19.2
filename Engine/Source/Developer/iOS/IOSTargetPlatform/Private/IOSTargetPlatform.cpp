@@ -408,19 +408,36 @@ void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats 
 	static FName NAME_SF_METAL(TEXT("SF_METAL"));
 	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 
-	if (SupportsES2())
+	if (bIsTVOS)
 	{
-		OutFormats.AddUnique(NAME_GLSL_ES2_IOS);
-	}
+		if (SupportsMetalMRT())
+		{
+			OutFormats.AddUnique(NAME_SF_METAL_MRT);
+		}
 
-	if (SupportsMetal())
-	{
-		OutFormats.AddUnique(NAME_SF_METAL);
+		// because we are currently using IOS settings, we will always use metal, even if Metal isn't listed as being supported
+		// however, if MetalMRT is specific and Metal is set to false, then we will just use MetalMRT
+		if (SupportsMetal() || !SupportsMetalMRT())
+		{
+			OutFormats.AddUnique(NAME_SF_METAL);
+		}
 	}
-
-	if (SupportsMetalMRT())
+	else
 	{
-		OutFormats.AddUnique(NAME_SF_METAL_MRT);
+		if (SupportsES2())
+		{
+			OutFormats.AddUnique(NAME_GLSL_ES2_IOS);
+		}
+
+		if (SupportsMetal())
+		{
+			OutFormats.AddUnique(NAME_SF_METAL);
+		}
+
+		if (SupportsMetalMRT())
+		{
+			OutFormats.AddUnique(NAME_SF_METAL_MRT);
+		}
 	}
 }
 

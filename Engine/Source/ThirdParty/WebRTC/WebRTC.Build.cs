@@ -34,11 +34,13 @@ public class WebRTC : ModuleRules
 			string VS2013Friendly_WebRtcSdkPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "WebRTC/VS2013_friendly";
 			string LinuxTrunk_WebRtcSdkPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "WebRTC/sdk_trunk_linux";
 
-			string PlatformSubdir = Target.Platform.ToString();
+			string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") ? "Win32" :
+				Target.Platform.ToString();
 			string ConfigPath = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
 
 
-			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 ||
+				(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 			{
 				Definitions.Add("WEBRTC_WIN=1");
 

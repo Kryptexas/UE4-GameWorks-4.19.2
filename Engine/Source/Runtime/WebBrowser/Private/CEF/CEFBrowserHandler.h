@@ -179,6 +179,7 @@ public:
 		const CefCursorInfo& CustomCursorInfo) override;
 	virtual void OnPopupShow(CefRefPtr<CefBrowser> Browser, bool bShow) override;
 	virtual void OnPopupSize(CefRefPtr<CefBrowser> Browser, const CefRect& Rect) override;
+	virtual bool GetScreenInfo(CefRefPtr<CefBrowser> Browser, CefScreenInfo& ScreenInfo) override;
 
 public:
 

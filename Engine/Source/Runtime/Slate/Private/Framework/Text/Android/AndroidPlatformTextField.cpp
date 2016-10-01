@@ -51,4 +51,9 @@ void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex,
 		extern void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry>, int32, const FString&, const FString&);
 		AndroidThunkCpp_ShowVirtualKeyboardInput(TextEntryWidget, InputType, TextEntryWidget->GetHintText().ToString(), TextEntryWidget->GetText().ToString());
 	}
+	else
+	{
+		extern void AndroidThunkCpp_HideVirtualKeyboardInput();
+		AndroidThunkCpp_HideVirtualKeyboardInput();
+	}
 }

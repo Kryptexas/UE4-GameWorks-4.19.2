@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsApplication.h"
@@ -34,6 +34,10 @@
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
 #ifndef WM_MOUSEHWHEEL
 #define WM_MOUSEHWHEEL                  0x020E
+#endif
+
+#ifndef WM_DPICHANGED
+#define WM_DPICHANGED                   0x02E0
 #endif
 
 DEFINE_LOG_CATEGORY(LogWindowsDesktop);
@@ -72,6 +76,8 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	// This is a hack.  A more permanent solution is to make our slow tasks not block the editor for so long
 	// that message pumping doesn't occur (which causes these messages).
 	::DisableProcessWindowsGhosting();
+
+	FWindowsPlatformMisc::SetHighDPIMode();
 
 	// Register the Win32 class for Slate windows and assign the application instance and icon
 	const bool bClassRegistered = RegisterClass( InstanceHandle, IconHandle );
@@ -1289,6 +1295,10 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			}
 			break;
 
+		case WM_DPICHANGED:
+			DeferMessage(CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam);
+			break;
+
 		case WM_GETDLGCODE:
 			{
 				// Slate wants all keys and messages.
@@ -1869,6 +1879,19 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			}
 			break;
 #endif
+
+		case WM_DPICHANGED:
+			{
+				if( CurrentNativeEventWindowPtr.IsValid() )
+				{
+					CurrentNativeEventWindowPtr->SetDPIScaleFactor(LOWORD(wParam) / 96.0f);
+
+
+					LPRECT NewRect = (LPRECT)lParam;
+					SetWindowPos(hwnd, nullptr, NewRect->left, NewRect->top, NewRect->right - NewRect->left, NewRect->bottom - NewRect->top, SWP_NOZORDER | SWP_NOACTIVATE);
+				}
+			}
+			break;
 		}
 	}
 

@@ -41,7 +41,6 @@
 #ifndef WITH_APEX_LEGACY
 	#define WITH_APEX_LEGACY	1
 #endif // WITH_APEX_LEGACY
-
 #endif // WITH_APEX
 
 #if WITH_APEX_CLOTHING

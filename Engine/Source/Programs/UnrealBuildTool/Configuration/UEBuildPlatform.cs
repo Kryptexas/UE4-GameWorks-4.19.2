@@ -521,7 +521,13 @@ namespace UnrealBuildTool
 			}
 		}
 
-
+		/// <summary>
+		/// Returns the name that should be returned in the output when doing -validateplatforms
+		/// </summary>
+		public virtual string GetPlatformValidationName()
+		{
+			return Platform.ToString();
+		}
 
 		/// <summary>
 		/// If this platform can be compiled with XGE

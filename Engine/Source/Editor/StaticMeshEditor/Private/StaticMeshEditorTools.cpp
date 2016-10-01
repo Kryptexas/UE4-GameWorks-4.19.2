@@ -2557,37 +2557,9 @@ void FLevelOfDetailSettingsLayout::OnLODGroupChanged(TSharedPtr<FString> NewValu
 			);
 		if (DialogResult == EAppReturnType::Yes)
 		{
-			StaticMesh->Modify();
-			StaticMesh->LODGroup = NewGroup;
-
-			const ITargetPlatform* Platform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
-			check(Platform);
-			const FStaticMeshLODGroup& GroupSettings = Platform->GetStaticMeshLODSettings().GetLODGroup(NewGroup);
-
-			// Set the number of LODs to at least the default. If there are already LODs they will be preserved, with default settings of the new LOD group.
-			int32 DefaultLODCount = GroupSettings.GetDefaultNumLODs();
-
-			while (StaticMesh->SourceModels.Num() < DefaultLODCount)
-			{
-				new(StaticMesh->SourceModels) FStaticMeshSourceModel();
-			}
-
-			if (StaticMesh->SourceModels.Num() > DefaultLODCount)
-			{
-				int32 NumToRemove = StaticMesh->SourceModels.Num() - DefaultLODCount;
-				StaticMesh->SourceModels.RemoveAt(DefaultLODCount, NumToRemove);
-			}
-
-			LODCount = DefaultLODCount;
-
-			// Set reduction settings to the defaults.
-			for (int32 LODIndex = 0; LODIndex < LODCount; ++LODIndex)
-			{
-				StaticMesh->SourceModels[LODIndex].ReductionSettings = GroupSettings.GetDefaultSettings(LODIndex);
-			}
-			StaticMesh->bAutoComputeLODScreenSize = true;
-			StaticMesh->LightMapResolution = GroupSettings.GetDefaultLightMapResolution();
-			StaticMesh->PostEditChange();
+			StaticMesh->SetLODGroup(NewGroup);
+			// update the internal count
+			LODCount = StaticMesh->SourceModels.Num();
 			StaticMeshEditor.RefreshTool();
 		}
 		else

@@ -108,11 +108,24 @@ VideoBootStrap OFFSCREEN_bootstrap = {
     OFFSCREEN_Available, OFFSCREEN_CreateDevice
 };
 
+static Uint32
+OFFSCREEN_GetGlobalMouseState(int *x, int *y)
+{
+    if (x) {
+        *x = 0;
+    }
+
+    if (y) {
+        *y = 0;
+    }
+    return 0;
+}
 
 int
 OFFSCREEN_VideoInit(_THIS)
 {
     SDL_DisplayMode mode;
+    SDL_Mouse *mouse = NULL;
 
     /* Use a fake 32-bpp desktop mode */
     mode.format = SDL_PIXELFORMAT_RGB888;
@@ -127,6 +140,11 @@ OFFSCREEN_VideoInit(_THIS)
     SDL_zero(mode);
     SDL_AddDisplayMode(&_this->displays[0], &mode);
 
+    /* Init mouse */
+    mouse = SDL_GetMouse();
+    /* This function needs to be implemented by every driver */
+    mouse->GetGlobalMouseState = OFFSCREEN_GetGlobalMouseState;
+    
     /* We're done! */
     return 0;
 }

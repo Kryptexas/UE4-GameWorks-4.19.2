@@ -255,6 +255,15 @@ public:
 	/** Deletes the specified list of files that were created during file creation */
 	static void DeleteCreatedFiles(const FString& RootFolder, const TArray<FString>& CreatedFiles);
 
+	/**
+	 * Update the list of plugin directories to scan
+	 * This will take care of checking out and saving the updated .uproject file automatically
+	 *
+	 * @param	InDir directory to add/remove
+	 * @param	bAddOrRemove true if the directory should be added to this project, false if it should not
+	 */
+	static void UpdateAdditionalPluginDirectory(const FString& InDir, const bool bAddOrRemove);
+
 private:
 
 	static FString GetHardwareConfigString(const FProjectInformation& InProjectInfo);

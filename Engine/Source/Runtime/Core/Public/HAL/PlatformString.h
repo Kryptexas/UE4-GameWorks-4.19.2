@@ -20,5 +20,7 @@
 #include "HTML5/HTML5PlatformString.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformString.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformString.h"
 #endif
 

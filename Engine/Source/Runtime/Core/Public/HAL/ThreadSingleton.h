@@ -28,7 +28,7 @@ class TThreadSingleton : public FTlsAutoCleanup
 	 */
 	static uint32& GetTlsSlot()
 	{
-		static uint32 TlsSlot = 0;
+		static uint32 TlsSlot = 0xFFFFFFFF;
 		return TlsSlot;
 	}
 

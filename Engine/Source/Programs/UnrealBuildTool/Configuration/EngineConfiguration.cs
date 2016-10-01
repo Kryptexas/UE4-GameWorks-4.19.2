@@ -39,7 +39,8 @@ namespace UnrealBuildTool
 																	"/Script/BuildSettings.BuildSettings", "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "/Script/WindowsTargetPlatform.WindowsTargetSettings",
 																	"/Script/UnrealEd.ProjectPackagingSettings", "/Script/PS4PlatformEditor.PS4TargetSettings", "/Script/XboxOnePlatformEditor.XboxOneTargetSettings",
 																	"/Script/HTML5PlatformEditor.HTML5TargetSettings","PS4SymbolServer","/Script/EngineSettings.GeneralProjectSettings",
-                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "OnlineSubsystemGooglePlay.Store"};
+                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "OnlineSubsystemGooglePlay.Store",
+                                                                    "/Script/WolfRuntimeSettings.WolfRuntimeSettings"};
 
 		// static creation functions for ini files
 		public static ConfigCacheIni CreateConfigCacheIni(UnrealTargetPlatform Platform, string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory = null)
@@ -49,14 +50,16 @@ namespace UnrealBuildTool
 				EngineDirectory = UnrealBuildTool.EngineDirectory;
 			}
 
+			string BaseIniCacheKey = BaseIniName + "_" + Platform.ToString();
+
 			// cache base ini for use as the seed for the rest
-			if (!BaseIniCache.ContainsKey(BaseIniName))
+			if (!BaseIniCache.ContainsKey(BaseIniCacheKey))
 			{
-				BaseIniCache.Add(BaseIniName, new ConfigCacheIni(UnrealTargetPlatform.Unknown, BaseIniName, null, EngineDirectory, EngineOnly: true));
+				BaseIniCache.Add(BaseIniCacheKey, new ConfigCacheIni(Platform, BaseIniName, null, EngineDirectory, EngineOnly: true));
 			}
 
 			// build the new ini and cache it for later re-use
-			ConfigCacheIni BaseCache = BaseIniCache[BaseIniName];
+			ConfigCacheIni BaseCache = BaseIniCache[BaseIniCacheKey];
 			string Key = GetIniPlatformName(Platform) + BaseIniName + EngineDirectory.FullName + (ProjectDirectory != null ? ProjectDirectory.FullName : "");
 			if (!IniCache.ContainsKey(Key))
 			{
@@ -198,7 +201,7 @@ namespace UnrealBuildTool
 			}
 			if (EngineOnly)
 			{
-				foreach (FileReference IniFileName in EnumerateEngineIniFileNames(EngineDirectory, BaseIniName))
+				foreach (FileReference IniFileName in EnumerateEngineIniFileNames(EngineDirectory, BaseIniName, Platform))
 				{
 					if (IniFileName.Exists())
 					{
@@ -725,7 +728,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns a list of INI filenames for the engine
 		/// </summary>
-		private static IEnumerable<FileReference> EnumerateEngineIniFileNames(DirectoryReference EngineDirectory, string BaseIniName)
+		private static IEnumerable<FileReference> EnumerateEngineIniFileNames(DirectoryReference EngineDirectory, string BaseIniName, UnrealTargetPlatform Platform)
 		{
 			// Engine/Config/Base.ini (included in every ini type, required)
 			yield return FileReference.Combine(EngineDirectory, "Config", "Base.ini");
@@ -733,6 +736,14 @@ namespace UnrealBuildTool
 			// Engine/Config/Base* ini
 			yield return FileReference.Combine(EngineDirectory, "Config", "Base" + BaseIniName + ".ini");
 
+			if (Platform != UnrealTargetPlatform.Unknown)
+			{
+				string PlatformName = GetIniPlatformName(Platform);
+
+				// Engine/Config/Platform/BasePlatform* ini
+				yield return FileReference.Combine(EngineDirectory, "Config", PlatformName, "Base" + PlatformName + BaseIniName + ".ini");
+			}
+			
 			// Engine/Config/NotForLicensees/Base* ini
 			yield return FileReference.Combine(EngineDirectory, "Config", "NotForLicensees", "Base" + BaseIniName + ".ini");
 		}
@@ -743,6 +754,8 @@ namespace UnrealBuildTool
 		/// </summary>
 		private static IEnumerable<FileReference> EnumerateCrossPlatformIniFileNames(DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory, UnrealTargetPlatform Platform, string BaseIniName, bool SkipEngine)
 		{
+			string PlatformName = GetIniPlatformName(Platform);
+
 			if (!SkipEngine)
 			{
 				// Engine/Config/Base.ini (included in every ini type, required)
@@ -750,6 +763,12 @@ namespace UnrealBuildTool
 
 				// Engine/Config/Base* ini
 				yield return FileReference.Combine(EngineDirectory, "Config", "Base" + BaseIniName + ".ini");
+
+				if (Platform != UnrealTargetPlatform.Unknown)
+				{
+					// Engine/Config/Platform/BasePlatform* ini
+					yield return FileReference.Combine(EngineDirectory, "Config", PlatformName, "Base" + PlatformName + BaseIniName + ".ini");
+				}
 
 				// Engine/Config/NotForLicensees/Base* ini
 				yield return FileReference.Combine(EngineDirectory, "Config", "NotForLicensees", "Base" + BaseIniName + ".ini");
@@ -771,7 +790,6 @@ namespace UnrealBuildTool
 				yield return FileReference.Combine(ProjectDirectory, "Config", "NoRedist", "Default" + BaseIniName + ".ini");
 			}
 
-			string PlatformName = GetIniPlatformName(Platform);
 			if (Platform != UnrealTargetPlatform.Unknown)
 			{
 				// Engine/Config/Platform/Platform* ini

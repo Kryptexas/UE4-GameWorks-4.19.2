@@ -14,9 +14,12 @@ import android.os.Bundle;
 import android.util.Log;
 
 import android.os.Vibrator;
+import android.os.SystemClock;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.PendingIntent;
+import android.app.AlarmManager;
 import android.widget.EditText;
 import android.text.Editable;
 import android.text.InputType;
@@ -33,6 +36,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.FeatureInfo;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 
 import android.media.AudioManager;
 import android.util.DisplayMetrics;
@@ -70,6 +75,12 @@ import com.google.android.gms.plus.Plus;
 
 import java.net.URL;
 import java.net.HttpURLConnection;
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
 
 import com.epicgames.ue4.GooglePlayStoreHelper;
 import com.epicgames.ue4.GooglePlayLicensing;
@@ -204,6 +215,11 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private int VulkanVersion = 0;
 	private int VulkanLevel = 0;
 
+	/** Used for LocalNotification support*/
+	private boolean localNotificationAppLaunched = false;
+	private String	localNotificationLaunchActivationEvent = "";
+	private int		localNotificationLaunchFireDate = 0;
+	
 	enum EAlertDialogType
 	{
 		None,
@@ -855,6 +871,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			}
 		}
 
+		LocalNotificationCheckAppOpen();
+
 //$${gameActivityOnResumeAdditions}$$
 		Log.debug("==============> GameActive.onResume complete!");
 	}
@@ -888,6 +906,13 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 //$${gameActivityOnPauseAdditions}$$
 		Log.debug("==============> GameActive.onPause complete!");
+	}
+
+	@Override
+	public void onNewIntent(Intent newIntent)
+	{
+		super.onNewIntent(newIntent);
+		setIntent(newIntent);
 	}
 
 	@Override
@@ -1079,6 +1104,29 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 					Log.debug("Console not showing yet");
 					consoleAlert.show(); 
 					CurrentDialogType = EAlertDialogType.Console;
+				}
+			}
+		});
+	}
+
+	public void AndroidThunkJava_HideVirtualKeyboardInput()
+	{
+		if (virtualKeyboardAlert.isShowing() == false)
+		{
+			Log.debug("Virtual keyboard already hidden.");
+			return;
+		}
+
+		_activity.runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				if (virtualKeyboardAlert.isShowing() == true)
+				{
+					Log.debug("Virtual keyboard hiding");
+					virtualKeyboardInputBox.setText(" ");
+					virtualKeyboardAlert.dismiss();
+					CurrentDialogType = EAlertDialogType.None;
 				}
 			}
 		});
@@ -1703,6 +1751,239 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			return (vendorId == vid && productId == pid);
 		}
 	}
+
+	private void LocalNotificationCheckAppOpen()
+	{
+		Intent launchIntent = getIntent();
+		if (launchIntent != null)
+		{	
+			Bundle extrasBundle = launchIntent.getExtras();
+
+			localNotificationAppLaunched = launchIntent.getBooleanExtra("localNotificationAppLaunched", false);
+
+			if(localNotificationAppLaunched)
+			{
+				localNotificationLaunchActivationEvent = extrasBundle.get("localNotificationLaunchActivationEvent").toString();
+				int notificationID = extrasBundle.getInt("localNotificationID");
+
+				LocalNotificationRemoveID(notificationID);
+
+				// TODO
+				localNotificationLaunchFireDate = 0; 
+			}
+		}
+		else
+		{
+			localNotificationAppLaunched = false;
+			localNotificationLaunchActivationEvent = "";
+			localNotificationLaunchFireDate = 0;
+		}
+	}
+
+	private int LocalNotificationGetID()
+	{
+		SharedPreferences preferences = getApplicationContext().getSharedPreferences("LocalNotificationPreferences", MODE_PRIVATE);
+		SharedPreferences.Editor editor = preferences.edit();
+		String notificationIDs = preferences.getString("notificationIDs", "");
+
+		int idToReturn = 1;
+		if(notificationIDs.length() == 0)
+		{
+			editor.putString("notificationIDs", Integer.toString(idToReturn));
+		}
+		else
+		{
+			String[] parts = notificationIDs.split("-");
+			ArrayList<Integer> iParts = new ArrayList<Integer>();
+			for(String part : parts)
+			{
+				if(part.length() > 0)
+				{
+					iParts.add(Integer.parseInt(part));
+				}
+			}
+			while(true)
+			{
+				if(!iParts.contains(idToReturn))
+				{
+					break;
+				}
+				idToReturn++;
+			}
+			editor.putString("notificationIDs", notificationIDs + "-" + idToReturn);
+		}
+
+		notificationIDs = preferences.getString("notificationIDs", "");
+
+		editor.commit();
+
+		return idToReturn;
+	}
+
+	private ArrayList<Integer> LocalNotificationGetIDList()
+	{
+		SharedPreferences preferences = getApplicationContext().getSharedPreferences("LocalNotificationPreferences", MODE_PRIVATE);
+		SharedPreferences.Editor editor = preferences.edit();
+		String notificationIDs = preferences.getString("notificationIDs", "");
+		ArrayList<Integer> iParts = new ArrayList<Integer>();
+
+		String[] parts = notificationIDs.split("-");
+		for(String part : parts)
+		{
+			if(part.length() > 0)
+			{
+				iParts.add(Integer.parseInt(part));
+			}
+		}
+
+		return iParts;
+	}
+
+	private void LocalNotificationRemoveID(int notificationID)
+	{
+		SharedPreferences preferences = getApplicationContext().getSharedPreferences("LocalNotificationPreferences", MODE_PRIVATE);
+		SharedPreferences.Editor editor = preferences.edit();
+		String notificationIDs = preferences.getString("notificationIDs", null);
+
+		ArrayList<String> iParts = new ArrayList<String>();
+
+		if(notificationIDs.length() == 0)
+		{
+			return;
+		}
+		else
+		{
+			String[] parts = notificationIDs.split("-");
+			for(String part : parts)
+			{
+				if(part.length() > 0)
+				{
+					iParts.add(part);
+				}
+			}
+			iParts.remove(Integer.toString(notificationID));
+		}
+
+		String newNotificationIDs = "";
+		for(String notifID : iParts)
+		{
+			if(newNotificationIDs.length() == 0)
+			{
+				newNotificationIDs = notifID;
+			}
+			else
+			{
+				newNotificationIDs += "-" + notifID;
+			}
+		}
+
+		editor.putString("notificationIDs", newNotificationIDs);
+		editor.commit();
+	}
+
+	public void AndroidThunkJava_LocalNotificationScheduleAtTime(String targetDateTime, boolean localTime, String title, String body, String action, String activationEvent) 
+	{
+		int notificationID = LocalNotificationGetID();
+
+		// Create callback for PendingIntent
+		Intent notificationIntent = new Intent(this, LocalNotificationReceiver.class); 
+
+		// Add user-provided data
+		notificationIntent.putExtra("local-notification-ID", notificationID);
+		notificationIntent.putExtra("local-notification-title", title);
+		notificationIntent.putExtra("local-notification-body", body);
+		notificationIntent.putExtra("local-notification-action", action);
+		notificationIntent.putExtra("local-notification-activationEvent", activationEvent);
+		
+		// Designate the callback as a PendingIntent
+		PendingIntent pendingIntent = PendingIntent.getBroadcast(this, notificationID, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+		TimeZone targetTimeZone = TimeZone.getTimeZone("UTC");
+
+		if(localTime) 
+		{
+			targetTimeZone = TimeZone.getDefault();
+		}
+
+		DateFormat targetDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		targetDateFormat.setTimeZone(targetTimeZone);
+
+		Date targetDate = new Date();
+
+		try 
+		{
+			targetDate = targetDateFormat.parse(targetDateTime);
+		} 
+
+		catch (ParseException e) 
+		{
+			e.printStackTrace();
+			return;
+		}
+
+		Date currentDate = new Date();
+
+		long msDiff = targetDate.getTime() - currentDate.getTime();
+
+		if(msDiff < 0)
+		{
+			return;
+		}
+
+		long futureTimeInMillis = SystemClock.elapsedRealtime() + msDiff;//Calculate the time to run the callback
+		AlarmManager alarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+
+		//Schedule the operation by using AlarmService
+		alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, futureTimeInMillis, pendingIntent);
+	}
+
+	public class LaunchNotification {
+		public boolean	used;
+		public String	event;
+		public int		fireDate;
+
+		LaunchNotification(boolean inUsed, String inEvent, int inFireDate)
+		{
+			used = inUsed;
+			event = inEvent;
+			fireDate = inFireDate;
+		}
+	}
+
+	public LaunchNotification AndroidThunkJava_LocalNotificationGetLaunchNotification()
+	{
+		return new LaunchNotification(localNotificationAppLaunched, localNotificationLaunchActivationEvent, localNotificationLaunchFireDate);
+	}
+
+	public void AndroidThunkJava_LocalNotificationClearAll()
+	{
+		ArrayList<Integer> idList = LocalNotificationGetIDList(); 
+
+		for(int curID : idList)
+		{
+			AlarmManager alarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+			PendingIntent pendingIntent = PendingIntent.getBroadcast(this, curID, new Intent(this, LocalNotificationReceiver.class), PendingIntent.FLAG_UPDATE_CURRENT);
+			pendingIntent.cancel();
+			alarmManager.cancel(pendingIntent);
+		}
+	}
+
+	/*
+	// Returns true only if the scheduled notification exists and gets destoyed successfully
+	public boolean AndroidThunkJava_LocalNotificationDestroyIfExists(int notificationId)
+	{
+		if (AndroidThunkJava_ScheduledNotificationExists(notificationId))
+		{
+			//Cancel the intent itself as well as from the alarm manager
+			AlarmManager alarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+			PendingIntent pendingIntent = PendingIntent.getBroadcast(this, notificationId, new Intent(this, ScheduledNotificationReceiver.class), PendingIntent.FLAG_UPDATE_CURRENT);
+			pendingIntent.cancel();
+			alarmManager.cancel(pendingIntent);
+			return true;
+		}
+		return false;
+	}
+	*/
 
 	// List of vendor/product ids
 	private static final DeviceInfoData[] DeviceInfoList = {

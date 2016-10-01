@@ -184,6 +184,8 @@ void SWebBrowserView::Construct(const FArguments& InArgs, const TSharedPtr<IWebB
 				return ContinueTick;
 			}));
 		}
+
+		BrowserWindow->SetParentWindow(InArgs._ParentWindow);
 	}
 	else
 	{

@@ -223,7 +223,7 @@ FVector2D FMacCursor::GetPosition() const
 	{
 		SCOPED_AUTORELEASE_POOL;
 		NSPoint CursorPos = [NSEvent mouseLocation];
-		CurrentPos = FVector2D(CursorPos.x, FMacApplication::ConvertSlateYPositionToCocoa(CursorPos.y));
+		CurrentPos = FMacApplication::ConvertCocoaPositionToSlate(CursorPos.x, CursorPos.y);
 	}
 
 	static bool bWasFullscreen = false;
@@ -249,7 +249,7 @@ FVector2D FMacCursor::GetPositionNoScaling() const
 	{
 		SCOPED_AUTORELEASE_POOL;
 		NSPoint CursorPos = [NSEvent mouseLocation];
-		CurrentPos = FVector2D(CursorPos.x, FMacApplication::ConvertSlateYPositionToCocoa(CursorPos.y));
+		CurrentPos = FMacApplication::ConvertCocoaPositionToSlate(CursorPos.x, CursorPos.y);
 	}
 	return CurrentPos;
 }
@@ -455,7 +455,7 @@ void FMacCursor::WarpCursor(const int32 X, const int32 Y)
 	}
 
 	// Perform the warp as normal
-	CGWarpMouseCursorPosition(CGPointMake(X, Y));
+	CGWarpMouseCursorPosition(FMacApplication::ConvertSlatePositionToCGPoint(X, Y));
 
 	// And then reassociate the mouse cursor, which forces the mouse events to come through.
 	if (!bUseHighPrecisionMode)

@@ -5,6 +5,7 @@
 #include "Async.h"
 #include "MallocAnsi.h"
 #include "GenericPlatformMemoryPoolStats.h"
+#include "MallocProfiler.h"
 #include "MemoryMisc.h"
 
 
@@ -74,15 +75,6 @@ FGenericPlatformMemoryStats::FGenericPlatformMemoryStats()
 bool FGenericPlatformMemory::bIsOOM = false;
 uint64 FGenericPlatformMemory::OOMAllocationSize = 0;
 uint32 FGenericPlatformMemory::OOMAllocationAlignment = 0;
-
-/**
- * Value determined by series of tests on Fortnite with limited process memory.
- * 26MB sufficed to report all test crashes, using 32MB to have some slack.
- * If this pool is too large, use the following values to determine proper size:
- * 2MB pool allowed to report 78% of crashes.
- * 6MB pool allowed to report 90% of crashes.
- */
-uint32 FGenericPlatformMemory::BackupOOMMemoryPoolSize = 32 * 1024 * 1024;
 void* FGenericPlatformMemory::BackupOOMMemoryPool = nullptr;
 
 void FGenericPlatformMemory::SetupMemoryPools()
@@ -93,15 +85,16 @@ void FGenericPlatformMemory::SetupMemoryPools()
 	SET_MEMORY_STAT(MCR_StreamingPool, 0);
 	SET_MEMORY_STAT(MCR_UsedStreamingPool, 0);
 
-	BackupOOMMemoryPool = FPlatformMemory::BinnedAllocFromOS(BackupOOMMemoryPoolSize);
+	// if the platform chooses to have a BackupOOM pool, create it now
+	if (FPlatformMemory::GetBackMemoryPoolSize() > 0)
+	{
+		BackupOOMMemoryPool = FPlatformMemory::BinnedAllocFromOS(FPlatformMemory::GetBackMemoryPoolSize());
+	}
 }
 
 void FGenericPlatformMemory::Init()
 {
-	if (FPlatformMemory::SupportBackupMemoryPool())
-	{
-		SetupMemoryPools();
-	}
+	SetupMemoryPools();
 
 #if	STATS
 	// Stats are updated only once per second.
@@ -116,17 +109,23 @@ void FGenericPlatformMemory::Init()
 void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 {
 	// Update memory stats before we enter the crash handler.
-
 	OOMAllocationSize = Size;
 	OOMAllocationAlignment = Alignment;
 
+	// only call this code one time - if already OOM, abort
+	if (bIsOOM)
+	{
+		return;
+	}
 	bIsOOM = true;
+
 	FPlatformMemoryStats PlatformMemoryStats = FPlatformMemory::GetStats();
 	if (BackupOOMMemoryPool)
 	{
-		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool, BackupOOMMemoryPoolSize);
-		UE_LOG(LogMemory, Warning, TEXT("Freeing %d bytes from backup pool to handle out of memory."), BackupOOMMemoryPoolSize);
+		FPlatformMemory::BinnedFreeToOS(BackupOOMMemoryPool, FPlatformMemory::GetBackMemoryPoolSize());
+		UE_LOG(LogMemory, Warning, TEXT("Freeing %d bytes from backup pool to handle out of memory."), FPlatformMemory::GetBackMemoryPoolSize());
 	}
+
 	UE_LOG(LogMemory, Warning, TEXT("MemoryStats:")\
 		TEXT("\n\tAvailablePhysical %llu")\
 		TEXT("\n\t AvailableVirtual %llu")\
@@ -144,6 +143,10 @@ void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 	{
 		GMalloc->DumpAllocatorStats(*GWarn);
 	}
+
+	// let any registered handlers go
+	FCoreDelegates::OnOutOfMemory.Broadcast();
+
 	UE_LOG(LogMemory, Fatal, TEXT("Ran out of memory allocating %llu bytes with alignment %u"), Size, Alignment);
 }
 

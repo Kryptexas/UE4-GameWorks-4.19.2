@@ -111,7 +111,7 @@ public:
 
 	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override;
 
-	virtual bool TerminateProcess( const int32 ProcessId ) override;
+	virtual bool TerminateProcess( const int64 ProcessId ) override;
 
 
 private:

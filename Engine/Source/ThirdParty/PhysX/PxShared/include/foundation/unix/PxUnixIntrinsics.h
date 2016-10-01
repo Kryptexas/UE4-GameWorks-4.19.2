@@ -161,7 +161,7 @@ PX_FORCE_INLINE void* memCopy(void* PX_RESTRICT dest, const void* PX_RESTRICT sr
 /*!
 Copies \c count bytes from \c src to \c dst. Supports overlapping regions.
 */
-PX_FORCE_INLINE void* memMove(void* PX_RESTRICT dest, const void* PX_RESTRICT src, uint32_t count)
+PX_FORCE_INLINE void* memMove(void* dest, const void* src, uint32_t count)
 {
 	return memmove(dest, src, count);
 }

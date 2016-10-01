@@ -151,6 +151,8 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_METAL_SM5:
 		case SP_METAL_MACES3_1:
 		case SP_METAL_MACES2:
+		case SP_WOLF:
+		case SP_WOLF_FORWARD:
 		{
 			return true;
 		}
@@ -1045,7 +1047,7 @@ void FShaderCache::InternalSetSamplerState(EShaderFrequency Frequency, uint32 In
 {
 	if ( bUseShaderDrawLog && !bIsPreDraw )
 	{
-		checkf(Index < GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel), TEXT("Attempting to bind sampler at index %u which exceeds RHI max. %d"), Index, GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel));
+		checkf(Index < GetMaxTextureSamplers(), TEXT("Attempting to bind sampler at index %u which exceeds RHI max. %d"), Index, GetMaxTextureSamplers());
 		InvalidResourceCount -= (uint32)(CurrentDrawKey.SamplerStates[Frequency][Index] == FShaderDrawKey::InvalidState);
 		if ( State )
 		{
@@ -1865,7 +1867,7 @@ void FShaderCache::SetShaderSamplerTextures( FRHICommandList& RHICmdList, FShade
 {
 	FShaderPlatformCache& PlatformCache = Caches.PlatformCaches.FindOrAdd(GMaxRHIShaderPlatform);
 	
-	for ( uint32 i = 0; i < GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel); i++ )
+	for ( uint32 i = 0; i < GetMaxTextureSamplers(); i++ )
 	{
 		checkf(DrawKey.SamplerStates[Frequency][i] != FShaderDrawKey::InvalidState, TEXT("Resource state cannot be 'InvalidState' as that indicates a resource lifetime error in the application."));
 		

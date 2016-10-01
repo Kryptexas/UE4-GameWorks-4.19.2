@@ -270,7 +270,16 @@ public:
 		// inefficient but no common code path
 		Set(*FString::Printf(TEXT("%g"), InValue), SetBy);
 	}
-
+	void SetWithCurrentPriority(int32 InValue)
+	{
+		EConsoleVariableFlags CurFlags = (EConsoleVariableFlags)(GetFlags() & ECVF_SetByMask);
+		Set(InValue, CurFlags);
+	}
+	void SetWithCurrentPriority(float InValue)
+	{
+		EConsoleVariableFlags CurFlags = (EConsoleVariableFlags)(GetFlags() & ECVF_SetByMask);
+		Set(InValue, CurFlags);
+	}
 };
 
 /**

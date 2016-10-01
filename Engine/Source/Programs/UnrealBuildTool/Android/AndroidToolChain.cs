@@ -67,6 +67,7 @@ namespace UnrealBuildTool
 			string ArchitecturePathWindows32 = @"prebuilt/windows";
 			string ArchitecturePathWindows64 = @"prebuilt/windows-x86_64";
 			string ArchitecturePathMac = @"prebuilt/darwin-x86_64";
+			string ArchitecturePathLinux = @"prebuilt/linux-x86_64";
 			string ExeExtension = ".exe";
 
 			if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathWindows64)))
@@ -83,6 +84,12 @@ namespace UnrealBuildTool
 			{
 				Log.TraceVerbose("        Found Mac versions of toolchain");
 				ArchitecturePath = ArchitecturePathMac;
+				ExeExtension = "";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathLinux)))
+			{
+				Log.TraceVerbose("        Found Linux versions of toolchain");
+				ArchitecturePath = ArchitecturePathLinux;
 				ExeExtension = "";
 			}
 			else

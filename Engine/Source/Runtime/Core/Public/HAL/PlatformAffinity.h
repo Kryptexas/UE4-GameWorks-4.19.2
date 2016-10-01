@@ -11,6 +11,8 @@
 #include "IOS/IOSPlatformAffinity.h"
 #elif PLATFORM_ANDROID
 #include "Android/AndroidAffinity.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformAffinity.h"
 #else
 #include "GenericPlatform/GenericPlatformAffinity.h"
 typedef FGenericPlatformAffinity FPlatformAffinity;

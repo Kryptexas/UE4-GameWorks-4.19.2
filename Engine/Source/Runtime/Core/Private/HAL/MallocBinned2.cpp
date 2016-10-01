@@ -8,7 +8,6 @@
 
 #include "MallocBinned2.h"
 #include "MemoryMisc.h"
-#include "HAL/PlatformAtomics.h"
 
 #if BINNED2_ALLOW_RUNTIME_TWEAKING
 

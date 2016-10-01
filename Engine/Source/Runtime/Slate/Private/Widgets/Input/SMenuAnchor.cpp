@@ -127,8 +127,7 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 		const FVector2D PopupContentDesiredSize = PopupWindow->GetContent()->GetDesiredSize();
 		FGeometry PopupGeometry = ComputeMenuPlacement( AllottedGeometry, PopupContentDesiredSize, Placement.Get() );
 		const FVector2D NewPosition = PopupGeometry.LocalToAbsolute(FVector2D::ZeroVector);
-		// For the CreateWindow case, don't transform the size; it will always use the ApplicationScale
-		const FVector2D NewSize = PopupGeometry.GetLocalSize();
+		const FVector2D NewSize = PopupGeometry.GetDrawSize();
 
 		const FSlateRect NewShape = FSlateRect( NewPosition.X, NewPosition.Y, NewPosition.X + NewSize.X, NewPosition.Y + NewSize.Y );
 
@@ -362,7 +361,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 
 					const FVector2D NewPosition = MyGeometry.AbsolutePosition;
 					FVector2D NewWindowSize = DesiredContentSize;
-					const FVector2D SummonLocationSize = MyGeometry.Size;
+					const FVector2D SummonLocationSize = MyGeometry.GetLocalSize();
 
 					FPopupTransitionEffect TransitionEffect( FPopupTransitionEffect::None );
 					if ( PlacementMode == MenuPlacement_ComboBox || PlacementMode == MenuPlacement_ComboBoxRight )
@@ -389,7 +388,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 						if (MethodInUse.GetPopupMethod() == EPopupMethod::CreateNewWindow)
 						{
 							// Open the pop-up
-							TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(AsShared(), MyWidgetPath, MenuContentRef, NewPosition, TransitionEffect, bFocusMenu, SummonLocationSize, MethodInUse.GetPopupMethod(), bIsCollapsedByParent);
+							TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(AsShared(), MyWidgetPath, MenuContentRef, NewPosition, TransitionEffect, bFocusMenu, MyGeometry.GetDrawSize(), MethodInUse.GetPopupMethod(), bIsCollapsedByParent);
 
 							PopupMenuPtr = NewMenu;
 							check(NewMenu.IsValid() && NewMenu->GetOwnedWindow().IsValid());

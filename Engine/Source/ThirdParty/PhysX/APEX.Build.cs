@@ -208,20 +208,18 @@ public class APEX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			if (Target.Architecture == "arm-unknown-linux-gnueabihf")
+			if (Target.Architecture != "arm-unknown-linux-gnueabihf")
 			{
-				throw new BuildException("APEX is not supported for Linux ARM");
+				APEXLibDir += "/Linux/" + Target.Architecture;
+				Definitions.Add("APEX_STATICALLY_LINKED=1");
+
+				ApexLibraries.Add("APEX_Clothing{0}");
+				ApexLibraries.Add("APEX_Destructible{0}");
+				ApexLibraries.Add("APEX_Legacy{0}");
+				ApexLibraries.Add("APEX_Loader{0}");
+				ApexLibraries.Add("ApexFramework{0}");
+				LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
 			}
-
-			APEXLibDir += "/Linux/" + Target.Architecture;
-			Definitions.Add("APEX_STATICALLY_LINKED=1");
-
-			ApexLibraries.Add("APEX_Clothing{0}");
-			ApexLibraries.Add("APEX_Destructible{0}");
-			ApexLibraries.Add("APEX_Legacy{0}");
-			ApexLibraries.Add("APEX_Loader{0}");
-			ApexLibraries.Add("ApexFramework{0}");
-			LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
 		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
@@ -252,6 +250,16 @@ public class APEX : ModuleRules
 			ApexLibraries.Add("RenderDebug{0}");
 
 			LibraryFormatString = "{0}.lib";
+		}
+		else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		{
+			Definitions.Add("APEX_STATICALLY_LINKED=1");
+			Definitions.Add("WITH_APEX_LEGACY=0");
+
+			APEXLibDir += "/WolfPlat";
+			PublicLibraryPaths.Add(APEXLibDir);
+
+			LibraryFormatString = "{0}";
 		}
 
 		Definitions.Add("APEX_UE4=1");

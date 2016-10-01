@@ -13,6 +13,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogShaderCompilers, Log, All);
 class FShaderCompileJob;
 class FShaderPipelineCompileJob;
 
+#define DEBUG_INFINITESHADERCOMPILE 0
+
+
 /** Stores all of the common information used to compile a shader or pipeline. */
 class FShaderCommonCompileJob : public FRefCountedObject
 {
@@ -425,6 +428,16 @@ public:
 	bool IsCompiling() const
 	{
 		return NumOutstandingJobs > 0 || PendingFinalizeShaderMaps.Num() > 0;
+	}
+
+	/**
+	 * return true if we have shader jobs in any state
+	 * shader jobs are removed when they are applied to the gamethreadshadermap
+	 * accessable from gamethread
+	 */
+	bool HasShaderJobs() const
+	{
+		return ShaderMapJobs.Num() > 0;
 	}
 
 	/** 

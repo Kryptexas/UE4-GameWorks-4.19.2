@@ -101,7 +101,7 @@ public:
 
 	virtual bool SupportsSdkVersion( const FString& VersionString ) const override;
 
-	virtual bool TerminateProcess( const int32 ProcessId ) override;
+	virtual bool TerminateProcess( const int64 ProcessId ) override;
 
 	virtual void SetUserCredentials( const FString& UserName, const FString& UserPassword ) override;
 

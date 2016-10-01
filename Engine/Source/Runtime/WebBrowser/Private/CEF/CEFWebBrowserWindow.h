@@ -119,6 +119,8 @@ public:
 	virtual void UnbindUObject(const FString& Name, UObject* Object = nullptr, bool bIsPermanent = true) override;
 	virtual int GetLoadError() override;
 	virtual void SetIsDisabled(bool bValue) override;
+	virtual TSharedPtr<SWindow> GetParentWindow() const override;
+	virtual void SetParentWindow(TSharedPtr<SWindow> Window) override;
 
 	DECLARE_DERIVED_EVENT(FCEFWebBrowserWindow, IWebBrowserWindow::FOnDocumentStateChanged, FOnDocumentStateChanged);
 	virtual FOnDocumentStateChanged& OnDocumentStateChanged() override
@@ -529,6 +531,8 @@ private:
 
 	/** Handling of passing and marshalling messages for JS integration is delegated to a helper class*/
 	TSharedPtr<FCEFJSScripting> Scripting;
+
+	TSharedPtr<SWindow> ParentWindow;
 };
 
 typedef FCEFWebBrowserWindow FWebBrowserWindow;

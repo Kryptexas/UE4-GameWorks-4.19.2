@@ -1551,11 +1551,11 @@ namespace UnrealBuildTool
 				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(platform, true);
 				if (BuildPlatform != null && BuildPlatform.HasRequiredSDKsInstalled() == SDKStatus.Valid)
 				{
-					Console.WriteLine("##PlatformValidate: {0} VALID", platform.ToString());
+					Console.WriteLine("##PlatformValidate: {0} VALID", BuildPlatform.GetPlatformValidationName());
 				}
 				else
 				{
-					Console.WriteLine("##PlatformValidate: {0} INVALID", platform.ToString());
+					Console.WriteLine("##PlatformValidate: {0} INVALID", BuildPlatform != null ? BuildPlatform.GetPlatformValidationName() : platform.ToString());
 				}
 			}
 		}

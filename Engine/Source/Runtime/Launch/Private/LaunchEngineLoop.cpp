@@ -841,6 +841,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			FString ProjPath = FPaths::GetProjectFilePath();
 			if (FPaths::FileExists(ProjPath) == false)
 			{
+				// display it multiple ways, it's very important error message...
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("\tAttempting to find via project info helper."));
 				// Use the uprojectdirs

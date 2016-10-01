@@ -228,9 +228,13 @@ float3 GetClothSimulPosition(int Index, bool bPrevious)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	if(bPrevious)
+	{
 		return float3(PreviousClothSimulVertsPositionsNormals[Index * 3], PreviousClothSimulVertsPositionsNormals[Index * 3 + 1].x);
-	  else
+	}
+	else
+	{
 		return float3(ClothSimulVertsPositionsNormals[Index * 3], ClothSimulVertsPositionsNormals[Index * 3 + 1].x);
+	}
 #else
 	return APEXClothParam.Positions[Index];
 #endif //FEATURE_LEVEL >= FEATURE_LEVEL_SM4
@@ -240,9 +244,13 @@ float3 GetClothSimulNormal(int Index, bool bPrevious)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	if(bPrevious)
+	{
 		return float3(PreviousClothSimulVertsPositionsNormals[Index * 3 + 1].y, PreviousClothSimulVertsPositionsNormals[Index * 3 + 2]);
-	  else
+	}
+	else
+	{
 		return float3(ClothSimulVertsPositionsNormals[Index * 3 + 1].y, ClothSimulVertsPositionsNormals[Index * 3 + 2]);
+	}
 #else
 	return APEXClothParam.Normals[Index];
 #endif //FEATURE_LEVEL >= FEATURE_LEVEL_SM4

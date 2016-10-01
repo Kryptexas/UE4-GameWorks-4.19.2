@@ -60,11 +60,12 @@ static struct lws_protocols Protocols[] = {
 			"http-only",                           // name
 			FNetworkFileServerHttp::CallBack_HTTP, // callback
 			sizeof(PerSessionData),                // per_session_data_size
-			15 * 1024,
-			15 * 1024
+			15 * 1024,                             // rx_buffer_size
+			0,                                     // id
+			NULL
 	},
 	{
-		NULL, NULL, 0   /* End of list */
+		NULL, NULL, 0, 0, 0, NULL   /* End of list */
 	}
 };
 //////////////////////////////////////////////////////////////////////////
@@ -118,8 +119,6 @@ void lws_debugLog(int level, const char *line)
 }
 #endif
 
-FNetworkFileServerHttp* user_space_patch = NULL;
-
 bool FNetworkFileServerHttp::Init()
 {
 	// setup log level.
@@ -152,20 +151,6 @@ bool FNetworkFileServerHttp::Init()
 		UE_LOG(LogFileServer, Fatal, TEXT(" Could not create a libwebsocket content for port : %d"), Port);
 		return false;
 	}
-
-	// ========================================
-	// March 11 2016 - nick.shin
-	// libwebsocket_create_context() above is not setting the user_space pointer properly
-	// this can be corrected with the following two code changes:
-//#include "private-libwebsockets.h" // put this in NetworkFileServerHttp.h
-//	Context->user_space = this;
-	// but this fails in UE4 frontend with multiple defined symbols...
-
-	// i will continue to analyze this problem after today's ZBR day
-
-	// since, there's only one of 'this' object -- for now...
-	user_space_patch = this;
-	// ========================================
 
 	Ready.Set(true);
 	return true;
@@ -303,8 +288,7 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 {
 	struct lws_context *Context = lws_get_context(Wsi);
 	PerSessionData* BufferInfo = (PerSessionData*)User;
-//	FNetworkFileServerHttp* Server = (FNetworkFileServerHttp*)lws_context_user(Context);
-	FNetworkFileServerHttp* Server = user_space_patch; // see Init() for details...
+	FNetworkFileServerHttp* Server = (FNetworkFileServerHttp*)lws_context_user(Context);
 
 	switch (Reason)
 	{

@@ -147,7 +147,7 @@ public:
 	void OnChanged(EConsoleVariableFlags SetBy)
 	{
 		// you have to specify a SetBy e.g. ECVF_SetByCommandline
-		check((uint32)SetBy & ECVF_SetByMask);
+		check(((uint32)SetBy & ECVF_SetByMask) || SetBy == ECVF_Default);
 
 		// double check, if this fires we miss a if(CanChange(SetBy))
 		check(CanChange(SetBy));

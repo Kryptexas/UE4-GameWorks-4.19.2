@@ -4,14 +4,15 @@ using System.IO;
 
 public class libWebSockets : ModuleRules
 {
-
-    public libWebSockets(TargetInfo Target)
+	public libWebSockets(TargetInfo Target)
 	{
 		Type = ModuleType.External;
         string WebsocketPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "libWebSockets", "libwebsockets");
-        string PlatformSubdir = Target.Platform.ToString();
+        string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") ? "Win32" :
+        	Target.Platform.ToString();
         
-        if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+        if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 ||
+			(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
         {
             PlatformSubdir = Path.Combine(PlatformSubdir, WindowsPlatform.GetVisualStudioCompilerVersionName());
             if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
@@ -27,6 +28,7 @@ public class libWebSockets : ModuleRules
         {
 		    PublicAdditionalLibraries.Add(Path.Combine(WebsocketPath, "lib", PlatformSubdir, "libwebsockets.a"));
         }
+
         PublicLibraryPaths.Add(Path.Combine(WebsocketPath, "lib", PlatformSubdir));
         PublicIncludePaths.Add(Path.Combine(WebsocketPath, "include"));
         PublicIncludePaths.Add(Path.Combine(WebsocketPath, "include", PlatformSubdir));

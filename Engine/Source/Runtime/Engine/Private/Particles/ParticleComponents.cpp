@@ -280,6 +280,10 @@ void UParticleLODLevel::PostLoad()
 	{
 		RequiredModule->ConditionalPostLoad();
 	}
+	if ( SpawnModule )
+	{
+		SpawnModule->ConditionalPostLoad();
+	}
 
 	for (UParticleModule* ParticleModule : Modules)
 	{

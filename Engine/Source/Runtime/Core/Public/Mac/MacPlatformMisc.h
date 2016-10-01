@@ -222,6 +222,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
     
     /** Update the driver monitor statistics for the given GPU - called once a frame by the Mac RHI's, no need to call otherwise - use GetPerformanceStatistics instead. */
     static void UpdateDriverMonitorStatistics(int32 DeviceIndex);
+
+	static float GetDPIScaleFactorAtPoint(float X, float Y);
 };
 
 #ifdef __OBJC__

@@ -191,6 +191,7 @@ public class Launch : ModuleRules
 			PrivateDependencyModuleNames.Add("OpenGLDrv"); 
 			PrivateDependencyModuleNames.Add("AndroidAudio");
 			DynamicallyLoadedModuleNames.Add("AndroidRuntimeSettings");
+			DynamicallyLoadedModuleNames.Add("AndroidLocalNotification");
 		}
 
 		if ((Target.Platform == UnrealTargetPlatform.Win32) ||

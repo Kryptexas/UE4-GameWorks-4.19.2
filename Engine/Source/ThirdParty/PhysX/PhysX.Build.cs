@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -105,29 +105,37 @@ public class PhysX : ModuleRules
 		string PhysXLibDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/Lib/";
 		string PxSharedLibDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/Lib/";
 
+		string PhysXIncludeDir = PhysXDir + "Include/";
+		string PxSharedIncludeDir = PxSharedDir + "include/";
+		if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		{
+			// all physx includes in a WolfPlat subdir
+			PhysXIncludeDir = PhysXIncludeDir + "WolfPlat/";
+			PxSharedIncludeDir = PxSharedIncludeDir + "WolfPlat/";
+		}
+
+
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
-				PxSharedDir + "include",
-				PxSharedDir + "include/cudamanager",
-				PxSharedDir + "include/filebuf",
-				PxSharedDir + "include/foundation",
-				PxSharedDir + "include/pvd",
-				PxSharedDir + "include/task",
-				PhysXDir + "Include",
-				PhysXDir + "Include/foundation",
-				PhysXDir + "Include/cooking",
-				PhysXDir + "Include/common",
-				PhysXDir + "Include/extensions",
-				PhysXDir + "Include/geometry",
-				PhysXDir + "Include/vehicle"
+				PxSharedIncludeDir,
+				PxSharedIncludeDir + "cudamanager",
+				PxSharedIncludeDir + "filebuf",
+				PxSharedIncludeDir + "foundation",
+				PxSharedIncludeDir + "pvd",
+				PxSharedIncludeDir + "task",
+				PhysXIncludeDir,
+				PhysXIncludeDir + "foundation",
+				PhysXIncludeDir + "cooking",
+				PhysXIncludeDir + "common",
+				PhysXIncludeDir + "extensions",
+				PhysXIncludeDir + "geometry",
+				PhysXIncludeDir + "vehicle"
 			}
 			);
 
 		// Libraries and DLLs for windows platform
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/windows");
-
 			PhysXLibDir += "Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PxSharedLibDir += "Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(PhysXLibDir);
@@ -194,8 +202,6 @@ public class PhysX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
-			PublicIncludePaths.Add(PhysXDir + "include/foundation/windows");
-
 			PhysXLibDir += "Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PxSharedLibDir += "Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(PhysXLibDir);
@@ -251,8 +257,6 @@ public class PhysX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
-
 			PhysXLibDir += "Mac";
 			PxSharedLibDir += "Mac";
 			PublicLibraryPaths.Add(PhysXLibDir);
@@ -297,7 +301,6 @@ public class PhysX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
 			PublicLibraryPaths.Add(PhysXLibDir + "Android/ARMv7");
 			PublicLibraryPaths.Add(PhysXLibDir + "Android/x86");
 			PublicLibraryPaths.Add(PhysXLibDir + "Android/ARM64");
@@ -344,7 +347,6 @@ public class PhysX : ModuleRules
 			PhysXLibDir += "/Linux/" + Target.Architecture;
 			PxSharedLibDir += "/Linux/" + Target.Architecture;
 
-			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
 			PublicLibraryPaths.Add(PhysXLibDir);
 			PublicLibraryPaths.Add(PxSharedLibDir);
 
@@ -377,8 +379,6 @@ public class PhysX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
-
 			PhysXLibDir = Path.Combine(PhysXLibDir, "IOS/");
 			PxSharedLibDir = Path.Combine(PxSharedLibDir, "IOS/");
 			PublicLibraryPaths.Add(PhysXLibDir);
@@ -412,8 +412,6 @@ public class PhysX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.TVOS)
 		{
-			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
-
 			PhysXLibDir = Path.Combine(PhysXLibDir, "TVOS/");
 			PxSharedLibDir = Path.Combine(PxSharedLibDir, "TVOS/");
 			PublicLibraryPaths.Add(PhysXLibDir);
@@ -447,8 +445,6 @@ public class PhysX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.HTML5)
 		{
-			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
-
 			PhysXLibDir = Path.Combine(PhysXLibDir, "HTML5/");
 			PxSharedLibDir = Path.Combine(PxSharedLibDir, "HTML5/");
 
@@ -550,6 +546,35 @@ public class PhysX : ModuleRules
 			foreach (string Lib in StaticLibrariesXB1)
 			{
 				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
+			}
+		}
+		else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		{
+			PublicLibraryPaths.Add(PhysXLibDir + "WolfPlat");
+			PublicLibraryPaths.Add(PxSharedLibDir + "WolfPlat");
+
+			string[] StaticLibrariesWolf = new string[] {
+					"LowLevel",
+					"LowLevelAABB",
+					"LowLevelCloth",
+					"LowLevelDynamics",
+					"LowLevelParticles",
+					"PhysX3",
+					"PhysX3Common",
+					// "PhysX3Cooking", // not needed until Apex
+					"PhysX3Extensions",
+					"PhysX3Vehicle",
+					"SceneQuery",
+					"SimulationController",
+					"PxFoundation",
+					"PxTask",
+					"PxPvdSDK",
+					"PsFastXml"
+			};
+
+			foreach (string Lib in StaticLibrariesWolf)
+			{
+				PublicAdditionalLibraries.Add(Lib + LibrarySuffix);
 			}
 		}
 	}

@@ -159,7 +159,13 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category="Platform|LocalNotification")
 	static void ScheduleLocalNotificationFromNow(int32 inSecondsFromNow, const FText& Title, const FText& Body, const FText& Action, const FString& ActivationEvent);
-       
+    
+	/** Cancel a local notification given the ActivationEvent
+	 * @param ActivationEvent The string passed into the Schedule call for the notification to be cancelled
+	*/
+	UFUNCTION(BlueprintCallable, Category="Platform|LocalNotification")
+	static void CancelLocalNotification(const FString& ActivationEvent);
+
 	/** Get the local notification that was used to launch the app
 	 * @param NotificationLaunchedApp Return true if a notification was used to launch the app
 	 * @param ActivationEvent Returns the name of the ActivationEvent if a notification was used to launch the app

@@ -11,8 +11,8 @@
 #include <dirent.h>
 #include <jni.h>
 #include <unistd.h>
-#include <Android/asset_manager.h>
-#include <Android/asset_manager_jni.h>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 #include <android/storage_manager.h>
 #include "AndroidJava.h"
 #include "Map.h"

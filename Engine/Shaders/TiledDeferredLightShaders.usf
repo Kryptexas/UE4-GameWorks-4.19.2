@@ -15,7 +15,7 @@ uint4 ViewDimensions;
 uint NumLights;
 
 // Workaround performance issue with shared memory bank collisions in GLSL
-#if GL4_PROFILE
+#if GL4_PROFILE || WOLF_PROFILE || WOLF_PROFILE_FORWARD
 #define ATOMIC_REDUCTION 0
 #else
 #define ATOMIC_REDUCTION 1

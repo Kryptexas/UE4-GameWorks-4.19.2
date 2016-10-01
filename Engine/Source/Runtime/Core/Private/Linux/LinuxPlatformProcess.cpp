@@ -675,7 +675,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	Commandline += TEXT(" ");
 	Commandline += Parms;
 
-	UE_LOG(LogHAL, Log, TEXT("FLinuxPlatformProcess::CreateProc: '%s'"), *Commandline);
+	UE_LOG(LogHAL, Verbose, TEXT("FLinuxPlatformProcess::CreateProc: '%s'"), *Commandline);
 
 	TArray<FString> ArgvArray;
 	int Argc = Commandline.ParseIntoArray(ArgvArray, TEXT(" "), true);
@@ -921,13 +921,13 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		}
 		else
 		{
-			UE_LOG(LogHAL, Log, TEXT("Changed child's priority (nice value) to %d (change from %d)"), NewPrio, TheirCurrentPrio);
+			UE_LOG(LogHAL, Verbose, TEXT("Changed child's priority (nice value) to %d (change from %d)"), NewPrio, TheirCurrentPrio);
 		}
 	}
 
 	else
 	{
-		UE_LOG(LogHAL, Log, TEXT("FLinuxPlatformProcess::CreateProc: spawned child %d"), ChildPid);
+		UE_LOG(LogHAL, Verbose, TEXT("FLinuxPlatformProcess::CreateProc: spawned child %d"), ChildPid);
 	}
 
 	if (OutProcessID)
@@ -1028,7 +1028,7 @@ bool FProcState::IsRunning()
 		// which is a dubious, but valid behavior. We don't want to keep zombie around though.
 		if (!bIsRunning)
 		{
-			UE_LOG(LogHAL, Log, TEXT("Child %d is no longer running (zombie), Wait()ing immediately."), GetProcessId() );
+			UE_LOG(LogHAL, Verbose, TEXT("Child %d is no longer running (zombie), Wait()ing immediately."), GetProcessId() );
 			Wait();
 		}
 	}
@@ -1083,7 +1083,7 @@ void FProcState::Wait()
 			ReturnCode = (SignalInfo.si_code == CLD_EXITED) ? SignalInfo.si_status : -1;
 			bHasBeenWaitedFor = true;
 			bIsRunning = false;	// set in advance
-			UE_LOG(LogHAL, Log, TEXT("Child %d's return code is %d."), GetProcessId(), ReturnCode);
+			UE_LOG(LogHAL, Verbose, TEXT("Child %d's return code is %d."), GetProcessId(), ReturnCode);
 			break;
 		}
 	}

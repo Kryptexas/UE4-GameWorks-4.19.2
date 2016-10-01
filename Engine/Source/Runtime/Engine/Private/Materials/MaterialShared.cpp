@@ -1606,6 +1606,10 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 
 	if (GameThreadShaderMap && GameThreadShaderMap->TryToAddToExistingCompilationTask(this))
 	{
+		//FMaterialShaderMap::ShaderMapsBeingCompiled.Find(GameThreadShaderMap);
+#if DEBUG_INFINITESHADERCOMPILE
+		UE_LOG(LogTemp, Log, TEXT("Found exisitng compiling shader for material %s, linking to other GameThreadShaderMap 0x%08X%08X"), *GetFriendlyName(), (int)((int64)(GameThreadShaderMap.GetReference()) >> 32), (int)((int64)(GameThreadShaderMap.GetReference())) );
+#endif
 		OutstandingCompileShaderMapIds.AddUnique(GameThreadShaderMap->GetCompilingId());
 		// Reset the shader map so the default material will be used until the compile finishes.
 		GameThreadShaderMap = nullptr;
@@ -1724,6 +1728,9 @@ bool FMaterial::BeginCompileShaderMap(
 		}
 		else
 		{
+#if DEBUG_INFINITESHADERCOMPILE
+			UE_LOG(LogTemp, Log, TEXT("Kicking of shader compilation for %s, GameThreadShaderMap 0x%08X%08X"), *GetFriendlyName(), (int)((int64)(NewShaderMap.GetReference()) >> 32), (int)((int64)(NewShaderMap.GetReference())));
+#endif
 			OutstandingCompileShaderMapIds.AddUnique( NewShaderMap->GetCompilingId() );
 			// Async compile, use NULL so that rendering will fall back to the default material.
 			OutShaderMap = nullptr;

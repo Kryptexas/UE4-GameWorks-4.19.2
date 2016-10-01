@@ -66,10 +66,18 @@ struct CORE_API FWindowsPlatformMemory
 
 	//~ Begin FGenericPlatformMemory Interface
 	static void Init();
-	static bool SupportBackupMemoryPool()
+	static uint32 GetBackMemoryPoolSize()
 	{
-		return true;
+		/**
+		* Value determined by series of tests on Fortnite with limited process memory.
+		* 26MB sufficed to report all test crashes, using 32MB to have some slack.
+		* If this pool is too large, use the following values to determine proper size:
+		* 2MB pool allowed to report 78% of crashes.
+		* 6MB pool allowed to report 90% of crashes.
+		*/
+		return 32 * 1024 * 1024;
 	}
+
 	static class FMalloc* BaseAllocator();
 	static FPlatformMemoryStats GetStats();
 	static void GetStatsForMallocProfiler( FGenericMemoryStats& out_Stats );

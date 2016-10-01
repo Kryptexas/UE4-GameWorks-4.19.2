@@ -979,7 +979,7 @@ void FMaterialEditor::DrawMaterialInfoStrings(
 
 		if (SamplersUsed >= 0)
 		{
-			int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(MaterialResource->GetFeatureLevel());
+			int32 MaxSamplers = GetExpectedFeatureLevelMaxTextureSamplers(MaterialResource->GetFeatureLevel());
 
 			Canvas->DrawShadowedString(
 				5,
@@ -1695,7 +1695,7 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 
 				if (SamplersUsed >= 0)
 				{
-					int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(MaterialResource->GetFeatureLevel());
+					int32 MaxSamplers = GetExpectedFeatureLevelMaxTextureSamplers(MaterialResource->GetFeatureLevel());
 					FString SamplersString = FString::Printf(TEXT("%s samplers: %u/%u"), FeatureLevel <= ERHIFeatureLevel::ES3_1 ? TEXT("Mobile texture") : TEXT("Texture"), SamplersUsed, MaxSamplers);
 					TempMaterialInfoList.Add(MakeShareable(new FMaterialInfo(SamplersString, FLinearColor::Yellow)));
 					TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create( EMessageSeverity::Info );

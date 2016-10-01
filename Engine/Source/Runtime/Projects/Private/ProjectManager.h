@@ -29,6 +29,7 @@ public:
 	virtual void GetEnabledPlugins(TArray<FString>& OutPluginNames) const override;
 	virtual bool IsNonDefaultPluginEnabled() const override;
 	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason, const FString& MarketplaceURL) override;
+	virtual void UpdateAdditionalPluginDirectory(const FString& Dir, const bool bAddOrRemove) override;
 	virtual bool IsCurrentProjectDirty() const override;
 	virtual bool SaveCurrentProjectToDisk(FText& OutFailReason) override;
 

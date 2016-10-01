@@ -27,6 +27,12 @@ static FAutoConsoleVariableRef CVarAllowDepthBoundsTest(
 	TEXT("If true, use enable depth bounds test when rendering defered lights.")
 	);
 
+static int32 bAllowSimpleLights = 1;
+static FAutoConsoleVariableRef CVarAllowSimpleLights(
+	TEXT("r.AllowSimpleLights"),
+	bAllowSimpleLights,
+	TEXT("If true, we allow simple (ie particle) lights")
+);
 
 // Implement a version for directional lights, and a version for point / spot lights
 IMPLEMENT_SHADER_TYPE(template<>,TDeferredLightVS<false>,TEXT("DeferredLightVertexShaders"),TEXT("DirectionalVertexMain"),SF_Vertex);
@@ -333,7 +339,10 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 	SCOPE_CYCLE_COUNTER(STAT_LightRendering);
 
 	FSimpleLightArray SimpleLights;
-	GatherSimpleLights(ViewFamily, Views, SimpleLights);
+	if (bAllowSimpleLights)
+	{
+		GatherSimpleLights(ViewFamily, Views, SimpleLights);
+	}
 
 	TArray<FSortedLightSceneInfo, SceneRenderingAllocator> SortedLights;
 	SortedLights.Empty(Scene->Lights.Num());

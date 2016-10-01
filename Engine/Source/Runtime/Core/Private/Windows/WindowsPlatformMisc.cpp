@@ -59,6 +59,9 @@ static TAutoConsoleVariable<int32> CVarDriverDetectionMethod(
 	TEXT("  4: Use Windows functions, use the one names like the DirectX Device (newest, most promising)"),
 	ECVF_RenderThreadSafe);
 
+typedef HRESULT(STDAPICALLTYPE *GetDpiForMonitorProc)(HMONITOR Monitor, int32 DPIType, uint32 *DPIX, uint32 *DPIY);
+static GetDpiForMonitorProc GetDpiForMonitor;
+
 namespace
 {
 	/**
@@ -495,6 +498,63 @@ static void SetProcessMemoryLimit( SIZE_T ProcessMemoryLimitMB )
 	const BOOL bAssign = ::AssignProcessToJobObject(JobObject, GetCurrentProcess());
 }
 
+void FWindowsPlatformMisc::SetHighDPIMode()
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("enablehighdpi")))
+	{
+		if (void* ShCoreDll = FPlatformProcess::GetDllHandle(TEXT("shcore.dll")))
+		{
+			typedef HRESULT(STDAPICALLTYPE *SetProcessDpiAwarenessProc)(int32 Value);
+			SetProcessDpiAwarenessProc SetProcessDpiAwareness = (SetProcessDpiAwarenessProc)FPlatformProcess::GetDllExport(ShCoreDll, TEXT("SetProcessDpiAwareness"));
+			GetDpiForMonitor = (GetDpiForMonitorProc)FPlatformProcess::GetDllExport(ShCoreDll, TEXT("GetDpiForMonitor"));
+			FPlatformProcess::FreeDllHandle(ShCoreDll);
+
+			if (SetProcessDpiAwareness)
+			{
+				SetProcessDpiAwareness(2); // PROCESS_PER_MONITOR_DPI_AWARE_VALUE
+			}
+		}
+		else if (void* User32Dll = FPlatformProcess::GetDllHandle(TEXT("user32.dll")))
+		{
+			typedef BOOL(WINAPI *SetProcessDpiAwareProc)(void);
+			SetProcessDpiAwareProc SetProcessDpiAware = (SetProcessDpiAwareProc)FPlatformProcess::GetDllExport(User32Dll, TEXT("SetProcessDPIAware"));
+			FPlatformProcess::FreeDllHandle(User32Dll);
+
+			if (SetProcessDpiAware)
+			{
+				SetProcessDpiAware();
+			}
+		}
+	}
+
+}
+
+float FWindowsPlatformMisc::GetDPIScaleFactorAtPoint(float X, float Y)
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("enablehighdpi")))
+	{
+		if (GetDpiForMonitor)
+		{
+			POINT Position = { X, Y };
+			HMONITOR Monitor = MonitorFromPoint(Position, MONITOR_DEFAULTTONEAREST);
+			if (Monitor)
+			{
+				uint32 DPIX = 0;
+				uint32 DPIY = 0;
+				return SUCCEEDED(GetDpiForMonitor(Monitor, 0/*MDT_EFFECTIVE_DPI_VALUE*/, &DPIX, &DPIY)) ? DPIX / 96.0f : 1.0f;
+			}
+		}
+		else
+		{
+			HDC Context = GetDC(nullptr);
+			const float DPIScaleFactor = GetDeviceCaps(Context, LOGPIXELSX) / 96.0f;
+			ReleaseDC(nullptr, Context);
+			return DPIScaleFactor;
+		}
+	}
+	return 1.0f;
+}
+
 void FWindowsPlatformMisc::PlatformPreInit()
 {
 	//SetProcessMemoryLimit( 92 );
@@ -513,6 +573,8 @@ void FWindowsPlatformMisc::PlatformPreInit()
 
 	// initialize the file SHA hash mapping
 	InitSHAHashes();
+
+	SetHighDPIMode();
 }
 
 

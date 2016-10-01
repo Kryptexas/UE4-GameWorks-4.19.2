@@ -388,11 +388,16 @@ public:
 
 		FString ADBPath;
 		
-#if PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_LINUX
 		if (AndroidDirectory[0] == 0)
 		{
+#if PLATFORM_LINUX
+			// didn't find ANDROID_HOME, so parse the .bashrc file on Linux
+			FArchive* FileReader = IFileManager::Get().CreateFileReader(*FString("~/.bashrc"));
+#else
 			// didn't find ANDROID_HOME, so parse the .bash_profile file on MAC
 			FArchive* FileReader = IFileManager::Get().CreateFileReader(*FString([@"~/.bash_profile" stringByExpandingTildeInPath]));
+#endif
 			if (FileReader)
 			{
 				const int64 FileSize = FileReader->TotalSize();

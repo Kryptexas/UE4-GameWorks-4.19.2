@@ -278,18 +278,13 @@ FPlatformRect FMacApplication::GetWorkArea(const FPlatformRect& CurrentWindow) c
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	TSharedRef<FMacScreen> Screen = FindScreenByPoint(CurrentWindow.Left, CurrentWindow.Top);
+	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(CurrentWindow.Left, CurrentWindow.Top);
 
-	const int32 ScreenHeight = FMath::TruncToInt(Screen->Frame.size.height);
-	const NSRect VisibleFrame = Screen->VisibleFrame;
-
-	GAllScreensMutex.Lock();
-	NSRect PrimaryFrame = AllScreens[0]->Frame;
-	GAllScreensMutex.Unlock();
+	const NSRect VisibleFrame = Screen->VisibleFramePixels;
 
 	FPlatformRect WorkArea;
 	WorkArea.Left = VisibleFrame.origin.x;
-	WorkArea.Top = (PrimaryFrame.origin.y + PrimaryFrame.size.height) - (VisibleFrame.origin.y + VisibleFrame.size.height);
+	WorkArea.Top = VisibleFrame.origin.y;
 	WorkArea.Right = WorkArea.Left + VisibleFrame.size.width;
 	WorkArea.Bottom = WorkArea.Top + VisibleFrame.size.height;
 
@@ -713,17 +708,8 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 		FVector2D HighPrecisionMousePos = MacCursor->GetPositionNoScaling();
 
 		// Find the visible frame of the screen the cursor is currently on.
-		NSRect VisibleFrame;
-		GAllScreensMutex.Lock();
-		for (TSharedRef<FMacScreen> CurScreen : AllScreens)
-		{
-			if (NSMouseInRect(NSMakePoint(HighPrecisionMousePos.X, ConvertSlateYPositionToCocoa(HighPrecisionMousePos.Y)), CurScreen->Frame, NO))
-			{
-				VisibleFrame = CurScreen->VisibleFrame;
-				break;
-			}
-		}
-		GAllScreensMutex.Unlock();
+		TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(HighPrecisionMousePos.X, HighPrecisionMousePos.Y);
+		NSRect VisibleFrame = Screen->VisibleFramePixels;
 
 		// Under OS X we disassociate the cursor and mouse position during hi-precision mouse input.
 		// The game snaps the mouse cursor back to the starting point when this is disabled, which
@@ -752,8 +738,8 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 				VisibleFrame.size.height -= 10;
 			}
 			int32 ClampedPosX = FMath::Clamp((int32)HighPrecisionMousePos.X, (int32)VisibleFrame.origin.x, (int32)(VisibleFrame.origin.x + VisibleFrame.size.width)-1);
-			int32 ClampedPosY = FMath::Clamp((int32)ConvertSlateYPositionToCocoa(HighPrecisionMousePos.Y), (int32)VisibleFrame.origin.y, (int32)(VisibleFrame.origin.y + VisibleFrame.size.height)-1);
-			MacCursor->SetPositionNoScaling(ClampedPosX, ConvertSlateYPositionToCocoa(ClampedPosY));
+			int32 ClampedPosY = FMath::Clamp((int32)HighPrecisionMousePos.Y, (int32)VisibleFrame.origin.y, (int32)(VisibleFrame.origin.y + VisibleFrame.size.height)-1);
+			MacCursor->SetPositionNoScaling(ClampedPosX, ClampedPosY);
 		}
 		else
 		{
@@ -766,7 +752,7 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 	else
 	{
 		NSPoint CursorPos = [NSEvent mouseLocation];
-		FVector2D NewPosition = FVector2D(CursorPos.x, ConvertSlateYPositionToCocoa(CursorPos.y));
+		FVector2D NewPosition = ConvertCocoaPositionToSlate(CursorPos.x, CursorPos.y);
 		const FVector2D MouseDelta = NewPosition - MacCursor->GetPositionNoScaling();
 		if (MacCursor->UpdateCursorClipping(NewPosition))
 		{
@@ -998,17 +984,19 @@ void FMacApplication::OnWindowDidMove(TSharedRef<FMacWindow> Window)
 	NSRect WindowFrame = [Window->GetWindowHandle() frame];
 	NSRect OpenGLFrame = [Window->GetWindowHandle() openGLFrame];
 
-	const int32 X = (int32)WindowFrame.origin.x;
-	int32 Y = 0;
+	const float X = WindowFrame.origin.x;
+	float Y = 0.0f;
 
 	if ([Window->GetWindowHandle() windowMode] != EWindowMode::Fullscreen)
 	{
-		Y = ConvertCocoaYPositionToSlate(WindowFrame.origin.y + OpenGLFrame.size.height);
+		Y = WindowFrame.origin.y + OpenGLFrame.size.height;
 	}
 
-	MessageHandler->OnMovedWindow(Window, X, Y);
-	Window->PositionX = X;
-	Window->PositionY = Y;
+	FVector2D SlatePosition = ConvertCocoaPositionToSlate(X, Y);
+
+	MessageHandler->OnMovedWindow(Window, SlatePosition.X, SlatePosition.Y);
+	Window->PositionX = SlatePosition.X;
+	Window->PositionY = SlatePosition.Y;
 }
 
 void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRestoreMouseCursorLocking)
@@ -1018,14 +1006,14 @@ void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRes
 	OnWindowDidMove(Window);
 
 	// default is no override
-	uint32 Width = [Window->GetWindowHandle() openGLFrame].size.width;
-	uint32 Height = [Window->GetWindowHandle() openGLFrame].size.height;
+	uint32 Width = [Window->GetWindowHandle() openGLFrame].size.width * Window->GetDPIScaleFactor();
+	uint32 Height = [Window->GetWindowHandle() openGLFrame].size.height * Window->GetDPIScaleFactor();
 
 	if ([Window->GetWindowHandle() windowMode] == EWindowMode::WindowedFullscreen)
 	{
 		// Grab current monitor data for sizing
-		Width = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.width);
-		Height = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.height);
+		Width = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.width * Window->GetDPIScaleFactor());
+		Height = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.height * Window->GetDPIScaleFactor());
 	}
 
 	// OnResizingWindow flushes the renderer commands which is needed before we start resizing, but also right after that
@@ -1303,18 +1291,119 @@ FCocoaWindow* FMacApplication::FindEventWindow(NSEvent* Event) const
 	return EventWindow;
 }
 
-TSharedRef<FMacScreen> FMacApplication::FindScreenByPoint(int32 X, int32 Y) const
+void FMacApplication::UpdateScreensArray()
 {
-	NSPoint Point = {0};
-	Point.x = X;
-	Point.y = ConvertSlateYPositionToCocoa(Y);
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		FScopeLock Lock(&GAllScreensMutex);
+		AllScreens.Empty();
+		NSArray* Screens = [NSScreen screens];
+		for (NSScreen* Screen in Screens)
+		{
+			AllScreens.Add(MakeShareable(new FMacScreen(Screen)));
+		}
+	}, NSDefaultRunLoopMode, true);
+
+	FScopeLock Lock(&GAllScreensMutex);
+
+	NSRect WholeWorkspace = {{0, 0}, {0, 0}};
+	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
+	{
+		WholeWorkspace = NSUnionRect(WholeWorkspace, CurScreen->Frame);
+	}
+
+	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
+	{
+		CurScreen->Frame.origin.y = WholeWorkspace.origin.y + WholeWorkspace.size.height - CurScreen->Frame.size.height - CurScreen->Frame.origin.y;
+		CurScreen->VisibleFrame.origin.y = WholeWorkspace.origin.y + WholeWorkspace.size.height - CurScreen->VisibleFrame.size.height - CurScreen->VisibleFrame.origin.y;
+	}
+
+	TArray<TSharedRef<FMacScreen>> SortedScreens;
+
+	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
+	{
+		CurScreen->FramePixels.origin.x = CurScreen->Frame.origin.x;
+		CurScreen->FramePixels.origin.y = CurScreen->Frame.origin.y;
+		CurScreen->FramePixels.size.width = CurScreen->Frame.size.width * CurScreen->Screen.backingScaleFactor;
+		CurScreen->FramePixels.size.height = CurScreen->Frame.size.height * CurScreen->Screen.backingScaleFactor;
+		CurScreen->VisibleFramePixels.origin.x = CurScreen->Frame.origin.x + (CurScreen->VisibleFrame.origin.x - CurScreen->Frame.origin.x) * CurScreen->Screen.backingScaleFactor;
+		CurScreen->VisibleFramePixels.origin.y = CurScreen->Frame.origin.y + (CurScreen->VisibleFrame.origin.y - CurScreen->Frame.origin.y) * CurScreen->Screen.backingScaleFactor;
+		CurScreen->VisibleFramePixels.size.width = CurScreen->VisibleFrame.size.width * CurScreen->Screen.backingScaleFactor;
+		CurScreen->VisibleFramePixels.size.height = CurScreen->VisibleFrame.size.height * CurScreen->Screen.backingScaleFactor;
+
+		SortedScreens.Add(CurScreen);
+	}
+
+	SortedScreens.Sort([](const TSharedRef<FMacScreen>& A, const TSharedRef<FMacScreen>& B) -> bool { return A->Frame.origin.x < B->Frame.origin.x; });
+
+	for (int32 Index = 0; Index < SortedScreens.Num(); ++Index)
+	{
+		TSharedRef<FMacScreen> CurScreen = SortedScreens[Index];
+		if (CurScreen->Screen.backingScaleFactor != 1.0f)
+		{
+			for (int32 OtherIndex = Index + 1; OtherIndex < SortedScreens.Num(); ++OtherIndex)
+			{
+				TSharedRef<FMacScreen> OtherScreen = SortedScreens[OtherIndex];
+				const float DiffFrame = (OtherScreen->Frame.origin.x - CurScreen->Frame.origin.x) * CurScreen->Screen.backingScaleFactor;
+				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.x - CurScreen->VisibleFrame.origin.x) * CurScreen->Screen.backingScaleFactor;
+				OtherScreen->FramePixels.origin.x = CurScreen->Frame.origin.x + DiffFrame;
+				OtherScreen->VisibleFramePixels.origin.x = CurScreen->VisibleFrame.origin.x + DiffVisibleFrame;
+			}
+		}
+	}
+
+	SortedScreens.Sort([](const TSharedRef<FMacScreen>& A, const TSharedRef<FMacScreen>& B) -> bool { return A->Frame.origin.y < B->Frame.origin.y; });
+
+	for (int32 Index = 0; Index < SortedScreens.Num(); ++Index)
+	{
+		TSharedRef<FMacScreen> CurScreen = SortedScreens[Index];
+		if (CurScreen->Screen.backingScaleFactor != 1.0f)
+		{
+			for (int32 OtherIndex = Index + 1; OtherIndex < SortedScreens.Num(); ++OtherIndex)
+			{
+				TSharedRef<FMacScreen> OtherScreen = SortedScreens[OtherIndex];
+				const float DiffFrame = (OtherScreen->Frame.origin.y - CurScreen->Frame.origin.y) * CurScreen->Screen.backingScaleFactor;
+				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.y - CurScreen->VisibleFrame.origin.y) * CurScreen->Screen.backingScaleFactor;
+				OtherScreen->FramePixels.origin.y = CurScreen->Frame.origin.y + DiffFrame;
+				OtherScreen->VisibleFramePixels.origin.y = CurScreen->VisibleFrame.origin.y + DiffVisibleFrame;
+			}
+		}
+	}
+}
+
+FVector2D FMacApplication::CalculateScreenOrigin(NSScreen* Screen)
+{
+	NSRect WholeWorkspace = {{0, 0}, {0, 0}};
+	NSRect ScreenFrame = {{0, 0}, {0, 0}};
+	GAllScreensMutex.Lock();
+	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
+	{
+		WholeWorkspace = NSUnionRect(WholeWorkspace, CurScreen->FramePixels);
+		if (Screen == CurScreen->Screen)
+		{
+			ScreenFrame = CurScreen->FramePixels;
+		}
+	}
+	GAllScreensMutex.Unlock();
+	return FVector2D(ScreenFrame.origin.x, WholeWorkspace.size.height - ScreenFrame.size.height - ScreenFrame.origin.y);
+}
+
+int32 FMacApplication::GetPrimaryScreenBackingScaleFactor()
+{
+	FScopeLock Lock(&GAllScreensMutex);
+	return (int32)AllScreens[0]->Screen.backingScaleFactor;
+}
+
+TSharedRef<FMacScreen> FMacApplication::FindScreenBySlatePosition(float X, float Y)
+{
+	NSPoint Point = NSMakePoint(X, Y);
 
 	FScopeLock Lock(&GAllScreensMutex);
 
 	TSharedRef<FMacScreen> TargetScreen = AllScreens[0];
 	for (TSharedRef<FMacScreen> Screen : AllScreens)
 	{
-		if (NSPointInRect(Point, Screen->Frame))
+		if (NSPointInRect(Point, Screen->FramePixels))
 		{
 			TargetScreen = Screen;
 			break;
@@ -1324,36 +1413,44 @@ TSharedRef<FMacScreen> FMacApplication::FindScreenByPoint(int32 X, int32 Y) cons
 	return TargetScreen;
 }
 
-int32 FMacApplication::ConvertSlateYPositionToCocoa(int32 YPosition)
+TSharedRef<FMacScreen> FMacApplication::FindScreenByCocoaPosition(float X, float Y)
 {
-	GAllScreensMutex.Lock();
-	NSRect ScreenFrame = AllScreens[0]->Frame;
-	NSRect WholeWorkspace = {{0,0},{0,0}};
+	NSPoint Point = NSMakePoint(X, Y);
+
+	FScopeLock Lock(&GAllScreensMutex);
+
+	TSharedRef<FMacScreen> TargetScreen = AllScreens[0];
 	for (TSharedRef<FMacScreen> Screen : AllScreens)
 	{
-		WholeWorkspace = NSUnionRect(WholeWorkspace, Screen->Frame);
+		if (NSPointInRect(Point, Screen->Screen.frame))
+		{
+			TargetScreen = Screen;
+			break;
+		}
 	}
-	GAllScreensMutex.Unlock();
 
-	const float WholeWorkspaceOrigin = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);
-	const float WholeWorkspaceHeight = WholeWorkspace.origin.y + WholeWorkspace.size.height;
-	return -((YPosition - WholeWorkspaceOrigin) - WholeWorkspaceHeight + 1);
+	return TargetScreen;
 }
 
-int32 FMacApplication::ConvertCocoaYPositionToSlate(int32 YPosition)
+FVector2D FMacApplication::ConvertSlatePositionToCocoa(float X, float Y)
 {
-	GAllScreensMutex.Lock();
-	NSRect ScreenFrame = AllScreens[0]->Frame;
-	NSRect WholeWorkspace = {{0,0},{0,0}};
-	for (TSharedRef<FMacScreen> Screen : AllScreens)
-	{
-		WholeWorkspace = NSUnionRect(WholeWorkspace, Screen->Frame);
-	}
-	GAllScreensMutex.Unlock();
+	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.size.height - Y - Screen->FramePixels.origin.y) / Screen->Screen.backingScaleFactor;
+	return FVector2D(Screen->Screen.frame.origin.x + OffsetOnScreen.X, Screen->Screen.frame.origin.y + OffsetOnScreen.Y);
+}
 
-	CGFloat const OffsetToPrimary = ((ScreenFrame.origin.y + ScreenFrame.size.height) - (WholeWorkspace.origin.y + WholeWorkspace.size.height));
-	CGFloat const OffsetToWorkspace = (WholeWorkspace.size.height - (YPosition)) + WholeWorkspace.origin.y;
-	return OffsetToWorkspace + OffsetToPrimary;
+FVector2D FMacApplication::ConvertCocoaPositionToSlate(float X, float Y)
+{
+	TSharedRef<FMacScreen> Screen = FindScreenByCocoaPosition(X, Y);
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.size.height - Y - Screen->Screen.frame.origin.y) * Screen->Screen.backingScaleFactor;
+	return FVector2D(Screen->FramePixels.origin.x + OffsetOnScreen.X, Screen->FramePixels.origin.y + OffsetOnScreen.Y);
+}
+
+CGPoint FMacApplication::ConvertSlatePositionToCGPoint(float X, float Y)
+{
+	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Y - Screen->FramePixels.origin.y) / Screen->Screen.backingScaleFactor;
+	return CGPointMake(Screen->Frame.origin.x + OffsetOnScreen.X, Screen->Frame.origin.y + OffsetOnScreen.Y);
 }
 
 EWindowZone::Type FMacApplication::GetCurrentWindowZone(const TSharedRef<FMacWindow>& Window) const
@@ -1532,43 +1629,6 @@ void FMacApplication::InvalidateTextLayouts()
 
 }
 
-void FMacApplication::UpdateScreensArray()
-{
-	MainThreadCall(^{
-		SCOPED_AUTORELEASE_POOL;
-		FScopeLock Lock(&GAllScreensMutex);
-		AllScreens.Empty();
-		NSArray* Screens = [NSScreen screens];
-		for (NSScreen* Screen in Screens)
-		{
-			AllScreens.Add(MakeShareable(new FMacScreen(Screen)));
-		}
-	}, NSDefaultRunLoopMode, true);
-}
-
-FVector2D FMacApplication::CalculateScreenOrigin(NSScreen* Screen)
-{
-	NSRect WholeWorkspace = {{0, 0}, {0, 0}};
-	NSRect ScreenFrame = {{0, 0}, {0, 0}};
-	GAllScreensMutex.Lock();
-	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
-	{
-		WholeWorkspace = NSUnionRect(WholeWorkspace, CurScreen->Frame);
-		if (Screen == CurScreen->Screen)
-		{
-			ScreenFrame = CurScreen->Frame;
-		}
-	}
-	GAllScreensMutex.Unlock();
-	return FVector2D(ScreenFrame.origin.x, WholeWorkspace.size.height - ScreenFrame.size.height - ScreenFrame.origin.y);
-}
-
-int32 FMacApplication::GetPrimaryScreenBackingScaleFactor()
-{
-	FScopeLock Lock(&GAllScreensMutex);
-	return (int32)AllScreens[0]->Screen.backingScaleFactor;
-}
-
 #if WITH_EDITOR
 void FMacApplication::RecordUsage(EGestureEvent::Type Gesture)
 {
@@ -1589,8 +1649,8 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	const TArray<TSharedRef<FMacScreen>>& AllScreens = FMacApplication::GetAllScreens();
 	TSharedRef<FMacScreen> PrimaryScreen = AllScreens[0];
 
-	NSRect ScreenFrame = PrimaryScreen->Frame;
-	NSRect VisibleFrame = PrimaryScreen->VisibleFrame;
+	NSRect ScreenFrame = PrimaryScreen->FramePixels;
+	NSRect VisibleFrame = PrimaryScreen->VisibleFramePixels;
 
 	// Total screen size of the primary monitor
 	OutDisplayMetrics.PrimaryDisplayWidth = ScreenFrame.size.width;
@@ -1600,16 +1660,16 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	NSRect WholeWorkspace = {{0,0},{0,0}};
 	for (TSharedRef<FMacScreen> Screen : AllScreens)
 	{
-		WholeWorkspace = NSUnionRect(WholeWorkspace, Screen->Frame);
+		WholeWorkspace = NSUnionRect(WholeWorkspace, Screen->FramePixels);
 	}
 	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;
-	OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);
+	OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(WholeWorkspace.origin.y, 0.0);
 	OutDisplayMetrics.VirtualDisplayRect.Right = WholeWorkspace.origin.x + WholeWorkspace.size.width;
 	OutDisplayMetrics.VirtualDisplayRect.Bottom = WholeWorkspace.size.height + OutDisplayMetrics.VirtualDisplayRect.Top;
 	
 	// Get the screen rect of the primary monitor, excluding taskbar etc.
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = VisibleFrame.origin.x;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = VisibleFrame.origin.y;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = VisibleFrame.origin.x + VisibleFrame.size.width;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top + VisibleFrame.size.height;
 

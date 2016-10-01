@@ -54,6 +54,8 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 	const float WidthInitial = Definition->WidthDesiredOnScreen;
 	const float HeightInitial = Definition->HeightDesiredOnScreen;
 
+	DPIScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(XInitialRect, YInitialRect);
+
 	int32 ClientX = FMath::TruncToInt( XInitialRect );
 	int32 ClientY = FMath::TruncToInt( YInitialRect );
 	int32 ClientWidth = FMath::TruncToInt( WidthInitial );
@@ -257,6 +259,7 @@ FWindowsWindow::FWindowsWindow()
 	, OLEReferenceCount(0)
 	, AspectRatio(1.0f)
 	, bIsVisible( false )
+	, DPIScaleFactor(1.0f)
 {
 	FMemory::Memzero(PreFullscreenWindowPlacement);
 	PreFullscreenWindowPlacement.length = sizeof(WINDOWPLACEMENT);

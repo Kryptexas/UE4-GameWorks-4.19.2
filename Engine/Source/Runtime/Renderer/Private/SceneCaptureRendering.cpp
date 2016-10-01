@@ -186,7 +186,7 @@ class FHDRDecodePS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FHDRDecodePS, Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsES2Platform(Platform); }
+	static bool ShouldCache(EShaderPlatform Platform) { return IsMobilePlatform(Platform); }
 
 	FHDRDecodePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 		FGlobalShader(Initializer)
@@ -229,7 +229,7 @@ class FHDRDecodeVS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FHDRDecodeVS, Global)
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsES2Platform(Platform); }
+	static bool ShouldCache(EShaderPlatform Platform) { return IsMobilePlatform(Platform); }
 
 	FHDRDecodeVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
 		FGlobalShader(Initializer)

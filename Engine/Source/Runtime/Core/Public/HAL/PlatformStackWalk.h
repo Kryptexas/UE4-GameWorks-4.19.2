@@ -19,4 +19,6 @@
 #include "HTML5/HTML5PlatformStackWalk.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformStackWalk.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformStackWalk.h"
 #endif

@@ -117,4 +117,35 @@ struct PROJECTS_API FProjectDescriptor
 
 	/** Returns the extension used for project descriptors (uproject) */
 	static FString GetExtension();
+
+	/** @return - Access to the additional plugin directories */
+	const TArray<FString>& GetAdditionalPluginDirectories() const
+	{
+		return AdditionalPluginDirectories;
+	}
+
+	/** @return - Access to the additional plugin directories without the work done for path relative */
+	const TArray<FString> GetRawAdditionalPluginDirectories() const;
+
+	/**
+	 * Adds a directory to the additional plugin directories list. 
+	 *
+	 * @param Dir - the new directory to add
+	 */
+	void AddPluginDirectory(const FString& Dir);
+	/**
+	 * Removes the directory from the list to scan
+	 *
+	 * @param Dir the directory to remove
+	 */
+	void RemovePluginDirectory(const FString& Dir);
+
+private:
+	/** List of additional directories to scan for plugins */
+	TArray<FString> AdditionalPluginDirectories;
+	/**
+	 * Used to make paths to external plugin directories relative to this project's directory and
+	 * not FPaths::GameDir() because that changes when UHT or other tools load the project descriptor
+	 */
+	FString PathToProject;
 };

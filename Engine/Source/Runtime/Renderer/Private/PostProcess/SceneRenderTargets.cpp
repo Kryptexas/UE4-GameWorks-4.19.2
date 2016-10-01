@@ -95,7 +95,8 @@ static TAutoConsoleVariable<int32> CVarMobileMSAA(
 	TEXT("Use MSAA instead of Temporal AA on mobile:\n")
 	TEXT("1: Use Temporal AA (MSAA disabled)\n")
 	TEXT("2: Use 2x MSAA (Temporal AA disabled)\n")
-	TEXT("4: Use 4x MSAA (Temporal AA disabled)"),
+	TEXT("4: Use 4x MSAA (Temporal AA disabled)\n")
+	TEXT("8: Use 8x MSAA (Temporal AA disabled)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -369,7 +370,7 @@ inline uint16 GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type InFeatureLevel)
 		NumSamples = CVarMobileMSAA.GetValueOnRenderThread();
 	}
 
-	if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
+	if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4 && NumSamples != 8)
 	{
 		NumSamples = 1;
 	}
@@ -1085,6 +1086,7 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		RHICmdList.SetStreamSource(0, NULL, 0, 0);
 
 		int32 ResolveWidth = CVarWideCustomResolve.GetValueOnRenderThread();
 

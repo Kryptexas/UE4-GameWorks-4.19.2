@@ -167,6 +167,13 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FApplicationReceivedRemoteNotificationDelegate, FString);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FApplicationReceivedLocalNotificationDelegate, FString, int);
 
+
+
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnFConfigFileCreated, const FConfigFile *);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnFConfigFileDeleted, const FConfigFile *);
+	static FOnFConfigFileCreated OnFConfigCreated;
+	static FOnFConfigFileDeleted OnFConfigDeleted;
+
 	// called when the user grants permission to register for remote notifications
 	static FApplicationRegisteredForRemoteNotificationsDelegate ApplicationRegisteredForRemoteNotificationsDelegate;
 
@@ -290,6 +297,9 @@ public:
 	// event and prevent the default check/ensure process occuring
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FImageIntegrityChanged, const TCHAR*, int32);
 	static FImageIntegrityChanged OnImageIntegrityChanged;
+
+	// Called when OOM event occurs, after backup memory has been freed, so there's some hope of being effective
+	static FSimpleMulticastDelegate OnOutOfMemory;
 
 private:
 

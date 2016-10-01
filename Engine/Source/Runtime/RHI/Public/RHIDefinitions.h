@@ -57,8 +57,10 @@ enum EShaderPlatform
 	SP_METAL_MACES3_1 	= 23,
 	SP_METAL_MACES2		= 24,
 	SP_OPENGL_ES3_1_ANDROID = 25,
+	SP_WOLF				= 26,
+	SP_WOLF_FORWARD		= 27,
 
-	SP_NumPlatforms		= 26,
+	SP_NumPlatforms		= 28,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -632,14 +634,14 @@ inline bool IsMobilePlatform(const EShaderPlatform Platform)
 {
 	return IsES2Platform(Platform)
 		|| Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID
-		|| Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1 || Platform == SP_OPENGL_ES3_1_ANDROID;
+		|| Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1 || Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_WOLF_FORWARD;
 }
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1
 		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT
-		|| Platform == SP_OPENGL_ES3_1_ANDROID;
+		|| Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_WOLF || Platform == SP_WOLF_FORWARD;
 }
 
 inline bool IsMetalPlatform(const EShaderPlatform Platform)
@@ -691,6 +693,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_ES31_EXT:
 	case SP_METAL_SM5:
 	case SP_VULKAN_SM5:
+	case SP_WOLF:
 		return ERHIFeatureLevel::SM5;
 	case SP_VULKAN_SM4:
 	case SP_PCD3D_SM4:
@@ -713,6 +716,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_VULKAN_PCES3_1:
 	case SP_VULKAN_ES3_1_ANDROID:
 	case SP_OPENGL_ES3_1_ANDROID:
+	case SP_WOLF_FORWARD:
 		return ERHIFeatureLevel::ES3_1;
 	default:
 		checkf(0, TEXT("Unknown ShaderPlatform %d"), (int32)InShaderPlatform);
@@ -723,60 +727,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 /** Returns true if the feature level is supported by the shader platform. */
 inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatureLevel::Type InFeatureLevel)
 {
-	switch (InShaderPlatform)
-	{
-	case SP_PCD3D_SM5:
-	case SP_VULKAN_SM5:
-		return InFeatureLevel <= ERHIFeatureLevel::SM5;
-	case SP_PCD3D_SM4:
-	case SP_VULKAN_SM4:
-		return InFeatureLevel <= ERHIFeatureLevel::SM4;
-	case SP_PCD3D_ES2:
-		return InFeatureLevel <= ERHIFeatureLevel::ES2;
-	case SP_PCD3D_ES3_1:
-		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
-	case SP_OPENGL_PCES2:
-		return InFeatureLevel <= ERHIFeatureLevel::ES2;
-	case SP_OPENGL_PCES3_1:
-		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
-	case SP_OPENGL_ES2_ANDROID:
-		return InFeatureLevel <= ERHIFeatureLevel::ES2;
-	case SP_VULKAN_PCES3_1:
-	case SP_VULKAN_ES3_1_ANDROID:
-		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
-	case SP_OPENGL_ES2_WEBGL:
-		return InFeatureLevel <= ERHIFeatureLevel::ES2;
-	case SP_OPENGL_ES2_IOS:
-		return InFeatureLevel <= ERHIFeatureLevel::ES2;
-	case SP_OPENGL_SM4:
-		return InFeatureLevel <= ERHIFeatureLevel::SM4;
-	case SP_OPENGL_SM4_MAC:
-		return InFeatureLevel <= ERHIFeatureLevel::SM4;
-	case SP_OPENGL_SM5:
-		return InFeatureLevel <= ERHIFeatureLevel::SM5;
-	case SP_PS4:
-		return InFeatureLevel <= ERHIFeatureLevel::SM5;
-	case SP_XBOXONE:
-		return InFeatureLevel <= ERHIFeatureLevel::SM5;
-	case SP_METAL:
-		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
-	case SP_METAL_MRT:
-		return InFeatureLevel <= ERHIFeatureLevel::SM4;
-	case SP_METAL_SM4:
-		return InFeatureLevel <= ERHIFeatureLevel::SM4;
-	case SP_OPENGL_ES31_EXT:
-		return InFeatureLevel <= ERHIFeatureLevel::SM5;
-	case SP_METAL_SM5:
-		return InFeatureLevel <= ERHIFeatureLevel::SM5;
-	case SP_METAL_MACES3_1:
-		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
-	case SP_METAL_MACES2:
-		return InFeatureLevel <= ERHIFeatureLevel::ES2;
-	case SP_OPENGL_ES3_1_ANDROID:
-		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
-	default:
-		return false;
-	}
+	return InFeatureLevel <= GetMaxSupportedFeatureLevel(InShaderPlatform);
 }
 
 inline bool RHISupportsTessellation(const EShaderPlatform Platform)
@@ -838,7 +789,10 @@ inline bool RHISupportsVertexShaderLayer(const EShaderPlatform Platform)
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && IsMetalPlatform(Platform);
 }
 
-inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)
+// Return what the expected number of samplers will be supported by a feature level
+// Note that since the Feature Level is pretty orthogonal to the RHI/HW, this is not going to be perfect
+// If should only be used for a guess at the limit, the real limit will not be known until runtime
+inline uint32 GetExpectedFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)
 {
 	if (FeatureLevel == ERHIFeatureLevel::ES2)
 	{

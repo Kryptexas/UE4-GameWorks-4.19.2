@@ -912,7 +912,7 @@ FCompilerInfo::FCompilerInfo(const FShaderCompilerInput& InInput, const FString&
 
 /**
  * Compile a shader using the external shader compiler
- *
+ */
 static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struct FShaderCompilerOutput& Output, const class FString& WorkingDirectory, EVulkanShaderVersion Version)
 {
 	FString PreprocessedShader;
@@ -1036,7 +1036,7 @@ static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struc
 		FVulkanBindingTable BindingTableES(Frequency);
 
 		FVulkanCodeBackend VulkanBackendES(CCFlagsES, BindingTableES, HlslCompilerTargetES);
-		FVulkanLanguageSpec VulkanLanguageSpec(false, true);
+		FVulkanLanguageSpec VulkanLanguageSpec(false);
 
 		int32 Result = 0;
 		if (!bIsSM5)

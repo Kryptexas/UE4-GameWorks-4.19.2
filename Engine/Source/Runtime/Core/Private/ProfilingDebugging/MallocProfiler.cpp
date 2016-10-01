@@ -295,6 +295,12 @@ FMallocProfiler::FMallocProfiler(FMalloc* InMalloc)
 ,	MemoryOperationCount( 0 )
 {
 	StartTime = FPlatformTime::Seconds();
+
+	// attempt to panic dump the mprof file if the system runs out of memory
+	FCoreDelegates::OnOutOfMemory.AddLambda([this]()
+	{
+		PanicDump(TYPE_Malloc, nullptr, nullptr);
+	});
 }
 
 /**

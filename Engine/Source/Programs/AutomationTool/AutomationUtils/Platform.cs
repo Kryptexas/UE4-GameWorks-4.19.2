@@ -583,22 +583,34 @@ namespace AutomationTool
 
 		#region Utilities
 
+		// let the platform set the exe extension if it chooses (otherwise, use
+		// the switch statement in GetExeExtension below)
+		protected virtual string GetPlatformExeExtension()
+		{
+			return null;
+		}
+
 		public static string GetExeExtension(UnrealTargetPlatform Target)
 		{
-			switch (Target)
+			Platform Plat = GetPlatform(Target);
+			string PlatformExeExtension = Plat.GetPlatformExeExtension();
+			if (string.IsNullOrEmpty(PlatformExeExtension))
 			{
-				case UnrealTargetPlatform.Win32:
-				case UnrealTargetPlatform.Win64:
-				case UnrealTargetPlatform.XboxOne:
-					return ".exe";
-				case UnrealTargetPlatform.PS4:
-					return ".self";
-				case UnrealTargetPlatform.IOS:
-					return ".stub";
-				case UnrealTargetPlatform.Linux:
-					return "";
-				case UnrealTargetPlatform.HTML5:
-					return ".js";
+				switch (Target)
+				{
+					case UnrealTargetPlatform.Win32:
+					case UnrealTargetPlatform.Win64:
+					case UnrealTargetPlatform.XboxOne:
+						return ".exe";
+					case UnrealTargetPlatform.PS4:
+						return ".self";
+					case UnrealTargetPlatform.IOS:
+						return ".stub";
+					case UnrealTargetPlatform.Linux:
+						return "";
+					case UnrealTargetPlatform.HTML5:
+						return ".js";
+				}
 			}
 			return String.Empty;
 		}

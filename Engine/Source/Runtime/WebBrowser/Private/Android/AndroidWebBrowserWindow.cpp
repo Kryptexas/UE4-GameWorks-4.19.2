@@ -234,6 +234,16 @@ void FAndroidWebBrowserWindow::SetIsDisabled(bool bValue)
 {
 }
 
+TSharedPtr<SWindow> FAndroidWebBrowserWindow::GetParentWindow() const
+{
+	return ParentWindow;
+}
+
+void FAndroidWebBrowserWindow::SetParentWindow(TSharedPtr<SWindow> Window)
+{
+	ParentWindow = Window;
+}
+
 void FAndroidWebBrowserWindow::ExecuteJavascript(const FString& Script)
 {
 	BrowserWidget->ExecuteJavascript(Script);

@@ -779,7 +779,7 @@ namespace AutomationTool
 				{
 					try
 					{
-						string FullPath = Path.Combine(PathDir, "xgConsole.exe");
+						string FullPath = Path.Combine(PathDir, "xgConsole" + Platform.GetExeExtension(UnrealBuildTool.BuildHostPlatform.Current.Platform));
 						if (FileExists(FullPath))
 						{
 							XGEConsoleExePath = FullPath;
@@ -962,9 +962,17 @@ namespace AutomationTool
 					var TargetFile = TaskFilePath + "." + Path.GetFileName(XGEFile);
 					CopyFile(XGEFile, TargetFile);
 					CopyFile_NoExceptions(XGEFile, TaskFilePath);
+
+					XmlReaderSettings XmlSettings = new XmlReaderSettings();
+					XmlSettings.DtdProcessing = DtdProcessing.Ignore;
+					XmlSettings.XmlResolver = null;
+
 					XmlDocument UBTTask = new XmlDocument();
-					UBTTask.XmlResolver = null;
-					UBTTask.Load(XGEFile);
+                    using (XmlReader Reader = XmlReader.Create(XGEFile, XmlSettings))
+					{
+						UBTTask.Load(Reader);
+					}
+
 					DeleteFile(XGEFile);
 
 					var All = new List<string>();

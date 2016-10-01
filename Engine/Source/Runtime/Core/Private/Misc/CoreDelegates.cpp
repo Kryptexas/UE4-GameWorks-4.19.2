@@ -63,6 +63,9 @@ FCoreDelegates::FApplicationFailedToRegisterForRemoteNotificationsDelegate FCore
 FCoreDelegates::FApplicationReceivedRemoteNotificationDelegate FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate;
 FCoreDelegates::FApplicationReceivedLocalNotificationDelegate FCoreDelegates::ApplicationReceivedLocalNotificationDelegate;
 
+FCoreDelegates::FOnFConfigFileCreated FCoreDelegates::OnFConfigCreated;
+FCoreDelegates::FOnFConfigFileCreated FCoreDelegates::OnFConfigDeleted;
+
 FCoreDelegates::FStatCheckEnabled FCoreDelegates::StatCheckEnabled;
 FCoreDelegates::FStatEnabled FCoreDelegates::StatEnabled;
 FCoreDelegates::FStatDisabled FCoreDelegates::StatDisabled;
@@ -95,3 +98,5 @@ FCoreDelegates::FImageIntegrityChanged  FCoreDelegates::OnImageIntegrityChanged;
 FCoreDelegates::FApplicationReceivedOnScreenOrientationChangedNotificationDelegate FCoreDelegates::ApplicationReceivedScreenOrientationChangedNotificationDelegate;
 
 FCoreDelegates::FConfigReadyForUse FCoreDelegates::ConfigReadyForUse;
+
+FSimpleMulticastDelegate FCoreDelegates::OnOutOfMemory;

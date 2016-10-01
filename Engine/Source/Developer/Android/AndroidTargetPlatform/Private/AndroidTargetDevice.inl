@@ -98,7 +98,7 @@ inline bool FAndroidTargetDevice::SupportsSdkVersion( const FString& VersionStri
 }
 
 
-inline bool FAndroidTargetDevice::TerminateProcess( const int32 ProcessId )
+inline bool FAndroidTargetDevice::TerminateProcess( const int64 ProcessId )
 {
 	return false;
 }

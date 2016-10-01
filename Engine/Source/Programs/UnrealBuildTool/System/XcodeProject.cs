@@ -158,7 +158,7 @@ namespace UnrealBuildTool
 				{
 					string AltName = PlatformName == "Win32" || PlatformName == "Win64" ? "windows" : PlatformName.ToLower();
 					if ((SourceFile.Reference.FullName.ToLower().Contains("/" + PlatformName.ToLower() + "/") || SourceFile.Reference.FullName.ToLower().Contains("/" + AltName + "/"))
-						&& PlatformName != "Mac" && !SourceFile.Reference.FullName.Contains("MetalRHI"))
+						&& PlatformName != "Mac" && PlatformName != "IOS" && PlatformName != "TVOS")
 					{
 						// Build phase is used for indexing only and indexing currently works only with files that can be compiled for Mac, so skip files for other platforms
 						return false;
@@ -501,7 +501,7 @@ namespace UnrealBuildTool
 			Content.Append("\t\t" + ProjectGuid + " /* Project object */ = {" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tisa = PBXProject;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tattributes = {" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\t\tLastUpgradeCheck = 0700;" + ProjectFileGenerator.NewLine);
+			Content.Append("\t\t\t\tLastUpgradeCheck = 0800;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t\tORGANIZATIONNAME = \"Epic Games, Inc.\";" + ProjectFileGenerator.NewLine);
             Content.Append("\t\t\t\tTargetAttributes = {" + ProjectFileGenerator.NewLine);
             Content.Append("\t\t\t\t\t" + TargetGuid + " = {" + ProjectFileGenerator.NewLine);
@@ -585,6 +585,7 @@ namespace UnrealBuildTool
 			if (ConfigName == "Debug")
 			{
 				Content.Append("\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine);
+				Content.Append("\t\t\t\tENABLE_TESTABILITY = YES;" + ProjectFileGenerator.NewLine);
 			}
 			Content.Append("\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine);
@@ -640,6 +641,7 @@ namespace UnrealBuildTool
 				Content.Append("\t\t\t\tSUPPORTED_PLATFORMS = \"macosx\";" + ProjectFileGenerator.NewLine);
 				Content.Append("\t\t\t\tPRODUCT_NAME = \"" + MacExecutableFileName + "\";" + ProjectFileGenerator.NewLine);
 				Content.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + MacExecutableDir + "\";" + ProjectFileGenerator.NewLine);
+				Content.Append("\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine);
 			}
 			else
 			{
@@ -713,6 +715,7 @@ namespace UnrealBuildTool
                 Content.Append("\t\t\t\t\"CONFIGURATION_BUILD_DIR[sdk=macosx*]\" = \"" + MacExecutableDir + "\";" + ProjectFileGenerator.NewLine);
 				Content.Append("\t\t\t\t\"SDKROOT[sdk=macosx]\" = macosx;" + ProjectFileGenerator.NewLine);
 				Content.Append("\t\t\t\tINFOPLIST_OUTPUT_FORMAT = xml;" + ProjectFileGenerator.NewLine);
+				Content.Append("\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine);
 
 				bool bIsUE4Game = Config.BuildTarget.Equals("UE4Game", StringComparison.InvariantCultureIgnoreCase);
 				bool bIsUE4Client = Config.BuildTarget.Equals("UE4Client", StringComparison.InvariantCultureIgnoreCase);

@@ -23,7 +23,7 @@ struct PerSessionDataServer
 static int unreal_networking_server(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
 
 #if !UE_BUILD_SHIPPING
-	void libwebsocket_debugLog(int level, const char *line)
+	void lws_debugLog(int level, const char *line)
 	{
 		UE_LOG(LogHTML5Networking, Log, TEXT("websocket server: %s"), ANSI_TO_TCHAR(line));
 	}
@@ -35,7 +35,7 @@ bool FWebSocketServer::Init(uint32 Port, FWebsocketClientConnectedCallBack CallB
 #if !PLATFORM_HTML5
 #if !UE_BUILD_SHIPPING
 	// setup log level.
-	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_DEBUG | LLL_INFO, libwebsocket_debugLog);
+	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_DEBUG | LLL_INFO, lws_debugLog);
 #endif
 
 	Protocols = new lws_protocols[3];
@@ -120,7 +120,7 @@ FString FWebSocketServer::Info()
 	return FString::Printf(TEXT("%s:%i"), ANSI_TO_TCHAR(lws_canonical_hostname(Context)), ServerPort);
 #else 
 	return FString(TEXT("NOT SUPPORTED"));
-#endif 
+#endif
 }
 
 // callback.

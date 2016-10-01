@@ -3717,24 +3717,20 @@ void InitUObject()
 	};
 	FModuleManager::Get().IsPackageLoadedCallback().BindStatic(Local::IsPackageLoaded);
 	
+
+
+#if WITH_EDITORONLY_DATA
 	const FString CommandLine = FCommandLine::Get();
 
 	// this is a hack to give fixup redirects insight into the startup packages
 	if (CommandLine.Contains(TEXT("fixupredirects")) )
 	{
 		FCoreUObjectDelegates::RedirectorFollowed.AddRaw(&GRedirectCollector, &FRedirectCollector::OnRedirectorFollowed);
-		FCoreUObjectDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
-		FCoreUObjectDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
 	}
 
-	// If the cooker is running or we want to fixup string referenced assets, hook up callbacks for string asset references
-	if (CommandLine.Contains(TEXT("cookcommandlet")) || 
-		  CommandLine.Contains(TEXT("run=cook")) ||
-		  CommandLine.Contains(TEXT("FixupStringAssetReferences")) )
-	{
-		FCoreUObjectDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
-		FCoreUObjectDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
-	}
+	FCoreUObjectDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
+	FCoreUObjectDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
+#endif
 
 	// Object initialization.
 	StaticUObjectInit();

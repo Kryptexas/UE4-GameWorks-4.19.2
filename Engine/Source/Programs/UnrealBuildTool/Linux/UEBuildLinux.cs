@@ -203,7 +203,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		// FIXME: for now switching between architectures is hard-coded
 		public const string DefaultArchitecture = "x86_64-unknown-linux-gnu";
-		//static private string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
+		//public const string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
 
 		LinuxPlatformSDK SDK;
 

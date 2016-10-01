@@ -297,6 +297,9 @@ public:
 	 */
 	FOptionalSize GetTitleBarSize() const;
 
+	/** @return the desired size in desktop pixels */
+	FVector2D GetDesiredSizeDesktopPixels() const;
+
 	/**	@return The initially desired screen position of the slate window */
 	FVector2D GetInitialDesiredSizeInScreen() const;
 

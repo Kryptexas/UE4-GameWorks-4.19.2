@@ -1053,12 +1053,12 @@ void FSlateApplication::TickWindowAndChildren( TSharedRef<SWindow> WindowToTick 
 		
 		{
 			SCOPE_CYCLE_COUNTER( STAT_SlatePrepass );
-			WindowToTick->SlatePrepass(GetApplicationScale());
+			WindowToTick->SlatePrepass(GetApplicationScale()*WindowToTick->GetNativeWindow()->GetDPIScaleFactor());
 		}
 
 		if (WindowToTick->IsAutosized())
 		{
-			WindowToTick->Resize(WindowToTick->GetDesiredSize());
+			WindowToTick->Resize(WindowToTick->GetDesiredSizeDesktopPixels());
 		}
 
 		{
@@ -1143,7 +1143,7 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 					if ( DecoratorWidget.IsValid() && DecoratorWidget->GetVisibility().IsVisible() )
 					{
 						DecoratorWidget->SetVisibility(EVisibility::HitTestInvisible);
-						DecoratorWidget->SlatePrepass();
+						DecoratorWidget->SlatePrepass(GetApplicationScale()*DragDropWindow->GetNativeWindow()->GetDPIScaleFactor());
 
 						FVector2D DragDropContentInWindowSpace = WindowToDraw->GetWindowGeometryInScreen().AbsoluteToLocal(DragDropContent->GetDecoratorPosition());
 						const FGeometry DragDropContentGeometry = FGeometry::MakeRoot(DecoratorWidget->GetDesiredSize(), FSlateLayoutTransform(DragDropContentInWindowSpace));
@@ -1167,7 +1167,7 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 				
 				if (CursorWidget.IsValid())
 				{
-					CursorWidget->SlatePrepass(GetApplicationScale());
+					CursorWidget->SlatePrepass(GetApplicationScale()*CursorWindow->GetNativeWindow()->GetDPIScaleFactor());
 
 					FVector2D CursorPosInWindowSpace = WindowToDraw->GetWindowGeometryInScreen().AbsoluteToLocal(GetCursorPos());
 					CursorPosInWindowSpace += (CursorWidget->GetDesiredSize() * -0.5);
@@ -1231,15 +1231,15 @@ static void PrepassWindowAndChildren( TSharedRef<SWindow> WindowToPrepass )
 	{
 		SLATE_CYCLE_COUNTER_SCOPE_CUSTOM(GSlatePrepassWindowAndChildren, WindowToPrepass->GetCreatedInLocation());
 		FScopedSwitchWorldHack SwitchWorld(WindowToPrepass);
-
+		
 		{
 			SCOPE_CYCLE_COUNTER(STAT_SlatePrepass);
-			WindowToPrepass->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
+			WindowToPrepass->SlatePrepass(FSlateApplication::Get().GetApplicationScale() * WindowToPrepass->GetNativeWindow()->GetDPIScaleFactor());
 		}
 
 		if ( WindowToPrepass->IsAutosized() )
 		{
-			WindowToPrepass->Resize(WindowToPrepass->GetDesiredSize());
+			WindowToPrepass->Resize(WindowToPrepass->GetDesiredSizeDesktopPixels());
 		}
 
 		for ( const TSharedRef<SWindow>& ChildWindow : WindowToPrepass->GetChildWindows() )
@@ -3341,10 +3341,10 @@ void FSlateApplication::SpawnToolTip( const TSharedRef<IToolTip>& InToolTip, con
 		DesiredToolTipLocation = InSpawnLocation;
 		{
 			// Make sure the desired size is valid
-			NewToolTipWindow->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
+			NewToolTipWindow->SlatePrepass(FSlateApplication::Get().GetApplicationScale()*NewToolTipWindow->GetNativeWindow()->GetDPIScaleFactor());
 
 			FSlateRect Anchor(DesiredToolTipLocation.X, DesiredToolTipLocation.Y, DesiredToolTipLocation.X, DesiredToolTipLocation.Y);
-			DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, NewToolTipWindow->GetDesiredSize() );
+			DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, NewToolTipWindow->GetDesiredSizeDesktopPixels() );
 
 			// MoveWindowTo will adjust the window's position, if needed
 			NewToolTipWindow->MoveWindowTo( DesiredToolTipLocation );
@@ -3406,6 +3406,8 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 	// We still want to show tooltips for widgets that are disabled
 	const bool bIgnoreEnabledStatus = true;
 
+	float DPIScaleFactor = 1.0f;
+	
 	FWidgetPath WidgetsToQueryForToolTip;
 	// We don't show any tooltips when drag and dropping or when another app is active
 	if (bCheckForToolTipChanges)
@@ -3416,6 +3418,10 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 		if (!WidgetsUnderMouse.IsValid() || WidgetsUnderMouse.GetWindow() != ToolTipWindow.Pin())
 		{
 			WidgetsToQueryForToolTip = WidgetsUnderMouse;
+			if (false)// @na (WidgetsUnderMouse.IsValid())
+			{
+				DPIScaleFactor = WidgetsUnderMouse.GetWindow()->GetNativeWindow()->GetDPIScaleFactor();
+			}
 		}
 	}
 
@@ -3455,6 +3461,7 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 				// of it's child though.  Just is kind of just being paranoid.
 				ForceFieldRect = ForceFieldRect.Expand( CurWidgetGeometry->Geometry.GetClippingRect() );
 			}
+			ForceFieldRect = (1.0f / DPIScaleFactor) * ForceFieldRect;
 		}
 	}
 
@@ -3521,7 +3528,7 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 	if ( ToolTipWindowPtr.IsValid() )
 	{
 		FSlateRect Anchor(DesiredToolTipLocation.X, DesiredToolTipLocation.Y, DesiredToolTipLocation.X, DesiredToolTipLocation.Y);
-		DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, ToolTipWindowPtr->GetDesiredSize() );
+		DesiredToolTipLocation = CalculatePopupWindowPosition( Anchor, ToolTipWindowPtr->GetDesiredSizeDesktopPixels());
 	}
 
 	// Repel tool-tip from a force field, if necessary
@@ -3608,7 +3615,7 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 		{
 			// Avoid the edges of the desktop
 			FSlateRect Anchor(WindowLocation.X, WindowLocation.Y, WindowLocation.X, WindowLocation.Y);
-			WindowLocation = CalculatePopupWindowPosition( Anchor, PinnedToolTipWindow->GetDesiredSize() );
+			WindowLocation = CalculatePopupWindowPosition( Anchor, PinnedToolTipWindow->GetDesiredSizeDesktopPixels());
 
 			// Update the tool tip window positioning
 			// SetCachedScreenPosition is a hack (issue tracked as TTP #347070) which is needed because code in TickWindowAndChildren()/DrawPrepass()

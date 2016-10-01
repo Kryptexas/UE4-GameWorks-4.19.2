@@ -188,6 +188,12 @@ FORCEINLINE uint32 GetMaxTextureArrayLayers()
 	return GMaxTextureArrayLayers;
 }
 
+extern RHI_API int32 GMaxTextureSamplers;
+FORCEINLINE uint32 GetMaxTextureSamplers()
+{
+	return GMaxTextureSamplers;
+}
+
 /** true if we are running with the NULL RHI */
 extern RHI_API bool GUsingNullRHI;
 
