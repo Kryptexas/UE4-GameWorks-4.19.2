@@ -25,7 +25,9 @@
 #include "IOSVR.h"
 #include "OSVRHMD.h"
 
-#include <osvr/ClientKit/InterfaceStateC.h>
+THIRD_PARTY_INCLUDES_START
+	#include <osvr/ClientKit/InterfaceStateC.h>
+THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY(LogOSVRInputDevice);
 
