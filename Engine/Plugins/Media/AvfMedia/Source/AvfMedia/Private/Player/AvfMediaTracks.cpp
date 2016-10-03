@@ -30,7 +30,7 @@
 
 - (void)legibleOutput:(AVPlayerItemLegibleOutput *)Output didOutputAttributedStrings:(NSArray<NSAttributedString *> *)Strings nativeSampleBuffers:(NSArray *)NativeSamples forItemTime:(CMTime)ItemTime
 {
-	Tracks->HandleSubtitleCaptionStrings(Output, Strings, ItemTime);
+	Tracks->HandleSubtitleCaptionStrings(Output, Strings, NativeSamples, ItemTime);
 }
 
 @end
@@ -137,7 +137,7 @@ public:
 
 FAvfMediaTracks::FAvfMediaTracks()
 	: AudioSink(nullptr)
-	, CaptionSink(nullptr)
+	, OverlaySink(nullptr)
 	, VideoSink(nullptr)
 	, PlayerItem(nullptr)
 	, VideoSampler(nullptr)
@@ -246,7 +246,7 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem)
 			Track->Reader = nil;
 #endif
 		}
-		else if (([mediaType isEqualToString:AVMediaTypeClosedCaption]) || ([mediaType isEqualToString:AVMediaTypeSubtitle]))
+		else if (([mediaType isEqualToString:AVMediaTypeClosedCaption]) || ([mediaType isEqualToString:AVMediaTypeSubtitle]) || ([mediaType isEqualToString:AVMediaTypeText]))
 		{
 			FAVPlayerItemLegibleOutputPushDelegate* Delegate = [[FAVPlayerItemLegibleOutputPushDelegate alloc] initWithMediaTracks:this];
 			AVPlayerItemLegibleOutput* Output = [AVPlayerItemLegibleOutput new];
@@ -352,10 +352,10 @@ void FAvfMediaTracks::Reset()
 		AudioSink = nullptr;
 	}
 
-	if (CaptionSink != nullptr)
+	if (OverlaySink != nullptr)
 	{
-		CaptionSink->ShutdownStringSink();
-		CaptionSink = nullptr;
+		OverlaySink->ShutdownOverlaySink();
+		OverlaySink = nullptr;
 	}
 
 	if (VideoSink != nullptr)
@@ -623,9 +623,9 @@ bool FAvfMediaTracks::Tick(float DeltaTime)
 	return true;
 }
 
-void FAvfMediaTracks::HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, CMTime ItemTime)
+void FAvfMediaTracks::HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, NSArray* NativeSamples, CMTime ItemTime)
 {
-	if (CaptionSink != nil && SelectedCaptionTrack != INDEX_NONE)
+	if (OverlaySink != nil && SelectedCaptionTrack != INDEX_NONE)
 	{
 		FScopeLock Lock(&CriticalSection);
 		
@@ -634,6 +634,7 @@ void FAvfMediaTracks::HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Ou
 	
 		FString OutputString;
 		bool bFirst = true;
+
 		for (NSAttributedString* String in Strings)
 		{
 			if(String)
@@ -652,8 +653,8 @@ void FAvfMediaTracks::HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Ou
 				OutputString += FString(Result);
 			}
 		}
-		
-		CaptionSink->DisplayStringSinkString(OutputString, DiplayTime);
+
+		//OverlaySink->AddOverlaySinkText(FText::FromString(OutputString), DiplayTime);
 	}
 }
 
@@ -680,27 +681,21 @@ void FAvfMediaTracks::SetAudioSink(IMediaAudioSink* Sink)
 }
 
 
-void FAvfMediaTracks::SetCaptionSink(IMediaStringSink* Sink)
+void FAvfMediaTracks::SetOverlaySink(IMediaOverlaySink* Sink)
 {
-	if (Sink != CaptionSink)
+	if (Sink != OverlaySink)
 	{
 		FScopeLock Lock(&CriticalSection);
 
-		if (CaptionSink != nullptr)
+		if (OverlaySink != nullptr)
 		{
-			CaptionSink->ShutdownStringSink();
-			CaptionSink = nullptr;
+			OverlaySink->ShutdownOverlaySink();
+			OverlaySink = nullptr;
 		}
 
-		CaptionSink = Sink;
-		InitializeCaptionSink();
+		OverlaySink = Sink;
+		InitializeOverlaySink();
 	}
-}
-
-
-void FAvfMediaTracks::SetImageSink(IMediaTextureSink* Sink)
-{
-	// not supported
 }
 
 
@@ -980,7 +975,7 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 
 				if (SelectedCaptionTrack == TrackIndex)
 				{
-					InitializeCaptionSink();
+					InitializeOverlaySink();
 				}
 			}
 
@@ -1058,16 +1053,16 @@ void FAvfMediaTracks::InitializeAudioSink()
 }
 
 
-void FAvfMediaTracks::InitializeCaptionSink()
+void FAvfMediaTracks::InitializeOverlaySink()
 {
-	if ((CaptionSink == nullptr) || (SelectedCaptionTrack == INDEX_NONE))
+	if ((OverlaySink == nullptr) || (SelectedCaptionTrack == INDEX_NONE))
 	{
 		return;
 	}
 	
 	[PlayerItem addOutput:(AVPlayerItemOutput*)CaptionTracks[SelectedCaptionTrack].Output];
 
-	CaptionSink->InitializeStringSink();
+	OverlaySink->InitializeOverlaySink();
 }
 
 

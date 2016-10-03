@@ -7,7 +7,7 @@
 #include "Runtime/Core/Public/Modules/ModuleManager.h"
 #include "Runtime/Media/Public/IMediaAudioSink.h"
 #include "Runtime/Media/Public/IMediaModule.h"
-#include "Runtime/Media/Public/IMediaStringSink.h"
+#include "Runtime/Media/Public/IMediaOverlaySink.h"
 #include "Runtime/Media/Public/IMediaPlayerFactory.h"
 #include "Runtime/Media/Public/IMediaTextureSink.h"
 

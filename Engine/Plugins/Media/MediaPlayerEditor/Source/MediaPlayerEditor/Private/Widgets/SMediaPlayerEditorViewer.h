@@ -64,9 +64,6 @@ private:
 	/** Callback for media player events. */
 	void HandleMediaPlayerMediaEvent(EMediaEvent Event);
 
-	/** Callback for getting the text of the movie captions. */
-	FText HandleOverlayCaptionText() const;
-
 	/** Callback for getting the text of the player name overlay. */
 	FText HandleOverlayPlayerNameText() const;
 
@@ -102,6 +99,9 @@ private:
 
 	/** Callback for changing the value of the 'Position' slider. */
 	void HandlePositionSliderValueChanged( float NewValue );
+
+	/** Callback for creating the Scale sub-menu. */
+	void HandleScaleMenuNewMenu(FMenuBuilder& MenuBuilder);
 
 	/** Callback for handling button up events on the movie texture border. */
 	FReply HandleTextureMouseButtonUp(const FGeometry& Geometry, const FPointerEvent& MouseEvent);

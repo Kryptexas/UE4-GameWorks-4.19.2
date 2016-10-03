@@ -538,7 +538,7 @@ bool MovieSceneToolHelpers::ShowImportEDLDialog(UMovieScene* InMovieScene, float
 	return MovieSceneCaptureHelpers::ImportEDL(InMovieScene, InFrameRate, OpenFilenames[0]);
 }
 
-bool MovieSceneToolHelpers::ShowExportEDLDialog(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveDirectory)
+bool MovieSceneToolHelpers::ShowExportEDLDialog(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveDirectory, int32 InHandleFrames)
 {
 	TArray<FString> SaveFilenames;
 	FString SequenceName = InMovieScene->GetOuter()->GetName();
@@ -572,7 +572,7 @@ bool MovieSceneToolHelpers::ShowExportEDLDialog(const UMovieScene* InMovieScene,
 		return false;
 	}
 
-	if (MovieSceneCaptureHelpers::ExportEDL(InMovieScene, InFrameRate, SaveFilenames[0]))
+	if (MovieSceneCaptureHelpers::ExportEDL(InMovieScene, InFrameRate, SaveFilenames[0], InHandleFrames))
 	{
 		const FString AbsoluteFilename = FPaths::ConvertRelativePathToFull(SaveFilenames[0]);
 		const FString SaveDirectory = FPaths::GetPath(AbsoluteFilename);

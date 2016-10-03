@@ -74,6 +74,7 @@ namespace StructSerializerTest
 
 		// test maps
 		Test.TestTrue(TEXT("Maps.IntToStr must be the same before and after de-/serialization"), TestStruct.Maps.IntToStr.OrderIndependentCompareEqual(TestStruct2.Maps.IntToStr));
+		Test.TestTrue(TEXT("Maps.StrToStr must be the same before and after de-/serialization"), TestStruct.Maps.StrToStr.OrderIndependentCompareEqual(TestStruct2.Maps.StrToStr));
 		Test.TestTrue(TEXT("Maps.StrToVec must be the same before and after de-/serialization"), TestStruct.Maps.StrToVec.OrderIndependentCompareEqual(TestStruct2.Maps.StrToVec));
 	}
 }

@@ -193,20 +193,23 @@ void FSlateRemoteServer::ProcessTouchMessage( const FSlateRemoteServerMessage& M
 
 bool FSlateRemoteServer::HandleTicker( float DeltaTime )
 {
-	uint8 MessageBuffer[256];
+	FSlateRemoteServerMessage Message; // @todo SlateRemote: this is sketchy; byte ordering and packing ignored; use FArchive!
 	int32 BytesRead;
 
-	while (ServerSocket->RecvFrom(MessageBuffer, sizeof(MessageBuffer), BytesRead, *ReplyAddr))
+	while (ServerSocket->RecvFrom((uint8*)&Message, sizeof(Message), BytesRead, *ReplyAddr))
 	{
+		if (BytesRead == 0)
+		{
+			return true;
+		}
+
 		if (BytesRead != sizeof(FSlateRemoteServerMessage))
 		{
 			UE_LOG(LogSlate, Log, TEXT("Received %d bytes, expected %d"), BytesRead, sizeof(FSlateRemoteServerMessage));
 			continue;
 		}
 
-		// convert and verify message data
-		FSlateRemoteServerMessage& Message = *((FSlateRemoteServerMessage*)MessageBuffer);
-
+		// verify message data
 		bool bIsValidMessageVersion =
 			(Message.MagicTag == SLATE_REMOTE_SERVER_MESSAGE_MAGIC_ID) &&
 			(Message.MessageVersion == SLATE_REMOTE_SERVER_PROTOCOL_VERSION);

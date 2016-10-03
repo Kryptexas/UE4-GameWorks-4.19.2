@@ -1,10 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GameInstance.cpp: Implementation of GameInstance class
-=============================================================================*/
-
-
 #include "EnginePrivate.h"
 #include "Engine/GameInstance.h"
 #include "Engine/Engine.h"
@@ -12,6 +7,7 @@
 #include "Engine/DemoNetDriver.h"
 #include "Engine/LatentActionManager.h"
 #include "Engine/NetworkObjectList.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/OnlineSession.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameModeBase.h"

@@ -81,6 +81,14 @@ public:
 	}
 #endif
 
+	/**
+	 * @return Whether subtitles should be suppressed
+	 */
+	bool GetSuppressSubtitles() const
+	{
+		return bSuppressSubtitles;
+	}
+
 public:
 
 	// MovieSceneSection interface
@@ -115,4 +123,7 @@ private:
 	UPROPERTY(EditAnywhere, Category="Audio")
 	bool bShowIntensity;
 #endif
+
+	UPROPERTY(EditAnywhere, Category="Audio")
+	bool bSuppressSubtitles;
 };

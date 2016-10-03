@@ -118,7 +118,7 @@ int32 UMediaSoundWave::GeneratePCMData(uint8* Data, const int32 SamplesRequested
 	// return zero samples if paused or buffer underrun
 	if (!Paused && (SinkNumChannels > 0) && (SinkSampleRate > 0))
 	{
-		UE_LOG(LogMediaAssets, Verbose, TEXT("MediaSoundWave buffer underrun."));
+		UE_LOG(LogMediaAssets, VeryVerbose, TEXT("MediaSoundWave buffer underrun."));
 	}
 
 	FMemory::Memzero(Data, ZeroBufferSize);

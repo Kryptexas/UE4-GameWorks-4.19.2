@@ -4,7 +4,6 @@
 
 #include "IFilter.h"
 #include "IDetailCustomNodeBuilder.h"
-
 #include "FilterCollection.h"
 #include "SResetToDefaultMenu.h"
 #include "ActorPickerMode.h"
@@ -12,12 +11,31 @@
 #include "PropertyHandle.h"
 #include "DetailWidgetRow.h"
 
-namespace SceneOutliner { struct FOutlinerFilters; }
 
-DECLARE_DELEGATE_OneParam(FOnAssetSelected, const class FAssetData& /*AssetData*/);
-DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldSetAsset, const class FAssetData& /*AssetData*/);
-DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldFilterAsset, const class FAssetData& /*AssetData*/);
+class FAssetData;
+class FDetailWidgetRow;
+class FMaterialListBuilder;
+struct FMaterialListItem;
+class FMaterialItemView;
+class IMaterialListBuilder;
+class SPropertyEditorAsset;
+class SPropertyEditorClass;
+class UBoolProperty;
+class UMaterialInterface;
+class UProperty;
+
+
+namespace SceneOutliner
+{
+	struct FOutlinerFilters;
+}
+
+
+DECLARE_DELEGATE_OneParam(FOnAssetSelected, const FAssetData& /*AssetData*/);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldSetAsset, const FAssetData& /*AssetData*/);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldFilterAsset, const FAssetData& /*AssetData*/);
 DECLARE_DELEGATE_OneParam( FOnGetActorFilters, TSharedPtr<SceneOutliner::FOutlinerFilters>& );
+
 
 namespace PropertyCustomizationHelpers
 {
@@ -40,7 +58,7 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeDocumentationButton(const TSharedRef<class FPropertyEditor>& InPropertyEditor);
 
 	/** @return the UBoolProperty edit condition property if one exists. */
-	PROPERTYEDITOR_API class UBoolProperty* GetEditConditionProperty(const class UProperty* InProperty, bool& bNegate);
+	PROPERTYEDITOR_API UBoolProperty* GetEditConditionProperty(const UProperty* InProperty, bool& bNegate);
 
 	/** Returns a list of factories which can be used to create new assets, based on the supplied class */
 	PROPERTYEDITOR_API TArray<UFactory*> GetNewAssetFactoriesForClasses(const TArray<const UClass*>& Classes);
@@ -49,11 +67,13 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeTextLocalizationButton(const TSharedRef<IPropertyHandle>& InPropertyHandle);
 }
 
+
 /** Delegate used to get a generic object */
 DECLARE_DELEGATE_RetVal( const UObject*, FOnGetObject );
 
 /** Delegate used to set a generic object */
 DECLARE_DELEGATE_OneParam( FOnSetObject, const FAssetData& );
+
 
 /**
  * Simulates an object property field 
@@ -115,11 +135,13 @@ private:
 	/** Handle to a property we modify (if any)*/
 	TSharedPtr<IPropertyHandle> PropertyHandle;
 	/** The widget used to edit the object 'property' */
-	TSharedPtr<class SPropertyEditorAsset> PropertyEditorAsset;
+	TSharedPtr<SPropertyEditorAsset> PropertyEditorAsset;
 };
+
 
 /** Delegate used to set a class */
 DECLARE_DELEGATE_OneParam( FOnSetClass, const UClass* );
+
 
 /**
  * Simulates a class property field 
@@ -155,14 +177,16 @@ public:
 
 private:
 	/** The widget used to edit the class 'property' */
-	TSharedPtr<class SPropertyEditorClass> PropertyEditorClass;
+	TSharedPtr<SPropertyEditorClass> PropertyEditorClass;
 };
+
 
 /**
  * Represents a widget that can display a UProperty 
  * With the ability to customize the look of the property                 
  */
-class SProperty : public SCompoundWidget
+class SProperty
+	: public SCompoundWidget
 {
 public:
 	DECLARE_DELEGATE( FOnPropertyValueChanged );
@@ -211,9 +235,11 @@ protected:
 	TSharedPtr<IPropertyHandle> PropertyHandle;
 };
 
+
 DECLARE_DELEGATE_ThreeParams( FOnGenerateArrayElementWidget, TSharedRef<IPropertyHandle>, int32, IDetailChildrenBuilder& );
 
-class FDetailArrayBuilder : public IDetailCustomNodeBuilder
+class FDetailArrayBuilder
+	: public IDetailCustomNodeBuilder
 {
 public:
 
@@ -320,13 +346,16 @@ public:
 	}
 
 protected:
+
 	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren  ) override { OnRebuildChildren = InOnRebuildChildren; } 
 
 	void OnNumChildrenChanged()
 	{
 		OnRebuildChildren.ExecuteIfBound();
 	}
+
 private:
+
 	FText DisplayName;
 	FOnGenerateArrayElementWidget OnGenerateArrayElementWidgetDelegate;
 	TSharedPtr<IPropertyHandleArray> ArrayProperty;
@@ -337,10 +366,11 @@ private:
 	bool bDisplayElementNum;
 };
 
+
 /**
  * Delegate called when we need to get new materials for the list
  */
-DECLARE_DELEGATE_OneParam( FOnGetMaterials, class IMaterialListBuilder& );
+DECLARE_DELEGATE_OneParam(FOnGetMaterials, IMaterialListBuilder&);
 
 /**
  * Delegate called when a user changes the material
@@ -377,22 +407,27 @@ struct FMaterialListDelegates
 	FOnMaterialListDirty OnMaterialListDirty;
 };
 
+
 /**
  * Builds up a list of unique materials while creating some information about the materials
  */
 class IMaterialListBuilder
 {
 public:
+
+	/** Virtual destructor. */
 	virtual ~IMaterialListBuilder(){};
+
 	/** 
 	 * Adds a new material to the list
 	 * 
-	 * @param SlotIndex		The slot (usually mesh element index) where the material is located on the component
-	 * @param Material		The material being used
-	 * @param bCanBeReplced	Whether or not the material can be replaced by a user
+	 * @param SlotIndex The slot (usually mesh element index) where the material is located on the component.
+	 * @param Material The material being used.
+	 * @param bCanBeReplced Whether or not the material can be replaced by a user.
 	 */
 	virtual void AddMaterial( uint32 SlotIndex, UMaterialInterface* Material, bool bCanBeReplaced ) = 0;
 };
+
 
 /**
  * A Material item in a material list slot
@@ -401,8 +436,10 @@ struct FMaterialListItem
 {
 	/** Material being used */
 	TWeakObjectPtr<UMaterialInterface> Material;
+
 	/** Slot on a component where this material is at (mesh element) */
 	int32 SlotIndex;
+
 	/** Whether or not this material can be replaced by a new material */
 	bool bCanBeReplaced;
 
@@ -428,23 +465,32 @@ struct FMaterialListItem
 	}
 };
 
-class FMaterialList : public IDetailCustomNodeBuilder, public TSharedFromThis<FMaterialList>
+
+class FMaterialList
+	: public IDetailCustomNodeBuilder
+	, public TSharedFromThis<FMaterialList>
 {
 public:
 	PROPERTYEDITOR_API FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& MaterialListDelegates, bool bInAllowCollapse = false);
 
 	/**
-	 * @return true if materials are being displayed                                                              
+	 * @return true if materials are being displayed.                                                          
 	 */
 	bool IsDisplayingMaterials() const { return true; }
+
 private:
+
 	/**
-	 * Called when a user expands all materials in a slot
+	 * Called when a user expands all materials in a slot.
+	 *
+	 * @param SlotIndex The index of the slot being expanded.
 	 */
 	void OnDisplayMaterialsForElement( int32 SlotIndex );
 
 	/**
-	 * Called when a user hides all materials in a slot
+	 * Called when a user hides all materials in a slot.
+	 *
+	 * @param SlotIndex The index of the slot being hidden.
 	 */
 	void OnHideMaterialsForElement( int32 SlotIndex );
 
@@ -465,23 +511,31 @@ private:
 	 * @param Item			The material item to add
 	 * @param bDisplayLink	If a link to the material should be displayed instead of the actual item (for multiple materials)
 	 */
-	void AddMaterialItem( class FDetailWidgetRow& Row, int32 CurrentSlot, const struct FMaterialListItem& Item, bool bDisplayLink );
+	void AddMaterialItem(FDetailWidgetRow& Row, int32 CurrentSlot, const FMaterialListItem& Item, bool bDisplayLink);
 
 private:
+
 	/** Delegates for the material list */
 	FMaterialListDelegates MaterialListDelegates;
+
 	/** Called to rebuild the children of the detail tree */
 	FSimpleDelegate OnRebuildChildren;
+
 	/** Parent detail layout this list is in */
 	IDetailLayoutBuilder& DetailLayoutBuilder;
+
 	/** Set of all unique displayed materials */
 	TArray< FMaterialListItem > DisplayedMaterials;
+
 	/** Set of all materials currently in view (may be less than DisplayedMaterials) */
-	TArray< TSharedRef<class FMaterialItemView> > ViewedMaterials;
+	TArray< TSharedRef<FMaterialItemView> > ViewedMaterials;
+
 	/** Set of all expanded slots */
 	TSet<uint32> ExpandedSlots;
+
 	/** Material list builder used to generate materials */
-	TSharedRef<class FMaterialListBuilder> MaterialListBuilder;
+	TSharedRef<FMaterialListBuilder> MaterialListBuilder;
+
 	/** Allow Collapse of material header row. Right now if you allow collapse, it will initially collapse. */
 	bool bAllowCollpase;
 };

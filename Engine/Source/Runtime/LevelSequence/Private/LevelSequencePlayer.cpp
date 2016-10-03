@@ -639,7 +639,7 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 		UMovieSceneCinematicShotSection* ActiveShot = nullptr;
 		for (UMovieSceneSection* Section : ShotTrack->GetAllSections())
 		{
-			if (Section->GetRange().Contains(CurrentTime) && (!ActiveShot || Section->GetRowIndex() < ActiveShot->GetRowIndex()))
+			if (Section->IsActive() && Section->GetRange().Contains(CurrentTime) && (!ActiveShot || Section->GetRowIndex() < ActiveShot->GetRowIndex()))
 			{
 				ActiveShot = Cast<UMovieSceneCinematicShotSection>(Section);
 			}

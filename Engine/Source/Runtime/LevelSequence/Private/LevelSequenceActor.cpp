@@ -41,11 +41,22 @@ ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 	bAutoPlay = false;
 }
 
+void ALevelSequenceActor::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	if (!SequencePlayer)
+	{
+		InitializePlayer();
+	}
+}
 
 void ALevelSequenceActor::BeginPlay()
 {
 	Super::BeginPlay();
-	InitializePlayer();
+	if (!SequencePlayer)
+	{
+		InitializePlayer();
+	}
 }
 
 

@@ -460,6 +460,13 @@ FString FAvfMediaPlayer::GetInfo() const
 }
 
 
+FName FAvfMediaPlayer::GetName() const
+{
+	static FName PlayerName(TEXT("AvfMedia"));
+	return PlayerName;
+}
+
+
 IMediaOutput& FAvfMediaPlayer::GetOutput()
 {
 	return Tracks;

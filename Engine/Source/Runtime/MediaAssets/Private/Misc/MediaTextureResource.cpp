@@ -190,6 +190,11 @@ void FMediaTextureResource::UpdateBuffer(const uint8* Data, uint32 Pitch)
 				FMemory::Memcpy(Dest, Data, BufferDimensions.Y * BytesPerRow);
 			}
 
+			if (TripleBuffer.IsDirty())
+			{
+				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("MediaTextureResource frame dropped."));
+			}
+
 			TripleBuffer.SwapWriteBuffers();
 		}
 	}
@@ -560,8 +565,6 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 
 	// configure media shaders
 	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
-
-	static FGlobalBoundShaderState BoundShaderState;
 	TShaderMapRef<FMediaShadersVS> VertexShader(ShaderMap);
 
 	switch (SinkFormat)
@@ -569,6 +572,8 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharAYUV:
 		{
 			TShaderMapRef<FAYUVConvertPS> ConvertShader(ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
@@ -577,6 +582,8 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharNV12:
 		{
 			TShaderMapRef<FNV12ConvertPS> ConvertShader(ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
@@ -585,6 +592,8 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharNV21:
 		{
 			TShaderMapRef<FNV21ConvertPS> ConvertShader(ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
@@ -593,6 +602,8 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharUYVY:
 		{
 			TShaderMapRef<FUYVYConvertPS> ConvertShader(ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
@@ -601,6 +612,8 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharYUY2:
 		{
 			TShaderMapRef<FYUY2ConvertPS> ConvertShader(ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}
@@ -609,6 +622,8 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 	case EMediaTextureSinkFormat::CharYVYU:
 		{
 			TShaderMapRef<FYVYUConvertPS> ConvertShader(ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
 		}

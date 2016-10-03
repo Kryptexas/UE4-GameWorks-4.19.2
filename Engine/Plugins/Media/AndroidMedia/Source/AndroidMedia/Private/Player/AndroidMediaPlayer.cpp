@@ -228,6 +228,13 @@ FString FAndroidMediaPlayer::GetInfo() const
 }
 
 
+FName FAndroidMediaPlayer::GetName() const
+{
+	static FName PlayerName(TEXT("AndroidMedia"));
+	return PlayerName;
+}
+
+
 IMediaOutput& FAndroidMediaPlayer::GetOutput()
 {
 	return Tracks;

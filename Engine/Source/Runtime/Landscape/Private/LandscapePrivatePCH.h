@@ -6,8 +6,9 @@
 #include "CoreUObject.h"
 #include "Engine/EngineBaseTypes.h"
 #include "Engine/World.h"
-
+#include "Landscape.h"
 #include "LandscapeProxy.h"
+#include "LandscapeStreamingProxy.h"
 #include "LandscapeComponent.h"
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"

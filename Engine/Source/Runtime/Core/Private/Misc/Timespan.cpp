@@ -141,6 +141,7 @@ bool FTimespan::Parse(const FString& TimespanString, FTimespan& OutTimespan)
 {
 	// @todo gmp: implement stricter FTimespan parsing; this implementation is too forgiving.
 	FString TokenString = TimespanString.Replace(TEXT("."), TEXT(":"));
+	TokenString.ReplaceInline(TEXT(","), TEXT(":"));
 
 	bool Negative = TokenString.StartsWith(TEXT("-"));
 	TokenString.ReplaceInline(TEXT("-"), TEXT(":"), ESearchCase::CaseSensitive);
@@ -177,10 +178,12 @@ FArchive& operator<<(FArchive& Ar, FTimespan& Timespan)
 	return Ar << Timespan.Ticks;
 }
 
+
 uint32 GetTypeHash(const FTimespan& Timespan)
 {
 	return GetTypeHash(Timespan.Ticks);
 }
+
 
 /* FTimespan implementation
  *****************************************************************************/

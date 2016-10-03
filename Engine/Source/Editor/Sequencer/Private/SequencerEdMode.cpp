@@ -3,6 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "SequencerEdMode.h"
 #include "Sequencer.h"
+#include "SubtitleManager.h"
 #include "MovieSceneHitProxy.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
 #include "Sections/MovieScene3DTransformSection.h"
@@ -75,6 +76,24 @@ void FSequencerEdMode::Render(const FSceneView* View, FViewport* Viewport, FPrim
 		DrawTracks3D(View, PDI);
 	}
 #endif
+}
+
+void FSequencerEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
+{
+	FEdMode::DrawHUD(ViewportClient,Viewport,View,Canvas);
+
+	if( ViewportClient->AllowsCinematicPreview() )
+	{
+		// Get the size of the viewport
+		const int32 SizeX = Viewport->GetSizeXY().X;
+		const int32 SizeY = Viewport->GetSizeXY().Y;
+
+		// Draw subtitles (toggle is handled internally)
+		FVector2D MinPos(0.f, 0.f);
+		FVector2D MaxPos(1.f, .9f);
+		FIntRect SubtitleRegion(FMath::TruncToInt(SizeX * MinPos.X), FMath::TruncToInt(SizeY * MinPos.Y), FMath::TruncToInt(SizeX * MaxPos.X), FMath::TruncToInt(SizeY * MaxPos.Y));
+		FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( Canvas, SubtitleRegion, ViewportClient->GetWorld()->GetAudioTimeSeconds() );
+	}
 }
 
 void FSequencerEdMode::OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* KeyProxy)

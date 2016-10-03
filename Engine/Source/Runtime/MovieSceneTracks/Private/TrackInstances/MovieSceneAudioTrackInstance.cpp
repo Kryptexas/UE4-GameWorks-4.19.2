@@ -179,6 +179,7 @@ void FMovieSceneAudioTrackInstance::PlaySound(UMovieSceneAudioSection* AudioSect
 	Component->SetVolumeMultiplier(AudioSection->GetAudioVolume());
 	Component->SetPitchMultiplier(PitchMultiplier);
 	Component->bIsUISound = true;
+	Component->SubtitlePriority = AudioSection->GetSuppressSubtitles() ? 0.f : 10000.f;
 	Component->Play(Time - AudioSection->GetAudioStartTime());
 }
 

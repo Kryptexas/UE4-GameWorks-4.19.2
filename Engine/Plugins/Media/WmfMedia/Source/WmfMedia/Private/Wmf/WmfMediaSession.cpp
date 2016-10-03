@@ -28,7 +28,7 @@ FWmfMediaSession::FWmfMediaSession()
 { }
 
 
-FWmfMediaSession::FWmfMediaSession(const FTimespan& InDuration, const TComPtr<IMFTopology>& InTopology)
+FWmfMediaSession::FWmfMediaSession(const FTimespan& InDuration)
 	: Buffering(false)
 	, Capabilities(0)
 	, ChangeRequested(false)
@@ -48,15 +48,6 @@ FWmfMediaSession::FWmfMediaSession(const FTimespan& InDuration, const TComPtr<IM
 	if (FAILED(Result))
 	{
 		UE_LOG(LogWmfMedia, Error, TEXT("Failed to create media session (%s)"), *WmfMedia::ResultToString(Result));
-		return;
-	}
-
-	// assign the media topology
-	Result = MediaSession->SetTopology(0, InTopology);
-
-	if (FAILED(Result))
-	{
-		UE_LOG(LogWmfMedia, Error, TEXT("Failed to set topology in media session (%s)"), *WmfMedia::ResultToString(Result));
 		return;
 	}
 
@@ -86,6 +77,33 @@ FWmfMediaSession::FWmfMediaSession(const FTimespan& InDuration, const TComPtr<IM
 
 	CurrentState = EMediaState::Stopped;
 	RequestedState = CurrentState;
+}
+
+
+/* FWmfMediaSession interface
+ *****************************************************************************/
+
+bool FWmfMediaSession::SetTopology(const TComPtr<IMFTopology>& NewTopology)
+{
+	if (MediaSession == NULL)
+	{
+		return false;
+	}
+
+	if (CurrentState == EMediaState::Playing)
+	{
+		HRESULT Result = MediaSession->SetTopology(0, NewTopology);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogWmfMedia, Error, TEXT("Failed to change topology in media session (%s)"), *WmfMedia::ResultToString(Result));
+			return false;
+		}
+	}
+
+	Topology = NewTopology;
+
+	return true;
 }
 
 
@@ -204,6 +222,17 @@ bool FWmfMediaSession::SetRate(float Rate)
 	}
 	else
 	{
+		if (CurrentState != EMediaState::Playing)
+		{
+			HRESULT Result = MediaSession->SetTopology(0, Topology);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to set topology in media session (%s)"), *WmfMedia::ResultToString(Result));
+				return false;
+			}
+		}
+
 		RequestedState = EMediaState::Playing;
 	}
 
@@ -353,7 +382,7 @@ STDMETHODIMP FWmfMediaSession::Invoke(IMFAsyncResult* AsyncResult)
 			if (FAILED(EventResult) && (CurrentRate == RequestedRate))
 			{
 				PROPVARIANT Value;
-				PropVariantInit(&Value);
+				::PropVariantInit(&Value);
 
 				if (SUCCEEDED(Event->GetValue(&Value)) && (Value.vt == VT_R4))
 				{
@@ -422,11 +451,6 @@ STDMETHODIMP_(ULONG) FWmfMediaSession::Release()
 	
 	if (CurrentRefCount == 0)
 	{
-		if (MediaSession != NULL)
-		{
-			MediaSession->Shutdown();
-		}
-
 		delete this;
 	}
 
@@ -468,6 +492,7 @@ bool FWmfMediaSession::ChangeState()
 		{
 			UE_LOG(LogWmfMedia, Verbose, TEXT("Closing media session as requested"));
 			MediaSession->Close();
+			MediaSession->Shutdown();
 
 			return true;
 		}
@@ -527,7 +552,7 @@ bool FWmfMediaSession::ChangeState()
 			else
 			{
 				UE_LOG(LogWmfMedia, Verbose, TEXT("Starting playback at beginning"));
-				PropVariantInit(&StartPosition);
+				::PropVariantInit(&StartPosition);
 			}
 
 			StateChangePending = true;

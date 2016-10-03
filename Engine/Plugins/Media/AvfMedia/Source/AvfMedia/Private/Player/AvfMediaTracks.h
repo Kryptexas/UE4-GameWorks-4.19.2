@@ -121,15 +121,14 @@ public:
 	 * @param Strings The attributed caption strings.
 	 * @param ItemTime The display time for the strings.
 	 */
-	void HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, CMTime ItemTime);
+	void HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, NSArray* NativeSamples, CMTime ItemTime);
 
 public:
 
 	//~ IMediaOutput interface
 
 	virtual void SetAudioSink(IMediaAudioSink* Sink) override;
-	virtual void SetCaptionSink(IMediaStringSink* Sink) override;
-	virtual void SetImageSink(IMediaTextureSink* Sink) override;
+	virtual void SetOverlaySink(IMediaOverlaySink* Sink) override;
 	virtual void SetVideoSink(IMediaTextureSink* Sink) override;
 
 public:
@@ -153,8 +152,8 @@ protected:
 	/** Initialize the current audio sink. */
 	void InitializeAudioSink();
 
-	/** Initialize the current caption sink. */
-	void InitializeCaptionSink();
+	/** Initialize the current text overlay sink. */
+	void InitializeOverlaySink();
 
 	/** Initialize the current video sink. */
 	void InitializeVideoSink();
@@ -167,8 +166,8 @@ private:
 	/** The currently used audio sink. */
 	IMediaAudioSink* AudioSink;
 
-	/** The currently used caption sink. */
-	IMediaStringSink* CaptionSink;
+	/** The currently used text overlay sink. */
+	IMediaOverlaySink* OverlaySink;
 
 	/** The currently used video sink. */
 	IMediaTextureSink* VideoSink;

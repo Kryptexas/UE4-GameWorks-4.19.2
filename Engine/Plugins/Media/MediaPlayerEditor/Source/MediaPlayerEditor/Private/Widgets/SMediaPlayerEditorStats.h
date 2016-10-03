@@ -34,4 +34,7 @@ private:
 
 	/** Pointer to the MediaPlayer asset that is being viewed. */
 	UMediaPlayer* MediaPlayer;
+
+	/** Text block for media statistics. */
+	TSharedPtr<STextBlock> StatsTextBlock;
 };

@@ -35,12 +35,21 @@ public:
 	 * Creates and initializes a new instance.
 	 *
 	 * @param InDuration The duration of the media.
-	 * @param InTopology The playback topology to use.
 	 */
-	FWmfMediaSession(const FTimespan& InDuration, const TComPtr<IMFTopology>& InTopology);
+	FWmfMediaSession(const FTimespan& InDuration);
 
 	/** Virtual destructor. */
 	virtual ~FWmfMediaSession() { }
+
+public:
+
+	/**
+	 * Set the given playback topology.
+	 *
+	 * @param NewTopology The topology to set.
+	 * @return true on success, false otherwise.
+	 */
+	bool SetTopology(const TComPtr<IMFTopology>& NewTopology);
 
 public:
 
@@ -183,6 +192,9 @@ private:
 
 	/** Whether a state change is currently in progress. */
 	bool StateChangePending;
+
+	/** The playback topology to use. */
+	TComPtr<IMFTopology> Topology;
 
 private:
 

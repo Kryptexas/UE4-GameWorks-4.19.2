@@ -90,6 +90,10 @@ class UEditorPerProjectUserSettings : public UObject
 	UPROPERTY(EditAnywhere, config, Category=Export)
 	uint32 bKeepAttachHierarchy:1;
 
+	/** Map skeletal actor motion to the root bone of the skeleton. */
+	UPROPERTY(EditAnywhere, config, category=Export)
+	bool bMapSkeletalMotionToRoot;
+
 	/** This will set the fbx sdk compatibility when exporting to fbx file. The default value is 2013 */
 	UPROPERTY(EditAnywhere, config, Category = Export)
 	EFbxExportCompatibility FbxExportCompatibility;
