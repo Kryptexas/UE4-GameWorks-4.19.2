@@ -1356,6 +1356,8 @@ void Region::removeObject(MBP_Index handle)
 
 void Region::updateObject(const MBP_AABB& bounds, MBP_Index handle)
 {
+	PX_ASSERT(handle<mMaxNbObjects);
+
 	MBPEntry& object = mObjects[handle];
 	if(!object.isStatic())
 	{
@@ -1391,6 +1393,8 @@ void Region::updateObject(const MBP_AABB& bounds, MBP_Index handle)
 
 MBP_Handle Region::retrieveBounds(MBP_AABB& bounds, MBP_Index handle) const
 {
+	PX_ASSERT(handle<mMaxNbObjects);
+
 	const MBPEntry& object = mObjects[handle];
 	if(!object.isStatic())
 		bounds = mDynamicBoxes[object.mIndex];
@@ -1402,7 +1406,8 @@ MBP_Handle Region::retrieveBounds(MBP_AABB& bounds, MBP_Index handle) const
 
 void Region::setBounds(MBP_Index handle, const MBP_AABB& bounds)
 {
-	PX_ASSERT(handle < mNbObjects);
+	PX_ASSERT(handle<mMaxNbObjects);
+
 	const MBPEntry& object = mObjects[handle];
 	if(!object.isStatic())
 	{

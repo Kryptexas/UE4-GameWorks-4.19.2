@@ -313,7 +313,8 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 	// ignore kinematic-kinematic interactions which don't involve a destructible
 	if(k0 && k1 && (Channel0 != ECC_Destructible) && (Channel1 != ECC_Destructible))
 	{
-		return PxFilterFlag::eKILL;
+		//return PxFilterFlag::eKILL;
+		return PxFilterFlag::eSUPPRESS;	//NOTE: Waiting on physx fix for refiltering on aggregates. For now use supress which automatically tests when changes to simulation happen
 	}
 
 	bool s0 = PxGetFilterObjectType(attributes0) == PxFilterObjectType::eRIGID_STATIC;

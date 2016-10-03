@@ -206,7 +206,6 @@ PX_FORCE_INLINE PxReal updateWakeCounter(PxsRigidBody* originalBody, PxReal dt, 
 
 			// scale threshold by cluster factor (more contacts => higher sleep threshold)
 			//const PxReal clusterFactor = PxReal(1u + getNumUniqueInteractions());
-			const PxU32 clusterFactor = PxMin(PxU32(bodyCore.numCountedInteractions), 10u);
 
 			PxReal invMass = bodyCore.inverseMass;
 			if (invMass == 0.f)
@@ -216,7 +215,7 @@ PX_FORCE_INLINE PxReal updateWakeCounter(PxsRigidBody* originalBody, PxReal dt, 
 			const PxReal linear = sleepLinVelAcc.magnitudeSquared();
 			PxReal frameNormalizedEnergy = 0.5f * (angular + linear);
 
-			const PxReal cf = hasStaticTouch ? clusterFactor : 0.f;
+			const PxReal cf = hasStaticTouch ? PxReal(PxMin(10u, bodyCore.numBodyInteractions)) : 0.f;
 			const PxReal freezeThresh = cf*bodyCore.freezeThreshold;
 
 			originalBody->freezeCount = PxMax(originalBody->freezeCount - dt, 0.0f);
@@ -236,7 +235,7 @@ PX_FORCE_INLINE PxReal updateWakeCounter(PxsRigidBody* originalBody, PxReal dt, 
 			if (settled)
 			{
 				//Dampen bodies that are just about to go to sleep
-				if (clusterFactor > 1)
+				if (cf > 1.f)
 				{
 					const PxReal sleepDamping = PXD_SLEEP_DAMPING;
 					const PxReal sleepDampingTimesDT = sleepDamping*dt;
@@ -290,8 +289,7 @@ PX_FORCE_INLINE PxReal updateWakeCounter(PxsRigidBody* originalBody, PxReal dt, 
 					const PxReal sleepAngular = originalBody->sleepAngVelAcc.multiply(originalBody->sleepAngVelAcc).dot(inertia) * invMass;
 					const PxReal sleepLinear = originalBody->sleepLinVelAcc.magnitudeSquared();
 					PxReal normalizedEnergy = 0.5f * (sleepAngular + sleepLinear);
-					PxReal sleepClusterFactor = clusterFactor + 1.f;
-
+					const PxReal sleepClusterFactor = PxReal(1u + bodyCore.numCountedInteractions);
 					// scale threshold by cluster factor (more contacts => higher sleep threshold)
 					const PxReal threshold = sleepClusterFactor*bodyCore.sleepThreshold;
 
@@ -324,7 +322,7 @@ PX_FORCE_INLINE PxReal updateWakeCounter(PxsRigidBody* originalBody, PxReal dt, 
 			if (useAdaptiveForce)
 			{
 				if (hasStaticTouch && bodyCore.numCountedInteractions > 1)
-					originalBody->accelScale = 1.f / PxReal(bodyCore.numCountedInteractions);
+					originalBody->accelScale = 1.f / PxReal(bodyCore.numBodyInteractions);
 				else
 					originalBody->accelScale = 1.f;
 			}

@@ -601,7 +601,6 @@ public:
 	FVector LineCheckBoundsScale;
 
 	/** Threshold for physics asset bodies above which we use an aggregate for broadphase collisions */
-	UPROPERTY()
 	int32 RagdollAggregateThreshold;
 
 	/** Notification when constraint is broken. */

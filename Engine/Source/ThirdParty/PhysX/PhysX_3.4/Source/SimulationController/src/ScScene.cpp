@@ -1545,7 +1545,7 @@ void Sc::Scene::endSimulation()
 
 	PxsContactManagerOutputIterator outputs = mLLContext->getNphaseImplementationContext()->getContactManagerOutputs();
 
-	mNPhaseCore->fireCustomFilteringCallbacks(outputs);
+	mNPhaseCore->fireCustomFilteringCallbacks(outputs, mPublicFlags & PxSceneFlag::eADAPTIVE_FORCE);
 
 	mNPhaseCore->preparePersistentContactEventListForNextFrame();
 
@@ -2526,11 +2526,13 @@ void Sc::Scene::processNarrowPhaseTouchEvents()
 class InteractionNewTouchTask : public Cm::Task
 {
 	PxvContactManagerTouchEvent* mEvents;
-	PxU32 mNbEvents;
+	const PxU32 mNbEvents;
 	PxsContactManagerOutputIterator mOutputs;
+	const bool mUseAdaptiveForce;
 
 public:
-	InteractionNewTouchTask(PxvContactManagerTouchEvent* events, PxU32 nbEvents, PxsContactManagerOutputIterator& outputs) : mEvents(events), mNbEvents(nbEvents), mOutputs(outputs)
+	InteractionNewTouchTask(PxvContactManagerTouchEvent* events, PxU32 nbEvents, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce) : mEvents(events), mNbEvents(nbEvents), mOutputs(outputs),
+		mUseAdaptiveForce(useAdaptiveForce)
 	{
 	}
 
@@ -2553,14 +2555,18 @@ public:
 		{
 			Sc::ShapeInteraction* si = reinterpret_cast<Sc::ShapeInteraction*>(mEvents[i].userData);
 			PX_ASSERT(si);
-			si->managerNewTouch(0, true, mOutputs);
+			si->managerNewTouch(0, true, mOutputs, mUseAdaptiveForce);
 		}
 	}
+private:
+	PX_NOCOPY(InteractionNewTouchTask)
 };
 
 void Sc::Scene::processNarrowPhaseTouchEventsStage2(PxBaseTask* continuation)
 {
 	PxsContactManagerOutputIterator outputs = mLLContext->getNphaseImplementationContext()->getContactManagerOutputs();
+
+	bool useAdaptiveForce = mPublicFlags & PxSceneFlag::eADAPTIVE_FORCE;
 
 	//Cm::FlushPool& flushPool = mLLContext->getTaskPool();
 
@@ -2582,7 +2588,7 @@ void Sc::Scene::processNarrowPhaseTouchEventsStage2(PxBaseTask* continuation)
 				ShapeInteraction* si = reinterpret_cast<ShapeInteraction*>(mTouchFoundEvents[i + a].userData);
 				PX_ASSERT(si);
 				mNPhaseCore->managerNewTouch(*si, 0, true, outputs);
-				si->managerNewTouch(0, true, outputs);
+				si->managerNewTouch(0, true, outputs, useAdaptiveForce);
 			}
 
 			//InteractionNewTouchTask* task = PX_PLACEMENT_NEW(flushPool.allocate(sizeof(InteractionNewTouchTask)), InteractionNewTouchTask)(mTouchFoundEvents.begin() + i, nbToProcess, outputs);
@@ -2658,11 +2664,12 @@ void Sc::Scene::processNarrowPhaseLostTouchEvents(PxBaseTask*)
 	{
 		PX_PROFILE_ZONE("Sc::Scene.processNarrowPhaseLostTouchEvents", getContextId());
 		PxsContactManagerOutputIterator outputs = this->mLLContext->getNphaseImplementationContext()->getContactManagerOutputs();
+		bool useAdaptiveForce = mPublicFlags & PxSceneFlag::eADAPTIVE_FORCE;
 		for (PxU32 i = 0; i < mTouchLostEvents.size(); ++i)
 		{
 			ShapeInteraction* si = reinterpret_cast<ShapeInteraction*>(mTouchLostEvents[i].userData);
 			PX_ASSERT(si);
-			if (si->managerLostTouch(0, true, outputs) && !si->readFlag(ShapeInteraction::CONTACTS_RESPONSE_DISABLED))
+			if (si->managerLostTouch(0, true, outputs, useAdaptiveForce) && !si->readFlag(ShapeInteraction::CONTACTS_RESPONSE_DISABLED))
 				addToLostTouchList(si->getShape0().getBodySim(), si->getShape1().getBodySim());
 		}
 	}
@@ -2887,6 +2894,8 @@ void Sc::Scene::lostTouchReports(PxBaseTask*)
 		PX_PROFILE_ZONE("Sim.lostTouchReports", getContextId());
 		PxsContactManagerOutputIterator outputs = mLLContext->getNphaseImplementationContext()->getContactManagerOutputs();
 
+		bool useAdaptiveForce = mPublicFlags & PxSceneFlag::eADAPTIVE_FORCE;
+
 		Bp::SimpleAABBManager* aabbMgr = mAABBManager;
 		PxU32 destroyedOverlapCount;
 
@@ -2898,7 +2907,7 @@ void Sc::Scene::lostTouchReports(PxBaseTask*)
 				{
 					Sc::ElementSimInteraction* elemInteraction = reinterpret_cast<Sc::ElementSimInteraction*>(p->mUserData);
 					if (elemInteraction->getType() == Sc::InteractionType::eOVERLAP)
-						mNPhaseCore->lostTouchReports(static_cast<Sc::ShapeInteraction*>(elemInteraction), PxU32(PairReleaseFlag::eWAKE_ON_LOST_TOUCH), 0, outputs);
+						mNPhaseCore->lostTouchReports(static_cast<Sc::ShapeInteraction*>(elemInteraction), PxU32(PairReleaseFlag::eWAKE_ON_LOST_TOUCH), 0, outputs, useAdaptiveForce);
 				}
 				p++;
 			}
@@ -3006,6 +3015,8 @@ void Sc::Scene::processLostContacts3(PxBaseTask* /*continuation*/)
 {
 	{
 		PX_PROFILE_ZONE("Sim.processLostOverlapsStage2", getContextId());
+
+		bool useAdaptiveForce = mPublicFlags & PxSceneFlag::eADAPTIVE_FORCE;
 		PxsContactManagerOutputIterator outputs = mLLContext->getNphaseImplementationContext()->getContactManagerOutputs();
 
 		Bp::SimpleAABBManager* aabbMgr = mAABBManager;
@@ -3018,7 +3029,7 @@ void Sc::Scene::processLostContacts3(PxBaseTask* /*continuation*/)
 				ElementSim* volume0 = reinterpret_cast<ElementSim*>(p->mUserData0);
 				ElementSim* volume1 = reinterpret_cast<ElementSim*>(p->mUserData1);
 
-				mNPhaseCore->onOverlapRemoved(volume0, volume1, false, p->mUserData, outputs);
+				mNPhaseCore->onOverlapRemoved(volume0, volume1, false, p->mUserData, outputs, useAdaptiveForce);
 				p++;
 			}
 		}
@@ -3030,7 +3041,7 @@ void Sc::Scene::processLostContacts3(PxBaseTask* /*continuation*/)
 				ElementSim* volume0 = reinterpret_cast<ElementSim*>(p->mUserData0);
 				ElementSim* volume1 = reinterpret_cast<ElementSim*>(p->mUserData1);
 
-				mNPhaseCore->onOverlapRemoved(volume0, volume1, false, NULL, outputs);
+				mNPhaseCore->onOverlapRemoved(volume0, volume1, false, NULL, outputs, useAdaptiveForce);
 				p++;
 			}
 		}
@@ -3197,7 +3208,7 @@ public:
 				}
 			}
 
-			bodySim.getLowLevelBody().getCore().isFastMoving = isFastMoving;
+			bodySim.getLowLevelBody().getCore().isFastMoving = PxU16(isFastMoving);
 		}
 
 		Ps::atomicAdd(mNumFastMovingShapes, PxI32(activeShapes));
@@ -3562,6 +3573,8 @@ void Sc::Scene::postCCDPass(PxBaseTask* /*continuation*/)
 
 	PxsContactManagerOutputIterator outputs = mLLContext->getNphaseImplementationContext()->getContactManagerOutputs();
 
+	bool useAdaptiveForce = mPublicFlags & PxSceneFlag::eADAPTIVE_FORCE;
+
 	// Note: For contact notifications it is important that the new touch pairs get processed before the lost touch pairs.
 	//       This allows to know for sure if a pair of actors lost all touch (see eACTOR_PAIR_LOST_TOUCH).
 	mLLContext->fillManagerTouchEvents(newTouches, newTouchCount, lostTouches, lostTouchCount, ccdTouches, ccdTouchCount);
@@ -3570,7 +3583,7 @@ void Sc::Scene::postCCDPass(PxBaseTask* /*continuation*/)
 		ShapeInteraction* si = reinterpret_cast<ShapeInteraction*>(newTouches[i].userData);
 		PX_ASSERT(si);
 		mNPhaseCore->managerNewTouch(*si, currentPass, true, outputs);
-		si->managerNewTouch(currentPass, true, outputs);
+		si->managerNewTouch(currentPass, true, outputs, useAdaptiveForce);
 		if (!si->readFlag(ShapeInteraction::CONTACTS_RESPONSE_DISABLED))
 		{
 			mSimpleIslandManager->setEdgeConnected(si->getEdgeIndex());
@@ -3580,7 +3593,7 @@ void Sc::Scene::postCCDPass(PxBaseTask* /*continuation*/)
 	{
 		ShapeInteraction* si = reinterpret_cast<ShapeInteraction*>(lostTouches[i].userData);
 		PX_ASSERT(si);
-		if (si->managerLostTouch(currentPass, true, outputs) && !si->readFlag(ShapeInteraction::CONTACTS_RESPONSE_DISABLED))
+		if (si->managerLostTouch(currentPass, true, outputs, useAdaptiveForce) && !si->readFlag(ShapeInteraction::CONTACTS_RESPONSE_DISABLED))
 			addToLostTouchList(si->getShape0().getBodySim(), si->getShape1().getBodySim());
 
 		mSimpleIslandManager->setEdgeDisconnected(si->getEdgeIndex());
@@ -3754,7 +3767,7 @@ void Sc::Scene::stepSetupCollide()
 	kinematicsSetup();
 	PxsContactManagerOutputIterator outputs = mLLContext->getNphaseImplementationContext()->getContactManagerOutputs();
 	// Update all dirty interactions
-	mNPhaseCore->updateDirtyInteractions(outputs);
+	mNPhaseCore->updateDirtyInteractions(outputs, mPublicFlags & PxSceneFlag::eADAPTIVE_FORCE);
 	mInternalFlags &= ~(SceneInternalFlag::eSCENE_SIP_STATES_DIRTY_DOMINANCE | SceneInternalFlag::eSCENE_SIP_STATES_DIRTY_VISUALIZATION);
 }
 
@@ -6632,6 +6645,8 @@ void Sc::Scene::finishBroadPhaseStage2(const PxU32 ccdPass)
 		PX_PROFILE_ZONE("Sim.processLostOverlaps", getContextId());
 		PxsContactManagerOutputIterator outputs = mLLContext->getNphaseImplementationContext()->getContactManagerOutputs();
 
+		bool useAdaptiveForce = mPublicFlags & PxSceneFlag::eADAPTIVE_FORCE;
+
 		PxU32 destroyedOverlapCount;
 
 		{
@@ -6656,7 +6671,7 @@ void Sc::Scene::finishBroadPhaseStage2(const PxU32 ccdPass)
 						if (interaction->getType() == Sc::InteractionType::eOVERLAP)
 						{
 							Sc::ShapeInteraction* si = static_cast<Sc::ShapeInteraction*>(interaction);
-							mNPhaseCore->lostTouchReports(si, PxU32(PairReleaseFlag::eWAKE_ON_LOST_TOUCH), 0, outputs);
+							mNPhaseCore->lostTouchReports(si, PxU32(PairReleaseFlag::eWAKE_ON_LOST_TOUCH), 0, outputs, useAdaptiveForce);
 							si->destroyManager();
 							si->clearIslandGenData();
 						}
@@ -6667,7 +6682,7 @@ void Sc::Scene::finishBroadPhaseStage2(const PxU32 ccdPass)
 
 
 					//Then call "onOverlapRemoved" to actually free the interaction
-					mNPhaseCore->onOverlapRemoved(volume0, volume1, ccdPass, interaction, outputs);
+					mNPhaseCore->onOverlapRemoved(volume0, volume1, ccdPass, interaction, outputs, useAdaptiveForce);
 				}
 				p++;
 			}
@@ -6684,7 +6699,7 @@ void Sc::Scene::finishBroadPhaseStage2(const PxU32 ccdPass)
 				p->mUserData = NULL;
 
 				//KS - this is a bit ugly. 
-				mNPhaseCore->onOverlapRemoved(volume0, volume1, ccdPass, NULL, outputs);
+				mNPhaseCore->onOverlapRemoved(volume0, volume1, ccdPass, NULL, outputs, useAdaptiveForce);
 				p++;
 			}
 		}

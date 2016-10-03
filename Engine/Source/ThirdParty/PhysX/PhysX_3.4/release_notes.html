@@ -108,6 +108,7 @@
 			<li>Fixed a bug in aggregates that led to a crash when rigid bodies are added to an aggregate after removing all rigid bodies from an aggregate.   This only occurred with aggregates that were added to the scene and with rigid bodies that had shapes attached.</li>
             <li>Fixed a bug where non-breakable joints could break, leading to a crash. </li>
             <li>Fixed RepX load of kinematic rigid bodies with mesh shapes.</li>
+            <li>Fixed a divide by zero bug in SIMD distanceSegmentTriangle function</li>
 		</ul>
 		<li>Deprecated:</li>
 		<ul>
@@ -434,6 +435,7 @@
 		<ul>
 			<li>A rare capsule-vs-mesh contact generation bug has been fixed.</li>
 			<li>Calls to PxScene::shiftOrigin() can crash when PxRigidDynamic actors with PxActorFlag::eDISABLE_SIMULATION are present.</li>
+			<li>A rare crash due to an invalid assert in the MBP broad-phase has been fixed. This error only affected debug & checked builds; release & profile builds were unaffected.</li>
 		</ul>
 	</ul>
 

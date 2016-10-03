@@ -15,7 +15,7 @@
 #include "AbstractMeshDescription.h"
 #include "PsIntrinsics.h"
 #include "PxMat44.h"
-#include "ApexSDkIntl.h"
+#include "ApexSDKIntl.h"
 
 #include "ClothingGlobals.h"
 

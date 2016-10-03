@@ -60,8 +60,8 @@ struct PxRigidDynamicLockFlag
 	};
 };
 
-typedef PxFlags<PxRigidDynamicLockFlag::Enum, PxU32> PxRigidDynamicLockFlags;
-PX_FLAGS_OPERATORS(PxRigidDynamicLockFlag::Enum, PxU32)
+typedef PxFlags<PxRigidDynamicLockFlag::Enum, PxU16> PxRigidDynamicLockFlags;
+PX_FLAGS_OPERATORS(PxRigidDynamicLockFlag::Enum, PxU16)
 
 /**
 \brief PxRigidDynamic represents a dynamic rigid simulation object in the physics SDK.

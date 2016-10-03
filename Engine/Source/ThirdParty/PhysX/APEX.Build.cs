@@ -190,7 +190,6 @@ public class APEX : ModuleRules
 				"/libAPEX_Clothing{0}.dylib",
 				"/libAPEX_Destructible{0}.dylib",
 				"/libAPEX_Legacy{0}.dylib",
-				"/libAPEX_Loader{0}.dylib",
 				"/libApexFramework{0}.dylib"
 			};
 
@@ -216,7 +215,6 @@ public class APEX : ModuleRules
 				ApexLibraries.Add("APEX_Clothing{0}");
 				ApexLibraries.Add("APEX_Destructible{0}");
 				ApexLibraries.Add("APEX_Legacy{0}");
-				ApexLibraries.Add("APEX_Loader{0}");
 				ApexLibraries.Add("ApexFramework{0}");
 				LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
 			}

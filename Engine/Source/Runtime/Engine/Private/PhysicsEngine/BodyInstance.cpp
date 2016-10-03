@@ -2613,10 +2613,11 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 				}
 
 				//Make sure to refresh filtering and generate contact points if we're already overlapping with an object
-				if(PxScene* PScene = PRigidDynamic->getScene())
+				//NOTE: waiting on fix from physx for refiltering on aggregates. For now we use supress to ensure this is not needed
+				/*if(PxScene* PScene = PRigidDynamic->getScene())
 				{
 					PScene->resetFiltering(*PRigidDynamic);
-				}
+				}*/
 			}
 		}
 	});

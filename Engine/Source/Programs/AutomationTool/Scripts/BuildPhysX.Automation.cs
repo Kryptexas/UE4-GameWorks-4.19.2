@@ -637,14 +637,14 @@ class BuildPhysX : BuildCommand
 				{
 					{"debug", "-O0"},
 					{"checked", "-O2"},
-					{"profile", "-0z"},
+					{"profile", "-Oz"},
 					{"release", "-O3"}
 				};
 				Dictionary<string, string> BuildSuffix = new Dictionary<string, string>()
 				{
 					{"debug", ""},
 					{"checked", "_O2"},
-					{"profile", "_0z"},
+					{"profile", "_Oz"},
 					{"release", "_O3"}
 				};
 				UnrealBuildTool.DirectoryReference HTML5CMakeModules = DirectoryReference.Combine(PhysXSourceRootDirectory, "Externals", "CMakeModules", "HTML5");
@@ -925,7 +925,7 @@ class BuildPhysX : BuildCommand
 					{
 						{"debug", "Build-O0"},
 						{"checked", "Build-O2"},
-						{"profile", "Build-0z"},
+						{"profile", "Build-Oz"},
 						{"release", "Build-O3"}
 					};
 				}
@@ -1334,7 +1334,7 @@ class BuildPhysX : BuildCommand
 
 		// get the configurations we want to build for
 		List<string> TargetConfigurations = GetTargetConfigurations();
-        
+
 		if (bBuildSolutions)
 		{
 			foreach (PhysXTargetLib TargetLib in TargetLibs)
