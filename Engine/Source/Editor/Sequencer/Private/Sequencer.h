@@ -380,6 +380,8 @@ public:
 
 	EPlaybackMode::Type GetPlaybackMode() const;
 
+	bool IsRecording() const;
+
 	/** Called to determine whether a frame number is set so that frame numbers can be shown */
 	bool CanShowFrameNumbers() const;
 

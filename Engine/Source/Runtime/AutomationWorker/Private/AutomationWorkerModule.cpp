@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationWorkerPrivatePCH.h"
+#include "JsonUtilities.h"
 
 #if WITH_EDITOR
 #include "AssetRegistryModule.h"
@@ -18,14 +19,14 @@ void FAutomationWorkerModule::StartupModule()
 {
 	Initialize();
 
-	FAutomationTestFramework::GetInstance().PreTestingEvent.AddRaw(this, &FAutomationWorkerModule::HandlePreTestingEvent);
-	FAutomationTestFramework::GetInstance().PostTestingEvent.AddRaw(this, &FAutomationWorkerModule::HandlePostTestingEvent);
+	FAutomationTestFramework::Get().PreTestingEvent.AddRaw(this, &FAutomationWorkerModule::HandlePreTestingEvent);
+	FAutomationTestFramework::Get().PostTestingEvent.AddRaw(this, &FAutomationWorkerModule::HandlePostTestingEvent);
 }
 
 void FAutomationWorkerModule::ShutdownModule()
 {
-	FAutomationTestFramework::GetInstance().PreTestingEvent.RemoveAll(this);
-	FAutomationTestFramework::GetInstance().PostTestingEvent.RemoveAll(this);
+	FAutomationTestFramework::Get().PreTestingEvent.RemoveAll(this);
+	FAutomationTestFramework::Get().PostTestingEvent.RemoveAll(this);
 }
 
 bool FAutomationWorkerModule::SupportsDynamicReloading()
@@ -85,7 +86,7 @@ bool FAutomationWorkerModule::ExecuteLatentCommands()
 	if (GIsAutomationTesting)
 	{
 		// Ensure that latent automation commands have time to execute
-		bAllLatentCommandsComplete = FAutomationTestFramework::GetInstance().ExecuteLatentCommands();
+		bAllLatentCommandsComplete = FAutomationTestFramework::Get().ExecuteLatentCommands();
 	}
 	
 	return bAllLatentCommandsComplete;
@@ -99,7 +100,7 @@ bool FAutomationWorkerModule::ExecuteNetworkCommands()
 	if (GIsAutomationTesting)
 	{
 		// Ensure that latent automation commands have time to execute
-		bAllLatentCommandsComplete = FAutomationTestFramework::GetInstance().ExecuteNetworkCommands();
+		bAllLatentCommandsComplete = FAutomationTestFramework::Get().ExecuteNetworkCommands();
 	}
 
 	return bAllLatentCommandsComplete;
@@ -190,12 +191,12 @@ void FAutomationWorkerModule::ReportTestComplete()
 	if (GIsAutomationTesting)
 	{
 		//see if there are any more network commands left to execute
-		bool bAllLatentCommandsComplete = FAutomationTestFramework::GetInstance().ExecuteLatentCommands();
+		bool bAllLatentCommandsComplete = FAutomationTestFramework::Get().ExecuteLatentCommands();
 
 		//structure to track error/warning/log messages
 		FAutomationTestExecutionInfo ExecutionInfo;
 
-		bool bSuccess = FAutomationTestFramework::GetInstance().StopTest(ExecutionInfo);
+		bool bSuccess = FAutomationTestFramework::Get().StopTest(ExecutionInfo);
 
 		if (StopTestEvent.IsBound())
 		{
@@ -330,16 +331,16 @@ void FAutomationWorkerModule::HandlePingMessage( const FAutomationWorkerPing& Me
 
 void FAutomationWorkerModule::HandleResetTests( const FAutomationWorkerResetTests& Message, const IMessageContextRef& Context )
 {
-	FAutomationTestFramework::GetInstance().ResetTests();
+	FAutomationTestFramework::Get().ResetTests();
 }
 
 
 void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorkerRequestTests& Message, const IMessageContextRef& Context )
 {
-	FAutomationTestFramework::GetInstance().LoadTestModules();
-	FAutomationTestFramework::GetInstance().SetDeveloperDirectoryIncluded(Message.DeveloperDirectoryIncluded);
-	FAutomationTestFramework::GetInstance().SetRequestedTestFilter(Message.RequestedTestFlags);
-	FAutomationTestFramework::GetInstance().GetValidTestNames( TestInfo );
+	FAutomationTestFramework::Get().LoadTestModules();
+	FAutomationTestFramework::Get().SetDeveloperDirectoryIncluded(Message.DeveloperDirectoryIncluded);
+	FAutomationTestFramework::Get().SetRequestedTestFilter(Message.RequestedTestFlags);
+	FAutomationTestFramework::Get().GetValidTestNames( TestInfo );
 
 	SendTests(Context->GetSender());
 }
@@ -353,7 +354,7 @@ void FAutomationWorkerModule::HandlePreTestingEvent()
 		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
 	}
 	//Register the editor screen shot callback
-	FAutomationTestFramework::GetInstance().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
+	FAutomationTestFramework::Get().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
 #endif
 }
 
@@ -366,7 +367,7 @@ void FAutomationWorkerModule::HandlePostTestingEvent()
 		GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
 	}
 	//Register the editor screen shot callback
-	FAutomationTestFramework::GetInstance().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
+	FAutomationTestFramework::Get().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
 #endif
 }
 
@@ -374,62 +375,61 @@ void FAutomationWorkerModule::HandlePostTestingEvent()
 #if WITH_ENGINE
 void FAutomationWorkerModule::HandleScreenShotCaptured(int32 Width, int32 Height, const TArray<FColor>& Bitmap)
 {
-	FString Filename = FScreenshotRequest::GetFilename();
+	FAutomationScreenshotData Data;
+	Data.Width = Width;
+	Data.Height = Height;
+	Data.Path = FScreenshotRequest::GetFilename();
 
-	HandleScreenShotCapturedWithName(Width, Height, Bitmap, Filename);
+	HandleScreenShotCapturedWithName(Bitmap, Data);
 }
 
-void FAutomationWorkerModule::HandleScreenShotCapturedWithName(int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName)
+void FAutomationWorkerModule::HandleScreenShotCapturedWithName(const TArray<FColor>& RawImageData, const FAutomationScreenshotData& Data)
 {
-	if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
+	if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
 	{
-		int32 NewHeight = Height;
-		int32 NewWidth = Width;
-
-		TArray<FColor> ScaledBitmap;
-
-		if( FAutomationTestFramework::GetInstance().ShouldUseFullSizeScreenshots() )
-		{
-			ScaledBitmap = Bitmap;
-			//Clear the alpha channel before saving
-			for ( int32 Index = 0; Index < Width*Height; Index++ )
-			{
-				ScaledBitmap[Index].A = 255;
-			}
-		}
-		else
-		{
-			//Set the thumbnail size
-			NewHeight = 128;
-			NewWidth = 256;
-
-			// Create and save the thumbnail
-			FImageUtils::CropAndScaleImage(Width, Height, NewWidth, NewHeight, Bitmap, ScaledBitmap);
-		}
-
+		int32 NewHeight = Data.Height;
+		int32 NewWidth = Data.Width;
 
 		TArray<uint8> CompressedBitmap;
-		FImageUtils::CompressImageArray(NewWidth, NewHeight, ScaledBitmap, CompressedBitmap);
+		FImageUtils::CompressImageArray(NewWidth, NewHeight, RawImageData, CompressedBitmap);
 
+		FAutomationScreenshotMetadata Metadata(Data);
+		
 		// Send the screen shot if we have a target
 		if( TestRequesterAddress.IsValid() )
 		{
 			FAutomationWorkerScreenImage* Message = new FAutomationWorkerScreenImage();
 
-			FString SFilename = ScreenShotName;
-			Message->ScreenShotName = SFilename;
+			Message->ScreenShotName = FPaths::RootDir() / Data.Path;
+			FPaths::MakePathRelativeTo(Message->ScreenShotName, *FPaths::AutomationDir());
 			Message->ScreenImage = CompressedBitmap;
+			Message->Metadata = Metadata;
 			MessageEndpoint->Send(Message, TestRequesterAddress);
 		}
 		else
 		{
 			//Save locally
 			const bool bTree = true;
-			IFileManager::Get().MakeDirectory(*FPaths::GetPath(ScreenShotName), bTree);
-			FFileHelper::SaveArrayToFile(CompressedBitmap, *ScreenShotName);
+			IFileManager::Get().MakeDirectory(*FPaths::GetPath(Data.Path), bTree);
+			FFileHelper::SaveArrayToFile(CompressedBitmap, *Data.Path);
+
+			TSharedPtr<FJsonObject> MetadataJson = FJsonObjectConverter::UStructToJsonObject(Metadata);
+
+			if ( MetadataJson.IsValid() )
+			{
+				FString MetadataPath = FPaths::ChangeExtension(Data.Path, TEXT("json"));
+				FArchive* MetadataWriter = IFileManager::Get().CreateFileWriter(*MetadataPath);
+
+				if ( MetadataWriter != nullptr )
+				{
+					TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(MetadataWriter, 0);
+					FJsonSerializer::Serialize(MetadataJson.ToSharedRef(), JsonWriter);
+
+					delete MetadataWriter;
+				}
+			}
 		}
 	}
-
 }
 #endif
 
@@ -441,7 +441,7 @@ void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunT
 	BeautifiedTestName = Message.BeautifiedTestName;
 	bSendAnalytics = Message.bSendAnalytics;
 	TestRequesterAddress = Context->GetSender();
-	FAutomationTestFramework::GetInstance().SetScreenshotOptions(Message.bScreenshotsEnabled, Message.bUseFullSizeScreenShots);
+	FAutomationTestFramework::Get().SetScreenshotOptions(Message.bScreenshotsEnabled);
 
 	// Always allow the first network command to execute
 	bExecuteNextNetworkCommand = true;
@@ -449,7 +449,7 @@ void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunT
 	// We are not executing network command sub-commands right now
 	bExecutingNetworkCommandResults = false;
 
-	FAutomationTestFramework::GetInstance().StartTestByName(Message.TestName, Message.RoleIndex);
+	FAutomationTestFramework::Get().StartTestByName(Message.TestName, Message.RoleIndex);
 }
 
 
@@ -471,9 +471,6 @@ void FAutomationWorkerModule::SendAnalyticsEvents(TArray<FString>& InAnalyticsIt
 		}
 	}
 }
-
-
-
 
 void FAutomationWorkerModule::RecordPerformanceAnalytics( const FAutomationPerformanceSnapshot& PerfSnapshot )
 {

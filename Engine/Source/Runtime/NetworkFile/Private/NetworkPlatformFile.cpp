@@ -658,7 +658,7 @@ bool FNetworkPlatformFile::DeleteDirectoryRecursively(const TCHAR* Directory)
 	return InnerPlatformFile->DeleteDirectory(Directory);
 }
 
-bool FNetworkPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
+bool FNetworkPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags, EPlatformFileWrite WriteFlags)
 {
 //	FScopeLock ScopeLock(&SynchronizationObject);
 
@@ -673,7 +673,7 @@ bool FNetworkPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
 	}
 
 	// perform a local operation
-	return InnerPlatformFile->CopyFile(To, From);
+	return InnerPlatformFile->CopyFile(To, From, ReadFlags, WriteFlags);
 }
 
 FString FNetworkPlatformFile::ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename )

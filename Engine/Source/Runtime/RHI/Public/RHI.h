@@ -126,6 +126,9 @@ extern RHI_API bool GSupportsDepthRenderTargetWithoutColorRenderTarget;
 /** true if the RHI supports 3D textures */
 extern RHI_API bool GSupportsTexture3D;
 
+/** true if the RHI supports mobile multi-view */
+extern RHI_API bool GSupportsMobileMultiView;
+
 /** true if the RHI supports SRVs */
 extern RHI_API bool GSupportsResourceView;
 
@@ -183,6 +186,12 @@ extern RHI_API int32 GMaxTextureArrayLayers;
 FORCEINLINE uint32 GetMaxTextureArrayLayers()
 {
 	return GMaxTextureArrayLayers;
+}
+
+extern RHI_API int32 GMaxTextureSamplers;
+FORCEINLINE uint32 GetMaxTextureSamplers()
+{
+	return GMaxTextureSamplers;
 }
 
 /** true if we are running with the NULL RHI */

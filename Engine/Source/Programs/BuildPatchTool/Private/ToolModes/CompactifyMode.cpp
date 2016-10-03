@@ -30,12 +30,13 @@ public:
 			UE_LOG(LogBuildPatchTool, Log, TEXT("This tool supports the removal of redundant patch data from a cloud directory."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT(""));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("Required arguments:"));
-			UE_LOG(LogBuildPatchTool, Log, TEXT("  -mode=Compactify       Must be specified to launch the tool in compactify mode."));
-			UE_LOG(LogBuildPatchTool, Log, TEXT("  -CloudDir=\"\"           Specifies in quotes the cloud directory where manifest files and chunks to be compactified can be found."));
+			UE_LOG(LogBuildPatchTool, Log, TEXT("  -mode=Compactify           Must be specified to launch the tool in compactify mode."));
+			UE_LOG(LogBuildPatchTool, Log, TEXT("  -CloudDir=\"\"               Specifies in quotes the cloud directory where manifest files and chunks to be compactified can be found."));
+			UE_LOG(LogBuildPatchTool, Log, TEXT("  -DataAgeThreshold=2        The minimum age in days of chunk files that will be deleted. Any unreferenced chunks older than this will be deleted."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT(""));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("Optional arguments:"));
-			UE_LOG(LogBuildPatchTool, Log, TEXT("  -preview               Log all the actions it will take to update internal structures, but don't actually execute them."));
-			UE_LOG(LogBuildPatchTool, Log, TEXT("  -DataAgeThreshold=2    The minimum age in days of chunk files that will be deleted. Any unreferenced chunks older than this will be deleted."));
+			UE_LOG(LogBuildPatchTool, Log, TEXT("  -preview                   Log all the actions it will take to update internal structures, but don't actually execute them."));
+			UE_LOG(LogBuildPatchTool, Log, TEXT("  -DeletedChunkLogFile=\"\"    Log the list of paths of deleted chunk files to this specified filename. All paths are relative to CloudDir."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT(""));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("NB: If -DataAgeThreshold is not supplied, then all unreferenced existing data is eligible for deletion by the compactify process."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT(""));
@@ -50,7 +51,7 @@ public:
 		BpsInterface->SetCloudDirectory(CloudDir);
 
 		// Run the compactify routine
-		bool bSuccess = BpsInterface->CompactifyCloudDirectory(DataAgeThresholdFloat, CompactifyMode);
+		bool bSuccess = BpsInterface->CompactifyCloudDirectory(DataAgeThresholdFloat, CompactifyMode, DeletedChunkLogFile);
 		return bSuccess ? EReturnCode::OK : EReturnCode::ToolFailure;
 	}
 
@@ -85,6 +86,7 @@ private:
 		}
 
 		// Get optional parameters
+		PARSE_SWITCH(DeletedChunkLogFile);
 		bPreview = ParseOption(TEXT("preview"), Switches);
 
 		return true;
@@ -96,6 +98,7 @@ private:
 	bool bHelp;
 	FString CloudDir;
 	FString DataAgeThreshold;
+	FString DeletedChunkLogFile;
 	bool bPreview;
 };
 

@@ -490,14 +490,16 @@ void SetQualityLevels(const FQualityLevels& QualityLevels)
 	const int32 NewEffectsQuality = FMath::Clamp(QualityLevels.EffectsQuality, 0, CVarEffectsQuality_NumLevels->GetInt() - 1);
 	const int32 NewFoliageQuality = FMath::Clamp(QualityLevels.FoliageQuality, 0, CVarFoliageQuality_NumLevels->GetInt() - 1);
 
-	CVarResolutionQuality.AsVariable()->Set(QualityLevels.ResolutionQuality, ECVF_SetByCode);
-	CVarViewDistanceQuality.AsVariable()->Set(NewViewDistanceQuality, ECVF_SetByCode);
-	CVarAntiAliasingQuality.AsVariable()->Set(NewAntiAliasingQuality, ECVF_SetByCode);
-	CVarShadowQuality.AsVariable()->Set(NewShadowQuality, ECVF_SetByCode);
-	CVarPostProcessQuality.AsVariable()->Set(NewPostProcessQuality, ECVF_SetByCode);
-	CVarTextureQuality.AsVariable()->Set(NewTextureQuality, ECVF_SetByCode);
-	CVarEffectsQuality.AsVariable()->Set(NewEffectsQuality, ECVF_SetByCode);
-	CVarFoliageQuality.AsVariable()->Set(NewFoliageQuality, ECVF_SetByCode);
+	// set the cvars, but don't change their priority - there are issues with scalability and 
+	// device profiles conflicting in different combinations
+	CVarResolutionQuality.AsVariable()->SetWithCurrentPriority(QualityLevels.ResolutionQuality);
+	CVarViewDistanceQuality.AsVariable()->SetWithCurrentPriority(NewViewDistanceQuality);
+	CVarAntiAliasingQuality.AsVariable()->SetWithCurrentPriority(NewAntiAliasingQuality);
+	CVarShadowQuality.AsVariable()->SetWithCurrentPriority(NewShadowQuality);
+	CVarPostProcessQuality.AsVariable()->SetWithCurrentPriority(NewPostProcessQuality);
+	CVarTextureQuality.AsVariable()->SetWithCurrentPriority(NewTextureQuality);
+	CVarEffectsQuality.AsVariable()->SetWithCurrentPriority(NewEffectsQuality);
+	CVarFoliageQuality.AsVariable()->SetWithCurrentPriority(NewFoliageQuality);
 }
 
 FQualityLevels GetQualityLevels()

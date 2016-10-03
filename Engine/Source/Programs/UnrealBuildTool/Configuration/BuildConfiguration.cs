@@ -533,6 +533,11 @@ namespace UnrealBuildTool
 		public static string SingleFileToCompile;
 
 		/// <summary>
+		/// Disable any link steps when building
+		/// </summary>
+		public static bool bDisableLinking;
+
+		/// <summary>
 		/// Whether to automatically add the -FastPDB option to the build commands in generated project files
 		/// </summary>
 		[XmlConfig]
@@ -716,6 +721,8 @@ namespace UnrealBuildTool
 
 			// Compile everything by default
 			SingleFileToCompile = null;
+
+			bDisableLinking = false;
 
 			bUCACheckUObjectThreadSafety = false;
 

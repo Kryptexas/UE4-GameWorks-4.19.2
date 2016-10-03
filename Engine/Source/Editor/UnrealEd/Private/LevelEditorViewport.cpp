@@ -2729,6 +2729,49 @@ void FLevelEditorViewportClient::TrackingStopped()
 				}
 			}
 
+			if (GEditor->GetSelectedComponentCount() > 0)
+			{
+				USelection* ComponentSelection = GEditor->GetSelectedComponents();
+
+				// Only move the parent-most component(s) that are selected 
+				// Otherwise, if both a parent and child are selected and the delta is applied to both, the child will actually move 2x delta
+				TInlineComponentArray<USceneComponent*> ComponentsToMove;
+				for (FSelectedEditableComponentIterator EditableComponentIt(GEditor->GetSelectedEditableComponentIterator()); EditableComponentIt; ++EditableComponentIt)
+				{
+					USceneComponent* SceneComponent = CastChecked<USceneComponent>(*EditableComponentIt);
+					if (SceneComponent)
+					{
+						USceneComponent* SelectedComponent = Cast<USceneComponent>(*EditableComponentIt);
+
+						// Check to see if any parent is selected
+						bool bParentAlsoSelected = false;
+						USceneComponent* Parent = SelectedComponent->GetAttachParent();
+						while (Parent != nullptr)
+						{
+							if (ComponentSelection->IsSelected(Parent))
+							{
+								bParentAlsoSelected = true;
+								break;
+							}
+
+							Parent = Parent->GetAttachParent();
+						}
+
+						// If no parent of this component is also in the selection set, move it!
+						if (!bParentAlsoSelected)
+						{
+							ComponentsToMove.Add(SelectedComponent);
+						}
+					}
+				}
+
+				// Now actually apply the delta to the appropriate component(s)
+				for (USceneComponent* SceneComp : ComponentsToMove)
+				{
+					SceneComp->PostEditComponentMove(true);
+				}
+			}
+
 			Actor->PostEditMove(true);
 			GEditor->BroadcastEndObjectMovement(*Actor);
 		}

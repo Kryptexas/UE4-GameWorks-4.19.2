@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationControllerPrivatePCH.h"
+#include "JsonObjectConverter.h"
 
 #if WITH_EDITOR
 #include "MessageLog.h"
@@ -137,7 +138,6 @@ void FAutomationControllerManager::Init()
 	AutomationTestState = EAutomationControllerModuleState::Disabled;
 	bTestResultsAvailable = false;
 	bScreenshotsEnabled = true;
-	bRequestFullScreenScreenshots = false;
 	bSendAnalytics = FParse::Param(FCommandLine::Get(), TEXT("SendAutomationAnalytics"));
 
 	// Update the ini with the settings
@@ -201,6 +201,81 @@ void FAutomationControllerManager::ProcessAvailableTasks()
 	}
 }
 
+void FAutomationControllerManager::ReportTestResults()
+{
+	GLog->Logf(TEXT("Test Pass Results:"));
+	for (int i = 0; i < OurPassResults.TestInformation.Num(); i++)
+	{
+		GLog->Logf(TEXT("%s: %s"), *OurPassResults.TestInformation[i].TestName, *OurPassResults.TestInformation[i].TestResult);
+	}
+}
+
+void FAutomationControllerManager::CollectTestNotes(FString TestName, const FAutomationWorkerRunTestsReply& Message)
+{
+	for (int i = 0; i < OurPassResults.TestInformation.Num(); i++)
+	{
+		if (OurPassResults.TestInformation[i].TestName == TestName)
+		{
+			OurPassResults.TestInformation[i].TestInfo = Message.Logs;
+			OurPassResults.TestInformation[i].TestWarnings = Message.Warnings;
+			for (int j = 0; j < Message.Errors.Num(); j++)
+			{
+				OurPassResults.TestInformation[i].TestErrors.Add(Message.Errors[j].Message);
+			}
+			return;
+		}
+	}
+}
+
+void FAutomationControllerManager::UpdateTestResultValue(FString TestName, EAutomationState::Type TestResult)
+{
+	for (int i = 0; i < OurPassResults.TestInformation.Num(); i++)
+	{
+		if (OurPassResults.TestInformation[i].TestName == TestName)
+		{
+			OurPassResults.TestInformation[i].TestResult = EAutomationState::ToString(TestResult);
+			switch (TestResult)
+			{
+			case EAutomationState::Success:
+				OurPassResults.NumSucceeded++;
+				break;
+			case EAutomationState::Fail:
+				OurPassResults.NumFailed++;
+				break;
+			default:
+				OurPassResults.NumNotRun++;
+				break;
+			}
+			return;
+		}
+	}
+}
+
+void FAutomationControllerManager::GenerateJsonTestPassSummary()
+{
+	if (!OurPassResults.TestInformation.Num())
+	{
+		return;
+	}
+	const FAutomatedTestPassResults SerializedPassResults = OurPassResults;
+	TSharedPtr<FJsonObject> ReportJson = FJsonObjectConverter::UStructToJsonObject(SerializedPassResults);
+	if (ReportJson.IsValid())
+	{
+		FString ReportFileName = FString::Printf(TEXT("%s/AutomationReport-%d-%s.json"), *FPaths::AutomationLogDir(), FEngineVersion::Current().GetChangelist(), *FDateTime::Now().ToString());
+		FArchive* ReportFileWriter = IFileManager::Get().CreateFileWriter(*ReportFileName);
+		if (ReportFileWriter != nullptr)
+		{
+			TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(ReportFileWriter, 0);
+			FJsonSerializer::Serialize(ReportJson.ToSharedRef(), JsonWriter);
+
+			delete ReportFileWriter;
+		}
+	}
+	else
+	{
+		GLog->Logf(ELogVerbosity::Error, TEXT("Test Report Json is invalid - report not generated."));
+	}
+}
 
 void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool& bAllTestsCompleted )
 {
@@ -226,6 +301,11 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 					DeviceClusterManager.SetTest( ClusterIndex, DeviceIndex, NextTest );
 					TestsRunThisPass.Add( NextTest );
 
+					// Register this as a test we'll need to report on.
+					FAutomatedTestResult tempresult;
+					tempresult.TestName = NextTest->GetDisplayName();
+					OurPassResults.TestInformation.Add(tempresult);
+
 					// If we now have enough devices reserved for the test, run it!
 					TArray<FMessageAddress> DeviceAddresses = DeviceClusterManager.GetDevicesReservedForTest( ClusterIndex, NextTest );
 					if( DeviceAddresses.Num() == NextTest->GetNumParticipantsRequired() )
@@ -246,7 +326,7 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 							FMessageAddress DeviceAddress = DeviceAddresses[AddressIndex];
 
 							// Send the test to the device for execution!
-							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand(), NextTest->GetDisplayName(), bScreenshotsEnabled, bRequestFullScreenScreenshots, bSendAnalytics), DeviceAddress);
+							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand(), NextTest->GetDisplayName(), bScreenshotsEnabled, bSendAnalytics), DeviceAddress);
 
 							// Add a test so we can check later if the device is still active
 							TestRunningArray.Add( FTestRunningInfo( DeviceAddress ) );
@@ -410,6 +490,11 @@ void FAutomationControllerManager::ProcessResults()
 			CheckChildResult(TestReports[Index ]);
 		}
 	}
+
+	// Write our the report of our automation pass to JSON. Then clean our array for the next pass.
+	GenerateJsonTestPassSummary();
+	OurPassResults.ClearAllEntries();
+
 
 	SetControllerStatus( EAutomationControllerModuleState::Ready );
 }
@@ -610,13 +695,35 @@ void FAutomationControllerManager::HandlePongMessage( const FAutomationWorkerPon
 void FAutomationControllerManager::HandleReceivedScreenShot( const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context )
 {
 	// Forward the screen shot on to listeners
-	FAutomationWorkerScreenImage* ImageMessage = new FAutomationWorkerScreenImage( Message );
+	FAutomationWorkerScreenImage* ImageMessage = new FAutomationWorkerScreenImage(Message);
 	MessageEndpoint->Publish(ImageMessage, EMessageScope::Network);
 
-	// Save the screen shot locally (assuming that the controller manager is running on PC/Mac)
-	const bool bTree = true;
-	IFileManager::Get().MakeDirectory(*FPaths::GetPath(Message.ScreenShotName), bTree);
-	FFileHelper::SaveArrayToFile(Message.ScreenImage, *Message.ScreenShotName);
+	//// TODO Automation Why are we doing this????  It's not actually storing them, that's handled by the ScreenShotManager.cpp
+	//{
+	//	// Save the screen shot locally (assuming that the controller manager is running on PC/Mac)
+	//	const bool bTree = true;
+	//	IFileManager::Get().MakeDirectory(*FPaths::GetPath(Message.ScreenShotName), bTree);
+	//	FFileHelper::SaveArrayToFile(Message.ScreenImage, *Message.ScreenShotName);
+
+	//	// TODO Automation There is identical code in, Engine\Source\Runtime\AutomationWorker\Private\AutomationWorkerModule.cpp,
+	//	// need to move this code into common area.
+
+	//	TSharedPtr<FJsonObject> MetadataJson = FJsonObjectConverter::UStructToJsonObject(Message.Metadata);
+
+	//	if ( MetadataJson.IsValid() )
+	//	{
+	//		FString MetadataPath = FPaths::ChangeExtension(Message.ScreenShotName, TEXT("json"));
+	//		FArchive* MetadataWriter = IFileManager::Get().CreateFileWriter(*MetadataPath);
+
+	//		if ( MetadataWriter != nullptr )
+	//		{
+	//			TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(MetadataWriter, 0);
+	//			FJsonSerializer::Serialize(MetadataJson.ToSharedRef(), JsonWriter);
+
+	//			delete MetadataWriter;
+	//		}
+	//	}
+	//}
 }
 
 void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage( const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context )
@@ -700,6 +807,12 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 		check(Report.IsValid());
 
 		Report->SetResults(ClusterIndex,CurrentTestPass, TestResults);
+		
+
+		// Gather all of the data relevant to this test for our json reporting.
+		CollectTestNotes(Report->GetDisplayName(), Message);
+		UpdateTestResultValue(Report->GetDisplayName(), TestResults.State);
+
 
 #if WITH_EDITOR
 		FMessageLog AutomationTestingLog("AutomationTestingLog");
@@ -708,7 +821,7 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 
 		for ( TArray<FAutomationEvent>::TConstIterator ErrorIter(TestResults.Errors); ErrorIter; ++ErrorIter )
 		{
-			// 	FAutomationTestFramework::GetInstance().LogTestMessage(**ErrorIter, ELogVerbosity::Error);
+			// 	FAutomationTestFramework::Get().LogTestMessage(**ErrorIter, ELogVerbosity::Error);
 			GLog->Logf(ELogVerbosity::Error, TEXT("%s"), *( *ErrorIter ).ToString());
 #if WITH_EDITOR
 			AutomationTestingLog.Error(FText::FromString(( *ErrorIter ).ToString()));
@@ -744,11 +857,11 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 #if WITH_EDITOR
 			AutomationTestingLog.Error(FText::FromString(*FailureString));
 #endif
-			//FAutomationTestFramework::GetInstance().Lo
+			//FAutomationTestFramework::Get().Lo
 		}
 
 		// const bool TestSucceeded = (TestResults.State == EAutomationState::Success);
-		//FAutomationTestFramework::GetInstance().LogEndTestMessage(Report->GetDisplayName(), TestSucceeded);
+		//FAutomationTestFramework::Get().LogEndTestMessage(Report->GetDisplayName(), TestSucceeded);
 
 		// Device is now good to go
 		DeviceClusterManager.SetTest(ClusterIndex, DeviceIndex, NULL);

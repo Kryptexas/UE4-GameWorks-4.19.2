@@ -21,8 +21,22 @@ FName FScriptInstrumentedEvent::GetScopedFunctionName() const
 //////////////////////////////////////////////////////////////////////////
 // FInstrumentationCaptureContext
 
-void FInstrumentationCaptureContext::UpdateContext(const FScriptInstrumentationSignal& InstrumentSignal, TArray<FScriptInstrumentedEvent>& InstrumentationQueue)
+bool FInstrumentationCaptureContext::UpdateContext(const FScriptInstrumentationSignal& InstrumentSignal, TArray<FScriptInstrumentedEvent>& InstrumentationQueue)
 {
+	if (InstrumentSignal.GetType() == EScriptInstrumentation::InlineEvent)
+	{
+		// This inline event needs to be processed using the next incoming event's function class scope,
+		// so we need to store the data until the following UpdateContext call
+		PendingInlineEventName = InstrumentSignal.GetFunctionName();
+		return false;
+	}
+	else if (PendingInlineEventName != NAME_None)
+	{
+		// The pending inline event needs to be added first to make sure our events are processed in the proper order.
+		InstrumentationQueue.Add(FScriptInstrumentedEvent(EScriptInstrumentation::Event, InstrumentSignal.GetFunctionClassScope()->GetFName(), PendingInlineEventName));
+		PendingInlineEventName = NAME_None;
+	}
+
 	// Handle instance context switch
 	if (const UObject* NewContextObject = InstrumentSignal.GetContextObject())
 	{
@@ -43,14 +57,33 @@ void FInstrumentationCaptureContext::UpdateContext(const FScriptInstrumentationS
 		}
 		else
 		{
+			TWeakObjectPtr<const UClass> SignalScope = InstrumentSignal.GetFunctionClassScope();
 			// Handle function class scope changes
-			if (ContextFunctionClassScope != InstrumentSignal.GetFunctionClassScope())
+			if (ContextFunctionClassScope != SignalScope)
 			{
-				ContextFunctionClassScope = InstrumentSignal.GetFunctionClassScope();
-				InstrumentationQueue.Add(FScriptInstrumentedEvent(EScriptInstrumentation::ClassScope, ContextFunctionClassScope->GetFName(), InstrumentSignal.GetFunctionName()));
+				FName ClassScopeName = SignalScope->GetFName();
+				if (InstrumentSignal.GetType() == EScriptInstrumentation::Stop)
+				{
+					// In a Stop event, we need to use the last class scope on the stack to signify
+					// that we are reverting back to the previous class scope
+					ClassScopeName = ScopeStack.Pop();
+				}
+				else
+				{
+					// Stop events cause the Context to be reset so we need to check against the top scope on the stack before pushing it to the stack
+					if (ScopeStack.Num() == 0 || ScopeStack.Last() != ClassScopeName)
+					{
+						ScopeStack.Push(ClassScopeName);
+					}
+					ContextFunctionClassScope = SignalScope;
+				}
+
+				InstrumentationQueue.Add(FScriptInstrumentedEvent(EScriptInstrumentation::ClassScope, ClassScopeName, InstrumentSignal.GetFunctionName()));
 			}
 		}
 	}
+	
+	return true;
 }
 
 void FInstrumentationCaptureContext::ResetContext()

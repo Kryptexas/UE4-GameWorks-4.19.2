@@ -1773,6 +1773,12 @@ FString FMacPlatformMisc::GetXcodePath()
 	return GMacAppInfo.XcodePath;
 }
 
+float FMacPlatformMisc::GetDPIScaleFactorAtPoint(float X, float Y)
+{
+	TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
+	return Screen->Screen.backingScaleFactor;
+}
+
 /** Global pointer to crash handler */
 void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 

@@ -107,6 +107,10 @@ void FEngineAnalytics::Initialize()
 		{
 			Config.AppEnvironment = TEXT("datacollector-source");
 		}
+		if (Config.AppVersionET.IsEmpty())
+		{
+			Config.AppVersionET = FEngineVersion::Current().ToString();
+		}
 
 
 		// Connect the engine analytics provider (if there is a configuration delegate installed)
@@ -124,7 +128,8 @@ void FEngineAnalytics::Initialize()
 					FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Privacy"), TEXT("AnonymousID"), AnonymousId);
 				}
 
-				Analytics->SetUserID(FString::Printf(TEXT("ANON-%s"), *AnonymousId));
+				// Place the anonymous user id into the first field of the UserID set, as it most closely matches the LoginID semantics.
+				Analytics->SetUserID(FString::Printf(TEXT("ANON-%s||"), *AnonymousId));
 			}
 			else
 			{

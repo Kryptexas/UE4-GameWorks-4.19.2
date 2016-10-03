@@ -3413,7 +3413,7 @@ void FActiveGameplayEffectsContainer::Uninitialize()
 float FActiveGameplayEffectsContainer::GetServerWorldTime() const
 {
 	UWorld* World = Owner->GetWorld();
-	AGameState* GameState = World->GetGameState<AGameState>();
+	AGameStateBase* GameState = World->GetGameState();
 	if (GameState)
 	{
 		return GameState->GetServerWorldTimeSeconds();

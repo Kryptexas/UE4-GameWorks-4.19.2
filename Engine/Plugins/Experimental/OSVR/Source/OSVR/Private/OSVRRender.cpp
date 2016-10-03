@@ -53,6 +53,8 @@ void FOSVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& rhiCmdList, 
     SetGlobalBoundShaderState(rhiCmdList, featureLevel, boundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *vertexShader, *pixelShader);
 
     pixelShader->SetParameters(rhiCmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), srcTexture);
+    rhiCmdList.Clear(true, FLinearColor::Black, true, 0, true, 0, FIntRect());
+
     RendererModule->DrawRectangle(
         rhiCmdList,
         0, 0, // X, Y
@@ -114,12 +116,13 @@ void FOSVRHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, 
 void FOSVRHMD::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY)
 {
     check(IsInGameThread());
-    
+
     if (!IsStereoEnabled())
     {
         return;
     }
-    
+
+    float screenScale = GetScreenScale();
     if (mCustomPresent)
     {
         if (!mCustomPresent->IsInitialized() && IsInRenderingThread() && !mCustomPresent->Initialize())
@@ -128,7 +131,7 @@ void FOSVRHMD::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOu
         }
         if (mCustomPresent && mCustomPresent->IsInitialized())
         {
-            mCustomPresent->CalculateRenderTargetSize(InOutSizeX, InOutSizeY);
+            mCustomPresent->CalculateRenderTargetSize(InOutSizeX, InOutSizeY, screenScale);
         }
     }
     else
@@ -137,8 +140,8 @@ void FOSVRHMD::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOu
         auto rightEye = HMDDescription.GetDisplaySize(OSVRHMDDescription::RIGHT_EYE);
         InOutSizeX = leftEye.X + rightEye.X;
         InOutSizeY = leftEye.Y;
-        InOutSizeX = int(float(InOutSizeX) * mScreenScale);
-        InOutSizeY = int(float(InOutSizeY) * mScreenScale);
+        InOutSizeX = int(float(InOutSizeX) * screenScale);
+        InOutSizeY = int(float(InOutSizeY) * screenScale);
     }
 }
 
@@ -170,7 +173,10 @@ void FOSVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& In
     auto viewportRHI = InViewport.GetViewportRHI().GetReference();
     if (!mCustomPresent || (GIsEditor && !bPlaying) || (!IsStereoEnabled() && !bUseSeparateRenderTarget))
     {
-        viewportRHI->SetCustomPresent(nullptr);
+        if (viewportRHI)
+        {
+            viewportRHI->SetCustomPresent(nullptr);
+        }
         return;
     }
 

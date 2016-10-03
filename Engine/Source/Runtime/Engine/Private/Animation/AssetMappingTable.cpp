@@ -20,7 +20,7 @@ bool FAssetMapping::IsValidMapping() const
 bool FAssetMapping::IsValidMapping(UAnimationAsset* InSourceAsset, UAnimationAsset* InTargetAsset) 
 {
 	// for now we only allow same class
-	return ( InSourceAsset && InTargetAsset &&
+	return ( InSourceAsset && InTargetAsset && InSourceAsset != InTargetAsset && 
 			InSourceAsset->StaticClass() == InTargetAsset->StaticClass() &&
 			InSourceAsset->GetSkeleton() == InTargetAsset->GetSkeleton() &&
 			InSourceAsset->IsValidAdditive() == InTargetAsset->IsValidAdditive()
@@ -33,24 +33,11 @@ bool FAssetMapping::SetTargetAsset(UAnimationAsset* InTargetAsset)
 	if (SourceAsset && InTargetAsset)
 	{
 		// if source and target is same, we clear target asset
-		if (SourceAsset == InTargetAsset)
+		if (IsValidMapping(SourceAsset, InTargetAsset))
 		{
-			TargetAsset = nullptr;
-			return false;
+			TargetAsset = InTargetAsset;
+			return true;
 		}
-		else
-		{
-			if (IsValidMapping(SourceAsset, InTargetAsset))
-			{
-				TargetAsset = InTargetAsset;
-				return true;
-			}
-		}
-	}
-	else if (SourceAsset && !InTargetAsset)
-	{
-		TargetAsset = nullptr;
-		return false;
 	}
 
 	return false;

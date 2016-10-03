@@ -14,7 +14,14 @@
 #include "AllowWindowsPlatformTypes.h"
 #endif
 
+/*
+	ObjectBase.h (somehow included here) defines a namespace called UI,
+	openssl headers, included by libwebsockets define a typedef with the same names
+	The define will move the openssl define out of the way.
+*/
+#define UI UI_ST
 #include "libwebsockets.h"
+#undef UI
 
 #if PLATFORM_WINDOWS
 #include "HideWindowsPlatformTypes.h"
@@ -42,9 +49,8 @@ public:
 
 
 	// static functions. callbacks for libwebsocket.
-	static int CallBack_HTTP(	struct libwebsocket_context *context,
-	struct libwebsocket *wsi,
-		enum libwebsocket_callback_reasons reason, void *user,
+	static int CallBack_HTTP(struct lws *wsi,
+		enum lws_callback_reasons reason, void *user,
 		void *in, size_t len);
 
 private:
@@ -71,7 +77,7 @@ private:
 	const TArray<ITargetPlatform*> ActiveTargetPlatforms;
 
 	// libwebsocket context. All access to the library happens via this context.
-	struct libwebsocket_context *Context;
+	struct lws_context *Context;
 
 	// Service Http connections on this thread.
 	FRunnableThread* WorkerThread;

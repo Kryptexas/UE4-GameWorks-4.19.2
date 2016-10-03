@@ -1328,7 +1328,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandListImm
 	{
 		const uint32 bDoTiledReflections = CVarDoTiledReflections.GetValueOnRenderThread() != 0;
 		const bool bReflectionEnvironment = ShouldDoReflectionEnvironment();
-		const bool bReflectionsWithCompute = bDoTiledReflections && (FeatureLevel >= ERHIFeatureLevel::SM5) && bReflectionEnvironment && Scene->ReflectionSceneData.CubemapArray.IsValid();
+		const bool bReflectionsWithCompute = bDoTiledReflections && RHISupportsComputeShaders(ViewFamily.GetShaderPlatform()) && bReflectionEnvironment && Scene->ReflectionSceneData.CubemapArray.IsValid();
 		
 		if (bReflectionsWithCompute)
 		{

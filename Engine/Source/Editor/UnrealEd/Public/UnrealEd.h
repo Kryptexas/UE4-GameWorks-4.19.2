@@ -244,7 +244,6 @@
 #include "Classes/Exporters/PolysExporterT3D.h"
 #include "Classes/MaterialEditor/PreviewMaterial.h"
 #include "Classes/Settings/ProjectPackagingSettings.h"
-#include "Classes/Editor/PropertyEditorTestObject.h"
 #include "Classes/Commandlets/ReplaceActorCommandlet.h"
 #include "Classes/Commandlets/ResavePackagesCommandlet.h"
 #include "Classes/ThumbnailRendering/SceneThumbnailInfo.h"

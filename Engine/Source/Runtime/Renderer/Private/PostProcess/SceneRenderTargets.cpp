@@ -95,7 +95,8 @@ static TAutoConsoleVariable<int32> CVarMobileMSAA(
 	TEXT("Use MSAA instead of Temporal AA on mobile:\n")
 	TEXT("1: Use Temporal AA (MSAA disabled)\n")
 	TEXT("2: Use 2x MSAA (Temporal AA disabled)\n")
-	TEXT("4: Use 4x MSAA (Temporal AA disabled)"),
+	TEXT("4: Use 4x MSAA (Temporal AA disabled)\n")
+	TEXT("8: Use 8x MSAA (Temporal AA disabled)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -216,6 +217,8 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, CustomDepth(GRenderTargetPool.MakeSnapshot(SnapshotSource.CustomDepth))
 	, CustomStencilSRV(SnapshotSource.CustomStencilSRV)
 	, SkySHIrradianceMap(GRenderTargetPool.MakeSnapshot(SnapshotSource.SkySHIrradianceMap))
+	, MobileMultiViewSceneColor(GRenderTargetPool.MakeSnapshot(SnapshotSource.MobileMultiViewSceneColor))
+	, MobileMultiViewSceneDepthZ(GRenderTargetPool.MakeSnapshot(SnapshotSource.MobileMultiViewSceneDepthZ))
 	, EditorPrimitivesColor(GRenderTargetPool.MakeSnapshot(SnapshotSource.EditorPrimitivesColor))
 	, EditorPrimitivesDepth(GRenderTargetPool.MakeSnapshot(SnapshotSource.EditorPrimitivesDepth))
 	, SeparateTranslucencyRT(SnapshotSource.SeparateTranslucencyRT)
@@ -367,7 +370,7 @@ inline uint16 GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type InFeatureLevel)
 		NumSamples = CVarMobileMSAA.GetValueOnRenderThread();
 	}
 
-	if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
+	if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4 && NumSamples != 8)
 	{
 		NumSamples = 1;
 	}
@@ -492,7 +495,6 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 void FSceneRenderTargets::BeginRenderingSceneColor(FRHICommandList& RHICmdList, ESimpleRenderTargetMode RenderTargetMode/*=EUninitializedColorExistingDepth*/, FExclusiveDepthStencil DepthStencilAccess, bool bTransitionWritable)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneColor);
-
 	AllocSceneColor(RHICmdList);
 	SetRenderTarget(RHICmdList, GetSceneColorSurface(), GetSceneDepthSurface(), RenderTargetMode, DepthStencilAccess, bTransitionWritable);
 } 
@@ -684,6 +686,40 @@ void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 	}
 
 	check(GetSceneColorForCurrentShadingPath());
+}
+
+void FSceneRenderTargets::AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList)
+{
+	if (!MobileMultiViewSceneColor)
+	{
+		const EPixelFormat SceneColorBufferFormat = GetSceneColorFormat();
+		const FIntPoint MultiViewBufferSize(BufferSize.X / 2, BufferSize.Y);
+
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, SceneColorBufferFormat, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
+		Desc.Flags |= TexCreate_FastVRAM;
+		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
+		Desc.ArraySize = 2;
+		Desc.bIsArray = true;
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, MobileMultiViewSceneColor, TEXT("MobileMultiViewSceneColor"));
+	}
+	check(MobileMultiViewSceneColor);
+}
+
+void FSceneRenderTargets::AllocMobileMultiViewDepth(FRHICommandList& RHICmdList)
+{
+	if (!MobileMultiViewSceneDepthZ)
+	{
+		const FIntPoint MultiViewBufferSize(BufferSize.X / 2, BufferSize.Y);
+
+		// Using the result of GetDepthFormat() without stencil due to packed depth-stencil not working in array frame buffers.
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MultiViewBufferSize, PF_D24, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+		Desc.Flags |= TexCreate_FastVRAM;
+		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
+		Desc.ArraySize = 2;
+		Desc.bIsArray = true;
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, MobileMultiViewSceneDepthZ, TEXT("MobileMultiViewSceneDepthZ"));
+	}
+	check(MobileMultiViewSceneDepthZ);
 }
 
 void FSceneRenderTargets::AllocLightAttenuation(FRHICommandList& RHICmdList)
@@ -1050,6 +1086,7 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		RHICmdList.SetStreamSource(0, NULL, 0, 0);
 
 		int32 ResolveWidth = CVarWideCustomResolve.GetValueOnRenderThread();
 
@@ -1311,7 +1348,6 @@ void FSceneRenderTargets::ResolveSceneDepthToAuxiliaryTexture(FRHICommandList& R
 	if(!GSupportsDepthFetchDuringDepthTest)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ResolveSceneDepthToAuxiliaryTexture);
-
 		RHICmdList.CopyToResolveTarget(GetSceneDepthSurface(), GetAuxiliarySceneDepthTexture(), true, FResolveParams());
 	}
 }
@@ -1467,6 +1503,15 @@ void FSceneRenderTargets::AllocateMobileRenderTargets(FRHICommandList& RHICmdLis
 	// on ES2 we don't do on demand allocation of SceneColor yet (in non ES2 it's released in the Tonemapper Process())
 	AllocSceneColor(RHICmdList);
 	AllocateCommonDepthTargets(RHICmdList);
+
+	static const auto MobileMultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+	const bool bIsUsingMobileMultiView = GSupportsMobileMultiView && (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
+	if (bIsUsingMobileMultiView)
+	{
+		AllocMobileMultiViewSceneColor(RHICmdList);
+		AllocMobileMultiViewDepth(RHICmdList);
+	}
+
 	AllocateDebugViewModeTargets(RHICmdList);
 
 	EPixelFormat Format = GetSceneColor()->GetDesc().Format;
@@ -1861,6 +1906,9 @@ void FSceneRenderTargets::ReleaseAllTargets()
 		TranslucencyLightingVolumeAmbient[RTSetIndex].SafeRelease();
 		TranslucencyLightingVolumeDirectional[RTSetIndex].SafeRelease();
 	}
+
+	MobileMultiViewSceneColor.SafeRelease();
+	MobileMultiViewSceneDepthZ.SafeRelease();
 
 	EditorPrimitivesColor.SafeRelease();
 	EditorPrimitivesDepth.SafeRelease();

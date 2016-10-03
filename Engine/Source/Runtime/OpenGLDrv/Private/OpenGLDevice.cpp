@@ -741,6 +741,7 @@ static void InitRHICapabilitiesForGL()
 	UE_LOG(LogRHI, Log, TEXT("PLATFORM_ANDROID"));
 #endif
 
+	GMaxTextureSamplers = Value_GL_MAX_TEXTURE_IMAGE_UNITS;
 	GMaxTextureMipCount = FMath::CeilLogTwo(Value_GL_MAX_TEXTURE_SIZE) + 1;
 	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
 	GMaxTextureDimensions = Value_GL_MAX_TEXTURE_SIZE;
@@ -760,6 +761,7 @@ static void InitRHICapabilitiesForGL()
 	GSupportsMultipleRenderTargets = FOpenGL::SupportsMultipleRenderTargets();
 	GSupportsWideMRT = FOpenGL::SupportsWideMRT();
 	GSupportsTexture3D = FOpenGL::SupportsTexture3D();
+	GSupportsMobileMultiView = FOpenGL::SupportsMobileMultiView();
 	GSupportsResourceView = FOpenGL::SupportsResourceView();
 		
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();

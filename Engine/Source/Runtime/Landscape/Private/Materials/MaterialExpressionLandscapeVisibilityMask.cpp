@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
 #include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Engine/Engine.h"
@@ -31,7 +30,10 @@ UMaterialExpressionLandscapeVisibilityMask::UMaterialExpressionLandscapeVisibili
 	static FConstructorStatics ConstructorStatics;
 
 	bIsParameterExpression = true;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
+#endif
 }
 
 FGuid& UMaterialExpressionLandscapeVisibilityMask::GetParameterExpressionId()

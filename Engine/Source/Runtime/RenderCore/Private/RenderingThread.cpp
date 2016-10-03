@@ -266,7 +266,7 @@ public:
 		check(IsInGameThread());
 	}
 
-	virtual uint32 Run()
+	virtual uint32 Run() override
 	{
 		FMemory::SetupTLSCachesOnCurrentThread();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::RHIThread);
@@ -376,6 +376,10 @@ void AdvanceRenderingThreadStatsGT( bool bDiscardCallstack, int64 StatsFrame, in
 /** The rendering thread runnable object. */
 class FRenderingThread : public FRunnable
 {
+private:
+	/** Tracks if we have acquired ownership */
+	bool bAcquiredThreadOwnership;
+
 public:
 	/** 
 	 * Sync event to make sure that render thread is bound to the task graph before main thread queues work against it.
@@ -384,6 +388,7 @@ public:
 
 	FRenderingThread()
 	{
+		bAcquiredThreadOwnership = false;
 		TaskGraphBoundSyncEvent	= FPlatformProcess::GetSynchEventFromPool(true);
 		RHIFlushResources();
 	}
@@ -399,16 +404,24 @@ public:
 	{ 
 		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
 
-		// Acquire rendering context ownership on the current thread
-		RHIAcquireThreadOwnership();
+		// Acquire rendering context ownership on the current thread, unless using an RHI thread, which will be the real owner
+		if (!GUseRHIThread)
+		{
+			bAcquiredThreadOwnership = true;
+			RHIAcquireThreadOwnership();
+		}
 
 		return true; 
 	}
 
 	virtual void Exit(void) override
 	{
-		// Release rendering context ownership on the current thread
-		RHIReleaseThreadOwnership();
+		// Release rendering context ownership on the current thread if we had acquired it
+		if (bAcquiredThreadOwnership)
+		{
+			bAcquiredThreadOwnership = false;
+			RHIReleaseThreadOwnership();
+		}
 
 		GRenderThreadId = 0;
 	}
@@ -576,6 +589,59 @@ static FString BuildRenderingThreadName( uint32 ThreadIndex )
 	return FString::Printf( TEXT( "%s %u" ), *FName( NAME_RenderThread ).GetPlainNameString(), ThreadIndex );
 }
 
+
+
+class FOwnershipOfRHIThreadTask : public FCustomStatIDGraphTaskBase
+{
+public:
+	/**
+	*	Constructor
+	*	@param StatId The stat id for this task.
+	*	@param InDesiredThread; Thread to run on, can be ENamedThreads::AnyThread
+	**/
+	FOwnershipOfRHIThreadTask(bool bInAcquireOwnership, TStatId StatId)
+		: FCustomStatIDGraphTaskBase(StatId)
+		, bAcquireOwnership(bInAcquireOwnership)
+	{
+	}
+
+	/**
+	*	Retrieve the thread that this task wants to run on.
+	*	@return the thread that this task should run on.
+	**/
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::RHIThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	/**
+	*	Actually execute the task.
+	*	@param	CurrentThread; the thread we are running on
+	*	@param	MyCompletionGraphEvent; my completion event. Not always useful since at the end of DoWork, you can assume you are done and hence further tasks do not need you as a prerequisite.
+	*	However, MyCompletionGraphEvent can be useful for passing to other routines or when it is handy to set up subsequents before you actually do work.
+	**/
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		// note that this task is the first task run on the thread, before GRHIThread is assigned, so we can't check IsInRHIThread()
+
+		if (bAcquireOwnership)
+		{
+			GDynamicRHI->RHIAcquireThreadOwnership();
+		}
+		else
+		{
+			GDynamicRHI->RHIReleaseThreadOwnership();
+		}
+	}
+
+private:
+	bool bAcquireOwnership;
+};
+
+
+
 void StartRenderingThread()
 {
 	static uint32 ThreadCount = 0;
@@ -591,7 +657,7 @@ void StartRenderingThread()
 		}
 		DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread"), STAT_WaitForRHIThread, STATGROUP_TaskGraphTasks);
 
-		FGraphEventRef CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(GET_STATID(STAT_WaitForRHIThread), ENamedThreads::RHIThread);
+		FGraphEventRef CompletionEvent = TGraphTask<FOwnershipOfRHIThreadTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(true, GET_STATID(STAT_WaitForRHIThread));
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_StartRenderingThread);
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompletionEvent, ENamedThreads::GameThread_Local);
 		GRHIThread = FRHIThread::Get().Thread;
@@ -605,7 +671,7 @@ void StartRenderingThread()
 	// Create the rendering thread.
 	GRenderingThreadRunnable = new FRenderingThread();
 
-	GRenderingThread = FRunnableThread::Create( GRenderingThreadRunnable, *BuildRenderingThreadName( ThreadCount ), 0, TPri_Normal, FPlatformAffinity::GetRenderingThreadMask());
+	GRenderingThread = FRunnableThread::Create(GRenderingThreadRunnable, *BuildRenderingThreadName(ThreadCount), 0, FPlatformAffinity::GetRenderingThreadPriority(), FPlatformAffinity::GetRenderingThreadMask());
 
 	// Wait for render thread to have taskgraph bound before we dispatch any tasks for it.
 	((FRenderingThread*)GRenderingThreadRunnable)->TaskGraphBoundSyncEvent->Wait();
@@ -626,6 +692,7 @@ void StartRenderingThread()
 
 	ThreadCount++;
 }
+
 
 void StopRenderingThread()
 {
@@ -664,9 +731,9 @@ void StopRenderingThread()
 			if (GRHIThread)
 			{
 				DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread Finish"), STAT_WaitForRHIThreadFinish, STATGROUP_TaskGraphTasks);
-				FGraphEventRef FlushTask = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(GET_STATID(STAT_WaitForRHIThreadFinish), ENamedThreads::RHIThread);
+				FGraphEventRef ReleaseTask = TGraphTask<FOwnershipOfRHIThreadTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(false, GET_STATID(STAT_WaitForRHIThreadFinish));
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_StopRenderingThread_RHIThread);
-				FTaskGraphInterface::Get().WaitUntilTaskCompletes(FlushTask, ENamedThreads::GameThread_Local);
+				FTaskGraphInterface::Get().WaitUntilTaskCompletes(ReleaseTask, ENamedThreads::GameThread_Local);
 				GRHIThread = nullptr;
 			}
 
@@ -711,6 +778,7 @@ void StopRenderingThread()
 		// Delete the pending cleanup objects which were in use by the rendering thread.
 		delete PendingCleanupObjects;
 	}
+
 	check(!GRHIThread);
 }
 

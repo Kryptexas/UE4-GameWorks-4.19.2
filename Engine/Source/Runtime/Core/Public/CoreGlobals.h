@@ -27,6 +27,7 @@ CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogAndroid, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogPS4, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogXboxOne, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogWindows, Log, All);
+CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogWolf, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogSerialization, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogUnrealMath, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogUnrealMatrix, Log, All);
@@ -106,6 +107,9 @@ extern CORE_API bool PRIVATE_GIsRunningCommandlet;
 
 /** If true, initialize RHI and set up scene for rendering even when running a commandlet. */
 extern CORE_API bool PRIVATE_GAllowCommandletRendering;
+
+/** If true, initialize audio and even when running a commandlet. */
+extern CORE_API bool PRIVATE_GAllowCommandletAudio;
 #endif
 
 #if WITH_EDITORONLY_DATA
@@ -163,6 +167,15 @@ FORCEINLINE bool IsAllowCommandletRendering()
 {
 #if WITH_ENGINE
 	return PRIVATE_GAllowCommandletRendering;
+#else
+	return false;
+#endif
+}
+
+FORCEINLINE bool IsAllowCommandletAudio()
+{
+#if WITH_ENGINE
+	return PRIVATE_GAllowCommandletAudio;
 #else
 	return false;
 #endif

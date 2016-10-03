@@ -451,7 +451,7 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
 }
 
 // Returns true if the passed 'intrinsic' is used
-static bool UsesUEIntrinsic(exec_list* Instructions, const char* UEIntrinsic)
+static bool UsesUEIntrinsic(exec_list* Instructions, const char * UEIntrinsic)
 {
 	struct SFindUEIntrinsic : public ir_hierarchical_visitor
 	{
@@ -571,6 +571,9 @@ class ir_gen_glsl_visitor : public ir_visitor
 	// Uses gl_InstanceID
 	bool bUsesInstanceID;
 	
+	// Don't allow global uniforms; instead, wrap in a struct to make a proper uniform buffer
+	bool bNoGlobalUniforms;
+
 	/**
 	 * Return true if the type is a multi-dimensional array. Also, track the
 	 * array.
@@ -921,6 +924,14 @@ class ir_gen_glsl_visitor : public ir_visitor
 				(var->origin_upper_left ? 0x1 : 0) |
 				(var->pixel_center_integer ? 0x2 : 0);
 			
+			// this is for NVN which doesn't support global params, so we wrap each of the typed
+			// buffer in a struct, which ends up as a proper, non global parameter, uniform buffer
+			bool bUseGlobalUniformBufferWrapper = false;
+			if (bNoGlobalUniforms && var->mode == ir_var_uniform && var->semantic)
+			{
+				bUseGlobalUniformBufferWrapper = true;
+			}
+
 			if (scope_depth == 0 &&
 			   ((var->mode == ir_var_in) || (var->mode == ir_var_out)) && 
 			   var->is_interface_block)
@@ -1094,6 +1105,16 @@ class ir_gen_glsl_visitor : public ir_visitor
 					mode_str[var->mode],
 					var->mode != ir_var_temporary && var->mode != ir_var_auto ? interp_str[var->interpolation] : ""
 					);
+
+				if (bUseGlobalUniformBufferWrapper)
+				{
+					ralloc_asprintf_append(
+						buffer,
+						"Block_%s { ",
+						var->semantic
+						);
+				}
+
 				if (bEmitPrecision)
 				{
 					AppendPrecisionModifier(buffer, GetPrecisionModifier(var->type));
@@ -1109,6 +1130,15 @@ class ir_gen_glsl_visitor : public ir_visitor
 			ralloc_asprintf_append(buffer, " %s", unique_name(var));
 			const bool bUnsizedArray = var->mode == ir_var_in && ((ShaderTarget == tessellation_evaluation_shader) || (ShaderTarget == tessellation_control_shader));
 			print_type_post(var->type, bUnsizedArray );
+
+			if (bUseGlobalUniformBufferWrapper)
+			{
+				ralloc_asprintf_append(
+					buffer,
+					"; }"
+					);
+			}
+
 		}
 
 		// Add the initializer if we need it
@@ -2936,7 +2966,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 public:
 
 	/** Constructor. */
-	ir_gen_glsl_visitor(bool bInIsES, bool bInEmitPrecision, bool bInIsES31, _mesa_glsl_parser_targets InShaderTarget, bool bInGenerateLayoutLocations, bool bInDefaultPrecisionIsHalf)
+	ir_gen_glsl_visitor(bool bInIsES, bool bInEmitPrecision, bool bInIsES31, _mesa_glsl_parser_targets InShaderTarget, bool bInGenerateLayoutLocations, bool bInDefaultPrecisionIsHalf, bool bInNoGlobalUniforms)
 		: early_depth_stencil(false)
 		, bIsES(bInIsES)
 		, bEmitPrecision(bInEmitPrecision)
@@ -2955,6 +2985,7 @@ public:
 		, bUsesES2TextureLODExtension(false)
 		, bUsesDXDY(false)
 		, bUsesInstanceID(false)
+		, bNoGlobalUniforms(bInNoGlobalUniforms)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
@@ -3262,14 +3293,18 @@ char* FGlslCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* stat
 	FBreakPrecisionChangesVisitor BreakPrecisionChangesVisitor(state, bDefaultPrecisionIsHalf);
 	BreakPrecisionChangesVisitor.run(ir);
 
+	if (!AllowsESLanguage())
+	{
+		state->bGenerateES = false;
+	}
+
 	const bool bGroupFlattenedUBs = ((HlslCompileFlags & HLSLCC_GroupFlattenedUniformBuffers) == HLSLCC_GroupFlattenedUniformBuffers);
 	const bool bGenerateLayoutLocations = state->bGenerateLayoutLocations;
-	const bool bEmitPrecision = (Target == HCT_FeatureLevelES2 || Target == HCT_FeatureLevelES3_1 || Target == HCT_FeatureLevelES3_1Ext);
-	ir_gen_glsl_visitor visitor(state->bGenerateES, bEmitPrecision, (Target == HCT_FeatureLevelES3_1Ext || Target == HCT_FeatureLevelES3_1), state->target, bGenerateLayoutLocations, bDefaultPrecisionIsHalf);
+	const bool bEmitPrecision = WantsPrecisionModifiers();
+	ir_gen_glsl_visitor visitor(state->bGenerateES, bEmitPrecision, (Target == HCT_FeatureLevelES3_1Ext || Target == HCT_FeatureLevelES3_1), state->target, bGenerateLayoutLocations, bDefaultPrecisionIsHalf, !AllowsGlobalUniforms());
 	const char* code = visitor.run(ir, state, bGroupFlattenedUBs);
 	return _strdup(code);
 }
-
 
 // Verify if SampleLevel() is used
 struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
@@ -3454,6 +3489,7 @@ static FSystemValue VertexSystemValueTable[] =
 	{ "SV_VertexID", glsl_type::int_type, "gl_VertexID", ir_var_in, false, false, false, false },
 	{ "SV_InstanceID", glsl_type::int_type, "gl_InstanceID", ir_var_in, false, false, false, false },
 	{ "SV_Position", glsl_type::vec4_type, "gl_Position", ir_var_out, false, false, true, false },
+	{ "SV_ViewID", glsl_type::uint_type, "gl_ViewID_OVR", ir_var_in, false, false, false, true }, // Mobile multi-view support
 	{ NULL, NULL, NULL, ir_var_auto, false, false, false, false }
 };
 
@@ -3466,6 +3502,7 @@ static FSystemValue PixelSystemValueTable[] =
 	{ "SV_PrimitiveID", glsl_type::int_type, "gl_PrimitiveID", ir_var_in, false, false, false, false },
 	{ "SV_RenderTargetArrayIndex", glsl_type::int_type, "gl_Layer", ir_var_in, false, false, false, false },
 	{ "SV_Target0", glsl_type::half4_type, "gl_FragColor", ir_var_out, false, false, false, true },
+	{ "SV_ViewID", glsl_type::uint_type, "gl_ViewID_OVR", ir_var_in, false, false, false, true }, // Mobile multi-view support
 	{ NULL, NULL, NULL, ir_var_auto, false, false, false }
 };
 
@@ -3689,6 +3726,21 @@ static ir_rvalue* GenShaderInputSemantic(
 	}
 
 	ir_variable* Variable = NULL;
+
+	// Mobile multi-view support
+	if (Variable == NULL && (Frequency == HSF_VertexShader || Frequency == HSF_PixelShader))
+	{
+		const int PrefixLength = 9;
+		if (FCStringAnsi::Strnicmp(Semantic, "SV_ViewID", PrefixLength) == 0)
+		{
+			Variable = new(ParseState)ir_variable(
+				Type,
+				ralloc_asprintf(ParseState, "gl_ViewID_OVR"),
+				ir_var_in
+			);
+		}
+	}
+
 	if (Variable == NULL && Frequency == HSF_DomainShader)
 	{
 		const int PrefixLength = 13;

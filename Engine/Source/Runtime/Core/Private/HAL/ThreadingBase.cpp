@@ -362,7 +362,7 @@ void FRunnableThread::SetTls()
 {
 	// Make sure it's called from the owning thread.
 	//check( ThreadID == FPlatformTLS::GetCurrentThreadId() );
-	check( RunnableTlsSlot );
+	check( FPlatformTLS::IsValidTlsSlot(RunnableTlsSlot) );
 	FPlatformTLS::SetTlsValue( RunnableTlsSlot, this );
 }
 
@@ -370,7 +370,7 @@ void FRunnableThread::FreeTls()
 {
 	// Make sure it's called from the owning thread.
 	check( ThreadID == FPlatformTLS::GetCurrentThreadId() );
-	check( RunnableTlsSlot );
+	check( FPlatformTLS::IsValidTlsSlot(RunnableTlsSlot) );
 	FPlatformTLS::SetTlsValue( RunnableTlsSlot, nullptr );
 
 	// Delete all FTlsAutoCleanup objects created for this thread.
@@ -747,12 +747,12 @@ FQueuedThreadPool* FQueuedThreadPool::Allocate()
 
 FTlsAutoCleanup* FThreadSingletonInitializer::Get( TFunctionRef<FTlsAutoCleanup*()> CreateInstance, uint32& TlsSlot )
 {
-	if( TlsSlot == 0 )
+	if (TlsSlot == 0xFFFFFFFF)
 	{
 		const uint32 ThisTlsSlot = FPlatformTLS::AllocTlsSlot();
-		check( FPlatformTLS::IsValidTlsSlot( ThisTlsSlot ) );
-		const uint32 PrevTlsSlot = FPlatformAtomics::InterlockedCompareExchange( (int32*)&TlsSlot, (int32)ThisTlsSlot, 0 );
-		if( PrevTlsSlot != 0 )
+		check(FPlatformTLS::IsValidTlsSlot(ThisTlsSlot));
+		const uint32 PrevTlsSlot = FPlatformAtomics::InterlockedCompareExchange( (int32*)&TlsSlot, (int32)ThisTlsSlot, 0xFFFFFFFF );
+		if (PrevTlsSlot != 0xFFFFFFFF)
 		{
 			FPlatformTLS::FreeTlsSlot( ThisTlsSlot );
 		}

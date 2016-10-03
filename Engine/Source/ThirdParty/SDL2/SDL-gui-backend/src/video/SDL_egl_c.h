@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -32,7 +32,8 @@
 /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     #define SDL_EGL_MAX_DEVICES     8
-#endif // SDL_WITH_EPIC_EXTENSIONS
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
 typedef struct SDL_EGL_VideoData
 {
@@ -86,6 +87,7 @@ typedef struct SDL_EGL_VideoData
 
 /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
+    EGLenum(EGLAPIENTRY *eglQueryAPI)(void);
     EGLSurface(EGLAPIENTRY *eglCreatePbufferSurface) (EGLDisplay dpy,
                                             EGLConfig config,
                                             EGLint const* attrib_list);
@@ -97,10 +99,22 @@ typedef struct SDL_EGL_VideoData
                                             const EGLint* attrib_list);
     /* whether EGL display was offscreen */
     int is_offscreen;
-#endif // SDL_WITH_EPIC_EXTENSIONS
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG BEGIN */
 
 } SDL_EGL_VideoData;
+
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+typedef struct SDL_EGL_Context
+{
+    EGLContext context;
+    EGLenum api;
+} SDL_EGL_Context;
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG BEGIN */
+
+typedef SDL_EGL_Context* SDL_EGLContext;
 
 /* OpenGLES functions */
 extern int SDL_EGL_GetAttribute(_THIS, SDL_GLattr attrib, int *value);

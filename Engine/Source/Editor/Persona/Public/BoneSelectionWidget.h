@@ -32,7 +32,7 @@ public:
 	*
 	* @param	InArgs	The declaration data for this widget
 	*/
-	void Construct(const FArguments& InArgs, TWeakObjectPtr<const USkeleton> Skeleton);
+		void Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton);
 
 	//Filter text widget
 	TSharedPtr<SSearchBox> FilterTextWidget;
@@ -62,7 +62,7 @@ private:
 	FText FilterText;
 
 	// Skeleton to search
-	TWeakObjectPtr<const USkeleton> TargetSkeleton;
+	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
 
 	// Tree view used in the button menu
 	TSharedPtr<STreeView<TSharedPtr<FBoneNameInfo>>> TreeView;
@@ -79,6 +79,7 @@ public:
 		,_OnBoneSelectionChanged()
 		,_OnGetSelectedBone()
 	{}
+
 		/** Set tooltip attribute */
 		SLATE_ARGUMENT(FText, Tooltip);
 
@@ -95,7 +96,7 @@ public:
 	 *
 	 * @param	InArgs	The declaration data for this widget
 	 */
-	void Construct( const FArguments& InArgs, TWeakObjectPtr<const USkeleton> Skeleton);
+	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton );
 
 private: 
 
@@ -110,7 +111,7 @@ private:
 	TSharedPtr<SComboButton> BonePickerButton;
 
 	// Skeleton to search
-	TWeakObjectPtr<const USkeleton> TargetSkeleton;
+	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
 
 	// delegates
 	FOnBoneSelectionChanged OnBoneSelectionChanged;

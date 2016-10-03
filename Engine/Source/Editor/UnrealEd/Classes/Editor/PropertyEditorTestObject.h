@@ -288,4 +288,55 @@ class UPropertyEditorTestObject : public UObject
 
 	UPROPERTY(EditAnywhere, Category=AssetPropertyTests)
 	AActor* OnlyActorsAllowed;
+
+	UPROPERTY(EditAnywhere, Category=TSetTests)
+	TSet<int32> Int32Set;
+
+	UPROPERTY(EditAnywhere, Category=TSetTests)
+	TSet<float> FloatSet;
+
+	UPROPERTY(EditAnywhere, Category=TSetTests)
+	TSet<FString> StringSet;
+
+	UPROPERTY(EditAnywhere, Category=TSetTests)
+	TSet<UObject*> ObjectSet;
+
+	UPROPERTY(EditAnywhere, Category=TSetTests)
+	TSet<AActor*> ActorSet;
+
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<int32, FString> Int32ToStringMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<FString, FLinearColor> StringToColorMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<int32, FPropertyEditorTestBasicStruct> Int32ToStructMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<FString, float> StringToFloatMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<FString, UObject*> StringToObjectMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<FString, AActor*> StringToActorMap;
+
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<UObject*, int32> ObjectToInt32Map;
+
+	UPROPERTY(EditAnywhere, Category=ScriptInterfaces)
+	TScriptInterface<IBlendableInterface> BlendableInterface;
+
+	UPROPERTY(EditAnywhere, Category=ScriptInterfaces)
+	TScriptInterface<IAnimClassInterface> AnimClassInterface;
+
+	// This is an IBlendableInterface that only allows for ULightPropagationVolumeBlendable objects
+	UPROPERTY(EditAnywhere, Category=ScriptInterfaces, meta=(AllowedClasses="LightPropagationVolumeBlendable"))
+	TScriptInterface<IBlendableInterface> LightPropagationVolumeBlendable;
+
+	// Allows either an object that's derived from UTexture or IBlendableInterface, to ensure that Object Property handles know how to
+	// filter for AllowedClasses correctly.
+	UPROPERTY(EditAnywhere, Category=ObjectPropertyAllowedClasses, meta=(AllowedClasses="Texture,BlendableInterface"))
+	UObject* TextureOrBlendableInterface;
 };

@@ -539,7 +539,7 @@ bool IsEditorOnlyObject(const UObject* InObject)
 		return false;
 	}
 	
-	if (InObject->HasAnyMarks(OBJECTMARK_EditorOnly))
+	if (InObject->HasAnyMarks(OBJECTMARK_EditorOnly) || InObject->IsEditorOnly())
 	{
 		return true;
 	}
@@ -548,19 +548,16 @@ bool IsEditorOnlyObject(const UObject* InObject)
 	check(InObject);
 	// If this is a package that is editor only or the object is in editor-only package,
 	// the object is editor-only too.
-	const UPackage* Package = Cast<const UPackage>(InObject);
-	if (!Package)
-	{
-		Package = InObject->GetOutermost();
-	}
+	const bool bIsAPackage = InObject->IsA<UPackage>();
+	const UPackage* Package = (bIsAPackage ? static_cast<const UPackage*>(InObject) : InObject->GetOutermost());
 	if (Package && Package->HasAnyPackageFlags(PKG_EditorOnly))
 	{
 		bResult = true;
 	}
-	if (!bResult && !InObject->IsA(UPackage::StaticClass()))
+	else if (!bIsAPackage)
 	{
 		// Otherwise the object is editor-only if its class is editor-only
-		const UStruct* Struct = InObject->IsA(UStruct::StaticClass()) ? CastChecked<const UStruct>(InObject) : InObject->GetClass();
+		const UStruct* Struct = InObject->IsA<UStruct>() ? static_cast<const UStruct*>(InObject) : InObject->GetClass();
 		bResult = IsEditorOnlyStruct(Struct);
 		if (!bResult && InObject->GetOuter())
 		{
@@ -3973,16 +3970,17 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					const FText Message = FText::Format( NSLOCTEXT("Core", "LinkedToObjectsInOtherMap_FindCulpritQ", "Can't save {FileName}: Graph is linked to object(s) in external map.\nExternal Object(s):\n{ObjectNames}  \nTry to find the chain of references to that object (may take some time)?"), Args );
 
 					FString CulpritString = TEXT( "Unknown" );
-					FMessageDialog::Open(EAppMsgType::Ok, Message);
-
-					FindMostLikelyCulprit( IllegalObjectsInOtherMaps, MostLikelyCulprit, PropertyRef );
-					if( MostLikelyCulprit != NULL && PropertyRef != NULL )
+					if (FMessageDialog::Open(EAppMsgType::YesNo, Message) == EAppReturnType::Yes)
 					{
-						CulpritString = FString::Printf(TEXT("%s (%s)"), *MostLikelyCulprit->GetFullName(), *PropertyRef->GetName());
-					}
-					else if (MostLikelyCulprit != NULL)
-					{
-						CulpritString = FString::Printf(TEXT("%s (Unknown property)"), *MostLikelyCulprit->GetFullName());
+						FindMostLikelyCulprit(IllegalObjectsInOtherMaps, MostLikelyCulprit, PropertyRef);
+						if (MostLikelyCulprit != NULL && PropertyRef != NULL)
+						{
+							CulpritString = FString::Printf(TEXT("%s (%s)"), *MostLikelyCulprit->GetFullName(), *PropertyRef->GetName());
+						}
+						else if (MostLikelyCulprit != NULL)
+						{
+							CulpritString = FString::Printf(TEXT("%s (Unknown property)"), *MostLikelyCulprit->GetFullName());
+						}
 					}
 
 					// Free the file handle and delete the temporary file
@@ -4030,12 +4028,13 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					const FText Message = FText::Format( NSLOCTEXT("Core", "LinkedToPrivateObjectsInOtherPackage_FindCulpritQ", "Can't save {FileName}: Graph is linked to private object(s) in an external package.\nExternal Object(s):\n{ObjectNames}  \nTry to find the chain of references to that object (may take some time)?"), Args );
 
 					FString CulpritString = TEXT( "Unknown" );
-					FMessageDialog::Open(EAppMsgType::Ok, Message);
-
-					FindMostLikelyCulprit( PrivateObjects, MostLikelyCulprit, PropertyRef );
-					CulpritString = FString::Printf(TEXT("%s (%s)"),
-						(MostLikelyCulprit != NULL) ? *MostLikelyCulprit->GetFullName() : TEXT("(unknown culprit)"),
-						(PropertyRef != NULL) ? *PropertyRef->GetName() : TEXT("unknown property ref"));
+					if (FMessageDialog::Open(EAppMsgType::YesNo, Message) == EAppReturnType::Yes)
+					{
+						FindMostLikelyCulprit(PrivateObjects, MostLikelyCulprit, PropertyRef);
+						CulpritString = FString::Printf(TEXT("%s (%s)"),
+							(MostLikelyCulprit != NULL) ? *MostLikelyCulprit->GetFullName() : TEXT("(unknown culprit)"),
+							(PropertyRef != NULL) ? *PropertyRef->GetName() : TEXT("unknown property ref"));
+					}
 
 					// free the file handle and delete the temporary file
 					Linker->Detach();
@@ -4760,7 +4759,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						BulkDataStorageInfo.BulkData->ClearBulkDataFlags(0xFFFFFFFF);
 						BulkDataStorageInfo.BulkData->SetBulkDataFlags(OldBulkDataFlags);
 						BulkDataStorageInfo.BulkData->Unlock();
-						BulkDataStorageInfo.BulkData->RemoveBulkData();
 					}
 
 					if (BulkArchive)

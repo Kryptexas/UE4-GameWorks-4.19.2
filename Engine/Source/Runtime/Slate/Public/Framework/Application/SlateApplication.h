@@ -545,7 +545,7 @@ public:
 	 * @param WidgetToFocus the widget to set focus to
 	 * @param ReasonFocusIsChanging the contextual reason for the focus change
 	 */
-	void SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+	bool SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
 	/**
 	 * Sets focus for all users to the SWidget passed in.
@@ -573,7 +573,7 @@ public:
 	/**
 	 * Sets the Keyboard focus to the specified SWidget
 	 */
-	void SetKeyboardFocus(const TSharedPtr<SWidget>& OptionalWidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+	bool SetKeyboardFocus(const TSharedPtr<SWidget>& OptionalWidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
 	/**
 	 * Clears keyboard focus, if any widget is currently focused
@@ -1420,6 +1420,18 @@ public:
 	*/
 	void UnregisterOnWindowActionNotification(FDelegateHandle Handle);
 
+	/**
+	* Given an optional widget, try and get the most suitable parent window to use with dialogs (such as file and directory pickers).
+	* This will first try and get the window that owns the widget (if provided), before falling back to using the MainFrame window.
+	*/
+	TSharedPtr<SWindow> FindBestParentWindowForDialogs(const TSharedPtr<SWidget>& InWidget);
+
+	/**
+	* Given an optional widget, try and get the most suitable parent window handle to use with dialogs (such as file and directory pickers).
+	* This will first try and get the window that owns the widget (if provided), before falling back to using the MainFrame window.
+	*/
+	const void* FindBestParentWindowHandleForDialogs(const TSharedPtr<SWidget>& InWidget);
+
 private:
 
 	TSharedRef< FGenericWindow > MakeWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately );
@@ -1696,6 +1708,7 @@ private:
 		FDragDetector()
 		: DetectDragStartLocation( FVector2D::ZeroVector )
 		, DetectDragButton( EKeys::Invalid )
+		, DetectDragPointerIndex(INDEX_NONE)
 		{
 		}
 		/** If not null, a widget has request that we detect a drag being triggered in this widget and send an OnDragDetected() event*/
@@ -1704,6 +1717,8 @@ private:
 		FVector2D DetectDragStartLocation;
 		/** Button that must be pressed to trigger the drag */
 		FKey DetectDragButton;
+		/** Pointer index of the drag operation */
+		int32 DetectDragPointerIndex;
 	} DragDetector;
 
 	/** Support for auto-dismissing pop-ups */

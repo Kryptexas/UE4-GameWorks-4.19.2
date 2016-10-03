@@ -19,6 +19,7 @@ public:
 	static jobject GameActivityThis;
 	static jmethodID AndroidThunkJava_ShowConsoleWindow;
 	static jmethodID AndroidThunkJava_ShowVirtualKeyboardInput;
+	static jmethodID AndroidThunkJava_HideVirtualKeyboardInput;
 	static jmethodID AndroidThunkJava_LaunchURL;
 	static jmethodID AndroidThunkJava_GetAssetManager;
 	static jmethodID AndroidThunkJava_Minimize;
@@ -37,6 +38,10 @@ public:
 	static jmethodID AndroidThunkJava_GetMetaDataString;
 	static jmethodID AndroidThunkJava_IsGearVRApplication;
 	static jmethodID AndroidThunkJava_ShowHiddenAlertDialog;
+	static jmethodID AndroidThunkJava_LocalNotificationScheduleAtTime;
+	static jmethodID AndroidThunkJava_LocalNotificationClearAll;
+	static jmethodID AndroidThunkJava_LocalNotificationGetLaunchNotification;
+	//static jmethodID AndroidThunkJava_LocalNotificationDestroyIfExists; - This is not needed yet but will be soon so just leaving commented out for now
 
 	// InputDeviceInfo member field ids
 	static jclass InputDeviceInfoClass;
@@ -71,6 +76,12 @@ public:
 	// SurfaceView functionality for view scaling on some devices
 	static jmethodID AndroidThunkJava_UseSurfaceViewWorkaround;
 	static jmethodID AndroidThunkJava_SetDesiredViewSize;
+
+	// member fields for getting the launch notification
+	static jclass LaunchNotificationClass;
+	static jfieldID LaunchNotificationUsed;
+	static jfieldID LaunchNotificationEvent;
+	static jfieldID LaunchNotificationFireDate;
 
 	/**
 	 * Find all known classes and methods

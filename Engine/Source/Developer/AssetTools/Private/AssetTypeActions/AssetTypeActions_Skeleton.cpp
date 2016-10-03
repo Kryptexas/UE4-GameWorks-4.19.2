@@ -16,6 +16,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Animation/Rig.h"
+#include "ISkeletonEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -334,7 +335,6 @@ FCreateRigDlg::EResult FCreateRigDlg::ShowModal()
 
 	// Make a list of all skeleton bone list
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	const TArray<FBoneNode>& BoneTree = Skeleton->GetBoneTree();
 	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
 	{
 		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);
@@ -472,8 +472,24 @@ void FAssetTypeActions_Skeleton::OpenAssetEditor( const TArray<UObject*>& InObje
 		auto Skeleton = Cast<USkeleton>(*ObjIt);
 		if (Skeleton != NULL)
 		{
-			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
-			PersonaModule.CreatePersona( Mode, EditWithinLevelEditor, Skeleton, NULL, NULL, NULL );
+			if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
+			{
+				const bool bBringToFrontIfOpen = true;
+				if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Skeleton, bBringToFrontIfOpen))
+				{
+					EditorInstance->FocusWindow(Skeleton);
+				}
+				else
+				{
+					ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+					SkeletonEditorModule.CreateSkeletonEditor(Mode, EditWithinLevelEditor, Skeleton);
+				}
+			}
+			else
+			{
+				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+				PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, Skeleton, NULL, NULL, NULL);
+			}
 		}
 	}
 }

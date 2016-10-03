@@ -522,8 +522,8 @@ namespace UnrealBuildTool
 								}
 								else
 								{
-									FileInfo ItemInfo = new FileInfo(Item.AbsolutePath);
-									bExists = ItemInfo.Exists;
+									// allow output to be a directory
+									bExists = File.Exists(Item.AbsolutePath) || Directory.Exists(Item.AbsolutePath);
 								}
 
 								if (bIsHotReload)

@@ -27,15 +27,8 @@
 #include "Editor/ActorPositioning.h"
 #include "Matinee/InterpData.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Landscape.h"
 #include "LandscapeInfo.h"
-#include "LandscapeLayerInfoObject.h"
-#include "LandscapeProxy.h"
-#include "LandscapeGizmoActiveActor.h"
-#include "LandscapeComponent.h"
-#include "LandscapeHeightfieldCollisionComponent.h"
-#include "ComponentReregisterContext.h"
-#include "Engine/DestructibleMesh.h"
+#include "LandscapeInfoMap.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 #include "Engine/Polys.h"
@@ -515,7 +508,7 @@ bool UUnrealEdEngine::HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, 
 {
 	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
 	{
-		for (auto It = GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
+		for (auto It = ULandscapeInfoMap::GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			Info->RecreateCollisionComponents();
@@ -528,7 +521,7 @@ bool UUnrealEdEngine::HandleRemoveLandscapeXYOffsetsCommand(const TCHAR* Str, FO
 {
 	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
 	{
-		for (auto It = GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
+		for (auto It = ULandscapeInfoMap::GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			Info->RemoveXYOffsets();

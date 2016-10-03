@@ -173,6 +173,9 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	//~ Begin UObject Interface.
 	virtual void PostLoad() override;
 	//~ End UObject interface.
+
+	static void InitializeMIDCache();
+	static void ShutdownMIDCache();
 };
 
 

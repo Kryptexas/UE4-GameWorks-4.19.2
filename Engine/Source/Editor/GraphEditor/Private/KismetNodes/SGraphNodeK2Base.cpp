@@ -534,41 +534,33 @@ FLinearColor SGraphNodeK2Base::GetProfilerHeatmapIntensity() const
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(GraphNode);
 		if (Blueprint && Blueprint->GeneratedClass && Blueprint->GeneratedClass->HasInstrumentation())
 		{
-			TSharedPtr<FScriptExecutionBlueprint> BlueprintExecNode = ProfilerModule.GetProfilerDataForBlueprint(Blueprint);
-			if (BlueprintExecNode.IsValid())
+			TSharedPtr<FScriptExecutionNode> ExecNode = ProfilerModule.GetProfilerDataForNode(GraphNode);
+			if (ExecNode.IsValid())
 			{
-				TSharedPtr<FScriptExecutionNode> ExecNode = ProfilerModule.GetProfilerDataForNode(GraphNode);
-				if (ExecNode.IsValid())
+				const FScriptPerfData& NodePerfData = ExecNode->GetNodePerfData();
+				switch (GetDefault<UBlueprintProfilerSettings>()->GraphNodeHeatMapDisplayMode)
 				{
-					FScriptPerfData NodePerfData(EScriptPerfDataType::Node);
-					ExecNode->GetBlueprintPerfDataForAllTracePaths(NodePerfData);
+				case EBlueprintProfilerHeatMapDisplayMode::Average:
+					IntensityValue = NodePerfData.GetAverageHeatLevel();
+					break;
 
-					NodePerfData.SetHeatLevels(BlueprintExecNode->GetHeatLevelMetrics());
+				case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
+					IntensityValue = NodePerfData.GetInclusiveHeatLevel();
+					break;
 
-					switch (GetDefault<UBlueprintProfilerSettings>()->GraphNodeHeatMapDisplayMode)
-					{
-					case EBlueprintProfilerHeatMapDisplayMode::Average:
-						IntensityValue = NodePerfData.GetAverageHeatLevel();
-						break;
+				case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
+					IntensityValue = NodePerfData.GetMaxTimeHeatLevel();
+					break;
 
-					case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
-						IntensityValue = NodePerfData.GetInclusiveHeatLevel();
-						break;
-
-					case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
-						IntensityValue = NodePerfData.GetMaxTimeHeatLevel();
-						break;
-
-					case EBlueprintProfilerHeatMapDisplayMode::Total:
-						IntensityValue = NodePerfData.GetTotalHeatLevel();
-						break;
-					}
+				case EBlueprintProfilerHeatMapDisplayMode::Total:
+					IntensityValue = NodePerfData.GetTotalHeatLevel();
+					break;
 				}
 			}
 		}
 	}
-
-	return FLinearColor(1.f, 1.f, 1.f, FMath::Clamp<float>(IntensityValue, 0.f, 1.f));
+	const float Value = 1.f - IntensityValue;
+	return FLinearColor(1.f, Value, Value, IntensityValue*IntensityValue);
 }
 
 const FSlateBrush* SGraphNodeK2Base::GetProfilerHeatmapBrush() const

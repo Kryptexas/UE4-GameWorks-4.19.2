@@ -15,12 +15,15 @@ void UCookerSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	static FName NAME_ClassesExcludedOnDedicatedServer(TEXT("ClassesExcludedOnDedicatedServer"));
 	static FName NAME_ClassesExcludedOnDedicatedClient(TEXT("ClassesExcludedOnDedicatedClient"));
 
-	if (PropertyChangedEvent.Property->GetFName() == NAME_ClassesExcludedOnDedicatedServer)
+	if(PropertyChangedEvent.Property)
 	{
-		UObject::UpdateClassesExcludedFromDedicatedServer(ClassesExcludedOnDedicatedServer);
-	}
-	else if (PropertyChangedEvent.Property->GetFName() == NAME_ClassesExcludedOnDedicatedClient)
-	{
-		UObject::UpdateClassesExcludedFromDedicatedClient(ClassesExcludedOnDedicatedClient);
+		if(PropertyChangedEvent.Property->GetFName() == NAME_ClassesExcludedOnDedicatedServer)
+		{
+			UObject::UpdateClassesExcludedFromDedicatedServer(ClassesExcludedOnDedicatedServer);
+		}
+		else if(PropertyChangedEvent.Property->GetFName() == NAME_ClassesExcludedOnDedicatedClient)
+		{
+			UObject::UpdateClassesExcludedFromDedicatedClient(ClassesExcludedOnDedicatedClient);
+		}
 	}
 }

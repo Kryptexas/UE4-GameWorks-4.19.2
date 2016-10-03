@@ -61,6 +61,8 @@ struct FFoliageUISettings
 	void SetFilterStaticMesh(bool InbFilterStaticMesh) { bFilterStaticMesh = InbFilterStaticMesh; }
 	bool GetFilterBSP() const { return bFilterBSP ? true : false; }
 	void SetFilterBSP(bool InbFilterBSP) { bFilterBSP = InbFilterBSP; }
+	bool GetFilterFoliage() const { return bFilterFoliage; }
+	void SetFilterFoliage(bool InbFilterFoliage) { bFilterFoliage = InbFilterFoliage; }
 	bool GetFilterTranslucent() const { return bFilterTranslucent; }
 	void SetFilterTranslucent(bool InbFilterTranslucent) { bFilterTranslucent = InbFilterTranslucent; }
 
@@ -94,6 +96,8 @@ struct FFoliageUISettings
 		, bFilterLandscape(true)
 		, bFilterStaticMesh(true)
 		, bFilterBSP(true)
+		, bFilterFoliage(false)
+		, bFilterTranslucent(false)
 	{
 	}
 
@@ -127,6 +131,7 @@ public:
 	bool bFilterLandscape;
 	bool bFilterStaticMesh;
 	bool bFilterBSP;
+	bool bFilterFoliage;
 	bool bFilterTranslucent;
 };
 
@@ -192,12 +197,14 @@ struct FFoliagePaintingGeometryFilter
 	bool bAllowLandscape;
 	bool bAllowStaticMesh;
 	bool bAllowBSP;
+	bool bAllowFoliage;
 	bool bAllowTranslucent;
 
 	FFoliagePaintingGeometryFilter(const FFoliageUISettings& InUISettings)
 		: bAllowLandscape(InUISettings.bFilterLandscape)
 		, bAllowStaticMesh(InUISettings.bFilterStaticMesh)
 		, bAllowBSP(InUISettings.bFilterBSP)
+		, bAllowFoliage(InUISettings.bFilterFoliage)
 		, bAllowTranslucent(InUISettings.bFilterTranslucent)
 	{
 	}
@@ -206,6 +213,7 @@ struct FFoliagePaintingGeometryFilter
 		: bAllowLandscape(false)
 		, bAllowStaticMesh(false)
 		, bAllowBSP(false)
+		, bAllowFoliage(false)
 		, bAllowTranslucent(false)
 	{
 	}

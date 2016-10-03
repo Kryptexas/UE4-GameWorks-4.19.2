@@ -121,6 +121,7 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 
 #if PLATFORM_ANDROID
 	static const auto CVarMobileOnChipMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileOnChipMSAA"));
+	static const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
 #endif
 
 	// Not found. Preparing new one.
@@ -129,6 +130,52 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 	VERIFY_GL(glGenFramebuffer)
 	glBindFramebuffer(GL_FRAMEBUFFER, Framebuffer);
 	VERIFY_GL(glBindFramebuffer)
+
+#if PLATFORM_ANDROID
+	// Allocate mobile multi-view frame buffer if enabled and supported.
+	// Multi-view doesn't support read buffers, explicitly disable and only bind GL_DRAW_FRAMEBUFFER
+	// TODO: We can't reliably use packed depth stencil?
+	const bool bRenderTargetsDefined = RenderTargets[0] && DepthStencilTarget;
+	const bool bUsingArrayTextures = (bRenderTargetsDefined) ? (RenderTargets[0]->Target == GL_TEXTURE_2D_ARRAY && DepthStencilTarget->Target == GL_TEXTURE_2D_ARRAY) : false;
+
+	if (bUsingArrayTextures && FOpenGL::SupportsMobileMultiView() && (CVarMobileMultiView && CVarMobileMultiView->GetValueOnAnyThread() != 0))
+	{
+		const bool bUsingMobileOnChipMSAA = CVarMobileOnChipMSAA && CVarMobileOnChipMSAA->GetValueOnAnyThread() != 0;
+
+		const FOpenGLTextureBase* const RenderTarget = RenderTargets[0];
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, Framebuffer);
+
+		if (bUsingMobileOnChipMSAA)
+		{
+			// TODO: Mali supports 4x with similar hit as 2x, should we do something smarter here? Hard coded to 2 everywhere else
+			const uint32 SampleCount = 2;
+
+			glFramebufferTextureMultisampleMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, RenderTarget->Resource, 0, SampleCount, 0, 2);
+			VERIFY_GL(glFramebufferTextureMultisampleMultiviewOVR);
+
+			glFramebufferTextureMultisampleMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, DepthStencilTarget->Resource, 0, SampleCount, 0, 2);
+			VERIFY_GL(glFramebufferTextureMultisampleMultiviewOVR);
+		}
+		else
+		{
+			glFramebufferTextureMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, RenderTarget->Resource, 0, 0, 2);
+			VERIFY_GL(glFramebufferTextureMultiviewOVR);
+
+			glFramebufferTextureMultiviewOVR(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, DepthStencilTarget->Resource, 0, 0, 2);
+			VERIFY_GL(glFramebufferTextureMultiviewOVR);
+		}
+
+		FOpenGL::CheckFrameBuffer();
+
+		FOpenGL::ReadBuffer(GL_NONE);
+		FOpenGL::DrawBuffer(GL_COLOR_ATTACHMENT0);
+
+		GetOpenGLFramebufferCache().Add(FOpenGLFramebufferKey(NumSimultaneousRenderTargets, RenderTargets, ArrayIndices, MipmapLevels, DepthStencilTarget, PlatformOpenGLCurrentContext(PlatformDevice)), Framebuffer + 1);
+		
+		return Framebuffer;
+	}
+#endif
 
 	int32 FirstNonzeroRenderTarget = -1;
 	for( int32 RenderTargetIndex = NumSimultaneousRenderTargets - 1; RenderTargetIndex >= 0 ; --RenderTargetIndex )
@@ -226,6 +273,10 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 				VERIFY_GL(glRenderbufferStorageMultisampleEXT);
 				glBindRenderbuffer(GL_RENDERBUFFER, 0);
 				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthBuffer);
+				if (FOpenGL::SupportsPackedDepthStencil())
+				{
+					glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, DepthBuffer);
+				}
 				VERIFY_GL(glFramebufferRenderbuffer);
 			}
 			else

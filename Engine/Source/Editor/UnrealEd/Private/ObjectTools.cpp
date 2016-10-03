@@ -262,7 +262,7 @@ namespace ObjectTools
 		}
 	}
 
-	UObject* DuplicateSingleObject(UObject* Object, const FPackageGroupName& PGN, TSet<UPackage*>& InOutPackagesUserRefusedToFullyLoad)
+	UObject* DuplicateSingleObject(UObject* Object, const FPackageGroupName& PGN, TSet<UPackage*>& InOutPackagesUserRefusedToFullyLoad, bool bPromptToOverwrite)
 	{
 		UObject* ReturnObject = NULL;
 
@@ -379,7 +379,7 @@ namespace ObjectTools
 
 		// If there are objects that already exist with the same name, give the user the option to overwrite the 
 		// object. This will delete the object so the new one can be created in its place.
-		if( ObjectsToOverwriteName.Len() > 0 )
+		if(bPromptToOverwrite && ObjectsToOverwriteName.Len() > 0 )
 		{
 			bool bOverwriteExistingObjects =
 				EAppReturnType::Yes == FMessageDialog::Open(
@@ -415,7 +415,7 @@ namespace ObjectTools
 				}
 			}
 
-			const int32 NumObjectsDeleted = ObjectTools::DeleteObjects(ObjectsToDelete);
+			const int32 NumObjectsDeleted = ObjectTools::DeleteObjects(ObjectsToDelete, bPromptToOverwrite);
 
 			// Remove all packages that we added to the root set above.
 			for ( auto PkgIt = DeletedObjectPackages.CreateConstIterator(); PkgIt; ++PkgIt )
@@ -3158,19 +3158,10 @@ namespace ObjectTools
 				IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 				if ( DesktopPlatform )
 				{
-					void* ParentWindowWindowHandle = NULL;
-
-					IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-					const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-					if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-					{
-						ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-					}
-
 					FString FolderName;
 					const FString Title = NSLOCTEXT("UnrealEd", "ChooseADirectory", "Choose A Directory").ToString();
 					const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
-						ParentWindowWindowHandle,
+						FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 						Title,
 						LastExportPath,
 						FolderName
@@ -3299,17 +3290,8 @@ namespace ObjectTools
 				bool bSave = false;
 				if ( DesktopPlatform )
 				{
-					void* ParentWindowWindowHandle = NULL;
-
-					IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-					const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-					if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-					{
-						ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-					}
-
 					bSave = DesktopPlatform->SaveFileDialog(
-						ParentWindowWindowHandle,
+						FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 						FText::Format( NSLOCTEXT("UnrealEd", "Save_F", "Save: {0}"), FText::FromString(ObjectToExport->GetName()) ).ToString(),
 						*LastExportPath,
 						*ObjectToExport->GetName(),

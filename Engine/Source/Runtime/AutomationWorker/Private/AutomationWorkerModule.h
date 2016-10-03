@@ -97,7 +97,7 @@ private:
 #if WITH_ENGINE
 	/** Invoked when we have screen shot to send. */
 	void HandleScreenShotCaptured(int32 Width, int32 Height, const TArray<FColor>& Bitmap);
-	void HandleScreenShotCapturedWithName(int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName);
+	void HandleScreenShotCapturedWithName(const TArray<FColor>& RawImageData, const FAutomationScreenshotData& Data);
 #endif
 
 	//dispatches analytics events to the data collector

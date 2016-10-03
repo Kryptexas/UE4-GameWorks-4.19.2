@@ -6,7 +6,7 @@
 
 
 /* Private dependencies
- *****************************************************************************/
+*****************************************************************************/
 
 #include "Messaging.h"
 
@@ -19,9 +19,11 @@
 #include "SlateBasics.h"
 #include "EditorStyle.h"
 
+#include "CoreUObject.h"
+
 
 /* Private includes
- *****************************************************************************/
+*****************************************************************************/
 
 #include "SAutomationWindowCommandBar.h"
 #include "SAutomationGraphicalResultBox.h"

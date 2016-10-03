@@ -32,6 +32,14 @@ void SPluginBrowser::Construct( const FArguments& Args )
 	if(FApp::HasGameName())
 	{
 		WatchDirectoryNames.Add(FPaths::GamePluginsDir());
+		const FProjectDescriptor* Project = IProjectManager::Get().GetCurrentProject();
+		if (Project != nullptr)
+		{
+			for (const FString& Path : Project->GetAdditionalPluginDirectories())
+			{
+				WatchDirectoryNames.Add(Path);
+			}
+		}
 	}
 
 	// Add watchers for any change events on those directories

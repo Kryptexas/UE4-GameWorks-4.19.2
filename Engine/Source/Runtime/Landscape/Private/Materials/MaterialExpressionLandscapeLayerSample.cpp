@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
 #include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeLayerSample.h"
 #include "Engine/Engine.h"
@@ -29,7 +28,10 @@ UMaterialExpressionLandscapeLayerSample::UMaterialExpressionLandscapeLayerSample
 	static FConstructorStatics ConstructorStatics;
 
 	bIsParameterExpression = true;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
+#endif
 }
 
 

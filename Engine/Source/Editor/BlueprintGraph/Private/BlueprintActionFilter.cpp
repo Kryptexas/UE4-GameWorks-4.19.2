@@ -1288,8 +1288,9 @@ static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActio
 				// want to flip the connotation here
 				bool const bWantsOutputConnection = (PinDir == EGPD_Input) ^ bIsEventSpawner;
 				
+				// we don't support direct 'containers of containers, hence the !IsContainer() check here:
 				if ( K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetGraph(), PinType, bWantsOutputConnection) || 
-					(bIsArrayFunction && ArrayFunctionHasParamOfType(AssociatedFunc, K2Node->GetGraph(), PinType, bWantsOutputConnection)) )
+					(bIsArrayFunction && ArrayFunctionHasParamOfType(AssociatedFunc, K2Node->GetGraph(), PinType, bWantsOutputConnection) && !PinType.IsContainer()) )
 				{
 					bIsFilteredOut = false;
 				}
@@ -1613,12 +1614,18 @@ static bool BlueprintActionFilterImpl::IsIncompatibleMacroInstance(FBlueprintAct
 	{
 		if(const UBlueprint* MacroBP = Cast<const UBlueprint>(BlueprintAction.GetActionOwner()))
 		{
-			check(MacroBP->ParentClass != nullptr);
+			if (!ensure(MacroBP->ParentClass != nullptr))
+			{
+				return true;
+			}
 
 			for(auto BlueprintIt = Filter.Context.Blueprints.CreateConstIterator(); BlueprintIt && !bIsFilteredOut; ++BlueprintIt)
 			{
 				const UBlueprint* Blueprint = *BlueprintIt;
-				check(Blueprint != nullptr && Blueprint->ParentClass != nullptr)
+				if (!ensure(Blueprint != nullptr && Blueprint->ParentClass != nullptr))
+				{
+					return true;
+				}
 
 				bIsFilteredOut = (Blueprint != MacroBP) && (MacroBP->BlueprintType != BPTYPE_MacroLibrary || !Blueprint->ParentClass->IsChildOf(MacroBP->ParentClass));
 			}

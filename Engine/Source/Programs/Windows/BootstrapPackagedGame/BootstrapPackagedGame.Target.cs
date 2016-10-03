@@ -55,26 +55,4 @@ public class BootstrapPackagedGameTarget : TargetRules
 			UEBuildConfiguration.PreferredSubPlatform = "WindowsXP";
 		}
 	}
-	
-    public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)
-	{
-		bInternalToolOnly = false;
-		SeparateNode = false;
-		CrossCompile = false;
-		return (InHostPlatform == UnrealTargetPlatform.Win64);
-	}
-
-	public override List<UnrealTargetPlatform> GUBP_ToolPlatforms(UnrealTargetPlatform InHostPlatform)
-	{
-		if (InHostPlatform == UnrealTargetPlatform.Win64)
-		{
-			return new List<UnrealTargetPlatform> { UnrealTargetPlatform.Win64, UnrealTargetPlatform.Win32 };
-		}
-		return base.GUBP_ToolPlatforms(InHostPlatform);
-	}
-	
-	public override List<UnrealTargetConfiguration> GUBP_ToolConfigs(UnrealTargetPlatform InHostPlatform)
-	{
-		return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Shipping };
-	}
 }

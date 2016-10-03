@@ -4,19 +4,6 @@
 #include "WebJSFunction.h"
 #include "WebJSScripting.h"
 
-#if WITH_CEF3
-#if PLATFORM_WINDOWS
-#include "AllowWindowsPlatformTypes.h"
-#endif
-#pragma push_macro("OVERRIDE")
-#undef OVERRIDE // cef headers provide their own OVERRIDE macro
-#include "include/cef_values.h"
-#pragma pop_macro("OVERRIDE")
-#if PLATFORM_WINDOWS
-#include "HideWindowsPlatformTypes.h"
-#endif
-#endif
-
 FWebJSParam::~FWebJSParam()
 {
 	// Since the FString, StructWrapper, TArray, and TMap members are in a union, they may or may not be valid, so we have to call the destructors manually.
@@ -75,11 +62,9 @@ FWebJSParam::FWebJSParam(const FWebJSParam& Other)
 
 void FWebJSCallbackBase::Invoke(int32 ArgCount, FWebJSParam Arguments[], bool bIsError) const
 {
-#if WITH_CEF3
 	TSharedPtr<FWebJSScripting> Scripting = ScriptingPtr.Pin();
 	if (Scripting.IsValid())
 	{
 		Scripting->InvokeJSFunction(CallbackId, ArgCount, Arguments, bIsError);
 	}
-#endif
 }

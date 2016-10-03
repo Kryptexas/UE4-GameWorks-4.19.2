@@ -11,14 +11,26 @@ UAssetViewerSettings::UAssetViewerSettings()
 	// Make sure there always is one profile as default
 	Profiles.AddDefaulted(1);
 	Profiles[0].ProfileName = TEXT("Profile_0");
-
-	NumProfiles = Profiles.Num();
+	NumProfiles = 1;
 }
 
 UAssetViewerSettings* UAssetViewerSettings::Get()
 {
 	// This is a singleton, use default object
-	UAssetViewerSettings* DefaultSettings = GetMutableDefault<UAssetViewerSettings>();	
+	UAssetViewerSettings* DefaultSettings = GetMutableDefault<UAssetViewerSettings>();
+
+	// Load environment map textures (once)
+	static bool bInitialized = false;
+	if (!bInitialized)
+	{
+		for (FPreviewSceneProfile& Profile : DefaultSettings->Profiles)
+		{
+			Profile.LoadEnvironmentMap();
+		}
+
+		bInitialized = true;
+	}
+
 	return DefaultSettings;
 }
 
@@ -37,21 +49,11 @@ void UAssetViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 		PropertyName = GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, PostProcessingSettings);
 	}
 
-	// Check for identical names (temporary until we validate in the property settings view text input box)
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, ProfileName))
-	{	
-		for (int32 ProfileIndex = 0; ProfileIndex < Profiles.Num(); ++ProfileIndex)
-		{
-			for (int32 CheckIndex = 0; CheckIndex < Profiles.Num(); ++CheckIndex)
-			{
-				// Simply append a string if two profile names are the same
-				if (ProfileIndex != CheckIndex && Profiles[ProfileIndex].ProfileName == Profiles[CheckIndex].ProfileName)
-				{
-					FString ProfileName = Profiles[CheckIndex].ProfileName;
-					Profiles[CheckIndex].ProfileName += "_duplicatename";
-				}
-			}			
-		}
+	// Store path to the set enviroment map texture
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, EnvironmentCubeMap))
+	{
+		int32 ProfileIndex = GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex;
+		Profiles[ProfileIndex].EnvironmentCubeMapPath = Profiles[ProfileIndex].EnvironmentCubeMap.ToString();
 	}
 
 	if (NumProfiles != Profiles.Num())
@@ -74,4 +76,3 @@ void UAssetViewerSettings::PostInitProperties()
 		ProjectSettings->AssetViewerProfileIndex = 0;
 	}
 }
-

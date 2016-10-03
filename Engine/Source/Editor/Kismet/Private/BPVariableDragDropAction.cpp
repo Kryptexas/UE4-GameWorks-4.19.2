@@ -55,6 +55,8 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 	// Icon/text to draw on tooltip
 	FSlateColor IconColor = FLinearColor::White;
 	const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
+	FSlateBrush const* SecondaryIcon = nullptr;
+	FSlateColor SecondaryColor = FLinearColor::Transparent;
 	FText Message = LOCTEXT("InvalidDropTarget", "Invalid drop target!");
 
 	UEdGraphPin* PinUnderCursor = GetHoveredPin();
@@ -306,11 +308,11 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 	// Draw variable icon
 	else
 	{
-		StatusSymbol = FBlueprintEditor::GetVarIconAndColor(VariableSource.Get(), VariableName, IconColor);
+		StatusSymbol = FBlueprintEditor::GetVarIconAndColor(VariableSource.Get(), VariableName, IconColor, SecondaryIcon, SecondaryColor);
 		Message = FText::FromString(VariableString);
 	}
 
-	SetSimpleFeedbackMessage(StatusSymbol, IconColor, Message);
+	SetSimpleFeedbackMessage(StatusSymbol, IconColor, Message, SecondaryIcon, SecondaryColor);
 }
 
 FReply FKismetVariableDragDropAction::DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition)

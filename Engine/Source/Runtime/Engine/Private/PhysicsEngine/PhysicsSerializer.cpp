@@ -185,7 +185,7 @@ void UPhysicsSerializer::BeginDestroy()
 }
 
 #if WITH_PHYSX
-PxRigidActor* UPhysicsSerializer::GetRigidActor(physx::PxSerialObjectId ObjectId) const
+PxRigidActor* UPhysicsSerializer::GetRigidActor(uint64 ObjectId) const
 {
 	PxRigidActor* const* PActor = ActorsMap.Find(ObjectId);
 

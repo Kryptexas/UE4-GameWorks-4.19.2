@@ -31,35 +31,37 @@ public:
 
 public:
 
-	/**
-	 * Generates the widget for the screen items.
-	 *
-	 * @param InItem - Item to edit.
-	 * @param OwnerTable - The owner table
-	 * @return The widget.
-	 */
-	TSharedRef<ITableRow> OnGenerateWidgetForScreenView( TSharedPtr<IScreenShotData> InItem, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> OnGenerateWidgetForScreenResults(TSharedPtr<FImageComparisonResult> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 private:
 
-	/**
-	 * Request widgets get regenerated when the data is updated
-	 */
-	void HandleScreenShotDataChanged();
+	void OnDirectoryChanged(const FString& Directory);
 
 	/**
 	 * Regenerate the widgets when the filter changes
 	 */
-	void ReGenerateTree();
+	void RebuildTree();
 
 private:
 
 	// The manager containing the screen shots
 	IScreenShotManagerPtr ScreenShotManager;
 
+	/** The directory where we're imported comparisons from. */
+	FString ComparisonRoot;
+
+	/** The directory where we're imported comparisons from, with changelist */
+	FString ComparisonDirectory;
+
+	/** The imported screenshot results */
+	TSharedPtr<FComparisonResults> CurrentComparisons;
+
+	/** The imported screenshot results copied into an array usable by the list view */
+	TArray<TSharedPtr<FImageComparisonResult>> ComparisonList;
+
+	/**  */
+	TSharedPtr< SListView< TSharedPtr<FImageComparisonResult> > > ComparisonView;
+
 	// Delegate to call when screen shot data changes 
 	FOnScreenFilterChanged ScreenShotDelegate;
-
-	// Holder for the screen shot widgets
-	TSharedPtr< SHorizontalBox > TreeBoxHolder;
 };

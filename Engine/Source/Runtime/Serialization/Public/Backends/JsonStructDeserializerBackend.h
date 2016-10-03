@@ -44,6 +44,22 @@ public:
 	virtual void SkipArray() override;
 	virtual void SkipStructure() override;
 
+protected:
+	FString& GetLastIdentifier()
+	{
+		return LastIdentifier;
+	}
+
+	EJsonNotation GetLastNotation()
+	{
+		return LastNotation;
+	}
+
+	TSharedRef<TJsonReader<UCS2CHAR>>& GetReader()
+	{
+		return JsonReader;
+	}
+
 private:
 
 	/** Holds the name of the last read Json identifier. */

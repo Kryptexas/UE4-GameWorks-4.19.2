@@ -17,11 +17,11 @@
 class UDestructibleMesh;
 class FSkelMeshOptionalImportData;
 class FSkeletalMeshImportData;
-namespace physx
+namespace nvidia
 {
 	namespace apex
 	{
-		class NxDestructibleAsset;
+		class DestructibleAsset;
 	};
 };
 
@@ -35,7 +35,7 @@ namespace physx
  *
  * @return The newly created NxDestructibleAsset if successful, NULL otherwise
  */
-physx::apex::NxDestructibleAsset* CreateApexDestructibleAssetFromBuffer(const uint8* Buffer, int32 BufferSize);
+nvidia::apex::DestructibleAsset* CreateApexDestructibleAssetFromBuffer(const uint8* Buffer, int32 BufferSize);
 
 
 /**
@@ -45,7 +45,7 @@ physx::apex::NxDestructibleAsset* CreateApexDestructibleAssetFromBuffer(const ui
  *
  * @return The newly created NxDestructibleAsset if successful, NULL otherwise
  */
-physx::apex::NxDestructibleAsset* CreateApexDestructibleAssetFromFile(const FString& Filename);
+nvidia::apex::DestructibleAsset* CreateApexDestructibleAssetFromFile(const FString& Filename);
 
 /**
  * Sets the NxDestructibleAsset represented by the UDestructibleMesh.  If there was an existing NxDestructibleAsset, its release method is called.
@@ -62,7 +62,7 @@ physx::apex::NxDestructibleAsset* CreateApexDestructibleAssetFromFile(const FStr
  *
  * @return true if successful
  */
-UNREALED_API bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, physx::apex::NxDestructibleAsset& ApexDestructibleAsset, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options = EDestructibleImportOptions::None);
+UNREALED_API bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, nvidia::apex::DestructibleAsset& ApexDestructibleAsset, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options = EDestructibleImportOptions::None);
 
 /**
  * Creates a DestructibleMesh from an APEX Destructible Asset with the given name and flags.
@@ -76,7 +76,7 @@ UNREALED_API bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, 
  *
  * @return The newly created UDestructibleMesh if successful, NULL otherwise
  */
-UNREALED_API UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InParent, physx::apex::NxDestructibleAsset& ApexDestructibleAsset, FName Name, EObjectFlags Flags, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options = EDestructibleImportOptions::None);
+UNREALED_API UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InParent, nvidia::apex::DestructibleAsset& ApexDestructibleAsset, FName Name, EObjectFlags Flags, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options = EDestructibleImportOptions::None);
 
 /**
  * Builds a UDestructibleMesh from its internal fracture settings

@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+
+#include "BlueprintsObjectVersion.h"
 #include "EdGraph/EdGraph.h"
 #include "EdGraph/EdGraphSchema.h"
 #include "BlueprintUtilities.h"
@@ -57,6 +59,29 @@ FPinDeletionQueue* PinDeletionQueue = new FPinDeletionQueue();;
 TArray<TPair<UEdGraphPin*, FString>> PinAllocationTracking;
 #endif //TRACK_PINS
 
+FArchive& operator<<(FArchive& Ar, FEdGraphTerminalType& T)
+{
+	Ar << T.TerminalCategory;
+	Ar << T.TerminalSubCategory;
+
+	// See: FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr )
+	// The PinSubCategoryObject should be serialized into the package.
+	if (!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences() || Ar.IsPersistent())
+	{
+		UObject* Object = T.TerminalSubCategoryObject.Get(true);
+		Ar << Object;
+		if (Ar.IsLoading() || Ar.IsModifyingWeakAndStrongReferences())
+		{
+			T.TerminalSubCategoryObject = Object;
+		}
+	}
+
+	Ar << T.bTerminalIsConst;
+	Ar << T.bTerminalIsWeakPointer;
+
+	return Ar;
+}
+
 /////////////////////////////////////////////////////
 // FEdGraphPinType
 
@@ -80,6 +105,17 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 		{
 			PinSubCategoryObject = Object;
 		}
+	}
+
+	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
+	if (Ar.CustomVer(FBlueprintsObjectVersion::GUID) >= FBlueprintsObjectVersion::AdvancedContainerSupport)
+	{
+		Ar << bIsMap;
+		if (bIsMap)
+		{
+			Ar << PinValueType;
+		}
+		Ar << bIsSet;
 	}
 
 	Ar << bIsArray;
@@ -956,6 +992,17 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 	ResolveReferencesToPin(this, false);
 
 	return true;
+}
+
+FEdGraphTerminalType UEdGraphPin::GetPrimaryTerminalType() const
+{
+	FEdGraphTerminalType TerminalType;
+	TerminalType.TerminalCategory = PinType.PinCategory;
+	TerminalType.TerminalSubCategory = PinType.PinSubCategory;
+	TerminalType.TerminalSubCategoryObject = PinType.PinSubCategoryObject;
+	TerminalType.bTerminalIsConst = PinType.bIsConst;
+	TerminalType.bTerminalIsWeakPointer = PinType.bIsWeakPointer;
+	return TerminalType;
 }
 
 void UEdGraphPin::MarkPendingKill()

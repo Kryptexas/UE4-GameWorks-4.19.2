@@ -48,6 +48,10 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Miscellaneous, meta=(OBJRestrict="true", ToolTip="Convert the scene from FBX coordinate system to UE4 coordinate system"))
 	uint32 bConvertScene:1;
 
+	/** Whether to convert the scene from FBX unit to UE4 unit (centimeter). */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Miscellaneous, meta = (OBJRestrict = "true", ToolTip = "Convert the scene from FBX unit to UE4 unit (centimeter)."))
+	uint32 bConvertSceneUnit : 1;
+
 	/** Whether to import the incoming FBX as a skeletal object */
 	UPROPERTY(EditAnywhere, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName="Skeletal Mesh"))
 	bool bImportAsSkeletal;

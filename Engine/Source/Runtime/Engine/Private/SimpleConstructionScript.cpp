@@ -16,8 +16,6 @@
 
 namespace
 {
-	static const FString ComponentTemplateNameSuffix(TEXT("_GEN_VARIABLE"));
-
 	// Helper method to register instanced components post-construction
 	void RegisterInstancedComponent(UActorComponent* InstancedComponent)
 	{
@@ -173,10 +171,10 @@ void USimpleConstructionScript::PostLoad()
 			// Fix up any component template objects whose name doesn't match the current variable name; this ensures that there is always one unique template per node.
 			FString VariableName = Node->GetVariableName().ToString();
 			FString ComponentTemplateName = Node->ComponentTemplate->GetName();
-			if(ComponentTemplateName.EndsWith(ComponentTemplateNameSuffix) && !ComponentTemplateName.StartsWith(VariableName) && !GIsDuplicatingClassForReinstancing)
+			if(ComponentTemplateName.EndsWith(UActorComponent::ComponentTemplateNameSuffix) && !ComponentTemplateName.StartsWith(VariableName) && !GIsDuplicatingClassForReinstancing)
 			{
 				Node->ComponentTemplate->ConditionalPostLoad();
-				Node->ComponentTemplate = static_cast<UActorComponent*>(StaticDuplicateObject(Node->ComponentTemplate, Node->ComponentTemplate->GetOuter(), *(VariableName + ComponentTemplateNameSuffix)));
+				Node->ComponentTemplate = static_cast<UActorComponent*>(StaticDuplicateObject(Node->ComponentTemplate, Node->ComponentTemplate->GetOuter(), *(VariableName + UActorComponent::ComponentTemplateNameSuffix)));
 			}
 
 			// Check to see if switched from scene to a non-scene component type
@@ -1170,7 +1168,7 @@ USCS_Node* USimpleConstructionScript::CreateNode(UClass* NewComponentClass, FNam
 	NewComponentTemplate->Modify();
 
 	// Now set the actual name and outer to the BPGC.
-	NewComponentTemplate->Rename(*(NewComponentVariableName.ToString() + ComponentTemplateNameSuffix), Blueprint->GeneratedClass, REN_DoNotDirty|REN_DontCreateRedirectors|REN_ForceNoResetLoaders);
+	NewComponentTemplate->Rename(*(NewComponentVariableName.ToString() + UActorComponent::ComponentTemplateNameSuffix), Blueprint->GeneratedClass, REN_DoNotDirty|REN_DontCreateRedirectors|REN_ForceNoResetLoaders);
 
 	return CreateNodeImpl(NewComponentTemplate, NewComponentVariableName);
 }
@@ -1183,7 +1181,7 @@ USCS_Node* USimpleConstructionScript::CreateNodeAndRenameComponent(UActorCompone
 	FName NewComponentVariableName = GenerateNewComponentName(NewComponentTemplate->GetClass());
 
 	// Relocate the instance from the transient package to the BPGC and assign it a unique object name
-	NewComponentTemplate->Rename(*(NewComponentVariableName.ToString() + ComponentTemplateNameSuffix), GetBlueprint()->GeneratedClass, REN_DontCreateRedirectors | REN_DoNotDirty);
+	NewComponentTemplate->Rename(*(NewComponentVariableName.ToString() + UActorComponent::ComponentTemplateNameSuffix), GetBlueprint()->GeneratedClass, REN_DontCreateRedirectors | REN_DoNotDirty);
 
 	return CreateNodeImpl(NewComponentTemplate, NewComponentVariableName);
 }

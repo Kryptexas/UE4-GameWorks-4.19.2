@@ -26,6 +26,8 @@ void FGameplayEffectExecutionScopedModifierInfoDetails::CustomizeHeader(TSharedR
 	];
 }
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 /** Custom widget class to cleanly represent a capture definition in a combo box */
 class SCaptureDefWidget : public SCompoundWidget
 {
@@ -142,6 +144,8 @@ private:
 	/** Cached attribute snapshot status text */
 	FText CapturedAttributeSnapshotText;
 };
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void FGameplayEffectExecutionScopedModifierInfoDetails::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {

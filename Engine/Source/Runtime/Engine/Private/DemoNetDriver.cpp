@@ -26,8 +26,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
 #include "Net/DataReplication.h"
-#include "GameFramework/GameMode.h"
-#include "GameFramework/GameState.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "NetworkVersion.h"
 
@@ -588,13 +588,14 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	const TCHAR* FriendlyNameOption = ListenURL.GetOption( TEXT("DemoFriendlyName="), nullptr );
 
 	TArray< FString > UserNames;
+	AGameStateBase* GameState = GetWorld()->GetGameState();
 
 	// If a client is recording a replay, GameState may not have replicated yet
-	if ( GetWorld()->GameState != nullptr )
+	if (GameState != nullptr )
 	{
-		for ( int32 i = 0; i < GetWorld()->GameState->PlayerArray.Num(); i++ )
+		for ( int32 i = 0; i < GameState->PlayerArray.Num(); i++ )
 		{
-			APlayerState* PlayerState = GetWorld()->GameState->PlayerArray[i];
+			APlayerState* PlayerState = GameState->PlayerArray[i];
 
 			if ( !PlayerState->bIsABot && !PlayerState->bIsSpectator )
 			{
@@ -703,7 +704,7 @@ void UDemoNetDriver::TickFlush( float DeltaSeconds )
 
 		if ( AvgTimeMS > 8.0f )//|| MaxRecordTimeMS > 6.0f )
 		{
-			UE_LOG( LogDemo, Warning, TEXT( "UDemoNetDriver::TickFlush: SLOW FRAME. Avg: %2.2f, Max: %2.2f, Actors: %i" ), AvgTimeMS, MaxRecordTimeMS, GetNetworkObjectList().GetObjects().Num() );
+			UE_LOG( LogDemo, Verbose, TEXT( "UDemoNetDriver::TickFlush: SLOW FRAME. Avg: %2.2f, Max: %2.2f, Actors: %i" ), AvgTimeMS, MaxRecordTimeMS, GetNetworkObjectList().GetObjects().Num() );
 		}
 
 		LastRecordAvgFlush		= EndTime;
@@ -1091,11 +1092,11 @@ void UDemoNetDriver::TickCheckpoint()
 	// Save the replicated server time so we can restore it after the checkpoint has been serialized.
 	// This preserves the existing behavior and prevents clients from receiving updated server time
 	// more often than the normal update rate.
-	AGameState* const GameState = World != nullptr ? World->GetGameState() : nullptr;
+	AGameStateBase* const GameState = World != nullptr ? World->GetGameState() : nullptr;
 
 	const float SavedReplicatedServerTimeSeconds = GameState ? GameState->ReplicatedWorldTimeSeconds : -1.0f;
 
-	// Normally AGameState::ReplicatedWorldTimeSeconds is only updated periodically,
+	// Normally AGameStateBase::ReplicatedWorldTimeSeconds is only updated periodically,
 	// but we want to make sure it's accurate for the checkpoint.
 	if ( GameState )
 	{
@@ -2034,7 +2035,7 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 	// This must be set before we CallRepNotifies or they might be skipped again
 	bIsFastForwarding = false;
 
-	AGameState* const GameState = World != nullptr ? World->GetGameState() : nullptr;
+	AGameStateBase* const GameState = World != nullptr ? World->GetGameState() : nullptr;
 
 	// Correct server world time for fast-forwarding after a checkpoint
 	if (GameState != nullptr)
@@ -2114,8 +2115,8 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 
 	// Get the replay spectator controller class from the default game mode object,
 	// since the game mode instance isn't replicated to clients of live games.
-	AGameState* GameState = GetWorld() != nullptr ? GetWorld()->GetGameState() : nullptr;
-	TSubclassOf<AGameMode> DefaultGameModeClass = GameState != nullptr ? GameState->GameModeClass : nullptr;
+	AGameStateBase* GameState = GetWorld() != nullptr ? GetWorld()->GetGameState() : nullptr;
+	TSubclassOf<AGameModeBase> DefaultGameModeClass = GameState != nullptr ? GameState->GameModeClass : nullptr;
 	
 	// If we don't have a game mode class from the world, try to get it from the URL option.
 	// This may be true on clients who are recording a replay before the game mode class was replicated to them.
@@ -2124,12 +2125,12 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 		const TCHAR* URLGameModeClass = ListenURL.GetOption(TEXT("game="), nullptr);
 		if (URLGameModeClass != nullptr)
 		{
-			UClass* GameModeFromURL = StaticLoadClass(AGameMode::StaticClass(), nullptr, URLGameModeClass);
+			UClass* GameModeFromURL = StaticLoadClass(AGameModeBase::StaticClass(), nullptr, URLGameModeClass);
 			DefaultGameModeClass = GameModeFromURL;
 		}
 	}
 
-	AGameMode* DefaultGameMode = Cast<AGameMode>(DefaultGameModeClass.GetDefaultObject());
+	AGameModeBase* DefaultGameMode = Cast<AGameModeBase>(DefaultGameModeClass.GetDefaultObject());
 	UClass* C = DefaultGameMode != nullptr ? DefaultGameMode->ReplaySpectatorPlayerControllerClass : nullptr;
 
 	if ( C == NULL )
@@ -2393,6 +2394,7 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	}
 
 	// Clean package map to prepare to restore it to the checkpoint state
+	FlushAsyncLoading();
 	GuidCache->ObjectLookup.Empty();
 	GuidCache->NetGUIDLookup.Empty();
 
@@ -2485,7 +2487,7 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	// Save the replicated server time here
 	if (World != nullptr)
 	{
-		const AGameState* const GameState = World->GetGameState();
+		const AGameStateBase* const GameState = World->GetGameState();
 		if (GameState != nullptr)
 		{
 			SavedReplicatedWorldTimeSeconds = GameState->ReplicatedWorldTimeSeconds;

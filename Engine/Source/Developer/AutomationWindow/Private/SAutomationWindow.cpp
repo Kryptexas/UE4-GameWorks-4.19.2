@@ -920,18 +920,21 @@ void SAutomationWindow::HandlePresetTextCommited( const FText& CommittedText, ET
 	if( CommitType == ETextCommit::OnEnter )
 	{
 		bAddingTestPreset = false;
-		if(CommittedText.IsEmpty())
+		if ( CommittedText.IsEmpty() )
 		{
 			return;
 		}
 
 		TArray<FString> EnabledTests;
 		AutomationController->GetEnabledTestNames(EnabledTests);
-		AutomationPresetPtr NewPreset = TestPresetManager->AddNewPreset(CommittedText,EnabledTests);
-		PresetComboBox->SetSelectedItem(NewPreset);
-		SelectedPreset = NewPreset;
+		AutomationPresetPtr NewPreset = TestPresetManager->AddNewPreset(CommittedText, EnabledTests);
+		if ( NewPreset.IsValid() )
+		{
+			PresetComboBox->SetSelectedItem(NewPreset);
+			SelectedPreset = NewPreset;
 
-		PresetTextBox->SetText(FText());
+			PresetTextBox->SetText(FText());
+		}
 	}
 	else if( CommitType == ETextCommit::OnCleared || CommitType == ETextCommit::OnUserMovedFocus )
 	{
@@ -1050,9 +1053,9 @@ FReply SAutomationWindow::HandleRemovePresetClicked()
 
 FText SAutomationWindow::GetPresetComboText() const
 {
-	if( SelectedPreset.IsValid() )
+	if ( SelectedPreset.IsValid() )
 	{
-		return SelectedPreset->GetPresetName();
+		return SelectedPreset->GetName();
 	}
 	else
 	{
@@ -1078,7 +1081,7 @@ TSharedRef<SWidget> SAutomationWindow::GeneratePresetComboItem(TSharedPtr<FAutom
 	if ( InItem.IsValid() )
 	{
 		return SNew(STextBlock)
-			.Text(InItem->GetPresetName());
+			.Text(InItem->GetName());
 	}
 	else
 	{
@@ -1233,20 +1236,6 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 			.Text(LOCTEXT("AutomationNoScreenshotText", "Enable screenshots"))
 		];
 
-	TSharedRef<SWidget> FullSizeScreenshotsWidget =
-		SNew(SCheckBox)
-		.IsChecked(this, &SAutomationWindow::IsFullSizeScreenshotsCheckBoxChecked)
-		.OnCheckStateChanged(this, &SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged)
-		.Padding(FMargin(4.0f, 0.0f))
-		.ToolTipText(LOCTEXT("AutomationFullSizeScreenshotsTip", "If checked, test that take screenshots will send back full size images instead of thumbnails."))
-		.IsEnabled( this, &SAutomationWindow::IsFullSizeScreenshotsOptionEnabled )
-		.Content()
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("AutomationFullSizeScreenshotText", "Full size screenshots"))
-		];
-
-
 
 	MenuBuilder.BeginSection("AutomationWindowRunTest", LOCTEXT("RunTestOptions", "Advanced Settings"));
 	{
@@ -1257,7 +1246,6 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 	MenuBuilder.BeginSection("AutomationWindowScreenshots", LOCTEXT("ScreenshotOptions", "Screenshot Settings"));
 	{
 		MenuBuilder.AddWidget(EnableScreenshotsWidget, FText::GetEmpty());
-		MenuBuilder.AddWidget(FullSizeScreenshotsWidget, FText::GetEmpty());
 	}
 	MenuBuilder.EndSection();
 
@@ -1320,16 +1308,6 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestHistoryMenuContent()
 	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
-}
-
-ECheckBoxState SAutomationWindow::IsFullSizeScreenshotsCheckBoxChecked() const
-{
-	return AutomationController->IsUsingFullSizeScreenshots() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-void SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged(ECheckBoxState CheckBoxState)
-{
-	AutomationController->SetUsingFullSizeScreenshots(CheckBoxState == ECheckBoxState::Checked);
 }
 
 ECheckBoxState SAutomationWindow::IsSendAnalyticsCheckBoxChecked() const

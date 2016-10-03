@@ -841,6 +841,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			FString ProjPath = FPaths::GetProjectFilePath();
 			if (FPaths::FileExists(ProjPath) == false)
 			{
+				// display it multiple ways, it's very important error message...
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("\tAttempting to find via project info helper."));
 				// Use the uprojectdirs
@@ -1133,7 +1135,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if(ModuleEnumerator.RegisterWithModuleManager())
 	{
 		const FVersionManifest& Manifest = ModuleEnumerator.GetInitialManifest();
-		if(Manifest.Changelist != 0 && !FEngineVersion::OverrideCurrentVersionChangelist(Manifest.Changelist))
+		if(Manifest.Changelist != 0 && !FEngineVersion::OverrideCurrentVersionChangelist(Manifest.Changelist, Manifest.CompatibleChangelist))
 		{
 			UE_LOG(LogInit, Fatal, TEXT("Couldn't update engine changelist to %d."), Manifest.Changelist);
 		}
@@ -1344,8 +1346,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif	//WITH_EDITOR
 		PRIVATE_GIsRunningCommandlet = true;
 
-		// Allow commandlet rendering based on command line switch (too early to let the commandlet itself override this).
+		// Allow commandlet rendering and/or audio based on command line switch (too early to let the commandlet itself override this).
 		PRIVATE_GAllowCommandletRendering = FParse::Param(FCommandLine::Get(), TEXT("AllowCommandletRendering"));
+		PRIVATE_GAllowCommandletAudio = FParse::Param(FCommandLine::Get(), TEXT("AllowCommandletAudio"));
 
 		// We need to disregard the empty token as we try finding Token + "Commandlet" which would result in finding the
 		// UCommandlet class if Token is empty.
@@ -1812,7 +1815,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 			//run automation smoke tests now that the commandlet has had a chance to override the above flags and GEngine is available
 #if !PLATFORM_HTML5 && !PLATFORM_HTML5_WIN32 
-			FAutomationTestFramework::GetInstance().RunSmokeTests();
+			FAutomationTestFramework::Get().RunSmokeTests();
 #endif 
 	
 			UCommandlet* Commandlet = NewObject<UCommandlet>(GetTransientPackage(), CommandletClass);
@@ -2014,7 +2017,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif // WITH_ENGINE
 
 	//run automation smoke tests now that everything is setup to run
-	FAutomationTestFramework::GetInstance().RunSmokeTests();
+	FAutomationTestFramework::Get().RunSmokeTests();
 
 	// Note we still have 20% remaining on the slow task: this will be used by the Editor/Engine initialization next
 	return 0;
@@ -3154,7 +3157,7 @@ bool FEngineLoop::AppInit( )
 	CheckForPrintTimesOverride();
 
 	// Check whether the project or any of its plugins are missing or are out of date
-#if UE_EDITOR
+#if UE_EDITOR && !IS_MONOLITHIC
 	if(!GIsBuildMachine && FPaths::IsProjectFilePathSet() && IPluginManager::Get().AreRequiredPluginsAvailable())
 	{
 		const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
@@ -3389,7 +3392,7 @@ bool FEngineLoop::AppInit( )
 	bool bForceSmokeTests = false;
 	GConfig->GetBool(TEXT("AutomationTesting"), TEXT("bForceSmokeTests"), bForceSmokeTests, GEngineIni);
 	bForceSmokeTests |= FParse::Param(FCommandLine::Get(), TEXT("bForceSmokeTests"));
-	FAutomationTestFramework::GetInstance().SetForceSmokeTests(bForceSmokeTests);
+	FAutomationTestFramework::Get().SetForceSmokeTests(bForceSmokeTests);
 
 	// Init other systems.
 	FCoreDelegates::OnInit.Broadcast();

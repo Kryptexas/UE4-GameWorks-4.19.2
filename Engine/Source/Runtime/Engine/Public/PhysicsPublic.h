@@ -33,28 +33,31 @@ namespace physx
 	struct PxActiveTransform;
 	class PxActor;
 	class PxRigidActor;
-	
+}
+
 #if WITH_APEX
+namespace nvidia
+{
 	namespace apex
 	{
-		class NxDestructibleAsset;
-		class NxApexScene;
-		struct NxApexDamageEventReportData;
-		class NxApexSDK;
-		class NxModuleDestructible;
-		class NxDestructibleActor;
-		class NxModuleClothing;
-		class NxModule;
-		class NxClothingActor;
-		class NxClothingAsset;
-		class NxApexInterface;
+		class DestructibleAsset;
+		class Scene;
+		struct DamageEventReportData;
+		class ApexSDK;
+		class ModuleDestructible;
+		class DestructibleActor;
+		class ModuleClothing;
+		class Module;
+		class ClothingActor;
+		class ClothingAsset;
+		class ApexInterface;
 	}
-#endif // WITH_APEX
 }
+#endif // WITH_APEX
 
 using namespace physx;
 #if WITH_APEX
-	using namespace physx::apex;
+using namespace nvidia;
 #endif	//WITH_APEX
 
 /** Pointer to PhysX SDK object */
@@ -69,25 +72,25 @@ extern ENGINE_API class FPhysCommandHandler* GPhysCommandHandler;
 
 #if WITH_APEX
 
-namespace NxParameterized
+namespace NvParameterized
 {
 	class Interface;
 }
 
 /** Pointer to APEX SDK object */
-extern ENGINE_API NxApexSDK*			GApexSDK;
+extern ENGINE_API apex::ApexSDK*			GApexSDK;
 /** Pointer to APEX Destructible module object */
-extern ENGINE_API NxModuleDestructible*	GApexModuleDestructible;
+extern ENGINE_API apex::ModuleDestructible*	GApexModuleDestructible;
 /** Pointer to APEX legacy module object */
-extern ENGINE_API NxModule* 			GApexModuleLegacy;
+extern ENGINE_API apex::Module* 			GApexModuleLegacy;
 #if WITH_APEX_CLOTHING
 /** Pointer to APEX Clothing module object */
-extern ENGINE_API NxModuleClothing*		GApexModuleClothing;
+extern ENGINE_API apex::ModuleClothing*		GApexModuleClothing;
 #endif //WITH_APEX_CLOTHING
 
 #else
 
-namespace NxParameterized
+namespace NvParameterized
 {
 	typedef void Interface;
 };
@@ -175,7 +178,7 @@ public:
 
 #if WITH_APEX
 	/** enqueues a command to release destructible actor once apex has finished simulating */
-	void ENGINE_API DeferredRelease(physx::apex::NxApexInterface* ApexInterface);
+	void ENGINE_API DeferredRelease(apex::ApexInterface* ApexInterface);
 #endif
 
 #if WITH_PHYSX
@@ -192,8 +195,8 @@ private:
 		union
 		{
 #if WITH_APEX
-			physx::apex::NxApexInterface * ApexInterface;
-			physx::apex::NxDestructibleActor * DestructibleActor;
+			apex::ApexInterface * ApexInterface;
+			apex::DestructibleActor * DestructibleActor;
 #endif
 #if WITH_PHYSX
 			physx::PxScene * PScene;
@@ -282,7 +285,7 @@ public:
 	UWorld* GetOwningWorld(){ return OwningWorld; }
 	const UWorld* GetOwningWorld() const { return OwningWorld; }
 
-	/** These indices are used to get the actual PxScene or NxApexScene from the GPhysXSceneMap. */
+	/** These indices are used to get the actual PxScene or ApexScene from the GPhysXSceneMap. */
 	int16								PhysXSceneIndex[PST_MAX];
 
 	/** Whether or not the given scene is between its execute and sync point. */
@@ -413,8 +416,8 @@ public:
 #endif
 
 #if WITH_APEX
-	/** Utility for looking up the NxApexScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
-	physx::apex::NxApexScene*				GetApexScene(uint32 SceneType);
+	/** Utility for looking up the ApexScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
+	nvidia::apex::Scene*				GetApexScene(uint32 SceneType);
 #endif
 	ENGINE_API FPhysScene();
 	ENGINE_API ~FPhysScene();
@@ -573,7 +576,7 @@ public:
 
 #if WITH_APEX
 	/** Adds a damage event to be fired when fetchResults is done */
-	void AddPendingDamageEvent(class UDestructibleComponent* DestructibleComponent, const NxApexDamageEventReportData& DamageEvent);
+	void AddPendingDamageEvent(class UDestructibleComponent* DestructibleComponent, const apex::DamageEventReportData& DamageEvent);
 #endif
 
 	/** Add this SkeletalMeshComponent to the list needing kinematic bodies updated before simulating physics */

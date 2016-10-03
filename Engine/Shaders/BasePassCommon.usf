@@ -36,7 +36,7 @@ struct FSharedBasePassInterpolants
 	float4 VertexFog		: TEXCOORD7;
 #endif
 
-#if !PC_D3D && !GL4_PROFILE
+#if !PC_D3D && !GL4_PROFILE && !WOLF_PROFILE && !WOLF_PROFILE_FORWARD
 	// Note: TEXCOORD8 is unused
 
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
@@ -61,7 +61,7 @@ struct FSharedBasePassInterpolants
 #endif
 };
 
-#if PC_D3D || GL4_PROFILE
+#if PC_D3D || GL4_PROFILE || WOLF_PROFILE || WOLF_PROFILE_FORWARD
 
 /** Interpolants passed from the vertex shader to the pixel shader. */
 struct FBasePassInterpolantsVSToPS : FSharedBasePassInterpolants

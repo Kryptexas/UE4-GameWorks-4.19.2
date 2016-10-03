@@ -1260,17 +1260,19 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	TSharedPtr<IPropertyHandle> TintProperty = StructPropertyHandle->GetChildHandle( TEXT("TintColor") );
 	ResourceObjectProperty = StructPropertyHandle->GetChildHandle( TEXT("ResourceObject") );
 	
-	StructBuilder.AddChildContent( NSLOCTEXT( "SlateBrushCustomization", "ResourceObjectFilterString", "Image" ) )
-	.NameContent()
-	[
-		ResourceObjectProperty->CreatePropertyNameWidget()
-	]
-	.ValueContent()
-	.MinDesiredWidth(250.0f)
-	.MaxDesiredWidth(0.0f)
-	[
-		SNew( SBrushResourceObjectBox, &StructCustomizationUtils, ResourceObjectProperty, ImageSizeProperty )
-	];
+	FDetailWidgetRow& ResourceObjectRow = StructBuilder.AddChildProperty(ResourceObjectProperty.ToSharedRef()).CustomWidget();
+
+	ResourceObjectRow
+		.NameContent()
+		[
+			ResourceObjectProperty->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		.MinDesiredWidth(250.0f)
+		.MaxDesiredWidth(0.0f)
+		[
+			SNew(SBrushResourceObjectBox, &StructCustomizationUtils, ResourceObjectProperty, ImageSizeProperty)
+		];
 
 	// Add the image size property with custom reset delegates that also affect the child properties (the components)
 	const bool bOverrideDefaultOnVectorChildren = true;

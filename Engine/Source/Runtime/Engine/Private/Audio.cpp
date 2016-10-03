@@ -37,7 +37,6 @@ DEFINE_STAT(STAT_AudioFinishedDelegates);
 DEFINE_STAT(STAT_AudioBufferTime);
 DEFINE_STAT(STAT_AudioBufferTimeChannels);
 
-DEFINE_STAT(STAT_OggWaveInstances);
 DEFINE_STAT(STAT_VorbisDecompressTime);
 DEFINE_STAT(STAT_VorbisPrepareDecompressionTime);
 DEFINE_STAT(STAT_AudioDecompressTime);
@@ -174,83 +173,107 @@ FString FSoundSource::Describe(bool bUseLongName)
 {
 	return FString::Printf(TEXT("Wave: %s, Volume: %6.2f, Owner: %s"), 
 		bUseLongName ? *WaveInstance->WaveData->GetPathName() : *WaveInstance->WaveData->GetName(),
-		WaveInstance->GetVolume(), 
+		WaveInstance->GetVolume(),
 		WaveInstance->ActiveSound ? *WaveInstance->ActiveSound->GetOwnerName() : TEXT("None"));
 }
 
-void FSoundSource::Stop( void )
+void FSoundSource::Stop()
 {
 	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
-	if( WaveInstance )
+	if (WaveInstance)
 	{
-		check( AudioDevice );
-		AudioDevice->FreeSources.AddUnique( this );
-		AudioDevice->WaveInstanceSourceMap.Remove( WaveInstance );
+		check(AudioDevice);
+		AudioDevice->FreeSources.AddUnique(this);
+		AudioDevice->WaveInstanceSourceMap.Remove(WaveInstance);
 		WaveInstance->NotifyFinished(true);
-		WaveInstance = NULL;
+		WaveInstance = nullptr;
 	}
 	else
 	{
-		check( AudioDevice->FreeSources.Find( this ) != INDEX_NONE );
+		check(AudioDevice->FreeSources.Find(this) != INDEX_NONE);
 	}
 }
 
-bool FSoundSource::IsGameOnly( void )
+void FSoundSource::SetPauseByGame(bool bInIsPauseByGame)
+{
+	bIsPausedByGame = bInIsPauseByGame;
+	UpdatePause();
+}
+
+void FSoundSource::SetPauseManually(bool bInIsPauseManually)
+{
+	bIsManuallyPaused = bInIsPauseManually;
+	UpdatePause();
+}
+
+void FSoundSource::UpdatePause()
+{
+	if (IsPaused() && !bIsPausedByGame && !bIsManuallyPaused)
+	{
+		Play();
+	}
+	else if (!IsPaused() && (bIsManuallyPaused || bIsPausedByGame))
+	{
+		Pause();
+	}
+}
+
+bool FSoundSource::IsGameOnly() const
 {
 	return (WaveInstance && !WaveInstance->bIsUISound);
 }
 
-bool FSoundSource::SetReverbApplied( bool bHardwareAvailable )
+bool FSoundSource::SetReverbApplied(bool bHardwareAvailable)
 {
 	// Do not apply reverb if it is explicitly disallowed
 	bReverbApplied = WaveInstance->bReverb && bHardwareAvailable;
 
 	// Do not apply reverb to music
-	if( WaveInstance->bIsMusic )
+	if (WaveInstance->bIsMusic)
 	{
 		bReverbApplied = false;
 	}
 
 	// Do not apply reverb to multichannel sounds
-	if( WaveInstance->WaveData->NumChannels > 2 )
+	if (WaveInstance->WaveData->NumChannels > 2)
 	{
 		bReverbApplied = false;
 	}
 
-	return( bReverbApplied );
+	return(bReverbApplied);
 }
 
-float FSoundSource::SetStereoBleed( void )
+float FSoundSource::SetStereoBleed()
 {
 	StereoBleed = 0.0f;
 
 	// All stereo sounds bleed by default
-	if( WaveInstance->WaveData->NumChannels == 2 )
+	if (WaveInstance->WaveData->NumChannels == 2)
 	{
 		StereoBleed = WaveInstance->StereoBleed;
 
-		if( AudioDevice->GetMixDebugState() == DEBUGSTATE_TestStereoBleed )
+		if (AudioDevice->GetMixDebugState() == DEBUGSTATE_TestStereoBleed)
 		{
 			StereoBleed = 1.0f;
 		}
 	}
 
-	return( StereoBleed );
+	return StereoBleed;
 }
 
-float FSoundSource::SetLFEBleed( void )
+float FSoundSource::SetLFEBleed()
 {
 	LFEBleed = WaveInstance->LFEBleed;
 
-	if( AudioDevice->GetMixDebugState() == DEBUGSTATE_TestLFEBleed )
+	if (AudioDevice->GetMixDebugState() == DEBUGSTATE_TestLFEBleed)
 	{
 		LFEBleed = 10.0f;
 	}
 
-	return( LFEBleed );
+	return LFEBleed;
 }
 
-void FSoundSource::SetFilterFrequency(void)
+void FSoundSource::SetFilterFrequency()
 {
 	LPFFrequency = MAX_FILTER_FREQUENCY;
 
@@ -440,7 +463,6 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 {
 	FSpatializationParams Params;
 
-		// Calculate direction from listener to sound, where the sound is at the origin if unspatialized.
 	if (WaveInstance->bUseSpatialization)
 	{
 		FVector EmitterPosition = AudioDevice->GetListenerTransformedDirection(WaveInstance->Location, &Params.Distance);
@@ -448,6 +470,7 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 		// If we are using the OmniRadius feature
 		if (WaveInstance->OmniRadius > 0.0f)
 		{
+			// Initialize to full omni-directionality (bigger value, more omni)
 			static const float MaxNormalizedRadius = 1000000.0f;
 			Params.NormalizedOmniRadius = MaxNormalizedRadius;
 
@@ -478,6 +501,7 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 		Params.Distance = 0.0f;
 		Params.EmitterPosition = FVector::ZeroVector;
 	}
+	Params.EmitterWorldPosition = WaveInstance->Location;
 
 	// We are currently always computing spatialization for XAudio2 relative to the listener!
 	Params.ListenerOrientation = FVector::UpVector;
@@ -486,6 +510,33 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 	return Params;
 }
 
+void FSoundSource::NotifyPlaybackPercent()
+{
+	if (WaveInstance->ActiveSound->bUpdatePlayPercentage)
+	{
+		const uint64 AudioComponentID = WaveInstance->ActiveSound->GetAudioComponentID();
+		if (AudioComponentID > 0)
+		{
+			const float PlaybackPercent = GetPlaybackPercent();
+			const USoundWave* SoundWave = WaveInstance->WaveData;
+			FAudioThread::RunCommandOnGameThread([AudioComponentID, SoundWave, PlaybackPercent]()
+			{
+				if (UAudioComponent* AudioComponent = UAudioComponent::GetAudioComponentFromID(AudioComponentID))
+				{
+					if (AudioComponent->OnAudioPlaybackPercent.IsBound())
+					{
+						AudioComponent->OnAudioPlaybackPercent.Broadcast(SoundWave, PlaybackPercent);
+					}
+
+					if (AudioComponent->OnAudioPlaybackPercentNative.IsBound())
+					{
+						AudioComponent->OnAudioPlaybackPercentNative.Broadcast(AudioComponent, SoundWave, PlaybackPercent);
+					}
+				}
+			});
+		}
+	}
+}
 
 /*-----------------------------------------------------------------------------
 	FNotifyBufferFinishedHooks implementation.
@@ -556,44 +607,48 @@ uint32 FWaveInstance::TypeHashCounter = 0;
  * @param InActiveSound		ActiveSound this wave instance belongs to.
  */
 FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
-:	WaveData( NULL )
-,   SoundClass( NULL )
-,	ActiveSound( InActiveSound )
-,	Volume( 0.0f )
-,	VolumeMultiplier( 1.0f )
-,	VolumeApp( 1.0f )
-,	Priority( 1.0f )
-,	VoiceCenterChannelVolume( 0.0f )
-,	RadioFilterVolume( 0.0f )
-,	RadioFilterVolumeThreshold( 0.0f )
-,	StereoBleed( 0.0f )
-,	LFEBleed( 0.0f )
-,	LoopingMode( LOOP_Never )
-,	StartTime( -1.f )
-,	bApplyRadioFilter( false )
-,	bIsStarted(false)
-,	bIsFinished( false )
-,	bAlreadyNotifiedHook( false )
-,	bUseSpatialization( false )
-,	bEnableLowPassFilter(false)
-,	bIsOccluded(false)
-,	bEQFilterApplied(false)
-,	bIsUISound( false )
-,	bIsMusic( false )
-,	bReverb( true )
-,	bCenterChannelOnly( false )
-,	bReportedSpatializationWarning( false )
-,	SpatializationAlgorithm(SPATIALIZATION_Default)
-,	OutputTarget(EAudioOutputTarget::Speaker)
-,	LowPassFilterFrequency(MAX_FILTER_FREQUENCY)
-,	OcclusionFilterFrequency(MAX_FILTER_FREQUENCY)
-, AmbientZoneFilterFrequency(MAX_FILTER_FREQUENCY)
-,	AttenuationFilterFrequency(MAX_FILTER_FREQUENCY), Pitch(0.0f)
-,	Velocity( FVector::ZeroVector )
-,	Location( FVector::ZeroVector )
-,	OmniRadius(0.0f)
-,	StereoSpread(0.0f)
-,	UserIndex( 0 )
+	: WaveData(nullptr)
+	, SoundClass(nullptr)
+	, SoundSubmix(nullptr)
+	, ActiveSound(InActiveSound)
+	, Volume(0.0f)
+	, VolumeMultiplier(1.0f)
+	, VolumeApp(1.0f)
+	, Priority(1.0f)
+	, VoiceCenterChannelVolume(0.0f)
+	, RadioFilterVolume(0.0f)
+	, RadioFilterVolumeThreshold(0.0f)
+	, StereoBleed(0.0f)
+	, LFEBleed(0.0f)
+	, LoopingMode(LOOP_Never)
+	, StartTime(-1.f)
+	, bApplyRadioFilter(false)
+	, bIsStarted(false)
+	, bIsFinished(false)
+	, bAlreadyNotifiedHook(false)
+	, bUseSpatialization(false)
+	, bEnableLowPassFilter(false)
+	, bIsOccluded(false)
+	, bEQFilterApplied(false)
+	, bIsUISound(false)
+	, bIsMusic(false)
+	, bReverb(true)
+	, bCenterChannelOnly(false)
+	, bReportedSpatializationWarning(false)
+	, SpatializationAlgorithm(SPATIALIZATION_Default)
+	, OutputTarget(EAudioOutputTarget::Speaker)
+	, LowPassFilterFrequency(MAX_FILTER_FREQUENCY)
+	, OcclusionFilterFrequency(MAX_FILTER_FREQUENCY)
+	, AmbientZoneFilterFrequency(MAX_FILTER_FREQUENCY)
+	, AttenuationFilterFrequency(MAX_FILTER_FREQUENCY)
+	, Pitch(0.0f)
+	, Velocity(FVector::ZeroVector)
+	, Location(FVector::ZeroVector)
+	, OmniRadius(0.0f)
+	, StereoSpread(0.0f)
+	, AttenuationDistance(0.0f)
+	, AbsoluteAzimuth(0.0f)
+	, UserIndex(0)
 {
 	TypeHash = ++TypeHashCounter;
 }
@@ -718,6 +773,10 @@ FString FWaveInstance::GetName() const
 #define UE_mmioFOURCC(ch0, ch1, ch2, ch3)\
 	UE_MAKEFOURCC(ch0, ch1, ch2, ch3)
 
+#if PLATFORM_SUPPORTS_PRAGMA_PACK
+#pragma pack(push, 2)
+#endif
+
 // Main Riff-Wave header.
 struct FRiffWaveHeader
 {
@@ -745,6 +804,44 @@ struct FFormatChunk
 	uint16   cbSize;            // The count in bytes of the size of extra information (after cbSize).
 };
 
+// FExtendedFormatChunk subformat GUID.
+struct FSubformatGUID
+{
+	uint32 Data1;				// Format type, corresponds to a wFormatTag in WaveFormatEx.
+
+								// Fixed values for all extended wave formats.
+	uint16 Data2 = 0x0000;
+	uint16 Data3 = 0x0010;
+	uint8 Data4[8];
+
+	FSubformatGUID()
+	{
+		Data4[0] = 0x80;
+		Data4[1] = 0x00;
+		Data4[2] = 0x00;
+		Data4[3] = 0xaa;
+		Data4[4] = 0x00;
+		Data4[5] = 0x38;
+		Data4[6] = 0x9b;
+		Data4[7] = 0x71;
+	}
+};
+
+// ChunkID: 'fmt ' ("WaveFormatExtensible" structure)
+struct FExtendedFormatChunk
+{
+	FFormatChunk Format;			// Standard WaveFormatEx ('fmt ') chunk, with
+									// wFormatTag == WAVE_FORMAT_EXTENSIBLE and cbSize == 22
+	union
+	{
+		uint16 wValidBitsPerSample;	// Actual bits of precision. Can be less than wBitsPerSample.
+		uint16 wSamplesPerBlock;	// Valid if wValidBitsPerSample == 0. Used by compressed formats.
+		uint16 wReserved;			// If neither applies, set to 0.
+	} Samples;
+	uint32 dwChannelMask;			// Which channels are present in the stream.
+	FSubformatGUID SubFormat;		// Subformat identifier.
+};
+
 // ChunkID: 'smpl'
 struct FSampleChunk
 {
@@ -759,12 +856,17 @@ struct FSampleChunk
 	uint32   cbSamplerData;		//
 };
 
+#if PLATFORM_SUPPORTS_PRAGMA_PACK
+#pragma pack(pop)
+#endif
+
 //
 //	Figure out the WAVE file layout.
 //
 bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* ErrorReason )
 {
 	FFormatChunk* FmtChunk;
+	FExtendedFormatChunk* FmtChunkEx = nullptr;
 	FRiffWaveHeader* RiffHdr = ( FRiffWaveHeader* )WaveData;
 	WaveDataEnd = WaveData + WaveDataSize;
 
@@ -839,6 +941,56 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 	pChannels = &FmtChunk->nChannels;
 	pFormatTag = &FmtChunk->wFormatTag;
 
+	// If we have an extended fmt chunk, the format tag won't be a wave format. Instead we need to read the subformat ID.
+	if (INTEL_ORDER32(RiffChunk->ChunkLen) >= 40 && FmtChunk->wFormatTag == 0xFFFE) // WAVE_FORMAT_EXTENSIBLE
+	{
+		FmtChunkEx = (FExtendedFormatChunk*)((uint8*)RiffChunk + 8);
+
+#if !PLATFORM_LITTLE_ENDIAN
+		if (!AlreadySwapped)
+		{
+			FmtChunkEx->Samples.wValidBitsPerSample = INTEL_ORDER16(FmtChunkEx->Samples.wValidBitsPerSample);
+			FmtChunkEx->SubFormat.Data1 = INTEL_ORDER32(FmtChunkEx->SubFormat.Data1);
+			FmtChunkEx->SubFormat.Data2 = INTEL_ORDER16(FmtChunkEx->SubFormat.Data2);
+			FmtChunkEx->SubFormat.Data3 = INTEL_ORDER16(FmtChunkEx->SubFormat.Data3);
+			*((uint64*)FmtChunkEx->SubFormat.Data4) = INTEL_ORDER64(*(uint64*)FmtChunkEx->SubFormat.Data4);
+		}
+#endif
+
+		bool bValid = true;
+		static const FSubformatGUID GUID;
+
+		if (FmtChunkEx->SubFormat.Data1 == 0x00000001 /* PCM */ &&
+			FmtChunkEx->Samples.wValidBitsPerSample > 0 && FmtChunkEx->Samples.wValidBitsPerSample != FmtChunk->wBitsPerSample)
+		{
+			bValid = false;
+			if (ErrorReason) *ErrorReason = TEXT("Unsupported WAVE file format: actual bit rate does not match the container size.");
+		}
+		else if (FMemory::Memcmp((uint8*)&FmtChunkEx->SubFormat + 4, (uint8*)&GUID + 4, sizeof(GUID) - 4) != 0)
+		{
+			bValid = false;
+			if (ErrorReason) *ErrorReason = TEXT("Unsupported WAVE file format: subformat identifier not recognized.");
+		}
+
+		if (!bValid)
+		{
+#if !PLATFORM_LITTLE_ENDIAN // swap them back just in case.
+			if (!AlreadySwapped)
+			{
+				FmtChunkEx->Samples.wValidBitsPerSample = INTEL_ORDER16(FmtChunkEx->Samples.wValidBitsPerSample);
+				FmtChunkEx->SubFormat.Data1 = INTEL_ORDER32(FmtChunkEx->SubFormat.Data1);
+				FmtChunkEx->SubFormat.Data2 = INTEL_ORDER16(FmtChunkEx->SubFormat.Data2);
+				FmtChunkEx->SubFormat.Data3 = INTEL_ORDER16(FmtChunkEx->SubFormat.Data3);
+				*((uint64*)FmtChunkEx->SubFormat.Data4) = INTEL_ORDER64(*(uint64*)FmtChunkEx->SubFormat.Data4);
+			}
+#endif
+			return (false);
+		}
+
+		// Set the format tag pointer to the subformat GUID.
+		pFormatTag = reinterpret_cast<uint16*>(&FmtChunkEx->SubFormat.Data1);
+	}
+
 	// re-initalize the RiffChunk pointer
 	RiffChunk = ( FRiffChunkOld* )&WaveData[3 * 4];
 
@@ -862,6 +1014,14 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 				FmtChunk->nAvgBytesPerSec = INTEL_ORDER32( FmtChunk->nAvgBytesPerSec );
 				FmtChunk->nBlockAlign = INTEL_ORDER16( FmtChunk->nBlockAlign );
 				FmtChunk->wBitsPerSample = INTEL_ORDER16( FmtChunk->wBitsPerSample );
+				if (FmtChunkEx != nullptr)
+				{
+					FmtChunkEx->Samples.wValidBitsPerSample = INTEL_ORDER16(FmtChunkEx->Samples.wValidBitsPerSample);
+					FmtChunkEx->SubFormat.Data1 = INTEL_ORDER32(FmtChunkEx->SubFormat.Data1);
+					FmtChunkEx->SubFormat.Data2 = INTEL_ORDER16(FmtChunkEx->SubFormat.Data2);
+					FmtChunkEx->SubFormat.Data3 = INTEL_ORDER16(FmtChunkEx->SubFormat.Data3);
+					*((uint64*)FmtChunkEx->SubFormat.Data4) = INTEL_ORDER64(*(uint64*)FmtChunkEx->SubFormat.Data4);
+				}
 			}
 		#endif
 		if (ErrorReason) *ErrorReason = TEXT("Invalid WAVE file.");
@@ -878,7 +1038,6 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 	SampleDataStart = ( uint8* )RiffChunk + 8;
 	pWaveDataSize = &RiffChunk->ChunkLen;
 	SampleDataSize = INTEL_ORDER32( RiffChunk->ChunkLen );
-	OldBitsPerSample = FmtChunk->wBitsPerSample;
 	SampleDataEnd = SampleDataStart + SampleDataSize;
 
 	if( ( uint8* )SampleDataEnd > ( uint8* )WaveDataEnd )
@@ -893,9 +1052,9 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 
 	NewDataSize = SampleDataSize;
 
-	if(    FmtChunk->wFormatTag != 0x0001 // WAVE_FORMAT_PCM  
-		&& FmtChunk->wFormatTag != 0x0002 // WAVE_FORMAT_ADPCM
-		&& FmtChunk->wFormatTag != 0x0011) // WAVE_FORMAT_DVI_ADPCM
+	if (   *pFormatTag != 0x0001 // WAVE_FORMAT_PCM  
+		&& *pFormatTag != 0x0002 // WAVE_FORMAT_ADPCM
+		&& *pFormatTag != 0x0011) // WAVE_FORMAT_DVI_ADPCM
 	{
 		ReportImportFailure();
 		if (ErrorReason) *ErrorReason = TEXT("Unsupported wave file format.  Only PCM, ADPCM, and DVI ADPCM can be imported.");

@@ -5,7 +5,6 @@ LandscapeRenderMobile.cpp: Landscape Rendering without using vertex texture fetc
 =============================================================================*/
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 #include "LandscapeRender.h"

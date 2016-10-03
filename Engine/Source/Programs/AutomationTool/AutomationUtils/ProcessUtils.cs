@@ -319,8 +319,11 @@ namespace AutomationTool
 					}
 				}
 
-				ProcessOutput.Append(e.Data);
-				ProcessOutput.Append(Environment.NewLine);
+				lock (ProcSyncObject)
+				{
+					ProcessOutput.Append(e.Data);
+					ProcessOutput.Append(Environment.NewLine);
+				}
 			}
 			else
 			{
@@ -349,9 +352,11 @@ namespace AutomationTool
 				{
 					LogOutput(SpewVerbosity, e.Data);
 				}
-
-				ProcessOutput.Append(e.Data);
-				ProcessOutput.Append(Environment.NewLine);
+				lock (ProcSyncObject)
+				{
+					ProcessOutput.Append(e.Data);
+					ProcessOutput.Append(Environment.NewLine);
+				}
 			}
 			else
 			{
@@ -383,7 +388,13 @@ namespace AutomationTool
 		/// </summary>
 		public string Output
 		{
-			get { return ProcessOutput.ToString(); }
+			get
+			{
+				lock (ProcSyncObject)
+				{
+					return ProcessOutput.ToString();
+				}
+			}
 		}
 
 		public bool HasExited

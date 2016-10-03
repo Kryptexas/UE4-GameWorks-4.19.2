@@ -3,9 +3,10 @@
 
 #include "HAL/Platform.h"
 
-#if PLATFORM_PS4
-#include "PS4/PS4MallocCrash.h"
-#else
 #include "GenericPlatform/GenericPlatformMallocCrash.h"
+
+#if PLATFORM_USES_STACKBASED_MALLOC_CRASH
+typedef FGenericStackBasedMallocCrash FPlatformMallocCrash;
+#else
 typedef FGenericPlatformMallocCrash FPlatformMallocCrash;
 #endif

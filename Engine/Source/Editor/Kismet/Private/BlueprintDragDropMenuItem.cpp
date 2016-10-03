@@ -87,7 +87,11 @@ FSlateBrush const* FBlueprintDragDropMenuItem::GetMenuIcon(FSlateColor& ColorOut
 		if (UProperty const* Property = VariableSpawner->GetVarProperty())
 		{
 			UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
-			IconBrush = FBlueprintEditor::GetVarIconAndColor(PropertyOwner, Property->GetFName(), ColorOut);
+			// @note(DanO): not sure wht relies on this logic, but discarding extra icon info util
+			// I can confirm that containers are a possility here:
+			FSlateBrush const* Discarded = nullptr;
+			FSlateColor DiscardedColor;
+			IconBrush = FBlueprintEditor::GetVarIconAndColor(PropertyOwner, Property->GetFName(), ColorOut, Discarded, DiscardedColor);
 		}
 	}
 	return IconBrush;

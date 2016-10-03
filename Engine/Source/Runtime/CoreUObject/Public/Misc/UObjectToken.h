@@ -30,6 +30,12 @@ public:
 		return ObjectBeingReferenced;
 	}
 
+	/** Get the original object Path Name as the object path name could be different when fetched later on */
+	const FString& GetOriginalObjectPathName() const 
+	{ 
+		return OriginalObjectPathName;  
+	}
+
 	/** Get the delegate for default token activation */
 	COREUOBJECT_API static FOnMessageTokenActivated& DefaultOnMessageTokenActivated()
 	{
@@ -49,6 +55,9 @@ private:
 
 	/** An object being referenced by this token, if any */
 	FWeakObjectPtr ObjectBeingReferenced;
+
+	/** The original object Path Name as the object path name could be different when fetched later on */
+	FString OriginalObjectPathName;
 
 	/** The default activation method, if any */
 	COREUOBJECT_API static FOnMessageTokenActivated DefaultMessageTokenActivated;

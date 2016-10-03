@@ -9,7 +9,15 @@ struct FBlackboardKeySelector;
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryItemType : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+public:
+	/** every EQS item type needs to speficy data type it's using. 
+	 *	Default is void which should trigger a compilation error if it's 
+	  *	not set in a defived class*/
+	typedef void FValueType;
+
+	UEnvQueryItemType(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** get ValueSize */
 	FORCEINLINE uint16 GetValueSize() const { return ValueSize; }

@@ -14,14 +14,16 @@ FBooleanPropertyTableCellPresenter::FBooleanPropertyTableCellPresenter( const TS
 
 TSharedRef< class SWidget > FBooleanPropertyTableCellPresenter::ConstructDisplayWidget()
 {
-	return SNew( SBorder )
+	TSharedPtr<SHorizontalBox> HorizontalBox;
+
+	TSharedRef<SBorder> Border = SNew( SBorder )
 		.Padding( 0 )
 		.VAlign( VAlign_Center )
 		.HAlign( HAlign_Center )
 		.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 		.Content()
 		[	
-			SNew( SHorizontalBox )
+			SAssignNew( HorizontalBox, SHorizontalBox )
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign( VAlign_Center )
@@ -37,15 +39,21 @@ TSharedRef< class SWidget > FBooleanPropertyTableCellPresenter::ConstructDisplay
 					.ToolTipText( PropertyEditor->GetToolTipText() )
 				]
 			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign( VAlign_Center )
-			.HAlign( HAlign_Center )
-			.Padding( FMargin( 0, 0, 2, 0 ) )
-			[
-				SNew( SResetToDefaultPropertyEditor, PropertyEditor )
-			]
 		];
+
+	if (!PropertyEditor->GetPropertyHandle()->HasMetaData(TEXT("NoResetToDefault")))
+	{
+		HorizontalBox->AddSlot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.Padding(FMargin(0, 0, 2, 0))
+		[
+			SNew(SResetToDefaultPropertyEditor, PropertyEditor)
+		];
+	}
+
+	return Border;
 }
 
 bool FBooleanPropertyTableCellPresenter::RequiresDropDown()

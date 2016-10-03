@@ -38,9 +38,9 @@ void WakeupJointedActors_AssumesLocked(PxD6Joint* Joint)
 
 	auto WakeupActorHelper = [](PxRigidActor* Actor)
 	{
-		if (PxRigidDynamic* DynamicActor = (Actor ? Actor->isRigidDynamic() : nullptr))
+		if (PxRigidDynamic* DynamicActor = (Actor ? Actor->is<PxRigidDynamic>() : nullptr))
 		{
-			if (DynamicActor->getScene())
+			if (DynamicActor->getScene() && !(DynamicActor->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC))
 			{
 				DynamicActor->wakeUp();
 			}
@@ -103,14 +103,14 @@ void FLinearDriveConstraint::SetLinearVelocityDrive(bool bEnableXDrive, bool bEn
 
 void FAngularDriveConstraint::SetAngularPositionDrive(bool InEnableSwingDrive, bool InEnableTwistDrive)
 {
-	SwingDrive.bEnablePositionDrive &= InEnableSwingDrive;
-	TwistDrive.bEnablePositionDrive &= InEnableSwingDrive;
+	SwingDrive.bEnablePositionDrive = InEnableSwingDrive;
+	TwistDrive.bEnablePositionDrive = InEnableTwistDrive;
 }
 
 void FAngularDriveConstraint::SetAngularVelocityDrive(bool InEnableSwingDrive, bool InEnableTwistDrive)
 {
-	SwingDrive.bEnableVelocityDrive &= InEnableSwingDrive;
-	TwistDrive.bEnableVelocityDrive &= InEnableSwingDrive;
+	SwingDrive.bEnableVelocityDrive = InEnableSwingDrive;
+	TwistDrive.bEnableVelocityDrive = InEnableTwistDrive;
 }
 
 void FConstraintDrive::SetDriveParams(float InStiffness, float InDamping, float InForceLimit)

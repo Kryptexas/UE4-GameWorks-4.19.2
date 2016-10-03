@@ -242,26 +242,125 @@ public:
 	void AddToCategory( IDetailCategoryBuilder& CategoryBuilder );
 
 private:
+	
 	UStaticMesh& GetStaticMesh() const;
-	void GetMaterials(class IMaterialListBuilder& ListBuilder);
-	void OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll);
-	TSharedRef<SWidget> OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
-	TSharedRef<SWidget> OnGenerateWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
-	void OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 SlotIndex);
+
+	/**
+	* Called by the material list widget when we need to get new materials for the list
+	*
+	* @param OutMaterials	Handle to a material list builder that materials should be added to
+	*/
+	void OnGetSectionsForView(class ISectionListBuilder& OutSections, int32 ForLODIndex);
+
+	/**
+	* Called when a user drags a new material over a list item to replace it
+	*
+	* @param NewMaterial	The material that should replace the existing material
+	* @param PrevMaterial	The material that should be replaced
+	* @param SlotIndex		The index of the slot on the component where materials should be replaces
+	* @param bReplaceAll	If true all materials in the slot should be replaced not just ones using PrevMaterial
+	*/
+	void OnSectionChanged(int32 ForLODIndex, int32 SectionIndex, int32 NewMaterialSlotIndex, FName NewMaterialSlotName);
+	
+	/**
+	* Called by the material list widget on generating each name widget
+	*
+	* @param Material		The material that is being displayed
+	* @param SlotIndex		The index of the material slot
+	*/
+	TSharedRef<SWidget> OnGenerateCustomNameWidgetsForSection(int32 ForLODIndex, int32 SectionIndex);
+
+	/**
+	* Called by the material list widget on generating each thumbnail widget
+	*
+	* @param Material		The material that is being displayed
+	* @param SlotIndex		The index of the material slot
+	*/
+	TSharedRef<SWidget> OnGenerateCustomSectionWidgetsForSection(int32 ForLODIndex, int32 SectionIndex);
+
 	ECheckBoxState DoesSectionCastShadow(int32 SectionIndex) const;
 	void OnSectionCastShadowChanged(ECheckBoxState NewState, int32 SectionIndex);
 	ECheckBoxState DoesSectionCollide(int32 SectionIndex) const;
 	bool SectionCollisionEnabled() const;
 	FText GetCollisionEnabledToolTip() const;
 	void OnSectionCollisionChanged(ECheckBoxState NewState, int32 SectionIndex);
+
 	ECheckBoxState IsSectionHighlighted(int32 SectionIndex) const;
 	void OnSectionHighlightedChanged(ECheckBoxState NewState, int32 SectionIndex);
 	ECheckBoxState IsSectionIsolatedEnabled(int32 SectionIndex) const;
 	void OnSectionIsolatedChanged(ECheckBoxState NewState, int32 SectionIndex);
+
 	void CallPostEditChange(UProperty* PropertyChanged=nullptr);
 	
 	IStaticMeshEditor& StaticMeshEditor;
 	int32 LODIndex;
+};
+
+struct FSectionLocalizer
+{
+	FSectionLocalizer(int32 InLODIndex, int32 InSectionIndex)
+		: LODIndex(InLODIndex)
+		, SectionIndex(InSectionIndex)
+	{}
+
+	bool operator==(const FSectionLocalizer& Other) const
+	{
+		return (LODIndex == Other.LODIndex && SectionIndex == Other.SectionIndex);
+	}
+
+	bool operator!=(const FSectionLocalizer& Other) const
+	{
+		return !((*this) == Other);
+	}
+
+	int32 LODIndex;
+	int32 SectionIndex;
+};
+
+
+class FMeshMaterialsLayout : public TSharedFromThis<FMeshMaterialsLayout>
+{
+public:
+	FMeshMaterialsLayout(IStaticMeshEditor& InStaticMeshEditor)
+		: StaticMeshEditor(InStaticMeshEditor)
+	{}
+
+	virtual ~FMeshMaterialsLayout();
+
+	void AddToCategory(IDetailCategoryBuilder& CategoryBuilder);
+
+private:
+	UStaticMesh& GetStaticMesh() const;
+	FReply AddMaterialSlot();
+	FText GetMaterialArrayText() const;
+
+	void GetMaterials(class IMaterialListBuilder& ListBuilder);
+	void OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll);
+	TSharedRef<SWidget> OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
+	TSharedRef<SWidget> OnGenerateWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
+	void OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 SlotIndex);
+
+	FText GetOriginalImportMaterialNameText(int32 MaterialIndex) const;
+	FText GetMaterialNameText(int32 MaterialIndex) const;
+	void OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex);
+	void OnMaterialNameChanged(const FText& InValue, int32 MaterialIndex);
+	bool CanDeleteMaterialSlot(int32 MaterialIndex) const;
+	FReply OnDeleteMaterialSlot(int32 MaterialIndex);
+	TSharedRef<SWidget> OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex);
+	FText GetFirstMaterialSlotUsedBySection(int32 MaterialIndex) const;
+
+	/* If the material list is dirty this function will return true */
+	bool OnMaterialListDirty();
+
+	ECheckBoxState IsShadowCastingEnabled(int32 SlotIndex) const;
+	void OnShadowCastingChanged(ECheckBoxState NewState, int32 SlotIndex);
+
+	void CallPostEditChange(UProperty* PropertyChanged = nullptr);
+
+	IStaticMeshEditor& StaticMeshEditor;
+	
+	/* This is to know if material are used by any LODs sections. */
+	TMap<int32, TArray<FSectionLocalizer>> MaterialUsedMap;
 };
 
 /** 
@@ -333,6 +432,8 @@ private:
 	TSharedPtr<FMeshReductionSettingsLayout> ReductionSettingsWidgets[MAX_STATIC_MESH_LODS];
 	TSharedPtr<FMeshBuildSettingsLayout> BuildSettingsWidgets[MAX_STATIC_MESH_LODS];
 	TSharedPtr<FMeshSectionSettingsLayout> SectionSettingsWidgets[MAX_STATIC_MESH_LODS];
+
+	TSharedPtr<FMeshMaterialsLayout> MaterialsLayoutWidget;
 
 	/** ComboBox widget for the LOD Group property */
 	TSharedPtr<STextComboBox> LODGroupComboBox;

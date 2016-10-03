@@ -4,11 +4,6 @@
 #include "BlueprintProfilerSettings.h"
 #include "ScriptPerfData.h"
 
-float UBlueprintProfilerSettings::CustomEventPerformanceThresholdDefaultValue = 1.f;
-float UBlueprintProfilerSettings::CustomAveragePerformanceThresholdDefaultValue = 0.2f;
-float UBlueprintProfilerSettings::CustomInclusivePerformanceThresholdDefaultValue = 0.25f;
-float UBlueprintProfilerSettings::CustomMaxPerformanceThresholdDefaultValue = 0.5f;
-
 UBlueprintProfilerSettings::UBlueprintProfilerSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bDisplayByInstance(true)
@@ -16,15 +11,14 @@ UBlueprintProfilerSettings::UBlueprintProfilerSettings(const FObjectInitializer&
 	, bGraphFilter(false)
 	, bDisplayPure(true)
 	, bDisplayInheritedEvents(true)
-	, bAverageBlueprintStats(true)
 	, GraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Average)
 	, WireHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::None)
 	, HeatLevelMetricsType(EBlueprintProfilerHeatLevelMetricsType::ClassRelative)
-	, CustomEventPerformanceThreshold(CustomEventPerformanceThresholdDefaultValue)
-	, CustomAveragePerformanceThreshold(CustomAveragePerformanceThresholdDefaultValue)
-	, CustomInclusivePerformanceThreshold(CustomInclusivePerformanceThresholdDefaultValue)
-	, CustomMaxPerformanceThreshold(CustomMaxPerformanceThresholdDefaultValue)
+	// Copied out from CustomStatisticThresholdValues.
+	, CustomEventPerformanceThreshold(1.f)
+	, CustomAveragePerformanceThreshold(0.2f)
+	, CustomInclusivePerformanceThreshold(0.25f)
+	, CustomMaxPerformanceThreshold(0.5f)
 	, bThresholdsModified(false)
 {
-	FScriptPerfData::EnableBlueprintStatAverage(bAverageBlueprintStats);
 }

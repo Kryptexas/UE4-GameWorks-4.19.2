@@ -90,7 +90,7 @@ public:
 	// End of ICommonEditorViewportToolbarInfoProvider interface
 
 	/** Returns the preview scene being renderd in the viewport */
-	FAdvancedPreviewScene& GetPreviewScene() { return PreviewScene; }
+	TSharedRef<FAdvancedPreviewScene> GetPreviewScene() { return PreviewScene.ToSharedRef(); }
 protected:
 	/** SEditorViewport interface */
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
@@ -129,7 +129,7 @@ private:
 	TWeakPtr<IStaticMeshEditor> StaticMeshEditorPtr;
 
 	/** The scene for this viewport. */
-	FAdvancedPreviewScene PreviewScene;
+	TSharedPtr<FAdvancedPreviewScene> PreviewScene;
 
 	/** Editor viewport client */
 	TSharedPtr<class FStaticMeshEditorViewportClient> EditorViewportClient;

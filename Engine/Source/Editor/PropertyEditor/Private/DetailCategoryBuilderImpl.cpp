@@ -584,7 +584,7 @@ bool FDetailCategoryImpl::ShouldBeExpanded() const
 	else if( bRestoreExpansionState )
 	{
 		// Collapse by default if there are no simple child nodes
-		bool bShouldBeExpanded = !ContainsOnlyAdvanced();
+		bool bShouldBeExpanded = !ContainsOnlyAdvanced() && !bShouldBeInitiallyCollapsed;
 		// Save the collapsed state of this section
 		GConfig->GetBool( TEXT("DetailCategories"), *CategoryPathName, bShouldBeExpanded, GEditorPerProjectIni );
 		return bShouldBeExpanded;

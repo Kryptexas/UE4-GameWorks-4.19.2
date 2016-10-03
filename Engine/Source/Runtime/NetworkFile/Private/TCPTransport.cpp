@@ -34,7 +34,7 @@ bool FTCPTransport::Initialize(const TCHAR* InHostIp)
 		FileSocket = SSS->CreateSocket(NAME_Stream, TEXT("FNetworkPlatformFile tcp"));
 
 		// try to connect to the server
-		if (FileSocket->Connect(*Addr) == false)
+		if (FileSocket == nullptr || FileSocket->Connect(*Addr) == false)
 		{
 			// on failure, shut it all down
 			SSS->DestroySocket(FileSocket);

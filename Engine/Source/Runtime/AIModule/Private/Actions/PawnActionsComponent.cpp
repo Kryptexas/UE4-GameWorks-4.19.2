@@ -111,7 +111,7 @@ void FPawnActionStack::PopAction(UPawnAction& ActionToPop)
 		// note StopAction can be null
 		UPawnAction* StopAction = ActionToPop.ParentAction;
 
-		while (ActionBeingRemoved != StopAction)
+		while (ActionBeingRemoved != StopAction && ActionBeingRemoved != nullptr)
 		{
 			checkSlow(ActionBeingRemoved);
 			UPawnAction* NextAction = ActionBeingRemoved->ParentAction;

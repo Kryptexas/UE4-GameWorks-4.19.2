@@ -7,7 +7,7 @@
 #include "EnginePrivate.h"
 #include "Components/LineBatchComponent.h"
 #include "GameFramework/HUD.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -429,7 +429,7 @@ void AHUD::ShowDebugInfo(float& YL, float& YPos)
 
 		if (ShouldDisplayDebug(NAME_Game))
 		{
-			AGameMode* AuthGameMode = GetWorld()->GetAuthGameMode();
+			AGameModeBase* AuthGameMode = GetWorld()->GetAuthGameMode();
 			if (AuthGameMode)
 			{
 				AuthGameMode->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);

@@ -3,7 +3,17 @@
 #pragma once
 
 #include "AlembicLibraryPublicPCH.h"
+
+#include <Alembic/AbcCoreHDF5/All.h>
+#include <Alembic/AbcCoreOgawa/All.h>
+#include <Alembic/AbcCoreFactory/All.h>
+#include <Alembic/AbcCoreAbstract/TimeSampling.h>
+#include <Alembic/AbcCoreHDF5/All.h>
+#include <Alembic/Abc/All.h>
+#include <Alembic/AbcGeom/All.h>
+
 #include "AbcImportUtilities.h"
+#include "AbcImportData.h"
 
 #define LOCTEXT_NAMESPACE "AbcImporterUtilities"
 
@@ -106,7 +116,7 @@ void AbcImporterUtilities::TriangulateIndexBuffer(const TArray<uint32>& InFaceCo
 	InOutIndices = NewIndices;
 }
 
-void AbcImporterUtilities::TriangulateMateriaIndices(const TArray<uint32>& InFaceCounts, TArray<int32>& InOutData)
+void AbcImporterUtilities::TriangulateMaterialIndices(const TArray<uint32>& InFaceCounts, TArray<int32>& InOutData)
 {
 	check(InFaceCounts.Num() > 0);
 	check(InOutData.Num() > 0);
@@ -192,14 +202,14 @@ FAbcMeshSample* AbcImporterUtilities::GenerateAbcMeshSampleForFrame(Alembic::Abc
 			// Expand UV array
 			ExpandVertexAttributeArray<FVector2D>(UVIndices, Sample->UVs);
 		}
-		else
+		else if (Sample->Normals.Num())
 		{
 			// For vertex only normals (and no normal indices available), expand using the regular indices
 			if (Sample->UVs.Num() != Sample->Indices.Num())
 			{
 				ExpandVertexAttributeArray<FVector2D>(Sample->Indices, Sample->UVs);
 			}
-			else if(bNeedsTriangulation)
+			else if (bNeedsTriangulation)
 			{
 				TriangulateVertexAttributeBuffer(FaceCounts, Sample->UVs);
 			}
@@ -258,7 +268,7 @@ FAbcMeshSample* AbcImporterUtilities::GenerateAbcMeshSampleForFrame(Alembic::Abc
 	// Triangulate material face indices if needed
 	if (bNeedsTriangulation)
 	{
-		TriangulateMateriaIndices(FaceCounts, Sample->MaterialIndices);
+		TriangulateMaterialIndices(FaceCounts, Sample->MaterialIndices);
 	}
 
 	if (!bRetrievalResult)

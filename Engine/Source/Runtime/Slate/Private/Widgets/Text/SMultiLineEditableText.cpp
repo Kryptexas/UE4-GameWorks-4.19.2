@@ -428,7 +428,13 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 
 int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	LayerId = EditableTextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
+	const FTextBlockStyle& EditableTextStyle = EditableTextLayout->GetTextStyle();
+	const FLinearColor ForegroundColor = EditableTextStyle.ColorAndOpacity.GetColor(InWidgetStyle);
+
+	FWidgetStyle TextWidgetStyle = FWidgetStyle(InWidgetStyle)
+		.SetForegroundColor(ForegroundColor);
+
+	LayerId = EditableTextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, TextWidgetStyle, ShouldBeEnabled(bParentEnabled));
 
 	if (bIsSoftwareCursor)
 	{
@@ -612,6 +618,14 @@ FCursorReply SMultiLineEditableText::OnCursorQuery( const FGeometry& MyGeometry,
 bool SMultiLineEditableText::IsInteractable() const
 {
 	return IsEnabled();
+}
+
+bool SMultiLineEditableText::ComputeVolatility() const
+{
+	return SWidget::ComputeVolatility()
+		|| HasKeyboardFocus()
+		|| EditableTextLayout->ComputeVolatility()
+		|| bIsReadOnly.IsBound();
 }
 
 bool SMultiLineEditableText::IsRightClickScrolling() const

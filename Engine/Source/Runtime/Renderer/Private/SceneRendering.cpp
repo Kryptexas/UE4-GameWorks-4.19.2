@@ -71,6 +71,12 @@ static TAutoConsoleVariable<int32> CVarMultiView(
 	TEXT("Currently only supported by the PS4 RHI."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarMobileMultiView(
+	TEXT("vr.MobileMultiView"),
+	0,
+	TEXT("0 to disable mobile multi-view, 1 to enable.\n"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
 	TEXT("r.GeneralPurposeTweak"),
@@ -529,11 +535,14 @@ void FViewInfo::SetupUniformBufferParameters(
 
 	// Create the view's uniform buffer.
 
+	// Mobile multi-view is not side by side
+	const FIntRect EffectiveViewRect = (bIsMobileMultiViewEnabled) ? FIntRect(0, 0, ViewRect.Width(), ViewRect.Height()) : ViewRect;
+
 	// TODO: We should use a view and previous view uniform buffer to avoid code duplication and keep consistency
 	SetupCommonViewUniformBufferParameters(
 		ViewUniformShaderParameters, 
 		SceneContext.GetBufferSizeXY(),
-		ViewRect, 
+		EffectiveViewRect,
 		EffectiveTranslatedViewMatrix, 
 		EffectiveViewToTranslatedWorld, 
 		PrevViewMatrices, 

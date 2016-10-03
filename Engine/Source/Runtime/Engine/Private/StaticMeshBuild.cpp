@@ -534,18 +534,18 @@ void UStaticMesh::FixupZeroTriangleSections()
 		// Remap the materials array if needed.
 		if (bRemapMaterials)
 		{
-			TArray<UMaterialInterface*> OldMaterials;
-			Exchange(Materials,OldMaterials);
-			Materials.Empty(MaterialMap.Num());
+			TArray<FStaticMaterial> OldMaterials;
+			Exchange(StaticMaterials,OldMaterials);
+			StaticMaterials.Empty(MaterialMap.Num());
 			for (int32 MaterialIndex = 0; MaterialIndex < MaterialMap.Num(); ++MaterialIndex)
 			{
-				UMaterialInterface* Material = NULL;
+				FStaticMaterial StaticMaterial;
 				int32 OldMaterialIndex = MaterialMap[MaterialIndex];
 				if (OldMaterials.IsValidIndex(OldMaterialIndex))
 				{
-					Material = OldMaterials[OldMaterialIndex];
+					StaticMaterial = OldMaterials[OldMaterialIndex];
 				}
-				Materials.Add(Material);
+				StaticMaterials.Add(StaticMaterial);
 			}
 		}
 	}
@@ -577,19 +577,19 @@ void UStaticMesh::FixupZeroTriangleSections()
 
 		// NULL references to materials in indices that are not used by any LOD.
 		// This is to fix up an import bug which caused more materials to be added to this array than needed.
-		for ( int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx )
+		for ( int32 MaterialIdx = 0; MaterialIdx < StaticMaterials.Num(); ++MaterialIdx )
 		{
 			if ( !DiscoveredMaterialIndices.Contains(MaterialIdx) )
 			{
 				// Materials that are not used by any LOD resource should not be in this array.
-				Materials[MaterialIdx] = NULL;
+				StaticMaterials[MaterialIdx].MaterialInterface = nullptr;
 			}
 		}
 
 		// Remove entries at the end of the materials array.
-		if (Materials.Num() > (FoundMaxMaterialIndex + 1))
+		if (StaticMaterials.Num() > (FoundMaxMaterialIndex + 1))
 		{
-			Materials.RemoveAt(FoundMaxMaterialIndex+1, Materials.Num() - FoundMaxMaterialIndex - 1);
+			StaticMaterials.RemoveAt(FoundMaxMaterialIndex+1, StaticMaterials.Num() - FoundMaxMaterialIndex - 1);
 		}
 	}
 }

@@ -2357,6 +2357,7 @@ public:
 	inline void ImmediateFlush(EImmediateFlushType::Type FlushType);
 	bool StallRHIThread();
 	void UnStallRHIThread();
+	static bool IsStalled();
 
 	void SetCurrentStat(TStatId Stat);
 
@@ -2702,9 +2703,7 @@ public:
 	
 	FORCEINLINE void UpdateTexture3D(FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData)
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UpdateTexture3D_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread);   
-		GDynamicRHI->RHIUpdateTexture3D(Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
+		GDynamicRHI->UpdateTexture3D_RenderThread(*this, Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
 	}
 	
 	FORCEINLINE FTextureCubeRHIRef CreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
@@ -2865,6 +2864,13 @@ public:
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_BlockUntilGPUIdle_Flush);
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
 		GDynamicRHI->RHIBlockUntilGPUIdle();
+	}
+
+	FORCEINLINE_DEBUGGABLE void SubmitCommandsAndFlushGPU()
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_SubmitCommandsAndFlushGPU_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+		GDynamicRHI->RHISubmitCommandsAndFlushGPU();
 	}
 	
 	FORCEINLINE void SuspendRendering()

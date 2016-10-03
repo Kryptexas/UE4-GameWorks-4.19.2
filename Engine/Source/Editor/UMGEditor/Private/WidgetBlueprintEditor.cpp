@@ -92,6 +92,8 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 
 void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
 {
+	bShowDashedOutlines = GetDefault<UWidgetDesignerSettings>()->bShowOutlines;
+
 	TSharedPtr<FWidgetBlueprintEditor> ThisPtr(SharedThis(this));
 	WidgetToolbar = MakeShareable(new FWidgetBlueprintEditorToolbar(ThisPtr));
 
@@ -921,12 +923,22 @@ EWidgetDesignFlags::Type FWidgetBlueprintEditor::GetCurrentDesignerFlags() const
 {
 	EWidgetDesignFlags::Type Flags = EWidgetDesignFlags::Designing;
 	
-	if ( GetDefault<UWidgetDesignerSettings>()->bShowOutlines )
+	if ( bShowDashedOutlines )
 	{
 		Flags = ( EWidgetDesignFlags::Type )(Flags | EWidgetDesignFlags::ShowOutline);
 	}
 
 	return Flags;
+}
+
+bool FWidgetBlueprintEditor::GetShowDashedOutlines() const
+{
+	return bShowDashedOutlines;
+}
+
+void FWidgetBlueprintEditor::SetShowDashedOutlines(bool Value)
+{
+	bShowDashedOutlines = Value;
 }
 
 class FObjectAndDisplayName

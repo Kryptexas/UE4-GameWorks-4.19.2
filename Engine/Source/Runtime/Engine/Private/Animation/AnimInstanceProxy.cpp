@@ -729,8 +729,19 @@ void FAnimInstanceProxy::RecalcRequiredBones(USkeletalMeshComponent* Component, 
 {
 	RequiredBones.InitializeTo(Component->RequiredBones, *Asset);
 
+	// If this instance can accept input poses, initialise the input pose container
+	if(SubInstanceInputNode)
+	{
+		SubInstanceInputNode->InputPose.SetBoneContainer(&RequiredBones);
+	}
+
 	// When RequiredBones mapping has changed, AnimNodes need to update their bones caches. 
 	bBoneCachesInvalidated = true;
+}
+
+void FAnimInstanceProxy::RecalcRequiredCurves()
+{
+	RequiredBones.CacheRequiredAnimCurveUids();
 }
 
 void FAnimInstanceProxy::UpdateAnimation()
@@ -833,7 +844,7 @@ void FAnimInstanceProxy::SlotEvaluatePose(FName SlotNodeName, const FCompactPose
 			
 			// Bone array has to be allocated prior to calling GetPoseFromAnimTrack
 			NewPose.Pose.SetBoneContainer(&RequiredBones);
-			NewPose.Curve.InitFrom(SkeletalMeshComponent->GetCachedAnimCurveMappingNameUids());
+			NewPose.Curve.InitFrom(RequiredBones);
 
 			// Extract pose from Track
 			FAnimExtractContext ExtractionContext(EvalState.MontagePosition, EvalState.Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
@@ -841,7 +852,7 @@ void FAnimInstanceProxy::SlotEvaluatePose(FName SlotNodeName, const FCompactPose
 
 			// add montage curves 
 			FBlendedCurve MontageCurve;
-			MontageCurve.InitFrom(SkeletalMeshComponent->GetCachedAnimCurveMappingNameUids());
+			MontageCurve.InitFrom(RequiredBones);
 			EvalState.Montage->EvaluateCurveData(MontageCurve, EvalState.MontagePosition);
 			NewPose.Curve.Combine(MontageCurve);
 
@@ -1407,7 +1418,7 @@ void FAnimInstanceProxy::BindNativeDelegates()
 					{
 						if(TransitionExit.CanTakeDelegateIndex != INDEX_NONE)
 						{
-							// In case the state machine hasn't been initilized, we need to re-get the desc
+							// In case the state machine hasn't been initialized, we need to re-get the desc
 							const FBakedAnimationStateMachine* MachineDesc = GetMachineDescription(AnimClassInterface, StateMachine);
 							const FAnimationTransitionBetweenStates& Transition = MachineDesc->Transitions[TransitionExit.TransitionIndex];
 							const FBakedAnimationState& BakedState = MachineDesc->States[Transition.NextState];

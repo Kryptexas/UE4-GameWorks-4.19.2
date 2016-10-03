@@ -20,7 +20,8 @@
 #include "DataChannel.h"
 #include "GameFramework/OnlineSession.h"
 #include "GameFramework/PlayerInput.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 
 #include "GameDelegates.h"
@@ -109,17 +110,17 @@ APlayerController* FLocalPlayerContext::GetPlayerController() const
 	return WorldPtr != nullptr ? LocalPlayer->GetPlayerController(WorldPtr) : LocalPlayer->PlayerController;
 }
 
-AGameState* FLocalPlayerContext::GetGameState() const
+class AGameStateBase* FLocalPlayerContext::GetGameState() const
 {
 	UWorld* WorldPtr = World.Get();
 	if (WorldPtr != nullptr)
 	{
-		return WorldPtr->GameState;
+		return WorldPtr->GetGameState();
 	}
-	
+
 	check(LocalPlayer.IsValid());
 	UWorld* LocalPlayerWorld = LocalPlayer->GetWorld();
-	return LocalPlayerWorld ? LocalPlayerWorld->GameState : NULL;
+	return LocalPlayerWorld ? LocalPlayerWorld->GetGameState() : NULL;
 }
 
 APlayerState* FLocalPlayerContext::GetPlayerState() const
@@ -1205,7 +1206,7 @@ bool ULocalPlayer::HandleCancelMatineeCommand( const TCHAR* Cmd, FOutputDevice& 
 	// is the player in cinematic mode?
 	if (PlayerController->bCinematicMode)
 	{
-		TArray<UWorld*> MatineeActorWorldsThatSkipped;
+		bool bFoundMatinee = false;
 		// if so, look for all active matinees that has this Player in a director group
 		for (TActorIterator<AMatineeActor> It(GetWorld()); It; ++It)
 		{
@@ -1226,23 +1227,16 @@ bool ULocalPlayer::HandleCancelMatineeCommand( const TCHAR* Cmd, FOutputDevice& 
 						{
 							// skip to end
 							MatineeActor->SetPosition(MatineeActor->MatineeData->InterpLength - RightBeforeEndTime, true);
-							MatineeActorWorldsThatSkipped.AddUnique( MatineeActor->GetWorld() );
+							bFoundMatinee = true;
 						}
 					}
 				}
 			}
 		}
 
-		if (MatineeActorWorldsThatSkipped.Num() != 0 )
+		if (bFoundMatinee)
 		{
-			for (int iActor = 0; iActor < MatineeActorWorldsThatSkipped.Num() ; iActor++)
-			{
-				AGameMode* const GameMode = MatineeActorWorldsThatSkipped[ iActor ]->GetAuthGameMode();
-				if (GameMode)
-				{
-					GameMode->MatineeCancelled();
-				}
-			}
+			FGameDelegates::Get().GetMatineeCancelledDelegate().Broadcast();
 		}
 	}
 	return true;

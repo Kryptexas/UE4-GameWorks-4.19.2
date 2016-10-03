@@ -156,6 +156,8 @@ const double FChunkFile::GetLastAccessTime() const
 
 /* FQueuedChunkWriter implementation
 *****************************************************************************/
+DECLARE_LOG_CATEGORY_EXTERN(LogChunkWriter, Log, All);
+DEFINE_LOG_CATEGORY(LogChunkWriter);
 FChunkWriter::FQueuedChunkWriter::FQueuedChunkWriter()
 {
 	bMoreChunks = true;
@@ -189,25 +191,25 @@ uint32 FChunkWriter::FQueuedChunkWriter::Run()
 	StatCompressionRatio = StatsCollector->CreateStat(TEXT("Chunk Writer: Compression Ratio"), EStatFormat::Percentage);
 
 	// Loop until there's no more chunks
-	while ( ShouldBeRunning() )
+	while (ShouldBeRunning())
 	{
 		FChunkFile* ChunkFile = GetNextChunk();
-		if( ChunkFile != NULL )
+		if (ChunkFile != NULL)
 		{
 			const FGuid& ChunkGuid = ChunkFile->ChunkHeader.Guid;
 			const uint64& ChunkHash = ChunkFile->ChunkHeader.RollingHash;
-			const FString NewChunkFilename = FBuildPatchUtils::GetChunkNewFilename( EBuildPatchAppManifestVersion::GetLatestVersion(), ChunkDirectory, ChunkGuid, ChunkHash );
+			const FString NewChunkFilename = FBuildPatchUtils::GetChunkNewFilename(EBuildPatchAppManifestVersion::GetLatestVersion(), ChunkDirectory, ChunkGuid, ChunkHash);
 
 			// To be a bit safer, make a few attempts at writing chunks
 			int32 RetryCount = 5;
 			bool bChunkSaveSuccess = false;
-			while ( RetryCount > 0 )
+			while (RetryCount > 0)
 			{
 				// Write out chunks
-				bChunkSaveSuccess = WriteChunkData( NewChunkFilename, ChunkFile, ChunkGuid );
+				bChunkSaveSuccess = WriteChunkData(NewChunkFilename, ChunkFile, ChunkGuid);
 
 				// Check success
-				if( bChunkSaveSuccess )
+				if (bChunkSaveSuccess)
 				{
 					RetryCount = 0;
 				}
@@ -215,26 +217,27 @@ uint32 FChunkWriter::FQueuedChunkWriter::Run()
 				{
 					// Retry after a second if failed
 					--RetryCount;
-					FPlatformProcess::Sleep( 1.0f );
+					FPlatformProcess::Sleep(1.0f);
 				}
 			}
 
 			// If we really could not save out chunk data successfully, this build will never work, so panic flush logs and then cause a hard error.
-			if( !bChunkSaveSuccess )
+			if (!bChunkSaveSuccess)
 			{
+				UE_LOG(LogChunkWriter, Error, TEXT("Could not save out new chunk file %s"), *NewChunkFilename);
 				GLog->PanicFlushThreadedLogs();
-				check( bChunkSaveSuccess );
+				check(bChunkSaveSuccess);
 			}
 
 			// Delete the data memory
 			delete ChunkFile;
 		}
 		double TotalTime = FStatsCollector::CyclesToSeconds(*StatFileCreateTime + *StatSerlialiseTime);
-		if(TotalTime > 0.0)
+		if (TotalTime > 0.0)
 		{
 			FStatsCollector::Set(StatDataWriteSpeed, *StatDataWritten / TotalTime);
 		}
-		FPlatformProcess::Sleep( 0.0f );
+		FPlatformProcess::Sleep(0.0f);
 	}
 	return 0;
 }
@@ -245,44 +248,45 @@ const bool FChunkWriter::FQueuedChunkWriter::WriteChunkData(const FString& Chunk
 	// Chunks are saved with GUID, so if a file already exists it will never be different.
 	// Skip with return true if already exists
 	FStatsCollector::AccumulateTimeBegin(TempTimer);
-	const int64 ChunkFilesSize = IFileManager::Get().FileSize(*ChunkFilename);
+	const int64 ChunkFileSize = IFileManager::Get().FileSize(*ChunkFilename);
 	FStatsCollector::AccumulateTimeEnd(StatCheckExistsTime, TempTimer);
-	if(ChunkFilesSize > 0)
+	if (ChunkFileSize > 0)
 	{
 		FStatsCollector::AccumulateTimeEnd(StatCheckExistsTime, TempTimer);
 		ChunkFileSizesCS.Lock();
-		ChunkFileSizes.Add(ChunkGuid, ChunkFilesSize);
+		ChunkFileSizes.Add(ChunkGuid, ChunkFileSize);
 		ChunkFileSizesCS.Unlock();
+		UE_LOG(LogChunkWriter, Verbose, TEXT("Existing chunk file %s. Size:%lld."), *ChunkGuid.ToString(), ChunkFileSize);
 		return true;
 	}
 	FStatsCollector::AccumulateTimeBegin(TempTimer);
-	FArchive* FileOut = IFileManager::Get().CreateFileWriter( *ChunkFilename );
+	FArchive* FileOut = IFileManager::Get().CreateFileWriter(*ChunkFilename);
 	FStatsCollector::AccumulateTimeEnd(StatFileCreateTime, TempTimer);
 	bool bSuccess = FileOut != NULL;
-	if( bSuccess )
+	if (bSuccess)
 	{
 		// Setup to handle compression
 		bool bDataIsCompressed = true;
 		uint8* ChunkDataSource = ChunkFile->ChunkData;
 		int32 ChunkDataSourceSize = FBuildPatchData::ChunkDataSize;
 		TArray< uint8 > TempCompressedData;
-		TempCompressedData.Empty( ChunkDataSourceSize );
-		TempCompressedData.AddUninitialized( ChunkDataSourceSize );
+		TempCompressedData.Empty(ChunkDataSourceSize);
+		TempCompressedData.AddUninitialized(ChunkDataSourceSize);
 		int32 CompressedSize = ChunkDataSourceSize;
 
 		// Compressed can increase in size, but the function will return as failure in that case
 		// we can allow that to happen since we would not keep larger compressed data anyway.
 		FStatsCollector::AccumulateTimeBegin(TempTimer);
 		bDataIsCompressed = FCompression::CompressMemory(
-			static_cast< ECompressionFlags >( COMPRESS_ZLIB | COMPRESS_BiasMemory ),
+			static_cast<ECompressionFlags>(COMPRESS_ZLIB | COMPRESS_BiasMemory),
 			TempCompressedData.GetData(),
 			CompressedSize,
 			ChunkFile->ChunkData,
-			FBuildPatchData::ChunkDataSize );
+			FBuildPatchData::ChunkDataSize);
 		FStatsCollector::AccumulateTimeEnd(StatCompressTime, TempTimer);
 
 		// If compression succeeded, set data vars
-		if( bDataIsCompressed )
+		if (bDataIsCompressed)
 		{
 			ChunkDataSource = TempCompressedData.GetData();
 			ChunkDataSourceSize = CompressedSize;
@@ -301,25 +305,30 @@ const bool FChunkWriter::FQueuedChunkWriter::WriteChunkData(const FString& Chunk
 		FileOut->Seek(0);
 		*FileOut << Header;
 		FileOut->Serialize(ChunkDataSource, ChunkDataSourceSize);
-		const int64 NewChunkFilesSize = FileOut->TotalSize();
+		const int64 NewChunkFileSize = FileOut->TotalSize();
 		FileOut->Close();
 		FStatsCollector::AccumulateTimeEnd(StatSerlialiseTime, TempTimer);
 		FStatsCollector::Accumulate(StatChunksSaved, 1);
-		FStatsCollector::Accumulate(StatDataWritten, NewChunkFilesSize);
+		FStatsCollector::Accumulate(StatDataWritten, NewChunkFileSize);
 		FStatsCollector::SetAsPercentage(StatCompressionRatio, *StatDataWritten / double(*StatChunksSaved * (Header.HeaderSize + FBuildPatchData::ChunkDataSize)));
 
 		ChunkFileSizesCS.Lock();
-		ChunkFileSizes.Add(ChunkGuid, NewChunkFilesSize);
+		ChunkFileSizes.Add(ChunkGuid, NewChunkFileSize);
 		ChunkFileSizesCS.Unlock();
 
 		bSuccess = !FileOut->GetError();
 
+		if (bSuccess)
+		{
+			UE_LOG(LogChunkWriter, Verbose, TEXT("New chunk file saved %s. Compressed:%d, Size:%lld."), *ChunkGuid.ToString(), bDataIsCompressed, NewChunkFileSize);
+		}
+
 		delete FileOut;
 	}
 	// Log errors
-	if( !bSuccess )
+	if (!bSuccess)
 	{
-		GLog->Logf( TEXT( "BuildPatchServices: Error: Could not save out generated chunk file %s" ), *ChunkFilename );
+		UE_LOG(LogChunkWriter, Warning, TEXT("Attempt to save chunk file %s was not successful."), *ChunkFilename);
 	}
 	return bSuccess;
 }

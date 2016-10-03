@@ -271,7 +271,7 @@ public:
 	bool UseBlackboard(UBlackboardData* BlackboardAsset, UBlackboardComponent*& BlackboardComponent);
 
 	/** does this AIController allow given UBlackboardComponent sync data with it */
-	virtual bool ShouldSyncBlackboardWith(const UBlackboardComponent& OtherBlackboardComponent) const { return true; }
+	virtual bool ShouldSyncBlackboardWith(const UBlackboardComponent& OtherBlackboardComponent) const;
 
 	UFUNCTION(BlueprintCallable, Category = "AI|Tasks")
 	void ClaimTaskResource(TSubclassOf<UGameplayTaskResource> ResourceClass);

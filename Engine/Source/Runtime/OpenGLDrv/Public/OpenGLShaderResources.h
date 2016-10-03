@@ -238,7 +238,7 @@ inline FArchive& operator<<(FArchive& Ar, FOpenGLCodeHeader& Header)
 			Header.UniformBuffersCopyInfo.Add(Info);
 		}
 	}
-	return Ar;
+    return Ar;
 }
 
 class FOpenGLLinkedProgram;

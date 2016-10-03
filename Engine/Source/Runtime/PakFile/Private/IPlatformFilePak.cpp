@@ -2434,7 +2434,7 @@ bool FPakEntry::VerifyPakEntriesMatch(const FPakEntry& FileEntryA, const FPakEnt
 	return bResult;
 }
 
-bool FPakPlatformFile::IsNonPakFilenameAllowed(const FString& InFilename)
+bool FPakPlatformFile::IsNonPakFilenameAllowed(const FString& InFilename, bool bAllowDirectories)
 {
 	FFilenameSecurityDelegate& FilenameSecurityDelegate = GetFilenameSecurityDelegate();
 
@@ -2444,6 +2444,10 @@ bool FPakPlatformFile::IsNonPakFilenameAllowed(const FString& InFilename)
 	}
 
 	if (GetLowerLevel()->FileExists(*InFilename))
+	{
+		return FilenameSecurityDelegate.Execute(*InFilename);
+	}
+	else if (bAllowDirectories && GetLowerLevel()->DirectoryExists(*InFilename))
 	{
 		return FilenameSecurityDelegate.Execute(*InFilename);
 	}
@@ -3168,7 +3172,7 @@ bool FPakPlatformFile::BufferedCopyFile(IFileHandle& Dest, IFileHandle& Source, 
 	return true;
 }
 
-bool FPakPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
+bool FPakPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags, EPlatformFileWrite WriteFlags)
 {
 	bool Result = false;
 	FPakFile* PakFile = NULL;
@@ -3177,7 +3181,7 @@ bool FPakPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
 	{
 		// Copy from pak to LowerLevel->
 		// Create handles both files.
-		TAutoPtr<IFileHandle> DestHandle(LowerLevel->OpenWrite(To));
+		TAutoPtr<IFileHandle> DestHandle(LowerLevel->OpenWrite(To, false, (WriteFlags & EPlatformFileWrite::AllowRead) != EPlatformFileWrite::None));
 		TAutoPtr<IFileHandle> SourceHandle(CreatePakFileHandle(From, PakFile, FileEntry));
 
 		if (DestHandle.IsValid() && SourceHandle.IsValid())
@@ -3190,7 +3194,7 @@ bool FPakPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
 	}
 	else
 	{
-		Result = LowerLevel->CopyFile(To, From);
+		Result = LowerLevel->CopyFile(To, From, ReadFlags, WriteFlags);
 	}
 	return Result;
 }

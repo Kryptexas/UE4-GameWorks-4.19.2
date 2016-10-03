@@ -17,8 +17,8 @@
 #define LOCTEXT_NAMESPACE "AnimNodeSlotDetails"
 
 ////////////////////////////////////////////////////////////////
-FAnimGraphNodeSlotDetails::FAnimGraphNodeSlotDetails(TWeakPtr<class FPersona> InPersonalEditor)
-:PersonaEditor(InPersonalEditor)
+FAnimGraphNodeSlotDetails::FAnimGraphNodeSlotDetails(FOnInvokeTab InOnInvokeTab)
+	: OnInvokeTab(InOnInvokeTab)
 {
 }
 
@@ -192,10 +192,7 @@ void FAnimGraphNodeSlotDetails::OnSlotListOpening()
 
 FReply FAnimGraphNodeSlotDetails::OnOpenAnimSlotManager()
 {
-	if(PersonaEditor.IsValid())
-	{
-		PersonaEditor.Pin()->GetTabManager()->InvokeTab(FPersonaTabs::SkeletonSlotNamesID);
-	}
+	OnInvokeTab.ExecuteIfBound(FPersonaTabs::SkeletonSlotNamesID);
 	return FReply::Handled();
 }
 

@@ -1676,6 +1676,86 @@ bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 	return IsRegistered() && !IsBeingDestroyed() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
+bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex) const
+{
+	if (!StaticMesh)
+		return false;
+
+	FTransform InstanceTransform; 
+	if (!GetInstanceTransform(0, InstanceTransform, true)) 
+		return false;
+
+	float TexelFactor = 0;
+	if (!StaticMesh->GetStreamingTextureFactor(TexelFactor, OutBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
+		return false;
+
+	// Here we weight the texel factor by the by maximum axis scale as it would scale also the surface.
+	float Weight = InstanceTransform.GetMaximumAxisScale();
+	float WeightedTexelFactorSum = TexelFactor * Weight;
+	float WeightSum = Weight;
+
+	for (int32 InstanceIndex = 1; InstanceIndex < PerInstanceSMData.Num(); ++InstanceIndex)
+	{
+		FBoxSphereBounds InstanceBounds;
+		if (GetInstanceTransform(InstanceIndex, InstanceTransform, true))
+		{
+			if (StaticMesh->GetStreamingTextureFactor(TexelFactor, InstanceBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
+			{
+				Weight = InstanceTransform.GetMaximumAxisScale();
+				WeightedTexelFactorSum += TexelFactor * Weight;
+				WeightSum += Weight;
+
+				OutBounds = Union(OutBounds, InstanceBounds);
+			}
+		}
+	}
+
+	if (WeightSum > SMALL_NUMBER)
+	{
+		OutTexelFactor = WeightedTexelFactorSum / WeightSum;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
+{
+	if (StaticMesh && PerInstanceSMData.Num() > 0)
+	{
+		float WeightedAxisScaleSum = 0;
+		float WeightSum  = 0;
+
+		for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
+		{
+			const float AxisScale = PerInstanceSMData[InstanceIndex].Transform.GetMaximumAxisScale();
+			const float Weight = AxisScale; // The weight is the axis scale since we want to weight by surface coverage.
+			WeightedAxisScaleSum += AxisScale * Weight;
+			WeightSum  += Weight;
+		}
+
+		if (WeightSum > SMALL_NUMBER)
+		{
+			OutWorldTexelFactor = OutWorldLightmapFactor = WeightedAxisScaleSum / WeightSum * ComponentToWorld.GetMaximumAxisScale();
+			OutWorldTexelFactor *= StaticMesh->GetStreamingTextureFactor(0);
+
+			TIndirectArray<FStaticMeshLODResources>& LODResources = StaticMesh->RenderData->LODResources;
+			const bool bHasValidLightmapCoordinates = StaticMesh->LightMapCoordinateIndex >= 0 && (uint32)StaticMesh->LightMapCoordinateIndex < LODResources[0].VertexBuffer.GetNumTexCoords();
+			if (bHasValidLightmapCoordinates)
+			{
+				OutWorldLightmapFactor *= StaticMesh->GetStreamingTextureFactor(StaticMesh->LightMapCoordinateIndex);
+			}
+			else
+			{
+				OutWorldLightmapFactor = 0;
+			}
+			return true;
+		}
+	}
+	return false;
+}
 void UInstancedStaticMeshComponent::ClearInstances()
 {
 	// Clear all the per-instance data

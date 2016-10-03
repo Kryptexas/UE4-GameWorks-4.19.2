@@ -1633,7 +1633,7 @@ namespace UnrealBuildTool
 
 			if (LinkEnvironment.Config.bIsCrossReferenced && !bBuildImportLibraryOnly)
 			{
-				ImportLibraryFilePath += ".suppressed";
+				ImportLibraryFilePath = ImportLibraryFilePath.ChangeExtension(".suppressed" + ImportLibraryFilePath.GetExtension());
 			}
 
 			FileItem OutputFile;

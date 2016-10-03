@@ -18,10 +18,10 @@ UMaterialInterface* FMovieSceneWidgetMaterialTrackInstance::GetMaterialForObject
 	UWidget* Widget = Cast<UWidget>(Object);
 	if ( Widget != nullptr )
 	{
-		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, BrushPropertyNamePath );
-		if ( Brush != nullptr )
+		FWidgetMaterialHandle Handle = WidgetMaterialTrackUtilities::GetMaterialHandle( Widget, BrushPropertyNamePath );
+		if (Handle.IsValid() )
 		{
-			return Cast<UMaterialInterface>( Brush->GetResourceObject() );
+			return Handle.GetMaterial();
 		}
 	}
 	return nullptr;
@@ -33,7 +33,7 @@ void FMovieSceneWidgetMaterialTrackInstance::SetMaterialForObject( UObject* Obje
 	UWidget* Widget = Cast<UWidget>( Object );
 	if ( Widget != nullptr )
 	{
-		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, BrushPropertyNamePath );
-		Brush->SetResourceObject( Material );
+		FWidgetMaterialHandle Handle = WidgetMaterialTrackUtilities::GetMaterialHandle(Widget, BrushPropertyNamePath);
+		Handle.SetMaterial(Material);
 	}
 }

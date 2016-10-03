@@ -14,6 +14,8 @@
 #include "SSkeletonAnimNotifies.h"
 
 #include "AnimBlueprintMode.h"
+#include "IPersonaToolkit.h"
+#include "ISkeletonTree.h"
 
 /////////////////////////////////////////////////////
 // FAnimBlueprintEditAppMode
@@ -110,13 +112,13 @@ FAnimBlueprintEditAppMode::FAnimBlueprintEditAppMode(TSharedPtr<FPersona> InPers
 		);
 
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonTreeSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimationAssetBrowserSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FPreviewViewportSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonAnimNotifiesSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimBlueprintPreviewEditorSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimBlueprintParentPlayerEditorSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotNamesSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FAdvancedPreviewSceneTabSummoner(InPersona)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimationAssetBrowserSummoner(InPersona, InPersona->GetPersonaToolkit(), FOnOpenNewAsset::CreateSP(InPersona.Get(), &FPersona::HandleOpenNewAsset), FOnAnimationSequenceBrowserCreated(), false)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FPreviewViewportSummoner(InPersona, InPersona->GetSkeletonTree(), InPersona->GetPreviewScene(), InPersona->OnPostUndo, InPersona, FOnViewportCreated::CreateSP(InPersona.Get(), &FPersona::HandleViewportCreated), false, false)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonAnimNotifiesSummoner(InPersona, InPersona->GetSkeletonTree()->GetEditableSkeleton(), InPersona->OnAnimNotifiesChanged, InPersona->OnPostUndo, FOnObjectsSelected::CreateSP(InPersona.Get(), &FPersona::HandleObjectsSelected))));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimBlueprintPreviewEditorSummoner(InPersona, InPersona->GetPreviewScene())));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimBlueprintParentPlayerEditorSummoner(InPersona, InPersona->OnPostUndo)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotNamesSummoner(InPersona, InPersona->GetSkeletonTree()->GetEditableSkeleton(), InPersona->OnPostUndo, FOnObjectSelected::CreateSP(InPersona.Get(), &FPersona::HandleObjectSelected))));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAdvancedPreviewSceneTabSummoner(InPersona, InPersona->GetPreviewScene())));
 
 	// setup toolbar - clear existing toolbar extender from the BP mode
 	//@TODO: Keep this in sync with BlueprintEditorModes.cpp
@@ -146,10 +148,10 @@ void FAnimBlueprintEditAppMode::PostActivateMode()
 	if (UAnimBlueprint* AnimBlueprint = Persona->GetAnimBlueprint())
 	{
 		// Switch off any active preview when going to graph editing mode
-		Persona->SetPreviewAnimationAsset(NULL, false);
+		Persona->GetPersonaToolkit()->GetPreviewScene()->SetPreviewAnimationAsset(NULL, false);
 
 		// When switching to anim blueprint mode, make sure the object being debugged is either a valid world object or the preview instance
-		UDebugSkelMeshComponent* PreviewComponent = Persona->GetPreviewMeshComponent();
+		UDebugSkelMeshComponent* PreviewComponent = Persona->GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
 		if ((AnimBlueprint->GetObjectBeingDebugged() == NULL) && (PreviewComponent->IsAnimBlueprintInstanced()))
 		{
 			AnimBlueprint->SetObjectBeingDebugged(PreviewComponent->GetAnimInstance());

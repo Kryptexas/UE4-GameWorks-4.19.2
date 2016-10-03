@@ -12,6 +12,7 @@
 #include "WidgetBlueprint.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "NamedSlot.h"
+#include "WidgetBlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -218,7 +219,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 		}
 
 		UObjectPropertyBase* ExistingProperty = Cast<UObjectPropertyBase>(ParentClass->FindPropertyByName(Widget->GetFName()));
-		if (ExistingProperty && ExistingProperty->HasMetaData("BindWidget") && Widget->IsA(ExistingProperty->PropertyClass))
+		if ( ExistingProperty && FWidgetBlueprintEditorUtils::IsBindWidgetProperty(ExistingProperty) )
 		{
 			WidgetToMemberVariableMap.Add(Widget, ExistingProperty);
 			continue;
@@ -310,7 +311,10 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 	UClass* ParentClass = WidgetBP->ParentClass;
 	for ( TUObjectPropertyBase<UWidget*>* WidgetProperty : TFieldRange<TUObjectPropertyBase<UWidget*>>( ParentClass ) )
 	{
-		if ( WidgetProperty->HasMetaData( "BindWidget" ) && ( !WidgetProperty->HasMetaData( "OptionalWidget" ) || !WidgetProperty->GetBoolMetaData( "OptionalWidget" ) ) )
+		bool bIsOptional;
+		bool bIsBindWidget = FWidgetBlueprintEditorUtils::IsBindWidgetProperty(WidgetProperty, bIsOptional);
+
+		if ( bIsBindWidget && !bIsOptional )
 		{
 			UWidget* const* Widget = WidgetToMemberVariableMap.FindKey( WidgetProperty );
 			if ( !Widget )

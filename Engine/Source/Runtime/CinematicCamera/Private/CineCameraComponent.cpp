@@ -295,8 +295,7 @@ void UCineCameraComponent::CreateDebugFocusPlane()
 		{
 			DebugFocusPlaneComponent = NewObject<UStaticMeshComponent>(MyOwner, NAME_None, RF_Transactional | RF_TextExportTransient);
 			DebugFocusPlaneComponent->SetupAttachment(this);
-			DebugFocusPlaneComponent->AlwaysLoadOnClient = false;
-			DebugFocusPlaneComponent->AlwaysLoadOnServer = false;
+			DebugFocusPlaneComponent->bIsEditorOnly = true;
 			DebugFocusPlaneComponent->StaticMesh = DebugFocusPlaneMesh;
 			DebugFocusPlaneComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 			DebugFocusPlaneComponent->bHiddenInGame = false;

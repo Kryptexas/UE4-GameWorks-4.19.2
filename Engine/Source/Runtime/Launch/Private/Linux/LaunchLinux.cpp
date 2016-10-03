@@ -14,7 +14,7 @@ extern int32 GuardedMain( const TCHAR* CmdLine );
  *
  * If you change the prototype here, update CommonLinuxMain() too!
  */
-void LaunchLinux_FEngineLoop_AppExit()
+void LAUNCH_API LaunchLinux_FEngineLoop_AppExit()
 {
 	return FEngineLoop::AppExit();
 }

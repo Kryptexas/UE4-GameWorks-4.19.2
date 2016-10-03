@@ -6,7 +6,6 @@
 #include "SAnimMontageSectionsPanel.h"
 #include "ScopedTransaction.h"
 #include "SCurveEditor.h"
-#include "SAnimationSequenceBrowser.h"
 #include "SMontageEditor.h"
 #include "SExpandableArea.h"
 

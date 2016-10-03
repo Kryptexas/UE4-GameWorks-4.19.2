@@ -4,7 +4,7 @@
 #include "MovieSceneCapture.h"
 
 #include "UnrealEdMisc.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 
 #include "SlateBasics.h"
 #include "SlateExtras.h"
@@ -571,7 +571,7 @@ private:
 	TArray<uint8> BackedUpPlaySettings;
 	UMovieSceneCapture* CaptureObject;
 
-	TSubclassOf<AGameMode> CachedGameMode;
+	TSubclassOf<AGameModeBase> CachedGameMode;
 };
 
 class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule

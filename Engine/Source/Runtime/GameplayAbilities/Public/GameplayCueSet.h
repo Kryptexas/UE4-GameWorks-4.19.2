@@ -62,6 +62,9 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 	/** Nulls reference to the loaded class. Note this doesn't remove the entire cue from the internal data structure, just the hard ref to the loaded class */
 	virtual void RemoveLoadedClass(UClass* Class);
 
+	/** Returns filenames of everything we know about (loaded or not) */
+	virtual void GetFilenames(TArray<FString>& Filenames) const;
+
 #if WITH_EDITOR
 
 	/** Updates an existing cue */

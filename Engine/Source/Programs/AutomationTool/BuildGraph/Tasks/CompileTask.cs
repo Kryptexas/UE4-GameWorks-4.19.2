@@ -114,7 +114,8 @@ namespace AutomationTool
             UE4Build Builder = new UE4Build(Job.OwnerCommand);
 			try
 			{
-				Builder.Build(Agenda, InDeleteBuildProducts: null, InUpdateVersionFiles: false, InForceNoXGE: false, InUseParallelExecutor: true, InTargetToManifest: TargetToManifest);
+				bool bCanUseParallelExecutor = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64);	// parallel executor is only available on Windows as of 2016-09-22
+				Builder.Build(Agenda, InDeleteBuildProducts: null, InUpdateVersionFiles: false, InForceNoXGE: false, InUseParallelExecutor: bCanUseParallelExecutor, InTargetToManifest: TargetToManifest);
 			}
 			catch (CommandUtils.CommandFailedException)
 			{

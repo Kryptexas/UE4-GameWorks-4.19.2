@@ -5,25 +5,27 @@
 
 #include "Persona.h"
 #include "SEditorViewport.h"
+#include "IPersonaViewport.h"
 
-//////////////////////////////////////////////////////////////////////////
-// EAnimationPlaybackSpeeds
-
-namespace EAnimationPlaybackSpeeds
+struct FAnimationEditorViewportRequiredArgs
 {
-	enum Type
-	{
-		OneTenth=0,
-		Quarter,
-		Half,
-		Normal,
-		Double,
-		FiveTimes,
-		TenTimes,
-		NumPlaybackSpeeds
-	};
+	FAnimationEditorViewportRequiredArgs(const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, TSharedRef<class SAnimationEditorViewportTabBody> InTabBody, TSharedRef<class FAssetEditorToolkit> InAssetEditorToolkit, FSimpleMulticastDelegate& InOnPostUndo)
+		: SkeletonTree(InSkeletonTree)
+		, PreviewScene(InPreviewScene)
+		, TabBody(InTabBody)
+		, AssetEditorToolkit(InAssetEditorToolkit)
+		, OnPostUndo(InOnPostUndo)
+	{}
 
-	extern float Values[NumPlaybackSpeeds];
+	TSharedRef<class ISkeletonTree> SkeletonTree;
+
+	TSharedRef<class IPersonaPreviewScene> PreviewScene;
+
+	TSharedRef<class SAnimationEditorViewportTabBody> TabBody;
+
+	TSharedRef<class FAssetEditorToolkit> AssetEditorToolkit;
+
+	FSimpleMulticastDelegate& OnPostUndo;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -32,12 +34,15 @@ namespace EAnimationPlaybackSpeeds
 class SAnimationEditorViewport : public SEditorViewport
 {
 public:
-	SLATE_BEGIN_ARGS(SAnimationEditorViewport) {}
+	SLATE_BEGIN_ARGS(SAnimationEditorViewport) 
+		: _ShowStats(true)
+	{}
+
+	SLATE_ARGUMENT(bool, ShowStats)
+
 	SLATE_END_ARGS()
 
-	~SAnimationEditorViewport();
-
-	void Construct(const FArguments& InArgs, TSharedPtr<class FPersona> InPersona, TSharedPtr<class SAnimationEditorViewportTabBody> InTabBody);
+	void Construct(const FArguments& InArgs, const FAnimationEditorViewportRequiredArgs& InRequiredArgs);
 
 protected:
 	// SEditorViewport interface
@@ -55,32 +60,48 @@ protected:
 	// Pointer to the compound widget that owns this viewport widget
 	TWeakPtr<class SAnimationEditorViewportTabBody> TabBodyPtr;
 
-	// Pointer back to the Persona tool that owns us
-	TWeakPtr<class FPersona> PersonaPtr;
+	// The preview scene that we are viewing
+	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
+
+	// The skeleton tree we are editing
+	TWeakPtr<class ISkeletonTree> SkeletonTreePtr;
+
+	// The asset editor we are embedded in
+	TWeakPtr<class FAssetEditorToolkit> AssetEditorToolkitPtr;
+
+	/** Whether we should show stats for this viewport */
+	bool bShowStats;
 };
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimationEditorViewportTabBody
 
-class SAnimationEditorViewportTabBody : public SCompoundWidget
+class SAnimationEditorViewportTabBody : public IPersonaViewport
 {
 public:
 	SLATE_BEGIN_ARGS( SAnimationEditorViewportTabBody )
-		: _Persona()
-		, _Skeleton()
-		, _IsEditable(true)
+		: _BlueprintEditor()
+		, _ShowTimeline(true)
 		{}
 
-		SLATE_ARGUMENT( TSharedPtr<FPersona>, Persona )
-		SLATE_ARGUMENT( USkeleton*, Skeleton )
-		SLATE_ATTRIBUTE( bool, IsEditable )
+		SLATE_ARGUMENT(TWeakPtr<FBlueprintEditor>, BlueprintEditor)
+
+		SLATE_ARGUMENT(FOnInvokeTab, OnInvokeTab)
+
+		SLATE_ARGUMENT(bool, ShowTimeline)
+
+		SLATE_ARGUMENT(bool, ShowStats)
 	SLATE_END_ARGS()
 public:
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class FAssetEditorToolkit>& InAssetEditorToolkit, FSimpleMulticastDelegate& InOnUndoRedo);
 	SAnimationEditorViewportTabBody();
 	virtual ~SAnimationEditorViewportTabBody();
 
+	/** IPersonaViewport interface */
+	virtual TSharedRef<IPersonaViewportState> SaveState() const override;
+	virtual void RestoreState(TSharedRef<IPersonaViewportState> InState) override;
+	
 	void RefreshViewport();
 
 	/**
@@ -88,11 +109,8 @@ public:
 	 */
 	const TSharedPtr<FUICommandList>& GetCommandList() const { return UICommandList; }
 
-	/** Preview mode related function **/
-	bool IsPreviewModeOn( int32 PreviewMode ) const;
-
-	/** Sets up the viewport with Persona's preview component */
-	void SetPreviewComponent( class UDebugSkelMeshComponent* PreviewComponent);
+	/** Handle the skeletal mesh changing */
+	void HandlePreviewMeshChanged(class USkeletalMesh* SkeletalMesh);
 
 	/** Function to get the number of LOD models associated with the preview skeletal mesh*/
 	int32 GetLODModelCount() const;
@@ -134,10 +152,6 @@ public:
 	/** Gets the animation viewport client */
 	TSharedRef<class FAnimationViewportClient> GetAnimationViewportClient() const;
 
-	/** Save data from OldViewport, and Restore **/
-	void SaveData(class SAnimationEditorViewportTabBody* OldViewport);
-	void RestoreData();
-
 	/** Returns Detail description of what's going with viewport **/
 	FText GetDisplayString() const;
 
@@ -146,15 +160,6 @@ public:
 
 	/** Function to check whether floor is auto aligned or not */
 	bool IsAutoAlignFloor() const;
-	
-	/** Clears our reference to Persona, also cleaning up anything that depends on Persona first */
-	void CleanupPersonaReferences();
-
-	/** Gets Persona to access to PreviewComponent for checking whether it shows clothing options or not */
-	TWeakPtr<FPersona> GetPersona() const 
-	{ 
-		return PersonaPtr; 
-	}
 
 	void SetWindStrength( float SliderPos );
 
@@ -174,6 +179,15 @@ public:
 	/** Function to set LOD model selection*/
 	void OnSetLODModel(int32 LODSelectionType);
 
+	/** Get the skeleton tree we are bound to */
+	TSharedRef<class ISkeletonTree> GetSkeletonTree() const { return SkeletonTreePtr.Pin().ToSharedRef(); }
+
+	/** Get the preview scene we are viewing */
+	TSharedRef<class FAnimationEditorPreviewScene> GetPreviewScene() const { return PreviewScenePtr.Pin().ToSharedRef(); }
+
+	/** Get the skeleton tree we are bound to */
+	TSharedPtr<class FAssetEditorToolkit> GetAssetEditorToolkit() const { return AssetEditorToolkitPtr.Pin(); }
+
 protected:
 
 
@@ -184,9 +198,6 @@ private:
 	 * Binds our UI commands to delegates
 	 */ 
 	void BindCommands();
-
-	/** Preview mode related function **/
-	void SetPreviewMode( int32 PreviewMode );
 
 	/** Show Morphtarget of SkeletalMesh **/
 	void OnShowMorphTargets();
@@ -270,18 +281,10 @@ private:
 	bool IsShowingMeshInfo(int32 DisplayInfoMode) const;
 
 	/** Function to show/hide grid in the viewport */
-	void OnShowGrid();
-	
+	void OnShowGrid();	
+
 	/** Toggles floor alignment in the preview scene */
 	void OnToggleAutoAlignFloor();
-
-	/** update reference pose with current preview mesh */
-	void UpdateReferencePose();
-
-	/** Called to toggle showing of reference pose on current preview mesh */
-	void ShowReferencePose();
-	bool CanShowReferencePose() const;
-	bool IsShowReferencePoseEnabled() const;
 
 	/** Called to toggle showing of reference pose on current preview mesh */
 	void ShowRetargetBasePose();
@@ -314,6 +317,9 @@ private:
 
 	void AnimChanged(UAnimationAsset* AnimAsset);
 
+	/** Open the preview scene settings */
+	void OpenPreviewSceneSettings();
+
 	/** Called to toggle camera lock for naviagating **/
 	void ToggleCameraFollow();
 	bool IsCameraFollowEnabled() const;
@@ -323,9 +329,6 @@ private:
 
 	/** Tests to see if bone move mode buttons should be visibile */
 	EVisibility GetBoneMoveModeButtonVisibility() const;
-
-	/** Changes the currently selected LoD if the current one becomes invalid */
-	void OnLODChanged();
 
 	/** Function to mute/unmute viewport audio */
 	void OnMuteAudio();
@@ -402,14 +405,20 @@ private:
 #endif // #if WITH_APEX_CLOTHING
 
 private:
-	/** Pointer back to the Persona tool that owns us */
-	TWeakPtr<FPersona> PersonaPtr;
+	/** Weak pointer back to the skeleton tree we are bound to */
+	TWeakPtr<class ISkeletonTree> SkeletonTreePtr;
 
-	/** Skeleton */
-	USkeleton* TargetSkeleton;
+	/** Weak pointer back to the preview scene we are viewing */
+	TWeakPtr<class FAnimationEditorPreviewScene> PreviewScenePtr;
 
-	/** Is this view editable */
-	TAttribute<bool> IsEditable;
+	/** Weak pointer back to asset editor we are embedded in */
+	TWeakPtr<class FAssetEditorToolkit> AssetEditorToolkitPtr;
+
+	/** Weak pointer to the blueprint editor we are optionally embedded in */
+	TWeakPtr<class FBlueprintEditor> BlueprintEditorPtr;
+
+	/** Whether to show the timeline */
+	bool bShowTimeline;
 
 	/** Level viewport client */
 	TSharedPtr<FEditorViewportClient> LevelViewportClient;
@@ -422,6 +431,9 @@ private:
 
 	/** Commands that are bound to delegates*/
 	TSharedPtr<FUICommandList> UICommandList;
+
+	/** Delegate used to invoke tabs in the containing asset editor */
+	FOnInvokeTab OnInvokeTab;
 
 public:
 	/** UV Channel Selector */
@@ -437,13 +449,8 @@ private:
 	/** Box that contains scrub panel */
 	TSharedPtr<SVerticalBox> ScrubPanelContainer;
 
-	bool bPreviewLockModeOn;
-
 	/** Current LOD selection*/
 	int32 LODSelection;
-
-	/** Selected playback speed mode, used for deciding scale */
-	EAnimationPlaybackSpeeds::Type AnimationPlaybackSpeedMode;
 
 	/** Get Min/Max Input of value **/
 	float GetViewMinInput() const;
@@ -456,9 +463,6 @@ private:
 	void UpdateScrubPanel(UAnimationAsset* AnimAsset);
 private:
 	friend class FPersona;
-
-	EVisibility GetViewportCornerImageVisibility() const;
-	const FSlateBrush* GetViewportCornerImage() const;
 
 	EVisibility GetViewportCornerTextVisibility() const;
 	FText GetViewportCornerText() const;

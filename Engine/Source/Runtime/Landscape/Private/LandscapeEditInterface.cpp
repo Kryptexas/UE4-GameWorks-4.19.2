@@ -5,16 +5,13 @@ LandscapeEditInterface.cpp: Landscape editing interface
 =============================================================================*/
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
 
 #if WITH_EDITOR
 
+#include "Landscape.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
 #include "LandscapeRender.h"
-#include "Landscape.h"
-#include "LandscapeInfo.h"
-#include "LandscapeLayerInfoObject.h"
 #include "ComponentReregisterContext.h"
 #include "Containers/ArrayView.h"
 
@@ -1414,12 +1411,12 @@ namespace
 
 		inline void Store(int32 LandscapeX, int32 LandscapeY, uint16 Height)
 		{
-			SparseData.Add(ALandscape::MakeKey(LandscapeX,LandscapeY), Height);
+			SparseData.Add(FIntPoint(LandscapeX,LandscapeY), Height);
 		}
 
 		inline uint16 Load(int32 LandscapeX, int32 LandscapeY)
 		{
-			return SparseData.FindRef(ALandscape::MakeKey(LandscapeX,LandscapeY));
+			return SparseData.FindRef(FIntPoint(LandscapeX,LandscapeY));
 		}
 
 		inline void StoreDefault(int32 LandscapeX, int32 LandscapeY)
@@ -2186,27 +2183,27 @@ namespace
 
 	template<> void TSparseStoreData<uint8>::Store(int32 LandscapeX, int32 LandscapeY, uint8 Weight)
 	{
-		SparseData.Add(ALandscape::MakeKey(LandscapeX,LandscapeY), Weight);
+		SparseData.Add(FIntPoint(LandscapeX,LandscapeY), Weight);
 	}
 
 	template<> uint8 TSparseStoreData<uint8>::Load(int32 LandscapeX, int32 LandscapeY)
 	{
-		return SparseData.FindRef(ALandscape::MakeKey(LandscapeX,LandscapeY));
+		return SparseData.FindRef(FIntPoint(LandscapeX,LandscapeY));
 	}
 
 	template<> FVector2D TSparseStoreData<FVector2D>::Load(int32 LandscapeX, int32 LandscapeY)
 	{
-		return SparseData.FindRef(ALandscape::MakeKey(LandscapeX, LandscapeY));
+		return SparseData.FindRef(FIntPoint(LandscapeX, LandscapeY));
 	}
 
 	template<> FVector TSparseStoreData<FVector>::Load(int32 LandscapeX, int32 LandscapeY)
 	{
-		return SparseData.FindRef(ALandscape::MakeKey(LandscapeX, LandscapeY));
+		return SparseData.FindRef(FIntPoint(LandscapeX, LandscapeY));
 	}
 
 	template<> void TSparseStoreData<TArray<uint8>>::Store(int32 LandscapeX, int32 LandscapeY, uint8 Weight, int32 LayerIdx)
 	{
-		TArray<uint8>* Value = SparseData.Find(ALandscape::MakeKey(LandscapeX,LandscapeY));
+		TArray<uint8>* Value = SparseData.Find(FIntPoint(LandscapeX,LandscapeY));
 		if (Value)
 		{
 			(*Value)[LayerIdx] = Weight;
@@ -2217,19 +2214,19 @@ namespace
 			Values.Empty(ArraySize);
 			Values.AddZeroed(ArraySize);
 			Values[LayerIdx] = Weight;
-			SparseData.Add(ALandscape::MakeKey(LandscapeX, LandscapeY), Values);
+			SparseData.Add(FIntPoint(LandscapeX, LandscapeY), Values);
 		}
 	}
 
 	template<> void TSparseStoreData<FVector2D>::Store(int32 LandscapeX, int32 LandscapeY, FVector2D Offset)
 	{
-		SparseData.Add(ALandscape::MakeKey(LandscapeX,LandscapeY), Offset);
+		SparseData.Add(FIntPoint(LandscapeX,LandscapeY), Offset);
 	}
 
 	template<> void TSparseStoreData<FVector>::Store(int32 LandscapeX, int32 LandscapeY, FVector2D Offset)
 	{
 		// Preserve old Z value
-		FVector* PrevValue = SparseData.Find(ALandscape::MakeKey(LandscapeX,LandscapeY));
+		FVector* PrevValue = SparseData.Find(FIntPoint(LandscapeX,LandscapeY));
 		if (PrevValue != NULL)
 		{
 			PrevValue->X = Offset.X;
@@ -2237,7 +2234,7 @@ namespace
 		}
 		else
 		{
-			SparseData.Add(ALandscape::MakeKey(LandscapeX,LandscapeY), FVector(Offset.X, Offset.Y, 0.0f));
+			SparseData.Add(FIntPoint(LandscapeX,LandscapeY), FVector(Offset.X, Offset.Y, 0.0f));
 		}
 	}
 };

@@ -152,10 +152,10 @@ namespace UnrealBuildTool
 
 		string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
 		{
-			// @todo tvos merge: Make sure PlatformContext is proper (TVOS vs IOS platform)
-			PlatformContext.SetUpProjectEnvironment(CompileEnvironment.Config.Target.Configuration);
+            // @todo tvos merge: Make sure PlatformContext is proper (TVOS vs IOS platform)
+            PlatformContext.SetUpProjectEnvironment(CompileEnvironment.Config.Target.Configuration);
 
-			string Result = "";
+            string Result = "";
 
 			Result += " -fmessage-length=0";
 			Result += " -pipe";
@@ -370,9 +370,9 @@ namespace UnrealBuildTool
 
 		string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
 		{
-			PlatformContext.SetUpProjectEnvironment(LinkEnvironment.Config.Target.Configuration);
+            PlatformContext.SetUpProjectEnvironment(LinkEnvironment.Config.Target.Configuration);
 
-			string Result = "";
+            string Result = "";
 
 			Result += PlatformContext.GetArchitectureArgument(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
 
@@ -1199,9 +1199,9 @@ namespace UnrealBuildTool
 
 					if (Directory.Exists(Project))
 					{
-						// ensure the plist, entitlements, and provision files are properly copied
-						var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(new FileReference(Project), PlatformContext) : new UEDeployTVOS(new FileReference(Project), PlatformContext));
-						DeployHandler.PrepTargetForDeployment(Target);
+                        // ensure the plist, entitlements, and provision files are properly copied
+                        var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(new FileReference(Project), PlatformContext) : new UEDeployTVOS(new FileReference(Project), PlatformContext));
+                        DeployHandler.PrepTargetForDeployment(Target);
 
 						var ConfigName = Target.Configuration.ToString();
 						if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
@@ -1216,9 +1216,10 @@ namespace UnrealBuildTool
 										" -scheme '" + SchemeName + "'" +
 										" -sdk " + PlatformContext.GetCodesignPlatformName() +
 										" -destination generic/platform=" + (CppPlatform == CPPTargetPlatform.IOS ? "iOS" : "tvOS") +
-										" CODE_SIGN_IDENTITY=\"iPhone Developer\"";
+                                        " CODE_SIGN_IDENTITY=\"" + (!string.IsNullOrEmpty(PlatformContext.SigningCertificate) ? PlatformContext.SigningCertificate : "IPhoneDeveloper") + "\"" +
+                                        (!string.IsNullOrEmpty(PlatformContext.MobileProvisionUUID) ? (" PROVISIONING_PROFILE_SPECIFIER=" + PlatformContext.MobileProvisionUUID) : "");
 
-						Console.WriteLine("Code signing with command line: " + CmdLine);
+                        Console.WriteLine("Code signing with command line: " + CmdLine);
 
 						Process SignProcess = new Process();
 						SignProcess.StartInfo.WorkingDirectory = RemoteShadowDirectoryMac;
@@ -1271,9 +1272,9 @@ namespace UnrealBuildTool
 						Log.TraceInformation("Copying bundled asset... LocalSource: {0}, LocalDest: {1}", LocalSource, LocalDest);
 
 						string ResultsText;
-						RunExecutableAndWait("cp", String.Format("-R -L {0} {1}", LocalSource.Replace(" ", "\\ "), LocalDest.Replace(" ", "\\ ")), out ResultsText);
-					}
-				}
+                        RunExecutableAndWait("cp", String.Format("-R -L \"{0}\" \"{1}\"", LocalSource, LocalDest), out ResultsText);
+                    }
+                }
 			}
 			else
 			{
@@ -1334,9 +1335,9 @@ namespace UnrealBuildTool
 				// Generate the stub
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
-					// ensure the plist, entitlements, and provision files are properly copied
-					var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(Target.ProjectFile, PlatformContext) : new UEDeployTVOS(Target.ProjectFile, PlatformContext));
-					DeployHandler.PrepTargetForDeployment(Target);
+                    // ensure the plist, entitlements, and provision files are properly copied
+                    var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(Target.ProjectFile, PlatformContext) : new UEDeployTVOS(Target.ProjectFile, PlatformContext));
+                    DeployHandler.PrepTargetForDeployment(Target);
 
 					if (!bUseDangerouslyFastMode)
 					{
@@ -1492,9 +1493,9 @@ namespace UnrealBuildTool
 
 						Log.TraceInformation("Copying bundled asset... RemoteSource: {0}, RemoteDest: {1}, LocalDest: {2}", RemoteSource, RemoteDest, LocalDest);
 
-						Hashtable Results = RPCUtilHelper.Command("/", String.Format("cp -R -L {0} {1}", RemoteSource.Replace(" ", "\\ "), RemoteDest.Replace(" ", "\\ ")), "", null);
+                        Hashtable Results = RPCUtilHelper.Command("/", String.Format("cp -R -L \"{0}\" \"{1}\"", RemoteSource, RemoteDest), "", null);
 
-						foreach (DictionaryEntry Entry in Results)
+                        foreach (DictionaryEntry Entry in Results)
 						{
 							Log.TraceInformation("{0}", Entry.Value);
 						}

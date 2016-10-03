@@ -82,6 +82,8 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	, bInStep(false)
 	, CurrentStepName()
 	, TotalTime(0.f)
+	, RunFrame(0)
+	, StartFrame(0)
 	, bIsReady(false)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -92,7 +94,7 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	SpriteComponent = CreateDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 	if (SpriteComponent)
 	{
-		SpriteComponent->bHiddenInGame = false;
+		SpriteComponent->bHiddenInGame = true;
 #if WITH_EDITORONLY_DATA
 
 		if (!IsRunningCommandlet())
@@ -139,9 +141,11 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 #if WITH_EDITORONLY_DATA
 	TestName = CreateDefaultSubobject<UTextRenderComponent>(TEXT("TestName"));
 
+	TestName->bHiddenInGame = true;
 	TestName->SetHorizontalAlignment(EHTA_Center);
 	TestName->SetTextRenderColor(FColor(11, 255, 0));
 	TestName->SetRelativeLocation(FVector(0, 0, 80));
+	TestName->SetRelativeRotation(FRotator(0, 0, 0));
 	TestName->PostPhysicsComponentTick.bCanEverTick = false;
 	TestName->SetupAttachment(RootComponent);
 #endif
@@ -163,6 +167,7 @@ bool AFunctionalTest::RunTest(const TArray<FString>& Params)
 	//Do not collect garbage during the test. We force GC at the end.
 	GetWorld()->DelayGarbageCollection();
 
+	RunFrame = GFrameNumber;
 	TotalTime = 0.f;
 	if (TimeLimit >= 0)
 	{
@@ -173,6 +178,8 @@ bool AFunctionalTest::RunTest(const TArray<FString>& Params)
 	bIsRunning = true;
 
 	GoToObservationPoint();
+
+	PrepareTest();
 
 	return true;
 }
@@ -185,6 +192,7 @@ void AFunctionalTest::PrepareTest()
 void AFunctionalTest::StartTest()
 {
 	TotalTime = 0.f;
+	StartFrame = GFrameNumber;
 
 	ReceiveStartTest();
 	OnTestStart.Broadcast();

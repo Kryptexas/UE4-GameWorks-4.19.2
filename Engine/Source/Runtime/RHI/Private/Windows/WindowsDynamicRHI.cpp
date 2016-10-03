@@ -56,7 +56,27 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 
 	// Load the dynamic RHI module.
 	IDynamicRHIModule* DynamicRHIModule = NULL;
-	if(bForceOpenGL)
+
+#if defined(WOLFRHI)
+	const bool bForceWolf = FParse::Param(FCommandLine::Get(), TEXT("wolf"));
+	// Load the dynamic RHI module.
+	if (bForceWolf)
+	{
+		#define A(x) #x
+		#define B(x) A(x)
+		#define WOLF_RHI_STR B(WOLFRHI)
+		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT( WOLF_RHI_STR ));
+		if (!DynamicRHIModule->IsSupported())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("WolfDynamicRHI", "UnsupportedRHI", "The chosen RHI is not supported"));
+			FPlatformMisc::RequestExit(1);
+			DynamicRHIModule = NULL;
+		}
+	}
+	else 
+#endif
+
+	if (bForceOpenGL)
 	{
 		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv"));
 

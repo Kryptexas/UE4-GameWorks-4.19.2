@@ -5,7 +5,6 @@
 #include "Persona.h"
 #include "Editor/Kismet/Public/BlueprintEditorTabs.h"
 #include "Editor/KismetWidgets/Public/SSingleObjectDetailsPanel.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
 
 #include "AnimationMode.h"
 #include "IDocumentation.h"
@@ -15,21 +14,28 @@
 /////////////////////////////////////////////////////
 // SAnimAssetPropertiesTabBody
 
-class SAnimAssetPropertiesTabBody : public SSingleObjectDetailsPanel
+class SAssetPropertiesTabBody : public SSingleObjectDetailsPanel
 {
 public:
-	SLATE_BEGIN_ARGS(SAnimAssetPropertiesTabBody) {}
+	SLATE_BEGIN_ARGS(SAssetPropertiesTabBody) {}
+
+	SLATE_ARGUMENT(FOnGetAsset, OnGetAsset)
+
+	SLATE_ARGUMENT(FOnDetailsCreated, OnDetailsCreated)
+
 	SLATE_END_ARGS()
 
 private:
-	// Pointer back to owning Persona instance (the keeper of state)
-	TWeakPtr<class FPersona> PersonaPtr;
-public:
-	void Construct(const FArguments& InArgs, TSharedPtr<FPersona> InPersona)
-	{
-		PersonaPtr = InPersona;
+	FOnGetAsset OnGetAsset;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InPersona->GetToolkitCommands()), true, true);
+public:
+	void Construct(const FArguments& InArgs)
+	{
+		OnGetAsset = InArgs._OnGetAsset;
+
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments(), true, true);
+
+		InArgs._OnDetailsCreated.ExecuteIfBound(PropertyView.ToSharedRef());
 	}
 
 	virtual EVisibility GetAssetDisplayNameVisibility() const
@@ -52,92 +58,39 @@ public:
 	// SSingleObjectDetailsPanel interface
 	virtual UObject* GetObjectToObserve() const override
 	{
-		return PersonaPtr.Pin()->GetAnimationAssetBeingEdited();
-	}
-
-	bool IsReadOnlyProperty()
-	{
-		class UAnimationAsset* AnimAsset = Cast<UAnimationAsset> (PersonaPtr.Pin()->GetAnimationAssetBeingEdited());
-		if (AnimAsset)
+		if (OnGetAsset.IsBound())
 		{
-			// if child anim montage, you can't edit property for it. 
-			return !AnimAsset->HasParentAsset();
-		}
-
-		return false;
+			return OnGetAsset.Execute();
 	}
-
-	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) override
-	{
-		PropertyView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SAnimAssetPropertiesTabBody::IsReadOnlyProperty));
-
-		return SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				// Header, shows name of the blend space we are editing
-				SNew(SBorder)
-				.BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )
-				.HAlign(HAlign_Center)
-				.Visibility(this, &SAnimAssetPropertiesTabBody::GetAssetDisplayNameVisibility)
-				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					[
-						SNew(STextBlock)
-						.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14 ) )
-						.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
-						.Text( this, &SAnimAssetPropertiesTabBody::GetAssetDisplayName)
-					]
-				]
-			]
-
-			+SVerticalBox::Slot()
-			.FillHeight(1)
-			[
-				PropertyEditorWidget
-			];
+		return nullptr;
 	}
 	// End of SSingleObjectDetailsPanel interface
 };
 
-/////////////////////////////////////////////////////
-// FAnimAssetPropertiesSummoner
-
-struct FAnimAssetPropertiesSummoner : public FWorkflowTabFactory
-{
-	FAnimAssetPropertiesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
-
-	// FWorkflowTabFactory interface
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
-
-	// Create a tooltip widget for the tab
-	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const override
-	{
-		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("AnimAssetPropertiesTooltip", "The Anim Asset Details tab lets you edit properties of the selection animation asset (animation, blend space etc)."), NULL, TEXT("Shared/Editors/Persona"), TEXT("AnimationAssetDetail_Window"));
-	}
-	// FWorkflowTabFactory interface
-};
-
-FAnimAssetPropertiesSummoner::FAnimAssetPropertiesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+FAssetPropertiesSummoner::FAssetPropertiesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, FOnGetAsset InOnGetAsset, FOnDetailsCreated InOnDetailsCreated)
 	: FWorkflowTabFactory(FPersonaTabs::AnimAssetPropertiesID, InHostingApp)
+	, OnGetAsset(InOnGetAsset)
+	, OnDetailsCreated(InOnDetailsCreated)
 {
-	TabLabel = LOCTEXT("AnimAssetProperties_TabTitle", "Anim Asset Details");
+	TabLabel = LOCTEXT("AssetProperties_TabTitle", "Asset Details");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.Tabs.AnimAssetDetails");
 
 	bIsSingleton = true;
 
-	ViewMenuDescription = LOCTEXT("AnimAssetProperties_MenuTitle", "Anim Asset Details");
-	ViewMenuTooltip = LOCTEXT("AnimAssetProperties_MenuToolTip", "Shows the animation asset properties");
+	ViewMenuDescription = LOCTEXT("AssetProperties_MenuTitle", "Asset Details");
+	ViewMenuTooltip = LOCTEXT("AssetProperties_MenuToolTip", "Shows the asset properties");
 }
 
-TSharedRef<SWidget> FAnimAssetPropertiesSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+TSharedPtr<SToolTip> FAssetPropertiesSummoner::CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const
 {
-	TSharedPtr<FPersona> PersonaApp = StaticCastSharedPtr<FPersona>(HostingApp.Pin());
+	return  IDocumentation::Get()->CreateToolTip(LOCTEXT("AssetPropertiesTooltip", "The Asset Details tab lets you edit properties of the current asset (animation, blend space etc)."), NULL, TEXT("Shared/Editors/Persona"), TEXT("AnimationAssetDetail_Window"));
+}
 
-	return SNew(SAnimAssetPropertiesTabBody, PersonaApp);
+TSharedRef<SWidget> FAssetPropertiesSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+{
+	return SNew(SAssetPropertiesTabBody)
+		.OnGetAsset(OnGetAsset)
+		.OnDetailsCreated(OnDetailsCreated);
 }
 
 /////////////////////////////////////////////////////
@@ -147,7 +100,7 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 	: FPersonaAppMode(InPersona, FPersonaModes::AnimationEditMode)
 {
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimAssetPropertiesSummoner(InPersona)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAssetPropertiesSummoner(InPersona, FOnGetAsset::CreateSP(InPersona.Get(), &FPersona::HandleGetObject), FOnDetailsCreated())));
 
 	TabLayout = FTabManager::NewLayout("Persona_AnimEditMode_Layout_v7")
 		->AddArea

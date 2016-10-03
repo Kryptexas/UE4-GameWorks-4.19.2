@@ -39,7 +39,8 @@ void FICUCamelCaseBreakIterator::TokenizeString(TArray<FToken>& OutTokens)
 			TokenType = ETokenType::Digit;
 		}
 
-		OutTokens.Emplace(FToken(TokenType, CharIter.getIndex()));
+		const int32 CharIndex = CharIter.InternalIndexToSourceIndex(CharIter.getIndex());
+		OutTokens.Emplace(FToken(TokenType, CharIndex));
 	}
 
 	OutTokens.Emplace(FToken(ETokenType::Null, String.Len()));

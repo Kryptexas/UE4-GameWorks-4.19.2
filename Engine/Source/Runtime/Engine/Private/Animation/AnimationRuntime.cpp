@@ -1515,9 +1515,7 @@ void FAnimationRuntime::RetargetBoneTransform(const USkeleton* MySkeleton, const
 {
 	if (MySkeleton)
 	{
-		const TArray<FBoneNode>& BoneTree = MySkeleton->GetBoneTree();
-
-		switch (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
+		switch (MySkeleton->GetBoneTranslationRetargetingMode(SkeletonBoneIndex))
 		{
 		case EBoneTranslationRetargetingMode::AnimationScaled:
 		{

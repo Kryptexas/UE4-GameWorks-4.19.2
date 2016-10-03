@@ -289,18 +289,22 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	}
 }
 
-void FSkeletalMeshObjectGPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, bool bRecomputeTangent)
+void FSkeletalMeshObjectGPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, int32 LODIndex, bool bRecomputeTangent)
 {
 	// queue a call to update this data
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		SkelMeshObjectUpdateMaterialDataCommand,
 		FSkeletalMeshObjectGPUSkin*, MeshObject, this,
 		int32, MaterialIndex, MaterialIndex, 
+		int32, LODIndex, LODIndex,
 		bool, bRecomputeTangent, bRecomputeTangent,
 		{
 			// iterate through section and find the section that matches MaterialIndex, if so, set that flag
-			for (auto& LODModel : MeshObject->SkeletalMeshResource->LODModels)
+			for (int32 LodIdx = 0; LodIdx < MeshObject->SkeletalMeshResource->LODModels.Num(); ++LodIdx)
 			{
+				if (LODIndex != INDEX_NONE && LODIndex != LodIdx)
+					continue;
+				FStaticLODModel& LODModel = MeshObject->SkeletalMeshResource->LODModels[LodIdx];
 				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
 				{
 					// @todo there can be more than one section that can use same material? If not, please break. 

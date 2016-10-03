@@ -124,6 +124,9 @@ public:
 		void TraverseNodes(UEdGraphNode* Node);
 	};
 
+	/** returns true if the ParameterName is marked as a SetParam in the relevant Function */
+	static bool IsSetParam(const UFunction* Function, const FString& ParameterName);
+
 private:
 	static TArray< TSharedPtr<FGraphPanelNodeFactory> > VisualNodeFactories;
 	static TArray< TSharedPtr<FGraphPanelPinFactory> > VisualPinFactories;

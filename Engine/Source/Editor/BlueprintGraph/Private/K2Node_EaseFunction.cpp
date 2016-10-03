@@ -214,12 +214,18 @@ bool UK2Node_EaseFunction::IsConnectionDisallowed(const UEdGraphPin* MyPin, cons
 		MyPin->PinName == FEaseFunctionNodeHelper::GetBPinName() || 
 		MyPin->PinName == FEaseFunctionNodeHelper::GetResultPinName())
 	{
-		const bool bConnectionOk = (OtherPin->PinType.PinCategory == K2Schema->PC_Float ||
-			(OtherPin->PinType.PinCategory == K2Schema->PC_Struct &&
-			OtherPin->PinType.PinSubCategoryObject.IsValid() &&
-			(OtherPin->PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Vector") ||
-			OtherPin->PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Rotator") ||
-			OtherPin->PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Transform"))));
+		const bool bConnectionOk = (
+			OtherPin->PinType.PinCategory == K2Schema->PC_Float ||
+			(
+				OtherPin->PinType.PinCategory == K2Schema->PC_Struct &&
+				OtherPin->PinType.PinSubCategoryObject.IsValid() &&
+				(
+					OtherPin->PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Vector") ||
+					OtherPin->PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Rotator") ||
+					OtherPin->PinType.PinSubCategoryObject.Get()->GetName() == TEXT("Transform")
+				)
+			)
+		) && !OtherPin->PinType.IsContainer();
 		if (!bConnectionOk)
 		{
 			OutReason = LOCTEXT("PinConnectionDisallowed", "Pin type is not supported by function.").ToString();

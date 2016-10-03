@@ -179,10 +179,13 @@ void FBitReader::AppendTo( TArray<uint8> &DestBuffer )
 
 void FBitReader::SetOverflowed(int32 LengthBits)
 {
-	UE_LOG(LogNetSerialization, Error, TEXT("FBitReader::SetOverflowed() called! (ReadLen: %i, Remaining: %i, Max: %i)"),
-				LengthBits, (Num-Pos), Num);
+	if (!ensure(LengthBits == 0))
+	{
+		UE_LOG(LogNetSerialization, Error, TEXT("FBitReader::SetOverflowed() called! (ReadLen: %i, Remaining: %i, Max: %i)"),
+					LengthBits, (Num-Pos), Num);
 
-	ArIsError = 1;
+		ArIsError = 1;
+	}
 }
 
 /*-----------------------------------------------------------------------------

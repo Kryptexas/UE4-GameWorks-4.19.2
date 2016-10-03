@@ -297,6 +297,9 @@ public:
 	 */
 	FOptionalSize GetTitleBarSize() const;
 
+	/** @return the desired size in desktop pixels */
+	FVector2D GetDesiredSizeDesktopPixels() const;
+
 	/**	@return The initially desired screen position of the slate window */
 	FVector2D GetInitialDesiredSizeInScreen() const;
 
@@ -709,10 +712,8 @@ private:
 	virtual FVector2D ComputeDesiredSize(float) const override;
 
 public:
-// @HSL_CHANGE_BEGIN - ngreen@hardsuitlabs.com - 5/31/2016 - need access to this to fix windowed mode
 	// For a given client size, calculate the window size required to accomodate any potential non-OS borders and tilebars
 	FVector2D GetWindowSizeFromClientSize(FVector2D InClientSize);
-// @HSL_CHANGE_END - ngreen@hardsuitlabs.com - 5/31/2016 - need access to this to fix windowed mode
 
 	/** @return true if this window will be focused when it is first shown */
 	inline bool IsFocusedInitially() const
@@ -749,8 +750,14 @@ public:
 	 */
 	int32 SwitchWorlds( int32 WorldId ) const;
 
+	/** Is this window active? */
+	bool IsActive() const;
+
 	/** Are any of our child windows active? */
 	bool HasActiveChildren() const;
+
+	/** Are any of our parent windows active? */
+	bool HasActiveParent() const;
 
 	/**
 	 * Sets whether or not the viewport size should be driven by the window's size.  If true, the two will be the same.  If false, an independent viewport size can be specified with SetIndependentViewportSize

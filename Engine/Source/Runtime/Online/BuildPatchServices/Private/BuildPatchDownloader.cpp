@@ -416,10 +416,12 @@ uint32 FBuildPatchDownloader::Run()
 			}
 
 		}
+		bool bHasDownloads = InFlightDownloads.Num() > 0;
 		InFlightDownloadsLock.Unlock();
 		SetSuccessRate(SuccessRateTracker.GetOverall());
 		double SecondsSinceData = FStatsCollector::CyclesToSeconds(FStatsCollector::GetCycles() - CyclesAtLastData);
 		SetIsDisconnected(bAllDownloadsRetrying && SecondsSinceData > DisconnectedDelay);
+		SetIsDownloading(bHasDownloads);
 
 		// Pause
 		if (BuildProgress->GetPauseState())
@@ -552,6 +554,12 @@ bool FBuildPatchDownloader::IsDisconnected()
 {
 	FScopeLock Lock(&FlagsLock);
 	return bIsDisconnected;
+}
+
+bool FBuildPatchDownloader::IsDownloading()
+{
+	FScopeLock Lock(&FlagsLock);
+	return bIsDownloading;
 }
 
 TArray< FBuildPatchDownloadRecord > FBuildPatchDownloader::GetDownloadRecordings()
@@ -715,6 +723,12 @@ void FBuildPatchDownloader::SetIsDisconnected(bool bInIsDisconnected)
 	FScopeLock Lock(&FlagsLock);
 	bIsDisconnected = bInIsDisconnected;
 	UpdateDownloadHealth();
+}
+
+void FBuildPatchDownloader::SetIsDownloading(bool bInIsDownloading)
+{
+	FScopeLock Lock(&FlagsLock);
+	bIsDownloading = bInIsDownloading;
 }
 
 void FBuildPatchDownloader::SetSuccessRate(float InSuccessRate)

@@ -85,7 +85,9 @@ FDetailItemNode::~FDetailItemNode()
 
 void FDetailItemNode::InitPropertyEditor()
 {
-	if( Customization.GetPropertyNode()->GetProperty() && Customization.GetPropertyNode()->GetProperty()->IsA<UArrayProperty>() )
+	UProperty* NodeProperty = Customization.GetPropertyNode()->GetProperty();
+
+	if( NodeProperty && (NodeProperty->IsA<UArrayProperty>() || NodeProperty->IsA<USetProperty>() || NodeProperty->IsA<UMapProperty>() ))
 	{
 		const bool bUpdateFilteredNodes = false;
 		FSimpleDelegate OnRegenerateChildren = FSimpleDelegate::CreateSP( this, &FDetailItemNode::GenerateChildren, bUpdateFilteredNodes );

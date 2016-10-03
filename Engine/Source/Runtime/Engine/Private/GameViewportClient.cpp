@@ -1256,6 +1256,10 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		// Render the console.
 		if (ViewportConsole)
 		{
+			// Reset the debug canvas to be full-screen before drawing the console
+			// (the debug draw service above has messed with the viewport size to fit it to a single player's subregion)
+			DebugCanvasObject->Init(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, NULL);
+
 			ViewportConsole->PostRender_Console(DebugCanvasObject);
 		}
 	}
@@ -1450,6 +1454,11 @@ void UGameViewportClient::Activated(FViewport* InViewport, const FWindowActivate
 void UGameViewportClient::Deactivated(FViewport* InViewport, const FWindowActivateEvent& InActivateEvent)
 {
 	LostFocus(InViewport);
+}
+
+bool UGameViewportClient::WindowCloseRequested()
+{
+	return !WindowCloseRequestedDelegate.IsBound() || WindowCloseRequestedDelegate.Execute();
 }
 
 void UGameViewportClient::CloseRequested(FViewport* InViewport)

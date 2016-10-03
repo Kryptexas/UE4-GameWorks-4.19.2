@@ -1,9 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SScreenShotItem.h: Declares the SScreenShotItem class.
-=============================================================================*/
-
 #pragma once
 
 /**
@@ -52,7 +48,13 @@ private:
 	FIntPoint CachedActualImageSize;
 
 	//Holds the dynamic brush.
-	TSharedPtr<FSlateDynamicImageBrush> DynamicBrush;
+	TSharedPtr<FSlateDynamicImageBrush> UnapprovedBrush;
+
+	//Holds the dynamic brush.
+	TSharedPtr<FSlateDynamicImageBrush> ApprovedBrush;
+
+	//Holds the dynamic brush.
+	TSharedPtr<FSlateDynamicImageBrush> ComparisonBrush;
 
 	//Holds the screen shot info.
 	TSharedPtr<IScreenShotData> ScreenShotData;

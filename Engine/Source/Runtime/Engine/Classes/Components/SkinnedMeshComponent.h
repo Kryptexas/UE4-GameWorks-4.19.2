@@ -184,7 +184,15 @@ public:
 	const TArray<int32>& GetMasterBoneMap() const { return MasterBoneMap; }
 
 	/** update Recalculate Normal flag in matching section */
-	void UpdateRecomputeTangent(int32 MaterialIndex);
+	void UpdateRecomputeTangent(int32 MaterialIndex, int32 LodIndex, bool bRecomputeTangentValue);
+
+	/** 
+	 * Get CPU skinned vertices for the specified LOD level. Includes morph targets if they are enabled.
+	 * Note: This function is very SLOW as it needs to flush the render thread.
+	 * @param	OutVertices		The skinned vertices
+	 * @param	InLODIndex		The LOD we want to export
+	 */
+	void GetCPUSkinnedVertices(TArray<struct FFinalSkinVertex>& OutVertices, int32 InLODIndex);
 
 	/** 
 	 * When true, we will just using the bounds from our MasterPoseComponent.  This is useful for when we have a Mesh Parented
@@ -362,6 +370,10 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Capsule Indirect Shadow"))
 	uint32 bCastCapsuleIndirectShadow:1;
 
+	/** CPU skinning rendering - only for previewing in Persona and conversion tools */
+	UPROPERTY(transient)
+	uint32 bCPUSkinning : 1;
+
 	/** 
 	 * Override the Physics Asset of the mesh. It uses SkeletalMesh.PhysicsAsset, but if you'd like to override use this function
 	 * 
@@ -487,6 +499,9 @@ public:
 
 	//~ Begin UPrimitiveComponent Interface
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
+	virtual int32 GetMaterialIndex(FName MaterialSlotName) const override;
+	virtual TArray<FName> GetMaterialSlotNames() const override;
+	virtual bool IsMaterialSlotNameValid(FName MaterialSlotName) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
@@ -726,6 +741,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void SetMasterPoseComponent(USkinnedMeshComponent* NewMasterBoneComponent);
 
+protected:
+	/** Add a slave component to the SlavePoseComponents array */
+	virtual void AddSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent);
+
+public:
 	/** 
 	 * Refresh Slave Components if exists
 	 * 

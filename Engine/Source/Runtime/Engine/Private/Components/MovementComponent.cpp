@@ -89,6 +89,19 @@ void UMovementComponent::InitializeComponent()
 	TGuardValue<bool> InInitializeComponentGuard(bInInitializeComponent, true);
 	Super::InitializeComponent();
 
+	// RootComponent is null in OnRegister for blueprint (non-native) root components.
+	if (!UpdatedComponent && bAutoRegisterUpdatedComponent)
+	{
+		// Auto-register owner's root component if found.
+		if (AActor* MyActor = GetOwner())
+		{
+			if (USceneComponent* NewUpdatedComponent = MyActor->GetRootComponent())
+			{
+				SetUpdatedComponent(NewUpdatedComponent);
+			}
+		}
+	}
+
 	if (bSnapToPlaneAtStart)
 	{
 		SnapUpdatedComponentToPlane();

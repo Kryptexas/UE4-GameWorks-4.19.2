@@ -13,8 +13,7 @@ class UUserWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWidgetAnimationPlaybackStatusChanged);
 
 UCLASS(BlueprintType, MinimalAPI)
-class UWidgetAnimation
-	: public UMovieSceneSequence
+class UWidgetAnimation : public UMovieSceneSequence
 {
 	GENERATED_UCLASS_BODY()
 

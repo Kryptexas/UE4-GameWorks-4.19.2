@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include "Audio.h"
-
 /*-----------------------------------------------------------------------------
 	Stats.
 -----------------------------------------------------------------------------*/
@@ -17,6 +15,8 @@ class UPrimitiveComponent;
 class AActor;
 class UTexture2D;
 class FSoundSource;
+class USoundWave;
+struct FWaveInstance;
 struct FStreamingManagerTexture;
 
 /** Helper function to flush resource streaming. */

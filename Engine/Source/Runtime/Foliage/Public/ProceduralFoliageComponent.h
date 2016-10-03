@@ -64,6 +64,10 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
 	bool bAllowTranslucent;
 
+	/** Whether to place foliage on other blocking foliage geometry */
+	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
+	bool bAllowFoliage;
+
 	/** Whether to visualize the tiles used for the foliage spawner simulation */
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
 	bool bShowDebugTiles;

@@ -74,6 +74,7 @@
 #include "KismetReinstanceUtilities.h"
 #include "AnalyticsEventAttribute.h"
 #include "Developer/SlateReflector/Public/ISlateReflectorModule.h"
+#include "Editor/PropertyEditorTestObject.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -520,6 +521,37 @@ bool UEditorEngine::Exec_StaticMesh( UWorld* InWorld, const TCHAR* Str, FOutputD
 		if( bResult && StaticMesh)
 		{
 			GetSelectedObjects()->Select( StaticMesh );
+		}
+	}
+	else if (FParse::Command(&Str, TEXT("FORCELODGROUP")))	// STATICMESH FORCELODGROUP <name>
+	{
+		FName NewGroup(Str);
+		if (NewGroup != NAME_None)
+		{
+			// get the selected meshes
+			TArray<UStaticMesh*> SelectedMeshes;
+			for (FSelectionIterator Iter(GetSelectedActorIterator()); Iter; ++Iter)
+			{
+				TInlineComponentArray<UStaticMeshComponent*> SMComps(CastChecked<AActor>(*Iter));
+				for (UStaticMeshComponent* SMC : SMComps)
+				{
+					if (SMC->StaticMesh)
+					{
+						SelectedMeshes.AddUnique(SMC->StaticMesh);
+					}
+				}
+
+			}
+
+			// look at all loaded static meshes
+			for (UStaticMesh* SM : SelectedMeshes)
+			{
+				// update any mesh not already in a group
+				if (!SM->IsTemplate() && SM->LODGroup == NAME_None)
+				{
+					SM->SetLODGroup(NewGroup);
+				}
+			}
 		}
 	}
 #endif // UE_BUILD_SHIPPING

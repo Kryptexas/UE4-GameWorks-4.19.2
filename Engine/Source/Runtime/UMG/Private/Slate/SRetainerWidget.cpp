@@ -39,33 +39,6 @@ static FVector2D RoundToInt(const FVector2D& Vec)
 	return FVector2D(FMath::RoundToInt(Vec.X), FMath::RoundToInt(Vec.Y));
 }
 
-/**
-* Used to construct a rotated rect from an aligned clip rect and a set of layout and render transforms from the geometry, snapped to pixel boundaries. Returns a float or float16 version of the rect based on the typedef.
-*/
-static FSlateRotatedClipRectType ToSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform)
-{
-	FSlateRotatedRect RotatedRect = TransformRect(
-		Concatenate(InverseLayoutTransform, RenderTransform),
-		FSlateRotatedRect(ClipRectInLayoutWindowSpace));
-
-	// Pixel snapping is done here by rounding the resulting floats to ints, we do this before
-	// calculating the final extents of the clip box otherwise we'll get a smaller clip rect than a visual
-	// rect where each point is individually snapped.
-	FVector2D SnappedTopLeft = RoundToInt(RotatedRect.TopLeft);
-	FVector2D SnappedTopRight = RoundToInt(RotatedRect.TopLeft + RotatedRect.ExtentX);
-	FVector2D SnappedBottomLeft = RoundToInt(RotatedRect.TopLeft + RotatedRect.ExtentY);
-
-	//NOTE: We explicitly do not re-snap the extent x/y, it wouldn't be correct to snap again in distance space
-	// even if two points are snapped, their distance wont necessarily be a whole number if those points are not
-	// axis aligned.
-	return FSlateRotatedClipRectType(
-		SnappedTopLeft,
-		SnappedTopRight - SnappedTopLeft,
-		SnappedBottomLeft - SnappedTopLeft);
-}
-
-
-
 
 //---------------------------------------------------
 
@@ -288,7 +261,7 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 			// extract the layout transform from the draw element
 			FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(PaintGeometry.DrawScale, PaintGeometry.DrawPosition)));
 			// The clip rect is NOT subject to the rotations specified by MakeRotatedBox.
-			FSlateRotatedClipRectType RenderClipRect = ToSnappedRotatedRect(CachedClippingRect, InverseLayoutTransform, CachedAllottedGeometry.GetAccumulatedRenderTransform());
+			FSlateRotatedClipRectType RenderClipRect = FSlateRotatedClipRectType::MakeSnappedRotatedRect(CachedClippingRect, InverseLayoutTransform, CachedAllottedGeometry.GetAccumulatedRenderTransform());
 
 			//const FVector2D ScaledSize = PaintGeometry.GetLocalSize() * PaintGeometry.DrawScale;
 			//const uint32 RenderTargetWidth  = FMath::RoundToInt(ScaledSize.X);

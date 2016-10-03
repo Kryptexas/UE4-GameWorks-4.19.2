@@ -42,7 +42,7 @@ struct FGameplayTagNode
 	FGameplayTagNode(){};
 
 	/** Simple constructor */
-	FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InParentNode, FText InCategoryDescription = FText());
+	FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InParentNode, FText InCategoryDescription, bool InWasAddedDirectlyFromDictionary);
 
 	/**
 	 * Get the complete tag for the node, including all parent tags, delimited by periods
@@ -106,6 +106,9 @@ private:
 	/** Category description of the for the node */
 	FText CategoryDescription;
 
+	/** Flag to distinguish implicit vs explicit tags */
+	bool WasAddedDirectlyFromDictionary;
+
 	/** Child gameplay tag nodes */
 	TArray< TSharedPtr<FGameplayTagNode> > ChildTags;
 
@@ -139,7 +142,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * 
 	 * @return Index of the node of the tag
 	 */
-	int32 InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplayTagNode> ParentNode, TArray< TSharedPtr<FGameplayTagNode> >& NodeArray, FText CategoryDescription = FText());
+	int32 InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplayTagNode> ParentNode, TArray< TSharedPtr<FGameplayTagNode> >& NodeArray, FText CategoryDescription, bool InWasAddedDirectlyFromDictionary);
 
 	/**
 	 * Get the best tag category description
@@ -177,6 +180,8 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	TSharedPtr<FGameplayTagNode> FindTagNode(FName TagName) const;
 
 	static void AddNewGameplayTagToINI(FString NewTag);
+
+	bool IsDictionaryTag(FName TagName) const;
 
 #endif //WITH_EDITOR
 
@@ -237,7 +242,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 */
 	FGameplayTagContainer RequestGameplayTagParents(const FGameplayTag& GameplayTag) const;
 
-	FGameplayTagContainer RequestGameplayTagChildren(const FGameplayTag& GameplayTag) const;
+	FGameplayTagContainer RequestGameplayTagChildren(const FGameplayTag& GameplayTag, bool OnlyIncludeDictionaryTags=false) const;
 
 	FGameplayTag RequestGameplayTagDirectParent(const FGameplayTag& GameplayTag) const;
 
@@ -397,7 +402,7 @@ private:
 	 */
 	void AddParentTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag) const;
 
-	void AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll=true) const;
+	void AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll=true, bool OnlyIncludeDictionaryTags=false) const;
 
 	/**
 	 * Helper function for GameplayTagsMatch to get all parents when doing a parent match,

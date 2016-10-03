@@ -509,6 +509,16 @@ public:
 	// User Defined Structures, the blueprint depends on
 	TSet<TWeakObjectPtr<UStruct>> CachedUDSDependencies;
 
+	enum class EIsBPNonReducible : uint8
+	{
+		Unkown,
+		Yes,
+		No,
+	};
+
+	// Cached information if the BP contains any non-reducible functions (that can benefit from nativization).
+	EIsBPNonReducible bHasAnyNonReducibleFunction;
+
 	// If this BP is just a duplicate created for a specific compilation, the reference to original GeneratedClass is needed
 	UPROPERTY(transient, duplicatetransient)
 	UClass* OriginalClass;

@@ -81,9 +81,6 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 	bDisplayRawAnimation = false;
 	bDisplayNonRetargetedPose = false;
 
-	// wind is turned off in the editor by default
-	bEnableWind = false;
-
 	bMeshSocketsVisible = true;
 	bSkeletonSocketsVisible = true;
 
@@ -301,11 +298,13 @@ void UDebugSkelMeshComponent::InitAnim(bool bForceReinit)
 		AnimScriptInstance = PreviewInstance;
 		AnimScriptInstance->InitializeAnimation();
 	}
-}
 
-bool UDebugSkelMeshComponent::IsWindEnabled() const
-{
-	return bEnableWind;
+	if(PostProcessAnimInstance)
+	{
+		// Add the same settings as the preview instance in this case.
+		PostProcessAnimInstance->RootMotionMode = ERootMotionMode::RootMotionFromEverything;
+		PostProcessAnimInstance->bCanUseParallelUpdateAnimation = false;
+	}
 }
 
 void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* PreviewAsset)
@@ -447,96 +446,100 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 	// Run regular update first so we get RequiredBones up to date.
 	Super::RefreshBoneTransforms(NULL); // Pass NULL so we force non threaded work
 
-	const bool bIsPreviewInstance = (PreviewInstance && PreviewInstance == AnimScriptInstance);
-
-	BakedAnimationPoses.Reset();
-	if(bDisplayBakedAnimation && bIsPreviewInstance && PreviewInstance->GetRequiredBones().IsValid())
+	// none of these code works if we don't have anim instance, so no reason to check it for every if
+	if (AnimScriptInstance && AnimScriptInstance->GetRequiredBones().IsValid())
 	{
-		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset()))
+		const bool bIsPreviewInstance = (PreviewInstance && PreviewInstance == AnimScriptInstance);	
+		FBoneContainer& BoneContainer = AnimScriptInstance->GetRequiredBones();
+
+		BakedAnimationPoses.Reset();
+		if(bDisplayBakedAnimation && bIsPreviewInstance)
 		{
-			BakedAnimationPoses.AddUninitialized(PreviewInstance->GetRequiredBones().GetNumBones());
-			bool bSavedUseSourceData = PreviewInstance->GetRequiredBones().ShouldUseSourceData();
-			PreviewInstance->GetRequiredBones().SetUseRAWData(true);
-			PreviewInstance->GetRequiredBones().SetUseSourceData(false);
-			PreviewInstance->EnableControllers(false);
-			GenSpaceBases(BakedAnimationPoses);
-			PreviewInstance->GetRequiredBones().SetUseRAWData(false);
-			PreviewInstance->GetRequiredBones().SetUseSourceData(bSavedUseSourceData);
-			PreviewInstance->EnableControllers(true);
+			if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset()))
+			{
+				BakedAnimationPoses.AddUninitialized(BoneContainer.GetNumBones());
+				bool bSavedUseSourceData = BoneContainer.ShouldUseSourceData();
+				BoneContainer.SetUseRAWData(true);
+				BoneContainer.SetUseSourceData(false);
+				PreviewInstance->EnableControllers(false);
+				GenSpaceBases(BakedAnimationPoses);
+				BoneContainer.SetUseRAWData(false);
+				BoneContainer.SetUseSourceData(bSavedUseSourceData);
+				PreviewInstance->EnableControllers(true);
+			}
 		}
-	}
 
-	SourceAnimationPoses.Reset();
-	if(bDisplaySourceAnimation && bIsPreviewInstance && PreviewInstance->GetRequiredBones().IsValid())
-	{
-		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset()))
+		SourceAnimationPoses.Reset();
+		if(bDisplaySourceAnimation && bIsPreviewInstance)
 		{
-			SourceAnimationPoses.AddUninitialized(PreviewInstance->GetRequiredBones().GetNumBones());
-			bool bSavedUseSourceData = PreviewInstance->GetRequiredBones().ShouldUseSourceData();
-			PreviewInstance->GetRequiredBones().SetUseSourceData(true);
-			PreviewInstance->EnableControllers(false);
-			GenSpaceBases(SourceAnimationPoses);
-			PreviewInstance->GetRequiredBones().SetUseSourceData(bSavedUseSourceData);
-			PreviewInstance->EnableControllers(true);
+			if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset()))
+			{
+				SourceAnimationPoses.AddUninitialized(BoneContainer.GetNumBones());
+				bool bSavedUseSourceData = BoneContainer.ShouldUseSourceData();
+				BoneContainer.SetUseSourceData(true);
+				PreviewInstance->EnableControllers(false);
+				GenSpaceBases(SourceAnimationPoses);
+				BoneContainer.SetUseSourceData(bSavedUseSourceData);
+				PreviewInstance->EnableControllers(true);
+			}
 		}
-	}
 
-	UncompressedSpaceBases.Reset();
-	if (bDisplayRawAnimation && AnimScriptInstance && AnimScriptInstance->GetRequiredBones().IsValid())
-	{
-		UncompressedSpaceBases.AddUninitialized(AnimScriptInstance->GetRequiredBones().GetNumBones());
+		UncompressedSpaceBases.Reset();
+		if ( bDisplayRawAnimation )
+		{
+			UncompressedSpaceBases.AddUninitialized(BoneContainer.GetNumBones());
 
-		AnimScriptInstance->GetRequiredBones().SetUseRAWData(true);
-		GenSpaceBases(UncompressedSpaceBases);
-		AnimScriptInstance->GetRequiredBones().SetUseRAWData(false);
-	}
+			BoneContainer.SetUseRAWData(true);
+			GenSpaceBases(UncompressedSpaceBases);
+			BoneContainer.SetUseRAWData(false);
+		}
 
-	// Non retargeted pose.
-	NonRetargetedSpaceBases.Reset();
-	if( bDisplayNonRetargetedPose && AnimScriptInstance && AnimScriptInstance->GetRequiredBones().IsValid() )
-	{
-		NonRetargetedSpaceBases.AddUninitialized(AnimScriptInstance->GetRequiredBones().GetNumBones());
-		AnimScriptInstance->GetRequiredBones().SetDisableRetargeting(true);
-		GenSpaceBases(NonRetargetedSpaceBases);
-		AnimScriptInstance->GetRequiredBones().SetDisableRetargeting(false);
-	}
+		// Non retargeted pose.
+		NonRetargetedSpaceBases.Reset();
+		if( bDisplayNonRetargetedPose )
+		{
+			NonRetargetedSpaceBases.AddUninitialized(BoneContainer.GetNumBones());
+			BoneContainer.SetDisableRetargeting(true);
+			GenSpaceBases(NonRetargetedSpaceBases);
+			BoneContainer.SetDisableRetargeting(false);
+		}
 
-	// Only works in PreviewInstance, and not for anim blueprint. This is intended.
-	AdditiveBasePoses.Reset();
-	if( bDisplayAdditiveBasePose && bIsPreviewInstance && PreviewInstance->GetRequiredBones().IsValid() )
-	{
-		if (UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset())) 
-		{ 
-			if (Sequence->IsValidAdditive()) 
+		// Only works in PreviewInstance, and not for anim blueprint. This is intended.
+		AdditiveBasePoses.Reset();
+		if( bDisplayAdditiveBasePose && bIsPreviewInstance )
+		{
+			if (UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset())) 
 			{ 
-				FCSPose<FCompactPose> CSAdditiveBasePose;
-				{
-					FCompactPose AdditiveBasePose;
-					FBlendedCurve AdditiveCurve;
-					AdditiveCurve.InitFrom(AnimScriptInstance->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
-					AdditiveBasePose.SetBoneContainer(&PreviewInstance->GetRequiredBones());
-					Sequence->GetAdditiveBasePose(AdditiveBasePose, AdditiveCurve, FAnimExtractContext(PreviewInstance->GetCurrentTime()));
-					CSAdditiveBasePose.InitPose(AdditiveBasePose);
-				}
-
-				FBoneContainer& BoneContainer = PreviewInstance->GetRequiredBones();
-				const int32 NumSkeletonBones = BoneContainer.GetNumBones();
-
-				AdditiveBasePoses.AddUninitialized(NumSkeletonBones);
-
-				for (int32 i = 0; i < AdditiveBasePoses.Num(); ++i)
-				{
-					FCompactPoseBoneIndex CompactIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(i));
-
-					// AdditiveBasePoses has one entry for every bone in the asset ref skeleton - if we're on a LOD
-					// we need to check this is actually valid for the current pose.
-					if(CSAdditiveBasePose.GetPose().IsValidIndex(CompactIndex))
+				if (Sequence->IsValidAdditive()) 
+				{ 
+					FCSPose<FCompactPose> CSAdditiveBasePose;
 					{
-						AdditiveBasePoses[i] = CSAdditiveBasePose.GetComponentSpaceTransform(CompactIndex);
+						FCompactPose AdditiveBasePose;
+						FBlendedCurve AdditiveCurve;
+						AdditiveCurve.InitFrom(BoneContainer);
+						AdditiveBasePose.SetBoneContainer(&BoneContainer);
+						Sequence->GetAdditiveBasePose(AdditiveBasePose, AdditiveCurve, FAnimExtractContext(PreviewInstance->GetCurrentTime()));
+						CSAdditiveBasePose.InitPose(AdditiveBasePose);
 					}
-					else
+
+					const int32 NumSkeletonBones = BoneContainer.GetNumBones();
+
+					AdditiveBasePoses.AddUninitialized(NumSkeletonBones);
+
+					for (int32 i = 0; i < AdditiveBasePoses.Num(); ++i)
 					{
-						AdditiveBasePoses[i] = FTransform::Identity;
+						FCompactPoseBoneIndex CompactIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(i));
+
+						// AdditiveBasePoses has one entry for every bone in the asset ref skeleton - if we're on a LOD
+						// we need to check this is actually valid for the current pose.
+						if(CSAdditiveBasePose.GetPose().IsValidIndex(CompactIndex))
+						{
+							AdditiveBasePoses[i] = CSAdditiveBasePose.GetComponentSpaceTransform(CompactIndex);
+						}
+						else
+						{
+							AdditiveBasePoses[i] = FTransform::Identity;
+						}
 					}
 				}
 			}

@@ -242,10 +242,16 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileWithPluginSupport;
 
-		/// <summary>
-		/// Whether to turn on logging for test/shipping builds
-		/// </summary>
-		[XmlConfig]
+        /// <summary>
+        /// Whether to include PerfCounters support
+        /// </summary>
+        [XmlConfig]
+        public static bool bWithPerfCounters;
+
+        /// <summary>
+        /// Whether to turn on logging for test/shipping builds
+        /// </summary>
+        [XmlConfig]
 		public static bool bUseLoggingInShipping;
 
 		/// <summary>
@@ -370,7 +376,8 @@ namespace UnrealBuildTool
 			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;
 			bCompileWithPluginSupport = false;
-			bUseLoggingInShipping = false;
+            bWithPerfCounters = false;
+            bUseLoggingInShipping = false;
 			bUseChecksInShipping = false;
             bUseLauncherChecks = false;
 			bCompilePhysXVehicle = true;

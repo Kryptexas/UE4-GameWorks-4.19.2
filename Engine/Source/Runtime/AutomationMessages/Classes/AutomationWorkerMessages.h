@@ -226,10 +226,6 @@ struct FAutomationWorkerRunTests
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool bScreenshotsEnabled;
 
-	/** If true, we will not resize screen shots. */
-	UPROPERTY(EditAnywhere, Category="Message")
-	bool bUseFullSizeScreenShots;
-
 	/** If true, send results to analytics when complete */
 	UPROPERTY()
 	bool bSendAnalytics;
@@ -238,13 +234,12 @@ struct FAutomationWorkerRunTests
 	FAutomationWorkerRunTests( ) { }
 
 	/** Creates and initializes a new instance. */
-	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, FString InBeautifiedTestName, bool InScreenshotsEnabled, bool InFullSizeScreenshots, bool InSendAnalytics)
+	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, FString InBeautifiedTestName, bool InScreenshotsEnabled, bool InSendAnalytics)
 		: ExecutionCount(InExecutionCount)
 		, RoleIndex(InRoleIndex)
 		, TestName(InTestName)
 		, BeautifiedTestName(InBeautifiedTestName)
 		, bScreenshotsEnabled(InScreenshotsEnabled)
-		, bUseFullSizeScreenShots(InFullSizeScreenshots)
 		, bSendAnalytics(InSendAnalytics)
 	{ }
 };
@@ -356,6 +351,134 @@ struct FAutomationWorkerNextNetworkCommandReply
 	GENERATED_USTRUCT_BODY()
 };
 
+USTRUCT()
+struct FAutomationScreenshotMetadata
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString Name;
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString Context;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 Width;
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 Height;
+
+	// RHI Details
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString Rhi;
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString Platform;
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString FeatureLevel;
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bIsStereo;
+
+	// Hardware Details
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString Vendor;
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString AdapterName;
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString AdapterInternalDriverVersion;
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString AdapterUserDriverVersion;
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString UniqueDeviceId;
+
+	// Quality Levels
+	UPROPERTY(EditAnywhere, Category="Message")
+	float ResolutionQuality;
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 ViewDistanceQuality;
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 AntiAliasingQuality;
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 ShadowQuality;
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 PostProcessQuality;
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 TextureQuality;
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 EffectsQuality;
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 FoliageQuality;
+
+	// Comparison Requests
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bHasComparisonRules;
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint8 ToleranceRed;
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint8 ToleranceGreen;
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint8 ToleranceBlue;
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint8 ToleranceAlpha;
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint8 ToleranceMinBrightness;
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint8 ToleranceMaxBrightness;
+	UPROPERTY(EditAnywhere, Category="Message")
+	float MaximumAllowedError;
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bIgnoreAntiAliasing;
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bIgnoreColors;
+
+public:
+	FAutomationScreenshotMetadata()
+	{
+	}
+
+	FAutomationScreenshotMetadata(const FAutomationScreenshotData& Data)
+	{
+		Name = Data.Name;
+		Context = Data.Context;
+
+		Width = Data.Width;
+		Height = Data.Height;
+
+		// RHI Details
+		Rhi = Data.Rhi;
+		Platform = Data.Platform;
+		FeatureLevel = Data.FeatureLevel;
+		bIsStereo = Data.bIsStereo;
+
+		// Hardware Details
+		Vendor = Data.Vendor;
+		AdapterName = Data.AdapterName;
+		AdapterInternalDriverVersion = Data.AdapterInternalDriverVersion;
+		AdapterUserDriverVersion = Data.AdapterUserDriverVersion;
+		UniqueDeviceId = Data.UniqueDeviceId;
+
+		// Quality Levels
+		ResolutionQuality = Data.ResolutionQuality;
+		ViewDistanceQuality = Data.ViewDistanceQuality;
+		AntiAliasingQuality = Data.AntiAliasingQuality;
+		ShadowQuality = Data.ShadowQuality;
+		PostProcessQuality = Data.PostProcessQuality;
+		TextureQuality = Data.TextureQuality;
+		EffectsQuality = Data.EffectsQuality;
+		FoliageQuality = Data.FoliageQuality;
+
+		// Comparison Requests
+		bHasComparisonRules = Data.bHasComparisonRules;
+		ToleranceRed = Data.ToleranceRed;
+		ToleranceGreen = Data.ToleranceGreen;
+		ToleranceBlue = Data.ToleranceBlue;
+		ToleranceAlpha = Data.ToleranceAlpha;
+		ToleranceMinBrightness = Data.ToleranceMinBrightness;
+		ToleranceMaxBrightness = Data.ToleranceMaxBrightness;
+		MaximumAllowedError = Data.MaximumAllowedError;
+		bIgnoreAntiAliasing = Data.bIgnoreAntiAliasing;
+		bIgnoreColors = Data.bIgnoreColors;
+	}
+};
+
 
 /**
  * Implements a message that is sent in containing a screen shot run during performance test.
@@ -372,4 +495,7 @@ struct FAutomationWorkerScreenImage
 	/** The screen shot name. */
 	UPROPERTY(EditAnywhere, Category="Message")
 	FString ScreenShotName;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FAutomationScreenshotMetadata Metadata;
 };

@@ -7,9 +7,19 @@
 
 #if WITH_LIBCURL
 
-// FCurlHttpRequest
+int32 FCurlHttpRequest::NumberOfInfoMessagesToCache = 50;
 
-int32 FCurlHttpRequest::NumberOfInfoMessagesToCache = 10;
+#if WITH_SSL
+#include "Ssl.h"
+
+static CURLcode sslctx_function(CURL * curl, void * sslctx, void * parm)
+{
+	FSslModule::Get().GetCertificateManager().AddCertificatesToSslContext((reinterpret_cast<SSL_CTX*>(sslctx)));
+
+	/* all set to go */
+	return CURLE_OK;
+}
+#endif //#if WITH_SSL
 
 FCurlHttpRequest::FCurlHttpRequest()
 	:	EasyHandle(NULL)
@@ -38,6 +48,8 @@ FCurlHttpRequest::FCurlHttpRequest()
 #endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
 	curl_easy_setopt(EasyHandle, CURLOPT_SHARE, FCurlHttpManager::GShareHandle);
+
+	curl_easy_setopt(EasyHandle, CURLOPT_USE_SSL, CURLUSESSL_ALL);
 
 	// set certificate verification (disable to allow self-signed certificates)
 	if (FCurlHttpManager::CurlRequestOptions.bVerifyPeer)
@@ -72,6 +84,13 @@ FCurlHttpRequest::FCurlHttpRequest()
 	if (FCurlHttpManager::CurlRequestOptions.CertBundlePath)
 	{
 		curl_easy_setopt(EasyHandle, CURLOPT_CAINFO, FCurlHttpManager::CurlRequestOptions.CertBundlePath);
+	}
+	else
+	{
+		curl_easy_setopt(EasyHandle, CURLOPT_SSLCERTTYPE, "PEM");
+#if WITH_SSL
+		curl_easy_setopt(EasyHandle, CURLOPT_SSL_CTX_FUNCTION, *sslctx_function);
+#endif // #if WITH_SSL
 	}
 
 		InfoMessageCache.AddDefaulted(NumberOfInfoMessagesToCache);
@@ -695,7 +714,17 @@ FHttpRequestProgressDelegate& FCurlHttpRequest::OnRequestProgress()
 void FCurlHttpRequest::CancelRequest()
 {
 	bCanceled = true;
-	FHttpModule::Get().GetHttpManager().CancelThreadedRequest(SharedThis(this));
+	
+	FHttpManager& HttpManager = FHttpModule::Get().GetHttpManager();
+	if (HttpManager.IsValidRequest(this))
+	{
+		HttpManager.CancelThreadedRequest(SharedThis(this));
+	}
+	else
+	{
+		// Finish immediately
+		FinishedRequest();
+	}
 }
 
 EHttpRequestStatus::Type FCurlHttpRequest::GetStatus()
@@ -826,7 +855,7 @@ void FCurlHttpRequest::FinishedRequest()
 		{
 			if (InfoMessageCache[(LeastRecentlyCachedInfoMessageIndex + i) % InfoMessageCache.Num()].Len() > 0)
 			{
-				UE_LOG(LogHttp, Warning, TEXT("%p: libcurl info message cache %d (%s)"), this, i, *(InfoMessageCache[(LeastRecentlyCachedInfoMessageIndex + i) % NumberOfInfoMessagesToCache]));
+				UE_LOG(LogHttp, Warning, TEXT("%p: libcurl info message cache %d (%s)"), this, (LeastRecentlyCachedInfoMessageIndex + i) % InfoMessageCache.Num(), *(InfoMessageCache[(LeastRecentlyCachedInfoMessageIndex + i) % NumberOfInfoMessagesToCache]));
 			}
 		}
 

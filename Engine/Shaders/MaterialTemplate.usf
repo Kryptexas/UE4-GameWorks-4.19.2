@@ -48,7 +48,7 @@
 #endif
 
 //Platforms that don't run the editor shouldn't need editor features in the shaders.
-#define PLATFORM_SUPPORTS_EDITOR_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE)
+#define PLATFORM_SUPPORTS_EDITOR_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE && !WOLF_PROFILE)
 
 //Tie Editor features to platform support and the COMPILE_SHADERS_FOR_DEVELOPMENT which is set via CVAR.
 #define USE_EDITOR_SHADERS (PLATFORM_SUPPORTS_EDITOR_SHADERS && USE_DEVELOPMENT_SHADERS)
@@ -216,55 +216,7 @@ struct FMaterialPixelParameters
 FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 {
 	FMaterialPixelParameters MPP;
-#if SM5_PROFILE || SM4_PROFILE || PS4_PROFILE || (ES2_PROFILE || ES3_1_PROFILE) || METAL_SM5_PROFILE || METAL_SM4_PROFILE || METAL_MRT_PROFILE
 	MPP = (FMaterialPixelParameters)0;
-#else
-	// @todo compat hack - put back to the 0 typecast (2 lines up)
-	#if NUM_MATERIAL_TEXCOORDS
-	for (int C = 0; C < NUM_MATERIAL_TEXCOORDS; C++)
-	{
-		MPP.TexCoords[C] = 0;
-	}
-	#endif
-	MPP.VertexColor = 0;
-	MPP.TangentNormal = 0;
-	MPP.WorldNormal = 0;
-	MPP.ReflectionVector = 0;
-	MPP.CameraVector = 0;
-	MPP.LightVector = 0;
-	MPP.ScreenPosition = 0;
-	MPP.UnMirrored = 0;
-	MPP.TwoSidedSign = 0;
-	MPP.AbsoluteWorldPosition = 0;
-	MPP.WorldPosition_NoOffsets = 0;
-	MPP.WorldPosition_CamRelative = 0;
-	MPP.WorldPosition_NoOffsets_CamRelative = 0;
-	MPP.Particle.RelativeTime = 0;
-	MPP.Particle.MotionBlurFade = 0;
-	MPP.Particle.Velocity = 0;
-	MPP.LightingPositionOffset = 0;
-	MPP.AOMaterialMask = 0;
-	MPP.Particle.Color = 0;
-	MPP.Particle.TranslatedWorldPositionAndSize = 0;
-	MPP.Particle.MacroUV = 0;
-	MPP.Particle.DynamicParameter = 0;
-	#if USE_PARTICLE_SUBUVS
-	MPP.Particle.SubUVCoords[0] = 0;
-	MPP.Particle.SubUVCoords[1] = 0;
-	MPP.Particle.SubUVLerp = 0;
-	#endif
-	MPP.Particle.Size = 0;
-	#if LIGHTMAP_UV_ACCESS
-	MPP.LightmapUVs = 0;
-	#endif
-	#if USE_INSTANCING
-	MPP.PerInstanceParams = 0;
-	#endif
-	MPP.SvPosition = 0;
-	#if POST_PROCESS_MATERIAL && (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
-	MPP.BackupSceneColorAlpha = 0;
-	#endif
-#endif
 	MPP.TangentToWorld = float3x3(1,0,0,0,1,0,0,0,1);
 	return MPP;
 }

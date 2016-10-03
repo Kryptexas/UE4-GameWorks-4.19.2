@@ -149,6 +149,39 @@ void FSteamVRHMD::MarkTextureForUpdate(uint32 LayerId)
 }
 
 //=============================================================================
+void FSteamVRHMD::UpdateSplashScreen()
+{
+	FTexture2DRHIRef Texture = (bSplashShowMovie && SplashMovie.IsValid()) ? SplashMovie : SplashTexture;
+	if (bSplashIsShown && Texture.IsValid())
+	{
+		FLayerDesc LayerDesc;
+		LayerDesc.Flags = ELayerFlags::LAYER_FLAG_TEX_NO_ALPHA_CHANNEL;
+		LayerDesc.PositionType = ELayerType::TrackerLocked;
+		LayerDesc.Texture = Texture;
+		LayerDesc.UVRect = FBox2D(SplashOffset, SplashScale);
+		LayerDesc.Transform.SetTranslation(FVector(500.0f, 0.0f, 0.0f));
+		LayerDesc.QuadSize = FVector2D(800.0f, 450.0f);
+
+		if (SplashLayerHandle)
+		{
+			SetLayerDesc(SplashLayerHandle, LayerDesc);
+		}
+		else
+		{
+			SplashLayerHandle = CreateLayer(LayerDesc);
+		}
+	}
+	else
+	{
+		if (SplashLayerHandle)
+		{
+			DestroyLayer(SplashLayerHandle);
+			SplashLayerHandle = 0;
+		}
+	}
+}
+
+//=============================================================================
 void FSteamVRHMD::UpdateLayer(FLayer& Layer) const
 {
 	FScopeLock LayerLock(&LayerCritSect);
@@ -185,7 +218,7 @@ void FSteamVRHMD::UpdateLayer(FLayer& Layer) const
 	OVR_VERIFY(VROverlay->SetOverlaySortOrder(Layer.OverlayHandle, Layer.LayerDesc.Priority));
 
 	// Transform
-	switch (Layer.LayerDesc.Type)
+	switch (Layer.LayerDesc.PositionType)
 	{
 	case ELayerType::WorldLocked:
 #if 0

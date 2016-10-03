@@ -857,6 +857,9 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 
 			// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
 			ArPortFlags |= PPF_Duplicate;
+
+			// Set this flag to ensure that we also serialize any deprecated properties.
+			ArPortFlags |= PPF_UseDeprecatedProperties;
 		}
 	};
 

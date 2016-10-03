@@ -199,7 +199,7 @@ void USelection::Serialize(FArchive& Ar)
 bool USelection::Modify(bool bAlwaysMarkDirty/* =true */)
 {
 	// If the selection currently contains any PIE objects we should not be including it in the transaction buffer
-	for (auto ObjectPtr : SelectedObjects)
+	for (TWeakObjectPtr<UObject>& ObjectPtr : SelectedObjects)
 	{
 		UObject* Object = ObjectPtr.Get();
 		if (Object && Object->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor | PKG_ContainsScript | PKG_CompiledIn))
@@ -210,3 +210,17 @@ bool USelection::Modify(bool bAlwaysMarkDirty/* =true */)
 
 	return Super::Modify(bAlwaysMarkDirty);
 }
+
+#if WITH_EDITOR
+void USelection::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	// Sync up the annotation (for fast lookup) with the master array
+	for(TWeakObjectPtr<UObject>& ObjectPtr : SelectedObjects)
+	{
+		UObject* Object = ObjectPtr.Get(true);
+		GSelectedAnnotation.Set(Object);
+	}
+}
+#endif

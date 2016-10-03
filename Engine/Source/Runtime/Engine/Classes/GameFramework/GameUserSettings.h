@@ -309,13 +309,6 @@ protected:
 	UPROPERTY(config)
 	int32 WindowPosY;
 
-	/** 
-	 * Whether or not to use the desktop resolution.  
-	 * This value only applies if ResolutionX and ResolutionY have not been set yet and only on desktop platforms
-	 */
-	UPROPERTY(config)
-	bool bUseDesktopResolutionForFullscreen;
-
 	/**
 	 * Game window fullscreen mode
 	 *	0 = Fullscreen

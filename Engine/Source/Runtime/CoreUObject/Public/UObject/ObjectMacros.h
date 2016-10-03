@@ -938,6 +938,9 @@ namespace UP
 
 		/// Property shouldn't be serialized, can still be exported to text
 		SkipSerialization,
+
+		/// Property wont have a 'reset to default' button when displayed in property windows
+		NoResetToDefault,
 	};
 }
 
@@ -1540,6 +1543,13 @@ public: \
 	{ \
 		UPackage* PrivateStaticClassOuter = FindOrConstructDynamicTypePackage(Package); \
 		UClass* PrivateStaticClass = Cast<UClass>(StaticFindObjectFast(UClass::StaticClass(), PrivateStaticClassOuter, (TCHAR*)ClassName)); \
+		if (!PrivateStaticClass) \
+		{ \
+			/* the class could be created while its parent creation, so make sure, the parent is already created.*/ \
+			TClass::Super::StaticClass(); \
+			TClass::WithinClass::StaticClass(); \
+			PrivateStaticClass = Cast<UClass>(StaticFindObjectFast(UClass::StaticClass(), PrivateStaticClassOuter, (TCHAR*)ClassName)); \
+		} \
 		if (!PrivateStaticClass) \
 		{ \
 			/* this could be handled with templates, but we want it external to avoid code bloat */ \

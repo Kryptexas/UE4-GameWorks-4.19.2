@@ -390,6 +390,10 @@ void UPrimitiveComponent::SetAllPhysicsRotation(FRotator NewRot)
 	SetWorldRotation(NewRot, NAME_None);
 }
 
+void UPrimitiveComponent::SetAllPhysicsRotation(const FQuat& NewRot)
+{
+	SetWorldRotation(NewRot);
+}
 
 void UPrimitiveComponent::WakeRigidBody(FName BoneName)
 {

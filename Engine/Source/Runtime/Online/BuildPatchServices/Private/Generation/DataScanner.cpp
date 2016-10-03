@@ -107,16 +107,21 @@ namespace BuildPatchServices
 	bool FDataScanner::FindChunkDataMatch(FGuid& ChunkMatch, FSHAHash& ChunkSha)
 	{
 		TSet<FGuid>* PotentialMatches = ChunkInventory.Find(RollingHash.GetWindowHash());
+		bool bFoundMatch = false;
 		if (PotentialMatches != nullptr)
 		{
 			RollingHash.GetWindowData().GetShaHash(ChunkSha);
+			// Always return first match in list however count all collisions.
 			for (const FGuid& PotentialMatch : *PotentialMatches)
 			{
 				FSHAHash* PotentialMatchSha = ChunkShaHashes.Find(PotentialMatch);
 				if (PotentialMatchSha != nullptr && *PotentialMatchSha == ChunkSha)
 				{
-					ChunkMatch = PotentialMatch;
-					return true;
+					if (!bFoundMatch)
+					{
+						ChunkMatch = PotentialMatch;
+						bFoundMatch = true;
+					}
 				}
 				else
 				{
@@ -124,7 +129,7 @@ namespace BuildPatchServices
 				}
 			}
 		}
-		return false;
+		return bFoundMatch;
 	}
 
 	TArray<FChunkMatch> FDataScanner::ScanData()

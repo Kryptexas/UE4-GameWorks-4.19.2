@@ -3,6 +3,7 @@
 #include "GraphEditorCommon.h"
 #include "SGraphNodeMaterialResult.h"
 #include "TutorialMetaData.h"
+#include "IDocumentation.h"
 
 /////////////////////////////////////////////////////
 // SGraphNodeMaterialResult
@@ -45,6 +46,9 @@ void SGraphNodeMaterialResult::CreatePinWidgets()
 		{
 			TSharedPtr<SGraphPin> NewPin = CreatePinWidget(CurPin);
 			check(NewPin.IsValid());
+
+			TSharedPtr<SToolTip> ToolTipWidget = IDocumentation::Get()->CreateToolTip(MaterialGraph->MaterialInputs[PinIndex].GetToolTip(), nullptr, FString( TEXT("") ), FString( TEXT("") ) );
+			NewPin->SetToolTip( ToolTipWidget.ToSharedRef() );
 
 			this->AddPin(NewPin.ToSharedRef());
 		}

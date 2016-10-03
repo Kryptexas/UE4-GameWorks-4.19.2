@@ -6,6 +6,8 @@
 #include "Animation/PoseAsset.h"
 #include "FrameworkObjectVersion.h"
 
+#define LOCTEXT_NAMESPACE "PoseAsset"
+
 // utility function 
 #if WITH_EDITOR
 FSmartName GetUniquePoseName(USkeleton* Skeleton)
@@ -13,14 +15,14 @@ FSmartName GetUniquePoseName(USkeleton* Skeleton)
 	check(Skeleton);
 	int32 NameIndex = 0;
 
-	FSmartNameMapping::UID NewUID;
+	SmartName::UID_Type NewUID;
 	FName NewName;
 
 	do
 	{
 		NewName = FName(*FString::Printf(TEXT("Pose_%d"), NameIndex++));
 		NewUID = Skeleton->GetUIDByName(USkeleton::AnimCurveMappingName, NewName);
-	} while (NewUID != FSmartNameMapping::MaxUID);
+	} while (NewUID != SmartName::MaxUID);
 
 	// if found, 
 	FSmartName NewPoseName;
@@ -108,7 +110,7 @@ void FPoseDataContainer::GetPoseCurve(const FPoseData* PoseData, FBlendedCurve& 
 		for (int32 CurveIndex = 0; CurveIndex < Curves.Num(); ++CurveIndex)
 		{
 			const FAnimCurveBase& Curve = Curves[CurveIndex];
-			OutCurve.Set(Curve.Name.UID, CurveValues[CurveIndex], Curve.GetCurveTypeFlags());
+			OutCurve.Set(Curve.Name.UID, CurveValues[CurveIndex]);
 		}
 	}
 }
@@ -576,6 +578,25 @@ void UPoseAsset::PostLoad()
 		{
 			MySkeleton->VerifySmartName(USkeleton::AnimCurveMappingName, Curve.Name);
 		}
+
+		// double loop but this check only should happen once per asset
+		// this should continue to add if skeleton hasn't been saved either 
+		if (GetLinkerCustomVersion(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::MoveCurveTypesToSkeleton 
+			|| MySkeleton->GetLinkerCustomVersion(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::MoveCurveTypesToSkeleton)
+		{
+			// fix up curve flags to skeleton
+			for (auto& Curve : PoseContainer.Curves)
+			{
+				bool bMorphtargetSet = Curve.GetCurveTypeFlag(ACF_DriveMorphTarget_DEPRECATED);
+				bool bMaterialSet = Curve.GetCurveTypeFlag(ACF_DriveMaterial_DEPRECATED);
+
+				// only add this if that has to 
+				if (bMorphtargetSet || bMaterialSet)
+				{
+					MySkeleton->AccumulateCurveMetaData(Curve.Name.DisplayName, bMaterialSet, bMorphtargetSet);
+				}
+			}
+		}
 	}
 
 	// I  have to fix pose names
@@ -717,9 +738,38 @@ bool UPoseAsset::ContainsPose(const FName& InPoseName) const
 }
 
 #if WITH_EDITOR
-void UPoseAsset::AddOrUpdatePoseWithUniqueName(USkeletalMeshComponent* MeshComponent)
+bool UPoseAsset::AddOrUpdatePoseWithUniqueName(USkeletalMeshComponent* MeshComponent, FSmartName* OutPoseName /*= nullptr*/)
 {
-	AddOrUpdatePose(GetUniquePoseName(GetSkeleton()), MeshComponent);
+	bool bSuccess = true;
+	bool bSavedAdditivePose = bAdditivePose;
+
+	// if it's already additive, convert to full pose first
+	if (bAdditivePose)
+	{
+		// convert to full pose
+		bSuccess = ConvertToFullPose();
+	}
+
+	if (bSuccess)
+	{
+		FSmartName NewPoseName = GetUniquePoseName(GetSkeleton());
+		AddOrUpdatePose(NewPoseName, MeshComponent);
+
+		if (OutPoseName)
+		{
+			*OutPoseName = NewPoseName;
+		}
+
+		// convert back to additive if it was that way
+		if (bSavedAdditivePose)
+		{
+			ConvertToAdditivePose(bSavedAdditivePose);
+		}
+
+		OnPoseListChanged.Broadcast();
+	}
+
+	return bSuccess;
 }
 
 void UPoseAsset::AddOrUpdatePose(const FSmartName& PoseName, USkeletalMeshComponent* MeshComponent)
@@ -746,12 +796,33 @@ void UPoseAsset::AddOrUpdatePose(const FSmartName& PoseName, USkeletalMeshCompon
 			}
 		}
 
-		AddOrUpdatePose(PoseName, TrackNames, BoneTransform);
+		const USkeleton* MeshSkeleton = MeshComponent->SkeletalMesh->Skeleton;
+		const FSmartNameMapping* Mapping = MeshSkeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+		
+		TArray<float> NewCurveValues;
+		NewCurveValues.AddZeroed(PoseContainer.Curves.Num());
+
+		if(Mapping)
+		{
+			const FBlendedHeapCurve& MeshCurves = MeshComponent->GetAnimationCurves();
+ 
+			for (int32 NewCurveIndex = 0; NewCurveIndex < NewCurveValues.Num(); ++NewCurveIndex)
+			{
+				FAnimCurveBase& Curve = PoseContainer.Curves[NewCurveIndex];
+				if (const SmartName::UID_Type* CurveUID = Mapping->FindUID(Curve.Name.DisplayName))
+				{
+					const float MeshCurveValue = MeshCurves.Get(*CurveUID);
+					NewCurveValues[NewCurveIndex] = MeshCurveValue;
+				}
+			}
+		}
+
+		AddOrUpdatePose(PoseName, TrackNames, BoneTransform, NewCurveValues);
 		PoseContainer.Shrink(MySkeleton, RetargetSource);
 	}
 }
 
-void UPoseAsset::AddOrUpdatePose(const FSmartName& PoseName, TArray<FName> TrackNames, TArray<FTransform>& LocalTransform)
+void UPoseAsset::AddOrUpdatePose(const FSmartName& PoseName, const TArray<FName>& TrackNames, const TArray<FTransform>& LocalTransform, const TArray<float>& CurveValues)
 {
 	USkeleton* MySkeleton = GetSkeleton();
 	if (MySkeleton)
@@ -767,6 +838,8 @@ void UPoseAsset::AddOrUpdatePose(const FSmartName& PoseName, TArray<FName> Track
 		PoseData->LocalSpacePose.AddUninitialized(TotalTracks);
 		PoseData->LocalSpacePoseMask.SetNumZeroed(TotalTracks, true);
 		PoseContainer.FillUpDefaultPose(PoseData, MySkeleton, RetargetSource);
+		check(CurveValues.Num() == PoseContainer.Curves.Num());
+		PoseData->CurveData = CurveValues;
 
 		const FReferenceSkeleton& RefSkeleton = MySkeleton->GetReferenceSkeleton();
 		for (int32 Index = 0; Index < TrackNames.Num(); ++Index)
@@ -848,13 +921,13 @@ void UPoseAsset::CreatePoseFromAnimation(class UAnimSequence* AnimSequence, cons
 
 				// @Todo fill up curve data
 				TArray<float> CurveData;
-				float IntervalBetweenKeys = AnimSequence->SequenceLength / NumPoses;
+				float IntervalBetweenKeys = (NumPoses > 1)? AnimSequence->SequenceLength / (NumPoses -1 ) : 0.f;
 
 				// add curves - only float curves
 				const int32 TotalFloatCurveCount = AnimSequence->RawCurveData.FloatCurves.Num();
 				
 				// have to construct own UIDList;
-				TArray<FSmartNameMapping::UID> UIDList;
+				TArray<SmartName::UID_Type> UIDList;
 
 				if (TotalFloatCurveCount > 0)
 				{
@@ -937,7 +1010,7 @@ void UPoseAsset::UpdatePoseFromAnimation(class UAnimSequence* AnimSequence)
 }
 #endif // WITH_EDITOR
 
-bool UPoseAsset::ModifyPoseName(FName OldPoseName, FName NewPoseName, const FSmartNameMapping::UID* NewUID)
+bool UPoseAsset::ModifyPoseName(FName OldPoseName, FName NewPoseName, const SmartName::UID_Type* NewUID)
 {
 	USkeleton* MySkeleton = GetSkeleton();
 
@@ -961,6 +1034,7 @@ bool UPoseAsset::ModifyPoseName(FName OldPoseName, FName NewPoseName, const FSma
 		else
 		{
 			// we're renaming current one
+			MySkeleton->Modify();
 			MySkeleton->RenameSmartName(USkeleton::AnimCurveMappingName, OldPoseSmartName.UID, NewPoseName);
 			NewPoseSmartName = OldPoseSmartName;
 			NewPoseSmartName.DisplayName = NewPoseName;
@@ -1199,3 +1273,4 @@ bool UPoseAsset::GetBasePoseTransform(TArray<FTransform>& OutBasePose, TArray<fl
 	return false;
 }
 
+#undef LOCTEXT_NAMESPACE 

@@ -130,6 +130,9 @@ private:
 	// A flag marking whether the thread is failing all current requests
 	bool bIsDisconnected;
 
+	// A flag marking whether the thread has any in-flight download attempts, failing or otherwise
+	bool bIsDownloading;
+
 	// A flag that says whether more chunks could still be queued
 	bool bWaitingForJobs;
 
@@ -225,6 +228,12 @@ public:
 	 * @return True if the thread is not getting success responses.
 	 */
 	bool IsDisconnected();
+
+	/**
+	 * Get whether the thread is currently making download requests.
+	 * @return True if the thread is making download requests, rather than waiting.
+	 */
+	bool IsDownloading();
 
 	/**
 	 * Gets the array of download recordings. Should not be polled, only call when the thread has finished to gather data.
@@ -366,6 +375,12 @@ private:
 	 * @param bIsDisconnected       Whether the thread is stalling on all requests.
 	 */
 	void SetIsDisconnected(bool bIsDisconnected);
+
+	/**
+	 * Sets the bIsDownloading flag.
+	 * @param bIsDownloading        Whether the thread has any in-flight download attempts, failing or otherwise.
+	 */
+	void SetIsDownloading(bool bIsDownloading);
 
 	/**
 	 * Sets the current request success rate.

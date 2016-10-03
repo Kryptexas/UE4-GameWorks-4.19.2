@@ -544,22 +544,42 @@ enum class ENetworkSmoothingMode : uint8
     If(QueryIgnoreMask & ShapeFilter != 0) filter out */
 typedef uint8 FMaskFilter;
 
+// NOTE!!Some of these values are used to index into FCollisionResponseContainers and must be kept in sync.
+// @see FCollisionResponseContainer::SetResponse().
+
+// @NOTE!!!! This DisplayName [DISPLAYNAME] SHOULD MATCH suffix of ECC_DISPLAYNAME
+// Otherwise it will mess up collision profile loading
+// If you change this, please also change FCollisionResponseContainers
+//
+// If you add any more TraceQuery="1", you also should change UCollsionProfile::LoadProfileConfig
+// Metadata doesn't work outside of editor, so you'll need to add manually
+
+// @NOTE : when you add more here for predefined engine channel
+// please change the max in the CollisionProfile
+// search ECC_Destructible
+
+// in order to use this custom channels
+// we recommend to define in your local file
+// - i.e. #define COLLISION_WEAPON		ECC_GameTraceChannel1
+// and make sure you customize these it in INI file by
+// 
+// in DefaultEngine.ini
+//
+// [/Script/Engine.CollisionProfile]
+// GameTraceChannel1="Weapon"
+// 
+// also in the INI file, you can override collision profiles that are defined by simply redefining
+// note that Weapon isn't defined in the BaseEngine.ini file, but "Trigger" is defined in Engine
+// +Profiles=(Name="Trigger",CollisionEnabled=QueryOnly,ObjectTypeName=WorldDynamic, DefaultResponse=ECR_Overlap, CustomResponses=((Channel=Visibility, Response=ECR_Ignore), (Channel=Weapon, Response=ECR_Ignore)))
+
+
 /** 
  * Enum indicating different type of objects for rigid-body collision purposes. 
- * NOTE!! Some of these values are used to index into FCollisionResponseContainers and must be kept in sync.
- * @see FCollisionResponseContainer::SetResponse().
  */
 UENUM(BlueprintType)
 enum ECollisionChannel
 {
-	/**
-	* @NOTE!!!! This DisplayName [DISPLAYNAME] SHOULD MATCH suffix of ECC_DISPLAYNAME
-	* Otherwise it will mess up collision profile loading
-	* If you change this, please also change FCollisionResponseContainers
-	* 
-	* If you add any more TraceQuery="1", you also should change UCollsionProfile::LoadProfileConfig
-	* Metadata doesn't work outside of editor, so you'll need to add manually 
-	*/
+
 	ECC_WorldStatic UMETA(DisplayName="WorldStatic"),
 	ECC_WorldDynamic UMETA(DisplayName="WorldDynamic"),
 	ECC_Pawn UMETA(DisplayName="Pawn"),
@@ -568,31 +588,16 @@ enum ECollisionChannel
 	ECC_PhysicsBody UMETA(DisplayName="PhysicsBody"),
 	ECC_Vehicle UMETA(DisplayName="Vehicle"),
 	ECC_Destructible UMETA(DisplayName="Destructible"),
-	// @NOTE : when you add more here for predefined engine channel
-	// please change the max in the CollisionProfile
-	// search ECC_Destructible
 
-	// Unspecified Engine Trace Channels
-	ECC_EngineTraceChannel1 UMETA(Hidden),		// IMPORTANT: This engine trace channel is reserved by the COLLISION_GIZMO definition
+	/** Reserved for gizmo collision */
+	ECC_EngineTraceChannel1 UMETA(Hidden),
+
 	ECC_EngineTraceChannel2 UMETA(Hidden),
 	ECC_EngineTraceChannel3 UMETA(Hidden),
 	ECC_EngineTraceChannel4 UMETA(Hidden), 
 	ECC_EngineTraceChannel5 UMETA(Hidden),
 	ECC_EngineTraceChannel6 UMETA(Hidden),
 
-	// in order to use this custom channels
-	// we recommend to define in your local file
-	// - i.e. #define COLLISION_WEAPON		ECC_GameTraceChannel1
-	// and make sure you customize these it in INI file by
-	// 
-	// in DefaultEngine.ini
-	//
-	// [/Script/Engine.CollisionProfile]
-	// GameTraceChannel1="Weapon"
-	// 
-	// also in the INI file, you can override collision profiles that are defined by simply redefining
-	// note that Weapon isn't defined in the BaseEngine.ini file, but "Trigger" is defined in Engine
-	// +Profiles=(Name="Trigger",CollisionEnabled=QueryOnly,ObjectTypeName=WorldDynamic, DefaultResponse=ECR_Overlap, CustomResponses=((Channel=Visibility, Response=ECR_Ignore), (Channel=Weapon, Response=ECR_Ignore)))
 	ECC_GameTraceChannel1 UMETA(Hidden),
 	ECC_GameTraceChannel2 UMETA(Hidden),
 	ECC_GameTraceChannel3 UMETA(Hidden),
@@ -616,13 +621,7 @@ enum ECollisionChannel
 	/** Add only nonserialized/transient flags below */
 
 	// NOTE!!!! THESE ARE BEING DEPRECATED BUT STILL THERE FOR BLUEPRINT. PLEASE DO NOT USE THEM IN CODE
-	/** 
-	 * This can be used to get all overlap event. If you trace with this channel, 
-	 * It will return everything except its own. Do not use this often as this is expensive operation
-	 */
-	 /**
-	  * can't add displaynames because then it will show up in the collision channel option
-	  */
+
 	ECC_OverlapAll_Deprecated UMETA(Hidden),
 	ECC_MAX,
 };

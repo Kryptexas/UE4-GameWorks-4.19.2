@@ -325,7 +325,8 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 						FSmartName CurveName;
 						if (SkeletonObj->GetSmartNameByUID(USkeleton::AnimCurveMappingName, UID, CurveName))
 						{
-							AnimationObject->RawCurveData.AddFloatCurveKey(CurveName, CurCurve.Flags, TimeToRecord, CurCurve.Value);
+							// give default curve flag for recording 
+							AnimationObject->RawCurveData.AddFloatCurveKey(CurveName, ACF_DefaultCurve, TimeToRecord, CurCurve.Value);
 							FloatCurveData = static_cast<FFloatCurve*>(AnimationObject->RawCurveData.GetCurveData(UID, FRawCurveTracks::FloatType));
 						}
 					}

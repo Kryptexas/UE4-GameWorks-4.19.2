@@ -4,6 +4,7 @@
 
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemTypes.h"
+#include "OnlineKeyValuePair.h"
 
 /** Type of presence keys */
 typedef FString FPresenceKey;

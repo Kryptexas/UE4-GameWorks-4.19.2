@@ -772,7 +772,7 @@ void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTim
 		const FTTFloatTrack* FloatTrackTemplate = &TimelineTemplate->FloatTracks[TrackIdx];
 		if (FloatTrackTemplate->CurveFloat != NULL)
 		{
-			NewTimeline->AddInterpFloat(FloatTrackTemplate->CurveFloat, FOnTimelineFloat(), TimelineTemplate->GetTrackPropertyName(FloatTrackTemplate->TrackName));
+			NewTimeline->AddInterpFloat(FloatTrackTemplate->CurveFloat, FOnTimelineFloat(), TimelineTemplate->GetTrackPropertyName(FloatTrackTemplate->TrackName), FloatTrackTemplate->TrackName);
 		}
 	}
 
@@ -782,7 +782,7 @@ void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTim
 		const FTTVectorTrack* VectorTrackTemplate = &TimelineTemplate->VectorTracks[TrackIdx];
 		if (VectorTrackTemplate->CurveVector != NULL)
 		{
-			NewTimeline->AddInterpVector(VectorTrackTemplate->CurveVector, FOnTimelineVector(), TimelineTemplate->GetTrackPropertyName(VectorTrackTemplate->TrackName));
+			NewTimeline->AddInterpVector(VectorTrackTemplate->CurveVector, FOnTimelineVector(), TimelineTemplate->GetTrackPropertyName(VectorTrackTemplate->TrackName), VectorTrackTemplate->TrackName);
 		}
 	}
 
@@ -792,7 +792,7 @@ void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTim
 		const FTTLinearColorTrack* LinearColorTrackTemplate = &TimelineTemplate->LinearColorTracks[TrackIdx];
 		if (LinearColorTrackTemplate->CurveLinearColor != NULL)
 		{
-			NewTimeline->AddInterpLinearColor(LinearColorTrackTemplate->CurveLinearColor, FOnTimelineLinearColor(), TimelineTemplate->GetTrackPropertyName(LinearColorTrackTemplate->TrackName));
+			NewTimeline->AddInterpLinearColor(LinearColorTrackTemplate->CurveLinearColor, FOnTimelineLinearColor(), TimelineTemplate->GetTrackPropertyName(LinearColorTrackTemplate->TrackName), LinearColorTrackTemplate->TrackName);
 		}
 	}
 
@@ -1250,6 +1250,12 @@ void FBlueprintCookedComponentInstancingData::LoadCachedPropertyDataForSerializa
 			ArCustomPropertyList = InPropertyList;
 			ArUseCustomPropertyList = true;
 			ArWantBinaryPropertySerialization = true;
+
+			// Set this flag to emulate things that would normally happen in the SDO case when this flag is set. This is needed to ensure consistency with serialization during instancing.
+			ArPortFlags |= PPF_Duplicate;
+
+			// Set this flag to ensure that we also serialize any deprecated properties.
+			ArPortFlags |= PPF_UseDeprecatedProperties;
 		}
 	};
 

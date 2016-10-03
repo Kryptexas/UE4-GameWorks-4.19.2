@@ -15,6 +15,7 @@
 #include "DragDropHandler.h"
 #include "BreakIterator.h"
 #include "SInlineEditableTextBlock.h"
+#include "EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -662,7 +663,14 @@ TSharedRef<SWidget> SAssetViewItem::CreateToolTipWidget() const
 			TSharedRef<SVerticalBox> InfoBox = SNew(SVerticalBox);
 
 			// Add Path
-			AddToToolTipInfoBox( InfoBox, LOCTEXT("TileViewTooltipPath", "Path"), FText::FromName(AssetData.PackagePath), false );
+			AddToToolTipInfoBox( InfoBox, LOCTEXT("TileViewTooltipPath", "Path"), FText::FromName(AssetData.PackagePath), false);
+
+			int32 PackageNameLengthForCooking = ContentBrowserUtils::GetPackageLengthForCooking(AssetData.PackageName.ToString(), FEngineBuildSettings::IsInternalBuild());
+
+			AddToToolTipInfoBox( InfoBox, LOCTEXT("TileViewTooltipPathLengthForCookingKey", "Cooking Filepath length"), FText::Format(LOCTEXT("TileViewTooltipPathLengthForCookingValue", "{0} / {1}"), 
+								 FText::AsNumber(PackageNameLengthForCooking), FText::AsNumber(ContentBrowserUtils::MaxCookPathLen)), PackageNameLengthForCooking > ContentBrowserUtils::MaxCookPathLen ? true : false);
+
+			
 			
 			// Add Collections
 			{

@@ -3,7 +3,7 @@
 #include "AutomationBlueprintFunctionLibrary.h"
 #include "TakeScreenshotAfterTimeLatentAction.h"
 
-FTakeScreenshotAfterTimeLatentAction::FTakeScreenshotAfterTimeLatentAction(const FLatentActionInfo& LatentInfo, const FString& InScreenshotName, float Seconds)
+FTakeScreenshotAfterTimeLatentAction::FTakeScreenshotAfterTimeLatentAction(const FLatentActionInfo& LatentInfo, const FString& InScreenshotName, FIntPoint Resolution, float Seconds)
 	: ExecutionFunction(LatentInfo.ExecutionFunction)
 	, OutputLink(LatentInfo.Linkage)
 	, CallbackTarget(LatentInfo.CallbackTarget)
@@ -11,11 +11,17 @@ FTakeScreenshotAfterTimeLatentAction::FTakeScreenshotAfterTimeLatentAction(const
 	, SecondsRemaining(Seconds)
 	, IssuedScreenshotCapture(false)
 	, TakenScreenshot(false)
+	, DesiredResolution(Resolution)
 {
 }
 
 FTakeScreenshotAfterTimeLatentAction::~FTakeScreenshotAfterTimeLatentAction()
 {
+}
+
+void FTakeScreenshotAfterTimeLatentAction::OnScreenshotTaken(int32 InSizeX, int32 InSizeY, const TArray<FColor>& InImageData)
+{
+	TakenScreenshot = true;
 }
 
 void FTakeScreenshotAfterTimeLatentAction::UpdateOperation(FLatentResponse& Response)
@@ -27,13 +33,18 @@ void FTakeScreenshotAfterTimeLatentAction::UpdateOperation(FLatentResponse& Resp
 			SecondsRemaining -= Response.ElapsedTime();
 			if ( SecondsRemaining <= 0.0f )
 			{
-				UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(ScreenshotName);
-				IssuedScreenshotCapture = true;
+				DelegateHandle = GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FTakeScreenshotAfterTimeLatentAction::OnScreenshotTaken);
+
+				if ( UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(ScreenshotName, DesiredResolution) )
+				{
+					IssuedScreenshotCapture = true;
+				}
+				else
+				{
+					//TODO LOG FAILED SCREENSHOT
+					TakenScreenshot = true;
+				}
 			}
-		}
-		else
-		{
-			TakenScreenshot = true;
 		}
 	}
 	else

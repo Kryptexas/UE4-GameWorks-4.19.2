@@ -11,6 +11,7 @@
 #include "Misc/Crc.h"
 #include "Misc/CString.h"
 #include "Templates/MemoryOps.h"
+#include "Traits/IsContiguousContainer.h"
 
 struct FStringFormatArg;
 
@@ -54,6 +55,7 @@ private:
 	DataType Data;
 
 public:
+	using ElementType = TCHAR;
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
@@ -153,21 +155,25 @@ public:
 	/** Convert Objective-C NSString* to FString */
 	FORCEINLINE FString(const NSString* In)
 	{
-		// get the length of the NSString
-		int32 Len = (In && [In length]) ? [In length] + 1 : 0;
-		Data.AddUninitialized(Len);
-
-		if (Len > 0)
+		if (In && [In length] > 0)
 		{
-			
-			// copy the NSString's cString data into the FString
+			// Convert the NSString data into the native TCHAR format for UE4
+			// This returns a buffer of bytes, but they can be safely cast to a buffer of TCHARs
 #if PLATFORM_TCHAR_IS_4_BYTES
-			FMemory::Memcpy(Data.GetData(), [In cStringUsingEncoding:NSUTF32StringEncoding], Len * sizeof(TCHAR));
+			const CFStringEncoding Encoding = kCFStringEncodingUTF32LE;
 #else
-			FMemory::Memcpy(Data.GetData(), [In cStringUsingEncoding:NSUTF16StringEncoding], Len * sizeof(TCHAR));
+			const CFStringEncoding Encoding = kCFStringEncodingUTF16LE;
 #endif
-			// for non-UTF-8 encodings this may not be terminated with a nullptr!
-			Data[Len-1] = '\0';
+
+			CFRange Range = CFRangeMake(0, CFStringGetLength((__bridge CFStringRef)In));
+			CFIndex BytesNeeded;
+			if (CFStringGetBytes((__bridge CFStringRef)In, Range, Encoding, '?', false, NULL, 0, &BytesNeeded) > 0)
+			{
+				const size_t Length = BytesNeeded / sizeof(TCHAR);
+				Data.AddUninitialized(Length + 1);
+				CFStringGetBytes((__bridge CFStringRef)In, Range, Encoding, '?', false, (uint8*)Data.GetData(), Length * sizeof(TCHAR) + 1, NULL);
+				Data[Length] = 0;
+			}
 		}
 	}
 #endif
@@ -1695,8 +1701,29 @@ struct TContainerTraits<FString> : public TContainerTraitsBase<FString>
 template<> struct TIsZeroConstructType<FString> { enum { Value = true }; };
 Expose_TNameOf(FString)
 
+template <>
+struct TIsContiguousContainer<FString>
+{
+	enum { Value = true };
+};
+
+inline TCHAR* GetData(FString& String)
+{
+	return String.GetCharArray().GetData();
+}
+
+inline const TCHAR* GetData(const FString& String)
+{
+	return String.GetCharArray().GetData();
+}
+
+inline SIZE_T GetNum(const FString& String)
+{
+	return String.GetCharArray().Num();
+}
+
 /** Case insensitive string hash function. */
-FORCEINLINE uint32 GetTypeHash( const FString& S )
+FORCEINLINE uint32 GetTypeHash(const FString& S)
 {
 	return FCrc::Strihash_DEPRECATED(*S);
 }

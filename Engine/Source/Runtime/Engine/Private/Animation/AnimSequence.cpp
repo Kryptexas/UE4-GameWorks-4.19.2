@@ -536,7 +536,6 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 	{
 		ShowResaveMessage(this);
 
-		const TArray<FBoneNode>& BoneTree = UseSkeleton->GetBoneTree();
 		AnimationTrackNames.Empty();
 		AnimationTrackNames.AddUninitialized(TrackToSkeletonMapTable.Num());
 		for(int32 I=0; I<TrackToSkeletonMapTable.Num(); ++I)
@@ -572,7 +571,6 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 			{
 				ShowResaveMessage(this);
 
-				const TArray<FBoneNode>& BoneTree = UseSkeleton->GetBoneTree();
 				for(int32 I=NumTracks-1; I>=0; --I)
 				{
 					int32 BoneTreeIndex = UseSkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
@@ -1146,7 +1144,6 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 	}
 #endif // WITH_EDITOR
 
-	TArray<FBoneNode> const& BoneTree = MySkeleton->GetBoneTree();
 	TArray<int32> const& SkeletonToPoseBoneIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
 
 	BoneTrackArray& RotationScalePairs = FGetBonePoseScratchArea::Get().RotationScalePairs;
@@ -1183,7 +1180,7 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 					RotationScalePairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
 
 					// Skip extracting translation component for EBoneTranslationRetargetingMode::Skeleton.
-					switch (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
+					switch (MySkeleton->GetBoneTranslationRetargetingMode(SkeletonBoneIndex))
 					{
 					case EBoneTranslationRetargetingMode::Animation:
 						TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
@@ -2221,10 +2218,10 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 	{
 		// Initialise curve data from Skeleton
 		FBlendedCurve Curve;
-		Curve.InitFrom(&(MySkeleton->GetCachedAnimCurveMappingNameUids()));
+		Curve.InitFrom(RequiredBones);
 
 		FBlendedCurve DummyBaseCurve;
-		DummyBaseCurve.InitFrom(&(MySkeleton->GetCachedAnimCurveMappingNameUids()));
+		DummyBaseCurve.InitFrom(RequiredBones);
 
 		//Grab pose for this frame
 		const float CurrentFrameTime = Frame * IntervalTime;
@@ -2240,10 +2237,10 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 		}
 
 		//Write out curve data for this frame
-		const TArray<FSmartNameMapping::UID>& UIDList = *Curve.UIDList;
+		const TArray<SmartName::UID_Type>& UIDList = *Curve.UIDList;
 		for (int32 CurveIndex = 0; CurveIndex < UIDList.Num(); ++CurveIndex)
 		{
-			FSmartNameMapping::UID CurveUID = UIDList[CurveIndex];
+			SmartName::UID_Type CurveUID = UIDList[CurveIndex];
 			FCurveElement& CurveEL = Curve.Elements[CurveIndex];
 			FFloatCurve* RawCurve = GetFloatCurve(NewCurveTracks, CurveUID);
 			if (!RawCurve && CurveEL.Value > 0.f) //Only make a new curve if we are going to give it data
@@ -2251,7 +2248,8 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 				FSmartName NewCurveName;
 				// if we don't have name, there is something wrong here. 
 				ensureAlways(MySkeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, CurveUID, NewCurveName));
-				NewCurveTracks.AddCurveData(NewCurveName, CurveEL.Flags, FRawCurveTracks::FloatType);
+				// curve flags don't matter much for compressed curves
+				NewCurveTracks.AddCurveData(NewCurveName, 0, FRawCurveTracks::FloatType);
 				RawCurve = GetFloatCurve(NewCurveTracks, CurveUID);
 			}
 
@@ -4927,6 +4925,37 @@ float UAnimSequence::GetNextMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPo
 		{
 			const float FoundTime = FMath::Lerp(PrevMarker.Time, NextMarker.Time, InMarkerSyncGroupPosition.PositionBetweenMarkers);
 			if (FoundTime < StartingPosition)
+			{
+				continue;
+			}
+			return FoundTime;
+		}
+	}
+
+	return StartingPosition;
+}
+
+float UAnimSequence::GetPrevMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const
+{
+	if ((InMarkerSyncGroupPosition.PreviousMarkerName == NAME_None) || (InMarkerSyncGroupPosition.NextMarkerName == NAME_None) || (AuthoredSyncMarkers.Num() < 2))
+	{
+		return StartingPosition;
+	}
+
+	for (int32 PrevMarkerIdx = AuthoredSyncMarkers.Num() - 2; PrevMarkerIdx >= 0; PrevMarkerIdx--)
+	{
+		const FAnimSyncMarker& PrevMarker = AuthoredSyncMarkers[PrevMarkerIdx];
+		const FAnimSyncMarker& NextMarker = AuthoredSyncMarkers[PrevMarkerIdx + 1];
+
+		if (PrevMarker.Time > StartingPosition)
+		{
+			continue;
+		}
+
+		if ((PrevMarker.MarkerName == InMarkerSyncGroupPosition.PreviousMarkerName) && (NextMarker.MarkerName == InMarkerSyncGroupPosition.NextMarkerName))
+		{
+			const float FoundTime = FMath::Lerp(PrevMarker.Time, NextMarker.Time, InMarkerSyncGroupPosition.PositionBetweenMarkers);
+			if (FoundTime > StartingPosition)
 			{
 				continue;
 			}

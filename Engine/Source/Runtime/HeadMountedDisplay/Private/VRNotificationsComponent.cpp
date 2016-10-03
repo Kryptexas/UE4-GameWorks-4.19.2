@@ -19,6 +19,9 @@ void UVRNotificationsComponent::OnRegister()
 	FCoreDelegates::VRHeadsetRecenter.AddUObject(this, &UVRNotificationsComponent::HMDRecenteredDelegate_Handler);
 	FCoreDelegates::VRHeadsetLost.AddUObject(this, &UVRNotificationsComponent::HMDLostDelegate_Handler);
 	FCoreDelegates::VRHeadsetReconnected.AddUObject(this, &UVRNotificationsComponent::HMDReconnectedDelegate_Handler);
+	FCoreDelegates::VRHeadsetConnectCanceled.AddUObject(this, &UVRNotificationsComponent::HMDConnectCanceledDelegate_Handler);
+	FCoreDelegates::VRHeadsetPutOnHead.AddUObject(this, &UVRNotificationsComponent::HMDPutOnHeadDelegate_Handler);
+	FCoreDelegates::VRHeadsetRemovedFromHead.AddUObject(this, &UVRNotificationsComponent::HMDRemovedFromHeadDelegate_Handler);
 }
 
 void UVRNotificationsComponent::OnUnregister()
@@ -30,4 +33,7 @@ void UVRNotificationsComponent::OnUnregister()
 	FCoreDelegates::VRHeadsetRecenter.RemoveAll(this);
 	FCoreDelegates::VRHeadsetLost.RemoveAll(this);
 	FCoreDelegates::VRHeadsetReconnected.RemoveAll(this);
+	FCoreDelegates::VRHeadsetConnectCanceled.RemoveAll(this);
+	FCoreDelegates::VRHeadsetPutOnHead.RemoveAll(this);
+	FCoreDelegates::VRHeadsetRemovedFromHead.RemoveAll(this);
 }

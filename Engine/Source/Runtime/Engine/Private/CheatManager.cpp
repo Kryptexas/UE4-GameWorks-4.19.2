@@ -22,7 +22,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Engine/DebugCameraController.h"
 #include "GameFramework/PlayerState.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerInput.h"
 #include "GameFramework/InputSettings.h"
 #include "Components/BrushComponent.h"
@@ -1039,7 +1039,7 @@ void UCheatManager::BugItWorker( FVector TheLocation, FRotator TheRotation )
 	}
 	MyPlayerController->SetControlRotation(TheRotation);
 
-	// ghost again in case teleporting changed the movememt mode
+	// ghost again in case teleporting changed the movement mode
 	Ghost();
 	GetOuterAPlayerController()->ClientMessage(TEXT("BugItGo: Ghost mode is ON"));
 }

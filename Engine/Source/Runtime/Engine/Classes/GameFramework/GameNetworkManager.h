@@ -184,6 +184,9 @@ class ENGINE_API AGameNetworkManager : public AInfo
 	/** Timer which calls UpdateNetSpeeds() once a second. */
 	virtual void UpdateNetSpeedsTimer();
 
+	/** Returns true if we should be in low bandwidth mode */
+	virtual bool IsInLowBandwidthMode();
+
 	//======================================================================================================================
 	// Player replication
 

@@ -22,13 +22,15 @@ public class EditorAutomation : ModuleRules
         
         PrivateDependencyModuleNames.AddRange(
              new string[] {
-					"Engine",
-                    "UnrealEd",
-					"LevelEditor",
-					"SessionFrontend",
-                    "FunctionalTesting",
-                    "PlacementMode",
-                }
+                "Engine",
+                "UnrealEd",
+                "LevelEditor",
+                "SessionFrontend",
+                "FunctionalTesting",
+                "PlacementMode",
+                "WorkspaceMenuStructure",
+                "ScreenShotComparisonTools"
+            }
          );
 	}
 }

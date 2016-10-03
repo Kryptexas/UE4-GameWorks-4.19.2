@@ -6,7 +6,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 DECLARE_DELEGATE_RetVal( float, FOnGetScrubValue )
-DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const FGraphPanelSelectionSet& )
+DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const TArray<UObject*>& )
 DECLARE_DELEGATE( FOnNodeSelectionChanged )
 DECLARE_DELEGATE( FOnUpdatePanel )
 

@@ -119,6 +119,8 @@ TArray<FString> AbsoluteFilenames( const TArray<FString>& InFileNames )
 		{
 			AbsoluteFiles.Add(FPaths::ConvertRelativePathToFull(FileName));
 		}
+
+		FPaths::NormalizeFilename(AbsoluteFiles[AbsoluteFiles.Num() - 1]);
 	}
 
 	return AbsoluteFiles;

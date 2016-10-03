@@ -55,6 +55,7 @@ namespace MemoryProfiler2
 		private void CommonInit()
 		{
 			Options = UnrealControls.XmlHandler.ReadXml<SettableOptions>( Path.Combine( Application.StartupPath, "MemoryProfiler2.ClassGroups.xml" ) );
+			Options.ApplyDefaults();
 
 			AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler( CurrentDomain_AssemblyResolve );
 
@@ -428,6 +429,10 @@ namespace MemoryProfiler2
 			catch( Exception ex )
 			{
 				UpdateStatus( "Error updating view: " + ex.Message );
+
+				Trace.WriteLine("-----------------------------------");
+				Trace.WriteLine(ex.ToString());
+				Trace.WriteLine("-----------------------------------");
 			}
 #endif // !DEBUG
 
@@ -548,10 +553,6 @@ namespace MemoryProfiler2
 					UpdateStatus( "Parsed " + CurrentFilename );
 
 					// Re-enable all required menus
-					if( FStreamInfo.GlobalInstance.Platform == EPlatformType.PS3 )
-					{
-						MemoryPoolFilterButton.Enabled = true;
-					}
 					MainToolStrip.Enabled = true;
 					MainTabControl.Enabled = true;
 
@@ -665,11 +666,6 @@ namespace MemoryProfiler2
 
 			FilterLabel.Enabled = e.TabPage == TimeLineTabPage ? false : true;
 			FilterTextBox.Enabled = e.TabPage == TimeLineTabPage ? false : true;
-
-			if( FStreamInfo.GlobalInstance.Platform == EPlatformType.PS3 )
-			{
-				MemoryPoolFilterButton.Enabled = e.TabPage == TimeLineTabPage ? false : true;
-			}
 
 			if( e.TabPage != ExclusiveTabPage )
 			{
@@ -1106,7 +1102,7 @@ namespace MemoryProfiler2
 			List<FCallStack> Callstacks = new List<FCallStack>();
 			foreach( CallStackPattern Pattern in InClassGroup.CallStackPatterns )
 			{
-				Callstacks.AddRange( Pattern.CallStacks );
+				Callstacks.AddRange( Pattern.GetCallStacks() );
 			}
 
 			SetHistoryCallStacks( Callstacks );
@@ -1211,27 +1207,24 @@ namespace MemoryProfiler2
 		/// <param name="Size"> Value that we want to be converted into a string. </param>
 		public static string FormatSizeString( long Size )
 		{
-			long AbsSize = Math.Abs( Size );
-			if( AbsSize > 1024 * 1024 )
+			string[] Units = { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
+
+			int UnitIndex = 0;
+			double AbsSize = Math.Abs(Size);
+			while (AbsSize >= 1024)
 			{
-				return String.Format( "{0:0.00} MB", ( float )Size / ( 1024 * 1024 ) );
+				AbsSize /= 1024;
+				++UnitIndex;
 			}
-			else if( AbsSize > 1024 )
-			{
-				return ( Size / 1024 ) + " KB";
-			}
-			else
-			{
-				return Size + " bytes";
-			}
+
+			return String.Format("{0} {1}", AbsSize.ToString("N2"), Units[UnitIndex]);
 		}
 
 		/// <summary> Format a value into human readable string ended ex. "5.50 MB (5767168 bytes). </summary>
 		/// <param name="Size"> Value that we want to be converted into a string. </param>
 		public static string FormatSizeString2( long Size )
 		{
-			string Result = FormatSizeString( Size ) + " (" + Size + " bytes)";
-			return Result;
+			return String.Format("{0} ({1} bytes)", FormatSizeString(Size), Size.ToString("N0"));
 		}
 
 		/// <summary> Setups string label for an axis based on tick. </summary>
@@ -1260,26 +1253,26 @@ namespace MemoryProfiler2
 			}
 		}
 
-		public void DrawYAxis( Graphics InGraphics, Pen InPen, long MajorTick, long MinorTick, float Right, float Top, float PixelHeight, string AxisLabel, float AxisHeight )
+		public void DrawYAxis( Graphics InGraphics, Pen InPen, Color Color, long MajorTick, long MinorTick, float Right, float Top, float PixelHeight, string AxisLabel, float AxisHeight )
 		{
-			DrawYAxis( InGraphics, InPen, MajorTick, DEFAULT_MAJOR_TICK_WIDTH, MinorTick, DEFAULT_MINOR_TICK_WIDTH, Right, Top, PixelHeight, 0, PixelHeight, AxisLabel, AxisHeight, false, false );
+			DrawYAxis( InGraphics, InPen, Color, MajorTick, DEFAULT_MAJOR_TICK_WIDTH, MinorTick, DEFAULT_MINOR_TICK_WIDTH, Right, Top, PixelHeight, 0, PixelHeight, AxisLabel, AxisHeight, false, false );
 		}
 
 		public void DrawYAxis
 		( 
-			Graphics InGraphics, Pen Pen, long MajorTick, int MajorTickWidth, long MinorTick, int MinorTickWidth, 
+			Graphics InGraphics, Pen Pen, Color Color, long MajorTick, int MajorTickWidth, long MinorTick, int MinorTickWidth, 
 			float Right, float Top, float WindowHeight, float WindowOffset, float PixelHeight, 
-			string AxisLabel, float AxisHeight, bool InvertAxis, bool AxisLabelAtOrigin 
+			string AxisLabel, float AxisHeight, bool InvertAxis, bool AxisLabelAtOrigin
 		)
 		{
-			DrawYAxis( InGraphics, Pen, MajorTick, MajorTickWidth, MinorTick, MinorTickWidth, Right, Top, WindowHeight, WindowOffset, PixelHeight, AxisLabel, AxisHeight, InvertAxis, AxisLabelAtOrigin, AxisFont );
+			DrawYAxis( InGraphics, Pen, MajorTick, MajorTickWidth, MinorTick, MinorTickWidth, Right, Top, WindowHeight, WindowOffset, PixelHeight, AxisLabel, AxisHeight, InvertAxis, AxisLabelAtOrigin, AxisFont, Color);
 		}
 
 		public static void DrawYAxis
 		(
 			Graphics InGraphics, Pen InPen, long MajorTick, int MajorTickWidth, long MinorTick, int MinorTickWidth,
 			float Right, float Top, float WindowHeight, float WindowOffset, float PixelHeight,
-			string AxisLabel, float AxisHeight, bool InvertAxis, bool AxisLabelAtOrigin, Font AxisFont
+			string AxisLabel, float AxisHeight, bool InvertAxis, bool AxisLabelAtOrigin, Font AxisFont, Color AxisFontColor
 		)
 		{
 			const int AxisLabelXOffset = 5;
@@ -1300,7 +1293,7 @@ namespace MemoryProfiler2
 				AxisLabelY = Top - LabelSize.Height - 10;
 			}
 
-			InGraphics.DrawString( AxisLabel, AxisFont, InPen.Brush, AxisLabelX, AxisLabelY );
+			TextRenderer.DrawText(InGraphics, AxisLabel, AxisFont, new Point((int)AxisLabelX, (int)AxisLabelY), AxisFontColor);
 
 			for( long j = AxisLabelAtOrigin ? MinorTick : 0; j <= AxisHeight; j += MinorTick )
 			{
@@ -1322,7 +1315,7 @@ namespace MemoryProfiler2
 						SizeF StringSize = InGraphics.MeasureString( Label, AxisFont );
 
 						InGraphics.DrawLine( InPen, Right - MajorTickWidth, TickY, Right, TickY );
-						InGraphics.DrawString( Label, AxisFont, InPen.Brush, Right - MajorTickWidth - AxisLabelXOffset - StringSize.Width, TickY - StringSize.Height / 2 );
+						TextRenderer.DrawText(InGraphics, Label, AxisFont, new Point((int)(Right - MajorTickWidth - AxisLabelXOffset - StringSize.Width), (int)(TickY - StringSize.Height / 2)), AxisFontColor);
 					}
 					else
 					{
@@ -1653,7 +1646,7 @@ namespace MemoryProfiler2
 			TreeNodeMouseClickEventArgs ClickEventArgs = ( TreeNodeMouseClickEventArgs )CallGraphContextMenu.Tag;
 			if( ClickEventArgs.Node.Tag != null )
 			{
-				Clipboard.SetText( FStreamInfo.GlobalInstance.NameArray[ FStreamInfo.GlobalInstance.CallStackAddressArray[ ( ( FNodePayload )ClickEventArgs.Node.Tag ).AddressIndex ].FunctionIndex ] );
+				Clipboard.SetText( FStreamInfo.GlobalInstance.NameArray[ FStreamInfo.GlobalInstance.CallStackAddressArray[ ( (FCallGraphNode)ClickEventArgs.Node.Tag ).AddressIndex ].FunctionIndex ] );
 			}
 		}
 
@@ -1662,7 +1655,7 @@ namespace MemoryProfiler2
 			TreeNodeMouseClickEventArgs ClickEventArgs = ( TreeNodeMouseClickEventArgs )CallGraphContextMenu.Tag;
 			if( ClickEventArgs.Node.Tag != null )
 			{
-				Clipboard.SetText( ( ( FNodePayload )ClickEventArgs.Node.Tag ).AllocationSize.ToString() );
+				Clipboard.SetText( ( (FCallGraphNode)ClickEventArgs.Node.Tag ).AllocationSize.ToString() );
 			}
 		}
 
@@ -1678,7 +1671,7 @@ namespace MemoryProfiler2
 		private void ViewHistoryToolStripMenuItem_Click( object sender, EventArgs e )
 		{
 			TreeNodeMouseClickEventArgs eventArgs = ( TreeNodeMouseClickEventArgs )CallGraphContextMenu.Tag;
-			FNodePayload Payload = ( FNodePayload )eventArgs.Node.Tag;
+			var Payload = (FCallGraphNode)eventArgs.Node.Tag;
 
 			if( Payload == null )
 			{
@@ -1710,7 +1703,7 @@ namespace MemoryProfiler2
 		{
 			TreeNodeMouseClickEventArgs eventArgs = ( TreeNodeMouseClickEventArgs )CallGraphContextMenu.Tag;
 
-			FNodePayload Payload = ( FNodePayload )eventArgs.Node.Tag;
+			var Payload = (FCallGraphNode)eventArgs.Node.Tag;
 			if( Payload != null )
 			{
 				FCallGraphTreeViewParser.ParentFunctionIndex = FStreamInfo.GlobalInstance.CallStackAddressArray[ Payload.AddressIndex ].FunctionIndex;
@@ -1765,18 +1758,20 @@ namespace MemoryProfiler2
 				CallStack.AddToListView( ShortLivedCallStackListView, true );
 
 				// if sender is null this is being called from a callback, so no need to look up addresses
-				if( sender != null && FStreamInfo.GlobalInstance.ConsoleSymbolParser is IDisplayCallback )
+				if( sender != null && FStreamInfo.GlobalInstance.SymbolParser != null )
 				{
-					( ( IDisplayCallback )FStreamInfo.GlobalInstance.ConsoleSymbolParser ).DisplayCallstack( CallStack,
-						( x => BeginInvoke( new EventHandler( ShortLivedListView_SelectedIndexChanged ), null, null ) ), null );
+					FStreamInfo.GlobalInstance.SymbolParser.ResolveCallstackSymbolInfoAsync(ESymbolResolutionMode.Full, CallStack, delegate(FCallStack CS)
+					{
+						BeginInvoke(new EventHandler(ShortLivedListView_SelectedIndexChanged), null, null);
+					}, true);
 				}
 			}
 
 			ShortLivedCallStackListView.EndUpdate();
 		}
-#endregion
+		#endregion
 
-#region Exclusive list view panel events 
+		#region Exclusive list view panel events 
 
 		/*-----------------------------------------------------------------------------
 			 Exclusive list view panel events
@@ -1795,12 +1790,13 @@ namespace MemoryProfiler2
 				FStreamInfo.GlobalInstance.CallStackArray[ AllocationInfo.CallStackIndex ].AddToListView( ExclusiveSingleCallStackView, true );
 
 				// if sender is null this is being called from a callback, so no need to look up addresses
-				if( sender != null && FStreamInfo.GlobalInstance.ConsoleSymbolParser is IDisplayCallback )
+				if( sender != null && FStreamInfo.GlobalInstance.SymbolParser != null )
 				{
-					( ( IDisplayCallback )FStreamInfo.GlobalInstance.ConsoleSymbolParser ).DisplayCallstack(
-						FStreamInfo.GlobalInstance.CallStackArray[ AllocationInfo.CallStackIndex ],
-						( x => BeginInvoke( new EventHandler( ExclusiveListView_SelectedIndexChanged ), null, null ) ),
-						null );
+					FCallStack CallStack = FStreamInfo.GlobalInstance.CallStackArray[AllocationInfo.CallStackIndex];
+					FStreamInfo.GlobalInstance.SymbolParser.ResolveCallstackSymbolInfoAsync(ESymbolResolutionMode.Full, CallStack, delegate(FCallStack CS)
+					{
+						BeginInvoke(new EventHandler(ExclusiveListView_SelectedIndexChanged), null, null);
+					}, true);
 				}
 			}
 
@@ -2382,47 +2378,218 @@ namespace MemoryProfiler2
 		}
 	}
 
-	// Wrapper to workaround the limitations of managed abstract classes
-	public class ISymbolParser
+	// Class that brokers UI requests from the worker thread back to the UI thread and returns the result
+	public class FUIBroker
 	{
-		public virtual void ReadModuleInfo(BinaryReader BinaryStream, uint Count)
+		public FUIBroker(Control InWidget)
 		{
+			Widget = InWidget;
 		}
 
-		public virtual bool LoadSymbols(string ExePath)
+		public string ShowOpenFileDialog(OpenFileDialog InFileDialog)
+		{
+			return (string)Widget.Invoke(new Func<string>(delegate()
+			{
+				return (InFileDialog.ShowDialog() == DialogResult.OK) ? InFileDialog.FileName : null;
+			}));
+		}
+
+		public DialogResult ShowMessageBox(string InTitle, string InMessage, MessageBoxButtons InButtons, MessageBoxIcon InIcon)
+		{
+			return (DialogResult)Widget.Invoke(new Func<DialogResult>(delegate ()
+			{
+				return MessageBox.Show(InMessage, InTitle, InButtons, InIcon);
+			}));
+		}
+
+		private Control Widget;
+	}
+
+	public enum ESymbolResolutionMode
+	{
+		// Perform fast resolution. We always need the symbol name, however in this mode you may skip file and line look-up if it's too slow to do up-front.
+		Fast,
+		// Perform full resolution. Attempt to resolve the symbol name, line, and file, ignoring how slow that may be to complete.
+		Full,
+	}
+
+	// Symbol parsing interface.
+	// Derived types must implement a static method called StaticPlatformName which returns a string matching the value returned by FPlatformProperties::PlatformName() for the given platform.
+	public abstract class ISymbolParser
+	{
+		public virtual bool InitializeSymbolService(string ExecutableName, FUIBroker UIBroker)
 		{
 			return false;
 		}
 
-		public virtual void UnloadSymbols()
+		public virtual void ShutdownSymbolService()
 		{
 		}
 
-		public virtual bool ResolveAddressToSymboInfo(ulong Address, ref string OutFileName, ref string OutFunction, ref int OutLineNumber)
+		public virtual bool ResolveAddressToSymboInfo(ESymbolResolutionMode SymbolResolutionMode, ulong Address, out string OutFileName, out string OutFunction, out int OutLineNumber)
 		{
+			OutFileName = null;
+			OutFunction = null;
+			OutLineNumber = 0;
 			return false;
 		}
 
-		public virtual bool ResolveAddressBatchesToSymbolInfo(ulong[] AddressList, ref string[] OutFileNames, ref string[] OutFunctions, ref int[] OutLineNumbers)
+		public virtual bool ResolveAddressSymbolInfo(ESymbolResolutionMode SymbolResolutionMode, FCallStackAddress Address)
 		{
-			return false;
+			if (Address.LineNumber == 0)
+			{
+				string Filename;
+				string Function;
+				int LineNumber;
+				if (ResolveAddressToSymboInfo(SymbolResolutionMode, Address.ProgramCounter, out Filename, out Function, out LineNumber))
+				{
+					if (Filename != null)
+					{
+						// Look up or add filename index.
+						Address.FilenameIndex = FStreamInfo.GlobalInstance.GetNameIndex(Filename, true);
+					}
+
+					if (Function != null)
+					{
+						// Look up or add function index.
+						Address.FunctionIndex = FStreamInfo.GlobalInstance.GetNameIndex(Function, true);
+					}
+
+					if (LineNumber != 0)
+					{
+						Address.LineNumber = LineNumber;
+					}
+				}
+				else
+				{
+					return false;
+				}
+			}
+
+			return true;
 		}
-	}
 
-	public partial class FAndroidSymbolParser : ISymbolParser
-	{
-	}
+		public virtual bool ResolveCallstackSymbolInfo(ESymbolResolutionMode SymbolResolutionMode, FCallStack CallStack)
+		{
+			bool bSuccess = true;
 
-	public partial class FPS3SymbolParser : ISymbolParser
-	{
-	}
+			foreach (int AddressIndex in CallStack.AddressIndices)
+			{
+				FCallStackAddress Address = FStreamInfo.GlobalInstance.CallStackAddressArray[AddressIndex];
+				bSuccess &= ResolveAddressSymbolInfo(SymbolResolutionMode, Address);
+			}
 
-	public partial class FXbox360SymbolParser : ISymbolParser
-	{
-	}
+			return bSuccess;
+		}
 
-	public partial class FIPhoneSymbolParser : ISymbolParser
-	{
+		public delegate void ResolveCallstackSymbolInfoCallback(FCallStack CallStack);
+
+		public virtual void ResolveCallstackSymbolInfoAsync(ESymbolResolutionMode SymbolResolutionMode, FCallStack CallStack, ResolveCallstackSymbolInfoCallback Callback, bool bCancelCurrentWork)
+		{
+			if (bCancelCurrentWork)
+			{
+				foreach (var Worker in ResolveCallstackSymbolInfoAsyncTasks)
+				{
+					if (Worker.IsBusy && !Worker.CancellationPending)
+					{
+						Worker.CancelAsync();
+					}
+				}
+			}
+
+			for (int WorkerIndex = ResolveCallstackSymbolInfoAsyncTasks.Count - 1; WorkerIndex >= 0; --WorkerIndex)
+			{
+				var Worker = ResolveCallstackSymbolInfoAsyncTasks[WorkerIndex];
+				if (!Worker.IsBusy)
+				{
+					ResolveCallstackSymbolInfoAsyncTasks.RemoveAt(WorkerIndex);
+				}
+			}
+
+			var AsyncWorker = new BackgroundWorker();
+
+			AsyncWorker.DoWork += new DoWorkEventHandler(delegate(object Obj, DoWorkEventArgs Args)
+			{
+				var Worker = Obj as BackgroundWorker;
+
+				foreach (int AddressIndex in CallStack.AddressIndices)
+				{
+					if (Worker.CancellationPending)
+					{
+						break;
+					}
+
+					FCallStackAddress Address = FStreamInfo.GlobalInstance.CallStackAddressArray[AddressIndex];
+					ResolveAddressSymbolInfo(SymbolResolutionMode, Address);
+				}
+
+				if (!Worker.CancellationPending)
+				{
+					Callback(CallStack);
+				}
+			});
+
+			AsyncWorker.RunWorkerAsync();
+			ResolveCallstackSymbolInfoAsyncTasks.Add(AsyncWorker);
+		}
+
+		public static ISymbolParser GetSymbolParserForPlatform(string PlatformName)
+		{
+			if (CachedSymbolParserTypes == null)
+			{
+				// Find all types that derive from LocalizationProvider in any of our DLLs
+				CachedSymbolParserTypes = new Dictionary<string, Type>();
+				var LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+				foreach (var Dll in LoadedAssemblies)
+				{
+					var AllTypes = Dll.GetTypes();
+					foreach (var PotentialSymbolParserType in AllTypes)
+					{
+						if (PotentialSymbolParserType != typeof(ISymbolParser) && !PotentialSymbolParserType.IsAbstract && !PotentialSymbolParserType.IsInterface && typeof(ISymbolParser).IsAssignableFrom(PotentialSymbolParserType))
+						{
+							// Types should implement a static StaticPlatformName method
+							var Method = PotentialSymbolParserType.GetMethod("StaticPlatformName");
+							if (Method != null)
+							{
+								try
+								{
+									var TypePlatformName = Method.Invoke(null, null) as string;
+									CachedSymbolParserTypes.Add(TypePlatformName, PotentialSymbolParserType);
+								}
+								catch
+								{
+									Console.Error.WriteLine("Type '{0}' threw when calling its StaticPlatformName method.", PotentialSymbolParserType.FullName);
+								}
+							}
+							else
+							{
+								Console.Error.WriteLine("Type '{0}' derives from ISymbolParser but is missing its StaticPlatformName method.", PotentialSymbolParserType.FullName);
+							}
+						}
+					}
+				}
+			}
+
+			Type SymbolParserType;
+			CachedSymbolParserTypes.TryGetValue(PlatformName, out SymbolParserType);
+			if (SymbolParserType != null)
+			{
+				try
+				{
+					return Activator.CreateInstance(SymbolParserType) as ISymbolParser;
+				}
+				catch
+				{
+					Console.Error.WriteLine("Unable to create an instance of the type '{0}'", SymbolParserType.FullName);
+				}
+			}
+
+			return null;
+		}
+
+		private static Dictionary<string, Type> CachedSymbolParserTypes;
+
+		private List<BackgroundWorker> ResolveCallstackSymbolInfoAsyncTasks = new List<BackgroundWorker>();
 	}
 
 	// Ideally, this should be split up into 'StudioSettings' and 'Settings'
@@ -2486,7 +2653,25 @@ namespace MemoryProfiler2
 		}
 
 		[XmlElement]
+		[CategoryAttribute("Filters")]
 		public bool FilterOutObjectVMFunctions
+		{
+			get;
+			set;
+		}
+
+		[XmlElement]
+		[CategoryAttribute("Filters")]
+		public bool TrimAllocatorFunctions
+		{
+			get;
+			set;
+		}
+
+		[XmlArray]
+		[CategoryAttribute("Filters")]
+		[DescriptionAttribute("A list of allocator functions to trim to (when TrimAllocatorFunctions is enabled).")]
+		public List<FCallStackFunctionFilter> AllocatorFunctions
 		{
 			get;
 			set;
@@ -2495,6 +2680,22 @@ namespace MemoryProfiler2
 		public SettableOptions()
 		{
 			ClassGroups = new List<ClassGroup>();
+
+			TrimAllocatorFunctions = true;
+			AllocatorFunctions = new List<FCallStackFunctionFilter>();
+		}
+
+		public void ApplyDefaults()
+		{
+			if (AllocatorFunctions.Count == 0)
+			{
+				AllocatorFunctions.Add(new FCallStackFunctionFilter("FMallocProfiler::", FCallStackFunctionFilter.EFilterMode.StartsWith));
+				AllocatorFunctions.Add(new FCallStackFunctionFilter("FMallocGcmProfiler::", FCallStackFunctionFilter.EFilterMode.StartsWith));
+				AllocatorFunctions.Add(new FCallStackFunctionFilter("FMallocPoisonProxy::", FCallStackFunctionFilter.EFilterMode.StartsWith));
+				AllocatorFunctions.Add(new FCallStackFunctionFilter("FMemory::", FCallStackFunctionFilter.EFilterMode.StartsWith));
+				AllocatorFunctions.Add(new FCallStackFunctionFilter("operator new", FCallStackFunctionFilter.EFilterMode.StartsWith));
+				AllocatorFunctions.Add(new FCallStackFunctionFilter("FSlateControlledConstruction::", FCallStackFunctionFilter.EFilterMode.StartsWith));
+			}
 		}
 
 		public List<CallStackPattern> GetOrderedPatternList()

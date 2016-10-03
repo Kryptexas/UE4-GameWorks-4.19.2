@@ -489,6 +489,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bStaticSceneOnly(false)
 	, bIsInstancedStereoEnabled(false)
 	, bIsMultiViewEnabled(false)
+	, bIsMobileMultiViewEnabled(false)
 	, GlobalClippingPlane(FPlane(0, 0, 0, 0))
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
@@ -496,6 +497,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bHasSelectedComponents( false )
 #endif
 	, AntiAliasingMethod(AAM_None)
+	, ForwardLightingResources(nullptr)
 	, FeatureLevel(InitOptions.ViewFamily ? InitOptions.ViewFamily->GetFeatureLevel() : GMaxRHIFeatureLevel)
 {
 	check(UnscaledViewRect.Min.X >= 0);
@@ -705,6 +707,9 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	static const auto MultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 	bIsMultiViewEnabled = ShaderPlatform == EShaderPlatform::SP_PS4 && (MultiViewCVar && MultiViewCVar->GetValueOnAnyThread() != 0);
+
+	static const auto MobileMultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
+	bIsMobileMultiViewEnabled = GSupportsMobileMultiView && (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
 
 	SetupAntiAliasingMethod();
 }
@@ -2062,7 +2067,6 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	const FMatrix& PrevViewProjMatrix, 
 	const FMatrix& PrevViewRotationProjMatrix) const
 {
-	
 	SetupViewRectUniformBufferParameters(BufferSize, EffectiveViewRect, ViewUniformShaderParameters);
 
 	FVector4 LocalDiffuseOverrideParameter = DiffuseOverrideParameter;

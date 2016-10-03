@@ -232,6 +232,15 @@ private:
 	/** Handler for Rename */
 	void HandleRenameCommand();
 
+	/** Handler to check to see if a save asset command is allowed */
+	bool HandleSaveAssetCommandCanExecute() const;
+
+	/** Handler for Rename */
+	void HandleSaveAssetCommand();
+
+	/** Handler for SaveAll in folder */
+	void HandleSaveAllCurrentFolderCommand() const;
+
 	/** Handler to check to see if a delete command is allowed */
 	bool HandleDeleteCommandCanExecute() const;
 

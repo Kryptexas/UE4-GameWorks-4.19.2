@@ -33,6 +33,24 @@ public:
 
 protected:
 
+	/** Called to construct the stat tree view */
+	void ConstructTreeView();
+
+	/** Called to generate the execution stat tree header row */
+	TSharedPtr<SHeaderRow> GenerateHeaderRow() const;
+
+	/** Callback to change the heat display mode on column sort */
+	void SetAverageHeatDisplay(EColumnSortPriority::Type /*NotUsed*/,const FName& /*NotUsed*/, EColumnSortMode::Type /*NotUsed*/) const;
+
+	/** Callback to change the heat display mode on column sort */
+	void SetInclusiveHeatDisplay(EColumnSortPriority::Type /*NotUsed*/,const FName& /*NotUsed*/, EColumnSortMode::Type /*NotUsed*/) const;
+
+	/** Callback to change the heat display mode on column sort */
+	void SetMaxHeatDisplay(EColumnSortPriority::Type /*NotUsed*/,const FName& /*NotUsed*/, EColumnSortMode::Type /*NotUsed*/) const;
+
+	/** Callback to change the heat display mode on column sort */
+	void SetTotalTimeHeatDisplay(EColumnSortPriority::Type /*NotUsed*/,const FName& /*NotUsed*/, EColumnSortMode::Type /*NotUsed*/) const;
+
 	/** Called when blueprint graph layout changes occur */
 	void OnGraphLayoutChanged(TWeakObjectPtr<UBlueprint> Blueprint);
 

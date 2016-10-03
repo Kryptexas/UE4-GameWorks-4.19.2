@@ -99,6 +99,8 @@ FLinearColor SThrobber::GetPieceColor(int32 PieceIndex) const
 }
 
 // SCircularThrobber
+const float SCircularThrobber::MinimumPeriodValue = SMALL_NUMBER;
+
 void SCircularThrobber::Construct(const FArguments& InArgs)
 {
 	PieceImage = InArgs._PieceImage;
@@ -133,7 +135,7 @@ void SCircularThrobber::SetRadius(const float InRadius)
 void SCircularThrobber::ConstructSequence()
 {
 	Sequence = FCurveSequence();
-	Curve = Sequence.AddCurve(0.f, Period);
+	Curve = Sequence.AddCurve(0.f, FMath::Max(Period, MinimumPeriodValue));
 	Sequence.Play(this->AsShared(), true);
 }
 

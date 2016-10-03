@@ -64,7 +64,11 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersive, const
 			// Do not maximize the window initially. Keep a small dialog feel.
 			DefaultWindowLocation.InitiallyMaximized = false;
 
-			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize();
+
+			FDisplayMetrics DisplayMetrics;
+			FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+			const float DPIScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize() * DPIScaleFactor;
 			DefaultWindowLocation.ScreenPosition = DefaultWindowLocation.GetCenteredScreenPosition();
 
 			bIsUserSizable = true;

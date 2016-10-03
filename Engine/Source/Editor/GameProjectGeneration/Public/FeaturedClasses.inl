@@ -9,11 +9,11 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/WorldSettings.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/PlayerState.h"
-#include "GameFramework/GameState.h"
+#include "GameFramework/GameStateBase.h"
 #include "Components/ActorComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -74,11 +74,11 @@ FORCEINLINE void FFeaturedClasses::AddExtraActorClasses(TArray<FNewClassInfo>& A
 {
 	Array.Add(FNewClassInfo(APlayerCameraManager::StaticClass()));
 	Array.Add(FNewClassInfo(APlayerController::StaticClass()));
-	Array.Add(FNewClassInfo(AGameMode::StaticClass()));
+	Array.Add(FNewClassInfo(AGameModeBase::StaticClass()));
 	Array.Add(FNewClassInfo(AWorldSettings::StaticClass()));
 	Array.Add(FNewClassInfo(AHUD::StaticClass()));
 	Array.Add(FNewClassInfo(APlayerState::StaticClass()));
-	Array.Add(FNewClassInfo(AGameState::StaticClass()));
+	Array.Add(FNewClassInfo(AGameStateBase::StaticClass()));
 }
 
 /** Append the featured Component class types that are commonly used */

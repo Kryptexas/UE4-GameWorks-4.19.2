@@ -1482,9 +1482,11 @@ namespace UnrealBuildTool
 				}
 			}
 
-            // Required for OBB download support
-            Text.AppendLine("\t\t<service android:name=\"OBBDownloaderService\" />");
-            Text.AppendLine("\t\t<receiver android:name=\"AlarmReceiver\" />");
+			// Required for OBB download support
+			Text.AppendLine("\t\t<service android:name=\"OBBDownloaderService\" />");
+			Text.AppendLine("\t\t<receiver android:name=\"AlarmReceiver\" />");
+
+			Text.AppendLine("\t\t<receiver android:name=\"com.epicgames.ue4.LocalNotificationReceiver\" />");
 
 			Text.AppendLine("\t</application>");
 

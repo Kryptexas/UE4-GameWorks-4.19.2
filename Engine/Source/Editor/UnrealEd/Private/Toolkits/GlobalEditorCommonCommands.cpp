@@ -135,7 +135,7 @@ void FGlobalEditorCommonCommands::OnSummonedConsoleCommandBox()
 {
 	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
 	
-	if( ParentWindow.IsValid() )
+	if( ParentWindow.IsValid() && ParentWindow->GetType() == EWindowType::Normal )
 	{
 		TSharedRef<SWindow> WindowRef = ParentWindow.ToSharedRef();
 		FOutputLogModule& OutputLogModule = FModuleManager::LoadModuleChecked< FOutputLogModule >(TEXT("OutputLog"));

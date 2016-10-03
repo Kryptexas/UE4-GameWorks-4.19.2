@@ -896,8 +896,10 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseCo
 						PxRigidBody* PBody = PActor->is<PxRigidBody>();
 						if (PBody)
 						{
-							const bool bNewCcd = IsNonKinematic() && bSimCollision && !bPhysicsStatic && bUseCCD;
-							PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bNewCcd);
+							const bool bIsKinematic = (IsNonKinematic() == false);
+							const bool bWantsCcd = bSimCollision && !bPhysicsStatic && bUseCCD;
+							PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bWantsCcd && !bIsKinematic);
+							PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, bWantsCcd && bIsKinematic);
 						}
 					}
 				}
@@ -1234,7 +1236,7 @@ struct FInitBodiesHelper
 
 			if(!Instance->ShouldInstanceSimulatingPhysics())
 			{
-				PNewDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
+				PNewDynamic->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 			}
 
 			PxActorFlags ActorFlags = PNewDynamic->getActorFlags();
@@ -2578,26 +2580,28 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 	// This might be 'and'ing us with ourself, but thats fine.
 	const bool bUseSimulate = IsInstanceSimulatingPhysics();
 	bool bInitialized = false;
+
 #if WITH_PHYSX
 	ExecuteOnPxRigidDynamicReadWrite(this, [&](PxRigidDynamic* PRigidDynamic)
 	{
 		bInitialized = true;
 		// If we want it fixed, and it is currently not kinematic
 		const bool bNewKinematic = (bUseSimulate == false);
-		const bool bNewCcd = !bNewKinematic && bUseCCD;
 		{
 			// TODO: Set flags with sanatization.
 			// If we're enabling Kinematic, ensure CCD is disabled first.
 			if (bNewKinematic)
 			{
-				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bNewCcd);
-				PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
+				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
+				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
+				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, bUseCCD);
 			}
 			// If we're enabling CCD, ensure Kinematic is disabled first.
 			else
 			{
-				PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, false);
-				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bNewCcd);
+				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, false);
+				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
+				PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bUseCCD);
 			}
 
 			//if wake when level starts is true, calling this function automatically wakes body up
@@ -2615,7 +2619,6 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 				}
 			}
 		}
-		
 	});
 #endif
 
@@ -3221,7 +3224,7 @@ PxRigidDynamic* FBodyInstance::GetPxRigidDynamic_AssumesLocked() const
 	// The logic below works because dynamic actors are non-NULL in only one scene.
 	// If this assumption changes, the logic needs to change.
 	PxRigidActor* RigidActor = RigidActorSync ? RigidActorSync : RigidActorAsync;
-	return RigidActor ? RigidActor->isRigidDynamic() : nullptr;
+	return RigidActor ? RigidActor->is<PxRigidDynamic>() : nullptr;
 }
 
 PxRigidBody* FBodyInstance::GetPxRigidBody_AssumesLocked() const
@@ -3229,7 +3232,7 @@ PxRigidBody* FBodyInstance::GetPxRigidBody_AssumesLocked() const
 	// The logic below works because dynamic actors are non-NULL in only one scene.
 	// If this assumption changes, the logic needs to change.
 	PxRigidActor* RigidActor = RigidActorSync ? RigidActorSync : RigidActorAsync;
-	return RigidActor ? RigidActor->isRigidBody() : nullptr;
+	return RigidActor ? RigidActor->is<PxRigidBody>() : nullptr;
 }
 #endif // WITH_PHYSX
 
@@ -3565,7 +3568,9 @@ void FBodyInstance::WakeInstance()
 #if WITH_PHYSX
 	ExecuteOnPxRigidDynamicReadWrite(this, [&](PxRigidDynamic* PRigidDynamic)
 	{
-		if (!IsRigidBodyKinematic_AssumesLocked(PRigidDynamic))
+		// Only do the wake if we are not kinematic and we have a scene. If a body is not in a
+		// scene yet (could have been defered) then it will wake when it is added to the scene
+		if (PRigidDynamic->getScene() && !IsRigidBodyKinematic_AssumesLocked(PRigidDynamic))
 		{
 			PRigidDynamic->wakeUp();
 		}
@@ -4097,7 +4102,7 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, c
 		if ((RigidBody != NULL) && (RigidBody->getNbShapes() != 0))
 		{
 			// Create filter data used to filter collisions, should always return eTOUCH for LineTraceComponent		
-			PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::eIMPACT | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE;
+			PxHitFlags POutputFlags = PxHitFlag::ePOSITION | PxHitFlag::eNORMAL | PxHitFlag::eDISTANCE | PxHitFlag::eFACE_INDEX | PxHitFlag::eMESH_ANY;	// eMESH_ANY: only care about one hit - not closest hit	
 
 			PxRaycastHit BestHit;
 			float BestHitDistance = BIG_NUMBER;
@@ -4123,9 +4128,8 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, c
 				const bool bShapeIsSimple = (ShapeFilter.word3 & EPDF_SimpleCollision) != 0;
 				if ((bTraceComplex && bShapeIsComplex) || (!bTraceComplex && bShapeIsSimple))
 				{
-					const int32 ArraySize = ARRAY_COUNT(PHits);
-					// only care about one hit - not closest hit			
-					const PxI32 NumHits = PxGeometryQuery::raycast(U2PVector(Start), U2PVector(Delta / DeltaMag), PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody), DeltaMag, POutputFlags, ArraySize, PHits, true);
+					const int32 ArraySize = ARRAY_COUNT(PHits);		
+					const PxI32 NumHits = PxGeometryQuery::raycast(U2PVector(Start), U2PVector(Delta / DeltaMag), PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody), DeltaMag, POutputFlags, ArraySize, PHits);
 
 
 					if (ensure(NumHits <= ArraySize))
@@ -4218,9 +4222,9 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 	const float DeltaMag = Delta.Size();
 	if(DeltaMag > KINDA_SMALL_NUMBER)
 	{
-		PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::eIMPACT | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
+		PxHitFlags POutputFlags = PxHitFlag::ePOSITION | PxHitFlag::eNORMAL | PxHitFlag::eDISTANCE | PxHitFlag::eFACE_INDEX | PxHitFlag::eMTD;
 		
-		PxQuat PGeomRot = PxQuat::createIdentity();
+		PxQuat PGeomRot = PxQuat(physx::PxIdentity);
 
 		UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get();
 		PxTransform PStartTM(U2PVector(Start), PGeomRot);
@@ -4264,6 +4268,7 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 						PHit.shape = PShape;
 						PHit.actor = HasSharedShapes() ? RigidActorSync : PShape->getActor();	//in the case of shared shapes getActor will return null. Since the shape is shared we just return the sync actor
 						PxTransform PStartTransform(U2PVector(Start));
+						PHit.faceIndex = FindFaceIndex(PHit, PDir);
 						ConvertQueryImpactHit(OwnerComponentInst->GetWorld(), PHit, OutHit, DeltaMag, QueryFilter, Start, End, NULL, PStartTransform, false, false);
 						return true;
 					}
@@ -4481,7 +4486,7 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 
 		ExecuteOnPhysicsReadOnly([&]
 		{
-			// Get all the shapes from the actor
+		// Get all the shapes from the actor
 			FInlinePxShapeArray PShapes;
 			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *PRigidActor);
 
@@ -4895,6 +4900,7 @@ void FBodyInstance::InitDynamicProperties_AssumesLocked()
 			if(!bStartAwake && !bWokenExternally)
 			{
 				RigidActor->setWakeCounter(0.f);
+				RigidActor->putToSleep();
 			}
 		}
 	}
@@ -5113,8 +5119,10 @@ void FBodyInstance::SetShapeFlags_AssumesLocked(TEnumAsByte<ECollisionEnabled::T
 				PxRigidBody* PBody = GetPxRigidActor_AssumesLocked()->is<PxRigidBody>();
 				if (PBody)
 				{
-					const bool bNewCcd = IsNonKinematic() && bSimCollision && !bPhysicsStatic && bUseCCD;
-					PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bNewCcd);
+					const bool bIsKinematic = (IsNonKinematic() == false);
+					const bool bWantsCcd = bSimCollision && !bPhysicsStatic && bUseCCD;
+					PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, bWantsCcd && !bIsKinematic);
+					PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, bWantsCcd && bIsKinematic);
 				}
 			}
 		}
@@ -5193,11 +5201,20 @@ void FBodyInstance::GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsBy
 					ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eKINEMATIC;
 					ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eKINEMATIC;
 				}
+
 				// Only enable CCD if Kinematic is not enabled.
-				else if (bUseCCD)
+				if (bUseCCD)
 				{
-					ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
-					ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
+					if (bSimulatePhysics)
+					{
+						ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
+						ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eENABLE_CCD;
+					}
+					else
+					{
+						ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD;
+						ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD;
+					}
 				}
 			}
 		}

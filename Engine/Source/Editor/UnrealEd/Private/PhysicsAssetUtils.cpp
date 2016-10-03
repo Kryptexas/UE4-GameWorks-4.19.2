@@ -214,35 +214,28 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 	return PhysicsAsset->SkeletalBodySetups.Num() > 0;
 }
 
-bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText& OutErrorMessage)
+bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText& OutErrorMessage, bool bSetToMesh /*= true*/)
 {
 	PhysicsAsset->PreviewSkeletalMesh = SkelMesh;
 
 	bool bSuccess = CreateFromSkeletalMeshInternal(PhysicsAsset, SkelMesh, Params);
-	if (bSuccess)
-	{
-		// sets physics asset here now, so whoever creates 
-		// new physics asset from skeletalmesh will set properly here
-		SkelMesh->PhysicsAsset = PhysicsAsset;
-		SkelMesh->MarkPackageDirty();
-	}
-	else
+	if (!bSuccess)
 	{
 		// try lower minimum bone size 
 		Params.MinBoneSize = 1.f;
 
 		bSuccess = CreateFromSkeletalMeshInternal(PhysicsAsset, SkelMesh, Params);
-		if(bSuccess)
-		{
-			// sets physics asset here now, so whoever creates 
-			// new physics asset from skeletalmesh will set properly here
-			SkelMesh->PhysicsAsset = PhysicsAsset;
-			SkelMesh->MarkPackageDirty();
-		}
-		else
+
+		if(!bSuccess)
 		{
 			OutErrorMessage = FText::Format(NSLOCTEXT("CreatePhysicsAsset", "CreatePhysicsAssetLinkFailed", "The bone size is too small to create Physics Asset '{0}' from Skeletal Mesh '{1}'. You will have to create physics asset manually."), FText::FromString(PhysicsAsset->GetName()), FText::FromString(SkelMesh->GetName()));
 		}
+	}
+
+	if(bSuccess && bSetToMesh)
+	{
+		SkelMesh->PhysicsAsset = PhysicsAsset;
+		SkelMesh->MarkPackageDirty();
 	}
 
 	return bSuccess;

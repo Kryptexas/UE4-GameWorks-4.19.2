@@ -87,7 +87,13 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 
 int32 SEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	LayerId = EditableTextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
+	const FTextBlockStyle& EditableTextStyle = EditableTextLayout->GetTextStyle();
+	const FLinearColor ForegroundColor = EditableTextStyle.ColorAndOpacity.GetColor(InWidgetStyle);
+
+	FWidgetStyle TextWidgetStyle = FWidgetStyle(InWidgetStyle)
+		.SetForegroundColor(ForegroundColor);
+
+	LayerId = EditableTextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, TextWidgetStyle, ShouldBeEnabled(bParentEnabled));
 
 	return LayerId;
 }
@@ -227,6 +233,19 @@ const FSlateBrush* SEditableText::GetFocusBrush() const
 bool SEditableText::IsInteractable() const
 {
 	return IsEnabled();
+}
+
+bool SEditableText::ComputeVolatility() const
+{
+	return SWidget::ComputeVolatility()
+		|| HasKeyboardFocus()
+		|| EditableTextLayout->ComputeVolatility()
+		|| Font.IsBound()
+		|| ColorAndOpacity.IsBound()
+		|| BackgroundImageSelected.IsBound()
+		|| bIsReadOnly.IsBound()
+		|| bIsPassword.IsBound()
+		|| MinDesiredWidth.IsBound();
 }
 
 void SEditableText::SetHintText( const TAttribute< FText >& InHintText )

@@ -174,11 +174,6 @@ push @::gMatchers, (
 		action => q{incValue("errors"); diagnostic("Link", "error", 0, 0);}
 	},
 	{
-		id => "UHTfailed",
-		pattern => q{UnrealHeaderTool failed for target},
-		action => q{incValue("errors"); diagnostic("UnrealHeaderTool", "error", 0, 0);}
-	},
-	{
 		id => "MSBuildError",
 		pattern => q{targets\(\d+,\d+\): error},
 		action => q{incValue("errors"); diagnostic("MSBuild", "error", -2, 0);}

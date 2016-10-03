@@ -367,7 +367,7 @@ static void GetBuildSettingsForRunningPlatform(
 
 		// Assume there is at least one format and the first one is what we want at runtime.
 		check(PlatformFormats.Num());
-		const UTextureLODSettings* LODSettings = (UTextureLODSettings*)&UDeviceProfileManager::Get().FindProfile(CurrentPlatform->PlatformName());
+		const UTextureLODSettings* LODSettings = (UTextureLODSettings*)UDeviceProfileManager::Get().FindProfile(CurrentPlatform->PlatformName());
 		GetTextureBuildSettings(Texture, *LODSettings, OutBuildSettings);
 		OutBuildSettings.TextureFormatName = PlatformFormats[0];
 	}

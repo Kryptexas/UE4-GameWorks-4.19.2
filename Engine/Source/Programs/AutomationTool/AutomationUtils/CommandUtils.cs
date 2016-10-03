@@ -1280,12 +1280,11 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Copies a file.
+		/// Copies a file, throwing an exception on failure.
 		/// </summary>
 		/// <param name="Source"></param>
 		/// <param name="Dest"></param>
         /// <param name="bQuiet">When true, logging is suppressed.</param>
-        /// <returns>True if the operation was successful, false otherwise.</returns>
         public static void CopyFile(string Source, string Dest, bool bQuiet = false)
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
@@ -2709,7 +2708,14 @@ namespace AutomationTool
 				return;
 			}
 
-			string SignToolName = "/usr/bin/codesign";
+			// Use the old codesigning tool after the upgrade due to segmentation fault on Sierra
+			string SignToolName = "/usr/local/bin/codesign_old";
+			
+			// unless it doesn't exist, then use the Sierra one.
+			if(!File.Exists(SignToolName))
+			{
+				SignToolName = "/usr/bin/codesign";
+			}
 
 			string CodeSignArgs = String.Format("-f --deep -s \"{0}\" -v \"{1}\" --no-strict", "Developer ID Application", InPath);
 

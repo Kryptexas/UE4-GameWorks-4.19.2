@@ -118,7 +118,7 @@ private:
 struct FSynthBenchmarkResults 
 {
 	FSynthBenchmarkStat CPUStats[2];
-	FSynthBenchmarkStat GPUStats[5];
+	FSynthBenchmarkStat GPUStats[7];
 
 	// 100: avg good CPU, <100:slower, >100:faster
 	CORE_API float ComputeCPUPerfIndex(TArray<float>* OutIndividualResults = nullptr) const;

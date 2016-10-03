@@ -52,7 +52,6 @@ public:
 		const bool bFullSizeScreenshots = FParse::Param(FCommandLine::Get(), TEXT("FullSizeScreenshots"));
 		const bool bSendAnalytics = FParse::Param(FCommandLine::Get(), TEXT("SendAutomationAnalytics"));
 		AutomationController->SetScreenshotsEnabled(!bSkipScreenshots);
-		AutomationController->SetUsingFullSizeScreenshots(true);
 
 		// Register for the callback that tells us there are tests available
 		AutomationController->OnTestsRefreshed().AddRaw(this, &FAutomationExecCmd::HandleRefreshTestCallback);
@@ -97,7 +96,7 @@ public:
 			if (TestCount > 0)
 			{
 				// TODO AUTOMATION Don't report the wrong number of tests performed.
-				// FAutomationTestFramework::GetInstance().LogQueueEmptyMessage();
+				// FAutomationTestFramework::Get().LogQueueEmptyMessage();
 				OutputDevice->Logf(TEXT("...Automation Test Queue Empty %d tests performed."), TestCount);
 				TestCount = 0;
 			}
@@ -165,7 +164,7 @@ public:
 		if (AutomationCommand == EAutomationCommand::ListAllTests)
 		{
 			//TArray<FAutomationTestInfo> TestInfo;
-			//FAutomationTestFramework::GetInstance().GetValidTestNames(TestInfo);
+			//FAutomationTestFramework::Get().GetValidTestNames(TestInfo);
 			for (int TestIndex = 0; TestIndex < AllTestNames.Num(); ++TestIndex)
 			{
 				OutputDevice->Logf(TEXT("%s"), *AllTestNames[TestIndex]);

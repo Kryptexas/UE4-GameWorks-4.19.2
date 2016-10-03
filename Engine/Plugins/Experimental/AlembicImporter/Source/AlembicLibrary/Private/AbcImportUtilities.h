@@ -4,6 +4,10 @@
 
 #include "AlembicLibraryPublicPCH.h"
 
+#include <Alembic/AbcCoreAbstract/TimeSampling.h>
+#include <Alembic/Abc/All.h>
+#include <Alembic/AbcGeom/All.h>
+
 #include "GeometryCache.h"
 #include "GeometryCacheTrackFlipbookAnimation.h"
 #include "GeometryCacheTrackTransformAnimation.h"
@@ -16,6 +20,10 @@
 
 #include "AbcImportLogger.h"
 #include "AbcImportSettings.h"
+
+struct FAbcMeshSample;
+struct FAbcPolyMeshObject;
+struct FCompressedAbcData;
 
 namespace AbcImporterUtilities
 {
@@ -118,7 +126,7 @@ namespace AbcImporterUtilities
 	}
 	
 	/** Triangulates material indices according to the face counts (quads will have to be split up into two faces / material indices)*/
-	void TriangulateMateriaIndices(const TArray<uint32>& InFaceCounts, TArray<int32>& InOutData);
+	void TriangulateMaterialIndices(const TArray<uint32>& InFaceCounts, TArray<int32>& InOutData);
 
 	template<typename T>
 	Alembic::Abc::ISampleSelector GenerateAlembicSampleSelector(const T SelectionValue)
@@ -164,9 +172,9 @@ namespace AbcImporterUtilities
 	FAbcMeshSample* MergeMeshSamples(const TArray<FAbcMeshSample*>& Samples);
 
 	FAbcMeshSample* MergeMeshSamples(FAbcMeshSample* MeshSampleOne, FAbcMeshSample* MeshSampleTwo);
-
+			
 	void AppendMeshSample(FAbcMeshSample* MeshSampleOne, FAbcMeshSample* MeshSampleTwo);
-
+			
 	void GetHierarchyForObject(const Alembic::Abc::IObject& Object, TDoubleLinkedList<Alembic::AbcGeom::IXform>& Hierarchy);
 
 	void PropogateMatrixTransformationToSample(FAbcMeshSample* Sample, const FMatrix& Matrix);
@@ -191,4 +199,4 @@ namespace AbcImporterUtilities
 	void CalculateNewStartAndEndFrameIndices(const float FrameStepRatio, uint32& InOutStartFrameIndex, uint32& InOutEndFrameIndex );
 
 	bool AreVerticesEqual(const FSoftSkinVertex& V1, const FSoftSkinVertex& V2);
-};
+}

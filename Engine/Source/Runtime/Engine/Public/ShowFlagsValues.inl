@@ -304,5 +304,7 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, MeshTexCoordSizeAccuracy, SFG_Hidden, LOCTEXT("Mes
 SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTexCoordScalesAccuracy, SFG_Hidden, LOCTEXT("MaterialTexCoordScalesAccuracy", "Material Texture Coordinate Scales Accuracy"))
 /** Outputs the material texture coordinate scales. */
 SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTexCoordScalesAnalysis, SFG_Hidden, LOCTEXT("MaterialTexCoordScalesAnalysis", "Material Texture Coordinate Scales Analysis"))
+/** If WidgetComponents should be rendered in the scene */
+SHOWFLAG_ALWAYS_ACCESSIBLE(WidgetComponents, SFG_Normal, LOCTEXT("WidgetComponentsSF", "Widget Components"))
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
 #undef SHOWFLAG_FIXED_IN_SHIPPING

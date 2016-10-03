@@ -359,6 +359,16 @@ public:
 	}
 
 	/**
+	* Called during saving to determine if the object is forced to be editor only or not
+	*
+	* @return	true if this object should never be loaded outside the editor
+	*/
+	virtual bool IsEditorOnly() const
+	{
+		return false;
+	}
+
+	/**
 	* Called during async load to determine if PostLoad can be called on the loading thread.
 	*
 	* @return	true if this object's PostLoad is thread safe

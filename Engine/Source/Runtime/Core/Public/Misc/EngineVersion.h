@@ -38,7 +38,7 @@ public:
 	static const FEngineVersion& CompatibleWith();
 
 	/** Overrides the current changelist in the verison */
-	static bool OverrideCurrentVersionChangelist(int32 NewChangelist);
+	static bool OverrideCurrentVersionChangelist(int32 NewChangelist, int32 NewCompatibleChangelist);
 
 	/** Serialization function */
 	friend CORE_API void operator<<(class FArchive &Ar, FEngineVersion &Version);

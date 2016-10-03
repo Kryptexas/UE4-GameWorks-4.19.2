@@ -68,6 +68,26 @@ TSharedRef<SWidget> SProjectLauncherTaskListRow::GenerateWidgetForColumn(const F
 				];
 		}
 	}
+	else if (ColumnName == "Warnings")
+	{
+		return SNew(SBox)
+			.Padding(FMargin(4.0, 0.0))
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(this, &SProjectLauncherTaskListRow::HandleWarningCounterText)
+			];
+	}
+	else if (ColumnName == "Errors")
+	{
+		return SNew(SBox)
+			.Padding(FMargin(4.0, 0.0))
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(this, &SProjectLauncherTaskListRow::HandleErrorCounterText)
+			];
+	}
 
 	return SNullWidget::NullWidget;
 }

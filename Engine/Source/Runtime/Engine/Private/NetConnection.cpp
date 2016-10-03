@@ -12,10 +12,11 @@
 #include "Engine/NetworkObjectList.h"
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 #include "PerfCountersHelpers.h"
+#include "GameDelegates.h"
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
@@ -387,15 +388,7 @@ void UNetConnection::CleanUp()
 		}
 		else 
 		{
-			UWorld* World = Driver ? Driver->GetWorld() : NULL;
-			if (World)
-			{
-				AGameMode* const GameMode = World->GetAuthGameMode();
-				if (GameMode)
-				{
-					GameMode->NotifyPendingConnectionLost();
-				}
-			}
+			FGameDelegates::Get().GetPendingConnectionLostDelegate().Broadcast();
 		}
 	}
 

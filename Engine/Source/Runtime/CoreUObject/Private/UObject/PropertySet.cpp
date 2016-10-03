@@ -387,6 +387,13 @@ void USetProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 	Super::AddReferencedObjects(This, Collector);
 }
 
+FString USetProperty::GetCPPMacroType(FString& ExtendedTypeText) const
+{
+	checkSlow(ElementProp);
+	ExtendedTypeText = FString::Printf(TEXT("%s"), *ElementProp->GetCPPType());
+	return TEXT("TSET");
+}
+
 FString USetProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
 {
 	checkSlow(ElementProp);
@@ -402,11 +409,10 @@ FString USetProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlag
 	return TEXT("TSet");
 }
 
-FString USetProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
+FString USetProperty::GetCPPTypeForwardDeclaration() const
 {
 	checkSlow(ElementProp);
-	ExtendedTypeText = FString::Printf(TEXT("%s"), *ElementProp->GetCPPType());
-	return TEXT("TSET");
+	return ElementProp->GetCPPTypeForwardDeclaration();
 }
 
 void USetProperty::ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
@@ -699,6 +705,39 @@ bool USetProperty::SameType(const UProperty* Other) const
 {
 	USetProperty* SetProp = (USetProperty*)Other;
 	return Super::SameType(Other) && ElementProp && ElementProp->SameType(SetProp->ElementProp);
+}
+
+/**
+ * Checks to see if this property already has the supplied value as an element
+ * @param	InSet			The address of the set
+ * @param	InBaseAddress	The base address of the set
+ * @param	InValue			The value to find in the set
+ * @return True if InValue is an element in the set, false otherwise
+ */
+bool USetProperty::HasElement(void* InSet, void* InBaseAddress, const FString& InValue) const
+{
+	FScriptSetHelper SetHelper(this, InSet);
+
+	for ( int32 Index = 0, ItemsLeft = SetHelper.Num(); ItemsLeft > 0; ++Index )
+	{
+		if (SetHelper.IsValidIndex(Index))
+		{
+			--ItemsLeft;
+
+			uint8* Element = SetHelper.GetElementPtr(Index);
+
+			FString ElementValue;
+			if (Element != InBaseAddress && ElementProp->ExportText_Direct(ElementValue, Element, Element, nullptr, 0))
+			{
+				if ( (Cast<UObjectProperty>(ElementProp) != nullptr && ElementValue.Contains(InValue)) || ElementValue == InValue)
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(USetProperty, UProperty,

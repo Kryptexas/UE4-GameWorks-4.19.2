@@ -79,6 +79,10 @@ typedef void (GL_APIENTRYP PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC) (GLenum t
 /** from ES 3.0 but can be called on certain Adreno devices */
 typedef void (GL_APIENTRYP PFNGLTEXSTORAGE2DPROC) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
 
+// Mobile multi-view
+typedef void (GL_APIENTRYP PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC) (GLenum target, GLenum attachment, GLuint texture, GLint level, GLint baseViewIndex, GLsizei numViews);
+typedef void (GL_APIENTRYP PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC) (GLenum target, GLenum attachment, GLuint texture, GLint level, GLsizei samples, GLint baseViewIndex, GLsizei numViews);
+
 extern PFNGLGENQUERIESEXTPROC 			glGenQueriesEXT;
 extern PFNGLDELETEQUERIESEXTPROC 		glDeleteQueriesEXT;
 extern PFNGLISQUERYEXTPROC 				glIsQueryEXT ;
@@ -134,6 +138,9 @@ extern PFNGLBINDBUFFERRANGEPROC			glBindBufferRange;
 extern PFNGLBINDBUFFERBASEPROC			glBindBufferBase;
 extern PFNGLGETUNIFORMBLOCKINDEXPROC	glGetUniformBlockIndex;
 extern PFNGLUNIFORMBLOCKBINDINGPROC		glUniformBlockBinding;
+
+extern PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC glFramebufferTextureMultiviewOVR;
+extern PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC glFramebufferTextureMultisampleMultiviewOVR;
 
 #include "OpenGLES2.h"
 
@@ -446,11 +453,13 @@ struct FAndroidOpenGL : public FOpenGLES2
 	static FORCEINLINE bool SupportsWideMRT()							{ return bES31Support; }
 	static FORCEINLINE bool SupportsResourceView()						{ return bSupportsTextureBuffer; }
 	static FORCEINLINE bool SupportsTexture3D()							{ return bES30Support; }
-
+	static FORCEINLINE bool SupportsMobileMultiView()					{ return bSupportsMobileMultiView; }
 	static FORCEINLINE bool UseES30ShadingLanguage()
 	{
 		return bUseES30ShadingLanguage;
 	}
+
+	static FORCEINLINE GLenum GetDepthFormat() { return GL_DEPTH_COMPONENT24; }
 
 	static void ProcessExtensions(const FString& ExtensionsString);
 
@@ -474,6 +483,9 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	/** Whether device supports Hidden Surface Removal */
 	static bool bHasHardwareHiddenSurfaceRemoval;
+
+	/** Whether device supports mobile multi-view */
+	static bool bSupportsMobileMultiView;
 };
 
 typedef FAndroidOpenGL FOpenGL;

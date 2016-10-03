@@ -586,6 +586,28 @@ FQuat FQuat::MakeFromEuler(const FVector& Euler)
 	return FRotator::MakeFromEuler(Euler).Quaternion();
 }
 
+void FQuat::ToSwingTwist(const FVector& InTwistAxis, FQuat& OutSwing, FQuat& OutTwist) const
+{
+	// Vector part projected onto twist axis
+	FVector Projection = FVector::DotProduct(InTwistAxis, FVector(X, Y, Z)) * InTwistAxis;
+
+	// Twist quaternion
+	OutTwist = FQuat(Projection.X, Projection.Y, Projection.Z, W);
+
+	// Singularity close to 180deg
+	if(OutTwist.SizeSquared() == 0.0f)
+	{
+		OutTwist = FQuat::Identity;
+	}
+	else
+	{
+		OutTwist.Normalize();
+	}
+
+	// Set swing
+	OutSwing = *this * OutTwist.Inverse();
+}
+
 FMatrix FRotationAboutPointMatrix::Make(const FQuat& Rot, const FVector& Origin)
 {
 	return FRotationAboutPointMatrix(Rot.Rotator(), Origin);

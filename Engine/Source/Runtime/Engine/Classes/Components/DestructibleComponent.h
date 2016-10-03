@@ -7,17 +7,21 @@
 #if WITH_PHYSX
 namespace physx
 {
-#if WITH_APEX
-	namespace apex
-	{
-		class  NxDestructibleActor;
-		struct NxApexDamageEventReportData;
-		struct NxApexChunkStateEventData;
-	}
-#endif
 	class PxRigidDynamic;
 	class PxRigidActor;
 }
+
+#if WITH_APEX
+namespace nvidia
+{
+	namespace apex
+	{
+		class  DestructibleActor;
+		struct DamageEventReportData;
+		struct ChunkStateEventData;
+	}
+}
+#endif
 
 /** Mapping info for destructible chunk user data. */
 struct FDestructibleChunkInfo
@@ -103,8 +107,8 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 
 public:
 #if WITH_APEX
-	/** The NxDestructibleActor instantated from an NxDestructibleAsset, which contains the runtime physical state. */
-	physx::apex::NxDestructibleActor* ApexDestructibleActor;
+	/** The DestructibleActor instantated from a DestructibleAsset, which contains the runtime physical state. */
+	nvidia::apex::DestructibleActor* ApexDestructibleActor;
 #endif	//WITH_APEX
 
 	//~ Begin USceneComponent Interface.
@@ -145,6 +149,10 @@ public:
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
 	virtual void SetCollisionEnabled(ECollisionEnabled::Type NewType) override;
 	virtual void OnActorEnableCollisionChanged() override;
+
+	virtual void SetCollisionResponseToChannel(ECollisionChannel Channel, ECollisionResponse NewResponse) override;
+	virtual void SetCollisionResponseToAllChannels(ECollisionResponse NewResponse) override;
+	virtual void SetCollisionResponseToChannels(const FCollisionResponseContainer& NewReponses) override;
 	//~ End UPrimitiveComponent Interface.
 
 	//~ Begin SkinnedMeshComponent Interface.
@@ -194,20 +202,20 @@ public:
 	/** This method sets a chunk's (fractured piece's) world rotation and translation.
 	 *
 	 * @param ChunkIndex - Which chunk to affect.  ChunkIndex must lie in the range: 0 <= ChunkIndex < ((DestructibleMesh*)USkeletalMesh)->ApexDestructibleAsset->chunkCount().
-	 * @param WorldRotation - The orienation to give to the chunk in world space, represented as a quaternion.
+	 * @param WorldRotation - The orientation to give to the chunk in world space, represented as a quaternion.
 	 * @param WorldRotation - The world space position to give to the chunk.
 	 */
 	void SetChunkWorldRT( int32 ChunkIndex, const FQuat& WorldRotation, const FVector& WorldTranslation );
 
 #if WITH_APEX
-	/** Trigger any fracture effects after a damage event is recieved */
-	void SpawnFractureEffectsFromDamageEvent(const physx::apex::NxApexDamageEventReportData& InDamageEvent);
+	/** Trigger any fracture effects after a damage event is received */
+	void SpawnFractureEffectsFromDamageEvent(const nvidia::apex::DamageEventReportData& InDamageEvent);
 
 	/** Callback from physics system to notify the actor that it has been damaged */
-	void OnDamageEvent(const physx::apex::NxApexDamageEventReportData& InDamageEvent);
+	void OnDamageEvent(const nvidia::apex::DamageEventReportData& InDamageEvent);
 
-	/** Callback from physics system to notify the actor that a chunk's visibilty has changed */
-	void OnVisibilityEvent(const physx::apex::NxApexChunkStateEventData & InDamageEvent);
+	/** Callback from physics system to notify the actor that a chunk's visibility has changed */
+	void OnVisibilityEvent(const nvidia::apex::ChunkStateEventData & InDamageEvent);
 #endif // WITH_APEX
 
 	//~ End DestructibleComponent Interface.

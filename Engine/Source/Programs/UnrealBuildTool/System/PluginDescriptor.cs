@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -15,10 +15,10 @@ namespace UnrealBuildTool
 		Initial = 1,
 		NameHash = 2,
 		ProjectPluginUnification = 3,
-		// !!!!!!!!!! IMPORTANT: Remember to also update LatestPluginDescriptorFileVersion in Plugins.cs (and Plugin system documentation) when this changes!!!!!!!!!!!
-		// -----<new versions can be added before this line>-------------------------------------------------
-		// - this needs to be the last line (see note below)
-		LatestPlusOne,
+        // !!!!!!!!!! IMPORTANT: Remember to also update LatestPluginDescriptorFileVersion in Plugins.cs (and Plugin system documentation) when this changes!!!!!!!!!!!
+        // -----<new versions can be added before this line>-------------------------------------------------
+        // - this needs to be the last line (see note below)
+        LatestPlusOne,
 		Latest = LatestPlusOne - 1
 	};
 
@@ -147,7 +147,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="FileName">The filename to read</param>
 		/// <returns>New plugin descriptor</returns>
-		public static PluginDescriptor FromFile(FileReference FileName)
+		public static PluginDescriptor FromFile(FileReference FileName, bool bPluginTypeEnabledByDefault)
 		{
 			JsonObject RawObject = JsonObject.Read(FileName.FullName);
 			try
@@ -206,7 +206,11 @@ namespace UnrealBuildTool
 					Descriptor.LocalizationTargets = Array.ConvertAll(LocalizationTargetsArray, x => LocalizationTargetDescriptor.FromJsonObject(x));
 				}
 
-				RawObject.TryGetBoolField("EnabledByDefault", out Descriptor.bEnabledByDefault);
+				if(!RawObject.TryGetBoolField("EnabledByDefault", out Descriptor.bEnabledByDefault))
+				{
+					Descriptor.bEnabledByDefault = bPluginTypeEnabledByDefault;
+				}
+
 				RawObject.TryGetBoolField("CanContainContent", out Descriptor.bCanContainContent);
 				RawObject.TryGetBoolField("IsBetaVersion", out Descriptor.bIsBetaVersion);
 				RawObject.TryGetBoolField("Installed", out Descriptor.bInstalled);
@@ -228,7 +232,7 @@ namespace UnrealBuildTool
 		/// Saves the descriptor to disk
 		/// </summary>
 		/// <param name="FileName">The filename to write to</param>
-		public void Save(string FileName)
+		public void Save(string FileName, bool bPluginTypeEnabledByDefault)
 		{
 			using (JsonWriter Writer = new JsonWriter(FileName))
 			{
@@ -245,7 +249,10 @@ namespace UnrealBuildTool
 				Writer.WriteValue("DocsURL", DocsURL);
 				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
 				Writer.WriteValue("SupportURL", SupportURL);
-				Writer.WriteValue("EnabledByDefault", bEnabledByDefault);
+				if(bEnabledByDefault != bPluginTypeEnabledByDefault)
+				{
+					Writer.WriteValue("EnabledByDefault", bEnabledByDefault);
+				}
 				Writer.WriteValue("CanContainContent", bCanContainContent);
 				Writer.WriteValue("IsBetaVersion", bIsBetaVersion);
 				Writer.WriteValue("Installed", bInstalled);

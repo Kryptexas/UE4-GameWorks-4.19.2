@@ -20,9 +20,10 @@ struct FMaterialInputInfo
 	}
 
 	/** Constructor */
-	FMaterialInputInfo(const FText& InName, EMaterialProperty InProperty)
+	FMaterialInputInfo(const FText& InName, EMaterialProperty InProperty, const FText& InToolTip)
 		:	Name( InName )
 		,	Property( InProperty )
+		,	ToolTip( InToolTip )
 	{
 	}
 
@@ -79,11 +80,15 @@ struct FMaterialInputInfo
 
 	EMaterialProperty GetProperty() const { return Property; }
 
+	const FText& GetToolTip() const { return ToolTip; }
+
 private:
 	/** Name of the input shown to user */
 	FText Name;
 	/** Type of the input */
 	EMaterialProperty Property;
+	/** The tool-tip describing this input's purpose */
+	FText ToolTip;
 
 };
 

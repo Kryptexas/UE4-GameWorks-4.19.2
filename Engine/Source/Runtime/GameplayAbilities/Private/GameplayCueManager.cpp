@@ -74,7 +74,14 @@ bool IsDedicatedServerForGameplayCue()
 
 void UGameplayCueManager::HandleGameplayCues(AActor* TargetActor, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters)
 {
-	if (GameplayCueRunOnDedicatedServer == 0 && IsDedicatedServerForGameplayCue())
+#if WITH_EDITOR
+	if (GIsEditor && TargetActor == nullptr && UGameplayCueManager::PreviewComponent)
+	{
+		TargetActor = Cast<AActor>(AActor::StaticClass()->GetDefaultObject());
+	}
+#endif
+
+	if (ShouldSuppressGameplayCues(TargetActor))
 	{
 		return;
 	}
@@ -87,16 +94,6 @@ void UGameplayCueManager::HandleGameplayCues(AActor* TargetActor, const FGamepla
 
 void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters)
 {
-	if (DisableGameplayCues)
-	{
-		return;
-	}
-
-	if (GameplayCueRunOnDedicatedServer == 0 && IsDedicatedServerForGameplayCue())
-	{
-		return;
-	}
-
 #if WITH_EDITOR
 	if (GIsEditor && TargetActor == nullptr && UGameplayCueManager::PreviewComponent)
 	{
@@ -104,12 +101,38 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 	}
 #endif
 
-	if (TargetActor == nullptr)
+	if (ShouldSuppressGameplayCues(TargetActor))
 	{
-		ABILITY_LOG(Warning, TEXT("UGameplayCueManager::HandleGameplayCue called on null TargetActor. GameplayCueTag: %s."), *GameplayCueTag.ToString());
 		return;
 	}
 
+	TranslateGameplayCue(GameplayCueTag, TargetActor, Parameters);
+
+	RouteGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
+}
+
+bool UGameplayCueManager::ShouldSuppressGameplayCues(AActor* TargetActor)
+{
+	if (DisableGameplayCues)
+	{
+		return true;
+	}
+
+	if (GameplayCueRunOnDedicatedServer == 0 && IsDedicatedServerForGameplayCue())
+	{
+		return true;
+	}
+
+	if (TargetActor == nullptr)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void UGameplayCueManager::RouteGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters)
+{
 	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(TargetActor);
 	bool bAcceptsCue = true;
 	if (GameplayCueInterface)
@@ -146,6 +169,11 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 	}
 
 	CurrentWorld = nullptr;
+}
+
+void UGameplayCueManager::TranslateGameplayCue(FGameplayTag& Tag, AActor* TargetActor, const FGameplayCueParameters& Parameters)
+{
+	TranslationManager.TranslateTag(Tag, TargetActor, Parameters);
 }
 
 void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
@@ -494,7 +522,7 @@ void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibr
 	// Async at startup in all other cases
 	// ---------------------------------------------------------
 
-	const bool bSyncFullyLoad = IsRunningCommandlet();
+	const bool bSyncFullyLoad = ShouldSyncLoadAtStartup();
 	const bool bAsyncLoadAtStartup = !bSyncFullyLoad && ShouldAsyncLoadAtStartup();
 	if (bSyncFullyLoad)
 	{
@@ -549,7 +577,12 @@ void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibr
 			OnLoadDelegate.ExecuteIfBound(AssetsToLoad);
 		}
 	}
+
+	// Build Tag Translation table
+	TranslationManager.BuildTagTranslationTable();
 }
+
+static FAutoConsoleVariable CVarGameplyCueAddToGlobalSetDebug(TEXT("GameplayCue.AddToGlobalSet.DebugTag"), TEXT(""), TEXT("Debug Tag adding to global set"), ECVF_Default	);
 
 void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, TArray<FGameplayCueReferencePair>& OutCuesToAdd, TArray<FStringAssetReference>& OutAssetsToLoad, FShouldLoadGCNotifyDelegate ShouldLoad)
 {
@@ -557,15 +590,27 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 
 	OutAssetsToLoad.Reserve(OutAssetsToLoad.Num() + AssetDataList.Num());
 
-	for (FAssetData Data: AssetDataList)
+	for (const FAssetData& Data: AssetDataList)
 	{
+		const FName FoundGameplayTag = Data.GetTagValueRef<FName>(TagPropertyName);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (CVarGameplyCueAddToGlobalSetDebug->GetString().IsEmpty() == false && FoundGameplayTag.ToString().Contains(CVarGameplyCueAddToGlobalSetDebug->GetString()))
+		{
+			ABILITY_LOG(Display, TEXT("Adding Tag %s to GlobalSet"), *FoundGameplayTag.ToString());
+		}
+#endif
+
 		// If ShouldLoad delegate is bound and it returns false, don't load this one
 		if (ShouldLoad.IsBound() && (ShouldLoad.Execute(Data) == false))
 		{
 			continue;
 		}
-
-		const FName FoundGameplayTag = Data.GetTagValueRef<FName>(TagPropertyName);
+		
+		if (ShouldLoadGameplayCueAssetData(Data) == false)
+		{
+			continue;
+		}
+		
 		if (!FoundGameplayTag.IsNone())
 		{
 			const FString GeneratedClassTag = Data.GetTagValueRef<FString>("GeneratedClass");
@@ -664,25 +709,20 @@ int32 UGameplayCueManager::FinishLoadingGameplayCueNotifies()
 	return NumLoadeded;
 }
 
+void UGameplayCueManager::GetGameplayCueNotifyFilenames(TArray<FString>& Filenames) const
+{
+	if (ensure(GlobalCueSet))
+	{
+		GlobalCueSet->GetFilenames(Filenames);
+	}
+}
+
 void UGameplayCueManager::BeginLoadingGameplayCueNotify(FGameplayTag GameplayCueTag)
 {
 
 }
 
 #if WITH_EDITOR
-
-bool UGameplayCueManager::IsAssetInLoadedPaths(UObject *Object) const
-{
-	for (const FString& Path : LoadedPaths)
-	{
-		if (Object->GetPathName().StartsWith(Path))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
 
 void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 {
@@ -694,7 +734,7 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 		
 		if (StaticCDO || ActorCDO)
 		{
-			if (IsAssetInLoadedPaths(Object))
+			if (VerifyNotifyAssetIsInValidPath(Blueprint->GetOuter()->GetPathName()))
 			{
 				FStringAssetReference StringRef;
 				StringRef.SetPath(Blueprint->GeneratedClass->GetPathName());
@@ -713,13 +753,8 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 				GlobalCueSet->AddCues(CuesToAdd);
 
 				OnGameplayCueNotifyAddOrRemove.Broadcast();
-
+			}
 			
-			}
-			else
-			{
-				VerifyNotifyAssetIsInValidPath(Blueprint->GetOuter()->GetPathName());
-			}
 		}
 	}
 }
@@ -772,7 +807,7 @@ void UGameplayCueManager::HandleAssetRenamed(const FAssetData& Data, const FStri
 	}
 }
 
-void UGameplayCueManager::VerifyNotifyAssetIsInValidPath(FString Path)
+bool UGameplayCueManager::VerifyNotifyAssetIsInValidPath(FString Path)
 {
 	bool ValidPath = false;
 	for (FString& str: GetValidGameplayCuePaths())
@@ -802,11 +837,13 @@ void UGameplayCueManager::VerifyNotifyAssetIsInValidPath(FString Path)
 		const FText TitleText = NSLOCTEXT("GameplayCuePathWarning", "GameplayCuePathWarningTitle", "Invalid GameplayCue Path");
 		FMessageDialog::Open(EAppMsgType::Ok, MessageText, &TitleText);
 	}
+
+	return ValidPath;
 }
 
 void UGameplayCueManager::LoadAllGameplayCueNotifiesForEditor()
 {
-	// Spft load all valid paths
+	// Soft load all valid paths
 	TArray<FString> ValidPaths = GetValidGameplayCuePaths();
 
 	GlobalCueSet->Empty();
@@ -1307,6 +1344,33 @@ void UGameplayCueManager::OnPreReplayScrub(UWorld* World)
 	FPreallocationInfo& Info = GetPreallocationInfo(World);
 	Info.PreallocatedInstances.Reset();
 }
+
+// ----------------------------------------------------------------
+
+static void	RunGameplayCueTranslator(UWorld* InWorld)
+{
+	UAbilitySystemGlobals::Get().GetGameplayCueManager()->TranslationManager.BuildTagTranslationTable();
+}
+
+FAutoConsoleCommandWithWorld RunGameplayCueTranslatorCmd(
+	TEXT("GameplayCue.BuildGameplayCueTranslator"),
+	TEXT("Displays GameplayCue notify map"),
+	FConsoleCommandWithWorldDelegate::CreateStatic(RunGameplayCueTranslator)
+	);
+
+// -----------------------------------------------------
+
+static void	PrintGameplayCueTranslator(UWorld* InWorld)
+{
+	UAbilitySystemGlobals::Get().GetGameplayCueManager()->TranslationManager.PrintTranslationTable();
+}
+
+FAutoConsoleCommandWithWorld PrintGameplayCueTranslatorCmd(
+	TEXT("GameplayCue.PrintGameplayCueTranslator"),
+	TEXT("Displays GameplayCue notify map"),
+	FConsoleCommandWithWorldDelegate::CreateStatic(PrintGameplayCueTranslator)
+	);
+
 
 #if WITH_EDITOR
 #undef LOCTEXT_NAMESPACE

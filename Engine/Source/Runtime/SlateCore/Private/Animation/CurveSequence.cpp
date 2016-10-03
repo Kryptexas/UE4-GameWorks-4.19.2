@@ -92,7 +92,7 @@ void FCurveSequence::Reverse( )
 	// Assume CurTime is constant (now).
 	// Figure out when the animation would need to have started in order to keep
 	// its place if playing in reverse.
-	const double NewStartTime = CurTime - TotalDuration * (1 - FractionCompleted);
+	const double NewStartTime = CurTime - TotalDuration * (bInReverse ? (1 - FractionCompleted) : FractionCompleted);
 	SetStartTime(NewStartTime);
 }
 

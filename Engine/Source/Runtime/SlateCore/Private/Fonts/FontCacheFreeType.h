@@ -21,6 +21,7 @@
 	#include FT_MODULE_H
 	#include FT_BITMAP_H
 	#include FT_ADVANCES_H
+	#include FT_STROKER_H
 #endif // WITH_FREETYPE
 
 

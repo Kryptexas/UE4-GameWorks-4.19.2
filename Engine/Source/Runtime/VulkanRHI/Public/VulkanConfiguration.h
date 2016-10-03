@@ -13,6 +13,8 @@
 // API version we want to target.
 #if PLATFORM_WINDOWS
 	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
+#elif PLATFORM_MAC // Needed for compiling Vulkan shaders for Android
+	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
 #elif PLATFORM_ANDROID
 	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
 #else

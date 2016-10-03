@@ -72,7 +72,7 @@
 	#define MaterialFloat4x3 float4x3 
 #endif
 
-#if COMPILER_GLSL_ES2 || COMPILER_METAL
+#if COMPILER_GLSL_ES2 || COMPILER_METAL || COMPILER_WOLF
 
 	float determinant(float3x3 M)
 	{    
@@ -116,6 +116,25 @@
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
 #elif SM4_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
+#elif WOLF_PROFILE || WOLF_PROFILE_FORWARD
+	#undef ES3_1_PROFILE
+
+	#if WOLF_PROFILE
+		#define FEATURE_LEVEL FEATURE_LEVEL_SM5
+	#else
+		#define FEATURE_LEVEL FEATURE_LEVEL_ES3_1
+		// @todo wolf: maybe all uses of this should check feature level not profile?
+		#define ES3_1_PROFILE 1
+	#endif
+
+
+	// A8 textures when sampled have their component in R.
+	#undef A8_SAMPLE_MASK
+	#define A8_SAMPLE_MASK .r
+
+	// wolf doesn't have vertex attribute swizzling
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra
+
 #elif VULKAN_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_ES3_1
 #elif VULKAN_PROFILE_SM4
@@ -192,11 +211,11 @@
 #endif
 
 // non-editor platforms generally never want development/editor features.
-#define PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE)
+#define PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE && !WOLF_PROFILE)
 #define USE_DEVELOPMENT_SHADERS (COMPILE_SHADERS_FOR_DEVELOPMENT && PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS)
 
 #ifndef MOBILE_EMULATION
-#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!(COMPILER_GLSL_ES3_1 || COMPILER_GLSL_ES2) && USE_DEVELOPMENT_SHADERS && !(METAL_PROFILE && MAC) && !VULKAN_PROFILE))
+#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!(COMPILER_GLSL_ES3_1 || COMPILER_GLSL_ES2) && USE_DEVELOPMENT_SHADERS && !(METAL_PROFILE && MAC) && !VULKAN_PROFILE && !WOLF_PROFILE))
 #endif
 
 // If we didn't request color component swizzling, just make it empty

@@ -13,9 +13,6 @@
 #include "Animation/AnimCurveTypes.h"
 #include "AnimSequenceBase.generated.h"
 
-#define DEFAULT_SAMPLERATE			30.f
-#define MINIMUM_ANIMATION_LENGTH	(1/DEFAULT_SAMPLERATE)
-
 UENUM()
 enum ETypeAdvanceAnim
 {
@@ -157,6 +154,7 @@ public:
 	
 	virtual float GetFirstMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition) const { return 0.f; }
 	virtual float GetNextMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const { return 0.f; }
+	virtual float GetPrevMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const { return 0.f; }
 
 	// default implementation, no additive
 	virtual EAdditiveAnimationType GetAdditiveAnimType() const { return AAT_None; }

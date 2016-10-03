@@ -831,39 +831,46 @@ void FTabManager::PopulateLocalTabSpawnerMenu(FMenuBuilder& PopulateMe)
 	PopulateTabSpawnerMenu(PopulateMe, LocalWorkspaceMenuRoot.ToSharedRef());
 }
 
-void FTabManager::PopulateTabSpawnerMenu( FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure )
+void FTabManager::PopulateTabSpawnerMenu(FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure)
+{
+	PopulateTabSpawnerMenu(PopulateMe, MenuStructure, true);
+}
+
+void FTabManager::PopulateTabSpawnerMenu( FMenuBuilder& PopulateMe, TSharedRef<FWorkspaceItem> MenuStructure, bool bIncludeOrphanedMenus )
 {
 	TSharedRef< TArray< TWeakPtr<FTabSpawnerEntry> > > AllSpawners = MakeShareable( new TArray< TWeakPtr<FTabSpawnerEntry> >() );
-	{
-		// Editor-specific tabs
-		for ( FTabSpawner::TIterator SpawnerIterator(TabSpawner); SpawnerIterator; ++SpawnerIterator  )	
-		{
-			const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
-			if (SpawnerEntry->bAutoGenerateMenuEntry)
-			{
-				AllSpawners->AddUnique( SpawnerEntry );
-			}
-		}
 
-		// General Tabs
-		for ( FTabSpawner::TIterator SpawnerIterator(*NomadTabSpawner); SpawnerIterator; ++SpawnerIterator  )	
+	// Editor-specific tabs
+	for ( FTabSpawner::TIterator SpawnerIterator(TabSpawner); SpawnerIterator; ++SpawnerIterator )
+	{
+		const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
+		if ( SpawnerEntry->bAutoGenerateMenuEntry )
 		{
-			const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
-			if (SpawnerEntry->bAutoGenerateMenuEntry)
-			{
-				AllSpawners->AddUnique( SpawnerEntry );
-			}
+			AllSpawners->AddUnique(SpawnerEntry);
 		}
 	}
 
-	// Put all orphaned spawners at the top of the menu so programmers go and find them a nice home.
-	for ( int32 ChildIndex=0; ChildIndex < AllSpawners->Num(); ++ChildIndex )
+	// General Tabs
+	for ( FTabSpawner::TIterator SpawnerIterator(*NomadTabSpawner); SpawnerIterator; ++SpawnerIterator )
 	{
-		const TSharedPtr<FTabSpawnerEntry> Spawner = (*AllSpawners)[ChildIndex].Pin();
-		const bool bHasNoPlaceInMenuStructure = !Spawner->GetParent().IsValid();
-		if ( bHasNoPlaceInMenuStructure )
+		const TSharedRef<FTabSpawnerEntry>& SpawnerEntry = SpawnerIterator.Value();
+		if ( SpawnerEntry->bAutoGenerateMenuEntry )
 		{
-			this->MakeSpawnerMenuEntry( PopulateMe, Spawner );
+			AllSpawners->AddUnique(SpawnerEntry);
+		}
+	}
+
+	if ( bIncludeOrphanedMenus )
+	{
+		// Put all orphaned spawners at the top of the menu so programmers go and find them a nice home.
+		for ( int32 ChildIndex=0; ChildIndex < AllSpawners->Num(); ++ChildIndex )
+		{
+			const TSharedPtr<FTabSpawnerEntry> Spawner = ( *AllSpawners )[ChildIndex].Pin();
+			const bool bHasNoPlaceInMenuStructure = !Spawner->GetParent().IsValid();
+			if ( bHasNoPlaceInMenuStructure )
+			{
+				this->MakeSpawnerMenuEntry(PopulateMe, Spawner);
+			}
 		}
 	}
 
@@ -897,10 +904,13 @@ void FTabManager::DrawAttention( const TSharedRef<SDockTab>& TabToHighlight )
 		}
 
 		TSharedPtr<SWindow> OwnerWindow = DockingArea->GetParentWindow();
-		if ( OwnerWindow.IsValid() )
+		if ( OwnerWindow.IsValid() && ( OwnerWindow->IsActive() || OwnerWindow->HasActiveParent() ) )
 		{
+			// Only bring windows to the front and draw attention if that window is active.  If we don't do this,
+			// it's very easy to make code do annoying things, eg. stealing focus from PIE windows.
 			OwnerWindow->BringToFront();
 		}
+
 		TabToHighlight->GetParentDockTabStack()->BringToFront(TabToHighlight);
 		TabToHighlight->FlashTab();
 

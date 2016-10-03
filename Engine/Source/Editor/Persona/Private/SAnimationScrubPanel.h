@@ -13,10 +13,8 @@ class SAnimationScrubPanel : public SCompoundWidget
 public:
 
 	SLATE_BEGIN_ARGS(SAnimationScrubPanel)
-		: _Persona()
-		, _LockedSequence()
+		: _LockedSequence()
 	{}
-		SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona )
 		/** If you'd like to lock to one asset for this scrub control, give this**/
 		SLATE_ARGUMENT(UAnimSequenceBase*, LockedSequence)
 		/** View Input range **/
@@ -35,17 +33,15 @@ public:
 	 * 
 	 * @param InArgs   A declaration from which to construct the widget
 	 */
-	void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene );
 
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
 
-	virtual ~SAnimationScrubPanel();
-
 	void ReplaceLockedSequence(class UAnimSequenceBase * NewLockedSequence);
 protected:
-	TWeakPtr<FPersona> PersonaPtr;
+	TWeakPtr<IPersonaPreviewScene> PreviewScenePtr;
 	FOnSetInputViewRange OnSetInputViewRange;
 
 	bool bSliderBeingDragged;
@@ -60,6 +56,8 @@ protected:
 	virtual FReply OnClick_Backward();
 
 	virtual FReply OnClick_ToggleLoop();
+
+	virtual FReply OnClick_Record();
 
 	void AnimChanged(UAnimationAsset * AnimAsset);
 
@@ -78,6 +76,7 @@ protected:
 	void OnEndSliderMovement(float NewValue);
 
 	EPlaybackMode::Type GetPlaybackMode() const;
+	bool IsRecording() const;
 	bool IsLoopStatusOn() const;
 	bool IsRealtimeStreamingMode() const;
 
@@ -97,5 +96,9 @@ protected:
 
 	// Returns the debug data if the current preview is of an anim blueprint that is the selected debug object, or NULL
 	bool GetAnimBlueprintDebugData(UAnimInstance*& Instance, FAnimBlueprintDebugData*& DebugInfo) const;
+
+	TSharedRef<IPersonaPreviewScene> GetPreviewScene() const { return PreviewScenePtr.Pin().ToSharedRef(); }
+
+	bool GetDisplayDrag() const;
 };
 #endif // __SAnimationScrubPanel_h__

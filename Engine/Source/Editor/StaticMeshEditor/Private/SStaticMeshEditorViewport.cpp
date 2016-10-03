@@ -94,7 +94,7 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 {
 	//PreviewScene = new FAdvancedPreviewScene(FPreviewScene::ConstructionValues(), 
 
-	PreviewScene.SetFloorOffset(-InArgs._ObjectToEdit->ExtendedBounds.Origin.Z + InArgs._ObjectToEdit->ExtendedBounds.BoxExtent.Z);
+	PreviewScene->SetFloorOffset(-InArgs._ObjectToEdit->ExtendedBounds.Origin.Z + InArgs._ObjectToEdit->ExtendedBounds.BoxExtent.Z);
 
 	StaticMeshEditorPtr = InArgs._StaticMeshEditor;
 
@@ -120,7 +120,7 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 }
 
 SStaticMeshEditorViewport::SStaticMeshEditorViewport()
-	: PreviewScene(FPreviewScene::ConstructionValues())
+	: PreviewScene(MakeShareable(new FAdvancedPreviewScene(FPreviewScene::ConstructionValues())))
 {
 
 }
@@ -224,7 +224,7 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 			{
 				// Handle removing an old component
 				UStaticMeshComponent* SocketPreviewMeshComponent = SocketPreviewMeshComponents[i];
-				PreviewScene.RemoveComponent(SocketPreviewMeshComponent);
+				PreviewScene->RemoveComponent(SocketPreviewMeshComponent);
 				SocketPreviewMeshComponents.RemoveAt(i, SocketedComponentCount - i);
 				break;
 			}
@@ -236,7 +236,7 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 				if(i >= SocketedComponentCount)
 				{
 					SocketPreviewMeshComponent = NewObject<UStaticMeshComponent>();
-					PreviewScene.AddComponent(SocketPreviewMeshComponent, FTransform::Identity);
+					PreviewScene->AddComponent(SocketPreviewMeshComponent, FTransform::Identity);
 					SocketPreviewMeshComponents.Add(SocketPreviewMeshComponent);
 					SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
 				}
@@ -267,7 +267,7 @@ void SStaticMeshEditorViewport::SetPreviewMesh(UStaticMesh* InStaticMesh)
 	PreviewMeshComponent->StaticMesh = InStaticMesh;
 
 	FTransform Transform = FTransform::Identity;
-	PreviewScene.AddComponent( PreviewMeshComponent, Transform );
+	PreviewScene->AddComponent( PreviewMeshComponent, Transform );
 
 	EditorViewportClient->SetPreviewMesh(InStaticMesh, PreviewMeshComponent);
 }
@@ -281,7 +281,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 			UStaticMeshComponent* SocketPreviewMeshComponent = SocketPreviewMeshComponents[i];
 			if( SocketPreviewMeshComponent )
 			{
-				PreviewScene.RemoveComponent(SocketPreviewMeshComponent);
+				PreviewScene->RemoveComponent(SocketPreviewMeshComponent);
 			}
 		}
 		SocketPreviewMeshComponents.Empty();
@@ -289,7 +289,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 
 	if (PreviewMeshComponent)
 	{
-		PreviewScene.RemoveComponent(PreviewMeshComponent);
+		PreviewScene->RemoveComponent(PreviewMeshComponent);
 		PreviewMeshComponent = NULL;
 	}
 
@@ -300,7 +300,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 	// Update streaming data for debug viewmode feedback
 	PreviewMeshComponent->UpdateStreamingSectionData(FTexCoordScaleMap());
 
-	PreviewScene.AddComponent(PreviewMeshComponent,FTransform::Identity);
+	PreviewScene->AddComponent(PreviewMeshComponent,FTransform::Identity);
 
 	const int32 SocketCount = InStaticMesh->Sockets.Num();
 	SocketPreviewMeshComponents.Reserve(SocketCount);
@@ -315,7 +315,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 			SocketPreviewMeshComponent->SetStaticMesh(Socket->PreviewStaticMesh);
 			SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
 			SocketPreviewMeshComponents.Add(SocketPreviewMeshComponent);
-			PreviewScene.AddComponent(SocketPreviewMeshComponent, FTransform::Identity);
+			PreviewScene->AddComponent(SocketPreviewMeshComponent, FTransform::Identity);
 		}
 	}
 
@@ -404,7 +404,7 @@ FStaticMeshEditorViewportClient& SStaticMeshEditorViewport::GetViewportClient()
 
 TSharedRef<FEditorViewportClient> SStaticMeshEditorViewport::MakeEditorViewportClient()
 {
-	EditorViewportClient = MakeShareable( new FStaticMeshEditorViewportClient(StaticMeshEditorPtr, SharedThis(this), PreviewScene, StaticMesh, NULL) );
+	EditorViewportClient = MakeShareable( new FStaticMeshEditorViewportClient(StaticMeshEditorPtr, SharedThis(this), PreviewScene.ToSharedRef(), StaticMesh, NULL) );
 
 	EditorViewportClient->bSetListenerPosition = false;
 

@@ -22,6 +22,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAssetTools, Log, All);
 #include "AssetTypeActions/AssetTypeActions_Curve.h"
 #include "AssetTypeActions/AssetTypeActions_MaterialInterface.h"
 #include "AssetTypeActions/AssetTypeActions_SkeletalMesh.h"
+#include "AssetTypeActions/AssetTypeActions_PreviewMeshCollection.h"
 #include "AssetTypeActions/AssetTypeActions_FbxSceneImportData.h"
 #include "AssetTypeActions/AssetTypeActions_SoundBase.h"
 #include "AssetTypeActions/AssetTypeActions_Texture.h"

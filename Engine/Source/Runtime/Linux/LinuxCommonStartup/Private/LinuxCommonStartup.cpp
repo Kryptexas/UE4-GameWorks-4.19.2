@@ -183,15 +183,16 @@ int CommonLinuxMain(int argc, char *argv[], int (*RealMain)(const TCHAR * Comman
 		FString Temp = UTF8_TO_TCHAR(argv[Option]);
 		if (Temp.Contains(TEXT(" ")))
 		{
+			int32 Quote = 0;
 			if(Temp.StartsWith(TEXT("-")))
 			{
-				Temp = Temp.Replace(TEXT("="), TEXT("=\""));
+				int32 Separator;
+				if (Temp.FindChar('=', Separator))
+				{
+					Quote = Separator + 1;
+				}
 			}
-			else
-			{
-				Temp = TEXT("\"") + Temp;
-			}
-			Temp += TEXT("\"");
+			Temp = Temp.Left(Quote) + TEXT("\"") + Temp.Mid(Quote) + TEXT("\"");
 		}
 		GSavedCommandLine += Temp; 	// note: technically it depends on locale
 	}

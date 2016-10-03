@@ -56,9 +56,9 @@ void FAutomationTestInfo::ParseStringInfo(const FString& InTestInfo)
 
 void FAutomationTestFramework::FAutomationTestFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
 {
-	if (FAutomationTestFramework::GetInstance().CachedContext)
+	if (FAutomationTestFramework::Get().CachedContext)
 	{
-		FAutomationTestFramework::GetInstance().CachedContext->Serialize(V, Verbosity, Category);
+		FAutomationTestFramework::Get().CachedContext->Serialize(V, Verbosity, Category);
 	}
 	//ignore 
 	if (!IsRunningCommandlet() && (Verbosity == ELogVerbosity::SetColor))
@@ -111,13 +111,11 @@ void FAutomationTestFramework::FAutomationTestFeedbackContext::Serialize( const 
 	}
 }
 
-
-FAutomationTestFramework& FAutomationTestFramework::GetInstance()
+FAutomationTestFramework& FAutomationTestFramework::Get()
 {
 	static FAutomationTestFramework Framework;
 	return Framework;
 }
-
 
 bool FAutomationTestFramework::RegisterAutomationTest( const FString& InTestNameToRegister, class FAutomationTestBase* InTestToRegister )
 {
@@ -129,7 +127,6 @@ bool FAutomationTestFramework::RegisterAutomationTest( const FString& InTestName
 	return !bAlreadyRegistered;
 }
 
-
 bool FAutomationTestFramework::UnregisterAutomationTest( const FString& InTestNameToUnregister )
 {
 	const bool bRegistered = AutomationTestClassNameToInstanceMap.Contains( InTestNameToUnregister );
@@ -139,7 +136,6 @@ bool FAutomationTestFramework::UnregisterAutomationTest( const FString& InTestNa
 	}
 	return bRegistered;
 }
-
 
 void FAutomationTestFramework::EnqueueLatentCommand(TSharedPtr<IAutomationLatentCommand> NewCommand)
 {
@@ -152,12 +148,6 @@ void FAutomationTestFramework::EnqueueLatentCommand(TSharedPtr<IAutomationLatent
 	LatentCommands.Enqueue(NewCommand);
 }
 
-
-/**
- * Enqueues a network command for execution in accordance with this workers role
- *
- * @param NewCommand - The new command to enqueue for network execution
- */
 void FAutomationTestFramework::EnqueueNetworkCommand(TSharedPtr<IAutomationNetworkCommand> NewCommand)
 {
 	//ensure latent commands are never used within smoke tests
@@ -169,12 +159,10 @@ void FAutomationTestFramework::EnqueueNetworkCommand(TSharedPtr<IAutomationNetwo
 	NetworkCommands.Enqueue(NewCommand);
 }
 
-
 bool FAutomationTestFramework::ContainsTest( const FString& InTestName ) const
 {
 	return AutomationTestClassNameToInstanceMap.Contains( InTestName );
 }
-
 
 bool FAutomationTestFramework::RunSmokeTests()
 {
@@ -247,7 +235,6 @@ bool FAutomationTestFramework::RunSmokeTests()
 	return bAllSuccessful;
 }
 
-
 void FAutomationTestFramework::ResetTests()
 {
 	bool bEnsureExists = false;
@@ -306,7 +293,6 @@ void FAutomationTestFramework::StartTestByName( const FString& InTestToRun, cons
 	}
 }
 
-
 bool FAutomationTestFramework::StopTest( FAutomationTestExecutionInfo& OutExecutionInfo )
 {
 	check(GIsAutomationTesting);
@@ -350,7 +336,6 @@ bool FAutomationTestFramework::ExecuteLatentCommands()
 
 	return true;
 }
-
 
 bool FAutomationTestFramework::ExecuteNetworkCommands()
 {
@@ -420,7 +405,6 @@ void FAutomationTestFramework::LoadTestModules( )
 	}
 }
 
-
 void FAutomationTestFramework::GetValidTestNames( TArray<FAutomationTestInfo>& TestInfo ) const
 {
 	TestInfo.Empty();
@@ -489,7 +473,6 @@ void FAutomationTestFramework::GetValidTestNames( TArray<FAutomationTestInfo>& T
 	}
 }
 
-
 bool FAutomationTestFramework::ShouldTestContent(const FString& Path) const
 {
 	static TArray<FString> TestLevelFolders;
@@ -516,43 +499,30 @@ bool FAutomationTestFramework::ShouldTestContent(const FString& Path) const
 	return bDeveloperDirectoryIncluded || !Path.StartsWith(DevelopersPath);
 }
 
-
 void FAutomationTestFramework::SetDeveloperDirectoryIncluded(const bool bInDeveloperDirectoryIncluded)
 {
 	bDeveloperDirectoryIncluded = bInDeveloperDirectoryIncluded;
 }
-
 
 void FAutomationTestFramework::SetRequestedTestFilter(const uint32 InRequestedTestFlags)
 {
 	RequestedTestFilter = InRequestedTestFlags;
 }
 
-
 FOnTestScreenshotCaptured& FAutomationTestFramework::OnScreenshotCaptured()
 {
 	return TestScreenshotCapturedDelegate;
 }
 
-
-void FAutomationTestFramework::SetScreenshotOptions( const bool bInScreenshotsEnabled, const bool bInUseFullSizeScreenshots )
+void FAutomationTestFramework::SetScreenshotOptions( const bool bInScreenshotsEnabled )
 {
 	bScreenshotsEnabled = bInScreenshotsEnabled;
-	bUseFullSizeScreenShots = bInUseFullSizeScreenshots;
 }
-
 
 bool FAutomationTestFramework::IsScreenshotAllowed() const
 {
 	return bScreenshotsEnabled;
 }
-
-
-bool FAutomationTestFramework::ShouldUseFullSizeScreenshots() const
-{
-	return bUseFullSizeScreenShots;
-}
-
 
 void FAutomationTestFramework::PrepForAutomationTests()
 {
@@ -573,7 +543,6 @@ void FAutomationTestFramework::PrepForAutomationTests()
 	GIsAutomationTesting = true;
 }
 
-
 void FAutomationTestFramework::ConcludeAutomationTests()
 {
 	check(GIsAutomationTesting);
@@ -587,7 +556,6 @@ void FAutomationTestFramework::ConcludeAutomationTests()
 	// Fire off callback signifying that unit testing has concluded.
 	PostTestingEvent.Broadcast();
 }
-
 
 /**
  * Helper method to dump the contents of the provided test name to execution info map to the provided feedback context
@@ -638,7 +606,6 @@ void FAutomationTestFramework::DumpAutomationTestExecutionInfo( const TMap<FStri
 	}
 }
 
-
 void FAutomationTestFramework::InternalStartTest( const FString& InTestToRun )
 {
 	FString TestName;
@@ -671,7 +638,6 @@ void FAutomationTestFramework::InternalStartTest( const FString& InTestToRun )
 		bTestSuccessful = CurrentTest->RunTest(Parameters);
 	}
 }
-
 
 bool FAutomationTestFramework::InternalStopTest(FAutomationTestExecutionInfo& OutExecutionInfo)
 {
@@ -709,7 +675,6 @@ bool FAutomationTestFramework::InternalStopTest(FAutomationTestExecutionInfo& Ou
 	return bTestSuccessful;
 }
 
-
 void FAutomationTestFramework::AddAnalyticsItemToCurrentTest( const FString& AnalyticsItem )
 {
 	if( CurrentTest != nullptr )
@@ -730,18 +695,15 @@ FAutomationTestFramework::FAutomationTestFramework()
 ,	CurrentTest(NULL)
 ,	bDeveloperDirectoryIncluded(false)
 ,	bScreenshotsEnabled(true)
-,	bUseFullSizeScreenShots(true)
 ,	NetworkRoleIndex(0)
 ,	bForceSmokeTests(false)
 { }
-
 
 FAutomationTestFramework::~FAutomationTestFramework()
 {
 	CachedContext = NULL;
 	AutomationTestClassNameToInstanceMap.Empty();
 }
-
 
 FString FAutomationEvent::ToString() const
 {
@@ -766,12 +728,10 @@ FString FAutomationEvent::ToString() const
 	return ComplexString;
 }
 
-
 void FAutomationTestBase::ClearExecutionInfo()
 {
 	ExecutionInfo.Clear();
 }
-
 
 void FAutomationTestBase::AddError(const FString& InError, int32 StackOffset)
 {
@@ -783,7 +743,6 @@ void FAutomationTestBase::AddError(const FString& InError, int32 StackOffset)
 	}
 }
 
-
 void FAutomationTestBase::AddWarning( const FString& InWarning )
 {
 	if( !bSuppressLogs )
@@ -791,7 +750,6 @@ void FAutomationTestBase::AddWarning( const FString& InWarning )
 		ExecutionInfo.Warnings.Add( InWarning );
 	}
 }
-
 
 void FAutomationTestBase::AddLogItem( const FString& InLogItem )
 {
@@ -801,30 +759,25 @@ void FAutomationTestBase::AddLogItem( const FString& InLogItem )
 	}
 }
 
-
 void FAutomationTestBase::AddAnalyticsItem(const FString& InAnalyticsItem)
 {
 	ExecutionInfo.AnalyticsItems.Add(InAnalyticsItem);
 }
-
 
 bool FAutomationTestBase::HasAnyErrors() const
 {
 	return ExecutionInfo.Errors.Num() > 0;
 }
 
-
 void FAutomationTestBase::SetSuccessState( bool bSuccessful )
 {
 	ExecutionInfo.bSuccessful = bSuccessful;
 }
 
-
 void FAutomationTestBase::GetExecutionInfo( FAutomationTestExecutionInfo& OutInfo ) const
 {
 	OutInfo = ExecutionInfo;
 }
-
 
 void FAutomationTestBase::GenerateTestNames(TArray<FAutomationTestInfo>& TestInfo) const
 {

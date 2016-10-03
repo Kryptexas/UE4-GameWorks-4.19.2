@@ -20,4 +20,6 @@
 #include "HTML5/HTML5PlatformTime.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformTime.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformTime.h"
 #endif

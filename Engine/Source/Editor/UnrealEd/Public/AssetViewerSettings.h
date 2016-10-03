@@ -28,7 +28,7 @@ struct FPreviewSceneProfile
 		LightingRigRotation = 0.0f;
 		RotationSpeed = 2.0f;
 		// Set up default cube map texture from editor/engine textures
-		EnvironmentCubeMap = LoadObject<UTextureCube>(NULL, TEXT("/Engine/EngineSky/EpicQuadPanorama_CC+EV1.EpicQuadPanorama_CC+EV1"));		
+		EnvironmentCubeMap = nullptr;
 		bPostProcessingEnabled = true;
 		DirectionalLightRotation = FRotator(-40.f, -67.5f, 0.f);
 	}
@@ -62,8 +62,12 @@ struct FPreviewSceneProfile
 	bool bShowFloor;
 
 	/** Sets environment cube map used for sky lighting and reflections */
-	UPROPERTY(EditAnywhere, Category = Environment)
-	UTextureCube* EnvironmentCubeMap;
+	UPROPERTY(EditAnywhere, transient, Category = Environment)
+	TAssetPtr<UTextureCube> EnvironmentCubeMap;
+
+	/** Storing path to environment cube to prevent it from getting cooked */
+	UPROPERTY(config)
+	FString EnvironmentCubeMapPath;
 
 	/** Manual set post processing settings */
 	UPROPERTY(EditAnywhere, config, Category = PostProcessing, AdvancedDisplay)
@@ -84,6 +88,23 @@ struct FPreviewSceneProfile
 	/** Rotation for directional light */
 	UPROPERTY(config)
 	FRotator DirectionalLightRotation;
+
+	/** Retrieve the environment map texture using the saved path */
+	void LoadEnvironmentMap()
+	{
+		if (EnvironmentCubeMap == nullptr)
+		{
+			// Load cube map from stored path
+			UObject* LoadedObject = nullptr;
+			LoadedObject = LoadObject<UObject>(nullptr, *EnvironmentCubeMapPath);
+			while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(LoadedObject))
+			{
+				LoadedObject = Redirector->DestinationObject;
+			}
+
+			EnvironmentCubeMap = LoadedObject;
+		}		
+	}
 };
 
 /**

@@ -8,6 +8,7 @@
 #include "SNotificationList.h"
 #include "SSkeletonWidget.h"
 #include "SlateIconFinder.h"
+#include "IAnimationBlueprintEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -125,8 +126,24 @@ void FAssetTypeActions_AnimBlueprint::OpenAssetEditor( const TArray<UObject*>& I
 			}
 			else
 			{
-				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
-				PersonaModule.CreatePersona( Mode, EditWithinLevelEditor, NULL, AnimBlueprint, NULL, NULL);
+				if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
+				{
+					const bool bBringToFrontIfOpen = true;
+					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimBlueprint, bBringToFrontIfOpen))
+					{
+						EditorInstance->FocusWindow(AnimBlueprint);
+					}
+					else
+					{
+						IAnimationBlueprintEditorModule& AnimationBlueprintEditorModule = FModuleManager::LoadModuleChecked<IAnimationBlueprintEditorModule>("AnimationBlueprintEditor");
+						AnimationBlueprintEditorModule.CreateAnimationBlueprintEditor(Mode, EditWithinLevelEditor, AnimBlueprint);
+					}
+				}
+				else
+				{
+					FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+					PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, NULL, AnimBlueprint, NULL, NULL);
+				}
 			}
 		}
 		else

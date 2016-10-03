@@ -296,7 +296,7 @@ class SHADERCORE_API FShaderCache : public FTickableObjectRenderThread
 			FMemory::Memset(RenderTargets, 255, sizeof(RenderTargets));
 			FMemory::Memset(SamplerStates, 255, sizeof(SamplerStates));
 			FMemory::Memset(Resources, 255, sizeof(Resources));
-			check(GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel) <= MaxNumSamplers);
+			check(GetMaxTextureSamplers() <= MaxNumSamplers);
 		}
 		
 		struct FShaderRasterizerState

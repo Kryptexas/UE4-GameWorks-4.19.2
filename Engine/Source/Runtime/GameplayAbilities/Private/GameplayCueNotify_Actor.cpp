@@ -55,7 +55,7 @@ void AGameplayCueNotify_Actor::PostEditChangeProperty(FPropertyChangedEvent& Pro
 
 void AGameplayCueNotify_Actor::DeriveGameplayCueTagFromAssetName()
 {
-	UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(GetName(), GameplayCueTag, GameplayCueName);
+	UAbilitySystemGlobals::DeriveGameplayCueTagFromClass<AGameplayCueNotify_Actor>(this);
 }
 
 void AGameplayCueNotify_Actor::Serialize(FArchive& Ar)
@@ -121,6 +121,11 @@ void AGameplayCueNotify_Actor::PostInitProperties()
 bool AGameplayCueNotify_Actor::HandlesEvent(EGameplayCueEvent::Type EventType) const
 {
 	return true;
+}
+
+void AGameplayCueNotify_Actor::K2_EndGameplayCue()
+{
+	GameplayCueFinishedCallback();
 }
 
 int32 GameplayCueNotifyTagCheckOnRemove = 1;
@@ -295,6 +300,12 @@ bool AGameplayCueNotify_Actor::Recycle()
 	{
 		if (Timeline)
 		{
+			// May be too spammy, but want to call visibility to this. Maybe make this editor only?
+			if (Timeline->IsPlaying())
+			{
+				ABILITY_LOG(Warning, TEXT("GameplayCueNotify_Actor %s had active timelines when it was recycled."), *GetName());
+			}
+
 			Timeline->SetPlaybackPosition(0.f, false, false);
 			Timeline->Stop();
 		}
@@ -305,6 +316,11 @@ bool AGameplayCueNotify_Actor::Recycle()
 	{
 		// Note, ::Recycle is called on CDOs too, so that even "new" GCs start off in a recycled state.
 		// So, its ok if there is no valid world here, just skip the stuff that has to do with worlds.
+		if (MyWorld->GetLatentActionManager().GetNumActionsForObject(this))
+		{
+			// May be too spammy, but want ot call visibility to this. Maybe make this editor only?
+			ABILITY_LOG(Warning, TEXT("GameplayCueNotify_Actor %s has active latent actions (Delays, etc) when it was recycled."), *GetName());
+		}
 
 		// End latent actions
 		MyWorld->GetLatentActionManager().RemoveActionsForObject(this);

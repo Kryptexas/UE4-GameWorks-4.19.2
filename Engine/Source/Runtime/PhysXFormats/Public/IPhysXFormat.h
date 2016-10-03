@@ -68,12 +68,11 @@ public:
 	 *
 	 * @param Format The desired format
 	 * @param HFSize Size of height field [NumColumns, NumRows]
-	 * @param Thickness Sets how thick the height field surface is
 	 * @param SrcBuffer The source buffer
 	 * @param OutBuffer The resulting cooked data
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool CookHeightField( FName Format, FIntPoint HFSize, float Thickness, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer ) const = 0;
+	virtual bool CookHeightField( FName Format, FIntPoint HFSize, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer ) const = 0;
 
 	/**
 	 * Serializes the BodyInstance

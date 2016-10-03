@@ -155,7 +155,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** The mesh used by the material editor to preview the material.*/
-	UPROPERTY(EditAnywhere, Category=MaterialInterface, meta=(AllowedClasses="StaticMesh,SkeletalMesh", ExactClass="true"))
+	UPROPERTY(EditAnywhere, Category=Previewing, meta=(AllowedClasses="StaticMesh,SkeletalMesh", ExactClass="true"))
 	FStringAssetReference PreviewMesh;
 
 	/** Information for thumbnail rendering */

@@ -11,6 +11,19 @@
 #define		MAKEAFFINITYMASK6(u,v,w,x,y,z)		((1<<u)+(1<<v)+(1<<w)+(1<<x)+(1<<y)+(1<<z))
 #define		MAKEAFFINITYMASK7(t,u,v,w,x,y,z)	((1<<t)+(1<<u)+(1<<v)+(1<<w)+(1<<x)+(1<<y)+(1<<z))
 
+/**
+* The list of enumerated thread priorities we support
+*/
+enum EThreadPriority
+{
+	TPri_Normal,
+	TPri_AboveNormal,
+	TPri_BelowNormal,
+	TPri_Highest,
+	TPri_Lowest,
+	TPri_SlightlyBelowNormal,
+};
+
 class FGenericPlatformAffinity
 {
 public:
@@ -57,6 +70,13 @@ public:
 	static const CORE_API uint64 GetNoAffinityMask()
 	{
 		return 0xFFFFFFFFFFFFFFFF;
+	}
+
+	// @todo what do we think about having this as a function in this class? Should be make a whole new one? 
+	// scrap it and force the priority like before?
+	static EThreadPriority GetRenderingThreadPriority()
+	{
+		return TPri_Normal;
 	}
 };
 

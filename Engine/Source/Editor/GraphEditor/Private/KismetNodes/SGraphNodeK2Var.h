@@ -4,6 +4,10 @@
 #ifndef __SGraphNodeK2Var_h__
 #define __SGraphNodeK2Var_h__
 
+#include "SGraphNodeK2Base.h"
+
+class UK2Node;
+
 class GRAPHEDITOR_API SGraphNodeK2Var : public SGraphNodeK2Base
 {
 public:

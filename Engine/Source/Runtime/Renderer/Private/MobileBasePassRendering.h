@@ -62,6 +62,7 @@ protected:
 	{
 		VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
+		MobileMultiViewMaskParameter.Bind(Initializer.ParameterMap, TEXT("MobileMultiViewMask"));
 	}
 
 public:
@@ -78,11 +79,12 @@ public:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
+		Ar << MobileMultiViewMaskParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
 	void SetParameters(
-		FRHICommandList& RHICmdList, 
+		FRHICommandList& RHICmdList,
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FVertexFactory* VertexFactory,
 		const FMaterial& InMaterialResource,
@@ -92,6 +94,20 @@ public:
 	{
 		HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,View.ViewUniformBuffer,TextureMode);
+
+		if (MobileMultiViewMaskParameter.IsBound())
+		{
+			// Default is no masking
+			SetShaderValue(RHICmdList, GetVertexShader(), MobileMultiViewMaskParameter, -1);
+		}
+	}
+
+	void SetMobileMultiViewMask(FRHICommandList& RHICmdList, const int32 EyeIndex)
+	{
+		if (EyeIndex >= 0 && MobileMultiViewMaskParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), MobileMultiViewMaskParameter, EyeIndex);
+		}
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
@@ -101,6 +117,7 @@ public:
 
 private:
 	FHeightFogShaderParameters HeightFogParameters;
+	FShaderParameter MobileMultiViewMaskParameter;
 };
 
 template<typename LightMapPolicyType>
@@ -671,6 +688,11 @@ public:
 			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy) &&
 			DRAWING_POLICY_MATCH(SceneTextureMode == Other.SceneTextureMode);
 		DRAWING_POLICY_MATCH_END
+	}
+
+	void SetMobileMultiViewMask(FRHICommandList& RHICmdList, const int32 EyeIndex)
+	{
+		VertexShader->SetMobileMultiViewMask(RHICmdList, EyeIndex);
 	}
 
 	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext) const

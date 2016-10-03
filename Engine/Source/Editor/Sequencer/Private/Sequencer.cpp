@@ -2182,6 +2182,7 @@ TSharedRef<SWidget> FSequencer::MakeTransportControls(bool bExtended)
 		TransportControlArgs.OnToggleLooping.BindSP( this, &FSequencer::OnToggleLooping );
 		TransportControlArgs.OnGetLooping.BindSP( this, &FSequencer::IsLooping );
 		TransportControlArgs.OnGetPlaybackMode.BindSP( this, &FSequencer::GetPlaybackMode );
+		TransportControlArgs.OnGetRecording.BindSP(this, &FSequencer::IsRecording);
 
 		if(bExtended)
 		{
@@ -2851,14 +2852,14 @@ EPlaybackMode::Type FSequencer::GetPlaybackMode() const
 			return EPlaybackMode::PlayingReverse;
 		}
 	}
-	else if (PlaybackState == EMovieScenePlayerStatus::Recording)
-	{
-		return EPlaybackMode::Recording;
-	}
 		
 	return EPlaybackMode::Stopped;
 }
 
+bool FSequencer::IsRecording() const
+{
+	return PlaybackState == EMovieScenePlayerStatus::Recording;
+}
 
 void FSequencer::UpdateTimeBoundsToFocusedMovieScene()
 {
@@ -6099,21 +6100,13 @@ void FSequencer::ImportFBX()
 
 void FSequencer::ExportFBX()
 {
-	void* ParentWindowWindowHandle = nullptr;
-	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( TEXT( "MainFrame" ) );
-	const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-	if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-	{
-		ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-	}
-
 	TArray<FString> SaveFilenames;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	bool bExportFileNamePicked = false;
 	if ( DesktopPlatform != NULL )
 	{
 		bExportFileNamePicked = DesktopPlatform->SaveFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			LOCTEXT( "ExportLevelSequence", "Export Level Sequence" ).ToString(),
 			*( FEditorDirectories::Get().GetLastDirectory( ELastDirectory::FBX ) ),
 			TEXT( "" ),

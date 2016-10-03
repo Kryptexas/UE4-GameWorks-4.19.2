@@ -20,8 +20,8 @@ protected:
 	class UParticleSystem* PS_CameraEffect;
 
 	/** The effect to use for non extreme content */
-	UPROPERTY(EditDefaultsOnly, Category = EmitterCameraLensEffectBase)
-	class UParticleSystem* PS_CameraEffectNonExtremeContent;
+	UPROPERTY()
+	class UParticleSystem* PS_CameraEffectNonExtremeContent_DEPRECATED;
 
 	/** Camera this emitter is attached to, will be notified when emitter is destroyed */
 	UPROPERTY(transient)

@@ -15,6 +15,7 @@
 #include "Editor/UnrealEd/Public/FbxMeshUtils.h"
 #include "Editor/UnrealEd/Public/AssetNotifications.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "ISkeletalMeshEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -337,7 +338,6 @@ FDlgMergeSkeleton::EResult FDlgMergeSkeleton::ShowModal()
 
 	// Make a list of all skeleton bone list
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	const TArray<FBoneNode>& BoneTree = Skeleton->GetBoneTree();
 	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
 	{
 		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);
@@ -442,15 +442,10 @@ void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, c
 {
 	MenuBuilder.BeginSection("CreatePhysicsAsset", LOCTEXT("CreatePhysicsAssetMenuHeading", "Physics Asset"));
 	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("SkeletalMesh_NewPhysicsAsset", "Physics Asset"),
-			LOCTEXT("SkeletalMesh_NewPhysicsAssetTooltip", "Creates a new physics asset for each of the selected meshes."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteNewPhysicsAsset, Meshes),
-				FCanExecuteAction()
-				)
-			);
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("SkeletalMesh_NewPhysicsAssetMenu", "Physics Asset"),
+			LOCTEXT("SkeletalMesh_NewPhysicsAssetMenu_ToolTip", "Options for creating new physics assets from the selected meshes."),
+			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_SkeletalMesh::GetPhysicsAssetMenu, Meshes));
 	}
 	MenuBuilder.EndSection();
 
@@ -516,17 +511,33 @@ void FAssetTypeActions_SkeletalMesh::OpenAssetEditor( const TArray<UObject*>& In
 
 			if ( Mesh->Skeleton != NULL )
 			{
-				const bool bBringToFrontIfOpen = false;
-				if( IAssetEditorInstance* EditorInstance =  FAssetEditorManager::Get().FindEditorForAsset( Mesh->Skeleton, bBringToFrontIfOpen ) )
+				if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
 				{
-					// The skeleton is already open in an editor.
-					// Tell persona that a mesh was requested
-					EditorInstance->FocusWindow(Mesh);
+					const bool bBringToFrontIfOpen = true;
+					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Mesh, bBringToFrontIfOpen))
+					{
+						EditorInstance->FocusWindow(Mesh);
+					}
+					else
+					{
+						ISkeletalMeshEditorModule& SkeletalMeshEditorModule = FModuleManager::LoadModuleChecked<ISkeletalMeshEditorModule>("SkeletalMeshEditor");
+						SkeletalMeshEditorModule.CreateSkeletalMeshEditor(Mode, EditWithinLevelEditor, Mesh);
+					}
 				}
 				else
 				{
-					FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
-					PersonaModule.CreatePersona( Mode, EditWithinLevelEditor, Mesh->Skeleton, NULL, NULL, Mesh );
+					const bool bBringToFrontIfOpen = false;
+					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Mesh->Skeleton, bBringToFrontIfOpen))
+					{
+						// The skeleton is already open in an editor.
+						// Tell persona that a mesh was requested
+						EditorInstance->FocusWindow(Mesh);
+					}
+					else
+					{
+						FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+						PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, Mesh->Skeleton, NULL, NULL, Mesh);
+					}
 				}
 			}
 		}
@@ -572,14 +583,29 @@ void FAssetTypeActions_SkeletalMesh::GetLODMenu(class FMenuBuilder& MenuBuilder,
 	}
 }
 
-void FAssetTypeActions_SkeletalMesh::ExecuteNewPhysicsAsset(TArray<TWeakObjectPtr<USkeletalMesh>> Objects)
+void FAssetTypeActions_SkeletalMesh::GetPhysicsAssetMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Objects)
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("PhysAsset_Create", "Create"),
+		LOCTEXT("PhysAsset_Create_ToolTip", "Create new physics assets without assigning it to the selected meshes"),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteNewPhysicsAsset, Objects, false)));
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("PhysAsset_CreateAssign", "Create and Assign"),
+		LOCTEXT("PhysAsset_CreateAssign_ToolTip", "Create new physics assets and assign it to each of the selected meshes"),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteNewPhysicsAsset, Objects, true)));
+}
+
+void FAssetTypeActions_SkeletalMesh::ExecuteNewPhysicsAsset(TArray<TWeakObjectPtr<USkeletalMesh>> Objects, bool bSetAssetToMesh)
 {
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
 		auto Object = (*ObjIt).Get();
 		if ( Object )
 		{
-			CreatePhysicsAssetFromMesh(Object);
+			CreatePhysicsAssetFromMesh(Object, bSetAssetToMesh);
 		}
 	}
 }
@@ -709,7 +735,7 @@ void FAssetTypeActions_SkeletalMesh::FillSkeletonMenu(FMenuBuilder& MenuBuilder,
 		);
 }
 
-void FAssetTypeActions_SkeletalMesh::CreatePhysicsAssetFromMesh(USkeletalMesh* SkelMesh) const
+void FAssetTypeActions_SkeletalMesh::CreatePhysicsAssetFromMesh(USkeletalMesh* SkelMesh, bool bSetToMesh) const
 {
 	// Get a unique package and asset name
 	FString Name;
@@ -739,7 +765,7 @@ void FAssetTypeActions_SkeletalMesh::CreatePhysicsAssetFromMesh(USkeletalMesh* S
 		{
 			// Do automatic asset generation.
 			FText ErrorMessage;
-			bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewAsset, SkelMesh, NewBodyData, ErrorMessage);
+			bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewAsset, SkelMesh, NewBodyData, ErrorMessage, bSetToMesh);
 			if(bSuccess)
 			{
 				NewAsset->MarkPackageDirty();
@@ -748,9 +774,12 @@ void FAssetTypeActions_SkeletalMesh::CreatePhysicsAssetFromMesh(USkeletalMesh* S
 				// Notify the asset registry
 				FAssetRegistryModule::AssetCreated(NewAsset);
 
-				// auto-link source skelmesh to the new physasset and recreate physics state if needed
-				RefreshSkelMeshOnPhysicsAssetChange(SkelMesh);
-				SkelMesh->MarkPackageDirty();
+				if(bSetToMesh)
+				{
+					// auto-link source skelmesh to the new physasset and recreate physics state if needed
+					RefreshSkelMeshOnPhysicsAssetChange(SkelMesh);
+					SkelMesh->MarkPackageDirty();
+				}
 			}
 			else
 			{

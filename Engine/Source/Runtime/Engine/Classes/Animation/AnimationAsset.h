@@ -774,7 +774,7 @@ public:
 	/** Parent Asset, if set, you won't be able to edit any data in here but just mapping table
 	 * 
 	 * During cooking, this data will be used to bake out to normal asset */
-	UPROPERTY(Category=Animation, VisibleAnywhere)
+	UPROPERTY(AssetRegistrySearchable, Category=Animation, VisibleAnywhere)
 	class UAnimationAsset* ParentAsset;
 
 	/** 
@@ -865,6 +865,7 @@ public:
 
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh);
 	ENGINE_API USkeletalMesh* GetPreviewMesh();
+	ENGINE_API USkeletalMesh* GetPreviewMesh() const;
 
 	ENGINE_API virtual int32 GetMarkerUpdateCounter() const { return 0; }
 

@@ -10,6 +10,8 @@ typedef FIntPoint FMeshIdAndLOD;
 struct FFlattenMaterial;
 struct FReferenceSkeleton;
 struct FStaticMeshLODResources;
+class UMeshComponent;
+class UStaticMesh;
 
 namespace ETangentOptions
 {
@@ -229,6 +231,15 @@ public:
 	 *	@param	bOnlyDominant	Controls whether a vertex is added to the info for a bone if it is most controlled by that bone, or if that bone has ANY influence on that vert.
 	 */
 	virtual void CalcBoneVertInfos( USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant) = 0;
+
+	/** 
+	 * Convert a set of mesh components in their current pose to a static mesh. 
+	 * @param	InMeshComponents		The mesh components we want to convert
+	 * @param	InRootTransform			The transform of the root of the mesh we want to output
+	 * @param	InPackageName			The package name to create the static mesh in. If this is empty then a dialog will be displayed to pick the mesh.
+	 * @return a new static mesh (specified by the user)
+	 */
+	virtual UStaticMesh* ConvertMeshesToStaticMesh(const TArray<UMeshComponent*>& InMeshComponents, const FTransform& InRootTransform = FTransform::Identity, const FString& InPackageName = FString()) = 0;
 
 	/**
 	 * Harvest static mesh components from input actors 

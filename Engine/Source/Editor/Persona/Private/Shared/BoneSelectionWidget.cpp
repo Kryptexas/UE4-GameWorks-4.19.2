@@ -5,13 +5,14 @@
 #include "BoneSelectionWidget.h"
 #include "SSearchBox.h"
 #include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
+#include "IEditableSkeleton.h"
 
 #define LOCTEXT_NAMESPACE "SBoneSelectionWidget"
 
 /////////////////////////////////////////////////////
-void SBoneTreeMenu::Construct(const FArguments& InArgs, TWeakObjectPtr<const USkeleton> Skeleton)
+void SBoneTreeMenu::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton)
 {
-	TargetSkeleton = Skeleton;
+	EditableSkeletonPtr = InEditableSkeleton;
 	OnSelectionChangedDelegate = InArgs._OnBoneSelectionChanged;
 
 	FText TitleToUse = !InArgs._Title.IsEmpty() ? InArgs._Title  : LOCTEXT("BonePickerTitle", "Pick Bone...");
@@ -105,12 +106,8 @@ void SBoneTreeMenu::RebuildBoneList()
 {
 	SkeletonTreeInfo.Empty();
 	SkeletonTreeInfoFlat.Empty();
-	if (!TargetSkeleton.IsValid())
-	{
-		return;
-	}
 
-	const FReferenceSkeleton& RefSkeleton = TargetSkeleton->GetReferenceSkeleton();
+	const FReferenceSkeleton& RefSkeleton = EditableSkeletonPtr.Pin()->GetSkeleton().GetReferenceSkeleton();
 	for(int32 BoneIdx = 0; BoneIdx < RefSkeleton.GetNum(); ++BoneIdx)
 	{
 		TSharedRef<FBoneNameInfo> BoneInfo = MakeShareable(new FBoneNameInfo(RefSkeleton.GetBoneName(BoneIdx)));
@@ -163,11 +160,9 @@ void SBoneTreeMenu::RebuildBoneList()
 
 /////////////////////////////////////////////////////
 
-void SBoneSelectionWidget::Construct(const FArguments& InArgs, TWeakObjectPtr<const USkeleton> Skeleton)
+void SBoneSelectionWidget::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton)
 {
-	TargetSkeleton = Skeleton;
-
-	check(TargetSkeleton.IsValid());
+	EditableSkeletonPtr = InEditableSkeleton;
 
 	OnBoneSelectionChanged = InArgs._OnBoneSelectionChanged;
 	OnGetSelectedBone = InArgs._OnGetSelectedBone;
@@ -191,7 +186,7 @@ void SBoneSelectionWidget::Construct(const FArguments& InArgs, TWeakObjectPtr<co
 
 TSharedRef<SWidget> SBoneSelectionWidget::CreateSkeletonWidgetMenu()
 {
-	TSharedRef<SBoneTreeMenu> MenuWidget = SNew(SBoneTreeMenu, TargetSkeleton)
+	TSharedRef<SBoneTreeMenu> MenuWidget = SNew(SBoneTreeMenu, EditableSkeletonPtr.Pin().ToSharedRef())
 									.OnBoneSelectionChanged(this, &SBoneSelectionWidget::OnSelectionChanged);
 
 	BonePickerButton->SetMenuContentWidgetToFocus(MenuWidget->FilterTextWidget);

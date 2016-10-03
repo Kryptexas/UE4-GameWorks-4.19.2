@@ -292,7 +292,7 @@ struct FEmitDefaultValueHelper
 
 	// Creates the subobject (of class) returns it's native local name, 
 	// returns empty string if cannot handle
-	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitilize);
+	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitialize);
 
 	// returns true, and fill OutResult, when the structure is handled in a custom way.
 	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
@@ -339,4 +339,16 @@ struct FBackendHelperStaticSearchableValues
 	static FString GenerateClassMetaData(UClass* Class);
 	static void EmitFunctionDeclaration(FEmitterLocalContext& Context);
 	static void EmitFunctionDefinition(FEmitterLocalContext& Context);
+};
+
+struct FNativizationSummaryHelper
+{
+	static void InaccessibleProperty(const UProperty* Property);
+	// Notify, that the class used a (unrelated) property
+	static void PropertyUsed(const UClass* Class, const UProperty* Property);
+	// Notify, that the class used a (unrelated) function
+	static void FunctionUsed(const UClass* Class, const UFunction* Function);
+	static void RegisterClass(const UClass* OriginalClass);
+
+	static void ReducibleFunciton(const UClass* OriginalClass);
 };

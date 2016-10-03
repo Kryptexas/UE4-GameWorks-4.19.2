@@ -63,7 +63,7 @@ public:
 	/**
 	 * Sets the specified flag value to State for the provided curve
 	 */
-	void SetCurveFlag(FAnimCurveBase* CurveInterface, bool State, EAnimCurveFlags FlagToSet);
+	void SetCurveFlag(FAnimCurveBase* CurveInterface, bool State, EAnimAssetCurveFlags FlagToSet);
 
 	/**
 	* Update Panel
@@ -111,10 +111,10 @@ private:
 	/**
 	 * Convert the requested flag bool value into a checkbox state
 	 */
-	ECheckBoxState GetCurveFlagAsCheckboxState(USkeleton::AnimCurveUID CurveUid, EAnimCurveFlags InFlag) const;
+	ECheckBoxState GetCurveFlagAsCheckboxState(USkeleton::AnimCurveUID CurveUid, EAnimAssetCurveFlags InFlag) const;
 
 	/**
 	 * Convert a given checkbox state into a flag value in the provided curve
 	 */
-	void SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, USkeleton::AnimCurveUID CurveUid, EAnimCurveFlags InFlag);
+	void SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, USkeleton::AnimCurveUID CurveUid, EAnimAssetCurveFlags InFlag);
 };

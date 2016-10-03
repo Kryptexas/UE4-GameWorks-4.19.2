@@ -1420,11 +1420,11 @@ uint32 FTexture2DResource::GetSizeY() const
 /** Returns the default mip bias for this texture. */
 int32 FTexture2DResource::GetDefaultMipMapBias() const
 {
-	const TIndirectArray<FTexture2DMipMap>& OwnerMips = Owner->GetPlatformMips();
 	if ( Owner->LODGroup == TEXTUREGROUP_UI )
 	{
 		if ( CVarForceHighestMipOnUITexturesEnabled.GetValueOnAnyThread() > 0 )
 		{
+			const TIndirectArray<FTexture2DMipMap>& OwnerMips = Owner->GetPlatformMips();
 			return -OwnerMips.Num();
 		}
 	}

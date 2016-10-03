@@ -4202,10 +4202,10 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 			return;
 		}
 
-		if (GetDefault<ULevelEditorViewportSettings>()->bPanMovesCanvas)
+		if (GetDefault<ULevelEditorViewportSettings>()->bPanMovesCanvas && RightMouseButtonDown)
 		{
-			bool bMovingCamera = RightMouseButtonDown && GetCurrentWidgetAxis() == EAxisList::None;
-			bool bIsZoomingCamera = bMovingCamera && ( LeftMouseButtonDown || bIsUsingTrackpad ) && RightMouseButtonDown;
+			bool bMovingCamera = GetCurrentWidgetAxis() == EAxisList::None;
+			bool bIsZoomingCamera = bMovingCamera && ( LeftMouseButtonDown || bIsUsingTrackpad );
 			//moving camera without  zooming
 			if ( bMovingCamera && !bIsZoomingCamera )
 			{
@@ -4527,7 +4527,7 @@ void FEditorViewportClient::MoveViewportPerspectiveCamera( const FVector& InDrag
 
 	// Update camera Location
 	ViewLocation += InDrag;
-	
+
 	if( !bDollyCamera )
 	{
 		const float DistanceToCurrentLookAt = FVector::Dist( GetViewLocation() , GetLookAtLocation() );
@@ -4538,8 +4538,16 @@ void FEditorViewportClient::MoveViewportPerspectiveCamera( const FVector& InDrag
 		SetLookAtLocation( ViewLocation + Direction * DistanceToCurrentLookAt );
 	}
 
-	SetViewLocation( ViewLocation );
-	SetViewRotation( ViewRotation );
+	SetViewLocation(ViewLocation);
+	SetViewRotation(ViewRotation);
+
+	if (bUsingOrbitCamera)
+	{
+		FVector LookAtPoint = GetLookAtLocation();
+		const float DistanceToLookAt = FVector::Dist( ViewLocation, LookAtPoint );
+
+		SetViewLocationForOrbiting( LookAtPoint, DistanceToLookAt );
+	}
 
 	PerspectiveCameraMoved();
 

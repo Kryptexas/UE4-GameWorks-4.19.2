@@ -119,18 +119,18 @@ int64 FFileManagerGeneric::FileSize( const TCHAR* Filename )
 	return GetLowLevel().FileSize( Filename );
 }
 
-uint32 FFileManagerGeneric::Copy( const TCHAR* InDestFile, const TCHAR* InSrcFile, bool ReplaceExisting, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress )
+uint32 FFileManagerGeneric::Copy( const TCHAR* Dest, const TCHAR* Src, bool Replace, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress, EFileRead ReadFlags, EFileWrite WriteFlags)
 {
 	uint32	Result = COPY_OK;
-	if( FPaths::ConvertRelativePathToFull( InDestFile ) == FPaths::ConvertRelativePathToFull( InSrcFile ) )
+	if( FPaths::ConvertRelativePathToFull(Dest) == FPaths::ConvertRelativePathToFull(Src) )
 	{
 		Result = COPY_Fail;
 	}
 	else if( Progress )
 	{
-		Result = CopyWithProgress( InDestFile, InSrcFile, ReplaceExisting, EvenIfReadOnly, Attributes, Progress );
+		Result = CopyWithProgress(Dest, Src, Replace, EvenIfReadOnly, Attributes, Progress, ReadFlags, WriteFlags);
 	}
-	else if( !ReplaceExisting && GetLowLevel().FileExists( InDestFile ) )
+	else if( !Replace && GetLowLevel().FileExists(Dest) )
 	{
 		Result = COPY_Fail;
 	}
@@ -138,10 +138,12 @@ uint32 FFileManagerGeneric::Copy( const TCHAR* InDestFile, const TCHAR* InSrcFil
 	{
 		if( EvenIfReadOnly )
 		{
-			GetLowLevel().SetReadOnly( InDestFile, false );
+			GetLowLevel().SetReadOnly(Dest, false );
 		}
-		MakeDirectory( *FPaths::GetPath(InDestFile), true );
-		if( !GetLowLevel().CopyFile( InDestFile, InSrcFile ) )
+		MakeDirectory( *FPaths::GetPath(Dest), true );
+		EPlatformFileRead PlatformFileRead = (ReadFlags & FILEREAD_AllowWrite) ? EPlatformFileRead::AllowWrite : EPlatformFileRead::None;
+		EPlatformFileWrite PlatformFileWrite = (WriteFlags & FILEWRITE_AllowRead) ? EPlatformFileWrite::AllowRead : EPlatformFileWrite::None;
+		if( !GetLowLevel().CopyFile(Dest, Src, PlatformFileRead, PlatformFileWrite) )
 		{
 			Result = COPY_Fail;
 		}
@@ -150,13 +152,13 @@ uint32 FFileManagerGeneric::Copy( const TCHAR* InDestFile, const TCHAR* InSrcFil
 	// Restore read-only attribute if required
 	if( Result == COPY_OK && Attributes )
 	{
-		GetLowLevel().SetReadOnly( InDestFile, GetLowLevel().IsReadOnly( InSrcFile ) );
+		GetLowLevel().SetReadOnly(Dest, GetLowLevel().IsReadOnly(Src) );
 	}
 
 	return Result;
 }
 
-uint32 FFileManagerGeneric::CopyWithProgress( const TCHAR* InDestFile, const TCHAR* InSrcFile, bool ReplaceExisting, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress )
+uint32 FFileManagerGeneric::CopyWithProgress(const TCHAR* InDestFile, const TCHAR* InSrcFile, bool ReplaceExisting, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress, EFileRead ReadFlags, EFileWrite WriteFlags)
 {
 	uint32	Result = COPY_OK;
 
@@ -166,14 +168,14 @@ uint32 FFileManagerGeneric::CopyWithProgress( const TCHAR* InDestFile, const TCH
 		FString SrcFile		= InSrcFile;
 		FString DestFile	= InDestFile;
 	
-		FArchive* Src = CreateFileReader( *SrcFile );
+		FArchive* Src = CreateFileReader( *SrcFile, ReadFlags );
 		if( !Src )
 		{
 			Result = COPY_Fail;
 		}
 		else
 		{
-			FArchive* Dest = CreateFileWriter( *DestFile,( ReplaceExisting ? 0 : FILEWRITE_NoReplaceExisting ) | ( EvenIfReadOnly ? FILEWRITE_EvenIfReadOnly : 0 ) );
+			FArchive* Dest = CreateFileWriter( *DestFile, ( ReplaceExisting ? 0 : FILEWRITE_NoReplaceExisting ) | ( EvenIfReadOnly ? FILEWRITE_EvenIfReadOnly : 0 ) | WriteFlags );
 			if( !Dest )
 			{
 				Result = COPY_Fail;

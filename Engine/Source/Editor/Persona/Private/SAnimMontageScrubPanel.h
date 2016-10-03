@@ -10,11 +10,9 @@ public:
 
 	SLATE_BEGIN_ARGS(SAnimMontageScrubPanel)
 		: _MontageEditor()
-		, _Persona()
 		, _LockedSequence()
 	{}
 		SLATE_ARGUMENT( TWeakPtr<class SMontageEditor>, MontageEditor)
-		SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona )
 		/** If you'd like to lock to one asset for this scrub control, give this**/
 		SLATE_ARGUMENT(UAnimSequenceBase*, LockedSequence)
 		/** View Input range **/
@@ -33,7 +31,7 @@ public:
 	 * 
 	 * @param InArgs   A declaration from which to construct the widget
 	 */
-	void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene );
 protected:
 	// notifiers 
 	virtual FReply OnClick_Backward_End() override;

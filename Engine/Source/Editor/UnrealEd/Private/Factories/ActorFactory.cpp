@@ -1114,8 +1114,7 @@ static UBillboardComponent* CreateEditorOnlyBillboardComponent(AActor* ActorOwne
 	BillboardComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/EmptyActor.EmptyActor"));
 	BillboardComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 	BillboardComponent->Mobility = EComponentMobility::Movable;
-	BillboardComponent->AlwaysLoadOnClient = false;
-	BillboardComponent->AlwaysLoadOnServer = false;
+	BillboardComponent->bIsEditorOnly = true;
 
 	BillboardComponent->SetupAttachment(AttachParent);
 

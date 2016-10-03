@@ -258,6 +258,7 @@ bool GSupportsVolumeTextureRendering = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
 bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
 bool GSupportsTexture3D = true;
+bool GSupportsMobileMultiView = false;
 bool GSupportsResourceView = true;
 bool GSupportsMultipleRenderTargets = true;
 bool GSupportsWideMRT = true;
@@ -269,6 +270,7 @@ int32 GMaxShadowDepthBufferSizeY = 2048;
 int32 GMaxTextureDimensions = 2048;
 int32 GMaxCubeTextureDimensions = 2048;
 int32 GMaxTextureArrayLayers = 256;
+int32 GMaxTextureSamplers = 16;
 bool GUsingNullRHI = false;
 int32 GDrawUPVertexCheckCount = MAX_int32;
 int32 GDrawUPIndexCheckCount = MAX_int32;
@@ -389,6 +391,8 @@ static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
+static FName NAME_GLSL_WOLF(TEXT("GLSL_WOLF"));
+static FName NAME_GLSL_WOLF_FORWARD(TEXT("GLSL_WOLF_FORWARD"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 {
@@ -452,6 +456,10 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 	}
 	case SP_VULKAN_ES3_1_ANDROID:
 		return NAME_VULKAN_ES3_1_ANDROID;
+	case SP_WOLF:
+		return NAME_GLSL_WOLF;
+	case SP_WOLF_FORWARD:
+		return NAME_GLSL_WOLF_FORWARD;
 
 	default:
 		check(0);
@@ -485,10 +493,12 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_VULKAN_ES3_1_ANDROID)	return SP_VULKAN_ES3_1_ANDROID;
 	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_PCES3_1;
 	if (ShaderFormat == NAME_VULKAN_ES3_1_UB)		return SP_VULKAN_PCES3_1;
-	if (ShaderFormat == NAME_SF_METAL_SM4)		return SP_METAL_SM4;
-	if (ShaderFormat == NAME_SF_METAL_MACES3_1)	return SP_METAL_MACES3_1;
-	if (ShaderFormat == NAME_SF_METAL_MACES2)	return SP_METAL_MACES2;
+	if (ShaderFormat == NAME_SF_METAL_SM4)			return SP_METAL_SM4;
+	if (ShaderFormat == NAME_SF_METAL_MACES3_1)		return SP_METAL_MACES3_1;
+	if (ShaderFormat == NAME_SF_METAL_MACES2)		return SP_METAL_MACES2;
 	if (ShaderFormat == NAME_GLSL_ES3_1_ANDROID)	return SP_OPENGL_ES3_1_ANDROID;
+	if (ShaderFormat == NAME_GLSL_WOLF)				return SP_WOLF;
+	if (ShaderFormat == NAME_GLSL_WOLF_FORWARD)		return SP_WOLF_FORWARD;
 	
 	return SP_NumPlatforms;
 }

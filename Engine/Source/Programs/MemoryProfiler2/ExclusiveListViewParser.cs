@@ -41,10 +41,6 @@ namespace MemoryProfiler2
 			OwnerWindow.ExclusiveSingleCallStackView.Items.Clear();
 			OwnerWindow.ExclusiveSingleCallStackView.SelectedItems.Clear();
 			OwnerWindow.ExclusiveSingleCallStackView.EndUpdate();
-
-			MainWindow.FColumnSorter ColumnSorter = OwnerWindow.ExclusiveListView.ListViewItemSorter as MainWindow.FColumnSorter;
-			ColumnSorter.ColumnSortModeAscending = false;
-			ColumnSorter.ColumnToSortBy = 0;
 		}
 
 		public static void ParseSnapshot( ListViewEx ExclusiveListView, List<FCallStackAllocationInfo> CallStackList, bool bShouldSortBySize, string FilterText )
@@ -61,6 +57,8 @@ namespace MemoryProfiler2
 			OwnerWindow.UpdateStatus("Updating exclusive list view for " + OwnerWindow.CurrentFilename);
 
 			ExclusiveListView.BeginUpdate();
+
+			ExclusiveListView.ListViewItemSorter = null; // clear this to avoid a Sort for each call to Add
 
 			// Sort based on passed in metric.
 			if( bShouldSortBySize )
@@ -151,7 +149,12 @@ namespace MemoryProfiler2
 				}
 			}
 
-			ExclusiveListView.SetSortArrow( 0, false );
+			var ColumnSorter = new MainWindow.FColumnSorter();
+			ColumnSorter.ColumnSortModeAscending = false;
+			ColumnSorter.ColumnToSortBy = 0;
+			ExclusiveListView.ListViewItemSorter = ColumnSorter; // Assignment automatically calls Sort
+
+			ExclusiveListView.SetSortArrow( ColumnSorter.ColumnToSortBy, ColumnSorter.ColumnSortModeAscending );
 			ExclusiveListView.EndUpdate();
 
 			OwnerWindow.ToolStripProgressBar.Visible = false;

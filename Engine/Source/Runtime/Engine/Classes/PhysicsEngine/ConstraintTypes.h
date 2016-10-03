@@ -42,7 +42,7 @@ struct ENGINE_API FConstraintBaseParams
 	float Restitution;
 
 	/** Determines how close to the limit we have to get before turning the joint on. Larger value will be more expensive, but will do a better job not violating constraints. A smaller value will be more efficient, but easier to violate. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Constraint, meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Constraint, meta = (ClampMin = "1.0"))
 	float ContactDistance;
 
 	/** Whether we want to use a soft constraint (spring). */

@@ -265,7 +265,7 @@ public:
 	 * @param bLooping			Whether to loop the sound seamlessly, or pad with zeroes
 	 * @return					Whether the sound looped or not
 	 */
-	bool ReadCompressedData( uint8* Destination, bool bLooping );
+	bool ReadCompressedData( uint8* Destination, bool bLooping ) override;
 
 	/**
 	 * Sets the point in time within the buffer to the specified time
@@ -273,7 +273,7 @@ public:
 	 *
 	 * @param SeekTime		Time in seconds from the beginning of sound to seek to
 	 */
-	void Seek( const float SeekTime );
+	void Seek( const float SeekTime ) override;
 
 	/**
 	 * Static function used to create an OpenAL buffer and dynamically upload decompressed ogg vorbis data to.
@@ -438,6 +438,9 @@ public:
 	 */
 	virtual void Update();
 
+	/** Returns the playback percent */
+	virtual float GetPlaybackPercent() const override;
+
 	/**
 	 * Plays the current wave instance.	
 	 */
@@ -514,7 +517,7 @@ public:
 	/** 
 	 * Maps a sound with a given number of channels to to expected speakers
 	 */
-	void RouteDryToSpeakers(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
+	void RouteDryToSpeakers(float ChannelVolumes[CHANNEL_MATRIX_COUNT], const float InVolume);
 
 	/** 
 	 * Maps the sound to the relevant reverb effect
@@ -612,9 +615,6 @@ protected:
 
 	/** Additional buffer info for XWMA sounds */
 	XAUDIO2_BUFFER_WMA XAudio2BufferXWMA[1];
-
-	/** Index of this sound source in the audio device sound source array. */
-	uint32 VoiceId;
 
 	/** Which sound buffer should be written to next - used for triple buffering. */
 	int32 CurrentBuffer;
@@ -1000,7 +1000,7 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 	#define UE4_XAUDIO2_CHANNELMASK		FXAudioDeviceProperties::DeviceDetails.OutputFormat.dwChannelMask
 	#define UE4_XAUDIO2_SAMPLERATE		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nSamplesPerSec
 #else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
-	#define UE4_XAUDIO2_NUMCHANNELS		8		// Up to 7.1 supported
-	#define UE4_XAUDIO2_CHANNELMASK		3		// Default to left and right speakers...
-	#define UE4_XAUDIO2_SAMPLERATE		44100	// Default to CD sample rate
+#define UE4_XAUDIO2_NUMCHANNELS		6
+#define UE4_XAUDIO2_CHANNELMASK		SPEAKER_5POINT1
+#define UE4_XAUDIO2_SAMPLERATE		44100
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS

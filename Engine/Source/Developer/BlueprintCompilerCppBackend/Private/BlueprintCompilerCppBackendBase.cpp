@@ -185,6 +185,11 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	FGatherConvertedClassDependencies Dependencies(SourceClass);
 	FEmitterLocalContext EmitterContext(Dependencies);
 
+	UClass* OriginalSourceClass = Dependencies.FindOriginalClass(SourceClass);
+	ensure(OriginalSourceClass != SourceClass);
+
+	FNativizationSummaryHelper::RegisterClass(OriginalSourceClass);
+
 	EmitFileBeginning(CleanCppClassName, EmitterContext);
 
 	// C4883 is a strange error (for big functions), introduced in VS2015 update 2
@@ -218,9 +223,6 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 			MarkAsNecessary(BackEndModule, Dependencies, Field);
 		}
 	}
-
-	UClass* OriginalSourceClass = Dependencies.FindOriginalClass(SourceClass);
-	ensure(OriginalSourceClass != SourceClass);
 
 	const bool bHasStaticSearchableValues = FBackendHelperStaticSearchableValues::HasSearchableValues(SourceClass);
 
@@ -725,7 +727,7 @@ void FBlueprintCompilerCppBackendBase::ConstructFunctionBody(FEmitterLocalContex
 {
 	if (FunctionContext.UnsortedSeparateExecutionGroups.Num() && (ExecutionGroup < 0))
 	{
-		// uso only for latent actions..
+		// use only for latent actions..
 		return;
 	}
 
@@ -751,7 +753,11 @@ void FBlueprintCompilerCppBackendBase::ConstructFunctionBody(FEmitterLocalContex
 		}
 	}
 
-	InnerFunctionImplementation(FunctionContext, EmitterContext, ExecutionGroup);
+	bool bIsFunctionNotReducible = InnerFunctionImplementation(FunctionContext, EmitterContext, ExecutionGroup);
+	if (!bIsFunctionNotReducible)
+	{
+		FNativizationSummaryHelper::ReducibleFunciton(EmitterContext.Dependencies.FindOriginalClass(EmitterContext.GetCurrentlyGeneratedClass()));
+	}
 }
 
 FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum)

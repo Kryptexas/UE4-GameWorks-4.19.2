@@ -15,6 +15,7 @@
 #include "NativeClassHierarchy.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "ContentBrowserCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
@@ -208,11 +209,10 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 			MenuBuilder.BeginSection("PathContextBulkOperations", LOCTEXT("AssetTreeBulkMenuHeading", "Bulk Operations") );
 			{
 				// Save
-				MenuBuilder.AddMenuEntry(
+				MenuBuilder.AddMenuEntry(FContentBrowserCommands::Get().SaveAllCurrentFolder, NAME_None,
 					LOCTEXT("SaveFolder", "Save All"),
 					LOCTEXT("SaveFolderTooltip", "Saves all modified assets in this folder."),
-					FSlateIcon(),
-					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteSaveFolder ) )
+					FSlateIcon()
 					);
     
 				// Delete

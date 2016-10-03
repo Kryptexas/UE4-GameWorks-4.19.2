@@ -24,7 +24,6 @@
 #include "LevelViewportLayout.h"
 #include "LevelViewportLayoutEntity.h"
 #include "PixelInspectorModule.h"
-#include "FbxAutomationBuilderModule.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -247,8 +246,6 @@ void FLevelEditorModule::StartupModule()
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(MenuStructure.GetDeveloperToolsMiscCategory());
 
 	FModuleManager::LoadModuleChecked<FPixelInspectorModule>("PixelInspectorModule").RegisterTabSpawner(MenuStructure.GetDeveloperToolsMiscCategory());
-
-	FModuleManager::LoadModuleChecked<FFbxAutomationBuilderModule>("FbxAutomationBuilderModule").RegisterTabSpawner(MenuStructure.GetAutomationToolsCategory());
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.RegisterLogListing("BuildAndSubmitErrors", LOCTEXT("BuildAndSubmitErrors", "Build and Submit Errors"));

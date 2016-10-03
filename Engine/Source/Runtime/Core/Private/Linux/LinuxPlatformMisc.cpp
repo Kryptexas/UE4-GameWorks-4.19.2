@@ -9,7 +9,9 @@
 #include "LinuxApplication.h"
 #include "LinuxPlatformCrashContext.h"
 
-#include <cpuid.h>
+#if PLATFORM_HAS_CPUID
+	#include <cpuid.h>
+#endif // PLATFORM_HAS_CPUID
 #include <sys/sysinfo.h>
 #include <sched.h>
 #include <fcntl.h>
@@ -92,7 +94,7 @@ namespace
 	bool GInitializedSDL = false;
 }
 
-size_t GCacheLineSize = PLATFORM_CACHE_LINE_SIZE;
+size_t CORE_API GCacheLineSize = PLATFORM_CACHE_LINE_SIZE;
 
 void LinuxPlatform_UpdateCacheLineSize()
 {
@@ -135,11 +137,7 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" - Cache line size: %Zu"), GCacheLineSize);
 	UE_LOG(LogInit, Log, TEXT(" - Memory allocator used: %s"), GMalloc->GetDescriptiveName());
 
-	// programs don't need it by default
-	if (!IS_PROGRAM || FParse::Param(FCommandLine::Get(), TEXT("calibrateclock")))
-	{
-		FPlatformTime::CalibrateClock();
-	}
+	FPlatformTime::PrintCalibrationLog();
 
 	UE_LOG(LogInit, Log, TEXT("Linux-specific commandline switches:"));
 	UE_LOG(LogInit, Log, TEXT(" -%s (currently %s): suppress parsing of DWARF debug info (callstacks will be generated faster, but won't have line numbers)"), 
@@ -187,9 +185,12 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 		SDL_version RunTimeSDLVersion;
 		SDL_VERSION(&CompileTimeSDLVersion);
 		SDL_GetVersion(&RunTimeSDLVersion);
-		UE_LOG(LogInit, Log, TEXT("Initialized SDL %d.%d.%d (compiled against %d.%d.%d)"),
-			CompileTimeSDLVersion.major, CompileTimeSDLVersion.minor, CompileTimeSDLVersion.patch,
-			RunTimeSDLVersion.major, RunTimeSDLVersion.minor, RunTimeSDLVersion.patch
+		int SdlRevisionNum = SDL_GetRevisionNumber();
+		FString SdlRevision = UTF8_TO_TCHAR(SDL_GetRevision());
+		UE_LOG(LogInit, Log, TEXT("Initialized SDL %d.%d.%d revision: %d (%s) (compiled against %d.%d.%d)"),
+			RunTimeSDLVersion.major, RunTimeSDLVersion.minor, RunTimeSDLVersion.patch,
+			SdlRevisionNum, *SdlRevision,
+			CompileTimeSDLVersion.major, CompileTimeSDLVersion.minor, CompileTimeSDLVersion.patch
 			);
 
 		// Used to make SDL push SDL_TEXTINPUT events.

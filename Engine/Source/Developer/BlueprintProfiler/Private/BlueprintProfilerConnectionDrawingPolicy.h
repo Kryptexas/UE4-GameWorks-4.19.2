@@ -64,14 +64,16 @@ protected:
 
 public:
 
-	FBlueprintProfilerConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, EBlueprintProfilerHeatMapDisplayMode InHeatmapType, UEdGraph* InGraphObj);
+	FBlueprintProfilerConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, EBlueprintProfilerHeatMapDisplayMode InHeatmapType, UEdGraph* InGraphObj, TSharedPtr<class FBlueprintExecutionContext> InBlueprintContext);
 
 	// FKismetConnectionDrawingPolicy
+	virtual bool CanBuildRoadmap() const override;
 	virtual void BuildExecutionRoadmap() override;
 	// ~FKismetConnectionDrawingPolicy
 
 	// FConnectionDrawingPolicy interface
 	virtual void Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& PinGeometries, FArrangedChildren& ArrangedNodes) override;
+	virtual void ApplyHoverDeemphasis(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor);
 	// End of FConnectionDrawingPolicy interface
 
 private:
@@ -91,5 +93,7 @@ private:
 	EBlueprintProfilerHeatMapDisplayMode WireHeatMode;
 	/** The current graph */
 	TWeakObjectPtr<UEdGraph> GraphReference;
+	/** The blueprint profiler context */
+	TSharedPtr<class FBlueprintExecutionContext> BlueprintContext;
 
 };

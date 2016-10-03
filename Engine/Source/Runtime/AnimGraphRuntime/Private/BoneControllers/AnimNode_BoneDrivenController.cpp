@@ -185,10 +185,10 @@ void FAnimNode_BoneDrivenController::EvaluateComponentSpaceInternal(FComponentSp
 	{
 		//	Morph target and Material parameter curves
 		USkeleton* Skeleton = Context.AnimInstanceProxy->GetSkeleton();
-		FSmartNameMapping::UID NameUID = Skeleton->GetUIDByName(USkeleton::AnimCurveMappingName, ParameterName);
-		if (NameUID != FSmartNameMapping::MaxUID)
+		SmartName::UID_Type NameUID = Skeleton->GetUIDByName(USkeleton::AnimCurveMappingName, ParameterName);
+		if (NameUID != SmartName::MaxUID)
 		{
-			Context.Curve.Set(NameUID, FinalDriverValue, (DestinationMode == EDrivenDestinationMode::MorphTarget) ? EAnimCurveFlags::ACF_DriveMorphTarget : EAnimCurveFlags::ACF_DriveMaterial);
+			Context.Curve.Set(NameUID, FinalDriverValue);
 		}
 	}
 }

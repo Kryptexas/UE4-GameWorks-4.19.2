@@ -67,6 +67,16 @@ public:
 	/** @return	Gives the native window a chance to adjust our stored window size before we cache it off. */
 	virtual void AdjustCachedSize(FVector2D& Size) const override;
 
+	virtual float GetDPIScaleFactor() const override
+	{
+		return DPIScaleFactor;
+	}
+
+	void SetDPIScaleFactor(float Value)
+	{
+		DPIScaleFactor = Value;
+	}
+
 	/** Called when our parent window is minimized (which will in turn cause us to become minimized). */
 	void OnParentWindowMinimized();
 
@@ -175,4 +185,9 @@ private:
 	float AspectRatio;
 
 	bool bIsVisible : 1;
+	/**
+	 * Ratio of pixels to SlateUnits in this window.
+	 * E.g. DPIScale of 2.0 means there is a 2x2 pixel square for every 1x1 SlateUnit.
+	 */
+	float DPIScaleFactor;
 };

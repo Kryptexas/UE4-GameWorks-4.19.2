@@ -62,8 +62,9 @@ public class UnrealEd : ModuleRules
                 "PortalServices",
                 "BlueprintNativeCodeGen",
                 "ViewportInteraction",
-                "VREditor"
-			}
+                "VREditor",
+                "Persona",
+            }
 		);
 
 		PublicDependencyModuleNames.AddRange(
@@ -225,7 +226,7 @@ public class UnrealEd : ModuleRules
 			}
 		);
 
-		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			DynamicallyLoadedModuleNames.Add("AndroidPlatformEditor");
 		}
@@ -256,6 +257,7 @@ public class UnrealEd : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			PublicDependencyModuleNames.Add("XAudio2");
+			PublicDependencyModuleNames.Add("AudioMixerXAudio2");
 			PublicDependencyModuleNames.Add("UnrealAudioXAudio2");
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, 

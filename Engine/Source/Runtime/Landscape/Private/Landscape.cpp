@@ -19,9 +19,7 @@ Landscape.cpp: Terrain rendering
 #include "LandscapeMeshCollisionComponent.h"
 #include "LandscapeMaterialInstanceConstant.h"
 #include "LandscapeSplinesComponent.h"
-#include "LandscapeInfo.h"
 #include "LandscapeInfoMap.h"
-#include "LandscapeLayerInfoObject.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "Engine/CollisionProfile.h"
@@ -736,7 +734,7 @@ ULandscapeInfo* ALandscapeProxy::CreateLandscapeInfo()
 	check(OwningWorld);
 	check(!OwningWorld->IsGameWorld());
 	
-	auto& LandscapeInfoMap = GetLandscapeInfoMap(OwningWorld);
+	auto& LandscapeInfoMap = ULandscapeInfoMap::GetLandscapeInfoMap(OwningWorld);
 	LandscapeInfo = LandscapeInfoMap.Map.FindRef(LandscapeGuid);
 
 	if (!LandscapeInfo)
@@ -764,7 +762,7 @@ ULandscapeInfo* ALandscapeProxy::GetLandscapeInfo() const
 	//check(!OwningWorld->IsGameWorld());
 	if (!OwningWorld->IsGameWorld())
 	{
-		auto& LandscapeInfoMap = GetLandscapeInfoMap(OwningWorld);
+		auto& LandscapeInfoMap = ULandscapeInfoMap::GetLandscapeInfoMap(OwningWorld);
 		LandscapeInfo = LandscapeInfoMap.Map.FindRef(LandscapeGuid);
 	}
 	return LandscapeInfo;
@@ -2038,7 +2036,7 @@ void ULandscapeInfo::RecreateLandscapeInfo(UWorld* InWorld, bool bMapCheck)
 {
 	check(InWorld);
 
-	ULandscapeInfoMap& LandscapeInfoMap = GetLandscapeInfoMap(InWorld);
+	ULandscapeInfoMap& LandscapeInfoMap = ULandscapeInfoMap::GetLandscapeInfoMap(InWorld);
 	LandscapeInfoMap.Modify();
 
 	// reset all LandscapeInfo objects
@@ -2186,31 +2184,6 @@ void FLandscapeComponentDerivedData::SaveToDDC(const FGuid& StateId)
 	check(CompressedLandscapeData.Num() > 0);
 	GetDerivedDataCacheRef().Put(*GetDDCKeyString(StateId), CompressedLandscapeData);
 }
-
-void WorldDestroyEventFunction(UWorld* World)
-{
-	World->PerModuleDataObjects.RemoveAll(
-		[](UObject* Object)
-	{
-		return Object->IsA(ULandscapeInfoMap::StaticClass());
-	}
-	);
-}
-
-#if WITH_EDITORONLY_DATA
-
-ULandscapeInfoMap& GetLandscapeInfoMap(UWorld* World)
-{
-	ULandscapeInfoMap *FoundObject = nullptr;
-
-	World->PerModuleDataObjects.FindItemByClass(&FoundObject);
-
-	checkf(FoundObject, TEXT("ULandscapInfoMap object was not created for this UWorld."));
-
-	return *FoundObject;
-}
-
-#endif // WITH_EDITORONLY_DATA
 
 void LandscapeMaterialsParameterValuesGetter(FStaticParameterSet &OutStaticParameterSet, UMaterialInstance* Material)
 {

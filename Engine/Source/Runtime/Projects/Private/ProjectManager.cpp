@@ -334,7 +334,7 @@ void FProjectManager::GetDefaultEnabledPlugins(TArray<FString>& OutPluginNames, 
 	TArray<FPluginStatus> PluginStatuses = IPluginManager::Get().QueryStatusForAllPlugins();
 	for(const FPluginStatus& PluginStatus: PluginStatuses)
 	{
-		if(PluginStatus.Descriptor.bEnabledByDefault || PluginStatus.LoadedFrom == EPluginLoadedFrom::GameProject)
+		if(PluginStatus.Descriptor.bEnabledByDefault)
 		{
 			if(bIncludeInstalledPlugins || !PluginStatus.Descriptor.bInstalled)
 			{
@@ -342,6 +342,26 @@ void FProjectManager::GetDefaultEnabledPlugins(TArray<FString>& OutPluginNames, 
 			}
 		}
 	}
+}
+
+void FProjectManager::UpdateAdditionalPluginDirectory(const FString& InDir, const bool bAddOrRemove)
+{
+	if (!CurrentProject.IsValid())
+	{
+		return;
+	}
+
+	if (bAddOrRemove)
+	{
+		CurrentProject->AddPluginDirectory(InDir);
+	}
+	else
+	{
+		CurrentProject->RemovePluginDirectory(InDir);
+	}
+
+	FText FailReason;
+	SaveCurrentProjectToDisk(FailReason);
 }
 
 bool FProjectManager::IsCurrentProjectDirty() const

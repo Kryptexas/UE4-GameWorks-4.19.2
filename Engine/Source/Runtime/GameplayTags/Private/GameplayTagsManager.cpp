@@ -172,6 +172,7 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 				DeveloperTags.Items.Reset();
 				TArray<FString> FilesInDirectory;
 				IFileManager::Get().FindFilesRecursive(FilesInDirectory, *(FPaths::GameConfigDir() / TEXT("Tags")), TEXT("*.ini"), true, false);
+				FilesInDirectory.Sort();
 				for (FString& FileName : FilesInDirectory)
 				{
 					UE_LOG(LogGameplayTags, Display, TEXT("File: %s"), *FileName);
@@ -501,7 +502,8 @@ void UGameplayTagsManager::AddTagTableRow(const FGameplayTagTableRow& TagRow)
 
 	if (SubTags.Num() > 0)
 	{
-		int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow.CategoryText : FText());
+		bool FromDictionary = SubTags.Num() == 1;
+		int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow.CategoryText : FText(), FromDictionary);
 		TSharedPtr<FGameplayTagNode> CurNode = GameplayRootTags[InsertionIdx];
 
 		for (int32 SubTagIdx = 1; SubTagIdx < SubTags.Num(); ++SubTagIdx)
@@ -512,7 +514,9 @@ void UGameplayTagsManager::AddTagTableRow(const FGameplayTagTableRow& TagRow)
 			{
 				Description = TagRow.CategoryText;
 			}
-			InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description);
+
+			FromDictionary = (SubTagIdx == (SubTags.Num()-1));
+			InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description, FromDictionary);
 
 			CurNode = ChildTags[InsertionIdx];
 		}
@@ -533,7 +537,7 @@ void UGameplayTagsManager::DestroyGameplayTagTree()
 	}
 }
 
-int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplayTagNode> ParentNode, TArray< TSharedPtr<FGameplayTagNode> >& NodeArray, FText CategoryDescription)
+int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplayTagNode> ParentNode, TArray< TSharedPtr<FGameplayTagNode> >& NodeArray, FText CategoryDescription, bool InWasAddedDirectlyFromDictionary)
 {
 	int32 InsertionIdx = INDEX_NONE;
 
@@ -550,7 +554,7 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 	// Insert the tag at the end of the array if not already found
 	if (InsertionIdx == INDEX_NONE)
 	{
-		TSharedPtr<FGameplayTagNode> TagNode = MakeShareable(new FGameplayTagNode(Tag, ParentNode, CategoryDescription));
+		TSharedPtr<FGameplayTagNode> TagNode = MakeShareable(new FGameplayTagNode(Tag, ParentNode, CategoryDescription, InWasAddedDirectlyFromDictionary));
 		InsertionIdx = NodeArray.Add(TagNode);
 
 		FGameplayTag GameplayTag = FGameplayTag(TagNode->GetCompleteTag());
@@ -573,10 +577,16 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 			TagNode->Parents.AddTagFast(FGameplayTag(Name));
 		}
 	}
-	else if (NodeArray[InsertionIdx]->CategoryDescription.IsEmpty() && !CategoryDescription.IsEmpty())
+	else
 	{
 		// Fill in category description for nodes that were added by virtue of being a parent node
-		NodeArray[InsertionIdx]->CategoryDescription = CategoryDescription;
+		if (NodeArray[InsertionIdx]->CategoryDescription.IsEmpty() && !CategoryDescription.IsEmpty())
+		{
+			NodeArray[InsertionIdx]->CategoryDescription = CategoryDescription;
+		}
+
+		// This node could have been created as an implicit tag, and later we found the explicit declaration in the dictionary
+		NodeArray[InsertionIdx]->WasAddedDirectlyFromDictionary |= InWasAddedDirectlyFromDictionary;
 	}
 
 	return InsertionIdx;
@@ -815,6 +825,24 @@ void GameplayTagsUpdateSourceControl(FString RelativeConfigFilePath)
 	}
 }
 
+bool UGameplayTagsManager::IsDictionaryTag(FName TagName) const
+{
+	FGameplayTag TagTemp;
+	TagTemp.TagName = TagName;
+	if (const TSharedPtr<FGameplayTagNode>* Node = GameplayTagNodeMap.Find(TagTemp))
+	{
+		if (Node->IsValid())
+		{
+			if (Node->Get()->WasAddedDirectlyFromDictionary)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void UGameplayTagsManager::AddNewGameplayTagToINI(FString NewTag)
 {
 	if(NewTag.IsEmpty())
@@ -826,10 +854,18 @@ void UGameplayTagsManager::AddNewGameplayTagToINI(FString NewTag)
 	{
 		return;
 	}
-
 	
 	UGameplayTagsSettings*			Settings = GetMutableDefault<UGameplayTagsSettings>();
 	UGameplayTagsDeveloperSettings* DevSettings = GetMutableDefault<UGameplayTagsDeveloperSettings>();
+
+	// Already in the list as an explicit tag, ignore. Note we want to add if it is in implicit tag. (E.g, someone added A.B.C then someone tries to add A.B)
+	{
+		
+		if (IGameplayTagsModule::Get().GetGameplayTagsManager().IsDictionaryTag(FName(*NewTag)))
+		{
+			return;
+		}
+	}
 
 	if (Settings)
 	{
@@ -962,11 +998,11 @@ FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagParents(const FGam
 	return TagContainer;
 }
 
-FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildren(const FGameplayTag& GameplayTag) const
+FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildren(const FGameplayTag& GameplayTag, bool OnlyIncludeDictionaryTags) const
 {
 	FGameplayTagContainer TagContainer;
 	// Note this purposefully does not include the passed in GameplayTag in the container.
-	AddChildrenTags(TagContainer, GameplayTag, true);
+	AddChildrenTags(TagContainer, GameplayTag, true, OnlyIncludeDictionaryTags);
 	return TagContainer;
 }
 
@@ -1044,7 +1080,7 @@ void UGameplayTagsManager::AddParentTags(FGameplayTagContainer& TagContainer, co
 	}
 }
 
-void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll) const
+void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll, bool OnlyIncludeDictionaryTags) const
 {
 	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
 	if (GameplayTagNode)
@@ -1057,10 +1093,14 @@ void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, 
 				const FGameplayTag* Tag = GameplayTagNodeMap.FindKey(ChildNode);
 				if (Tag)
 				{
-					TagContainer.AddTag(*Tag);
+					if (OnlyIncludeDictionaryTags == false || ChildNode->WasAddedDirectlyFromDictionary)
+					{
+						TagContainer.AddTag(*Tag);
+					}
+
 					if (RecurseAll)
 					{
-						AddChildrenTags(TagContainer, *Tag, true);
+						AddChildrenTags(TagContainer, *Tag, true, OnlyIncludeDictionaryTags);
 					}
 				}
 			}
@@ -1290,13 +1330,15 @@ bool FGameplayTagTableRow::operator!=(FGameplayTagTableRow const& Other) const
 	return (Tag != Other.Tag);
 }
 
-FGameplayTagNode::FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InParentNode, FText InCategoryDescription)
+FGameplayTagNode::FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InParentNode, FText InCategoryDescription, bool InWasAddedDirectlyFromDictionary)
 	: Tag(InTag)
 	, CompleteTag(NAME_None)
 	, CategoryDescription(InCategoryDescription)
 	, ParentNode(InParentNode)
 	, NetIndex(INVALID_TAGNETINDEX)
 {
+	WasAddedDirectlyFromDictionary = InWasAddedDirectlyFromDictionary;
+
 	TArray<FName> Tags;
 
 	Tags.Add(InTag);

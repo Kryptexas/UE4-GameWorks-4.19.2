@@ -244,7 +244,7 @@ public:
 				}
 
 				SetSRVParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesStencil, ViewState->SelectionOutlineCacheValue);
-		}
+			}
 		}
 
 #if WITH_EDITOR

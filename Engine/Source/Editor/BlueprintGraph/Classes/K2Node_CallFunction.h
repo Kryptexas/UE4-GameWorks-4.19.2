@@ -178,6 +178,9 @@ public:
 	/** Checks if the property is marked as "CustomStructureParam" */
 	static bool IsStructureWildcardProperty(const UFunction* InFunction, const FString& PropertyName);
 
+	/** returns true if InProperty should be treated as a wildcard (e.g. due to SetParam markup) */
+	static bool IsWildcardProperty(const UFunction* InFunction, const UProperty* InProperty);
+
 	/** Used to determine the result of AllowMultipleSelfs() (without having a node instance) */
 	static bool CanFunctionSupportMultipleTargets(UFunction const* InFunction);
 
@@ -202,6 +205,9 @@ private:
 
 	/** Invalidates current pin tool tips, so that they will be refreshed before being displayed: */
 	void InvalidatePinTooltips();
+
+	/** Conforms container pins */
+	void ConformContainerPins();
 
 protected:
 	/** Helper function to ensure function is called in our context */

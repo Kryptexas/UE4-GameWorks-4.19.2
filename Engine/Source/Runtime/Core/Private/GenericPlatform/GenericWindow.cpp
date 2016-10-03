@@ -167,3 +167,8 @@ const FGenericWindowDefinition& FGenericWindow::GetDefinition() const
 void FGenericWindow::AdjustCachedSize( FVector2D& Size ) const
 {
 }
+
+float FGenericWindow::GetDPIScaleFactor() const
+{
+	return 1.0f;
+}

@@ -74,6 +74,7 @@
 #include "SEditableTextBox.h"
 #include "SButton.h"
 #include "SToolTip.h"
+#include "SScrollBarTrack.h"
 #include "SScrollBar.h"
 #include "SScrollBorder.h"
 #include "SErrorText.h"

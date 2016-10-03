@@ -92,6 +92,16 @@ UAIBlueprintHelperLibrary::UAIBlueprintHelperLibrary(const FObjectInitializer& O
 UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(UObject* WorldContextObject, APawn* Pawn, FVector Destination, AActor* TargetActor, float AcceptanceRadius, bool bStopOnOverlap)
 {
 	check(WorldContextObject);
+	if (Pawn == nullptr)
+	{
+		// maybe we can extract the pawn from the world context
+		AAIController* AsController = Cast<AAIController>(WorldContextObject);
+		if (AsController)
+		{
+			Pawn = AsController->GetPawn();
+		}
+	}
+
 	if (!Pawn)
 	{
 		return NULL;
@@ -115,6 +125,7 @@ UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(U
 		{
 			MoveReq.SetGoalLocation(Destination);
 		}
+		MoveReq.SetNavigationFilter(AIController->GetDefaultNavigationFilterClass());
 		
 		FPathFollowingRequestResult ResultData = AIController->MoveTo(MoveReq);
 		switch (ResultData.Code)

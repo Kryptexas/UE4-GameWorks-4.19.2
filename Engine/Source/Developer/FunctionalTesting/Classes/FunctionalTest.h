@@ -557,6 +557,9 @@ protected:
 	
 	float TotalTime;
 
+	uint32 RunFrame;
+	uint32 StartFrame;
+
 private:
 	bool bIsReady;
 

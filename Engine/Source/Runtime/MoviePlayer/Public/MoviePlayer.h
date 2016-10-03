@@ -81,6 +81,8 @@ public:
 	/** Called to allow the movie streamer to cleanup any resources once there are no movies left to play. */
 	virtual void Cleanup() = 0;
 
+	virtual FTexture2DRHIRef GetTexture() { return nullptr; }
+
 	virtual ~IMovieStreamer() {}
 };
 

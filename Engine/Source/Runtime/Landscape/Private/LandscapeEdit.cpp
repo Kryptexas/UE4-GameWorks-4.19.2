@@ -17,8 +17,6 @@ LandscapeEdit.cpp: Landscape editing
 #include "LandscapeEdit.h"
 #include "LandscapeRender.h"
 #include "LandscapeRenderMobile.h"
-#include "LandscapeInfo.h"
-#include "LandscapeLayerInfoObject.h"
 #include "LandscapeMaterialInstanceConstant.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMeshCollisionComponent.h"
@@ -299,6 +297,7 @@ void ULandscapeComponent::UpdateMaterialInstances()
 			TessellationMaterialInstance->SetParentEditorOnly(MaterialInstance);
 			Context.AddMaterialInstance(TessellationMaterialInstance); // must be done after SetParent
 			TessellationMaterialInstance->bDisableTessellation = true;
+			TessellationMaterialInstance->PostEditChange();
 		}
 		else
 		{
@@ -2900,12 +2899,11 @@ bool ULandscapeInfo::GetSelectedExtent(int32& MinX, int32& MinY, int32& MaxX, in
 	MaxX = MaxY = MIN_int32;
 	for (auto& SelectedPointPair : SelectedRegion)
 	{
-		int32 X, Y;
-		ALandscape::UnpackKey(SelectedPointPair.Key, X, Y);
-		if (MinX > X) MinX = X;
-		if (MaxX < X) MaxX = X;
-		if (MinY > Y) MinY = Y;
-		if (MaxY < Y) MaxY = Y;
+		const FIntPoint Key = SelectedPointPair.Key;
+		if (MinX > Key.X) MinX = Key.X;
+		if (MaxX < Key.X) MaxX = Key.X;
+		if (MinY > Key.Y) MinY = Key.Y;
+		if (MaxY < Key.Y) MaxY = Key.Y;
 	}
 	if (MinX != MAX_int32)
 	{
@@ -3289,7 +3287,11 @@ void ALandscape::PostEditMove(bool bFinished)
 	if (bFinished)
 	{
 		// align all proxies to landscape actor
-		GetLandscapeInfo()->FixupProxiesTransform();
+		auto* LandscapeInfo = GetLandscapeInfo();
+		if (LandscapeInfo)
+		{
+			LandscapeInfo->FixupProxiesTransform();
+		}
 	}
 
 	Super::PostEditMove(bFinished);

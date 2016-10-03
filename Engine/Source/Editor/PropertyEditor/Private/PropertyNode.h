@@ -19,7 +19,7 @@ namespace EPropertyNodeFlags
 	const Type	Expanded						= 1 << 5;		/** true if this node should display its children*/
 	const Type	CanBeExpanded					= 1 << 6;		/** true if this node is able to be expanded */
 
-	const Type	EditInline						= 1 << 7;		/** true if the property can be expanded into the property window. */
+	const Type	EditInlineNew					= 1 << 7;		/** true if the property can be expanded into the property window. */
 
 	const Type	SingleSelectOnly				= 1 << 8;		/** true if only a single object is selected. */
 	const Type  ShowCategories					= 1 << 9;		/** true if this node should show categories.  Different*/
@@ -44,6 +44,8 @@ namespace EPropertyNodeFlags
 	const Type	IsReadOnly						= 1 << 20; /** true if this node is overridden to appear as read-only */
 
 	const Type	SkipChildValidation				= 1 << 21; /** true if this node should skip child validation */
+
+	const Type  ShowInnerObjectProperties		= 1 << 22;
 
 	const Type 	NoFlags							= 0;
 
@@ -373,6 +375,16 @@ public:
 		return ChildNodes[ChildIndex];
 	}
 
+	/**
+	 * Returns the Child node whose ArrayIndex matches the supplied ChildIndex
+	 */
+	bool GetChildNode(const int32 ChildArrayIndex, TSharedPtr<FPropertyNode>& OutChildNode);
+
+	/**
+	* Returns the Child node whose ArrayIndex matches the supplied ChildIndex
+	*/
+	bool GetChildNode(const int32 ChildArrayIndex, TSharedPtr<FPropertyNode>& OutChildNode) const;
+
 	/** @return whether this window's property is constant (can't be edited by the user) */
 	bool IsEditConst() const;
 
@@ -497,14 +509,14 @@ public:
 	void PropagatePropertyChange( UObject* ModifiedObject, const TCHAR* NewValue, const FString& PreviousValue);
 		
 	/** 
-	 * Propagates the property change of an array property to all instances of an archetype 
+	 * Propagates the property change of a container property to all instances of an archetype 
 	 *
-	 * @param	ModifiedObject			Object which property has been modified
-	 * @param	OriginalArrayContent	Original content of the array before the modification ( as returned by ExportText_Direct )
-	 * @param	ChangeType				In which way was the array modified
-	 * @param	Index					Index of the modified item
+	 * @param	ModifiedObject				Object which property has been modified
+	 * @param	OriginalContainerContent	Original content of the container before the modification ( as returned by ExportText_Direct )
+	 * @param	ChangeType					In which way was the container modified
+	 * @param	Index						Index of the modified item
 	 */
-	void PropagateArrayPropertyChange( UObject* ModifiedObject, const FString& OriginalArrayContent,
+	void PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent,
 									   EPropertyArrayChangeType::Type ChangeType, int32 Index);
 
 	static void AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr);
@@ -718,6 +730,17 @@ public:
 	 * Invalidates the cached state of this node in all children;
 	 */
 	void InvalidateCachedState();
+
+	static void SetupKeyValueNodePair( TSharedPtr<FPropertyNode>& KeyNode, TSharedPtr<FPropertyNode>& ValueNode )
+	{
+		check( KeyNode.IsValid() && ValueNode.IsValid() );
+		check( !KeyNode->PropertyKeyNode.IsValid() && !ValueNode->PropertyKeyNode.IsValid() );
+
+		ValueNode->PropertyKeyNode = KeyNode;
+	}
+
+	TSharedPtr<FPropertyNode> GetPropertyKeyNode() const { return PropertyKeyNode; }
+
 protected:
 
 	TSharedRef<FEditPropertyChain> BuildPropertyChain( UProperty* PropertyAboutToChange );
@@ -799,6 +822,9 @@ protected:
 	//@todo consolidate with ParentNodeWeakPtr, ParentNode is legacy
 	FPropertyNode* ParentNode;
 
+	/**	The property node, if any, that serves as the key value for this node */
+	TSharedPtr<FPropertyNode> PropertyKeyNode;
+
 	/** Cached read addresses for this property node */
 	FReadAddressListData CachedReadAddresses;
 
@@ -823,7 +849,7 @@ protected:
 	/** Offset to the property data within either a fixed array or a dynamic array */
 	int32 ArrayOffset;
 
-	/** The index of the property if it is inside an array */
+	/** The index of the property if it is inside an array, set, or map (internally, we'll use set/map helpers that store element indices in an array) */
 	int32 ArrayIndex;
 
 	/** Safety Value representing Depth in the property tree used to stop diabolical topology cases

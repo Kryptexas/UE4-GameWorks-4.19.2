@@ -90,7 +90,7 @@ public:
 	 * @param DstData			compressed image array.
 	 *
 	 */
-	ENGINE_API static void CompressImageArray( int32 ImageWidth, int32 ImageHeight, TArray<FColor> &SrcData, TArray<uint8> &DstData );
+	ENGINE_API static void CompressImageArray( int32 ImageWidth, int32 ImageHeight, const TArray<FColor> &SrcData, TArray<uint8> &DstData );
 
 	/**
 	 * Creates a new UTexture2D with a checkerboard pattern.

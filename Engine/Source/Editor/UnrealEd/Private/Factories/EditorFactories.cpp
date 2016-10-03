@@ -115,6 +115,8 @@
 #include "Sound/SoundNodeDialoguePlayer.h"
 #include "Factories/CanvasRenderTarget2DFactoryNew.h"
 #include "ImageUtils.h"
+#include "Engine/PreviewMeshCollection.h"
+#include "Factories/PreviewMeshCollectionFactory.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -2501,7 +2503,6 @@ UObject* USoundConcurrencyFactory::FactoryCreateNew(UClass* Class, UObject* InPa
 	return NewObject<USoundConcurrency>(InParent, Name, Flags);
 }
 
-
 /*------------------------------------------------------------------------------
 	UParticleSystemFactoryNew.
 ------------------------------------------------------------------------------*/
@@ -3301,6 +3302,11 @@ bool DecompressTGA_helper(
 	{
 		DecompressTGA_8bpp(TGA, (uint8*)TextureData);
 	}
+	// standard grayscale
+	else if(TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3 && TGA->BitsPerPixel == 8)
+	{
+		DecompressTGA_8bpp(TGA, (uint8*)TextureData);
+	}
 	else
 	{
 		Warn->Logf(ELogVerbosity::Error, TEXT("TGA is an unsupported type: %u"),TGA->ImageTypeCode);
@@ -3359,6 +3365,18 @@ UTexture2D* DecompressTGA(
 		//
 		// We store the image as PF_G8, where it will be used as alpha in the Glyph shader.
 
+		Texture->Source.Init(
+			TGA->Width,
+			TGA->Height,
+			/*NumSlices=*/ 1,
+			/*NumMips=*/ 1,
+			TSF_G8);
+
+		Texture->CompressionSettings = TC_Grayscale;
+	}
+	else if(TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3 && TGA->BitsPerPixel == 8)
+	{
+		// standard grayscale images
 		Texture->Source.Init(
 			TGA->Width,
 			TGA->Height,
@@ -4012,19 +4030,20 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	{
 		UTexture2D* Texture = 0;
 
-		if (TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3)
-		{
-			Warn->Logf(ELogVerbosity::Error, *NSLOCTEXT("UnrealEd", "Warning_TGAGreyscale", "TGA Greyscale import not supported, use RGB").ToString() );
-			return nullptr;
-		}
-
 		// Check the resolution of the imported texture to ensure validity
 		if ( !IsImportResolutionValid(TGA->Width, TGA->Height, bAllowNonPowerOfTwo, Warn) )
 		{
 			return nullptr;
 		}
 
-		return DecompressTGA(TGA, this, Class, InParent, Name, Flags, Warn);
+		Texture = DecompressTGA(TGA, this, Class, InParent, Name, Flags, Warn);
+		if(Texture && Texture->CompressionSettings == TC_Grayscale && TGA->ImageTypeCode == 3)
+		{
+			// default grayscales to linear as they wont get compression otherwise and are commonly used as masks
+			Texture->SRGB = false;
+		}
+
+		return Texture;
 	}
 	//
 	// PSD File
@@ -5652,6 +5671,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	{
 		//Set misc options
 		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 
 	if( ImportData )
@@ -5887,6 +5907,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	{
 		//Set misc options
 		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 
 	bool bSuccess = false;
@@ -6791,7 +6812,7 @@ UObject* UDestructibleMeshFactory::FactoryCreateBinary
 	UDestructibleMesh* DestructibleMesh = nullptr;
 
 	// Create an Apex NxDestructibleAsset from the binary blob
-	NxDestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
+	apex::DestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
 	if( ApexDestructibleAsset != nullptr )
 	{
 		// Succesfully created the NxDestructibleAsset, now create a UDestructibleMesh
@@ -6808,7 +6829,7 @@ UObject* UDestructibleMeshFactory::FactoryCreateBinary
 	else
 	{
 		// verify whether this is an Apex Clothing asset or not 
-		NxClothingAsset* ApexClothingAsset = ApexClothingUtils::CreateApexClothingAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
+		apex::ClothingAsset* ApexClothingAsset = ApexClothingUtils::CreateApexClothingAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
 		
 		if(ApexClothingAsset)
 		{
@@ -6906,7 +6927,7 @@ EReimportResult::Type UReimportDestructibleMeshFactory::Reimport( UObject* Obj )
 	CurrentFilename = Filename;
 
 	// Create an Apex NxDestructibleAsset from the binary blob
-	NxDestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromFile(Filename);
+	apex::DestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromFile(Filename);
 	if( ApexDestructibleAsset != nullptr )
 	{
 		// Succesfully created the NxDestructibleAsset, now create a UDestructibleMesh
@@ -6959,7 +6980,7 @@ UBlendSpaceFactoryNew::UBlendSpaceFactoryNew(const FObjectInitializer& ObjectIni
 
 	SupportedClass = UBlendSpace::StaticClass();
 	bCreateNew = true;
-		}
+}
 
 bool UBlendSpaceFactoryNew::ConfigureProperties()
 {
@@ -6992,7 +7013,7 @@ bool UBlendSpaceFactoryNew::ConfigureProperties()
 		[
 			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
 		]
-		];
+	];
 
 
 	GEditor->EditorAddModalWindow(PickerWindow.ToSharedRef());
@@ -7490,6 +7511,55 @@ UObject* UDataTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 	return DataTable;
 }
 
+/*------------------------------------------------------------------------------
+ UPreviewMeshCollectionFactory implementation.
+------------------------------------------------------------------------------*/
+
+UPreviewMeshCollectionFactory::UPreviewMeshCollectionFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UPreviewMeshCollection::StaticClass();
+	bCreateNew = true;
+}
+
+FText UPreviewMeshCollectionFactory::GetDisplayName() const
+{
+	return LOCTEXT("PreviewMeshCollection", "Preview Mesh Collection");
+}
+
+FText UPreviewMeshCollectionFactory::GetToolTip() const
+{
+	return LOCTEXT("PreviewMeshCollection_Tooltip", "Preview Mesh Collections are used to build collections of related skeletal meshes that are animated together (such as components of a character)");
+}
+
+bool UPreviewMeshCollectionFactory::ConfigureProperties()
+{
+	if (CurrentSkeleton.IsValid())
+	{
+		return true;
+	}
+
+	USkeleton* Skeleton = ChooseSkeleton();
+	if (Skeleton != nullptr)
+	{
+		CurrentSkeleton = Skeleton;
+		return true;
+	}
+
+	return false;
+}
+
+UObject* UPreviewMeshCollectionFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	UPreviewMeshCollection* NewCollection = nullptr;
+	if (CurrentSkeleton.IsValid())
+	{
+		NewCollection = NewObject<UPreviewMeshCollection>(InParent, Name, Flags);
+		NewCollection->Skeleton = CurrentSkeleton.Get();
+	}
+
+	return NewCollection;
+}
 
 #undef LOCTEXT_NAMESPACE
 

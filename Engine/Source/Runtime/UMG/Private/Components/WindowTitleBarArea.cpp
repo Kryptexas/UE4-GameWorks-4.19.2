@@ -149,14 +149,6 @@ void UWindowTitleBarArea::HandleMouseButtonDoubleClick()
 	}
 }
 
-#if WITH_EDITOR
-
-const FText UWindowTitleBarArea::GetPaletteCategory()
-{
-	return LOCTEXT("Borderless Window", "Borderless Window");
-}
-
-#endif
 
 /////////////////////////////////////////////////////
 

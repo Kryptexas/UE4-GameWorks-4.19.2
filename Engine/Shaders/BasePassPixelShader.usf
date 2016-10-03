@@ -866,12 +866,18 @@ void FPixelShaderInOut_MainPS(
 		#if FORWARD_SHADING || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
 			uint GridIndex = 0;
 
-			#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-				GridIndex = ComputeLightGridCellIndex((uint2)(MaterialParameters.SvPosition.xy - View.ViewRectMin.xy), MaterialParameters.SvPosition.w);
-				Color += GetForwardDirectLighting(GridIndex, MaterialParameters.ScreenPosition, MaterialParameters.AbsoluteWorldPosition, MaterialParameters.CameraVector, GBuffer);
+			#if INSTANCED_STEREO
+				const uint EyeIndex = GetEyeIndex(Interpolants.PackedEyeIndex);
+			#else
+				const uint EyeIndex = 0;
 			#endif
 
-			Color += GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, GBuffer.SpecularColor, IndirectIrradiance, GridIndex) * IndirectOcclusion;
+			#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+				GridIndex = ComputeLightGridCellIndex((uint2)(MaterialParameters.SvPosition.xy - ResolvedView.ViewRectMin.xy), MaterialParameters.SvPosition.w, EyeIndex);
+				Color += GetForwardDirectLighting(GridIndex, MaterialParameters.ScreenPosition, MaterialParameters.AbsoluteWorldPosition, MaterialParameters.CameraVector, GBuffer, EyeIndex);
+			#endif
+
+			Color += GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, GBuffer.SpecularColor, IndirectIrradiance, GridIndex, EyeIndex) * IndirectOcclusion;
 		#endif
 
 		#if SIMPLE_FORWARD_DIRECTIONAL_LIGHT

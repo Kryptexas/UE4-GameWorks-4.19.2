@@ -494,30 +494,6 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private string LoadLauncherDisplayVersion()
-		{
-			string[] VersionHeader = Utils.ReadAllText("../../Portal/Source/Layers/DataAccess/Public/PortalVersion.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
-			string LauncherVersionMajor = "1";
-			string LauncherVersionMinor = "0";
-			string LauncherVersionPatch = "0";
-			foreach (string Line in VersionHeader)
-			{
-				if (Line.StartsWith("#define PORTAL_MAJOR_VERSION "))
-				{
-					LauncherVersionMajor = Line.Split(' ')[2];
-				}
-				else if (Line.StartsWith("#define PORTAL_MINOR_VERSION "))
-				{
-					LauncherVersionMinor = Line.Split(' ')[2];
-				}
-				else if (Line.StartsWith("#define PORTAL_PATCH_VERSION "))
-				{
-					LauncherVersionPatch = Line.Split(' ')[2];
-				}
-			}
-			return LauncherVersionMajor + "." + LauncherVersionMinor + "." + LauncherVersionPatch;
-		}
-
 		private int LoadBuiltFromChangelistValue()
 		{
 			return LoadEngineCL();
@@ -556,18 +532,22 @@ namespace UnrealBuildTool
 			if (!Library.Contains("/Engine/Binaries/Mac/") && (Library.EndsWith("dylib") || Library.EndsWith(".framework")) && LibraryDir != ExeDir)
 			{
 				string RelativePath = Utils.MakePathRelativeTo(LibraryDir, ExeDir).Replace("\\", "/");
-				if (!RelativePath.Contains(LibraryDir) && !RPaths.Contains(RelativePath))
+				if ((!RelativePath.Contains(LibraryDir) || RelativePath.Contains("/ThirdParty/")) && !RPaths.Contains(RelativePath))
 				{
 					// For CEF3 for the Shipping Launcher we only want the RPATH to the framework inside the app bundle, otherwise OS X gatekeeper erroneously complains about not seeing framework. 
 					if (!ExeAbsolutePath.Contains("EpicGamesLauncher-Mac-Shipping") || !Library.Contains("CEF3"))
 					{
-					RPaths.Add(RelativePath);
-					LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
+						RPaths.Add(RelativePath);
+						LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
 					}
 
 					if (bIsBuildingAppBundle)
 					{
-						string PathInBundle = Path.Combine(Path.GetDirectoryName(ExeDir), "UE4/Engine/Binaries/Mac", RelativePath.Substring(9));
+						// If building an app bunlde, we also prepare an rpath for use in packaged game. In that case dylibs are stored in Contents/UE4/Engine/ subfolders, for example in
+						// GameName.app/Contents/UE4/Engine/Binaries/ThirdParty/PhysX/Mac/
+						// RelativePath is a path to a copy of the lib folder in engine directory tree, so we need to convert it to a path relative to what it will be inside the app bundle
+						int NumCharactersToSkip = ExeAbsolutePath.Contains("/Engine/Binaries/Mac/") ? 9 : 15; // Skip 3 or 5 sets of ../ from the beginning of relative path, depending on where the app bundle is
+						string PathInBundle = Path.Combine(Path.GetDirectoryName(ExeDir), "UE4/Engine/Binaries/Mac", RelativePath.Substring(NumCharactersToSkip));
 						Utils.CollapseRelativeDirectories(ref PathInBundle);
 						string RelativePathInBundle = Utils.MakePathRelativeTo(PathInBundle, ExeDir).Replace("\\", "/");
 						LinkCommand += " -rpath \"@loader_path/" + RelativePathInBundle + "\"";
@@ -971,6 +951,20 @@ namespace UnrealBuildTool
 					BinariesPath = Path.GetDirectoryName(BinariesPath.Substring(0, BinariesPath.IndexOf(".app")));
 					AppendMacLine(FinalizeAppBundleScript, "cd \"{0}\"", ConvertPath(BinariesPath).Replace("$", "\\$"));
 
+					string BundleVersion = null;
+					foreach(string CmdLineArg in UnrealBuildTool.CmdLine)
+					{
+						const string BundleVersionPrefix = "-BundleVersion=";
+						if(CmdLineArg.StartsWith(BundleVersionPrefix, StringComparison.InvariantCultureIgnoreCase))
+						{
+							BundleVersion = CmdLineArg.Substring(BundleVersionPrefix.Length);
+						}
+					}
+					if(BundleVersion == null)
+					{
+						BundleVersion = LoadEngineDisplayVersion();
+					}
+
 					string ExeName = Path.GetFileName(OutputFile.AbsolutePath);
 					bool bIsLauncherProduct = ExeName.StartsWith("EpicGamesLauncher") || ExeName.StartsWith("EpicGamesBootstrapLauncher");
 					string[] ExeNameParts = ExeName.Split('-');
@@ -994,7 +988,6 @@ namespace UnrealBuildTool
 					AppendMacLine(FinalizeAppBundleScript, "sh \"{0}\" \"{1}\"", ConvertPath(DylibCopyScriptPath.FullName).Replace("$", "\\$"), ExeName);
 
 					string IconName = "UE4";
-					string BundleVersion = bIsLauncherProduct ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
 					string EngineSourcePath = ConvertPath(Directory.GetCurrentDirectory()).Replace("$", "\\$");
 					string CustomResourcesPath = "";
 					string CustomBuildPath = "";
@@ -1400,7 +1393,10 @@ namespace UnrealBuildTool
 						if (Path.GetExtension(AdditionalLibrary) == ".dylib" && BundleContentsDirectory != null)
 						{
 							FileReference Entry = FileReference.Combine(BundleContentsDirectory, "MacOS", LibName);
-							BuildProducts.Add(Entry, BuildProductType.DynamicLibrary);
+							if (!BuildProducts.ContainsKey(Entry))
+							{
+								BuildProducts.Add(Entry, BuildProductType.DynamicLibrary);
+							}
 						}
 					}
 				}

@@ -20,6 +20,7 @@ public:
 		, _DisplayThumbnail(false)
 		, _DisplayUseSelected(true)
 		, _DisplayBrowse(true)
+		, _EnableContentPicker(true)
 		, _ThumbnailPool(NULL)
 		, _ThumbnailSize( FIntPoint(64, 64) )
 		, _ObjectPath()
@@ -33,6 +34,7 @@ public:
 		SLATE_ARGUMENT( bool, DisplayThumbnail )
 		SLATE_ARGUMENT( bool, DisplayUseSelected )
 		SLATE_ARGUMENT( bool, DisplayBrowse )
+		SLATE_ARGUMENT( bool, EnableContentPicker)
 		SLATE_ARGUMENT( TSharedPtr<FAssetThumbnailPool>, ThumbnailPool )
 		SLATE_ARGUMENT( FIntPoint, ThumbnailSize )
 		SLATE_ATTRIBUTE( FString, ObjectPath )
@@ -255,6 +257,15 @@ private:
 
 	/** @return true if the passed in AssetData can be used to set the property based on the list of custom classes */
 	bool CanSetBasedOnCustomClasses( const FAssetData& InAssetData ) const;
+
+	/**
+	 * Gets the class of the supplied property for use within the PropertyEditorAsset widget. Asserts if the property
+	 * is not supported by the widget.
+	 *
+	 * @param	Property	The supplied property for the widget
+	 * @return	The class of the property. Asserts if this tries to return null.
+	 */
+	static UClass* GetObjectPropertyClass(const UProperty* Property);
 private:
 
 	/** Main combobutton */

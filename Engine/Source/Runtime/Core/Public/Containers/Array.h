@@ -11,7 +11,7 @@
 #include "Templates/EnableIf.h"
 #include "Templates/Sorting.h"
 #include "Templates/UnrealTemplate.h"
-
+#include "Traits/IsContiguousContainer.h"
 
 #define DEBUG_HEAP 0
 
@@ -2696,11 +2696,16 @@ struct TIsZeroConstructType<TArray<InElementType, Allocator>>
 	enum { Value = TAllocatorTraits<Allocator>::IsZeroConstruct };
 };
 
-
 template <typename InElementType, typename Allocator>
 struct TContainerTraits<TArray<InElementType, Allocator> > : public TContainerTraitsBase<TArray<InElementType, Allocator> >
 {
 	enum { MoveWillEmptyContainer = TAllocatorTraits<Allocator>::SupportsMove };
+};
+
+template <typename T, typename Allocator>
+struct TIsContiguousContainer<TArray<T, Allocator>>
+{
+	enum { Value = true };
 };
 
 

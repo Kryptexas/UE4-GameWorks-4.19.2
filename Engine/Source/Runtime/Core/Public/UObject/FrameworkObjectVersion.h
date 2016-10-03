@@ -52,6 +52,10 @@ struct CORE_API FFrameworkObjectVersion
 
 		// Wheel force offset is now applied at the wheel instead of vehicle COM
 		WheelOffsetIsFromWheel,
+		// Move curve metadata to be saved in skeleton
+		// Individual asset still saves some flag - i.e. disabled curve and editable or not, but 
+		// major flag - i.e. material types - moves to skeleton and handle in one place
+		MoveCurveTypesToSkeleton,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

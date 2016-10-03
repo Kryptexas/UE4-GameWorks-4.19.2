@@ -57,12 +57,15 @@ CORE_API const FText GNone	= LOCTEXT("None",	"None");
 		bool GIsGameAgnosticExe = true;
 	#endif
 #else
-	// Otherwise only modular editors are game agnostic.
-	#if IS_PROGRAM || IS_MONOLITHIC
-		bool GIsGameAgnosticExe = false;
-	#else
-		bool GIsGameAgnosticExe = true;
-	#endif
+	// In monolithic Editor builds, implemented by the IMPLEMENT_GAME_MODULE macro or by UE4Game module.
+	#if !IS_MONOLITHIC || !UE_EDITOR
+		// Otherwise only modular editors are game agnostic.
+		#if IS_PROGRAM || IS_MONOLITHIC
+			bool GIsGameAgnosticExe = false;
+		#else
+			bool GIsGameAgnosticExe = true;
+		#endif
+	#endif //!IS_MONOLITHIC || !UE_EDITOR
 #endif
 
 /** When saving out of the game, this override allows the game to load editor only properties **/
@@ -97,6 +100,7 @@ bool GIsReinstancing = false;
 #if WITH_ENGINE
 bool					PRIVATE_GIsRunningCommandlet			= false;				/* Whether this executable is running a commandlet (custom command-line processing code) */
 bool					PRIVATE_GAllowCommandletRendering	= false;				/** If true, initialise RHI and set up scene for rendering even when running a commandlet. */
+bool					PRIVATE_GAllowCommandletAudio 		= false;				/** If true, allow audio even when running a commandlet. */
 #endif	// WITH_ENGINE
 
 #if WITH_EDITORONLY_DATA
@@ -329,6 +333,7 @@ DEFINE_LOG_CATEGORY(LogNetPackageMap);
 DEFINE_LOG_CATEGORY(LogNetSerialization);
 DEFINE_LOG_CATEGORY(LogMemory);
 DEFINE_LOG_CATEGORY(LogProfilingDebugging);
+DEFINE_LOG_CATEGORY(LogWolf);
 
 DEFINE_LOG_CATEGORY(LogTemp);
 

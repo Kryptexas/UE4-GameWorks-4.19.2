@@ -646,6 +646,7 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	if ( bShouldBuildLighting )
 	{
 		check( Switches.Contains(TEXT("AllowCommandletRendering")) );
+		GarbageCollectionFrequency = 1;
 	}
 
 	TArray<FString> PackageNames;
@@ -886,7 +887,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			IVS.CreateNavigation(false);
 			IVS.CreateAISystem(false);
 			IVS.AllowAudioPlayback(false);
-			IVS.CreatePhysicsScene(false);
+			IVS.CreatePhysicsScene(true);
 
 			World->InitWorld(IVS);
 			World->PersistentLevel->UpdateModelComponents();
@@ -1019,7 +1020,12 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			}
 		}
 
+		
 		World->RemoveFromRoot();
+
+		WorldContext.SetCurrentWorld(nullptr);
+		GWorld = nullptr;
+
 	}
 }
 
@@ -1960,11 +1966,11 @@ void UListMaterialsUsedWithMeshEmittersCommandlet::ProcessParticleSystem( UParti
 				{
 					if (MeshTypeData->Mesh)
 					{
-						for (int32 MaterialIdx = 0; MaterialIdx < MeshTypeData->Mesh->Materials.Num(); MaterialIdx++)
+						for (int32 MaterialIdx = 0; MaterialIdx < MeshTypeData->Mesh->StaticMaterials.Num(); MaterialIdx++)
 						{
-							if(MeshTypeData->Mesh->Materials[MaterialIdx])
+							if(MeshTypeData->Mesh->StaticMaterials[MaterialIdx].MaterialInterface)
 							{
-								UMaterial* Mat = MeshTypeData->Mesh->Materials[MaterialIdx]->GetMaterial();
+								UMaterial* Mat = MeshTypeData->Mesh->StaticMaterials[MaterialIdx].MaterialInterface->GetMaterial();
 								if(!Mat->bUsedWithMeshParticles)
 								{
 									OutMaterials.AddUnique(Mat->GetPathName());

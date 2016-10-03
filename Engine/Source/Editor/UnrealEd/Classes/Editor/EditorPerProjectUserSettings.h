@@ -94,6 +94,10 @@ class UEditorPerProjectUserSettings : public UObject
 	UPROPERTY(EditAnywhere, config, Category = Export)
 	EFbxExportCompatibility FbxExportCompatibility;
 
+	/** If enabled, FBX export level will export collision mesh with UCX_ as a name suffix. */
+	UPROPERTY(EditAnywhere, config, Category = Export)
+	uint32 bFbxExportCollisionMesh : 1;
+
 	/** Select to make Distributions use the curves, not the baked lookup tables. */
 	UPROPERTY(config)
 	uint32 bUseCurvesForDistributions:1; //(GDistributionType == 0)

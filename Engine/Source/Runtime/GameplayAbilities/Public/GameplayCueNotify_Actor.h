@@ -46,9 +46,21 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	/** Called when we are about to reuse the GC. Should undo anything done in Recycle like hiding the actor */
 	virtual void ReuseAfterRecycle();
 
+	/** Ends the gameplay cue: either destroying it or recycling it. You must call this manually only if you do not use bAutoDestroyOnRemove/AutoDestroyDelay  */
+	UFUNCTION(BlueprintCallable, Category="GameplayCueNotify", DisplayName="End (Recycle) GameplayCue")
+	virtual void K2_EndGameplayCue();
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
+
+	/** We will auto destroy (recycle) this GameplayCueActor when the OnRemove event fires (after OnRemove is called). */
+	UPROPERTY(EditDefaultsOnly, Category = Cleanup)
+	bool bAutoDestroyOnRemove;
+
+	/** If bAutoDestroyOnRemove is true, the actor will stay alive for this many seconds before being auto destroyed. */
+	UPROPERTY(EditAnywhere, Category = Cleanup)
+	float AutoDestroyDelay;
 
 	/** Generic Event Graph event that will get called for every event type */
 	UFUNCTION(BlueprintImplementableEvent, Category = "GameplayCueNotify", DisplayName = "HandleGameplayCue")
@@ -76,14 +88,6 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	/** If true, attach this GameplayCue Actor to the target actor while it is active. Attaching is slightly more expensive than not attaching, so only enable when you need to. */
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	bool bAutoAttachToOwner;
-
-	/** We will auto destroy this GameplayCueActor when the OnRemove event fires (after OnRemove is called). */
-	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
-	bool bAutoDestroyOnRemove;
-
-	/** If bAutoDestroyOnRemove is true, the actor will stay alive for this many seconds before being auto destroyed. */
-	UPROPERTY(EditAnywhere, Category = GameplayCue)
-	float AutoDestroyDelay;
 
 	/** Does this Cue override other cues, or is it called in addition to them? E.g., If this is Damage.Physical.Slash, we wont call Damage.Physical afer we run this cue. */
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)

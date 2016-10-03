@@ -209,11 +209,12 @@ struct CORE_API FGenericPlatformMemory
 
 	
 	/**
-	 * @return whether platform supports memory pools for crash reporting.
+	 * @return how much memory the platform should pre-allocate for crash handling (this will be allocated ahead of time, and freed when system runs out of memory).
 	 */
-	static bool SupportBackupMemoryPool()
+	static uint32 GetBackMemoryPoolSize()
 	{
-		return false;
+		// by default, don't create a backup memory buffer
+		return 0;
 	}
 
 	/**

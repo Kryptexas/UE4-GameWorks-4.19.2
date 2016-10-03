@@ -227,6 +227,15 @@ public:
 	virtual void HandleGameNetControlMessage(class UNetConnection* Connection, uint8 MessageByte, const FString& MessageStr)
 	{}
 	
+	/** Call to preload any content before loading a map URL, used during seamless travel as well as map loading */
+	virtual void PreloadContentForURL(FURL InURL);
+
+	/** Call to create the game mode for a given map URL */
+	virtual class AGameModeBase* CreateGameModeForURL(FURL InURL);
+
+	/** Return the game mode subclass to use for a given map, options, and portal. By default return passed in one */
+	virtual TSubclassOf<AGameModeBase> OverrideGameModeClass(TSubclassOf<AGameModeBase> GameModeClass, const FString& MapName, const FString& Options, const FString& Portal) const;
+
 	/** return true to delay an otherwise ready-to-join PendingNetGame performing LoadMap() and finishing up
 	 * useful to wait for content downloads, etc
 	 */

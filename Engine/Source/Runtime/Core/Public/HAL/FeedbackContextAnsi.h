@@ -21,12 +21,14 @@ public:
 	// Local functions.
 	void LocalPrint( const TCHAR* Str )
 	{
-#if PLATFORM_APPLE 
+#if PLATFORM_APPLE || PLATFORM_LINUX
 		printf("%s", TCHAR_TO_ANSI(Str));
 #elif PLATFORM_WINDOWS
 		wprintf(TEXT("%ls"), Str);
 #else
-		printf("%ls", Str);
+		// If this function ever gets more complicated, we could make a PlatformMisc::Printf, and each platform can then 
+		// do the right thing. For instance, LocalPrint is OutputDebugString on Windows, which messes up a lot of stuff
+		FPlatformMisc::LocalPrint(Str);
 #endif
 	}
 

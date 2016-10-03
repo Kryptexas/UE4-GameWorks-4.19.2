@@ -31,7 +31,7 @@ FLinearColor UMaterialGraphNode_Root::GetNodeTitleColor() const
 
 FText UMaterialGraphNode_Root::GetTooltipText() const
 {
-	return LOCTEXT("RootToolTip", "Description of final material inputs");
+	return LOCTEXT("MaterialNode", "Result node of the Material");
 }
 
 void UMaterialGraphNode_Root::PostPlacedNewNode()

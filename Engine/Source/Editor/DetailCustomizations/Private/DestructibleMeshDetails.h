@@ -12,6 +12,10 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 private:
+
+	/** Hide any properties that aren't supported on destructible meshes */
+	void HideUnsupportedProperties(IDetailLayoutBuilder &DetailBuilder);
+
 	TArray< TWeakObjectPtr<UObject> > ObjectsCustomized;
 };
 

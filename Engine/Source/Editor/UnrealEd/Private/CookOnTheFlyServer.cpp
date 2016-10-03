@@ -504,6 +504,26 @@ struct FRecompileRequest
 };
 
 
+/** Helper to assign to any variable for a scope period */
+template<class T>
+struct FScopeAssign
+{
+private:
+	T* Setting;
+	T OriginalValue;
+public:
+	FScopeAssign(T& InSetting, const T NewValue)
+	{
+		Setting = &InSetting;
+		OriginalValue = *Setting;
+		*Setting = NewValue;
+	}
+	~FScopeAssign()
+	{
+		*Setting = OriginalValue;
+	}
+};
+
 
 const FString& GetAssetRegistryPath()
 {
@@ -687,8 +707,6 @@ void UCookOnTheFlyServer::ClearPackageFilenameCache() const
 {
 	PackageFilenameCache.Empty();
 	PackageFilenameToPackageFNameCache.Empty();
-	// need to clear the IniVersionStringsMap too
-	CachedIniVersionStringsMap.Empty();
 }
 
 
@@ -708,6 +726,9 @@ UCookOnTheFlyServer::UCookOnTheFlyServer(const FObjectInitializer& ObjectInitial
 
 UCookOnTheFlyServer::~UCookOnTheFlyServer()
 {
+	FCoreDelegates::OnFConfigCreated.RemoveAll(this);
+	FCoreDelegates::OnFConfigDeleted.RemoveAll(this);
+
 	check(TickChildCookers() == true);
 	if ( CookByTheBookOptions )
 	{		
@@ -1728,18 +1749,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			continue;
 		}
 
-
-		
-		// if we are doing cook by the book we need to resolve string asset references
-		// this will load more packages :)
-		/*if ( IsCookByTheBookMode() )
-		{
-			SCOPE_TIMER(ResolveRedirectors);
-			COOK_STAT(FScopedDurationTimer ResolveRedirectorsTimer(DetailedCookStats::TickCookOnTheSideResolveRedirectorsTimeSec));
-			GRedirectCollector.ResolveStringAssetReference();
-		}*/
-
-
 		bool bIsAllDataCached = true;
 
 		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
@@ -1762,12 +1771,22 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			if ( CurrentReentryData.bBeginCacheFinished )
 				return true;
 
+			bool bDidFinish = true;
+
 			for (; CurrentReentryData.BeginCacheCount < CurrentReentryData.CachedObjectsInOuter.Num(); ++CurrentReentryData.BeginCacheCount)
 			{
 				const auto& Obj = CurrentReentryData.CachedObjectsInOuter[CurrentReentryData.BeginCacheCount];
 				for ( const auto& TargetPlatform : TargetPlatforms )
 				{
-					Obj->BeginCacheForCookedPlatformData( TargetPlatform );
+					if ( Obj->IsA(UMaterialInterface::StaticClass() ) )
+					{
+						if ( GShaderCompilingManager->GetNumRemainingJobs() > MaxConcurrentShaderJobs )
+						{
+							bDidFinish = false;
+							continue;
+						}
+					}
+					Obj->BeginCacheForCookedPlatformData(TargetPlatform);
 				}
 
 				if ( Timer.IsTimeUp() )
@@ -1778,8 +1797,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					return false;
 				}
 			}
-			CurrentReentryData.bBeginCacheFinished = true;
-			return true;
+
+			if ( bDidFinish == true )
+			{
+				CurrentReentryData.bBeginCacheFinished = true;
+				return true;
+			}
+			return false;
 		};
 
 		auto FinishPackageCacheForCookedPlatformData = [&]( const UPackage* Package )
@@ -1808,7 +1832,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 #endif
 						if ( Obj->IsA(UMaterial::StaticClass()) )
 						{
-							if (GShaderCompilingManager->IsCompiling() == false)
+							if (GShaderCompilingManager->HasShaderJobs() == false)
 							{
 								UE_LOG(LogCook, Warning, TEXT("Shader compiler is in a bad state!  Shader %s is finished compile but shader compiling manager did not notify shader.  "), *Obj->GetPathName());
 							}
@@ -2590,6 +2614,11 @@ uint32 UCookOnTheFlyServer::GetPackagesPerGC() const
 	return PackagesPerGC;
 }
 
+int32 UCookOnTheFlyServer::GetMaxConcurrentShaderJobs() const
+{
+	return MaxConcurrentShaderJobs;
+}
+
 double UCookOnTheFlyServer::GetIdleTimeToGC() const
 {
 	return IdleTimeToGC;
@@ -2931,6 +2960,7 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 	return Result;
 }
 
+
 void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInitializationFlags InCookFlags, const FString &InOutputDirectoryOverride )
 {
 	OutputDirectoryOverride = InOutputDirectoryOverride;
@@ -2956,11 +2986,17 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 		FCoreUObjectDelegates::OnObjectSaved.AddUObject(this, &UCookOnTheFlyServer::OnObjectSaved);
 	}
 
+	FCoreDelegates::OnFConfigCreated.AddUObject(this, &UCookOnTheFlyServer::OnFConfigCreated);
+	FCoreDelegates::OnFConfigDeleted.AddUObject(this, &UCookOnTheFlyServer::OnFConfigDeleted);
+
 	bool bUseFullGCAssetClassNames = true;
 	GConfig->GetBool(TEXT("CookSettings"), TEXT("bUseFullGCAssetClassNames"), bUseFullGCAssetClassNames, GEditorIni);
 	
 	MaxPrecacheShaderJobs = FPlatformMisc::NumberOfCores() - 1; // number of cores -1 is a good default allows the editor to still be responsive to other shader requests and allows cooker to take advantage of multiple processors while the editor is running
 	GConfig->GetInt(TEXT("CookSettings"), TEXT("MaxPrecacheShaderJobs"), MaxPrecacheShaderJobs, GEditorIni);
+
+	MaxConcurrentShaderJobs = FPlatformMisc::NumberOfCores() * 4; // number of cores -1 is a good default allows the editor to still be responsive to other shader requests and allows cooker to take advantage of multiple processors while the editor is running
+	GConfig->GetInt(TEXT("CookSettings"), TEXT("MaxConcurrentShaderJobs"), MaxConcurrentShaderJobs, GEditorIni);
 
 	if (bUseFullGCAssetClassNames)
 	{
@@ -3001,23 +3037,20 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	MaxMemoryAllowanceInMB = FMath::Max(MaxMemoryAllowanceInMB, 0);
 	MaxMemoryAllowance = MaxMemoryAllowanceInMB * 1024LL * 1024LL;
 	
-
 	int32 MinMemoryBeforeGCInMB = 0; // 6 * 1024;
 	GConfig->GetInt(TEXT("CookSettings"), TEXT("MinMemoryBeforeGC"), MinMemoryBeforeGCInMB, GEditorIni);
 	MinMemoryBeforeGCInMB = FMath::Max(MinMemoryBeforeGCInMB, 0);
 	MinMemoryBeforeGC = MinMemoryBeforeGCInMB * 1024LL * 1024LL;
-
 
 	int32 MinFreeMemoryInMB = 0;
 	GConfig->GetInt(TEXT("CookSettings"), TEXT("MinFreeMemory"), MinFreeMemoryInMB, GEditorIni);
 	MinFreeMemoryInMB = FMath::Max(MinFreeMemoryInMB, 0);
 	MinFreeMemory = MinFreeMemoryInMB * 1024LL * 1024LL;
 
-
 	MaxNumPackagesBeforePartialGC = 400;
 	GConfig->GetInt(TEXT("CookSettings"), TEXT("MaxNumPackagesBeforePartialGC"), MaxNumPackagesBeforePartialGC, GEditorIni);
 	
-
+	GConfig->GetArray(TEXT("CookSettings"), TEXT("ConfigSettingBlacklist"), ConfigSettingBlacklist, GEditorIni);
 
 	UE_LOG(LogCook, Display, TEXT("Max memory allowance for cook %dmb min free memory %dmb"), MaxMemoryAllowanceInMB, MinFreeMemoryInMB);
 
@@ -3242,27 +3275,9 @@ void GetAdditionalCurrentIniVersionStrings( const ITargetPlatform* TargetPlatfor
 
 
 
-bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString>& IniVersionStrings ) const
+bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* TargetPlatform, FIniSettingContainer& IniVersionStrings ) const
 {
-
-#if INVALIDATE_ON_USED_INI_CHANGE
-
-	TArray<FString> OldVersionStrings;
-	GetCookedIniVersionStrings(TargetPlatform,OldVersionStrings);
-
-	// seperate out keys from values
-	TMap<FString, FString> OldVersionMap;
-	for (const auto& OldValue : OldVersionStrings)
-	{
-		FString Key;
-		FString Value;
-		if ( OldValue.Split( TEXT("#"), &Key, &Value ) )
-		{
-			OldVersionMap.Add(Key, Value);
-		}
-	}
-
-	
+	IniVersionStrings = AccessedIniStrings;
 
 	// this should be called after the cook is finished
 	TArray<FString> IniFiles;
@@ -3270,7 +3285,7 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 
 	TMap<FString, int32> MultiMapCounter;
 
-	for ( const auto ConfigFilename : IniFiles )
+	for ( const auto& ConfigFilename : IniFiles )
 	{
 		if ( ConfigFilename.Contains(TEXT("CookedIniVersion.txt")) )
 		{
@@ -3278,176 +3293,80 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 		}
 
 		const FConfigFile *ConfigFile = GConfig->FindConfigFile(ConfigFilename);
-		for ( const auto& IniSection : *ConfigFile )
-		{
-			const FString& SectionName = IniSection.Key;
-			for ( const auto& IniValue : IniSection.Value)
-			{
-				const FString& ValueName = IniValue.Key.ToString();
-				if ( IniValue.Value.HasBeenRead() )
-				{
-					FString KeyPath = FString::Printf(TEXT("%s:%s:%s"), *ConfigFilename, *SectionName, *ValueName );
-
-					int32* CurrentId = MultiMapCounter.Find(KeyPath);
-					if ( CurrentId == nullptr)
-					{
-						CurrentId = &MultiMapCounter.Add(KeyPath);
-					}
-
-					FString ProcessedIniValue = IniValue.Value.GetSavedValue();
-
-					FString CurrentVersionString = FString::Printf(TEXT("%s:%d#%s"), *KeyPath, *CurrentId, *ProcessedIniValue);
-
-					IniVersionStrings.Add(CurrentVersionString);
-					OldVersionMap.Remove(KeyPath);
-
-					++(*CurrentId);
-					
-				}
-			}
-		}
+		ProcessAccessedIniSettings(ConfigFile, IniVersionStrings);
+		
 	}
 
-	TMap<FString, FString> AdditionalIniVersionStrings;
-	GetAdditionalCurrentIniVersionStrings(TargetPlatform, AdditionalIniVersionStrings);
-
-	for ( const auto& AdditionalValue : AdditionalIniVersionStrings )
+	for (const auto& ConfigFile : OpenConfigFiles)
 	{
-		IniVersionStrings.Add(FString::Printf(TEXT("%s#%s"), *AdditionalValue.Key, *AdditionalValue.Value));
-		OldVersionMap.Remove( AdditionalValue.Key );
+		ProcessAccessedIniSettings(ConfigFile, IniVersionStrings);
 	}
 
-	for ( const auto& OldValue : OldVersionMap )
+
+	// remove any which are filtered out
+	for ( const auto& Filter : ConfigSettingBlacklist )
 	{
-		IniVersionStrings.Add( FString::Printf(TEXT("%s#%s"), *OldValue.Key, *OldValue.Value));
-	}
+		TArray<FString> FilterArray;
+		Filter.ParseIntoArray( FilterArray, TEXT(":"));
 
-	// there is a list of important ini settings in the Editor config 
-#elif INVALIDATE_ON_ANY_INI_CHANGE // use a full list of ini settings to invalidate the cooked content or use the entire engine / editor ini
-	TArray<FString> IniFiles;
-	IniFiles.Add(FString(TEXT("Engine")));
-	IniFiles.Add(FString(TEXT("Editor")));
-	IniFiles.Add(FString(TEXT("EditorKeyBindings")));
-	IniFiles.Add(FString(TEXT("EditorLayout")));
-	IniFiles.Add(FString(TEXT("EditorSettings")));
-	IniFiles.Add(FString(TEXT("EditorPerProject")));
-	IniFiles.Add(FString(TEXT("Compat")));
-	IniFiles.Add(FString(TEXT("Lightmass")));
-	IniFiles.Add(FString(TEXT("Scalability")));
-	IniFiles.Add(FString(TEXT("Hardware")));
-	IniFiles.Add(FString(TEXT("Input")));
-	IniFiles.Add(FString(TEXT("GameUserSettings")));
-	IniFiles.Add(FString(TEXT("Game")));
-
-
-	TArray<FString> ExcludedIniParams;
-	GConfig->GetArray(TEXT("CookSettings"), TEXT("ExcludedIniParams"), ExcludedIniParams, GEditorIni);
-
-	for (const auto& IniFilename : IniFiles)
-	{
-		FConfigFile PlatformIniFile;
-		FConfigCacheIni::LoadLocalIniFile(PlatformIniFile, *IniFilename, true, *TargetPlatform->IniPlatformName());
-
-		for ( const auto& IniSection : PlatformIniFile)
+		FString *ConfigFileName = nullptr;
+		FString *SectionName = nullptr;
+		FString *ValueName = nullptr;
+		switch ( FilterArray.Num() )
 		{
-			const FString SectionName = FString::Printf(TEXT("%s:%s"), *IniFilename, *IniSection.Key);
-
-			for (const auto& IniValue : IniSection.Value)
-			{
-				const FString ValueName = FString::Printf(TEXT("%s:%s"), *SectionName, *IniValue.Key.ToString());
-
-				bool bExclude = false;
-				for (const auto& Exclusion : ExcludedIniParams)
-				{
-					if (ValueName.Contains(Exclusion))
-					{
-						bExclude = true;
-						break;
-					}
-				}
-
-				if (bExclude)
-				{
-					continue;
-				}
-
-				FString ProcessedIniValue = IniValue.Value.GetValue();
-				// get rid of shit we don't care about
-				ProcessedIniValue.ReplaceInline(TEXT("{"), TEXT(""));
-				ProcessedIniValue.ReplaceInline(TEXT("}"), TEXT(""));
-
-				IniVersionStrings.Add(FString::Printf(TEXT("%s:%s:%s"), *SectionName, *IniValue.Key.ToString(), *ProcessedIniValue));
-			}
-		}
-	}
-
-	GetAdditionalCurrentIniVersionStrings(TargetPlatform, IniVersionStrings);
-
-#else // invalidate only on some ini changes which we know cause problems (less full recooks but could be unstable)
-	TArray<FString> IniVersionedParams;
-	GConfig->GetArray(TEXT("CookSettings"), TEXT("VersionedIniParams"), IniVersionedParams, GEditorIni);
-
-
-	// used to store temporary platform specific ini files
-	TMap<FString, FConfigFile*> PlatformIniFiles;
-
-	// if the old one doesn't contain all the settings in the new one then we fail this check
-	for (const auto& IniVersioned : IniVersionedParams)
-	{
-
-		TArray<FString> IniVersionedArray;
-		IniVersioned.ParseIntoArray(IniVersionedArray, TEXT(":"), false);
-
-		if (IniVersionedArray.Num() != 3)
-		{
-#if DEBUG_COOKONTHEFLY
-			UE_LOG(LogCook, Warning, TEXT("Invalid entry in CookSettings, VersionedIniParams %s"), *IniVersioned);
-#endif
-			return false;
-		}
-
-		const FString& Filename = IniVersionedArray[0];
-		const FString& Section = IniVersionedArray[1];
-		const FString& Key = IniVersionedArray[2];
-
-		// const FString& IniFilename = FPaths::GeneratedConfigDir() / TargetPlatform->IniPlatformName() / Filename + TEXT(".ini");
-		FConfigFile *PlatformIniFile = PlatformIniFiles.FindRef(Filename);
-		if (PlatformIniFile == NULL)
-		{
-			PlatformIniFile = new FConfigFile();
-			FConfigCacheIni::LoadLocalIniFile(*PlatformIniFile, *Filename, true, *TargetPlatform->IniPlatformName());
-			PlatformIniFiles.Add(Filename, PlatformIniFile);
-		}
-
-		// get the value of the entry
-		FString Value;
-		if (!PlatformIniFile->GetString(*Section, *Key, Value))
-		{
-#if DEBUG_COOKONTHEFLY
-			UE_LOG(LogCook, Warning, TEXT("Unable to find entry in CookSettings, VersionedIniParams %s, assume default is being used"), *IniVersioned);
-#endif
+		case 3:
+			ValueName = &FilterArray[2];
+		case 2:
+			SectionName = &FilterArray[1];
+		case 1:
+			ConfigFileName = &FilterArray[0];
+			break;
+		default:
 			continue;
 		}
 
-		FString CurrentVersionString = FString::Printf(TEXT("%s:%s:%s:%s"), *Filename, *Section, *Key, *Value);
-
-		IniVersionStrings.Emplace(MoveTemp(CurrentVersionString));
+		if ( ConfigFileName )
+		{
+			for ( auto ConfigFile = IniVersionStrings.CreateIterator(); ConfigFile; ++ConfigFile )
+			{
+				if ( ConfigFile.Key().ToString().MatchesWildcard(*ConfigFileName) )
+				{
+					if ( SectionName )
+					{
+						for ( auto Section = ConfigFile.Value().CreateIterator(); Section; ++Section )
+						{
+							if ( Section.Key().ToString().MatchesWildcard(*SectionName))
+							{
+								if (ValueName)
+								{
+									for ( auto Value = Section.Value().CreateIterator(); Value; ++Value )
+									{
+										if ( Value.Key().ToString().MatchesWildcard(*ValueName))
+										{
+											Value.RemoveCurrent();
+										}
+									}
+								}
+								else
+								{
+									Section.RemoveCurrent();
+								}
+							}
+						}
+					}
+					else
+					{
+						ConfigFile.RemoveCurrent();
+					}
+				}
+			}
+		}
 	}
-
-	// clean up our temporary platform ini files
-	for (const auto& PlatformIniFile : PlatformIniFiles)
-	{
-		delete PlatformIniFile.Value;
-	}
-	PlatformIniFiles.Empty();
-
-	GetAdditionalCurrentIniVersionStrings(TargetPlatform, IniVersionStrings);
-#endif
-
 	return true;
 }
 
-bool UCookOnTheFlyServer::GetCookedIniVersionStrings(const ITargetPlatform* TargetPlatform, TArray<FString>& IniVersionStrings) const
+
+bool UCookOnTheFlyServer::GetCookedIniVersionStrings(const ITargetPlatform* TargetPlatform, FIniSettingContainer& OutIniSettings, TMap<FString,FString>& OutAdditionalSettings) const
 {
 	const FString EditorIni = FPaths::GameDir() / TEXT("CookedIniVersion.txt");
 	const FString SandboxEditorIni = ConvertToFullSandboxPath(*EditorIni, true);
@@ -3460,178 +3379,302 @@ bool UCookOnTheFlyServer::GetCookedIniVersionStrings(const ITargetPlatform* Targ
 	FConfigFile ConfigFile;
 	ConfigFile.Read(*PlatformSandboxEditorIni);
 
-	const FConfigSection* ConfigSection = ConfigFile.Find(TEXT("CookSettings"));
-	if (ConfigSection == nullptr)
+	
+
+	const static FName NAME_UsedSettings(TEXT("UsedSettings")); 
+	const FConfigSection* UsedSettings = ConfigFile.Find(NAME_UsedSettings.ToString());
+	if (UsedSettings == nullptr)
 	{
 		return false;
 	}
 
-	TArray<FConfigValue> ConfigValues;
-	ConfigSection->MultiFind(TEXT("VersionedIniParams"), ConfigValues, true);
 
-	IniVersionStrings.Empty(ConfigValues.Num());
-	for (const auto& ConfigValue : ConfigValues)
+	const static FName NAME_AdditionalSettings(TEXT("AdditionalSettings"));
+	const FConfigSection* AdditionalSettings = ConfigFile.Find(NAME_AdditionalSettings.ToString());
+	if (AdditionalSettings == nullptr)
 	{
-		IniVersionStrings.Add(ConfigValue.GetSavedValue());
+		return false;
 	}
 
-	ConfigValues.Empty();
-	ConfigFile.Empty();
-	return true;
 
-	// return GConfig->GetArray( TEXT("CookSettings"), TEXT("VersionedIniParams"), IniVersionStrings, PlatformSandboxEditorIni ) > 0;
-}
-
-bool UCookOnTheFlyServer::CacheIniVersionStringsMap(const ITargetPlatform* TargetPlatform) const
-{
-	// check if the cached ones are filled out
-	const FName TargetPlatformName = FName(*TargetPlatform->PlatformName());
-	TArray<FString>* FoundCookedIniVersionStrings = CachedIniVersionStringsMap.Find( TargetPlatformName );
-
-	if ( FoundCookedIniVersionStrings == NULL )
+	for (const auto& UsedSetting : *UsedSettings )
 	{
-		TArray<FString> CookedIniVersionStrings;
-		if ( GetCookedIniVersionStrings( TargetPlatform, CookedIniVersionStrings ) )
-		{
-			FoundCookedIniVersionStrings = &CachedIniVersionStringsMap.Emplace( TargetPlatformName, MoveTemp(CookedIniVersionStrings) );
-		}
-	}
-	return true;
-}
-
-bool UCookOnTheFlyServer::IniSettingsOutOfDate( const ITargetPlatform* TargetPlatform ) const
-{
-#if INVALIDATE_ON_USED_INI_CHANGE
-
-	const FName TargetPlatformName = FName(*TargetPlatform->PlatformName());
-	
-	TArray<FString> CookedIniVersionStrings;
-	if ( GetCookedIniVersionStrings(TargetPlatform, CookedIniVersionStrings) == false )
-	{
-		UE_LOG(LogCook, Display, TEXT("Cooked ini version strings missing for platform %s"), *TargetPlatform->PlatformName());
-		return true;
-	}
-
-	TMap<FString, FString> CurrentAdditionalIniSettings;
-	GetAdditionalCurrentIniVersionStrings(TargetPlatform, CurrentAdditionalIniSettings);
-
-	for ( const auto& CookedValue : CookedIniVersionStrings)
-	{
-		FString Location;
-		FString Value;
-		CookedValue.Split(TEXT("#"), &Location, &Value);
-
-		const FString* AdditionalValue = CurrentAdditionalIniSettings.Find(Location);
-		if ( AdditionalValue )
-		{
-			if ( *AdditionalValue != Value )
-			{
-				UE_LOG(LogCook, Display, TEXT("Ini setting doesn't match old ini setting Path %s old %s new %s"), *Location, *Value, **AdditionalValue);
-				return true;
-			}
-			continue;
-		}
+		FName Key = UsedSetting.Key;
+		const FConfigValue& UsedValue = UsedSetting.Value;
 
 		TArray<FString> SplitString;
-		Location.ParseIntoArray(SplitString, TEXT(":"));
+		Key.ToString().ParseIntoArray(SplitString, TEXT(":"));
 
-		if ( SplitString.Num() != 4 )
+		if (SplitString.Num() != 4)
 		{
-			UE_LOG(LogCook, Warning, TEXT("Found unparsable ini setting %s for platform %s, invalidating cook."), *Location, *TargetPlatform->PlatformName());
-			return true;
+			UE_LOG(LogCook, Warning, TEXT("Found unparsable ini setting %s for platform %s, invalidating cook."), *Key.ToString(), *TargetPlatform->PlatformName());
+			return false;
 		}
 
-		check( SplitString.Num() == 4 ); // We generate this ini file in SaveCurrentIniSettings
+
+		check(SplitString.Num() == 4); // We generate this ini file in SaveCurrentIniSettings
 		const FString& Filename = SplitString[0];
 		const FString& SectionName = SplitString[1];
 		const FString& ValueName = SplitString[2];
 		const int32 ValueIndex = FCString::Atoi(*SplitString[3]);
 
-		const FConfigFile* ConfigFile = GConfig->Find(Filename, true);
-		const FConfigSection* ConfigSection = ConfigFile->Find( SectionName );
-		const FName ValueFName = FName(*ValueName);
-		TArray<FConfigValue> OutValues;
-		ConfigSection->MultiFind(ValueFName, OutValues, true);
-		if (ValueIndex >= OutValues.Num() )
+		auto& OutFile = OutIniSettings.FindOrAdd(FName(*Filename));
+		auto& OutSection = OutFile.FindOrAdd(FName(*SectionName));
+		auto& ValueArray = OutSection.FindOrAdd(FName(*ValueName));
+		if ( ValueArray.Num() < (ValueIndex+1) )
 		{
-			UE_LOG(LogCook, Display, TEXT("Ini setting invalid index %d size %d location %s value"), ValueIndex, OutValues.Num(), *Location, *Value);
-			return true;
+			ValueArray.AddZeroed( ValueIndex - ValueArray.Num() +1 );
 		}
-		FConfigValue& ConfigValue = OutValues[ValueIndex];
-		const bool WasRead = ConfigValue.HasBeenRead();
-		const FString& CurrentValue = ConfigValue.GetSavedValue();
-		ConfigValue.SetHasBeenRead(WasRead);
-		if ( CurrentValue != Value )
+		ValueArray[ValueIndex] = UsedValue.GetSavedValue();
+	}
+
+
+
+	for (const auto& AdditionalSetting : *AdditionalSettings)
+	{
+		const FName& Key = AdditionalSetting.Key;
+		const FString& Value = AdditionalSetting.Value.GetSavedValue();
+		OutAdditionalSettings.Add(Key.ToString(), Value);
+	}
+
+	return true;
+}
+
+
+
+void UCookOnTheFlyServer::OnFConfigCreated(const FConfigFile* Config)
+{
+	if (IniSettingRecurse)
+		return;
+
+	OpenConfigFiles.Add(Config);
+}
+
+void UCookOnTheFlyServer::OnFConfigDeleted(const FConfigFile* Config)
+{
+	if (IniSettingRecurse)
+		return;
+
+	ProcessAccessedIniSettings(Config, AccessedIniStrings);
+
+
+	OpenConfigFiles.Remove(Config);
+}
+
+
+void UCookOnTheFlyServer::ProcessAccessedIniSettings(const FConfigFile* Config, FIniSettingContainer& OutAccessedIniStrings) const
+{	
+	if (Config->Name == NAME_None)
+	{
+		return;
+	}
+	// try figure out if this config file is for a specific platform 
+	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+	const TArray<ITargetPlatform*>& Platforms = TPM.GetTargetPlatforms();
+	FString PlatformName;
+	bool bFoundPlatformName = false;
+	for (const auto& Platform : Platforms )
+	{
+		FString CurrentPlatformName = Platform->IniPlatformName();
+		for ( const auto& SourceIni : Config->SourceIniHierarchy )
 		{
-			UE_LOG(LogCook, Display, TEXT("Ini setting doesn't match old ini setting Path %s old %s new %s"), *Location, *Value, *CurrentValue);
-			return true;
+			if ( SourceIni.Value.Filename.Contains(CurrentPlatformName) )
+			{
+				PlatformName = CurrentPlatformName;
+				bFoundPlatformName = true;
+				break;
+			}
 		}
-	}
-
-	UE_LOG(LogCook, Display, TEXT("All ini settings for target platform match %s"), *TargetPlatform->PlatformName());
-	return false;
-
-#else
-	TArray<FString> CurrentIniVersionStrings;
-	if ( GetCurrentIniVersionStrings(TargetPlatform, CurrentIniVersionStrings) == false )
-	{
-		// previous cook seems half baked... bomb out and recook all the things
-		return true;
-	}
-
-	// check if the cached ones are filled out
-	const FName TargetPlatformName = FName(*TargetPlatform->PlatformName());
-	TArray<FString>* FoundCookedIniVersionStrings = CachedIniVersionStringsMap.Find( TargetPlatformName );
-
-	if ( FoundCookedIniVersionStrings == NULL )
-	{
-		TArray<FString> CookedIniVersionStrings;
-		GetCookedIniVersionStrings( TargetPlatform, CookedIniVersionStrings );
-		FoundCookedIniVersionStrings = &CachedIniVersionStringsMap.Emplace( TargetPlatformName, MoveTemp(CookedIniVersionStrings) );
-	}
-
-	check( FoundCookedIniVersionStrings );
-
-	TSet<FString> CookedIniVersionStrings;
-	for (const auto& CookedString : *FoundCookedIniVersionStrings)
-	{
-		CookedIniVersionStrings.Add(CookedString);
-	}
-
-	bool bCurrentIniSettingsChanged = false;
-	for ( const auto& CurrentVersionString : CurrentIniVersionStrings ) 
-	{
-		if ( CookedIniVersionStrings.Contains(CurrentVersionString) == false )
+		if ( bFoundPlatformName )
 		{
-			UE_LOG(LogCook, Display, TEXT("Invalidating cooked content because %s ini setting was out of date"), *CurrentVersionString);
-			bCurrentIniSettingsChanged = true;
 			break;
 		}
 	}
 
-	if ( bCurrentIniSettingsChanged )
-	{
-		*FoundCookedIniVersionStrings = CurrentIniVersionStrings;
-	}
+	
 
-	return bCurrentIniSettingsChanged;
-#endif
+
+	FString ConfigName = bFoundPlatformName ? FString::Printf(TEXT("%s.%s"),*PlatformName, *Config->Name.ToString()) : Config->Name.ToString();
+	const FName& ConfigFName = FName(*ConfigName);
+	
+	for ( auto& ConfigSection : *Config )
+	{
+		TSet<FName> ProcessedValues; 
+		const FName SectionName = FName(*ConfigSection.Key);
+
+		for ( auto& ConfigValue : ConfigSection.Value )
+		{
+			const FName& ValueName = ConfigValue.Key;
+			if ( ProcessedValues.Contains(ValueName) )
+				continue;
+
+			ProcessedValues.Add( ValueName );
+			TArray<FConfigValue> ValueArray;
+			ConfigSection.Value.MultiFind( ValueName, ValueArray, true );
+
+			bool bHasBeenAccessed = false;
+			for (const auto& ValueArrayEntry : ValueArray)
+			{
+				if (ValueArrayEntry.HasBeenRead())
+				{
+					bHasBeenAccessed = true;
+					break;
+				}
+			}
+
+			if ( bHasBeenAccessed )
+			{
+				auto& AccessedConfig = OutAccessedIniStrings.FindOrAdd(ConfigFName);
+				auto& AccessedSection = AccessedConfig.FindOrAdd(SectionName);
+				auto& AccessedKey = AccessedSection.FindOrAdd(ValueName);
+				AccessedKey.Empty();
+				for ( const auto& ValueArrayEntry : ValueArray )
+				{
+					AccessedKey.Add(ValueArrayEntry.GetSavedValue());
+				}
+			}
+			
+		}
+	}
 }
 
-bool UCookOnTheFlyServer::SaveCurrentIniSettings( const ITargetPlatform* TargetPlatform ) const
+
+
+
+bool UCookOnTheFlyServer::IniSettingsOutOfDate(const ITargetPlatform* TargetPlatform) const
 {
-	check(IsChildCooker()==false);
-#if INVALIDATE_ON_USED_INI_CHANGE
-	TArray<FString> CookedIniVersionStrings;
-	GetCurrentIniVersionStrings(TargetPlatform, CookedIniVersionStrings);
-#else
-	const FName TargetPlatformName = FName(*TargetPlatform->PlatformName());
-	TArray<FString>* FoundCookedIniVersionStrings = CachedIniVersionStringsMap.Find(TargetPlatformName);
-	// need to call IniSettingsOutOfDate before calling this function
-	check(FoundCookedIniVersionStrings);
+	FScopeAssign<bool> A = FScopeAssign<bool>(IniSettingRecurse, true);
+
+	FIniSettingContainer OldIniSettings;
+	TMap<FString, FString> OldAdditionalSettings;
+	if ( GetCookedIniVersionStrings(TargetPlatform, OldIniSettings, OldAdditionalSettings) == false)
+	{
+		return true;
+	}
+
+	// compare against current settings
+	TMap<FString, FString> CurrentAdditionalSettings;
+	GetAdditionalCurrentIniVersionStrings(TargetPlatform, CurrentAdditionalSettings);
+
+	for ( const auto& OldIniSetting : OldAdditionalSettings)
+	{
+		const FString* CurrentValue = CurrentAdditionalSettings.Find(OldIniSetting.Key);
+		if ( !CurrentValue )
+		{
+			return true;
+		}
+
+		if ( *CurrentValue != OldIniSetting.Value )
+		{
+			return true;
+		}
+	}
+
+	for ( const auto& OldIniFile : OldIniSettings )
+	{
+		const FName& ConfigNameKey = OldIniFile.Key;
+
+		TArray<FString> ConfigNameArray;
+		ConfigNameKey.ToString().ParseIntoArray(ConfigNameArray, TEXT("."));
+		FString Filename;
+		FString PlatformName;
+		bool bFoundPlatformName = false;
+		if ( ConfigNameArray.Num() <= 1 )
+		{
+			Filename = ConfigNameKey.ToString();
+		}
+		else if ( ConfigNameArray.Num() == 2 )
+		{
+			PlatformName = ConfigNameArray[0];
+			Filename = ConfigNameArray[1];
+			bFoundPlatformName = true;
+		}
+		else
+		{
+			UE_LOG( LogCook, Warning, TEXT("Found invalid file name in old ini settings file Filename %s settings file %s"), *ConfigNameKey.ToString(), *TargetPlatform->PlatformName() );
+			return true;
+		}
 		
-	TArray<FString>& CookedIniVersionStrings = *FoundCookedIniVersionStrings;
-#endif
+		const FConfigFile* ConfigFile = nullptr;
+		FConfigFile Temp;
+		if ( bFoundPlatformName)
+		{
+			GConfig->LoadLocalIniFile(Temp, *Filename, true, *PlatformName );
+			ConfigFile = &Temp;
+		}
+		else
+		{
+			ConfigFile = GConfig->Find(Filename, false);
+		}
+		FName FileFName = FName(*Filename);
+		if ( !ConfigFile )
+		{
+			for( const auto& File : *GConfig )
+			{
+				if (File.Value.Name == FileFName)
+				{
+					ConfigFile = &File.Value;
+					break;
+				}
+			}
+			if ( !ConfigFile )
+			{
+				UE_LOG(LogCook, Display, TEXT("Unable to find config file %s invalidating inisettings"), *FString::Printf(TEXT("%s %s"), *PlatformName, *Filename));
+				return true;
+			}
+		}
+		for ( const auto& OldIniSection : OldIniFile.Value )
+		{
+			
+			const FName& SectionName = OldIniSection.Key;
+			const FConfigSection* IniSection = ConfigFile->Find( SectionName.ToString() );
+
+			if ( IniSection == nullptr )
+			{
+				UE_LOG(LogCook, Display, TEXT("Inisetting is different for %s, Current section doesn't exist"), *FString::Printf(TEXT("%s %s %s"), *PlatformName, *Filename, *SectionName.ToString()));
+				return true;
+			}
+
+			for ( const auto& OldIniValue : OldIniSection.Value )
+			{
+				const FName& ValueName = OldIniValue.Key;
+
+				TArray<FConfigValue> CurrentValues;
+				IniSection->MultiFind( ValueName, CurrentValues, true );
+
+				if ( CurrentValues.Num() != OldIniValue.Value.Num() )
+				{
+					UE_LOG(LogCook, Display, TEXT("Inisetting is different for %s, missmatched num array elements %d != %d "), *FString::Printf(TEXT("%s %s %s %s"), *PlatformName, *Filename, *SectionName.ToString(), *ValueName.ToString()), CurrentValues.Num(), OldIniValue.Value.Num());
+					return true;
+				}
+				for ( int Index = 0; Index < CurrentValues.Num(); ++Index )
+				{
+					if ( CurrentValues[Index].GetSavedValue() != OldIniValue.Value[Index] )
+					{
+						UE_LOG(LogCook, Display, TEXT("Inisetting is different for %s, value %s != %s invalidating cook"),  *FString::Printf(TEXT("%s %s %s %s %d"),*PlatformName, *Filename, *SectionName.ToString(), *ValueName.ToString(), Index), *CurrentValues[Index].GetSavedValue(), *OldIniValue.Value[Index] );
+						return true;
+					}
+				}
+				
+			}
+		}
+	}
+
+	return false;
+}
+
+bool UCookOnTheFlyServer::SaveCurrentIniSettings(const ITargetPlatform* TargetPlatform) const
+{
+	auto S = FScopeAssign<bool>(IniSettingRecurse, true);
+	// IniSettingRecurse = true;
+
+	check(IsChildCooker() == false);
+
+	TMap<FString, FString> AdditionalIniSettings;
+	GetAdditionalCurrentIniVersionStrings(TargetPlatform, AdditionalIniSettings);
+
+	FIniSettingContainer CurrentIniSettings;
+	GetCurrentIniVersionStrings(TargetPlatform, CurrentIniSettings);
 
 	const FString EditorIni = FPaths::GameDir() / TEXT("CookedIniVersion.txt");
 	const FString SandboxEditorIni = ConvertToFullSandboxPath(*EditorIni, true);
@@ -3644,34 +3687,45 @@ bool UCookOnTheFlyServer::SaveCurrentIniSettings( const ITargetPlatform* TargetP
 	// ConfigFile.Read(*PlatformSandboxEditorIni);
 
 	ConfigFile.Dirty = true;
-	FConfigSection& ConfigSection = ConfigFile.FindOrAdd(TEXT("CookSettings"));
-	const static FName NAME_VersionedIniParams(TEXT("VersionedIniParams"));
-	ConfigSection.Remove(NAME_VersionedIniParams);
+	const static FName NAME_UsedSettings(TEXT("UsedSettings"));
+	ConfigFile.Remove(NAME_UsedSettings.ToString());
+	FConfigSection& UsedSettings = ConfigFile.FindOrAdd(NAME_UsedSettings.ToString());
 
-	// IniVersionStrings.Empty(ConfigValues.Num());
-	for (const auto& ConfigValue : CookedIniVersionStrings)
+	for (const auto& CurrentIniFilename : CurrentIniSettings)
 	{
-		ConfigSection.Add(NAME_VersionedIniParams, ConfigValue);
+		const FName& Filename = CurrentIniFilename.Key;
+		for ( const auto& CurrentSection : CurrentIniFilename.Value )
+		{
+			const FName& Section = CurrentSection.Key;
+			for ( const auto& CurrentValue : CurrentSection.Value )
+			{
+				const FName& ValueName = CurrentValue.Key;
+				const TArray<FString>& Values = CurrentValue.Value;
+
+				for ( int Index = 0; Index < Values.Num(); ++Index )
+				{
+					FString NewKey = FString::Printf(TEXT("%s:%s:%s:%d"), *Filename.ToString(), *Section.ToString(), *ValueName.ToString(), Index);
+					UsedSettings.Add(FName(*NewKey), Values[Index]);
+				}
+			}
+		}
 	}
 
-	
+
+	const static FName NAME_AdditionalSettings(TEXT("AdditionalSettings"));
+	ConfigFile.Remove(NAME_AdditionalSettings.ToString());
+	FConfigSection& AdditionalSettings = ConfigFile.FindOrAdd(NAME_AdditionalSettings.ToString());
+
+	for (const auto& AdditionalIniSetting : AdditionalIniSettings)
+	{
+		AdditionalSettings.Add( FName(*AdditionalIniSetting.Key), AdditionalIniSetting.Value );
+	}
 
 	ConfigFile.Write(PlatformSandboxEditorIni);
 
 
 	return true;
 
-
-
-	/*const FString CookedIni = FPaths::GameDir() / TEXT("CookedIniVersion.txt");
-	const FString SandboxCookedIni = ConvertToFullSandboxPath(CookedIni, true);
-	// save the iniversion strings
-	const FString PlatformSandboxCookedIni = SandboxCookedIni.Replace(TEXT("[Platform]"), *TargetPlatform->PlatformName());
-
-	GConfig->SetArray(TEXT("CookSettings"), TEXT("VersionedIniParams"), CookedIniVersionStrings, PlatformSandboxCookedIni);
-	GConfig->Flush(false, PlatformSandboxCookedIni);
-
-	return true;*/
 }
 
 FString UCookOnTheFlyServer::ConvertCookedPathToUncookedPath(const FString& CookedRelativeFilename) const 

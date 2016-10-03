@@ -11,8 +11,8 @@
 #include <dirent.h>
 #include <jni.h>
 #include <unistd.h>
-#include <Android/asset_manager.h>
-#include <Android/asset_manager_jni.h>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 #include <android/storage_manager.h>
 #include "AndroidJava.h"
 #include "Map.h"
@@ -296,7 +296,8 @@ public:
 			// Can't write to assets.
 			return false;
 		}
-		
+
+		bool bSuccess = true;
 		while (BytesToWrite)
 		{
 			check(BytesToWrite >= 0);
@@ -304,7 +305,8 @@ public:
 			check(Source);
 			if (pwrite(File->Handle, Source, ThisSize, CurrentOffset) != ThisSize)
 			{
-				return false;
+				bSuccess = false;
+				break;
 			}
 			CurrentOffset += ThisSize;
 			Source += ThisSize;
@@ -314,7 +316,7 @@ public:
 		// Update the cached file length
 		Length = FMath::Max(Length, CurrentOffset);
 
-		return true;
+		return bSuccess;
 	}
 
 	virtual int64 Size() override

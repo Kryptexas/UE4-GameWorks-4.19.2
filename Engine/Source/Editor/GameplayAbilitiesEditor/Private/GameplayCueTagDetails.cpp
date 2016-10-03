@@ -29,6 +29,19 @@ TSharedRef<IPropertyTypeCustomization> FGameplayCueTagDetails::MakeInstance()
 	return MakeShareable(new FGameplayCueTagDetails());
 }
 
+FText FGameplayCueTagDetails::GetTagText() const
+{
+	FString Str;
+	FGameplayTag* TagPtr = GetTag();
+	if (TagPtr && TagPtr->IsValid())
+	{
+		Str = TagPtr->GetTagName().ToString();
+	}
+
+	return FText::FromString(Str);
+}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FGameplayCueTagDetails::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	uint32 NumChildren = 0;
@@ -50,18 +63,6 @@ void FGameplayCueTagDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Struct
 	[
 		StructPropertyHandle->CreatePropertyNameWidget()
 	];
-}
-
-FText FGameplayCueTagDetails::GetTagText() const
-{
-	FString Str;
-	FGameplayTag* TagPtr = GetTag();
-	if (TagPtr && TagPtr->IsValid())
-	{
-		Str = TagPtr->GetTagName().ToString();
-	}
-
-	return FText::FromString(Str);
 }
 
 void FGameplayCueTagDetails::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
@@ -112,6 +113,7 @@ void FGameplayCueTagDetails::CustomizeChildren( TSharedRef<IPropertyHandle> Stru
 		]
 	];
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 TSharedRef<ITableRow> FGameplayCueTagDetails::GenerateListRow(TSharedRef<FStringAssetReference> NotifyName, const TSharedRef<STableViewBase>& OwnerTable)
 {	
@@ -147,7 +149,7 @@ FReply FGameplayCueTagDetails::OnAddNewNotifyClicked()
 	FGameplayTag* TagPtr = GetTag();
 	if (TagPtr && TagPtr->IsValid())
 	{
-		SGameplayCueEditor::CreateNewGameplayCueNotifyDialogue(TagPtr->ToString());
+		SGameplayCueEditor::CreateNewGameplayCueNotifyDialogue(TagPtr->ToString(), nullptr);
 		OnPropertyValueChanged();
 	}
 	return FReply::Handled();

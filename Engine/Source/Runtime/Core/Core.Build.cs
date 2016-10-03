@@ -150,6 +150,10 @@ public class Core : ModuleRules
             PrivateDependencyModuleNames.Add("HTML5JS");
             PrivateDependencyModuleNames.Add("MapPakDownloader");
         }
+        else if (Target.Platform == UnrealTargetPlatform.PS4)
+        {
+            PublicAdditionalLibraries.Add("SceRtc_stub_weak"); //ORBIS SDK rtc.h, used in PS4Time.cpp
+        }
 
         if ( UEBuildConfiguration.bCompileICU == true ) 
         {
@@ -202,5 +206,5 @@ public class Core : ModuleRules
         {
             Definitions.Add("WITH_DIRECTXMATH=0");
         }
-	}
+    }
 }

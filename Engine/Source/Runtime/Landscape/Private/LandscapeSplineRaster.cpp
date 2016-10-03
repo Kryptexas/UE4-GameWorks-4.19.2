@@ -6,8 +6,8 @@
   =============================================================================*/
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
 #include "LandscapeSplineRaster.h"
+#include "Landscape.h"
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
@@ -15,8 +15,6 @@
 #include "LandscapeSplinesComponent.h"
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
-#include "LandscapeLayerInfoObject.h"
-#include "LandscapeComponent.h"
 #if WITH_EDITOR
 #include "AI/Navigation/NavigationSystem.h"
 #include "ScopedTransaction.h"

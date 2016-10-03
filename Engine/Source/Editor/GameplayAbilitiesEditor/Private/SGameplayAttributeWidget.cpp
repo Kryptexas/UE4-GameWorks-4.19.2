@@ -14,6 +14,7 @@
 
 DECLARE_DELEGATE_OneParam(FOnAttributePicked, UProperty*);
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 struct FAttributeViewerNode
 {
 public:
@@ -398,5 +399,7 @@ FText SGameplayAttributeWidget::GetSelectedValueAsString() const
 
 	return FText::FromString(TEXT("None"));
 }
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 #undef LOCTEXT_NAMESPACE

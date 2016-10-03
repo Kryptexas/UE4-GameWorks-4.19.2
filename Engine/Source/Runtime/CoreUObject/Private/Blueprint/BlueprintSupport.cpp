@@ -475,7 +475,7 @@ bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 				{
 					Import.XObject = MakeImportPlaceholder<ULinkerPlaceholderClass>(LinkerRoot, *Import.ObjectName.ToString(), Index);
 				}
-				else if (ImportClass->IsChildOf<UFunction>())
+				else if (ImportClass->IsChildOf<UFunction>() && Import.OuterIndex.IsImport())
 				{
 					const int32 OuterImportIndex = Import.OuterIndex.ToImport();
 					// @TODO: if the sole reason why we have ULinkerPlaceholderFunction 

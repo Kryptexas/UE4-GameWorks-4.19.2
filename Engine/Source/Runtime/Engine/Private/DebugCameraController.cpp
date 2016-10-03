@@ -260,7 +260,7 @@ ASpectatorPawn* ADebugCameraController::SpawnSpectatorPawn()
 	// Only spawned for the local player
 	if (GetSpectatorPawn() == NULL && IsLocalController())
 	{
-		AGameState const* const GameState = GetWorld()->GameState;
+		AGameStateBase const* const GameState = GetWorld()->GetGameState();
 		if (GameState)
 		{
 			FActorSpawnParameters SpawnParams;

@@ -152,10 +152,14 @@ public:
 	// Should be called when any TextureSet is released; will be reset in PreSubmitUpdate.
 	void InvalidateTextureSets() { bTextureSetsAreInvalid = true; }
 
+	virtual void GetPokeAHoleMatrices(const FViewInfo *LeftView,const FViewInfo *RightView,const FHMDLayerDesc& LayerDesc, const FHMDGameFrame* CurrentFrame, FMatrix &LeftMatrix, FMatrix &RightMatrix, bool &InvertCoordinates) override;
+
 protected:
 	virtual TSharedPtr<FHMDRenderLayer> CreateRenderLayer_RenderThread(FHMDLayerDesc& InDesc) override;
 
 	virtual uint32 GetTotalNumberOfLayersSupported() const override { return ovrMaxLayerCount; }
+
+	virtual bool ShouldSupportLayerType(FHMDLayerDesc::ELayerTypeMask InType) override;
 
 protected:
 	class FCustomPresent*	pPresentBridge;

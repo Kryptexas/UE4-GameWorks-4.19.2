@@ -2,6 +2,13 @@
 
 #include "AbilitySystemEditorPrivatePCH.h"
 
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#endif
+
+#include "Core.h"
+#include "Engine.h"
+
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BlueprintEditorSettings.h"
@@ -18,9 +25,12 @@
 
 #define LOCTEXT_NAMESPACE "UGameplayAbilitiesBlueprintFactory"
 
-/*------------------------------------------------------------------------------
-Dialog to configure creation properties
-------------------------------------------------------------------------------*/
+
+// ------------------------------------------------------------------------------
+// Dialog to configure creation properties
+// ------------------------------------------------------------------------------
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
 class SGameplayAbilityBlueprintCreateDialog : public SCompoundWidget
 {
 public:
@@ -230,6 +240,8 @@ private:
 	/** True if Ok was clicked */
 	bool bOkClicked;
 };
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 /*------------------------------------------------------------------------------
 	UGameplayAbilitiesBlueprintFactory implementation.

@@ -44,13 +44,14 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* FileName )
 
 	// Combine the explicit DLL search directories with the contents of the directory stack 
 	TArray<FString> SearchPaths;
-	for(int32 Idx = DllDirectoryStack.Num() - 1; Idx >= 0; Idx--)
+	SearchPaths.Add(FPlatformProcess::GetModulesDirectory());
+	if(DllDirectoryStack.Num() > 0)
 	{
-		SearchPaths.AddUnique(DllDirectoryStack[Idx]);
+		SearchPaths.Add(DllDirectoryStack.Top());
 	}
 	for(int32 Idx = 0; Idx < DllDirectories.Num(); Idx++)
 	{
-		SearchPaths.AddUnique(DllDirectories[Idx]);
+		SearchPaths.Add(DllDirectories[Idx]);
 	}
 
 	::SetErrorMode(SEM_NOOPENFILEERRORBOX);
@@ -773,7 +774,12 @@ const TCHAR* FWindowsPlatformProcess::UserTempDir()
 
 		::GetTempPath(MAX_PATH, TempPath);
 
-		WindowsUserTempDir = FString(TempPath).Replace(TEXT("\\"), TEXT("/"));
+		// Always expand the temp path in case windows returns short directory names.
+		TCHAR FullTempPath[MAX_PATH];
+		ZeroMemory(FullTempPath, sizeof(TCHAR) * MAX_PATH);
+		::GetLongPathName(TempPath, FullTempPath, MAX_PATH);
+
+		WindowsUserTempDir = FString(FullTempPath).Replace(TEXT("\\"), TEXT("/"));
 	}
 	return *WindowsUserTempDir;
 }
@@ -1321,9 +1327,9 @@ FProcHandle FWindowsPlatformProcess::OpenProcess(uint32 ProcessID)
 
 void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileName, const TArray<FString>& SearchPaths)
 {
-	// Create a list of files which we've already checked for imports
+	// Create a list of files which we've already checked for imports. Don't add the initial file to this list to improve the resolution of dependencies for direct circular dependencies of this
+	// module; by allowing the module to be visited twice, any mutually depended on DLLs will be visited first.
 	TArray<FString> VisitedImportNames;
-	VisitedImportNames.Add(FPaths::GetCleanFilename(FileName));
 
 	// Find a list of all the DLLs that need to be loaded
 	TArray<FString> ImportFileNames;
@@ -1377,7 +1383,7 @@ bool FWindowsPlatformProcess::ResolveImport(const FString& Name, const TArray<FS
 		FString FileName = SearchPaths[Idx] / Name;
 		if(FPaths::FileExists(FileName))
 		{
-			OutFileName = FileName;
+			OutFileName = FPaths::ConvertRelativePathToFull(FileName);
 			return true;
 		}
 	}

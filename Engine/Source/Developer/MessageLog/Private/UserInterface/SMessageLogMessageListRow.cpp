@@ -159,8 +159,30 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		const TSharedRef<FUObjectToken> UObjectToken = StaticCastSharedRef<FUObjectToken>(InMessageToken);
 
 		IconBrushName = FName("PropertyWindow.Button_Browse");
+
+		UObject* Object = nullptr;
+
+		// Due to blueprint reconstruction, we can't directly use the Object as it will get trashed during the blueprint reconstruction and the message token will no longer point to the right UObject.
+		// Instead we will retrieve the object from the name which should always be good.
+		if (UObjectToken->GetObject().IsValid())
+		{
+			if (!UObjectToken->ToText().ToString().Equals(UObjectToken->GetObject().Get()->GetName()))
+			{
+				Object = FindObject<UObject>(nullptr, *UObjectToken->GetOriginalObjectPathName());
+			}
+			else
+			{
+				Object = const_cast<UObject*>(UObjectToken->GetObject().Get());
+			}
+		}
+		else
+		{
+			// We have no object (probably because is now stale), try finding the original object linked to this message token to see if it still exist
+			Object = FindObject<UObject>(nullptr, *UObjectToken->GetOriginalObjectPathName());
+		}
+
 		RowContent = CreateHyperlink(InMessageToken, FUObjectToken::DefaultOnGetObjectDisplayName().IsBound()
-			? FUObjectToken::DefaultOnGetObjectDisplayName().Execute(UObjectToken->GetObject().Get(), true)
+			? FUObjectToken::DefaultOnGetObjectDisplayName().Execute(Object, true)
 			: UObjectToken->ToText());
 	}
 		break;

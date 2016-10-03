@@ -183,7 +183,7 @@ FReply FProceduralMeshComponentDetails::ClickedOnConvertToStaticMesh()
 				// Copy materials to new mesh
 				for (UMaterialInterface* Material : MeshMaterials)
 				{
-					StaticMesh->Materials.Add(Material);
+					StaticMesh->StaticMaterials.Add(FStaticMaterial(Material));
 				}
 
 				// Build mesh from source

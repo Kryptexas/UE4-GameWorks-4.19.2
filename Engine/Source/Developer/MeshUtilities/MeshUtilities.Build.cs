@@ -22,13 +22,19 @@ public class MeshUtilities : ModuleRules
 				"RawMesh",
 				"RenderCore", // For FPackedNormal
 				"SlateCore",
-				"MaterialUtilities", 
-                "MeshBoneReduction",		
+                "Slate",
+                "MaterialUtilities",
+                "MeshBoneReduction",
                 "UnrealEd",
-                "RHI",                
+                "RHI",
                 "HierarchicalLODUtilities",
-                "Landscape"
-			}
+                "Landscape",
+                "LevelEditor",
+                "AnimationBlueprintEditor",
+                "AnimationEditor",
+                "SkeletalMeshEditor",
+                "SkeletonEditor",
+            }
 		);
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");

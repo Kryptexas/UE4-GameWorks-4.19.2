@@ -123,13 +123,13 @@ struct FPlayerTreeViewEntry : public TSharedFromThis<FPlayerTreeViewEntry>
 class FAnimGraphParentPlayerDetails : public IDetailCustomization
 {
 public:
-	static TSharedRef<IDetailCustomization> MakeInstance(TWeakPtr<FPersona> InPersona);
+	static TSharedRef<IDetailCustomization> MakeInstance(TSharedRef<class FBlueprintEditor> InBlueprintEditor);
 
 	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder);
 
 private:
 
-	FAnimGraphParentPlayerDetails(TWeakPtr<FPersona> InPersona) : PersonaPtr(InPersona)
+	FAnimGraphParentPlayerDetails(const TSharedRef<class FBlueprintEditor>& InBlueprintEditor) : BlueprintEditorPtr(InBlueprintEditor)
 	{}
 
 	TSharedRef<ITableRow> OnGenerateRow(TSharedPtr<FPlayerTreeViewEntry> EventPtr, const TSharedRef< STableViewBase >& OwnerTable);
@@ -138,8 +138,8 @@ private:
 	// Entries in the tree view
 	TArray<TSharedPtr<FPlayerTreeViewEntry>> ListEntries;
 	
-	// Hosting Persona instance
-	TWeakPtr<FPersona> PersonaPtr;
+	// Hosting Blueprint Editor instance
+	TWeakPtr<class FBlueprintEditor> BlueprintEditorPtr;
 
 	// Editor meta-object containing override information
 	UEditorParentPlayerListObj* EditorObject;
@@ -151,7 +151,7 @@ public:
 	SLATE_BEGIN_ARGS(SParentPlayerTreeRow){}
 		SLATE_ARGUMENT(TSharedPtr<FPlayerTreeViewEntry>, Item);
 		SLATE_ARGUMENT(UEditorParentPlayerListObj*, OverrideObject);
-		SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona);
+		SLATE_ARGUMENT(TWeakPtr<class FBlueprintEditor>, BlueprintEditor);
 	SLATE_END_ARGS();
 
 	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView);
@@ -193,6 +193,6 @@ private:
 	// Graphnode this row represents, if any
 	UAnimGraphNode_Base* GraphNode;
 
-	// Persona editor pointer
-	TWeakPtr<FPersona> Persona;
+	// Blueprint editor pointer
+	TWeakPtr<FBlueprintEditor> BlueprintEditor;
 };

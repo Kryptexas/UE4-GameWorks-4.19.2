@@ -51,6 +51,9 @@
 #if !defined(PLATFORM_LINUX)
 	#define PLATFORM_LINUX 0
 #endif
+#if !defined(PLATFORM_WOLF)
+	#define PLATFORM_WOLF 0
+#endif
 
 // Platform specific compiler pre-setup.
 #if PLATFORM_WINDOWS
@@ -69,6 +72,8 @@
 	#include "HTML5/HTML5PlatformCompilerPreSetup.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatformCompilerPreSetup.h"
+#elif PLATFORM_WOLF
+	#include "WolfPlat/WolfPlatformCompilerPreSetup.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -103,6 +108,8 @@
 	#include "HTML5/HTML5Platform.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatform.h"
+#elif PLATFORM_WOLF
+	#include "WolfPlat/WolfPlatform.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -208,6 +215,9 @@
 #ifndef PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
 	#define PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME	1
 #endif
+#ifndef PLATFORM_HAS_BSD_SOCKET_FEATURE_GETADDRINFO
+	#define PLATFORM_HAS_BSD_SOCKET_FEATURE_GETADDRINFO	1
+#endif
 #ifndef PLATFORM_HAS_BSD_SOCKET_FEATURE_CLOSE_ON_EXEC
 	#define PLATFORM_HAS_BSD_SOCKET_FEATURE_CLOSE_ON_EXEC	0
 #endif
@@ -252,6 +262,10 @@
 
 #ifndef PLATFORM_USES_FIXED_GMalloc_CLASS
 	#define PLATFORM_USES_FIXED_GMalloc_CLASS		0
+#endif
+
+#ifndef PLATFORM_USES_STACKBASED_MALLOC_CRASH
+	#define PLATFORM_USES_STACKBASED_MALLOC_CRASH	0
 #endif
 
 #ifndef PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS
@@ -736,6 +750,8 @@ namespace TypeTests
 	#include "HTML5/HTML5PlatformCompilerSetup.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatformCompilerSetup.h"
+#elif PLATFORM_WOLF
+	#include "WolfPlat/WolfPlatformCompilerSetup.h"
 #else
 	#error Unknown Compiler
 #endif

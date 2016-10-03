@@ -3,7 +3,6 @@
 
 #include "PersonaPrivatePCH.h"
 #include "SAnimationBlendSpace1D.h"
-#include "SAnimationSequenceBrowser.h"
 #include "Persona.h"
 #include "AssetData.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
@@ -518,11 +517,12 @@ SBlendSpaceEditor1D::~SBlendSpaceEditor1D()
 	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
 }
 
-void SBlendSpaceEditor1D::Construct(const FArguments& InArgs)
+void SBlendSpaceEditor1D::Construct(const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo)
 {
 	SBlendSpaceEditorBase::Construct(SBlendSpaceEditorBase::FArguments()
-		.Persona(InArgs._Persona)
-		.BlendSpace(InArgs._BlendSpace1D)
+		.BlendSpace(InArgs._BlendSpace1D),
+		InPreviewScene,
+		OnPostUndo
 		);
 
 	// Register to be notified when properties are edited
@@ -531,15 +531,9 @@ void SBlendSpaceEditor1D::Construct(const FArguments& InArgs)
 
 	bCachedDisplayVerticalValue = GetBlendSpace()->bDisplayEditorVertically;
 
-	this->ChildSlot
+	NonScrollEditorPanels->AddSlot()
 	[
 		SNew(SVerticalBox)
-
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			MakeEditorHeader()
-		]
 
 		+SVerticalBox::Slot()
 		.FillHeight(1.0f)

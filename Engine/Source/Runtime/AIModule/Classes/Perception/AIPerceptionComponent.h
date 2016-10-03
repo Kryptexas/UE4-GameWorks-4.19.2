@@ -273,7 +273,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
 	void GetKnownPerceivedActors(TSubclassOf<UAISense> SenseToUse, TArray<AActor*>& OutActors) const;
 	
-	DEPRECATED(4.13, "GetPerceivedActors is deprecated. Use GetPerceivedActors or GetPerceivedActors")
+	DEPRECATED(4.13, "GetPerceivedActors is deprecated. Use GetCurrentlyPerceivedActors or GetKnownPerceivedActors")
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
 	void GetPerceivedActors(TSubclassOf<UAISense> SenseToUse, TArray<AActor*>& OutActors) const;
 	

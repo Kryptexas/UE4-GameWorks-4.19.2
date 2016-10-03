@@ -2,17 +2,13 @@
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "ObjectTools.h"
-#include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 #include "LandscapeEdit.h"
-#include "LandscapeLayerInfoObject.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeSplineProxies.h"
-#include "LandscapeEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "LandscapeEdMode.h"
 #include "LandscapeEdModeTools.h"
 #include "InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
@@ -134,7 +130,7 @@ public:
 
 					for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 					{
-						const FIntPoint Key = ALandscape::MakeKey(X, Y);
+						const FIntPoint Key = FIntPoint(X, Y);
 						const float BrushValue = BrushScanline[X];
 
 						if (BrushValue > 0.0f && LandscapeInfo->IsValidPosition(X, Y))
@@ -190,8 +186,93 @@ public:
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Selection", "Component Selection"); };
 	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectComponent | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
 	virtual bool SupportsMask() override { return false; }
+};
 
-	virtual ELandscapeToolType GetToolType() override { return ELandscapeToolType::Mask; }
+//
+// FLandscapeToolMask
+//
+class FLandscapeToolStrokeMask : public FLandscapeToolStrokeBase
+{
+public:
+	FLandscapeToolStrokeMask(FEdModeLandscape* InEdMode, FEditorViewportClient* InViewportClient, const FLandscapeToolTarget& InTarget)
+		: FLandscapeToolStrokeBase(InEdMode, InViewportClient, InTarget)
+		, Cache(InTarget)
+	{
+	}
+
+	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolInteractorPosition>& InteractorPositions)
+	{
+		if (LandscapeInfo)
+		{
+			LandscapeInfo->Modify();
+
+			// Invert when holding Shift
+			bool bInvert = InteractorPositions[ InteractorPositions.Num() - 1].bModifierPressed;
+
+			const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(InteractorPositions);
+			if (!BrushInfo)
+			{
+				return;
+			}
+
+			int32 X1, Y1, X2, Y2;
+			BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
+			// Tablet pressure
+			float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
+
+			Cache.CacheData(X1, Y1, X2, Y2);
+			TArray<uint8> Data;
+			Cache.GetCachedData(X1, Y1, X2, Y2, Data);
+
+			TSet<ULandscapeComponent*> NewComponents;
+			LandscapeInfo->GetComponentsInRegion(X1, Y1, X2, Y2, NewComponents);
+			LandscapeInfo->UpdateSelectedComponents(NewComponents, false);
+
+			for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
+			{
+				const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+				uint8* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+
+				for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
+				{
+					const FIntPoint Key = FIntPoint(X, Y);
+					const float BrushValue = BrushScanline[X];
+
+					if (BrushValue > 0.0f && LandscapeInfo->IsValidPosition(X, Y))
+					{
+						float PaintValue = BrushValue * UISettings->ToolStrength * Pressure;
+						float Value = DataScanline[X] / 255.0f;
+						checkSlow(FMath::IsNearlyEqual(Value, LandscapeInfo->SelectedRegion.FindRef(Key), 1 / 255.0f));
+						if (bInvert)
+						{
+							Value = FMath::Max(Value - PaintValue, 0.0f);
+						}
+						else
+						{
+							Value = FMath::Min(Value + PaintValue, 1.0f);
+						}
+						if (Value > 0.0f)
+						{
+							LandscapeInfo->SelectedRegion.Add(Key, Value);
+						}
+						else
+						{
+							LandscapeInfo->SelectedRegion.Remove(Key);
+						}
+
+						DataScanline[X] = FMath::Clamp<int32>(FMath::RoundToInt(Value * 255), 0, 255);
+					}
+				}
+			}
+
+			Cache.SetCachedData(X1, Y1, X2, Y2, Data);
+			Cache.Flush();
+		}
+	}
+
+protected:
+	FLandscapeDataCache Cache;
 };
 
 template<class TStrokeClass>
@@ -1213,7 +1294,7 @@ public:
 									}
 								}
 
-								FGizmoSelectData* GizmoSelectData = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
+								FGizmoSelectData* GizmoSelectData = Gizmo->SelectedData.Find(FIntPoint(X, Y));
 								if (GizmoSelectData)
 								{
 									if (bApplyToAll)
@@ -1265,7 +1346,7 @@ public:
 											NewData.WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
 										}
 									}
-									Gizmo->SelectedData.Add(ALandscape::MakeKey(X, Y), NewData);
+									Gizmo->SelectedData.Add(FIntPoint(X, Y), NewData);
 								}
 							}
 						}
@@ -1519,10 +1600,10 @@ public:
 						float FracX = GizmoLocal.X - LX;
 						float FracY = GizmoLocal.Y - LY;
 
-						FGizmoSelectData* Data00 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX, LY));
-						FGizmoSelectData* Data10 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY));
-						FGizmoSelectData* Data01 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX, LY + 1));
-						FGizmoSelectData* Data11 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY + 1));
+						FGizmoSelectData* Data00 = Gizmo->SelectedData.Find(FIntPoint(LX, LY));
+						FGizmoSelectData* Data10 = Gizmo->SelectedData.Find(FIntPoint(LX + 1, LY));
+						FGizmoSelectData* Data01 = Gizmo->SelectedData.Find(FIntPoint(LX, LY + 1));
+						FGizmoSelectData* Data11 = Gizmo->SelectedData.Find(FIntPoint(LX + 1, LY + 1));
 
 						for (int32 i = -1; (!bApplyToAll && i < 0) || i < LayerNum; ++i)
 						{

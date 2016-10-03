@@ -37,8 +37,7 @@ ACameraRig_Rail::ACameraRig_Rail(const FObjectInitializer& ObjectInitializer)
 		if (PreviewMesh_Mount)
 		{
 			PreviewMesh_Mount->SetStaticMesh(MountMesh.Object);
-			PreviewMesh_Mount->AlwaysLoadOnClient = false;
-			PreviewMesh_Mount->AlwaysLoadOnServer = false;
+			PreviewMesh_Mount->bIsEditorOnly = true;
 			PreviewMesh_Mount->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 			PreviewMesh_Mount->bHiddenInGame = true;
 			PreviewMesh_Mount->CastShadow = false;
@@ -56,8 +55,7 @@ USplineMeshComponent* ACameraRig_Rail::CreateSplinePreviewSegment()
 	{
 		Segment->SetStaticMesh(PreviewRailStaticMesh);
 		Segment->SetMobility(EComponentMobility::Movable);
-		Segment->AlwaysLoadOnClient = false;
-		Segment->AlwaysLoadOnServer = false;
+		Segment->bIsEditorOnly = true;
 		Segment->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 		Segment->bHiddenInGame = true;
 		Segment->CastShadow = false;

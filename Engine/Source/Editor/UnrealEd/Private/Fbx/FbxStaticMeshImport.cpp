@@ -30,6 +30,7 @@ using namespace UnFbx;
 
 struct ExistingStaticMeshData;
 extern ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bool bSaveMaterials);
+extern void RestoreExistingMeshSettings(struct ExistingStaticMeshData* ExistingMesh, UStaticMesh* NewMesh, int32 LODIndex);
 extern void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr, UStaticMesh* NewMesh);
 
 static FbxString GetNodeNameWithoutNamespace( FbxNode* Node )
@@ -55,7 +56,7 @@ static FbxString GetNodeNameWithoutNamespace( FbxNode* Node )
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-UStaticMesh* UnFbx::FFbxImporter::ImportStaticMesh(UObject* InParent, FbxNode* Node, const FName& Name, EObjectFlags Flags, UFbxStaticMeshImportData* ImportData, UStaticMesh* InStaticMesh, int LODIndex)
+UStaticMesh* UnFbx::FFbxImporter::ImportStaticMesh(UObject* InParent, FbxNode* Node, const FName& Name, EObjectFlags Flags, UFbxStaticMeshImportData* ImportData, UStaticMesh* InStaticMesh, int LODIndex, void *ExistMeshDataPtr)
 {
 	TArray<FbxNode*> MeshNodeArray;
 	
@@ -65,7 +66,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMesh(UObject* InParent, FbxNode* N
 	}
 	
 	MeshNodeArray.Add(Node);
-	return ImportStaticMeshAsSingle(InParent, MeshNodeArray, Name, Flags, ImportData, InStaticMesh, LODIndex);
+	return ImportStaticMeshAsSingle(InParent, MeshNodeArray, Name, Flags, ImportData, InStaticMesh, LODIndex, ExistMeshDataPtr);
 }
 
 // Wraps some common code useful for multiple fbx import code path
@@ -169,6 +170,10 @@ struct FFBXUVs
 						{
 							const char* UVSetName = ElementUV->GetName();
 							FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
+							if (LocalUVSetName.IsEmpty())
+							{
+								LocalUVSetName = TEXT("UVmap_") + FString::FromInt(UVLayerIndex);
+							}
 							if (LocalUVSetName == UVSets[UVIndex])
 							{
 								LayerElementUV[UVIndex] = ElementUV;
@@ -804,21 +809,23 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId
 			TArray<UStaticMesh*> BaseMeshes;
 			TArray<FbxNode*> AllNodeInLod;
 			FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
-			FirstBaseMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
-			if(FirstBaseMesh)
+			FirstBaseMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
+			//If we have a valid LOD group name we don't want to re-import LODs since they will be automatically generate by the LODGroup reduce settings
+			if(FirstBaseMesh && Mesh->LODGroup == NAME_None)
 			{
 				// import LOD meshes
 				for (int32 LODIndex = 1; LODIndex < NodeParent->GetChildCount(); LODIndex++)
 				{
 					AllNodeInLod.Empty();
 					FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
-					ImportStaticMeshAsSingle(Mesh->GetOutermost(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, FirstBaseMesh, LODIndex);
+					//For LOD we don't pass the ExistMeshDataPtr
+					ImportStaticMeshAsSingle(Mesh->GetOutermost(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, FirstBaseMesh, LODIndex, nullptr);
 				}
 			}
 		}
 		else
 		{
-			FirstBaseMesh = ImportStaticMesh(Mesh->GetOutermost(), Node, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			FirstBaseMesh = ImportStaticMesh(Mesh->GetOutermost(), Node, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
 		}
 	}
 	else
@@ -826,7 +833,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId
 		// no FBX mesh match, maybe the Unreal mesh is imported from multiple FBX mesh (enable option "Import As Single")
 		if (FbxMeshArray.Num() > 0)
 		{
-			FirstBaseMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), FbxMeshArray, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			FirstBaseMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), FbxMeshArray, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
 		}
 		else // no mesh found in the FBX file
 		{
@@ -929,10 +936,11 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 			FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
 			if (AllNodeInLod.Num() > 0)
 			{
-				NewMesh = ImportStaticMeshAsSingle(Mesh->GetOuter(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+				NewMesh = ImportStaticMeshAsSingle(Mesh->GetOuter(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
 			}
 
-			if (NewMesh && ImportOptions->bImportStaticMeshLODs)
+			//If we have a valid LOD group name we don't want to re-import LODs since they will be automatically generate by the LODGroup reduce settings
+			if (NewMesh && ImportOptions->bImportStaticMeshLODs && Mesh->LODGroup == NAME_None)
 			{
 				// import LOD meshes
 				for (int32 LODIndex = 1; LODIndex < NodeParent->GetChildCount(); LODIndex++)
@@ -941,14 +949,15 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 					FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
 					if (AllNodeInLod.Num() > 0)
 					{
-						ImportStaticMeshAsSingle(Mesh->GetOuter(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, NewMesh, LODIndex);
+						//For LOD we don't pass the ExistMeshDataPtr
+						ImportStaticMeshAsSingle(Mesh->GetOuter(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, NewMesh, LODIndex, nullptr);
 					}
 				}
 			}
 		}
 		else
 		{
-			NewMesh = ImportStaticMesh(Mesh->GetOuter(), Node, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0);
+			NewMesh = ImportStaticMesh(Mesh->GetOuter(), Node, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
 		}
 	}
 	else
@@ -956,7 +965,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 		// no FBX mesh match, maybe the Unreal mesh is imported from multiple FBX mesh (enable option "Import As Single")
 		if (FbxMeshArray.Num() > 0)
 		{
-			NewMesh = ImportStaticMeshAsSingle(Mesh->GetOuter(), FbxMeshArray, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0);
+			NewMesh = ImportStaticMeshAsSingle(Mesh->GetOuter(), FbxMeshArray, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0, ExistMeshDataPtr);
 		}
 		else // no mesh found in the FBX file
 		{
@@ -982,8 +991,9 @@ void UnFbx::FFbxImporter::VerifyGeometry(UStaticMesh* StaticMesh)
 	}
 }
 
-UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData, UStaticMesh* InStaticMesh, int LODIndex)
+UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData, UStaticMesh* InStaticMesh, int LODIndex, void *ExistMeshDataPtr, TArray<FName> *OrderedMaterialNames)
 {
+	struct ExistingStaticMeshData* ExistMeshData = (struct ExistingStaticMeshData*)ExistMeshDataPtr;
 	bool bBuildStatus = true;
 
 	// Make sure rendering is done - so we are not changing data being used by collision drawing.
@@ -1054,9 +1064,27 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		ExistingMesh = FindObject<UStaticMesh>( Package, *MeshName );
 		ExistingObject = FindObject<UObject>( Package, *MeshName );		
 	}
-
+	
+	TArray<FName> LastImportedMaterialNames;
 	if (ExistingMesh)
 	{
+		if (OrderedMaterialNames == nullptr)
+		{
+			//Store the last imported material name order before we destroy the StaticMaterial array
+			int32 NoneNameCount = 0;
+			for (const FStaticMaterial &Material : ExistingMesh->StaticMaterials)
+			{
+				if (Material.ImportedMaterialSlotName == NAME_None)
+					NoneNameCount++;
+
+				LastImportedMaterialNames.Add(Material.ImportedMaterialSlotName);
+			}
+			if (NoneNameCount >= LastImportedMaterialNames.Num())
+			{
+				LastImportedMaterialNames.Empty();
+			}
+		}
+
 		ExistingMesh->GetVertexColorData(ExistingVertexColorData);
 
 		if (0 == ExistingVertexColorData.Num())
@@ -1109,6 +1137,40 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			VertexColorImportOption = EVertexColorImportOption::Replace;
 		}
 	}
+
+	if (OrderedMaterialNames != nullptr)
+	{
+		LastImportedMaterialNames = (*OrderedMaterialNames);
+	}
+
+	//If the imported model is using skinxx workflow just empty LastImportedMaterialNames array
+	if (LastImportedMaterialNames.Num() > 0)
+	{
+		int32 SkinXXNameCount = 0;
+		for (FName MaterialName : LastImportedMaterialNames)
+		{
+			if (MaterialName == NAME_None)
+			{
+				continue;
+			}
+			FString ImportedMaterialName = MaterialName.ToString();
+			int32 Offset = ImportedMaterialName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+			if (Offset != INDEX_NONE)
+			{
+				FString SkinXXNumber = ImportedMaterialName.Right(ImportedMaterialName.Len() - (Offset + 1)).RightChop(4);
+
+				if (SkinXXNumber.IsNumeric())
+				{
+					SkinXXNameCount++;
+				}
+			}
+		}
+		//If we have some skinxx suffixe we don't use the name to reorder
+		if (SkinXXNameCount == LastImportedMaterialNames.Num())
+		{
+			LastImportedMaterialNames.Empty();
+		}
+	}
 	
 	if( InStaticMesh != NULL && LODIndex > 0 )
 	{
@@ -1130,6 +1192,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		}
 	}
 	TArray<int32> OldMaterialIndex;
+	
 	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[LODIndex];
 	if( InStaticMesh != NULL && LODIndex > 0 && !SrcModel.RawMeshBulkData->IsEmpty() )
 	{
@@ -1138,6 +1201,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			//We import a LOD over an existing one or simply do a reimport. Use the old lod material slot in the materials array
 			//But make sure this material index is not use by any other LODs sections
 			bool CanReuseSlotIndex = true;
+
 			for (int32 LodRessourceIndex = 0; LodRessourceIndex < StaticMesh->RenderData->LODResources.Num(); ++LodRessourceIndex)
 			{
 				if (LodRessourceIndex == LODIndex)
@@ -1243,31 +1307,58 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 				)), 
 				FFbxErrors::StaticMesh_TooManyMaterials);
 		}
-
+		
 		// Sort materials based on _SkinXX in the name.
 		TArray<uint32> SortedMaterialIndex;
-		for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
+		//Decide if we sort by name or by skinxx (By name must be the first try)
+		if(LastImportedMaterialNames.Num() > 0)
 		{
-			int32 SkinIndex = 0xffff;
-			int32 RemappedIndex = MaterialMap[MaterialIndex];
-			if (!SortedMaterialIndex.IsValidIndex(RemappedIndex))
+			for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
 			{
-				FString FbxMatName = MeshMaterials[RemappedIndex].GetName();
-
-				int32 Offset = FbxMatName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-				if (Offset != INDEX_NONE)
+				int32 SkinIndex = 0xffff;
+				int32 RemappedIndex = MaterialMap[MaterialIndex];
+				if (!SortedMaterialIndex.IsValidIndex(RemappedIndex))
 				{
-					// Chop off the material name so we are left with the number in _SKINXX
-					FString SkinXXNumber = FbxMatName.Right(FbxMatName.Len() - (Offset + 1)).RightChop(4);
-
-					if (SkinXXNumber.IsNumeric())
+					FName FbxMatName = /*UniqueMaterials[RemappedIndex].Material != nullptr ? UniqueMaterials[RemappedIndex].Material->GetFName() :*/ FName(*(UniqueMaterials[RemappedIndex].GetName()));
+					for (int32 LastMatIndex = 0; LastMatIndex < LastImportedMaterialNames.Num(); ++LastMatIndex)
 					{
-						SkinIndex = FPlatformString::Atoi( *SkinXXNumber );
-						bDoRemap = true;
+						FName OrderedMaterialName = LastImportedMaterialNames[LastMatIndex];
+						if (FbxMatName == OrderedMaterialName)
+						{
+							SkinIndex = LastMatIndex;
+							bDoRemap = true;
+							break;
+						}
 					}
+					SortedMaterialIndex.Add(((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff));
 				}
+			}
+		}
+		else
+		{
+			for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
+			{
+				int32 SkinIndex = 0xffff;
+				int32 RemappedIndex = MaterialMap[MaterialIndex];
+				if (!SortedMaterialIndex.IsValidIndex(RemappedIndex))
+				{
+					FString FbxMatName = /*UniqueMaterials[RemappedIndex].Material != nullptr ? UniqueMaterials[RemappedIndex].Material->GetName() :*/ UniqueMaterials[RemappedIndex].GetName();
 
-				SortedMaterialIndex.Add(((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff));
+					int32 Offset = FbxMatName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+					if (Offset != INDEX_NONE)
+					{
+						// Chop off the material name so we are left with the number in _SKINXX
+						FString SkinXXNumber = FbxMatName.Right(FbxMatName.Len() - (Offset + 1)).RightChop(4);
+
+						if (SkinXXNumber.IsNumeric())
+						{
+							SkinIndex = FPlatformString::Atoi(*SkinXXNumber);
+							bDoRemap = true;
+						}
+					}
+
+					SortedMaterialIndex.Add(((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff));
+				}
 			}
 		}
 		SortedMaterialIndex.Sort();
@@ -1352,7 +1443,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		// Setup per-section info and the materials array.
 		if (LODIndex == 0)
 		{
-			StaticMesh->Materials.Empty();
+			StaticMesh->StaticMaterials.Empty();
 		}
 		
 		// Replace map of sections with the unique material set
@@ -1362,15 +1453,42 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, MaterialIndex);
 
 			int32 Index = 0;
+			
+			FName MaterialFName = FName(*(SortedMaterials[MaterialIndex].GetName()));
+			FString CleanMaterialSlotName = MaterialFName.ToString();
+			int32 SkinOffset = CleanMaterialSlotName.Find(TEXT("_skin"));
+			if (SkinOffset != INDEX_NONE)
+			{
+				CleanMaterialSlotName = CleanMaterialSlotName.LeftChop(CleanMaterialSlotName.Len() - SkinOffset);
+			}
+
 			if (OldMaterialIndex.Num() > 0)
 			{
 				Index = OldMaterialIndex[0];
-				StaticMesh->Materials[Index] = SortedMaterials[MaterialIndex].Material;
+				StaticMesh->StaticMaterials[Index].MaterialInterface = SortedMaterials[MaterialIndex].Material;
 				OldMaterialIndex.RemoveAt(0);
+			}
+			else if (InStaticMesh )
+			{
+				Index = INDEX_NONE;
+				FStaticMaterial StaticMaterialImported(SortedMaterials[MaterialIndex].Material, FName(*CleanMaterialSlotName), MaterialFName);
+				for (int32 OriginalMaterialIndex = 0; OriginalMaterialIndex < InStaticMesh->StaticMaterials.Num(); ++OriginalMaterialIndex)
+				{
+					if (InStaticMesh->StaticMaterials[OriginalMaterialIndex] == StaticMaterialImported)
+					{
+						Index = OriginalMaterialIndex;
+						break;
+					}
+				}
+				if (Index == INDEX_NONE || Index >= NumMaterials)
+				{
+					Index = StaticMesh->StaticMaterials.Add(FStaticMaterial(SortedMaterials[MaterialIndex].Material, FName(*CleanMaterialSlotName), MaterialFName));
+				}
 			}
 			else
 			{
-				Index = StaticMesh->Materials.Add(SortedMaterials[MaterialIndex].Material);
+				
+				Index = StaticMesh->StaticMaterials.Add(FStaticMaterial(SortedMaterials[MaterialIndex].Material, FName(*CleanMaterialSlotName), MaterialFName));
 			}
 
 			Info.MaterialIndex = Index;
@@ -1382,7 +1500,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		SrcModel.RawMeshBulkData->LoadRawMesh(LocalRawMesh);
 
 		// Setup default LOD settings based on the selected LOD group.
-		if (ExistingMesh == NULL && LODIndex == 0)
+		if (LODIndex == 0)
 		{
 			ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
 			check(CurrentPlatform);
@@ -1422,6 +1540,10 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 		TArray<FText> BuildErrors;
 		StaticMesh->LODGroup = ImportOptions->StaticMeshLODGroup;
+		if (ExistMeshData && InStaticMesh)
+		{
+			RestoreExistingMeshSettings(ExistMeshData, InStaticMesh, StaticMesh->LODGroup != NAME_None ? INDEX_NONE : LODIndex);
+		}
 		StaticMesh->Build(false, &BuildErrors);
 
 		for( FText& Error : BuildErrors )
@@ -1441,7 +1563,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
 			{
 				FMeshSectionInfo Info = OldSectionInfoMap.Get(LODResoureceIndex, SectionIndex);
-				if (StaticMesh->Materials.IsValidIndex(Info.MaterialIndex))
+				if (StaticMesh->StaticMaterials.IsValidIndex(Info.MaterialIndex))
 				{
 					StaticMesh->SectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
 				}

@@ -995,6 +995,15 @@ public:
 	static const void PreLoadMap(FString&, FString&, void*)
 	{}
 
+	/**
+	* Returns monitor's DPI scale factor at given screen coordinates (expressed in pixels)
+	* @return Monitor's DPI scale factor at given point
+	*/
+	static float GetDPIScaleFactorAtPoint(float X, float Y)
+	{
+		return 1.0f;
+	}
+
 #if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */

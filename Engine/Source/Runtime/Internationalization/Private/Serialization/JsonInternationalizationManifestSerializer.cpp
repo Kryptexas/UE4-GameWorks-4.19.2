@@ -142,6 +142,12 @@ bool FJsonInternationalizationManifestSerializer::DeserializeInternal( TSharedRe
 	if( InJsonObj->HasField( TAG_FORMATVERSION ) )
 	{
 		const int32 FormatVersion = static_cast<int32>(InJsonObj->GetNumberField( TAG_FORMATVERSION ));
+		if (FormatVersion > (int32)FInternationalizationManifest::EFormatVersion::Latest)
+		{
+			// Manifest is too new to be loaded!
+			return false;
+		}
+
 		Manifest->SetFormatVersion(static_cast<FInternationalizationManifest::EFormatVersion>(FormatVersion));
 	}
 	else

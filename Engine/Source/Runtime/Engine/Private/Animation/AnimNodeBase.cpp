@@ -59,8 +59,9 @@ UAnimBlueprint* FAnimationBaseContext::GetAnimBlueprint() const
 void FPoseContext::Initialize(FAnimInstanceProxy* InAnimInstanceProxy)
 {
 	checkSlow(AnimInstanceProxy && AnimInstanceProxy->GetRequiredBones().IsValid());
-	Pose.SetBoneContainer(&AnimInstanceProxy->GetRequiredBones());
-	Curve.InitFrom(AnimInstanceProxy->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
+	const FBoneContainer& RequiredBone = AnimInstanceProxy->GetRequiredBones();
+	Pose.SetBoneContainer(&RequiredBone);
+	Curve.InitFrom(RequiredBone);
 }
 
 /////////////////////////////////////////////////////
@@ -69,8 +70,9 @@ void FPoseContext::Initialize(FAnimInstanceProxy* InAnimInstanceProxy)
 void FComponentSpacePoseContext::ResetToRefPose()
 {
 	checkSlow(AnimInstanceProxy && AnimInstanceProxy->GetRequiredBones().IsValid());
-	Pose.InitPose(&AnimInstanceProxy->GetRequiredBones());
-	Curve.InitFrom(AnimInstanceProxy->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
+	const FBoneContainer& RequiredBone = AnimInstanceProxy->GetRequiredBones();
+	Pose.InitPose(&RequiredBone);
+	Curve.InitFrom(RequiredBone);
 }
 
 /////////////////////////////////////////////////////

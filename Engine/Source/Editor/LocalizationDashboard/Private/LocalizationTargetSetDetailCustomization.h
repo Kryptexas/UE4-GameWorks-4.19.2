@@ -10,14 +10,6 @@ class IPropertyHandle;
 class ULocalizationTargetSet;
 class IDetailCategoryBuilder;
 
-struct FLocalizationServiceProviderWrapper
-{
-	FLocalizationServiceProviderWrapper() : Provider(nullptr) {}
-	FLocalizationServiceProviderWrapper(ILocalizationServiceProvider* const InProvider) : Provider(InProvider) {}
-
-	ILocalizationServiceProvider* Provider;
-};
-
 class FLocalizationTargetSetDetailCustomization : public IDetailCustomization
 {
 public:
@@ -27,10 +19,6 @@ public:
 private:
 	void BuildTargetsList();
 	void RebuildTargetsList();
-
-	FText GetCurrentServiceProviderDisplayName() const;
-	TSharedRef<SWidget> ServiceProviderComboBox_OnGenerateWidget(TSharedPtr<FLocalizationServiceProviderWrapper> LSPWrapper) const;
-	void ServiceProviderComboBox_OnSelectionChanged(TSharedPtr<FLocalizationServiceProviderWrapper> LSPWrapper, ESelectInfo::Type SelectInfo);
 
 	bool CanGatherTextAllTargets() const;
 	void GatherTextAllTargets();
@@ -65,9 +53,6 @@ private:
 	IDetailLayoutBuilder* DetailLayoutBuilder;
 
 	TWeakObjectPtr<ULocalizationTargetSet> TargetSet;
-
-	IDetailCategoryBuilder* ServiceProviderCategoryBuilder;
-	TArray< TSharedPtr<FLocalizationServiceProviderWrapper> > Providers;
 
 	TSharedPtr<IPropertyHandle> TargetObjectsPropertyHandle;
 	FSimpleDelegate TargetsArrayPropertyHandle_OnNumElementsChanged;

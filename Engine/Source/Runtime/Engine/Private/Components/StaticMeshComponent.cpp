@@ -367,11 +367,11 @@ void UStaticMeshComponent::CheckForErrors()
 			}
 		}
 
-		if (OverrideMaterials.Num() > StaticMesh->Materials.Num())
+		if (OverrideMaterials.Num() > StaticMesh->StaticMaterials.Num())
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("OverridenCount"), OverrideMaterials.Num());
-			Arguments.Add(TEXT("ReferencedCount"), StaticMesh->Materials.Num());
+			Arguments.Add(TEXT("ReferencedCount"), StaticMesh->StaticMaterials.Num());
 			Arguments.Add(TEXT("MeshName"), FText::FromString(StaticMesh->GetName()));
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(Owner))
@@ -463,6 +463,7 @@ void UStaticMeshComponent::AddSpeedTreeWind()
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
 			GetScene()->AddSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
+			GetScene()->AddSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactoryOverrideColorVertexBuffer, StaticMesh);
 		}
 	}
 }
@@ -473,6 +474,7 @@ void UStaticMeshComponent::RemoveSpeedTreeWind()
 	{
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
+			GetScene()->RemoveSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactoryOverrideColorVertexBuffer, StaticMesh);
 			GetScene()->RemoveSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
 		}
 	}
@@ -704,7 +706,7 @@ void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& T
 				// If the streaming factors are not valid, this section can be ignored. Could be related to 0 area size.
 				float LODElementTexelFactor;
 				FBoxSphereBounds LODElementBounds;
-				if (!StaticMesh->GetStreamingTextureFactor(LODElementTexelFactor, LODElementBounds, 0, LODIndex, ElementIndex, ComponentToWorld))
+				if (!GetStreamingTextureFactors(LODElementTexelFactor, LODElementBounds, 0, LODIndex, ElementIndex))
 					continue;
 
 				const FStaticMeshSection& Element = LOD.Sections[ElementIndex];
@@ -734,7 +736,7 @@ void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& T
 
 				for (int32 TexCoordIndex = 1; TexCoordIndex <= MaxTexCoordIndex; ++TexCoordIndex)
 				{
-					if (StaticMesh->GetStreamingTextureFactor(LODElementTexelFactor, LODElementBounds, TexCoordIndex, LODIndex, ElementIndex, ComponentToWorld))
+					if (GetStreamingTextureFactors(LODElementTexelFactor, LODElementBounds, TexCoordIndex, LODIndex, ElementIndex))
 					{
 						SectionData.TexelFactors[TexCoordIndex] = LODElementTexelFactor;
 					}
@@ -742,8 +744,14 @@ void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& T
 
 			}
 		}
+		MarkRenderStateDirty();
 	}
 #endif
+}
+
+bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex) const
+{
+	return StaticMesh && StaticMesh->GetStreamingTextureFactor(OutTexelFactor, OutBounds, CoordinateIndex, LODIndex, ElementIndex, ComponentToWorld);
 }
 
 bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
@@ -1593,9 +1601,9 @@ void UStaticMeshComponent::PostLoad()
 			}
 		}
 
-		if (OverrideMaterials.Num() > StaticMesh->Materials.Num())
+		if (OverrideMaterials.Num() > StaticMesh->StaticMaterials.Num())
 		{
-			OverrideMaterials.RemoveAt(StaticMesh->Materials.Num(), OverrideMaterials.Num() - StaticMesh->Materials.Num());
+			OverrideMaterials.RemoveAt(StaticMesh->StaticMaterials.Num(), OverrideMaterials.Num() - StaticMesh->StaticMaterials.Num());
 		}
 	}
 #endif // #if WITH_EDITORONLY_DATA
@@ -1925,12 +1933,33 @@ int32 UStaticMeshComponent::GetNumMaterials() const
 	// that only counts if overridden and it can't be more than StaticMesh->Materials. 
 	if(StaticMesh)
 	{
-		return StaticMesh->Materials.Num();
+		return StaticMesh->StaticMaterials.Num();
 	}
 	else
 	{
 		return 0;
 	}
+}
+
+int32 UStaticMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
+{
+	return StaticMesh ? StaticMesh->GetMaterialIndex(MaterialSlotName) : -1;
+}
+
+TArray<FName> UStaticMeshComponent::GetMaterialSlotNames() const
+{
+	TArray<FName> MaterialNames;
+	for (int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex)
+	{
+		const FStaticMaterial &StaticMaterial = StaticMesh->StaticMaterials[MaterialIndex];
+		MaterialNames.Add(StaticMaterial.MaterialSlotName);
+	}
+	return MaterialNames;
+}
+
+bool UStaticMeshComponent::IsMaterialSlotNameValid(FName MaterialSlotName) const
+{
+	return GetMaterialIndex(MaterialSlotName) >= 0;
 }
 
 UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const

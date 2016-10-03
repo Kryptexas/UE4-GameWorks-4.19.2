@@ -180,7 +180,7 @@ public:
 				auto* OriginalDataScanline = OriginalData.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 				for (int32 X = X1; X < X2; X++)
 				{
-					float VertexInfluence = TotalInfluenceMap.FindRef(ALandscape::MakeKey(X, Y));
+					float VertexInfluence = TotalInfluenceMap.FindRef(FIntPoint(X, Y));
 
 					auto& CurrentValue = DataScanline[X];
 					auto& SourceValue = OriginalDataScanline[X];
@@ -219,7 +219,7 @@ public:
 
 			for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 			{
-				const FIntPoint Key = ALandscape::MakeKey(X, Y);
+				const FIntPoint Key = FIntPoint(X, Y);
 				const float BrushValue = BrushScanline[X];
 
 				// Update influence map
@@ -442,7 +442,7 @@ public:
 
 			for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 			{
-				const FIntPoint Key = ALandscape::MakeKey(X, Y);
+				const FIntPoint Key = FIntPoint(X, Y);
 				const float BrushValue = BrushScanline[X];
 
 				float SculptAmount = BrushValue * SculptStrength;

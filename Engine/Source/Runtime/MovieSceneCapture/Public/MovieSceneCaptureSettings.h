@@ -39,7 +39,7 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 
 	/** Optional game mode to override the map's default game mode with.  This can be useful if the game's normal mode displays UI elements or loading screens that you don't want captured. */
 	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay)
-	TSubclassOf<class AGameMode> GameModeOverride;
+	TSubclassOf<class AGameModeBase> GameModeOverride;
 
 	/** The format to use for the resulting filename. Extension will be added automatically. Any tokens of the form {token} will be replaced with the corresponding value:
 	 * {fps}		- The captured framerate

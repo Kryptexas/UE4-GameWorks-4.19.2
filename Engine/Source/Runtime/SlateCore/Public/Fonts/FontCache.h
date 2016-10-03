@@ -21,6 +21,19 @@ class FShapedGlyphFaceData;
 struct FCharacterRenderData;
 struct FSlateFontKey;
 
+enum class EFontCacheAtlasDataType : uint8
+{
+	/** Data was cached for a regular non-outline font */
+	Regular = 0,
+
+	/** Data was cached for a outline (stroked) font */
+	Outline,
+
+	/** Must be last */
+	Num,
+};
+
+
 /** 
  * Methods that can be used to shape text.
  * @note If you change this enum, make sure and update CVarDefaultTextShapingMethod and GetDefaultTextShapingMethod.
@@ -149,21 +162,23 @@ private:
 	/** 
 	 * Pointer to the cached atlas data for this glyph entry.
 	 * This is cached on the glyph by FSlateFontCache::GetShapedGlyphFontAtlasData to avoid repeated map look ups.
-	 * Index 0 is the cached value for the game thread font cache. Index 1 is the cached value for the render thread font cache.
+	 * First index is to determine if this is a cached outline glyph or a regular glyph
+	 * Second index is the index of the thread dependent font cache. Index 0 is the cached value for the game thread font cache. Index 1 is the cached value for the render thread font cache.
 	 */
-	mutable TWeakPtr<FShapedGlyphFontAtlasData> CachedAtlasData[2];
+	mutable TWeakPtr<FShapedGlyphFontAtlasData> CachedAtlasData[(uint8)EFontCacheAtlasDataType::Num][2];
 };
 
 /** Minimal FShapedGlyphEntry key information used for map lookups */
 struct FShapedGlyphEntryKey
 {
 public:
-	FShapedGlyphEntryKey(const TSharedPtr<FShapedGlyphFaceData>& InFontFaceData, uint32 InGlyphIndex);
+	FShapedGlyphEntryKey(const TSharedPtr<FShapedGlyphFaceData>& InFontFaceData, uint32 InGlyphIndex, const FFontOutlineSettings& InOutlineSettings);
 
 	FORCEINLINE bool operator==(const FShapedGlyphEntryKey& Other) const
 	{
 		return FontFace == Other.FontFace 
 			&& FontSize == Other.FontSize
+			&& OutlineSize == Other.OutlineSize
 			&& FontScale == Other.FontScale
 			&& GlyphIndex == Other.GlyphIndex;
 	}
@@ -183,6 +198,8 @@ private:
 	TWeakPtr<FFreeTypeFace> FontFace;
 	/** Provides the point size used to render the font */
 	int32 FontSize;
+	/** The size in pixels of the outline to render for the font */
+	float OutlineSize;
 	/** Provides the final scale used to render to the font */
 	float FontScale;
 	/** The index of this glyph in the FreeType face */
@@ -207,7 +224,7 @@ public:
 		int32 TextLen;
 	};
 
-	FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial, const FSourceTextRange& InSourceTextRange);
+	FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial, const struct FFontOutlineSettings& InOutlineSettings, const FSourceTextRange& InSourceTextRange);
 	~FShapedGlyphSequence();
 
 	/** Get the amount of memory allocated to this sequence */
@@ -235,6 +252,12 @@ public:
 	const UObject* GetFontMaterial() const
 	{
 		return FontMaterial;
+	}
+
+	/** Get the font outline settings to use when rendering these glyphs */
+	const FFontOutlineSettings& GetFontOutlineSettings() const
+	{
+		return OutlineSettings;
 	}
 
 	/** Check to see whether this glyph sequence is dirty (ie, contains glyphs with invalid font pointers) */
@@ -415,6 +438,8 @@ private:
 	uint16 MaxTextHeight;
 	/** The material to use when rendering these glyphs */
 	const UObject* FontMaterial;
+	/** Outline settings to use when rendering these glyphs */
+	FFontOutlineSettings OutlineSettings;
 	/** The cached width of the entire sequence */
 	int32 SequenceWidth;
 	/** The set of fonts being used by the glyphs within this sequence */
@@ -679,17 +704,16 @@ public:
 	/** 
 	 * Gets information for how to draw all characters in the specified string. Caches characters as they are found
 	 * 
-	 * @param Text				The string to get character information for
 	 * @param InFontInfo		Information about the font that the string is drawn with
 	 * @param FontScale			The scale to apply to the font
 	 * @param OutCharacterEntries	Populated array of character entries. Indices of characters in Text match indices in this array
 	 */
-	class FCharacterList& GetCharacterList( const FSlateFontInfo &InFontInfo, float FontScale );
+	class FCharacterList& GetCharacterList( const FSlateFontInfo &InFontInfo, float FontScale, const FFontOutlineSettings& InOutlineSettings = FFontOutlineSettings::NoOutline);
 
 	/**
 	 * Get the atlas information for the given shaped glyph. This information will be cached if required 
 	 */
-	FShapedGlyphFontAtlasData GetShapedGlyphFontAtlasData( const FShapedGlyphEntry& InShapedGlyph );
+	FShapedGlyphFontAtlasData GetShapedGlyphFontAtlasData( const FShapedGlyphEntry& InShapedGlyph, const FFontOutlineSettings& InOutlineSettings);
 
 	/** 
 	 * Add a new entries into a cache atlas
@@ -701,7 +725,7 @@ public:
 	 */
 	bool AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, FCharacterEntry& OutCharacterEntry );
 
-	bool AddNewEntry( const FShapedGlyphEntry& InShapedGlyph, FShapedGlyphFontAtlasData& OutAtlasData );
+	bool AddNewEntry( const FShapedGlyphEntry& InShapedGlyph, const FFontOutlineSettings& InOutlineSettings, FShapedGlyphFontAtlasData& OutAtlasData );
 
 	bool AddNewEntry( const FCharacterRenderData InRenderData, uint8& OutTextureIndex, uint16& OutGlyphX, uint16& OutGlyphY, uint16& OutGlyphWidth, uint16& OutGlyphHeight );
 

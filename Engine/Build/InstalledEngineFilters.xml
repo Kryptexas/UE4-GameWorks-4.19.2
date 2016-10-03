@@ -31,7 +31,7 @@
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_PuzzleBP/TP_PuzzleBP.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_2DSideScrollerBP/TP_2DSideScrollerBP.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_VehicleAdvBP/TP_VehicleAdvBP.uproject"/>
-	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_VirtualRealityBP/TP_VirtualRealityBP.uproject" If="'$(HostPlatform)' != 'Mac'"/>
+	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Templates/TP_VirtualRealityBP/TP_VirtualRealityBP.uproject" If="'$(HostPlatform)' != 'Mac' and '$(HostPlatform)' != 'Linux'"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Samples/StarterContent/StarterContent.uproject"/>
 	<Property Name="ProjectsToBuildDDC" Value="$(ProjectsToBuildDDC);Samples/MobileStarterContent/MobileStarterContent.uproject"/>
 	
@@ -89,8 +89,11 @@
 	<!-- Exclude all the intermediate files in the Engine/Saved folder -->
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Saved/..."/>
 	
-	<!-- Exclude generated config files from Engine/Programs folder -->
+	<!-- Exclude generated config files/intermediates from Engine/Programs folder -->
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/AutomationTool/..."/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealBuildTool/..."/>
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealHeaderTool/Intermediate/..."/>
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealHeaderTool/Saved/..."/>
 
 	<!-- Starter content -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Samples/StarterContent/Content/..."/>
@@ -121,7 +124,7 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_2DSideScrollerBP/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VehicleAdv/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VehicleAdvBP/..."/>
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VirtualRealityBP/..." If="'$(HostPlatform)' != 'Mac'"/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TP_VirtualRealityBP/..." If="'$(HostPlatform)' != 'Mac' and '$(HostPlatform)' != 'Linux'"/>
 	<!-- shared template resources -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Templates/TemplateResources/..."/>
 	<!-- exclude intermediates and other files not needed in installed build-->
@@ -133,7 +136,7 @@
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Templates/*/manifest.json"/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Templates/*/contents.txt"/>
 	<!-- exclude VR feature pack on Mac -->
-	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);FeaturePacks/TP_VirtualRealityBP.upack" If="'$(HostPlatform)' == 'Mac'"/>
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);FeaturePacks/TP_VirtualRealityBP.upack" If="'$(HostPlatform)' == 'Mac' or '$(HostPlatform)' == 'Linux'"/>
 
 	<!-- Build files -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/Build.version"/>
@@ -315,13 +318,16 @@
 	<Property Name="CopyPS4Exceptions" Value=""/>
 
 	<!-- Build Files -->
-	<Property Name="CopyPS4Filter" Value="$(CopyHTML5Filter);Engine/Build/PS4/..."/>
+	<Property Name="CopyPS4Filter" Value="$(CopyPS4Filter);Engine/Build/PS4/..."/>
 
 	<!-- XboxOne -->
 	<Property Name="CopyXboxOneFilter" Value=""/>
 	<Property Name="CopyXboxOneExceptions" Value=""/>
 
 	<!-- Build Files -->
-	<Property Name="CopyXboxOneFilter" Value="$(CopyHTML5Filter);Engine/Build/XboxOne/..."/>
+	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Build/XboxOne/..."/>
+
+	<!-- Additional Binaries -->
+	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Binaries/Win64/XboxOne/XboxOnePackageNameUtil.exe"/>
 
 </BuildGraph>

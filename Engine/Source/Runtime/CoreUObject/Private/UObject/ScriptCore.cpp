@@ -3,7 +3,6 @@
 /*=============================================================================
 	ScriptCore.cpp: Kismet VM execution and support code.
 =============================================================================*/
-
 #include "CoreUObjectPrivate.h"
 #include "MallocProfiler.h"
 #include "HotReloadInterface.h"
@@ -12,14 +11,11 @@
 DEFINE_LOG_CATEGORY(LogScriptFrame);
 DEFINE_LOG_CATEGORY_STATIC(LogScriptCore, Log, All);
 
-DECLARE_CYCLE_STAT(TEXT("Blueprint Time"),STAT_BlueprintTime,STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("Blueprint Time"), STAT_BlueprintTime, STATGROUP_Game);
 
 #define LOCTEXT_NAMESPACE "ScriptCore"
 
 #if TOTAL_OVERHEAD_SCRIPT_STATS
-COREUOBJECT_API FBlueprintEventTimer::FScopedVMTimer* FBlueprintEventTimer::ActiveVMTimer = nullptr;
-COREUOBJECT_API FBlueprintEventTimer::FPausableScopeTimer* FBlueprintEventTimer::ActiveTimer = nullptr;
-
 DEFINE_STAT(STAT_ScriptVmTime_Total);
 DEFINE_STAT(STAT_ScriptNativeTime_Total);
 #endif //TOTAL_OVERHEAD_SCRIPT_STATS

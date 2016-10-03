@@ -119,7 +119,7 @@ bool FAndroidMediaPlayer::Seek(const FTimespan& Time)
 		return false;
 	}
 
-	JavaMediaPlayer->SeekTo(Time.GetMilliseconds());
+	JavaMediaPlayer->SeekTo(static_cast<int32>(Time.GetTotalMilliseconds()));
 
 	return true;
 }

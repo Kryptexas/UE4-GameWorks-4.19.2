@@ -306,10 +306,10 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	AssetRegistryModule.Get().GetAssets(Filter, AssetDataArray);
 
 	FString UAssetPackageExtension = FPackageName::GetAssetPackageExtension();
-	TSet< FString > LongPackageNamesToExclude;
-	for (int Index = 0; Index < AssetDataArray.Num(); Index++)
+	TSet< FString > PackageFileNamesToExclude;
+	for (const FAssetData& AssetData : AssetDataArray)
 	{
-		LongPackageNamesToExclude.Add( FPackageName::LongPackageNameToFilename( AssetDataArray[Index].PackageName.ToString(), UAssetPackageExtension ) );
+		PackageFileNamesToExclude.Add( FPaths::ConvertRelativePathToFull( FPackageName::LongPackageNameToFilename( AssetData.PackageName.ToString(), UAssetPackageExtension ) ) );
 	}
 
 	//Get whether we should fix broken properties that we find.
@@ -394,7 +394,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			}
 
 			//Check that this is not on the list of packages that we don't care about e.g. textures.
-			if ( !bExclude && IsAssetPackage && LongPackageNamesToExclude.Contains( PackageFile ) )
+			if ( !bExclude && IsAssetPackage && PackageFileNamesToExclude.Contains( PackageFile ) )
 			{
 				bExclude = true;
 				PackageFilesExcludedByClass.Add(PackageFile);

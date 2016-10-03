@@ -408,7 +408,7 @@ void SDetailSingleItemRow::OnCopyProperty()
 		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle( Customization->GetPropertyNode().ToSharedRef(), OwnerTreeNode.Pin()->GetDetailsView().GetNotifyHook(),  OwnerTreeNode.Pin()->GetDetailsView().GetPropertyUtilities() );
 
 		FString Value;
-		if( Handle->GetValueAsFormattedString(Value) == FPropertyAccess::Success )
+		if( Handle->GetValueAsFormattedString(Value, PPF_Copy) == FPropertyAccess::Success )
 		{
 			FPlatformMisc::ClipboardCopy(*Value);
 		}

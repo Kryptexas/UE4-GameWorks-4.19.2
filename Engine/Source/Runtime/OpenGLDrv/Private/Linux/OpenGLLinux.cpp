@@ -131,14 +131,35 @@ static void _PlatformCreateDummyGLWindow( FPlatformOpenGLContext *OutContext )
  * Determine OpenGL Context version based on command line arguments
  */
 
-static bool _PlatformOpenGL4()
+static bool IsOpenGL3Forced()
+{
+	return FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
+}
+
+static bool IsOpenGL4Forced()
 {
 	return FParse::Param(FCommandLine::Get(),TEXT("opengl4"));
 }
 
-static void _PlatformOpenGLVersionFromCommandLine(int& OutMajorVersion, int& OutMinorVersion)
+static void PlatformOpenGLVersionFromCommandLine(int& OutMajorVersion, int& OutMinorVersion)
 {
-	if	( _PlatformOpenGL4() )
+	bool bGL3 = IsOpenGL3Forced();
+	bool bGL4 = IsOpenGL4Forced();
+	if (!bGL3 && !bGL4)
+	{
+		// if neither is forced, go with the first RHI in the list
+		if (GRequestedFeatureLevel == ERHIFeatureLevel::SM5)
+		{
+			bGL4 = true;
+		}
+		else
+		{
+			bGL3 = true;
+		}
+	}
+
+	// between GL3 and GL4, prefer GL3 since it might have been forced as a safety measure.
+	if (bGL4)
 	{
 		OutMajorVersion = 4;
 		OutMinorVersion = 3;
@@ -826,7 +847,7 @@ bool PlatformInitOpenGL()
 			DebugFlag = SDL_GL_CONTEXT_DEBUG_FLAG;
 		}
 	
-		_PlatformOpenGLVersionFromCommandLine(MajorVersion, MinorVersion);
+		PlatformOpenGLVersionFromCommandLine(MajorVersion, MinorVersion);
 		if (SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, MajorVersion) != 0)
 		{
 			UE_LOG(LogLinux, Fatal, TEXT("SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, %d) failed: %s"), MajorVersion, UTF8_TO_TCHAR(SDL_GetError()));

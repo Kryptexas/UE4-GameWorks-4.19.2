@@ -88,6 +88,16 @@
     </When>
   </Choose>
   <Choose>
+    <When Condition="Exists('WolfPlat\UEBuildWolf.cs')">
+      <ItemGroup>
+        <Compile Include="WolfPlat\UEBuildWolf.cs" />
+        <Compile Include="WolfPlat\WolfToolChain.cs" />
+        <Compile Include="WolfPlat\UEDeployWolf.cs" />
+        <Compile Include="WolfPlat\WolfProjectGenerator.cs" />
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Choose>
     <When Condition="Exists('PS4\UEBuildPS4.cs')">
       <ItemGroup>
         <Compile Include="PS4\PS4ProjectGenerator.cs" />

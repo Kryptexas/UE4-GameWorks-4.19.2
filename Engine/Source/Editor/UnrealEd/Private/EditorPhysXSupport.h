@@ -24,7 +24,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "PxPhysicsAPI.h"
 #include "PxRenderBuffer.h"
 #include "PxExtensionsAPI.h"
-#include "PxVisualDebuggerExt.h"
+#include "PxPvd.h"
 //#include "PxDefaultCpuDispatcher.h"
 
 // vehicle related header files
@@ -39,22 +39,22 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 // APEX
 #if WITH_APEX
 // Framework
-#include "NxApex.h"
+#include "Apex.h"
 
 // Modules
-#include "NxModuleDestructible.h"
-#include "NxModuleClothing.h"
+#include "ModuleDestructible.h"
+#include "ModuleClothing.h"
 
 // Assets
-#include "NxDestructibleAsset.h"
-#include "NxClothingAsset.h"
+#include "DestructibleAsset.h"
+#include "ClothingAsset.h"
 
 // Actors
-#include "NxDestructibleActor.h"
-#include "NxClothingActor.h"
+#include "DestructibleActor.h"
+#include "ClothingActor.h"
 
 // Utilities
-#include "NxParamUtils.h"
+#include "NvParamUtils.h"
 
 #endif // #if WITH_APEX
 

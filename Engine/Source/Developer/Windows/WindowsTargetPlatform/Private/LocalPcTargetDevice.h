@@ -342,7 +342,7 @@ public:
 		return false;
 	}
 
-	virtual bool TerminateProcess( const int32 ProcessId ) override
+	virtual bool TerminateProcess( const int64 ProcessId ) override
 	{
 		HANDLE ProcessHandle = OpenProcess(PROCESS_TERMINATE, false, ProcessId);
 

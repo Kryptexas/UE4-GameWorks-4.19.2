@@ -802,7 +802,7 @@ struct SLATECORE_API FSearchBoxStyle : public FSlateWidgetStyle
 	FSearchBoxStyle& SetTextBoxStyle( const FEditableTextBoxStyle& InTextBoxStyle );
 
 	/** Font to use for the text box part of the search box when a search term is entered*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateFontInfo ActiveFontInfo;
 	FSearchBoxStyle& SetActiveFont( const FSlateFontInfo& InFontInfo ){ ActiveFontInfo = InFontInfo; return *this; }
 

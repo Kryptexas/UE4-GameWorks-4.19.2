@@ -49,8 +49,6 @@ enum EFBXExpectedResultPreset
 	Bone_Number,
 	/** Data should contain the bone index [int0] and a position xyz [float0 float1 float2] optionnaly you can pass a tolerance [float3]. */
 	Bone_Position,
-	
-	Preset_MAX,
 };
 
 /** Import mesh type */
@@ -61,7 +59,6 @@ enum EFBXTestPlanActionType
 	Reimport,
 	AddLOD,
 	ReimportLOD,
-	Action_MAX,
 };
 
 /**

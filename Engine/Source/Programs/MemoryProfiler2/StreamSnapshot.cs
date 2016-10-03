@@ -56,54 +56,6 @@ namespace MemoryProfiler2
         }
 	}
 
-	/// <summary> Additional memory statistics. </summary>
-    public enum ESnapshotMetricV3
-    {
-		/// <summary> Memory profiling overhead. </summary>
-		MemoryProfilingOverhead,
-
-		/// <summary> Memory allocated from OS. PS3 only. </summary>
-		AllocatedFromOS,
-
-		/// <summary> Maximum amount of memory allocated from OS. PS3 only. </summary>
-		MaxAllocatedFromOS, 
-
-		/// <summary> Memory requested by game. PS3 only. </summary>
-		AllocateFromGame,
-
-		/// <summary> Total used chunks by the allocator. </summary>
-		TotalUsedChunks,
-
-		/// <summary> Lightmap memory. </summary>
-		TextureLightmapMemory,
-
-		/// <summary> Shadowmap memory. </summary>
-		TextureShadowmapMemory,
-
-		/// <summary> Last item used as a count. </summary>
-		Count,
-    }
-
-	/// <summary> State of total memory at a specific moment in time. </summary>
-	public enum ESliceTypesV3
-	{
-		TotalUsed,
-		TotalAllocated,
-		CPUUsed,
-		CPUSlack,
-		CPUWaste,
-		GPUUsed,
-		GPUSlack,
-		GPUWaste,
-		OSOverhead,
-		ImageSize,
-		HostUsed,
-		HostSlack,
-		HostWaste,
-		OverallAllocatedMemory,
-		Count
-	};
-
 	public enum ESliceTypesV4
 	{
 		PlatformUsedPhysical,
@@ -121,43 +73,15 @@ namespace MemoryProfiler2
 
 		public FMemorySlice( FStreamSnapshot Snapshot )
 		{
-			if( FStreamToken.Version >= 4 )
+			MemoryInfo = new long[]
 			{
-				MemoryInfo = new long[]
-				{
-					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.PlatformUsedPhysical],
-					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.BinnedWasteCurrent],
-					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.BinnedUsedCurrent],
-					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.BinnedSlackCurrent],
-					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.MemoryProfilingOverhead],
-					Snapshot.AllocationSize,
-				};
-			}
-			else
-			{
-				MemoryInfo = new long[]
-				{
-					Snapshot.MemoryAllocationStats3.TotalUsed,
-					Snapshot.MemoryAllocationStats3.TotalAllocated,
-					Snapshot.MemoryAllocationStats3.CPUUsed,
-					Snapshot.MemoryAllocationStats3.CPUSlack,
-					Snapshot.MemoryAllocationStats3.CPUWaste,
-					Snapshot.MemoryAllocationStats3.GPUUsed,
-					Snapshot.MemoryAllocationStats3.GPUSlack,
-					Snapshot.MemoryAllocationStats3.GPUWaste,
-					Snapshot.MemoryAllocationStats3.OSOverhead,
-					Snapshot.MemoryAllocationStats3.ImageSize,
-					Snapshot.MemoryAllocationStats3.HostUsed,
-					Snapshot.MemoryAllocationStats3.HostSlack,
-					Snapshot.MemoryAllocationStats3.HostWaste,
-					Snapshot.AllocationSize,
-				};
-			}
-		}
-
-		public long GetSliceInfoV3( ESliceTypesV3 SliceType )
-		{
-			return ( MemoryInfo[(int)SliceType] );
+				Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.PlatformUsedPhysical],
+				Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.BinnedWasteCurrent],
+				Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.BinnedUsedCurrent],
+				Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.BinnedSlackCurrent],
+				Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.MemoryProfilingOverhead],
+				Snapshot.AllocationSize,
+			};
 		}
 
 		public long GetSliceInfoV4( ESliceTypesV4 SliceType )
@@ -204,9 +128,6 @@ namespace MemoryProfiler2
 
 		/// <summary> Array of names of all currently loaded levels formated for usage in details view tab. </summary>
 		public List<string> LoadedLevelNames = new List<string>();
-
-		/// <summary> Generic memory allocation stats. </summary>
-		public FMemoryAllocationStatsV3 MemoryAllocationStats3 = new FMemoryAllocationStatsV3();
 
 		/// <summary> Generic memory allocation stats. </summary>
 		public FMemoryAllocationStatsV4 MemoryAllocationStats4 = new FMemoryAllocationStatsV4();
@@ -314,8 +235,6 @@ namespace MemoryProfiler2
 					ResultSnapshot.MetricArray.Add( New.MetricArray[ CallstackIndex ] - Old.MetricArray[ CallstackIndex ] );
 				}
 
-				
-				ResultSnapshot.MemoryAllocationStats3 = FMemoryAllocationStatsV3.Diff( Old.MemoryAllocationStats3, New.MemoryAllocationStats3 );
 				ResultSnapshot.MemoryAllocationStats4 = FMemoryAllocationStatsV4.Diff( Old.MemoryAllocationStats4, New.MemoryAllocationStats4 );
 
 				ResultSnapshot.StreamIndex = New.StreamIndex;
@@ -458,14 +377,7 @@ namespace MemoryProfiler2
 					    // Write out function followed by filename and then line number if valid
 					    if( SymbolFunctionName != "" || SymbolFileName != "" )
 					    {
-							if( FStreamInfo.GlobalInstance.Platform == EPlatformType.PS3 )
-							{
-								CSVWriter.Write( SymbolFunctionName + "," );
-							}
-							else
-							{
-								CSVWriter.Write( SymbolFunctionName + " @ " + SymbolFileName + ":" + Address.LineNumber + "," );
-							}
+							CSVWriter.Write( SymbolFunctionName + " @ " + SymbolFileName + ":" + Address.LineNumber + "," );
 					    }
 					    else
 					    {
@@ -520,32 +432,6 @@ namespace MemoryProfiler2
 			//public int SnapshotIndex;
 			StrBuilder.AppendLine( "Snapshot Index: " + SnapshotIndex );
 
-			///// <summary> Platform dependent memory metrics. </summary>
-			//public List<long> Metrics;
-			StrBuilder.AppendLine( "Metrics: " );
-			if( MetricArray.Count > 0 )
-			{
-				if( FStreamToken.Version >= 4 )
-				{
-					// Just ignore
-				}
-				else if( FStreamToken.Version > 2 && MetricArray.Count == (int)ESnapshotMetricV3.Count )
-				{
-					string[] MetricNames = Enum.GetNames( typeof( ESnapshotMetricV3 ) );
-					for( int MetricIndex = 0; MetricIndex < MetricNames.Length - 1; MetricIndex++ )
-					{
-						string MetricName = MetricNames[ MetricIndex ];
-						long MetricData = MetricArray[ MetricIndex ];
-						if( MetricData != 0 )
-						{
-							string MetricValue = ( MetricName == "TotalUsedChunks" ) ? MetricData.ToString() : MainWindow.FormatSizeString2( MetricData );
-							string Metric = "	" + MetricName + ": " + MetricValue;
-							StrBuilder.AppendLine( Metric );
-						}
-					}	
-				}
-			}
-
 			///// <summary> Array of names of all currently loaded levels formated for usage in details view tab. </summary>
 			//public List<string> LoadedLevelNames = new List<string>();
 			StrBuilder.AppendLine( "Loaded Levels: " + LoadedLevels.Count );
@@ -557,20 +443,12 @@ namespace MemoryProfiler2
 			///// <summary> Generic memory allocation stats. </summary>
 			//public FMemoryAllocationStats MemoryAllocationStats = new FMemoryAllocationStats();
 
-			if( FStreamToken.Version >= 4 )
-			{
-				StrBuilder.AppendLine( "Memory Allocation Stats: " );
-				StrBuilder.Append( MemoryAllocationStats4.ToString() );
-			}
-			else
-			{
-				StrBuilder.AppendLine( "Memory Allocation Stats: " );
-				StrBuilder.Append( MemoryAllocationStats3.ToString() );
-			}
+			StrBuilder.AppendLine( "Memory Allocation Stats: " );
+			StrBuilder.Append( MemoryAllocationStats4.ToString() );
 			
 			///// <summary> Running count of number of allocations. </summary>
 			//public long AllocationCount = 0;
-			StrBuilder.AppendLine( "Allocation Count: " + AllocationCount );
+			StrBuilder.AppendLine( "Allocation Count: " + AllocationCount.ToString("N0") );
 
 			///// <summary> Running total of size of allocations. </summary>
 			//public long AllocationSize = 0;

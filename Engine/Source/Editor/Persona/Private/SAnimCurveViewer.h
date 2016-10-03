@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Animation/AnimInstance.h"
-#include "Persona.h"
 
 class SAnimCurveViewer;
 
@@ -15,28 +15,25 @@ public:
 	FSmartName SmartName;
 	float Weight;
 	bool bAutoFillData;
-	const class USkeleton* Skeleton;		// The skeleton we're associated with
+	TWeakPtr<class IEditableSkeleton> EditableSkeleton;		// The skeleton we're associated with
 	TSharedPtr<SInlineEditableTextBlock> EditableText;	// The editable text box in the list, used to focus from the context menu
 	FName ContainerName;	// The container in the skeleton this name resides in
 
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedAnimCurveInfo> Make(const class USkeleton* InSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
+	static TSharedRef<FDisplayedAnimCurveInfo> Make(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
 	{
-		return MakeShareable(new FDisplayedAnimCurveInfo(InSkeleton, InContainerName, InSmartName));
+		return MakeShareable(new FDisplayedAnimCurveInfo(InEditableSkeleton, InContainerName, InSmartName));
 	}
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedAnimCurveInfo(const class USkeleton* InSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
+	FDisplayedAnimCurveInfo(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
 		: SmartName(InSmartName)
 		, Weight( 0 )
 		, bAutoFillData(true)
-		, Skeleton(InSkeleton)
+		, EditableSkeleton(InEditableSkeleton)
 		, ContainerName(InContainerName)
 	{}
-
-	/** Hidden constructor, always use Make above */
-	FDisplayedAnimCurveInfo() {}
 };
 
 typedef SListView< TSharedPtr<FDisplayedAnimCurveInfo> > SAnimCurveListType;
@@ -58,7 +55,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView);
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const TSharedRef<IPersonaPreviewScene>& InPreviewScene);
 
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
@@ -84,6 +81,10 @@ private:
 	void OnAnimCurveAutoFillChecked(ECheckBoxState InState);
 	ECheckBoxState IsAnimCurveAutoFillChangedChecked() const;
 
+	/* Curve Flag checks for morphtarget or material */
+	void OnAnimCurveTypeBoxChecked(ECheckBoxState InState, bool bMorphTarget);
+	ECheckBoxState IsAnimCurveTypeBoxChangedChecked(bool bMorphTarget) const;
+
 	/** Returns the weight of this curve */
 	float GetWeight() const;
 	/** Returns name of this curve */
@@ -101,6 +102,11 @@ private:
 
 	/** The name and weight of the morph target */
 	TSharedPtr<FDisplayedAnimCurveInfo>	Item;
+
+	/** Preview scene used to update on scrub */
+	TWeakPtr<IPersonaPreviewScene> PreviewScenePtr;
+	/** Returns curve type widget constructed */
+	TSharedRef<SWidget> GetCurveTypeWidget();
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -110,12 +116,8 @@ class SAnimCurveViewer : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SAnimCurveViewer )
-		: _Persona()
 	{}
 		
-		/** The Persona that owns this table */
-		SLATE_ARGUMENT( TWeakPtr< FPersona >, Persona )
-
 	SLATE_END_ARGS()
 
 	/**
@@ -124,13 +126,16 @@ public:
 	* @param InArgs - Arguments passed from Slate
 	*
 	*/
-	void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo );
 
 	/**
 	* Destructor - resets the animation curve
 	*
 	*/
 	virtual ~SAnimCurveViewer();
+
+	/** SWidget interface */
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);
 
 	/**
 	* Is registered with Persona to handle when its preview mesh is changed.
@@ -217,6 +222,8 @@ public:
 
 private:
 
+	void BindCommands();
+
 	/** Handler for context menus */
 	TSharedPtr<SWidget> OnGetContextMenuContent() const;
 
@@ -245,15 +252,18 @@ private:
 
 	bool IsCurveFilterEnabled() const;
 
+
 	// Adds a new smartname entry to the skeleton in the container we are managing
 	void CreateNewNameEntry(const FText& CommittedText, ETextCommit::Type CommitType);
 
 	/** Get the SmartNameMapping for anim curves */
 	const struct FSmartNameMapping* GetAnimCurveMapping();
 
+	/** Pointer to the preview scene we are bound to */
+	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
 
-	/** Pointer back to the Persona that owns us */
-	TWeakPtr<FPersona> PersonaPtr;
+	/** Pointer to the editable skeleton */
+	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
 
 	/** Box to filter to a specific morph target name */
 	TSharedPtr<SSearchBox>	NameFilterBox;
@@ -262,10 +272,7 @@ private:
 	TArray< TSharedPtr<FDisplayedAnimCurveInfo> > AnimCurveList;
 
 	/** The skeletal mesh that we grab the animation curve from */
-	UAnimInstance* CachedPreviewInstance;
-
-	/** The current skeleton being edited by out Persona instance */
-	class USkeleton* CurrentSkeleton;									
+	UAnimInstance* CachedPreviewInstance;						
 
 	/** Widget used to display the list of animation curve */
 	TSharedPtr<SAnimCurveListType> AnimCurveListView;
@@ -276,12 +283,12 @@ private:
 	/** Current text typed into NameFilterBox */
 	FText FilterText;
 
-	/** Are we showing all curves, or only active ones. */
-	bool bShowAllCurves;
-
 	int32 CurrentCurveFlag;
 
 	TMap<FName, float> OverrideCurves;
+
+	/** Commands that are bound to delegates*/
+	TSharedPtr<FUICommandList> UICommandList;
 
 	/** Curve delegate */
 	FOnAddCustomAnimationCurves OnAddAnimationCurveDelegate;

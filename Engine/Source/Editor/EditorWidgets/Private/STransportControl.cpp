@@ -36,12 +36,16 @@ TSharedPtr<SWidget> STransportControl::MakeTransportControlWidget(ETransportCont
 				. Image( this, &STransportControl::GetBackwardStatusIcon )
 			];
 	case ETransportControlWidgetType::Record:
-		return SNew(SButton)
-			. ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Record"))
+		return SAssignNew(RecordButton, SButton)
+			. ButtonStyle(FEditorStyle::Get(), "NoBorder")
 			. OnClicked(TransportControlArgs.OnRecord)
 			. Visibility(TransportControlArgs.OnRecord.IsBound() ? EVisibility::Visible : EVisibility::Collapsed)
 			. ToolTipText( this, &STransportControl::GetRecordStatusTooltip )
-			. ContentPadding(2.0f);
+			. ContentPadding(2.0f)
+			[
+				SNew(SImage)
+				.Image(this, &STransportControl::GetRecordStatusIcon )
+			];
 	case ETransportControlWidgetType::ForwardPlay:
 		return SAssignNew(ForwardPlayButton, SButton)
 			. OnClicked(TransportControlArgs.OnForwardPlay)
@@ -145,7 +149,7 @@ bool STransportControl::IsTickable() const
 void STransportControl::Tick( float DeltaTime )
 {
 	const auto PlaybackMode = TransportControlArgs.OnGetPlaybackMode.Execute();
-	const bool bIsPlaying = PlaybackMode == EPlaybackMode::PlayingForward || PlaybackMode == EPlaybackMode::PlayingReverse || PlaybackMode == EPlaybackMode::Recording;
+	const bool bIsPlaying = PlaybackMode == EPlaybackMode::PlayingForward || PlaybackMode == EPlaybackMode::PlayingReverse;
 
 	if ( bIsPlaying && !ActiveTimerHandle.IsValid() )
 	{
@@ -159,9 +163,19 @@ void STransportControl::Tick( float DeltaTime )
 
 const FSlateBrush* STransportControl::GetForwardStatusIcon() const
 {
-	const auto PlaybackMode = TransportControlArgs.OnGetPlaybackMode.Execute();
-	if (TransportControlArgs.OnGetPlaybackMode.IsBound() &&
-		 ( PlaybackMode == EPlaybackMode::PlayingForward || PlaybackMode == EPlaybackMode::Recording ) )
+	EPlaybackMode::Type PlaybackMode = EPlaybackMode::Stopped;
+	if (TransportControlArgs.OnGetPlaybackMode.IsBound())
+	{
+		PlaybackMode = TransportControlArgs.OnGetPlaybackMode.Execute();
+	}
+
+	bool bIsRecording = false;
+	if (TransportControlArgs.OnGetRecording.IsBound())
+	{
+		bIsRecording = TransportControlArgs.OnGetRecording.Execute();
+	}
+
+	if ( PlaybackMode == EPlaybackMode::PlayingForward || bIsRecording )
 	{
 		return ForwardPlayButton.IsValid() && ForwardPlayButton->IsPressed() ? 
 			&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Pause").Pressed : 
@@ -184,10 +198,30 @@ FText STransportControl::GetForwardStatusTooltip() const
 	return LOCTEXT("Play", "Play");
 }
 
+const FSlateBrush* STransportControl::GetRecordStatusIcon() const
+{
+	bool bIsRecording = false;
+	if (TransportControlArgs.OnGetRecording.IsBound())
+	{
+		bIsRecording = TransportControlArgs.OnGetRecording.Execute();
+	}
+
+	if (bIsRecording)
+	{
+		return RecordButton.IsValid() && RecordButton->IsPressed() ?
+			&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Recording").Pressed :
+			&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Recording").Normal;
+	}
+
+	return RecordButton.IsValid() && RecordButton->IsPressed() ?
+		&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Record").Pressed :
+		&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Record").Normal;
+}
+
 FText STransportControl::GetRecordStatusTooltip() const
 {
-	if (TransportControlArgs.OnGetPlaybackMode.IsBound() &&
-		TransportControlArgs.OnGetPlaybackMode.Execute() == EPlaybackMode::Recording)
+	if (TransportControlArgs.OnGetRecording.IsBound() &&
+		TransportControlArgs.OnGetRecording.Execute())
 	{
 		return LOCTEXT("StopRecording", "Stop Recording");
 	}

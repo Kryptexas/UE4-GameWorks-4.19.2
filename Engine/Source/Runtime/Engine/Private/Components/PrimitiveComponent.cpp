@@ -236,7 +236,7 @@ void UPrimitiveComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 
 bool UPrimitiveComponent::IsEditorOnly() const
 {
-	return (AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false);
+	return ((AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false)) || Super::IsEditorOnly();
 }
 
 bool UPrimitiveComponent::HasStaticLighting() const
@@ -1210,6 +1210,10 @@ void UPrimitiveComponent::SetMaterial(int32 Index, UMaterialInterface* InMateria
 {
 }
 
+void UPrimitiveComponent::SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material)
+{
+}
+
 int32 UPrimitiveComponent::GetNumMaterials() const
 {
 	return 0;
@@ -1488,6 +1492,7 @@ void UPrimitiveComponent::InitSweepCollisionParams(FCollisionQueryParams &OutPar
 {
 	OutResponseParam.CollisionResponse = BodyInstance.GetResponseToChannels();
 	OutParams.AddIgnoredActors(MoveIgnoreActors);
+	OutParams.AddIgnoredComponents(MoveIgnoreComponents);
 	OutParams.bTraceAsyncScene = bCheckAsyncSceneOnMove;
 	OutParams.bTraceComplex = bTraceComplexOnMove;
 	OutParams.bReturnPhysicalMaterial = bReturnMaterialOnMove;
@@ -2440,6 +2445,38 @@ TArray<AActor*> UPrimitiveComponent::CopyArrayOfMoveIgnoreActors()
 void UPrimitiveComponent::ClearMoveIgnoreActors()
 {
 	MoveIgnoreActors.Empty();
+}
+
+void UPrimitiveComponent::IgnoreComponentWhenMoving(UPrimitiveComponent* Component, bool bShouldIgnore)
+{
+	// Clean up stale references
+	MoveIgnoreComponents.RemoveSwap(nullptr);
+
+	// Add/Remove the component from the list
+	if (Component)
+	{
+		if (bShouldIgnore)
+		{
+			MoveIgnoreComponents.AddUnique(Component);
+		}
+		else
+		{
+			MoveIgnoreComponents.RemoveSingleSwap(Component);
+		}
+	}
+}
+
+TArray<UPrimitiveComponent*> UPrimitiveComponent::CopyArrayOfMoveIgnoreComponents()
+{
+	for (int32 Index = MoveIgnoreComponents.Num() - 1; Index >= 0; --Index)
+	{
+		const UPrimitiveComponent* const MoveIgnoreComponent = MoveIgnoreComponents[Index];
+		if (MoveIgnoreComponent == nullptr || MoveIgnoreComponent->IsPendingKill())
+		{
+			MoveIgnoreComponents.RemoveAtSwap(Index, 1, false);
+		}
+	}
+	return MoveIgnoreComponents;
 }
 
 void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)

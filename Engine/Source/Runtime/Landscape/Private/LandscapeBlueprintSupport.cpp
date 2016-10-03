@@ -5,9 +5,6 @@
   =============================================================================*/
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
-#include "LandscapeSplineRaster.h"
-#include "LandscapeProxy.h"
 #include "LandscapeSplineRaster.h"
 #include "Components/SplineComponent.h"
 #include "LandscapeSplineSegment.h"

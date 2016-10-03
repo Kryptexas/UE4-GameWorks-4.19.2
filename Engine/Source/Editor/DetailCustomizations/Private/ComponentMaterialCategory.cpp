@@ -156,6 +156,7 @@ void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 	FMaterialListDelegates MaterialListDelegates;
 	MaterialListDelegates.OnGetMaterials.BindSP( this, &FComponentMaterialCategory::OnGetMaterialsForView );
 	MaterialListDelegates.OnMaterialChanged.BindSP( this, &FComponentMaterialCategory::OnMaterialChanged );
+	MaterialListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FComponentMaterialCategory::OnGetMaterialNameForView);
 
 	TSharedRef<FMaterialList> MaterialList = MakeShareable( new FMaterialList( DetailBuilder, MaterialListDelegates ) );
 
@@ -179,6 +180,98 @@ void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 	MaterialCategory->AddCustomBuilder( MaterialList );
 	MaterialCategory->SetCategoryVisibility( bAnyMaterialsToDisplay );
 	
+}
+
+TSharedRef<SWidget> FComponentMaterialCategory::OnGetMaterialNameForView(UMaterialInterface* Material, int32 MaterialIndex)
+{
+	if (SelectedComponents.Num() <= 0)
+		return SNullWidget::NullWidget;
+
+	bool IsValueInitialize = false;
+	bool IsAllSameName = true;
+	FName MaterialSlotName(NAME_None);
+	for (FMaterialIterator It(SelectedComponents); It; ++It)
+	{
+		//Just compare the parameter material and MaterialIndex
+		//Skip the others
+		int32 IteratorMaterialIndex = It.GetMaterialIndex();
+		if (IteratorMaterialIndex != MaterialIndex)
+			continue;
+		UMaterialInterface *IteratorMaterial = It.GetMaterial();
+		if (Material != nullptr && IteratorMaterial != Material)
+			continue;
+
+		UActorComponent* CurrentComponent = It.GetComponent();
+		if (!CurrentComponent)
+		{
+			IsAllSameName = false;
+			break;
+		}
+
+		UStaticMeshComponent *StaticMeshComponent = Cast<UStaticMeshComponent>(CurrentComponent);
+		USkeletalMeshComponent *SkeletalMeshComponent = Cast<USkeletalMeshComponent>(CurrentComponent);
+		FName CurrentMaterialSlotName(NAME_None);
+		if (StaticMeshComponent && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->StaticMaterials.IsValidIndex(MaterialIndex))
+		{
+			CurrentMaterialSlotName = StaticMeshComponent->StaticMesh->StaticMaterials[MaterialIndex].MaterialSlotName;
+		}
+		else if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh && SkeletalMeshComponent->SkeletalMesh->Materials.IsValidIndex(MaterialIndex))
+		{
+			CurrentMaterialSlotName = SkeletalMeshComponent->SkeletalMesh->Materials[MaterialIndex].MaterialSlotName;
+		}
+		else
+		{
+			IsAllSameName = false;
+			break;
+		}
+		if (!IsValueInitialize)
+		{
+			IsValueInitialize = true;
+			MaterialSlotName = CurrentMaterialSlotName;
+		}
+		else if (MaterialSlotName != CurrentMaterialSlotName)
+		{
+			IsAllSameName = false;
+			break;
+		}
+	}
+
+	if (!IsValueInitialize)
+	{
+		return SNullWidget::NullWidget;
+	}
+
+	if (!IsAllSameName)
+	{
+		MaterialSlotName = FName(TEXT("Multiple Values"));
+	}
+
+	TSharedRef<SVerticalBox> CustomNameWidget = SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+			.FillWidth(0.4f)
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("MaterialArrayNameLabelStringKey", "Name"))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(5.0f, 3.0f, 5.0f, 0.0f)
+			.VAlign(VAlign_Center)
+			.FillWidth(1.0f)
+			[
+				SNew(SEditableTextBox)
+				.Text(FText::FromName(MaterialSlotName))
+				.IsEnabled(false)
+			]
+		];
+	return CustomNameWidget;
 }
 
 void FComponentMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& MaterialList )

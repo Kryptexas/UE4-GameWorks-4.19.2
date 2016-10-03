@@ -27,6 +27,9 @@ public:
 
 	static void CutWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets);
 
+	static bool IsBindWidgetProperty(UProperty* InProperty);
+	static bool IsBindWidgetProperty(UProperty* InProperty, bool& bIsOptional);
+
 	static bool IsUsableWidgetClass(UClass* WidgetClass);
 
 public:

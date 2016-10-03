@@ -43,7 +43,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 			SoundStreaming->SoundGroup = SOUNDGROUP_Voice;
 			SoundStreaming->bLooping = false;
 
-			AudioComponent = AudioDevice->CreateComponent(SoundStreaming, nullptr, nullptr, false);
+			AudioComponent = AudioDevice->CreateComponent(SoundStreaming);
 			if (AudioComponent)
 			{
 				AudioComponent->bIsUISound = true;

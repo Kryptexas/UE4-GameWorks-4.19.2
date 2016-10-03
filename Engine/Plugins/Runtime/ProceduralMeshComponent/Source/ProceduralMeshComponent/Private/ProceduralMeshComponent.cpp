@@ -421,7 +421,7 @@ void UProceduralMeshComponent::CreateMeshSection_LinearColor(int32 SectionIndex,
 
 		for (int32 ColorIdx = 0; ColorIdx < VertexColors.Num(); ColorIdx++)
 		{
-			Colors[ColorIdx] = VertexColors[ColorIdx].ToFColor(true);
+			Colors[ColorIdx] = VertexColors[ColorIdx].ToFColor(false);
 		}
 	}
 
@@ -753,7 +753,12 @@ void UProceduralMeshComponent::SetProcMeshSection(int32 SectionIndex, const FPro
 
 FBoxSphereBounds UProceduralMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	return LocalBounds.TransformBy(LocalToWorld);
+	FBoxSphereBounds Ret(LocalBounds.TransformBy(LocalToWorld));
+
+	Ret.BoxExtent *= BoundsScale;
+	Ret.SphereRadius *= BoundsScale;
+
+	return Ret;
 }
 
 bool UProceduralMeshComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData)

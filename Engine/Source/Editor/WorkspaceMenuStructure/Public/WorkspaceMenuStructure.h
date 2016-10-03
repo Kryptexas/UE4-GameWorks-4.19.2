@@ -53,9 +53,6 @@ public:
 	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsMiscCategory() const = 0;
 
 	/** See diagram above */
-	virtual TSharedRef<FWorkspaceItem> GetAutomationCategory() const = 0;
-
-	/** See diagram above */
 	virtual TSharedRef<FWorkspaceItem> GetAutomationToolsCategory() const = 0;
 
 	/** Get the root of the edit menu structure. Pass this into PopulateTabSpawnerMenu() */

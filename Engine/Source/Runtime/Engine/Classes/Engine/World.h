@@ -32,6 +32,8 @@ class AWorldSettings;
 class ACameraActor;
 class FUniqueNetId;
 class FWorldInGamePerformanceTrackers;
+class AGameModeBase;
+class AGameStateBase;
 struct FUniqueNetIdRepl;
 
 template<typename,typename> class TOctree;
@@ -557,10 +559,6 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY(Transient)
 	class ULineBatchComponent*					ForegroundLineBatcher;
 
-	/** The replicated actor which contains game state information that can be accessible to clients */
-	UPROPERTY(Transient)
-	class AGameState*							GameState;
-
 	/** Instance of this world's game-specific networking management */
 	UPROPERTY(Transient)
 	class AGameNetworkManager*					NetworkManager;
@@ -628,8 +626,13 @@ private:
 
 	/** The current GameMode, valid only on the server */
 	UPROPERTY(Transient)
-	class AGameMode*							AuthorityGameMode;
+	class AGameModeBase*						AuthorityGameMode;
 
+	/** The replicated actor which contains game state information that can be accessible to clients. Direct access is not allowed, use GetGameState<>() */
+	UPROPERTY(Transient)
+	class AGameStateBase*						GameState;
+
+	/** The AI System handles generating pathing information and AI behavior */
 	UPROPERTY(Transient)
 	class UAISystemBase*						AISystem;
 	
@@ -955,10 +958,13 @@ public:
 	/**  Time in seconds since level began play, but IS paused when the game is paused, and IS dilated/clamped. */
 	float TimeSeconds;
 
-	/** Time in seconds since level began play, but is NOT paused when the game is paused, and is NOT dilated/clamped. */
+	/**  Time in seconds since level began play, but IS NOT paused when the game is paused, and IS dilated/clamped. */
+	float UnpausedTimeSeconds;
+
+	/** Time in seconds since level began play, but IS NOT paused when the game is paused, and IS NOT dilated/clamped. */
 	float RealTimeSeconds;
 
-	/** Time in seconds since level began play, but IS paused when the game is paused, and is NOT dilated/clamped. */
+	/** Time in seconds since level began play, but IS paused when the game is paused, and IS NOT dilated/clamped. */
 	float AudioTimeSeconds;
 
 	/** Frame delta time in seconds adjusted by e.g. time dilation. */
@@ -1705,6 +1711,13 @@ public:
 	 * @return time in seconds since world was brought up for play
 	 */
 	float GetTimeSeconds() const;
+
+	/**
+	* Returns time in seconds since world was brought up for play, IS NOT stopped when game pauses, IS dilated/clamped
+	*
+	* @return time in seconds since world was brought up for play
+	*/
+	float GetUnpausedTimeSeconds() const;
 
 	/**
 	* Returns time in seconds since world was brought up for play, does NOT stop when game pauses, NOT dilated/clamped
@@ -2517,8 +2530,8 @@ public:
 	}
 
 	/** 
-	 *  Returns the current GameMode instance cast to the template type.
-	 *  This can only return a valid pointer on the server. Will always return null on a client
+	 * Returns the current Game Mode instance cast to the template type.
+	 * This can only return a valid pointer on the server and may be null if the cast fails. Will always return null on a client.
 	 */
 	template< class T >
 	T* GetAuthGameMode() const
@@ -2526,11 +2539,11 @@ public:
 		return Cast<T>(AuthorityGameMode);
 	}
 
-	/** 
-	 *  Returns the current GameMode instance.
-	 *  This can only return a valid pointer on the server. Will always return null on a client
+	/**
+	 * Returns the current Game Mode instance, which is always valid during gameplay on the server.
+	 * This will only return a valid pointer on the server. Will always return null on a client.
 	 */
-	AGameMode* GetAuthGameMode() const { return AuthorityGameMode; }
+	AGameModeBase* GetAuthGameMode() const { return AuthorityGameMode; }
 	
 	/** Returns the current GameState instance cast to the template type. */
 	template< class T >
@@ -2540,10 +2553,13 @@ public:
 	}
 
 	/** Returns the current GameState instance. */
-	AGameState* GetGameState() const { return GameState; }
+	AGameStateBase* GetGameState() const { return GameState; }
+
+	/** Sets the active GameState */
+	void SetGameState(AGameStateBase* NewGameState);
 
 	/** Copies GameState properties from the GameMode. */
-	void CopyGameState(AGameMode* FromGameMode, AGameState* FromGameState);
+	void CopyGameState(AGameModeBase* FromGameMode, AGameStateBase* FromGameState);
 
 
 	/** Spawns a Brush Actor in the World */
@@ -2792,8 +2808,8 @@ public:
 
 	/** seamlessly travels to the given URL by first loading the entry level in the background,
 	 * switching to it, and then loading the specified level. Does not disrupt network communication or disconnect clients.
-	 * You may need to implement GameMode::GetSeamlessTravelActorList(), PlayerController::GetSeamlessTravelActorList(),
-	 * GameMode::PostSeamlessTravel(), and/or GameMode::HandleSeamlessTravelPlayer() to handle preserving any information
+	 * You may need to implement GameModeBase::GetSeamlessTravelActorList(), PlayerController::GetSeamlessTravelActorList(),
+	 * GameModeBase::PostSeamlessTravel(), and/or GameModeBase::HandleSeamlessTravelPlayer() to handle preserving any information
 	 * that should be maintained (player teams, etc)
 	 * This codepath is designed for worlds that use little or no level streaming and GameModes where the game state
 	 * is reset/reloaded when transitioning. (like UT)
@@ -3018,6 +3034,11 @@ private:
 FORCEINLINE_DEBUGGABLE float UWorld::GetTimeSeconds() const
 {
 	return TimeSeconds;
+}
+
+FORCEINLINE_DEBUGGABLE float UWorld::GetUnpausedTimeSeconds() const
+{
+	return UnpausedTimeSeconds;
 }
 
 FORCEINLINE_DEBUGGABLE float UWorld::GetRealTimeSeconds() const

@@ -19,15 +19,16 @@
 
 class UMorphTarget;
 class USkeleton;
+class UAnimInstance;
 
 #if WITH_APEX_CLOTHING
 struct FApexClothCollisionVolumeData;
 
-namespace physx
+namespace nvidia
 {
 	namespace apex
 	{
-		class NxClothingAsset;
+		class ClothingAsset;
 	}
 }
 #endif
@@ -120,42 +121,6 @@ struct FTriangleSortSettings
 	{
 	}
 
-};
-
-
-USTRUCT()
-struct FBoneReference
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Name of bone to control. This is the main bone chain to modify from. **/
-	UPROPERTY(EditAnywhere, Category = BoneReference)
-	FName BoneName;
-
-	/** Cached bone index for run time - right now bone index of skeleton **/
-	int32 BoneIndex;
-
-	FBoneReference()
-		: BoneIndex(INDEX_NONE)
-	{
-	}
-
-	bool operator==(const FBoneReference& Other) const
-	{
-		// faster to compare, and BoneName won't matter
-		return BoneIndex == Other.BoneIndex;
-	}
-	/** Initialize Bone Reference, return TRUE if success, otherwise, return false **/
-	ENGINE_API bool Initialize(const FBoneContainer& RequiredBones);
-
-	// @fixme laurent - only used by blendspace 'PerBoneBlend'. Fix this to support SkeletalMesh pose.
-	ENGINE_API bool Initialize(const USkeleton* Skeleton);
-
-	/** return true if valid. Otherwise return false **/
-	ENGINE_API bool IsValid(const FBoneContainer& RequiredBones) const;
-
-	FMeshPoseBoneIndex GetMeshPoseIndex() const { return FMeshPoseBoneIndex(BoneIndex); }
-	FCompactPoseBoneIndex GetCompactPoseIndex(const FBoneContainer& RequiredBones) const { return RequiredBones.MakeCompactPoseIndex(GetMeshPoseIndex()); }
 };
 
 /**
@@ -472,7 +437,7 @@ struct FClothingAssetData
 	FClothPhysicsProperties PhysicsProperties;
 
 #if WITH_APEX_CLOTHING
-	physx::apex::NxClothingAsset* ApexClothingAsset;
+	nvidia::apex::ClothingAsset* ApexClothingAsset;
 
 	/** Collision volume data for showing to the users whether collision shape is correct or not */
 	TArray<FApexClothCollisionVolumeData> ClothCollisionVolumes;
@@ -514,16 +479,28 @@ struct FSkeletalMaterial
 
 	FSkeletalMaterial()
 		: MaterialInterface( NULL )
-		, bEnableShadowCasting( true )
-		, bRecomputeTangent( false )
+		, bEnableShadowCasting_DEPRECATED( true )
+		, bRecomputeTangent_DEPRECATED( false )
+		, MaterialSlotName( NAME_None )
+#if WITH_EDITORONLY_DATA
+		, ImportedMaterialSlotName( NAME_None )
+#endif
 	{
 
 	}
 
-	FSkeletalMaterial( class UMaterialInterface* InMaterialInterface, bool bInEnableShadowCasting = true, bool bInRecomputeTangent = false )
+	FSkeletalMaterial( class UMaterialInterface* InMaterialInterface
+						, bool bInEnableShadowCasting = true
+						, bool bInRecomputeTangent = false
+						, FName InMaterialSlotName = NAME_None
+						, FName InImportedMaterialSlotName = NAME_None)
 		: MaterialInterface( InMaterialInterface )
-		, bEnableShadowCasting( bInEnableShadowCasting )
-		, bRecomputeTangent( bInRecomputeTangent )
+		, bEnableShadowCasting_DEPRECATED( bInEnableShadowCasting )
+		, bRecomputeTangent_DEPRECATED( bInRecomputeTangent )
+		, MaterialSlotName(InMaterialSlotName)
+#if WITH_EDITORONLY_DATA
+		, ImportedMaterialSlotName(InImportedMaterialSlotName)
+#endif //WITH_EDITORONLY_DATA
 	{
 
 	}
@@ -536,10 +513,19 @@ struct FSkeletalMaterial
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, Category=SkeletalMesh)
 	class UMaterialInterface *	MaterialInterface;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SkeletalMesh, Category=SkeletalMesh)
-	bool						bEnableShadowCasting;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh, Category = SkeletalMesh)
-	bool						bRecomputeTangent;
+	UPROPERTY()
+	bool						bEnableShadowCasting_DEPRECATED;
+	UPROPERTY()
+	bool						bRecomputeTangent_DEPRECATED;
+	
+	/*This name should be use by the gameplay to avoid error if the skeletal mesh Materials array topology change*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
+	FName						MaterialSlotName;
+#if WITH_EDITORONLY_DATA
+	/*This name should be use when we re-import a skeletal mesh so we can order the Materials array like it should be*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
+	FName						ImportedMaterialSlotName;
+#endif //WITH_EDITORONLY_DATA
 };
 
 class FSkeletalMeshResource;
@@ -700,6 +686,7 @@ public:
 	/* Attached assets component for this mesh */
 	UPROPERTY()
 	FPreviewAssetAttachContainer PreviewAttachedAssetContainer;
+
 #endif // WITH_EDITORONLY_DATA
 
 	/**
@@ -747,6 +734,13 @@ public:
 	/** Clothing asset data */
 	UPROPERTY(EditAnywhere, editfixedsize, BlueprintReadOnly, Category=Clothing)
 	TArray<FClothingAssetData>		ClothingAssets;
+
+	/** Animation Blueprint class to run as a post process for this mesh.
+	 *  This blueprint will be ran before physics, but after the main
+	 *  anim instance for any skeletal mesh component using this mesh.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
+	TSubclassOf<UAnimInstance> PostProcessAnimBlueprint;
 
 protected:
 
@@ -886,6 +880,13 @@ public:
 	ENGINE_API TArray<USkeletalMeshSocket*>& GetMeshOnlySocketList();
 
 	/**
+	 * Const version
+	 * Returns the mesh only socket list - this ignores any sockets in the skeleton
+	 * Return value is a non-const reference so the socket list can be changed
+	 */
+	ENGINE_API const TArray<USkeletalMeshSocket*>& GetMeshOnlySocketList() const;
+
+	/**
 	* Returns the "active" socket list - all sockets from this mesh plus all non-duplicates from the skeleton
 	* Const ref return value as this cannot be modified externally
 	*/
@@ -941,7 +942,7 @@ public:
 	ENGINE_API void	 GetOriginSectionIndicesWithCloth(int32 LODIndex, int32 AssetIndex, TArray<uint32>& OutSectionIndices);
 	ENGINE_API void	 GetClothSectionIndices(int32 LODIndex, int32 AssetIndex, TArray<uint32>& OutSectionIndices);
 	//moved from ApexClothingUtils because of compile issues
-	ENGINE_API void  LoadClothCollisionVolumes(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset);
+	ENGINE_API void  LoadClothCollisionVolumes(int32 AssetIndex, nvidia::apex::ClothingAsset* ClothingAsset);
 	ENGINE_API bool IsMappedClothingLOD(int32 LODIndex, int32 AssetIndex);
 	ENGINE_API int32 GetClothAssetIndex(int32 LODIndex, int32 SectionIndex);
 	ENGINE_API void BuildApexToUnrealBoneMapping();
@@ -1014,6 +1015,14 @@ private:
 	* Ask the reference skeleton to rebuild the NameToIndexMap array. This is use to load old package before this array was created.
 	*/
 	void RebuildRefSkeletonNameToIndexMap();
+
+	/*
+	* In version prior to FEditorObjectVersion::RefactorMeshEditorMaterials
+	* The material slot is containing the "Cast Shadow" and the "Recompute Tangent" flag
+	* We move those flag to sections to allow artist to control those flag at section level
+	* since its a section flag.
+	*/
+	void MoveMaterialFlagsToSections();
 };
 
 

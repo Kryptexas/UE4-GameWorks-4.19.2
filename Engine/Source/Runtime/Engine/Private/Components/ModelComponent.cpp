@@ -542,11 +542,26 @@ bool UModelComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* Collis
 	int32 nBadArea = 0;
 	const float AreaThreshold = UPhysicsSettings::Get()->TriangleMeshTriangleMinAreaThreshold;
 
+	// See if we should copy UVs
+	bool bCopyUVs = UPhysicsSettings::Get()->bSupportUVFromHitResults;
+	if (bCopyUVs)
+	{
+		CollisionData->UVs.AddZeroed(1); // only one UV channel
+	}
+
 	const int32 NumVerts = Model->VertexBuffer.Vertices.Num();
 	CollisionData->Vertices.AddUninitialized(NumVerts);
+	if (bCopyUVs)
+	{
+		CollisionData->UVs[0].AddUninitialized(NumVerts);
+	}
 	for(int32 i=0; i<NumVerts; i++)
 	{
 		CollisionData->Vertices[i] = Model->VertexBuffer.Vertices[i].Position;
+		if (bCopyUVs)
+		{
+			CollisionData->UVs[0][i] = Model->VertexBuffer.Vertices[i].TexCoord;
+		}
 	}
 
 	for(int32 ElementIndex = 0;ElementIndex < Elements.Num();ElementIndex++)

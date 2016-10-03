@@ -75,7 +75,7 @@ private:
 
 	// recording curve data 
 	TArray< TArray<FCurveElement> >  RecordedCurves;
-	TArray<FSmartNameMapping::UID> const * UIDList;
+	TArray<SmartName::UID_Type> const * UIDList;
 };
 
 //////////////////////////////////////////////////////////////////////////

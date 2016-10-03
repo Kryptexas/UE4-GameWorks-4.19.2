@@ -85,6 +85,7 @@ FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 				OverrideGeometryFilter.bAllowLandscape = Component->bAllowLandscape;
 				OverrideGeometryFilter.bAllowStaticMesh = Component->bAllowStaticMesh;
 				OverrideGeometryFilter.bAllowBSP = Component->bAllowBSP;
+				OverrideGeometryFilter.bAllowFoliage = Component->bAllowFoliage;
 				OverrideGeometryFilter.bAllowTranslucent = Component->bAllowTranslucent;
 
 				FEdModeFoliage::AddInstances(Component->GetWorld(), DesiredFoliageInstances, OverrideGeometryFilter);

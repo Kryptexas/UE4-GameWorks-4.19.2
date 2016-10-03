@@ -6,6 +6,5 @@
 AFunctionalTestGameMode::AFunctionalTestGameMode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	SpectatorClass = ASpectatorPawn::StaticClass();
 	DefaultPawnClass = ASpectatorPawn::StaticClass();
 }

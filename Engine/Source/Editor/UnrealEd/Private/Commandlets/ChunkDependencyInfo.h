@@ -33,7 +33,7 @@ struct FChunkDependencyTreeNode
 };
 
 UCLASS(config=Engine, defaultconfig)
-class UChunkDependencyInfo : public UObject
+class UNREALED_API UChunkDependencyInfo : public UObject
 {
 	GENERATED_UCLASS_BODY()
 

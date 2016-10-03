@@ -566,14 +566,35 @@ void SWindow::ConstructWindowInternals()
 
 
 /** Are any of our child windows active? */
+bool SWindow::IsActive() const
+{
+	return FSlateApplicationBase::Get().GetActiveTopLevelWindow().Get() == this;
+}
+
 bool SWindow::HasActiveChildren() const
 {
 	for (int32 i = 0; i < ChildWindows.Num(); ++i)
 	{
-		if ( ChildWindows[i] == FSlateApplicationBase::Get().GetActiveTopLevelWindow() || ChildWindows[i]->HasActiveChildren() )
+		if ( ChildWindows[i]->IsActive() || ChildWindows[i]->HasActiveChildren() )
 		{
 			return true;
 		}
+	}
+
+	return false;
+}
+
+bool SWindow::HasActiveParent() const
+{
+	TSharedPtr<SWindow> ParentWindow = ParentWindowPtr.Pin();
+	if ( ParentWindow.IsValid() )
+	{
+		if ( ParentWindow->IsActive() )
+		{
+			return true;
+		}
+
+		return ParentWindow->HasActiveParent();
 	}
 
 	return false;
@@ -658,8 +679,7 @@ FVector2D SWindow::GetInitialDesiredPositionInScreen() const
 
 FGeometry SWindow::GetWindowGeometryInScreen() const
 {
-	const float AppScale = FSlateApplicationBase::Get().GetApplicationScale();
-	// We are scaling children for layout, but our pixel bounds are not changing. 
+	// We are scaling children for layout, but our pixel bounds are not changing.
 	// FGeometry expects Size in Local space, but our size is stored in screen space.
 	// So we need to transform Size into the window's local space for FGeometry.
 	FSlateLayoutTransform LocalToScreen = GetLocalToScreenTransform();
@@ -668,23 +688,22 @@ FGeometry SWindow::GetWindowGeometryInScreen() const
 
 FGeometry SWindow::GetWindowGeometryInWindow() const
 {
-	const float AppScale = FSlateApplicationBase::Get().GetApplicationScale();
-	// We are scaling children for layout, but our pixel bounds are not changing. 
+	// We are scaling children for layout, but our pixel bounds are not changing.
 	// FGeometry expects Size in Local space, but our size is stored in screen space (same as window space + screen offset).
 	// So we need to transform Size into the window's local space for FGeometry.
 	FSlateLayoutTransform LocalToWindow = GetLocalToWindowTransform();
 	FVector2D ViewSize = GetViewportSize();
-	return FGeometry::MakeRoot( TransformVector(Inverse(LocalToWindow), ViewSize), LocalToWindow );
+	return FGeometry::MakeRoot(TransformVector(Inverse(LocalToWindow), ViewSize), LocalToWindow );
 }
 
 FSlateLayoutTransform SWindow::GetLocalToScreenTransform() const
 {
-	return FSlateLayoutTransform(FSlateApplicationBase::Get().GetApplicationScale(), ScreenPosition);
+	return FSlateLayoutTransform(FSlateApplicationBase::Get().GetApplicationScale() * NativeWindow->GetDPIScaleFactor(), ScreenPosition);
 }
 
 FSlateLayoutTransform SWindow::GetLocalToWindowTransform() const
 {
-	return FSlateLayoutTransform(FSlateApplicationBase::Get().GetApplicationScale());
+	return FSlateLayoutTransform(FSlateApplicationBase::Get().GetApplicationScale() * NativeWindow->GetDPIScaleFactor());
 }
 
 
@@ -763,11 +782,12 @@ FMargin SWindow::GetWindowBorderSize( bool bIncTitleBar ) const
 // window is borderless. This causes problems for menu positioning.
 	if (NativeWindow.IsValid() && NativeWindow->IsMaximized())
 	{
-		FMargin BorderSize(NativeWindow->GetWindowBorderSize());
+		const float DesktopPixelsToSlateUnits = 1.0f / (FSlateApplicationBase::Get().GetApplicationScale() * NativeWindow->GetDPIScaleFactor());
+		FMargin BorderSize(NativeWindow->GetWindowBorderSize() * DesktopPixelsToSlateUnits);
 		if(bIncTitleBar)
 		{
 			// Add title bar size (whether it's visible or not)
-			BorderSize.Top += NativeWindow->GetWindowTitleBarSize();
+			BorderSize.Top += NativeWindow->GetWindowTitleBarSize()*DesktopPixelsToSlateUnits;
 		}
 
 		return BorderSize;
@@ -814,7 +834,7 @@ void SWindow::ReshapeWindow( FVector2D NewPosition, FVector2D NewSize )
 		SetCachedScreenPosition(SpeculativeScreenPosition);
 #endif // PLATFORM_LINUX
 
-		NativeWindow->ReshapeWindow( FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y), FMath::TruncToInt(NewSize.X), FMath::TruncToInt(NewSize.Y) );
+		NativeWindow->ReshapeWindow( FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y), FMath::RoundToInt(NewSize.X), FMath::RoundToInt(NewSize.Y) );
 	}
 	else
 	{
@@ -846,7 +866,7 @@ void SWindow::Resize( FVector2D NewSize )
 		
 		if (NativeWindow.IsValid())
 		{
-			NativeWindow->ReshapeWindow( FMath::TruncToInt(ScreenPosition.X), FMath::TruncToInt(ScreenPosition.Y), FMath::TruncToInt(NewSize.X), FMath::TruncToInt(NewSize.Y) );
+			NativeWindow->ReshapeWindow( FMath::TruncToInt(ScreenPosition.X), FMath::TruncToInt(ScreenPosition.Y), FMath::RoundToInt(NewSize.X), FMath::RoundToInt(NewSize.Y) );
 		}
 		else
 		{
@@ -1193,8 +1213,9 @@ void SWindow::ShowWindow()
 		// Repositioning the window on show with the new size solves this.
 		if ( SizingRule == ESizingRule::Autosized && AutoCenterRule != EAutoCenter::None )
 		{
-			SlatePrepass( FSlateApplicationBase::Get().GetApplicationScale() );
-			ReshapeWindow( InitialDesiredScreenPosition - (GetDesiredSize() * 0.5f), GetDesiredSize() );
+			SlatePrepass( FSlateApplicationBase::Get().GetApplicationScale()*NativeWindow->GetDPIScaleFactor() );
+			const FVector2D WindowDesiredSizePixels = GetDesiredSizeDesktopPixels();
+			ReshapeWindow( InitialDesiredScreenPosition - (WindowDesiredSizePixels * 0.5f), WindowDesiredSizePixels);
 		}
 
 		// Set the window to be maximized if we need to.  Note that this won't actually show the window if its not
@@ -1639,6 +1660,10 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 	const bool bIsFullscreenMode = GetWindowMode() == EWindowMode::WindowedFullscreen || GetWindowMode() == EWindowMode::Fullscreen;
 	const bool bIsBorderlessGameWindow = Type == EWindowType::GameWindow && !bHasOSWindowBorder;
 
+	const float WindowDPIScale = FSlateApplicationBase::Get().GetApplicationScale() * (NativeWindow.IsValid() ? NativeWindow->GetDPIScaleFactor() : 1.0f);
+
+	const FMargin DPIScaledResizeBorder = UserResizeBorder * WindowDPIScale;
+
 	// Don't allow position/resizing of window while in fullscreen mode by ignoring Title Bar/Border Zones
 	if ( bIsFullscreenMode && !bIsBorderlessGameWindow )
 	{
@@ -1651,30 +1676,30 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 		int32 Col = 1;
 		if (SizingRule == ESizingRule::UserSized && !bIsFullscreenMode)
 		{
-			if (LocalMousePosition.X < (UserResizeBorder.Left + 5))
+			if (LocalMousePosition.X < (DPIScaledResizeBorder.Left + 5))
 			{
 				Col = 0;
 			}
-			else if (LocalMousePosition.X >= Size.X - (UserResizeBorder.Right + 5))
+			else if (LocalMousePosition.X >= Size.X - (DPIScaledResizeBorder.Right + 5))
 			{
 				Col = 2;
 			}
 
-			if (LocalMousePosition.Y < (UserResizeBorder.Top + 5))
+			if (LocalMousePosition.Y < (DPIScaledResizeBorder.Top + 5))
 			{
 				Row = 0;
 			}
-			else if (LocalMousePosition.Y >= Size.Y - (UserResizeBorder.Bottom + 5))
+			else if (LocalMousePosition.Y >= Size.Y - (DPIScaledResizeBorder.Bottom + 5))
 			{
 				Row = 2;
 			}
 
 			// The actual border is smaller than the hit result zones
 			// This grants larger corner areas to grab onto
-			bool bInBorder =	LocalMousePosition.X < UserResizeBorder.Left ||
-								LocalMousePosition.X >= Size.X - UserResizeBorder.Right ||
-								LocalMousePosition.Y < UserResizeBorder.Top ||
-								LocalMousePosition.Y >= Size.Y - UserResizeBorder.Bottom;
+			bool bInBorder =	LocalMousePosition.X < DPIScaledResizeBorder.Left ||
+								LocalMousePosition.X >= Size.X - DPIScaledResizeBorder.Right ||
+								LocalMousePosition.Y < DPIScaledResizeBorder.Top ||
+								LocalMousePosition.Y >= Size.Y - DPIScaledResizeBorder.Bottom;
 
 			if (!bInBorder)
 			{
@@ -1706,7 +1731,7 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 				else if( HitTestResults.Widgets.Last().Widget == AsShared() )
 				{
 					// The window itself was hit, so check for a traditional title bar
-					if ((LocalMousePosition.Y - UserResizeBorder.Top) < TitleBarSize)
+					if ((LocalMousePosition.Y - DPIScaledResizeBorder.Top) < TitleBarSize*WindowDPIScale)
 					{
 						InZone = EWindowZone::TitleBar;
 					}
@@ -1787,7 +1812,15 @@ FOptionalSize SWindow::GetTitleBarSize() const
 }
 
 
-void SWindow::SetFullWindowOverlayContent( TSharedPtr<SWidget> InContent )
+FVector2D SWindow::GetDesiredSizeDesktopPixels() const
+{
+	// Note that the window already takes the layout multiplier
+	// into account when computing its desired size.
+	// @See SWindow::ComputeDesiredSize
+	return this->GetDesiredSize();
+}
+
+void SWindow::SetFullWindowOverlayContent(TSharedPtr<SWidget> InContent)
 {
 	if( FullWindowOverlayWidget.IsValid() )
 	{

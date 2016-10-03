@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Engine/StaticMesh.h"
+#include "Components/StaticMeshComponent.h"
 #include "RawIndexBuffer.h"
 #include "TextureLayout3d.h"
 #include "LocalVertexFactory.h"

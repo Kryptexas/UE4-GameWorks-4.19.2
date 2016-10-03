@@ -6,9 +6,8 @@
 
 #include "LandscapePrivatePCH.h"
 #include "Landscape.h"
-#include "Components/SplineMeshComponent.h"
 #include "LandscapeStreamingProxy.h"
-#include "LandscapeComponent.h"
+#include "Components/SplineMeshComponent.h"
 #include "ShaderParameterUtils.h"
 #include "StaticMeshResources.h"
 #include "LandscapeSplineProxies.h"

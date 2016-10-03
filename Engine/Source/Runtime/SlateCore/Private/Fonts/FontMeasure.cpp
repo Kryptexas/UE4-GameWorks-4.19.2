@@ -276,7 +276,7 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 FMeasureCache* FSlateFontMeasure::FindOrAddMeasureCache( const FSlateFontInfo& InFontInfo, const float InFontScale ) const
 {
 #if USE_MEASURE_CACHING
-	FSlateFontKey FontKey(InFontInfo, InFontScale);
+	FSlateFontKey FontKey(InFontInfo, FFontOutlineSettings::NoOutline, InFontScale);
 	const FCompositeFont* const CompositeFont = InFontInfo.GetCompositeFont();
 
 	TSharedPtr< FSlateFontMeasureCache > FoundMeasureCache = FontToMeasureCache.FindRef( FontKey );

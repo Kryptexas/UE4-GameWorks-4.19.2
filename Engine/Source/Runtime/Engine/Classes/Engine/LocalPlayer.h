@@ -35,13 +35,13 @@ struct ENGINE_API FLocalPlayerContext
 		It tests against the APlayerController, APlayerState, and APawn. */
 	bool IsFromLocalPlayer(const AActor* ActorToTest) const;
 
-	/* Returns the world context. */
+	/** Returns the world context. */
 	UWorld* GetWorld() const;
 
-	/* Returns the local player. */
+	/** Returns the local player. */
 	class ULocalPlayer* GetLocalPlayer() const;
 
-	/* Returns the player controller. */
+	/** Returns the player controller. */
 	class APlayerController* GetPlayerController() const;
 
 	/** Templated version of GetPlayerController() */
@@ -58,8 +58,8 @@ struct ENGINE_API FLocalPlayerContext
 		}
 	}
 
-	/** Getter for the Game State */
-	class AGameState* GetGameState() const;
+	/** Getter for the Game State Base */
+	class AGameStateBase* GetGameState() const;
 
 	/** Templated Getter for the Game State */
 	template<class T>

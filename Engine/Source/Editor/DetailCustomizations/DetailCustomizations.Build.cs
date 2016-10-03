@@ -47,8 +47,9 @@ public class DetailCustomizations : ModuleRules
 				"ConfigEditor",
                 "Persona",
                 "CinematicCamera",
-                "ComponentVisualizers"
-			}
+				"ComponentVisualizers",
+                "SkeletonEditor",
+            }
 		);
 
         PrivateIncludePathModuleNames.AddRange(

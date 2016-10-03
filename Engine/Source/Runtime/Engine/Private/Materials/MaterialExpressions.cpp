@@ -1149,8 +1149,9 @@ UMaterialExpressionTextureSample::UMaterialExpressionTextureSample(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Texture);
+#endif
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 1, 1, 0));
@@ -1502,8 +1503,9 @@ UMaterialExpressionAdd::UMaterialExpressionAdd(const FObjectInitializer& ObjectI
 	ConstA = 0.0f;
 	ConstB = 1.0f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
-
+#endif
 }
 
 //
@@ -1524,8 +1526,11 @@ UMaterialExpressionTextureSampleParameter::UMaterialExpressionTextureSampleParam
 	static FConstructorStatics ConstructorStatics;
 
 	bIsParameterExpression = true;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Empty();
 	MenuCategories.Add( ConstructorStatics.NAME_Obsolete);
+#endif
 }
 
 #if WITH_EDITOR
@@ -1637,9 +1642,11 @@ UMaterialExpressionTextureObjectParameter::UMaterialExpressionTextureObjectParam
 
 	Texture = ConstructorStatics.DefaultTexture2D.Object;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Empty();
 	MenuCategories.Add(ConstructorStatics.NAME_Texture);
 	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
 
 	Outputs.Empty();
 	Outputs.Add(FExpressionOutput(TEXT("")));
@@ -1709,8 +1716,12 @@ UMaterialExpressionTextureObject::UMaterialExpressionTextureObject(const FObject
 	static FConstructorStatics ConstructorStatics;
 
 	Texture = ConstructorStatics.Object0.Object;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Texture);
 	MenuCategories.Add(ConstructorStatics.NAME_Functions);
+#endif
+
 	Outputs.Empty();
 	Outputs.Add(FExpressionOutput(TEXT("")));
 
@@ -1789,7 +1800,11 @@ UMaterialExpressionTextureProperty::UMaterialExpressionTextureProperty(const FOb
 	static FConstructorStatics ConstructorStatics;
 
 	Property = TMTM_TextureSize;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 	bShowOutputNameOnPin = false;
 	
@@ -1812,6 +1827,19 @@ int32 UMaterialExpressionTextureProperty::Compile(class FMaterialCompiler* Compi
 	}
 
 	return Compiler->TextureProperty(TextureCodeIndex, Property);
+}
+
+void UMaterialExpressionTextureProperty::GetTexturesForceMaterialRecompile(TArray<UTexture *> &Textures) const
+{
+	UMaterialExpression *TextureObjectExpression = TextureObject.Expression;
+	if (TextureObjectExpression && TextureObjectExpression->IsA(UMaterialExpressionTextureBase::StaticClass()))
+	{
+		UMaterialExpressionTextureBase *TextureExpressionBase = Cast<UMaterialExpressionTextureBase>(TextureObjectExpression);
+		if (TextureExpressionBase->Texture)
+		{
+			Textures.Add(TextureExpressionBase->Texture);
+		}
+	}
 }
 
 void UMaterialExpressionTextureProperty::GetCaption(TArray<FString>& OutCaptions) const
@@ -1860,9 +1888,12 @@ UMaterialExpressionTextureSampleParameter2D::UMaterialExpressionTextureSamplePar
 	static FConstructorStatics ConstructorStatics;
 
 	Texture = ConstructorStatics.DefaultTexture.Object;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Empty();
 	MenuCategories.Add(ConstructorStatics.NAME_Texture);
 	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
 }
 
 #if WITH_EDITOR
@@ -1951,9 +1982,12 @@ UMaterialExpressionTextureSampleParameterCube::UMaterialExpressionTextureSampleP
 	static FConstructorStatics ConstructorStatics;
 
 	Texture = ConstructorStatics.DefaultTextureCube.Object;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Empty();
 	MenuCategories.Add(ConstructorStatics.NAME_Texture);
 	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2027,7 +2061,9 @@ UMaterialExpressionTextureSampleParameterSubUV::UMaterialExpressionTextureSample
 
 	bBlend = true;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2115,8 +2151,9 @@ UMaterialExpressionMultiply::UMaterialExpressionMultiply(const FObjectInitialize
 	ConstA = 0.0f;
 	ConstB = 1.0f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
-
+#endif
 }
 
 #if WITH_EDITOR
@@ -2159,7 +2196,10 @@ UMaterialExpressionDivide::UMaterialExpressionDivide(const FObjectInitializer& O
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+
 	ConstA = 1.0f;
 	ConstB = 2.0f;
 }
@@ -2210,7 +2250,9 @@ UMaterialExpressionSubtract::UMaterialExpressionSubtract(const FObjectInitialize
 	ConstA = 1.0f;
 	ConstB = 1.0f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2263,8 +2305,10 @@ UMaterialExpressionLinearInterpolate::UMaterialExpressionLinearInterpolate(const
 	ConstB = 1;
 	ConstAlpha = 0.5f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2310,8 +2354,9 @@ UMaterialExpressionConstant::UMaterialExpressionConstant(const FObjectInitialize
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
 
 	bCollapsed = true;
 }
@@ -2353,9 +2398,11 @@ UMaterialExpressionConstant2Vector::UMaterialExpressionConstant2Vector(const FOb
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
+
 	bCollapsed = true;
 }
 
@@ -2396,9 +2443,11 @@ UMaterialExpressionConstant3Vector::UMaterialExpressionConstant3Vector(const FOb
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
+
 	bCollapsed = false;
 }
 
@@ -2439,9 +2488,11 @@ UMaterialExpressionConstant4Vector::UMaterialExpressionConstant4Vector(const FOb
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
+
 	bCollapsed = false;
 }
 
@@ -2485,8 +2536,9 @@ UMaterialExpressionClamp::UMaterialExpressionClamp(const FObjectInitializer& Obj
 	MinDefault = 0.0f;
 	MaxDefault = 1.0f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
-
+#endif
 }
 
 void UMaterialExpressionClamp::Serialize(FArchive& Ar)
@@ -2571,7 +2623,9 @@ UMaterialExpressionMin::UMaterialExpressionMin(const FObjectInitializer& ObjectI
 	ConstA = 0.0f;
 	ConstB = 1.0f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2621,7 +2675,9 @@ UMaterialExpressionMax::UMaterialExpressionMax(const FObjectInitializer& ObjectI
 	ConstA = 0.0f;
 	ConstB = 1.0f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2671,7 +2727,9 @@ UMaterialExpressionTextureCoordinate::UMaterialExpressionTextureCoordinate(const
 	UTiling = 1.0f;
 	VTiling = 1.0f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
 
 	bCollapsed = true;
 }
@@ -2714,8 +2772,10 @@ UMaterialExpressionDotProduct::UMaterialExpressionDotProduct(const FObjectInitia
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2762,8 +2822,10 @@ UMaterialExpressionCrossProduct::UMaterialExpressionCrossProduct(const FObjectIn
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2810,9 +2872,10 @@ UMaterialExpressionComponentMask::UMaterialExpressionComponentMask(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2861,7 +2924,9 @@ UMaterialExpressionStaticComponentMaskParameter::UMaterialExpressionStaticCompon
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
 }
 
 #if WITH_EDITOR
@@ -2924,7 +2989,10 @@ UMaterialExpressionTime::UMaterialExpressionTime(const FObjectInitializer& Objec
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 	Period = 0.0f;
 	bOverride_Period = false;
@@ -2970,8 +3038,9 @@ UMaterialExpressionCameraVectorWS::UMaterialExpressionCameraVectorWS(const FObje
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
 
 	bShaderInputData = true;
 }
@@ -3004,9 +3073,11 @@ UMaterialExpressionCameraPositionWS::UMaterialExpressionCameraPositionWS(const F
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -3040,7 +3111,10 @@ UMaterialExpressionReflectionVectorWS::UMaterialExpressionReflectionVectorWS(con
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -3081,7 +3155,10 @@ UMaterialExpressionPanner::UMaterialExpressionPanner(const FObjectInitializer& O
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bCollapsed = true;
 	ConstCoordinate = 0;
 }
@@ -3146,7 +3223,9 @@ UMaterialExpressionRotator::UMaterialExpressionRotator(const FObjectInitializer&
 	Speed = 0.25f;
 	ConstCoordinate = 0;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
 
 	bCollapsed = true;
 }
@@ -3214,7 +3293,10 @@ UMaterialExpressionSine::UMaterialExpressionSine(const FObjectInitializer& Objec
 	static FConstructorStatics ConstructorStatics;
 
 	Period = 1.0f;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 }
 
 #if WITH_EDITOR
@@ -3250,8 +3332,9 @@ UMaterialExpressionCosine::UMaterialExpressionCosine(const FObjectInitializer& O
 
 	Period = 1.0f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
-
+#endif
 }
 
 #if WITH_EDITOR
@@ -3290,8 +3373,9 @@ UMaterialExpressionBumpOffset::UMaterialExpressionBumpOffset(const FObjectInitia
 	ConstCoordinate = 0;
 	bCollapsed = false;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
-
+#endif
 }
 
 #if WITH_EDITOR
@@ -3339,9 +3423,10 @@ UMaterialExpressionAppendVector::UMaterialExpressionAppendVector(const FObjectIn
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
+#endif
 }
 
 #if WITH_EDITOR
@@ -3388,8 +3473,9 @@ UMaterialExpressionMakeMaterialAttributes::UMaterialExpressionMakeMaterialAttrib
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_MaterialAttributes);
+#endif
 }
 
 #if WITH_EDITOR
@@ -3464,7 +3550,9 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 
 	bShowOutputNameOnPin = true;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_MaterialAttributes);
+#endif
 	
 	static_assert(MP_MAX == 28, 
 		"New material properties should be added to the end of the outputs for this expression. \
@@ -3561,7 +3649,9 @@ UMaterialExpressionFloor::UMaterialExpressionFloor(const FObjectInitializer& Obj
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 }
 
 #if WITH_EDITOR
@@ -3595,9 +3685,9 @@ UMaterialExpressionCeil::UMaterialExpressionCeil(const FObjectInitializer& Objec
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
-
+#endif
 }
 
 #if WITH_EDITOR
@@ -3635,9 +3725,9 @@ UMaterialExpressionFmod::UMaterialExpressionFmod(const FObjectInitializer& Objec
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
-
+#endif
 }
 
 #if WITH_EDITOR
@@ -3674,8 +3764,9 @@ UMaterialExpressionFrac::UMaterialExpressionFrac(const FObjectInitializer& Objec
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 }
 
 #if WITH_EDITOR
@@ -3713,8 +3804,10 @@ UMaterialExpressionDesaturation::UMaterialExpressionDesaturation(const FObjectIn
 
 	LuminanceFactors = FLinearColor(0.3f, 0.59f, 0.11f, 0.0f);
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Color);
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -3752,7 +3845,11 @@ UMaterialExpressionParameter::UMaterialExpressionParameter(const FObjectInitiali
 	static FConstructorStatics ConstructorStatics;
 
 	bIsParameterExpression = true;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
+
 	bCollapsed = false;
 }
 
@@ -4051,7 +4148,10 @@ UMaterialExpressionStaticBool::UMaterialExpressionStaticBool(const FObjectInitia
 
 	bHidePreviewWindow = true;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Functions);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -4089,7 +4189,9 @@ UMaterialExpressionStaticSwitch::UMaterialExpressionStaticSwitch(const FObjectIn
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Functions);
+#endif
 }
 
 #if WITH_EDITOR
@@ -4188,7 +4290,9 @@ UMaterialExpressionQualitySwitch::UMaterialExpressionQualitySwitch(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -4300,7 +4404,9 @@ UMaterialExpressionFeatureLevelSwitch::UMaterialExpressionFeatureLevelSwitch(con
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -4423,8 +4529,10 @@ UMaterialExpressionNormalize::UMaterialExpressionNormalize(const FObjectInitiali
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
+#endif
 }
 
 #if WITH_EDITOR
@@ -4453,7 +4561,10 @@ UMaterialExpressionVertexColor::UMaterialExpressionVertexColor(const FObjectInit
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 0, 0, 0));
@@ -4491,8 +4602,10 @@ UMaterialExpressionParticleColor::UMaterialExpressionParticleColor(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 1, 1, 0));
@@ -4534,9 +4647,12 @@ UMaterialExpressionParticlePositionWS::UMaterialExpressionParticlePositionWS(con
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -4568,8 +4684,11 @@ UMaterialExpressionParticleRadius::UMaterialExpressionParticleRadius(const FObje
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -4609,8 +4728,10 @@ UMaterialExpressionDynamicParameter::UMaterialExpressionDynamicParameter(const F
 	ParamNames.Add(TEXT("Param3"));
 	ParamNames.Add(TEXT("Param4"));
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
 	
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 0, 0, 0));
@@ -4747,7 +4868,9 @@ UMaterialExpressionParticleSubUV::UMaterialExpressionParticleSubUV(const FObject
 
 	bBlend = true;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
+#endif
 }
 
 #if WITH_EDITOR
@@ -4798,8 +4921,9 @@ UMaterialExpressionParticleMacroUV::UMaterialExpressionParticleMacroUV(const FOb
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
+#endif
 
 	bShaderInputData = true;
 }
@@ -4830,8 +4954,9 @@ UMaterialExpressionLightVector::UMaterialExpressionLightVector(const FObjectInit
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
 
 	bShaderInputData = true;
 }
@@ -4862,7 +4987,10 @@ UMaterialExpressionScreenPosition::UMaterialExpressionScreenPosition(const FObje
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -4901,7 +5029,11 @@ UMaterialExpressionViewProperty::UMaterialExpressionViewProperty(const FObjectIn
 	static FConstructorStatics ConstructorStatics;
 
 	Property = MEVP_FieldOfView;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 	bShowOutputNameOnPin = true;
 	
@@ -4945,7 +5077,10 @@ UMaterialExpressionViewSize::UMaterialExpressionViewSize(const FObjectInitialize
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -4975,7 +5110,10 @@ UMaterialExpressionSceneTexelSize::UMaterialExpressionSceneTexelSize(const FObje
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -5005,7 +5143,9 @@ UMaterialExpressionSquareRoot::UMaterialExpressionSquareRoot(const FObjectInitia
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 }
 
 #if WITH_EDITOR
@@ -5041,7 +5181,10 @@ UMaterialExpressionPixelDepth::UMaterialExpressionPixelDepth(const FObjectInitia
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Depth);
+#endif
+
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 0, 0, 0));
 	bShaderInputData = true;
@@ -5079,7 +5222,10 @@ UMaterialExpressionSceneDepth::UMaterialExpressionSceneDepth(const FObjectInitia
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Depth);
+#endif
+
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 0, 0, 0));
 	bShaderInputData = true;
@@ -5165,7 +5311,10 @@ UMaterialExpressionSceneTexture::UMaterialExpressionSceneTexture(const FObjectIn
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Texture);
+#endif
+
 	bShaderInputData = true;
 	
 	bShowOutputNameOnPin = true;
@@ -5252,7 +5401,10 @@ UMaterialExpressionSceneColor::UMaterialExpressionSceneColor(const FObjectInitia
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Texture);
+#endif
+
 	bShaderInputData = true;
 	ConstInput = FVector2D(0.f, 0.f);
 }
@@ -5322,7 +5474,10 @@ UMaterialExpressionPower::UMaterialExpressionPower(const FObjectInitializer& Obj
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+
 	ConstExponent = 2;
 }
 
@@ -5369,7 +5524,9 @@ UMaterialExpressionLogarithm2::UMaterialExpressionLogarithm2(const FObjectInitia
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 }
 
 #if WITH_EDITOR
@@ -5415,8 +5572,9 @@ UMaterialExpressionIf::UMaterialExpressionIf(const FObjectInitializer& ObjectIni
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 
 	EqualsThreshold = 0.00001f;
 	ConstB = 0.0f;
@@ -5492,7 +5650,9 @@ UMaterialExpressionOneMinus::UMaterialExpressionOneMinus(const FObjectInitialize
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
 }
 
 #if WITH_EDITOR
@@ -5525,9 +5685,9 @@ UMaterialExpressionAbs::UMaterialExpressionAbs(const FObjectInitializer& ObjectI
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Math);
-
+#endif
 }
 
 #if WITH_EDITOR
@@ -5641,7 +5801,10 @@ UMaterialExpressionTransform::UMaterialExpressionTransform(const FObjectInitiali
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
+#endif
+
 	TransformSourceType = TRANSFORMSOURCE_Tangent;
 	TransformType = TRANSFORM_World;
 }
@@ -5664,7 +5827,10 @@ UMaterialExpressionTransformPosition::UMaterialExpressionTransformPosition(const
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
+#endif
+
 	TransformSourceType = TRANSFORMPOSSOURCE_Local;
 	TransformType = TRANSFORMPOSSOURCE_Local;
 }
@@ -5739,7 +5905,9 @@ UMaterialExpressionComment::UMaterialExpressionComment(const FObjectInitializer&
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -5819,7 +5987,9 @@ UMaterialExpressionFresnel::UMaterialExpressionFresnel(const FObjectInitializer&
 	Exponent = 5.0f;
 	BaseReflectFraction = 0.04f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -5859,9 +6029,10 @@ UMaterialExpressionFontSample::UMaterialExpressionFontSample(const FObjectInitia
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Font);
 	MenuCategories.Add(ConstructorStatics.NAME_Texture);
+#endif
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 1, 1, 0));
@@ -5993,8 +6164,10 @@ UMaterialExpressionFontSampleParameter::UMaterialExpressionFontSampleParameter(c
 
 	bIsParameterExpression = true;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Font);
 	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
 }
 
 #if WITH_EDITOR
@@ -6117,7 +6290,10 @@ UMaterialExpressionWorldPosition::UMaterialExpressionWorldPosition(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 	WorldPositionShaderOffset = WPT_Default;
 }
@@ -6185,8 +6361,11 @@ UMaterialExpressionObjectPositionWS::UMaterialExpressionObjectPositionWS(const F
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -6224,7 +6403,9 @@ UMaterialExpressionObjectRadius::UMaterialExpressionObjectRadius(const FObjectIn
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
 
 	bShaderInputData = true;
 }
@@ -6263,7 +6444,9 @@ UMaterialExpressionObjectBounds::UMaterialExpressionObjectBounds(const FObjectIn
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
 
 	bShaderInputData = true;
 }
@@ -6302,7 +6485,9 @@ UMaterialExpressionDistanceCullFade::UMaterialExpressionDistanceCullFade(const F
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
 
 	bShaderInputData = true;
 }
@@ -6338,9 +6523,11 @@ UMaterialExpressionActorPositionWS::UMaterialExpressionActorPositionWS(const FOb
 	};
 	static FConstructorStatics ConstructorStatics;
 
-
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -6373,7 +6560,9 @@ UMaterialExpressionDeriveNormalZ::UMaterialExpressionDeriveNormalZ(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
+#endif
 }
 	
 #if WITH_EDITOR
@@ -6420,8 +6609,9 @@ UMaterialExpressionConstantBiasScale::UMaterialExpressionConstantBiasScale(const
 	Bias = 1.0f;
 	Scale = 0.5f;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
-
+#endif
 }
 
 #if WITH_EDITOR
@@ -6462,7 +6652,9 @@ UMaterialExpressionCustom::UMaterialExpressionCustom(const FObjectInitializer& O
 	Description = TEXT("Custom");
 	Code = TEXT("1");
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Custom);
+#endif
 
 	OutputType = CMOT_Float3;
 
@@ -7267,7 +7459,9 @@ UMaterialExpressionMaterialFunctionCall::UMaterialExpressionMaterialFunctionCall
 	bShowOutputNameOnPin = true;
 	bHidePreviewWindow = true;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Functions);
+#endif
 
 	BorderColor = FColor(0, 116, 255);
 
@@ -7812,7 +8006,9 @@ UMaterialExpressionFunctionInput::UMaterialExpressionFunctionInput(const FObject
 	InputName = TEXT("In");
 	bCollapsed = false;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Functions);
+#endif
 
 	BorderColor = FColor(185, 255, 172);
 
@@ -8098,7 +8294,9 @@ UMaterialExpressionFunctionOutput::UMaterialExpressionFunctionOutput(const FObje
 	bShowOutputs = false;
 	OutputName = TEXT("Result");
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Functions);
+#endif
 
 	BorderColor = FColor(255, 155, 0);
 
@@ -8261,7 +8459,10 @@ UMaterialExpressionCollectionParameter::UMaterialExpressionCollectionParameter(c
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+#endif
+
 	bCollapsed = false;
 }
 
@@ -8395,7 +8596,9 @@ UMaterialExpressionLightmapUVs::UMaterialExpressionLightmapUVs(const FObjectInit
 	bShowOutputNameOnPin = true;
 	bHidePreviewWindow = true;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 1, 0, 0));
@@ -8436,7 +8639,9 @@ UMaterialExpressionPrecomputedAOMask::UMaterialExpressionPrecomputedAOMask(const
 	bShowOutputNameOnPin = true;
 	bHidePreviewWindow = true;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT("")));
@@ -8474,7 +8679,9 @@ UMaterialExpressionLightmassReplace::UMaterialExpressionLightmassReplace(const F
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -8520,7 +8727,9 @@ UMaterialExpressionMaterialProxyReplace::UMaterialExpressionMaterialProxyReplace
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -8565,7 +8774,9 @@ UMaterialExpressionGIReplace::UMaterialExpressionGIReplace(const FObjectInitiali
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -8609,8 +8820,11 @@ UMaterialExpressionObjectOrientation::UMaterialExpressionObjectOrientation(const
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -8646,7 +8860,10 @@ UMaterialExpressionRotateAboutAxis::UMaterialExpressionRotateAboutAxis(const FOb
 	static FConstructorStatics ConstructorStatics;
 
 	Period = 1.0f;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -8732,7 +8949,10 @@ UMaterialExpressionSphereMask::UMaterialExpressionSphereMask(const FObjectInitia
 
 	AttenuationRadius = 256.0f;
 	HardnessPercent = 100.0f;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -8825,7 +9045,9 @@ UMaterialExpressionNoise::UMaterialExpressionNoise(const FObjectInitializer& Obj
 	bTiling = false;
 	RepeatSize = 512;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 
 }
 
@@ -8915,7 +9137,9 @@ UMaterialExpressionVectorNoise::UMaterialExpressionVectorNoise(const FObjectInit
 	bTiling = false;
 	TileSize = 300;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -8981,7 +9205,9 @@ UMaterialExpressionBlackBody::UMaterialExpressionBlackBody(const FObjectInitiali
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -9025,7 +9251,9 @@ UMaterialExpressionDistanceToNearestSurface::UMaterialExpressionDistanceToNeares
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -9068,7 +9296,9 @@ UMaterialExpressionDistanceFieldGradient::UMaterialExpressionDistanceFieldGradie
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -9111,8 +9341,9 @@ UMaterialExpressionDistance::UMaterialExpressionDistance(const FObjectInitialize
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
-
+#endif
 }
 
 #if WITH_EDITOR
@@ -9154,7 +9385,10 @@ UMaterialExpressionTwoSidedSign::UMaterialExpressionTwoSidedSign(const FObjectIn
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9186,8 +9420,11 @@ UMaterialExpressionVertexNormalWS::UMaterialExpressionVertexNormalWS(const FObje
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9219,8 +9456,11 @@ UMaterialExpressionPixelNormalWS::UMaterialExpressionPixelNormalWS(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
 	MenuCategories.Add(ConstructorStatics.NAME_Coordinates);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9253,7 +9493,10 @@ UMaterialExpressionPerInstanceRandom::UMaterialExpressionPerInstanceRandom(const
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9286,7 +9529,10 @@ UMaterialExpressionPerInstanceFadeAmount::UMaterialExpressionPerInstanceFadeAmou
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9325,8 +9571,11 @@ UMaterialExpressionAntialiasedTextureMask::UMaterialExpressionAntialiasedTexture
 	static FConstructorStatics ConstructorStatics;
 
 	Texture = ConstructorStatics.DefaultTexture.Object;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Empty();
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 
 	Threshold = 0.5f;
 	ParameterName = ConstructorStatics.NAME_None;
@@ -9422,7 +9671,10 @@ UMaterialExpressionDecalDerivative::UMaterialExpressionDecalDerivative(const FOb
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
+
 	//bCollapsed = true;
 	bShaderInputData = true;
 	bShowOutputNameOnPin = true;
@@ -9461,7 +9713,10 @@ UMaterialExpressionDecalLifetimeOpacity::UMaterialExpressionDecalLifetimeOpacity
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
+
 	bShaderInputData = true;
 
 	Outputs.Reset();
@@ -9504,7 +9759,10 @@ UMaterialExpressionDecalMipmapLevel::UMaterialExpressionDecalMipmapLevel(const F
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+#endif
+
 	bCollapsed = true;
 }
 
@@ -9559,8 +9817,12 @@ UMaterialExpressionDepthFade::UMaterialExpressionDepthFade(const FObjectInitiali
 
 	FadeDistanceDefault = 100.0f;
 	OpacityDefault = 1.0f;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Depth);
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
 	bCollapsed = false;
 }
 
@@ -9594,7 +9856,11 @@ UMaterialExpressionSphericalParticleOpacity::UMaterialExpressionSphericalParticl
 	static FConstructorStatics ConstructorStatics;
 
 	ConstantDensity = 1;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
+#endif
+
 	bCollapsed = false;
 }
 
@@ -9623,7 +9889,10 @@ UMaterialExpressionDepthOfFieldFunction::UMaterialExpressionDepthOfFieldFunction
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
 	bCollapsed = false;
 }
 
@@ -9675,7 +9944,10 @@ UMaterialExpressionDDX::UMaterialExpressionDDX(const FObjectInitializer& ObjectI
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
 	bCollapsed = true;
 }
 
@@ -9721,7 +9993,10 @@ UMaterialExpressionDDY::UMaterialExpressionDDY(const FObjectInitializer& ObjectI
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
 	bCollapsed = true;
 }
 
@@ -9769,8 +10044,11 @@ UMaterialExpressionParticleRelativeTime::UMaterialExpressionParticleRelativeTime
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9805,8 +10083,11 @@ UMaterialExpressionParticleMotionBlurFade::UMaterialExpressionParticleMotionBlur
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9841,8 +10122,11 @@ UMaterialExpressionParticleRandom::UMaterialExpressionParticleRandom(const FObje
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9877,8 +10161,11 @@ UMaterialExpressionParticleDirection::UMaterialExpressionParticleDirection(const
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9913,8 +10200,11 @@ UMaterialExpressionParticleSpeed::UMaterialExpressionParticleSpeed(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9949,8 +10239,11 @@ UMaterialExpressionParticleSize::UMaterialExpressionParticleSize(const FObjectIn
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
 	bShaderInputData = true;
 }
 
@@ -9983,7 +10276,10 @@ UMaterialExpressionAtmosphericFogColor::UMaterialExpressionAtmosphericFogColor(c
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Atmosphere);
+#endif
+
 	bCollapsed = false;
 }
 
@@ -10029,7 +10325,9 @@ UMaterialExpressionSpeedTree::UMaterialExpressionSpeedTree(const FObjectInitiali
 	BillboardThreshold = 0.9f;
 	bAccurateWindVelocities = false;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_SpeedTree);
+#endif
 }
 
 #if WITH_EDITOR
@@ -10119,7 +10417,9 @@ UMaterialExpressionEyeAdaptation::UMaterialExpressionEyeAdaptation(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT("EyeAdaptation")));
@@ -10155,7 +10455,9 @@ UMaterialExpressionTangentOutput::UMaterialExpressionTangentOutput(const FObject
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Custom);
+#endif
 
 	// No outputs
 	Outputs.Reset();
@@ -10200,7 +10502,10 @@ UMaterialExpressionClearCoatNormalCustomOutput::UMaterialExpressionClearCoatNorm
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
 	bCollapsed = true;
 
 	// No outputs
@@ -10250,7 +10555,9 @@ UMaterialExpressionAtmosphericLightVector::UMaterialExpressionAtmosphericLightVe
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR
@@ -10283,7 +10590,9 @@ UMaterialExpressionAtmosphericLightColor ::UMaterialExpressionAtmosphericLightCo
 	};
 	static FConstructorStatics ConstructorStatics;
 
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
 }
 
 #if WITH_EDITOR

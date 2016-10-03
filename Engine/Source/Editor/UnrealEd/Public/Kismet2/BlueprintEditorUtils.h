@@ -1303,6 +1303,11 @@ public:
 	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType);
 
 	/**
+	 * Determine the best secondary icon icon to represent the given pin.
+	 */
+	static const struct FSlateBrush* GetSecondaryIconFromPin(const FEdGraphPinType& PinType);
+
+	/**
 	 * Generate component instancing data (for cooked builds).
 	 *
 	 * @param ComponentTemplate	The component template to generate instancing data for.
@@ -1310,6 +1315,9 @@ public:
 	 * @return					TRUE if component instancing data was built, FALSE otherwise.
 	 */
 	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData);
+
+	/** Switch for hiding TMap/TSet support until stablized */
+	static bool ShouldEnableAdvancedContainers();
 
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones

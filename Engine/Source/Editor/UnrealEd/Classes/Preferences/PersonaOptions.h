@@ -8,6 +8,7 @@
 //=============================================================================
 
 #pragma once
+#include "Engine/EngineBaseTypes.h"
 #include "PersonaOptions.generated.h"
 
 UCLASS(hidecategories=Object, config=EditorPerProjectUserSettings)
@@ -63,6 +64,15 @@ class UNREALED_API UPersonaOptions : public UObject
 
 	UPROPERTY(EditAnywhere, config, Category = Options)
 	FLinearColor BranchingPointTimingNodeColor;
+
+	UPROPERTY(EditAnywhere, config, Category = Options)
+	bool bUseStandaloneAnimationEditors;
+
+	UPROPERTY(EditAnywhere, config, Category = Options)
+	bool bUseInlineSocketEditor;
+
+	UPROPERTY(EditAnywhere, config, Category = Options)
+	bool bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons;
 
 public:
 	void SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor);

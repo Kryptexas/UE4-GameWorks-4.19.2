@@ -280,6 +280,10 @@ void UParticleLODLevel::PostLoad()
 	{
 		RequiredModule->ConditionalPostLoad();
 	}
+	if ( SpawnModule )
+	{
+		SpawnModule->ConditionalPostLoad();
+	}
 
 	for (UParticleModule* ParticleModule : Modules)
 	{
@@ -6704,7 +6708,10 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 								const UParticleModuleMeshMaterial* MaterialModule = Cast<UParticleModuleMeshMaterial>( LOD->Modules[ ModuleIdx ] );
 								if( TypeDataModule->Mesh )
 								{
-									OutMaterials.Append(TypeDataModule->Mesh->Materials);
+									for (const FStaticMaterial &StaticMaterial : TypeDataModule->Mesh->StaticMaterials)
+									{
+										OutMaterials.Add(StaticMaterial.MaterialInterface);
+									}
 								}
 							}
 						}
@@ -7138,15 +7145,15 @@ void AEmitterCameraLensEffectBase::ActivateLensEffect()
 	check(World);
 	if( !IsNetMode(NM_DedicatedServer) )
 	{
-		UParticleSystem* PSToActuallySpawn;
-		if( World->GameState && World->GameState->ShouldShowGore() )
+		UParticleSystem* PSToActuallySpawn = PS_CameraEffect;
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		AGameState* GameState = World->GetGameState<AGameState>();
+		if(GameState && !GameState->ShouldShowGore() )
 		{
-			PSToActuallySpawn = PS_CameraEffect;
+			PSToActuallySpawn = PS_CameraEffectNonExtremeContent_DEPRECATED;
 		}
-		else
-		{
-			PSToActuallySpawn = PS_CameraEffectNonExtremeContent;
-		}
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 		if( PSToActuallySpawn != NULL )
 		{
@@ -7171,7 +7178,7 @@ bool AEmitterCameraLensEffectBase::IsLooping() const
 		return true;
 	}
 
-	if ((PS_CameraEffectNonExtremeContent != nullptr) && PS_CameraEffectNonExtremeContent->IsLooping())
+	if ((PS_CameraEffectNonExtremeContent_DEPRECATED != nullptr) && PS_CameraEffectNonExtremeContent_DEPRECATED->IsLooping())
 	{
 		return true;
 	}

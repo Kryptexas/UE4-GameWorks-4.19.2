@@ -182,6 +182,12 @@ public:
 	 */
 	static FText GetToolTipTextForObject(const UObject* InObject);
 
+	/** Get the asset editor mode manager we are using */
+	class FAssetEditorModeManager* GetAssetEditorModeManager() const;
+
+	/** Set the asset editor mode manager we are using */
+	void SetAssetEditorModeManager(class FAssetEditorModeManager* InModeManager);
+
 protected:
 
 	/**	Returns the single object currently being edited. Asserts if currently editing no object or multiple objects */
@@ -303,6 +309,9 @@ protected:
 
 	/** Whether only dirty assets should be prompted about on save - otherwise all edited assets will be prompted to the user for save/check-out */
 	bool bCheckDirtyOnAssetSave;
+
+	/** The asset editor mode manager */
+	FAssetEditorModeManager* AssetEditorModeManager;
 
 private:
 	/** The toolkit standalone host; may be nullptr */

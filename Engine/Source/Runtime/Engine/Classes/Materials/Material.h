@@ -1212,7 +1212,22 @@ private:
 	/** Caches shader maps for an array of material resources. */
 	void CacheShadersForResources(EShaderPlatform ShaderPlatform, const TArray<FMaterialResource*>& ResourcesToCache, bool bApplyCompletedShaderMapForRendering);
 
+	/**
+	 * If there is some texture reference used by a TextureProperty node in any expressions, this function
+	 * will extract the current hash of TextureReferencesHash into a string  then append the texture guid used by the node
+	 * and recompute a new hash.
+	 */
+	void GetForceRecompileTextureIdsHash(FSHAHash &TextureReferencesHash);
+
 public:
+	bool IsTextureForceRecompileCacheRessource(UTexture *Texture);
+
+#if WITH_EDITOR
+	/* Recompute the ddc cache key and reload the material in case the key is not the same.
+	 * It will also make sure lightmass texture reference are up to date
+	 */
+	void UpdateMaterialShaderCacheAndTextureReferences();
+#endif
 
 	/**
 	 * Go through every material, flush the specified types and re-initialize the material's shader maps.
