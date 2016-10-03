@@ -22,19 +22,8 @@ FEditorWorldWrapper::FEditorWorldWrapper(FWorldContext& InWorldContext):
 
 FEditorWorldWrapper::~FEditorWorldWrapper()
 {
-	if(VREditorMode != nullptr && !VREditorMode->IsPendingKill() )
-	{
-		VREditorMode->Shutdown();
-		VREditorMode->MarkPendingKill();
-		VREditorMode = nullptr;
-	}
-
-	if(WorldInteraction != nullptr && !WorldInteraction->IsPendingKill())
-	{
-		WorldInteraction->Shutdown();
-		WorldInteraction->MarkPendingKill();
-		WorldInteraction = nullptr;
-	}
+	WorldInteraction = nullptr;
+	VREditorMode = nullptr;
 }
 
 UWorld* FEditorWorldWrapper::GetWorld() const
