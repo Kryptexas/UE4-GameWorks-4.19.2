@@ -521,9 +521,7 @@ namespace
 
 		check(NewWorld);
 
-#if WITH_EDITOR
 		OutPackage->PIEInstanceID = WorldContext.PIEInstance;
-#endif
 
 		// Rename streaming levels to PIE
 		for (ULevelStreaming* StreamingLevel : NewWorld->StreamingLevels)
@@ -8693,6 +8691,23 @@ void DestroyNamedNetDriver_Local(FWorldContext &Context, FName NetDriverName)
 			NetDriver->Shutdown();
 			NetDriver->LowLevelDestroy();
 			Context.ActiveNetDrivers.RemoveAtSwap(Index);
+
+			// Remove this driver from the main level collection
+			const ELevelCollectionType DriverType = NetDriver->GetDuplicateLevelID() == INDEX_NONE ? ELevelCollectionType::DynamicSourceLevels : ELevelCollectionType::DynamicDuplicatedLevels;
+			FLevelCollection* const LevelCollection = Context.World()->FindCollectionByType(DriverType);
+			if (LevelCollection)
+			{
+				if (LevelCollection->GetNetDriver() == NetDriver)
+				{
+					LevelCollection->SetNetDriver(nullptr);
+				}
+
+				if (LevelCollection->GetDemoNetDriver() == NetDriver)
+				{
+					LevelCollection->SetDemoNetDriver(nullptr);
+				}
+			}
+
 			break;
 		}
 	}
@@ -9908,6 +9923,12 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 		// Make sure "always loaded" sub-levels are fully loaded
 		WorldContext.World()->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
+
+		if (!GIsEditor && !IsRunningDedicatedServer())
+		{
+			// If requested, duplicate dynamic levels here after the source levels are created.
+			WorldContext.World()->DuplicateRequestedLevels(FName(*URL.Map));
+		}
 	}
 	
 	// Note that AI system will be created only if ai-system-creation conditions are met
@@ -10105,6 +10126,9 @@ void UEngine::MovePendingLevel(FWorldContext &Context)
 		// The pending net driver is renamed to the current "game net driver"
 		NetDriver->NetDriverName = NAME_GameNetDriver;
 		NetDriver->SetWorld(Context.World());
+
+		FLevelCollection& SourceLevels = Context.World()->FindOrAddCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+		SourceLevels.SetNetDriver(NetDriver);
 	}
 
 	// Attach the DemoNetDriver to the world if there is one
@@ -10112,6 +10136,9 @@ void UEngine::MovePendingLevel(FWorldContext &Context)
 	{
 		Context.PendingNetGame->DemoNetDriver->SetWorld( Context.World() );
 		Context.World()->DemoNetDriver = Context.PendingNetGame->DemoNetDriver;
+
+		FLevelCollection& MainLevels = Context.World()->FindOrAddCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+		MainLevels.SetDemoNetDriver(Context.PendingNetGame->DemoNetDriver);
 	}
 
 	// Reset the Navigation System
@@ -10553,6 +10580,30 @@ bool UEngine::WorldHasValidContext(UWorld *InWorld)
 	return (GetWorldContextFromWorld(InWorld) != NULL);
 }
 
+bool UEngine::IsWorldDuplicate(const UWorld* const InWorld)
+{
+	// World is considered a duplicate if it's the outer of a level in a duplicate levels collection
+	for (const FWorldContext& Context : WorldList)
+	{
+		if (Context.World())
+		{	
+			const FLevelCollection* const Collection = Context.World()->FindCollectionByType(ELevelCollectionType::DynamicDuplicatedLevels);
+			if (Collection)
+			{
+				for (const ULevel* const Level : Collection->GetLevels())
+				{
+					if (Level->GetOuter() == InWorld)
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 void UEngine::VerifyLoadMapWorldCleanup()
 {
 	// All worlds at this point should be the CurrentWorld of some context, preview worlds, or streaming level
@@ -10563,7 +10614,7 @@ void UEngine::VerifyLoadMapWorldCleanup()
 		const bool bIsPersistantWorldType = (World->WorldType == EWorldType::Inactive) || (World->WorldType == EWorldType::Preview);
 		if (!bIsPersistantWorldType && !WorldHasValidContext(World))
 		{
-			if (World->PersistentLevel == nullptr || !WorldHasValidContext(World->PersistentLevel->OwningWorld))
+			if ((World->PersistentLevel == nullptr || !WorldHasValidContext(World->PersistentLevel->OwningWorld)) && !IsWorldDuplicate(World))
 			{
 				// Print some debug information...
 				UE_LOG(LogLoad, Log, TEXT("%s not cleaned up by garbage collection! "), *World->GetFullName());

@@ -21,6 +21,7 @@ UGameInstance::UGameInstance(const FObjectInitializer& ObjectInitializer)
 , TimerManager(new FTimerManager())
 , LatentActionManager(new FLatentActionManager())
 {
+	TimerManager->SetGameInstance(this);
 }
 
 void UGameInstance::FinishDestroy()
@@ -784,6 +785,13 @@ void UGameInstance::StartRecordingReplay(const FString& Name, const FString& Fri
 	check( CurrentWorld->DemoNetDriver != NULL );
 
 	CurrentWorld->DemoNetDriver->SetWorld( CurrentWorld );
+
+	// Set the new demo driver as the current collection's driver
+	FLevelCollection* CurrentLevelCollection = CurrentWorld->FindCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+	if (CurrentLevelCollection)
+	{
+		CurrentLevelCollection->SetDemoNetDriver(CurrentWorld->DemoNetDriver);
+	}
 
 	FString Error;
 

@@ -44,6 +44,11 @@ void UAbilitySystemComponent::UninitializeComponent()
 	Super::UninitializeComponent();
 	
 	ActiveGameplayEffects.Uninitialize();
+}
+
+void UAbilitySystemComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
+{
+	DestroyActiveState();
 
 	for (UAttributeSet* Set : SpawnedAttributes)
 	{
@@ -52,11 +57,6 @@ void UAbilitySystemComponent::UninitializeComponent()
 			Set->MarkPendingKill();
 		}
 	}
-}
-
-void UAbilitySystemComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
-{
-	DestroyActiveState();
 
 	// Call the super at the end, after we've done what we needed to do
 	Super::OnComponentDestroyed(bDestroyingHierarchy);

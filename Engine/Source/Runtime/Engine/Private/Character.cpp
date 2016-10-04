@@ -192,17 +192,6 @@ void ACharacter::UpdateNavigationRelevance()
 	}
 }
 
-void ACharacter::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
-{
-	Super::ApplyWorldOffset(InOffset, bWorldShift);
-
-	// Update cached location values in movement component
-	if (CharacterMovement)
-	{
-		CharacterMovement->OldBaseLocation+= InOffset;
-	}
-}
-
 float ACharacter::GetDefaultHalfHeight() const
 {
 	UCapsuleComponent* DefaultCapsule = GetClass()->GetDefaultObject<ACharacter>()->CapsuleComponent;
@@ -1257,7 +1246,8 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove&
 	// Absolute position
 	else
 	{
-		SetActorLocationAndRotation(RootMotionRepMove.RootMotion.Location, RootMotionRepMove.RootMotion.Rotation);
+		FVector LocalLocation = FRepMovement::RebaseOntoLocalOrigin(RootMotionRepMove.RootMotion.Location, this);
+		SetActorLocationAndRotation(LocalLocation, RootMotionRepMove.RootMotion.Rotation);
 	}
 
 	CharacterMovement->bJustTeleported = true;
@@ -1324,10 +1314,11 @@ void ACharacter::PostNetReceiveLocationAndRotation()
 		if (!ReplicatedBasedMovement.HasRelativeLocation())
 		{
 			const FVector OldLocation = GetActorLocation();
+			const FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(ReplicatedMovement.Location, this);
 			const FQuat OldRotation = GetActorQuat();
 		
 			CharacterMovement->bNetworkSmoothingComplete = false;
-			CharacterMovement->SmoothCorrection(OldLocation, OldRotation, ReplicatedMovement.Location, ReplicatedMovement.Rotation.Quaternion());
+			CharacterMovement->SmoothCorrection(OldLocation, OldRotation, NewLocation, ReplicatedMovement.Rotation.Quaternion());
 			OnUpdateSimulatedPosition(OldLocation, OldRotation);
 		}
 	}
@@ -1345,7 +1336,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		// Is position stored in local space?
 		RepRootMotion.bRelativePosition = BasedMovement.HasRelativeLocation();
 		RepRootMotion.bRelativeRotation = BasedMovement.HasRelativeRotation();
-		RepRootMotion.Location			= RepRootMotion.bRelativePosition ? BasedMovement.Location : GetActorLocation();
+		RepRootMotion.Location			= RepRootMotion.bRelativePosition ? BasedMovement.Location : FRepMovement::RebaseOntoZeroOrigin(GetActorLocation(), GetWorld()->OriginLocation);
 		RepRootMotion.Rotation			= RepRootMotion.bRelativeRotation ? BasedMovement.Rotation : GetActorRotation();
 		RepRootMotion.MovementBase		= BasedMovement.MovementBase;
 		RepRootMotion.MovementBaseBoneName = BasedMovement.BoneName;

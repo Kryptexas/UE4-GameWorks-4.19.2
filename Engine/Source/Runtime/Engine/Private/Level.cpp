@@ -657,6 +657,12 @@ void ULevel::BeginDestroy()
 
 	Super::BeginDestroy();
 
+	// Remove this level from its OwningWorld's collection
+	if (CachedLevelCollection)
+	{
+		CachedLevelCollection->RemoveLevel(this);
+	}
+
 	if (OwningWorld && IsPersistentLevel() && OwningWorld->Scene)
 	{
 		OwningWorld->Scene->SetPrecomputedVisibility(NULL);
@@ -1737,6 +1743,22 @@ ULevelScriptBlueprint* ULevel::GetLevelScriptBlueprint(bool bDontCreate)
 	}
 
 	return LevelScriptBlueprint;
+}
+
+void ULevel::CleanupLevelScriptBlueprint()
+{
+	if( LevelScriptBlueprint )
+	{
+		if( LevelScriptBlueprint->SkeletonGeneratedClass )
+		{
+			LevelScriptBlueprint->SkeletonGeneratedClass->ClassGeneratedBy = nullptr; 
+		}
+
+		if( LevelScriptBlueprint->GeneratedClass )
+		{
+			LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy = nullptr; 
+		}
+	}
 }
 
 void ULevel::OnLevelScriptBlueprintChanged(ULevelScriptBlueprint* InBlueprint)

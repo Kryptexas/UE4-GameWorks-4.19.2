@@ -1527,6 +1527,13 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 		return;
 	}
 
+	if (Spec.Def->Modifiers.Num() != Spec.Modifiers.Num())
+	{
+		// This can happen with older replays, where the replicated Spec.Modifiers size changed in the newer Spec.Def
+		ABILITY_LOG(Error, TEXT("FActiveGameplayEffect::PostReplicatedAdd: Spec.Def->Modifiers.Num() != Spec.Modifiers.Num()"));
+		return;
+	}
+
 	bool ShouldInvokeGameplayCueEvents = true;
 	if (PredictionKey.IsLocalClientKey())
 	{
@@ -1578,6 +1585,14 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 	if (Spec.Def == nullptr)
 	{
 		ABILITY_LOG(Error, TEXT("Received ReplicatedGameplayEffect with no UGameplayEffect def."));
+		return;
+	}
+
+	if (Spec.Def->Modifiers.Num() != Spec.Modifiers.Num())
+	{
+		// This can happen with older replays, where the replicated Spec.Modifiers size changed in the newer Spec.Def
+		ABILITY_LOG(Error, TEXT("FActiveGameplayEffect::PostReplicatedChange: Spec.Def->Modifiers.Num() != Spec.Modifiers.Num()"));
+		return;
 	}
 
 	// Handle potential duration refresh

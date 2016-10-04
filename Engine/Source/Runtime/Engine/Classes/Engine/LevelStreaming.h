@@ -126,6 +126,13 @@ public:
 	UPROPERTY(EditAnywhere, Category=LevelStreaming, BlueprintReadWrite)
 	uint32 bShouldBeVisible:1;
 
+	/**
+	 * Whether this level only contains static actors that aren't affected by gameplay or replication.
+	 * If true, the engine can make certain optimizations and will add this level to the StaticLevels collection.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category=LevelStreaming)
+	uint32 bIsStatic:1;
+
 	/** Whether we want to force a blocking load																				*/
 	UPROPERTY(Category=LevelStreaming, BlueprintReadWrite)
 	uint32 bShouldBlockOnLoad:1;
@@ -173,8 +180,8 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-#if WITH_EDITOR
 	virtual void Serialize( FArchive& Ar ) override;
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	
 	/** Remove duplicates in EditorStreamingVolumes list*/

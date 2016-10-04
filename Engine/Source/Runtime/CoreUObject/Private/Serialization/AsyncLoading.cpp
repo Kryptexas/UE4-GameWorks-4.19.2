@@ -1472,9 +1472,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 
 		// Set package specific data 
 		Package->SetPackageFlags(Desc.PackageFlags);
-#if WITH_EDITOR
 		Package->PIEInstanceID = Desc.PIEInstanceID;
-#endif
 
 		// Always store package filename we loading from
 		Package->FileName = Desc.NameToLoad;

@@ -507,6 +507,148 @@ public:
 };
 #endif
 
+/**
+ * Contains a group of levels of a particular ELevelCollectionType within a UWorld
+ * and the context required to properly tick/update those levels. This object is move-only.
+ */
+USTRUCT()
+struct ENGINE_API FLevelCollection
+{
+	GENERATED_BODY()
+
+	FLevelCollection();
+
+	FLevelCollection(const FLevelCollection&) = delete;
+	FLevelCollection& operator=(const FLevelCollection&) = delete;
+
+	FLevelCollection(FLevelCollection&& Other);
+	FLevelCollection& operator=(FLevelCollection&& Other);
+
+	/** The destructor will clear the cached collection pointers in this collection's levels. */
+	~FLevelCollection();
+
+	/** Gets the type of this collection. */
+	ELevelCollectionType GetType() const { return CollectionType; }
+
+	/** Sets the type of this collection. */
+	void SetType(const ELevelCollectionType InType) { CollectionType = InType; }
+
+	/** Gets the game state for this collection. */
+	AGameStateBase* GetGameState() const { return GameState; }
+
+	/** Sets the game state for this collection. */
+	void SetGameState(AGameStateBase* const InGameState) { GameState = InGameState; }
+
+	/** Gets the net driver for this collection. */
+	UNetDriver* GetNetDriver() const { return NetDriver; }
+	
+	/** Sets the net driver for this collection. */
+	void SetNetDriver(UNetDriver* const InNetDriver) { NetDriver = InNetDriver; }
+
+	/** Gets the demo net driver for this collection. */
+	UDemoNetDriver* GetDemoNetDriver() const { return DemoNetDriver; }
+
+	/** Sets the demo net driver for this collection. */
+	void SetDemoNetDriver(UDemoNetDriver* const InDemoNetDriver) { DemoNetDriver = InDemoNetDriver; }
+
+	/** Returns the set of levels in this collection. */
+	const TSet<ULevel*>& GetLevels() const { return Levels; }
+
+	/** Adds a level to this collection and caches the collection pointer on the level for fast access. */
+	void AddLevel(ULevel* const Level);
+
+	/** Removes a level from this collection and clears the cached collection pointer on the level. */
+	void RemoveLevel(ULevel* const Level);
+
+	/** Sets this collection's PersistentLevel and adds it to the Levels set. */
+	void SetPersistentLevel(ULevel* const Level);
+
+	/** Returns this collection's PersistentLevel. */
+	ULevel* GetPersistentLevel() const { return PersistentLevel; }
+
+	/** Gets whether this collection is currently visible. */
+	bool IsVisible() const { return bIsVisible; }
+
+	/** Sets whether this collection is currently visible. */
+	void SetIsVisible(const bool bInIsVisible) { bIsVisible = bInIsVisible; }
+
+private:
+	/** The type of this collection. */
+	ELevelCollectionType CollectionType;
+
+	/**
+	 * The GameState associated with this collection. This may be different than the UWorld's GameState
+	 * since the source collection and the duplicated collection will have their own instances.
+	 */
+	UPROPERTY()
+	class AGameStateBase* GameState;
+
+	/**
+	 * The network driver associated with this collection.
+	 * The source collection and the duplicated collection will have their own instances.
+	 */
+	UPROPERTY()
+	class UNetDriver* NetDriver;
+
+	/**
+	 * The demo network driver associated with this collection.
+	 * The source collection and the duplicated collection will have their own instances.
+	 */
+	UPROPERTY()
+	class UDemoNetDriver* DemoNetDriver;
+
+	/**
+	 * The persistent level associated with this collection.
+	 * The source collection and the duplicated collection will have their own instances.
+	 */
+	UPROPERTY()
+	class ULevel* PersistentLevel;
+
+	/** All the levels in this collection. */
+	UPROPERTY()
+	TSet<ULevel*> Levels;
+
+	/**
+	 * Whether or not this collection is currently visible. While invisible, actors in this collection's
+	 * levels will not be rendered and sounds originating from levels in this collection will not be played.
+	 */
+	bool bIsVisible;
+};
+
+template<>
+struct TStructOpsTypeTraits<FLevelCollection> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = false
+	};
+};
+
+/**
+ * A helper RAII class to set the relevant context on a UWorld for a particular FLevelCollection within a scope.
+ * The constructor will set the PersistentLevel, GameState, NetDriver, and DemoNetDriver on the world and
+ * the destructor will restore the original values.
+ */
+class ENGINE_API FScopedLevelCollectionContextSwitch
+{
+public:
+	/**
+	 * Constructor that will save the current relevant values of InWorld
+	 * and set the collection's context values for InWorld.
+	 *
+	 * @param InLevelCollection The collection's context to use
+	 * @param InWorld The world on which to set the context.
+	 */
+	FScopedLevelCollectionContextSwitch(const FLevelCollection* const InLevelCollection, UWorld* const InWorld);
+	
+	/** The destructor restores the context on the world that was saved in the constructor. */
+	~FScopedLevelCollectionContextSwitch();
+
+private:
+	class UWorld* World;
+	const FLevelCollection* SavedTickingCollection;
+};
+
 /** 
  * The World is the top level object representing a map or a sandbox in which Actors and Components will exist and be rendered.  
  *
@@ -643,6 +785,16 @@ private:
 	/** Array of levels currently in this world. Not serialized to disk to avoid hard references.								*/
 	UPROPERTY(Transient)
 	TArray<class ULevel*>						Levels;
+
+	/** Array of level collections currently in this world. */
+	UPROPERTY(Transient)
+	TArray<FLevelCollection>					LevelCollections;
+
+	/** Pointer to the level collection that's currently ticking. */
+	const FLevelCollection*						ActiveLevelCollection;
+
+	/** Creates the dynamic source and static level collections if they don't already exist. */
+	void ConditionallyCreateDefaultLevelCollections();
 
 public:
 
@@ -2309,6 +2461,35 @@ public:
 	 */
 	bool RemoveLevel( ULevel* InLevel );
 
+	/** Returns the FLevelCollection for the given InType. If one does not exist, it is created. */
+	FLevelCollection& FindOrAddCollectionByType(const ELevelCollectionType InType);
+
+	/** Returns the FLevelCollection for the given InType, or null if a collection of that type hasn't been created yet. */
+	FLevelCollection* FindCollectionByType(const ELevelCollectionType InType);
+
+	/** Returns the FLevelCollection for the given InType, or null if a collection of that type hasn't been created yet. */
+	const FLevelCollection* FindCollectionByType(const ELevelCollectionType InType) const;
+
+	/**
+	 * Returns the level collection which currently has its context set on this world. May be null.
+	 * If non-null, this implies that execution is currently within the scope of an FScopedLevelCollectionContextSwitch for this world.
+	 */
+	const FLevelCollection* GetActiveLevelCollection() const { return ActiveLevelCollection; }
+
+	/** Sets the level collection and its context on this world. Should only be called by FScopedLevelCollectionContextSwitch. */
+	void SetActiveLevelCollection(const FLevelCollection* InCollection);
+
+	/** Returns a read-only reference to the list of level collections in this world. */
+	const TArray<FLevelCollection>& GetLevelCollections() const { return LevelCollections; }
+
+	/**
+	 * Creates a new level collection of type DynamicDuplicatedLevels by duplicating the levels in DynamicSourceLevels.
+	 * Should only be called by engine.
+	 *
+	 * @param MapName The name of the soure map, used as a parameter to UEngine::Experimental_ShouldPreDuplicateMap
+	 */
+	void DuplicateRequestedLevels(const FName MapName);
+
 	/** Handle Exec/Console Commands related to the World */
 	bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog );
 
@@ -2555,7 +2736,7 @@ public:
 	/** Returns the current GameState instance. */
 	AGameStateBase* GetGameState() const { return GameState; }
 
-	/** Sets the active GameState */
+	/** Sets the current GameState instance on this world and the game state's level collection. */
 	void SetGameState(AGameStateBase* NewGameState);
 
 	/** Copies GameState properties from the GameMode. */

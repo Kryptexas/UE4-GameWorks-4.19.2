@@ -137,6 +137,10 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Networking", meta=(WorldContext="WorldContextObject"))
 	static bool IsDedicatedServer(UObject* WorldContextObject);
 
+	/** Returns whether this game instance is stand alone (no networking). */
+	UFUNCTION(BlueprintPure, Category="Networking", meta=(WorldContext="WorldContextObject"))
+	static bool IsStandalone(UObject* WorldContextObject);
+	
 	/** Returns whether this is a build that is packaged for distribution */
 	UFUNCTION(BlueprintPure, Category="Development")
 	static bool IsPackagedForDistribution();

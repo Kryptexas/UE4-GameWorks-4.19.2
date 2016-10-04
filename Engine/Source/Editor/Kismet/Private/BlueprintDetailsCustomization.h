@@ -168,6 +168,12 @@ private:
 	void ReplicationOnRepFuncChanged(const FString& NewOnRepFunc) const;
 	EVisibility ReplicationVisibility() const;
 
+	/** Array of replication conditions for the combo text box */
+	TArray<TSharedPtr<FString>> ReplicationConditionEnumTypeNames;
+	TSharedPtr<FString> GetVariableReplicationCondition() const;
+	void OnChangeReplicationCondition(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo);
+	bool ReplicationConditionEnabled() const;
+
 	EVisibility GetTransientVisibility() const;
 	ECheckBoxState OnGetTransientCheckboxState() const;
 	void OnTransientChanged(ECheckBoxState InNewState);

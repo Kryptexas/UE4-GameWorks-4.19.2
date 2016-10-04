@@ -134,6 +134,111 @@ FActorSpawnParameters::FActorSpawnParameters()
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
+
+
+FLevelCollection::FLevelCollection()
+	: CollectionType(ELevelCollectionType::DynamicSourceLevels)
+	, GameState(nullptr)
+	, NetDriver(nullptr)
+	, DemoNetDriver(nullptr)
+	, PersistentLevel(nullptr)
+	, bIsVisible(true)
+{
+}
+
+FLevelCollection::~FLevelCollection()
+{
+	for (ULevel* Level : Levels)
+	{
+		check(Level->GetCachedLevelCollection() == this);
+		Level->SetCachedLevelCollection(nullptr);
+	}
+}
+
+FLevelCollection::FLevelCollection(FLevelCollection&& Other)
+	: CollectionType(Other.CollectionType)
+	, GameState(Other.GameState)
+	, NetDriver(Other.NetDriver)
+	, DemoNetDriver(Other.DemoNetDriver)
+	, PersistentLevel(Other.PersistentLevel)
+	, Levels(MoveTemp(Other.Levels))
+	, bIsVisible(Other.bIsVisible)
+{
+	for (ULevel* Level : Levels)
+	{
+		check(Level->GetCachedLevelCollection() == &Other);
+		Level->SetCachedLevelCollection(this);
+	}
+}
+
+FLevelCollection& FLevelCollection::operator=(FLevelCollection&& Other)
+{
+	if (this != &Other)
+	{
+		CollectionType = Other.CollectionType;
+		GameState = Other.GameState;
+		NetDriver = Other.NetDriver;
+		DemoNetDriver = Other.DemoNetDriver;
+		PersistentLevel = Other.PersistentLevel;
+		Levels = MoveTemp(Other.Levels);
+		bIsVisible = Other.bIsVisible;
+
+		for (ULevel* Level : Levels)
+		{
+			check(Level->GetCachedLevelCollection() == &Other);
+			Level->SetCachedLevelCollection(this);
+		}
+	}
+
+	return *this;
+}
+
+void FLevelCollection::SetPersistentLevel(ULevel* const Level)
+{
+	PersistentLevel = Level;
+}
+
+void FLevelCollection::AddLevel(ULevel* const Level)
+{
+	if (Level)
+	{
+		// Sanity check that Level isn't already in another collection.
+		check(Level->GetCachedLevelCollection() == nullptr);
+		Levels.Add(Level);
+		Level->SetCachedLevelCollection(this);
+	}
+}
+
+void FLevelCollection::RemoveLevel(ULevel* const Level)
+{
+	if (Level)
+	{
+		check(Level->GetCachedLevelCollection() == this);
+		Level->SetCachedLevelCollection(nullptr);
+		Levels.Remove(Level);
+	}
+}
+
+FScopedLevelCollectionContextSwitch::FScopedLevelCollectionContextSwitch(const FLevelCollection* const InLevelCollection, UWorld* const InWorld)
+	: World(InWorld)
+	, SavedTickingCollection(InWorld ? InWorld->GetActiveLevelCollection() : nullptr)
+{
+	if (InLevelCollection && World)
+	{
+		World->SetActiveLevelCollection(InLevelCollection);
+	}
+}
+	
+FScopedLevelCollectionContextSwitch::~FScopedLevelCollectionContextSwitch()
+{
+	if (World)
+	{
+		World->SetActiveLevelCollection(SavedTickingCollection);
+	}
+}
+
+
+
 /*-----------------------------------------------------------------------------
 	UWorld implementation.
 -----------------------------------------------------------------------------*/
@@ -163,6 +268,7 @@ FWorldDelegates::FRefreshLevelScriptActionsEvent FWorldDelegates::RefreshLevelSc
 
 UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 : UObject(ObjectInitializer)
+, ActiveLevelCollection(nullptr)
 #if WITH_EDITOR
 , HierarchicalLODBuilder(new FHierarchicalLODBuilder(this))
 #endif
@@ -1104,6 +1210,8 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	// update it's bIsDefaultLevel
 	bIsDefaultLevel = (FPaths::GetBaseFilename(GetMapName()) == FPaths::GetBaseFilename(UGameMapsSettings::GetGameDefaultMap()));
 
+	ConditionallyCreateDefaultLevelCollections();
+
 	// We're initialized now.
 	bIsWorldInitialized = true;
 
@@ -1115,6 +1223,33 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	PersistentLevel->InitializeRenderingResources();
 
 	BroadcastLevelsChanged();
+}
+
+void UWorld::ConditionallyCreateDefaultLevelCollections()
+{
+	// Create main level collection. The persistent level will always be considered dynamic.
+	if (!FindCollectionByType(ELevelCollectionType::DynamicSourceLevels))
+	{
+		FLevelCollection& DynamicCollection = FindOrAddCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+		DynamicCollection.SetPersistentLevel(PersistentLevel);
+		
+		// Don't add the persistent level if it is already a member of another collection.
+		// This may be the case if, for example, this world is the outer of a streaming level,
+		// in which case the persistent level may be in one of the collections in the streaming level's OwningWorld.
+		if (PersistentLevel->GetCachedLevelCollection() == nullptr)
+		{
+			DynamicCollection.AddLevel(PersistentLevel);
+		}
+
+		// Default to the dynamic source collection
+		ActiveLevelCollection = &DynamicCollection;
+	}
+
+	if (!FindCollectionByType(ELevelCollectionType::StaticLevels))
+	{
+		FLevelCollection& StaticCollection = FindOrAddCollectionByType(ELevelCollectionType::StaticLevels);
+		StaticCollection.SetPersistentLevel(PersistentLevel);
+	}
 }
 
 void UWorld::InitializeNewWorld(const InitializationValues IVS)
@@ -1979,7 +2114,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 					// Remap packagename for PIE networking before sending out to server
 					FName PackageName = Level->GetOutermost()->GetFName();
 					FString PackageNameStr = PackageName.ToString();
-					if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
+					if (GEngine->NetworkRemapPath(LocalPlayerController->GetNetDriver(), PackageNameStr, false))
 					{
 						PackageName = FName(*PackageNameStr);
 					}
@@ -2098,7 +2233,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 					// Remap packagename for PIE networking before sending out to server
 					FName PackageName = Level->GetOutermost()->GetFName();
 					FString PackageNameStr = PackageName.ToString();
-					if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
+					if (GEngine->NetworkRemapPath(LocalPlayerController->GetNetDriver(), PackageNameStr, false))
 					{
 						PackageName = FName(*PackageNameStr);
 					}
@@ -2274,9 +2409,8 @@ void UWorld::RenameToPIEWorld(int32 PIEInstanceID)
 {
 	UPackage* WorldPackage = GetOutermost();
 
-#if WITH_EDITOR
 	WorldPackage->PIEInstanceID = PIEInstanceID;
-#endif
+
 	const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(WorldPackage->GetName(), PIEInstanceID);
 	WorldPackage->Rename(*PIEPackageName);
 
@@ -2367,9 +2501,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	UWorld::WorldTypePreLoadMap.FindOrAdd(PrefixedLevelFName) = EWorldType::PIE;
 	UPackage* PIELevelPackage = CastChecked<UPackage>(CreatePackage(NULL,*PrefixedLevelName));
 	PIELevelPackage->SetPackageFlags(PKG_PlayInEditor);
-#if WITH_EDITOR
 	PIELevelPackage->PIEInstanceID = WorldContext.PIEInstance;
-#endif
 	PIELevelPackage->SetGuid( EditorLevelPackage->GetGuid() );
 
 	// Set up string asset reference fixups
@@ -2410,7 +2542,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	{
 		ULevel* EditorLevel = EditorLevelWorld->PersistentLevel;
 		ULevel* PIELevel = PIELevelWorld->PersistentLevel;
-#if WITH_EDITOR
+
 		// Fixup model components. The index buffers have been created for the components in the EditorWorld and the order
 		// in which components were post-loaded matters. So don't try to guarantee a particular order here, just copy the
 		// elements over.
@@ -2428,7 +2560,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 				DestComponent->CopyElementsFrom(SrcComponent);
 			}
 		}
-#endif
+
 		// We have to place PIELevel at his local position in case EditorLevel was visible
 		// Correct placement will occur during UWorld::AddToWorld
 		if (EditorLevel->OwningWorld->WorldComposition && EditorLevel->bIsVisible)
@@ -2441,7 +2573,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	PIELevelWorld->ClearFlags(RF_Standalone);
 	EditorLevelWorld->TransferBlueprintDebugReferences(PIELevelWorld);
 
-	UE_LOG(LogWorld, Log, TEXT("PIE: Copying PIE streaming level from %s to %s. OwningWorld: %s"),
+	UE_LOG(LogWorld, Verbose, TEXT("PIE: Copying PIE streaming level from %s to %s. OwningWorld: %s"),
 		*EditorLevelWorld->GetPathName(),
 		*PIELevelWorld->GetPathName(),
 		OwningWorld ? *OwningWorld->GetPathName() : TEXT("<null>"));
@@ -2723,6 +2855,10 @@ bool UWorld::AreAlwaysLoadedLevelsLoaded() const
 
 void UWorld::AsyncLoadAlwaysLoadedLevelsForSeamlessTravel()
 {
+	// Need to do this now so that data can be set correctly on the loaded world's collections.
+	// This normally happens in InitWorld but that happens too late for seamless travel.
+	ConditionallyCreateDefaultLevelCollections();
+
 	for (int32 LevelIndex = 0; LevelIndex < StreamingLevels.Num(); LevelIndex++)
 	{
 		ULevelStreaming* LevelStreaming = StreamingLevels[LevelIndex];
@@ -3097,7 +3233,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 			// Remap packagename for PIE networking before sending out to server
 			FName PackageName = SubLevel->GetOutermost()->GetFName();
 			FString PackageNameStr = PackageName.ToString();
-			if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
+			if (GEngine->NetworkRemapPath(GetNetDriver(), PackageNameStr, false))
 			{
 				PackageName = FName(*PackageNameStr);
 			}
@@ -3216,18 +3352,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 	// to avoid a GC crash for not cleaning up the gameinfo referenced by levelscript
 	if (IsGameWorld() && !GIsEditor && !IsRunningCommandlet() && bSessionEnded && bCleanupResources && PersistentLevel)
 	{
-		if( ULevelScriptBlueprint* LSBP = PersistentLevel->GetLevelScriptBlueprint(true) )
-		{
-			if( LSBP->SkeletonGeneratedClass )
-			{
-				LSBP->SkeletonGeneratedClass->ClassGeneratedBy = NULL; 
-			}
-
-			if( LSBP->GeneratedClass )
-			{
-				LSBP->GeneratedClass->ClassGeneratedBy = NULL; 
-			}
-		}
+		PersistentLevel->CleanupLevelScriptBlueprint();
 	}
 #endif //WITH_EDITOR
 
@@ -3275,6 +3400,27 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 			World->CleanupWorld(bSessionEnded, bCleanupResources, NewWorld);
 		}
 	}
+
+	// Clean up any duplicated levels.
+	const FLevelCollection* const DuplicateCollection = FindCollectionByType(ELevelCollectionType::DynamicDuplicatedLevels);
+	if (DuplicateCollection)
+	{
+		for (const ULevel* Level : DuplicateCollection->GetLevels())
+		{
+			if (!Level)
+			{
+				continue;
+			}
+
+			UWorld* const LevelWorld = CastChecked<UWorld>(Level->GetOuter());
+			if (LevelWorld != this)
+			{
+				LevelWorld->CleanupWorld(bSessionEnded, bCleanupResources, NewWorld);
+			}
+		}
+	}
+
+	LevelCollections.Empty();
 }
 
 UGameViewportClient* UWorld::GetGameViewport() const
@@ -4160,6 +4306,11 @@ bool UWorld::Listen( FURL& InURL )
 	{
 		NetDriver = GEngine->FindNamedNetDriver(this, NAME_GameNetDriver);
 		NetDriver->SetWorld(this);
+		FLevelCollection* const SourceCollection = FindCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+		if (SourceCollection)
+		{
+			SourceCollection->SetNetDriver(NetDriver);
+		}
 	}
 
 	if (NetDriver == NULL)
@@ -4175,6 +4326,11 @@ bool UWorld::Listen( FURL& InURL )
 		UE_LOG(LogWorld, Log,  TEXT("Failed to listen: %s"), *Error );
 		NetDriver->SetWorld(NULL);
 		NetDriver = NULL;
+		FLevelCollection* SourceCollection = FindCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+		if (SourceCollection)
+		{
+			SourceCollection->SetNetDriver(nullptr);
+		}
 		return false;
 	}
 	static bool LanPlay = FParse::Param(FCommandLine::Get(),TEXT("lanplay"));
@@ -4671,6 +4827,9 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 
 void FSeamlessTravelHandler::CopyWorldData()
 {
+	FLevelCollection* const CurrentCollection = CurrentWorld->FindCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+	FLevelCollection* const LoadedCollection = LoadedWorld->FindCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+
 	// If we are doing seamless travel for replay playback, then make sure to transfer the replay driver over to the new world
 	if ( CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsPlaying() )
 	{
@@ -4678,14 +4837,32 @@ void FSeamlessTravelHandler::CopyWorldData()
 		CurrentWorld->DemoNetDriver = nullptr;
 		OldDriver->SetWorld( LoadedWorld );
 		LoadedWorld->DemoNetDriver = OldDriver;
+
+		if (CurrentCollection && LoadedCollection)
+		{
+			LoadedCollection->SetDemoNetDriver(OldDriver);
+			CurrentCollection->SetDemoNetDriver(nullptr);
+		}
 	}
 	else
 	{
 		CurrentWorld->DestroyDemoNetDriver();
+
+		if (CurrentCollection)
+		{
+			CurrentCollection->SetNetDriver(nullptr);
+		}
 	}
 
 	UNetDriver* const NetDriver = CurrentWorld->GetNetDriver();
 	LoadedWorld->SetNetDriver(NetDriver);
+
+	if (CurrentCollection && LoadedCollection)
+	{
+		LoadedCollection->SetNetDriver(NetDriver);
+		CurrentCollection->SetNetDriver(nullptr);
+	}
+
 	if (NetDriver != NULL)
 	{
 		CurrentWorld->SetNetDriver(NULL);
@@ -4758,6 +4935,12 @@ UWorld* FSeamlessTravelHandler::Tick()
 		{
 			// Make sure there are no pending visibility requests.
 			CurrentWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
+				
+			if (!GIsEditor && !IsRunningDedicatedServer() && bSwitchedToDefaultMap)
+			{
+				// If requested, duplicate dynamic levels here after the source levels are created.
+				LoadedWorld->DuplicateRequestedLevels(LoadedWorld->GetOuter()->GetFName());
+			}
 
 			if (CurrentWorld->GetGameState())
 			{
@@ -5680,12 +5863,27 @@ void UWorld::SetGameState(AGameStateBase* NewGameState)
 	}
 
 	GameState = NewGameState;
+
+	// Set the GameState on the LevelCollection it's associated with.
+	const ULevel* const CachedLevel = NewGameState->GetLevel();
+	FLevelCollection* const FoundCollection = NewGameState ? CachedLevel->GetCachedLevelCollection() : nullptr;
+	if (FoundCollection)
+	{
+		FoundCollection->SetGameState(NewGameState);
+
+		// For now the static levels use the same GameState as the source dynamic levels.
+		if (FoundCollection->GetType() == ELevelCollectionType::DynamicSourceLevels)
+		{
+			FLevelCollection& StaticLevels = FindOrAddCollectionByType(ELevelCollectionType::StaticLevels);
+			StaticLevels.SetGameState(NewGameState);
+		}
+	}
 }
 
 void UWorld::CopyGameState(AGameModeBase* FromGameMode, AGameStateBase* FromGameState)
 {
 	AuthorityGameMode = FromGameMode;
-	GameState = FromGameState;
+	SetGameState(FromGameState);
 }
 
 void UWorld::GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLightMapsAndShadowMaps)
@@ -5752,6 +5950,180 @@ void UWorld::CreateFXSystem()
 	{
 		FXSystem = NULL;
 		Scene->SetFXSystem(NULL);
+	}
+}
+
+FLevelCollection& UWorld::FindOrAddCollectionByType(const ELevelCollectionType InType)
+{
+	for (FLevelCollection& LC : LevelCollections)
+	{
+		if (LC.GetType() == InType)
+		{
+			return LC;
+		}
+	}
+
+	// Not found, add a new one.
+	FLevelCollection NewLC;
+	NewLC.SetType(InType);
+	LevelCollections.Add(MoveTemp(NewLC));
+	return LevelCollections.Last();
+}
+
+FLevelCollection* UWorld::FindCollectionByType(const ELevelCollectionType InType)
+{
+	for (FLevelCollection& LC : LevelCollections)
+	{
+		if (LC.GetType() == InType)
+		{
+			return &LC;
+		}
+	}
+
+	return nullptr;
+}
+
+const FLevelCollection* UWorld::FindCollectionByType(const ELevelCollectionType InType) const
+{
+	for (const FLevelCollection& LC : LevelCollections)
+	{
+		if (LC.GetType() == InType)
+		{
+			return &LC;
+		}
+	}
+
+	return nullptr;
+}
+
+void UWorld::SetActiveLevelCollection(const FLevelCollection* InCollection)
+{
+	ActiveLevelCollection = InCollection;
+
+	PersistentLevel = InCollection->GetPersistentLevel();
+	SetCurrentLevel(InCollection->GetPersistentLevel());
+	GameState = InCollection->GetGameState();
+	NetDriver = InCollection->GetNetDriver();
+	DemoNetDriver = InCollection->GetDemoNetDriver();
+}
+
+static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
+{
+	if (!InLevel || !InLevel->GetOutermost())
+	{
+		return nullptr;
+	}
+
+	const double DuplicateStart = FPlatformTime::Seconds();
+
+	UWorld* OriginalOwningWorld = CastChecked<UWorld>(InLevel->GetOuter());
+	UPackage* OriginalPackage = InLevel->GetOutermost();
+
+	const FString OriginalPackageName = OriginalPackage->GetName();
+
+	// Use a PIE prefix for the new package
+	const FString PrefixedPackageName = UWorld::ConvertToPIEPackageName( OriginalPackageName, InstanceID );
+
+	// Create a package for duplicated level
+	UPackage* NewPackage = CastChecked<UPackage>( CreatePackage( NULL, *PrefixedPackageName ) );
+	NewPackage->SetPackageFlags( PKG_PlayInEditor );
+	NewPackage->PIEInstanceID = InstanceID;
+	NewPackage->FileName = OriginalPackage->FileName;
+	NewPackage->SetGuid( OriginalPackage->GetGuid() );
+
+	GPlayInEditorID = InstanceID;
+
+	// Create "vestigial" world for the persistent level - it's OwningWorld will still be the main world,
+	// but we're treating it like a streaming level (even though it's a duplicate of the persistent level).
+	UWorld* NewWorld = NewObject<UWorld>(NewPackage, OriginalOwningWorld->GetFName());
+	NewWorld->SetFlags(RF_Transactional);
+	NewWorld->WorldType = EWorldType::Game;
+	NewWorld->FeatureLevel = ERHIFeatureLevel::Num;
+
+	TArray<FString> PackageNamesBeingDuplicatedForPIE;
+	PackageNamesBeingDuplicatedForPIE.Add( PrefixedPackageName );
+
+	FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE( PackageNamesBeingDuplicatedForPIE );
+
+	ULevel::StreamedLevelsOwningWorld.Add(NewPackage->GetFName(), OriginalOwningWorld);
+
+	FObjectDuplicationParameters Parameters( InLevel, NewWorld );
+		
+	Parameters.DestName			= InLevel->GetFName();
+	Parameters.DestClass		= InLevel->GetClass();
+	Parameters.FlagMask			= RF_AllFlags;
+	Parameters.InternalFlagMask = EInternalObjectFlags::AllFlags;
+	Parameters.PortFlags		= PPF_DuplicateForPIE;
+
+	ULevel* NewLevel = CastChecked<ULevel>( StaticDuplicateObjectEx( Parameters ) );
+
+	ULevel::StreamedLevelsOwningWorld.Remove(NewPackage->GetFName());
+	FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
+
+	// Fixup model components. The index buffers have been created for the components in the source world and the order
+	// in which components were post-loaded matters. So don't try to guarantee a particular order here, just copy the
+	// elements over.
+	if ( NewLevel->Model != NULL
+			&& NewLevel->Model == InLevel->Model
+			&& NewLevel->ModelComponents.Num() == InLevel->ModelComponents.Num() )
+	{
+		NewLevel->Model->ClearLocalMaterialIndexBuffersData();
+		for ( int32 ComponentIndex = 0; ComponentIndex < NewLevel->ModelComponents.Num(); ++ComponentIndex )
+		{
+			UModelComponent* SrcComponent = InLevel->ModelComponents[ComponentIndex];
+			UModelComponent* DestComponent = NewLevel->ModelComponents[ComponentIndex];
+			DestComponent->CopyElementsFrom( SrcComponent );
+		}
+	}
+
+	const double DuplicateEnd = FPlatformTime::Seconds();
+	const float TotalSeconds = ( DuplicateEnd - DuplicateStart );
+
+	UE_LOG( LogNet, Log, TEXT( "DuplicateLevelWithPrefix. TotalSeconds: %2.2f" ), TotalSeconds );
+
+	GPlayInEditorID = -1;
+
+	return NewLevel;
+}
+
+void UWorld::DuplicateRequestedLevels(const FName MapName)
+{
+	if (GEngine->Experimental_ShouldPreDuplicateMap(MapName))
+	{
+		// Duplicate the persistent level and only dynamic levels, but don't add them to the world.
+		FLevelCollection DuplicateLevels;
+		DuplicateLevels.SetType(ELevelCollectionType::DynamicDuplicatedLevels);
+		DuplicateLevels.SetIsVisible(false);
+		ULevel* const DuplicatePersistentLevel = DuplicateLevelWithPrefix(PersistentLevel, 1);
+		if (!DuplicatePersistentLevel)
+		{
+			UE_LOG(LogWorld, Warning, TEXT("UWorld::DuplicateRequestedLevels: failed to duplicate persistent level %s. No duplicate level collection will be created."),
+				*GetFullNameSafe(PersistentLevel));
+			return;
+		}
+		// Don't tell the server about this level
+		DuplicatePersistentLevel->bClientOnlyVisible = true;
+		DuplicateLevels.SetPersistentLevel(DuplicatePersistentLevel);
+		DuplicateLevels.AddLevel(DuplicatePersistentLevel);
+
+		for (ULevelStreaming* StreamingLevel : StreamingLevels)
+		{
+			if (StreamingLevel && !StreamingLevel->bIsStatic)
+			{
+				ULevel* DuplicatedLevel = DuplicateLevelWithPrefix(StreamingLevel->LoadedLevel, 1);
+				if (!DuplicatedLevel)
+				{
+					UE_LOG(LogWorld, Warning, TEXT("UWorld::DuplicateRequestedLevels: failed to duplicate streaming level %s. No duplicate level collection will be created."),
+						*GetFullNameSafe(StreamingLevel->LoadedLevel));
+					return;
+				}
+				// Don't tell the server about these levels
+				DuplicatedLevel->bClientOnlyVisible = true;
+				DuplicateLevels.AddLevel(DuplicatedLevel);
+			}
+		}
+
+		LevelCollections.Add(MoveTemp(DuplicateLevels));
 	}
 }
 
@@ -5880,6 +6252,34 @@ static FAutoConsoleCommand DumpVisibleActorsCmd(
 	TEXT("DumpVisibleActors"),
 	TEXT("Dump visible actors in current world."),
 	FConsoleCommandDelegate::CreateStatic(DumpVisibleActors)
+	);
+
+static void DumpLevelCollections(UWorld* InWorld)
+{
+	if (!InWorld)
+	{
+		return;
+	}
+
+	UE_LOG(LogWorld, Log, TEXT("--- Dumping LevelCollections ---"));
+
+	for(const FLevelCollection& LC : InWorld->GetLevelCollections())
+	{
+		UE_LOG(LogWorld, Log, TEXT("%d: %d levels."), static_cast<int32>(LC.GetType()), LC.GetLevels().Num());
+		UE_LOG(LogWorld, Log, TEXT("  PersistentLevel: %s"), *GetFullNameSafe(LC.GetPersistentLevel()));
+		UE_LOG(LogWorld, Log, TEXT("  GameState: %s"), *GetFullNameSafe(LC.GetGameState()));
+		UE_LOG(LogWorld, Log, TEXT("  Levels:"));
+		for (const ULevel* Level : LC.GetLevels())
+		{
+			UE_LOG(LogWorld, Log, TEXT("    %s"), *GetFullNameSafe(Level));
+		}
+	}
+}
+
+static FAutoConsoleCommandWithWorld DumpLevelCollectionsCmd(
+	TEXT("DumpLevelCollections"),
+	TEXT("Dump level collections in the current world."),
+	FConsoleCommandWithWorldDelegate::CreateStatic(DumpLevelCollections)
 	);
 
 #if WITH_EDITOR

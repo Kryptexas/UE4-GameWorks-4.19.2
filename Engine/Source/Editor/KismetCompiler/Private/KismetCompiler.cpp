@@ -542,6 +542,7 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			NewProperty->SetMetaData(TEXT("DisplayName"), *Variable.FriendlyName);
 			NewProperty->SetMetaData(TEXT("Category"), *Variable.Category.ToString());
 			NewProperty->RepNotifyFunc = Variable.RepNotifyFunc;
+			NewProperty->SetBlueprintReplicationCondition(Variable.ReplicationCondition);
 
 			if(!Variable.DefaultValue.IsEmpty())
 			{

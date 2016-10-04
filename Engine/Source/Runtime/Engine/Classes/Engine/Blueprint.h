@@ -2,12 +2,12 @@
 
 #pragma once
 
+#include "CoreNetTypes.h"
 #include "EdGraph/EdGraphPin.h"
 #include "EdGraph/EdGraphNode.h"
 #include "Engine/EngineTypes.h"
 #include "BlueprintCore.h"
 #include "Blueprint.generated.h"
-
 
 /**
  * Enumerates states a blueprint can be in.
@@ -186,6 +186,9 @@ struct FBPVariableDescription
 
 	UPROPERTY(EditAnywhere, Category=BPVariableRepNotify)
 	FName RepNotifyFunc;
+
+	UPROPERTY(EditAnywhere, Category=BPVariableDescription)
+	TEnumAsByte<ELifetimeCondition> ReplicationCondition;
 
 	/** Metadata information for this variable */
 	UPROPERTY(EditAnywhere, Category=BPVariableDescription)

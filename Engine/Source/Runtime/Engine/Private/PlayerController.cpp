@@ -192,7 +192,7 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 {
 	// For PIE Networking: remap the packagename to our local PIE packagename
 	FString PackageNameStr = PackageName.ToString();
-	if (GEngine->NetworkRemapPath(GetWorld(), PackageNameStr, true))
+	if (GEngine->NetworkRemapPath(GetNetDriver(), PackageNameStr, true))
 	{
 		PackageName = FName(*PackageNameStr);
 	}
@@ -205,8 +205,6 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 			return;
 		}
 	}
-
-	//GEngine->NetworkRemapPath(GetWorld(), RealName, false);
 
 	// if we're about to commit a map change, we assume that the streaming update is based on the to be loaded map and so defer it until that is complete
 	if (GEngine->ShouldCommitPendingMapChange(GetWorld()))
@@ -1586,7 +1584,7 @@ void APlayerController::ServerUpdateCamera_Implementation(FVector_NetQuantize Ca
 	}
 
 	FPOV NewPOV;
-	NewPOV.Location = CamLoc;
+	NewPOV.Location = FRepMovement::RebaseOntoLocalOrigin(CamLoc, this);
 	
 	NewPOV.Rotation.Yaw = FRotator::DecompressAxisFromShort( (CamPitchAndYaw >> 16) & 65535 );
 	NewPOV.Rotation.Pitch = FRotator::DecompressAxisFromShort(CamPitchAndYaw & 65535);
@@ -3835,9 +3833,9 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 {
 	check(InPlayer!=NULL);
 
-	const bool bIsSameWorld = InPlayer->PlayerController && (InPlayer->PlayerController->GetWorld() == GetWorld());
-	// Detach old player if same world.
-	if (bIsSameWorld)
+	const bool bIsSameLevel = InPlayer->PlayerController && (InPlayer->PlayerController->GetLevel() == GetLevel());
+	// Detach old player if it's in the same level.
+	if (bIsSameLevel)
 	{
 		InPlayer->PlayerController->Player = NULL;
 	}

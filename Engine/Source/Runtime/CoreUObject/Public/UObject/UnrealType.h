@@ -72,6 +72,8 @@ private:
 	// In memory variables (generated during Link()).
 	int32		Offset_Internal;
 
+	ELifetimeCondition BlueprintReplicationCondition;
+
 public:
 	/** In memory only: Linked list of properties from most-derived to base **/
 	UProperty*	PropertyLinkNext;
@@ -814,6 +816,9 @@ public:
 
 	/** returns true, if Other is property of exactly the same type */
 	virtual bool SameType(const UProperty* Other) const;
+
+	ELifetimeCondition GetBlueprintReplicationCondition() const { return BlueprintReplicationCondition; }
+	void SetBlueprintReplicationCondition(ELifetimeCondition InBlueprintReplicationCondition) { BlueprintReplicationCondition = InBlueprintReplicationCondition; }
 
 #if HACK_HEADER_GENERATOR
 	// Required by UHT makefiles for internal data serialization.

@@ -53,6 +53,7 @@ FName USceneComponent::GetDefaultSceneRootVariableName()
 
 USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
+	, CachedLevelCollection(nullptr)
 {
 	Mobility = EComponentMobility::Movable;
 	RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
@@ -544,6 +545,14 @@ void USceneComponent::OnRegister()
 		}
 	}
 	
+	// Cache the level collection that contains the level in which this component is registered for fast access in IsVisible().
+	const UWorld* const World = GetWorld();
+	if (World)
+	{
+		const ULevel* const CachedLevel = GetComponentLevel();
+		CachedLevelCollection = CachedLevel ? CachedLevel->GetCachedLevelCollection() : nullptr;
+	}
+
 	Super::OnRegister();
 
 #if WITH_EDITORONLY_DATA
@@ -566,6 +575,13 @@ void USceneComponent::OnRegister()
 		SpriteComponent->RegisterComponent();
 	}
 #endif
+}
+
+void USceneComponent::OnUnregister()
+{
+	CachedLevelCollection = nullptr;
+
+	Super::OnUnregister();
 }
 
 void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
@@ -2689,8 +2705,8 @@ bool USceneComponent::IsVisible() const
 	{
 		return false;
 	}
-
-	return ( bVisible ); 
+	
+	return ( bVisible && (!CachedLevelCollection || CachedLevelCollection->IsVisible()) ); 
 }
 
 void USceneComponent::ToggleVisibility(bool bPropagateToChildren)

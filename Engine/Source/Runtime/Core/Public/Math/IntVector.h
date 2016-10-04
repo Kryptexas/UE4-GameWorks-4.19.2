@@ -177,6 +177,12 @@ public:
 	 */
 	FIntVector operator-( const FIntVector& Other ) const;
 
+	/**
+	 * Is vector equal to zero.
+	 * @return is zero
+	*/
+	bool IsZero() const;
+
 public:
 
 	/**
@@ -413,6 +419,11 @@ FORCEINLINE int32 FIntVector::Size() const
 	int64 Y64 = (int64)Y;
 	int64 Z64 = (int64)Z;
 	return int32(FMath::Sqrt(float(X64 * X64 + Y64 * Y64 + Z64 * Z64)));
+}
+
+FORCEINLINE bool FIntVector::IsZero() const
+{
+	return *this == ZeroValue;
 }
 
 

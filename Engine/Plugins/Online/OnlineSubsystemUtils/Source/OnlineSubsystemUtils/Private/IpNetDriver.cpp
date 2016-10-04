@@ -189,6 +189,22 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 {
 	Super::TickDispatch( DeltaTime );
 
+	// Set the context on the world for this driver's level collection.
+	const FLevelCollection* FoundCollection = nullptr;
+	if (World)
+	{
+		for (const FLevelCollection& LC : World->GetLevelCollections())
+		{
+			if (LC.GetNetDriver() == this)
+			{
+				FoundCollection = &LC;
+				break;
+			}
+		}
+	}
+
+	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollection, World);
+
 	ISocketSubsystem* SocketSubsystem = GetSocketSubsystem();
 
 	const double StartReceiveTime = FPlatformTime::Seconds();

@@ -28,7 +28,7 @@ public:
  * Simulated network connection for recording and playing back game sessions.
  */
 UCLASS(transient, config=Engine)
-class UDemoNetConnection
+class ENGINE_API UDemoNetConnection
 	: public UNetConnection
 {
 	GENERATED_UCLASS_BODY()

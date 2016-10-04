@@ -2257,6 +2257,12 @@ public:
 	// This should only ever be called for a EditorEngine
 	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &Context, UWorld* InWorld, FString &PlayWorldMapName) { check(false); return nullptr; }
 
+	/** 
+	 *	If this function returns true, the DynamicSourceLevels collection will be duplicated for the given map.
+	 *	This is necessary to do outside of the editor when we don't have the original editor world, and it's 
+	 *	not safe to copy the dynamic levels once they've been fully initialized, so we pre-duplicate them when the original levels are first created.
+	 */
+	virtual bool Experimental_ShouldPreDuplicateMap(const FName MapName) const { return false; }
 
 protected:
 
@@ -2454,7 +2460,7 @@ public:
 	void DestroyNamedNetDriver(UWorld *InWorld, FName NetDriverName);
 	void DestroyNamedNetDriver(UPendingNetGame *PendingNetGame, FName NetDriverName);
 
-	virtual bool NetworkRemapPath( UWorld *InWorld, FString &Str, bool reading=true) { return false; }
+	virtual bool NetworkRemapPath( UNetDriver* Driver, FString &Str, bool reading=true) { return false; }
 	virtual bool NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool reading=true) { return false; }
 
 	virtual bool HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld * InWorld );
@@ -2664,6 +2670,12 @@ protected:
 	 * @param Error the error string result from the LoadMap call that attempted to load the default map.
 	 */
 	virtual void HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error);
+
+	/**
+	 * Helper function that returns true if InWorld is the outer of a level in a collection of type DynamicDuplicatedLevels.
+	 * For internal engine use.
+	 */
+	bool IsWorldDuplicate(const UWorld* const InWorld);
 
 protected:
 

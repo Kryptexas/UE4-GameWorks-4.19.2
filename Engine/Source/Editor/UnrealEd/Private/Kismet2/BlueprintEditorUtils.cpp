@@ -4243,6 +4243,7 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 	{
 		PostSetupObjectPinType(Blueprint, NewVar);
 	}
+	NewVar.ReplicationCondition = COND_None;
 	NewVar.Category = K2Schema->VR_DefaultCategory;
 	NewVar.DefaultValue = DefaultValue;
 

@@ -54,6 +54,9 @@ protected:
 
 	virtual bool HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
 
+	/** Delegate for handling PS4 play together system events */
+	void OnPlayTogetherEventReceived(int32 UserIndex, const TArray<const FUniqueNetId&>& UserList);
+
 	UPROPERTY()
 	TArray<ULocalPlayer*> LocalPlayers;		// List of locally participating players in this game instance
 	
@@ -63,6 +66,9 @@ protected:
 
 	/** Listeners to PreClientTravel call */
 	FOnPreClientTravel NotifyPreClientTravelDelegates;
+
+	/** Handle for delegate for handling PS4 play together system events */
+	FDelegateHandle OnPlayTogetherEventReceivedDelegateHandle;
 
 public:
 

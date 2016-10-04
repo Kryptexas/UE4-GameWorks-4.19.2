@@ -264,7 +264,6 @@ UWorld* ULevelStreaming::GetWorld() const
 	}
 }
 
-#if WITH_EDITOR
 void ULevelStreaming::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
@@ -277,7 +276,6 @@ void ULevelStreaming::Serialize( FArchive& Ar )
 		}
 	}
 }
-#endif
 
 FName ULevelStreaming::GetLODPackageName() const
 {
@@ -313,6 +311,13 @@ void ULevelStreaming::SetLoadedLevel(class ULevel* Level)
 
 	// Cancel unloading for this level, in case it was queued for it
 	FLevelStreamingGCHelper::CancelUnloadRequest(LoadedLevel);
+
+	// Add this level to the correct collection
+	const ELevelCollectionType CollectionType =	bIsStatic ? ELevelCollectionType::StaticLevels : ELevelCollectionType::DynamicSourceLevels;
+
+	FLevelCollection& LC = GetWorld()->FindOrAddCollectionByType(CollectionType);
+	LC.RemoveLevel(PendingUnloadLevel);
+	LC.AddLevel(LoadedLevel);
 }
 
 void ULevelStreaming::DiscardPendingUnloadLevel(UWorld* PersistentWorld)
@@ -418,13 +423,12 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	// (the world is already loaded for the editor, just find it and copy it)
 	if ( PersistentWorld->IsPlayInEditor() )
 	{
-#if WITH_EDITOR
 		if (PersistentWorld->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 		{
 			PackageFlags |= PKG_PlayInEditor;
 		}
 		PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
-#endif
+
 		const FString NonPrefixedLevelName = UWorld::StripPIEPrefixFromPackageName(DesiredPackageName.ToString(), PersistentWorld->StreamingLevelsPrefix);
 		UPackage* EditorLevelPackage = FindObjectFast<UPackage>(nullptr, FName(*NonPrefixedLevelName));
 		
@@ -927,6 +931,7 @@ void ULevelStreaming::RemoveStreamingVolumeDuplicates()
 
 ULevelStreaming::ULevelStreaming(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bIsStatic(false)
 {
 	bShouldBeVisibleInEditor = true;
 	LevelColor = FLinearColor::White;

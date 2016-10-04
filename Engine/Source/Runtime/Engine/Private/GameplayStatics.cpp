@@ -2018,6 +2018,16 @@ void UGameplayStatics::SetWorldOriginLocation(const UObject* WorldContextObject,
 	}
 }
 
+FVector UGameplayStatics::RebaseLocalOriginOntoZero(UObject* WorldContextObject, FVector WorldLocation)
+{
+	return FRepMovement::RebaseOntoZeroOrigin(WorldLocation, GetWorldOriginLocation(WorldContextObject));
+}
+
+FVector UGameplayStatics::RebaseZeroOriginOntoLocal(UObject* WorldContextObject, FVector WorldLocation)
+{
+	return FRepMovement::RebaseOntoLocalOrigin(WorldLocation, GetWorldOriginLocation(WorldContextObject));
+}
+
 int32 UGameplayStatics::GrassOverlappingSphereCount(const UObject* WorldContextObject, const UStaticMesh* Mesh, FVector CenterPosition, float Radius)
 {
 	int32 Count = 0;

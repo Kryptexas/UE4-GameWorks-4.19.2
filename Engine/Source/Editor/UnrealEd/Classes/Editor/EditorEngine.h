@@ -784,7 +784,7 @@ private:
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override;
 	virtual void TriggerStreamingDataRebuild() override;
-	virtual bool NetworkRemapPath(UWorld* InWorld, FString &Str, bool reading = true) override;
+	virtual bool NetworkRemapPath(UNetDriver* Driver, FString &Str, bool reading = true) override;
 	virtual bool NetworkRemapPath(UPendingNetGame* PendingNetGame, FString& Str, bool reading = true) override;
 	virtual bool AreEditorAnalyticsEnabled() const override;
 	virtual void CreateStartupAnalyticsAttributes(TArray<FAnalyticsEventAttribute>& StartSessionAttributes) const override;

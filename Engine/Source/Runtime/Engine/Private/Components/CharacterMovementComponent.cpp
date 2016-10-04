@@ -7923,7 +7923,7 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeSt
 		ServerData->PendingAdjustment.NewVel = Velocity;
 		ServerData->PendingAdjustment.NewBase = MovementBase;
 		ServerData->PendingAdjustment.NewBaseBoneName = CharacterOwner->GetBasedMovement().BoneName;
-		ServerData->PendingAdjustment.NewLoc = UpdatedComponent->GetComponentLocation();
+		ServerData->PendingAdjustment.NewLoc = FRepMovement::RebaseOntoZeroOrigin(UpdatedComponent->GetComponentLocation(), this);
 		ServerData->PendingAdjustment.NewRot = UpdatedComponent->GetComponentRotation();
 
 		ServerData->PendingAdjustment.bBaseRelativePosition = MovementBaseUtility::UseRelativeLocation(MovementBase);
@@ -8292,31 +8292,36 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 		return;
 	}
 	ClientData->AckMove(MoveIndex);
-		
+	
+	FVector WorldShiftedNewLocation;
 	//  Received Location is relative to dynamic base
 	if (bBaseRelativePosition)
 	{
 		FVector BaseLocation;
 		FQuat BaseRotation;
-		MovementBaseUtility::GetMovementBaseTransform(NewBase, NewBaseBoneName, BaseLocation, BaseRotation); // TODO: error handling if returns false
-		NewLocation += BaseLocation;
+		MovementBaseUtility::GetMovementBaseTransform(NewBase, NewBaseBoneName, BaseLocation, BaseRotation); // TODO: error handling if returns false		
+		WorldShiftedNewLocation = NewLocation + BaseLocation;
+	}
+	else
+	{
+		WorldShiftedNewLocation = FRepMovement::RebaseOntoLocalOrigin(NewLocation, this);
 	}
 
 #if !UE_BUILD_SHIPPING
 	if (CharacterMovementCVars::NetShowCorrections != 0)
 	{
-		const FVector LocDiff = UpdatedComponent->GetComponentLocation() - NewLocation;
+		const FVector LocDiff = UpdatedComponent->GetComponentLocation() - WorldShiftedNewLocation;
 		const FString NewBaseString = NewBase ? NewBase->GetPathName(NewBase->GetOutermost()) : TEXT("None");
 		UE_LOG(LogNetPlayerMovement, Warning, TEXT("*** Client: Error for %s at Time=%.3f is %3.3f LocDiff(%s) ClientLoc(%s) ServerLoc(%s) NewBase: %s NewBone: %s ClientVel(%s) ServerVel(%s) SavedMoves %d"),
-			*GetNameSafe(CharacterOwner), TimeStamp, LocDiff.Size(), *LocDiff.ToString(), *UpdatedComponent->GetComponentLocation().ToString(), *NewLocation.ToString(), *NewBaseString, *NewBaseBoneName.ToString(), *Velocity.ToString(), *NewVelocity.ToString(), ClientData->SavedMoves.Num());
+			*GetNameSafe(CharacterOwner), TimeStamp, LocDiff.Size(), *LocDiff.ToString(), *UpdatedComponent->GetComponentLocation().ToString(), *WorldShiftedNewLocation.ToString(), *NewBaseString, *NewBaseBoneName.ToString(), *Velocity.ToString(), *NewVelocity.ToString(), ClientData->SavedMoves.Num());
 		const float DebugLifetime = CharacterMovementCVars::NetCorrectionLifetime;
 		DrawDebugCapsule(GetWorld(), UpdatedComponent->GetComponentLocation()	, CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(255, 100, 100), true, DebugLifetime);
-		DrawDebugCapsule(GetWorld(), NewLocation						, CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(100, 255, 100), true, DebugLifetime);
+		DrawDebugCapsule(GetWorld(), WorldShiftedNewLocation, CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(100, 255, 100), true, DebugLifetime);
 	}
 #endif //!UE_BUILD_SHIPPING
 
 	// Trust the server's positioning.
-	UpdatedComponent->SetWorldLocation(NewLocation, false);	
+	UpdatedComponent->SetWorldLocation(WorldShiftedNewLocation, false);
 	Velocity = NewVelocity;
 
 	// Trust the server's movement mode
@@ -8397,7 +8402,7 @@ void UCharacterMovementComponent::ClientAdjustRootMotionPosition_Implementation(
 	// We're going to replay Root Motion. This is relative to the Pawn's rotation, so we need to reset that as well.
 	FRotator DecompressedRot(ServerRotation.X * 180.f, ServerRotation.Y * 180.f, ServerRotation.Z * 180.f);
 	CharacterOwner->SetActorRotation(DecompressedRot);
-	const FVector ServerLocation(ServerLoc);
+	const FVector ServerLocation(FRepMovement::RebaseOntoLocalOrigin(ServerLoc, UpdatedComponent));
 	UE_LOG(LogRootMotion, Log,  TEXT("ClientAdjustRootMotionPosition_Implementation TimeStamp: %f, ServerMontageTrackPosition: %f, ServerLocation: %s, ServerRotation: %s, ServerVelZ: %f, ServerBase: %s"),
 		TimeStamp, ServerMontageTrackPosition, *ServerLocation.ToCompactString(), *DecompressedRot.ToCompactString(), ServerVelZ, *GetNameSafe(ServerBase) );
 
@@ -8463,7 +8468,7 @@ void UCharacterMovementComponent::ClientAdjustRootMotionSourcePosition_Implement
 	// We're going to replay Root Motion. This can be relative to the Pawn's rotation, so we need to reset that as well.
 	FRotator DecompressedRot(ServerRotation.X * 180.f, ServerRotation.Y * 180.f, ServerRotation.Z * 180.f);
 	CharacterOwner->SetActorRotation(DecompressedRot);
-	const FVector ServerLocation(ServerLoc);
+	const FVector ServerLocation(FRepMovement::RebaseOntoLocalOrigin(ServerLoc, UpdatedComponent));
 	UE_LOG(LogRootMotion, Log,  TEXT("ClientAdjustRootMotionSourcePosition_Implementation TimeStamp: %f, NumRootMotionSources: %d, ServerLocation: %s, ServerRotation: %s, ServerVelZ: %f, ServerBase: %s"),
 		TimeStamp, ServerRootMotion.RootMotionSources.Num(), *ServerLocation.ToCompactString(), *DecompressedRot.ToCompactString(), ServerVelZ, *GetNameSafe(ServerBase) );
 
@@ -8825,6 +8830,38 @@ void UCharacterMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 		if(PostPhysicsTickFunction.IsTickFunctionRegistered())
 		{
 			PostPhysicsTickFunction.UnRegisterTickFunction();
+		}
+	}
+}
+
+void UCharacterMovementComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
+{
+	OldBaseLocation += InOffset;
+	LastUpdateLocation += InOffset;
+
+	if (CharacterOwner != nullptr)
+	{
+		FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
+		if (ClientData != nullptr)
+		{
+			const int32 NumSavedMoves = ClientData->SavedMoves.Num();
+			for (int32 i = 0; i < NumSavedMoves - 1; i++)
+			{
+				const FSavedMovePtr& CurrentMove = ClientData->SavedMoves[i];
+				CurrentMove->StartLocation += InOffset;
+				CurrentMove->SavedLocation += InOffset;
+			}
+
+			if (ClientData->PendingMove.IsValid())
+			{
+				ClientData->PendingMove->StartLocation += InOffset;
+				ClientData->PendingMove->SavedLocation += InOffset;
+			}
+
+			for (int32 i = 0; i < ClientData->ReplaySamples.Num(); i++)
+			{
+				ClientData->ReplaySamples[i].Location += InOffset;
+			}
 		}
 	}
 }

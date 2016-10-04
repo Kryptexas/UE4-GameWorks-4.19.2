@@ -12,6 +12,7 @@ class AInstancedFoliageActor;
 class AWorldSettings;
 class UWorld;
 class FSceneInterface;
+struct FLevelCollection;
 
 /**
  * Structure containing all information needed for determining the screen space
@@ -533,6 +534,9 @@ private:
 	UPROPERTY()
 	AWorldSettings* WorldSettings;
 
+	/** Cached level collection that this level is contained in, for faster access than looping through the collections in the world. */
+	FLevelCollection* CachedLevelCollection;
+
 protected:
 
 	/** Array of user data stored with the asset */
@@ -701,6 +705,12 @@ public:
 	 */
 	ENGINE_API class ALevelScriptActor* GetLevelScriptActor() const;
 
+	/** Returns the cached collection that contains this level, if any. May be null. */
+	FLevelCollection* GetCachedLevelCollection() const { return CachedLevelCollection; }
+
+	/** Sets the cached level collection that contains this level. Should only be called by FLevelCollection. */
+	void SetCachedLevelCollection(FLevelCollection* const InCachedLevelCollection) { CachedLevelCollection = InCachedLevelCollection; }
+
 	/**
 	 * Utility searches this level's actor list for any actors of the specified type.
 	 */
@@ -718,6 +728,11 @@ public:
 	 * @param	bDontCreate		If true, if no level scripting blueprint is found, none will be created
 	 */
 	ENGINE_API class ULevelScriptBlueprint* GetLevelScriptBlueprint(bool bDontCreate=false);
+
+	/**
+	 * Nulls certain references related to the LevelScriptBlueprint. Called by UWorld::CleanupWorld.
+	 */
+	ENGINE_API void CleanupLevelScriptBlueprint();
 
 	/**
 	 *  Returns a list of all blueprints contained within the level

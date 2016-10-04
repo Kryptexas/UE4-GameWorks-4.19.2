@@ -1133,7 +1133,8 @@ void UBlueprintGeneratedClass::GetLifetimeBlueprintReplicationList(TArray<FLifet
 		if (Prop != NULL && Prop->GetPropertyFlags() & CPF_Net)
 		{
 			PropertiesLeft--;
-			OutLifetimeProps.Add(FLifetimeProperty(Prop->RepIndex));
+			
+			OutLifetimeProps.AddUnique(FLifetimeProperty(Prop->RepIndex, Prop->GetBlueprintReplicationCondition()));
 		}
 	}
 

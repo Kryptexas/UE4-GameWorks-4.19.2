@@ -2902,9 +2902,9 @@ struct ENGINE_API FRepMovement
 		return true;
 	}
 
-	void FillFrom(const struct FRigidBodyState& RBState)
+	void FillFrom(const struct FRigidBodyState& RBState, const AActor* const Actor = nullptr)
 	{
-		Location = RBState.Position;
+		Location = RebaseOntoZeroOrigin(RBState.Position, Actor);
 		Rotation = RBState.Quaternion.Rotator();
 		LinearVelocity = RBState.LinVel;
 		AngularVelocity = RBState.AngVel;
@@ -2912,9 +2912,9 @@ struct ENGINE_API FRepMovement
 		bRepPhysics = true;
 	}
 
-	void CopyTo(struct FRigidBodyState& RBState)
+	void CopyTo(struct FRigidBodyState& RBState, const AActor* const Actor = nullptr)
 	{
-		RBState.Position = Location;
+		RBState.Position = RebaseOntoLocalOrigin(Location, Actor);
 		RBState.Quaternion = Rotation.Quaternion();
 		RBState.LinVel = LinearVelocity;
 		RBState.AngVel = AngularVelocity;
@@ -2960,6 +2960,26 @@ struct ENGINE_API FRepMovement
 	{
 		return !(*this == Other);
 	}
+
+	static int32 EnableMultiplayerWorldOriginRebasing;
+
+	/** Rebase zero-origin position onto local world origin value. */
+	static FVector RebaseOntoLocalOrigin(const struct FVector& Location, const struct FIntVector& LocalOrigin);
+
+	/** Rebase local-origin position onto zero world origin value. */
+	static FVector RebaseOntoZeroOrigin(const struct FVector& Location, const struct FIntVector& LocalOrigin);
+
+	/** Rebase zero-origin position onto an Actor's local world origin. */
+	static FVector RebaseOntoLocalOrigin(const struct FVector& Location, const AActor* const WorldContextActor);
+
+	/** Rebase an Actor's local-origin position onto zero world origin value. */
+	static FVector RebaseOntoZeroOrigin(const struct FVector& Location, const AActor* const WorldContextActor);
+
+	/** Rebase zero-origin position onto local world origin value based on an actor component's world. */
+	static FVector RebaseOntoLocalOrigin(const struct FVector& Location, const class UActorComponent* const WorldContextActorComponent);
+
+	/** Rebase local-origin position onto zero world origin value based on an actor component's world.*/
+	static FVector RebaseOntoZeroOrigin(const struct FVector& Location, const class UActorComponent* const WorldContextActorComponent);
 };
 
 
@@ -3719,4 +3739,22 @@ enum class EMeshBufferAccess: uint8
 
     /** Force access on both CPU and GPU. */
     ForceCPUAndGPU
+};
+
+/** Indicates the type of a level collection, used in FLevelCollection. */
+enum class ELevelCollectionType
+{
+	/**
+	 * The dynamic levels that are used for normal gameplay and the source for any duplicated collections.
+	 * Will contain a world's persistent level and any streaming levels that contain dynamic or replicated gameplay actors.
+	 */
+	DynamicSourceLevels,
+	/** Gameplay relevant levels that have been duplicated from DynamicSourceLevels if requested by the game. */
+	DynamicDuplicatedLevels,
+	/**
+	 * These levels are shared between the source levels and the duplicated levels, and should contain
+	 * only static geometry and other visuals that are not replicated or affected by gameplay.
+	 * These will not be duplicated in order to save memory.
+	 */
+	StaticLevels
 };

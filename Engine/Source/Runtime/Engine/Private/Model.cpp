@@ -879,8 +879,6 @@ int32 UModel::BuildVertexBuffers()
 
 #endif
 
-#if WITH_EDITOR
-
 /**
 * Clears local (non RHI) data associated with MaterialIndexBuffers
 */
@@ -893,8 +891,6 @@ void UModel::ClearLocalMaterialIndexBuffersData()
 		IndexBuffer.Indices.Empty();
 	}
 }
-
-#endif // WITH_EDITOR
 
 void UModel::ReleaseVertices()
 {

@@ -6385,9 +6385,14 @@ FORCEINLINE bool NetworkRemapPath_local(FWorldContext &Context, FString &Str, bo
 	}
 }
 
-bool UEditorEngine::NetworkRemapPath( UWorld *InWorld, FString &Str, bool reading)
+bool UEditorEngine::NetworkRemapPath(UNetDriver* Driver, FString &Str, bool reading)
 {
-	FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
+	if (Driver == nullptr)
+	{
+		return false;
+	}
+
+	FWorldContext &Context = GetWorldContextFromWorldChecked(Driver->GetWorld());
 	if (Context.PIEPrefix.IsEmpty() || Context.PIERemapPrefix.IsEmpty())
 	{
 		return false;

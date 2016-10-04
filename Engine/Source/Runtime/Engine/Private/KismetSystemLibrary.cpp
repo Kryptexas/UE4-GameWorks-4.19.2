@@ -126,6 +126,12 @@ bool UKismetSystemLibrary::IsDedicatedServer(UObject* WorldContextObject)
 	return IsRunningDedicatedServer();
 }
 
+bool UKismetSystemLibrary::IsStandalone(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+	return World ? (World->GetNetMode() == NM_Standalone) : false;
+}
+
 bool UKismetSystemLibrary::IsPackagedForDistribution()
 {
 	return FPlatformMisc::IsPackagedForDistribution();

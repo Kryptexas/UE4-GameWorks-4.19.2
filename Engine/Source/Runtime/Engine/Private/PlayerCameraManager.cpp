@@ -830,7 +830,8 @@ void APlayerCameraManager::UpdateCamera(float DeltaTime)
 			int32 const ShortPitch = FRotator::CompressAxisToShort(CameraCache.POV.Rotation.Pitch);
 			int32 const CompressedRotation = (ShortYaw << 16) | ShortPitch;
 
-			PCOwner->ServerUpdateCamera(CameraCache.POV.Location, CompressedRotation);
+			FVector ClientCameraPosition = FRepMovement::RebaseOntoZeroOrigin(CameraCache.POV.Location, this);
+			PCOwner->ServerUpdateCamera(ClientCameraPosition, CompressedRotation);
 			bShouldSendClientSideCameraUpdate = false;
 		}
 	}

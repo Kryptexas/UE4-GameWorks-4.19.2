@@ -1009,6 +1009,7 @@ public:
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	//End UActorComponent Interface
 
 	//BEGIN UMovementComponent Interface

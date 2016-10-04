@@ -173,6 +173,7 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 ,	ProcessQueuedBunchesCurrentFrameMilliseconds(0.0f)
 ,	NetworkObjects(new FNetworkObjectList)
 ,	LagState(ENetworkLagState::NotLagging)
+,	DuplicateLevelID(INDEX_NONE)
 {
 }
 
@@ -763,6 +764,14 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 	if ( CurrentRealtimeSeconds - LastCleanupTime > CleanupTimeSeconds )
 	{
 		for ( auto It = RepChangedPropertyTrackerMap.CreateIterator(); It; ++It )
+		{
+			if ( !It.Key().IsValid() )
+			{
+				It.RemoveCurrent();
+			}
+		}
+
+		for ( auto It = ReplicationChangeListMap.CreateIterator(); It; ++It )
 		{
 			if ( !It.Key().IsValid() )
 			{
@@ -3077,6 +3086,8 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				}
 			}
 			RelevantActorMark.Pop();
+
+			ConnectionViewers.Reset();
 		}
 	}
 
@@ -3402,6 +3413,18 @@ TSharedPtr<FRepLayout> UNetDriver::GetStructRepLayout( UStruct * Struct )
 	}
 
 	return *RepLayoutPtr;
+}
+
+TSharedPtr< FReplicationChangelistMgr > UNetDriver::GetReplicationChangeListMgr( UObject* Object )
+{
+	TSharedPtr< FReplicationChangelistMgr >* ReplicationChangeListMgrPtr = ReplicationChangeListMap.Find( Object );
+
+	if ( !ReplicationChangeListMgrPtr )
+	{
+		ReplicationChangeListMgrPtr = &ReplicationChangeListMap.Add( Object, TSharedPtr< FReplicationChangelistMgr >( new FReplicationChangelistMgr( this, Object ) ) );
+	}
+
+	return *ReplicationChangeListMgrPtr;
 }
 
 FAutoConsoleCommandWithWorld	DumpRelevantActorsCommand(

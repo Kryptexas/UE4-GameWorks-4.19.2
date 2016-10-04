@@ -105,7 +105,7 @@ public:
 	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) const override;
 	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) override;
 	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) override;
-	virtual bool NetworkRemapPath(UWorld* InWorld, FString& Str, bool bReading = true) override;
+	virtual bool NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReading = true) override;
 
 public:
 

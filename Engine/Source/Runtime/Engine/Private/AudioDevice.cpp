@@ -3794,6 +3794,12 @@ void FAudioDevice::PlaySoundAtLocation(USoundBase* Sound, UWorld* World, float V
 		return;
 	}
 
+	// Not audible if the ticking level collection is not visible
+	if (World && World->GetActiveLevelCollection() && !World->GetActiveLevelCollection()->IsVisible())
+	{
+		return;
+	}
+
 	const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
 	float MaxDistance = 0.0f;
 	float FocusFactor = 0.0f;

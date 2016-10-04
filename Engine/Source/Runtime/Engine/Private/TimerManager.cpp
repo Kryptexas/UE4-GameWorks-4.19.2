@@ -30,6 +30,7 @@ namespace
 FTimerManager::FTimerManager()
 	: InternalTime(0.0)
 	, LastTickedFrame(static_cast<uint64>(-1))
+	, OwningGameInstance(nullptr)
 {
 	if (IsRunningDedicatedServer())
 	{
@@ -242,6 +243,13 @@ void FTimerManager::InternalSetTimer(FTimerData& NewTimerData, float InRate, boo
 		NewTimerData.bLoop = InbLoop;
 		NewTimerData.bRequiresDelegate = NewTimerData.TimerDelegate.IsBound();
 
+		// Set level collection
+		const UWorld* const OwningWorld = OwningGameInstance ? OwningGameInstance->GetWorld() : nullptr;
+		if (OwningWorld && OwningWorld->GetActiveLevelCollection())
+		{
+			NewTimerData.LevelCollection = OwningWorld->GetActiveLevelCollection()->GetType();
+		}
+
 		const float FirstDelay = (InFirstDelay >= 0.f) ? InFirstDelay : InRate;
 
 		if (HasBeenTickedThisFrame())
@@ -272,6 +280,15 @@ void FTimerManager::InternalSetTimerForNextTick(FTimerUnifiedDelegate const& InD
 	NewTimerData.TimerDelegate = InDelegate;
 	NewTimerData.ExpireTime = InternalTime;
 	NewTimerData.Status = ETimerStatus::Active;
+
+	// Set level collection
+	const UWorld* const OwningWorld = OwningGameInstance ? OwningGameInstance->GetWorld() : nullptr;
+	if (OwningWorld && OwningWorld->GetActiveLevelCollection())
+	{
+		NewTimerData.LevelCollection = OwningWorld->GetActiveLevelCollection()->GetType();
+	}
+
+
 	ActiveTimerHeap.HeapPush(NewTimerData);
 }
 
@@ -522,6 +539,18 @@ void FTimerManager::Tick(float DeltaTime)
 		if (InternalTime > Top.ExpireTime)
 		{
 			// Timer has expired! Fire the delegate, then handle potential looping.
+
+			// Set the relevant level context for this timer
+			const FLevelCollection* LevelCollection = nullptr;
+			UWorld* LevelCollectionWorld = nullptr;
+			UWorld* const OwningWorld = OwningGameInstance ? OwningGameInstance->GetWorld() : nullptr;
+			if (OwningGameInstance && OwningWorld)
+			{
+				LevelCollection = OwningWorld->FindCollectionByType(Top.LevelCollection);
+				LevelCollectionWorld = OwningWorld;
+			}
+
+			FScopedLevelCollectionContextSwitch LevelContext(LevelCollection, LevelCollectionWorld);
 
 			// Remove it from the heap and store it while we're executing
 			ActiveTimerHeap.HeapPop(CurrentlyExecutingTimer, /*bAllowShrinking=*/ false);

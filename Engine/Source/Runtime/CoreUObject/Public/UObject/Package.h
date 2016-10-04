@@ -154,10 +154,8 @@ public:
 
 	TMap<FName, int32> ClassUniqueNameIndexMap;
 
-#if WITH_EDITOR
 	/** Editor only: PIE instance ID this package belongs to, INDEX_NONE otherwise */
 	int32 PIEInstanceID;
-#endif
 
 #if WITH_EDITORONLY_DATA
 	/** True if this packages has been cooked for the editor / opened cooked by the editor */

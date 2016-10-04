@@ -633,6 +633,37 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.ToolTip(ReplicationTooltip)
 	];
 
+	ReplicationConditionEnumTypeNames.Empty();
+	UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ELifetimeCondition"), true);
+	check(Enum);
+	
+	for (int32 i = 0; i < Enum->NumEnums(); i++)
+	{
+		if (!Enum->HasMetaData(TEXT("Hidden"), i))
+		{
+			ReplicationConditionEnumTypeNames.Add(MakeShareable(new FString(Enum->GetDisplayNameText(i).ToString())));
+		}
+	}
+
+	Category.AddCustomRow(LOCTEXT("VariableReplicationConditionsLabel", "Replication Condition"))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ReplicationVisibility))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.ToolTip(ReplicationTooltip)
+		.Text(LOCTEXT("VariableReplicationConditionsLabel", "Replication Condition"))
+		.Font(DetailFontInfo)
+	]
+	.ValueContent()
+	[
+		SNew(STextComboBox)
+		.OptionsSource(&ReplicationConditionEnumTypeNames)
+		.InitiallySelectedItem(GetVariableReplicationCondition())
+		.OnSelectionChanged(this, &FBlueprintVarActionDetails::OnChangeReplicationCondition)
+		.IsEnabled(this, &FBlueprintVarActionDetails::ReplicationConditionEnabled)
+	];
+
+
 	UBlueprint* BlueprintObj = GetBlueprintObj();
 
 	// Handle event generation
@@ -1668,6 +1699,64 @@ EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 	return EVisibility::Collapsed;
 }
 
+TSharedPtr<FString> FBlueprintVarActionDetails::GetVariableReplicationCondition() const
+{
+	ELifetimeCondition VariableRepCondition = COND_None;
+		
+	const UProperty* const Property = CachedVariableProperty.Get();
+
+	if (Property)
+	{
+		VariableRepCondition = Property->GetBlueprintReplicationCondition();
+	}
+
+	return ReplicationConditionEnumTypeNames[(uint8)VariableRepCondition];
+}
+
+void FBlueprintVarActionDetails::OnChangeReplicationCondition(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo)
+{
+	int32 NewSelection;
+	const bool bFound = ReplicationConditionEnumTypeNames.Find(ItemSelected, NewSelection);
+	check(bFound && NewSelection != INDEX_NONE);
+
+	const ELifetimeCondition NewRepCondition = (ELifetimeCondition)NewSelection;
+
+	UBlueprint* const BlueprintObj = GetBlueprintObj();
+	const FName VarName = CachedVariableName;
+
+	if (BlueprintObj && VarName != NAME_None)
+	{
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(BlueprintObj, VarName);
+
+		if (VarIndex != INDEX_NONE)
+		{
+			BlueprintObj->NewVariables[VarIndex].ReplicationCondition = NewRepCondition;
+		
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintObj);
+		}
+	}
+
+}
+
+bool FBlueprintVarActionDetails::ReplicationConditionEnabled() const
+{
+	const UProperty* const VariableProperty = CachedVariableProperty.Get();
+	if (VariableProperty)
+	{
+		const uint64 *PropFlagPtr = FBlueprintEditorUtils::GetBlueprintVariablePropertyFlags(GetBlueprintObj(), VariableProperty->GetFName());
+		uint64 PropFlags = 0;
+
+		if (PropFlagPtr != nullptr)
+		{
+			PropFlags = *PropFlagPtr;
+			return (PropFlags & CPF_Net) > 0;
+			
+		}
+	}
+
+	return false;
+}
+
 ECheckBoxState FBlueprintVarActionDetails::OnGetConfigVariableCheckboxState() const
 {
 	UBlueprint* BlueprintObj = GetPropertyOwnerBlueprint();
@@ -1949,6 +2038,14 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 	
 	UProperty* VariableProperty = CachedVariableProperty.Get();
 
+	UBlueprint* const BlueprintObj = GetBlueprintObj();
+	const FName VarName = CachedVariableName;
+	int32 VarIndex = INDEX_NONE;
+	if (BlueprintObj && VarName != NAME_None)
+	{
+		VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(BlueprintObj, VarName);
+	}
+
 	if (VariableProperty)
 	{
 		uint64 *PropFlagPtr = FBlueprintEditorUtils::GetBlueprintVariablePropertyFlags(GetBlueprintObj(), VariableProperty->GetFName());
@@ -1958,7 +2055,14 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 			{
 			case EVariableReplication::None:
 				*PropFlagPtr &= ~CPF_Net;
-				ReplicationOnRepFuncChanged(FName(NAME_None).ToString());	
+				ReplicationOnRepFuncChanged(FName(NAME_None).ToString());
+
+				//set replication condition to none:
+				if (VarIndex != INDEX_NONE)
+				{
+					BlueprintObj->NewVariables[VarIndex].ReplicationCondition = COND_None;
+				}
+				
 				break;
 				
 			case EVariableReplication::Replicated:
@@ -1969,11 +2073,11 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 			case EVariableReplication::RepNotify:
 				*PropFlagPtr |= CPF_Net;
 				FString NewFuncName = FString::Printf(TEXT("OnRep_%s"), *VariableProperty->GetName());
-				UEdGraph* FuncGraph = FindObject<UEdGraph>(GetBlueprintObj(), *NewFuncName);
+				UEdGraph* FuncGraph = FindObject<UEdGraph>(BlueprintObj, *NewFuncName);
 				if (!FuncGraph)
 				{
-					FuncGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), FName(*NewFuncName), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-					FBlueprintEditorUtils::AddFunctionGraph<UClass>(GetBlueprintObj(), FuncGraph, false, NULL);
+					FuncGraph = FBlueprintEditorUtils::CreateNewGraph(BlueprintObj, FName(*NewFuncName), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+					FBlueprintEditorUtils::AddFunctionGraph<UClass>(BlueprintObj, FuncGraph, false, NULL);
 				}
 
 				if (FuncGraph)
@@ -1983,7 +2087,7 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 				break;
 			}
 
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintObj);
 		}
 	}
 }

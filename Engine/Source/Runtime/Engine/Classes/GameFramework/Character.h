@@ -436,7 +436,6 @@ public:
 	virtual void OnRep_ReplicatedMovement() override;
 	virtual void PostNetReceiveLocationAndRotation() override;
 	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const override;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const override;
 	virtual void TornOff() override;
 	//~ End AActor Interface

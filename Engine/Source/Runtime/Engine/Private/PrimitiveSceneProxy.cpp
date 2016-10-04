@@ -34,7 +34,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	LevelColor(FLinearColor::White)
 ,	PropertyColor(FLinearColor::White)
 ,	Mobility(InComponent->Mobility)
-,	DrawInGame(InComponent->bVisible && !InComponent->bHiddenInGame)
+,	DrawInGame(InComponent->IsVisible())
 ,	DrawInEditor(InComponent->bVisible)
 ,	bReceivesDecals(InComponent->bReceivesDecals)
 ,	bOnlyOwnerSee(InComponent->bOnlyOwnerSee)

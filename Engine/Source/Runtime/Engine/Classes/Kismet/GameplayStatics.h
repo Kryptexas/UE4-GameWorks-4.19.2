@@ -868,6 +868,14 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Game", meta=(WorldContext="WorldContextObject"))
 	static void SetWorldOriginLocation(const UObject* WorldContextObject, FIntVector NewLocation);
 
+	/** Returns origin based position for local world location. */
+	UFUNCTION(BlueprintPure, Category = "Game", meta = (WorldContext = "WorldContextObject"))
+	static FVector RebaseLocalOriginOntoZero(UObject* WorldContextObject, FVector WorldLocation);
+
+	/** Returns local location for origin based position. */
+	UFUNCTION(BlueprintPure, Category = "Game", meta = (WorldContext = "WorldContextObject"))
+	static FVector RebaseZeroOriginOntoLocal(UObject* WorldContextObject, FVector WorldLocation);
+
 	/**
 	* Counts how many grass foliage instances overlap a given sphere.
 	*

@@ -553,14 +553,12 @@ public:
 	/** Release CPU access version of vertex buffer */
 	void ReleaseVertices();
 
-#if WITH_EDITOR
 	/**
 	* Clears local (non RHI) data associated with MaterialIndexBuffers
 	*/
 	ENGINE_API void ClearLocalMaterialIndexBuffersData();
 
 	void CalculateUniqueVertCount();
-#endif
 
 	friend class UWorld;
 	friend class UBrushComponent;
