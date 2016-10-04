@@ -11,7 +11,6 @@
  */
 struct FMediaPlayerFactoryNewOptions
 {
-	bool CreateImageTexture;
 	bool CreateSoundWave;
 	bool CreateVideoTexture;
 	bool OkClicked;

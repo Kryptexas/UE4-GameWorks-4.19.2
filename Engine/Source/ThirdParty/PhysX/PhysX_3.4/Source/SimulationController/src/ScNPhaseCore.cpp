@@ -530,7 +530,8 @@ ElementSimInteraction* Sc::NPhaseCore::onOverlapRemovedStage1(ElementSim* volume
 }
 
 
-void Sc::NPhaseCore::onOverlapRemoved(ElementSim* volume0, ElementSim* volume1, const PxU32 ccdPass, void* elemSim, PxsContactManagerOutputIterator& outputs)
+void Sc::NPhaseCore::onOverlapRemoved(ElementSim* volume0, ElementSim* volume1, const PxU32 ccdPass, void* elemSim, PxsContactManagerOutputIterator& outputs,
+	bool useAdaptiveForce)
 {
 	PX_UNUSED(elemSim);
 	// PT: ordering them here is again useless, as "findInteraction" will reorder according to counts...
@@ -550,7 +551,7 @@ void Sc::NPhaseCore::onOverlapRemoved(ElementSim* volume0, ElementSim* volume1, 
 	{
 		PxU32 flags = PxU32(PairReleaseFlag::eWAKE_ON_LOST_TOUCH);
 		PX_ASSERT(interaction->isElementInteraction());
-		releaseElementPair(static_cast<ElementSimInteraction*>(interaction), flags, ccdPass, true, outputs);
+		releaseElementPair(static_cast<ElementSimInteraction*>(interaction), flags, ccdPass, true, outputs, useAdaptiveForce);
 	}
 
 #if PX_USE_CLOTH_API
@@ -572,7 +573,7 @@ void Sc::NPhaseCore::onOverlapRemoved(ElementSim* volume0, ElementSim* volume1, 
 
 
 // MS: TODO: optimize this for the actor release case?
-void Sc::NPhaseCore::onVolumeRemoved(ElementSim* volume, PxU32 flags, PxsContactManagerOutputIterator& outputs)
+void Sc::NPhaseCore::onVolumeRemoved(ElementSim* volume, PxU32 flags, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce)
 {
 	const PxU32 ccdPass = 0;
 
@@ -600,7 +601,7 @@ void Sc::NPhaseCore::onVolumeRemoved(ElementSim* volume, PxU32 flags, PxsContact
 								(interaction->getType() == InteractionType::eTRIGGER) );
 #endif
 
-					releaseElementPair(interaction, flags, ccdPass, true, outputs);
+					releaseElementPair(interaction, flags, ccdPass, true, outputs, useAdaptiveForce);
 
 					interaction = iter.getNext();
 				}
@@ -637,7 +638,7 @@ void Sc::NPhaseCore::onVolumeRemoved(ElementSim* volume, PxU32 flags, PxsContact
 					ParticleElementRbElementInteraction* interaction = *--interactions;
 					PX_ASSERT((*interaction).getType() == InteractionType::ePARTICLE_BODY);
 					// The ccdPass parameter is needed to avoid concurrent interaction updates while the gpu particle pipeline is running.
-					releaseElementPair(static_cast<ElementSimInteraction*>(interaction), flags, ccdPass, true, outputs);
+					releaseElementPair(static_cast<ElementSimInteraction*>(interaction), flags, ccdPass, true, outputs, useAdaptiveForce);
 				}
 				break;
 			}
@@ -952,7 +953,8 @@ static Sc::InteractionType::Enum getRbElementInteractionType(const ShapeSim* pri
 	return InteractionType::eOVERLAP;
 }
 
-Sc::ElementSimInteraction* Sc::NPhaseCore::refilterInteraction(ElementSimInteraction* pair, const PxFilterInfo* filterInfo, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs)
+Sc::ElementSimInteraction* Sc::NPhaseCore::refilterInteraction(ElementSimInteraction* pair, const PxFilterInfo* filterInfo, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs,
+	bool useAdaptiveForce)
 {
 	const InteractionType::Enum oldType = pair->getType();
 
@@ -1023,7 +1025,7 @@ Sc::ElementSimInteraction* Sc::NPhaseCore::refilterInteraction(ElementSimInterac
 				const InteractionType::Enum newType = getRbElementInteractionType(&s0, &s1, finfo.filterFlags);
 				if (pair->getType() != newType)  //Only convert interaction type if the type has changed
 				{
-					return convert(pair, newType, finfo, removeFromDirtyList, outputs);
+					return convert(pair, newType, finfo, removeFromDirtyList, outputs, useAdaptiveForce);
 				}
 				else
 				{
@@ -1509,7 +1511,7 @@ PX_FORCE_INLINE void Sc::NPhaseCore::destroyActorPairReport(ActorPairReport& aPa
 
 
 Sc::ElementSimInteraction* Sc::NPhaseCore::convert(ElementSimInteraction* pair, InteractionType::Enum newType, PxFilterInfo& filterInfo, bool removeFromDirtyList,
-	PxsContactManagerOutputIterator& outputs)
+	PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce)
 {
 	PX_ASSERT(newType != pair->getType());
 
@@ -1576,7 +1578,7 @@ Sc::ElementSimInteraction* Sc::NPhaseCore::convert(ElementSimInteraction* pair, 
 
 	unregisterInteraction(pair);
 
-	releaseElementPair(pair, PairReleaseFlag::eWAKE_ON_LOST_TOUCH | PairReleaseFlag::eBP_VOLUME_REMOVED, 0, removeFromDirtyList, outputs);
+	releaseElementPair(pair, PairReleaseFlag::eWAKE_ON_LOST_TOUCH | PairReleaseFlag::eBP_VOLUME_REMOVED, 0, removeFromDirtyList, outputs, useAdaptiveForce);
 
 	return result;
 }
@@ -1947,7 +1949,7 @@ void Sc::NPhaseCore::processPersistentContactEvents(PxsContactManagerOutputItera
 }
 
 
-void Sc::NPhaseCore::fireCustomFilteringCallbacks(PxsContactManagerOutputIterator& outputs)
+void Sc::NPhaseCore::fireCustomFilteringCallbacks(PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce)
 {
 	PX_PROFILE_ZONE("Sim.fireCustomFilteringCallbacks", mOwnerScene.getContextId());
 
@@ -1978,7 +1980,7 @@ void Sc::NPhaseCore::fireCustomFilteringCallbacks(PxsContactManagerOutputIterato
 				finfo.pairFlags = pairFlags;
 				finfo.filterPairIndex = pairID;
 
-				ElementSimInteraction* refInt = refilterInteraction(ei, &finfo, true, outputs);
+				ElementSimInteraction* refInt = refilterInteraction(ei, &finfo, true, outputs, useAdaptiveForce);
 
 				// this gets called at the end of the simulation -> there should be no dirty interactions around
 				PX_ASSERT(!refInt->readInteractionFlag(InteractionFlag::eIN_DIRTY_LIST));
@@ -2029,7 +2031,7 @@ void Sc::NPhaseCore::fireCustomFilteringCallbacks(PxsContactManagerOutputIterato
 						if ((&pri->getElement1() == element) && (&pri->getActor0() == actor))
 						{
 							PX_ASSERT(pri->readInteractionFlag(InteractionFlag::eIS_FILTER_PAIR));
-							refilterInteraction(pri, &finfo, true, outputs);
+							refilterInteraction(pri, &finfo, true, outputs, useAdaptiveForce);
 
 							// this gets called at the end of the simulation -> there should be no dirty interactions around
 							PX_ASSERT(!pri->readInteractionFlag(InteractionFlag::eIN_DIRTY_LIST));
@@ -2060,7 +2062,7 @@ void Sc::NPhaseCore::removeFromDirtyInteractionList(Interaction* pair)
 }
 
 
-void Sc::NPhaseCore::updateDirtyInteractions(PxsContactManagerOutputIterator& outputs)
+void Sc::NPhaseCore::updateDirtyInteractions(PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce)
 {
 	// The sleeping SIs will be updated on activation
 	// clow: Sleeping SIs are not awaken for visualization updates
@@ -2102,7 +2104,7 @@ void Sc::NPhaseCore::updateDirtyInteractions(PxsContactManagerOutputIterator& ou
 		{
 			ElementSimInteraction* pair = static_cast<ElementSimInteraction*>(interaction);
 
-			refInt = refilterInteraction(pair, NULL, false, outputs);
+			refInt = refilterInteraction(pair, NULL, false, outputs, useAdaptiveForce);
 		}
 
 		if (interaction == refInt)  // Refiltering might convert the pair to another type and kill the old one. In that case we don't want to update the new pair since it has been updated on creation.
@@ -2121,7 +2123,8 @@ void Sc::NPhaseCore::updateDirtyInteractions(PxsContactManagerOutputIterator& ou
 }
 
 
-void Sc::NPhaseCore::releaseElementPair(ElementSimInteraction* pair, PxU32 flags, const PxU32 ccdPass, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs)
+void Sc::NPhaseCore::releaseElementPair(ElementSimInteraction* pair, PxU32 flags, const PxU32 ccdPass, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs,
+	bool useAdaptiveForce)
 {
 	pair->setClean(removeFromDirtyList);  // Removes the pair from the dirty interaction list etc.
 
@@ -2166,7 +2169,7 @@ void Sc::NPhaseCore::releaseElementPair(ElementSimInteraction* pair, PxU32 flags
 		case InteractionType::eOVERLAP:
 			{
 				ShapeInteraction* si = static_cast<ShapeInteraction*>(pair);
-				releaseShapeInteraction(si, flags, ccdPass, outputs);
+				releaseShapeInteraction(si, flags, ccdPass, outputs, useAdaptiveForce);
 			}
 			break;
 #if PX_USE_PARTICLE_SYSTEM_API
@@ -2186,7 +2189,7 @@ void Sc::NPhaseCore::releaseElementPair(ElementSimInteraction* pair, PxU32 flags
 	}
 }
 
-void Sc::NPhaseCore::lostTouchReports(ShapeInteraction* si, PxU32 flags, PxU32 ccdPass, PxsContactManagerOutputIterator& outputs)
+void Sc::NPhaseCore::lostTouchReports(ShapeInteraction* si, PxU32 flags, PxU32 ccdPass, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce)
 {
 	if (si->hasTouch())
 	{
@@ -2195,7 +2198,7 @@ void Sc::NPhaseCore::lostTouchReports(ShapeInteraction* si, PxU32 flags, PxU32 c
 			si->sendLostTouchReport((flags & PairReleaseFlag::eBP_VOLUME_REMOVED) != 0, ccdPass, outputs);
 		}
 
-		si->adjustCountersOnLostTouch(si->getShape0().getBodySim(), si->getShape1().getBodySim());
+		si->adjustCountersOnLostTouch(si->getShape0().getBodySim(), si->getShape1().getBodySim(), useAdaptiveForce);
 	}
 
 	ActorPair* aPair = si->getActorPair();
@@ -2247,12 +2250,12 @@ void Sc::NPhaseCore::lostTouchReports(ShapeInteraction* si, PxU32 flags, PxU32 c
 }
 
 
-void Sc::NPhaseCore::releaseShapeInteraction(ShapeInteraction* si, PxU32 flags, const PxU32 ccdPass, PxsContactManagerOutputIterator& outputs)
+void Sc::NPhaseCore::releaseShapeInteraction(ShapeInteraction* si, PxU32 flags, const PxU32 ccdPass, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce)
 {
 	
 	if (flags & PairReleaseFlag::eSHAPE_BP_VOLUME_REMOVED)
 	{
-		lostTouchReports(si, flags, ccdPass, outputs);
+		lostTouchReports(si, flags, ccdPass, outputs, useAdaptiveForce);
 	}
 	mShapeInteractionPool.destroy(si);
 	

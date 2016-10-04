@@ -63,6 +63,11 @@ protected:
 	{
 		UObject* RuntimeObject = GetRuntimeObjectAndUpdatePropertyBindings();
 
+		if (RuntimeObject == nullptr)
+		{
+			return TOptional<ValueType>();
+		}
+
 		// Bool property values are stored in a bit field so using a straight cast of the pointer to get their value does not
 		// work.  Instead use the actual property to get the correct value.
 		const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(GetProperty());
@@ -74,14 +79,13 @@ protected:
 			return TOptional<ValueType>(*((ValueType*)PropertyValue));
 		}
 
-		return RuntimeObject != nullptr
-			? TOptional<ValueType>(PropertyBindings->GetCurrentValue<ValueType>(RuntimeObject))
-			: TOptional<ValueType>();
+		return TOptional<ValueType>(PropertyBindings->GetCurrentValue<ValueType>(RuntimeObject));
 	}
 
 	/** Returns true when this section was constructed with the data necessary to query for the current property value. */
 	bool CanGetPropertyValue() const;
 
+private:
 	/** Gets the current runtime object for the object binding which was used to construct this section.  Returns nullptr
 		if no valid object can be found, or if an object binding was not supplied. */
 	UObject* GetRuntimeObjectAndUpdatePropertyBindings() const;

@@ -96,5 +96,9 @@ public:
 	/** Master sequence level sequence to duplicate when creating shots. */
 	UPROPERTY(Transient, DisplayName="Sequence to Duplicate", EditAnywhere, Category=MasterSequence)
 	TLazyObjectPtr<class ULevelSequence> MasterSequenceLevelSequenceToDuplicate;
+
+	/** Array of sub sequence names, each will result in a level sequence asset in the shot. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MasterSequence)
+	TArray<FName> SubSequenceNames;
 };
 

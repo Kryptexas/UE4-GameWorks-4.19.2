@@ -152,7 +152,7 @@ PX_FORCE_INLINE void Sc::ShapeSim::internalRemoveFromBroadPhase()
 
 	Sc::Scene& scene = getScene();
 	PxsContactManagerOutputIterator outputs = scene.getLowLevelContext()->getNphaseImplementationContext()->getContactManagerOutputs();
-	scene.getNPhaseCore()->onVolumeRemoved(this, PxU32(PairReleaseFlag::eWAKE_ON_LOST_TOUCH), outputs);
+	scene.getNPhaseCore()->onVolumeRemoved(this, PxU32(PairReleaseFlag::eWAKE_ON_LOST_TOUCH), outputs, scene.getPublicFlags() & PxSceneFlag::eADAPTIVE_FORCE);
 }
 
 void Sc::ShapeSim::removeFromBroadPhase(bool wakeOnLostTouch)
@@ -162,7 +162,7 @@ void Sc::ShapeSim::removeFromBroadPhase(bool wakeOnLostTouch)
 		removeFromAABBMgr();
 		Sc::Scene& scene = getScene();
 		PxsContactManagerOutputIterator outputs = scene.getLowLevelContext()->getNphaseImplementationContext()->getContactManagerOutputs();
-		scene.getNPhaseCore()->onVolumeRemoved(this, wakeOnLostTouch ? PxU32(PairReleaseFlag::eWAKE_ON_LOST_TOUCH) : 0, outputs);
+		scene.getNPhaseCore()->onVolumeRemoved(this, wakeOnLostTouch ? PxU32(PairReleaseFlag::eWAKE_ON_LOST_TOUCH) : 0, outputs, scene.getPublicFlags() & PxSceneFlag::eADAPTIVE_FORCE);
 	}
 }
 

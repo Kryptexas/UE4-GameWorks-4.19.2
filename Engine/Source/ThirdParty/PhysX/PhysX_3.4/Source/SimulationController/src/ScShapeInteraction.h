@@ -96,11 +96,11 @@ namespace Sc
 
 						PxU32					getContactPointData(const void*& contactPatches, const void*& contactPoints, PxU32& contactDataSize, PxU32& contactPointCount, PxU32& patchCount, const PxReal*& impulses, PxU32 startOffset, PxsContactManagerOutputIterator& outputs);
 
-						bool					managerLostTouch(const PxU32 ccdPass, bool adjustCounters, PxsContactManagerOutputIterator& outputs);
-						void					managerNewTouch(const PxU32 ccdPass, bool adjustCounters, PxsContactManagerOutputIterator& outputs);
+						bool					managerLostTouch(const PxU32 ccdPass, bool adjustCounters, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
+						void					managerNewTouch(const PxU32 ccdPass, bool adjustCounters, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
 
-		PX_FORCE_INLINE	void					adjustCountersOnLostTouch(BodySim*, BodySim*);
-		PX_FORCE_INLINE	void					adjustCountersOnNewTouch();
+		PX_FORCE_INLINE	void					adjustCountersOnLostTouch(BodySim*, BodySim*, bool useAdaptiveForce);
+		PX_FORCE_INLINE	void					adjustCountersOnNewTouch(bool useAdaptiveForce);
 
 		PX_FORCE_INLINE	void					sendCCDRetouch(const PxU32 ccdPass, PxsContactManagerOutputIterator& outputs);
 						void					setContactReportPostSolverVelocity(ContactStreamManager& cs);
@@ -348,46 +348,38 @@ PX_FORCE_INLINE void Sc::ShapeInteraction::sendCCDRetouch(const PxU32 ccdPass, P
 }
 
 
-PX_FORCE_INLINE void Sc::ShapeInteraction::adjustCountersOnLostTouch(BodySim* body0, BodySim* body1)
+PX_FORCE_INLINE void Sc::ShapeInteraction::adjustCountersOnLostTouch(BodySim* body0, BodySim* body1, bool useAdaptiveForce)
 {
 	PX_ASSERT(body0);  // the first shape always belongs to a dynamic body
 
 	PX_ASSERT(mActorPair->getTouchCount());
 
-	if (mActorPair->getTouchCount() == 1)
-	{
-		body0->unregisterUniqueInteraction();
-
-		if (body1)
-			body1->unregisterUniqueInteraction();
-	}
 	mActorPair->decTouchCount();
 
-	body0->decrementBodyConstraintCounter();
-	if (body1)
-		body1->decrementBodyConstraintCounter();
+	if (useAdaptiveForce || mActorPair->getTouchCount() == 0)
+	{
+		body0->decrementBodyConstraintCounter();
+		if (body1)
+			body1->decrementBodyConstraintCounter();
+	}
 }
 
 
-PX_FORCE_INLINE void Sc::ShapeInteraction::adjustCountersOnNewTouch()
+PX_FORCE_INLINE void Sc::ShapeInteraction::adjustCountersOnNewTouch(bool useAdaptiveForce)
 {
 	BodySim* body0 = getShape0().getBodySim();
 	BodySim* body1 = getShape1().getBodySim();
 	PX_ASSERT(body0);  // the first shape always belongs to a dynamic body
 
-	if (mActorPair->getTouchCount() == 0)
-	{
-		body0->registerUniqueInteraction();
-
-		if (body1)
-			body1->registerUniqueInteraction();
-	}
-
 	mActorPair->incTouchCount();
-
-	body0->incrementBodyConstraintCounter();
-	if(body1)
-		body1->incrementBodyConstraintCounter();
+	//If using adaptive force, always record a body constraint, otherwise only record if this is the first constraint
+	//with this pair of bodies (doubling up usage of this counter for both adaptive force and stabilization)
+	if (useAdaptiveForce || mActorPair->getTouchCount() == 1)
+	{
+		body0->incrementBodyConstraintCounter();
+		if (body1)
+			body1->incrementBodyConstraintCounter();
+	}
 }
 
 

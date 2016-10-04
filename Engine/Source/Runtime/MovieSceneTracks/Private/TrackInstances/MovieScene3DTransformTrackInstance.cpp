@@ -105,12 +105,22 @@ void FMovieScene3DTransformTrackInstance::Update(EMovieSceneUpdateData& UpdateDa
 
 					if (TransformTrack->Eval(UpdateData.Position, UpdateData.LastPosition, Translation, Rotation, Scale))
 					{
+						/* Cache initial absolute position */
+						FVector InitialPosition = SceneComponent->GetComponentLocation();
+
 						SceneComponent->SetRelativeLocationAndRotation(Translation, Rotation);
 						SceneComponent->SetRelativeScale3D(Scale);
 
 						// Force the location and rotation values to avoid Rot->Quat->Rot conversions
 						SceneComponent->RelativeLocation = Translation;
 						SceneComponent->RelativeRotation = Rotation;
+
+						/* Get current absolute position and set component velocity */
+						FVector CurrentPosition = SceneComponent->GetComponentLocation();
+						FVector ComponentVelocity = (CurrentPosition - InitialPosition) / (UpdateData.Position - UpdateData.LastPosition);
+						SceneComponent->ComponentVelocity = ComponentVelocity;
+
+						//TODO: Set Component Velocity for attached objects
 					}
 				}
 			}

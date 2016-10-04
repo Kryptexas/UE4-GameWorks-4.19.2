@@ -32,8 +32,8 @@ private:
 
 private:
 
-	/** Text box for media information. */
-	TSharedPtr<SMultiLineEditableTextBox> MediaInfoBox;
+	/** Text block for media information. */
+	TSharedPtr<STextBlock> InfoTextBlock;
 
 	/** Pointer to the MediaPlayer asset that is being viewed. */
 	UMediaPlayer* MediaPlayer;

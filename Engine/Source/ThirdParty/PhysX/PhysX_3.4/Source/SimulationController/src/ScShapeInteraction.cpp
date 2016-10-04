@@ -676,7 +676,7 @@ PxU32 Sc::ShapeInteraction::getContactPointData(const void*& contactPatches, con
 
 
 // Note that LL will not send end touch events for managers that are destroyed while having contact
-void Sc::ShapeInteraction::managerNewTouch(const PxU32 ccdPass, bool adjustCounters, PxsContactManagerOutputIterator& outputs)
+void Sc::ShapeInteraction::managerNewTouch(const PxU32 ccdPass, bool adjustCounters, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce)
 {
 	if (readFlag(HAS_TOUCH))
 		return; // Do not count the touch twice (for instance when recreating a manager with touch)
@@ -684,7 +684,7 @@ void Sc::ShapeInteraction::managerNewTouch(const PxU32 ccdPass, bool adjustCount
     setHasTouch();
 
 	if (adjustCounters)
-		adjustCountersOnNewTouch();
+		adjustCountersOnNewTouch(useAdaptiveForce);
 	
 	if(!isReportPair())
 		return;
@@ -720,7 +720,7 @@ void Sc::ShapeInteraction::managerNewTouch(const PxU32 ccdPass, bool adjustCount
 }
 
 
-bool Sc::ShapeInteraction::managerLostTouch(const PxU32 ccdPass, bool adjustCounters, PxsContactManagerOutputIterator& outputs)
+bool Sc::ShapeInteraction::managerLostTouch(const PxU32 ccdPass, bool adjustCounters, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce)
 {
 	if (!readFlag(HAS_TOUCH))
 		return false;
@@ -762,7 +762,7 @@ bool Sc::ShapeInteraction::managerLostTouch(const PxU32 ccdPass, bool adjustCoun
 	PX_ASSERT(body0);  // the first shape always belongs to a dynamic body
 
 	if (adjustCounters)
-		adjustCountersOnLostTouch(body0, body1);
+		adjustCountersOnLostTouch(body0, body1, useAdaptiveForce);
 
 	if (!body1)
 	{

@@ -69,7 +69,7 @@ bool Sc::TriggerInteraction::isOneActorActive() const
 	if (bodySim0 && bodySim0->isActive())
 	{
 		PX_ASSERT(!bodySim0->isKinematic() || bodySim0->readInternalFlag(BodySim::BF_KINEMATIC_MOVED) || 
-					bodySim0->readInternalFlag(BodySim::BF_KINEMATIC_SETTLING));
+					bodySim0->readInternalFlag(BodySim::InternalFlags(BodySim::BF_KINEMATIC_SETTLING | BodySim::BF_KINEMATIC_SETTLING_2)));
 		return true;
 	}
 
@@ -77,7 +77,7 @@ bool Sc::TriggerInteraction::isOneActorActive() const
 	if (bodySim1 && bodySim1->isActive())
 	{
 		PX_ASSERT(!bodySim1->isKinematic() || bodySim1->readInternalFlag(BodySim::BF_KINEMATIC_MOVED) || 
-					bodySim1->readInternalFlag(BodySim::BF_KINEMATIC_SETTLING));
+			bodySim1->readInternalFlag(BodySim::InternalFlags(BodySim::BF_KINEMATIC_SETTLING | BodySim::BF_KINEMATIC_SETTLING_2)));
 		return true;
 	}
 

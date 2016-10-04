@@ -13,7 +13,7 @@
 
 FAndroidMediaTracks::FAndroidMediaTracks()
 	: AudioSink(nullptr)
-	, CaptionSink(nullptr)
+	, OverlaySink(nullptr)
 	, VideoSink(nullptr)
 	, SelectedAudioTrack(INDEX_NONE)
 	, SelectedCaptionTrack(INDEX_NONE)
@@ -101,7 +101,7 @@ void FAndroidMediaTracks::Reset()
 void FAndroidMediaTracks::Tick()
 {
 	UpdateAudioSink();
-	UpdateCaptionSink();
+	UpdateOverlaySink();
 
 	if (VideoSink != nullptr)
 	{
@@ -145,15 +145,9 @@ void FAndroidMediaTracks::SetAudioSink(IMediaAudioSink* Sink)
 }
 
 
-void FAndroidMediaTracks::SetCaptionSink(IMediaStringSink* Sink)
+void FAndroidMediaTracks::SetOverlaySink(IMediaOverlaySink* Sink)
 {
 	// not implemented yet
-}
-
-
-void FAndroidMediaTracks::SetImageSink(IMediaTextureSink* Sink)
-{
-	// not supported
 }
 
 
@@ -417,15 +411,15 @@ void FAndroidMediaTracks::InitializeAudioSink()
 }
 
 
-void FAndroidMediaTracks::InitializeCaptionSink()
+void FAndroidMediaTracks::InitializeOverlaySink()
 {
-	if ((CaptionSink == nullptr) || (SelectedCaptionTrack == INDEX_NONE))
+	if ((OverlaySink == nullptr) || (SelectedCaptionTrack == INDEX_NONE))
 	{
 		return;
 	}
 
 	const auto& CaptionTrack = CaptionTracks[SelectedCaptionTrack];
-	CaptionSink->InitializeStringSink();
+	OverlaySink->InitializeOverlaySink();
 }
 
 
@@ -447,7 +441,7 @@ void FAndroidMediaTracks::UpdateAudioSink()
 }
 
 
-void FAndroidMediaTracks::UpdateCaptionSink()
+void FAndroidMediaTracks::UpdateOverlaySink()
 {
 	// not implemented yet
 }

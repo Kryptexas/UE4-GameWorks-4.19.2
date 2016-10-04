@@ -50,7 +50,7 @@ namespace local
 	//////////////////////////////////////////////////////////////////////////
 	static const float MIN_ADJACENT_ANGLE = 3.0f;  // in degrees  - result wont have two adjacent facets within this angle of each other.
 	static const float PLANE_THICKNES = 3.0f * PX_EPS_F32;  // points within this distance are considered on a plane
-	static const float ACCEPTANCE_EPSILON_MULTIPLY = 300.0f; // used to scale up plane tolerance to accept new points into convex, plane thickness tolerance is too high for point acceptance
+	static const float ACCEPTANCE_EPSILON_MULTIPLY = 2000.0f; // used to scale up plane tolerance to accept new points into convex, plane thickness tolerance is too high for point acceptance
 	static const float PLANE_TOLERANCE = 0.001f;  // points within this distance are considered on a plane for post adjacent merging and eye vertex acceptance
 	static const float MAXDOT_MINANG = cosf(Ps::degToRad(MIN_ADJACENT_ANGLE)); // adjacent angle for dot product tests
 

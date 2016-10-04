@@ -138,7 +138,8 @@ struct PxsBodyCore: public PxsRigidCore
 
 	PxReal					solverWakeCounter;			//this is calculated by the solver when it performs sleepCheck. It is committed to wakeCounter in ScAfterIntegrationTask if the body is still awake.
 	PxU32					numCountedInteractions;
-	PxU32					isFastMoving;				//This could be a single bit but it's a u32 at the moment for simplicity's sake
+	PxU32					numBodyInteractions;		//Used by adaptive force to keep track of the total number of body interactions
+	PxU16					isFastMoving;				//This could be a single bit but it's a u32 at the moment for simplicity's sake
 	PxRigidDynamicLockFlags	lockFlags;					//160 This could be a u8 but it is a u32 for simplicity's sake. All fits into 16 byte alignment
 
 	PX_FORCE_INLINE	bool	shouldCreateContactReports()	const

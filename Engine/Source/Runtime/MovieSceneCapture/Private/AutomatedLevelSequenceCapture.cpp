@@ -33,6 +33,9 @@ UAutomatedLevelSequenceCapture::UAutomatedLevelSequenceCapture(const FObjectInit
 	RemainingDelaySeconds = 0.0f;
 	RemainingWarmUpFrames = 0;
 
+	NumShots = 0;
+	ShotIndex = -1;
+
 	BurnInOptions = Init.CreateDefaultSubobject<ULevelSequenceBurnInOptions>(this, "BurnInOptions");
 #endif
 }
@@ -157,6 +160,12 @@ void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InVie
 			Actor->SequencePlayer->Stop();
 		}
 		Actor->bAutoPlay = false;
+
+		if (InitializeShots())
+		{
+			float StartTime, EndTime;
+			SetupShot(StartTime, EndTime);
+		}
 	}
 
 	CaptureState = ELevelSequenceCaptureState::Setup;
@@ -164,7 +173,165 @@ void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InVie
 	CaptureStrategy = MakeShareable(new FFixedTimeStepCaptureStrategy(Settings.FrameRate));
 }
 
+UMovieScene* GetMovieScene(TWeakObjectPtr<ALevelSequenceActor> LevelSequenceActor)
+{
+	ALevelSequenceActor* Actor = LevelSequenceActor.Get();
+	if (!Actor)
+	{
+		return nullptr;
+	}
 
+	ULevelSequence* LevelSequence = Cast<ULevelSequence>( Actor->LevelSequence.TryLoad() );
+	if (!LevelSequence)
+	{
+		return nullptr;
+	}
+
+	return LevelSequence->GetMovieScene();
+}
+
+UMovieSceneCinematicShotTrack* GetCinematicShotTrack(TWeakObjectPtr<ALevelSequenceActor> LevelSequenceActor)
+{
+	UMovieScene* MovieScene = GetMovieScene(LevelSequenceActor);
+	if (!MovieScene)
+	{
+		return nullptr;
+	}
+
+	return MovieScene->FindMasterTrack<UMovieSceneCinematicShotTrack>();
+}
+
+bool UAutomatedLevelSequenceCapture::InitializeShots()
+{
+	NumShots = 0;
+	ShotIndex = -1;
+	CachedShotStates.Empty();
+
+	if (Settings.HandleFrames <= 0)
+	{
+		return false;
+	}
+
+	UMovieScene* MovieScene = GetMovieScene(LevelSequenceActor);
+	if (!MovieScene)
+	{
+		return false;
+	}
+
+	UMovieSceneCinematicShotTrack* CinematicShotTrack = GetCinematicShotTrack(LevelSequenceActor);
+	if (!CinematicShotTrack)
+	{
+		return false;
+	}
+
+	NumShots = CinematicShotTrack->GetAllSections().Num();					
+	ShotIndex = 0;
+	CachedPlaybackRange = MovieScene->GetPlaybackRange();
+
+	float HandleTime = (float)Settings.HandleFrames / (float)Settings.FrameRate;
+					
+	for (int32 SectionIndex = 0; SectionIndex < CinematicShotTrack->GetAllSections().Num(); ++SectionIndex)
+	{
+		UMovieSceneCinematicShotSection* ShotSection = Cast<UMovieSceneCinematicShotSection>(CinematicShotTrack->GetAllSections()[SectionIndex]);
+		UMovieScene* ShotMovieScene = ShotSection->GetSequence() ? ShotSection->GetSequence()->GetMovieScene() : nullptr;
+		CachedShotStates.Add(FCinematicShotCache(ShotSection->IsActive(), ShotSection->IsLocked(), TRange<float>(ShotSection->GetStartTime(), ShotSection->GetEndTime()), ShotMovieScene ? ShotMovieScene->GetPlaybackRange() : TRange<float>::Empty()));
+
+		if (ShotMovieScene)
+		{
+			ShotMovieScene->SetPlaybackRange(ShotMovieScene->GetPlaybackRange().GetLowerBoundValue() - HandleTime, ShotMovieScene->GetPlaybackRange().GetUpperBoundValue() + HandleTime, false);
+		}
+		ShotSection->SetIsLocked(false);
+		ShotSection->SetIsActive(false);
+		ShotSection->SetStartTime(ShotSection->GetStartTime() - HandleTime);
+		ShotSection->SetEndTime(ShotSection->GetEndTime() + HandleTime);
+	}
+	return NumShots > 0;
+}
+
+void UAutomatedLevelSequenceCapture::RestoreShots()
+{
+	if (Settings.HandleFrames <= 0)
+	{
+		return;
+	}
+
+	UMovieScene* MovieScene = GetMovieScene(LevelSequenceActor);
+	if (!MovieScene)
+	{
+		return;
+	}
+
+	UMovieSceneCinematicShotTrack* CinematicShotTrack = GetCinematicShotTrack(LevelSequenceActor);
+	if (!CinematicShotTrack)
+	{
+		return;
+	}
+
+	MovieScene->SetPlaybackRange(CachedPlaybackRange.GetLowerBoundValue(), CachedPlaybackRange.GetUpperBoundValue(), false);
+
+	float HandleTime = (float)Settings.HandleFrames / (float)Settings.FrameRate;
+					
+	for (int32 SectionIndex = 0; SectionIndex < CinematicShotTrack->GetAllSections().Num(); ++SectionIndex)
+	{
+		UMovieSceneCinematicShotSection* ShotSection = Cast<UMovieSceneCinematicShotSection>(CinematicShotTrack->GetAllSections()[SectionIndex]);
+		UMovieScene* ShotMovieScene = ShotSection->GetSequence() ? ShotSection->GetSequence()->GetMovieScene() : nullptr;
+		if (ShotMovieScene)
+		{
+			ShotMovieScene->SetPlaybackRange(CachedShotStates[SectionIndex].MovieSceneRange.GetLowerBoundValue(), CachedShotStates[SectionIndex].MovieSceneRange.GetUpperBoundValue(), false);
+		}
+		ShotSection->SetIsActive(CachedShotStates[SectionIndex].bActive);
+		ShotSection->SetStartTime(CachedShotStates[SectionIndex].ShotRange.GetLowerBoundValue());
+		ShotSection->SetEndTime(CachedShotStates[SectionIndex].ShotRange.GetUpperBoundValue());
+		ShotSection->SetIsLocked(CachedShotStates[SectionIndex].bLocked);
+	}
+}
+
+bool UAutomatedLevelSequenceCapture::SetupShot(float& StartTime, float& EndTime)
+{
+	if (Settings.HandleFrames <= 0)
+	{
+		return false;
+	}
+
+	UMovieScene* MovieScene = GetMovieScene(LevelSequenceActor);
+	if (!MovieScene)
+	{
+		return false;
+	}
+
+	UMovieSceneCinematicShotTrack* CinematicShotTrack = GetCinematicShotTrack(LevelSequenceActor);
+	if (!CinematicShotTrack)
+	{
+		return false;
+	}
+
+	if (ShotIndex > CinematicShotTrack->GetAllSections().Num()-1)
+	{
+		return false;
+	}
+
+	float HandleTime = (float)Settings.HandleFrames / (float)Settings.FrameRate;
+
+	// Disable all shots unless it's the current one being rendered
+	for (int32 SectionIndex = 0; SectionIndex < CinematicShotTrack->GetAllSections().Num(); ++SectionIndex)
+	{
+		UMovieSceneSection* ShotSection = CinematicShotTrack->GetAllSections()[SectionIndex];
+
+		ShotSection->SetIsActive(SectionIndex == ShotIndex);
+
+		if (SectionIndex == ShotIndex)
+		{
+			StartTime = ShotSection->GetStartTime();
+			EndTime = ShotSection->GetEndTime();
+
+			StartTime = FMath::Clamp(StartTime, CachedPlaybackRange.GetLowerBoundValue(), CachedPlaybackRange.GetUpperBoundValue());
+			EndTime = FMath::Clamp(EndTime, CachedPlaybackRange.GetLowerBoundValue(), CachedPlaybackRange.GetUpperBoundValue());
+			MovieScene->SetPlaybackRange(StartTime, EndTime, false);
+		}
+	}
+
+	return true;
+}
 
 void UAutomatedLevelSequenceCapture::SetupFrameRange()
 {
@@ -287,8 +454,22 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 
 	if( bCapturing && !Actor->SequencePlayer->IsPlaying() )
 	{
-		Actor->SequencePlayer->OnSequenceUpdated().Remove( OnPlayerUpdatedBinding );
-		FinalizeWhenReady();
+		++ShotIndex;
+
+		float StartTime, EndTime;
+		if (SetupShot(StartTime, EndTime))
+		{
+			Actor->SequencePlayer->SetPlaybackRange(StartTime, EndTime);
+			Actor->SequencePlayer->SetPlaybackPosition(0.f);
+			Actor->SequencePlayer->StartPlayingNextTick();
+			CaptureState = ELevelSequenceCaptureState::FinishedWarmUp;
+			UpdateFrameState();
+		}
+		else
+		{
+			Actor->SequencePlayer->OnSequenceUpdated().Remove( OnPlayerUpdatedBinding );
+			FinalizeWhenReady();
+		}
 	}
 }
 
@@ -337,7 +518,9 @@ void UAutomatedLevelSequenceCapture::SaveToConfig()
 void UAutomatedLevelSequenceCapture::Close()
 {
 	Super::Close();
-
+			
+	RestoreShots();
+	
 	ExportEDL();
 }
 
@@ -407,8 +590,9 @@ void UAutomatedLevelSequenceCapture::ExportEDL()
 	}
 
 	FString SaveFilename = 	Settings.OutputDirectory.Path / MovieScene->GetOuter()->GetName();
+	int32 HandleFrames = Settings.HandleFrames;
 
-	MovieSceneCaptureHelpers::ExportEDL(MovieScene, Settings.FrameRate, SaveFilename);
+	MovieSceneCaptureHelpers::ExportEDL(MovieScene, Settings.FrameRate, SaveFilename, HandleFrames);
 }
 
 

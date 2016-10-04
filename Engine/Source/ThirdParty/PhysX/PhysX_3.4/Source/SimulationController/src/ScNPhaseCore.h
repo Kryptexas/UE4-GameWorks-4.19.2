@@ -181,8 +181,8 @@ namespace Sc
 
 
 		ElementSimInteraction* onOverlapRemovedStage1(ElementSim* volume0, ElementSim* volume1);
-		void onOverlapRemoved(ElementSim* volume0, ElementSim* volume1, const PxU32 ccdPass, void* elemSim, PxsContactManagerOutputIterator& outputs);
-		void onVolumeRemoved(ElementSim* volume, PxU32 flags, PxsContactManagerOutputIterator& outputs);
+		void onOverlapRemoved(ElementSim* volume0, ElementSim* volume1, const PxU32 ccdPass, void* elemSim, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
+		void onVolumeRemoved(ElementSim* volume, PxU32 flags, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
 
 		void managerNewTouch(Sc::ShapeInteraction& interaction, const PxU32 ccdPass, bool adjustCounters, PxsContactManagerOutputIterator& outputs);
 
@@ -197,11 +197,11 @@ namespace Sc
 
 		PxU32 getDefaultContactReportStreamBufferSize() const;
 
-		void fireCustomFilteringCallbacks(PxsContactManagerOutputIterator& outputs);
+		void fireCustomFilteringCallbacks(PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
 
 		void addToDirtyInteractionList(Interaction* interaction);
 		void removeFromDirtyInteractionList(Interaction* interaction);
-		void updateDirtyInteractions(PxsContactManagerOutputIterator& outputs);
+		void updateDirtyInteractions(PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
 
 
 		/*
@@ -268,9 +268,9 @@ namespace Sc
 #if PX_USE_PARTICLE_SYSTEM_API
 		ElementSimInteraction* createParticlePacketBodyInteraction(ParticlePacketShape& ps, ShapeSim& s, const PxU32 ccdPass);
 #endif
-		void releaseElementPair(ElementSimInteraction* pair, PxU32 flags, const PxU32 ccdPass, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs);
-		void releaseShapeInteraction(ShapeInteraction* pair, PxU32 flags, const PxU32 ccdPass, PxsContactManagerOutputIterator& outputs);
-		void lostTouchReports(ShapeInteraction* pair, PxU32 flags, const PxU32 ccdPass, PxsContactManagerOutputIterator& outputs);
+		void releaseElementPair(ElementSimInteraction* pair, PxU32 flags, const PxU32 ccdPass, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
+		void releaseShapeInteraction(ShapeInteraction* pair, PxU32 flags, const PxU32 ccdPass, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
+		void lostTouchReports(ShapeInteraction* pair, PxU32 flags, const PxU32 ccdPass, PxsContactManagerOutputIterator& outputs, bool useAdaptiveForce);
 
 		ShapeInteraction* createShapeInteraction(ShapeSim& s0, ShapeSim& s1, PxPairFlags pairFlags, PxsContactManager* contactManager, Sc::ShapeInteraction* shapeInteraction);
 		TriggerInteraction* createTriggerInteraction(ShapeSim& s0, ShapeSim& s1, PxPairFlags triggerFlags);
@@ -278,7 +278,8 @@ namespace Sc
 
 		//------------- Filtering -------------
 
-		ElementSimInteraction* refilterInteraction(ElementSimInteraction* pair, const PxFilterInfo* filterInfo, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs);
+		ElementSimInteraction* refilterInteraction(ElementSimInteraction* pair, const PxFilterInfo* filterInfo, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs,
+			bool useAdaptiveForce);
 
 		PX_INLINE void callPairLost(const ElementSim& e0, const ElementSim& e1, PxU32 pairID, bool objVolumeRemoved) const;
 		PX_INLINE void runFilterShader(const ElementSim& e0, const ElementSim& e1,
@@ -296,7 +297,8 @@ namespace Sc
 		PxFilterInfo filterRbCollisionPair(const ShapeSim& s0, const ShapeSim& s1, PxU32 filterPairIndex, PxU32& isTriggerPair, bool runCallbacks);
 		//-------------------------------------
 
-		ElementSimInteraction* convert(ElementSimInteraction* pair, InteractionType::Enum type, PxFilterInfo& filterInfo, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs);
+		ElementSimInteraction* convert(ElementSimInteraction* pair, InteractionType::Enum type, PxFilterInfo& filterInfo, bool removeFromDirtyList, PxsContactManagerOutputIterator& outputs,
+			bool useAdaptiveForce);
 
 		ActorPair* findActorPair(ShapeSim* s0, ShapeSim* s1, Ps::IntBool isReportPair);
 		PX_FORCE_INLINE void destroyActorPairReport(ActorPairReport&);

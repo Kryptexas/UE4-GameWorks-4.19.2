@@ -24,6 +24,7 @@ public:
 	virtual bool IsCompatibleWith(FEditorModeID OtherModeID) const override;
 	virtual bool InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) override;
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) override;
+	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
 
 	void SetSequencer(FSequencer* InSequencer) { Sequencer = InSequencer; }
 

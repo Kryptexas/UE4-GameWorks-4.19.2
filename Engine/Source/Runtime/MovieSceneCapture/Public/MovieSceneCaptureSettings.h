@@ -62,6 +62,10 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay)
 	bool bUseRelativeFrameNumbers;
 
+	/** Number of frame handles to include for each shot */
+	UPROPERTY(config, EditAnywhere, Category=Sequence, AdvancedDisplay, meta=(ClampMin=0, UIMin=0))
+	int32 HandleFrames;
+
 	/** How much to zero-pad frame numbers on filenames */
 	UPROPERTY(config)
 	uint8 ZeroPadFrameNumbers;

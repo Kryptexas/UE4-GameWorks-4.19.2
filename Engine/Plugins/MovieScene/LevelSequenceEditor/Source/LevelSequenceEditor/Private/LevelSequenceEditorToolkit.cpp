@@ -20,6 +20,8 @@
 #include "MovieScenePropertyTrack.h"
 #include "MovieSceneToolsProjectSettings.h"
 #include "MovieSceneSequenceInstance.h"
+#include "MovieSceneSubSection.h"
+#include "MovieSceneSubTrack.h"
 #include "MovieSceneToolHelpers.h"
 #include "ScopedTransaction.h"
 #include "SceneOutlinerModule.h"
@@ -685,6 +687,30 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 	// Focus on the new shot
 	GetSequencer()->UpdateRuntimeInstances();
 	GetSequencer()->FocusSequenceInstance(*ShotSubSection);
+
+	const ULevelSequenceMasterSequenceSettings* MasterSequenceSettings = GetDefault<ULevelSequenceMasterSequenceSettings>();
+	const UMovieSceneToolsProjectSettings* ProjectSettings = GetDefault<UMovieSceneToolsProjectSettings>();
+
+	// Create any subshots
+	if (MasterSequenceSettings->SubSequenceNames.Num())
+	{
+		UMovieSceneSubTrack* SubTrack = Cast<UMovieSceneSubTrack>(ShotSequence->GetMovieScene()->FindMasterTrack(UMovieSceneSubTrack::StaticClass()));
+		if (!SubTrack)
+		{
+			SubTrack = Cast<UMovieSceneSubTrack>(ShotSequence->GetMovieScene()->AddMasterTrack(UMovieSceneSubTrack::StaticClass()));
+		}
+	
+		int32 RowIndex = 0;
+		for (auto SubSequenceName : MasterSequenceSettings->SubSequenceNames)
+		{
+			FString SubSequenceAssetName = ShotAssetName + ProjectSettings->SubSequenceSeparator + SubSequenceName.ToString();
+			UObject* SubSequenceAsset = LevelSequenceEditorHelpers::CreateLevelSequenceAsset(SubSequenceAssetName, ShotPackagePath);
+			UMovieSceneSequence* SubSequence = Cast<UMovieSceneSequence>(SubSequenceAsset);
+			UMovieSceneSubSection* SubSection = SubTrack->AddSequence(SubSequence, ShotStartTime, ShotEndTime-ShotStartTime);
+			SubSection->SetRowIndex(RowIndex++);
+			SubSection->SetStartTime(ShotStartTime);
+		}
+	}
 
 	// Create a camera cut track with a camera if it doesn't already exist
 	UMovieSceneTrack* CameraCutTrack = ShotSequence->GetMovieScene()->GetCameraCutTrack();

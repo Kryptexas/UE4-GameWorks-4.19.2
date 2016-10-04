@@ -197,13 +197,13 @@ bool FStructDeserializer::Deserialize( void* OutStruct, UStruct& TypeInfo, IStru
 				{
 					// handle map element
 					UMapProperty* MapProperty = Cast<UMapProperty>(CurrentState.Property);
-					FScriptMapHelper MapHelper(MapProperty, MapProperty->ContainerPtrToValuePtr<void>(CurrentState.Data));
+					FScriptMapHelper MapHelper(MapProperty, CurrentState.Data);
 					UProperty* Property = MapProperty->ValueProp;
 
 					int32 PairIndex = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
 					uint8* PairPtr = MapHelper.GetPairPtr(PairIndex);
 
-					MapProperty->KeyProp->ImportText(*PropertyName, PairPtr + MapProperty->MapLayout.KeyOffset, PPF_Delimited, nullptr);
+					MapProperty->KeyProp->ImportText(*PropertyName, PairPtr + MapProperty->MapLayout.KeyOffset, PPF_None, nullptr);
 
 					if (!Backend.ReadProperty(Property, CurrentState.Property, PairPtr, CurrentState.ArrayIndex))
 					{

@@ -117,7 +117,7 @@ void Sc::ClothShape::destroyLowLevelVolume()
 
 	Sc::Scene& scene = getScene();
 	PxsContactManagerOutputIterator outputs = scene.getLowLevelContext()->getNphaseImplementationContext()->getContactManagerOutputs();
-	scene.getNPhaseCore()->onVolumeRemoved(this, 0, outputs);
+	scene.getNPhaseCore()->onVolumeRemoved(this, 0, outputs, scene.getPublicFlags() & PxSceneFlag::eADAPTIVE_FORCE);
 	removeFromAABBMgr();
 }
 

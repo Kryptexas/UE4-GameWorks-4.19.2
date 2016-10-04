@@ -36,6 +36,7 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 
 	bCreateTemporaryCopiesOfLevels = false;
 	bUseRelativeFrameNumbers = false;
+	HandleFrames = 8;
 	GameModeOverride = nullptr;
 	OutputFormat = TEXT("{world}");
 	FrameRate = 24;
@@ -125,6 +126,12 @@ void UMovieSceneCapture::Initialize(TSharedPtr<FSceneViewport> InSceneViewport, 
 		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieRelativeFrames=" ), bOverrideRelativeFrameNumbers ) )
 		{
 			Settings.bUseRelativeFrameNumbers = bOverrideRelativeFrameNumbers;
+		}
+				
+		int32 HandleFramesOverride;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-HandleFrames=" ), HandleFramesOverride ) )
+		{
+			Settings.HandleFrames = HandleFramesOverride;
 		}
 
 		bool bOverrideCinematicMode;

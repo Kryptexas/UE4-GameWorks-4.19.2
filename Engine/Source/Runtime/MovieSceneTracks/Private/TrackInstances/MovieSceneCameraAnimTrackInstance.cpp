@@ -95,7 +95,7 @@ void FMovieSceneCameraAnimTrackInstance::Update(EMovieSceneUpdateData& UpdateDat
 						SectionInstanceData.CameraAnimInst = CamAnimInst;
 					}
 
-					if (SectionInstanceData.CameraAnimInst.IsValid())
+					if (SectionInstanceData.CameraAnimInst.IsValid() && SectionInstanceData.CameraAnimInst->CamAnim != nullptr)
 					{
 						// prepare temp camera actor by resetting it
 						{

@@ -235,7 +235,7 @@ private:
 	/**
 	* Export Anim Track of the given SkeletalMeshComponent
 	*/
-	void ExportAnimTrack( IAnimTrackAdapter& AnimTrackAdapter, USkeletalMeshComponent* SkeletalMeshComponent );
+	void ExportAnimTrack( IAnimTrackAdapter& AnimTrackAdapter, AActor* Actor, USkeletalMeshComponent* SkeletalMeshComponent );
 
 	void ExportModel(UModel* Model, FbxNode* Node, const char* Name);
 	

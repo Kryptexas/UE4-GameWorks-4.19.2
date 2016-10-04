@@ -5,6 +5,7 @@
 #include "Runtime/Core/Public/Core.h"
 #include "Runtime/Core/Public/Containers/TripleBuffer.h"
 #include "Runtime/Core/Public/Modules/ModuleManager.h"
+#include "Runtime/Core/Public/UObject/SequencerObjectVersion.h"
 #include "Runtime/CoreUObject/Public/CoreUObject.h"
 #include "Runtime/Engine/Classes/DeviceProfiles/DeviceProfile.h"
 #include "Runtime/Engine/Public/Engine.h"

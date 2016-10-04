@@ -2849,13 +2849,14 @@ void PxsSolverCreateFinalizeConstraintsTask::runInternal()
 	PxU32 headersPerPartition = 0;
 	for(PxU32 a = 0; a < descCount;)
 	{
-		PxConstraintBatchHeader& header = mThreadContext.contactConstraintBatchHeaders[numHeaders++];
-		header.mStartIndex = a;
+		
 
 		PxU32 loopMax = PxMin(maxJ - a, maxBatchSize);
 		PxU16 j = 0;
 		if(loopMax > 0)
 		{
+			PxConstraintBatchHeader& header = mThreadContext.contactConstraintBatchHeaders[numHeaders++];
+			
 			j=1;
 			PxSolverConstraintDesc& desc = mThreadContext.orderedContactConstraints[a];
 			if(!isArticulationConstraint(desc) && (desc.constraintLengthOver16 == DY_SC_TYPE_RB_CONTACT || 
@@ -2864,6 +2865,7 @@ void PxsSolverCreateFinalizeConstraintsTask::runInternal()
 				for(; j < loopMax && desc.constraintLengthOver16 == mThreadContext.orderedContactConstraints[a+j].constraintLengthOver16 && 
 					!isArticulationConstraint(mThreadContext.orderedContactConstraints[a+j]); ++j);
 			}
+			header.mStartIndex = a;
 			header.mStride = j;
 			headersPerPartition++;
 		}

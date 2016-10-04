@@ -1282,7 +1282,7 @@ bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 					if(SkeletalMeshComp)
 					{
 						FMatineeAnimTrackAdapter AnimTrackAdapter(InMatineeActor);
-						ExportAnimTrack(AnimTrackAdapter, SkeletalMeshComp);
+						ExportAnimTrack(AnimTrackAdapter, Actor, SkeletalMeshComp);
 					}
 				}
 			}
@@ -1363,7 +1363,7 @@ bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FG
 	{
 		return false;
 	}
-
+			
 	for ( const FMovieSceneBinding& MovieSceneBinding : MovieScene->GetBindings() )
 	{
 		// If there are specific bindings to export, export those only
@@ -1396,10 +1396,14 @@ bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FG
 				// now it should export everybody
 				if ( FbxActor )
 				{
+					USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>( Actor->GetComponentByClass( USkeletalMeshComponent::StaticClass() ) );
+					
+					const bool bSkip3DTransformTrack = SkeletalMeshComp && GetDefault<UEditorPerProjectUserSettings>()->bMapSkeletalMotionToRoot;
+
 					// Look for the tracks that we currently support
 					for ( UMovieSceneTrack* Track : MovieSceneBinding.GetTracks() )
 					{
-						if ( Track->IsA( UMovieScene3DTransformTrack::StaticClass() ) )
+						if ( Track->IsA( UMovieScene3DTransformTrack::StaticClass() ) && !bSkip3DTransformTrack )
 						{
 							UMovieScene3DTransformTrack* TransformTrack = (UMovieScene3DTransformTrack*)Track;
 							ExportLevelSequence3DTransformTrack( *FbxActor, *TransformTrack, Actor, MovieScene->GetPlaybackRange() );
@@ -1411,11 +1415,10 @@ bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FG
 						}
 						else if ( Track->IsA( UMovieSceneSkeletalAnimationTrack::StaticClass() ) )
 						{
-							USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>( Actor->GetComponentByClass( USkeletalMeshComponent::StaticClass() ) );
 							if ( SkeletalMeshComp )
 							{
 								FLevelSequenceAnimTrackAdapter AnimTrackAdapter( MovieScenePlayer, MovieScene );
-								ExportAnimTrack( AnimTrackAdapter, SkeletalMeshComp );
+								ExportAnimTrack( AnimTrackAdapter, Actor, SkeletalMeshComp );
 							}
 						}
 					}

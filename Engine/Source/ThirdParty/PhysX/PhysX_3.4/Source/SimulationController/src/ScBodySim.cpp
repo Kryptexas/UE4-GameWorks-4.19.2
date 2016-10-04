@@ -64,8 +64,6 @@ Sc::BodySim::BodySim(Scene& scene, BodyCore& core) :
 	mInternalFlags				(0),
 	mVelModState				(VMF_GRAVITY_DIRTY),
 	mActiveListIndex			(SC_NOT_IN_SCENE_INDEX),
-	mNumUniqueInteractions		(0),
-	mBodyConstraints			(0),
 	mArticulation				(NULL),
 	mConstraintGroup			(NULL)
 	{
@@ -77,6 +75,7 @@ Sc::BodySim::BodySim(Scene& scene, BodyCore& core) :
 	mLLBody.accelScale = 1.f;
 	mLLBody.solverIterationCounts = core.getCore().solverIterationCounts;
 	core.getCore().numCountedInteractions = 0;
+	core.getCore().numBodyInteractions = 0;
 	mLLBody.mInternalFlags = 0;
 	if (core.getActorFlags()&PxActorFlag::eDISABLE_GRAVITY)
 		mLLBody.mInternalFlags |= PxsRigidBody::eDISABLE_GRAVITY;
@@ -554,7 +553,7 @@ void Sc::BodySim::putToSleep()
 	setActive(false);
 	notifyPutToSleep();
 
-	clearInternalFlag(BF_KINEMATIC_SETTLING);	// putToSleep is used when a kinematic gets removed from the scene while the sim is running and then gets re-inserted immediately.
+	clearInternalFlag(InternalFlags(BF_KINEMATIC_SETTLING | BF_KINEMATIC_SETTLING_2));	// putToSleep is used when a kinematic gets removed from the scene while the sim is running and then gets re-inserted immediately.
 												// We can move this code when we look into the open task of making buffered re-insertion more consistent with the non-buffered case.
 }
 
@@ -728,7 +727,7 @@ void Sc::BodySim::calculateKinematicVelocity(PxReal oneOverDt)
 
 	if (readInternalFlag(BF_KINEMATIC_MOVED))
 	{
-		clearInternalFlag(BF_KINEMATIC_SETTLING);
+		clearInternalFlag(InternalFlags(BF_KINEMATIC_SETTLING | BF_KINEMATIC_SETTLING_2));
 		const SimStateData* kData = core.getSimStateData(true);
 		PX_ASSERT(kData);
 		PX_ASSERT(kData->isKine());
@@ -786,7 +785,7 @@ void Sc::BodySim::updateKinematicPose()
 
 	if (readInternalFlag(BF_KINEMATIC_MOVED))
 	{
-		clearInternalFlag(BF_KINEMATIC_SETTLING);
+		clearInternalFlag(InternalFlags(BF_KINEMATIC_SETTLING | BF_KINEMATIC_SETTLING_2));
 		const SimStateData* kData = core.getSimStateData(true);
 		PX_ASSERT(kData);
 		PX_ASSERT(kData->isKine());
@@ -802,14 +801,19 @@ void Sc::BodySim::updateKinematicPose()
 bool Sc::BodySim::deactivateKinematic()
 {
 	BodyCore& core = getBodyCore();
-	if(readInternalFlag(BF_KINEMATIC_SETTLING))
+	if(readInternalFlag(BF_KINEMATIC_SETTLING_2))
 	{
-		clearInternalFlag(BF_KINEMATIC_SETTLING);
+		clearInternalFlag(BF_KINEMATIC_SETTLING_2);
 		core.setWakeCounterFromSim(0);	// For sleeping objects the wake counter must be 0. This needs to hold for kinematics too.
 		notifyReadyForSleeping();
 		notifyPutToSleep();
 		setActive(false);
 		return true;
+	}
+	else if (readInternalFlag(BF_KINEMATIC_SETTLING))
+	{
+		clearInternalFlag(BF_KINEMATIC_SETTLING);
+		raiseInternalFlag(BF_KINEMATIC_SETTLING_2);
 	}
 	else
 	{
@@ -869,7 +873,7 @@ void Sc::BodySim::updateForces(PxReal dt, PxsRigidBody** updatedBodySims, PxU32*
 			else
 			{
 				PxReal scale = dt;
-				if (simUsesAdaptiveForce && mBodyConstraints > 1)
+				if (simUsesAdaptiveForce)
 				{
 					if (getScene().getSimpleIslandManager()->getAccurateIslandSim().getIslandStaticTouchCount(mNodeIndex) != 0)
 					{
@@ -930,7 +934,6 @@ void Sc::BodySim::onConstraintDetach()
 
 	PxU32 size = getActorInteractionCount();
 	Interaction** interactions = getActorInteractions();
-	unregisterUniqueInteraction();
 	unregisterCountedInteraction();
 
 	while(size--)

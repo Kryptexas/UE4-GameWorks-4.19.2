@@ -81,6 +81,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Shots)
 	FString TakeSeparator;
 
+	/** A single character separator between the take number and the sub sequence name. */
+	UPROPERTY(config, EditAnywhere, Category=Shots)
+	FString SubSequenceSeparator;
+
 	/** Mapping between fbx property name and property track path */
 	UPROPERTY(config, EditAnywhere, Category=TrackSettings)
 	TArray<FMovieSceneToolsFbxSettings> FbxSettings;

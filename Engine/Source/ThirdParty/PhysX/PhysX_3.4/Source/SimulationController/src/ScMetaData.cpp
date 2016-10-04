@@ -117,8 +117,9 @@ namespace
 			PX_DEF_BIN_METADATA_ITEM(stream,		ShadowPxsBodyCore, PxReal,		wakeCounter,			0)
 			PX_DEF_BIN_METADATA_ITEM(stream,		ShadowPxsBodyCore, PxReal,		solverWakeCounter,		0)
 			PX_DEF_BIN_METADATA_ITEM(stream, 		ShadowPxsBodyCore, PxU32,		numCountedInteractions,	0)
-			PX_DEF_BIN_METADATA_ITEM(stream,		ShadowPxsBodyCore, PxU32,		isFastMoving,			0)
-			PX_DEF_BIN_METADATA_ITEM(stream,		ShadowPxsBodyCore, PxU32,		lockFlags,				0)
+			PX_DEF_BIN_METADATA_ITEM(stream,		ShadowPxsBodyCore, PxU32,		numBodyInteractions,	0)
+			PX_DEF_BIN_METADATA_ITEM(stream,		ShadowPxsBodyCore, PxU16,		isFastMoving,			0)
+			PX_DEF_BIN_METADATA_ITEM(stream,		ShadowPxsBodyCore, PxU16,		lockFlags,				0)
 		}
 	};
 }

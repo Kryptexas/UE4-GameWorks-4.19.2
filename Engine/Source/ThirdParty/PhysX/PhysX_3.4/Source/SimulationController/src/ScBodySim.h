@@ -77,7 +77,8 @@ namespace Sc
 
 			BF_HAS_CONSTRAINTS		= 1 << 8,	// Set if the body has one or more constraints
 			BF_KINEMATIC_SETTLING	= 1 << 9,	// Set when the body was moved kinematically last frame
-			BF_KINEMATIC_MOVE_FLAGS = BF_KINEMATIC_MOVED | BF_KINEMATIC_SETTLING //Used to clear kinematic masks in 1 call
+			BF_KINEMATIC_SETTLING_2 = 1 << 10,
+			BF_KINEMATIC_MOVE_FLAGS = BF_KINEMATIC_MOVED | BF_KINEMATIC_SETTLING | BF_KINEMATIC_SETTLING_2 //Used to clear kinematic masks in 1 call
 
 			// PT: WARNING: flags stored on 16-bits now.
 		};
@@ -168,10 +169,6 @@ namespace Sc
 						void					notifyNotReadyForSleeping();		// inform the sleep island generation system that the body is not ready for sleeping
 		PX_FORCE_INLINE bool					checkSleepReadinessBesidesWakeCounter();  // for API triggered changes to test sleep readiness
 
-		PX_FORCE_INLINE void					registerUniqueInteraction() { mNumUniqueInteractions++; PX_ASSERT(mNumUniqueInteractions); }
-		PX_FORCE_INLINE void					unregisterUniqueInteraction() { PX_ASSERT(mNumUniqueInteractions); mNumUniqueInteractions--; }
-		PX_FORCE_INLINE PxU16					getNumUniqueInteractions() const { return mNumUniqueInteractions;}
-
 		PX_FORCE_INLINE void					registerCountedInteraction() { mLLBody.getCore().numCountedInteractions++; PX_ASSERT(mLLBody.getCore().numCountedInteractions); }
 		PX_FORCE_INLINE void					unregisterCountedInteraction() { PX_ASSERT(mLLBody.getCore().numCountedInteractions); mLLBody.getCore().numCountedInteractions--;}
 		PX_FORCE_INLINE PxU32					getNumCountedInteractions()	const { return mLLBody.getCore().numCountedInteractions; }
@@ -207,8 +204,8 @@ namespace Sc
 		PX_FORCE_INLINE void					clearInternalFlag(InternalFlags flag)					{ mInternalFlags &= ~flag;				}
 		PX_FORCE_INLINE PxU32					getFlagsFast()									const	{ return getBodyCore().getFlags();		}
 
-		PX_FORCE_INLINE void					incrementBodyConstraintCounter()						{ mBodyConstraints++;					}
-		PX_FORCE_INLINE void					decrementBodyConstraintCounter()						{ PX_ASSERT(mBodyConstraints>0); mBodyConstraints--;	}
+		PX_FORCE_INLINE void					incrementBodyConstraintCounter()						{ mLLBody.mCore->numBodyInteractions++;					}
+		PX_FORCE_INLINE void					decrementBodyConstraintCounter()						{ PX_ASSERT(mLLBody.mCore->numBodyInteractions>0); mLLBody.mCore->numBodyInteractions--; }
 
 		PX_FORCE_INLINE	BodyCore&				getBodyCore()									const	{ return static_cast<BodyCore&>(getRigidCore());		}
 
@@ -218,7 +215,7 @@ namespace Sc
 		PX_FORCE_INLINE IG::NodeIndex			getNodeIndex() const									{ return mNodeIndex; }
 
 						bool					isConnectedTo(const ActorSim& other, bool& collisionDisabled) const;  // Check if connected to specified object by a constraint
-		PX_FORCE_INLINE void					onConstraintAttach()									{ raiseInternalFlag(BF_HAS_CONSTRAINTS); registerUniqueInteraction(); registerCountedInteraction(); }
+		PX_FORCE_INLINE void					onConstraintAttach()									{ raiseInternalFlag(BF_HAS_CONSTRAINTS); registerCountedInteraction(); }
 						void					onConstraintDetach();
 
 		PX_FORCE_INLINE	void					onOriginShift(const PxVec3& shift)						{ mLLBody.mLastTransform.p -= shift; }
@@ -264,13 +261,6 @@ namespace Sc
 		// Sleeping
 		//---------------------------------------------------------------------------------
 						PxU32					mActiveListIndex;	// Used by Scene to track active bodies
-
-						PxU16					mNumUniqueInteractions;			// KS: this stores the count of interactions between unique bodies
-
-		//---------------------------------------------------------------------------------
-		// Used by the USE_ADAPTIVE_FORCE mode only to keep track of how many constraints are on a body
-		//---------------------------------------------------------------------------------
-						PxU16					mBodyConstraints;
 
 		//---------------------------------------------------------------------------------
 		// Articulation
