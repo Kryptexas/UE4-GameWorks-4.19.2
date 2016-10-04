@@ -372,8 +372,6 @@ public:
 
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		bool bWasPressed = bIsPressed;
-
 		if (ResponseToMouseUp == EResponseToMouseUp::Handle)
 		{
 			bIsPressed = true;
@@ -381,7 +379,6 @@ public:
 
 		FReply Reply = SButton::OnMouseButtonUp(MyGeometry, MouseEvent);
 
-		bIsPressed = bWasPressed;
 		bIsHovered = true;
 
 		return Reply;

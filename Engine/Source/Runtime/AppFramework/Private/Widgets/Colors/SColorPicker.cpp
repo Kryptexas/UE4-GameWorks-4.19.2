@@ -81,6 +81,7 @@ void SColorPicker::Construct( const FArguments& InArgs )
 	bColorPickerIsInlineVersion = InArgs._DisplayInlineVersion;
 	bIsInteractive = false;
 	bPerfIsTooSlowToUpdate = false;
+	
 
 	BackupColors();
 
@@ -1728,7 +1729,6 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 		//hold on to the window created for external use...
 		ColorPickerWindow = Window;
 	}
-	
 #endif
 
 	return Result;
@@ -1743,7 +1743,14 @@ void DestroyColorPicker()
 {
 	if (ColorPickerWindow.IsValid())
 	{
-		ColorPickerWindow.Pin()->RequestDestroyWindow();
+		if (SColorPicker::OnColorPickerDestroyOverride.IsBound())
+		{
+			SColorPicker::OnColorPickerDestroyOverride.Execute();
+		}
+		else
+		{
+			ColorPickerWindow.Pin()->RequestDestroyWindow();
+		}
 		ColorPickerWindow.Reset();
 	}
 }

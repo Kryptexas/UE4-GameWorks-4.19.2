@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "VREditorModule.h"
 #include "VREditorAvatarActor.h"
@@ -34,9 +34,15 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 	bIsDrawingWorldMovementPostProcess( false ),
 	VRMode( nullptr )
 {
-	if (UNLIKELY(IsRunningDedicatedServer()))
+	if (UNLIKELY(IsRunningDedicatedServer()))   // @todo vreditor: Hack to avoid loading font assets in the cooker on Linux
 	{
 		return;
+	}
+
+	{
+		USceneComponent* SceneRootComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "RootComponent" ) );
+		AddOwnedComponent( SceneRootComponent );
+		SetRootComponent( SceneRootComponent );
 	}
 
 	// Give us a head mesh
@@ -200,23 +206,23 @@ AVREditorAvatarActor::~AVREditorAvatarActor()
 	UserScaleIndicatorText = nullptr;
 }
 
-void AVREditorAvatarActor::Init( FVREditorMode* InVRMode  )
+void AVREditorAvatarActor::Init( UVREditorMode* InVRMode  )
 {
 	VRMode = InVRMode;
 
 	// Set the default color for the progress bar
 	{
 		static FName StaticLaserColorName( "LaserColor" );
-		const FLinearColor FixedProgressbarColor = VRMode->GetColor( FVREditorMode::EColors::WorldDraggingColor_TwoHands );
+		const FLinearColor FixedProgressbarColor = VRMode->GetColor( UVREditorMode::EColors::WorldDraggingColor_TwoHands );
 		FixedUserScaleMID->SetVectorParameterValue( StaticLaserColorName, FixedProgressbarColor );
 		TranslucentFixedUserScaleMID->SetVectorParameterValue( StaticLaserColorName, FixedProgressbarColor );
 
-		const FLinearColor CurrentProgressbarColor = VRMode->GetColor( FVREditorMode::EColors::GreenGizmoColor );
+		const FLinearColor CurrentProgressbarColor = VRMode->GetColor( UVREditorMode::EColors::GreenGizmoColor );
 		CurrentUserScaleMID->SetVectorParameterValue( StaticLaserColorName, CurrentProgressbarColor );
 		TranslucentCurrentUserScaleMID->SetVectorParameterValue( StaticLaserColorName, CurrentProgressbarColor );
 	}
 
-	UserScaleIndicatorText->SetTextRenderColor( VRMode->GetColor( FVREditorMode::EColors::WorldDraggingColor_TwoHands ).ToFColor( false ) );
+	UserScaleIndicatorText->SetTextRenderColor( VRMode->GetColor( UVREditorMode::EColors::WorldDraggingColor_TwoHands ).ToFColor( false ) );
 
 	// Tell the grid to stay relative to the rootcomponent
 	const FAttachmentTransformRules AttachmentTransformRules = FAttachmentTransformRules( EAttachmentRule::KeepRelative, true );
@@ -235,8 +241,8 @@ void AVREditorAvatarActor::TickManually( const float DeltaTime )
 		RoomSpaceTransformWithWorldToMetersScaling.SetScale3D( RoomSpaceTransformWithWorldToMetersScaling.GetScale3D( ) * WorldScaleFactorVector );
 
 		// @todo vreditor urgent: Head disabled until we can fix late frame update issue
-#if 0
-		if ( VRMode->IsActuallyUsingVR() && GEngine->HMDDevice.IsValid( ) && GEngine->HMDDevice->IsHeadTrackingAllowed( ) )
+		check( HeadMeshComponent != nullptr );
+		if( false ) // && VRMode->IsActuallyUsingVR() && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed() )
 		{
 			HeadMeshComponent->SetVisibility( true );
 
@@ -247,23 +253,24 @@ void AVREditorAvatarActor::TickManually( const float DeltaTime )
 			HeadMeshComponent->SetRelativeTransform( RoomSpaceTransformWithWorldToMetersScaling );
 		}
 		else
-#endif
 		{
 			HeadMeshComponent->SetVisibility( false );
 		}
 	}
 
 	// Scale the grid so that it stays the same size in the tracking space
+	check( WorldMovementGridMeshComponent != nullptr );
 	WorldMovementGridMeshComponent->SetRelativeScale3D( WorldScaleFactorVector * VREd::GridScaleMultiplier->GetFloat() );
 	WorldMovementGridMeshComponent->SetRelativeLocation( WorldScaleFactorVector * FVector( 0.0f, 0.0f, VREd::GridHeightOffset->GetFloat() ) );
 
-	// Update the user scale indicator
+	// Update the user scale indicator //@todo
 	{
 		UVREditorInteractor* LeftHandInteractor = VRMode->GetHandInteractor( EControllerHand::Left );
 		UVREditorInteractor* RightHandInteractor = VRMode->GetHandInteractor( EControllerHand::Right );
-		if ( ( LeftHandInteractor != nullptr && RightHandInteractor != nullptr ) &&
-			 ( ( LeftHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::World && RightHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::AssistingDrag ) ||
-			 ( LeftHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::AssistingDrag && RightHandInteractor->GetDraggingMode( ) == EViewportInteractionDraggingMode::World ) ) )
+
+		if ( LeftHandInteractor != nullptr && RightHandInteractor != nullptr &&
+			 ( ( LeftHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World && RightHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::AssistingDrag ) ||
+			   ( LeftHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::AssistingDrag && RightHandInteractor->GetDraggingMode() == EViewportInteractionDraggingMode::World ) ) )
 		{
 			// Setting all components to be visible
 			CurrentScaleProgressMeshComponent->SetVisibility( true );

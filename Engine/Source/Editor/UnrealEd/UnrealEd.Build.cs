@@ -61,6 +61,8 @@ public class UnrealEd : ModuleRules
                 "PortalRpc",
                 "PortalServices",
                 "BlueprintNativeCodeGen",
+                "ViewportInteraction",
+                "VREditor",
                 "Persona",
             }
 		);
@@ -147,6 +149,8 @@ public class UnrealEd : ModuleRules
                 "PixelInspectorModule",
 				"MovieScene",
 				"MovieSceneTracks",
+                "ViewportInteraction",
+                "VREditor"
             }
 		);
 
@@ -218,9 +222,8 @@ public class UnrealEd : ModuleRules
                 "PortalServices",
                 "GeometryCacheEd",
                 "BlueprintNativeCodeGen",
-				"VREditor",
                 "EditorAutomation",
-            }
+			}
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)

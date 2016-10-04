@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,7 +20,7 @@ public:
 	AVREditorBaseActor();
 
 	/** Sets the owning VR mode */
-	void SetVRMode( class FVREditorMode* InOwner );
+	void SetVRMode( class UVREditorMode* InVRMode );
 
 	/** Possible UI attachment points */
 	enum class EDockedTo
@@ -99,7 +99,8 @@ protected:
 private:
 
 	/** The VR mode that owns this actor */
-	class FVREditorMode* Owner;
+	UPROPERTY()
+	class UVREditorMode* VRMode;
 
 	/** Local rotation of the UI */
 	FRotator LocalRotation;

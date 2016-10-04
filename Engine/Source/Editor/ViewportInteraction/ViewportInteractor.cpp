@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ViewportInteractionModule.h"
 #include "ViewportInteractor.h"
@@ -90,11 +90,8 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 		// Give subsystems a chance to handle actions for this interactor
 		WorldInteraction->OnViewportInteractionInputAction().Broadcast( *WorldInteraction->GetViewportClient(), this, *Action, Action->bIsInputCaptured, bHandled );
 
-		if ( !bHandled )
-		{
-			// Give the derived classes a chance to update according to the input
-			HandleInputKey( *Action, Key, Event, bHandled );
-		}
+		// Give the derived classes a chance to update according to the input
+		HandleInputKey( *Action, Key, Event, bHandled );
 
 		// Start checking on default action implementation
 		if ( !bHandled )

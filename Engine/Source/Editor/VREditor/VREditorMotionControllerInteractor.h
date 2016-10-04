@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,7 +19,7 @@ public:
 	virtual ~UVREditorMotionControllerInteractor();
 	
 	// UVREditorInteractor overrides
-	virtual void Init( class FVREditorMode* InVRMode ) override;
+	virtual void Init( class UVREditorMode* InVRMode ) override;
 	/** Gets the trackpad slide delta */
 	virtual float GetSlideDelta() override;
 

@@ -62,7 +62,7 @@ public:
 		GLevelEditorModeTools().SetCoordSystem(SavedCoordSystem);
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
 	{
 		return true;
 	}

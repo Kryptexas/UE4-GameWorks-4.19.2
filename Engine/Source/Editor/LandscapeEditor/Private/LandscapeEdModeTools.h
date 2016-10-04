@@ -7,6 +7,11 @@
 #include "InstancedFoliageActor.h"
 #include "AI/Navigation/NavigationSystem.h"
 
+// VR Editor
+#include "IVREditorModule.h"
+#include "ViewportWorldInteraction.h"
+#include "VREditorInteractor.h"
+
 //
 //	FNoiseParameter - Perlin noise
 //
@@ -1303,11 +1308,11 @@ public:
 	{
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
 	{
-		if (!ensure(MousePositions.Num() == 0))
+		if (!ensure(InteractorPositions.Num() == 0))
 		{
-			MousePositions.Empty(1);
+			InteractorPositions.Empty(1);
 		}
 
 		bToolActive = true;
@@ -1316,13 +1321,13 @@ public:
 		EdMode->CurrentBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
 
 		// Save the mouse position
-		LastMousePosition = FVector2D(InHitLocation);
-		MousePositions.Emplace(LastMousePosition, ViewportClient ? IsShiftDown(ViewportClient->Viewport) : false); // Copy tool sometimes activates without a specific viewport via ctrl+c hotkey
-		TimeSinceLastMouseMove = 0.0f;
+		LastInteractorPosition = FVector2D(InHitLocation);
+		InteractorPositions.Emplace(LastInteractorPosition, ViewportClient ? IsModifierPressed(ViewportClient, Interactor) : false); // Copy tool sometimes activates without a specific viewport via ctrl+c hotkey
+		TimeSinceLastInteractorMove = 0.0f;
 
-		ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
+		ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, InteractorPositions);
 
-		MousePositions.Empty(1);
+		InteractorPositions.Empty(1);
 		return true;
 	}
 
@@ -1330,20 +1335,20 @@ public:
 	{
 		if (bToolActive)
 		{
-			if (MousePositions.Num() > 0)
+			if (InteractorPositions.Num() > 0)
 			{
-				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
+				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, InteractorPositions);
 				ViewportClient->Invalidate(false, false);
-				MousePositions.Empty(1);
+				InteractorPositions.Empty(1);
 			}
-			else if (TStrokeClass::UseContinuousApply && TimeSinceLastMouseMove >= 0.25f)
+			else if (TStrokeClass::UseContinuousApply && TimeSinceLastInteractorMove >= 0.25f)
 			{
-				MousePositions.Emplace(LastMousePosition, IsShiftDown(ViewportClient->Viewport));
-				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
+				InteractorPositions.Emplace(LastInteractorPosition, IsModifierPressed(ViewportClient));
+				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, InteractorPositions);
 				ViewportClient->Invalidate(false, false);
-				MousePositions.Empty(1);
+				InteractorPositions.Empty(1);
 			}
-			TimeSinceLastMouseMove += DeltaTime;
+			TimeSinceLastInteractorMove += DeltaTime;
 
 			// Prevent landscape from baking textures while tool stroke is active
 			EdMode->CurrentToolTarget.LandscapeInfo->PostponeTextureBaking();
@@ -1352,10 +1357,10 @@ public:
 
 	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
-		if (bToolActive && MousePositions.Num())
+		if (bToolActive && InteractorPositions.Num())
 		{
-			ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
-			MousePositions.Empty(1);
+			ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, InteractorPositions);
+			InteractorPositions.Empty(1);
 		}
 
 		ToolStroke.Reset();
@@ -1376,13 +1381,13 @@ public:
 
 			if (bToolActive)
 			{
-				// Save the mouse position
-				if (MousePositions.Num() == 0 || LastMousePosition != FVector2D(HitLocation))
+				// Save the interactor position
+				if (InteractorPositions.Num() == 0 || LastInteractorPosition != FVector2D(HitLocation))
 				{
-					LastMousePosition = FVector2D(HitLocation);
-					MousePositions.Emplace(LastMousePosition, IsShiftDown(ViewportClient->Viewport));
+					LastInteractorPosition = FVector2D(HitLocation);
+					InteractorPositions.Emplace(LastInteractorPosition, IsModifierPressed(ViewportClient));
 				}
-				TimeSinceLastMouseMove = 0.0f;
+				TimeSinceLastInteractorMove = 0.0f;
 			}
 		}
 
@@ -1390,10 +1395,22 @@ public:
 	}
 
 protected:
-	TArray<FLandscapeToolMousePosition> MousePositions;
-	FVector2D LastMousePosition;
-	float TimeSinceLastMouseMove;
+	TArray<FLandscapeToolInteractorPosition> InteractorPositions;
+	FVector2D LastInteractorPosition;
+	float TimeSinceLastInteractorMove;
 	FEdModeLandscape* EdMode;
 	bool bToolActive;
 	TOptional<TStrokeClass> ToolStroke;
+
+	bool IsModifierPressed(const class FEditorViewportClient* ViewportClient, const UViewportInteractor* Interactor = nullptr)
+	{
+		bool bIsInteractorModifierPressed = false;
+		if (Interactor != nullptr)
+		{
+			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
+			bIsInteractorModifierPressed = VRInteractor->IsModifierPressed();
+		}
+
+		return IsShiftDown(ViewportClient->Viewport) || bIsInteractorModifierPressed;
+	}
 };

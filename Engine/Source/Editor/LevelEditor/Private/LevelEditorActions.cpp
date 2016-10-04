@@ -2111,7 +2111,7 @@ void FLevelEditorActionCallbacks::ToggleVR()
 bool FLevelEditorActionCallbacks::ToggleVR_CanExecute()
 {
 	IVREditorModule& VREditorModule = IVREditorModule::Get();
-	return VREditorModule.IsVREditorAvailable();
+	return VREditorModule.IsVREditorAvailable() && !GEditor->bIsSimulatingInEditor;
 }
 
 

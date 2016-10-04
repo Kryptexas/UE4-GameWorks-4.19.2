@@ -20,7 +20,6 @@
 #include "ControlPointMeshComponent.h"
 #include "EditorUndoClient.h"
 #include "EngineUtils.h"
-#include "Algo/Copy.h"
 
 
 #define LOCTEXT_NAMESPACE "Landscape"
@@ -87,8 +86,16 @@ public:
 		{
 			TArray<UObject*> Objects;
 			Objects.Reset(SelectedSplineControlPoints.Num() + SelectedSplineSegments.Num());
-			Algo::Copy(SelectedSplineControlPoints, Objects);
-			Algo::Copy(SelectedSplineSegments, Objects);
+
+			for (ULandscapeSplineControlPoint* ControlPoint : SelectedSplineControlPoints)
+			{
+				Objects.Add(ControlPoint);
+			}
+			for (ULandscapeSplineSegment* Segment : SelectedSplineSegments)
+			{
+				Objects.Add(Segment);
+			}
+
 
 			FPropertyEditorModule& PropertyModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
 			PropertyModule.UpdatePropertyViews(Objects);
@@ -810,8 +817,15 @@ public:
 	{
 		TArray<UObject*> Objects;
 		Objects.Reset(SelectedSplineControlPoints.Num() + SelectedSplineSegments.Num());
-		Algo::Copy(SelectedSplineControlPoints, Objects);
-		Algo::Copy(SelectedSplineSegments, Objects);
+
+		for (ULandscapeSplineControlPoint* ControlPoint : SelectedSplineControlPoints)
+		{
+			Objects.Add(ControlPoint);
+		}
+		for (ULandscapeSplineSegment* Segment : SelectedSplineSegments)
+		{
+			Objects.Add(Segment);
+		}
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
 		if (!PropertyModule.HasUnlockedDetailViews())
@@ -824,7 +838,7 @@ public:
 		}
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
 	{
 		if (ViewportClient->IsCtrlPressed())
 		{
