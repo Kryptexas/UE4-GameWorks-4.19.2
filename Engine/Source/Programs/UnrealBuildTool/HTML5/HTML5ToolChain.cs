@@ -89,8 +89,13 @@ namespace UnrealBuildTool
 			// enable hardware accelerated and advanced instructions/functions
 //			Result += " -s USE_WEBGL2=1 -s FULL_ES3=1";
 			Result += " -s FULL_ES2=1";
+			Result += " -msse";
+			Result += " -msse2";
 			Result += " -s SIMD=1";
-//			Result += " -s USE_PTHREADS=2"; // 2:polyfill -- SharedInt\d+Array available by ES7
+			Result += " -s USE_PTHREADS=1"; // 2:polyfill -- SharedInt\d+Array available by ES7
+
+			// for DEBUGGING: http://stackoverflow.com/questions/42308/tool-to-track-include-dependencies
+//			Result += " -H";
 
 			// export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions.
 			Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_on_fatal']\"";
