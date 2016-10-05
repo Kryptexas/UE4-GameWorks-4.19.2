@@ -468,7 +468,7 @@ public:
 	/**
 	* @return		Sum of the size of textures referenced by this material.
 	*/
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 	// UModel interface.
 	ENGINE_API void EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys );

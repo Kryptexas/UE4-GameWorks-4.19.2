@@ -194,7 +194,7 @@ TSharedRef<SWidget> SVisualLoggerFilters::MakeGraphsFilterMenu()
 		SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot()
-		.MaxHeight(DisplaySize.Y * 0.5)
+		.MaxHeight(DisplaySize.Y * 0.9)
 		[
 			MenuBuilder.MakeWidget()
 		];

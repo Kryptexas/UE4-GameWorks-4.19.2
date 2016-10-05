@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "AutomationScreenshotOptions.h"
+
 class FTakeScreenshotAfterTimeLatentAction : public FPendingLatentAction
 {
 public:
-	FTakeScreenshotAfterTimeLatentAction(const FLatentActionInfo& LatentInfo, const FString& InScreenshotName, FIntPoint Resolution, float Seconds);
+	FTakeScreenshotAfterTimeLatentAction(const FLatentActionInfo& LatentInfo, const FString& InScreenshotName, FAutomationScreenshotOptions InOptions);
 	virtual ~FTakeScreenshotAfterTimeLatentAction();
 
 	virtual void UpdateOperation(FLatentResponse& Response) override;
@@ -26,5 +28,5 @@ private:
 	float SecondsRemaining;
 	bool IssuedScreenshotCapture;
 	bool TakenScreenshot;
-	FIntPoint DesiredResolution;
+	FAutomationScreenshotOptions Options;
 };

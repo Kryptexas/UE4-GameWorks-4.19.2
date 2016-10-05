@@ -7,8 +7,6 @@
 
 #include "LandscapePrivatePCH.h"
 #include "LandscapeSplineRaster.h"
-#include "Landscape.h"
-#include "LandscapeStreamingProxy.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
@@ -421,14 +419,10 @@ bool ULandscapeInfo::ApplySplines(bool bOnlySelected)
 {
 	bool bResult = false;
 
-	ALandscape* Landscape = LandscapeActor.Get();
-
-	bResult |= ApplySplinesInternal(bOnlySelected, Landscape);
-
-	for (ALandscapeProxy* LandscapeProxy : Proxies)
+	ForAllLandscapeProxies([&bResult, bOnlySelected, this](ALandscapeProxy* Proxy)
 	{
-		bResult |= ApplySplinesInternal(bOnlySelected, LandscapeProxy);
-	}
+		bResult |= ApplySplinesInternal(bOnlySelected, Proxy);
+	});
 
 	return bResult;
 }

@@ -147,7 +147,7 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 		static const FName Name_ShowInnerProperties("ShowInnerProperties");
 
 		bIsEditInlineNew = bIsObjectOrInterface && GotReadAddresses && MyProperty->HasMetaData(Name_EditInline);
-		bShowInnerObjectProperties = bIsObjectOrInterface && GotReadAddresses && MyProperty->HasMetaData(Name_ShowInnerProperties);
+		bShowInnerObjectProperties = bIsObjectOrInterface && MyProperty->HasMetaData(Name_ShowInnerProperties);
 
 		if(bIsEditInlineNew)
 		{
@@ -342,12 +342,18 @@ FObjectPropertyNode* FPropertyNode::FindRootObjectItemParent()
 }
 
 
+bool FPropertyNode::DoesChildPropertyRequireValidation(UProperty* InChildProp)
+{
+	return InChildProp != nullptr && (Cast<UObjectProperty>(InChildProp) != nullptr || Cast<UStructProperty>(InChildProp) != nullptr);
+}
+
 /** 
  * Used to see if any data has been destroyed from under the property tree.  Should only be called by PropertyWindow::OnIdle
  */
 EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 {
 	bool bValidateChildren = !HasNodeFlags(EPropertyNodeFlags::SkipChildValidation);
+	bool bValidateChildrenKeyNodes = false;		// by default, we don't check this, since it's just for Map properties
 
 	// The root must always be validated
 	if( GetParentNode() == NULL || HasNodeFlags(EPropertyNodeFlags::RequiresValidation) != 0 )
@@ -378,20 +384,25 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 
 			bool bArrayHasNewItem = false;
 
+			UProperty* ContainerElementProperty = nullptr;
+
 			if (ArrayProperty)
 			{
-				if (!ArrayProperty->Inner->IsA(UObjectProperty::StaticClass()) && !ArrayProperty->Inner->IsA(UStructProperty::StaticClass()))
-				{
-					bValidateChildren = false;
-				}
+				ContainerElementProperty = ArrayProperty->Inner;
 			}
 			else if (SetProperty)
 			{
-				if (!SetProperty->ElementProp->IsA(UObjectProperty::StaticClass()) && !SetProperty->ElementProp->IsA(UStructProperty::StaticClass()))
-				{
-					bValidateChildren = false;
-				}
+				ContainerElementProperty = SetProperty->ElementProp;
 			}
+			else if (MapProperty)
+			{
+				// Need to attempt to validate both the key and value properties...
+				bValidateChildrenKeyNodes = DoesChildPropertyRequireValidation(MapProperty->KeyProp);
+
+				ContainerElementProperty = MapProperty->ValueProp;
+			}
+
+			bValidateChildren = DoesChildPropertyRequireValidation(ContainerElementProperty);
 
 			//verify that the number of object children are the same too
 			UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(MyProperty);
@@ -539,7 +550,7 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 			const bool bHasChildren = (GetNumChildNodes() != 0);
 			// If the object property is not null and has no children, its children need to be rebuilt
 			// If the object property is null and this node has children, the node needs to be rebuilt
-			if (ObjectProperty && ((!bObjectPropertyNull && !bHasChildren) || (bObjectPropertyNull && bHasChildren)))
+			if (!HasNodeFlags(EPropertyNodeFlags::ShowInnerObjectProperties) && ObjectProperty && ((!bObjectPropertyNull && !bHasChildren) || (bObjectPropertyNull && bHasChildren)))
 			{
 				RebuildChildren();
 				return EPropertyDataValidationResult::PropertiesChanged;
@@ -556,20 +567,33 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 	
 	EPropertyDataValidationResult FinalResult = EPropertyDataValidationResult::DataValid;
 
-	//go through my children
-	if (bValidateChildren)
+	// Validate children and/or their key nodes.
+	if (bValidateChildren || bValidateChildrenKeyNodes)
 	{
 		for (int32 Scan = 0; Scan < ChildNodes.Num(); ++Scan)
 		{
 			TSharedPtr<FPropertyNode>& ChildNode = ChildNodes[Scan];
 			check(ChildNode.IsValid());
 
-			EPropertyDataValidationResult ChildDataResult = ChildNode->EnsureDataIsValid();
-			if (FinalResult == EPropertyDataValidationResult::DataValid && ChildDataResult != EPropertyDataValidationResult::DataValid)
+			if (bValidateChildren)
 			{
-				FinalResult = ChildDataResult;
+				EPropertyDataValidationResult ChildDataResult = ChildNode->EnsureDataIsValid();
+				if (FinalResult == EPropertyDataValidationResult::DataValid && ChildDataResult != EPropertyDataValidationResult::DataValid)
+				{
+					FinalResult = ChildDataResult;
+				}
 			}
 
+			// If the child property has a key node that needs validation, validate it here
+			TSharedPtr<FPropertyNode>& ChildKeyNode = ChildNode->GetPropertyKeyNode();
+			if (bValidateChildrenKeyNodes && ChildKeyNode.IsValid())
+			{
+				EPropertyDataValidationResult ChildDataResult = ChildKeyNode->EnsureDataIsValid();
+				if (FinalResult == EPropertyDataValidationResult::DataValid && ChildDataResult != EPropertyDataValidationResult::DataValid)
+				{
+					FinalResult = ChildDataResult;
+				}
+			}
 		}
 	}
 
@@ -2340,7 +2364,7 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 	}
 
 
-	if( ObjectNode && OriginalActiveProperty )
+	if( OriginalActiveProperty )
 	{
 		//if i have metadata forcing other property windows to rebuild
 		FString MetaData = OriginalActiveProperty->GetMetaData(TEXT("ForceRebuildProperty"));

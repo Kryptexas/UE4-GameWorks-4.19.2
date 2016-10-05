@@ -191,14 +191,6 @@ private:
 	FText GetOriginalImportMaterialNameText(int32 MaterialIndex)const;
 
 	/**
-	* Called by the material list widget on generating each name widget
-	*
-	* @param Material		The material that is being displayed
-	* @param MaterialIndex	The index of the material slot
-	*/
-	TSharedRef<SWidget> OnGenerateCustomNameWidgetsForMaterialArray(UMaterialInterface* Material, int32 MaterialIndex, int32 LODIndex);
-
-	/**
 	* Called by the material list widget on generating each thumbnail widget
 	*
 	* @param Material		The material that is being displayed
@@ -211,7 +203,7 @@ private:
 
 	bool CanDeleteMaterialSlot(int32 MaterialIndex) const;
 
-	FReply OnDeleteMaterialSlot(int32 MaterialIndex);
+	void OnDeleteMaterialSlot(int32 MaterialIndex);
 
 	TSharedRef<SWidget> OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex);
 

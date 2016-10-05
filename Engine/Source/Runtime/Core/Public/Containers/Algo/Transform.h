@@ -17,7 +17,7 @@ namespace Algo
 	template <typename InT, typename OutT, typename PredicateT, typename TransformT>
 	FORCEINLINE void TransformIf(const InT& Input, OutT& Output, PredicateT Predicate, TransformT Trans)
 	{
-		for (auto&& Value : Input)
+		for (const auto& Value : Input)
 		{
 			if (Invoke(Predicate, Value))
 			{
@@ -36,7 +36,7 @@ namespace Algo
 	template <typename InT, typename OutT, typename TransformT>
 	FORCEINLINE void Transform(const InT& Input, OutT& Output, TransformT Trans)
 	{
-		for (auto&& Value : Input)
+		for (const auto& Value : Input)
 		{
 			Output.Add(Invoke(Trans, Value));
 		}

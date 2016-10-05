@@ -438,22 +438,22 @@ bool FAnimationUtils::GetForcedRecompressionSetting()
 	#define TRYCOMPRESSION_INNER(compressionname,winningcompressor_count,winningcompressor_error,winningcompressor_margin,compressionalgorithm)				\
 {																																							\
 	/* try the alternative compressor	*/																													\
-	(compressionalgorithm)->Reduce( AnimSeq, CompressContext );																				\
-	AnimSeq->SetUseRawDataOnly(false);																								\
-	const SIZE_T NewSize = AnimSeq->GetResourceSize(EResourceSizeMode::Inclusive);																												\
+	(compressionalgorithm)->Reduce( AnimSeq, CompressContext );																								\
+	AnimSeq->SetUseRawDataOnly(false);																														\
+	const SIZE_T NewSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);																		\
 																																							\
 	/* compute the savings and compression error*/																											\
-	const SIZE_T MemorySavingsFromOriginal = OriginalSize - NewSize;																									\
-	const SIZE_T MemorySavingsFromPrevious = CurrentSize - NewSize;																									\
+	const SIZE_T MemorySavingsFromOriginal = OriginalSize - NewSize;																						\
+	const SIZE_T MemorySavingsFromPrevious = CurrentSize - NewSize;																							\
 	PctSaving = 0.f;																																		\
 	/* figure out our new compression error*/																												\
-	FAnimationUtils::ComputeCompressionError(AnimSeq, BoneData, NewErrorStats);														\
+	FAnimationUtils::ComputeCompressionError(AnimSeq, BoneData, NewErrorStats);																				\
 																																							\
 	const bool bLowersError = NewErrorStats.MaxError < WinningCompressorError;																				\
 	const bool bErrorUnderThreshold = NewErrorStats.MaxError <= MasterTolerance;																			\
 																																							\
 	/* keep it if it we want to force the error below the threshold and it reduces error */																	\
-	bKeepNewCompressionMethod = false;																												\
+	bKeepNewCompressionMethod = false;																														\
 	bKeepNewCompressionMethod |= (bLowersError && (WinningCompressorError > MasterTolerance) && bForceBelowThreshold);										\
 	/* or if has an acceptable error and saves space  */																									\
 	bKeepNewCompressionMethod |= bErrorUnderThreshold && (MemorySavingsFromPrevious > 0);																	\
@@ -461,19 +461,19 @@ bool FAnimationUtils::GetForcedRecompressionSetting()
 	bKeepNewCompressionMethod |= bErrorUnderThreshold && bLowersError && (MemorySavingsFromPrevious >= 0);													\
 																																							\
 	if (bKeepNewCompressionMethod)																															\
-			{																																						\
+			{																																				\
 		WinningCompressorMarginalSavings = MemorySavingsFromPrevious;																						\
-		WinningCompressorCounter = &(winningcompressor_count);																							\
-		WinningCompressorErrorSum = &(winningcompressor_error);																							\
-		WinningCompressorMarginalSavingsSum = &(winningcompressor_margin);																				\
+		WinningCompressorCounter = &(winningcompressor_count);																								\
+		WinningCompressorErrorSum = &(winningcompressor_error);																								\
+		WinningCompressorMarginalSavingsSum = &(winningcompressor_margin);																					\
 		WinningCompressorName = compressionname;																											\
 		CurrentSize = NewSize;																																\
 		WinningCompressorSavings = MemorySavingsFromOriginal;																								\
 		WinningCompressorError = NewErrorStats.MaxError;																									\
-			}																																						\
+			}																																				\
 																																							\
 	PctSaving = OriginalSize > 0 ? 100.f - (100.f * float(NewSize) / float(OriginalSize)) : 0.f;															\
-	UE_LOG(LogAnimation, Warning, TEXT("- %s - bytes saved: %i (%3.1f%% saved), maxdiff: %f %s"),																					\
+	UE_LOG(LogAnimation, Warning, TEXT("- %s - bytes saved: %i (%3.1f%% saved), maxdiff: %f %s"),															\
 	compressionname, MemorySavingsFromOriginal, PctSaving, NewErrorStats.MaxError, bKeepNewCompressionMethod ? TEXT("(**Best so far**)") : TEXT(""));		\
 																																							\
 	if( !bKeepNewCompressionMethod )																														\
@@ -492,7 +492,7 @@ bool FAnimationUtils::GetForcedRecompressionSetting()
 		AnimSeq->SetUseRawDataOnly(bSavedUseRawDataOnly);																									\
 		AnimationFormat_SetInterfaceLinks(*AnimSeq);																										\
 																																							\
-		const SIZE_T RestoredSize = AnimSeq->GetResourceSize(EResourceSizeMode::Inclusive);																	\
+		const SIZE_T RestoredSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);															\
 		check(RestoredSize == CurrentSize);																													\
 	}																																						\
 	else																																					\
@@ -687,7 +687,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 		bool const bTryAlternateCompressor = MasterTolerance > 0.0f;
 
 		// Get the current size
-		int32 OriginalSize = AnimSeq->GetResourceSize(EResourceSizeMode::Inclusive);
+		int32 OriginalSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 		TotalSizeBefore += OriginalSize;
 
 		// Estimate total uncompressed
@@ -724,14 +724,14 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 
 			OriginalCompressionAlgorithm->Reduce( AnimSeq, CompressContext );
 			AnimSeq->SetUseRawDataOnly(false);
-			AfterOriginalRecompression = AnimSeq->GetResourceSize(EResourceSizeMode::Inclusive);
+			AfterOriginalRecompression = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 
 			// figure out our current compression error
 			FAnimationUtils::ComputeCompressionError(AnimSeq, BoneData, OriginalErrorStats);
 		}
 		else
 		{
-			AfterOriginalRecompression = AnimSeq->GetResourceSize(EResourceSizeMode::Inclusive);
+			AfterOriginalRecompression = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 			OriginalErrorStats = TrueOriginalErrorStats;
 		}
  
@@ -766,7 +766,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 				++TotalRecompressions;
 
 				// Prepare to compress
-				int32 CurrentSize = AnimSeq->GetResourceSize(EResourceSizeMode::Inclusive);
+				int32 CurrentSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 				int32* WinningCompressorCounter = NULL;
 				float* WinningCompressorErrorSum = NULL;
 				int32* WinningCompressorMarginalSavingsSum = NULL;
@@ -1256,7 +1256,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 				}
 
 				// Make sure we got that right.
-				check(CurrentSize == AnimSeq->GetResourceSize(EResourceSizeMode::Inclusive));
+				check(CurrentSize == AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive));
 				TotalSizeNow += CurrentSize;
 
 				PctSaving = TotalSizeBefore > 0 ? 100.f - (100.f * float(TotalSizeNow) / float(TotalSizeBefore)) : 0.f;
@@ -1338,7 +1338,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 		// Do not recompress - Still take into account size for stats.
 		else
 		{
-			TotalSizeNow += AnimSeq->GetResourceSize(EResourceSizeMode::Inclusive);
+			TotalSizeNow += AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 		}
 	}
 	else

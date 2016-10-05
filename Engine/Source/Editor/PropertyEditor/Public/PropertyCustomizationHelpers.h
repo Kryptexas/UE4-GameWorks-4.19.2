@@ -471,7 +471,7 @@ class FMaterialList
 	, public TSharedFromThis<FMaterialList>
 {
 public:
-	PROPERTYEDITOR_API FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& MaterialListDelegates, bool bInAllowCollapse = false);
+	PROPERTYEDITOR_API FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& MaterialListDelegates, bool bInAllowCollapse = false, bool bInShowUsedTextures = true);
 
 	/**
 	 * @return true if materials are being displayed.                                                          
@@ -538,9 +538,27 @@ private:
 
 	/** Allow Collapse of material header row. Right now if you allow collapse, it will initially collapse. */
 	bool bAllowCollpase;
+	/** Whether or not to use the used textures menu for each material entry */
+	bool bShowUsedTextures;
 };
 
 
+/**
+ * Helper class to create a material slot name widget for material lists
+ */
+class SMaterialSlotWidget : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS(SMaterialSlotWidget)
+	{}
+		SLATE_ATTRIBUTE(FText, MaterialName)
+		SLATE_EVENT(FOnTextChanged, OnMaterialNameChanged)
+		SLATE_EVENT(FOnTextCommitted, OnMaterialNameCommitted)
+		SLATE_ATTRIBUTE(bool, CanDeleteMaterialSlot)
+		SLATE_EVENT(FSimpleDelegate, OnDeleteMaterialSlot)
+	SLATE_END_ARGS()
+
+	PROPERTYEDITOR_API void Construct(const FArguments& InArgs, int32 SlotIndex, bool bIsMaterialUsed);
+};
 
 //////////////////////////////////////////////////////////////////////////
 //

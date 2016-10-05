@@ -284,6 +284,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			[
 				SAssignNew( CustomContentBox, SVerticalBox )
 				+ SVerticalBox::Slot()
+				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 				[
 					AssetComboButton.ToSharedRef()
 				]

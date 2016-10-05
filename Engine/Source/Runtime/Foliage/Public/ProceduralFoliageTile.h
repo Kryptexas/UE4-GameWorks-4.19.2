@@ -63,7 +63,7 @@ class FOLIAGE_API UProceduralFoliageTile : public UObject
 	void InitSimulation(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 InRandomSeed);
 
 	// UObject interface
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual void BeginDestroy() override;
 
 private:

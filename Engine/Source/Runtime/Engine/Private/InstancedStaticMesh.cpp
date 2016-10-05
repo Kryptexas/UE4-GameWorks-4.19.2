@@ -1902,34 +1902,32 @@ void UInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms(const FBo
 	}
 }
 
-SIZE_T UInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )
+void UInstancedStaticMeshComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	// proxy stuff
-	ResSize += ProxySize; 
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(ProxySize); 
 
 	// component stuff
-	ResSize += InstanceBodies.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(InstanceBodies.GetAllocatedSize());
 	for (int32 i=0; i < InstanceBodies.Num(); ++i)
 	{
 		if (InstanceBodies[i] != NULL && InstanceBodies[i]->IsValidBodyInstance())
 		{
-			ResSize += InstanceBodies[i]->GetBodyInstanceResourceSize(Mode);
+			InstanceBodies[i]->GetBodyInstanceResourceSizeEx(CumulativeResourceSize);
 		}
 	}
-	ResSize += InstanceReorderTable.GetAllocatedSize();
-	ResSize += RemovedInstances.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(InstanceReorderTable.GetAllocatedSize());
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RemovedInstances.GetAllocatedSize());
 
 #if WITH_EDITOR
-	ResSize += SelectedInstances.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(SelectedInstances.GetAllocatedSize());
 #endif
 
 #if WITH_PHYSX
-	ResSize += Aggregates.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(Aggregates.GetAllocatedSize());
 #endif
-
-	return ResSize;
 }
 
 void UInstancedStaticMeshComponent::BeginDestroy()

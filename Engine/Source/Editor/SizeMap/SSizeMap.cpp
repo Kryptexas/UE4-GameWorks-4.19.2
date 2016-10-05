@@ -314,11 +314,11 @@ void SSizeMap::GatherDependenciesRecursively( FAssetRegistryModule& AssetRegistr
 						// @todo sizemap: We should instead have a special EResourceSizeMode that asks for the worst case size.  Some assets (like UTextureCube) currently always report resident mip size, even when asked for inclusive size
 						if( Asset->IsA( UTexture2D::StaticClass() ) )
 						{
-							NodeSizeMapData.AssetSize = Asset->GetResourceSize( EResourceSizeMode::Inclusive );
+							NodeSizeMapData.AssetSize = Asset->GetResourceSizeBytes( EResourceSizeMode::Inclusive );
 						}
 						else
 						{
-							NodeSizeMapData.AssetSize = Asset->GetResourceSize( EResourceSizeMode::Exclusive );
+							NodeSizeMapData.AssetSize = Asset->GetResourceSizeBytes( EResourceSizeMode::Exclusive );
 						}
 
 						NodeSizeMapData.bHasKnownSize = (NodeSizeMapData.AssetSize != 0);

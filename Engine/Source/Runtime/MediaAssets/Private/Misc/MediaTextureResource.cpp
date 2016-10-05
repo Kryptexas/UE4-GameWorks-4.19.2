@@ -14,7 +14,7 @@ FMediaTextureResource::FMediaTextureResource(UMediaTexture& InOwner, const FLine
 	, BufferBytesPerPixel(0)
 	, BufferClearColor(InClearColor)
 	, BufferDimensions(FIntPoint::ZeroValue)
-	, CachedResourceSize(0)
+	, CachedResourceSize()
 	, OutputDimensions(InOutputDimensions)
 	, RequiresConversion(false)
 	, SinkFormat(InSinkFormat)
@@ -530,7 +530,7 @@ bool FMediaTextureResource::Tick(float DeltaTime)
 
 void FMediaTextureResource::CacheResourceSize()
 {
-	SIZE_T ResourceSize = 0;
+	FResourceSizeEx ResourceSize;
 
 	if (OutputDimensions.GetMin() > 0)
 	{
@@ -538,16 +538,16 @@ void FMediaTextureResource::CacheResourceSize()
 
 		if (SinkMode == EMediaTextureSinkMode::Buffered)
 		{
-			ResourceSize += 3 * BufferSize;
+			ResourceSize.AddUnknownMemoryBytes(3 * BufferSize);
 		}
 		else
 		{
-			ResourceSize += BufferSize;
+			ResourceSize.AddUnknownMemoryBytes(BufferSize);
 		}
 
 		if (RequiresConversion)
 		{
-			ResourceSize += OutputDimensions.X * OutputDimensions.Y * 4;
+			ResourceSize.AddUnknownMemoryBytes(OutputDimensions.X * OutputDimensions.Y * 4);
 		}
 	}
 

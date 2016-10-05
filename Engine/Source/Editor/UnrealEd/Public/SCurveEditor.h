@@ -7,6 +7,8 @@
 #include "CurveEditorSettings.h"
 #include "EditorUndoClient.h"
 
+class UCurveFactory;
+
 //////////////////////////////////////////////////////////////////////////
 // FTrackScaleInfo
 

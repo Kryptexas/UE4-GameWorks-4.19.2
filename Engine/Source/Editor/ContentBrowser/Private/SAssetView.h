@@ -888,6 +888,9 @@ private:
 
 	/** Flag set if the user is currently searching */
 	bool bUserSearching;
+	
+	/** Whether or not to notify about newly selected items on on the next asset sync */
+	bool bShouldNotifyNextAssetSync;
 
 	/** A struct to hold data for the deferred creation of assets */
 	struct FCreateDeferredAssetData

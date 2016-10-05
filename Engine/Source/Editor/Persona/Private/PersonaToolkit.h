@@ -9,6 +9,7 @@ class FPersonaToolkit : public IPersonaToolkit, public TSharedFromThis<FPersonaT
 {
 public:
 	FPersonaToolkit();
+	virtual ~FPersonaToolkit() {}
 
 	/** Initialize from a various sources */
 	void Initialize(USkeleton* InSkeleton);

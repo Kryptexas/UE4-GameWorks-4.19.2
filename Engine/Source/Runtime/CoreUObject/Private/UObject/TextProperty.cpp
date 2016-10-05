@@ -40,29 +40,35 @@ bool UTextProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8
 
 bool UTextProperty::Identical_Implementation(const FText& ValueA, const FText& ValueB, uint32 PortFlags)
 {
-	if (ValueA.IsCultureInvariant() != ValueB.IsCultureInvariant() || ValueA.IsTransient() != ValueB.IsTransient())
+	// A culture variant text is never equal to a culture invariant text
+	// A transient text is never equal to a non-transient text
+	// An empty text is never equal to a non-empty text
+	if (ValueA.IsCultureInvariant() != ValueB.IsCultureInvariant() || ValueA.IsTransient() != ValueB.IsTransient() || ValueA.IsEmpty() != ValueB.IsEmpty())
 	{
-		//A culture variant text is never equal to a culture invariant text
-		//A transient text is never equal to a non-transient text
 		return false;
 	}
 
-	if (ValueA.IsCultureInvariant() == ValueB.IsCultureInvariant() || ValueA.IsTransient() == ValueB.IsTransient())
+	// If both texts are empty (see the above check), then they must be equal
+	if (ValueA.IsEmpty())
 	{
-		//Culture invariant text don't have a namespace/key so we compare the source string
-		//Transient text don't have a namespace/key or source so we compare the display string
-		return FTextInspector::GetDisplayString(ValueA) == FTextInspector::GetDisplayString(ValueB);
+		return true;
 	}
 
-	if (GIsEditor)
+	// If both texts share the same pointer, then they must be equal
+	if (ValueA.IdenticalTo(ValueB))
 	{
-		return FTextInspector::GetSourceString(ValueA)->Compare(*FTextInspector::GetSourceString(ValueB), ESearchCase::CaseSensitive) == 0;
+		return true;
 	}
-	else
+
+	// We compare the display strings in editor (as we author in the native language)
+	// We compare the display string for culture invariant and transient texts as they don't have an identity
+	if (GIsEditor || ValueA.IsCultureInvariant() || ValueA.IsTransient())
 	{
-		return	FTextInspector::GetNamespace(ValueA) == FTextInspector::GetNamespace(ValueB) &&
-			FTextInspector::GetKey(ValueA) == FTextInspector::GetKey(ValueB);
+		return FTextInspector::GetDisplayString(ValueA).Equals(FTextInspector::GetDisplayString(ValueB), ESearchCase::CaseSensitive);
 	}
+	
+	// If we got this far then the texts don't share the same pointer, which means that they can't share the same identity
+	return false;
 }
 
 bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) const

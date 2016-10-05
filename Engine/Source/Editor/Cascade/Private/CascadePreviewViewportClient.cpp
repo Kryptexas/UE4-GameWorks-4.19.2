@@ -730,7 +730,7 @@ void FCascadeEdPreviewViewportClient::UpdateMemoryInformation()
 	{
 		FArchiveCountMem ComponentMemCount(ParticleSystemComponent);
 		PSysCompRootSize = ComponentMemCount.GetMax();
-		PSysCompResourceSize = ParticleSystemComponent->GetResourceSize(EResourceSizeMode::Exclusive);
+		PSysCompResourceSize = ParticleSystemComponent->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 	}
 }
 

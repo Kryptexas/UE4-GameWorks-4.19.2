@@ -719,7 +719,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("SizeMap"),
 			TEXT("MergeActors"),
 			TEXT("NiagaraEditor"),
-			TEXT("EditorAutomation"),
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));

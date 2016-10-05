@@ -44,6 +44,12 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	{
 		bShouldCaptureMouseOnActivate = InViewportClient->CaptureMouseOnLaunch();
 	}
+
+	if(FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().GetRenderer()->OnPreResizeWindowBackBuffer().AddRaw(this, &FSceneViewport::OnPreResizeWindowBackbuffer);
+		FSlateApplication::Get().GetRenderer()->OnPostResizeWindowBackBuffer().AddRaw(this, &FSceneViewport::OnPostResizeWindowBackbuffer);
+	}
 }
 
 FSceneViewport::~FSceneViewport()
@@ -51,6 +57,13 @@ FSceneViewport::~FSceneViewport()
 	Destroy();
 	// Wait for resources to be deleted
 	FlushRenderingCommands();
+
+	if(FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().GetRenderer()->OnPreResizeWindowBackBuffer().RemoveAll(this);
+		FSlateApplication::Get().GetRenderer()->OnPostResizeWindowBackBuffer().RemoveAll(this);
+	}
+
 }
 
 bool FSceneViewport::HasMouseCapture() const
@@ -523,8 +536,18 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 			CurrentReplyState = FReply::Unhandled(); 
 		}
 		bCursorVisible = ViewportClient->GetCursor(this, GetMouseX(), GetMouseY()) != EMouseCursor::None;
+
+		bool bShouldMouseBeVisible = false;
+
+		UWorld* World = ViewportClient->GetWorld();
+		if (World && World->IsGameWorld() && World->GetGameInstance())
+		{
+			APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
+			bShouldMouseBeVisible = PC && PC->ShouldShowMouseCursor();
+		}
+
 		bReleaseMouse = 
-			bCursorVisible || 
+			(bCursorVisible && !bShouldMouseBeVisible) || 
 			ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown ||
 			( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringRightMouseDown && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton );
 	}
@@ -1541,6 +1564,33 @@ void FSceneViewport::WindowRenderTargetUpdate(FSlateRenderer* Renderer, SWindow*
 			{
 				Renderer->SetWindowRenderTarget(*Window, nullptr);
 			}
+		}
+	}
+}
+
+void FSceneViewport::OnPreResizeWindowBackbuffer(void* Backbuffer)
+{
+	check(IsInGameThread());
+	FViewportRHIRef TestReference = *(FViewportRHIRef*)Backbuffer;
+	// Backbuffer we are rendering to is being released.  We must free our resource
+	if(ViewportRHI == TestReference)
+	{
+		ViewportRHI.SafeRelease();
+	}
+}
+
+void FSceneViewport::OnPostResizeWindowBackbuffer(void* Backbuffer)
+{
+	check(IsInGameThread());
+
+	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI))
+	{
+		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+		FWidgetPath WidgetPath;
+		void* ViewportResource = Renderer->GetViewportResource(*FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath));
+		if(ViewportResource)
+		{
+			ViewportRHI = *((FViewportRHIRef*)ViewportResource);
 		}
 	}
 }

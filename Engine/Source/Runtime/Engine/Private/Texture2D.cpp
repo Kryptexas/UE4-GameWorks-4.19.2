@@ -900,22 +900,21 @@ FTextureResource* UTexture2D::CreateResource()
 }
 
 
-SIZE_T UTexture2D::GetResourceSize(EResourceSizeMode::Type Mode)
+void UTexture2D::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	if (Mode == EResourceSizeMode::Exclusive)
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive)
 	{
-		return CalcTextureMemorySize(ResidentMips);
+		CumulativeResourceSize.AddUnknownMemoryBytes(CalcTextureMemorySize(ResidentMips));
 	}
 	else
 	{
-		SIZE_T ResourceSize = 0;
 		if (PlatformData)
 		{
-			ResourceSize += CalcTextureSize(GetSizeX(), GetSizeY(), GetPixelFormat(), GetNumMips());
+			CumulativeResourceSize.AddUnknownMemoryBytes(CalcTextureSize(GetSizeX(), GetSizeY(), GetPixelFormat(), GetNumMips()));
 		}
-		return ResourceSize;
 	}
-	return 0;
 }
 
 

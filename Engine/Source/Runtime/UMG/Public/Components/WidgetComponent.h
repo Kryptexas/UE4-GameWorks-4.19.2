@@ -90,7 +90,7 @@ public:
 	 * @param HitResult The hit on this widget in the world
 	 * @param (Out) The transformed 2D hit location on the widget
 	 */
-	void GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalHitLocation) const;
+	virtual void GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalHitLocation) const;
 
 	/** @return Gets the last local location that was hit */
 	FVector2D GetLastLocalHitLocation() const

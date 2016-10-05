@@ -5,8 +5,6 @@
 =============================================================================*/
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
-#include "LandscapeStreamingProxy.h"
 #include "Components/SplineMeshComponent.h"
 #include "ShaderParameterUtils.h"
 #include "StaticMeshResources.h"
@@ -846,21 +844,13 @@ TArray<ULandscapeSplinesComponent*> ULandscapeSplinesComponent::GetAllStreamingS
 		if (LandscapeInfo)
 		{
 			TArray<ULandscapeSplinesComponent*> SplinesComponents;
-			SplinesComponents.Reserve(LandscapeInfo->Proxies.Num() + 1);
-
-			ALandscape* RootLandscape = LandscapeInfo->LandscapeActor.Get();
-			if (RootLandscape && RootLandscape->SplineComponent)
+			LandscapeInfo->ForAllLandscapeProxies([&SplinesComponents](ALandscapeProxy* Proxy)
 			{
-				SplinesComponents.Add(RootLandscape->SplineComponent);
-			}
-			for (ALandscapeProxy* LandscapeProxy : LandscapeInfo->Proxies)
-			{
-				if (LandscapeProxy && LandscapeProxy->SplineComponent)
+				if (Proxy->SplineComponent)
 				{
-					SplinesComponents.Add(LandscapeProxy->SplineComponent);
+					SplinesComponents.Add(Proxy->SplineComponent);
 				}
-			}
-
+			});
 			return SplinesComponents;
 		}
 	}

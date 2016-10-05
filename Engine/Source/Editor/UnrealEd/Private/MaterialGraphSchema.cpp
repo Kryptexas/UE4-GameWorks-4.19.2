@@ -373,12 +373,15 @@ void UMaterialGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, c
 			// Only display the 'Break Link' option if there is a link to break!
 			if (InGraphPin->LinkedTo.Num() > 0)
 			{
-				MenuBuilder->AddMenuEntry(
-					LOCTEXT("SelectLinkedNodes", "Select Linked Nodes"),
-					LOCTEXT("SelectLinkedNodesTooltip", "Adds all input Nodes linked to this Pin to selection"),
-					FSlateIcon(),
-					FUIAction(FExecuteAction::CreateUObject((UMaterialGraphSchema*const)this, &UMaterialGraphSchema::SelectAllInputNodes, const_cast<UEdGraph*>(CurrentGraph), const_cast<UEdGraphPin*>(InGraphPin)))
-					);
+				if(InGraphPin->Direction == EEdGraphPinDirection::EGPD_Input)
+				{
+					MenuBuilder->AddMenuEntry(
+						LOCTEXT("SelectLinkedNodes", "Select Linked Nodes"),
+						LOCTEXT("SelectLinkedNodesTooltip", "Adds all input Nodes linked to this Pin to selection"),
+						FSlateIcon(),
+						FUIAction(FExecuteAction::CreateUObject((UMaterialGraphSchema*const)this, &UMaterialGraphSchema::SelectAllInputNodes, const_cast<UEdGraph*>(CurrentGraph), const_cast<UEdGraphPin*>(InGraphPin)))
+						);
+				}
 
 				MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().BreakPinLinks);
 

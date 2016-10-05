@@ -575,7 +575,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 			SNew(STableRow< TSharedPtr<FGCTreeItem> >, OwnerTable)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("UnknownItemType", "Unknown Filter Type"))
+				.Text(LOCTEXT("UnknownFilterType", "Unknown Filter Type"))
 			];
 		}
 	}

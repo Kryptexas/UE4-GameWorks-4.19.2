@@ -3,6 +3,7 @@
 #pragma once
 
 #include "UObjectBaseUtility.h"
+#include "ResourceSize.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogObj, Log, All);
 
@@ -13,18 +14,6 @@ namespace ECastCheckedType
 	{
 		NullAllowed,
 		NullChecked
-	};
-};
-
-/** Passed to GetResourceSize() to indicate which resource size should be returned.*/
-namespace EResourceSizeMode
-{
-	enum Type
-	{
-		/** Only exclusive resource size */
-		Exclusive,
-		/** Resource size of the object and all of its references */
-		Inclusive,
 	};
 };
 
@@ -463,12 +452,37 @@ public:
 	 * default behavior is to return 0 which indicates that the resource shouldn't
 	 * display its size.
 	 *
-	 * @param	Type	Indicates which resource size should be returned
+	 * @param	Mode	Indicates which resource size should be returned
 	 * @return	Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode)
 	{
-		return 0;
+		return GetResourceSizeBytes(Mode);
+	}
+
+	/**
+	 * Get the size of the object/resource for display to artists/LDs in the Editor.
+	 * This is the extended version which separates up the used memory into different memory regions (the actual definition of which may be platform specific).
+	 *
+	 * @param	CumulativeResourceSize	Struct used to count up the cumulative size of the resource as to be displayed to artists/LDs in the Editor.
+	 */
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
+	{
+	}
+
+	/**
+	 * Get the size of the object/resource for display to artists/LDs in the Editor.
+	 * This is the simple version which just returns the total number of bytes used by this object.
+	 *
+	 * @param	Mode					Indicates which resource size should be returned.
+	 * @return The cumulative size of the resource as to be displayed to artists/LDs in the Editor.
+	 */
+	SIZE_T GetResourceSizeBytes(EResourceSizeMode::Type Mode)
+	{
+		FResourceSizeEx ResSize = FResourceSizeEx(Mode);
+		GetResourceSizeEx(ResSize);
+		return ResSize.GetTotalMemoryBytes();
 	}
 
 	/** 

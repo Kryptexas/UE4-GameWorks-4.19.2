@@ -109,11 +109,6 @@ namespace MemoryProfiler2
 		SUBTYPE_Unknown,
 	};
 
-	public interface IMemoryStats
-	{
-
-	}
-
 	/// <summary> 
 	/// Struct used to hold platform memory stats and allocator stats. Valid only for MemoryProfiler2.FProfileDataHeader.Version >= 4.
 	/// @see FGenericPlatformMemory::GetStatsForMallocProfiler 
@@ -238,7 +233,7 @@ namespace MemoryProfiler2
 	/// Variable sized token emitted by capture code. The parsing code ReadNextToken deals with this and updates
 	/// internal data. The calling code is responsible for only accessing member variables associated with the type.
 	/// </summary>
-	public class FStreamToken//@TODO: Can I turn this back into a struct?
+	public class FStreamToken
 	{
 		// Parsing configuration
 
@@ -274,6 +269,9 @@ namespace MemoryProfiler2
 
 		/// <summary> Index into callstack array. </summary>
 		public Int32 CallStackIndex;
+
+		/// <summary> Index into tags array. </summary>
+		public Int32 TagsIndex;
 
 		/// <summary> Size of allocation in alloc / realloc case. </summary>
 		public Int32 Size;
@@ -423,6 +421,7 @@ namespace MemoryProfiler2
 			Metrics.Clear();
 			LoadedLevels.Clear();
 			CallStackIndex = -1;
+			TagsIndex = -1;
 			ScriptCallstackIndex = -1;
 			ScriptObjectTypeIndex = -1;
 
@@ -440,6 +439,12 @@ namespace MemoryProfiler2
 				{
 					// Get the call stack index.
 					CallStackIndex = BinaryStream.ReadInt32();
+
+					// Get the tags index.
+					if (Version >= 7)
+					{
+						TagsIndex = BinaryStream.ReadInt32();
+					}
 
 					// Get the size of an allocation.
 					UInt32 UnsignedSize = BinaryStream.ReadUInt32();
@@ -469,6 +474,12 @@ namespace MemoryProfiler2
 					OldPointer = Pointer;
 					NewPointer = BinaryStream.ReadUInt64();
 					CallStackIndex = BinaryStream.ReadInt32();
+
+					// Get the tags index.
+					if (Version >= 7)
+					{
+						TagsIndex = BinaryStream.ReadInt32();
+					}
 
 					UInt32 UnsignedSize = BinaryStream.ReadUInt32();
 					bool bHasGCMData = ReadGCMData( BinaryStream, ref UnsignedSize );

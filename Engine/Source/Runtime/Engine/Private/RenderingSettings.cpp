@@ -23,24 +23,7 @@ URendererSettings::URendererSettings(const FObjectInitializer& ObjectInitializer
 void URendererSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
-
-	if ( IsTemplate() )
-	{
-		// If we have UI scale curve data in the renderer settings config, move it to the user interface settings.
-		if ( FRichCurve* OldCurve = UIScaleCurve_DEPRECATED.GetRichCurve() )
-		{
-			if ( OldCurve->GetNumKeys() != 0 )
-			{
-				UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
-				UISettings->UIScaleRule = UIScaleRule_DEPRECATED;
-				UISettings->UIScaleCurve = UIScaleCurve_DEPRECATED;
-
-				// Remove all old keys so that we don't attempt to load from renderer settings again.
-				OldCurve->Reset();
-			}
-		}
-	}
-
+	
 	SanatizeReflectionCaptureResolution();
 
 #if WITH_EDITOR
@@ -61,14 +44,6 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	if (PropertyChangedEvent.Property)
 	{
 		ExportValuesToConsoleVariables(PropertyChangedEvent.Property);
-
-		// If the renderer settings are updated and saved, we need to update the user interface settings too, to prevent data loss
-		// from old curve data for UI settings.
-		if ( IsTemplate() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
-		{
-			UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
-			UISettings->UpdateDefaultConfigFile();
-		}
 
 		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(URendererSettings, ReflectionCaptureResolution) && 
 			PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)

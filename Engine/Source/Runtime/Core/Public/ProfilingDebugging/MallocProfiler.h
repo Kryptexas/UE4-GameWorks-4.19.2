@@ -219,6 +219,11 @@ protected:
 	/** Buffer of unique call stack infos.															*/
 	FCompressedGrowableBuffer				CallStackInfoBuffer;
 
+	/** Mapping from a hash to an index in the tags array.											*/
+	TMap<uint32, int32>						HashToTagTableIndexMap;
+	/** Array of unique tags.																		*/
+	TArray<FString>							TagsArray;
+
 	/** Mapping from name to index in name array.													*/
 	TMap<FString,int32>						NameToNameTableIndexMap;
 	/** Array of unique names.																		*/
@@ -252,6 +257,13 @@ protected:
 	 * @return index into callstack array
 	 */
 	int32 GetCallStackIndex();
+
+	/** 
+	 * Returns index of the tags active on the thread making the allocation.
+	 *
+	 * @return index into tags array
+	 */
+	int32 GetTagsIndex();
 
 	/**
 	 * Returns index of passed in program counter into program counter array. If not found, adds it.
@@ -406,6 +418,18 @@ public:
 	 * Begins profiling operation and opens file.
 	 */
 	void BeginProfiling();
+
+	/** 
+	 * Adds a tag to the list of tags associated with the calling thread.
+	 * @note Tags are ref-counted so calls to Add and Remove must be paired correctly.
+	 */
+	void AddTag(const FName InTag);
+
+	/** 
+	 * Removes a tag from the list of tags associated with the calling thread.
+	 * @note Tags are ref-counted so calls to Add and Remove must be paired correctly.
+	 */
+	void RemoveTag(const FName InTag);
 
 	/** 
 	 * Malloc

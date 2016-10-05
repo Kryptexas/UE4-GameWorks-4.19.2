@@ -3418,20 +3418,20 @@ void UParticleSystemComponent::FinishDestroy()
 }
 
 
-SIZE_T UParticleSystemComponent::GetResourceSize(EResourceSizeMode::Type Mode)
+void UParticleSystemComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
-	int32 ResSize = Super::GetResourceSize(Mode);
+
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 	for (int32 EmitterIdx = 0; EmitterIdx < EmitterInstances.Num(); EmitterIdx++)
 	{
 		FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIdx];
 		if (EmitterInstance != NULL)
 		{
 			// If the data manager has the PSys, force it to report, regardless of a PSysComp scene info being present...
-			ResSize += EmitterInstance->GetResourceSize(Mode);
+			EmitterInstance->GetResourceSizeEx(CumulativeResourceSize);
 		}
 	}
-	return ResSize;
 }
 
 

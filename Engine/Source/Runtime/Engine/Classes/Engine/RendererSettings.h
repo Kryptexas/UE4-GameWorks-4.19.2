@@ -398,12 +398,6 @@ public:
 
 private:
 	void SanatizeReflectionCaptureResolution();
-	
-	UPROPERTY(config)
-	EUIScalingRule UIScaleRule_DEPRECATED;
-
-	UPROPERTY(config)
-	FRuntimeFloatCurve UIScaleCurve_DEPRECATED;
 };
 
 UCLASS(config = Engine, globaluserconfig, meta = (DisplayName = "Rendering Overrides (Local)"))

@@ -183,6 +183,8 @@ public:
 	 */
 	virtual const FString& GetDisplayName() const = 0;
 
+	virtual const FString& GetFullTestPath() const = 0;
+
 	/**
 	 * Returns the name of this level in the test hierarchy for the purposes of UI.
 	 * (Editor.Maps.LoadAll.parameters) would have 3 internal tree nodes and a variable number of leaf nodes depending on how many maps existed

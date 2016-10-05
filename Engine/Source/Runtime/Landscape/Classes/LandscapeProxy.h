@@ -66,15 +66,16 @@ struct FLandscapeEditorLayerSettings
 	{
 	}
 
-	FLandscapeEditorLayerSettings(ULandscapeLayerInfoObject* InLayerInfo, const FString& InFilePath = FString())
+	explicit FLandscapeEditorLayerSettings(ULandscapeLayerInfoObject* InLayerInfo, const FString& InFilePath = FString())
 		: LayerInfoObj(InLayerInfo)
 		, ReimportLayerFilePath(InFilePath)
 	{
 	}
 
-	bool operator==(const FLandscapeEditorLayerSettings& rhs) const
+	// To allow FindByKey etc
+	bool operator==(const ULandscapeLayerInfoObject* LayerInfo) const
 	{
-		return LayerInfoObj == rhs.LayerInfoObj;
+		return LayerInfoObj == LayerInfo;
 	}
 #endif // WITH_EDITORONLY_DATA
 };
@@ -649,9 +650,13 @@ public:
 	/** Remove all XYOffset values */
 	LANDSCAPE_API void RemoveXYOffsets();
 
+	/** Update the material instances for all the landscape components */
+	LANDSCAPE_API void UpdateAllComponentMaterialInstances();
 
+	/** Create a thumbnail material for a given layer */
 	LANDSCAPE_API static ULandscapeMaterialInstanceConstant* GetLayerThumbnailMIC(UMaterialInterface* LandscapeMaterial, FName LayerName, UTexture2D* ThumbnailWeightmap, UTexture2D* ThumbnailHeightmap, ALandscapeProxy* Proxy);
 
+	/** Import the given Height/Weight data into this landscape */
 	LANDSCAPE_API void Import(FGuid Guid, int32 MinX, int32 MinY, int32 MaxX, int32 MaxY, int32 NumSubsections, int32 SubsectionSizeQuads,
 							const uint16* HeightData, const TCHAR* HeightmapFileName,
 							const TArray<FLandscapeImportLayerInfo>& ImportLayerInfos, ELandscapeImportAlphamapType ImportLayerType);

@@ -2594,14 +2594,31 @@ ULandscapeMaterialInstanceConstant::ULandscapeMaterialInstanceConstant(const FOb
 
 class FLandscapeMaterialResource : public FMaterialResource
 {
-	bool bIsLayerThumbnail;
-	bool bDisableTessellation;
+	const bool bIsLayerThumbnail;
+	const bool bDisableTessellation;
 
 public:
 	FLandscapeMaterialResource(ULandscapeMaterialInstanceConstant* Parent)
 		: bIsLayerThumbnail(Parent->bIsLayerThumbnail)
 		, bDisableTessellation(Parent->bDisableTessellation)
 	{
+	}
+
+	void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const override
+	{
+		FMaterialResource::GetShaderMapId(Platform, OutId);
+
+		if (bIsLayerThumbnail || bDisableTessellation)
+		{
+			FSHA1 Hash;
+			Hash.Update(OutId.BasePropertyOverridesHash.Hash, ARRAY_COUNT(OutId.BasePropertyOverridesHash.Hash));
+
+			const FString HashString = TEXT("bOverride_TessellationMode");
+			Hash.UpdateWithString(*HashString, HashString.Len());
+
+			Hash.Final();
+			Hash.GetHash(OutId.BasePropertyOverridesHash.Hash);
+		}
 	}
 
 	bool IsUsedWithLandscape() const override

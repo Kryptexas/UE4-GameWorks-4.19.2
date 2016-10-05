@@ -2917,16 +2917,14 @@ void UPrimitiveComponent::DispatchOnInputTouchEnd(const ETouchIndex::Type Finger
 	}
 }
 
-SIZE_T UPrimitiveComponent::GetResourceSize( EResourceSizeMode::Type Mode )
+void UPrimitiveComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	if (BodyInstance.IsValidBodyInstance())
 	{
-		ResSize = BodyInstance.GetBodyInstanceResourceSize(Mode);
+		BodyInstance.GetBodyInstanceResourceSizeEx(CumulativeResourceSize);
 	}
-
-	return ResSize;
 }
 
 void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)

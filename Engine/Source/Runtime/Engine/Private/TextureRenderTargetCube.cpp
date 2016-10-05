@@ -51,8 +51,10 @@ void UTextureRenderTargetCube::InitAutoFormat(uint32 InSizeX)
 }
 
 
-SIZE_T UTextureRenderTargetCube::GetResourceSize(EResourceSizeMode::Type Mode)
+void UTextureRenderTargetCube::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 	// Calculate size based on format.
 	EPixelFormat Format = GetFormat();
 	int32 BlockSizeX	= GPixelFormats[Format].BlockSizeX;
@@ -62,7 +64,7 @@ SIZE_T UTextureRenderTargetCube::GetResourceSize(EResourceSizeMode::Type Mode)
 	int32 NumBlocksY	= (SizeX + BlockSizeY - 1) / BlockSizeY;
 	int32 NumBytes	= NumBlocksX * NumBlocksY * BlockBytes * 6;
 
-	return NumBytes;
+	CumulativeResourceSize.AddUnknownMemoryBytes(NumBytes);
 }
 
 

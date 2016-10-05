@@ -12,6 +12,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogLandscapeEdMode, Log, All);
 
 // Forward declarations
+class ULandscapeEditorObject;
 class ULandscapeLayerInfoObject;
 class FLandscapeToolSplines;
 class UViewportInteractor;
@@ -108,7 +109,7 @@ struct FLandscapeTargetListInfo
 			}
 			else
 			{
-				int32 Index = Proxy->EditorLayerSettings.Add(LayerInfoObj.Get());
+				int32 Index = Proxy->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(LayerInfoObj.Get()));
 				return &Proxy->EditorLayerSettings[Index];
 			}
 		}
@@ -220,7 +221,7 @@ class FEdModeLandscape : public FEdMode
 {
 public:
 
-	class ULandscapeEditorObject* UISettings;
+	ULandscapeEditorObject* UISettings;
 
 	FLandscapeToolMode* CurrentToolMode;
 	FLandscapeTool* CurrentTool;

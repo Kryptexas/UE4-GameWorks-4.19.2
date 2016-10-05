@@ -4186,7 +4186,7 @@ void AActor::InvalidateLightingCacheDetailed(bool bTranslationOnly)
 	// Validate that we didn't change it during this action
 	TInlineComponentArray<UActorComponent*> NewComponents;
 	GetComponents(NewComponents);
-	check(Components == NewComponents);
+	ensure(Components == NewComponents);
 #endif
 }
 

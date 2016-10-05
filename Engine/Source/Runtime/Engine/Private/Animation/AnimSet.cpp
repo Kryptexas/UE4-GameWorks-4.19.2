@@ -126,27 +126,26 @@ int32 UAnimSet::GetMeshLinkupIndex(USkeletalMesh* SkelMesh)
 }
 
 
-SIZE_T UAnimSet::GetResourceSize(EResourceSizeMode::Type Mode)
+void UAnimSet::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	if (Mode == EResourceSizeMode::Exclusive)
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive)
 	{
 		// This object only references others, it doesn't have any real resource bytes
-		return 0;
 	}
 	else
 	{
-		int32 ResourceSize = 0;
 #if WITH_EDITORONLY_DATA
 		for( int32 i=0; i<Sequences.Num(); i++ )
 		{
 			UAnimSequence* AnimSeq = Sequences[i];
 			if( AnimSeq )
 			{
-				ResourceSize += AnimSeq->GetResourceSize(Mode);
+				AnimSeq->GetResourceSizeEx(CumulativeResourceSize);
 			}			
 		}
 #endif	//#if WITH_EDITORONLY_DATA
-		return ResourceSize;
 	}
 }
 

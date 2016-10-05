@@ -84,6 +84,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AllocationTags.cs" />
     <Compile Include="BinaryReaderBigEndian.cs" />
     <Compile Include="CallGraphTreeViewParser.cs" />
     <Compile Include="CallStack.cs" />
@@ -95,6 +96,12 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ExclusiveListViewParser.cs" />
+    <Compile Include="FilterTagsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FilterTagsDialog.Designer.cs">
+      <DependentUpon>FilterTagsDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="FindDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -126,6 +133,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="FilterTagsDialog.resx">
+      <DependentUpon>FilterTagsDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="FindDialog.resx">
       <DependentUpon>FindDialog.cs</DependentUpon>
     </EmbeddedResource>

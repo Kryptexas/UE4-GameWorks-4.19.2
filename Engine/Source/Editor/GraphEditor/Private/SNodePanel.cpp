@@ -519,6 +519,7 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 		ReplyState.UseHighPrecisionMouseMovement( SharedThis(this) );
 
 		DeferredMovementTargetObject = nullptr; // clear any interpolation when you manually zoom
+		CancelZoomToFit();
 		TotalMouseDeltaY = 0;
 
 		if (!FSlateApplication::Get().IsUsingTrackpad()) // on trackpad we don't know yet if user wants to zoom or bring up the context menu
@@ -576,6 +577,7 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 		SoftwareCursorPosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) );
 
 		DeferredMovementTargetObject = nullptr; // clear any interpolation when you manually pan
+		CancelZoomToFit();
 
 		// RIGHT BUTTON is for dragging and Context Menu.
 		return ReplyState;

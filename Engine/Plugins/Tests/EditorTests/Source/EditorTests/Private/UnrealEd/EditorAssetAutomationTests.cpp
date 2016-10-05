@@ -57,6 +57,8 @@
 #include "GameFramework/ForceFeedbackEffect.h"
 #include "Engine/ObjectLibrary.h"
 #include "GameFramework/TouchInterface.h"
+#include "Factories/DataAssetFactory.h"
+#include "Factories/CurveFactory.h"
 
 #define LOCTEXT_NAMESPACE "EditorAssetAutomationTests"
 
@@ -924,7 +926,7 @@ namespace ImportExportAssetHelper
 					Data.Width = OutImageSize.X;
 					Data.Height = OutImageSize.Y;
 					Data.Path = ScreenshotName;
-					FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageData, Data);
+					FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound(OutImageData, Data);
 				}
 
 				//Close the editor

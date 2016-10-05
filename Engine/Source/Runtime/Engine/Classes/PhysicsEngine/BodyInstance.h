@@ -1041,7 +1041,9 @@ public:
 	/** 
 	 * Returns memory used by resources allocated for this body instance ( ex. Physx resources )
 	 **/
+	DEPRECATED(4.14, "GetBodyInstanceResourceSize is deprecated. Please use GetBodyInstanceResourceSizeEx instead.")
 	SIZE_T GetBodyInstanceResourceSize(EResourceSizeMode::Type Mode) const;
+	void GetBodyInstanceResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
 
 	/**
 	 * UObject notification by OwningComponent

@@ -21,6 +21,12 @@ namespace MemoryProfiler2
 		/// <summary> Meta-data associated with this stream. </summary>
 		public Dictionary<string, string> MetaData;
 
+		/// <summary> Array of unique tags. Code has fixed indexes into it. </summary>
+		public List<FAllocationTags> TagsArray;
+
+		/// <summary> Hierarchy of tags built as they are parsed. </summary>
+		public FAllocationTagHierarchy TagHierarchy = new FAllocationTagHierarchy();
+
 		/// <summary> Array of unique names. Code has fixed indexes into it. </summary>
 		private List<string> InternalNameArray;
 		private Dictionary<string, int> InternalNameIndexLookupMap;
@@ -103,6 +109,7 @@ namespace MemoryProfiler2
 		{
 			PlatformName = Header.PlatformName;
 			MetaData = new Dictionary<string, string>( (int)Header.MetaDataTableEntries );
+			TagsArray = new List<FAllocationTags>( (int)Header.TagsTableEntries );
 			InternalNameArray = new List<string>( (int)Header.NameTableEntries );
 			InternalNameIndexLookupMap = new Dictionary<string, int>( (int)Header.NameTableEntries );
 			CallStackArray = new List<FCallStack>( (int)Header.CallStackTableEntries );

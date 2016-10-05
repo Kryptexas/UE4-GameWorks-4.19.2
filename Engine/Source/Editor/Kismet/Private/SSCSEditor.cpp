@@ -2790,6 +2790,8 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 
 void SSCS_RowWidget::PostDragDropAction(bool bRegenerateTreeNodes)
 {
+	GUnrealEd->ComponentVisManager.ClearActiveComponentVis();
+
 	FSCSEditorTreeNodePtrType NodePtr = GetNode();
 
 	TSharedPtr<SSCSEditor> PinnedEditor = SCSEditor.Pin();
@@ -5016,6 +5018,9 @@ bool SSCSEditor::CanDeleteNodes() const
 
 void SSCSEditor::OnDeleteNodes()
 {
+	// Invalidate any active component in the visualizer
+	GUnrealEd->ComponentVisManager.ClearActiveComponentVis();
+
 	const FScopedTransaction Transaction( LOCTEXT("RemoveComponents", "Remove Components") );
 
 	if (EditorMode == EComponentEditorMode::BlueprintSCS)

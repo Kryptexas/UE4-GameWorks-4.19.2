@@ -221,8 +221,7 @@ public class UnrealEd : ModuleRules
                 "PortalProxies",
                 "PortalServices",
                 "GeometryCacheEd",
-                "BlueprintNativeCodeGen",
-                "EditorAutomation",
+                "BlueprintNativeCodeGen"
 			}
 		);
 

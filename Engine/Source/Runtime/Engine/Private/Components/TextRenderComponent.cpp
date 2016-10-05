@@ -387,7 +387,7 @@ public:
 			}
 		}
 
-		TArray<const UMaterialInstanceDynamic*> MIDs;
+		TArray<UMaterialInstanceDynamic*> MIDs;
 	};
 
 	static void Initialize()
@@ -423,10 +423,10 @@ public:
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
-		for (const auto& MIDDataPair : CachedMIDs)
+		for (auto& MIDDataPair : CachedMIDs)
 		{
-			const TSharedPtr<const FMIDData>& MIDData = MIDDataPair.Value;
-			for (const UMaterialInstanceDynamic* MID : MIDData->MIDs)
+			TSharedPtr<FMIDData>& MIDData = MIDDataPair.Value;
+			for (UMaterialInstanceDynamic*& MID : MIDData->MIDs)
 			{
 				Collector.AddReferencedObject(MID);
 			}
@@ -511,7 +511,7 @@ private:
 
 	FDelegateHandle TickerHandle;
 
-	TMap<FKey, TSharedPtr<const FMIDData>> CachedMIDs;
+	TMap<FKey, TSharedPtr<FMIDData>> CachedMIDs;
 
 	TSet<FKey> MIDsPendingPurge;
 

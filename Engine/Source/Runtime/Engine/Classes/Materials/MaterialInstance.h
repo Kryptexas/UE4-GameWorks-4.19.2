@@ -303,7 +303,7 @@ public:
 	//~ End UMaterialInterface Interface.
 
 	//~ Begin UObject Interface.
-	virtual ENGINE_API SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual ENGINE_API void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual ENGINE_API void PostInitProperties() override;	
 #if WITH_EDITOR
 	virtual ENGINE_API void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;

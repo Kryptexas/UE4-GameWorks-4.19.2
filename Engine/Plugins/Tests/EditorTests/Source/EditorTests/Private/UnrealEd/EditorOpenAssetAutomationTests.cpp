@@ -178,7 +178,7 @@ bool FOpenAllofAssetTypeCommand::Update()
 				if ( FAssetEditorManager::Get().FindEditorForAsset(Object, true) != NULL )
 				{
 					UE_LOG(LogEditorAutomationTests, Log, TEXT("Verified asset editor for: %s."), *AssetList.AssetPathList[AssetList.AssetListLength]);
-					UE_LOG(LogEditorAutomationTests, Display, TEXT("The editor successffully loaded for: %s."), *AssetList.AssetPathList[AssetList.AssetListLength]);
+					UE_LOG(LogEditorAutomationTests, Display, TEXT("The editor successfully loaded for: %s."), *AssetList.AssetPathList[AssetList.AssetListLength]);
 					if ( GShaderCompilingManager->IsCompiling() )
 					{
 						UE_LOG(LogEditorAutomationTests, Log, TEXT("Waiting for %i shaders to finish."), GShaderCompilingManager->GetNumRemainingJobs());

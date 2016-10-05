@@ -81,14 +81,14 @@ USoundWave::USoundWave(const FObjectInitializer& ObjectInitializer)
 	ResourceState = ESoundWaveResourceState::NeedsFree;
 }
 
-SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
+void USoundWave::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 	if (!GEngine)
 	{
-		return 0;
+		return;
 	}
-
-	SIZE_T CalculatedResourceSize = 0;
 
 	if (FAudioDevice* LocalAudioDevice = GEngine->GetMainAudioDevice())
 	{
@@ -102,23 +102,21 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 			{
 				ensureMsgf(ResourceSize == 0, TEXT("ResourceSize for DTYPE_Native USoundWave '%s' was not 0 (%d)."), *GetName(), ResourceSize);
 			}
-			CalculatedResourceSize = RawPCMDataSize;
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RawPCMDataSize);
 		}
 		else 
 		{
 			if (DecompressionType == DTYPE_RealTime && CachedRealtimeFirstBuffer)
 			{
-				CalculatedResourceSize = MONO_PCM_BUFFER_SIZE * NumChannels;
+				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(MONO_PCM_BUFFER_SIZE * NumChannels);
 			}
 			
 			if ((!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
 			{
-				CalculatedResourceSize += GetCompressedDataSize(LocalAudioDevice->GetRuntimeFormat(this));
+				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetCompressedDataSize(LocalAudioDevice->GetRuntimeFormat(this)));
 			}
 		}
 	}
-
-	return CalculatedResourceSize;
 }
 
 int32 USoundWave::GetResourceSizeForFormat(FName Format)

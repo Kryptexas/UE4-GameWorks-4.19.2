@@ -29,7 +29,7 @@ public:
 protected:
 	void OnPathChange(const FString& NewPath);
 	FReply OnButtonClick(EAppReturnType::Type ButtonID);
-
+	bool IsOkButtonEnabled() const;
 	EAppReturnType::Type UserResponse;
 	FText AssetPath;
 	FText AssetName;

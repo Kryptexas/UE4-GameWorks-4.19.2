@@ -450,6 +450,7 @@ void FSourceControlWindows::ChoosePackagesToCheckInCompleted(const TArray<UPacka
 		PendingDeletePaths.Add(FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir()));
 		PendingDeletePaths.Add(FPaths::ConvertRelativePathToFull(FPaths::GameContentDir()));
 		PendingDeletePaths.Add(FPaths::ConvertRelativePathToFull(FPaths::GameConfigDir()));
+		PendingDeletePaths.Add(FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()));
 
 		const bool bUseSourceControlStateCache = true;
 		PromptForCheckin(bUseSourceControlStateCache, PackageNames, PendingDeletePaths, ConfigFiles);
@@ -537,6 +538,7 @@ void FSourceControlWindows::ChoosePackagesToCheckIn()
 			Filenames.Add(FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir()));
 			Filenames.Add(FPaths::ConvertRelativePathToFull(FPaths::GameContentDir()));
 			Filenames.Add(FPaths::ConvertRelativePathToFull(FPaths::GameConfigDir()));
+			Filenames.Add(FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()));
 
 			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 			FSourceControlOperationRef Operation = ISourceControlOperation::Create<FUpdateStatus>();

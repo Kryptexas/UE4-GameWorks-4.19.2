@@ -131,19 +131,6 @@ public:
 		, NumDevicesCurrentlyRunningTest( 0 )
 	{}
 
-
-	/**
-	 * Constructor
-	 *
-	 * @param	InTestInfo - comma separated value string containing the test info
-	 */
-	FAutomationTestInfo( const FString& InTestInfo )
-		: NumParticipantsRequired( 0 )
-		, NumDevicesCurrentlyRunningTest( 0 )
-	{
-		ParseStringInfo( InTestInfo );
-	}
-
 	/**
 	 * Constructor
 	 *
@@ -152,8 +139,9 @@ public:
 	 * @param	InTestFlag - Test flags
 	 * @param	InParameterName - optional parameter. e.g. asset name
 	 */
-	FAutomationTestInfo(const FString& InDisplayName, const FString& InTestName, const uint32 InTestFlags, const int32 InNumParticipantsRequired, const FString& InParameterName = FString(), const FString& InSourceFile = FString(), int32 InSourceFileLine = 0, const FString& InAssetPath = FString(), const FString& InOpenCommand = FString())
+	FAutomationTestInfo(const FString& InDisplayName, const FString& InFullTestPath, const FString& InTestName, const uint32 InTestFlags, const int32 InNumParticipantsRequired, const FString& InParameterName = FString(), const FString& InSourceFile = FString(), int32 InSourceFileLine = 0, const FString& InAssetPath = FString(), const FString& InOpenCommand = FString())
 		: DisplayName( InDisplayName )
+		, FullTestPath( InFullTestPath )
 		, TestName( InTestName )
 		, TestParameter( InParameterName )
 		, SourceFile( InSourceFile )
@@ -177,7 +165,6 @@ public:
 		TestFlags |= InTestFlags;
 	}
 
-
 	/**
 	 * Get the display name of this test.
 	 *
@@ -188,14 +175,15 @@ public:
 		return DisplayName;
 	}
 
-
 	/**
-	 * Get the test as a string so it can be sent over the network.
+	 * Gets the full path for this test if you wanted to run it.
 	 *
-	 * @return The test as a string.
+	 * @return the display name.
 	 */
-	FString GetTestAsString() const;
-
+	const FString& GetFullTestPath() const
+	{
+		return FullTestPath;
+	}
 
 	/**
 	 * Get the test name of this test.
@@ -206,7 +194,6 @@ public:
 	{
 		return TestName;
 	}
-
 
 	/**
 	 * Get the type of parameter. This will be the asset name for linked assets.
@@ -325,19 +312,11 @@ public:
 		NumParticipantsRequired = NumRequired;
 	}
 
-
-private:
-
-	/**
-	 * Set the test info from a string.
-	 *
-	 * @Param InTestInfo - the test information as a string.
-	 */
-	void ParseStringInfo(const FString& InTestInfo);
-
 private:
 	/** Display name used in the UI */
 	FString DisplayName; 
+
+	FString FullTestPath;
 
 	/** Test name used to run the test */
 	FString TestName;
@@ -679,6 +658,9 @@ public:
 	{
 		return CurrentTest;
 	}
+
+	bool GetTreatWarningsAsErrors() const;
+	void SetTreatWarningsAsErrors(TOptional<bool> bTreatWarningsAsErrors);
 
 private:
 

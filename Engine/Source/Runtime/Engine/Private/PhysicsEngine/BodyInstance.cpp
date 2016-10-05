@@ -4657,22 +4657,25 @@ void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 
 SIZE_T FBodyInstance::GetBodyInstanceResourceSize(EResourceSizeMode::Type Mode) const
 {
-	SIZE_T ResSize = 0;
+	FResourceSizeEx ResSize = FResourceSizeEx(Mode);
+	GetBodyInstanceResourceSizeEx(ResSize);
+	return ResSize.GetTotalMemoryBytes();
+}
 
+void FBodyInstance::GetBodyInstanceResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
+{
 #if WITH_PHYSX
 	// Get size of PhysX data, skipping contents of 'shared data'
 	if (RigidActorSync != NULL)
 	{
-		ResSize += GetPhysxObjectSize(RigidActorSync, FPhysxSharedData::Get().GetCollection());
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetPhysxObjectSize(RigidActorSync, FPhysxSharedData::Get().GetCollection()));
 	}
 
 	if (RigidActorAsync != NULL)
 	{
-		ResSize += GetPhysxObjectSize(RigidActorAsync, FPhysxSharedData::Get().GetCollection());
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetPhysxObjectSize(RigidActorAsync, FPhysxSharedData::Get().GetCollection()));
 	}
 #endif
-
-	return ResSize;
 }
 
 void FBodyInstance::FixupData(class UObject* Loader)

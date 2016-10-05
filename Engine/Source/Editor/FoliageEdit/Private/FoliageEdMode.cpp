@@ -158,7 +158,7 @@ bool FFoliagePaintingGeometryFilter::operator() (const UPrimitiveComponent* Comp
 		bool bAllowed =
 			(bAllowLandscape   && Component->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||
 			(bAllowStaticMesh  && Component->IsA(UStaticMeshComponent::StaticClass()) && !Component->IsA(UFoliageInstancedStaticMeshComponent::StaticClass())) ||
-			(bAllowBSP         && Component->IsA(UModelComponent::StaticClass())) ||
+			(bAllowBSP         && (Component->IsA(UBrushComponent::StaticClass()) || Component->IsA(UModelComponent::StaticClass()))) ||
 			(bAllowFoliage     && Component->IsA(UFoliageInstancedStaticMeshComponent::StaticClass()));
 
 		// Blacklist

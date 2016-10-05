@@ -145,11 +145,11 @@ void UCameraAnim::CalcLocalAABB()
 	}
 }
 
-SIZE_T UCameraAnim::GetResourceSize(EResourceSizeMode::Type Mode)
+void UCameraAnim::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	int32 ResourceSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
-	if (Mode == EResourceSizeMode::Inclusive && CameraInterpGroup)
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive && CameraInterpGroup)
 	{
 		// find move track
 		UInterpTrackMove *MoveTrack = NULL;
@@ -160,9 +160,8 @@ SIZE_T UCameraAnim::GetResourceSize(EResourceSizeMode::Type Mode)
 			if (MoveTrack)
 			{
 				FArchiveCountMem CountBytesSize(MoveTrack);
-				ResourceSize += CountBytesSize.GetNum();
+				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(CountBytesSize.GetNum());
 			}
 		}
 	}
-	return ResourceSize;
 }

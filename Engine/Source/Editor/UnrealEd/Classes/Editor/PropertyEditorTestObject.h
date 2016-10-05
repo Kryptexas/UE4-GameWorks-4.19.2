@@ -325,6 +325,9 @@ class UPropertyEditorTestObject : public UObject
 	UPROPERTY(EditAnywhere, Category=TMapTests)
 	TMap<UObject*, int32> ObjectToInt32Map;
 
+	UPROPERTY(EditAnywhere, Category=TMapTests)
+	TMap<UObject*, FLinearColor> ObjectToColorMap;
+
 	UPROPERTY(EditAnywhere, Category=ScriptInterfaces)
 	TScriptInterface<IBlendableInterface> BlendableInterface;
 

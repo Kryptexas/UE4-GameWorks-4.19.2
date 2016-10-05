@@ -544,7 +544,6 @@ namespace AutomationTool
 					Properties.bUsesCEF3 |= Rules.bUsesCEF3;
 					Properties.bUsesSlate |= Rules.bUsesSlate;
                     Properties.bDebugBuildsActuallyUseDebugCRT |= Rules.bDebugBuildsActuallyUseDebugCRT;
-					Properties.bUsesSlateEditorStyle |= Rules.bUsesSlateEditorStyle;
 				}
 			}
 		}

@@ -460,11 +460,11 @@ namespace ReferenceInfoUtils
 		}
 
 		// Create a string for the resource size.
-		const SIZE_T ResourceSize = ReferencedObject->GetResourceSize(EResourceSizeMode::Exclusive);
+		const SIZE_T ReferencedObjectResourceSize = ReferencedObject->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 		FString ResourceSizeString;
-		if ( ResourceSize > 0 )
+		if ( ReferencedObjectResourceSize > 0 )
 		{
-			ResourceSizeString = FString::Printf( TEXT("%.2f"), ((float)ResourceSize)/1024.f );
+			ResourceSizeString = FString::Printf( TEXT("%.2f"), ((float)ReferencedObjectResourceSize)/1024.f );
 		}
 
 		FString ObjectPathName;

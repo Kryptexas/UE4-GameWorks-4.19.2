@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "ImportSettings.h"
 #include "FbxImportUI.generated.h"
 
 /** Import mesh type */
@@ -24,10 +25,11 @@ enum EFBXImportType
 };
 
 UCLASS(config=EditorPerProjectUserSettings, AutoExpandCategories=(FTransform), HideCategories=Object, MinimalAPI)
-class UFbxImportUI : public UObject
+class UFbxImportUI : public UObject, public IImportSettingsParser
 {
 	GENERATED_UCLASS_BODY()
 
+public:
 	/** Whether or not the imported file is in OBJ format */
 	UPROPERTY()
 	bool bIsObjImport;
@@ -116,9 +118,11 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, Instanced, Category=Material)
 	class UFbxTextureImportData* TextureImportData;
 
-	//~ Begin UObject Interface
+	/** UObject Interface */
 	virtual bool CanEditChange( const UProperty* InProperty ) const override;
-	//~ End UObject Interface
+
+	/** IImportSettings Interface */
+	virtual void ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJson) override;
 
 	/** sets MeshTypeToImport */
 	void SetMeshTypeToImport()
@@ -131,6 +135,5 @@ class UFbxImportUI : public UObject
 		}
 	}
 };
-
 
 

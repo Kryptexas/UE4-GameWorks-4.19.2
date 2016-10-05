@@ -1707,7 +1707,10 @@ public:
 	/**
 	 * Get Resource Size
 	 */
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	SIZE_T GetResourceSize() const;
+	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
+	SIZE_T GetResourceSizeBytes() const;
 
 	/** Rebuild index buffer for everything **/
 #if WITH_EDITOR
@@ -1751,7 +1754,10 @@ public:
 	/** 
 	 *	Return the resource size
 	 */
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	SIZE_T GetResourceSize();
+	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize);
+	SIZE_T GetResourceSizeBytes();
 
 private:
 	/** True if the resource has been initialized. */

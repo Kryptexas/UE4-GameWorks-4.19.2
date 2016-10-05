@@ -796,9 +796,42 @@ void FBatchedElements::DrawPointElements(FRHICommandList& RHICmdList, const FMat
 	}
 }
 
+FSceneView FBatchedElements::CreateProxySceneView(const FMatrix& ProjectionMatrix, const FIntRect& ViewRect)
+{
+	FSceneViewInitOptions ProxyViewInitOptions;
+	ProxyViewInitOptions.SetViewRectangle(ViewRect);
+	ProxyViewInitOptions.ViewOrigin = FVector::ZeroVector;
+	ProxyViewInitOptions.ViewRotationMatrix = FMatrix::Identity;
+	ProxyViewInitOptions.ProjectionMatrix = ProjectionMatrix;
+
+	return FSceneView(ProxyViewInitOptions);
+}
 
 bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
 {
+	if ( View )
+	{
+		// Going to ignore these parameters in favor of just using the values directly from the scene view, so ensure that they're identical.
+		check(Transform == View->ViewProjectionMatrix);
+		check(ViewportSizeX == View->ViewRect.Width());
+		check(ViewportSizeY == View->ViewRect.Height());
+
+		return Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, *View, bHitTesting, Gamma, DepthTexture, Filter);
+	}
+	else
+	{
+		FIntRect ViewRect = FIntRect(0, 0, ViewportSizeX, ViewportSizeY);
+
+		return Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, CreateProxySceneView(Transform, ViewRect), bHitTesting, Gamma, DepthTexture, Filter);
+	}
+}
+
+bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FSceneView& View, bool bHitTesting, float Gamma /* = 1.0f */, FTexture2DRHIRef DepthTexture /* = FTexture2DRHIRef() */, EBlendModeFilter::Type Filter /* = EBlendModeFilter::All */) const
+{
+	const FMatrix& Transform = View.ViewProjectionMatrix;
+	const uint32 ViewportSizeX = View.ViewRect.Width();
+	const uint32 ViewportSizeY = View.ViewRect.Height();
+
 	if (UNLIKELY(!FApp::CanEverRender()))
 	{
 		return false;
@@ -820,7 +853,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 			FBatchedElementParameters* BatchedElementParameters = NULL;
 
 			// Set the appropriate pixel shader parameters & shader state for the non-textured elements.
-			PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+			PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 
 			// Draw the line elements.
 			if( LineVertices.Num() > 0 )
@@ -846,16 +879,13 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 
 			if ( ThickLines.Num() > 0 )
 			{
-				PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Translucent, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+				PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Translucent, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 				float OrthoZoomFactor = 1.0f;
 
-				if( View )
+				const bool bIsPerspective = View.ViewMatrices.ProjMatrix.M[3][3] < 1.0f ? true : false;
+				if (!bIsPerspective)
 				{
-					const bool bIsPerspective = View->ViewMatrices.ProjMatrix.M[3][3] < 1.0f ? true : false;
-					if( !bIsPerspective )
-					{
-						OrthoZoomFactor = 1.0f / View->ViewMatrices.ProjMatrix.M[0][0];
-					}
+					OrthoZoomFactor = 1.0f / View.ViewMatrices.ProjMatrix.M[0][0];
 				}
 
 				int32 LineIndex = 0;
@@ -1037,7 +1067,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 						//New batch, draw previous and clear
 						const int32 VertexCount = SpriteList.Num();
 						const int32 PrimCount = VertexCount / 3;
-						PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+						PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 						DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 
 						SpriteList.Empty(6);
@@ -1077,7 +1107,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					//Draw last batch
 					const int32 VertexCount = SpriteList.Num();
 					const int32 PrimCount = VertexCount / 3;
-					PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+					PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 					DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 				}
 			}
@@ -1095,7 +1125,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 				if (Filter & MeshFilter)
 				{
 					// Set the appropriate pixel shader for the mesh.
-					PrepareShaders(RHICmdList, FeatureLevel, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, MeshElement.BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma, &MeshElement.GlowInfo);
+					PrepareShaders(RHICmdList, FeatureLevel, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, MeshElement.BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma, &MeshElement.GlowInfo, &View);
 
 					// Draw the mesh.
 					DrawIndexedPrimitiveUP(

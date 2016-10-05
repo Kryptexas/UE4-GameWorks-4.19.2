@@ -12,7 +12,7 @@ class GEOMETRYCACHE_API UGeometryCacheTrack_TransformAnimation : public UGeometr
 	GENERATED_UCLASS_BODY()
 		
 	//~ Begin UObject Interface.
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual void Serialize(FArchive& Ar) override;
 	//~ End UObject Interface.
 	

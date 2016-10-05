@@ -164,12 +164,9 @@ void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, c
 		RHICmdList,
 		InView.GetFeatureLevel(),
 		bNeedToSwitchVerticalAxis,
-		InView.ViewProjectionMatrix,
-		InView.ViewRect.Width(),
-		InView.ViewRect.Height(),
+		InView,
 		InView.Family->EngineShowFlags.HitProxies,
 		1.0f,
-		&InView,
 		DepthTexture,
 		Filter
 		);

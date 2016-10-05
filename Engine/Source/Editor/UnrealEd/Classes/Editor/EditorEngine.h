@@ -1313,11 +1313,12 @@ public:
 	/**
 	 * Deletes all selected actors
 	 *
-	 * @param		InWorld				World context
-	 * @param		bVerifyDeletionCanHappen	[opt] If true (default), verify that deletion can be performed.
-	 * @return									true unless the delete operation was aborted.
+	 * @param	InWorld				World context
+	 * @param	bVerifyDeletionCanHappen	[opt] If true (default), verify that deletion can be performed.
+	 * @param	bWarnAboutReferences		[opt] If true (default), we prompt the user about referenced actours they are about to delete
+	 * @return								true unless the delete operation was aborted.
 	 */
-	virtual bool edactDeleteSelected(UWorld* InWorld, bool bVerifyDeletionCanHappen=true) { return true; }
+	virtual bool edactDeleteSelected(UWorld* InWorld, bool bVerifyDeletionCanHappen=true, bool bWarnAboutReferences = true) { return true; }
 
 	/**
 	 * Checks the state of the selected actors and notifies the user of any potentially unknown destructive actions which may occur as
@@ -1665,7 +1666,7 @@ public:
 	void PlaySessionSingleStepped();
 
 	/** Called when game client received input key */
-	bool ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState);
+	bool ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState, EInputEvent EventType);
 
 	/**
 	 * Kicks off a "Play From Here" request that was most likely made during a transaction

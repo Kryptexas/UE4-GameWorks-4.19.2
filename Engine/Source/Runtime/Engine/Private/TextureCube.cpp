@@ -346,9 +346,10 @@ FTextureResource* UTextureCube::CreateResource()
 	return NewResource;
 }
 
-SIZE_T UTextureCube::GetResourceSize(EResourceSizeMode::Type Mode)
+void UTextureCube::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	return CalcTextureMemorySizeEnum(TMC_ResidentMips);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+	CumulativeResourceSize.AddUnknownMemoryBytes(CalcTextureMemorySizeEnum(TMC_ResidentMips));
 }
 
 #if WITH_EDITOR

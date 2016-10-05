@@ -45,6 +45,9 @@ namespace MemoryProfiler2
 		/// <summary> Progress indicator window. </summary>
 		public SlowProgressDialog ProgressDialog = new SlowProgressDialog();
 
+		/// <summary> Tags filter dialog. </summary>
+		public FilterTagsDialog FilterTagsDialog = new FilterTagsDialog();
+
 		/// <summary> Selected memory pool filter. </summary>
 		public EMemoryPool SelectedMemoryPool = EMemoryPool.MEMPOOL_None;
 
@@ -181,17 +184,24 @@ namespace MemoryProfiler2
 			FilterClassesDropDownButton.DropDownItems.Add( Separator );
 
 			ToolStripMenuItem AllMenuItem = new ToolStripMenuItem( "All" );
-			AllMenuItem.Click += new System.EventHandler( FilterAllClick );
+			AllMenuItem.Click += new System.EventHandler( FilterAllClassGroupsClick );
 			AllMenuItem.MouseUp += ClassesToFilterMouseUp;
 			AllMenuItem.Tag = AllHistoryTag;
 
 			FilterClassesDropDownButton.DropDownItems.Add( AllMenuItem );
 
 			ToolStripMenuItem NoneMenuItem = new ToolStripMenuItem( "None" );
-			NoneMenuItem.Click += new System.EventHandler( FilterNoneClick );
+			NoneMenuItem.Click += new System.EventHandler( FilterNoneClassGroupsClick );
 			FilterClassesDropDownButton.DropDownItems.Add( NoneMenuItem );
 		}
 		#endregion
+
+		private void FilterTagsButton_Click(object sender, EventArgs e)
+		{
+			FilterTagsDialog.PopulateTagFilterHierarchy();
+			FilterTagsDialog.ShowDialog();
+			UpdateFilteringState();
+		}
 
 		/// <summary> Assembly resolve method to pick correct StandaloneSymbolParser DLL. </summary>
 		private Assembly CurrentDomain_AssemblyResolve( Object sender, ResolveEventArgs args )
@@ -413,6 +423,11 @@ namespace MemoryProfiler2
 			}
 
 			UpdateStatus( "Displaying " + CurrentFilename );
+		}
+
+		public ISet<FAllocationTag> GetTagsFilter()
+		{
+			return CurrentState.AllocTags;
 		}
 
 		private void GoButton_Click( object sender, EventArgs e )
@@ -662,6 +677,7 @@ namespace MemoryProfiler2
 
 			FilterTypeSplitButton.Enabled = e.TabPage == TimeLineTabPage ? false : true;
 			FilterClassesDropDownButton.Enabled = e.TabPage == TimeLineTabPage ? false : true;
+			FilterTagsButton.Enabled = e.TabPage == CallGraphTabPage || e.TabPage == ExclusiveTabPage || e.TabPage == HistogramTabPage;
 			FilterTypeSplitButton.Enabled = e.TabPage == TimeLineTabPage ? false : true;
 
 			FilterLabel.Enabled = e.TabPage == TimeLineTabPage ? false : true;
@@ -855,7 +871,7 @@ namespace MemoryProfiler2
 		}
 
 		/// <summary> Checks all class group in the class filter menu. </summary>
-		private void FilterAllClick( object sender, EventArgs e )
+		private void FilterAllClassGroupsClick( object sender, EventArgs e )
 		{
 			SetAllClasses( true );
 			FilterClassesDropDownButton.ShowDropDown();
@@ -864,7 +880,7 @@ namespace MemoryProfiler2
 		}
 
 		/// <summary> Unchecks all class group in the class filter menu. </summary>
-		private void FilterNoneClick( object sender, EventArgs e )
+		private void FilterNoneClassGroupsClick( object sender, EventArgs e )
 		{
 			SetAllClasses( false );
 			FilterClassesDropDownButton.ShowDropDown();
@@ -2094,6 +2110,7 @@ namespace MemoryProfiler2
 			FC_GroupArray,
 			FC_TextFilter,
 			FC_MemoryPool,
+			FC_AllocTags,
 			Count,
 		}
 
@@ -2111,6 +2128,7 @@ namespace MemoryProfiler2
 			public List<bool> GroupArray;
 			public string TextFilter;
 			public EMemoryPool MemoryPool;
+			public HashSet<FAllocationTag> AllocTags;
 
 			/// <summary> Default constructor. </summary>
 			public FFilteringState( bool bFake )
@@ -2124,6 +2142,7 @@ namespace MemoryProfiler2
 				GroupArray = new List<bool>( 40 );
 				TextFilter = "";
 				MemoryPool = EMemoryPool.MEMPOOL_None;
+				AllocTags = new HashSet<FAllocationTag>();
 			}
 
 			/// <summary> Creates a new copy of this class. </summary>
@@ -2131,6 +2150,7 @@ namespace MemoryProfiler2
 			{
 				FFilteringState Copy = ( FFilteringState )MemberwiseClone();
 				Copy.GroupArray = new List<bool>( GroupArray );
+				Copy.AllocTags = new HashSet<FAllocationTag>( AllocTags );
 				return Copy;
 			}
 		};
@@ -2185,6 +2205,7 @@ namespace MemoryProfiler2
 
 				CurrentState.TextFilter = FilterTextBox.Text;
 				CurrentState.MemoryPool = SelectedMemoryPool;
+				CurrentState.AllocTags = FilterTagsDialog.GetActiveTags();
 
 				//bool bDiffFound = !CurrentState.CompareWith( StartingState );
 
@@ -2223,6 +2244,23 @@ namespace MemoryProfiler2
 					bEquals[ ( int )EFilteringControl.FC_GroupArray ] = false;
 				}
 
+				bEquals[ ( int )EFilteringControl.FC_AllocTags ] = true;
+				if( CurrentState.AllocTags.Count == StartingState.AllocTags.Count )
+				{
+					foreach (var AllocTag in CurrentState.AllocTags)
+					{
+						if (!StartingState.AllocTags.Contains(AllocTag))
+						{
+							bEquals[ ( int )EFilteringControl.FC_AllocTags ] = false;
+							break;
+						}
+					}
+				}
+				else
+				{
+					bEquals[ ( int )EFilteringControl.FC_AllocTags ] = false;
+				}
+
 				bool bEqualProperties = true;
 				for( int Eq = 0; Eq < ( int )EFilteringControl.Count; Eq++ )
 				{
@@ -2259,6 +2297,7 @@ namespace MemoryProfiler2
 
 			StartingState.TextFilter = FilterTextBox.Text;
 			StartingState.MemoryPool = SelectedMemoryPool;
+			StartingState.AllocTags = FilterTagsDialog.GetActiveTags();
 
 			CurrentState = StartingState.DeepCopy();
 			UpdateFilteringState();
@@ -2276,6 +2315,7 @@ namespace MemoryProfiler2
 			FilteringControl[ ( int )EFilteringControl.FC_GroupArray ] = FilterClassesDropDownButton;
 			FilteringControl[ ( int )EFilteringControl.FC_TextFilter ] = FilterLabel;
 			FilteringControl[ ( int )EFilteringControl.FC_MemoryPool ] = MemoryPoolFilterButton;
+			FilteringControl[ ( int )EFilteringControl.FC_AllocTags ] = FilterTagsButton;
 
 			FilterClassesDropDownButton.DropDown.Renderer.RenderItemText += new ToolStripItemTextRenderEventHandler( Renderer_RenderItemText );
 

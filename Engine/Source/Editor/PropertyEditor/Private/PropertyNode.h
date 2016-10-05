@@ -739,7 +739,9 @@ public:
 		ValueNode->PropertyKeyNode = KeyNode;
 	}
 
-	TSharedPtr<FPropertyNode> GetPropertyKeyNode() const { return PropertyKeyNode; }
+	TSharedPtr<FPropertyNode>& GetPropertyKeyNode() { return PropertyKeyNode; }
+
+	const TSharedPtr<FPropertyNode>& GetPropertyKeyNode() const { return PropertyKeyNode; }
 
 protected:
 
@@ -813,6 +815,13 @@ protected:
 	 * Updates and caches the current edit const state of this property
 	 */
 	void UpdateEditConstState();
+
+	/**
+	 * Checks to see if the supplied property of a child node requires validation
+	 * @param	InChildProp		The property of the child node
+	 * @return	True if the property requires validation, false otherwise
+	 */
+	static bool DoesChildPropertyRequireValidation(UProperty* InChildProp);
 
 protected:
 	/**

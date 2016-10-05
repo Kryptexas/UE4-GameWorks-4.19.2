@@ -2056,13 +2056,17 @@ namespace UnrealBuildTool
             if (Rules.bUsesSlate)
             {
 				Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/Slate/...", StagedFileType.UFS);
-				if(ProjectFile != null)
+				if (Configuration != UnrealTargetConfiguration.Shipping)
+				{
+					Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/SlateDebug/...", StagedFileType.UFS);
+				}
+				if (ProjectFile != null)
 				{
 					Receipt.RuntimeDependencies.Add("$(ProjectDir)/Content/Slate/...", StagedFileType.UFS);
-				}
-				if (Rules.bUsesSlateEditorStyle)
-				{
-					Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/Editor/Slate/...", StagedFileType.UFS);
+					if (Configuration != UnrealTargetConfiguration.Shipping)
+					{
+						Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/SlateDebug/...", StagedFileType.UFS);
+					}
 				}
 			}
 

@@ -161,7 +161,11 @@ static bool SaveApexClothingAssetToBlob(const apex::ClothingAsset *InAsset, TArr
 ////////////////////////////////////////////////
 SIZE_T FClothingAssetData::GetResourceSize() const
 {
-	SIZE_T ResourceSize = 0;
+	return GetResourceSizeBytes();
+}
+
+void FClothingAssetData::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
+{
 #if WITH_APEX_CLOTHING
 	if (ApexClothingAsset)
 	{
@@ -173,20 +177,25 @@ SIZE_T FClothingAssetData::GetResourceSize() const
 				apex::RenderMeshAssetStats AssetStats;
 				RenderAsset->getStats(AssetStats);
 
-				ResourceSize += AssetStats.totalBytes;
+				CumulativeResourceSize.AddUnknownMemoryBytes(AssetStats.totalBytes);
 			}
 		}
 	}
 
-	ResourceSize += ClothCollisionVolumes.GetAllocatedSize();
-	ResourceSize += ClothCollisionConvexPlaneIndices.GetAllocatedSize();
-	ResourceSize += ClothCollisionVolumePlanes.GetAllocatedSize();
-	ResourceSize += ClothBoneSpheres.GetAllocatedSize();
-	ResourceSize += BoneSphereConnections.GetAllocatedSize();
-	ResourceSize += ClothVisualizationInfos.GetAllocatedSize();
+	CumulativeResourceSize.AddUnknownMemoryBytes(ClothCollisionVolumes.GetAllocatedSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(ClothCollisionConvexPlaneIndices.GetAllocatedSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(ClothCollisionVolumePlanes.GetAllocatedSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(ClothBoneSpheres.GetAllocatedSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(BoneSphereConnections.GetAllocatedSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(ClothVisualizationInfos.GetAllocatedSize());
 #endif // #if WITH_APEX_CLOTHING
+}
 
-	return ResourceSize;
+SIZE_T FClothingAssetData::GetResourceSizeBytes() const
+{
+	FResourceSizeEx ResSize;
+	GetResourceSizeEx(ResSize);
+	return ResSize.GetTotalMemoryBytes();
 }
 
 /*-----------------------------------------------------------------------------
@@ -1970,18 +1979,21 @@ void FStaticLODModel::ReleaseCPUResources()
 
 SIZE_T FStaticLODModel::GetResourceSize() const
 {
-	SIZE_T ResourceSize = 0;
+	return GetResourceSizeBytes();
+}
 
-	ResourceSize += Sections.GetAllocatedSize();
-	ResourceSize += ActiveBoneIndices.GetAllocatedSize();  
-	ResourceSize += RequiredBones.GetAllocatedSize();
+void FStaticLODModel::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
+{
+	CumulativeResourceSize.AddUnknownMemoryBytes(Sections.GetAllocatedSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(ActiveBoneIndices.GetAllocatedSize()); 
+	CumulativeResourceSize.AddUnknownMemoryBytes(RequiredBones.GetAllocatedSize());
 
 	if(MultiSizeIndexContainer.IsIndexBufferValid())
 	{
 		const FRawStaticIndexBuffer16or32Interface* IndexBuffer = MultiSizeIndexContainer.GetIndexBuffer();
 		if (IndexBuffer)
 		{
-			ResourceSize += IndexBuffer->GetResourceDataSize(); 
+			CumulativeResourceSize.AddUnknownMemoryBytes(IndexBuffer->GetResourceDataSize()); 
 		}
 	}
 
@@ -1990,22 +2002,27 @@ SIZE_T FStaticLODModel::GetResourceSize() const
 		const FRawStaticIndexBuffer16or32Interface* AdjacentIndexBuffer = AdjacencyMultiSizeIndexContainer.GetIndexBuffer();
 		if(AdjacentIndexBuffer)
 		{
-			ResourceSize += AdjacentIndexBuffer->GetResourceDataSize();
+			CumulativeResourceSize.AddUnknownMemoryBytes(AdjacentIndexBuffer->GetResourceDataSize());
 		}
 	}
 
-	ResourceSize += VertexBufferGPUSkin.GetVertexDataSize();
-	ResourceSize += ColorVertexBuffer.GetVertexDataSize();
-	ResourceSize += APEXClothVertexBuffer.GetVertexDataSize();
+	CumulativeResourceSize.AddUnknownMemoryBytes(VertexBufferGPUSkin.GetVertexDataSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(ColorVertexBuffer.GetVertexDataSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(APEXClothVertexBuffer.GetVertexDataSize());
 
-	ResourceSize += RawPointIndices.GetBulkDataSize();
-	ResourceSize += LegacyRawPointIndices.GetBulkDataSize();
-	ResourceSize += MeshToImportVertexMap.GetAllocatedSize();
+	CumulativeResourceSize.AddUnknownMemoryBytes(RawPointIndices.GetBulkDataSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(LegacyRawPointIndices.GetBulkDataSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(MeshToImportVertexMap.GetAllocatedSize());
 
 	// I suppose we add everything we could
-	ResourceSize += sizeof(int32);
+	CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(int32));
+}
 
-	return ResourceSize;
+SIZE_T FStaticLODModel::GetResourceSizeBytes() const
+{
+	FResourceSizeEx ResSize;
+	GetResourceSizeEx(ResSize);
+	return ResSize.GetTotalMemoryBytes();
 }
 
 void FStaticLODModel::RebuildIndexBuffer(FMultiSizeIndexContainerData* IndexBufferData, FMultiSizeIndexContainerData* AdjacencyIndexBufferData)
@@ -2351,15 +2368,23 @@ bool FSkeletalMeshResource::RequiresCPUSkinning(ERHIFeatureLevel::Type FeatureLe
 
 SIZE_T FSkeletalMeshResource::GetResourceSize()
 {
-	SIZE_T ResourceSize = 0;
+	return GetResourceSizeBytes();
+}
+
+void FSkeletalMeshResource::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
+{
 	for(int32 LODIndex = 0; LODIndex < LODModels.Num(); ++LODIndex)
 	{
 		const FStaticLODModel& Model = LODModels[LODIndex];
-
-		ResourceSize += Model.GetResourceSize();
+		Model.GetResourceSizeEx(CumulativeResourceSize);
 	}
+}
 
-	return ResourceSize;
+SIZE_T FSkeletalMeshResource::GetResourceSizeBytes()
+{
+	FResourceSizeEx ResSize;
+	GetResourceSizeEx(ResSize);
+	return ResSize.GetTotalMemoryBytes();
 }
 
 /*-----------------------------------------------------------------------------
@@ -2621,24 +2646,25 @@ float USkeletalMesh::GetStreamingTextureFactor( int32 RequestedUVIndex )
 }
 
 
-SIZE_T USkeletalMesh::GetResourceSize(EResourceSizeMode::Type Mode)
+void USkeletalMesh::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 	if (ImportedResource.IsValid())
 	{
-		ResourceSize += ImportedResource->GetResourceSize();
+		ImportedResource->GetResourceSizeEx(CumulativeResourceSize);
 	}
 
-	if (Mode == EResourceSizeMode::Inclusive)
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive)
 	{
 		for (const auto& MorphTarget : MorphTargets)
 		{
-			ResourceSize += MorphTarget->GetResourceSize(Mode);
+			MorphTarget->GetResourceSizeEx(CumulativeResourceSize);
 		}
 
 		for (const auto& ClothingAsset : ClothingAssets)
 		{
-			ResourceSize += ClothingAsset.GetResourceSize();
+			ClothingAsset.GetResourceSizeEx(CumulativeResourceSize);
 		}
 
 		TSet<UMaterialInterface*> UniqueMaterials;
@@ -2649,29 +2675,27 @@ SIZE_T USkeletalMesh::GetResourceSize(EResourceSizeMode::Type Mode)
 			UniqueMaterials.Add(Material, &bAlreadyCounted);
 			if(!bAlreadyCounted && Material)
 			{
-				ResourceSize += Material->GetResourceSize(Mode);
+				Material->GetResourceSizeEx(CumulativeResourceSize);
 			}
 		}
 
 #if WITH_EDITORONLY_DATA
-		ResourceSize += RetargetBasePose.GetAllocatedSize();
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RetargetBasePose.GetAllocatedSize());
 #endif
 
-		ResourceSize += RefBasesInvMatrix.GetAllocatedSize();
-		ResourceSize += RefSkeleton.GetDataSize();
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RefBasesInvMatrix.GetAllocatedSize());
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RefSkeleton.GetDataSize());
 
 		if (BodySetup)
 		{
-			ResourceSize += BodySetup->GetResourceSize(Mode);
+			BodySetup->GetResourceSizeEx(CumulativeResourceSize);
 		}
 
 		if (PhysicsAsset)
 		{
-			ResourceSize += PhysicsAsset->GetResourceSize(Mode);
+			PhysicsAsset->GetResourceSizeEx(CumulativeResourceSize);
 		}
 	}
-
-	return ResourceSize;
 }
 
 /**
@@ -4738,6 +4762,20 @@ FString ASkeletalMeshActor::GetDetailedInfoInternal() const
 	return Result;  
 }
 
+#if WITH_EDITOR
+void ASkeletalMeshActor::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_STRING_CHECKED(ASkeletalMeshActor, SkeletalMeshComponent) && SkeletalMeshComponent->SkeletalMesh != nullptr)
+		{
+			SkeletalMeshComponent->CleanUpOverrideMaterials();
+		}
+	}
+}
+#endif
 
 void ASkeletalMeshActor::PostInitializeComponents()
 {
@@ -5769,17 +5807,15 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
-
-SIZE_T USkinnedMeshComponent::GetResourceSize(EResourceSizeMode::Type Mode)
+void USkinnedMeshComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	int32 ResourceSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 	// Get Mesh Object's memory
 	if(MeshObject)
 	{
-		ResourceSize += MeshObject->GetResourceSize();
+		MeshObject->GetResourceSizeEx(CumulativeResourceSize);
 	}
-
-	return ResourceSize;
 }
 
 FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()

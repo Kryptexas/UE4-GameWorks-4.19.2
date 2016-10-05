@@ -1528,6 +1528,7 @@ void SAutomationWindow::PopulateReportSearchStrings( const TSharedPtr< IAutomati
 	}
 
 	OutSearchStrings.Add( Report->GetDisplayName() );
+	OutSearchStrings.Add( Report->GetFullTestPath() );
 }
 
 

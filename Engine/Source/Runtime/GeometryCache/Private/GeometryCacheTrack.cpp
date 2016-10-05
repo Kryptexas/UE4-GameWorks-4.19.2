@@ -104,13 +104,11 @@ const uint32 UGeometryCacheTrack::FindSampleIndexFromTime(const TArray<float>& S
 	return MinIndex;
 }
 
-SIZE_T UGeometryCacheTrack::GetResourceSize(EResourceSizeMode::Type Mode)
+void UGeometryCacheTrack::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	// Determine resource size from data that is serialized
-	ResourceSize += MatrixSamples.Num() * sizeof(FMatrix);
-	ResourceSize += MatrixSampleTimes.Num() * sizeof(float);
-
-	return ResourceSize;
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(MatrixSamples.Num() * sizeof(FMatrix));
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(MatrixSampleTimes.Num() * sizeof(float));
 }

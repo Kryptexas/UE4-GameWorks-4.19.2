@@ -114,7 +114,7 @@ bool FContentComparisonHelper::CompareClasses(const FString& InBaseClassName, co
 								int32 NewIndex = AssetList->AddZeroed();
 								FContentComparisonAssetInfo& Info = (*AssetList)[NewIndex];
 								Info.AssetName = Object->GetFullName();
-								Info.ResourceSize = Object->GetResourceSize(EResourceSizeMode::Inclusive);
+								Info.ResourceSize = Object->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 							}
 						}
 					}

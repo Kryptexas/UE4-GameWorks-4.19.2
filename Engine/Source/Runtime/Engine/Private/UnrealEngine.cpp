@@ -2355,11 +2355,11 @@ struct FSortedParticleSet
 	int32		ModuleSize;
 	int32		ComponentSize;
 	int32		ComponentCount;
-	int32		ComponentResourceSize;
-	int32		ComponentTrueResourceSize;
+	FResourceSizeEx ComponentResourceSize;
+	FResourceSizeEx ComponentTrueResourceSize;
 
 	FSortedParticleSet( const FString& InName, int32 InSize, int32 InPSysSize, int32 InModuleSize, 
-		int32 InComponentSize, int32 InComponentCount, int32 InComponentResourceSize, int32 InComponentTrueResourceSize) :
+		int32 InComponentSize, int32 InComponentCount, FResourceSizeEx InComponentResourceSize, FResourceSizeEx InComponentTrueResourceSize) :
 		  Name(InName)
 		, Size(InSize)
 		, PSysSize(InPSysSize)
@@ -2377,8 +2377,8 @@ struct FSortedParticleSet
 		, ModuleSize(0)
 		, ComponentSize(0)
 		, ComponentCount(0)
-		, ComponentResourceSize(0)
-		, ComponentTrueResourceSize(0)
+		, ComponentResourceSize(EResourceSizeMode::Inclusive)
+		, ComponentTrueResourceSize(EResourceSizeMode::Exclusive)
 	{
 	}
 
@@ -2398,7 +2398,7 @@ struct FSortedParticleSet
 	{
 		InArchive.Logf(TEXT("%10d,%s,%d,%d,%d,%d,%d,%d"),
 			Size, *Name, PSysSize, ModuleSize, ComponentSize,
-			ComponentCount, ComponentResourceSize, ComponentTrueResourceSize);
+			ComponentCount, ComponentResourceSize.GetTotalMemoryBytes(), ComponentTrueResourceSize.GetTotalMemoryBytes());
 	}
 };
 
@@ -2449,13 +2449,13 @@ struct FItem
 	SIZE_T Num;
 	SIZE_T Max;
 	/** Only exclusive resource size, the truer resource size. */
-	SIZE_T TrueResourceSize;
+	FResourceSizeEx TrueResourceSize;
 
 	FItem( UClass* InClass=NULL )
-	: Class(InClass), Count(0), Num(0), Max(0), TrueResourceSize(0)
+	: Class(InClass), Count(0), Num(0), Max(0), TrueResourceSize()
 	{}
 
-	FItem( UClass* InClass, int32 InCount, SIZE_T InNum, SIZE_T InMax, SIZE_T InTrueResourceSize ) :
+	FItem( UClass* InClass, int32 InCount, SIZE_T InNum, SIZE_T InMax, FResourceSizeEx InTrueResourceSize ) :
 		Class( InClass ),
 		Count( InCount ),
 		Num( InNum ), 
@@ -2463,7 +2463,7 @@ struct FItem
 		TrueResourceSize( InTrueResourceSize )
 	{}
 
-	void Add( FArchiveCountMem& Ar, SIZE_T InTrueResourceSize )
+	void Add( FArchiveCountMem& Ar, FResourceSizeEx InTrueResourceSize )
 	{
 		Count++;
 		Num += Ar.GetNum();
@@ -2482,9 +2482,9 @@ struct FSubItem
 	/** Resource size of the object and all of its references, the 'old-style'. */
 	SIZE_T ResourceSize;
 	/** Only exclusive resource size, the truer resource size. */
-	SIZE_T TrueResourceSize;
+	FResourceSizeEx TrueResourceSize;
 
-	FSubItem( UObject* InObject, SIZE_T InNum, SIZE_T InMax, SIZE_T InTrueResourceSize )
+	FSubItem( UObject* InObject, SIZE_T InNum, SIZE_T InMax, FResourceSizeEx InTrueResourceSize )
 	: Object( InObject ), Num( InNum ), Max( InMax ), TrueResourceSize( InTrueResourceSize )
 	{}
 };
@@ -3951,8 +3951,7 @@ bool UEngine::HandleListParticleSystemsCommand( const TCHAR* Cmd, FOutputDevice&
 		FArchiveCountMem Count( Tree );
 		int32 RootSize = Count.GetMax();
 
-		FSortedParticleSet *pSet = new(SortedSets) FSortedParticleSet(Description, RootSize, RootSize, 0, 0, 0, 0, 0);
-
+		SortedSets.Add(FSortedParticleSet(Description, RootSize, RootSize, 0, 0, 0, FResourceSizeEx(), FResourceSizeEx()));
 		SortMap.Add(Tree,SortedSets.Num() - 1);
 	}
 
@@ -3982,12 +3981,14 @@ bool UEngine::HandleListParticleSystemsCommand( const TCHAR* Cmd, FOutputDevice&
 			Set.ComponentSize += ComponentCount.GetMax();
 
 			// Save this for adding to the total
-			SIZE_T CompResSize = Comp->GetResourceSize(EResourceSizeMode::Inclusive);
+			FResourceSizeEx CompResSize = FResourceSizeEx(EResourceSizeMode::Inclusive);
+			Comp->GetResourceSizeEx(CompResSize);
+
 			Set.ComponentResourceSize += CompResSize;
-			Set.ComponentTrueResourceSize += Comp->GetResourceSize(EResourceSizeMode::Exclusive);
+			Comp->GetResourceSizeEx(Set.ComponentTrueResourceSize);
 
 			Set.Size += ComponentCount.GetMax();
-			Set.Size += CompResSize;
+			Set.Size += CompResSize.GetTotalMemoryBytes();
 			Set.ComponentCount++;
 
 			UParticleSystem* Tree = Comp->Template;
@@ -4239,7 +4240,9 @@ bool UEngine::HandleParticleMeshUsageCommand( const TCHAR* Cmd, FOutputDevice& A
 	{
 		FORCEINLINE bool operator()( UStaticMesh& A, UStaticMesh& B ) const
 		{
-			return B.GetResourceSize(EResourceSizeMode::Inclusive) < A.GetResourceSize(EResourceSizeMode::Inclusive);
+			const SIZE_T ResourceSizeA = A.GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+			const SIZE_T ResourceSizeB = B.GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+			return ResourceSizeB < ResourceSizeA;
 		}
 	};
 
@@ -4251,7 +4254,8 @@ bool UEngine::HandleParticleMeshUsageCommand( const TCHAR* Cmd, FOutputDevice& A
 	for( int32 StaticMeshIndex=0; StaticMeshIndex<UniqueReferencedMeshes.Num(); StaticMeshIndex++ )
 	{
 		UStaticMesh* StaticMesh	= UniqueReferencedMeshes[StaticMeshIndex];
-		TotalSize += StaticMesh->GetResourceSize(EResourceSizeMode::Inclusive);
+		const SIZE_T StaticMeshResourceSize = StaticMesh->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+		TotalSize += StaticMeshResourceSize;
 	}
 
 	// Log sorted summary.
@@ -4264,8 +4268,10 @@ bool UEngine::HandleParticleMeshUsageCommand( const TCHAR* Cmd, FOutputDevice& A
 		TArray<UParticleSystem*> ParticleSystems;
 		StaticMeshToParticleSystemMap.MultiFind( StaticMesh, ParticleSystems );
 
+		const SIZE_T StaticMeshResourceSize = StaticMesh->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+
 		// Log meshes including resource size and referencing particle systems.
-		Ar.Logf(TEXT("%5i KByte  %s"), StaticMesh->GetResourceSize(EResourceSizeMode::Inclusive) / 1024, *StaticMesh->GetFullName());
+		Ar.Logf(TEXT("%5i KByte  %s"), StaticMeshResourceSize / 1024, *StaticMesh->GetFullName());
 		for( int32 ParticleSystemIndex=0; ParticleSystemIndex<ParticleSystems.Num(); ParticleSystemIndex++ )
 		{
 			UParticleSystem* ParticleSystem = ParticleSystems[ParticleSystemIndex];
@@ -4880,7 +4886,7 @@ struct FHierarchy
 			{
 				FSubItem const& Item = Objects.FindChecked(This);
 				Node.Exc += Item.Max;
-				Node.Exc += Item.TrueResourceSize;
+				Node.Exc += Item.TrueResourceSize.GetTotalMemoryBytes();
 				if (bCountItems)
 				{
 					Node.ExcCount += Node.Items.Num();
@@ -5094,9 +5100,9 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 		TMap<UClass*,FItem> ObjectsByClass;
 
-		UE_LOG( LogEngine, Log, TEXT("**********************************************") );
-		UE_LOG( LogEngine, Log, TEXT("Obj MemSub for class '%s'"), *ClassToCheck->GetName() );
-		UE_LOG( LogEngine, Log, TEXT("") );
+		Ar.Logf( TEXT("**********************************************") );
+		Ar.Logf( TEXT("Obj MemSub for class '%s'"), *ClassToCheck->GetName() );
+		Ar.Logf( TEXT("") );
 
 		for( FObjectIterator It(ClassToCheck); It; ++It )
 		{
@@ -5115,7 +5121,8 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			for( UObject*& RefObj : ReferencedObjects )
 			{
 				FArchiveCountMem Count( RefObj );
-				const SIZE_T TrueResourceSize = It->GetResourceSize( EResourceSizeMode::Exclusive );
+				FResourceSizeEx TrueResourceSize = FResourceSizeEx(EResourceSizeMode::Exclusive);
+				It->GetResourceSizeEx( TrueResourceSize );
 				ThisObject.Add( Count, TrueResourceSize );
 			}
 
@@ -5128,12 +5135,19 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 		ObjectsByClass.ValueSort( FCompareByInclusiveSize() );
 
-		UE_LOG( LogEngine, Log, TEXT("%32s, %6s %6s %6s, %6s"), 
+		Ar.Logf( 
+			TEXT("%32s %12s %12s %12s %12s %12s %12s %12s %12s %12s"), 
 			TEXT("Class"),
 			TEXT("IncMax"),
 			TEXT("IncNum"),
 			TEXT("ResExc"),
-			TEXT("Count") );
+			TEXT("ResExcDedSys"),
+			TEXT("ResExcShrSys"),
+			TEXT("ResExcDedVid"),
+			TEXT("ResExcShrVid"),
+			TEXT("ResExcUnk"),
+			TEXT("Count") 
+			);
 
 		FItem Total;
 		FItem Culled;
@@ -5151,10 +5165,16 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			}
 			else
 			{
-				UE_LOG( LogEngine, Log, TEXT("%32s, %6s %6s %6s, %6i"), 
+				Ar.Logf( TEXT("%32s %12s %12s %12s %12s %12s %12s %12s %12s %12i"), 
 					*Class->GetName(), 
-					*FHierarchy::Size(ClassObjects.Max), *FHierarchy::Size(ClassObjects.Num), 
-					*FHierarchy::Size(ClassObjects.TrueResourceSize),
+					*FHierarchy::Size(ClassObjects.Max), 
+					*FHierarchy::Size(ClassObjects.Num), 
+					*FHierarchy::Size(ClassObjects.TrueResourceSize.GetTotalMemoryBytes()),
+					*FHierarchy::Size(ClassObjects.TrueResourceSize.GetDedicatedSystemMemoryBytes()),
+					*FHierarchy::Size(ClassObjects.TrueResourceSize.GetSharedSystemMemoryBytes()),
+					*FHierarchy::Size(ClassObjects.TrueResourceSize.GetDedicatedVideoMemoryBytes()),
+					*FHierarchy::Size(ClassObjects.TrueResourceSize.GetSharedVideoMemoryBytes()),
+					*FHierarchy::Size(ClassObjects.TrueResourceSize.GetUnknownMemoryBytes()),
 					ClassObjects.Count 
 					);
 
@@ -5168,23 +5188,35 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 		if( Culled.Count > 0 )
 		{
-			UE_LOG( LogEngine, Log, TEXT("") );
-			UE_LOG( LogEngine, Log, TEXT("%32s, %6s %6s %6s, %6i"), 
+			Ar.Logf( TEXT("") );
+			Ar.Logf( TEXT("%32s %12s %12s %12s %12s %12s %12s %12s %12s %12i"), 
 				TEXT("(Culled)"), 
-				*FHierarchy::Size(Culled.Max), *FHierarchy::Size(Culled.Num), 
-				*FHierarchy::Size(Culled.TrueResourceSize),
+				*FHierarchy::Size(Culled.Max), 
+				*FHierarchy::Size(Culled.Num), 
+				*FHierarchy::Size(Culled.TrueResourceSize.GetTotalMemoryBytes()),
+				*FHierarchy::Size(Culled.TrueResourceSize.GetDedicatedSystemMemoryBytes()),
+				*FHierarchy::Size(Culled.TrueResourceSize.GetSharedSystemMemoryBytes()),
+				*FHierarchy::Size(Culled.TrueResourceSize.GetDedicatedVideoMemoryBytes()),
+				*FHierarchy::Size(Culled.TrueResourceSize.GetSharedVideoMemoryBytes()),
+				*FHierarchy::Size(Culled.TrueResourceSize.GetUnknownMemoryBytes()),
 				Culled.Count 
 				);
 		}
 
-		UE_LOG( LogEngine, Log, TEXT("") );
-		UE_LOG( LogEngine, Log, TEXT("%32s, %6s %6s %6s, %6i"), 
+		Ar.Logf( TEXT("") );
+		Ar.Logf( TEXT("%32s %12s %12s %12s %12s %12s %12s %12s %12s %12i"), 
 			TEXT("Total"), 
-			*FHierarchy::Size(Total.Max), *FHierarchy::Size(Total.Num), 
-			*FHierarchy::Size(Total.TrueResourceSize),
+			*FHierarchy::Size(Total.Max), 
+			*FHierarchy::Size(Total.Num), 
+			*FHierarchy::Size(Total.TrueResourceSize.GetTotalMemoryBytes()),
+			*FHierarchy::Size(Total.TrueResourceSize.GetDedicatedSystemMemoryBytes()),
+			*FHierarchy::Size(Total.TrueResourceSize.GetSharedSystemMemoryBytes()),
+			*FHierarchy::Size(Total.TrueResourceSize.GetDedicatedVideoMemoryBytes()),
+			*FHierarchy::Size(Total.TrueResourceSize.GetSharedVideoMemoryBytes()),
+			*FHierarchy::Size(Total.TrueResourceSize.GetUnknownMemoryBytes()),
 			Total.Count 
 			);
-		UE_LOG( LogEngine, Log, TEXT("**********************************************") );
+		Ar.Logf( TEXT("**********************************************") );
 		return true;
 	}
 	else if (FParse::Command(&Cmd,TEXT("Mem")))
@@ -5214,7 +5246,8 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		for( FObjectIterator It; It; ++It )
 		{
 			FArchiveCountMem Count( *It );
-			const SIZE_T TrueResourceSize = It->GetResourceSize(EResourceSizeMode::Exclusive);
+			FResourceSizeEx TrueResourceSize = FResourceSizeEx(EResourceSizeMode::Exclusive);
+			It->GetResourceSizeEx(TrueResourceSize);
 			Objects.Add(*It, FSubItem(*It, Count.GetNum(), Count.GetMax(), TrueResourceSize));
 			Classes.AddClassInstance(*It);
 			Outers.AddOuter(*It);
@@ -5366,8 +5399,8 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				}
 
 				FArchiveCountMem Count( *It );
-
-				const SIZE_T TrueResourceSize = It->GetResourceSize(EResourceSizeMode::Exclusive);
+				FResourceSizeEx TrueResourceSize = FResourceSizeEx(EResourceSizeMode::Exclusive);
+				It->GetResourceSizeEx(TrueResourceSize);
 
 				int32 i;
 
@@ -5404,7 +5437,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 				if( bShowDetailedObjectInfo )
 				{
-					new(Objects)FSubItem( *It, Count.GetNum(), Count.GetMax(), TrueResourceSize );
+					Objects.Add( FSubItem( *It, Count.GetNum(), Count.GetMax(), TrueResourceSize ) );
 				}
 				List[i].Add( Count, TrueResourceSize );
 				Total.Add( Count, TrueResourceSize );
@@ -5430,11 +5463,33 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			};
 			Objects.Sort( FCompareFSubItem( bAlphaSort ) );
 
-			Ar.Logf( TEXT("%140s, % 10s, % 10s, % 10s"), TEXT("Object"), TEXT("NumKBytes"), TEXT("MaxKBytes"), TEXT("ExclusiveResKBytes") );
+			Ar.Logf( 
+				TEXT("%140s %10s %10s %10s %15s %15s %15s %15s %15s"), 
+				TEXT("Object"), 
+				TEXT("NumKB"), 
+				TEXT("MaxKB"), 
+				TEXT("ResExcKB"),
+				TEXT("ResExcDedSysKB"),
+				TEXT("ResExcShrSysKB"),
+				TEXT("ResExcDedVidKB"),
+				TEXT("ResExcShrVidKB"),
+				TEXT("ResExcUnkKB")
+				);
 
 			for (const FSubItem& ObjItem : Objects)
 			{
-				Ar.Logf(TEXT("%140s, % 10.2f, % 10.2f, % 10.2f"), *ObjItem.Object->GetFullName(), ObjItem.Num / 1024.0f, ObjItem.Max / 1024.0f, ObjItem.TrueResourceSize / 1024.0f);
+				Ar.Logf(
+					TEXT("%140s %10.2f %10.2f %10.2f %15.2f %15.2f %15.2f %15.2f %15.2f"), 
+					*ObjItem.Object->GetFullName(), 
+					ObjItem.Num / 1024.0f, 
+					ObjItem.Max / 1024.0f, 
+					ObjItem.TrueResourceSize.GetTotalMemoryBytes() / 1024.0f, 
+					ObjItem.TrueResourceSize.GetDedicatedSystemMemoryBytes() / 1024.0f, 
+					ObjItem.TrueResourceSize.GetSharedSystemMemoryBytes() / 1024.0f, 
+					ObjItem.TrueResourceSize.GetDedicatedVideoMemoryBytes() / 1024.0f, 
+					ObjItem.TrueResourceSize.GetSharedVideoMemoryBytes() / 1024.0f, 
+					ObjItem.TrueResourceSize.GetUnknownMemoryBytes() / 1024.0f
+					);
 			}
 			Ar.Log(TEXT(""));
 		}
@@ -5454,15 +5509,50 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				}
 			};
 			List.Sort( FCompareFItem( bAlphaSort, bCountSort ) );
-			Ar.Logf(TEXT(" %100s, % 6s, % 10s, % 10s, % 10s"), TEXT("Class"), TEXT("Count"), TEXT("NumKBytes"), TEXT("MaxKBytes"), TEXT("ExclusiveResKBytes") );
+			Ar.Logf(
+				TEXT(" %100s %8s %10s %10s %10s %15s %15s %15s %15s %15s"), 
+				TEXT("Class"), 
+				TEXT("Count"), 
+				TEXT("NumKB"), 
+				TEXT("MaxKB"), 
+				TEXT("ResExcKB"),
+				TEXT("ResExcDedSysKB"),
+				TEXT("ResExcShrSysKB"),
+				TEXT("ResExcDedVidKB"),
+				TEXT("ResExcShrVidKB"),
+				TEXT("ResExcUnkKB")
+				);
 
 			for( int32 i=0; i<List.Num(); i++ )
 			{
-				Ar.Logf(TEXT(" %100s, % 6i, % 10.2f, % 10.2f, % 10.2f"), *List[i].Class->GetName(), (int32)List[i].Count, List[i].Num / 1024.0f, List[i].Max / 1024.0f, List[i].TrueResourceSize / 1024.0f);
+				Ar.Logf(
+					TEXT(" %100s %8i %10.2f %10.2f %10.2f %15.2f %15.2f %15.2f %15.2f %15.2f"), 
+					*List[i].Class->GetName(), 
+					(int32)List[i].Count, 
+					List[i].Num / 1024.0f, 
+					List[i].Max / 1024.0f, 
+					List[i].TrueResourceSize.GetTotalMemoryBytes() / 1024.0f, 
+					List[i].TrueResourceSize.GetDedicatedSystemMemoryBytes() / 1024.0f, 
+					List[i].TrueResourceSize.GetSharedSystemMemoryBytes() / 1024.0f, 
+					List[i].TrueResourceSize.GetDedicatedVideoMemoryBytes() / 1024.0f, 
+					List[i].TrueResourceSize.GetSharedVideoMemoryBytes() / 1024.0f, 
+					List[i].TrueResourceSize.GetUnknownMemoryBytes() / 1024.0f
+					);
 			}
 			Ar.Log( TEXT("") );
 		}
-		Ar.Logf( TEXT("%i Objects (%.3fM / %.3fM / %.3fM)"), Total.Count, (float)Total.Num/1024.0/1024.0, (float)Total.Max/1024.0/1024.0, (float)Total.TrueResourceSize/1024.0/1024.0 );
+		Ar.Logf( 
+			TEXT("%i Objects (Total: %.3fM / Max: %.3fM / Res: %.3fM | ResDedSys: %.3fM / ResShrSys: %.3fM / ResDedVid: %.3fM / ResShrVid: %.3fM / ResUnknown: %.3fM)"),
+			Total.Count, 
+			(float)Total.Num/1024.0/1024.0, 
+			(float)Total.Max/1024.0/1024.0, 
+			(float)Total.TrueResourceSize.GetTotalMemoryBytes()/1024.0/1024.0,
+			(float)Total.TrueResourceSize.GetDedicatedSystemMemoryBytes()/1024.0/1024.0, 
+			(float)Total.TrueResourceSize.GetSharedSystemMemoryBytes()/1024.0/1024.0, 
+			(float)Total.TrueResourceSize.GetDedicatedVideoMemoryBytes()/1024.0/1024.0, 
+			(float)Total.TrueResourceSize.GetSharedVideoMemoryBytes()/1024.0/1024.0, 
+			(float)Total.TrueResourceSize.GetUnknownMemoryBytes()/1024.0/1024.0
+			);
 		return true;
 
 	}

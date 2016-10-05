@@ -37,9 +37,12 @@ public:
 
 public:
 
-	TSharedPtr<FSceneViewport>		Viewport;
-	TSharedPtr<SViewport>			ViewportWidget;
-	FViewportClient*			ViewportClient;
+	/** Viewport being used to render the scene once to a target while paused */
+	TSharedPtr<FSceneViewport> SceneViewport;
+	/** Slate viewport widget used to draw the target */
+	TSharedPtr<SViewport> ViewportWidget;
+	/** Helper class to translate the RHI render target to Slate */
+	TSharedPtr<class FBackgroundView> BackgroundView;
 
 	/** Delegate providing default functionality for beginning streaming pause. */
 	FBeginStreamingPauseDelegate BeginDelegate;

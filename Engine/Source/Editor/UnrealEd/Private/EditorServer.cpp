@@ -99,12 +99,12 @@ namespace
 		FWaveCluster(const TCHAR* InName)
 			:	Name( InName )
 			,	Num( 0 )
-			,	Size( 0 )
+			,	Size( )
 		{}
 
 		FString Name;
 		int32 Num;
-		int32 Size;
+		FResourceSizeEx Size;
 	};
 
 	struct FAnimSequenceUsageInfo
@@ -2887,7 +2887,9 @@ public:
 				*OutClipboardContents = *ScratchData;
 			}
 
-			GEditor->edactDeleteSelected( World, false );
+			// Do not warn if we are only copying not pasint as we are not actually deleting anything from the real level
+			const bool bWarnAboutReferencedActors = !bCopyOnly;
+			GEditor->edactDeleteSelected( World, false, bWarnAboutReferencedActors);
 		}
 
 		if( DestLevel )
@@ -6268,15 +6270,14 @@ bool UEditorEngine::HandleBugItGoCommand( const TCHAR* Str, FOutputDevice& Ar )
 bool UEditorEngine::HandleTagSoundsCommand( const TCHAR* Str, FOutputDevice& Ar )
 {
 	int32 NumObjects = 0;
-	int32 TotalSize = 0;
+	SIZE_T TotalSize = 0;
 	for( FObjectIterator It(USoundWave::StaticClass()); It; ++It )
 	{
 		++NumObjects;
 		DebugSoundAnnotation.Set(*It);
 
 		USoundWave* Wave = static_cast<USoundWave*>(*It);
-		const SIZE_T Size = Wave->GetResourceSize(EResourceSizeMode::Exclusive);
-		TotalSize += Size;
+		TotalSize += Wave->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 	}
 	UE_LOG(LogEditorServer, Log,  TEXT("Marked %i sounds %10.2fMB"), NumObjects, ((float)TotalSize) /(1024.f*1024.f) );
 	return true;
@@ -6315,19 +6316,20 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 		const int32 NumCoreClusters = Clusters.Num();
 
 		// Output information.
-		int32 TotalSize = 0;
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
 		UE_LOG(LogEditorServer, Log,  TEXT("%60s %10s"), TEXT("Wave Name"), TEXT("Size") );
 		for ( int32 WaveIndex = 0 ; WaveIndex < WaveList.Num() ; ++WaveIndex )
 		{
 			USoundWave* Wave = WaveList[WaveIndex];
-			const SIZE_T WaveSize = Wave->GetResourceSize(EResourceSizeMode::Exclusive);
 			UPackage* WavePackage = Wave->GetOutermost();
 			const FString PackageName( WavePackage->GetName() );
 
+			FResourceSizeEx WaveResourceSize = FResourceSizeEx(EResourceSizeMode::Exclusive);
+			Wave->GetResourceSizeEx(WaveResourceSize);
+
 			// Totals.
 			Clusters[0].Num++;
-			Clusters[0].Size += WaveSize;
+			Clusters[0].Size += WaveResourceSize;
 
 			// Core clusters
 			for ( int32 ClusterIndex = 1 ; ClusterIndex < NumCoreClusters ; ++ClusterIndex )
@@ -6336,7 +6338,7 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				if ( PackageName.Find( Cluster.Name ) != -1 )
 				{
 					Cluster.Num++;
-					Cluster.Size += WaveSize;
+					Cluster.Size += WaveResourceSize;
 				}
 			}
 
@@ -6349,7 +6351,7 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				{
 					// Found a cluster with this package name.
 					Cluster.Num++;
-					Cluster.Size += WaveSize;
+					Cluster.Size += WaveResourceSize;
 					bFoundMatch = true;
 					break;
 				}
@@ -6359,17 +6361,17 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				// Create a new cluster with the package name.
 				FWaveCluster NewCluster( *PackageName );
 				NewCluster.Num = 1;
-				NewCluster.Size = WaveSize;
+				NewCluster.Size = WaveResourceSize;
 				Clusters.Add( NewCluster );
 			}
 
 			// Dump bulk sound list.
-			UE_LOG(LogEditorServer, Log,  TEXT("%70s %10.2fk"), *Wave->GetPathName(), ((float)WaveSize)/1024.f );
+			UE_LOG(LogEditorServer, Log,  TEXT("%70s %10.2fk"), *Wave->GetPathName(), ((float)WaveResourceSize.GetTotalMemoryBytes())/1024.f );
 		}
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
 		UE_LOG(LogEditorServer, Log,  TEXT("%60s %10s %10s"), TEXT("Cluster Name"), TEXT("Num"), TEXT("Size") );
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
-		int32 TotalClusteredSize = 0;
+		FResourceSizeEx TotalClusteredSize;
 		for ( int32 ClusterIndex = 0 ; ClusterIndex < Clusters.Num() ; ++ClusterIndex )
 		{
 			const FWaveCluster& Cluster = Clusters[ClusterIndex];
@@ -6378,10 +6380,10 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				UE_LOG(LogEditorServer, Log,  TEXT("---------------------------------------------------------------------------------") );
 				TotalClusteredSize += Cluster.Size;
 			}
-			UE_LOG(LogEditorServer, Log,  TEXT("%60s %10i %10.2fMB"), *Cluster.Name, Cluster.Num, ((float)Cluster.Size)/(1024.f*1024.f) );
+			UE_LOG(LogEditorServer, Log,  TEXT("%60s %10i %10.2fMB"), *Cluster.Name, Cluster.Num, ((float)Cluster.Size.GetTotalMemoryBytes())/(1024.f*1024.f) );
 		}
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
-		UE_LOG(LogEditorServer, Log,  TEXT("Total Clusterd: %10.2fMB"), ((float)TotalClusteredSize)/(1024.f*1024.f) );
+		UE_LOG(LogEditorServer, Log,  TEXT("Total Clusterd: %10.2fMB"), ((float)TotalClusteredSize.GetTotalMemoryBytes())/(1024.f*1024.f) );
 		return true;
 }
 

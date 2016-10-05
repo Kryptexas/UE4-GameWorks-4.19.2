@@ -2084,17 +2084,17 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 						if (LightMap->IsValid(0))
 						{
 							UTexture2D* Tex = LightMap->GetTexture(0);
-							Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+							Tex->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 						}
 						if (LightMap->IsValid(1))
 						{
 							UTexture2D* Tex = LightMap->GetTexture(1);
-							Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+							Tex->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 						}
 						if (LightMap->GetSkyOcclusionTexture())
 						{
 							UTexture2D* Tex = LightMap->GetSkyOcclusionTexture();
-							Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+							Tex->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 						}
 					}
 				}

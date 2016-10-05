@@ -176,7 +176,7 @@ public:
 	void WriteLogFile(const FString& CaptureDir, const FString& CaptureExtension);
 	/** Returns true if this stats tracker is currently recording performance stats. */
 	UFUNCTION(BlueprintCallable, Category = Perf)
-	bool IsRecording()const;
+	bool IsRecording() const;
 
 	/** Does any init work across all tests.. */
 	UFUNCTION(BlueprintCallable, Category = Perf)
@@ -185,15 +185,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Perf)
 	void OnAllTestsComplete();
 
-	const FPerfStatsRecord* GetCurrentRecord()const;
+	const FPerfStatsRecord* GetCurrentRecord() const;
 	FPerfStatsRecord* GetCurrentRecord();
 
 	UFUNCTION(BlueprintCallable, Category = Perf)
-	bool IsCurrentRecordWithinGPUBudget()const;
+	bool IsCurrentRecordWithinGPUBudget() const;
 	UFUNCTION(BlueprintCallable, Category = Perf)
-	bool IsCurrentRecordWithinGameThreadBudget()const;
+	bool IsCurrentRecordWithinGameThreadBudget() const;
 	UFUNCTION(BlueprintCallable, Category = Perf)
-	bool IsCurrentRecordWithinRenderThreadBudget()const;
+	bool IsCurrentRecordWithinRenderThreadBudget() const;
 	//End basic stats recording.
 
 	// Automatic traces capturing 
@@ -222,7 +222,7 @@ public:
 	FString StartOfTestingTime;
 };
 
-UENUM()
+UENUM(BlueprintType)
 enum class EFunctionalTestResult : uint8
 {
 	/**
@@ -246,7 +246,7 @@ class FUNCTIONALTESTING_API AFunctionalTest : public AActor
 	GENERATED_BODY()
 
 public:
-	AFunctionalTest(const FObjectInitializer& ObjectInitializer);
+	AFunctionalTest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private_subobject:
 	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
@@ -256,6 +256,9 @@ private_subobject:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Functional Testing")
 	uint32 bIsEnabled:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Functional Testing")
+	uint32 bWarningsAsErrors:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Functional Testing", meta=( MultiLine="true" ))
 	FString Description;
@@ -421,19 +424,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Asserts", DisplayName = "Assert Not Equal (String)", meta = ( HidePin = "ContextObject", DefaultToSelf = "ContextObject"))
 	void AssertNotEqual_String(const FString Actual, const FString NotExpected, const FString& What, const UObject* ContextObject = nullptr);
 
+	UFUNCTION(BlueprintCallable, Category = "Reporting")
+	void AddWarning(const FString Message);
+
+	UFUNCTION(BlueprintCallable, Category = "Reporting")
+	void AddError(const FString Message);
+
 protected:
-	void LogAssertFail(const FString& Message);
-	void LogAssertPass(const FString& Message);
+	void LogStep(ELogVerbosity::Type Verbosity, const FString& Message);
 
 public:
 	virtual bool RunTest(const TArray<FString>& Params = TArray<FString>());
 
 public:
-	FString	GetCurrentStepName() { return IsInStep() ? CurrentStepName : FString(); }
-	void 	StartStep(const FString& StepName) { CurrentStepName = StepName; bInStep = true; }
-	void 	FinishStep() { CurrentStepName.Empty(); bInStep = false; }
-	bool	IsInStep() { return bInStep; }
-
+	FString	GetCurrentStepName() const;
+	void 	StartStep(const FString& StepName);
+	void 	FinishStep();
+	bool	IsInStep() const;
 
 	UFUNCTION(BlueprintCallable, Category="Functional Testing")
 	virtual void FinishTest(EFunctionalTestResult TestResult, const FString& Message);
@@ -552,8 +559,7 @@ public:
 protected:
 	bool bIsRunning;
 
-	bool bInStep;
-	FString CurrentStepName;
+	TArray<FString> Steps;
 	
 	float TotalTime;
 

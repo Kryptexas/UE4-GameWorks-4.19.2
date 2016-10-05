@@ -101,7 +101,7 @@ bool PointLightDuplicationCommand::Update()
 void TakeLatentAutomationScreenshot(struct WindowScreenshotParameters ScreenshotParameters, FString BaseFileName, FString ScreenshotTitle, FString ScreenshotFolderName)
 {
 	//Update the screenshot name, then take a screenshot.
-	if (FAutomationTestFramework::GetInstance().IsScreenshotAllowed())
+	if (FAutomationTestFramework::Get().IsScreenshotAllowed())
 	{
 		//Update the screenshot name and get the location of where it will be saved.
 		ScreenshotParameters.ScreenshotName = TEXT("ScreenshotTitle");
@@ -250,7 +250,7 @@ void FLoadAllMapsInEditorTest::GetTests(TArray<FString>& OutBeautifiedNames, TAr
 		// Disregard filenames that don't have the map extension if we're in MAPSONLY mode.
 		if ( FPaths::GetExtension(Filename, true) == FPackageName::GetMapPackageExtension()) 
 		{
-			if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+			if (FAutomationTestFramework::Get().ShouldTestContent(Filename))
 			{
 				if (!Filename.Contains(TEXT("/Engine/")))
 				{
@@ -282,7 +282,7 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 	}
 	
 
-	const bool bTakeScreenshots = FAutomationTestFramework::GetInstance().IsScreenshotAllowed();
+	const bool bTakeScreenshots = FAutomationTestFramework::Get().IsScreenshotAllowed();
 	if( bTakeScreenshots )
 	{
 		//Find the main editor window

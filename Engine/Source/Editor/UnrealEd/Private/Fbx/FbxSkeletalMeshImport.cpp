@@ -2240,7 +2240,8 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 	TArray<UMaterialInterface*> Materials;
 	if (ImportOptions->bImportMaterials)
 	{
-		CreateNodeMaterials(Node, Materials, UVSets);
+		bool bForSkeletalMesh = true;
+		CreateNodeMaterials(Node, Materials, UVSets, bForSkeletalMesh);
 	}
 	else if (ImportOptions->bImportTextures)
 	{

@@ -3,6 +3,7 @@
 
 #include "Core.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "AutomationScreenshotOptions.h"
 
 #include "AutomationBlueprintFunctionLibrary.generated.h"
 
@@ -12,17 +13,26 @@ class FUNCTIONALTESTING_API UAutomationBlueprintFunctionLibrary : public UBluepr
 	GENERATED_UCLASS_BODY()
 	
 public:
-	static bool TakeAutomationScreenshotInternal(const FString& Name, FIntPoint Resolution);
+	static bool TakeAutomationScreenshotInternal(const FString& Name, FAutomationScreenshotOptions Options);
 
-	UFUNCTION(BlueprintCallable, Category = "StudiosAutomation", meta = (Latent, HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", LatentInfo = "LatentInfo", Name = "", DelayBeforeScreenshotSeconds = "0.2" ))
-	static void TakeAutomationScreenshot(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, FIntPoint Resolution, float DelayBeforeScreenshotSeconds);
+	UFUNCTION(BlueprintCallable, Category = "Automation", meta = (Latent, HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", LatentInfo = "LatentInfo", Name = "" ))
+	static void TakeAutomationScreenshot(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, FAutomationScreenshotOptions Options);
 
-	UFUNCTION(BlueprintCallable, Category = "StudiosAutomation|Helpers", meta = (Latent, HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", LatentInfo = "LatentInfo", NameOverride = "", DelayBeforeScreenshotSeconds = "0.2"))
-	static void TakeAutomationScreenshotAtCamera(UObject* WorldContextObject, FLatentActionInfo LatentInfo, ACameraActor* Camera, const FString& NameOverride, FIntPoint Resolution, float DelayBeforeScreenshotSeconds);
+	UFUNCTION(BlueprintCallable, Category = "Automation", meta = (Latent, HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", LatentInfo = "LatentInfo", NameOverride = "" ))
+	static void TakeAutomationScreenshotAtCamera(UObject* WorldContextObject, FLatentActionInfo LatentInfo, ACameraActor* Camera, const FString& NameOverride, FAutomationScreenshotOptions Options);
 
-    UFUNCTION(BlueprintCallable, Category = "StudiosAutomation|Performance")
-    static void BeginPerformanceCapture();
+    //UFUNCTION(BlueprintCallable, Category = "Automation|Performance")
+    //static void BeginPerformanceCapture();
 
-    UFUNCTION(BlueprintCallable, Category = "StudiosAutomation|Performance")
-    static void EndPerformanceCapture();
+    //UFUNCTION(BlueprintCallable, Category = "Automation|Performance")
+    //static void EndPerformanceCapture();
+
+	UFUNCTION(BlueprintPure, Category="Automation")
+	static bool AreAutomatedTestsRunning();
+
+	UFUNCTION(BlueprintPure, Category="Automation")
+	static FAutomationScreenshotOptions GetDefaultScreenshotOptionsForGameplay(EComparisonTolerance Tolerance = EComparisonTolerance::Low);
+
+	UFUNCTION(BlueprintPure, Category="Automation")
+	static FAutomationScreenshotOptions GetDefaultScreenshotOptionsForRendering(EComparisonTolerance Tolerance = EComparisonTolerance::Low);
 };

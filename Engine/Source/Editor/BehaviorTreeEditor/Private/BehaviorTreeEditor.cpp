@@ -38,6 +38,7 @@
 #include "SDockTab.h"
 #include "GenericCommands.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "Factories/DataAssetFactory.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 

@@ -321,6 +321,17 @@ private:
 		return bUseSeparateRenderTarget || bForceSeparateRenderTarget;
 	}
 
+	/** 
+	 * Called right before a backbuffer is resized. If this viewport is using this backbuffer 
+	 * it will release its resource here
+	 */
+	void OnPreResizeWindowBackbuffer(void* Backbuffer);
+
+	/** 
+	 * Called right after a backbuffer is resized. This viewport will reaquire its backbuffer handle if needed
+	 */
+	void OnPostResizeWindowBackbuffer(void* Backbuffer);
+
 private:
 	/** An intermediate reply state that is reset whenever an input event is generated */
 	FReply CurrentReplyState;

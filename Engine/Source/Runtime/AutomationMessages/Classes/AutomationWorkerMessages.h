@@ -170,9 +170,35 @@ struct FAutomationWorkerRequestTestsReply
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Holds the test information serialized into a string. */
 	UPROPERTY(EditAnywhere, Category="Message")
-	FString TestInfo;
+	FString DisplayName;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString FullTestPath;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString TestName;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString TestParameter;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString SourceFile;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 SourceFileLine;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString AssetPath;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString OpenCommand;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint32 TestFlags;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint32 NumParticipantsRequired;
 
 	/** Holds the total number of tests returned. */
 	UPROPERTY(EditAnywhere, Category="Message")
@@ -182,10 +208,35 @@ struct FAutomationWorkerRequestTestsReply
 	FAutomationWorkerRequestTestsReply() { }
 
 	/** Creates and initializes a new instance. */
-	FAutomationWorkerRequestTestsReply(const FString& InTestInfo, const int32& InTotalNumTests)
-		: TestInfo(InTestInfo)
-		, TotalNumTests(InTotalNumTests)
-	{ }
+	FAutomationWorkerRequestTestsReply(const FAutomationTestInfo& InTestInfo, const int32& InTotalNumTests)
+		: TotalNumTests(InTotalNumTests)
+	{
+		DisplayName = InTestInfo.GetDisplayName();
+		FullTestPath = InTestInfo.GetFullTestPath();
+		TestName = InTestInfo.GetTestName();
+		TestParameter = InTestInfo.GetTestParameter();
+		SourceFile = InTestInfo.GetSourceFile();
+		SourceFileLine = InTestInfo.GetSourceFileLine();
+		AssetPath = InTestInfo.GetAssetPath();
+		OpenCommand = InTestInfo.GetOpenCommand();
+		TestFlags = InTestInfo.GetTestFlags();
+		NumParticipantsRequired = InTestInfo.GetNumParticipantsRequired();
+	}
+
+	FAutomationTestInfo GetTestInfo() const
+	{
+		return FAutomationTestInfo(
+			DisplayName,
+			FullTestPath,
+			TestName,
+			TestFlags,
+			NumParticipantsRequired,
+			TestParameter,
+			SourceFile,
+			SourceFileLine,
+			AssetPath,
+			OpenCommand);
+	}
 };
 
 

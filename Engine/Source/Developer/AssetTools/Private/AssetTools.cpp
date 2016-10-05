@@ -16,6 +16,7 @@
 #include "UnrealExporter.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "AutomatedAssetImportData.h"
 
 #define LOCTEXT_NAMESPACE "AssetTools"
 
@@ -564,6 +565,19 @@ TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
 	return ReturnObjects;
 }
 
+TArray<UObject*> FAssetTools::ImportAssetsAutomated(const UAutomatedAssetImportData& ImportData) const
+{
+	FAssetImportParams Params;
+
+	Params.bAutomated = true;
+	Params.bForceOverrideExisting = ImportData.bReplaceExisting;
+	Params.bSyncToBrowser = false;
+	Params.SpecifiedFactory = ImportData.Factory;
+	Params.ImportData = &ImportData;
+
+	return ImportAssetsInternal(ImportData.Filenames, ImportData.DestinationPath, Params);
+}
+
 void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const
 {
 	// Iterate through all files in the list, if any folders are found, recurse and expand them.
@@ -600,415 +614,18 @@ void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString&
 	}
 }
 
-TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory, bool bSyncToBrowser ) const
+TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory, bool bSyncToBrowser) const
 {
-	TArray<UObject*> ReturnObjects;
-	TMap< FString, TArray<UFactory*> > ExtensionToFactoriesMap;
+	const bool bForceOverrideExisting = false;
 
-	FScopedSlowTask SlowTask(Files.Num() + 3, LOCTEXT("ImportSlowTask", "Importing"));
-	SlowTask.MakeDialog();
+	FAssetImportParams Params;
 
-	// Reset the 'Do you want to overwrite the existing object?' Yes to All / No to All prompt, to make sure the
-	// user gets a chance to select something
-	UFactory::ResetState();
+	Params.bAutomated = false;
+	Params.bForceOverrideExisting = false;
+	Params.bSyncToBrowser = bSyncToBrowser;
+	Params.SpecifiedFactory = SpecifiedFactory;
 
-	SlowTask.EnterProgressFrame();
-
-	TArray<TPair<FString, FString>> FilesAndDestinations;
-	ExpandDirectories(Files, RootDestinationPath, FilesAndDestinations);
-
-	SlowTask.EnterProgressFrame(1, LOCTEXT("Import_DeterminingImportTypes", "Determining asset types"));
-
-	if (SpecifiedFactory == nullptr)
-	{	
-		// First instantiate one factory for each file extension encountered that supports the extension
-		// @todo import: gmp: show dialog in case of multiple matching factories
-		for( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
-		{
-			if (!(*ClassIt)->IsChildOf(UFactory::StaticClass()) || ((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)))
-			{
-				continue;
-			}
-
-			UFactory* Factory = Cast<UFactory>( (*ClassIt)->GetDefaultObject() );
-
-			if (!Factory->bEditorImport)
-			{
-				continue;
-			}
-
-			TArray<FString> FactoryExtensions;
-			Factory->GetSupportedFileExtensions(FactoryExtensions);
-
-			for (auto& FileDest : FilesAndDestinations)
-			{
-				const FString FileExtension = FPaths::GetExtension(FileDest.Key);
-	
-				// Case insensitive string compare with supported formats of this factory
-				if ( FactoryExtensions.Contains(FileExtension) )
-				{
-					TArray<UFactory*>& ExistingFactories = ExtensionToFactoriesMap.FindOrAdd(FileExtension);
-							
-					// Do not remap extensions, just reuse the existing UFactory.
-					// There may be multiple UFactories, so we will keep track of all of them
-					bool bFactoryAlreadyInMap = false;
-					for ( auto FoundFactoryIt = ExistingFactories.CreateConstIterator(); FoundFactoryIt; ++FoundFactoryIt )
-					{
-						if ( (*FoundFactoryIt)->GetClass() == Factory->GetClass() )
-						{
-							bFactoryAlreadyInMap = true;
-							break;
-						}
-					}
-	
-					if ( !bFactoryAlreadyInMap )
-					{
-						// We found a factory for this file, it can be imported!
-						// Create a new factory of the same class and make sure it doesn't get GCed.
-						// The object will be removed from the root set at the end of this function.
-						UFactory* NewFactory = NewObject<UFactory>(GetTransientPackage(), Factory->GetClass());
-						if ( NewFactory->ConfigureProperties() )
-						{
-							NewFactory->AddToRoot();
-							ExistingFactories.Add(NewFactory);
-						}
-					}
-				}
-			}
-		}
-	}
-	else if( SpecifiedFactory->bEditorImport )
-	{
-		TArray<FString> FactoryExtensions;
-		SpecifiedFactory->GetSupportedFileExtensions(FactoryExtensions);
-
-		for (auto FileIt = Files.CreateConstIterator(); FileIt; ++FileIt)
-		{
-			const FString FileExtension = FPaths::GetExtension(*FileIt);
-
-			// Case insensitive string compare with supported formats of this factory
-			if (!FactoryExtensions.Contains(FileExtension))
-			{
-				continue;
-			}
-
-			TArray<UFactory*>& ExistingFactories = ExtensionToFactoriesMap.FindOrAdd(FileExtension);
-
-			// Do not remap extensions, just reuse the existing UFactory.
-			// There may be multiple UFactories, so we will keep track of all of them
-			bool bFactoryAlreadyInMap = false;
-			for ( auto FoundFactoryIt = ExistingFactories.CreateConstIterator(); FoundFactoryIt; ++FoundFactoryIt )
-			{
-				if ( (*FoundFactoryIt)->GetClass() == SpecifiedFactory->GetClass() )
-				{
-					bFactoryAlreadyInMap = true;
-					break;
-				}
-			}
-
-			if ( !bFactoryAlreadyInMap )
-			{
-				// We found a factory for this file, it can be imported!
-				// Create a new factory of the same class and make sure it doesnt get GCed.
-				// The object will be removed from the root set at the end of this function.
-				UFactory* NewFactory = NewObject<UFactory>(GetTransientPackage(), SpecifiedFactory->GetClass());
-				if ( NewFactory->ConfigureProperties() )
-				{
-					NewFactory->AddToRoot();
-					ExistingFactories.Add(NewFactory);
-				}
-			}
-		}
-	}
-
-	// We need to sort the factories so that they get tested in priority order
-	for (auto& ExtensionToFactories : ExtensionToFactoriesMap)
-	{
-		ExtensionToFactories.Value.Sort(&UFactory::SortFactoriesByPriority);
-	}
-
-	// Some flags to keep track of what the user decided when asked about overwriting or replacing
-	bool bOverwriteAll = false;
-	bool bReplaceAll = false;
-	bool bDontOverwriteAny = false;
-	bool bDontReplaceAny = false;
-
-	// Now iterate over the input files and use the same factory object for each file with the same extension
-	for ( int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx )
-	{
-		const FString& Filename = FilesAndDestinations[FileIdx].Key;
-		const FString& DestinationPath = FilesAndDestinations[FileIdx].Value;
-
-		SlowTask.EnterProgressFrame(1, FText::Format(LOCTEXT("Import_ImportingFile", "Importing \"{0}\"..."), FText::FromString(FPaths::GetBaseFilename(Filename))));
-
-		FString FileExtension = FPaths::GetExtension(Filename);
-
-		const TArray<UFactory*>* FactoriesPtr = ExtensionToFactoriesMap.Find(FileExtension);
-		UFactory* Factory = nullptr;
-		//When doing automationtest we can setup factory option and we need to make sure we use the specified one
-		if (GIsAutomationTesting && SpecifiedFactory && SpecifiedFactory->FactoryCanImport(Filename))
-		{
-			Factory = SpecifiedFactory;
-		}
-		else if ( FactoriesPtr )
-		{
-			const TArray<UFactory*>& Factories = *FactoriesPtr;
-
-			// Handle the potential of multiple factories being found
-			if( Factories.Num() > 0 )
-			{
-				Factory = Factories[0];
-
-				for( auto FactoryIt = Factories.CreateConstIterator(); FactoryIt; ++FactoryIt )
-				{
-					UFactory* TestFactory = *FactoryIt;
-					if( TestFactory->FactoryCanImport( Filename ) )
-					{
-						Factory = TestFactory;
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			if(FEngineAnalytics::IsAvailable())
-			{
-				TArray<FAnalyticsEventAttribute> Attribs;
-				Attribs.Add(FAnalyticsEventAttribute(TEXT("FileExtension"), FileExtension));
-
-				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.ImportFailed"), Attribs);
-			}
-
-			const FText Message = FText::Format( LOCTEXT("ImportFailed_UnknownExtension", "Failed to import '{0}'. Unknown extension '{1}'."), FText::FromString( Filename ), FText::FromString( FileExtension ) );
-			FNotificationInfo Info(Message);
-			Info.ExpireDuration = 3.0f;
-			Info.bUseLargeFont = false;
-			Info.bFireAndForget = true;
-			Info.bUseSuccessFailIcons = true;
-			FSlateNotificationManager::Get().AddNotification(Info)->SetCompletionState(SNotificationItem::CS_Fail);
-
-			UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString() );
-		}
-
-		if ( Factory != nullptr )
-		{
-			UClass* ImportAssetType = Factory->SupportedClass;
-			bool bImportSucceeded = false;
-			bool bImportWasCancelled = false;
-			FDateTime ImportStartTime = FDateTime::UtcNow();
-
-			FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Filename));
-			FString PackageName = DestinationPath + TEXT("/") + Name;
-
-			// We can not create assets that share the name of a map file in the same location
-			if ( FEditorFileUtils::IsMapPackageAsset(PackageName) )
-			{
-				const FText Message = FText::Format( LOCTEXT("AssetNameInUseByMap", "You can not create an asset named '{0}' because there is already a map file with this name in this folder."), FText::FromString( Name ) );
-				FMessageDialog::Open( EAppMsgType::Ok, Message );
-				UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
-				OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
-				continue;
-			}
-
-			UPackage* Pkg = CreatePackage(nullptr, *PackageName);
-			if ( !ensure(Pkg) )
-			{
-				// Failed to create the package to hold this asset for some reason
-				OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
-				continue;
-			}
-
-			// Make sure the destination package is loaded
-			Pkg->FullyLoad();
-
-			// Check for an existing object
-			UObject* ExistingObject = StaticFindObject( UObject::StaticClass(), Pkg, *Name );
-			if( ExistingObject != nullptr )
-			{
-				// If the existing object is one of the imports we've just created we can't replace or overwrite it
-				if (ReturnObjects.Contains(ExistingObject))
-				{
-					if( ImportAssetType == nullptr )
-					{
-						// The factory probably supports multiple types and cant be determined yet without asking the user or actually loading it
-						// We just need to generate an unused name so object should do fine.
-						ImportAssetType = UObject::StaticClass();
-					}
-					// generate a unique name for this import
-					Name = MakeUniqueObjectName(Pkg, ImportAssetType, *Name).ToString();
-				}
-				else
-				{
-					// If the object is supported by the factory we are using, ask if we want to overwrite the asset
-					// Otherwise, prompt to replace the object
-					if (Factory->DoesSupportClass(ExistingObject->GetClass()))
-					{
-						// The factory can overwrite this object, ask if that is okay, unless "Yes To All" or "No To All" was already selected
-						EAppReturnType::Type UserResponse;
-
-						if (bOverwriteAll || GIsAutomationTesting)
-						{
-							UserResponse = EAppReturnType::YesAll;
-						}
-						else if (bDontOverwriteAny)
-						{
-							UserResponse = EAppReturnType::NoAll;
-						}
-						else
-						{
-							UserResponse = FMessageDialog::Open(
-								EAppMsgType::YesNoYesAllNoAll,
-								FText::Format(LOCTEXT("ImportObjectAlreadyExists_SameClass", "Do you want to overwrite the existing asset?\n\nAn asset already exists at the import location: {0}"), FText::FromString(PackageName)));
-
-							bOverwriteAll = UserResponse == EAppReturnType::YesAll;
-							bDontOverwriteAny = UserResponse == EAppReturnType::NoAll;
-						}
-
-						const bool bWantOverwrite = UserResponse == EAppReturnType::Yes || UserResponse == EAppReturnType::YesAll;
-
-						if (!bWantOverwrite)
-						{
-							// User chose not to replace the package
-							bImportWasCancelled = true;
-							OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
-							continue;
-						}
-					}
-					else
-					{
-						// The factory can't overwrite this asset, ask if we should delete the object then import the new one. Only do this if "Yes To All" or "No To All" was not already selected.
-						EAppReturnType::Type UserResponse;
-
-						if (bReplaceAll)
-						{
-							UserResponse = EAppReturnType::YesAll;
-						}
-						else if (bDontReplaceAny)
-						{
-							UserResponse = EAppReturnType::NoAll;
-						}
-						else
-						{
-							UserResponse = FMessageDialog::Open(
-								EAppMsgType::YesNoYesAllNoAll,
-								FText::Format(LOCTEXT("ImportObjectAlreadyExists_DifferentClass", "Do you want to replace the existing asset?\n\nAn asset already exists at the import location: {0}"), FText::FromString(PackageName)));
-
-							bReplaceAll = UserResponse == EAppReturnType::YesAll;
-							bDontReplaceAny = UserResponse == EAppReturnType::NoAll;
-						}
-
-						const bool bWantReplace = UserResponse == EAppReturnType::Yes || UserResponse == EAppReturnType::YesAll;
-
-						if (bWantReplace)
-						{
-							// Delete the existing object
-							int32 NumObjectsDeleted = 0;
-							TArray< UObject* > ObjectsToDelete;
-							ObjectsToDelete.Add(ExistingObject);
-
-							// If the user forcefully deletes the package, all sorts of things could become invalidated,
-							// the Pkg pointer might be killed even though it was added to the root.
-							TWeakObjectPtr<UPackage> WeakPkg(Pkg);
-							
-							// Dont let the package get garbage collected (just in case we are deleting the last asset in the package)
-							Pkg->AddToRoot();
-							NumObjectsDeleted = ObjectTools::DeleteObjects(ObjectsToDelete, /*bShowConfirmation=*/false);
-							
-							// If the weak package ptr is still valid, it should then be safe to remove it from the root.
-							if ( WeakPkg.IsValid() )
-							{
-								Pkg->RemoveFromRoot();
-							}
-
-							const FString QualifiedName = PackageName + TEXT(".") + Name;
-							FText Reason;
-							if (NumObjectsDeleted == 0 || !IsUniqueObjectName(*QualifiedName, ANY_PACKAGE, Reason))
-							{
-								// Original object couldn't be deleted
-								const FText Message = FText::Format(LOCTEXT("ImportDeleteFailed", "Failed to delete '{0}'. The asset is referenced by other content."), FText::FromString(PackageName));
-								FMessageDialog::Open(EAppMsgType::Ok, Message);
-								UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
-								OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
-								continue;
-							}
-							else
-							{
-								// succeed, recreate package since it has been deleted
-								Pkg = CreatePackage(nullptr, *PackageName);
-							}
-						}
-						else
-						{
-							// User chose not to replace the package
-							bImportWasCancelled = true;
-							OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
-							continue;
-						}
-					}
-				}
-			}
-
-			// Check for a package that was marked for delete in source control
-			if ( !CheckForDeletedPackage(Pkg) )
-			{
-				OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
-				continue;
-			}
-
-			ImportAssetType = Factory->ResolveSupportedClass();
-			UObject* Result = Factory->ImportObject(ImportAssetType, Pkg, FName(*Name), RF_Public | RF_Standalone, Filename, nullptr, bImportWasCancelled);
-
-			// Do not report any error if the operation was canceled.
-			if(!bImportWasCancelled)
-			{
-				if ( Result )
-				{
-					ReturnObjects.Add( Result );
-
-					// Notify the asset registry
-					FAssetRegistryModule::AssetCreated(Result);
-					GEditor->BroadcastObjectReimported(Result);
-
-					bImportSucceeded = true;
-				}
-				else
-				{
-					const FText Message = FText::Format( LOCTEXT("ImportFailed_Generic", "Failed to import '{0}'. Failed to create asset '{1}'.\nPlease see Output Log for details."), FText::FromString( Filename ), FText::FromString( PackageName ) );
-					FMessageDialog::Open( EAppMsgType::Ok, Message );
-					UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
-				}
-			}
-
-			// Refresh the supported class.  Some factories (e.g. FBX) only resolve their type after reading the file
-			ImportAssetType = Factory->ResolveSupportedClass();
-			OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
-		}
-		else
-		{
-			// A factory or extension was not found. The extension warning is above. If a factory was not found, the user likely canceled a factory configuration dialog.
-		}
-	}
-
-	SlowTask.EnterProgressFrame(1);
-
-	// Clean up and remove the factories we created from the root set
-	for ( auto ExtensionIt = ExtensionToFactoriesMap.CreateConstIterator(); ExtensionIt; ++ExtensionIt)
-	{
-		for ( auto FactoryIt = ExtensionIt.Value().CreateConstIterator(); FactoryIt; ++FactoryIt )
-		{
-			(*FactoryIt)->CleanUp();
-			(*FactoryIt)->RemoveFromRoot();
-		}
-	}
-
-	// Sync content browser to the newly created assets
-	if ( ReturnObjects.Num() && (bSyncToBrowser != false ) )
-	{
-		FAssetTools::Get().SyncBrowserToAssets(ReturnObjects);
-	}
-
-	return ReturnObjects;
+	return ImportAssetsInternal(Files, RootDestinationPath, Params);
 }
 
 void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const
@@ -1383,6 +1000,435 @@ void FAssetTools::OnNewCreateRecord(UClass* AssetType, bool bDuplicated)
 
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.CreateAsset"), Attribs);
 	}
+}
+
+TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files, const FString& RootDestinationPath, const FAssetImportParams& Params) const
+{
+	UFactory* SpecifiedFactory = Params.SpecifiedFactory;
+	const bool bForceOverrideExisting = Params.bForceOverrideExisting;
+	const bool bSyncToBrowser = Params.bSyncToBrowser;
+	const bool bAutomatedImport = Params.bAutomated || GIsAutomationTesting;
+
+	TArray<UObject*> ReturnObjects;
+	TMap< FString, TArray<UFactory*> > ExtensionToFactoriesMap;
+
+	FScopedSlowTask SlowTask(Files.Num() + 3, LOCTEXT("ImportSlowTask", "Importing"));
+	SlowTask.MakeDialog();
+
+
+	SlowTask.EnterProgressFrame();
+
+	TArray<TPair<FString, FString>> FilesAndDestinations;
+	ExpandDirectories(Files, RootDestinationPath, FilesAndDestinations);
+
+	SlowTask.EnterProgressFrame(1, LOCTEXT("Import_DeterminingImportTypes", "Determining asset types"));
+
+
+	if(SpecifiedFactory == nullptr)
+	{
+		// First instantiate one factory for each file extension encountered that supports the extension
+		// @todo import: gmp: show dialog in case of multiple matching factories
+		for(TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			if(!(*ClassIt)->IsChildOf(UFactory::StaticClass()) || ((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)))
+			{
+				continue;
+			}
+
+			UFactory* Factory = Cast<UFactory>((*ClassIt)->GetDefaultObject());
+
+			if(!Factory->bEditorImport)
+			{
+				continue;
+			}
+
+			TArray<FString> FactoryExtensions;
+			Factory->GetSupportedFileExtensions(FactoryExtensions);
+
+			for(auto& FileDest : FilesAndDestinations)
+			{
+				const FString FileExtension = FPaths::GetExtension(FileDest.Key);
+
+				// Case insensitive string compare with supported formats of this factory
+				if(FactoryExtensions.Contains(FileExtension))
+				{
+					TArray<UFactory*>& ExistingFactories = ExtensionToFactoriesMap.FindOrAdd(FileExtension);
+
+					// Do not remap extensions, just reuse the existing UFactory.
+					// There may be multiple UFactories, so we will keep track of all of them
+					bool bFactoryAlreadyInMap = false;
+					for(auto FoundFactoryIt = ExistingFactories.CreateConstIterator(); FoundFactoryIt; ++FoundFactoryIt)
+					{
+						if((*FoundFactoryIt)->GetClass() == Factory->GetClass())
+						{
+							bFactoryAlreadyInMap = true;
+							break;
+						}
+					}
+
+					if(!bFactoryAlreadyInMap)
+					{
+						// We found a factory for this file, it can be imported!
+						// Create a new factory of the same class and make sure it doesn't get GCed.
+						// The object will be removed from the root set at the end of this function.
+						UFactory* NewFactory = NewObject<UFactory>(GetTransientPackage(), Factory->GetClass());
+						if(NewFactory->ConfigureProperties())
+						{
+							NewFactory->AddToRoot();
+							ExistingFactories.Add(NewFactory);
+						}
+					}
+				}
+			}
+		}
+	}
+	else if(SpecifiedFactory->bEditorImport && !bAutomatedImport) 
+	{
+
+		TArray<FString> FactoryExtensions;
+		SpecifiedFactory->GetSupportedFileExtensions(FactoryExtensions);
+
+		for(auto FileIt = Files.CreateConstIterator(); FileIt; ++FileIt)
+		{
+			const FString FileExtension = FPaths::GetExtension(*FileIt);
+
+			// Case insensitive string compare with supported formats of this factory
+			if(!FactoryExtensions.Contains(FileExtension))
+			{
+				continue;
+			}
+
+			TArray<UFactory*>& ExistingFactories = ExtensionToFactoriesMap.FindOrAdd(FileExtension);
+
+			// Do not remap extensions, just reuse the existing UFactory.
+			// There may be multiple UFactories, so we will keep track of all of them
+			bool bFactoryAlreadyInMap = false;
+			for(auto FoundFactoryIt = ExistingFactories.CreateConstIterator(); FoundFactoryIt; ++FoundFactoryIt)
+			{
+				if((*FoundFactoryIt)->GetClass() == SpecifiedFactory->GetClass())
+				{
+					bFactoryAlreadyInMap = true;
+					break;
+				}
+			}
+
+			if(!bFactoryAlreadyInMap)
+			{
+				// We found a factory for this file, it can be imported!
+				// Create a new factory of the same class and make sure it doesnt get GCed.
+				// The object will be removed from the root set at the end of this function.
+				UFactory* NewFactory = NewObject<UFactory>(GetTransientPackage(), SpecifiedFactory->GetClass());
+				if(NewFactory->ConfigureProperties())
+				{
+					NewFactory->AddToRoot();
+					ExistingFactories.Add(NewFactory);
+				}
+			}
+		}
+	}
+
+	// We need to sort the factories so that they get tested in priority order
+	for(auto& ExtensionToFactories : ExtensionToFactoriesMap)
+	{
+		ExtensionToFactories.Value.Sort(&UFactory::SortFactoriesByPriority);
+	}
+
+	// Some flags to keep track of what the user decided when asked about overwriting or replacing
+	bool bOverwriteAll = false;
+	bool bReplaceAll = false;
+	bool bDontOverwriteAny = false;
+	bool bDontReplaceAny = false;
+
+	// Now iterate over the input files and use the same factory object for each file with the same extension
+	for(int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
+	{
+		const FString& Filename = FilesAndDestinations[FileIdx].Key;
+		const FString& DestinationPath = FilesAndDestinations[FileIdx].Value;
+
+		SlowTask.EnterProgressFrame(1, FText::Format(LOCTEXT("Import_ImportingFile", "Importing \"{0}\"..."), FText::FromString(FPaths::GetBaseFilename(Filename))));
+
+		FString FileExtension = FPaths::GetExtension(Filename);
+
+		const TArray<UFactory*>* FactoriesPtr = ExtensionToFactoriesMap.Find(FileExtension);
+		UFactory* Factory = nullptr;
+		// Assume that for automated import, the user knows exactly what factory to use if it exists
+		if(bAutomatedImport && SpecifiedFactory && SpecifiedFactory->FactoryCanImport(Filename))
+		{
+			Factory = SpecifiedFactory;
+		}
+		else if(FactoriesPtr)
+		{
+			const TArray<UFactory*>& Factories = *FactoriesPtr;
+
+			// Handle the potential of multiple factories being found
+			if(Factories.Num() > 0)
+			{
+				Factory = Factories[0];
+
+				for(auto FactoryIt = Factories.CreateConstIterator(); FactoryIt; ++FactoryIt)
+				{
+					UFactory* TestFactory = *FactoryIt;
+					if(TestFactory->FactoryCanImport(Filename))
+					{
+						Factory = TestFactory;
+						break;
+					}
+				}
+			}
+		}
+		else
+		{
+			if(FEngineAnalytics::IsAvailable())
+			{
+				TArray<FAnalyticsEventAttribute> Attribs;
+				Attribs.Add(FAnalyticsEventAttribute(TEXT("FileExtension"), FileExtension));
+
+				FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.ImportFailed"), Attribs);
+			}
+
+			const FText Message = FText::Format(LOCTEXT("ImportFailed_UnknownExtension", "Failed to import '{0}'. Unknown extension '{1}'."), FText::FromString(Filename), FText::FromString(FileExtension));
+			FNotificationInfo Info(Message);
+			Info.ExpireDuration = 3.0f;
+			Info.bUseLargeFont = false;
+			Info.bFireAndForget = true;
+			Info.bUseSuccessFailIcons = true;
+			FSlateNotificationManager::Get().AddNotification(Info)->SetCompletionState(SNotificationItem::CS_Fail);
+
+			UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
+		}
+
+		if(Factory != nullptr)
+		{
+			// Reset the 'Do you want to overwrite the existing object?' Yes to All / No to All prompt, to make sure the
+			// user gets a chance to select something
+			Factory->ResetState();
+
+			UClass* ImportAssetType = Factory->SupportedClass;
+			bool bImportSucceeded = false;
+			bool bImportWasCancelled = false;
+			FDateTime ImportStartTime = FDateTime::UtcNow();
+
+			FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Filename));
+			FString PackageName = DestinationPath + TEXT("/") + Name;
+
+			// We can not create assets that share the name of a map file in the same location
+			if(FEditorFileUtils::IsMapPackageAsset(PackageName))
+			{
+				const FText Message = FText::Format(LOCTEXT("AssetNameInUseByMap", "You can not create an asset named '{0}' because there is already a map file with this name in this folder."), FText::FromString(Name));
+				if(!bAutomatedImport)
+				{
+					FMessageDialog::Open(EAppMsgType::Ok, Message);
+				}
+				UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
+				OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
+				continue;
+			}
+
+			UPackage* Pkg = CreatePackage(nullptr, *PackageName);
+			if(!ensure(Pkg))
+			{
+				// Failed to create the package to hold this asset for some reason
+				OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
+				continue;
+			}
+
+			// Make sure the destination package is loaded
+			Pkg->FullyLoad();
+
+			// Check for an existing object
+			UObject* ExistingObject = StaticFindObject(UObject::StaticClass(), Pkg, *Name);
+			if(ExistingObject != nullptr)
+			{
+				// If the existing object is one of the imports we've just created we can't replace or overwrite it
+				if(ReturnObjects.Contains(ExistingObject))
+				{
+					if(ImportAssetType == nullptr)
+					{
+						// The factory probably supports multiple types and cant be determined yet without asking the user or actually loading it
+						// We just need to generate an unused name so object should do fine.
+						ImportAssetType = UObject::StaticClass();
+					}
+					// generate a unique name for this import
+					Name = MakeUniqueObjectName(Pkg, ImportAssetType, *Name).ToString();
+				}
+				else
+				{
+					// If the object is supported by the factory we are using, ask if we want to overwrite the asset
+					// Otherwise, prompt to replace the object
+					if(Factory->DoesSupportClass(ExistingObject->GetClass()))
+					{
+						// The factory can overwrite this object, ask if that is okay, unless "Yes To All" or "No To All" was already selected
+						EAppReturnType::Type UserResponse;
+
+						if(bForceOverrideExisting || bOverwriteAll || GIsAutomationTesting)
+						{
+							UserResponse = EAppReturnType::YesAll;
+						}
+						else if(bDontOverwriteAny)
+						{
+							UserResponse = EAppReturnType::NoAll;
+						}
+						else
+						{
+							UserResponse = FMessageDialog::Open(
+								EAppMsgType::YesNoYesAllNoAll,
+								FText::Format(LOCTEXT("ImportObjectAlreadyExists_SameClass", "Do you want to overwrite the existing asset?\n\nAn asset already exists at the import location: {0}"), FText::FromString(PackageName)));
+
+							bOverwriteAll = UserResponse == EAppReturnType::YesAll;
+							bDontOverwriteAny = UserResponse == EAppReturnType::NoAll;
+						}
+
+						const bool bWantOverwrite = UserResponse == EAppReturnType::Yes || UserResponse == EAppReturnType::YesAll;
+
+						if(!bWantOverwrite)
+						{
+							// User chose not to replace the package
+							bImportWasCancelled = true;
+							OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
+							continue;
+						}
+					}
+					else if(!bAutomatedImport)
+					{
+						// The factory can't overwrite this asset, ask if we should delete the object then import the new one. Only do this if "Yes To All" or "No To All" was not already selected.
+						EAppReturnType::Type UserResponse;
+
+						if(bReplaceAll)
+						{
+							UserResponse = EAppReturnType::YesAll;
+						}
+						else if(bDontReplaceAny)
+						{
+							UserResponse = EAppReturnType::NoAll;
+						}
+						else
+						{
+							UserResponse = FMessageDialog::Open(
+								EAppMsgType::YesNoYesAllNoAll,
+								FText::Format(LOCTEXT("ImportObjectAlreadyExists_DifferentClass", "Do you want to replace the existing asset?\n\nAn asset already exists at the import location: {0}"), FText::FromString(PackageName)));
+
+							bReplaceAll = UserResponse == EAppReturnType::YesAll;
+							bDontReplaceAny = UserResponse == EAppReturnType::NoAll;
+						}
+
+						const bool bWantReplace = UserResponse == EAppReturnType::Yes || UserResponse == EAppReturnType::YesAll;
+
+						if(bWantReplace)
+						{
+							// Delete the existing object
+							int32 NumObjectsDeleted = 0;
+							TArray< UObject* > ObjectsToDelete;
+							ObjectsToDelete.Add(ExistingObject);
+
+							// If the user forcefully deletes the package, all sorts of things could become invalidated,
+							// the Pkg pointer might be killed even though it was added to the root.
+							TWeakObjectPtr<UPackage> WeakPkg(Pkg);
+
+							// Dont let the package get garbage collected (just in case we are deleting the last asset in the package)
+							Pkg->AddToRoot();
+							NumObjectsDeleted = ObjectTools::DeleteObjects(ObjectsToDelete, /*bShowConfirmation=*/false);
+
+							// If the weak package ptr is still valid, it should then be safe to remove it from the root.
+							if(WeakPkg.IsValid())
+							{
+								Pkg->RemoveFromRoot();
+							}
+
+							const FString QualifiedName = PackageName + TEXT(".") + Name;
+							FText Reason;
+							if(NumObjectsDeleted == 0 || !IsUniqueObjectName(*QualifiedName, ANY_PACKAGE, Reason))
+							{
+								// Original object couldn't be deleted
+								const FText Message = FText::Format(LOCTEXT("ImportDeleteFailed", "Failed to delete '{0}'. The asset is referenced by other content."), FText::FromString(PackageName));
+								FMessageDialog::Open(EAppMsgType::Ok, Message);
+								UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
+								OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
+								continue;
+							}
+							else
+							{
+								// succeed, recreate package since it has been deleted
+								Pkg = CreatePackage(nullptr, *PackageName);
+							}
+						}
+						else
+						{
+							// User chose not to replace the package
+							bImportWasCancelled = true;
+							OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
+							continue;
+						}
+					}
+				}
+			}
+
+			// Check for a package that was marked for delete in source control
+			if(!CheckForDeletedPackage(Pkg))
+			{
+				OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
+				continue;
+			}
+
+			Factory->SetAutomatedAssetImportData(Params.ImportData);
+
+			ImportAssetType = Factory->ResolveSupportedClass();
+			UObject* Result = Factory->ImportObject(ImportAssetType, Pkg, FName(*Name), RF_Public | RF_Standalone, Filename, nullptr, bImportWasCancelled);
+
+			Factory->SetAutomatedAssetImportData(nullptr);
+
+			// Do not report any error if the operation was canceled.
+			if(!bImportWasCancelled)
+			{
+				if(Result)
+				{
+					ReturnObjects.Add(Result);
+
+					// Notify the asset registry
+					FAssetRegistryModule::AssetCreated(Result);
+					GEditor->BroadcastObjectReimported(Result);
+
+					bImportSucceeded = true;
+				}
+				else
+				{
+					const FText Message = FText::Format(LOCTEXT("ImportFailed_Generic", "Failed to import '{0}'. Failed to create asset '{1}'.\nPlease see Output Log for details."), FText::FromString(Filename), FText::FromString(PackageName));
+					if(!bAutomatedImport)
+					{
+						FMessageDialog::Open(EAppMsgType::Ok, Message);
+					}
+					UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString());
+				}
+			}
+
+			// Refresh the supported class.  Some factories (e.g. FBX) only resolve their type after reading the file
+			ImportAssetType = Factory->ResolveSupportedClass();
+			OnNewImportRecord(ImportAssetType, FileExtension, bImportSucceeded, bImportWasCancelled, ImportStartTime);
+		}
+		else
+		{
+			// A factory or extension was not found. The extension warning is above. If a factory was not found, the user likely canceled a factory configuration dialog.
+		}
+	}
+
+	SlowTask.EnterProgressFrame(1);
+
+	// Clean up and remove the factories we created from the root set
+	for(auto ExtensionIt = ExtensionToFactoriesMap.CreateConstIterator(); ExtensionIt; ++ExtensionIt)
+	{
+		for(auto FactoryIt = ExtensionIt.Value().CreateConstIterator(); FactoryIt; ++FactoryIt)
+		{
+			(*FactoryIt)->CleanUp();
+			(*FactoryIt)->RemoveFromRoot();
+		}
+	}
+
+	// Sync content browser to the newly created assets
+	if(ReturnObjects.Num() && (bSyncToBrowser != false))
+	{
+		FAssetTools::Get().SyncBrowserToAssets(ReturnObjects);
+	}
+
+	return ReturnObjects;
 }
 
 FAssetTools& FAssetTools::Get()

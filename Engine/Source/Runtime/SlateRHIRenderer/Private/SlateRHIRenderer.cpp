@@ -321,6 +321,7 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		ViewInfo->ProjectionMatrix = CreateProjectionMatrix( NewWidth, NewHeight );
 		ViewInfo->bFullscreen = bFullscreen;
 
+		PreResizeBackBufferDelegate.Broadcast(&ViewInfo->ViewportRHI);
 		if( IsValidRef( ViewInfo->ViewportRHI ) )
 		{
 			RHIResizeViewport(ViewInfo->ViewportRHI, NewWidth, NewHeight, bFullscreen);
@@ -329,6 +330,8 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		{
 			ViewInfo->ViewportRHI = RHICreateViewport(ViewInfo->OSWindow, NewWidth, NewHeight, bFullscreen, ViewInfo->PixelFormat);
 		}
+
+		PostResizeBackBufferDelegate.Broadcast(&ViewInfo->ViewportRHI);
 	}
 }
 

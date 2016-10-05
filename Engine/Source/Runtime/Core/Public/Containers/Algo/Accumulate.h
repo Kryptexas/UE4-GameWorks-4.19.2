@@ -32,7 +32,7 @@ namespace Algo
 	FORCEINLINE T Accumulate(const A& Input, T Init, OpT Op)
 	{
 		T Result = MoveTemp(Init);
-		for (auto&& InputElem : Input)
+		for (const auto& InputElem : Input)
 		{
 			Result = Op(MoveTemp(Result), InputElem);
 		}
@@ -67,7 +67,7 @@ namespace Algo
 	FORCEINLINE T TransformAccumulate(const A& Input, MapT MapOp, T Init, OpT Op)
 	{
 		T Result = MoveTemp(Init);
-		for (auto&& InputElem : Input)
+		for (const auto& InputElem : Input)
 		{
 			Result = Op(MoveTemp(Result), MapOp(InputElem));
 		}

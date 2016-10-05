@@ -51,19 +51,29 @@ static TAutoConsoleVariable<float> CVarMaxContactOffset(
 	ECVF_Default);
 
 
-SIZE_T FBodySetupUVInfo::GetResourceSize()
+SIZE_T FBodySetupUVInfo::GetResourceSize() const
 {
-	SIZE_T Size = 0;
-	Size += IndexBuffer.GetAllocatedSize();
-	Size += VertPositions.GetAllocatedSize();
+	return GetResourceSizeBytes();
+}
+
+void FBodySetupUVInfo::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
+{
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(IndexBuffer.GetAllocatedSize());
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(VertPositions.GetAllocatedSize());
 
 	for (int32 ChannelIdx = 0; ChannelIdx < VertUVs.Num(); ChannelIdx++)
 	{
-		Size += VertUVs[ChannelIdx].GetAllocatedSize();
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(VertUVs[ChannelIdx].GetAllocatedSize());
 	}
 
-	Size += VertUVs.GetAllocatedSize();
-	return Size;
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(VertUVs.GetAllocatedSize());
+}
+
+SIZE_T FBodySetupUVInfo::GetResourceSizeBytes() const
+{
+	FResourceSizeEx ResSize;
+	GetResourceSizeEx(ResSize);
+	return ResSize.GetTotalMemoryBytes();
 }
 
 
@@ -1188,15 +1198,15 @@ void UBodySetup::CopyBodySetupProperty(const UBodySetup* Other)
 
 #endif // WITH_EDITOR
 
-SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
+void UBodySetup::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 #if WITH_PHYSX
 	// Count PhysX trimesh mem usage
 	for(PxTriangleMesh* TriMesh : TriMeshes)
 	{
-		ResourceSize += GetPhysxObjectSize(TriMesh, NULL);
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetPhysxObjectSize(TriMesh, NULL));
 	}
 
 	// Count PhysX convex mem usage
@@ -1206,12 +1216,12 @@ SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
 
 		if(ConvexElem.ConvexMesh != NULL)
 		{
-			ResourceSize += GetPhysxObjectSize(ConvexElem.ConvexMesh, NULL);
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetPhysxObjectSize(ConvexElem.ConvexMesh, NULL));
 		}
 
 		if(ConvexElem.ConvexMeshNegX != NULL)
 		{
-			ResourceSize += GetPhysxObjectSize(ConvexElem.ConvexMeshNegX, NULL);
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetPhysxObjectSize(ConvexElem.ConvexMeshNegX, NULL));
 		}
 	}
 
@@ -1220,13 +1230,11 @@ SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
 	if (CookedFormatData.Contains(FPlatformProperties::GetPhysicsFormat()))
 	{
 		const FByteBulkData& FmtData = CookedFormatData.GetFormat(FPlatformProperties::GetPhysicsFormat());
-		ResourceSize += FmtData.GetElementSize() * FmtData.GetElementCount();
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FmtData.GetElementSize() * FmtData.GetElementCount());
 	}
 	
 	// Count any UV info
-	ResourceSize += UVInfo.GetResourceSize();
-
-	return ResourceSize;
+	UVInfo.GetResourceSizeEx(CumulativeResourceSize);
 }
 
 void FKAggregateGeom::Serialize( const FArchive& Ar )

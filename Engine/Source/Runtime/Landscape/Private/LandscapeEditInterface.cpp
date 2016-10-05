@@ -14,6 +14,7 @@ LandscapeEditInterface.cpp: Landscape editing interface
 #include "LandscapeRender.h"
 #include "ComponentReregisterContext.h"
 #include "Containers/ArrayView.h"
+#include "Algo/Transform.h"
 
 // Channel remapping
 extern const size_t ChannelOffsets[4] = {STRUCT_OFFSET(FColor,R), STRUCT_OFFSET(FColor,G), STRUCT_OFFSET(FColor,B), STRUCT_OFFSET(FColor,A)};
@@ -1691,13 +1692,9 @@ void FLandscapeEditDataInterface::DeleteLayer(ULandscapeLayerInfoObject* LayerIn
 
 	// Flush dynamic data (e.g. grass)
 	TSet<ULandscapeComponent*> Components;
-	for (auto& XYComponentPair : LandscapeInfo->XYtoComponentMap)
-	{
-		Components.Add(XYComponentPair.Value);
-	}
+	Algo::Transform(LandscapeInfo->XYtoComponentMap, Components, &TPair<FIntPoint, ULandscapeComponent*>::Value);
 	ALandscapeProxy::InvalidateGeneratedComponentData(Components);
 }
-
 
 void ULandscapeComponent::FillLayer(ULandscapeLayerInfoObject* LayerInfo, FLandscapeEditDataInterface& LandscapeEdit)
 {

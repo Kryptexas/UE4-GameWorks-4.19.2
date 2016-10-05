@@ -168,9 +168,9 @@ void UMediaSoundWave::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 }
 
 
-SIZE_T UMediaSoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
+void UMediaSoundWave::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	return 0; // procedural sound
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 }
 
 

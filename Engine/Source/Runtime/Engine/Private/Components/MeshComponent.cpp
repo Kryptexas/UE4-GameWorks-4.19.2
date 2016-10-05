@@ -103,6 +103,30 @@ int32 UMeshComponent::GetNumOverrideMaterials() const
 	return OverrideMaterials.Num();
 }
 
+#if WITH_EDITOR
+void UMeshComponent::CleanUpOverrideMaterials()
+{
+	//We have to remove material override Ids that are bigger then the material list
+	if (GetNumOverrideMaterials() > GetNumMaterials())
+	{
+		//Remove the override material id that are superior to the static mesh materials number
+		int32 RemoveCount = GetNumOverrideMaterials() - GetNumMaterials();
+		OverrideMaterials.RemoveAt(GetNumMaterials(), RemoveCount);
+	}
+	//Remove override at the end of the array until there is a valid material
+	for (int32 i = GetNumOverrideMaterials() - 1; i >= 0; --i)
+	{
+		UMaterialInterface *OverrideMaterial = OverrideMaterials[i];
+		if (OverrideMaterial == nullptr)
+		{
+			OverrideMaterials.RemoveAt(i);
+			continue;
+		}
+		break;
+	}
+}
+#endif
+
 int32 UMeshComponent::GetNumMaterials() const
 {
 	return 0;

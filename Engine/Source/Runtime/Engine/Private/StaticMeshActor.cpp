@@ -95,11 +95,18 @@ void AStaticMeshActor::PostEditChangeChainProperty(FPropertyChangedChainEvent& P
 {
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 
-	// If we want to replicate movement, set RemoteRole to match
-	if(PropertyChangedEvent.Property != NULL && PropertyChangedEvent.Property->GetFName() == FName(TEXT("bStaticMeshReplicateMovement")))
+	if (PropertyChangedEvent.Property != nullptr)
 	{
-		bReplicateMovement = bStaticMeshReplicateMovement;
-		SetReplicates(bReplicateMovement);
+		// If we want to replicate movement, set RemoteRole to match
+		if (PropertyChangedEvent.Property->GetFName() == FName(TEXT("bStaticMeshReplicateMovement")))
+		{
+			bReplicateMovement = bStaticMeshReplicateMovement;
+			SetReplicates(bReplicateMovement);
+		}
+		else if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_STRING_CHECKED(AStaticMeshActor, StaticMeshComponent) && StaticMeshComponent->StaticMesh != nullptr)
+		{
+			StaticMeshComponent->CleanUpOverrideMaterials();
+		}
 	}
 
 	// Get 'deepest' property name we changed.

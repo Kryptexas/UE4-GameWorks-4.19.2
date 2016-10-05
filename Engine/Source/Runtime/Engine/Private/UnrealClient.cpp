@@ -926,7 +926,7 @@ void FViewport::HighResScreenshot()
 	bTakeHighResScreenShot = false;
 
 	// Notification of a successful screenshot
-	if (GIsEditor || !IsFullscreen())
+	if ((GIsEditor || !IsFullscreen()) && !GIsAutomationTesting )
 	{
 		auto Message = NSLOCTEXT("UnrealClient", "HighResScreenshotSavedAs", "High resolution screenshot saved as");
 		FNotificationInfo Info(Message);

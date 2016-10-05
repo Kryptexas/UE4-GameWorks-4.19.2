@@ -60,9 +60,20 @@ public:
 	 *
 	 * @return Resource size (in bytes).
 	 */
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	SIZE_T GetResourceSize() const
 	{
-		return CachedResourceSize;
+		return GetResourceSizeBytes();
+	}
+
+	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
+	{
+		CumulativeResourceSize += CachedResourceSize;
+	}
+
+	SIZE_T GetResourceSizeBytes() const
+	{
+		return CachedResourceSize.GetTotalMemoryBytes();
 	}
 
 	/**
@@ -208,8 +219,8 @@ private:
 	 */
 	FResource BufferResources[3];
 
-	/** Total size of this resource (in bytes) .*/
-	SIZE_T CachedResourceSize;
+	/** Total size of this resource.*/
+	FResourceSizeEx CachedResourceSize;
 
 	/** Width and height of the output resource (in pixels). */
 	FIntPoint OutputDimensions;

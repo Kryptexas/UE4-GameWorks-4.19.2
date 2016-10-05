@@ -47,7 +47,7 @@ class ENGINE_API UChildActorComponent : public USceneComponent
 
 private:
 	/** The class of Actor to spawn */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ChildActorComponent, meta=(OnlyPlaceable, AllowPrivateAccess="true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ChildActorComponent, meta=(OnlyPlaceable, AllowPrivateAccess="true", ForceRebuildProperty="ChildActorTemplate"))
 	TSubclassOf<AActor>	ChildActorClass;
 
 	/** The actor that we spawned and own */

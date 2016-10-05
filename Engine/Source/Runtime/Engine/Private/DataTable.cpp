@@ -103,17 +103,10 @@ void UDataTable::OnPostDataImported(TArray<FString>& OutCollectedImportProblems)
 {
 	if (RowStruct && RowStruct->IsChildOf(FTableRowBase::StaticStruct()))
 	{
-		static const FString ContextString(TEXT("UDataTable::OnPostDataImport"));
-		
-		TArray<FTableRowBase*> TableRowBaseRows;
-		GetAllRows(ContextString, TableRowBaseRows);
-
-		for (FTableRowBase* CurRow : TableRowBaseRows)
+		for (const TPair<FName, uint8*>& TableRowPair : RowMap)
 		{
-			if (CurRow)
-			{
-				CurRow->OnPostDataImport(OutCollectedImportProblems);
-			}
+			FTableRowBase* CurRow = reinterpret_cast<FTableRowBase*>(TableRowPair.Value);
+			CurRow->OnPostDataImport(this, TableRowPair.Key, OutCollectedImportProblems);
 		}
 	}
 }
@@ -178,17 +171,15 @@ void UDataTable::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 	Super::AddReferencedObjects( This, Collector );
 }
 
-SIZE_T UDataTable::GetResourceSize(EResourceSizeMode::Type Mode)
+void UDataTable::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
-	ResourceSize += RowMap.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RowMap.GetAllocatedSize());
 	if (RowStruct)
 	{
-		ResourceSize += RowMap.Num() * RowStruct->PropertiesSize;
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RowMap.Num() * RowStruct->PropertiesSize);
 	}
-	
-	return ResourceSize;
 }
 
 void UDataTable::FinishDestroy()

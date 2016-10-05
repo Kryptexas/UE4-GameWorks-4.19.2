@@ -3383,27 +3383,26 @@ void UMaterial::FinishDestroy()
 	Super::FinishDestroy();
 }
 
-
-SIZE_T UMaterial::GetResourceSize(EResourceSizeMode::Type Mode)
+void UMaterial::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	int32 ResourceSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	for (int32 InstanceIndex = 0; InstanceIndex < 3; ++InstanceIndex)
 	{
 		if (DefaultMaterialInstances[InstanceIndex])
 		{
-			ResourceSize += sizeof(FDefaultMaterialInstance);
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(FDefaultMaterialInstance));
 		}
 	}
 
-	if (Mode == EResourceSizeMode::Inclusive)
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive)
 	{
 		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 		{
 			for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 			{
 				FMaterialResource* CurrentResource = MaterialResources[QualityLevelIndex][FeatureLevelIndex];
-				ResourceSize += CurrentResource->GetResourceSizeInclusive();
+				CurrentResource->GetResourceSizeEx(CumulativeResourceSize);
 			}
 		}
 
@@ -3418,13 +3417,11 @@ SIZE_T UMaterial::GetResourceSize(EResourceSizeMode::Type Mode)
 				if ( !bTextureAlreadyConsidered )
 				{
 					TheReferencedTextures.Add( Texture );
-					ResourceSize += Texture->GetResourceSize(Mode);
+					Texture->GetResourceSizeEx(CumulativeResourceSize);
 				}
 			}
 		}
 	}
-
-	return ResourceSize;
 }
 
 void UMaterial::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)

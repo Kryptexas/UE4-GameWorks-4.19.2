@@ -1101,6 +1101,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnImportHeightmapFilename
 			int32 i = ImportResolutions.Num() / 2;
 			LandscapeEdMode->UISettings->ImportLandscape_Width = ImportResolutions[i].Width;
 			LandscapeEdMode->UISettings->ImportLandscape_Height = ImportResolutions[i].Height;
+			LandscapeEdMode->UISettings->ImportLandscapeData();
 			ChooseBestComponentSizeForImport(LandscapeEdMode);
 		}
 	}

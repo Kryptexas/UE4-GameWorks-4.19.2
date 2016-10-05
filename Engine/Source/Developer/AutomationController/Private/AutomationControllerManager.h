@@ -4,53 +4,65 @@
 #include "AutomationControllerManager.generated.h"
 
 USTRUCT()
-	struct FAutomatedTestResult
+struct FAutomatedTestResult
+{
+	GENERATED_BODY()
+public:
+
+	UPROPERTY()
+	FString TestName;
+
+	UPROPERTY()
+	FString TestResult;
+
+	UPROPERTY()
+	TArray<FString> TestInfo;
+
+	UPROPERTY()
+	TArray<FString> TestErrors;
+
+	UPROPERTY()
+	TArray<FString> TestWarnings;
+
+	FAutomatedTestResult()
 	{
-		GENERATED_BODY()
-	public:
+		TestResult = TEXT("Not Run");
+	}
+};
 
-		UPROPERTY()
-		FString TestName;
-		UPROPERTY()
-		FString TestResult;
-		UPROPERTY()
-		TArray<FString> TestInfo;
-		UPROPERTY()
-		TArray<FString> TestErrors;
-		UPROPERTY()
-		TArray<FString> TestWarnings;
-		FAutomatedTestResult()
-		{
-			TestResult = TEXT("Not Run");
-		}
-	};	
-	USTRUCT()
-	struct FAutomatedTestPassResults
+USTRUCT()
+struct FAutomatedTestPassResults
+{
+	GENERATED_BODY()
+
+public:
+	FAutomatedTestPassResults()
+		: NumSucceeded(0)
+		, NumFailed(0)
+		, NumNotRun(0)
 	{
-		GENERATED_BODY()
+	}
 
-	public:
-		FAutomatedTestPassResults()
-		{
+	UPROPERTY()
+	int32 NumSucceeded;
 
+	UPROPERTY()
+	int32 NumFailed;
 
-		}
-		UPROPERTY()
-			int NumSucceeded;
-		UPROPERTY()
-			int NumFailed;
-		UPROPERTY()
-			int NumNotRun;
-		UPROPERTY()
-			TArray<FAutomatedTestResult> TestInformation;
-		void ClearAllEntries()
-		{
-			NumSucceeded = 0;
-			NumFailed = 0;
-			NumNotRun = 0;
-			TestInformation.Empty();
-		}
-	};
+	UPROPERTY()
+	int32 NumNotRun;
+
+	UPROPERTY()
+	TArray<FAutomatedTestResult> TestInformation;
+
+	void ClearAllEntries()
+	{
+		NumSucceeded = 0;
+		NumFailed = 0;
+		NumNotRun = 0;
+		TestInformation.Empty();
+	}
+};
 
 
 
@@ -59,8 +71,6 @@ USTRUCT()
  */
 class FAutomationControllerManager : public IAutomationControllerManager
 {
-
-
 public:
 	// IAutomationController Interface
 

@@ -528,9 +528,6 @@ void FEdModeLandscape::Exit()
 	LandscapeList.Empty();
 	LandscapeTargetList.Empty();
 
-	// Clear any import landscape data
-	UISettings->ClearImportLandscapeData();
-
 	// Save UI settings to config file
 	UISettings->Save();
 	GLandscapeViewMode = ELandscapeViewMode::Normal;

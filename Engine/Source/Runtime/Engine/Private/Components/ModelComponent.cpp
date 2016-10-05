@@ -259,17 +259,15 @@ void UModelComponent::PostEditUndo()
 }
 #endif // WITH_EDITOR
 
-SIZE_T UModelComponent::GetResourceSize(EResourceSizeMode::Type Mode)
+void UModelComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	// Count the bodysetup we own as well for 'inclusive' stats
-	if((Mode == EResourceSizeMode::Inclusive) && (ModelBodySetup != NULL))
+	if((CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive) && (ModelBodySetup != NULL))
 	{
-		ResSize += ModelBodySetup->GetResourceSize(Mode);
+		ModelBodySetup->GetResourceSizeEx(CumulativeResourceSize);
 	}
-
-	return ResSize;
 }
 
 

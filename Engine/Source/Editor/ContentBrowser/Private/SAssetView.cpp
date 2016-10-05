@@ -169,6 +169,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bSortByPathInColumnView = bShowPathInColumnView & InArgs._SortByPathInColumnView;
 
 	bPendingUpdateThumbnails = false;
+	bShouldNotifyNextAssetSync = true;
 	CurrentThumbnailSize = TileViewThumbnailSize;
 
 	SourcesData = InArgs._InitialSourcesData;
@@ -406,6 +407,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	if( InArgs._InitialAssetSelection.IsValid() )
 	{
 		// sync to the initial item without notifying of selection
+		bShouldNotifyNextAssetSync = false;
 		TArray<FAssetData> AssetsToSync;
 		AssetsToSync.Add( InArgs._InitialAssetSelection );
 		SyncToAssets( AssetsToSync );
@@ -917,10 +919,11 @@ void SAssetView::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 			// Don't sync to selection because we are just going to do it below
 			SortList(/*bSyncToSelection=*/false);
 		}
-
+		
 		bBulkSelecting = true;
 		ClearSelection();
 		bool bFoundScrollIntoViewTarget = false;
+
 		for ( auto ItemIt = FilteredAssetItems.CreateConstIterator(); ItemIt; ++ItemIt )
 		{
 			const auto& Item = *ItemIt;
@@ -940,8 +943,17 @@ void SAssetView::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 				}
 			}
 		}
-		
+	
 		bBulkSelecting = false;
+
+		if (bShouldNotifyNextAssetSync && !bUserSearching)
+		{
+			AssetSelectionChanged(TSharedPtr<FAssetViewAsset>(), ESelectInfo::Direct);
+		}
+
+		// Default to always notifying
+		bShouldNotifyNextAssetSync = true;
+
 
 		PendingSyncAssets.Empty();
 

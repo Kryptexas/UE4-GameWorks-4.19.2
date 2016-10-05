@@ -245,9 +245,9 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					// Windows Vista or higher required
-					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0600");
-					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0600");
+					// Windows 7 or higher required
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0601");
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0601");
 				}
 			}
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINDOWS=1");

@@ -2056,19 +2056,17 @@ FVector USkeletalMeshComponent::GetClosestCollidingRigidBodyLocation(const FVect
 	return Best;
 }
 
-SIZE_T USkeletalMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )
+void USkeletalMeshComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	for (int32 i=0; i < Bodies.Num(); ++i)
 	{
 		if (Bodies[i] != nullptr && Bodies[i]->IsValidBodyInstance())
 		{
-			ResSize += Bodies[i]->GetBodyInstanceResourceSize(Mode);
+			Bodies[i]->GetBodyInstanceResourceSizeEx(CumulativeResourceSize);
 		}
 	}
-
-	return ResSize;
 }
 
 void USkeletalMeshComponent::SetAnimationMode(EAnimationMode::Type InAnimationMode)

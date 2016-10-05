@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "Widget.h"
 #include "ProgressWidgetStyle.h"
-
 #include "ProgressBar.generated.h"
+
+class USlateBrushAsset;
 
 /**
  * The progress bar widget is a simple bar that fills up that can be restyled to fit any number of uses.

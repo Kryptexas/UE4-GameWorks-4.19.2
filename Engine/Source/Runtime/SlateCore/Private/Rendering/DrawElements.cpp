@@ -799,22 +799,13 @@ void FSlateWindowElementList::ResetBuffers()
 	VolatilePaintList.Reset();
 	BatchData.Reset();
 
-#if SLATE_POOL_DRAW_ELEMENTS
-	DrawElementFreePool.Append(RootDrawLayer.DrawElements);
-#endif
-
 	// Reset the draw elements on the root draw layer
 	RootDrawLayer.DrawElements.Reset();
 
 	// Return child draw layers to the pool, and reset their draw elements.
 	for ( auto& Entry : DrawLayers )
 	{
-#if SLATE_POOL_DRAW_ELEMENTS
-		TArray<FSlateDrawElement*>& DrawElements = Entry.Value->DrawElements;
-		DrawElementFreePool.Append(DrawElements);
-#else
 		TArray<FSlateDrawElement>& DrawElements = Entry.Value->DrawElements;
-#endif
 
 		DrawElements.Reset();
 		DrawLayerPool.Add(Entry.Value);

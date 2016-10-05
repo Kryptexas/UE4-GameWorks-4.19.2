@@ -96,9 +96,9 @@ int32 USoundWaveProcedural::GetAvailableAudioByteCount()
 	return AvailableByteCount.GetValue();
 }
 
-SIZE_T USoundWaveProcedural::GetResourceSize(EResourceSizeMode::Type Mode)
+void USoundWaveProcedural::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	return 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 }
 
 int32 USoundWaveProcedural::GetResourceSizeForFormat(FName Format)

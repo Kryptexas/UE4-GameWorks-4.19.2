@@ -123,15 +123,26 @@ public:
 	/**
 	* Returns the size of memory allocated by render data
 	*/
-	virtual SIZE_T GetResourceSize()
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
+	SIZE_T GetResourceSize()
+	{
+		return GetResourceSizeBytes();
+	}
+
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
  	{
-		SIZE_T ResourceSize = sizeof(*this);
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
  		
- 		ResourceSize += ReferenceToLocal.GetAllocatedSize();
- 		ResourceSize += ActiveMorphTargets.GetAllocatedSize();
- 		
-		return ResourceSize;
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(ReferenceToLocal.GetAllocatedSize());
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(ActiveMorphTargets.GetAllocatedSize());
  	}
+
+	SIZE_T GetResourceSizeBytes()
+	{
+		FResourceSizeEx ResSize;
+		GetResourceSizeEx(ResSize);
+		return ResSize.GetTotalMemoryBytes();
+	}
 
 	/** Update Simulated Positions & Normals from APEX Clothing actor */
 	bool UpdateClothSimulationData(USkinnedMeshComponent* InMeshComponent);
@@ -178,27 +189,25 @@ public:
 		return ( DynamicData!=NULL ); 
 	}
 
-	virtual SIZE_T GetResourceSize() override
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override
 	{
-		SIZE_T ResourceSize=sizeof(*this);
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
 
 		if(DynamicData)
 		{
-			ResourceSize += DynamicData->GetResourceSize();
+			DynamicData->GetResourceSizeEx(CumulativeResourceSize);
 		}
 
-		ResourceSize += LODs.GetAllocatedSize(); 
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(LODs.GetAllocatedSize()); 
 
 		// include extra data from LOD
 		for (int32 I=0; I<LODs.Num(); ++I)
 		{
-			ResourceSize += LODs[I].GetResourceSize();
+			LODs[I].GetResourceSizeEx(CumulativeResourceSize);
 		}
 
-		ResourceSize += CachedFinalVertices.GetAllocatedSize();
-		ResourceSize += BonesOfInterest.GetAllocatedSize();
-
-		return ResourceSize;
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(CachedFinalVertices.GetAllocatedSize());
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(BonesOfInterest.GetAllocatedSize());
 	}
 
 	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FTransform& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const override;
@@ -240,9 +249,22 @@ private:
 		/**
 	 	 * Get Resource Size : return the size of Resource this allocates
 	 	 */
+		DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 		SIZE_T GetResourceSize()
 		{
-			return VertexBuffer.GetResourceSize();
+			return GetResourceSizeBytes();
+		}
+
+		void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
+		{
+			CumulativeResourceSize.AddUnknownMemoryBytes(VertexBuffer.GetResourceSize());
+		}
+
+		SIZE_T GetResourceSizeBytes()
+		{
+			FResourceSizeEx ResSize;
+			GetResourceSizeEx(ResSize);
+			return ResSize.GetTotalMemoryBytes();
 		}
 	};
 

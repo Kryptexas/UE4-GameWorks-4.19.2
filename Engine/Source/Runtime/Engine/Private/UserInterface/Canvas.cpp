@@ -387,9 +387,7 @@ bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmedia
 			RHICmdList,
 			Canvas->GetFeatureLevel(),
 			bNeedsToSwitchVerticalAxis,
-			Data->Transform.GetMatrix(),
-			CanvasRenderTarget->GetSizeXY().X,
-			CanvasRenderTarget->GetSizeXY().Y,
+			FBatchedElements::CreateProxySceneView(Data->Transform.GetMatrix(), FIntRect(0, 0, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y)),
 			Canvas->IsHitTesting(),
 			Gamma
 			);
@@ -460,9 +458,7 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 				RHICmdList,
 				Parameters.FeatureLevel,
 				Parameters.bNeedsToSwitchVerticalAxis,
-				Parameters.RenderData->Transform.GetMatrix(),
-				Parameters.ViewportSizeX,
-				Parameters.ViewportSizeY,
+				FBatchedElements::CreateProxySceneView(Parameters.RenderData->Transform.GetMatrix(),FIntRect(0, 0, Parameters.ViewportSizeX, Parameters.ViewportSizeY)),
 				Parameters.bHitTesting,
 				Parameters.DisplayGamma
 				);

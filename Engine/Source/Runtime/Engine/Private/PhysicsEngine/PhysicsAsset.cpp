@@ -693,20 +693,19 @@ void UPhysicsAsset::BodyFindConstraints(int32 BodyIndex, TArray<int32>& Constrai
 	}
 }
 
-SIZE_T UPhysicsAsset::GetResourceSize(EResourceSizeMode::Type Mode)
+void UPhysicsAsset::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	for (const auto& SingleBody : SkeletalBodySetups)
 	{
-		ResourceSize += SingleBody->GetResourceSize(Mode);
+		SingleBody->GetResourceSizeEx(CumulativeResourceSize);
 	}
 
-	ResourceSize += BodySetupIndexMap.GetAllocatedSize();
-	ResourceSize += CollisionDisableTable.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(BodySetupIndexMap.GetAllocatedSize());
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(CollisionDisableTable.GetAllocatedSize());
 
 	// @todo implement inclusive mode
-	return ResourceSize;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -2570,20 +2570,20 @@ bool UMaterialInstance::GetTexturesInPropertyChain(EMaterialProperty InProperty,
 }
 #endif // WITH_EDITOR
 
-SIZE_T UMaterialInstance::GetResourceSize(EResourceSizeMode::Type Mode)
+void UMaterialInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	if (bHasStaticPermutationResource)
 	{
-		if (Mode == EResourceSizeMode::Inclusive)
+		if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive)
 		{
 			for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 			{
 				for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 				{
 					FMaterialResource* CurrentResource = StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
-					ResourceSize += CurrentResource->GetResourceSizeInclusive();
+					CurrentResource->GetResourceSizeEx(CumulativeResourceSize);
 				}
 			}
 		}
@@ -2593,15 +2593,13 @@ SIZE_T UMaterialInstance::GetResourceSize(EResourceSizeMode::Type Mode)
 	{
 		if (Resources[ResourceIndex])
 		{
-			ResourceSize += sizeof(FMaterialInstanceResource);
-			ResourceSize += ScalarParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<float>);
-			ResourceSize += VectorParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<FLinearColor>);
-			ResourceSize += TextureParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<const UTexture*>);
-			ResourceSize += FontParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<const UTexture*>);
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(FMaterialInstanceResource));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(ScalarParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<float>));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(VectorParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<FLinearColor>));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(TextureParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<const UTexture*>));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FontParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<const UTexture*>));
 		}
 	}
-
-	return ResourceSize;
 }
 
 FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPostProcessSettings& Dest, const UMaterial* Material, FBlendableEntry*& Iterator)

@@ -73,7 +73,7 @@ private:
 public:
 
 	//~ Begin UObject Interface.
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual FString GetDesc() override;
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;

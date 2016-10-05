@@ -677,9 +677,10 @@ public:
 		FOnGenerateWidgetsForMaterial InOnGenerateNameWidgetsForMaterial, 
 		FOnGenerateWidgetsForMaterial InOnGenerateWidgetsForMaterial, 
 		FOnResetMaterialToDefaultClicked InOnResetToDefaultClicked,
-		int32 InMultipleMaterialCount )
+		int32 InMultipleMaterialCount,
+		bool bShowUsedTextures)
 	{
-		return MakeShareable( new FMaterialItemView( Material, InOnMaterialChanged, InOnGenerateNameWidgetsForMaterial, InOnGenerateWidgetsForMaterial, InOnResetToDefaultClicked, InMultipleMaterialCount ) );
+		return MakeShareable( new FMaterialItemView( Material, InOnMaterialChanged, InOnGenerateNameWidgetsForMaterial, InOnGenerateWidgetsForMaterial, InOnResetToDefaultClicked, InMultipleMaterialCount, bShowUsedTextures) );
 	}
 
 	TSharedRef<SWidget> CreateNameContent()
@@ -738,6 +739,7 @@ public:
 								.VAlign( VAlign_Center )
 								.ContentPadding(2)
 								.IsEnabled( this, &FMaterialItemView::IsTexturesMenuEnabled )
+								.Visibility( bShowUsedTextures ? EVisibility::Visible : EVisibility::Hidden )
 								.ButtonContent()
 								[
 									SNew( STextBlock )
@@ -747,7 +749,23 @@ public:
 								]
 							]
 						]
-					
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Top)
+					.Padding(4.0f, 9.0f)
+					[
+						// Add a button to reset the material to the base material
+						SNew(SButton)
+						.ToolTipText(LOCTEXT("ResetToBaseMaterial", "Reset to base material"))
+						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+						.ContentPadding(0)
+						.Visibility(this, &FMaterialItemView::GetReplaceVisibility)
+						.OnClicked(this, &FMaterialItemView::OnResetToBaseClicked)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+						]
 					]
 				]
 				+SVerticalBox::Slot()
@@ -757,24 +775,8 @@ public:
 				[
 					OnGenerateCustomMaterialWidgets.IsBound() ? OnGenerateCustomMaterialWidgets.Execute( MaterialItem.Material.Get(), MaterialItem.SlotIndex ) : StaticCastSharedRef<SWidget>( SNullWidget::NullWidget )
 				]
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign( VAlign_Center )
-			.Padding( 4.0f, 0.0f )
-			[
-				// Add a button to reset the material to the base material
-				SNew(SButton)
-				.ToolTipText(LOCTEXT( "ResetToBaseMaterial", "Reset to base material" ))
-				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-				.ContentPadding(0) 
-				.Visibility( this, &FMaterialItemView::GetReplaceVisibility )
-				.OnClicked( this, &FMaterialItemView::OnResetToBaseClicked )
-				[
-					SNew(SImage)
-					.Image( FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault") )
-				]
 			];
+
 	}
 
 private:
@@ -784,13 +786,16 @@ private:
 						FOnGenerateWidgetsForMaterial& InOnGenerateNameWidgets, 
 						FOnGenerateWidgetsForMaterial& InOnGenerateMaterialWidgets, 
 						FOnResetMaterialToDefaultClicked& InOnResetToDefaultClicked,
-						int32 InMultipleMaterialCount )
+						int32 InMultipleMaterialCount,
+						bool bInShowUsedTextures)
+						
 		: MaterialItem( InMaterial )
 		, OnMaterialChanged( InOnMaterialChanged )
 		, OnGenerateCustomNameWidgets( InOnGenerateNameWidgets )
 		, OnGenerateCustomMaterialWidgets( InOnGenerateMaterialWidgets )
 		, OnResetToDefaultClicked( InOnResetToDefaultClicked )
 		, MultipleMaterialCount( InMultipleMaterialCount )
+		, bShowUsedTextures( bInShowUsedTextures )
 	{
 
 	}
@@ -901,14 +906,16 @@ private:
 	FOnGenerateWidgetsForMaterial OnGenerateCustomMaterialWidgets;
 	FOnResetMaterialToDefaultClicked OnResetToDefaultClicked;
 	int32 MultipleMaterialCount;
+	bool bShowUsedTextures;
 };
 
 
-FMaterialList::FMaterialList(IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& InMaterialListDelegates, bool bInAllowCollapse /*= false*/)
+FMaterialList::FMaterialList(IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& InMaterialListDelegates, bool bInAllowCollapse, bool bInShowUsedTextures)
 	: MaterialListDelegates( InMaterialListDelegates )
 	, DetailLayoutBuilder( InDetailLayoutBuilder )
 	, MaterialListBuilder( new FMaterialListBuilder )
 	, bAllowCollpase(bInAllowCollapse)
+	, bShowUsedTextures(bInShowUsedTextures)
 {
 }
 
@@ -1089,7 +1096,7 @@ void FMaterialList::AddMaterialItem( FDetailWidgetRow& Row, int32 CurrentSlot, c
 {
 	uint32 NumMaterials = MaterialListBuilder->GetNumMaterialsInSlot(CurrentSlot);
 
-	TSharedRef<FMaterialItemView> NewView = FMaterialItemView::Create( Item, MaterialListDelegates.OnMaterialChanged, MaterialListDelegates.OnGenerateCustomNameWidgets, MaterialListDelegates.OnGenerateCustomMaterialWidgets, MaterialListDelegates.OnResetMaterialToDefaultClicked, NumMaterials );
+	TSharedRef<FMaterialItemView> NewView = FMaterialItemView::Create( Item, MaterialListDelegates.OnMaterialChanged, MaterialListDelegates.OnGenerateCustomNameWidgets, MaterialListDelegates.OnGenerateCustomMaterialWidgets, MaterialListDelegates.OnResetMaterialToDefaultClicked, NumMaterials, bShowUsedTextures );
 
 	TSharedPtr<SWidget> RightSideContent;
 	if( bDisplayLink )
@@ -1120,7 +1127,7 @@ void FMaterialList::AddMaterialItem( FDetailWidgetRow& Row, int32 CurrentSlot, c
 		NewView->CreateNameContent()
 	]
 	.ValueContent()
-	.MinDesiredWidth(250.0f)
+	.MinDesiredWidth(250.f)
 	.MaxDesiredWidth(0.0f) // no maximum
 	[
 		RightSideContent.ToSharedRef()
@@ -1488,22 +1495,23 @@ public:
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
-					.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+					.Padding(0)
 					.VAlign(VAlign_Center)
 					.AutoWidth()
 					[
 						SNew(STextBlock)
 						.Font(IDetailLayoutBuilder::GetDetailFont())
-						.Text(LOCTEXT("SectionListItemMaterialSlotNameLabel", "Material Slot Name: "))
+						.Text(LOCTEXT("SectionListItemMaterialSlotNameLabel", "Material Slot"))
 						.ToolTipText(MaterialSlotNameTooltipText)
 					]
 					+ SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
 					.AutoWidth()
-					.Padding(15, 0, 0, 0)
+					.Padding(5, 0, 0, 0)
 					[
 						SNew(SBox)
 						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
 						[
 							//Material Slot Name
 							SNew(SComboButton)
@@ -1675,15 +1683,12 @@ void FSectionList::Tick(float DeltaTime)
 
 void FSectionList::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
-	if (bAllowCollpase)
-	{
-		NodeRow.NameContent()
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("SectionHeaderTitle", "Sections"))
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-			];
-	}
+	NodeRow.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("SectionHeaderTitle", "Sections"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	];
 }
 
 void FSectionList::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
@@ -1703,59 +1708,12 @@ void FSectionList::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 		{
 			const FSectionListItem& Section = *It;
 
-			if (CurrentLODIndex != Section.LodIndex)
-			{
-				// We've encountered a new lod.  Make a widget to display that
-				CurrentLODIndex = Section.LodIndex;
-
-				uint32 NumLodSections = SectionListBuilder->GetNumSections(CurrentLODIndex);
-
-				// If an element is expanded we want to display all its Sections
-				bool bWantToDisplayAllSections = NumLodSections > 1 && ExpandedSlots.Contains(CurrentLODIndex);
-
-				// If we are currently displaying an expanded set of Sections for an element add a link to collapse all of them
-				if (bWantToDisplayAllSections)
-				{
-					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent(LOCTEXT("HideAllSectionSearchString", "Hide All Sections"));
-
-					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("LodIndex"), CurrentLODIndex);
-					ChildRow
-						.ValueContent()
-						.MaxDesiredWidth(0.0f)// No Max Width
-						[
-							SNew(SBox)
-							.HAlign(HAlign_Center)
-							[
-								SNew(SHyperlink)
-								.TextStyle(FEditorStyle::Get(), "MaterialList.HyperlinkStyle")
-								.Text(FText::Format(LOCTEXT("HideAllSectionLinkText", "Hide All Sections on LOD {LodIndex}"), Arguments))
-								.OnNavigate(this, &FSectionList::OnHideSectionsForLod, CurrentLODIndex)
-							]
-						];
-				}
-
-				if (NumLodSections > 1 && !bWantToDisplayAllSections)
-				{
-					// The current slot has multiple elements to view
-					bDisplayAllSectionsInSlot = false;
-
-					FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent(FText::GetEmpty());
-
-					AddSectionItem(ChildRow, CurrentLODIndex, FSectionListItem(CurrentLODIndex, Section.SectionIndex, Section.MaterialSlotName, Section.MaterialSlotIndex, Section.OriginalMaterialSlotName, Section.AvailableMaterialSlotName, Section.Material.Get(), Section.IsSectionUsingCloth), !bDisplayAllSectionsInSlot);
-				}
-				else
-				{
-					bDisplayAllSectionsInSlot = true;
-				}
-
-			}
+			CurrentLODIndex = Section.LodIndex;
 
 			// Display each thumbnail element unless we shouldn't display multiple Sections for one slot
 			if (bDisplayAllSectionsInSlot)
 			{
 				FDetailWidgetRow& ChildRow = ChildrenBuilder.AddChildContent(Section.Material.IsValid() ? FText::FromString(Section.Material->GetName()) : FText::GetEmpty());
-
 				AddSectionItem(ChildRow, CurrentLODIndex, FSectionListItem(CurrentLODIndex, Section.SectionIndex, Section.MaterialSlotName, Section.MaterialSlotIndex, Section.OriginalMaterialSlotName, Section.AvailableMaterialSlotName, Section.Material.Get(), Section.IsSectionUsingCloth), !bDisplayAllSectionsInSlot);
 			}
 		}
@@ -1820,5 +1778,65 @@ void FSectionList::AddSectionItem(FDetailWidgetRow& Row, int32 LodIndex, const s
 }
 
 
-#undef LOCTEXT_NAMESPACE
+void SMaterialSlotWidget::Construct(const FArguments& InArgs, int32 SlotIndex, bool bIsMaterialUsed)
+{
+	TSharedPtr<SHorizontalBox> SlotNameBox;
 
+	TSharedRef<SWidget> DeleteButton =
+		PropertyCustomizationHelpers::MakeDeleteButton(
+			InArgs._OnDeleteMaterialSlot,
+			LOCTEXT("CustomNameMaterialNotUsedDeleteTooltip", "Delete this material slot"),
+			InArgs._CanDeleteMaterialSlot);
+
+	if(bIsMaterialUsed)
+	{
+		DeleteButton->SetVisibility(EVisibility::Hidden);
+	}
+
+	ChildSlot
+	[
+		SAssignNew(SlotNameBox, SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SBox)
+			.VAlign(VAlign_Center)
+			// Match the size of the thumbnail
+			.MinDesiredWidth(64.0f)
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("MaterialArrayNameLabelStringKey", "Slot name"))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.Padding(12.0f, 3.0f, 0.0f, 3.0f)
+		[
+			SNew(SBox)
+			.VAlign(VAlign_Center)
+			.MinDesiredWidth(125.0f)
+			[
+				SNew(SEditableTextBox)
+				.Text(InArgs._MaterialName)
+				.OnTextChanged(InArgs._OnMaterialNameChanged)
+				.OnTextCommitted(InArgs._OnMaterialNameCommitted)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		]
+	];
+
+	SlotNameBox->AddSlot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Left)
+		.Padding(2)
+		[
+			DeleteButton
+		];
+}
+
+#undef LOCTEXT_NAMESPACE

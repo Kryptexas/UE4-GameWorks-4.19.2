@@ -44,10 +44,17 @@ namespace MemoryProfiler2
 		public UInt64 CallStackTableOffset;
 		/** Number of callstack entries.							*/
 		public UInt64 CallStackTableEntries;
+
+		/** Offset in file for tags table.							*/
+		public UInt64 TagsTableOffset;
+		/** Number of tags entries.									*/
+		public UInt64 TagsTableEntries;
+
 		/** The file offset for module information.					*/
 		public UInt64 ModulesOffset;
 		/** The number of module entries.							*/
 		public UInt64 ModuleEntries;
+
 		/** Number of data files the stream spans.					*/
 		public UInt64 NumDataFiles;
 
@@ -116,6 +123,18 @@ namespace MemoryProfiler2
 					// CallStack table offset and number of entries.
 					CallStackTableOffset = BinaryStream.ReadUInt64();
 					CallStackTableEntries = BinaryStream.ReadUInt64();
+
+					if (Version >= 7)
+					{
+						// Tags table offset and number of entries.
+						TagsTableOffset = BinaryStream.ReadUInt64();
+						TagsTableEntries = BinaryStream.ReadUInt64();
+					}
+					else
+					{
+						TagsTableOffset = 0;
+						TagsTableEntries = 0;
+					}
 
 					ModulesOffset = BinaryStream.ReadUInt64();
 					ModuleEntries = BinaryStream.ReadUInt64();

@@ -3151,14 +3151,16 @@ FVector2D FSlateEditableTextLayout::ComputeDesiredSize(float LayoutScaleMultipli
 	}
 	else
 	{
-		// If a wrapping width has been provided, then we need to report the wrapped size as the desired width
-		// (rather than the actual text layout size as that can have non-breaking lines that extend beyond the wrap width)
-		// Note: We don't do this when auto-wrapping as it would cause a feedback loop in the Slate sizing logic
-		const FVector2D TextLayoutSize = WrappingWidth > 0 ? TextLayout->GetWrappedSize() : TextLayout->GetSize();
+		// If an explicit wrapping width has been provided, then we need to report the wrapped size as the desired width if it has lines that extend beyond the fixed wrapping width
+		// Note: We don't do this when auto-wrapping with a non-explicit width as it would cause a feedback loop in the Slate sizing logic
+		FVector2D TextLayoutSize = TextLayout->GetSize();
+		if (WrappingWidth > 0 && TextLayoutSize.X > WrappingWidth)
+		{
+			TextLayoutSize = TextLayout->GetWrappedSize();
+		}
 
 		DesiredWidth = TextLayoutSize.X;
 		DesiredHeight = TextLayoutSize.Y;
-		
 	}
 
 	// The layouts current margin size. We should not report a size smaller then the margins.

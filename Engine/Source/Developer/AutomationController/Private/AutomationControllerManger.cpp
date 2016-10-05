@@ -767,7 +767,7 @@ void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage( const
 
 void FAutomationControllerManager::HandleRequestTestsReplyMessage(const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context)
 {
-	FAutomationTestInfo NewTest(Message.TestInfo);
+	FAutomationTestInfo NewTest = Message.GetTestInfo();
 	TestInfo.Add(NewTest);
 }
 

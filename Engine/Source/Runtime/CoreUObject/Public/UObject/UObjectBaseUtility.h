@@ -627,6 +627,15 @@ FORCEINLINE FString GetFullNameSafe(const UObjectBaseUtility *Object)
 #if STATS
 struct FScopeCycleCounterUObject : public FCycleCounter
 {
+#if USE_MALLOC_PROFILER
+	/** Package path being tracked */
+	FName PackageTag;
+	/** Class path being tracked */
+	FName ClassTag;
+	/** Object path being tracked */
+	FName ObjectTag;
+#endif
+
 	/**
 	 * Constructor, starts timing
 	 */
@@ -640,6 +649,13 @@ struct FScopeCycleCounterUObject : public FCycleCounter
 				Start(StatId);
 			}
 		}
+
+#if USE_MALLOC_PROFILER
+		if (Object)
+		{
+			TrackObjectForMallocProfiling(Object);
+		}
+#endif
 	}
 	/**
 	 * Constructor, starts timing with an alternate enable stat to use high performance disable for only SOME UObject stats
@@ -654,6 +670,13 @@ struct FScopeCycleCounterUObject : public FCycleCounter
 				Start(StatId);
 			}
 		}
+
+#if USE_MALLOC_PROFILER
+		if (Object)
+		{
+			TrackObjectForMallocProfiling(Object);
+		}
+#endif
 	}
 	/**
 	 * Updates the stat with the time spent
@@ -661,7 +684,17 @@ struct FScopeCycleCounterUObject : public FCycleCounter
 	FORCEINLINE_STATS ~FScopeCycleCounterUObject()
 	{
 		Stop();
+
+#if USE_MALLOC_PROFILER
+		UntrackObjectForMallocProfiling();
+#endif
 	}
+
+#if USE_MALLOC_PROFILER
+	COREUOBJECT_API void TrackObjectForMallocProfiling(const UObjectBaseUtility *InObject);
+	COREUOBJECT_API void TrackObjectForMallocProfiling(const FName InPackageName, const FName InClassName, const FName InObjectName);
+	COREUOBJECT_API void UntrackObjectForMallocProfiling();
+#endif
 };
 #else
 struct FScopeCycleCounterUObject

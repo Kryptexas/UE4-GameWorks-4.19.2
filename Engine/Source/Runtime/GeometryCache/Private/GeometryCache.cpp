@@ -39,24 +39,23 @@ FString UGeometryCache::GetDesc()
 	return FString("%d Tracks", NumTracks);
 }
 
-SIZE_T UGeometryCache::GetResourceSize(EResourceSizeMode::Type Mode)
+void UGeometryCache::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 #if WITH_EDITORONLY_DATA
-	ResourceSize += sizeof( AssetImportData );
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(AssetImportData));
 #endif
 	// Calculate Resource Size according to what is serialized
 	const int32 NumTracks = Tracks.Num();
 	for (int32 TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex)
 	{
-		ResourceSize += Tracks[TrackIndex]->GetResourceSize(Mode);
+		Tracks[TrackIndex]->GetResourceSizeEx(CumulativeResourceSize);
 	}
 
-	ResourceSize += sizeof(Tracks);
-	ResourceSize += sizeof(NumVertexAnimationTracks);
-	ResourceSize += sizeof(NumTransformAnimationTracks);
-
-	return ResourceSize;
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(Tracks));
+	CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(NumVertexAnimationTracks));
+	CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(NumTransformAnimationTracks));
 }
 
 void UGeometryCache::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const

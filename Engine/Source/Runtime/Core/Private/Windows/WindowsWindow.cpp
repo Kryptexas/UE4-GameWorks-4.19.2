@@ -168,6 +168,14 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 		( InParent.IsValid() ) ? static_cast<HWND>( InParent->HWnd ) : NULL,
 		NULL, InHInstance, NULL);
 
+#if WINVER >= 0x0601
+	if ( RegisterTouchWindow( HWnd, 0 ) == false )
+	{
+		uint32 Error = GetLastError();
+		UE_LOG(LogWindows, Warning, TEXT("Register touch input failed!"));
+	}
+#endif
+
 	VirtualWidth = ClientWidth;
 	VirtualHeight = ClientHeight;
 

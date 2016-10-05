@@ -243,7 +243,7 @@ public:
 			FString Filename = Asset.ObjectPath.ToString();
 			//convert to full paths
 			Filename = FPackageName::LongPackageNameToFilename(Filename);
-			if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+			if (FAutomationTestFramework::Get().ShouldTestContent(Filename))
 			{
 				// optionally discount already loaded assets
 				if (!bIgnoreLoaded || !Asset.IsAssetLoaded())
@@ -1244,7 +1244,7 @@ void FBlueprintRenameAndCloneTest::GetTests(TArray<FString>& OutBeautifiedNames,
 		FString AssetObjPath = Asset.ObjectPath.ToString();
 
 		FString const Filename = FPackageName::LongPackageNameToFilename(AssetObjPath);
-		if (!FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+		if (!FAutomationTestFramework::Get().ShouldTestContent(Filename))
 		{
 			continue;
 		}

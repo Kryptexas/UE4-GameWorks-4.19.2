@@ -271,7 +271,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	TArray<UMaterialInterface*> Materials;
 	if (ImportOptions->bImportMaterials)
 	{
-		CreateNodeMaterials(Node, Materials, FBXUVs.UVSets);
+		bool bForSkeletalMesh = false;
+		CreateNodeMaterials(Node, Materials, FBXUVs.UVSets, bForSkeletalMesh);
 	}
 	else if (ImportOptions->bImportTextures)
 	{
@@ -864,7 +865,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 	{
 		Node = FbxMeshArray[0];
 	}
-	else
+	else if(!ImportOptions->bCombineToSingle)
 	{
 		// find the Fbx mesh node that the Unreal Mesh matches according to name
 		int32 MeshIndex;

@@ -194,7 +194,7 @@ public:
 	 *
 	 * @return		Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 	//~ Begin UFont Interface
 	ENGINE_API TCHAR RemapChar(TCHAR CharCode) const;

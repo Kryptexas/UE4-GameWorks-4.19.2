@@ -5,21 +5,13 @@
 #include "ScreenshotFunctionalTest.h"
 #include "AutomationBlueprintFunctionLibrary.h"
 #include "BufferVisualizationData.h"
+#include "AutomationScreenshotOptions.h"
 
 AScreenshotFunctionalTest::AScreenshotFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	: AFunctionalTest(ObjectInitializer)
 {
 	ScreenshotCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	ScreenshotCamera->SetupAttachment(RootComponent);
-
-	VisualizeBuffer = NAME_None;
-
-	Tolerance = EComparisonTolerance::Low;
-	ToleranceAmount = FComparisonToleranceAmount(16, 16, 16, 16, 16, 240);
-	MaximumAllowedError = 0.02f; // 2% Allowed Error, after passing whatever tolerance levels are set for pixel variation.
-
-	bIgnoreAntiAliasing = true;
-	bIgnoreColors = false;
 }
 
 void AScreenshotFunctionalTest::PrepareTest()
@@ -41,7 +33,7 @@ void AScreenshotFunctionalTest::StartTest()
 {
 	Super::StartTest();
 
-	UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(GetName(), Resolution);
+	UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(GetName(), ScreenshotOptions);
 
 	GEngine->GameViewport->OnScreenshotCaptured().AddUObject(this, &AScreenshotFunctionalTest::OnScreenshotTaken);
 
@@ -68,8 +60,8 @@ void AScreenshotFunctionalTest::SetupVisualizeBuffer()
 			{
 				if ( ViewportClient->GetEngineShowFlags() )
 				{
-					ViewportClient->GetEngineShowFlags()->SetVisualizeBuffer( VisualizeBuffer == NAME_None ? false : true);
-					ICVar->Set(*VisualizeBuffer.ToString());
+					ViewportClient->GetEngineShowFlags()->SetVisualizeBuffer( ScreenshotOptions.VisualizeBuffer == NAME_None ? false : true);
+					ICVar->Set(*ScreenshotOptions.VisualizeBuffer.ToString());
 				}
 			}
 		}
@@ -85,9 +77,9 @@ bool AScreenshotFunctionalTest::CanEditChange(const UProperty* InProperty) const
 	{
 		const FName PropertyName = InProperty->GetFName();
 
-		if ( PropertyName == GET_MEMBER_NAME_CHECKED(AScreenshotFunctionalTest, ToleranceAmount) )
+		if ( PropertyName == GET_MEMBER_NAME_CHECKED(FAutomationScreenshotOptions, ToleranceAmount) )
 		{
-			bIsEditable = Tolerance == EComparisonTolerance::Custom;
+			bIsEditable = ScreenshotOptions.Tolerance == EComparisonTolerance::Custom;
 		}
 		else if ( PropertyName == TEXT("ObservationPoint") )
 		{
@@ -107,20 +99,9 @@ void AScreenshotFunctionalTest::PostEditChangeProperty(FPropertyChangedEvent& Pr
 	{
 		const FName PropertyName = PropertyChangedEvent.Property->GetFName();
 
-		if ( PropertyName == GET_MEMBER_NAME_CHECKED(AScreenshotFunctionalTest, Tolerance) )
+		if ( PropertyName == GET_MEMBER_NAME_CHECKED(FAutomationScreenshotOptions, Tolerance) )
 		{
-			switch ( Tolerance )
-			{
-			case EComparisonTolerance::Zero:
-				ToleranceAmount = FComparisonToleranceAmount(0, 0, 0, 0, 0, 255);
-				break;
-			case EComparisonTolerance::Low:
-				ToleranceAmount = FComparisonToleranceAmount(16, 16, 16, 16, 16, 240);
-				break;
-			case EComparisonTolerance::High:
-				ToleranceAmount = FComparisonToleranceAmount(32, 32, 32, 32, 64, 96);
-				break;
-			}
+			ScreenshotOptions.SetToleranceAmounts(ScreenshotOptions.Tolerance);
 		}
 	}
 }

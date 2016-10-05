@@ -1024,7 +1024,7 @@ public:
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 	virtual void UpdateCollisionProfile() override;
 #endif // WITH_EDITOR
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	//~ End UObject Interface.
 
 	//~ Begin UActorComponent Interface.

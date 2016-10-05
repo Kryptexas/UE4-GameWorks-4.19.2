@@ -260,7 +260,7 @@
     <value>0, 0</value>
   </data>
   <data name="MainMenu.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1272, 24</value>
+    <value>1287, 24</value>
   </data>
   <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="MainMenu.TabIndex" type="System.Int32, mscorlib">
@@ -492,6 +492,18 @@ FHeapAllocator::</value>
 This menu is updated every time user changes ClassGroups 
 collection in the options dialog.</value>
   </data>
+  <data name="FilterTagsButton.ImageTransparentColor" type="System.Drawing.Color, System.Drawing">
+    <value>Magenta</value>
+  </data>
+  <data name="FilterTagsButton.Size" type="System.Drawing.Size, System.Drawing">
+    <value>91, 22</value>
+  </data>
+  <data name="FilterTagsButton.Text" xml:space="preserve">
+    <value> Tags to Filter...</value>
+  </data>
+  <data name="FilterTagsButton.ToolTipText" xml:space="preserve">
+    <value>Opens a dialog that lets you pick which tags to filter on</value>
+  </data>
   <data name="FilterLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>64, 22</value>
   </data>
@@ -613,7 +625,7 @@ Press enter to start processing.</value>
     <value>0, 24</value>
   </data>
   <data name="MainToolStrip.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1272, 25</value>
+    <value>1287, 25</value>
   </data>
   <data name="MainToolStrip.TabIndex" type="System.Int32, mscorlib">
     <value>11</value>
@@ -649,7 +661,7 @@ Press enter to start processing.</value>
     <value>0, 668</value>
   </data>
   <data name="MainStatusStrip.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1272, 22</value>
+    <value>1287, 22</value>
   </data>
   <data name="MainStatusStrip.TabIndex" type="System.Int32, mscorlib">
     <value>12</value>
@@ -772,7 +784,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="CallGraphTreeView.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 561</value>
+    <value>1279, 561</value>
   </data>
   <data name="CallGraphTreeView.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -781,7 +793,7 @@ Press enter to start processing.</value>
     <value>CallGraphTreeView</value>
   </data>
   <data name="&gt;&gt;CallGraphTreeView.Type" xml:space="preserve">
-    <value>MemoryProfiler2.TreeViewEx, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.TreeViewEx, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;CallGraphTreeView.Parent" xml:space="preserve">
     <value>CallGraphViewSplitContainer.Panel2</value>
@@ -802,7 +814,7 @@ Press enter to start processing.</value>
     <value>1</value>
   </data>
   <data name="CallGraphViewSplitContainer.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1279, 587</value>
   </data>
   <data name="CallGraphViewSplitContainer.SplitterDistance" type="System.Int32, mscorlib">
     <value>25</value>
@@ -832,7 +844,7 @@ Press enter to start processing.</value>
     <value>2, 2, 2, 2</value>
   </data>
   <data name="CallGraphTabPage.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1279, 587</value>
   </data>
   <data name="CallGraphTabPage.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -916,7 +928,7 @@ Press enter to start processing.</value>
     <value>0, 0</value>
   </data>
   <data name="ExclusiveListView.Size" type="System.Drawing.Size, System.Drawing">
-    <value>543, 587</value>
+    <value>541, 587</value>
   </data>
   <data name="ExclusiveListView.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -925,7 +937,7 @@ Press enter to start processing.</value>
     <value>ExclusiveListView</value>
   </data>
   <data name="&gt;&gt;ExclusiveListView.Type" xml:space="preserve">
-    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;ExclusiveListView.Parent" xml:space="preserve">
     <value>ExclusiveViewSplitContainer.Panel1</value>
@@ -976,7 +988,7 @@ Press enter to start processing.</value>
     <value>0, 0</value>
   </data>
   <data name="ExclusiveSingleCallStackView.Size" type="System.Drawing.Size, System.Drawing">
-    <value>719, 587</value>
+    <value>718, 587</value>
   </data>
   <data name="ExclusiveSingleCallStackView.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
@@ -985,7 +997,7 @@ Press enter to start processing.</value>
     <value>ExclusiveSingleCallStackView</value>
   </data>
   <data name="&gt;&gt;ExclusiveSingleCallStackView.Type" xml:space="preserve">
-    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;ExclusiveSingleCallStackView.Parent" xml:space="preserve">
     <value>ExclusiveViewSplitContainer.Panel2</value>
@@ -1006,10 +1018,10 @@ Press enter to start processing.</value>
     <value>1</value>
   </data>
   <data name="ExclusiveViewSplitContainer.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="ExclusiveViewSplitContainer.SplitterDistance" type="System.Int32, mscorlib">
-    <value>543</value>
+    <value>541</value>
   </data>
   <data name="ExclusiveViewSplitContainer.SplitterWidth" type="System.Int32, mscorlib">
     <value>2</value>
@@ -1036,7 +1048,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="ExclusiveTabPage.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="ExclusiveTabPage.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -1069,7 +1081,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="TimeLineChart.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="TimeLineChart.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -1096,7 +1108,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="TimeLineTabPage.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="TimeLineTabPage.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
@@ -1129,7 +1141,7 @@ Press enter to start processing.</value>
     <value>0, 520</value>
   </data>
   <data name="CallStackHistoryHScroll.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1249, 14</value>
+    <value>1246, 14</value>
   </data>
   <data name="CallStackHistoryHScroll.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -1153,7 +1165,7 @@ Press enter to start processing.</value>
     <value>NoControl</value>
   </data>
   <data name="CallStackHistoryVScroll.Location" type="System.Drawing.Point, System.Drawing">
-    <value>1250, 0</value>
+    <value>1247, 0</value>
   </data>
   <data name="CallStackHistoryVScroll.Size" type="System.Drawing.Size, System.Drawing">
     <value>14, 547</value>
@@ -1180,7 +1192,7 @@ Press enter to start processing.</value>
     <value>0, 25</value>
   </data>
   <data name="CallStackHistoryPanel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 562</value>
+    <value>1261, 562</value>
   </data>
   <data name="CallStackHistoryPanel.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -1189,7 +1201,7 @@ Press enter to start processing.</value>
     <value>CallStackHistoryPanel</value>
   </data>
   <data name="&gt;&gt;CallStackHistoryPanel.Type" xml:space="preserve">
-    <value>MemoryProfiler2.DoubleBufferedPanel, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.DoubleBufferedPanel, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;CallStackHistoryPanel.Parent" xml:space="preserve">
     <value>CallstackHistoryTabPage</value>
@@ -1402,7 +1414,7 @@ Press enter to start processing.</value>
     <value>0, 0</value>
   </data>
   <data name="CallstackHistoryToolStrip.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 25</value>
+    <value>1261, 25</value>
   </data>
   <data name="CallstackHistoryToolStrip.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
@@ -1426,7 +1438,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="CallstackHistoryTabPage.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="CallstackHistoryTabPage.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
@@ -1468,7 +1480,7 @@ Press enter to start processing.</value>
     <value>0, 0</value>
   </data>
   <data name="HistogramPanel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>982, 587</value>
+    <value>997, 587</value>
   </data>
   <data name="HistogramPanel.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -1477,7 +1489,7 @@ Press enter to start processing.</value>
     <value>HistogramPanel</value>
   </data>
   <data name="&gt;&gt;HistogramPanel.Type" xml:space="preserve">
-    <value>MemoryProfiler2.DoubleBufferedPanel, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.DoubleBufferedPanel, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;HistogramPanel.Parent" xml:space="preserve">
     <value>HistrogramViewSplitContainer.Panel1</value>
@@ -1843,10 +1855,10 @@ Press enter to start processing.</value>
     <value>1</value>
   </data>
   <data name="HistrogramViewSplitContainer.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="HistrogramViewSplitContainer.SplitterDistance" type="System.Int32, mscorlib">
-    <value>982</value>
+    <value>997</value>
   </data>
   <data name="HistrogramViewSplitContainer.SplitterWidth" type="System.Int32, mscorlib">
     <value>1</value>
@@ -1873,7 +1885,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="HistogramTabPage.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="HistogramTabPage.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -1918,7 +1930,7 @@ Press enter to start processing.</value>
     <value>0, 0</value>
   </data>
   <data name="MemoryBitmapPanel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>982, 562</value>
+    <value>997, 562</value>
   </data>
   <data name="MemoryBitmapPanel.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -1927,7 +1939,7 @@ Press enter to start processing.</value>
     <value>MemoryBitmapPanel</value>
   </data>
   <data name="&gt;&gt;MemoryBitmapPanel.Type" xml:space="preserve">
-    <value>MemoryProfiler2.DoubleBufferedPanel, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.DoubleBufferedPanel, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;MemoryBitmapPanel.Parent" xml:space="preserve">
     <value>MemoryViewSplitContainer.Panel1</value>
@@ -2026,7 +2038,7 @@ Press enter to start processing.</value>
     <value>MemoryBitmapAllocationHistoryListView</value>
   </data>
   <data name="&gt;&gt;MemoryBitmapAllocationHistoryListView.Type" xml:space="preserve">
-    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;MemoryBitmapAllocationHistoryListView.Parent" xml:space="preserve">
     <value>MemoryViewSplitContainer.Panel2</value>
@@ -2062,7 +2074,7 @@ Press enter to start processing.</value>
     <value>MemoryBitmapCallStackListView</value>
   </data>
   <data name="&gt;&gt;MemoryBitmapCallStackListView.Type" xml:space="preserve">
-    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;MemoryBitmapCallStackListView.Parent" xml:space="preserve">
     <value>MemoryViewSplitContainer.Panel2</value>
@@ -2155,10 +2167,10 @@ Press enter to start processing.</value>
     <value>1</value>
   </data>
   <data name="MemoryViewSplitContainer.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 562</value>
+    <value>1261, 562</value>
   </data>
   <data name="MemoryViewSplitContainer.SplitterDistance" type="System.Int32, mscorlib">
-    <value>982</value>
+    <value>997</value>
   </data>
   <data name="MemoryViewSplitContainer.SplitterWidth" type="System.Int32, mscorlib">
     <value>1</value>
@@ -2440,7 +2452,7 @@ Press enter to start processing.</value>
     <value>0, 0</value>
   </data>
   <data name="MemoryBitmapToolStrip.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 25</value>
+    <value>1261, 25</value>
   </data>
   <data name="MemoryBitmapToolStrip.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -2467,7 +2479,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="MemoryBitmapTabPage.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="MemoryBitmapTabPage.TabIndex" type="System.Int32, mscorlib">
     <value>5</value>
@@ -2560,7 +2572,7 @@ Press enter to start processing.</value>
     <value>ShortLivedListView</value>
   </data>
   <data name="&gt;&gt;ShortLivedListView.Type" xml:space="preserve">
-    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;ShortLivedListView.Parent" xml:space="preserve">
     <value>ShortLivedAllocationsSplittContainer.Panel1</value>
@@ -2617,7 +2629,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="ShortLivedCallStackListView.Size" type="System.Drawing.Size, System.Drawing">
-    <value>838, 587</value>
+    <value>835, 587</value>
   </data>
   <data name="ShortLivedCallStackListView.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -2626,7 +2638,7 @@ Press enter to start processing.</value>
     <value>ShortLivedCallStackListView</value>
   </data>
   <data name="&gt;&gt;ShortLivedCallStackListView.Type" xml:space="preserve">
-    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6068.25020, Culture=neutral, PublicKeyToken=null</value>
+    <value>MemoryProfiler2.ListViewEx, MemoryProfiler2, Version=1.0.6108.24983, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;ShortLivedCallStackListView.Parent" xml:space="preserve">
     <value>ShortLivedAllocationsSplittContainer.Panel2</value>
@@ -2647,7 +2659,7 @@ Press enter to start processing.</value>
     <value>1</value>
   </data>
   <data name="ShortLivedAllocationsSplittContainer.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="ShortLivedAllocationsSplittContainer.SplitterDistance" type="System.Int32, mscorlib">
     <value>424</value>
@@ -2677,7 +2689,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="ShortLivedAllocationsTabPage.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="ShortLivedAllocationsTabPage.TabIndex" type="System.Int32, mscorlib">
     <value>6</value>
@@ -2707,7 +2719,7 @@ Press enter to start processing.</value>
     <value>Fill</value>
   </data>
   <data name="DetailsEndTextBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>846, 24</value>
+    <value>844, 24</value>
   </data>
   <data name="DetailsEndTextBox.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>0, 0, 0, 0</value>
@@ -2722,7 +2734,7 @@ Press enter to start processing.</value>
     <value>Vertical</value>
   </data>
   <data name="DetailsEndTextBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>418, 563</value>
+    <value>417, 563</value>
   </data>
   <data name="DetailsEndTextBox.TabIndex" type="System.Int32, mscorlib">
     <value>23</value>
@@ -2746,7 +2758,7 @@ Press enter to start processing.</value>
     <value>Fill</value>
   </data>
   <data name="DetailsDiffTextBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>417, 24</value>
+    <value>416, 24</value>
   </data>
   <data name="DetailsDiffTextBox.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>0, 0, 0, 0</value>
@@ -2761,7 +2773,7 @@ Press enter to start processing.</value>
     <value>Vertical</value>
   </data>
   <data name="DetailsDiffTextBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>429, 563</value>
+    <value>428, 563</value>
   </data>
   <data name="DetailsDiffTextBox.TabIndex" type="System.Int32, mscorlib">
     <value>22</value>
@@ -2791,13 +2803,13 @@ Press enter to start processing.</value>
     <value>NoControl</value>
   </data>
   <data name="DetailsViewEndLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>847, 1</value>
+    <value>845, 1</value>
   </data>
   <data name="DetailsViewEndLabel.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>1, 1, 1, 1</value>
   </data>
   <data name="DetailsViewEndLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>416, 20</value>
+    <value>415, 20</value>
   </data>
   <data name="DetailsViewEndLabel.TabIndex" type="System.Int32, mscorlib">
     <value>21</value>
@@ -2836,7 +2848,7 @@ Press enter to start processing.</value>
     <value>1, 1, 1, 1</value>
   </data>
   <data name="DetailsViewStartLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>415, 20</value>
+    <value>414, 20</value>
   </data>
   <data name="DetailsViewStartLabel.TabIndex" type="System.Int32, mscorlib">
     <value>14</value>
@@ -2869,13 +2881,13 @@ Press enter to start processing.</value>
     <value>NoControl</value>
   </data>
   <data name="DetailsViewDiffLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>418, 1</value>
+    <value>417, 1</value>
   </data>
   <data name="DetailsViewDiffLabel.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>1, 1, 1, 1</value>
   </data>
   <data name="DetailsViewDiffLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>427, 20</value>
+    <value>426, 20</value>
   </data>
   <data name="DetailsViewDiffLabel.TabIndex" type="System.Int32, mscorlib">
     <value>20</value>
@@ -2917,7 +2929,7 @@ Press enter to start processing.</value>
     <value>Vertical</value>
   </data>
   <data name="DetailsStartTextBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>417, 563</value>
+    <value>416, 563</value>
   </data>
   <data name="DetailsStartTextBox.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -2950,7 +2962,7 @@ Press enter to start processing.</value>
     <value>2</value>
   </data>
   <data name="DetailsLayoutPanel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="DetailsLayoutPanel.TabIndex" type="System.Int32, mscorlib">
     <value>20</value>
@@ -2977,7 +2989,7 @@ Press enter to start processing.</value>
     <value>0, 0, 0, 0</value>
   </data>
   <data name="DetailsTabPage.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1264, 587</value>
+    <value>1261, 587</value>
   </data>
   <data name="DetailsTabPage.TabIndex" type="System.Int32, mscorlib">
     <value>7</value>
@@ -3016,7 +3028,7 @@ Press enter to start processing.</value>
     <value>True</value>
   </data>
   <data name="MainTabControl.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1272, 613</value>
+    <value>1287, 613</value>
   </data>
   <data name="MainTabControl.TabIndex" type="System.Int32, mscorlib">
     <value>13</value>
@@ -3136,7 +3148,7 @@ Press enter to start processing.</value>
     <value>6, 13</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>1272, 690</value>
+    <value>1287, 690</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -4095,7 +4107,7 @@ Press enter to start processing.</value>
     <value>CenterScreen</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>Memory Profiler v2.0.2</value>
+    <value>Memory Profiler v2.1</value>
   </data>
   <data name="&gt;&gt;FileMenuItem.Name" xml:space="preserve">
     <value>FileMenuItem</value>
@@ -4330,6 +4342,12 @@ Press enter to start processing.</value>
   </data>
   <data name="&gt;&gt;FilterClassesDropDownButton.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripDropDownButton, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;FilterTagsButton.Name" xml:space="preserve">
+    <value>FilterTagsButton</value>
+  </data>
+  <data name="&gt;&gt;FilterTagsButton.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripButton, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;FilterLabel.Name" xml:space="preserve">
     <value>FilterLabel</value>

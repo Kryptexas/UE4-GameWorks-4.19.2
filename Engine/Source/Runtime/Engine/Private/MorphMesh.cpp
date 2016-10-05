@@ -26,20 +26,31 @@ void UMorphTarget::Serialize( FArchive& Ar )
 }
 
 
-SIZE_T UMorphTarget::GetResourceSize(EResourceSizeMode::Type Mode)
+void UMorphTarget::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	for (const auto& LODModel : MorphLODModels)
 	{
-		ResourceSize += LODModel.GetResourceSize();
+		LODModel.GetResourceSizeEx(CumulativeResourceSize);
 	}
-	return ResourceSize;
 }
 
 
 //////////////////////////////////////////////////////////////////////
 SIZE_T FMorphTargetLODModel::GetResourceSize() const
 {
-	return Vertices.GetAllocatedSize() + sizeof(int32);
+	return GetResourceSizeBytes();
+}
+
+void FMorphTargetLODModel::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
+{
+	CumulativeResourceSize.AddUnknownMemoryBytes(Vertices.GetAllocatedSize() + sizeof(int32));
+}
+
+SIZE_T FMorphTargetLODModel::GetResourceSizeBytes() const
+{
+	FResourceSizeEx ResSize;
+	GetResourceSizeEx(ResSize);
+	return ResSize.GetTotalMemoryBytes();
 }

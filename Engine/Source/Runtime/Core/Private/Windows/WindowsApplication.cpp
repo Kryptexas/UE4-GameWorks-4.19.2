@@ -807,6 +807,9 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		case WM_NCMOUSEMOVE:
 		case WM_MOUSEMOVE:
 		case WM_MOUSEWHEEL:
+#if WINVER >= 0x0601
+		case WM_TOUCH:
+#endif
 			{
 				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
 				// Handled
@@ -1714,6 +1717,66 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			}
 			break;
 
+#if WINVER >= 0x0601
+		case WM_TOUCH:
+			{
+				UINT InputCount = LOWORD( wParam );
+				if ( InputCount > 0 )
+				{
+					TUniquePtr<TOUCHINPUT> Inputs( new TOUCHINPUT[InputCount] );
+					if ( GetTouchInputInfo( (HTOUCHINPUT)lParam, InputCount, Inputs.Get(), sizeof(TOUCHINPUT) ) )
+					{
+						for ( uint32 i = 0; i < InputCount; i++ )
+						{
+							TOUCHINPUT Input = Inputs.Get()[i];
+							FVector2D Location( Input.x / 100.0f, Input.y / 100.0f );
+							if ( Input.dwFlags & TOUCHEVENTF_DOWN )
+							{
+								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
+								if (TouchIndex < 0)
+								{
+									TouchIndex = GetFirstFreeTouchIndex();
+									if (TouchIndex >= 0)
+									{
+										TouchIDs[TouchIndex] = TOptional<int32>( Input.dwID );
+										MessageHandler->OnTouchStarted( CurrentNativeEventWindowPtr, Location, TouchIndex + 1, 0 );
+									}
+									else
+									{
+										// TODO: Error handling for more than 10 touches?
+									}
+								}
+							}
+							else if ( Input.dwFlags & TOUCHEVENTF_MOVE )
+							{
+								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
+								if ( TouchIndex >= 0 )
+								{
+									MessageHandler->OnTouchMoved( Location, TouchIndex + 1, 0 );
+								}
+							}
+							else if ( Input.dwFlags & TOUCHEVENTF_UP )
+							{
+								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
+								if ( TouchIndex >= 0 )
+								{
+									TouchIDs[TouchIndex] = TOptional<int32>();
+									MessageHandler->OnTouchEnded( Location, TouchIndex + 1, 0 );
+								}
+								else
+								{
+									// TODO: Error handling.
+								}
+							}
+						}
+						CloseTouchInputHandle( (HTOUCHINPUT)lParam );
+						return 0;
+					}
+				}
+				break;
+			}
+#endif
+
 			// Window focus and activation
 		case WM_MOUSEACTIVATE:
 			{
@@ -2301,6 +2364,32 @@ void FWindowsApplication::QueryConnectedMice()
 
 	bIsMouseAttached = MouseCount > 0;
 }
+
+#if WINVER >= 0x0601
+uint32 FWindowsApplication::GetTouchIndexForID( int32 TouchID )
+{
+	for ( int i = 0; i < MaxTouches; i++ )
+	{
+		if ( TouchIDs[i].IsSet() && TouchIDs[i].GetValue() == TouchID )
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+uint32 FWindowsApplication::GetFirstFreeTouchIndex()
+{
+	for ( int i = 0; i < MaxTouches; i++ )
+	{
+		if ( TouchIDs[i].IsSet() == false )
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+#endif
 
 void FTaskbarList::Initialize()
 {

@@ -246,7 +246,7 @@ void FAutomationWorkerModule::SendTests( const FMessageAddress& ControllerAddres
 {
 	for( int32 TestIndex = 0; TestIndex < TestInfo.Num(); TestIndex++ )
 	{
-		MessageEndpoint->Send(new FAutomationWorkerRequestTestsReply(TestInfo[TestIndex].GetTestAsString(), TestInfo.Num()), ControllerAddress);
+		MessageEndpoint->Send(new FAutomationWorkerRequestTestsReply(TestInfo[TestIndex], TestInfo.Num()), ControllerAddress);
 	}
 	MessageEndpoint->Send(new FAutomationWorkerRequestTestsReplyComplete(), ControllerAddress);
 }

@@ -325,15 +325,16 @@ struct FStaticMaterial
 	ENGINE_API friend bool operator==(const UMaterialInterface& LHS, const FStaticMaterial& RHS);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, Category = StaticMesh)
-	class UMaterialInterface *	MaterialInterface;
+	class UMaterialInterface* MaterialInterface;
 
 	/*This name should be use by the gameplay to avoid error if the skeletal mesh Materials array topology change*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = StaticMesh)
-		FName						MaterialSlotName;
+	FName MaterialSlotName;
+
 #if WITH_EDITORONLY_DATA
 	/*This name should be use when we re-import a skeletal mesh so we can order the Materials array like it should be*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = StaticMesh)
-		FName						ImportedMaterialSlotName;
+	FName ImportedMaterialSlotName;
 #endif //WITH_EDITORONLY_DATA
 };
 
@@ -542,7 +543,7 @@ public:
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	ENGINE_API virtual FString GetDesc() override;
-	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	//~ End UObject Interface.
 
 	/**

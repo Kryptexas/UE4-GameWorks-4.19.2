@@ -2905,7 +2905,9 @@ FPropertyAccess::Result FPropertyHandleObject::SetValueFromFormattedString(const
 				UClass* AllowedClass = FindObject<UClass>(ANY_PACKAGE, *ClassName);
 				const bool bIsInterface = AllowedClass && AllowedClass->HasAnyClassFlags(CLASS_Interface);
 				
-				if (AllowedClass && (QualifiedObject->IsA(AllowedClass) || (bIsInterface && QualifiedObject->GetClass()->ImplementsInterface(AllowedClass))))
+				// Check if the object is an allowed class type this property supports
+				// Note: QualifieObject may be null if we're clearing the value.  Allow clears to pass through without a supported class
+				if (AllowedClass && (!QualifiedObject || QualifiedObject->IsA(AllowedClass) || (bIsInterface && QualifiedObject->GetClass()->ImplementsInterface(AllowedClass))))
 				{
 					bSupportedObject = true;
 					break;

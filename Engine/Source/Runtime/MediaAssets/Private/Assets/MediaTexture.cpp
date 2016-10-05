@@ -206,9 +206,14 @@ FString UMediaTexture::GetDesc()
 }
 
 
-SIZE_T UMediaTexture::GetResourceSize(EResourceSizeMode::Type Mode)
+void UMediaTexture::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->GetResourceSize() : 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
+	if (Resource)
+	{
+		((FMediaTextureResource*)Resource)->GetResourceSizeEx(CumulativeResourceSize);
+	}
 }
 
 

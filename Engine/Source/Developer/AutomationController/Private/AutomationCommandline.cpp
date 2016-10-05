@@ -120,12 +120,13 @@ public:
 			Filters[FilterIndex] = Filters[FilterIndex].Replace(TEXT(" "), TEXT(""));
 		}
 
-		for ( int FilterIndex = 0; FilterIndex < Filters.Num(); ++FilterIndex )
+		for ( int32 TestIndex = 0; TestIndex < AllTestNames.Num(); ++TestIndex )
 		{
-			for (int32 TestIndex = 0; TestIndex < AllTestNames.Num(); ++TestIndex)
+			AllTestNamesNoWhiteSpaces = AllTestNames[TestIndex];
+			AllTestNamesNoWhiteSpaces = AllTestNamesNoWhiteSpaces.Replace(TEXT(" "), TEXT(""));
+
+			for ( int32 FilterIndex = 0; FilterIndex < Filters.Num(); ++FilterIndex )
 			{
-				AllTestNamesNoWhiteSpaces = AllTestNames[TestIndex];
-				AllTestNamesNoWhiteSpaces = AllTestNamesNoWhiteSpaces.Replace(TEXT(" "), TEXT(""));
 				if (AllTestNamesNoWhiteSpaces.Contains(Filters[FilterIndex]))
 				{
 					OutTestNames.Add(AllTestNames[TestIndex]);

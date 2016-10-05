@@ -76,6 +76,7 @@ protected:
 
 	void RefreshRenderingMode();
 	bool ShouldBeRenderingOffscreen() const;
+	bool IsAnythingVisibleToRender() const;
 	void OnRetainerModeChanged();
 private:
 #if !UE_BUILD_SHIPPING

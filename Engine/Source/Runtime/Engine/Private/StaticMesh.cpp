@@ -582,7 +582,7 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 	if (DistanceFieldData)
 	{
 		DistanceFieldData->VolumeTexture.Initialize();
-		INC_DWORD_STAT_BY( STAT_StaticMeshDistanceFieldMemory, DistanceFieldData->GetResourceSize() );
+		INC_DWORD_STAT_BY( STAT_StaticMeshDistanceFieldMemory, DistanceFieldData->GetResourceSizeBytes() );
 	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
@@ -648,7 +648,7 @@ void FStaticMeshLODResources::ReleaseResources()
 
 	if (DistanceFieldData)
 	{
-		DEC_DWORD_STAT_BY( STAT_StaticMeshDistanceFieldMemory, DistanceFieldData->GetResourceSize() );
+		DEC_DWORD_STAT_BY( STAT_StaticMeshDistanceFieldMemory, DistanceFieldData->GetResourceSizeBytes() );
 		DistanceFieldData->VolumeTexture.Release();
 	}
 }
@@ -1394,7 +1394,7 @@ void UStaticMesh::InitResources()
 		UpdateMemoryStats,
 		UStaticMesh*, This, this,
 		{
- 			const uint32 StaticMeshResourceSize = This->GetResourceSize( EResourceSizeMode::Exclusive );
+ 			const uint32 StaticMeshResourceSize = This->GetResourceSizeBytes( EResourceSizeMode::Exclusive );
  			INC_DWORD_STAT_BY( STAT_StaticMeshTotalMemory, StaticMeshResourceSize );
  			INC_DWORD_STAT_BY( STAT_StaticMeshTotalMemory2, StaticMeshResourceSize );
 		} );
@@ -1406,14 +1406,15 @@ void UStaticMesh::InitResources()
  *
  * @return size of resource as to be displayed to artists/ LDs in the Editor.
  */
-SIZE_T UStaticMesh::GetResourceSize(EResourceSizeMode::Type Mode)
+void UStaticMesh::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 	if (RenderData)
 	{
-		ResourceSize += RenderData->GetResourceSize();
+		RenderData->GetResourceSizeEx(CumulativeResourceSize);
 	}
-	if (Mode == EResourceSizeMode::Inclusive)
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive)
 	{
 		TSet<UMaterialInterface*> UniqueMaterials;
 		for (int32 MaterialIndex = 0; MaterialIndex < StaticMaterials.Num(); ++MaterialIndex)
@@ -1423,27 +1424,31 @@ SIZE_T UStaticMesh::GetResourceSize(EResourceSizeMode::Type Mode)
 			UniqueMaterials.Add(StaticMaterial.MaterialInterface,&bAlreadyCounted);
 			if (!bAlreadyCounted && StaticMaterial.MaterialInterface)
 			{
-				ResourceSize += StaticMaterial.MaterialInterface->GetResourceSize(Mode);
+				StaticMaterial.MaterialInterface->GetResourceSizeEx(CumulativeResourceSize);
 			}
 		}
 
 		if(BodySetup)
 		{
-			ResourceSize += BodySetup->GetResourceSize(Mode);
+			BodySetup->GetResourceSizeEx(CumulativeResourceSize);
 		}
 	}
-	return ResourceSize;
 }
 
 SIZE_T FStaticMeshRenderData::GetResourceSize() const
 {
-	SIZE_T ResourceSize = sizeof(*this);
+	return GetResourceSizeBytes();
+}
+
+void FStaticMeshRenderData::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
+{
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
 
 	// Count dynamic arrays.
-	ResourceSize += LODResources.GetAllocatedSize();
+	CumulativeResourceSize.AddUnknownMemoryBytes(LODResources.GetAllocatedSize());
 #if WITH_EDITORONLY_DATA
-	ResourceSize += DerivedDataKey.GetAllocatedSize();
-	ResourceSize += WedgeMap.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(DerivedDataKey.GetAllocatedSize());
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(WedgeMap.GetAllocatedSize());
 #endif // #if WITH_EDITORONLY_DATA
 
 	for(int32 LODIndex = 0;LODIndex < LODResources.Num();LODIndex++)
@@ -1457,12 +1462,12 @@ SIZE_T FStaticMeshRenderData::GetResourceSize() const
 			+ LODRenderData.WireframeIndexBuffer.GetAllocatedSize()
 			+ (RHISupportsTessellation(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? LODRenderData.AdjacencyIndexBuffer.GetAllocatedSize() : 0);
 
-		ResourceSize += VBSize + IBSize;
-		ResourceSize += LODRenderData.Sections.GetAllocatedSize();
+		CumulativeResourceSize.AddUnknownMemoryBytes(VBSize + IBSize);
+		CumulativeResourceSize.AddUnknownMemoryBytes(LODRenderData.Sections.GetAllocatedSize());
 
 		if (LODRenderData.DistanceFieldData)
 		{
-			ResourceSize += LODRenderData.DistanceFieldData->GetResourceSize();
+			LODRenderData.DistanceFieldData->GetResourceSizeEx(CumulativeResourceSize);
 		}
 	}
 
@@ -1470,11 +1475,16 @@ SIZE_T FStaticMeshRenderData::GetResourceSize() const
 	// If render data for multiple platforms is loaded, count it all.
 	if (NextCachedRenderData)
 	{
-		ResourceSize += NextCachedRenderData->GetResourceSize();
+		NextCachedRenderData->GetResourceSizeEx(CumulativeResourceSize);
 	}
 #endif // #if WITH_EDITORONLY_DATA
+}
 
-	return ResourceSize;
+SIZE_T FStaticMeshRenderData::GetResourceSizeBytes() const
+{
+	FResourceSizeEx ResSize;
+	GetResourceSizeEx(ResSize);
+	return ResSize.GetTotalMemoryBytes();
 }
 
 int32 UStaticMesh::GetNumVertices(int32 LODIndex) const
@@ -1669,7 +1679,7 @@ bool UStaticMesh::GetStreamingTextureFactor(float& OutTexelFactor, FBoxSphereBou
 void UStaticMesh::ReleaseResources()
 {
 #if STATS
-	uint32 StaticMeshResourceSize = GetResourceSize(EResourceSizeMode::Exclusive);
+	uint32 StaticMeshResourceSize = GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 	DEC_DWORD_STAT_BY( STAT_StaticMeshTotalMemory, StaticMeshResourceSize );
 	DEC_DWORD_STAT_BY( STAT_StaticMeshTotalMemory2, StaticMeshResourceSize );
 #endif

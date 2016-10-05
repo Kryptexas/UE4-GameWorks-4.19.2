@@ -211,6 +211,7 @@ class Localise : BuildCommand
 		{
 			EditorArguments = String.Format("-SCCProvider={0}", "None");
 		}
+		EditorArguments += " -Unattended";
 
 		// Setup commandlet arguments for SCC.
 		string CommandletSCCArguments = String.Empty;

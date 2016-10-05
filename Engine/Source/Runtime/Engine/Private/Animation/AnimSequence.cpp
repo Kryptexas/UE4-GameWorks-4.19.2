@@ -140,16 +140,17 @@ void UAnimSequence::PostInitProperties()
 	Super::PostInitProperties();
 }
 
-SIZE_T UAnimSequence::GetResourceSize(EResourceSizeMode::Type Mode)
+void UAnimSequence::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	if (Mode == EResourceSizeMode::Exclusive)
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive)
 	{
 		// All of the sequence data is serialized and will be counted as part of the direct object size rather than as a resource
-		return 0;
 	}
 	else
 	{
-		return (CompressedTrackOffsets.Num() == 0) ? GetApproxRawSize() : GetApproxCompressedSize();
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes((CompressedTrackOffsets.Num() == 0) ? GetApproxRawSize() : GetApproxCompressedSize());
 	}
 }
 
@@ -446,7 +447,7 @@ void UAnimSequence::PostLoad()
 	if( IsRunningGame() )
 	{
 		// this probably will not show newly created animations in PIE but will show them in the game once they have been saved off
-		INC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSize(EResourceSizeMode::Exclusive) );
+		INC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSizeBytes(EResourceSizeMode::Exclusive) );
 	}
 
 	{
@@ -605,7 +606,7 @@ void UAnimSequence::BeginDestroy()
 
 	if( IsRunningGame() )
 	{
-		DEC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSize(EResourceSizeMode::Exclusive) );
+		DEC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSizeBytes(EResourceSizeMode::Exclusive) );
 	}
 }
 
@@ -5077,7 +5078,7 @@ void GatherAnimSequenceStats(FOutputDevice& Ar)
 			NumTransTracksWithOneKey, NumRotTracksWithOneKey, NumScaleTracksWithOneKey,
 			TotalNumTransKeys, TotalNumRotKeys, TotalNumScaleKeys,
 			*FAnimationUtils::GetAnimationKeyFormatString(static_cast<AnimationKeyFormat>(Seq->KeyEncodingFormat)),
-			(int32)Seq->GetResourceSize(EResourceSizeMode::Exclusive) );
+			(int32)Seq->GetResourceSizeBytes(EResourceSizeMode::Exclusive) );
 	}
 	Ar.Logf( TEXT("======================================================================") );
 	Ar.Logf( TEXT("Total Num Tracks: %i trans, %i rot, %i scale, %i trans1, %i rot1, %i scale1"), GlobalNumTransTracks, GlobalNumRotTracks, GlobalNumScaleTracks, GlobalNumTransTracksWithOneKey, GlobalNumRotTracksWithOneKey, GlobalNumScaleTracksWithOneKey  );

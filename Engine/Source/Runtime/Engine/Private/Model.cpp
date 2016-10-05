@@ -497,19 +497,17 @@ bool UModel::IsReadyForFinishDestroy()
 	return ReleaseResourcesFence.IsFenceComplete() && Super::IsReadyForFinishDestroy();
 }
 
-SIZE_T UModel::GetResourceSize(EResourceSizeMode::Type Mode)
+void UModel::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	int32 ResourceSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 	
 	// I'm adding extra stuff that haven't been covered by Serialize 
 	// I don't have to include VertexFactories (based on Sam Z)
 	for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TConstIterator IndexBufferIt(MaterialIndexBuffers);IndexBufferIt;++IndexBufferIt)
 	{
 		const TScopedPointer<FRawIndexBuffer16or32> &IndexBuffer = IndexBufferIt.Value();
-		ResourceSize += IndexBuffer->Indices.Num() * sizeof(uint32);
+		CumulativeResourceSize.AddUnknownMemoryBytes(IndexBuffer->Indices.Num() * sizeof(uint32));
 	}
-	
-	return ResourceSize;
 }
 
 #if WITH_EDITOR

@@ -38,6 +38,15 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	/** Returns override Materials count */
 	virtual int32 GetNumOverrideMaterials() const;
 
+#if WITH_EDITOR
+	/*
+	 * Make sure the Override array is using only the space it should use.
+	 * 1. The override array cannot be bigger then the number of mesh material.
+	 * 2. The override array must not end with a nullptr UMaterialInterface.
+	 */
+	void CleanUpOverrideMaterials();
+#endif
+
 	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
 	//~ End UObject Interface

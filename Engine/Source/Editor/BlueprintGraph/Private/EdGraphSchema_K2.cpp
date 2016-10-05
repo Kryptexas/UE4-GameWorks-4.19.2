@@ -1277,7 +1277,7 @@ bool UEdGraphSchema_K2::PinDefaultValueIsEditable(const UEdGraphPin& InGraphPin)
 	return true;
 }
 
-void UEdGraphSchema_K2::SelectAllInputNodes(UEdGraph* Graph, UEdGraphPin* InGraphPin)
+void UEdGraphSchema_K2::SelectAllNodesInDirection(TEnumAsByte<enum EEdGraphPinDirection> InDirection, UEdGraph* Graph, UEdGraphPin* InGraphPin)
 {
 	TArray<UEdGraphPin*> AllPins = InGraphPin->LinkedTo;
 
@@ -1294,13 +1294,9 @@ void UEdGraphSchema_K2::SelectAllInputNodes(UEdGraph* Graph, UEdGraphPin* InGrap
 		TArray<UEdGraphPin*> LinkedPins = Pin->GetOwningNode()->GetAllPins();
 		for (UEdGraphPin* InputPin : LinkedPins)
 		{
-			if (InputPin->Direction == EEdGraphPinDirection::EGPD_Output)
+			if (InputPin->Direction == InDirection)
 			{
-				continue;
-			}
-			else
-			{
-				SelectAllInputNodes(Graph, InputPin);
+				SelectAllNodesInDirection(InDirection, Graph, InputPin);
 			}
 		}
 	}
@@ -1333,10 +1329,10 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 				if (InGraphPin->LinkedTo.Num() > 0)
 				{
 					MenuBuilder->AddMenuEntry(
-						LOCTEXT("SelectAllInputNodes", "Select All Input Nodes"),
-						LOCTEXT("SelectAllInputNodesTooltip", "Adds all input Nodes linked to this Pin to selection"),
+						InGraphPin->Direction == EEdGraphPinDirection::EGPD_Input ? LOCTEXT("SelectAllInputNodes", "Select All Input Nodes") : LOCTEXT("SelectAllOutputNodes", "Select All Output Nodes"),
+						InGraphPin->Direction == EEdGraphPinDirection::EGPD_Input ? LOCTEXT("SelectAllInputNodesTooltip", "Adds all input Nodes linked to this Pin to selection") : LOCTEXT("SelectAllOutputNodesTooltip", "Adds all output Nodes linked to this Pin to selection"),
 						FSlateIcon(),
-						FUIAction(FExecuteAction::CreateUObject((UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::SelectAllInputNodes, const_cast<UEdGraph*>(CurrentGraph), const_cast<UEdGraphPin*>(InGraphPin))));
+						FUIAction(FExecuteAction::CreateUObject((UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::SelectAllNodesInDirection, InGraphPin->Direction, const_cast<UEdGraph*>(CurrentGraph), const_cast<UEdGraphPin*>(InGraphPin))));
 
 					if(InGraphPin->LinkedTo.Num() > 1)
 					{

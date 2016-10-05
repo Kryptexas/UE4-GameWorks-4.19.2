@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class EditorAutomation : ModuleRules
+public class FunctionalTestingEditor : ModuleRules
 {
-    public EditorAutomation(TargetInfo Target)
+    public FunctionalTestingEditor(TargetInfo Target)
 	{
         PublicDependencyModuleNames.AddRange
         (
