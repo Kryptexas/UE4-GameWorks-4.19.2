@@ -4,9 +4,8 @@
 
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
-#include "GlobalShader.h"
-#include "ShaderParameterUtils.h"
 #include "ScenePrivate.h"
+#include "Runtime/UtilityShaders/Public/OculusShaders.h"
 
 class FHeadMountedDisplay;
 
@@ -31,87 +30,6 @@ FORCEINLINE FVector UUToMeters(const FVector& InVec, float WorldToMetersScale)
 {
 	return InVec * (1.f / WorldToMetersScale);
 }
-
-class FOculusVertexShader : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FOculusVertexShader, Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
-
-	FOculusVertexShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
-		FGlobalShader(Initializer)
-	{}
-	FOculusVertexShader() {}
-};
-
-class FOculusWhiteShader : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FOculusWhiteShader, Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
-
-	FOculusWhiteShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
-		FGlobalShader(Initializer)
-	{
-	}
-	
-	FOculusWhiteShader() {}
-};
-
-class FOculusBlackShader : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FOculusBlackShader, Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
-
-	FOculusBlackShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
-		FGlobalShader(Initializer)
-	{
-	}
-
-	FOculusBlackShader() {}
-};
-
-class FOculusAlphaInverseShader : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FOculusAlphaInverseShader, Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform) { return true; }
-
-	FOculusAlphaInverseShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
-		FGlobalShader(Initializer)
-	{
-		InTexture.Bind(Initializer.ParameterMap, TEXT("InTexture"), SPF_Mandatory);
-		InTextureSampler.Bind(Initializer.ParameterMap, TEXT("InTextureSampler"));
-	}
-	FOculusAlphaInverseShader() {}
-
-	void SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture)
-	{
-		SetTextureParameter(RHICmdList, GetPixelShader(), InTexture, InTextureSampler, Texture);
-	}
-
-	void SetParameters(FRHICommandList& RHICmdList, FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef TextureRHI)
-	{
-		SetTextureParameter(RHICmdList, GetPixelShader(), InTexture, InTextureSampler, SamplerStateRHI, TextureRHI);
-	}
-
-	virtual bool Serialize(FArchive& Ar) override
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << InTexture;
-		Ar << InTextureSampler;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-	FShaderResourceParameter InTexture;
-	FShaderResourceParameter InTextureSampler;
-};
 
 class FHMDSettings : public TSharedFromThis<FHMDSettings, ESPMode::ThreadSafe>
 {

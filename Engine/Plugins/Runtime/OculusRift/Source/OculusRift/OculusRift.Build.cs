@@ -32,6 +32,7 @@ namespace UnrealBuildTool.Rules
 					"ImageWrapper",
                     "MediaAssets",
 					"Analytics",
+					"UtilityShaders",
 				});
 
 			if (UEBuildConfiguration.bBuildEditor == true)

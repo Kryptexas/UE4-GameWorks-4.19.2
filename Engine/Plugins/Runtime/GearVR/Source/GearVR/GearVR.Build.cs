@@ -30,6 +30,7 @@ namespace UnrealBuildTool.Rules
 					"HeadMountedDisplay",
 					"OpenGLDrv",
 					"OculusMobile",
+					"UtilityShaders",
 				});
 
 			if (UEBuildConfiguration.bBuildEditor)
