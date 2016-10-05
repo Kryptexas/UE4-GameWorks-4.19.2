@@ -95,7 +95,7 @@ public:
 		LoadersWithNewImports.Empty();
 	}
 
-#if UE_BUILD_DEBUG
+#if !UE_BUILD_SHIPPING
 	FORCEINLINE TArray<FLinkerLoad*>& GetLiveLinkers()
 	{
 		return LiveLinkers;
@@ -133,7 +133,7 @@ private:
 #if THREADSAFE_UOBJECTS
 	FCriticalSection LoadersWithNewImportsCritical;
 #endif
-#if UE_BUILD_DEBUG
+#if !UE_BUILD_SHIPPING
 	/** List of all the existing linker loaders **/
 	TArray<FLinkerLoad*> LiveLinkers;
 #endif

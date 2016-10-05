@@ -661,7 +661,7 @@ private:
  */
 
 UCLASS(customConstructor, config=Engine)
-class ENGINE_API UWorld : public UObject, public FNetworkNotify
+class ENGINE_API UWorld final : public UObject, public FNetworkNotify
 {
 	GENERATED_UCLASS_BODY()
 

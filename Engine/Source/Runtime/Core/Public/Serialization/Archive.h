@@ -15,6 +15,21 @@ class FCustomVersionContainer;
 class FLazyObjectPtr;
 struct FStringAssetReference;
 struct FUntypedBulkData;
+struct FWeakObjectPtr;
+
+// this is the master switch
+//@todoio if this is off, then we should leave the package file format completely unchanged....!!!!! this is really important to fix before we merge to main
+//#define COOK_FOR_EVENT_DRIVEN_LOAD (1)
+
+#define SPLIT_COOKED_FILES (1)
+
+#if !defined(USE_NEW_ASYNC_IO)
+#error "USE_NEW_ASYNC_IO must be defined"
+#endif
+
+// We only use event driven loading if we have cooked for it and it is a cooked platform
+#define USE_EVENT_DRIVEN_ASYNC_LOAD (!WITH_EDITORONLY_DATA && USE_NEW_ASYNC_IO)
+#define DEVIRTUALIZE_FLinkerLoad_Serialize (USE_EVENT_DRIVEN_ASYNC_LOAD)
 
 /**
  * Base class for archives that can be used for loading, saving, and garbage
@@ -104,6 +119,16 @@ public:
 	 */
 	virtual FArchive& operator<<(struct FStringAssetReference& Value);
 
+	/**
+	* Serializes FWeakObjectPtr value from or into this archive.
+	*
+	* This operator can be implemented by sub-classes that wish to serialize FWeakObjectPtr instances.
+	*
+	* @param Value The value to serialize.
+	* @return This instance.
+	*/
+	virtual FArchive& operator<<(struct FWeakObjectPtr& Value);
+
 	/** 
 	 * Inform the archive that a blueprint would like to force finalization, normally
 	 * this is triggered by CDO load, but if there's no CDO we force finalization.
@@ -119,8 +144,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, ANSICHAR& Value)
 	{
-		Ar.Serialize(&Value, 1);
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.Serialize(&Value, 1);
+		}
 		return Ar;
 	}
 
@@ -132,8 +161,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, WIDECHAR& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}
 
@@ -145,8 +178,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, uint8& Value)
 	{
-		Ar.Serialize(&Value, 1);
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.Serialize(&Value, 1);
+		}
 		return Ar;
 	}
 
@@ -159,8 +196,12 @@ public:
 	template<class TEnum>
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, TEnumAsByte<TEnum>& Value)
 	{
-		Ar.Serialize(&Value, 1);
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.Serialize(&Value, 1);
+		}
 		return Ar;
 	}
 
@@ -172,8 +213,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, int8& Value)
 	{
-		Ar.Serialize(&Value, 1);
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.Serialize(&Value, 1);
+		}
 		return Ar;
 	}
 
@@ -185,8 +230,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, uint16& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}
 
@@ -198,8 +247,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, int16& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}
 
@@ -211,8 +264,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, uint32& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}
 
@@ -225,9 +282,26 @@ public:
 	FORCEINLINE friend FArchive& operator<<( FArchive& Ar, bool& D )
 	{
 		// Serialize bool as if it were UBOOL (legacy, 32 bit int).
-		uint32 OldUBoolValue = D ? 1 : 0;
-		Ar.ByteOrderSerialize( &OldUBoolValue, sizeof(OldUBoolValue) );
-		D = !!OldUBoolValue;
+
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		const uint8 * RESTRICT Src = Ar.ActiveFPLB->StartFastPathLoadBuffer;
+		if (Src + sizeof(uint32) <= Ar.ActiveFPLB->EndFastPathLoadBuffer)
+		{
+#if PLATFORM_SUPPORTS_UNALIGNED_INT_LOADS
+			D = !!*(uint32* RESTRICT)Src;
+#else
+			static_assert(sizeof(uint32) == 4, "assuming sizeof(uint32) == 4");
+			D = !!(Src[0] | Src[1] | Src[2] | Src[3]);
+#endif
+			Ar.ActiveFPLB->StartFastPathLoadBuffer += 4;
+		}
+		else
+#endif
+		{
+			uint32 OldUBoolValue = D ? 1 : 0;
+			Ar.Serialize(&OldUBoolValue, sizeof(OldUBoolValue));
+			D = !!OldUBoolValue;
+		}
 		return Ar;
 	}
 
@@ -239,8 +313,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, int32& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}
 
@@ -253,8 +331,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, long& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}	
 #endif
@@ -267,8 +349,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<( FArchive& Ar, float& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}
 
@@ -280,8 +366,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, double& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}
 
@@ -293,8 +383,12 @@ public:
 	 */
 	FORCEINLINE friend FArchive& operator<<(FArchive &Ar, uint64& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}
 
@@ -306,8 +400,12 @@ public:
 	 */
 	/*FORCEINLINE*/friend FArchive& operator<<(FArchive& Ar, int64& Value)
 	{
-		Ar.ByteOrderSerialize(&Value, sizeof(Value));
-
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+		if (!Ar.FastPathLoad<sizeof(Value)>(&Value))
+#endif
+		{
+			Ar.ByteOrderSerialize(&Value, sizeof(Value));
+		}
 		return Ar;
 	}
 
@@ -555,6 +653,14 @@ public:
 	 * Called when an object stops serializing property data using script serialization.
 	 */
 	virtual void MarkScriptSerializationEnd(const UObject* Obj) { }
+
+	/**
+	* Called to retrieve the archetype from the event driven loader. If this returns null, then call GetArchetype yourself.
+	*/
+	virtual UObject* GetArchetypeFromLoader(const UObject* Obj)
+	{
+		return nullptr;
+	}
 
 	virtual void IndicateSerializationMismatch() { }
 
@@ -1022,17 +1128,173 @@ protected:
 
 	/** Resets all of the base archive members. */
 	void Reset();
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+	template<SIZE_T Size>
+	FORCEINLINE bool FastPathLoad(void* InDest)
+	{
+		const uint8* RESTRICT Src = ActiveFPLB->StartFastPathLoadBuffer;
+		if (Src + Size <= ActiveFPLB->EndFastPathLoadBuffer)
+		{
+#if PLATFORM_SUPPORTS_UNALIGNED_INT_LOADS
+			if (Size == 2)
+			{
+				uint16 * RESTRICT Dest = (uint16 * RESTRICT)InDest;
+				*Dest = *(uint16 * RESTRICT)Src;
+			}
+			else if (Size == 4)
+			{
+				uint32 * RESTRICT Dest = (uint32 * RESTRICT)InDest;
+				*Dest = *(uint32 * RESTRICT)Src;
+			}
+			else if (Size == 8)
+			{
+				uint64 * RESTRICT Dest = (uint64 * RESTRICT)InDest;
+				*Dest = *(uint64 * RESTRICT)Src;
+			}
+			else
+#endif
+			{
+				uint8 * RESTRICT Dest = (uint8 * RESTRICT)InDest;
+				for (SIZE_T Index = 0; Index < Size; Index++)
+				{
+					Dest[Index] = Src[Index];
+				}
+			}
+			ActiveFPLB->StartFastPathLoadBuffer += Size;
+			return true;
+		}
+		return false;
+	}
+public:
+	/* These are used for fastpath inline serializers  */
+	struct FFastPathLoadBuffer
+	{
+		const uint8* StartFastPathLoadBuffer;
+		const uint8* EndFastPathLoadBuffer;
+		const uint8* OriginalFastPathLoadBuffer;
+		FORCEINLINE FFastPathLoadBuffer()
+		{
+			Reset();
+		}
+		FORCEINLINE void Reset()
+		{
+			StartFastPathLoadBuffer = nullptr;
+			EndFastPathLoadBuffer = nullptr;
+			OriginalFastPathLoadBuffer = nullptr;
+		}
+	};
+	//@todoio FArchive is really a horrible class and the way it is proxied by FLinkerLoad is double terrible. It makes the fast path really hacky and slower than it would need to be.
+	FFastPathLoadBuffer* ActiveFPLB;
+	FFastPathLoadBuffer InlineFPLB;
+
+
+
+
+#else
+	template<SIZE_T Size>
+	FORCEINLINE bool FastPathLoad(void* InDest)
+	{
+		return false;
+	}
+#endif
+
 
 private:
 
 	/** Copies all of the members except CustomVersionContainer */
 	void CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveStatusToCopy);
 
+public:
+
+	/** Whether this archive is for loading data. */
+	uint8 ArIsLoading : 1;
+
+	/** Whether this archive is for saving data. */
+	uint8 ArIsSaving : 1;
+
+	/** Whether archive is transacting. */
+	uint8 ArIsTransacting : 1;
+
+	/** Whether this archive wants properties to be serialized in binary form instead of tagged. */
+	uint8 ArWantBinaryPropertySerialization : 1;
+
+	/** Whether this archive wants to always save strings in unicode format */
+	uint8 ArForceUnicode : 1;
+
+	/** Whether this archive saves to persistent storage. */
+	uint8 ArIsPersistent : 1;
+
+	/** Whether this archive contains errors. */
+	uint8 ArIsError : 1;
+
+	/** Whether this archive contains critical errors. */
+	uint8 ArIsCriticalError : 1;
+
+	/** Quickly tell if an archive contains script code. */
+	uint8 ArContainsCode : 1;
+
+	/** Used to determine whether FArchive contains a level or world. */
+	uint8 ArContainsMap : 1;
+
+	/** Used to determine whether FArchive contains data required to be gathered for localization. */
+	uint8 ArRequiresLocalizationGather : 1;
+
+	/** Whether we should forcefully swap bytes. */
+	uint8 ArForceByteSwapping : 1;
+
+	/** If true, we will not serialize the ObjectArchetype reference in UObject. */
+	uint8 ArIgnoreArchetypeRef : 1;
+
+	/** If true, we will not serialize the ObjectArchetype reference in UObject. */
+	uint8 ArNoDelta : 1;
+
+	/** If true, we will not serialize the Outer reference in UObject. */
+	uint8 ArIgnoreOuterRef : 1;
+
+	/** If true, we will not serialize ClassGeneratedBy reference in UClass. */
+	uint8 ArIgnoreClassGeneratedByRef : 1;
+
+	/** If true, UObject::Serialize will skip serialization of the Class property. */
+	uint8 ArIgnoreClassRef : 1;
+
+	/** Whether to allow lazy loading. */
+	uint8 ArAllowLazyLoading : 1;
+
+	/** Whether this archive only cares about serializing object references. */
+	uint8 ArIsObjectReferenceCollector : 1;
+
+	/** Whether a reference collector is modifying the references and wants both weak and strong ones */
+	uint8 ArIsModifyingWeakAndStrongReferences : 1;
+
+	/** Whether this archive is counting memory and therefore wants e.g. TMaps to be serialized. */
+	uint8 ArIsCountingMemory : 1;
+
+	/** Whether bulk data serialization should be skipped or not. */
+	uint8 ArShouldSkipBulkData : 1;
+
+	/** Whether editor only properties are being filtered from the archive (or has been filtered). */
+	uint8 ArIsFilterEditorOnly : 1;
+
+	/** Whether this archive is saving/loading game state */
+	uint8 ArIsSaveGame : 1;
+
+	/** Set TRUE to use the custom property list attribute for serialization. */
+	uint8 ArUseCustomPropertyList : 1;
+
+	/** Whether we are currently serializing defaults. > 0 means yes, <= 0 means no. */
+	int32 ArSerializingDefaults;
+
+	/** Modifier flags that be used when serializing UProperties */
+	uint32 ArPortFlags;
+			
+	/** Max size of data that this archive is allowed to serialize. */
+	int64 ArMaxSerializeSize;
+
 protected:
 
 	/** Holds the archive version. */
 	int32 ArUE4Ver;
-	
+
 	/** Holds the archive version for licensees. */
 	int32 ArLicenseeUE4Ver;
 
@@ -1048,99 +1310,15 @@ protected:
 private:
 
 	/**
-	 * All the custom versions stored in the archive.
-	 * Stored as a pointer to a heap-allocated object because of a 3-way dependency between TArray, FCustomVersionContainer and FArchive, which is too much work to change right now.
-	 */
+	* All the custom versions stored in the archive.
+	* Stored as a pointer to a heap-allocated object because of a 3-way dependency between TArray, FCustomVersionContainer and FArchive, which is too much work to change right now.
+	*/
 	FCustomVersionContainer* CustomVersionContainer;
 
 public:
 
-	/** Whether this archive is for loading data. */
-	bool ArIsLoading;
-	
-	/** Whether this archive is for saving data. */
-	bool ArIsSaving;
-	
-	/** Whether archive is transacting. */
-	bool ArIsTransacting;
-	
-	/** Whether this archive wants properties to be serialized in binary form instead of tagged. */
-	bool ArWantBinaryPropertySerialization;
-	
-	/** Whether this archive wants to always save strings in unicode format */
-	bool ArForceUnicode;
-	
-	/** Whether this archive saves to persistent storage. */
-	bool ArIsPersistent;
-			
-	/** Whether this archive contains errors. */
-	bool ArIsError;
-
-	/** Whether this archive contains critical errors. */
-	bool ArIsCriticalError;
-	
-	/** Quickly tell if an archive contains script code. */
-	bool ArContainsCode;
-	
-	/** Used to determine whether FArchive contains a level or world. */
-	bool ArContainsMap;
-
-	/** Used to determine whether FArchive contains data required to be gathered for localization. */
-	bool ArRequiresLocalizationGather;
-	
-	/** Whether we should forcefully swap bytes. */
-	bool ArForceByteSwapping;
-	
-	/** If true, we will not serialize the ObjectArchetype reference in UObject. */
-	bool ArIgnoreArchetypeRef;
-	
-	/** If true, we will not serialize the ObjectArchetype reference in UObject. */
-	bool ArNoDelta;
-
-	/** If true, we will not serialize the Outer reference in UObject. */
-	bool ArIgnoreOuterRef;
-
-	/** If true, we will not serialize ClassGeneratedBy reference in UClass. */
-	bool ArIgnoreClassGeneratedByRef;
-
-	/** If true, UObject::Serialize will skip serialization of the Class property. */
-	bool ArIgnoreClassRef;
-	
-	/** Whether to allow lazy loading. */
-	bool ArAllowLazyLoading;
-	
-	/** Whether this archive only cares about serializing object references. */
-	bool ArIsObjectReferenceCollector;
-	
-	/** Whether a reference collector is modifying the references and wants both weak and strong ones */
-	bool ArIsModifyingWeakAndStrongReferences;
-	
-	/** Whether this archive is counting memory and therefore wants e.g. TMaps to be serialized. */
-	bool ArIsCountingMemory;
-	
-	/** Whether bulk data serialization should be skipped or not. */
-	bool ArShouldSkipBulkData;
-
-	/** Whether editor only properties are being filtered from the archive (or has been filtered). */
-	bool ArIsFilterEditorOnly;
-
-	/** Whether this archive is saving/loading game state */
-	bool ArIsSaveGame;
-
-	/** Whether we are currently serializing defaults. > 0 means yes, <= 0 means no. */
-	int32 ArSerializingDefaults;
-
-	/** Modifier flags that be used when serializing UProperties */
-	uint32 ArPortFlags;
-			
-	/** Max size of data that this archive is allowed to serialize. */
-	int64 ArMaxSerializeSize;
-
 	/** Custom property list attribute. If the flag below is set, only these properties will be iterated during serialization. If NULL, then no properties will be iterated. */
 	const struct FCustomPropertyListNode* ArCustomPropertyList;
-
-	/** Set TRUE to use the custom property list attribute for serialization. */
-	bool ArUseCustomPropertyList;
 
 	class FScopeSetDebugSerializationFlags
 	{

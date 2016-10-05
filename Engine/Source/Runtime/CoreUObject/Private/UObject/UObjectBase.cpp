@@ -262,7 +262,7 @@ bool UObjectBase::IsValidLowLevel() const
 
 bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 {
-	// As DEFULT_ALIGNMENT is defined to 0 now, I changed that to the original numerical value here
+	// As DEFAULT_ALIGNMENT is defined to 0 now, I changed that to the original numerical value here
 	const int32 AlignmentCheck = MIN_ALIGNMENT - 1;
 
 	// Check 'this' pointer before trying to access any of the Object's members
@@ -270,7 +270,7 @@ bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("\'this\' pointer is invalid."));
 		return false;
-	}	
+	}
 	if ((UPTRINT)this & AlignmentCheck)
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("\'this\' pointer is misaligned."));

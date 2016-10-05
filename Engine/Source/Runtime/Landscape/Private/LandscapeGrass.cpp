@@ -1173,7 +1173,7 @@ FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data)
 	// Each weight data array, being 1 byte will be serialized in bulk.
 	Ar << Data.WeightData;
 
-	if (Ar.IsLoading() && !GIsEditor && CVarGrassDiscardDataOnLoad.GetValueOnGameThread())
+	if (Ar.IsLoading() && !GIsEditor && CVarGrassDiscardDataOnLoad.GetValueOnAnyThread())
 	{
 		//Data = FLandscapeComponentGrassData();
 		Data.WeightData.Empty();

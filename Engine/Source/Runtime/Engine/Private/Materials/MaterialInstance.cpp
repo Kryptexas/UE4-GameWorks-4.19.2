@@ -1984,6 +1984,9 @@ void UMaterialInstance::PostLoad()
 	// Ensure that the instance's parent is PostLoaded before the instance.
 	if(Parent)
 	{
+#if !WITH_EDITORONLY_DATA
+		check(!Parent->HasAnyFlags(RF_NeedLoad));
+#endif
 		Parent->ConditionalPostLoad();
 	}
 

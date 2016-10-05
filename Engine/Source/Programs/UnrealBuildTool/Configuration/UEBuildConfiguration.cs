@@ -346,6 +346,12 @@ namespace UnrealBuildTool
         public static bool bForceCompilePerformanceAutomationTests;
 
 		/// <summary>
+		/// If true, event driven loader will be used in cooked builds. @todoio This needs to be replaced by a runtime solution after async loading refactor
+		/// </summary>
+		[XmlConfig]
+		public static bool bEventDrivenLoader;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -393,6 +399,7 @@ namespace UnrealBuildTool
 			bEditorDependsOnShaderCompileWorker = true;
             bForceCompileDevelopmentAutomationTests = false;
             bForceCompilePerformanceAutomationTests = false;
+			bEventDrivenLoader = false;
 		}
 
 		/// <summary>

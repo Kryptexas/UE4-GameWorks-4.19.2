@@ -18,6 +18,9 @@
 
 FArchive::FArchive()
 {
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+	ActiveFPLB = &InlineFPLB;
+#endif
 	CustomVersionContainer = new FCustomVersionContainer;
 
 #if USE_STABLE_LOCALIZATION_KEYS
@@ -29,6 +32,9 @@ FArchive::FArchive()
 
 FArchive::FArchive(const FArchive& ArchiveToCopy)
 {
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+	ActiveFPLB = &InlineFPLB;
+#endif
 #if USE_STABLE_LOCALIZATION_KEYS
 	LocalizationNamespacePtr = nullptr;
 #endif // USE_STABLE_LOCALIZATION_KEYS
@@ -43,13 +49,16 @@ FArchive::FArchive(const FArchive& ArchiveToCopy)
 
 FArchive& FArchive::operator=(const FArchive& ArchiveToCopy)
 {
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+	ActiveFPLB = &InlineFPLB;
+	ActiveFPLB->Reset();
+#endif
 	CopyTrivialFArchiveStatusMembers(ArchiveToCopy);
 
 	// Don't know why this is set to false, but this is what the original copying code did
 	ArIsFilterEditorOnly  = false;
 
 	*CustomVersionContainer = *ArchiveToCopy.CustomVersionContainer;
-
 	return *this;
 }
 
@@ -65,6 +74,9 @@ FArchive::~FArchive()
 // Resets all of the base archive members
 void FArchive::Reset()
 {
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+	ActiveFPLB->Reset();
+#endif
 	ArUE4Ver							= GPackageFileUE4Version;
 	ArLicenseeUE4Ver					= GPackageFileLicenseeUE4Version;
 	ArEngineVer							= FEngineVersion::Current();
@@ -237,6 +249,13 @@ FArchive& FArchive::operator<<(struct FStringAssetReference& Value)
 {
 	// The base FArchive does not implement this method. Use FArchiveUOBject instead.
 	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FAssetPtr serialization. Use FArchiveUObject instead."));
+	return *this;
+}
+
+FArchive& FArchive::operator<<(struct FWeakObjectPtr& Value)
+{
+	// The base FArchive does not implement this method. Use FArchiveUOBject instead.
+	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FWeakObjectPtr serialization. Use FArchiveUObject instead."));
 	return *this;
 }
 

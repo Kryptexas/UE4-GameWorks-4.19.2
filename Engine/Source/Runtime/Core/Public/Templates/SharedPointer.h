@@ -470,6 +470,16 @@ private:
 	/** Interface to the reference counter for this object.  Note that the actual reference
 		controller object is shared by all shared and weak pointers that refer to the object */
 	SharedPointerInternals::FSharedReferencer< Mode > SharedReferenceCount;
+
+	template <typename InObjectType, ESPMode InMode, typename... InArgTypes>
+	friend TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
+
+	FORCEINLINE explicit TSharedRef(ObjectType* InObject, SharedPointerInternals::FReferenceControllerBase* InSharedReferenceCount)
+		: Object(InObject)
+		, SharedReferenceCount(InSharedReferenceCount)
+	{
+		Init(InObject);
+	}
 };
 
 
@@ -494,7 +504,7 @@ struct FMakeReferenceTo<void>
 
 
 template <typename InObjectType, ESPMode InMode = ESPMode::Fast, typename... InArgTypes>
-TSharedPtr<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
+TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
 
 
 /**
@@ -872,18 +882,6 @@ private:
 	/** Interface to the reference counter for this object.  Note that the actual reference
 		controller object is shared by all shared and weak pointers that refer to the object */
 	SharedPointerInternals::FSharedReferencer< Mode > SharedReferenceCount;
-
-	template <typename InObjectType, ESPMode InMode, typename... InArgTypes>
-	friend TSharedPtr<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
-
-	FORCEINLINE explicit TSharedPtr(ObjectType* InObject, SharedPointerInternals::FReferenceControllerBase* InSharedReferenceCount)
-		: Object(InObject)
-		, SharedReferenceCount(InSharedReferenceCount)
-	{
-		// If the object happens to be derived from TSharedFromThis, the following method
-		// will prime the object with a weak pointer to itself.
-		SharedPointerInternals::EnableSharedFromThis(this, InObject, InObject);
-	}
 };
 
 
@@ -1631,10 +1629,10 @@ FORCEINLINE SharedPointerInternals::FRawPtrProxy< ObjectType > MakeShareable( Ob
  * Equivalent to std::make_shared.
  */
 template <typename InObjectType, ESPMode InMode, typename... InArgTypes>
-FORCEINLINE TSharedPtr<InObjectType, InMode> MakeShared(InArgTypes&&... Args)
+FORCEINLINE TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args)
 {
 	SharedPointerInternals::TIntrusiveReferenceController<InObjectType>* Controller = SharedPointerInternals::NewIntrusiveReferenceController<InObjectType>(Forward<InArgTypes>(Args)...);
-	return TSharedPtr<InObjectType, InMode>(Controller->GetObjectPtr(), (SharedPointerInternals::FReferenceControllerBase*)Controller);
+	return TSharedRef<InObjectType, InMode>(Controller->GetObjectPtr(), (SharedPointerInternals::FReferenceControllerBase*)Controller);
 }
 
 

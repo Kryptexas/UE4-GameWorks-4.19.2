@@ -173,17 +173,17 @@ namespace UnrealBuildTool
 			GlobalLinkEnvironment.Config.bCreateDebugInfo = GlobalCompileEnvironment.Config.bCreateDebugInfo;
 		}
 
-        /// <summary>
-        /// Setup the project environment for building
-        /// </summary>
-        /// <param name="InBuildTarget"> The target being built</param>
-        public virtual void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
-        {
-            if (!bInitializedProject)
-            {
-                TargetConfiguration = Configuration;
-
-                ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
+		/// <summary>
+		/// Setup the project environment for building
+		/// </summary>
+		/// <param name="InBuildTarget"> The target being built</param>
+		public virtual void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration, TargetInfo Target = null)
+		{
+			if (!bInitializedProject)
+			{
+				TargetConfiguration = Configuration;
+				
+				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
 				bool bValue = UEBuildConfiguration.bCompileAPEX;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
 				{
@@ -274,6 +274,13 @@ namespace UnrealBuildTool
 					UEBuildConfiguration.bCompileCEF3 = bValue;
 				}
 
+				if (Target != null && Target.IsCooked)
+				{
+					if (Ini.GetBool("/Script/Engine.StreamingSettings", "s.EventDrivenLoaderEnabled", out bValue))
+					{
+						UEBuildConfiguration.bEventDrivenLoader = bValue;
+					}
+				}
 				bInitializedProject = true;
 			}
             else

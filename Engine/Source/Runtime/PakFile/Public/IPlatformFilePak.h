@@ -288,13 +288,15 @@ class PAKFILE_API FPakFile : FNoncopyable
 
 public:
 
+#if IS_PROGRAM
 	/**
-	 * Opens a pak file given its filename.
-	 *
-	 * @param Filename Pak filename.
-	 * @param bIsSigned true if the pak is signed
-	 */
-	FPakFile(const TCHAR* Filename, bool bIsSigned);	
+	* Opens a pak file given its filename.
+	*
+	* @param Filename Pak filename.
+	* @param bIsSigned true if the pak is signed
+	*/
+	FPakFile(const TCHAR* Filename, bool bIsSigned);
+#endif
 
 	/**
 	 * Creates a pak file using the supplied file handle.
@@ -310,7 +312,9 @@ public:
 	 *
 	 * @param Archive	Pointer to the archive which contains the pak file data.
 	 */
+#if WITH_EDITOR
 	FPakFile(FArchive* Archive);
+#endif
 
 	~FPakFile();
 
@@ -835,6 +839,8 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 	bool bSigned;
 	/** Synchronization object for accessing the list of currently mounted pak files. */
 	FCriticalSection PakListCritical;
+	/** Cache of extensions that we automatically reject if not found in pak file */
+	TSet<FName> ExcludedNonPakExtensions;
 
 	/**
 	 * Gets mounted pak files
@@ -923,7 +929,7 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 	 * @param InFilename			Filename to check
 	 * @param bAllowDirectories		Consider directories as valid filepaths?
 	 */
-	bool IsNonPakFilenameAllowed(const FString& InFilename, bool bAllowDirectories = false);
+	bool IsNonPakFilenameAllowed(const FString& InFilename);
 
 public:
 
@@ -1132,7 +1138,13 @@ public:
 		FDateTime Result = FDateTime::MinValue();
 		if (IsNonPakFilenameAllowed(Filename))
 		{
+#if USE_NEW_ASYNC_IO
+			double StartTime(UE_LOG_ACTIVE(LogPakFile, Error) ? FPlatformTime::Seconds() : 0.0);
+#endif
 			Result = LowerLevel->GetTimeStamp(Filename);
+#if USE_NEW_ASYNC_IO
+			UE_LOG(LogPakFile, Error, TEXT("GetTimeStamp on disk (!!) for %s took %6.2fms."), Filename, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
+#endif
 		}
 		return Result;
 	}
@@ -1300,8 +1312,7 @@ public:
 
 		// Fall back to lower level.
 		FFileStatData FileStatData;
-		const bool bAllowDirectories = true;
-		if (IsNonPakFilenameAllowed(FilenameOrDirectory, bAllowDirectories))
+		if (IsNonPakFilenameAllowed(FilenameOrDirectory))
 		{
 			FileStatData = LowerLevel->GetStatData(FilenameOrDirectory);
 		}

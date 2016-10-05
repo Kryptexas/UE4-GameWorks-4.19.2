@@ -4,6 +4,10 @@
 
 #include "UObjectBaseUtility.h"
 
+#if !defined(USE_NEW_ASYNC_IO) || !defined(SPLIT_COOKED_FILES)
+#error "USE_NEW_ASYNC_IO and SPLIT_COOKED_FILES must be defined"
+#endif
+
 /**
  * Wrapper for index into a ULnker's ImportMap or ExportMap.
  * Values greater than zero indicate that this is an index into the ExportMap.  The
@@ -121,6 +125,11 @@ public:
 		Ar << Value.Index;
 		return Ar;
 	}
+
+	FORCEINLINE friend uint32 GetTypeHash(const FPackageIndex& In)
+	{
+		return uint32(In.Index);
+	}
 };
 
 
@@ -187,6 +196,14 @@ struct FObjectExport : public FObjectResource
 	 * Serialized
 	 */
 	FPackageIndex 	SuperIndex;
+
+	/**
+	* Location of the resource for this export's template/archetypes.  Only used
+	* in the new cooked loader. A value of zero indicates that the value of GetArchetype
+	* was zero at cook time, which is more or less impossible and checked.
+	* Serialized
+	*/
+	FPackageIndex 	TemplateIndex;
 
 	/**
 	 * The object flags for the UObject represented by this resource.  Only flags that
@@ -293,6 +310,16 @@ struct FObjectExport : public FObjectResource
 	uint32			PackageFlags;
 
 	/**
+	* The export table must serialize as a fixed size, this is use to index into a long list, which is later loaded into the array. -1 means dependencies are not present
+	* These are contiguous blocks, so CreateBeforeSerializationDependencies starts at FirstExportDependency + SerializationBeforeSerializationDependencies
+	*/
+	int32 FirstExportDependency;
+	int32 SerializationBeforeSerializationDependencies;
+	int32 CreateBeforeSerializationDependencies;
+	int32 SerializationBeforeCreateDependencies;
+	int32 CreateBeforeCreateDependencies;
+
+	/**
 	 * Constructors
 	 */
 	COREUOBJECT_API FObjectExport();
@@ -342,6 +369,11 @@ struct FObjectImport : public FObjectResource
 	 * Transient
 	 */
 	int32             SourceIndex;
+
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+	bool			bImportPackageHandled;
+	bool			bImportSearchedFor;
+#endif
 
 	/**
 	 * Constructors

@@ -26,6 +26,11 @@ bool UStrProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 	return bOutAdvanceProperty;
 }
 
+FString UStrProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString();
+}
+
 // Necessary to fix Compiler Error C2026 and C1091
 FString UStrProperty::ExportCppHardcodedText(const FString& InSource, const FString& Indent)
 {
@@ -120,6 +125,11 @@ const TCHAR* UStrProperty::ImportText_Internal( const TCHAR* Buffer, void* Data,
 		*(FString*)Data = Temp;
 	}
 	return Buffer;
+}
+
+uint32 UStrProperty::GetValueTypeHashInternal(const void* Src) const
+{
+	return GetTypeHash(*(const FString*)Src);
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UStrProperty, UProperty,

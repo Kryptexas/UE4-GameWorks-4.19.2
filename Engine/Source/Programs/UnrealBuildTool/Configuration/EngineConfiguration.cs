@@ -39,7 +39,7 @@ namespace UnrealBuildTool
 																	"/Script/BuildSettings.BuildSettings", "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "/Script/WindowsTargetPlatform.WindowsTargetSettings",
 																	"/Script/UnrealEd.ProjectPackagingSettings", "/Script/PS4PlatformEditor.PS4TargetSettings", "/Script/XboxOnePlatformEditor.XboxOneTargetSettings",
 																	"/Script/HTML5PlatformEditor.HTML5TargetSettings","PS4SymbolServer","/Script/EngineSettings.GeneralProjectSettings",
-                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "OnlineSubsystemGooglePlay.Store",
+                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "OnlineSubsystemGooglePlay.Store","/Script/Engine.StreamingSettings",
                                                                     "/Script/WolfRuntimeSettings.WolfRuntimeSettings"};
 
 		// static creation functions for ini files
@@ -117,6 +117,15 @@ namespace UnrealBuildTool
 		/// All sections parsed from ini file
 		/// </summary>
 		Dictionary<string, IniSection> Sections;
+
+		/// <summary>
+		/// This ini filename
+		/// </summary>
+		public string FullName
+		{
+			private set;
+			get;
+		}
 
 		/// <summary>
 		/// Constructor. Parses a single ini file. No Platform settings, no engine hierarchy. Do not use this with ini files that have hierarchy!
@@ -538,6 +547,9 @@ namespace UnrealBuildTool
 					}
 				}
 			}
+
+			// Store our filename
+			FullName = Filename.FullName;
 		}
 
 		/// <summary>
@@ -752,7 +764,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns a list of INI filenames for the given project
 		/// </summary>
-		private static IEnumerable<FileReference> EnumerateCrossPlatformIniFileNames(DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory, UnrealTargetPlatform Platform, string BaseIniName, bool SkipEngine)
+		public static IEnumerable<FileReference> EnumerateCrossPlatformIniFileNames(DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory, UnrealTargetPlatform Platform, string BaseIniName, bool SkipEngine)
 		{
 			string PlatformName = GetIniPlatformName(Platform);
 

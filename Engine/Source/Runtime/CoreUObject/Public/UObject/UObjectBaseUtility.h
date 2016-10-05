@@ -428,12 +428,16 @@ public:
 	/**
 	 * @return	true if this object is of the specified type.
 	 */
-	#if UCLASS_FAST_ISA_IMPL == 2
+	#if !UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK && UCLASS_FAST_ISA_IMPL != UCLASS_ISA_OUTERWALK
 	private:
 		template <typename ClassType>
 		static FORCEINLINE bool IsAWorkaround(const ClassType* ObjClass, const ClassType* TestCls)
 		{
-			return ObjClass->IsAUsingFastTree(*TestCls);
+			#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
+				return ObjClass->IsAUsingFastTree(*TestCls);
+			#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+				return ObjClass->IsAUsingClassArray(*TestCls);
+			#endif
 		}
 
 	public:
@@ -572,6 +576,28 @@ public:
 		return GetName() < Other.GetName();
 	}
 };
+
+FORCEINLINE bool IsPossiblyAllocatedUObjectPointer(UObject* Ptr)
+{
+	auto CountByteValues = [](UPTRINT Val, UPTRINT ByteVal) -> int32
+	{
+		int32 Result = 0;
+
+		for (int32 I = 0; I != sizeof(UPTRINT); ++I)
+		{
+			if ((Val & 0xFF) == ByteVal)
+			{
+				++Result;
+			}
+			Val >>= 8;
+		}
+
+		return Result;
+	};
+
+	UPTRINT PtrVal = (UPTRINT)Ptr;
+	return PtrVal >= 0x1000 && CountByteValues(PtrVal, 0xCD) < sizeof(UPTRINT) / 2;
+}
 
 /**
  * Returns the name of this object (with no path information)

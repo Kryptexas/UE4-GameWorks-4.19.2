@@ -111,6 +111,16 @@ const TCHAR* UObjectProperty::ImportText_Internal(const TCHAR* Buffer, void* Dat
 	return Result;
 }
 
+uint32 UObjectProperty::GetValueTypeHashInternal(const void* Src) const
+{
+	return GetTypeHash(GetPropertyValue(Src));
+}
+
+UObject* UObjectProperty::GetObjectPropertyValue(const void* PropertyValueAddress) const
+{
+	return GetPropertyValue(PropertyValueAddress);
+}
+
 void UObjectProperty::SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const
 {
 	SetPropertyValue(PropertyValueAddress, Value);

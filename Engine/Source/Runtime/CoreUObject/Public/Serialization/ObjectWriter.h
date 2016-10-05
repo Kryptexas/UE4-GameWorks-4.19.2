@@ -37,6 +37,7 @@ public:
 	COREUOBJECT_API virtual FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( FAssetPtr& AssetPtr ) override;
 	COREUOBJECT_API virtual FArchive& operator<<(FStringAssetReference& AssetPtr) override;
+	COREUOBJECT_API virtual FArchive& operator<<(struct FWeakObjectPtr& Value) override;
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
 	//~ End FArchive Interface
 

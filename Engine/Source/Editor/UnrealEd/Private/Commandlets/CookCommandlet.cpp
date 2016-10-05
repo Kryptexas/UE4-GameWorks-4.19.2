@@ -1568,6 +1568,9 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 				{
 					bShouldGC = true;
 					GCReason = TEXT("Exceeded Max Memory");
+
+					UE_LOG(LogCookCommandlet, Display, TEXT("Detected max mem exceeded - forcing shader compilation flush"));
+					GShaderCompilingManager->FinishAllCompilation();
 				}
 				else if ((TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0) // cooker loaded some object which needs to be cleaned up before the cooker can proceed so force gc
 				{

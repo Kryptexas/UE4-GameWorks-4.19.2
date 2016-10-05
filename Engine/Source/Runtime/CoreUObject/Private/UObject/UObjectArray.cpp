@@ -52,7 +52,13 @@ void FUObjectArray::OpenDisregardForGC()
 
 void FUObjectArray::CloseDisregardForGC()
 {
+#if THREADSAFE_UOBJECTS
+	FScopeLock ObjObjectsLock(&ObjObjectsCritical);
+#else
+	// Disregard from GC pool is only available from the game thread, at least for now
 	check(IsInGameThread());
+#endif
+
 	check(OpenForDisregardForGC);
 
 	UClass::AssembleReferenceTokenStreams();
@@ -115,8 +121,13 @@ void FUObjectArray::AllocateUObjectIndex(UObjectBase* Object, bool bMergingThrea
 	// Special non- garbage collectable range.
 	if (OpenForDisregardForGC && DisregardForGCEnabled())
 	{
+#if THREADSAFE_UOBJECTS
+		FScopeLock ObjObjectsLock(&ObjObjectsCritical);
+#else
 		// Disregard from GC pool is only available from the game thread, at least for now
 		check(IsInGameThread());
+#endif
+
 		Index = ++ObjLastNonGCIndex;
 		// Check if we're not out of bounds, unless there hasn't been any gc objects yet
 		UE_CLOG(ObjLastNonGCIndex >= MaxObjectsNotConsideredByGC && ObjFirstGCIndex >= 0, LogUObjectArray, Fatal, TEXT("Unable to add more objects to disregard for GC pool (Max: %d)"), MaxObjectsNotConsideredByGC);

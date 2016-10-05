@@ -1685,7 +1685,12 @@ public:
 	bool HandleViewnamesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleFreezeStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );		// Smedis
 	bool HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );			// Smedis
+
+#if !USE_NEW_ASYNC_IO
 	bool HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar );						// Smedis
+	bool HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevice& Ar);
+#endif
+
 	bool HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
 	bool HandleToggleAsyncComputeCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleRecompileShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1710,7 +1715,6 @@ public:
 	bool HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleParticleMeshUsageCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpParticleCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleListPreCacheMapPackagesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleListLoadedPackagesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar );

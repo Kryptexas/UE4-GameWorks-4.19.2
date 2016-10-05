@@ -265,14 +265,15 @@ bool UObjectBaseUtility::RootPackageHasAnyFlags( uint32 CheckFlagMask ) const
 /**
  * @return	true if this object is of the specified type.
  */
-#if UCLASS_FAST_ISA_IMPL != 2
-bool UObjectBaseUtility::IsA( const UClass* SomeBase ) const
-{
-	UE_CLOG(!SomeBase, LogObj, Fatal, TEXT("IsA(NULL) cannot yield meaningful results"));
+#if UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK || UCLASS_FAST_ISA_IMPL == UCLASS_ISA_OUTERWALK
+	bool UObjectBaseUtility::IsA( const UClass* SomeBase ) const
+	{
+		UE_CLOG(!SomeBase, LogObj, Fatal, TEXT("IsA(NULL) cannot yield meaningful results"));
 
-	#if UCLASS_FAST_ISA_IMPL & 1
+		UClass* ThisClass = GetClass();
+
 		bool bOldResult = false;
-		for ( UClass* TempClass=GetClass(); TempClass; TempClass=TempClass->GetSuperClass() )
+		for ( UClass* TempClass=ThisClass; TempClass; TempClass=TempClass->GetSuperClass() )
 		{
 			if ( TempClass == SomeBase )
 			{
@@ -280,22 +281,19 @@ bool UObjectBaseUtility::IsA( const UClass* SomeBase ) const
 				break;
 			}
 		}
+
+	#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
+		bool bNewResult = ThisClass->IsAUsingFastTree(*SomeBase);
+	#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+		bool bNewResult = ThisClass->IsAUsingClassArray(*SomeBase);
 	#endif
 
-	#if UCLASS_FAST_ISA_IMPL & 2
-		bool bNewResult = GetClass()->IsAUsingFastTree(*SomeBase);
-	#endif
-
-	#if (UCLASS_FAST_ISA_IMPL & 1) && (UCLASS_FAST_ISA_IMPL & 2)
+	#if UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK
 		ensureMsgf(bOldResult == bNewResult, TEXT("New cast code failed"));
 	#endif
 
-	#if UCLASS_FAST_ISA_IMPL & 1
 		return bOldResult;
-	#else
-		return bNewResult;
-	#endif
-}
+	}
 #endif
 
 

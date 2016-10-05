@@ -236,7 +236,7 @@ void UPrimitiveComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 
 bool UPrimitiveComponent::IsEditorOnly() const
 {
-	return ((AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false)) || Super::IsEditorOnly();
+	return Super::IsEditorOnly() || ((AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false));
 }
 
 bool UPrimitiveComponent::HasStaticLighting() const
@@ -973,7 +973,7 @@ void UPrimitiveComponent::FinishDestroy()
 
 bool UPrimitiveComponent::NeedsLoadForClient() const
 {
-	if(!IsVisible() && !IsCollisionEnabled() && !AlwaysLoadOnClient)
+	if (!IsVisible() && !IsCollisionEnabled() && !AlwaysLoadOnClient)
 	{
 		return 0;
 	}

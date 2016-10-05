@@ -5,7 +5,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
     /// <summary>
     /// Public interface for the unit of work entity framework management class
     /// </summary>
-    public interface IUnitOfWork
+    public interface IUnitOfWork : IDisposable
     {
         ICrashRepository CrashRepository { get; }
         IBuggRepository BuggRepository { get; }
@@ -20,7 +20,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
 
 
     /// <summary>
-    /// Container for entitry framework management. 
+    /// Container for entity framework management. 
     /// </summary>
     public class UnitOfWork: IUnitOfWork
     {
@@ -156,6 +156,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public UnitOfWork(CrashReportEntities entityContext)
         {
             this._entityContext = entityContext;
+            _entityContext.Database.CommandTimeout = 600;
         }
 
         #region Public Methods
@@ -174,7 +175,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public void Dispose()
         {
             Dispose(true);
-            GC.SuppressFinalize(this);
         }
 
         #endregion
@@ -191,6 +191,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
             {
                 if (disposing)
                 {
+                    _crashRepository = null;
+                    _buggRepository = null;
+                    _functionRepository = null;
+                    _userRepository = null;
+                    _callstackRepository = null;
+                    _userGroupRepository = null;
+                    _errorMessageRepository = null;
                     _entityContext.Dispose();
                 }
             }

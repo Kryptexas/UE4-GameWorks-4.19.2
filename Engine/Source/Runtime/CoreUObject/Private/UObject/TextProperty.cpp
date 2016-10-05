@@ -202,6 +202,11 @@ FString UTextProperty::GenerateCppCodeForTextValue(const FText& InValue, const F
 	return CppCode;
 }
 
+FString UTextProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString();
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UTextProperty, UProperty,
 {
 }

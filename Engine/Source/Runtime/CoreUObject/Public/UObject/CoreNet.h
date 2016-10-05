@@ -271,6 +271,7 @@ public:
 	virtual FArchive& operator<<(FName& Name) override;
 	virtual FArchive& operator<<(UObject*& Object) override;
 	virtual FArchive& operator<<(FStringAssetReference& Value) override;
+	virtual FArchive& operator<<(struct FWeakObjectPtr& Value) override;
 };
 
 
@@ -290,6 +291,7 @@ public:
 	virtual FArchive& operator<<(FName& Name) override;
 	virtual FArchive& operator<<(UObject*& Object) override;
 	virtual FArchive& operator<<(FStringAssetReference& Value) override;
+	virtual FArchive& operator<<(struct FWeakObjectPtr& Value) override;
 };
 
 bool FORCEINLINE NetworkGuidSetsAreSame( const TSet< FNetworkGUID >& A, const TSet< FNetworkGUID >& B )

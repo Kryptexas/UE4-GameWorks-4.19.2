@@ -72,14 +72,15 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		 *
 		 * Lower 16 bits stores the UE3 engine version
 		 * Upper 16 bits stores the UE4/licensee version
-		 * For newer packages this is -6
+		 * For newer packages this is -7
 		 *		-2 indicates presence of enum-based custom versions
 		 *		-3 indicates guid-based custom versions
 		 *		-4 indicates removal of the UE3 version. Packages saved with this ID cannot be loaded in older engine versions 
 		 *		-5 indicates the replacement of writing out the "UE3 version" so older versions of engine can gracefully fail to open newer packages
 		 *		-6 indicates optimizations to how custom versions are being serialized
+		 *		-7 indicates the texture allocation info has been removed from the summary
 		 */
-		const int32 CurrentLegacyFileVersion = -6;
+		const int32 CurrentLegacyFileVersion = -7;
 		int32 LegacyFileVersion = CurrentLegacyFileVersion;
 		Ar << LegacyFileVersion;
 
@@ -249,8 +250,12 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		Ar << Sum.AdditionalPackagesToCook;
 
 #if WITH_ENGINE
-		//@todo legacy
-		Ar << Sum.TextureAllocations;
+		if (LegacyFileVersion > -7)
+		{
+			int32 NumTextureAllocations = 0;
+			Ar << NumTextureAllocations;
+			check(NumTextureAllocations == 0);
+		}
 #else
 		check(!"this can't serialize successfully");
 #endif		// WITH_ENGINE
@@ -281,6 +286,15 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 					Sum.ChunkIDs.Add( ChunkID );
 				}
 			}
+		}
+		if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_PRELOAD_DEPENDENCIES_IN_COOKED_EXPORTS)
+		{
+			Ar << Sum.PreloadDependencyCount << Sum.PreloadDependencyOffset;
+		}
+		else
+		{
+			Sum.PreloadDependencyCount = -1;
+			Sum.PreloadDependencyOffset = 0;
 		}
 	}
 

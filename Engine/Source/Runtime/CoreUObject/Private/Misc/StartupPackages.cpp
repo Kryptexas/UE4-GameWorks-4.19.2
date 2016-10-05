@@ -30,12 +30,7 @@ void FStartupPackages::GetStartupPackageNames(TArray<FString>& PackageNames, con
 	}
 }
 
-/**
- * Kicks off a list of packages to be read in asynchronously in the background by the
- * async file manager. The package will be serialized from RAM later.
- * 
- * @param PackageNames The list of package names to async preload
- */
+#if !USE_NEW_ASYNC_IO
 static void AsyncPreloadPackageList(const TArray<FString>& PackageNames)
 {
 	// Iterate over all native script packages and preload them.
@@ -45,6 +40,7 @@ static void AsyncPreloadPackageList(const TArray<FString>& PackageNames)
 		FLinkerLoad::AsyncPreloadPackage(*PackageNames[PackageIndex]);
 	}
 }
+#endif
 
 void FStartupPackages::LoadPackageList(const TArray<FString>& PackageNames)
 {
@@ -61,10 +57,6 @@ bool FStartupPackages::LoadAll()
 
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Startup Packages"), STAT_StartupPackages, STATGROUP_LoadTime);
 
-	// should startup packages load from memory?
-	bool bSerializeStartupPackagesFromMemory = false;
-	GConfig->GetBool(TEXT("Engine.StartupPackages"), TEXT("bSerializeStartupPackagesFromMemory"), bSerializeStartupPackagesFromMemory, GEngineIni);
-
 	// Get list of startup packages.
 	TArray<FString> StartupPackages;
 	
@@ -74,14 +66,21 @@ bool FStartupPackages::LoadAll()
 		FStartupPackages::GetStartupPackageNames(StartupPackages);
 	}
 
-	if( bSerializeStartupPackagesFromMemory )
+//@todoio this doesn't seem to work with !USE_NEW_ASYNC_IO anymore...and honestly I can't see how it ever worked well in UE4
+#if 0 && !USE_NEW_ASYNC_IO
+	// should startup packages load from memory?
+	bool bSerializeStartupPackagesFromMemory = false;
+	GConfig->GetBool(TEXT("Engine.StartupPackages"), TEXT("bSerializeStartupPackagesFromMemory"), bSerializeStartupPackagesFromMemory, GEngineIni);
+
+	if (bSerializeStartupPackagesFromMemory)
 	{
-		if( GUseSeekFreeLoading )
+		// @todo: this needs proper support in the cooker
+		if (FPlatformProperties::RequiresCookedData())
 		{
 			// kick them off to be preloaded
 			AsyncPreloadPackageList(StartupPackages);
 		}
 	}
-
+#endif
 	return bReturn;
 }

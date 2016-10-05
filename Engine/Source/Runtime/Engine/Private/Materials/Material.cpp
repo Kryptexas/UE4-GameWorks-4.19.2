@@ -389,6 +389,12 @@ void UMaterialInterface::PostLoadDefaultMaterials()
 			UMaterial* Material = GDefaultMaterials[Domain];
 			check(Material);
 			Material->ConditionalPostLoad();
+			// Sometimes the above will get called before the material has been fully serialized
+			// in this case its NeedPostLoad flag will not be cleared.
+			if (Material->HasAnyFlags(RF_NeedPostLoad))
+			{
+				bPostLoaded = false;
+			}
 		}
 	}
 }
@@ -2466,23 +2472,26 @@ void UMaterial::GetQualityLevelNodeUsage(TArray<bool, TInlineAllocator<EMaterial
 
 void UMaterial::UpdateResourceAllocations()
 {
-	for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
+	if (FApp::CanEverRender())
 	{
-		TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> > QualityLevelsUsed;
-		EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevelIndex];
-		GetQualityLevelUsage(QualityLevelsUsed, ShaderPlatform);
-		for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+		for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 		{
-			FMaterialResource*& CurrentResource = MaterialResources[QualityLevelIndex][FeatureLevelIndex];
-
-			if (!CurrentResource)
+			TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> > QualityLevelsUsed;
+			EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevelIndex];
+			GetQualityLevelUsage(QualityLevelsUsed, ShaderPlatform);
+			for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 			{
-				CurrentResource = AllocateResource();
-			}
+				FMaterialResource*& CurrentResource = MaterialResources[QualityLevelIndex][FeatureLevelIndex];
 
-			const bool bHasQualityLevelUsage = QualityLevelsUsed[QualityLevelIndex];
-			// Setup transient FMaterialResource properties that are needed to use this resource for rendering or compilation
-			CurrentResource->SetMaterial(this, (EMaterialQualityLevel::Type)QualityLevelIndex, bHasQualityLevelUsage, (ERHIFeatureLevel::Type)FeatureLevelIndex);
+				if (!CurrentResource)
+				{
+					CurrentResource = AllocateResource();
+				}
+
+				const bool bHasQualityLevelUsage = QualityLevelsUsed[QualityLevelIndex];
+				// Setup transient FMaterialResource properties that are needed to use this resource for rendering or compilation
+				CurrentResource->SetMaterial(this, (EMaterialQualityLevel::Type)QualityLevelIndex, bHasQualityLevelUsage, (ERHIFeatureLevel::Type)FeatureLevelIndex);
+			}
 		}
 	}
 }
@@ -3433,7 +3442,10 @@ void UMaterial::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 		for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 		{
 			FMaterialResource* CurrentResource = This->MaterialResources[QualityLevelIndex][FeatureLevelIndex];
-			CurrentResource->AddReferencedObjects(Collector);
+			if (CurrentResource)
+			{
+				CurrentResource->AddReferencedObjects(Collector);
+			}
 		}
 	}
 #if WITH_EDITORONLY_DATA

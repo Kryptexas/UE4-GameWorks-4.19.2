@@ -141,6 +141,7 @@
 #endif	// UE_BUILD_SHIPPING
 
 #include "GeneralProjectSettings.h"
+#include "LoadTimeTracker.h"
 
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
@@ -2725,10 +2726,18 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleFreezeAllCommand( Cmd, Ar, InWorld );
 	}
+#if !USE_NEW_ASYNC_IO
 	else if( FParse::Command(&Cmd, TEXT("FLUSHIOMANAGER")) )
 	{
 		return HandleFlushIOManagerCommand( Cmd, Ar );
 	}
+	// This will list out the packages which are in the precache list and have not been "loaded" out.  (e.g. could be just there taking up memory!)
+	else if (FParse::Command(&Cmd, TEXT("ListPrecacheMapPackages")))
+	{
+		return HandleListPreCacheMapPackagesCommand(Cmd, Ar);
+	}
+#endif
+
 	else if( FParse::Command(&Cmd,TEXT("ToggleRenderingThread")) )
 	{
 		return HandleToggleRenderingThreadCommand( Cmd, Ar );
@@ -2833,11 +2842,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command( &Cmd, TEXT("DUMPPARTICLECOUNTS") ) )
 	{
 		return HandleDumpParticleCountsCommand( Cmd, Ar );
-	}
-	// This will list out the packages which are in the precache list and have not been "loaded" out.  (e.g. could be just there taking up memory!)
-	else if( FParse::Command( &Cmd, TEXT("ListPrecacheMapPackages") ) )
-	{		
-		return HandleListPreCacheMapPackagesCommand( Cmd, Ar );
 	}
 	// we can't always do an obj linkers, as cooked games have their linkers tossed out.  So we need to look at the actual packages which are loaded
 	else if( FParse::Command( &Cmd, TEXT("ListLoadedPackages") ) )
@@ -3366,11 +3370,31 @@ bool UEngine::HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	return true;
 }
 
+#if !USE_NEW_ASYNC_IO
 bool UEngine::HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
 	return true;
 }
+bool UEngine::HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	TArray<FString> Packages;
+	FLinkerLoad::GetListOfPackagesInPackagePrecacheMap(Packages);
+
+	Packages.Sort();
+
+	Ar.Logf(TEXT("Total Number Of Packages In PrecacheMap: %i "), Packages.Num());
+
+	for (int32 i = 0; i < Packages.Num(); ++i)
+	{
+		Ar.Logf(TEXT("%i %s"), i, *Packages[i]);
+	}
+	Ar.Logf(TEXT("Total Number Of Packages In PrecacheMap: %i "), Packages.Num());
+
+	return true;
+}
+
+#endif
 
 bool UEngine::HandleFreezeRenderingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld  )
 {
@@ -4496,23 +4520,6 @@ bool UEngine::HandleDumpParticleCountsCommand( const TCHAR* Cmd, FOutputDevice& 
 	return true;
 }
 
-bool UEngine::HandleListPreCacheMapPackagesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	TArray<FString> Packages;
-	FLinkerLoad::GetListOfPackagesInPackagePrecacheMap( Packages );
-
-	Packages.Sort();
-
-	Ar.Logf( TEXT( "Total Number Of Packages In PrecacheMap: %i " ), Packages.Num() );
-
-	for( int32 i = 0; i < Packages.Num(); ++i )
-	{
-		Ar.Logf( TEXT( "%i %s" ), i, *Packages[i] );
-	}
-	Ar.Logf( TEXT( "Total Number Of Packages In PrecacheMap: %i " ), Packages.Num() );
-
-	return true;
-}
 
 bool UEngine::HandleListLoadedPackagesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
@@ -9599,6 +9606,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapStart( URL.Map ) );
 	Error = TEXT("");
 
+	FLoadTimeTracker::Get().ResetRawLoadTimes();
+
 	FPlatformMisc::PreLoadMap(URL.Map, WorldContext.LastURL.Map, nullptr);
 	
 	// make sure level streaming isn't frozen
@@ -9892,11 +9901,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 		FScopeCycleCounterUObject MapScope(WorldPackage);
 
-		if (FPlatformProperties::RequiresCookedData() && GUseSeekFreeLoading && !WorldPackage->HasAnyPackageFlags(PKG_DisallowLazyLoading))
-		{
-			UE_LOG(LogLoad, Fatal, TEXT("Map '%s' has not been cooked correctly! Most likely stale version on the XDK."), *WorldPackage->GetName());
-		}
-
 		if (WorldContext.WorldType == EWorldType::PIE)
 		{
 			// If we are a PIE world and the world we just found is already initialized, then we're probably reloading the editor world and we
@@ -10100,6 +10104,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	double StopTime = FPlatformTime::Seconds();
 
 	UE_LOG(LogLoad, Log, TEXT("Took %f seconds to LoadMap(%s)"), StopTime - StartTime, *URL.Map);
+	FLoadTimeTracker::Get().DumpRawLoadTimes();
 
 	// Successfully started local level.
 	return true;
@@ -10818,19 +10823,7 @@ bool UEngine::PrepareMapChange(FWorldContext &Context, const TArray<FName>& Leve
 		for( int32 LevelIndex=0; LevelIndex < Context.LevelsToLoadForPendingMapChange.Num(); LevelIndex++ )
 		{
 			const FName LevelName = Context.LevelsToLoadForPendingMapChange[LevelIndex];
-			if( GUseSeekFreeLoading )
-			{
-				// Only load localized package if it exists as async package loading doesn't handle errors gracefully.
-				FString LocalizedPackageName = LevelName.ToString() + LOCALIZED_SEEKFREE_SUFFIX;
-				FString LocalizedFileName;
-				if( FPackageName::DoesPackageExist( LocalizedPackageName, NULL, &LocalizedFileName ) )
-				{
-					// Load localized part of level first in case it exists. We don't need to worry about GC or completion 
-					// callback as we always kick off another async IO for the level below.
-					LoadPackageAsync(LocalizedPackageName);
-				}
-			}
-			
+		
 			STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "PrepareMapChange - " ) + LevelName.ToString() )) );
 			LoadPackageAsync(LevelName.ToString(),
 				FLoadPackageAsyncDelegate::CreateStatic(&AsyncMapChangeLevelLoadCompletionCallback, Context.ContextHandle)

@@ -149,7 +149,7 @@ public:
 	 * don't need to bother serializing weak object pointers.  However, serialization is required if you
 	 * want to load and save your object.
 	 */
-	COREUOBJECT_API friend FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr );
+	COREUOBJECT_API void Serialize(FArchive& Ar);
 
 protected:
 

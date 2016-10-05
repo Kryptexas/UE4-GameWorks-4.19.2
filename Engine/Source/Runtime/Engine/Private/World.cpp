@@ -731,7 +731,6 @@ void UWorld::PostLoad()
 
 	Super::PostLoad();
 	CurrentLevel = PersistentLevel;
-
 	RepairWorldSettings();
 
 	// Remove null streaming level entries (could be if level was saved with transient level streaming objects)

@@ -99,6 +99,13 @@ void UDataTable::SaveStructData(FArchive& Ar)
 	}
 }
 
+
+void UDataTable::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(RowStruct);
+}
+
 void UDataTable::OnPostDataImported(TArray<FString>& OutCollectedImportProblems)
 {
 	if (RowStruct && RowStruct->IsChildOf(FTableRowBase::StaticStruct()))

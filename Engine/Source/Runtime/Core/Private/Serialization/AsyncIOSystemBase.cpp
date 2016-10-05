@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "CorePrivatePCH.h"
+#if !USE_NEW_ASYNC_IO
+
 /*=============================================================================
 	AsyncIOSystemBase.h: Base implementation of the async IO system
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
 #include "Serialization/AsyncIOSystemBase.h"
 #include "CompressedChunkInfo.h"
 
@@ -29,15 +31,6 @@ DECLARE_FLOAT_COUNTER_STAT( TEXT( "Bandwidth (MByte/ sec)" ), STAT_AsyncIO_Bandw
 -----------------------------------------------------------------------------*/
 
 #define BLOCK_ON_ASYNCIO 0
-
-// Constrain bandwidth if wanted. Value is in MByte/ sec.
-float GAsyncIOBandwidthLimit = 0.0f;
-static FAutoConsoleVariableRef CVarAsyncIOBandwidthLimit(
-	TEXT("s.AsyncIOBandwidthLimit"),
-	GAsyncIOBandwidthLimit,
-	TEXT("Constrain bandwidth if wanted. Value is in MByte/ sec."),
-	ECVF_Default
-	);
 
 CORE_API bool GbLogAsyncLoading = false;
 CORE_API bool GbLogAsyncTiming = false;
@@ -925,3 +918,5 @@ bool FIOSystem::HasShutdown()
 {
 	return AsyncIOThread == nullptr || AsyncIOThread == (FRunnableThread*)-1;
 }
+
+#endif

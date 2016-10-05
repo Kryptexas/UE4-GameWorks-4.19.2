@@ -862,9 +862,6 @@ static void OverrideFromCommandline(FConfigFile* File, const FString& Filename)
  **/
 static bool LoadIniFileHierarchy(const FConfigFileHierarchy& HierarchyToLoad, FConfigFile& ConfigFile, const bool bUseCache)
 {
-	// This shouldn't be getting called if seekfree is enabled on console.
-	check(!GUseSeekFreeLoading || !FPlatformProperties::RequiresCookedData());
-
 	// if the file does not exist then return
 	if (HierarchyToLoad.Num() == 0)
 	{
@@ -2734,9 +2731,6 @@ bool FConfigCacheIni::ForEachEntry(const FKeyValueSink& Visitor, const TCHAR* Se
  **/
 static void LoadAnIniFile(const FString& FilenameToLoad, FConfigFile& ConfigFile)
 {
-	// This shouldn't be getting called if seekfree is enabled on console.
-	check(!GUseSeekFreeLoading || !FPlatformProperties::RequiresCookedData());
-
 	if( !IsUsingLocalIniFile(*FilenameToLoad, nullptr) || (IFileManager::Get().FileSize( *FilenameToLoad ) >= 0) )
 	{
 		ProcessIniContents(*FilenameToLoad, *FilenameToLoad, &ConfigFile, false, false);

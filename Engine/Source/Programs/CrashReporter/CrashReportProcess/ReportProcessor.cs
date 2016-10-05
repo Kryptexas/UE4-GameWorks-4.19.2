@@ -10,6 +10,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Amazon.S3.Model;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.DotNETCommon.LaunchProcess;
 using Tools.DotNETCommon.SimpleWebRequest;
@@ -30,7 +31,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		const int SyncTimeoutSeconds = 2 * 60;
 
 		/// <summary> Number of all processed reports. </summary>
-		public static int ProcessedReports = 1;
+		public static int ProcessedReportCount = 1;
 
 		/// <summary> Global timer used to measure web added reports per day. </summary>
 		public static Stopwatch Timer = Stopwatch.StartNew();
@@ -143,7 +144,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 					}
 					catch (Exception Ex)
 					{
-						CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessNewReports: " + Ex.ToString());
+						CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessNewReports: " + Ex, Ex);
 					}
 
 					TickStatic(Watcher);
@@ -229,7 +230,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				{
 					if( bWriteException )
 					{
-						CrashReporterProcessServicer.WriteException( "CleanReport: " + Ex.ToString() );
+						CrashReporterProcessServicer.WriteException( "CleanReport: " + Ex, Ex);
 						bWriteException = false;
 					}
 
@@ -283,9 +284,9 @@ namespace Tools.CrashReporter.CrashReportProcess
 				CrashReporterProcessServicer.WriteEvent( string.Format( "Moved to {0}", DestinationDirectory ) );
 				UpdateProcessedReports();
 			}
-			catch( System.Exception Ex )
+			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException( "MoveReportToInvalid: " + Ex.ToString() );
+				CrashReporterProcessServicer.WriteException("MoveReportToInvalid: " + Ex, Ex);
 			}	
 		}
 
@@ -295,7 +296,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		private static void UpdateProcessedReports()
 		{
-			Interlocked.Increment( ref ProcessedReports );
+			Interlocked.Increment( ref ProcessedReportCount );
 		}
 
 		/// <summary> 
@@ -315,7 +316,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException( "CleanRepository: " + Ex.ToString() );
+				CrashReporterProcessServicer.WriteException("CleanRepository: " + Ex, Ex);
 			}
 		}
 
@@ -409,7 +410,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			catch (Exception Ex)
 			{
-				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "CreateCrash: " + Ex.ToString());
+				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "CreateCrash: " + Ex, Ex);
 			}
 
 			return XmlPayload;
@@ -478,7 +479,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash: " + Ex.ToString());
+				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash: " + Ex, Ex);
 			}
 
 			return NewID;
@@ -531,53 +532,83 @@ namespace Tools.CrashReporter.CrashReportProcess
 					ConsecutiveFailedUploads = 0;
 				}
 
-				string IDThenUnderscore = string.Format("{0}_", ReportID);
+				bool bToS3 = Config.Default.CrashFilesToAWS && CrashReporterProcessServicer.OutputAWS.IsS3Valid;
+				bool bToDisk = Config.Default.CrashFilesToDisk;
 
 				// Use the row id to name and move the files the way the web site requires
+				string IDThenUnderscore = string.Format("{0}_", ReportID);
+				int ReportIDSegment = (ReportID/10000)*10000;
+				string S3IDPrefix = string.Format("/{0}/{1}/{1}_", ReportIDSegment, ReportID);
 				string DestinationFolder = Path.Combine(Config.Default.ProcessedReports, IDThenUnderscore);
-				CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(DestinationFolder, Config.Default.DiskSpaceAlertPercent);
+				Stopwatch WriteToS3Timer = new Stopwatch();
+				Stopwatch WriteToDiskTimer = new Stopwatch();
 
-				// Move report files to crash reporter file store
+				if (bToDisk)
+				{
+					CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(DestinationFolder, Config.Default.DiskSpaceAlertPercent);
+				}
+
+				// Save log file
 				if (LogFileName != null)
 				{
 					LogFileName = Path.Combine(DirInfo.FullName, LogFileName);
 					FileInfo LogInfo = new FileInfo(LogFileName);
-					if(LogInfo.Exists)
+					if (LogInfo.Exists)
 					{
-						LogInfo.MoveTo(DestinationFolder + "Launch.log");
+						if (bToS3)
+						{
+							WriteToS3Timer.Start();
+							UploadFileToS3(LogInfo, S3IDPrefix + "Launch.log");
+							WriteToS3Timer.Stop();
+						}
+						if (bToDisk)
+						{
+							WriteToDiskTimer.Start();
+							LogInfo.MoveTo(DestinationFolder + "Launch.log");
+							WriteToDiskTimer.Stop();
+						}
 					}
 				}
 
-				string CrashContextRuntimeName = Path.Combine( DirInfo.FullName, FGenericCrashContext.CrashContextRuntimeXMLName );
-				FileInfo CrashContextInfo = new FileInfo( CrashContextRuntimeName );
+				// Save crash context file
+				string CrashContextRuntimeName = Path.Combine(DirInfo.FullName, FGenericCrashContext.CrashContextRuntimeXMLName);
+				FileInfo CrashContextInfo = new FileInfo(CrashContextRuntimeName);
 				if (CrashContextInfo.Exists)
 				{
-					CrashContextInfo.MoveTo( DestinationFolder + FGenericCrashContext.CrashContextRuntimeXMLName );
-				}
-
-// 				WERMetaDataName = Path.Combine(DirInfo.FullName, WERMetaDataName);
-// 				FileInfo MetaInfo = new FileInfo(WERMetaDataName);
-// 				if (MetaInfo.Exists)
-// 				{
-// 					MetaInfo.MoveTo(DestinationFolder + "WERMeta.xml");
-// 				}
-
-				if( DumpFileName != null )
-				{
-					DumpFileName = Path.Combine( DirInfo.FullName, DumpFileName );
-					FileInfo DumpInfo = new FileInfo( DumpFileName );
-					if (DumpInfo.Exists && NewContext.PrimaryCrashProperties.CrashDumpMode != 1 /* ECrashDumpMode.FullDump = 1*/ )
+					if (bToS3)
 					{
-						DumpInfo.MoveTo( DestinationFolder + "MiniDump.dmp" );
+						WriteToS3Timer.Start();
+						UploadFileToS3(CrashContextInfo, S3IDPrefix + FGenericCrashContext.CrashContextRuntimeXMLName);
+						WriteToS3Timer.Stop();
+					}
+					if (bToDisk)
+					{
+						WriteToDiskTimer.Start();
+						CrashContextInfo.MoveTo(DestinationFolder + FGenericCrashContext.CrashContextRuntimeXMLName);
+						WriteToDiskTimer.Stop();
 					}
 				}
 
-// 				DiagnosticsFileName = Path.Combine(DirInfo.FullName, DiagnosticsFileName);
-// 				FileInfo DiagnosticsInfo = new FileInfo(DiagnosticsFileName);
-// 				if (DiagnosticsInfo.Exists)
-// 				{
-// 					DiagnosticsInfo.MoveTo(DestinationFolder + CrashReporterConstants.DiagnosticsFileName);
-// 				}
+				if (DumpFileName != null)
+				{
+					DumpFileName = Path.Combine(DirInfo.FullName, DumpFileName);
+					FileInfo DumpInfo = new FileInfo(DumpFileName);
+					if (DumpInfo.Exists && NewContext.PrimaryCrashProperties.CrashDumpMode != 1 /* ECrashDumpMode.FullDump = 1*/)
+					{
+						if (bToS3)
+						{
+							WriteToS3Timer.Start();
+							UploadFileToS3(DumpInfo, S3IDPrefix + "MiniDump.dmp");
+							WriteToS3Timer.Stop();
+						}
+						if (bToDisk)
+						{
+							WriteToDiskTimer.Start();
+							DumpInfo.MoveTo(DestinationFolder + "MiniDump.dmp");
+							WriteToDiskTimer.Stop();
+						}
+					}
+				}
 
 				// Move the video (if it exists) to an alternate store
 				if (VideoFileName != null)
@@ -588,32 +619,73 @@ namespace Tools.CrashReporter.CrashReportProcess
 					FileInfo VideoInfo = new FileInfo(VideoFileName);
 					if (VideoInfo.Exists)
 					{
-						CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(DestinationFolder, Config.Default.DiskSpaceAlertPercent);
-						VideoInfo.MoveTo(DestinationFolder + CrashReporterConstants.VideoFileName);
+						if (bToS3)
+						{
+							WriteToS3Timer.Start();
+							UploadFileToS3(VideoInfo, S3IDPrefix + CrashReporterConstants.VideoFileName);
+							WriteToS3Timer.Stop();
+						}
+						if (bToDisk)
+						{
+							CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(DestinationFolder, Config.Default.DiskSpaceAlertPercent);
+
+							WriteToDiskTimer.Start();
+							VideoInfo.MoveTo(DestinationFolder + CrashReporterConstants.VideoFileName);
+							WriteToDiskTimer.Stop();
+						}
 					}
 				}
 
-				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "# WebAdded: ReportID   =" + string.Format("{0,7}", ReportID) + " Path=" + NewContext.CrashDirectory);
+				string TimeTakenString = string.Empty;
+				if (bToS3)
+				{
+					TimeTakenString = string.Format("S3UploadTime={0:F1} ", WriteToS3Timer.Elapsed.TotalSeconds);
+				}
+				if (bToDisk)
+				{
+					TimeTakenString += string.Format("DiskMoveTime={0:F1} ", WriteToDiskTimer.Elapsed.TotalSeconds);
+				}
+
+				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} AddReport: ReportID={1,8} {2}Path={3}", ProcessorIndex, ReportID, TimeTakenString, NewContext.CrashDirectory));
 
 				UpdateProcessedReports();
 				WebAddCounter.AddEvent();
 				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ProcessingSucceededEvent);
-				double Ratio = (double)WebAddCounter.TotalEvents / (double)ProcessedReports * 100;
+				double Ratio = (double)WebAddCounter.TotalEvents / (double)ProcessedReportCount * 100;
 
 				double AddedPerDay = (double)WebAddCounter.TotalEvents / Timer.Elapsed.TotalDays;
 
 				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + 
 					string.Format(
-						"Ratio={0,2} Processed={1,7} WebAdded={2,7} AddReportTime={3} AddedPerDay={4} AddedPerMinute={5:N1}", (int) Ratio,
-						ProcessedReports, WebAddCounter.TotalEvents, AddReportTime.Elapsed.TotalSeconds.ToString("0.00"), (int)AddedPerDay, WebAddCounter.EventsPerSecond * 60));
+						"AddReport: Ratio={0,2} Processed={1,7} WebAdded={2,7} AddReportTime={3} AddedPerDay={4} AddedPerMinute={5:N1}", (int) Ratio,
+						ProcessedReportCount, WebAddCounter.TotalEvents, AddReportTime.Elapsed.TotalSeconds.ToString("0.00"), (int)AddedPerDay, WebAddCounter.EventsPerSecond * 60));
 				return true;
 			}
 			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "AddReport: " + DirInfo.Name + "\n\n" + Ex.ToString());
+				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "AddReport: " + DirInfo.Name + "\n\n" + Ex, Ex);
 			}
 
 			return false;
+		}
+
+		private void UploadFileToS3(FileInfo FileInfo, string DestFilename)
+		{
+			try
+			{
+				PutObjectResponse Response = CrashReporterProcessServicer.OutputAWS.PutS3ObjectFromFile(Config.Default.AWSS3OutputBucket,
+																										Config.Default.AWSS3OutputKeyPrefix + DestFilename,
+																										FileInfo.FullName);
+
+				if (Response == null || Response.HttpStatusCode != HttpStatusCode.OK)
+				{
+					throw new CrashReporterException(string.Format("Failed to upload {0} to {1}", FileInfo.FullName, DestFilename));
+				}
+			}
+			catch (Exception Ex)
+			{
+				CrashReporterProcessServicer.WriteException("UploadFileToS3: " + Ex, Ex);
+			}
 		}
 
 		/// <summary>
@@ -789,7 +861,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessReport: " + NewContext.CrashDirectory + "\n\n: " + Ex.ToString());
+				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessReport: " + NewContext.CrashDirectory + "\n\n: " + Ex, Ex);
 			}
 
 			return 0.0;

@@ -49,6 +49,12 @@ FArchive& FObjectWriter::operator<<(FStringAssetReference& Value)
 	return *this;
 }
 
+FArchive& FObjectWriter::operator<< (struct FWeakObjectPtr& Value)
+{
+	Value.Serialize(*this);
+	return *this;
+}
+
 FString FObjectWriter::GetArchiveName() const
 {
 	return TEXT("FObjectWriter");

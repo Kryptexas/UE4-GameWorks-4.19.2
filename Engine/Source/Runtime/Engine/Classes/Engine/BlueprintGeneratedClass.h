@@ -649,6 +649,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void PostInitProperties() override;
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	// End UObject interface
 	
 	// UClass interface

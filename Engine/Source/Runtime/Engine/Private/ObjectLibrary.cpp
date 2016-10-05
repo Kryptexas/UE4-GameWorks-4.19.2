@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "AssetRegistryModule.h"
 #include "Engine/ObjectLibrary.h"
+#include "Engine/StreamableManager.h"
 
 UObjectLibrary::UObjectLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -448,6 +449,7 @@ int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(const TArray<FString>& Pat
 int32 UObjectLibrary::LoadAssetsFromAssetData()
 {
 	int32 Count = 0;
+	bool bPreloadObjects = !WITH_EDITOR;
 
 	if (bIsFullyLoaded)
 	{
@@ -457,12 +459,40 @@ int32 UObjectLibrary::LoadAssetsFromAssetData()
 
 	bIsFullyLoaded = true;
 
+	// Preload the packages with an async call, faster in cooked builds
+	if (bPreloadObjects)
+	{
+		TArray<FStringAssetReference> AssetsToStream;
+
+		for (int32 AssetIdx = 0; AssetIdx < AssetDataList.Num(); AssetIdx++)
+		{
+			FAssetData& Data = AssetDataList[AssetIdx];
+			AssetsToStream.AddUnique(Data.PackageName.ToString());
+		}
+
+		if (AssetsToStream.Num())
+		{
+			FStreamableManager Streamable;
+			bool bLoadFinished = false;
+
+			Streamable.RequestAsyncLoad(AssetsToStream,
+				FStreamableDelegate::CreateLambda([&bLoadFinished]()
+			{
+				bLoadFinished = true;
+			}));
+
+			FlushAsyncLoading();
+			check(bLoadFinished);
+		}
+
+	}
+
 	for(int32 AssetIdx=0; AssetIdx<AssetDataList.Num(); AssetIdx++)
 	{
 		FAssetData& Data = AssetDataList[AssetIdx];
 
 		UObject *LoadedObject = NULL;
-			
+		
 		if (!bHasBlueprintClasses)
 		{
 			LoadedObject = Data.GetAsset();

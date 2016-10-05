@@ -11,6 +11,9 @@ using System.Reflection;
 using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
+using Amazon.Runtime;
+using Amazon.S3;
+using Amazon.SQS;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.CrashReporter.CrashReportProcess.Properties;
 
@@ -32,12 +35,21 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		private static SlackWriter Slack = null;
 
+		public static AmazonClient DataRouterAWS { get; private set; }
+
+		public static AmazonClient OutputAWS { get; private set; }
+
 		public static StatusReporting StatusReporter { get; private set; }
 
 		public static Symbolicator Symbolicator { get; private set; }
 
+		public static ReportIndex ReportIndex { get; private set; }
+
 		/// <summary>Folder in which to store log files</summary>
-		static private string LogFolder = null;
+		private static string LogFolder = null;
+
+		private bool bDisposing = false;
+		private bool bDisposed = false;
 
 		/// <summary>Folder in which to store symbolication log files</summary>
 		static public string SymbolicatorLogFolder { get; private set; }
@@ -89,13 +101,25 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <summary>
 		/// Write an exception message to the event log.
 		/// </summary>
-		static public void WriteException( string Message )
+		static public void WriteException( string Message, Exception Ex )
 		{
-			if( Message != null && Message.Length > 2 )
+			if (Ex != null)
 			{
-				Log.Print( "[EXCEPT] " + Message );
-				StatusReporter.IncrementCount(StatusReportingEventNames.ExceptionEvent);
+				if (Ex is OutOfMemoryException)
+				{
+					StatusReporter.Alert("OOM", "Out of memory.", 2);
+				}
 			}
+
+			if (Message != null && Message.Length > 2)
+			{
+				Log.Print("[EXCEPT] " + Message);
+			}
+			else
+			{
+				Log.Print("[EXCEPT] NO MESSAGE");
+			}
+			StatusReporter.IncrementCount(StatusReportingEventNames.ExceptionEvent);
 		}
 
 		/// <summary>
@@ -144,6 +168,44 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 			StatusReporter = new StatusReporting();
 
+			ReportIndex = new ReportIndex
+			{
+				IsEnabled = !string.IsNullOrWhiteSpace(Config.Default.ProcessedReportsIndexPath),
+                Filepath = Config.Default.ProcessedReportsIndexPath,
+				Retention = TimeSpan.FromDays(Config.Default.ReportsIndexRetentionDays)
+			};
+
+			ReportIndex.ReadFromFile();
+
+			WriteEvent("Initializing AWS");
+			string AWSError;
+			AWSCredentials AWSCredentialsForDataRouter = new StoredProfileAWSCredentials(Config.Default.AWSProfileInputName, Config.Default.AWSCredentialsFilepath);
+			AmazonSQSConfig SqsConfigForDataRouter = new AmazonSQSConfig
+			{
+				ServiceURL = Config.Default.AWSSQSServiceInputURL
+			};
+			AmazonS3Config S3ConfigForDataRouter = new AmazonS3Config
+			{
+				ServiceURL = Config.Default.AWSS3ServiceInputURL
+			};
+			DataRouterAWS = new AmazonClient(AWSCredentialsForDataRouter, SqsConfigForDataRouter, S3ConfigForDataRouter, out AWSError);
+			if (!DataRouterAWS.IsSQSValid || !DataRouterAWS.IsS3Valid)
+			{
+				WriteFailure("AWS failed to initialize profile for DataRouter access. Error:" + AWSError);
+				StatusReporter.Alert("AWSFailInput", "AWS failed to initialize profile for DataRouter access", 0);
+			}
+			AWSCredentials AWSCredentialsForOutput = new StoredProfileAWSCredentials(Config.Default.AWSProfileOutputName, Config.Default.AWSCredentialsFilepath);
+			AmazonS3Config S3ConfigForOutput = new AmazonS3Config
+			{
+				ServiceURL = Config.Default.AWSS3ServiceOutputURL
+			};
+			OutputAWS = new AmazonClient(AWSCredentialsForOutput, null, S3ConfigForOutput, out AWSError);
+			if (!OutputAWS.IsS3Valid)
+			{
+				WriteFailure("AWS failed to initialize profile for output S3 bucket access. Error:" + AWSError);
+				StatusReporter.Alert("AWSFailOutput", "AWS failed to initialize profile for output S3 bucket access", 0);
+			}
+
 			// Add directory watchers
 			WriteEvent("Creating ReportWatcher");
 			Watcher = new ReportWatcher();
@@ -167,6 +229,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			FoldersToMonitor.Add(Config.Default.DepotRoot, "P4 Workspace");
 			FoldersToMonitor.Add(Config.Default.InternalLandingZone, "CRR Landing Zone");
 			FoldersToMonitor.Add(Config.Default.DataRouterLandingZone, "Data Router Landing Zone");
+			FoldersToMonitor.Add(Config.Default.PS4LandingZone, "PS4 Landing Zone");
 			FoldersToMonitor.Add(Config.Default.InvalidReportsDirectory, "Invalid Reports");
 			FoldersToMonitor.Add(Assembly.GetExecutingAssembly().Location, "CRP Binaries and Logs");
 			FoldersToMonitor.Add(Config.Default.MDDPDBCachePath, "MDD PDB Cache");
@@ -193,6 +256,13 @@ namespace Tools.CrashReporter.CrashReportProcess
 		{
 			StatusReporter.OnPreStopping();
 
+			OnDispose();
+		}
+
+		private void OnDispose()
+		{
+			bDisposing = true;
+
 			// Clean up the directory watcher and crash processor threads
 			foreach (var Processor in Processors)
 			{
@@ -207,6 +277,15 @@ namespace Tools.CrashReporter.CrashReportProcess
 			Watcher.Dispose();
 			Watcher = null;
 
+			ReportIndex.WriteToFile();
+			ReportIndex = null;
+
+			OutputAWS.Dispose();
+			OutputAWS = null;
+
+			DataRouterAWS.Dispose();
+			DataRouterAWS = null;
+
 			StatusReporter.Dispose();
 			StatusReporter = null;
 
@@ -216,6 +295,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 			// Flush the log to disk
 			Log.Dispose();
 			Log = null;
+
+			bDisposed = true;
 		}
 
 		/// <summary>

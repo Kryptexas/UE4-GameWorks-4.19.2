@@ -1059,7 +1059,7 @@ namespace UnrealBuildTool
 						}
 
 						// Create the response file
-						FileReference ResponseFileName = CompileAction.ProducedItems[0].Reference + ".response";
+						FileReference ResponseFileName = CompileAction.ProducedItems[0].Reference + "_" + AllArguments.GetHashCode().ToString("X") + ".response";
 						string ResponseArgument = string.Format("@\"{0}\"", ResponseFile.Create(ResponseFileName, new List<string> { AllArguments }).FullName);
 
 						CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;

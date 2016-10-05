@@ -13,7 +13,15 @@ class FArchive;
 class FString;
 struct FDateTime;
 
-#define USE_NEW_ASYNC_IO (0)
+#if !defined(WITH_EDITORONLY_DATA)
+#error "WITH_EDITORONLY_DATA must be defined"
+#endif
+
+#if !defined(USE_NEW_ASYNC_IO)
+#define USE_NEW_ASYNC_IO 0
+#elif USE_NEW_ASYNC_IO && WITH_EDITORONLY_DATA
+#error USE_NEW_ASYNC_IO can not be used with WITH_EDITORONLY_DATA
+#endif
 
 #if USE_NEW_ASYNC_IO
 class IAsyncReadFileHandle;

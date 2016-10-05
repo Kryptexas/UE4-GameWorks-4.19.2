@@ -254,6 +254,9 @@ bool FParse::Value(
 	}
 	else
 	{
+		// Skip initial whitespace
+		Start += FCString::Strspn(Start, TEXT(" \r\n\t"));
+
 		// Non-quoted string without spaces.
 		FCString::Strncpy( Value, Start, MaxLen );
 		Value[MaxLen-1]=0;

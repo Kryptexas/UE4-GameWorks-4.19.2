@@ -6,6 +6,13 @@
 /*-----------------------------------------------------------------------------
 	UByteProperty.
 -----------------------------------------------------------------------------*/
+
+void UByteProperty::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(Enum);
+}
+
 void UByteProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	if(Enum && Ar.UseToResolveEnumerators())
@@ -359,6 +366,11 @@ const TCHAR* UByteProperty::ImportText_Internal( const TCHAR* InBuffer, void* Da
 	}
 
 	return Super::ImportText_Internal( InBuffer, Data, PortFlags, Parent, ErrorText );
+}
+
+UEnum* UByteProperty::GetIntPropertyEnum() const
+{
+	return Enum;
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UByteProperty, UNumericProperty,

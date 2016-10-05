@@ -26,6 +26,10 @@ DEFINE_LOG_CATEGORY(LogClass);
 	#endif
 #endif
 
+#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
+#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 
 FThreadSafeBool& InternalSafeGetTokenStreamDirtyFlag()
@@ -498,6 +502,18 @@ void UStruct::StaticLink(bool bRelinkExistingProperties)
 	Link(ArDummy, bRelinkExistingProperties);
 }
 
+void UStruct::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	UStruct* InheritanceSuper = GetInheritanceSuper();
+	OutDeps.Add(InheritanceSuper);
+
+	for (UField* Field = Children; Field; Field = Field->Next)
+	{
+		OutDeps.Add(Field);
+	}
+}
+
 void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
 	if (bRelinkExistingProperties)
@@ -672,11 +688,12 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	UProperty** RefLinkPtr = (UProperty**)&RefLink;
 	UProperty** PostConstructLinkPtr = &PostConstructLink;
 
+	TArray<const UStructProperty*> EncounteredStructProps;
 	for (TFieldIterator<UProperty> It(this); It; ++It)
 	{
 		UProperty* Property = *It;
 
-		if (Property->ContainsObjectReference() || Property->ContainsWeakObjectReference())
+		if (Property->ContainsObjectReference(EncounteredStructProps) || Property->ContainsWeakObjectReference())
 		{
 			*RefLinkPtr = Property;
 			RefLinkPtr = &(*RefLinkPtr)->NextRef;
@@ -2443,6 +2460,9 @@ UObject* UClass::CreateDefaultObject()
 		{
 			UObjectForceRegistration(ParentClass);
 			ParentDefaultObject = ParentClass->GetDefaultObject(); // Force the default object to be constructed if it isn't already
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+			check(ParentDefaultObject && !ParentDefaultObject->HasAnyFlags(RF_NeedLoad));
+#endif
 		}
 
 		if ( (ParentDefaultObject != NULL) || (this == UObject::StaticClass()) )
@@ -2864,7 +2884,7 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	}
 }
 
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 
 	struct FClassParentPair
 	{
@@ -3084,25 +3104,63 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 		FFastIndexingClassTree::Unregister((UClass*)this);
 	}
 
+#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+
+	FClassBaseChain::FClassBaseChain()
+		: ClassBaseChainArray(nullptr)
+		, NumClassBasesInChainMinusOne(-1)
+	{
+	}
+
+	FClassBaseChain::~FClassBaseChain()
+	{
+		delete [] ClassBaseChainArray;
+	}
+
+	void FClassBaseChain::ReinitializeBaseChainArray()
+	{
+		delete [] ClassBaseChainArray;
+
+		int32 Depth = 0;
+		for (UClass* Ptr = static_cast<UClass*>(this); Ptr; Ptr = Ptr->GetSuperClass())
+		{
+			++Depth;
+		}
+
+		FClassBaseChain** Bases = new FClassBaseChain*[Depth];
+		{
+			FClassBaseChain** Base = Bases + Depth;
+			for (UClass* Ptr = static_cast<UClass*>(this); Ptr; Ptr = Ptr->GetSuperClass())
+			{
+				*--Base = Ptr;
+			}
+		}
+
+		ClassBaseChainArray = Bases;
+		NumClassBasesInChainMinusOne = Depth - 1;
+	}
+
 #endif
 
 void UClass::SetSuperStruct(UStruct* NewSuperStruct)
 {
 	UnhashObject(this);
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	FFastIndexingClassTree::Unregister(this);
 #endif
 	ClearFunctionMapsCaches();
 	Super::SetSuperStruct(NewSuperStruct);
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	FFastIndexingClassTree::Register(this);
+#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+	this->ReinitializeBaseChainArray();
 #endif
 	HashObject(this);
 }
 
 void UClass::SerializeSuperStruct(FArchive& Ar)
 {
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	bool bIsLoading = Ar.IsLoading();
 	if (bIsLoading)
 	{
@@ -3110,11 +3168,13 @@ void UClass::SerializeSuperStruct(FArchive& Ar)
 	}
 #endif
 	Super::SerializeSuperStruct(Ar);
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	if (bIsLoading)
 	{
 		FFastIndexingClassTree::Register(this);
 	}
+#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+	this->ReinitializeBaseChainArray();
 #endif
 }
 
@@ -3126,11 +3186,11 @@ void UClass::Serialize( FArchive& Ar )
 		UnhashObject(this);
 	}
 
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE || UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
 	UClass* SuperClassBefore = GetSuperClass();
 #endif
 	Super::Serialize( Ar );
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE || UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
 	// Handle that fact that FArchive takes UObject*s by reference, and archives can just blat
 	// over our SuperStruct with impunity.
 	if (SuperClassBefore)
@@ -3138,8 +3198,12 @@ void UClass::Serialize( FArchive& Ar )
 		UClass* SuperClassAfter = GetSuperClass();
 		if (SuperClassBefore != SuperClassAfter)
 		{
-			FFastIndexingClassTree::Unregister(this);
-			FFastIndexingClassTree::Register(this);
+			#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
+				FFastIndexingClassTree::Unregister(this);
+				FFastIndexingClassTree::Register(this);
+			#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+				this->ReinitializeBaseChainArray();
+			#endif
 		}
 	}
 #endif
@@ -3364,10 +3428,17 @@ void UClass::Serialize( FArchive& Ar )
 	{
 		if (ClassDefaultObject == NULL)
 		{
-			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName() );
+
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+			ClassDefaultObject = GetDefaultObject();
+			// we do this later anyway, once we find it and set it in the export table. 
+			// ClassDefaultObject->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
+#else
+			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName());
 			ensure(ClassDefaultObject != NULL);
 			ClassDefaultObject = GetDefaultObject();
 			Ar.ForceBlueprintFinalization();
+#endif
 		}
 	}
 }

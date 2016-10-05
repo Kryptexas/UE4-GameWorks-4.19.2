@@ -202,6 +202,12 @@ bool USetProperty::Identical(const void* A, const void* B, uint32 PortFlags) con
 	return UE4SetProperty_Private::IsPermutation(SetHelperA, SetHelperB, PortFlags);
 }
 
+void USetProperty::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(ElementProp);
+}
+
 void USetProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults) const
 {
 	checkSlow(ElementProp);

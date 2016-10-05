@@ -33,6 +33,16 @@ void UInheritableComponentHandler::PostLoad()
 	}
 }
 
+void UInheritableComponentHandler::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	for (auto Record : Records)
+	{
+		OutDeps.Add(Record.ComponentTemplate);
+	}
+}
+
+
 #if WITH_EDITOR
 UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(FComponentKey Key)
 {

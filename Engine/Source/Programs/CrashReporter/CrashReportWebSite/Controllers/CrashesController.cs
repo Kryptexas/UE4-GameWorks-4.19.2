@@ -17,7 +17,6 @@ using Tools.CrashReporter.CrashReportWebSite.ViewModels;
 using Tools.DotNETCommon.XmlHandler;
 using Tools.CrashReporter.CrashReportCommon;
 using System.Data.SqlClient;
-using CallStackContainer = Tools.CrashReporter.CrashReportWebSite.DataModels.CallStackContainer;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 {
@@ -109,10 +108,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <summary>
 		/// Show detailed information about a crash.
 		/// </summary>
-		/// <param name="CrashesForm">A form of user data passed up from the client.</param>
+		/// <param name="crashesForm">A form of user data passed up from the client.</param>
 		/// <param name="id">The unique id of the crash we wish to show the details of.</param>
 		/// <returns>A view to show crash details.</returns>
-		public ActionResult Show( FormCollection CrashesForm, int id )
+		public ActionResult Show( FormCollection crashesForm, int id )
 		{
 			using( var logTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + id + ")", bCreateNewLog: true ) )
 			{
@@ -128,26 +127,26 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 				string FormValue;
 
-				FormValue = CrashesForm["SetStatus"];
+				FormValue = crashesForm["SetStatus"];
 				if( !string.IsNullOrEmpty( FormValue ) )
 				{
 					currentCrash.Status = FormValue;
 				}
 
-				FormValue = CrashesForm["SetFixedIn"];
+				FormValue = crashesForm["SetFixedIn"];
 				if( !string.IsNullOrEmpty( FormValue ) )
 				{
 					currentCrash.FixedChangeList = FormValue;
 				}
 
-				FormValue = CrashesForm["SetTTP"];
+				FormValue = crashesForm["SetTTP"];
 				if( !string.IsNullOrEmpty( FormValue ) )
 				{
 					currentCrash.Jira = FormValue;
 				}
 
 				// Valid to set description to an empty string
-				FormValue = CrashesForm["Description"];
+				FormValue = crashesForm["Description"];
 				if( FormValue != null )
 				{
 					currentCrash.Description = FormValue;
@@ -164,10 +163,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				currentCallStack.bDisplayUnformattedCallStack = false;
 
 				currentCrash.CallStackContainer = new CallStackContainer(currentCrash);
-
-				// Populate the crash with the correct user data
-				//_crashRepo.PopulateUserInfo( CurrentCrash );
-				//_crashRepo.SubmitChanges();
 
 				var Model = new CrashViewModel { Crash = currentCrash, CallStack = currentCallStack };
 				Model.GenerationTime = logTimer.GetElapsedSeconds().ToString( "F2" );
@@ -214,7 +209,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 return Content(XmlHandler.ToXmlString<CrashReporterResult>(newCrashResult), "text/xml");
 			}
 
-            // De-serialise the payload string
+            // De-serialize the payload string
 			try
 			{
 			    newCrash = XmlHandler.FromXmlString<CrashDescription>(payloadString);
@@ -275,7 +270,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			{
 				if (sqlExc.Number == -2)//If this is an sql timeout log the timeout and try again.
 				{
-					FLogger.Global.WriteEvent( string.Format( "AddCrash: Timeout" ) );
+					FLogger.Global.WriteEvent(string.Format( "AddCrash: Timeout" ));
 				}
 				else
 				{
@@ -305,7 +300,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				newCrashResult.bSuccess = false;
 			}
 
-			string returnResult = XmlHandler.ToXmlString<CrashReporterResult>( newCrashResult );
+			var returnResult = XmlHandler.ToXmlString<CrashReporterResult>( newCrashResult );
                 
 			return Content( returnResult, "text/xml" );
 		}
@@ -685,7 +680,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	        var user = _unitOfWork.UserRepository.GetByUserName(userName);
 
 	        if (user != null)
+	        {
 	            newCrash.UserNameId = user.Id;
+	            newCrash.UserName = user.UserName;
+	        }
 	        else
 	        {
 	            newCrash.User = new User() {UserName = description.UserName, UserGroupId = 5};
@@ -779,32 +777,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 	        // As we're adding it, the status is always new
 	        newCrash.Status = "New";
-
-	        /*
-                Unused Crashes' fields.
-	 
-                Title				nchar(20)		
-                Selected			bit				
-                Version				int				
-                AutoReporterID		int				
-                Processed			bit	-> renamed to AllowToBeContacted			
-                HasDiagnosticsFile	bit	always true		
-                HasNewLogFile		bit				
-                HasMetaData			bit	always true
-            */
-
-	        // Set the unused fields to the default values.
-	        //NewCrash.Title = "";			removed from dbml
-	        //NewCrash.Selected = false;	removed from dbml
-	        //NewCrash.Version = 4;			removed from dbml
-	        //NewCrash.AutoReporterID = 0;	removed from dbml
-	        //NewCrash.HasNewLogFile = false;removed from dbml
-
-	        //NewCrash.HasDiagnosticsFile = true;
-	        //NewCrash.HasMetaData = true;
-            newCrash.UserActivityHint = description.UserActivityHint;
-            
-            BuildPattern(newCrash);
+	        newCrash.UserActivityHint = description.UserActivityHint;
+	        try
+	        {
+	            BuildPattern(newCrash);
+	        }
+	        catch (Exception ex)
+	        {
+                FLogger.Global.WriteException("Error in Create Crash Build Pattern Method");
+	            throw;
+	        }
 
             if(newCrash.CommandLine == null)
                 newCrash.CommandLine = "";
@@ -870,13 +852,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 trimmedError = floatRegex.Replace(trimmedError, "");
                 trimmedError = hexRegex.Replace(trimmedError, "");
                 trimmedError = intRegex.Replace(trimmedError, "");
+                if(trimmedError.Length > 450)
+                    trimmedError = trimmedError.Substring(0, 450);//error message is used as an index - trim to max index length
                 
                 //Check to see if the masked error message is unique
 	            ErrorMessage errorMessage = null;
-                if (_unitOfWork.ErrorMessageRepository.Any(data => data.Message.Contains(trimmedError)))
+                if (_unitOfWork.ErrorMessageRepository.Any(data => data.Message.ToLower().Contains(trimmedError.ToLower())))
                 {
                     errorMessage =
-                        _unitOfWork.ErrorMessageRepository.First(data => data.Message.Contains(trimmedError));
+                        _unitOfWork.ErrorMessageRepository.First(data => data.Message.ToLower().Contains(trimmedError.ToLower()));
                 }
                 else
                 {
@@ -888,19 +872,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 	            //Check for an existing bugg with this pattern and error message / no error message
                 if ( _unitOfWork.BuggRepository.Any(data =>
-                    (data.PatternId == newCrash.PatternId || data.Pattern == newCrash.Pattern) && (newCrash.CrashType == 3 ||
-                    (data.ErrorMessageId == errorMessage.Id || data.ErrorMessageId == null)) ))
+                    (data.PatternId == newCrash.PatternId) && (data.ErrorMessageId == errorMessage.Id || data.ErrorMessageId == null) ))
                 {
                     //if a bugg exists for this pattern update the bugg data
-                    var bugg = _unitOfWork.BuggRepository.First(data => data.PatternId == newCrash.PatternId) ??
-                                _unitOfWork.BuggRepository.First(data => data.Pattern == newCrash.Pattern);
+                    var bugg = _unitOfWork.BuggRepository.First(data => data.PatternId == newCrash.PatternId);
                     bugg.PatternId = newCrash.PatternId;
 
-                    if (newCrash.CrashType != 3)
-                    {
-                        bugg.CrashType = newCrash.CrashType;
-                        bugg.ErrorMessageId = errorMessage.Id;
-                    }
+                    bugg.CrashType = newCrash.CrashType;
+                    bugg.ErrorMessageId = errorMessage.Id;
 
 	                //also update the bugg data while we're here
 	                bugg.TimeOfLastCrash = newCrash.TimeOfCrash;
@@ -965,6 +944,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                     }
                 }
                 FLogger.Global.WriteException(messageBuilder.ToString());
+                throw;
             }
 	        catch (Exception ex)
 	        {
@@ -1007,10 +987,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	                    FunctionCall currentFunctionCall;
 
 	                    var csEntry = entry;
-	                    if (_unitOfWork.FunctionRepository.Any(f => f.Call == csEntry.FunctionName))
-	                    {
-                            currentFunctionCall = _unitOfWork.FunctionRepository.First(f => f.Call == csEntry.FunctionName);
-	                    }
+                        var functionCall = _unitOfWork.FunctionRepository.First(f => f.Call == csEntry.FunctionName);
+                        if (functionCall != null)
+                        {
+                            currentFunctionCall = functionCall;
+                        }
 	                    else
 	                    {
 	                        currentFunctionCall = new FunctionCall { Call = csEntry.FunctionName };
@@ -1043,22 +1024,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 	    protected override void Dispose(bool disposing)
 	    {
-            _unitOfWork.Dispose();
+	        if (disposing)
+	        {
+	            if (_unitOfWork != null)
+	            {
+	                _unitOfWork.Dispose();
+	                _unitOfWork = null;
+	            }
+	        }
+
 	        base.Dispose(disposing);
 	    }
-
-	    #region Test Methods
-
-        /// <summary>
-        /// Test method that calls the add crash function and adds a test crash to the database
-        /// </summary>
-        public void TestAddCrash()
-	    {
-           var crashdescription = XmlHandler.FromXmlString<CrashDescription>(Settings.Default.TestXML);
-
-           CreateCrash(crashdescription);
-	    }
-
-	    #endregion
-    }
+	}
 }

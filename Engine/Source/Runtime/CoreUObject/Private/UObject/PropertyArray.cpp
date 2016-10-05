@@ -8,6 +8,11 @@
 	UArrayProperty.
 -----------------------------------------------------------------------------*/
 
+void UArrayProperty::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(Inner);
+}
 
 void UArrayProperty::LinkInternal(FArchive& Ar)
 {

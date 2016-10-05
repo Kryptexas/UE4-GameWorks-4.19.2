@@ -152,22 +152,34 @@ void LoadPhysXModules()
 	FString APEXSuffix(TEXT(".dylib"));
 #endif
 
-	PxFoundationHandle = LoadPhysicsLibrary(PhysXBinariesRoot + "libPxFoundation" + PhysXSuffix);
-	PhysX3CommonHandle = LoadPhysicsLibrary(PhysXBinariesRoot + "libPhysX3Common" + PhysXSuffix);
-	PxPvdSDKHandle = LoadPhysicsLibrary(PhysXBinariesRoot + "libPxPvdSDK" + PhysXSuffix);
-	PhysX3Handle = LoadPhysicsLibrary(PhysXBinariesRoot + "libPhysX3" + PhysXSuffix);
+	const FString PxFoundationLibName = FString::Printf(TEXT("%slibPxFoundation%s"), *PhysXBinariesRoot, *PhysXSuffix);
+	PxFoundationHandle = LoadPhysicsLibrary(PxFoundationLibName);
+
+	const FString PhysX3CommonLibName = FString::Printf(TEXT("%slibPhysX3Common%s"), *PhysXBinariesRoot, *PhysXSuffix);
+	PhysX3CommonHandle = LoadPhysicsLibrary(PhysX3CommonLibName);
+
+	const FString PxPvdSDKLibName = FString::Printf(TEXT("%slibPxPvdSDK%s"), *PhysXBinariesRoot, *PhysXSuffix);
+	PxPvdSDKHandle = LoadPhysicsLibrary(PxPvdSDKLibName);
+
+	const FString PhysX3LibName = FString::Printf(TEXT("%slibPhysX3%s"), *PhysXBinariesRoot, *PhysXSuffix);
+	PhysX3Handle = LoadPhysicsLibrary(PhysX3LibName);
 
 	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-		PhysX3CookingHandle = LoadPhysicsLibrary(PhysXBinariesRoot + "libPhysX3Cooking" + PhysXSuffix);
+		const FString PhysX3CookinLibName = FString::Printf(TEXT("%slibPhysX3Cooking%s"), *PhysXBinariesRoot, *PhysXSuffix);
+		PhysX3CookingHandle = LoadPhysicsLibrary(PhysX3CookinLibName);
 	#endif
 	#if WITH_APEX
-		APEXFrameworkHandle = LoadPhysicsLibrary(PhysXBinariesRoot + "libAPEXFramework" + APEXSuffix);
-		APEX_DestructibleHandle = LoadPhysicsLibrary(PhysXBinariesRoot + "libAPEX_Destructible" + APEXSuffix);
+		const FString APEXFrameworkLibName = FString::Printf(TEXT("%slibAPEXFramework%s"), *PhysXBinariesRoot, *APEXSuffix);
+		APEXFrameworkHandle = LoadPhysicsLibrary(APEXFrameworkLibName);
+		const FString APEX_DestructibleHandleLibName = FString::Printf(TEXT("%slibAPEX_Destructible%s"), *PhysXBinariesRoot, *APEXSuffix);
+		APEX_DestructibleHandle = LoadPhysicsLibrary(APEX_DestructibleHandleLibName);
 		#if WITH_APEX_LEGACY
-			APEX_LegacyHandle = LoadPhysicsLibrary(PhysXBinariesRoot + "libAPEX_Legacy" + APEXSuffix);
+			const FString APEX_LegacyHandleLibName = FString::Printf(TEXT("%slibAPEX_Legacy%s"), *PhysXBinariesRoot, *APEXSuffix);
+			APEX_LegacyHandle = LoadPhysicsLibrary(APEX_LegacyHandleLibName);
 		#endif //WITH_APEX_LEGACY
 		#if WITH_APEX_CLOTHING
-			APEX_ClothingHandle = LoadPhysicsLibrary(PhysXBinariesRoot + "libAPEX_Clothing" + APEXSuffix);
+			const FString APEX_ClothingHandleLibName = FString::Printf(TEXT("%slibAPEX_Clothing%s"), *PhysXBinariesRoot, *APEXSuffix);
+			APEX_ClothingHandle = LoadPhysicsLibrary(APEX_ClothingHandleLibName);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
 #endif	//PLATFORM_WINDOWS

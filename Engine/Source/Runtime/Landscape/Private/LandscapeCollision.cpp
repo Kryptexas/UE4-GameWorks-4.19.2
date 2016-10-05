@@ -129,9 +129,13 @@ static FString GetHFDDCKeyString(const FName& Format, bool bDefMaterial, const F
 
 ECollisionEnabled::Type ULandscapeHeightfieldCollisionComponent::GetCollisionEnabled() const
 {
-	ALandscapeProxy* Proxy = GetLandscapeProxy();
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		ALandscapeProxy* Proxy = GetLandscapeProxy();
 
-	return Proxy->BodyInstance.GetCollisionEnabled();
+		return Proxy->BodyInstance.GetCollisionEnabled();
+	}
+	return ECollisionEnabled::QueryAndPhysics;
 }
 
 ECollisionResponse ULandscapeHeightfieldCollisionComponent::GetCollisionResponseToChannel(ECollisionChannel Channel) const

@@ -15,6 +15,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public const string QueuedEvent = "Queued for processing";
 		public const string ProcessingStartedReceiverEvent = "Started processing (from CRR)";
 		public const string ProcessingStartedDataRouterEvent = "Started processing (from Data Router)";
+		public const string ProcessingStartedPS4Event = "Started processing (from PS4Services)";
 		public const string ProcessingSucceededEvent = "Processing succeeded";
 		public const string ProcessingFailedEvent = "Processing failed";
 		public const string ExceptionEvent = "Handled exceptions";	

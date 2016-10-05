@@ -646,6 +646,7 @@ public:
 	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 #endif // WITH_EDITORONLY_DATA
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	virtual FString GetDesc(void) override;
 	virtual void TagSubobjects(EObjectFlags NewFlags) override;
 	virtual bool NeedsLoadForClient() const override;

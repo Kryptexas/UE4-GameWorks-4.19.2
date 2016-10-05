@@ -4182,6 +4182,15 @@ namespace UnrealBuildTool
 			SetUpConfigurationEnvironment();
 			SetUpProjectEnvironment(Configuration);
 
+			if (UEBuildConfiguration.bEventDrivenLoader)
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("USE_NEW_ASYNC_IO=1");
+			}
+			else
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("USE_NEW_ASYNC_IO=0");
+			}
+
 			// Validates current settings and updates if required.
 			BuildConfiguration.ValidateConfiguration(
 				GlobalCompileEnvironment.Config.Target.Configuration,
@@ -4225,10 +4234,10 @@ namespace UnrealBuildTool
 			GlobalLinkEnvironment.Config.bIsBuildingLibrary = bIsBuildingLibrary;
 		}
 
-        void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
-        {
-            PlatformContext.SetUpProjectEnvironment(Configuration);
-        }
+		void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
+		{
+			PlatformContext.SetUpProjectEnvironment(Configuration, TargetInfo);
+		}
 
         /// <summary>
         /// Create a rules object for the given module, and set any default values for this target

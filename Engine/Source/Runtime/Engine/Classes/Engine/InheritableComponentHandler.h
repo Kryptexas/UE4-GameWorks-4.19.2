@@ -112,6 +112,7 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	//~ End UObject Interface
 
 	void PreloadAllTempates();

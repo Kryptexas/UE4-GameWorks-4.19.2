@@ -1197,7 +1197,10 @@ UEnum* FHeaderParser::CompileEnum()
 	// Read base for enum class
 	if (CppForm == UEnum::ECppForm::EnumClass)
 	{
-		RequireSymbol(TEXT(":"), TEXT("'Enum'"));
+		if (!MatchSymbol(TEXT(":")))
+		{
+			FError::Throwf(TEXT("Missing base specifier for enum class '%s' - did you mean ': uint8'?"), EnumToken.Identifier);
+		}
 
 		FToken BaseToken;
 		if (!GetIdentifier(BaseToken))
@@ -3396,6 +3399,11 @@ FIndexRange*                    ParsedVarIndexRange
 			FError::Throwf(TEXT("UINTERFACEs are not currently supported as key types."));
 		}
 
+		if (MapKeyType.Type == CPT_Text)
+		{
+			FError::Throwf(TEXT("FText is not currently supported as a key type."));
+		}
+
 		FToken CommaToken;
 		if (!GetToken(CommaToken, /*bNoConsts=*/ true) || CommaToken.TokenType != TOKEN_Symbol || FCString::Stricmp(CommaToken.Identifier, TEXT(",")))
 		{
@@ -3463,6 +3471,11 @@ FIndexRange*                    ParsedVarIndexRange
 		if (VarProperty.Type == CPT_Interface)
 		{
 			FError::Throwf(TEXT("UINTERFACEs are not currently supported as element types."));
+		}
+
+		if (VarProperty.Type == CPT_Text)
+		{
+			FError::Throwf(TEXT("FText is not currently supported as an element type."));
 		}
 
 		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the set, we will fix them later
@@ -4860,6 +4873,9 @@ FClass* FHeaderParser::ParseClassNameDeclaration(FClasses& AllClasses, FString& 
 
 	// Get parent class.
 	bool bSpecifiesParentClass = false;
+
+	// Skip optional final keyword
+	MatchIdentifier(TEXT("final"));
 
 	if (MatchSymbol(TEXT(":")))
 	{
@@ -7844,6 +7860,9 @@ void FHeaderPreParser::ParseClassDeclaration(const TCHAR* InputText, int32 InLin
 		DeclarationData->ParseClassProperties(SpecifiersFound, RequiredAPIMacroIfPresent);
 		GClassDeclarations.Add(ClassNameWithoutPrefix, DeclarationData);
 	}
+
+	// Skip optional final keyword
+	MatchIdentifier(TEXT("final"));
 
 	// Handle inheritance
 	if (MatchSymbol(TEXT(":")))

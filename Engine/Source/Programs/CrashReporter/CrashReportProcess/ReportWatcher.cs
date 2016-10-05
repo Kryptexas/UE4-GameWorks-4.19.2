@@ -45,7 +45,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				Queue.Dispose();
 			}
-			ReportIndex.WriteToFile();
 
 			CancelSource.Dispose();
 		}
@@ -76,7 +75,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				if( System.IO.Directory.Exists( Settings.InternalLandingZone ) )
 				{
-					ReportQueues.Add(new ReceiverReportQueue("Epic Crashes", Settings.InternalLandingZone, Config.Default.QueueLowerLimitForDiscard, Config.Default.QueueUpperLimitForDiscard));
+					ReportQueues.Add(new ReceiverReportQueue("Epic Crashes", Settings.InternalLandingZone, StatusReportingEventNames.ProcessingStartedReceiverEvent, Config.Default.QueueLowerLimitForDiscard, Config.Default.QueueUpperLimitForDiscard));
 					CrashReporterProcessServicer.WriteEvent(string.Format("\t{0} (internal, high priority (legacy))", Settings.InternalLandingZone));
 				}
 				else
@@ -85,12 +84,25 @@ namespace Tools.CrashReporter.CrashReportProcess
 				}
 			}
 
+			if (!string.IsNullOrEmpty(Settings.PS4LandingZone))
+			{
+				if (System.IO.Directory.Exists(Settings.PS4LandingZone))
+				{
+					ReportQueues.Add(new ReceiverReportQueue("PS4 Crashes", Settings.PS4LandingZone, StatusReportingEventNames.ProcessingStartedPS4Event, Config.Default.QueueLowerLimitForDiscard, Config.Default.QueueUpperLimitForDiscard));
+					CrashReporterProcessServicer.WriteEvent(string.Format("\t{0} (internal, PS4 non-retail hardware)", Settings.PS4LandingZone));
+				}
+				else
+				{
+					CrashReporterProcessServicer.WriteFailure(string.Format("\t{0} (internal, PS4 non-retail hardware) is not accessible", Settings.PS4LandingZone));
+				}
+			}
+
 #if !DEBUG
 			if (!string.IsNullOrEmpty(Settings.ExternalLandingZone))
 			{
 				if( System.IO.Directory.Exists( Settings.ExternalLandingZone ) )
 				{
-					ReportQueues.Add(new ReceiverReportQueue("External Crashes", Settings.ExternalLandingZone, Config.Default.QueueLowerLimitForDiscard, Config.Default.QueueUpperLimitForDiscard));
+					ReportQueues.Add(new ReceiverReportQueue("External Crashes", Settings.ExternalLandingZone, StatusReportingEventNames.ProcessingStartedReceiverEvent, Config.Default.QueueLowerLimitForDiscard, Config.Default.QueueUpperLimitForDiscard));
 					CrashReporterProcessServicer.WriteEvent( string.Format( "\t{0} (legacy)", Settings.ExternalLandingZone ) );
 				}
 				else
@@ -105,10 +117,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				CrashReporterProcessServicer.StatusReporter.InitQueue(Queue.QueueId, Queue.LandingZonePath);
 			}
-
-			ReportIndex.Filepath = Config.Default.ProcessedReportsIndexPath;
-			ReportIndex.Retention = TimeSpan.FromDays(Config.Default.ReportsIndexRetentionDays);
-			ReportIndex.ReadFromFile();
 
 			var Cancel = CancelSource.Token;
 			WatcherTask = new Task(async () =>

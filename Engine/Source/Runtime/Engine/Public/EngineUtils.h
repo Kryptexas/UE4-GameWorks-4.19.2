@@ -734,7 +734,7 @@ namespace EngineUtils
 }
 
 /** Helper class for serializing flags describing which data have been stripped (if any). */
-class FStripDataFlags
+class ENGINE_API FStripDataFlags
 {
 	/** Serialized engine strip flags (up to 8 flags). */
 	uint8 GlobalStripFlags;

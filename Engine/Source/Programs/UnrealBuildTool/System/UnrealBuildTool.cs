@@ -1762,6 +1762,31 @@ namespace UnrealBuildTool
 							ReasonNotLoaded = "foreign plugins have changed";
 						}
 
+						if (UBTMakefile != null)
+						{
+							// Check if ini files are newer. Ini files contain build settings too.
+							FileInfo UBTMakefileInfo = new FileInfo(UBTMakefilePath.FullName);
+							foreach (TargetDescriptor Desc in TargetDescs)
+							{
+								DirectoryReference ProjectDirectory = DirectoryReference.FromFile(ProjectFile);
+								foreach (FileReference IniFilename in ConfigCacheIni.EnumerateCrossPlatformIniFileNames(ProjectDirectory, UnrealBuildTool.EngineDirectory, Desc.Platform, "Engine", false))
+								{
+									FileInfo IniFileInfo = new FileInfo(IniFilename.FullName);
+									if (UBTMakefileInfo.LastWriteTime.CompareTo(IniFileInfo.LastWriteTime) < 0)
+									{
+										// Ini files are newer than UBTMakefile
+										UBTMakefile = null;
+										ReasonNotLoaded = "ini files are newer that UBTMakefile";
+										break;
+									}
+								}
+								if (UBTMakefile == null)
+								{
+									break;
+								}
+							}
+						}
+
 						if (UBTMakefile == null)
 						{
 							// If the Makefile couldn't be loaded, then we're not going to be able to continue in "assembler only" mode.  We'll do both

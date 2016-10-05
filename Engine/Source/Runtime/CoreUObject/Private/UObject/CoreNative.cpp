@@ -268,9 +268,15 @@ UObject* FObjectInstancingGraph::InstancePropertyValue( class UObject* Component
 	return NewValue;
 }
 
+#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
+#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
+#endif
 
 void FObjectInstancingGraph::AddNewObject(class UObject* ObjectInstance, UObject* InArchetype /*= nullptr*/)
 {
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+	check(!InArchetype || !InArchetype->HasAnyFlags(RF_NeedLoad));
+#endif
 	if (HasDestinationRoot())
 	{
 		AddNewInstance(ObjectInstance, InArchetype);

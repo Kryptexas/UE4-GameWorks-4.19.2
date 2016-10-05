@@ -113,7 +113,7 @@ public:
 	void ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride = NULL, uint32 AdditionalExportCPPFlags = 0
 		, bool bSkipParameterName = false, const FString* ActualCppType = nullptr, const FString* ActualExtendedType = nullptr, const FString* ActualParameterName = nullptr) const;
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const;
-	virtual bool PassCPPArgsByRef() const { return false; }
+	virtual bool PassCPPArgsByRef() const;
 
 	/**
 	 * Returns the C++ name of the property, including the _DEPRECATED suffix if the 
@@ -203,7 +203,7 @@ public:
 	*
 	* @return	true if the function has handled the tag
 	*/
-	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) { return false; }
+	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty);
 
 	/**
 	 * Determines whether the property values are identical.
@@ -452,16 +452,8 @@ public:
 	uint32 GetValueTypeHash(const void* Src) const;
 
 protected:
-	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count  ) const
-	{
-		check(0); // if you are not memcpyable, then you need to deal with the virtual call
-	}
-
-	virtual uint32 GetValueTypeHashInternal(const void* Src) const
-	{
-		check(false); // you need to deal with the virtual call
-		return 0;
-	}
+	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count  ) const;
+	virtual uint32 GetValueTypeHashInternal(const void* Src) const;
 
 public:
 	/**
@@ -502,10 +494,8 @@ public:
 	 *									SIZE = the ElementSize of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopySingleValueToScriptVM( void* Dest, void const* Src ) const
-	{
-		CopySingleValue(Dest, Src);
-	}
+	virtual void CopySingleValueToScriptVM( void* Dest, void const* Src ) const;
+
 	/**
 	 * Copy the value for all elements of this property. To the script VM.
 	 * 
@@ -514,10 +504,7 @@ public:
 	 *									OFFSET = the Offset of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopyCompleteValueToScriptVM( void* Dest, void const* Src ) const
-	{
-		CopyCompleteValue(Dest, Src);
-	}
+	virtual void CopyCompleteValueToScriptVM( void* Dest, void const* Src ) const;
 
 	/**
 	 * Copy the value for a single element of this property. From the script VM.
@@ -529,10 +516,8 @@ public:
 	 *									SIZE = the ElementSize of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopySingleValueFromScriptVM( void* Dest, void const* Src ) const
-	{
-		CopySingleValue(Dest, Src);
-	}
+	virtual void CopySingleValueFromScriptVM( void* Dest, void const* Src ) const;
+
 	/**
 	 * Copy the value for all elements of this property. From the script VM.
 	 * 
@@ -541,10 +526,7 @@ public:
 	 *									OFFSET = the Offset of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopyCompleteValueFromScriptVM( void* Dest, void const* Src ) const
-	{
-		CopyCompleteValue(Dest, Src);
-	}
+	virtual void CopyCompleteValueFromScriptVM( void* Dest, void const* Src ) const;
 
 	/**
 	 * Zeros the value for this property. The existing data is assumed valid (so for example this calls FString::Empty)
@@ -673,17 +655,18 @@ public:
 	 * @param	Owner				the object that contains this property's data
 	 * @param	InstanceGraph		contains the mappings of instanced objects and components to their templates
 	 */
-	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) {}
+	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph );
 
-	virtual int32 GetMinAlignment() const { return 1; }
+	virtual int32 GetMinAlignment() const;
 
 	/**
 	 * Returns true if this property, or in the case of e.g. array or struct properties any sub- property, contains a
 	 * UObject reference.
+	 * @param	EncounteredStructProps		used to check for recursion in arrays
 	 *
 	 * @return true if property (or sub- properties) contain a UObject reference, false otherwise
 	 */
-	virtual bool ContainsObjectReference() const;
+	virtual bool ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const;
 
 	/**
 	 * Returns true if this property, or in the case of e.g. array or struct properties any sub- property, contains a
@@ -708,7 +691,7 @@ public:
 	 * Emits tokens used by realtime garbage collection code to passed in ReferenceTokenStream. The offset emitted is relative
 	 * to the passed in BaseOffset which is used by e.g. arrays of structs.
 	 */
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset);
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps);
 
 	FORCEINLINE int32 GetSize() const
 	{
@@ -1129,16 +1112,10 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	// UNumericProperty interface.
 
 	/** Return true if this property is for a floating point number **/
-	virtual bool IsFloatingPoint() const
-	{
-		return false;
-	}
+	virtual bool IsFloatingPoint() const;
 
 	/** Return true if this property is for a integral or enum type **/
-	virtual bool IsInteger() const
-	{
-		return true;
-	}
+	virtual bool IsInteger() const;
 
 	/** Return true if this property is a UByteProperty with a non-null Enum **/
 	FORCEINLINE bool IsEnum() const
@@ -1146,41 +1123,29 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 		return !!GetIntPropertyEnum();
 	}
 
-	/** Return teh UEnum if this property is a UByteProperty with a non-null Enum **/
-	virtual UEnum* GetIntPropertyEnum() const
-	{
-		return nullptr;
-	}
+	/** Return the UEnum if this property is a UByteProperty with a non-null Enum **/
+	virtual UEnum* GetIntPropertyEnum() const;
 
 	/** 
 	 * Set the value of an unsigned integral property type
 	 * @param Data - pointer to property data to set
 	 * @param Value - Value to set data to
 	**/
-	virtual void SetIntPropertyValue(void* Data, uint64 Value) const
-	{
-		check(0);
-	}
+	virtual void SetIntPropertyValue(void* Data, uint64 Value) const;
 
 	/** 
 	 * Set the value of a signed integral property type
 	 * @param Data - pointer to property data to set
 	 * @param Value - Value to set data to
 	**/
-	virtual void SetIntPropertyValue(void* Data, int64 Value) const
-	{
-		check(0);
-	}
+	virtual void SetIntPropertyValue(void* Data, int64 Value) const;
 
 	/** 
 	 * Set the value of a floating point property type
 	 * @param Data - pointer to property data to set
 	 * @param Value - Value to set data to
 	**/
-	virtual void SetFloatingPointPropertyValue(void* Data, double Value) const
-	{
-		check(0);
-	}
+	virtual void SetFloatingPointPropertyValue(void* Data, double Value) const;
 
 	/** 
 	 * Set the value of any numeric type from a string point
@@ -1188,43 +1153,28 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	 * @param Value - Value (as a string) to set 
 	 * CAUTION: This routine does not do enum name conversion
 	**/
-	virtual void SetNumericPropertyValueFromString(void* Data, TCHAR const* Value) const
-	{
-		check(0);
-	}
+	virtual void SetNumericPropertyValueFromString(void* Data, TCHAR const* Value) const;
 
 	/** 
 	 * Gets the value of a signed integral property type
 	 * @param Data - pointer to property data to get
 	 * @return Data as a signed int
 	**/
-	virtual int64 GetSignedIntPropertyValue(void const* Data) const
-	{
-		check(0);
-		return 0;
-	}
+	virtual int64 GetSignedIntPropertyValue(void const* Data) const;
 
 	/** 
 	 * Gets the value of an unsigned integral property type
 	 * @param Data - pointer to property data to get
 	 * @return Data as an unsigned int
 	**/
-	virtual uint64 GetUnsignedIntPropertyValue(void const* Data) const
-	{
-		check(0);
-		return 0;
-	}
+	virtual uint64 GetUnsignedIntPropertyValue(void const* Data) const;
 
 	/** 
 	 * Gets the value of an floating point property type
 	 * @param Data - pointer to property data to get
 	 * @return Data as a double
 	**/
-	virtual double GetFloatingPointPropertyValue(void const* Data) const
-	{
-		check(0);
-		return 0.0;
-	}
+	virtual double GetFloatingPointPropertyValue(void const* Data) const;
 
 	/** 
 	 * Get the value of any numeric type and return it as a string
@@ -1232,11 +1182,7 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	 * @return Data as a string
 	 * CAUTION: This routine does not do enum name conversion
 	**/
-	virtual FString GetNumericPropertyValueToString(void const* Data) const
-	{
-		check(0);
-		return FString();
-	}
+	virtual FString GetNumericPropertyValueToString(void const* Data) const;
 	// End of UNumericProperty interface
 
 	static uint8 ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag);
@@ -1438,6 +1384,8 @@ class COREUOBJECT_API UByteProperty : public TProperty_Numeric<uint8>
 	// UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
+
 	// End of UObject interface
 
 	// UHT interface
@@ -1453,10 +1401,7 @@ class COREUOBJECT_API UByteProperty : public TProperty_Numeric<uint8>
 	// End of UProperty interface
 
 	// UNumericProperty interface.
-	virtual UEnum* GetIntPropertyEnum() const override
-	{
-		return Enum;
-	}
+	virtual UEnum* GetIntPropertyEnum() const override;
 	// End of UNumericProperty interface
 };
 
@@ -1815,6 +1760,8 @@ public:
 		return FieldMask == 0xff;
 	}
 
+	uint32 GetValueTypeHashInternal(const void* Src) const override;
+
 #if HACK_HEADER_GENERATOR
 	// Required by UHT makefiles for internal data serialization.
 	friend struct FBoolPropertyArchiveProxy;
@@ -1869,10 +1816,8 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	 *									SIZE = the ElementSize of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopySingleValueToScriptVM( void* Dest, void const* Src ) const override
-	{
-		*(UObject**)Dest = GetObjectPropertyValue(Src);
-	}
+	virtual void CopySingleValueToScriptVM( void* Dest, void const* Src ) const override;
+
 	/**
 	 * Copy the value for all elements of this property. To the script VM.
 	 * 
@@ -1881,13 +1826,7 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	 *									OFFSET = the Offset of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopyCompleteValueToScriptVM( void* Dest, void const* Src ) const override
-	{
-		for (int32 Index = 0; Index < ArrayDim; Index++)
-		{
-			((UObject**)Dest)[Index] = GetObjectPropertyValue(((uint8*)Src) + Index * ElementSize);
-		}
-	}
+	virtual void CopyCompleteValueToScriptVM( void* Dest, void const* Src ) const override;
 
 	/**
 	 * Copy the value for a single element of this property. From the script VM.
@@ -1899,10 +1838,8 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	 *									SIZE = the ElementSize of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopySingleValueFromScriptVM( void* Dest, void const* Src ) const override
-	{
-		SetObjectPropertyValue(Dest, *(UObject**)Src);
-	}
+	virtual void CopySingleValueFromScriptVM( void* Dest, void const* Src ) const override;
+
 	/**
 	 * Copy the value for all elements of this property. From the script VM.
 	 * 
@@ -1911,14 +1848,7 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	 *									OFFSET = the Offset of this UProperty
 	 * @param	Src					the address of the value to copy from. should be evaluated the same way as Dest
 	 */
-	virtual void CopyCompleteValueFromScriptVM( void* Dest, void const* Src ) const override
-	{
-		checkSlow(ElementSize == sizeof(UObject*)); // the idea that script pointers are the same size as weak pointers is maybe required, maybe not
-		for (int32 Index = 0; Index < ArrayDim; Index++)
-		{
-			SetObjectPropertyValue(((uint8*)Dest) + Index * ElementSize, ((UObject**)Src)[Index]);
-		}
-	}
+	virtual void CopyCompleteValueFromScriptVM( void* Dest, void const* Src ) const override;
 	// End of UProperty interface
 
 	// UObjectPropertyBase interface
@@ -1946,19 +1876,12 @@ public:
 	// Returns the qualified export path for a given object, parent, and export root scope
 	static FString GetExportPath(const UObject* Object, const UObject* Parent, const UObject* ExportRootScope, const uint32 PortFlags);
 
-	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const
-	{
-		check(0);
-		return NULL;
-	}
+	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const;
 	FORCEINLINE UObject* GetObjectPropertyValue_InContainer(const void* PropertyValueAddress, int32 ArrayIndex = 0) const
 	{
 		return GetObjectPropertyValue(ContainerPtrToValuePtr<void>(PropertyValueAddress, ArrayIndex));
 	}
-	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const
-	{
-		check(0);
-	}
+	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const;
 	FORCEINLINE void SetObjectPropertyValue_InContainer(void* PropertyValueAddress, UObject* Value, int32 ArrayIndex = 0) const
 	{
 		SetObjectPropertyValue(ContainerPtrToValuePtr<void>(PropertyValueAddress, ArrayIndex), Value);
@@ -1980,10 +1903,7 @@ public:
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 protected:
-	virtual bool AllowCrossLevel() const
-	{
-		return false;
-	}
+	virtual bool AllowCrossLevel() const;
 
 	virtual void CheckValidObject(void* Value) const;
 	// End of UObjectPropertyBase interface
@@ -2020,7 +1940,7 @@ public:
 #endif // WITH_HOT_RELOAD_CTORS
 
 	// UProperty interface.
-	virtual bool ContainsObjectReference() const override
+	virtual bool ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const override
 	{
 		return !TIsWeakPointerType<InTCppType>::Value;
 	}
@@ -2064,25 +1984,18 @@ class COREUOBJECT_API UObjectProperty : public TUObjectPropertyBase<UObject*>
 
 	// UProperty interface
 	virtual void SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const override;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual const TCHAR* ImportText_Internal(const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 
 private:
-	virtual uint32 GetValueTypeHashInternal(const void* Src) const override
-	{
-		return GetTypeHash(GetPropertyValue(Src));
-	}
+	virtual uint32 GetValueTypeHashInternal(const void* Src) const override;
 public:
 	// End of UProperty interface
 
 	// UObjectPropertyBase interface
-	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override
-	{
-		return GetPropertyValue(PropertyValueAddress);
-	}
+	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override;
 	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override;
-
 	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
 	// End of UObjectPropertyBase interface
 };
@@ -2115,14 +2028,8 @@ class COREUOBJECT_API UWeakObjectProperty : public TUObjectPropertyBase<FWeakObj
 	// End of UProperty interface
 
 	// UObjectProperty interface
-	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override
-	{
-		return GetPropertyValue(PropertyValueAddress).Get();
-	}
-	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override
-	{
-		SetPropertyValue(PropertyValueAddress, TCppType(Value));
-	}
+	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override;
+	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override;
 	// End of UObjectProperty interface
 };
 
@@ -2155,23 +2062,11 @@ class COREUOBJECT_API ULazyObjectProperty : public TUObjectPropertyBase<FLazyObj
 	// End of UProperty interface
 
 	// UObjectProperty interface
-	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override
-	{
-		return GetPropertyValue(PropertyValueAddress).Get();
-	}
-	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override
-	{
-		SetPropertyValue(PropertyValueAddress, TCppType(Value));
-	}
-	virtual bool AllowCrossLevel() const override
-	{
-		return true;
-	}
+	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override;
+	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override;
+	virtual bool AllowCrossLevel() const override;
 private:
-	virtual uint32 GetValueTypeHashInternal(const void* Src) const override
-	{
-		return GetTypeHash(GetPropertyValue(Src));
-	}
+	virtual uint32 GetValueTypeHashInternal(const void* Src) const override;
 public:
 	// End of UObjectProperty interface
 };
@@ -2206,48 +2101,21 @@ class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetP
 	// End of UProperty interface
 
 	// UObjectProperty interface
-	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override
-	{
-		return GetPropertyValue(PropertyValueAddress).Get();
-	}
-	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override
-	{
-		SetPropertyValue(PropertyValueAddress, TCppType(Value));
-	}
-	virtual bool AllowCrossLevel() const override
-	{
-		return true;
-	}
+	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override;
+	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override;
+	virtual bool AllowCrossLevel() const override;
 	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
 
 private:
-	virtual uint32 GetValueTypeHashInternal(const void* Src) const override
-	{
-		return GetTypeHash(GetPropertyValue(Src));
-	}
+	virtual uint32 GetValueTypeHashInternal(const void* Src) const override;
 public:
 
 	// ScriptVM should store Asset as FAssetPtr not as UObject.
 
-	virtual void CopySingleValueToScriptVM(void* Dest, void const* Src) const override
-	{
-		CopySingleValue(Dest, Src);
-	}
-
-	virtual void CopyCompleteValueToScriptVM(void* Dest, void const* Src) const override
-	{
-		CopyCompleteValue(Dest, Src);
-	}
-
-	virtual void CopySingleValueFromScriptVM(void* Dest, void const* Src) const override
-	{
-		CopySingleValue(Dest, Src);
-	}
-
-	virtual void CopyCompleteValueFromScriptVM(void* Dest, void const* Src) const override
-	{
-		CopyCompleteValue(Dest, Src);
-	}
+	virtual void CopySingleValueToScriptVM(void* Dest, void const* Src) const override;
+	virtual void CopyCompleteValueToScriptVM(void* Dest, void const* Src) const override;
+	virtual void CopySingleValueFromScriptVM(void* Dest, void const* Src) const override;
+	virtual void CopyCompleteValueFromScriptVM(void* Dest, void const* Src) const override;
 	// End of UObjectProperty interface
 };
 
@@ -2420,13 +2288,13 @@ public:
 	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;
 	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
-	virtual bool ContainsObjectReference() const override;
+	virtual bool ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const override;
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual void BeginDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
@@ -2479,15 +2347,8 @@ public:
 	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
-	virtual FString GetCPPTypeForwardDeclaration() const override
-	{
-		return FString();
-	}
-
-	uint32 GetValueTypeHashInternal(const void* Src) const override
-	{
-		return GetTypeHash(*(const FName*)Src);
-	}
+	virtual FString GetCPPTypeForwardDeclaration() const override;
+	uint32 GetValueTypeHashInternal(const void* Src) const override;
 	// End of UProperty interface
 };
 
@@ -2523,15 +2384,8 @@ public:
 	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
-	virtual FString GetCPPTypeForwardDeclaration() const override
-	{
-		return FString();
-	}
-
-	uint32 GetValueTypeHashInternal(const void* Src) const override
-	{
-		return GetTypeHash(*(const FString*)Src);
-	}
+	virtual FString GetCPPTypeForwardDeclaration() const override;
+	uint32 GetValueTypeHashInternal(const void* Src) const override;
 	// End of UProperty interface
 
 	// Necessary to fix Compiler Error C2026
@@ -2573,6 +2427,7 @@ public:
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	// End of UObject interface
 
 	// UField interface
@@ -2594,9 +2449,9 @@ public:
 	virtual void DestroyValueInternal( void* Dest ) const override;
 	virtual bool PassCPPArgsByRef() const override;
 	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) override;
-	virtual bool ContainsObjectReference() const override;
+	virtual bool ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const override;
 	virtual bool ContainsWeakObjectReference() const override;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual bool SameType(const UProperty* Other) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
@@ -2625,6 +2480,7 @@ public:
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	// End of UObject interface
 
 	// UField interface
@@ -2645,9 +2501,9 @@ public:
 	virtual void DestroyValueInternal(void* Dest) const override;
 	virtual bool PassCPPArgsByRef() const override;
 	virtual void InstanceSubobjects(void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph) override;
-	virtual bool ContainsObjectReference() const override;
+	virtual bool ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const override;
 	virtual bool ContainsWeakObjectReference() const override;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
@@ -2674,6 +2530,7 @@ public:
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	// End of UObject interface
 
 	// UField interface
@@ -2695,9 +2552,9 @@ public:
 	virtual void DestroyValueInternal(void* Dest) const override;
 	virtual bool PassCPPArgsByRef() const override;
 	virtual void InstanceSubobjects(void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph) override;
-	virtual bool ContainsObjectReference() const override;
+	virtual bool ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const override;
 	virtual bool ContainsWeakObjectReference() const override;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
@@ -3849,6 +3706,7 @@ public:
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	// End of UObject interface
 
 	// UProperty interface
@@ -3867,9 +3725,9 @@ public:
 	virtual void InitializeValueInternal( void* Dest ) const override;
 	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) override;
 	virtual int32 GetMinAlignment() const override;
-	virtual bool ContainsObjectReference() const override;
+	virtual bool ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const override;
 	virtual bool ContainsWeakObjectReference() const override;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual bool SameType(const UProperty* Other) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface

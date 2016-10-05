@@ -108,29 +108,40 @@ public partial class Project : CommandUtils
 		// Setup cooked targets
 		if (Params.HasClientCookedTargets && (TargetMask & ProjectBuildTargets.ClientCooked) == ProjectBuildTargets.ClientCooked)
 		{
-            List<UnrealTargetPlatform> UniquePlatformTypes = Params.ClientTargetPlatforms.ConvertAll(x => x.Type).Distinct().ToList();
+			List<UnrealTargetPlatform> UniquePlatformTypes = Params.ClientTargetPlatforms.ConvertAll(x => x.Type).Distinct().ToList();
 
-            foreach (var BuildConfig in Params.ClientConfigsToBuild)
+			foreach (var BuildConfig in Params.ClientConfigsToBuild)
 			{
-                foreach (var ClientPlatformType in UniquePlatformTypes)
-				{
-                    string ScriptPluginArgs = GetBlueprintPluginPathArgument(Params, true, ClientPlatformType);
-                    CrashReportPlatforms.Add(ClientPlatformType);
-					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"");
+				foreach (var ClientPlatformType in UniquePlatformTypes)
+				{					
+					string AdditionalArgs = GetBlueprintPluginPathArgument(Params, true, ClientPlatformType);
+					AdditionalArgs += " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"";
+					if (Params.IsCodeBasedProject == false)
+					{
+						AdditionalArgs += " -project=\"" + Path.GetFullPath(Params.RawProjectPath.FullName) + "\"";
+					}
+					CrashReportPlatforms.Add(ClientPlatformType);
+					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: AdditionalArgs);
 				}
 			}
 		}
 		if (Params.HasServerCookedTargets && (TargetMask & ProjectBuildTargets.ServerCooked) == ProjectBuildTargets.ServerCooked)
 		{
-            List<UnrealTargetPlatform> UniquePlatformTypes = Params.ServerTargetPlatforms.ConvertAll(x => x.Type).Distinct().ToList();
+			List<UnrealTargetPlatform> UniquePlatformTypes = Params.ServerTargetPlatforms.ConvertAll(x => x.Type).Distinct().ToList();
 
-            foreach (var BuildConfig in Params.ServerConfigsToBuild)
+			foreach (var BuildConfig in Params.ServerConfigsToBuild)
 			{
 				foreach (var ServerPlatformType in UniquePlatformTypes)
 				{
-                    string ScriptPluginArgs = GetBlueprintPluginPathArgument(Params, false, ServerPlatformType);
-                    CrashReportPlatforms.Add(ServerPlatformType);
-					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"");
+					string AdditionalArgs = GetBlueprintPluginPathArgument(Params, false, ServerPlatformType);
+					AdditionalArgs += " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"";
+					if (Params.IsCodeBasedProject == false)
+					{
+						AdditionalArgs += " -project=\"" + Path.GetFullPath(Params.RawProjectPath.FullName) + "\"";
+					}
+
+					CrashReportPlatforms.Add(ServerPlatformType);
+					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: AdditionalArgs);
 				}
 			}
 		}

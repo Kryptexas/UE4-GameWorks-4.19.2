@@ -74,7 +74,14 @@ FURL::FURL( const TCHAR* LocalFilename )
 	// strip off any extension from map name
 	if (LocalFilename)
 	{
-		Map = FPaths::GetBaseFilename(LocalFilename);
+		if (FPackageName::IsValidLongPackageName(LocalFilename))
+		{
+			Map = LocalFilename;
+		}
+		else
+		{
+			Map = FPaths::GetBaseFilename(LocalFilename);
+		}
 	}
 	else
 	{

@@ -651,12 +651,15 @@ int32 TCString<T>::Strspn( const CharType* String, const CharType* Mask )
 	{
 		for (const TCHAR* MaskIt = Mask; *MaskIt; ++MaskIt)
 		{
-			if (*StringIt != *MaskIt)
+			if (*StringIt == *MaskIt)
 			{
-				return StringIt - String;
+				goto NextChar;
 			}
 		}
 
+		return StringIt - String;
+
+	NextChar:
 		++StringIt;
 	}
 

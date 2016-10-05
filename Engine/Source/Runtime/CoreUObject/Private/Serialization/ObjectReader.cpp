@@ -58,6 +58,12 @@ FArchive& FObjectReader::operator<<(FStringAssetReference& Value)
 	return *this;
 }
 
+FArchive& FObjectReader::operator<< (struct FWeakObjectPtr& Value)
+{
+	Value.Serialize(*this);
+	return *this;
+}
+
 FString FObjectReader::GetArchiveName() const
 {
 	return TEXT("FObjectReader");

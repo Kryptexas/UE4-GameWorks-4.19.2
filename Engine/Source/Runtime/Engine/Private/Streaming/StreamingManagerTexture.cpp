@@ -226,7 +226,7 @@ bool FStreamingManagerTexture::StreamOutTextureData( int64 RequiredMemorySize )
 			int32 NumMips = Texture->GetNumMips();
 			int32 MipTailBaseIndex = Texture->GetMipTailBaseIndex();
 			int32 NumRequiredResidentMips = (MipTailBaseIndex >= 0) ? FMath::Max<int32>(NumMips - MipTailBaseIndex, 0) : 0;
-			NumRequiredResidentMips = FMath::Max<int32>(NumRequiredResidentMips, UTexture2D::GetMinTextureResidentMipCount());
+			NumRequiredResidentMips = FMath::Max<int32>(NumRequiredResidentMips, StreamingTexture.NumNonStreamingMips);
 
 			// Only consider streamable textures that have enough miplevels, and who are currently ready for streaming.
 			if ( IsStreamingTexture(Texture) && Texture->IsReadyForStreaming() && Texture->ResidentMips > NumRequiredResidentMips  )

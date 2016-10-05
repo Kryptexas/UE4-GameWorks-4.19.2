@@ -93,6 +93,12 @@ FArchive& FArchiveUObject::operator<<(struct FStringAssetReference& Value)
 	return *this;
 }
 
+FArchive& FArchiveUObject::operator<<(FWeakObjectPtr& WeakObjectPtr)
+{
+	WeakObjectPtr.Serialize(*this);
+	return *this;
+}
+
 /*----------------------------------------------------------------------------
 	FObjectAndNameAsStringProxyArchive.
 ----------------------------------------------------------------------------*/

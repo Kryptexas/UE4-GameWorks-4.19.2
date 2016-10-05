@@ -136,6 +136,12 @@ bool UStructProperty::NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Da
 	return 1;
 }
 
+void UStructProperty::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(Struct);
+}
+
 void UStructProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );

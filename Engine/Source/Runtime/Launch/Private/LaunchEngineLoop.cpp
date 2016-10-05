@@ -1190,7 +1190,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FScopeCycleCounter CycleCount_AfterStats( GET_STATID( STAT_FEngineLoop_PreInit_AfterStats ) );
 
 	// Load Core modules required for everything else to work (needs to be loaded before InitializeRenderingCVarsCaching)
-	LoadCoreModules();
+	if (!LoadCoreModules())
+	{
+		UE_LOG(LogInit, Error, TEXT("Failed to load Core modules."));
+		return 1;
+	}
 
 #if WITH_ENGINE
 	extern ENGINE_API void InitializeRenderingCVarsCaching();
@@ -1412,7 +1416,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InitializeStdOutDevice();
 	}
 
+#if !USE_NEW_ASYNC_IO
 	FIOSystem::Get(); // force it to be created if it isn't already
+#endif
 
 	// allow the platform to start up any features it may need
 	IPlatformFeaturesModule::Get();
@@ -2025,11 +2031,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 }
 
 
-void FEngineLoop::LoadCoreModules()
+bool FEngineLoop::LoadCoreModules()
 {
 	// Always attempt to load CoreUObject. It requires additional pre-init which is called from its module's StartupModule method.
 #if WITH_COREUOBJECT
-	FModuleManager::Get().LoadModule(TEXT("CoreUObject"));
+	bool bResult = FModuleManager::Get().LoadModule(TEXT("CoreUObject")).IsValid();
+	return bResult;
+#else
+	return true;
 #endif
 }
 
@@ -2512,7 +2521,9 @@ void FEngineLoop::Exit()
 
 	FTaskGraphInterface::Shutdown();
 	IStreamingManager::Shutdown();
+#if !USE_NEW_ASYNC_IO
 	FIOSystem::Shutdown();
+#endif
 }
 
 

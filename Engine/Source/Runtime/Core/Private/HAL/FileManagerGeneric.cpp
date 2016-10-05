@@ -672,38 +672,13 @@ bool FArchiveFileReaderGeneric::InternalPrecache( int64 PrecacheOffset, int64 Pr
 		int64 Count = 0;
 
 		{
-			#if PLATFORM_DESKTOP
-				// Show a message box indicating, possible, corrupt data (desktop platforms only)
-				if (BufferCount > ARRAY_COUNT( Buffer ) || BufferCount <= 0)
-				{
-					FText ErrorMessage, ErrorCaption;
-					GConfig->GetText(TEXT("/Script/Engine.Engine"),
-									 TEXT("SerializationOutOfBoundsErrorMessage"),
-									 ErrorMessage,
-									 GEngineIni);
-					GConfig->GetText(TEXT("/Script/Engine.Engine"),
-						TEXT("SerializationOutOfBoundsErrorMessageCaption"),
-						ErrorCaption,
-						GEngineIni);
+			if (BufferCount > ARRAY_COUNT( Buffer ) || BufferCount <= 0)
+			{
+				UE_LOG( LogFileManager, Error, TEXT("Invalid BufferCount=%lld while reading %s. File is most likely corrupted. Please verify your installation. Pos=%lld, Size=%lld, PrecacheSize=%lld, PrecacheOffset=%lld"),
+					BufferCount, *Filename, Pos, Size, PrecacheSize, PrecacheOffset );
 
-					UE_LOG( LogFileManager, Error, TEXT("Invalid BufferCount=%lld while reading %s. File is most likely corrupted. Please verify your installation. Pos=%lld, Size=%lld, PrecacheSize=%lld, PrecacheOffset=%lld"),
-						BufferCount, *Filename, Pos, Size, PrecacheSize, PrecacheOffset );
-
-					if (GLog)
-					{
-						GLog->Flush();
-					}
-
-					FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(), *ErrorCaption.ToString());
-
-					check(false);
-				}
-			#else
-				{
-					UE_CLOG( BufferCount > ARRAY_COUNT( Buffer ) || BufferCount <= 0, LogFileManager, Fatal, TEXT("Invalid BufferCount=%lld while reading %s. File is most likely corrupted. Please verify your installation. Pos=%lld, Size=%lld, PrecacheSize=%lld, PrecacheOffset=%lld"),
-						BufferCount, *Filename, Pos, Size, PrecacheSize, PrecacheOffset );
-				}
-			#endif
+				return false;
+			}
 
 			ReadLowLevel( Buffer, BufferCount, Count );
 		}
@@ -741,7 +716,12 @@ void FArchiveFileReaderGeneric::Serialize( void* V, int64 Length )
 				Pos += Length;
 				return;
 			}
-			InternalPrecache( Pos, MAX_int32 );
+			if (!InternalPrecache(Pos, MAX_int32))
+			{
+				ArIsError = true;
+				UE_LOG( LogFileManager, Warning, TEXT( "ReadFile failed during precaching for file %s" ),*Filename );
+				return;
+			}
 			Copy = FMath::Min( Length, BufferBase+BufferCount-Pos );
 			if( Copy<=0 )
 			{

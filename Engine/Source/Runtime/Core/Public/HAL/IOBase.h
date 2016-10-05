@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-
+#if !USE_NEW_ASYNC_IO
 /*-----------------------------------------------------------------------------
 	FIOSystem.
 -----------------------------------------------------------------------------*/
@@ -133,3 +132,4 @@ struct CORE_API FIOSystem
 	virtual void FlushLog() = 0;
 };
 
+#endif

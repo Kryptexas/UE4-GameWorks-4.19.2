@@ -29,6 +29,9 @@ public:
 	/** The archive that actually writes the data to disk. */
 	FArchive* Saver;
 
+	FPackageIndex CurrentlySavingExport;
+	TArray<FPackageIndex> DepListForErrorChecking;
+
 	/** Index array - location of the resource for a UObject is stored in the ObjectIndices array using the UObject's Index */
 	TMap<UObject *,FPackageIndex> ObjectIndicesMap;
 

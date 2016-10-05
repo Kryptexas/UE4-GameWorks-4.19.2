@@ -130,6 +130,9 @@
 #ifndef PLATFORM_LITTLE_ENDIAN
 	#define PLATFORM_LITTLE_ENDIAN				0
 #endif
+#ifndef PLATFORM_SUPPORTS_UNALIGNED_INT_LOADS
+	#define PLATFORM_SUPPORTS_UNALIGNED_INT_LOADS	0
+#endif
 #ifndef PLATFORM_EXCEPTIONS_DISABLED
 	#define PLATFORM_EXCEPTIONS_DISABLED		!PLATFORM_DESKTOP
 #endif
@@ -507,57 +510,6 @@
 #ifndef private_subobject
 #define private_subobject public
 #endif
-
-// explicit bool support
-namespace FHasOperatorImpl
-{
-	struct FNotSpecified {};
-
-	template <typename T>
-	struct FReturnValueCheck
-	{
-		static char (&Func())[2];
-	};
-
-	template <>
-	struct FReturnValueCheck<FNotSpecified>
-	{
-		static char (&Func())[1];
-	};
-
-	template <typename T>
-	FNotSpecified operator==(const T&, const T&);
-
-	template <typename T>
-	FNotSpecified operator!=(const T&, const T&);
-
-	template <typename T>
-	const T& Make();
-
-	template <typename T>
-	struct Equals
-	{
-		enum { Value = sizeof(FReturnValueCheck<decltype(Make<T>() == Make<T>())>::Func()) == sizeof(char[2]) };
-	};
-
-	template <typename T>
-	struct NotEquals
-	{
-		enum { Value = sizeof(FReturnValueCheck<decltype(Make<T>() != Make<T>())>::Func()) == sizeof(char[2]) };
-	};
-}
-
-template <typename T>
-struct THasOperatorEquals
-{
-	enum { Value = FHasOperatorImpl::Equals<T>::Value };
-};
-
-template <typename T>
-struct THasOperatorNotEquals
-{
-	enum { Value = FHasOperatorImpl::NotEquals<T>::Value };
-};
 
 // Console ANSICHAR/TCHAR command line handling
 #if PLATFORM_COMPILER_HAS_TCHAR_WMAIN

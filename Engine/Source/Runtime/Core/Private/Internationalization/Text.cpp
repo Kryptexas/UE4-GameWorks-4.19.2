@@ -336,10 +336,10 @@ FText FText::TrimPrecedingAndTrailing( const FText& InText )
 			++StartPos;
 		}
 
-		int32 EndPos = TrimmedString.Len() - 1;
-		while( EndPos >= 0 )
+		int32 EndPos = TrimmedString.Len();
+		while( EndPos > StartPos )
 		{
-			if( !FText::IsWhitespace( TrimmedString[EndPos] ) )
+			if( !FText::IsWhitespace( TrimmedString[EndPos - 1] ) )
 			{
 				break;
 			}
@@ -347,7 +347,7 @@ FText FText::TrimPrecedingAndTrailing( const FText& InText )
 			--EndPos;
 		}
 
-		const int32 Len = (EndPos + 1) - StartPos;
+		const int32 Len = EndPos - StartPos;
 		TrimmedString = TrimmedString.Mid( StartPos, Len );
 	}
 

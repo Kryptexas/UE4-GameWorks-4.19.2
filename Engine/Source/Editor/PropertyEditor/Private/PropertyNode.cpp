@@ -2873,6 +2873,7 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 					virtual FArchive& operator<<(FLazyObjectPtr&        Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
 					virtual FArchive& operator<<(FAssetPtr&             Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
 					virtual FArchive& operator<<(FStringAssetReference& Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FWeakObjectPtr&		Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
 
 					void Serialize(void* Data, int64 Num)
 					{
@@ -2917,6 +2918,7 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 					virtual FArchive& operator<<(FLazyObjectPtr&        Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
 					virtual FArchive& operator<<(FAssetPtr&             Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
 					virtual FArchive& operator<<(FStringAssetReference& Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
+					virtual FArchive& operator<<(FWeakObjectPtr&		Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
 
 					void Serialize(void* Data, int64 Num)
 					{

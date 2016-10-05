@@ -471,19 +471,6 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		const FName DesiredPackageNameToLoad = bIsGameWorld ? GetLODPackageNameToLoad() : PackageNameToLoad;
 		const FString PackageNameToLoadFrom = DesiredPackageNameToLoad != NAME_None ? DesiredPackageNameToLoad.ToString() : DesiredPackageName.ToString();
 
-		if (GUseSeekFreeLoading)
-		{
-			// Only load localized package if it exists as async package loading doesn't handle errors gracefully.
-			FString LocalizedPackageName = PackageNameToLoadFrom + LOCALIZED_SEEKFREE_SUFFIX;
-			FString LocalizedFileName;
-			if (FPackageName::DoesPackageExist(LocalizedPackageName, NULL, &LocalizedFileName))
-			{
-				// Load localized part of level first in case it exists. We don't need to worry about GC or completion 
-				// callback as we always kick off another async IO for the level below.
-				LoadPackageAsync(*(GetWorldAssetPackageName() + LOCALIZED_SEEKFREE_SUFFIX), nullptr, *LocalizedPackageName, FLoadPackageAsyncDelegate(), PackageFlags, PIEInstanceID);
-			}
-		}
-
 		if (FPackageName::DoesPackageExist(PackageNameToLoadFrom, NULL, NULL))
 		{
 			bHasLoadRequestPending = true;

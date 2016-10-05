@@ -165,6 +165,46 @@ bool UAssetObjectProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar
 	return false;
 }
 
+UObject* UAssetObjectProperty::GetObjectPropertyValue(const void* PropertyValueAddress) const
+{
+	return GetPropertyValue(PropertyValueAddress).Get();
+}
+
+void UAssetObjectProperty::SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const
+{
+	SetPropertyValue(PropertyValueAddress, TCppType(Value));
+}
+
+bool UAssetObjectProperty::AllowCrossLevel() const
+{
+	return true;
+}
+
+uint32 UAssetObjectProperty::GetValueTypeHashInternal(const void* Src) const
+{
+	return GetTypeHash(GetPropertyValue(Src));
+}
+
+void UAssetObjectProperty::CopySingleValueToScriptVM(void* Dest, void const* Src) const
+{
+	CopySingleValue(Dest, Src);
+}
+
+void UAssetObjectProperty::CopyCompleteValueToScriptVM(void* Dest, void const* Src) const
+{
+	CopyCompleteValue(Dest, Src);
+}
+
+void UAssetObjectProperty::CopySingleValueFromScriptVM(void* Dest, void const* Src) const
+{
+	CopySingleValue(Dest, Src);
+}
+
+void UAssetObjectProperty::CopyCompleteValueFromScriptVM(void* Dest, void const* Src) const
+{
+	CopyCompleteValue(Dest, Src);
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UAssetObjectProperty, UObjectPropertyBase,
 	{
 	}

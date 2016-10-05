@@ -265,6 +265,10 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 						ReparentChild(ChildClass);
 					}
 				}
+	
+			#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+				ChildClass->ReinitializeBaseChainArray();
+			#endif
 			}
 		}
 

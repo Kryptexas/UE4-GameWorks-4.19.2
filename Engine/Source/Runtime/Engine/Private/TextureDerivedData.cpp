@@ -1216,7 +1216,7 @@ int32 FTexturePlatformData::GetNumNonStreamingMips() const
 		for (const FTexture2DMipMap& Mip : Mips)
 		{
 			uint32 BulkDataFlags = Mip.BulkData.GetBulkDataFlags();
-			if (BulkDataFlags & BULKDATA_PayloadInSeperateFile || BulkDataFlags & BULKDATA_PayloadAtEndOfFile)
+			if ((BulkDataFlags & BULKDATA_PayloadInSeperateFile) || (BulkDataFlags & BULKDATA_PayloadAtEndOfFile))
 			{
 				--NumNonStreamingMips;
 			}
@@ -1334,6 +1334,10 @@ static void SerializePlatformData(
 			MinMipToInline = FMath::Max(0, NumMips - PlatformData->GetNumNonStreamingMips());
 		}
 
+		for (int32 MipIndex = 0; MipIndex < NumMips && MipIndex < MinMipToInline; ++MipIndex)
+		{
+			PlatformData->Mips[MipIndex + FirstMipToSerialize].BulkData.SetBulkDataFlags(BULKDATA_Force_NOT_InlinePayload);
+		}
 		for (int32 MipIndex = MinMipToInline; MipIndex < NumMips; ++MipIndex)
 		{
 			PlatformData->Mips[MipIndex + FirstMipToSerialize].BulkData.SetBulkDataFlags(BULKDATA_ForceInlinePayload | BULKDATA_SingleUse);

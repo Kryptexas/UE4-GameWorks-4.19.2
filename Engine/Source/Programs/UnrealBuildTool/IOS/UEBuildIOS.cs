@@ -240,11 +240,11 @@ namespace UnrealBuildTool
         }
         static Dictionary<string, ProvisionData> ProvisionCache = new Dictionary<string, ProvisionData>();
 
-        public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
+        public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration, TargetInfo Target = null)
         {
             if (!bInitializedProject)
             {
-                base.SetUpProjectEnvironment(Configuration);
+                base.SetUpProjectEnvironment(Configuration, Target);
 
                 // update the configuration based on the project file
                 // look in ini settings for what platforms to compile for

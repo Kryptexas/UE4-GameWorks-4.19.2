@@ -23,13 +23,17 @@ typedef	uint64 ScriptPointerType;
 /** Set this to 0 to disable UObject thread safety features */
 #define THREADSAFE_UOBJECTS 1
 
-// 1 = old IsA behavior
-// 2 = new IsA behavior
-// 3 = old IsA behavior with checks against the new behavior
+// Enumeration of different methods of determining class relationships.
+#define UCLASS_ISA_OUTERWALK  1 // walks the class chain                                         - original IsA behavior
+#define UCLASS_ISA_INDEXTREE  2 // uses position in an index-based tree                          - thread-unsafe if one thread does a parental test while the tree is changing, e.g. by async loading a class
+#define UCLASS_ISA_CLASSARRAY 3 // stores an array of parents per class and uses this to compare - faster than 1, slower but comparable with 2, and thread-safe
+
+// UCLASS_FAST_ISA_IMPL sets which implementation of IsA to use.
+#define UCLASS_FAST_ISA_IMPL UCLASS_ISA_CLASSARRAY
+
+// UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK, if set, does a checked comparison of the current implementation against the outer walk - used for testing.
 #if 0//!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	#define UCLASS_FAST_ISA_IMPL 3
-#else
-	#define UCLASS_FAST_ISA_IMPL 2
+	#define UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK 1
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -42,7 +46,7 @@ typedef	uint64 ScriptPointerType;
 enum ELoadFlags
 {
 	LOAD_None						= 0x00000000,	// No flags.
-	LOAD_SeekFree					= 0x00000001,	// Loads the package via the seek free loading path/ reader
+	LOAD_Async					= 0x00000001,	// Loads the package using async loading path/ reader
 	LOAD_NoWarn						= 0x00000002,	// Don't display warning if load fails.
 	LOAD_EditorOnly					= 0x00000004, // Load for editor-only purposes and by editor-only code
 	LOAD_ResolvingDeferredExports	= 0x00000008,	// Denotes that we should not defer export loading (as we're resolving them)

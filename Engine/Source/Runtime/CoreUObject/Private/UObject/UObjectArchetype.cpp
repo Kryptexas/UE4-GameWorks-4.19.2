@@ -6,6 +6,13 @@
 
 #include "CoreUObjectPrivate.h"
 
+#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
+#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
+#endif
+
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+COREUOBJECT_API bool GIgnoreGetArchetypeFromRequiredInfo_RF_NeedsLoad = false;
+#endif
 
 UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FName Name, EObjectFlags ObjectFlags)
 {
@@ -33,7 +40,7 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 			else if (!!(ObjectFlags&RF_InheritableComponentTemplate) && Outer->IsA<UClass>())
 			{
 				for (auto SuperClassArchetype = static_cast<UClass*>(Outer)->GetSuperClass();
-					SuperClassArchetype && SuperClassArchetype->HasAllClassFlags(CLASS_CompiledFromBlueprint);
+				SuperClassArchetype && SuperClassArchetype->HasAllClassFlags(CLASS_CompiledFromBlueprint);
 					SuperClassArchetype = SuperClassArchetype->GetSuperClass())
 				{
 					Result = static_cast<UObject*>(FindObjectWithOuter(SuperClassArchetype, Class, Name));
@@ -58,6 +65,16 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 			Result = Class->GetDefaultObject();
 		}
 	}
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+	//if (!GIgnoreGetArchetypeFromRequiredInfo_RF_NeedsLoad)
+	{
+		if (Result && Result->HasAnyFlags(RF_NeedLoad))
+		{
+			UE_LOG(LogClass, Fatal, TEXT("%s had RF_NeedLoad when being set up as an archetype of %s in %s"), *GetFullNameSafe(Result), *GetFullNameSafe(Class), *GetFullNameSafe(Outer));
+		}
+		check(!Result || !Result->HasAnyFlags(RF_NeedLoad));
+	}
+#endif
 
 	return Result;
 }

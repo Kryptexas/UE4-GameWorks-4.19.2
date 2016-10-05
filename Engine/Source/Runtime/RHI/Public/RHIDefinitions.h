@@ -509,10 +509,8 @@ enum ETextureCreateFlags
 	// Texture that may be updated every frame
 	TexCreate_Dynamic				= 1<<8,
 	// Allow silent texture creation failure
-	// @warning:	When you update this, you must update FTextureAllocations::FindTextureType() in Core/Private/UObject/TextureAllocations.cpp
 	TexCreate_AllowFailure			= 1<<9,
 	// Disable automatic defragmentation if the initial texture memory allocation fails.
-	// @warning:	When you update this, you must update FTextureAllocations::FindTextureType() in Core/Private/UObject/TextureAllocations.cpp
 	TexCreate_DisableAutoDefrag		= 1<<10,
 	// Create the texture with automatic -1..1 biasing
 	TexCreate_BiasNormalMap			= 1<<11,

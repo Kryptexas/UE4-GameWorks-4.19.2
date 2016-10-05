@@ -72,6 +72,16 @@ bool UNameProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8
 	return bOutAdvanceProperty;
 }
 
+FString UNameProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString();
+}
+
+uint32 UNameProperty::GetValueTypeHashInternal(const void* Src) const
+{
+	return GetTypeHash(*(const FName*)Src);
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UNameProperty, UProperty,
 	{
 	}

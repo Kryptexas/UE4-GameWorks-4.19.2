@@ -11,6 +11,10 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLinker, Log, All);
 
+#if !defined(USE_NEW_ASYNC_IO) || !defined(SPLIT_COOKED_FILES)
+#error "USE_NEW_ASYNC_IO and SPLIT_COOKED_FILES must be defined"
+#endif
+
 /**
  * Information about a compressed chunk in a file.
  */

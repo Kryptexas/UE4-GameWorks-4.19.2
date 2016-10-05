@@ -37,6 +37,7 @@ void FStreamedAudioChunk::Serialize(FArchive& Ar, UObject* Owner, int32 ChunkInd
 	bool bCooked = Ar.IsCooking();
 	Ar << bCooked;
 
+	BulkData.SetBulkDataFlags(BULKDATA_Force_NOT_InlinePayload);
 	BulkData.Serialize(Ar, Owner, ChunkIndex);
 	Ar << DataSize;
 

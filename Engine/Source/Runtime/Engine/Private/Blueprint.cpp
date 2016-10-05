@@ -330,6 +330,18 @@ void UBlueprint::PreSave(const class ITargetPlatform* TargetPlatform)
 }
 #endif // WITH_EDITORONLY_DATA
 
+void UBlueprint::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	for (UClass* ClassIt = ParentClass; (ClassIt != NULL) && !(ClassIt->HasAnyClassFlags(CLASS_Native)); ClassIt = ClassIt->GetSuperClass())
+	{
+		if (ClassIt->ClassGeneratedBy)
+		{
+			OutDeps.Add(ClassIt->ClassGeneratedBy);
+		}
+	}
+}
+
 void UBlueprint::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);

@@ -226,6 +226,13 @@ bool UMapProperty::Identical(const void* A, const void* B, uint32 PortFlags) con
 	return UE4MapProperty_Private::IsPermutation(MapHelperA, MapHelperB, PortFlags);
 }
 
+void UMapProperty::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(KeyProp);
+	OutDeps.Add(ValueProp);
+}
+
 void UMapProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults) const
 {
 	checkSlow(KeyProp);

@@ -368,6 +368,13 @@ public:
 	}
 
 	/**
+	* Called during cooking. Must return all objects that will be Preload()ed when this is serialized at load time
+	*
+	* @param	OutDeps				all objects that will be preloaded when this is serialized at load time
+	*/
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps);
+
+	/**
 	*	Update the list of classes that we should exclude from dedicated server builds
 	*/
 	static void UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames);

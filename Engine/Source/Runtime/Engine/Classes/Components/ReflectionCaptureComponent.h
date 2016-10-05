@@ -230,6 +230,7 @@ private:
 	 * This queue should be in the UWorld or the FSceneInterface, but those are not available yet in PostLoad.
 	 */
 	static TArray<UReflectionCaptureComponent*> ReflectionCapturesToUpdateForLoad;
+	static FCriticalSection ReflectionCapturesToUpdateForLoadLock;
 
 	void UpdateDerivedData(FReflectionCaptureFullHDR* NewDerivedData);
 	void SerializeSourceData(FArchive& Ar);

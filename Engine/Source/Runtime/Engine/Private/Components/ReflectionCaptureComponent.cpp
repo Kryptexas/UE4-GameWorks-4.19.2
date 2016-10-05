@@ -799,6 +799,7 @@ private:
 
 TArray<UReflectionCaptureComponent*> UReflectionCaptureComponent::ReflectionCapturesToUpdate;
 TArray<UReflectionCaptureComponent*> UReflectionCaptureComponent::ReflectionCapturesToUpdateForLoad;
+FCriticalSection UReflectionCaptureComponent::ReflectionCapturesToUpdateForLoadLock;
 
 UReflectionCaptureComponent::UReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -857,6 +858,7 @@ void UReflectionCaptureComponent::PostInitProperties()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
 	{
+		FScopeLock Lock(&ReflectionCapturesToUpdateForLoadLock);
 		ReflectionCapturesToUpdateForLoad.AddUnique(this);
 		bCaptureDirty = true; 
 	}
@@ -1253,6 +1255,7 @@ void UReflectionCaptureComponent::BeginDestroy()
 	// Deregister the component from the update queue
 	if (bCaptureDirty)
 	{
+		FScopeLock Lock(&ReflectionCapturesToUpdateForLoadLock);
 		ReflectionCapturesToUpdate.Remove(this);
 		ReflectionCapturesToUpdateForLoad.Remove(this);
 	}
@@ -1438,15 +1441,19 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 
 		TArray<UReflectionCaptureComponent*> WorldCapturesToUpdateForLoad;
 
-		for (int32 CaptureIndex = ReflectionCapturesToUpdateForLoad.Num() - 1; CaptureIndex >= 0; CaptureIndex--)
+		if (ReflectionCapturesToUpdateForLoad.Num() > 0)
 		{
-			UReflectionCaptureComponent* CaptureComponent = ReflectionCapturesToUpdateForLoad[CaptureIndex];
-
-			if (!CaptureComponent->GetOwner() || WorldToUpdate->ContainsActor(CaptureComponent->GetOwner()))
+			FScopeLock Lock(&ReflectionCapturesToUpdateForLoadLock);
+			for (int32 CaptureIndex = ReflectionCapturesToUpdateForLoad.Num() - 1; CaptureIndex >= 0; CaptureIndex--)
 			{
-				WorldCombinedCaptures.Add(CaptureComponent);
-				WorldCapturesToUpdateForLoad.Add(CaptureComponent);
-				ReflectionCapturesToUpdateForLoad.RemoveAt(CaptureIndex);
+				UReflectionCaptureComponent* CaptureComponent = ReflectionCapturesToUpdateForLoad[CaptureIndex];
+
+				if (!CaptureComponent->GetOwner() || WorldToUpdate->ContainsActor(CaptureComponent->GetOwner()))
+				{
+					WorldCombinedCaptures.Add(CaptureComponent);
+					WorldCapturesToUpdateForLoad.Add(CaptureComponent);
+					ReflectionCapturesToUpdateForLoad.RemoveAt(CaptureIndex);
+				}
 			}
 		}
 

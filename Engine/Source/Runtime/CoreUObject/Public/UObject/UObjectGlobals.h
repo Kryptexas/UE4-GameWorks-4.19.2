@@ -221,7 +221,7 @@ COREUOBJECT_API UClass* StaticLoadClass(UClass* BaseClass, UObject* InOuter, con
 *
 * @return	a pointer to a fully initialized object of the specified class.
 */
-COREUOBJECT_API UObject* StaticConstructObject_Internal(UClass* Class, UObject* InOuter = (UObject*)GetTransientPackage(), FName Name = NAME_None, EObjectFlags SetFlags = RF_NoFlags, EInternalObjectFlags InternalSetFlags = EInternalObjectFlags::None, UObject* Template = NULL, bool bCopyTransientsFromClassDefaults = false, struct FObjectInstancingGraph* InstanceGraph = NULL);
+COREUOBJECT_API UObject* StaticConstructObject_Internal(UClass* Class, UObject* InOuter = (UObject*)GetTransientPackage(), FName Name = NAME_None, EObjectFlags SetFlags = RF_NoFlags, EInternalObjectFlags InternalSetFlags = EInternalObjectFlags::None, UObject* Template = NULL, bool bCopyTransientsFromClassDefaults = false, struct FObjectInstancingGraph* InstanceGraph = NULL, bool bAssumeTemplateIsArchetype = false);
 
 /**
  * Create a new instance of an object.  The returned object will be fully initialized.  If InFlags contains RF_NeedsLoad (indicating that the object still needs to load its object data from disk), components
@@ -369,6 +369,11 @@ COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, FLoadPackageAsyncD
 * Cancels all async package loading requests.
 */
 COREUOBJECT_API void CancelAsyncLoading();
+
+/**
+* Returns true if the event driven loader is enabled in cooked builds
+*/
+COREUOBJECT_API bool IsEventDrivenLoaderEnabledInCookedBuilds();
 
 /**
  * Returns the async load percentage for a package in flight with the passed in name or -1 if there isn't one.

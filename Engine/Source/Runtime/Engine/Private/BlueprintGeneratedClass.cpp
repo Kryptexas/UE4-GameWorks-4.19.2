@@ -965,6 +965,31 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, boo
 	}
 }
 
+void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	for (UField* Field = Children; Field; Field = Field->Next)
+	{
+		OutDeps.Add(Field);
+	}
+	OutDeps.Add(GetSuperClass());
+	OutDeps.Add(GetSuperClass()->GetDefaultObject());
+
+	OutDeps.Add(UberGraphFunction);
+	OutDeps.Add(GetInheritableComponentHandler());
+	UObject *CDO = GetDefaultObject();
+	if (CDO)
+	{
+		TArray<UObject*> Subobjects;
+		GetObjectsWithOuter(CDO, Subobjects);
+		for (UObject* SubObj : Subobjects)
+		{
+			OutDeps.Add(SubObj->GetClass());
+			OutDeps.Add(SubObj->GetArchetype());
+		}
+	}
+}
+
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
 	// Ensure that function netflags equate to any super function in a parent BP prior to linking; it may have been changed by the user

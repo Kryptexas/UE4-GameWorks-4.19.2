@@ -323,9 +323,6 @@ extern CORE_API float GHitchThresholdMS;
 /** Size to break up data into when saving compressed data */
 extern CORE_API int32 GSavingCompressionChunkSize;
 
-/** Whether we are using the seek-free/ cooked loading code path. */
-extern CORE_API bool GUseSeekFreeLoading;
-
 /** Thread ID of the main/game thread */
 extern CORE_API uint32 GGameThreadId;
 
