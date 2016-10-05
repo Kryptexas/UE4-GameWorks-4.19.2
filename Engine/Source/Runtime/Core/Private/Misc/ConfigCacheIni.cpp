@@ -333,8 +333,6 @@ FConfigSection* FConfigFile::FindOrAddSection(const FString& SectionName)
 	if (Section == nullptr)
 	{
 		Section = &Add(SectionName, FConfigSection());
-		// mark that we have been modified
-		Dirty = true;
 	}
 	return Section;
 }
