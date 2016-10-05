@@ -20,8 +20,8 @@
 	"SignTool Error: ",
 	
 	# Temporary PS4 deprecation warnings
-	".*\\\\OnlineSubsystemPS4\\\\.*warning:.*\\[-Wdeprecated-declarations\\]",
-	".*\\\\PS4\\\\PS4Application\\.cpp.*warning:.*\\[-Wdeprecated-declarations\\]"
+	".*OnlineSubsystemPS4.*warning:.*\\[-Wdeprecated-declarations\\]",
+	".*PS4Application\\.cpp.*warning:.*\\[-Wdeprecated-declarations\\]"
 	
 	
 #	".*ERROR: The process.*not found",
