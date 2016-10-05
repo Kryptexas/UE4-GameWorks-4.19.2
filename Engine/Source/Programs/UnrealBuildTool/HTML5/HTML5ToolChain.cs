@@ -60,6 +60,9 @@ namespace UnrealBuildTool
 			// this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
 			Result += " -Wno-tautological-compare";
 			Result += " -Wno-inconsistent-missing-override"; // as of 1.35.0, overriding a member function but not marked as 'override' triggers warnings
+			Result += " -Wno-expansion-to-defined"; // 1.36.11
+			Result += " -Wno-undefined-var-template"; // 1.36.11
+			Result += " -Wno-nonportable-include-path"; // 1.36.11
 
 			// okay, in UE4, we'd fix the code for these, but in UE3, not worth it
 			Result += " -Wno-logical-op-parentheses"; // appErrorf triggers this

@@ -414,7 +414,7 @@ def check_fastcomp():
           logging.error('Make sure to use the same branch in each repo, and to be up-to-date on each. See http://kripken.github.io/emscripten-site/docs/building_from_source/LLVM-Backend.html')
           shown_repo_version_error = True
       else:
-        logging.warning('did not see a source tree above or next to the LLVM root directory (guessing based on directory of %s), could not verify version numbers match' % LLVM_COMPILER)
+        logging.info('did not see a source tree above or next to the LLVM root directory (guessing based on directory of %s), could not verify version numbers match' % LLVM_COMPILER)
 
       # check build versions. don't show it if the repos are wrong, user should fix that first
       if not shown_repo_version_error:
@@ -447,10 +447,10 @@ def check_closure_compiler():
   try:
     subprocess.call([JAVA, '-version'], stdout=PIPE, stderr=PIPE)
   except:
-    logging.warning('java does not seem to exist, required for closure compiler, which is optional (define JAVA in ' + hint_config_file_location() + ' if you want it)')
+    logging.info('java does not seem to exist, required for closure compiler, which is optional (define JAVA in ' + hint_config_file_location() + ' if you want it)')
     return False
   if not os.path.exists(CLOSURE_COMPILER):
-    logging.warning('Closure compiler (%s) does not exist, check the paths in %s' % (CLOSURE_COMPILER, EM_CONFIG))
+    logging.info('Closure compiler (%s) does not exist, check the paths in %s' % (CLOSURE_COMPILER, EM_CONFIG))
     return False
   return True
 
@@ -524,7 +524,7 @@ def check_sanity(force=False):
         except Exception, e:
           reason = 'unknown: ' + str(e)
     if reason:
-      logging.warning('(Emscripten: %s, clearing cache)' % reason)
+      logging.info('(Emscripten: %s, clearing cache)' % reason)
       Cache.erase()
       force = False # the check actually failed, so definitely write out the sanity file, to avoid others later seeing failures too
 
@@ -571,7 +571,7 @@ def check_sanity(force=False):
 
     # Sanity check passed!
     if not check_closure_compiler():
-      logging.warning('closure compiler will not be available')
+      logging.info('closure compiler will not be available')
 
     if not force:
       # Only create/update this file if the sanity check succeeded, i.e., we got here
